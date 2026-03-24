@@ -4,28 +4,23 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { ipcBridge } from "@/common";
-import type { IExtensionAgentActivitySnapshot } from "@/common/adapter/ipcBridge";
-import { ExtensionRegistry } from "@process/extensions";
-import type { IConversationRepository } from "@process/services/database/IConversationRepository";
-import type { IWorkerTaskManager } from "@process/task/IWorkerTaskManager";
-import { ActivitySnapshotBuilder } from "./services/ActivitySnapshotBuilder";
+import { ipcBridge } from '@/common';
+import type { IExtensionAgentActivitySnapshot } from '@/common/adapter/ipcBridge';
+import { ExtensionRegistry } from '@process/extensions';
+import type { IConversationRepository } from '@process/services/database/IConversationRepository';
+import type { IWorkerTaskManager } from '@process/task/IWorkerTaskManager';
+import { ActivitySnapshotBuilder } from './services/ActivitySnapshotBuilder';
 
 const ACTIVITY_SNAPSHOT_TTL_MS = 3000;
 
 let activitySnapshotCache: IExtensionAgentActivitySnapshot | null = null;
 let activitySnapshotCachedAt = 0;
-let activitySnapshotInFlight: Promise<IExtensionAgentActivitySnapshot> | null =
-  null;
+let activitySnapshotInFlight: Promise<IExtensionAgentActivitySnapshot> | null = null;
 
 const makeGetActivitySnapshot =
-  (builder: ActivitySnapshotBuilder) =>
-  async (): Promise<IExtensionAgentActivitySnapshot> => {
+  (builder: ActivitySnapshotBuilder) => async (): Promise<IExtensionAgentActivitySnapshot> => {
     const now = Date.now();
-    if (
-      activitySnapshotCache &&
-      now - activitySnapshotCachedAt <= ACTIVITY_SNAPSHOT_TTL_MS
-    ) {
+    if (activitySnapshotCache && now - activitySnapshotCachedAt <= ACTIVITY_SNAPSHOT_TTL_MS) {
       return activitySnapshotCache;
     }
 
@@ -51,20 +46,15 @@ const makeGetActivitySnapshot =
  * Initialize IPC bridge for extension system.
  * Provides extension-contributed themes (and future extension data) to the renderer process.
  */
-export function initExtensionsBridge(
-  repo: IConversationRepository,
-  taskManager: IWorkerTaskManager,
-): void {
-  const getActivitySnapshot = makeGetActivitySnapshot(
-    new ActivitySnapshotBuilder(repo, taskManager),
-  );
+export function initExtensionsBridge(repo: IConversationRepository, taskManager: IWorkerTaskManager): void {
+  const getActivitySnapshot = makeGetActivitySnapshot(new ActivitySnapshotBuilder(repo, taskManager));
   // Get all extension-contributed CSS themes (converted to ICssTheme format)
   ipcBridge.extensions.getThemes.provider(async () => {
     try {
       const registry = ExtensionRegistry.getInstance();
       return registry.getThemes();
     } catch (error) {
-      console.error("[Extensions] Failed to get themes:", error);
+      console.error('[Extensions] Failed to get themes:', error);
       return [];
     }
   });
@@ -85,7 +75,7 @@ export function initExtensionsBridge(
         hasLifecycle: !!(ext.manifest as any).lifecycle,
       }));
     } catch (error) {
-      console.error("[Extensions] Failed to get loaded extensions:", error);
+      console.error('[Extensions] Failed to get loaded extensions:', error);
       return [];
     }
   });
@@ -96,7 +86,7 @@ export function initExtensionsBridge(
       const registry = ExtensionRegistry.getInstance();
       return registry.getAssistants();
     } catch (error) {
-      console.error("[Extensions] Failed to get assistants:", error);
+      console.error('[Extensions] Failed to get assistants:', error);
       return [];
     }
   });
@@ -107,7 +97,7 @@ export function initExtensionsBridge(
       const registry = ExtensionRegistry.getInstance();
       return registry.getAcpAdapters();
     } catch (error) {
-      console.error("[Extensions] Failed to get ACP adapters:", error);
+      console.error('[Extensions] Failed to get ACP adapters:', error);
       return [];
     }
   });
@@ -118,7 +108,7 @@ export function initExtensionsBridge(
       const registry = ExtensionRegistry.getInstance();
       return registry.getAgents();
     } catch (error) {
-      console.error("[Extensions] Failed to get agents:", error);
+      console.error('[Extensions] Failed to get agents:', error);
       return [];
     }
   });
@@ -129,7 +119,7 @@ export function initExtensionsBridge(
       const registry = ExtensionRegistry.getInstance();
       return registry.getMcpServers();
     } catch (error) {
-      console.error("[Extensions] Failed to get MCP servers:", error);
+      console.error('[Extensions] Failed to get MCP servers:', error);
       return [];
     }
   });
@@ -140,7 +130,7 @@ export function initExtensionsBridge(
       const registry = ExtensionRegistry.getInstance();
       return registry.getSkills();
     } catch (error) {
-      console.error("[Extensions] Failed to get skills:", error);
+      console.error('[Extensions] Failed to get skills:', error);
       return [];
     }
   });
@@ -151,7 +141,7 @@ export function initExtensionsBridge(
       const registry = ExtensionRegistry.getInstance();
       return registry.getSettingsTabs();
     } catch (error) {
-      console.error("[Extensions] Failed to get settings tabs:", error);
+      console.error('[Extensions] Failed to get settings tabs:', error);
       return [];
     }
   });
@@ -172,7 +162,7 @@ export function initExtensionsBridge(
         })),
       }));
     } catch (error) {
-      console.error("[Extensions] Failed to get webui contributions:", error);
+      console.error('[Extensions] Failed to get webui contributions:', error);
       return [];
     }
   });
@@ -182,10 +172,7 @@ export function initExtensionsBridge(
     try {
       return await getActivitySnapshot();
     } catch (error) {
-      console.error(
-        "[Extensions] Failed to build agent activity snapshot:",
-        error,
-      );
+      console.error('[Extensions] Failed to build agent activity snapshot:', error);
       return {
         generatedAt: Date.now(),
         totalConversations: 0,
@@ -201,7 +188,7 @@ export function initExtensionsBridge(
       const registry = ExtensionRegistry.getInstance();
       return registry.getExtI18nForLocale(locale);
     } catch (error) {
-      console.error("[Extensions] Failed to get ext i18n for locale:", error);
+      console.error('[Extensions] Failed to get ext i18n for locale:', error);
       return {};
     }
   });
@@ -260,10 +247,7 @@ export function initExtensionsBridge(
       const registry = ExtensionRegistry.getInstance();
       return registry.getExtensionPermissions(name);
     } catch (error) {
-      console.error(
-        `[Extensions] Failed to get permissions for "${name}":`,
-        error,
-      );
+      console.error(`[Extensions] Failed to get permissions for "${name}":`, error);
       return [];
     }
   });
@@ -274,11 +258,8 @@ export function initExtensionsBridge(
       const registry = ExtensionRegistry.getInstance();
       return registry.getExtensionRiskLevel(name);
     } catch (error) {
-      console.error(
-        `[Extensions] Failed to get risk level for "${name}":`,
-        error,
-      );
-      return "safe";
+      console.error(`[Extensions] Failed to get risk level for "${name}":`, error);
+      return 'safe';
     }
   });
 }

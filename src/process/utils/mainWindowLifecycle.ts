@@ -4,10 +4,10 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import type { BrowserWindow } from "electron";
-import { setApplicationMainWindow } from "../bridge/applicationBridge";
-import { setDeepLinkMainWindow } from "./deepLink";
-import { setTrayMainWindow } from "./tray";
+import type { BrowserWindow } from 'electron';
+import { setApplicationMainWindow } from '../bridge/applicationBridge';
+import { setDeepLinkMainWindow } from './deepLink';
+import { setTrayMainWindow } from './tray';
 
 export const bindMainWindowReferences = (window: BrowserWindow): void => {
   setTrayMainWindow(window);

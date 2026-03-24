@@ -9,7 +9,7 @@ import type {
   IChannelPairingRequest,
   IChannelUser,
   IChannelSession,
-} from "@process/channels/types";
+} from '@process/channels/types';
 
 export interface IChannelRepository {
   getChannelPlugins(): Promise<IChannelPluginConfig[]>;

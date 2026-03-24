@@ -4,8 +4,8 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { cronStore, type CronJob } from "./CronStore";
-import type { ICronRepository } from "./ICronRepository";
+import { cronStore, type CronJob } from './CronStore';
+import type { ICronRepository } from './ICronRepository';
 
 /** Thin delegation wrapper around the CronStore singleton. */
 export class SqliteCronRepository implements ICronRepository {

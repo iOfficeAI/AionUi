@@ -4,7 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import type { CronJob } from "./CronStore";
+import type { CronJob } from './CronStore';
 
 export interface ICronRepository {
   insert(job: CronJob): Promise<void>;

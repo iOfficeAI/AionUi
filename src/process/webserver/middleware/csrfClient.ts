@@ -4,16 +4,13 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import * as cookie from "cookie";
-import {
-  CSRF_COOKIE_NAME,
-  CSRF_HEADER_NAME,
-} from "@process/webserver/config/constants";
+import * as cookie from 'cookie';
+import { CSRF_COOKIE_NAME, CSRF_HEADER_NAME } from '@process/webserver/config/constants';
 
 // Read cookie by name in browser environment
 // 在浏览器环境中根据名称读取指定 Cookie
 function readCookie(name: string): string | null {
-  if (typeof document === "undefined") {
+  if (typeof document === 'undefined') {
     return null;
   }
 
@@ -47,14 +44,12 @@ export function withCsrfHeader(headers: HeadersInit = {}): HeadersInit {
 
   if (Array.isArray(headers)) {
     // [[name, value]] format
-    const normalized = headers.filter(
-      ([name]) => name.toLowerCase() !== CSRF_HEADER_NAME.toLowerCase(),
-    );
+    const normalized = headers.filter(([name]) => name.toLowerCase() !== CSRF_HEADER_NAME.toLowerCase());
     normalized.push([CSRF_HEADER_NAME, token]);
     return normalized;
   }
 
-  if (typeof headers === "object" && headers !== null) {
+  if (typeof headers === 'object' && headers !== null) {
     const plainHeaders: Record<string, string> = {
       ...(headers as Record<string, string>),
     };
@@ -80,7 +75,7 @@ export function withCsrfToken<T = unknown>(body: T): T & { _csrf?: string } {
     return { _csrf: token } as T & { _csrf?: string };
   }
 
-  if (typeof body === "object" && !Array.isArray(body)) {
+  if (typeof body === 'object' && !Array.isArray(body)) {
     return { ...body, _csrf: token };
   }
 

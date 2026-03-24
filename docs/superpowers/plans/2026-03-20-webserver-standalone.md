@@ -14,18 +14,19 @@
 
 PR#1583 (refactor/process-structure) reorganised the source tree. All paths in this plan reflect the **current** structure after that merge:
 
-| Old path (pre-PR#1583) | New path (current) |
-|------------------------|-------------------|
-| `src/adapter/main.ts` | `src/common/adapter/main.ts` |
-| `src/adapter/browser.ts` | `src/common/adapter/browser.ts` |
-| `src/webserver/` | `src/process/webserver/` |
-| `src/worker/` | `src/process/worker/` |
-| `src/process/initBridge.ts` | `src/process/utils/initBridge.ts` |
+| Old path (pre-PR#1583)       | New path (current)                 |
+| ---------------------------- | ---------------------------------- |
+| `src/adapter/main.ts`        | `src/common/adapter/main.ts`       |
+| `src/adapter/browser.ts`     | `src/common/adapter/browser.ts`    |
+| `src/webserver/`             | `src/process/webserver/`           |
+| `src/worker/`                | `src/process/worker/`              |
+| `src/process/initBridge.ts`  | `src/process/utils/initBridge.ts`  |
 | `src/process/initStorage.ts` | `src/process/utils/initStorage.ts` |
-| `src/process/utils.ts` | `src/process/utils/utils.ts` |
-| `src/process/database/` | `src/process/services/database/` |
+| `src/process/utils.ts`       | `src/process/utils/utils.ts`       |
+| `src/process/database/`      | `src/process/services/database/`   |
 
 Path aliases (tsconfig + electron.vite.config.ts):
+
 - `@/` → `src/`
 - `@process/` → `src/process/`
 - `@worker/` → `src/process/worker/`
@@ -34,20 +35,20 @@ Path aliases (tsconfig + electron.vite.config.ts):
 
 ## File Map
 
-| File | Action | Purpose |
-|------|--------|---------|
-| `src/common/adapter/registry.ts` | **Create** | Shared broadcaster list + bridge emitter ref; zero Electron deps |
-| `src/common/adapter/standalone.ts` | **Create** | EventEmitter bridge adapter; replaces `ipcMain` for standalone mode |
-| `src/process/bridge/webuiQR.ts` | **Create** | QR helpers extracted from `webuiBridge.ts`; zero Electron deps |
-| `src/process/utils/initBridgeStandalone.ts` | **Create** | Bridge initialiser that skips 10 Electron-only bridges |
-| `src/server.ts` | **Create** | Standalone entry point: reads env vars, inits storage + bridges, starts server |
-| `Dockerfile` | **Create** | node:20-slim image; bun build; VOLUME /data; EXPOSE 3000 |
-| `src/common/adapter/main.ts` | **Modify** | Move `webSocketBroadcasters`, `bridgeEmitter`, helpers → `registry.ts` |
-| `src/process/webserver/adapter.ts` | **Modify** | 1-line: import from `@/common/adapter/registry` not `@/common/adapter/main` |
-| `src/process/webserver/index.ts` | **Modify** | 1-line: import `generateQRLoginUrlDirect` from `@process/bridge/webuiQR` |
-| `src/process/bridge/webuiBridge.ts` | **Modify** | Import QR helpers from `./webuiQR` instead of defining them locally |
-| `src/process/utils/initStorage.ts` | **Modify** | Guard `app.getAppPath()`/`app.isPackaged`/`app.getPath('logs')`; add `DATA_DIR` env var; guard IPC provider call |
-| `package.json` | **Modify** | Add `server` and `build:server` scripts |
+| File                                        | Action     | Purpose                                                                                                          |
+| ------------------------------------------- | ---------- | ---------------------------------------------------------------------------------------------------------------- |
+| `src/common/adapter/registry.ts`            | **Create** | Shared broadcaster list + bridge emitter ref; zero Electron deps                                                 |
+| `src/common/adapter/standalone.ts`          | **Create** | EventEmitter bridge adapter; replaces `ipcMain` for standalone mode                                              |
+| `src/process/bridge/webuiQR.ts`             | **Create** | QR helpers extracted from `webuiBridge.ts`; zero Electron deps                                                   |
+| `src/process/utils/initBridgeStandalone.ts` | **Create** | Bridge initialiser that skips 10 Electron-only bridges                                                           |
+| `src/server.ts`                             | **Create** | Standalone entry point: reads env vars, inits storage + bridges, starts server                                   |
+| `Dockerfile`                                | **Create** | node:20-slim image; bun build; VOLUME /data; EXPOSE 3000                                                         |
+| `src/common/adapter/main.ts`                | **Modify** | Move `webSocketBroadcasters`, `bridgeEmitter`, helpers → `registry.ts`                                           |
+| `src/process/webserver/adapter.ts`          | **Modify** | 1-line: import from `@/common/adapter/registry` not `@/common/adapter/main`                                      |
+| `src/process/webserver/index.ts`            | **Modify** | 1-line: import `generateQRLoginUrlDirect` from `@process/bridge/webuiQR`                                         |
+| `src/process/bridge/webuiBridge.ts`         | **Modify** | Import QR helpers from `./webuiQR` instead of defining them locally                                              |
+| `src/process/utils/initStorage.ts`          | **Modify** | Guard `app.getAppPath()`/`app.isPackaged`/`app.getPath('logs')`; add `DATA_DIR` env var; guard IPC provider call |
+| `package.json`                              | **Modify** | Add `server` and `build:server` scripts                                                                          |
 
 ---
 
@@ -60,6 +61,7 @@ grep -r "from 'electron'" src/process/bridge/ --include="*.ts" -l
 ```
 
 Expected output (exactly these 8 files — all in the skip list):
+
 ```
 src/process/bridge/webuiBridge.ts
 src/process/bridge/notificationBridge.ts
@@ -80,6 +82,7 @@ If any other bridge appears in that output, add it to the skip list in Task 6.
 Extract shared WebSocket broadcaster registry and bridge emitter reference from `main.ts` into a new zero-Electron module.
 
 **Files:**
+
 - Create: `src/common/adapter/registry.ts`
 - Create: `src/common/adapter/__tests__/registry.test.ts`
 
@@ -87,38 +90,38 @@ Extract shared WebSocket broadcaster registry and bridge emitter reference from 
 
 ```typescript
 // src/common/adapter/__tests__/registry.test.ts
-import { describe, it, expect, beforeEach, vi } from 'vitest'
+import { describe, it, expect, beforeEach, vi } from 'vitest';
 
 // Reset module state between tests
 const resetRegistry = async () => {
-  vi.resetModules()
-}
+  vi.resetModules();
+};
 
 describe('registry', () => {
   it('registerWebSocketBroadcaster adds and removes broadcasters', async () => {
-    const { registerWebSocketBroadcaster, broadcastToAll } = await import('../registry')
-    const received: Array<{ name: string; data: unknown }> = []
-    const unregister = registerWebSocketBroadcaster((name, data) => received.push({ name, data }))
-    broadcastToAll('test.event', { msg: 'hello' })
-    expect(received).toHaveLength(1)
-    expect(received[0]).toEqual({ name: 'test.event', data: { msg: 'hello' } })
-    unregister()
-    broadcastToAll('test.event', { msg: 'world' })
-    expect(received).toHaveLength(1) // no new calls after unregister
-  })
+    const { registerWebSocketBroadcaster, broadcastToAll } = await import('../registry');
+    const received: Array<{ name: string; data: unknown }> = [];
+    const unregister = registerWebSocketBroadcaster((name, data) => received.push({ name, data }));
+    broadcastToAll('test.event', { msg: 'hello' });
+    expect(received).toHaveLength(1);
+    expect(received[0]).toEqual({ name: 'test.event', data: { msg: 'hello' } });
+    unregister();
+    broadcastToAll('test.event', { msg: 'world' });
+    expect(received).toHaveLength(1); // no new calls after unregister
+  });
 
   it('getBridgeEmitter returns null initially', async () => {
-    const { getBridgeEmitter } = await import('../registry')
-    expect(getBridgeEmitter()).toBeNull()
-  })
+    const { getBridgeEmitter } = await import('../registry');
+    expect(getBridgeEmitter()).toBeNull();
+  });
 
   it('setBridgeEmitter + getBridgeEmitter round-trip', async () => {
-    const { setBridgeEmitter, getBridgeEmitter } = await import('../registry')
-    const fakeEmitter = { emit: (name: string, data: unknown) => undefined }
-    setBridgeEmitter(fakeEmitter)
-    expect(getBridgeEmitter()).toBe(fakeEmitter)
-  })
-})
+    const { setBridgeEmitter, getBridgeEmitter } = await import('../registry');
+    const fakeEmitter = { emit: (name: string, data: unknown) => undefined };
+    setBridgeEmitter(fakeEmitter);
+    expect(getBridgeEmitter()).toBe(fakeEmitter);
+  });
+});
 ```
 
 - [x] **Step 1.2: Run tests — expect FAIL (module not found)**
@@ -137,22 +140,22 @@ Expected: `Cannot find module '../registry'`
  * No Electron imports — safe to use in both Electron main process and standalone mode.
  */
 
-type WebSocketBroadcastFn = (name: string, data: unknown) => void
+type WebSocketBroadcastFn = (name: string, data: unknown) => void;
 
-const webSocketBroadcasters: WebSocketBroadcastFn[] = []
+const webSocketBroadcasters: WebSocketBroadcastFn[] = [];
 
-let bridgeEmitter: { emit: (name: string, data: unknown) => unknown } | null = null
+let bridgeEmitter: { emit: (name: string, data: unknown) => unknown } | null = null;
 
 /**
  * Register a WebSocket broadcast function.
  * Returns an unregister function.
  */
 export function registerWebSocketBroadcaster(fn: WebSocketBroadcastFn): () => void {
-  webSocketBroadcasters.push(fn)
+  webSocketBroadcasters.push(fn);
   return () => {
-    const idx = webSocketBroadcasters.indexOf(fn)
-    if (idx > -1) webSocketBroadcasters.splice(idx, 1)
-  }
+    const idx = webSocketBroadcasters.indexOf(fn);
+    if (idx > -1) webSocketBroadcasters.splice(idx, 1);
+  };
 }
 
 /**
@@ -161,15 +164,15 @@ export function registerWebSocketBroadcaster(fn: WebSocketBroadcastFn): () => vo
 export function broadcastToAll(name: string, data: unknown): void {
   for (const broadcast of webSocketBroadcasters) {
     try {
-      broadcast(name, data)
+      broadcast(name, data);
     } catch (error) {
-      console.error('[registry] WebSocket broadcast error:', error)
+      console.error('[registry] WebSocket broadcast error:', error);
     }
   }
 }
 
 export function getBridgeEmitter(): typeof bridgeEmitter {
-  return bridgeEmitter
+  return bridgeEmitter;
 }
 
 /**
@@ -177,7 +180,7 @@ export function getBridgeEmitter(): typeof bridgeEmitter {
  * net-new — no equivalent existed in main.ts.
  */
 export function setBridgeEmitter(emitter: typeof bridgeEmitter): void {
-  bridgeEmitter = emitter
+  bridgeEmitter = emitter;
 }
 ```
 
@@ -201,6 +204,7 @@ git commit -m "feat(adapter): add shared registry for WebSocket broadcasters and
 Remove the duplicate state definitions from `main.ts` and delegate to `registry.ts`. Behaviour is unchanged.
 
 **Files:**
+
 - Modify: `src/common/adapter/main.ts`
 
 - [x] **Step 2.1: Run existing tests to establish baseline**
@@ -280,6 +284,7 @@ git commit -m "refactor(adapter): delegate broadcaster/emitter state to registry
 Change the import source from `@/common/adapter/main` to `@/common/adapter/registry`.
 
 **Files:**
+
 - Modify: `src/process/webserver/adapter.ts`
 
 - [x] **Step 3.1: Apply the 1-line change**
@@ -313,6 +318,7 @@ git commit -m "refactor(webserver): import broadcaster/emitter from registry ins
 `webserver/index.ts` statically imports `generateQRLoginUrlDirect` from `webuiBridge.ts`, which has `import { ipcMain } from 'electron'` at the top level. This crashes the standalone server. Fix: extract the two pure functions into a new Electron-free file.
 
 **Files:**
+
 - Create: `src/process/bridge/webuiQR.ts`
 - Modify: `src/process/bridge/webuiBridge.ts`
 - Modify: `src/process/webserver/index.ts`
@@ -321,45 +327,45 @@ git commit -m "refactor(webserver): import broadcaster/emitter from registry ins
 
 ```typescript
 // src/process/bridge/__tests__/webuiQR.test.ts
-import { describe, it, expect } from 'vitest'
-import { generateQRLoginUrlDirect, verifyQRTokenDirect } from '../webuiQR'
+import { describe, it, expect } from 'vitest';
+import { generateQRLoginUrlDirect, verifyQRTokenDirect } from '../webuiQR';
 
 describe('generateQRLoginUrlDirect', () => {
   it('returns a qrUrl and expiresAt', () => {
-    const result = generateQRLoginUrlDirect(3000, false)
-    expect(result.qrUrl).toMatch(/^http:\/\/localhost:3000\/qr-login\?token=/)
-    expect(result.expiresAt).toBeGreaterThan(Date.now())
-  })
+    const result = generateQRLoginUrlDirect(3000, false);
+    expect(result.qrUrl).toMatch(/^http:\/\/localhost:3000\/qr-login\?token=/);
+    expect(result.expiresAt).toBeGreaterThan(Date.now());
+  });
 
   it('uses LAN IP when allowRemote=true and LAN IP available', () => {
     // getLanIP may return null in CI — just verify the shape is correct
-    const result = generateQRLoginUrlDirect(3000, true)
-    expect(result.qrUrl).toMatch(/\/qr-login\?token=/)
-  })
-})
+    const result = generateQRLoginUrlDirect(3000, true);
+    expect(result.qrUrl).toMatch(/\/qr-login\?token=/);
+  });
+});
 
 describe('verifyQRTokenDirect', () => {
   it('rejects an unknown token', async () => {
-    const result = await verifyQRTokenDirect('bad-token')
-    expect(result.success).toBe(false)
-  })
+    const result = await verifyQRTokenDirect('bad-token');
+    expect(result.success).toBe(false);
+  });
 
   it('accepts a freshly generated token', async () => {
-    const { qrUrl } = generateQRLoginUrlDirect(3000, false)
-    const token = new URL(qrUrl).searchParams.get('token')!
-    const result = await verifyQRTokenDirect(token, '127.0.0.1')
-    expect(result.success).toBe(true)
-    expect(result.data?.sessionToken).toBeTruthy()
-  })
+    const { qrUrl } = generateQRLoginUrlDirect(3000, false);
+    const token = new URL(qrUrl).searchParams.get('token')!;
+    const result = await verifyQRTokenDirect(token, '127.0.0.1');
+    expect(result.success).toBe(true);
+    expect(result.data?.sessionToken).toBeTruthy();
+  });
 
   it('rejects a token used twice', async () => {
-    const { qrUrl } = generateQRLoginUrlDirect(3000, false)
-    const token = new URL(qrUrl).searchParams.get('token')!
-    await verifyQRTokenDirect(token, '127.0.0.1')
-    const second = await verifyQRTokenDirect(token, '127.0.0.1')
-    expect(second.success).toBe(false)
-  })
-})
+    const { qrUrl } = generateQRLoginUrlDirect(3000, false);
+    const token = new URL(qrUrl).searchParams.get('token')!;
+    await verifyQRTokenDirect(token, '127.0.0.1');
+    const second = await verifyQRTokenDirect(token, '127.0.0.1');
+    expect(second.success).toBe(false);
+  });
+});
 ```
 
 - [x] **Step 4.2: Run tests — expect FAIL**
@@ -373,6 +379,7 @@ Expected: `Cannot find module '../webuiQR'`
 - [x] **Step 4.3: Create `src/process/bridge/webuiQR.ts`**
 
 Move the following code **verbatim** from `webuiBridge.ts` into this new file (no Electron imports needed):
+
 - The `qrTokenStore` map and `QR_TOKEN_EXPIRY` constant
 - `generateQRLoginUrlDirect()`
 - `verifyQRTokenDirect()`
@@ -392,18 +399,18 @@ Template:
  * QR login helpers — no Electron imports.
  * Shared between webuiBridge.ts (Electron mode) and webserver/index.ts (standalone mode).
  */
-import crypto from 'crypto'
-import { AuthService } from '@process/webserver/auth/service/AuthService'
-import { UserRepository } from '@process/webserver/auth/repository/UserRepository'
-import { SERVER_CONFIG } from '@process/webserver/config/constants'
-import { WebuiService } from './services/WebuiService'
+import crypto from 'crypto';
+import { AuthService } from '@process/webserver/auth/service/AuthService';
+import { UserRepository } from '@process/webserver/auth/repository/UserRepository';
+import { SERVER_CONFIG } from '@process/webserver/config/constants';
+import { WebuiService } from './services/WebuiService';
 
-const qrTokenStore = new Map<string, { expiresAt: number; used: boolean; allowLocalOnly: boolean }>()
-const QR_TOKEN_EXPIRY = 5 * 60 * 1000
+const qrTokenStore = new Map<string, { expiresAt: number; used: boolean; allowLocalOnly: boolean }>();
+const QR_TOKEN_EXPIRY = 5 * 60 * 1000;
 
 // ... (paste cleanupExpiredTokens, isLocalIP, generateQRLoginUrlDirect, verifyQRTokenDirect)
 
-export { generateQRLoginUrlDirect, verifyQRTokenDirect }
+export { generateQRLoginUrlDirect, verifyQRTokenDirect };
 ```
 
 - [x] **Step 4.4: Update `webuiBridge.ts`** — replace the local definitions with an import from `./webuiQR`:
@@ -450,6 +457,7 @@ git commit -m "feat(bridge): extract QR login helpers to webuiQR.ts (no Electron
 The standalone bridge adapter: uses Node.js `EventEmitter` in place of `ipcMain`.
 
 **Files:**
+
 - Create: `src/common/adapter/standalone.ts`
 - Create: `src/common/adapter/__tests__/standalone.test.ts`
 
@@ -459,7 +467,7 @@ The standalone bridge adapter: uses Node.js `EventEmitter` in place of `ipcMain`
 
 ```typescript
 // src/common/adapter/__tests__/standalone.test.ts
-import { describe, it, expect, vi, beforeEach } from 'vitest'
+import { describe, it, expect, vi, beforeEach } from 'vitest';
 
 // Mock @office-ai/platform bridge before importing standalone
 vi.mock('@office-ai/platform', () => ({
@@ -468,41 +476,41 @@ vi.mock('@office-ai/platform', () => ({
       // Simulate bridge calling on() with a fake emitter ref
       const fakeEmitter = {
         emit: vi.fn((name: string, data: unknown) => ({ name, data })),
-      }
-      on(fakeEmitter)
+      };
+      on(fakeEmitter);
     }),
   },
-}))
+}));
 
 // Mock registry
-const mockBroadcastToAll = vi.fn()
-const mockSetBridgeEmitter = vi.fn()
+const mockBroadcastToAll = vi.fn();
+const mockSetBridgeEmitter = vi.fn();
 vi.mock('../registry', () => ({
   broadcastToAll: mockBroadcastToAll,
   setBridgeEmitter: mockSetBridgeEmitter,
-}))
+}));
 
 describe('standalone adapter', () => {
   beforeEach(() => {
-    vi.clearAllMocks()
-    vi.resetModules()
-  })
+    vi.clearAllMocks();
+    vi.resetModules();
+  });
 
   it('calls setBridgeEmitter on load', async () => {
-    await import('../standalone')
-    expect(mockSetBridgeEmitter).toHaveBeenCalledOnce()
-  })
+    await import('../standalone');
+    expect(mockSetBridgeEmitter).toHaveBeenCalledOnce();
+  });
 
   it('dispatchMessage routes through EventEmitter to bridge emitter', async () => {
-    const { dispatchMessage } = await import('../standalone')
+    const { dispatchMessage } = await import('../standalone');
     // setBridgeEmitter was called with fakeEmitter — get it
-    const fakeEmitter = mockSetBridgeEmitter.mock.calls[0][0] as { emit: ReturnType<typeof vi.fn> }
-    dispatchMessage('conv.message', { text: 'hello' })
+    const fakeEmitter = mockSetBridgeEmitter.mock.calls[0][0] as { emit: ReturnType<typeof vi.fn> };
+    dispatchMessage('conv.message', { text: 'hello' });
     // Allow microtask queue to flush
-    await new Promise((r) => setTimeout(r, 0))
-    expect(fakeEmitter.emit).toHaveBeenCalledWith('conv.message', { text: 'hello' })
-  })
-})
+    await new Promise((r) => setTimeout(r, 0));
+    expect(fakeEmitter.emit).toHaveBeenCalledWith('conv.message', { text: 'hello' });
+  });
+});
 ```
 
 - [x] **Step 5.2: Run tests — expect FAIL**
@@ -519,34 +527,34 @@ bun run test src/common/adapter/__tests__/standalone.test.ts
  * Import this module ONLY in the standalone entry point (src/server.ts).
  * Never import alongside src/common/adapter/main.ts in the same process.
  */
-import { EventEmitter } from 'events'
-import { bridge } from '@office-ai/platform'
-import { broadcastToAll, setBridgeEmitter } from './registry'
+import { EventEmitter } from 'events';
+import { bridge } from '@office-ai/platform';
+import { broadcastToAll, setBridgeEmitter } from './registry';
 
-const internalEmitter = new EventEmitter()
-internalEmitter.setMaxListeners(100)
+const internalEmitter = new EventEmitter();
+internalEmitter.setMaxListeners(100);
 
 bridge.adapter({
   emit(name, data) {
     // Broadcast to all connected WebSocket clients
-    broadcastToAll(name, data)
+    broadcastToAll(name, data);
   },
   on(bridgeEmitterRef) {
     // Persist reference so webserver/adapter.ts can route incoming WS messages
-    setBridgeEmitter(bridgeEmitterRef)
+    setBridgeEmitter(bridgeEmitterRef);
     // Route messages dispatched via dispatchMessage() into the bridge handlers
     internalEmitter.on('message', ({ name, data }: { name: string; data: unknown }) => {
-      bridgeEmitterRef.emit(name, data)
-    })
+      bridgeEmitterRef.emit(name, data);
+    });
   },
-})
+});
 
 /**
  * Called by webserver/adapter.ts for each incoming WebSocket message.
  * Routes the message through the internal EventEmitter into the bridge handlers.
  */
 export function dispatchMessage(name: string, data: unknown): void {
-  internalEmitter.emit('message', { name, data })
+  internalEmitter.emit('message', { name, data });
 }
 ```
 
@@ -571,6 +579,7 @@ git commit -m "feat(adapter): add standalone EventEmitter bridge adapter"
 Bridge initialiser for standalone mode. Identical structure to `initBridge.ts` but skips 10 Electron-only bridges.
 
 **Files:**
+
 - Create: `src/process/utils/initBridgeStandalone.ts`
 
 **Bridges to skip (Electron-specific):**
@@ -596,54 +605,54 @@ Model this directly on `initBridge.ts`, keeping identical dependency wiring but 
  * Bridge initialiser for standalone (no-Electron) mode.
  * Skips 10 Electron-only bridges — see docs/superpowers/specs/2026-03-20-webserver-standalone-design.md
  */
-import { logger } from '@office-ai/platform'
-import { SqliteChannelRepository } from '@process/services/database/SqliteChannelRepository'
-import { SqliteConversationRepository } from '@process/services/database/SqliteConversationRepository'
-import { ConversationServiceImpl } from '@process/services/ConversationServiceImpl'
-import { workerTaskManager } from '@process/task/workerTaskManagerSingleton'
-import { initAcpConversationBridge } from '@process/bridge/acpConversationBridge'
-import { initAuthBridge } from '@process/bridge/authBridge'
-import { initBedrockBridge } from '@process/bridge/bedrockBridge'
-import { initChannelBridge } from '@process/bridge/channelBridge'
-import { initConversationBridge } from '@process/bridge/conversationBridge'
-import { initDatabaseBridge } from '@process/bridge/databaseBridge'
-import { initDocumentBridge } from '@process/bridge/documentBridge'
-import { initExtensionsBridge } from '@process/bridge/extensionsBridge'
-import { initFileWatchBridge } from '@process/bridge/fileWatchBridge'
-import { initGeminiBridge } from '@process/bridge/geminiBridge'
-import { initGeminiConversationBridge } from '@process/bridge/geminiConversationBridge'
-import { initModelBridge } from '@process/bridge/modelBridge'
-import { initPreviewHistoryBridge } from '@process/bridge/previewHistoryBridge'
-import { initStarOfficeBridge } from '@process/bridge/starOfficeBridge'
-import { initSystemSettingsBridge } from '@process/bridge/systemSettingsBridge'
-import { initTaskBridge } from '@process/bridge/taskBridge'
+import { logger } from '@office-ai/platform';
+import { SqliteChannelRepository } from '@process/services/database/SqliteChannelRepository';
+import { SqliteConversationRepository } from '@process/services/database/SqliteConversationRepository';
+import { ConversationServiceImpl } from '@process/services/ConversationServiceImpl';
+import { workerTaskManager } from '@process/task/workerTaskManagerSingleton';
+import { initAcpConversationBridge } from '@process/bridge/acpConversationBridge';
+import { initAuthBridge } from '@process/bridge/authBridge';
+import { initBedrockBridge } from '@process/bridge/bedrockBridge';
+import { initChannelBridge } from '@process/bridge/channelBridge';
+import { initConversationBridge } from '@process/bridge/conversationBridge';
+import { initDatabaseBridge } from '@process/bridge/databaseBridge';
+import { initDocumentBridge } from '@process/bridge/documentBridge';
+import { initExtensionsBridge } from '@process/bridge/extensionsBridge';
+import { initFileWatchBridge } from '@process/bridge/fileWatchBridge';
+import { initGeminiBridge } from '@process/bridge/geminiBridge';
+import { initGeminiConversationBridge } from '@process/bridge/geminiConversationBridge';
+import { initModelBridge } from '@process/bridge/modelBridge';
+import { initPreviewHistoryBridge } from '@process/bridge/previewHistoryBridge';
+import { initStarOfficeBridge } from '@process/bridge/starOfficeBridge';
+import { initSystemSettingsBridge } from '@process/bridge/systemSettingsBridge';
+import { initTaskBridge } from '@process/bridge/taskBridge';
 
-logger.config({ print: true })
+logger.config({ print: true });
 
 export function initBridgeStandalone(): void {
-  const repo = new SqliteConversationRepository()
-  const conversationService = new ConversationServiceImpl(repo)
-  const channelRepo = new SqliteChannelRepository()
+  const repo = new SqliteConversationRepository();
+  const conversationService = new ConversationServiceImpl(repo);
+  const channelRepo = new SqliteChannelRepository();
 
   // Skipped (Electron-only): dialogBridge, shellBridge, fsBridge, applicationBridge,
   // windowControlsBridge, updateBridge, webuiBridge, notificationBridge, cronBridge, mcpBridge
 
-  initFileWatchBridge()
-  initConversationBridge(conversationService, workerTaskManager)
-  initGeminiConversationBridge(workerTaskManager)
-  initGeminiBridge()
-  initBedrockBridge()
-  initAcpConversationBridge(workerTaskManager)
-  initAuthBridge()
-  initModelBridge()
-  initPreviewHistoryBridge()
-  initDocumentBridge()
-  initChannelBridge(channelRepo)
-  initDatabaseBridge(repo)
-  initExtensionsBridge(repo, workerTaskManager)
-  initSystemSettingsBridge()
-  initTaskBridge(workerTaskManager)
-  initStarOfficeBridge()
+  initFileWatchBridge();
+  initConversationBridge(conversationService, workerTaskManager);
+  initGeminiConversationBridge(workerTaskManager);
+  initGeminiBridge();
+  initBedrockBridge();
+  initAcpConversationBridge(workerTaskManager);
+  initAuthBridge();
+  initModelBridge();
+  initPreviewHistoryBridge();
+  initDocumentBridge();
+  initChannelBridge(channelRepo);
+  initDatabaseBridge(repo);
+  initExtensionsBridge(repo, workerTaskManager);
+  initSystemSettingsBridge();
+  initTaskBridge(workerTaskManager);
+  initStarOfficeBridge();
 }
 ```
 
@@ -671,6 +680,7 @@ git commit -m "feat(process): add initBridgeStandalone — bridge init without E
 The existing `src/process/utils/utils.ts` already exports `hasElectronAppPath()` which guards against this case.
 
 **Files:**
+
 - Modify: `src/process/utils/initStorage.ts`
 
 **Changes needed:**
@@ -752,6 +762,7 @@ git commit -m "fix(storage): guard Electron-only calls and add DATA_DIR env var 
 ## Task 8: Create `src/server.ts` — standalone entry point
 
 **Files:**
+
 - Create: `src/server.ts`
 
 - [x] **Step 8.1: Create `src/server.ts`**
@@ -766,35 +777,35 @@ git commit -m "fix(storage): guard Electron-only calls and add DATA_DIR env var 
  */
 
 // Must be first import — calls bridge.adapter() at module load time
-import './common/adapter/standalone'
+import './common/adapter/standalone';
 
-import { initBridgeStandalone } from './process/utils/initBridgeStandalone'
-import { startWebServerWithInstance } from './process/webserver'
-import initStorage from './process/utils/initStorage'
+import { initBridgeStandalone } from './process/utils/initBridgeStandalone';
+import { startWebServerWithInstance } from './process/webserver';
+import initStorage from './process/utils/initStorage';
 
-const PORT = parseInt(process.env.PORT ?? '3000', 10)
-const ALLOW_REMOTE = process.env.ALLOW_REMOTE === 'true'
+const PORT = parseInt(process.env.PORT ?? '3000', 10);
+const ALLOW_REMOTE = process.env.ALLOW_REMOTE === 'true';
 
 // Initialize storage (respects DATA_DIR env var)
-await initStorage()
+await initStorage();
 
 // Register all non-Electron bridge handlers
-initBridgeStandalone()
+initBridgeStandalone();
 
 // Start the WebServer
-const instance = await startWebServerWithInstance(PORT, ALLOW_REMOTE)
+const instance = await startWebServerWithInstance(PORT, ALLOW_REMOTE);
 
-console.log(`[server] WebUI running on http://${ALLOW_REMOTE ? '0.0.0.0' : 'localhost'}:${PORT}`)
+console.log(`[server] WebUI running on http://${ALLOW_REMOTE ? '0.0.0.0' : 'localhost'}:${PORT}`);
 
 // Graceful shutdown
 const shutdown = () => {
-  console.log('[server] Shutting down...')
-  instance.wss.clients.forEach((ws) => ws.close(1000, 'Server shutting down'))
-  instance.server.close(() => process.exit(0))
-  setTimeout(() => process.exit(1), 5000)
-}
-process.on('SIGTERM', shutdown)
-process.on('SIGINT', shutdown)
+  console.log('[server] Shutting down...');
+  instance.wss.clients.forEach((ws) => ws.close(1000, 'Server shutting down'));
+  instance.server.close(() => process.exit(0));
+  setTimeout(() => process.exit(1), 5000);
+};
+process.on('SIGTERM', shutdown);
+process.on('SIGINT', shutdown);
 ```
 
 > **Top-level `await`:** Bun natively supports top-level await in ESM modules. Node.js 18+ also supports it in `.mjs` files. The `bun build --target node` output handles this correctly.
@@ -817,6 +828,7 @@ git commit -m "feat: add standalone server entry point (src/server.ts)"
 ## Task 9: Add `package.json` scripts
 
 **Files:**
+
 - Modify: `package.json`
 
 - [x] **Step 9.1: Add scripts**
@@ -840,6 +852,7 @@ git commit -m "chore: add server and build:server npm scripts"
 ## Task 10: Create `Dockerfile`
 
 **Files:**
+
 - Create: `Dockerfile`
 
 - [x] **Step 10.1: Create `Dockerfile`**
@@ -885,6 +898,7 @@ git commit -m "feat: add Dockerfile for standalone server deployment"
 Verify that `src/server.ts` and its entire transitive import tree contain no `electron` references.
 
 **Files:**
+
 - Read: (no file changes)
 
 - [x] **Step 11.1: Run import audit**
@@ -929,6 +943,7 @@ PORT=3000 bun run server
 ```
 
 Expected output:
+
 ```
 [server] WebUI running on http://localhost:3000
 ```
@@ -1023,10 +1038,10 @@ Before marking this feature complete:
 
 ## Known Risks and Mitigations
 
-| Risk | Mitigation |
-|------|------------|
-| `bridge.adapter()` called twice if `main.ts` and `standalone.ts` both loaded | `server.ts` must never import `main.ts`; guard comment in both files |
-| Additional Electron imports in bridges not yet audited | Run pre-implementation audit (see top of plan); add any found bridges to skip list in Task 6 |
-| `mcpBridge` unavailable in standalone — MCP tools not usable | Acceptable for MVP; can be enabled later once `McpProtocol.ts` removes `app.getPath()` |
-| `cronBridge` unavailable — scheduled tasks not usable | Acceptable for MVP; requires `CronService` to remove `powerSaveBlocker` |
-| `initBuiltinAssistantRules()` skipped in standalone — builtin assistant configs absent | Acceptable; server users configure assistants manually |
+| Risk                                                                                   | Mitigation                                                                                   |
+| -------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------- |
+| `bridge.adapter()` called twice if `main.ts` and `standalone.ts` both loaded           | `server.ts` must never import `main.ts`; guard comment in both files                         |
+| Additional Electron imports in bridges not yet audited                                 | Run pre-implementation audit (see top of plan); add any found bridges to skip list in Task 6 |
+| `mcpBridge` unavailable in standalone — MCP tools not usable                           | Acceptable for MVP; can be enabled later once `McpProtocol.ts` removes `app.getPath()`       |
+| `cronBridge` unavailable — scheduled tasks not usable                                  | Acceptable for MVP; requires `CronService` to remove `powerSaveBlocker`                      |
+| `initBuiltinAssistantRules()` skipped in standalone — builtin assistant configs absent | Acceptable; server users configure assistants manually                                       |

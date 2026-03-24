@@ -30,7 +30,7 @@ export interface IPlatformPaths {
    * Well-known system paths (desktop, home, downloads).
    * Returns null in standalone mode.
    */
-  getSystemPath(name: "desktop" | "home" | "downloads"): string | null;
+  getSystemPath(name: 'desktop' | 'home' | 'downloads'): string | null;
   /** Application name used for MCP client identification. */
   getName(): string;
   /** Application version string used for MCP client identification. */
@@ -61,11 +61,7 @@ export interface IWorkerProcess {
  * Replaces utilityProcess.fork() in Electron and child_process.fork() in Node.js.
  */
 export interface IWorkerProcessFactory {
-  fork(
-    modulePath: string,
-    args: string[],
-    options: { cwd?: string; env?: Record<string, string> },
-  ): IWorkerProcess;
+  fork(modulePath: string, args: string[], options: { cwd?: string; env?: Record<string, string> }): IWorkerProcess;
 }
 
 /**

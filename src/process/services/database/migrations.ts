@@ -135,7 +135,9 @@ const migration_v6: IMigration = {
   },
   down: (db) => {
     // SQLite doesn't support DROP COLUMN directly, need to recreate table
-    db.exec('CREATE TABLE users_backup AS SELECT id, username, email, password_hash, avatar_path, created_at, updated_at, last_login FROM users');
+    db.exec(
+      'CREATE TABLE users_backup AS SELECT id, username, email, password_hash, avatar_path, created_at, updated_at, last_login FROM users'
+    );
     db.exec('DROP TABLE users');
     db.exec('ALTER TABLE users_backup RENAME TO users');
     db.exec('CREATE INDEX IF NOT EXISTS idx_users_username ON users(username)');
@@ -178,7 +180,9 @@ const migration_v7: IMigration = {
         session_id TEXT,
         UNIQUE(platform_user_id, platform_type)
       )`);
-    db.exec('CREATE INDEX IF NOT EXISTS idx_assistant_users_platform ON assistant_users(platform_type, platform_user_id)');
+    db.exec(
+      'CREATE INDEX IF NOT EXISTS idx_assistant_users_platform ON assistant_users(platform_type, platform_user_id)'
+    );
 
     // User sessions
     db.exec(`CREATE TABLE IF NOT EXISTS assistant_sessions (
@@ -436,7 +440,9 @@ const migration_v12: IMigration = {
     // so DROP TABLE will NOT trigger ON DELETE CASCADE on the messages table.
 
     // Clean up any invalid source values before copying
-    db.exec(`UPDATE conversations SET source = NULL WHERE source IS NOT NULL AND source NOT IN ('aionui', 'telegram', 'lark')`);
+    db.exec(
+      `UPDATE conversations SET source = NULL WHERE source IS NOT NULL AND source NOT IN ('aionui', 'telegram', 'lark')`
+    );
 
     db.exec(`CREATE TABLE IF NOT EXISTS conversations_new (
         id TEXT PRIMARY KEY,
@@ -600,7 +606,9 @@ const migration_v14: IMigration = {
     // 2. Recreate conversations with 'dingtalk' in source constraint
     // NOTE: The migration runner disables foreign_keys before the transaction,
     // so DROP TABLE will NOT trigger ON DELETE CASCADE on the messages table.
-    db.exec(`UPDATE conversations SET source = NULL WHERE source IS NOT NULL AND source NOT IN ('aionui', 'telegram', 'lark', 'dingtalk')`);
+    db.exec(
+      `UPDATE conversations SET source = NULL WHERE source IS NOT NULL AND source NOT IN ('aionui', 'telegram', 'lark', 'dingtalk')`
+    );
 
     db.exec(`CREATE TABLE IF NOT EXISTS conversations_new (
         id TEXT PRIMARY KEY,
@@ -626,7 +634,9 @@ const migration_v14: IMigration = {
     db.exec('CREATE INDEX IF NOT EXISTS idx_conversations_user_updated ON conversations(user_id, updated_at DESC)');
     db.exec('CREATE INDEX IF NOT EXISTS idx_conversations_source ON conversations(source)');
     db.exec('CREATE INDEX IF NOT EXISTS idx_conversations_source_updated ON conversations(source, updated_at DESC)');
-    db.exec('CREATE INDEX IF NOT EXISTS idx_conversations_source_chat ON conversations(source, channel_chat_id, updated_at DESC)');
+    db.exec(
+      'CREATE INDEX IF NOT EXISTS idx_conversations_source_chat ON conversations(source, channel_chat_id, updated_at DESC)'
+    );
 
     // 3. Add chat_id to assistant_sessions for per-chat session isolation
     const sessTableInfo = db.prepare('PRAGMA table_info(assistant_sessions)').all() as Array<{ name: string }>;
@@ -742,7 +752,9 @@ const migration_v15: IMigration = {
     db.exec('CREATE INDEX IF NOT EXISTS idx_conversations_user_updated ON conversations(user_id, updated_at DESC)');
     db.exec('CREATE INDEX IF NOT EXISTS idx_conversations_source ON conversations(source)');
     db.exec('CREATE INDEX IF NOT EXISTS idx_conversations_source_updated ON conversations(source, updated_at DESC)');
-    db.exec('CREATE INDEX IF NOT EXISTS idx_conversations_source_chat ON conversations(source, channel_chat_id, updated_at DESC)');
+    db.exec(
+      'CREATE INDEX IF NOT EXISTS idx_conversations_source_chat ON conversations(source, channel_chat_id, updated_at DESC)'
+    );
 
     console.log('[Migration v15] Removed strict constraints for extension channels');
   },
@@ -902,9 +914,7 @@ export function rollbackMigrations(db: ISqliteDriver, fromVersion: number, toVer
  * Get migration history
  * Now simplified - just returns the current version
  */
-export function getMigrationHistory(
-  db: ISqliteDriver
-): Array<{ version: number; name: string; timestamp: number }> {
+export function getMigrationHistory(db: ISqliteDriver): Array<{ version: number; name: string; timestamp: number }> {
   const currentVersion = db.pragma('user_version', { simple: true }) as number;
 
   // Return a simple array with just the current version

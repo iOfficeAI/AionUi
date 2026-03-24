@@ -7,16 +7,13 @@ type WebSocketBroadcastFn = (name: string, data: unknown) => void;
 
 const webSocketBroadcasters: WebSocketBroadcastFn[] = [];
 
-let bridgeEmitter: { emit: (name: string, data: unknown) => unknown } | null =
-  null;
+let bridgeEmitter: { emit: (name: string, data: unknown) => unknown } | null = null;
 
 /**
  * Register a WebSocket broadcast function.
  * Returns an unregister function.
  */
-export function registerWebSocketBroadcaster(
-  fn: WebSocketBroadcastFn,
-): () => void {
+export function registerWebSocketBroadcaster(fn: WebSocketBroadcastFn): () => void {
   webSocketBroadcasters.push(fn);
   return () => {
     const idx = webSocketBroadcasters.indexOf(fn);
@@ -32,7 +29,7 @@ export function broadcastToAll(name: string, data: unknown): void {
     try {
       broadcast(name, data);
     } catch (error) {
-      console.error("[registry] WebSocket broadcast error:", error);
+      console.error('[registry] WebSocket broadcast error:', error);
     }
   }
 }

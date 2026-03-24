@@ -4,16 +4,13 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import type { BrowserWindow } from "electron";
-import { app } from "electron";
-import { ipcBridge } from "@/common";
-import type { IWorkerTaskManager } from "@process/task/IWorkerTaskManager";
-import { getZoomFactor, setZoomFactor } from "@process/utils/zoom";
-import {
-  getCdpStatus,
-  updateCdpConfig,
-} from "@process/utils/configureChromium";
-import { initApplicationBridgeCore } from "./applicationBridgeCore";
+import type { BrowserWindow } from 'electron';
+import { app } from 'electron';
+import { ipcBridge } from '@/common';
+import type { IWorkerTaskManager } from '@process/task/IWorkerTaskManager';
+import { getZoomFactor, setZoomFactor } from '@process/utils/zoom';
+import { getCdpStatus, updateCdpConfig } from '@process/utils/configureChromium';
+import { initApplicationBridgeCore } from './applicationBridgeCore';
 
 let mainWindowRef: BrowserWindow | null = null;
 
@@ -21,9 +18,7 @@ export function setApplicationMainWindow(win: BrowserWindow): void {
   mainWindowRef = win;
 }
 
-export function initApplicationBridge(
-  workerTaskManager: IWorkerTaskManager,
-): void {
+export function initApplicationBridge(workerTaskManager: IWorkerTaskManager): void {
   // Platform-agnostic handlers: systemInfo, updateSystemInfo, getPath
   initApplicationBridgeCore();
 
@@ -54,15 +49,15 @@ export function initApplicationBridge(
       } else {
         return new Promise((resolve) => {
           const onOpened = () => {
-            win.webContents.off("devtools-opened", onOpened);
+            win.webContents.off('devtools-opened', onOpened);
             resolve(true);
           };
 
-          win.webContents.once("devtools-opened", onOpened);
+          win.webContents.once('devtools-opened', onOpened);
           win.webContents.openDevTools();
 
           setTimeout(() => {
-            win.webContents.off("devtools-opened", onOpened);
+            win.webContents.off('devtools-opened', onOpened);
             if (win.isDestroyed()) {
               resolve(false);
               return;
@@ -75,9 +70,7 @@ export function initApplicationBridge(
     return Promise.resolve(false);
   });
 
-  ipcBridge.application.getZoomFactor.provider(() =>
-    Promise.resolve(getZoomFactor()),
-  );
+  ipcBridge.application.getZoomFactor.provider(() => Promise.resolve(getZoomFactor()));
 
   ipcBridge.application.setZoomFactor.provider(({ factor }) => {
     return Promise.resolve(setZoomFactor(factor));

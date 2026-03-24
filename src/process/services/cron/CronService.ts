@@ -4,19 +4,19 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { ipcBridge } from "@/common";
-import type { CronMessageMeta, TMessage } from "@/common/chat/chatLib";
-import { uuid } from "@/common/utils";
-import { addMessage } from "@process/utils/message";
-import { getPlatformServices } from "@/common/platform";
-import { Cron } from "croner";
-import i18n, { i18nReady } from "@process/services/i18n";
-import type { IConversationRepository } from "@process/services/database/IConversationRepository";
-import { ProcessConfig } from "@process/utils/initStorage";
-import type { CronJob, CronSchedule } from "./CronStore";
-import type { ICronRepository } from "./ICronRepository";
-import type { ICronEventEmitter } from "./ICronEventEmitter";
-import type { ICronJobExecutor } from "./ICronJobExecutor";
+import { ipcBridge } from '@/common';
+import type { CronMessageMeta, TMessage } from '@/common/chat/chatLib';
+import { uuid } from '@/common/utils';
+import { addMessage } from '@process/utils/message';
+import { getPlatformServices } from '@/common/platform';
+import { Cron } from 'croner';
+import i18n, { i18nReady } from '@process/services/i18n';
+import type { IConversationRepository } from '@process/services/database/IConversationRepository';
+import { ProcessConfig } from '@process/utils/initStorage';
+import type { CronJob, CronSchedule } from './CronStore';
+import type { ICronRepository } from './ICronRepository';
+import type { ICronEventEmitter } from './ICronEventEmitter';
+import type { ICronJobExecutor } from './ICronJobExecutor';
 
 /**
  * Parameters for creating a new cron job
@@ -27,8 +27,8 @@ export type CreateCronJobParams = {
   message: string;
   conversationId: string;
   conversationTitle?: string;
-  agentType: import("@/common/types/acpTypes").AcpBackendAll;
-  createdBy: "user" | "agent";
+  agentType: import('@/common/types/acpTypes').AcpBackendAll;
+  createdBy: 'user' | 'agent';
 };
 
 /**
@@ -48,7 +48,7 @@ export class CronService {
     private readonly repo: ICronRepository,
     private readonly emitter: ICronEventEmitter,
     private readonly executor: ICronJobExecutor,
-    private readonly conversationRepo: IConversationRepository,
+    private readonly conversationRepo: IConversationRepository
   ) {}
 
   /**
@@ -72,7 +72,7 @@ export class CronService {
       this.initialized = true;
       await this.updatePowerBlocker();
     } catch (error) {
-      console.error("[CronService] Initialization failed:", error);
+      console.error('[CronService] Initialization failed:', error);
       throw error;
     }
   }
@@ -85,12 +85,10 @@ export class CronService {
     try {
       const allJobs = await this.repo.listAll();
       for (const job of allJobs) {
-        const conversation = await this.conversationRepo.getConversation(
-          job.metadata.conversationId,
-        );
+        const conversation = await this.conversationRepo.getConversation(job.metadata.conversationId);
         if (!conversation) {
           console.log(
-            `[CronService] Removing orphan job "${job.name}" (${job.id}): conversation ${job.metadata.conversationId} not found`,
+            `[CronService] Removing orphan job "${job.name}" (${job.id}): conversation ${job.metadata.conversationId} not found`
           );
           this.stopTimer(job.id);
           await this.repo.delete(job.id);
@@ -98,7 +96,7 @@ export class CronService {
         }
       }
     } catch (error) {
-      console.warn("[CronService] Failed to cleanup orphan jobs:", error);
+      console.warn('[CronService] Failed to cleanup orphan jobs:', error);
     }
   }
 
@@ -108,16 +106,14 @@ export class CronService {
    */
   async addJob(params: CreateCronJobParams): Promise<CronJob> {
     // Check if conversation already has a cron job (one job per conversation limit)
-    const existingJobs = await this.repo.listByConversation(
-      params.conversationId,
-    );
+    const existingJobs = await this.repo.listByConversation(params.conversationId);
     if (existingJobs.length > 0) {
       const existingJob = existingJobs[0];
       throw new Error(
-        i18n.t("cron:error.alreadyExists", {
+        i18n.t('cron:error.alreadyExists', {
           name: existingJob.name,
           id: existingJob.id,
-        }),
+        })
       );
     }
 
@@ -130,7 +126,7 @@ export class CronService {
       enabled: true,
       schedule: params.schedule,
       target: {
-        payload: { kind: "message", text: params.message },
+        payload: { kind: 'message', text: params.message },
       },
       metadata: {
         conversationId: params.conversationId,
@@ -159,10 +155,7 @@ export class CronService {
         modifyTime: now,
       });
     } catch (err) {
-      console.warn(
-        "[CronService] Failed to update conversation modifyTime:",
-        err,
-      );
+      console.warn('[CronService] Failed to update conversation modifyTime:', err);
     }
 
     // Start timer
@@ -259,7 +252,7 @@ export class CronService {
     const { schedule } = job;
 
     switch (schedule.kind) {
-      case "cron": {
+      case 'cron': {
         const timer = new Cron(
           schedule.expr,
           {
@@ -268,7 +261,7 @@ export class CronService {
           },
           () => {
             void this.executeJob(job);
-          },
+          }
         );
         this.timers.set(job.id, timer);
 
@@ -280,7 +273,7 @@ export class CronService {
         break;
       }
 
-      case "every": {
+      case 'every': {
         const timer = setInterval(() => {
           void this.executeJob(job);
         }, schedule.everyMs);
@@ -293,7 +286,7 @@ export class CronService {
         break;
       }
 
-      case "at": {
+      case 'at': {
         const delay = schedule.atMs - Date.now();
         if (delay > 0) {
           const timer = setTimeout(() => {
@@ -310,8 +303,8 @@ export class CronService {
         } else {
           // Past one-time job, mark as expired and disable
           job.state.nextRunAtMs = undefined;
-          job.state.lastStatus = "skipped";
-          job.state.lastError = i18n.t("cron:error.scheduledTimePassed");
+          job.state.lastStatus = 'skipped';
+          job.state.lastError = i18n.t('cron:error.scheduledTimePassed');
           job.enabled = false;
           await this.repo.update(job.id, { enabled: false, state: job.state });
           this.emitter.emitJobUpdated(job);
@@ -368,8 +361,8 @@ export class CronService {
         await this.repo.update(job.id, {
           state: {
             ...job.state,
-            lastStatus: "skipped",
-            lastError: i18n.t("cron:error.conversationBusy", {
+            lastStatus: 'skipped',
+            lastError: i18n.t('cron:error.conversationBusy', {
               count: job.state.maxRetries || 3,
             }),
           },
@@ -392,7 +385,7 @@ export class CronService {
 
     const lastRunAtMs = Date.now();
     const currentRunCount = (job.state.runCount ?? 0) + 1;
-    let lastStatus: CronJob["state"]["lastStatus"];
+    let lastStatus: CronJob['state']['lastStatus'];
     let lastError: string | undefined;
 
     try {
@@ -405,7 +398,7 @@ export class CronService {
 
       // Success
       this.retryCounts.delete(job.id);
-      lastStatus = "ok";
+      lastStatus = 'ok';
       lastError = undefined;
 
       // Update conversation modifyTime so it appears at the top of the list
@@ -414,14 +407,11 @@ export class CronService {
           modifyTime: Date.now(),
         });
       } catch (err) {
-        console.warn(
-          "[CronService] Failed to update conversation modifyTime after execution:",
-          err,
-        );
+        console.warn('[CronService] Failed to update conversation modifyTime after execution:', err);
       }
     } catch (error) {
       // Error
-      lastStatus = "error";
+      lastStatus = 'error';
       lastError = error instanceof Error ? error.message : String(error);
       console.error(`[CronService] Job ${job.id} failed:`, error);
     }
@@ -454,23 +444,19 @@ export class CronService {
 
     this.executor.onceIdle(conversationId, async () => {
       // Check if cron notification is enabled
-      const cronNotificationEnabled = await ProcessConfig.get(
-        "system.cronNotificationEnabled",
-      );
+      const cronNotificationEnabled = await ProcessConfig.get('system.cronNotificationEnabled');
       if (!cronNotificationEnabled) return;
 
       await i18nReady;
 
-      const title = i18n.t("cron.notification.scheduledTaskComplete", {
+      const title = i18n.t('cron.notification.scheduledTaskComplete', {
         title: job.metadata.conversationTitle || job.name,
       });
-      const body = i18n.t("cron.notification.taskDone");
+      const body = i18n.t('cron.notification.taskDone');
 
-      this.emitter
-        .showNotification({ title, body, conversationId })
-        .catch((err) => {
-          console.warn("[CronService] Failed to show notification:", err);
-        });
+      this.emitter.showNotification({ title, body, conversationId }).catch((err) => {
+        console.warn('[CronService] Failed to show notification:', err);
+      });
     });
   }
 
@@ -481,7 +467,7 @@ export class CronService {
     const { schedule } = job;
 
     switch (schedule.kind) {
-      case "cron": {
+      case 'cron': {
         try {
           const cron = new Cron(schedule.expr, { timezone: schedule.tz });
           const next = cron.nextRun();
@@ -492,14 +478,13 @@ export class CronService {
         break;
       }
 
-      case "every": {
+      case 'every': {
         job.state.nextRunAtMs = Date.now() + schedule.everyMs;
         break;
       }
 
-      case "at": {
-        job.state.nextRunAtMs =
-          schedule.atMs > Date.now() ? schedule.atMs : undefined;
+      case 'at': {
+        job.state.nextRunAtMs = schedule.atMs > Date.now() ? schedule.atMs : undefined;
         break;
       }
     }
@@ -513,7 +498,7 @@ export class CronService {
   async handleSystemResume(): Promise<void> {
     if (!this.initialized) return;
 
-    console.log("[CronService] System resumed, checking for missed jobs...");
+    console.log('[CronService] System resumed, checking for missed jobs...');
     const now = Date.now();
     const jobs = await this.repo.listEnabled();
 
@@ -524,13 +509,11 @@ export class CronService {
       // Check if job was missed during sleep
       const nextRunAt = job.state.nextRunAtMs;
       if (nextRunAt && nextRunAt <= now) {
-        console.log(
-          `[CronService] Missed job "${job.name}" (was due at ${new Date(nextRunAt).toISOString()})`,
-        );
+        console.log(`[CronService] Missed job "${job.name}" (was due at ${new Date(nextRunAt).toISOString()})`);
 
         // Update job state to reflect missed execution
-        job.state.lastStatus = "missed";
-        job.state.lastError = i18n.t("cron:error.missedJob", {
+        job.state.lastStatus = 'missed';
+        job.state.lastError = i18n.t('cron:error.missedJob', {
           name: job.name,
           time: new Date(nextRunAt).toLocaleString(),
         });
@@ -558,7 +541,7 @@ export class CronService {
     const { conversationId } = job.metadata;
     const scheduledTime = new Date(scheduledAtMs).toLocaleString();
     const msgId = uuid();
-    const content = i18n.t("cron:error.missedJob", {
+    const content = i18n.t('cron:error.missedJob', {
       name: job.name,
       time: scheduledTime,
     });
@@ -567,21 +550,21 @@ export class CronService {
     const message: TMessage = {
       id: msgId,
       msg_id: msgId,
-      type: "tips",
-      position: "center",
+      type: 'tips',
+      position: 'center',
       conversation_id: conversationId,
-      content: { content, type: "warning" as const },
+      content: { content, type: 'warning' as const },
       createdAt: Date.now(),
-      status: "finish",
+      status: 'finish',
     };
     addMessage(conversationId, message);
 
     // Emit to frontend so it shows immediately if conversation is open
     ipcBridge.conversation.responseStream.emit({
-      type: "tips",
+      type: 'tips',
       conversation_id: conversationId,
       msg_id: msgId,
-      data: { content, type: "warning" },
+      data: { content, type: 'warning' },
     });
   }
 
@@ -597,18 +580,16 @@ export class CronService {
     if (hasEnabledJobs && this.powerSaveBlockerId === null) {
       try {
         this.powerSaveBlockerId = getPlatformServices().power.preventSleep();
-        console.log(
-          "[CronService] PowerSaveBlocker started (prevent-app-suspension)",
-        );
+        console.log('[CronService] PowerSaveBlocker started (prevent-app-suspension)');
       } catch (error) {
-        console.warn("[CronService] Failed to start powerSaveBlocker:", error);
+        console.warn('[CronService] Failed to start powerSaveBlocker:', error);
       }
     } else if (!hasEnabledJobs && this.powerSaveBlockerId !== null) {
       try {
         getPlatformServices().power.allowSleep(this.powerSaveBlockerId);
-        console.log("[CronService] PowerSaveBlocker stopped (no active jobs)");
+        console.log('[CronService] PowerSaveBlocker stopped (no active jobs)');
       } catch (error) {
-        console.warn("[CronService] Failed to stop powerSaveBlocker:", error);
+        console.warn('[CronService] Failed to stop powerSaveBlocker:', error);
       }
       this.powerSaveBlockerId = null;
     }
@@ -639,4 +620,4 @@ export class CronService {
 }
 
 // Re-export types
-export type { CronJob, CronSchedule } from "./CronStore";
+export type { CronJob, CronSchedule } from './CronStore';

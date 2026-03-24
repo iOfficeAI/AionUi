@@ -4,11 +4,11 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { app } from "electron";
-import http from "http";
-import * as fs from "fs";
-import * as path from "path";
-import os from "os";
+import { app } from 'electron';
+import http from 'http';
+import * as fs from 'fs';
+import * as path from 'path';
+import os from 'os';
 
 // ============ Environment Separation ============
 // MUST be the very first code to run: set app name before any getPath() call.
@@ -16,18 +16,18 @@ import os from "os";
 // 开发模式下设置独立 app 名称，userData 目录将与正式版隔离，允许同时运行
 // 这必须在所有其他代码之前执行，因为 getPath('userData') 会锁定当前的 app 名称
 if (!app.isPackaged) {
-  app.setName("AionUi-Dev");
+  app.setName('AionUi-Dev');
   // In Electron 28+, setName alone no longer updates userData path on macOS.
   // Explicitly override userData to the AionUi-Dev directory.
-  const appSupportDir = path.dirname(app.getPath("userData"));
-  app.setPath("userData", path.join(appSupportDir, "AionUi-Dev"));
+  const appSupportDir = path.dirname(app.getPath('userData'));
+  app.setPath('userData', path.join(appSupportDir, 'AionUi-Dev'));
 }
 
 // Configure Chromium command-line flags for WebUI and CLI modes
 // 为 WebUI 和 CLI 模式配置 Chromium 命令行参数
 
-const isWebUI = process.argv.some((arg) => arg === "--webui");
-const isResetPassword = process.argv.includes("--resetpass");
+const isWebUI = process.argv.some((arg) => arg === '--webui');
+const isResetPassword = process.argv.includes('--resetpass');
 
 // Only configure flags for WebUI and --resetpass modes
 // 仅为 WebUI 和重置密码模式配置参数
@@ -37,16 +37,16 @@ if (isWebUI || isResetPassword) {
   // Note: Do NOT use --headless (browser automation mode that causes auto-exit).
   // Instead, use --ozone-platform=headless which provides a proper display backend
   // without requiring a display server, keeping the Electron process alive.
-  if (process.platform === "linux" && !process.env.DISPLAY) {
-    app.commandLine.appendSwitch("ozone-platform", "headless");
-    app.commandLine.appendSwitch("disable-gpu");
-    app.commandLine.appendSwitch("disable-software-rasterizer");
+  if (process.platform === 'linux' && !process.env.DISPLAY) {
+    app.commandLine.appendSwitch('ozone-platform', 'headless');
+    app.commandLine.appendSwitch('disable-gpu');
+    app.commandLine.appendSwitch('disable-software-rasterizer');
   }
 
   // For root user, disable sandbox to prevent crash
   // 对于 root 用户，禁用沙箱以防止崩溃
-  if (typeof process.getuid === "function" && process.getuid() === 0) {
-    app.commandLine.appendSwitch("no-sandbox");
+  if (typeof process.getuid === 'function' && process.getuid() === 0) {
+    app.commandLine.appendSwitch('no-sandbox');
   }
 }
 
@@ -69,8 +69,8 @@ if (isWebUI || isResetPassword) {
 export const DEFAULT_CDP_PORT = 9230;
 export const CDP_PORT_RANGE_START = 9230;
 export const CDP_PORT_RANGE_END = 9250;
-const CDP_REGISTRY_FILE = path.join(os.homedir(), ".aionui-cdp-registry.json");
-const CDP_CONFIG_FILE = "cdp.config.json";
+const CDP_REGISTRY_FILE = path.join(os.homedir(), '.aionui-cdp-registry.json');
+const CDP_CONFIG_FILE = 'cdp.config.json';
 
 /** CDP configuration stored in userData directory */
 export interface CdpConfig {
@@ -108,7 +108,7 @@ export interface CdpStatus {
 function readRegistry(): CdpRegistryEntry[] {
   try {
     if (!fs.existsSync(CDP_REGISTRY_FILE)) return [];
-    const raw = fs.readFileSync(CDP_REGISTRY_FILE, "utf-8");
+    const raw = fs.readFileSync(CDP_REGISTRY_FILE, 'utf-8');
     const parsed = JSON.parse(raw);
     return Array.isArray(parsed) ? parsed : [];
   } catch {
@@ -119,14 +119,10 @@ function readRegistry(): CdpRegistryEntry[] {
 /** Write the CDP registry file atomically. */
 function writeRegistry(entries: CdpRegistryEntry[]): void {
   try {
-    fs.writeFileSync(
-      CDP_REGISTRY_FILE,
-      JSON.stringify(entries, null, 2),
-      "utf-8",
-    );
+    fs.writeFileSync(CDP_REGISTRY_FILE, JSON.stringify(entries, null, 2), 'utf-8');
   } catch {
     // Non-critical — log but don't crash
-    console.warn("[CDP] Failed to write CDP registry file");
+    console.warn('[CDP] Failed to write CDP registry file');
   }
 }
 
@@ -160,7 +156,7 @@ function findAvailablePort(preferredPort: number): number {
   }
 
   console.log(
-    `[CDP] Port ${preferredPort} is occupied by another AionUi instance, scanning range ${CDP_PORT_RANGE_START}-${CDP_PORT_RANGE_END}`,
+    `[CDP] Port ${preferredPort} is occupied by another AionUi instance, scanning range ${CDP_PORT_RANGE_START}-${CDP_PORT_RANGE_END}`
   );
 
   for (let p = CDP_PORT_RANGE_START; p <= CDP_PORT_RANGE_END; p++) {
@@ -171,7 +167,7 @@ function findAvailablePort(preferredPort: number): number {
   }
 
   console.warn(
-    `[CDP] All ports in range ${CDP_PORT_RANGE_START}-${CDP_PORT_RANGE_END} are used by active AionUi instances, trying ${preferredPort}`,
+    `[CDP] All ports in range ${CDP_PORT_RANGE_START}-${CDP_PORT_RANGE_END} are used by active AionUi instances, trying ${preferredPort}`
   );
   return preferredPort;
 }
@@ -208,16 +204,16 @@ export function unregisterInstance(): void {
 function loadCdpConfig(): CdpConfig {
   try {
     // Try to get userData path - this works even before app.ready
-    const userDataPath = app.getPath("userData");
+    const userDataPath = app.getPath('userData');
     const configPath = path.join(userDataPath, CDP_CONFIG_FILE);
 
     if (!fs.existsSync(configPath)) {
       return {};
     }
 
-    const raw = fs.readFileSync(configPath, "utf-8");
+    const raw = fs.readFileSync(configPath, 'utf-8');
     const parsed = JSON.parse(raw);
-    if (parsed && typeof parsed === "object") {
+    if (parsed && typeof parsed === 'object') {
       return parsed as CdpConfig;
     }
   } catch {
@@ -231,11 +227,11 @@ function loadCdpConfig(): CdpConfig {
  */
 export function saveCdpConfig(config: CdpConfig): void {
   try {
-    const userDataPath = app.getPath("userData");
+    const userDataPath = app.getPath('userData');
     const configPath = path.join(userDataPath, CDP_CONFIG_FILE);
-    fs.writeFileSync(configPath, JSON.stringify(config, null, 2), "utf-8");
+    fs.writeFileSync(configPath, JSON.stringify(config, null, 2), 'utf-8');
   } catch (error) {
-    console.warn("[CDP] Failed to save CDP config:", error);
+    console.warn('[CDP] Failed to save CDP config:', error);
   }
 }
 
@@ -245,7 +241,7 @@ export function saveCdpConfig(config: CdpConfig): void {
  */
 function resolveCdpPortFromEnv(): number | null | undefined {
   const envVal = process.env.AIONUI_CDP_PORT;
-  if (envVal === "0" || envVal === "false") return null;
+  if (envVal === '0' || envVal === 'false') return null;
   if (envVal) {
     const parsed = Number(envVal);
     return Number.isFinite(parsed) && parsed > 0 ? parsed : null;
@@ -259,7 +255,7 @@ function resolveCdpPortFromEnv(): number | null | undefined {
  */
 function shouldEnableCdp(config: CdpConfig): boolean {
   const envVal = process.env.AIONUI_CDP_PORT;
-  if (envVal === "0" || envVal === "false") return false;
+  if (envVal === '0' || envVal === 'false') return false;
   if (envVal) return true;
 
   if (app.isPackaged) {
@@ -305,56 +301,43 @@ cdpStartupEnabled = shouldEnableCdp(cdpConfig);
 if (cdpStartupEnabled) {
   const preferredPort = getPreferredPort(cdpConfig);
   const port = findAvailablePort(preferredPort);
-  app.commandLine.appendSwitch("remote-debugging-port", String(port));
+  app.commandLine.appendSwitch('remote-debugging-port', String(port));
   cdpPort = port;
   registerInstance(port);
 
   // Log CDP initialization
-  console.log("[CDP] Chrome DevTools Protocol enabled");
+  console.log('[CDP] Chrome DevTools Protocol enabled');
   console.log(`[CDP] Remote debugging port: ${port}`);
   console.log(`[CDP] DevTools URL: http://127.0.0.1:${port}`);
-  console.log(
-    "[CDP] MCP chrome-devtools connection: --browser-url=http://127.0.0.1:" +
-      port,
-  );
+  console.log('[CDP] MCP chrome-devtools connection: --browser-url=http://127.0.0.1:' + port);
 
   // Clean up registry on exit - handle multiple exit signals
   const cleanup = () => unregisterInstance();
-  process.on("exit", cleanup);
-  process.on("SIGINT", cleanup);
-  process.on("SIGTERM", cleanup);
+  process.on('exit', cleanup);
+  process.on('SIGINT', cleanup);
+  process.on('SIGTERM', cleanup);
   // Handle Windows specific signals
-  if (process.platform === "win32") {
-    process.on("SIGBREAK", cleanup);
+  if (process.platform === 'win32') {
+    process.on('SIGBREAK', cleanup);
   }
 } else {
-  console.log("[CDP] Chrome DevTools Protocol disabled");
+  console.log('[CDP] Chrome DevTools Protocol disabled');
 }
 
 /**
  * Verify CDP remote debugging is actually accessible after app starts.
  * Retries several times with delay to account for startup time.
  */
-export async function verifyCdpReady(
-  port: number,
-  maxRetries = 5,
-  retryDelay = 800,
-): Promise<boolean> {
+export async function verifyCdpReady(port: number, maxRetries = 5, retryDelay = 800): Promise<boolean> {
   for (let i = 0; i < maxRetries; i++) {
     const ok = await new Promise<boolean>((resolve) => {
-      const req = http.get(
-        `http://127.0.0.1:${port}/json/version`,
-        { timeout: 2000 },
-        (res) => {
-          let data = "";
-          res.on("data", (chunk) => (data += chunk));
-          res.on("end", () =>
-            resolve(res.statusCode === 200 && data.length > 0),
-          );
-        },
-      );
-      req.on("error", () => resolve(false));
-      req.on("timeout", () => {
+      const req = http.get(`http://127.0.0.1:${port}/json/version`, { timeout: 2000 }, (res) => {
+        let data = '';
+        res.on('data', (chunk) => (data += chunk));
+        res.on('end', () => resolve(res.statusCode === 200 && data.length > 0));
+      });
+      req.on('error', () => resolve(false));
+      req.on('timeout', () => {
         req.destroy();
         resolve(false);
       });

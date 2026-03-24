@@ -4,34 +4,27 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { acpDetector } from "@process/agent/acp/AcpDetector";
-import { AcpConnection } from "@process/agent/acp/AcpConnection";
-import {
-  buildAcpModelInfo,
-  summarizeAcpModelInfo,
-} from "@process/agent/acp/modelInfo";
-import { CodexConnection } from "@process/agent/codex/connection/CodexConnection";
-import type { IWorkerTaskManager } from "@process/task/IWorkerTaskManager";
-import AcpAgentManager from "@process/task/AcpAgentManager";
-import CodexAgentManager from "@process/task/CodexAgentManager";
-import { GeminiAgentManager } from "@process/task/GeminiAgentManager";
-import { mcpService } from "@/process/services/mcpServices/McpService";
-import { mainLog, mainWarn } from "@/process/utils/mainLogger";
-import { ipcBridge } from "@/common";
-import * as os from "os";
+import { acpDetector } from '@process/agent/acp/AcpDetector';
+import { AcpConnection } from '@process/agent/acp/AcpConnection';
+import { buildAcpModelInfo, summarizeAcpModelInfo } from '@process/agent/acp/modelInfo';
+import { CodexConnection } from '@process/agent/codex/connection/CodexConnection';
+import type { IWorkerTaskManager } from '@process/task/IWorkerTaskManager';
+import AcpAgentManager from '@process/task/AcpAgentManager';
+import CodexAgentManager from '@process/task/CodexAgentManager';
+import { GeminiAgentManager } from '@process/task/GeminiAgentManager';
+import { mcpService } from '@/process/services/mcpServices/McpService';
+import { mainLog, mainWarn } from '@/process/utils/mainLogger';
+import { ipcBridge } from '@/common';
+import * as os from 'os';
 
-export function initAcpConversationBridge(
-  workerTaskManager: IWorkerTaskManager,
-): void {
+export function initAcpConversationBridge(workerTaskManager: IWorkerTaskManager): void {
   // Debug provider to check environment variables
   ipcBridge.acpConversation.checkEnv.provider(() => {
     return Promise.resolve({
       env: {
-        GEMINI_API_KEY: process.env.GEMINI_API_KEY ? "[SET]" : "[NOT SET]",
-        GOOGLE_CLOUD_PROJECT: process.env.GOOGLE_CLOUD_PROJECT
-          ? "[SET]"
-          : "[NOT SET]",
-        NODE_ENV: process.env.NODE_ENV || "[NOT SET]",
+        GEMINI_API_KEY: process.env.GEMINI_API_KEY ? '[SET]' : '[NOT SET]',
+        GOOGLE_CLOUD_PROJECT: process.env.GOOGLE_CLOUD_PROJECT ? '[SET]' : '[NOT SET]',
+        NODE_ENV: process.env.NODE_ENV || '[NOT SET]',
       },
     });
   });
@@ -64,7 +57,7 @@ export function initAcpConversationBridge(
     } catch (error) {
       return Promise.resolve({
         success: false,
-        msg: error instanceof Error ? error.message : "Unknown error",
+        msg: error instanceof Error ? error.message : 'Unknown error',
       });
     }
   });
@@ -77,7 +70,7 @@ export function initAcpConversationBridge(
     } catch (error) {
       return {
         success: false,
-        msg: error instanceof Error ? error.message : "Unknown error",
+        msg: error instanceof Error ? error.message : 'Unknown error',
       };
     }
   });
@@ -92,34 +85,29 @@ export function initAcpConversationBridge(
     const agent = agents.find((a) => a.backend === backend);
 
     // Skip CLI check for claude/codebuddy (uses npx) and codex (has its own detection)
-    if (
-      !agent?.cliPath &&
-      backend !== "claude" &&
-      backend !== "codebuddy" &&
-      backend !== "codex"
-    ) {
+    if (!agent?.cliPath && backend !== 'claude' && backend !== 'codebuddy' && backend !== 'codex') {
       return {
         success: false,
         msg: `${backend} CLI not found`,
-        data: { available: false, error: "CLI not installed" },
+        data: { available: false, error: 'CLI not installed' },
       };
     }
 
     const tempDir = os.tmpdir();
 
     // Step 2: Handle Codex separately - it uses MCP protocol, not ACP
-    if (backend === "codex") {
+    if (backend === 'codex') {
       const codexConnection = new CodexConnection();
       try {
         // Start Codex MCP server
-        await codexConnection.start(agent?.cliPath || "codex", tempDir);
+        await codexConnection.start(agent?.cliPath || 'codex', tempDir);
 
         // Wait for server to be ready and ping it
         await codexConnection.waitForServerReady(15000);
         const pingResult = await codexConnection.ping(5000);
 
         if (!pingResult) {
-          throw new Error("Codex server not responding to ping");
+          throw new Error('Codex server not responding to ping');
         }
 
         const latency = Date.now() - startTime;
@@ -140,11 +128,11 @@ export function initAcpConversationBridge(
         const lowerError = errorMsg.toLowerCase();
 
         if (
-          lowerError.includes("auth") ||
-          lowerError.includes("login") ||
-          lowerError.includes("api key") ||
-          lowerError.includes("not found") ||
-          lowerError.includes("command not found")
+          lowerError.includes('auth') ||
+          lowerError.includes('login') ||
+          lowerError.includes('api key') ||
+          lowerError.includes('not found') ||
+          lowerError.includes('command not found')
         ) {
           return {
             success: false,
@@ -166,19 +154,14 @@ export function initAcpConversationBridge(
 
     try {
       // Connect to the agent
-      await connection.connect(
-        backend,
-        agent?.cliPath,
-        tempDir,
-        agent?.acpArgs,
-      );
+      await connection.connect(backend, agent?.cliPath, tempDir, agent?.acpArgs);
 
       // Create a new session
       await connection.newSession(tempDir);
 
       // Send a minimal test message - just need to verify we can communicate
       // Using a simple prompt that should get a quick response
-      await connection.sendPrompt("hi");
+      await connection.sendPrompt('hi');
 
       // If we get here, the agent responded successfully
       const latency = Date.now() - startTime;
@@ -203,17 +186,17 @@ export function initAcpConversationBridge(
 
       // Check for authentication-related errors
       if (
-        lowerError.includes("auth") ||
-        lowerError.includes("login") ||
-        lowerError.includes("credential") ||
-        lowerError.includes("api key") ||
-        lowerError.includes("unauthorized") ||
-        lowerError.includes("forbidden")
+        lowerError.includes('auth') ||
+        lowerError.includes('login') ||
+        lowerError.includes('credential') ||
+        lowerError.includes('api key') ||
+        lowerError.includes('unauthorized') ||
+        lowerError.includes('forbidden')
       ) {
         return {
           success: false,
           msg: `${backend} not authenticated`,
-          data: { available: false, error: "Not authenticated" },
+          data: { available: false, error: 'Not authenticated' },
         };
       }
 
@@ -232,15 +215,11 @@ export function initAcpConversationBridge(
     const task = workerTaskManager.getTask(conversationId);
     if (
       !task ||
-      !(
-        task instanceof AcpAgentManager ||
-        task instanceof GeminiAgentManager ||
-        task instanceof CodexAgentManager
-      )
+      !(task instanceof AcpAgentManager || task instanceof GeminiAgentManager || task instanceof CodexAgentManager)
     ) {
       return Promise.resolve({
         success: true,
-        data: { mode: "default", initialized: false },
+        data: { mode: 'default', initialized: false },
       });
     }
     return Promise.resolve({ success: true, data: task.getMode() });
@@ -251,10 +230,7 @@ export function initAcpConversationBridge(
   // Use getTaskById (cache-only) to avoid spawning a worker process on read-only queries
   ipcBridge.acpConversation.getModelInfo.provider(({ conversationId }) => {
     const task = workerTaskManager.getTask(conversationId);
-    if (
-      !task ||
-      !(task instanceof AcpAgentManager || task instanceof CodexAgentManager)
-    ) {
+    if (!task || !(task instanceof AcpAgentManager || task instanceof CodexAgentManager)) {
       return Promise.resolve({ success: true, data: { modelInfo: null } });
     }
     return Promise.resolve({
@@ -267,12 +243,7 @@ export function initAcpConversationBridge(
     const agents = acpDetector.getDetectedAgents();
     const agent = agents.find((item) => item.backend === backend);
 
-    if (
-      !agent?.cliPath &&
-      backend !== "claude" &&
-      backend !== "codebuddy" &&
-      backend !== "codex"
-    ) {
+    if (!agent?.cliPath && backend !== 'claude' && backend !== 'codebuddy' && backend !== 'codex') {
       return {
         success: false,
         msg: `${backend} CLI not found`,
@@ -283,25 +254,13 @@ export function initAcpConversationBridge(
     const tempDir = os.tmpdir();
 
     try {
-      await connection.connect(
-        backend,
-        agent?.cliPath,
-        tempDir,
-        agent?.acpArgs,
-      );
+      await connection.connect(backend, agent?.cliPath, tempDir, agent?.acpArgs);
       await connection.newSession(tempDir);
 
-      const modelInfo = buildAcpModelInfo(
-        connection.getConfigOptions(),
-        connection.getModels(),
-      );
-      if (backend === "codex") {
-        const initializeResult =
-          connection.getInitializeResponse() as unknown as Record<
-            string,
-            unknown
-          > | null;
-        mainLog("[ACP codex]", "probeModelInfo completed", {
+      const modelInfo = buildAcpModelInfo(connection.getConfigOptions(), connection.getModels());
+      if (backend === 'codex') {
+        const initializeResult = connection.getInitializeResponse() as unknown as Record<string, unknown> | null;
+        mainLog('[ACP codex]', 'probeModelInfo completed', {
           initializeAgentInfo: initializeResult?.agentInfo || null,
           modelInfo: summarizeAcpModelInfo(modelInfo),
         });
@@ -310,8 +269,8 @@ export function initAcpConversationBridge(
       return { success: true, data: { modelInfo } };
     } catch (error) {
       const errorMsg = error instanceof Error ? error.message : String(error);
-      if (backend === "codex") {
-        mainWarn("[ACP codex]", "probeModelInfo failed", errorMsg);
+      if (backend === 'codex') {
+        mainWarn('[ACP codex]', 'probeModelInfo failed', errorMsg);
       }
       return { success: false, msg: errorMsg };
     } finally {
@@ -325,55 +284,47 @@ export function initAcpConversationBridge(
 
   // Set model for ACP agents
   // 设置 ACP 代理的模型
-  ipcBridge.acpConversation.setModel.provider(
-    async ({ conversationId, modelId }) => {
-      try {
-        const task = await workerTaskManager.getOrBuildTask(conversationId);
-        if (!task || !(task instanceof AcpAgentManager)) {
-          return {
-            success: false,
-            msg: "Conversation not found or not an ACP agent",
-          };
-        }
+  ipcBridge.acpConversation.setModel.provider(async ({ conversationId, modelId }) => {
+    try {
+      const task = await workerTaskManager.getOrBuildTask(conversationId);
+      if (!task || !(task instanceof AcpAgentManager)) {
         return {
-          success: true,
-          data: { modelInfo: await task.setModel(modelId) },
+          success: false,
+          msg: 'Conversation not found or not an ACP agent',
         };
-      } catch (error) {
-        const errorMsg = error instanceof Error ? error.message : String(error);
-        return { success: false, msg: errorMsg };
       }
-    },
-  );
+      return {
+        success: true,
+        data: { modelInfo: await task.setModel(modelId) },
+      };
+    } catch (error) {
+      const errorMsg = error instanceof Error ? error.message : String(error);
+      return { success: false, msg: errorMsg };
+    }
+  });
 
   // Set session mode for ACP/Gemini agents (claude, qwen, gemini, etc.)
   // 设置 ACP/Gemini 代理的会话模式（claude、qwen、gemini 等）
-  ipcBridge.acpConversation.setMode.provider(
-    async ({ conversationId, mode }) => {
-      try {
-        const task = await workerTaskManager.getOrBuildTask(conversationId);
-        if (!task) {
-          return { success: false, msg: "Conversation not found" };
-        }
-        if (
-          !(
-            task instanceof AcpAgentManager ||
-            task instanceof GeminiAgentManager ||
-            task instanceof CodexAgentManager
-          )
-        ) {
-          return {
-            success: false,
-            msg: "Mode switching not supported for this agent type",
-          };
-        }
-        return await task.setMode(mode);
-      } catch (error) {
-        const errorMsg = error instanceof Error ? error.message : String(error);
-        return { success: false, msg: errorMsg };
+  ipcBridge.acpConversation.setMode.provider(async ({ conversationId, mode }) => {
+    try {
+      const task = await workerTaskManager.getOrBuildTask(conversationId);
+      if (!task) {
+        return { success: false, msg: 'Conversation not found' };
       }
-    },
-  );
+      if (
+        !(task instanceof AcpAgentManager || task instanceof GeminiAgentManager || task instanceof CodexAgentManager)
+      ) {
+        return {
+          success: false,
+          msg: 'Mode switching not supported for this agent type',
+        };
+      }
+      return await task.setMode(mode);
+    } catch (error) {
+      const errorMsg = error instanceof Error ? error.message : String(error);
+      return { success: false, msg: errorMsg };
+    }
+  });
 
   // Get non-model config options for ACP agents (e.g., reasoning effort)
   // 获取 ACP 代理的非模型配置选项（如推理级别）
@@ -391,22 +342,20 @@ export function initAcpConversationBridge(
 
   // Set a config option value for ACP agents (e.g., reasoning effort)
   // 设置 ACP 代理的配置选项值（如推理级别）
-  ipcBridge.acpConversation.setConfigOption.provider(
-    async ({ conversationId, configId, value }) => {
-      try {
-        const task = await workerTaskManager.getOrBuildTask(conversationId);
-        if (!task || !(task instanceof AcpAgentManager)) {
-          return {
-            success: false,
-            msg: "Conversation not found or not an ACP agent",
-          };
-        }
-        const configOptions = await task.setConfigOption(configId, value);
-        return { success: true, data: { configOptions } };
-      } catch (error) {
-        const errorMsg = error instanceof Error ? error.message : String(error);
-        return { success: false, msg: errorMsg };
+  ipcBridge.acpConversation.setConfigOption.provider(async ({ conversationId, configId, value }) => {
+    try {
+      const task = await workerTaskManager.getOrBuildTask(conversationId);
+      if (!task || !(task instanceof AcpAgentManager)) {
+        return {
+          success: false,
+          msg: 'Conversation not found or not an ACP agent',
+        };
       }
-    },
-  );
+      const configOptions = await task.setConfigOption(configId, value);
+      return { success: true, data: { configOptions } };
+    } catch (error) {
+      const errorMsg = error instanceof Error ? error.message : String(error);
+      return { success: false, msg: errorMsg };
+    }
+  });
 }

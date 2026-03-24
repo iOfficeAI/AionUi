@@ -8,10 +8,10 @@
 
 AionUi runs in two environments:
 
-| Environment | DataDir | Config file path (macOS) |
-|-------------|---------|--------------------------|
-| Electron desktop | `app.getPath("userData")` → `~/Library/Application Support/AionUi/` | `~/.aionui-config/aionui-config.txt` (symlink) |
-| Node standalone server | `~/.aionui-server/` | `~/.aionui-server/config/aionui-config.txt` |
+| Environment            | DataDir                                                             | Config file path (macOS)                       |
+| ---------------------- | ------------------------------------------------------------------- | ---------------------------------------------- |
+| Electron desktop       | `app.getPath("userData")` → `~/Library/Application Support/AionUi/` | `~/.aionui-config/aionui-config.txt` (symlink) |
+| Node standalone server | `~/.aionui-server/`                                                 | `~/.aionui-server/config/aionui-config.txt`    |
 
 The directories are intentionally isolated. However, users who already have a configured desktop app should not need to reconfigure the server from scratch. This feature enables migration of relevant config keys from the Electron data directory to the Node server data directory.
 
@@ -33,6 +33,7 @@ The directories are intentionally isolated. However, users who already have a co
 ### New file: `src/process/utils/configMigration.ts`
 
 Responsible for:
+
 - Resolving the Electron config file path per platform and environment.
 - Reading and decoding the source config file (same base64+JSON encoding as `JsonFileBuilder`).
 - Filtering keys against the migratable whitelist.
@@ -53,12 +54,13 @@ const MIGRATABLE_KEYS: (keyof IConfigStorageRefer)[] = [
   'gemini.config',
   'acp.config',
   'tools.imageGenerationModel',
-  'mcp.config',        // builtin entries (builtin: true) are skipped — paths are machine-local
+  'mcp.config', // builtin entries (builtin: true) are skipped — paths are machine-local
   'acp.customAgents',
-]
+];
 ```
 
 Keys intentionally excluded (desktop/UI-only or caches):
+
 - `language`, `theme`, `colorScheme`, `customCss`, `css.themes`, `css.activeThemeId`
 - `webui.desktop.*`
 - `system.closeToTray`, `system.notificationEnabled`, `system.cronNotificationEnabled`
@@ -144,31 +146,31 @@ Migration functions must run **after** `migrateLegacyData()` and **after** `Conf
 ```typescript
 const initStorage = async () => {
   // 1. Legacy data migration (temp → userData/config)
-  await migrateLegacyData()
+  await migrateLegacyData();
 
   // 2. Ensure directories exist
-  ensureDirectory(getHomePage())
-  ensureDirectory(getDataPath())
+  ensureDirectory(getHomePage());
+  ensureDirectory(getDataPath());
 
   // 3. Initialize storage interceptors
-  ConfigStorage.interceptor(configFile)
-  ChatStorage.interceptor(chatFile)
-  ChatMessageStorage.interceptor(chatMessageFile)
-  EnvStorage.interceptor(envFile)
+  ConfigStorage.interceptor(configFile);
+  ChatStorage.interceptor(chatFile);
+  ChatMessageStorage.interceptor(chatMessageFile);
+  EnvStorage.interceptor(envFile);
 
   // 4a. Auto-migrate from Electron config (once, after storage is ready)
-  await migrateFromElectronConfig()
+  await migrateFromElectronConfig();
 
   // 4b. Manual import from specified path (if env var present)
-  const importFrom = process.env.IMPORT_CONFIG_FROM
+  const importFrom = process.env.IMPORT_CONFIG_FROM;
   if (importFrom) {
-    const overwrite = process.env.IMPORT_CONFIG_OVERWRITE === 'true'
-    await importConfigFromFile(importFrom, overwrite)
+    const overwrite = process.env.IMPORT_CONFIG_OVERWRITE === 'true';
+    await importConfigFromFile(importFrom, overwrite);
   }
 
   // 5. MCP init, assistant init, database init...
   // ...rest of initStorage unchanged
-}
+};
 ```
 
 ---
@@ -176,6 +178,7 @@ const initStorage = async () => {
 ## Error Handling
 
 All migration/import functions must:
+
 - Wrap the entire body in try/catch.
 - On error: `console.warn('[AionUi] Config migration failed:', error)` — never throw.
 - Log success with key names at debug level for traceability.

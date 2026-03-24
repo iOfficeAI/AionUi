@@ -7,16 +7,16 @@
 const uuid = (len = 4) => {
   try {
     // eslint-disable-next-line @typescript-eslint/no-var-requires
-    const crypto = require("crypto");
+    const crypto = require('crypto');
     const bytes = crypto.randomBytes(Math.ceil(len / 2));
-    return bytes.toString("hex").slice(0, len);
+    return bytes.toString('hex').slice(0, len);
   } catch {
     const ts = Date.now().toString(16);
-    return ts.slice(-len).padStart(len, "0");
+    return ts.slice(-len).padStart(len, '0');
   }
 };
 
-const callbackKey = (key: string) => key + ".callback";
+const callbackKey = (key: string) => key + '.callback';
 
 /* eslint-disable unicorn/no-thenable -- Deferred intentionally implements thenable interface */
 class Deferred {
@@ -50,16 +50,11 @@ class Deferred {
   with(promise: Promise<any>) {
     promise.then(this.resolve).catch(this.reject);
   }
-  pipe(
-    handler: (
-      key: string,
-      data: { data: any; state: "fulfilled" | "rejected" },
-    ) => void,
-  ) {
+  pipe(handler: (key: string, data: { data: any; state: 'fulfilled' | 'rejected' }) => void) {
     const key = callbackKey(this.key);
     return this.promise()
-      .then((data) => handler(key, { data, state: "fulfilled" }))
-      .catch((data) => handler(key, { data, state: "rejected" }));
+      .then((data) => handler(key, { data, state: 'fulfilled' }))
+      .catch((data) => handler(key, { data, state: 'rejected' }));
   }
 }
 
@@ -79,7 +74,7 @@ export class Pipe {
           const deferred = this.deferred(pipeId);
           if (pipeId) {
             deferred.pipe(this.call.bind(this)).catch((error: Error) => {
-              console.error("Failed to pipe deferred call:", error);
+              console.error('Failed to pipe deferred call:', error);
             });
           }
           this.emit(type, data, deferred);
@@ -88,12 +83,12 @@ export class Pipe {
 
       if (process.parentPort) {
         // Electron utility process: message is wrapped in a MessageEvent
-        process.parentPort.on("message", (event) => {
+        process.parentPort.on('message', (event) => {
           handleMessage(event.data);
         });
       } else {
         // Node.js child_process.fork: message is the data directly
-        process.on("message", (message) => {
+        process.on('message', (message) => {
           handleMessage(message);
         });
       }
@@ -138,7 +133,7 @@ export class Pipe {
    */
   call(name: string, data: any, extPrams: any = {}) {
     if (this.isClose) {
-      console.log("---主进程已关闭", name, "执行失败！!");
+      console.log('---主进程已关闭', name, '执行失败！!');
       return;
     }
     const msg = { type: name, data: data, ...extPrams };
@@ -149,7 +144,7 @@ export class Pipe {
       // Node.js child_process.fork
       process.send(msg);
     } else {
-      console.error("---非子线程，无法使用主线程事件机制");
+      console.error('---非子线程，无法使用主线程事件机制');
     }
   }
   // 向主线程发起通知,并建立响应机制
@@ -160,7 +155,7 @@ export class Pipe {
     });
     const promise = new Promise<T>((resolve, reject) => {
       this.once(callbackKey(pipeId), (data) => {
-        if (data.type === "fulfilled") {
+        if (data.type === 'fulfilled') {
           resolve(data.data);
         } else {
           reject(data.data);
@@ -170,7 +165,7 @@ export class Pipe {
     return promise;
   }
   log(...args: any[]) {
-    this.call("log", args);
+    this.call('log', args);
   }
   clear() {
     this.listener = {};

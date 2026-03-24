@@ -12,20 +12,21 @@
 
 ## File Map
 
-| Action | File | Responsibility |
-|--------|------|----------------|
-| Modify | `src/process/bridge/fsBridge.ts` | Remove `import { app } from 'electron'`; replace `getUserSkillsDir()` + `findBuiltinResourceDir()` with `initStorage` exports |
-| Create | `src/process/bridge/applicationBridgeCore.ts` | `systemInfo`, `updateSystemInfo`, `getPath` handlers — platform-agnostic |
-| Modify | `src/process/bridge/applicationBridge.ts` | Import from core; keep Electron-only handlers here |
-| Modify | `src/process/utils/initBridgeStandalone.ts` | Add: cronBridge, mcpBridge, notificationBridge, fsBridge; add applicationBridgeCore partial init |
-| Create | `tests/unit/process/bridge/fsBridge.standalone.test.ts` | Verify fsBridge loads and path helpers work in Node env |
-| Create | `tests/unit/process/bridge/applicationBridgeCore.test.ts` | Verify core handlers return correct data without Electron |
+| Action | File                                                      | Responsibility                                                                                                                |
+| ------ | --------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------- |
+| Modify | `src/process/bridge/fsBridge.ts`                          | Remove `import { app } from 'electron'`; replace `getUserSkillsDir()` + `findBuiltinResourceDir()` with `initStorage` exports |
+| Create | `src/process/bridge/applicationBridgeCore.ts`             | `systemInfo`, `updateSystemInfo`, `getPath` handlers — platform-agnostic                                                      |
+| Modify | `src/process/bridge/applicationBridge.ts`                 | Import from core; keep Electron-only handlers here                                                                            |
+| Modify | `src/process/utils/initBridgeStandalone.ts`               | Add: cronBridge, mcpBridge, notificationBridge, fsBridge; add applicationBridgeCore partial init                              |
+| Create | `tests/unit/process/bridge/fsBridge.standalone.test.ts`   | Verify fsBridge loads and path helpers work in Node env                                                                       |
+| Create | `tests/unit/process/bridge/applicationBridgeCore.test.ts` | Verify core handlers return correct data without Electron                                                                     |
 
 ---
 
 ## Task 1: Enable zero-change bridges in standalone mode
 
 **Files:**
+
 - Modify: `src/process/utils/initBridgeStandalone.ts`
 
 These three bridges have no Electron imports and their underlying services already work in Node mode. They need only to be registered.
@@ -35,9 +36,9 @@ These three bridges have no Electron imports and their underlying services alrea
 Open `src/process/utils/initBridgeStandalone.ts` and add these three import lines alongside the existing imports:
 
 ```ts
-import { initCronBridge } from "@process/bridge/cronBridge";
-import { initMcpBridge } from "@process/bridge/mcpBridge";
-import { initNotificationBridge } from "@process/bridge/notificationBridge";
+import { initCronBridge } from '@process/bridge/cronBridge';
+import { initMcpBridge } from '@process/bridge/mcpBridge';
+import { initNotificationBridge } from '@process/bridge/notificationBridge';
 ```
 
 - [ ] **Step 2: Call the three init functions inside `initBridgeStandalone()`**
@@ -53,11 +54,14 @@ initNotificationBridge();
 - [ ] **Step 3: Update the skipped-bridges comment**
 
 Change the comment at the top of the function from:
+
 ```ts
 // Skipped (Electron-only): dialogBridge, shellBridge, fsBridge, applicationBridge,
 // windowControlsBridge, updateBridge, webuiBridge, notificationBridge, cronBridge, mcpBridge
 ```
+
 to:
+
 ```ts
 // Skipped (Electron-only): dialogBridge, shellBridge, applicationBridge (partial — see applicationBridgeCore),
 // windowControlsBridge, updateBridge, webuiBridge
@@ -83,6 +87,7 @@ git commit -m "feat(server): enable cronBridge, mcpBridge, notificationBridge in
 ## Task 2: Decouple fsBridge from Electron
 
 **Files:**
+
 - Modify: `src/process/bridge/fsBridge.ts`
 - Create: `tests/unit/process/bridge/fsBridge.standalone.test.ts`
 
@@ -90,10 +95,10 @@ git commit -m "feat(server): enable cronBridge, mcpBridge, notificationBridge in
 
 ### Background: path equivalence
 
-| Current (Electron) | Replacement (standalone-safe) |
-|--------------------|-------------------------------|
-| `app.getPath('userData') + '/config/skills'` | `getSkillsDir()` from `initStorage` — resolves to the same path via `getPlatformServices()` abstraction |
-| `app.isPackaged` + `app.getAppPath()` | `getBuiltinSkillsDir()` from `initStorage` — returns `getSkillsDir()/_builtin`, which is the correct location in both modes |
+| Current (Electron)                           | Replacement (standalone-safe)                                                                                               |
+| -------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------- |
+| `app.getPath('userData') + '/config/skills'` | `getSkillsDir()` from `initStorage` — resolves to the same path via `getPlatformServices()` abstraction                     |
+| `app.isPackaged` + `app.getAppPath()`        | `getBuiltinSkillsDir()` from `initStorage` — returns `getSkillsDir()/_builtin`, which is the correct location in both modes |
 
 - [ ] **Step 1: Write a failing import test**
 
@@ -120,7 +125,13 @@ vi.mock('@office-ai/platform', () => ({
 vi.mock('@process/utils/initStorage', () => ({
   getSkillsDir: () => '/mock/skills',
   getBuiltinSkillsDir: () => '/mock/skills/_builtin',
-  getSystemDir: () => ({ workDir: '/mock/work', cacheDir: '/mock/cache', logDir: '/mock/logs', platform: 'linux', arch: 'x64' }),
+  getSystemDir: () => ({
+    workDir: '/mock/work',
+    cacheDir: '/mock/cache',
+    logDir: '/mock/logs',
+    platform: 'linux',
+    arch: 'x64',
+  }),
   getAssistantsDir: () => '/mock/assistants',
 }));
 
@@ -196,17 +207,20 @@ Expected failure: error importing `electron` (because `fsBridge.ts` still has `i
 In `src/process/bridge/fsBridge.ts`:
 
 3a. Remove the Electron import:
+
 ```ts
 // DELETE this line:
 import { app } from 'electron';
 ```
 
 3b. Add initStorage imports (add to the existing `@process/utils/initStorage` import if one exists, or add new):
+
 ```ts
 import { getSystemDir, getAssistantsDir, getSkillsDir, getBuiltinSkillsDir } from '@process/utils/initStorage';
 ```
 
 3c. Delete the `getUserSkillsDir()` function entirely:
+
 ```ts
 // DELETE:
 function getUserSkillsDir(): string {
@@ -219,11 +233,11 @@ function getUserSkillsDir(): string {
 
 3e. Replace all call sites:
 
-| Old call | Replacement |
-|----------|-------------|
-| `getUserSkillsDir()` | `getSkillsDir()` |
-| `await findBuiltinResourceDir('skills')` | `getBuiltinSkillsDir()` |
-| `await findBuiltinResourceDir('rules')` | needs separate handling — see step 3f |
+| Old call                                    | Replacement                           |
+| ------------------------------------------- | ------------------------------------- |
+| `getUserSkillsDir()`                        | `getSkillsDir()`                      |
+| `await findBuiltinResourceDir('skills')`    | `getBuiltinSkillsDir()`               |
+| `await findBuiltinResourceDir('rules')`     | needs separate handling — see step 3f |
 | `await findBuiltinResourceDir('assistant')` | needs separate handling — see step 3f |
 
 3f. For `rules` and `assistant` resource types (`readBuiltinRule`, `readBuiltinSkill`, `readAssistantRule`, `readAssistantSkill` handlers), `findBuiltinResourceDir` was used to locate the bundled app resources. In standalone mode there is no app bundle, so these handlers should gracefully return empty string when the directory doesn't exist (which they already do via the `try/catch` in `readAssistantResource`). Replace `findBuiltinResourceDir('rules')` with a helper that uses `process.cwd()` as the search root:
@@ -237,14 +251,8 @@ function getUserSkillsDir(): string {
 async function findBuiltinResourceDirNode(resourceType: 'rules' | 'skills' | 'assistant'): Promise<string> {
   const base = process.cwd();
   const devDir =
-    resourceType === 'skills' || resourceType === 'assistant'
-      ? `src/process/resources/${resourceType}`
-      : resourceType;
-  const candidates = [
-    path.join(base, devDir),
-    path.join(base, '..', devDir),
-    path.join(base, resourceType),
-  ];
+    resourceType === 'skills' || resourceType === 'assistant' ? `src/process/resources/${resourceType}` : resourceType;
+  const candidates = [path.join(base, devDir), path.join(base, '..', devDir), path.join(base, resourceType)];
   for (const candidate of candidates) {
     try {
       await fs.access(candidate);
@@ -260,6 +268,7 @@ async function findBuiltinResourceDirNode(resourceType: 'rules' | 'skills' | 'as
 Replace all `findBuiltinResourceDir(...)` call sites with `findBuiltinResourceDirNode(...)`.
 
 > **Note on `getSkillPaths` handler:** The existing handler returns `{ userSkillsDir, builtinSkillsDir }`. After the refactor it becomes:
+>
 > ```ts
 > ipcBridge.fs.getSkillPaths.provider(async () => ({
 >   userSkillsDir: getSkillsDir(),
@@ -296,11 +305,13 @@ Expected: no errors.
 In `src/process/utils/initBridgeStandalone.ts`:
 
 Add import:
+
 ```ts
-import { initFsBridge } from "@process/bridge/fsBridge";
+import { initFsBridge } from '@process/bridge/fsBridge';
 ```
 
 Add call inside `initBridgeStandalone()`, after `initFileWatchBridge()`:
+
 ```ts
 initFsBridge();
 ```
@@ -330,6 +341,7 @@ Fixes skills hub showing 0 skills in standalone server mode."
 ## Task 3: Extract applicationBridgeCore for shared platform-agnostic handlers
 
 **Files:**
+
 - Create: `src/process/bridge/applicationBridgeCore.ts`
 - Modify: `src/process/bridge/applicationBridge.ts`
 - Modify: `src/process/utils/initBridgeStandalone.ts`
@@ -468,11 +480,13 @@ Expected: all tests PASS.
 In `src/process/bridge/applicationBridge.ts`:
 
 5a. Add import:
+
 ```ts
 import { initApplicationBridgeCore } from './applicationBridgeCore';
 ```
 
 5b. At the top of `initApplicationBridge()`, replace the three handlers that moved to core with a single call:
+
 ```ts
 // Replace the systemInfo, updateSystemInfo, and getPath provider blocks with:
 initApplicationBridgeCore();
@@ -499,11 +513,13 @@ bunx tsc --noEmit
 In `src/process/utils/initBridgeStandalone.ts`:
 
 Add import:
+
 ```ts
-import { initApplicationBridgeCore } from "@process/bridge/applicationBridgeCore";
+import { initApplicationBridgeCore } from '@process/bridge/applicationBridgeCore';
 ```
 
 Add call:
+
 ```ts
 initApplicationBridgeCore();
 ```

@@ -4,22 +4,19 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import type { ISqliteDriver } from "./drivers/ISqliteDriver";
+import type { ISqliteDriver } from './drivers/ISqliteDriver';
 
 /**
  * Initialize database schema with all tables and indexes
  */
 export function initSchema(db: ISqliteDriver): void {
   // Enable foreign keys
-  db.pragma("foreign_keys = ON");
+  db.pragma('foreign_keys = ON');
   // Enable Write-Ahead Logging for better performance
   try {
-    db.pragma("journal_mode = WAL");
+    db.pragma('journal_mode = WAL');
   } catch (error) {
-    console.warn(
-      "[Database] Failed to enable WAL mode, using default journal mode:",
-      error,
-    );
+    console.warn('[Database] Failed to enable WAL mode, using default journal mode:', error);
     // Continue with default journal mode if WAL fails
   }
 
@@ -35,8 +32,8 @@ export function initSchema(db: ISqliteDriver): void {
     updated_at INTEGER NOT NULL,
     last_login INTEGER
   )`);
-  db.exec("CREATE INDEX IF NOT EXISTS idx_users_username ON users(username)");
-  db.exec("CREATE INDEX IF NOT EXISTS idx_users_email ON users(email)");
+  db.exec('CREATE INDEX IF NOT EXISTS idx_users_username ON users(username)');
+  db.exec('CREATE INDEX IF NOT EXISTS idx_users_email ON users(email)');
 
   // Conversations table (会话表 - 存储TChatConversation)
   db.exec(`CREATE TABLE IF NOT EXISTS conversations (
@@ -51,18 +48,10 @@ export function initSchema(db: ISqliteDriver): void {
     updated_at INTEGER NOT NULL,
     FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
   )`);
-  db.exec(
-    "CREATE INDEX IF NOT EXISTS idx_conversations_user_id ON conversations(user_id)",
-  );
-  db.exec(
-    "CREATE INDEX IF NOT EXISTS idx_conversations_updated_at ON conversations(updated_at)",
-  );
-  db.exec(
-    "CREATE INDEX IF NOT EXISTS idx_conversations_type ON conversations(type)",
-  );
-  db.exec(
-    "CREATE INDEX IF NOT EXISTS idx_conversations_user_updated ON conversations(user_id, updated_at DESC)",
-  );
+  db.exec('CREATE INDEX IF NOT EXISTS idx_conversations_user_id ON conversations(user_id)');
+  db.exec('CREATE INDEX IF NOT EXISTS idx_conversations_updated_at ON conversations(updated_at)');
+  db.exec('CREATE INDEX IF NOT EXISTS idx_conversations_type ON conversations(type)');
+  db.exec('CREATE INDEX IF NOT EXISTS idx_conversations_user_updated ON conversations(user_id, updated_at DESC)');
 
   // Messages table (消息表 - 存储TMessage)
   db.exec(`CREATE TABLE IF NOT EXISTS messages (
@@ -76,19 +65,13 @@ export function initSchema(db: ISqliteDriver): void {
     created_at INTEGER NOT NULL,
     FOREIGN KEY (conversation_id) REFERENCES conversations(id) ON DELETE CASCADE
   )`);
-  db.exec(
-    "CREATE INDEX IF NOT EXISTS idx_messages_conversation_id ON messages(conversation_id)",
-  );
-  db.exec(
-    "CREATE INDEX IF NOT EXISTS idx_messages_created_at ON messages(created_at)",
-  );
-  db.exec("CREATE INDEX IF NOT EXISTS idx_messages_type ON messages(type)");
-  db.exec("CREATE INDEX IF NOT EXISTS idx_messages_msg_id ON messages(msg_id)");
-  db.exec(
-    "CREATE INDEX IF NOT EXISTS idx_messages_conversation_created ON messages(conversation_id, created_at)",
-  );
+  db.exec('CREATE INDEX IF NOT EXISTS idx_messages_conversation_id ON messages(conversation_id)');
+  db.exec('CREATE INDEX IF NOT EXISTS idx_messages_created_at ON messages(created_at)');
+  db.exec('CREATE INDEX IF NOT EXISTS idx_messages_type ON messages(type)');
+  db.exec('CREATE INDEX IF NOT EXISTS idx_messages_msg_id ON messages(msg_id)');
+  db.exec('CREATE INDEX IF NOT EXISTS idx_messages_conversation_created ON messages(conversation_id, created_at)');
 
-  console.log("[Database] Schema initialized successfully");
+  console.log('[Database] Schema initialized successfully');
 }
 
 /**
@@ -97,7 +80,7 @@ export function initSchema(db: ISqliteDriver): void {
  */
 export function getDatabaseVersion(db: ISqliteDriver): number {
   try {
-    const result = db.pragma("user_version", { simple: true }) as number;
+    const result = db.pragma('user_version', { simple: true }) as number;
     return result;
   } catch {
     return 0;

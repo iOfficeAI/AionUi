@@ -4,14 +4,11 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { getDatabase } from "@process/services/database";
-import type {
-  IConversationRepository,
-  PaginatedResult,
-} from "./IConversationRepository";
-import type { TChatConversation } from "@/common/config/storage";
-import type { TMessage } from "@/common/chat/chatLib";
-import type { IMessageSearchResponse } from "@/common/types/database";
+import { getDatabase } from '@process/services/database';
+import type { IConversationRepository, PaginatedResult } from './IConversationRepository';
+import type { TChatConversation } from '@/common/config/storage';
+import type { TMessage } from '@/common/chat/chatLib';
+import type { IMessageSearchResponse } from '@/common/types/database';
 
 /**
  * SQLite-backed implementation of IConversationRepository.
@@ -34,10 +31,7 @@ export class SqliteConversationRepository implements IConversationRepository {
     db.createConversation(conversation);
   }
 
-  async updateConversation(
-    id: string,
-    updates: Partial<TChatConversation>,
-  ): Promise<void> {
+  async updateConversation(id: string, updates: Partial<TChatConversation>): Promise<void> {
     const db = await this.getDb();
     db.updateConversation(id, updates);
   }
@@ -51,7 +45,7 @@ export class SqliteConversationRepository implements IConversationRepository {
     id: string,
     page: number,
     pageSize: number,
-    order?: "ASC" | "DESC",
+    order?: 'ASC' | 'DESC'
   ): Promise<PaginatedResult<TMessage>> {
     const db = await this.getDb();
     const result = db.getConversationMessages(id, page, pageSize, order);
@@ -75,12 +69,11 @@ export class SqliteConversationRepository implements IConversationRepository {
   async getUserConversations(
     _cursor?: string,
     offset?: number,
-    limit?: number,
+    limit?: number
   ): Promise<PaginatedResult<TChatConversation>> {
     const db = await this.getDb();
     const pageSize = limit ?? 50;
-    const page =
-      offset !== undefined && pageSize > 0 ? Math.floor(offset / pageSize) : 0;
+    const page = offset !== undefined && pageSize > 0 ? Math.floor(offset / pageSize) : 0;
     const result = db.getUserConversations(undefined, page, pageSize);
     return {
       data: result.data ?? [],
@@ -95,11 +88,7 @@ export class SqliteConversationRepository implements IConversationRepository {
     return result.data ?? [];
   }
 
-  async searchMessages(
-    keyword: string,
-    page: number,
-    pageSize: number,
-  ): Promise<IMessageSearchResponse> {
+  async searchMessages(keyword: string, page: number, pageSize: number): Promise<IMessageSearchResponse> {
     const db = await this.getDb();
     return db.searchConversationMessages(keyword, undefined, page, pageSize);
   }

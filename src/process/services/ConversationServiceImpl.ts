@@ -4,22 +4,18 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import type {
-  IConversationService,
-  CreateConversationParams,
-  MigrateConversationParams,
-} from "./IConversationService";
-import type { IConversationRepository } from "@process/services/database/IConversationRepository";
-import type { TChatConversation } from "@/common/config/storage";
-import { uuid } from "@/common/utils";
-import { cronService } from "./cron/cronServiceSingleton";
+import type { IConversationService, CreateConversationParams, MigrateConversationParams } from './IConversationService';
+import type { IConversationRepository } from '@process/services/database/IConversationRepository';
+import type { TChatConversation } from '@/common/config/storage';
+import { uuid } from '@/common/utils';
+import { cronService } from './cron/cronServiceSingleton';
 import {
   createGeminiAgent,
   createAcpAgent,
   createCodexAgent,
   createOpenClawAgent,
   createNanobotAgent,
-} from "@process/utils/initAgent";
+} from '@process/utils/initAgent';
 
 /**
  * Concrete implementation of IConversationService.
@@ -43,19 +39,12 @@ export class ConversationServiceImpl implements IConversationService {
         await cronService.removeJob(job.id);
       }
     } catch (err) {
-      console.warn(
-        "[ConversationServiceImpl] Failed to cleanup cron jobs:",
-        err,
-      );
+      console.warn('[ConversationServiceImpl] Failed to cleanup cron jobs:', err);
     }
     await this.repo.deleteConversation(id);
   }
 
-  async updateConversation(
-    id: string,
-    updates: Partial<TChatConversation>,
-    mergeExtra?: boolean,
-  ): Promise<void> {
+  async updateConversation(id: string, updates: Partial<TChatConversation>, mergeExtra?: boolean): Promise<void> {
     let finalUpdates = updates;
     if (mergeExtra && updates.extra) {
       const existing = await this.repo.getConversation(id);
@@ -69,9 +58,7 @@ export class ConversationServiceImpl implements IConversationService {
     await this.repo.updateConversation(id, finalUpdates);
   }
 
-  async createWithMigration(
-    params: MigrateConversationParams,
-  ): Promise<TChatConversation> {
+  async createWithMigration(params: MigrateConversationParams): Promise<TChatConversation> {
     const { conversation, sourceConversationId, migrateCron } = params;
     const conv: TChatConversation = {
       ...conversation,
@@ -87,11 +74,7 @@ export class ConversationServiceImpl implements IConversationService {
       let hasMore = true;
 
       while (hasMore) {
-        const { data: messages, hasMore: more } = await this.repo.getMessages(
-          sourceConversationId,
-          page,
-          pageSize,
-        );
+        const { data: messages, hasMore: more } = await this.repo.getMessages(sourceConversationId, page, pageSize);
         for (const msg of messages) {
           await this.repo.insertMessage({
             ...msg,
@@ -105,8 +88,7 @@ export class ConversationServiceImpl implements IConversationService {
 
       // Migrate or delete cron jobs associated with source conversation
       try {
-        const jobs =
-          await cronService.listJobsByConversation(sourceConversationId);
+        const jobs = await cronService.listJobsByConversation(sourceConversationId);
         if (migrateCron) {
           for (const job of jobs) {
             await cronService.updateJob(job.id, {
@@ -123,42 +105,30 @@ export class ConversationServiceImpl implements IConversationService {
           }
         }
       } catch (err) {
-        console.error(
-          "[ConversationServiceImpl] Failed to handle cron jobs during migration:",
-          err,
-        );
+        console.error('[ConversationServiceImpl] Failed to handle cron jobs during migration:', err);
       }
 
       // Integrity check: only delete source if message counts match
-      const sourceMsgs = await this.repo.getMessages(
-        sourceConversationId,
-        0,
-        1,
-      );
+      const sourceMsgs = await this.repo.getMessages(sourceConversationId, 0, 1);
       const newMsgs = await this.repo.getMessages(conv.id, 0, 1);
       if (sourceMsgs.total === newMsgs.total) {
         await this.repo.deleteConversation(sourceConversationId);
       } else {
-        console.error(
-          "[ConversationServiceImpl] Migration integrity check failed: message counts do not match.",
-          {
-            source: sourceMsgs.total,
-            new: newMsgs.total,
-          },
-        );
+        console.error('[ConversationServiceImpl] Migration integrity check failed: message counts do not match.', {
+          source: sourceMsgs.total,
+          new: newMsgs.total,
+        });
       }
     }
 
     return conv;
   }
 
-  async createConversation(
-    params: CreateConversationParams,
-  ): Promise<TChatConversation> {
+  async createConversation(params: CreateConversationParams): Promise<TChatConversation> {
     let conversation: TChatConversation;
 
     switch (params.type) {
-      case "gemini": {
+      case 'gemini': {
         conversation = await createGeminiAgent(
           params.model,
           params.extra.workspace,
@@ -170,23 +140,23 @@ export class ConversationServiceImpl implements IConversationService {
           params.extra.enabledSkills as string[] | undefined,
           params.extra.presetAssistantId,
           params.extra.sessionMode,
-          params.extra.isHealthCheck,
+          params.extra.isHealthCheck
         );
         break;
       }
-      case "acp": {
+      case 'acp': {
         conversation = await createAcpAgent(params as any);
         break;
       }
-      case "codex": {
+      case 'codex': {
         conversation = await createCodexAgent(params as any);
         break;
       }
-      case "openclaw-gateway": {
+      case 'openclaw-gateway': {
         conversation = await createOpenClawAgent(params as any);
         break;
       }
-      case "nanobot": {
+      case 'nanobot': {
         conversation = await createNanobotAgent(params as any);
         break;
       }

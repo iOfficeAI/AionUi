@@ -4,38 +4,38 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { acpDetector } from "@process/agent/acp/AcpDetector";
-import type { IChannelRepository } from "@process/services/database/IChannelRepository";
-import type { IConversationRepository } from "@process/services/database/IConversationRepository";
-import type { IConversationService } from "@process/services/IConversationService";
-import type { IWorkerTaskManager } from "@process/task/IWorkerTaskManager";
-import { initAcpConversationBridge } from "./acpConversationBridge";
-import { initApplicationBridge } from "./applicationBridge";
-import { initAuthBridge } from "./authBridge";
-import { initBedrockBridge } from "./bedrockBridge";
-import { initChannelBridge } from "./channelBridge";
-import { initConversationBridge } from "./conversationBridge";
-import { initCronBridge } from "./cronBridge";
-import { initDatabaseBridge } from "./databaseBridge";
-import { initDialogBridge } from "./dialogBridge";
-import { initDocumentBridge } from "./documentBridge";
-import { initFileWatchBridge } from "./fileWatchBridge";
-import { initFsBridge } from "./fsBridge";
-import { initGeminiBridge } from "./geminiBridge";
-import { initGeminiConversationBridge } from "./geminiConversationBridge";
-import { initMcpBridge } from "./mcpBridge";
-import { initModelBridge } from "./modelBridge";
-import { initPreviewHistoryBridge } from "./previewHistoryBridge";
-import { initShellBridge } from "./shellBridge";
-import { initStarOfficeBridge } from "./starOfficeBridge";
-import { initTaskBridge } from "./taskBridge";
-import { initUpdateBridge } from "./updateBridge";
-import { initWebuiBridge } from "./webuiBridge";
-import { initSystemSettingsBridge } from "./systemSettingsBridge";
-import { initWindowControlsBridge } from "./windowControlsBridge";
-import { initNotificationBridge } from "./notificationBridge";
-import { initPptPreviewBridge } from "./pptPreviewBridge";
-import { initExtensionsBridge } from "./extensionsBridge";
+import { acpDetector } from '@process/agent/acp/AcpDetector';
+import type { IChannelRepository } from '@process/services/database/IChannelRepository';
+import type { IConversationRepository } from '@process/services/database/IConversationRepository';
+import type { IConversationService } from '@process/services/IConversationService';
+import type { IWorkerTaskManager } from '@process/task/IWorkerTaskManager';
+import { initAcpConversationBridge } from './acpConversationBridge';
+import { initApplicationBridge } from './applicationBridge';
+import { initAuthBridge } from './authBridge';
+import { initBedrockBridge } from './bedrockBridge';
+import { initChannelBridge } from './channelBridge';
+import { initConversationBridge } from './conversationBridge';
+import { initCronBridge } from './cronBridge';
+import { initDatabaseBridge } from './databaseBridge';
+import { initDialogBridge } from './dialogBridge';
+import { initDocumentBridge } from './documentBridge';
+import { initFileWatchBridge } from './fileWatchBridge';
+import { initFsBridge } from './fsBridge';
+import { initGeminiBridge } from './geminiBridge';
+import { initGeminiConversationBridge } from './geminiConversationBridge';
+import { initMcpBridge } from './mcpBridge';
+import { initModelBridge } from './modelBridge';
+import { initPreviewHistoryBridge } from './previewHistoryBridge';
+import { initShellBridge } from './shellBridge';
+import { initStarOfficeBridge } from './starOfficeBridge';
+import { initTaskBridge } from './taskBridge';
+import { initUpdateBridge } from './updateBridge';
+import { initWebuiBridge } from './webuiBridge';
+import { initSystemSettingsBridge } from './systemSettingsBridge';
+import { initWindowControlsBridge } from './windowControlsBridge';
+import { initNotificationBridge } from './notificationBridge';
+import { initPptPreviewBridge } from './pptPreviewBridge';
+import { initExtensionsBridge } from './extensionsBridge';
 
 export interface BridgeDependencies {
   conversationService: IConversationService;
@@ -85,7 +85,7 @@ export async function initializeAcpDetector(): Promise<void> {
   try {
     await acpDetector.initialize();
   } catch (error) {
-    console.error("[ACP] Failed to initialize detector:", error);
+    console.error('[ACP] Failed to initialize detector:', error);
   }
 }
 
@@ -120,4 +120,4 @@ export {
   initWindowControlsBridge,
 };
 // 导出窗口控制相关工具函数
-export { registerWindowMaximizeListeners } from "./windowControlsBridge";
+export { registerWindowMaximizeListeners } from './windowControlsBridge';

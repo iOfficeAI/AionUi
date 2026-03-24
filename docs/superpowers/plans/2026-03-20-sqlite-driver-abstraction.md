@@ -19,31 +19,34 @@ Full design spec: `docs/superpowers/specs/2026-03-20-sqlite-driver-abstraction-d
 ## File Structure
 
 ### New files (create)
-| Path | Purpose |
-|------|---------|
-| `src/process/services/database/drivers/ISqliteDriver.ts` | `IStatement` + `ISqliteDriver` interfaces |
-| `src/process/services/database/drivers/BetterSqlite3Driver.ts` | Wraps better-sqlite3, implements ISqliteDriver |
-| `src/process/services/database/drivers/BunSqliteDriver.ts` | Wraps bun:sqlite, implements ISqliteDriver |
-| `src/process/services/database/drivers/createDriver.ts` | Runtime-detection factory (dynamic import) |
-| `tests/unit/process/services/database/drivers/BetterSqlite3Driver.test.ts` | Vitest unit tests for BetterSqlite3Driver |
-| `src/process/services/database/drivers/BunSqliteDriver.bun.test.ts` | bun-test unit tests for BunSqliteDriver |
+
+| Path                                                                       | Purpose                                        |
+| -------------------------------------------------------------------------- | ---------------------------------------------- |
+| `src/process/services/database/drivers/ISqliteDriver.ts`                   | `IStatement` + `ISqliteDriver` interfaces      |
+| `src/process/services/database/drivers/BetterSqlite3Driver.ts`             | Wraps better-sqlite3, implements ISqliteDriver |
+| `src/process/services/database/drivers/BunSqliteDriver.ts`                 | Wraps bun:sqlite, implements ISqliteDriver     |
+| `src/process/services/database/drivers/createDriver.ts`                    | Runtime-detection factory (dynamic import)     |
+| `tests/unit/process/services/database/drivers/BetterSqlite3Driver.test.ts` | Vitest unit tests for BetterSqlite3Driver      |
+| `src/process/services/database/drivers/BunSqliteDriver.bun.test.ts`        | bun-test unit tests for BunSqliteDriver        |
 
 ### Modified files
-| Path | Change |
-|------|--------|
-| `src/process/services/database/schema.ts` | Param types `Database.Database` → `ISqliteDriver`; split 3 multi-statement `exec()` calls |
-| `src/process/services/database/migrations.ts` | All param types; split every multi-statement `exec()` (see Task 6 audit) |
-| `src/process/services/database/index.ts` | Static async factory; async `getDatabase()`; remove better-sqlite3 imports |
-| `src/process/channels/pairing/PairingService.ts` | `isUserAuthorized` sync → async |
-| All 22 files that call `getDatabase()` | Add `await` |
-| `scripts/build-server.mjs` | Remove `better-sqlite3` from `external`; add `bun:sqlite` |
-| `package.json` | Server scripts use `bun`; add `test:bun` script |
+
+| Path                                             | Change                                                                                    |
+| ------------------------------------------------ | ----------------------------------------------------------------------------------------- |
+| `src/process/services/database/schema.ts`        | Param types `Database.Database` → `ISqliteDriver`; split 3 multi-statement `exec()` calls |
+| `src/process/services/database/migrations.ts`    | All param types; split every multi-statement `exec()` (see Task 6 audit)                  |
+| `src/process/services/database/index.ts`         | Static async factory; async `getDatabase()`; remove better-sqlite3 imports                |
+| `src/process/channels/pairing/PairingService.ts` | `isUserAuthorized` sync → async                                                           |
+| All 22 files that call `getDatabase()`           | Add `await`                                                                               |
+| `scripts/build-server.mjs`                       | Remove `better-sqlite3` from `external`; add `bun:sqlite`                                 |
+| `package.json`                                   | Server scripts use `bun`; add `test:bun` script                                           |
 
 ---
 
 ## Task 1: Create ISqliteDriver interface
 
 **Files:**
+
 - Create: `src/process/services/database/drivers/ISqliteDriver.ts`
 
 - [ ] **Step 1: Create the interface file**
@@ -72,6 +75,7 @@ export interface ISqliteDriver {
 cd /Users/zhangyaxiong/Workspace/src/github/iOfficeAI/AionUi-Bak
 bunx tsc --noEmit
 ```
+
 Expected: no errors
 
 - [ ] **Step 3: Commit**
@@ -86,6 +90,7 @@ git commit -m "feat(database): add ISqliteDriver interface"
 ## Task 2: Implement BetterSqlite3Driver + Vitest tests
 
 **Files:**
+
 - Create: `src/process/services/database/drivers/BetterSqlite3Driver.ts`
 - Create: `tests/unit/process/services/database/drivers/BetterSqlite3Driver.test.ts`
 
@@ -220,6 +225,7 @@ describe('BetterSqlite3Driver', () => {
 ```bash
 bun run test -- --reporter=verbose tests/unit/process/services/database/drivers/BetterSqlite3Driver.test.ts
 ```
+
 Expected: FAIL (BetterSqlite3Driver not found)
 
 - [ ] **Step 4: Run test — verify it passes**
@@ -227,6 +233,7 @@ Expected: FAIL (BetterSqlite3Driver not found)
 ```bash
 bun run test -- --reporter=verbose tests/unit/process/services/database/drivers/BetterSqlite3Driver.test.ts
 ```
+
 Expected: all 7 tests PASS
 
 - [ ] **Step 5: Type check**
@@ -234,6 +241,7 @@ Expected: all 7 tests PASS
 ```bash
 bunx tsc --noEmit
 ```
+
 Expected: no errors
 
 - [ ] **Step 6: Commit**
@@ -249,6 +257,7 @@ git commit -m "feat(database): implement BetterSqlite3Driver with unit tests"
 ## Task 3: Implement BunSqliteDriver + bun tests
 
 **Files:**
+
 - Create: `src/process/services/database/drivers/BunSqliteDriver.ts`
 - Create: `src/process/services/database/drivers/BunSqliteDriver.bun.test.ts`
 
@@ -266,7 +275,7 @@ import type { ISqliteDriver, IStatement } from './ISqliteDriver';
 class BunStatement implements IStatement {
   constructor(
     private db: Database,
-    private sql: string,
+    private sql: string
   ) {}
 
   get(...args: unknown[]): unknown {
@@ -405,6 +414,7 @@ describe('BunSqliteDriver', () => {
 ```bash
 bun test src/process/services/database/drivers/BunSqliteDriver.bun.test.ts
 ```
+
 Expected: FAIL (BunSqliteDriver not found or import error)
 
 - [ ] **Step 4: Run bun test — verify it passes**
@@ -412,6 +422,7 @@ Expected: FAIL (BunSqliteDriver not found or import error)
 ```bash
 bun test src/process/services/database/drivers/BunSqliteDriver.bun.test.ts
 ```
+
 Expected: all 7 tests PASS
 
 - [ ] **Step 5: Verify Vitest does NOT pick up the bun test**
@@ -419,6 +430,7 @@ Expected: all 7 tests PASS
 ```bash
 bun run test -- --reporter=verbose 2>&1 | grep -i "bun.test"
 ```
+
 Expected: no output (Vitest skips `src/**` files because its include pattern is `tests/unit/**`)
 
 - [ ] **Step 6: Commit**
@@ -434,6 +446,7 @@ git commit -m "feat(database): implement BunSqliteDriver with bun:test unit test
 ## Task 4: Create createDriver factory
 
 **Files:**
+
 - Create: `src/process/services/database/drivers/createDriver.ts`
 
 - [ ] **Step 1: Create the factory**
@@ -458,6 +471,7 @@ export async function createDriver(dbPath: string): Promise<ISqliteDriver> {
 ```bash
 bunx tsc --noEmit
 ```
+
 Expected: no errors
 
 - [ ] **Step 3: Commit**
@@ -472,9 +486,11 @@ git commit -m "feat(database): add createDriver factory with runtime detection"
 ## Task 5: Update schema.ts
 
 **Files:**
+
 - Modify: `src/process/services/database/schema.ts`
 
 **Changes needed:**
+
 1. Replace `import type Database from 'better-sqlite3'` with `import type { ISqliteDriver } from './drivers/ISqliteDriver'`
 2. Change all function signatures: `db: Database.Database` → `db: ISqliteDriver`
 3. Split 3 multi-statement `exec()` calls (lines ~24, ~42, ~63)
@@ -482,6 +498,7 @@ git commit -m "feat(database): add createDriver factory with runtime detection"
 - [ ] **Step 1: Update imports and signatures**
 
 Replace the import at the top:
+
 ```typescript
 // REMOVE:
 import type Database from 'better-sqlite3';
@@ -491,15 +508,16 @@ import type { ISqliteDriver } from './drivers/ISqliteDriver';
 ```
 
 Change all three function signatures:
+
 ```typescript
 // Line 12: was (db: Database.Database)
-export function initSchema(db: ISqliteDriver): void
+export function initSchema(db: ISqliteDriver): void;
 
 // Line 90: was (db: Database.Database)
-export function getDatabaseVersion(db: ISqliteDriver): number
+export function getDatabaseVersion(db: ISqliteDriver): number;
 
 // Line 103: was (db: Database.Database)
-export function setDatabaseVersion(db: ISqliteDriver, version: number): void
+export function setDatabaseVersion(db: ISqliteDriver, version: number): void;
 ```
 
 - [ ] **Step 2: Split multi-statement exec() in users table block (was ~line 24)**
@@ -579,6 +597,7 @@ db.exec('CREATE INDEX IF NOT EXISTS idx_messages_conversation_created ON message
 ```bash
 bunx tsc --noEmit
 ```
+
 Expected: no errors in schema.ts (index.ts and migrations.ts will still have errors — that's OK)
 
 - [ ] **Step 6: Commit**
@@ -593,9 +612,11 @@ git commit -m "refactor(database): update schema.ts to use ISqliteDriver, split 
 ## Task 6: Update migrations.ts
 
 **Files:**
+
 - Modify: `src/process/services/database/migrations.ts`
 
 **This is the largest task.** It has two parts:
+
 1. Update all type signatures (`Database.Database` → `ISqliteDriver`)
 2. Split ALL multi-statement `exec()` calls
 
@@ -643,13 +664,14 @@ export function isMigrationApplied(db: ISqliteDriver, version: number): boolean
 
 ### Part B: Split multi-statement exec() calls
 
-**Pattern:** Every `db.exec(\`...\`)` that contains multiple semicolon-separated SQL statements must become multiple individual `db.exec(...)` calls, one per statement.
+**Pattern:** Every `db.exec(\`...\`)`that contains multiple semicolon-separated SQL statements must become multiple individual`db.exec(...)` calls, one per statement.
 
 **How to identify:** Look for `db.exec(` where the template literal contains more than one `;`. A statement ends at `;`. Empty lines and comments (`--`) between statements are fine to drop.
 
 **Complete audit — all migrations needing splits:**
 
 #### migration_v1.down — 3 statements → 3 exec() calls
+
 ```typescript
 // BEFORE:
 db.exec(`
@@ -665,6 +687,7 @@ db.exec('DROP TABLE IF EXISTS users');
 ```
 
 #### migration_v2.up — 3 statements → 3 exec() calls
+
 ```typescript
 // BEFORE: one exec() with 3 CREATE INDEX statements
 // AFTER:
@@ -674,6 +697,7 @@ db.exec('CREATE INDEX IF NOT EXISTS idx_conversations_user_type ON conversations
 ```
 
 #### migration_v2.down — 3 statements → 3 exec() calls
+
 ```typescript
 db.exec('DROP INDEX IF EXISTS idx_messages_conv_created_desc');
 db.exec('DROP INDEX IF EXISTS idx_messages_type_created');
@@ -685,8 +709,11 @@ db.exec('DROP INDEX IF EXISTS idx_conversations_user_type');
 #### migration_v5.up — 1 statement (OK, no change needed)
 
 #### migration_v6.down — 5 statements → 5 exec() calls
+
 ```typescript
-db.exec(`CREATE TABLE users_backup AS SELECT id, username, email, password_hash, avatar_path, created_at, updated_at, last_login FROM users`);
+db.exec(
+  `CREATE TABLE users_backup AS SELECT id, username, email, password_hash, avatar_path, created_at, updated_at, last_login FROM users`
+);
 db.exec('DROP TABLE users');
 db.exec('ALTER TABLE users_backup RENAME TO users');
 db.exec('CREATE INDEX IF NOT EXISTS idx_users_username ON users(username)');
@@ -696,6 +723,7 @@ db.exec('CREATE INDEX IF NOT EXISTS idx_users_email ON users(email)');
 #### migration_v7.up — 4 exec() blocks, each multi-statement
 
 Block 1 (assistant_plugins): CREATE TABLE + 2 CREATE INDEX → 3 exec()
+
 ```typescript
 db.exec(`CREATE TABLE IF NOT EXISTS assistant_plugins (
   id TEXT PRIMARY KEY,
@@ -713,6 +741,7 @@ db.exec('CREATE INDEX IF NOT EXISTS idx_assistant_plugins_enabled ON assistant_p
 ```
 
 Block 2 (assistant_users): CREATE TABLE + 1 CREATE INDEX → 2 exec()
+
 ```typescript
 db.exec(`CREATE TABLE IF NOT EXISTS assistant_users (
   id TEXT PRIMARY KEY,
@@ -728,6 +757,7 @@ db.exec('CREATE INDEX IF NOT EXISTS idx_assistant_users_platform ON assistant_us
 ```
 
 Block 3 (assistant_sessions): CREATE TABLE + 2 CREATE INDEX → 3 exec()
+
 ```typescript
 db.exec(`CREATE TABLE IF NOT EXISTS assistant_sessions (
   id TEXT PRIMARY KEY,
@@ -745,6 +775,7 @@ db.exec('CREATE INDEX IF NOT EXISTS idx_assistant_sessions_conversation ON assis
 ```
 
 Block 4 (assistant_pairing_codes): CREATE TABLE + 2 CREATE INDEX → 3 exec()
+
 ```typescript
 db.exec(`CREATE TABLE IF NOT EXISTS assistant_pairing_codes (
   code TEXT PRIMARY KEY,
@@ -760,6 +791,7 @@ db.exec('CREATE INDEX IF NOT EXISTS idx_assistant_pairing_status ON assistant_pa
 ```
 
 #### migration_v7.down — 4 statements → 4 exec() calls
+
 ```typescript
 db.exec('DROP TABLE IF EXISTS assistant_pairing_codes');
 db.exec('DROP TABLE IF EXISTS assistant_sessions');
@@ -768,14 +800,17 @@ db.exec('DROP TABLE IF EXISTS assistant_plugins');
 ```
 
 #### migration_v8.up
+
 - First exec(): `ALTER TABLE conversations ADD COLUMN source ...` — single statement, OK
 - Second exec(): 2 CREATE INDEX → 2 exec()
+
 ```typescript
 db.exec('CREATE INDEX IF NOT EXISTS idx_conversations_source ON conversations(source)');
 db.exec('CREATE INDEX IF NOT EXISTS idx_conversations_source_updated ON conversations(source, updated_at DESC)');
 ```
 
 #### migration_v8.down — 2 statements → 2 exec() calls
+
 ```typescript
 db.exec('DROP INDEX IF EXISTS idx_conversations_source');
 db.exec('DROP INDEX IF EXISTS idx_conversations_source_updated');
@@ -784,6 +819,7 @@ db.exec('DROP INDEX IF EXISTS idx_conversations_source_updated');
 #### migration_v9.up — 4 statements → 4 exec() calls
 
 The large CREATE TABLE block is a single statement (no `;` inside). Split at the 3 CREATE INDEX lines:
+
 ```typescript
 db.exec(`CREATE TABLE IF NOT EXISTS cron_jobs (
   id TEXT PRIMARY KEY,
@@ -814,6 +850,7 @@ db.exec('CREATE INDEX IF NOT EXISTS idx_cron_jobs_agent_type ON cron_jobs(agent_
 ```
 
 #### migration_v9.down — 4 statements → 4 exec() calls
+
 ```typescript
 db.exec('DROP INDEX IF EXISTS idx_cron_jobs_agent_type');
 db.exec('DROP INDEX IF EXISTS idx_cron_jobs_next_run');
@@ -822,6 +859,7 @@ db.exec('DROP TABLE IF EXISTS cron_jobs');
 ```
 
 #### migration_v10.up — 6 statements → 6 exec() calls
+
 ```typescript
 db.exec(`CREATE TABLE IF NOT EXISTS assistant_plugins_new (
   id TEXT PRIMARY KEY,
@@ -842,9 +880,11 @@ db.exec('CREATE INDEX IF NOT EXISTS idx_assistant_plugins_enabled ON assistant_p
 ```
 
 #### migration_v10.down — 6 statements → 6 exec() calls
+
 Same pattern as v10.up but with the rollback table name and constraint.
 
 #### migration_v11.up
+
 - First exec(): `UPDATE conversations SET source = NULL WHERE ...` — single statement, OK
 - Second exec(): multi-statement (CREATE TABLE + INSERT + DROP + ALTER + 6 CREATE INDEX) → 10 exec()
 
@@ -863,7 +903,9 @@ db.exec(`CREATE TABLE IF NOT EXISTS conversations_new (
   updated_at INTEGER NOT NULL,
   FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
 )`);
-db.exec('INSERT INTO conversations_new (id, user_id, name, type, extra, model, status, source, created_at, updated_at) SELECT id, user_id, name, type, extra, model, status, source, created_at, updated_at FROM conversations');
+db.exec(
+  'INSERT INTO conversations_new (id, user_id, name, type, extra, model, status, source, created_at, updated_at) SELECT id, user_id, name, type, extra, model, status, source, created_at, updated_at FROM conversations'
+);
 db.exec('DROP TABLE conversations');
 db.exec('ALTER TABLE conversations_new RENAME TO conversations');
 db.exec('CREATE INDEX IF NOT EXISTS idx_conversations_user_id ON conversations(user_id)');
@@ -877,32 +919,38 @@ db.exec('CREATE INDEX IF NOT EXISTS idx_conversations_source_updated ON conversa
 #### migration_v11.down — same pattern as v11.up's second block
 
 #### migration_v12.up
+
 - First exec(): `UPDATE conversations SET source = NULL WHERE ...` — single statement, OK
 - Second exec(): same pattern as v11.up second block → 10 exec()
 
 #### migration_v12.down
+
 - First exec(): `UPDATE conversations SET source = NULL WHERE source = 'lark'` — single statement, OK
 - Second exec(): same pattern → 10 exec()
 
 #### migration_v13.up — single large exec() → 10 exec() calls (same conversation table recreation pattern)
 
 #### migration_v13.down
+
 - First exec(): `DELETE FROM conversations WHERE type = 'nanobot'` — single statement, OK
 - Second exec(): same pattern → 10 exec()
 
 #### migration_v14.up
+
 - First exec(): assistant_plugins_new recreation (CREATE TABLE + INSERT + DROP + ALTER + 2 INDEX) → 6 exec()
 - Second exec(): `UPDATE conversations SET source = NULL WHERE ...` — single statement, OK
 - Third exec(): conversations_new recreation (CREATE TABLE + INSERT + DROP + ALTER + 7 INDEX) → 11 exec()
 - The `ALTER TABLE assistant_sessions ADD COLUMN chat_id TEXT` inside the if-block is a single statement, OK
 
 #### migration_v14.down
+
 - First exec(): `DELETE FROM assistant_plugins WHERE type = 'dingtalk'` — single statement, OK
 - Second exec(): assistant_plugins_old recreation → 6 exec()
 - Third exec(): `UPDATE conversations SET source = NULL WHERE source = 'dingtalk'` — single statement, OK
 - Fourth exec(): conversations_rollback recreation → 10 exec()
 
 #### migration_v15.up
+
 - First exec(): assistant_plugins_new recreation (without CHECK constraint) → 6 exec()
 - Second exec(): conversations_new recreation → 11 exec()
 
@@ -913,6 +961,7 @@ db.exec('CREATE INDEX IF NOT EXISTS idx_conversations_source_updated ON conversa
 ```bash
 grep -n 'db\.exec' src/process/services/database/migrations.ts | wc -l
 ```
+
 After splitting, every `db.exec()` should contain a single SQL statement. Manually review any that look long.
 
 - [ ] **Step 5: Type check**
@@ -920,6 +969,7 @@ After splitting, every `db.exec()` should contain a single SQL statement. Manual
 ```bash
 bunx tsc --noEmit
 ```
+
 Expected: remaining errors only in `index.ts` (not yet updated)
 
 - [ ] **Step 6: Run existing tests**
@@ -927,6 +977,7 @@ Expected: remaining errors only in `index.ts` (not yet updated)
 ```bash
 bun run test
 ```
+
 Expected: all existing tests pass (no database tests exist yet — this is baseline)
 
 - [ ] **Step 7: Commit**
@@ -941,9 +992,11 @@ git commit -m "refactor(database): update migrations.ts to use ISqliteDriver, sp
 ## Task 7: Refactor index.ts (static async factory)
 
 **Files:**
+
 - Modify: `src/process/services/database/index.ts`
 
 **Changes:**
+
 1. Remove `import BetterSqlite3` and `import type Database`
 2. Add `import type { ISqliteDriver } from './drivers/ISqliteDriver'` and `import { createDriver } from './drivers/createDriver'`
 3. `private db: Database.Database` → `private db: ISqliteDriver`
@@ -1082,6 +1135,7 @@ static async create(dbPath: string): Promise<AionUIDatabase> {
 ```bash
 bunx tsc --noEmit
 ```
+
 Expected: errors in the 22 call-site files (they still call `getDatabase()` without await) — that's expected at this stage
 
 - [ ] **Step 6: Commit**
@@ -1096,6 +1150,7 @@ git commit -m "refactor(database): migrate AionUIDatabase to static async factor
 ## Task 8: Update all 22 call sites
 
 **Files to update** (from the grep audit):
+
 1. `src/process/utils/initStorage.ts`
 2. `src/process/utils/tray.ts`
 3. `src/process/webserver/routes/apiRoutes.ts`
@@ -1120,6 +1175,7 @@ git commit -m "refactor(database): migrate AionUIDatabase to static async factor
 22. `src/process/services/database/README.md` (doc file — no code change needed)
 
 **How to find every occurrence:**
+
 ```bash
 grep -rn 'getDatabase()' src/ --include="*.ts"
 ```
@@ -1127,6 +1183,7 @@ grep -rn 'getDatabase()' src/ --include="*.ts"
 - [ ] **Step 1: Mechanical `await` addition in async contexts**
 
 For each file, find `const db = getDatabase()` or `getDatabase()` and add `await`:
+
 ```typescript
 // BEFORE:
 const db = getDatabase();
@@ -1156,13 +1213,14 @@ const cleanupOrphanedHealthCheckConversations = async () => {
 ```
 
 Then in `initStorage()` (line ~1117), update the call:
+
 ```typescript
 // BEFORE:
 getDatabase();
 cleanupOrphanedHealthCheckConversations();
 
 // AFTER:
-await getDatabase();        // eagerly initialize (warm up the singleton)
+await getDatabase(); // eagerly initialize (warm up the singleton)
 await cleanupOrphanedHealthCheckConversations();
 ```
 
@@ -1203,6 +1261,7 @@ const isAuthorized = await this.pairingService.isUserAuthorized(user.id, platfor
 ```bash
 bunx tsc --noEmit
 ```
+
 Expected: 0 errors. If there are errors, they will be in call sites where `getDatabase()` is used in a sync context or the return type is used as `AionUIDatabase` instead of `Promise<AionUIDatabase>`. Fix each one by adding `await` and making the enclosing function `async`.
 
 - [ ] **Step 6: Run lint**
@@ -1216,6 +1275,7 @@ bun run lint:fix
 ```bash
 bun run test
 ```
+
 Expected: all existing tests pass
 
 - [ ] **Step 8: Commit**
@@ -1230,6 +1290,7 @@ git commit -m "refactor(database): update all getDatabase() call sites to async/
 ## Task 9: Build config + package.json + smoke test
 
 **Files:**
+
 - Modify: `scripts/build-server.mjs`
 - Modify: `package.json`
 
@@ -1274,6 +1335,7 @@ external: ['bun:sqlite', 'keytar', 'node-pty'],
 ```bash
 node scripts/build-server.mjs
 ```
+
 Expected: output like `dist-server/server.mjs` with no errors. Verify `bun:sqlite` does NOT appear in the bundle output warnings.
 
 - [ ] **Step 5: Smoke test**
@@ -1281,7 +1343,9 @@ Expected: output like `dist-server/server.mjs` with no errors. Verify `bun:sqlit
 ```bash
 bun run server
 ```
+
 Expected:
+
 - Server starts without ABI errors
 - `[Database] Initializing database at: ...` log appears
 - Server listens on expected port (no crash)
@@ -1292,6 +1356,7 @@ Expected:
 ```bash
 bun run test:bun
 ```
+
 Expected: all BunSqliteDriver tests PASS
 
 - [ ] **Step 7: Run all Vitest tests**
@@ -1299,6 +1364,7 @@ Expected: all BunSqliteDriver tests PASS
 ```bash
 bun run test
 ```
+
 Expected: all existing tests pass
 
 - [ ] **Step 8: Commit**
@@ -1328,10 +1394,10 @@ Before claiming complete:
 
 ## Common Pitfalls
 
-| Pitfall | Fix |
-|---------|-----|
-| `bun:sqlite db.query(sql).run(args)` returns `void`, not `{ changes, lastInsertRowid }` | Always use `db.run(sql, ...args)` (top-level Database method) in `BunStatement.run()` |
-| `db.exec()` with semicolons in SQL string literals | Only applies to future migrations — for the current codebase there are no `;` in string literals |
-| `closeDatabase()` called before `getDatabase()` awaited | The new `closeDatabase()` does a promise-based close; callers must handle it being async internally |
-| TypeScript `type` vs `interface` for `IMigration` | Keep as `interface` (unchanged from original) — project convention uses `type` for simple shapes but interfaces for callable members |
-| `db.pragma()` in bun when sql contains `=` | The `BunSqliteDriver.pragma()` uses `sql.includes('=')` to detect setter — valid for current usage (`foreign_keys = OFF`, `user_version = N`) |
+| Pitfall                                                                                 | Fix                                                                                                                                           |
+| --------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------- |
+| `bun:sqlite db.query(sql).run(args)` returns `void`, not `{ changes, lastInsertRowid }` | Always use `db.run(sql, ...args)` (top-level Database method) in `BunStatement.run()`                                                         |
+| `db.exec()` with semicolons in SQL string literals                                      | Only applies to future migrations — for the current codebase there are no `;` in string literals                                              |
+| `closeDatabase()` called before `getDatabase()` awaited                                 | The new `closeDatabase()` does a promise-based close; callers must handle it being async internally                                           |
+| TypeScript `type` vs `interface` for `IMigration`                                       | Keep as `interface` (unchanged from original) — project convention uses `type` for simple shapes but interfaces for callable members          |
+| `db.pragma()` in bun when sql contains `=`                                              | The `BunSqliteDriver.pragma()` uses `sql.includes('=')` to detect setter — valid for current usage (`foreign_keys = OFF`, `user_version = N`) |

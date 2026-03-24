@@ -13,7 +13,7 @@ error: 'better-sqlite3' is not yet supported in Bun.
 
 Root cause: the current script value is `"server": "bun run src/server.ts"`, which uses **Bun as the runtime**. `better-sqlite3` is a native Node.js addon (.node binary) that Bun's runtime does not support.
 
-> Note: `bun run <script-name>` (Bun as a *script runner*) is safe and will remain the way developers invoke scripts. The fix changes what runs *inside* the script value — from Bun-as-runtime to Node.js-via-tsx.
+> Note: `bun run <script-name>` (Bun as a _script runner_) is safe and will remain the way developers invoke scripts. The fix changes what runs _inside_ the script value — from Bun-as-runtime to Node.js-via-tsx.
 
 ## Goal
 
@@ -38,25 +38,27 @@ Version to install: `tsx@^4.19.1`
 
 ### Script Matrix
 
-| Script | NODE_ENV | ALLOW_REMOTE | Notes |
-|---|---|---|---|
-| `server` | development | false | localhost only, dev |
-| `server:remote` | development | true | allow external connections, dev |
-| `server:prod` | production | false | localhost only, production |
-| `server:prod:remote` | production | true | allow external connections, production |
-| `build:server` | — | — | esbuild bundle for Node.js (unchanged) |
-| `build:server:run` | development | false | build then run bundle; for dev smoke-testing only |
+| Script               | NODE_ENV    | ALLOW_REMOTE | Notes                                             |
+| -------------------- | ----------- | ------------ | ------------------------------------------------- |
+| `server`             | development | false        | localhost only, dev                               |
+| `server:remote`      | development | true         | allow external connections, dev                   |
+| `server:prod`        | production  | false        | localhost only, production                        |
+| `server:prod:remote` | production  | true         | allow external connections, production            |
+| `build:server`       | —           | —            | esbuild bundle for Node.js (unchanged)            |
+| `build:server:run`   | development | false        | build then run bundle; for dev smoke-testing only |
 
 `NODE_ENV` is always set explicitly so downstream code has a reliable value regardless of shell environment.
 
 ### package.json changes
 
 **devDependencies — add:**
+
 ```
 "tsx": "^4.19.1"
 ```
 
 **scripts — replace/add:**
+
 ```json
 "server":             "cross-env NODE_ENV=development tsx src/server.ts",
 "server:remote":      "cross-env NODE_ENV=development ALLOW_REMOTE=true tsx src/server.ts",

@@ -4,17 +4,12 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import type { BrowserWindow } from "electron";
-import { ipcMain } from "electron";
+import type { BrowserWindow } from 'electron';
+import { ipcMain } from 'electron';
 
-import { bridge } from "@office-ai/platform";
-import { ADAPTER_BRIDGE_EVENT_KEY } from "./constant";
-import {
-  registerWebSocketBroadcaster,
-  getBridgeEmitter,
-  setBridgeEmitter,
-  broadcastToAll,
-} from "./registry";
+import { bridge } from '@office-ai/platform';
+import { ADAPTER_BRIDGE_EVENT_KEY } from './constant';
+import { registerWebSocketBroadcaster, getBridgeEmitter, setBridgeEmitter, broadcastToAll } from './registry';
 
 /**
  * Bridge event data structure for IPC communication
@@ -37,10 +32,7 @@ bridge.adapter({
     // 1. 发送到所有 Electron BrowserWindow / Send to all Electron BrowserWindows
     for (let i = 0, len = adapterWindowList.length; i < len; i++) {
       const win = adapterWindowList[i];
-      win.webContents.send(
-        ADAPTER_BRIDGE_EVENT_KEY,
-        JSON.stringify({ name, data }),
-      );
+      win.webContents.send(ADAPTER_BRIDGE_EVENT_KEY, JSON.stringify({ name, data }));
     }
     // 2. 同时广播到所有 WebSocket 客户端 / Also broadcast to all WebSocket clients
     broadcastToAll(name, data);
@@ -62,6 +54,6 @@ export const initMainAdapterWithWindow = (win: BrowserWindow) => {
     const index = adapterWindowList.indexOf(win);
     if (index > -1) adapterWindowList.splice(index, 1);
   };
-  win.on("closed", off);
+  win.on('closed', off);
   return off;
 };

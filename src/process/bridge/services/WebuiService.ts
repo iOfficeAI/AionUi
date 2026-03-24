@@ -4,14 +4,11 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { networkInterfaces } from "os";
-import type { IWebUIStatus } from "@/common/adapter/ipcBridge";
-import { AuthService } from "@process/webserver/auth/service/AuthService";
-import { UserRepository } from "@process/webserver/auth/repository/UserRepository";
-import {
-  AUTH_CONFIG,
-  SERVER_CONFIG,
-} from "@process/webserver/config/constants";
+import { networkInterfaces } from 'os';
+import type { IWebUIStatus } from '@/common/adapter/ipcBridge';
+import { AuthService } from '@process/webserver/auth/service/AuthService';
+import { UserRepository } from '@process/webserver/auth/repository/UserRepository';
+import { AUTH_CONFIG, SERVER_CONFIG } from '@process/webserver/config/constants';
 
 /**
  * WebUI 服务层 - 封装所有 WebUI 相关的业务逻辑
@@ -29,7 +26,7 @@ export class WebuiService {
   private static async loadWebServerFunctions(): Promise<void> {
     if (this.webServerFunctionsLoaded) return;
 
-    const webServer = await import("@process/webserver/index");
+    const webServer = await import('@process/webserver/index');
     this._getInitialAdminPassword = webServer.getInitialAdminPassword;
     this._clearInitialAdminPassword = webServer.clearInitialAdminPassword;
     this.webServerFunctionsLoaded = true;
@@ -63,7 +60,7 @@ export class WebuiService {
 
       for (const net of netInfo) {
         // Node.js 18.4+ returns number (4/6), older versions return string ('IPv4'/'IPv6')
-        const isIPv4 = net.family === "IPv4" || (net.family as unknown) === 4;
+        const isIPv4 = net.family === 'IPv4' || (net.family as unknown) === 4;
         const isNotInternal = !net.internal;
         if (isIPv4 && isNotInternal) {
           return net.address;
@@ -79,7 +76,7 @@ export class WebuiService {
    */
   static async handleAsync<T>(
     handler: () => Promise<{ success: boolean; data?: T; msg?: string }>,
-    context = "Operation",
+    context = 'Operation'
   ): Promise<{ success: boolean; data?: T; msg?: string }> {
     try {
       return await handler();
@@ -100,7 +97,7 @@ export class WebuiService {
     await this.loadWebServerFunctions();
     const adminUser = await UserRepository.getSystemUser();
     if (!adminUser) {
-      throw new Error("WebUI user not found");
+      throw new Error('WebUI user not found');
     }
     return adminUser;
   }
@@ -111,11 +108,11 @@ export class WebuiService {
    */
   static async getStatus(
     webServerInstance: {
-      server: import("http").Server;
-      wss: import("ws").WebSocketServer;
+      server: import('http').Server;
+      wss: import('ws').WebSocketServer;
       port: number;
       allowRemote: boolean;
-    } | null,
+    } | null
   ): Promise<IWebUIStatus> {
     await this.loadWebServerFunctions();
 
@@ -126,8 +123,7 @@ export class WebuiService {
 
     const localUrl = `http://localhost:${port}`;
     const lanIP = this.getLanIP();
-    const networkUrl =
-      allowRemote && lanIP ? `http://${lanIP}:${port}` : undefined;
+    const networkUrl = allowRemote && lanIP ? `http://${lanIP}:${port}` : undefined;
 
     return {
       running,
@@ -149,10 +145,9 @@ export class WebuiService {
     const adminUser = await this.getAdminUser();
 
     // 验证新密码强度 / Validate new password strength
-    const passwordValidation =
-      AuthService.validatePasswordStrength(newPassword);
+    const passwordValidation = AuthService.validatePasswordStrength(newPassword);
     if (!passwordValidation.isValid) {
-      throw new Error(passwordValidation.errors.join("; "));
+      throw new Error(passwordValidation.errors.join('; '));
     }
 
     // 更新密码（密文存储）/ Update password (encrypted storage)
@@ -172,13 +167,12 @@ export class WebuiService {
 
     const usernameValidation = AuthService.validateUsername(normalizedUsername);
     if (!usernameValidation.isValid) {
-      throw new Error(usernameValidation.errors.join("; "));
+      throw new Error(usernameValidation.errors.join('; '));
     }
 
-    const existingUser =
-      await UserRepository.findByUsername(normalizedUsername);
+    const existingUser = await UserRepository.findByUsername(normalizedUsername);
     if (existingUser && existingUser.id !== adminUser.id) {
-      throw new Error("Username already exists");
+      throw new Error('Username already exists');
     }
 
     if (normalizedUsername === adminUser.username) {

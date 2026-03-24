@@ -4,14 +4,9 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { uuid } from "@/common/utils";
-import { getDatabase } from "@process/services/database";
-import type {
-  ChannelAgentType,
-  IChannelSession,
-  IChannelUser,
-  PluginType,
-} from "../types";
+import { uuid } from '@/common/utils';
+import { getDatabase } from '@process/services/database';
+import type { ChannelAgentType, IChannelSession, IChannelUser, PluginType } from '../types';
 
 /**
  * SessionManager - Manages user sessions for the Personal Assistant
@@ -63,13 +58,10 @@ export class SessionManager {
   async getSessionByPlatformUser(
     platformUserId: string,
     platformType: PluginType,
-    chatId?: string,
+    chatId?: string
   ): Promise<IChannelSession | null> {
     const db = await getDatabase();
-    const userResult = db.getChannelUserByPlatform(
-      platformUserId,
-      platformType,
-    );
+    const userResult = db.getChannelUserByPlatform(platformUserId, platformType);
 
     if (!userResult.success || !userResult.data) {
       return null;
@@ -84,18 +76,12 @@ export class SessionManager {
    */
   async createSession(
     user: IChannelUser,
-    agentType: ChannelAgentType = "gemini",
+    agentType: ChannelAgentType = 'gemini',
     workspace?: string,
-    chatId?: string,
+    chatId?: string
   ): Promise<IChannelSession> {
     // Generate a new conversationId
-    return await this.createSessionWithConversation(
-      user,
-      uuid(),
-      agentType,
-      workspace,
-      chatId,
-    );
+    return await this.createSessionWithConversation(user, uuid(), agentType, workspace, chatId);
   }
 
   /**
@@ -104,9 +90,9 @@ export class SessionManager {
   async createSessionWithConversation(
     user: IChannelUser,
     conversationId: string,
-    agentType: ChannelAgentType = "gemini",
+    agentType: ChannelAgentType = 'gemini',
     workspace?: string,
-    chatId?: string,
+    chatId?: string
   ): Promise<IChannelSession> {
     const db = await getDatabase();
     const key = this.buildKey(user.id, chatId);
@@ -145,10 +131,7 @@ export class SessionManager {
   /**
    * Update session's conversation ID (after creating a conversation)
    */
-  async updateSessionConversation(
-    sessionId: string,
-    conversationId: string,
-  ): Promise<boolean> {
+  async updateSessionConversation(sessionId: string, conversationId: string): Promise<boolean> {
     const db = await getDatabase();
 
     // Find session by ID and its key
@@ -233,9 +216,7 @@ export class SessionManager {
    * Clear session by conversation ID
    * Used when a conversation is deleted from AionUI
    */
-  async clearSessionByConversationId(
-    conversationId: string,
-  ): Promise<IChannelSession | null> {
+  async clearSessionByConversationId(conversationId: string): Promise<IChannelSession | null> {
     const db = await getDatabase();
 
     // Find session with this conversation ID
@@ -278,9 +259,7 @@ export class SessionManager {
   /**
    * Cleanup stale sessions (e.g., inactive for more than 24 hours)
    */
-  async cleanupStaleSessions(
-    maxAgeMs: number = 24 * 60 * 60 * 1000,
-  ): Promise<number> {
+  async cleanupStaleSessions(maxAgeMs: number = 24 * 60 * 60 * 1000): Promise<number> {
     const db = await getDatabase();
     const now = Date.now();
     let cleaned = 0;

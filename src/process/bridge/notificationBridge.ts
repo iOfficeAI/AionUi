@@ -11,11 +11,11 @@
  * and registers an IPC provider so renderer can invoke it cross-process.
  */
 
-import { getPlatformServices } from "@/common/platform";
-import { ipcBridge } from "@/common";
-import { ProcessConfig } from "@process/utils/initStorage";
-import path from "path";
-import fs from "fs";
+import { getPlatformServices } from '@/common/platform';
+import { ipcBridge } from '@/common';
+import { ProcessConfig } from '@process/utils/initStorage';
+import path from 'path';
+import fs from 'fs';
 
 /**
  * Get app icon path for notifications
@@ -24,8 +24,8 @@ const getNotificationIcon = (): string | undefined => {
   try {
     const resourcesPath = getPlatformServices().paths.isPackaged()
       ? process.resourcesPath
-      : path.join(process.cwd(), "resources");
-    const iconPath = path.join(resourcesPath, "app.png");
+      : path.join(process.cwd(), 'resources');
+    const iconPath = path.join(resourcesPath, 'app.png');
     if (fs.existsSync(iconPath)) {
       return iconPath;
     }
@@ -49,9 +49,7 @@ export async function showNotification({
   conversationId?: string;
 }): Promise<void> {
   // Check if notification is enabled
-  const notificationEnabled = await ProcessConfig.get(
-    "system.notificationEnabled",
-  );
+  const notificationEnabled = await ProcessConfig.get('system.notificationEnabled');
   if (notificationEnabled === false) {
     return;
   }
@@ -61,7 +59,7 @@ export async function showNotification({
   try {
     getPlatformServices().notification.send({ title, body, icon: iconPath });
   } catch (error) {
-    console.error("[Notification] Error creating notification:", error);
+    console.error('[Notification] Error creating notification:', error);
   }
 }
 

@@ -2,13 +2,13 @@
 // src/process/services/database/drivers/BunSqliteDriver.ts
 // bun:sqlite is a Bun built-in — this file must only be loaded when running under Bun.
 
-import { Database } from "bun:sqlite";
-import type { ISqliteDriver, IStatement } from "./ISqliteDriver";
+import { Database } from 'bun:sqlite';
+import type { ISqliteDriver, IStatement } from './ISqliteDriver';
 
 class BunStatement implements IStatement {
   constructor(
     private db: Database,
-    private sql: string,
+    private sql: string
   ) {}
 
   get(...args: unknown[]): unknown {
@@ -48,16 +48,13 @@ export class BunSqliteDriver implements ISqliteDriver {
 
   pragma(sql: string, options?: { simple?: boolean }): unknown {
     // Setter pragma: contains '=' (e.g. 'foreign_keys = ON')
-    if (sql.includes("=")) {
+    if (sql.includes('=')) {
       this.db.run(`PRAGMA ${sql}`);
       return undefined;
     }
     // Getter pragma with { simple: true }: return scalar value
     if (options?.simple) {
-      const row = this.db.query(`PRAGMA ${sql}`).get() as Record<
-        string,
-        unknown
-      > | null;
+      const row = this.db.query(`PRAGMA ${sql}`).get() as Record<string, unknown> | null;
       if (!row) return undefined;
       return Object.values(row)[0];
     }

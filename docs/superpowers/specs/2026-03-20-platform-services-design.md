@@ -57,35 +57,35 @@ src/common/platform/
  */
 export interface IPlatformPaths {
   /** Persistent user data directory (equivalent to app.getPath('userData')). */
-  getDataDir(): string
+  getDataDir(): string;
   /** OS temp directory. */
-  getTempDir(): string
+  getTempDir(): string;
   /** User home directory. */
-  getHomeDir(): string
+  getHomeDir(): string;
   /**
    * Application log directory.
    * In standalone mode respects LOGS_DIR env var, falls back to <tmpdir>/aionui-logs.
    */
-  getLogsDir(): string
+  getLogsDir(): string;
   /**
    * Root path of the application bundle.
    * Returns null in standalone mode (no bundle concept).
    */
-  getAppPath(): string | null
+  getAppPath(): string | null;
   /**
    * True when running from a packaged Electron build.
    * In standalone mode controlled by IS_PACKAGED env var (default false).
    */
-  isPackaged(): boolean
+  isPackaged(): boolean;
   /**
    * Well-known system paths exposed to the renderer (desktop, home, downloads).
    * Returns null in standalone mode.
    */
-  getSystemPath(name: 'desktop' | 'home' | 'downloads'): string | null
+  getSystemPath(name: 'desktop' | 'home' | 'downloads'): string | null;
   /** Application name (used for MCP client identification). */
-  getName(): string
+  getName(): string;
   /** Application version string (used for MCP client identification). */
-  getVersion(): string
+  getVersion(): string;
 }
 
 /**
@@ -104,22 +104,18 @@ export interface IPlatformPaths {
  * must be changed to `fcp: IWorkerProcess | undefined`.
  */
 export interface IWorkerProcess {
-  postMessage(message: unknown): void
-  on(event: 'message', handler: (data: unknown) => void): this
-  on(event: 'error', handler: (err: Error) => void): this
-  on(event: 'exit', handler: (code: number | null) => void): this
-  kill(): void
+  postMessage(message: unknown): void;
+  on(event: 'message', handler: (data: unknown) => void): this;
+  on(event: 'error', handler: (err: Error) => void): this;
+  on(event: 'exit', handler: (code: number | null) => void): this;
+  kill(): void;
 }
 
 /**
  * Worker process factory — replaces utilityProcess.fork() / child_process.fork().
  */
 export interface IWorkerProcessFactory {
-  fork(
-    modulePath: string,
-    args: string[],
-    options: { cwd?: string; env?: Record<string, string> },
-  ): IWorkerProcess
+  fork(modulePath: string, args: string[], options: { cwd?: string; env?: Record<string, string> }): IWorkerProcess;
 }
 
 /**
@@ -132,9 +128,9 @@ export interface IWorkerProcessFactory {
  */
 export interface IPowerManager {
   /** Returns a handle ID, or null if not supported (standalone). */
-  preventSleep(): number | null
+  preventSleep(): number | null;
   /** id may be null (returned by standalone preventSleep); this is a no-op in that case. */
-  allowSleep(id: number | null): void
+  allowSleep(id: number | null): void;
 }
 
 /**
@@ -147,15 +143,15 @@ export interface IPowerManager {
  * Electron-only and will be removed during migration.
  */
 export interface INotificationService {
-  send(options: { title: string; body: string; icon?: string }): void
+  send(options: { title: string; body: string; icon?: string }): void;
 }
 
 /** Top-level aggregate injected at process startup. */
 export interface IPlatformServices {
-  paths: IPlatformPaths
-  worker: IWorkerProcessFactory
-  power: IPowerManager
-  notification: INotificationService
+  paths: IPlatformPaths;
+  worker: IWorkerProcessFactory;
+  power: IPowerManager;
+  notification: INotificationService;
 }
 ```
 
@@ -164,21 +160,19 @@ export interface IPlatformServices {
 ```typescript
 // src/common/platform/index.ts
 
-import type { IPlatformServices } from './IPlatformServices'
+import type { IPlatformServices } from './IPlatformServices';
 
-let _services: IPlatformServices | null = null
+let _services: IPlatformServices | null = null;
 
 export function registerPlatformServices(services: IPlatformServices): void {
-  _services = services
+  _services = services;
 }
 
 export function getPlatformServices(): IPlatformServices {
   if (!_services) {
-    throw new Error(
-      '[Platform] Services not registered. Call registerPlatformServices() before using platform APIs.',
-    )
+    throw new Error('[Platform] Services not registered. Call registerPlatformServices() before using platform APIs.');
   }
-  return _services
+  return _services;
 }
 
 export type {
@@ -188,7 +182,7 @@ export type {
   IWorkerProcessFactory,
   IPowerManager,
   INotificationService,
-} from './IPlatformServices'
+} from './IPlatformServices';
 ```
 
 ### 3.4 Electron Implementation (sketch)
@@ -196,10 +190,12 @@ export type {
 ```typescript
 // src/common/platform/ElectronPlatformServices.ts
 // NOTE: This is the ONLY file in src/common/platform/ that may import from 'electron' directly.
-import { app, utilityProcess, powerSaveBlocker, Notification } from 'electron'
-import type { IPlatformServices, IWorkerProcess } from './IPlatformServices'
+import { app, utilityProcess, powerSaveBlocker, Notification } from 'electron';
+import type { IPlatformServices, IWorkerProcess } from './IPlatformServices';
 
-class ElectronWorkerProcess implements IWorkerProcess { /* wraps UtilityProcess */ }
+class ElectronWorkerProcess implements IWorkerProcess {
+  /* wraps UtilityProcess */
+}
 
 export class ElectronPlatformServices implements IPlatformServices {
   paths = {
@@ -212,18 +208,19 @@ export class ElectronPlatformServices implements IPlatformServices {
     getSystemPath: (name) => app.getPath(name),
     getName: () => app.getName(),
     getVersion: () => app.getVersion(),
-  }
+  };
   worker = {
-    fork: (modulePath, args, opts) =>
-      new ElectronWorkerProcess(utilityProcess.fork(modulePath, args, opts)),
-  }
+    fork: (modulePath, args, opts) => new ElectronWorkerProcess(utilityProcess.fork(modulePath, args, opts)),
+  };
   power = {
     preventSleep: () => powerSaveBlocker.start('prevent-app-suspension'),
-    allowSleep: (id) => { if (id !== null) powerSaveBlocker.stop(id) },
-  }
+    allowSleep: (id) => {
+      if (id !== null) powerSaveBlocker.stop(id);
+    },
+  };
   notification = {
     send: ({ title, body }) => new Notification({ title, body }).show(),
-  }
+  };
 }
 ```
 
@@ -231,19 +228,24 @@ export class ElectronPlatformServices implements IPlatformServices {
 
 ```typescript
 // src/common/platform/NodePlatformServices.ts
-import { fork as cpFork } from 'child_process'
-import os from 'os'
-import path from 'path'
-import { readFileSync } from 'fs'
-import type { IPlatformServices, IWorkerProcess } from './IPlatformServices'
+import { fork as cpFork } from 'child_process';
+import os from 'os';
+import path from 'path';
+import { readFileSync } from 'fs';
+import type { IPlatformServices, IWorkerProcess } from './IPlatformServices';
 
-class NodeWorkerProcess implements IWorkerProcess { /* wraps ChildProcess */ }
+class NodeWorkerProcess implements IWorkerProcess {
+  /* wraps ChildProcess */
+}
 
 // Read version from package.json once at startup.
 const _pkg = (() => {
-  try { return JSON.parse(readFileSync(path.join(process.cwd(), 'package.json'), 'utf8')) }
-  catch { return { name: 'aionui', version: '0.0.0' } }
-})()
+  try {
+    return JSON.parse(readFileSync(path.join(process.cwd(), 'package.json'), 'utf8'));
+  } catch {
+    return { name: 'aionui', version: '0.0.0' };
+  }
+})();
 
 export class NodePlatformServices implements IPlatformServices {
   paths = {
@@ -261,23 +263,21 @@ export class NodePlatformServices implements IPlatformServices {
     getSystemPath: (_name) => null,
     getName: () => _pkg.name ?? 'aionui',
     getVersion: () => _pkg.version ?? '0.0.0',
-  }
+  };
   worker = {
     // serialization: 'advanced' enables V8 structured clone (supports Buffer, Map, Set).
     // Transferable ArrayBuffer ownership transfer is NOT supported — acceptable because
     // current IForkData messages do not use Transferables. Re-evaluate if that changes.
     fork: (modulePath, args, opts) =>
-      new NodeWorkerProcess(
-        cpFork(modulePath, args, { cwd: opts.cwd, env: opts.env, serialization: 'advanced' }),
-      ),
-  }
+      new NodeWorkerProcess(cpFork(modulePath, args, { cwd: opts.cwd, env: opts.env, serialization: 'advanced' })),
+  };
   power = {
-    preventSleep: () => null,    // no-op in standalone
+    preventSleep: () => null, // no-op in standalone
     allowSleep: (_id) => {},
-  }
+  };
   notification = {
-    send: (_opts) => {},          // intentional no-op in standalone
-  }
+    send: (_opts) => {}, // intentional no-op in standalone
+  };
 }
 ```
 
@@ -291,17 +291,17 @@ by checking the full import tree of `standalone.ts` before finalising Phase 1.
 
 ```typescript
 // src/server.ts — platform registration FIRST, then adapter
-import { registerPlatformServices } from './common/platform'
-import { NodePlatformServices } from './common/platform/NodePlatformServices'
-registerPlatformServices(new NodePlatformServices())
+import { registerPlatformServices } from './common/platform';
+import { NodePlatformServices } from './common/platform/NodePlatformServices';
+registerPlatformServices(new NodePlatformServices());
 
-import './common/adapter/standalone'   // bridge adapter — comes after registration
+import './common/adapter/standalone'; // bridge adapter — comes after registration
 // ... rest of server.ts unchanged
 
 // src/process/index.ts  (Electron main — add near top, before any service imports)
-import { registerPlatformServices } from '@/common/platform'
-import { ElectronPlatformServices } from '@/common/platform/ElectronPlatformServices'
-registerPlatformServices(new ElectronPlatformServices())
+import { registerPlatformServices } from '@/common/platform';
+import { ElectronPlatformServices } from '@/common/platform/ElectronPlatformServices';
+registerPlatformServices(new ElectronPlatformServices());
 ```
 
 ---
@@ -321,17 +321,17 @@ registerPlatformServices(new ElectronPlatformServices())
 
 Each file below replaces its `electronSafe.*` import with `getPlatformServices()`:
 
-| File | API replaced |
-|------|-------------|
-| `src/common/config/appEnv.ts` | `electronApp.getPath` → `paths.getDataDir / getTempDir` |
-| `src/process/utils/utils.ts` | `electronApp.getPath` → `paths.*` |
-| `src/process/utils/initStorage.ts` | `electronApp.getPath / getAppPath / isPackaged` → `paths.*` |
-| `src/process/webserver/routes/staticRoutes.ts` | `electronApp.getAppPath` → `paths.getAppPath()` |
-| `src/process/services/mcpServices/McpProtocol.ts` | `electronApp.getName / getVersion` → `paths.getName() / getVersion()` |
-| `src/process/extensions/constants.ts` | `electronApp.getAppPath` → `paths.getAppPath()` |
-| `src/process/worker/fork/ForkTask.ts` | `utilityProcess.fork` → `worker.fork`; change `fcp` field type to `IWorkerProcess` |
-| `src/process/services/cron/CronService.ts` | `powerSaveBlocker` → `power.*`; guard `allowSleep` with `id !== null` check |
-| `src/process/bridge/notificationBridge.ts` | `NotificationCtor + app` → `notification.send`; remove click/failed/close event handlers and GC-protection set (intentional feature degradation in standalone) |
+| File                                              | API replaced                                                                                                                                                   |
+| ------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `src/common/config/appEnv.ts`                     | `electronApp.getPath` → `paths.getDataDir / getTempDir`                                                                                                        |
+| `src/process/utils/utils.ts`                      | `electronApp.getPath` → `paths.*`                                                                                                                              |
+| `src/process/utils/initStorage.ts`                | `electronApp.getPath / getAppPath / isPackaged` → `paths.*`                                                                                                    |
+| `src/process/webserver/routes/staticRoutes.ts`    | `electronApp.getAppPath` → `paths.getAppPath()`                                                                                                                |
+| `src/process/services/mcpServices/McpProtocol.ts` | `electronApp.getName / getVersion` → `paths.getName() / getVersion()`                                                                                          |
+| `src/process/extensions/constants.ts`             | `electronApp.getAppPath` → `paths.getAppPath()`                                                                                                                |
+| `src/process/worker/fork/ForkTask.ts`             | `utilityProcess.fork` → `worker.fork`; change `fcp` field type to `IWorkerProcess`                                                                             |
+| `src/process/services/cron/CronService.ts`        | `powerSaveBlocker` → `power.*`; guard `allowSleep` with `id !== null` check                                                                                    |
+| `src/process/bridge/notificationBridge.ts`        | `NotificationCtor + app` → `notification.send`; remove click/failed/close event handlers and GC-protection set (intentional feature degradation in standalone) |
 
 ### Phase 3 — Cleanup
 
@@ -360,14 +360,14 @@ server.ts
 
 ## 6. Risks & Mitigations
 
-| Risk | Mitigation |
-|------|-----------|
-| `child_process.fork` serialization parity | Use `{ serialization: 'advanced' }` for structured clone. **Scope**: parity holds for current `IForkData` messages which contain no Transferables. Re-evaluate if Transferable support is added in future. |
-| `getPlatformServices()` called before registration at module load time | Registration must be the first statement in each entry point. Phase 1 includes an explicit import-tree audit of `standalone.ts`. |
-| `better-sqlite3` native addon incompatible with Bun | Build server bundle with esbuild (`build:server` script); externalize `better-sqlite3` and run with `node`. |
-| `tray.ts` still imports from `electronSafe.ts` | Acceptable — tray is never in the webserver import path; enforced by Phase 3 lint rule. |
-| `isPackaged()` always false causes `-dev` directory suffix in Docker production | Set `IS_PACKAGED=true` in production Docker environment. Document in deployment guide. |
-| Notification click/close events removed in standalone | Intentional degradation. Desktop Electron path unaffected — `ElectronPlatformServices.notification` can be extended to return an event handle if needed in future. |
+| Risk                                                                            | Mitigation                                                                                                                                                                                                 |
+| ------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `child_process.fork` serialization parity                                       | Use `{ serialization: 'advanced' }` for structured clone. **Scope**: parity holds for current `IForkData` messages which contain no Transferables. Re-evaluate if Transferable support is added in future. |
+| `getPlatformServices()` called before registration at module load time          | Registration must be the first statement in each entry point. Phase 1 includes an explicit import-tree audit of `standalone.ts`.                                                                           |
+| `better-sqlite3` native addon incompatible with Bun                             | Build server bundle with esbuild (`build:server` script); externalize `better-sqlite3` and run with `node`.                                                                                                |
+| `tray.ts` still imports from `electronSafe.ts`                                  | Acceptable — tray is never in the webserver import path; enforced by Phase 3 lint rule.                                                                                                                    |
+| `isPackaged()` always false causes `-dev` directory suffix in Docker production | Set `IS_PACKAGED=true` in production Docker environment. Document in deployment guide.                                                                                                                     |
+| Notification click/close events removed in standalone                           | Intentional degradation. Desktop Electron path unaffected — `ElectronPlatformServices.notification` can be extended to return an event handle if needed in future.                                         |
 
 ---
 

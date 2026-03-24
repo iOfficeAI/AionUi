@@ -14,8 +14,8 @@
 
 ## File Map
 
-| File | Change |
-|------|--------|
+| File           | Change                                                                                                                                        |
+| -------------- | --------------------------------------------------------------------------------------------------------------------------------------------- |
 | `package.json` | Add `tsx` to `devDependencies`; replace `server` script; add `server:remote`, `server:prod`, `server:prod:remote`, `build:server:run` scripts |
 
 ---
@@ -23,6 +23,7 @@
 ## Task 1: Install tsx as devDependency
 
 **Files:**
+
 - Modify: `package.json` (devDependencies)
 
 - [ ] **Step 1: Install tsx**
@@ -47,9 +48,11 @@ Expected: prints a version string like `4.x.x`.
 ## Task 2: Update server scripts in package.json
 
 **Files:**
+
 - Modify: `package.json` (scripts section, lines 55–56)
 
 Current state:
+
 ```json
 "server": "bun run src/server.ts",
 "build:server": "bun build src/server.ts --outdir dist-server --target node"

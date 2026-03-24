@@ -66,6 +66,7 @@ server  (pure Node.js, no Electron)
 ```
 
 Authentication flow (WebUI / server modes):
+
 1. `POST /login` → JWT token
 2. Connect WebSocket with token (verified on handshake)
 3. All bridge calls travel over the WebSocket connection

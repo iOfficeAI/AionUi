@@ -1,5 +1,5 @@
-import type { IPlatformServices } from "./IPlatformServices";
-import { NodePlatformServices } from "./NodePlatformServices";
+import type { IPlatformServices } from './IPlatformServices';
+import { NodePlatformServices } from './NodePlatformServices';
 
 let _services: IPlatformServices | null = null;
 
@@ -21,32 +21,30 @@ export function getPlatformServices(): IPlatformServices {
       // accessible. Fall back to NodePlatformServices (DATA_DIR is injected by
       // ElectronPlatformServices.fork so paths still resolve correctly).
       const processType = (process as NodeJS.Process & { type?: string }).type;
-      if (processType !== "browser") {
+      if (processType !== 'browser') {
         _services = new NodePlatformServices();
       } else {
         // eslint-disable-next-line @typescript-eslint/no-require-imports
-        const { app } = require("electron") as typeof import("electron");
+        const { app } = require('electron') as typeof import('electron');
         // Typed as IPlatformPaths so tsc enforces completeness: any new method
         // added to the interface will cause a compile error here if omitted below.
-        const paths: import("./IPlatformServices").IPlatformPaths = {
-          getDataDir: () => app.getPath("userData"),
-          getTempDir: () => app.getPath("temp"),
-          getHomeDir: () => app.getPath("home"),
-          getLogsDir: () => app.getPath("logs"),
+        const paths: import('./IPlatformServices').IPlatformPaths = {
+          getDataDir: () => app.getPath('userData'),
+          getTempDir: () => app.getPath('temp'),
+          getHomeDir: () => app.getPath('home'),
+          getLogsDir: () => app.getPath('logs'),
           getAppPath: () => app.getAppPath(),
           isPackaged: () => app.isPackaged,
           getSystemPath: (name) => app.getPath(name),
           getName: () => app.getName(),
           getVersion: () => app.getVersion(),
-          needsCliSafeSymlinks: () => process.platform === "darwin",
+          needsCliSafeSymlinks: () => process.platform === 'darwin',
         };
         _services = {
           paths,
           worker: {
             fork: () => {
-              throw new Error(
-                "[Platform] Worker not available before registerPlatformServices()",
-              );
+              throw new Error('[Platform] Worker not available before registerPlatformServices()');
             },
           },
           power: { preventSleep: () => null, allowSleep: () => {} },
@@ -55,7 +53,7 @@ export function getPlatformServices(): IPlatformServices {
       }
     } else {
       throw new Error(
-        "[Platform] Services not registered. Call registerPlatformServices() before using platform APIs.",
+        '[Platform] Services not registered. Call registerPlatformServices() before using platform APIs.'
       );
     }
   }
@@ -69,4 +67,4 @@ export type {
   IWorkerProcessFactory,
   IPowerManager,
   INotificationService,
-} from "./IPlatformServices";
+} from './IPlatformServices';

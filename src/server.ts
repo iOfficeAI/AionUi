@@ -7,23 +7,21 @@
  */
 
 // register-node MUST be the first import — registers NodePlatformServices before any module-level code
-import "./common/platform/register-node";
+import './common/platform/register-node';
 
 // Must follow registration — calls bridge.adapter() at module load time
-import "./common/adapter/standalone";
+import './common/adapter/standalone';
 
-import { initBridgeStandalone } from "./process/utils/initBridgeStandalone";
-import { startWebServerWithInstance } from "./process/webserver";
-import { cleanupWebAdapter } from "./process/webserver/adapter";
-import initStorage from "./process/utils/initStorage";
+import { initBridgeStandalone } from './process/utils/initBridgeStandalone';
+import { startWebServerWithInstance } from './process/webserver';
+import { cleanupWebAdapter } from './process/webserver/adapter';
+import initStorage from './process/utils/initStorage';
 
-const PORT = parseInt(process.env.PORT ?? "3000", 10);
-const ALLOW_REMOTE = process.env.ALLOW_REMOTE === "true";
+const PORT = parseInt(process.env.PORT ?? '3000', 10);
+const ALLOW_REMOTE = process.env.ALLOW_REMOTE === 'true';
 
 // Track server instance for shutdown (set by main() once server is ready)
-let serverInstance: Awaited<
-  ReturnType<typeof startWebServerWithInstance>
-> | null = null;
+let serverInstance: Awaited<ReturnType<typeof startWebServerWithInstance>> | null = null;
 
 // Register signal handlers at the TOP LEVEL — before any async operations — so
 // they are always active regardless of where in the startup sequence a signal
@@ -39,14 +37,14 @@ const shutdown = (signal: string) => {
       serverInstance.server.close(() => process.exit(0));
     }
   } catch (e) {
-    console.error("[server] Shutdown error:", e);
+    console.error('[server] Shutdown error:', e);
   }
   // Force exit after 1 s regardless of connection state
   setTimeout(() => process.exit(0), 1000);
 };
 
-process.on("SIGINT", () => shutdown("SIGINT"));
-process.on("SIGTERM", () => shutdown("SIGTERM"));
+process.on('SIGINT', () => shutdown('SIGINT'));
+process.on('SIGTERM', () => shutdown('SIGTERM'));
 
 async function main(): Promise<void> {
   // Initialize storage (respects DATA_DIR env var)
@@ -60,12 +58,10 @@ async function main(): Promise<void> {
   // Expose to the top-level shutdown handler
   serverInstance = instance;
 
-  console.log(
-    `[server] WebUI running on http://${ALLOW_REMOTE ? "0.0.0.0" : "localhost"}:${PORT}`,
-  );
+  console.log(`[server] WebUI running on http://${ALLOW_REMOTE ? '0.0.0.0' : 'localhost'}:${PORT}`);
 }
 
 main().catch((err: unknown) => {
-  console.error("[server] Fatal error:", err);
+  console.error('[server] Fatal error:', err);
   process.exit(1);
 });

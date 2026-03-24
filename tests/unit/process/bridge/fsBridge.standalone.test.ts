@@ -18,7 +18,13 @@ vi.mock('@office-ai/platform', () => ({
 vi.mock('@process/utils/initStorage', () => ({
   getSkillsDir: () => '/mock/skills',
   getBuiltinSkillsDir: () => '/mock/skills/_builtin',
-  getSystemDir: () => ({ workDir: '/mock/work', cacheDir: '/mock/cache', logDir: '/mock/logs', platform: 'linux', arch: 'x64' }),
+  getSystemDir: () => ({
+    workDir: '/mock/work',
+    cacheDir: '/mock/cache',
+    logDir: '/mock/logs',
+    platform: 'linux',
+    arch: 'x64',
+  }),
   getAssistantsDir: () => '/mock/assistants',
 }));
 
