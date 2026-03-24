@@ -28,8 +28,9 @@ RUN bun install --production
 ENV PORT=3000
 ENV NODE_ENV=production
 ENV ALLOW_REMOTE=true
+ENV DATA_DIR=/data
 
-# SQLite data volume — mount with: -v $(pwd)/data:/data -e DATA_DIR=/data
+# SQLite data volume — mount with: -v $(pwd)/data:/data
 VOLUME ["/data"]
 EXPOSE 3000
 
