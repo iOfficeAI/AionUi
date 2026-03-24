@@ -32,7 +32,7 @@ const ACP_PERF_LOG = process.env.ACP_PERF === '1';
 
 /** Feature flag for new SkillInjector-based skill injection (Phase 4). */
 // TODO: Enable after migration is verified
-const USE_NEW_SKILL_SYSTEM = false;
+const USE_NEW_SKILL_SYSTEM = true;
 
 import BaseAgentManager from './BaseAgentManager';
 import { IpcAgentEventEmitter } from './IpcAgentEventEmitter';
