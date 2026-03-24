@@ -119,7 +119,7 @@ const AssistantSkillPanel: React.FC<AssistantSkillPanelProps> = ({ skillConfig, 
             <div className='flex-1 min-w-0'>
               <div className='flex items-center gap-8px flex-wrap'>
                 <span className='text-13px font-medium text-t-primary truncate'>{skill.name}</span>
-                {skill.isCustom ? (
+                {skill.source === 'custom' ? (
                   <span className='bg-[rgba(var(--orange-6),0.08)] text-orange-6 border border-[rgba(var(--orange-6),0.2)] text-11px px-6px py-1px rd-4px font-medium'>
                     {t('settings.skillsHub.custom', { defaultValue: 'Custom' })}
                   </span>
@@ -129,10 +129,10 @@ const AssistantSkillPanel: React.FC<AssistantSkillPanelProps> = ({ skillConfig, 
                   </span>
                 )}
               </div>
-              {skill.description && (
-                <Tooltip content={skill.description} position='top' mini>
+              {skill.metadata.description && (
+                <Tooltip content={skill.metadata.description} position='top' mini>
                   <p className='text-12px text-t-tertiary line-clamp-1 m-0 mt-2px cursor-default'>
-                    {skill.description}
+                    {skill.metadata.description}
                   </p>
                 </Tooltip>
               )}
