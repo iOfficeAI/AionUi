@@ -140,8 +140,8 @@ describe('SkillsHubSettings Component', () => {
     });
 
     // Check headers
-    expect(screen.getByText('发现外部技能')).toBeInTheDocument();
-    expect(screen.getByText('我的技能')).toBeInTheDocument();
+    expect(screen.getByText('Discovered External Skills')).toBeInTheDocument();
+    expect(screen.getByText('My Skills')).toBeInTheDocument();
 
     // Check external skills render
     expect(screen.getByText('Gemini CLI')).toBeInTheDocument();
@@ -150,8 +150,8 @@ describe('SkillsHubSettings Component', () => {
     // Check my skills render
     expect(screen.getByText('MySkill1')).toBeInTheDocument();
     expect(screen.getByText('Builtin1')).toBeInTheDocument();
-    expect(screen.getByText('自定义')).toBeInTheDocument();
-    expect(screen.getByText('内置')).toBeInTheDocument();
+    expect(screen.getByText('Custom')).toBeInTheDocument();
+    expect(screen.getByText('Built-in')).toBeInTheDocument();
 
     // Check paths are rendered
     expect(screen.getByText('/user/skills')).toBeInTheDocument();
@@ -196,8 +196,8 @@ describe('SkillsHubSettings Component', () => {
     });
 
     // Find import button for the external skill
-    // ExtSkill1 and ExtSkill2 - first 导入 button
-    const importButtons = screen.getAllByText('导入');
+    // ExtSkill1 and ExtSkill2 - first Import button
+    const importButtons = screen.getAllByText('Import');
     expect(importButtons.length).toBeGreaterThan(0);
 
     fireEvent.click(importButtons[0]);
@@ -243,7 +243,7 @@ describe('SkillsHubSettings Component', () => {
     render(<SkillsHubSettings />);
 
     await waitFor(() => {
-      expect(screen.getByText('发现外部技能')).toBeInTheDocument();
+      expect(screen.getByText('Discovered External Skills')).toBeInTheDocument();
     });
 
     // Click Add button (has title "Add" mocked effectively)
@@ -256,8 +256,8 @@ describe('SkillsHubSettings Component', () => {
     });
 
     // Add name and path
-    const nameInput = screen.getByPlaceholderText('例：我的自定义技能');
-    const pathInput = screen.getByPlaceholderText('例：C:\\Users\\me\\.mytools\\skills');
+    const nameInput = screen.getByPlaceholderText('e.g. My Custom Skills');
+    const pathInput = screen.getByPlaceholderText('e.g. C:\\Users\\me\\.mytools\\skills');
 
     fireEvent.change(nameInput, { target: { value: 'NewPath' } });
     fireEvent.change(pathInput, { target: { value: '/foo/bar' } });
@@ -275,6 +275,6 @@ describe('SkillsHubSettings Component', () => {
 
   it('should render usage tips correctly', () => {
     render(<SkillsHubSettings />);
-    expect(screen.getByText('使用贴士：')).toBeInTheDocument();
+    expect(screen.getByText('Usage Tip:')).toBeInTheDocument();
   });
 });
