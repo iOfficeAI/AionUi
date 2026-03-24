@@ -4,13 +4,9 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { useTranslation } from 'react-i18next';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { useParams } from 'react-router-dom';
-
-import type { GroupedHistoryResult } from '../types';
-import { useConversationListSync } from './useConversationListSync';
-import { buildGroupedHistory } from '../utils/groupingHelpers';
+import { useConversationHistoryContext } from '@/renderer/hooks/context/ConversationHistoryContext';
 import {
   dispatchWorkspaceExpansionChange,
   readExpandedWorkspaces,
@@ -20,9 +16,14 @@ import {
 export const useConversations = () => {
   const [expandedWorkspaces, setExpandedWorkspaces] = useState<string[]>(() => readExpandedWorkspaces());
   const { id } = useParams();
-  const { t } = useTranslation();
-  const { conversations, isConversationGenerating, hasCompletionUnread, clearCompletionUnread, setActiveConversation } =
-    useConversationListSync();
+  const {
+    conversations,
+    isConversationGenerating,
+    hasCompletionUnread,
+    clearCompletionUnread,
+    setActiveConversation,
+    groupedHistory,
+  } = useConversationHistoryContext();
 
   // Track whether auto-expand has already been performed to avoid
   // re-expanding workspaces after a user manually collapses them (#1156)
@@ -56,10 +57,6 @@ export const useConversations = () => {
 
     dispatchWorkspaceExpansionChange(expandedWorkspaces);
   }, [expandedWorkspaces]);
-
-  const groupedHistory: GroupedHistoryResult = useMemo(() => {
-    return buildGroupedHistory(conversations, t);
-  }, [conversations, t]);
 
   const { pinnedConversations, timelineSections } = groupedHistory;
 

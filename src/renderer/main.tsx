@@ -51,6 +51,7 @@ import Layout from './components/layout/Layout';
 import Router from './components/layout/Router';
 import Sider from './components/layout/Sider';
 import { useAuth } from './hooks/context/AuthContext';
+import { ConversationHistoryProvider } from './hooks/context/ConversationHistoryContext';
 import HOC from './utils/ui/HOC';
 
 // Patch Korean locale with missing properties from English locale
@@ -108,7 +109,15 @@ const Main = () => {
     return null;
   }
 
-  return <Router layout={<Layout sider={<Sider />} />} />;
+  return (
+    <Router
+      layout={
+        <ConversationHistoryProvider>
+          <Layout sider={<Sider />} />
+        </ConversationHistoryProvider>
+      }
+    />
+  );
 };
 
 const App = HOC.Wrapper(Config)(Main);
