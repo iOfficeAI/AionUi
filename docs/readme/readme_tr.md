@@ -86,7 +86,7 @@ AionUi tam bir AI Agent motoru ile birlikte gelir. CLI Agent'ları ayrı olarak 
 
 ### **Morph PPT Animasyon Demosu — Tek cümleyle akıcı geçişler**
 
-_AionUi, özel bir Morph PPT asistanını yerleşik olarak sunar. Sadece statik slayt düzenlemez; içeriğinizi anlatı odaklı, dinamik bir sunuma dönüştürür. Bir konu/taslak (veya stil referansı) verin, tutarlı geçişlere sahip Morph sunumu üretin._
+_AionUi, özel bir Morph PPT asistanını yerleşik olarak sunar. Sadece statik slayt düzenlemez; içeriğinizi anlatı odaklı, dinamik bir sunuma dönüştürür. Bir konu/taslak (veya stil referansı) verin, tutarlı geçişlere sahip Morph sunumu üretin. Altyapısı [OfficeCLI](https://github.com/iOfficeAI/OfficeCli#) tarafından desteklenir._
 
 - **Sıradan bir PPT üretici değil** — Morph anlatımına ve slaytlar arası sürekliliğe odaklanır
 - **Uçtan uca yerleşik akış** — planlama, üretim, kalite kontrol ve iterasyon
