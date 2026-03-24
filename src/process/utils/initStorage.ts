@@ -29,6 +29,9 @@ import {
   verifyDirectoryFiles,
 } from './utils';
 import { getDatabase } from '../services/database/export';
+import { runPhase1Migration, needsPhase1Migration } from '@process/skills/migration';
+import { SkillRepository } from '@process/skills/SkillRepository';
+import { GlobalSkillConfigStore } from '@process/skills/GlobalSkillConfigStore';
 import type { AcpBackendConfig } from '@/common/types/acpTypes';
 import {
   BUILTIN_IMAGE_GEN_ID,
@@ -983,7 +986,28 @@ const initStorage = async () => {
     console.error('[AionUi] Failed to initialize builtin assistants:', error);
   }
 
-  // 6. 初始化数据库（better-sqlite3）
+  // 6. Skill System Phase 1 migration (runs once on first launch)
+  try {
+    const systemDirs = getSystemDir();
+    const skillConfigDir = cacheDir;
+    // Wire up singletons now that dirs are known
+    GlobalSkillConfigStore.getInstance(skillConfigDir);
+    SkillRepository.getInstance().setCachePath(
+      path.join(systemDirs.workDir, 'cache', 'skill-registry.json'),
+    );
+    if (await needsPhase1Migration(systemDirs.workDir)) {
+      await runPhase1Migration(
+        systemDirs.workDir,
+        getBuiltinSkillsDir(),
+        getSkillsDir(),
+        skillConfigDir,
+      );
+    }
+  } catch (error) {
+    console.error('[InitStorage] Skill system migration failed (non-fatal):', error);
+  }
+
+  // 7. 初始化数据库（better-sqlite3）
   try {
     getDatabase();
     cleanupOrphanedHealthCheckConversations();
