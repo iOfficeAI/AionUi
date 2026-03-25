@@ -6,9 +6,9 @@
 
 import type { TChatConversation } from '@/common/config/storage';
 import type { HookManifest } from '@/common/types/hookTypes';
+import { getBuiltinHooksCopyDir, getHooksDir } from '@process/utils/initStorage';
 import fs from 'fs/promises';
 import path from 'path';
-import { getHooksDir } from '@process/utils/initStorage';
 
 type HookRuntimeResult = {
   content: string;
@@ -70,7 +70,7 @@ export class AssistantHookRuntime {
     const appliedHooks: string[] = [];
 
     for (const hookName of enabledHooks) {
-      // Hooks must run in selection order because each transform consumes the previous output.
+      // Hooks execute in selection order so each transform can build on the previous output.
       // eslint-disable-next-line no-await-in-loop
       const transformed = await this.applyPromptTransformHook(conversation, hookName, content);
       if (!transformed) continue;
@@ -92,7 +92,9 @@ export class AssistantHookRuntime {
       return null;
     }
 
-    const hookDir = path.join(getHooksDir(), hookName);
+    const hookDir = await this.resolveHookDir(hookName);
+    if (!hookDir) return null;
+
     const manifest = await this.readHookManifest(hookDir);
     if (!manifest) return null;
 
@@ -132,6 +134,15 @@ export class AssistantHookRuntime {
     }
 
     return `${rendered}\n\n[User Request]\n${input}`;
+  }
+
+  private async resolveHookDir(hookName: string): Promise<string | null> {
+    const candidates = [path.join(getHooksDir(), hookName), path.join(getBuiltinHooksCopyDir(), hookName)];
+    const results = await Promise.allSettled(
+      candidates.map(async (candidate) => fs.access(candidate).then(() => candidate))
+    );
+    const matched = results.find((result): result is PromiseFulfilledResult<string> => result.status === 'fulfilled');
+    return matched?.value || null;
   }
 
   private async readHookManifest(hookDir: string): Promise<HookManifest | null> {

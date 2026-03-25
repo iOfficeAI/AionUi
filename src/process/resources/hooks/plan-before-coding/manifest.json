@@ -1,0 +1,7 @@
+{
+  "name": "plan-before-coding",
+  "description": "System hook that asks the agent to outline a short plan before coding. Implemented as a before_user_prompt prompt transform.",
+  "version": "1.0.0",
+  "executionType": "prompt-transform",
+  "events": ["before_user_prompt"]
+}

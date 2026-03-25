@@ -625,7 +625,10 @@ class AcpAgentManager extends BaseAgentManager<AcpAgentManagerData, AcpPermissio
         return result;
       }
       const agentSendStart = Date.now();
-      const result = await this.agent.sendMessage(data);
+      const result = await this.agent.sendMessage({
+        ...data,
+        content: data.agentContent || data.content,
+      });
       if (ACP_PERF_LOG)
         console.log(
           `[ACP-PERF] manager: agent.sendMessage completed ${Date.now() - agentSendStart}ms (total manager.sendMessage: ${Date.now() - managerSendStart}ms)`

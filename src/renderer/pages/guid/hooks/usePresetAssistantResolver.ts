@@ -65,7 +65,7 @@ export const usePresetAssistantResolver = ({
           assistantId: customAgentId,
           locale: localeKey,
         });
-      } catch (_error) {
+      } catch {
         // skills may not exist, this is normal
       }
 
@@ -90,7 +90,7 @@ export const usePresetAssistantResolver = ({
               if (skillFile) {
                 skills = await ipcBridge.fs.readBuiltinSkill.invoke({ fileName: skillFile });
               }
-            } catch (_e) {
+            } catch {
               // skills fallback failure is ok
             }
           }

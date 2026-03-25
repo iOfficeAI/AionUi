@@ -44,6 +44,7 @@ describe('createConversationParams', () => {
       rules: 'preset rules',
       skills: '',
       enabledSkills: ['moltbook'],
+      enabledHooks: ['quality-gate'],
     });
     configGet.mockResolvedValue([
       {
@@ -76,6 +77,7 @@ describe('createConversationParams', () => {
     });
     expect(params.extra.presetRules).toBe('preset rules');
     expect(params.extra.enabledSkills).toEqual(['moltbook']);
+    expect(params.extra.enabledHooks).toEqual(['quality-gate']);
     expect(params.model.useModel).toBe('gpt-4.1');
   });
 
@@ -84,6 +86,7 @@ describe('createConversationParams', () => {
       rules: 'acp preset rules',
       skills: '',
       enabledSkills: undefined,
+      enabledHooks: ['plan-before-coding'],
     });
 
     const params = await buildPresetAssistantParams(
@@ -101,5 +104,6 @@ describe('createConversationParams', () => {
     expect(params.type).toBe('acp');
     expect(params.extra.presetContext).toBe('acp preset rules');
     expect(params.extra.backend).toBe('codebuddy');
+    expect(params.extra.enabledHooks).toEqual(['plan-before-coding']);
   });
 });

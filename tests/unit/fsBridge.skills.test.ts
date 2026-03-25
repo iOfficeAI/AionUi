@@ -203,6 +203,10 @@ describe('fsBridge skills functionality', () => {
             deleteAssistantSkill: createCommandMock('delete-assistant-skill'),
             // The specific ones we care about
             listAvailableSkills: createCommandMock('list-available-skills'),
+            listAvailableHooks: createCommandMock('list-available-hooks'),
+            importHookWithSymlink: createCommandMock('import-hook-with-symlink'),
+            deleteHook: createCommandMock('delete-hook'),
+            getHookPaths: createCommandMock('get-hook-paths'),
             readSkillInfo: createCommandMock('read-skill-info'),
             importSkill: createCommandMock('import-skill'),
             scanForSkills: createCommandMock('scan-for-skills'),

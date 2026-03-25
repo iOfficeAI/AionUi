@@ -19,6 +19,7 @@ import {
   getSkillsDir,
   getHooksDir,
   getBuiltinSkillsCopyDir,
+  getBuiltinHooksCopyDir,
 } from '@process/utils/initStorage';
 import { readDirectoryRecursive } from '@process/utils';
 
@@ -186,14 +187,14 @@ async function readHookManifest(hookDir: string): Promise<HookManifest | null> {
   }
 }
 
-async function tryReadHookManifest(hookDir: string): Promise<HookInfo | null> {
+async function tryReadHookManifest(hookDir: string, isCustom: boolean): Promise<HookInfo | null> {
   try {
     const parsed = await readHookManifest(hookDir);
     if (!parsed) {
       return null;
     }
-    const name = typeof parsed.name === 'string' ? parsed.name.trim() : '';
 
+    const name = typeof parsed.name === 'string' ? parsed.name.trim() : '';
     if (!name) {
       return null;
     }
@@ -206,7 +207,7 @@ async function tryReadHookManifest(hookDir: string): Promise<HookInfo | null> {
       events: Array.isArray(parsed.events) ? parsed.events : undefined,
       supportedBackends: Array.isArray(parsed.supportedBackends) ? parsed.supportedBackends : undefined,
       location: hookDir,
-      isCustom: true,
+      isCustom,
     };
   } catch {
     return null;
@@ -911,21 +912,33 @@ export function initFsBridge(): void {
 
   ipcBridge.fs.listAvailableHooks.provider(async () => {
     try {
-      const hooksDir = getHooksDir();
-      await fs.mkdir(hooksDir, { recursive: true });
-      const entries = await fs.readdir(hooksDir, { withFileTypes: true });
-      const hooks: HookInfo[] = [];
+      const hooks = new Map<string, HookInfo>();
 
-      for (const entry of entries) {
-        if (!entry.isDirectory()) continue;
+      const readHooksFromDir = async (hooksDir: string, isCustomDir: boolean) => {
+        try {
+          await fs.access(hooksDir);
+          const entries = await fs.readdir(hooksDir, { withFileTypes: true });
 
-        const hookInfo = await tryReadHookManifest(path.join(hooksDir, entry.name));
-        if (hookInfo) {
-          hooks.push(hookInfo);
+          for (const entry of entries) {
+            if (!entry.isDirectory() && !entry.isSymbolicLink()) continue;
+
+            const hookInfo = await tryReadHookManifest(path.join(hooksDir, entry.name), isCustomDir);
+            if (!hookInfo) continue;
+
+            const existing = hooks.get(hookInfo.name);
+            if (!existing || hookInfo.isCustom) {
+              hooks.set(hookInfo.name, hookInfo);
+            }
+          }
+        } catch {
+          // Directory doesn't exist, skip.
         }
-      }
+      };
 
-      return hooks.toSorted((a, b) => a.name.localeCompare(b.name));
+      await readHooksFromDir(getBuiltinHooksCopyDir(), false);
+      await readHooksFromDir(getHooksDir(), true);
+
+      return Array.from(hooks.values()).toSorted((a, b) => a.name.localeCompare(b.name));
     } catch (error) {
       console.error('[fsBridge] Failed to list available hooks:', error);
       return [];
@@ -954,7 +967,6 @@ export function initFsBridge(): void {
 
       const userHooksDir = getHooksDir();
       const targetDir = path.join(userHooksDir, safeHookDirName);
-
       await fs.mkdir(userHooksDir, { recursive: true });
 
       try {
@@ -964,12 +976,10 @@ export function initFsBridge(): void {
           msg: `Hook "${hookName}" already exists`,
         };
       } catch {
-        // Does not exist, proceed.
+        // Continue import when the target does not exist.
       }
 
       await fs.symlink(hookPath, targetDir, 'junction');
-      console.log(`[fsBridge] Created symlink for hook "${hookName}" at ${targetDir}`);
-
       return {
         success: true,
         data: { hookName: safeHookDirName },
@@ -1013,8 +1023,6 @@ export function initFsBridge(): void {
       } else {
         await fs.rm(resolvedHookDir, { recursive: true, force: true });
       }
-
-      console.log(`[fsBridge] Deleted hook "${hookName}" from ${resolvedHookDir}`);
       return { success: true, msg: `Hook "${hookName}" deleted` };
     } catch (error) {
       console.error('[fsBridge] Failed to delete hook:', error);
