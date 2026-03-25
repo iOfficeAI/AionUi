@@ -27,12 +27,34 @@ Help me commit the current changes and open a PR. Follow these steps:
 
    Example: user inputs "feat/dark-mode" → branch name `{prefix}/feat/dark-mode`
 
-5. **Commit workflow**:
+5. **Run quality checks**:
+
+   ```bash
+   bun run lint
+   bun run format
+   bunx tsc --noEmit
+   ```
+
+   - **lint fails** → Stop and report lint errors. Do not proceed until fixed.
+   - **format** → Auto-fixes formatting issues silently.
+   - **tsc fails** → Stop and report TypeScript errors. Do not proceed until fixed.
+   - **All pass** → Proceed silently.
+
+6. **Run tests**:
+
+   ```bash
+   bunx vitest run
+   ```
+
+   - **Fails** → Stop and report failing tests. Do not proceed until fixed.
+   - **Passes** → Proceed silently.
+
+7. **Commit workflow**:
    - Run `git status` and `git diff` to understand the changes
    - Generate commit message in English using conventional commits format
    - **Important**: Do NOT include `Co-authored-by` or any AI attribution in the commit message
 
-6. **Push & create PR**:
+8. **Push & create PR**:
    - Push the branch with `git push -u origin <branch>`
    - Run `git log main..HEAD --oneline` and `git diff main...HEAD` to understand all changes
    - Create PR with `gh pr create`, title under 70 characters
