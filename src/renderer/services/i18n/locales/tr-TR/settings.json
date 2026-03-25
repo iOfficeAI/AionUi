@@ -238,6 +238,7 @@
   "webui.qrLoginHint": "Mobil tarayıcıda otomatik giriş yapmak için QR kodu telefonunuzla tarayın",
   "webui.qrExpires": "{{time}} içinde sona eriyor",
   "webui.refreshQr": "QR Kodunu Yenile",
+  "webui.copyQrLink": "Bağlantıyı Kopyala",
   "webui.qrGenerateFailed": "QR kodu oluşturulamadı",
   "webui.accountInfo": "Hesap Bilgileri",
   "webui.username": "Kullanıcı Adı",

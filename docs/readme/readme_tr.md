@@ -34,7 +34,7 @@
 </p>
 
 <p align="center">
-  <strong>💬 Topluluk:</strong> <a href="https://discord.gg/2QAwJn7Egx" target="_blank">Discord (English)</a> | <a href="./resources/wechat_group_5.png" target="_blank">微信 (中文群)</a> | <a href="https://twitter.com/AionUI" target="_blank">Twitter</a>
+  <strong>💬 Topluluk:</strong> <a href="https://discord.gg/2QAwJn7Egx" target="_blank">Discord (English)</a> | <a href="./resources/wx-4.png" target="_blank">微信 (中文群)</a> | <a href="https://twitter.com/AionUI" target="_blank">Twitter</a>
 </p>
 
 ---
@@ -82,6 +82,19 @@ AionUi tam bir AI Agent motoru ile birlikte gelir. CLI Agent'ları ayrı olarak 
 
 <p align="center">
   <img src="./resources/build-in agents.png" alt="Built-in Agents" width="800">
+</p>
+
+### **Morph PPT Animasyon Demosu — Tek cümleyle akıcı geçişler**
+
+_AionUi, özel bir Morph PPT asistanını yerleşik olarak sunar. Sadece statik slayt düzenlemez; içeriğinizi anlatı odaklı, dinamik bir sunuma dönüştürür. Bir konu/taslak (veya stil referansı) verin, tutarlı geçişlere sahip Morph sunumu üretin. Altyapısı [OfficeCLI](https://github.com/iOfficeAI/OfficeCli#) tarafından desteklenir._
+
+- **Sıradan bir PPT üretici değil** — Morph anlatımına ve slaytlar arası sürekliliğe odaklanır
+- **Uçtan uca yerleşik akış** — planlama, üretim, kalite kontrol ve iterasyon
+- **Stil hizalama desteği** — referans görsel/stil ile estetiği hızlıca yakalar
+- **Üret ve anında önizle** — `.ppt` / `.pptx` dosyalarını AionUi içinde doğrudan görüntüle
+
+<p align="center">
+  <img src="../../resources/morph-ppt-balanced.gif" alt="Morph PPT Demo" width="800">
 </p>
 
 ---
@@ -551,7 +564,7 @@ brew install aionui
 - [Sorun Bildir](https://github.com/iOfficeAI/AionUi/issues) — hatalar ve özellik istekleri
 - [Sürüm Güncellemeleri](https://github.com/iOfficeAI/AionUi/releases) — en son sürümü alın
 - [Discord Topluluğu](https://discord.gg/2QAwJn7Egx) — İngilizce topluluk
-- [WeChat Grubu](./resources/wechat_group_5.png) — Çince topluluk
+- [WeChat Grubu](./resources/wx-4.png) — Çince topluluk
 
 ### Katkıda Bulunma
 

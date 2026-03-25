@@ -69,6 +69,7 @@
     "docs/",
     "config/webpack/",
     "scripts/",
-    "src/agent/gemini/cli/"
+    "src/agent/gemini/cli/",
+    "mobile/"
   ]
 }

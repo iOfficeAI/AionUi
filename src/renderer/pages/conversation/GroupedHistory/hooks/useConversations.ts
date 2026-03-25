@@ -4,33 +4,26 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { useTranslation } from 'react-i18next';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { useParams } from 'react-router-dom';
-
-import type { GroupedHistoryResult } from '../types';
-import { useConversationListSync } from './useConversationListSync';
-import { buildGroupedHistory } from '../utils/groupingHelpers';
-
-const EXPANSION_STORAGE_KEY = 'aionui_workspace_expansion';
+import { useConversationHistoryContext } from '@/renderer/hooks/context/ConversationHistoryContext';
+import {
+  dispatchWorkspaceExpansionChange,
+  readExpandedWorkspaces,
+  WORKSPACE_EXPANSION_STORAGE_KEY,
+} from './useWorkspaceExpansionState';
 
 export const useConversations = () => {
-  const [expandedWorkspaces, setExpandedWorkspaces] = useState<string[]>(() => {
-    try {
-      const stored = localStorage.getItem(EXPANSION_STORAGE_KEY);
-      if (stored) {
-        const parsed = JSON.parse(stored);
-        return Array.isArray(parsed) ? parsed : [];
-      }
-    } catch {
-      // ignore
-    }
-    return [];
-  });
+  const [expandedWorkspaces, setExpandedWorkspaces] = useState<string[]>(() => readExpandedWorkspaces());
   const { id } = useParams();
-  const { t } = useTranslation();
-  const { conversations, isConversationGenerating, hasCompletionUnread, clearCompletionUnread, setActiveConversation } =
-    useConversationListSync();
+  const {
+    conversations,
+    isConversationGenerating,
+    hasCompletionUnread,
+    clearCompletionUnread,
+    setActiveConversation,
+    groupedHistory,
+  } = useConversationHistoryContext();
 
   // Track whether auto-expand has already been performed to avoid
   // re-expanding workspaces after a user manually collapses them (#1156)
@@ -57,15 +50,13 @@ export const useConversations = () => {
   // Persist expansion state
   useEffect(() => {
     try {
-      localStorage.setItem(EXPANSION_STORAGE_KEY, JSON.stringify(expandedWorkspaces));
+      localStorage.setItem(WORKSPACE_EXPANSION_STORAGE_KEY, JSON.stringify(expandedWorkspaces));
     } catch {
       // ignore
     }
-  }, [expandedWorkspaces]);
 
-  const groupedHistory: GroupedHistoryResult = useMemo(() => {
-    return buildGroupedHistory(conversations, t);
-  }, [conversations, t]);
+    dispatchWorkspaceExpansionChange(expandedWorkspaces);
+  }, [expandedWorkspaces]);
 
   const { pinnedConversations, timelineSections } = groupedHistory;
 

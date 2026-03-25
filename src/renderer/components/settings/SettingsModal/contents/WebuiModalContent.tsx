@@ -823,12 +823,22 @@ const WebuiModalContent: React.FC = () => {
                   )}
                 </div>
 
-                {/* 过期时间和刷新按钮 / Expiration time and refresh button */}
+                {/* 过期时间、复制链接和刷新按钮 / Expiration time, copy link and refresh button */}
                 <div className='flex items-center gap-8px'>
                   {qrExpiresAt && (
                     <span className='text-12px text-t-tertiary'>
                       {t('settings.webui.qrExpires', { time: formatExpiresAt(qrExpiresAt) })}
                     </span>
+                  )}
+                  {qrUrl && (
+                    <Tooltip content={t('settings.webui.copyQrLink')}>
+                      <button
+                        className='p-4px bg-transparent border-none text-t-tertiary hover:text-t-primary cursor-pointer'
+                        onClick={() => handleCopy(qrUrl)}
+                      >
+                        <Copy size={16} />
+                      </button>
+                    </Tooltip>
                   )}
                   <Tooltip content={t('settings.webui.refreshQr')}>
                     <button

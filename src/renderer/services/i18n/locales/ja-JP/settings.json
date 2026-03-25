@@ -238,6 +238,7 @@
   "webui.qrLoginHint": "スマートフォンでQRコードをスキャンして、モバイルブラウザで自動ログイン",
   "webui.qrExpires": "{{time}} に有効期限切れ",
   "webui.refreshQr": "QRコードを更新",
+  "webui.copyQrLink": "リンクをコピー",
   "webui.qrGenerateFailed": "QRコードの生成に失敗しました",
   "webui.accountInfo": "アカウント情報",
   "webui.username": "ユーザー名",

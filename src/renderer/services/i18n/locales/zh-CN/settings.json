@@ -238,6 +238,7 @@
   "webui.qrLoginHint": "使用手机扫描二维码，即可在手机浏览器中自动登录",
   "webui.qrExpires": "有效期至 {{time}}",
   "webui.refreshQr": "刷新二维码",
+  "webui.copyQrLink": "复制链接",
   "webui.qrGenerateFailed": "生成二维码失败",
   "webui.accountInfo": "账户信息",
   "webui.username": "用户名",

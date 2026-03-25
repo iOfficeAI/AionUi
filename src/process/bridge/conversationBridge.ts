@@ -11,7 +11,7 @@ import type { IAgentManager } from '@process/task/IAgentManager';
 import type { IConversationService } from '@process/services/IConversationService';
 import type { IWorkerTaskManager } from '@process/task/IWorkerTaskManager';
 import { ipcBridge } from '@/common';
-import { getSkillsDir, getSystemDir, ProcessChat } from '@process/utils/initStorage';
+import { getSkillsDir, getBuiltinSkillsCopyDir, getSystemDir, ProcessChat } from '@process/utils/initStorage';
 import type AcpAgentManager from '../task/AcpAgentManager';
 import type { GeminiAgentManager } from '../task/GeminiAgentManager';
 import type OpenClawAgentManager from '../task/OpenClawAgentManager';
@@ -408,9 +408,10 @@ export function initConversationBridge(
       // Provide absolute skills directory so agent can resolve relative script paths
       // e.g. "skills/star-office-helper/scripts/..." → "${skillsDir}/star-office-helper/scripts/..."
       const skillsDir = getSkillsDir();
+      const builtinSkillsCopyDir = getBuiltinSkillsCopyDir();
       agentContent = agentContent.replace(
         '[User Request]',
-        `[Skills Directory]\nSkills are installed at: ${skillsDir}\nWhen skill instructions reference relative paths like "skills/{name}/scripts/...", resolve them as "${skillsDir}/{name}/scripts/...".\n\n[User Request]`
+        `[Skills Directory]\nBuiltin skills: ${builtinSkillsCopyDir}\nUser skills: ${skillsDir}\nWhen skill instructions reference relative paths like "skills/{name}/scripts/...", resolve them under the appropriate directory.\n\n[User Request]`
       );
     }
 

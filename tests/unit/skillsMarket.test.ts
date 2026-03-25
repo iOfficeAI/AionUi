@@ -132,7 +132,8 @@ describe('Skills Market - AcpSkillManager integration', () => {
   vi.mock('electron', () => ({ app: { setName: vi.fn(), getPath: () => '/tmp/aionui-test' } }));
   vi.mock('../../src/process/utils/initStorage', () => ({
     getSkillsDir: () => path.join('/tmp/aionui-test', 'skills'),
-    getBuiltinSkillsDir: () => path.join('/tmp/aionui-test', 'skills', '_builtin'),
+    getAutoSkillsDir: () => path.join('/tmp/aionui-test', 'skills', '_builtin'),
+    getBuiltinSkillsCopyDir: () => path.join('/tmp/aionui-test', 'builtin-skills'),
   }));
 
   it('resetInstance clears the singleton so new discoveries happen', async () => {
