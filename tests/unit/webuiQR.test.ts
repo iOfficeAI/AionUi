@@ -1,5 +1,21 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, vi } from 'vitest';
 import { generateQRLoginUrlDirect, verifyQRTokenDirect } from '@process/bridge/webuiQR';
+
+vi.mock('@process/webserver/auth/repository/UserRepository', () => ({
+  UserRepository: {
+    getSystemUser: vi.fn().mockResolvedValue({
+      id: 'test-user-id',
+      username: 'admin',
+      password_hash: 'hash',
+      jwt_secret: 'test-jwt-secret-for-unit-tests-only-not-for-production',
+      created_at: Date.now(),
+      updated_at: Date.now(),
+      last_login: null,
+    }),
+    updateLastLogin: vi.fn().mockResolvedValue(undefined),
+    updateJwtSecret: vi.fn().mockResolvedValue(undefined),
+  },
+}));
 
 describe('generateQRLoginUrlDirect', () => {
   it('returns a qrUrl and expiresAt', () => {
