@@ -37,12 +37,20 @@ Single-responsibility module that owns all typing-indicator logic.
 
 ```typescript
 class TypingManager {
-  constructor(opts: { baseUrl: string; token: string; log: (msg: string) => void })
+  constructor(opts: {
+    baseUrl: string
+    token: string
+    wechatUin: string         // X-WECHAT-UIN header — generated in startMonitor, passed through
+    abortSignal?: AbortSignal // when fired: clear all intervals + abort in-flight sendTyping fetches
+    log: (msg: string) => void
+  })
 
   /**
    * Send TYPING immediately, then re-send every TYPING_INTERVAL_MS until stop() is called.
-   * If a previous typing session for the same userId is still active, it is stopped first.
-   * Returns a stop function that cancels the interval and sends CANCEL (best-effort).
+   * If a previous typing session for the same userId is active, it is stopped first.
+   * When typingTicket is empty (getConfig failed), returns a no-op stop — agent.chat still proceeds.
+   * Returns a stop function that cancels the interval and sends CANCEL (best-effort, does not throw).
+   * stop() is idempotent — safe to call multiple times.
    */
   async startTyping(userId: string, contextToken?: string): Promise<() => Promise<void>>
 }
@@ -50,36 +58,56 @@ class TypingManager {
 
 **Internal behavior:**
 
-- `typing_ticket` cache: per-user Map, TTL = 24 h (randomized), exponential-backoff retry up to 1 h on failure
-- `sendTyping` retry: max 2 retries, initial delay 500 ms, exponential backoff; failure is logged and swallowed
-- `stop()` is idempotent — safe to call multiple times
-- `stop()` sends `CANCEL` status (best-effort, does not throw)
+- `typing_ticket` cache: per-user `Map<string, CacheEntry>`, TTL computed as
+  `now + Math.random() * CONFIG_CACHE_TTL_MS` (same formula as the weixin-agent-sdk reference
+  implementation). This spreads expiry times uniformly across the 24 h window so concurrent
+  users do not all refresh at the same moment (thundering-herd prevention).
+- On `getConfig` failure: schedule retry with exponential backoff starting at
+  `CONFIG_INITIAL_RETRY_MS`, doubling each failure up to `CONFIG_MAX_RETRY_MS`.
+- Stale cache entry or fetch failure both result in `typingTicket = ""`.
+- When `typingTicket` is empty `startTyping` immediately returns a no-op stop function; no
+  `sendTyping` or `getConfig` calls are made.
+- `sendTyping` retry: max `MAX_TYPING_RETRIES` retries with initial delay `TYPING_RETRY_DELAY_MS`,
+  doubling each attempt; after final failure, log and swallow — never throws.
+- Concurrent `startTyping` for the same `userId`: calls `stop()` on the previous session before
+  starting a new one to clear the old interval.
+- `AbortSignal` handling: when `abortSignal` fires, `clearInterval` on all active intervals and
+  cancel any in-flight `sendTyping` fetch (via inner `AbortController`). Subsequent `startTyping`
+  calls made after abort return a no-op immediately.
+- `WeixinTyping.ts` reuses the same `apiPost` helper extracted from `WeixinMonitor.ts` (or
+  inline equivalent), ensuring `Content-Length`, `Authorization`, `AuthorizationType`, and
+  `X-WECHAT-UIN` headers are present on all requests.
 
 **Constants:**
 
 ```
-TYPING_INTERVAL_MS     = 10_000
-TYPING_RETRY_DELAY_MS  = 500
-MAX_TYPING_RETRIES     = 2
-CONFIG_CACHE_TTL_MS    = 24 * 60 * 60 * 1000
-CONFIG_INITIAL_RETRY_MS = 2_000
-CONFIG_MAX_RETRY_MS    = 60 * 60 * 1000
+TYPING_INTERVAL_MS      = 10_000   // re-send cadence
+TYPING_RETRY_DELAY_MS   = 500      // initial retry delay for sendTyping
+MAX_TYPING_RETRIES      = 2        // max sendTyping retry attempts
+CONFIG_CACHE_TTL_MS     = 24 * 60 * 60 * 1000   // max typing_ticket cache lifetime
+CONFIG_INITIAL_RETRY_MS = 2_000    // initial getConfig retry delay
+CONFIG_MAX_RETRY_MS     = 60 * 60 * 1000         // max getConfig retry delay
 ```
 
 ### Modified file: `WeixinMonitor.ts`
 
-Minimal changes — only the per-message handler block inside `runMonitor` changes.
+Minimal changes. `wechatUin` is generated in `startMonitor` (the exported function) and passed
+to `runMonitor`. `TypingManager` is instantiated once at the top of `runMonitor`, after
+`wechatUin` is received and before the loop:
 
-**Before:**
 ```typescript
-const response = await agent.chat({ conversationId, text })
-if (response.text) {
-  await callSendMessage(baseUrl, token, wechatUin, conversationId, response.text, msg.context_token)
-}
+const typingMgr = new TypingManager({ baseUrl, token, wechatUin, abortSignal: signal, log: logFn })
 ```
 
-**After:**
+Per-message handler block. The existing extractions (`conversationId`, `text`) are unchanged;
+only the chat + send section is replaced:
+
 ```typescript
+// existing — unchanged
+const conversationId = msg.from_user_id ?? ''
+const text = textItem.text_item?.text ?? ''
+
+// new — replaces the bare `agent.chat` + `callSendMessage` block
 const stopTyping = await typingMgr.startTyping(conversationId, msg.context_token)
 try {
   const response = await agent.chat({ conversationId, text })
@@ -93,47 +121,76 @@ try {
 }
 ```
 
-`TypingManager` is instantiated once before the loop:
-
-```typescript
-const typingMgr = new TypingManager({ baseUrl, token, log: logFn })
-```
+`stopTyping()` is called before `callSendMessage` so the typing indicator clears before the
+reply appears in the chat.
 
 ### Unchanged files
 
 - `WeixinPlugin.ts` — no changes
 - `WeixinAdapter.ts` — no changes
 - `WeixinLogin.ts` / `WeixinLoginHandler.ts` — no changes
-- `WeixinChatRequest` type — no changes (`contextToken` is consumed internally by Monitor)
-- `MonitorOptions` type — no new fields needed (reuses `baseUrl`, `token`, `log`)
+- `WeixinChatRequest` type — no changes (`contextToken` stays internal to Monitor)
+- `MonitorOptions` type — no new fields needed (`baseUrl`, `token`, `log` already present)
 
 ## Data Flow
 
 ```
-getUpdates → message received
+startMonitor generates wechatUin
+    ↓
+runMonitor: TypingManager constructed with { baseUrl, token, wechatUin, abortSignal, log }
+    ↓
+getUpdates → message received (msg.context_token, msg.from_user_id)
     ↓
 typingMgr.startTyping(userId, contextToken)
-    ├─ callGetConfig(userId, contextToken) → typing_ticket (cached 24 h)
-    ├─ sendTyping(TYPING)                  ← immediate
-    └─ setInterval(10 s) → sendTyping(TYPING)
+    ├─ callGetConfig(userId, contextToken) → typing_ticket (cached 24 h window)
+    │   └─ if ticket == "" → return no-op stop immediately
+    ├─ sendTyping(TYPING, userId, ticket)     ← immediate
+    └─ setInterval(10 s) → sendTyping(TYPING, userId, ticket)
     ↓
-agent.chat(request)
+agent.chat({ conversationId, text })
     ↓
-stop()
+stopTyping()
     ├─ clearInterval
-    └─ sendTyping(CANCEL)  [best-effort]
+    └─ sendTyping(CANCEL, userId, ticket)   [best-effort: try once, catch and swallow all errors]
     ↓
 callSendMessage(text)
 ```
 
-## API Calls (WeChat Bot protocol)
+## API Request/Response Schemas
 
-| Endpoint | Purpose | Timeout |
-|---|---|---|
-| `ilink/bot/getconfig` | Get `typing_ticket` for a user | 10 s |
-| `ilink/bot/sendtyping` | Send typing status (TYPING=1 / CANCEL=2) | 10 s |
+All requests include the following headers (enforced by `apiPost`):
+```
+Authorization: Bearer <token>
+AuthorizationType: ilink_bot_token
+X-WECHAT-UIN: <wechatUin>
+Content-Type: application/json
+Content-Length: <byte length of body>
+```
 
-Request body for `sendTyping`:
+### `ilink/bot/getconfig` (timeout 10 s)
+
+Request body:
+```json
+{
+  "ilink_user_id": "<userId>",
+  "context_token": "<contextToken>",   // field omitted entirely when contextToken is undefined
+  "base_info": {}
+}
+```
+
+Response (success: `ret == 0`):
+```json
+{
+  "ret": 0,
+  "typing_ticket": "<base64 string>"
+}
+```
+
+Error detection: `ret !== 0` or `errcode !== 0` (when present) → treat as failure, apply retry.
+
+### `ilink/bot/sendtyping` (timeout 10 s)
+
+Request body:
 ```json
 {
   "ilink_user_id": "<userId>",
@@ -143,23 +200,54 @@ Request body for `sendTyping`:
 }
 ```
 
+(`status: 2` for CANCEL)
+
+Response body: ignored. HTTP non-2xx → treated as failure.
+
+**Retry behavior by status:**
+
+| Call site | On HTTP error or exception | Behavior |
+|---|---|---|
+| `sendTyping(TYPING)` in interval | Retry up to `MAX_TYPING_RETRIES`, then log + swallow | Never throws |
+| `sendTyping(CANCEL)` in `stop()` | Single attempt, catch and swallow all errors (no retry) | Never throws |
+
 ## Error Handling
 
-- `getConfig` failure: cache returns `""` for `typingTicket`; `startTyping` skips all API calls when ticket is empty and returns a no-op stop function
-- `sendTyping` failure: retried up to 2 times; if still failing, logged and ignored — main `agent.chat` flow is never blocked
+| Scenario | Behavior |
+|---|---|
+| `getConfig` fails | Retry with backoff; empty ticket → no-op stop, no typing calls |
+| `sendTyping(TYPING)` fails all retries | Log + ignore; `agent.chat` proceeds normally |
+| `sendTyping(CANCEL)` fails | Caught and swallowed silently (single attempt, no retry) |
+| `abortSignal` fires during active interval | `clearInterval`, in-flight fetch aborted; no further typing calls |
+| `abortSignal` fires before `startTyping` | Return no-op immediately, no API calls |
+| `agent.chat` throws (incl. timeout) | `stopTyping()` called in catch branch; indicator cleared |
 
 ## Testing
 
-- Unit tests for `TypingManager`:
-  - `startTyping` sends TYPING immediately
-  - interval re-sends at 10 s cadence
-  - `stop()` cancels interval and sends CANCEL
-  - empty `typingTicket` → no API calls made
-  - `getConfig` failure → graceful degradation
-  - concurrent `startTyping` for same user → previous stop called first
-- `WeixinMonitor.ts` tests:
-  - typing started before `agent.chat`, stopped after
-  - typing stopped on agent error
+All interval-related tests use `vi.useFakeTimers()`.
+
+**`TypingManager` unit tests:**
+
+- `startTyping` → `sendTyping(TYPING)` called immediately with correct `ilink_user_id`,
+  `typing_ticket`, `status=1`, and all required headers (`Authorization`, `AuthorizationType`,
+  `X-WECHAT-UIN`)
+- Advance fake timer 10 s → `sendTyping(TYPING)` called again
+- `stop()` → `clearInterval` + `sendTyping(CANCEL, status=2)` sent
+- `stop()` called twice → idempotent; only one CANCEL sent
+- Empty `typingTicket` (getConfig returns `""`) → no `sendTyping` calls; `stop()` is a no-op
+- `getConfig` throws → graceful: no-op stop returned, no error propagated, no `sendTyping` calls,
+  `agent.chat` still proceeds
+- Concurrent `startTyping` for same `userId` → first session's `stop()` called before second starts
+- `abortSignal` fires during active interval → interval cleared, no further `sendTyping` calls
+- `abortSignal` fires before `startTyping` is called → returns no-op immediately, no API calls made
+- `sendTyping` retries exhausted → error logged, `startTyping` resolves normally (no throw)
+- `sendTyping(CANCEL)` fails → error swallowed, `stop()` resolves without throwing
+
+**`WeixinMonitor.ts` integration tests:**
+
+- `sendTyping(TYPING)` sent before `agent.chat` is called
+- `sendTyping(CANCEL)` sent after `agent.chat` resolves, before `callSendMessage`
+- `sendTyping(CANCEL)` sent when `agent.chat` throws
 
 ## Out of Scope
 
