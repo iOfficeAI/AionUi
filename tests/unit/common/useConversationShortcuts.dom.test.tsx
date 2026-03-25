@@ -44,7 +44,7 @@ const createWrapper = (initialEntry: string): React.FC<React.PropsWithChildren> 
 
 describe('useConversationShortcuts', () => {
   beforeEach(() => {
-    localStorage.clear();
+    globalThis.localStorage?.clear?.();
     mockedUseVisibleConversationIds.mockReset();
     setElectronRuntime(false);
   });
