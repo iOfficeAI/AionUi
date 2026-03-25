@@ -446,7 +446,7 @@ const SendBox: React.FC<{
             </div>
           )}
         </div>
-        <UploadProgressBar source="sendbox" />
+        <UploadProgressBar source='sendbox' />
         <div
           className={isSingleLine ? 'flex items-center gap-2 w-full min-w-0 overflow-hidden' : 'w-full overflow-hidden'}
         >

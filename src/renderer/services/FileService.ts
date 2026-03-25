@@ -255,7 +255,11 @@ class FileServiceClass {
    * Process files from drag and drop events, creating temporary files for files without valid paths.
    * In WebUI mode, uploads files via HTTP to the conversation workspace uploads directory.
    */
-  async processDroppedFiles(files: FileList, conversationId?: string, source: UploadSource = 'sendbox'): Promise<FileMetadata[]> {
+  async processDroppedFiles(
+    files: FileList,
+    conversationId?: string,
+    source: UploadSource = 'sendbox'
+  ): Promise<FileMetadata[]> {
     const processedFiles: FileMetadata[] = [];
 
     for (let i = 0; i < files.length; i++) {

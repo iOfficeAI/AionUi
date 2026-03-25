@@ -205,7 +205,7 @@ const WorkspaceToolbar: React.FC<WorkspaceToolbarProps> = ({
           </Tooltip>
         </div>
       </div>
-      <UploadProgressBar source="workspace" />
+      <UploadProgressBar source='workspace' />
     </div>
   );
 };

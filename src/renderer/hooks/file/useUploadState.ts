@@ -81,7 +81,10 @@ function subscribe(listener: () => void): () => void {
  * - `onProgress(percent)`: call from XHR progress handler
  * - `finish()`: call when upload completes (success or error)
  */
-export function trackUpload(fileSize: number, source: UploadSource = 'sendbox'): {
+export function trackUpload(
+  fileSize: number,
+  source: UploadSource = 'sendbox'
+): {
   id: number;
   onProgress: (percent: number) => void;
   finish: () => void;
@@ -116,8 +119,6 @@ export function trackUpload(fileSize: number, source: UploadSource = 'sendbox'):
  * omit for global state.
  */
 export function useUploadState(source?: UploadSource): UploadStateSnapshot {
-  const getSnapshot = source
-    ? () => sourceSnapshots[source]
-    : () => globalSnapshot;
+  const getSnapshot = source ? () => sourceSnapshots[source] : () => globalSnapshot;
   return useSyncExternalStore(subscribe, getSnapshot, getSnapshot);
 }
