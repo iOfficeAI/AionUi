@@ -73,7 +73,7 @@ const createWrapper = (): React.FC<React.PropsWithChildren> => {
 
 describe('ConversationHistoryProvider', () => {
   beforeEach(() => {
-    localStorage.clear();
+    globalThis.localStorage?.clear?.();
     mockedBuildGroupedHistory.mockReset();
     mockedUseConversationListSync.mockReset();
     mockedBuildGroupedHistory.mockReturnValue(groupedHistory);
