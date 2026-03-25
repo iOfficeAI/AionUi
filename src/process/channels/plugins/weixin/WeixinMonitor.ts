@@ -36,6 +36,16 @@ export type MonitorOptions = {
   log?: (msg: string) => void;
 };
 
+// ==================== Utilities ====================
+
+function formatError(err: unknown): string {
+  if (err instanceof Error) {
+    const cause = (err as Error & { cause?: unknown }).cause;
+    return cause !== undefined ? `${err.message}: ${String(cause)}` : err.message;
+  }
+  return String(err);
+}
+
 // ==================== Constants ====================
 
 const LONG_POLL_TIMEOUT_MS = 35_000;
@@ -237,15 +247,21 @@ async function runMonitor(
         const text = textItem.text_item?.text ?? '';
 
         const stopTyping = await typingMgr.startTyping(conversationId, msg.context_token);
+        let response: WeixinChatResponse | undefined;
         try {
-          const response = await agent.chat({ conversationId, text });
-          await stopTyping();
-          if (response.text) {
-            await callSendMessage(baseUrl, token, wechatUin, conversationId, response.text, msg.context_token);
-          }
+          response = await agent.chat({ conversationId, text });
         } catch (agentErr) {
           await stopTyping();
-          log(`[weixin] agent or send error for ${conversationId}: ${String(agentErr)}`);
+          log(`[weixin] agent error for ${conversationId}: ${formatError(agentErr)}`);
+          continue;
+        }
+        await stopTyping();
+        if (response.text) {
+          try {
+            await callSendMessage(baseUrl, token, wechatUin, conversationId, response.text, msg.context_token);
+          } catch (sendErr) {
+            log(`[weixin] send error for ${conversationId}: ${formatError(sendErr)}`);
+          }
         }
       }
     } catch (err) {
