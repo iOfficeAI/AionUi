@@ -14,6 +14,7 @@ export type PresetAssistantResourceDeps = {
   readBuiltinRule: (args: { fileName: string }) => Promise<string>;
   readBuiltinSkill: (args: { fileName: string }) => Promise<string>;
   getEnabledSkills: (customAgentId: string) => Promise<string[] | undefined>;
+  getEnabledHooks: (customAgentId: string) => Promise<string[] | undefined>;
   warn: (message: string, error?: unknown) => void;
 };
 
@@ -27,6 +28,7 @@ export type PresetAssistantResources = {
   rules?: string;
   skills: string;
   enabledSkills?: string[];
+  enabledHooks?: string[];
 };
 
 const defaultDeps: PresetAssistantResourceDeps = {
@@ -35,9 +37,22 @@ const defaultDeps: PresetAssistantResourceDeps = {
   readBuiltinRule: (args) => ipcBridge.fs.readBuiltinRule.invoke(args),
   readBuiltinSkill: (args) => ipcBridge.fs.readBuiltinSkill.invoke(args),
   getEnabledSkills: async (customAgentId) => {
-    const customAgents = await ConfigStorage.get('acp.customAgents');
+    const customAgents = ((await ConfigStorage.get('acp.customAgents')) || []) as Array<{
+      id: string;
+      enabledSkills?: string[];
+      enabledHooks?: string[];
+    }>;
     const assistant = customAgents?.find((agent) => agent.id === customAgentId);
     return assistant?.enabledSkills;
+  },
+  getEnabledHooks: async (customAgentId) => {
+    const customAgents = ((await ConfigStorage.get('acp.customAgents')) || []) as Array<{
+      id: string;
+      enabledSkills?: string[];
+      enabledHooks?: string[];
+    }>;
+    const assistant = customAgents?.find((agent) => agent.id === customAgentId);
+    return assistant?.enabledHooks;
   },
   warn: (message, error) => {
     console.warn(message, error);
@@ -55,6 +70,7 @@ export async function loadPresetAssistantResources(
       rules: fallbackRules,
       skills: '',
       enabledSkills: undefined,
+      enabledHooks: undefined,
     };
   }
 
@@ -106,5 +122,6 @@ export async function loadPresetAssistantResources(
     rules: rules || fallbackRules,
     skills,
     enabledSkills: await deps.getEnabledSkills(customAgentId),
+    enabledHooks: await deps.getEnabledHooks(customAgentId),
   };
 }

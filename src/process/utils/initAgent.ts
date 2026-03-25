@@ -105,20 +105,22 @@ const buildWorkspaceWidthFiles = async (
   workspace?: string,
   _defaultFiles?: string[],
   providedCustomWorkspace?: boolean
-) => {
+): Promise<{ workspace: string; customWorkspace: boolean }> => {
   // 使用前端提供的customWorkspace标志，如果没有则根据workspace参数判断
   const customWorkspace = providedCustomWorkspace !== undefined ? providedCustomWorkspace : !!workspace;
 
+  let resolvedWorkspace: string;
+
   if (!workspace) {
     const tempPath = getSystemDir().workDir;
-    workspace = path.join(tempPath, defaultWorkspaceName);
-    await fs.mkdir(workspace, { recursive: true });
+    resolvedWorkspace = path.join(tempPath, defaultWorkspaceName);
+    await fs.mkdir(resolvedWorkspace, { recursive: true });
   } else {
     // 规范化路径：去除末尾斜杠，解析为绝对路径
-    workspace = path.resolve(workspace);
+    resolvedWorkspace = path.resolve(workspace);
   }
 
-  return { workspace, customWorkspace };
+  return { workspace: resolvedWorkspace, customWorkspace };
 };
 
 export const createGeminiAgent = async (
@@ -130,6 +132,7 @@ export const createGeminiAgent = async (
   contextFileName?: string,
   presetRules?: string,
   enabledSkills?: string[],
+  enabledHooks?: string[],
   presetAssistantId?: string,
   sessionMode?: string,
   isHealthCheck?: boolean
@@ -164,6 +167,8 @@ export const createGeminiAgent = async (
       contextContent: presetRules,
       // 启用的 skills 列表（通过 SkillManager 加载）/ Enabled skills list (loaded via SkillManager)
       enabledSkills,
+      // 启用的 hooks 列表（由后续 HookRuntime 或原生 projection 消费）
+      enabledHooks,
       // 预设助手 ID，用于在会话面板显示助手名称和头像
       // Preset assistant ID for displaying name and avatar in conversation panel
       presetAssistantId,
@@ -182,6 +187,9 @@ export const createGeminiAgent = async (
 
 export const createAcpAgent = async (options: ICreateConversationParams): Promise<TChatConversation> => {
   const { extra } = options;
+  if (!extra.backend) {
+    throw new Error('ACP backend is required');
+  }
   const { workspace, customWorkspace } = await buildWorkspaceWidthFiles(
     `${extra.backend}-temp-${Date.now()}`,
     extra.workspace,
@@ -209,6 +217,8 @@ export const createAcpAgent = async (options: ICreateConversationParams): Promis
       presetContext: extra.presetContext, // 智能助手的预设规则/提示词
       // 启用的 skills 列表（通过 SkillManager 加载）/ Enabled skills list (loaded via SkillManager)
       enabledSkills: extra.enabledSkills,
+      // 启用的 hooks 列表（由后续 HookRuntime 或原生 projection 消费）
+      enabledHooks: extra.enabledHooks,
       // 预设助手 ID，用于在会话面板显示助手名称和头像
       // Preset assistant ID for displaying name and avatar in conversation panel
       presetAssistantId: extra.presetAssistantId,
@@ -216,6 +226,11 @@ export const createAcpAgent = async (options: ICreateConversationParams): Promis
       sessionMode: extra.sessionMode,
       // Pre-selected model from Guid page (cached model list)
       currentModelId: extra.currentModelId,
+      // Persisted ACP session handle for resume/import
+      acpSessionId: typeof extra.acpSessionId === 'string' ? extra.acpSessionId : undefined,
+      acpSessionUpdatedAt: typeof extra.acpSessionUpdatedAt === 'number' ? extra.acpSessionUpdatedAt : undefined,
+      externalSessionImported: extra.externalSessionImported === true,
+      deferInitialWorkspaceLoad: extra.deferInitialWorkspaceLoad === true,
       // Explicit marker for temporary health-check conversations
       isHealthCheck: extra.isHealthCheck,
     },
@@ -254,6 +269,7 @@ export const createCodexAgent = async (options: ICreateConversationParams): Prom
       presetContext: extra.presetContext, // 智能助手的预设规则/提示词
       // 启用的 skills 列表（通过 SkillManager 加载）/ Enabled skills list (loaded via SkillManager)
       enabledSkills: extra.enabledSkills,
+      enabledHooks: extra.enabledHooks,
       // 预设助手 ID，用于在会话面板显示助手名称和头像
       // Preset assistant ID for displaying name and avatar in conversation panel
       presetAssistantId: extra.presetAssistantId,
@@ -294,6 +310,7 @@ export const createNanobotAgent = async (options: ICreateConversationParams): Pr
       workspace: workspace,
       customWorkspace,
       enabledSkills: extra.enabledSkills,
+      enabledHooks: extra.enabledHooks,
       presetAssistantId: extra.presetAssistantId,
     },
     createTime: Date.now(),
@@ -340,8 +357,11 @@ export const createOpenClawAgent = async (options: ICreateConversationParams): P
         expectedIdentityHash,
         switchedAt: extra.runtimeValidation?.switchedAt ?? Date.now(),
       },
+      sessionKey: typeof extra.sessionKey === 'string' ? extra.sessionKey : undefined,
       // Enabled skills list (loaded via SkillManager)
       enabledSkills: extra.enabledSkills,
+      // Enabled hooks list (reserved for future HookRuntime / native projection)
+      enabledHooks: extra.enabledHooks,
       // Preset assistant ID for displaying name and avatar in conversation panel
       presetAssistantId: extra.presetAssistantId,
     },

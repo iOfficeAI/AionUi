@@ -428,7 +428,7 @@ class AcpAgentManager extends BaseAgentManager<AcpAgentManagerData, AcpPermissio
               type: 'error',
               conversation_id: this.conversation_id,
               msg_id: v.msg_id,
-              data: 'Permission required. Please open AionUi and confirm the pending request in the conversation panel.',
+              data: 'Permission required. Please open ContextGo and confirm the pending request in the conversation panel.',
             });
             return;
           }
@@ -539,7 +539,13 @@ class AcpAgentManager extends BaseAgentManager<AcpAgentManagerData, AcpPermissio
     return this.bootstrap;
   }
 
-  async sendMessage(data: { content: string; files?: string[]; msg_id?: string; cronMeta?: CronMessageMeta }): Promise<{
+  async sendMessage(data: {
+    content: string;
+    agentContent?: string;
+    files?: string[];
+    msg_id?: string;
+    cronMeta?: CronMessageMeta;
+  }): Promise<{
     success: boolean;
     msg?: string;
     message?: string;
@@ -588,7 +594,7 @@ class AcpAgentManager extends BaseAgentManager<AcpAgentManagerData, AcpPermissio
       if (ACP_PERF_LOG) console.log(`[ACP-PERF] manager: initAgent completed ${Date.now() - initStart}ms`);
 
       if (data.msg_id && data.content) {
-        let contentToSend = data.content;
+        let contentToSend = data.agentContent || data.content;
         if (contentToSend.includes(AIONUI_FILES_MARKER)) {
           contentToSend = contentToSend.split(AIONUI_FILES_MARKER)[0].trimEnd();
         }

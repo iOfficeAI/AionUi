@@ -22,6 +22,7 @@ import coworkSvg from '@/renderer/assets/icons/cowork.svg';
 import {
   useAssistantBackends,
   useAssistantEditor,
+  useAssistantHooks,
   useAssistantList,
   useAssistantSkills,
 } from '@/renderer/hooks/assistant';
@@ -81,6 +82,14 @@ const AssistantManagement: React.FC<AssistantManagementProps> = ({ message }) =>
     message,
   });
 
+  const hooks = useAssistantHooks({
+    editVisible: editor.editVisible,
+    setAvailableHooks: editor.setAvailableHooks,
+    selectedHooks: editor.selectedHooks,
+    setSelectedHooks: editor.setSelectedHooks,
+    message,
+  });
+
   const editAvatarImage = resolveAvatarImageSrc(editor.editAvatar, avatarImageMap);
 
   return (
@@ -115,8 +124,19 @@ const AssistantManagement: React.FC<AssistantManagementProps> = ({ message }) =>
         promptViewMode={editor.promptViewMode}
         setPromptViewMode={editor.setPromptViewMode}
         availableSkills={editor.availableSkills}
+        availableHooks={editor.availableHooks}
         selectedSkills={editor.selectedSkills}
         setSelectedSkills={editor.setSelectedSkills}
+        selectedHooks={editor.selectedHooks}
+        setSelectedHooks={editor.setSelectedHooks}
+        hooksLoading={hooks.hooksLoading}
+        hooksDir={hooks.hooksDir}
+        handleRefreshHooks={hooks.loadAvailableHooks}
+        handleImportHook={hooks.handleImportHook}
+        handleOpenHooksDir={hooks.handleOpenHooksDir}
+        deleteHookName={hooks.deleteHookName}
+        setDeleteHookName={hooks.setDeleteHookName}
+        handleDeleteHookConfirm={hooks.handleDeleteHookConfirm}
         pendingSkills={editor.pendingSkills}
         customSkills={editor.customSkills}
         setDeletePendingSkillName={editor.setDeletePendingSkillName}

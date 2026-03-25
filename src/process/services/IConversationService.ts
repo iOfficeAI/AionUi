@@ -28,8 +28,14 @@ export interface CreateConversationParams {
     contextFileName?: string;
     presetRules?: string;
     enabledSkills?: string[];
+    enabledHooks?: string[];
     presetAssistantId?: string;
     sessionMode?: string;
+    acpSessionId?: string;
+    acpSessionUpdatedAt?: number;
+    sessionKey?: string;
+    externalSessionImported?: boolean;
+    deferInitialWorkspaceLoad?: boolean;
     isHealthCheck?: boolean;
     [key: string]: unknown;
   };

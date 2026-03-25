@@ -13,6 +13,7 @@ import type { ContextMenuState } from '../types';
 interface UseWorkspaceEventsOptions {
   conversation_id: string;
   eventPrefix: 'gemini' | 'acp' | 'codex';
+  autoLoadOnMount?: boolean;
 
   // Dependencies from useWorkspaceTree
   refreshWorkspace: () => void;
@@ -42,6 +43,7 @@ export function useWorkspaceEvents(options: UseWorkspaceEventsOptions) {
   const {
     conversation_id,
     eventPrefix,
+    autoLoadOnMount = true,
     refreshWorkspace,
     clearSelection,
     setFiles,
@@ -70,9 +72,12 @@ export function useWorkspaceEvents(options: UseWorkspaceEventsOptions) {
     setContextMenu({ visible: false, x: 0, y: 0, node: null });
     closeRenameModal();
     closeDeleteModal();
-    refreshWorkspace();
+    if (autoLoadOnMount) {
+      refreshWorkspace();
+    }
     emitter.emit(`${eventPrefix}.selected.file`, []);
   }, [
+    autoLoadOnMount,
     conversation_id,
     eventPrefix,
     refreshWorkspace,

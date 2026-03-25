@@ -11,10 +11,11 @@ import { emitter } from '@/renderer/utils/emitter';
 import { cleanupSiderTooltips } from '@/renderer/utils/ui/siderTooltip';
 import { updateWorkspaceTime } from '@/renderer/utils/workspace/workspaceHistory';
 import { Dropdown, Menu, Message } from '@arco-design/web-react';
-import { Close, Plus, Robot } from '@icon-park/react';
+import { Close, Download, Plus, Robot } from '@icon-park/react';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
+import ExternalSessionsModal from './ExternalSessionsModal';
 import { useConversationTabs } from '../hooks/ConversationTabsContext';
 import { useConversationAgents } from '../hooks/useConversationAgents';
 import { applyDefaultConversationName } from '../utils/newConversationName';
@@ -92,6 +93,28 @@ const CreateConversationTrigger: React.FC<CreateConversationTriggerProps> = ({ d
   </Dropdown>
 );
 
+interface IconActionTriggerProps {
+  disabled?: boolean;
+  title: string;
+  icon: React.ReactNode;
+  onClick: () => void;
+}
+
+const IconActionTrigger: React.FC<IconActionTriggerProps> = ({ disabled = false, title, icon, onClick }) => (
+  <div
+    className={`flex items-center justify-center w-40px h-40px shrink-0 transition-colors duration-200 ${disabled ? 'cursor-not-allowed opacity-50' : 'cursor-pointer hover:bg-[var(--fill-2)]'}`}
+    style={{ borderLeft: '1px solid var(--border-base)' }}
+    title={title}
+    onClick={() => {
+      if (!disabled) {
+        onClick();
+      }
+    }}
+  >
+    {icon}
+  </div>
+);
+
 /**
  * 会话 Tabs 栏组件
  * Conversation tabs bar component
@@ -117,6 +140,7 @@ const ConversationTabs: React.FC = () => {
   const { t, i18n } = useTranslation();
   const tabsContainerRef = useRef<HTMLDivElement>(null);
   const [tabFadeState, setTabFadeState] = useState<TabFadeState>({ left: false, right: false });
+  const [externalSessionsVisible, setExternalSessionsVisible] = useState(false);
 
   const { cliAgents, presetAssistants, isLoading } = useConversationAgents();
   const defaultConversationName = t('conversation.welcome.newConversation');
@@ -390,6 +414,16 @@ const ConversationTabs: React.FC = () => {
           ))}
         </div>
 
+        <IconActionTrigger
+          title={t('guid.externalSessions.title', {
+            defaultValue: 'Continue external sessions',
+          })}
+          icon={<Download theme='outline' size='16' fill={iconColors.primary} strokeWidth={3} />}
+          onClick={() => {
+            setExternalSessionsVisible(true);
+          }}
+        />
+
         {/* 新建会话按钮 - 点击显示 Agent 下拉选择 */}
         <CreateConversationTrigger
           disabled={isDropdownDisabled}
@@ -404,9 +438,15 @@ const ConversationTabs: React.FC = () => {
 
         {/* 右侧渐变指示器 */}
         {showRightFade && (
-          <div className='pointer-events-none absolute right-40px top-0 bottom-0 w-32px [background:linear-gradient(270deg,var(--bg-2)_0%,transparent_100%)]' />
+          <div className='pointer-events-none absolute right-80px top-0 bottom-0 w-32px [background:linear-gradient(270deg,var(--bg-2)_0%,transparent_100%)]' />
         )}
       </div>
+      <ExternalSessionsModal
+        visible={externalSessionsVisible}
+        onClose={() => {
+          setExternalSessionsVisible(false);
+        }}
+      />
     </div>
   );
 };

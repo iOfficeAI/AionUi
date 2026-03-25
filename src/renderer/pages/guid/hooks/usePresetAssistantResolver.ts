@@ -25,6 +25,7 @@ type UsePresetAssistantResolverResult = {
   resolveEnabledSkills: (
     agentInfo: { backend: AcpBackend; customAgentId?: string } | undefined
   ) => string[] | undefined;
+  resolveEnabledHooks: (agentInfo: { backend: AcpBackend; customAgentId?: string } | undefined) => string[] | undefined;
 };
 
 /**
@@ -131,10 +132,21 @@ export const usePresetAssistantResolver = ({
     [customAgents]
   );
 
+  const resolveEnabledHooks = useCallback(
+    (agentInfo: { backend: AcpBackend; customAgentId?: string } | undefined): string[] | undefined => {
+      if (!agentInfo) return undefined;
+      if (agentInfo.backend !== 'custom') return undefined;
+      const customAgent = customAgents.find((agent) => agent.id === agentInfo.customAgentId);
+      return customAgent?.enabledHooks;
+    },
+    [customAgents]
+  );
+
   return {
     resolvePresetRulesAndSkills,
     resolvePresetContext,
     resolvePresetAgentType,
     resolveEnabledSkills,
+    resolveEnabledHooks,
   };
 };

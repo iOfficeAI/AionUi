@@ -9,6 +9,17 @@ export type SkillInfo = {
   isCustom: boolean;
 };
 
+export type HookInfo = {
+  name: string;
+  description?: string;
+  location: string;
+  isCustom: boolean;
+  version?: string;
+  executionType?: string;
+  events?: string[];
+  supportedBackends?: string[];
+};
+
 // External source type
 export type ExternalSource = {
   name: string;

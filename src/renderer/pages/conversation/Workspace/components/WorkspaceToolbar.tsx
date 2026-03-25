@@ -17,6 +17,7 @@ type WorkspaceToolbarProps = {
   isWorkspaceCollapsed: boolean;
   setIsWorkspaceCollapsed: (v: boolean) => void;
   isTemporaryWorkspace: boolean;
+  workspacePath: string;
   workspaceDisplayName: string;
   // Search
   showSearch: boolean;
@@ -69,6 +70,7 @@ const WorkspaceToolbar: React.FC<WorkspaceToolbarProps> = ({
   isWorkspaceCollapsed,
   setIsWorkspaceCollapsed,
   isTemporaryWorkspace,
+  workspacePath,
   workspaceDisplayName,
   showSearch,
   searchText,
@@ -138,7 +140,7 @@ const WorkspaceToolbar: React.FC<WorkspaceToolbarProps> = ({
             className={`line-height-0 transition-transform duration-200 flex-shrink-0 ${isWorkspaceCollapsed ? '-rotate-90' : 'rotate-0'}`}
           />
           {isTemporaryWorkspace ? (
-            <Tooltip content={t('conversation.workspace.contextMenu.openLocation')}>
+            <Tooltip content={workspacePath}>
               <span
                 role='button'
                 tabIndex={0}
@@ -159,9 +161,11 @@ const WorkspaceToolbar: React.FC<WorkspaceToolbarProps> = ({
               </span>
             </Tooltip>
           ) : (
-            <span className='workspace-title-label font-bold text-14px text-t-primary overflow-hidden text-ellipsis whitespace-nowrap'>
-              {workspaceDisplayName}
-            </span>
+            <Tooltip content={workspacePath}>
+              <span className='workspace-title-label font-bold text-14px text-t-primary overflow-hidden text-ellipsis whitespace-nowrap'>
+                {workspaceDisplayName}
+              </span>
+            </Tooltip>
           )}
         </div>
         <div className='workspace-toolbar-actions flex items-center gap-8px flex-shrink-0'>

@@ -59,7 +59,7 @@ export async function initBridgeStandalone(): Promise<void> {
   initGeminiConversationBridge(workerTaskManager);
   initGeminiBridge();
   initBedrockBridge();
-  initAcpConversationBridge(workerTaskManager);
+  initAcpConversationBridge(workerTaskManager, conversationService);
   initAuthBridge();
   initModelBridge();
   initPreviewHistoryBridge();

@@ -27,6 +27,7 @@ const BUILTIN_TAB_IDS = [
   'gemini',
   'model',
   'agent',
+  'hooks',
   'skills-hub',
   'tools',
   'display',
@@ -121,6 +122,12 @@ const SettingsSider: React.FC<{ collapsed?: boolean; tooltipEnabled?: boolean }>
         label: t('settings.assistants', { defaultValue: 'Assistants' }),
         icon: <Robot />,
         path: 'agent',
+      },
+      hooks: {
+        id: 'hooks',
+        label: t('settings.hooksPage', { defaultValue: 'Hooks' }),
+        icon: <Puzzle />,
+        path: 'hooks',
       },
       'skills-hub': {
         id: 'skills-hub',

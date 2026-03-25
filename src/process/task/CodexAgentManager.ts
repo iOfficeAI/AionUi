@@ -231,15 +231,22 @@ class CodexAgentManager extends BaseAgentManager<CodexAgentManagerData> implemen
     }
   }
 
-  async sendMessage(data: { content: string; files?: string[]; msg_id?: string; cronMeta?: CronMessageMeta }) {
+  async sendMessage(data: {
+    content: string;
+    agentContent?: string;
+    files?: string[];
+    msg_id?: string;
+    cronMeta?: CronMessageMeta;
+  }) {
     cronBusyGuard.setProcessing(this.conversation_id, true);
     // Set status to running when message is being processed
     this.status = 'running';
     try {
       await this.bootstrap;
-      const contentToSend = data.content?.includes(AIONUI_FILES_MARKER)
-        ? data.content.split(AIONUI_FILES_MARKER)[0].trimEnd()
-        : data.content;
+      const rawContentToSend = data.agentContent || data.content;
+      const contentToSend = rawContentToSend?.includes(AIONUI_FILES_MARKER)
+        ? rawContentToSend.split(AIONUI_FILES_MARKER)[0].trimEnd()
+        : rawContentToSend;
 
       // Save user message to chat history only (renderer already inserts right-hand bubble)
       if (data.msg_id && data.content) {

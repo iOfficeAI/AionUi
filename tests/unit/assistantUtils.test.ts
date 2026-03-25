@@ -1,34 +1,35 @@
 import { describe, expect, it, vi } from 'vitest';
 
-// vi.hoisted ensures the variable is available when vi.mock factories run (hoisted above imports)
-const MOCK_PRESETS = vi.hoisted(() => [
-  {
-    id: 'alpha',
-    avatar: 'A',
-    ruleFiles: { 'en-US': 'alpha.md' },
-    defaultEnabledSkills: ['skill-a'],
-    nameI18n: { 'en-US': 'Alpha' },
-    descriptionI18n: { 'en-US': 'Alpha assistant' },
-  },
-  {
-    id: 'beta',
-    avatar: 'B',
-    ruleFiles: { 'en-US': 'beta.md' },
-    skillFiles: { 'en-US': 'beta-skills.md' },
-    nameI18n: { 'en-US': 'Beta' },
-    descriptionI18n: { 'en-US': 'Beta assistant' },
-  },
-  {
-    id: 'gamma',
-    avatar: 'G',
-    ruleFiles: { 'en-US': 'gamma.md' },
-    nameI18n: { 'en-US': 'Gamma' },
-    descriptionI18n: { 'en-US': 'Gamma assistant' },
-  },
-]);
+function createMockPresets() {
+  return [
+    {
+      id: 'alpha',
+      avatar: 'A',
+      ruleFiles: { 'en-US': 'alpha.md' },
+      defaultEnabledSkills: ['skill-a'],
+      nameI18n: { 'en-US': 'Alpha' },
+      descriptionI18n: { 'en-US': 'Alpha assistant' },
+    },
+    {
+      id: 'beta',
+      avatar: 'B',
+      ruleFiles: { 'en-US': 'beta.md' },
+      skillFiles: { 'en-US': 'beta-skills.md' },
+      nameI18n: { 'en-US': 'Beta' },
+      descriptionI18n: { 'en-US': 'Beta assistant' },
+    },
+    {
+      id: 'gamma',
+      avatar: 'G',
+      ruleFiles: { 'en-US': 'gamma.md' },
+      nameI18n: { 'en-US': 'Gamma' },
+      descriptionI18n: { 'en-US': 'Gamma assistant' },
+    },
+  ];
+}
 
 vi.mock('@/common/config/presets/assistantPresets', () => ({
-  ASSISTANT_PRESETS: MOCK_PRESETS,
+  ASSISTANT_PRESETS: createMockPresets(),
 }));
 
 vi.mock('@/renderer/utils/platform', () => ({
@@ -38,12 +39,14 @@ vi.mock('@/renderer/utils/platform', () => ({
   },
 }));
 
-import type { AssistantListItem } from '@/renderer/pages/settings/AgentSettings/AssistantManagement/types';
+import type { AssistantListItem, HookInfo } from '@/renderer/pages/settings/AgentSettings/AssistantManagement/types';
 import {
-  sortAssistants,
-  normalizeExtensionAssistants,
-  isExtensionAssistant,
+  getIncompatibleHookNames,
   hasBuiltinSkills,
+  isExtensionAssistant,
+  isHookSupportedByBackend,
+  normalizeExtensionAssistants,
+  sortAssistants,
 } from '@/renderer/pages/settings/AgentSettings/AssistantManagement/assistantUtils';
 
 // Helper to create a minimal AssistantListItem
@@ -221,17 +224,17 @@ describe('isExtensionAssistant', () => {
 // ---------------------------------------------------------------------------
 describe('hasBuiltinSkills', () => {
   it('returns true for a builtin assistant with defaultEnabledSkills', () => {
-    // "alpha" in MOCK_PRESETS has defaultEnabledSkills: ['skill-a']
+    // "alpha" in the mocked presets has defaultEnabledSkills: ['skill-a']
     expect(hasBuiltinSkills('builtin-alpha')).toBe(true);
   });
 
   it('returns true for a builtin assistant with skillFiles', () => {
-    // "beta" in MOCK_PRESETS has skillFiles: { 'en-US': 'beta-skills.md' }
+    // "beta" in the mocked presets has skillFiles: { 'en-US': 'beta-skills.md' }
     expect(hasBuiltinSkills('builtin-beta')).toBe(true);
   });
 
   it('returns false for a builtin assistant without skills or skillFiles', () => {
-    // "gamma" in MOCK_PRESETS has neither defaultEnabledSkills nor skillFiles
+    // "gamma" in the mocked presets has neither defaultEnabledSkills nor skillFiles
     expect(hasBuiltinSkills('builtin-gamma')).toBeFalsy();
   });
 
@@ -245,5 +248,92 @@ describe('hasBuiltinSkills', () => {
 
   it('returns false for an empty string', () => {
     expect(hasBuiltinSkills('')).toBe(false);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// hook compatibility helpers
+// ---------------------------------------------------------------------------
+describe('isHookSupportedByBackend', () => {
+  it('returns true when a hook does not declare supportedBackends', () => {
+    const hook: HookInfo = {
+      name: 'prompt-guard',
+      location: '/hooks/prompt-guard',
+      isCustom: true,
+    };
+
+    expect(isHookSupportedByBackend(hook, 'gemini')).toBe(true);
+  });
+
+  it('returns true when the selected backend is explicitly supported', () => {
+    const hook: HookInfo = {
+      name: 'prompt-guard',
+      location: '/hooks/prompt-guard',
+      isCustom: true,
+      supportedBackends: ['gemini', 'codex'],
+    };
+
+    expect(isHookSupportedByBackend(hook, 'codex')).toBe(true);
+  });
+
+  it('returns false when the selected backend is not in supportedBackends', () => {
+    const hook: HookInfo = {
+      name: 'prompt-guard',
+      location: '/hooks/prompt-guard',
+      isCustom: true,
+      supportedBackends: ['gemini', 'codex'],
+    };
+
+    expect(isHookSupportedByBackend(hook, 'claude')).toBe(false);
+  });
+
+  it('treats empty backend as compatible to avoid blocking unresolved agent state', () => {
+    const hook: HookInfo = {
+      name: 'prompt-guard',
+      location: '/hooks/prompt-guard',
+      isCustom: true,
+      supportedBackends: ['gemini'],
+    };
+
+    expect(isHookSupportedByBackend(hook, '')).toBe(true);
+  });
+});
+
+describe('getIncompatibleHookNames', () => {
+  it('returns only selected hooks that are incompatible with the current backend', () => {
+    const hooks: HookInfo[] = [
+      {
+        name: 'gemini-only',
+        location: '/hooks/gemini-only',
+        isCustom: true,
+        supportedBackends: ['gemini'],
+      },
+      {
+        name: 'shared',
+        location: '/hooks/shared',
+        isCustom: true,
+        supportedBackends: ['gemini', 'codex'],
+      },
+      {
+        name: 'all-backends',
+        location: '/hooks/all-backends',
+        isCustom: true,
+      },
+    ];
+
+    expect(getIncompatibleHookNames(hooks, ['gemini-only', 'shared', 'missing'], 'codex')).toEqual(['gemini-only']);
+  });
+
+  it('returns an empty array when all selected hooks are compatible', () => {
+    const hooks: HookInfo[] = [
+      {
+        name: 'shared',
+        location: '/hooks/shared',
+        isCustom: true,
+        supportedBackends: ['gemini', 'codex'],
+      },
+    ];
+
+    expect(getIncompatibleHookNames(hooks, ['shared'], 'codex')).toEqual([]);
   });
 });

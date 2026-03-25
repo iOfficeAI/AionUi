@@ -180,6 +180,8 @@ export type TChatConversation =
         presetRules?: string; // 系统规则，在初始化时注入 / System rules, injected at initialization
         /** 启用的 skills 列表，用于过滤 SkillManager 加载的 skills / Enabled skills list for filtering SkillManager skills */
         enabledSkills?: string[];
+        /** 启用的 hooks 列表 / Enabled hooks list */
+        enabledHooks?: string[];
         /** 预设助手 ID，用于在会话面板显示助手名称和头像 / Preset assistant ID for displaying name and avatar in conversation panel */
         presetAssistantId?: string;
         /** 是否置顶会话 / Whether this conversation is pinned */
@@ -205,6 +207,8 @@ export type TChatConversation =
           presetContext?: string; // 智能助手的预设规则/提示词 / Preset context from smart assistant
           /** 启用的 skills 列表，用于过滤 SkillManager 加载的 skills / Enabled skills list for filtering SkillManager skills */
           enabledSkills?: string[];
+          /** 启用的 hooks 列表 / Enabled hooks list */
+          enabledHooks?: string[];
           /** 预设助手 ID，用于在会话面板显示助手名称和头像 / Preset assistant ID for displaying name and avatar in conversation panel */
           presetAssistantId?: string;
           /** 是否置顶会话 / Whether this conversation is pinned */
@@ -223,6 +227,10 @@ export type TChatConversation =
           sessionMode?: string;
           /** Persisted model ID for resume support / 持久化的模型 ID，用于恢复 */
           currentModelId?: string;
+          /** Marks a conversation imported from an external CLI session / 标记该会话由外部 CLI session 导入 */
+          externalSessionImported?: boolean;
+          /** Skip the first workspace tree hydration until user explicitly requests it / 首次进入时延迟加载工作空间树 */
+          deferInitialWorkspaceLoad?: boolean;
           /** Explicit marker for temporary health-check conversations */
           isHealthCheck?: boolean;
         }
@@ -240,6 +248,8 @@ export type TChatConversation =
           presetContext?: string; // 智能助手的预设规则/提示词 / Preset context from smart assistant
           /** 启用的 skills 列表，用于过滤 SkillManager 加载的 skills / Enabled skills list for filtering SkillManager skills */
           enabledSkills?: string[];
+          /** 启用的 hooks 列表 / Enabled hooks list */
+          enabledHooks?: string[];
           /** 预设助手 ID，用于在会话面板显示助手名称和头像 / Preset assistant ID for displaying name and avatar in conversation panel */
           presetAssistantId?: string;
           /** 是否置顶会话 / Whether this conversation is pinned */
@@ -287,6 +297,8 @@ export type TChatConversation =
           };
           /** 启用的 skills 列表 / Enabled skills list */
           enabledSkills?: string[];
+          /** 启用的 hooks 列表 / Enabled hooks list */
+          enabledHooks?: string[];
           /** 预设助手 ID / Preset assistant ID */
           presetAssistantId?: string;
           /** 是否置顶会话 / Whether this conversation is pinned */
@@ -307,6 +319,8 @@ export type TChatConversation =
           customWorkspace?: boolean;
           /** 启用的 skills 列表 / Enabled skills list */
           enabledSkills?: string[];
+          /** 启用的 hooks 列表 / Enabled hooks list */
+          enabledHooks?: string[];
           /** 预设助手 ID / Preset assistant ID */
           presetAssistantId?: string;
           /** 是否置顶会话 / Whether this conversation is pinned */

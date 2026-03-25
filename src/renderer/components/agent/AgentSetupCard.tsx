@@ -126,6 +126,7 @@ const AgentSetupCard: React.FC<AgentSetupCardProps> = ({
                   presetRules: ((conversation.extra as Record<string, unknown>)?.presetRules ||
                     (conversation.extra as Record<string, unknown>)?.presetContext) as string,
                   enabledSkills: conversation.extra?.enabledSkills,
+                  enabledHooks: conversation.extra?.enabledHooks,
                   presetAssistantId: conversation.extra?.presetAssistantId,
                 }
               : {
@@ -134,6 +135,7 @@ const AgentSetupCard: React.FC<AgentSetupCardProps> = ({
                   presetContext: ((conversation.extra as Record<string, unknown>)?.presetRules ||
                     (conversation.extra as Record<string, unknown>)?.presetContext) as string,
                   enabledSkills: conversation.extra?.enabledSkills,
+                  enabledHooks: conversation.extra?.enabledHooks,
                   presetAssistantId: conversation.extra?.presetAssistantId,
                 }),
           },

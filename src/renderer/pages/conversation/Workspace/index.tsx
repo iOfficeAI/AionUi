@@ -9,16 +9,17 @@ import type { IDirOrFile } from '@/common/adapter/ipcBridge';
 import FlexFullContainer from '@/renderer/components/layout/FlexFullContainer';
 import { useLayoutContext } from '@/renderer/hooks/context/LayoutContext';
 import { usePreviewContext } from '@/renderer/pages/conversation/Preview';
-import { emitter } from '@/renderer/utils/emitter';
+import { addEventListener, emitter } from '@/renderer/utils/emitter';
 import {
   isTemporaryWorkspace as checkIsTemporaryWorkspace,
   getWorkspaceDisplayName as getDisplayName,
 } from '@/renderer/utils/workspace/workspace';
-import { Empty, Message, Tree } from '@arco-design/web-react';
-import React, { useCallback, useMemo } from 'react';
+import { Button, Empty, Message, Tree, Typography } from '@arco-design/web-react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import MigrationModal from './components/MigrationModal';
 import PasteConfirmModal from './components/PasteConfirmModal';
+import SessionHooksDrawer from './components/SessionHooksDrawer';
 import WorkspaceContextMenu from './components/WorkspaceContextMenu';
 import WorkspaceDialogs from './components/WorkspaceDialogs';
 import WorkspaceToolbar from './components/WorkspaceToolbar';
@@ -30,6 +31,7 @@ import { useWorkspaceMigration } from './hooks/useWorkspaceMigration';
 import { useWorkspaceModals } from './hooks/useWorkspaceModals';
 import { useWorkspacePaste } from './hooks/useWorkspacePaste';
 import { useWorkspaceSearch } from './hooks/useWorkspaceSearch';
+import { useSessionHooks } from './hooks/useSessionHooks';
 import { useWorkspaceTree } from './hooks/useWorkspaceTree';
 import type { WorkspaceProps } from './types';
 import {
@@ -45,6 +47,7 @@ import './workspace.css';
 const ChatWorkspace: React.FC<WorkspaceProps> = ({
   conversation_id,
   workspace,
+  conversation,
   eventPrefix = 'gemini',
   messageApi: externalMessageApi,
 }) => {
@@ -52,11 +55,19 @@ const ChatWorkspace: React.FC<WorkspaceProps> = ({
   const layout = useLayoutContext();
   const isMobile = layout?.isMobile ?? false;
   const { openPreview } = usePreviewContext();
+  const initialWorkspaceLoadDeferred = Boolean(
+    (conversation.extra as { deferInitialWorkspaceLoad?: boolean } | undefined)?.deferInitialWorkspaceLoad
+  );
 
   // Message API setup
   const [internalMessageApi, messageContext] = Message.useMessage();
   const messageApi = externalMessageApi ?? internalMessageApi;
   const shouldRenderLocalMessageContext = !externalMessageApi;
+  const [workspaceLoadDeferred, setWorkspaceLoadDeferred] = useState(initialWorkspaceLoadDeferred);
+
+  useEffect(() => {
+    setWorkspaceLoadDeferred(initialWorkspaceLoadDeferred);
+  }, [conversation_id, initialWorkspaceLoadDeferred]);
 
   // Initialize all hooks
   const { isWorkspaceCollapsed, setIsWorkspaceCollapsed } = useWorkspaceCollapse();
@@ -84,6 +95,19 @@ const ChatWorkspace: React.FC<WorkspaceProps> = ({
   });
 
   const searchHook = useWorkspaceSearch({ workspace, loadWorkspace: treeHook.loadWorkspace });
+  const sessionHooks = useSessionHooks({
+    conversation,
+    messageApi,
+  });
+  const setSessionHooksVisible = sessionHooks.setVisible;
+
+  useEffect(() => {
+    return addEventListener('conversation.session-hooks.open', (targetConversationId) => {
+      if (targetConversationId === conversation_id) {
+        setSessionHooksVisible(true);
+      }
+    });
+  }, [conversation_id, setSessionHooksVisible]);
 
   const fileOpsHook = useWorkspaceFileOps({
     workspace,
@@ -113,6 +137,7 @@ const ChatWorkspace: React.FC<WorkspaceProps> = ({
   useWorkspaceEvents({
     conversation_id,
     eventPrefix,
+    autoLoadOnMount: !workspaceLoadDeferred,
     refreshWorkspace: treeHook.refreshWorkspace,
     clearSelection: treeHook.clearSelection,
     setFiles: treeHook.setFiles,
@@ -126,6 +151,25 @@ const ChatWorkspace: React.FC<WorkspaceProps> = ({
     closeRenameModal: modalsHook.closeRenameModal,
     closeDeleteModal: modalsHook.closeDeleteModal,
   });
+
+  const handleLoadDeferredWorkspace = useCallback(async () => {
+    setWorkspaceLoadDeferred(false);
+    await treeHook.refreshWorkspace();
+
+    if (conversation.type !== 'acp') {
+      return;
+    }
+
+    void ipcBridge.conversation.update.invoke({
+      id: conversation_id,
+      updates: {
+        extra: {
+          ...conversation.extra,
+          deferInitialWorkspaceLoad: false,
+        },
+      },
+    });
+  }, [conversation, conversation_id, treeHook.refreshWorkspace]);
 
   // Context menu calculations
   const hasOriginalFiles = treeHook.files.length > 0 && treeHook.files[0]?.children?.length > 0;
@@ -279,6 +323,7 @@ const ChatWorkspace: React.FC<WorkspaceProps> = ({
           isWorkspaceCollapsed={isWorkspaceCollapsed}
           setIsWorkspaceCollapsed={setIsWorkspaceCollapsed}
           isTemporaryWorkspace={isTemporaryWorkspace}
+          workspacePath={workspace}
           workspaceDisplayName={workspaceDisplayName}
           showSearch={searchHook.showSearch}
           searchText={searchHook.searchText}
@@ -292,6 +337,19 @@ const ChatWorkspace: React.FC<WorkspaceProps> = ({
           setShowHostFileSelector={searchHook.setShowHostFileSelector}
           handleOpenMigrationModal={migrationHook.handleOpenMigrationModal}
           handleOpenWorkspaceRoot={migrationHook.handleOpenWorkspaceRoot}
+        />
+
+        <SessionHooksDrawer
+          visible={sessionHooks.visible}
+          onClose={() => sessionHooks.setVisible(false)}
+          hooksLoading={sessionHooks.hooksLoading}
+          hooksSaving={sessionHooks.hooksSaving}
+          availableHooks={sessionHooks.availableHooks}
+          selectedHooks={sessionHooks.selectedHooks}
+          setSelectedHooks={sessionHooks.setSelectedHooks}
+          currentBackend={sessionHooks.currentBackend}
+          handleRefresh={sessionHooks.loadHooks}
+          handleSave={sessionHooks.handleSave}
         />
 
         {/* Main content area */}
@@ -316,20 +374,41 @@ const ChatWorkspace: React.FC<WorkspaceProps> = ({
             {/* Empty state or Tree */}
             {!hasOriginalFiles ? (
               <div className=' flex-1 size-full flex items-center justify-center px-12px box-border'>
-                <Empty
-                  description={
-                    <div>
-                      <span className='text-t-secondary font-bold text-14px'>
-                        {searchHook.searchText
-                          ? t('conversation.workspace.search.empty')
-                          : t('conversation.workspace.empty')}
-                      </span>
-                      <div className='text-t-secondary'>
-                        {searchHook.searchText ? '' : t('conversation.workspace.emptyDescription')}
+                {workspaceLoadDeferred && !searchHook.searchText ? (
+                  <div className='w-full max-w-420px rounded-16px border border-border-2 bg-bg-1 p-20px text-center'>
+                    <Typography.Title heading={6} className='!mb-8px'>
+                      {t('conversation.workspace.externalSessionDeferredTitle', {
+                        defaultValue: 'Workspace loading is paused',
+                      })}
+                    </Typography.Title>
+                    <Typography.Paragraph className='!mb-16px text-t-secondary'>
+                      {t('conversation.workspace.externalSessionDeferredDescription', {
+                        defaultValue:
+                          'This session was taken over from an external CLI. Load the workspace files only when you need them to avoid scanning a large project on open.',
+                      })}
+                    </Typography.Paragraph>
+                    <Button type='primary' onClick={() => void handleLoadDeferredWorkspace()}>
+                      {t('conversation.workspace.externalSessionDeferredAction', {
+                        defaultValue: 'Load Workspace Files',
+                      })}
+                    </Button>
+                  </div>
+                ) : (
+                  <Empty
+                    description={
+                      <div>
+                        <span className='text-t-secondary font-bold text-14px'>
+                          {searchHook.searchText
+                            ? t('conversation.workspace.search.empty')
+                            : t('conversation.workspace.empty')}
+                        </span>
+                        <div className='text-t-secondary'>
+                          {searchHook.searchText ? '' : t('conversation.workspace.emptyDescription')}
+                        </div>
                       </div>
-                    </div>
-                  }
-                />
+                    }
+                  />
+                )}
               </div>
             ) : (
               <Tree

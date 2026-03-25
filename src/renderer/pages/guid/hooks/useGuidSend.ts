@@ -44,6 +44,7 @@ export type GuidSendDeps = {
   resolveEnabledSkills: (
     agentInfo: { backend: AcpBackend; customAgentId?: string } | undefined
   ) => string[] | undefined;
+  resolveEnabledHooks: (agentInfo: { backend: AcpBackend; customAgentId?: string } | undefined) => string[] | undefined;
   isMainAgentAvailable: (agentType: string) => boolean;
   getAvailableFallbackAgent: () => string | null;
   currentEffectiveAgentInfo: EffectiveAgentInfo;
@@ -91,6 +92,7 @@ export const useGuidSend = (deps: GuidSendDeps): GuidSendResult => {
     getEffectiveAgentType,
     resolvePresetRulesAndSkills,
     resolveEnabledSkills,
+    resolveEnabledHooks,
     isMainAgentAvailable,
     getAvailableFallbackAgent,
     currentEffectiveAgentInfo,
@@ -116,6 +118,7 @@ export const useGuidSend = (deps: GuidSendDeps): GuidSendResult => {
 
     const { rules: presetRules } = await resolvePresetRulesAndSkills(agentInfo);
     const enabledSkills = resolveEnabledSkills(agentInfo);
+    const enabledHooks = resolveEnabledHooks(agentInfo);
 
     let finalEffectiveAgentType = effectiveAgentType;
     if (isPreset && !isMainAgentAvailable(effectiveAgentType)) {
@@ -160,6 +163,7 @@ export const useGuidSend = (deps: GuidSendDeps): GuidSendResult => {
                 : 'default',
             presetRules: isPreset ? presetRules : undefined,
             enabledSkills: isPreset ? enabledSkills : undefined,
+            enabledHooks: isPreset ? enabledHooks : undefined,
             presetAssistantId: presetAssistantIdToPass,
             sessionMode: selectedMode,
           },
@@ -218,6 +222,7 @@ export const useGuidSend = (deps: GuidSendDeps): GuidSendResult => {
               switchedAt: Date.now(),
             },
             enabledSkills: isPreset ? enabledSkills : undefined,
+            enabledHooks: isPreset ? enabledHooks : undefined,
             presetAssistantId: isPreset ? openclawAgentInfo?.customAgentId : undefined,
           },
         });
@@ -264,6 +269,7 @@ export const useGuidSend = (deps: GuidSendDeps): GuidSendResult => {
             workspace: finalWorkspace,
             customWorkspace: isCustomWorkspace,
             enabledSkills: isPreset ? enabledSkills : undefined,
+            enabledHooks: isPreset ? enabledHooks : undefined,
             presetAssistantId: isPreset ? nanobotAgentInfo?.customAgentId : undefined,
           },
         });
@@ -332,6 +338,7 @@ export const useGuidSend = (deps: GuidSendDeps): GuidSendResult => {
             customAgentId: acpAgentInfo?.customAgentId,
             presetContext: isPreset ? presetRules : undefined,
             enabledSkills: isPreset ? enabledSkills : undefined,
+            enabledHooks: isPreset ? enabledHooks : undefined,
             presetAssistantId: isPreset ? agentInfo?.customAgentId || acpAgentInfo?.customAgentId : undefined,
             sessionMode: selectedMode,
             currentModelId: selectedAcpModel || undefined,
@@ -378,6 +385,7 @@ export const useGuidSend = (deps: GuidSendDeps): GuidSendResult => {
     getEffectiveAgentType,
     resolvePresetRulesAndSkills,
     resolveEnabledSkills,
+    resolveEnabledHooks,
     isMainAgentAvailable,
     getAvailableFallbackAgent,
     navigate,

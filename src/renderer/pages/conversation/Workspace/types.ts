@@ -5,6 +5,7 @@
  */
 
 import type { IDirOrFile } from '@/common/adapter/ipcBridge';
+import type { TChatConversation } from '@/common/config/storage';
 import type { NodeInstance } from '@arco-design/web-react/es/Tree/interface';
 import type { Message } from '@arco-design/web-react';
 
@@ -17,6 +18,7 @@ export type MessageApi = ReturnType<typeof Message.useMessage>[0];
 export interface WorkspaceProps {
   workspace: string;
   conversation_id: string;
+  conversation: TChatConversation;
   eventPrefix?: 'gemini' | 'acp' | 'codex';
   messageApi?: MessageApi;
 }

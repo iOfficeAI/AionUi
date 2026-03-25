@@ -139,7 +139,11 @@ export async function buildPresetAssistantParams(
   // [BUG-2] Map raw i18n.language to standard locale key
   const localeKey = resolveLocaleKey(language);
 
-  const { rules: presetContext, enabledSkills } = await loadPresetAssistantResources({
+  const {
+    rules: presetContext,
+    enabledSkills,
+    enabledHooks,
+  } = await loadPresetAssistantResources({
     customAgentId,
     localeKey,
   });
@@ -150,6 +154,7 @@ export async function buildPresetAssistantParams(
     workspace,
     customWorkspace: true,
     enabledSkills,
+    enabledHooks,
     presetAssistantId: customAgentId,
   };
 

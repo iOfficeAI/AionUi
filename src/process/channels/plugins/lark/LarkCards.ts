@@ -106,7 +106,7 @@ export function createMainMenuCard(): LarkCard {
   return {
     config: { wide_screen_mode: true },
     header: {
-      title: { tag: 'plain_text', content: 'AionUi Assistant' },
+      title: { tag: 'plain_text', content: 'ContextGo Assistant' },
       template: 'blue',
     },
     elements: [
@@ -167,11 +167,11 @@ export function createPairingCard(pairingCode: string): LarkCard {
       {
         tag: 'markdown',
         content: [
-          'Please pair your account with AionUi:',
+          'Please pair your account with ContextGo:',
           '',
           `**Pairing Code:** \`${pairingCode}\``,
           '',
-          '1. Open AionUi settings',
+          '1. Open ContextGo settings',
           '2. Go to Channels → Lark',
           '3. Enter this pairing code',
           '',
@@ -218,8 +218,8 @@ export function createPairingStatusCard(pairingCode: string): LarkCard {
           '',
           `**Pairing Code:** \`${pairingCode}\``,
           '',
-          'Please approve in AionUi settings:',
-          '1. Open AionUi app',
+          'Please approve in ContextGo settings:',
+          '1. Open ContextGo app',
           '2. Go to WebUI → Channels',
           '3. Click "Approve" for this code',
         ].join('\n'),
@@ -261,19 +261,19 @@ export function createPairingHelpCard(): LarkCard {
         tag: 'markdown',
         content: [
           '**What is pairing?**',
-          'Pairing links your Lark/Feishu account with the local AionUi application.',
+          'Pairing links your Lark/Feishu account with the local ContextGo application.',
           'You need to pair before using the AI assistant.',
           '',
           '**How to pair:**',
           '1. Send any message to this bot',
           '2. You will receive a pairing code',
-          '3. Open AionUi desktop app',
+          '3. Open ContextGo desktop app',
           '4. Go to WebUI → Channels → Lark',
           '5. Click "Approve" for your code',
           '',
           '**FAQ:**',
           '• Pairing code valid for 10 minutes',
-          '• AionUi app must be running',
+          '• ContextGo app must be running',
           '• One account can only pair once',
         ].join('\n'),
       },
@@ -421,14 +421,14 @@ export function createHelpCard(): LarkCard {
   return {
     config: { wide_screen_mode: true },
     header: {
-      title: { tag: 'plain_text', content: '❓ AionUi Assistant Help' },
+      title: { tag: 'plain_text', content: '❓ ContextGo Assistant Help' },
       template: 'turquoise',
     },
     elements: [
       {
         tag: 'markdown',
         content: [
-          'A remote assistant to interact with AionUi via Lark.',
+          'A remote assistant to interact with ContextGo via Lark.',
           '',
           '**Common Actions:**',
           '• 🆕 New Chat - Start a new session',
@@ -533,12 +533,12 @@ export function createPairingGuideCard(): LarkCard {
           '**First-time Setup:**',
           '1. Send any message to the bot',
           '2. Bot displays pairing code',
-          '3. Approve pairing in AionUi settings',
+          '3. Approve pairing in ContextGo settings',
           '4. Ready to use after pairing',
           '',
           '**Notes:**',
           '• Pairing code valid for 10 minutes',
-          '• AionUi app must be running',
+          '• ContextGo app must be running',
           '• One Lark account can only pair once',
         ].join('\n'),
       },
@@ -764,9 +764,9 @@ export function createSettingsCard(): LarkCard {
       {
         tag: 'markdown',
         content: [
-          'Channel settings need to be configured in the AionUi app.',
+          'Channel settings need to be configured in the ContextGo app.',
           '',
-          'Open AionUi → WebUI → Channels',
+          'Open ContextGo → WebUI → Channels',
         ].join('\n'),
       },
       {

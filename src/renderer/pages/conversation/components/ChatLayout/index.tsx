@@ -44,6 +44,7 @@ const ChatLayout: React.FC<{
   headerExtra?: React.ReactNode;
   headerLeft?: React.ReactNode;
   workspaceEnabled?: boolean;
+  workspacePath?: string;
   /** Conversation ID for mode switching */
   conversationId?: string;
 }> = (props) => {
@@ -188,6 +189,7 @@ const ChatLayout: React.FC<{
               titleAreaMaxWidth={titleAreaMaxWidth}
               title={props.title}
               conversationId={conversationId}
+              workspacePath={props.workspacePath}
             />
           )}
         </FlexFullContainer>

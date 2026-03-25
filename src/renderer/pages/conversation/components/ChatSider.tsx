@@ -20,6 +20,7 @@ const ChatSider: React.FC<{
       <ChatWorkspace
         conversation_id={conversation.id}
         workspace={conversation.extra.workspace}
+        conversation={conversation}
         messageApi={messageApi}
       ></ChatWorkspace>
     );
@@ -28,6 +29,7 @@ const ChatSider: React.FC<{
       <ChatWorkspace
         conversation_id={conversation.id}
         workspace={conversation.extra.workspace}
+        conversation={conversation}
         eventPrefix='acp'
         messageApi={messageApi}
       ></ChatWorkspace>
@@ -37,6 +39,7 @@ const ChatSider: React.FC<{
       <ChatWorkspace
         conversation_id={conversation.id}
         workspace={conversation.extra.workspace}
+        conversation={conversation}
         eventPrefix='codex'
         messageApi={messageApi}
       ></ChatWorkspace>

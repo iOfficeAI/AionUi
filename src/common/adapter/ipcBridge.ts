@@ -9,6 +9,8 @@ import { bridge } from '@office-ai/platform';
 import type { OpenDialogOptions } from 'electron';
 import type { McpSource } from '../../process/services/mcpServices/McpProtocol';
 import type { AcpBackend, AcpBackendAll, AcpModelInfo, PresetAgentType } from '../types/acpTypes';
+import type { HookInfo } from '../types/hookTypes';
+import type { ExternalSessionSummary, ImportExternalSessionParams } from '../types/externalSessions';
 import type { SlashCommandItem } from '../chat/slash/types';
 import type { IMcpServer, IProvider, TChatConversation, TProviderWithModel, ICssTheme } from '../config/storage';
 import type { PreviewHistoryTarget, PreviewSnapshotInfo } from '../types/preview';
@@ -236,6 +238,16 @@ export const fs = {
     Array<{ name: string; description: string; location: string; isCustom: boolean }>,
     void
   >('list-available-skills'),
+  // 获取可用 hooks 列表 / List available hooks from hooks directory
+  listAvailableHooks: bridge.buildProvider<HookInfo[], void>('list-available-hooks'),
+  // 符号链接方式导入 hook / Import hook via symlink
+  importHookWithSymlink: bridge.buildProvider<IBridgeResponse<{ hookName: string }>, { hookPath: string }>(
+    'import-hook-with-symlink'
+  ),
+  // 删除自定义 hook / Delete custom hook
+  deleteHook: bridge.buildProvider<IBridgeResponse, { hookName: string }>('delete-hook'),
+  // 获取 hook 存储路径 / Get hook storage paths
+  getHookPaths: bridge.buildProvider<{ userHooksDir: string }, void>('get-hook-paths'),
   // 读取 skill 信息（不导入）/ Read skill info without importing
   readSkillInfo: bridge.buildProvider<IBridgeResponse<{ name: string; description: string }>, { skillPath: string }>(
     'read-skill-info'
@@ -387,6 +399,14 @@ export const acpConversation = {
     >,
     void
   >('acp.get-available-agents'),
+  listExternalSessions: bridge.buildProvider<
+    IBridgeResponse<{ sessions: ExternalSessionSummary[] }>,
+    { forceRefresh?: boolean }
+  >('acp.list-external-sessions'),
+  importExternalSession: bridge.buildProvider<
+    IBridgeResponse<{ conversation: TChatConversation }>,
+    ImportExternalSessionParams
+  >('acp.import-external-session'),
   checkEnv: bridge.buildProvider<{ env: Record<string, string> }, void>('acp.check.env'),
   refreshCustomAgents: bridge.buildProvider<IBridgeResponse, void>('acp.refresh-custom-agents'),
   checkAgentHealth: bridge.buildProvider<
@@ -765,6 +785,8 @@ export interface ICreateConversationParams {
     presetRules?: string; // system rules injected at initialization
     /** Enabled skills list for filtering SkillManager skills */
     enabledSkills?: string[];
+    /** Enabled hooks list for future HookRuntime or native projection */
+    enabledHooks?: string[];
     /**
      * Preset context/rules to inject into the first message.
      * Used by smart assistants to provide custom prompts/rules.
@@ -780,6 +802,16 @@ export interface ICreateConversationParams {
     codexModel?: string;
     /** Pre-selected ACP model from Guid page (cached model list) */
     currentModelId?: string;
+    /** ACP session UUID for restoring an externally created session */
+    acpSessionId?: string;
+    /** Last external ACP session update timestamp */
+    acpSessionUpdatedAt?: number;
+    /** OpenClaw session key for restoring an externally created session */
+    sessionKey?: string;
+    /** Whether this conversation was imported from an external CLI session */
+    externalSessionImported?: boolean;
+    /** Whether workspace hydration should be deferred on first open */
+    deferInitialWorkspaceLoad?: boolean;
     /** Runtime validation snapshot used for post-switch strong checks (OpenClaw) */
     runtimeValidation?: {
       expectedWorkspace?: string;

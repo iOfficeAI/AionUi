@@ -37,14 +37,14 @@ export function getElectronConfigCandidatePaths(): string[] {
   if (process.platform === 'win32') {
     const appData = process.env.APPDATA ?? path.join(home, 'AppData', 'Roaming');
     return [
-      path.join(appData, 'AionUi', 'config', 'aionui-config.txt'),
-      path.join(appData, 'AionUi-Dev', 'config', 'aionui-config.txt'),
+      path.join(appData, 'ContextGo', 'config', 'aionui-config.txt'),
+      path.join(appData, 'ContextGo-Dev', 'config', 'aionui-config.txt'),
     ];
   }
   // Linux and other platforms
   return [
-    path.join(home, '.config', 'AionUi', 'config', 'aionui-config.txt'),
-    path.join(home, '.config', 'AionUi-Dev', 'config', 'aionui-config.txt'),
+    path.join(home, '.config', 'ContextGo', 'config', 'aionui-config.txt'),
+    path.join(home, '.config', 'ContextGo-Dev', 'config', 'aionui-config.txt'),
   ];
 }
 

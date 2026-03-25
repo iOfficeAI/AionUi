@@ -12,6 +12,7 @@ import { addEventListener, emitter } from '@/renderer/utils/emitter';
 import { blockMobileInputFocus, blurActiveElement } from '@/renderer/utils/ui/focus';
 import { cleanupSiderTooltips, getSiderTooltipProps } from '@/renderer/utils/ui/siderTooltip';
 import { getActivityTime, createTimelineGrouper } from '@/renderer/utils/chat/timeline';
+import { getConversationWorkspacePath } from '@/renderer/utils/workspace/workspace';
 import { Empty, Popconfirm, Input, Tooltip } from '@arco-design/web-react';
 import { DeleteOne, MessageOne, EditOne } from '@icon-park/react';
 import classNames from 'classnames';
@@ -123,9 +124,9 @@ const ChatHistory: React.FC<{ onSessionClick?: () => void; collapsed?: boolean }
     return addEventListener('chat.history.refresh', refresh);
   }, [isConversation]);
 
-  const handleRemoveConversation = (id: string) => {
+  const handleRemoveConversation = (conversationIdToRemove: string) => {
     void ipcBridge.conversation.remove
-      .invoke({ id })
+      .invoke({ id: conversationIdToRemove })
       .then((success) => {
         if (success) {
           // Trigger refresh to reload from database
@@ -185,12 +186,13 @@ const ChatHistory: React.FC<{ onSessionClick?: () => void; collapsed?: boolean }
     const isSelected = id === conversation.id;
     const isEditing = editingId === conversation.id;
     const cronStatus = getJobStatus(conversation.id);
+    const workspacePath = getConversationWorkspacePath(conversation);
 
     return (
       <Tooltip
         key={conversation.id}
         {...siderTooltipProps}
-        content={conversation.name || t('conversation.welcome.newConversation')}
+        content={workspacePath || conversation.name || t('conversation.welcome.newConversation')}
         position='right'
       >
         <div

@@ -3,11 +3,13 @@ import { ConfigStorage } from '@/common/config/storage';
 import type { Message } from '@arco-design/web-react';
 import type { AcpBackendConfig } from '@/common/types/acpTypes';
 import {
+  getIncompatibleHookNames,
   hasBuiltinSkills,
   isExtensionAssistant as isExtensionAssistantUtil,
 } from '@/renderer/pages/settings/AgentSettings/AssistantManagement/assistantUtils';
 import type {
   AssistantListItem,
+  HookInfo,
   PendingSkill,
   SkillInfo,
 } from '@/renderer/pages/settings/AgentSettings/AssistantManagement/types';
@@ -32,7 +34,7 @@ type UseAssistantEditorParams = {
 export const useAssistantEditor = ({
   localeKey,
   activeAssistant,
-  isReadonlyAssistant,
+  isReadonlyAssistant: _isReadonlyAssistant,
   isExtensionAssistant,
   setActiveAssistantId,
   loadAssistants,
@@ -56,8 +58,10 @@ export const useAssistantEditor = ({
 
   // Skills-related editing state (shared with editor)
   const [availableSkills, setAvailableSkills] = useState<SkillInfo[]>([]);
+  const [availableHooks, setAvailableHooks] = useState<HookInfo[]>([]);
   const [customSkills, setCustomSkills] = useState<string[]>([]);
   const [selectedSkills, setSelectedSkills] = useState<string[]>([]);
+  const [selectedHooks, setSelectedHooks] = useState<string[]>([]);
   const [pendingSkills, setPendingSkills] = useState<PendingSkill[]>([]);
   const [deletePendingSkillName, setDeletePendingSkillName] = useState<string | null>(null);
   const [deleteCustomSkillName, setDeleteCustomSkillName] = useState<string | null>(null);
@@ -109,29 +113,35 @@ export const useAssistantEditor = ({
       setEditContext(assistant.context || '');
       setEditSkills('');
       setAvailableSkills([]);
+      setAvailableHooks([]);
       setSelectedSkills(Array.isArray(assistant.enabledSkills) ? assistant.enabledSkills : []);
+      setSelectedHooks(Array.isArray(assistant.enabledHooks) ? assistant.enabledHooks : []);
       setCustomSkills([]);
       return;
     }
 
     // Load rules, skills content
     try {
-      const [context, skills] = await Promise.all([
+      const [context, skills, hooksList] = await Promise.all([
         loadAssistantContext(assistant.id),
         loadAssistantSkills(assistant.id),
+        ipcBridge.fs.listAvailableHooks.invoke(),
       ]);
       setEditContext(context);
       setEditSkills(skills);
+      setAvailableHooks(hooksList);
 
       // Load skills list for builtin assistants with skillFiles and all custom assistants
       if (hasBuiltinSkills(assistant.id) || !assistant.isBuiltin) {
         const skillsList = await ipcBridge.fs.listAvailableSkills.invoke();
         setAvailableSkills(skillsList);
         setSelectedSkills(assistant.enabledSkills || []);
+        setSelectedHooks(assistant.enabledHooks || []);
         setCustomSkills(assistant.customSkillNames || []);
       } else {
         setAvailableSkills([]);
         setSelectedSkills([]);
+        setSelectedHooks(assistant.enabledHooks || []);
         setCustomSkills([]);
       }
     } catch (error) {
@@ -139,7 +149,9 @@ export const useAssistantEditor = ({
       setEditContext('');
       setEditSkills('');
       setAvailableSkills([]);
+      setAvailableHooks([]);
       setSelectedSkills([]);
+      setSelectedHooks([]);
     }
   };
 
@@ -154,17 +166,23 @@ export const useAssistantEditor = ({
     setEditAgent('gemini');
     setEditSkills('');
     setSelectedSkills([]);
+    setSelectedHooks([]);
     setCustomSkills([]);
     setPromptViewMode('edit');
     setEditVisible(true);
 
-    // Load available skills list
+    // Load available skills and hooks list
     try {
-      const skillsList = await ipcBridge.fs.listAvailableSkills.invoke();
+      const [skillsList, hooksList] = await Promise.all([
+        ipcBridge.fs.listAvailableSkills.invoke(),
+        ipcBridge.fs.listAvailableHooks.invoke(),
+      ]);
       setAvailableSkills(skillsList);
+      setAvailableHooks(hooksList);
     } catch (error) {
-      console.error('Failed to load skills:', error);
+      console.error('Failed to load assistant resources:', error);
       setAvailableSkills([]);
+      setAvailableHooks([]);
     }
   };
 
@@ -181,14 +199,16 @@ export const useAssistantEditor = ({
 
     // Load original assistant's rules and skills
     try {
-      const [skillsList, context, skills] = isExtensionAssistantUtil(assistant)
+      const [skillsList, hooksList, context, skills] = isExtensionAssistantUtil(assistant)
         ? await Promise.all([
             ipcBridge.fs.listAvailableSkills.invoke(),
+            ipcBridge.fs.listAvailableHooks.invoke(),
             Promise.resolve(assistant.context || ''),
             Promise.resolve(''),
           ])
         : await Promise.all([
             ipcBridge.fs.listAvailableSkills.invoke(),
+            ipcBridge.fs.listAvailableHooks.invoke(),
             loadAssistantContext(assistant.id),
             loadAssistantSkills(assistant.id),
           ]);
@@ -196,14 +216,18 @@ export const useAssistantEditor = ({
       setEditContext(context);
       setEditSkills(skills);
       setAvailableSkills(skillsList);
+      setAvailableHooks(hooksList);
       setSelectedSkills(assistant.enabledSkills || []);
+      setSelectedHooks(assistant.enabledHooks || []);
       setCustomSkills(assistant.customSkillNames || []);
     } catch (error) {
       console.error('Failed to load assistant content for duplication:', error);
       setEditContext('');
       setEditSkills('');
       setAvailableSkills([]);
+      setAvailableHooks([]);
       setSelectedSkills([]);
+      setSelectedHooks([]);
       setCustomSkills([]);
     }
   };
@@ -226,6 +250,17 @@ export const useAssistantEditor = ({
         return;
       }
 
+      const incompatibleHookNames = getIncompatibleHookNames(availableHooks, selectedHooks, editAgent);
+      if (incompatibleHookNames.length > 0) {
+        message.error(
+          t('settings.hookSaveIncompatible', {
+            hooks: incompatibleHookNames.join(', '),
+            defaultValue: 'Remove hooks not supported by the selected agent before saving: {{hooks}}',
+          })
+        );
+        return;
+      }
+
       // Import pending skills (skip existing ones)
       if (pendingSkills.length > 0) {
         const skillsToImport = pendingSkills.filter(
@@ -233,19 +268,30 @@ export const useAssistantEditor = ({
         );
 
         if (skillsToImport.length > 0) {
-          for (const pendingSkill of skillsToImport) {
-            try {
-              const response = await ipcBridge.fs.importSkillWithSymlink.invoke({ skillPath: pendingSkill.path });
-              if (!response.success) {
-                message.error(`Failed to import skill "${pendingSkill.name}": ${response.msg}`);
-                return;
+          const importResults = await Promise.all(
+            skillsToImport.map(async (pendingSkill) => {
+              try {
+                const response = await ipcBridge.fs.importSkillWithSymlink.invoke({ skillPath: pendingSkill.path });
+                return { pendingSkill, response };
+              } catch (error) {
+                return { pendingSkill, error };
               }
-            } catch (error) {
-              console.error(`Failed to import skill "${pendingSkill.name}":`, error);
-              message.error(`Failed to import skill "${pendingSkill.name}"`);
+            })
+          );
+
+          for (const result of importResults) {
+            if ('error' in result) {
+              console.error(`Failed to import skill "${result.pendingSkill.name}":`, result.error);
+              message.error(`Failed to import skill "${result.pendingSkill.name}"`);
+              return;
+            }
+
+            if (!result.response.success) {
+              message.error(`Failed to import skill "${result.pendingSkill.name}": ${result.response.msg}`);
               return;
             }
           }
+
           // Reload skills list after successful import
           const skillsList = await ipcBridge.fs.listAvailableSkills.invoke();
           setAvailableSkills(skillsList);
@@ -271,6 +317,7 @@ export const useAssistantEditor = ({
           presetAgentType: editAgent,
           enabled: true,
           enabledSkills: selectedSkills,
+          enabledHooks: selectedHooks,
           customSkillNames: finalCustomSkills,
         };
 
@@ -299,6 +346,7 @@ export const useAssistantEditor = ({
           avatar: editAvatar,
           presetAgentType: editAgent,
           enabledSkills: selectedSkills,
+          enabledHooks: selectedHooks,
           customSkillNames: finalCustomSkills,
         };
 
@@ -384,7 +432,9 @@ export const useAssistantEditor = ({
 
     try {
       const agents = (await ConfigStorage.get('acp.customAgents')) || [];
-      const updatedAgents = agents.map((agent) => (agent.id === assistant.id ? { ...agent, enabled } : agent));
+      const updatedAgents = agents.map((agent) =>
+        agent.id === assistant.id ? Object.assign({}, agent, { enabled }) : agent
+      );
       await ConfigStorage.set('acp.customAgents', updatedAgents);
 
       // Reload merged assistant list (local + extensions)
@@ -421,10 +471,14 @@ export const useAssistantEditor = ({
     // Skills editing state
     availableSkills,
     setAvailableSkills,
+    availableHooks,
+    setAvailableHooks,
     customSkills,
     setCustomSkills,
     selectedSkills,
     setSelectedSkills,
+    selectedHooks,
+    setSelectedHooks,
     pendingSkills,
     setPendingSkills,
     deletePendingSkillName,

@@ -1,10 +1,10 @@
 appId: com.aionui.app
-productName: AionUi
-executableName: AionUi
-copyright: Copyright © 2024 AionUi
+productName: ContextGo
+executableName: ContextGo
+copyright: Copyright © 2024 ContextGo
 
 protocols:
-  - name: AionUi Protocol
+  - name: ContextGo Protocol
     schemes:
       - aionui
 
@@ -175,7 +175,7 @@ linux:
   description: ${description}
   desktop:
     entry:
-      Name: AionUi
+      Name: ContextGo
       Comment: ${description}
       Icon: aionui
       Categories: Office;Utility;

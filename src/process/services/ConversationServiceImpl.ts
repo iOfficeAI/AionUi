@@ -138,6 +138,7 @@ export class ConversationServiceImpl implements IConversationService {
           params.extra.contextFileName,
           params.extra.presetRules,
           params.extra.enabledSkills as string[] | undefined,
+          params.extra.enabledHooks as string[] | undefined,
           params.extra.presetAssistantId,
           params.extra.sessionMode,
           params.extra.isHealthCheck

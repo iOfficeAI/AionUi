@@ -10,9 +10,10 @@ import { uuid } from '@/common/utils';
 import addChatIcon from '@/renderer/assets/icons/add-chat.svg';
 import { CronJobManager } from '@/renderer/pages/cron';
 import { usePresetAssistantInfo } from '@/renderer/hooks/agent/usePresetAssistantInfo';
+import { getConversationEnabledHooks } from '@/renderer/pages/conversation/Workspace/utils/sessionHooks';
 import { iconColors } from '@/renderer/styles/colors';
 import { Button, Dropdown, Menu, Tooltip, Typography } from '@arco-design/web-react';
-import { History } from '@icon-park/react';
+import { History, Puzzle } from '@icon-park/react';
 import React, { useCallback, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
@@ -127,6 +128,33 @@ const _AddNewConversation: React.FC<{ conversation: TChatConversation }> = ({ co
 // Narrow to Gemini conversations so model field is always available
 type GeminiConversation = Extract<TChatConversation, { type: 'gemini' }>;
 
+const SessionHooksHeaderButton: React.FC<{ conversation: TChatConversation }> = ({ conversation }) => {
+  const { t } = useTranslation();
+  const enabledHookCount = getConversationEnabledHooks(conversation).length;
+
+  return (
+    <Tooltip
+      content={t('conversation.workspace.sessionHooksOpen', {
+        count: enabledHookCount,
+        defaultValue: 'Session Hooks',
+      })}
+    >
+      <Button
+        size='mini'
+        type={enabledHookCount > 0 ? 'primary' : 'outline'}
+        icon={<Puzzle theme='outline' size='14' />}
+        onClick={() => {
+          emitter.emit('conversation.session-hooks.open', conversation.id);
+        }}
+      >
+        {t('conversation.workspace.sessionHooksAction', {
+          defaultValue: 'Hooks',
+        })}
+      </Button>
+    </Tooltip>
+  );
+};
+
 const GeminiConversationPanel: React.FC<{ conversation: GeminiConversation; sliderTitle: React.ReactNode }> = ({
   conversation,
   sliderTitle,
@@ -144,6 +172,7 @@ const GeminiConversationPanel: React.FC<{ conversation: GeminiConversation; slid
   // Share model selection state between header and send box
   const modelSelection = useGeminiModelSelection({ initialModel: conversation.model, onSelectModel });
   const workspaceEnabled = Boolean(conversation.extra?.workspace);
+  const showSessionHooksEntry = workspaceEnabled;
 
   // 使用统一的 Hook 获取预设助手信息 / Use unified hook for preset assistant info
   const { info: presetAssistantInfo } = usePresetAssistantInfo(conversation);
@@ -153,8 +182,20 @@ const GeminiConversationPanel: React.FC<{ conversation: GeminiConversation; slid
     siderTitle: sliderTitle,
     sider: <ChatSider conversation={conversation} />,
     headerLeft: <GeminiModelSelector selection={modelSelection} />,
-    headerExtra: <CronJobManager conversationId={conversation.id} />,
+    headerExtra: (
+      <div className='flex items-center gap-8px'>
+        {showSessionHooksEntry && (
+          <div className='shrink-0'>
+            <SessionHooksHeaderButton conversation={conversation} />
+          </div>
+        )}
+        <div className='shrink-0'>
+          <CronJobManager conversationId={conversation.id} />
+        </div>
+      </div>
+    ),
     workspaceEnabled,
+    workspacePath: conversation.extra?.workspace,
     backend: 'gemini' as const,
     // 传递预设助手信息 / Pass preset assistant info
     agentName: presetAssistantInfo?.name,
@@ -179,6 +220,9 @@ const ChatConversation: React.FC<{
   const { t } = useTranslation();
   const { openPreview } = usePreviewContext();
   const workspaceEnabled = Boolean(conversation?.extra?.workspace);
+  const showSessionHooksEntry = Boolean(
+    conversation && workspaceEnabled && (conversation.type === 'acp' || conversation.type === 'codex')
+  );
 
   const isGeminiConversation = conversation?.type === 'gemini';
 
@@ -292,6 +336,11 @@ const ChatConversation: React.FC<{
 
   const headerExtraNode = (
     <div className='flex items-center gap-8px'>
+      {showSessionHooksEntry && conversation ? (
+        <div className='shrink-0'>
+          <SessionHooksHeaderButton conversation={conversation} />
+        </div>
+      ) : null}
       {conversation?.type === 'openclaw-gateway' && (
         <div className='shrink-0'>
           <StarOfficeMonitorCard
@@ -319,6 +368,7 @@ const ChatConversation: React.FC<{
       siderTitle={sliderTitle}
       sider={<ChatSider conversation={conversation} />}
       workspaceEnabled={workspaceEnabled}
+      workspacePath={conversation?.extra?.workspace}
       conversationId={conversation?.id}
     >
       {conversationNode}

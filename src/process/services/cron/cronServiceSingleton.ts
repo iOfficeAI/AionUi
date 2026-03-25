@@ -15,6 +15,6 @@ import { WorkerTaskManagerJobExecutor } from './WorkerTaskManagerJobExecutor';
 export const cronService = new CronService(
   new SqliteCronRepository(),
   new IpcCronEventEmitter(),
-  new WorkerTaskManagerJobExecutor(workerTaskManager, cronBusyGuard),
+  new WorkerTaskManagerJobExecutor(() => workerTaskManager, cronBusyGuard, new SqliteConversationRepository()),
   new SqliteConversationRepository()
 );

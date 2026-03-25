@@ -58,6 +58,12 @@ const SettingsPageWrapper: React.FC<SettingsPageWrapperProps> = ({ children, cla
         icon: <Robot theme='outline' size='16' />,
         path: 'agent',
       },
+      {
+        id: 'hooks',
+        label: t('settings.hooksPage', { defaultValue: 'Hooks' }),
+        icon: <Puzzle theme='outline' size='16' />,
+        path: 'hooks',
+      },
       { id: 'tools', label: t('settings.tools'), icon: <Toolkit theme='outline' size='16' />, path: 'tools' },
       { id: 'display', label: t('settings.display'), icon: <Computer theme='outline' size='16' />, path: 'display' },
       {

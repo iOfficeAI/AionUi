@@ -306,7 +306,13 @@ export class GeminiAgentManager extends BaseAgentManager<
     }
   }
 
-  async sendMessage(data: { input: string; msg_id: string; files?: string[]; cronMeta?: CronMessageMeta }) {
+  async sendMessage(data: {
+    input: string;
+    agentInput?: string;
+    msg_id: string;
+    files?: string[];
+    cronMeta?: CronMessageMeta;
+  }) {
     const message: TMessage = {
       id: data.msg_id,
       type: 'text',
@@ -361,7 +367,12 @@ export class GeminiAgentManager extends BaseAgentManager<
           });
         });
       })
-      .then(() => super.sendMessage(data))
+      .then(() =>
+        super.sendMessage({
+          ...data,
+          input: data.agentInput || data.input,
+        })
+      )
       .finally(() => {
         cronBusyGuard.setProcessing(this.conversation_id, false);
       });

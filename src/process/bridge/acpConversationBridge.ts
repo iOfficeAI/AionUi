@@ -8,6 +8,8 @@ import { acpDetector } from '@process/agent/acp/AcpDetector';
 import { AcpConnection } from '@process/agent/acp/AcpConnection';
 import { buildAcpModelInfo, summarizeAcpModelInfo } from '@process/agent/acp/modelInfo';
 import { CodexConnection } from '@process/agent/codex/connection/CodexConnection';
+import { refreshTrayMenu } from '@process/utils/tray';
+import type { IConversationService } from '@process/services/IConversationService';
 import type { IWorkerTaskManager } from '@process/task/IWorkerTaskManager';
 import AcpAgentManager from '@process/task/AcpAgentManager';
 import CodexAgentManager from '@process/task/CodexAgentManager';
@@ -15,9 +17,26 @@ import { GeminiAgentManager } from '@process/task/GeminiAgentManager';
 import { mcpService } from '@/process/services/mcpServices/McpService';
 import { mainLog, mainWarn } from '@/process/utils/mainLogger';
 import { ipcBridge } from '@/common';
+import { ExternalSessionDiscoveryService } from './services/ExternalSessionDiscoveryService';
 import * as os from 'os';
 
-export function initAcpConversationBridge(workerTaskManager: IWorkerTaskManager): void {
+const refreshTrayMenuSafely = async (): Promise<void> => {
+  try {
+    await refreshTrayMenu();
+  } catch (error) {
+    console.warn('[acpConversationBridge] Failed to refresh tray menu:', error);
+  }
+};
+
+export function initAcpConversationBridge(
+  workerTaskManager: IWorkerTaskManager,
+  conversationService: IConversationService
+): void {
+  const getExternalSessionDiscovery = () =>
+    new ExternalSessionDiscoveryService(conversationService, {
+      availableBackends: new Set(acpDetector.getDetectedAgents().map((agent) => agent.backend)),
+    });
+
   // Debug provider to check environment variables
   ipcBridge.acpConversation.checkEnv.provider(() => {
     return Promise.resolve({
@@ -59,6 +78,42 @@ export function initAcpConversationBridge(workerTaskManager: IWorkerTaskManager)
         success: false,
         msg: error instanceof Error ? error.message : 'Unknown error',
       });
+    }
+  });
+
+  ipcBridge.acpConversation.listExternalSessions.provider(async () => {
+    try {
+      const sessions = await getExternalSessionDiscovery().listSessions();
+      return {
+        success: true,
+        data: { sessions },
+      };
+    } catch (error) {
+      return {
+        success: false,
+        msg: error instanceof Error ? error.message : 'Unknown error',
+      };
+    }
+  });
+
+  ipcBridge.acpConversation.importExternalSession.provider(async (params) => {
+    try {
+      const conversation = await getExternalSessionDiscovery().importSession(params);
+      ipcBridge.conversation.listChanged.emit({
+        conversationId: conversation.id,
+        action: 'created',
+        source: conversation.source || 'aionui',
+      });
+      await refreshTrayMenuSafely();
+      return {
+        success: true,
+        data: { conversation },
+      };
+    } catch (error) {
+      return {
+        success: false,
+        msg: error instanceof Error ? error.message : 'Unknown error',
+      };
     }
   });
 

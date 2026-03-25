@@ -142,6 +142,22 @@ const MessageItem: React.FC<{ message: TMessage; highlighted?: boolean }> = Reac
     prev.highlighted === next.highlighted
 );
 
+const StableVirtuosoScroller = React.forwardRef<HTMLDivElement, React.ComponentProps<'div'>>(
+  ({ style, ...props }, ref) => (
+    <div
+      {...props}
+      ref={ref}
+      style={{
+        ...style,
+        overscrollBehavior: 'contain',
+        overflowAnchor: 'none',
+      }}
+    />
+  )
+);
+
+StableVirtuosoScroller.displayName = 'StableVirtuosoScroller';
+
 const MessageList: React.FC<{ className?: string }> = () => {
   const list = useMessageList();
   const conversationContext = useConversationContextSafe();
@@ -356,6 +372,7 @@ const MessageList: React.FC<{ className?: string }> = () => {
             onScroll={handleScroll}
             atBottomStateChange={handleAtBottomStateChange}
             components={{
+              Scroller: StableVirtuosoScroller,
               Header: () => <div className='h-10px' />,
               Footer: () => <div className='h-20px' />,
             }}

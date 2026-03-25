@@ -3,10 +3,10 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 vi.mock('electron', () => ({ app: { isPackaged: false, getPath: vi.fn(() => '/tmp') } }));
 
 // Capture provider handlers so tests can invoke them directly
-const handlers: Record<string, (...args: any[]) => any> = {};
+const handlers: Record<string, (...args: unknown[]) => unknown> = {};
 function makeChannel(name: string) {
   return {
-    provider: vi.fn((fn: (...args: any[]) => any) => {
+    provider: vi.fn((fn: (...args: unknown[]) => unknown) => {
       handlers[name] = fn;
     }),
     emit: vi.fn(),
@@ -14,7 +14,13 @@ function makeChannel(name: string) {
   };
 }
 
-vi.mock('../../src/common', () => ({
+const applyBeforeUserPromptMock = vi.fn(async (_conversation: unknown, input: string) => ({
+  content: input,
+  appliedHooks: [],
+}));
+const prepareFirstMessageMock = vi.fn(async (msg: string) => msg);
+
+vi.mock('@/common', () => ({
   ipcBridge: {
     conversation: {
       create: makeChannel('create'),
@@ -45,31 +51,45 @@ vi.mock('../../src/common', () => ({
   },
 }));
 
-vi.mock('../../src/process/utils/initStorage', () => ({
+vi.mock('@process/utils/initStorage', () => ({
   ProcessChat: { get: vi.fn(async () => []) },
   getSkillsDir: vi.fn(() => '/skills'),
+  getBuiltinSkillsCopyDir: vi.fn(() => '/builtin-skills'),
+  getSystemDir: vi.fn(() => ({ cacheDir: '/cache' })),
 }));
 
-vi.mock('../../src/process/bridge/migrationUtils', () => ({
+vi.mock('@process/bridge/migrationUtils', () => ({
   migrateConversationToDatabase: vi.fn(async () => {}),
 }));
 
-vi.mock('../../src/agent/gemini', () => ({
+vi.mock('@process/agent/gemini', () => ({
   GeminiAgent: { buildFileServer: vi.fn(() => ({})) },
   GeminiApprovalStore: { createKeysFromConfirmation: vi.fn(() => []) },
 }));
 
-vi.mock('../../src/process/utils', () => ({
+vi.mock('@process/utils', () => ({
   copyFilesToDirectory: vi.fn(async () => []),
   readDirectoryRecursive: vi.fn(async () => null),
 }));
 
-vi.mock('../../src/process/utils/openclawUtils', () => ({
+vi.mock('@process/utils/openclawUtils', () => ({
   computeOpenClawIdentityHash: vi.fn(async () => 'hash'),
 }));
 
-vi.mock('../../src/process/task/agentUtils', () => ({
-  prepareFirstMessage: vi.fn(async (msg: string) => msg),
+vi.mock('@process/task/agentUtils', () => ({
+  prepareFirstMessage: (...args: unknown[]) => prepareFirstMessageMock(...args),
+}));
+
+vi.mock('@process/bridge/services/AssistantHookRuntime', () => ({
+  AssistantHookRuntime: vi.fn(function AssistantHookRuntime() {
+    return {
+      applyBeforeUserPrompt: (...args: unknown[]) => applyBeforeUserPromptMock(...args),
+    };
+  }),
+}));
+
+vi.mock('@process/utils/tray', () => ({
+  refreshTrayMenu: vi.fn(async () => undefined),
 }));
 
 import { initConversationBridge } from '../../src/process/bridge/conversationBridge';
@@ -113,6 +133,11 @@ describe('conversationBridge', () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
+    applyBeforeUserPromptMock.mockResolvedValue({
+      content: 'hooked prompt',
+      appliedHooks: ['guard'],
+    });
+    prepareFirstMessageMock.mockImplementation(async (msg: string) => msg);
     // Re-register providers by re-initializing the bridge
     service = makeService();
     taskManager = makeTaskManager();
@@ -190,6 +215,68 @@ describe('conversationBridge', () => {
 
       expect(result).toEqual(conversation);
       expect(rejectingTaskManager.getOrBuildTask).toHaveBeenCalledWith('new-id');
+    });
+  });
+
+  describe('sendMessage — hook runtime integration', () => {
+    it('keeps raw user content but passes transformed prompt to gemini worker payload', async () => {
+      const conversation = makeConversation('c1', '/ws/project');
+      const sendMessage = vi.fn(async () => undefined);
+      const geminiTask = {
+        type: 'gemini',
+        workspace: '/ws/project',
+        sendMessage,
+      } as unknown as import('../../src/process/task/IAgentManager').IAgentManager;
+
+      vi.mocked(service.getConversation).mockResolvedValue(conversation);
+      vi.mocked(taskManager.getOrBuildTask).mockResolvedValue(geminiTask);
+
+      const handler = handlers['sendMessage'];
+      const result = await handler({ conversation_id: 'c1', input: 'raw prompt', files: [] });
+
+      expect(result).toEqual({ success: true });
+      expect(applyBeforeUserPromptMock).toHaveBeenCalledWith(conversation, 'raw prompt');
+      expect(sendMessage).toHaveBeenCalledWith(
+        expect.objectContaining({
+          input: 'raw prompt',
+          content: 'raw prompt',
+          agentInput: 'hooked prompt',
+          agentContent: 'hooked prompt',
+        })
+      );
+    });
+
+    it('applies skills injection on top of hook-transformed prompt', async () => {
+      const conversation = makeConversation('c2', '/ws/project');
+      const sendMessage = vi.fn(async () => undefined);
+      const acpTask = {
+        type: 'acp',
+        workspace: '/ws/project',
+        sendMessage,
+      } as unknown as import('../../src/process/task/IAgentManager').IAgentManager;
+
+      vi.mocked(service.getConversation).mockResolvedValue(conversation);
+      vi.mocked(taskManager.getOrBuildTask).mockResolvedValue(acpTask);
+      prepareFirstMessageMock.mockResolvedValue('skills + hooked prompt');
+
+      const handler = handlers['sendMessage'];
+      const result = await handler({
+        conversation_id: 'c2',
+        input: 'raw prompt',
+        files: [],
+        injectSkills: ['star-office-helper'],
+      });
+
+      expect(result).toEqual({ success: true });
+      expect(prepareFirstMessageMock).toHaveBeenCalledWith('hooked prompt', {
+        enabledSkills: ['star-office-helper'],
+      });
+      expect(sendMessage).toHaveBeenCalledWith(
+        expect.objectContaining({
+          content: 'raw prompt',
+          agentContent: expect.stringContaining('skills + hooked prompt'),
+        })
+      );
     });
   });
 });

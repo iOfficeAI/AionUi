@@ -1,6 +1,6 @@
 import { ASSISTANT_PRESETS } from '@/common/config/presets/assistantPresets';
 import { resolveExtensionAssetUrl } from '@/renderer/utils/platform';
-import type { AssistantListItem } from './types';
+import type { AssistantListItem, HookInfo } from './types';
 
 /**
  * Check if a builtin assistant has skills config (defaultEnabledSkills or skillFiles).
@@ -12,7 +12,7 @@ export const hasBuiltinSkills = (assistantId: string): boolean => {
   if (!preset) return false;
   const hasDefaultSkills = preset.defaultEnabledSkills && preset.defaultEnabledSkills.length > 0;
   const hasSkillFiles = preset.skillFiles && Object.keys(preset.skillFiles).length > 0;
-  return hasDefaultSkills || hasSkillFiles;
+  return Boolean(hasDefaultSkills || hasSkillFiles);
 };
 
 /**
@@ -87,6 +87,7 @@ export const normalizeExtensionAssistants = (extensionAssistants: Record<string,
         contextI18n: ext.contextI18n as Record<string, string> | undefined,
         models: Array.isArray(ext.models) ? (ext.models as string[]) : undefined,
         enabledSkills: Array.isArray(ext.enabledSkills) ? (ext.enabledSkills as string[]) : undefined,
+        enabledHooks: Array.isArray(ext.enabledHooks) ? (ext.enabledHooks as string[]) : undefined,
         prompts: Array.isArray(ext.prompts) ? (ext.prompts as string[]) : undefined,
         promptsI18n: ext.promptsI18n as Record<string, string[]> | undefined,
         isPreset: true,
@@ -106,4 +107,39 @@ export const normalizeExtensionAssistants = (extensionAssistants: Record<string,
 export const isExtensionAssistant = (assistant: AssistantListItem | null | undefined): boolean => {
   if (!assistant) return false;
   return assistant._source === 'extension' || assistant.id.startsWith('ext-');
+};
+
+/**
+ * Check whether a hook supports the currently selected backend.
+ */
+export const isHookSupportedByBackend = (
+  hook: Pick<HookInfo, 'supportedBackends'>,
+  backend: string | undefined
+): boolean => {
+  const normalizedBackend = backend?.trim();
+  const supportedBackends = hook.supportedBackends
+    ?.filter((item): item is string => typeof item === 'string')
+    .map((item) => item.trim())
+    .filter(Boolean);
+
+  if (!normalizedBackend || !supportedBackends || supportedBackends.length === 0) {
+    return true;
+  }
+
+  return supportedBackends.includes(normalizedBackend);
+};
+
+/**
+ * Return selected hook names that are incompatible with the current backend.
+ */
+export const getIncompatibleHookNames = (
+  hooks: HookInfo[],
+  selectedHookNames: string[],
+  backend: string | undefined
+): string[] => {
+  const selectedHookSet = new Set(selectedHookNames);
+
+  return hooks
+    .filter((hook) => selectedHookSet.has(hook.name) && !isHookSupportedByBackend(hook, backend))
+    .map((hook) => hook.name);
 };

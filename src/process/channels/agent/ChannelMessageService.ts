@@ -6,10 +6,11 @@
 
 import { workerTaskManager } from '@process/task/workerTaskManagerSingleton';
 import { getDatabase } from '@process/services/database';
-import type BaseAgentManager from '@process/task/BaseAgentManager';
+import type { TChatConversation } from '@/common/config/storage';
 import type { IAgentManager } from '@process/task/IAgentManager';
 import { composeMessage, transformMessage, type TMessage } from '@/common/chat/chatLib';
 import { uuid } from '@/common/utils';
+import { AssistantHookRuntime } from '@process/bridge/services/AssistantHookRuntime';
 import { channelEventBus, type IAgentMessageEvent } from './ChannelEventBus';
 
 /**
@@ -44,6 +45,14 @@ interface IStreamState {
  * 不直接与 Agent Task 交互，完全通过全局事件总线解耦
  */
 export class ChannelMessageService {
+  constructor(
+    private readonly deps: {
+      taskManager?: Pick<typeof workerTaskManager, 'getOrBuildTask' | 'getTask'>;
+      getDatabase?: typeof getDatabase;
+      hookRuntime?: Pick<AssistantHookRuntime, 'applyBeforeUserPrompt'>;
+    } = {}
+  ) {}
+
   /**
    * 活跃消息流缓存：conversationId -> 流状态
    * Active message stream cache: conversationId -> stream state
@@ -165,18 +174,67 @@ export class ChannelMessageService {
     // Get task
     let task: IAgentManager;
     try {
+      const taskManager = this.deps.taskManager || workerTaskManager;
+      const databaseGetter = this.deps.getDatabase || getDatabase;
+      const hookRuntime = this.deps.hookRuntime || new AssistantHookRuntime();
+
       // 检查会话来源，如果来自 Channel 则开启 yoloMode (自动同意)
       // Check conversation source, enable yoloMode if it's from a Channel
-      const db = await getDatabase();
+      const db = await databaseGetter();
       const dbResult = db.getConversation(conversationId);
+      const conversation = (dbResult.success ? dbResult.data : undefined) as TChatConversation | undefined;
       const isFromChannel =
         dbResult.success &&
         (dbResult.data?.source === 'lark' ||
           dbResult.data?.source === 'telegram' ||
           dbResult.data?.source === 'dingtalk');
 
-      task = await workerTaskManager.getOrBuildTask(conversationId, {
+      task = await taskManager.getOrBuildTask(conversationId, {
         yoloMode: isFromChannel,
+      });
+
+      const hookResult = conversation
+        ? await hookRuntime.applyBeforeUserPrompt(conversation, message)
+        : { content: message, appliedHooks: [] };
+      const transformedMessage = hookResult.content;
+
+      return new Promise((resolve, reject) => {
+        // 注册流状态
+        // Register stream state
+        this.activeStreams.set(conversationId, {
+          msgId,
+          callback: onStream,
+          buffer: '',
+          resolve,
+          reject,
+          turnCount: 0,
+          finishCount: 0,
+        });
+
+        // Build payload based on agent type.
+        // Gemini expects { input }, ACP/Codex expect { content }.
+        const payload:
+          | { input: string; agentInput?: string; msg_id: string }
+          | { content: string; agentContent?: string; msg_id: string } =
+          task.type === 'gemini'
+            ? { input: message, agentInput: transformedMessage, msg_id: msgId }
+            : { content: message, agentContent: transformedMessage, msg_id: msgId };
+
+        task.sendMessage(payload).catch((error: Error) => {
+          const errorMessage = `Error: ${error.message || 'Failed to send message'}`;
+          console.error(`[ChannelMessageService] Send error:`, error);
+          onStream(
+            {
+              type: 'tips',
+              id: uuid(),
+              conversation_id: conversationId,
+              content: { type: 'error', content: errorMessage },
+            },
+            true
+          );
+          this.activeStreams.delete(conversationId);
+          reject(error);
+        });
       });
     } catch (error) {
       const errorMsg = error instanceof Error ? error.message : 'Failed to get conversation task';
@@ -195,45 +253,6 @@ export class ChannelMessageService {
       );
       throw error;
     }
-
-    return new Promise((resolve, reject) => {
-      // 注册流状态
-      // Register stream state
-      this.activeStreams.set(conversationId, {
-        msgId,
-        callback: onStream,
-        buffer: '',
-        resolve,
-        reject,
-        turnCount: 0,
-        finishCount: 0,
-      });
-
-      // Build payload based on agent type.
-      // Gemini expects { input }, ACP/Codex expect { content }.
-      const payload: { input?: string; content?: string; msg_id: string } =
-        task.type === 'gemini'
-          ? { input: message, msg_id: msgId }
-          : task.type === 'acp' || task.type === 'codex'
-            ? { content: message, msg_id: msgId }
-            : { content: message, msg_id: msgId };
-
-      task.sendMessage(payload).catch((error: Error) => {
-        const errorMessage = `Error: ${error.message || 'Failed to send message'}`;
-        console.error(`[ChannelMessageService] Send error:`, error);
-        onStream(
-          {
-            type: 'tips',
-            id: uuid(),
-            conversation_id: conversationId,
-            content: { type: 'error', content: errorMessage },
-          },
-          true
-        );
-        this.activeStreams.delete(conversationId);
-        reject(error);
-      });
-    });
   }
 
   /**

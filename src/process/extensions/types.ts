@@ -235,6 +235,7 @@ export const ExtAssistantSchema = z.object({
   contextFile: z.string().min(1, 'contextFile is required'),
   models: z.array(z.string()).optional(),
   enabledSkills: z.array(z.string()).optional(),
+  enabledHooks: z.array(z.string()).optional(),
   prompts: z.array(z.string()).optional(),
 });
 

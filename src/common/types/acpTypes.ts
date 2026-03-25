@@ -307,6 +307,15 @@ export interface AcpBackendConfig {
   enabledSkills?: string[];
 
   /**
+   * 此助手启用的 hooks 列表（仅 isPreset=true 时生效）
+   * 用于后续的 HookRuntime 或原生 hook 配置投影
+   *
+   * Enabled hooks for this assistant (only applies when isPreset=true).
+   * Used by future HookRuntime execution or native hook config projection.
+   */
+  enabledHooks?: string[];
+
+  /**
    * 通过 "Add Skills" 添加的自定义 skills 名称列表（仅 isPreset=true 时生效）
    * 这些 skills 会显示在 Custom Skills 区域，即使已经被导入
    *
@@ -314,6 +323,15 @@ export interface AcpBackendConfig {
    * These skills will be displayed in the Custom Skills section even after being imported.
    */
   customSkillNames?: string[];
+
+  /**
+   * 通过未来 Hook 管理能力添加的自定义 hooks 名称列表（仅 isPreset=true 时生效）
+   * 目前用于保留 assistant 侧的配置入口
+   *
+   * List of custom hook names added for this assistant (only applies when isPreset=true).
+   * Reserved for assistant-side hook management.
+   */
+  customHookNames?: string[];
 }
 
 // 所有后端配置 - 包括暂时禁用的 / All backend configurations - including temporarily disabled ones

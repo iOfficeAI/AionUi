@@ -5,7 +5,7 @@
  */
 
 import { webui } from '@/common/adapter/ipcBridge';
-import { Earth } from '@icon-park/react';
+import { Download, Earth } from '@icon-park/react';
 import React, { useCallback, useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
@@ -13,6 +13,7 @@ import styles from '../index.module.css';
 
 type QuickActionButtonsProps = {
   onOpenLink: (url: string) => void;
+  onOpenExternalSessions: () => void;
   inactiveBorderColor: string;
   activeShadow: string;
 };
@@ -25,10 +26,15 @@ let webuiStatusCache: {
   at: number;
 } | null = null;
 
-const QuickActionButtons: React.FC<QuickActionButtonsProps> = ({ onOpenLink, inactiveBorderColor, activeShadow }) => {
+const QuickActionButtons: React.FC<QuickActionButtonsProps> = ({
+  onOpenLink,
+  onOpenExternalSessions,
+  inactiveBorderColor,
+  activeShadow,
+}) => {
   const { t } = useTranslation();
   const navigate = useNavigate();
-  const [hoveredQuickAction, setHoveredQuickAction] = useState<'feedback' | 'repo' | 'webui' | null>(null);
+  const [hoveredQuickAction, setHoveredQuickAction] = useState<'feedback' | 'repo' | 'webui' | 'external' | null>(null);
   const [webuiQuickStatus, setWebuiQuickStatus] = useState<WebuiQuickStatus>('checking');
 
   useEffect(() => {
@@ -182,6 +188,24 @@ const QuickActionButtons: React.FC<QuickActionButtonsProps> = ({ onOpenLink, ina
           </div>
           <span className='opacity-0 max-w-0 overflow-hidden text-14px text-[var(--color-text-2)] group-hover:opacity-100 group-hover:max-w-160px transition-all duration-360 ease-in-out'>
             {t('settings.webui', { defaultValue: 'WebUI' })} · {webuiStatusLabel}
+          </span>
+        </div>
+        <div
+          className='group inline-flex items-center justify-center h-36px min-w-36px max-w-36px px-0 rd-999px bg-fill-0 cursor-pointer overflow-hidden whitespace-nowrap hover:max-w-248px hover:px-14px hover:justify-start hover:gap-8px transition-[max-width,padding,border-radius,box-shadow] duration-420 ease-in-out'
+          style={quickActionStyle(hoveredQuickAction === 'external')}
+          onMouseEnter={() => setHoveredQuickAction('external')}
+          onMouseLeave={() => setHoveredQuickAction(null)}
+          onClick={onOpenExternalSessions}
+        >
+          <Download
+            theme='outline'
+            size={20}
+            fill='currentColor'
+            strokeWidth={3}
+            className='flex-shrink-0 text-[var(--color-text-3)] group-hover:text-[rgb(var(--primary-6))] transition-colors duration-300'
+          />
+          <span className='opacity-0 max-w-0 overflow-hidden text-14px text-[var(--color-text-2)] group-hover:opacity-100 group-hover:max-w-210px transition-all duration-360 ease-in-out'>
+            {t('guid.externalSessions.title', { defaultValue: 'Continue external sessions' })}
           </span>
         </div>
       </div>

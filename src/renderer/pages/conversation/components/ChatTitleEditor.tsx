@@ -1,5 +1,5 @@
 import ConversationTitleMinimap from '@/renderer/pages/conversation/components/ConversationTitleMinimap';
-import { Input } from '@arco-design/web-react';
+import { Input, Tooltip } from '@arco-design/web-react';
 import classNames from 'classnames';
 import React from 'react';
 import { useTranslation } from 'react-i18next';
@@ -15,6 +15,7 @@ type ChatTitleEditorProps = {
   titleAreaMaxWidth: number;
   title: React.ReactNode;
   conversationId?: string;
+  workspacePath?: string;
 };
 
 // Inline title display with double-click-to-edit rename support
@@ -29,8 +30,33 @@ const ChatTitleEditor: React.FC<ChatTitleEditorProps> = ({
   titleAreaMaxWidth,
   title,
   conversationId,
+  workspacePath,
 }) => {
   const { t } = useTranslation();
+  const titleNode = (
+    <span
+      role={canRenameTitle ? 'button' : undefined}
+      tabIndex={canRenameTitle ? 0 : undefined}
+      className={classNames(
+        'block min-w-0 overflow-hidden text-ellipsis whitespace-nowrap text-16px font-bold text-t-primary transition-colors duration-150',
+        canRenameTitle &&
+          'cursor-text group-hover:text-[rgb(var(--primary-6))] group-focus-within:text-[rgb(var(--primary-6))] focus:outline-none'
+      )}
+      onClick={() => {
+        if (!canRenameTitle) return;
+        setEditingTitle(true);
+      }}
+      onKeyDown={(event) => {
+        if (!canRenameTitle) return;
+        if (event.key === 'Enter' || event.key === ' ') {
+          event.preventDefault();
+          setEditingTitle(true);
+        }
+      }}
+    >
+      {title}
+    </span>
+  );
 
   return (
     <div
@@ -73,29 +99,10 @@ const ChatTitleEditor: React.FC<ChatTitleEditorProps> = ({
             placeholder={t('conversation.history.renamePlaceholder')}
             size='default'
           />
+        ) : workspacePath ? (
+          <Tooltip content={workspacePath}>{titleNode}</Tooltip>
         ) : (
-          <span
-            role={canRenameTitle ? 'button' : undefined}
-            tabIndex={canRenameTitle ? 0 : undefined}
-            className={classNames(
-              'block min-w-0 overflow-hidden text-ellipsis whitespace-nowrap text-16px font-bold text-t-primary transition-colors duration-150',
-              canRenameTitle &&
-                'cursor-text group-hover:text-[rgb(var(--primary-6))] group-focus-within:text-[rgb(var(--primary-6))] focus:outline-none'
-            )}
-            onClick={() => {
-              if (!canRenameTitle) return;
-              setEditingTitle(true);
-            }}
-            onKeyDown={(event) => {
-              if (!canRenameTitle) return;
-              if (event.key === 'Enter' || event.key === ' ') {
-                event.preventDefault();
-                setEditingTitle(true);
-              }
-            }}
-          >
-            {title}
-          </span>
+          titleNode
         )}
       </div>
       {!editingTitle && (

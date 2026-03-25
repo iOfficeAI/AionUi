@@ -4,6 +4,8 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
+import type { TChatConversation } from '@/common/config/storage';
+
 /**
  * Workspace utility functions
  * 工作空间工具函数
@@ -69,4 +71,9 @@ export const getWorkspaceDisplayName = (workspacePath: string, t?: (key: string)
 export const getLastDirectoryName = (path: string): string => {
   const parts = splitPathSegments(path);
   return parts[parts.length - 1] || path;
+};
+
+export const getConversationWorkspacePath = (conversation: TChatConversation): string | undefined => {
+  const workspace = conversation.extra?.workspace;
+  return typeof workspace === 'string' && workspace.trim() ? workspace : undefined;
 };

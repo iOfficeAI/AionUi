@@ -44,6 +44,7 @@ export type GuidAgentSelectionResult = {
   resolveEnabledSkills: (
     agentInfo: { backend: AcpBackend; customAgentId?: string } | undefined
   ) => string[] | undefined;
+  resolveEnabledHooks: (agentInfo: { backend: AcpBackend; customAgentId?: string } | undefined) => string[] | undefined;
   isMainAgentAvailable: (agentType: string) => boolean;
   getAvailableFallbackAgent: () => string | null;
   getEffectiveAgentType: (agentInfo: { backend: AcpBackend; customAgentId?: string } | undefined) => EffectiveAgentInfo;
@@ -123,8 +124,13 @@ export const useGuidAgentSelection = ({
     availableCustomAgentIds,
   });
 
-  const { resolvePresetRulesAndSkills, resolvePresetContext, resolvePresetAgentType, resolveEnabledSkills } =
-    usePresetAssistantResolver({ customAgents, localeKey });
+  const {
+    resolvePresetRulesAndSkills,
+    resolvePresetContext,
+    resolvePresetAgentType,
+    resolveEnabledSkills,
+    resolveEnabledHooks,
+  } = usePresetAssistantResolver({ customAgents, localeKey });
 
   const { isMainAgentAvailable, getAvailableFallbackAgent, getEffectiveAgentType } = useAgentAvailability({
     modelList,
@@ -430,6 +436,7 @@ export const useGuidAgentSelection = ({
     resolvePresetContext,
     resolvePresetAgentType,
     resolveEnabledSkills,
+    resolveEnabledHooks,
     isMainAgentAvailable,
     getAvailableFallbackAgent,
     getEffectiveAgentType,

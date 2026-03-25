@@ -2,12 +2,23 @@
  * AssistantEditDrawer — Drawer for creating/editing an assistant.
  * Contains name/avatar fields, agent selector, rules editor, and skills section.
  */
-import type { AssistantListItem, SkillInfo } from './types';
-import { hasBuiltinSkills } from './assistantUtils';
+import type { AssistantListItem, HookInfo, SkillInfo } from './types';
+import { getIncompatibleHookNames, hasBuiltinSkills, isHookSupportedByBackend } from './assistantUtils';
 import EmojiPicker from '@/renderer/components/chat/EmojiPicker';
 import MarkdownView from '@/renderer/components/Markdown';
-import { Avatar, Button, Checkbox, Collapse, Drawer, Input, Select, Tag, Typography } from '@arco-design/web-react';
-import { Close, Delete, Plus, Robot } from '@icon-park/react';
+import {
+  Avatar,
+  Button,
+  Checkbox,
+  Collapse,
+  Drawer,
+  Input,
+  Modal,
+  Select,
+  Tag,
+  Typography,
+} from '@arco-design/web-react';
+import { Close, Delete, FolderOpen, Plus, Refresh, Robot } from '@icon-park/react';
 import React, { useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 
@@ -36,8 +47,19 @@ type AssistantEditDrawerProps = {
 
   // Skills state
   availableSkills: SkillInfo[];
+  availableHooks: HookInfo[];
   selectedSkills: string[];
   setSelectedSkills: (v: string[]) => void;
+  selectedHooks: string[];
+  setSelectedHooks: (v: string[]) => void;
+  hooksLoading: boolean;
+  hooksDir: string;
+  handleRefreshHooks: () => Promise<HookInfo[]>;
+  handleImportHook: () => Promise<void>;
+  handleOpenHooksDir: () => Promise<void>;
+  deleteHookName: string | null;
+  setDeleteHookName: (v: string | null) => void;
+  handleDeleteHookConfirm: () => Promise<void>;
   pendingSkills: Array<{ name: string; description: string }>;
   customSkills: string[];
   setDeletePendingSkillName: (v: string | null) => void;
@@ -77,10 +99,21 @@ const AssistantEditDrawer: React.FC<AssistantEditDrawerProps> = ({
   promptViewMode,
   setPromptViewMode,
   availableSkills,
+  availableHooks,
   selectedSkills,
   setSelectedSkills,
+  selectedHooks,
+  setSelectedHooks,
+  hooksLoading,
+  hooksDir,
+  handleRefreshHooks,
+  handleImportHook,
+  handleOpenHooksDir,
+  deleteHookName,
+  setDeleteHookName,
+  handleDeleteHookConfirm,
   pendingSkills,
-  customSkills,
+  customSkills: _customSkills,
   setDeletePendingSkillName,
   setDeleteCustomSkillName,
   setSkillsModalVisible,
@@ -126,6 +159,7 @@ const AssistantEditDrawer: React.FC<AssistantEditDrawerProps> = ({
     isCreating ||
     (activeAssistantId !== null && hasBuiltinSkills(activeAssistantId)) ||
     (activeAssistant !== null && !activeAssistant.isBuiltin && !isExtensionAssistant(activeAssistant));
+  const incompatibleHookNameSet = new Set(getIncompatibleHookNames(availableHooks, selectedHooks, editAgent));
 
   return (
     <Drawer
@@ -410,16 +444,16 @@ const AssistantEditDrawer: React.FC<AssistantEditDrawerProps> = ({
                             <div className='text-12px text-t-secondary mt-2px line-clamp-2'>{skill.description}</div>
                           )}
                         </div>
-                        <button
-                          className='opacity-0 group-hover:opacity-100 transition-opacity p-4px hover:bg-fill-2 rounded-4px'
+                        <Button
+                          type='text'
+                          size='mini'
+                          icon={<Delete size={16} fill='var(--color-text-3)' />}
+                          className='opacity-0 group-hover:opacity-100 transition-opacity'
                           onClick={(e) => {
                             e.stopPropagation();
                             setDeletePendingSkillName(skill.name);
                           }}
-                          title='Remove'
-                        >
-                          <Delete size={16} fill='var(--color-text-3)' />
-                        </button>
+                        />
                       </div>
                     ))}
                     {/* All imported custom skills */}
@@ -452,16 +486,16 @@ const AssistantEditDrawer: React.FC<AssistantEditDrawerProps> = ({
                               <div className='text-12px text-t-secondary mt-2px line-clamp-2'>{skill.description}</div>
                             )}
                           </div>
-                          <button
-                            className='opacity-0 group-hover:opacity-100 transition-opacity p-4px hover:bg-fill-2 rounded-4px'
+                          <Button
+                            type='text'
+                            size='mini'
+                            icon={<Delete size={16} fill='var(--color-text-3)' />}
+                            className='opacity-0 group-hover:opacity-100 transition-opacity'
                             onClick={(e) => {
                               e.stopPropagation();
                               setDeleteCustomSkillName(skill.name);
                             }}
-                            title={t('settings.removeFromAssistant', { defaultValue: 'Remove from assistant' })}
-                          >
-                            <Delete size={16} fill='var(--color-text-3)' />
-                          </button>
+                          />
                         </div>
                       ))}
                     {pendingSkills.length === 0 && availableSkills.filter((skill) => skill.isCustom).length === 0 && (
@@ -523,8 +557,182 @@ const AssistantEditDrawer: React.FC<AssistantEditDrawerProps> = ({
               </Collapse>
             </div>
           )}
+
+          {/* Hooks section */}
+          <div className='flex-shrink-0 mt-16px'>
+            <div className='flex items-center justify-between mb-12px'>
+              <Typography.Text bold>{t('settings.assistantHooks', { defaultValue: 'Hooks' })}</Typography.Text>
+              <div className='flex items-center gap-8px'>
+                <Button
+                  size='mini'
+                  type='outline'
+                  icon={<Refresh size={14} className={hooksLoading ? 'animate-spin' : ''} />}
+                  onClick={() => void handleRefreshHooks()}
+                >
+                  {t('common.refresh', { defaultValue: 'Refresh' })}
+                </Button>
+                <Button size='mini' type='outline' icon={<Plus size={14} />} onClick={() => void handleImportHook()}>
+                  {t('settings.importHook', { defaultValue: 'Import Hook' })}
+                </Button>
+                <Button
+                  size='mini'
+                  type='outline'
+                  icon={<FolderOpen size={14} />}
+                  onClick={() => void handleOpenHooksDir()}
+                >
+                  {t('settings.openHookFolder', { defaultValue: 'Open Folder' })}
+                </Button>
+              </div>
+            </div>
+            <Typography.Text type='secondary' className='block text-12px'>
+              {t('settings.assistantHooksHint', {
+                defaultValue:
+                  'Prompt-transform hooks for before_user_prompt run now. Other hook types are stored only.',
+              })}
+            </Typography.Text>
+            <div className='mt-8px rounded-8px bg-bg-1 p-10px'>
+              <Typography.Text type='secondary' className='text-12px'>
+                {t('settings.hookStoragePath', { defaultValue: 'Hook storage path' })}
+              </Typography.Text>
+              <div className='mt-4px break-all text-12px text-t-primary'>{hooksDir || '-'}</div>
+            </div>
+
+            <Collapse defaultActiveKey={['available-hooks']}>
+              <Collapse.Item
+                header={
+                  <span className='text-13px font-medium'>
+                    {t('settings.availableHooks', { defaultValue: 'Available Hooks' })}
+                  </span>
+                }
+                name='available-hooks'
+                extra={<span className='text-12px text-t-secondary'>{availableHooks.length}</span>}
+              >
+                {availableHooks.length > 0 ? (
+                  <div className='space-y-4px'>
+                    {availableHooks.map((hook) => {
+                      const isSupportedByCurrentAgent = isHookSupportedByBackend(hook, editAgent);
+                      const isSelected = selectedHooks.includes(hook.name);
+                      const isSelectedButIncompatible = incompatibleHookNameSet.has(hook.name);
+
+                      return (
+                        <div key={hook.name} className='flex items-start gap-8px rounded-4px p-8px hover:bg-fill-1'>
+                          <Checkbox
+                            checked={isSelected}
+                            disabled={!isSupportedByCurrentAgent && !isSelected}
+                            className='mt-2px cursor-pointer'
+                            onChange={() => {
+                              if (isSelected) {
+                                setSelectedHooks(selectedHooks.filter((item) => item !== hook.name));
+                              } else {
+                                setSelectedHooks([...selectedHooks, hook.name]);
+                              }
+                            }}
+                          />
+                          <div className='flex-1 min-w-0'>
+                            <div className='flex items-center gap-6px flex-wrap'>
+                              <div className='text-13px font-medium text-t-primary'>{hook.name}</div>
+                              {hook.isCustom && (
+                                <Tag size='small' color='orange'>
+                                  {t('settings.skillsHub.custom', { defaultValue: 'Custom' })}
+                                </Tag>
+                              )}
+                              {hook.executionType && (
+                                <Tag size='small' color='arcoblue'>
+                                  {hook.executionType}
+                                </Tag>
+                              )}
+                              {hook.version && (
+                                <Tag size='small' color='gray'>
+                                  v{hook.version}
+                                </Tag>
+                              )}
+                              {!isSupportedByCurrentAgent && (
+                                <Tag size='small' color='red'>
+                                  {t('settings.hookUnsupportedTag', { defaultValue: 'Unsupported' })}
+                                </Tag>
+                              )}
+                            </div>
+                            {hook.description && (
+                              <div className='text-12px text-t-secondary mt-2px line-clamp-2'>{hook.description}</div>
+                            )}
+                            {!isSupportedByCurrentAgent && (
+                              <div className='mt-6px text-11px text-danger-6'>
+                                {isSelectedButIncompatible
+                                  ? t('settings.hookSelectedButUnsupported', {
+                                      defaultValue:
+                                        'This hook is selected but will not run for the current agent. Remove it before saving.',
+                                    })
+                                  : t('settings.hookUnsupportedHint', {
+                                      defaultValue: 'This hook does not support the current agent.',
+                                    })}
+                              </div>
+                            )}
+                            <div className='mt-6px text-11px text-t-tertiary break-all'>
+                              {t('settings.hookLocation', { defaultValue: 'Location' })}: {hook.location}
+                            </div>
+                            {hook.supportedBackends && hook.supportedBackends.length > 0 && (
+                              <div className='mt-6px flex flex-wrap gap-4px'>
+                                <span className='text-11px text-t-tertiary'>
+                                  {t('settings.hookSupportedBackends', {
+                                    defaultValue: 'Supported backends',
+                                  })}
+                                  :
+                                </span>
+                                {hook.supportedBackends.map((backend) => (
+                                  <Tag key={`${hook.name}-${backend}`} size='small' color='purple'>
+                                    {backend}
+                                  </Tag>
+                                ))}
+                              </div>
+                            )}
+                            {hook.events && hook.events.length > 0 && (
+                              <div className='mt-6px flex flex-wrap gap-4px'>
+                                {hook.events.map((eventName) => (
+                                  <Tag key={`${hook.name}-${eventName}`} size='small' color='green'>
+                                    {eventName}
+                                  </Tag>
+                                ))}
+                              </div>
+                            )}
+                          </div>
+                          {hook.isCustom && (
+                            <Button
+                              type='text'
+                              size='mini'
+                              icon={<Delete size={16} fill='var(--color-text-3)' />}
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setDeleteHookName(hook.name);
+                              }}
+                            />
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
+                ) : (
+                  <div className='text-center text-t-secondary text-12px py-16px'>
+                    {t('settings.noAvailableHooks', { defaultValue: 'No hooks found in the hook directory' })}
+                  </div>
+                )}
+              </Collapse.Item>
+            </Collapse>
+          </div>
         </div>
       </div>
+      <Modal
+        visible={deleteHookName !== null}
+        title={t('settings.deleteHookTitle', { defaultValue: 'Delete Hook' })}
+        onCancel={() => setDeleteHookName(null)}
+        onOk={() => void handleDeleteHookConfirm()}
+      >
+        <Typography.Text>
+          {t('settings.deleteHookConfirm', {
+            name: deleteHookName || '',
+            defaultValue: 'Are you sure you want to delete "{{name}}"? This action cannot be undone.',
+          })}
+        </Typography.Text>
+      </Modal>
     </Drawer>
   );
 };

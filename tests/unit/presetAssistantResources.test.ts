@@ -17,6 +17,7 @@ function createDeps(overrides: Partial<PresetAssistantResourceDeps> = {}): Prese
     readBuiltinRule: vi.fn(async () => ''),
     readBuiltinSkill: vi.fn(async () => ''),
     getEnabledSkills: vi.fn(async () => undefined),
+    getEnabledHooks: vi.fn(async () => undefined),
     warn: vi.fn(),
     ...overrides,
   };
@@ -38,6 +39,7 @@ describe('loadPresetAssistantResources', () => {
       rules: 'fallback rules',
       skills: '',
       enabledSkills: undefined,
+      enabledHooks: undefined,
     });
   });
 
@@ -46,6 +48,7 @@ describe('loadPresetAssistantResources', () => {
       readAssistantRule: vi.fn(async () => 'user rules'),
       readAssistantSkill: vi.fn(async () => 'user skills'),
       getEnabledSkills: vi.fn(async () => ['pptx', 'xlsx']),
+      getEnabledHooks: vi.fn(async () => ['before_user_prompt']),
     });
 
     await expect(
@@ -61,6 +64,7 @@ describe('loadPresetAssistantResources', () => {
       rules: 'user rules',
       skills: 'user skills',
       enabledSkills: ['pptx', 'xlsx'],
+      enabledHooks: ['before_user_prompt'],
     });
   });
 
@@ -75,6 +79,7 @@ describe('loadPresetAssistantResources', () => {
       readBuiltinRule: vi.fn(async () => 'builtin rules'),
       readBuiltinSkill: vi.fn(async () => 'builtin skills'),
       getEnabledSkills: vi.fn(async () => ['moltbook']),
+      getEnabledHooks: vi.fn(async () => ['before_user_prompt']),
     });
 
     const result = await loadPresetAssistantResources(
@@ -90,6 +95,7 @@ describe('loadPresetAssistantResources', () => {
       rules: 'builtin rules',
       skills: 'builtin skills',
       enabledSkills: ['moltbook'],
+      enabledHooks: ['before_user_prompt'],
     });
     expect(deps.readBuiltinRule).toHaveBeenCalledOnce();
     expect(deps.readBuiltinSkill).toHaveBeenCalledOnce();

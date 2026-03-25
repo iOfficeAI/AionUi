@@ -411,7 +411,7 @@ const Layout: React.FC<{
                   ></path>
                 </svg>
               </div>
-              <div className='flex-1 text-20px text-1 collapsed-hidden font-bold'>AionUi</div>
+              <div className='flex-1 text-20px text-1 collapsed-hidden font-bold'>ContextGo</div>
               {isMobile && !collapsed && (
                 <button
                   type='button'

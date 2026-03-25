@@ -50,6 +50,7 @@ const STORAGE_PATH = {
   env: '.aionui-env',
   assistants: 'assistants',
   skills: 'skills',
+  hooks: 'hooks',
   builtinSkills: 'builtin-skills',
 };
 
@@ -367,6 +368,14 @@ const getAssistantsDir = () => {
  */
 const getSkillsDir = () => {
   return path.join(cacheDir, STORAGE_PATH.skills);
+};
+
+/**
+ * 获取 hooks 目录路径
+ * Get hooks directory path
+ */
+const getHooksDir = () => {
+  return path.join(cacheDir, STORAGE_PATH.hooks);
 };
 
 /**
@@ -862,6 +871,7 @@ const initStorage = async () => {
   // Use ensureDirectory to handle cases where a regular file blocks the path (#841)
   ensureDirectory(getHomePage());
   ensureDirectory(getDataPath());
+  ensureDirectory(getHooksDir());
 
   // 3. 初始化存储系统
   ConfigStorage.interceptor(configFile);
@@ -1078,6 +1088,7 @@ export const getSystemDir = () => {
 export {
   getAssistantsDir,
   getSkillsDir,
+  getHooksDir,
   getBuiltinSkillsCopyDir,
   getAutoSkillsDir,
   BUILTIN_IMAGE_GEN_ID,

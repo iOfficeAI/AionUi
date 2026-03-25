@@ -45,6 +45,7 @@ export function useAutoScroll({ messages, itemCount }: UseAutoScrollOptions): Us
   const [showScrollButton, setShowScrollButton] = useState(false);
 
   // Refs for scroll control
+  const isAtBottomRef = useRef(true);
   const userScrolledRef = useRef(false);
   const lastScrollTopRef = useRef(0);
   const previousListLengthRef = useRef(messages.length);
@@ -74,6 +75,7 @@ export function useAutoScroll({ messages, itemCount }: UseAutoScrollOptions): Us
 
   // Reliable bottom state detection from Virtuoso
   const handleAtBottomStateChange = useCallback((atBottom: boolean) => {
+    isAtBottomRef.current = atBottom;
     setShowScrollButton(!atBottom);
 
     if (atBottom) {
@@ -116,6 +118,14 @@ export function useAutoScroll({ messages, itemCount }: UseAutoScrollOptions): Us
     // User sent a message - force scroll regardless of userScrolled state
     if (lastMessage?.position === 'right') {
       userScrolledRef.current = false;
+
+      // When already pinned to the bottom, let Virtuoso's native followOutput
+      // keep the viewport stable. Triggering an extra scrollToIndex here fights
+      // with followOutput and causes visible bottom-edge jitter.
+      if (isAtBottomRef.current) {
+        return;
+      }
+
       // Use double RAF to ensure DOM is updated before scrolling (#977)
       // 使用双 RAF 确保 DOM 更新后再滚动
       requestAnimationFrame(() => {

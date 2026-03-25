@@ -20,6 +20,7 @@ import { refreshTrayMenu } from '@process/utils/tray';
 import { copyFilesToDirectory, readDirectoryRecursive } from '@process/utils';
 import { computeOpenClawIdentityHash } from '@process/utils/openclawUtils';
 import { migrateConversationToDatabase } from './migrationUtils';
+import { AssistantHookRuntime } from './services/AssistantHookRuntime';
 
 const refreshTrayMenuSafely = async (): Promise<void> => {
   try {
@@ -33,6 +34,8 @@ export function initConversationBridge(
   conversationService: IConversationService,
   workerTaskManager: IWorkerTaskManager
 ): void {
+  const assistantHookRuntime = new AssistantHookRuntime();
+
   const emitConversationListChanged = (
     conversation: Pick<TChatConversation, 'id' | 'source'>,
     action: 'created' | 'updated' | 'deleted'
@@ -252,7 +255,7 @@ export function initConversationBridge(
         if (modelChanged) {
           try {
             workerTaskManager.kill(id);
-          } catch (killErr) {
+          } catch {
             // ignore kill error, will lazily rebuild later
           }
         }
@@ -379,6 +382,11 @@ export function initConversationBridge(
   // 通用 sendMessage 实现 - 统一调用 IAgentManager.sendMessage
   // Generic sendMessage - dispatches via IAgentManager.sendMessage interface
   ipcBridge.conversation.sendMessage.provider(async ({ conversation_id, files, ...other }) => {
+    const conversation = await conversationService.getConversation(conversation_id);
+    if (!conversation) {
+      return { success: false, msg: 'conversation not found' };
+    }
+
     let task: IAgentManager | undefined;
     try {
       task = await workerTaskManager.getOrBuildTask(conversation_id);
@@ -397,12 +405,23 @@ export function initConversationBridge(
     // Copy files to workspace (unified for all agents)
     const workspaceFiles = await copyFilesToDirectory(task.workspace, files, false, getSystemDir().cacheDir);
 
+    const { content: hookInjectedInput, appliedHooks } = await assistantHookRuntime.applyBeforeUserPrompt(
+      conversation,
+      other.input
+    );
+
+    if (appliedHooks.length > 0) {
+      console.log(
+        `[conversationBridge] Applied before_user_prompt hooks for ${conversation_id}: ${appliedHooks.join(', ')}`
+      );
+    }
+
     // Precompute agent content with optional skill injection.
     // OpenClaw uses full-content mode: inject full skill text rather than index paths,
     // because the CLI may not proactively read SKILL.md files the way ACP agents do.
-    let agentContent = other.input;
+    let agentContent = hookInjectedInput;
     if (other.injectSkills?.length) {
-      agentContent = await prepareFirstMessage(other.input, {
+      agentContent = await prepareFirstMessage(hookInjectedInput, {
         enabledSkills: other.injectSkills,
       });
       // Provide absolute skills directory so agent can resolve relative script paths
@@ -422,7 +441,9 @@ export function initConversationBridge(
       await task.sendMessage({
         ...other,
         content: other.input,
+        input: other.input,
         files: workspaceFiles,
+        agentInput: hookInjectedInput,
         agentContent,
       });
       return { success: true };

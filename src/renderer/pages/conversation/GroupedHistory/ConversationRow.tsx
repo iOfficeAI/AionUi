@@ -4,13 +4,13 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import type { TChatConversation } from '@/common/config/storage';
 import { getAgentLogo } from '@/renderer/utils/model/agentLogo';
 import FlexFullContainer from '@/renderer/components/layout/FlexFullContainer';
 import { usePresetAssistantInfo } from '@/renderer/hooks/agent/usePresetAssistantInfo';
 import { CronJobIndicator } from '@/renderer/pages/cron';
 import { cleanupSiderTooltips, getSiderTooltipProps } from '@/renderer/utils/ui/siderTooltip';
 import { useLayoutContext } from '@/renderer/hooks/context/LayoutContext';
+import { getConversationWorkspacePath } from '@/renderer/utils/workspace/workspace';
 import { Checkbox, Dropdown, Menu, Spin, Tooltip } from '@arco-design/web-react';
 import { DeleteOne, EditOne, Export, MessageOne, Pushpin } from '@icon-park/react';
 import classNames from 'classnames';
@@ -51,7 +51,8 @@ const ConversationRow: React.FC<ConversationRowProps> = (props) => {
   const isPinned = isConversationPinned(conversation);
   const cronStatus = getJobStatus(conversation.id);
   const siderTooltipProps = getSiderTooltipProps(tooltipEnabled);
-  const inlineNameTooltipEnabled = !collapsed && !isMobile && !!conversation.name;
+  const workspacePath = getConversationWorkspacePath(conversation);
+  const inlineNameTooltipEnabled = !collapsed && !isMobile && !!workspacePath;
 
   const renderLeadingIcon = () => {
     if (cronStatus !== 'none') {
@@ -103,7 +104,7 @@ const ConversationRow: React.FC<ConversationRowProps> = (props) => {
     <Tooltip
       key={conversation.id}
       {...siderTooltipProps}
-      content={conversation.name || t('conversation.welcome.newConversation')}
+      content={workspacePath || conversation.name || t('conversation.welcome.newConversation')}
       position='right'
     >
       <div
@@ -132,7 +133,7 @@ const ConversationRow: React.FC<ConversationRowProps> = (props) => {
         {isGenerating && !batchMode ? <Spin size={16} className='flex-shrink-0' /> : renderLeadingIcon()}
         <FlexFullContainer className='h-24px min-w-0 flex-1 collapsed-hidden ml-10px pr-18px'>
           <Tooltip
-            content={conversation.name}
+            content={workspacePath}
             disabled={!inlineNameTooltipEnabled}
             trigger='hover'
             popupVisible={inlineNameTooltipEnabled ? undefined : false}

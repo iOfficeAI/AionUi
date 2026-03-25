@@ -8,6 +8,7 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { renderHook, act } from '@testing-library/react';
 import { useAutoScroll } from '../../src/renderer/pages/conversation/Messages/useAutoScroll';
 import type { TMessage, IMessageText } from '../../src/common/chat/chatLib';
+import type { VirtuosoHandle } from 'react-virtuoso';
 
 // Mock VirtuosoHandle
 const createMockVirtuosoHandle = () => ({
@@ -17,6 +18,23 @@ const createMockVirtuosoHandle = () => ({
   getState: vi.fn(),
   autoscrollToBottom: vi.fn(),
 });
+
+const createMessage = (position: 'left' | 'right', id: string): IMessageText => ({
+  id,
+  msg_id: id,
+  type: 'text',
+  position,
+  conversation_id: 'test-conv',
+  content: { content: 'test message' },
+  createdAt: Date.now(),
+});
+
+const setVirtuosoRef = (
+  ref: React.RefObject<VirtuosoHandle | null>,
+  handle: ReturnType<typeof createMockVirtuosoHandle>
+) => {
+  (ref as unknown as { current: VirtuosoHandle | null }).current = handle as unknown as VirtuosoHandle;
+};
 
 describe('useAutoScroll - scroll to bottom on message send (#977)', () => {
   let mockVirtuosoHandle: ReturnType<typeof createMockVirtuosoHandle>;
@@ -31,16 +49,6 @@ describe('useAutoScroll - scroll to bottom on message send (#977)', () => {
     vi.clearAllMocks();
   });
 
-  const createMessage = (position: 'left' | 'right', id: string): IMessageText => ({
-    id,
-    msg_id: id,
-    type: 'text',
-    position,
-    conversation_id: 'test-conv',
-    content: { content: 'test message' },
-    createdAt: Date.now(),
-  });
-
   it('should scroll to bottom when user sends a message (position=right)', async () => {
     const initialMessages: TMessage[] = [createMessage('left', '1'), createMessage('right', '2')];
 
@@ -49,7 +57,12 @@ describe('useAutoScroll - scroll to bottom on message send (#977)', () => {
     });
 
     // Manually set the ref to mock Virtuoso
-    (result.current.virtuosoRef as any).current = mockVirtuosoHandle;
+    setVirtuosoRef(result.current.virtuosoRef, mockVirtuosoHandle);
+
+    // Simulate user not being pinned to bottom
+    act(() => {
+      result.current.handleAtBottomStateChange(false);
+    });
 
     // Add a new user message (position=right)
     const newMessages: TMessage[] = [...initialMessages, createMessage('right', '3')];
@@ -71,6 +84,29 @@ describe('useAutoScroll - scroll to bottom on message send (#977)', () => {
     );
   });
 
+  it('should not force an extra scrollToIndex when already at bottom', async () => {
+    const initialMessages: TMessage[] = [createMessage('left', '1'), createMessage('right', '2')];
+
+    const { result, rerender } = renderHook(({ messages, itemCount }) => useAutoScroll({ messages, itemCount }), {
+      initialProps: { messages: initialMessages, itemCount: 2 },
+    });
+
+    setVirtuosoRef(result.current.virtuosoRef, mockVirtuosoHandle);
+
+    act(() => {
+      result.current.handleAtBottomStateChange(true);
+    });
+
+    const newMessages: TMessage[] = [...initialMessages, createMessage('right', '3')];
+    rerender({ messages: newMessages, itemCount: 3 });
+
+    await act(async () => {
+      vi.runAllTimers();
+    });
+
+    expect(mockVirtuosoHandle.scrollToIndex).not.toHaveBeenCalled();
+  });
+
   it('should NOT scroll when AI responds (position=left)', async () => {
     const initialMessages: TMessage[] = [createMessage('right', '1')];
 
@@ -78,7 +114,7 @@ describe('useAutoScroll - scroll to bottom on message send (#977)', () => {
       initialProps: { messages: initialMessages, itemCount: 1 },
     });
 
-    (result.current.virtuosoRef as any).current = mockVirtuosoHandle;
+    setVirtuosoRef(result.current.virtuosoRef, mockVirtuosoHandle);
 
     // Add AI response (position=left)
     const newMessages: TMessage[] = [...initialMessages, createMessage('left', '2')];
@@ -100,13 +136,15 @@ describe('useAutoScroll - scroll to bottom on message send (#977)', () => {
       initialProps: { messages: initialMessages, itemCount: 1 },
     });
 
-    (result.current.virtuosoRef as any).current = mockVirtuosoHandle;
+    setVirtuosoRef(result.current.virtuosoRef, mockVirtuosoHandle);
 
     // Simulate user scrolling up
     act(() => {
       const mockEvent = {
         target: { scrollTop: 0 },
       } as unknown as React.UIEvent<HTMLDivElement>;
+
+      result.current.handleAtBottomStateChange(false);
 
       // First set a high scroll position
       result.current.handleScroll({
@@ -158,7 +196,7 @@ describe('useAutoScroll - scroll to bottom on message send (#977)', () => {
       initialProps: { messages: [], itemCount: 5 },
     });
 
-    (result.current.virtuosoRef as any).current = mockVirtuosoHandle;
+    setVirtuosoRef(result.current.virtuosoRef, mockVirtuosoHandle);
 
     act(() => {
       result.current.scrollToBottom('smooth');

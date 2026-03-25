@@ -5,6 +5,7 @@
  */
 
 import { AIONUI_TIMESTAMP_SEPARATOR } from '@/common/config/constants';
+import type { HookInfo, HookManifest } from '@/common/types/hookTypes';
 import fs from 'fs/promises';
 import path from 'path';
 import os from 'os';
@@ -12,7 +13,13 @@ import https from 'node:https';
 import http from 'node:http';
 import JSZip from 'jszip';
 import { ipcBridge } from '@/common';
-import { getSystemDir, getAssistantsDir, getSkillsDir, getBuiltinSkillsCopyDir } from '@process/utils/initStorage';
+import {
+  getSystemDir,
+  getAssistantsDir,
+  getSkillsDir,
+  getHooksDir,
+  getBuiltinSkillsCopyDir,
+} from '@process/utils/initStorage';
 import { readDirectoryRecursive } from '@process/utils';
 
 // ============================================================================
@@ -168,6 +175,43 @@ async function deleteAssistantResource(resourceType: ResourceType, filePattern: 
 // File name patterns for rules and skills
 const ruleFilePattern = (id: string, loc: string) => `${id}.${loc}.md`;
 const skillFilePattern = (id: string, loc: string) => `${id}-skills.${loc}.md`;
+
+async function readHookManifest(hookDir: string): Promise<HookManifest | null> {
+  try {
+    const manifestPath = path.join(hookDir, 'manifest.json');
+    const content = await fs.readFile(manifestPath, 'utf-8');
+    return JSON.parse(content) as HookManifest;
+  } catch {
+    return null;
+  }
+}
+
+async function tryReadHookManifest(hookDir: string): Promise<HookInfo | null> {
+  try {
+    const parsed = await readHookManifest(hookDir);
+    if (!parsed) {
+      return null;
+    }
+    const name = typeof parsed.name === 'string' ? parsed.name.trim() : '';
+
+    if (!name) {
+      return null;
+    }
+
+    return {
+      name,
+      description: typeof parsed.description === 'string' ? parsed.description.trim() : undefined,
+      version: typeof parsed.version === 'string' ? parsed.version.trim() : undefined,
+      executionType: parsed.executionType,
+      events: Array.isArray(parsed.events) ? parsed.events : undefined,
+      supportedBackends: Array.isArray(parsed.supportedBackends) ? parsed.supportedBackends : undefined,
+      location: hookDir,
+      isCustom: true,
+    };
+  } catch {
+    return null;
+  }
+}
 
 export function initFsBridge(): void {
   const canceledZipRequests = new Set<string>();
@@ -864,6 +908,126 @@ export function initFsBridge(): void {
       return [];
     }
   });
+
+  ipcBridge.fs.listAvailableHooks.provider(async () => {
+    try {
+      const hooksDir = getHooksDir();
+      await fs.mkdir(hooksDir, { recursive: true });
+      const entries = await fs.readdir(hooksDir, { withFileTypes: true });
+      const hooks: HookInfo[] = [];
+
+      for (const entry of entries) {
+        if (!entry.isDirectory()) continue;
+
+        const hookInfo = await tryReadHookManifest(path.join(hooksDir, entry.name));
+        if (hookInfo) {
+          hooks.push(hookInfo);
+        }
+      }
+
+      return hooks.toSorted((a, b) => a.name.localeCompare(b.name));
+    } catch (error) {
+      console.error('[fsBridge] Failed to list available hooks:', error);
+      return [];
+    }
+  });
+
+  ipcBridge.fs.importHookWithSymlink.provider(async ({ hookPath }) => {
+    try {
+      const manifest = await readHookManifest(hookPath);
+      const hookName = typeof manifest?.name === 'string' ? manifest.name.trim() : path.basename(hookPath);
+      const safeHookDirName = path.basename(hookName);
+
+      if (!manifest || !hookName) {
+        return {
+          success: false,
+          msg: 'manifest.json file not found or invalid in the selected directory',
+        };
+      }
+
+      if (safeHookDirName !== hookName || hookName.includes(path.sep) || hookName === '.' || hookName === '..') {
+        return {
+          success: false,
+          msg: 'Hook name in manifest.json is invalid',
+        };
+      }
+
+      const userHooksDir = getHooksDir();
+      const targetDir = path.join(userHooksDir, safeHookDirName);
+
+      await fs.mkdir(userHooksDir, { recursive: true });
+
+      try {
+        await fs.access(targetDir);
+        return {
+          success: false,
+          msg: `Hook "${hookName}" already exists`,
+        };
+      } catch {
+        // Does not exist, proceed.
+      }
+
+      await fs.symlink(hookPath, targetDir, 'junction');
+      console.log(`[fsBridge] Created symlink for hook "${hookName}" at ${targetDir}`);
+
+      return {
+        success: true,
+        data: { hookName: safeHookDirName },
+        msg: `Hook "${safeHookDirName}" imported successfully`,
+      };
+    } catch (error) {
+      console.error('[fsBridge] Failed to import hook with symlink:', error);
+      return {
+        success: false,
+        msg: `Failed to import hook: ${error instanceof Error ? error.message : String(error)}`,
+      };
+    }
+  });
+
+  ipcBridge.fs.deleteHook.provider(async ({ hookName }) => {
+    try {
+      const userHooksDir = getHooksDir();
+      const hookDir = path.join(userHooksDir, hookName);
+      const resolvedHookDir = path.resolve(hookDir);
+      const resolvedHooksDir = path.resolve(userHooksDir);
+
+      if (!resolvedHookDir.startsWith(resolvedHooksDir + path.sep)) {
+        return {
+          success: false,
+          msg: 'Invalid hook path (security check failed)',
+        };
+      }
+
+      try {
+        await fs.access(resolvedHookDir);
+      } catch {
+        return {
+          success: false,
+          msg: `Hook "${hookName}" not found`,
+        };
+      }
+
+      const stat = await fs.lstat(resolvedHookDir);
+      if (stat.isSymbolicLink()) {
+        await fs.unlink(resolvedHookDir);
+      } else {
+        await fs.rm(resolvedHookDir, { recursive: true, force: true });
+      }
+
+      console.log(`[fsBridge] Deleted hook "${hookName}" from ${resolvedHookDir}`);
+      return { success: true, msg: `Hook "${hookName}" deleted` };
+    } catch (error) {
+      console.error('[fsBridge] Failed to delete hook:', error);
+      return {
+        success: false,
+        msg: `Failed to delete hook: ${error instanceof Error ? error.message : String(error)}`,
+      };
+    }
+  });
+
+  ipcBridge.fs.getHookPaths.provider(async () => ({
+    userHooksDir: getHooksDir(),
+  }));
 
   // 读取 skill 信息（不导入）/ Read skill info without importing
   ipcBridge.fs.readSkillInfo.provider(async ({ skillPath }) => {

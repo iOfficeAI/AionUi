@@ -5,6 +5,20 @@
   "agentTabAutoSwitch": "模型不兼容 Gemini，已自动切换到 {{fallback}}",
   "autoSwitchToAgent": "Gemini 未配置，正在自动切换到 {{agent}}",
   "autoSwitchedAgent": "{{from}} 不可用，已自动切换到 {{to}}",
+  "externalSessions": {
+    "title": "接管外部 Session",
+    "description": "在 ContextGo 之外启动、且尚未被接管的 CLI 会话会出现在这里。",
+    "refresh": "刷新",
+    "loading": "正在扫描外部 Session...",
+    "updatedAt": "最近更新于 {{time}}",
+    "import": "接管使用",
+    "loadFailed": "扫描外部 Session 失败。",
+    "importFailed": "接管所选外部 Session 失败。",
+    "providers": {
+      "codex": "Codex",
+      "openclaw-gateway": "OpenClaw"
+    }
+  },
   "scanning": {
     "initialMessage": "当前Agent不可用, 正在检测其他可用agent...",
     "scanningMessage": "正在扫描本地可用agent...",

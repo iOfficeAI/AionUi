@@ -6,8 +6,10 @@
 
 import type { CronMessageMeta } from '@/common/chat/chatLib';
 import { uuid } from '@/common/utils';
+import type { IConversationRepository } from '@process/services/database/IConversationRepository';
 import type BaseAgentManager from '@process/task/BaseAgentManager';
 import type { IWorkerTaskManager } from '@process/task/IWorkerTaskManager';
+import { AssistantHookRuntime } from '@process/bridge/services/AssistantHookRuntime';
 import { copyFilesToDirectory } from '@process/utils';
 import type { CronBusyGuard } from './CronBusyGuard';
 import type { CronJob } from './CronStore';
@@ -15,22 +17,35 @@ import type { ICronJobExecutor } from './ICronJobExecutor';
 
 /** Executes cron jobs by delegating to WorkerTaskManager and tracking busy state via CronBusyGuard. */
 export class WorkerTaskManagerJobExecutor implements ICronJobExecutor {
+  private readonly resolveTaskManager: () => IWorkerTaskManager;
+
   constructor(
-    private readonly taskManager: IWorkerTaskManager,
-    private readonly busyGuard: CronBusyGuard
-  ) {}
+    taskManager: IWorkerTaskManager | (() => IWorkerTaskManager),
+    private readonly busyGuard: CronBusyGuard,
+    private readonly conversationRepo: IConversationRepository,
+    private readonly hookRuntime: Pick<AssistantHookRuntime, 'applyBeforeUserPrompt'> = new AssistantHookRuntime()
+  ) {
+    this.resolveTaskManager =
+      typeof taskManager === 'function' ? (taskManager as () => IWorkerTaskManager) : () => taskManager;
+  }
 
   isConversationBusy(conversationId: string): boolean {
     return this.busyGuard.isProcessing(conversationId);
   }
 
   async executeJob(job: CronJob, onAcquired?: () => void): Promise<void> {
+    const taskManager = this.resolveTaskManager();
     const { conversationId } = job.metadata;
     const messageText = job.target.payload.text;
     const msgId = uuid();
+    const conversation = await this.conversationRepo.getConversation(conversationId);
+
+    if (!conversation) {
+      throw new Error(`Conversation not found: ${conversationId}`);
+    }
 
     // Reuse existing task if possible; ensure yoloMode is active for scheduled runs.
-    const existingTask = this.taskManager.getTask(conversationId);
+    const existingTask = taskManager.getTask(conversationId);
     let task;
     if (existingTask) {
       const yoloEnabled = await (existingTask as BaseAgentManager<unknown>).ensureYoloMode();
@@ -38,11 +53,11 @@ export class WorkerTaskManagerJobExecutor implements ICronJobExecutor {
         task = existingTask;
       } else {
         // Cannot enable yoloMode dynamically — kill and recreate.
-        this.taskManager.kill(conversationId);
-        task = await this.taskManager.getOrBuildTask(conversationId, { yoloMode: true });
+        taskManager.kill(conversationId);
+        task = await taskManager.getOrBuildTask(conversationId, { yoloMode: true });
       }
     } else {
-      task = await this.taskManager.getOrBuildTask(conversationId, { yoloMode: true });
+      task = await taskManager.getOrBuildTask(conversationId, { yoloMode: true });
     }
 
     // Mark busy only after task acquisition succeeds. This ensures that if
@@ -62,12 +77,25 @@ export class WorkerTaskManagerJobExecutor implements ICronJobExecutor {
       cronJobName: job.name,
       triggeredAt: Date.now(),
     };
+    const { content: transformedMessage } = await this.hookRuntime.applyBeforeUserPrompt(conversation, messageText);
 
     // ACP/Codex agents use 'content'; Gemini uses 'input'.
     if (task.type === 'codex' || task.type === 'acp') {
-      await task.sendMessage({ content: messageText, msg_id: msgId, files: workspaceFiles, cronMeta });
+      await task.sendMessage({
+        content: messageText,
+        agentContent: transformedMessage,
+        msg_id: msgId,
+        files: workspaceFiles,
+        cronMeta,
+      });
     } else {
-      await task.sendMessage({ input: messageText, msg_id: msgId, files: workspaceFiles, cronMeta });
+      await task.sendMessage({
+        input: messageText,
+        agentInput: transformedMessage,
+        msg_id: msgId,
+        files: workspaceFiles,
+        cronMeta,
+      });
     }
   }
 
