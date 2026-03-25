@@ -1,34 +1,48 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import path from 'path';
 
-// Track calls to fs mocks
-let mkdirCalls: string[] = [];
-let symlinkCalls: Array<{ source: string; target: string; type: string }> = [];
-let statResults: Record<string, boolean> = {};
-let lstatResults: Record<string, boolean> = {};
-let existsSyncResults: Record<string, boolean> = {};
+// Normalize paths to forward slashes for cross-platform key matching
+const norm = (p: string) => p.replace(/\\/g, '/');
+
+// Use vi.hoisted() so tracking variables are initialized before vi.mock factories run
+const { mkdirCalls, symlinkCalls, statResults, lstatResults, existsSyncResults, resetAll } = vi.hoisted(() => {
+  const mkdirCalls: string[] = [];
+  const symlinkCalls: Array<{ source: string; target: string; type: string }> = [];
+  const statResults: Record<string, boolean> = {};
+  const lstatResults: Record<string, boolean> = {};
+  const existsSyncResults: Record<string, boolean> = {};
+
+  const resetAll = () => {
+    mkdirCalls.length = 0;
+    symlinkCalls.length = 0;
+    for (const key of Object.keys(statResults)) delete statResults[key];
+    for (const key of Object.keys(lstatResults)) delete lstatResults[key];
+    for (const key of Object.keys(existsSyncResults)) delete existsSyncResults[key];
+  };
+
+  return { mkdirCalls, symlinkCalls, statResults, lstatResults, existsSyncResults, resetAll };
+});
 
 vi.mock('fs/promises', () => ({
   default: {
     mkdir: vi.fn(async (dir: string) => {
-      mkdirCalls.push(dir);
+      mkdirCalls.push(norm(dir));
     }),
     stat: vi.fn(async (p: string) => {
-      if (statResults[p]) return {};
+      if (statResults[norm(p)]) return {};
       throw new Error(`ENOENT: ${p}`);
     }),
     lstat: vi.fn(async (p: string) => {
-      if (lstatResults[p]) return {};
+      if (lstatResults[norm(p)]) return {};
       throw new Error(`ENOENT: ${p}`);
     }),
     symlink: vi.fn(async (source: string, target: string, type: string) => {
-      symlinkCalls.push({ source, target, type });
+      symlinkCalls.push({ source: norm(source), target: norm(target), type });
     }),
   },
 }));
 
 vi.mock('fs', () => ({
-  existsSync: vi.fn((p: string) => existsSyncResults[p] ?? false),
+  existsSync: vi.fn((p: string) => existsSyncResults[norm(p)] ?? false),
 }));
 
 vi.mock('@process/utils/initStorage', () => ({
@@ -54,11 +68,7 @@ describe('initAgent — skill support', () => {
 
   beforeEach(async () => {
     vi.clearAllMocks();
-    mkdirCalls = [];
-    symlinkCalls = [];
-    statResults = {};
-    lstatResults = {};
-    existsSyncResults = {};
+    resetAll();
 
     const mod = await import('@process/utils/initAgent');
     hasNativeSkillSupport = mod.hasNativeSkillSupport;
@@ -138,11 +148,11 @@ describe('initAgent — skill support', () => {
         enabledSkills: ['pptx'],
       });
 
-      expect(mkdirCalls).toContain(path.join('/tmp/workspace', '.claude/skills'));
+      expect(mkdirCalls).toContain('/tmp/workspace/.claude/skills');
       expect(symlinkCalls).toHaveLength(1);
       expect(symlinkCalls[0]).toEqual({
         source: skillSource,
-        target: path.join('/tmp/workspace', '.claude/skills', 'pptx'),
+        target: '/tmp/workspace/.claude/skills/pptx',
         type: 'junction',
       });
     });
@@ -155,8 +165,8 @@ describe('initAgent — skill support', () => {
         enabledSkills: ['pdf'],
       });
 
-      expect(mkdirCalls).toContain(path.join('/tmp/workspace', '.codex/skills'));
-      expect(symlinkCalls[0].target).toBe(path.join('/tmp/workspace', '.codex/skills', 'pdf'));
+      expect(mkdirCalls).toContain('/tmp/workspace/.codex/skills');
+      expect(symlinkCalls[0].target).toBe('/tmp/workspace/.codex/skills/pdf');
     });
 
     it('should create symlink in .codebuddy/skills for codebuddy', async () => {
@@ -167,7 +177,7 @@ describe('initAgent — skill support', () => {
         enabledSkills: ['morph-ppt'],
       });
 
-      expect(symlinkCalls[0].target).toBe(path.join('/tmp/workspace', '.codebuddy/skills', 'morph-ppt'));
+      expect(symlinkCalls[0].target).toBe('/tmp/workspace/.codebuddy/skills/morph-ppt');
     });
 
     it('should create symlink in .factory/skills for droid backend', async () => {
@@ -178,7 +188,7 @@ describe('initAgent — skill support', () => {
         enabledSkills: ['deploy'],
       });
 
-      expect(symlinkCalls[0].target).toBe(path.join('/tmp/workspace', '.factory/skills', 'deploy'));
+      expect(symlinkCalls[0].target).toBe('/tmp/workspace/.factory/skills/deploy');
     });
 
     it('should use junction type for symlinks (Windows compatibility)', async () => {
@@ -230,7 +240,7 @@ describe('initAgent — skill support', () => {
 
     it('should skip symlink when target already exists', async () => {
       const skillSource = '/mock/user/skills/pptx';
-      const skillTarget = path.join('/tmp/workspace', '.claude/skills', 'pptx');
+      const skillTarget = '/tmp/workspace/.claude/skills/pptx';
       statResults[skillSource] = true;
       lstatResults[skillTarget] = true;
 
@@ -265,7 +275,7 @@ describe('initAgent — skill support', () => {
       });
 
       // backend 'codex' takes priority -> .codex/skills
-      expect(mkdirCalls).toContain(path.join('/tmp/workspace', '.codex/skills'));
+      expect(mkdirCalls).toContain('/tmp/workspace/.codex/skills');
     });
 
     it('should handle multiple enabled skills', async () => {
