@@ -12,18 +12,19 @@
 
 ## File Map
 
-| Action | File |
-|---|---|
-| **Create** | `src/process/channels/plugins/weixin/WeixinTyping.ts` |
-| **Create** | `tests/unit/channels/weixinTyping.test.ts` |
+| Action     | File                                                                   |
+| ---------- | ---------------------------------------------------------------------- |
+| **Create** | `src/process/channels/plugins/weixin/WeixinTyping.ts`                  |
+| **Create** | `tests/unit/channels/weixinTyping.test.ts`                             |
 | **Modify** | `src/process/channels/plugins/weixin/WeixinMonitor.ts` (lines 188–244) |
-| **Modify** | `tests/unit/channels/weixinMonitor.test.ts` (add 3 integration tests) |
+| **Modify** | `tests/unit/channels/weixinMonitor.test.ts` (add 3 integration tests)  |
 
 ---
 
 ## Task 1: Create `WeixinTyping.ts` — TDD
 
 **Files:**
+
 - Create: `tests/unit/channels/weixinTyping.test.ts`
 - Create: `src/process/channels/plugins/weixin/WeixinTyping.ts`
 
@@ -501,7 +502,7 @@ export class TypingManager {
         }
         this.activeSessions.clear();
       },
-      { once: true },
+      { once: true }
     );
   }
 
@@ -660,6 +661,7 @@ git commit -m "feat(weixin): add TypingManager for WeChat typing indicator"
 ## Task 2: Wire TypingManager into WeixinMonitor — TDD
 
 **Files:**
+
 - Modify: `tests/unit/channels/weixinMonitor.test.ts` (add new describe block)
 - Modify: `src/process/channels/plugins/weixin/WeixinMonitor.ts`
 
@@ -681,10 +683,7 @@ describe('WeixinMonitor — typing indicator integration', () => {
    * the monitor loop. This avoids the race where a synchronous abort inside the
    * fetch mock fires the TypingManager abort-listener before startTyping is called.
    */
-  function makeTypingFetch(opts: {
-    msgs?: unknown[];
-    callOrder: string[];
-  }): AbortController {
+  function makeTypingFetch(opts: { msgs?: unknown[]; callOrder: string[] }): AbortController {
     const controller = new AbortController();
     let getupdatesRound = 0;
 

@@ -21,11 +21,11 @@ visible until the agent reply is sent.
 
 ## Decisions
 
-| Question | Decision |
-|---|---|
-| Periodic re-send? | Yes — every 10 s (typing indicators auto-expire ~15 s on WeChat) |
-| On API failure? | Best-effort: retry up to 2 times (500 ms backoff), then log and ignore |
-| SSE incremental reply? | Abandoned — not supported by WeChat Bot protocol |
+| Question               | Decision                                                               |
+| ---------------------- | ---------------------------------------------------------------------- |
+| Periodic re-send?      | Yes — every 10 s (typing indicators auto-expire ~15 s on WeChat)       |
+| On API failure?        | Best-effort: retry up to 2 times (500 ms backoff), then log and ignore |
+| SSE incremental reply? | Abandoned — not supported by WeChat Bot protocol                       |
 
 ## Architecture
 
@@ -38,12 +38,12 @@ Single-responsibility module that owns all typing-indicator logic.
 ```typescript
 class TypingManager {
   constructor(opts: {
-    baseUrl: string
-    token: string
-    wechatUin: string         // X-WECHAT-UIN header — generated in startMonitor, passed through
-    abortSignal?: AbortSignal // when fired: clear all intervals + abort in-flight sendTyping fetches
-    log: (msg: string) => void
-  })
+    baseUrl: string;
+    token: string;
+    wechatUin: string; // X-WECHAT-UIN header — generated in startMonitor, passed through
+    abortSignal?: AbortSignal; // when fired: clear all intervals + abort in-flight sendTyping fetches
+    log: (msg: string) => void;
+  });
 
   /**
    * Send TYPING immediately, then re-send every TYPING_INTERVAL_MS until stop() is called.
@@ -52,7 +52,7 @@ class TypingManager {
    * Returns a stop function that cancels the interval and sends CANCEL (best-effort, does not throw).
    * stop() is idempotent — safe to call multiple times.
    */
-  async startTyping(userId: string, contextToken?: string): Promise<() => Promise<void>>
+  async startTyping(userId: string, contextToken?: string): Promise<() => Promise<void>>;
 }
 ```
 
@@ -96,7 +96,7 @@ to `runMonitor`. `TypingManager` is instantiated once at the top of `runMonitor`
 `wechatUin` is received and before the loop:
 
 ```typescript
-const typingMgr = new TypingManager({ baseUrl, token, wechatUin, abortSignal: signal, log: logFn })
+const typingMgr = new TypingManager({ baseUrl, token, wechatUin, abortSignal: signal, log: logFn });
 ```
 
 Per-message handler block. The existing extractions (`conversationId`, `text`) are unchanged;
@@ -104,20 +104,20 @@ only the chat + send section is replaced:
 
 ```typescript
 // existing — unchanged
-const conversationId = msg.from_user_id ?? ''
-const text = textItem.text_item?.text ?? ''
+const conversationId = msg.from_user_id ?? '';
+const text = textItem.text_item?.text ?? '';
 
 // new — replaces the bare `agent.chat` + `callSendMessage` block
-const stopTyping = await typingMgr.startTyping(conversationId, msg.context_token)
+const stopTyping = await typingMgr.startTyping(conversationId, msg.context_token);
 try {
-  const response = await agent.chat({ conversationId, text })
-  await stopTyping()
+  const response = await agent.chat({ conversationId, text });
+  await stopTyping();
   if (response.text) {
-    await callSendMessage(baseUrl, token, wechatUin, conversationId, response.text, msg.context_token)
+    await callSendMessage(baseUrl, token, wechatUin, conversationId, response.text, msg.context_token);
   }
 } catch (err) {
-  await stopTyping()
-  throw err
+  await stopTyping();
+  throw err;
 }
 ```
 
@@ -159,6 +159,7 @@ callSendMessage(text)
 ## API Request/Response Schemas
 
 All requests include the following headers (enforced by `apiPost`):
+
 ```
 Authorization: Bearer <token>
 AuthorizationType: ilink_bot_token
@@ -170,15 +171,17 @@ Content-Length: <byte length of body>
 ### `ilink/bot/getconfig` (timeout 10 s)
 
 Request body:
+
 ```json
 {
   "ilink_user_id": "<userId>",
-  "context_token": "<contextToken>",   // field omitted entirely when contextToken is undefined
+  "context_token": "<contextToken>", // field omitted entirely when contextToken is undefined
   "base_info": {}
 }
 ```
 
 Response (success: `ret == 0`):
+
 ```json
 {
   "ret": 0,
@@ -191,6 +194,7 @@ Error detection: `ret !== 0` or `errcode !== 0` (when present) → treat as fail
 ### `ilink/bot/sendtyping` (timeout 10 s)
 
 Request body:
+
 ```json
 {
   "ilink_user_id": "<userId>",
@@ -206,21 +210,21 @@ Response body: ignored. HTTP non-2xx → treated as failure.
 
 **Retry behavior by status:**
 
-| Call site | On HTTP error or exception | Behavior |
-|---|---|---|
-| `sendTyping(TYPING)` in interval | Retry up to `MAX_TYPING_RETRIES`, then log + swallow | Never throws |
+| Call site                        | On HTTP error or exception                              | Behavior     |
+| -------------------------------- | ------------------------------------------------------- | ------------ |
+| `sendTyping(TYPING)` in interval | Retry up to `MAX_TYPING_RETRIES`, then log + swallow    | Never throws |
 | `sendTyping(CANCEL)` in `stop()` | Single attempt, catch and swallow all errors (no retry) | Never throws |
 
 ## Error Handling
 
-| Scenario | Behavior |
-|---|---|
-| `getConfig` fails | Retry with backoff; empty ticket → no-op stop, no typing calls |
-| `sendTyping(TYPING)` fails all retries | Log + ignore; `agent.chat` proceeds normally |
-| `sendTyping(CANCEL)` fails | Caught and swallowed silently (single attempt, no retry) |
+| Scenario                                   | Behavior                                                          |
+| ------------------------------------------ | ----------------------------------------------------------------- |
+| `getConfig` fails                          | Retry with backoff; empty ticket → no-op stop, no typing calls    |
+| `sendTyping(TYPING)` fails all retries     | Log + ignore; `agent.chat` proceeds normally                      |
+| `sendTyping(CANCEL)` fails                 | Caught and swallowed silently (single attempt, no retry)          |
 | `abortSignal` fires during active interval | `clearInterval`, in-flight fetch aborted; no further typing calls |
-| `abortSignal` fires before `startTyping` | Return no-op immediately, no API calls |
-| `agent.chat` throws (incl. timeout) | `stopTyping()` called in catch branch; indicator cleared |
+| `abortSignal` fires before `startTyping`   | Return no-op immediately, no API calls                            |
+| `agent.chat` throws (incl. timeout)        | `stopTyping()` called in catch branch; indicator cleared          |
 
 ## Testing
 
