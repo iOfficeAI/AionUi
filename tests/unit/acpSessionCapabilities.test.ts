@@ -9,6 +9,17 @@ import { AcpConnection } from '../../src/process/agent/acp/AcpConnection';
 import { AcpAgent } from '../../src/process/agent/acp/index';
 import type { AcpSessionConfigOption, AcpSessionModels } from '../../src/types/acpTypes';
 
+vi.mock('@process/utils/initStorage', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('@process/utils/initStorage')>();
+  return {
+    ...actual,
+    ProcessConfig: {
+      ...actual.ProcessConfig,
+      get: vi.fn().mockResolvedValue([]),
+    },
+  };
+});
+
 // ─── helpers ────────────────────────────────────────────────────────────────
 
 function makeConnection(backend: string = 'codex'): AcpConnection {
