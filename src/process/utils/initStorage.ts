@@ -52,6 +52,7 @@ const STORAGE_PATH = {
   skills: 'skills',
   hooks: 'hooks',
   builtinSkills: 'builtin-skills',
+  builtinHooks: 'builtin-hooks',
 };
 
 const getHomePage = getConfigPath;
@@ -387,6 +388,14 @@ const getBuiltinSkillsCopyDir = () => {
 };
 
 /**
+ * Get the directory where bundled hooks are copied to (config/builtin-hooks/).
+ * This directory is fully managed by the app — synced on every startup.
+ */
+const getBuiltinHooksCopyDir = () => {
+  return path.join(cacheDir, STORAGE_PATH.builtinHooks);
+};
+
+/**
  * Get the auto-enabled builtin skills directory (_builtin subdirectory).
  * Skills in this directory are automatically injected for ALL agents and scenarios.
  */
@@ -450,6 +459,18 @@ const initBuiltinAssistantRules = async (): Promise<void> => {
   }
   const builtinSkillsCopyDir = getBuiltinSkillsCopyDir();
   const userSkillsDir = getSkillsDir();
+  let builtinHooksDir = resolveBuiltinDir('src/process/resources/hooks');
+  if (!existsSync(builtinHooksDir)) {
+    const hooksFallbacks = [
+      path.join(__dirname, 'hooks'),
+      path.join(__dirname, '..', 'hooks'),
+      path.join(process.cwd(), 'dist-server', 'hooks'),
+    ];
+    const found = hooksFallbacks.find((d) => existsSync(d));
+    if (found) builtinHooksDir = found;
+  }
+  const builtinHooksCopyDir = getBuiltinHooksCopyDir();
+  const userHooksDir = getHooksDir();
 
   // Sync builtin skills to a dedicated directory (config/builtin-skills/).
   // This directory is fully managed by the app: overwrite existing, remove stale.
@@ -479,9 +500,40 @@ const initBuiltinAssistantRules = async (): Promise<void> => {
     }
   }
 
+  // Sync builtin hooks to a dedicated directory (config/builtin-hooks/).
+  // Builtin hooks are app-managed; custom hooks remain under config/hooks/.
+  if (existsSync(builtinHooksDir)) {
+    try {
+      if (!existsSync(builtinHooksCopyDir)) {
+        mkdirSync(builtinHooksCopyDir);
+      }
+      await copyDirectoryRecursively(builtinHooksDir, builtinHooksCopyDir, {
+        overwrite: true,
+      });
+      const srcNames = new Set(
+        readdirSync(builtinHooksDir, { withFileTypes: true })
+          .filter((e) => e.isDirectory())
+          .map((e) => e.name)
+      );
+      for (const entry of readdirSync(builtinHooksCopyDir, { withFileTypes: true })) {
+        if (!entry.isDirectory()) continue;
+        if (!srcNames.has(entry.name)) {
+          await fs.rm(path.join(builtinHooksCopyDir, entry.name), { recursive: true, force: true });
+        }
+      }
+    } catch (error) {
+      console.warn('[AionUi] Failed to sync builtin hooks directory:', error);
+    }
+  }
+
   // Ensure user skills directory exists
   if (!existsSync(userSkillsDir)) {
     mkdirSync(userSkillsDir);
+  }
+
+  // Ensure user hooks directory exists
+  if (!existsSync(userHooksDir)) {
+    mkdirSync(userHooksDir);
   }
 
   // 确保助手目录存在 / Ensure assistants directory exists
@@ -872,6 +924,7 @@ const initStorage = async () => {
   ensureDirectory(getHomePage());
   ensureDirectory(getDataPath());
   ensureDirectory(getHooksDir());
+  ensureDirectory(getBuiltinHooksCopyDir());
 
   // 3. 初始化存储系统
   ConfigStorage.interceptor(configFile);
@@ -1090,6 +1143,7 @@ export {
   getSkillsDir,
   getHooksDir,
   getBuiltinSkillsCopyDir,
+  getBuiltinHooksCopyDir,
   getAutoSkillsDir,
   BUILTIN_IMAGE_GEN_ID,
   getBuiltinMcpScriptPath,

@@ -65,6 +65,7 @@ export const useCustomAgentsLoader = ({
             context: typeof ext.context === 'string' ? ext.context : undefined,
             contextI18n: ext.contextI18n as Record<string, string> | undefined,
             enabledSkills: Array.isArray(ext.enabledSkills) ? (ext.enabledSkills as string[]) : undefined,
+            enabledHooks: Array.isArray(ext.enabledHooks) ? (ext.enabledHooks as string[]) : undefined,
             prompts: Array.isArray(ext.prompts) ? (ext.prompts as string[]) : undefined,
             promptsI18n: ext.promptsI18n as Record<string, string[]> | undefined,
           } as AcpBackendConfig);

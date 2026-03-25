@@ -1,0 +1,7 @@
+{
+  "name": "quality-gate",
+  "description": "System hook that reminds the agent to validate changes with tests, lint, or type checks when appropriate. Implemented as a before_user_prompt prompt transform.",
+  "version": "1.0.0",
+  "executionType": "prompt-transform",
+  "events": ["before_user_prompt"]
+}
