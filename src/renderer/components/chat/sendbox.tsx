@@ -22,6 +22,8 @@ import { useDragUpload } from '@renderer/hooks/file/useDragUpload';
 import { useLatestRef } from '@renderer/hooks/ui/useLatestRef';
 import { usePasteService } from '@renderer/hooks/file/usePasteService';
 import type { FileMetadata } from '@renderer/services/FileService';
+import { useUploadState } from '@renderer/hooks/file/useUploadState';
+import UploadProgressBar from '@renderer/components/media/UploadProgressBar';
 import { allSupportedExts } from '@renderer/services/FileService';
 import './sendbox.css';
 
@@ -204,6 +206,7 @@ const SendBox: React.FC<{
     conversationId: conversationContext?.conversationId,
   });
 
+  const { isUploading, overallPercent } = useUploadState();
   const [message, context] = Message.useMessage();
 
   const builtinSlashCommands = useMemo<SlashCommandItem[]>(() => {
@@ -362,7 +365,7 @@ const SendBox: React.FC<{
   };
 
   // Calculate button disabled state and style
-  const isButtonDisabled = disabled || (!input.trim() && domSnippets.length === 0);
+  const isButtonDisabled = disabled || isUploading || (!input.trim() && domSnippets.length === 0);
   const buttonStyle = {
     backgroundColor: isButtonDisabled ? undefined : '#000000',
     borderColor: isButtonDisabled ? undefined : '#000000',
@@ -443,6 +446,7 @@ const SendBox: React.FC<{
             </div>
           )}
         </div>
+        <UploadProgressBar />
         <div
           className={isSingleLine ? 'flex items-center gap-2 w-full min-w-0 overflow-hidden' : 'w-full overflow-hidden'}
         >
