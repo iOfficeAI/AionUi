@@ -6,10 +6,19 @@ import fs from 'fs';
 
 let mockStartFn = vi.fn();
 
+const TEST_DATA_DIR = path.join(os.tmpdir(), 'aionui-test-weixin');
+
 async function loadPluginClass() {
   vi.resetModules();
   vi.doMock('weixin-agent-sdk', () => ({
     start: (...args: unknown[]) => mockStartFn(...args),
+  }));
+  vi.doMock('@/common/platform', () => ({
+    getPlatformServices: () => ({
+      paths: {
+        getDataDir: () => TEST_DATA_DIR,
+      },
+    }),
   }));
   const mod = await import('@process/channels/plugins/weixin/WeixinPlugin');
   return mod.WeixinPlugin;
@@ -125,7 +134,9 @@ describe('WeixinPlugin — Promise bridge', () => {
     const WeixinPlugin = await loadPluginClass();
     const plugin = new WeixinPlugin();
     await plugin.initialize(createConfig());
-    plugin.onMessage(async () => {}); // leave pending
+    plugin.onMessage(async () => {
+      await new Promise(() => {});
+    }); // block until superseded
     await plugin.start();
 
     const agent = mockStartFn.mock.calls[0][0];
@@ -149,7 +160,9 @@ describe('WeixinPlugin — Promise bridge', () => {
     const WeixinPlugin = await loadPluginClass();
     const plugin = new WeixinPlugin();
     await plugin.initialize(createConfig());
-    plugin.onMessage(async () => {}); // leave pending
+    plugin.onMessage(async () => {
+      await new Promise(() => {});
+    }); // block until stopped
     await plugin.start();
 
     const agent = mockStartFn.mock.calls[0][0];
@@ -165,7 +178,9 @@ describe('WeixinPlugin — Promise bridge', () => {
     const WeixinPlugin = await loadPluginClass();
     const plugin = new WeixinPlugin();
     await plugin.initialize(createConfig());
-    plugin.onMessage(async () => {});
+    plugin.onMessage(async () => {
+      await new Promise(() => {});
+    }); // block so promise stays pending
     await plugin.start();
 
     const agent = mockStartFn.mock.calls[0][0];
@@ -201,7 +216,7 @@ describe('WeixinPlugin — testConnection', () => {
 
   it('returns true when credential file exists with a token', async () => {
     const WeixinPlugin = await loadPluginClass();
-    const accountsDir = path.join(os.homedir(), '.openclaw', 'openclaw-weixin', 'accounts');
+    const accountsDir = path.join(TEST_DATA_DIR, 'openclaw-weixin', 'accounts');
     fs.mkdirSync(accountsDir, { recursive: true });
     const accountFile = path.join(accountsDir, 'test_acc_valid.json');
     fs.writeFileSync(accountFile, JSON.stringify({ token: 'tok_test', baseUrl: 'https://x.com' }));

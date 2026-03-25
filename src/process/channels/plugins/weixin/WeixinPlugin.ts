@@ -7,12 +7,12 @@
 import { start } from 'weixin-agent-sdk';
 import type { Agent, ChatRequest, ChatResponse } from 'weixin-agent-sdk';
 import fs from 'fs';
-import os from 'os';
 import path from 'path';
 
+import { getPlatformServices } from '@/common/platform';
 import type { IChannelPluginConfig, IUnifiedOutgoingMessage, PluginType } from '../../types';
 import { BasePlugin } from '../BasePlugin';
-import { toUnifiedIncomingMessage, toChatResponse } from './WeixinAdapter';
+import { toUnifiedIncomingMessage, toChatResponse, stripHtml } from './WeixinAdapter';
 
 const RESPONSE_TIMEOUT_MS = 5 * 60 * 1000;
 
@@ -34,6 +34,12 @@ export class WeixinPlugin extends BasePlugin {
   private pendingResponses = new Map<string, PendingResponse>();
   private activeUsers = new Set<string>();
 
+  // AionUi-isolated state dir — separate from ~/.openclaw so the local openclaw
+  // gateway process does not auto-discover this account and double-respond.
+  private get _weixinStateDir(): string {
+    return getPlatformServices().paths.getDataDir();
+  }
+
   // ==================== Lifecycle ====================
 
   protected async onInitialize(config: IChannelPluginConfig): Promise<void> {
@@ -44,12 +50,10 @@ export class WeixinPlugin extends BasePlugin {
     this.accountId = accountId as string;
     this.botToken = botToken as string;
 
-    // The SDK reads credentials from ~/.openclaw/openclaw-weixin/accounts/<id>.json.
-    // Write the file here so start() can authenticate without running the terminal login.
-    const stateDir =
-      process.env['OPENCLAW_STATE_DIR']?.trim() ||
-      process.env['CLAWDBOT_STATE_DIR']?.trim() ||
-      path.join(os.homedir(), '.openclaw');
+    // Write credentials into AionUi's own isolated state dir so the local openclaw
+    // gateway (a separate OS process that reads ~/.openclaw) cannot pick up this
+    // account and start its own weixin monitor in parallel.
+    const stateDir = this._weixinStateDir;
     const accountsDir = path.join(stateDir, 'openclaw-weixin', 'accounts');
     fs.mkdirSync(accountsDir, { recursive: true });
 
@@ -88,6 +92,14 @@ export class WeixinPlugin extends BasePlugin {
 
     const agent: Agent = { chat: (req) => this.handleChat(req) };
 
+    // The weixin-agent-sdk resolves credentials and the sync-buf path synchronously
+    // at the very start of start() — before its first internal await. By temporarily
+    // setting OPENCLAW_STATE_DIR to our isolated dir, the SDK will read from there.
+    // After void start() returns (first async suspension), those values are already
+    // captured, so restoring the env var is safe.
+    const prevStateDir = process.env['OPENCLAW_STATE_DIR'];
+    process.env['OPENCLAW_STATE_DIR'] = this._weixinStateDir;
+
     void start(agent, {
       accountId: this.accountId,
       abortSignal: this.abortController.signal,
@@ -96,6 +108,14 @@ export class WeixinPlugin extends BasePlugin {
         this.setStatus('error', error instanceof Error ? error.message : String(error));
       }
     });
+
+    // Restore OPENCLAW_STATE_DIR so other openclaw integrations (e.g. gateway auth)
+    // continue to use the user's own state directory.
+    if (prevStateDir !== undefined) {
+      process.env['OPENCLAW_STATE_DIR'] = prevStateDir;
+    } else {
+      delete process.env['OPENCLAW_STATE_DIR'];
+    }
   }
 
   protected async onStop(): Promise<void> {
@@ -114,7 +134,15 @@ export class WeixinPlugin extends BasePlugin {
 
   // ==================== BasePlugin interface ====================
 
-  async sendMessage(chatId: string, _message: IUnifiedOutgoingMessage): Promise<string> {
+  async sendMessage(chatId: string, message: IUnifiedOutgoingMessage): Promise<string> {
+    // Store text so it can be returned when the pending promise is auto-resolved
+    // (e.g. for pairing codes or error messages that don't go through editMessage)
+    const pending = this.pendingResponses.get(chatId);
+    // sendMessage is used for single-shot non-streaming messages (e.g. pairing prompts);
+    // overwrite rather than append because only the last text is relevant.
+    if (pending && message.text) {
+      pending.accumulatedText = stripHtml(message.text);
+    }
     return `weixin_pending_${chatId}`;
   }
 
@@ -179,11 +207,27 @@ export class WeixinPlugin extends BasePlugin {
       });
 
       const unified = toUnifiedIncomingMessage(request);
-      void this.emitMessage(unified).catch((error: unknown) => {
-        clearTimeout(timer);
-        this.pendingResponses.delete(conversationId);
-        reject(error instanceof Error ? error : new Error(String(error)));
-      });
+      // Use .then() instead of void so we can auto-resolve after processing completes.
+      // The weixin SDK expects a synchronous response, so we resolve the pending promise
+      // after emitMessage finishes — either via editMessage (for streaming chat) or here
+      // (for non-streaming messages like pairing codes and errors).
+      this.emitMessage(unified)
+        .then(() => {
+          const pending = this.pendingResponses.get(conversationId);
+          if (pending) {
+            clearTimeout(pending.timer);
+            this.pendingResponses.delete(conversationId);
+            pending.resolve({
+              text: pending.accumulatedText || undefined,
+              media: pending.mediaResponse,
+            });
+          }
+        })
+        .catch((error: unknown) => {
+          clearTimeout(timer);
+          this.pendingResponses.delete(conversationId);
+          reject(error instanceof Error ? error : new Error(String(error)));
+        });
     });
   }
 
@@ -191,7 +235,8 @@ export class WeixinPlugin extends BasePlugin {
 
   static async testConnection(accountId: string, _botToken?: string): Promise<{ success: boolean; error?: string }> {
     try {
-      const accountFile = path.join(os.homedir(), '.openclaw', 'openclaw-weixin', 'accounts', `${accountId}.json`);
+      const stateDir = getPlatformServices().paths.getDataDir();
+      const accountFile = path.join(stateDir, 'openclaw-weixin', 'accounts', `${accountId}.json`);
       const raw = fs.readFileSync(accountFile, 'utf-8');
       const data = JSON.parse(raw) as { token?: string };
       if (!data.token) {

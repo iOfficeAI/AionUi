@@ -72,6 +72,23 @@ function mediaTypeToAttachmentType(type: string): AttachmentType {
   }
 }
 
+// ==================== Text Formatting ====================
+
+/**
+ * Strip HTML tags and decode common HTML entities to plain text.
+ * WeChat does not support HTML markup, so all outgoing text must be plain.
+ */
+export function stripHtml(html: string): string {
+  return html
+    .replace(/<[^>]+>/g, '')
+    .replace(/&lt;/g, '<')
+    .replace(/&gt;/g, '>')
+    .replace(/&amp;/g, '&')
+    .replace(/&quot;/g, '"')
+    .replace(/&#39;/g, "'")
+    .replace(/&nbsp;/g, ' ');
+}
+
 // ==================== Outbound ====================
 
 /**
