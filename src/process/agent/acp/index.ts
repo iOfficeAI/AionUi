@@ -518,7 +518,7 @@ export class AcpAgent {
     this.connection.cancelPrompt();
     // Reject pending permission dialogs so UI doesn't stay stuck
     for (const [id, pending] of this.pendingPermissions) {
-      pending.reject(new Error('Request cancelled'));
+      pending.reject(new Error('Cancelled'));
       this.pendingPermissions.delete(id);
     }
     // Emit finish signal to reset frontend loading state

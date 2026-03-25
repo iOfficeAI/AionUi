@@ -956,7 +956,7 @@ export class AcpConnection {
           clearTimeout(request.timeoutId);
         }
         this.pendingRequests.delete(id);
-        request.reject(new Error('Request cancelled'));
+        request.resolve(null);
       }
     }
   }
