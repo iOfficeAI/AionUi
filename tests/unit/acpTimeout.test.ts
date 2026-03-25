@@ -60,16 +60,16 @@ describe('AcpConnection.cancelPrompt', () => {
     expect(written.params.sessionId).toBe('test-session');
   });
 
-  it('should reject and clear all pending session/prompt requests', () => {
+  it('should resolve and clear all pending session/prompt requests', () => {
     const conn = makeConnection();
-    const rejectFn = vi.fn();
+    const resolveFn = vi.fn();
     const pendingRequests = (conn as any).pendingRequests as Map<number, any>;
 
     // Add a session/prompt request
     const timeoutId = setTimeout(() => {}, 100000);
     pendingRequests.set(1, {
-      resolve: vi.fn(),
-      reject: rejectFn,
+      resolve: resolveFn,
+      reject: vi.fn(),
       timeoutId,
       method: 'session/prompt',
       isPaused: false,
@@ -90,7 +90,7 @@ describe('AcpConnection.cancelPrompt', () => {
 
     conn.cancelPrompt();
 
-    expect(rejectFn).toHaveBeenCalledWith(expect.objectContaining({ message: 'Request cancelled' }));
+    expect(resolveFn).toHaveBeenCalledWith(null);
     expect(pendingRequests.has(1)).toBe(false);
     expect(pendingRequests.has(2)).toBe(true); // non-prompt request preserved
     clearTimeout(timeoutId);
@@ -213,8 +213,8 @@ describe('AcpAgent.cancelPrompt', () => {
 
     agent.cancelPrompt();
 
-    expect(rejectFn1).toHaveBeenCalledWith(expect.objectContaining({ message: 'Request cancelled' }));
-    expect(rejectFn2).toHaveBeenCalledWith(expect.objectContaining({ message: 'Request cancelled' }));
+    expect(rejectFn1).toHaveBeenCalledWith(expect.objectContaining({ message: 'Cancelled' }));
+    expect(rejectFn2).toHaveBeenCalledWith(expect.objectContaining({ message: 'Cancelled' }));
     expect(pendingPermissions.size).toBe(0);
   });
 
