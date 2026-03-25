@@ -5,7 +5,7 @@
  */
 
 import { ipcBridge } from '@/common';
-import { trackUpload } from '@/renderer/hooks/file/useUploadState';
+import { trackUpload, type UploadSource } from '@/renderer/hooks/file/useUploadState';
 import { isElectronDesktop } from '@/renderer/utils/platform';
 
 /** Max upload size in MB — keep in sync with server-side MAX_UPLOAD_SIZE in apiRoutes.ts */
@@ -255,7 +255,7 @@ class FileServiceClass {
    * Process files from drag and drop events, creating temporary files for files without valid paths.
    * In WebUI mode, uploads files via HTTP to the conversation workspace uploads directory.
    */
-  async processDroppedFiles(files: FileList, conversationId?: string): Promise<FileMetadata[]> {
+  async processDroppedFiles(files: FileList, conversationId?: string, source: UploadSource = 'sendbox'): Promise<FileMetadata[]> {
     const processedFiles: FileMetadata[] = [];
 
     for (let i = 0; i < files.length; i++) {
@@ -270,7 +270,7 @@ class FileServiceClass {
         try {
           if (!isElectronDesktop()) {
             // WebUI: upload via HTTP multipart to the conversation workspace uploads directory
-            const tracker = trackUpload(file.size);
+            const tracker = trackUpload(file.size, source);
             try {
               filePath = await uploadFileViaHttp(file, conversationId || '', tracker.onProgress);
             } finally {

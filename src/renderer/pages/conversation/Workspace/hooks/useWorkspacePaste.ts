@@ -115,7 +115,7 @@ export function useWorkspacePaste(options: UseWorkspacePasteOptions) {
         let successCount = 0;
         try {
           for (let i = 0; i < fileList.length; i++) {
-            const tracker = trackUpload(fileList[i].size);
+            const tracker = trackUpload(fileList[i].size, 'workspace');
             try {
               await uploadFileViaHttp(fileList[i], conversationId, tracker.onProgress);
               successCount++;

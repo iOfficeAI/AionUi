@@ -5,15 +5,15 @@
  */
 
 import React from 'react';
-import { useUploadState } from '@/renderer/hooks/file/useUploadState';
+import { useUploadState, type UploadSource } from '@/renderer/hooks/file/useUploadState';
 import { useTranslation } from 'react-i18next';
 
 /**
  * Thin progress bar shown while files are being uploaded.
- * Renders nothing when idle.
+ * Renders nothing when idle. Pass `source` to scope to a specific upload area.
  */
-const UploadProgressBar: React.FC = () => {
-  const { isUploading, activeCount, overallPercent } = useUploadState();
+const UploadProgressBar: React.FC<{ source?: UploadSource }> = ({ source }) => {
+  const { isUploading, activeCount, overallPercent } = useUploadState(source);
   const { t } = useTranslation();
 
   if (!isUploading) return null;

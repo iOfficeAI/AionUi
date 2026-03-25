@@ -206,7 +206,7 @@ const SendBox: React.FC<{
     conversationId: conversationContext?.conversationId,
   });
 
-  const { isUploading, overallPercent } = useUploadState();
+  const { isUploading } = useUploadState('sendbox');
   const [message, context] = Message.useMessage();
 
   const builtinSlashCommands = useMemo<SlashCommandItem[]>(() => {
@@ -446,7 +446,7 @@ const SendBox: React.FC<{
             </div>
           )}
         </div>
-        <UploadProgressBar />
+        <UploadProgressBar source="sendbox" />
         <div
           className={isSingleLine ? 'flex items-center gap-2 w-full min-w-0 overflow-hidden' : 'w-full overflow-hidden'}
         >

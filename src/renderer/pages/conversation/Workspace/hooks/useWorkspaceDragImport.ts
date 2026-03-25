@@ -89,7 +89,7 @@ export function useWorkspaceDragImport({
         item: (index: number) => files[index] || null,
       }) as unknown as FileList;
 
-      const processed = await FileService.processDroppedFiles(pseudoList, conversationId);
+      const processed = await FileService.processDroppedFiles(pseudoList, conversationId, 'workspace');
       return processed.map((meta) => ({ path: meta.path, name: meta.name, kind: 'file' as const }));
     },
     [conversationId]

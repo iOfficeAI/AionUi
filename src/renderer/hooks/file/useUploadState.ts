@@ -15,6 +15,8 @@
 
 import { useSyncExternalStore } from 'react';
 
+export type UploadSource = 'sendbox' | 'workspace';
+
 interface UploadStateSnapshot {
   /** Number of files currently being uploaded */
   activeCount: number;
@@ -27,31 +29,37 @@ interface UploadStateSnapshot {
 // ── Internal store ─────────────────────────────────────────────────────────
 
 let nextId = 0;
-const uploads = new Map<number, { percent: number; size: number }>();
+const uploads = new Map<number, { percent: number; size: number; source: UploadSource }>();
 const listeners = new Set<() => void>();
 
-function getSnapshot(): UploadStateSnapshot {
-  return currentSnapshot;
+let globalSnapshot: UploadStateSnapshot = { activeCount: 0, isUploading: false, overallPercent: 0 };
+const sourceSnapshots: Record<UploadSource, UploadStateSnapshot> = {
+  sendbox: { activeCount: 0, isUploading: false, overallPercent: 0 },
+  workspace: { activeCount: 0, isUploading: false, overallPercent: 0 },
+};
+
+function calcSnapshot(filter?: UploadSource): UploadStateSnapshot {
+  let totalBytes = 0;
+  let loadedBytes = 0;
+  let count = 0;
+  for (const u of uploads.values()) {
+    if (filter && u.source !== filter) continue;
+    count++;
+    totalBytes += u.size;
+    loadedBytes += u.size * (u.percent / 100);
+  }
+  if (count === 0) return { activeCount: 0, isUploading: false, overallPercent: 0 };
+  return {
+    activeCount: count,
+    isUploading: true,
+    overallPercent: totalBytes > 0 ? Math.round((loadedBytes / totalBytes) * 100) : 0,
+  };
 }
 
-let currentSnapshot: UploadStateSnapshot = { activeCount: 0, isUploading: false, overallPercent: 0 };
-
 function recalcSnapshot(): void {
-  if (uploads.size === 0) {
-    currentSnapshot = { activeCount: 0, isUploading: false, overallPercent: 0 };
-  } else {
-    let totalBytes = 0;
-    let loadedBytes = 0;
-    for (const u of uploads.values()) {
-      totalBytes += u.size;
-      loadedBytes += u.size * (u.percent / 100);
-    }
-    currentSnapshot = {
-      activeCount: uploads.size,
-      isUploading: true,
-      overallPercent: totalBytes > 0 ? Math.round((loadedBytes / totalBytes) * 100) : 0,
-    };
-  }
+  globalSnapshot = calcSnapshot();
+  sourceSnapshots.sendbox = calcSnapshot('sendbox');
+  sourceSnapshots.workspace = calcSnapshot('workspace');
 }
 
 function notify(): void {
@@ -73,13 +81,13 @@ function subscribe(listener: () => void): () => void {
  * - `onProgress(percent)`: call from XHR progress handler
  * - `finish()`: call when upload completes (success or error)
  */
-export function trackUpload(fileSize: number): {
+export function trackUpload(fileSize: number, source: UploadSource = 'sendbox'): {
   id: number;
   onProgress: (percent: number) => void;
   finish: () => void;
 } {
   const id = nextId++;
-  uploads.set(id, { percent: 0, size: fileSize });
+  uploads.set(id, { percent: 0, size: fileSize, source });
   recalcSnapshot();
   notify();
 
@@ -103,6 +111,13 @@ export function trackUpload(fileSize: number): {
 
 // ── React hook ─────────────────────────────────────────────────────────────
 
-export function useUploadState(): UploadStateSnapshot {
+/**
+ * Subscribe to upload state. Pass a source to scope to that area only;
+ * omit for global state.
+ */
+export function useUploadState(source?: UploadSource): UploadStateSnapshot {
+  const getSnapshot = source
+    ? () => sourceSnapshots[source]
+    : () => globalSnapshot;
   return useSyncExternalStore(subscribe, getSnapshot, getSnapshot);
 }
