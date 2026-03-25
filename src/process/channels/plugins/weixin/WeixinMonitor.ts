@@ -203,8 +203,7 @@ async function runMonitor(
       const resp = await callGetUpdates(baseUrl, token, wechatUin, buf, signal);
 
       const isApiError =
-        (resp.ret !== undefined && resp.ret !== 0) ||
-        (resp.errcode !== undefined && resp.errcode !== 0);
+        (resp.ret !== undefined && resp.ret !== 0) || (resp.errcode !== undefined && resp.errcode !== 0);
 
       if (isApiError) {
         consecutiveFailures++;
@@ -237,14 +236,7 @@ async function runMonitor(
         try {
           const response = await agent.chat({ conversationId, text });
           if (response.text) {
-            await callSendMessage(
-              baseUrl,
-              token,
-              wechatUin,
-              conversationId,
-              response.text,
-              msg.context_token
-            );
+            await callSendMessage(baseUrl, token, wechatUin, conversationId, response.text, msg.context_token);
           }
         } catch (agentErr) {
           log(`[weixin] agent or send error for ${conversationId}: ${String(agentErr)}`);
@@ -253,9 +245,7 @@ async function runMonitor(
     } catch (err) {
       if (signal?.aborted) return;
       consecutiveFailures++;
-      log(
-        `[weixin] getUpdates error (${consecutiveFailures}/${MAX_CONSECUTIVE_FAILURES}): ${String(err)}`
-      );
+      log(`[weixin] getUpdates error (${consecutiveFailures}/${MAX_CONSECUTIVE_FAILURES}): ${String(err)}`);
       if (consecutiveFailures >= MAX_CONSECUTIVE_FAILURES) {
         consecutiveFailures = 0;
         await sleep(BACKOFF_DELAY_MS, signal);
@@ -275,16 +265,7 @@ export function startMonitor(opts: MonitorOptions): void {
   const logFn = log ?? ((_msg: string) => {});
   const wechatUin = crypto.randomBytes(4).toString('base64');
 
-  void runMonitor(
-    baseUrl,
-    token,
-    accountId,
-    dataDir,
-    agent,
-    wechatUin,
-    abortSignal,
-    logFn
-  ).catch((err: unknown) => {
+  void runMonitor(baseUrl, token, accountId, dataDir, agent, wechatUin, abortSignal, logFn).catch((err: unknown) => {
     if (!abortSignal?.aborted) {
       logFn(`[weixin] monitor terminated unexpectedly: ${String(err)}`);
     }

@@ -34,6 +34,10 @@ vi.mock('@/common/adapter/ipcBridge', () => ({
     enablePlugin: { invoke: vi.fn(async () => ({ success: true })) },
     getPluginStatus: { invoke: vi.fn(async () => ({ success: true, data: [] })) },
     syncChannelSettings: { invoke: vi.fn(async () => ({ success: true })) },
+    getPendingPairings: { invoke: vi.fn(async () => ({ success: true, data: [] })) },
+    getAuthorizedUsers: { invoke: vi.fn(async () => ({ success: true, data: [] })) },
+    pairingRequested: { on: vi.fn(() => vi.fn()) },
+    userAuthorized: { on: vi.fn(() => vi.fn()) },
   },
   acpConversation: {
     getAvailableAgents: { invoke: vi.fn(async () => ({ success: true, data: [] })) },

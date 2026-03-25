@@ -12,21 +12,22 @@
 
 ## File Map
 
-| Action | Path | Reason |
-|--------|------|--------|
-| Create | `src/process/channels/plugins/weixin/WeixinMonitor.ts` | New long-poll implementation |
-| Create | `tests/unit/channels/weixinMonitor.test.ts` | Tests for WeixinMonitor |
-| Modify | `src/process/channels/plugins/weixin/WeixinAdapter.ts` | Remove SDK types and media helpers |
-| Modify | `tests/unit/channels/weixinAdapter.test.ts` | Remove SDK import, media test cases, toChatResponse tests |
-| Modify | `src/process/channels/plugins/weixin/WeixinPlugin.ts` | Replace SDK with WeixinMonitor |
-| Modify | `tests/unit/channels/weixinPlugin.test.ts` | Update mock target and agent access |
-| Modify | `package.json` | Remove `weixin-agent-sdk` dependency |
+| Action | Path                                                   | Reason                                                    |
+| ------ | ------------------------------------------------------ | --------------------------------------------------------- |
+| Create | `src/process/channels/plugins/weixin/WeixinMonitor.ts` | New long-poll implementation                              |
+| Create | `tests/unit/channels/weixinMonitor.test.ts`            | Tests for WeixinMonitor                                   |
+| Modify | `src/process/channels/plugins/weixin/WeixinAdapter.ts` | Remove SDK types and media helpers                        |
+| Modify | `tests/unit/channels/weixinAdapter.test.ts`            | Remove SDK import, media test cases, toChatResponse tests |
+| Modify | `src/process/channels/plugins/weixin/WeixinPlugin.ts`  | Replace SDK with WeixinMonitor                            |
+| Modify | `tests/unit/channels/weixinPlugin.test.ts`             | Update mock target and agent access                       |
+| Modify | `package.json`                                         | Remove `weixin-agent-sdk` dependency                      |
 
 ---
 
 ## Task 1: Write failing tests for WeixinMonitor
 
 **Files:**
+
 - Create: `tests/unit/channels/weixinMonitor.test.ts`
 
 These tests import `startMonitor` from `WeixinMonitor` (which does not exist yet) and mock `fetch` globally.
@@ -64,10 +65,7 @@ function makeOpts(overrides: Partial<MonitorOptions> = {}): MonitorOptions {
   };
 }
 
-function mockFetchOnce(
-  getUpdatesBody: unknown,
-  onSend?: (body: unknown) => void
-): AbortController {
+function mockFetchOnce(getUpdatesBody: unknown, onSend?: (body: unknown) => void): AbortController {
   const controller = new AbortController();
   vi.stubGlobal(
     'fetch',
@@ -247,6 +245,7 @@ Expected: `Cannot find module '@process/channels/plugins/weixin/WeixinMonitor'`
 ## Task 2: Create WeixinMonitor.ts
 
 **Files:**
+
 - Create: `src/process/channels/plugins/weixin/WeixinMonitor.ts`
 
 Public types exported: `WeixinChatRequest`, `WeixinChatResponse`, `WeixinAgent`, `MonitorOptions`, `startMonitor`.
@@ -459,8 +458,7 @@ async function runMonitor(
       const resp = await callGetUpdates(baseUrl, token, wechatUin, buf, signal);
 
       const isApiError =
-        (resp.ret !== undefined && resp.ret !== 0) ||
-        (resp.errcode !== undefined && resp.errcode !== 0);
+        (resp.ret !== undefined && resp.ret !== 0) || (resp.errcode !== undefined && resp.errcode !== 0);
 
       if (isApiError) {
         consecutiveFailures++;
@@ -493,14 +491,7 @@ async function runMonitor(
         try {
           const response = await agent.chat({ conversationId, text });
           if (response.text) {
-            await callSendMessage(
-              baseUrl,
-              token,
-              wechatUin,
-              conversationId,
-              response.text,
-              msg.context_token
-            );
+            await callSendMessage(baseUrl, token, wechatUin, conversationId, response.text, msg.context_token);
           }
         } catch (agentErr) {
           log(`[weixin] agent or send error for ${conversationId}: ${String(agentErr)}`);
@@ -509,9 +500,7 @@ async function runMonitor(
     } catch (err) {
       if (signal?.aborted) return;
       consecutiveFailures++;
-      log(
-        `[weixin] getUpdates error (${consecutiveFailures}/${MAX_CONSECUTIVE_FAILURES}): ${String(err)}`
-      );
+      log(`[weixin] getUpdates error (${consecutiveFailures}/${MAX_CONSECUTIVE_FAILURES}): ${String(err)}`);
       if (consecutiveFailures >= MAX_CONSECUTIVE_FAILURES) {
         consecutiveFailures = 0;
         await sleep(BACKOFF_DELAY_MS, signal);
@@ -531,16 +520,7 @@ export function startMonitor(opts: MonitorOptions): void {
   const logFn = log ?? ((_msg: string) => {});
   const wechatUin = crypto.randomBytes(4).toString('base64');
 
-  void runMonitor(
-    baseUrl,
-    token,
-    accountId,
-    dataDir,
-    agent,
-    wechatUin,
-    abortSignal,
-    logFn
-  ).catch((err: unknown) => {
+  void runMonitor(baseUrl, token, accountId, dataDir, agent, wechatUin, abortSignal, logFn).catch((err: unknown) => {
     if (!abortSignal?.aborted) {
       logFn(`[weixin] monitor terminated unexpectedly: ${String(err)}`);
     }
@@ -576,18 +556,21 @@ git commit -m "feat(weixin): add WeixinMonitor with direct iLink Bot long-poll i
 ## Task 3: Update weixinAdapter.test.ts and WeixinAdapter.ts
 
 **Files:**
+
 - Modify: `tests/unit/channels/weixinAdapter.test.ts`
 - Modify: `src/process/channels/plugins/weixin/WeixinAdapter.ts`
 
 > **Note:** These two files are updated together in one commit. Updating only the test leaves it broken (it imports `WeixinChatRequest` from a not-yet-updated adapter); updating only the adapter leaves tests broken (they still import deleted `toChatResponse`). Commit both in one step.
 
 The test changes:
+
 - Replace `import type { ChatRequest } from 'weixin-agent-sdk'` with `import type { WeixinChatRequest } from '@process/channels/plugins/weixin/WeixinMonitor'`
 - Remove the `toChatResponse` import and its entire `describe` block (4 test cases) — `toChatResponse` is deleted
 - Remove all `media`-related test cases from `toUnifiedIncomingMessage` (4 cases: image, audio, video, file) — media is out of scope
 - Update `baseRequest` type from `ChatRequest` to `WeixinChatRequest` (drop `media` field)
 
 The adapter changes:
+
 - Replace `import type { ChatRequest, ChatResponse } from 'weixin-agent-sdk'` with `import type { WeixinChatRequest } from './WeixinMonitor'`
 - Update `toUnifiedIncomingMessage(request: WeixinChatRequest)` — remove `media` handling, always return `content.type = 'text'`
 - Delete `toChatResponse`, `mediaTypeToContentType`, `mediaTypeToAttachmentType`
@@ -725,11 +708,13 @@ git commit -m "refactor(weixin): remove SDK types and media helpers from WeixinA
 ## Task 4: Update weixinPlugin.test.ts (RED)
 
 **Files:**
+
 - Modify: `tests/unit/channels/weixinPlugin.test.ts`
 
 Update the mock target and agent access **before** updating `WeixinPlugin.ts`. The tests will fail after this step — that is the intended RED state.
 
 Changes:
+
 1. Mock `WeixinMonitor.startMonitor` instead of `weixin-agent-sdk.start`
 2. Access agent via `(mockStartFn.mock.calls[0][0] as MonitorOptions).agent` in 6 places
 3. Update `testConnection` test to write a buf file at `<TEST_DATA_DIR>/weixin-monitor/<accountId>.buf` instead of an accounts JSON
@@ -861,7 +846,9 @@ describe('WeixinPlugin — Promise bridge', () => {
     const WeixinPlugin = await loadPluginClass();
     const plugin = new WeixinPlugin();
     await plugin.initialize(createConfig());
-    plugin.onMessage(async () => { await new Promise(() => {}); });
+    plugin.onMessage(async () => {
+      await new Promise(() => {});
+    });
     await plugin.start();
 
     const { agent } = mockStartFn.mock.calls[0][0] as MonitorOptions;
@@ -880,7 +867,9 @@ describe('WeixinPlugin — Promise bridge', () => {
     const WeixinPlugin = await loadPluginClass();
     const plugin = new WeixinPlugin();
     await plugin.initialize(createConfig());
-    plugin.onMessage(async () => { await new Promise(() => {}); });
+    plugin.onMessage(async () => {
+      await new Promise(() => {});
+    });
     await plugin.start();
 
     const { agent } = mockStartFn.mock.calls[0][0] as MonitorOptions;
@@ -896,7 +885,9 @@ describe('WeixinPlugin — Promise bridge', () => {
     const WeixinPlugin = await loadPluginClass();
     const plugin = new WeixinPlugin();
     await plugin.initialize(createConfig());
-    plugin.onMessage(async () => { await new Promise(() => {}); });
+    plugin.onMessage(async () => {
+      await new Promise(() => {});
+    });
     await plugin.start();
 
     const { agent } = mockStartFn.mock.calls[0][0] as MonitorOptions;
@@ -966,9 +957,11 @@ git commit -m "test(weixin): migrate weixinPlugin tests to WeixinMonitor mock (R
 ## Task 5: Update WeixinPlugin.ts (GREEN)
 
 **Files:**
+
 - Modify: `src/process/channels/plugins/weixin/WeixinPlugin.ts`
 
 Key changes:
+
 - Remove SDK imports (`start`, `Agent`, `ChatRequest`, `ChatResponse`)
 - Add `startMonitor` import from `./WeixinMonitor` and types `WeixinChatRequest`, `WeixinChatResponse`
 - Remove `toChatResponse` from `WeixinAdapter` import (deleted in Task 3)
@@ -1144,10 +1137,7 @@ export class WeixinPlugin extends BasePlugin {
 
   // ==================== Static ====================
 
-  static async testConnection(
-    accountId: string,
-    _botToken?: string
-  ): Promise<{ success: boolean; error?: string }> {
+  static async testConnection(accountId: string, _botToken?: string): Promise<{ success: boolean; error?: string }> {
     try {
       const stateDir = getPlatformServices().paths.getDataDir();
       const bufFile = path.join(stateDir, 'weixin-monitor', `${accountId}.buf`);
@@ -1188,6 +1178,7 @@ git commit -m "refactor(weixin): replace weixin-agent-sdk with WeixinMonitor in 
 ## Task 6: Remove SDK dependency and final verification
 
 **Files:**
+
 - Modify: `package.json`
 
 - [ ] **Step 1: Remove weixin-agent-sdk from package.json**

@@ -157,10 +157,7 @@ export class WeixinPlugin extends BasePlugin {
 
   // ==================== Static ====================
 
-  static async testConnection(
-    accountId: string,
-    _botToken?: string
-  ): Promise<{ success: boolean; error?: string }> {
+  static async testConnection(accountId: string, _botToken?: string): Promise<{ success: boolean; error?: string }> {
     try {
       const stateDir = getPlatformServices().paths.getDataDir();
       const bufFile = path.join(stateDir, 'weixin-monitor', `${accountId}.buf`);

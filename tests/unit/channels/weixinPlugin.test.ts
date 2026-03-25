@@ -120,7 +120,9 @@ describe('WeixinPlugin — Promise bridge', () => {
     const WeixinPlugin = await loadPluginClass();
     const plugin = new WeixinPlugin();
     await plugin.initialize(createConfig());
-    plugin.onMessage(async () => { await new Promise(() => {}); });
+    plugin.onMessage(async () => {
+      await new Promise(() => {});
+    });
     await plugin.start();
 
     const { agent } = mockStartFn.mock.calls[0][0] as MonitorOptions;
@@ -139,7 +141,9 @@ describe('WeixinPlugin — Promise bridge', () => {
     const WeixinPlugin = await loadPluginClass();
     const plugin = new WeixinPlugin();
     await plugin.initialize(createConfig());
-    plugin.onMessage(async () => { await new Promise(() => {}); });
+    plugin.onMessage(async () => {
+      await new Promise(() => {});
+    });
     await plugin.start();
 
     const { agent } = mockStartFn.mock.calls[0][0] as MonitorOptions;
@@ -155,7 +159,9 @@ describe('WeixinPlugin — Promise bridge', () => {
     const WeixinPlugin = await loadPluginClass();
     const plugin = new WeixinPlugin();
     await plugin.initialize(createConfig());
-    plugin.onMessage(async () => { await new Promise(() => {}); });
+    plugin.onMessage(async () => {
+      await new Promise(() => {});
+    });
     await plugin.start();
 
     const { agent } = mockStartFn.mock.calls[0][0] as MonitorOptions;
