@@ -4,31 +4,33 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 const norm = (p: string) => p.replace(/\\/g, '/');
 
 // Use vi.hoisted() so tracking variables are initialized before vi.mock factories run
-const { mkdirCalls, symlinkCalls, statResults, lstatResults, existsSyncResults, readdirResults, resetAll } = vi.hoisted(() => {
-  const dirs: string[] = [];
-  const links: Array<{ source: string; target: string; type: string }> = [];
-  const stats: Record<string, boolean> = {};
-  const lstats: Record<string, boolean> = {};
-  const existsSync: Record<string, boolean> = {};
-  const readdir: Record<string, string[]> = {};
+const { mkdirCalls, symlinkCalls, statResults, lstatResults, existsSyncResults, readdirResults, resetAll } = vi.hoisted(
+  () => {
+    const dirs: string[] = [];
+    const links: Array<{ source: string; target: string; type: string }> = [];
+    const stats: Record<string, boolean> = {};
+    const lstats: Record<string, boolean> = {};
+    const existsSync: Record<string, boolean> = {};
+    const readdir: Record<string, string[]> = {};
 
-  return {
-    mkdirCalls: dirs,
-    symlinkCalls: links,
-    statResults: stats,
-    lstatResults: lstats,
-    existsSyncResults: existsSync,
-    readdirResults: readdir,
-    resetAll: () => {
-      dirs.length = 0;
-      links.length = 0;
-      for (const key of Object.keys(stats)) delete stats[key];
-      for (const key of Object.keys(lstats)) delete lstats[key];
-      for (const key of Object.keys(existsSync)) delete existsSync[key];
-      for (const key of Object.keys(readdir)) delete readdir[key];
-    },
-  };
-});
+    return {
+      mkdirCalls: dirs,
+      symlinkCalls: links,
+      statResults: stats,
+      lstatResults: lstats,
+      existsSyncResults: existsSync,
+      readdirResults: readdir,
+      resetAll: () => {
+        dirs.length = 0;
+        links.length = 0;
+        for (const key of Object.keys(stats)) delete stats[key];
+        for (const key of Object.keys(lstats)) delete lstats[key];
+        for (const key of Object.keys(existsSync)) delete existsSync[key];
+        for (const key of Object.keys(readdir)) delete readdir[key];
+      },
+    };
+  }
+);
 
 vi.mock('fs/promises', () => ({
   default: {
