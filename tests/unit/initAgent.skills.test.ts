@@ -49,7 +49,7 @@ describe('initAgent — skill support', () => {
   let hasNativeSkillSupport: (agentTypeOrBackend: string | undefined) => boolean;
   let setupAssistantWorkspace: (
     workspace: string,
-    options: { agentType?: string; backend?: string; enabledSkills?: string[] },
+    options: { agentType?: string; backend?: string; enabledSkills?: string[] }
   ) => Promise<void>;
 
   beforeEach(async () => {
@@ -68,8 +68,17 @@ describe('initAgent — skill support', () => {
   describe('hasNativeSkillSupport', () => {
     it('should return true for all backends with verified native skill dirs', () => {
       const supported = [
-        'gemini', 'claude', 'codebuddy', 'codex', 'qwen',
-        'iflow', 'goose', 'droid', 'kimi', 'vibe', 'cursor',
+        'gemini',
+        'claude',
+        'codebuddy',
+        'codex',
+        'qwen',
+        'iflow',
+        'goose',
+        'droid',
+        'kimi',
+        'vibe',
+        'cursor',
       ];
       for (const backend of supported) {
         expect(hasNativeSkillSupport(backend)).toBe(true);
@@ -158,9 +167,7 @@ describe('initAgent — skill support', () => {
         enabledSkills: ['morph-ppt'],
       });
 
-      expect(symlinkCalls[0].target).toBe(
-        path.join('/tmp/workspace', '.codebuddy/skills', 'morph-ppt'),
-      );
+      expect(symlinkCalls[0].target).toBe(path.join('/tmp/workspace', '.codebuddy/skills', 'morph-ppt'));
     });
 
     it('should create symlink in .factory/skills for droid backend', async () => {
@@ -171,9 +178,7 @@ describe('initAgent — skill support', () => {
         enabledSkills: ['deploy'],
       });
 
-      expect(symlinkCalls[0].target).toBe(
-        path.join('/tmp/workspace', '.factory/skills', 'deploy'),
-      );
+      expect(symlinkCalls[0].target).toBe(path.join('/tmp/workspace', '.factory/skills', 'deploy'));
     });
 
     it('should use junction type for symlinks (Windows compatibility)', async () => {
@@ -246,9 +251,7 @@ describe('initAgent — skill support', () => {
       });
 
       expect(symlinkCalls).toHaveLength(0);
-      expect(consoleSpy).toHaveBeenCalledWith(
-        expect.stringContaining('nonexistent-skill'),
-      );
+      expect(consoleSpy).toHaveBeenCalledWith(expect.stringContaining('nonexistent-skill'));
       consoleSpy.mockRestore();
     });
 
