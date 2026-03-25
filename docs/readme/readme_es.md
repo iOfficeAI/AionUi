@@ -283,7 +283,7 @@ _10+ formatos: PDF, Word, Excel, PPT, código, Markdown, imágenes, HTML, Diff �
 _Renombrado por lotes, organización automática, clasificación inteligente, fusión de archivos — el Cowork Agent lo maneja por ti._
 
 <p align="center">
-  <img src="./resources/aionui sort file 2.gif" alt="Smart File Management" width="800">
+  <img src="./resources/sort_out_folder.gif" alt="Smart File Management" width="800">
 </p>
 
 <details>

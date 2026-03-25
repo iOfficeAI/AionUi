@@ -283,7 +283,7 @@ _10+ フォーマット：PDF、Word、Excel、PPT、コード、Markdown、画�
 _バッチリネーム、自動整理、スマート分類、ファイルマージ——Cowork Agent があなたのために処理します。_
 
 <p align="center">
-  <img src="./resources/aionui sort file 2.gif" alt="Smart File Management" width="800">
+  <img src="./resources/sort_out_folder.gif" alt="Smart File Management" width="800">
 </p>
 
 <details>

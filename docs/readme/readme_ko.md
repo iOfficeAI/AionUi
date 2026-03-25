@@ -283,7 +283,7 @@ _10+ 형식: PDF, Word, Excel, PPT, 코드, Markdown, 이미지, HTML, Diff — 
 _일괄 이름 변경, 자동 정리, 스마트 분류, 파일 병합——Cowork Agent가 여러분을 위해 처리합니다._
 
 <p align="center">
-  <img src="./resources/aionui sort file 2.gif" alt="Smart File Management" width="800">
+  <img src="./resources/sort_out_folder.gif" alt="Smart File Management" width="800">
 </p>
 
 <details>

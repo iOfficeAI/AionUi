@@ -283,7 +283,7 @@ _支持 10+ 种格式：PDF、Word、Excel、PPT、代码、Markdown、图像、
 _批量重命名、自动整理、智能分类、文件合并 — 这些繁琐的事，交给 Cowork Agent 就行。_
 
 <p align="center">
-  <img src="./resources/aionui sort file 2.gif" alt="Smart File Management" width="800">
+  <img src="./resources/sort_out_folder.gif" alt="Smart File Management" width="800">
 </p>
 
 <details>

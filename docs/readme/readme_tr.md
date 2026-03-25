@@ -283,7 +283,7 @@ _10+ format: PDF, Word, Excel, PPT, kod, Markdown, görüntüler, HTML, Diff —
 _Toplu yeniden adlandırma, otomatik organizasyon, akıllı sınıflandırma, dosya birleştirme — Cowork Agent sizin için halleder._
 
 <p align="center">
-  <img src="./resources/aionui sort file 2.gif" alt="Smart File Management" width="800">
+  <img src="./resources/sort_out_folder.gif" alt="Smart File Management" width="800">
 </p>
 
 <details>
