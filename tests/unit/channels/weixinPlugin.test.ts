@@ -1,5 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import type { IChannelPluginConfig, IUnifiedOutgoingMessage } from '@process/channels/types';
+import type { MonitorOptions } from '@process/channels/plugins/weixin/WeixinMonitor';
 import os from 'os';
 import path from 'path';
 import fs from 'fs';
@@ -10,8 +11,8 @@ const TEST_DATA_DIR = path.join(os.tmpdir(), 'aionui-test-weixin');
 
 async function loadPluginClass() {
   vi.resetModules();
-  vi.doMock('weixin-agent-sdk', () => ({
-    start: (...args: unknown[]) => mockStartFn(...args),
+  vi.doMock('@process/channels/plugins/weixin/WeixinMonitor', () => ({
+    startMonitor: (...args: unknown[]) => mockStartFn(...args),
   }));
   vi.doMock('@/common/platform', () => ({
     getPlatformServices: () => ({
@@ -62,7 +63,7 @@ describe('WeixinPlugin — initialization', () => {
 describe('WeixinPlugin — Promise bridge', () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    mockStartFn = vi.fn(() => new Promise<void>(() => {})); // never resolves
+    mockStartFn = vi.fn(); // void return — no promise needed
   });
 
   it('emits unified message and resolves via editMessage with replyMarkup', async () => {
@@ -73,10 +74,7 @@ describe('WeixinPlugin — Promise bridge', () => {
     const received: unknown[] = [];
     plugin.onMessage(async (msg) => {
       received.push(msg);
-      const msgId = await plugin.sendMessage(msg.chatId, {
-        type: 'text',
-        text: 'partial',
-      });
+      const msgId = await plugin.sendMessage(msg.chatId, { type: 'text', text: 'partial' });
       await plugin.editMessage(msg.chatId, msgId, {
         type: 'text',
         text: 'Final answer',
@@ -86,11 +84,8 @@ describe('WeixinPlugin — Promise bridge', () => {
 
     await plugin.start();
 
-    const agentArg = mockStartFn.mock.calls[0][0];
-    const chatPromise = agentArg.chat({
-      conversationId: 'user_abc',
-      text: 'Hello',
-    });
+    const { agent } = mockStartFn.mock.calls[0][0] as MonitorOptions;
+    const chatPromise = agent.chat({ conversationId: 'user_abc', text: 'Hello' });
 
     await new Promise((r) => setTimeout(r, 20));
 
@@ -106,14 +101,8 @@ describe('WeixinPlugin — Promise bridge', () => {
 
     plugin.onMessage(async (msg) => {
       const msgId = await plugin.sendMessage(msg.chatId, { type: 'text' });
-      await plugin.editMessage(msg.chatId, msgId, {
-        type: 'text',
-        text: 'chunk 1',
-      });
-      await plugin.editMessage(msg.chatId, msgId, {
-        type: 'text',
-        text: 'chunk 1 chunk 2',
-      });
+      await plugin.editMessage(msg.chatId, msgId, { type: 'text', text: 'chunk 1' });
+      await plugin.editMessage(msg.chatId, msgId, { type: 'text', text: 'chunk 1 chunk 2' });
       await plugin.editMessage(msg.chatId, msgId, {
         type: 'text',
         text: 'final complete text',
@@ -122,11 +111,8 @@ describe('WeixinPlugin — Promise bridge', () => {
     });
 
     await plugin.start();
-    const agent = mockStartFn.mock.calls[0][0];
-    const response = await agent.chat({
-      conversationId: 'user_abc',
-      text: 'hi',
-    });
+    const { agent } = mockStartFn.mock.calls[0][0] as MonitorOptions;
+    const response = await agent.chat({ conversationId: 'user_abc', text: 'hi' });
     expect(response.text).toBe('final complete text');
   });
 
@@ -134,25 +120,18 @@ describe('WeixinPlugin — Promise bridge', () => {
     const WeixinPlugin = await loadPluginClass();
     const plugin = new WeixinPlugin();
     await plugin.initialize(createConfig());
-    plugin.onMessage(async () => {
-      await new Promise(() => {});
-    }); // block until superseded
+    plugin.onMessage(async () => { await new Promise(() => {}); });
     await plugin.start();
 
-    const agent = mockStartFn.mock.calls[0][0];
+    const { agent } = mockStartFn.mock.calls[0][0] as MonitorOptions;
     const first = agent.chat({ conversationId: 'user_abc', text: 'first' });
     await new Promise((r) => setTimeout(r, 0));
 
     const second = agent.chat({ conversationId: 'user_abc', text: 'second' });
     await expect(first).rejects.toThrow('superseded');
 
-    // resolve second
     const msgId = await plugin.sendMessage('user_abc', { type: 'text' });
-    await plugin.editMessage('user_abc', msgId, {
-      type: 'text',
-      text: 'ok',
-      replyMarkup: {},
-    });
+    await plugin.editMessage('user_abc', msgId, { type: 'text', text: 'ok', replyMarkup: {} });
     await expect(second).resolves.toBeDefined();
   });
 
@@ -160,12 +139,10 @@ describe('WeixinPlugin — Promise bridge', () => {
     const WeixinPlugin = await loadPluginClass();
     const plugin = new WeixinPlugin();
     await plugin.initialize(createConfig());
-    plugin.onMessage(async () => {
-      await new Promise(() => {});
-    }); // block until stopped
+    plugin.onMessage(async () => { await new Promise(() => {}); });
     await plugin.start();
 
-    const agent = mockStartFn.mock.calls[0][0];
+    const { agent } = mockStartFn.mock.calls[0][0] as MonitorOptions;
     const chatPromise = agent.chat({ conversationId: 'user_abc', text: 'hi' });
     await new Promise((r) => setTimeout(r, 0));
 
@@ -178,16 +155,13 @@ describe('WeixinPlugin — Promise bridge', () => {
     const WeixinPlugin = await loadPluginClass();
     const plugin = new WeixinPlugin();
     await plugin.initialize(createConfig());
-    plugin.onMessage(async () => {
-      await new Promise(() => {});
-    }); // block so promise stays pending
+    plugin.onMessage(async () => { await new Promise(() => {}); });
     await plugin.start();
 
-    const agent = mockStartFn.mock.calls[0][0];
+    const { agent } = mockStartFn.mock.calls[0][0] as MonitorOptions;
     const chatPromise = agent.chat({ conversationId: 'user_abc', text: 'hi' });
     await Promise.resolve();
 
-    // Attach rejection handler BEFORE advancing timers to avoid unhandled rejection
     const assertion = expect(chatPromise).rejects.toThrow('Response timeout');
     await vi.advanceTimersByTimeAsync(5 * 60 * 1000 + 100);
     await assertion;
@@ -202,28 +176,28 @@ describe('WeixinPlugin — Promise bridge', () => {
     await plugin.start();
     await plugin.stop();
 
-    const agent = mockStartFn.mock.calls[0][0];
+    const { agent } = mockStartFn.mock.calls[0][0] as MonitorOptions;
     await expect(agent.chat({ conversationId: 'u', text: 'hi' })).rejects.toThrow('Plugin stopped');
   });
 });
 
 describe('WeixinPlugin — testConnection', () => {
-  it('returns false when credential file does not exist', async () => {
+  it('returns false when buf file does not exist', async () => {
     const WeixinPlugin = await loadPluginClass();
     const result = await WeixinPlugin.testConnection('nonexistent_account_id_xyz');
     expect(result.success).toBe(false);
   });
 
-  it('returns true when credential file exists with a token', async () => {
+  it('returns true when buf file exists at <dataDir>/weixin-monitor/<accountId>.buf', async () => {
     const WeixinPlugin = await loadPluginClass();
-    const accountsDir = path.join(TEST_DATA_DIR, 'openclaw-weixin', 'accounts');
-    fs.mkdirSync(accountsDir, { recursive: true });
-    const accountFile = path.join(accountsDir, 'test_acc_valid.json');
-    fs.writeFileSync(accountFile, JSON.stringify({ token: 'tok_test', baseUrl: 'https://x.com' }));
+    const monitorDir = path.join(TEST_DATA_DIR, 'weixin-monitor');
+    fs.mkdirSync(monitorDir, { recursive: true });
+    const bufFile = path.join(monitorDir, 'test_acc_valid.buf');
+    fs.writeFileSync(bufFile, 'some-buf-value');
 
-    const result = await WeixinPlugin.testConnection('test_acc_valid', 'tok_test');
+    const result = await WeixinPlugin.testConnection('test_acc_valid');
     expect(result.success).toBe(true);
 
-    fs.unlinkSync(accountFile);
+    fs.unlinkSync(bufFile);
   });
 });
