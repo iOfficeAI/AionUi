@@ -211,6 +211,7 @@ export class TypingManager {
     let delay = TYPING_RETRY_DELAY_MS;
     for (let attempt = 0; attempt <= MAX_TYPING_RETRIES; attempt++) {
       try {
+        // oxlint-disable-next-line eslint/no-await-in-loop
         await callSendTyping({
           baseUrl: this.opts.baseUrl,
           token: this.opts.token,
@@ -226,6 +227,7 @@ export class TypingManager {
           this.opts.log(`[weixin-typing] sendTyping failed for ${userId}: ${String(err)}`);
           return;
         }
+        // oxlint-disable-next-line eslint/no-await-in-loop
         await new Promise<void>((r) => setTimeout(r, delay));
         delay *= 2;
       }

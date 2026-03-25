@@ -153,8 +153,8 @@ const WeixinConfigForm: React.FC<WeixinConfigFormProps> = ({ pluginStatus, model
       } else {
         Message.error(result.msg || t('settings.assistant.approveFailed', 'Failed to approve pairing'));
       }
-    } catch (error: any) {
-      Message.error(error.message);
+    } catch (error) {
+      Message.error(error instanceof Error ? error.message : String(error));
     }
   };
 
@@ -167,8 +167,8 @@ const WeixinConfigForm: React.FC<WeixinConfigFormProps> = ({ pluginStatus, model
       } else {
         Message.error(result.msg || t('settings.assistant.rejectFailed', 'Failed to reject pairing'));
       }
-    } catch (error: any) {
-      Message.error(error.message);
+    } catch (error) {
+      Message.error(error instanceof Error ? error.message : String(error));
     }
   };
 
@@ -181,8 +181,8 @@ const WeixinConfigForm: React.FC<WeixinConfigFormProps> = ({ pluginStatus, model
       } else {
         Message.error(result.msg || t('settings.assistant.revokeFailed', 'Failed to revoke user'));
       }
-    } catch (error: any) {
-      Message.error(error.message);
+    } catch (error) {
+      Message.error(error instanceof Error ? error.message : String(error));
     }
   };
 
@@ -210,11 +210,17 @@ const WeixinConfigForm: React.FC<WeixinConfigFormProps> = ({ pluginStatus, model
               }))
           );
         }
-        if (saved && typeof saved === 'object' && 'backend' in saved && typeof (saved as any).backend === 'string') {
+        if (
+          saved &&
+          typeof saved === 'object' &&
+          'backend' in saved &&
+          typeof (saved as Record<string, unknown>).backend === 'string'
+        ) {
+          const s = saved as { backend: AcpBackendAll; customAgentId?: string; name?: string };
           setSelectedAgent({
-            backend: (saved as any).backend as AcpBackendAll,
-            customAgentId: (saved as any).customAgentId,
-            name: (saved as any).name,
+            backend: s.backend,
+            customAgentId: s.customAgentId,
+            name: s.name,
           });
         }
       } catch (error) {
@@ -280,8 +286,8 @@ const WeixinConfigForm: React.FC<WeixinConfigFormProps> = ({ pluginStatus, model
         Message.error(enableResult.msg || t('settings.weixin.enableFailed', 'Failed to enable WeChat plugin'));
         setLoginState('idle');
       }
-    } catch (error: any) {
-      const msg: string = error?.message || '';
+    } catch (error) {
+      const msg = error instanceof Error ? error.message : String(error);
       if (msg.toLowerCase().includes('expired') || msg.toLowerCase().includes('too many')) {
         Message.warning(t('settings.weixin.loginExpired', 'QR code expired, please try again'));
       } else if (msg !== 'Aborted') {

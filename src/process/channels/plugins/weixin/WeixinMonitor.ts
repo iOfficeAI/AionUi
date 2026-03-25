@@ -211,8 +211,10 @@ async function runMonitor(
   let consecutiveFailures = 0;
   const typingMgr = new TypingManager({ baseUrl, token, wechatUin, abortSignal: signal, log });
 
+  // oxlint-disable-next-line eslint/no-unmodified-loop-condition
   while (!signal?.aborted) {
     try {
+      // oxlint-disable-next-line eslint/no-await-in-loop
       const resp = await callGetUpdates(baseUrl, token, wechatUin, buf, signal);
 
       const isApiError =
@@ -225,8 +227,10 @@ async function runMonitor(
         );
         if (consecutiveFailures >= MAX_CONSECUTIVE_FAILURES) {
           consecutiveFailures = 0;
+          // oxlint-disable-next-line eslint/no-await-in-loop
           await sleep(BACKOFF_DELAY_MS, signal);
         } else {
+          // oxlint-disable-next-line eslint/no-await-in-loop
           await sleep(RETRY_DELAY_MS, signal);
         }
         continue;
@@ -246,18 +250,23 @@ async function runMonitor(
         const conversationId = msg.from_user_id ?? '';
         const text = textItem.text_item?.text ?? '';
 
+        // oxlint-disable-next-line eslint/no-await-in-loop
         const stopTyping = await typingMgr.startTyping(conversationId, msg.context_token);
         let response: WeixinChatResponse | undefined;
         try {
+          // oxlint-disable-next-line eslint/no-await-in-loop
           response = await agent.chat({ conversationId, text });
         } catch (agentErr) {
+          // oxlint-disable-next-line eslint/no-await-in-loop
           await stopTyping();
           log(`[weixin] agent error for ${conversationId}: ${formatError(agentErr)}`);
           continue;
         }
+        // oxlint-disable-next-line eslint/no-await-in-loop
         await stopTyping();
         if (response.text) {
           try {
+            // oxlint-disable-next-line eslint/no-await-in-loop
             await callSendMessage(baseUrl, token, wechatUin, conversationId, response.text, msg.context_token);
           } catch (sendErr) {
             log(`[weixin] send error for ${conversationId}: ${formatError(sendErr)}`);
@@ -270,8 +279,10 @@ async function runMonitor(
       log(`[weixin] getUpdates error (${consecutiveFailures}/${MAX_CONSECUTIVE_FAILURES}): ${String(err)}`);
       if (consecutiveFailures >= MAX_CONSECUTIVE_FAILURES) {
         consecutiveFailures = 0;
+        // oxlint-disable-next-line eslint/no-await-in-loop
         await sleep(BACKOFF_DELAY_MS, signal);
       } else {
+        // oxlint-disable-next-line eslint/no-await-in-loop
         await sleep(RETRY_DELAY_MS, signal);
       }
     }

@@ -47,6 +47,7 @@ async function runLoginFlow(callbacks: LoginCallbacks, signal: AbortSignal): Pro
 
     // GET /ilink/bot/get_bot_qrcode?bot_type=3
     // Response: { qrcode: string (ticket), qrcode_img_content: string (image URL) }
+    // oxlint-disable-next-line eslint/no-await-in-loop
     const qrResult = await get<{ qrcode: string; qrcode_img_content: string }>(
       DEFAULT_BASE_URL,
       `ilink/bot/get_bot_qrcode?bot_type=${encodeURIComponent(BOT_TYPE)}`,
@@ -57,6 +58,7 @@ async function runLoginFlow(callbacks: LoginCallbacks, signal: AbortSignal): Pro
     }
     callbacks.onQR(qrResult.qrcode_img_content);
 
+    // oxlint-disable-next-line eslint/no-await-in-loop
     const pollResult = await pollQRStatus(qrResult.qrcode, callbacks, signal);
 
     if (pollResult === 'expired') {
@@ -86,6 +88,7 @@ async function pollQRStatus(qrcode: string, callbacks: LoginCallbacks, signal: A
       ilink_user_id?: string;
     };
     try {
+      // oxlint-disable-next-line eslint/no-await-in-loop
       result = await get(
         DEFAULT_BASE_URL,
         `ilink/bot/get_qrcode_status?qrcode=${encodeURIComponent(qrcode)}`,
