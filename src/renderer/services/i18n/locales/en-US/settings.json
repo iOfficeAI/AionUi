@@ -146,6 +146,7 @@
   "closeToTray": "Close to Tray",
   "notification": "Notifications",
   "cronNotificationEnabled": "Scheduled Task Completion",
+  "promptTimeout": "LLM Prompt Timeout (s)",
   "gemini": "Gemini",
   "model": "Model",
   "system": "System",

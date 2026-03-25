@@ -146,6 +146,7 @@
   "closeToTray": "Tepsiye Kapat",
   "notification": "Bildirimler",
   "cronNotificationEnabled": "Zamanlanmış Görev Tamamlanma",
+  "promptTimeout": "LLM İstek Zaman Aşımı (sn)",
   "gemini": "Gemini",
   "model": "Model",
   "system": "Sistem",

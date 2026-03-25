@@ -146,6 +146,7 @@
   "closeToTray": "关闭到托盘",
   "notification": "通知",
   "cronNotificationEnabled": "定时任务完成通知",
+  "promptTimeout": "LLM 请求超时时间（秒）",
   "gemini": "Gemini",
   "model": "模型",
   "system": "系统",

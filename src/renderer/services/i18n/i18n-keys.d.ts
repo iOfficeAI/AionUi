@@ -1136,6 +1136,7 @@ export type I18nKey =
   | 'settings.promptEdit'
   | 'settings.promptPreview'
   | 'settings.promptPreviewEmpty'
+  | 'settings.promptTimeout'
   | 'settings.protocolCheckConfig'
   | 'settings.protocolDetectFailed'
   | 'settings.protocolDetected'
