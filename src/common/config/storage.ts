@@ -132,6 +132,17 @@ export interface IConfigStorageRefer {
     customAgentId?: string;
     name?: string;
   };
+  // WeChat assistant default model / WeChat 助手默认模型
+  'assistant.weixin.defaultModel'?: {
+    id: string;
+    useModel: string;
+  };
+  // WeChat assistant agent selection / WeChat 助手所使用的 Agent
+  'assistant.weixin.agent'?: {
+    backend: AcpBackendAll;
+    customAgentId?: string;
+    name?: string;
+  };
   // Skills Market: whether the aionui-skills builtin skill is enabled
   'skillsMarket.enabled'?: boolean;
 }
@@ -147,7 +158,7 @@ export interface IEnvStorageRefer {
  * Conversation source type - identifies where the conversation was created
  * 会话来源类型 - 标识会话创建的来源
  */
-export type ConversationSource = 'aionui' | 'telegram' | 'lark' | 'dingtalk' | (string & {});
+export type ConversationSource = 'aionui' | 'telegram' | 'lark' | 'dingtalk' | 'weixin' | (string & {});
 
 interface IChatConversation<T, Extra> {
   createTime: number;
@@ -408,7 +419,9 @@ export interface IProvider {
   >;
 }
 
-export type TProviderWithModel = Omit<IProvider, 'model'> & { useModel: string };
+export type TProviderWithModel = Omit<IProvider, 'model'> & {
+  useModel: string;
+};
 
 // MCP Server Configuration Types
 export type McpTransportType = 'stdio' | 'sse' | 'http';

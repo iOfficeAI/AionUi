@@ -60,6 +60,11 @@ export interface ElectronBridgeAPI {
   webuiChangeUsername?: (newUsername: string) => Promise<WebUIChangeUsernameResult>;
   // 生成二维��� token / Generate QR token
   webuiGenerateQRToken?: () => Promise<WebUIGenerateQRTokenResult>;
+  // WeChat QR-code login / 微信二维码登录
+  weixinLoginStart?: () => Promise<{ accountId: string; botToken: string }>;
+  weixinLoginOnQR?: (callback: (data: { qrcodeUrl: string }) => void) => () => void;
+  weixinLoginOnScanned?: (callback: () => void) => () => void;
+  weixinLoginOnDone?: (callback: (data: { accountId: string }) => void) => () => void;
 }
 
 declare global {

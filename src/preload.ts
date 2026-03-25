@@ -44,6 +44,23 @@ contextBridge.exposeInMainWorld('electronAPI', {
   webuiChangeUsername: (newUsername: string) => ipcRenderer.invoke('webui-direct-change-username', { newUsername }),
   // 生��二维码 token / Generate QR token
   webuiGenerateQRToken: () => ipcRenderer.invoke('webui-direct-generate-qr-token'),
+  // WeChat login IPC
+  weixinLoginStart: () => ipcRenderer.invoke('weixin:login:start'),
+  weixinLoginOnQR: (callback: (data: { qrcodeUrl: string }) => void) => {
+    const h = (_event: unknown, data: { qrcodeUrl: string }) => callback(data);
+    ipcRenderer.on('weixin:login:qr', h);
+    return () => ipcRenderer.off('weixin:login:qr', h);
+  },
+  weixinLoginOnScanned: (callback: () => void) => {
+    const h = () => callback();
+    ipcRenderer.on('weixin:login:scanned', h);
+    return () => ipcRenderer.off('weixin:login:scanned', h);
+  },
+  weixinLoginOnDone: (callback: (data: { accountId: string }) => void) => {
+    const h = (_event: unknown, data: { accountId: string }) => callback(data);
+    ipcRenderer.on('weixin:login:done', h);
+    return () => ipcRenderer.off('weixin:login:done', h);
+  },
 });
 
 // 托盘事件监听 - 将 IPC 事件转换为 DOM 事件
