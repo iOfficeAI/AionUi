@@ -34,7 +34,7 @@
 </p>
 
 <p align="center">
-  <strong>💬 Comunidade:</strong> <a href="https://discord.gg/2QAwJn7Egx" target="_blank">Discord (English)</a> | <a href="./resources/wechat_group_5.png" target="_blank">微信 (中文群)</a> | <a href="https://twitter.com/AionUI" target="_blank">Twitter</a>
+  <strong>💬 Comunidade:</strong> <a href="https://discord.gg/2QAwJn7Egx" target="_blank">Discord (English)</a> | <a href="./resources/wx-4.png" target="_blank">微信 (中文群)</a> | <a href="https://twitter.com/AionUI" target="_blank">Twitter</a>
 </p>
 
 ---
@@ -86,7 +86,7 @@ AionUi vem com um motor de Agent AI completo. Diferente de ferramentas que exige
 
 ### **Demo de Morph PPT — Transições suaves com uma frase**
 
-_O AionUi inclui um assistente dedicado de Morph PPT. Ele não apenas cria slides estáticos: transforma seu conteúdo em apresentações dinâmicas e narrativas. Com um tema/roteiro (ou referência de estilo), você gera um deck Morph com transições coerentes._
+_O AionUi inclui um assistente dedicado de Morph PPT. Ele não apenas cria slides estáticos: transforma seu conteúdo em apresentações dinâmicas e narrativas. Com um tema/roteiro (ou referência de estilo), você gera um deck Morph com transições coerentes. Ele é impulsionado pelo [OfficeCLI](https://github.com/iOfficeAI/OfficeCli#)._
 
 - **Não é um gerador de PPT comum** — foco em narrativa com Morph e continuidade entre slides
 - **Fluxo completo embutido** — planejamento, geração, checagem de qualidade e iteração
@@ -564,7 +564,7 @@ brew install aionui
 - [Reportar problemas](https://github.com/iOfficeAI/AionUi/issues) — bugs e solicitações de recursos
 - [Atualizações de lançamento](https://github.com/iOfficeAI/AionUi/releases) — obtenha a última versão
 - [Comunidade Discord](https://discord.gg/2QAwJn7Egx) — comunidade em inglês
-- [Grupo WeChat](./resources/wechat_group_5.png) — comunidade chinesa
+- [Grupo WeChat](./resources/wx-4.png) — comunidade chinesa
 
 ### Contribuindo
 

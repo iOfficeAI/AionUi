@@ -285,9 +285,27 @@ export const useGuidAgentSelection = ({
     };
   }, [selectedAgentKey]);
 
+  const currentEffectiveAgentInfo = useMemo(() => {
+    if (!isPresetAgent) {
+      const isAvailable = isMainAgentAvailable(selectedAgent as string);
+      return {
+        agentType: selectedAgent as string,
+        isFallback: false,
+        originalType: selectedAgent as string,
+        isAvailable,
+      };
+    }
+    return getEffectiveAgentType(selectedAgentInfo);
+  }, [isPresetAgent, selectedAgent, selectedAgentInfo, getEffectiveAgentType, isMainAgentAvailable]);
+
   // Reset selected ACP model when agent changes: prefer saved preference, fallback to cached default
   useEffect(() => {
-    const backend = selectedAgentKey.startsWith('custom:') ? 'custom' : selectedAgentKey;
+    // For preset agents, resolve to the actual backend type for config lookup
+    const backend = isPresetAgent
+      ? currentEffectiveAgentInfo.agentType
+      : selectedAgentKey.startsWith('custom:')
+        ? 'custom'
+        : selectedAgentKey;
 
     let cancelled = false;
     // Read preferred model from acp.config[backend], fallback to cached model list default
@@ -313,13 +331,15 @@ export const useGuidAgentSelection = ({
     return () => {
       cancelled = true;
     };
-  }, [selectedAgentKey, acpCachedModels]);
+  }, [selectedAgentKey, acpCachedModels, isPresetAgent, currentEffectiveAgentInfo.agentType]);
 
   // Read preferred mode or fallback to legacy yoloMode config
   useEffect(() => {
     _setSelectedMode('default');
-    selectedAgentRef.current = selectedAgent;
-    if (!selectedAgent) return;
+    // For preset agents, use the effective backend type for config lookup and mode saving
+    const configKey = isPresetAgent ? currentEffectiveAgentInfo.agentType : selectedAgent;
+    selectedAgentRef.current = configKey;
+    if (!configKey) return;
 
     let cancelled = false;
 
@@ -329,13 +349,13 @@ export const useGuidAgentSelection = ({
         let preferred: string | undefined;
         let yoloMode = false;
 
-        if (selectedAgent === 'gemini') {
+        if (configKey === 'gemini') {
           const config = await ConfigStorage.get('gemini.config');
           preferred = config?.preferredMode;
           yoloMode = config?.yoloMode ?? false;
-        } else if (selectedAgent !== 'custom') {
+        } else {
           const config = await ConfigStorage.get('acp.config');
-          const backendConfig = config?.[selectedAgent as AcpBackend] as Record<string, unknown> | undefined;
+          const backendConfig = config?.[configKey as AcpBackend] as Record<string, unknown> | undefined;
           preferred = backendConfig?.preferredMode as string | undefined;
           yoloMode = (backendConfig?.yoloMode as boolean) ?? false;
         }
@@ -344,7 +364,7 @@ export const useGuidAgentSelection = ({
 
         // 1. Use preferredMode if valid
         if (preferred) {
-          const modes = getAgentModes(selectedAgent);
+          const modes = getAgentModes(configKey);
           if (modes.some((m) => m.value === preferred)) {
             _setSelectedMode(preferred);
             return;
@@ -360,7 +380,7 @@ export const useGuidAgentSelection = ({
             iflow: 'yolo',
             qwen: 'yolo',
           };
-          _setSelectedMode(yoloValues[selectedAgent] || 'yolo');
+          _setSelectedMode(yoloValues[configKey] || 'yolo');
         }
       } catch {
         /* silent */
@@ -372,23 +392,15 @@ export const useGuidAgentSelection = ({
     return () => {
       cancelled = true;
     };
-  }, [selectedAgent]);
-
-  const currentEffectiveAgentInfo = useMemo(() => {
-    if (!isPresetAgent) {
-      const isAvailable = isMainAgentAvailable(selectedAgent as string);
-      return {
-        agentType: selectedAgent as string,
-        isFallback: false,
-        originalType: selectedAgent as string,
-        isAvailable,
-      };
-    }
-    return getEffectiveAgentType(selectedAgentInfo);
-  }, [isPresetAgent, selectedAgent, selectedAgentInfo, getEffectiveAgentType, isMainAgentAvailable]);
+  }, [selectedAgent, isPresetAgent, currentEffectiveAgentInfo.agentType]);
 
   const currentAcpCachedModelInfo = useMemo(() => {
-    const backend = selectedAgentKey.startsWith('custom:') ? 'custom' : selectedAgentKey;
+    // For preset agents, resolve to the actual backend type for model list lookup
+    const backend = isPresetAgent
+      ? currentEffectiveAgentInfo.agentType
+      : selectedAgentKey.startsWith('custom:')
+        ? 'custom'
+        : selectedAgentKey;
     const cached = acpCachedModels[backend];
     if (cached) return cached;
 
@@ -405,7 +417,7 @@ export const useGuidAgentSelection = ({
     }
 
     return null;
-  }, [selectedAgentKey, acpCachedModels]);
+  }, [selectedAgentKey, acpCachedModels, isPresetAgent, currentEffectiveAgentInfo.agentType]);
 
   // Auto-switch only for Gemini agent
   useEffect(() => {

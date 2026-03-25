@@ -14,6 +14,7 @@ import ChannelDiscordLogo from '@/renderer/assets/channel-logos/discord.svg';
 import ChannelLarkLogo from '@/renderer/assets/channel-logos/lark.svg';
 import ChannelSlackLogo from '@/renderer/assets/channel-logos/slack.svg';
 import ChannelTelegramLogo from '@/renderer/assets/channel-logos/telegram.svg';
+import ChannelWeixinLogo from '@/renderer/assets/channel-logos/weixin.svg';
 import { isElectronDesktop } from '@/renderer/utils/platform';
 import { Button, Form, Input, Message, Switch, Tabs, Tooltip } from '@arco-design/web-react';
 import { CheckOne, Communication, Copy, Earth, EditTwo, Refresh } from '@icon-park/react';
@@ -47,6 +48,7 @@ const CHANNEL_LOGOS = [
   { src: ChannelTelegramLogo, alt: 'Telegram' },
   { src: ChannelLarkLogo, alt: 'Lark' },
   { src: ChannelDingTalkLogo, alt: 'DingTalk' },
+  { src: ChannelWeixinLogo, alt: 'WeChat' },
   { src: ChannelSlackLogo, alt: 'Slack' },
   { src: ChannelDiscordLogo, alt: 'Discord' },
 ] as const;

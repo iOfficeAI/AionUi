@@ -4,6 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
+import { ipcBridge } from '@/common';
 import { useInputFocusRing } from '@/renderer/hooks/chat/useInputFocusRing';
 import SlashCommandMenu, { type SlashCommandMenuItem } from '@/renderer/components/chat/SlashCommandMenu';
 import { useSlashCommandController } from '@/renderer/hooks/chat/useSlashCommandController';
@@ -79,6 +80,8 @@ const SendBox: React.FC<{
   const singleLineWidthRef = useRef<number>(0);
   const measurementCanvasRef = useRef<HTMLCanvasElement | null>(null);
   const mobileUserFocusIntentUntilRef = useRef(0);
+  const warmedConversationRef = useRef<string | undefined>(undefined);
+  const warmupTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const latestInputRef = useLatestRef(input);
   const setInputRef = useLatestRef(setInput);
 
@@ -298,8 +301,23 @@ const SendBox: React.FC<{
     mobileUserFocusIntentUntilRef.current = 0;
     handlePasteFocus();
     setIsInputFocused(true);
-  }, [handlePasteFocus, isMobile]);
+
+    // Pre-warm worker bootstrap after focus stays for 1s (debounce).
+    // Avoids triggering warmup for every conversation during rapid switching.
+    const cid = conversationContext?.conversationId;
+    if (cid && warmedConversationRef.current !== cid) {
+      if (warmupTimerRef.current) clearTimeout(warmupTimerRef.current);
+      warmupTimerRef.current = setTimeout(() => {
+        warmedConversationRef.current = cid;
+        ipcBridge.conversation.warmup.invoke({ conversation_id: cid }).catch(() => {});
+      }, 1000);
+    }
+  }, [handlePasteFocus, isMobile, conversationContext?.conversationId]);
   const handleInputBlur = useCallback(() => {
+    if (warmupTimerRef.current) {
+      clearTimeout(warmupTimerRef.current);
+      warmupTimerRef.current = null;
+    }
     setIsInputFocused(false);
   }, []);
 

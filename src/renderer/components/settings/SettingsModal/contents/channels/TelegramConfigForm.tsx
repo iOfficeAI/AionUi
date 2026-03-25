@@ -84,7 +84,7 @@ const TelegramConfigForm: React.FC<TelegramConfigFormProps> = ({
     try {
       const result = await channel.getPendingPairings.invoke();
       if (result.success && result.data) {
-        setPendingPairings(result.data);
+        setPendingPairings(result.data.filter((p) => p.platformType === 'telegram'));
       }
     } catch (error) {
       console.error('[ChannelSettings] Failed to load pending pairings:', error);
@@ -169,6 +169,7 @@ const TelegramConfigForm: React.FC<TelegramConfigFormProps> = ({
   // Listen for pairing requests
   useEffect(() => {
     const unsubscribe = channel.pairingRequested.on((request) => {
+      if (request.platformType !== 'telegram') return;
       setPendingPairings((prev) => {
         const exists = prev.some((p) => p.code === request.code);
         if (exists) return prev;

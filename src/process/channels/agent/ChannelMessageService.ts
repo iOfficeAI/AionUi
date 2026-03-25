@@ -187,7 +187,8 @@ export class ChannelMessageService {
         dbResult.success &&
         (dbResult.data?.source === 'lark' ||
           dbResult.data?.source === 'telegram' ||
-          dbResult.data?.source === 'dingtalk');
+          dbResult.data?.source === 'dingtalk' ||
+          dbResult.data?.source === 'weixin');
 
       task = await taskManager.getOrBuildTask(conversationId, {
         yoloMode: isFromChannel,

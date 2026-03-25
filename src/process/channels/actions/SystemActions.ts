@@ -70,7 +70,9 @@ export async function getChannelDefaultModel(platform: PluginType): Promise<TPro
         ? await ProcessConfig.get('assistant.lark.defaultModel')
         : platform === 'dingtalk'
           ? await ProcessConfig.get('assistant.dingtalk.defaultModel')
-          : await ProcessConfig.get('assistant.telegram.defaultModel');
+          : platform === 'weixin'
+            ? await ProcessConfig.get('assistant.weixin.defaultModel')
+            : await ProcessConfig.get('assistant.telegram.defaultModel');
     if (savedModel?.id && savedModel?.useModel) {
       // Google Auth is frontend-only (OAuth browser flow), not usable in channels.
       // Fall through to find a provider with a valid API key instead.
@@ -171,7 +173,8 @@ export const handleSessionNew: ActionHandler = async (context) => {
   await sessionManager.clearSession(context.channelUser.id, context.chatId);
 
   const platform = context.platform;
-  const source = platform === 'lark' ? 'lark' : platform === 'dingtalk' ? 'dingtalk' : 'telegram';
+  const source =
+    platform === 'lark' ? 'lark' : platform === 'dingtalk' ? 'dingtalk' : platform === 'weixin' ? 'weixin' : 'telegram';
 
   // Selected agent (defaults to Gemini)
   let savedAgent: unknown = undefined;
@@ -180,7 +183,9 @@ export const handleSessionNew: ActionHandler = async (context) => {
       ? ProcessConfig.get('assistant.lark.agent')
       : platform === 'dingtalk'
         ? ProcessConfig.get('assistant.dingtalk.agent')
-        : ProcessConfig.get('assistant.telegram.agent'));
+        : platform === 'weixin'
+          ? ProcessConfig.get('assistant.weixin.agent')
+          : ProcessConfig.get('assistant.telegram.agent'));
   } catch {
     // ignore
   }
