@@ -28,6 +28,8 @@ const ACP_PERF_LOG = process.env.ACP_PERF === '1';
 import BaseAgentManager from './BaseAgentManager';
 import { IpcAgentEventEmitter } from './IpcAgentEventEmitter';
 import { hasCronCommands } from './CronCommandDetector';
+import { hasNativeSkillSupport } from '@process/utils/initAgent';
+import { prepareFirstMessageWithSkillsIndex } from '@process/task/agentUtils';
 import { extractTextFromMessage, processCronInMessage } from './MessageMiddleware';
 import { stripThinkTags } from './ThinkTagDetector';
 
@@ -604,11 +606,23 @@ class AcpAgentManager extends BaseAgentManager<AcpAgentManagerData, AcpPermissio
           contentToSend = contentToSend.split(AIONUI_FILES_MARKER)[0].trimEnd();
         }
 
-        // 首条消息时注入预设规则（来自智能助手配置）
+        // 首条消息时注入预设规则和 skills 索引（来自智能助手配置）
         // Inject preset context on first message (from smart assistant config)
-        // Skills are handled natively via workspace symlinks + activate_skill — no injection needed
-        if (this.isFirstMessage && this.options.presetContext) {
-          contentToSend = `[Assistant Rules - You MUST follow these instructions]\n${this.options.presetContext}\n\n[User Request]\n${contentToSend}`;
+        // For backends with native skill support, skills are handled via workspace symlinks.
+        // For backends WITHOUT native support, fallback to prompt injection with skills index.
+        if (this.isFirstMessage) {
+          if (hasNativeSkillSupport(this.options.backend)) {
+            // Native skill discovery — only inject preset rules
+            if (this.options.presetContext) {
+              contentToSend = `[Assistant Rules - You MUST follow these instructions]\n${this.options.presetContext}\n\n[User Request]\n${contentToSend}`;
+            }
+          } else {
+            // No native skill support — inject preset rules + skills index via prompt
+            contentToSend = await prepareFirstMessageWithSkillsIndex(contentToSend, {
+              presetContext: this.options.presetContext,
+              enabledSkills: this.options.enabledSkills,
+            });
+          }
         }
 
         const result = await this.agent.sendMessage({
