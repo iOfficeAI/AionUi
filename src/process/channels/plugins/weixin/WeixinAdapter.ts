@@ -38,12 +38,27 @@ export function toUnifiedIncomingMessage(request: WeixinChatRequest): IUnifiedIn
  * WeChat does not support HTML markup, so all outgoing text must be plain.
  */
 export function stripHtml(html: string): string {
-  return html
-    .replace(/&amp;/g, '&')
-    .replace(/&lt;/g, '<')
-    .replace(/&gt;/g, '>')
-    .replace(/&quot;/g, '"')
-    .replace(/&#39;/g, "'")
-    .replace(/&nbsp;/g, ' ')
-    .replace(/<[^>]*>/g, '');
+  // Strip tags first, then decode entities, then strip again.
+  // Two-pass approach handles entity-encoded tags (&lt;script&gt; → <script>)
+  // while the single-pass entity decoder prevents double-unescaping (&amp;lt; stays &lt;).
+  const decoded = stripTags(html).replace(/&(?:amp|lt|gt|quot|#39|nbsp);/g, (entity) => {
+    if (entity === '&amp;') return '&';
+    if (entity === '&lt;') return '<';
+    if (entity === '&gt;') return '>';
+    if (entity === '&quot;') return '"';
+    if (entity === '&#39;') return "'";
+    if (entity === '&nbsp;') return ' ';
+    return entity;
+  });
+  return stripTags(decoded);
+}
+
+function stripTags(str: string): string {
+  let result = str;
+  let prev: string;
+  do {
+    prev = result;
+    result = result.replace(/<[^>]*>/g, '');
+  } while (result !== prev);
+  return result;
 }
