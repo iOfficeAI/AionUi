@@ -66,6 +66,7 @@ class AcpAgentManager extends BaseAgentManager<AcpAgentManagerData, AcpPermissio
   workspace: string;
   agent: AcpAgent;
   private bootstrap: Promise<AcpAgent> | undefined;
+  private bootstrapping: boolean = false;
   private isFirstMessage: boolean = true;
   options: AcpAgentManagerData;
   private currentMode: string = 'default';
@@ -146,6 +147,7 @@ class AcpAgentManager extends BaseAgentManager<AcpAgentManagerData, AcpPermissio
 
   initAgent(data: AcpAgentManagerData = this.options) {
     if (this.bootstrap) return this.bootstrap;
+    this.bootstrapping = true;
     this.bootstrap = (async () => {
       let cliPath = data.cliPath;
       let customArgs: string[] | undefined;
@@ -289,6 +291,12 @@ class AcpAgentManager extends BaseAgentManager<AcpAgentManagerData, AcpPermissio
           }
         },
         onStreamEvent: (message) => {
+          // During bootstrap (warmup), suppress UI stream events to avoid
+          // triggering sidebar loading spinner before user sends a message.
+          if (this.bootstrapping) {
+            return;
+          }
+
           const pipelineStart = Date.now();
 
           // Reduce status noise: show full lifecycle only for the first turn.
@@ -533,6 +541,7 @@ class AcpAgentManager extends BaseAgentManager<AcpAgentManagerData, AcpPermissio
         if (modelInfo && modelInfo.availableModels?.length > 0) {
           void this.cacheModelList(modelInfo);
         }
+        this.bootstrapping = false;
         return this.agent;
       });
     })();
@@ -544,6 +553,10 @@ class AcpAgentManager extends BaseAgentManager<AcpAgentManagerData, AcpPermissio
     msg?: string;
     message?: string;
   }> {
+    // Allow stream events through once user actually sends a message,
+    // so initAgent progress (agent_status) is visible during the wait.
+    this.bootstrapping = false;
+
     const managerSendStart = Date.now();
     // Mark conversation as busy to prevent cron jobs from running
     cronBusyGuard.setProcessing(this.conversation_id, true);
@@ -583,9 +596,7 @@ class AcpAgentManager extends BaseAgentManager<AcpAgentManagerData, AcpPermissio
         ipcBridge.acpConversation.responseStream.emit(userResponseMessage);
       }
 
-      const initStart = Date.now();
       await this.initAgent(this.options);
-      if (ACP_PERF_LOG) console.log(`[ACP-PERF] manager: initAgent completed ${Date.now() - initStart}ms`);
 
       if (data.msg_id && data.content) {
         let contentToSend = data.content;
@@ -600,15 +611,10 @@ class AcpAgentManager extends BaseAgentManager<AcpAgentManagerData, AcpPermissio
           contentToSend = `[Assistant Rules - You MUST follow these instructions]\n${this.options.presetContext}\n\n[User Request]\n${contentToSend}`;
         }
 
-        const agentSendStart = Date.now();
         const result = await this.agent.sendMessage({
           ...data,
           content: contentToSend,
         });
-        if (ACP_PERF_LOG)
-          console.log(
-            `[ACP-PERF] manager: agent.sendMessage completed ${Date.now() - agentSendStart}ms (total manager.sendMessage: ${Date.now() - managerSendStart}ms)`
-          );
         // 首条消息发送后标记，无论是否有 presetContext
         if (this.isFirstMessage) {
           this.isFirstMessage = false;

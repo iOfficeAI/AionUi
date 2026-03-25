@@ -185,6 +185,8 @@ export const useGuidSend = (deps: GuidSendDeps): GuidSendResult => {
         };
         sessionStorage.setItem(`gemini_initial_message_${conversation.id}`, JSON.stringify(initialMessage));
 
+        // Pre-warm worker bootstrap before navigation so it starts during page transition
+        ipcBridge.conversation.warmup.invoke({ conversation_id: conversation.id }).catch(() => {});
         void navigate(`/conversation/${conversation.id}`);
       } catch (error: unknown) {
         console.error('Failed to create Gemini conversation:', error);
@@ -241,6 +243,8 @@ export const useGuidSend = (deps: GuidSendDeps): GuidSendResult => {
         };
         sessionStorage.setItem(`openclaw_initial_message_${conversation.id}`, JSON.stringify(initialMessage));
 
+        // Pre-warm worker bootstrap before navigation so it starts during page transition
+        ipcBridge.conversation.warmup.invoke({ conversation_id: conversation.id }).catch(() => {});
         await navigate(`/conversation/${conversation.id}`);
       } catch (error: unknown) {
         const errorMessage = error instanceof Error ? error.message : String(error);
@@ -287,6 +291,8 @@ export const useGuidSend = (deps: GuidSendDeps): GuidSendResult => {
         };
         sessionStorage.setItem(`nanobot_initial_message_${conversation.id}`, JSON.stringify(initialMessage));
 
+        // Pre-warm worker bootstrap before navigation so it starts during page transition
+        ipcBridge.conversation.warmup.invoke({ conversation_id: conversation.id }).catch(() => {});
         await navigate(`/conversation/${conversation.id}`);
       } catch (error: unknown) {
         const errorMessage = error instanceof Error ? error.message : String(error);
@@ -357,6 +363,8 @@ export const useGuidSend = (deps: GuidSendDeps): GuidSendResult => {
         };
         sessionStorage.setItem(`acp_initial_message_${conversation.id}`, JSON.stringify(initialMessage));
 
+        // Pre-warm worker bootstrap before navigation so it starts during page transition
+        ipcBridge.conversation.warmup.invoke({ conversation_id: conversation.id }).catch(() => {});
         await navigate(`/conversation/${conversation.id}`);
       } catch (error: unknown) {
         console.error('Failed to create ACP conversation:', error);

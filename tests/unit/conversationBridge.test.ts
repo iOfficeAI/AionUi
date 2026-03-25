@@ -30,6 +30,7 @@ vi.mock('../../src/common', () => ({
       reloadContext: makeChannel('reloadContext'),
       getWorkspace: makeChannel('getWorkspace'),
       responseSearchWorkSpace: makeChannel('responseSearchWorkSpace'),
+      warmup: makeChannel('warmup'),
       confirmation: {
         confirm: makeChannel('confirmation.confirm'),
         list: makeChannel('confirmation.list'),
@@ -190,6 +191,49 @@ describe('conversationBridge', () => {
 
       expect(result).toEqual(conversation);
       expect(rejectingTaskManager.getOrBuildTask).toHaveBeenCalledWith('new-id');
+    });
+  });
+
+  describe('warmup', () => {
+    it('calls getOrBuildTask for the given conversation_id', async () => {
+      const handler = handlers['warmup'];
+      await handler({ conversation_id: 'test-id' });
+
+      expect(taskManager.getOrBuildTask).toHaveBeenCalledWith('test-id');
+    });
+
+    it('calls initAgent() when task type is "acp"', async () => {
+      const initAgent = vi.fn();
+      const acpTask = { type: 'acp', initAgent };
+      vi.mocked(taskManager.getOrBuildTask).mockResolvedValue(acpTask as any);
+
+      const handler = handlers['warmup'];
+      await handler({ conversation_id: 'acp-id' });
+
+      expect(taskManager.getOrBuildTask).toHaveBeenCalledWith('acp-id');
+      expect(initAgent).toHaveBeenCalled();
+    });
+
+    it('does not call initAgent when task type is not "acp"', async () => {
+      const initAgent = vi.fn();
+      const geminiTask = { type: 'gemini', initAgent };
+      vi.mocked(taskManager.getOrBuildTask).mockResolvedValue(geminiTask as any);
+
+      const handler = handlers['warmup'];
+      await handler({ conversation_id: 'gemini-id' });
+
+      expect(taskManager.getOrBuildTask).toHaveBeenCalledWith('gemini-id');
+      expect(initAgent).not.toHaveBeenCalled();
+    });
+
+    it('silently ignores errors (best-effort)', async () => {
+      vi.mocked(taskManager.getOrBuildTask).mockRejectedValue(new Error('Task build failed'));
+
+      const handler = handlers['warmup'];
+      // Should not throw
+      await expect(handler({ conversation_id: 'failing-id' })).resolves.toBeUndefined();
+
+      expect(taskManager.getOrBuildTask).toHaveBeenCalledWith('failing-id');
     });
   });
 });
