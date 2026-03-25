@@ -1,0 +1,534 @@
+import { ipcBridge } from '@/common';
+import type { TMessage } from '@/common/chat/chatLib';
+import { transformMessage } from '@/common/chat/chatLib';
+import { uuid } from '@/common/utils';
+import SendBox from '@/renderer/components/chat/sendbox';
+import { getSendBoxDraftHook, type FileOrFolderItem } from '@/renderer/hooks/chat/useSendBoxDraft';
+import { createSetUploadFile } from '@/renderer/hooks/chat/useSendBoxFiles';
+import { useAddOrUpdateMessage } from '@/renderer/pages/conversation/Messages/hooks';
+import { allSupportedExts, type FileMetadata } from '@/renderer/services/FileService';
+import { emitter, useAddEventListener } from '@/renderer/utils/emitter';
+import { mergeFileSelectionItems } from '@/renderer/utils/file/fileSelection';
+import { Tag } from '@arco-design/web-react';
+import { Shield } from '@icon-park/react';
+import { iconColors } from '@/renderer/styles/colors';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useTranslation } from 'react-i18next';
+import { buildDisplayMessage } from '@/renderer/utils/file/messageFiles';
+import ThoughtDisplay, { type ThoughtData } from '@/renderer/components/chat/ThoughtDisplay';
+import FilePreview from '@/renderer/components/media/FilePreview';
+import HorizontalFileList from '@/renderer/components/media/HorizontalFileList';
+import { usePreviewContext } from '@/renderer/pages/conversation/Preview';
+import { useLatestRef } from '@/renderer/hooks/ui/useLatestRef';
+import { useOpenFileSelector } from '@/renderer/hooks/file/useOpenFileSelector';
+import FileAttachButton from '@/renderer/components/media/FileAttachButton';
+import { useAutoTitle } from '@/renderer/hooks/chat/useAutoTitle';
+import AgentModeSelector from '@/renderer/components/agent/AgentModeSelector';
+import AcpConfigSelector from '@/renderer/components/agent/AcpConfigSelector';
+import { useSlashCommands } from '@/renderer/hooks/chat/useSlashCommands';
+
+interface CodexDraftData {
+  _type: 'codex';
+  atPath: Array<string | FileOrFolderItem>;
+  content: string;
+  uploadFile: string[];
+}
+
+const useCodexSendBoxDraft = getSendBoxDraftHook('codex', {
+  _type: 'codex',
+  atPath: [],
+  content: '',
+  uploadFile: [],
+});
+
+const EMPTY_AT_PATH: Array<string | FileOrFolderItem> = [];
+const EMPTY_UPLOAD_FILES: string[] = [];
+
+const CodexSendBox: React.FC<{ conversation_id: string }> = ({ conversation_id }) => {
+  const [workspacePath, setWorkspacePath] = useState('');
+  const { t } = useTranslation();
+  const { checkAndUpdateTitle } = useAutoTitle();
+  const addOrUpdateMessage = useAddOrUpdateMessage();
+  const { setSendBoxHandler } = usePreviewContext();
+
+  const [running, setRunning] = useState(false);
+  const [aiProcessing, setAiProcessing] = useState(false); // New loading state for AI response
+  const [codexStatus, setCodexStatus] = useState<string | null>(null);
+  const slashCommands = useSlashCommands(conversation_id, {
+    conversationType: 'codex',
+    codexStatus,
+  });
+  const [thought, setThought] = useState<ThoughtData>({
+    description: '',
+    subject: '',
+  });
+
+  // Track whether current turn has content output
+  // Only reset aiProcessing when finish arrives after content (not after tool calls)
+  const hasContentInTurnRef = useRef(false);
+
+  // Think 消息节流：限制更新频率，减少渲染次数
+  // Throttle thought updates to reduce render frequency
+  const thoughtThrottleRef = useRef<{
+    lastUpdate: number;
+    pending: ThoughtData | null;
+    timer: ReturnType<typeof setTimeout> | null;
+  }>({ lastUpdate: 0, pending: null, timer: null });
+
+  const throttledSetThought = useMemo(() => {
+    const THROTTLE_MS = 50;
+    return (data: ThoughtData) => {
+      const now = Date.now();
+      const ref = thoughtThrottleRef.current;
+      if (now - ref.lastUpdate >= THROTTLE_MS) {
+        ref.lastUpdate = now;
+        ref.pending = null;
+        if (ref.timer) {
+          clearTimeout(ref.timer);
+          ref.timer = null;
+        }
+        setThought(data);
+      } else {
+        ref.pending = data;
+        if (!ref.timer) {
+          ref.timer = setTimeout(
+            () => {
+              ref.lastUpdate = Date.now();
+              ref.timer = null;
+              if (ref.pending) {
+                setThought(ref.pending);
+                ref.pending = null;
+              }
+            },
+            THROTTLE_MS - (now - ref.lastUpdate)
+          );
+        }
+      }
+    };
+  }, []);
+
+  // 清理节流定时器
+  useEffect(() => {
+    return () => {
+      if (thoughtThrottleRef.current.timer) {
+        clearTimeout(thoughtThrottleRef.current.timer);
+      }
+    };
+  }, []);
+
+  const { data: draftData, mutate: mutateDraft } = useCodexSendBoxDraft(conversation_id);
+  const atPath = draftData?.atPath ?? EMPTY_AT_PATH;
+  const uploadFile = draftData?.uploadFile ?? EMPTY_UPLOAD_FILES;
+  const content = draftData?.content ?? '';
+
+  const setAtPath = useCallback(
+    (val: Array<string | FileOrFolderItem>) => {
+      mutateDraft((prev) => ({ ...(prev as CodexDraftData), atPath: val }));
+    },
+    [mutateDraft]
+  );
+
+  const setUploadFile = createSetUploadFile(mutateDraft, draftData);
+
+  const setContent = useCallback(
+    (val: string) => {
+      mutateDraft((prev) => ({ ...(prev as CodexDraftData), content: val }));
+    },
+    [mutateDraft]
+  );
+
+  // 使用 useLatestRef 保存最新的 setContent/atPath，避免重复注册 handler
+  // Use useLatestRef to keep latest setters to avoid re-registering handler
+  const setContentRef = useLatestRef(setContent);
+  const atPathRef = useLatestRef(atPath);
+
+  // Reset state when conversation changes and restore actual running status
+  useEffect(() => {
+    setRunning(false);
+    setAiProcessing(false);
+    setCodexStatus(null);
+    setThought({ subject: '', description: '' });
+    hasContentInTurnRef.current = false;
+
+    // Check actual conversation status from backend
+    void ipcBridge.conversation.get.invoke({ id: conversation_id }).then((res) => {
+      if (!res) return;
+      if (res.status === 'running') {
+        setAiProcessing(true);
+      }
+    });
+  }, [conversation_id]);
+
+  // 注册预览面板添加到发送框的 handler
+  // Register handler for adding text from preview panel to sendbox
+  useEffect(() => {
+    const handler = (text: string) => {
+      // 如果已有内容，添加换行和新文本；否则直接设置文本
+      // If there's existing content, add newline and new text; otherwise just set the text
+      const newContent = content ? `${content}\n${text}` : text;
+      setContentRef.current(newContent);
+    };
+    setSendBoxHandler(handler);
+  }, [setSendBoxHandler, content]);
+
+  // Listen for sendbox.fill event to populate input from external sources
+  useAddEventListener(
+    'sendbox.fill',
+    (text: string) => {
+      setContentRef.current(text);
+    },
+    []
+  );
+
+  useEffect(() => {
+    return ipcBridge.codexConversation.responseStream.on((message) => {
+      if (conversation_id !== message.conversation_id) {
+        return;
+      }
+      // All messages from Backend are already persisted via emitAndPersistMessage
+      // Frontend only needs to update UI
+
+      switch (message.type) {
+        case 'thought':
+          throttledSetThought(message.data as ThoughtData);
+          break;
+        case 'codex_model_info':
+          // Handled by AcpModelSelector, ignore here
+          break;
+        case 'finish':
+          // Only reset when current turn has content output
+          // Tool-only turns (no content) should not reset aiProcessing
+          if (hasContentInTurnRef.current) {
+            // Immediate state reset (notification is handled by centralized hook)
+            // 立即重置状态（通知由集中化 hook 处理）
+            setRunning(false);
+            setAiProcessing(false);
+            setThought({ subject: '', description: '' });
+          }
+          // Reset flag for next turn
+          hasContentInTurnRef.current = false;
+          break;
+        case 'content':
+        case 'codex_permission': {
+          // Mark that current turn has content output
+          hasContentInTurnRef.current = true;
+          setThought({ subject: '', description: '' });
+          const transformedMessage = transformMessage(message);
+          if (transformedMessage) {
+            addOrUpdateMessage(transformedMessage);
+          }
+          break;
+        }
+        case 'agent_status': {
+          const statusData = message.data as { status: string; message: string };
+          setCodexStatus(statusData.status);
+          const transformedMessage = transformMessage(message);
+          if (transformedMessage) {
+            addOrUpdateMessage(transformedMessage);
+          }
+          break;
+        }
+        default: {
+          // Mark that current turn has content output (for other message types like error, user_content, etc.)
+          hasContentInTurnRef.current = true;
+          setThought({ subject: '', description: '' });
+          const transformedMessage = transformMessage(message);
+          if (transformedMessage) {
+            addOrUpdateMessage(transformedMessage);
+          }
+        }
+      }
+    });
+  }, [conversation_id, addOrUpdateMessage]);
+
+  useEffect(() => {
+    void ipcBridge.conversation.get.invoke({ id: conversation_id }).then((res) => {
+      if (!res?.extra?.workspace) return;
+      setWorkspacePath(res.extra.workspace);
+    });
+  }, [conversation_id]);
+
+  // 处理粘贴的文件 - Codex专用逻辑
+  const handleFilesAdded = useCallback(
+    (pastedFiles: FileMetadata[]) => {
+      const filePaths = pastedFiles.map((file) => file.path);
+      setUploadFile((prev) => [...prev, ...filePaths]);
+    },
+    [setUploadFile]
+  );
+
+  // 监听从工作空间选择的文件/文件夹（接收对象或路径数组）
+  // Listen to files/folders selected from workspace (receives objects or path array)
+  useAddEventListener('codex.selected.file', (items: Array<string | FileOrFolderItem>) => {
+    // Add a small delay to ensure state persistence and prevent flashing
+    setTimeout(() => {
+      setAtPath(items);
+    }, 10);
+  });
+
+  useAddEventListener('codex.selected.file.append', (items: Array<string | FileOrFolderItem>) => {
+    setTimeout(() => {
+      const merged = mergeFileSelectionItems(atPathRef.current, items);
+      if (merged !== atPathRef.current) {
+        setAtPath(merged as Array<string | FileOrFolderItem>);
+      }
+    }, 10);
+  });
+
+  const onSendHandler = async (message: string) => {
+    const msg_id = uuid();
+    // Content is already cleared by the shared SendBox component (setInput(''))
+    // before calling onSend — no need to clear again here.
+    emitter.emit('codex.selected.file.clear');
+    const currentAtPath = [...atPath];
+    const currentUploadFile = [...uploadFile];
+    setAtPath([]);
+    setUploadFile([]);
+
+    // 不再自动添加 @ 前缀，避免消息显示换行和歧义
+    const filePaths = [
+      ...currentUploadFile,
+      ...currentAtPath.map((item) => (typeof item === 'string' ? item : item.path)),
+    ];
+    const displayMessage = buildDisplayMessage(message, filePaths, workspacePath);
+
+    // 前端先写入用户消息，避免导航/事件竞争导致看不到消息
+    const userMessage: TMessage = {
+      id: msg_id,
+      msg_id,
+      conversation_id,
+      type: 'text',
+      position: 'right',
+      content: { content: displayMessage },
+      createdAt: Date.now(),
+    };
+    addOrUpdateMessage(userMessage, true); // 立即保存到存储，避免刷新丢失
+    setAiProcessing(true);
+    try {
+      // 提取实际的文件路径发送给后端
+      const atPathStrings = currentAtPath.map((item) => (typeof item === 'string' ? item : item.path));
+      await ipcBridge.codexConversation.sendMessage.invoke({
+        input: displayMessage,
+        msg_id,
+        conversation_id,
+        files: [...currentUploadFile, ...atPathStrings], // 包含上传文件和选中的工作空间文件
+      });
+      void checkAndUpdateTitle(conversation_id, message);
+      emitter.emit('chat.history.refresh');
+    } catch (error) {
+      // Only reset aiProcessing on error, normal flow is reset by 'finish' event
+      setAiProcessing(false);
+      throw error;
+    }
+  };
+
+  const appendSelectedFiles = useCallback(
+    (files: string[]) => {
+      setUploadFile((prev) => [...prev, ...files]);
+    },
+    [setUploadFile]
+  );
+  const { openFileSelector, onSlashBuiltinCommand } = useOpenFileSelector({
+    onFilesSelected: appendSelectedFiles,
+  });
+
+  // 处理从引导页带过来的 initial message
+  // Note: We don't wait for codexStatus because:
+  // 1. Codex connection is initialized when first message is sent (via getTaskByIdRollbackBuild)
+  // 2. Waiting for 'session_active' creates a deadlock (status only updates after message is sent)
+  // 3. This matches the behavior of onSendHandler which sends immediately
+  useEffect(() => {
+    if (!conversation_id) return;
+
+    const storageKey = `codex_initial_message_${conversation_id}`;
+    const processedKey = `codex_initial_processed_${conversation_id}`;
+
+    const processInitialMessage = async () => {
+      const stored = sessionStorage.getItem(storageKey);
+      if (!stored) return;
+
+      // 双重检查锁定模式，防止竞态条件
+      if (sessionStorage.getItem(processedKey)) {
+        return;
+      }
+
+      // 立即标记为已处理，防止重复处理
+      sessionStorage.setItem(processedKey, 'true');
+
+      try {
+        // Set waiting state when processing initial message
+        setAiProcessing(true);
+
+        const { input, files = [] } = JSON.parse(stored) as { input: string; files?: string[] };
+        // 使用固定的msg_id，基于conversation_id确保唯一性
+        const msg_id = `initial_${conversation_id}_${Date.now()}`;
+        const loading_id = uuid();
+
+        const initialDisplayMessage = buildDisplayMessage(input, files, workspacePath);
+
+        // 前端先写入用户消息，避免导航/事件竞争导致看不到消息
+        const userMessage: TMessage = {
+          id: msg_id,
+          msg_id,
+          conversation_id,
+          type: 'text',
+          position: 'right',
+          content: { content: initialDisplayMessage },
+          createdAt: Date.now(),
+        };
+        addOrUpdateMessage(userMessage, true); // 立即保存到存储，避免刷新丢失
+
+        // 发送消息到后端处理
+        await ipcBridge.codexConversation.sendMessage.invoke({
+          input: initialDisplayMessage,
+          msg_id,
+          conversation_id,
+          files,
+          loading_id,
+        });
+        void checkAndUpdateTitle(conversation_id, input);
+        emitter.emit('chat.history.refresh');
+
+        // 成功后移除初始消息存储
+        sessionStorage.removeItem(storageKey);
+      } catch (err) {
+        // 发送失败时清理处理标记，允许重试
+        sessionStorage.removeItem(processedKey);
+        // Only reset aiProcessing on error, normal flow is reset by 'finish' event
+        setAiProcessing(false);
+      }
+    };
+
+    // 小延迟确保状态消息已经完全处理
+    const timer = setTimeout(() => {
+      processInitialMessage().catch((error) => {
+        console.error('Failed to process initial message:', error);
+      });
+    }, 200);
+
+    return () => {
+      clearTimeout(timer);
+    };
+  }, [conversation_id, addOrUpdateMessage]);
+
+  // 停止会话处理函数 Stop conversation handler
+  const handleStop = async (): Promise<void> => {
+    // Use finally to ensure UI state is reset even if backend stop fails
+    try {
+      await ipcBridge.conversation.stop.invoke({ conversation_id });
+    } finally {
+      setRunning(false);
+      setAiProcessing(false);
+      setThought({ subject: '', description: '' });
+      hasContentInTurnRef.current = false;
+    }
+  };
+
+  return (
+    <div className='max-w-800px w-full mx-auto flex flex-col mt-auto mb-16px'>
+      <ThoughtDisplay thought={thought} running={aiProcessing || running} onStop={handleStop} />
+
+      <SendBox
+        value={content}
+        onChange={setContent}
+        loading={running || aiProcessing}
+        disabled={false}
+        className='z-10'
+        placeholder={
+          aiProcessing
+            ? t('conversation.chat.processing')
+            : t('acp.sendbox.placeholder', {
+                backend: 'Codex',
+                defaultValue: `Send message to Codex...`,
+              })
+        }
+        onStop={handleStop}
+        onFilesAdded={handleFilesAdded}
+        supportedExts={allSupportedExts}
+        defaultMultiLine={true}
+        lockMultiLine={true}
+        tools={
+          <div className='flex items-center gap-4px'>
+            <FileAttachButton openFileSelector={openFileSelector} onLocalFilesAdded={handleFilesAdded} />
+            <AgentModeSelector
+              backend='codex'
+              conversationId={conversation_id}
+              compact
+              compactLeadingIcon={<Shield theme='outline' size='14' fill={iconColors.secondary} />}
+              modeLabelFormatter={(mode) => t(`agentMode.${mode.value}`, { defaultValue: mode.label })}
+              compactLabelPrefix={t('agentMode.permission')}
+              hideCompactLabelPrefixOnMobile
+            />
+            <AcpConfigSelector conversationId={conversation_id} backend='codex' />
+          </div>
+        }
+        prefix={
+          <>
+            {/* Files on top */}
+            {(uploadFile.length > 0 || atPath.some((item) => (typeof item === 'string' ? true : item.isFile))) && (
+              <HorizontalFileList>
+                {uploadFile.map((path) => (
+                  <FilePreview
+                    key={path}
+                    path={path}
+                    onRemove={() => setUploadFile(uploadFile.filter((v) => v !== path))}
+                  />
+                ))}
+                {atPath.map((item) => {
+                  const isFile = typeof item === 'string' ? true : item.isFile;
+                  const path = typeof item === 'string' ? item : item.path;
+                  if (isFile) {
+                    return (
+                      <FilePreview
+                        key={path}
+                        path={path}
+                        onRemove={() => {
+                          const newAtPath = atPath.filter((v) =>
+                            typeof v === 'string' ? v !== path : v.path !== path
+                          );
+                          emitter.emit('codex.selected.file', newAtPath);
+                          setAtPath(newAtPath);
+                        }}
+                      />
+                    );
+                  }
+                  return null;
+                })}
+              </HorizontalFileList>
+            )}
+            {/* Folder tags below */}
+            {atPath.some((item) => (typeof item === 'string' ? false : !item.isFile)) && (
+              <div className='flex flex-wrap items-center gap-8px mb-8px'>
+                {atPath.map((item) => {
+                  if (typeof item === 'string') return null;
+                  if (!item.isFile) {
+                    return (
+                      <Tag
+                        key={item.path}
+                        color='blue'
+                        closable
+                        onClose={() => {
+                          const newAtPath = atPath.filter((v) => (typeof v === 'string' ? true : v.path !== item.path));
+                          emitter.emit('codex.selected.file', newAtPath);
+                          setAtPath(newAtPath);
+                        }}
+                      >
+                        {item.name}
+                      </Tag>
+                    );
+                  }
+                  return null;
+                })}
+              </div>
+            )}
+          </>
+        }
+        onSend={onSendHandler}
+        slashCommands={slashCommands}
+        onSlashBuiltinCommand={onSlashBuiltinCommand}
+      ></SendBox>
+    </div>
+  );
+};
+
+export default CodexSendBox;

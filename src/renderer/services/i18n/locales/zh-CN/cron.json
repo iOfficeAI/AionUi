@@ -1,0 +1,61 @@
+{
+  "scheduledTasks": "定时任务",
+  "taskCount": "{{count}} 个任务",
+  "schedule": "调度规则",
+  "nextRun": "下次执行",
+  "lastRun": "上次执行",
+  "lastError": "错误信息",
+  "message": "执行内容",
+  "goToConversation": "跳转到所属会话",
+  "status": {
+    "active": "运行中",
+    "paused": "已暂停",
+    "error": "执行出错",
+    "unread": "有新执行",
+    "unconfigured": "未配置定时任务",
+    "unconfiguredHint": "当前会话暂无定时任务，和 Agent 一起创建一个吧",
+    "createNow": "立即创建",
+    "defaultPrompt": "每天早上10点，为我搜索AI最新的新闻动向，汇总并输出洞察报告。"
+  },
+  "actions": {
+    "goTo": "查看会话",
+    "pause": "暂停",
+    "resume": "恢复",
+    "delete": "删除",
+    "runNow": "立即执行"
+  },
+  "confirmDelete": "确定要删除此定时任务吗？",
+  "deleteSuccess": "任务已删除",
+  "pauseSuccess": "任务已暂停",
+  "resumeSuccess": "任务已恢复",
+  "drawer.title": "定时任务详细",
+  "drawer.name": "名称",
+  "drawer.namePlaceholder": "请输入任务名称",
+  "drawer.taskStatus": "任务状态",
+  "drawer.enabled": "已开启",
+  "drawer.disabled": "已暂停",
+  "drawer.command": "定时指令",
+  "drawer.commandPlaceholder": "请输入要执行的指令",
+  "drawer.schedule": "执行规则",
+  "drawer.nextRun": "下次执行",
+  "drawer.save": "保存",
+  "drawer.saveSuccess": "保存成功",
+  "message.badge": "定时任务",
+  "allScheduledTasks": "全部定时任务",
+  "noTasks": "暂无定时任务",
+  "runNowSuccess": "任务已触发执行",
+  "notification": {
+    "taskComplete": "任务完成",
+    "scheduledTask": "定时任务",
+    "scheduledTaskComplete": "{{title}}的定时任务完成",
+    "taskDone": "任务已完成"
+  },
+  "error": {
+    "alreadyExists": "该会话已存在定时任务 \"{{name}}\" (ID: {{id}})。请先删除它，或使用 [CRON_LIST] 查看已有任务。",
+    "missedJob": "⏰ 定时任务 \"{{name}}\" 在系统休眠期间未执行。\n预定时间：{{time}}\n计时器已重启，将在下次预定时间运行。",
+    "jobNotFound": "未找到脚本: {{id}}",
+    "conversationNotFound": "未找到会话",
+    "scheduledTimePassed": "定时时间已过",
+    "conversationBusy": "会话繁忙，在 {{count}} 次尝试后跳过"
+  }
+}

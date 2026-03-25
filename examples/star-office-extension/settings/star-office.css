@@ -1,0 +1,277 @@
+* {
+  box-sizing: border-box;
+}
+
+:root {
+  color-scheme: dark;
+  --bg: #131522;
+  --panel: #1c2033;
+  --panel-2: #222843;
+  --border: #2d3556;
+  --text: #ebeeff;
+  --muted: #9fa8cd;
+  --accent: #6d7bff;
+  --ok: #53d4b2;
+  --warn: #f6c85e;
+  --bad: #ff6b7d;
+}
+
+html,
+body {
+  margin: 0;
+  padding: 0;
+  background: transparent;
+  color: var(--text);
+  font-family:
+    ui-sans-serif,
+    -apple-system,
+    BlinkMacSystemFont,
+    'Segoe UI',
+    Roboto,
+    Helvetica,
+    Arial,
+    'Noto Sans',
+    'PingFang SC',
+    'Hiragino Sans GB',
+    'Microsoft YaHei',
+    sans-serif;
+}
+
+.office-app {
+  padding: 14px;
+}
+
+.toolbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
+  gap: 12px;
+}
+
+.title-wrap h1 {
+  margin: 0;
+  font-size: 18px;
+  line-height: 1.2;
+}
+
+.title-wrap p {
+  margin: 4px 0 0;
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.actions {
+  display: flex;
+  gap: 8px;
+}
+
+button {
+  border: 1px solid var(--accent);
+  background: var(--accent);
+  color: #fff;
+  padding: 6px 10px;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 12px;
+}
+
+button.ghost {
+  background: transparent;
+  color: var(--accent);
+}
+
+.stats {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.stat-card {
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 8px 10px;
+}
+
+.stat-card .k {
+  font-size: 11px;
+  color: var(--muted);
+}
+
+.stat-card .v {
+  margin-top: 4px;
+  font-size: 18px;
+  font-weight: 700;
+}
+
+.workspace {
+  display: grid;
+  grid-template-columns: 1.8fr 1fr;
+  gap: 12px;
+}
+
+.office-canvas {
+  position: relative;
+  min-height: 390px;
+  border-radius: 12px;
+  border: 1px solid var(--border);
+  background: linear-gradient(180deg, #1f2440 0%, #181c30 100%);
+  overflow: hidden;
+}
+
+.zone {
+  position: absolute;
+  border: 1px dashed #465080;
+  border-radius: 10px;
+}
+
+.zone span {
+  position: absolute;
+  top: 6px;
+  left: 8px;
+  font-size: 11px;
+  color: #b8c1ea;
+}
+
+.z-idle {
+  left: 10px;
+  top: 10px;
+  width: 38%;
+  height: 35%;
+}
+.z-writing {
+  left: 10px;
+  bottom: 10px;
+  width: 38%;
+  height: 35%;
+}
+.z-researching {
+  left: 42%;
+  top: 10px;
+  width: 27%;
+  height: 35%;
+}
+.z-executing {
+  left: 42%;
+  bottom: 10px;
+  width: 27%;
+  height: 35%;
+}
+.z-syncing {
+  right: 10px;
+  top: 10px;
+  width: 28%;
+  height: 35%;
+}
+.z-error {
+  right: 10px;
+  bottom: 10px;
+  width: 28%;
+  height: 35%;
+  border-color: #81505f;
+}
+
+#agent-layer {
+  position: absolute;
+  inset: 0;
+}
+
+.agent {
+  position: absolute;
+  width: 18px;
+  height: 18px;
+  border-radius: 4px;
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.3);
+}
+
+.agent::after {
+  content: attr(data-name);
+  position: absolute;
+  top: 20px;
+  left: 50%;
+  transform: translateX(-50%);
+  white-space: nowrap;
+  font-size: 10px;
+  color: #dbe2ff;
+  background: rgba(10, 12, 20, 0.72);
+  border: 1px solid rgba(109, 123, 255, 0.45);
+  border-radius: 6px;
+  padding: 2px 5px;
+}
+
+.agent.state-idle {
+  background: #7a87a9;
+}
+.agent.state-writing {
+  background: var(--ok);
+}
+.agent.state-researching {
+  background: #66b7ff;
+}
+.agent.state-executing {
+  background: var(--warn);
+}
+.agent.state-syncing {
+  background: var(--accent);
+}
+.agent.state-error {
+  background: var(--bad);
+}
+
+.sidebar {
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 10px;
+  min-height: 390px;
+}
+
+.sidebar h2 {
+  margin: 2px 0 10px;
+  font-size: 14px;
+}
+
+#activity-feed {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  max-height: 344px;
+  overflow: auto;
+}
+
+#activity-feed li {
+  padding: 8px;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  background: var(--panel-2);
+}
+
+#activity-feed .time {
+  color: var(--muted);
+  font-size: 11px;
+}
+
+#activity-feed .text {
+  margin-top: 3px;
+  font-size: 12px;
+  line-height: 1.35;
+}
+
+.hint {
+  margin-top: 10px;
+  color: var(--muted);
+  font-size: 11px;
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+code {
+  color: #c9d0f8;
+}

@@ -1,0 +1,36 @@
+{
+  "compilerOptions": {
+    "target": "ES6",
+    "lib": ["ES2023", "DOM", "DOM.Iterable"],
+    "allowJs": true,
+    "module": "esnext",
+    "moduleResolution": "bundler",
+    "skipLibCheck": true,
+    "esModuleInterop": true,
+    "noImplicitAny": true,
+    "sourceMap": true,
+    "outDir": "dist",
+    "resolveJsonModule": true,
+    "jsx": "react",
+    "allowImportingTsExtensions": true,
+    "noEmit": true,
+    "baseUrl": ".",
+    "paths": {
+      "@/*": ["./src/*"],
+      "@process/*": ["./src/process/*"],
+      "@renderer/*": ["./src/renderer/*"],
+      "@worker/*": ["./src/process/worker/*"]
+    }
+  },
+  "include": [
+    "src/**/*",
+    "uno.config.ts",
+    "electron.vite.config.ts",
+    "playwright.config.ts",
+    "src/renderer/types.d.ts"
+  ],
+  "exclude": [
+    "src/process/services/database/drivers/BunSqliteDriver.ts",
+    "src/process/services/database/drivers/BunSqliteDriver.bun.test.ts"
+  ]
+}

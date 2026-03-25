@@ -1,0 +1,32 @@
+{
+  "agentFallbackNotice": "{{original}} is unavailable, using {{fallback}} instead.",
+  "noAgentAvailable": "メインエージェントが利用できません。Google にログインするか、Claude/Codex CLI をインストールしてください。設定へ移動しますか？",
+  "noAgentAvailableShort": "No Main Agent available. Click to configure.",
+  "agentTabAutoSwitch": "Model not compatible with Gemini, auto-switched to {{fallback}}",
+  "autoSwitchToAgent": "Gemini is not configured, auto-switching to {{agent}}",
+  "autoSwitchedAgent": "{{from}} is not available, switched to {{to}}",
+  "externalSessions": {
+    "title": "外部 Session を引き継ぐ",
+    "description": "ContextGo の外で開始され、まだ引き継がれていない CLI セッションがここに表示されます。",
+    "refresh": "更新",
+    "loading": "外部 Session をスキャンしています...",
+    "updatedAt": "最終更新 {{time}}",
+    "import": "引き継ぐ",
+    "loadFailed": "外部 Session のスキャンに失敗しました。",
+    "importFailed": "選択した外部 Session の引き継ぎに失敗しました。",
+    "providers": {
+      "codex": "Codex",
+      "openclaw-gateway": "OpenClaw"
+    }
+  },
+  "scanning": {
+    "initialMessage": "Current Agent is unavailable, detecting other available agents...",
+    "scanningMessage": "Scanning local available agents...",
+    "connectingMessage": "Connected successfully, please wait...",
+    "establishingConnection": "Establishing connection...",
+    "statusQueued": "Queued",
+    "statusTesting": "Testing latency...",
+    "statusUnreachable": "Unreachable",
+    "statusAvailable": "Available"
+  }
+}

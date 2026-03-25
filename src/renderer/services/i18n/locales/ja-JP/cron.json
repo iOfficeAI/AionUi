@@ -1,0 +1,61 @@
+{
+  "scheduledTasks": "スケジュールタスク",
+  "taskCount": "{{count}} 件のタスク",
+  "schedule": "スケジュール",
+  "nextRun": "次回実行",
+  "lastRun": "前回実行",
+  "lastError": "エラー",
+  "message": "実行内容",
+  "goToConversation": "会話に移動",
+  "status": {
+    "active": "実行中",
+    "paused": "一時停止中",
+    "error": "エラー",
+    "unread": "新しい実行",
+    "unconfigured": "スケジュールタスク未設定",
+    "unconfiguredHint": "このチャットにはまだスケジュールタスクがありません。Agentと一緒に作成しましょう！",
+    "createNow": "今すぐ作成",
+    "defaultPrompt": "毎日午前10時に、最新のAIニュースを検索し、まとめてインサイトレポートを出力してください。"
+  },
+  "actions": {
+    "goTo": "チャットを表示",
+    "pause": "一時停止",
+    "resume": "再開",
+    "delete": "削除",
+    "runNow": "今すぐ実行"
+  },
+  "confirmDelete": "このスケジュールタスクを削除しますか？",
+  "deleteSuccess": "タスクを削除しました",
+  "pauseSuccess": "タスクを一時停止しました",
+  "resumeSuccess": "タスクを再開しました",
+  "drawer.title": "Scheduled Task Details",
+  "drawer.name": "Name",
+  "drawer.namePlaceholder": "Enter task name",
+  "drawer.taskStatus": "Task Status",
+  "drawer.enabled": "Enabled",
+  "drawer.disabled": "Disabled",
+  "drawer.command": "Command",
+  "drawer.commandPlaceholder": "Enter command to execute",
+  "drawer.schedule": "Schedule",
+  "drawer.nextRun": "Next Run",
+  "drawer.save": "Save",
+  "drawer.saveSuccess": "Saved successfully",
+  "message.badge": "Scheduled",
+  "allScheduledTasks": "すべてのスケジュールタスク",
+  "noTasks": "スケジュールタスクがありません",
+  "runNowSuccess": "タスクの実行をトリガーしました",
+  "notification": {
+    "taskComplete": "タスク完了",
+    "scheduledTask": "スケジュールタスク",
+    "scheduledTaskComplete": "{{title}}のスケジュールタスク完了",
+    "taskDone": "タスク完了"
+  },
+  "error": {
+    "alreadyExists": "このセッションには既に \"{{name}}\" (ID: {{id}}) というスケジュールタスクが存在します。まず削除するか、[CRON_LIST] を使用して既存のタスクを確認してください。",
+    "missedJob": "⏰ スケジュールタスク \"{{name}}\" はシステムスリープ中に実行されませんでした。\n予定時刻：{{time}}\nタイマーが再起動され、次回の予定時刻に実行されます。",
+    "jobNotFound": "スクリプトが見つかりません: {{id}}",
+    "conversationNotFound": "会話が見つかりません",
+    "scheduledTimePassed": "予定時刻が過ぎました",
+    "conversationBusy": "会話がビジーです。{{count}} 回の試行後にスキップしました"
+  }
+}

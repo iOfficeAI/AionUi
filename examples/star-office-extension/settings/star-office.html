@@ -1,0 +1,49 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Star Office</title>
+    <link rel="stylesheet" href="./star-office.css" />
+  </head>
+  <body>
+    <div class="office-app">
+      <header class="toolbar">
+        <div class="title-wrap">
+          <h1>Star Office</h1>
+          <p>实时展示 Agent 活动执行信息（Settings Tab 扩展）</p>
+        </div>
+        <div class="actions">
+          <button id="refresh-btn" type="button">刷新</button>
+          <button id="autoplay-btn" type="button" class="ghost">自动轮询：开</button>
+        </div>
+      </header>
+
+      <section class="stats" id="stats"></section>
+
+      <section class="workspace">
+        <div class="office-canvas">
+          <div class="zone z-idle"><span>Idle</span></div>
+          <div class="zone z-writing"><span>Writing</span></div>
+          <div class="zone z-researching"><span>Researching</span></div>
+          <div class="zone z-executing"><span>Executing</span></div>
+          <div class="zone z-syncing"><span>Syncing</span></div>
+          <div class="zone z-error"><span>Error</span></div>
+          <div id="agent-layer"></div>
+        </div>
+
+        <aside class="sidebar">
+          <h2>活动流</h2>
+          <ul id="activity-feed"></ul>
+        </aside>
+      </section>
+
+      <footer class="hint">
+        <span id="source-text">数据源：初始化中...</span>
+        <span>支持通过 <code>postMessage</code> 注入真实数据，协议见 <code>star-office.js</code>。</span>
+      </footer>
+    </div>
+
+    <script src="./star-office.js"></script>
+  </body>
+</html>

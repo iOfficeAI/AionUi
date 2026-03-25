@@ -1,0 +1,46 @@
+<!doctype html>
+<html data-theme="light" data-color-scheme="default">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link rel="icon" type="image/png" href="../../resources/icon.png" />
+    <title>ContextGo</title>
+    <script>
+      // Synchronously restore theme from localStorage to prevent theme flash
+      (function () {
+        try {
+          var theme = localStorage.getItem('__aionui_theme');
+          var colorScheme = localStorage.getItem('__aionui_colorScheme');
+          if (theme) {
+            document.documentElement.setAttribute('data-theme', theme);
+          }
+          if (colorScheme) {
+            document.documentElement.setAttribute('data-color-scheme', colorScheme);
+          }
+        } catch (e) {}
+      })();
+    </script>
+    <style>
+      html,
+      body,
+      #root {
+        width: 100%;
+        height: 100%;
+        margin: 0;
+        padding: 0;
+        overflow: hidden;
+      }
+    </style>
+  </head>
+  <body>
+    <script>
+      // Set arco-theme on body synchronously
+      try {
+        var t = localStorage.getItem('__aionui_theme');
+        if (t) document.body.setAttribute('arco-theme', t);
+      } catch (e) {}
+    </script>
+    <div id="root"></div>
+    <script type="module" src="./main.tsx"></script>
+  </body>
+</html>

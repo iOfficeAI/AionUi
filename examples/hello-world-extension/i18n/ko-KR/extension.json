@@ -1,0 +1,7 @@
+{
+  "displayName": "Hello World 확장",
+  "description": "AionUI의 모든 확장 기능을 보여주는 완전한 데모 확장",
+  "settingsTabs": {
+    "hello-settings": { "name": "Hello 설정" }
+  }
+}
