@@ -5,23 +5,29 @@ const norm = (p: string) => p.replace(/\\/g, '/');
 
 // Use vi.hoisted() so tracking variables are initialized before vi.mock factories run
 const { mkdirCalls, symlinkCalls, statResults, lstatResults, existsSyncResults, readdirResults, resetAll } = vi.hoisted(() => {
-  const mkdirCalls: string[] = [];
-  const symlinkCalls: Array<{ source: string; target: string; type: string }> = [];
-  const statResults: Record<string, boolean> = {};
-  const lstatResults: Record<string, boolean> = {};
-  const existsSyncResults: Record<string, boolean> = {};
-  const readdirResults: Record<string, string[]> = {};
+  const dirs: string[] = [];
+  const links: Array<{ source: string; target: string; type: string }> = [];
+  const stats: Record<string, boolean> = {};
+  const lstats: Record<string, boolean> = {};
+  const existsSync: Record<string, boolean> = {};
+  const readdir: Record<string, string[]> = {};
 
-  const resetAll = () => {
-    mkdirCalls.length = 0;
-    symlinkCalls.length = 0;
-    for (const key of Object.keys(statResults)) delete statResults[key];
-    for (const key of Object.keys(lstatResults)) delete lstatResults[key];
-    for (const key of Object.keys(existsSyncResults)) delete existsSyncResults[key];
-    for (const key of Object.keys(readdirResults)) delete readdirResults[key];
+  return {
+    mkdirCalls: dirs,
+    symlinkCalls: links,
+    statResults: stats,
+    lstatResults: lstats,
+    existsSyncResults: existsSync,
+    readdirResults: readdir,
+    resetAll: () => {
+      dirs.length = 0;
+      links.length = 0;
+      for (const key of Object.keys(stats)) delete stats[key];
+      for (const key of Object.keys(lstats)) delete lstats[key];
+      for (const key of Object.keys(existsSync)) delete existsSync[key];
+      for (const key of Object.keys(readdir)) delete readdir[key];
+    },
   };
-
-  return { mkdirCalls, symlinkCalls, statResults, lstatResults, existsSyncResults, readdirResults, resetAll };
 });
 
 vi.mock('fs/promises', () => ({
