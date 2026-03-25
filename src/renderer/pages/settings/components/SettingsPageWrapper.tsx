@@ -5,6 +5,7 @@ import { SettingsViewModeProvider } from '@/renderer/components/settings/Setting
 import { isElectronDesktop, resolveExtensionAssetUrl } from '@/renderer/utils/platform';
 import { extensions as extensionsIpc, type IExtensionSettingsTab } from '@/common/adapter/ipcBridge';
 import {
+  AlarmClock,
   Communication,
   Computer,
   Earth,
@@ -63,6 +64,12 @@ const SettingsPageWrapper: React.FC<SettingsPageWrapperProps> = ({ children, cla
         label: t('settings.hooksPage', { defaultValue: 'Hooks' }),
         icon: <Puzzle theme='outline' size='16' />,
         path: 'hooks',
+      },
+      {
+        id: 'cron',
+        label: t('cron.scheduledTasks'),
+        icon: <AlarmClock theme='outline' size='16' />,
+        path: 'cron',
       },
       { id: 'tools', label: t('settings.tools'), icon: <Toolkit theme='outline' size='16' />, path: 'tools' },
       { id: 'display', label: t('settings.display'), icon: <Computer theme='outline' size='16' />, path: 'display' },

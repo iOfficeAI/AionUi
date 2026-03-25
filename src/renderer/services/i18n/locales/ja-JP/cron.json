@@ -43,6 +43,21 @@
   "message.badge": "Scheduled",
   "allScheduledTasks": "すべてのスケジュールタスク",
   "noTasks": "スケジュールタスクがありません",
+  "overview": {
+    "description": "すべての会話にあるスケジュールタスクをここでまとめて確認、管理できます。",
+    "stats": {
+      "total": "合計タスク",
+      "active": "実行中",
+      "paused": "一時停止中",
+      "error": "エラーあり"
+    },
+    "filters": {
+      "allStatuses": "すべての状態",
+      "searchPlaceholder": "タスク、会話、指示、Agent、またはエラーで検索"
+    },
+    "emptyInitial": "まだスケジュールタスクはありません。会話から作成すると、ここに表示されます。",
+    "emptyFiltered": "現在の絞り込み条件に一致するスケジュールタスクはありません。"
+  },
   "runNowSuccess": "タスクの実行をトリガーしました",
   "notification": {
     "taskComplete": "タスク完了",

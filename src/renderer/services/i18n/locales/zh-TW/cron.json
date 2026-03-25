@@ -43,6 +43,21 @@
   "message.badge": "Scheduled",
   "allScheduledTasks": "全部定時任務",
   "noTasks": "暫無定時任務",
+  "overview": {
+    "description": "在這裡集中查看與管理所有對話中的定時任務。",
+    "stats": {
+      "total": "任務總數",
+      "active": "執行中",
+      "paused": "已暫停",
+      "error": "異常任務"
+    },
+    "filters": {
+      "allStatuses": "全部狀態",
+      "searchPlaceholder": "依任務、對話、指令、Agent 或錯誤訊息搜尋"
+    },
+    "emptyInitial": "目前還沒有定時任務。先在某個對話中建立後，就會顯示在這裡。",
+    "emptyFiltered": "目前篩選條件下沒有符合的定時任務。"
+  },
   "runNowSuccess": "任務已觸發執行",
   "notification": {
     "taskComplete": "任務完成",

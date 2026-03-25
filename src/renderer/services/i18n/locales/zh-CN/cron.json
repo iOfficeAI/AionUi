@@ -43,6 +43,21 @@
   "message.badge": "定时任务",
   "allScheduledTasks": "全部定时任务",
   "noTasks": "暂无定时任务",
+  "overview": {
+    "description": "在这里统一查看和管理所有会话中的定时任务。",
+    "stats": {
+      "total": "任务总数",
+      "active": "运行中",
+      "paused": "已暂停",
+      "error": "异常任务"
+    },
+    "filters": {
+      "allStatuses": "全部状态",
+      "searchPlaceholder": "按任务、会话、指令、Agent 或错误信息搜索"
+    },
+    "emptyInitial": "暂时还没有定时任务。可先在某个会话中创建，随后会出现在这里。",
+    "emptyFiltered": "当前筛选条件下没有匹配的定时任务。"
+  },
   "runNowSuccess": "任务已触发执行",
   "notification": {
     "taskComplete": "任务完成",

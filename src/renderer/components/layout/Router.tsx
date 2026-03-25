@@ -4,6 +4,7 @@ import AppLoader from '@renderer/components/layout/AppLoader';
 import { useAuth } from '@renderer/hooks/context/AuthContext';
 const Conversation = React.lazy(() => import('@renderer/pages/conversation'));
 const Guid = React.lazy(() => import('@renderer/pages/guid'));
+const GlobalCronSettings = React.lazy(() => import('@renderer/pages/cron/GlobalCronSettings'));
 const AgentSettings = React.lazy(() => import('@renderer/pages/settings/AgentSettings'));
 const HooksManagement = React.lazy(() => import('@renderer/pages/settings/AgentSettings/HooksManagement'));
 const SkillsHubSettings = React.lazy(() => import('@renderer/pages/settings/SkillsHubSettings'));
@@ -55,6 +56,7 @@ const PanelRoute: React.FC<{ layout: React.ReactElement }> = ({ layout }) => {
           <Route path='/settings/model' element={withRouteFallback(ModeSettings)} />
           <Route path='/settings/agent' element={withRouteFallback(AgentSettings)} />
           <Route path='/settings/hooks' element={withRouteFallback(HooksManagement)} />
+          <Route path='/settings/cron' element={withRouteFallback(GlobalCronSettings)} />
           <Route path='/settings/skills-hub' element={withRouteFallback(SkillsHubSettings)} />
           <Route path='/settings/display' element={withRouteFallback(DisplaySettings)} />
           <Route path='/settings/webui' element={withRouteFallback(WebuiSettings)} />
