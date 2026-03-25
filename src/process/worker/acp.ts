@@ -11,9 +11,6 @@ export default forkTask(({ data }, pipe) => {
       pipe.call('acp.message', data);
     },
   });
-  pipe.on('stop.stream', (_, deferred) => {
-    deferred.with(agent.stop());
-  });
   pipe.on('send.message', (data, deferred) => {
     deferred.with(agent.sendMessage(data));
   });

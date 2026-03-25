@@ -594,7 +594,7 @@ export class AionUIDatabase {
    * Used when channel settings change to propagate new model to existing conversations.
    */
   updateChannelConversationModel(
-    source: 'telegram' | 'lark' | 'dingtalk',
+    source: 'telegram' | 'lark' | 'dingtalk' | 'weixin',
     type: string,
     model: TProviderWithModel,
     userId?: string
@@ -1075,6 +1075,7 @@ export class AionUIDatabase {
         INSERT INTO assistant_plugins (id, type, name, enabled, config, status, last_connected, created_at, updated_at)
         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
         ON CONFLICT(id) DO UPDATE SET
+          type = excluded.type,
           name = excluded.name,
           enabled = excluded.enabled,
           config = excluded.config,

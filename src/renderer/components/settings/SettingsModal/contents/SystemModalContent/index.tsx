@@ -5,9 +5,10 @@
  */
 
 import { ipcBridge } from '@/common';
+import { ConfigStorage } from '@/common/config/storage';
 import LanguageSwitcher from '@/renderer/components/settings/LanguageSwitcher';
 import { iconColors } from '@/renderer/styles/colors';
-import { Alert, Button, Collapse, Form, Modal, Switch, Tooltip } from '@arco-design/web-react';
+import { Alert, Button, Collapse, Form, InputNumber, Modal, Switch, Tooltip } from '@arco-design/web-react';
 import { FolderSearch } from '@icon-park/react';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -36,6 +37,7 @@ const SystemModalContent: React.FC = () => {
   const [closeToTray, setCloseToTray] = useState(false);
   const [notificationEnabled, setNotificationEnabled] = useState(true);
   const [cronNotificationEnabled, setCronNotificationEnabled] = useState(false);
+  const [promptTimeout, setPromptTimeout] = useState<number>(300);
 
   useEffect(() => {
     ipcBridge.systemSettings.getCloseToTray
@@ -55,6 +57,14 @@ const SystemModalContent: React.FC = () => {
     ipcBridge.systemSettings.getCronNotificationEnabled
       .invoke()
       .then((enabled) => setCronNotificationEnabled(enabled))
+      .catch(() => {});
+  }, []);
+
+  useEffect(() => {
+    ConfigStorage.get('acp.promptTimeout')
+      .then((val) => {
+        if (val && val > 0) setPromptTimeout(val);
+      })
       .catch(() => {});
   }, []);
 
@@ -79,6 +89,12 @@ const SystemModalContent: React.FC = () => {
     });
   }, []);
 
+  const handlePromptTimeoutChange = useCallback((val: number | undefined) => {
+    const seconds = val ?? 300;
+    setPromptTimeout(seconds);
+    ConfigStorage.set('acp.promptTimeout', seconds).catch(() => {});
+  }, []);
+
   // Get system directory info
   const { data: systemInfo } = useSWR('system.dir.info', () => ipcBridge.application.systemInfo.invoke());
 
@@ -99,6 +115,21 @@ const SystemModalContent: React.FC = () => {
       key: 'closeToTray',
       label: t('settings.closeToTray'),
       component: <Switch checked={closeToTray} onChange={handleCloseToTrayChange} />,
+    },
+    {
+      key: 'promptTimeout',
+      label: t('settings.promptTimeout'),
+      component: (
+        <InputNumber
+          value={promptTimeout}
+          onChange={handlePromptTimeoutChange}
+          min={30}
+          max={3600}
+          step={30}
+          style={{ width: 120 }}
+          suffix='s'
+        />
+      ),
     },
   ];
 

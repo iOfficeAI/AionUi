@@ -793,14 +793,13 @@ class AcpAgentManager extends BaseAgentManager<AcpAgentManagerData, AcpPermissio
   }
 
   /**
-   * Override stop() because AcpAgentManager doesn't use ForkTask's subprocess architecture.
-   * It directly creates AcpAgent in the main process, so we need to call agent.stop() directly.
+   * Override stop() to cancel the current prompt without killing the backend process.
+   * Uses ACP session/cancel so the connection stays alive for subsequent messages.
    */
   async stop() {
     if (this.agent) {
-      return this.agent.stop();
+      this.agent.cancelPrompt();
     }
-    return Promise.resolve();
   }
 
   /**
@@ -1051,11 +1050,11 @@ class AcpAgentManager extends BaseAgentManager<AcpAgentManagerData, AcpPermissio
    * processes via AcpConnection. The default kill() from the base class only
    * kills the immediate worker, leaving the CLI process running as an orphan.
    *
-   * Solution: Call agent.stop() first, which triggers AcpConnection.disconnect()
+   * Solution: Call agent.kill() first, which triggers AcpConnection.disconnect()
    * → ChildProcess.kill(). We add a grace period for the process to exit
    * cleanly before calling super.kill() to tear down the worker.
    *
-   * A hard timeout ensures we don't hang forever if stop() gets stuck.
+   * A hard timeout ensures we don't hang forever if agent.kill() gets stuck.
    * An idempotent doKill() guard prevents double super.kill() when the hard
    * timeout and graceful path race against each other.
    */
@@ -1064,7 +1063,7 @@ class AcpAgentManager extends BaseAgentManager<AcpAgentManagerData, AcpPermissio
 
     let killed = false;
     const GRACE_PERIOD_MS = 500; // Allow child process time to exit cleanly
-    const HARD_TIMEOUT_MS = 1500; // Force kill if stop() hangs
+    const HARD_TIMEOUT_MS = 1500; // Force kill if agent.kill() hangs
 
     // Clear pending slash command waiters to prevent memory leaks
     // 清除待处理的斜杠命令等待者，防止内存泄漏
@@ -1084,10 +1083,10 @@ class AcpAgentManager extends BaseAgentManager<AcpAgentManagerData, AcpPermissio
     // Hard fallback: force kill after timeout regardless
     const hardTimer = setTimeout(doKill, HARD_TIMEOUT_MS);
 
-    // Graceful path: stop → grace period → kill
-    void (this.agent?.stop?.() || Promise.resolve())
+    // Graceful path: agent.kill → grace period → super.kill
+    void (this.agent?.kill?.() || Promise.resolve())
       .catch((err) => {
-        mainWarn('[AcpAgentManager]', 'agent.stop() failed during kill', err);
+        mainWarn('[AcpAgentManager]', 'agent.kill() failed during kill', err);
       })
       .then(() => new Promise<void>((r) => setTimeout(r, GRACE_PERIOD_MS)))
       .finally(doKill);
