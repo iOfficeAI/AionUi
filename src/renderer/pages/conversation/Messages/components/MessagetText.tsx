@@ -19,6 +19,7 @@ import HorizontalFileList from '@renderer/components/media/HorizontalFileList';
 import MarkdownView from '@renderer/components/Markdown';
 import { stripThinkTags, hasThinkTags } from '@renderer/utils/chat/thinkTagFilter';
 import MessageCronBadge from './MessageCronBadge';
+import { CUSTOM_AVATAR_IMAGE_MAP } from '@/renderer/pages/guid/constants';
 
 const parseFileMarker = (content: string) => {
   const markerIndex = content.indexOf(AIONUI_FILES_MARKER);
@@ -100,11 +101,30 @@ const MessageText: React.FC<{ message: IMessageText }> = ({ message }) => {
   );
 
   const cronMeta = message.content.cronMeta;
+  const groupMeta = message.content.groupMeta;
+  const groupAvatarImage = groupMeta?.participantAvatar
+    ? CUSTOM_AVATAR_IMAGE_MAP[groupMeta.participantAvatar]
+    : undefined;
 
   return (
     <>
       <div className={classNames('min-w-0 flex flex-col group', isUserMessage ? 'items-end' : 'items-start')}>
         {cronMeta && <MessageCronBadge meta={cronMeta} />}
+        {groupMeta && !isUserMessage && (
+          <div className='mb-6px inline-flex items-center gap-6px text-12px text-[var(--color-text-3)]'>
+            {groupAvatarImage ? (
+              <img
+                src={groupAvatarImage}
+                alt={groupMeta.participantName}
+                className='w-18px h-18px rd-9px object-cover shrink-0'
+              />
+            ) : groupMeta.participantAvatar ? (
+              <span className='text-14px leading-18px'>{groupMeta.participantAvatar}</span>
+            ) : null}
+            <span className='font-medium text-[var(--color-text-2)]'>{groupMeta.participantName}</span>
+            {groupMeta.round > 0 ? <span>{t('conversation.group.roundLabel', { round: groupMeta.round })}</span> : null}
+          </div>
+        )}
         {files.length > 0 && (
           <div className={classNames('mt-6px', { 'self-end': isUserMessage })}>
             {files.length === 1 ? (

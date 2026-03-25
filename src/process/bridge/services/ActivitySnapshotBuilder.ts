@@ -41,6 +41,11 @@ const mapStatusToState = (
 };
 
 const resolveAgentIdentity = (conversation: TChatConversation): { backend: string; agentName: string } => {
+  if (
+    (conversation.extra as { groupMeta?: { hiddenFromHistory?: boolean } } | undefined)?.groupMeta?.hiddenFromHistory
+  ) {
+    return { backend: 'hidden', agentName: 'Hidden Conversation' };
+  }
   if (conversation.type === 'acp') {
     const backend = String(conversation.extra?.backend || 'acp');
     const agentName = String(conversation.extra?.agentName || backend);
@@ -56,6 +61,9 @@ const resolveAgentIdentity = (conversation: TChatConversation): { backend: strin
     const backend = String(conversation.extra?.backend || 'openclaw');
     const agentName = String(conversation.extra?.agentName || 'OpenClaw');
     return { backend, agentName };
+  }
+  if (conversation.type === 'group') {
+    return { backend: 'group', agentName: 'Discussion Group' };
   }
   return { backend: 'nanobot', agentName: 'NanoBot' };
 };
@@ -107,7 +115,10 @@ export class ActivitySnapshotBuilder {
 
   async build(): Promise<IExtensionAgentActivitySnapshot> {
     const conversationsResult = await this.repo.getUserConversations(undefined, 0, 10000);
-    const conversations = conversationsResult.data.filter((conv) => !conv.extra?.isHealthCheck);
+    const conversations = conversationsResult.data.filter((conv) => {
+      const extra = conv.extra as { isHealthCheck?: boolean; groupMeta?: { hiddenFromHistory?: boolean } } | undefined;
+      return extra?.isHealthCheck !== true && extra?.groupMeta?.hiddenFromHistory !== true;
+    });
 
     const byAgent = new Map<string, IExtensionAgentActivityItem>();
     let runningConversations = 0;

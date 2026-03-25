@@ -19,6 +19,7 @@ import type {
 } from '@/common/types/codex/types/eventData';
 import type { AcpBackend, AcpPermissionRequest, PlanUpdate, ToolCallUpdate } from '@/common/types/acpTypes';
 import type { IResponseMessage } from '../adapter/ipcBridge';
+import type { MessageGroupMeta } from '../config/storage';
 import { uuid } from '../utils';
 
 /**
@@ -119,7 +120,14 @@ export type CronMessageMeta = {
   triggeredAt: number;
 };
 
-export type IMessageText = IMessage<'text', { content: string; cronMeta?: CronMessageMeta }>;
+export type IMessageText = IMessage<
+  'text',
+  {
+    content: string;
+    cronMeta?: CronMessageMeta;
+    groupMeta?: MessageGroupMeta;
+  }
+>;
 
 export type IMessageTips = IMessage<'tips', { content: string; type: 'error' | 'success' | 'warning' }>;
 
@@ -369,8 +377,9 @@ export const transformMessage = (message: IResponseMessage): TMessage => {
         conversation_id: message.conversation_id,
         content: isRichData
           ? {
-              content: (data as { content: string; cronMeta?: CronMessageMeta }).content,
+              content: (data as { content: string; cronMeta?: CronMessageMeta; groupMeta?: MessageGroupMeta }).content,
               cronMeta: (data as { cronMeta?: CronMessageMeta }).cronMeta,
+              groupMeta: (data as { groupMeta?: MessageGroupMeta }).groupMeta,
             }
           : { content: data as string },
       };
@@ -604,7 +613,11 @@ export const composeMessage = (
     return pushMessage(message);
   }
   if (message.type === 'text' && last.type === 'text') {
-    message.content.content = last.content.content + message.content.content;
+    message.content = {
+      ...last.content,
+      ...message.content,
+      content: last.content.content + message.content.content,
+    };
   }
   return updateMessage(list.length - 1, Object.assign({}, last, message));
 };

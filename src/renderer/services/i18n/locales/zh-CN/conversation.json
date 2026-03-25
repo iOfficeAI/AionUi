@@ -88,6 +88,29 @@
     "cliAgents": "CLI Agents",
     "presetAssistants": "预设助手"
   },
+  "group": {
+    "header": "讨论组",
+    "createEntry": "创建讨论组",
+    "createTitle": "创建讨论组",
+    "createAction": "创建讨论组",
+    "createFailed": "创建讨论组失败",
+    "defaultName": "讨论组",
+    "nameLabel": "讨论组名称",
+    "namePlaceholder": "请输入讨论组名称",
+    "modeLabel": "讨论模式",
+    "modeDebate": "辩论式",
+    "modeBroadcast": "广播式",
+    "modeHint": {
+      "debate": "第一轮保持独立回答，第二轮在看到其他助手观点后再给出更新结论。",
+      "broadcast": "每个助手独立作答，讨论组最终返回一组并列观点。"
+    },
+    "participantsLabel": "参与助手",
+    "minimumParticipants": "请至少选择两个助手",
+    "minimumParticipantsHint": "至少选择 2 个助手后才能创建讨论组。",
+    "noDescription": "暂无描述",
+    "sendPlaceholder": "向讨论组发起问题...",
+    "roundLabel": "第 {{round}} 轮"
+  },
   "noAgentsAvailable": "没有可用的 Agent",
   "noModelConfigured": "未配置模型，请前往设置页面配置。",
   "createFailed": "创建会话失败",

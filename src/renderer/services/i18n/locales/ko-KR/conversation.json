@@ -82,6 +82,29 @@
     "cliAgents": "CLI Agents",
     "presetAssistants": "프리셋 어시스턴트"
   },
+  "group": {
+    "header": "토론 그룹",
+    "createEntry": "토론 그룹 만들기",
+    "createTitle": "토론 그룹 만들기",
+    "createAction": "그룹 만들기",
+    "createFailed": "토론 그룹 생성에 실패했습니다",
+    "defaultName": "토론 그룹",
+    "nameLabel": "그룹 이름",
+    "namePlaceholder": "토론 그룹 이름을 입력하세요",
+    "modeLabel": "토론 모드",
+    "modeDebate": "토론",
+    "modeBroadcast": "브로드캐스트",
+    "modeHint": {
+      "debate": "1라운드는 독립적으로 답하고, 2라운드는 다른 어시스턴트의 의견을 본 뒤 답을 갱신합니다.",
+      "broadcast": "각 어시스턴트가 독립적으로 답하고, 그룹이 최종 의견 묶음을 반환합니다."
+    },
+    "participantsLabel": "참여 어시스턴트",
+    "minimumParticipants": "최소 두 명의 어시스턴트를 선택하세요",
+    "minimumParticipantsHint": "토론 그룹을 만들려면 2명 이상의 어시스턴트를 선택해야 합니다.",
+    "noDescription": "설명 없음",
+    "sendPlaceholder": "토론 그룹에 질문하기...",
+    "roundLabel": "{{round}} 라운드"
+  },
   "noAgentsAvailable": "사용 가능한 에이전트가 없습니다",
   "noModelConfigured": "모델이 설정되지 않았습니다. 설정 페이지에서 설정하세요.",
   "createFailed": "대화 생성에 실패했습니다",

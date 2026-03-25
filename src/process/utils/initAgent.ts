@@ -5,7 +5,12 @@
  */
 
 import type { ICreateConversationParams } from '@/common/adapter/ipcBridge';
-import type { TChatConversation, TProviderWithModel } from '@/common/config/storage';
+import type {
+  DiscussionGroupParticipant,
+  DiscussionGroupOrchestration,
+  TChatConversation,
+  TProviderWithModel,
+} from '@/common/config/storage';
 import type { PresetAgentType } from '@/common/types/acpTypes';
 import { uuid } from '@/common/utils';
 import { existsSync } from 'fs';
@@ -182,6 +187,32 @@ export const createGeminiAgent = async (
     modifyTime: Date.now(),
     name: newWorkspace,
     id: uuid(),
+  };
+};
+
+export const createGroupConversation = async (options: {
+  id?: string;
+  name?: string;
+  model: TProviderWithModel;
+  workspace?: string;
+  customWorkspace?: boolean;
+  participants: DiscussionGroupParticipant[];
+  orchestration: DiscussionGroupOrchestration;
+}): Promise<TChatConversation> => {
+  return {
+    type: 'group',
+    model: options.model,
+    extra: {
+      workspace: options.workspace,
+      customWorkspace: options.customWorkspace,
+      participants: options.participants,
+      orchestration: options.orchestration,
+    },
+    desc: options.workspace || '',
+    createTime: Date.now(),
+    modifyTime: Date.now(),
+    name: options.name || 'Discussion Group',
+    id: options.id || uuid(),
   };
 };
 
