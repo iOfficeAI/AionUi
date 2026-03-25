@@ -867,6 +867,8 @@ export type I18nKey =
   | 'settings.channels.telegramDesc'
   | 'settings.channels.telegramTitle'
   | 'settings.channels.title'
+  | 'settings.channels.weixinDesc'
+  | 'settings.channels.weixinTitle'
   | 'settings.checkForUpdates'
   | 'settings.claudeYoloMode'
   | 'settings.claudeYoloModeDesc'
