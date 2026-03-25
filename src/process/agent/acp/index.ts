@@ -376,6 +376,28 @@ export class AcpAgent {
   }
 
   /**
+   * Read promptTimeout from acp.config for the current backend and apply it to the connection.
+   */
+  private async applyPromptTimeoutFromConfig(): Promise<void> {
+    try {
+      // Per-backend promptTimeout takes priority over global setting
+      const acpConfig = await ProcessConfig.get('acp.config');
+      const backendTimeout = acpConfig?.[this.extra.backend]?.promptTimeout;
+      if (backendTimeout && backendTimeout > 0) {
+        this.connection.setPromptTimeout(backendTimeout);
+        return;
+      }
+      // Fallback to global acp.promptTimeout
+      const globalTimeout = await ProcessConfig.get('acp.promptTimeout');
+      if (globalTimeout && globalTimeout > 0) {
+        this.connection.setPromptTimeout(globalTimeout);
+      }
+    } catch {
+      // Ignore config read errors, default timeout will be used
+    }
+  }
+
+  /**
    * Enable yoloMode on a running agent.
    * If already enabled, this is a no-op. Otherwise, sets the session mode
    * on the active connection (for backends that support it).
@@ -487,7 +509,34 @@ export class AcpAgent {
     }
   }
 
-  async stop(): Promise<void> {
+  /**
+   * Cancel the current prompt turn without killing the backend process.
+   * Sends session/cancel notification so the backend stops LLM generation.
+   * The connection stays alive for subsequent messages.
+   */
+  cancelPrompt(): void {
+    this.connection.cancelPrompt();
+    // Reject pending permission dialogs so UI doesn't stay stuck
+    for (const [id, pending] of this.pendingPermissions) {
+      pending.reject(new Error('Cancelled'));
+      this.pendingPermissions.delete(id);
+    }
+    // Emit finish signal to reset frontend loading state
+    if (this.onSignalEvent) {
+      this.onSignalEvent({
+        type: 'finish',
+        conversation_id: this.id,
+        msg_id: uuid(),
+        data: null,
+      });
+    }
+  }
+
+  /**
+   * Fully disconnect from the backend, killing the child process.
+   * Use cancelPrompt() to stop a running prompt without disconnecting.
+   */
+  async kill(): Promise<void> {
     await this.connection.disconnect();
     this.emitStatusMessage('disconnected');
     // Clear session-scoped caches when session ends
@@ -593,6 +642,9 @@ export class AcpAgent {
         this.pendingModelSwitchNotice = null;
       }
 
+      // Re-read timeout config before each prompt so changes take effect immediately
+      await this.applyPromptTimeoutFromConfig();
+
       const promptStart = Date.now();
       await this.connection.sendPrompt(processedContent);
       if (ACP_PERF_LOG)
@@ -637,6 +689,19 @@ export class AcpAgent {
       }
 
       this.emitErrorMessage(errorMsg);
+
+      // Emit finish signal to reset frontend loading state.
+      // Without this, the UI stays in loading after a timeout and the user cannot
+      // type new messages, effectively freezing the session.
+      if (this.onSignalEvent) {
+        this.onSignalEvent({
+          type: 'finish',
+          conversation_id: this.id,
+          msg_id: uuid(),
+          data: null,
+        });
+      }
+
       return {
         success: false,
         error: createAcpError(errorType, errorMsg, retryable),
@@ -1301,8 +1366,6 @@ export class AcpAgent {
     switch (action) {
       case 'send.message':
         return this.sendMessage(data as { content: string; files?: string[]; msg_id?: string });
-      case 'stop.stream':
-        return this.stop();
       default:
         return Promise.reject(new Error(`Unknown action: ${action}`));
     }
@@ -1404,13 +1467,6 @@ export class AcpAgent {
       );
       return [];
     }
-  }
-
-  // Add kill method for compatibility with WorkerManage
-  kill(): void {
-    this.stop().catch((error) => {
-      console.error('Error stopping ACP agent:', error);
-    });
   }
 
   /**

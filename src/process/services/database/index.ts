@@ -108,7 +108,11 @@ export class AionUIDatabase {
       console.error('[Database] Failed to initialize, attempting recovery...', error);
     }
 
-    // Recovery: backup corrupted file and start fresh
+    // Recovery: backup corrupted file and start fresh.
+    // IMPORTANT: also remove the WAL (-wal) and shared-memory (-shm) sidecar files.
+    // If they are left behind, SQLite will try to apply the stale WAL to the new
+    // empty database on the next open, which causes another initialization failure
+    // and triggers an infinite recovery loop.
     if (fs.existsSync(dbPath)) {
       const backupPath = `${dbPath}.backup.${Date.now()}`;
       try {
@@ -122,6 +126,18 @@ export class AionUIDatabase {
           throw new Error('Database is corrupted and cannot be recovered. Please manually delete: ' + dbPath, {
             cause: e2,
           });
+        }
+      }
+    }
+    // Remove stale WAL sidecar files so SQLite starts with a clean slate
+    for (const suffix of ['-wal', '-shm']) {
+      const sidecar = dbPath + suffix;
+      if (fs.existsSync(sidecar)) {
+        try {
+          fs.unlinkSync(sidecar);
+          console.log(`[Database] Removed stale WAL sidecar: ${sidecar}`);
+        } catch (e) {
+          console.warn(`[Database] Could not remove sidecar ${sidecar}:`, e);
         }
       }
     }
@@ -578,7 +594,7 @@ export class AionUIDatabase {
    * Used when channel settings change to propagate new model to existing conversations.
    */
   updateChannelConversationModel(
-    source: 'telegram' | 'lark' | 'dingtalk',
+    source: 'telegram' | 'lark' | 'dingtalk' | 'weixin',
     type: string,
     model: TProviderWithModel,
     userId?: string
@@ -1059,6 +1075,7 @@ export class AionUIDatabase {
         INSERT INTO assistant_plugins (id, type, name, enabled, config, status, last_connected, created_at, updated_at)
         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
         ON CONFLICT(id) DO UPDATE SET
+          type = excluded.type,
           name = excluded.name,
           enabled = excluded.enabled,
           config = excluded.config,
@@ -1393,6 +1410,8 @@ export class AionUIDatabase {
 
 // Async singleton with Promise cache
 let dbInstancePromise: Promise<AionUIDatabase> | null = null;
+// Synchronous reference to the resolved instance — used for safe close on exit
+let dbResolved: AionUIDatabase | null = null;
 
 function resolveDbPath(): string {
   return path.join(getDataPath(), 'aionui.db');
@@ -1400,15 +1419,24 @@ function resolveDbPath(): string {
 
 export function getDatabase(): Promise<AionUIDatabase> {
   if (!dbInstancePromise) {
-    dbInstancePromise = AionUIDatabase.create(resolveDbPath());
+    dbInstancePromise = AionUIDatabase.create(resolveDbPath()).then((db) => {
+      dbResolved = db;
+      return db;
+    });
   }
   return dbInstancePromise;
 }
 
 export function closeDatabase(): void {
-  if (dbInstancePromise) {
-    // Best-effort close: ignore errors during shutdown
-    dbInstancePromise.then((db) => db.close()).catch(() => {});
-    dbInstancePromise = null;
+  // Close synchronously via the resolved reference so this is safe to call from
+  // process.on('exit') handlers (which cannot await Promises).
+  if (dbResolved) {
+    try {
+      dbResolved.close();
+    } catch {
+      // ignore errors during shutdown
+    }
+    dbResolved = null;
   }
+  dbInstancePromise = null;
 }

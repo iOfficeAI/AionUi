@@ -68,6 +68,7 @@ const registerMocks = () => {
         stop: createCommand('conversation.stop'),
         getSlashCommands: createCommand('conversation.getSlashCommands'),
         sendMessage: createCommand('conversation.sendMessage'),
+        warmup: createCommand('conversation.warmup'),
         responseStream: { emit: vi.fn() },
         listChanged: { emit: vi.fn() },
         confirmation: {

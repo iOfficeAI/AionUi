@@ -34,7 +34,7 @@
 </p>
 
 <p align="center">
-  <strong>💬 社区：</strong> <a href="https://discord.gg/2QAwJn7Egx" target="_blank">Discord (English)</a> | <a href="./resources/wechat_group_5.png" target="_blank">微信 (中文群)</a> | <a href="https://twitter.com/AionUI" target="_blank">Twitter</a>
+  <strong>💬 社区：</strong> <a href="https://discord.gg/2QAwJn7Egx" target="_blank">Discord (English)</a> | <a href="./resources/wx-4.png" target="_blank">微信 (中文群)</a> | <a href="https://twitter.com/AionUI" target="_blank">Twitter</a>
 </p>
 
 ---
@@ -84,9 +84,11 @@ AionUi 自带完整的 AI Agent。不像其他工具需要你手动安装各种 
   <img src="./resources/build-in agents.png" alt="Built-in Agents" width="800">
 </p>
 
+---
+
 ### **Morph PPT 动画演示 — 一句话生成丝滑转场**
 
-_AionUi 内置 Morph PPT 助手：不是静态排版，而是把内容做成可讲述的动态演示。输入主题/大纲（或参考风格），即可生成连贯转场的 Morph 演示文稿。_
+_AionUi 内置 Morph PPT 助手：不是静态排版，而是把内容做成可讲述的动态演示。输入主题/大纲（或参考风格），即可生成连贯转场的 Morph 演示文稿。底层由 [OfficeCLI](https://github.com/iOfficeAI/OfficeCli#) 驱动。_
 
 - **不是普通 PPT 生成** — 聚焦 Morph 动画叙事，强调页间连贯变化
 - **内置完整工作流** — 规划、生成、质检、迭代一体化
@@ -564,7 +566,7 @@ brew install aionui
 - [报告问题](https://github.com/iOfficeAI/AionUi/issues) — 遇到 bug 或有新功能想法？告诉我们
 - [发布更新](https://github.com/iOfficeAI/AionUi/releases) — 获取最新版本
 - [Discord 社区](https://discord.gg/2QAwJn7Egx) — 英语社区
-- [微信群](./resources/wechat_group_5.png) — 中文社区
+- [微信群](./resources/wx-4.png) — 中文社区
 
 ### 贡献
 

@@ -68,6 +68,9 @@ export class AcpConnection {
   private configOptions: AcpSessionConfigOption[] | null = null;
   private models: AcpSessionModels | null = null;
 
+  // Configurable prompt timeout in milliseconds (default: 300000 = 5 minutes)
+  private promptTimeoutMs: number = 300000;
+
   // Performance tracking: timestamp when last prompt was sent
   private lastPromptSentAt: number = 0;
   private firstChunkReceived: boolean = true;
@@ -80,6 +83,15 @@ export class AcpConnection {
   public onPromptUsage: (usage: AcpPromptResponseUsage) => void = () => {}; // Handler for PromptResponse.usage (per-turn token data)
   public onFileOperation: (operation: { method: string; path: string; content?: string; sessionId: string }) => void =
     () => {};
+
+  /**
+   * Set the prompt timeout duration in seconds.
+   * @param seconds - Timeout in seconds (minimum 30, default 300)
+   */
+  setPromptTimeout(seconds: number): void {
+    this.promptTimeoutMs = Math.max(30, seconds) * 1000;
+  }
+
   // Disconnect callback - called when child process exits unexpectedly during runtime
   public onDisconnect: (error: { code: number | null; signal: NodeJS.Signals | null }) => void = () => {};
 
@@ -459,24 +471,15 @@ export class AcpConnection {
     return new Promise((resolve, reject) => {
       // Use longer timeout for session/prompt requests as they involve LLM processing
       // Complex tasks like document processing may need significantly more time
-      const timeoutDuration = method === 'session/prompt' ? 300000 : 60000; // 5 minutes for prompts, 1 minute for others
+      const timeoutDuration = method === 'session/prompt' ? this.promptTimeoutMs : 60000;
       const startTime = Date.now();
 
-      const createTimeoutHandler = () => {
-        return setTimeout(() => {
-          const request = this.pendingRequests.get(id);
-          if (request && !request.isPaused) {
-            this.pendingRequests.delete(id);
-            const timeoutMsg =
-              method === 'session/prompt'
-                ? `LLM request timed out after ${timeoutDuration / 1000} seconds`
-                : `Request ${method} timed out after ${timeoutDuration / 1000} seconds`;
-            reject(new Error(timeoutMsg));
-          }
-        }, timeoutDuration);
-      };
-
-      const initialTimeout = createTimeoutHandler();
+      const initialTimeout = setTimeout(() => {
+        const request = this.pendingRequests.get(id);
+        if (request && !request.isPaused) {
+          this.handlePromptTimeout(id, request);
+        }
+      }, timeoutDuration);
 
       const pendingRequest: PendingRequest<T> = {
         resolve: (value: T) => {
@@ -504,6 +507,24 @@ export class AcpConnection {
     });
   }
 
+  /**
+   * Handle request timeout: for session/prompt, send session/cancel to stop
+   * LLM generation without killing the process; for other methods, just reject.
+   */
+  private handlePromptTimeout(requestId: number, request: PendingRequest<unknown>): void {
+    this.pendingRequests.delete(requestId);
+    if (request.method === 'session/prompt') {
+      this.cancelPrompt();
+    }
+    request.reject(
+      new Error(
+        request.method === 'session/prompt'
+          ? `LLM request timed out after ${request.timeoutDuration / 1000} seconds`
+          : `Request ${request.method} timed out after ${request.timeoutDuration / 1000} seconds`
+      )
+    );
+  }
+
   // 暂停指定请求的超时计时器
   private pauseRequestTimeout(requestId: number): void {
     const request = this.pendingRequests.get(requestId);
@@ -524,15 +545,13 @@ export class AcpConnection {
       if (remainingTime > 0) {
         request.timeoutId = setTimeout(() => {
           if (this.pendingRequests.has(requestId) && !request.isPaused) {
-            this.pendingRequests.delete(requestId);
-            request.reject(new Error(`Request ${request.method} timed out`));
+            this.handlePromptTimeout(requestId, request);
           }
         }, remainingTime);
         request.isPaused = false;
       } else {
         // 时间已超过，立即触发超时
-        this.pendingRequests.delete(requestId);
-        request.reject(new Error(`Request ${request.method} timed out`));
+        this.handlePromptTimeout(requestId, request);
       }
     }
   }
@@ -570,8 +589,7 @@ export class AcpConnection {
         request.startTime = Date.now();
         request.timeoutId = setTimeout(() => {
           if (this.pendingRequests.has(id) && !request.isPaused) {
-            this.pendingRequests.delete(id);
-            request.reject(new Error(`LLM request timed out after ${request.timeoutDuration / 1000} seconds`));
+            this.handlePromptTimeout(id, request);
           }
         }, request.timeoutDuration);
       }
@@ -914,6 +932,33 @@ export class AcpConnection {
       sessionId: this.sessionId,
       prompt: [{ type: 'text', text: prompt }],
     });
+  }
+
+  /**
+   * Cancel the current prompt turn by sending a session/cancel notification.
+   * This tells the backend to stop LLM generation and tool calls ASAP.
+   * Also clears all pending session/prompt requests locally.
+   */
+  cancelPrompt(): void {
+    if (!this.sessionId) return;
+
+    // Send ACP session/cancel notification (no response expected)
+    this.sendMessage({
+      jsonrpc: JSONRPC_VERSION,
+      method: 'session/cancel',
+      params: { sessionId: this.sessionId },
+    });
+
+    // Clear all pending session/prompt requests
+    for (const [id, request] of this.pendingRequests) {
+      if (request.method === 'session/prompt') {
+        if (request.timeoutId) {
+          clearTimeout(request.timeoutId);
+        }
+        this.pendingRequests.delete(id);
+        request.resolve(null);
+      }
+    }
   }
 
   async setSessionMode(modeId: string): Promise<AcpResponse> {
