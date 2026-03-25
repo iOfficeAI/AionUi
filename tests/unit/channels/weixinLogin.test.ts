@@ -15,7 +15,7 @@ type MockRequestCallback = (res: {
   statusCode?: number;
 }) => void;
 
-function mockHttpsPost(responses: Array<Record<string, unknown>>) {
+function mockHttpsGet(responses: Array<Record<string, unknown>>) {
   let callIndex = 0;
   vi.mocked(https.request).mockImplementation((_options, callback) => {
     const responseData = responses[callIndex++] ?? {};
@@ -46,10 +46,10 @@ describe('startLogin', () => {
     vi.clearAllMocks();
   });
 
-  it('calls onQR with qrcode_url from first API response', async () => {
-    mockHttpsPost([
-      { qrcode_url: 'https://qr.weixin.qq.com/abc', ticket: 'ticket_1' },
-      { status: 'confirmed', botToken: 'tok_test', baseUrl: 'https://base.url', userId: 'user_123' },
+  it('calls onQR with qrcode_img_content from first API response', async () => {
+    mockHttpsGet([
+      { qrcode: 'ticket_1', qrcode_img_content: 'https://qr.weixin.qq.com/abc' },
+      { status: 'confirmed', bot_token: 'tok_test', baseurl: 'https://base.url', ilink_bot_id: 'user_123' },
     ]);
 
     const onQR = vi.fn();
@@ -70,10 +70,10 @@ describe('startLogin', () => {
   });
 
   it('calls onScanned when status is scaned', async () => {
-    mockHttpsPost([
-      { qrcode_url: 'https://qr.example.com/x', ticket: 't1' },
+    mockHttpsGet([
+      { qrcode: 't1', qrcode_img_content: 'https://qr.example.com/x' },
       { status: 'scaned' },
-      { status: 'confirmed', botToken: 'tok', baseUrl: 'https://b.url', userId: 'u1' },
+      { status: 'confirmed', bot_token: 'tok', baseurl: 'https://b.url', ilink_bot_id: 'u1' },
     ]);
 
     const onScanned = vi.fn();
@@ -88,11 +88,11 @@ describe('startLogin', () => {
 
   it('re-fetches QR code when status is expired', async () => {
     const onQR = vi.fn();
-    mockHttpsPost([
-      { qrcode_url: 'https://qr1.example.com', ticket: 't1' },
+    mockHttpsGet([
+      { qrcode: 't1', qrcode_img_content: 'https://qr1.example.com' },
       { status: 'expired' },
-      { qrcode_url: 'https://qr2.example.com', ticket: 't2' },
-      { status: 'confirmed', botToken: 'tok', baseUrl: 'https://b.url', userId: 'u1' },
+      { qrcode: 't2', qrcode_img_content: 'https://qr2.example.com' },
+      { status: 'confirmed', bot_token: 'tok', baseurl: 'https://b.url', ilink_bot_id: 'u1' },
     ]);
 
     const onDone = vi.fn();
@@ -106,12 +106,12 @@ describe('startLogin', () => {
   });
 
   it('calls onError after 3 expired responses', async () => {
-    mockHttpsPost([
-      { qrcode_url: 'https://qr1', ticket: 't1' },
+    mockHttpsGet([
+      { qrcode: 't1', qrcode_img_content: 'https://qr1' },
       { status: 'expired' },
-      { qrcode_url: 'https://qr2', ticket: 't2' },
+      { qrcode: 't2', qrcode_img_content: 'https://qr2' },
       { status: 'expired' },
-      { qrcode_url: 'https://qr3', ticket: 't3' },
+      { qrcode: 't3', qrcode_img_content: 'https://qr3' },
       { status: 'expired' },
     ]);
 

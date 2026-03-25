@@ -46,18 +46,18 @@ async function runLoginFlow(callbacks: LoginCallbacks, signal: AbortSignal): Pro
     if (signal.aborted) return;
 
     // GET /ilink/bot/get_bot_qrcode?bot_type=3
-    // Response: { qrcode_url: string (image URL), ticket: string }
-    const qrResult = await get<{ qrcode_url: string; ticket: string }>(
+    // Response: { qrcode: string (ticket), qrcode_img_content: string (image URL) }
+    const qrResult = await get<{ qrcode: string; qrcode_img_content: string }>(
       DEFAULT_BASE_URL,
       `ilink/bot/get_bot_qrcode?bot_type=${encodeURIComponent(BOT_TYPE)}`,
       signal
     );
-    if (!qrResult.qrcode_url || !qrResult.ticket) {
+    if (!qrResult.qrcode_img_content || !qrResult.qrcode) {
       throw new Error(`Invalid QR code response: ${JSON.stringify(qrResult)}`);
     }
-    callbacks.onQR(qrResult.qrcode_url);
+    callbacks.onQR(qrResult.qrcode_img_content);
 
-    const pollResult = await pollQRStatus(qrResult.ticket, callbacks, signal);
+    const pollResult = await pollQRStatus(qrResult.qrcode, callbacks, signal);
 
     if (pollResult === 'expired') {
       qrRetries++;
@@ -80,9 +80,10 @@ async function pollQRStatus(qrcode: string, callbacks: LoginCallbacks, signal: A
     // Response: { status, bot_token?, ilink_bot_id?, ilink_user_id?, baseurl? }
     let result: {
       status: 'wait' | 'scaned' | 'expired' | 'confirmed';
-      botToken?: string;
-      baseUrl?: string;
-      userId?: string;
+      bot_token?: string;
+      baseurl?: string;
+      ilink_bot_id?: string;
+      ilink_user_id?: string;
     };
     try {
       result = await get(
@@ -108,13 +109,13 @@ async function pollQRStatus(qrcode: string, callbacks: LoginCallbacks, signal: A
       case 'expired':
         return 'expired';
       case 'confirmed':
-        if (!result.botToken || !result.userId) {
-          throw new Error('Missing botToken or userId in confirmed response');
+        if (!result.bot_token || !result.ilink_bot_id) {
+          throw new Error('Missing bot_token or ilink_bot_id in confirmed response');
         }
         return {
-          accountId: result.userId,
-          botToken: result.botToken,
-          baseUrl: result.baseUrl || DEFAULT_BASE_URL,
+          accountId: result.ilink_bot_id,
+          botToken: result.bot_token,
+          baseUrl: result.baseurl || DEFAULT_BASE_URL,
         };
     }
   }

@@ -5,6 +5,7 @@
  */
 
 import type { BrowserWindow } from 'electron';
+import { BrowserWindow as ElectronBrowserWindow } from 'electron';
 import { startLogin } from './WeixinLogin';
 import type { LoginHandle } from './WeixinLogin';
 
@@ -17,6 +18,47 @@ export class WeixinLoginHandler {
 
   constructor(private readonly getWindow: () => BrowserWindow | null) {}
 
+  private renderQRPage(pageUrl: string): Promise<string> {
+    return new Promise((resolve, reject) => {
+      const hidden = new ElectronBrowserWindow({
+        width: 300,
+        height: 300,
+        show: false,
+        webPreferences: { nodeIntegration: false, contextIsolation: true },
+      });
+
+      const timeoutId = setTimeout(() => {
+        hidden.destroy();
+        reject(new Error('Timeout waiting for QR canvas to render'));
+      }, 10_000);
+
+      const poll = setInterval(() => {
+        hidden.webContents
+          .executeJavaScript(
+            `(function(){const c=document.querySelector('canvas');return c?c.toDataURL('image/png'):null})()`
+          )
+          .then((dataUrl: string | null) => {
+            if (dataUrl) {
+              clearTimeout(timeoutId);
+              clearInterval(poll);
+              hidden.destroy();
+              resolve(dataUrl);
+            }
+          })
+          .catch(() => {});
+      }, 300);
+
+      hidden.webContents.on('did-fail-load', (_e, _code, desc) => {
+        clearTimeout(timeoutId);
+        clearInterval(poll);
+        hidden.destroy();
+        reject(new Error(`QR page load failed: ${desc}`));
+      });
+
+      void hidden.loadURL(pageUrl);
+    });
+  }
+
   startLogin(): Promise<{ accountId: string; botToken: string; baseUrl: string }> {
     this.loginHandle?.abort();
 
@@ -24,8 +66,10 @@ export class WeixinLoginHandler {
       const win = this.getWindow();
 
       this.loginHandle = startLogin({
-        onQR: (qrcodeUrl) => {
-          win?.webContents.send('weixin:login:qr', { qrcodeUrl });
+        onQR: (pageUrl) => {
+          this.renderQRPage(pageUrl)
+            .then((dataUrl) => win?.webContents.send('weixin:login:qr', { qrcodeUrl: dataUrl }))
+            .catch((err) => console.error('[WeixinLoginHandler] Failed to render QR page:', err));
         },
         onScanned: () => {
           win?.webContents.send('weixin:login:scanned');
