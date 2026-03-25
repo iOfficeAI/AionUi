@@ -37,6 +37,7 @@ Help me commit the current changes and open a PR. Follow these steps:
    - Run `git log main..HEAD --oneline` and `git diff main...HEAD` to understand all changes
    - Create PR with `gh pr create`, title under 70 characters
    - PR body format:
+
      ```
      ## Summary
      <1-3 bullet points>
@@ -44,5 +45,6 @@ Help me commit the current changes and open a PR. Follow these steps:
      ## Test plan
      <bulleted checklist of what to verify>
      ```
+
    - **Important**: Do NOT include any AI-generated signatures or tool attributions in the PR body
    - Return the PR URL when done
