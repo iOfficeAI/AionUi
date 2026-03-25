@@ -195,3 +195,111 @@ describe('WeixinMonitor — abort', () => {
     expect(global.fetch).toHaveBeenCalledTimes(1);
   });
 });
+
+describe('WeixinMonitor — typing indicator integration', () => {
+  /**
+   * Stubs fetch for all four endpoints and returns a shared `callOrder` array.
+   * Both fetch events and agent.chat invocations can be pushed into callOrder
+   * to verify cross-boundary ordering.
+   *
+   * Two-round approach: round 1 returns the test messages WITHOUT aborting so
+   * TypingManager.startTyping runs before stopped=true; round 2 aborts to stop
+   * the monitor loop. This avoids the race where a synchronous abort inside the
+   * fetch mock fires the TypingManager abort-listener before startTyping is called.
+   */
+  function makeTypingFetch(opts: { msgs?: unknown[]; callOrder: string[] }): AbortController {
+    const controller = new AbortController();
+    let getupdatesRound = 0;
+
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockImplementation(async (url: string, init: { body?: string }) => {
+        if ((url as string).includes('getupdates')) {
+          getupdatesRound++;
+          if (getupdatesRound === 1) {
+            // First round: return test messages, do NOT abort yet.
+            // The monitor processes the messages (typing + agent.chat + sendmessage)
+            // before looping back for a second getupdates call.
+            return {
+              ok: true,
+              json: async () => ({ ret: 0, msgs: opts.msgs ?? [], get_updates_buf: '' }),
+            } as Response;
+          }
+          // Second round: abort to stop the monitor loop.
+          controller.abort();
+          return {
+            ok: true,
+            json: async () => ({ ret: 0, msgs: [], get_updates_buf: '' }),
+          } as Response;
+        }
+        if ((url as string).includes('getconfig')) {
+          opts.callOrder.push('getconfig');
+          return {
+            ok: true,
+            text: async () => JSON.stringify({ ret: 0, typing_ticket: 'tk_monitor' }),
+          } as Response;
+        }
+        if ((url as string).includes('sendtyping')) {
+          const body = init?.body ? (JSON.parse(init.body) as { status?: number }) : {};
+          opts.callOrder.push(body.status === 2 ? 'sendtyping:CANCEL' : 'sendtyping:TYPING');
+          return { ok: true, text: async () => '{}' } as Response;
+        }
+        if ((url as string).includes('sendmessage')) {
+          opts.callOrder.push('sendmessage');
+          return { ok: true, json: async () => ({}) } as Response;
+        }
+        return { ok: true, json: async () => ({}) } as Response;
+      })
+    );
+
+    return controller;
+  }
+
+  const TEST_MSG = {
+    from_user_id: 'user_t1',
+    context_token: 'ctx_t1',
+    item_list: [{ type: 1, text_item: { text: 'hello' } }],
+  };
+
+  it('sends TYPING before agent.chat is called', async () => {
+    const callOrder: string[] = [];
+    const agentChat = vi.fn().mockImplementation(async () => {
+      callOrder.push('agent.chat');
+      return { text: 'reply' };
+    });
+
+    const controller = makeTypingFetch({ msgs: [TEST_MSG], callOrder });
+    startMonitor(makeOpts({ agent: { chat: agentChat }, abortSignal: controller.signal }));
+    await new Promise((r) => setTimeout(r, 80));
+
+    const typingIdx = callOrder.indexOf('sendtyping:TYPING');
+    const agentIdx = callOrder.indexOf('agent.chat');
+    expect(typingIdx).toBeGreaterThanOrEqual(0);
+    expect(agentIdx).toBeGreaterThan(typingIdx);
+  });
+
+  it('sends CANCEL after agent.chat resolves, before sendmessage', async () => {
+    const callOrder: string[] = [];
+    const controller = makeTypingFetch({ msgs: [TEST_MSG], callOrder });
+
+    startMonitor(makeOpts({ abortSignal: controller.signal }));
+    await new Promise((r) => setTimeout(r, 80));
+
+    const cancelIdx = callOrder.indexOf('sendtyping:CANCEL');
+    const sendIdx = callOrder.indexOf('sendmessage');
+    expect(cancelIdx).toBeGreaterThanOrEqual(0);
+    expect(sendIdx).toBeGreaterThan(cancelIdx);
+  });
+
+  it('sends CANCEL when agent.chat throws', async () => {
+    const callOrder: string[] = [];
+    const agentChat = vi.fn().mockRejectedValue(new Error('agent exploded'));
+    const controller = makeTypingFetch({ msgs: [TEST_MSG], callOrder });
+
+    startMonitor(makeOpts({ agent: { chat: agentChat }, abortSignal: controller.signal }));
+    await new Promise((r) => setTimeout(r, 80));
+
+    expect(callOrder).toContain('sendtyping:CANCEL');
+    expect(callOrder).not.toContain('sendmessage');
+  });
+});

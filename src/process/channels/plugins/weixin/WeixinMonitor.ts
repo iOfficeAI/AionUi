@@ -8,6 +8,8 @@ import crypto from 'node:crypto';
 import fs from 'node:fs';
 import path from 'node:path';
 
+import { TypingManager } from './WeixinTyping';
+
 // ==================== Public types ====================
 
 export type WeixinChatRequest = {
@@ -197,6 +199,7 @@ async function runMonitor(
 ): Promise<void> {
   let buf = loadBuf(dataDir, accountId);
   let consecutiveFailures = 0;
+  const typingMgr = new TypingManager({ baseUrl, token, wechatUin, abortSignal: signal, log });
 
   while (!signal?.aborted) {
     try {
@@ -233,12 +236,15 @@ async function runMonitor(
         const conversationId = msg.from_user_id ?? '';
         const text = textItem.text_item?.text ?? '';
 
+        const stopTyping = await typingMgr.startTyping(conversationId, msg.context_token);
         try {
           const response = await agent.chat({ conversationId, text });
+          await stopTyping();
           if (response.text) {
             await callSendMessage(baseUrl, token, wechatUin, conversationId, response.text, msg.context_token);
           }
         } catch (agentErr) {
+          await stopTyping();
           log(`[weixin] agent or send error for ${conversationId}: ${String(agentErr)}`);
         }
       }
