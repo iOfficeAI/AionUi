@@ -1,0 +1,7 @@
+{
+  "name": "tool-safety-guard",
+  "description": "System hook that adds an explicit safety checklist before tool execution decisions. Implemented as a before_user_prompt prompt transform.",
+  "version": "1.0.0",
+  "executionType": "prompt-transform",
+  "events": ["before_user_prompt"]
+}

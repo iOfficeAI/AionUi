@@ -71,6 +71,7 @@ async function convertAssistant(
     context: context || '',
     models: assistant.models,
     enabledSkills: assistant.enabledSkills,
+    enabledHooks: assistant.enabledHooks,
     prompts: assistant.prompts,
     isPreset: true,
     isBuiltin: false,
