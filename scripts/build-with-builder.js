@@ -24,6 +24,9 @@ const prepareBundledBun = require('./prepareBundledBun');
 // "Device not configured" hdiutil errors (electron-builder#8415, actions/runner-images#12323).
 const DMG_RETRY_MAX = 3;
 const DMG_RETRY_DELAY_SEC = 30;
+const MAC_NATIVE_HELPER_NAME = 'voice-input-recorder';
+const MAC_NATIVE_HELPER_SOURCE = path.resolve(__dirname, '../resources/native/voice-input/VoiceInputRecorder.swift');
+const MAC_NATIVE_HELPER_OUTPUT = path.resolve(__dirname, `../resources/native/${MAC_NATIVE_HELPER_NAME}`);
 
 // Incremental build: hash of source files to detect changes
 const INCREMENTAL_CACHE_FILE = 'out/.build-hash';
@@ -215,6 +218,45 @@ function formatExecError(error) {
   return [error?.message, error?.stdout?.toString?.(), error?.stderr?.toString?.()].filter(Boolean).join('\n').trim();
 }
 
+function compileMacVoiceInputHelper(targetArchs) {
+  if (process.platform !== 'darwin') return;
+  if (!fs.existsSync(MAC_NATIVE_HELPER_SOURCE)) {
+    throw new Error(`Missing native voice helper source: ${MAC_NATIVE_HELPER_SOURCE}`);
+  }
+
+  const requestedArchs = [...new Set(targetArchs.filter((arch) => arch === 'arm64' || arch === 'x64'))];
+  const effectiveArchs = requestedArchs.length > 0 ? requestedArchs : [process.arch];
+
+  fs.mkdirSync(path.dirname(MAC_NATIVE_HELPER_OUTPUT), { recursive: true });
+
+  const buildSingleArch = (arch) => {
+    const triple = arch === 'x64' ? 'x86_64-apple-macos12.0' : 'arm64-apple-macos12.0';
+    const outputPath =
+      effectiveArchs.length === 1 ? MAC_NATIVE_HELPER_OUTPUT : `${MAC_NATIVE_HELPER_OUTPUT}.${arch}`;
+
+    execSync(`xcrun swiftc -parse-as-library -O -target ${triple} -o "${outputPath}" "${MAC_NATIVE_HELPER_SOURCE}"`, {
+      stdio: 'inherit',
+      shell: process.platform === 'win32',
+    });
+
+    fs.chmodSync(outputPath, 0o755);
+    return outputPath;
+  };
+
+  const builtOutputs = effectiveArchs.map((arch) => buildSingleArch(arch));
+
+  if (builtOutputs.length > 1) {
+    execSync(`xcrun lipo -create -output "${MAC_NATIVE_HELPER_OUTPUT}" ${builtOutputs.map((item) => `"${item}"`).join(' ')}`, {
+      stdio: 'inherit',
+      shell: process.platform === 'win32',
+    });
+    fs.chmodSync(MAC_NATIVE_HELPER_OUTPUT, 0o755);
+    for (const outputPath of builtOutputs) {
+      fs.rmSync(outputPath, { force: true });
+    }
+  }
+}
+
 // Create DMG using electron-builder --prepackaged with .app path
 // This preserves DMG styling from electron-builder.yml (window size, icon positions, background)
 function createDmgWithPrepackaged(appDir, targetArch) {
@@ -383,6 +425,11 @@ if (packOnly) console.log('⚡ --pack-only: Will skip electron-builder distribut
 if (forceBuild) console.log('⚡ --force: Force full rebuild');
 
 const packageJsonPath = path.resolve(__dirname, '../package.json');
+const shouldBuildMacArtifacts =
+  process.platform === 'darwin' &&
+  (builderArgs.includes('--mac') ||
+    builderArgs.includes('--all') ||
+    (!builderArgs.includes('--win') && !builderArgs.includes('--linux')));
 
 try {
   // 1. Ensure package.json main entry is correct for electron-vite
@@ -447,6 +494,12 @@ try {
   if (packOnly) {
     console.log('✅ Package completed! (skipped distributable creation)');
     return;
+  }
+
+  if (shouldBuildMacArtifacts) {
+    const helperArchs = multiArch ? archArgs : [targetArch];
+    console.log(`🎙️ Building native macOS voice helper for: ${helperArchs.join(', ')}`);
+    compileMacVoiceInputHelper(helperArchs);
   }
 
   // 5. Prepare bundled bun/bunx binaries (for packaged runtime usage)

@@ -5,6 +5,7 @@
  */
 
 import type { AcpBackend, AcpBackendAll, AcpBackendConfig } from '@/common/types/acpTypes';
+import type { VoiceInputConfig } from '@/common/types/voiceInput';
 import { storage } from '@office-ai/platform';
 
 /**
@@ -95,6 +96,8 @@ export interface IConfigStorageRefer {
   'system.notificationEnabled'?: boolean;
   // 定时任务完成时显示系统通知 / Show system notification when scheduled task completes
   'system.cronNotificationEnabled'?: boolean;
+  // Global voice input configuration / 全局语音输入配置
+  'voiceInput.config'?: VoiceInputConfig;
   // Telegram assistant default model / Telegram 助手默认模型
   'assistant.telegram.defaultModel'?: {
     id: string;

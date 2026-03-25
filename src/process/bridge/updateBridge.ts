@@ -44,8 +44,8 @@ interface AutoUpdateCheckParams {
   includePrerelease?: boolean;
 }
 
-const DEFAULT_REPO = 'iOfficeAI/AionUi';
-const DEFAULT_USER_AGENT = 'AionUi';
+const DEFAULT_REPO = 'contextgo/contextgo';
+const DEFAULT_USER_AGENT = 'ContextGo';
 const ALLOWED_ASSET_EXTS = new Set(['.exe', '.msi', '.dmg', '.zip', '.deb', '.rpm']);
 const ALLOWED_DOWNLOAD_HOSTS = new Set<string>([
   'github.com',

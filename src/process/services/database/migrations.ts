@@ -765,6 +765,41 @@ const migration_v15: IMigration = {
   },
 };
 
+const migration_v16: IMigration = {
+  version: 16,
+  name: 'Add voice_input_records table',
+  up: (db) => {
+    db.exec(`CREATE TABLE IF NOT EXISTS voice_input_records (
+        id TEXT PRIMARY KEY,
+        provider_id TEXT NOT NULL,
+        trigger_mode TEXT NOT NULL,
+        status TEXT NOT NULL CHECK(status IN ('inserted', 'copied', 'recorded', 'failed')),
+        transcript TEXT NOT NULL,
+        transcript_length INTEGER NOT NULL,
+        source_app_name TEXT,
+        source_bundle_id TEXT,
+        model TEXT,
+        language_hints TEXT NOT NULL DEFAULT '[]',
+        vocabulary_id TEXT,
+        hotwords TEXT NOT NULL DEFAULT '[]',
+        duration_ms INTEGER,
+        error_message TEXT,
+        created_at INTEGER NOT NULL
+      )`);
+    db.exec('CREATE INDEX IF NOT EXISTS idx_voice_input_records_created_at ON voice_input_records(created_at DESC)');
+    db.exec('CREATE INDEX IF NOT EXISTS idx_voice_input_records_status ON voice_input_records(status)');
+
+    console.log('[Migration v16] Added voice_input_records table');
+  },
+  down: (db) => {
+    db.exec('DROP INDEX IF EXISTS idx_voice_input_records_status');
+    db.exec('DROP INDEX IF EXISTS idx_voice_input_records_created_at');
+    db.exec('DROP TABLE IF EXISTS voice_input_records');
+
+    console.log('[Migration v16] Rolled back: Removed voice_input_records table');
+  },
+};
+
 /**
  * All migrations in order
  */
@@ -772,7 +807,7 @@ const migration_v15: IMigration = {
 export const ALL_MIGRATIONS: IMigration[] = [
   migration_v1, migration_v2, migration_v3, migration_v4, migration_v5, migration_v6,
   migration_v7, migration_v8, migration_v9, migration_v10, migration_v11, migration_v12,
-  migration_v13, migration_v14, migration_v15,
+  migration_v13, migration_v14, migration_v15, migration_v16,
 ];
 
 /**

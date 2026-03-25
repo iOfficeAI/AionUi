@@ -71,6 +71,26 @@ export function initSchema(db: ISqliteDriver): void {
   db.exec('CREATE INDEX IF NOT EXISTS idx_messages_msg_id ON messages(msg_id)');
   db.exec('CREATE INDEX IF NOT EXISTS idx_messages_conversation_created ON messages(conversation_id, created_at)');
 
+  db.exec(`CREATE TABLE IF NOT EXISTS voice_input_records (
+    id TEXT PRIMARY KEY,
+    provider_id TEXT NOT NULL,
+    trigger_mode TEXT NOT NULL,
+    status TEXT NOT NULL CHECK(status IN ('inserted', 'copied', 'recorded', 'failed')),
+    transcript TEXT NOT NULL,
+    transcript_length INTEGER NOT NULL,
+    source_app_name TEXT,
+    source_bundle_id TEXT,
+    model TEXT,
+    language_hints TEXT NOT NULL DEFAULT '[]',
+    vocabulary_id TEXT,
+    hotwords TEXT NOT NULL DEFAULT '[]',
+    duration_ms INTEGER,
+    error_message TEXT,
+    created_at INTEGER NOT NULL
+  )`);
+  db.exec('CREATE INDEX IF NOT EXISTS idx_voice_input_records_created_at ON voice_input_records(created_at DESC)');
+  db.exec('CREATE INDEX IF NOT EXISTS idx_voice_input_records_status ON voice_input_records(status)');
+
   console.log('[Database] Schema initialized successfully');
 }
 
@@ -99,4 +119,4 @@ export function setDatabaseVersion(db: ISqliteDriver, version: number): void {
  * Current database schema version
  * Update this when adding new migrations in migrations.ts
  */
-export const CURRENT_DB_VERSION = 15;
+export const CURRENT_DB_VERSION = 16;

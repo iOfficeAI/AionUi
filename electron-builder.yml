@@ -109,6 +109,8 @@ extraResources:
     to: app.png
   - from: resources/bundled-bun
     to: bundled-bun
+  - from: resources/native
+    to: native
 
 win:
   target:
@@ -137,6 +139,9 @@ mac:
   category: public.app-category.productivity
   hardenedRuntime: true
   gatekeeperAssess: false
+  extendInfo:
+    NSMicrophoneUsageDescription: ContextGo needs microphone access for global voice input transcription.
+    NSAppleEventsUsageDescription: ContextGo needs automation access to paste transcribed text into the active application.
   entitlements: entitlements.plist
   entitlementsInherit: entitlements.plist
 
@@ -200,6 +205,7 @@ asarUnpack:
   - '**/node_modules/default-browser-id/**/*'
   - '**/node_modules/run-applescript/**/*'
   - '**/node_modules/bundle-name/**/*'
+  - '**/node_modules/iohook-macos/**/*'
   # tree-sitter WASM files need to be unpacked for fs.readFile access
   - '**/node_modules/web-tree-sitter/**/*'
   - '**/node_modules/tree-sitter-bash/**/*'
@@ -219,7 +225,7 @@ electronDownload:
 
 publish:
   provider: github
-  owner: iOfficeAI
-  repo: AionUi
+  owner: contextgo
+  repo: contextgo
   publishAutoUpdate: true
   releaseType: release

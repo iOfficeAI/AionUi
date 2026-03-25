@@ -15,6 +15,7 @@
 import { ipcBridge } from '@/common';
 import { ProcessConfig } from '@process/utils/initStorage';
 import { changeLanguage } from '@process/services/i18n';
+import { voiceInputRuntime } from './services/voice';
 
 type CloseToTrayChangeListener = (enabled: boolean) => void;
 let _changeListener: CloseToTrayChangeListener | null = null;
@@ -90,5 +91,37 @@ export function initSystemSettingsBridge(): void {
     changeLanguage(language).catch((error) => {
       console.error('[SystemSettings] Main process changeLanguage failed:', error);
     });
+  });
+
+  ipcBridge.voiceInput.getConfig.provider(async () => {
+    return voiceInputRuntime.getConfig();
+  });
+
+  ipcBridge.voiceInput.setConfig.provider(async ({ config }) => {
+    return voiceInputRuntime.setConfig(config);
+  });
+
+  ipcBridge.voiceInput.getState.provider(async () => {
+    return voiceInputRuntime.getState();
+  });
+
+  ipcBridge.voiceInput.getStats.provider(async () => {
+    return voiceInputRuntime.getStats();
+  });
+
+  ipcBridge.voiceInput.requestPermissions.provider(async () => {
+    return voiceInputRuntime.requestPermissions();
+  });
+
+  ipcBridge.voiceInput.startManualCapture.provider(async () => {
+    await voiceInputRuntime.startManualCapture();
+  });
+
+  ipcBridge.voiceInput.stopManualCapture.provider(async () => {
+    await voiceInputRuntime.stopManualCapture();
+  });
+
+  ipcBridge.voiceInput.listRecords.provider(async ({ limit }) => {
+    return voiceInputRuntime.listRecords(limit);
   });
 }

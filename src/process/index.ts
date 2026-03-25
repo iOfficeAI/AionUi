@@ -21,6 +21,7 @@ import './utils/initBridge';
 import './services/i18n'; // Initialize i18n for main process
 import { getChannelManager } from '@process/channels';
 import { ExtensionRegistry } from '@process/extensions';
+import { voiceInputRuntime } from '@process/bridge/services/voice';
 
 export const initializeProcess = async () => {
   const t0 = performance.now();
@@ -28,6 +29,13 @@ export const initializeProcess = async () => {
 
   await initStorage();
   mark('initStorage');
+
+  try {
+    await voiceInputRuntime.initialize();
+  } catch (error) {
+    console.error('[Process] Failed to initialize VoiceInputRuntime:', error);
+  }
+  mark('VoiceInputRuntime');
 
   // Initialize Extension Registry (scan and resolve all extensions)
   try {

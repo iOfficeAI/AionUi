@@ -619,6 +619,25 @@ export const systemSettings = {
   languageChanged: bridge.buildEmitter<{ language: string }>('system-settings:language-changed'),
 };
 
+export const voiceInput = {
+  getConfig: bridge.buildProvider<import('../types/voiceInput').VoiceInputConfig, void>('voice-input:get-config'),
+  setConfig: bridge.buildProvider<
+    import('../types/voiceInput').VoiceInputConfig,
+    { config: import('../types/voiceInput').VoiceInputConfig }
+  >('voice-input:set-config'),
+  getState: bridge.buildProvider<import('../types/voiceInput').VoiceInputState, void>('voice-input:get-state'),
+  getStats: bridge.buildProvider<import('../types/voiceInput').VoiceInputStats, void>('voice-input:get-stats'),
+  requestPermissions: bridge.buildProvider<import('../types/voiceInput').VoiceInputPermissions, void>(
+    'voice-input:request-permissions'
+  ),
+  startManualCapture: bridge.buildProvider<void, void>('voice-input:start-manual-capture'),
+  stopManualCapture: bridge.buildProvider<void, void>('voice-input:stop-manual-capture'),
+  listRecords: bridge.buildProvider<import('../types/voiceInput').VoiceInputRecord[], { limit?: number }>(
+    'voice-input:list-records'
+  ),
+  stateChanged: bridge.buildEmitter<import('../types/voiceInput').VoiceInputState>('voice-input:state-changed'),
+};
+
 // 系统通知接口 / System notification API
 export type INotificationOptions = {
   title: string;

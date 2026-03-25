@@ -22,6 +22,7 @@ import type {
 } from './types';
 import { conversationToRow, messageToRow, rowToConversation, rowToMessage } from './types';
 import type { IMessageSearchItem, IMessageSearchResponse } from '@/common/types/database';
+import type { VoiceInputRecord, VoiceInputStats } from '@/common/types/voiceInput';
 import type {
   IChannelPluginConfig,
   IChannelUser,
@@ -42,6 +43,30 @@ type IConversationMessageSearchRow = IConversationRow & {
   message_type: TMessage['type'];
   message_content: string;
   message_created_at: number;
+};
+
+type VoiceInputRecordRow = {
+  id: string;
+  provider_id: VoiceInputRecord['providerId'];
+  trigger_mode: VoiceInputRecord['triggerMode'];
+  status: VoiceInputRecord['status'];
+  transcript: string;
+  transcript_length: number;
+  source_app_name?: string | null;
+  source_bundle_id?: string | null;
+  model?: string | null;
+  language_hints: string;
+  vocabulary_id?: string | null;
+  hotwords: string;
+  duration_ms?: number | null;
+  error_message?: string | null;
+  created_at: number;
+};
+
+type VoiceInputStatsRow = {
+  total_transcription_count: number | null;
+  total_recording_duration_ms: number | null;
+  total_transcribed_character_count: number | null;
 };
 
 const escapeLikePattern = (value: string): string => value.replace(/[\\%_]/g, (match) => `\\${match}`);
@@ -76,6 +101,24 @@ const extractSearchPreviewText = (rawContent: string): string => {
     return rawContent.replace(/\s+/g, ' ').trim();
   }
 };
+
+const rowToVoiceInputRecord = (row: VoiceInputRecordRow): VoiceInputRecord => ({
+  id: row.id,
+  providerId: row.provider_id,
+  triggerMode: row.trigger_mode,
+  status: row.status,
+  transcript: row.transcript,
+  transcriptLength: row.transcript_length,
+  sourceAppName: row.source_app_name ?? undefined,
+  sourceBundleId: row.source_bundle_id ?? undefined,
+  model: row.model ?? undefined,
+  languageHints: JSON.parse(row.language_hints) as string[],
+  vocabularyId: row.vocabulary_id ?? undefined,
+  hotwords: JSON.parse(row.hotwords) as string[],
+  durationMs: row.duration_ms ?? undefined,
+  errorMessage: row.error_message ?? undefined,
+  createdAt: row.created_at,
+});
 
 /**
  * Main database class for AionUi
@@ -1379,6 +1422,89 @@ export class AionUIDatabase {
       return { success: true, data: result.changes };
     } catch (error: any) {
       return { success: false, error: error.message, data: 0 };
+    }
+  }
+
+  insertVoiceInputRecord(record: VoiceInputRecord): IQueryResult<VoiceInputRecord> {
+    try {
+      this.db
+        .prepare(
+          `INSERT INTO voice_input_records (
+            id,
+            provider_id,
+            trigger_mode,
+            status,
+            transcript,
+            transcript_length,
+            source_app_name,
+            source_bundle_id,
+            model,
+            language_hints,
+            vocabulary_id,
+            hotwords,
+            duration_ms,
+            error_message,
+            created_at
+          ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+        )
+        .run(
+          record.id,
+          record.providerId,
+          record.triggerMode,
+          record.status,
+          record.transcript,
+          record.transcriptLength,
+          record.sourceAppName ?? null,
+          record.sourceBundleId ?? null,
+          record.model ?? null,
+          JSON.stringify(record.languageHints),
+          record.vocabularyId ?? null,
+          JSON.stringify(record.hotwords),
+          record.durationMs ?? null,
+          record.errorMessage ?? null,
+          record.createdAt
+        );
+
+      return { success: true, data: record };
+    } catch (error: any) {
+      return { success: false, error: error.message };
+    }
+  }
+
+  listVoiceInputRecords(limit = 20): IQueryResult<VoiceInputRecord[]> {
+    try {
+      const rows = this.db
+        .prepare('SELECT * FROM voice_input_records ORDER BY created_at DESC LIMIT ?')
+        .all(limit) as VoiceInputRecordRow[];
+      return { success: true, data: rows.map(rowToVoiceInputRecord) };
+    } catch (error: any) {
+      return { success: false, error: error.message, data: [] };
+    }
+  }
+
+  getVoiceInputStats(): IQueryResult<VoiceInputStats> {
+    try {
+      const row = this.db
+        .prepare(
+          `SELECT
+            COUNT(*) AS total_transcription_count,
+            COALESCE(SUM(COALESCE(duration_ms, 0)), 0) AS total_recording_duration_ms,
+            COALESCE(SUM(COALESCE(transcript_length, 0)), 0) AS total_transcribed_character_count
+          FROM voice_input_records
+          WHERE status != 'failed'`
+        )
+        .get() as VoiceInputStatsRow | undefined;
+
+      return {
+        success: true,
+        data: {
+          totalTranscriptionCount: row?.total_transcription_count ?? 0,
+          totalRecordingDurationMs: row?.total_recording_duration_ms ?? 0,
+          totalTranscribedCharacterCount: row?.total_transcribed_character_count ?? 0,
+        },
+      };
+    } catch (error: any) {
+      return { success: false, error: error.message };
     }
   }
 

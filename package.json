@@ -1,6 +1,6 @@
 {
   "name": "contextgo",
-  "version": "1.9.0",
+  "version": "1.0.1",
   "description": "Transform your command-line AI agent into a modern, efficient AI Chat interface.",
   "keywords": [],
   "license": "Apache-2.0",
@@ -105,6 +105,7 @@
     "grammy": "^1.39.3",
     "html-to-text": "^9.0.5",
     "i18next": "^23.7.16",
+    "iohook-macos": "1.2.1",
     "jsonrepair": "^3.13.0",
     "jsonwebtoken": "^9.0.2",
     "katex": "^0.16.22",

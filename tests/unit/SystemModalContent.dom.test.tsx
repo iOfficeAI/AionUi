@@ -21,7 +21,15 @@ Object.defineProperty(window, 'matchMedia', {
 
 vi.mock('react-i18next', () => ({
   useTranslation: () => ({
-    t: (key: string) => key,
+    t: (key: string) =>
+      (
+        {
+          'settings.voiceInput.durationHoursShort': 'h',
+          'settings.voiceInput.durationMinutesShort': 'm',
+          'settings.voiceInput.durationSecondsShort': 's',
+          'settings.voiceInput.durationLessThanSecond': '<1s',
+        } as Record<string, string>
+      )[key] ?? key,
     i18n: { language: 'en-US' },
   }),
   initReactI18next: { type: '3rdParty', init: () => {} },
@@ -76,6 +84,13 @@ const mockSetCronNotificationEnabled = vi.fn();
 const mockOpenFile = vi.fn();
 const mockShowOpen = vi.fn();
 const mockUpdateSystemInfo = vi.fn();
+const mockVoiceInputGetConfig = vi.fn();
+const mockVoiceInputGetState = vi.fn();
+const mockVoiceInputGetStats = vi.fn();
+const mockVoiceInputRequestPermissions = vi.fn();
+const mockVoiceInputStartManualCapture = vi.fn();
+const mockVoiceInputStopManualCapture = vi.fn();
+const mockVoiceInputStateChangedOn = vi.fn(() => vi.fn());
 
 vi.mock('@/common', () => ({
   ipcBridge: {
@@ -103,6 +118,15 @@ vi.mock('@/common', () => ({
     shell: {
       openExternal: { invoke: (...args: any[]) => mockOpenExternal(...args) },
       openFile: { invoke: (...args: any[]) => mockOpenFile(...args) },
+    },
+    voiceInput: {
+      getConfig: { invoke: (...args: any[]) => mockVoiceInputGetConfig(...args) },
+      getState: { invoke: (...args: any[]) => mockVoiceInputGetState(...args) },
+      getStats: { invoke: (...args: any[]) => mockVoiceInputGetStats(...args) },
+      requestPermissions: { invoke: (...args: any[]) => mockVoiceInputRequestPermissions(...args) },
+      startManualCapture: { invoke: (...args: any[]) => mockVoiceInputStartManualCapture(...args) },
+      stopManualCapture: { invoke: (...args: any[]) => mockVoiceInputStopManualCapture(...args) },
+      stateChanged: { on: (...args: any[]) => mockVoiceInputStateChangedOn(...args) },
     },
   },
 }));
@@ -180,6 +204,46 @@ describe('SystemModalContent', () => {
     mockGetCloseToTray.mockResolvedValue(false);
     mockGetNotificationEnabled.mockResolvedValue(true);
     mockGetCronNotificationEnabled.mockResolvedValue(false);
+    mockVoiceInputGetConfig.mockResolvedValue({
+      enabled: true,
+      providerId: 'dashscope',
+      triggerMode: 'right_command_hold',
+      autoInsert: true,
+      providers: {
+        dashscope: {
+          apiKey: 'sk-test',
+          region: 'beijing',
+          model: 'fun-asr-realtime',
+          languageHints: ['zh'],
+          vocabularyId: '',
+          hotwords: [],
+        },
+      },
+    });
+    mockVoiceInputGetState.mockResolvedValue({
+      supported: true,
+      enabled: true,
+      providerId: 'dashscope',
+      triggerMode: 'right_command_hold',
+      status: 'idle',
+      permissions: {
+        microphone: 'granted',
+        accessibility: 'granted',
+      },
+      updatedAt: Date.now(),
+    });
+    mockVoiceInputGetStats.mockResolvedValue({
+      totalTranscriptionCount: 12,
+      totalRecordingDurationMs: 65000,
+      totalTranscribedCharacterCount: 345,
+    });
+    mockVoiceInputRequestPermissions.mockResolvedValue({
+      microphone: 'granted',
+      accessibility: 'granted',
+    });
+    mockVoiceInputStartManualCapture.mockResolvedValue(undefined);
+    mockVoiceInputStopManualCapture.mockResolvedValue(undefined);
+    mockVoiceInputStateChangedOn.mockReturnValue(vi.fn());
   });
 
   it('should render system settings with language switcher and preferences', async () => {
@@ -201,6 +265,24 @@ describe('SystemModalContent', () => {
     await waitFor(() => {
       expect(screen.getByText('settings.openDevTools')).toBeInTheDocument();
     });
+  });
+
+  it('should render voice input summary stats instead of recent record list', async () => {
+    render(<SystemModalContent />);
+
+    await waitFor(() => {
+      expect(screen.getByText('settings.voiceInput.activity')).toBeInTheDocument();
+    });
+
+    expect(mockVoiceInputGetStats).toHaveBeenCalled();
+    expect(screen.getByText('settings.voiceInput.totalTranscriptions')).toBeInTheDocument();
+    expect(screen.getByText('settings.voiceInput.totalRecordingDuration')).toBeInTheDocument();
+    expect(screen.getByText('settings.voiceInput.totalTranscribedCharacters')).toBeInTheDocument();
+    expect(screen.getByText('12')).toBeInTheDocument();
+    expect(screen.getByText('1m 5s')).toBeInTheDocument();
+    expect(screen.getByText('345')).toBeInTheDocument();
+    expect(screen.queryByText('settings.voiceInput.records')).not.toBeInTheDocument();
+    expect(screen.queryByText('settings.voiceInput.noRecords')).not.toBeInTheDocument();
   });
 
   it('should toggle DevTools when button is clicked', async () => {
