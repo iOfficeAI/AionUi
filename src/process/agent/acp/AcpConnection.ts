@@ -101,6 +101,13 @@ export class AcpConnection {
   // Track if child process was spawned with detached: true (needs process group kill)
   private isDetached = false;
 
+  // Periodic keepalive: while a session/prompt is pending, check that the child
+  // process is still alive and reset the timeout timer accordingly.  This prevents
+  // false timeouts when an ACP agent is executing a long-running tool that produces
+  // no streaming output (e.g. a multi-minute build or test suite).
+  private promptKeepaliveInterval: NodeJS.Timeout | null = null;
+  private static readonly KEEPALIVE_INTERVAL_MS = 60_000; // check every 60 s
+
   /**
    * Kill the current child process (if any) and clear process-related state.
    * Used by both disconnect() and retry paths. Does NOT reset session-level
@@ -435,6 +442,7 @@ export class AcpConnection {
    * Similar to Codex's handleProcessExit implementation
    */
   private handleProcessExit(code: number | null, signal: NodeJS.Signals | null): void {
+    this.stopPromptKeepalive();
     // 1. Reject all pending requests with clear error message
     for (const [_id, request] of this.pendingRequests) {
       if (request.timeoutId) {
@@ -593,6 +601,30 @@ export class AcpConnection {
           }
         }, request.timeoutDuration);
       }
+    }
+  }
+
+  /**
+   * Start a periodic keepalive that resets prompt timeout timers as long as
+   * the child process is still alive.  This complements the streaming-based
+   * reset in resetSessionPromptTimeouts(): when the agent is executing a
+   * silent tool (no session.update emitted), the keepalive prevents a false
+   * timeout while the process-exit handler covers the case where the child
+   * actually crashes.
+   */
+  private startPromptKeepalive(): void {
+    this.stopPromptKeepalive();
+    this.promptKeepaliveInterval = setInterval(() => {
+      if (this.child && !this.child.killed) {
+        this.resetSessionPromptTimeouts();
+      }
+    }, AcpConnection.KEEPALIVE_INTERVAL_MS);
+  }
+
+  private stopPromptKeepalive(): void {
+    if (this.promptKeepaliveInterval) {
+      clearInterval(this.promptKeepaliveInterval);
+      this.promptKeepaliveInterval = null;
     }
   }
 
@@ -928,10 +960,15 @@ export class AcpConnection {
     this.firstChunkReceived = false;
     if (ACP_PERF_LOG) console.log(`[ACP-PERF] send: prompt sent to ${this.backend}`);
 
-    return await this.sendRequest('session/prompt', {
-      sessionId: this.sessionId,
-      prompt: [{ type: 'text', text: prompt }],
-    });
+    this.startPromptKeepalive();
+    try {
+      return await this.sendRequest('session/prompt', {
+        sessionId: this.sessionId,
+        prompt: [{ type: 'text', text: prompt }],
+      });
+    } finally {
+      this.stopPromptKeepalive();
+    }
   }
 
   /**
@@ -1035,6 +1072,7 @@ export class AcpConnection {
   }
 
   async disconnect(): Promise<void> {
+    this.stopPromptKeepalive();
     await this.terminateChild();
 
     // Reset session-level state
