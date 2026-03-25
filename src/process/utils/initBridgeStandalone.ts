@@ -7,8 +7,9 @@
 /**
  * Bridge initialiser for standalone (no-Electron) mode.
  * Skips Electron-only bridges:
- *   dialogBridge, shellBridge, applicationBridge (partial — core handlers in applicationBridgeCore),
+ *   dialogBridge, applicationBridge (partial — core handlers in applicationBridgeCore),
  *   windowControlsBridge, updateBridge, webuiBridge
+ * Note: shellBridge is replaced by shellBridgeStandalone (child_process-based).
  */
 import { logger } from '@office-ai/platform';
 import { acpDetector } from '@process/agent/acp/AcpDetector';
@@ -32,6 +33,7 @@ import { initPreviewHistoryBridge } from '@process/bridge/previewHistoryBridge';
 import { initPptPreviewBridge } from '@process/bridge/pptPreviewBridge';
 import { initStarOfficeBridge } from '@process/bridge/starOfficeBridge';
 import { initApplicationBridgeCore } from '@process/bridge/applicationBridgeCore';
+import { initShellBridgeStandalone } from '@process/bridge/shellBridgeStandalone';
 import { initCronBridge } from '@process/bridge/cronBridge';
 import { initFsBridge } from '@process/bridge/fsBridge';
 import { initMcpBridge } from '@process/bridge/mcpBridge';
@@ -46,10 +48,11 @@ export async function initBridgeStandalone(): Promise<void> {
   const conversationService = new ConversationServiceImpl(repo);
   const channelRepo = new SqliteChannelRepository();
 
-  // Skipped (Electron-only): dialogBridge, shellBridge, applicationBridge (partial — see applicationBridgeCore),
+  // Skipped (Electron-only): dialogBridge, applicationBridge (partial — see applicationBridgeCore),
   // windowControlsBridge, updateBridge, webuiBridge
 
   initApplicationBridgeCore();
+  initShellBridgeStandalone();
   initFileWatchBridge();
   initFsBridge();
   initConversationBridge(conversationService, workerTaskManager);

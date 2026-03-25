@@ -89,7 +89,7 @@ Common Oxfmt rules (Prettier-compatible, avoid a fix pass):
 
 Commit format: `<type>(<scope>): <subject>` in English. Types: feat, fix, refactor, chore, docs, test, style, perf. **NEVER add AI signatures** (Co-Authored-By, Generated with, etc.).
 
-See the `commit` skill (`.claude/skills/commit/SKILL.md`) for complete workflow, quality gates, and rules. For pull request creation, see the `pr` skill (`.claude/skills/pr/SKILL.md`).
+For pull request creation, see the `pr` skill (`.claude/skills/pr/SKILL.md`).
 
 ## Skills Index
 
@@ -100,7 +100,6 @@ Detailed rules and guidelines are organized into Skills for better modularity:
 | **architecture** | File & directory structure conventions for all process types                       | Creating files, adding modules, architectural decisions            |
 | **i18n**         | Internationalization workflow and standards                                        | Adding user-facing text, creating components with user-facing text |
 | **testing**      | Testing workflow and quality standards                                             | Writing tests, adding features, before claiming completion         |
-| **commit**       | Structured git commit workflow with quality checks                                 | Committing code, `/commit`, `/oss-pr`                              |
 | **pr**           | Pull request workflow: ensure issue exists, push branch, open PR                   | Creating pull requests, after committing, `/oss-pr`                |
 | **pr-review**    | Local PR code review with full project context, no truncation limits               | Reviewing a PR, user says "review PR", `/pr-review`                |
 | **pr-fix**       | Fix all issues from a pr-review report, create a follow-up PR, and verify each fix | After pr-review, user says "fix all issues", `/pr-fix`             |

@@ -269,6 +269,22 @@ export function initConversationBridge(
     }
   );
 
+  // Pre-warm conversation bootstrap: trigger getOrBuildTask early so that
+  // the worker is ready when the user sends their first message.
+  // For ACP agents, also trigger initAgent() to start the CLI subprocess
+  // (~7s). Stream events are suppressed during bootstrap (via `bootstrapping`
+  // flag) to avoid triggering the sidebar loading spinner prematurely.
+  ipcBridge.conversation.warmup.provider(async ({ conversation_id }) => {
+    try {
+      const task = await workerTaskManager.getOrBuildTask(conversation_id);
+      if (task && task.type === 'acp') {
+        await (task as unknown as AcpAgentManager).initAgent();
+      }
+    } catch {
+      // Ignore errors — warmup is best-effort
+    }
+  });
+
   ipcBridge.conversation.reset.provider(({ id }) => {
     if (id) {
       workerTaskManager.kill(id);
