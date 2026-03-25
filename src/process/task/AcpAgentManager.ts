@@ -606,18 +606,22 @@ class AcpAgentManager extends BaseAgentManager<AcpAgentManagerData, AcpPermissio
           contentToSend = contentToSend.split(AIONUI_FILES_MARKER)[0].trimEnd();
         }
 
-        // 首条消息时注入预设规则和 skills 索引（来自智能助手配置）
-        // Inject preset context on first message (from smart assistant config)
-        // For backends with native skill support, skills are handled via workspace symlinks.
-        // For backends WITHOUT native support, fallback to prompt injection with skills index.
+        // 首条消息时注入预设规则和 skills
+        // Inject preset rules and skills on first message
+        //
+        // Symlinks 仅在临时工作空间创建；自定义工作空间跳过 symlink 以避免污染用户目录。
+        // Symlinks are only created for temp workspaces; custom workspaces skip symlinks.
+        // 因此自定义工作空间或不支持原生 skill 发现的 backend 都需要通过 prompt 注入 skills。
+        // So custom workspaces or backends without native skill discovery need prompt injection.
         if (this.isFirstMessage) {
-          if (hasNativeSkillSupport(this.options.backend)) {
-            // Native skill discovery — only inject preset rules
+          const useNativeSkills = hasNativeSkillSupport(this.options.backend) && !this.options.customWorkspace;
+          if (useNativeSkills) {
+            // Native skill discovery via workspace symlinks — only inject preset rules
             if (this.options.presetContext) {
               contentToSend = `[Assistant Rules - You MUST follow these instructions]\n${this.options.presetContext}\n\n[User Request]\n${contentToSend}`;
             }
           } else {
-            // No native skill support — inject preset rules + skills index via prompt
+            // Custom workspace or no native support — inject rules + skills via prompt
             contentToSend = await prepareFirstMessageWithSkillsIndex(contentToSend, {
               presetContext: this.options.presetContext,
               enabledSkills: this.options.enabledSkills,
