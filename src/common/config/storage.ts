@@ -160,6 +160,39 @@ export interface IEnvStorageRefer {
  */
 export type ConversationSource = 'aionui' | 'telegram' | 'lark' | 'dingtalk' | 'weixin' | (string & {});
 
+export type DiscussionGroupMode = 'broadcast' | 'debate';
+
+export type DiscussionGroupParticipant = {
+  id: string;
+  assistantId: string;
+  name: string;
+  avatar?: string;
+  description?: string;
+  childConversationId: string;
+};
+
+export type DiscussionGroupOrchestration = {
+  mode: DiscussionGroupMode;
+  rounds: 1 | 2;
+};
+
+export type ConversationGroupMeta = {
+  parentGroupId: string;
+  participantId: string;
+  participantName: string;
+  participantAvatar?: string;
+  hiddenFromHistory?: boolean;
+};
+
+export type MessageGroupMeta = {
+  participantId: string;
+  participantName: string;
+  participantAvatar?: string;
+  childConversationId?: string;
+  mode: DiscussionGroupMode;
+  round: number;
+};
+
 interface IChatConversation<T, Extra> {
   createTime: number;
   modifyTime: number;
@@ -205,6 +238,8 @@ export type TChatConversation =
         sessionMode?: string;
         /** Explicit marker for temporary health-check conversations */
         isHealthCheck?: boolean;
+        /** Discussion group child conversation metadata */
+        groupMeta?: ConversationGroupMeta;
       }
     >
   | Omit<
@@ -240,6 +275,8 @@ export type TChatConversation =
           currentModelId?: string;
           /** Explicit marker for temporary health-check conversations */
           isHealthCheck?: boolean;
+          /** Discussion group child conversation metadata */
+          groupMeta?: ConversationGroupMeta;
         }
       >,
       'model'
@@ -267,6 +304,8 @@ export type TChatConversation =
           codexModel?: string;
           /** Explicit marker for temporary health-check conversations */
           isHealthCheck?: boolean;
+          /** Discussion group child conversation metadata */
+          groupMeta?: ConversationGroupMeta;
         }
       >,
       'model'
@@ -310,6 +349,8 @@ export type TChatConversation =
           pinnedAt?: number;
           /** Explicit marker for temporary health-check conversations */
           isHealthCheck?: boolean;
+          /** Discussion group child conversation metadata */
+          groupMeta?: ConversationGroupMeta;
         }
       >,
       'model'
@@ -330,9 +371,24 @@ export type TChatConversation =
           pinnedAt?: number;
           /** Explicit marker for temporary health-check conversations */
           isHealthCheck?: boolean;
+          /** Discussion group child conversation metadata */
+          groupMeta?: ConversationGroupMeta;
         }
       >,
       'model'
+    >
+  | IChatConversation<
+      'group',
+      {
+        workspace?: string;
+        customWorkspace?: boolean;
+        participants: DiscussionGroupParticipant[];
+        orchestration: DiscussionGroupOrchestration;
+        /** Whether this conversation is pinned */
+        pinned?: boolean;
+        /** Pin timestamp in milliseconds */
+        pinnedAt?: number;
+      }
     >;
 
 export type IChatConversationRefer = {

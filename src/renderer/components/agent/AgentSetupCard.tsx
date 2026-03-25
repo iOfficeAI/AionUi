@@ -105,6 +105,14 @@ const AgentSetupCard: React.FC<AgentSetupCardProps> = ({
         const isCodex = agent.backend === 'codex';
         const conversationType = isGemini ? 'gemini' : isCodex ? 'codex' : 'acp';
         const defaultConversationName = t('conversation.welcome.newConversation');
+        const conversationExtra = conversation.extra as Record<string, unknown> & {
+          workspace?: string;
+          customWorkspace?: boolean;
+          presetRules?: string;
+          presetContext?: string;
+          enabledSkills?: string[];
+          presetAssistantId?: string;
+        };
 
         // Get current conversation's model info (if gemini type)
         const currentModel = conversation.type === 'gemini' ? conversation.model : undefined;
@@ -119,22 +127,20 @@ const AgentSetupCard: React.FC<AgentSetupCardProps> = ({
             apiKey: '',
           },
           extra: {
-            workspace: conversation.extra?.workspace || '',
-            customWorkspace: conversation.extra?.customWorkspace || false,
+            workspace: conversationExtra.workspace || '',
+            customWorkspace: conversationExtra.customWorkspace || false,
             ...(isGemini
               ? {
-                  presetRules: ((conversation.extra as Record<string, unknown>)?.presetRules ||
-                    (conversation.extra as Record<string, unknown>)?.presetContext) as string,
-                  enabledSkills: conversation.extra?.enabledSkills,
-                  presetAssistantId: conversation.extra?.presetAssistantId,
+                  presetRules: (conversationExtra.presetRules || conversationExtra.presetContext) as string,
+                  enabledSkills: conversationExtra.enabledSkills,
+                  presetAssistantId: conversationExtra.presetAssistantId,
                 }
               : {
                   backend: agent.backend,
                   cliPath: agent.cliPath,
-                  presetContext: ((conversation.extra as Record<string, unknown>)?.presetRules ||
-                    (conversation.extra as Record<string, unknown>)?.presetContext) as string,
-                  enabledSkills: conversation.extra?.enabledSkills,
-                  presetAssistantId: conversation.extra?.presetAssistantId,
+                  presetContext: (conversationExtra.presetRules || conversationExtra.presetContext) as string,
+                  enabledSkills: conversationExtra.enabledSkills,
+                  presetAssistantId: conversationExtra.presetAssistantId,
                 }),
           },
         };

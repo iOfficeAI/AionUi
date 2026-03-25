@@ -10,7 +10,16 @@ import type { OpenDialogOptions } from 'electron';
 import type { McpSource } from '../../process/services/mcpServices/McpProtocol';
 import type { AcpBackend, AcpBackendAll, AcpModelInfo, PresetAgentType } from '../types/acpTypes';
 import type { SlashCommandItem } from '../chat/slash/types';
-import type { IMcpServer, IProvider, TChatConversation, TProviderWithModel, ICssTheme } from '../config/storage';
+import type {
+  IMcpServer,
+  IProvider,
+  TChatConversation,
+  TProviderWithModel,
+  ICssTheme,
+  ConversationGroupMeta,
+  DiscussionGroupMode,
+  DiscussionGroupParticipant,
+} from '../config/storage';
 import type { PreviewHistoryTarget, PreviewSnapshotInfo } from '../types/preview';
 import type {
   UpdateCheckRequest,
@@ -746,55 +755,89 @@ export interface IConfirmMessageParams {
   callId: string;
 }
 
+export type NonGroupConversationType = 'gemini' | 'acp' | 'codex' | 'openclaw-gateway' | 'nanobot';
+export type ConversationType = NonGroupConversationType | 'group';
+
+export interface ICreateConversationExtra {
+  workspace?: string;
+  customWorkspace?: boolean;
+  defaultFiles?: string[];
+  backend?: AcpBackendAll;
+  cliPath?: string;
+  webSearchEngine?: 'google' | 'default';
+  agentName?: string;
+  customAgentId?: string;
+  context?: string;
+  contextFileName?: string; // For gemini preset agents
+  // System rules for smart assistants
+  presetRules?: string; // system rules injected at initialization
+  /** Enabled skills list for filtering SkillManager skills */
+  enabledSkills?: string[];
+  /**
+   * Preset context/rules to inject into the first message.
+   * Used by smart assistants to provide custom prompts/rules.
+   * For Gemini: injected via contextContent
+   * For ACP/Codex: injected via <system_instruction> tag in first message
+   */
+  presetContext?: string;
+  /** 预设助手 ID，用于在会话面板显示助手名称和头像 / Preset assistant ID for displaying name and avatar in conversation panel */
+  presetAssistantId?: string;
+  /** Initial session mode selected on Guid page (from AgentModeSelector) */
+  sessionMode?: string;
+  /** User-selected Codex model from Guid page */
+  codexModel?: string;
+  /** Pre-selected ACP model from Guid page (cached model list) */
+  currentModelId?: string;
+  /** Runtime validation snapshot used for post-switch strong checks (OpenClaw) */
+  runtimeValidation?: {
+    expectedWorkspace?: string;
+    expectedBackend?: string;
+    expectedAgentName?: string;
+    expectedCliPath?: string;
+    expectedModel?: string;
+    expectedIdentityHash?: string | null;
+    switchedAt?: number;
+  };
+  /** Explicit marker for temporary health-check conversations */
+  isHealthCheck?: boolean;
+  /** Discussion group child conversation metadata */
+  groupMeta?: ConversationGroupMeta;
+  /** Discussion group participants */
+  participants?: Array<IDiscussionGroupParticipantCreateParams | DiscussionGroupParticipant>;
+  /** Discussion orchestration */
+  orchestration?: {
+    mode: DiscussionGroupMode;
+    rounds?: 1 | 2;
+  };
+}
+
 export interface ICreateConversationParams {
-  type: 'gemini' | 'acp' | 'codex' | 'openclaw-gateway' | 'nanobot';
+  type: ConversationType;
   id?: string;
   name?: string;
   model: TProviderWithModel;
-  extra: {
-    workspace?: string;
-    customWorkspace?: boolean;
-    defaultFiles?: string[];
-    backend?: AcpBackendAll;
-    cliPath?: string;
-    webSearchEngine?: 'google' | 'default';
-    agentName?: string;
-    customAgentId?: string;
-    context?: string;
-    contextFileName?: string; // For gemini preset agents
-    // System rules for smart assistants
-    presetRules?: string; // system rules injected at initialization
-    /** Enabled skills list for filtering SkillManager skills */
-    enabledSkills?: string[];
-    /**
-     * Preset context/rules to inject into the first message.
-     * Used by smart assistants to provide custom prompts/rules.
-     * For Gemini: injected via contextContent
-     * For ACP/Codex: injected via <system_instruction> tag in first message
-     */
-    presetContext?: string;
-    /** 预设助手 ID，用于在会话面板显示助手名称和头像 / Preset assistant ID for displaying name and avatar in conversation panel */
-    presetAssistantId?: string;
-    /** Initial session mode selected on Guid page (from AgentModeSelector) */
-    sessionMode?: string;
-    /** User-selected Codex model from Guid page */
-    codexModel?: string;
-    /** Pre-selected ACP model from Guid page (cached model list) */
-    currentModelId?: string;
-    /** Runtime validation snapshot used for post-switch strong checks (OpenClaw) */
-    runtimeValidation?: {
-      expectedWorkspace?: string;
-      expectedBackend?: string;
-      expectedAgentName?: string;
-      expectedCliPath?: string;
-      expectedModel?: string;
-      expectedIdentityHash?: string | null;
-      switchedAt?: number;
-    };
-    /** Explicit marker for temporary health-check conversations */
-    isHealthCheck?: boolean;
-  };
+  extra: ICreateConversationExtra;
 }
+
+export type IAssistantConversationCreateParams = ICreateConversationParams & {
+  type: NonGroupConversationType;
+};
+
+export interface IDiscussionGroupParticipantCreateParams {
+  id: string;
+  assistantId: string;
+  name: string;
+  avatar?: string;
+  description?: string;
+  conversation: IAssistantConversationCreateParams;
+}
+
+export type IDiscussionGroupCreateParams = ICreateConversationParams & {
+  type: 'group';
+  extra: ICreateConversationExtra & {
+    participants: IDiscussionGroupParticipantCreateParams[];
+  };
+};
 interface IResetConversationParams {
   id?: string;
   gemini?: {

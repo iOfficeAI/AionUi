@@ -82,6 +82,29 @@
     "cliAgents": "CLI Agents",
     "presetAssistants": "プリセットアシスタント"
   },
+  "group": {
+    "header": "ディスカッショングループ",
+    "createEntry": "ディスカッショングループを作成",
+    "createTitle": "ディスカッショングループを作成",
+    "createAction": "グループを作成",
+    "createFailed": "ディスカッショングループの作成に失敗しました",
+    "defaultName": "ディスカッショングループ",
+    "nameLabel": "グループ名",
+    "namePlaceholder": "ディスカッショングループ名を入力",
+    "modeLabel": "ディスカッションモード",
+    "modeDebate": "ディベート",
+    "modeBroadcast": "ブロードキャスト",
+    "modeHint": {
+      "debate": "1 ラウンド目は独立回答、2 ラウンド目は他の助手の意見を見てから更新回答します。",
+      "broadcast": "各助手が独立に回答し、最後に複数の意見をまとめて返します。"
+    },
+    "participantsLabel": "参加アシスタント",
+    "minimumParticipants": "少なくとも 2 人のアシスタントを選択してください",
+    "minimumParticipantsHint": "ディスカッショングループを作成するには 2 人以上のアシスタントを選択してください。",
+    "noDescription": "説明なし",
+    "sendPlaceholder": "ディスカッショングループに質問する...",
+    "roundLabel": "ラウンド {{round}}"
+  },
   "noAgentsAvailable": "利用可能なエージェントはありません",
   "noModelConfigured": "モデルが設定されていません。設定ページで設定してください。",
   "createFailed": "会話の作成に失敗しました",

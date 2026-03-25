@@ -88,6 +88,29 @@
     "cliAgents": "CLI Agents",
     "presetAssistants": "Preset Assistants"
   },
+  "group": {
+    "header": "Discussion Group",
+    "createEntry": "Create Discussion Group",
+    "createTitle": "Create Discussion Group",
+    "createAction": "Create Group",
+    "createFailed": "Failed to create discussion group",
+    "defaultName": "Discussion Group",
+    "nameLabel": "Group Name",
+    "namePlaceholder": "Enter a discussion group name",
+    "modeLabel": "Discussion Mode",
+    "modeDebate": "Debate",
+    "modeBroadcast": "Broadcast",
+    "modeHint": {
+      "debate": "Round 1 stays independent, round 2 lets assistants respond after seeing the others.",
+      "broadcast": "Each assistant answers independently and the group returns the final set of opinions."
+    },
+    "participantsLabel": "Assistants",
+    "minimumParticipants": "Select at least two assistants",
+    "minimumParticipantsHint": "Pick 2 or more assistants to start a discussion group.",
+    "noDescription": "No description",
+    "sendPlaceholder": "Ask the discussion group...",
+    "roundLabel": "Round {{round}}"
+  },
   "noAgentsAvailable": "No agents available",
   "noModelConfigured": "No model configured. Please configure in settings.",
   "createFailed": "Failed to create conversation",

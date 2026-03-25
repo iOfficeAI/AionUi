@@ -6,6 +6,7 @@
 
 import type { CodexAgentManager } from '@process/agent/codex';
 import { GeminiAgent, GeminiApprovalStore } from '@process/agent/gemini';
+import type { ICreateConversationParams, IDiscussionGroupCreateParams } from '@/common/adapter/ipcBridge';
 import type { TChatConversation } from '@/common/config/storage';
 import type { IAgentManager } from '@process/task/IAgentManager';
 import type { IConversationService } from '@process/services/IConversationService';
@@ -20,6 +21,7 @@ import { refreshTrayMenu } from '@process/utils/tray';
 import { copyFilesToDirectory, readDirectoryRecursive } from '@process/utils';
 import { computeOpenClawIdentityHash } from '@process/utils/openclawUtils';
 import { migrateConversationToDatabase } from './migrationUtils';
+import { DiscussionGroupService } from './services/discussion/DiscussionGroupService';
 
 const refreshTrayMenuSafely = async (): Promise<void> => {
   try {
@@ -33,6 +35,7 @@ export function initConversationBridge(
   conversationService: IConversationService,
   workerTaskManager: IWorkerTaskManager
 ): void {
+  const discussionGroupService = new DiscussionGroupService(conversationService, workerTaskManager);
   const emitConversationListChanged = (
     conversation: Pick<TChatConversation, 'id' | 'source'>,
     action: 'created' | 'updated' | 'deleted'
@@ -99,11 +102,17 @@ export function initConversationBridge(
     }
   });
 
-  ipcBridge.conversation.create.provider(async (params): Promise<TChatConversation> => {
-    const conversation = await conversationService.createConversation({
-      ...params,
-      source: 'aionui', // Mark conversations created by AionUI as aionui
-    });
+  ipcBridge.conversation.create.provider(async (params: ICreateConversationParams): Promise<TChatConversation> => {
+    const conversation =
+      params.type === 'group'
+        ? await discussionGroupService.createConversation({
+            ...(params as IDiscussionGroupCreateParams),
+            source: 'aionui',
+          })
+        : await conversationService.createConversation({
+            ...params,
+            source: 'aionui', // Mark conversations created by AionUI as aionui
+          });
     emitConversationListChanged(conversation, 'created');
     await refreshTrayMenuSafely();
     return conversation;
@@ -220,7 +229,11 @@ export function initConversationBridge(
         }
       }
 
-      await conversationService.deleteConversation(id);
+      if (conversation?.type === 'group') {
+        await discussionGroupService.deleteConversation(conversation);
+      } else {
+        await conversationService.deleteConversation(id);
+      }
       if (conversation) {
         emitConversationListChanged(conversation, 'deleted');
       }
@@ -359,6 +372,12 @@ export function initConversationBridge(
   });
 
   ipcBridge.conversation.stop.provider(async ({ conversation_id }) => {
+    const conversation = await conversationService.getConversation(conversation_id);
+    if (conversation?.type === 'group') {
+      await discussionGroupService.stopConversation(conversation_id);
+      return { success: true };
+    }
+
     const task = workerTaskManager.getTask(conversation_id);
     if (!task) return { success: true, msg: 'conversation not found' };
     await task.stop();
@@ -395,6 +414,25 @@ export function initConversationBridge(
   // 通用 sendMessage 实现 - 统一调用 IAgentManager.sendMessage
   // Generic sendMessage - dispatches via IAgentManager.sendMessage interface
   ipcBridge.conversation.sendMessage.provider(async ({ conversation_id, files, ...other }) => {
+    const conversation = await conversationService.getConversation(conversation_id);
+    if (conversation?.type === 'group') {
+      try {
+        await discussionGroupService.sendMessage({
+          conversationId: conversation_id,
+          input: other.input,
+          msgId: other.msg_id,
+        });
+        emitConversationListChanged(conversation, 'updated');
+        await refreshTrayMenuSafely();
+        return { success: true };
+      } catch (err) {
+        return {
+          success: false,
+          msg: err instanceof Error ? err.message : String(err),
+        };
+      }
+    }
+
     let task: IAgentManager | undefined;
     try {
       task = await workerTaskManager.getOrBuildTask(conversation_id);
@@ -447,6 +485,10 @@ export function initConversationBridge(
         success: false,
         msg: err instanceof Error ? err.message : String(err),
       };
+    } finally {
+      if (conversation) {
+        emitConversationListChanged(conversation, 'updated');
+      }
     }
   });
 

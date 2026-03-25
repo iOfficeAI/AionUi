@@ -82,6 +82,29 @@
     "cliAgents": "CLI Agents",
     "presetAssistants": "預設助手"
   },
+  "group": {
+    "header": "討論群組",
+    "createEntry": "建立討論群組",
+    "createTitle": "建立討論群組",
+    "createAction": "建立群組",
+    "createFailed": "建立討論群組失敗",
+    "defaultName": "討論群組",
+    "nameLabel": "群組名稱",
+    "namePlaceholder": "請輸入討論群組名稱",
+    "modeLabel": "討論模式",
+    "modeDebate": "辯論式",
+    "modeBroadcast": "廣播式",
+    "modeHint": {
+      "debate": "第一輪保持獨立回答，第二輪在看到其他助手觀點後再給出更新結論。",
+      "broadcast": "每位助手獨立作答，討論群組最後回傳一組並列觀點。"
+    },
+    "participantsLabel": "參與助手",
+    "minimumParticipants": "請至少選擇兩位助手",
+    "minimumParticipantsHint": "至少選擇 2 位助手後才能建立討論群組。",
+    "noDescription": "暫無描述",
+    "sendPlaceholder": "向討論群組提出問題...",
+    "roundLabel": "第 {{round}} 輪"
+  },
   "noAgentsAvailable": "沒有可用的 Agent",
   "noModelConfigured": "未設定模型，請前往設定頁面設定。",
   "createFailed": "建立對話失敗",

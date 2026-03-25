@@ -6,11 +6,22 @@
 
 import { ConfigStorage } from '@/common/config/storage';
 import type { ICreateConversationParams } from '@/common/adapter/ipcBridge';
+import type { IAssistantConversationCreateParams } from '@/common/adapter/ipcBridge';
 import type { TProviderWithModel } from '@/common/config/storage';
+import type { DiscussionGroupMode } from '@/common/config/storage';
 import { resolveLocaleKey } from '@/common/utils';
 import { loadPresetAssistantResources } from '@/renderer/utils/model/presetAssistantResources';
 import type { AvailableAgent } from '@/renderer/utils/model/agentTypes';
 import type { AcpBackend, AcpBackendAll } from '@/common/types/acpTypes';
+import { uuid } from '@/common/utils';
+
+export type DiscussionGroupAssistantInput = {
+  assistantId: string;
+  name: string;
+  avatar?: string;
+  description?: string;
+  presetAgentType?: string;
+};
 
 /**
  * Get the default Gemini model configuration from user settings.
@@ -73,12 +84,7 @@ export function getConversationTypeForBackend(backend: string): ICreateConversat
  * ACP-routed types include claude, codebuddy, opencode, qwen, codex.
  */
 export function getConversationTypeForPreset(presetAgentType: string): ICreateConversationParams['type'] {
-  const ACP_ROUTED_TYPES = ['claude', 'codebuddy', 'opencode', 'qwen', 'codex'];
-  if (ACP_ROUTED_TYPES.includes(presetAgentType)) {
-    return 'acp';
-  }
-  // Default: gemini
-  return 'gemini';
+  return presetAgentType && presetAgentType !== 'gemini' ? 'acp' : 'gemini';
 }
 
 /**
@@ -167,4 +173,70 @@ export async function buildPresetAssistantParams(
   const model = type === 'gemini' ? await getDefaultGeminiModel() : ({} as TProviderWithModel);
 
   return { type, model, name: agent.name, extra };
+}
+
+export const createDiscussionGroupPlaceholderModel = (): TProviderWithModel => {
+  return {
+    id: 'discussion-group-placeholder',
+    name: 'Discussion Group',
+    useModel: 'discussion-group',
+    platform: 'discussion-group',
+    baseUrl: '',
+    apiKey: '',
+  } as TProviderWithModel;
+};
+
+export async function buildDiscussionGroupParams(options: {
+  name: string;
+  workspace: string;
+  language: string;
+  mode: DiscussionGroupMode;
+  assistants: DiscussionGroupAssistantInput[];
+}): Promise<ICreateConversationParams> {
+  const participants = await Promise.all(
+    options.assistants.map(async (assistant) => {
+      const conversation = (await buildPresetAssistantParams(
+        {
+          backend: 'gemini',
+          name: assistant.name,
+          customAgentId: assistant.assistantId,
+          presetAgentType: assistant.presetAgentType,
+        },
+        options.workspace,
+        options.language
+      )) as IAssistantConversationCreateParams;
+
+      return {
+        id: uuid(),
+        assistantId: assistant.assistantId,
+        name: assistant.name,
+        avatar: assistant.avatar,
+        description: assistant.description,
+        conversation: {
+          ...conversation,
+          name: assistant.name,
+          extra: {
+            ...conversation.extra,
+            workspace: options.workspace,
+            customWorkspace: true,
+          },
+        },
+      };
+    })
+  );
+
+  return {
+    type: 'group',
+    model: createDiscussionGroupPlaceholderModel(),
+    name: options.name,
+    extra: {
+      workspace: options.workspace,
+      customWorkspace: true,
+      participants,
+      orchestration: {
+        mode: options.mode,
+        rounds: options.mode === 'debate' ? 2 : 1,
+      },
+    },
+  };
 }

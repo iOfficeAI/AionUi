@@ -25,6 +25,7 @@ import CodexChat from '../platforms/codex/CodexChat';
 import NanobotChat from '../platforms/nanobot/NanobotChat';
 import OpenClawChat from '../platforms/openclaw/OpenClawChat';
 import GeminiChat from '../platforms/gemini/GeminiChat';
+import GroupChat from '../platforms/group/GroupChat';
 import AcpModelSelector from '@/renderer/components/agent/AcpModelSelector';
 import GeminiModelSelector from '../platforms/gemini/GeminiModelSelector';
 import { useGeminiModelSelection } from '../platforms/gemini/useGeminiModelSelection';
@@ -181,6 +182,7 @@ const ChatConversation: React.FC<{
   const workspaceEnabled = Boolean(conversation?.extra?.workspace);
 
   const isGeminiConversation = conversation?.type === 'gemini';
+  const isGroupConversation = conversation?.type === 'group';
 
   const conversationNode = useMemo(() => {
     if (!conversation || isGeminiConversation) return null;
@@ -220,6 +222,10 @@ const ChatConversation: React.FC<{
             workspace={conversation.extra?.workspace}
           />
         );
+      case 'group':
+        return (
+          <GroupChat key={conversation.id} conversationId={conversation.id} workspace={conversation.extra?.workspace} />
+        );
       default:
         return null;
     }
@@ -228,7 +234,7 @@ const ChatConversation: React.FC<{
   // 使用统一的 Hook 获取预设助手信息（ACP/Codex 会话）
   // Use unified hook for preset assistant info (ACP/Codex conversations)
   const { info: presetAssistantInfo, isLoading: isLoadingPreset } = usePresetAssistantInfo(
-    isGeminiConversation ? undefined : conversation
+    isGeminiConversation || isGroupConversation ? undefined : conversation
   );
 
   const sliderTitle = useMemo(() => {
@@ -243,7 +249,7 @@ const ChatConversation: React.FC<{
   // For other non-Gemini conversations, show disabled GeminiModelSelector.
   // NOTE: This must be placed before the Gemini early return to maintain consistent hook order.
   const modelSelector = useMemo(() => {
-    if (!conversation || isGeminiConversation) return undefined;
+    if (!conversation || isGeminiConversation || isGroupConversation) return undefined;
     if (conversation.type === 'acp') {
       const extra = conversation.extra as { backend?: string; currentModelId?: string };
       return (
@@ -268,27 +274,31 @@ const ChatConversation: React.FC<{
 
   // 如果有预设助手信息，使用预设助手的 logo 和名称；加载中时不进入 fallback；否则使用 backend 的 logo
   // If preset assistant info exists, use preset logo/name; while loading, avoid fallback; otherwise use backend logo
-  const chatLayoutProps = presetAssistantInfo
+  const chatLayoutProps = isGroupConversation
     ? {
-        agentName: presetAssistantInfo.name,
-        agentLogo: presetAssistantInfo.logo,
-        agentLogoIsEmoji: presetAssistantInfo.isEmoji,
+        agentName: t('conversation.group.header'),
       }
-    : isLoadingPreset
-      ? {} // Still loading custom agents — avoid showing backend logo prematurely
-      : {
-          backend:
-            conversation?.type === 'acp'
-              ? conversation?.extra?.backend
-              : conversation?.type === 'codex'
-                ? 'codex'
-                : conversation?.type === 'openclaw-gateway'
-                  ? 'openclaw-gateway'
-                  : conversation?.type === 'nanobot'
-                    ? 'nanobot'
-                    : undefined,
-          agentName: (conversation?.extra as { agentName?: string })?.agentName,
-        };
+    : presetAssistantInfo
+      ? {
+          agentName: presetAssistantInfo.name,
+          agentLogo: presetAssistantInfo.logo,
+          agentLogoIsEmoji: presetAssistantInfo.isEmoji,
+        }
+      : isLoadingPreset
+        ? {} // Still loading custom agents — avoid showing backend logo prematurely
+        : {
+            backend:
+              conversation?.type === 'acp'
+                ? conversation?.extra?.backend
+                : conversation?.type === 'codex'
+                  ? 'codex'
+                  : conversation?.type === 'openclaw-gateway'
+                    ? 'openclaw-gateway'
+                    : conversation?.type === 'nanobot'
+                      ? 'nanobot'
+                      : undefined,
+            agentName: (conversation?.extra as { agentName?: string })?.agentName,
+          };
 
   const headerExtraNode = (
     <div className='flex items-center gap-8px'>
