@@ -167,6 +167,9 @@ describe('AcpConnection timeout handling', () => {
     vi.advanceTimersByTime(59000);
     expect(cancelSpy).not.toHaveBeenCalled();
 
+    // Simulate process exit so the keepalive does not reset the timeout timer
+    (conn as any).child.killed = true;
+
     // At 61s — should have timed out
     vi.advanceTimersByTime(2000);
     expect(cancelSpy).toHaveBeenCalled();
