@@ -18,6 +18,7 @@ import { cleanupWebAdapter } from './process/webserver/adapter';
 import initStorage from './process/utils/initStorage';
 import { ExtensionRegistry } from './process/extensions';
 import { getChannelManager } from './process/channels';
+import { closeDatabase } from './process/services/database/export';
 
 const PORT = parseInt(process.env.PORT ?? '3000', 10);
 const ALLOW_REMOTE = process.env.ALLOW_REMOTE === 'true';
@@ -25,11 +26,29 @@ const ALLOW_REMOTE = process.env.ALLOW_REMOTE === 'true';
 // Track server instance for shutdown (set by main() once server is ready)
 let serverInstance: Awaited<ReturnType<typeof startWebServerWithInstance>> | null = null;
 
+// Guard against re-entrant shutdown (e.g. double CTRL+C)
+let isShuttingDown = false;
+
+// process.on('exit') is synchronous and fires on every exit path (including
+// process.exit()). Use it as the final safety net to checkpoint the SQLite WAL
+// so the database is never left in an inconsistent state.
+process.on('exit', () => {
+  closeDatabase();
+});
+
 // Register signal handlers at the TOP LEVEL — before any async operations — so
 // they are always active regardless of where in the startup sequence a signal
 // arrives. Registering them inside async main() risks a race where the signal
 // fires before the await chain completes and the handlers are never registered.
 const shutdown = (signal: string) => {
+  if (isShuttingDown) {
+    // Second signal: force-close the database and exit immediately
+    console.log(`[server] Received second ${signal}, forcing exit...`);
+    closeDatabase();
+    process.exit(0);
+    return;
+  }
+  isShuttingDown = true;
   console.log(`[server] Received ${signal}, shutting down...`);
   getChannelManager()
     .shutdown()
@@ -37,6 +56,9 @@ const shutdown = (signal: string) => {
     .finally(() => {
       try {
         cleanupWebAdapter();
+        // Close the database explicitly so SQLite checkpoints the WAL file.
+        // Also called from process.on('exit') as a safety net.
+        closeDatabase();
         if (serverInstance) {
           serverInstance.wss.clients.forEach((ws) => ws.terminate());
           serverInstance.wss.close();
