@@ -63,11 +63,11 @@ After selecting `<style-id>`, fetch only needed files:
 SESSION_STYLE_DIR="$(mktemp -d /tmp/aionui-morph-style.XXXXXX)"
 
 # Always fetch style.md first
-curl -fsSL "https://raw.githubusercontent.com/${STYLE_REPO_OWNER}/${STYLE_REPO_NAME}/${STYLE_REPO_REF}/${STYLE_REPO_DIR}/<style-id>/style.md" \
+curl -fsSL "https://raw.githubusercontent.com/${STYLE_REPO_OWNER}/${STYLE_REPO_NAME}/${STYLE_REPO_REF}/${STYLE_REPO_DIR}/${STYLE_TEMPLATE_DIR}/<style-id>/style.md" \
   -o "${SESSION_STYLE_DIR}/style.md"
 
 # Fetch build.sh only when implementation details are needed
-curl -fsSL "https://raw.githubusercontent.com/${STYLE_REPO_OWNER}/${STYLE_REPO_NAME}/${STYLE_REPO_REF}/${STYLE_REPO_DIR}/<style-id>/build.sh" \
+curl -fsSL "https://raw.githubusercontent.com/${STYLE_REPO_OWNER}/${STYLE_REPO_NAME}/${STYLE_REPO_REF}/${STYLE_REPO_DIR}/${STYLE_TEMPLATE_DIR}/<style-id>/build.sh" \
   -o "${SESSION_STYLE_DIR}/build.sh" || true
 ```
 
