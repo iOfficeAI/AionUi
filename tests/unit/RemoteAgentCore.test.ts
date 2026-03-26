@@ -703,4 +703,653 @@ describe('RemoteAgentCore', () => {
       expect(core['pendingPermissions'].size).toBe(0);
     });
   });
+
+  describe('handleConnectError', () => {
+    it('emits error message with connection error details', () => {
+      const { core, config } = createConnectedCore();
+      core['connection'] = mockConnection as never;
+
+      core['handleConnectError'](new Error('ECONNREFUSED'));
+
+      expect(config.onStreamEvent).toHaveBeenCalledWith(
+        expect.objectContaining({ type: 'error', data: 'Connection error: ECONNREFUSED' })
+      );
+    });
+  });
+
+  describe('handleClose', () => {
+    it('delegates to handleDisconnect with reason', () => {
+      const { core, config } = createConnectedCore();
+      core['connection'] = mockConnection as never;
+
+      core['handleClose'](1006, 'abnormal closure');
+
+      expect(config.onStreamEvent).toHaveBeenCalledWith(expect.objectContaining({ type: 'agent_status' }));
+      expect(config.onStreamEvent).toHaveBeenCalledWith(
+        expect.objectContaining({ type: 'error', data: expect.stringContaining('abnormal closure') })
+      );
+    });
+  });
+
+  describe('handleHelloOk', () => {
+    it('is a no-op that does not throw', () => {
+      const core = new RemoteAgentCore(makeConfig());
+      expect(() => core['handleHelloOk']({} as never)).not.toThrow();
+    });
+  });
+
+  describe('persistDeviceToken', () => {
+    it('persists device token to database', async () => {
+      const { core } = createConnectedCore();
+      const { getDatabase } = await import('../../src/process/services/database');
+      const db = await (getDatabase as ReturnType<typeof vi.fn>)();
+
+      core['persistDeviceToken']('new-token');
+
+      // Wait for async promise chain
+      await new Promise((r) => setTimeout(r, 10));
+      expect(db.updateRemoteAgent).toHaveBeenCalledWith('agent-1', { device_token: 'new-token' });
+    });
+  });
+
+  describe('fetchAndEmitHistoryFallback', () => {
+    it('fetches chat history and emits last assistant message', async () => {
+      const { core, config } = createConnectedCore();
+      core['connection'] = mockConnection as never;
+
+      mockConnection.chatHistory.mockResolvedValueOnce({
+        messages: [
+          { role: 'user', content: 'hi' },
+          { role: 'assistant', content: 'Hello there!' },
+        ],
+      });
+
+      core['fetchAndEmitHistoryFallback']('run-1');
+
+      await new Promise((r) => setTimeout(r, 10));
+
+      expect(config.onStreamEvent).toHaveBeenCalledWith(
+        expect.objectContaining({ type: 'content', data: 'Hello there!' })
+      );
+      // Should also emit finish
+      expect(config.onSignalEvent).toHaveBeenCalledWith(expect.objectContaining({ type: 'finish' }));
+    });
+
+    it('handles empty history gracefully', async () => {
+      const { core, config } = createConnectedCore();
+      core['connection'] = mockConnection as never;
+      mockConnection.chatHistory.mockResolvedValueOnce({ messages: [] });
+
+      core['fetchAndEmitHistoryFallback']('run-1');
+
+      await new Promise((r) => setTimeout(r, 10));
+
+      // Should still emit finish
+      expect(config.onSignalEvent).toHaveBeenCalledWith(expect.objectContaining({ type: 'finish' }));
+    });
+
+    it('handles chatHistory failure gracefully', async () => {
+      const { core, config } = createConnectedCore();
+      core['connection'] = mockConnection as never;
+      mockConnection.chatHistory.mockRejectedValueOnce(new Error('network'));
+
+      core['fetchAndEmitHistoryFallback']('run-1');
+
+      await new Promise((r) => setTimeout(r, 10));
+
+      // Should still emit finish
+      expect(config.onSignalEvent).toHaveBeenCalledWith(expect.objectContaining({ type: 'finish' }));
+    });
+
+    it('emits finish immediately when no session key', () => {
+      const cfg = makeConfig();
+      const core = new RemoteAgentCore(cfg);
+      // connection is null, no sessionKey
+      core['connection'] = { sessionKey: null } as never;
+
+      core['fetchAndEmitHistoryFallback']('run-1');
+
+      expect(cfg.onSignalEvent).toHaveBeenCalledWith(expect.objectContaining({ type: 'finish' }));
+    });
+  });
+
+  describe('handleAgentEvent – tool_call stream', () => {
+    it('converts tool start event and emits via adapter', () => {
+      const { core, config } = createConnectedCore();
+      core['connection'] = mockConnection as never;
+      const mockMessages = [
+        {
+          id: 't1',
+          msg_id: 't1',
+          conversation_id: 'conv-1',
+          type: 'acp_tool_call',
+          position: 'left',
+          createdAt: Date.now(),
+          content: { title: 'ReadFile', status: 'in_progress' },
+        },
+      ];
+      core['adapter'].convertSessionUpdate = vi.fn(() => mockMessages) as never;
+
+      core['handleEvent']({
+        type: 'event',
+        event: 'agent',
+        payload: {
+          stream: 'tool_call',
+          data: { phase: 'start', name: 'ReadFile', toolCallId: 'tc-1' },
+          sessionKey: 'session-1',
+        },
+      });
+
+      expect(core['adapter'].convertSessionUpdate).toHaveBeenCalled();
+    });
+
+    it('sets status to failed for result phase with isError', () => {
+      const { core } = createConnectedCore();
+      core['connection'] = mockConnection as never;
+      core['adapter'].convertSessionUpdate = vi.fn(() => []) as never;
+
+      core['handleEvent']({
+        type: 'event',
+        event: 'agent',
+        payload: {
+          stream: 'tool',
+          data: { phase: 'result', name: 'Bash', isError: true, toolCallId: 'tc-2' },
+          sessionKey: 'session-1',
+        },
+      });
+
+      const call = (core['adapter'].convertSessionUpdate as ReturnType<typeof vi.fn>).mock.calls[0][0];
+      expect(call.update.status).toBe('failed');
+    });
+
+    it('sets status to completed for result phase without error', () => {
+      const { core } = createConnectedCore();
+      core['connection'] = mockConnection as never;
+      core['adapter'].convertSessionUpdate = vi.fn(() => []) as never;
+
+      core['handleEvent']({
+        type: 'event',
+        event: 'agent',
+        payload: {
+          stream: 'tool',
+          data: { phase: 'result', name: 'ReadFile', isError: false, toolCallId: 'tc-3' },
+          sessionKey: 'session-1',
+        },
+      });
+
+      const call = (core['adapter'].convertSessionUpdate as ReturnType<typeof vi.fn>).mock.calls[0][0];
+      expect(call.update.status).toBe('completed');
+    });
+
+    it('uses meta as content when provided', () => {
+      const { core } = createConnectedCore();
+      core['connection'] = mockConnection as never;
+      core['adapter'].convertSessionUpdate = vi.fn(() => []) as never;
+
+      core['handleEvent']({
+        type: 'event',
+        event: 'agent',
+        payload: {
+          stream: 'tool',
+          data: { phase: 'start', name: 'Bash', meta: 'ls -la', toolCallId: 'tc-4' },
+          sessionKey: 'session-1',
+        },
+      });
+
+      const call = (core['adapter'].convertSessionUpdate as ReturnType<typeof vi.fn>).mock.calls[0][0];
+      expect(call.update.content).toEqual([{ type: 'content', content: { type: 'text', text: 'ls -la' } }]);
+    });
+
+    it('uses args as content when no meta', () => {
+      const { core } = createConnectedCore();
+      core['connection'] = mockConnection as never;
+      core['adapter'].convertSessionUpdate = vi.fn(() => []) as never;
+
+      core['handleEvent']({
+        type: 'event',
+        event: 'agent',
+        payload: {
+          stream: 'tool',
+          data: { phase: 'start', name: 'Edit', args: { file: 'a.ts' }, toolCallId: 'tc-5' },
+          sessionKey: 'session-1',
+        },
+      });
+
+      const call = (core['adapter'].convertSessionUpdate as ReturnType<typeof vi.fn>).mock.calls[0][0];
+      expect(call.update.content[0].content.text).toContain('a.ts');
+    });
+
+    it('skips tool event with no data', () => {
+      const { core } = createConnectedCore();
+      core['connection'] = mockConnection as never;
+      core['adapter'].convertSessionUpdate = vi.fn(() => []) as never;
+
+      core['handleEvent']({
+        type: 'event',
+        event: 'agent',
+        payload: { stream: 'tool', data: null, sessionKey: 'session-1' },
+      });
+
+      expect(core['adapter'].convertSessionUpdate).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('handleAgentEvent – thinking with text fallback', () => {
+    it('uses text field when delta is missing', () => {
+      const { core, config } = createConnectedCore();
+      core['connection'] = mockConnection as never;
+
+      core['handleEvent']({
+        type: 'event',
+        event: 'agent',
+        payload: { stream: 'thought', data: { text: 'thinking hard' }, sessionKey: 'session-1' },
+      });
+
+      expect(config.onSignalEvent).toHaveBeenCalledWith(
+        expect.objectContaining({ data: { subject: 'Thinking', description: 'thinking hard' } })
+      );
+    });
+
+    it('skips thinking event with no delta or text', () => {
+      const { core, config } = createConnectedCore();
+      core['connection'] = mockConnection as never;
+
+      core['handleEvent']({
+        type: 'event',
+        event: 'agent',
+        payload: { stream: 'thinking', data: {}, sessionKey: 'session-1' },
+      });
+
+      expect(config.onSignalEvent).not.toHaveBeenCalled();
+    });
+
+    it('skips thinking event with null data', () => {
+      const { core, config } = createConnectedCore();
+      core['connection'] = mockConnection as never;
+
+      core['handleEvent']({
+        type: 'event',
+        event: 'agent',
+        payload: { stream: 'thinking', data: null, sessionKey: 'session-1' },
+      });
+
+      expect(config.onSignalEvent).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('handleAgentEvent – lifecycle and unknown streams', () => {
+    it('ignores lifecycle events', () => {
+      const { core, config } = createConnectedCore();
+      core['connection'] = mockConnection as never;
+
+      core['handleEvent']({
+        type: 'event',
+        event: 'agent',
+        payload: { stream: 'lifecycle', data: { phase: 'start' }, sessionKey: 'session-1' },
+      });
+
+      expect(config.onStreamEvent).not.toHaveBeenCalled();
+      expect(config.onSignalEvent).not.toHaveBeenCalled();
+    });
+
+    it('warns on unknown agent stream', () => {
+      const { core, config } = createConnectedCore();
+      core['connection'] = mockConnection as never;
+      const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
+
+      core['handleEvent']({
+        type: 'event',
+        event: 'agent',
+        payload: { stream: 'unknown_stream', data: {}, sessionKey: 'session-1' },
+      });
+
+      expect(warnSpy).toHaveBeenCalledWith(
+        expect.stringContaining('Unhandled agent stream'),
+        'unknown_stream',
+        expect.anything()
+      );
+      warnSpy.mockRestore();
+    });
+  });
+
+  describe('emitMessage – additional types', () => {
+    it('routes acp_tool_call message type', () => {
+      const { core, config } = createConnectedCore();
+
+      core['emitMessage']({
+        id: 'm1',
+        msg_id: 'm1',
+        conversation_id: 'conv-1',
+        type: 'acp_tool_call',
+        position: 'left',
+        createdAt: Date.now(),
+        content: { title: 'Bash', status: 'in_progress' },
+      } as never);
+
+      expect(config.onStreamEvent).toHaveBeenCalledWith(expect.objectContaining({ type: 'acp_tool_call' }));
+    });
+
+    it('routes plan message type', () => {
+      const { core, config } = createConnectedCore();
+
+      core['emitMessage']({
+        id: 'm1',
+        msg_id: 'm1',
+        conversation_id: 'conv-1',
+        type: 'plan',
+        position: 'left',
+        createdAt: Date.now(),
+        content: { steps: [] },
+      } as never);
+
+      expect(config.onStreamEvent).toHaveBeenCalledWith(expect.objectContaining({ type: 'plan' }));
+    });
+
+    it('routes tool_group message type', () => {
+      const { core, config } = createConnectedCore();
+
+      core['emitMessage']({
+        id: 'm1',
+        msg_id: 'm1',
+        conversation_id: 'conv-1',
+        type: 'tool_group',
+        position: 'left',
+        createdAt: Date.now(),
+        content: { tools: [] },
+      } as never);
+
+      expect(config.onStreamEvent).toHaveBeenCalledWith(expect.objectContaining({ type: 'tool_group' }));
+    });
+
+    it('uses msg_id from message, falls back to id', () => {
+      const { core, config } = createConnectedCore();
+
+      core['emitMessage']({
+        id: 'fallback-id',
+        msg_id: '',
+        conversation_id: 'conv-1',
+        type: 'text',
+        position: 'left',
+        createdAt: Date.now(),
+        content: { content: 'test' },
+      } as never);
+
+      expect(config.onStreamEvent).toHaveBeenCalledWith(expect.objectContaining({ msg_id: 'fallback-id' }));
+    });
+  });
+
+  describe('sendMessage – edge cases', () => {
+    it('sends message without files (no file refs prepended)', async () => {
+      const { core } = createConnectedCore();
+      core['connection'] = mockConnection as never;
+
+      await core.sendMessage({ content: 'hello' });
+
+      expect(mockConnection.chatSend).toHaveBeenCalledWith(expect.objectContaining({ message: 'hello' }));
+    });
+
+    it('sends with empty files array', async () => {
+      const { core } = createConnectedCore();
+      core['connection'] = mockConnection as never;
+
+      await core.sendMessage({ content: 'hello', files: [] });
+
+      expect(mockConnection.chatSend).toHaveBeenCalledWith(expect.objectContaining({ message: 'hello' }));
+    });
+  });
+
+  describe('extractTextFromMessage – edge cases', () => {
+    it('returns text from message.text fallback', () => {
+      const core = new RemoteAgentCore(makeConfig());
+      expect(core['extractTextFromMessage']({ text: 'fallback text' })).toBe('fallback text');
+    });
+
+    it('returns null for empty string content', () => {
+      const core = new RemoteAgentCore(makeConfig());
+      expect(core['extractTextFromMessage']({ content: '' })).toBeNull();
+    });
+
+    it('returns null for non-object message', () => {
+      const core = new RemoteAgentCore(makeConfig());
+      expect(core['extractTextFromMessage']('just a string')).toBeNull();
+    });
+
+    it('returns null for null message', () => {
+      const core = new RemoteAgentCore(makeConfig());
+      expect(core['extractTextFromMessage'](null)).toBeNull();
+    });
+
+    it('returns null for array content with no text items', () => {
+      const core = new RemoteAgentCore(makeConfig());
+      expect(core['extractTextFromMessage']({ content: [{ type: 'image', url: 'x' }] })).toBeNull();
+    });
+  });
+
+  describe('handleChatEvent – additional edge cases', () => {
+    it('uses Unknown error fallback when errorMessage is missing', () => {
+      const { core, config } = createConnectedCore();
+      core['connection'] = mockConnection as never;
+
+      core['handleEvent']({
+        type: 'event',
+        event: 'chat',
+        payload: { runId: 'r', sessionKey: 'session-1', seq: 1, state: 'error' },
+      });
+
+      expect(config.onStreamEvent).toHaveBeenCalledWith(
+        expect.objectContaining({ type: 'error', data: 'Unknown error' })
+      );
+    });
+
+    it('handles delta with non-cumulative text (else branch)', () => {
+      const { core, config } = createConnectedCore();
+      core['connection'] = mockConnection as never;
+
+      // First delta sets accumulated text
+      core['handleEvent']({
+        type: 'event',
+        event: 'chat',
+        payload: { runId: 'r', sessionKey: 'session-1', seq: 1, state: 'delta', message: { content: 'Hello' } },
+      });
+
+      // Second delta with text that does NOT start with accumulated (non-cumulative)
+      core['handleEvent']({
+        type: 'event',
+        event: 'chat',
+        payload: { runId: 'r', sessionKey: 'session-1', seq: 2, state: 'delta', message: { content: 'World' } },
+      });
+
+      const calls = (config.onStreamEvent as ReturnType<typeof vi.fn>).mock.calls;
+      expect(calls[0][0].data).toBe('Hello');
+      expect(calls[1][0].data).toBe('World');
+    });
+
+    it('warns on unknown chat state', () => {
+      const { core } = createConnectedCore();
+      core['connection'] = mockConnection as never;
+      const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
+
+      core['handleEvent']({
+        type: 'event',
+        event: 'chat',
+        payload: { runId: 'r', sessionKey: 'session-1', seq: 1, state: 'unknown_state' },
+      });
+
+      expect(warnSpy).toHaveBeenCalledWith(expect.stringContaining('unknown state'), 'unknown_state');
+      warnSpy.mockRestore();
+    });
+
+    it('skips empty delta after extraction', () => {
+      const { core, config } = createConnectedCore();
+      core['connection'] = mockConnection as never;
+
+      // Send same content twice → delta should be empty string and skip
+      core['handleEvent']({
+        type: 'event',
+        event: 'chat',
+        payload: { runId: 'r', sessionKey: 'session-1', seq: 1, state: 'delta', message: { content: 'Hello' } },
+      });
+      core['handleEvent']({
+        type: 'event',
+        event: 'chat',
+        payload: { runId: 'r', sessionKey: 'session-1', seq: 2, state: 'delta', message: { content: 'Hello' } },
+      });
+
+      // Only one content event emitted
+      const contentCalls = (config.onStreamEvent as ReturnType<typeof vi.fn>).mock.calls.filter(
+        (c) => c[0].type === 'content'
+      );
+      expect(contentCalls).toHaveLength(1);
+    });
+
+    it('clears fallback text on delta', () => {
+      const { core } = createConnectedCore();
+      core['connection'] = mockConnection as never;
+
+      // Set fallback text via agent event
+      core['handleEvent']({
+        type: 'event',
+        event: 'agent',
+        payload: { stream: 'assistant', data: { text: 'fallback' }, sessionKey: 'session-1' },
+      });
+      expect(core['agentAssistantFallbackText']).toBe('fallback');
+
+      // Delta should clear it
+      core['handleEvent']({
+        type: 'event',
+        event: 'chat',
+        payload: { runId: 'r', sessionKey: 'session-1', seq: 1, state: 'delta', message: { content: 'Hi' } },
+      });
+      expect(core['agentAssistantFallbackText']).toBe('');
+    });
+  });
+
+  describe('kill', () => {
+    it('calls stop without throwing', () => {
+      const { core } = createConnectedCore();
+      core['connection'] = mockConnection as never;
+      expect(() => core.kill()).not.toThrow();
+    });
+  });
+
+  describe('resolveSession – double fallback', () => {
+    it('falls back to sessionsResolve when reset also fails', async () => {
+      const cfg = makeConfig();
+      const core = new RemoteAgentCore(cfg);
+      core['connection'] = mockConnection as never;
+      mockConnection.isConnected = true;
+      // No resumeKey → goes to reset path
+      mockConnection.sessionsReset.mockRejectedValueOnce(new Error('reset failed'));
+      mockConnection.sessionsResolve.mockResolvedValueOnce({ key: 'fallback-resolve-key' });
+
+      await core['resolveSession']();
+
+      expect(mockConnection.sessionKey).toBe('fallback-resolve-key');
+    });
+
+    it('falls back to raw key when both reset and resolve fail', async () => {
+      const cfg = makeConfig();
+      const core = new RemoteAgentCore(cfg);
+      core['connection'] = mockConnection as never;
+      mockConnection.isConnected = true;
+      mockConnection.sessionsReset.mockRejectedValueOnce(new Error('reset failed'));
+      mockConnection.sessionsResolve.mockRejectedValueOnce(new Error('resolve failed'));
+
+      await core['resolveSession']();
+
+      expect(mockConnection.sessionKey).toBe('conv-1');
+    });
+  });
+
+  describe('isFromOtherSession', () => {
+    it('returns false when no sessionKey provided', () => {
+      const { core } = createConnectedCore();
+      core['connection'] = mockConnection as never;
+      expect(core['isFromOtherSession'](undefined)).toBe(false);
+    });
+
+    it('returns false when connection has no sessionKey', () => {
+      const core = new RemoteAgentCore(makeConfig());
+      core['connection'] = { sessionKey: null } as never;
+      expect(core['isFromOtherSession']('some-key')).toBe(false);
+    });
+
+    it('returns true when keys differ', () => {
+      const { core } = createConnectedCore();
+      core['connection'] = mockConnection as never;
+      expect(core['isFromOtherSession']('different-session')).toBe(true);
+    });
+
+    it('returns false when keys match', () => {
+      const { core } = createConnectedCore();
+      core['connection'] = mockConnection as never;
+      expect(core['isFromOtherSession']('session-1')).toBe(false);
+    });
+  });
+
+  describe('emitStatusMessage', () => {
+    it('reuses the same statusMessageId across calls', () => {
+      const { core, config } = createConnectedCore();
+
+      core['emitStatusMessage']('connecting');
+      core['emitStatusMessage']('connected');
+
+      const calls = (config.onStreamEvent as ReturnType<typeof vi.fn>).mock.calls;
+      expect(calls[0][0].msg_id).toBe(calls[1][0].msg_id);
+    });
+  });
+
+  describe('emitErrorMessage', () => {
+    it('uses unique ids for generic errors', () => {
+      const { core, config } = createConnectedCore();
+
+      core['emitErrorMessage']('error1');
+      core['emitErrorMessage']('error2');
+
+      const calls = (config.onStreamEvent as ReturnType<typeof vi.fn>).mock.calls;
+      expect(calls[0][0].msg_id).not.toBe(calls[1][0].msg_id);
+    });
+
+    it('reuses disconnectTipMessageId for disconnect errors', () => {
+      const { core, config } = createConnectedCore();
+
+      core['emitErrorMessage']('disconnected1', 'disconnect');
+      core['emitErrorMessage']('disconnected2', 'disconnect');
+
+      const calls = (config.onStreamEvent as ReturnType<typeof vi.fn>).mock.calls;
+      expect(calls[0][0].msg_id).toBe(calls[1][0].msg_id);
+    });
+  });
+
+  describe('handleEvent – chat.event alias', () => {
+    it('routes chat.event the same as chat', () => {
+      const { core, config } = createConnectedCore();
+      core['connection'] = mockConnection as never;
+
+      core['handleEvent']({
+        type: 'event',
+        event: 'chat.event',
+        payload: { runId: 'r', sessionKey: 'session-1', seq: 1, state: 'delta', message: { content: 'via alias' } },
+      });
+
+      expect(config.onStreamEvent).toHaveBeenCalledWith(expect.objectContaining({ data: 'via alias' }));
+    });
+  });
+
+  describe('handleEvent – agent.event alias', () => {
+    it('routes agent.event the same as agent', () => {
+      const { core, config } = createConnectedCore();
+      core['connection'] = mockConnection as never;
+
+      core['handleEvent']({
+        type: 'event',
+        event: 'agent.event',
+        payload: { stream: 'thinking', data: { delta: 'via alias' }, sessionKey: 'session-1' },
+      });
+
+      expect(config.onSignalEvent).toHaveBeenCalledWith(
+        expect.objectContaining({ data: { subject: 'Thinking', description: 'via alias' } })
+      );
+    });
+  });
 });

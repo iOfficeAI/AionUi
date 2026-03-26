@@ -73,10 +73,28 @@ vi.mock('../../src/process/agent/openclaw/deviceIdentity', () => ({
   })),
 }));
 
+const capturedConnCallbacks = vi.hoisted(
+  () =>
+    ({
+      onHelloOk: null as ((hello: unknown) => void) | null,
+      onConnectError: null as ((err: Error) => void) | null,
+      onClose: null as ((code: number, reason: string) => void) | null,
+      onDeviceTokenIssued: null as ((token: string) => void) | null,
+    }) as Record<string, ((...args: unknown[]) => void) | null>
+);
+
 vi.mock('../../src/process/agent/openclaw/OpenClawGatewayConnection', () => ({
   OpenClawGatewayConnection: class {
     start = vi.fn();
     stop = vi.fn();
+    constructor(opts: Record<string, unknown>) {
+      capturedConnCallbacks.onHelloOk = (opts.onHelloOk as typeof capturedConnCallbacks.onHelloOk) ?? null;
+      capturedConnCallbacks.onConnectError =
+        (opts.onConnectError as typeof capturedConnCallbacks.onConnectError) ?? null;
+      capturedConnCallbacks.onClose = (opts.onClose as typeof capturedConnCallbacks.onClose) ?? null;
+      capturedConnCallbacks.onDeviceTokenIssued =
+        (opts.onDeviceTokenIssued as typeof capturedConnCallbacks.onDeviceTokenIssued) ?? null;
+    }
   },
 }));
 
@@ -226,6 +244,129 @@ describe('remoteAgentBridge', () => {
       const handler = providerMap.get('testConnection')!;
       const result = await handler({ url: 'wss://test', authType: 'none' });
       expect(result).toEqual({ success: true });
+    });
+  });
+
+  describe('update provider – additional fields', () => {
+    it('maps avatar and description fields', async () => {
+      const handler = providerMap.get('update')!;
+      await handler({
+        id: 'a1',
+        updates: { avatar: '🤖', description: 'My agent', protocol: 'openclaw' },
+      });
+
+      expect(mockDb.updateRemoteAgent).toHaveBeenCalledWith(
+        'a1',
+        expect.objectContaining({ avatar: '🤖', description: 'My agent', protocol: 'openclaw' })
+      );
+    });
+  });
+
+  describe('handshake provider', () => {
+    beforeEach(() => {
+      capturedConnCallbacks.onHelloOk = null;
+      capturedConnCallbacks.onConnectError = null;
+      capturedConnCallbacks.onClose = null;
+      capturedConnCallbacks.onDeviceTokenIssued = null;
+    });
+
+    it('returns error when agent not found', async () => {
+      const handler = providerMap.get('handshake')!;
+      const result = await handler({ id: 'missing' });
+      expect(result).toEqual({ status: 'error', error: 'Remote agent not found' });
+    });
+
+    it('returns ok immediately for non-openclaw protocol', async () => {
+      mockDb.getRemoteAgent.mockReturnValueOnce({
+        id: 'a2',
+        name: 'AcpAgent',
+        protocol: 'acp',
+        url: 'wss://acp',
+        authType: 'none',
+        createdAt: 0,
+        updatedAt: 0,
+      });
+
+      const handler = providerMap.get('handshake')!;
+      const result = await handler({ id: 'a2' });
+      expect(result).toEqual({ status: 'ok' });
+    });
+
+    it('returns ok on successful hello handshake', async () => {
+      const handler = providerMap.get('handshake')!;
+      const resultPromise = handler({ id: 'a1' });
+
+      // Trigger onHelloOk callback
+      await new Promise((r) => setTimeout(r, 0));
+      capturedConnCallbacks.onHelloOk!({});
+
+      const result = await resultPromise;
+      expect(result).toEqual({ status: 'ok' });
+      expect(mockDb.updateRemoteAgent).toHaveBeenCalledWith('a1', expect.objectContaining({ status: 'connected' }));
+    });
+
+    it('returns pending_approval when pairing required', async () => {
+      const handler = providerMap.get('handshake')!;
+      const resultPromise = handler({ id: 'a1' });
+
+      // Trigger onConnectError with pairing required
+      await new Promise((r) => setTimeout(r, 0));
+      const pairingError = Object.assign(new Error('pairing.required'), {
+        details: { recommendedNextStep: 'wait_then_retry' },
+      });
+      capturedConnCallbacks.onConnectError!(pairingError);
+
+      const result = await resultPromise;
+      expect(result).toEqual({ status: 'pending_approval' });
+      expect(mockDb.updateRemoteAgent).toHaveBeenCalledWith('a1', expect.objectContaining({ status: 'pending' }));
+    });
+
+    it('returns error on generic connect error', async () => {
+      const handler = providerMap.get('handshake')!;
+      const resultPromise = handler({ id: 'a1' });
+
+      await new Promise((r) => setTimeout(r, 0));
+      capturedConnCallbacks.onConnectError!(new Error('auth failed'));
+
+      const result = await resultPromise;
+      expect(result).toEqual({ status: 'error', error: 'auth failed' });
+      expect(mockDb.updateRemoteAgent).toHaveBeenCalledWith('a1', expect.objectContaining({ status: 'error' }));
+    });
+
+    it('returns error on connection close', async () => {
+      const handler = providerMap.get('handshake')!;
+      const resultPromise = handler({ id: 'a1' });
+
+      await new Promise((r) => setTimeout(r, 0));
+      capturedConnCallbacks.onClose!(1006, 'abnormal');
+
+      const result = await resultPromise;
+      expect(result).toEqual({ status: 'error', error: 'Connection closed (1006): abnormal' });
+    });
+
+    it('returns error on timeout', async () => {
+      vi.useFakeTimers();
+      const handler = providerMap.get('handshake')!;
+      const resultPromise = handler({ id: 'a1' });
+
+      // Advance past the 15s handshake timeout
+      await vi.advanceTimersByTimeAsync(16_000);
+
+      const result = await resultPromise;
+      expect(result).toEqual({ status: 'error', error: 'Handshake timed out (15s)' });
+      vi.useRealTimers();
+    });
+
+    it('detects pairing required via regex fallback', async () => {
+      const handler = providerMap.get('handshake')!;
+      const resultPromise = handler({ id: 'a1' });
+
+      await new Promise((r) => setTimeout(r, 0));
+      // Error message matches regex but no details object
+      capturedConnCallbacks.onConnectError!(new Error('Pairing.Required for this device'));
+
+      const result = await resultPromise;
+      expect(result).toEqual({ status: 'pending_approval' });
     });
   });
 });
