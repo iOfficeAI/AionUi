@@ -36,7 +36,7 @@ vi.mock('@process/services/database', () => ({
 vi.mock('@process/utils/message', () => ({
   addMessage: vi.fn(),
   addOrUpdateMessage: vi.fn(),
-  nextTickToLocalFinish: vi.fn(),
+  nextTickToLocalFinish: vi.fn((cb: () => void) => cb()),
 }));
 vi.mock('@process/channels/agent/ChannelEventBus', () => ({
   channelEventBus: {
