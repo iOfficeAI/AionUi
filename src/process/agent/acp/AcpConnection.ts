@@ -612,10 +612,27 @@ export class AcpConnection {
    * timeout while the process-exit handler covers the case where the child
    * actually crashes.
    */
+  /**
+   * Returns true only if the child process is confirmed to still be running.
+   * Checks exitCode and signalCode in addition to killed, because killed is
+   * only set when the process is terminated via Node's .kill() — a naturally
+   * crashing child leaves killed=false until the exit event is processed.
+   * exitCode/signalCode are set by the runtime as soon as the process exits,
+   * so they reliably detect a dead child even before the exit event fires.
+   */
+  private isChildAlive(): boolean {
+    return (
+      this.child !== null &&
+      !this.child.killed &&
+      this.child.exitCode === null &&
+      this.child.signalCode === null
+    );
+  }
+
   private startPromptKeepalive(): void {
     this.stopPromptKeepalive();
     this.promptKeepaliveInterval = setInterval(() => {
-      if (this.child && !this.child.killed) {
+      if (this.isChildAlive()) {
         this.resetSessionPromptTimeouts();
       }
     }, AcpConnection.KEEPALIVE_INTERVAL_MS);
