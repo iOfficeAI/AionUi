@@ -203,14 +203,6 @@ git diff origin/<baseRefName>...HEAD
 git diff --name-status origin/<baseRefName>...HEAD
 ```
 
-**Existing pr-assess comment (if any):**
-
-```bash
-gh pr view <PR_NUMBER> --json comments --jq '.comments[] | select(.body | startswith("<!-- pr-assess-bot -->")) | .body'
-```
-
-If a pr-assess comment exists, use it as supplementary context (risk signals, change overview) when forming your review. Do not re-verify its conclusions — treat it as background information only.
-
 ### Step 7 — Run Lint on Changed Files
 
 Run oxlint on all changed `.ts` / `.tsx` files (skip deleted files):
