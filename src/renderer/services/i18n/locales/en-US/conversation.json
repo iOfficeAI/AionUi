@@ -104,9 +104,9 @@
       "debate": "Round 1 stays independent, round 2 lets assistants respond after seeing the others.",
       "broadcast": "Each assistant answers independently and the group returns the final set of opinions."
     },
-    "participantsLabel": "Assistants",
-    "minimumParticipants": "Select at least two assistants",
-    "minimumParticipantsHint": "Pick 2 or more assistants to start a discussion group.",
+    "participantsLabel": "Participants",
+    "minimumParticipants": "Select at least two participants",
+    "minimumParticipantsHint": "Pick 2 or more participants to start a discussion group.",
     "noDescription": "No description",
     "sendPlaceholder": "Ask the discussion group...",
     "roundLabel": "Round {{round}}"

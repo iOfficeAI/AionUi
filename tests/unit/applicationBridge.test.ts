@@ -232,6 +232,7 @@ describe('CDP configuration functions', () => {
             emit: vi.fn(),
             invoke: vi.fn(),
           },
+          reportRendererError: { provider: vi.fn(), emit: vi.fn(), invoke: vi.fn() },
           updateSystemInfo: { provider: vi.fn(), emit: vi.fn(), invoke: vi.fn() },
           systemInfo: { provider: vi.fn(), emit: vi.fn(), invoke: vi.fn() },
           getPath: { provider: vi.fn(), emit: vi.fn(), invoke: vi.fn() },

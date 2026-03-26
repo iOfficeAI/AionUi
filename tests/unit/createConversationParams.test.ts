@@ -30,7 +30,7 @@ vi.mock('@/renderer/utils/model/presetAssistantResources', () => ({
   loadPresetAssistantResources,
 }));
 
-const { buildPresetAssistantParams } =
+const { buildDiscussionGroupParams, buildPresetAssistantParams } =
   await import('../../src/renderer/pages/conversation/utils/createConversationParams');
 
 describe('createConversationParams', () => {
@@ -105,5 +105,73 @@ describe('createConversationParams', () => {
     expect(params.extra.presetContext).toBe('acp preset rules');
     expect(params.extra.backend).toBe('codebuddy');
     expect(params.extra.enabledHooks).toEqual(['plan-before-coding']);
+  });
+
+  it('builds mixed discussion group participants for preset assistants and cli agents', async () => {
+    loadPresetAssistantResources.mockResolvedValue({
+      rules: 'preset rules',
+      skills: '',
+      enabledSkills: ['quality-gate'],
+      enabledHooks: ['plan-before-coding'],
+    });
+
+    const params = await buildDiscussionGroupParams({
+      name: 'Mixed Group',
+      workspace: '/tmp/workspace',
+      language: 'en-US',
+      mode: 'debate',
+      participants: [
+        {
+          type: 'preset-assistant',
+          participantKey: 'builtin-cowork',
+          name: 'Cowork',
+          description: 'Preset assistant',
+          presetAgentType: 'codebuddy',
+        },
+        {
+          type: 'cli-agent',
+          participantKey: 'codex:/usr/local/bin/codex:Codex CLI',
+          name: 'Codex CLI',
+          description: 'codex · /usr/local/bin/codex',
+          agent: {
+            backend: 'codex',
+            name: 'Codex CLI',
+            cliPath: '/usr/local/bin/codex',
+          },
+        },
+      ],
+    });
+
+    expect(params.type).toBe('group');
+    expect(params.extra.participants).toHaveLength(2);
+    expect(params.extra.participants?.[0]).toMatchObject({
+      participantType: 'preset-assistant',
+      participantKey: 'builtin-cowork',
+      assistantId: 'builtin-cowork',
+      name: 'Cowork',
+    });
+    expect(params.extra.participants?.[0].conversation).toMatchObject({
+      type: 'acp',
+      extra: {
+        backend: 'codebuddy',
+        presetContext: 'preset rules',
+        enabledSkills: ['quality-gate'],
+        enabledHooks: ['plan-before-coding'],
+      },
+    });
+    expect(params.extra.participants?.[1]).toMatchObject({
+      participantType: 'cli-agent',
+      participantKey: 'codex:/usr/local/bin/codex:Codex CLI',
+      assistantId: undefined,
+      name: 'Codex CLI',
+    });
+    expect(params.extra.participants?.[1].conversation).toMatchObject({
+      type: 'acp',
+      name: 'Codex CLI',
+      extra: {
+        backend: 'codex',
+        cliPath: '/usr/local/bin/codex',
+      },
+    });
   });
 });

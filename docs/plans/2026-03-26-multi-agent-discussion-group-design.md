@@ -146,11 +146,11 @@ resources, so the group feature should build on that layer.
 
 The product should support three modes, but only one should be the default.
 
-| Mode        | Behavior                                                                 | Best for                                | Risk                                        |
-| ----------- | ------------------------------------------------------------------------ | --------------------------------------- | ------------------------------------------- |
-| Broadcast   | User prompt fan-outs to all participants independently                    | Quick multi-angle collection            | No real interaction between agents          |
-| Relay       | Agents speak in order; later agents see selected earlier outputs         | Brainstorming, divergence, role-play    | Later agents are strongly biased            |
-| Debate      | Round 1 independent; Round 2 sees condensed peer outputs; then synthesize | Decisions, comparison, critical review  | More orchestration complexity, but best UX  |
+| Mode      | Behavior                                                                  | Best for                               | Risk                                       |
+| --------- | ------------------------------------------------------------------------- | -------------------------------------- | ------------------------------------------ |
+| Broadcast | User prompt fan-outs to all participants independently                    | Quick multi-angle collection           | No real interaction between agents         |
+| Relay     | Agents speak in order; later agents see selected earlier outputs          | Brainstorming, divergence, role-play   | Later agents are strongly biased           |
+| Debate    | Round 1 independent; Round 2 sees condensed peer outputs; then synthesize | Decisions, comparison, critical review | More orchestration complexity, but best UX |
 
 ### Default recommendation
 
@@ -166,15 +166,15 @@ That gives the best balance:
 
 ## Core Decisions
 
-| Question | Decision |
-| -------- | -------- |
-| Product name | Use `Discussion Group` or `Agent Group`, not `multi-agent mode` |
-| Top-level model | Add a new parent conversation kind for groups |
-| Primary participant unit | Assistant, not raw CLI backend |
-| Participant execution model | Reuse existing child conversations and existing agent runtimes |
-| Default safety policy | Discussion-first, no participant tool execution in v1 |
-| User interruption | Highest priority; interrupts all active participant turns and restarts the current stage |
-| Visibility model | Parent group timeline is primary; child conversations are hidden by default |
+| Question                    | Decision                                                                                 |
+| --------------------------- | ---------------------------------------------------------------------------------------- |
+| Product name                | Use `Discussion Group` or `Agent Group`, not `multi-agent mode`                          |
+| Top-level model             | Add a new parent conversation kind for groups                                            |
+| Primary participant unit    | Assistant, not raw CLI backend                                                           |
+| Participant execution model | Reuse existing child conversations and existing agent runtimes                           |
+| Default safety policy       | Discussion-first, no participant tool execution in v1                                    |
+| User interruption           | Highest priority; interrupts all active participant turns and restarts the current stage |
+| Visibility model            | Parent group timeline is primary; child conversations are hidden by default              |
 
 ## Proposed Architecture
 
@@ -475,31 +475,31 @@ the collaboration concept cleanly.
 
 ### Files to Modify
 
-| File | Change |
-| ---- | ------ |
-| `src/common/config/storage.ts` | Widen `TChatConversation` to include `'group'`; add group extra metadata; add optional group link metadata on child conversations |
-| `src/process/task/agentTypes.ts` | Split `AgentType` from a wider conversation kind/type abstraction |
-| `src/process/services/IConversationService.ts` | Accept group conversation creation without pretending it is an agent runtime |
-| `src/process/services/ConversationServiceImpl.ts` | Create and persist parent group conversations; create hidden child conversations; skip worker factory for parent group |
-| `src/common/adapter/ipcBridge.ts` | Add typed IPC for creating/running/interruption of discussion groups |
-| `src/process/bridge/conversationBridge.ts` | Route `group` conversations to the orchestrator instead of `workerTaskManager.getOrBuildTask(...)` |
-| `src/common/chat/chatLib.ts` | Add optional message-level group metadata and renderer transform support |
-| `src/renderer/pages/conversation/components/ChatConversation.tsx` | Render a group chat implementation when `conversation.type === 'group'` |
-| `src/renderer/pages/conversation/Messages/MessageList.tsx` | Display participant identity badges and group stage markers |
-| `src/renderer/hooks/assistant/useAssistantList.ts` | Reuse assistant list as the primary participant source for group creation |
-| `src/renderer/pages/conversation/hooks/useConversationAgents.ts` | Keep raw detected CLIs as an advanced fallback source |
+| File                                                              | Change                                                                                                                            |
+| ----------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------- |
+| `src/common/config/storage.ts`                                    | Widen `TChatConversation` to include `'group'`; add group extra metadata; add optional group link metadata on child conversations |
+| `src/process/task/agentTypes.ts`                                  | Split `AgentType` from a wider conversation kind/type abstraction                                                                 |
+| `src/process/services/IConversationService.ts`                    | Accept group conversation creation without pretending it is an agent runtime                                                      |
+| `src/process/services/ConversationServiceImpl.ts`                 | Create and persist parent group conversations; create hidden child conversations; skip worker factory for parent group            |
+| `src/common/adapter/ipcBridge.ts`                                 | Add typed IPC for creating/running/interruption of discussion groups                                                              |
+| `src/process/bridge/conversationBridge.ts`                        | Route `group` conversations to the orchestrator instead of `workerTaskManager.getOrBuildTask(...)`                                |
+| `src/common/chat/chatLib.ts`                                      | Add optional message-level group metadata and renderer transform support                                                          |
+| `src/renderer/pages/conversation/components/ChatConversation.tsx` | Render a group chat implementation when `conversation.type === 'group'`                                                           |
+| `src/renderer/pages/conversation/Messages/MessageList.tsx`        | Display participant identity badges and group stage markers                                                                       |
+| `src/renderer/hooks/assistant/useAssistantList.ts`                | Reuse assistant list as the primary participant source for group creation                                                         |
+| `src/renderer/pages/conversation/hooks/useConversationAgents.ts`  | Keep raw detected CLIs as an advanced fallback source                                                                             |
 
 ### Files to Create
 
-| File | Purpose |
-| ---- | ------- |
-| `src/process/bridge/services/discussion/DiscussionOrchestrator.ts` | Parent coordinator for turns, stages, interruption, and child runtime dispatch |
-| `src/process/bridge/services/discussion/DiscussionPromptBuilder.ts` | Build first-round, relay, debate, and synthesizer prompts |
-| `src/process/bridge/services/discussion/DiscussionProjector.ts` | Project child outputs into parent timeline messages |
-| `src/renderer/pages/conversation/group/index.tsx` | Group conversation entry module |
-| `src/renderer/pages/conversation/group/GroupChat.tsx` | Parent group chat UI |
-| `src/renderer/pages/conversation/group/components/GroupHeader.tsx` | Participant chips, mode badge, stage indicator |
-| `src/renderer/pages/conversation/group/components/CreateGroupModal.tsx` | Session-level group creation flow |
+| File                                                                    | Purpose                                                                        |
+| ----------------------------------------------------------------------- | ------------------------------------------------------------------------------ |
+| `src/process/bridge/services/discussion/DiscussionOrchestrator.ts`      | Parent coordinator for turns, stages, interruption, and child runtime dispatch |
+| `src/process/bridge/services/discussion/DiscussionPromptBuilder.ts`     | Build first-round, relay, debate, and synthesizer prompts                      |
+| `src/process/bridge/services/discussion/DiscussionProjector.ts`         | Project child outputs into parent timeline messages                            |
+| `src/renderer/pages/conversation/group/index.tsx`                       | Group conversation entry module                                                |
+| `src/renderer/pages/conversation/group/GroupChat.tsx`                   | Parent group chat UI                                                           |
+| `src/renderer/pages/conversation/group/components/GroupHeader.tsx`      | Participant chips, mode badge, stage indicator                                 |
+| `src/renderer/pages/conversation/group/components/CreateGroupModal.tsx` | Session-level group creation flow                                              |
 
 ### Placement Notes
 

@@ -8,13 +8,13 @@ import type { IChannelPairingRequest, IChannelPluginStatus, IChannelUser } from 
 import { acpConversation, channel } from '@/common/adapter/ipcBridge';
 import { ConfigStorage } from '@/common/config/storage';
 import { openExternalUrl } from '@/renderer/utils/platform';
-import GeminiModelSelector from '@/renderer/pages/conversation/platforms/gemini/GeminiModelSelector';
 import type { GeminiModelSelection } from '@/renderer/pages/conversation/platforms/gemini/useGeminiModelSelection';
 import type { AcpBackendAll } from '@/common/types/acpTypes';
 import { Button, Dropdown, Empty, Input, Menu, Message, Spin, Tooltip } from '@arco-design/web-react';
 import { CheckOne, CloseOne, Copy, Delete, Down, Refresh } from '@icon-park/react';
 import React, { useCallback, useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import ChannelModelSelector from './ChannelModelSelector';
 
 /**
  * Preference row component
@@ -659,7 +659,7 @@ const LarkConfigForm: React.FC<LarkConfigFormProps> = ({ pluginStatus, modelSele
         label={t('settings.assistant.defaultModel', 'Default Model')}
         description={t('settings.lark.defaultModelDesc', 'Model used for Lark conversations')}
       >
-        <GeminiModelSelector
+        <ChannelModelSelector
           selection={isGeminiAgent ? modelSelection : undefined}
           disabled={!isGeminiAgent}
           label={
@@ -667,7 +667,6 @@ const LarkConfigForm: React.FC<LarkConfigFormProps> = ({ pluginStatus, modelSele
               ? t('settings.assistant.autoFollowCliModel', 'Automatically follow the model when CLI is running')
               : undefined
           }
-          variant='settings'
         />
       </PreferenceRow>
 

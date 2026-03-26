@@ -95,6 +95,8 @@ export class DiscussionGroupService {
 
       participants.push({
         id: participant.id,
+        participantType: participant.participantType,
+        participantKey: participant.participantKey,
         assistantId: participant.assistantId,
         name: participant.name,
         avatar: participant.avatar,

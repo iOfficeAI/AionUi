@@ -48,7 +48,7 @@ vi.mock('@/common/config/storage', () => ({
   ConfigStorage: { get: vi.fn(async () => undefined), set: vi.fn(async () => {}) },
 }));
 
-vi.mock('@/renderer/pages/conversation/platforms/gemini/GeminiModelSelector', () => ({
+vi.mock('@/renderer/components/settings/SettingsModal/contents/channels/ChannelModelSelector', () => ({
   default: () => <div data-testid='model-selector' />,
 }));
 

@@ -104,9 +104,9 @@
       "debate": "第一轮保持独立回答，第二轮在看到其他助手观点后再给出更新结论。",
       "broadcast": "每个助手独立作答，讨论组最终返回一组并列观点。"
     },
-    "participantsLabel": "参与助手",
-    "minimumParticipants": "请至少选择两个助手",
-    "minimumParticipantsHint": "至少选择 2 个助手后才能创建讨论组。",
+    "participantsLabel": "参与者",
+    "minimumParticipants": "请至少选择两个参与者",
+    "minimumParticipantsHint": "至少选择 2 个参与者后才能创建讨论组。",
     "noDescription": "暂无描述",
     "sendPlaceholder": "向讨论组发起问题...",
     "roundLabel": "第 {{round}} 轮"

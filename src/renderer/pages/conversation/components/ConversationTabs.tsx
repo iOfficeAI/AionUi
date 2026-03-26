@@ -253,9 +253,6 @@ const ConversationTabs: React.FC = () => {
             return;
           }
           params = await buildPresetAssistantParams(agent, workspace, i18n.language);
-        } else if (key === 'group:create') {
-          setGroupModalVisible(true);
-          return;
         } else {
           return;
         }
@@ -295,12 +292,6 @@ const ConversationTabs: React.FC = () => {
   const renderAgentDropdownMenu = useCallback(() => {
     return (
       <Menu onClickMenuItem={(key) => void handleCreateConversation(key)}>
-        <Menu.Item key='group:create'>
-          <div className='flex items-center gap-8px'>
-            <Robot size='16' />
-            <span>{t('conversation.group.createEntry')}</span>
-          </div>
-        </Menu.Item>
         {cliAgents.length > 0 && (
           <Menu.ItemGroup title={t('conversation.dropdown.cliAgents')}>
             {cliAgents.map((agent) => {
@@ -436,6 +427,15 @@ const ConversationTabs: React.FC = () => {
           }}
         />
 
+        <IconActionTrigger
+          disabled={isDropdownDisabled}
+          title={t('conversation.group.createEntry')}
+          icon={<Robot theme='outline' size='16' fill={iconColors.primary} strokeWidth={3} />}
+          onClick={() => {
+            setGroupModalVisible(true);
+          }}
+        />
+
         {/* 新建会话按钮 - 点击显示 Agent 下拉选择 */}
         <CreateConversationTrigger
           disabled={isDropdownDisabled}
@@ -450,7 +450,7 @@ const ConversationTabs: React.FC = () => {
 
         {/* 右侧渐变指示器 */}
         {showRightFade && (
-          <div className='pointer-events-none absolute right-80px top-0 bottom-0 w-32px [background:linear-gradient(270deg,var(--bg-2)_0%,transparent_100%)]' />
+          <div className='pointer-events-none absolute right-120px top-0 bottom-0 w-32px [background:linear-gradient(270deg,var(--bg-2)_0%,transparent_100%)]' />
         )}
       </div>
       <ExternalSessionsModal
@@ -463,6 +463,8 @@ const ConversationTabs: React.FC = () => {
         <CreateDiscussionGroupModal
           visible={groupModalVisible}
           workspace={currentWorkspaceTab.workspace}
+          cliAgents={cliAgents}
+          presetAssistants={presetAssistants}
           onCancel={() => setGroupModalVisible(false)}
           onCreated={(conversation) => {
             setGroupModalVisible(false);

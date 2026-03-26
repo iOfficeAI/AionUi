@@ -21,6 +21,7 @@ import type {
   ConversationGroupMeta,
   DiscussionGroupMode,
   DiscussionGroupParticipant,
+  DiscussionGroupParticipantType,
 } from '../config/storage';
 import type { PreviewHistoryTarget, PreviewSnapshotInfo } from '../types/preview';
 import type {
@@ -889,7 +890,10 @@ export type IAssistantConversationCreateParams = ICreateConversationParams & {
 
 export interface IDiscussionGroupParticipantCreateParams {
   id: string;
-  assistantId: string;
+  participantType: DiscussionGroupParticipantType;
+  participantKey: string;
+  /** @deprecated Kept for backward compatibility with older preset-based discussion groups */
+  assistantId?: string;
   name: string;
   avatar?: string;
   description?: string;

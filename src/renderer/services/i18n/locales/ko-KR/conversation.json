@@ -98,9 +98,9 @@
       "debate": "1라운드는 독립적으로 답하고, 2라운드는 다른 어시스턴트의 의견을 본 뒤 답을 갱신합니다.",
       "broadcast": "각 어시스턴트가 독립적으로 답하고, 그룹이 최종 의견 묶음을 반환합니다."
     },
-    "participantsLabel": "참여 어시스턴트",
-    "minimumParticipants": "최소 두 명의 어시스턴트를 선택하세요",
-    "minimumParticipantsHint": "토론 그룹을 만들려면 2명 이상의 어시스턴트를 선택해야 합니다.",
+    "participantsLabel": "참여자",
+    "minimumParticipants": "최소 두 명의 참여자를 선택하세요",
+    "minimumParticipantsHint": "토론 그룹을 만들려면 2명 이상의 참여자를 선택해야 합니다.",
     "noDescription": "설명 없음",
     "sendPlaceholder": "토론 그룹에 질문하기...",
     "roundLabel": "{{round}} 라운드"

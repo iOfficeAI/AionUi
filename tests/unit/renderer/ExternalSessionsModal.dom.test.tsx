@@ -11,7 +11,7 @@ vi.mock('react-i18next', () => ({
   useTranslation: () => ({
     t: (key: string, options?: Record<string, unknown>) =>
       (
-        {
+        ({
           'guid.externalSessions.title': 'Continue external sessions',
           'guid.externalSessions.description': 'External sessions description',
           'guid.externalSessions.refresh': 'Refresh',
@@ -22,7 +22,7 @@ vi.mock('react-i18next', () => ({
           'guid.externalSessions.providers.codex': 'Codex',
           'guid.externalSessions.providers.openclaw-gateway': 'OpenClaw',
           'guid.externalSessions.filters.all': 'All',
-        } as Record<string, string>
+        }) as Record<string, string>
       )[key] ?? (key === 'guid.externalSessions.updatedAt' ? `Updated ${options?.time ?? ''}` : key),
   }),
 }));
@@ -68,7 +68,13 @@ vi.mock('@arco-design/web-react', () => {
         <div key='message-context' />,
       ],
     },
-    Modal: ({ visible, children, title }: any) => (visible ? <div><div>{title}</div>{children}</div> : null),
+    Modal: ({ visible, children, title }: any) =>
+      visible ? (
+        <div>
+          <div>{title}</div>
+          {children}
+        </div>
+      ) : null,
     Tabs,
     Tag: ({ children }: any) => <span>{children}</span>,
     Typography: {

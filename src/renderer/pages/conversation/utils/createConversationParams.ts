@@ -16,12 +16,24 @@ import type { AcpBackend, AcpBackendAll } from '@/common/types/acpTypes';
 import { uuid } from '@/common/utils';
 
 export type DiscussionGroupAssistantInput = {
-  assistantId: string;
+  type: 'preset-assistant';
+  participantKey: string;
   name: string;
   avatar?: string;
   description?: string;
   presetAgentType?: string;
 };
+
+export type DiscussionGroupCliParticipantInput = {
+  type: 'cli-agent';
+  participantKey: string;
+  name: string;
+  avatar?: string;
+  description?: string;
+  agent: AvailableAgent;
+};
+
+export type DiscussionGroupParticipantInput = DiscussionGroupAssistantInput | DiscussionGroupCliParticipantInput;
 
 /**
  * Get the default Gemini model configuration from user settings.
@@ -196,30 +208,36 @@ export async function buildDiscussionGroupParams(options: {
   workspace: string;
   language: string;
   mode: DiscussionGroupMode;
-  assistants: DiscussionGroupAssistantInput[];
+  participants: DiscussionGroupParticipantInput[];
 }): Promise<ICreateConversationParams> {
   const participants = await Promise.all(
-    options.assistants.map(async (assistant) => {
-      const conversation = (await buildPresetAssistantParams(
-        {
-          backend: 'gemini',
-          name: assistant.name,
-          customAgentId: assistant.assistantId,
-          presetAgentType: assistant.presetAgentType,
-        },
-        options.workspace,
-        options.language
-      )) as IAssistantConversationCreateParams;
+    options.participants.map(async (participant) => {
+      const conversation =
+        participant.type === 'preset-assistant'
+          ? ((await buildPresetAssistantParams(
+              {
+                backend: 'custom',
+                name: participant.name,
+                customAgentId: participant.participantKey,
+                isPreset: true,
+                presetAgentType: participant.presetAgentType,
+              },
+              options.workspace,
+              options.language
+            )) as IAssistantConversationCreateParams)
+          : ((await buildCliAgentParams(participant.agent, options.workspace)) as IAssistantConversationCreateParams);
 
       return {
         id: uuid(),
-        assistantId: assistant.assistantId,
-        name: assistant.name,
-        avatar: assistant.avatar,
-        description: assistant.description,
+        participantType: participant.type,
+        participantKey: participant.participantKey,
+        assistantId: participant.type === 'preset-assistant' ? participant.participantKey : undefined,
+        name: participant.name,
+        avatar: participant.avatar,
+        description: participant.description,
         conversation: {
           ...conversation,
-          name: assistant.name,
+          name: participant.name,
           extra: {
             ...conversation.extra,
             workspace: options.workspace,

@@ -98,9 +98,9 @@
       "debate": "第一輪保持獨立回答，第二輪在看到其他助手觀點後再給出更新結論。",
       "broadcast": "每位助手獨立作答，討論群組最後回傳一組並列觀點。"
     },
-    "participantsLabel": "參與助手",
-    "minimumParticipants": "請至少選擇兩位助手",
-    "minimumParticipantsHint": "至少選擇 2 位助手後才能建立討論群組。",
+    "participantsLabel": "參與者",
+    "minimumParticipants": "請至少選擇兩位參與者",
+    "minimumParticipantsHint": "至少選擇 2 位參與者後才能建立討論群組。",
     "noDescription": "暫無描述",
     "sendPlaceholder": "向討論群組提出問題...",
     "roundLabel": "第 {{round}} 輪"

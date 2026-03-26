@@ -165,9 +165,14 @@ export type ConversationSource = 'aionui' | 'telegram' | 'lark' | 'dingtalk' | '
 
 export type DiscussionGroupMode = 'broadcast' | 'debate';
 
+export type DiscussionGroupParticipantType = 'preset-assistant' | 'cli-agent';
+
 export type DiscussionGroupParticipant = {
   id: string;
-  assistantId: string;
+  participantType: DiscussionGroupParticipantType;
+  participantKey: string;
+  /** @deprecated Kept for backward compatibility with older discussion group data */
+  assistantId?: string;
   name: string;
   avatar?: string;
   description?: string;

@@ -30,6 +30,7 @@ vi.mock('@/common', () => ({
       remove: makeChannel('remove'),
       update: makeChannel('update'),
       reset: makeChannel('reset'),
+      warmup: makeChannel('warmup'),
       stop: makeChannel('stop'),
       sendMessage: makeChannel('sendMessage'),
       getSlashCommands: makeChannel('getSlashCommands'),
@@ -53,6 +54,7 @@ vi.mock('@/common', () => ({
 
 vi.mock('@process/utils/initStorage', () => ({
   ProcessChat: { get: vi.fn(async () => []) },
+  ProcessConfig: { get: vi.fn(async () => undefined), set: vi.fn(async () => undefined) },
   getSkillsDir: vi.fn(() => '/skills'),
   getBuiltinSkillsCopyDir: vi.fn(() => '/builtin-skills'),
   getSystemDir: vi.fn(() => ({ cacheDir: '/cache' })),

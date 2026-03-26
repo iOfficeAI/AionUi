@@ -235,9 +235,9 @@
       "debate": "1. tur bağımsız kalır, 2. turda diğer yardımcıların cevapları görüldükten sonra yanıt güncellenir.",
       "broadcast": "Her yardımcı bağımsız yanıt verir ve grup son görüş setini birlikte döndürür."
     },
-    "participantsLabel": "Yardımcılar",
-    "minimumParticipants": "En az iki yardımcı seçin",
-    "minimumParticipantsHint": "Bir tartışma grubu başlatmak için 2 veya daha fazla yardımcı seçin.",
+    "participantsLabel": "Katılımcılar",
+    "minimumParticipants": "En az iki katılımcı seçin",
+    "minimumParticipantsHint": "Bir tartışma grubu başlatmak için 2 veya daha fazla katılımcı seçin.",
     "noDescription": "Açıklama yok",
     "sendPlaceholder": "Tartışma grubuna bir soru sor...",
     "roundLabel": "{{round}}. Tur"

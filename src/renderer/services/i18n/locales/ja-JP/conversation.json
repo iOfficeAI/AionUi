@@ -98,9 +98,9 @@
       "debate": "1 ラウンド目は独立回答、2 ラウンド目は他の助手の意見を見てから更新回答します。",
       "broadcast": "各助手が独立に回答し、最後に複数の意見をまとめて返します。"
     },
-    "participantsLabel": "参加アシスタント",
-    "minimumParticipants": "少なくとも 2 人のアシスタントを選択してください",
-    "minimumParticipantsHint": "ディスカッショングループを作成するには 2 人以上のアシスタントを選択してください。",
+    "participantsLabel": "参加者",
+    "minimumParticipants": "少なくとも 2 人の参加者を選択してください",
+    "minimumParticipantsHint": "ディスカッショングループを作成するには 2 人以上の参加者を選択してください。",
     "noDescription": "説明なし",
     "sendPlaceholder": "ディスカッショングループに質問する...",
     "roundLabel": "ラウンド {{round}}"
