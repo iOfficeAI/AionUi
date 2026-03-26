@@ -19,7 +19,8 @@ const getConversationBackend = (conversation: ConversationLike): string | undefi
 };
 
 export const getConversationEnabledHooks = (conversation: ConversationLike): string[] => {
-  const enabledHooks = conversation.extra?.enabledHooks;
+  const extra = conversation.extra as { enabledHooks?: unknown } | undefined;
+  const enabledHooks = extra?.enabledHooks;
   if (!Array.isArray(enabledHooks)) return [];
 
   return enabledHooks

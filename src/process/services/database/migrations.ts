@@ -801,10 +801,10 @@ const migration_v16: IMigration = {
 };
 
 /**
- * Migration v15 -> v16: Add group conversation type
+ * Migration v16 -> v17: Add group conversation type
  */
-const migration_v16: IMigration = {
-  version: 16,
+const migration_v17: IMigration = {
+  version: 17,
   name: 'Add discussion group conversation type',
   up: (db) => {
     db.exec(`CREATE TABLE IF NOT EXISTS conversations_new (
@@ -835,10 +835,10 @@ const migration_v16: IMigration = {
       'CREATE INDEX IF NOT EXISTS idx_conversations_source_chat ON conversations(source, channel_chat_id, updated_at DESC)'
     );
 
-    console.log('[Migration v16] Added discussion group conversation type');
+    console.log('[Migration v17] Added discussion group conversation type');
   },
   down: (_db) => {
-    console.warn('[Migration v16] Rollback skipped to prevent data loss of discussion group conversations.');
+    console.warn('[Migration v17] Rollback skipped to prevent data loss of discussion group conversations.');
   },
 };
 
@@ -849,7 +849,7 @@ const migration_v16: IMigration = {
 export const ALL_MIGRATIONS: IMigration[] = [
   migration_v1, migration_v2, migration_v3, migration_v4, migration_v5, migration_v6,
   migration_v7, migration_v8, migration_v9, migration_v10, migration_v11, migration_v12,
-  migration_v13, migration_v14, migration_v15, migration_v16,
+  migration_v13, migration_v14, migration_v15, migration_v16, migration_v17,
 ];
 
 /**

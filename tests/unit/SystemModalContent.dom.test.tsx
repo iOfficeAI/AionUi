@@ -23,12 +23,12 @@ vi.mock('react-i18next', () => ({
   useTranslation: () => ({
     t: (key: string) =>
       (
-        {
+        ({
           'settings.voiceInput.durationHoursShort': 'h',
           'settings.voiceInput.durationMinutesShort': 'm',
           'settings.voiceInput.durationSecondsShort': 's',
           'settings.voiceInput.durationLessThanSecond': '<1s',
-        } as Record<string, string>
+        }) as Record<string, string>
       )[key] ?? key,
     i18n: { language: 'en-US' },
   }),

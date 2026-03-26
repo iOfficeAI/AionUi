@@ -231,8 +231,7 @@ function compileMacVoiceInputHelper(targetArchs) {
 
   const buildSingleArch = (arch) => {
     const triple = arch === 'x64' ? 'x86_64-apple-macos12.0' : 'arm64-apple-macos12.0';
-    const outputPath =
-      effectiveArchs.length === 1 ? MAC_NATIVE_HELPER_OUTPUT : `${MAC_NATIVE_HELPER_OUTPUT}.${arch}`;
+    const outputPath = effectiveArchs.length === 1 ? MAC_NATIVE_HELPER_OUTPUT : `${MAC_NATIVE_HELPER_OUTPUT}.${arch}`;
 
     execSync(`xcrun swiftc -parse-as-library -O -target ${triple} -o "${outputPath}" "${MAC_NATIVE_HELPER_SOURCE}"`, {
       stdio: 'inherit',
@@ -246,10 +245,13 @@ function compileMacVoiceInputHelper(targetArchs) {
   const builtOutputs = effectiveArchs.map((arch) => buildSingleArch(arch));
 
   if (builtOutputs.length > 1) {
-    execSync(`xcrun lipo -create -output "${MAC_NATIVE_HELPER_OUTPUT}" ${builtOutputs.map((item) => `"${item}"`).join(' ')}`, {
-      stdio: 'inherit',
-      shell: process.platform === 'win32',
-    });
+    execSync(
+      `xcrun lipo -create -output "${MAC_NATIVE_HELPER_OUTPUT}" ${builtOutputs.map((item) => `"${item}"`).join(' ')}`,
+      {
+        stdio: 'inherit',
+        shell: process.platform === 'win32',
+      }
+    );
     fs.chmodSync(MAC_NATIVE_HELPER_OUTPUT, 0o755);
     for (const outputPath of builtOutputs) {
       fs.rmSync(outputPath, { force: true });

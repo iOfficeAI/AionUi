@@ -454,7 +454,6 @@ const ConversationTabs: React.FC = () => {
         )}
       </div>
       <ExternalSessionsModal
-      <ExternalSessionsModal
         visible={externalSessionsVisible}
         onClose={() => {
           setExternalSessionsVisible(false);

@@ -19,7 +19,6 @@ export interface CreateConversationParams {
   channelChatId?: string;
   extra: ICreateConversationExtra & {
     backend?: AcpBackendAll;
-    [key: string]: unknown;
   };
 }
 
