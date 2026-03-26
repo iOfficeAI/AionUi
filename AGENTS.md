@@ -104,6 +104,7 @@ Detailed rules and guidelines are organized into Skills for better modularity:
 | **pr-review**    | Local PR code review with full project context, no truncation limits               | Reviewing a PR, user says "review PR", `/pr-review`                |
 | **pr-fix**       | Fix all issues from a pr-review report, create a follow-up PR, and verify each fix | After pr-review, user says "fix all issues", `/pr-fix`             |
 | **pr-automation** | PR 自动化编排（cron 触发，review + fix + 合并） | cron 运行、`/pr-automation` |
+| **pr-auto-merge** | Automated PR review-fix-merge pipeline with label-based locking and team agent mode | `/pr-auto-merge`, `/loop 5m /pr-auto-merge`, automate PR processing |
 
 > Skills are located in `.claude/skills/` and contain project conventions that apply to **all** agents and contributors. Every agent working in this repository must read and follow the relevant skill files when the task matches their scope.
 
