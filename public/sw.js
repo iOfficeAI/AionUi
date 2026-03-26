@@ -53,7 +53,9 @@ async function networkFirst(request) {
 
   try {
     const response = await fetch(request);
-    cache.put(request, response.clone());
+    if (response.ok) {
+      cache.put(request, response.clone());
+    }
     return response;
   } catch {
     return (await cache.match(request)) || (await cache.match(OFFLINE_PAGE_URL)) || Response.error();
@@ -66,7 +68,9 @@ async function staleWhileRevalidate(request) {
 
   const networkFetch = fetch(request)
     .then((response) => {
-      cache.put(request, response.clone());
+      if (response.ok) {
+        cache.put(request, response.clone());
+      }
       return response;
     })
     .catch(() => undefined);
