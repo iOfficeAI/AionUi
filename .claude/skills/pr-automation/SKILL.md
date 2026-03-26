@@ -152,6 +152,24 @@ Required jobs: `Code Quality`, `Unit Tests (ubuntu-latest)`, `Unit Tests (macos-
 | Any job QUEUED or IN_PROGRESS | Remove `bot:fixing` → log "CI still running for PR #N" → EXIT |
 | Any job FAILURE or CANCELLED | Remove `bot:fixing` → log "CI failed for PR #N, re-queueing" → EXIT |
 
+**Load the existing review report into the current session** (pr-fix requires it to be present):
+
+```bash
+gh pr view <PR_NUMBER> --json comments \
+  --jq '.comments[] | select(.body | startswith("<!-- pr-review-bot -->")) | .body' \
+  | tail -1
+```
+
+Output the fetched review report in the conversation so pr-fix can find it. If no review comment is found, abort:
+
+```bash
+gh pr edit <PR_NUMBER> --remove-label "bot:fixing" --add-label "bot:needs-human-review"
+```
+
+Log: `[pr-automation] PR #<PR_NUMBER> no review report found — cannot fix. Transferred to human review.`
+
+**EXIT.**
+
 **Run pr-fix:**
 
 ```
