@@ -244,7 +244,12 @@ async function downloadMediaItem(
     aesKey = Buffer.from(aesKeyHex, 'hex');
   } else if (aesKeyB64) {
     const decoded = Buffer.from(aesKeyB64, 'base64');
-    aesKey = decoded.length === 16 ? decoded : decoded.length === 32 ? Buffer.from(decoded.toString('ascii'), 'hex') : undefined;
+    aesKey =
+      decoded.length === 16
+        ? decoded
+        : decoded.length === 32
+          ? Buffer.from(decoded.toString('ascii'), 'hex')
+          : undefined;
   }
 
   const cdnUrl = `${CDN_BASE_URL}/download?encrypted_query_param=${encodeURIComponent(encryptQueryParam)}`;
@@ -299,7 +304,9 @@ function cleanUploads(uploadsDir: string): void {
   files.sort((a, b) => a.mtime - b.mtime);
   for (const f of files) {
     if (totalBytes <= UPLOADS_MAX_BYTES) break;
-    try { fs.unlinkSync(f.path); } catch {}
+    try {
+      fs.unlinkSync(f.path);
+    } catch {}
     totalBytes -= f.size;
   }
 }
