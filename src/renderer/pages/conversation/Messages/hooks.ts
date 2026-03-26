@@ -168,6 +168,7 @@ function composeMessageWithIndex(message: TMessage, list: TMessage[], index: Mes
           ...existingMsg,
           content: {
             ...existingMsg.content,
+            ...message.content,
             content: existingMsg.content.content + message.content.content,
           },
         };

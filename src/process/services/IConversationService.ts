@@ -6,40 +6,28 @@
 
 // src/process/services/IConversationService.ts
 
-import type { TChatConversation, TProviderWithModel, ConversationSource } from '@/common/config/storage';
+import type { ConversationSource, TChatConversation, TProviderWithModel } from '@/common/config/storage';
+import type { ICreateConversationExtra, ConversationType, NonGroupConversationType } from '@/common/adapter/ipcBridge';
 import type { AcpBackendAll } from '@/common/types/acpTypes';
-import type { AgentType } from '@process/task/agentTypes';
 
 export interface CreateConversationParams {
-  type: AgentType;
+  type: ConversationType;
   id?: string;
   name?: string;
   model: TProviderWithModel;
   source?: ConversationSource;
   channelChatId?: string;
-  extra: {
-    workspace?: string;
-    customWorkspace?: boolean;
-    defaultFiles?: string[];
+  extra: ICreateConversationExtra & {
     backend?: AcpBackendAll;
-    cliPath?: string;
-    webSearchEngine?: 'google' | 'default';
-    agentName?: string;
-    contextFileName?: string;
-    presetRules?: string;
-    enabledSkills?: string[];
-    enabledHooks?: string[];
-    presetAssistantId?: string;
-    sessionMode?: string;
-    acpSessionId?: string;
-    acpSessionUpdatedAt?: number;
-    sessionKey?: string;
-    externalSessionImported?: boolean;
-    deferInitialWorkspaceLoad?: boolean;
-    isHealthCheck?: boolean;
-    [key: string]: unknown;
   };
 }
+
+export type RuntimeConversationCreateParams = CreateConversationParams & {
+  type: NonGroupConversationType;
+  extra: ICreateConversationExtra & {
+    backend?: AcpBackendAll;
+  };
+};
 
 export interface MigrateConversationParams {
   conversation: TChatConversation;

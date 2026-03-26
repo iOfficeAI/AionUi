@@ -7,6 +7,7 @@
 import type { IConversationService, CreateConversationParams, MigrateConversationParams } from './IConversationService';
 import type { IConversationRepository } from '@process/services/database/IConversationRepository';
 import type { TChatConversation } from '@/common/config/storage';
+import type { DiscussionGroupParticipant } from '@/common/config/storage';
 import { uuid } from '@/common/utils';
 import { cronService } from './cron/cronServiceSingleton';
 import {
@@ -15,6 +16,7 @@ import {
   createCodexAgent,
   createOpenClawAgent,
   createNanobotAgent,
+  createGroupConversation,
 } from '@process/utils/initAgent';
 
 /**
@@ -159,6 +161,25 @@ export class ConversationServiceImpl implements IConversationService {
       }
       case 'nanobot': {
         conversation = await createNanobotAgent(params as any);
+        break;
+      }
+      case 'group': {
+        const orchestration = params.extra.orchestration || {
+          mode: 'debate',
+          rounds: 2 as const,
+        };
+        conversation = await createGroupConversation({
+          id: params.id,
+          name: params.name,
+          model: params.model,
+          workspace: params.extra.workspace,
+          customWorkspace: params.extra.customWorkspace,
+          participants: (params.extra.participants || []) as DiscussionGroupParticipant[],
+          orchestration: {
+            mode: orchestration.mode,
+            rounds: orchestration.rounds || (orchestration.mode === 'debate' ? 2 : 1),
+          },
+        });
         break;
       }
       default: {

@@ -7,9 +7,7 @@ describe('parseNativeRecorderMessage', () => {
   });
 
   it('should parse result messages', () => {
-    expect(
-      parseNativeRecorderMessage('{"event":"result","pcmBase64":"YWJj","durationMs":1280,"bytes":4096}')
-    ).toEqual({
+    expect(parseNativeRecorderMessage('{"event":"result","pcmBase64":"YWJj","durationMs":1280,"bytes":4096}')).toEqual({
       bytes: 4096,
       durationMs: 1280,
       event: 'result',

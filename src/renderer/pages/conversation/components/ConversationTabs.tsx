@@ -22,6 +22,7 @@ import { applyDefaultConversationName } from '../utils/newConversationName';
 import { buildCliAgentParams, buildPresetAssistantParams } from '../utils/createConversationParams';
 import { useLayoutContext } from '@/renderer/hooks/context/LayoutContext';
 import { iconColors } from '@/renderer/styles/colors';
+import CreateDiscussionGroupModal from '../platforms/group/CreateDiscussionGroupModal';
 
 const TAB_OVERFLOW_THRESHOLD = 10;
 
@@ -141,9 +142,11 @@ const ConversationTabs: React.FC = () => {
   const tabsContainerRef = useRef<HTMLDivElement>(null);
   const [tabFadeState, setTabFadeState] = useState<TabFadeState>({ left: false, right: false });
   const [externalSessionsVisible, setExternalSessionsVisible] = useState(false);
+  const [groupModalVisible, setGroupModalVisible] = useState(false);
 
   const { cliAgents, presetAssistants, isLoading } = useConversationAgents();
   const defaultConversationName = t('conversation.welcome.newConversation');
+  const currentWorkspaceTab = openTabs.find((tab) => tab.id === activeTabId);
 
   // 更新 Tab 溢出状态
   const updateTabOverflow = useCallback(() => {
@@ -250,6 +253,9 @@ const ConversationTabs: React.FC = () => {
             return;
           }
           params = await buildPresetAssistantParams(agent, workspace, i18n.language);
+        } else if (key === 'group:create') {
+          setGroupModalVisible(true);
+          return;
         } else {
           return;
         }
@@ -289,6 +295,12 @@ const ConversationTabs: React.FC = () => {
   const renderAgentDropdownMenu = useCallback(() => {
     return (
       <Menu onClickMenuItem={(key) => void handleCreateConversation(key)}>
+        <Menu.Item key='group:create'>
+          <div className='flex items-center gap-8px'>
+            <Robot size='16' />
+            <span>{t('conversation.group.createEntry')}</span>
+          </div>
+        </Menu.Item>
         {cliAgents.length > 0 && (
           <Menu.ItemGroup title={t('conversation.dropdown.cliAgents')}>
             {cliAgents.map((agent) => {
@@ -390,7 +402,7 @@ const ConversationTabs: React.FC = () => {
     return null;
   }
 
-  const isDropdownDisabled = isLoading || (!cliAgents.length && !presetAssistants.length);
+  const isDropdownDisabled = isLoading || !currentWorkspaceTab?.workspace;
 
   return (
     <div className='relative shrink-0 bg-2 min-h-40px'>
@@ -447,6 +459,20 @@ const ConversationTabs: React.FC = () => {
           setExternalSessionsVisible(false);
         }}
       />
+      {currentWorkspaceTab?.workspace ? (
+        <CreateDiscussionGroupModal
+          visible={groupModalVisible}
+          workspace={currentWorkspaceTab.workspace}
+          onCancel={() => setGroupModalVisible(false)}
+          onCreated={(conversation) => {
+            setGroupModalVisible(false);
+            closeAllTabs();
+            openTab(conversation);
+            void navigate(`/conversation/${conversation.id}`);
+            emitter.emit('chat.history.refresh');
+          }}
+        />
+      ) : null}
     </div>
   );
 };

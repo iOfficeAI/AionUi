@@ -219,6 +219,29 @@
     "cliAgents": "CLI Agents",
     "presetAssistants": "Preset Assistants"
   },
+  "group": {
+    "header": "Tartışma Grubu",
+    "createEntry": "Tartışma Grubu Oluştur",
+    "createTitle": "Tartışma Grubu Oluştur",
+    "createAction": "Grup Oluştur",
+    "createFailed": "Tartışma grubu oluşturulamadı",
+    "defaultName": "Tartışma Grubu",
+    "nameLabel": "Grup Adı",
+    "namePlaceholder": "Bir tartışma grubu adı girin",
+    "modeLabel": "Tartışma Modu",
+    "modeDebate": "Münazara",
+    "modeBroadcast": "Yayın",
+    "modeHint": {
+      "debate": "1. tur bağımsız kalır, 2. turda diğer yardımcıların cevapları görüldükten sonra yanıt güncellenir.",
+      "broadcast": "Her yardımcı bağımsız yanıt verir ve grup son görüş setini birlikte döndürür."
+    },
+    "participantsLabel": "Yardımcılar",
+    "minimumParticipants": "En az iki yardımcı seçin",
+    "minimumParticipantsHint": "Bir tartışma grubu başlatmak için 2 veya daha fazla yardımcı seçin.",
+    "noDescription": "Açıklama yok",
+    "sendPlaceholder": "Tartışma grubuna bir soru sor...",
+    "roundLabel": "{{round}}. Tur"
+  },
   "noAgentsAvailable": "No agents available",
   "noModelConfigured": "No model configured. Please configure in settings.",
   "createFailed": "Failed to create conversation"
