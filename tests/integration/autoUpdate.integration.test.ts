@@ -144,6 +144,72 @@ describe('Auto-Update IPC Bridge Integration', () => {
       expect(result.error).toBe('AutoUpdaterService not initialized');
     });
 
+    it('should use AionUi GitHub releases by default for manual checks', async () => {
+      const fetchMock = vi.fn().mockResolvedValue(
+        new Response(
+          JSON.stringify([
+            {
+              tag_name: 'v1.2.0',
+              name: 'v1.2.0',
+              body: 'Bug fixes',
+              html_url: 'https://github.com/iOfficeAI/AionUi/releases/tag/v1.2.0',
+              published_at: '2025-01-01T00:00:00Z',
+              prerelease: false,
+              draft: false,
+              assets: [],
+            },
+          ]),
+          {
+            status: 200,
+            headers: {
+              'Content-Type': 'application/json',
+            },
+          }
+        )
+      );
+      vi.stubGlobal('fetch', fetchMock);
+
+      const { initUpdateBridge } = await import('@process/bridge/updateBridge');
+      const { ipcBridge } = await import('@/common');
+
+      initUpdateBridge();
+
+      const updateProviderCalls = vi.mocked(ipcBridge.update.check.provider).mock.calls;
+      expect(updateProviderCalls.length).toBeGreaterThan(0);
+
+      const updateHandler = updateProviderCalls[0][0];
+      expect(typeof updateHandler).toBe('function');
+
+      const result = await updateHandler({});
+
+      expect(fetchMock).toHaveBeenCalledWith('https://api.github.com/repos/iOfficeAI/AionUi/releases', {
+        headers: {
+          Accept: 'application/vnd.github+json',
+          'User-Agent': 'AionUi',
+        },
+        signal: expect.any(AbortSignal),
+      });
+      expect(result).toEqual({
+        success: true,
+        data: {
+          currentVersion: '1.0.0',
+          updateAvailable: true,
+          latest: {
+            tagName: 'v1.2.0',
+            version: '1.2.0',
+            name: 'v1.2.0',
+            body: 'Bug fixes',
+            htmlUrl: 'https://github.com/iOfficeAI/AionUi/releases/tag/v1.2.0',
+            publishedAt: '2025-01-01T00:00:00Z',
+            prerelease: false,
+            draft: false,
+            assets: [],
+            recommendedAsset: undefined,
+          },
+        },
+      });
+    });
+
     it('should set allowPrerelease before checking', async () => {
       const { initUpdateBridge } = await import('@process/bridge/updateBridge');
       const { autoUpdaterService } = await import('@/process/services/autoUpdaterService');

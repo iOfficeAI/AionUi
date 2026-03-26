@@ -13,11 +13,18 @@ import { useSettingsViewMode } from '../settingsViewContext';
 import { isElectronDesktop, openExternalUrl } from '@/renderer/utils/platform';
 import packageJson from '../../../../../../package.json';
 
+const checkUpdate = () => {
+  // 使用 window 自定义事件在渲染进程内部通信（buildEmitter 只支持主进程->渲染进程）
+  // Use window custom event for renderer-side communication (buildEmitter only works main->renderer)
+  window.dispatchEvent(new CustomEvent('aionui-open-update-modal', { detail: { source: 'about' } }));
+};
+
 const AboutModalContent: React.FC = () => {
   const { t } = useTranslation();
   const viewMode = useSettingsViewMode();
   const isPageMode = viewMode === 'page';
   const isElectron = isElectronDesktop();
+  const githubRepoUrl = 'https://github.com/iOfficeAI/AionUi';
 
   const [includePrerelease, setIncludePrerelease] = useState(false);
 
@@ -39,26 +46,20 @@ const AboutModalContent: React.FC = () => {
     }
   };
 
-  const checkUpdate = () => {
-    // 使用 window 自定义事件在渲染进程内部通信（buildEmitter 只支持主进程->渲染进程）
-    // Use window custom event for renderer-side communication (buildEmitter only works main->renderer)
-    window.dispatchEvent(new CustomEvent('aionui-open-update-modal', { detail: { source: 'about' } }));
-  };
-
   const linkItems = [
     {
       title: t('settings.helpDocumentation'),
-      url: 'https://github.com/contextgo/contextgo/wiki',
+      url: `${githubRepoUrl}/wiki`,
       icon: <Right theme='outline' size='16' />,
     },
     {
       title: t('settings.updateLog'),
-      url: 'https://github.com/contextgo/contextgo/releases',
+      url: `${githubRepoUrl}/releases`,
       icon: <Right theme='outline' size='16' />,
     },
     {
       title: t('settings.feedback'),
-      url: 'https://github.com/contextgo/contextgo/issues',
+      url: `${githubRepoUrl}/issues`,
       icon: <Right theme='outline' size='16' />,
     },
     {
@@ -97,11 +98,7 @@ const AboutModalContent: React.FC = () => {
               </span>
               <div
                 className='text-t-primary cursor-pointer hover:text-t-secondary transition-colors p-4px'
-                onClick={() =>
-                  openLink('https://github.com/contextgo/contextgo').catch((error) =>
-                    console.error('Failed to open link:', error)
-                  )
-                }
+                onClick={() => openLink(githubRepoUrl).catch((error) => console.error('Failed to open link:', error))}
               >
                 <Github theme='outline' size='20' />
               </div>
