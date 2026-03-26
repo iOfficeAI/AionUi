@@ -135,6 +135,35 @@ describe('AcpConnection - prompt keepalive', () => {
     if (pendingRequest.timeoutId) clearTimeout(pendingRequest.timeoutId);
   });
 
+  it('keepalive does NOT reset timeouts when child exited naturally (exitCode set, killed still false)', () => {
+    // This is the exact gap fixed by isChildAlive(): a naturally-crashed child
+    // leaves killed=false until the exit event is processed, but exitCode is
+    // set by the runtime immediately when the process exits.
+    priv(conn).child = { killed: false, exitCode: 1, signalCode: null, pid: 1234 };
+
+    const pendingRequest = {
+      resolve: vi.fn(),
+      reject: vi.fn(),
+      timeoutId: setTimeout(() => {}, 300_000),
+      method: 'session/prompt',
+      isPaused: false,
+      startTime: Date.now() - 200_000,
+      timeoutDuration: 300_000,
+    };
+    priv(conn).pendingRequests.set(42, pendingRequest);
+
+    priv(conn).startPromptKeepalive.call(conn);
+
+    const oldStartTime = pendingRequest.startTime;
+    vi.advanceTimersByTime(60_000);
+
+    // startTime should NOT have been reset — child has already exited
+    expect(pendingRequest.startTime).toBe(oldStartTime);
+
+    priv(conn).stopPromptKeepalive.call(conn);
+    if (pendingRequest.timeoutId) clearTimeout(pendingRequest.timeoutId);
+  });
+
   it('keepalive does NOT reset non-prompt requests', () => {
     priv(conn).child = { killed: false, pid: 1234 };
 
