@@ -205,9 +205,13 @@ Required jobs: `Code Quality`, `Unit Tests (ubuntu-latest)`, `Unit Tests (macos-
 
 **Workflow approval** (CI never triggered):
 
+Use the PR's head commit SHA to precisely find `action_required` runs for this PR
+(avoids missing fork PRs that `gh run list` may not return in default pagination):
+
 ```bash
-RUN_IDS=$(gh run list --repo "$REPO" --json databaseId,status \
-  --jq '.[] | select(.status == "action_required") | .databaseId')
+HEAD_SHA=$(gh pr view <PR_NUMBER> --json headRefOid --jq '.headRefOid')
+RUN_IDS=$(gh api "repos/$REPO/actions/runs?head_sha=$HEAD_SHA&status=action_required" \
+  --jq '.workflow_runs[].id')
 for RUN_ID in $RUN_IDS; do
   gh run approve "$RUN_ID" --repo "$REPO"
 done
