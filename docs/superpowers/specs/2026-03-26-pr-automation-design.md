@@ -215,6 +215,54 @@ PR_NUMBER: <number>
 
 ---
 
+## 可观测性
+
+### 日志文件
+
+cron 将 Claude 的完整输出重定向到日志文件，用于排查问题：
+
+```bash
+tail -f /var/log/pr-automation.log
+```
+
+### GitHub Issue 状态看板
+
+创建一个长期存在的 Issue（标题：`[Bot] PR Automation Status`），automation 每次运行时更新其 body，作为对外可见的状态入口。收藏该 Issue URL 即可随时查看当前进度。
+
+**Issue body 格式：**
+
+```markdown
+## PR Automation 状态看板
+
+**最后运行**：2026-03-26 14:30
+**当前状态**：🔧 正在处理 PR #156 - feat: add image export
+**进度**：review 完成（⚠️ 有条件批准），fix 中...
+
+---
+
+## 最近处理记录
+
+| 时间 | PR | 结论 | 操作 |
+|---|---|---|---|
+| 14:00 | #154 feat: xxx | ✅ 批准合并 | 已合并 |
+| 13:30 | #152 fix: yyy | ❌ 需要修改 | 转人工 |
+| 13:00 | — | — | 无符合条件的 PR |
+```
+
+**更新时机：**
+
+| 时机 | 状态文字 |
+|---|---|
+| 启动，找到目标 PR | `🔍 正在 review PR #N - <标题>` |
+| review 完成，开始 fix | `🔧 正在 fix PR #N，结论：有条件批准` |
+| 等待 CI | `⏳ PR #N fix 完成，等待 CI 通过后自动合并` |
+| 本轮完成 | 追加一行到"最近处理记录"，清空当前状态 |
+| 无符合条件的 PR | `💤 本轮无符合条件的 PR` |
+
+Issue 的创建在初次部署时手动创建一次，automation 只负责更新其 body，不重复创建。Issue 编号在 pr-automation SKILL 配置中写死。
+
+---
+
 ## 职责边界
 
 | 工作 | 负责方 |
@@ -226,6 +274,7 @@ PR_NUMBER: <number>
 | 执行代码修复 | pr-fix |
 | 执行合并 | pr-automation |
 | 管理 `bot:*` label | pr-automation |
+| 更新状态看板 Issue | pr-automation |
 
 ---
 
