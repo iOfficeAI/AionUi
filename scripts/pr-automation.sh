@@ -79,16 +79,26 @@ while true; do
   ITERATION=$((ITERATION + 1))
   log_info "=== Iteration $ITERATION: starting Claude run ==="
 
-  claude --dangerously-skip-permissions -p "/pr-automation" \
-    >> "$LOG_FILE" 2>&1 &
+  CLAUDE_SESSION_TMP=$(mktemp /tmp/claude-session-XXXXXX.log)
+  claude --dangerously-skip-permissions --output-format stream-json --verbose -p "/pr-automation" \
+    2>&1 | tee "$CLAUDE_SESSION_TMP" >> "$LOG_FILE" &
   CURRENT_CLAUDE_PID=$!
-  log_info "Claude launched (PID $CURRENT_CLAUDE_PID). Timeout: ${MAX_CLAUDE_SECS}s."
+
+  # Extract session_id from the first system init message (may take a moment to appear)
+  SESSION_ID=""
+  for _i in 1 2 3 4 5; do
+    sleep 2
+    SESSION_ID=$(grep -o '"session_id":"[^"]*"' "$CLAUDE_SESSION_TMP" 2>/dev/null \
+      | head -1 | cut -d'"' -f4 || true)
+    [ -n "$SESSION_ID" ] && break
+  done
+  log_info "Claude launched (PID $CURRENT_CLAUDE_PID, session=${SESSION_ID:-unknown}). Timeout: ${MAX_CLAUDE_SECS}s."
 
   ELAPSED=0
   TIMED_OUT=false
   while kill -0 "$CURRENT_CLAUDE_PID" 2>/dev/null; do
-    sleep 5
-    ELAPSED=$((ELAPSED + 5))
+    sleep 60
+    ELAPSED=$((ELAPSED + 60))
     if [ "$ELAPSED" -ge "$MAX_CLAUDE_SECS" ]; then
       log_warn "Claude run exceeded ${MAX_CLAUDE_SECS}s (PID $CURRENT_CLAUDE_PID). Killing..."
       kill "$CURRENT_CLAUDE_PID" 2>/dev/null || true
@@ -99,6 +109,8 @@ while true; do
       break
     fi
   done
+
+  rm -f "$CLAUDE_SESSION_TMP"
 
   if [ "$TIMED_OUT" = "true" ]; then
     log_warn "Iteration $ITERATION: Claude timed out after ${MAX_CLAUDE_SECS}s."
