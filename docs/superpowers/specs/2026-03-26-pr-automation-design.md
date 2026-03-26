@@ -26,37 +26,49 @@
 
 ---
 
-## 并发控制：Lock 文件机制
+## 并发控制：脚本与 Lock 文件机制
 
-防止多个 cron 实例同时运行，同时处理进程异常退出导致的死锁问题。
+入口脚本 `scripts/pr-automation.sh` 负责并发控制，支持传入并行实例数：
 
-### 启动时检查
+```bash
+./scripts/pr-automation.sh [N]   # N 默认为 1
+```
+
+### 脚本行为
+
+```
+1. 检查 /tmp/pr-automation.lock（存储上一轮脚本的 PID）
+2. 启动 N 个 claude 后台进程，每个独立执行 /pr-automation
+3. wait 等待所有子进程完成
+4. 清理 lock 文件（trap 保证异常退出也会执行）
+```
+
+每个 Claude 实例独立选取 PR——谁先打上 `bot:reviewing` label 谁处理该 PR，天然防止多个实例处理同一 PR。
+
+### Lock 文件检查（基于 PID）
 
 ```
 检查 /tmp/pr-automation.lock
-  ├── 不存在 → 创建（写入当前时间戳），继续执行
-  ├── 存在且时间戳 < 60 分钟 → 上一轮仍在运行，本轮退出
-  └── 存在且时间戳 ≥ 60 分钟 → 判定为死锁或 crash
+  ├── 不存在 → 写入当前脚本 PID，继续执行
+  ├── 存在，PID 仍在运行（kill -0 <PID> 成功） → 上一轮仍在运行，本轮退出
+  └── 存在，PID 已不存在 → 判定为异常退出（crash）
         ├── 删除旧 lock 文件
-        ├── 清理残留的 bot:reviewing / bot:fixing label（见下）
-        └── 重新创建 lock 文件，继续执行
+        ├── 清理残留的 bot:reviewing / bot:fixing label
+        └── 写入新 PID，继续执行
 ```
 
-60 分钟为超时阈值——正常处理一个 PR（review + fix + 等待 CI）不应超过此时间，超过即视为异常。
+用 `kill -0` 检测 PID 是否存活比时间戳更准确——进程退出后立即可检测，不依赖超时阈值。
 
-### 完成时清理
+### 完成时清理（trap）
 
-无论成功还是异常退出，均执行：
+脚本通过 `trap` 注册退出钩子，无论正常退出还是异常中断均执行：
 
 1. 删除 `/tmp/pr-automation.lock`
-2. 检查并清理本轮打上但未摘除的 `bot:reviewing` / `bot:fixing` label
+2. 清理本轮残留的 `bot:reviewing` / `bot:fixing` label
 
 ### 残留 Label 清理逻辑
 
-启动时若检测到 lock 超时，需清理可能残留的进行中 label：
-
 ```bash
-# 找出所有带 bot:reviewing 或 bot:fixing 的 open PR，移除这些 label
 gh pr list --state open --label "bot:reviewing" --json number \
   --jq '.[].number' | xargs -I{} gh pr edit {} --remove-label "bot:reviewing"
 
@@ -296,7 +308,11 @@ Issue 的创建在初次部署时手动创建一次，automation 只负责更新
 ## Cron 配置
 
 ```cron
-*/30 * * * * cd /path/to/AionUi-review && claude --dangerously-skip-permissions -p "/pr-automation" >> /var/log/pr-automation.log 2>&1
+# 默认单实例
+*/30 * * * * cd /path/to/AionUi-review && ./scripts/pr-automation.sh >> /var/log/pr-automation.log 2>&1
+
+# 并行处理多个 PR（传入实例数）
+*/30 * * * * cd /path/to/AionUi-review && ./scripts/pr-automation.sh 2 >> /var/log/pr-automation.log 2>&1
 ```
 
 ---
@@ -306,6 +322,7 @@ Issue 的创建在初次部署时手动创建一次，automation 只负责更新
 | 文件 | 类型 | 说明 |
 |---|---|---|
 | `.claude/skills/pr-automation/SKILL.md` | 新建 | 主编排 skill |
+| `scripts/pr-automation.sh` | 新建 | cron 入口脚本，负责并发控制（N 实例）、lock 文件管理 |
 | `docs/conventions/pr-automation.md` | 新建 | 面向 agent 和人工的对接文档 |
 
 ## 需要修改的文件
