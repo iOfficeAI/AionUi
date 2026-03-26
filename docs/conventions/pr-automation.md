@@ -1,62 +1,60 @@
 # PR 自动化流程说明
 
-本仓库运行 PR 自动化 agent，定期处理 open PR（review、fix、合并）。本文说明 label 体系、触发条件和人工介入方式。
+本仓库运行 PR 自动化 agent，持续处理 open PR（review、fix、合并）。本文说明 label 体系、触发条件和人工介入方式。
 
 ---
 
 ## Label 体系
 
-所有自动化状态通过 `bot:` 前缀 label 追踪，无需本地状态文件。
-
-| Label | 含义 | 下一步 |
+| Label | 含义 | 终态？ |
 |---|---|---|
-| `bot:reviewing` | 正在 review 中（防并发占位） | 等待完成后自动移除 |
-| `bot:fixing` | 正在 fix 中（防并发占位） | 等待完成后自动移除 |
-| `bot:needs-fix` | 已 review，等待作者按报告修复 | 作者推送新 commit 后自动重新处理 |
-| `bot:needs-human-review` | 需人工介入（存在阻塞性问题） | 人工处理后手动移除 label |
-| `bot:done` | 已完成（已合并或无需操作） | 无 |
+| `bot:reviewing` | review 进行中（防重入占位） | 否 |
+| `bot:ready-to-fix` | CONDITIONAL review 完成，等 bot 下次执行 fix | 否 |
+| `bot:fixing` | fix 进行中（防重入占位） | 否 |
+| `bot:needs-human-review` | 需人工介入（阻塞性问题 / 冲突无法自动解决） | ✅ |
+| `bot:done` | 已完成 | ✅ |
 
 ---
 
-## 触发条件
+## 处理流程
 
-- cron 每 30 分钟运行一次 `scripts/pr-automation.sh`
-- 每次运行选取**一个**符合条件的 open PR 处理（多实例时各自独立选取）
-- 优先处理 trusted-contributors 团队成员的 PR；同优先级按创建时间 FIFO
+```
+选 PR（优先 bot:ready-to-fix > trusted > FIFO）
+ │
+ ├─ 无 PR → EXIT
+ │
+ ├─ bot:ready-to-fix → 重新检查 CI
+ │     ├─ CI 跑中/失败 → 移除标签，重入队列 → EXIT
+ │     └─ CI 过 → pr-fix → push → --auto → bot:done → EXIT
+ │
+ └─ 新鲜 PR → 加 bot:reviewing → 检查 CI
+       ├─ 从未触发 → approve workflow → EXIT
+       ├─ CI 跑中 → 移除 bot:reviewing → 找下一个
+       ├─ CI 失败 → 去重检查
+       │     ├─ 已评论且无新 commit → 找下一个
+       │     └─ 否则 → 发评论 → EXIT
+       └─ CI 过 → 检查 merge conflict
+             ├─ UNKNOWN → 找下一个
+             ├─ CONFLICTING → 去重检查
+             │     ├─ 已评论且无新 commit → 找下一个
+             │     └─ 否则 → 尝试自动 rebase
+             │           ├─ 成功 → push → EXIT
+             │           └─ 失败 → 评论 + bot:needs-human-review → EXIT
+             └─ MERGEABLE → pr-review
+                   ├─ APPROVED → --auto merge → bot:done → EXIT
+                   ├─ CONDITIONAL → bot:ready-to-fix → EXIT
+                   └─ REJECTED → bot:needs-human-review → EXIT
+```
 
-### 跳过条件
+### Skip 条件（继续找下一个 PR）
 
-满足以下任一条件的 PR 本轮跳过：
-
+- PR 是 draft（`gh pr list -is:draft` 直接过滤）
 - 标题含 `WIP`（大小写不敏感）
-- 已有 `bot:needs-human-review`
-- 已有 `bot:done`
-- 已有 `bot:reviewing` 或 `bot:fixing`（正在处理中）
-- 有 `bot:needs-fix` 但作者尚未推送新 commit
-
-### CI 要求
-
-以下 job 全部通过才会继续处理，否则本轮跳过并发评论提醒：
-
-- `Code Quality`
-- `Unit Tests (ubuntu-latest)`
-- `Unit Tests (macos-14)`
-- `Unit Tests (windows-2022)`
-- `Coverage Test`
-- `i18n-check`
-
----
-
-## 决策矩阵
-
-| Review 结论 | PR 来源 | 行动 |
-|---|---|---|
-| ✅ 批准合并 | 任意 | 自动合并（squash）|
-| ⚠️ 有条件批准 | 内部分支 | 自动修复 → 自动合并 |
-| ⚠️ 有条件批准 | 外部 fork | 评论通知作者修复 → `bot:needs-fix` |
-| ❌ 需要修改 | 任意 | 评论说明 → `bot:needs-human-review` |
-
-合并使用 `--squash --auto`：等所有必检 CI 通过后才执行，不会立即强制合并。
+- 已有 `bot:needs-human-review` / `bot:done` / `bot:reviewing` / `bot:fixing`
+- CI 仍在运行（QUEUED / IN_PROGRESS）
+- Mergeability 为 UNKNOWN
+- CI 失败但已评论且作者无新 commit
+- Merge conflict 但已评论且作者无新 commit
 
 ---
 
@@ -64,68 +62,59 @@
 
 ### 阻止自动处理某 PR
 
+- 设为 draft，或
 - 在标题加 `WIP`，或
 - 手动打 `bot:needs-human-review` label
 
-移除 `bot:needs-human-review` 后，下一轮 cron 会重新处理该 PR。
+移除 `bot:needs-human-review` 后，daemon 下一轮会重新处理该 PR。
 
 ### 查看运行状态
 
-- **实时日志**：`tail -f /var/log/pr-automation.log`
-- **状态看板**：搜索 Issue 标题 `[Bot] PR Automation Status`（本仓库内）
-
-### 并发控制
-
-- Lock 文件：`/tmp/pr-automation.lock`（存储运行中的脚本 PID）
-- 若上轮脚本仍在运行，本轮 cron 自动退出
-- 若上轮脚本异常崩溃，下轮自动清理残留 label 并重新开始
+```bash
+tail -f /tmp/pr-automation.log
+```
 
 ---
 
-## Cron 配置参考
+## 守护进程管理
 
-```cron
-# 单实例（默认）
-*/30 * * * * cd /path/to/AionUi-review && ./scripts/pr-automation.sh >> /var/log/pr-automation.log 2>&1
-
-# 并行处理（传入实例数）
-*/30 * * * * cd /path/to/AionUi-review && ./scripts/pr-automation.sh 2 >> /var/log/pr-automation.log 2>&1
-```
-
-## 管理定时任务
-
-### 查看已有定时任务
+### 启动
 
 ```bash
-crontab -l
+# 前台运行
+./scripts/pr-automation.sh
+
+# 后台运行
+nohup ./scripts/pr-automation.sh >> /tmp/pr-automation.log 2>&1 &
 ```
 
-### 取消定时任务
+### 停止
 
 ```bash
-# 编辑 crontab，删除对应行后保存即可取消
-crontab -e
-
-# 清空当前用户的全部 crontab（慎用）
-crontab -r
+kill $(cat /tmp/pr-automation-daemon.pid)
 ```
 
-### 检查当前是否有实例正在运行
+### 检查是否运行
 
 ```bash
-# 查看 lock file 中的 PID
-cat /tmp/pr-automation.lock 2>/dev/null && echo "（进程正在运行）" || echo "（无正在运行的实例）"
+PID=$(cat /tmp/pr-automation-daemon.pid 2>/dev/null) \
+  && kill -0 "$PID" 2>/dev/null \
+  && echo "Daemon running (PID $PID)" \
+  || echo "Daemon not running"
+```
 
-# 确认该 PID 是否真的存活
-PID=$(cat /tmp/pr-automation.lock 2>/dev/null) && kill -0 "$PID" 2>/dev/null && echo "PID $PID 正在运行" || echo "无正在运行的实例"
+### 自定义参数
+
+```bash
+SLEEP_SECONDS=60        # 每轮间隔（默认 30 秒）
+MAX_CLAUDE_SECS=3600    # Claude 超时阈值（默认 3600 秒）
+LOG_FILE=/var/log/pr-automation.log
 ```
 
 ---
 
 ## 首次部署
 
-1. 确认 `gh auth login` 已完成，有足够权限（PR labels、issues、合并）
-2. 手动创建 GitHub Issue，标题：`[Bot] PR Automation Status`，记录 Issue 编号
-3. 在 `.claude/skills/pr-automation/SKILL.md` 的 `STATUS_ISSUE_NUMBER` 填入该编号
-4. 配置 crontab（见上方参考）
-5. 手动运行一次验证：`./scripts/pr-automation.sh` 并观察日志
+1. 确认 `gh auth login` 已完成，有足够权限（PR labels、合并、向外部 fork 推送）
+2. 手动运行一次：`./scripts/pr-automation.sh` 并观察日志
+3. 确认输出 `No eligible PR found this round` 或正常处理一个 PR
