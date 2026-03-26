@@ -79,9 +79,23 @@ while true; do
   ITERATION=$((ITERATION + 1))
   log_info "=== Iteration $ITERATION: starting Claude run ==="
 
-  CLAUDE_SESSION_TMP=$(mktemp /tmp/claude-session-XXXXXX.log)
+  CLAUDE_SESSION_TMP=$(mktemp /tmp/claude-session-XXXXXX.json)
+  CLAUDE_LOG_FILE="${LOG_FILE%.log}-claude-${ITERATION}.log"
+  > "$CLAUDE_LOG_FILE"
+
+  # Stream: raw JSON → CLAUDE_SESSION_TMP (for session_id) + human-readable → CLAUDE_LOG_FILE
   claude --dangerously-skip-permissions --output-format stream-json --verbose -p "/pr-automation" \
-    2>&1 | tee "$CLAUDE_SESSION_TMP" >> "$LOG_FILE" &
+    2>&1 | tee "$CLAUDE_SESSION_TMP" | \
+    jq -r --unbuffered '
+      if .type == "assistant" then
+        ((.message.content // [])[] |
+          if .type == "text" then .text
+          elif .type == "tool_use" then "[tool_use] \(.name): \(.input | tostring | .[0:300])"
+          else empty end)
+      elif .type == "result" then
+        "[done] stop_reason=\(.stop_reason // "?") duration_ms=\(.duration_ms // "?")"
+      else empty end
+    ' 2>/dev/null >> "$CLAUDE_LOG_FILE" &
   CURRENT_CLAUDE_PID=$!
 
   # Extract session_id from the first system init message (may take a moment to appear)
@@ -93,6 +107,7 @@ while true; do
     [ -n "$SESSION_ID" ] && break
   done
   log_info "Claude launched (PID $CURRENT_CLAUDE_PID, session=${SESSION_ID:-unknown}). Timeout: ${MAX_CLAUDE_SECS}s."
+  log_info "Claude log: $CLAUDE_LOG_FILE  (tail -f to follow)"
 
   ELAPSED=0
   TIMED_OUT=false
