@@ -18,7 +18,7 @@ Automated workflow to resolve all issues surfaced in a pr-review report — pars
 /pr-fix [pr_number]
 ```
 
-`pr_number` is optional. If omitted, the skill uses the review report already present in the current session.
+`pr_number` is optional. The skill requires a pr-review report to be present in the current session.
 
 ---
 
@@ -41,34 +41,21 @@ In **automation mode**:
 
 ## Steps
 
-### Step 0 — Identify the Review Report Source
+### Step 0 — Locate the Review Report
 
-**Case A — Report is in the current session**
+The pr-review skill must have been executed in the current session. The review report (containing a "汇总" table) must be present in the conversation.
 
-The [pr-review skill](../pr-review/SKILL.md) was just executed. The review report (containing a "汇总" table) is already in the conversation. Extract the PR number from the report header:
+If no review report is found in the current session, abort immediately with:
+
+> No pr-review report found in this session. Please run `/pr-review <pr_number>` first.
+
+Extract the PR number from the report header:
 
 ```
 ## Code Review：<PR 标题> (#<PR_NUMBER>)
 ```
 
-**Case B — User provides a PR number (or no report in session)**
-
-If `pr_number` argument is non-empty, use it. Otherwise run:
-
-```bash
-gh pr view --json number -q .number
-```
-
-Fetch the review comment:
-
-```bash
-gh pr view <PR_NUMBER> --json comments \
-  --jq '.comments[] | select(.body | startswith("<!-- pr-review-bot -->")) | .body'
-```
-
-If no review comment is found, abort with:
-
-> No pr-review report found. Please run `/pr-review <pr_number>` first.
+If `pr_number` is provided as an argument, use it to override the extracted number.
 
 ---
 
@@ -254,7 +241,7 @@ After posting, output the same verification table in the conversation for immedi
 ## Quick Reference
 
 ```
-0. Get review report (current session OR fetch from PR comments)
+0. Require pr-review report in current session — abort if not found
 1. Parse 汇总 table → ordered issue list
 2. Pre-flight: clean working tree + fetch PR branch info
    + detect: state (merged/open)
