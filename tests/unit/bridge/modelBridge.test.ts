@@ -109,6 +109,34 @@ describe('modelBridge fetchModelList', () => {
     expect(mockModelsList).not.toHaveBeenCalled();
   });
 
+  it('returns error when apiKey is empty for new-api platform (Fixes ELECTRON-6X)', async () => {
+    const fetchModelList = getFetchModelListHandler();
+
+    const result = await fetchModelList({
+      base_url: 'https://new-api.example.com',
+      api_key: '',
+      platform: 'new-api',
+    });
+
+    expect(result.success).toBe(false);
+    expect(result.msg).toContain('API key is required');
+    expect(mockModelsList).not.toHaveBeenCalled();
+  });
+
+  it('returns error when apiKey is undefined for new-api platform (Fixes ELECTRON-6X)', async () => {
+    const fetchModelList = getFetchModelListHandler();
+
+    const result = await fetchModelList({
+      base_url: 'https://new-api.example.com',
+      api_key: undefined as unknown as string,
+      platform: 'new-api',
+    });
+
+    expect(result.success).toBe(false);
+    expect(result.msg).toContain('API key is required');
+    expect(mockModelsList).not.toHaveBeenCalled();
+  });
+
   it('returns the OpenAI-compatible result for non-MiniMax URLs', async () => {
     mockModelsList.mockResolvedValue({
       data: [{ id: 'gpt-4o-mini' }],
