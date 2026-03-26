@@ -262,11 +262,23 @@ gh pr view <PR_NUMBER> --json mergeable,mergeStateStatus,headRefName,baseRefName
   --jq '{mergeable, mergeStateStatus, head: .headRefName, base: .baseRefName}'
 ```
 
-| `mergeable` | Action |
-|---|---|
-| `MERGEABLE` | Continue to Step 5 |
-| `UNKNOWN` | Remove `bot:reviewing` → log "Mergeability unknown for PR #N, will retry" → **find next PR** |
-| `CONFLICTING` | Run conflict dedup check (see below) |
+| `mergeable` | `mergeStateStatus` | Action |
+|---|---|---|
+| `MERGEABLE` | `BEHIND` | Call update-branch API → remove `bot:reviewing` → **EXIT** |
+| `MERGEABLE` | other | Continue to Step 5 |
+| `UNKNOWN` | any | Remove `bot:reviewing` → log "Mergeability unknown for PR #N, will retry" → **find next PR** |
+| `CONFLICTING` | any | Run conflict dedup check (see below) |
+
+**Branch update (mergeable=MERGEABLE, mergeStateStatus=BEHIND):**
+
+```bash
+gh api repos/$REPO/pulls/<PR_NUMBER>/update-branch --method PUT
+gh pr edit <PR_NUMBER> --remove-label "bot:reviewing"
+```
+
+Log: `[pr-automation] PR #<PR_NUMBER> branch is behind base — triggered update-branch. CI will re-run and auto-merge will fire automatically.`
+
+**EXIT** (GitHub merges base into the branch, CI re-triggers, auto-merge fires when CI passes).
 
 **Merge conflict dedup check:**
 
