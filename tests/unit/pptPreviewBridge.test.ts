@@ -219,10 +219,11 @@ describe('pptPreviewBridge', () => {
       await flush(); // wait for spawn
       child.emit('exit', 1, null);
 
-      await expect(promise).rejects.toThrow('officecli exited with code 1');
+      const result = await promise;
+      expect(result).toEqual({ url: '', error: 'officecli exited with code 1' });
     });
 
-    it('rejects when process is killed by signal', async () => {
+    it('returns error result when process is killed by signal', async () => {
       initPptPreviewBridge();
       const child = createMockChildProcess();
       spawnMock.mockReturnValue(child);
@@ -231,7 +232,8 @@ describe('pptPreviewBridge', () => {
       await flush();
       child.emit('exit', null, 'SIGKILL');
 
-      await expect(promise).rejects.toThrow('officecli exited with signal SIGKILL');
+      const result = await promise;
+      expect(result).toEqual({ url: '', error: 'officecli exited with signal SIGKILL' });
     });
 
     it('attempts auto-install on ENOENT and emits installing status', async () => {
@@ -273,7 +275,8 @@ describe('pptPreviewBridge', () => {
       const enoentErr = Object.assign(new Error('spawn officecli ENOENT'), { code: 'ENOENT' });
       child.emit('error', enoentErr);
 
-      await expect(promise).rejects.toThrow('officecli is not installed and auto-install failed');
+      const result = await promise;
+      expect(result).toEqual({ url: '', error: 'officecli is not installed and auto-install failed' });
     });
 
     it('reuses existing alive session', async () => {

@@ -425,7 +425,13 @@ const handleAppReady = async (): Promise<void> => {
     }
     const resolvedPort = resolveWebUIPort(userConfigInfo.config, getSwitchValue);
     const allowRemote = resolveRemoteAccess(userConfigInfo.config, isRemoteMode);
-    await startWebServer(resolvedPort, allowRemote);
+    try {
+      await startWebServer(resolvedPort, allowRemote);
+    } catch (err) {
+      console.error(`[WebUI] Failed to start server on port ${resolvedPort}:`, err);
+      app.exit(1);
+      return;
+    }
 
     // Keep the process alive in WebUI mode by preventing default quit behavior.
     // On Linux headless (systemd), Electron may attempt to quit when no windows exist.

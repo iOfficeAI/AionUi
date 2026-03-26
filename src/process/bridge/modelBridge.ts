@@ -107,6 +107,8 @@ export function initModelBridge(): void {
       console.log('Using MiniMax model list (text models only)');
       const minimaxModels = [
         // Text/Chat Models - For conversational AI use
+        'MiniMax-M2.7',
+        'MiniMax-M2.5',
         'MiniMax-M2.1', // 230B params, 10B active - Best for programming & reasoning (~60 tokens/sec)
         'MiniMax-M2.1-lightning', // Same as M2.1 but faster (~100 tokens/sec)
         'MiniMax-M2', // 200k context, 128k output - Complex reasoning & function calling
@@ -202,6 +204,11 @@ export function initModelBridge(): void {
     // new-api 暴露标准的 /v1/models 端点，直接走 OpenAI 路径
     // new-api exposes standard /v1/models endpoint, use OpenAI path directly
     if (isNewApiPlatform(platform)) {
+      // Validate API key before creating OpenAI client to avoid unhandled 'Missing credentials' error
+      if (!actualApiKey) {
+        return { success: false, msg: 'API key is required. Please configure your API key in settings.' };
+      }
+
       // 确保 base_url 带有 /v1 后缀 / Ensure base_url has /v1 suffix
       let openaiBaseUrl = base_url?.replace(/\/+$/, '') || '';
       if (openaiBaseUrl && !openaiBaseUrl.endsWith('/v1')) {

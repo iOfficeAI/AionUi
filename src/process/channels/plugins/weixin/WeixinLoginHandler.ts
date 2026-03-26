@@ -28,11 +28,16 @@ export class WeixinLoginHandler {
       });
 
       const timeoutId = setTimeout(() => {
+        clearInterval(poll);
         hidden.destroy();
         reject(new Error('Timeout waiting for QR canvas to render'));
       }, 10_000);
 
       const poll = setInterval(() => {
+        if (hidden.isDestroyed()) {
+          clearInterval(poll);
+          return;
+        }
         hidden.webContents
           .executeJavaScript(
             `(function(){const c=document.querySelector('canvas');return c?c.toDataURL('image/png'):null})()`

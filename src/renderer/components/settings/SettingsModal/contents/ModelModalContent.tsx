@@ -300,6 +300,10 @@ const ModelModalContent: React.FC = () => {
         }, HEALTH_CHECK_FIRST_RESPONSE_TIMEOUT_MS);
       });
 
+      // Prevent unhandled rejection if timeout fires while sendMessage is still pending.
+      // The actual error is still caught by `await responsePromise` below.
+      responsePromise.catch(() => {});
+
       // 3. 发送测试消息
       await ipcBridge.conversation.sendMessage.invoke({
         conversation_id: tempConversationId,

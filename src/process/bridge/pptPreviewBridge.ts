@@ -301,8 +301,10 @@ export function initPptPreviewBridge(): void {
       const url = await startWatch(filePath);
       return { url };
     } catch (err) {
+      // Never re-throw — bridge.subscribe() lacks .catch(), so thrown errors
+      // become unhandled promise rejections (Sentry ELECTRON-CT).
       console.error('[pptPreview] start failed:', err);
-      throw err;
+      return { url: '', error: err instanceof Error ? err.message : String(err) };
     }
   });
 

@@ -4,23 +4,33 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 const norm = (p: string) => p.replace(/\\/g, '/');
 
 // Use vi.hoisted() so tracking variables are initialized before vi.mock factories run
-const { mkdirCalls, symlinkCalls, statResults, lstatResults, existsSyncResults, resetAll } = vi.hoisted(() => {
-  const mkdirCalls: string[] = [];
-  const symlinkCalls: Array<{ source: string; target: string; type: string }> = [];
-  const statResults: Record<string, boolean> = {};
-  const lstatResults: Record<string, boolean> = {};
-  const existsSyncResults: Record<string, boolean> = {};
+const { mkdirCalls, symlinkCalls, statResults, lstatResults, existsSyncResults, readdirResults, resetAll } = vi.hoisted(
+  () => {
+    const dirs: string[] = [];
+    const links: Array<{ source: string; target: string; type: string }> = [];
+    const stats: Record<string, boolean> = {};
+    const lstats: Record<string, boolean> = {};
+    const existsSync: Record<string, boolean> = {};
+    const readdir: Record<string, string[]> = {};
 
-  const resetAll = () => {
-    mkdirCalls.length = 0;
-    symlinkCalls.length = 0;
-    for (const key of Object.keys(statResults)) delete statResults[key];
-    for (const key of Object.keys(lstatResults)) delete lstatResults[key];
-    for (const key of Object.keys(existsSyncResults)) delete existsSyncResults[key];
-  };
-
-  return { mkdirCalls, symlinkCalls, statResults, lstatResults, existsSyncResults, resetAll };
-});
+    return {
+      mkdirCalls: dirs,
+      symlinkCalls: links,
+      statResults: stats,
+      lstatResults: lstats,
+      existsSyncResults: existsSync,
+      readdirResults: readdir,
+      resetAll: () => {
+        dirs.length = 0;
+        links.length = 0;
+        for (const key of Object.keys(stats)) delete stats[key];
+        for (const key of Object.keys(lstats)) delete lstats[key];
+        for (const key of Object.keys(existsSync)) delete existsSync[key];
+        for (const key of Object.keys(readdir)) delete readdir[key];
+      },
+    };
+  }
+);
 
 vi.mock('fs/promises', () => ({
   default: {
@@ -38,6 +48,7 @@ vi.mock('fs/promises', () => ({
     symlink: vi.fn(async (source: string, target: string, type: string) => {
       symlinkCalls.push({ source: norm(source), target: norm(target), type });
     }),
+    readdir: vi.fn(async (p: string) => readdirResults[norm(p)] ?? []),
   },
 }));
 
@@ -48,6 +59,7 @@ vi.mock('fs', () => ({
 vi.mock('@process/utils/initStorage', () => ({
   getSkillsDir: vi.fn(() => '/mock/user/skills'),
   getBuiltinSkillsCopyDir: vi.fn(() => '/mock/builtin-skills'),
+  getAutoSkillsDir: vi.fn(() => '/mock/auto-skills'),
   getSystemDir: vi.fn(() => '/mock/system'),
 }));
 
@@ -114,20 +126,21 @@ describe('initAgent — skill support', () => {
   });
 
   describe('setupAssistantWorkspace', () => {
-    it('should skip when enabledSkills is empty', async () => {
+    it('should create skills dir even when enabledSkills is empty', async () => {
       await setupAssistantWorkspace('/tmp/workspace', {
         backend: 'claude',
         enabledSkills: [],
       });
-      expect(mkdirCalls).toHaveLength(0);
-      expect(symlinkCalls).toHaveLength(0);
+      expect(mkdirCalls).toContain('/tmp/workspace/.claude/skills');
+      expect(symlinkCalls).toHaveLength(0); // no builtin skills in mock readdir
     });
 
-    it('should skip when enabledSkills is undefined', async () => {
+    it('should create skills dir even when enabledSkills is undefined', async () => {
       await setupAssistantWorkspace('/tmp/workspace', {
         backend: 'claude',
       });
-      expect(mkdirCalls).toHaveLength(0);
+      expect(mkdirCalls).toContain('/tmp/workspace/.claude/skills');
+      expect(symlinkCalls).toHaveLength(0); // no builtin skills in mock readdir
     });
 
     it('should skip symlink setup for unsupported backend', async () => {
@@ -226,16 +239,22 @@ describe('initAgent — skill support', () => {
       expect(symlinkCalls[0].source).toBe('/mock/user/skills/custom-skill');
     });
 
-    it('should skip cron skill (auto-injected via SkillManager)', async () => {
+    it('should inject builtin skills from autoSkillsDir and deduplicate from enabledSkills', async () => {
+      readdirResults['/mock/auto-skills'] = ['cron', 'office-cli'];
+      statResults['/mock/auto-skills/cron'] = true;
+      statResults['/mock/auto-skills/office-cli'] = true;
       statResults['/mock/user/skills/pptx'] = true;
 
       await setupAssistantWorkspace('/tmp/workspace', {
         backend: 'claude',
-        enabledSkills: ['cron', 'pptx'],
+        enabledSkills: ['cron', 'pptx'], // cron is in autoSkillNames — should not duplicate
       });
 
-      expect(symlinkCalls).toHaveLength(1);
-      expect(symlinkCalls[0].target).toContain('pptx');
+      // cron (builtin) + office-cli (builtin) + pptx (user), cron not duplicated
+      expect(symlinkCalls).toHaveLength(3);
+      const cronCall = symlinkCalls.find((c) => c.target.includes('cron'));
+      expect(cronCall?.source).toBe('/mock/auto-skills/cron');
+      expect(symlinkCalls.filter((c) => c.target.includes('cron'))).toHaveLength(1);
     });
 
     it('should skip symlink when target already exists', async () => {
