@@ -22,6 +22,31 @@ Automated workflow to resolve all issues surfaced in a pr-review report — pars
 
 ---
 
+## Mode Detection
+
+At the very start of execution, check `$ARGUMENTS` for the `--automation` flag:
+
+```bash
+# $ARGUMENTS example: "123 --automation" or "123"
+AUTOMATION_MODE=false
+if echo "$ARGUMENTS" | grep -q -- '--automation'; then
+  AUTOMATION_MODE=true
+fi
+```
+
+In **automation mode**:
+- Skip all yes/no confirmation prompts — follow the default best path
+- When `isCrossRepository=true` (external fork PR): do NOT abort with an error; instead output the signal below and exit immediately
+
+```
+<!-- pr-fix-signal -->
+SIGNAL: SKIP_EXTERNAL
+PR_NUMBER: <number>
+<!-- /pr-fix-signal -->
+```
+
+---
+
 ## Steps
 
 ### Step 0 — Identify the Review Report Source
@@ -78,11 +103,7 @@ If the 汇总 table is empty, abort with:
 
 > No issues found in the review summary. Nothing to fix.
 
-**LOW issues — ask user once:**
-
-> 检测到 N 个 LOW 级别问题。是否一并修复？(yes/no)
-
-If **no**, exclude LOW issues from this run.
+**LOW issues:** Always include all LOW issues in the fix run — no prompt needed.
 
 ---
 
@@ -125,10 +146,19 @@ Save `<head_branch>`, `<base_branch>`, `<state>`, and `<isCrossRepository>` for 
 | `OPEN`   | `false`           | Path B — push to original branch |
 | `OPEN`   | `true`            | **ABORT**                        |
 
-If state is `OPEN` and isCrossRepository is `true`, abort with:
+If state is `OPEN` and isCrossRepository is `true`:
 
-> PR #<PR_NUMBER> is still open and was submitted from an external fork. Direct push is not possible.
-> Please wait for the PR to be merged, then run `/pr-fix` again.
+- **Non-automation mode:** abort with:
+  > PR #<PR_NUMBER> is still open and was submitted from an external fork. Direct push is not possible.
+  > Please wait for the PR to be merged, then run `/pr-fix` again.
+
+- **Automation mode:** output the signal below and exit cleanly (do NOT proceed with fixes):
+  ```
+  <!-- pr-fix-signal -->
+  SIGNAL: SKIP_EXTERNAL
+  PR_NUMBER: <PR_NUMBER>
+  <!-- /pr-fix-signal -->
+  ```
 
 ---
 
