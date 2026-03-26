@@ -112,6 +112,14 @@ export function trackUpload(
   };
 }
 
+// ── Stable snapshot getters (module-level to avoid per-render closure churn) ─
+
+const getGlobalSnapshot = (): UploadStateSnapshot => globalSnapshot;
+const sourceSnapshotGetters: Record<UploadSource, () => UploadStateSnapshot> = {
+  sendbox: () => sourceSnapshots.sendbox,
+  workspace: () => sourceSnapshots.workspace,
+};
+
 // ── React hook ─────────────────────────────────────────────────────────────
 
 /**
@@ -119,6 +127,6 @@ export function trackUpload(
  * omit for global state.
  */
 export function useUploadState(source?: UploadSource): UploadStateSnapshot {
-  const getSnapshot = source ? () => sourceSnapshots[source] : () => globalSnapshot;
+  const getSnapshot = source ? sourceSnapshotGetters[source] : getGlobalSnapshot;
   return useSyncExternalStore(subscribe, getSnapshot, getSnapshot);
 }

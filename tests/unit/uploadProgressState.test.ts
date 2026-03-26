@@ -15,7 +15,7 @@ vi.mock('react', async (importOriginal) => {
   };
 });
 
-import { trackUpload, useUploadState } from '../../src/renderer/hooks/file/useUploadState';
+import { trackUpload, useUploadState } from '@renderer/hooks/file/useUploadState';
 
 describe('useUploadState - upload tracking', () => {
   it('starts idle with no active uploads', () => {

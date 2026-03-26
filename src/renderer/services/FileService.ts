@@ -70,6 +70,10 @@ export async function uploadFileViaHttp(
       reject(new Error('Upload failed: network error'));
     });
 
+    xhr.addEventListener('abort', () => {
+      reject(new Error('Upload aborted'));
+    });
+
     xhr.send(formData);
   });
 }

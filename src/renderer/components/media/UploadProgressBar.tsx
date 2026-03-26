@@ -19,32 +19,20 @@ const UploadProgressBar: React.FC<{ source?: UploadSource }> = ({ source }) => {
   if (!isUploading) return null;
 
   return (
-    <div style={{ padding: '4px 12px', fontSize: 12, color: 'var(--color-text-3, #86909c)' }}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 2 }}>
+    <div className='px-12px py-4px text-12px color-text-3'>
+      <div className='flex justify-between mb-2px'>
         <span>
           {t('common.fileAttach.uploading', {
             count: activeCount,
-            defaultValue: `Uploading ${activeCount} file(s)...`,
+            defaultValue: 'Uploading {{count}} file(s)...',
           })}
         </span>
         <span>{overallPercent}%</span>
       </div>
-      <div
-        style={{
-          height: 3,
-          borderRadius: 2,
-          backgroundColor: 'var(--color-fill-3, #e5e6eb)',
-          overflow: 'hidden',
-        }}
-      >
+      <div className='h-3px rd-2px bg-fill-3 overflow-hidden'>
         <div
-          style={{
-            height: '100%',
-            width: `${overallPercent}%`,
-            backgroundColor: 'var(--color-primary-6, #165dff)',
-            borderRadius: 2,
-            transition: 'width 0.2s ease',
-          }}
+          className='h-full rd-2px bg-primary-6 transition-width duration-200 ease'
+          style={{ width: `${overallPercent}%` }}
         />
       </div>
     </div>
