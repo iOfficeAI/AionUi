@@ -8,6 +8,9 @@
   "externalSessions": {
     "title": "外部 Session を引き継ぐ",
     "description": "ContextGo の外で開始され、まだ引き継がれていない CLI セッションがここに表示されます。",
+    "filters": {
+      "all": "すべて"
+    },
     "refresh": "更新",
     "loading": "外部 Session をスキャンしています...",
     "updatedAt": "最終更新 {{time}}",

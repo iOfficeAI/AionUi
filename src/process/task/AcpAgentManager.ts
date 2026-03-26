@@ -80,6 +80,7 @@ class AcpAgentManager extends BaseAgentManager<AcpAgentManagerData, AcpPermissio
   private acpAvailableSlashWaiters: Array<(commands: SlashCommandItem[]) => void> = [];
   private readonly streamDbFlushIntervalMs = 120;
   private readonly bufferedStreamTextMessages = new Map<string, BufferedStreamTextMessage>();
+  private existingMessageStatePromise: Promise<void> | null = null;
 
   constructor(data: AcpAgentManagerData) {
     super('acp', data, new IpcAgentEventEmitter());
@@ -145,6 +146,26 @@ class AcpAgentManager extends BaseAgentManager<AcpAgentManagerData, AcpPermissio
     for (const key of keys) {
       this.flushBufferedStreamTextMessage(key);
     }
+  }
+
+  private async ensureFirstMessageState(): Promise<void> {
+    if (this.existingMessageStatePromise) {
+      return this.existingMessageStatePromise;
+    }
+
+    this.existingMessageStatePromise = (async () => {
+      try {
+        const db = await getDatabase();
+        const existingMessages = db.getConversationMessages(this.conversation_id, 0, 1);
+        if (existingMessages.total > 0) {
+          this.isFirstMessage = false;
+        }
+      } catch (error) {
+        mainWarn('[AcpAgentManager]', 'Failed to detect existing conversation history', error);
+      }
+    })();
+
+    await this.existingMessageStatePromise;
   }
 
   initAgent(data: AcpAgentManagerData = this.options) {
@@ -566,6 +587,7 @@ class AcpAgentManager extends BaseAgentManager<AcpAgentManagerData, AcpPermissio
     this.bootstrapping = false;
 
     const managerSendStart = Date.now();
+    await this.ensureFirstMessageState();
     // Mark conversation as busy to prevent cron jobs from running
     cronBusyGuard.setProcessing(this.conversation_id, true);
     // Set status to running when message is being processed

@@ -143,6 +143,8 @@
   "hookNeedsAttention": "需處理",
   "hookImportFailed": "匯入 Hook 失敗",
   "hookImported": "Hook 匯入成功",
+  "installHook": "安裝",
+  "hookInstallFailed": "安裝 Hook 失敗",
   "hookDeleteFailed": "刪除 Hook 失敗",
   "hookDeleted": "Hook 已刪除",
   "hookOpenFolderFailed": "開啟 Hook 資料夾失敗",

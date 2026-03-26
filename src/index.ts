@@ -18,7 +18,7 @@ import { app, BrowserWindow, nativeImage, net, powerMonitor, protocol, screen } 
 import fixPath from 'fix-path';
 import * as fs from 'fs';
 import * as path from 'path';
-import { pathToFileURL } from 'url';
+import { fileURLToPath, pathToFileURL } from 'url';
 import { initMainAdapterWithWindow } from './common/adapter/main';
 import { ipcBridge } from './common';
 import { AION_ASSET_PROTOCOL } from '@process/extensions';
@@ -294,6 +294,51 @@ const createWindow = (): void => {
   // Load the renderer: dev server URL in development, built HTML file in production
   const rendererUrl = process.env['ELECTRON_RENDERER_URL'];
   const fallbackFile = path.join(__dirname, '../renderer/index.html');
+  const fallbackFileUrl = pathToFileURL(fallbackFile).href;
+
+  const isAllowedMainWindowNavigation = (targetUrl: string): boolean => {
+    try {
+      const parsed = new URL(targetUrl);
+
+      if (rendererUrl) {
+        const rendererOrigin = new URL(rendererUrl).origin;
+        if (parsed.origin === rendererOrigin) {
+          return true;
+        }
+      }
+
+      if (parsed.protocol !== 'file:') {
+        return false;
+      }
+
+      const filePath = fileURLToPath(parsed);
+      return path.resolve(filePath) === path.resolve(fallbackFile);
+    } catch {
+      return false;
+    }
+  };
+
+  mainWindow.webContents.on('will-navigate', (event, targetUrl) => {
+    if (isAllowedMainWindowNavigation(targetUrl)) {
+      return;
+    }
+
+    console.warn('[AionUi] Blocked unexpected main-window navigation:', targetUrl);
+    event.preventDefault();
+
+    const currentUrl = mainWindow.webContents.getURL();
+    if (!isAllowedMainWindowNavigation(currentUrl)) {
+      if (!app.isPackaged && rendererUrl) {
+        void mainWindow.loadURL(rendererUrl).catch((error) => {
+          console.error('[AionUi] Failed to recover renderer URL after blocked navigation:', error);
+        });
+      } else {
+        void mainWindow.loadURL(fallbackFileUrl).catch((error) => {
+          console.error('[AionUi] Failed to recover renderer file after blocked navigation:', error);
+        });
+      }
+    }
+  });
 
   if (!app.isPackaged && rendererUrl) {
     console.log(`[AionUi] Loading renderer URL: ${rendererUrl}`);

@@ -8,6 +8,9 @@
   "externalSessions": {
     "title": "Harici Session'ları Devral",
     "description": "ContextGo dışında başlatılan ve henüz devralınmamış CLI oturumları burada görünür.",
+    "filters": {
+      "all": "Tümü"
+    },
     "refresh": "Yenile",
     "loading": "Harici Session'lar taranıyor...",
     "updatedAt": "Son güncelleme {{time}}",

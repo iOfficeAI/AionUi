@@ -143,6 +143,8 @@
   "hookNeedsAttention": "要確認",
   "hookImportFailed": "Hook のインポートに失敗しました",
   "hookImported": "Hook をインポートしました",
+  "installHook": "インストール",
+  "hookInstallFailed": "Hook のインストールに失敗しました",
   "hookDeleteFailed": "Hook の削除に失敗しました",
   "hookDeleted": "Hook を削除しました",
   "hookOpenFolderFailed": "Hook フォルダーを開けませんでした",

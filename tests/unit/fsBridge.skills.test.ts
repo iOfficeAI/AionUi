@@ -156,7 +156,9 @@ describe('fsBridge skills functionality', () => {
       })),
       getAssistantsDir: vi.fn(() => '/mock/userData/assistants'),
       getSkillsDir: vi.fn(() => '/mock/userData/config/skills'),
+      getHooksDir: vi.fn(() => path.resolve('/mock/userData/config/hooks')),
       getBuiltinSkillsCopyDir: vi.fn(() => path.resolve('/mock/userData/builtin-skills')),
+      getBuiltinHooksCopyDir: vi.fn(() => path.resolve('/mock/userData/builtin-hooks')),
       ProcessEnv: { set: vi.fn() },
     }));
 
@@ -204,6 +206,7 @@ describe('fsBridge skills functionality', () => {
             // The specific ones we care about
             listAvailableSkills: createCommandMock('list-available-skills'),
             listAvailableHooks: createCommandMock('list-available-hooks'),
+            installBuiltinHook: createCommandMock('install-builtin-hook'),
             importHookWithSymlink: createCommandMock('import-hook-with-symlink'),
             deleteHook: createCommandMock('delete-hook'),
             getHookPaths: createCommandMock('get-hook-paths'),
@@ -343,6 +346,79 @@ describe('fsBridge skills functionality', () => {
       const custom = result.find((s: any) => s.name === 'CustomTest');
       expect(custom).toBeDefined();
       expect(custom.isCustom).toBe(true);
+    });
+  });
+
+  describe('hook management', () => {
+    it('marks custom hooks installed from builtin when a user copy shadows a builtin hook', async () => {
+      const builtinBase = path.resolve('/mock/userData/builtin-hooks');
+      const userBase = path.resolve('/mock/userData/config/hooks');
+
+      mockFsStore[builtinBase] = { isDirectory: true };
+      mockFsStore[path.join(builtinBase, 'quality-gate')] = { isDirectory: true };
+      mockFsStore[path.join(builtinBase, 'quality-gate', 'manifest.json')] = {
+        content: JSON.stringify({
+          name: 'quality-gate',
+          description: 'Builtin quality gate',
+        }),
+        isDirectory: false,
+      };
+
+      mockFsStore[userBase] = { isDirectory: true };
+      mockFsStore[path.join(userBase, 'quality-gate')] = { isDirectory: true };
+      mockFsStore[path.join(userBase, 'quality-gate', 'manifest.json')] = {
+        content: JSON.stringify({
+          name: 'quality-gate',
+          description: 'Installed builtin copy',
+        }),
+        isDirectory: false,
+      };
+
+      const handler = await getProvider('listAvailableHooks');
+      const result = await handler();
+
+      expect(result).toHaveLength(1);
+      expect(result[0]).toMatchObject({
+        name: 'quality-gate',
+        isCustom: true,
+        isBuiltinInstalled: true,
+        description: 'Installed builtin copy',
+      });
+    });
+
+    it('installs a builtin hook into the user hooks directory', async () => {
+      const builtinBase = path.resolve('/mock/userData/builtin-hooks');
+      const userBase = path.resolve('/mock/userData/config/hooks');
+
+      mockFsStore[builtinBase] = { isDirectory: true };
+      mockFsStore[path.join(builtinBase, 'quality-gate')] = { isDirectory: true };
+      mockFsStore[path.join(builtinBase, 'quality-gate', 'manifest.json')] = {
+        content: JSON.stringify({
+          name: 'quality-gate',
+          description: 'Builtin quality gate',
+        }),
+        isDirectory: false,
+      };
+      mockFsStore[path.join(builtinBase, 'quality-gate', 'before_user_prompt.md')] = {
+        content: '# quality gate',
+        isDirectory: false,
+      };
+      mockFsStore[userBase] = { isDirectory: true };
+
+      const handler = await getProvider('installBuiltinHook');
+      const result = await handler({ hookName: 'quality-gate' });
+
+      expect(result.success).toBe(true);
+      expect(mockFsStore[path.join(userBase, 'quality-gate')]).toBeDefined();
+      expect(mockFsStore[path.join(userBase, 'quality-gate', 'manifest.json')]).toMatchObject({
+        content: JSON.stringify({
+          name: 'quality-gate',
+          description: 'Builtin quality gate',
+        }),
+      });
+      expect(mockFsStore[path.join(userBase, 'quality-gate', 'before_user_prompt.md')]).toMatchObject({
+        content: '# quality gate',
+      });
     });
   });
 

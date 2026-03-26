@@ -143,6 +143,8 @@
   "hookNeedsAttention": "İnceleme Gerekli",
   "hookImportFailed": "Hook içe aktarılamadı",
   "hookImported": "Hook başarıyla içe aktarıldı",
+  "installHook": "Yükle",
+  "hookInstallFailed": "Hook yüklenemedi",
   "hookDeleteFailed": "Hook silinemedi",
   "hookDeleted": "Hook başarıyla silindi",
   "hookOpenFolderFailed": "Hook klasörü açılamadı",

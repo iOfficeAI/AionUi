@@ -143,6 +143,8 @@
   "hookNeedsAttention": "Needs Attention",
   "hookImportFailed": "Failed to import hook",
   "hookImported": "Hook imported successfully",
+  "installHook": "Install",
+  "hookInstallFailed": "Failed to install hook",
   "hookDeleteFailed": "Failed to delete hook",
   "hookDeleted": "Hook deleted successfully",
   "hookOpenFolderFailed": "Failed to open hook folder",

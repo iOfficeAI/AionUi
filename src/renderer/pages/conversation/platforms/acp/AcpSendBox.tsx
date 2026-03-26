@@ -143,6 +143,19 @@ const AcpSendBox: React.FC<{
     // before calling onSend — no need to clear again here.
     clearFiles();
 
+    const userMessage: TMessage = {
+      id: msg_id,
+      msg_id,
+      conversation_id,
+      type: 'text',
+      position: 'right',
+      content: {
+        content: message,
+      },
+      createdAt: Date.now(),
+    };
+    addOrUpdateMessage(userMessage, true);
+
     // Start AI processing loading state
     setAiProcessing(true);
 

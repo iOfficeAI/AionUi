@@ -143,6 +143,8 @@
   "hookNeedsAttention": "확인 필요",
   "hookImportFailed": "Hook 가져오기에 실패했습니다",
   "hookImported": "Hook 을 가져왔습니다",
+  "installHook": "설치",
+  "hookInstallFailed": "Hook 설치에 실패했습니다",
   "hookDeleteFailed": "Hook 삭제에 실패했습니다",
   "hookDeleted": "Hook 을 삭제했습니다",
   "hookOpenFolderFailed": "Hook 폴더를 열지 못했습니다",

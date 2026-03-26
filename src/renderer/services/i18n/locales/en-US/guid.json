@@ -8,6 +8,9 @@
   "externalSessions": {
     "title": "Continue external sessions",
     "description": "New CLI sessions created outside ContextGo will appear here when they have not been taken over yet.",
+    "filters": {
+      "all": "All"
+    },
     "refresh": "Refresh",
     "loading": "Scanning external sessions...",
     "updatedAt": "Updated {{time}}",

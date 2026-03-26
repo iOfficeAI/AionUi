@@ -8,6 +8,9 @@
   "externalSessions": {
     "title": "接管外部 Session",
     "description": "在 ContextGo 外啟動且尚未接管的 CLI 會話會顯示在這裡。",
+    "filters": {
+      "all": "全部"
+    },
     "refresh": "重新整理",
     "loading": "正在掃描外部 Session...",
     "updatedAt": "最近更新於 {{time}}",
