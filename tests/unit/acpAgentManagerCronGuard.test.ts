@@ -210,4 +210,26 @@ describe('AcpAgentManager.sendMessage — real class cronBusyGuard cleanup', () 
 
     expect(manager.status).toBe('finished');
   });
+
+  // ── Guard is cleared before next invocation ───────────────────────────────
+
+  it('guard is cleared before second sendMessage so it can set busy again', async () => {
+    const { manager, mockAgent } = makeManager('conv-9');
+
+    // First call fails
+    mockAgent.sendMessage.mockResolvedValueOnce({ success: false });
+    await manager.sendMessage({ content: 'hello' } as any);
+
+    // Verify guard was cleared after first failure
+    expect(mockSetProcessing).toHaveBeenCalledWith('conv-9', false);
+    expect(manager.status).toBe('finished');
+
+    vi.clearAllMocks();
+
+    // Second call succeeds — guard must be settable to true again
+    mockAgent.sendMessage.mockResolvedValueOnce({ success: true });
+    await manager.sendMessage({ content: 'hello again' } as any);
+
+    expect(mockSetProcessing).toHaveBeenCalledWith('conv-9', true);
+  });
 });
