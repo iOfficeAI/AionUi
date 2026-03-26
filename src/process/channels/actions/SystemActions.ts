@@ -4,6 +4,9 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
+import fs from 'fs';
+import os from 'os';
+import path from 'path';
 import { acpDetector } from '@process/agent/acp/AcpDetector';
 import type { TChatConversation, TProviderWithModel } from '@/common/config/storage';
 import { ProcessConfig } from '@process/utils/initStorage';
@@ -74,13 +77,32 @@ export async function getChannelDefaultModel(platform: PluginType): Promise<TPro
             ? await ProcessConfig.get('assistant.weixin.defaultModel')
             : await ProcessConfig.get('assistant.telegram.defaultModel');
     if (savedModel?.id && savedModel?.useModel) {
-      // Google Auth is frontend-only (OAuth browser flow), not usable in channels.
-      // Fall through to find a provider with a valid API key instead.
       if (savedModel.id === GOOGLE_AUTH_PROVIDER_ID) {
+        // Google OAuth credentials are stored locally by Gemini CLI (~/.gemini/oauth_creds.json).
+        // If the user has already logged in on desktop, we can reuse those credentials in
+        // channel mode without requiring a browser flow.
+        const credsPath = path.join(os.homedir(), '.gemini', 'oauth_creds.json');
+        let hasLocalCreds = false;
+        try {
+          const content = fs.readFileSync(credsPath, 'utf-8');
+          const creds = JSON.parse(content);
+          hasLocalCreds = !!(creds?.access_token || creds?.refresh_token);
+        } catch {
+          // credentials file missing or invalid
+        }
+
+        if (hasLocalCreds) {
+          // Use the Google Auth provider directly — local OAuth creds are available.
+          const googleAuthProvider = providerList.find((p) => p.id === GOOGLE_AUTH_PROVIDER_ID);
+          if (googleAuthProvider) {
+            return { ...googleAuthProvider, useModel: savedModel.useModel } as TProviderWithModel;
+          }
+        }
+
+        // No local credentials: try to fall back to an API key provider for the same model.
         console.warn(
-          `[SystemActions] Google Auth is not supported in channel mode (${platform}), falling back to API key provider`
+          `[SystemActions] Google Auth credentials not found for channel mode (${platform}), falling back to API key provider`
         );
-        // Try to find any Gemini provider with API key for the same model
         const fallback = providerList.find(
           (p) => p.platform === 'gemini' && p.apiKey && p.model?.includes(savedModel.useModel)
         );
