@@ -17,7 +17,9 @@ Perform a thorough local code review with full project context — reads source 
 /pr-review [pr_number]
 ```
 
-`$ARGUMENTS` is an optional PR number. If omitted, auto-detect from the current branch.
+`$ARGUMENTS` may contain an optional PR number and/or `--automation` flag.
+- Without `--automation`: interactive mode (prompts for confirmation, comment, cleanup)
+- With `--automation`: non-interactive mode (auto-post comment, auto-delete branch, output machine-readable result)
 
 ---
 
@@ -36,6 +38,15 @@ gh pr view --json number -q .number
 If this also fails (not on a PR branch), abort with:
 
 > No PR number provided and cannot detect one from the current branch. Usage: `/pr-review <pr_number>`
+
+Also parse `--automation` from `$ARGUMENTS`:
+
+```bash
+AUTOMATION_MODE=false
+if echo "$ARGUMENTS" | grep -q -- '--automation'; then
+  AUTOMATION_MODE=true
+fi
+```
 
 ### Step 2 — Check CI Status
 
@@ -76,6 +87,16 @@ gh pr view <PR_NUMBER> --json statusCheckRollup \
 - 用户选 **no** → 终止
 - 用户选 **yes** → 继续后续步骤
 
+- **Automation mode:** do not prompt. Output signal and stop:
+  ```
+  <!-- automation-result -->
+  CONCLUSION: CI_NOT_READY
+  IS_CRITICAL_PATH: false
+  PR_NUMBER: <PR_NUMBER>
+  <!-- /automation-result -->
+  ```
+  Then exit.
+
 **情形 3 — 存在失败**（存在 `conclusion` 为 `FAILURE` 或 `CANCELLED` 的必检 job）
 
 显示警告并询问：
@@ -89,6 +110,16 @@ gh pr view <PR_NUMBER> --json statusCheckRollup \
   > 是否在 PR #\<PR_NUMBER\> 发表评论，提醒作者修复失败的 CI job？(yes/no)
   - 用户选 **yes** → 发布 CI 失败提醒评论（格式见下方"CI 失败提醒评论"节），然后退出
   - 用户选 **no** → 直接退出
+
+- **Automation mode:** do not prompt. Post CI failure comment automatically (same format as "CI 失败提醒评论"), then output signal and stop:
+  ```
+  <!-- automation-result -->
+  CONCLUSION: CI_FAILED
+  IS_CRITICAL_PATH: false
+  PR_NUMBER: <PR_NUMBER>
+  <!-- /automation-result -->
+  ```
+  Then exit.
 
 #### CI 失败提醒评论
 
@@ -342,11 +373,15 @@ If no issues are found across all dimensions, output:
 
 ### Step 10 — Ask to Post Comment
 
-Print the complete review report to the terminal, then ask the user:
+Print the complete review report to the terminal.
 
+**Automation mode:** skip the prompt — automatically proceed to post the comment.
+
+**Non-automation mode:** ask the user:
 > Review 完成。是否将此报告发布为 PR #<PR_NUMBER> 的评论？(yes/no)
+If the user says **no**, skip posting.
 
-If the user says **yes**:
+To post:
 
 1. Check for an existing review comment:
 ```bash
@@ -369,6 +404,35 @@ gh pr comment <PR_NUMBER> --body "<!-- pr-review-bot -->
 <review_report>"
 ```
 
+**Automation mode only — after posting the comment, output the machine-readable result block:**
+
+Map the review conclusion to CONCLUSION value:
+
+| Review 结论 | CONCLUSION |
+|---|---|
+| ✅ 批准合并 | APPROVED |
+| ⚠️ 有条件批准 | CONDITIONAL |
+| ❌ 需要修改 | REJECTED |
+
+Determine `IS_CRITICAL_PATH` by checking whether the diff contains any of these paths:
+- `src/preload.ts`
+- `src/process/channels/`
+- `src/common/config/`
+
+```bash
+git diff origin/<baseRefName>...HEAD --name-only | grep -qE '^(src/preload\.ts|src/process/channels/|src/common/config/)' && echo true || echo false
+```
+
+Output:
+
+```
+<!-- automation-result -->
+CONCLUSION: APPROVED
+IS_CRITICAL_PATH: false
+PR_NUMBER: 123
+<!-- /automation-result -->
+```
+
 ### Step 11 — Cleanup
 
 Switch back to the original branch:
@@ -377,7 +441,13 @@ Switch back to the original branch:
 git checkout <original_branch>
 ```
 
-Ask the user:
+**Automation mode:** delete the local PR branch automatically without prompting:
+
+```bash
+git branch -D <pr_branch>
+```
+
+**Non-automation mode:** ask the user:
 
 > 是否删除本地 PR 分支 `<pr_branch>`？(yes/no)
 
