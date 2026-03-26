@@ -113,6 +113,7 @@ while true; do
   fi
 
   CURRENT_CLAUDE_PID=""
+  log_info "Iteration $ITERATION: Claude ran for ${ELAPSED}s."
   log_info "Sleeping ${SLEEP_SECONDS}s before next iteration..."
   sleep "$SLEEP_SECONDS"
 done
