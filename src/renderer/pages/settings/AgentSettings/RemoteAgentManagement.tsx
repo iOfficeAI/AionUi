@@ -10,18 +10,16 @@ import EmojiPicker from '@/renderer/components/chat/EmojiPicker';
 import {
   Avatar,
   Button,
-  Collapse,
   Form,
   Input,
   Message,
-  Modal,
   Select,
   Space,
   Spin,
-  Tabs,
   Tag,
   Typography,
 } from '@arco-design/web-react';
+import AionModal from '@/renderer/components/base/AionModal';
 import { Edit, Plus, ReduceOne, Robot, Speed } from '@icon-park/react';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -195,13 +193,13 @@ const RemoteAgentFormModal: React.FC<{
   // Render pairing waiting UI
   if (pairingState === 'pending' || pairingState === 'timeout') {
     return (
-      <Modal
+      <AionModal
         visible={visible}
-        title={editAgent ? t('settings.remoteAgent.editTitle') : t('settings.remoteAgent.addTitle')}
         onCancel={handleCancelPairing}
-        autoFocus={false}
-        style={{ width: 520 }}
-        footer={<Button onClick={handleCancelPairing}>{t('settings.remoteAgent.pendingCancel')}</Button>}
+        header={{ title: editAgent ? t('settings.remoteAgent.editTitle') : t('settings.remoteAgent.addTitle'), showClose: true }}
+        style={{ maxWidth: '92vw', borderRadius: 16 }}
+        contentStyle={{ background: 'var(--bg-1)', borderRadius: 16, padding: '20px 24px 16px', overflow: 'auto' }}
+        footer={{ render: () => <Button onClick={handleCancelPairing}>{t('settings.remoteAgent.pendingCancel')}</Button> }}
         afterClose={() => {
           stopPolling();
           setPairingState('idle');
@@ -228,25 +226,21 @@ const RemoteAgentFormModal: React.FC<{
             </>
           )}
         </div>
-      </Modal>
+      </AionModal>
     );
   }
 
   return (
-    <Modal
+    <AionModal
       visible={visible}
-      title={editAgent ? t('settings.remoteAgent.editTitle') : t('settings.remoteAgent.addTitle')}
       onCancel={onClose}
-      autoFocus={false}
-      style={{ width: 520 }}
-      footer={
-        <Space>
-          <Button onClick={onClose}>{t('settings.remoteAgent.cancel')}</Button>
-          <Button type='primary' loading={saving || pairingState === 'handshaking'} onClick={handleSave}>
-            {pairingState === 'handshaking' ? t('settings.remoteAgent.handshaking') : t('settings.remoteAgent.save')}
-          </Button>
-        </Space>
-      }
+      header={{ title: editAgent ? t('settings.remoteAgent.editTitle') : t('settings.remoteAgent.addTitle'), showClose: true }}
+      style={{ maxWidth: '92vw', borderRadius: 16 }}
+      contentStyle={{ background: 'var(--bg-1)', borderRadius: 16, padding: '20px 24px 16px', overflow: 'auto' }}
+      okText={pairingState === 'handshaking' ? t('settings.remoteAgent.handshaking') : t('settings.remoteAgent.save')}
+      cancelText={t('settings.remoteAgent.cancel')}
+      onOk={handleSave}
+      confirmLoading={saving || pairingState === 'handshaking'}
       afterOpen={() => {
         if (editAgent) {
           setActiveProtocol(editAgent.protocol);
@@ -256,7 +250,6 @@ const RemoteAgentFormModal: React.FC<{
             url: editAgent.url,
             authType: editAgent.authType,
             authToken: editAgent.authToken,
-            description: editAgent.description,
           });
         } else {
           setActiveProtocol('openclaw');
@@ -269,97 +262,72 @@ const RemoteAgentFormModal: React.FC<{
         form.resetFields();
       }}
     >
-      {/* Protocol tabs at top */}
-      <Tabs
-        activeTab={activeProtocol}
-        onChange={(key) => setActiveProtocol(key)}
-        type='line'
-        className='mb-16px settings-remote-tabs'
-      >
-        <Tabs.TabPane
-          key='openclaw'
-          title={
-            <span
-              className={`inline-flex items-center gap-6px transition-colors ${activeProtocol === 'openclaw' ? 'text-t-primary font-600' : 'text-t-secondary'}`}
-            >
-              OpenClaw
-            </span>
-          }
-        />
-      </Tabs>
-
-      {/* Avatar + Name row */}
-      <div className='flex items-start gap-12px mb-16px'>
-        <EmojiPicker onChange={(emoji) => setAvatar(emoji)}>
-          <div className='cursor-pointer shrink-0'>
-            <Avatar size={48} shape='square' style={{ backgroundColor: 'var(--color-fill-2)', fontSize: 24 }}>
-              {avatar}
-            </Avatar>
-          </div>
-        </EmojiPicker>
-        <div className='flex-1 min-w-0'>
-          <Form form={form} layout='vertical' autoComplete='off'>
-            <FormItem
-              field='name'
-              rules={[{ required: true, message: t('settings.remoteAgent.nameRequired') }]}
-              style={{ marginBottom: 0 }}
-            >
-              <Input size='large' placeholder={t('settings.remoteAgent.namePlaceholder')} />
-            </FormItem>
-          </Form>
-        </div>
-      </div>
-
-      {/* Connection fields */}
-      <Form form={form} layout='vertical' autoComplete='off'>
-        <FormItem
-          label={t('settings.remoteAgent.url')}
-          field='url'
-          rules={[{ required: true, message: t('settings.remoteAgent.urlRequired') }]}
-        >
-          <Input size='large' placeholder='wss://example.com/gateway' />
-        </FormItem>
-
-        <FormItem label={t('settings.remoteAgent.authType')} field='authType' rules={[{ required: true }]}>
-          <Select size='large'>
-            <Select.Option value='none'>{t('settings.remoteAgent.authNone')}</Select.Option>
-            <Select.Option value='bearer'>{t('settings.remoteAgent.authBearer')}</Select.Option>
-          </Select>
-        </FormItem>
-
-        <Form.Item shouldUpdate noStyle>
-          {(values: Record<string, unknown>) =>
-            values.authType === 'bearer' ? (
+      <div className='flex flex-col gap-16px pt-8px pb-20px'>
+        {/* Avatar + Name row */}
+        <div className='flex items-center gap-12px'>
+          <EmojiPicker onChange={(emoji) => setAvatar(emoji)}>
+            <div className='cursor-pointer shrink-0'>
+              <Avatar size={48} shape='square' style={{ backgroundColor: 'var(--color-fill-2)', fontSize: 24, borderRadius: 12 }}>
+                {avatar}
+              </Avatar>
+            </div>
+          </EmojiPicker>
+          <div className='flex-1 min-w-0'>
+            <Form form={form} layout='vertical' autoComplete='off'>
               <FormItem
-                label={t('settings.remoteAgent.authToken')}
-                field='authToken'
-                rules={[{ required: true, message: t('settings.remoteAgent.tokenRequired') }]}
+                field='name'
+                rules={[{ required: true, message: t('settings.remoteAgent.nameRequired') }]}
+                style={{ marginBottom: 0 }}
               >
-                <Input.Password size='large' placeholder={t('settings.remoteAgent.tokenPlaceholder')} />
+                <Input size='large' placeholder={t('settings.remoteAgent.namePlaceholder')} />
               </FormItem>
-            ) : null
-          }
-        </Form.Item>
+            </Form>
+          </div>
+        </div>
 
-        <FormItem label={t('settings.remoteAgent.description')} field='description'>
-          <Input.TextArea
-            placeholder={t('settings.remoteAgent.descriptionPlaceholder')}
-            autoSize={{ minRows: 2, maxRows: 4 }}
-          />
-        </FormItem>
+        {/* Connection fields */}
+        <Form form={form} layout='vertical' autoComplete='off'>
+          <FormItem
+            label={t('settings.remoteAgent.url')}
+            field='url'
+            rules={[{ required: true, message: t('settings.remoteAgent.urlRequired') }]}
+          >
+            <Input placeholder='wss://example.com/gateway' />
+          </FormItem>
 
-        <Button
-          long
-          type='outline'
-          size='large'
-          icon={<Speed theme='outline' size='14' />}
-          loading={testing}
-          onClick={handleTestConnection}
-        >
-          {t('settings.remoteAgent.testConnection')}
-        </Button>
-      </Form>
-    </Modal>
+          <FormItem label={t('settings.remoteAgent.authType')} field='authType' rules={[{ required: true }]}>
+            <Select>
+              <Select.Option value='none'>{t('settings.remoteAgent.authNone')}</Select.Option>
+              <Select.Option value='bearer'>{t('settings.remoteAgent.authBearer')}</Select.Option>
+            </Select>
+          </FormItem>
+
+          <Form.Item shouldUpdate noStyle>
+            {(values: Record<string, unknown>) =>
+              values.authType === 'bearer' ? (
+                <FormItem
+                  label={t('settings.remoteAgent.authToken')}
+                  field='authToken'
+                  rules={[{ required: true, message: t('settings.remoteAgent.tokenRequired') }]}
+                >
+                  <Input.Password placeholder={t('settings.remoteAgent.tokenPlaceholder')} />
+                </FormItem>
+              ) : null
+            }
+          </Form.Item>
+
+          <Button
+            long
+            type='outline'
+            icon={<Speed theme='outline' size='14' />}
+            loading={testing}
+            onClick={handleTestConnection}
+          >
+            {t('settings.remoteAgent.testConnection')}
+          </Button>
+        </Form>
+      </div>
+    </AionModal>
   );
 };
 
@@ -413,43 +381,55 @@ const RemoteAgentManagement: React.FC = () => {
   };
 
   return (
-    <Collapse.Item
-      name='remote-agents'
-      header={<span className='font-medium'>{t('settings.remoteAgent.title')}</span>}
-      extra={
+    <div className='flex flex-col gap-16px py-16px'>
+      <div className='flex items-center justify-between'>
+        <span className='text-12px text-t-secondary px-16px'>
+          {t('settings.agentManagement.remoteAgentsDescription')}
+        </span>
         <Button
-          size='mini'
-          type='text'
-          icon={<Plus theme='outline' size='14' />}
-          onClick={(e) => {
-            e.stopPropagation();
-            handleAdd();
-          }}
+          type='outline'
+          shape='round'
+          size='small'
+          icon={<Plus size='16' />}
+          onClick={handleAdd}
+          className='rd-100px border-1 border-solid border-[var(--color-border-2)] h-34px px-14px text-t-secondary hover:text-t-primary'
         >
           {t('settings.remoteAgent.add')}
         </Button>
-      }
-    >
+      </div>
+
       {!agents || agents.length === 0 ? (
-        <Typography.Text type='secondary' className='block py-16px text-center'>
-          {t('settings.remoteAgent.empty')}
-        </Typography.Text>
+        <div className='flex flex-col items-center gap-12px py-48px'>
+          <Typography.Text type='secondary' className='text-14px'>
+            {t('settings.remoteAgent.emptyTitle')}
+          </Typography.Text>
+          <Button
+            type='outline'
+            shape='round'
+            size='small'
+            icon={<Plus size='16' />}
+            onClick={handleAdd}
+            className='rd-100px border-1 border-solid border-[var(--color-border-2)] h-34px px-14px text-t-secondary hover:text-t-primary'
+          >
+            {t('settings.remoteAgent.emptyAction')}
+          </Button>
+        </div>
       ) : (
         <div className='flex flex-col gap-8px'>
           {agents.map((agent) => (
             <div
               key={agent.id}
-              className='flex items-center justify-between px-12px py-10px rd-8px bg-aou-1 hover:bg-aou-2'
+              className='flex items-center justify-between px-16px py-12px rd-8px bg-aou-1 hover:bg-aou-2'
             >
-              <div className='flex items-center gap-10px min-w-0 flex-1'>
+              <div className='flex items-center gap-12px min-w-0 flex-1'>
                 <Avatar
-                  size={32}
+                  size={40}
                   shape='square'
-                  style={{ backgroundColor: 'var(--color-fill-2)', fontSize: 16, flexShrink: 0 }}
+                  style={{ backgroundColor: 'var(--color-fill-2)', fontSize: 20, flexShrink: 0 }}
                 >
                   {agent.avatar || <Robot theme='outline' size='16' />}
                 </Avatar>
-                <div className='flex flex-col gap-2px min-w-0 flex-1'>
+                <div className='flex flex-col gap-4px min-w-0 flex-1'>
                   <div className='flex items-center gap-8px'>
                     <Typography.Text className='font-medium text-14px truncate'>{agent.name}</Typography.Text>
                     {agent.status && agent.status !== 'unknown' && (
@@ -492,7 +472,7 @@ const RemoteAgentManagement: React.FC = () => {
         onClose={() => setModalVisible(false)}
         onSaved={handleSaved}
       />
-    </Collapse.Item>
+    </div>
   );
 };
 
