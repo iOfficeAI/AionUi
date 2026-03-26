@@ -43,6 +43,21 @@
   "message.badge": "Scheduled",
   "allScheduledTasks": "Tüm zamanlanmış görevler",
   "noTasks": "Zamanlanmış görev yok",
+  "overview": {
+    "description": "Tüm konuşmalardaki zamanlanmış görevleri tek bir yerden görüntüleyin ve yönetin.",
+    "stats": {
+      "total": "Toplam Görev",
+      "active": "Etkin Görevler",
+      "paused": "Duraklatılmış Görevler",
+      "error": "Hatalı Görevler"
+    },
+    "filters": {
+      "allStatuses": "Tüm Durumlar",
+      "searchPlaceholder": "Görev, konuşma, komut, Agent veya hataya göre ara"
+    },
+    "emptyInitial": "Henüz zamanlanmış görev yok. Bir konuşmadan görev oluşturduğunuzda burada görünecek.",
+    "emptyFiltered": "Geçerli filtrelerle eşleşen zamanlanmış görev yok."
+  },
   "runNowSuccess": "Görev çalıştırma tetiklendi",
   "notification": {
     "taskComplete": "Görev Tamamlandı",

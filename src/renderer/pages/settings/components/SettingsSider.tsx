@@ -3,6 +3,7 @@ import { isElectronDesktop, resolveExtensionAssetUrl } from '@/renderer/utils/pl
 import { extensions as extensionsIpc, type IExtensionSettingsTab } from '@/common/adapter/ipcBridge';
 import { useExtI18n } from '@/renderer/hooks/system/useExtI18n';
 import {
+  AlarmClock,
   Communication,
   Computer,
   Earth,
@@ -28,6 +29,7 @@ const BUILTIN_TAB_IDS = [
   'model',
   'agent',
   'hooks',
+  'cron',
   'skills-hub',
   'tools',
   'display',
@@ -128,6 +130,12 @@ const SettingsSider: React.FC<{ collapsed?: boolean; tooltipEnabled?: boolean }>
         label: t('settings.hooksPage', { defaultValue: 'Hooks' }),
         icon: <Puzzle />,
         path: 'hooks',
+      },
+      cron: {
+        id: 'cron',
+        label: t('cron.scheduledTasks'),
+        icon: <AlarmClock />,
+        path: 'cron',
       },
       'skills-hub': {
         id: 'skills-hub',

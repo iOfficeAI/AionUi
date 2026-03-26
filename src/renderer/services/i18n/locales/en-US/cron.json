@@ -42,6 +42,21 @@
   "message.badge": "Scheduled",
   "allScheduledTasks": "All Scheduled Tasks",
   "noTasks": "No scheduled tasks",
+  "overview": {
+    "description": "Review and manage scheduled tasks across all conversations from one place.",
+    "stats": {
+      "total": "Total Tasks",
+      "active": "Active Tasks",
+      "paused": "Paused Tasks",
+      "error": "Errored Tasks"
+    },
+    "filters": {
+      "allStatuses": "All Statuses",
+      "searchPlaceholder": "Search by task, conversation, message, agent, or error"
+    },
+    "emptyInitial": "No scheduled tasks yet. Create one from a conversation to see it here.",
+    "emptyFiltered": "No scheduled tasks match the current filters."
+  },
   "runNowSuccess": "Task execution triggered",
   "notification": {
     "taskComplete": "Task Complete",

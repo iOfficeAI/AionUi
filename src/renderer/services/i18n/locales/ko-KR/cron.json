@@ -43,6 +43,21 @@
   "message.badge": "Scheduled",
   "allScheduledTasks": "모든 예약 작업",
   "noTasks": "예약 작업 없음",
+  "overview": {
+    "description": "모든 대화의 예약 작업을 한곳에서 확인하고 관리합니다.",
+    "stats": {
+      "total": "전체 작업",
+      "active": "실행 중",
+      "paused": "일시 중지됨",
+      "error": "오류 작업"
+    },
+    "filters": {
+      "allStatuses": "모든 상태",
+      "searchPlaceholder": "작업, 대화, 명령, Agent 또는 오류로 검색"
+    },
+    "emptyInitial": "아직 예약 작업이 없습니다. 대화에서 하나를 만들면 여기에 표시됩니다.",
+    "emptyFiltered": "현재 필터와 일치하는 예약 작업이 없습니다."
+  },
   "runNowSuccess": "작업 실행이 트리거되었습니다",
   "notification": {
     "taskComplete": "작업 완료",
