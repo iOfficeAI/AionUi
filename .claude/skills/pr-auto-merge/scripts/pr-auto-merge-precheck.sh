@@ -30,7 +30,7 @@ if echo "$LABELS" | jq -e 'index("hold")' >/dev/null 2>&1; then
   exit 1
 fi
 
-if echo "$LABELS" | jq -e 'index("ai-processing")' >/dev/null 2>&1; then
+if echo "$LABELS" | jq -e 'index("bot:reviewing")' >/dev/null 2>&1; then
   # Check if stale
   LAST_LOCK=$(gh pr view "$PR_NUMBER" --repo "$REPO" --json comments \
     --jq '[.comments[] | select(.body | startswith("<!-- ai-lock -->")) | .createdAt] | last // empty' 2>/dev/null)
@@ -46,7 +46,7 @@ if echo "$LABELS" | jq -e 'index("ai-processing")' >/dev/null 2>&1; then
 fi
 
 # Acquire lock
-gh pr edit "$PR_NUMBER" --repo "$REPO" --add-label "ai-processing" 2>/dev/null
+gh pr edit "$PR_NUMBER" --repo "$REPO" --add-label "bot:reviewing" 2>/dev/null
 gh pr comment "$PR_NUMBER" --repo "$REPO" --body "<!-- ai-lock -->
 🤖 **AI Auto-Merge Pipeline Started**
 | Field | Value |
@@ -81,7 +81,7 @@ done
 
 if [ ${#FAILED_JOBS[@]} -gt 0 ]; then
   # Release lock before aborting
-  gh pr edit "$PR_NUMBER" --repo "$REPO" --remove-label "ai-processing" --add-label "ai-changes-requested" 2>/dev/null
+  gh pr edit "$PR_NUMBER" --repo "$REPO" --remove-label "bot:reviewing" --add-label "bot:needs-fix" 2>/dev/null
   gh pr comment "$PR_NUMBER" --repo "$REPO" --body "<!-- pr-review-bot -->
 ## CI 检查未通过
 
@@ -116,7 +116,7 @@ if [ ${#PENDING_JOBS[@]} -gt 0 ]; then
         break
       fi
       if [ "$CONCLUSION" != "SUCCESS" ]; then
-        gh pr edit "$PR_NUMBER" --repo "$REPO" --remove-label "ai-processing" --add-label "ai-changes-requested" 2>/dev/null
+        gh pr edit "$PR_NUMBER" --repo "$REPO" --remove-label "bot:reviewing" --add-label "bot:needs-fix" 2>/dev/null
         echo "abort:CI job '$job' failed with $CONCLUSION"
         exit 1
       fi
@@ -126,7 +126,7 @@ if [ ${#PENDING_JOBS[@]} -gt 0 ]; then
   done
 
   if ! $ALL_DONE; then
-    gh pr edit "$PR_NUMBER" --repo "$REPO" --remove-label "ai-processing" 2>/dev/null
+    gh pr edit "$PR_NUMBER" --repo "$REPO" --remove-label "bot:reviewing" 2>/dev/null
     echo "abort:CI jobs still pending after 10 minutes"
     exit 1
   fi
@@ -157,7 +157,7 @@ if [ "$MERGEABLE" = "CONFLICTING" ]; then
     git rebase --abort 2>/dev/null || true
     git checkout "$BASE_BRANCH" 2>/dev/null || true
 
-    gh pr edit "$PR_NUMBER" --repo "$REPO" --remove-label "ai-processing" --add-label "ai-changes-requested" 2>/dev/null
+    gh pr edit "$PR_NUMBER" --repo "$REPO" --remove-label "bot:reviewing" --add-label "bot:needs-fix" 2>/dev/null
     gh pr comment "$PR_NUMBER" --repo "$REPO" --body "<!-- pr-review-bot -->
 ## 合并冲突
 

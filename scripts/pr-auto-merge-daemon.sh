@@ -29,7 +29,7 @@ while [[ $# -gt 0 ]]; do
 done
 REPO="${REPO:-iOfficeAI/AionUi}"
 TEAM_SLUG="${TEAM_SLUG:-trusted-contributors}"
-SKIP_LABELS="hold ai-processing ai-changes-requested"
+SKIP_LABELS="hold bot:reviewing bot:fixing bot:needs-fix bot:needs-human-review bot:done"
 
 LOG_DIR="${HOME}/.aionui-auto-merge"
 LOG_FILE="${LOG_DIR}/daemon.log"
@@ -182,7 +182,7 @@ while true; do
       # Determine review outcome from PR labels/comments
       REVIEW_RESULT="approve"
       PR_LABELS=$(gh pr view "$pr_number" --repo "$REPO" --json labels --jq '[.labels[].name]' 2>/dev/null || echo "[]")
-      if echo "$PR_LABELS" | jq -e 'index("ai-changes-requested")' >/dev/null 2>&1; then
+      if echo "$PR_LABELS" | jq -e 'index("bot:needs-fix") or index("bot:needs-human-review")' >/dev/null 2>&1; then
         REVIEW_RESULT="reject"
       fi
 

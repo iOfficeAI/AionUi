@@ -17,7 +17,9 @@ REPO="${REPO:-iOfficeAI/AionUi}"
 # ─── If review rejected, just cleanup ───
 
 if [ "$REVIEW_RESULT" != "approve" ]; then
-  gh pr edit "$PR_NUMBER" --repo "$REPO" --remove-label "ai-processing" --add-label "ai-changes-requested" 2>/dev/null
+  # Labels already set by agent (bot:needs-fix or bot:needs-human-review)
+  # Just remove the reviewing lock if still present
+  gh pr edit "$PR_NUMBER" --repo "$REPO" --remove-label "bot:reviewing" 2>/dev/null || true
   git checkout main 2>/dev/null && git pull origin main 2>/dev/null || true
   echo "aborted:review result is ${REVIEW_RESULT}"
   exit 1
@@ -33,7 +35,7 @@ git fetch origin "$BASE_BRANCH" 2>/dev/null
 
 if ! git rebase "origin/$BASE_BRANCH" 2>/dev/null; then
   git rebase --abort 2>/dev/null || true
-  gh pr edit "$PR_NUMBER" --repo "$REPO" --remove-label "ai-processing" --add-label "ai-changes-requested" 2>/dev/null
+  gh pr edit "$PR_NUMBER" --repo "$REPO" --remove-label "bot:reviewing" --add-label "bot:needs-fix" 2>/dev/null
   gh pr comment "$PR_NUMBER" --repo "$REPO" --body "<!-- pr-review-bot -->
 ## 合并前 Rebase 失败
 
@@ -55,7 +57,7 @@ if ! gh pr checks "$PR_NUMBER" --repo "$REPO" --watch --fail-fast 2>/dev/null; t
   FAILED=$(gh pr view "$PR_NUMBER" --repo "$REPO" --json statusCheckRollup \
     --jq '[.statusCheckRollup[] | select(.conclusion == "FAILURE") | .name] | join(", ")' 2>/dev/null || echo "unknown")
 
-  gh pr edit "$PR_NUMBER" --repo "$REPO" --remove-label "ai-processing" --add-label "ai-changes-requested" 2>/dev/null
+  gh pr edit "$PR_NUMBER" --repo "$REPO" --remove-label "bot:reviewing" --add-label "bot:needs-fix" 2>/dev/null
   gh pr comment "$PR_NUMBER" --repo "$REPO" --body "<!-- pr-review-bot -->
 ## CI 全量检查未通过
 
@@ -76,7 +78,7 @@ if gh pr merge "$PR_NUMBER" --repo "$REPO" --rebase --delete-branch 2>/dev/null;
 elif gh pr merge "$PR_NUMBER" --repo "$REPO" --squash --delete-branch 2>/dev/null; then
   MERGE_METHOD="squash"
 else
-  gh pr edit "$PR_NUMBER" --repo "$REPO" --remove-label "ai-processing" 2>/dev/null
+  gh pr edit "$PR_NUMBER" --repo "$REPO" --remove-label "bot:reviewing" 2>/dev/null
   git checkout main 2>/dev/null || true
   echo "failed:merge command failed"
   exit 1
@@ -95,7 +97,7 @@ Pipeline: CI ✅ → Review ✅ → Merge ✅" 2>/dev/null
 
 # ─── Step 12: Cleanup ───
 
-gh pr edit "$PR_NUMBER" --repo "$REPO" --remove-label "ai-processing" 2>/dev/null || true
+gh pr edit "$PR_NUMBER" --repo "$REPO" --remove-label "bot:reviewing" --add-label "bot:done" 2>/dev/null || true
 git checkout main 2>/dev/null && git pull origin main 2>/dev/null || true
 
 echo "merged:${MERGE_METHOD}"

@@ -19,10 +19,10 @@ Shell scripts handle everything else (lock, CI, rebase, merge, cleanup). See [op
 
 The agent receives a PR number via `$ARGUMENTS`.
 
-Check if the PR already has the `ai-processing` label:
+Check if the PR already has the `bot:reviewing` label:
 
 ```bash
-gh pr view <PR_NUMBER> --repo iOfficeAI/AionUi --json labels --jq '[.labels[].name] | index("ai-processing")'
+gh pr view <PR_NUMBER> --repo iOfficeAI/AionUi --json labels --jq '[.labels[].name] | index("bot:reviewing")'
 ```
 
 - **Label exists** → daemon already ran precheck. Skip to Step 1.
@@ -35,7 +35,7 @@ gh pr view <PR_NUMBER> --repo iOfficeAI/AionUi --json labels --jq '[.labels[].na
 If precheck outputs `abort:*` → post the reason as a PR comment and exit.
 If precheck outputs `ready:*` → proceed to Step 1.
 
-After this step, the PR is: locked (`ai-processing`), CI verified, rebased onto latest main, checked out locally.
+After this step, the PR is: locked (`bot:reviewing`), CI verified, rebased onto latest main, checked out locally.
 
 ## Step 1 — Review
 
@@ -53,8 +53,8 @@ Parse the JSON summary block and apply the decision matrix:
 |------------|--------------------|--------|
 | `approve` | N/A | Post review comment, exit successfully |
 | `conditional` | `true` | → Step 2 (attempt fix) |
-| `conditional` | `false` | Post review comment, add `ai-changes-requested` label, exit |
-| `reject` | N/A | Post review comment, add `ai-changes-requested` label, exit |
+| `conditional` | `false` | Post review comment, add `bot:needs-fix` label, exit |
+| `reject` | N/A | Post review comment, add `bot:needs-human-review` label, exit |
 
 ## Step 2 — Fix
 
@@ -71,7 +71,7 @@ bun run lint:fix && bun run format && bunx tsc --noEmit && bun run test
 
 5. Commit: `fix(<scope>): address review issues from PR #<PR_NUMBER>`
 
-If quality gate fails → post review comment, add `ai-changes-requested` label, exit.
+If quality gate fails → post review comment, add `bot:needs-fix` label, exit.
 
 ## Step 3 — Re-review (max 3 rounds)
 
@@ -81,7 +81,17 @@ Re-execute Step 1 on fixed code. Track round number (starts at 1).
 |----------------|-----------|--------|
 | `approve` | N/A | Post review comment, exit successfully |
 | `conditional` + fixable | yes | → Step 2 (next round) |
-| otherwise | N/A | Post review comment, add `ai-changes-requested` label, exit |
+| otherwise | N/A | Post review comment, add `bot:needs-fix` label, exit |
+
+## Labels
+
+| Label | Meaning |
+|-------|---------|
+| `bot:reviewing` | PR is being reviewed (lock) |
+| `bot:fixing` | PR is being fixed |
+| `bot:needs-fix` | Waiting for author to fix issues |
+| `bot:needs-human-review` | Rejected, needs human review |
+| `bot:done` | Processing complete |
 
 ## Rules
 

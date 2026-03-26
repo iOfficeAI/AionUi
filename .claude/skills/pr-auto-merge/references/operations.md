@@ -24,7 +24,7 @@ Three-phase pipeline per PR: shell precheck → claude review/fix → shell post
 ```
 ┌─ Shell: pr-auto-merge-precheck.sh ──────────────────────────┐
 │ 0. Scan: daemon finds eligible PRs via gh CLI                │
-│ 1. Lock: add ai-processing label + lock comment             │
+│ 1. Lock: add bot:reviewing label + lock comment              │
 │ 2. CI pre-check: verify required jobs passed                 │
 │ 3. Conflict pre-check: rebase to main, resolve or abort     │
 └──────────────────────────────────────────────────────────────┘
