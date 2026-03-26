@@ -46,6 +46,7 @@ export const conversation = {
     'update-conversation'
   ), // 更新对话信息
   reset: bridge.buildProvider<void, IResetConversationParams>('reset-conversation'), // 重置对话
+  warmup: bridge.buildProvider<void, { conversation_id: string }>('conversation.warmup'), // 预热对话 bootstrap
   stop: bridge.buildProvider<IBridgeResponse<{}>, { conversation_id: string }>('chat.stop.stream'), // 停止会话
   sendMessage: bridge.buildProvider<IBridgeResponse<{}>, ISendMessageParams>('chat.send.message'), // 发送消息（统一接口）
   getSlashCommands: bridge.buildProvider<
@@ -125,6 +126,15 @@ export const application = {
   restart: bridge.buildProvider<void, void>('restart-app'), // 重启应用
   openDevTools: bridge.buildProvider<boolean, void>('open-dev-tools'), // 打开/关闭开发者工具，返回操作后的状态
   isDevToolsOpened: bridge.buildProvider<boolean, void>('is-dev-tools-opened'), // 获取 DevTools 当前状态
+  reportRendererError: bridge.buildProvider<
+    void,
+    {
+      type: 'error' | 'unhandledrejection';
+      message: string;
+      stack?: string;
+      href?: string;
+    }
+  >('app.report-renderer-error'), // 上报 renderer 未捕获异常到主进程日志
   systemInfo: bridge.buildProvider<
     { cacheDir: string; workDir: string; logDir: string; platform: string; arch: string },
     void
@@ -243,6 +253,10 @@ export const fs = {
   // 符号链接方式导入 hook / Import hook via symlink
   importHookWithSymlink: bridge.buildProvider<IBridgeResponse<{ hookName: string }>, { hookPath: string }>(
     'import-hook-with-symlink'
+  ),
+  // 安装内置 hook 到用户目录 / Install builtin hook into user hooks directory
+  installBuiltinHook: bridge.buildProvider<IBridgeResponse<{ hookName: string }>, { hookName: string }>(
+    'install-builtin-hook'
   ),
   // 删除自定义 hook / Delete custom hook
   deleteHook: bridge.buildProvider<IBridgeResponse, { hookName: string }>('delete-hook'),

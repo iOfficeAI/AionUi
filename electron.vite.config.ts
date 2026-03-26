@@ -78,6 +78,7 @@ export default defineConfig(({ mode }) => {
                   // Use single * glob to copy top-level items (directories) with their contents intact.
                   // Using ** would flatten all nested files into the dest root.
                   { src: 'src/process/resources/skills/*', dest: 'skills' },
+                  { src: 'src/process/resources/hooks/*', dest: 'hooks' },
                   { src: 'src/process/resources/assistant/*', dest: 'assistant' },
                   { src: 'src/renderer/assets/logos/*', dest: 'static/images' },
                 ],

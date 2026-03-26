@@ -14,6 +14,7 @@ export type HookInfo = {
   description?: string;
   location: string;
   isCustom: boolean;
+  isBuiltinInstalled?: boolean;
   version?: string;
   executionType?: string;
   events?: string[];

@@ -119,7 +119,7 @@ const QuickActionButtons: React.FC<QuickActionButtonsProps> = ({
           style={quickActionStyle(hoveredQuickAction === 'feedback')}
           onMouseEnter={() => setHoveredQuickAction('feedback')}
           onMouseLeave={() => setHoveredQuickAction(null)}
-          onClick={() => onOpenLink('https://x.com/AionUi')}
+          onClick={() => onOpenLink('https://github.com/contextgo/contextgo/issues')}
         >
           <svg
             className='flex-shrink-0 text-[var(--color-text-3)] group-hover:text-[#2C7FFF] transition-colors duration-300'
@@ -146,7 +146,7 @@ const QuickActionButtons: React.FC<QuickActionButtonsProps> = ({
           style={quickActionStyle(hoveredQuickAction === 'repo')}
           onMouseEnter={() => setHoveredQuickAction('repo')}
           onMouseLeave={() => setHoveredQuickAction(null)}
-          onClick={() => onOpenLink('https://github.com/iOfficeAI/AionUi')}
+          onClick={() => onOpenLink('https://github.com/contextgo/contextgo')}
         >
           <svg
             className='flex-shrink-0 text-[var(--color-text-3)] group-hover:text-[#FE9900] transition-colors duration-300'

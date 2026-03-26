@@ -97,6 +97,8 @@ files:
   # to root-level directories inside the asar, so runtime path resolution stays simple.
   - from: out/main/skills
     to: skills
+  - from: out/main/hooks
+    to: hooks
   - from: out/main/assistant
     to: assistant
   - from: out/main/static

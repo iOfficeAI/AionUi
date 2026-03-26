@@ -17,7 +17,10 @@ vi.mock('@office-ai/platform', () => ({
 // Mock initStorage path helpers
 vi.mock('@process/utils/initStorage', () => ({
   getSkillsDir: () => '/mock/skills',
+  getHooksDir: () => '/mock/hooks',
   getBuiltinSkillsDir: () => '/mock/skills/_builtin',
+  getBuiltinSkillsCopyDir: () => '/mock/builtin-skills',
+  getBuiltinHooksCopyDir: () => '/mock/builtin-hooks',
   getSystemDir: () => ({
     workDir: '/mock/work',
     cacheDir: '/mock/cache',
@@ -55,6 +58,7 @@ vi.mock('@/common', () => ({
       deleteAssistantSkill: { provider: vi.fn() },
       listAvailableSkills: { provider: vi.fn() },
       listAvailableHooks: { provider: vi.fn() },
+      installBuiltinHook: { provider: vi.fn() },
       importHookWithSymlink: { provider: vi.fn() },
       deleteHook: { provider: vi.fn() },
       getHookPaths: { provider: vi.fn() },

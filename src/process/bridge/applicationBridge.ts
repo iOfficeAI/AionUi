@@ -10,6 +10,7 @@ import { ipcBridge } from '@/common';
 import type { IWorkerTaskManager } from '@process/task/IWorkerTaskManager';
 import { getZoomFactor, setZoomFactor } from '@process/utils/zoom';
 import { getCdpStatus, updateCdpConfig } from '@process/utils/configureChromium';
+import { mainError } from '@process/utils/mainLogger';
 import { initApplicationBridgeCore } from './applicationBridgeCore';
 
 let mainWindowRef: BrowserWindow | null = null;
@@ -36,6 +37,14 @@ export function initApplicationBridge(workerTaskManager: IWorkerTaskManager): vo
       return Promise.resolve(mainWindowRef.webContents.isDevToolsOpened());
     }
     return Promise.resolve(false);
+  });
+
+  ipcBridge.application.reportRendererError.provider(({ type, message, stack, href }) => {
+    mainError('[RendererCrash]', `${type}: ${message}`, {
+      href,
+      stack,
+    });
+    return Promise.resolve();
   });
 
   ipcBridge.application.openDevTools.provider(() => {

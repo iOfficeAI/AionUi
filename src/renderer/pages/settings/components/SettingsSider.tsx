@@ -7,10 +7,8 @@ import {
   Communication,
   Computer,
   Earth,
-  Gemini,
   Info,
   Lightning,
-  LinkCloud,
   Puzzle,
   Robot,
   System,
@@ -25,8 +23,6 @@ import { getSiderTooltipProps } from '@/renderer/utils/ui/siderTooltip';
 
 /** Builtin settings tab IDs in display order (must match router paths). */
 const BUILTIN_TAB_IDS = [
-  'gemini',
-  'model',
   'agent',
   'hooks',
   'cron',
@@ -117,8 +113,6 @@ const SettingsSider: React.FC<{ collapsed?: boolean; tooltipEnabled?: boolean }>
   const menus: SiderItem[] = useMemo(() => {
     // Build builtin items
     const builtinMap: Record<string, SiderItem> = {
-      gemini: { id: 'gemini', label: t('settings.gemini'), icon: <Gemini />, path: 'gemini' },
-      model: { id: 'model', label: t('settings.model'), icon: <LinkCloud />, path: 'model' },
       agent: {
         id: 'agent',
         label: t('settings.assistants', { defaultValue: 'Assistants' }),

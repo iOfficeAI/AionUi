@@ -208,6 +208,7 @@ async function tryReadHookManifest(hookDir: string, isCustom: boolean): Promise<
       supportedBackends: Array.isArray(parsed.supportedBackends) ? parsed.supportedBackends : undefined,
       location: hookDir,
       isCustom,
+      isBuiltinInstalled: false,
     };
   } catch {
     return null;
@@ -926,8 +927,16 @@ export function initFsBridge(): void {
             if (!hookInfo) continue;
 
             const existing = hooks.get(hookInfo.name);
-            if (!existing || hookInfo.isCustom) {
+            if (!existing) {
               hooks.set(hookInfo.name, hookInfo);
+              continue;
+            }
+
+            if (hookInfo.isCustom) {
+              hooks.set(hookInfo.name, {
+                ...hookInfo,
+                isBuiltinInstalled: existing.isCustom === false,
+              });
             }
           }
         } catch {
@@ -942,6 +951,67 @@ export function initFsBridge(): void {
     } catch (error) {
       console.error('[fsBridge] Failed to list available hooks:', error);
       return [];
+    }
+  });
+
+  ipcBridge.fs.installBuiltinHook.provider(async ({ hookName }) => {
+    try {
+      const safeHookDirName = path.basename(hookName.trim());
+      if (
+        !safeHookDirName ||
+        safeHookDirName !== hookName.trim() ||
+        safeHookDirName.includes(path.sep) ||
+        safeHookDirName === '.' ||
+        safeHookDirName === '..'
+      ) {
+        return {
+          success: false,
+          msg: 'Hook name is invalid',
+        };
+      }
+
+      const sourceDir = path.join(getBuiltinHooksCopyDir(), safeHookDirName);
+      const targetDir = path.join(getHooksDir(), safeHookDirName);
+
+      try {
+        await fs.access(sourceDir);
+      } catch {
+        return {
+          success: false,
+          msg: `Builtin hook "${safeHookDirName}" not found`,
+        };
+      }
+
+      await fs.mkdir(getHooksDir(), { recursive: true });
+
+      try {
+        await fs.access(targetDir);
+        return {
+          success: false,
+          msg: `Hook "${safeHookDirName}" is already installed`,
+        };
+      } catch {
+        // Continue when the target does not exist.
+      }
+
+      try {
+        await copyDirectory(sourceDir, targetDir);
+      } catch (error) {
+        await fs.rm(targetDir, { recursive: true, force: true }).catch((): void => undefined);
+        throw error;
+      }
+
+      return {
+        success: true,
+        data: { hookName: safeHookDirName },
+        msg: `Hook "${safeHookDirName}" installed successfully`,
+      };
+    } catch (error) {
+      console.error('[fsBridge] Failed to install builtin hook:', error);
+      return {
+        success: false,
+        msg: `Failed to install hook: ${error instanceof Error ? error.message : String(error)}`,
+      };
     }
   });
 

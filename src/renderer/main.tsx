@@ -56,6 +56,7 @@ import Sider from './components/layout/Sider';
 import { useAuth } from './hooks/context/AuthContext';
 import { ConversationHistoryProvider } from './hooks/context/ConversationHistoryContext';
 import HOC from './utils/ui/HOC';
+import { ipcBridge } from '@/common';
 
 // Patch Korean locale with missing properties from English locale
 const koKRComplete = {
@@ -124,6 +125,61 @@ const Main = () => {
 };
 
 const App = HOC.Wrapper(Config)(Main);
+
+const registerRendererCrashReporting = () => {
+  const report = (payload: { type: 'error' | 'unhandledrejection'; message: string; stack?: string }) => {
+    ipcBridge.application.reportRendererError
+      .invoke({
+        ...payload,
+        href: window.location.href,
+      })
+      .catch(() => {
+        // Ignore reporting failures to avoid cascading runtime errors in the renderer.
+      });
+  };
+
+  window.addEventListener(
+    'error',
+    (event) => {
+      const error = event.error instanceof Error ? event.error : undefined;
+      report({
+        type: 'error',
+        message: error?.message || event.message || 'Unknown renderer error',
+        stack: error?.stack,
+      });
+    },
+    true
+  );
+
+  window.addEventListener(
+    'unhandledrejection',
+    (event) => {
+      const reason = event.reason;
+      const error = reason instanceof Error ? reason : undefined;
+      const message =
+        error?.message ||
+        (typeof reason === 'string'
+          ? reason
+          : (() => {
+              try {
+                return JSON.stringify(reason);
+              } catch {
+                return String(reason);
+              }
+            })()) ||
+        'Unhandled renderer rejection';
+
+      report({
+        type: 'unhandledrejection',
+        message,
+        stack: error?.stack,
+      });
+    },
+    true
+  );
+};
+
+registerRendererCrashReporting();
 
 const root = createRoot(document.getElementById('root')!);
 root.render(React.createElement(AppProviders, null, React.createElement(App)));

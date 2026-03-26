@@ -34,4 +34,5 @@ export type HookManifest = {
 export type HookInfo = HookManifest & {
   location: string;
   isCustom: boolean;
+  isBuiltinInstalled?: boolean;
 };

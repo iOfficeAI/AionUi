@@ -5,9 +5,9 @@
  */
 
 import { ipcBridge } from '@/common';
-import type { ExternalSessionSummary } from '@/common/types/externalSessions';
+import type { ExternalSessionProvider, ExternalSessionSummary } from '@/common/types/externalSessions';
 import { emitter } from '@/renderer/utils/emitter';
-import { Button, Empty, Message, Modal, Tag, Typography } from '@arco-design/web-react';
+import { Button, Empty, Message, Modal, Tabs, Tag, Typography } from '@arco-design/web-react';
 import { Refresh } from '@icon-park/react';
 import React, { useCallback, useEffect, useEffectEvent, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -19,6 +19,10 @@ type ExternalSessionsModalProps = {
   onClose: () => void;
 };
 
+type ExternalSessionFilter = 'all' | ExternalSessionProvider;
+
+const FILTER_ORDER: ExternalSessionFilter[] = ['all', 'codex', 'openclaw-gateway'];
+
 const ExternalSessionsModal: React.FC<ExternalSessionsModalProps> = ({ visible, onClose }) => {
   const { t } = useTranslation();
   const navigate = useNavigate();
@@ -26,6 +30,7 @@ const ExternalSessionsModal: React.FC<ExternalSessionsModalProps> = ({ visible, 
   const [messageApi, messageContext] = Message.useMessage();
   const [loading, setLoading] = useState(false);
   const [sessions, setSessions] = useState<ExternalSessionSummary[]>([]);
+  const [activeFilter, setActiveFilter] = useState<ExternalSessionFilter>('all');
   const [importingSessionId, setImportingSessionId] = useState<string | null>(null);
   const loadingRef = useRef(false);
   const requestSeqRef = useRef(0);
@@ -102,8 +107,12 @@ const ExternalSessionsModal: React.FC<ExternalSessionsModalProps> = ({ visible, 
       return;
     }
 
+    setActiveFilter('all');
     void loadSessions();
   }, [visible]);
+
+  const filteredSessions =
+    activeFilter === 'all' ? sessions : sessions.filter((session) => session.provider === activeFilter);
 
   return (
     <>
@@ -141,15 +150,39 @@ const ExternalSessionsModal: React.FC<ExternalSessionsModalProps> = ({ visible, 
             </Button>
           </div>
 
-          {loading && sessions.length === 0 ? (
+          <Tabs
+            activeTab={activeFilter}
+            size='small'
+            type='capsule'
+            onChange={(key) => {
+              setActiveFilter(key as ExternalSessionFilter);
+            }}
+          >
+            {FILTER_ORDER.map((filter) => (
+              <Tabs.TabPane
+                key={filter}
+                title={
+                  filter === 'all'
+                    ? t('guid.externalSessions.filters.all', {
+                        defaultValue: 'All',
+                      })
+                    : t(`guid.externalSessions.providers.${filter}`, {
+                        defaultValue: filter,
+                      })
+                }
+              />
+            ))}
+          </Tabs>
+
+          {loading && filteredSessions.length === 0 && sessions.length === 0 ? (
             <div className='py-20px text-center text-13px text-t-secondary'>
               {t('guid.externalSessions.loading', {
                 defaultValue: 'Scanning external sessions...',
               })}
             </div>
-          ) : sessions.length > 0 ? (
+          ) : filteredSessions.length > 0 ? (
             <div className='flex flex-col gap-10px max-h-420px overflow-y-auto'>
-              {sessions.map((session) => (
+              {filteredSessions.map((session) => (
                 <div
                   key={`${session.provider}:${session.sessionId}`}
                   className='flex items-center gap-12px rounded-14px border border-border-2 bg-fill-1 px-14px py-12px'

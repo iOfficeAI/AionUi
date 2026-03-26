@@ -1,4 +1,5 @@
 import AVFAudio
+import AVFoundation
 import Foundation
 
 private struct RecorderEnvelope: Codable {
@@ -51,14 +52,14 @@ private final class NativeAudioRecorder {
     private var isCapturing = false
 
     func ensurePermission() async -> Bool {
-        switch AVAudioApplication.shared.recordPermission {
-        case .granted:
+        switch AVCaptureDevice.authorizationStatus(for: .audio) {
+        case .authorized:
             return true
-        case .denied:
+        case .denied, .restricted:
             return false
-        case .undetermined:
+        case .notDetermined:
             return await withCheckedContinuation { continuation in
-                AVAudioApplication.requestRecordPermission { granted in
+                AVCaptureDevice.requestAccess(for: .audio) { granted in
                     continuation.resume(returning: granted)
                 }
             }

@@ -9,9 +9,7 @@ import {
   Communication,
   Computer,
   Earth,
-  Gemini,
   Info,
-  LinkCloud,
   Puzzle,
   Robot,
   System,
@@ -51,8 +49,6 @@ const SettingsPageWrapper: React.FC<SettingsPageWrapperProps> = ({ children, cla
 
   const menuItems = React.useMemo(() => {
     const builtins: NavItem[] = [
-      { id: 'gemini', label: t('settings.gemini'), icon: <Gemini theme='outline' size='16' />, path: 'gemini' },
-      { id: 'model', label: t('settings.model'), icon: <LinkCloud theme='outline' size='16' />, path: 'model' },
       {
         id: 'agent',
         label: t('settings.assistants', { defaultValue: 'Assistants' }),

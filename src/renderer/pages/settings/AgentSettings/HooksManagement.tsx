@@ -23,6 +23,7 @@ const HooksManagement: React.FC = () => {
   const [hooksDir, setHooksDir] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
   const [deleteHookName, setDeleteHookName] = useState<string | null>(null);
+  const [installingHookName, setInstallingHookName] = useState<string | null>(null);
 
   const loadHooks = useCallback(async () => {
     setLoading(true);
@@ -95,6 +96,28 @@ const HooksManagement: React.FC = () => {
     }
   }, [hooksDir, messageApi, t]);
 
+  const handleInstallBuiltinHook = useCallback(
+    async (hookName: string) => {
+      setInstallingHookName(hookName);
+      try {
+        const result = await ipcBridge.fs.installBuiltinHook.invoke({ hookName });
+        if (!result.success) {
+          messageApi.error(result.msg || t('settings.hookInstallFailed', { defaultValue: 'Failed to install hook' }));
+          return;
+        }
+
+        messageApi.success(result.msg || t('settings.installed', { defaultValue: 'Installed' }));
+        await loadHooks();
+      } catch (error) {
+        console.error('Failed to install builtin hook:', error);
+        messageApi.error(t('settings.hookInstallFailed', { defaultValue: 'Failed to install hook' }));
+      } finally {
+        setInstallingHookName((current) => (current === hookName ? null : current));
+      }
+    },
+    [loadHooks, messageApi, t]
+  );
+
   const handleDeleteHookConfirm = useCallback(async () => {
     if (!deleteHookName) {
       return;
@@ -140,6 +163,11 @@ const HooksManagement: React.FC = () => {
               {t('settings.skillsHub.custom', { defaultValue: 'Custom' })}
             </Tag>
           )}
+          {hook.isBuiltinInstalled && (
+            <Tag size='small' color='green'>
+              {t('settings.installed', { defaultValue: 'Installed' })}
+            </Tag>
+          )}
           {hook.executionType && (
             <Tag size='small' color='arcoblue'>
               {hook.executionType}
@@ -177,14 +205,26 @@ const HooksManagement: React.FC = () => {
           </div>
         )}
       </div>
-      {canDelete && (
-        <Button
-          type='text'
-          size='mini'
-          icon={<Delete size={16} fill='var(--color-text-3)' />}
-          onClick={() => setDeleteHookName(hook.name)}
-        />
-      )}
+      <div className='flex items-center gap-4px'>
+        {!hook.isCustom && (
+          <Button
+            type='outline'
+            size='mini'
+            loading={installingHookName === hook.name}
+            onClick={() => void handleInstallBuiltinHook(hook.name)}
+          >
+            {t('settings.installHook', { defaultValue: 'Install' })}
+          </Button>
+        )}
+        {canDelete && (
+          <Button
+            type='text'
+            size='mini'
+            icon={<Delete size={16} fill='var(--color-text-3)' />}
+            onClick={() => setDeleteHookName(hook.name)}
+          />
+        )}
+      </div>
     </div>
   );
 
