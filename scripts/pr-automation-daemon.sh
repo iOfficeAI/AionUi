@@ -29,7 +29,7 @@ while [[ $# -gt 0 ]]; do
 done
 REPO="${REPO:-iOfficeAI/AionUi}"
 TEAM_SLUG="${TEAM_SLUG:-trusted-contributors}"
-SKIP_LABELS="hold bot:reviewing bot:fixing bot:needs-fix bot:needs-human-review bot:done"
+SKIP_LABELS="hold bot:reviewing bot:needs-fix bot:needs-human-review bot:done"
 
 LOG_DIR="${HOME}/.aionui-auto-merge"
 LOG_FILE="${LOG_DIR}/daemon.log"
@@ -114,12 +114,14 @@ get_eligible_prs() {
 
     # Check CI status: required jobs must pass (or not be present)
     local ci_ok=true
-    local required_jobs="Code Quality|Unit Tests (ubuntu-latest)|Unit Tests (macos-14)|Unit Tests (windows-2022)|Coverage Test"
+    local required_jobs="Code Quality|Unit Tests (ubuntu-latest)|Unit Tests (macos-14)|Unit Tests (windows-2022)|Coverage Test|i18n-check"
     local checks
     checks=$(echo "$pr" | jq -c '.checks[]?' 2>/dev/null || echo "")
 
     if [ -n "$checks" ]; then
-      echo "$checks" | while IFS= read -r check; do
+      # Use process substitution (< <(...)) instead of pipe to avoid subshell scoping:
+      # a pipe runs the while loop in a subshell, so ci_ok=false would not propagate.
+      while IFS= read -r check; do
         local name status conclusion
         name=$(echo "$check" | jq -r '.name')
         status=$(echo "$check" | jq -r '.status')
@@ -131,7 +133,7 @@ get_eligible_prs() {
             ci_ok=false
           fi
         fi
-      done
+      done < <(echo "$checks")
     fi
 
     $ci_ok || continue

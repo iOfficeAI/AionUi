@@ -34,6 +34,8 @@ PR_META=$(gh pr view "$PR_NUMBER" --repo "$REPO" \
   --json headRefName,baseRefName --jq '{head: .headRefName, base: .baseRefName}' 2>/dev/null)
 BASE_BRANCH=$(echo "$PR_META" | jq -r '.base')
 
+# Ensure we are on the PR branch before rebasing (precheck or Claude may have switched away)
+gh pr checkout "$PR_NUMBER" --repo "$REPO" 2>/dev/null
 git fetch origin "$BASE_BRANCH" 2>/dev/null
 
 if ! git rebase "origin/$BASE_BRANCH" 2>/dev/null; then

@@ -43,7 +43,7 @@ LOCK_TIMEOUT_MIN    = 30
 REQUIRED_CI_JOBS    = Code Quality, Unit Tests (ubuntu-latest), Unit Tests (macos-14),
                       Unit Tests (windows-2022), Coverage Test, i18n-check
 GITHUB_TEAM         = iOfficeAI/trusted-contributors
-SKIP_LABELS         = hold, bot:reviewing, bot:fixing, bot:needs-fix,
+SKIP_LABELS         = hold, bot:reviewing, bot:needs-fix,
                       bot:needs-human-review, bot:done
 ```
 

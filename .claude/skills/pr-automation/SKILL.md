@@ -73,7 +73,7 @@ gh pr view <PR_NUMBER> --repo "$REPO" --json mergeable,mergeStateStatus \
 3. If rebase succeeds → push and continue:
    ```bash
    git push --force-with-lease
-   git checkout -
+   git checkout "$BASE_REF"
    ```
    → Continue to Step 2.
 
@@ -87,7 +87,7 @@ gh pr view <PR_NUMBER> --repo "$REPO" --json mergeable,mergeStateStatus \
    - Push:
      ```bash
      git push --force-with-lease
-     git checkout -
+     git checkout "$BASE_REF"
      ```
    → Continue to Step 2.
 
