@@ -155,6 +155,40 @@ gh pr comment <PR_NUMBER> --body "<!-- pr-review-bot -->
 本次自动化 review 暂缓，待 CI 全部通过后将重新处理。"
 ```
 
+### Step 4.5 — Check Merge Conflicts
+
+After CI passes, check whether the PR has merge conflicts:
+
+```bash
+gh pr view <PR_NUMBER> --json mergeable,mergeStateStatus \
+  --jq '{mergeable, mergeStateStatus}'
+```
+
+| `mergeable` | `mergeStateStatus` | Action |
+|---|---|---|
+| `MERGEABLE` | any | Continue to Step 5 |
+| `UNKNOWN` | any | Wait — GitHub is still computing mergeability. Remove `bot:reviewing` → log "Mergeability unknown for PR #N, will retry next round" → exit |
+| `CONFLICTING` | `DIRTY` | Post conflict comment (see below) → remove `bot:reviewing` → add `bot:needs-human-review` → exit |
+
+**Conflict comment:**
+
+```bash
+gh pr comment <PR_NUMBER> --body "<!-- pr-review-bot -->
+
+## 存在合并冲突
+
+本 PR 与目标分支存在冲突，无法自动处理。请 rebase 或 merge 目标分支后解决冲突，再重新 push。
+
+\`\`\`bash
+git fetch origin
+git rebase origin/<base_branch>
+# 解决冲突后
+git push --force-with-lease
+\`\`\`
+
+冲突解决并 push 后，请手动移除 \`bot:needs-human-review\` label，本系统将在下一轮自动重新处理。"
+```
+
 ### Step 5 — Record PR Attributes
 
 **isExternal:**
