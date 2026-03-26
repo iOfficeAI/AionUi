@@ -1,5 +1,4 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import type { Mock } from 'vitest';
 
 // Capture provider callbacks registered during initFsBridge()
 const providerCallbacks: Record<string, (...args: unknown[]) => unknown> = {};
@@ -107,23 +106,23 @@ vi.mock('fs/promises', async (importOriginal) => {
   };
 });
 
+async function setupProviders() {
+  const { initFsBridge } = await import('@process/bridge/fsBridge');
+  initFsBridge();
+}
+
+function makeErrnoError(code: string, message: string): NodeJS.ErrnoException {
+  const err = new Error(message) as NodeJS.ErrnoException;
+  err.code = code;
+  return err;
+}
+
 describe('fsBridge readFile/readFileBuffer EBUSY handling', () => {
   beforeEach(async () => {
     vi.clearAllMocks();
     // Re-import and initialize to capture provider callbacks
     vi.resetModules();
   });
-
-  async function setupProviders() {
-    const { initFsBridge } = await import('@process/bridge/fsBridge');
-    initFsBridge();
-  }
-
-  function makeErrnoError(code: string, message: string): NodeJS.ErrnoException {
-    const err = new Error(message) as NodeJS.ErrnoException;
-    err.code = code;
-    return err;
-  }
 
   it('readFile returns null for EBUSY (file locked by another process)', async () => {
     await setupProviders();
