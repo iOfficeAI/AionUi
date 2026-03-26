@@ -33,6 +33,11 @@ cleanup_labels() {
       log_info "Removed $label from: $nums"
     fi
   done
+  # Abort any in-progress rebase that a killed Claude may have left behind
+  if git -C "$REPO_DIR" rebase --show-current-patch >/dev/null 2>&1; then
+    log_warn "Detected in-progress rebase. Aborting..."
+    git -C "$REPO_DIR" rebase --abort 2>/dev/null || true
+  fi
 }
 
 CURRENT_CLAUDE_PID=""
