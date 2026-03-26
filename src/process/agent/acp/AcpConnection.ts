@@ -605,14 +605,6 @@ export class AcpConnection {
   }
 
   /**
-   * Start a periodic keepalive that resets prompt timeout timers as long as
-   * the child process is still alive.  This complements the streaming-based
-   * reset in resetSessionPromptTimeouts(): when the agent is executing a
-   * silent tool (no session.update emitted), the keepalive prevents a false
-   * timeout while the process-exit handler covers the case where the child
-   * actually crashes.
-   */
-  /**
    * Returns true only if the child process is confirmed to still be running.
    * Checks exitCode and signalCode in addition to killed, because killed is
    * only set when the process is terminated via Node's .kill() — a naturally
@@ -629,6 +621,14 @@ export class AcpConnection {
     );
   }
 
+  /**
+   * Start a periodic keepalive that resets prompt timeout timers as long as
+   * the child process is still alive.  This complements the streaming-based
+   * reset in resetSessionPromptTimeouts(): when the agent is executing a
+   * silent tool (no session.update emitted), the keepalive prevents a false
+   * timeout while the process-exit handler covers the case where the child
+   * actually crashes.
+   */
   private startPromptKeepalive(): void {
     this.stopPromptKeepalive();
     this.promptKeepaliveInterval = setInterval(() => {
