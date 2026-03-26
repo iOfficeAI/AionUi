@@ -25,13 +25,18 @@ These values are set directly in this skill file. Update them once during initia
 
 ```
 STATUS_ISSUE_NUMBER: 1741
-REPO: iOfficeAI/AionUi-review
-TRUSTED_CONTRIBUTORS_TEAM: iOfficeAI/trusted-contributors
+TRUSTED_CONTRIBUTORS_TEAM: detected from REPO org (e.g. iOfficeAI/trusted-contributors)
 CRITICAL_PATH_PATTERN: ^(src/preload\.ts|src/process/channels/|src/common/config/)
 ```
 
 **STATUS_ISSUE_NUMBER** is the GitHub Issue number for the `[Bot] PR Automation Status` board.
 Create it manually once with title `[Bot] PR Automation Status` and record the number here.
+
+**REPO** is detected automatically at runtime — do not hardcode it:
+
+```bash
+REPO=$(gh repo view --json nameWithOwner --jq '.nameWithOwner')
+```
 
 ---
 
@@ -54,7 +59,8 @@ If `candidate_prs` is empty: log `[pr-automation] No open PRs found. Exiting.` a
 ### Step 2 — Get Trusted Contributors
 
 ```bash
-gh api orgs/iOfficeAI/teams/trusted-contributors/members --jq '[.[].login]'
+ORG=$(echo "$REPO" | cut -d'/' -f1)
+gh api orgs/${ORG}/teams/trusted-contributors/members --jq '[.[].login]'
 ```
 
 Save as `trusted_logins` (array of GitHub usernames). If the API call fails (e.g. permission denied), treat `trusted_logins` as empty array — all PRs will be treated as non-trusted (FIFO order only).
