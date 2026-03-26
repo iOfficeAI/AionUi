@@ -70,6 +70,7 @@ export type AcpBackendAll =
   | 'vibe' // Mistral Vibe CLI
   | 'nanobot' // nanobot CLI
   | 'cursor' // Cursor AI Agent CLI
+  | 'remote' // Remote agent (WebSocket, no local CLI)
   | 'custom'; // User-configured custom ACP agent
 
 /**
@@ -472,6 +473,14 @@ export const ACP_BACKENDS_ALL: Record<AcpBackendAll, AcpBackendConfig> = {
     enabled: true, // ✅ Cursor AI Agent CLI, launched via `agent acp`
     supportsStreaming: false,
     acpArgs: ['acp'], // Cursor uses `agent acp` subcommand
+  },
+  remote: {
+    id: 'remote',
+    name: 'Remote Agent',
+    cliCommand: undefined, // No local CLI — connected via WebSocket URL
+    authRequired: false,
+    enabled: true,
+    supportsStreaming: true,
   },
   custom: {
     id: 'custom',

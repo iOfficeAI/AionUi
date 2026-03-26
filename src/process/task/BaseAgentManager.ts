@@ -34,11 +34,15 @@ class BaseAgentManager<Data, ConfirmationOption extends any = any>
 
   protected readonly emitter: IAgentEventEmitter;
 
-  constructor(type: AgentType, data: Data, emitter: IAgentEventEmitter) {
-    super(path.resolve(__dirname, type + '.js'), {
-      type: type,
-      data: data,
-    });
+  constructor(type: AgentType, data: Data, emitter: IAgentEventEmitter, enableFork = true) {
+    super(
+      path.resolve(__dirname, type + '.js'),
+      {
+        type: type,
+        data: data,
+      },
+      enableFork
+    );
     this.type = type;
     this.emitter = emitter;
 
