@@ -23,32 +23,11 @@ vi.mock('@process/utils/shellEnv', () => ({
   resolveNpxPath: vi.fn(() => 'npx'),
 }));
 
-vi.mock('./acpConnectors', () => ({
-  ACP_PERF_LOG: false,
-  connectClaude: vi.fn(),
-  connectCodebuddy: vi.fn(),
-  connectCodex: vi.fn(),
-  prepareCleanEnv: vi.fn(() => ({})),
-  spawnGenericBackend: vi.fn(),
-}));
-
-vi.mock('./utils', () => ({
-  killChild: vi.fn(),
-  readTextFile: vi.fn(),
-  writeJsonRpcMessage: vi.fn(),
-  writeTextFile: vi.fn(),
-}));
-
-vi.mock('./modelInfo', () => ({
-  buildAcpModelInfo: vi.fn(),
-  summarizeAcpModelInfo: vi.fn(),
-}));
-
 import { AcpConnection } from '../../src/process/agent/acp/AcpConnection';
 
 // Helper to access private members in tests
-function priv(conn: AcpConnection): Record<string, any> {
-  return conn as unknown as Record<string, any>;
+function priv(conn: AcpConnection): Record<string, unknown> {
+  return conn as unknown as Record<string, unknown>;
 }
 
 describe('AcpConnection - prompt keepalive', () => {
