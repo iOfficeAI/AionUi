@@ -158,7 +158,7 @@ describe('AcpAgentManager.sendMessage — real class cronBusyGuard cleanup', () 
   });
 
   // ── Subsequent-message path (lines 657-660 in AcpAgentManager.ts) ─────────
-  // Triggered when msg_id is absent (e.g. internal/cron calls without a user msg)
+  // Triggered when isFirstMessage is false and msg_id is absent (e.g. internal/cron calls)
 
   it('clears cronBusyGuard when second-path agent.sendMessage returns {success:false}', async () => {
     const { manager, mockAgent } = makeManager('conv-4');
@@ -188,5 +188,26 @@ describe('AcpAgentManager.sendMessage — real class cronBusyGuard cleanup', () 
 
     expect(mockSetProcessing).toHaveBeenCalledWith('conv-6', true);
     expect(mockSetProcessing).not.toHaveBeenCalledWith('conv-6', false);
+  });
+
+  // ── Thrown-exception path (catch block) ───────────────────────────────────
+
+  it('clears cronBusyGuard when agent.sendMessage throws', async () => {
+    const { manager, mockAgent } = makeManager('conv-7');
+    mockAgent.sendMessage.mockRejectedValue(new Error('unexpected crash'));
+
+    await expect(manager.sendMessage({ content: 'hello' } as any)).rejects.toThrow('unexpected crash');
+
+    expect(mockSetProcessing).toHaveBeenCalledWith('conv-7', true);
+    expect(mockSetProcessing).toHaveBeenCalledWith('conv-7', false);
+  });
+
+  it('sets status to finished when agent.sendMessage throws', async () => {
+    const { manager, mockAgent } = makeManager('conv-8');
+    mockAgent.sendMessage.mockRejectedValue(new Error('unexpected crash'));
+
+    await expect(manager.sendMessage({ content: 'hello' } as any)).rejects.toThrow();
+
+    expect(manager.status).toBe('finished');
   });
 });
