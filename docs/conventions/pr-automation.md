@@ -92,6 +92,34 @@
 */30 * * * * cd /path/to/AionUi-review && ./scripts/pr-automation.sh 2 >> /var/log/pr-automation.log 2>&1
 ```
 
+## 管理定时任务
+
+### 查看已有定时任务
+
+```bash
+crontab -l
+```
+
+### 取消定时任务
+
+```bash
+# 编辑 crontab，删除对应行后保存即可取消
+crontab -e
+
+# 清空当前用户的全部 crontab（慎用）
+crontab -r
+```
+
+### 检查当前是否有实例正在运行
+
+```bash
+# 查看 lock file 中的 PID
+cat /tmp/pr-automation.lock 2>/dev/null && echo "（进程正在运行）" || echo "（无正在运行的实例）"
+
+# 确认该 PID 是否真的存活
+PID=$(cat /tmp/pr-automation.lock 2>/dev/null) && kill -0 "$PID" 2>/dev/null && echo "PID $PID 正在运行" || echo "无正在运行的实例"
+```
+
 ---
 
 ## 首次部署
