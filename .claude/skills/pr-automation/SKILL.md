@@ -138,10 +138,10 @@ gh pr view <PR_NUMBER> --json statusCheckRollup \
 **Workflow approval** (CI never triggered — new contributor):
 
 ```bash
-RUN_IDS=$(gh run list --repo <REPO> --json databaseId,status \
+RUN_IDS=$(gh run list --repo "$REPO" --json databaseId,status \
   --jq '.[] | select(.status == "action_required") | .databaseId')
 for RUN_ID in $RUN_IDS; do
-  gh run approve "$RUN_ID" --repo <REPO>
+  gh run approve "$RUN_ID" --repo "$REPO"
 done
 ```
 
