@@ -120,6 +120,11 @@ export function useWorkspaceTree({ workspace, conversation_id, eventPrefix }: Us
 
           return res;
         })
+        .catch((err) => {
+          // Prevent unhandled rejection when workspace directory is missing (ENOENT)
+          console.error('[useWorkspaceTree] loadWorkspace failed:', err);
+          return [] as IDirOrFile[];
+        })
         .finally(() => {
           setLoadingHandler(false);
         });

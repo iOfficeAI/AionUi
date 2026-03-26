@@ -478,8 +478,13 @@ const ChatWorkspace: React.FC<WorkspaceProps> = ({
                   return ipcBridge.conversation.getWorkspace
                     .invoke({ conversation_id, workspace, path })
                     .then((res) => {
-                      treeNode.props.dataRef.children = res[0].children;
-                      treeHook.setFiles([...treeHook.files]);
+                      if (res[0]?.children) {
+                        treeNode.props.dataRef.children = res[0].children;
+                        treeHook.setFiles([...treeHook.files]);
+                      }
+                    })
+                    .catch((err) => {
+                      console.error('[Workspace] loadMore failed:', err);
                     });
                 }}
               ></Tree>
