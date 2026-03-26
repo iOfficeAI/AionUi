@@ -24,7 +24,7 @@ No arguments required. The script `scripts/pr-automation.sh` is the cron entry p
 These values are set directly in this skill file. Update them once during initial deployment:
 
 ```
-STATUS_ISSUE_NUMBER: <GitHub issue number for the status board>
+STATUS_ISSUE_NUMBER: 1741
 REPO: iOfficeAI/AionUi-review
 TRUSTED_CONTRIBUTORS_TEAM: iOfficeAI/trusted-contributors
 CRITICAL_PATH_PATTERN: ^(src/preload\.ts|src/process/channels/|src/common/config/)
