@@ -52,6 +52,9 @@ interface PendingRequest<T = unknown> {
   isPaused: boolean;
   startTime: number;
   timeoutDuration: number;
+  // Wall-clock timestamp of when this request was first created; never updated.
+  // Used by the keepalive to cap how long it will keep resetting the timeout.
+  promptOriginTime: number;
 }
 
 export class AcpConnection {
@@ -507,6 +510,7 @@ export class AcpConnection {
         isPaused: false,
         startTime,
         timeoutDuration,
+        promptOriginTime: startTime,
       };
 
       this.pendingRequests.set(id, pendingRequest);
@@ -632,7 +636,15 @@ export class AcpConnection {
   private startPromptKeepalive(): void {
     this.stopPromptKeepalive();
     this.promptKeepaliveInterval = setInterval(() => {
-      if (this.isChildAlive()) {
+      if (!this.isChildAlive()) return;
+      // Only reset timeouts for requests that are still within their original
+      // wall-clock budget (promptOriginTime + timeoutDuration). This prevents
+      // a hung process from being kept alive indefinitely by the keepalive.
+      const now = Date.now();
+      const hasEligibleRequest = [...this.pendingRequests.values()].some(
+        (r) => r.method === 'session/prompt' && now - r.promptOriginTime < r.timeoutDuration
+      );
+      if (hasEligibleRequest) {
         this.resetSessionPromptTimeouts();
       }
     }, AcpConnection.KEEPALIVE_INTERVAL_MS);

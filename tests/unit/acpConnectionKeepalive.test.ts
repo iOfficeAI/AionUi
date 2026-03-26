@@ -76,7 +76,7 @@ describe('AcpConnection - prompt keepalive', () => {
 
   it('keepalive resets prompt timeouts when child process is alive', () => {
     // Set up a mock child process that is alive
-    priv(conn).child = { killed: false, pid: 1234 };
+    priv(conn).child = { killed: false, exitCode: null, signalCode: null, pid: 1234 };
 
     // Add a pending session/prompt request with a timeout
     const rejectFn = vi.fn();
@@ -88,6 +88,7 @@ describe('AcpConnection - prompt keepalive', () => {
       isPaused: false,
       startTime: Date.now() - 200_000, // 200s ago
       timeoutDuration: 300_000,
+      promptOriginTime: Date.now() - 200_000, // 200s ago — within 300s cap
     };
     priv(conn).pendingRequests.set(42, pendingRequest);
 
@@ -120,6 +121,7 @@ describe('AcpConnection - prompt keepalive', () => {
       isPaused: false,
       startTime: Date.now() - 200_000,
       timeoutDuration: 300_000,
+      promptOriginTime: Date.now() - 200_000,
     };
     priv(conn).pendingRequests.set(42, pendingRequest);
 
@@ -149,6 +151,7 @@ describe('AcpConnection - prompt keepalive', () => {
       isPaused: false,
       startTime: Date.now() - 200_000,
       timeoutDuration: 300_000,
+      promptOriginTime: Date.now() - 200_000,
     };
     priv(conn).pendingRequests.set(42, pendingRequest);
 
@@ -164,8 +167,35 @@ describe('AcpConnection - prompt keepalive', () => {
     if (pendingRequest.timeoutId) clearTimeout(pendingRequest.timeoutId);
   });
 
+  it('keepalive does NOT reset timeouts when wall-clock budget is exceeded (hung process)', () => {
+    priv(conn).child = { killed: false, exitCode: null, signalCode: null, pid: 1234 };
+
+    const pendingRequest = {
+      resolve: vi.fn(),
+      reject: vi.fn(),
+      timeoutId: setTimeout(() => {}, 300_000),
+      method: 'session/prompt',
+      isPaused: false,
+      startTime: Date.now() - 200_000,
+      timeoutDuration: 300_000,
+      promptOriginTime: Date.now() - 350_000, // 350s ago — exceeds 300s budget
+    };
+    priv(conn).pendingRequests.set(42, pendingRequest);
+
+    priv(conn).startPromptKeepalive.call(conn);
+
+    const oldStartTime = pendingRequest.startTime;
+    vi.advanceTimersByTime(60_000);
+
+    // startTime should NOT have been reset — wall-clock cap exceeded
+    expect(pendingRequest.startTime).toBe(oldStartTime);
+
+    priv(conn).stopPromptKeepalive.call(conn);
+    if (pendingRequest.timeoutId) clearTimeout(pendingRequest.timeoutId);
+  });
+
   it('keepalive does NOT reset non-prompt requests', () => {
-    priv(conn).child = { killed: false, pid: 1234 };
+    priv(conn).child = { killed: false, exitCode: null, signalCode: null, pid: 1234 };
 
     const pendingRequest = {
       resolve: vi.fn(),
@@ -175,6 +205,7 @@ describe('AcpConnection - prompt keepalive', () => {
       isPaused: false,
       startTime: Date.now() - 50_000,
       timeoutDuration: 60_000,
+      promptOriginTime: Date.now() - 50_000,
     };
     priv(conn).pendingRequests.set(42, pendingRequest);
 
