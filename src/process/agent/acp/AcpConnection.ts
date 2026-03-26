@@ -617,12 +617,7 @@ export class AcpConnection {
    * so they reliably detect a dead child even before the exit event fires.
    */
   private isChildAlive(): boolean {
-    return (
-      this.child !== null &&
-      !this.child.killed &&
-      this.child.exitCode === null &&
-      this.child.signalCode === null
-    );
+    return this.child !== null && !this.child.killed && this.child.exitCode === null && this.child.signalCode === null;
   }
 
   /**
