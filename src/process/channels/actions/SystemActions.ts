@@ -92,16 +92,25 @@ export async function getChannelDefaultModel(platform: PluginType): Promise<TPro
         }
 
         if (hasLocalCreds) {
-          // Use the Google Auth provider directly — local OAuth creds are available.
-          const googleAuthProvider = providerList.find((p) => p.id === GOOGLE_AUTH_PROVIDER_ID);
-          if (googleAuthProvider) {
-            return { ...googleAuthProvider, useModel: savedModel.useModel } as TProviderWithModel;
-          }
+          // The google-auth-gemini provider is a frontend-only synthetic provider — it is NOT
+          // stored in model.config. Construct it directly with platform='gemini-with-google-auth'
+          // so that getProviderAuthType() returns AuthType.LOGIN_WITH_GOOGLE, which makes
+          // GeminiAgentManager read oauth_creds.json and use OAuth instead of an empty API key.
+          return {
+            id: GOOGLE_AUTH_PROVIDER_ID,
+            name: 'Gemini Google Auth',
+            platform: 'gemini-with-google-auth',
+            baseUrl: '',
+            apiKey: '',
+            model: [savedModel.useModel],
+            useModel: savedModel.useModel,
+            enabled: true,
+          } as TProviderWithModel;
         }
 
-        // No local credentials: try to fall back to an API key provider for the same model.
+        // No local OAuth credentials — try to fall back to an API key provider for the same model.
         console.warn(
-          `[SystemActions] Google Auth credentials not found for channel mode (${platform}), falling back to API key provider`
+          `[SystemActions] Google Auth oauth_creds.json missing or empty for channel mode (${platform}), falling back to API key provider`
         );
         const fallback = providerList.find(
           (p) => p.platform === 'gemini' && p.apiKey && p.model?.includes(savedModel.useModel)
