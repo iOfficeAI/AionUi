@@ -80,7 +80,7 @@ while true; do
   log_info "=== Iteration $ITERATION: starting Claude run ==="
 
   CLAUDE_SESSION_TMP=$(mktemp /tmp/claude-session-XXXXXX.json)
-  CLAUDE_LOG_FILE="${LOG_FILE%.log}-claude-${ITERATION}.log"
+  CLAUDE_LOG_FILE="${LOG_FILE%.log}-claude-iter${ITERATION}.log"
   > "$CLAUDE_LOG_FILE"
 
   # Stream: raw JSON → CLAUDE_SESSION_TMP (for session_id) + human-readable → CLAUDE_LOG_FILE
@@ -99,6 +99,7 @@ while true; do
   CURRENT_CLAUDE_PID=$!
 
   # Extract session_id from the first system init message (may take a moment to appear)
+  # Once found, rename the log file to use session_id for easier correlation
   SESSION_ID=""
   for _i in 1 2 3 4 5; do
     sleep 2
@@ -106,6 +107,10 @@ while true; do
       | head -1 | cut -d'"' -f4 || true)
     [ -n "$SESSION_ID" ] && break
   done
+  if [ -n "$SESSION_ID" ]; then
+    CLAUDE_LOG_FILE_NAMED="${LOG_FILE%.log}-claude-${SESSION_ID}.log"
+    mv "$CLAUDE_LOG_FILE" "$CLAUDE_LOG_FILE_NAMED" 2>/dev/null && CLAUDE_LOG_FILE="$CLAUDE_LOG_FILE_NAMED"
+  fi
   log_info "Claude launched (PID $CURRENT_CLAUDE_PID, session=${SESSION_ID:-unknown}). Timeout: ${MAX_CLAUDE_SECS}s."
   log_info "Claude log: $CLAUDE_LOG_FILE  (tail -f to follow)"
 
