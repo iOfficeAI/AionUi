@@ -94,11 +94,11 @@ describe('WeixinMonitor — text message delivery', () => {
     expect(body.msg.item_list[0].text_item.text).toBe('Hello back!');
   });
 
-  it('does not call agent.chat for non-text items (image type=2)', async () => {
+  it('skips messages with no text and no media items', async () => {
     const agentChat = vi.fn();
     const controller = mockFetchOnce({
       ret: 0,
-      msgs: [{ from_user_id: 'user_123', item_list: [{ type: 2 }] }],
+      msgs: [{ from_user_id: 'user_123', item_list: [] }],
       get_updates_buf: '',
     });
 
@@ -106,6 +106,146 @@ describe('WeixinMonitor — text message delivery', () => {
     await new Promise((r) => setTimeout(r, 60));
 
     expect(agentChat).not.toHaveBeenCalled();
+  });
+});
+
+describe('WeixinMonitor — attachment handling', () => {
+  // JPEG magic bytes (FF D8 FF E0) — recognised as image by sniffExtAndKind
+  const FAKE_JPEG = Buffer.from([0xff, 0xd8, 0xff, 0xe0, 0x00, 0x10]);
+
+  function mockFetchWithAttachment(
+    msgs: unknown[],
+    cdnBody: Buffer = FAKE_JPEG,
+    onSend?: (body: unknown) => void
+  ): AbortController {
+    const controller = new AbortController();
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockImplementation(async (url: string, init: { body?: string }) => {
+        if ((url as string).includes('getupdates')) {
+          controller.abort();
+          return { ok: true, json: async () => ({ ret: 0, msgs, get_updates_buf: '' }) } as Response;
+        }
+        if ((url as string).includes('novac2c.cdn')) {
+          const ab = new ArrayBuffer(cdnBody.length);
+          new Uint8Array(ab).set(cdnBody);
+          return { ok: true, arrayBuffer: async () => ab } as unknown as Response;
+        }
+        if ((url as string).includes('sendmessage')) {
+          if (onSend && init?.body) onSend(JSON.parse(init.body));
+          return { ok: true, json: async () => ({}) } as Response;
+        }
+        return { ok: true, json: async () => ({}) } as Response;
+      })
+    );
+    return controller;
+  }
+
+  it('calls agent.chat with image path appended to text when image-only message', async () => {
+    const agentChat = vi.fn().mockResolvedValue({ text: 'got it' });
+    const controller = mockFetchWithAttachment([
+      {
+        from_user_id: 'user_img',
+        msg_id: 'msg001',
+        item_list: [
+          {
+            type: 2,
+            image_item: { media: { encrypt_query_param: 'eqp_test' } },
+          },
+        ],
+      },
+    ]);
+
+    startMonitor(makeOpts({ agent: { chat: agentChat }, abortSignal: controller.signal }));
+    await new Promise((r) => setTimeout(r, 60));
+
+    expect(agentChat).toHaveBeenCalledOnce();
+    const { text } = agentChat.mock.calls[0][0] as { text: string };
+    expect(text).toMatch(/\[Image:/);
+    expect(text).toMatch(/weixin-uploads/);
+    expect(text).toMatch(/\.jpg/);
+  });
+
+  it('calls agent.chat with text + image path for mixed message', async () => {
+    const agentChat = vi.fn().mockResolvedValue({ text: 'ok' });
+    const controller = mockFetchWithAttachment([
+      {
+        from_user_id: 'user_mix',
+        msg_id: 'msg002',
+        item_list: [
+          { type: 1, text_item: { text: 'here is a photo' } },
+          {
+            type: 2,
+            image_item: { media: { encrypt_query_param: 'eqp_mix' } },
+          },
+        ],
+      },
+    ]);
+
+    startMonitor(makeOpts({ agent: { chat: agentChat }, abortSignal: controller.signal }));
+    await new Promise((r) => setTimeout(r, 60));
+
+    expect(agentChat).toHaveBeenCalledOnce();
+    const { text } = agentChat.mock.calls[0][0] as { text: string };
+    expect(text).toMatch(/^here is a photo/);
+    expect(text).toMatch(/\[Image:/);
+  });
+
+  it('notes failed downloads but still calls agent.chat', async () => {
+    const agentChat = vi.fn().mockResolvedValue({ text: 'ok' });
+    const controller = new AbortController();
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockImplementation(async (url: string) => {
+        if ((url as string).includes('getupdates')) {
+          controller.abort();
+          return {
+            ok: true,
+            json: async () => ({
+              ret: 0,
+              msgs: [
+                {
+                  from_user_id: 'user_fail',
+                  msg_id: 'msg003',
+                  item_list: [{ type: 2, image_item: { media: { encrypt_query_param: 'eqp_fail' } } }],
+                },
+              ],
+              get_updates_buf: '',
+            }),
+          } as Response;
+        }
+        if ((url as string).includes('novac2c.cdn')) {
+          return { ok: false, status: 500, statusText: 'Server Error' } as unknown as Response;
+        }
+        return { ok: true, json: async () => ({}) } as Response;
+      })
+    );
+
+    startMonitor(makeOpts({ agent: { chat: agentChat }, abortSignal: controller.signal }));
+    await new Promise((r) => setTimeout(r, 60));
+
+    expect(agentChat).toHaveBeenCalledOnce();
+    const { text } = agentChat.mock.calls[0][0] as { text: string };
+    expect(text).toMatch(/failed to download/);
+  });
+
+  it('saves downloaded image file to weixin-uploads dir', async () => {
+    const agentChat = vi.fn().mockResolvedValue({ text: 'ok' });
+    const controller = mockFetchWithAttachment([
+      {
+        from_user_id: 'user_save',
+        msg_id: 'msg004',
+        item_list: [{ type: 2, image_item: { media: { encrypt_query_param: 'eqp_save' } } }],
+      },
+    ]);
+
+    startMonitor(makeOpts({ agent: { chat: agentChat }, abortSignal: controller.signal }));
+    await new Promise((r) => setTimeout(r, 60));
+
+    const uploadsDir = path.join(TEST_DIR, 'weixin-uploads');
+    const files = fs.existsSync(uploadsDir) ? fs.readdirSync(uploadsDir) : [];
+    expect(files.length).toBeGreaterThan(0);
+    expect(files[0]).toMatch(/\.jpg$/);
   });
 });
 

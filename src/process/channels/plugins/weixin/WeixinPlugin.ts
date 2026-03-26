@@ -13,6 +13,7 @@ import { BasePlugin } from '../BasePlugin';
 import { toUnifiedIncomingMessage, stripHtml } from './WeixinAdapter';
 import { startMonitor } from './WeixinMonitor';
 import type { WeixinChatRequest, WeixinChatResponse } from './WeixinMonitor';
+import { getDatabase } from '@process/services/database';
 
 const RESPONSE_TIMEOUT_MS = 5 * 60 * 1000;
 
@@ -57,6 +58,15 @@ export class WeixinPlugin extends BasePlugin {
       agent: { chat: (req) => this.handleChat(req) },
       abortSignal: this.abortController.signal,
       log: (msg) => console.log(msg),
+      resolveUploadsDir: async (conversationId: string) => {
+        const db = await getDatabase();
+        const result = db.getConversation(conversationId);
+        const workspace = result.data?.extra?.workspace;
+        if (!result.success || !workspace) throw new Error('workspace not found');
+        const uploadsDir = path.join(workspace, 'uploads');
+        fs.mkdirSync(uploadsDir, { recursive: true });
+        return uploadsDir;
+      },
     });
   }
 

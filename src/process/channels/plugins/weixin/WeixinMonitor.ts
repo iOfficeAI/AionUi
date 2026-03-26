@@ -34,6 +34,12 @@ export type MonitorOptions = {
   agent: WeixinAgent;
   abortSignal?: AbortSignal;
   log?: (msg: string) => void;
+  /**
+   * Optional: return the uploads directory for a given conversationId.
+   * Should resolve to the conversation workspace's uploads/ folder.
+   * Falls back to dataDir/weixin-uploads/ if not provided or on error.
+   */
+  resolveUploadsDir?: (conversationId: string) => Promise<string>;
 };
 
 // ==================== Utilities ====================
@@ -54,6 +60,11 @@ const RETRY_DELAY_MS = 2_000;
 const BACKOFF_DELAY_MS = 30_000;
 const MAX_CONSECUTIVE_FAILURES = 3;
 const TEXT_ITEM_TYPE = 1;
+const IMAGE_ITEM_TYPE = 2;
+const FILE_ITEM_TYPE = 4;
+const CDN_BASE_URL = 'https://novac2c.cdn.weixin.qq.com/c2c';
+const UPLOADS_TTL_MS = 24 * 60 * 60 * 1000;
+const UPLOADS_MAX_BYTES = 200 * 1024 * 1024;
 
 // ==================== Internal API types ====================
 
@@ -66,10 +77,25 @@ type GetUpdatesResp = {
   longpolling_timeout_ms?: number;
 };
 
+type WeixinMediaData = {
+  media?: { encrypt_query_param?: string; aes_key?: string };
+  aeskey?: string;
+  file_name?: string;
+  file_type?: string;
+};
+
+type WeixinRawItem = {
+  type?: number;
+  text_item?: { text?: string };
+  image_item?: WeixinMediaData;
+  file_item?: WeixinMediaData;
+};
+
 type WeixinRawMessage = {
   from_user_id?: string;
   context_token?: string;
-  item_list?: Array<{ type?: number; text_item?: { text?: string } }>;
+  msg_id?: string;
+  item_list?: WeixinRawItem[];
 };
 
 // ==================== HTTP ====================
@@ -184,6 +210,100 @@ function saveBuf(dataDir: string, accountId: string, buf: string): void {
   fs.writeFileSync(getBufPath(dataDir, accountId), buf, 'utf-8');
 }
 
+// ==================== Attachment download ====================
+
+type DownloadedAttachment = { path: string; kind: 'image' | 'file'; name: string };
+
+function getUploadsDir(dataDir: string): string {
+  return path.join(dataDir, 'weixin-uploads');
+}
+
+function sniffExtAndKind(buf: Buffer): { ext: string; kind: 'image' | 'file' } {
+  if (buf[0] === 0xff && buf[1] === 0xd8) return { ext: '.jpg', kind: 'image' };
+  if (buf[0] === 0x89 && buf[1] === 0x50 && buf[2] === 0x4e && buf[3] === 0x47) return { ext: '.png', kind: 'image' };
+  if (buf[0] === 0x47 && buf[1] === 0x49 && buf[2] === 0x46) return { ext: '.gif', kind: 'image' };
+  if (buf[0] === 0x25 && buf[1] === 0x50 && buf[2] === 0x44 && buf[3] === 0x46) return { ext: '.pdf', kind: 'file' };
+  if (buf[0] === 0x50 && buf[1] === 0x4b) return { ext: '.zip', kind: 'file' };
+  return { ext: '.bin', kind: 'file' };
+}
+
+async function downloadMediaItem(
+  item: WeixinRawItem,
+  msgId: string,
+  idx: number,
+  uploadsDir: string
+): Promise<DownloadedAttachment> {
+  const itemData = item.image_item ?? item.file_item ?? null;
+  const encryptQueryParam = itemData?.media?.encrypt_query_param;
+  if (!encryptQueryParam) throw new Error('missing encrypt_query_param');
+
+  let aesKey: Buffer | undefined;
+  const aesKeyHex = itemData?.aeskey;
+  const aesKeyB64 = itemData?.media?.aes_key;
+  if (aesKeyHex) {
+    aesKey = Buffer.from(aesKeyHex, 'hex');
+  } else if (aesKeyB64) {
+    const decoded = Buffer.from(aesKeyB64, 'base64');
+    aesKey = decoded.length === 16 ? decoded : decoded.length === 32 ? Buffer.from(decoded.toString('ascii'), 'hex') : undefined;
+  }
+
+  const cdnUrl = `${CDN_BASE_URL}/download?encrypted_query_param=${encodeURIComponent(encryptQueryParam)}`;
+  const resp = await fetch(cdnUrl, { signal: AbortSignal.timeout(30_000) });
+  if (!resp.ok) throw new Error(`CDN HTTP ${resp.status}`);
+  const rawBuf = Buffer.from(await resp.arrayBuffer());
+  if (rawBuf.length === 0) throw new Error('CDN returned empty data');
+
+  let resultBuf: Buffer;
+  if (aesKey) {
+    const decipher = crypto.createDecipheriv('aes-128-ecb', aesKey, null);
+    decipher.setAutoPadding(true);
+    resultBuf = Buffer.concat([decipher.update(rawBuf), decipher.final()]);
+  } else {
+    resultBuf = rawBuf;
+  }
+
+  const { ext, kind } = sniffExtAndKind(resultBuf);
+  const declaredName = String(itemData?.file_name ?? (item.type === IMAGE_ITEM_TYPE ? 'image' : 'file'));
+  const safeName = declaredName.replace(/[^a-zA-Z0-9._-]/g, '_').slice(0, 64);
+  const fileName = `${msgId}-${idx}-${safeName}${ext}`;
+  const filePath = path.join(uploadsDir, fileName);
+
+  fs.mkdirSync(uploadsDir, { recursive: true });
+  fs.writeFileSync(filePath, resultBuf);
+  return { path: filePath, kind, name: declaredName };
+}
+
+function cleanUploads(uploadsDir: string): void {
+  let entries: fs.Dirent[];
+  try {
+    entries = fs.readdirSync(uploadsDir, { withFileTypes: true });
+  } catch {
+    return;
+  }
+  const now = Date.now();
+  let totalBytes = 0;
+  const files: Array<{ path: string; mtime: number; size: number }> = [];
+  for (const e of entries) {
+    if (!e.isFile()) continue;
+    const fp = path.join(uploadsDir, e.name);
+    try {
+      const st = fs.statSync(fp);
+      if (now - st.mtimeMs > UPLOADS_TTL_MS) {
+        fs.unlinkSync(fp);
+        continue;
+      }
+      totalBytes += st.size;
+      files.push({ path: fp, mtime: st.mtimeMs, size: st.size });
+    } catch {}
+  }
+  files.sort((a, b) => a.mtime - b.mtime);
+  for (const f of files) {
+    if (totalBytes <= UPLOADS_MAX_BYTES) break;
+    try { fs.unlinkSync(f.path); } catch {}
+    totalBytes -= f.size;
+  }
+}
+
 // ==================== Monitor loop ====================
 
 function sleep(ms: number, signal?: AbortSignal): Promise<void> {
@@ -205,7 +325,8 @@ async function runMonitor(
   agent: WeixinAgent,
   wechatUin: string,
   signal: AbortSignal | undefined,
-  log: (msg: string) => void
+  log: (msg: string) => void,
+  resolveUploadsDir?: (conversationId: string) => Promise<string>
 ): Promise<void> {
   let buf = loadBuf(dataDir, accountId);
   let consecutiveFailures = 0;
@@ -244,11 +365,45 @@ async function runMonitor(
       }
 
       for (const msg of resp.msgs ?? []) {
-        const textItem = msg.item_list?.find((i) => i.type === TEXT_ITEM_TYPE);
-        if (!textItem) continue;
+        const items = msg.item_list ?? [];
+        const textItem = items.find((i) => i.type === TEXT_ITEM_TYPE);
+        const mediaItems = items.filter((i) => i.type === IMAGE_ITEM_TYPE || i.type === FILE_ITEM_TYPE);
+
+        if (!textItem && mediaItems.length === 0) continue;
 
         const conversationId = msg.from_user_id ?? '';
-        const text = textItem.text_item?.text ?? '';
+        const userText = textItem?.text_item?.text ?? '';
+        const msgId = msg.msg_id ?? String(Date.now());
+
+        // Resolve uploads directory: prefer conversation workspace/uploads, fall back to dataDir/weixin-uploads
+        let uploadsDir: string;
+        try {
+          uploadsDir = resolveUploadsDir ? await resolveUploadsDir(conversationId) : getUploadsDir(dataDir);
+        } catch {
+          uploadsDir = getUploadsDir(dataDir);
+        }
+        const attachments: DownloadedAttachment[] = [];
+        for (const [idx, item] of mediaItems.entries()) {
+          try {
+            // oxlint-disable-next-line eslint/no-await-in-loop
+            attachments.push(await downloadMediaItem(item, msgId, idx, uploadsDir));
+          } catch (dlErr) {
+            log(`[weixin] attachment download failed (${conversationId}#${idx}): ${formatError(dlErr)}`);
+          }
+        }
+        if (attachments.length > 0) cleanUploads(uploadsDir);
+
+        // Build the text Claude will receive: user text + local paths for each attachment
+        let text = userText;
+        if (mediaItems.length > 0) {
+          const lines: string[] = [];
+          for (const att of attachments) {
+            lines.push(att.kind === 'image' ? `[Image: ${att.path}]` : `[File "${att.name}": ${att.path}]`);
+          }
+          const failCount = mediaItems.length - attachments.length;
+          if (failCount > 0) lines.push(`[${failCount} attachment(s) failed to download]`);
+          text = userText ? `${userText}\n\n${lines.join('\n')}` : lines.join('\n');
+        }
 
         // oxlint-disable-next-line eslint/no-await-in-loop
         const stopTyping = await typingMgr.startTyping(conversationId, msg.context_token);
@@ -294,13 +449,15 @@ async function runMonitor(
  * Errors are logged via opts.log. Loop stops when abortSignal fires.
  */
 export function startMonitor(opts: MonitorOptions): void {
-  const { baseUrl, token, accountId, dataDir, agent, abortSignal, log } = opts;
+  const { baseUrl, token, accountId, dataDir, agent, abortSignal, log, resolveUploadsDir } = opts;
   const logFn = log ?? ((_msg: string) => {});
   const wechatUin = crypto.randomBytes(4).toString('base64');
 
-  void runMonitor(baseUrl, token, accountId, dataDir, agent, wechatUin, abortSignal, logFn).catch((err: unknown) => {
-    if (!abortSignal?.aborted) {
-      logFn(`[weixin] monitor terminated unexpectedly: ${String(err)}`);
+  void runMonitor(baseUrl, token, accountId, dataDir, agent, wechatUin, abortSignal, logFn, resolveUploadsDir).catch(
+    (err: unknown) => {
+      if (!abortSignal?.aborted) {
+        logFn(`[weixin] monitor terminated unexpectedly: ${String(err)}`);
+      }
     }
-  });
+  );
 }
