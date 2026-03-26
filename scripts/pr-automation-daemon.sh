@@ -4,11 +4,11 @@
 # Each PR gets a fresh context — zero accumulation across PRs.
 #
 # Usage:
-#   ./scripts/pr-auto-merge-daemon.sh                      # defaults: 5min, 3 PRs/cycle
-#   ./scripts/pr-auto-merge-daemon.sh --interval 180       # 3min interval
-#   ./scripts/pr-auto-merge-daemon.sh --max-prs 5          # 5 PRs per cycle
-#   ./scripts/pr-auto-merge-daemon.sh --interval 60 --max-prs 1   # 1min, 1 PR
-#   nohup ./scripts/pr-auto-merge-daemon.sh &              # survives terminal close
+#   ./scripts/pr-automation-daemon.sh                      # defaults: 5min, 3 PRs/cycle
+#   ./scripts/pr-automation-daemon.sh --interval 180       # 3min interval
+#   ./scripts/pr-automation-daemon.sh --max-prs 5          # 5 PRs per cycle
+#   ./scripts/pr-automation-daemon.sh --interval 60 --max-prs 1   # 1min, 1 PR
+#   nohup ./scripts/pr-automation-daemon.sh &              # survives terminal close
 #
 # Logs: ~/.aionui-auto-merge/daemon.log
 # Stop: kill $(cat ~/.aionui-auto-merge/daemon.lock)
@@ -84,15 +84,23 @@ get_eligible_prs() {
   # Fetch all open PRs with status check info
   local all_prs
   all_prs=$(gh pr list --repo "$REPO" --state open \
-    --json number,author,labels,createdAt,statusCheckRollup \
-    --jq '.[] | {number, author: .author.login, labels: [.labels[].name], createdAt, checks: .statusCheckRollup}' 2>/dev/null) || return
+    --json number,title,author,labels,createdAt,statusCheckRollup,isDraft \
+    --jq '.[] | {number, title, author: .author.login, labels: [.labels[].name], createdAt, checks: .statusCheckRollup, isDraft}' 2>/dev/null) || return
 
   # Filter and sort in a single pass
   echo "$all_prs" | while IFS= read -r pr; do
-    local number author labels
+    local number title author labels is_draft
     number=$(echo "$pr" | jq -r '.number')
+    title=$(echo "$pr" | jq -r '.title')
     author=$(echo "$pr" | jq -r '.author')
     labels=$(echo "$pr" | jq -r '.labels[]' 2>/dev/null || echo "")
+    is_draft=$(echo "$pr" | jq -r '.isDraft')
+
+    # Skip draft PRs
+    [ "$is_draft" = "true" ] && continue
+
+    # Skip WIP PRs (title contains "WIP", case-insensitive)
+    echo "$title" | grep -qi 'WIP' && continue
 
     # Skip if has blocking label
     local skip=false
@@ -160,11 +168,11 @@ while true; do
         break
       fi
       REPO_ROOT="$(cd "$(dirname "$0")/.." && pwd)"
-      SKILL_SCRIPTS="$REPO_ROOT/.claude/skills/pr-auto-merge/scripts"
+      SKILL_SCRIPTS="$REPO_ROOT/.claude/skills/pr-automation/scripts"
       log ">>> PR #${pr_number}: starting pipeline"
 
       # Phase 1: Pre-check (shell — lock, CI, rebase)
-      PRECHECK_RESULT=$("$SKILL_SCRIPTS/pr-auto-merge-precheck.sh" "$pr_number" 2>&1) || true
+      PRECHECK_RESULT=$("$SKILL_SCRIPTS/pr-automation-precheck.sh" "$pr_number" 2>&1) || true
       PRECHECK_STATUS=$(echo "$PRECHECK_RESULT" | tail -1)
       log "    PR #${pr_number} precheck: ${PRECHECK_STATUS}"
 
@@ -177,7 +185,7 @@ while true; do
 
       # Phase 2: AI Review + Fix (Claude — the only part that needs AI)
       log "    PR #${pr_number}: starting AI review"
-      claude -p "/pr-auto-merge ${pr_number}" --dangerously-skip-permissions 2>&1 | tee -a "$LOG_FILE" || true
+      claude -p "/pr-automation ${pr_number}" --dangerously-skip-permissions 2>&1 | tee -a "$LOG_FILE" || true
 
       # Determine review outcome from PR labels/comments
       REVIEW_RESULT="approve"
@@ -188,7 +196,7 @@ while true; do
 
       # Phase 3: Post-merge (shell — rebase, CI wait, merge, cleanup)
       log "    PR #${pr_number}: post-merge phase (review=${REVIEW_RESULT})"
-      POSTMERGE_RESULT=$("$SKILL_SCRIPTS/pr-auto-merge-postmerge.sh" "$pr_number" "$REVIEW_RESULT" 2>&1) || true
+      POSTMERGE_RESULT=$("$SKILL_SCRIPTS/pr-automation-postmerge.sh" "$pr_number" "$REVIEW_RESULT" 2>&1) || true
       POSTMERGE_STATUS=$(echo "$POSTMERGE_RESULT" | tail -1)
 
       case "$POSTMERGE_STATUS" in

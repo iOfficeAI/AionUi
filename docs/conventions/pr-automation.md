@@ -1,42 +1,58 @@
 # PR 自动化流程说明
 
-本仓库运行 PR 自动化 agent，定期处理 open PR（review、fix、合并）。本文说明 label 体系、触发条件和人工介入方式。
+本仓库运行 PR 自动化 agent，持续处理 open PR（review、fix、合并）。本文说明 pipeline 架构、label 体系、触发条件和人工介入方式。
+
+---
+
+## Pipeline 架构
+
+每个 PR 经历三段式处理：
+
+```
+pr-automation-daemon.sh
+    ↓ 扫描 eligible PRs
+pr-automation-precheck.sh        # Shell：加锁、CI 验证、rebase
+    ↓
+claude -p "/pr-automation <N>"   # Claude：冲突解决 → review → fix
+    ↓
+pr-automation-postmerge.sh       # Shell：最终 rebase、等待全量 CI、merge
+```
+
+- **precheck**：获取 `bot:reviewing` 锁、验证必检 CI、尝试自动 rebase
+- **Claude**：若存在冲突则智能解决，执行 pr-review，若有条件批准则执行 pr-fix，推送结果后退出
+- **postmerge**：最终 rebase 到最新 base 分支，等待全量 CI 通过，执行 merge 并清理
 
 ---
 
 ## Label 体系
 
-所有自动化状态通过 `bot:` 前缀 label 追踪，无需本地状态文件。
-
 | Label | 含义 | 下一步 |
 |---|---|---|
-| `bot:reviewing` | 正在 review 中（防并发占位） | 等待完成后自动移除 |
-| `bot:fixing` | 正在 fix 中（防并发占位） | 等待完成后自动移除 |
-| `bot:needs-fix` | 已 review，等待作者按报告修复 | 作者推送新 commit 后自动重新处理 |
+| `bot:reviewing` | 正在处理中（防并发互斥锁） | 处理完成后由 postmerge 自动移除 |
+| `bot:needs-fix` | 已 review，等待作者按报告修复 | 作者推送新 commit 并手动移除此 label 后重新处理 |
 | `bot:needs-human-review` | 需人工介入（存在阻塞性问题） | 人工处理后手动移除 label |
-| `bot:done` | 已完成（已合并或无需操作） | 无 |
+| `bot:done` | 已完成（已合并） | 无 |
 
 ---
 
 ## 触发条件
 
-- cron 每 30 分钟运行一次 `scripts/pr-automation.sh`
-- 每次运行选取**一个**符合条件的 open PR 处理（多实例时各自独立选取）
-- 优先处理 trusted-contributors 团队成员的 PR；同优先级按创建时间 FIFO
+- daemon `scripts/pr-automation-daemon.sh` 持续运行（建议在 tmux 中），默认每 5 分钟扫描一轮
+- 每轮每个 PR 独立启动一个 Claude 进程处理，默认每轮最多处理 3 个 PR
+- 优先处理 `iOfficeAI/trusted-contributors` 团队成员的 PR；同优先级按创建时间 FIFO
 
 ### 跳过条件
 
 满足以下任一条件的 PR 本轮跳过：
 
+- 是 Draft PR
 - 标题含 `WIP`（大小写不敏感）
-- 已有 `bot:needs-human-review`
-- 已有 `bot:done`
-- 已有 `bot:reviewing` 或 `bot:fixing`（正在处理中）
-- 有 `bot:needs-fix` 但作者尚未推送新 commit
+- 有 `hold` label
+- 已有 `bot:reviewing`、`bot:needs-fix`、`bot:needs-human-review` 或 `bot:done`
 
 ### CI 要求
 
-以下 job 全部通过才会继续处理，否则本轮跳过并发评论提醒：
+以下 job 全部通过才继续处理，否则 precheck 发评论提醒后跳过：
 
 - `Code Quality`
 - `Unit Tests (ubuntu-latest)`
@@ -45,18 +61,26 @@
 - `Coverage Test`
 - `i18n-check`
 
+**CI 未触发（新贡献者）**：precheck 自动 approve pending workflows，释放锁，等下一轮 CI 触发后再处理。
+
 ---
 
 ## 决策矩阵
 
 | Review 结论 | PR 来源 | 行动 |
 |---|---|---|
-| ✅ 批准合并 | 任意 | 自动合并（squash）|
-| ⚠️ 有条件批准 | 内部分支 | 自动修复 → 自动合并 |
-| ⚠️ 有条件批准 | 外部 fork | 评论通知作者修复 → `bot:needs-fix` |
+| ✅ 批准 | 任意 | postmerge 等 CI → 合并（rebase 优先，fallback squash）|
+| ⚠️ 有条件批准（可自动修复） | 任意（含 fork） | pr-fix 直接推送修复 → postmerge 等 CI → 合并 |
+| ⚠️ 有条件批准（不可自动修复） | 任意 | 评论通知作者 → `bot:needs-fix` |
 | ❌ 需要修改 | 任意 | 评论说明 → `bot:needs-human-review` |
 
-合并使用 `--squash --auto`：等所有必检 CI 通过后才执行，不会立即强制合并。
+> **Fork PR**：agent 具有 admin push 权限，可直接推送修复到 fork 分支，与内部 PR 处理方式相同。
+
+### 合并冲突
+
+- **precheck** 先尝试自动 rebase，成功则继续
+- **rebase 失败** → 交由 Claude 智能解决（读取双方代码，产出合并结果）
+- **Claude 无法解决**（业务逻辑模糊）→ 评论提示作者手动解决 → `bot:needs-fix`
 
 ---
 
@@ -65,67 +89,45 @@
 ### 阻止自动处理某 PR
 
 - 在标题加 `WIP`，或
-- 手动打 `bot:needs-human-review` label
+- 标记为 Draft，或
+- 手动打 `hold` label
 
-移除 `bot:needs-human-review` 后，下一轮 cron 会重新处理该 PR。
+### 作者修复后重新触发
 
-### 查看运行状态
+1. 按 review 报告修复并推送
+2. **手动移除** `bot:needs-fix` label
+3. 下一轮 daemon 扫描时自动重新处理
 
-- **实时日志**：`tail -f /var/log/pr-automation.log`
-- **状态看板**：搜索 Issue 标题 `[Bot] PR Automation Status`（本仓库内）
+### 查看运行日志
 
-### 并发控制
+```bash
+# 实时日志
+tail -f ~/.aionui-auto-merge/daemon.log
 
-- Lock 文件：`/tmp/pr-automation.lock`（存储运行中的脚本 PID）
-- 若上轮脚本仍在运行，本轮 cron 自动退出
-- 若上轮脚本异常崩溃，下轮自动清理残留 label 并重新开始
+# 查看 daemon 是否在运行
+cat ~/.aionui-auto-merge/daemon.lock 2>/dev/null | xargs -I{} kill -0 {} 2>/dev/null && echo "daemon 运行中" || echo "daemon 未运行"
+```
 
 ---
 
-## Cron 配置参考
-
-```cron
-# 单实例（默认）
-*/30 * * * * cd /path/to/AionUi-review && ./scripts/pr-automation.sh >> /var/log/pr-automation.log 2>&1
-
-# 并行处理（传入实例数）
-*/30 * * * * cd /path/to/AionUi-review && ./scripts/pr-automation.sh 2 >> /var/log/pr-automation.log 2>&1
-```
-
-## 管理定时任务
-
-### 查看已有定时任务
+## 启动 Daemon
 
 ```bash
-crontab -l
-```
+# 在 tmux 中持续运行（推荐）
+tmux new -s pr-daemon './scripts/pr-automation-daemon.sh'
 
-### 取消定时任务
+# 自定义轮询间隔和每轮最大处理数
+./scripts/pr-automation-daemon.sh --interval 180 --max-prs 5
 
-```bash
-# 编辑 crontab，删除对应行后保存即可取消
-crontab -e
-
-# 清空当前用户的全部 crontab（慎用）
-crontab -r
-```
-
-### 检查当前是否有实例正在运行
-
-```bash
-# 查看 lock file 中的 PID
-cat /tmp/pr-automation.lock 2>/dev/null && echo "（进程正在运行）" || echo "（无正在运行的实例）"
-
-# 确认该 PID 是否真的存活
-PID=$(cat /tmp/pr-automation.lock 2>/dev/null) && kill -0 "$PID" 2>/dev/null && echo "PID $PID 正在运行" || echo "无正在运行的实例"
+# 停止 daemon
+kill $(cat ~/.aionui-auto-merge/daemon.lock)
 ```
 
 ---
 
 ## 首次部署
 
-1. 确认 `gh auth login` 已完成，有足够权限（PR labels、issues、合并）
-2. 手动创建 GitHub Issue，标题：`[Bot] PR Automation Status`，记录 Issue 编号
-3. 在 `.claude/skills/pr-automation/SKILL.md` 的 `STATUS_ISSUE_NUMBER` 填入该编号
-4. 配置 crontab（见上方参考）
-5. 手动运行一次验证：`./scripts/pr-automation.sh` 并观察日志
+1. 确认 `gh auth login` 已完成，有足够权限（PR labels、merge、push to forks）
+2. 确认 `claude` CLI 已安装并可在终端调用
+3. 启动 daemon（见上方命令）
+4. 观察首轮日志确认流程正常：`tail -f ~/.aionui-auto-merge/daemon.log`

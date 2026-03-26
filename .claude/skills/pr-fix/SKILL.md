@@ -8,7 +8,7 @@ description: |
 
 # PR Review Fix Skill
 
-Automated workflow to resolve all issues surfaced in a pr-review report — parse summary → detect PR status → create fix branch or checkout original branch → fix by priority → quality gate → commit → publish → verify.
+Automated workflow to resolve all issues surfaced in a pr-review report — parse summary → checkout PR branch → fix by priority → quality gate → commit → push → verify.
 
 **Announce at start:** "I'm using pr-fix skill to fix all review issues."
 
@@ -36,14 +36,6 @@ fi
 
 In **automation mode**:
 - Skip all yes/no confirmation prompts — follow the default best path
-- When `isCrossRepository=true` (external fork PR): do NOT abort with an error; instead output the signal below and exit immediately
-
-```
-<!-- pr-fix-signal -->
-SIGNAL: SKIP_EXTERNAL
-PR_NUMBER: <number>
-<!-- /pr-fix-signal -->
-```
 
 ---
 
@@ -116,84 +108,32 @@ git status --porcelain
 ```
 
 ```bash
-gh pr view <PR_NUMBER> --json headRefName,baseRefName \
-  -q '{head: .headRefName, base: .baseRefName}'
-```
-
-```bash
-# Check whether the PR has been merged
-gh pr view <PR_NUMBER> --json state -q '.state'
-# Returns: "MERGED" or "OPEN"
-```
-
-```bash
-# Check whether the PR is from a fork
-gh pr view <PR_NUMBER> --json isCrossRepository -q '.isCrossRepository'
-# Returns: true (fork) or false (internal branch)
+gh pr view <PR_NUMBER> --json headRefName,baseRefName,state \
+  -q '{head: .headRefName, base: .baseRefName, state: .state}'
 ```
 
 If working tree is dirty, abort with:
 
 > Working tree has uncommitted changes. Please commit or stash them before running pr-fix.
 
-Save `<head_branch>`, `<base_branch>`, `<state>`, and `<isCrossRepository>` for Step 3.
+If `state` is `MERGED`, abort with:
 
-**Determine path based on results:**
+> PR #<PR_NUMBER> is already merged. Nothing to push to.
 
-| state    | isCrossRepository | Path                             |
-| -------- | ----------------- | -------------------------------- |
-| `MERGED` | any               | Path A — create follow-up PR     |
-| `OPEN`   | `false`           | Path B — push to original branch |
-| `OPEN`   | `true`            | **ABORT**                        |
-
-If state is `OPEN` and isCrossRepository is `true`:
-
-- **Non-automation mode:** abort with:
-  > PR #<PR_NUMBER> is still open and was submitted from an external fork. Direct push is not possible.
-  > Please wait for the PR to be merged, then run `/pr-fix` again.
-
-- **Automation mode:** output the signal below and exit cleanly (do NOT proceed with fixes):
-  ```
-  <!-- pr-fix-signal -->
-  SIGNAL: SKIP_EXTERNAL
-  PR_NUMBER: <PR_NUMBER>
-  <!-- /pr-fix-signal -->
-  ```
+Save `<head_branch>` and `<base_branch>` for Step 3.
 
 ---
 
-### Step 3 — Prepare Working Branch
+### Step 3 — Checkout PR Branch
 
-#### Path A — Create follow-up PR (state=MERGED, any source)
-
-Derive the fix branch name from `<head_branch>`:
-
-| Original branch             | Scope                  | Fix branch                                 |
-| --------------------------- | ---------------------- | ------------------------------------------ |
-| `feat/webui-file-upload`    | `webui`                | `fix/webui-review-followup`                |
-| `fix/cron-timezone`         | `cron`                 | `fix/cron-review-followup`                 |
-| `feat/image-generation-mcp` | `image-generation-mcp` | `fix/image-generation-mcp-review-followup` |
-
-**Rule:** Split on `/`, take segment after the first `/`, use that as scope.
+Use `gh pr checkout` — it handles both internal branches and fork branches correctly (sets up the right remote tracking automatically):
 
 ```bash
-git fetch origin <base_branch>
-git checkout <base_branch>
-git pull origin <base_branch>
-git checkout -b fix/<scope>-review-followup
+gh pr checkout <PR_NUMBER>
+git pull
 ```
 
-#### Path B — Push to original branch (state=OPEN, isCrossRepository=false)
-
-Check out the existing head branch directly — no new branch needed:
-
-```bash
-git fetch origin <head_branch>
-git checkout <head_branch>
-git pull origin <head_branch>
-```
-
-Fixes will be committed directly onto this branch, and the open PR will update automatically.
+The agent has admin push access for all PRs including forks, so commits can be pushed directly to the fork's head branch. The open PR will update automatically.
 
 ---
 
@@ -245,52 +185,17 @@ Review follow-up for #<PR_NUMBER>
 
 ---
 
-### Step 7 — Publish
-
-#### Path A — Create follow-up PR
-
-Follow the [pr skill](../pr/SKILL.md) — **skip** Step 2 (Issue Association), do NOT create a new issue.
+### Step 7 — Push
 
 ```bash
-gh pr create \
-  --title "fix(<scope>): address review issues from PR #<PR_NUMBER>" \
-  --body "$(cat <<'EOF'
-## Summary
-
-Follow-up to #<PR_NUMBER> — addresses all issues identified in the code review.
-
-## Issues Fixed
-
-| # | Severity | File | Issue | Fix Applied |
-|---|----------|------|-------|-------------|
-| 1 | 🔴 CRITICAL | `file.ts:N` | <description> | <what was done> |
-| 2 | 🟠 HIGH | `file.ts:N` | <description> | <what was done> |
-
-## Related
-
-Follow-up to #<PR_NUMBER>
-
-## Test Plan
-
-- [ ] `bun run test` — all tests pass
-- [ ] `bunx tsc --noEmit` — no type errors
-- [ ] `bun run lint:fix` — lint clean
-- [ ] Manually verify each fixed issue in the changed files
-EOF
-)"
+git push
 ```
 
-Save `<NEW_PR_NUMBER>` from the output. Output the new PR URL to the user.
-
-#### Path B — Push to original branch
-
-```bash
-git push origin <head_branch>
-```
+(`gh pr checkout` already configured the correct remote tracking, so a plain `git push` works for both internal and fork PRs.)
 
 Output to user:
 
-> 已推送到 `<head_branch>`，PR #<PR_NUMBER> 已自动更新。无需创建新 PR。
+> 已推送到 `<head_branch>`，PR #<PR_NUMBER> 已自动更新。
 
 ---
 
@@ -302,37 +207,14 @@ For each issue in the original summary table, verify the fix exists in actual co
 2. Grep for the original problematic pattern to confirm it is gone
 3. Confirm the corrected code is in place
 
-**Both paths must post the verification report as a PR comment AND output it in the conversation.**
-
-#### Path A — Post comment to follow-up PR
-
-```bash
-gh pr comment <NEW_PR_NUMBER> --body "$(cat <<'EOF'
-<!-- pr-fix-verification -->
-## PR Fix 验证报告
-
-**原始 PR:** #<PR_NUMBER>
-**Follow-up PR:** #<NEW_PR_NUMBER>
-
-| # | 严重级别 | 文件 | 问题 | 修复方式 | 状态 |
-|---|---------|------|------|---------|------|
-| 1 | 🔴 CRITICAL | `file.ts:N` | <原始问题> | <修复措施> | ✅ 已修复 |
-| 2 | 🟠 HIGH     | `file.ts:N` | <原始问题> | <修复措施> | ✅ 已修复 |
-| 3 | 🔵 LOW      | `file.ts:N` | <原始问题> | —       | ⏭️ 跳过 |
-
-**总结：** ✅ 已修复 N 个 | ❌ 未能修复 N 个 | ⏭️ 跳过 N 个
-EOF
-)"
-```
-
-#### Path B — Post comment to original PR
+Post the verification report as a PR comment AND output it in the conversation:
 
 ```bash
 gh pr comment <PR_NUMBER> --body "$(cat <<'EOF'
 <!-- pr-fix-verification -->
 ## PR Fix 验证报告
 
-**原始 PR:** #<PR_NUMBER>
+**PR:** #<PR_NUMBER>
 **修复方式:** 直接推送到 `<head_branch>`
 
 | # | 严重级别 | 文件 | 问题 | 修复方式 | 状态 |
@@ -346,15 +228,12 @@ EOF
 )"
 ```
 
-After posting, output the same verification table in the conversation for immediate review.
-
 ---
 
 ## Mandatory Rules
 
 - **No AI signature** — no `Co-Authored-By`, `Generated with`, or any AI byline
-- **Always reference original PR** — every commit and PR body must include `Follow-up to #<PR_NUMBER>`
-- **No issue creation** — this skill skips the issue-association step in pr skill
+- **Always reference original PR** — every commit must include `Review follow-up for #<PR_NUMBER>`
 - **Fix, don't workaround** — no `// @ts-ignore`, no lint suppression; address the root cause
 
 ---
@@ -363,19 +242,12 @@ After posting, output the same verification table in the conversation for immedi
 
 ```
 0. Get review report (current session OR fetch from PR comments)
-1. Parse 汇总 table → ordered issue list; ask about LOW issues
-2. Pre-flight: clean working tree + fetch PR branch info
-   + detect: state (merged/open) + isCrossRepository (fork/internal)
-   → Path A: state=MERGED (any source) — create follow-up PR
-   → Path B: state=OPEN + isCrossRepository=false — push to original branch
-   → ABORT: state=OPEN + isCrossRepository=true — wait for merge
-3a. [Path A] git checkout <base> && git pull && git checkout -b fix/<scope>-review-followup
-3b. [Path B] git checkout <head_branch> && git pull
-4.  Fix issues CRITICAL→HIGH→MEDIUM→LOW; bunx tsc --noEmit after each file batch
-5.  bun run lint:fix && bun run format && bunx tsc --noEmit && bun run test
-6.  Commit: fix(<scope>): address review issues from PR #N
-7a. [Path A] gh pr create — Follow-up to #N → record NEW_PR_NUMBER
-7b. [Path B] git push origin <head_branch> (PR auto-updated, no new PR)
-8a. [Path A] Verify → post as gh pr comment NEW_PR_NUMBER + output in conversation
-8b. [Path B] Verify → post as gh pr comment PR_NUMBER + output in conversation
+1. Parse 汇总 table → ordered issue list
+2. Pre-flight: clean working tree + check state (abort if MERGED)
+3. gh pr checkout <PR_NUMBER> && git pull
+4. Fix issues CRITICAL→HIGH→MEDIUM→LOW; bunx tsc --noEmit after each file batch
+5. bun run lint:fix && bun run format && bunx tsc --noEmit && bun run test
+6. Commit: fix(<scope>): address review issues from PR #N
+7. git push (PR auto-updated, no new PR needed)
+8. Verify → post as gh pr comment PR_NUMBER + output in conversation
 ```
