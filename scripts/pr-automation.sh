@@ -1,83 +1,113 @@
 #!/usr/bin/env bash
-# pr-automation.sh — cron entry point for PR automation
-# Usage: ./scripts/pr-automation.sh [N]
-#   N: number of parallel Claude instances (default: 1)
+# pr-automation.sh — daemon entry point for PR automation
+# Runs continuously: launch one Claude instance, wait, sleep, repeat.
+#
+# Environment variables:
+#   SLEEP_SECONDS   Seconds to sleep between Claude runs (default: 30)
+#   MAX_CLAUDE_SECS Maximum seconds a Claude run may take (default: 3600)
+#   LOG_FILE        Log file path (default: /tmp/pr-automation.log)
 set -euo pipefail
 
-N=${1:-1}
-LOCK_FILE="/tmp/pr-automation.lock"
+SLEEP_SECONDS=${SLEEP_SECONDS:-30}
+MAX_CLAUDE_SECS=${MAX_CLAUDE_SECS:-3600}
+LOG_FILE=${LOG_FILE:-/tmp/pr-automation.log}
 REPO_DIR="$(cd "$(dirname "$0")/.." && pwd)"
-LOG_TS() { date '+%Y-%m-%d %H:%M:%S'; }
+PID_FILE="/tmp/pr-automation-daemon.pid"
 
-# ---------------------------------------------------------------------------
-# Cleanup: remove lock file and stale bot labels
-# ---------------------------------------------------------------------------
+log() {
+  local level="$1"; shift
+  echo "[$(date '+%Y-%m-%d %H:%M:%S')] [$level] $*" | tee -a "$LOG_FILE"
+}
+log_info()  { log "INFO " "$@"; }
+log_warn()  { log "WARN " "$@"; }
+log_error() { log "ERROR" "$@"; }
+
 cleanup_labels() {
-  cd "$REPO_DIR"
+  log_info "Cleaning up residual bot:reviewing / bot:fixing / bot:ready-to-fix labels..."
   local nums
-  nums=$(gh pr list --state open --label "bot:reviewing" --json number \
-    --jq '.[].number' 2>/dev/null || true)
-  if [ -n "$nums" ]; then
-    echo "$nums" | xargs -I{} gh pr edit {} --remove-label "bot:reviewing" 2>/dev/null || true
-  fi
-  nums=$(gh pr list --state open --label "bot:fixing" --json number \
-    --jq '.[].number' 2>/dev/null || true)
-  if [ -n "$nums" ]; then
-    echo "$nums" | xargs -I{} gh pr edit {} --remove-label "bot:fixing" 2>/dev/null || true
-  fi
+  for label in "bot:reviewing" "bot:fixing" "bot:ready-to-fix"; do
+    nums=$(gh pr list --state open --label "$label" --json number \
+      --jq '.[].number' 2>/dev/null || true)
+    if [ -n "$nums" ]; then
+      echo "$nums" | xargs -I{} gh pr edit {} --remove-label "$label" 2>/dev/null || true
+      log_info "Removed $label from: $nums"
+    fi
+  done
 }
 
-cleanup() {
-  echo "[$(LOG_TS)] Cleaning up lock file and stale labels..."
-  rm -f "$LOCK_FILE"
+CURRENT_CLAUDE_PID=""
+shutdown() {
+  log_info "Shutdown signal received. Stopping daemon..."
+  if [ -n "$CURRENT_CLAUDE_PID" ] && kill -0 "$CURRENT_CLAUDE_PID" 2>/dev/null; then
+    log_warn "Killing current Claude process (PID $CURRENT_CLAUDE_PID)..."
+    kill "$CURRENT_CLAUDE_PID" 2>/dev/null || true
+    sleep 5
+    kill -9 "$CURRENT_CLAUDE_PID" 2>/dev/null || true
+  fi
   cleanup_labels
+  rm -f "$PID_FILE"
+  log_info "Daemon stopped."
+  exit 0
 }
+trap shutdown SIGTERM SIGINT
 
-# Register cleanup for normal exit, interrupt, and termination
-trap cleanup EXIT INT TERM
-
-# ---------------------------------------------------------------------------
-# Lock file check (PID-based)
-# ---------------------------------------------------------------------------
-if [ -f "$LOCK_FILE" ]; then
-  PREV_PID=$(cat "$LOCK_FILE")
+if [ -f "$PID_FILE" ]; then
+  PREV_PID=$(cat "$PID_FILE")
   if kill -0 "$PREV_PID" 2>/dev/null; then
-    echo "[$(LOG_TS)] Previous run (PID $PREV_PID) is still running. Exiting without cleanup."
-    # Disable trap so we don't interfere with the running instance
-    trap - EXIT INT TERM
-    exit 0
+    log_warn "Another daemon instance is already running (PID $PREV_PID). Exiting."
+    exit 1
   else
-    echo "[$(LOG_TS)] Previous run (PID $PREV_PID) appears to have crashed. Cleaning up stale labels..."
+    log_warn "Stale PID file found (PID $PREV_PID no longer running). Cleaning up..."
     cleanup_labels
-    rm -f "$LOCK_FILE"
+    rm -f "$PID_FILE"
   fi
 fi
 
-# Write current script PID to lock file
-echo $$ > "$LOCK_FILE"
-echo "[$(LOG_TS)] PR automation started. PID: $$, instances: $N"
+echo $$ > "$PID_FILE"
+log_info "PR automation daemon started. PID=$$, SLEEP_SECONDS=$SLEEP_SECONDS, MAX_CLAUDE_SECS=$MAX_CLAUDE_SECS"
+log_info "Log file: $LOG_FILE | Repo dir: $REPO_DIR"
 
-# ---------------------------------------------------------------------------
-# Launch N Claude instances
-# ---------------------------------------------------------------------------
+ITERATION=0
 cd "$REPO_DIR"
-declare -a PIDS=()
 
-for i in $(seq 1 "$N"); do
-  echo "[$(LOG_TS)] Launching instance $i of $N..."
-  claude --dangerously-skip-permissions -p "/pr-automation" &
-  PIDS+=($!)
-done
+while true; do
+  ITERATION=$((ITERATION + 1))
+  log_info "=== Iteration $ITERATION: starting Claude run ==="
 
-# Wait for all instances to complete
-EXIT_CODE=0
-for PID in "${PIDS[@]}"; do
-  if ! wait "$PID"; then
-    echo "[$(LOG_TS)] Instance (PID $PID) exited with non-zero status."
-    EXIT_CODE=1
+  claude --dangerously-skip-permissions -p "/pr-automation" \
+    >> "$LOG_FILE" 2>&1 &
+  CURRENT_CLAUDE_PID=$!
+  log_info "Claude launched (PID $CURRENT_CLAUDE_PID). Timeout: ${MAX_CLAUDE_SECS}s."
+
+  ELAPSED=0
+  TIMED_OUT=false
+  while kill -0 "$CURRENT_CLAUDE_PID" 2>/dev/null; do
+    sleep 5
+    ELAPSED=$((ELAPSED + 5))
+    if [ "$ELAPSED" -ge "$MAX_CLAUDE_SECS" ]; then
+      log_warn "Claude run exceeded ${MAX_CLAUDE_SECS}s (PID $CURRENT_CLAUDE_PID). Killing..."
+      kill "$CURRENT_CLAUDE_PID" 2>/dev/null || true
+      sleep 5
+      kill -9 "$CURRENT_CLAUDE_PID" 2>/dev/null || true
+      cleanup_labels
+      TIMED_OUT=true
+      break
+    fi
+  done
+
+  if [ "$TIMED_OUT" = "true" ]; then
+    log_warn "Iteration $ITERATION: Claude timed out after ${MAX_CLAUDE_SECS}s."
+  else
+    EXIT_CODE=0
+    wait "$CURRENT_CLAUDE_PID" 2>/dev/null || EXIT_CODE=$?
+    if [ "$EXIT_CODE" -eq 0 ]; then
+      log_info "Iteration $ITERATION: Claude exited successfully."
+    else
+      log_warn "Iteration $ITERATION: Claude exited with code $EXIT_CODE."
+    fi
   fi
-done
 
-echo "[$(LOG_TS)] All instances completed. Exit code: $EXIT_CODE"
-# cleanup is called automatically via trap EXIT
-exit "$EXIT_CODE"
+  CURRENT_CLAUDE_PID=""
+  log_info "Sleeping ${SLEEP_SECONDS}s before next iteration..."
+  sleep "$SLEEP_SECONDS"
+done
