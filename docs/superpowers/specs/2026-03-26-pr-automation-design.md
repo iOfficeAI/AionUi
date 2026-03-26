@@ -26,6 +26,48 @@
 
 ---
 
+## 并发控制：Lock 文件机制
+
+防止多个 cron 实例同时运行，同时处理进程异常退出导致的死锁问题。
+
+### 启动时检查
+
+```
+检查 /tmp/pr-automation.lock
+  ├── 不存在 → 创建（写入当前时间戳），继续执行
+  ├── 存在且时间戳 < 60 分钟 → 上一轮仍在运行，本轮退出
+  └── 存在且时间戳 ≥ 60 分钟 → 判定为死锁或 crash
+        ├── 删除旧 lock 文件
+        ├── 清理残留的 bot:reviewing / bot:fixing label（见下）
+        └── 重新创建 lock 文件，继续执行
+```
+
+60 分钟为超时阈值——正常处理一个 PR（review + fix + 等待 CI）不应超过此时间，超过即视为异常。
+
+### 完成时清理
+
+无论成功还是异常退出，均执行：
+
+1. 删除 `/tmp/pr-automation.lock`
+2. 检查并清理本轮打上但未摘除的 `bot:reviewing` / `bot:fixing` label
+
+### 残留 Label 清理逻辑
+
+启动时若检测到 lock 超时，需清理可能残留的进行中 label：
+
+```bash
+# 找出所有带 bot:reviewing 或 bot:fixing 的 open PR，移除这些 label
+gh pr list --state open --label "bot:reviewing" --json number \
+  --jq '.[].number' | xargs -I{} gh pr edit {} --remove-label "bot:reviewing"
+
+gh pr list --state open --label "bot:fixing" --json number \
+  --jq '.[].number' | xargs -I{} gh pr edit {} --remove-label "bot:fixing"
+```
+
+清理后这些 PR 会在下一轮重新被纳入候选，从头走流程。
+
+---
+
 ## 状态管理：GitHub Label 体系
 
 用 `bot:` 前缀 label 追踪每个 PR 的自动化处理状态，无需本地状态文件。
