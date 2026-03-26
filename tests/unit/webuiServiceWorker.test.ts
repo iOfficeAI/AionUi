@@ -17,6 +17,7 @@ type ServiceWorkerResponse = {
 };
 
 type ServiceWorkerModule = {
+  shouldHandleRequest: (request: ServiceWorkerRequest) => boolean;
   networkFirst: (request: ServiceWorkerRequest) => Promise<ServiceWorkerResponse>;
   staleWhileRevalidate: (request: ServiceWorkerRequest) => Promise<ServiceWorkerResponse>;
 };
@@ -52,7 +53,7 @@ function loadServiceWorker(fetchImpl: (request: ServiceWorkerRequest) => Promise
 
   const serviceWorkerSource =
     fs.readFileSync(path.resolve(__dirname, '../../public/sw.js'), 'utf8') +
-    '\n;globalThis.__sw_exports = { networkFirst, staleWhileRevalidate };';
+    '\n;globalThis.__sw_exports = { shouldHandleRequest, networkFirst, staleWhileRevalidate };';
 
   vm.runInContext(serviceWorkerSource, context, { filename: 'public/sw.js' });
 
@@ -63,6 +64,17 @@ function loadServiceWorker(fetchImpl: (request: ServiceWorkerRequest) => Promise
 }
 
 describe('webui service worker caching', () => {
+  it('does not handle qr-login requests with one-time tokens', () => {
+    const request: ServiceWorkerRequest = {
+      method: 'GET',
+      mode: 'navigate',
+      url: 'https://example.com/qr-login?token=one-time-token',
+    };
+    const { serviceWorker } = loadServiceWorker(vi.fn());
+
+    expect(serviceWorker.shouldHandleRequest(request)).toBe(false);
+  });
+
   it('does not cache failed navigation responses in networkFirst', async () => {
     const request: ServiceWorkerRequest = {
       method: 'GET',

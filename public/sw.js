@@ -1,4 +1,5 @@
 const CACHE_NAME = 'aionui-webui-v1';
+const NON_CACHEABLE_PATHS = new Set(['/qr-login']);
 const OFFLINE_PAGE_URL = new URL('./index.html', self.location.href).toString();
 const PRECACHE_URLS = [
   new URL('./', self.location.href).toString(),
@@ -45,7 +46,7 @@ function shouldHandleRequest(request) {
     return false;
   }
 
-  return !url.pathname.startsWith('/api/');
+  return !url.pathname.startsWith('/api/') && !NON_CACHEABLE_PATHS.has(url.pathname);
 }
 
 async function networkFirst(request) {
