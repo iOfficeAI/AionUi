@@ -168,7 +168,7 @@ gh pr view <PR_NUMBER> --json mergeable,mergeStateStatus \
 |---|---|---|
 | `MERGEABLE` | any | Continue to Step 5 |
 | `UNKNOWN` | any | Wait — GitHub is still computing mergeability. Remove `bot:reviewing` → log "Mergeability unknown for PR #N, will retry next round" → exit |
-| `CONFLICTING` | `DIRTY` | Post conflict comment (see below) → remove `bot:reviewing` → add `bot:needs-human-review` → exit |
+| `CONFLICTING` | `DIRTY` | Post conflict comment (see below) → remove `bot:reviewing` → add `bot:needs-fix` → exit |
 
 **Conflict comment:**
 
@@ -186,7 +186,7 @@ git rebase origin/<base_branch>
 git push --force-with-lease
 \`\`\`
 
-冲突解决并 push 后，请手动移除 \`bot:needs-human-review\` label，本系统将在下一轮自动重新处理。"
+冲突解决并 push 后，本系统将在下一轮自动检测到新 commit 并重新处理，无需手动操作。"
 ```
 
 ### Step 5 — Record PR Attributes
