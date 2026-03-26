@@ -109,8 +109,11 @@ const migrateLegacyData = async () => {
   return false;
 };
 
-const WriteFile = (path: string, data: string) => {
-  return fs.writeFile(path, data);
+const WriteFile = async (filePath: string, data: string) => {
+  // Ensure parent directory exists to prevent ENOENT on first write
+  const dir = nodePath.dirname(filePath);
+  await fs.mkdir(dir, { recursive: true });
+  return fs.writeFile(filePath, data);
 };
 
 const ReadFile = (path: string) => {

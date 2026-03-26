@@ -417,88 +417,7 @@ Instead, report to the user and suggest updating the existing PR if needed.
 This ensures all commits and PRs follow the project's established conventions
 without duplicating rules across skills.
 
-#### Step 2.7: Wait for CI & Auto-Merge
-
-After the PR is created and marked as Ready for Review, wait for all CI checks to pass,
-then automatically merge the PR.
-
-**Only auto-merge when ALL of these conditions are met:**
-
-1. PR is marked as **Ready for Review** (not Draft)
-2. All required CI checks pass (see list below)
-3. No check is in `failure` state
-
-**If the PR is Draft** (verification failed/skipped → `needs-manual-review`), skip auto-merge
-and proceed to the next group.
-
-**Polling flow:**
-
-```bash
-# Poll CI status (max 15 minutes, check every 30 seconds)
-gh pr checks <pr-number> --repo <org>/<repo> --watch --fail-fast
-```
-
-If `gh pr checks --watch` is not available, use a manual polling loop:
-
-```
-max_wait = 900  # 15 minutes
-interval = 30   # seconds
-elapsed = 0
-
-while elapsed < max_wait:
-    checks = gh pr checks <pr-number>
-    if all checks passed:
-        break
-    if any check failed:
-        report failure, skip merge
-        break
-    sleep interval
-    elapsed += interval
-
-if elapsed >= max_wait:
-    report timeout, skip merge
-```
-
-**CI checks to monitor (fast checks only — ignore slow Build Test jobs):**
-
-| Check                      | Monitor |
-| -------------------------- | ------- |
-| Code Quality               | Yes     |
-| Unit Tests (all platforms) | Yes     |
-| Coverage Test              | Yes     |
-| I18n Check                 | Yes     |
-| Release Script Test        | Yes     |
-| Build Test (all platforms) | Skip    |
-| CodeQL / Analyze           | Skip    |
-
-Only wait for the "Yes" checks above. Build and CodeQL jobs are slow and non-blocking
-for bug-fix PRs — do not wait for them.
-
-When polling, check only the monitored jobs. If all monitored checks pass, proceed to merge
-even if Build Test / CodeQL are still pending or skipped.
-
-**On all monitored checks passed — merge:**
-
-```bash
-gh pr merge <pr-number> --repo <org>/<repo> --squash --delete-branch
-```
-
-Use `--squash` to keep commit history clean. `--delete-branch` cleans up the remote branch.
-
-**On any check failed:**
-
-1. Do NOT merge
-2. Add `ci-failed` label to the PR
-3. Report the failed check(s) in the summary
-4. Proceed to the next group
-
-**On timeout (15 minutes):**
-
-1. Do NOT merge
-2. Add `ci-timeout` label
-3. Report in summary that CI did not complete in time
-
-#### Step 2.8: Return to Main
+#### Step 2.7: Return to Main
 
 ```bash
 git checkout main
@@ -513,25 +432,19 @@ After all groups are processed, output:
 ```
 === Fix Sentry Results ===
 
-Fixed & Merged (N groups, covering X Sentry issues):
+Fixed — PR Created (N groups, covering X Sentry issues):
   1. [ELECTRON-5, ELECTRON-6X, ELECTRON-1A] Missing credentials in fetchModelList
-     PR: <pr-url> (merged ✓)
+     PR: <pr-url>
      Issue: #<number>
-     Verification: PASS — screenshot attached, no console errors
-     CI: all checks passed, auto-merged via squash
+     Verification: PASS — unit tests pass
 
   2. ...
 
-Fixed, Pending Manual Review (P groups):
+Fixed — Pending Manual Review (P groups):
   1. [ELECTRON-YY] Worker process error
      PR: <pr-url> (draft)
      Verification: skipped — worker process, not verifiable via chrome-devtools
-     → Requires manual review and merge
-
-Fixed, CI Failed (F groups):
-  1. [ELECTRON-ZZ] Error description
-     PR: <pr-url> (ci-failed)
-     → Failed check: Build Test (windows-x64)
+     → Requires manual review
 
 Already fixed (M issues):
   1. [ELECTRON-6, ELECTRON-6Y] Unsupported message type 'finished'
@@ -541,7 +454,7 @@ Skipped (K issues):
   1. [ELECTRON-J] write EPIPE
      → Reason: System-level error, no application code
 
-Total: N fixed (A auto-merged, B pending review, C ci-failed), M already fixed, K skipped
+Total: N fixed (PR created), P pending review, M already fixed, K skipped
 ```
 
 ## Configuration
