@@ -5,22 +5,29 @@
  */
 
 import { ipcBridge } from '@/common';
-import type { FileChangeInfo } from '@/common/types/fileSnapshot';
+import type { FileChangeInfo, SnapshotInfo } from '@/common/types/fileSnapshot';
 import { isTextFile } from '@/renderer/services/FileService';
-import { parseDiff } from '@/renderer/utils/file/diffUtils';
-import { Button, Empty, Spin } from '@arco-design/web-react';
-import { Refresh } from '@icon-park/react';
+import { Button, Empty, Spin, Tooltip } from '@arco-design/web-react';
+import { Down, Minus, Plus, Redo, Refresh, Right } from '@icon-park/react';
 import { createTwoFilesPatch } from 'diff';
 import type { TFunction } from 'i18next';
-import React, { useCallback } from 'react';
+import React, { useCallback, useState } from 'react';
 
 type FileChangeListProps = {
   t: TFunction;
   workspace: string;
-  changes: FileChangeInfo[];
+  staged: FileChangeInfo[];
+  unstaged: FileChangeInfo[];
   loading: boolean;
+  snapshotInfo: SnapshotInfo | null;
   onRefresh: () => void;
   onOpenDiff: (diffContent: string, fileName: string, filePath: string) => void;
+  onStageFile: (filePath: string) => void;
+  onStageAll: () => void;
+  onUnstageFile: (filePath: string) => void;
+  onUnstageAll: () => void;
+  onDiscardFile: (filePath: string, operation: FileChangeInfo['operation']) => void;
+  onResetFile: (filePath: string, operation: FileChangeInfo['operation']) => void;
 };
 
 const STATUS_COLORS: Record<FileChangeInfo['operation'], string> = {
@@ -38,13 +45,14 @@ const STATUS_LABELS: Record<FileChangeInfo['operation'], string> = {
 const FileChangeItem: React.FC<{
   change: FileChangeInfo;
   onClick: () => void;
-}> = ({ change, onClick }) => {
+  actions: React.ReactNode;
+}> = ({ change, onClick, actions }) => {
   const statusColor = STATUS_COLORS[change.operation];
   const statusLabel = STATUS_LABELS[change.operation];
 
   return (
     <div
-      className='flex items-center justify-between px-12px py-6px cursor-pointer hover:bg-fill-2 transition-colors'
+      className='group flex items-center justify-between px-12px py-4px cursor-pointer hover:bg-fill-2 transition-colors'
       onClick={onClick}
       role='button'
       tabIndex={0}
@@ -55,29 +63,91 @@ const FileChangeItem: React.FC<{
         }
       }}
     >
-      <div className='flex items-center gap-8px min-w-0'>
+      <div className='flex items-center gap-8px min-w-0 flex-1'>
         <span className={`text-11px font-semibold w-14px text-center flex-shrink-0 ${statusColor}`}>{statusLabel}</span>
         <span
-          className={`overflow-hidden text-ellipsis whitespace-nowrap text-13px ${
+          className={`overflow-hidden text-ellipsis whitespace-nowrap text-12px ${
             change.operation === 'delete' ? 'line-through text-t-tertiary' : 'text-t-primary'
           }`}
         >
           {change.relativePath}
         </span>
       </div>
+      <div className='hidden group-hover:flex items-center gap-2px flex-shrink-0' onClick={(e) => e.stopPropagation()}>
+        {actions}
+      </div>
     </div>
   );
 };
 
-const FileChangeList: React.FC<FileChangeListProps> = ({ t, workspace, changes, loading, onRefresh, onOpenDiff }) => {
+const SectionHeader: React.FC<{
+  title: string;
+  count: number;
+  expanded: boolean;
+  onToggle: () => void;
+  actions?: React.ReactNode;
+}> = ({ title, count, expanded, onToggle, actions }) => (
+  <div className='flex items-center justify-between px-12px py-4px bg-fill-1 select-none'>
+    <div
+      className='flex items-center gap-4px cursor-pointer flex-1'
+      onClick={onToggle}
+      role='button'
+      tabIndex={0}
+      onKeyDown={(e) => {
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault();
+          onToggle();
+        }
+      }}
+    >
+      {expanded ? <Down size={12} /> : <Right size={12} />}
+      <span className='text-12px font-medium text-t-secondary'>
+        {title} ({count})
+      </span>
+    </div>
+    {actions && (
+      <div className='flex items-center gap-2px' onClick={(e) => e.stopPropagation()}>
+        {actions}
+      </div>
+    )}
+  </div>
+);
+
+const ActionButton: React.FC<{
+  tooltip: string;
+  icon: React.ReactNode;
+  onClick: () => void;
+}> = ({ tooltip, icon, onClick }) => (
+  <Tooltip mini content={tooltip}>
+    <Button size='mini' type='text' className='!p-2px !h-20px !w-20px' icon={icon} onClick={onClick} />
+  </Tooltip>
+);
+
+const FileChangeList: React.FC<FileChangeListProps> = ({
+  t,
+  workspace,
+  staged,
+  unstaged,
+  loading,
+  snapshotInfo,
+  onRefresh,
+  onOpenDiff,
+  onStageFile,
+  onStageAll,
+  onUnstageFile,
+  onUnstageAll,
+  onDiscardFile,
+  onResetFile,
+}) => {
+  const [stagedExpanded, setStagedExpanded] = useState(true);
+  const [unstagedExpanded, setUnstagedExpanded] = useState(true);
+
+  const isGitRepo = snapshotInfo?.mode === 'git-repo';
+
   const handleClick = useCallback(
     async (change: FileChangeInfo) => {
       const fileName = change.relativePath;
-
-      // Binary files: no diff available
-      if (!isTextFile(fileName)) {
-        return;
-      }
+      if (!isTextFile(fileName)) return;
 
       try {
         let before = '';
@@ -113,7 +183,9 @@ const FileChangeList: React.FC<FileChangeListProps> = ({ t, workspace, changes, 
     );
   }
 
-  if (changes.length === 0) {
+  const totalCount = staged.length + unstaged.length;
+
+  if (totalCount === 0) {
     return (
       <div className='flex-1 size-full flex items-center justify-center px-12px'>
         <Empty
@@ -131,9 +203,9 @@ const FileChangeList: React.FC<FileChangeListProps> = ({ t, workspace, changes, 
   return (
     <div className='flex flex-col size-full'>
       {/* Header */}
-      <div className='px-12px py-8px border-b border-b-base flex items-center justify-between'>
+      <div className='px-12px py-6px border-b border-b-base flex items-center justify-between'>
         <span className='text-12px text-t-secondary'>
-          {t('conversation.workspace.changes.summary', { count: changes.length })}
+          {t('conversation.workspace.changes.summary', { count: totalCount })}
         </span>
         <Button
           size='mini'
@@ -144,11 +216,98 @@ const FileChangeList: React.FC<FileChangeListProps> = ({ t, workspace, changes, 
         />
       </div>
 
-      {/* File list */}
+      {/* File sections */}
       <div className='flex-1 overflow-y-auto'>
-        {changes.map((change) => (
-          <FileChangeItem key={change.filePath} change={change} onClick={() => handleClick(change)} />
-        ))}
+        {/* Staged section (git-repo mode only) */}
+        {isGitRepo && staged.length > 0 && (
+          <>
+            <SectionHeader
+              title={t('conversation.workspace.changes.staged')}
+              count={staged.length}
+              expanded={stagedExpanded}
+              onToggle={() => setStagedExpanded(!stagedExpanded)}
+              actions={
+                <ActionButton
+                  tooltip={t('conversation.workspace.changes.unstageAll')}
+                  icon={<Minus size={14} />}
+                  onClick={onUnstageAll}
+                />
+              }
+            />
+            {stagedExpanded &&
+              staged.map((change) => (
+                <FileChangeItem
+                  key={`staged-${change.filePath}`}
+                  change={change}
+                  onClick={() => handleClick(change)}
+                  actions={
+                    <ActionButton
+                      tooltip={t('conversation.workspace.changes.unstage')}
+                      icon={<Minus size={14} />}
+                      onClick={() => onUnstageFile(change.relativePath)}
+                    />
+                  }
+                />
+              ))}
+          </>
+        )}
+
+        {/* Unstaged section */}
+        {unstaged.length > 0 && (
+          <>
+            <SectionHeader
+              title={
+                isGitRepo
+                  ? t('conversation.workspace.changes.unstaged')
+                  : t('conversation.workspace.changes.changedFiles')
+              }
+              count={unstaged.length}
+              expanded={unstagedExpanded}
+              onToggle={() => setUnstagedExpanded(!unstagedExpanded)}
+              actions={
+                isGitRepo ? (
+                  <ActionButton
+                    tooltip={t('conversation.workspace.changes.stageAll')}
+                    icon={<Plus size={14} />}
+                    onClick={onStageAll}
+                  />
+                ) : undefined
+              }
+            />
+            {unstagedExpanded &&
+              unstaged.map((change) => (
+                <FileChangeItem
+                  key={`unstaged-${change.filePath}`}
+                  change={change}
+                  onClick={() => handleClick(change)}
+                  actions={
+                    <>
+                      {isGitRepo ? (
+                        <>
+                          <ActionButton
+                            tooltip={t('conversation.workspace.changes.discard')}
+                            icon={<Redo size={14} />}
+                            onClick={() => onDiscardFile(change.relativePath, change.operation)}
+                          />
+                          <ActionButton
+                            tooltip={t('conversation.workspace.changes.stage')}
+                            icon={<Plus size={14} />}
+                            onClick={() => onStageFile(change.relativePath)}
+                          />
+                        </>
+                      ) : (
+                        <ActionButton
+                          tooltip={t('conversation.workspace.changes.reset')}
+                          icon={<Redo size={14} />}
+                          onClick={() => onResetFile(change.relativePath, change.operation)}
+                        />
+                      )}
+                    </>
+                  }
+                />
+              ))}
+          </>
+        )}
       </div>
     </div>
   );

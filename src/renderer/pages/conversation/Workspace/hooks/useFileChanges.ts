@@ -5,7 +5,7 @@
  */
 
 import { ipcBridge } from '@/common';
-import type { FileChangeInfo, SnapshotInfo } from '@/common/types/fileSnapshot';
+import type { CompareResult, FileChangeInfo, SnapshotInfo } from '@/common/types/fileSnapshot';
 import { useCallback, useEffect, useRef, useState } from 'react';
 
 type UseFileChangesParams = {
@@ -14,25 +14,31 @@ type UseFileChangesParams = {
 };
 
 type UseFileChangesReturn = {
-  changes: FileChangeInfo[];
+  staged: FileChangeInfo[];
+  unstaged: FileChangeInfo[];
   changeCount: number;
   loading: boolean;
   snapshotInfo: SnapshotInfo | null;
   refreshChanges: () => Promise<void>;
+  stageFile: (filePath: string) => Promise<void>;
+  stageAll: () => Promise<void>;
+  unstageFile: (filePath: string) => Promise<void>;
+  unstageAll: () => Promise<void>;
+  discardFile: (filePath: string, operation: FileChangeInfo['operation']) => Promise<void>;
+  resetFile: (filePath: string, operation: FileChangeInfo['operation']) => Promise<void>;
 };
 
 export function useFileChanges({ workspace, conversationId }: UseFileChangesParams): UseFileChangesReturn {
-  const [changes, setChanges] = useState<FileChangeInfo[]>([]);
+  const [result, setResult] = useState<CompareResult>({ staged: [], unstaged: [] });
   const [loading, setLoading] = useState(false);
   const [snapshotInfo, setSnapshotInfo] = useState<SnapshotInfo | null>(null);
   const initializedRef = useRef(false);
 
-  // Initialize snapshot when workspace is set or conversation changes
   useEffect(() => {
     if (!workspace) return;
 
     initializedRef.current = false;
-    setChanges([]);
+    setResult({ staged: [], unstaged: [] });
     setSnapshotInfo(null);
 
     ipcBridge.fileSnapshot.init
@@ -50,13 +56,12 @@ export function useFileChanges({ workspace, conversationId }: UseFileChangesPara
     };
   }, [workspace, conversationId]);
 
-  // Fetch changes on demand
   const refreshChanges = useCallback(async () => {
     if (!workspace || !initializedRef.current) return;
     setLoading(true);
     try {
-      const result = await ipcBridge.fileSnapshot.compare.invoke({ workspace });
-      setChanges(result);
+      const res = await ipcBridge.fileSnapshot.compare.invoke({ workspace });
+      setResult(res);
     } catch (err) {
       console.error('[useFileChanges] Failed to compare:', err);
     } finally {
@@ -64,11 +69,66 @@ export function useFileChanges({ workspace, conversationId }: UseFileChangesPara
     }
   }, [workspace]);
 
+  const stageFile = useCallback(
+    async (filePath: string) => {
+      if (!workspace) return;
+      await ipcBridge.fileSnapshot.stageFile.invoke({ workspace, filePath });
+      await refreshChanges();
+    },
+    [workspace, refreshChanges]
+  );
+
+  const stageAll = useCallback(async () => {
+    if (!workspace) return;
+    await ipcBridge.fileSnapshot.stageAll.invoke({ workspace });
+    await refreshChanges();
+  }, [workspace, refreshChanges]);
+
+  const unstageFile = useCallback(
+    async (filePath: string) => {
+      if (!workspace) return;
+      await ipcBridge.fileSnapshot.unstageFile.invoke({ workspace, filePath });
+      await refreshChanges();
+    },
+    [workspace, refreshChanges]
+  );
+
+  const unstageAll = useCallback(async () => {
+    if (!workspace) return;
+    await ipcBridge.fileSnapshot.unstageAll.invoke({ workspace });
+    await refreshChanges();
+  }, [workspace, refreshChanges]);
+
+  const discardFile = useCallback(
+    async (filePath: string, operation: FileChangeInfo['operation']) => {
+      if (!workspace) return;
+      await ipcBridge.fileSnapshot.discardFile.invoke({ workspace, filePath, operation });
+      await refreshChanges();
+    },
+    [workspace, refreshChanges]
+  );
+
+  const resetFile = useCallback(
+    async (filePath: string, operation: FileChangeInfo['operation']) => {
+      if (!workspace) return;
+      await ipcBridge.fileSnapshot.resetFile.invoke({ workspace, filePath, operation });
+      await refreshChanges();
+    },
+    [workspace, refreshChanges]
+  );
+
   return {
-    changes,
-    changeCount: changes.length,
+    staged: result.staged,
+    unstaged: result.unstaged,
+    changeCount: result.staged.length + result.unstaged.length,
     loading,
     snapshotInfo,
     refreshChanges,
+    stageFile,
+    stageAll,
+    unstageFile,
+    unstageAll,
+    discardFile,
+    resetFile,
   };
 }

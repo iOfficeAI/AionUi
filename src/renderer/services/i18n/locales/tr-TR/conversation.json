@@ -162,7 +162,16 @@
       "deletions": "-{{count}} silme",
       "empty": "Henüz değişiklik yok",
       "emptyDescription": "AI dosyaları değiştirdiğinde değişiklikler burada görünecektir",
-      "refresh": "Yenile"
+      "refresh": "Yenile",
+      "staged": "Hazırlanmış Değişiklikler",
+      "unstaged": "Değişiklikler",
+      "changedFiles": "Değişen Dosyalar",
+      "stage": "Hazırla",
+      "stageAll": "Tüm Değişiklikleri Hazırla",
+      "unstage": "Hazırlamayı Geri Al",
+      "unstageAll": "Tüm Hazırlamaları Geri Al",
+      "discard": "Değişiklikleri Sil",
+      "reset": "Değişiklikleri Geri Al"
     }
   },
   "minimap": {

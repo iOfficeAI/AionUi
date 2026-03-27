@@ -167,7 +167,16 @@
       "deletions": "-{{count}} 行删除",
       "empty": "暂无变更",
       "emptyDescription": "AI 修改文件后，变更记录将显示在此处",
-      "refresh": "刷新"
+      "refresh": "刷新",
+      "staged": "已暂存的更改",
+      "unstaged": "更改",
+      "changedFiles": "已更改的文件",
+      "stage": "暂存",
+      "stageAll": "暂存所有更改",
+      "unstage": "取消暂存",
+      "unstageAll": "取消暂存所有更改",
+      "discard": "放弃更改",
+      "reset": "还原更改"
     }
   },
   "minimap": {

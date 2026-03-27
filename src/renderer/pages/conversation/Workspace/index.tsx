@@ -529,10 +529,18 @@ const ChatWorkspace: React.FC<WorkspaceProps> = ({
             <FileChangeList
               t={t}
               workspace={workspace}
-              changes={fileChangesHook.changes}
+              staged={fileChangesHook.staged}
+              unstaged={fileChangesHook.unstaged}
               loading={fileChangesHook.loading}
+              snapshotInfo={fileChangesHook.snapshotInfo}
               onRefresh={fileChangesHook.refreshChanges}
               onOpenDiff={handleOpenChangeDiff}
+              onStageFile={fileChangesHook.stageFile}
+              onStageAll={fileChangesHook.stageAll}
+              onUnstageFile={fileChangesHook.unstageFile}
+              onUnstageAll={fileChangesHook.unstageAll}
+              onDiscardFile={fileChangesHook.discardFile}
+              onResetFile={fileChangesHook.resetFile}
             />
           </FlexFullContainer>
         )}

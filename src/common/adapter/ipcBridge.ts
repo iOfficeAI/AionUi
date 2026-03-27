@@ -307,12 +307,12 @@ export const fileStream = {
   }>('file-stream-content-update'), // Agent 写入文件时的流式内容更新 / Streaming content update when agent writes file
 };
 
-// File snapshot providers for tracking AI file changes (on-demand comparison via isomorphic-git)
+// File snapshot providers for tracking file changes
 export const fileSnapshot = {
   init: bridge.buildProvider<import('@/common/types/fileSnapshot').SnapshotInfo, { workspace: string }>(
     'file-snapshot-init'
   ),
-  compare: bridge.buildProvider<import('@/common/types/fileSnapshot').FileChangeInfo[], { workspace: string }>(
+  compare: bridge.buildProvider<import('@/common/types/fileSnapshot').CompareResult, { workspace: string }>(
     'file-snapshot-compare'
   ),
   getBaselineContent: bridge.buildProvider<string | null, { workspace: string; filePath: string }>(
@@ -322,6 +322,18 @@ export const fileSnapshot = {
     'file-snapshot-info'
   ),
   dispose: bridge.buildProvider<void, { workspace: string }>('file-snapshot-dispose'),
+  stageFile: bridge.buildProvider<void, { workspace: string; filePath: string }>('file-snapshot-stage-file'),
+  stageAll: bridge.buildProvider<void, { workspace: string }>('file-snapshot-stage-all'),
+  unstageFile: bridge.buildProvider<void, { workspace: string; filePath: string }>('file-snapshot-unstage-file'),
+  unstageAll: bridge.buildProvider<void, { workspace: string }>('file-snapshot-unstage-all'),
+  discardFile: bridge.buildProvider<
+    void,
+    { workspace: string; filePath: string; operation: import('@/common/types/fileSnapshot').FileChangeOperation }
+  >('file-snapshot-discard-file'),
+  resetFile: bridge.buildProvider<
+    void,
+    { workspace: string; filePath: string; operation: import('@/common/types/fileSnapshot').FileChangeOperation }
+  >('file-snapshot-reset-file'),
 };
 
 export const googleAuth = {

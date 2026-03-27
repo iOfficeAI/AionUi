@@ -167,7 +167,16 @@
       "deletions": "-{{count}} 行刪除",
       "empty": "暫無變更",
       "emptyDescription": "AI 修改檔案後，變更記錄將顯示在此處",
-      "refresh": "重新整理"
+      "refresh": "重新整理",
+      "staged": "已暫存的變更",
+      "unstaged": "變更",
+      "changedFiles": "已變更的檔案",
+      "stage": "暫存",
+      "stageAll": "暫存所有變更",
+      "unstage": "取消暫存",
+      "unstageAll": "取消暫存所有變更",
+      "discard": "捨棄變更",
+      "reset": "還原變更"
     }
   },
   "minimap": {

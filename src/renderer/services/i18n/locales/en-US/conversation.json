@@ -167,7 +167,16 @@
       "deletions": "-{{count}} deletions",
       "empty": "No changes yet",
       "emptyDescription": "File changes will appear here when AI modifies files",
-      "refresh": "Refresh"
+      "refresh": "Refresh",
+      "staged": "Staged Changes",
+      "unstaged": "Changes",
+      "changedFiles": "Changed Files",
+      "stage": "Stage",
+      "stageAll": "Stage All Changes",
+      "unstage": "Unstage",
+      "unstageAll": "Unstage All Changes",
+      "discard": "Discard Changes",
+      "reset": "Revert Changes"
     }
   },
   "minimap": {

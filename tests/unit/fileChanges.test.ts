@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import type { FileChangeInfo, SnapshotInfo } from '../../src/common/types/fileSnapshot';
+import type { CompareResult, FileChangeInfo, SnapshotInfo } from '../../src/common/types/fileSnapshot';
 
 describe('FileChangeInfo type', () => {
   it('represents a created file', () => {
@@ -41,5 +41,16 @@ describe('SnapshotInfo type', () => {
     const info: SnapshotInfo = { mode: 'snapshot', branch: null };
     expect(info.mode).toBe('snapshot');
     expect(info.branch).toBeNull();
+  });
+});
+
+describe('CompareResult type', () => {
+  it('represents staged and unstaged changes', () => {
+    const result: CompareResult = {
+      staged: [{ filePath: '/ws/a.ts', relativePath: 'a.ts', operation: 'modify' }],
+      unstaged: [{ filePath: '/ws/b.ts', relativePath: 'b.ts', operation: 'create' }],
+    };
+    expect(result.staged).toHaveLength(1);
+    expect(result.unstaged).toHaveLength(1);
   });
 });

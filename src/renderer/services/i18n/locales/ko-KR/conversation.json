@@ -167,7 +167,16 @@
       "deletions": "-{{count}} 줄 삭제",
       "empty": "변경 사항 없음",
       "emptyDescription": "AI가 파일을 수정하면 변경 내용이 여기에 표시됩니다",
-      "refresh": "새로고침"
+      "refresh": "새로고침",
+      "staged": "스테이지된 변경 사항",
+      "unstaged": "변경 사항",
+      "changedFiles": "변경된 파일",
+      "stage": "스테이지",
+      "stageAll": "모든 변경 사항 스테이지",
+      "unstage": "스테이지 해제",
+      "unstageAll": "모든 스테이지 해제",
+      "discard": "변경 사항 취소",
+      "reset": "변경 사항 되돌리기"
     }
   },
   "minimap": {

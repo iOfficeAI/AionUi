@@ -35,9 +35,9 @@ describe('WorkspaceSnapshotService', () => {
       await service.init(tmpDir);
 
       await fs.writeFile(path.join(tmpDir, 'b.txt'), 'new file');
-      const changes = await service.compare(tmpDir);
+      const { unstaged } = await service.compare(tmpDir);
 
-      const created = changes.find((c) => c.relativePath === 'b.txt');
+      const created = unstaged.find((c) => c.relativePath === 'b.txt');
       expect(created).toBeDefined();
       expect(created!.operation).toBe('create');
     });
@@ -47,9 +47,9 @@ describe('WorkspaceSnapshotService', () => {
       await service.init(tmpDir);
 
       await fs.writeFile(path.join(tmpDir, 'a.txt'), 'modified content');
-      const changes = await service.compare(tmpDir);
+      const { unstaged } = await service.compare(tmpDir);
 
-      const modified = changes.find((c) => c.relativePath === 'a.txt');
+      const modified = unstaged.find((c) => c.relativePath === 'a.txt');
       expect(modified).toBeDefined();
       expect(modified!.operation).toBe('modify');
     });
@@ -59,19 +59,29 @@ describe('WorkspaceSnapshotService', () => {
       await service.init(tmpDir);
 
       await fs.unlink(path.join(tmpDir, 'a.txt'));
-      const changes = await service.compare(tmpDir);
+      const { unstaged } = await service.compare(tmpDir);
 
-      const deleted = changes.find((c) => c.relativePath === 'a.txt');
+      const deleted = unstaged.find((c) => c.relativePath === 'a.txt');
       expect(deleted).toBeDefined();
       expect(deleted!.operation).toBe('delete');
     });
 
-    it('compare returns empty array when nothing changed', async () => {
+    it('compare returns empty when nothing changed', async () => {
       await fs.writeFile(path.join(tmpDir, 'a.txt'), 'original');
       await service.init(tmpDir);
 
-      const changes = await service.compare(tmpDir);
-      expect(changes).toEqual([]);
+      const { staged, unstaged } = await service.compare(tmpDir);
+      expect(staged).toEqual([]);
+      expect(unstaged).toEqual([]);
+    });
+
+    it('snapshot mode has no staged files', async () => {
+      await fs.writeFile(path.join(tmpDir, 'a.txt'), 'original');
+      await service.init(tmpDir);
+
+      await fs.writeFile(path.join(tmpDir, 'a.txt'), 'modified content');
+      const { staged } = await service.compare(tmpDir);
+      expect(staged).toEqual([]);
     });
 
     it('getBaselineContent returns original content', async () => {
@@ -91,18 +101,25 @@ describe('WorkspaceSnapshotService', () => {
       expect(content).toBeNull();
     });
 
-    it('respects .gitignore', async () => {
-      await fs.writeFile(path.join(tmpDir, '.gitignore'), 'ignored.txt\n');
-      await fs.writeFile(path.join(tmpDir, 'tracked.txt'), 'tracked');
-      await fs.writeFile(path.join(tmpDir, 'ignored.txt'), 'ignored');
+    it('resetFile restores modified file', async () => {
+      await fs.writeFile(path.join(tmpDir, 'a.txt'), 'original');
       await service.init(tmpDir);
 
-      await fs.writeFile(path.join(tmpDir, 'ignored.txt'), 'changed ignored content');
-      await fs.writeFile(path.join(tmpDir, 'tracked.txt'), 'changed tracked content');
-      const changes = await service.compare(tmpDir);
+      await fs.writeFile(path.join(tmpDir, 'a.txt'), 'modified content');
+      await service.resetFile(tmpDir, 'a.txt', 'modify');
 
-      expect(changes.some((c) => c.relativePath === 'tracked.txt')).toBe(true);
-      expect(changes.some((c) => c.relativePath === 'ignored.txt')).toBe(false);
+      const content = await fs.readFile(path.join(tmpDir, 'a.txt'), 'utf-8');
+      expect(content).toBe('original');
+    });
+
+    it('resetFile deletes created file', async () => {
+      await fs.writeFile(path.join(tmpDir, 'a.txt'), 'original');
+      await service.init(tmpDir);
+
+      await fs.writeFile(path.join(tmpDir, 'new.txt'), 'new file');
+      await service.resetFile(tmpDir, 'new.txt', 'create');
+
+      await expect(fs.access(path.join(tmpDir, 'new.txt'))).rejects.toThrow();
     });
 
     it('dispose cleans up temp gitdir', async () => {
@@ -111,18 +128,25 @@ describe('WorkspaceSnapshotService', () => {
 
       await service.dispose(tmpDir);
 
-      const changes = await service.compare(tmpDir);
-      expect(changes).toEqual([]);
+      const { staged, unstaged } = await service.compare(tmpDir);
+      expect(staged).toEqual([]);
+      expect(unstaged).toEqual([]);
     });
   });
 
   describe('git-repo mode (has .git)', () => {
     beforeEach(async () => {
       await exec('git', ['init'], { cwd: tmpDir });
-      await exec('git', ['-c', 'user.name=Test', '-c', 'user.email=test@test.com', 'commit', '--allow-empty', '-m', 'init'], { cwd: tmpDir });
+      await exec(
+        'git',
+        ['-c', 'user.name=Test', '-c', 'user.email=test@test.com', 'commit', '--allow-empty', '-m', 'init'],
+        { cwd: tmpDir }
+      );
       await fs.writeFile(path.join(tmpDir, 'initial.txt'), 'initial');
       await exec('git', ['add', 'initial.txt'], { cwd: tmpDir });
-      await exec('git', ['-c', 'user.name=Test', '-c', 'user.email=test@test.com', 'commit', '-m', 'add initial'], { cwd: tmpDir });
+      await exec('git', ['-c', 'user.name=Test', '-c', 'user.email=test@test.com', 'commit', '-m', 'add initial'], {
+        cwd: tmpDir,
+      });
     });
 
     it('init returns git-repo mode with branch name', async () => {
@@ -132,49 +156,84 @@ describe('WorkspaceSnapshotService', () => {
       expect(info.branch!.length).toBeGreaterThan(0);
     });
 
-    it('pre-existing uncommitted changes are NOT shown (baseline = working tree at init)', async () => {
-      // Modify file BEFORE init — simulates dirty working tree when conversation starts
-      await fs.writeFile(path.join(tmpDir, 'initial.txt'), 'pre-existing change');
-      await fs.writeFile(path.join(tmpDir, 'untracked.txt'), 'pre-existing untracked');
-
+    it('compare shows unstaged modification', async () => {
       await service.init(tmpDir);
+      await fs.writeFile(path.join(tmpDir, 'initial.txt'), 'changed content');
 
-      // Immediate compare should show 0 changes — baseline captured the dirty state
-      const changes = await service.compare(tmpDir);
-      expect(changes).toEqual([]);
+      const { unstaged } = await service.compare(tmpDir);
+      const modified = unstaged.find((c) => c.relativePath === 'initial.txt');
+      expect(modified).toBeDefined();
+      expect(modified!.operation).toBe('modify');
     });
 
-    it('compare only shows changes made AFTER init', async () => {
-      // Pre-existing dirty state
-      await fs.writeFile(path.join(tmpDir, 'initial.txt'), 'pre-existing change');
-
-      await service.init(tmpDir);
-
-      // New change after init — this should be detected
-      await fs.writeFile(path.join(tmpDir, 'newfile.txt'), 'created during conversation');
-      await fs.writeFile(path.join(tmpDir, 'initial.txt'), 'changed again during conversation');
-
-      const changes = await service.compare(tmpDir);
-      expect(changes.find((c) => c.relativePath === 'newfile.txt')).toBeDefined();
-      expect(changes.find((c) => c.relativePath === 'initial.txt')).toBeDefined();
-      expect(changes).toHaveLength(2);
-    });
-
-    it('compare detects new untracked file', async () => {
+    it('compare shows untracked file as unstaged create', async () => {
       await service.init(tmpDir);
       await fs.writeFile(path.join(tmpDir, 'newfile.txt'), 'new');
 
-      const changes = await service.compare(tmpDir);
-      const created = changes.find((c) => c.relativePath === 'newfile.txt');
+      const { unstaged } = await service.compare(tmpDir);
+      const created = unstaged.find((c) => c.relativePath === 'newfile.txt');
       expect(created).toBeDefined();
       expect(created!.operation).toBe('create');
     });
 
-    it('getBaselineContent returns working tree state at init time', async () => {
+    it('stageFile moves file to staged', async () => {
       await service.init(tmpDir);
       await fs.writeFile(path.join(tmpDir, 'initial.txt'), 'changed content');
 
-      // Baseline is working tree at init time, which had 'initial'
+      await service.stageFile(tmpDir, 'initial.txt');
+      const { staged, unstaged } = await service.compare(tmpDir);
+
+      expect(staged.find((c) => c.relativePath === 'initial.txt')).toBeDefined();
+      expect(unstaged.find((c) => c.relativePath === 'initial.txt')).toBeUndefined();
+    });
+
+    it('unstageFile moves file back to unstaged', async () => {
+      await service.init(tmpDir);
+      await fs.writeFile(path.join(tmpDir, 'initial.txt'), 'changed content');
+
+      await service.stageFile(tmpDir, 'initial.txt');
+      await service.unstageFile(tmpDir, 'initial.txt');
+      const { staged, unstaged } = await service.compare(tmpDir);
+
+      expect(staged.find((c) => c.relativePath === 'initial.txt')).toBeUndefined();
+      expect(unstaged.find((c) => c.relativePath === 'initial.txt')).toBeDefined();
+    });
+
+    it('stageAll stages all changes', async () => {
+      await service.init(tmpDir);
+      await fs.writeFile(path.join(tmpDir, 'initial.txt'), 'changed content');
+      await fs.writeFile(path.join(tmpDir, 'newfile.txt'), 'new');
+
+      await service.stageAll(tmpDir);
+      const { staged, unstaged } = await service.compare(tmpDir);
+
+      expect(staged.length).toBe(2);
+      expect(unstaged.length).toBe(0);
+    });
+
+    it('discardFile restores modified file', async () => {
+      await service.init(tmpDir);
+      await fs.writeFile(path.join(tmpDir, 'initial.txt'), 'changed content');
+
+      await service.discardFile(tmpDir, 'initial.txt', 'modify');
+
+      const content = await fs.readFile(path.join(tmpDir, 'initial.txt'), 'utf-8');
+      expect(content).toBe('initial');
+    });
+
+    it('discardFile deletes untracked file', async () => {
+      await service.init(tmpDir);
+      await fs.writeFile(path.join(tmpDir, 'newfile.txt'), 'new');
+
+      await service.discardFile(tmpDir, 'newfile.txt', 'create');
+
+      await expect(fs.access(path.join(tmpDir, 'newfile.txt'))).rejects.toThrow();
+    });
+
+    it('getBaselineContent returns HEAD version', async () => {
+      await service.init(tmpDir);
+      await fs.writeFile(path.join(tmpDir, 'initial.txt'), 'changed content');
+
       const content = await service.getBaselineContent(tmpDir, 'initial.txt');
       expect(content).toBe('initial');
     });

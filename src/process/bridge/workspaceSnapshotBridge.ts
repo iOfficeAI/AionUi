@@ -29,6 +29,30 @@ export function initWorkspaceSnapshotBridge(): void {
   ipcBridge.fileSnapshot.dispose.provider(async ({ workspace }) => {
     await snapshotService.dispose(workspace);
   });
+
+  ipcBridge.fileSnapshot.stageFile.provider(async ({ workspace, filePath }) => {
+    await snapshotService.stageFile(workspace, filePath);
+  });
+
+  ipcBridge.fileSnapshot.stageAll.provider(async ({ workspace }) => {
+    await snapshotService.stageAll(workspace);
+  });
+
+  ipcBridge.fileSnapshot.unstageFile.provider(async ({ workspace, filePath }) => {
+    await snapshotService.unstageFile(workspace, filePath);
+  });
+
+  ipcBridge.fileSnapshot.unstageAll.provider(async ({ workspace }) => {
+    await snapshotService.unstageAll(workspace);
+  });
+
+  ipcBridge.fileSnapshot.discardFile.provider(async ({ workspace, filePath, operation }) => {
+    await snapshotService.discardFile(workspace, filePath, operation);
+  });
+
+  ipcBridge.fileSnapshot.resetFile.provider(async ({ workspace, filePath, operation }) => {
+    await snapshotService.resetFile(workspace, filePath, operation);
+  });
 }
 
 /** Clean up all snapshots on app exit */
