@@ -18,6 +18,12 @@ export function initShellBridge(): void {
   });
 
   ipcBridge.shell.openExternal.provider((url) => {
+    try {
+      new URL(url);
+    } catch {
+      console.warn(`[shellBridge] Invalid URL passed to openExternal: ${url}`);
+      return Promise.resolve();
+    }
     return shell.openExternal(url);
   });
 }

@@ -333,8 +333,8 @@ export function initConversationBridge(
   })();
 
   ipcBridge.conversation.getWorkspace.provider(async ({ workspace, search, path }) => {
-    const fileService = GeminiAgent.buildFileServer(workspace);
     try {
+      const fileService = GeminiAgent.buildFileServer(workspace);
       return await readDirectoryRecursive(path, {
         root: workspace,
         fileService,
@@ -411,7 +411,15 @@ export function initConversationBridge(
     }
 
     // Copy files to workspace (unified for all agents)
-    const workspaceFiles = await copyFilesToDirectory(task.workspace, files, false, getSystemDir().cacheDir);
+    // Wrap in try-catch to prevent unhandled rejection when workspace directory is missing
+    // (bridge library does not attach .catch to provider promises)
+    let workspaceFiles: string[];
+    try {
+      workspaceFiles = await copyFilesToDirectory(task.workspace, files, false, getSystemDir().cacheDir);
+    } catch (error) {
+      console.error('[conversationBridge] sendMessage: failed to copy files to workspace:', error);
+      workspaceFiles = [];
+    }
 
     // Precompute agent content with optional skill injection.
     // OpenClaw uses full-content mode: inject full skill text rather than index paths,

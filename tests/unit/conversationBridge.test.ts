@@ -194,6 +194,58 @@ describe('conversationBridge', () => {
     });
   });
 
+  describe('getWorkspace — ENOENT handling', () => {
+    it('returns empty array when buildFileServer throws', async () => {
+      const geminiMod = await vi.importMock<typeof import('../../src/agent/gemini')>('../../src/agent/gemini');
+      geminiMod.GeminiAgent.buildFileServer.mockImplementation(() => {
+        throw new Error('ENOENT: no such file or directory');
+      });
+
+      const handler = handlers['getWorkspace'];
+      const result = await handler({ workspace: '/missing/path', path: '/missing/path', search: '' });
+
+      expect(result).toEqual([]);
+      geminiMod.GeminiAgent.buildFileServer.mockReturnValue({});
+    });
+
+    it('returns empty array when readDirectoryRecursive rejects with ENOENT', async () => {
+      const utilsMod = await vi.importMock<typeof import('../../src/process/utils')>('../../src/process/utils');
+      utilsMod.readDirectoryRecursive.mockRejectedValueOnce(new Error('ENOENT: no such file or directory, stat'));
+
+      const handler = handlers['getWorkspace'];
+      const result = await handler({ workspace: '/missing', path: '/missing', search: '' });
+
+      expect(result).toEqual([]);
+    });
+  });
+
+  describe('sendMessage — copyFilesToDirectory failure', () => {
+    it('does not reject when copyFilesToDirectory throws ENOENT', async () => {
+      const utilsMod = await vi.importMock<typeof import('../../src/process/utils')>('../../src/process/utils');
+      utilsMod.copyFilesToDirectory.mockRejectedValueOnce(new Error('ENOENT: no such file or directory, stat'));
+
+      const mockTask = {
+        workspace: '/deleted/workspace',
+        sendMessage: vi.fn().mockResolvedValue(undefined),
+      };
+      const tm = makeTaskManager({
+        getOrBuildTask: vi.fn().mockResolvedValue(mockTask),
+      });
+      initConversationBridge(service, tm);
+
+      const handler = handlers['sendMessage'];
+      const result = await handler({
+        conversation_id: 'c1',
+        input: 'hello',
+        files: ['/some/file.txt'],
+      });
+
+      expect(result).toEqual({ success: true });
+      // sendMessage should still be called with empty files array
+      expect(mockTask.sendMessage).toHaveBeenCalled();
+    });
+  });
+
   describe('warmup', () => {
     it('calls getOrBuildTask for the given conversation_id', async () => {
       const handler = handlers['warmup'];

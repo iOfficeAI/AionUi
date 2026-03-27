@@ -5,6 +5,7 @@ import { useLayoutContext } from '@/renderer/hooks/context/LayoutContext';
 import { useResizableSplit } from '@/renderer/hooks/ui/useResizableSplit';
 import ConversationTabs from '@/renderer/pages/conversation/components/ConversationTabs';
 import ChatTitleEditor from '@/renderer/pages/conversation/components/ChatTitleEditor';
+import ConversationTitleMinimap from '@/renderer/pages/conversation/components/ConversationTitleMinimap';
 import MobileWorkspaceOverlay from './MobileWorkspaceOverlay';
 import WorkspacePanelHeader, { DesktopWorkspaceToggle } from './WorkspacePanelHeader';
 import { useConversationTabs } from '@/renderer/pages/conversation/hooks/ConversationTabsContext';
@@ -190,6 +191,7 @@ const ChatLayout: React.FC<{
               conversationId={conversationId}
             />
           )}
+          {(hasTabs || layout?.isMobile) && <ConversationTitleMinimap conversationId={conversationId} hideTrigger />}
         </FlexFullContainer>
         <div className='flex items-center gap-12px shrink-0'>
           {props.headerExtra}
