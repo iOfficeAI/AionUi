@@ -373,7 +373,38 @@ export function initFsBridge(): void {
     try {
       // 处理字符串类型 / Handle string type
       if (typeof data === 'string') {
+        // Capture before-state for file change tracking
+        let beforeContent: string | null = null;
+        let fileExisted = true;
+        try {
+          beforeContent = await fs.readFile(filePath, 'utf-8');
+        } catch (readError) {
+          if ((readError as NodeJS.ErrnoException).code === 'ENOENT') {
+            fileExisted = false;
+          }
+          // Other read errors: skip snapshot, proceed with write
+        }
+
         await fs.writeFile(filePath, data, 'utf-8');
+
+        // Emit file snapshot change event for change tracking
+        try {
+          const pathSegments = filePath.split(path.sep);
+          const fileName = pathSegments[pathSegments.length - 1];
+          const workspace = pathSegments.slice(0, -1).join(path.sep);
+
+          ipcBridge.fileSnapshot.change.emit({
+            workspace,
+            filePath,
+            relativePath: fileName,
+            operation: fileExisted ? 'modify' : 'create',
+            before: beforeContent,
+            after: data,
+            timestamp: Date.now(),
+          });
+        } catch (snapshotError) {
+          console.error('[fsBridge] Failed to emit file snapshot:', snapshotError);
+        }
 
         // 发送流式内容更新事件到预览面板（用于实时更新）
         // Send streaming content update to preview panel (for real-time updates)
@@ -661,7 +692,34 @@ export function initFsBridge(): void {
       if (stats.isDirectory()) {
         await fs.rm(targetPath, { recursive: true, force: true });
       } else {
+        // Capture before-state for file change tracking
+        let beforeContent: string | null = null;
+        try {
+          beforeContent = await fs.readFile(targetPath, 'utf-8');
+        } catch {
+          // Binary file or read error: beforeContent stays null
+        }
+
         await fs.unlink(targetPath);
+
+        // Emit file snapshot delete event
+        try {
+          const pathSegments = targetPath.split(path.sep);
+          const fileName = pathSegments[pathSegments.length - 1];
+          const workspace = pathSegments.slice(0, -1).join(path.sep);
+
+          ipcBridge.fileSnapshot.change.emit({
+            workspace,
+            filePath: targetPath,
+            relativePath: fileName,
+            operation: 'delete',
+            before: beforeContent,
+            after: null,
+            timestamp: Date.now(),
+          });
+        } catch (snapshotError) {
+          console.error('[fsBridge] Failed to emit file snapshot:', snapshotError);
+        }
 
         // 发送流式删除事件到预览面板（用于关闭预览）
         // Send streaming delete event to preview panel (to close preview)
