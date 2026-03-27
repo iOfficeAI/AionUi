@@ -166,7 +166,8 @@
       "insertions": "+{{count}} 行新增",
       "deletions": "-{{count}} 行删除",
       "empty": "暂无变更",
-      "emptyDescription": "AI 修改文件后，变更记录将显示在此处"
+      "emptyDescription": "AI 修改文件后，变更记录将显示在此处",
+      "refresh": "刷新"
     }
   },
   "minimap": {

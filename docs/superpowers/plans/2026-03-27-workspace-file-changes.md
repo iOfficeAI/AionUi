@@ -1,561 +1,696 @@
-# Workspace File Changes Panel — Implementation Plan
+# Workspace 文件变更面板 — 实现计划
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** Add a "Changes" tab to the Workspace panel that shows a cumulative list of files modified by AI during a conversation, with click-to-view diffs.
+**目标:** 在 Workspace 面板中通过 isomorphic-git 追踪文件变更，支持已有 git 仓库（展示分支名和未提交变更）和临时目录（独立快照对比）两种模式。
 
-**Architecture:** Intercept all file writes in `fsBridge.ts` to capture before/after snapshots, emit via a new IPC channel, accumulate state in a renderer hook, and display in a new tab alongside the existing file tree.
+**架构:** 主进程 `WorkspaceSnapshotService` 使用 isomorphic-git 管理快照，通过 IPC provider 暴露 init/compare/getBaselineContent/dispose 接口，渲染进程按需请求比对结果并展示。
 
-**Tech Stack:** Electron IPC bridge (`@office-ai/platform`), React hooks, Arco Design components, existing `diffUtils.ts` and `DiffViewer` for diff rendering.
-
----
-
-## File Structure
-
-| File                                                                       | Action | Responsibility                                                |
-| -------------------------------------------------------------------------- | ------ | ------------------------------------------------------------- |
-| `src/common/adapter/ipcBridge.ts`                                          | Modify | Add `fileSnapshot.change` emitter                             |
-| `src/common/types/fileSnapshot.ts`                                         | Create | Type definitions for `FileChangeEvent` and `FileChangeRecord` |
-| `src/process/bridge/fsBridge.ts`                                           | Modify | Capture before-content on write/delete, emit snapshot events  |
-| `src/renderer/pages/conversation/Workspace/hooks/useFileChanges.ts`        | Create | Listen to snapshot events, manage cumulative change map       |
-| `src/renderer/pages/conversation/Workspace/components/WorkspaceTabBar.tsx` | Create | Tab bar component for Files/Changes switching                 |
-| `src/renderer/pages/conversation/Workspace/components/FileChangeList.tsx`  | Create | Change list UI with status markers, stats, click-to-diff      |
-| `src/renderer/pages/conversation/Workspace/index.tsx`                      | Modify | Integrate tab bar and conditional rendering                   |
-| `src/renderer/pages/conversation/Workspace/types.ts`                       | Modify | Add tab-related types                                         |
-| `src/renderer/services/i18n/locales/en-US/conversation.json`               | Modify | Add i18n keys for changes tab                                 |
-| `src/renderer/services/i18n/locales/zh-CN/conversation.json`               | Modify | Add i18n keys for changes tab                                 |
-| `tests/unit/fileChanges.test.ts`                                           | Create | Tests for merge logic                                         |
-| `tests/unit/fsBridgeSnapshot.test.ts`                                      | Create | Tests for snapshot interception                               |
-| `tests/unit/FileChangeList.dom.test.tsx`                                   | Create | Tests for UI component                                        |
+**技术栈:** isomorphic-git、Electron IPC bridge（`@office-ai/platform`）、React hooks、Arco Design、`diff` 包、已有 DiffViewer。
 
 ---
 
-### Task 1: Type Definitions
+## 文件结构
+
+| 文件                                                                       | 操作 | 职责                                                              |
+| -------------------------------------------------------------------------- | ---- | ----------------------------------------------------------------- |
+| `src/common/types/fileSnapshot.ts`                                         | 重写 | 新类型定义：FileChangeInfo、SnapshotInfo（移除旧的事件/合并逻辑） |
+| `src/common/adapter/ipcBridge.ts`                                          | 修改 | 将 `fileSnapshot` emitter 替换为 providers                        |
+| `src/process/services/WorkspaceSnapshotService.ts`                         | 新建 | isomorphic-git 快照管理服务（双模式）                             |
+| `src/process/bridge/workspaceSnapshotBridge.ts`                            | 新建 | 快照操作的 IPC provider 处理器                                    |
+| `src/process/bridge/index.ts`                                              | 修改 | 注册快照 bridge                                                   |
+| `src/process/bridge/fsBridge.ts`                                           | 修改 | 移除旧的快照拦截代码                                              |
+| `src/renderer/pages/conversation/Workspace/hooks/useFileChanges.ts`        | 重写 | 从事件监听改为按需 IPC 调用                                       |
+| `src/renderer/pages/conversation/Workspace/components/FileChangeList.tsx`  | 修改 | 延迟加载 diff、loading 状态、刷新按钮                             |
+| `src/renderer/pages/conversation/Workspace/components/WorkspaceTabBar.tsx` | 修改 | 展示分支名                                                        |
+| `src/renderer/pages/conversation/Workspace/index.tsx`                      | 修改 | 适配新 hook 接口                                                  |
+| `tests/unit/WorkspaceSnapshotService.test.ts`                              | 新建 | 快照服务单元测试                                                  |
+| `tests/unit/fileChanges.test.ts`                                           | 重写 | 适配新类型的测试                                                  |
+| `package.json`                                                             | 修改 | 添加 `isomorphic-git` 依赖                                        |
+
+---
+
+### Task 1: 安装依赖 & 清理旧快照拦截代码
 
 **Files:**
 
-- Create: `src/common/types/fileSnapshot.ts`
-- Test: `tests/unit/fileChanges.test.ts`
+- Modify: `package.json`
+- Modify: `src/process/bridge/fsBridge.ts`
+- Modify: `src/common/adapter/ipcBridge.ts`
 
-- [ ] **Step 1: Create type definitions file**
+- [ ] **Step 1: 安装 isomorphic-git**
+
+```bash
+bun add isomorphic-git
+```
+
+- [ ] **Step 2: 移除 fsBridge.ts 中 writeFile provider 的快照代码**
+
+在 `src/process/bridge/fsBridge.ts` 的 writeFile provider 中，找到 `// Capture before-state for file change tracking` 开头的代码块（约从 `let beforeContent` 到 `ipcBridge.fileSnapshot.change.emit(...)` 的 try/catch 结束），全部移除。恢复为原来的简单写入：
+
+```typescript
+// 移除 before-content capture 和 snapshot emit
+// 保留原始的 await fs.writeFile(filePath, data, 'utf-8');
+```
+
+- [ ] **Step 3: 移除 fsBridge.ts 中 removeEntry provider 的快照代码**
+
+在 removeEntry provider 的文件删除分支中，找到 `// Capture before-state for file change tracking` 开头的代码块，全部移除。恢复为原来的简单删除：
+
+```typescript
+// 恢复为：
+await fs.unlink(targetPath);
+```
+
+- [ ] **Step 4: 验证 fsBridge.ts 编译无误**
+
+```bash
+bunx tsc --noEmit
+```
+
+- [ ] **Step 5: Commit**
+
+```bash
+git add package.json bun.lock src/process/bridge/fsBridge.ts
+git commit -m "chore: add isomorphic-git and remove old snapshot interception from fsBridge"
+```
+
+---
+
+### Task 2: 类型定义 & IPC 通道
+
+**Files:**
+
+- Rewrite: `src/common/types/fileSnapshot.ts`
+- Modify: `src/common/adapter/ipcBridge.ts`
+- Rewrite: `tests/unit/fileChanges.test.ts`
+
+- [ ] **Step 1: 重写类型定义文件**
 
 ```typescript
 // src/common/types/fileSnapshot.ts
 
 /**
- * IPC event emitted by fsBridge when a file is written or deleted.
+ * @license
+ * Copyright 2025 AionUi (aionui.com)
+ * SPDX-License-Identifier: Apache-2.0
  */
-export type FileChangeEvent = {
-  workspace: string;
+
+export type FileChangeOperation = 'create' | 'modify' | 'delete';
+
+/** A single file's change status returned by comparison */
+export type FileChangeInfo = {
   filePath: string;
   relativePath: string;
-  operation: 'create' | 'modify' | 'delete';
-  before: string | null;
-  after: string | null;
-  timestamp: number;
+  operation: FileChangeOperation;
 };
 
-/**
- * Accumulated record of a file's changes within a conversation.
- */
-export type FileChangeRecord = {
-  filePath: string;
-  relativePath: string;
-  operation: 'create' | 'modify' | 'delete';
-  before: string | null;
-  after: string | null;
-  timestamp: number;
+/** Snapshot metadata returned by init and getInfo */
+export type SnapshotInfo = {
+  mode: 'git-repo' | 'snapshot';
+  branch: string | null;
 };
-
-/**
- * Merge a new FileChangeEvent into an existing FileChangeRecord.
- * Returns the updated record, or null if the net effect is "nothing happened".
- */
-export function mergeFileChange(
-  existing: FileChangeRecord | undefined,
-  event: FileChangeEvent
-): FileChangeRecord | null {
-  if (!existing) {
-    return {
-      filePath: event.filePath,
-      relativePath: event.relativePath,
-      operation: event.operation,
-      before: event.before,
-      after: event.after,
-      timestamp: event.timestamp,
-    };
-  }
-
-  // create + delete = net nothing
-  if (existing.operation === 'create' && event.operation === 'delete') {
-    return null;
-  }
-
-  // create + modify = still create (keep before=null, update after)
-  if (existing.operation === 'create' && event.operation === 'modify') {
-    return {
-      ...existing,
-      after: event.after,
-      timestamp: event.timestamp,
-    };
-  }
-
-  // modify + modify = keep original before, update after
-  if (existing.operation === 'modify' && event.operation === 'modify') {
-    return {
-      ...existing,
-      after: event.after,
-      timestamp: event.timestamp,
-    };
-  }
-
-  // modify + delete = delete with original before
-  if (existing.operation === 'modify' && event.operation === 'delete') {
-    return {
-      ...existing,
-      operation: 'delete',
-      after: null,
-      timestamp: event.timestamp,
-    };
-  }
-
-  // delete + create = modify (restored file, possibly with different content)
-  if (existing.operation === 'delete' && event.operation === 'create') {
-    return {
-      ...existing,
-      operation: 'modify',
-      after: event.after,
-      timestamp: event.timestamp,
-    };
-  }
-
-  // Fallback: replace with new event data, keep original before
-  return {
-    filePath: event.filePath,
-    relativePath: event.relativePath,
-    operation: event.operation,
-    before: existing.before,
-    after: event.after,
-    timestamp: event.timestamp,
-  };
-}
 ```
 
-- [ ] **Step 2: Write tests for merge logic**
+- [ ] **Step 2: 替换 ipcBridge.ts 中的 fileSnapshot 定义**
+
+在 `src/common/adapter/ipcBridge.ts` 中，找到现有的 `fileSnapshot` 导出：
 
 ```typescript
-// tests/unit/fileChanges.test.ts
-import { describe, it, expect } from 'vitest';
-import { mergeFileChange } from '@/common/types/fileSnapshot';
-import type { FileChangeEvent, FileChangeRecord } from '@/common/types/fileSnapshot';
-
-const baseEvent = (overrides: Partial<FileChangeEvent>): FileChangeEvent => ({
-  workspace: '/tmp/ws',
-  filePath: '/tmp/ws/src/index.ts',
-  relativePath: 'src/index.ts',
-  operation: 'modify',
-  before: 'old content',
-  after: 'new content',
-  timestamp: 1000,
-  ...overrides,
-});
-
-describe('mergeFileChange', () => {
-  it('creates a new record when no existing record', () => {
-    const event = baseEvent({ operation: 'create', before: null, after: 'hello' });
-    const result = mergeFileChange(undefined, event);
-    expect(result).toEqual({
-      filePath: '/tmp/ws/src/index.ts',
-      relativePath: 'src/index.ts',
-      operation: 'create',
-      before: null,
-      after: 'hello',
-      timestamp: 1000,
-    });
-  });
-
-  it('create + delete = null (net nothing)', () => {
-    const existing: FileChangeRecord = {
-      filePath: '/tmp/ws/src/index.ts',
-      relativePath: 'src/index.ts',
-      operation: 'create',
-      before: null,
-      after: 'hello',
-      timestamp: 1000,
-    };
-    const event = baseEvent({ operation: 'delete', before: 'hello', after: null, timestamp: 2000 });
-    expect(mergeFileChange(existing, event)).toBeNull();
-  });
-
-  it('create + modify = create with updated after', () => {
-    const existing: FileChangeRecord = {
-      filePath: '/tmp/ws/src/index.ts',
-      relativePath: 'src/index.ts',
-      operation: 'create',
-      before: null,
-      after: 'v1',
-      timestamp: 1000,
-    };
-    const event = baseEvent({ operation: 'modify', before: 'v1', after: 'v2', timestamp: 2000 });
-    const result = mergeFileChange(existing, event);
-    expect(result?.operation).toBe('create');
-    expect(result?.before).toBeNull();
-    expect(result?.after).toBe('v2');
-  });
-
-  it('modify + modify = modify with original before and latest after', () => {
-    const existing: FileChangeRecord = {
-      filePath: '/tmp/ws/src/index.ts',
-      relativePath: 'src/index.ts',
-      operation: 'modify',
-      before: 'original',
-      after: 'v1',
-      timestamp: 1000,
-    };
-    const event = baseEvent({ operation: 'modify', before: 'v1', after: 'v2', timestamp: 2000 });
-    const result = mergeFileChange(existing, event);
-    expect(result?.before).toBe('original');
-    expect(result?.after).toBe('v2');
-  });
-
-  it('modify + delete = delete with original before', () => {
-    const existing: FileChangeRecord = {
-      filePath: '/tmp/ws/src/index.ts',
-      relativePath: 'src/index.ts',
-      operation: 'modify',
-      before: 'original',
-      after: 'v1',
-      timestamp: 1000,
-    };
-    const event = baseEvent({ operation: 'delete', before: 'v1', after: null, timestamp: 2000 });
-    const result = mergeFileChange(existing, event);
-    expect(result?.operation).toBe('delete');
-    expect(result?.before).toBe('original');
-    expect(result?.after).toBeNull();
-  });
-
-  it('delete + create = modify', () => {
-    const existing: FileChangeRecord = {
-      filePath: '/tmp/ws/src/index.ts',
-      relativePath: 'src/index.ts',
-      operation: 'delete',
-      before: 'original',
-      after: null,
-      timestamp: 1000,
-    };
-    const event = baseEvent({ operation: 'create', before: null, after: 'restored', timestamp: 2000 });
-    const result = mergeFileChange(existing, event);
-    expect(result?.operation).toBe('modify');
-    expect(result?.before).toBe('original');
-    expect(result?.after).toBe('restored');
-  });
-});
-```
-
-- [ ] **Step 3: Run tests to verify they pass**
-
-Run: `bun run test -- tests/unit/fileChanges.test.ts`
-Expected: All 6 tests PASS
-
-- [ ] **Step 4: Commit**
-
-```bash
-git add src/common/types/fileSnapshot.ts tests/unit/fileChanges.test.ts
-git commit -m "feat(workspace): add file change snapshot types and merge logic"
-```
-
----
-
-### Task 2: IPC Bridge — fileSnapshot Emitter
-
-**Files:**
-
-- Modify: `src/common/adapter/ipcBridge.ts:300-308`
-
-- [ ] **Step 1: Add fileSnapshot emitter to ipcBridge**
-
-In `src/common/adapter/ipcBridge.ts`, add a new export after the existing `fileStream` export (after line 308):
-
-```typescript
-// File snapshot events for tracking AI file changes
+// 旧代码：
 export const fileSnapshot = {
   change: bridge.buildEmitter<import('@/common/types/fileSnapshot').FileChangeEvent>('file-snapshot-change'),
 };
 ```
 
-- [ ] **Step 2: Verify TypeScript compiles**
+替换为：
 
-Run: `bunx tsc --noEmit`
-Expected: No errors
+```typescript
+// 新代码：
+export const fileSnapshot = {
+  init: bridge.buildProvider<import('@/common/types/fileSnapshot').SnapshotInfo, { workspace: string }>(
+    'file-snapshot-init'
+  ),
+  compare: bridge.buildProvider<import('@/common/types/fileSnapshot').FileChangeInfo[], { workspace: string }>(
+    'file-snapshot-compare'
+  ),
+  getBaselineContent: bridge.buildProvider<string | null, { workspace: string; filePath: string }>(
+    'file-snapshot-baseline'
+  ),
+  getInfo: bridge.buildProvider<import('@/common/types/fileSnapshot').SnapshotInfo, { workspace: string }>(
+    'file-snapshot-info'
+  ),
+  dispose: bridge.buildProvider<void, { workspace: string }>('file-snapshot-dispose'),
+};
+```
 
-- [ ] **Step 3: Commit**
+- [ ] **Step 3: 重写测试文件**
+
+```typescript
+// tests/unit/fileChanges.test.ts
+import { describe, it, expect } from 'vitest';
+import type { FileChangeInfo, SnapshotInfo } from '../../src/common/types/fileSnapshot';
+
+describe('FileChangeInfo type', () => {
+  it('represents a created file', () => {
+    const info: FileChangeInfo = {
+      filePath: '/workspace/src/new.ts',
+      relativePath: 'src/new.ts',
+      operation: 'create',
+    };
+    expect(info.operation).toBe('create');
+  });
+
+  it('represents a modified file', () => {
+    const info: FileChangeInfo = {
+      filePath: '/workspace/src/index.ts',
+      relativePath: 'src/index.ts',
+      operation: 'modify',
+    };
+    expect(info.operation).toBe('modify');
+  });
+
+  it('represents a deleted file', () => {
+    const info: FileChangeInfo = {
+      filePath: '/workspace/src/old.ts',
+      relativePath: 'src/old.ts',
+      operation: 'delete',
+    };
+    expect(info.operation).toBe('delete');
+  });
+});
+
+describe('SnapshotInfo type', () => {
+  it('represents git-repo mode with branch', () => {
+    const info: SnapshotInfo = { mode: 'git-repo', branch: 'main' };
+    expect(info.mode).toBe('git-repo');
+    expect(info.branch).toBe('main');
+  });
+
+  it('represents snapshot mode without branch', () => {
+    const info: SnapshotInfo = { mode: 'snapshot', branch: null };
+    expect(info.mode).toBe('snapshot');
+    expect(info.branch).toBeNull();
+  });
+});
+```
+
+- [ ] **Step 4: 运行测试验证**
 
 ```bash
-git add src/common/adapter/ipcBridge.ts
-git commit -m "feat(workspace): add fileSnapshot IPC emitter channel"
+bun run test -- tests/unit/fileChanges.test.ts
+```
+
+- [ ] **Step 5: 类型检查**
+
+```bash
+bunx tsc --noEmit
+```
+
+- [ ] **Step 6: Commit**
+
+```bash
+git add src/common/types/fileSnapshot.ts src/common/adapter/ipcBridge.ts tests/unit/fileChanges.test.ts
+git commit -m "refactor(snapshot): replace event-based types with on-demand comparison types and IPC providers"
 ```
 
 ---
 
-### Task 3: fsBridge Snapshot Interception
+### Task 3: WorkspaceSnapshotService
 
 **Files:**
 
-- Modify: `src/process/bridge/fsBridge.ts:372-431` (writeFile provider)
-- Modify: `src/process/bridge/fsBridge.ts:658-688` (removeEntry provider)
-- Test: `tests/unit/fsBridgeSnapshot.test.ts`
+- Create: `src/process/services/WorkspaceSnapshotService.ts`
+- Create: `tests/unit/WorkspaceSnapshotService.test.ts`
 
-- [ ] **Step 1: Write failing test for snapshot on write**
+- [ ] **Step 1: 编写 WorkspaceSnapshotService 的测试**
 
 ```typescript
-// tests/unit/fsBridgeSnapshot.test.ts
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+// tests/unit/WorkspaceSnapshotService.test.ts
+import { describe, it, expect, beforeEach, afterEach } from 'vitest';
+import fs from 'node:fs/promises';
+import path from 'node:path';
+import os from 'node:os';
+import { WorkspaceSnapshotService } from '../../src/process/services/WorkspaceSnapshotService';
 
-// Mock fs/promises
-const mockReadFile = vi.fn();
-const mockWriteFile = vi.fn();
-const mockLstat = vi.fn();
-const mockUnlink = vi.fn();
-const mockRm = vi.fn();
-vi.mock('node:fs/promises', () => ({
-  default: {
-    readFile: (...args: unknown[]) => mockReadFile(...args),
-    writeFile: (...args: unknown[]) => mockWriteFile(...args),
-    lstat: (...args: unknown[]) => mockLstat(...args),
-    unlink: (...args: unknown[]) => mockUnlink(...args),
-    rm: (...args: unknown[]) => mockRm(...args),
-  },
-}));
+describe('WorkspaceSnapshotService', () => {
+  let service: WorkspaceSnapshotService;
+  let tmpDir: string;
 
-// Mock ipcBridge
-const mockSnapshotEmit = vi.fn();
-const mockContentUpdateEmit = vi.fn();
-vi.mock('@/common/adapter/ipcBridge', () => ({
-  ipcBridge: {
-    fs: {
-      writeFile: { provider: vi.fn() },
-      removeEntry: { provider: vi.fn() },
-    },
-    fileStream: {
-      contentUpdate: { emit: mockContentUpdateEmit },
-    },
-    fileSnapshot: {
-      change: { emit: mockSnapshotEmit },
-    },
-  },
-}));
-
-import { ipcBridge } from '@/common/adapter/ipcBridge';
-
-describe('fsBridge snapshot interception', () => {
-  beforeEach(() => {
-    vi.clearAllMocks();
+  beforeEach(async () => {
+    service = new WorkspaceSnapshotService();
+    tmpDir = await fs.mkdtemp(path.join(os.tmpdir(), 'snapshot-test-'));
   });
 
-  describe('writeFile snapshot', () => {
-    it('emits create event when file does not exist', async () => {
-      // Get the handler registered via provider()
-      const providerFn = vi.mocked(ipcBridge.fs.writeFile.provider);
-      const handler = providerFn.mock.calls[0]?.[0];
-      if (!handler) throw new Error('writeFile provider not registered');
+  afterEach(async () => {
+    await service.dispose(tmpDir).catch(() => {});
+    await fs.rm(tmpDir, { recursive: true, force: true });
+  });
 
-      mockReadFile.mockRejectedValue(Object.assign(new Error('ENOENT'), { code: 'ENOENT' }));
-      mockWriteFile.mockResolvedValue(undefined);
-
-      await handler({ path: '/workspace/src/new.ts', data: 'content' });
-
-      expect(mockSnapshotEmit).toHaveBeenCalledWith(
-        expect.objectContaining({
-          filePath: '/workspace/src/new.ts',
-          operation: 'create',
-          before: null,
-          after: 'content',
-        })
-      );
+  describe('snapshot mode (no .git)', () => {
+    it('init returns snapshot mode with null branch', async () => {
+      await fs.writeFile(path.join(tmpDir, 'hello.txt'), 'hello');
+      const info = await service.init(tmpDir);
+      expect(info.mode).toBe('snapshot');
+      expect(info.branch).toBeNull();
     });
 
-    it('emits modify event when file already exists', async () => {
-      const providerFn = vi.mocked(ipcBridge.fs.writeFile.provider);
-      const handler = providerFn.mock.calls[0]?.[0];
-      if (!handler) throw new Error('writeFile provider not registered');
+    it('compare detects new file as create', async () => {
+      await fs.writeFile(path.join(tmpDir, 'a.txt'), 'original');
+      await service.init(tmpDir);
 
-      mockReadFile.mockResolvedValue('old content');
-      mockWriteFile.mockResolvedValue(undefined);
+      await fs.writeFile(path.join(tmpDir, 'b.txt'), 'new file');
+      const changes = await service.compare(tmpDir);
 
-      await handler({ path: '/workspace/src/index.ts', data: 'new content' });
-
-      expect(mockSnapshotEmit).toHaveBeenCalledWith(
-        expect.objectContaining({
-          operation: 'modify',
-          before: 'old content',
-          after: 'new content',
-        })
-      );
+      const created = changes.find((c) => c.relativePath === 'b.txt');
+      expect(created).toBeDefined();
+      expect(created!.operation).toBe('create');
     });
 
-    it('does not emit snapshot for binary (non-string) data', async () => {
-      const providerFn = vi.mocked(ipcBridge.fs.writeFile.provider);
-      const handler = providerFn.mock.calls[0]?.[0];
-      if (!handler) throw new Error('writeFile provider not registered');
+    it('compare detects modified file', async () => {
+      await fs.writeFile(path.join(tmpDir, 'a.txt'), 'original');
+      await service.init(tmpDir);
 
-      mockWriteFile.mockResolvedValue(undefined);
+      await fs.writeFile(path.join(tmpDir, 'a.txt'), 'modified');
+      const changes = await service.compare(tmpDir);
 
-      await handler({ path: '/workspace/image.png', data: new Uint8Array([1, 2, 3]) });
+      const modified = changes.find((c) => c.relativePath === 'a.txt');
+      expect(modified).toBeDefined();
+      expect(modified!.operation).toBe('modify');
+    });
 
-      expect(mockSnapshotEmit).not.toHaveBeenCalled();
+    it('compare detects deleted file', async () => {
+      await fs.writeFile(path.join(tmpDir, 'a.txt'), 'original');
+      await service.init(tmpDir);
+
+      await fs.unlink(path.join(tmpDir, 'a.txt'));
+      const changes = await service.compare(tmpDir);
+
+      const deleted = changes.find((c) => c.relativePath === 'a.txt');
+      expect(deleted).toBeDefined();
+      expect(deleted!.operation).toBe('delete');
+    });
+
+    it('compare returns empty array when nothing changed', async () => {
+      await fs.writeFile(path.join(tmpDir, 'a.txt'), 'original');
+      await service.init(tmpDir);
+
+      const changes = await service.compare(tmpDir);
+      expect(changes).toEqual([]);
+    });
+
+    it('getBaselineContent returns original content', async () => {
+      await fs.writeFile(path.join(tmpDir, 'a.txt'), 'original content');
+      await service.init(tmpDir);
+
+      await fs.writeFile(path.join(tmpDir, 'a.txt'), 'modified content');
+      const content = await service.getBaselineContent(tmpDir, 'a.txt');
+      expect(content).toBe('original content');
+    });
+
+    it('getBaselineContent returns null for non-existent file', async () => {
+      await fs.writeFile(path.join(tmpDir, 'a.txt'), 'original');
+      await service.init(tmpDir);
+
+      const content = await service.getBaselineContent(tmpDir, 'nonexistent.txt');
+      expect(content).toBeNull();
+    });
+
+    it('respects .gitignore', async () => {
+      await fs.writeFile(path.join(tmpDir, '.gitignore'), 'ignored.txt\n');
+      await fs.writeFile(path.join(tmpDir, 'tracked.txt'), 'tracked');
+      await fs.writeFile(path.join(tmpDir, 'ignored.txt'), 'ignored');
+      await service.init(tmpDir);
+
+      await fs.writeFile(path.join(tmpDir, 'ignored.txt'), 'changed ignored');
+      await fs.writeFile(path.join(tmpDir, 'tracked.txt'), 'changed tracked');
+      const changes = await service.compare(tmpDir);
+
+      expect(changes.some((c) => c.relativePath === 'tracked.txt')).toBe(true);
+      expect(changes.some((c) => c.relativePath === 'ignored.txt')).toBe(false);
+    });
+  });
+
+  describe('git-repo mode (has .git)', () => {
+    let git: typeof import('isomorphic-git');
+
+    beforeEach(async () => {
+      git = await import('isomorphic-git');
+      const nodeFs = await import('node:fs');
+      await git.init({ fs: nodeFs, dir: tmpDir });
+      await fs.writeFile(path.join(tmpDir, 'initial.txt'), 'initial');
+      await git.add({ fs: nodeFs, dir: tmpDir, filepath: 'initial.txt' });
+      await git.commit({
+        fs: nodeFs,
+        dir: tmpDir,
+        message: 'initial commit',
+        author: { name: 'Test', email: 'test@test.com' },
+      });
+    });
+
+    it('init returns git-repo mode with branch name', async () => {
+      const info = await service.init(tmpDir);
+      expect(info.mode).toBe('git-repo');
+      expect(info.branch).toBe('master');
+    });
+
+    it('compare detects uncommitted changes', async () => {
+      await service.init(tmpDir);
+      await fs.writeFile(path.join(tmpDir, 'initial.txt'), 'changed');
+
+      const changes = await service.compare(tmpDir);
+      const modified = changes.find((c) => c.relativePath === 'initial.txt');
+      expect(modified).toBeDefined();
+      expect(modified!.operation).toBe('modify');
+    });
+
+    it('getBaselineContent returns HEAD version', async () => {
+      await service.init(tmpDir);
+      await fs.writeFile(path.join(tmpDir, 'initial.txt'), 'changed');
+
+      const content = await service.getBaselineContent(tmpDir, 'initial.txt');
+      expect(content).toBe('initial');
     });
   });
 });
 ```
 
-Note: This test pattern captures the handler passed to `provider()`. The actual test may need adjustment based on how the module initialization works — the key is to verify that `fileSnapshot.change.emit()` is called with the correct event shape. If the `provider()` mock approach doesn't capture the handler (because `fsBridge.ts` registers during import), restructure the test to import `fsBridge.ts` after setting up mocks, or extract the snapshot logic into a testable helper function.
-
-- [ ] **Step 2: Modify writeFile provider in fsBridge.ts**
-
-In `src/process/bridge/fsBridge.ts`, modify the writeFile provider (starting at line 372). Add snapshot capture before the write for string data:
-
-```typescript
-  // 写入文件
-  ipcBridge.fs.writeFile.provider(async ({ path: filePath, data }) => {
-    try {
-      // 处理字符串类型 / Handle string type
-      if (typeof data === 'string') {
-        // Capture before-state for file change tracking
-        let beforeContent: string | null = null;
-        let fileExisted = true;
-        try {
-          beforeContent = await fs.readFile(filePath, 'utf-8');
-        } catch (readError) {
-          if ((readError as NodeJS.ErrnoException).code === 'ENOENT') {
-            fileExisted = false;
-          }
-          // Other read errors: skip snapshot, proceed with write
-        }
-
-        await fs.writeFile(filePath, data, 'utf-8');
-
-        // Emit file snapshot change event for change tracking
-        try {
-          const pathSegments = filePath.split(path.sep);
-          const fileName = pathSegments[pathSegments.length - 1];
-          const workspace = pathSegments.slice(0, -1).join(path.sep);
-
-          ipcBridge.fileSnapshot.change.emit({
-            workspace,
-            filePath,
-            relativePath: fileName,
-            operation: fileExisted ? 'modify' : 'create',
-            before: beforeContent,
-            after: data,
-            timestamp: Date.now(),
-          });
-        } catch (snapshotError) {
-          console.error('[fsBridge] Failed to emit file snapshot:', snapshotError);
-        }
-
-        // 发送流式内容更新事件到预览面板（用于实时更新）
-        // Send streaming content update to preview panel (for real-time updates)
-        try {
-          const pathSegments = filePath.split(path.sep);
-          const fileName = pathSegments[pathSegments.length - 1];
-          const workspace = pathSegments.slice(0, -1).join(path.sep);
-
-          const eventData = {
-            filePath: filePath,
-            content: data,
-            workspace: workspace,
-            relativePath: fileName,
-            operation: 'write' as const,
-          };
-
-          ipcBridge.fileStream.contentUpdate.emit(eventData);
-        } catch (emitError) {
-          console.error('[fsBridge] ❌ Failed to emit file stream update:', emitError);
-        }
-
-        return true;
-      }
-
-      // ... rest of binary handling unchanged
-```
-
-- [ ] **Step 3: Modify removeEntry provider for delete snapshot**
-
-In `src/process/bridge/fsBridge.ts`, modify the removeEntry provider (around line 658). Add snapshot capture before file deletion:
-
-```typescript
-  ipcBridge.fs.removeEntry.provider(async ({ path: targetPath }) => {
-    try {
-      const stats = await fs.lstat(targetPath);
-      if (stats.isDirectory()) {
-        await fs.rm(targetPath, { recursive: true, force: true });
-      } else {
-        // Capture before-state for file change tracking
-        let beforeContent: string | null = null;
-        try {
-          beforeContent = await fs.readFile(targetPath, 'utf-8');
-        } catch {
-          // Binary file or read error: beforeContent stays null
-        }
-
-        await fs.unlink(targetPath);
-
-        // Emit file snapshot delete event
-        try {
-          const pathSegments = targetPath.split(path.sep);
-          const fileName = pathSegments[pathSegments.length - 1];
-          const workspace = pathSegments.slice(0, -1).join(path.sep);
-
-          ipcBridge.fileSnapshot.change.emit({
-            workspace,
-            filePath: targetPath,
-            relativePath: fileName,
-            operation: 'delete',
-            before: beforeContent,
-            after: null,
-            timestamp: Date.now(),
-          });
-        } catch (snapshotError) {
-          console.error('[fsBridge] Failed to emit file snapshot:', snapshotError);
-        }
-
-        // 发送流式删除事件到预览面板（用于关闭预览）
-        // ... existing contentUpdate emit unchanged
-```
-
-- [ ] **Step 4: Verify TypeScript compiles**
-
-Run: `bunx tsc --noEmit`
-Expected: No errors
-
-- [ ] **Step 5: Run snapshot tests**
-
-Run: `bun run test -- tests/unit/fsBridgeSnapshot.test.ts`
-Expected: PASS (adjust test structure if needed based on module loading)
-
-- [ ] **Step 6: Commit**
+- [ ] **Step 2: 运行测试，确认全部失败**
 
 ```bash
-git add src/process/bridge/fsBridge.ts tests/unit/fsBridgeSnapshot.test.ts
-git commit -m "feat(workspace): capture file snapshots in fsBridge write/delete"
+bun run test -- tests/unit/WorkspaceSnapshotService.test.ts
+```
+
+预期：全部 FAIL（WorkspaceSnapshotService 不存在）
+
+- [ ] **Step 3: 实现 WorkspaceSnapshotService**
+
+```typescript
+// src/process/services/WorkspaceSnapshotService.ts
+
+/**
+ * @license
+ * Copyright 2025 AionUi (aionui.com)
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
+import git from 'isomorphic-git';
+import nodeFs from 'node:fs';
+import fs from 'node:fs/promises';
+import os from 'node:os';
+import path from 'node:path';
+import type { FileChangeInfo, SnapshotInfo } from '@/common/types/fileSnapshot';
+
+type SnapshotState = {
+  mode: 'git-repo' | 'snapshot';
+  workspacePath: string;
+  gitdir: string;
+  baselineOid: string;
+  branch: string | null;
+};
+
+const DEFAULT_GITIGNORE = `node_modules/
+.git/
+*.lock
+`;
+
+export class WorkspaceSnapshotService {
+  private snapshots = new Map<string, SnapshotState>();
+
+  async init(workspacePath: string): Promise<SnapshotInfo> {
+    // Dispose existing snapshot if re-initializing
+    if (this.snapshots.has(workspacePath)) {
+      await this.dispose(workspacePath);
+    }
+
+    const mode = await this.detectMode(workspacePath);
+
+    if (mode === 'git-repo') {
+      return this.initGitRepo(workspacePath);
+    }
+    return this.initSnapshot(workspacePath);
+  }
+
+  async compare(workspacePath: string): Promise<FileChangeInfo[]> {
+    const state = this.snapshots.get(workspacePath);
+    if (!state) {
+      return [];
+    }
+
+    const matrix = await git.statusMatrix({
+      fs: nodeFs,
+      dir: workspacePath,
+      gitdir: state.gitdir,
+    });
+
+    // statusMatrix: [filepath, HEAD, WORKDIR, STAGE]
+    // HEAD=1 file in baseline, WORKDIR=0 deleted, WORKDIR=2 modified
+    // HEAD=0 + WORKDIR=2 = new file
+    return matrix
+      .filter(([_, head, workdir]) => head !== workdir)
+      .map(([filepath, head, workdir]) => ({
+        relativePath: filepath as string,
+        filePath: path.join(workspacePath, filepath as string),
+        operation: head === 0 ? ('create' as const) : workdir === 0 ? ('delete' as const) : ('modify' as const),
+      }));
+  }
+
+  async getBaselineContent(workspacePath: string, filePath: string): Promise<string | null> {
+    const state = this.snapshots.get(workspacePath);
+    if (!state) {
+      return null;
+    }
+
+    try {
+      const { blob } = await git.readBlob({
+        fs: nodeFs,
+        dir: workspacePath,
+        gitdir: state.gitdir,
+        oid: state.baselineOid,
+        filepath: filePath,
+      });
+      return new TextDecoder().decode(blob);
+    } catch {
+      return null;
+    }
+  }
+
+  async getInfo(workspacePath: string): Promise<SnapshotInfo> {
+    const state = this.snapshots.get(workspacePath);
+    if (!state) {
+      return { mode: 'snapshot', branch: null };
+    }
+    return { mode: state.mode, branch: state.branch };
+  }
+
+  async dispose(workspacePath: string): Promise<void> {
+    const state = this.snapshots.get(workspacePath);
+    if (!state) {
+      return;
+    }
+
+    // Only clean up temp gitdir in snapshot mode
+    if (state.mode === 'snapshot') {
+      await fs.rm(state.gitdir, { recursive: true, force: true }).catch(() => {});
+    }
+
+    this.snapshots.delete(workspacePath);
+  }
+
+  async disposeAll(): Promise<void> {
+    const workspaces = Array.from(this.snapshots.keys());
+    await Promise.all(workspaces.map((ws) => this.dispose(ws)));
+  }
+
+  private async detectMode(workspacePath: string): Promise<'git-repo' | 'snapshot'> {
+    try {
+      const gitPath = path.join(workspacePath, '.git');
+      const stat = await fs.stat(gitPath);
+      // Only treat as git-repo if .git is a directory (not a file, which indicates worktree/submodule)
+      return stat.isDirectory() ? 'git-repo' : 'snapshot';
+    } catch {
+      return 'snapshot';
+    }
+  }
+
+  private async initGitRepo(workspacePath: string): Promise<SnapshotInfo> {
+    const gitdir = path.join(workspacePath, '.git');
+    const branch = (await git.currentBranch({ fs: nodeFs, dir: workspacePath, gitdir })) ?? null;
+
+    const commits = await git.log({ fs: nodeFs, dir: workspacePath, gitdir, depth: 1 });
+    const baselineOid = commits[0]?.oid ?? '';
+
+    this.snapshots.set(workspacePath, {
+      mode: 'git-repo',
+      workspacePath,
+      gitdir,
+      baselineOid,
+      branch,
+    });
+
+    return { mode: 'git-repo', branch };
+  }
+
+  private async initSnapshot(workspacePath: string): Promise<SnapshotInfo> {
+    const gitdir = path.join(os.tmpdir(), `aionui-snapshot-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`);
+
+    // Create default .gitignore if none exists
+    const gitignorePath = path.join(workspacePath, '.gitignore');
+    let createdGitignore = false;
+    try {
+      await fs.access(gitignorePath);
+    } catch {
+      await fs.writeFile(gitignorePath, DEFAULT_GITIGNORE, 'utf-8');
+      createdGitignore = true;
+    }
+
+    try {
+      await git.init({ fs: nodeFs, dir: workspacePath, gitdir });
+      await git.add({ fs: nodeFs, dir: workspacePath, gitdir, filepath: '.' });
+      const baselineOid = await git.commit({
+        fs: nodeFs,
+        dir: workspacePath,
+        gitdir,
+        message: 'baseline',
+        author: { name: 'AionUI', email: 'snapshot@aionui.local' },
+      });
+
+      this.snapshots.set(workspacePath, {
+        mode: 'snapshot',
+        workspacePath,
+        gitdir,
+        baselineOid,
+        branch: null,
+      });
+
+      return { mode: 'snapshot', branch: null };
+    } finally {
+      // Clean up the .gitignore we created (don't leave artifacts in user's workspace)
+      if (createdGitignore) {
+        await fs.unlink(gitignorePath).catch(() => {});
+      }
+    }
+  }
+}
+```
+
+- [ ] **Step 4: 运行测试，确认全部通过**
+
+```bash
+bun run test -- tests/unit/WorkspaceSnapshotService.test.ts
+```
+
+- [ ] **Step 5: Commit**
+
+```bash
+git add src/process/services/WorkspaceSnapshotService.ts tests/unit/WorkspaceSnapshotService.test.ts
+git commit -m "feat(snapshot): add WorkspaceSnapshotService with dual-mode isomorphic-git support"
 ```
 
 ---
 
-### Task 4: useFileChanges Hook
+### Task 4: IPC Bridge 注册
 
 **Files:**
 
-- Create: `src/renderer/pages/conversation/Workspace/hooks/useFileChanges.ts`
+- Create: `src/process/bridge/workspaceSnapshotBridge.ts`
+- Modify: `src/process/bridge/index.ts`
 
-- [ ] **Step 1: Create the hook**
+- [ ] **Step 1: 创建 workspaceSnapshotBridge.ts**
+
+```typescript
+// src/process/bridge/workspaceSnapshotBridge.ts
+
+/**
+ * @license
+ * Copyright 2025 AionUi (aionui.com)
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
+import { ipcBridge } from '@/common';
+import { WorkspaceSnapshotService } from '@process/services/WorkspaceSnapshotService';
+
+const snapshotService = new WorkspaceSnapshotService();
+
+export function initWorkspaceSnapshotBridge(): void {
+  ipcBridge.fileSnapshot.init.provider(async ({ workspace }) => {
+    return snapshotService.init(workspace);
+  });
+
+  ipcBridge.fileSnapshot.compare.provider(async ({ workspace }) => {
+    return snapshotService.compare(workspace);
+  });
+
+  ipcBridge.fileSnapshot.getBaselineContent.provider(async ({ workspace, filePath }) => {
+    return snapshotService.getBaselineContent(workspace, filePath);
+  });
+
+  ipcBridge.fileSnapshot.getInfo.provider(async ({ workspace }) => {
+    return snapshotService.getInfo(workspace);
+  });
+
+  ipcBridge.fileSnapshot.dispose.provider(async ({ workspace }) => {
+    await snapshotService.dispose(workspace);
+  });
+}
+
+/** Clean up all snapshots on app exit */
+export function disposeAllSnapshots(): Promise<void> {
+  return snapshotService.disposeAll();
+}
+```
+
+- [ ] **Step 2: 在 bridge/index.ts 中注册**
+
+在 `src/process/bridge/index.ts` 中添加 import 和调用：
+
+```typescript
+// 添加 import
+import { initWorkspaceSnapshotBridge } from './workspaceSnapshotBridge';
+
+// 在 initAllBridges 函数末尾（initWeixinLoginBridge() 之后）添加：
+initWorkspaceSnapshotBridge();
+
+// 在 export 列表中添加：
+export { initWorkspaceSnapshotBridge };
+// 同时导出清理函数
+export { disposeAllSnapshots } from './workspaceSnapshotBridge';
+```
+
+- [ ] **Step 3: 类型检查**
+
+```bash
+bunx tsc --noEmit
+```
+
+- [ ] **Step 4: Commit**
+
+```bash
+git add src/process/bridge/workspaceSnapshotBridge.ts src/process/bridge/index.ts
+git commit -m "feat(snapshot): add IPC bridge for workspace snapshot operations"
+```
+
+---
+
+### Task 5: 重写 useFileChanges Hook
+
+**Files:**
+
+- Rewrite: `src/renderer/pages/conversation/Workspace/hooks/useFileChanges.ts`
+
+- [ ] **Step 1: 重写 hook**
 
 ```typescript
 // src/renderer/pages/conversation/Workspace/hooks/useFileChanges.ts
 
+/**
+ * @license
+ * Copyright 2025 AionUi (aionui.com)
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
 import { ipcBridge } from '@/common';
-import { mergeFileChange } from '@/common/types/fileSnapshot';
-import type { FileChangeEvent, FileChangeRecord } from '@/common/types/fileSnapshot';
+import type { FileChangeInfo, SnapshotInfo } from '@/common/types/fileSnapshot';
 import { useCallback, useEffect, useRef, useState } from 'react';
 
 type UseFileChangesParams = {
@@ -564,635 +699,226 @@ type UseFileChangesParams = {
 };
 
 type UseFileChangesReturn = {
-  changes: FileChangeRecord[];
+  changes: FileChangeInfo[];
   changeCount: number;
-  clearChanges: () => void;
+  loading: boolean;
+  snapshotInfo: SnapshotInfo | null;
+  refreshChanges: () => Promise<void>;
 };
 
 export function useFileChanges({ workspace, conversationId }: UseFileChangesParams): UseFileChangesReturn {
-  const changesMapRef = useRef<Map<string, FileChangeRecord>>(new Map());
-  const [changes, setChanges] = useState<FileChangeRecord[]>([]);
+  const [changes, setChanges] = useState<FileChangeInfo[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [snapshotInfo, setSnapshotInfo] = useState<SnapshotInfo | null>(null);
+  const initializedRef = useRef(false);
 
-  const clearChanges = useCallback(() => {
-    changesMapRef.current.clear();
+  // Initialize snapshot when workspace is set or conversation changes
+  useEffect(() => {
+    if (!workspace) return;
+
+    initializedRef.current = false;
     setChanges([]);
-  }, []);
+    setSnapshotInfo(null);
 
-  // Clear on conversation switch
-  useEffect(() => {
-    clearChanges();
-  }, [conversationId, clearChanges]);
+    ipcBridge.fileSnapshot.init
+      .invoke({ workspace })
+      .then((info) => {
+        setSnapshotInfo(info);
+        initializedRef.current = true;
+      })
+      .catch((err) => {
+        console.error('[useFileChanges] Failed to init snapshot:', err);
+      });
 
-  // Listen for file snapshot events
-  useEffect(() => {
-    const unsubscribe = ipcBridge.fileSnapshot.change.on((event: FileChangeEvent) => {
-      // Only track changes within the current workspace
-      if (!event.filePath.startsWith(workspace)) {
-        return;
-      }
+    return () => {
+      ipcBridge.fileSnapshot.dispose.invoke({ workspace }).catch(() => {});
+    };
+  }, [workspace, conversationId]);
 
-      const map = changesMapRef.current;
-      const existing = map.get(event.filePath);
-      const merged = mergeFileChange(existing, event);
-
-      if (merged === null) {
-        map.delete(event.filePath);
-      } else {
-        map.set(event.filePath, merged);
-      }
-
-      setChanges(Array.from(map.values()));
-    });
-
-    return unsubscribe;
+  // Fetch changes on demand
+  const refreshChanges = useCallback(async () => {
+    if (!workspace || !initializedRef.current) return;
+    setLoading(true);
+    try {
+      const result = await ipcBridge.fileSnapshot.compare.invoke({ workspace });
+      setChanges(result);
+    } catch (err) {
+      console.error('[useFileChanges] Failed to compare:', err);
+    } finally {
+      setLoading(false);
+    }
   }, [workspace]);
 
   return {
     changes,
     changeCount: changes.length,
-    clearChanges,
+    loading,
+    snapshotInfo,
+    refreshChanges,
   };
 }
 ```
 
-- [ ] **Step 2: Verify TypeScript compiles**
+- [ ] **Step 2: 类型检查**
 
-Run: `bunx tsc --noEmit`
-Expected: No errors
+```bash
+bunx tsc --noEmit
+```
 
 - [ ] **Step 3: Commit**
 
 ```bash
 git add src/renderer/pages/conversation/Workspace/hooks/useFileChanges.ts
-git commit -m "feat(workspace): add useFileChanges hook for cumulative change tracking"
+git commit -m "refactor(workspace): rewrite useFileChanges hook for on-demand IPC comparison"
 ```
 
 ---
 
-### Task 5: i18n Keys
+### Task 6: 更新 UI 组件
 
 **Files:**
 
-- Modify: `src/renderer/services/i18n/locales/en-US/conversation.json`
-- Modify: `src/renderer/services/i18n/locales/zh-CN/conversation.json`
+- Modify: `src/renderer/pages/conversation/Workspace/components/FileChangeList.tsx`
+- Modify: `src/renderer/pages/conversation/Workspace/components/WorkspaceTabBar.tsx`
+- Modify: `src/renderer/pages/conversation/Workspace/index.tsx`
 
-- [ ] **Step 1: Add English i18n keys**
+- [ ] **Step 1: 更新 FileChangeList.tsx**
 
-Add inside the `"workspace"` object in `src/renderer/services/i18n/locales/en-US/conversation.json`:
+主要变更：
 
-```json
-"changes": {
-  "tab": "Changes",
-  "filesTab": "Files",
-  "summary": "{{count}} file(s) changed",
-  "insertions": "+{{count}} insertions",
-  "deletions": "-{{count}} deletions",
-  "empty": "No changes yet",
-  "emptyDescription": "File changes will appear here when AI modifies files"
-}
-```
+1. 将 props 类型从 `FileChangeRecord[]` 改为 `FileChangeInfo[]`（无 before/after 字段）
+2. 移除组件内的 diff stats 预计算逻辑（diff stats 在点击时按需获取）
+3. 添加 loading 和 refresh props
+4. 点击文件时通过 IPC 获取基线内容，再计算 diff
 
-- [ ] **Step 2: Add Chinese i18n keys**
+关键改动点：
 
-Add inside the `"workspace"` object in `src/renderer/services/i18n/locales/zh-CN/conversation.json`:
+- Props 接口增加 `loading: boolean` 和 `onRefresh: () => void`
+- 文件列表项不再显示 `+N -N` 统计（因为没有 before/after 数据预计算），改为只显示操作状态
+- `handleClick` 改为异步：先调 `ipcBridge.fileSnapshot.getBaselineContent.invoke()` 获取基线，再用 `ipcBridge.fs.readFile.invoke()` 读取当前内容，最后 `createTwoFilesPatch()` + `openPreview()`
+- 顶部增加刷新按钮（使用 Arco `Button` + `@icon-park/react` 的 `Refresh` 图标）
+- loading 状态时显示 Arco `Spin` 组件
 
-```json
-"changes": {
-  "tab": "变更",
-  "filesTab": "文件",
-  "summary": "{{count}} 个文件已变更",
-  "insertions": "+{{count}} 行新增",
-  "deletions": "-{{count}} 行删除",
-  "empty": "暂无变更",
-  "emptyDescription": "AI 修改文件后，变更记录将显示在此处"
-}
-```
+- [ ] **Step 2: 更新 WorkspaceTabBar.tsx**
 
-- [ ] **Step 3: Commit**
-
-```bash
-git add src/renderer/services/i18n/locales/en-US/conversation.json src/renderer/services/i18n/locales/zh-CN/conversation.json
-git commit -m "feat(workspace): add i18n keys for file changes tab"
-```
-
----
-
-### Task 6: WorkspaceTabBar Component
-
-**Files:**
-
-- Create: `src/renderer/pages/conversation/Workspace/components/WorkspaceTabBar.tsx`
-- Modify: `src/renderer/pages/conversation/Workspace/types.ts`
-
-- [ ] **Step 1: Add tab type to types.ts**
-
-In `src/renderer/pages/conversation/Workspace/types.ts`, add:
+添加 `branch` prop，当有分支信息时在 Tab 栏右侧展示分支名：
 
 ```typescript
-export type WorkspaceTab = 'files' | 'changes';
-```
-
-- [ ] **Step 2: Create WorkspaceTabBar component**
-
-```typescript
-// src/renderer/pages/conversation/Workspace/components/WorkspaceTabBar.tsx
-
-import { Badge } from '@arco-design/web-react';
-import type { TFunction } from 'i18next';
-import React from 'react';
-import type { WorkspaceTab } from '../types';
-
 type WorkspaceTabBarProps = {
   t: TFunction;
   activeTab: WorkspaceTab;
   onTabChange: (tab: WorkspaceTab) => void;
   changeCount: number;
+  branch: string | null;
 };
-
-const WorkspaceTabBar: React.FC<WorkspaceTabBarProps> = ({ t, activeTab, onTabChange, changeCount }) => {
-  return (
-    <div className='flex border-b border-b-base px-12px'>
-      <button
-        type='button'
-        className={`px-16px py-8px text-13px border-b-2 bg-transparent cursor-pointer ${
-          activeTab === 'files'
-            ? 'font-semibold text-[rgb(var(--primary-6))] border-b-[rgb(var(--primary-6))]'
-            : 'text-t-secondary border-b-transparent hover:text-t-primary'
-        }`}
-        onClick={() => onTabChange('files')}
-      >
-        {t('conversation.workspace.changes.filesTab')}
-      </button>
-      <button
-        type='button'
-        className={`px-16px py-8px text-13px border-b-2 bg-transparent cursor-pointer flex items-center gap-4px ${
-          activeTab === 'changes'
-            ? 'font-semibold text-[rgb(var(--primary-6))] border-b-[rgb(var(--primary-6))]'
-            : 'text-t-secondary border-b-transparent hover:text-t-primary'
-        }`}
-        onClick={() => onTabChange('changes')}
-      >
-        {t('conversation.workspace.changes.tab')}
-        {changeCount > 0 && (
-          <Badge
-            count={changeCount}
-            maxCount={99}
-            style={{ fontSize: '11px' }}
-          />
-        )}
-      </button>
-    </div>
-  );
-};
-
-export default WorkspaceTabBar;
 ```
 
-- [ ] **Step 3: Verify TypeScript compiles**
+分支名展示用一个简单的 `<span>` 标签，带 git branch 图标（`@icon-park/react` 的 `BranchOne`）。放在 Tabs 组件的 `extra` 区域（Arco Tabs 支持 `extra` prop）。
 
-Run: `bunx tsc --noEmit`
-Expected: No errors
+- [ ] **Step 3: 更新 Workspace/index.tsx**
 
-- [ ] **Step 4: Commit**
+适配新的 `useFileChanges` 返回值：
+
+- 解构增加 `loading`、`snapshotInfo`、`refreshChanges`
+- 切换到 "changes" tab 时自动调用 `refreshChanges()`
+- 传递 `loading` 和 `onRefresh` 给 `FileChangeList`
+- 传递 `branch={snapshotInfo?.branch ?? null}` 给 `WorkspaceTabBar`
+- `handleOpenChangeDiff` 改为只传递 `FileChangeInfo`（不含 before/after），diff 逻辑移至 `FileChangeList` 内部
+
+- [ ] **Step 4: 类型检查 & lint**
 
 ```bash
-git add src/renderer/pages/conversation/Workspace/components/WorkspaceTabBar.tsx src/renderer/pages/conversation/Workspace/types.ts
-git commit -m "feat(workspace): add WorkspaceTabBar component"
+bunx tsc --noEmit && bun run lint:fix && bun run format
+```
+
+- [ ] **Step 5: Commit**
+
+```bash
+git add src/renderer/pages/conversation/Workspace/components/FileChangeList.tsx \
+       src/renderer/pages/conversation/Workspace/components/WorkspaceTabBar.tsx \
+       src/renderer/pages/conversation/Workspace/index.tsx
+git commit -m "feat(workspace): update UI components for on-demand diff and branch display"
 ```
 
 ---
 
-### Task 7: FileChangeList Component
+### Task 7: i18n 补充
 
 **Files:**
 
-- Create: `src/renderer/pages/conversation/Workspace/components/FileChangeList.tsx`
-- Test: `tests/unit/FileChangeList.dom.test.tsx`
+- Modify: 所有 6 个 locale 的 `conversation.json`
 
-- [ ] **Step 1: Create FileChangeList component**
+- [ ] **Step 1: 检查是否需要新增 i18n key**
 
-```typescript
-// src/renderer/pages/conversation/Workspace/components/FileChangeList.tsx
+需要新增的 key（如果尚未存在）：
 
-import type { FileChangeRecord } from '@/common/types/fileSnapshot';
-import { parseDiff } from '@/renderer/utils/file/diffUtils';
-import { Empty } from '@arco-design/web-react';
-import type { TFunction } from 'i18next';
-import React, { useCallback, useMemo } from 'react';
-import { createTwoFilesPatch } from 'diff';
+- `conversation.workspace.changes.refresh` — 刷新按钮 tooltip
+- `conversation.workspace.changes.loading` — 加载中文案
+- `conversation.workspace.changes.branch` — 分支名标签（可能不需要，分支名直接展示）
 
-type FileChangeListProps = {
-  t: TFunction;
-  changes: FileChangeRecord[];
-  onOpenDiff: (record: FileChangeRecord) => void;
-};
+读取 `src/common/config/i18n-config.json` 确认所有语言列表。
 
-const STATUS_COLORS: Record<FileChangeRecord['operation'], string> = {
-  create: 'color-green-6',
-  modify: 'color-orange-6',
-  delete: 'color-red-6',
-};
+- [ ] **Step 2: 在所有 locale 的 conversation.json 中添加新 key**
 
-const STATUS_LABELS: Record<FileChangeRecord['operation'], string> = {
-  create: 'A',
-  modify: 'M',
-  delete: 'D',
-};
+每个 locale 目录添加：
 
-type ChangeStats = {
-  insertions: number;
-  deletions: number;
-};
-
-function computeStats(record: FileChangeRecord): ChangeStats {
-  const before = record.before ?? '';
-  const after = record.after ?? '';
-  const patch = createTwoFilesPatch(
-    record.relativePath,
-    record.relativePath,
-    before,
-    after
-  );
-  const info = parseDiff(patch, record.relativePath);
-  return { insertions: info.insertions, deletions: info.deletions };
-}
-
-const FileChangeItem: React.FC<{
-  record: FileChangeRecord;
-  onClick: () => void;
-}> = ({ record, onClick }) => {
-  const stats = useMemo(() => computeStats(record), [record]);
-  const statusColor = STATUS_COLORS[record.operation];
-  const statusLabel = STATUS_LABELS[record.operation];
-
-  return (
-    <div
-      className='flex items-center justify-between px-12px py-6px cursor-pointer hover:bg-fill-2 transition-colors'
-      onClick={onClick}
-      role='button'
-      tabIndex={0}
-      onKeyDown={(e) => {
-        if (e.key === 'Enter' || e.key === ' ') {
-          e.preventDefault();
-          onClick();
-        }
-      }}
-    >
-      <div className='flex items-center gap-8px min-w-0'>
-        <span
-          className={`text-11px font-semibold w-14px text-center flex-shrink-0 text-[rgb(var(--${statusColor}))]`}
-        >
-          {statusLabel}
-        </span>
-        <span
-          className={`overflow-hidden text-ellipsis whitespace-nowrap text-13px ${
-            record.operation === 'delete' ? 'line-through text-t-tertiary' : 'text-t-primary'
-          }`}
-        >
-          {record.relativePath}
-        </span>
-      </div>
-      <div className='flex gap-6px text-11px flex-shrink-0'>
-        {stats.insertions > 0 && (
-          <span className='text-[rgb(var(--color-green-6))]'>+{stats.insertions}</span>
-        )}
-        {stats.deletions > 0 && (
-          <span className='text-[rgb(var(--color-red-6))]'>-{stats.deletions}</span>
-        )}
-      </div>
-    </div>
-  );
-};
-
-const FileChangeList: React.FC<FileChangeListProps> = ({ t, changes, onOpenDiff }) => {
-  const totalStats = useMemo(() => {
-    let insertions = 0;
-    let deletions = 0;
-    for (const record of changes) {
-      const stats = computeStats(record);
-      insertions += stats.insertions;
-      deletions += stats.deletions;
+```json
+{
+  "workspace": {
+    "changes": {
+      "refresh": "<localized: Refresh>",
+      "loading": "<localized: Loading changes...>"
     }
-    return { insertions, deletions };
-  }, [changes]);
-
-  const handleOpenDiff = useCallback(
-    (record: FileChangeRecord) => {
-      onOpenDiff(record);
-    },
-    [onOpenDiff]
-  );
-
-  if (changes.length === 0) {
-    return (
-      <div className='flex-1 size-full flex items-center justify-center px-12px'>
-        <Empty
-          description={
-            <div>
-              <span className='text-t-secondary font-bold text-14px'>
-                {t('conversation.workspace.changes.empty')}
-              </span>
-              <div className='text-t-secondary'>
-                {t('conversation.workspace.changes.emptyDescription')}
-              </div>
-            </div>
-          }
-        />
-      </div>
-    );
   }
-
-  return (
-    <div className='flex flex-col size-full'>
-      {/* Header */}
-      <div className='px-12px py-8px border-b border-b-base'>
-        <span className='text-12px text-t-secondary'>
-          {t('conversation.workspace.changes.summary', { count: changes.length })}
-        </span>
-      </div>
-
-      {/* File list */}
-      <div className='flex-1 overflow-y-auto'>
-        {changes.map((record) => (
-          <FileChangeItem
-            key={record.filePath}
-            record={record}
-            onClick={() => handleOpenDiff(record)}
-          />
-        ))}
-      </div>
-
-      {/* Summary bar */}
-      <div className='px-12px py-8px border-t border-t-base flex gap-12px text-11px text-t-tertiary'>
-        {totalStats.insertions > 0 && (
-          <span className='text-[rgb(var(--color-green-6))]'>
-            {t('conversation.workspace.changes.insertions', { count: totalStats.insertions })}
-          </span>
-        )}
-        {totalStats.deletions > 0 && (
-          <span className='text-[rgb(var(--color-red-6))]'>
-            {t('conversation.workspace.changes.deletions', { count: totalStats.deletions })}
-          </span>
-        )}
-      </div>
-    </div>
-  );
-};
-
-export default FileChangeList;
+}
 ```
 
-Note: This component uses the `diff` npm package (`createTwoFilesPatch`) to generate unified diffs from before/after content. Check if `diff` is already a dependency — if not, install it:
+- [ ] **Step 3: 重新生成类型定义并校验**
 
-Run: `grep '"diff"' package.json`
-
-If not found: `bun add diff && bun add -D @types/diff`
-
-If `diff` is not available but `diff2html` is (which is already used by `DiffViewer`), you can generate diffs using a simpler line-by-line comparison or find another approach. The key is to produce a unified diff string that `parseDiff()` can consume.
-
-- [ ] **Step 2: Write DOM test for FileChangeList**
-
-```typescript
-// tests/unit/FileChangeList.dom.test.tsx
-import { describe, it, expect, vi } from 'vitest';
-import { render, screen } from '@testing-library/react';
-import { userEvent } from '@testing-library/user-event';
-import React from 'react';
-
-// Mock dependencies
-vi.mock('@/renderer/utils/file/diffUtils', () => ({
-  parseDiff: vi.fn(() => ({ insertions: 5, deletions: 2, fileName: 'test.ts', fullPath: '/test.ts', diff: '' })),
-}));
-
-vi.mock('diff', () => ({
-  createTwoFilesPatch: vi.fn(() => 'mock diff'),
-}));
-
-vi.mock('@arco-design/web-react', () => ({
-  Empty: ({ description }: { description: React.ReactNode }) => <div data-testid='empty'>{description}</div>,
-}));
-
-import FileChangeList from '@/renderer/pages/conversation/Workspace/components/FileChangeList';
-import type { FileChangeRecord } from '@/common/types/fileSnapshot';
-
-const mockT = ((key: string, opts?: Record<string, unknown>) => {
-  if (opts?.count !== undefined) return `${key}:${opts.count}`;
-  return key;
-}) as unknown as import('i18next').TFunction;
-
-const mockChanges: FileChangeRecord[] = [
-  {
-    filePath: '/ws/src/index.ts',
-    relativePath: 'src/index.ts',
-    operation: 'modify',
-    before: 'old',
-    after: 'new',
-    timestamp: 1000,
-  },
-  {
-    filePath: '/ws/src/new.ts',
-    relativePath: 'src/new.ts',
-    operation: 'create',
-    before: null,
-    after: 'content',
-    timestamp: 2000,
-  },
-];
-
-describe('FileChangeList', () => {
-  it('renders empty state when no changes', () => {
-    render(<FileChangeList t={mockT} changes={[]} onOpenDiff={vi.fn()} />);
-    expect(screen.getByTestId('empty')).toBeDefined();
-  });
-
-  it('renders change items with status markers', () => {
-    render(<FileChangeList t={mockT} changes={mockChanges} onOpenDiff={vi.fn()} />);
-    expect(screen.getByText('src/index.ts')).toBeDefined();
-    expect(screen.getByText('src/new.ts')).toBeDefined();
-    expect(screen.getByText('M')).toBeDefined();
-    expect(screen.getByText('A')).toBeDefined();
-  });
-
-  it('calls onOpenDiff when clicking a file', async () => {
-    const onOpenDiff = vi.fn();
-    render(<FileChangeList t={mockT} changes={mockChanges} onOpenDiff={onOpenDiff} />);
-
-    const user = userEvent.setup();
-    await user.click(screen.getByText('src/index.ts'));
-
-    expect(onOpenDiff).toHaveBeenCalledWith(mockChanges[0]);
-  });
-});
+```bash
+bun run i18n:types
+node scripts/check-i18n.js
 ```
-
-- [ ] **Step 3: Run tests**
-
-Run: `bun run test -- tests/unit/FileChangeList.dom.test.tsx`
-Expected: All 3 tests PASS
 
 - [ ] **Step 4: Commit**
 
 ```bash
-git add src/renderer/pages/conversation/Workspace/components/FileChangeList.tsx tests/unit/FileChangeList.dom.test.tsx
-git commit -m "feat(workspace): add FileChangeList component with diff stats"
+git add src/renderer/services/i18n/
+git commit -m "feat(i18n): add refresh and loading keys for workspace changes tab"
 ```
 
 ---
 
-### Task 8: Integrate into Workspace Panel
+### Task 8: 格式化 & 质量检查
 
-**Files:**
-
-- Modify: `src/renderer/pages/conversation/Workspace/index.tsx`
-
-- [ ] **Step 1: Add imports and hook initialization**
-
-At the top of `src/renderer/pages/conversation/Workspace/index.tsx`, add imports:
-
-```typescript
-import { useFileChanges } from './hooks/useFileChanges';
-import FileChangeList from './components/FileChangeList';
-import WorkspaceTabBar from './components/WorkspaceTabBar';
-import type { WorkspaceTab } from './types';
-```
-
-Inside the `ChatWorkspace` component, add state and hook:
-
-```typescript
-const [activeTab, setActiveTab] = useState<WorkspaceTab>('files');
-const fileChangesHook = useFileChanges({ workspace, conversationId: conversation_id });
-```
-
-- [ ] **Step 2: Add diff opening handler**
-
-Add a callback that opens the DiffViewer via the existing Preview panel:
-
-```typescript
-import { createTwoFilesPatch } from 'diff';
-
-const handleOpenChangeDiff = useCallback(
-  (record: FileChangeRecord) => {
-    const before = record.before ?? '';
-    const after = record.after ?? '';
-    const diffContent = createTwoFilesPatch(record.relativePath, record.relativePath, before, after);
-    openPreview(diffContent, 'diff', {
-      fileName: record.relativePath,
-      filePath: record.filePath,
-      workspace,
-    });
-  },
-  [openPreview, workspace]
-);
-```
-
-Add `import type { FileChangeRecord } from '@/common/types/fileSnapshot';` to the imports.
-
-- [ ] **Step 3: Add TabBar to the JSX**
-
-Insert `WorkspaceTabBar` before the existing `WorkspaceToolbar` in the JSX return, and wrap the file tree and change list in conditional rendering:
-
-```tsx
-{
-  /* Tab bar */
-}
-<WorkspaceTabBar t={t} activeTab={activeTab} onTabChange={setActiveTab} changeCount={fileChangesHook.changeCount} />;
-
-{
-  /* Toolbar: only show for files tab */
-}
-{
-  activeTab === 'files' && (
-    <WorkspaceToolbar
-    // ... all existing props unchanged
-    />
-  );
-}
-
-{
-  /* Main content area */
-}
-{
-  !isWorkspaceCollapsed && activeTab === 'files' && (
-    <FlexFullContainer containerClassName='overflow-y-auto'>
-      {/* ... existing file tree content unchanged */}
-    </FlexFullContainer>
-  );
-}
-
-{
-  /* Changes tab content */
-}
-{
-  !isWorkspaceCollapsed && activeTab === 'changes' && (
-    <FlexFullContainer containerClassName='overflow-y-auto'>
-      <FileChangeList t={t} changes={fileChangesHook.changes} onOpenDiff={handleOpenChangeDiff} />
-    </FlexFullContainer>
-  );
-}
-```
-
-- [ ] **Step 4: Verify TypeScript compiles**
-
-Run: `bunx tsc --noEmit`
-Expected: No errors
-
-- [ ] **Step 5: Run lint and format**
-
-Run: `bun run lint:fix && bun run format`
-Expected: No errors
-
-- [ ] **Step 6: Run all tests**
-
-Run: `bun run test`
-Expected: All tests PASS
-
-- [ ] **Step 7: Commit**
+- [ ] **Step 1: 运行全部测试**
 
 ```bash
-git add src/renderer/pages/conversation/Workspace/index.tsx
-git commit -m "feat(workspace): integrate file changes tab into workspace panel"
+bun run test
 ```
 
----
+- [ ] **Step 2: lint & format**
 
-### Task 9: Manual Verification
+```bash
+bun run lint:fix
+bun run format
+```
 
-- [ ] **Step 1: Start the app**
+- [ ] **Step 3: 类型检查**
 
-Run: `bun run dev` (or whatever the dev command is)
+```bash
+bunx tsc --noEmit
+```
 
-- [ ] **Step 2: Verify the tab bar renders**
+- [ ] **Step 4: prek 检查**
 
-Open a conversation with a workspace (Gemini, ACP, or Codex). Verify:
+```bash
+prek run --from-ref origin/main --to-ref HEAD
+```
 
-- "Files" and "Changes" tabs appear above the toolbar
-- "Files" tab is active by default and shows the existing file tree
-- "Changes" tab shows empty state: "No changes yet"
-
-- [ ] **Step 3: Trigger an AI file write**
-
-Ask the AI to create or modify a file. Verify:
-
-- The "Changes" tab badge updates with the count
-- Switching to "Changes" tab shows the modified file with status marker and stats
-- Clicking the file opens the DiffViewer in the Preview panel
-
-- [ ] **Step 4: Verify cumulative behavior**
-
-Ask the AI to modify the same file again. Verify:
-
-- The file still shows as one entry (not duplicated)
-- The diff shows the cumulative change (original → latest)
-
-- [ ] **Step 5: Verify conversation switch clears state**
-
-Switch to a different conversation and back. Verify:
-
-- Changes list is empty after switching
-
-- [ ] **Step 6: Final commit if any adjustments needed**
+- [ ] **Step 5: 修复所有问题并 commit**
 
 ```bash
 git add -A
-git commit -m "fix(workspace): adjustments from manual testing"
+git commit -m "style: fix lint and formatting issues"
 ```

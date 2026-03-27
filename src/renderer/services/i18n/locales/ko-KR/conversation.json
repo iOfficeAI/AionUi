@@ -166,7 +166,8 @@
       "insertions": "+{{count}} 줄 추가",
       "deletions": "-{{count}} 줄 삭제",
       "empty": "변경 사항 없음",
-      "emptyDescription": "AI가 파일을 수정하면 변경 내용이 여기에 표시됩니다"
+      "emptyDescription": "AI가 파일을 수정하면 변경 내용이 여기에 표시됩니다",
+      "refresh": "새로고침"
     }
   },
   "minimap": {

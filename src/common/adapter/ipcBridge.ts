@@ -307,9 +307,21 @@ export const fileStream = {
   }>('file-stream-content-update'), // Agent 写入文件时的流式内容更新 / Streaming content update when agent writes file
 };
 
-// File snapshot events for tracking AI file changes
+// File snapshot providers for tracking AI file changes (on-demand comparison via isomorphic-git)
 export const fileSnapshot = {
-  change: bridge.buildEmitter<import('@/common/types/fileSnapshot').FileChangeEvent>('file-snapshot-change'),
+  init: bridge.buildProvider<import('@/common/types/fileSnapshot').SnapshotInfo, { workspace: string }>(
+    'file-snapshot-init'
+  ),
+  compare: bridge.buildProvider<import('@/common/types/fileSnapshot').FileChangeInfo[], { workspace: string }>(
+    'file-snapshot-compare'
+  ),
+  getBaselineContent: bridge.buildProvider<string | null, { workspace: string; filePath: string }>(
+    'file-snapshot-baseline'
+  ),
+  getInfo: bridge.buildProvider<import('@/common/types/fileSnapshot').SnapshotInfo, { workspace: string }>(
+    'file-snapshot-info'
+  ),
+  dispose: bridge.buildProvider<void, { workspace: string }>('file-snapshot-dispose'),
 };
 
 export const googleAuth = {

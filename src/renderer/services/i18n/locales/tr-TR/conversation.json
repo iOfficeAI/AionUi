@@ -161,7 +161,8 @@
       "insertions": "+{{count}} ekleme",
       "deletions": "-{{count}} silme",
       "empty": "Henüz değişiklik yok",
-      "emptyDescription": "AI dosyaları değiştirdiğinde değişiklikler burada görünecektir"
+      "emptyDescription": "AI dosyaları değiştirdiğinde değişiklikler burada görünecektir",
+      "refresh": "Yenile"
     }
   },
   "minimap": {

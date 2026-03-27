@@ -166,7 +166,8 @@
       "insertions": "+{{count}} insertions",
       "deletions": "-{{count}} deletions",
       "empty": "No changes yet",
-      "emptyDescription": "File changes will appear here when AI modifies files"
+      "emptyDescription": "File changes will appear here when AI modifies files",
+      "refresh": "Refresh"
     }
   },
   "minimap": {

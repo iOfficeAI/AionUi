@@ -37,6 +37,7 @@ import { initNotificationBridge } from './notificationBridge';
 import { initPptPreviewBridge } from './pptPreviewBridge';
 import { initExtensionsBridge } from './extensionsBridge';
 import { initWeixinLoginBridge } from './weixinLoginBridge';
+import { initWorkspaceSnapshotBridge } from './workspaceSnapshotBridge';
 
 export interface BridgeDependencies {
   conversationService: IConversationService;
@@ -78,6 +79,7 @@ export function initAllBridges(deps: BridgeDependencies): void {
   initTaskBridge(deps.workerTaskManager);
   initStarOfficeBridge();
   initWeixinLoginBridge();
+  initWorkspaceSnapshotBridge();
 }
 
 /**
@@ -121,6 +123,8 @@ export {
   initWebuiBridge,
   initWindowControlsBridge,
   initWeixinLoginBridge,
+  initWorkspaceSnapshotBridge,
 };
+export { disposeAllSnapshots } from './workspaceSnapshotBridge';
 // 导出窗口控制相关工具函数
 export { registerWindowMaximizeListeners } from './windowControlsBridge';

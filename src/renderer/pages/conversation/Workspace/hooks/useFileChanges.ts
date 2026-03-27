@@ -5,8 +5,7 @@
  */
 
 import { ipcBridge } from '@/common';
-import { mergeFileChange } from '@/common/types/fileSnapshot';
-import type { FileChangeEvent, FileChangeRecord } from '@/common/types/fileSnapshot';
+import type { FileChangeInfo, SnapshotInfo } from '@/common/types/fileSnapshot';
 import { useCallback, useEffect, useRef, useState } from 'react';
 
 type UseFileChangesParams = {
@@ -15,52 +14,61 @@ type UseFileChangesParams = {
 };
 
 type UseFileChangesReturn = {
-  changes: FileChangeRecord[];
+  changes: FileChangeInfo[];
   changeCount: number;
-  clearChanges: () => void;
+  loading: boolean;
+  snapshotInfo: SnapshotInfo | null;
+  refreshChanges: () => Promise<void>;
 };
 
 export function useFileChanges({ workspace, conversationId }: UseFileChangesParams): UseFileChangesReturn {
-  const changesMapRef = useRef<Map<string, FileChangeRecord>>(new Map());
-  const [changes, setChanges] = useState<FileChangeRecord[]>([]);
+  const [changes, setChanges] = useState<FileChangeInfo[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [snapshotInfo, setSnapshotInfo] = useState<SnapshotInfo | null>(null);
+  const initializedRef = useRef(false);
 
-  const clearChanges = useCallback(() => {
-    changesMapRef.current.clear();
+  // Initialize snapshot when workspace is set or conversation changes
+  useEffect(() => {
+    if (!workspace) return;
+
+    initializedRef.current = false;
     setChanges([]);
-  }, []);
+    setSnapshotInfo(null);
 
-  // Clear on conversation switch
-  useEffect(() => {
-    clearChanges();
-  }, [conversationId, clearChanges]);
+    ipcBridge.fileSnapshot.init
+      .invoke({ workspace })
+      .then((info) => {
+        setSnapshotInfo(info);
+        initializedRef.current = true;
+      })
+      .catch((err) => {
+        console.error('[useFileChanges] Failed to init snapshot:', err);
+      });
 
-  // Listen for file snapshot events
-  useEffect(() => {
-    const unsubscribe = ipcBridge.fileSnapshot.change.on((event: FileChangeEvent) => {
-      // Only track changes within the current workspace
-      if (!event.filePath.startsWith(workspace)) {
-        return;
-      }
+    return () => {
+      ipcBridge.fileSnapshot.dispose.invoke({ workspace }).catch(() => {});
+    };
+  }, [workspace, conversationId]);
 
-      const map = changesMapRef.current;
-      const existing = map.get(event.filePath);
-      const merged = mergeFileChange(existing, event);
-
-      if (merged === null) {
-        map.delete(event.filePath);
-      } else {
-        map.set(event.filePath, merged);
-      }
-
-      setChanges(Array.from(map.values()));
-    });
-
-    return unsubscribe;
+  // Fetch changes on demand
+  const refreshChanges = useCallback(async () => {
+    if (!workspace || !initializedRef.current) return;
+    setLoading(true);
+    try {
+      const result = await ipcBridge.fileSnapshot.compare.invoke({ workspace });
+      setChanges(result);
+    } catch (err) {
+      console.error('[useFileChanges] Failed to compare:', err);
+    } finally {
+      setLoading(false);
+    }
   }, [workspace]);
 
   return {
     changes,
     changeCount: changes.length,
-    clearChanges,
+    loading,
+    snapshotInfo,
+    refreshChanges,
   };
 }

@@ -15,9 +15,7 @@ import {
   getWorkspaceDisplayName as getDisplayName,
 } from '@/renderer/utils/workspace/workspace';
 import { Empty, Message, Tree } from '@arco-design/web-react';
-import type { FileChangeRecord } from '@/common/types/fileSnapshot';
-import React, { useCallback, useMemo, useState } from 'react';
-import { createTwoFilesPatch } from 'diff';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import FileChangeList from './components/FileChangeList';
 import MigrationModal from './components/MigrationModal';
@@ -182,18 +180,22 @@ const ChatWorkspace: React.FC<WorkspaceProps> = ({
   );
 
   const handleOpenChangeDiff = useCallback(
-    (record: FileChangeRecord) => {
-      const before = record.before ?? '';
-      const after = record.after ?? '';
-      const diffContent = createTwoFilesPatch(record.relativePath, record.relativePath, before, after);
+    (diffContent: string, fileName: string, filePath: string) => {
       openPreview(diffContent, 'diff', {
-        fileName: record.relativePath,
-        filePath: record.filePath,
+        fileName,
+        filePath,
         workspace,
       });
     },
     [openPreview, workspace]
   );
+
+  // Auto-refresh changes when switching to changes tab
+  useEffect(() => {
+    if (activeTab === 'changes') {
+      fileChangesHook.refreshChanges();
+    }
+  }, [activeTab, fileChangesHook.refreshChanges]);
 
   // Get target folder path for paste confirm modal
   const targetFolderPathForModal = getTargetFolderPath(
@@ -302,6 +304,7 @@ const ChatWorkspace: React.FC<WorkspaceProps> = ({
           activeTab={activeTab}
           onTabChange={setActiveTab}
           changeCount={fileChangesHook.changeCount}
+          branch={fileChangesHook.snapshotInfo?.branch ?? null}
         />
 
         {/* Toolbar: search input + directory name + action buttons */}
@@ -523,7 +526,14 @@ const ChatWorkspace: React.FC<WorkspaceProps> = ({
         {/* Changes tab content */}
         {!isWorkspaceCollapsed && activeTab === 'changes' && (
           <FlexFullContainer containerClassName='overflow-y-auto'>
-            <FileChangeList t={t} changes={fileChangesHook.changes} onOpenDiff={handleOpenChangeDiff} />
+            <FileChangeList
+              t={t}
+              workspace={workspace}
+              changes={fileChangesHook.changes}
+              loading={fileChangesHook.loading}
+              onRefresh={fileChangesHook.refreshChanges}
+              onOpenDiff={handleOpenChangeDiff}
+            />
           </FlexFullContainer>
         )}
       </div>
