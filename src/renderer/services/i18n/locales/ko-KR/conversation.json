@@ -238,6 +238,28 @@
     "toolsRequired": "/btw는 이 대화에 이미 있는 내용만으로 답변할 수 있습니다. 검색, 탐색 또는 새로운 정보를 가져올 수 없습니다.",
     "error": "보조 질문에 답하지 못했습니다."
   },
+  "commandQueue": {
+    "title": "대기 중인 명령",
+    "count": "{{count}}개 대기 중",
+    "autoRun": "현재 작업이 끝나면 자동으로 실행됩니다",
+    "clear": "대기열 비우기",
+    "moveUp": "위로",
+    "moveDown": "아래로",
+    "remove": "삭제",
+    "files": "{{count}}개 파일",
+    "pause": "일시중지",
+    "resume": "재개",
+    "paused": "일시중지됨",
+    "running": "현재 작업 완료 대기 중",
+    "ready": "계속 실행 가능",
+    "pausedHint": "대기열이 일시중지되었습니다. 계속하려면 재개하세요.",
+    "readyHint": "재개하면 다음 명령이 자동으로 시작됩니다.",
+    "pausedAfterFailure": "다음 명령을 시작하지 못해 대기열이 자동으로 일시중지되었습니다.",
+    "queueFull": "대기열이 가득 찼습니다. 일부 명령을 제거한 뒤 다시 추가하세요.",
+    "inputTooLong": "대기열에 넣을 명령이 너무 깁니다. 줄인 뒤 다시 보내세요.",
+    "tooManyFiles": "이 대기 명령에는 파일이 너무 많이 첨부되었습니다.",
+    "queueTooLarge": "대기열 데이터가 너무 커서 안전하게 저장할 수 없습니다. 일부 명령을 먼저 제거하세요."
+  },
   "contextUsage": {
     "contextUsed": "사용된 컨텍스트"
   },

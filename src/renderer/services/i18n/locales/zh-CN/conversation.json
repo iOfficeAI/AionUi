@@ -238,6 +238,28 @@
     "toolsRequired": "/btw 只能根据当前对话中已有的内容作答，无法搜索、浏览或获取新信息。",
     "error": "顺便提问失败。"
   },
+  "commandQueue": {
+    "title": "排队指令",
+    "count": "{{count}} 条排队中",
+    "autoRun": "当前任务完成后会自动执行",
+    "clear": "清空队列",
+    "moveUp": "上移",
+    "moveDown": "下移",
+    "remove": "移除",
+    "files": "{{count}} 个文件",
+    "pause": "暂停",
+    "resume": "恢复",
+    "paused": "已暂停",
+    "running": "等待当前任务完成",
+    "ready": "可继续执行",
+    "pausedHint": "队列已暂停，准备好后可继续执行。",
+    "readyHint": "恢复后会自动开始下一条指令。",
+    "pausedAfterFailure": "下一条指令启动失败，队列已自动暂停。",
+    "queueFull": "队列已满，请先移除部分指令再继续添加。",
+    "inputTooLong": "排队指令内容过长，请缩短后再发送。",
+    "tooManyFiles": "这条排队指令附加的文件过多。",
+    "queueTooLarge": "队列数据过大，无法安全缓存，请先移除部分排队指令。"
+  },
   "contextUsage": {
     "contextUsed": "上下文已使用"
   },

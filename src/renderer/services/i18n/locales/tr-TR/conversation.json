@@ -233,6 +233,28 @@
     "toolsRequired": "/btw yalnızca bu konuşmada zaten mevcut olan bilgilere dayanarak yanıt verebilir. Arama yapma, göz atma veya yeni bilgi getirme erişimi yoktur.",
     "error": "Yan soru yanıtlanamadı."
   },
+  "commandQueue": {
+    "title": "Sıradaki Komutlar",
+    "count": "{{count}} komut sırada",
+    "autoRun": "Mevcut görev bittiğinde otomatik çalışır",
+    "clear": "Kuyruğu Temizle",
+    "moveUp": "Yukarı",
+    "moveDown": "Aşağı",
+    "remove": "Kaldır",
+    "files": "{{count}} dosya",
+    "pause": "Duraklat",
+    "resume": "Sürdür",
+    "paused": "Duraklatıldı",
+    "running": "Mevcut görev bekleniyor",
+    "ready": "Devam etmeye hazır",
+    "pausedHint": "Kuyruk duraklatıldı. Devam etmek istediğinizde sürdürün.",
+    "readyHint": "Sürdürdüğünüzde sıradaki komut otomatik başlar.",
+    "pausedAfterFailure": "Sıradaki komut başlatılamadı, kuyruk otomatik duraklatıldı.",
+    "queueFull": "Kuyruk dolu. Yeni komut eklemeden önce bazılarını kaldırın.",
+    "inputTooLong": "Sıraya alınan komut çok uzun. Göndermeden önce kısaltın.",
+    "tooManyFiles": "Bu kuyruk komutuna çok fazla dosya eklendi.",
+    "queueTooLarge": "Kuyruk verisi güvenli şekilde saklanamayacak kadar büyük. Önce bazı komutları kaldırın."
+  },
   "contextUsage": {
     "contextUsed": "bağlam kullanıldı"
   },

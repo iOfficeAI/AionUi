@@ -65,6 +65,7 @@ const SendBox: React.FC<{
   onSlashBuiltinCommand?: (name: string) => void;
   hasPendingAttachments?: boolean;
   enableBtw?: boolean;
+  allowSendWhileLoading?: boolean;
 }> = ({
   onSend,
   onStop,
@@ -85,6 +86,7 @@ const SendBox: React.FC<{
   onSlashBuiltinCommand,
   hasPendingAttachments = false,
   enableBtw = false,
+  allowSendWhileLoading = false,
 }) => {
   const layout = useLayoutContext();
   const isMobile = layout?.isMobile ?? false;
@@ -576,7 +578,7 @@ const SendBox: React.FC<{
       return;
     }
 
-    if (loading || isLoading) {
+    if (isLoading || (loading && !allowSendWhileLoading)) {
       message.warning(t('messages.conversationInProgress'));
       return;
     }
@@ -642,6 +644,33 @@ const SendBox: React.FC<{
       }}
     />
   );
+
+  const stopButton = (
+    <Button
+      shape='circle'
+      type='secondary'
+      className='bg-animate'
+      icon={<div className='mx-auto size-12px bg-6'></div>}
+      onClick={stopHandler}
+    ></Button>
+  );
+
+  const renderActionButtons = () => {
+    if (loading && allowSendWhileLoading) {
+      return (
+        <>
+          {stopButton}
+          {sendButton}
+        </>
+      );
+    }
+
+    if (isLoading || loading) {
+      return stopButton;
+    }
+
+    return sendButton;
+  };
 
   return (
     <div className={className}>
@@ -783,17 +812,7 @@ const SendBox: React.FC<{
                 onTranscript={handleSpeechTranscript}
               />
               {sendButtonPrefix}
-              {isLoading || (loading && !isBtwInput) ? (
-                <Button
-                  shape='circle'
-                  type='secondary'
-                  className='bg-animate'
-                  icon={<div className='mx-auto size-12px bg-6'></div>}
-                  onClick={stopHandler}
-                ></Button>
-              ) : (
-                sendButton
-              )}
+              {renderActionButtons()}
             </div>
           )}
         </div>
@@ -807,17 +826,7 @@ const SendBox: React.FC<{
                 onTranscript={handleSpeechTranscript}
               />
               {sendButtonPrefix}
-              {isLoading || (loading && !isBtwInput) ? (
-                <Button
-                  shape='circle'
-                  type='secondary'
-                  className='bg-animate'
-                  icon={<div className='mx-auto size-12px bg-6'></div>}
-                  onClick={stopHandler}
-                ></Button>
-              ) : (
-                sendButton
-              )}
+              {renderActionButtons()}
             </div>
           </div>
         )}
