@@ -203,6 +203,15 @@ git diff origin/<baseRefName>...HEAD
 git diff --name-status origin/<baseRefName>...HEAD
 ```
 
+**PR discussion comments (excluding bot review comments):**
+
+```bash
+gh pr view <PR_NUMBER> --json comments \
+  --jq '[.comments[] | select(.body | startswith("<!-- pr-review-bot -->") | not) | select(.body | startswith("<!-- pr-automation-bot -->") | not) | {author: .author.login, body: .body, createdAt: .createdAt}]'
+```
+
+Save as `pr_discussion`. Use in Step 9 as supplementary context for **方案合理性** evaluation — if participants have explained design decisions or flagged known trade-offs, factor that in. Code is always the authoritative source; comments are context only.
+
 ### Step 7 — Run Lint on Changed Files
 
 Run oxlint on all changed `.ts` / `.tsx` files (skip deleted files):
