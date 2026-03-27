@@ -4,18 +4,20 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import git from 'isomorphic-git';
-import nodeFs from 'node:fs';
+import { execFile } from 'node:child_process';
 import fs from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
+import { promisify } from 'node:util';
 import type { FileChangeInfo, SnapshotInfo } from '@/common/types/fileSnapshot';
+
+const execFileAsync = promisify(execFile);
 
 type SnapshotState = {
   mode: 'git-repo' | 'snapshot';
   workspacePath: string;
   gitdir: string;
-  baselineOid: string;
+  baselineRef: string;
   branch: string | null;
   createdGitignore?: boolean;
 };
@@ -29,7 +31,6 @@ export class WorkspaceSnapshotService {
   private snapshots = new Map<string, SnapshotState>();
 
   async init(workspacePath: string): Promise<SnapshotInfo> {
-    // Dispose existing snapshot if re-initializing
     if (this.snapshots.has(workspacePath)) {
       await this.dispose(workspacePath);
     }
@@ -48,24 +49,43 @@ export class WorkspaceSnapshotService {
       return [];
     }
 
-    // statusMatrix is stat-based (O(n) stat calls, no file content reads)
-    // Much faster and memory-efficient than git.walk with content hashing
-    const matrix = await git.statusMatrix({
-      fs: nodeFs,
-      dir: workspacePath,
-      gitdir: state.gitdir,
-    });
+    // git diff --name-status against baseline, plus untracked files
+    const gitArgs = this.gitArgs(state);
+    const changes: FileChangeInfo[] = [];
 
-    // statusMatrix returns: [filepath, HEAD, WORKDIR, STAGE]
-    // HEAD=0 means file not in baseline, HEAD=1 means file in baseline
-    // WORKDIR=0 means deleted, WORKDIR=2 means exists (new or modified)
-    return matrix
-      .filter(([, head, workdir]) => head !== workdir)
-      .map(([filepath, head, workdir]) => ({
-        relativePath: filepath as string,
-        filePath: path.join(workspacePath, filepath as string),
-        operation: head === 0 ? ('create' as const) : workdir === 0 ? ('delete' as const) : ('modify' as const),
-      }));
+    // Tracked changes: modified + deleted
+    const { stdout: diffOut } = await execFileAsync(
+      'git',
+      [...gitArgs, 'diff', '--name-status', state.baselineRef],
+      { cwd: workspacePath, maxBuffer: 10 * 1024 * 1024 },
+    );
+
+    for (const line of diffOut.split('\n')) {
+      if (!line) continue;
+      const status = line[0];
+      const filepath = line.slice(2);
+      if (status === 'M') {
+        changes.push({ relativePath: filepath, filePath: path.join(workspacePath, filepath), operation: 'modify' });
+      } else if (status === 'D') {
+        changes.push({ relativePath: filepath, filePath: path.join(workspacePath, filepath), operation: 'delete' });
+      } else if (status === 'A') {
+        changes.push({ relativePath: filepath, filePath: path.join(workspacePath, filepath), operation: 'create' });
+      }
+    }
+
+    // Untracked files (new files not in baseline)
+    const { stdout: untrackedOut } = await execFileAsync(
+      'git',
+      [...gitArgs, 'ls-files', '--others', '--exclude-standard'],
+      { cwd: workspacePath, maxBuffer: 10 * 1024 * 1024 },
+    );
+
+    for (const filepath of untrackedOut.split('\n')) {
+      if (!filepath) continue;
+      changes.push({ relativePath: filepath, filePath: path.join(workspacePath, filepath), operation: 'create' });
+    }
+
+    return changes;
   }
 
   async getBaselineContent(workspacePath: string, filePath: string): Promise<string | null> {
@@ -75,14 +95,13 @@ export class WorkspaceSnapshotService {
     }
 
     try {
-      const { blob } = await git.readBlob({
-        fs: nodeFs,
-        dir: workspacePath,
-        gitdir: state.gitdir,
-        oid: state.baselineOid,
-        filepath: filePath,
-      });
-      return new TextDecoder().decode(blob);
+      const gitArgs = this.gitArgs(state);
+      const { stdout } = await execFileAsync(
+        'git',
+        [...gitArgs, 'show', `${state.baselineRef}:${filePath}`],
+        { cwd: workspacePath, maxBuffer: 50 * 1024 * 1024, encoding: 'utf-8' },
+      );
+      return stdout;
     } catch {
       return null;
     }
@@ -103,9 +122,7 @@ export class WorkspaceSnapshotService {
     }
 
     if (state.mode === 'snapshot') {
-      // Clean up temp gitdir
       await fs.rm(state.gitdir, { recursive: true, force: true }).catch(() => {});
-      // Clean up .gitignore we created
       if (state.createdGitignore) {
         await fs.unlink(path.join(state.workspacePath, '.gitignore')).catch(() => {});
       }
@@ -119,11 +136,16 @@ export class WorkspaceSnapshotService {
     await Promise.all(workspaces.map((ws) => this.dispose(ws)));
   }
 
+  /** Build --git-dir / --work-tree args for snapshot mode, empty for git-repo mode */
+  private gitArgs(state: SnapshotState): string[] {
+    if (state.mode === 'git-repo') return [];
+    return [`--git-dir=${state.gitdir}`, `--work-tree=${state.workspacePath}`];
+  }
+
   private async detectMode(workspacePath: string): Promise<'git-repo' | 'snapshot'> {
     try {
       const gitPath = path.join(workspacePath, '.git');
       const stat = await fs.stat(gitPath);
-      // Only treat as git-repo if .git is a directory (not a file like worktree/submodule)
       return stat.isDirectory() ? 'git-repo' : 'snapshot';
     } catch {
       return 'snapshot';
@@ -132,16 +154,26 @@ export class WorkspaceSnapshotService {
 
   private async initGitRepo(workspacePath: string): Promise<SnapshotInfo> {
     const gitdir = path.join(workspacePath, '.git');
-    const branch: string | null = (await git.currentBranch({ fs: nodeFs, dir: workspacePath, gitdir })) || null;
 
-    const commits = await git.log({ fs: nodeFs, dir: workspacePath, gitdir, depth: 1 });
-    const baselineOid = commits[0]?.oid ?? '';
+    const { stdout: branchOut } = await execFileAsync(
+      'git',
+      ['rev-parse', '--abbrev-ref', 'HEAD'],
+      { cwd: workspacePath },
+    );
+    const branch = branchOut.trim() || null;
+
+    const { stdout: oidOut } = await execFileAsync(
+      'git',
+      ['rev-parse', 'HEAD'],
+      { cwd: workspacePath },
+    );
+    const baselineRef = oidOut.trim();
 
     this.snapshots.set(workspacePath, {
       mode: 'git-repo',
       workspacePath,
       gitdir,
-      baselineOid,
+      baselineRef,
       branch,
     });
 
@@ -150,6 +182,7 @@ export class WorkspaceSnapshotService {
 
   private async initSnapshot(workspacePath: string): Promise<SnapshotInfo> {
     const gitdir = path.join(os.tmpdir(), `aionui-snapshot-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`);
+    const gitArgs = [`--git-dir=${gitdir}`, `--work-tree=${workspacePath}`];
 
     // Create default .gitignore if none exists
     const gitignorePath = path.join(workspacePath, '.gitignore');
@@ -161,21 +194,22 @@ export class WorkspaceSnapshotService {
       createdGitignore = true;
     }
 
-    await git.init({ fs: nodeFs, dir: workspacePath, gitdir });
-    await git.add({ fs: nodeFs, dir: workspacePath, gitdir, filepath: '.' });
-    const baselineOid = await git.commit({
-      fs: nodeFs,
-      dir: workspacePath,
-      gitdir,
-      message: 'baseline',
-      author: { name: 'AionUI', email: 'snapshot@aionui.local' },
-    });
+    await execFileAsync('git', ['init', '--bare', gitdir]);
+    await execFileAsync('git', [...gitArgs, 'add', '.'], { cwd: workspacePath });
+    await execFileAsync(
+      'git',
+      [...gitArgs, '-c', 'user.name=AionUI', '-c', 'user.email=snapshot@aionui.local', 'commit', '-m', 'baseline'],
+      { cwd: workspacePath },
+    );
+
+    const { stdout: oidOut } = await execFileAsync('git', [...gitArgs, 'rev-parse', 'HEAD'], { cwd: workspacePath });
+    const baselineRef = oidOut.trim();
 
     this.snapshots.set(workspacePath, {
       mode: 'snapshot',
       workspacePath,
       gitdir,
-      baselineOid,
+      baselineRef,
       branch: null,
       createdGitignore,
     });

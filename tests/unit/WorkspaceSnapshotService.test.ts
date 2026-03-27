@@ -1,10 +1,12 @@
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
+import { execFile } from 'node:child_process';
 import fs from 'node:fs/promises';
-import nodeFs from 'node:fs';
 import path from 'node:path';
 import os from 'node:os';
-import git from 'isomorphic-git';
+import { promisify } from 'node:util';
 import { WorkspaceSnapshotService } from '../../src/process/services/WorkspaceSnapshotService';
+
+const exec = promisify(execFile);
 
 describe('WorkspaceSnapshotService', () => {
   let service: WorkspaceSnapshotService;
@@ -44,8 +46,7 @@ describe('WorkspaceSnapshotService', () => {
       await fs.writeFile(path.join(tmpDir, 'a.txt'), 'original');
       await service.init(tmpDir);
 
-      // Use different-length content so stat-based comparison detects the change
-      await fs.writeFile(path.join(tmpDir, 'a.txt'), 'modified with extra content');
+      await fs.writeFile(path.join(tmpDir, 'a.txt'), 'modified content');
       const changes = await service.compare(tmpDir);
 
       const modified = changes.find((c) => c.relativePath === 'a.txt');
@@ -96,8 +97,8 @@ describe('WorkspaceSnapshotService', () => {
       await fs.writeFile(path.join(tmpDir, 'ignored.txt'), 'ignored');
       await service.init(tmpDir);
 
-      await fs.writeFile(path.join(tmpDir, 'ignored.txt'), 'changed ignored content that is longer');
-      await fs.writeFile(path.join(tmpDir, 'tracked.txt'), 'changed tracked content that is longer');
+      await fs.writeFile(path.join(tmpDir, 'ignored.txt'), 'changed ignored content');
+      await fs.writeFile(path.join(tmpDir, 'tracked.txt'), 'changed tracked content');
       const changes = await service.compare(tmpDir);
 
       expect(changes.some((c) => c.relativePath === 'tracked.txt')).toBe(true);
@@ -110,7 +111,6 @@ describe('WorkspaceSnapshotService', () => {
 
       await service.dispose(tmpDir);
 
-      // After dispose, compare should return empty
       const changes = await service.compare(tmpDir);
       expect(changes).toEqual([]);
     });
@@ -118,27 +118,24 @@ describe('WorkspaceSnapshotService', () => {
 
   describe('git-repo mode (has .git)', () => {
     beforeEach(async () => {
-      await git.init({ fs: nodeFs, dir: tmpDir });
+      await exec('git', ['init'], { cwd: tmpDir });
+      await exec('git', ['-c', 'user.name=Test', '-c', 'user.email=test@test.com', 'commit', '--allow-empty', '-m', 'init'], { cwd: tmpDir });
       await fs.writeFile(path.join(tmpDir, 'initial.txt'), 'initial');
-      await git.add({ fs: nodeFs, dir: tmpDir, filepath: 'initial.txt' });
-      await git.commit({
-        fs: nodeFs,
-        dir: tmpDir,
-        message: 'initial commit',
-        author: { name: 'Test', email: 'test@test.com' },
-      });
+      await exec('git', ['add', 'initial.txt'], { cwd: tmpDir });
+      await exec('git', ['-c', 'user.name=Test', '-c', 'user.email=test@test.com', 'commit', '-m', 'add initial'], { cwd: tmpDir });
     });
 
     it('init returns git-repo mode with branch name', async () => {
       const info = await service.init(tmpDir);
       expect(info.mode).toBe('git-repo');
-      expect(info.branch).toBe('master');
+      // git init creates 'main' or 'master' depending on config
+      expect(typeof info.branch).toBe('string');
+      expect(info.branch!.length).toBeGreaterThan(0);
     });
 
     it('compare detects uncommitted changes', async () => {
       await service.init(tmpDir);
-      // Use different-length content so stat-based comparison detects the change
-      await fs.writeFile(path.join(tmpDir, 'initial.txt'), 'changed with extra content');
+      await fs.writeFile(path.join(tmpDir, 'initial.txt'), 'changed content');
 
       const changes = await service.compare(tmpDir);
       const modified = changes.find((c) => c.relativePath === 'initial.txt');
@@ -158,7 +155,7 @@ describe('WorkspaceSnapshotService', () => {
 
     it('getBaselineContent returns HEAD version', async () => {
       await service.init(tmpDir);
-      await fs.writeFile(path.join(tmpDir, 'initial.txt'), 'changed with extra content');
+      await fs.writeFile(path.join(tmpDir, 'initial.txt'), 'changed content');
 
       const content = await service.getBaselineContent(tmpDir, 'initial.txt');
       expect(content).toBe('initial');
@@ -168,7 +165,7 @@ describe('WorkspaceSnapshotService', () => {
       await service.init(tmpDir);
       const info = await service.getInfo(tmpDir);
       expect(info.mode).toBe('git-repo');
-      expect(info.branch).toBe('master');
+      expect(typeof info.branch).toBe('string');
     });
   });
 });
