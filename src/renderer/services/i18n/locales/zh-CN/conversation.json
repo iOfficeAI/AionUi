@@ -176,7 +176,9 @@
       "unstage": "取消暂存",
       "unstageAll": "取消暂存所有更改",
       "discard": "放弃更改",
-      "reset": "还原更改"
+      "reset": "还原更改",
+      "noUnstaged": "没有未暂存的更改",
+      "noStaged": "没有已暂存的更改"
     }
   },
   "minimap": {

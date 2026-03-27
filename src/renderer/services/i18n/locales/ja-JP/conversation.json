@@ -176,7 +176,9 @@
       "unstage": "ステージ解除",
       "unstageAll": "すべてのステージを解除",
       "discard": "変更を破棄",
-      "reset": "変更を元に戻す"
+      "reset": "変更を元に戻す",
+      "noUnstaged": "ステージされていない変更はありません",
+      "noStaged": "ステージ済みの変更はありません"
     }
   },
   "minimap": {

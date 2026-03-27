@@ -176,7 +176,9 @@
       "unstage": "Unstage",
       "unstageAll": "Unstage All Changes",
       "discard": "Discard Changes",
-      "reset": "Revert Changes"
+      "reset": "Revert Changes",
+      "noUnstaged": "No unstaged changes",
+      "noStaged": "No staged changes"
     }
   },
   "minimap": {

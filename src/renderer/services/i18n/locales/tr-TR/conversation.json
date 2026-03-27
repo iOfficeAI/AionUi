@@ -171,7 +171,9 @@
       "unstage": "Hazırlamayı Geri Al",
       "unstageAll": "Tüm Hazırlamaları Geri Al",
       "discard": "Değişiklikleri Sil",
-      "reset": "Değişiklikleri Geri Al"
+      "reset": "Değişiklikleri Geri Al",
+      "noUnstaged": "Hazırlanmamış değişiklik yok",
+      "noStaged": "Hazırlanmış değişiklik yok"
     }
   },
   "minimap": {

@@ -355,6 +355,8 @@ export type I18nKey =
   | 'conversation.workspace.changes.emptyDescription'
   | 'conversation.workspace.changes.filesTab'
   | 'conversation.workspace.changes.insertions'
+  | 'conversation.workspace.changes.noStaged'
+  | 'conversation.workspace.changes.noUnstaged'
   | 'conversation.workspace.changes.refresh'
   | 'conversation.workspace.changes.reset'
   | 'conversation.workspace.changes.stage'
