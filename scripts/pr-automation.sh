@@ -5,14 +5,15 @@
 # Environment variables:
 #   SLEEP_SECONDS   Seconds to sleep between Claude runs (default: 30)
 #   MAX_CLAUDE_SECS Maximum seconds a Claude run may take (default: 3600)
-#   LOG_FILE        Log file path (default: /tmp/pr-automation.log)
+#   LOG_FILE        Log file path (default: <repo>/logs/pr-automation.log)
 set -euo pipefail
 
+REPO_DIR="$(cd "$(dirname "$0")/.." && pwd)"
 SLEEP_SECONDS=${SLEEP_SECONDS:-30}
 MAX_CLAUDE_SECS=${MAX_CLAUDE_SECS:-3600}
-LOG_FILE=${LOG_FILE:-/tmp/pr-automation.log}
-REPO_DIR="$(cd "$(dirname "$0")/.." && pwd)"
-PID_FILE="/tmp/pr-automation-daemon.pid"
+LOG_FILE=${LOG_FILE:-$REPO_DIR/logs/pr-automation-$(date '+%Y-%m-%d').log}
+PID_FILE="$REPO_DIR/logs/pr-automation-daemon.pid"
+mkdir -p "$(dirname "$LOG_FILE")"
 
 log() {
   local level="$1"; shift
