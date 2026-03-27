@@ -133,6 +133,9 @@ export class GeminiAgentManager extends BaseAgentManager<
     // 向后兼容 / Backward compatible
     this.contextContent = data.contextContent || data.presetRules;
     this.bootstrap = this.createBootstrap();
+    // Prevent unhandled rejection when bootstrap fails (e.g. missing OAuth credentials).
+    // The error still propagates when sendMessage() awaits this.bootstrap.
+    this.bootstrap.catch(() => {});
   }
 
   /**

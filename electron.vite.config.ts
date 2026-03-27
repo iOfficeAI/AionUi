@@ -131,6 +131,7 @@ export default defineConfig(({ mode }) => {
 
     renderer: {
       base: './',
+      publicDir: resolve('public'),
       server: {
         // Keep renderer HTTP port deterministic for Electron runtime URL injection.
         // If 5173 is unavailable, fail fast instead of auto-switching to 5174+,

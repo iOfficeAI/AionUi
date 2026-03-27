@@ -563,9 +563,21 @@ export function logEnvironmentDiagnostics(): void {
  * - POSIX:   ~/.npm/_npx
  */
 export function getNpxCacheDir(): string {
-  const npmCacheBase =
-    process.platform === 'win32'
-      ? path.join(process.env.LOCALAPPDATA || path.join(os.homedir(), 'AppData', 'Local'), 'npm-cache')
-      : path.join(os.homedir(), '.npm');
+  const explicitCacheDir = process.env.npm_config_cache || process.env.NPM_CONFIG_CACHE;
+  if (explicitCacheDir) {
+    return path.join(explicitCacheDir, '_npx');
+  }
+
+  if (process.platform === 'win32') {
+    const npmCacheBase = path.join(
+      process.env.LOCALAPPDATA || path.join(os.homedir(), 'AppData', 'Local'),
+      'npm-cache'
+    );
+    return path.join(npmCacheBase, '_npx');
+  }
+
+  const homeDir = os.homedir();
+  const posixCacheCandidates = [path.join(homeDir, '.npm-cache'), path.join(homeDir, '.npm')];
+  const npmCacheBase = posixCacheCandidates.find((candidate) => existsSync(candidate)) || posixCacheCandidates[0];
   return path.join(npmCacheBase, '_npx');
 }
