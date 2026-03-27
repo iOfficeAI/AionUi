@@ -260,6 +260,26 @@ Log: `[pr-automation:exit] action=ready_to_merge pr=#<PR_NUMBER> reason="large P
 
 **If `NEEDS_HUMAN_REVIEW=false`**:
 
+**First: check if branch is behind base:**
+
+```bash
+MERGE_STATE=$(gh pr view <PR_NUMBER> --json mergeStateStatus --jq '.mergeStateStatus')
+```
+
+If `MERGE_STATE=BEHIND`:
+
+```bash
+gh api repos/$REPO/pulls/<PR_NUMBER>/update-branch --method PUT
+gh pr edit <PR_NUMBER> --remove-label "bot:fixing"
+```
+
+Log: `[pr-automation] PR #<PR_NUMBER> fix complete but branch is behind base — triggered update-branch. Next session will merge once CI passes.`
+Log: `[pr-automation:exit] action=update_branch pr=#<PR_NUMBER> reason="fix complete, branch behind base, triggered update"`
+
+**EXIT.**
+
+If not BEHIND, continue:
+
 ```bash
 gh pr merge <PR_NUMBER> --squash --auto
 gh pr edit <PR_NUMBER> --remove-label "bot:fixing" --add-label "bot:done"
@@ -356,22 +376,10 @@ gh pr view <PR_NUMBER> --json mergeable,mergeStateStatus,headRefName,baseRefName
 
 | `mergeable` | `mergeStateStatus` | Action |
 |---|---|---|
-| `MERGEABLE` | `BEHIND` | Call update-branch API → remove `bot:reviewing` → **EXIT** |
+| `MERGEABLE` | `BEHIND` | Continue to Step 5 (review first; update-branch is deferred to pre-merge) |
 | `MERGEABLE` | other | Continue to Step 5 |
 | `UNKNOWN` | any | Remove `bot:reviewing` → log `[pr-automation:skip] action=merge_unknown pr=#<PR_NUMBER> reason="mergeability unknown, will retry"` → **find next PR** |
 | `CONFLICTING` | any | Run conflict dedup check (see below) |
-
-**Branch update (mergeable=MERGEABLE, mergeStateStatus=BEHIND):**
-
-```bash
-gh api repos/$REPO/pulls/<PR_NUMBER>/update-branch --method PUT
-gh pr edit <PR_NUMBER> --remove-label "bot:reviewing"
-```
-
-Log: `[pr-automation] PR #<PR_NUMBER> branch is behind base — triggered update-branch. Next session will review and merge once CI passes.`
-Log: `[pr-automation:exit] action=update_branch pr=#<PR_NUMBER> reason="branch behind base, triggered update"`
-
-**EXIT** (GitHub merges base into the branch, CI re-triggers; next pr-automation session will pick up the PR, run review, and merge).
 
 **Merge conflict dedup check:**
 
@@ -522,6 +530,26 @@ When `NEEDS_HUMAN_REVIEW=true`, route to human review regardless of CONCLUSION (
 5. **EXIT.**
 
 **If `NEEDS_HUMAN_REVIEW=false`**:
+
+**First: check if branch is behind base:**
+
+```bash
+MERGE_STATE=$(gh pr view <PR_NUMBER> --json mergeStateStatus --jq '.mergeStateStatus')
+```
+
+If `MERGE_STATE=BEHIND`:
+
+```bash
+gh api repos/$REPO/pulls/<PR_NUMBER>/update-branch --method PUT
+gh pr edit <PR_NUMBER> --remove-label "bot:reviewing"
+```
+
+Log: `[pr-automation] PR #<PR_NUMBER> review passed but branch is behind base — triggered update-branch. Next session will merge once CI passes.`
+Log: `[pr-automation:exit] action=update_branch pr=#<PR_NUMBER> reason="review passed, branch behind base, triggered update"`
+
+**EXIT.**
+
+If not BEHIND, continue:
 
 1. Post comment:
    ```bash
