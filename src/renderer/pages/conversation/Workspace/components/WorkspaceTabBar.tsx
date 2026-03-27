@@ -4,11 +4,10 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { Badge, Dropdown, Menu, Tabs, Tree } from '@arco-design/web-react';
-import type { NodeProps } from '@arco-design/web-react/es/Tree/interface';
-import { BranchOne, CheckSmall } from '@icon-park/react';
+import { Badge, Dropdown, Tabs } from '@arco-design/web-react';
+import { BranchOne, CheckSmall, Down, Right } from '@icon-park/react';
 import type { TFunction } from 'i18next';
-import React, { useMemo } from 'react';
+import React, { useCallback, useMemo, useState } from 'react';
 import type { WorkspaceTab } from '../types';
 
 type WorkspaceTabBarProps = {
@@ -22,18 +21,13 @@ type WorkspaceTabBarProps = {
 
 // --- Branch tree helpers ---
 
-type TreeNodeData = {
-  key: string;
-  title: string;
-  children?: TreeNodeData[];
-  isLeaf?: boolean;
-  selectable?: boolean;
+type BranchNode = {
+  children: Map<string, BranchNode>;
+  fullPath: string | null;
 };
 
-function buildTreeData(branches: string[]): TreeNodeData[] {
-  type TempNode = { children: Map<string, TempNode>; fullPath: string | null };
-  const root: TempNode = { children: new Map(), fullPath: null };
-
+function buildBranchTree(branches: string[]): BranchNode {
+  const root: BranchNode = { children: new Map(), fullPath: null };
   for (const branch of branches) {
     const parts = branch.split('/');
     let node = root;
@@ -45,33 +39,10 @@ function buildTreeData(branches: string[]): TreeNodeData[] {
     }
     node.fullPath = branch;
   }
-
-  function toTreeNodes(node: TempNode): TreeNodeData[] {
-    const entries = Array.from(node.children.entries());
-    const folders = entries.filter(([, c]) => c.children.size > 0).sort(([a], [b]) => a.localeCompare(b));
-    const leaves = entries.filter(([, c]) => c.children.size === 0).sort(([a], [b]) => a.localeCompare(b));
-
-    return [
-      ...folders.map(([name, child]) => ({
-        key: child.fullPath ?? name,
-        title: name,
-        children: toTreeNodes(child),
-        selectable: false,
-      })),
-      ...leaves.map(([name, child]) => ({
-        key: child.fullPath!,
-        title: name,
-        isLeaf: true,
-        selectable: false,
-      })),
-    ];
-  }
-
-  return toTreeNodes(root);
+  return root;
 }
 
-/** Collect ancestor folder keys for default expansion */
-function getExpandedKeys(branch: string): string[] {
+function getAncestorPaths(branch: string): string[] {
   const parts = branch.split('/');
   const keys: string[] = [];
   for (let i = 1; i < parts.length; i++) {
@@ -79,6 +50,75 @@ function getExpandedKeys(branch: string): string[] {
   }
   return keys;
 }
+
+// --- Recursive branch list ---
+
+type BranchListProps = {
+  node: BranchNode;
+  currentBranch: string;
+  expanded: Set<string>;
+  onToggle: (path: string) => void;
+  prefix?: string;
+  depth?: number;
+};
+
+const INDENT = 12;
+
+const BranchList: React.FC<BranchListProps> = ({ node, currentBranch, expanded, onToggle, prefix = '', depth = 0 }) => {
+  const entries = Array.from(node.children.entries());
+  const folders = entries.filter(([, c]) => c.children.size > 0).sort(([a], [b]) => a.localeCompare(b));
+  const leaves = entries.filter(([, c]) => c.children.size === 0).sort(([a], [b]) => a.localeCompare(b));
+
+  return (
+    <>
+      {folders.map(([name, child]) => {
+        const folderPath = prefix ? `${prefix}/${name}` : name;
+        const isOpen = expanded.has(folderPath);
+        return (
+          <React.Fragment key={`f:${folderPath}`}>
+            <div
+              className='flex items-center h-26px px-8px text-t-tertiary cursor-pointer hover:bg-fill-2 select-none text-12px'
+              style={{ paddingLeft: 8 + depth * INDENT }}
+              onClick={() => onToggle(folderPath)}
+            >
+              {isOpen ? <Down size={10} className='shrink-0 mr-4px' /> : <Right size={10} className='shrink-0 mr-4px' />}
+              {name}
+            </div>
+            {isOpen && (
+              <BranchList
+                node={child}
+                currentBranch={currentBranch}
+                expanded={expanded}
+                onToggle={onToggle}
+                prefix={folderPath}
+                depth={depth + 1}
+              />
+            )}
+          </React.Fragment>
+        );
+      })}
+      {leaves.map(([name, child]) => {
+        const isCurrent = child.fullPath === currentBranch;
+        return (
+          <div
+            key={`b:${child.fullPath}`}
+            className={`flex items-center h-26px px-8px text-12px ${isCurrent ? 'text-primary-6' : 'text-t-primary'}`}
+            style={{ paddingLeft: 8 + depth * INDENT }}
+          >
+            {isCurrent ? (
+              <CheckSmall size={14} className='shrink-0 mr-2px' />
+            ) : (
+              <span className='w-16px shrink-0' />
+            )}
+            <span className={`truncate ${isCurrent ? 'font-medium' : ''}`}>{name}</span>
+          </div>
+        );
+      })}
+    </>
+  );
+};
+
+// --- Main component ---
 
 const WorkspaceTabBar: React.FC<WorkspaceTabBarProps> = ({
   t,
@@ -88,23 +128,17 @@ const WorkspaceTabBar: React.FC<WorkspaceTabBarProps> = ({
   branch,
   branches,
 }) => {
-  const treeData = useMemo(() => buildTreeData(branches), [branches]);
-  const defaultExpandedKeys = useMemo(() => (branch ? getExpandedKeys(branch) : []), [branch]);
+  const tree = useMemo(() => buildBranchTree(branches), [branches]);
+  const [expanded, setExpanded] = useState<Set<string>>(() => new Set(branch ? getAncestorPaths(branch) : []));
 
-  const renderTitle = (nodeProps: NodeProps) => {
-    const isCurrent = nodeProps.isLeaf && nodeProps._key === branch;
-    if (!nodeProps.isLeaf) {
-      return <span className='text-12px text-t-tertiary'>{nodeProps.title}</span>;
-    }
-    return (
-      <span className='flex items-center gap-4px'>
-        {isCurrent ? <CheckSmall size={14} className='text-primary-6' /> : <span className='w-14px' />}
-        <span className={`text-12px ${isCurrent ? 'font-medium text-primary-6' : ''}`}>
-          {nodeProps.title as string}
-        </span>
-      </span>
-    );
-  };
+  const toggleFolder = useCallback((path: string) => {
+    setExpanded((prev) => {
+      const next = new Set(prev);
+      if (next.has(path)) next.delete(path);
+      else next.add(path);
+      return next;
+    });
+  }, []);
 
   const changesTitle = (
     <span className='flex items-center gap-4px'>
@@ -119,26 +153,34 @@ const WorkspaceTabBar: React.FC<WorkspaceTabBarProps> = ({
         trigger='click'
         position='bl'
         droplist={
-          <Menu style={{ maxHeight: 320, overflowY: 'auto', minWidth: 180 }}>
-            <Tree
-              treeData={treeData}
-              defaultExpandedKeys={defaultExpandedKeys}
-              blockNode
-              size='mini'
-              renderTitle={renderTitle}
+          <div
+            className='rounded-6px py-4px shadow-lg'
+            style={{
+              maxHeight: 320,
+              overflowY: 'auto',
+              minWidth: 180,
+              background: 'var(--color-bg-popup)',
+              border: '1px solid var(--color-border)',
+            }}
+          >
+            <BranchList
+              node={tree}
+              currentBranch={branch}
+              expanded={expanded}
+              onToggle={toggleFolder}
             />
-          </Menu>
+          </div>
         }
       >
-        <span className='flex items-center gap-4px text-12px text-t-tertiary mr-8px cursor-pointer hover:text-t-secondary transition-colors'>
-          <BranchOne size={14} />
-          <span className='max-w-120px overflow-hidden text-ellipsis whitespace-nowrap'>{branch}</span>
+        <span className='flex items-center gap-4px text-12px text-t-tertiary mx-8px cursor-pointer hover:text-t-secondary transition-colors w-100px'>
+          <BranchOne size={14} className='shrink-0' />
+          <span className='overflow-hidden text-ellipsis whitespace-nowrap'>{branch}</span>
         </span>
       </Dropdown>
     ) : branch ? (
-      <span className='flex items-center gap-4px text-12px text-t-tertiary mr-8px'>
-        <BranchOne size={14} />
-        <span className='max-w-120px overflow-hidden text-ellipsis whitespace-nowrap'>{branch}</span>
+      <span className='flex items-center gap-4px text-12px text-t-tertiary mx-8px w-100px'>
+        <BranchOne size={14} className='shrink-0' />
+        <span className='overflow-hidden text-ellipsis whitespace-nowrap'>{branch}</span>
       </span>
     ) : null;
 
