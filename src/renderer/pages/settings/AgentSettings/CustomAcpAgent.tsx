@@ -201,11 +201,18 @@ const CustomAcpAgent: React.FC<CustomAcpAgentProps> = ({ message }) => {
                   </div>
                   <div className='text-sm text-t-secondary'>
                     <div>
-                      <span className='font-medium'>{t('settings.command') || 'CLI Path'}:</span> {agent.defaultCliPath}
+                      <span className='font-medium'>{t('settings.commandLabel') || 'Command'}:</span>{' '}
+                      {agent.defaultCliPath}
                     </div>
+                    {agent.acpArgs && agent.acpArgs.length > 0 && (
+                      <div>
+                        <span className='font-medium'>{t('settings.argsLabel') || 'Args'}:</span>{' '}
+                        {agent.acpArgs.join(' ')}
+                      </div>
+                    )}
                     {agent.env && Object.keys(agent.env).length > 0 && (
                       <div>
-                        <span className='font-medium'>{t('settings.env') || 'Env'}:</span>{' '}
+                        <span className='font-medium'>{t('settings.envLabel') || 'Env'}:</span>{' '}
                         {Object.keys(agent.env).length} variable(s)
                       </div>
                     )}
