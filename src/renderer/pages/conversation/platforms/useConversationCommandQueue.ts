@@ -34,6 +34,24 @@ type QueueValidationFailure = {
   reason: QueueValidationFailureReason;
 };
 
+const COMMAND_QUEUE_LOG_PREFIX = '[conversation-command-queue]';
+
+const summarizeQueuedCommand = (item: ConversationCommandQueueItem): Record<string, unknown> => ({
+  id: item.id,
+  createdAt: item.createdAt,
+  inputLength: item.input.length,
+  fileCount: item.files.length,
+  preview: item.input.replace(/\s+/g, ' ').trim().slice(0, 120),
+});
+
+const logCommandQueue = (conversationId: string, event: string, payload: Record<string, unknown> = {}): void => {
+  console.info(COMMAND_QUEUE_LOG_PREFIX, {
+    conversationId,
+    event,
+    ...payload,
+  });
+};
+
 const createDefaultQueueState = (): ConversationCommandQueueState => ({
   items: [],
   isPaused: false,
@@ -137,6 +155,10 @@ const readPersistedQueueState = (conversationId: string): ConversationCommandQue
     const parsed = JSON.parse(stored) as unknown;
     const normalized = normalizeQueueState(parsed);
     queueStore.set(conversationId, normalized);
+    logCommandQueue(conversationId, 'restored', {
+      itemCount: normalized.items.length,
+      isPaused: normalized.isPaused,
+    });
     return normalized;
   } catch (error) {
     console.warn('[conversation-command-queue] Failed to read persisted queue state:', error);
@@ -256,8 +278,9 @@ export const useConversationCommandQueue = ({
   const clear = useCallback(() => {
     waitingForTurnStartRef.current = false;
     pausedRef.current = false;
+    logCommandQueue(conversationId, 'cleared');
     void updateState(() => createDefaultQueueState());
-  }, [updateState]);
+  }, [conversationId, updateState]);
 
   useAddEventListener(
     'conversation.deleted',
@@ -278,6 +301,11 @@ export const useConversationCommandQueue = ({
 
       if (isQueueValidationFailure(validation)) {
         const reason: QueueValidationFailureReason = validation.reason;
+        logCommandQueue(conversationId, 'enqueue-rejected', {
+          reason,
+          item: summarizeQueuedCommand(item),
+          currentItemCount: data.items.length,
+        });
         const warningKeyMap = {
           queueFull: 'conversation.commandQueue.queueFull',
           inputTooLong: 'conversation.commandQueue.inputTooLong',
@@ -301,6 +329,10 @@ export const useConversationCommandQueue = ({
         return null;
       }
 
+      logCommandQueue(conversationId, 'enqueued', {
+        item: summarizeQueuedCommand(item),
+        currentItemCount: data.items.length,
+      });
       void updateState((state) => ({
         ...state,
         items: [...state.items, item],
@@ -312,6 +344,9 @@ export const useConversationCommandQueue = ({
 
   const remove = useCallback(
     (commandId: string) => {
+      logCommandQueue(conversationId, 'removed', {
+        commandId,
+      });
       void updateState((state) => {
         const nextItems = removeQueuedCommand(state.items, commandId);
         return {
@@ -320,31 +355,42 @@ export const useConversationCommandQueue = ({
         };
       });
     },
-    [updateState]
+    [conversationId, updateState]
   );
 
   const moveUp = useCallback(
     (commandId: string) => {
+      logCommandQueue(conversationId, 'moved', {
+        commandId,
+        direction: 'up',
+      });
       void updateState((state) => ({
         ...state,
         items: moveQueuedCommand(state.items, commandId, 'up'),
       }));
     },
-    [updateState]
+    [conversationId, updateState]
   );
 
   const moveDown = useCallback(
     (commandId: string) => {
+      logCommandQueue(conversationId, 'moved', {
+        commandId,
+        direction: 'down',
+      });
       void updateState((state) => ({
         ...state,
         items: moveQueuedCommand(state.items, commandId, 'down'),
       }));
     },
-    [updateState]
+    [conversationId, updateState]
   );
 
   const pause = useCallback(() => {
     pausedRef.current = true;
+    logCommandQueue(conversationId, 'paused', {
+      itemCount: data.items.length,
+    });
     void updateState((state) => {
       if (state.items.length === 0) {
         pausedRef.current = false;
@@ -355,15 +401,18 @@ export const useConversationCommandQueue = ({
         isPaused: true,
       };
     });
-  }, [updateState]);
+  }, [conversationId, data.items.length, updateState]);
 
   const resume = useCallback(() => {
     pausedRef.current = false;
+    logCommandQueue(conversationId, 'resumed', {
+      itemCount: data.items.length,
+    });
     void updateState((state) => ({
       ...state,
       isPaused: state.items.length > 0 ? false : state.isPaused,
     }));
-  }, [updateState]);
+  }, [conversationId, data.items.length, updateState]);
 
   useEffect(() => {
     if (pausedRef.current || isBusy || waitingForTurnStartRef.current || data.items.length === 0) {
@@ -372,6 +421,10 @@ export const useConversationCommandQueue = ({
 
     const [nextCommand, ...remainingCommands] = data.items;
     waitingForTurnStartRef.current = true;
+    logCommandQueue(conversationId, 'dequeued', {
+      item: summarizeQueuedCommand(nextCommand),
+      remainingItemCount: remainingCommands.length,
+    });
     void updateState(() => ({
       items: remainingCommands,
       isPaused: false,
@@ -380,6 +433,10 @@ export const useConversationCommandQueue = ({
     void onExecute(nextCommand)
       .catch((error) => {
         console.error('[conversation-command-queue] Failed to execute queued command:', error);
+        logCommandQueue(conversationId, 'execute-failed', {
+          item: summarizeQueuedCommand(nextCommand),
+          error: error instanceof Error ? error.message : String(error),
+        });
         pausedRef.current = true;
         void updateState((state) => ({
           items: restoreQueuedCommand(state.items, nextCommand),
@@ -394,11 +451,15 @@ export const useConversationCommandQueue = ({
       .finally(() => {
         setTimeout(() => {
           if (!busyRef.current) {
+            logCommandQueue(conversationId, 'dequeue-finished', {
+              waitingForTurnStart: false,
+              pendingItemCount: data.items.length,
+            });
             waitingForTurnStartRef.current = false;
           }
         }, 0);
       });
-  }, [data.items, isBusy, onExecute, t, updateState]);
+  }, [conversationId, data.items, isBusy, onExecute, t, updateState]);
 
   return {
     items: data.items,

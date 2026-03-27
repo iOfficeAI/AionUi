@@ -328,12 +328,26 @@ const SendBox: React.FC<{
 
   const sendMessageHandler = () => {
     if (!allowSendWhileLoading && (isLoading || loading)) {
+      console.info('[sendbox]', {
+        event: 'blocked-while-loading',
+        allowSendWhileLoading,
+        isLoading,
+        loading,
+      });
       message.warning(t('messages.conversationInProgress'));
       return;
     }
     if (!input.trim() && domSnippets.length === 0) {
       return;
     }
+    console.info('[sendbox]', {
+      event: 'submit',
+      allowSendWhileLoading,
+      isLoading,
+      loading,
+      inputLength: input.length,
+      domSnippetCount: domSnippets.length,
+    });
     setIsLoading(true);
 
     // 构建消息内容：如果有 DOM 片段，附加完整 HTML / Build message: if has DOM snippets, append full HTML
