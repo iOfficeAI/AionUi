@@ -158,6 +158,15 @@
       "download": "Download",
       "downloadSuccess": "Download successful",
       "downloadFailed": "Download failed"
+    },
+    "changes": {
+      "tab": "Changes",
+      "filesTab": "Files",
+      "summary": "{{count}} file(s) changed",
+      "insertions": "+{{count}} insertions",
+      "deletions": "-{{count}} deletions",
+      "empty": "No changes yet",
+      "emptyDescription": "File changes will appear here when AI modifies files"
     }
   },
   "minimap": {
