@@ -57,37 +57,6 @@ ORG=$(echo "$REPO" | cut -d'/' -f1)
 
 ## Steps
 
-### Step 0 — Wake Up Snoozed PRs
-
-Fetch all open PRs with `bot:ci-waiting` and check if the author has pushed new commits since the last CI failure comment. If yes, remove the label so the PR re-enters the queue.
-
-```bash
-WAITING_PRS=$(gh pr list --state open --label "bot:ci-waiting" \
-  --json number,commits,comments --limit 50)
-```
-
-For each PR in `WAITING_PRS`:
-
-```bash
-PR_NUMBER=<number from WAITING_PRS>
-
-LAST_CI_COMMENT_TIME=$(gh pr view $PR_NUMBER --json comments \
-  --jq '[.comments[] | select(.body | test("<!-- pr-review-bot -->") and test("CI 检查未通过"))] | last | .createdAt // ""')
-
-LATEST_COMMIT_TIME=$(gh pr view $PR_NUMBER --json commits \
-  --jq '.commits | last | .committedDate')
-```
-
-If `LATEST_COMMIT_TIME > LAST_CI_COMMENT_TIME` (author pushed new commits since the comment):
-
-```bash
-gh pr edit $PR_NUMBER --remove-label "bot:ci-waiting"
-```
-
-Log: `[pr-automation] PR #<PR_NUMBER> woke up from ci-waiting: new commits detected.`
-
-This step is lightweight (commit time comparison only, no CI checks). It runs even when no other eligible PRs exist.
-
 ### Step 1 — Fetch Candidate PRs
 
 ```bash
@@ -129,7 +98,7 @@ Iterate through sorted list to find the **first eligible PR**.
 | Has label `bot:done` | check labels array |
 | Has label `bot:reviewing` | check labels array |
 | Has label `bot:fixing` | check labels array |
-| Has label `bot:ci-waiting` | check labels array — Step 0 handles wake-up |
+| Has label `bot:ci-waiting` | check labels array — wake-up check runs as fallback if no eligible PR found |
 
 **When eligible PR found:**
 
@@ -145,7 +114,40 @@ gh pr edit <PR_NUMBER> --remove-label "bot:ready-to-fix" --add-label "bot:fixing
 
 Save this PR as `target_pr` (number, title, author.login, is_ready_to_fix).
 
-**If no eligible PR found after full iteration:** log `[pr-automation] No eligible PR found this round.` then log `[pr-automation:exit] action=no_eligible_pr reason="all PRs skipped"` and EXIT.
+**If no eligible PR found after full iteration:** run the ci-waiting wake-up check as a fallback before giving up.
+
+**Fallback: Wake Up Snoozed PRs**
+
+Fetch all open PRs with `bot:ci-waiting` and check if the author has pushed new commits since the last CI failure comment:
+
+```bash
+WAITING_PRS=$(gh pr list --state open --label "bot:ci-waiting" \
+  --json number,createdAt,author --limit 50)
+```
+
+For each PR in `WAITING_PRS` (sorted by createdAt ascending, oldest first):
+
+```bash
+PR_NUMBER=<number>
+
+LAST_CI_COMMENT_TIME=$(gh pr view $PR_NUMBER --json comments \
+  --jq '[.comments[] | select(.body | test("<!-- pr-review-bot -->") and test("CI 检查未通过"))] | last | .createdAt // ""')
+
+LATEST_COMMIT_TIME=$(gh pr view $PR_NUMBER --json commits \
+  --jq '.commits | last | .committedDate')
+```
+
+If `LATEST_COMMIT_TIME > LAST_CI_COMMENT_TIME` (author pushed new commits since the CI failure comment):
+
+```bash
+gh pr edit $PR_NUMBER --remove-label "bot:ci-waiting" --add-label "bot:reviewing"
+```
+
+Log: `[pr-automation] PR #<PR_NUMBER> woke up from ci-waiting: new commits detected. Claiming as target.`
+
+Save this PR as `target_pr` and **continue to Step 4** (treat it as a freshly claimed PR).
+
+If no PRs were woken up: log `[pr-automation] No eligible PR found this round.` then log `[pr-automation:exit] action=no_eligible_pr reason="all PRs skipped, no ci-waiting PRs woken up"` and EXIT.
 
 ### Step 3b — Handle bot:ready-to-fix PR
 
