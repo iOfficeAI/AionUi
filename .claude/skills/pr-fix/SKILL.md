@@ -82,7 +82,7 @@ If the 汇总 table is empty, abort with:
 
 > No issues found in the review summary. Nothing to fix.
 
-**LOW issues:** Always include all LOW issues in the fix run — no prompt needed.
+**LOW issues:** Skip — do not fix.
 
 ---
 
@@ -139,7 +139,7 @@ Fixes will be committed directly onto this branch, and the open PR will update a
 
 ### Step 4 — Fix Issues by Priority
 
-Process issues CRITICAL → HIGH → MEDIUM → LOW. For each issue:
+Process issues CRITICAL → HIGH → MEDIUM only. Skip LOW. For each issue:
 
 1. Read the target file (use Read tool at the file path from the summary table)
 2. Locate the exact problem — match the review report's quoted code and line number
@@ -221,6 +221,8 @@ gh pr comment <PR_NUMBER> --body "$(cat <<'EOF'
 | 2 | 🟠 HIGH     | `file.ts:N` | <原始问题> | <修复措施> | ✅ 已修复 |
 
 **总结：** ✅ 已修复 N 个 | ❌ 未能修复 N 个
+
+> 🔵 LOW 级别问题已跳过（不阻塞合并，修复优先级低）。
 EOF
 )"
 ```
@@ -248,7 +250,7 @@ After posting, output the same verification table in the conversation for immedi
    → ABORT: state=MERGED — nothing to fix
    → Path B: state=OPEN — push to original branch (internal or external fork)
 3. git fetch origin <head_branch> && git checkout <head_branch> && git pull
-4. Fix issues CRITICAL→HIGH→MEDIUM→LOW; bunx tsc --noEmit after each file batch
+4. Fix issues CRITICAL→HIGH→MEDIUM only (skip LOW); bunx tsc --noEmit after each file batch
 5. bun run lint:fix && bun run format && bunx tsc --noEmit && bun run test
 6. Commit: fix(<scope>): address review issues from PR #N
 7. git push origin <head_branch> (PR auto-updated, no new PR)
