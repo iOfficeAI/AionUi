@@ -75,6 +75,7 @@ export class RemoteAgentCore {
 
       this.connection = new OpenClawGatewayConnection({
         url,
+        rejectUnauthorized: !this.remoteConfig.allowInsecure,
         token: authType === 'bearer' ? authToken : undefined,
         password: authType === 'password' ? authToken : undefined,
         deviceIdentity: this.remoteConfig.deviceId

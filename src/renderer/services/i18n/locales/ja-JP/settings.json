@@ -699,6 +699,8 @@
     "tokenPlaceholder": "トークンを入力",
     "description": "説明",
     "descriptionPlaceholder": "任意の説明",
+    "allowInsecure": "安全でない接続を許可",
+    "allowInsecureHint": "TLS証明書の検証をスキップ（自己署名証明書用）",
     "testConnection": "接続テスト",
     "testSuccess": "接続成功",
     "testFailed": "接続失敗：{{error}}",

@@ -698,6 +698,8 @@
     "tokenPlaceholder": "输入 Token",
     "description": "描述",
     "descriptionPlaceholder": "可选描述信息",
+    "allowInsecure": "允许不安全连接",
+    "allowInsecureHint": "跳过 TLS 证书验证（用于自签名证书）",
     "testConnection": "测试连接",
     "testSuccess": "连接成功",
     "testFailed": "连接失败：{{error}}",

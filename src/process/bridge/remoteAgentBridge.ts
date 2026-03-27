@@ -59,6 +59,7 @@ export function initRemoteAgentBridge(): void {
     if (updates.authToken !== undefined) dbUpdates.auth_token = updates.authToken;
     if (updates.avatar !== undefined) dbUpdates.avatar = updates.avatar;
     if (updates.description !== undefined) dbUpdates.description = updates.description;
+    if (updates.allowInsecure !== undefined) dbUpdates.allow_insecure = updates.allowInsecure ? 1 : 0;
     const result = db.updateRemoteAgent(id, dbUpdates);
     return result.success;
   });
@@ -69,7 +70,7 @@ export function initRemoteAgentBridge(): void {
     return result.success;
   });
 
-  ipcBridge.remoteAgent.testConnection.provider(async ({ url, authType, authToken }) => {
+  ipcBridge.remoteAgent.testConnection.provider(async ({ url, authType, authToken, allowInsecure }) => {
     return new Promise<{ success: boolean; error?: string }>((resolve) => {
       const timeout = setTimeout(() => {
         ws.close();
@@ -81,7 +82,7 @@ export function initRemoteAgentBridge(): void {
         headers['Authorization'] = `Bearer ${authToken}`;
       }
 
-      const ws = new WebSocket(url, { headers, handshakeTimeout: 10_000, rejectUnauthorized: false });
+      const ws = new WebSocket(url, { headers, handshakeTimeout: 10_000, rejectUnauthorized: !allowInsecure });
 
       ws.on('open', () => {
         clearTimeout(timeout);
@@ -119,6 +120,7 @@ export function initRemoteAgentBridge(): void {
 
       const conn = new OpenClawGatewayConnection({
         url: agent.url,
+        rejectUnauthorized: !agent.allowInsecure,
         token: agent.authType === 'bearer' ? agent.authToken : undefined,
         password: agent.authType === 'password' ? agent.authToken : undefined,
         deviceIdentity: agent.deviceId

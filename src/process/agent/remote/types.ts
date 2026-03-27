@@ -21,6 +21,8 @@ export type RemoteAgentConfig = {
   url: string;
   authType: RemoteAgentAuthType;
   authToken?: string;
+  /** Skip TLS certificate verification (for self-signed certificates) */
+  allowInsecure?: boolean;
   avatar?: string;
   description?: string;
   /** Ed25519 public key SHA256 fingerprint (OpenClaw protocol only, per-agent) */
@@ -44,6 +46,8 @@ export type RemoteAgentInput = {
   url: string;
   authType: RemoteAgentAuthType;
   authToken?: string;
+  /** Skip TLS certificate verification (for self-signed certificates) */
+  allowInsecure?: boolean;
   avatar?: string;
   description?: string;
 };

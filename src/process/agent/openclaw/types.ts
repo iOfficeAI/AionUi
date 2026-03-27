@@ -293,6 +293,8 @@ export interface OpenClawGatewayClientOptions {
   scopes?: string[];
   minProtocol?: number;
   maxProtocol?: number;
+  /** Whether to verify TLS certificates (default: true) */
+  rejectUnauthorized?: boolean;
   /** External device identity (remote agent scenario). If omitted, loads from ~/.openclaw/identity/ */
   deviceIdentity?: import('./deviceIdentity').DeviceIdentity;
   /** Stored device token from a previous hello-ok (remote agent scenario) */
