@@ -202,7 +202,7 @@ Required jobs: `Code Quality`, `Unit Tests (ubuntu-latest)`, `Unit Tests (macos-
 | Condition | Action |
 |---|---|
 | All required jobs SUCCESS | Continue to Step 4.5 |
-| Any job QUEUED or IN_PROGRESS | Remove `bot:reviewing` → log "CI still running for PR #N" → **find next PR** |
+| Any job QUEUED or IN_PROGRESS | Remove `bot:reviewing` → log `[pr-automation:skip] action=ci_running pr=#<PR_NUMBER> reason="CI still running"` → **find next PR** |
 | `statusCheckRollup` empty (CI never triggered) | Approve workflow (see below) → remove `bot:reviewing` → **EXIT** |
 | Any job FAILURE or CANCELLED | Check dedup (see below) → **find next PR** or post comment → **EXIT** |
 
@@ -243,7 +243,7 @@ LATEST_COMMIT_TIME=$(gh pr view <PR_NUMBER> --json commits \
 ```
 
 - If `LAST_CI_COMMENT_TIME` is non-empty AND `LATEST_COMMIT_TIME <= LAST_CI_COMMENT_TIME`:
-  No new commits since last CI failure comment — remove `bot:reviewing` → **find next PR** (no new comment)
+  No new commits since last CI failure comment — remove `bot:reviewing` → log `[pr-automation:skip] action=ci_failure_dedup pr=#<PR_NUMBER> reason="CI failed, no new commits since last comment"` → **find next PR** (no new comment)
 
 - Otherwise: post CI failure comment below → log `[pr-automation:exit] action=ci_failed pr=#<PR_NUMBER> reason="CI failure, commented"` → remove `bot:reviewing` → **EXIT**
 
@@ -274,7 +274,7 @@ gh pr view <PR_NUMBER> --json mergeable,mergeStateStatus,headRefName,baseRefName
 |---|---|---|
 | `MERGEABLE` | `BEHIND` | Call update-branch API → remove `bot:reviewing` → **EXIT** |
 | `MERGEABLE` | other | Continue to Step 5 |
-| `UNKNOWN` | any | Remove `bot:reviewing` → log "Mergeability unknown for PR #N, will retry" → **find next PR** |
+| `UNKNOWN` | any | Remove `bot:reviewing` → log `[pr-automation:skip] action=merge_unknown pr=#<PR_NUMBER> reason="mergeability unknown, will retry"` → **find next PR** |
 | `CONFLICTING` | any | Run conflict dedup check (see below) |
 
 **Branch update (mergeable=MERGEABLE, mergeStateStatus=BEHIND):**
@@ -301,7 +301,7 @@ LATEST_COMMIT_TIME=$(gh pr view <PR_NUMBER> --json commits \
 ```
 
 - If `LAST_CONFLICT_COMMENT_TIME` is non-empty AND `LATEST_COMMIT_TIME <= LAST_CONFLICT_COMMENT_TIME`:
-  No new commits — remove `bot:reviewing` → **find next PR** (no new action)
+  No new commits — remove `bot:reviewing` → log `[pr-automation:skip] action=conflict_dedup pr=#<PR_NUMBER> reason="conflict already notified, no new commits"` → **find next PR** (no new action)
 
 - Otherwise: attempt auto-rebase below.
 

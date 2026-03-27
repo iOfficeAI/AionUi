@@ -151,11 +151,19 @@ while true; do
   else
     DURATION_SECS=$ELAPSED
   fi
-  EXIT_SUMMARY=$(grep '\[pr-automation:exit\]' "$CLAUDE_LOG_FILE" 2>/dev/null | tail -1)
+  EXIT_SUMMARY=$(grep -E '\[pr-automation:(exit|skip)\]' "$CLAUDE_LOG_FILE" 2>/dev/null)
 
   CURRENT_CLAUDE_PID=""
   if [ -n "$EXIT_SUMMARY" ]; then
-    log_info "Iteration $ITERATION summary (${DURATION_SECS}s): $EXIT_SUMMARY"
+    LINE_COUNT=$(echo "$EXIT_SUMMARY" | wc -l | tr -d ' ')
+    if [ "$LINE_COUNT" -eq 1 ]; then
+      log_info "Iteration $ITERATION summary (${DURATION_SECS}s): $EXIT_SUMMARY"
+    else
+      log_info "Iteration $ITERATION summary (${DURATION_SECS}s): $LINE_COUNT actions:"
+      while IFS= read -r line; do
+        log_info "  $line"
+      done <<< "$EXIT_SUMMARY"
+    fi
   else
     log_info "Iteration $ITERATION: Claude ran for ${DURATION_SECS}s (no exit summary)."
   fi
