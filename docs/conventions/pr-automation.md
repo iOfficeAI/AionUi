@@ -11,6 +11,7 @@
 | `bot:reviewing` | review 进行中（防重入占位） | 否 |
 | `bot:ready-to-fix` | CONDITIONAL review 完成，等 bot 下次执行 fix | 否 |
 | `bot:fixing` | fix 进行中（防重入占位） | 否 |
+| `bot:ci-waiting` | CI 失败已通知，等待作者推新 commit — bot 暂停处理此 PR | 否 |
 | `bot:needs-human-review` | 需人工介入（阻塞性问题 / 冲突无法自动解决） | ✅ |
 | `bot:ready-to-merge` | bot 已处理完，代码无问题，等人工确认后合并（大 PR / critical path） | ✅ |
 | `bot:done` | bot 已 auto-merge | ✅ |
@@ -32,7 +33,7 @@
        ├─ 从未触发 → approve workflow → EXIT
        ├─ CI 跑中 → 移除 bot:reviewing → 找下一个
        ├─ CI 失败 → 去重检查
-       │     ├─ 已评论且无新 commit → 找下一个
+       │     ├─ 已评论且无新 commit → 加 bot:ci-waiting → 找下一个
        │     └─ 否则 → 发评论 → EXIT
        └─ CI 过 → 检查 merge conflict
              ├─ UNKNOWN → 找下一个
@@ -58,10 +59,10 @@
 
 - PR 是 draft（`gh pr list -is:draft` 直接过滤）
 - 标题含 `WIP`（大小写不敏感）
-- 已有 `bot:needs-human-review` / `bot:ready-to-merge` / `bot:done` / `bot:reviewing` / `bot:fixing`
+- 已有 `bot:needs-human-review` / `bot:ready-to-merge` / `bot:done` / `bot:reviewing` / `bot:fixing` / `bot:ci-waiting`
 - CI 仍在运行（QUEUED / IN_PROGRESS）
 - Mergeability 为 UNKNOWN
-- CI 失败但已评论且作者无新 commit
+- CI 失败但已评论且作者无新 commit（同时打上 `bot:ci-waiting`，每轮开始时轻量检查是否有新 commit）
 - Merge conflict 但已评论且作者无新 commit
 
 ---

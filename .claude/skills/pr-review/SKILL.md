@@ -71,13 +71,13 @@ gh pr view <PR_NUMBER> --json statusCheckRollup \
 - `statusCheckRollup` 为空（CI 从未触发）
 - `statusCheckRollup` 非空，但所有必检 job 均不在列表中（说明 pr-checks.yml 工作流整体未触发，如仅改动 docs/md 文件的 PR）
 
-**解析逻辑：** 对上述必检 job 逐一检查，跳过列表中不存在的 job，对存在的分三种情形处理：
+**解析逻辑：** 分三种情形处理：
 
-**情形 1 — 全部通过**（所有必检 job 均满足 `status == COMPLETED && conclusion == SUCCESS`）
+**情形 1 — 全部通过**（所有必检 job 均满足 `status == COMPLETED && conclusion == SUCCESS`，**且** `statusCheckRollup` 中无任何 job 的 `conclusion` 为 `FAILURE` 或 `CANCELLED`）
 
 直接继续后续步骤，无需提示。
 
-**情形 2 — 部分仍在运行**（存在 `status` 为 `QUEUED` 或 `IN_PROGRESS` 的必检 job）
+**情形 2 — 部分仍在运行**（存在 `status` 为 `QUEUED` 或 `IN_PROGRESS` 的**必检** job；非必检 job 仍在运行不影响此判断）
 
 显示警告并询问：
 
@@ -97,7 +97,7 @@ gh pr view <PR_NUMBER> --json statusCheckRollup \
   ```
   Then exit.
 
-**情形 3 — 存在失败**（存在 `conclusion` 为 `FAILURE` 或 `CANCELLED` 的必检 job）
+**情形 3 — 存在失败**（`statusCheckRollup` 中存在**任意** job 的 `conclusion` 为 `FAILURE` 或 `CANCELLED`，不限于必检列表）
 
 显示警告并询问：
 

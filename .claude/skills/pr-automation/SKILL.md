@@ -43,6 +43,7 @@ ORG=$(echo "$REPO" | cut -d'/' -f1)
 | `bot:reviewing` | Review in progress (mutex) | No |
 | `bot:ready-to-fix` | CONDITIONAL review done, waiting for bot to fix next session | No |
 | `bot:fixing` | Fix in progress (mutex) | No |
+| `bot:ci-waiting` | CI failed and author notified — snoozed until author pushes new commits | No |
 | `bot:needs-human-review` | Blocking issues or unresolvable conflicts — human must intervene | Yes |
 | `bot:ready-to-merge` | Bot done, code is clean — human just needs to confirm and merge | Yes |
 | `bot:done` | Auto-merged by bot | Yes |
@@ -50,11 +51,42 @@ ORG=$(echo "$REPO" | cut -d'/' -f1)
 ## Exit Rules
 
 - **Any substantive action** (approve workflow, post comment, run review, run fix) → EXIT after completing
-- **Pure skip** (WIP, draft, terminal label, CI running, mergeability unknown) → continue to find next PR in same session
+- **Pure skip** (WIP, draft, terminal label, CI running, mergeability unknown, `bot:ci-waiting`) → continue to find next PR in same session
 
 ---
 
 ## Steps
+
+### Step 0 — Wake Up Snoozed PRs
+
+Fetch all open PRs with `bot:ci-waiting` and check if the author has pushed new commits since the last CI failure comment. If yes, remove the label so the PR re-enters the queue.
+
+```bash
+WAITING_PRS=$(gh pr list --state open --label "bot:ci-waiting" \
+  --json number,commits,comments --limit 50)
+```
+
+For each PR in `WAITING_PRS`:
+
+```bash
+PR_NUMBER=<number from WAITING_PRS>
+
+LAST_CI_COMMENT_TIME=$(gh pr view $PR_NUMBER --json comments \
+  --jq '[.comments[] | select(.body | test("<!-- pr-review-bot -->") and test("CI 检查未通过"))] | last | .createdAt // ""')
+
+LATEST_COMMIT_TIME=$(gh pr view $PR_NUMBER --json commits \
+  --jq '.commits | last | .committedDate')
+```
+
+If `LATEST_COMMIT_TIME > LAST_CI_COMMENT_TIME` (author pushed new commits since the comment):
+
+```bash
+gh pr edit $PR_NUMBER --remove-label "bot:ci-waiting"
+```
+
+Log: `[pr-automation] PR #<PR_NUMBER> woke up from ci-waiting: new commits detected.`
+
+This step is lightweight (commit time comparison only, no CI checks). It runs even when no other eligible PRs exist.
 
 ### Step 1 — Fetch Candidate PRs
 
@@ -97,6 +129,7 @@ Iterate through sorted list to find the **first eligible PR**.
 | Has label `bot:done` | check labels array |
 | Has label `bot:reviewing` | check labels array |
 | Has label `bot:fixing` | check labels array |
+| Has label `bot:ci-waiting` | check labels array — Step 0 handles wake-up |
 
 **When eligible PR found:**
 
@@ -246,10 +279,10 @@ Required jobs: `Code Quality`, `Unit Tests (ubuntu-latest)`, `Unit Tests (macos-
 
 | Condition | Action |
 |---|---|
-| All required jobs SUCCESS | Continue to Step 4.5 |
-| Any job QUEUED or IN_PROGRESS | Remove `bot:reviewing` → log `[pr-automation:skip] action=ci_running pr=#<PR_NUMBER> reason="CI still running"` → **find next PR** |
+| All required jobs SUCCESS **and** no jobs FAILURE/CANCELLED | Continue to Step 4.5 |
+| Any **required** job QUEUED or IN_PROGRESS | Remove `bot:reviewing` → log `[pr-automation:skip] action=ci_running pr=#<PR_NUMBER> reason="CI still running"` → **find next PR** |
 | `statusCheckRollup` empty (CI never triggered) | Approve workflow (see below) → remove `bot:reviewing` → **EXIT** |
-| Any job FAILURE or CANCELLED | Check dedup (see below) → **find next PR** or post comment → **EXIT** |
+| Any job (required or not) FAILURE or CANCELLED | Check dedup (see below) → **find next PR** or post comment → **EXIT** |
 
 **Workflow approval** (CI never triggered):
 
@@ -288,7 +321,11 @@ LATEST_COMMIT_TIME=$(gh pr view <PR_NUMBER> --json commits \
 ```
 
 - If `LAST_CI_COMMENT_TIME` is non-empty AND `LATEST_COMMIT_TIME <= LAST_CI_COMMENT_TIME`:
-  No new commits since last CI failure comment — remove `bot:reviewing` → log `[pr-automation:skip] action=ci_failure_dedup pr=#<PR_NUMBER> reason="CI failed, no new commits since last comment"` → **find next PR** (no new comment)
+  No new commits since last CI failure comment — swap labels and find next PR:
+  ```bash
+  gh pr edit <PR_NUMBER> --remove-label "bot:reviewing" --add-label "bot:ci-waiting"
+  ```
+  Log `[pr-automation:skip] action=ci_failure_dedup pr=#<PR_NUMBER> reason="CI failed, no new commits since last comment"` → **find next PR**
 
 - Otherwise: post CI failure comment below → log `[pr-automation:exit] action=ci_failed pr=#<PR_NUMBER> reason="CI failure, commented"` → remove `bot:reviewing` → **EXIT**
 
