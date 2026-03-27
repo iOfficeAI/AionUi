@@ -20,6 +20,7 @@ vi.mock('../../src/common', () => ({
       detectCliPath: makeChannel('detectCliPath'),
       getAvailableAgents: makeChannel('getAvailableAgents'),
       refreshCustomAgents: makeChannel('refreshCustomAgents'),
+      testCustomAgent: makeChannel('testCustomAgent'),
       checkAgentHealth: makeChannel('checkAgentHealth'),
       getMode: makeChannel('getMode'),
       getModelInfo: makeChannel('getModelInfo'),
