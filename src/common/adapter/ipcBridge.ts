@@ -307,6 +307,13 @@ export const fileStream = {
   }>('file-stream-content-update'), // Agent 写入文件时的流式内容更新 / Streaming content update when agent writes file
 };
 
+// File snapshot events for tracking AI file changes
+export const fileSnapshot = {
+  change: bridge.buildEmitter<import('@/common/types/fileSnapshot').FileChangeEvent>(
+    'file-snapshot-change'
+  ),
+};
+
 export const googleAuth = {
   login: bridge.buildProvider<IBridgeResponse<{ account: string }>, { proxy?: string }>('google.auth.login'),
   logout: bridge.buildProvider<void, {}>('google.auth.logout'),
