@@ -144,8 +144,21 @@ while true; do
     fi
   fi
 
+  # Extract precise duration and exit summary from session log
+  PRECISE_MS=$(grep -o 'duration_ms=[0-9]*' "$CLAUDE_LOG_FILE" 2>/dev/null | tail -1 | cut -d= -f2)
+  if [ -n "$PRECISE_MS" ]; then
+    DURATION_SECS=$(( PRECISE_MS / 1000 ))
+  else
+    DURATION_SECS=$ELAPSED
+  fi
+  EXIT_SUMMARY=$(grep '\[pr-automation:exit\]' "$CLAUDE_LOG_FILE" 2>/dev/null | tail -1)
+
   CURRENT_CLAUDE_PID=""
-  log_info "Iteration $ITERATION: Claude ran for ${ELAPSED}s."
+  if [ -n "$EXIT_SUMMARY" ]; then
+    log_info "Iteration $ITERATION summary (${DURATION_SECS}s): $EXIT_SUMMARY"
+  else
+    log_info "Iteration $ITERATION: Claude ran for ${DURATION_SECS}s (no exit summary)."
+  fi
   log_info "Sleeping ${SLEEP_SECONDS}s before next iteration..."
   sleep "$SLEEP_SECONDS"
 done

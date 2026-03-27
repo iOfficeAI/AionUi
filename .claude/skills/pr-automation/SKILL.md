@@ -66,7 +66,7 @@ gh pr list \
 
 Save the result as `candidate_prs`.
 
-If `candidate_prs` is empty: log `[pr-automation] No open PRs found. Exiting.` and EXIT.
+If `candidate_prs` is empty: log `[pr-automation] No open PRs found. Exiting.` then log `[pr-automation:exit] action=no_prs reason="no open PRs"` and EXIT.
 
 ### Step 2 — Get Trusted Contributors
 
@@ -109,7 +109,7 @@ gh pr edit <PR_NUMBER> --remove-label "bot:ready-to-fix" --add-label "bot:fixing
 
 Save this PR as `target_pr` (number, title, author.login, is_ready_to_fix).
 
-**If no eligible PR found after full iteration:** log `[pr-automation] No eligible PR found this round.` and EXIT.
+**If no eligible PR found after full iteration:** log `[pr-automation] No eligible PR found this round.` then log `[pr-automation:exit] action=no_eligible_pr reason="all PRs skipped"` and EXIT.
 
 ### Step 3b — Handle bot:ready-to-fix PR
 
@@ -132,6 +132,7 @@ gh pr edit <PR_NUMBER> --remove-label "bot:fixing"
 ```
 
 Log: `[pr-automation] PR #<PR_NUMBER> has new commits since review — re-queuing for fresh review.`
+Log: `[pr-automation:exit] action=requeue pr=#<PR_NUMBER> reason="new commits since review"`
 
 **EXIT.** (PR re-enters normal queue with no bot: label → will be fully re-reviewed next round)
 
@@ -167,6 +168,7 @@ gh pr edit <PR_NUMBER> --remove-label "bot:fixing" --add-label "bot:needs-human-
 ```
 
 Log: `[pr-automation] PR #<PR_NUMBER> no review report found — cannot fix. Transferred to human review.`
+Log: `[pr-automation:exit] action=needs_human pr=#<PR_NUMBER> reason="no review report found"`
 
 **EXIT.**
 
@@ -184,6 +186,7 @@ gh pr edit <PR_NUMBER> --remove-label "bot:fixing" --add-label "bot:done"
 ```
 
 Log: `[pr-automation] PR #<PR_NUMBER> fix complete, auto-merge triggered.`
+Log: `[pr-automation:exit] action=fixed pr=#<PR_NUMBER> reason="fix complete, auto-merge triggered"`
 
 **EXIT.**
 
@@ -218,6 +221,7 @@ done
 ```
 
 Log: `[pr-automation] Approved workflow runs for PR #<PR_NUMBER>.`
+Log: `[pr-automation:exit] action=workflow_approved pr=#<PR_NUMBER> reason="CI not triggered, approved workflow runs"`
 
 Remove `bot:reviewing`:
 ```bash
@@ -241,7 +245,7 @@ LATEST_COMMIT_TIME=$(gh pr view <PR_NUMBER> --json commits \
 - If `LAST_CI_COMMENT_TIME` is non-empty AND `LATEST_COMMIT_TIME <= LAST_CI_COMMENT_TIME`:
   No new commits since last CI failure comment — remove `bot:reviewing` → **find next PR** (no new comment)
 
-- Otherwise: post CI failure comment below → remove `bot:reviewing` → **EXIT**
+- Otherwise: post CI failure comment below → log `[pr-automation:exit] action=ci_failed pr=#<PR_NUMBER> reason="CI failure, commented"` → remove `bot:reviewing` → **EXIT**
 
 **CI failure comment:**
 
@@ -281,6 +285,7 @@ gh pr edit <PR_NUMBER> --remove-label "bot:reviewing"
 ```
 
 Log: `[pr-automation] PR #<PR_NUMBER> branch is behind base — triggered update-branch. CI will re-run and auto-merge will fire automatically.`
+Log: `[pr-automation:exit] action=update_branch pr=#<PR_NUMBER> reason="branch behind base, triggered update"`
 
 **EXIT** (GitHub merges base into the branch, CI re-triggers, auto-merge fires when CI passes).
 
@@ -356,6 +361,8 @@ git push --force-with-lease
 gh pr edit <PR_NUMBER> --remove-label "bot:reviewing" --add-label "bot:needs-human-review"
 ```
 
+Log: `[pr-automation:exit] action=conflict_unresolved pr=#<PR_NUMBER> reason="merge conflict, needs human rebase"`
+
 **EXIT.**
 
 ### Step 5 — Check Critical Path Files
@@ -410,7 +417,8 @@ If block is missing: set `CONCLUSION=REJECTED`, log the error, continue to Step 
    gh pr edit <PR_NUMBER> --remove-label "bot:reviewing" --add-label "bot:done"
    ```
 4. Log: `[pr-automation] PR #<PR_NUMBER> approved, auto-merge triggered.`
-5. **EXIT.**
+5. Log: `[pr-automation:exit] action=approved pr=#<PR_NUMBER> reason="review passed, auto-merge triggered"`
+6. **EXIT.**
 
 #### CONCLUSION = CONDITIONAL
 
@@ -419,7 +427,8 @@ If block is missing: set `CONCLUSION=REJECTED`, log the error, continue to Step 
    gh pr edit <PR_NUMBER> --remove-label "bot:reviewing" --add-label "bot:ready-to-fix"
    ```
 2. Log: `[pr-automation] PR #<PR_NUMBER> CONDITIONAL — marked bot:ready-to-fix for next session.`
-3. **EXIT.**
+3. Log: `[pr-automation:exit] action=conditional pr=#<PR_NUMBER> reason="review conditional, deferred fix to next session"`
+4. **EXIT.**
 
 #### CONCLUSION = REJECTED
 
@@ -435,7 +444,8 @@ If block is missing: set `CONCLUSION=REJECTED`, log the error, continue to Step 
    gh pr edit <PR_NUMBER> --remove-label "bot:reviewing" --add-label "bot:needs-human-review"
    ```
 3. Log: `[pr-automation] PR #<PR_NUMBER> rejected, transferred to human review.`
-4. **EXIT.**
+4. Log: `[pr-automation:exit] action=rejected pr=#<PR_NUMBER> reason="blocking issues, transferred to human review"`
+5. **EXIT.**
 
 #### CONCLUSION = CI_FAILED or CI_NOT_READY
 
@@ -446,7 +456,8 @@ Safety fallback (Step 4 should have caught these):
    gh pr edit <PR_NUMBER> --remove-label "bot:reviewing"
    ```
 2. Log: `[pr-automation] PR #<PR_NUMBER> CI not ready at pr-review stage. Skipping.`
-3. **EXIT.**
+3. Log: `[pr-automation:exit] action=ci_not_ready pr=#<PR_NUMBER> reason="CI not ready at review stage"`
+4. **EXIT.**
 
 ---
 
