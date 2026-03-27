@@ -169,4 +169,24 @@ describe('ConversationTitleMinimap', () => {
       'false'
     );
   });
+
+  it('does not render the trigger button when hideTrigger=true', () => {
+    render(<ConversationTitleMinimap conversationId='conversation-1' hideTrigger />);
+
+    expect(screen.queryByLabelText('Search conversation', { selector: 'span[role="button"]' })).not.toBeInTheDocument();
+  });
+
+  it('registers Cmd+F listener when hideTrigger=true (no trigger DOM element)', async () => {
+    setElectronAPI({});
+
+    render(<ConversationTitleMinimap conversationId='conversation-1' hideTrigger />);
+
+    expect(screen.queryByLabelText('Search conversation', { selector: 'span[role="button"]' })).not.toBeInTheDocument();
+
+    await act(async () => {
+      fireEvent.keyDown(document, { key: 'f', metaKey: true });
+    });
+
+    expect(await screen.findByRole('textbox', { name: 'Search conversation' })).toBeInTheDocument();
+  });
 });
