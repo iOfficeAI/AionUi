@@ -12,7 +12,8 @@
 | `bot:ready-to-fix` | CONDITIONAL review 完成，等 bot 下次执行 fix | 否 |
 | `bot:fixing` | fix 进行中（防重入占位） | 否 |
 | `bot:needs-human-review` | 需人工介入（阻塞性问题 / 冲突无法自动解决） | ✅ |
-| `bot:done` | 已完成 | ✅ |
+| `bot:ready-to-merge` | bot 已处理完，代码无问题，等人工确认后合并（大 PR / critical path） | ✅ |
+| `bot:done` | bot 已 auto-merge | ✅ |
 
 ---
 
@@ -43,8 +44,13 @@
              └─ MERGEABLE
                    ├─ BEHIND → update-branch API → EXIT（GitHub 自动补 base，CI 重跑，auto-merge 触发）
                    └─ 其他 → pr-review
-                         ├─ APPROVED → --auto merge → bot:done → EXIT
+                         ├─ APPROVED
+                         │     ├─ 小 PR（≤50 文件）→ --auto merge → bot:done → EXIT
+                         │     └─ 大 PR / critical path → bot:ready-to-merge → EXIT
                          ├─ CONDITIONAL → bot:ready-to-fix → EXIT
+                         │     └─ fix 完成
+                         │           ├─ 小 PR → --auto merge → bot:done → EXIT
+                         │           └─ 大 PR / critical path → bot:ready-to-merge → EXIT
                          └─ REJECTED → bot:needs-human-review → EXIT
 ```
 
@@ -52,7 +58,7 @@
 
 - PR 是 draft（`gh pr list -is:draft` 直接过滤）
 - 标题含 `WIP`（大小写不敏感）
-- 已有 `bot:needs-human-review` / `bot:done` / `bot:reviewing` / `bot:fixing`
+- 已有 `bot:needs-human-review` / `bot:ready-to-merge` / `bot:done` / `bot:reviewing` / `bot:fixing`
 - CI 仍在运行（QUEUED / IN_PROGRESS）
 - Mergeability 为 UNKNOWN
 - CI 失败但已评论且作者无新 commit

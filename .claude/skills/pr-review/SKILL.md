@@ -406,13 +406,16 @@ Map the review conclusion to CONCLUSION value:
 | ⚠️ 有条件批准 | CONDITIONAL |
 | ❌ 需要修改 | REJECTED |
 
-Determine `IS_CRITICAL_PATH` by checking whether the diff contains any of these paths:
-- `src/preload.ts`
-- `src/process/channels/`
-- `src/common/config/`
+Determine `IS_CRITICAL_PATH` using the same `CRITICAL_PATH_PATTERN` as pr-automation (currently empty — always `false`).
+When a pattern is defined, check:
 
 ```bash
-git diff origin/<baseRefName>...HEAD --name-only | grep -qE '^(src/preload\.ts|src/process/channels/|src/common/config/)' && echo true || echo false
+CRITICAL_PATH_PATTERN=""  # Keep in sync with pr-automation Configuration
+if [ -n "$CRITICAL_PATH_PATTERN" ]; then
+  git diff origin/<baseRefName>...HEAD --name-only | grep -qE "$CRITICAL_PATH_PATTERN" && echo true || echo false
+else
+  echo false
+fi
 ```
 
 Output:

@@ -25,7 +25,8 @@ No arguments required. The daemon script `scripts/pr-automation.sh` manages the 
 
 ```
 TRUSTED_CONTRIBUTORS_TEAM: detected from REPO org (e.g. iOfficeAI/trusted-contributors)
-CRITICAL_PATH_PATTERN: ^(src/preload\.ts|src/process/channels/|src/common/config/)
+CRITICAL_PATH_PATTERN: (empty — define when needed, e.g. ^src/preload\.ts|^src/process/channels/)
+LARGE_PR_FILE_THRESHOLD: 50
 ```
 
 **REPO** is detected automatically at runtime — do not hardcode it:
@@ -42,8 +43,9 @@ ORG=$(echo "$REPO" | cut -d'/' -f1)
 | `bot:reviewing` | Review in progress (mutex) | No |
 | `bot:ready-to-fix` | CONDITIONAL review done, waiting for bot to fix next session | No |
 | `bot:fixing` | Fix in progress (mutex) | No |
-| `bot:needs-human-review` | Human intervention required | Yes |
-| `bot:done` | Completed | Yes |
+| `bot:needs-human-review` | Blocking issues or unresolvable conflicts — human must intervene | Yes |
+| `bot:ready-to-merge` | Bot done, code is clean — human just needs to confirm and merge | Yes |
+| `bot:done` | Auto-merged by bot | Yes |
 
 ## Exit Rules
 
@@ -91,6 +93,7 @@ Iterate through sorted list to find the **first eligible PR**.
 |---|---|
 | Title contains `WIP` (case-insensitive) | `title.toLowerCase().includes('wip')` |
 | Has label `bot:needs-human-review` | check labels array |
+| Has label `bot:ready-to-merge` | check labels array |
 | Has label `bot:done` | check labels array |
 | Has label `bot:reviewing` | check labels array |
 | Has label `bot:fixing` | check labels array |
@@ -178,7 +181,36 @@ Log: `[pr-automation:exit] action=needs_human pr=#<PR_NUMBER> reason="no review 
 /pr-fix <PR_NUMBER> --automation
 ```
 
-After pr-fix completes:
+After pr-fix completes, compute merge gate:
+
+```bash
+BASE_REF=$(gh pr view <PR_NUMBER> --json baseRefName --jq '.baseRefName')
+FILES_CHANGED=$(git diff origin/${BASE_REF}...HEAD --name-only | wc -l | tr -d ' ')
+CRITICAL_PATH_PATTERN=""
+HAS_CRITICAL=false
+[ -n "$CRITICAL_PATH_PATTERN" ] && \
+  git diff origin/${BASE_REF}...HEAD --name-only | grep -qE "$CRITICAL_PATH_PATTERN" && \
+  HAS_CRITICAL=true
+
+if [ "$FILES_CHANGED" -gt 50 ] || [ "$HAS_CRITICAL" = "true" ]; then
+  NEEDS_HUMAN_REVIEW=true
+else
+  NEEDS_HUMAN_REVIEW=false
+fi
+```
+
+**If `NEEDS_HUMAN_REVIEW=true`**:
+
+```bash
+gh pr edit <PR_NUMBER> --remove-label "bot:fixing" --add-label "bot:ready-to-merge"
+```
+
+Log: `[pr-automation] PR #<PR_NUMBER> fix complete, large PR (files=${FILES_CHANGED}) — marked bot:ready-to-merge.`
+Log: `[pr-automation:exit] action=ready_to_merge pr=#<PR_NUMBER> reason="large PR, needs human confirmation to merge"`
+
+**EXIT.**
+
+**If `NEEDS_HUMAN_REVIEW=false`**:
 
 ```bash
 gh pr merge <PR_NUMBER> --squash --auto
@@ -365,17 +397,28 @@ Log: `[pr-automation:exit] action=conflict_unresolved pr=#<PR_NUMBER> reason="me
 
 **EXIT.**
 
-### Step 5 — Check Critical Path Files
+### Step 5 — Assess PR Scale and Critical Path
 
 ```bash
 gh pr checkout <PR_NUMBER>
 BASE_REF=$(gh pr view <PR_NUMBER> --json baseRefName --jq '.baseRefName')
-HAS_CRITICAL=$(git diff origin/${BASE_REF}...HEAD --name-only \
-  | grep -qE '^(src/preload\.ts|src/process/channels/|src/common/config/)' && echo true || echo false)
+
+FILES_CHANGED=$(git diff origin/${BASE_REF}...HEAD --name-only | wc -l | tr -d ' ')
+
+# CRITICAL_PATH_PATTERN is empty by default.
+# Add patterns here when needed, e.g. "^src/preload\.ts|^src/process/channels/"
+CRITICAL_PATH_PATTERN=""
+if [ -n "$CRITICAL_PATH_PATTERN" ]; then
+  HAS_CRITICAL=$(git diff origin/${BASE_REF}...HEAD --name-only \
+    | grep -qE "$CRITICAL_PATH_PATTERN" && echo true || echo false)
+else
+  HAS_CRITICAL=false
+fi
+
 git checkout -
 ```
 
-Save `HAS_CRITICAL` for later steps.
+Save `FILES_CHANGED` and `HAS_CRITICAL` for later steps.
 
 ### Step 6 — Run pr-review (automation mode)
 
@@ -397,16 +440,41 @@ Save `CONCLUSION` and `IS_CRITICAL_PATH` (override Step 5 value if different).
 
 If block is missing: set `CONCLUSION=REJECTED`, log the error, continue to Step 7.
 
+**Compute merge gate:**
+
+```
+NEEDS_HUMAN_REVIEW = (FILES_CHANGED > 50) OR (IS_CRITICAL_PATH = true)
+```
+
+When `NEEDS_HUMAN_REVIEW=true`, route to human review regardless of CONCLUSION (except REJECTED, which already goes to human).
+
 ### Step 7 — Execute Decision Matrix
 
 #### CONCLUSION = APPROVED
 
+**If `NEEDS_HUMAN_REVIEW=true`** (large PR or critical path):
+
 1. Post comment:
    ```bash
    gh pr comment <PR_NUMBER> --body "<!-- pr-automation-bot -->
-   ✅ 已自动 review，无阻塞性问题，正在触发自动合并。$([ "$HAS_CRITICAL" = "true" ] && echo "
+   ✅ 已自动 review，代码无阻塞性问题。
 
-   > ⚠️ **注意**：本 PR 涉及核心路径文件（\`src/preload.ts\` 等），建议人工确认合并后行为是否符合预期。")"
+   > ⚠️ **本 PR 规模较大（改动文件 ${FILES_CHANGED} 个）或涉及核心路径，请人工确认后合并。**"
+   ```
+2. Update labels:
+   ```bash
+   gh pr edit <PR_NUMBER> --remove-label "bot:reviewing" --add-label "bot:ready-to-merge"
+   ```
+3. Log: `[pr-automation] PR #<PR_NUMBER> approved but large/critical (files=${FILES_CHANGED}), marked bot:ready-to-merge.`
+4. Log: `[pr-automation:exit] action=ready_to_merge pr=#<PR_NUMBER> reason="large PR or critical path, needs human confirmation"`
+5. **EXIT.**
+
+**If `NEEDS_HUMAN_REVIEW=false`**:
+
+1. Post comment:
+   ```bash
+   gh pr comment <PR_NUMBER> --body "<!-- pr-automation-bot -->
+   ✅ 已自动 review，无阻塞性问题，正在触发自动合并。"
    ```
 2. Trigger auto-merge:
    ```bash
@@ -435,9 +503,7 @@ If block is missing: set `CONCLUSION=REJECTED`, log the error, continue to Step 
 1. Post comment:
    ```bash
    gh pr comment <PR_NUMBER> --body "<!-- pr-automation-bot -->
-   ❌ 本 PR 存在阻塞性问题，无法自动处理，已转交人工 review。详见上方 review 报告。$([ "$HAS_CRITICAL" = "true" ] && echo "
-
-   > ⚠️ **注意**：本 PR 涉及核心路径文件（\`src/preload.ts\` 等），建议人工确认合并后行为是否符合预期。")"
+   ❌ 本 PR 存在阻塞性问题，无法自动处理，已转交人工 review。详见上方 review 报告。"
    ```
 2. Update labels:
    ```bash
