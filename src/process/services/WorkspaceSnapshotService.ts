@@ -5,7 +5,6 @@
  */
 
 import git from 'isomorphic-git';
-import crypto from 'node:crypto';
 import nodeFs from 'node:fs';
 import fs from 'node:fs/promises';
 import os from 'node:os';
@@ -20,10 +19,6 @@ type SnapshotState = {
   branch: string | null;
   createdGitignore?: boolean;
 };
-
-function hashBuffer(buf: Uint8Array): string {
-  return crypto.createHash('sha1').update(buf).digest('hex');
-}
 
 const DEFAULT_GITIGNORE = `node_modules/
 .git/
@@ -53,63 +48,24 @@ export class WorkspaceSnapshotService {
       return [];
     }
 
-    // Use git.walk with content hashing to avoid the "racy git" problem
-    // (statusMatrix uses stat-based caching which misses rapid modifications)
-    const changes: FileChangeInfo[] = [];
-
-    await git.walk({
+    // statusMatrix is stat-based (O(n) stat calls, no file content reads)
+    // Much faster and memory-efficient than git.walk with content hashing
+    const matrix = await git.statusMatrix({
       fs: nodeFs,
       dir: workspacePath,
       gitdir: state.gitdir,
-      trees: [git.TREE({ ref: 'HEAD' }), git.WORKDIR()],
-      map: async (filepath, [head, workdir]) => {
-        // Skip .git directory
-        if (filepath.startsWith('.git')) return null;
-
-        const headType = head ? await head.type() : null;
-        const workdirType = workdir ? await workdir.type() : null;
-
-        // Continue walking into directories
-        if (headType === 'tree' || workdirType === 'tree') return filepath;
-
-        if (!head && workdir) {
-          // Skip files that match .gitignore rules (WORKDIR walker doesn't filter them)
-          const ignored = await git.isIgnored({
-            fs: nodeFs,
-            dir: workspacePath,
-            gitdir: state.gitdir,
-            filepath,
-          });
-          if (ignored) return filepath;
-
-          changes.push({
-            relativePath: filepath,
-            filePath: path.join(workspacePath, filepath),
-            operation: 'create',
-          });
-        } else if (head && !workdir) {
-          changes.push({
-            relativePath: filepath,
-            filePath: path.join(workspacePath, filepath),
-            operation: 'delete',
-          });
-        } else if (head && workdir) {
-          const headContent = await head.content();
-          const workdirContent = await workdir.content();
-          if (headContent && workdirContent && hashBuffer(headContent) !== hashBuffer(workdirContent)) {
-            changes.push({
-              relativePath: filepath,
-              filePath: path.join(workspacePath, filepath),
-              operation: 'modify',
-            });
-          }
-        }
-
-        return filepath;
-      },
     });
 
-    return changes;
+    // statusMatrix returns: [filepath, HEAD, WORKDIR, STAGE]
+    // HEAD=0 means file not in baseline, HEAD=1 means file in baseline
+    // WORKDIR=0 means deleted, WORKDIR=2 means exists (new or modified)
+    return matrix
+      .filter(([, head, workdir]) => head !== workdir)
+      .map(([filepath, head, workdir]) => ({
+        relativePath: filepath as string,
+        filePath: path.join(workspacePath, filepath as string),
+        operation: head === 0 ? ('create' as const) : workdir === 0 ? ('delete' as const) : ('modify' as const),
+      }));
   }
 
   async getBaselineContent(workspacePath: string, filePath: string): Promise<string | null> {

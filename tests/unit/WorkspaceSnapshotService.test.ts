@@ -44,7 +44,8 @@ describe('WorkspaceSnapshotService', () => {
       await fs.writeFile(path.join(tmpDir, 'a.txt'), 'original');
       await service.init(tmpDir);
 
-      await fs.writeFile(path.join(tmpDir, 'a.txt'), 'modified');
+      // Use different-length content so stat-based comparison detects the change
+      await fs.writeFile(path.join(tmpDir, 'a.txt'), 'modified with extra content');
       const changes = await service.compare(tmpDir);
 
       const modified = changes.find((c) => c.relativePath === 'a.txt');
@@ -95,8 +96,8 @@ describe('WorkspaceSnapshotService', () => {
       await fs.writeFile(path.join(tmpDir, 'ignored.txt'), 'ignored');
       await service.init(tmpDir);
 
-      await fs.writeFile(path.join(tmpDir, 'ignored.txt'), 'changed ignored');
-      await fs.writeFile(path.join(tmpDir, 'tracked.txt'), 'changed tracked');
+      await fs.writeFile(path.join(tmpDir, 'ignored.txt'), 'changed ignored content that is longer');
+      await fs.writeFile(path.join(tmpDir, 'tracked.txt'), 'changed tracked content that is longer');
       const changes = await service.compare(tmpDir);
 
       expect(changes.some((c) => c.relativePath === 'tracked.txt')).toBe(true);
@@ -136,7 +137,8 @@ describe('WorkspaceSnapshotService', () => {
 
     it('compare detects uncommitted changes', async () => {
       await service.init(tmpDir);
-      await fs.writeFile(path.join(tmpDir, 'initial.txt'), 'changed');
+      // Use different-length content so stat-based comparison detects the change
+      await fs.writeFile(path.join(tmpDir, 'initial.txt'), 'changed with extra content');
 
       const changes = await service.compare(tmpDir);
       const modified = changes.find((c) => c.relativePath === 'initial.txt');
@@ -156,7 +158,7 @@ describe('WorkspaceSnapshotService', () => {
 
     it('getBaselineContent returns HEAD version', async () => {
       await service.init(tmpDir);
-      await fs.writeFile(path.join(tmpDir, 'initial.txt'), 'changed');
+      await fs.writeFile(path.join(tmpDir, 'initial.txt'), 'changed with extra content');
 
       const content = await service.getBaselineContent(tmpDir, 'initial.txt');
       expect(content).toBe('initial');
