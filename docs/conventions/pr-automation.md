@@ -40,10 +40,12 @@
              │     └─ 否则 → 尝试自动 rebase
              │           ├─ 成功 → push → EXIT
              │           └─ 失败 → 评论 + bot:needs-human-review → EXIT
-             └─ MERGEABLE → pr-review
-                   ├─ APPROVED → --auto merge → bot:done → EXIT
-                   ├─ CONDITIONAL → bot:ready-to-fix → EXIT
-                   └─ REJECTED → bot:needs-human-review → EXIT
+             └─ MERGEABLE
+                   ├─ BEHIND → update-branch API → EXIT（GitHub 自动补 base，CI 重跑，auto-merge 触发）
+                   └─ 其他 → pr-review
+                         ├─ APPROVED → --auto merge → bot:done → EXIT
+                         ├─ CONDITIONAL → bot:ready-to-fix → EXIT
+                         └─ REJECTED → bot:needs-human-review → EXIT
 ```
 
 ### Skip 条件（继续找下一个 PR）
