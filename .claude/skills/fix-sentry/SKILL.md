@@ -97,6 +97,7 @@ mcp__sentry__list_issues(
 ```
 
 For these issues, apply **Step C (Defensive fix)** logic from Step 1.6:
+
 - Extract distinctive patterns from the error message (file names, paths, keywords)
 - Search the codebase for matching code paths
 - If a matching code path is found → classify as "Defensive fix" and proceed to Phase 2
@@ -190,14 +191,14 @@ Classify each issue group using the detailed decision flow in [references/triage
 
 **Quick reference — six categories:**
 
-| Category          | Action                        |
-| ----------------- | ----------------------------- |
-| **Direct fix**    | Stack trace → our code → fix  |
+| Category          | Action                                                   |
+| ----------------- | -------------------------------------------------------- |
+| **Direct fix**    | Stack trace → our code → fix                             |
 | **Defensive fix** | No trace, but pattern matches our code → fix with guards |
-| **Pending merge** | Open PR exists → skip or improve |
-| **Already fixed** | Merged PR / resolved → skip   |
-| **System-level**  | EPIPE, ENOSPC, EIO, uv, Chromium → skip |
-| **Unfixable**     | No trace, no matching code → skip |
+| **Pending merge** | Open PR exists → skip or improve                         |
+| **Already fixed** | Merged PR / resolved → skip                              |
+| **System-level**  | EPIPE, ENOSPC, EIO, uv, Chromium → skip                  |
+| **Unfixable**     | No trace, no matching code → skip                        |
 
 **Output a triage report** (see [references/report-template.md](references/report-template.md) for format),
 then **proceed immediately** — do not wait for user confirmation.
@@ -380,6 +381,7 @@ Default parameters (can be overridden via skill args):
 | limit     | 0        | Max issues to fix per invocation (0 = unlimited, >0 = daemon mode) |
 
 Override examples:
+
 - Batch mode: `/fix-sentry threshold=50 project=electron`
 - Daemon mode: `/fix-sentry limit=1 project=electron`
 
