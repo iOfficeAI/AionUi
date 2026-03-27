@@ -579,12 +579,26 @@ const SendBox: React.FC<{
     }
 
     if (!allowSendWhileLoading && (isLoading || loading)) {
+      console.info('[sendbox]', {
+        event: 'blocked-while-loading',
+        allowSendWhileLoading,
+        isLoading,
+        loading,
+      });
       message.warning(t('messages.conversationInProgress'));
       return;
     }
     if (!input.trim() && domSnippets.length === 0) {
       return;
     }
+    console.info('[sendbox]', {
+      event: 'submit',
+      allowSendWhileLoading,
+      isLoading,
+      loading,
+      inputLength: input.length,
+      domSnippetCount: domSnippets.length,
+    });
     setIsLoading(true);
     historyDraftRef.current = null;
     setHistoryNavigationIndex(null);
