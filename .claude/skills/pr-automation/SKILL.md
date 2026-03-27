@@ -316,10 +316,10 @@ gh api repos/$REPO/pulls/<PR_NUMBER>/update-branch --method PUT
 gh pr edit <PR_NUMBER> --remove-label "bot:reviewing"
 ```
 
-Log: `[pr-automation] PR #<PR_NUMBER> branch is behind base — triggered update-branch. CI will re-run and auto-merge will fire automatically.`
+Log: `[pr-automation] PR #<PR_NUMBER> branch is behind base — triggered update-branch. Next session will review and merge once CI passes.`
 Log: `[pr-automation:exit] action=update_branch pr=#<PR_NUMBER> reason="branch behind base, triggered update"`
 
-**EXIT** (GitHub merges base into the branch, CI re-triggers, auto-merge fires when CI passes).
+**EXIT** (GitHub merges base into the branch, CI re-triggers; next pr-automation session will pick up the PR, run review, and merge).
 
 **Merge conflict dedup check:**
 
