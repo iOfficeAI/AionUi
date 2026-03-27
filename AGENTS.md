@@ -112,7 +112,7 @@ Detailed rules and guidelines are organized into Skills for better modularity:
 本仓库运行 PR 自动化 agent，定期处理 open PR（review、fix、合并）。
 
 - **运行方式**：本地 cron 每 30 分钟触发 `scripts/pr-automation.sh`
-- **状态追踪**：通过 `bot:*` label（`bot:reviewing`、`bot:fixing`、`bot:needs-fix`、`bot:needs-human-review`、`bot:done`）
+- **状态追踪**：通过 `bot:*` label（`bot:reviewing`、`bot:fixing`、`bot:ready-to-fix`、`bot:needs-human-review`、`bot:done`）
 - **阻止处理**：在 PR 标题加 `WIP` 或手动打 `bot:needs-human-review` label
 - **详细说明**：[docs/conventions/pr-automation.md](docs/conventions/pr-automation.md)
 
