@@ -56,6 +56,18 @@ export function useFileChanges({ workspace, conversationId }: UseFileChangesPara
     };
   }, [workspace, conversationId]);
 
+  // Silent refresh: update data without showing loading spinner (used after git operations)
+  const silentRefresh = useCallback(async () => {
+    if (!workspace || !initializedRef.current) return;
+    try {
+      const res = await ipcBridge.fileSnapshot.compare.invoke({ workspace });
+      setResult(res);
+    } catch (err) {
+      console.error('[useFileChanges] Failed to compare:', err);
+    }
+  }, [workspace]);
+
+  // Full refresh with loading indicator (used for manual refresh button)
   const refreshChanges = useCallback(async () => {
     if (!workspace || !initializedRef.current) return;
     setLoading(true);
@@ -73,48 +85,48 @@ export function useFileChanges({ workspace, conversationId }: UseFileChangesPara
     async (filePath: string) => {
       if (!workspace) return;
       await ipcBridge.fileSnapshot.stageFile.invoke({ workspace, filePath });
-      await refreshChanges();
+      await silentRefresh();
     },
-    [workspace, refreshChanges]
+    [workspace, silentRefresh]
   );
 
   const stageAll = useCallback(async () => {
     if (!workspace) return;
     await ipcBridge.fileSnapshot.stageAll.invoke({ workspace });
-    await refreshChanges();
-  }, [workspace, refreshChanges]);
+    await silentRefresh();
+  }, [workspace, silentRefresh]);
 
   const unstageFile = useCallback(
     async (filePath: string) => {
       if (!workspace) return;
       await ipcBridge.fileSnapshot.unstageFile.invoke({ workspace, filePath });
-      await refreshChanges();
+      await silentRefresh();
     },
-    [workspace, refreshChanges]
+    [workspace, silentRefresh]
   );
 
   const unstageAll = useCallback(async () => {
     if (!workspace) return;
     await ipcBridge.fileSnapshot.unstageAll.invoke({ workspace });
-    await refreshChanges();
-  }, [workspace, refreshChanges]);
+    await silentRefresh();
+  }, [workspace, silentRefresh]);
 
   const discardFile = useCallback(
     async (filePath: string, operation: FileChangeInfo['operation']) => {
       if (!workspace) return;
       await ipcBridge.fileSnapshot.discardFile.invoke({ workspace, filePath, operation });
-      await refreshChanges();
+      await silentRefresh();
     },
-    [workspace, refreshChanges]
+    [workspace, silentRefresh]
   );
 
   const resetFile = useCallback(
     async (filePath: string, operation: FileChangeInfo['operation']) => {
       if (!workspace) return;
       await ipcBridge.fileSnapshot.resetFile.invoke({ workspace, filePath, operation });
-      await refreshChanges();
+      await silentRefresh();
     },
-    [workspace, refreshChanges]
+    [workspace, silentRefresh]
   );
 
   return {
