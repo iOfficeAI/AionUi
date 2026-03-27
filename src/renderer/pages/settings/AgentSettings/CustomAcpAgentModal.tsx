@@ -1,42 +1,20 @@
 /**
- * 自定义 ACP 代理配置弹窗
  * Custom ACP Agent Configuration Modal
  *
- * Redesigned modal with CLI card selection, logo display, and collapsible advanced JSON config.
+ * Structured form with Display Name, Command, Arguments, Environment Variables,
+ * Test Connection, and collapsible Advanced JSON editor with bidirectional sync.
  */
-import type { AcpBackendConfig, AcpBackend } from '@/common/types/acpTypes';
-import { ACP_BACKENDS_ALL } from '@/common/types/acpTypes';
-import { Alert, Input, Spin, Collapse } from '@arco-design/web-react';
-import React, { useState, useCallback, useEffect } from 'react';
-import { useTranslation } from 'react-i18next';
+import type { AcpBackendConfig } from '@/common/types/acpTypes';
+import { acpConversation } from '@/common/adapter/ipcBridge';
+import { Alert, Button, Collapse, Input, Space } from '@arco-design/web-react';
+import { Plus, Delete, CheckOne, CloseOne } from '@icon-park/react';
 import CodeMirror from '@uiw/react-codemirror';
 import { json } from '@codemirror/lang-json';
 import { useThemeContext } from '@/renderer/hooks/context/ThemeContext';
 import AionModal from '@/renderer/components/base/AionModal';
 import { uuid } from '@/common/utils';
-import { acpConversation } from '@/common/adapter/ipcBridge';
-import { CheckSmall } from '@icon-park/react';
-
-// CLI Logo 导入 / CLI Logo imports
-import CodeBuddyLogo from '@/renderer/assets/logos/tools/coding/codebuddy.svg';
-import GooseLogo from '@/renderer/assets/logos/tools/goose.svg';
-import AuggieLogo from '@/renderer/assets/logos/brand/auggie.svg';
-import KimiLogo from '@/renderer/assets/logos/ai-china/kimi.svg';
-import OpencodeLogo from '@/renderer/assets/logos/tools/coding/opencode.svg';
-import QoderLogo from '@/renderer/assets/logos/tools/coding/qoder.png';
-
-/**
- * 后端 Logo 映射表，用于在 CLI 卡片中显示对应的图标
- * Backend logo mapping for displaying icons in CLI selection cards
- */
-const BACKEND_LOGO_MAP: Record<string, string> = {
-  codebuddy: CodeBuddyLogo,
-  goose: GooseLogo,
-  auggie: AuggieLogo,
-  kimi: KimiLogo,
-  opencode: OpencodeLogo,
-  qoder: QoderLogo,
-};
+import React, { useState, useCallback, useEffect, useRef } from 'react';
+import { useTranslation } from 'react-i18next';
 
 interface CustomAcpAgentModalProps {
   visible: boolean;
@@ -45,196 +23,233 @@ interface CustomAcpAgentModalProps {
   onSubmit: (agent: AcpBackendConfig) => void;
 }
 
-interface ValidationResult {
-  isValid: boolean;
-  errorMessage?: string;
+type TestStatus = 'idle' | 'testing' | 'success' | 'fail_cli' | 'fail_acp';
+
+interface EnvVar {
+  id: string;
+  key: string;
+  value: string;
 }
 
-interface DetectedAgent {
-  backend: AcpBackend;
-  name: string;
-  cliPath?: string;
-  acpArgs?: string[];
-  customAgentId?: string;
+/**
+ * Parse a space-separated argument string into an array.
+ * Respects quoted segments so that `--flag "value with spaces"` produces
+ * `['--flag', 'value with spaces']`.
+ */
+function parseArgsString(input: string): string[] {
+  const args: string[] = [];
+  let current = '';
+  let inQuote: string | null = null;
+
+  for (const char of input) {
+    if (inQuote) {
+      if (char === inQuote) {
+        inQuote = null;
+      } else {
+        current += char;
+      }
+    } else if (char === '"' || char === "'") {
+      inQuote = char;
+    } else if (char === ' ') {
+      if (current) {
+        args.push(current);
+        current = '';
+      }
+    } else {
+      current += char;
+    }
+  }
+  if (current) args.push(current);
+  return args;
+}
+
+/** Convert an EnvVar array to a plain object, skipping empty keys. */
+function envVarsToObject(vars: EnvVar[]): Record<string, string> {
+  const obj: Record<string, string> = {};
+  for (const v of vars) {
+    const key = v.key.trim();
+    if (key) obj[key] = v.value;
+  }
+  return obj;
+}
+
+/** Convert a plain env object to an EnvVar array. */
+function objectToEnvVars(obj: Record<string, string> | undefined): EnvVar[] {
+  if (!obj || Object.keys(obj).length === 0) return [];
+  return Object.entries(obj).map(([key, value]) => ({ id: uuid(), key, value }));
 }
 
 const CustomAcpAgentModal: React.FC<CustomAcpAgentModalProps> = ({ visible, agent, onCancel, onSubmit }) => {
   const { t } = useTranslation();
   const { theme } = useThemeContext();
 
-  // 组件状态 / Component state
-  const [detectedAgents, setDetectedAgents] = useState<DetectedAgent[]>([]); // 检测到的 CLI 列表 / Detected CLI list
-  const [loadingAgents, setLoadingAgents] = useState(false); // 加载状态 / Loading state
-  const [selectedCli, setSelectedCli] = useState<string>(''); // 当前选中的 CLI 路径 / Currently selected CLI path
-  const [agentName, setAgentName] = useState(''); // 显示名称（独立于 JSON 配置）/ Display name (separate from JSON config)
-  const [showAdvanced, setShowAdvanced] = useState(false); // 是否展开高级配置 / Whether advanced config is expanded
-  const [jsonInput, setJsonInput] = useState(''); // JSON 配置内容（不含 name）/ JSON config content (excludes name)
-  const [validation, setValidation] = useState<ValidationResult>({ isValid: true }); // JSON 校验结果 / JSON validation result
+  // Form state
+  const [name, setName] = useState('');
+  const [command, setCommand] = useState('');
+  const [argsString, setArgsString] = useState('');
+  const [envVars, setEnvVars] = useState<EnvVar[]>([]);
 
-  /**
-   * 加载已检测到的 CLI 列表
-   * Load detected CLI list from backend
-   * 过滤规则：排除内置后端（gemini, codex）和需要认证的后端，只显示第三方独立 CLI
-   * Filter rule: exclude built-in backends (gemini, codex) and auth-required backends, only show third-party CLIs
-   */
-  const loadDetectedAgents = useCallback(async () => {
-    setLoadingAgents(true);
-    try {
-      const response = await acpConversation.getAvailableAgents.invoke();
-      if (response.success && response.data) {
-        // 只展示第三方独立 CLI（goose, auggie, kimi, opencode）
-        // Only show third-party standalone CLIs (goose, auggie, kimi, opencode)
-        const filteredAgents = response.data.filter((a) => {
-          if (['gemini', 'custom', 'codex'].includes(a.backend)) return false;
-          const backendConfig = ACP_BACKENDS_ALL[a.backend];
-          return backendConfig && !backendConfig.authRequired;
-        });
-        setDetectedAgents(filteredAgents);
-      }
-    } catch (error) {
-      console.error('Failed to load detected agents:', error);
-    } finally {
-      setLoadingAgents(false);
-    }
-  }, []);
+  // Advanced JSON editor
+  const [showAdvanced, setShowAdvanced] = useState(false);
+  const [jsonInput, setJsonInput] = useState('');
+  const [jsonError, setJsonError] = useState('');
+  const isJsonEditingRef = useRef(false);
 
-  /**
-   * 生成 JSON 配置（不含 name 字段）
-   * Generate JSON config (without name field)
-   * name 统一从"显示名称"输入框获取，避免 JSON 和输入框中的 name 产生歧义
-   * Name is taken from "Display Name" input to avoid ambiguity between JSON and input field
-   */
-  const generateJsonConfig = useCallback((selected: DetectedAgent) => {
-    const config = {
-      defaultCliPath: selected.cliPath || '',
-      enabled: true,
-      env: {},
-      acpArgs: selected.acpArgs,
-    };
-    return JSON.stringify(config, null, 2);
-  }, []);
+  // Test connection
+  const [testStatus, setTestStatus] = useState<TestStatus>('idle');
 
-  // JSON syntax validation
-  const validateJsonSyntax = useCallback((input: string): ValidationResult => {
-    if (!input.trim()) {
-      return { isValid: true };
-    }
-    try {
-      const parsed = JSON.parse(input);
-      if (!parsed.defaultCliPath) {
-        return { isValid: false, errorMessage: 'Missing required field: defaultCliPath' };
-      }
-      return { isValid: true };
-    } catch (error) {
-      return {
-        isValid: false,
-        errorMessage: error instanceof SyntaxError ? error.message : 'Invalid JSON format',
+  // Build the JSON string from current form fields
+  const buildJsonFromForm = useCallback(
+    (opts?: { nameVal?: string; cmdVal?: string; argsVal?: string; envVal?: EnvVar[] }) => {
+      const nameVal = opts?.nameVal ?? name;
+      const cmdVal = opts?.cmdVal ?? command;
+      const argsVal = opts?.argsVal ?? argsString;
+      const envVal = opts?.envVal ?? envVars;
+
+      const config: Record<string, unknown> = {
+        name: nameVal,
+        defaultCliPath: cmdVal,
+        enabled: true,
+        acpArgs: parseArgsString(argsVal),
+        env: envVarsToObject(envVal),
       };
-    }
-  }, []);
-
-  // Update validation on input change
-  useEffect(() => {
-    setValidation(validateJsonSyntax(jsonInput));
-  }, [jsonInput, validateJsonSyntax]);
-
-  // 当 Modal 打开时初始化
-  useEffect(() => {
-    if (visible) {
-      if (agent) {
-        // 编辑模式：显示高级配置，name 从显示名称输入框获取
-        setShowAdvanced(true);
-        setAgentName(agent.name || 'Custom Agent');
-        const config = {
-          defaultCliPath: agent.defaultCliPath || '',
-          enabled: agent.enabled ?? true,
-          env: agent.env || {},
-          acpArgs: agent.acpArgs,
-        };
-        setJsonInput(JSON.stringify(config, null, 2));
-      } else {
-        // 新增模式 / Add mode
-        setSelectedCli('');
-        setAgentName('');
-        setJsonInput('');
-        setShowAdvanced(false);
-        void loadDetectedAgents(); // 显式标记为不需要等待 / Explicitly mark as fire-and-forget
-      }
-    }
-  }, [visible, agent, loadDetectedAgents]);
-
-  /**
-   * 选择 CLI 的处理函数
-   * Handle CLI card selection
-   * 切换 CLI 时同步更新：选中状态、显示名称、JSON 配置
-   * When switching CLI, synchronously update: selection state, display name, JSON config
-   */
-  const handleSelectCli = useCallback(
-    (cliPath: string) => {
-      const selected = detectedAgents.find((a) => a.cliPath === cliPath);
-      if (selected) {
-        setSelectedCli(cliPath);
-        setAgentName(selected.name); // 自动填充 CLI 默认名称 / Auto-fill with CLI default name
-        setJsonInput(generateJsonConfig(selected));
-      }
+      return JSON.stringify(config, null, 2);
     },
-    [detectedAgents, generateJsonConfig]
+    [name, command, argsString, envVars]
   );
 
-  // 当名称改变时同步更新 JSON（保持 JSON 与当前选中 CLI 一致）
-  // Sync JSON when name changes (keep JSON consistent with selected CLI)
+  // Sync form -> JSON (unless user is actively editing JSON)
   useEffect(() => {
-    if (selectedCli && agentName) {
-      const selected = detectedAgents.find((a) => a.cliPath === selectedCli);
-      if (selected) {
-        setJsonInput(generateJsonConfig(selected));
+    if (!isJsonEditingRef.current) {
+      setJsonInput(buildJsonFromForm());
+    }
+  }, [buildJsonFromForm]);
+
+  // Initialize state when modal opens
+  useEffect(() => {
+    if (visible) {
+      setTestStatus('idle');
+      setJsonError('');
+      isJsonEditingRef.current = false;
+
+      if (agent) {
+        // Edit mode: pre-populate from existing agent config
+        setName(agent.name || '');
+        setCommand(agent.defaultCliPath || '');
+        setArgsString(agent.acpArgs?.join(' ') || '');
+        setEnvVars(objectToEnvVars(agent.env));
+        setShowAdvanced(false);
+      } else {
+        // Add mode: blank form
+        setName('');
+        setCommand('');
+        setArgsString('');
+        setEnvVars([]);
+        setShowAdvanced(false);
       }
     }
-  }, [agentName, selectedCli, detectedAgents, generateJsonConfig]);
+  }, [visible, agent]);
 
-  /**
-   * 提交表单
-   * Handle form submission
-   * 根据是否展开高级配置决定数据来源：高级模式从 JSON 解析，简单模式从选中的 CLI 获取
-   * Data source depends on advanced mode: parse from JSON in advanced mode, get from selected CLI in simple mode
-   */
-  const handleSubmit = () => {
-    if (showAdvanced && jsonInput.trim()) {
-      // 高级模式：解析 JSON，name 从显示名称输入框获取
-      // Advanced mode: parse JSON, get name from display name input
-      const parsed = JSON.parse(jsonInput);
-      const customAgent: AcpBackendConfig = {
-        id: agent?.id || parsed.id || uuid(),
-        name: agentName || 'Custom Agent', // name 始终从输入框获取 / name always from input field
-        defaultCliPath: parsed.defaultCliPath,
-        enabled: parsed.enabled ?? true,
-        env: parsed.env || {},
-        acpArgs: parsed.acpArgs,
-      };
-      onSubmit(customAgent);
-    } else {
-      // 简单模式：直接使用选中的 CLI 配置
-      // Simple mode: use selected CLI config directly
-      const selected = detectedAgents.find((a) => a.cliPath === selectedCli);
-      if (!selected) return;
-      const customAgent: AcpBackendConfig = {
-        id: uuid(),
-        name: agentName || selected.name,
-        defaultCliPath: selected.cliPath || '',
-        enabled: true,
-        env: {},
-        acpArgs: selected.acpArgs,
-      };
-      onSubmit(customAgent);
-    }
-  };
+  // Handle JSON editor change — sync JSON -> form
+  const handleJsonChange = useCallback((value: string) => {
+    isJsonEditingRef.current = true;
+    setJsonInput(value);
 
-  const isSubmitDisabled = () => {
-    if (showAdvanced) {
-      return !validation.isValid || !jsonInput.trim();
+    try {
+      const parsed = JSON.parse(value);
+      setJsonError('');
+
+      // Sync parsed values back into form fields
+      if (typeof parsed.name === 'string') setName(parsed.name);
+      if (typeof parsed.defaultCliPath === 'string') setCommand(parsed.defaultCliPath);
+      if (Array.isArray(parsed.acpArgs)) setArgsString(parsed.acpArgs.join(' '));
+      if (parsed.env && typeof parsed.env === 'object') {
+        setEnvVars(objectToEnvVars(parsed.env as Record<string, string>));
+      }
+    } catch {
+      setJsonError('Invalid JSON');
     }
-    return !selectedCli || !agentName.trim();
-  };
+
+    // Reset the editing flag after a short delay so form -> JSON sync can resume
+    setTimeout(() => {
+      isJsonEditingRef.current = false;
+    }, 500);
+  }, []);
+
+  // Form field change handlers (always clear json editing flag)
+  const handleNameChange = useCallback((v: string) => {
+    isJsonEditingRef.current = false;
+    setName(v);
+  }, []);
+
+  const handleCommandChange = useCallback((v: string) => {
+    isJsonEditingRef.current = false;
+    setCommand(v);
+  }, []);
+
+  const handleArgsChange = useCallback((v: string) => {
+    isJsonEditingRef.current = false;
+    setArgsString(v);
+  }, []);
+
+  // Env var helpers
+  const addEnvVar = useCallback(() => {
+    isJsonEditingRef.current = false;
+    setEnvVars((prev) => [...prev, { id: uuid(), key: '', value: '' }]);
+  }, []);
+
+  const removeEnvVar = useCallback((id: string) => {
+    isJsonEditingRef.current = false;
+    setEnvVars((prev) => prev.filter((v) => v.id !== id));
+  }, []);
+
+  const updateEnvVar = useCallback((id: string, field: 'key' | 'value', val: string) => {
+    isJsonEditingRef.current = false;
+    setEnvVars((prev) => prev.map((v) => (v.id === id ? { ...v, [field]: val } : v)));
+  }, []);
+
+  // Test connection handler
+  const handleTestConnection = useCallback(async () => {
+    setTestStatus('testing');
+    try {
+      const parsedArgs = parseArgsString(argsString);
+      const envObj = envVarsToObject(envVars);
+      const result = await acpConversation.testCustomAgent.invoke({
+        command: command.trim(),
+        acpArgs: parsedArgs.length > 0 ? parsedArgs : undefined,
+        env: Object.keys(envObj).length > 0 ? envObj : undefined,
+      });
+
+      if (result.success) {
+        setTestStatus('success');
+      } else if (result.data?.step === 'cli_check') {
+        setTestStatus('fail_cli');
+      } else {
+        setTestStatus('fail_acp');
+      }
+    } catch {
+      setTestStatus('fail_cli');
+    }
+  }, [command, argsString, envVars]);
+
+  // Submit handler
+  const handleSubmit = useCallback(() => {
+    const parsedArgs = parseArgsString(argsString);
+    const envObj = envVarsToObject(envVars);
+
+    const customAgent: AcpBackendConfig = {
+      id: agent?.id || uuid(),
+      name: name.trim() || 'Custom Agent',
+      defaultCliPath: command.trim(),
+      enabled: true,
+      acpArgs: parsedArgs.length > 0 ? parsedArgs : undefined,
+      env: Object.keys(envObj).length > 0 ? envObj : undefined,
+    };
+    onSubmit(customAgent);
+  }, [agent, name, command, argsString, envVars, onSubmit]);
+
+  const isSubmitDisabled = !name.trim() || !command.trim();
+  const isTestDisabled = !command.trim() || testStatus === 'testing';
 
   if (!visible) return null;
 
@@ -243,136 +258,149 @@ const CustomAcpAgentModal: React.FC<CustomAcpAgentModalProps> = ({ visible, agen
       visible={visible}
       onCancel={onCancel}
       onOk={handleSubmit}
-      okButtonProps={{ disabled: isSubmitDisabled() }}
+      okButtonProps={{ disabled: isSubmitDisabled }}
       header={{
-        title: agent
-          ? t('settings.editCustomAgent') || 'Edit Custom Agent'
-          : t('settings.configureCustomAgent') || 'Add Custom Agent',
+        title: agent ? t('settings.editCustomAgent') : t('settings.addCustomAgentTitle'),
         showClose: true,
       }}
       style={{ width: 520, height: 'auto', maxHeight: '80vh' }}
-      contentStyle={{
-        borderRadius: 16,
-        padding: '20px',
-        background: 'var(--bg-1)',
-        overflow: 'auto',
-      }}
+      contentStyle={{ borderRadius: 16, padding: '20px', background: 'var(--bg-1)', overflow: 'auto' }}
     >
       <div className='space-y-16px'>
-        {/* CLI 选择卡片（仅新增模式显示）/ CLI selection cards (only shown in add mode) */}
-        {!agent && (
-          <div>
-            <div className='mb-8px text-sm font-medium text-t-primary'>{t('settings.selectCli') || 'Select CLI'}</div>
-            {loadingAgents ? (
-              <div className='flex items-center justify-center py-16px'>
-                <Spin />
-              </div>
-            ) : detectedAgents.length === 0 ? (
-              <Alert
-                type='warning'
-                content={
-                  t('settings.noCliDetected') || 'No CLI tools detected. Please install an ACP-compatible CLI first.'
-                }
-              />
-            ) : (
-              <div className='grid grid-cols-2 gap-8px'>
-                {detectedAgents.map((detectedAgent) => {
-                  const logo = BACKEND_LOGO_MAP[detectedAgent.backend];
-                  const isSelected = selectedCli === detectedAgent.cliPath;
-                  return (
-                    <div
-                      key={detectedAgent.cliPath}
-                      className={`p-10px rounded-lg cursor-pointer transition-all flex items-center gap-8px relative border ${isSelected ? 'bg-[var(--color-fill-2)] border-primary' : 'bg-[var(--bg-2)] border-transparent hover:bg-[var(--color-fill-2)] hover:border-[var(--color-border-2)]'}`}
-                      onClick={() => handleSelectCli(detectedAgent.cliPath || '')}
-                    >
-                      {logo && (
-                        <img
-                          src={logo}
-                          alt={`${detectedAgent.name} logo`}
-                          className='w-24px h-24px object-contain flex-shrink-0'
-                        />
-                      )}
-                      <div className='min-w-0 flex-1'>
-                        <div className='font-medium text-sm text-t-primary'>{detectedAgent.name}</div>
-                      </div>
-                      {isSelected && <CheckSmall theme='filled' size={16} className='text-primary flex-shrink-0' />}
-                    </div>
-                  );
-                })}
-              </div>
-            )}
-          </div>
-        )}
+        {/* Display Name */}
+        <div>
+          <div className='mb-4px text-sm font-medium text-t-primary'>{t('settings.agentDisplayName')}</div>
+          <Input value={name} onChange={handleNameChange} placeholder={t('settings.agentNamePlaceholder')} />
+        </div>
 
-        {/* 显示名称输入（选中 CLI 或编辑模式时显示）/ Display name input (shown when CLI selected or in edit mode) */}
-        {(selectedCli || agent) && (
-          <div>
-            <div className='mb-8px text-sm font-medium text-t-primary'>
-              {t('settings.agentDisplayName') || 'Display Name'}
-            </div>
-            <Input
-              value={agentName}
-              onChange={(v) => setAgentName(v)}
-              placeholder={t('settings.agentNamePlaceholder') || 'Enter a name for this agent'}
-            />
-          </div>
-        )}
+        {/* Command */}
+        <div>
+          <div className='mb-4px text-sm font-medium text-t-primary'>{t('settings.commandLabel')}</div>
+          <Input value={command} onChange={handleCommandChange} placeholder={t('settings.commandPlaceholder')} />
+          <div className='mt-4px text-xs text-t-tertiary'>{t('settings.commandHelp')}</div>
+        </div>
 
-        {/* 高级配置（可折叠 JSON 编辑器）/ Advanced config (collapsible JSON editor) */}
-        {(selectedCli || agent) && (
-          <Collapse
-            activeKey={showAdvanced ? ['advanced'] : []}
-            // Arco Collapse.onChange 签名：(key, keys, e) => void，第二个参数 keys 是当前激活的 key 数组
-            // Arco Collapse.onChange signature: (key, keys, e) => void, second param keys is array of active keys
-            onChange={(_key, keys) => setShowAdvanced(keys.includes('advanced'))}
-            bordered={false}
-            style={{ background: 'transparent' }}
-          >
-            <Collapse.Item
-              name='advanced'
-              header={
-                <span className='text-sm text-t-secondary'>
-                  {t('settings.advancedMode') || 'Advanced Configuration'}
-                </span>
-              }
-            >
-              <div className='pt-8px'>
-                <CodeMirror
-                  value={jsonInput}
-                  height='180px'
-                  theme={theme}
-                  extensions={[json()]}
-                  onChange={(value: string) => setJsonInput(value)}
-                  placeholder={`{
-  "defaultCliPath": "my-agent",
-  "enabled": true,
-  "env": {},
-  "acpArgs": ["--acp"]
-}`}
-                  basicSetup={{
-                    lineNumbers: true,
-                    foldGutter: true,
-                    dropCursor: false,
-                    allowMultipleSelections: false,
-                  }}
-                  style={{
-                    fontSize: '12px',
-                    border:
-                      validation.isValid || !jsonInput.trim()
-                        ? '1px solid var(--color-border-2)'
-                        : '1px solid var(--danger)',
-                    borderRadius: '6px',
-                    overflow: 'hidden',
-                  }}
-                  className='[&_.cm-editor]:rounded-[6px]'
+        {/* Arguments */}
+        <div>
+          <div className='mb-4px text-sm font-medium text-t-primary'>{t('settings.argsLabel')}</div>
+          <Input value={argsString} onChange={handleArgsChange} placeholder={t('settings.argsPlaceholder')} />
+          <div className='mt-4px text-xs text-t-tertiary'>{t('settings.argsHelp')}</div>
+        </div>
+
+        {/* Environment Variables */}
+        <div>
+          <div className='mb-4px text-sm font-medium text-t-primary'>{t('settings.envLabel')}</div>
+          <div className='space-y-8px'>
+            {envVars.map((envVar) => (
+              <div key={envVar.id} className='flex items-center gap-8px'>
+                <Input
+                  className='flex-1'
+                  value={envVar.key}
+                  onChange={(v) => updateEnvVar(envVar.id, 'key', v)}
+                  placeholder={t('settings.envKeyPlaceholder')}
                 />
-                {!validation.isValid && jsonInput.trim() && (
-                  <div className='mt-8px text-xs text-red-500'>{validation.errorMessage}</div>
-                )}
+                <Input
+                  className='flex-[2]'
+                  value={envVar.value}
+                  onChange={(v) => updateEnvVar(envVar.id, 'value', v)}
+                  placeholder={t('settings.envValuePlaceholder')}
+                />
+                <Button
+                  type='text'
+                  icon={<Delete theme='outline' size={16} />}
+                  onClick={() => removeEnvVar(envVar.id)}
+                  className='flex-shrink-0 text-t-tertiary hover:text-danger'
+                />
               </div>
-            </Collapse.Item>
-          </Collapse>
-        )}
+            ))}
+          </div>
+          <Button
+            type='text'
+            size='small'
+            icon={<Plus theme='outline' size={14} />}
+            onClick={addEnvVar}
+            className='mt-8px text-t-secondary'
+          >
+            {t('settings.addEnvVar')}
+          </Button>
+        </div>
+
+        {/* Test Connection */}
+        <div>
+          <Space>
+            <Button
+              type='outline'
+              size='small'
+              disabled={isTestDisabled}
+              onClick={handleTestConnection}
+              loading={testStatus === 'testing'}
+            >
+              {testStatus === 'testing' ? t('settings.testConnectionTesting') : t('settings.testConnectionBtn')}
+            </Button>
+          </Space>
+
+          {testStatus === 'success' && (
+            <Alert
+              className='mt-8px'
+              type='success'
+              icon={<CheckOne theme='filled' size={16} />}
+              content={t('settings.testConnectionSuccess')}
+            />
+          )}
+          {testStatus === 'fail_cli' && (
+            <Alert
+              className='mt-8px'
+              type='error'
+              icon={<CloseOne theme='filled' size={16} />}
+              content={t('settings.testConnectionFailCli')}
+            />
+          )}
+          {testStatus === 'fail_acp' && (
+            <Alert
+              className='mt-8px'
+              type='warning'
+              icon={<CloseOne theme='filled' size={16} />}
+              content={t('settings.testConnectionFailAcp')}
+            />
+          )}
+        </div>
+
+        {/* Advanced JSON Editor */}
+        <Collapse
+          activeKey={showAdvanced ? ['advanced'] : []}
+          onChange={(_key, keys) => setShowAdvanced(keys.includes('advanced'))}
+          bordered={false}
+          style={{ background: 'transparent' }}
+        >
+          <Collapse.Item
+            name='advanced'
+            header={<span className='text-sm text-t-secondary'>{t('settings.advancedMode')}</span>}
+          >
+            <div className='pt-8px'>
+              <CodeMirror
+                value={jsonInput}
+                height='200px'
+                theme={theme}
+                extensions={[json()]}
+                onChange={handleJsonChange}
+                basicSetup={{
+                  lineNumbers: true,
+                  foldGutter: true,
+                  dropCursor: false,
+                  allowMultipleSelections: false,
+                }}
+                style={{
+                  fontSize: '12px',
+                  border: jsonError ? '1px solid var(--danger)' : '1px solid var(--color-border-2)',
+                  borderRadius: '6px',
+                  overflow: 'hidden',
+                }}
+                className='[&_.cm-editor]:rounded-[6px]'
+              />
+              {jsonError && <div className='mt-4px text-xs text-danger'>{jsonError}</div>}
+            </div>
+          </Collapse.Item>
+        </Collapse>
       </div>
     </AionModal>
   );
