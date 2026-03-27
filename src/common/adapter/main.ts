@@ -29,12 +29,16 @@ export { registerWebSocketBroadcaster, getBridgeEmitter };
  * */
 bridge.adapter({
   emit(name, data) {
-    // 1. 发送到所有 Electron BrowserWindow / Send to all Electron BrowserWindows
-    for (let i = 0, len = adapterWindowList.length; i < len; i++) {
+    // 1. Send to all Electron BrowserWindows (skip destroyed ones)
+    for (let i = adapterWindowList.length - 1; i >= 0; i--) {
       const win = adapterWindowList[i];
+      if (win.isDestroyed() || win.webContents.isDestroyed()) {
+        adapterWindowList.splice(i, 1);
+        continue;
+      }
       win.webContents.send(ADAPTER_BRIDGE_EVENT_KEY, JSON.stringify({ name, data }));
     }
-    // 2. 同时广播到所有 WebSocket 客户端 / Also broadcast to all WebSocket clients
+    // 2. Also broadcast to all WebSocket clients
     broadcastToAll(name, data);
   },
   on(emitter) {
