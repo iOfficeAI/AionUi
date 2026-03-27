@@ -22,9 +22,7 @@ const LocalAgents: React.FC = () => {
     const result = await ipcBridge.acpConversation.getAvailableAgents.invoke();
     if (result.success) {
       // 过滤掉 custom 和 remote 类型，只保留本地 Agent
-      return result.data.filter(
-        (agent) => agent.backend !== 'custom' && agent.backend !== 'remote'
-      );
+      return result.data.filter((agent) => agent.backend !== 'custom' && agent.backend !== 'remote');
     }
     return [];
   });
@@ -38,11 +36,7 @@ const LocalAgents: React.FC = () => {
       <span className='text-12px px-16px text-t-secondary'>
         {t('settings.agentManagement.localAgentsDescription')}
         {'  '}
-        <Link
-          href='https://github.com/iOfficeAI/AionUi/wiki/ACP-Setup'
-          target='_blank'
-          className='text-12px'
-        >
+        <Link href='https://github.com/iOfficeAI/AionUi/wiki/ACP-Setup' target='_blank' className='text-12px'>
           {t('settings.agentManagement.localAgentsSetupLink')}
         </Link>
       </span>
@@ -54,7 +48,9 @@ const LocalAgents: React.FC = () => {
             <Avatar size={32} shape='square' style={{ flexShrink: 0, backgroundColor: 'transparent' }}>
               {getAgentLogo('gemini') ? (
                 <img src={getAgentLogo('gemini')!} alt='Gemini CLI' className='w-full h-full object-contain' />
-              ) : '🤖'}
+              ) : (
+                '🤖'
+              )}
             </Avatar>
             <Typography.Text className='font-medium text-14px'>Gemini CLI</Typography.Text>
           </div>

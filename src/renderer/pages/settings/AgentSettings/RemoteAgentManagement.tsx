@@ -197,10 +197,15 @@ const RemoteAgentFormModal: React.FC<{
       <AionModal
         visible={visible}
         onCancel={handleCancelPairing}
-        header={{ title: editAgent ? t('settings.remoteAgent.editTitle') : t('settings.remoteAgent.addTitle'), showClose: true }}
+        header={{
+          title: editAgent ? t('settings.remoteAgent.editTitle') : t('settings.remoteAgent.addTitle'),
+          showClose: true,
+        }}
         style={{ maxWidth: '92vw', borderRadius: 16 }}
         contentStyle={{ background: 'var(--bg-1)', borderRadius: 16, padding: '20px 24px 16px', overflow: 'auto' }}
-        footer={{ render: () => <Button onClick={handleCancelPairing}>{t('settings.remoteAgent.pendingCancel')}</Button> }}
+        footer={{
+          render: () => <Button onClick={handleCancelPairing}>{t('settings.remoteAgent.pendingCancel')}</Button>,
+        }}
         afterClose={() => {
           stopPolling();
           setPairingState('idle');
@@ -235,7 +240,10 @@ const RemoteAgentFormModal: React.FC<{
     <AionModal
       visible={visible}
       onCancel={onClose}
-      header={{ title: editAgent ? t('settings.remoteAgent.editTitle') : t('settings.remoteAgent.addTitle'), showClose: true }}
+      header={{
+        title: editAgent ? t('settings.remoteAgent.editTitle') : t('settings.remoteAgent.addTitle'),
+        showClose: true,
+      }}
       style={{ maxWidth: '92vw', borderRadius: 16 }}
       contentStyle={{ background: 'var(--bg-1)', borderRadius: 16, padding: '20px 24px 16px', overflow: 'auto' }}
       okText={pairingState === 'handshaking' ? t('settings.remoteAgent.handshaking') : t('settings.remoteAgent.save')}
@@ -268,7 +276,11 @@ const RemoteAgentFormModal: React.FC<{
         <div className='flex items-center gap-12px'>
           <EmojiPicker onChange={(emoji) => setAvatar(emoji)}>
             <div className='cursor-pointer shrink-0'>
-              <Avatar size={48} shape='square' style={{ backgroundColor: 'var(--color-fill-2)', fontSize: 24, borderRadius: 12 }}>
+              <Avatar
+                size={48}
+                shape='square'
+                style={{ backgroundColor: 'var(--color-fill-2)', fontSize: 24, borderRadius: 12 }}
+              >
                 {avatar}
               </Avatar>
             </div>
