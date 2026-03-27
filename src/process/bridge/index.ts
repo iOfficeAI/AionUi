@@ -37,6 +37,7 @@ import { initNotificationBridge } from './notificationBridge';
 import { initPptPreviewBridge } from './pptPreviewBridge';
 import { initExtensionsBridge } from './extensionsBridge';
 import { initWeixinLoginBridge } from './weixinLoginBridge';
+import { initRemoteAgentBridge } from './remoteAgentBridge';
 
 export interface BridgeDependencies {
   conversationService: IConversationService;
@@ -78,6 +79,7 @@ export function initAllBridges(deps: BridgeDependencies): void {
   initTaskBridge(deps.workerTaskManager);
   initStarOfficeBridge();
   initWeixinLoginBridge();
+  initRemoteAgentBridge();
 }
 
 /**
@@ -119,6 +121,7 @@ export {
   initTaskBridge,
   initUpdateBridge,
   initWebuiBridge,
+  initRemoteAgentBridge,
   initWindowControlsBridge,
   initWeixinLoginBridge,
 };

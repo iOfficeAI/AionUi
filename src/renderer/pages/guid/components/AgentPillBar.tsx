@@ -53,7 +53,9 @@ const AgentPillBar: React.FC<AgentPillBarProps> = ({
           .map((agent, index) => {
             const isSelected = selectedAgentKey === getAgentKey(agent);
             const extensionAvatar = resolveExtensionAssetUrl(agent.isExtension ? agent.avatar : undefined);
-            const logoSrc = extensionAvatar || getAgentLogo(agent.backend);
+            // Remote agents use emoji avatars — not image URLs
+            const emojiAvatar = agent.backend === 'remote' && agent.avatar ? agent.avatar : undefined;
+            const logoSrc = extensionAvatar || (!emojiAvatar ? getAgentLogo(agent.backend) : undefined);
 
             return (
               <React.Fragment key={getAgentKey(agent)}>
@@ -73,7 +75,9 @@ const AgentPillBar: React.FC<AgentPillBarProps> = ({
                   }
                   onClick={() => onSelectAgent(getAgentKey(agent))}
                 >
-                  {logoSrc ? (
+                  {emojiAvatar ? (
+                    <span style={{ fontSize: 20, lineHeight: 1, flexShrink: 0 }}>{emojiAvatar}</span>
+                  ) : logoSrc ? (
                     <img
                       src={logoSrc}
                       alt={`${agent.backend} logo`}
