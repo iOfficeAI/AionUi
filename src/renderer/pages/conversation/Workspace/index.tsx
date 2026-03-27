@@ -15,13 +15,18 @@ import {
   getWorkspaceDisplayName as getDisplayName,
 } from '@/renderer/utils/workspace/workspace';
 import { Empty, Message, Tree } from '@arco-design/web-react';
-import React, { useCallback, useMemo } from 'react';
+import type { FileChangeRecord } from '@/common/types/fileSnapshot';
+import React, { useCallback, useMemo, useState } from 'react';
+import { createTwoFilesPatch } from 'diff';
 import { useTranslation } from 'react-i18next';
+import FileChangeList from './components/FileChangeList';
 import MigrationModal from './components/MigrationModal';
 import PasteConfirmModal from './components/PasteConfirmModal';
 import WorkspaceContextMenu from './components/WorkspaceContextMenu';
 import WorkspaceDialogs from './components/WorkspaceDialogs';
+import WorkspaceTabBar from './components/WorkspaceTabBar';
 import WorkspaceToolbar from './components/WorkspaceToolbar';
+import { useFileChanges } from './hooks/useFileChanges';
 import { useWorkspaceCollapse } from './hooks/useWorkspaceCollapse';
 import { useWorkspaceDragImport } from './hooks/useWorkspaceDragImport';
 import { useWorkspaceEvents } from './hooks/useWorkspaceEvents';
@@ -31,7 +36,7 @@ import { useWorkspaceModals } from './hooks/useWorkspaceModals';
 import { useWorkspacePaste } from './hooks/useWorkspacePaste';
 import { useWorkspaceSearch } from './hooks/useWorkspaceSearch';
 import { useWorkspaceTree } from './hooks/useWorkspaceTree';
-import type { WorkspaceProps } from './types';
+import type { WorkspaceProps, WorkspaceTab } from './types';
 import {
   computeContextMenuPosition,
   extractNodeData,
@@ -57,6 +62,10 @@ const ChatWorkspace: React.FC<WorkspaceProps> = ({
   const [internalMessageApi, messageContext] = Message.useMessage();
   const messageApi = externalMessageApi ?? internalMessageApi;
   const shouldRenderLocalMessageContext = !externalMessageApi;
+
+  // Tab state and file changes
+  const [activeTab, setActiveTab] = useState<WorkspaceTab>('files');
+  const fileChangesHook = useFileChanges({ workspace, conversationId: conversation_id });
 
   // Initialize all hooks
   const { isWorkspaceCollapsed, setIsWorkspaceCollapsed } = useWorkspaceCollapse();
@@ -172,6 +181,20 @@ const ChatWorkspace: React.FC<WorkspaceProps> = ({
     [treeHook.ensureNodeSelected, modalsHook.setContextMenu]
   );
 
+  const handleOpenChangeDiff = useCallback(
+    (record: FileChangeRecord) => {
+      const before = record.before ?? '';
+      const after = record.after ?? '';
+      const diffContent = createTwoFilesPatch(record.relativePath, record.relativePath, before, after);
+      openPreview(diffContent, 'diff', {
+        fileName: record.relativePath,
+        filePath: record.filePath,
+        workspace,
+      });
+    },
+    [openPreview, workspace]
+  );
+
   // Get target folder path for paste confirm modal
   const targetFolderPathForModal = getTargetFolderPath(
     treeHook.selectedNodeRef.current,
@@ -273,29 +296,39 @@ const ChatWorkspace: React.FC<WorkspaceProps> = ({
           handleFilesToAdd={pasteHook.handleFilesToAdd}
         />
 
-        {/* Toolbar: search input + directory name + action buttons */}
-        <WorkspaceToolbar
+        {/* Tab bar */}
+        <WorkspaceTabBar
           t={t}
-          isWorkspaceCollapsed={isWorkspaceCollapsed}
-          setIsWorkspaceCollapsed={setIsWorkspaceCollapsed}
-          isTemporaryWorkspace={isTemporaryWorkspace}
-          workspaceDisplayName={workspaceDisplayName}
-          showSearch={searchHook.showSearch}
-          searchText={searchHook.searchText}
-          setSearchText={searchHook.setSearchText}
-          onSearch={searchHook.onSearch}
-          searchInputRef={searchHook.searchInputRef}
-          loading={treeHook.loading}
-          refreshWorkspace={treeHook.refreshWorkspace}
-          handleSelectHostFiles={pasteHook.handleSelectHostFiles}
-          handleUploadDeviceFiles={pasteHook.handleUploadDeviceFiles}
-          setShowHostFileSelector={searchHook.setShowHostFileSelector}
-          handleOpenMigrationModal={migrationHook.handleOpenMigrationModal}
-          handleOpenWorkspaceRoot={migrationHook.handleOpenWorkspaceRoot}
+          activeTab={activeTab}
+          onTabChange={setActiveTab}
+          changeCount={fileChangesHook.changeCount}
         />
 
+        {/* Toolbar: search input + directory name + action buttons */}
+        {activeTab === 'files' && (
+          <WorkspaceToolbar
+            t={t}
+            isWorkspaceCollapsed={isWorkspaceCollapsed}
+            setIsWorkspaceCollapsed={setIsWorkspaceCollapsed}
+            isTemporaryWorkspace={isTemporaryWorkspace}
+            workspaceDisplayName={workspaceDisplayName}
+            showSearch={searchHook.showSearch}
+            searchText={searchHook.searchText}
+            setSearchText={searchHook.setSearchText}
+            onSearch={searchHook.onSearch}
+            searchInputRef={searchHook.searchInputRef}
+            loading={treeHook.loading}
+            refreshWorkspace={treeHook.refreshWorkspace}
+            handleSelectHostFiles={pasteHook.handleSelectHostFiles}
+            handleUploadDeviceFiles={pasteHook.handleUploadDeviceFiles}
+            setShowHostFileSelector={searchHook.setShowHostFileSelector}
+            handleOpenMigrationModal={migrationHook.handleOpenMigrationModal}
+            handleOpenWorkspaceRoot={migrationHook.handleOpenWorkspaceRoot}
+          />
+        )}
+
         {/* Main content area */}
-        {!isWorkspaceCollapsed && (
+        {!isWorkspaceCollapsed && activeTab === 'files' && (
           <FlexFullContainer containerClassName='overflow-y-auto'>
             {/* Context Menu */}
             <WorkspaceContextMenu
@@ -484,6 +517,13 @@ const ChatWorkspace: React.FC<WorkspaceProps> = ({
                 }}
               ></Tree>
             )}
+          </FlexFullContainer>
+        )}
+
+        {/* Changes tab content */}
+        {!isWorkspaceCollapsed && activeTab === 'changes' && (
+          <FlexFullContainer containerClassName='overflow-y-auto'>
+            <FileChangeList t={t} changes={fileChangesHook.changes} onOpenDiff={handleOpenChangeDiff} />
           </FlexFullContainer>
         )}
       </div>
