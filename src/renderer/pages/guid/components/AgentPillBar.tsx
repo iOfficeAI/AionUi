@@ -8,8 +8,11 @@ import { getAgentLogo } from '@/renderer/utils/model/agentLogo';
 import { resolveExtensionAssetUrl } from '@/renderer/utils/platform';
 import { useLayoutContext } from '@/renderer/hooks/context/LayoutContext';
 import type { AcpBackend, AvailableAgent } from '../types';
-import { Robot } from '@icon-park/react';
+import { Plus, Robot } from '@icon-park/react';
+import { Tooltip } from '@arco-design/web-react';
 import React from 'react';
+import { useNavigate } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import styles from '../index.module.css';
 
 type AgentPillBarProps = {
@@ -27,6 +30,8 @@ const AgentPillBar: React.FC<AgentPillBarProps> = ({
 }) => {
   const layout = useLayoutContext();
   const isMobile = layout?.isMobile ?? false;
+  const navigate = useNavigate();
+  const { t } = useTranslation();
 
   return (
     <div className='w-full flex justify-center'>
@@ -105,6 +110,16 @@ const AgentPillBar: React.FC<AgentPillBarProps> = ({
               </React.Fragment>
             );
           })}
+        {!isMobile && <div className='text-16px lh-1 p-2px select-none opacity-30'>|</div>}
+        <Tooltip content={t('settings.agentManagement.connectRemoteAgent')}>
+          <div
+            className='flex items-center justify-center cursor-pointer p-4px opacity-60 hover:opacity-100 self-center'
+            style={{ transition: 'opacity 0.2s ease', flexShrink: 0, marginTop: 2 }}
+            onClick={() => navigate('/settings/agent?tab=remote')}
+          >
+            <Plus theme='outline' size={20} fill='currentColor' style={{ flexShrink: 0 }} />
+          </div>
+        </Tooltip>
       </div>
     </div>
   );

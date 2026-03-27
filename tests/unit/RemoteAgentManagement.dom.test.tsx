@@ -42,6 +42,10 @@ vi.mock('react-i18next', () => ({
   }),
 }));
 
+vi.mock('@/renderer/hooks/context/ThemeContext', () => ({
+  useThemeContext: () => ({ theme: 'dark' }),
+}));
+
 vi.mock('../../src/common', () => ({
   ipcBridge: {
     remoteAgent: {
@@ -79,6 +83,7 @@ vi.mock('../../src/renderer/components/chat/EmojiPicker', () => ({
 }));
 
 vi.mock('@icon-park/react', () => ({
+  Close: () => <span>CloseIcon</span>,
   Edit: () => <span>EditIcon</span>,
   Plus: () => <span>PlusIcon</span>,
   ReduceOne: () => <span>ReduceOneIcon</span>,
@@ -100,12 +105,12 @@ describe('RemoteAgentManagement', () => {
     mockIpc.list.mockResolvedValue([]);
   });
 
-  it('renders the collapse header with title', async () => {
+  it('renders the description text', async () => {
     await act(async () => {
       render(<RemoteAgentManagement />);
     });
 
-    expect(screen.getByText('settings.remoteAgent.title')).toBeTruthy();
+    expect(screen.getByText('settings.agentManagement.remoteAgentsDescription')).toBeTruthy();
   });
 
   it('renders empty state when no agents', async () => {
@@ -113,7 +118,7 @@ describe('RemoteAgentManagement', () => {
       render(<RemoteAgentManagement />);
     });
 
-    expect(screen.getByText('settings.remoteAgent.empty')).toBeTruthy();
+    expect(screen.getByText('settings.remoteAgent.emptyTitle')).toBeTruthy();
   });
 
   it('renders add button', async () => {
