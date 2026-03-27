@@ -5,15 +5,17 @@
 # Environment variables:
 #   SLEEP_SECONDS   Seconds to sleep between Claude runs (default: 30)
 #   MAX_CLAUDE_SECS Maximum seconds a Claude run may take (default: 3600)
-#   LOG_FILE        Log file path (default: <repo>/logs/pr-automation.log)
+#   LOG_DIR         Directory for log files (default: ~/Library/Logs/AionUi)
+#   LOG_FILE        Full log file path (overrides LOG_DIR if set)
 set -euo pipefail
 
 REPO_DIR="$(cd "$(dirname "$0")/.." && pwd)"
 SLEEP_SECONDS=${SLEEP_SECONDS:-30}
 MAX_CLAUDE_SECS=${MAX_CLAUDE_SECS:-3600}
-LOG_FILE=${LOG_FILE:-$REPO_DIR/logs/pr-automation-$(date '+%Y-%m-%d').log}
-PID_FILE="$REPO_DIR/logs/pr-automation-daemon.pid"
-mkdir -p "$(dirname "$LOG_FILE")"
+LOG_DIR=${LOG_DIR:-$HOME/Library/Logs/AionUi}
+LOG_FILE=${LOG_FILE:-$LOG_DIR/pr-automation-$(date '+%Y-%m-%d').log}
+PID_FILE="$LOG_DIR/pr-automation-daemon.pid"
+mkdir -p "$LOG_DIR"
 
 log() {
   local level="$1"; shift
