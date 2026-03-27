@@ -53,7 +53,7 @@ const CommandQueuePanel: React.FC<CommandQueuePanelProps> = ({
           defaultValue: 'The next command will start automatically once resumed.',
         });
 
-  if (items.length === 0) {
+  if (items.length === 0 && !running && !paused) {
     return null;
   }
 
@@ -75,66 +75,70 @@ const CommandQueuePanel: React.FC<CommandQueuePanelProps> = ({
               {statusHint}
             </Typography.Text>
           </div>
-          <div className='flex items-center gap-4px'>
-            {paused ? (
-              <Button size='mini' type='text' onClick={onResume}>
-                {t('conversation.commandQueue.resume', { defaultValue: 'Resume' })}
+          {items.length > 0 ? (
+            <div className='flex items-center gap-4px'>
+              {paused ? (
+                <Button size='mini' type='text' onClick={onResume}>
+                  {t('conversation.commandQueue.resume', { defaultValue: 'Resume' })}
+                </Button>
+              ) : (
+                <Button size='mini' type='text' onClick={onPause}>
+                  {t('conversation.commandQueue.pause', { defaultValue: 'Pause' })}
+                </Button>
+              )}
+              <Button size='mini' type='text' status='danger' onClick={onClear}>
+                {t('conversation.commandQueue.clear', { defaultValue: 'Clear queue' })}
               </Button>
-            ) : (
-              <Button size='mini' type='text' onClick={onPause}>
-                {t('conversation.commandQueue.pause', { defaultValue: 'Pause' })}
-              </Button>
-            )}
-            <Button size='mini' type='text' status='danger' onClick={onClear}>
-              {t('conversation.commandQueue.clear', { defaultValue: 'Clear queue' })}
-            </Button>
+            </div>
+          ) : null}
+        </div>
+
+        {items.length > 0 ? (
+          <div className='flex flex-col gap-8px'>
+            {items.map((item, index) => {
+              const preview = getCommandPreview(item.input);
+              const fileCountLabel =
+                item.files.length > 0
+                  ? t('conversation.commandQueue.files', {
+                      count: item.files.length,
+                      defaultValue: `${item.files.length} files`,
+                    })
+                  : null;
+
+              return (
+                <div key={item.id} className='flex items-start gap-8px bg-fill-2 rd-12px p-8px'>
+                  <Tag size='small'>{index + 1}</Tag>
+                  <div className='min-w-0 flex-1 flex flex-col gap-4px'>
+                    <Typography.Ellipsis rows={2} showTooltip>
+                      {preview}
+                    </Typography.Ellipsis>
+                    {fileCountLabel ? (
+                      <Tag size='small' color='gray'>
+                        {fileCountLabel}
+                      </Tag>
+                    ) : null}
+                  </div>
+                  <div className='flex items-center gap-4px shrink-0'>
+                    <Button size='mini' type='text' disabled={index === 0} onClick={() => onMoveUp(item.id)}>
+                      {t('conversation.commandQueue.moveUp', { defaultValue: 'Up' })}
+                    </Button>
+                    <Button
+                      size='mini'
+                      type='text'
+                      disabled={index === items.length - 1}
+                      onClick={() => onMoveDown(item.id)}
+                    >
+                      {t('conversation.commandQueue.moveDown', { defaultValue: 'Down' })}
+                    </Button>
+                    <Button size='mini' type='text' status='danger' onClick={() => onRemove(item.id)}>
+                      {t('conversation.commandQueue.remove', { defaultValue: 'Remove' })}
+                    </Button>
+                  </div>
+                </div>
+              );
+            })}
           </div>
-        </div>
-
-        <div className='flex flex-col gap-8px'>
-          {items.map((item, index) => {
-            const preview = getCommandPreview(item.input);
-            const fileCountLabel =
-              item.files.length > 0
-                ? t('conversation.commandQueue.files', {
-                    count: item.files.length,
-                    defaultValue: `${item.files.length} files`,
-                  })
-                : null;
-
-            return (
-              <div key={item.id} className='flex items-start gap-8px bg-fill-2 rd-12px p-8px'>
-                <Tag size='small'>{index + 1}</Tag>
-                <div className='min-w-0 flex-1 flex flex-col gap-4px'>
-                  <Typography.Ellipsis rows={2} showTooltip>
-                    {preview}
-                  </Typography.Ellipsis>
-                  {fileCountLabel ? (
-                    <Tag size='small' color='gray'>
-                      {fileCountLabel}
-                    </Tag>
-                  ) : null}
-                </div>
-                <div className='flex items-center gap-4px shrink-0'>
-                  <Button size='mini' type='text' disabled={index === 0} onClick={() => onMoveUp(item.id)}>
-                    {t('conversation.commandQueue.moveUp', { defaultValue: 'Up' })}
-                  </Button>
-                  <Button
-                    size='mini'
-                    type='text'
-                    disabled={index === items.length - 1}
-                    onClick={() => onMoveDown(item.id)}
-                  >
-                    {t('conversation.commandQueue.moveDown', { defaultValue: 'Down' })}
-                  </Button>
-                  <Button size='mini' type='text' status='danger' onClick={() => onRemove(item.id)}>
-                    {t('conversation.commandQueue.remove', { defaultValue: 'Remove' })}
-                  </Button>
-                </div>
-              </div>
-            );
-          })}
-        </div>
+        ) : null}
       </div>
     </div>
   );

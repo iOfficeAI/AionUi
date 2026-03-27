@@ -327,7 +327,7 @@ const SendBox: React.FC<{
   }, []);
 
   const sendMessageHandler = () => {
-    if (isLoading || (loading && !allowSendWhileLoading)) {
+    if (!allowSendWhileLoading && (isLoading || loading)) {
       message.warning(t('messages.conversationInProgress'));
       return;
     }
@@ -399,7 +399,7 @@ const SendBox: React.FC<{
   );
 
   const renderActionButtons = () => {
-    if (loading && allowSendWhileLoading) {
+    if (allowSendWhileLoading && (isLoading || loading)) {
       return (
         <>
           {stopButton}
