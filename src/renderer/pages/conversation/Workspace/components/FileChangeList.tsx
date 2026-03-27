@@ -37,12 +37,7 @@ type ChangeStats = {
 function computeStats(record: FileChangeRecord): ChangeStats {
   const before = record.before ?? '';
   const after = record.after ?? '';
-  const patch = createTwoFilesPatch(
-    record.relativePath,
-    record.relativePath,
-    before,
-    after,
-  );
+  const patch = createTwoFilesPatch(record.relativePath, record.relativePath, before, after);
   const info = parseDiff(patch, record.relativePath);
   return { insertions: info.insertions, deletions: info.deletions };
 }
@@ -57,9 +52,9 @@ const FileChangeItem: React.FC<{
 
   return (
     <div
-      className="flex items-center justify-between px-12px py-6px cursor-pointer hover:bg-fill-2 transition-colors"
+      className='flex items-center justify-between px-12px py-6px cursor-pointer hover:bg-fill-2 transition-colors'
       onClick={onClick}
-      role="button"
+      role='button'
       tabIndex={0}
       onKeyDown={(e) => {
         if (e.key === 'Enter' || e.key === ' ') {
@@ -68,12 +63,8 @@ const FileChangeItem: React.FC<{
         }
       }}
     >
-      <div className="flex items-center gap-8px min-w-0">
-        <span
-          className={`text-11px font-semibold w-14px text-center flex-shrink-0 ${statusColor}`}
-        >
-          {statusLabel}
-        </span>
+      <div className='flex items-center gap-8px min-w-0'>
+        <span className={`text-11px font-semibold w-14px text-center flex-shrink-0 ${statusColor}`}>{statusLabel}</span>
         <span
           className={`overflow-hidden text-ellipsis whitespace-nowrap text-13px ${
             record.operation === 'delete' ? 'line-through text-t-tertiary' : 'text-t-primary'
@@ -82,13 +73,9 @@ const FileChangeItem: React.FC<{
           {record.relativePath}
         </span>
       </div>
-      <div className="flex gap-6px text-11px flex-shrink-0">
-        {stats.insertions > 0 && (
-          <span className="text-success-6">+{stats.insertions}</span>
-        )}
-        {stats.deletions > 0 && (
-          <span className="text-danger-6">-{stats.deletions}</span>
-        )}
+      <div className='flex gap-6px text-11px flex-shrink-0'>
+        {stats.insertions > 0 && <span className='text-success-6'>+{stats.insertions}</span>}
+        {stats.deletions > 0 && <span className='text-danger-6'>-{stats.deletions}</span>}
       </div>
     </div>
   );
@@ -110,21 +97,17 @@ const FileChangeList: React.FC<FileChangeListProps> = ({ t, changes, onOpenDiff 
     (record: FileChangeRecord) => {
       onOpenDiff(record);
     },
-    [onOpenDiff],
+    [onOpenDiff]
   );
 
   if (changes.length === 0) {
     return (
-      <div className="flex-1 size-full flex items-center justify-center px-12px">
+      <div className='flex-1 size-full flex items-center justify-center px-12px'>
         <Empty
           description={
             <div>
-              <span className="text-t-secondary font-bold text-14px">
-                {t('conversation.workspace.changes.empty')}
-              </span>
-              <div className="text-t-secondary">
-                {t('conversation.workspace.changes.emptyDescription')}
-              </div>
+              <span className='text-t-secondary font-bold text-14px'>{t('conversation.workspace.changes.empty')}</span>
+              <div className='text-t-secondary'>{t('conversation.workspace.changes.emptyDescription')}</div>
             </div>
           }
         />
@@ -133,34 +116,30 @@ const FileChangeList: React.FC<FileChangeListProps> = ({ t, changes, onOpenDiff 
   }
 
   return (
-    <div className="flex flex-col size-full">
+    <div className='flex flex-col size-full'>
       {/* Header */}
-      <div className="px-12px py-8px border-b border-b-base">
-        <span className="text-12px text-t-secondary">
+      <div className='px-12px py-8px border-b border-b-base'>
+        <span className='text-12px text-t-secondary'>
           {t('conversation.workspace.changes.summary', { count: changes.length })}
         </span>
       </div>
 
       {/* File list */}
-      <div className="flex-1 overflow-y-auto">
+      <div className='flex-1 overflow-y-auto'>
         {changes.map((record) => (
-          <FileChangeItem
-            key={record.filePath}
-            record={record}
-            onClick={() => handleOpenDiff(record)}
-          />
+          <FileChangeItem key={record.filePath} record={record} onClick={() => handleOpenDiff(record)} />
         ))}
       </div>
 
       {/* Summary bar */}
-      <div className="px-12px py-8px border-t border-t-base flex gap-12px text-11px text-t-tertiary">
+      <div className='px-12px py-8px border-t border-t-base flex gap-12px text-11px text-t-tertiary'>
         {totalStats.insertions > 0 && (
-          <span className="text-success-6">
+          <span className='text-success-6'>
             {t('conversation.workspace.changes.insertions', { count: totalStats.insertions })}
           </span>
         )}
         {totalStats.deletions > 0 && (
-          <span className="text-danger-6">
+          <span className='text-danger-6'>
             {t('conversation.workspace.changes.deletions', { count: totalStats.deletions })}
           </span>
         )}

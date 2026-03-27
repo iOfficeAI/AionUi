@@ -309,9 +309,7 @@ export const fileStream = {
 
 // File snapshot events for tracking AI file changes
 export const fileSnapshot = {
-  change: bridge.buildEmitter<import('@/common/types/fileSnapshot').FileChangeEvent>(
-    'file-snapshot-change'
-  ),
+  change: bridge.buildEmitter<import('@/common/types/fileSnapshot').FileChangeEvent>('file-snapshot-change'),
 };
 
 export const googleAuth = {

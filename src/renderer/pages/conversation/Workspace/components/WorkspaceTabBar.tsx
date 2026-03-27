@@ -40,13 +40,7 @@ const WorkspaceTabBar: React.FC<WorkspaceTabBarProps> = ({ t, activeTab, onTabCh
         onClick={() => onTabChange('changes')}
       >
         {t('conversation.workspace.changes.tab')}
-        {changeCount > 0 && (
-          <Badge
-            count={changeCount}
-            maxCount={99}
-            style={{ fontSize: '11px' }}
-          />
-        )}
+        {changeCount > 0 && <Badge count={changeCount} maxCount={99} style={{ fontSize: '11px' }} />}
       </button>
     </div>
   );
