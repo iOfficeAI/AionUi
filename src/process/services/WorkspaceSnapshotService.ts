@@ -49,7 +49,6 @@ export class WorkspaceSnapshotService {
       return [];
     }
 
-    // git diff --name-status against baseline, plus untracked files
     const gitArgs = this.gitArgs(state);
     const changes: FileChangeInfo[] = [];
 
@@ -73,7 +72,7 @@ export class WorkspaceSnapshotService {
       }
     }
 
-    // Untracked files (new files not in baseline)
+    // Untracked files (new files not in baseline snapshot)
     const { stdout: untrackedOut } = await execFileAsync(
       'git',
       [...gitArgs, 'ls-files', '--others', '--exclude-standard'],
@@ -121,11 +120,11 @@ export class WorkspaceSnapshotService {
       return;
     }
 
-    if (state.mode === 'snapshot') {
-      await fs.rm(state.gitdir, { recursive: true, force: true }).catch(() => {});
-      if (state.createdGitignore) {
-        await fs.unlink(path.join(state.workspacePath, '.gitignore')).catch(() => {});
-      }
+    // Both modes use a temp gitdir that needs cleanup
+    await fs.rm(state.gitdir, { recursive: true, force: true }).catch(() => {});
+
+    if (state.createdGitignore) {
+      await fs.unlink(path.join(state.workspacePath, '.gitignore')).catch(() => {});
     }
 
     this.snapshots.delete(workspacePath);
@@ -136,9 +135,7 @@ export class WorkspaceSnapshotService {
     await Promise.all(workspaces.map((ws) => this.dispose(ws)));
   }
 
-  /** Build --git-dir / --work-tree args for snapshot mode, empty for git-repo mode */
   private gitArgs(state: SnapshotState): string[] {
-    if (state.mode === 'git-repo') return [];
     return [`--git-dir=${state.gitdir}`, `--work-tree=${state.workspacePath}`];
   }
 
@@ -153,27 +150,34 @@ export class WorkspaceSnapshotService {
   }
 
   private async initGitRepo(workspacePath: string): Promise<SnapshotInfo> {
-    const gitdir = path.join(workspacePath, '.git');
+    // Read branch name from the real .git
+    let branch: string | null = null;
+    try {
+      const { stdout } = await execFileAsync(
+        'git',
+        ['rev-parse', '--abbrev-ref', 'HEAD'],
+        { cwd: workspacePath },
+      );
+      branch = stdout.trim() || null;
+    } catch {
+      // Detached HEAD or other edge cases
+    }
 
-    const { stdout: branchOut } = await execFileAsync(
-      'git',
-      ['rev-parse', '--abbrev-ref', 'HEAD'],
-      { cwd: workspacePath },
-    );
-    const branch = branchOut.trim() || null;
+    // Create temp gitdir to snapshot current working tree state
+    // so we only show changes made DURING this conversation
+    const gitdir = await this.createWorkingTreeSnapshot(workspacePath);
 
     const { stdout: oidOut } = await execFileAsync(
       'git',
-      ['rev-parse', 'HEAD'],
+      [`--git-dir=${gitdir}`, `--work-tree=${workspacePath}`, 'rev-parse', 'HEAD'],
       { cwd: workspacePath },
     );
-    const baselineRef = oidOut.trim();
 
     this.snapshots.set(workspacePath, {
       mode: 'git-repo',
       workspacePath,
       gitdir,
-      baselineRef,
+      baselineRef: oidOut.trim(),
       branch,
     });
 
@@ -181,9 +185,6 @@ export class WorkspaceSnapshotService {
   }
 
   private async initSnapshot(workspacePath: string): Promise<SnapshotInfo> {
-    const gitdir = path.join(os.tmpdir(), `aionui-snapshot-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`);
-    const gitArgs = [`--git-dir=${gitdir}`, `--work-tree=${workspacePath}`];
-
     // Create default .gitignore if none exists
     const gitignorePath = path.join(workspacePath, '.gitignore');
     let createdGitignore = false;
@@ -194,6 +195,31 @@ export class WorkspaceSnapshotService {
       createdGitignore = true;
     }
 
+    const gitdir = await this.createWorkingTreeSnapshot(workspacePath);
+
+    const { stdout: oidOut } = await execFileAsync(
+      'git',
+      [`--git-dir=${gitdir}`, `--work-tree=${workspacePath}`, 'rev-parse', 'HEAD'],
+      { cwd: workspacePath },
+    );
+
+    this.snapshots.set(workspacePath, {
+      mode: 'snapshot',
+      workspacePath,
+      gitdir,
+      baselineRef: oidOut.trim(),
+      branch: null,
+      createdGitignore,
+    });
+
+    return { mode: 'snapshot', branch: null };
+  }
+
+  /** Create a temp bare repo and commit the current working tree state as baseline */
+  private async createWorkingTreeSnapshot(workspacePath: string): Promise<string> {
+    const gitdir = path.join(os.tmpdir(), `aionui-snapshot-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`);
+    const gitArgs = [`--git-dir=${gitdir}`, `--work-tree=${workspacePath}`];
+
     await execFileAsync('git', ['init', '--bare', gitdir]);
     await execFileAsync('git', [...gitArgs, 'add', '.'], { cwd: workspacePath });
     await execFileAsync(
@@ -202,18 +228,6 @@ export class WorkspaceSnapshotService {
       { cwd: workspacePath },
     );
 
-    const { stdout: oidOut } = await execFileAsync('git', [...gitArgs, 'rev-parse', 'HEAD'], { cwd: workspacePath });
-    const baselineRef = oidOut.trim();
-
-    this.snapshots.set(workspacePath, {
-      mode: 'snapshot',
-      workspacePath,
-      gitdir,
-      baselineRef,
-      branch: null,
-      createdGitignore,
-    });
-
-    return { mode: 'snapshot', branch: null };
+    return gitdir;
   }
 }

@@ -128,19 +128,36 @@ describe('WorkspaceSnapshotService', () => {
     it('init returns git-repo mode with branch name', async () => {
       const info = await service.init(tmpDir);
       expect(info.mode).toBe('git-repo');
-      // git init creates 'main' or 'master' depending on config
       expect(typeof info.branch).toBe('string');
       expect(info.branch!.length).toBeGreaterThan(0);
     });
 
-    it('compare detects uncommitted changes', async () => {
+    it('pre-existing uncommitted changes are NOT shown (baseline = working tree at init)', async () => {
+      // Modify file BEFORE init — simulates dirty working tree when conversation starts
+      await fs.writeFile(path.join(tmpDir, 'initial.txt'), 'pre-existing change');
+      await fs.writeFile(path.join(tmpDir, 'untracked.txt'), 'pre-existing untracked');
+
       await service.init(tmpDir);
-      await fs.writeFile(path.join(tmpDir, 'initial.txt'), 'changed content');
+
+      // Immediate compare should show 0 changes — baseline captured the dirty state
+      const changes = await service.compare(tmpDir);
+      expect(changes).toEqual([]);
+    });
+
+    it('compare only shows changes made AFTER init', async () => {
+      // Pre-existing dirty state
+      await fs.writeFile(path.join(tmpDir, 'initial.txt'), 'pre-existing change');
+
+      await service.init(tmpDir);
+
+      // New change after init — this should be detected
+      await fs.writeFile(path.join(tmpDir, 'newfile.txt'), 'created during conversation');
+      await fs.writeFile(path.join(tmpDir, 'initial.txt'), 'changed again during conversation');
 
       const changes = await service.compare(tmpDir);
-      const modified = changes.find((c) => c.relativePath === 'initial.txt');
-      expect(modified).toBeDefined();
-      expect(modified!.operation).toBe('modify');
+      expect(changes.find((c) => c.relativePath === 'newfile.txt')).toBeDefined();
+      expect(changes.find((c) => c.relativePath === 'initial.txt')).toBeDefined();
+      expect(changes).toHaveLength(2);
     });
 
     it('compare detects new untracked file', async () => {
@@ -153,10 +170,11 @@ describe('WorkspaceSnapshotService', () => {
       expect(created!.operation).toBe('create');
     });
 
-    it('getBaselineContent returns HEAD version', async () => {
+    it('getBaselineContent returns working tree state at init time', async () => {
       await service.init(tmpDir);
       await fs.writeFile(path.join(tmpDir, 'initial.txt'), 'changed content');
 
+      // Baseline is working tree at init time, which had 'initial'
       const content = await service.getBaselineContent(tmpDir, 'initial.txt');
       expect(content).toBe('initial');
     });
