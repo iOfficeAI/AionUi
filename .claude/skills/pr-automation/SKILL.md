@@ -181,7 +181,20 @@ Log: `[pr-automation:exit] action=needs_human pr=#<PR_NUMBER> reason="no review 
 /pr-fix <PR_NUMBER> --automation
 ```
 
-After pr-fix completes, compute merge gate:
+After pr-fix completes, check if pr-fix already handled everything (fork fallback path):
+
+```bash
+PR_STATE=$(gh pr view <PR_NUMBER> --json state --jq '.state')
+```
+
+If `PR_STATE` is `CLOSED` (pr-fix used fork fallback — closed the original PR and created a replacement):
+
+Log: `[pr-automation] PR #<PR_NUMBER> fork fallback handled by pr-fix — original closed, replacement PR created.`
+Log: `[pr-automation:exit] action=fork_fallback pr=#<PR_NUMBER> reason="pr-fix closed original and created replacement PR"`
+
+**EXIT.**
+
+Otherwise, compute merge gate:
 
 ```bash
 BASE_REF=$(gh pr view <PR_NUMBER> --json baseRefName --jq '.baseRefName')
