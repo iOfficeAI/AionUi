@@ -119,6 +119,34 @@ describe('shellBridgeStandalone', () => {
     });
   });
 
+  describe('openExternal — URL validation', () => {
+    beforeEach(() => {
+      Object.defineProperty(process, 'platform', { value: 'darwin', configurable: true });
+      execFileMock.mockImplementation((_cmd: string, _args: string[], cb: (err: null) => void) => cb(null));
+      initShellBridgeStandalone();
+    });
+
+    it('rejects invalid URLs without calling execFile', async () => {
+      const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
+      await openExternalProvider.fn!('not-a-valid-url');
+      expect(execFileMock).not.toHaveBeenCalled();
+      expect(warnSpy).toHaveBeenCalledWith(expect.stringContaining('Invalid URL'));
+      warnSpy.mockRestore();
+    });
+
+    it('rejects empty string URLs without calling execFile', async () => {
+      const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
+      await openExternalProvider.fn!('');
+      expect(execFileMock).not.toHaveBeenCalled();
+      warnSpy.mockRestore();
+    });
+
+    it('allows valid URLs through to execFile', async () => {
+      await openExternalProvider.fn!('https://example.com');
+      expect(execFileMock).toHaveBeenCalledWith('open', ['https://example.com'], expect.any(Function));
+    });
+  });
+
   describe('runOpen — error handling', () => {
     beforeEach(() => {
       Object.defineProperty(process, 'platform', { value: 'darwin', configurable: true });
