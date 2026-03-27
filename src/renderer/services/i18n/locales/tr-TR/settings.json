@@ -54,7 +54,7 @@
   "customCss": "Özel CSS",
   "customCssDesc": "Arayüz görünümünü değiştirmek için buraya özel CSS stilleri girin. Sistem en yüksek önceliği sağlamak için otomatik olarak !important ekleyecektir. Değişiklikler anında geçerli olur.",
   "assistants": "Asistanlar",
-  "acp": "ACP",
+  "acp": "Agents",
   "assistantsList": "Mevcut Asistanlar",
   "assistantsEmpty": "Yapılandırılmış asistan yok.",
   "pdfToPptAssistantName": "PDF'den PPT'ye",

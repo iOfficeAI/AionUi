@@ -54,7 +54,7 @@
   "customCss": "Custom CSS",
   "customCssDesc": "Enter custom CSS styles here to modify the interface appearance. The system will automatically add !important to ensure highest priority. Changes will take effect immediately.",
   "assistants": "Assistants",
-  "acp": "ACP",
+  "acp": "Agents",
   "assistantsList": "Available assistants",
   "assistantsEmpty": "No assistants configured.",
   "pdfToPptAssistantName": "PDF to PPT",
