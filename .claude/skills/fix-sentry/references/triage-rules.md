@@ -7,14 +7,21 @@ Classify each issue group into one of the categories below.
 These errors originate outside our codebase and cannot be fixed by application code changes.
 **Skip immediately** without further analysis.
 
-| Error pattern                       | Source              | Action |
-| ----------------------------------- | ------------------- | ------ |
-| `write EPIPE` / `broken pipe`       | OS pipe closed      | Skip   |
-| `ENOSPC: no space left on device`   | Disk full           | Skip   |
-| `write EIO` (no app code in stack)  | I/O hardware/driver | Skip   |
-| `uv__loop_interrupt`                | libuv internal      | Skip   |
-| `SingletonCookie` / `SingletonLock` | Chromium internal   | Skip   |
-| `ERR_INTERNET_DISCONNECTED`         | Network offline     | Skip   |
+| Error pattern                       | Source              | Action              |
+| ----------------------------------- | ------------------- | ------------------- |
+| `write EPIPE` / `broken pipe`       | OS pipe closed      | Skip                |
+| `ENOSPC: no space left on device`   | Disk full           | Skip                |
+| `write EIO` (no app code in stack)  | I/O hardware/driver | Skip                |
+| `uv__loop_interrupt`                | libuv internal      | Skip                |
+| `SingletonCookie` / `SingletonLock` | Chromium internal   | See exception below |
+| `ERR_INTERNET_DISCONNECTED`         | Network offline     | Skip                |
+
+**Exception — Chromium init errors with actionable root cause:**
+
+`SingletonCookie` / `SingletonLock` errors are normally Chromium-internal. However, if Seer
+actionability is **medium or higher** and the root cause involves a **missing directory**
+(e.g., `userData` or `appData` path does not exist), reclassify as **Defensive fix** (Step C) —
+the application can ensure the directory exists before Electron initialization.
 
 ## Step B: Direct fix — Stack trace points to our code
 
