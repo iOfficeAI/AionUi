@@ -334,6 +334,7 @@ export const fileSnapshot = {
     void,
     { workspace: string; filePath: string; operation: import('@/common/types/fileSnapshot').FileChangeOperation }
   >('file-snapshot-reset-file'),
+  getBranches: bridge.buildProvider<string[], { workspace: string }>('file-snapshot-get-branches'),
 };
 
 export const googleAuth = {

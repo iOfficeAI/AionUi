@@ -305,6 +305,7 @@ const ChatWorkspace: React.FC<WorkspaceProps> = ({
           onTabChange={setActiveTab}
           changeCount={fileChangesHook.changeCount}
           branch={fileChangesHook.snapshotInfo?.branch ?? null}
+          branches={fileChangesHook.branches}
         />
 
         {/* Toolbar: search input + directory name + action buttons */}

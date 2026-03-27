@@ -82,6 +82,17 @@ export class WorkspaceSnapshotService {
     return { mode: state.mode, branch: state.branch };
   }
 
+  // --- Branch operations (git-repo mode only) ---
+
+  async getBranches(workspacePath: string): Promise<string[]> {
+    this.ensureGitRepo(workspacePath);
+    const { stdout } = await execFileAsync('git', ['branch', '--format=%(refname:short)'], { cwd: workspacePath });
+    return stdout
+      .split('\n')
+      .map((b) => b.trim())
+      .filter(Boolean);
+  }
+
   // --- Git operations (git-repo mode only) ---
 
   async stageFile(workspacePath: string, filePath: string): Promise<void> {

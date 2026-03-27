@@ -53,6 +53,10 @@ export function initWorkspaceSnapshotBridge(): void {
   ipcBridge.fileSnapshot.resetFile.provider(async ({ workspace, filePath, operation }) => {
     await snapshotService.resetFile(workspace, filePath, operation);
   });
+
+  ipcBridge.fileSnapshot.getBranches.provider(async ({ workspace }) => {
+    return snapshotService.getBranches(workspace);
+  });
 }
 
 /** Clean up all snapshots on app exit */
