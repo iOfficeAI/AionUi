@@ -4,7 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { Badge } from '@arco-design/web-react';
+import { Badge, Tabs } from '@arco-design/web-react';
 import type { TFunction } from 'i18next';
 import React from 'react';
 import type { WorkspaceTab } from '../types';
@@ -17,32 +17,24 @@ type WorkspaceTabBarProps = {
 };
 
 const WorkspaceTabBar: React.FC<WorkspaceTabBarProps> = ({ t, activeTab, onTabChange, changeCount }) => {
+  const changesTitle = (
+    <span className='flex items-center gap-4px'>
+      {t('conversation.workspace.changes.tab')}
+      {changeCount > 0 && <Badge count={changeCount} maxCount={99} style={{ fontSize: '11px' }} />}
+    </span>
+  );
+
   return (
-    <div className='flex border-b border-b-base px-12px'>
-      <button
-        type='button'
-        className={`px-16px py-8px text-13px border-b-2 bg-transparent cursor-pointer ${
-          activeTab === 'files'
-            ? 'font-semibold text-[rgb(var(--primary-6))] border-b-[rgb(var(--primary-6))]'
-            : 'text-t-secondary border-b-transparent hover:text-t-primary'
-        }`}
-        onClick={() => onTabChange('files')}
-      >
-        {t('conversation.workspace.changes.filesTab')}
-      </button>
-      <button
-        type='button'
-        className={`px-16px py-8px text-13px border-b-2 bg-transparent cursor-pointer flex items-center gap-4px ${
-          activeTab === 'changes'
-            ? 'font-semibold text-[rgb(var(--primary-6))] border-b-[rgb(var(--primary-6))]'
-            : 'text-t-secondary border-b-transparent hover:text-t-primary'
-        }`}
-        onClick={() => onTabChange('changes')}
-      >
-        {t('conversation.workspace.changes.tab')}
-        {changeCount > 0 && <Badge count={changeCount} maxCount={99} style={{ fontSize: '11px' }} />}
-      </button>
-    </div>
+    <Tabs
+      activeTab={activeTab}
+      onChange={(key) => onTabChange(key as WorkspaceTab)}
+      type='line'
+      size='small'
+      className='px-12px [&_.arco-tabs-nav]:border-b-0'
+    >
+      <Tabs.TabPane key='files' title={t('conversation.workspace.changes.filesTab')} />
+      <Tabs.TabPane key='changes' title={changesTitle} />
+    </Tabs>
   );
 };
 
