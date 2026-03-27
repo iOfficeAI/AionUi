@@ -162,6 +162,9 @@ export class GeminiAgent {
     currentGeminiAgent = this;
 
     this.bootstrap = this.initialize();
+    // Prevent unhandled rejection when initialize fails (e.g. missing OAuth credentials).
+    // The error still propagates when callers `await this.bootstrap` in send().
+    this.bootstrap.catch(() => {});
   }
 
   private initClientEnv() {
