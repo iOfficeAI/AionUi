@@ -158,6 +158,15 @@
       "download": "下載",
       "downloadSuccess": "下載成功",
       "downloadFailed": "下載失敗"
+    },
+    "changes": {
+      "tab": "變更",
+      "filesTab": "檔案",
+      "summary": "{{count}} 個檔案已變更",
+      "insertions": "+{{count}} 行新增",
+      "deletions": "-{{count}} 行刪除",
+      "empty": "暫無變更",
+      "emptyDescription": "AI 修改檔案後，變更記錄將顯示在此處"
     }
   },
   "minimap": {

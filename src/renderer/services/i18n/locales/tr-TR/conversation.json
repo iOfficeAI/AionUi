@@ -153,7 +153,16 @@
       "downloadFailed": "İndirme başarısız"
     },
     "expand": "Çalışma Alanını Genişlet",
-    "collapse": "Çalışma Alanını Daralt"
+    "collapse": "Çalışma Alanını Daralt",
+    "changes": {
+      "tab": "Değişiklikler",
+      "filesTab": "Dosyalar",
+      "summary": "{{count}} dosya değiştirildi",
+      "insertions": "+{{count}} ekleme",
+      "deletions": "-{{count}} silme",
+      "empty": "Henüz değişiklik yok",
+      "emptyDescription": "AI dosyaları değiştirdiğinde değişiklikler burada görünecektir"
+    }
   },
   "minimap": {
     "searchAria": "Sohbeti ara",

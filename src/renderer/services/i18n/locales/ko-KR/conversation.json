@@ -158,6 +158,15 @@
       "download": "다운로드",
       "downloadSuccess": "다운로드 완료",
       "downloadFailed": "다운로드 실패"
+    },
+    "changes": {
+      "tab": "변경",
+      "filesTab": "파일",
+      "summary": "{{count}}개 파일 변경됨",
+      "insertions": "+{{count}} 줄 추가",
+      "deletions": "-{{count}} 줄 삭제",
+      "empty": "변경 사항 없음",
+      "emptyDescription": "AI가 파일을 수정하면 변경 내용이 여기에 표시됩니다"
     }
   },
   "minimap": {
