@@ -50,6 +50,7 @@ const SendBox: React.FC<{
   sendButtonPrefix?: React.ReactNode;
   slashCommands?: SlashCommandItem[];
   onSlashBuiltinCommand?: (name: string) => void;
+  allowSendWhileLoading?: boolean;
 }> = ({
   onSend,
   onStop,
@@ -68,6 +69,7 @@ const SendBox: React.FC<{
   sendButtonPrefix,
   slashCommands = [],
   onSlashBuiltinCommand,
+  allowSendWhileLoading = false,
 }) => {
   const layout = useLayoutContext();
   const isMobile = layout?.isMobile ?? false;
@@ -325,7 +327,7 @@ const SendBox: React.FC<{
   }, []);
 
   const sendMessageHandler = () => {
-    if (loading || isLoading) {
+    if (isLoading || (loading && !allowSendWhileLoading)) {
       message.warning(t('messages.conversationInProgress'));
       return;
     }
@@ -385,6 +387,33 @@ const SendBox: React.FC<{
       }}
     />
   );
+
+  const stopButton = (
+    <Button
+      shape='circle'
+      type='secondary'
+      className='bg-animate'
+      icon={<div className='mx-auto size-12px bg-6'></div>}
+      onClick={stopHandler}
+    ></Button>
+  );
+
+  const renderActionButtons = () => {
+    if (loading && allowSendWhileLoading) {
+      return (
+        <>
+          {stopButton}
+          {sendButton}
+        </>
+      );
+    }
+
+    if (isLoading || loading) {
+      return stopButton;
+    }
+
+    return sendButton;
+  };
 
   return (
     <div className={className}>
@@ -493,17 +522,7 @@ const SendBox: React.FC<{
           {isSingleLine && (
             <div className='flex items-center gap-2'>
               {sendButtonPrefix}
-              {isLoading || loading ? (
-                <Button
-                  shape='circle'
-                  type='secondary'
-                  className='bg-animate'
-                  icon={<div className='mx-auto size-12px bg-6'></div>}
-                  onClick={stopHandler}
-                ></Button>
-              ) : (
-                sendButton
-              )}
+              {renderActionButtons()}
             </div>
           )}
         </div>
@@ -512,17 +531,7 @@ const SendBox: React.FC<{
             <div className={isMobile ? 'sendbox-tools sendbox-tools-scroll-mobile' : 'sendbox-tools'}>{tools}</div>
             <div className='flex items-center gap-2'>
               {sendButtonPrefix}
-              {isLoading || loading ? (
-                <Button
-                  shape='circle'
-                  type='secondary'
-                  className='bg-animate'
-                  icon={<div className='mx-auto size-12px bg-6'></div>}
-                  onClick={stopHandler}
-                ></Button>
-              ) : (
-                sendButton
-              )}
+              {renderActionButtons()}
             </div>
           </div>
         )}
