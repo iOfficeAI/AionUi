@@ -117,8 +117,8 @@ while true; do
   ELAPSED=0
   TIMED_OUT=false
   while kill -0 "$CURRENT_CLAUDE_PID" 2>/dev/null; do
-    sleep 60
-    ELAPSED=$((ELAPSED + 60))
+    sleep 10
+    ELAPSED=$((ELAPSED + 10))
     if [ "$ELAPSED" -ge "$MAX_CLAUDE_SECS" ]; then
       log_warn "Claude run exceeded ${MAX_CLAUDE_SECS}s (PID $CURRENT_CLAUDE_PID). Killing..."
       kill "$CURRENT_CLAUDE_PID" 2>/dev/null || true
