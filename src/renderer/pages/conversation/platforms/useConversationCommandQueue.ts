@@ -22,6 +22,18 @@ export const MAX_QUEUED_COMMAND_INPUT_LENGTH = 20_000;
 export const MAX_QUEUED_COMMAND_FILES = 50;
 export const MAX_QUEUED_COMMAND_STATE_BYTES = 256 * 1024;
 
+export type QueueValidationFailureReason = 'inputTooLong' | 'tooManyFiles' | 'queueFull' | 'queueTooLarge';
+
+type QueueValidationSuccess = {
+  ok: true;
+  nextStateBytes: number;
+};
+
+type QueueValidationFailure = {
+  ok: false;
+  reason: QueueValidationFailureReason;
+};
+
 const createDefaultQueueState = (): ConversationCommandQueueState => ({
   items: [],
   isPaused: false,
@@ -78,12 +90,7 @@ export const createQueuedCommandItem = ({
 export const validateQueuedCommandItem = (
   item: ConversationCommandQueueItem,
   state: ConversationCommandQueueState
-):
-  | { ok: true; nextStateBytes: number }
-  | {
-      ok: false;
-      reason: 'inputTooLong' | 'tooManyFiles' | 'queueFull' | 'queueTooLarge';
-    } => {
+): QueueValidationSuccess | QueueValidationFailure => {
   if (state.items.length >= MAX_QUEUED_COMMANDS) {
     return { ok: false, reason: 'queueFull' };
   }
@@ -107,6 +114,10 @@ export const validateQueuedCommandItem = (
 
   return { ok: true, nextStateBytes };
 };
+
+const isQueueValidationFailure = (
+  validation: QueueValidationSuccess | QueueValidationFailure
+): validation is QueueValidationFailure => !validation.ok;
 
 const readPersistedQueueState = (conversationId: string): ConversationCommandQueueState => {
   if (queueStore.has(conversationId)) {
@@ -265,7 +276,8 @@ export const useConversationCommandQueue = ({
       const item = createQueuedCommandItem({ input, files });
       const validation = validateQueuedCommandItem(item, data);
 
-      if (!validation.ok) {
+      if (isQueueValidationFailure(validation)) {
+        const reason: QueueValidationFailureReason = validation.reason;
         const warningKeyMap = {
           queueFull: 'conversation.commandQueue.queueFull',
           inputTooLong: 'conversation.commandQueue.inputTooLong',
@@ -280,10 +292,10 @@ export const useConversationCommandQueue = ({
         } as const;
 
         Message.warning(
-          t(warningKeyMap[validation.reason], {
+          t(warningKeyMap[reason], {
             count: MAX_QUEUED_COMMANDS,
             files: MAX_QUEUED_COMMAND_FILES,
-            defaultValue: defaultValueMap[validation.reason],
+            defaultValue: defaultValueMap[reason],
           })
         );
         return null;

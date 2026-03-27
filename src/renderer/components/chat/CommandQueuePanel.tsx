@@ -106,7 +106,7 @@ const CommandQueuePanel: React.FC<CommandQueuePanelProps> = ({
               <div key={item.id} className='flex items-start gap-8px bg-fill-2 rd-12px p-8px'>
                 <Tag size='small'>{index + 1}</Tag>
                 <div className='min-w-0 flex-1 flex flex-col gap-4px'>
-                  <Typography.Ellipsis rows={2} showTooltip={{ type: 'tooltip' }}>
+                  <Typography.Ellipsis rows={2} showTooltip>
                     {preview}
                   </Typography.Ellipsis>
                   {fileCountLabel ? (
