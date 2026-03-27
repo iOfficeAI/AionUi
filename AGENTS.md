@@ -103,7 +103,7 @@ Detailed rules and guidelines are organized into Skills for better modularity:
 | **pr**           | Pull request workflow: ensure issue exists, push branch, open PR                   | Creating pull requests, after committing, `/oss-pr`                |
 | **pr-review**    | Local PR code review with full project context, no truncation limits               | Reviewing a PR, user says "review PR", `/pr-review`                |
 | **pr-fix**       | Fix all issues from a pr-review report, create a follow-up PR, and verify each fix | After pr-review, user says "fix all issues", `/pr-fix`             |
-| **pr-automation** | PR 自动化编排（cron 触发，review + fix + 合并） | cron 运行、`/pr-automation` |
+| **pr-automation** | PR automation orchestrator: poll PRs, review, fix, and merge via label state machine | Invoked by daemon script (`pr-automation.sh`), `/pr-automation` |
 
 > Skills are located in `.claude/skills/` and contain project conventions that apply to **all** agents and contributors. Every agent working in this repository must read and follow the relevant skill files when the task matches their scope.
 
@@ -111,9 +111,8 @@ Detailed rules and guidelines are organized into Skills for better modularity:
 
 本仓库运行 PR 自动化 agent，定期处理 open PR（review、fix、合并）。
 
-- **运行方式**：本地 cron 每 30 分钟触发 `scripts/pr-automation.sh`
+- **运行方式**：`scripts/pr-automation.sh` 作为 daemon 持续运行，每轮间隔 30 秒
 - **状态追踪**：通过 `bot:*` label（`bot:reviewing`、`bot:fixing`、`bot:ready-to-fix`、`bot:needs-human-review`、`bot:done`）
-- **阻止处理**：在 PR 标题加 `WIP` 或手动打 `bot:needs-human-review` label
 - **详细说明**：[docs/conventions/pr-automation.md](docs/conventions/pr-automation.md)
 
 ## Internationalization
