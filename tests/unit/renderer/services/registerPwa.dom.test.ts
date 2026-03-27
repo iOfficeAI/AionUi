@@ -47,4 +47,97 @@ describe('registerPwa', () => {
     await expect(registerPwa()).resolves.toBeUndefined();
     expect(register).not.toHaveBeenCalled();
   });
+
+  it('skips registration when serviceWorker is not in navigator', async () => {
+    Object.defineProperty(window, 'electronAPI', {
+      configurable: true,
+      value: undefined,
+      writable: true,
+    });
+    Reflect.deleteProperty(navigator, 'serviceWorker');
+
+    await expect(registerPwa()).resolves.toBeUndefined();
+  });
+
+  it('skips registration on non-http protocol', async () => {
+    const originalLocation = window.location;
+
+    Object.defineProperty(window, 'electronAPI', {
+      configurable: true,
+      value: undefined,
+      writable: true,
+    });
+    Object.defineProperty(navigator, 'serviceWorker', {
+      configurable: true,
+      value: { register: vi.fn() },
+    });
+    Object.defineProperty(window, 'location', {
+      configurable: true,
+      value: { protocol: 'file:', hostname: 'localhost' },
+      writable: true,
+    });
+
+    await expect(registerPwa()).resolves.toBeUndefined();
+
+    Object.defineProperty(window, 'location', {
+      configurable: true,
+      value: originalLocation,
+      writable: true,
+    });
+  });
+
+  it('skips registration on insecure non-localhost origin', async () => {
+    const originalLocation = window.location;
+    const originalIsSecureContext = window.isSecureContext;
+
+    Object.defineProperty(window, 'electronAPI', {
+      configurable: true,
+      value: undefined,
+      writable: true,
+    });
+    Object.defineProperty(navigator, 'serviceWorker', {
+      configurable: true,
+      value: { register: vi.fn() },
+    });
+    Object.defineProperty(window, 'location', {
+      configurable: true,
+      value: { protocol: 'http:', hostname: '192.168.1.1' },
+      writable: true,
+    });
+    Object.defineProperty(window, 'isSecureContext', {
+      configurable: true,
+      value: false,
+      writable: true,
+    });
+
+    await expect(registerPwa()).resolves.toBeUndefined();
+
+    Object.defineProperty(window, 'location', {
+      configurable: true,
+      value: originalLocation,
+      writable: true,
+    });
+    Object.defineProperty(window, 'isSecureContext', {
+      configurable: true,
+      value: originalIsSecureContext,
+      writable: true,
+    });
+  });
+
+  it('returns undefined when service worker registration throws', async () => {
+    const register = vi.fn().mockRejectedValue(new Error('Security error'));
+
+    Object.defineProperty(window, 'electronAPI', {
+      configurable: true,
+      value: undefined,
+      writable: true,
+    });
+    Object.defineProperty(navigator, 'serviceWorker', {
+      configurable: true,
+      value: { register },
+    });
+
+    await expect(registerPwa()).resolves.toBeUndefined();
+    expect(register).toHaveBeenCalled();
+  });
 });
