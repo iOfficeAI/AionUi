@@ -1,7 +1,7 @@
 import { uuid } from '@/common/utils';
 import { useAddEventListener } from '@/renderer/utils/emitter';
 import { Message } from '@arco-design/web-react';
-import { useCallback, useEffect, useRef } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import useSWR from 'swr';
 
@@ -257,23 +257,21 @@ export const removeQueuedCommand = (
   commandId: string
 ): ConversationCommandQueueItem[] => items.filter((item) => item.id !== commandId);
 
-export const moveQueuedCommand = (
+export const reorderQueuedCommand = (
   items: ConversationCommandQueueItem[],
-  commandId: string,
-  direction: 'up' | 'down'
+  activeCommandId: string,
+  overCommandId: string
 ): ConversationCommandQueueItem[] => {
-  const fromIndex = items.findIndex((item) => item.id === commandId);
-  if (fromIndex === -1) {
-    return items;
-  }
+  const fromIndex = items.findIndex((item) => item.id === activeCommandId);
+  const targetIndex = items.findIndex((item) => item.id === overCommandId);
 
-  const targetIndex = direction === 'up' ? fromIndex - 1 : fromIndex + 1;
-  if (targetIndex < 0 || targetIndex >= items.length) {
+  if (fromIndex === -1 || targetIndex === -1 || fromIndex === targetIndex) {
     return items;
   }
 
   const nextItems = [...items];
-  [nextItems[fromIndex], nextItems[targetIndex]] = [nextItems[targetIndex], nextItems[fromIndex]];
+  const [movedItem] = nextItems.splice(fromIndex, 1);
+  nextItems.splice(targetIndex, 0, movedItem);
   return nextItems;
 };
 
@@ -296,6 +294,14 @@ export const updateQueuedCommand = (
         }
       : item
   );
+
+export const shouldEnqueueConversationCommand = ({
+  isBusy,
+  hasPendingCommands,
+}: {
+  isBusy: boolean;
+  hasPendingCommands: boolean;
+}): boolean => isBusy || hasPendingCommands;
 
 type UseConversationCommandQueueOptions = {
   conversationId: string;
@@ -344,24 +350,42 @@ export const useConversationCommandQueue = ({
   );
 
   const stateRef = useRef(data);
-  const busyRef = useRef(isBusy);
   const pausedRef = useRef(data.isPaused);
   const waitingForTurnStartRef = useRef(false);
+  const waitingForTurnCompletionRef = useRef(false);
+  const interactionLockedRef = useRef(false);
+  const [isInteractionLocked, setIsInteractionLocked] = useState(false);
+  const [executionGateVersion, setExecutionGateVersion] = useState(0);
 
   useEffect(() => {
     stateRef.current = data;
   }, [data]);
 
   useEffect(() => {
-    busyRef.current = isBusy;
-    if (isBusy) {
+    if (waitingForTurnStartRef.current && isBusy) {
       waitingForTurnStartRef.current = false;
+      waitingForTurnCompletionRef.current = true;
+      logCommandQueue(conversationId, 'turn-started', {
+        pendingItemCount: stateRef.current.items.length,
+      });
+      return;
     }
-  }, [isBusy]);
+
+    if (waitingForTurnCompletionRef.current && !isBusy) {
+      waitingForTurnCompletionRef.current = false;
+      logCommandQueue(conversationId, 'turn-finished', {
+        pendingItemCount: stateRef.current.items.length,
+      });
+    }
+  }, [conversationId, isBusy]);
 
   useEffect(() => {
     pausedRef.current = data.isPaused;
   }, [data.isPaused]);
+
+  useEffect(() => {
+    interactionLockedRef.current = isInteractionLocked;
+  }, [isInteractionLocked]);
 
   const updateState = useCallback(
     (
@@ -383,6 +407,7 @@ export const useConversationCommandQueue = ({
 
   const clear = useCallback(() => {
     waitingForTurnStartRef.current = false;
+    waitingForTurnCompletionRef.current = false;
     pausedRef.current = false;
     logCommandQueue(conversationId, 'cleared');
     void updateState(() => createDefaultQueueState());
@@ -442,7 +467,7 @@ export const useConversationCommandQueue = ({
 
       const nextItems = updateQueuedCommand(currentState.items, commandId, { input });
       const nextState: ConversationCommandQueueState = {
-        ...currentState,
+        isPaused: false,
         items: nextItems,
       };
       const failureReason = getQueueValidationFailureReason(nextState);
@@ -477,36 +502,22 @@ export const useConversationCommandQueue = ({
         const nextItems = removeQueuedCommand(state.items, commandId);
         return {
           items: nextItems,
-          isPaused: nextItems.length > 0 ? state.isPaused : false,
+          isPaused: false,
         };
       });
     },
     [conversationId, updateState]
   );
 
-  const moveUp = useCallback(
-    (commandId: string) => {
-      logCommandQueue(conversationId, 'moved', {
-        commandId,
-        direction: 'up',
+  const reorder = useCallback(
+    (activeCommandId: string, overCommandId: string) => {
+      logCommandQueue(conversationId, 'reordered', {
+        activeCommandId,
+        overCommandId,
       });
       void updateState((state) => ({
-        ...state,
-        items: moveQueuedCommand(state.items, commandId, 'up'),
-      }));
-    },
-    [conversationId, updateState]
-  );
-
-  const moveDown = useCallback(
-    (commandId: string) => {
-      logCommandQueue(conversationId, 'moved', {
-        commandId,
-        direction: 'down',
-      });
-      void updateState((state) => ({
-        ...state,
-        items: moveQueuedCommand(state.items, commandId, 'down'),
+        isPaused: false,
+        items: reorderQueuedCommand(state.items, activeCommandId, overCommandId),
       }));
     },
     [conversationId, updateState]
@@ -514,6 +525,8 @@ export const useConversationCommandQueue = ({
 
   const pause = useCallback(() => {
     pausedRef.current = true;
+    waitingForTurnStartRef.current = false;
+    waitingForTurnCompletionRef.current = false;
     logCommandQueue(conversationId, 'paused', {
       itemCount: data.items.length,
     });
@@ -540,8 +553,50 @@ export const useConversationCommandQueue = ({
     }));
   }, [conversationId, data.items.length, updateState]);
 
+  const lockInteraction = useCallback(() => {
+    interactionLockedRef.current = true;
+    logCommandQueue(conversationId, 'interaction-locked', {
+      itemCount: stateRef.current.items.length,
+    });
+    setIsInteractionLocked(true);
+  }, [conversationId]);
+
+  const unlockInteraction = useCallback(() => {
+    interactionLockedRef.current = false;
+    logCommandQueue(conversationId, 'interaction-unlocked', {
+      itemCount: stateRef.current.items.length,
+    });
+    setIsInteractionLocked(false);
+  }, [conversationId]);
+
+  const resetActiveExecution = useCallback(
+    (reason: 'stop' | 'external-reset') => {
+      const hadPendingTurn = waitingForTurnStartRef.current || waitingForTurnCompletionRef.current;
+      waitingForTurnStartRef.current = false;
+      waitingForTurnCompletionRef.current = false;
+
+      if (!hadPendingTurn) {
+        return;
+      }
+
+      logCommandQueue(conversationId, 'execution-reset', {
+        reason,
+        pendingItemCount: stateRef.current.items.length,
+      });
+      setExecutionGateVersion((version) => version + 1);
+    },
+    [conversationId]
+  );
+
   useEffect(() => {
-    if (pausedRef.current || isBusy || waitingForTurnStartRef.current || data.items.length === 0) {
+    if (
+      pausedRef.current ||
+      isBusy ||
+      waitingForTurnStartRef.current ||
+      waitingForTurnCompletionRef.current ||
+      interactionLockedRef.current ||
+      data.items.length === 0
+    ) {
       return;
     }
 
@@ -563,6 +618,8 @@ export const useConversationCommandQueue = ({
           item: summarizeQueuedCommand(nextCommand),
           error: error instanceof Error ? error.message : String(error),
         });
+        waitingForTurnStartRef.current = false;
+        waitingForTurnCompletionRef.current = false;
         pausedRef.current = true;
         void updateState((state) => ({
           items: restoreQueuedCommand(state.items, nextCommand),
@@ -570,34 +627,26 @@ export const useConversationCommandQueue = ({
         }));
         Message.warning(
           t('conversation.commandQueue.pausedAfterFailure', {
-            defaultValue: 'Queue paused because the next command could not start.',
+            defaultValue: 'The next queued command could not start. Edit, reorder, or remove it to continue.',
           })
         );
-      })
-      .finally(() => {
-        setTimeout(() => {
-          if (!busyRef.current) {
-            logCommandQueue(conversationId, 'dequeue-finished', {
-              waitingForTurnStart: false,
-              pendingItemCount: data.items.length,
-            });
-            waitingForTurnStartRef.current = false;
-          }
-        }, 0);
       });
-  }, [conversationId, data.items, isBusy, onExecute, t, updateState]);
+  }, [conversationId, data.items, executionGateVersion, isBusy, isInteractionLocked, onExecute, t, updateState]);
 
   return {
     items: data.items,
     isPaused: data.isPaused,
+    isInteractionLocked,
     hasPendingCommands: data.items.length > 0,
     enqueue,
     update,
     remove,
     clear,
-    moveUp,
-    moveDown,
+    reorder,
     pause,
     resume,
+    lockInteraction,
+    unlockInteraction,
+    resetActiveExecution,
   };
 };

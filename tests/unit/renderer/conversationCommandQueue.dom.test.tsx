@@ -1,4 +1,4 @@
-import { act, render, renderHook, screen, waitFor } from '@testing-library/react';
+import { act, fireEvent, render, renderHook, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { Message } from '@arco-design/web-react';
 import CommandQueuePanel from '@/renderer/components/chat/CommandQueuePanel';
@@ -20,10 +20,38 @@ vi.mock('react-i18next', () => ({
 }));
 
 vi.mock('@arco-design/web-react', async () => {
+  const ReactModule = await vi.importActual<typeof import('react')>('react');
   const actual = await vi.importActual<typeof import('@arco-design/web-react')>('@arco-design/web-react');
 
   return {
     ...actual,
+    Dropdown: ({
+      children,
+      droplist,
+    }: {
+      children: React.ReactElement<{ onClick?: (event: React.MouseEvent) => void }>;
+      droplist: React.ReactNode;
+    }) => {
+      const [open, setOpen] = ReactModule.useState(false);
+      return (
+        <div>
+          {ReactModule.cloneElement(children, {
+            onClick: (event: React.MouseEvent) => {
+              children.props.onClick?.(event);
+              setOpen((visible) => !visible);
+            },
+          })}
+          {open ? <div>{droplist}</div> : null}
+        </div>
+      );
+    },
+    Menu: Object.assign(({ children }: { children: React.ReactNode }) => <div>{children}</div>, {
+      Item: ({ children, onClick }: { children: React.ReactNode; onClick?: () => void }) => (
+        <button type='button' onClick={onClick}>
+          {children}
+        </button>
+      ),
+    }),
     Message: {
       ...actual.Message,
       warning: vi.fn(),
@@ -193,13 +221,302 @@ describe('useConversationCommandQueue', () => {
         files: ['broken.txt'],
       });
     });
-    expect(warningSpy).toHaveBeenCalledWith('Queue paused because the next command could not start.');
+    expect(warningSpy).toHaveBeenCalledWith(
+      'The next queued command could not start. Edit, reorder, or remove it to continue.'
+    );
     expect(JSON.parse(window.sessionStorage.getItem(storageKey) ?? '{}')).toMatchObject({
       isPaused: true,
       items: [{ input: 'broken command', files: ['broken.txt'] }],
     });
 
     errorSpy.mockRestore();
+  });
+
+  it('resumes a paused queue after the blocked command is edited', async () => {
+    const conversationId = createConversationId();
+    const onExecute = vi.fn().mockResolvedValue(undefined);
+    const { result } = renderHook(() =>
+      useConversationCommandQueue({
+        conversationId,
+        isBusy: true,
+        onExecute,
+      })
+    );
+
+    let commandId = '';
+    act(() => {
+      const queuedItem = result.current.enqueue({
+        input: 'blocked command',
+        files: [],
+      });
+      commandId = queuedItem?.id ?? '';
+      result.current.pause();
+    });
+
+    await waitFor(() => {
+      expect(result.current.isPaused).toBe(true);
+      expect(result.current.items).toHaveLength(1);
+    });
+
+    act(() => {
+      result.current.update(commandId, {
+        input: 'blocked command fixed',
+      });
+    });
+
+    await waitFor(() => {
+      expect(result.current.isPaused).toBe(false);
+      expect(result.current.items[0]?.input).toBe('blocked command fixed');
+    });
+  });
+
+  it('reorders queued commands and clears the paused state', async () => {
+    const conversationId = createConversationId();
+    const onExecute = vi.fn().mockResolvedValue(undefined);
+    const { result } = renderHook(() =>
+      useConversationCommandQueue({
+        conversationId,
+        isBusy: true,
+        onExecute,
+      })
+    );
+
+    act(() => {
+      result.current.enqueue({
+        input: 'first queued',
+        files: [],
+      });
+      result.current.enqueue({
+        input: 'second queued',
+        files: [],
+      });
+      result.current.pause();
+    });
+
+    await waitFor(() => {
+      expect(result.current.items).toHaveLength(2);
+      expect(result.current.isPaused).toBe(true);
+    });
+
+    act(() => {
+      result.current.reorder(result.current.items[1]!.id, result.current.items[0]!.id);
+    });
+
+    await waitFor(() => {
+      expect(result.current.isPaused).toBe(false);
+      expect(result.current.items.map((item) => item.input)).toEqual(['second queued', 'first queued']);
+    });
+  });
+
+  it('waits for an active drag interaction to finish before dequeuing the next command', async () => {
+    const conversationId = createConversationId();
+    const onExecute = vi.fn().mockResolvedValue(undefined);
+    const { result, rerender } = renderHook(
+      ({ isBusy }) =>
+        useConversationCommandQueue({
+          conversationId,
+          isBusy,
+          onExecute,
+        }),
+      {
+        initialProps: { isBusy: true },
+      }
+    );
+
+    act(() => {
+      result.current.enqueue({
+        input: 'queued during drag',
+        files: [],
+      });
+      result.current.lockInteraction();
+    });
+
+    await waitFor(() => {
+      expect(result.current.items).toHaveLength(1);
+      expect(result.current.isInteractionLocked).toBe(true);
+    });
+
+    rerender({ isBusy: false });
+
+    await waitFor(() => {
+      expect(onExecute).not.toHaveBeenCalled();
+    });
+
+    act(() => {
+      result.current.unlockInteraction();
+    });
+
+    await waitFor(() => {
+      expect(result.current.isInteractionLocked).toBe(false);
+      expect(onExecute).toHaveBeenCalledTimes(1);
+    });
+    expect(onExecute).toHaveBeenCalledWith(
+      expect.objectContaining({
+        input: 'queued during drag',
+      })
+    );
+  });
+
+  it('dequeues only one queued command per busy-idle cycle', async () => {
+    const conversationId = createConversationId();
+    const onExecute = vi.fn().mockResolvedValue(undefined);
+    const { result, rerender } = renderHook(
+      ({ isBusy }) =>
+        useConversationCommandQueue({
+          conversationId,
+          isBusy,
+          onExecute,
+        }),
+      {
+        initialProps: { isBusy: false },
+      }
+    );
+
+    act(() => {
+      result.current.enqueue({
+        input: 'first queued command',
+        files: [],
+      });
+      result.current.enqueue({
+        input: 'second queued command',
+        files: [],
+      });
+    });
+
+    await waitFor(() => {
+      expect(onExecute).toHaveBeenCalledTimes(1);
+    });
+    expect(onExecute).toHaveBeenNthCalledWith(
+      1,
+      expect.objectContaining({
+        input: 'first queued command',
+      })
+    );
+
+    await waitFor(() => {
+      expect(result.current.items).toHaveLength(1);
+    });
+
+    act(() => {
+      rerender({ isBusy: true });
+    });
+
+    await waitFor(() => {
+      expect(onExecute).toHaveBeenCalledTimes(1);
+    });
+
+    act(() => {
+      rerender({ isBusy: false });
+    });
+
+    await waitFor(() => {
+      expect(onExecute).toHaveBeenCalledTimes(2);
+    });
+    expect(onExecute).toHaveBeenNthCalledWith(
+      2,
+      expect.objectContaining({
+        input: 'second queued command',
+      })
+    );
+  });
+
+  it('releases a pending execution gate after stop so the next queued command can start', async () => {
+    const conversationId = createConversationId();
+    const onExecute = vi.fn().mockResolvedValue(undefined);
+    const { result } = renderHook(() =>
+      useConversationCommandQueue({
+        conversationId,
+        isBusy: false,
+        onExecute,
+      })
+    );
+
+    act(() => {
+      result.current.enqueue({
+        input: 'first command before stop',
+        files: [],
+      });
+      result.current.enqueue({
+        input: 'second command after stop',
+        files: [],
+      });
+    });
+
+    await waitFor(() => {
+      expect(onExecute).toHaveBeenCalledTimes(1);
+    });
+
+    act(() => {
+      result.current.resetActiveExecution('stop');
+    });
+
+    await waitFor(() => {
+      expect(onExecute).toHaveBeenCalledTimes(2);
+    });
+    expect(onExecute).toHaveBeenNthCalledWith(
+      2,
+      expect.objectContaining({
+        input: 'second command after stop',
+      })
+    );
+  });
+
+  it('ignores stop resets when there is no pending execution gate to release', async () => {
+    const conversationId = createConversationId();
+    const onExecute = vi.fn().mockResolvedValue(undefined);
+    const { result } = renderHook(() =>
+      useConversationCommandQueue({
+        conversationId,
+        isBusy: true,
+        onExecute,
+      })
+    );
+
+    act(() => {
+      result.current.resetActiveExecution('stop');
+    });
+
+    await waitFor(() => {
+      expect(onExecute).not.toHaveBeenCalled();
+      expect(result.current.items).toHaveLength(0);
+    });
+  });
+
+  it('removes a blocked queued command and clears the paused state', async () => {
+    const conversationId = createConversationId();
+    const onExecute = vi.fn().mockResolvedValue(undefined);
+    const { result } = renderHook(() =>
+      useConversationCommandQueue({
+        conversationId,
+        isBusy: true,
+        onExecute,
+      })
+    );
+
+    let commandId = '';
+    act(() => {
+      const queuedItem = result.current.enqueue({
+        input: 'blocked queued',
+        files: [],
+      });
+      commandId = queuedItem?.id ?? '';
+      result.current.pause();
+    });
+
+    await waitFor(() => {
+      expect(result.current.isPaused).toBe(true);
+      expect(result.current.items).toHaveLength(1);
+    });
+
+    act(() => {
+      result.current.remove(commandId);
+    });
+
+    await waitFor(() => {
+      expect(result.current.isPaused).toBe(false);
+      expect(result.current.items).toHaveLength(0);
+      expect(result.current.hasPendingCommands).toBe(false);
+    });
   });
 
   it('clears persisted queue state when the conversation is deleted', async () => {
@@ -233,6 +550,43 @@ describe('useConversationCommandQueue', () => {
     await waitFor(() => {
       expect(result.current.items).toHaveLength(0);
       expect(result.current.isPaused).toBe(false);
+    });
+    expect(window.sessionStorage.getItem(storageKey)).toBeNull();
+  });
+
+  it('clears a paused queue and drops persisted state immediately', async () => {
+    const conversationId = createConversationId();
+    const storageKey = `conversation-command-queue/${conversationId}`;
+    const onExecute = vi.fn().mockResolvedValue(undefined);
+    const { result } = renderHook(() =>
+      useConversationCommandQueue({
+        conversationId,
+        isBusy: true,
+        onExecute,
+      })
+    );
+
+    act(() => {
+      result.current.enqueue({
+        input: 'queued before clear',
+        files: ['a.txt'],
+      });
+      result.current.pause();
+    });
+
+    await waitFor(() => {
+      expect(result.current.isPaused).toBe(true);
+      expect(result.current.items).toHaveLength(1);
+    });
+    expect(window.sessionStorage.getItem(storageKey)).not.toBeNull();
+
+    act(() => {
+      result.current.clear();
+    });
+
+    await waitFor(() => {
+      expect(result.current.isPaused).toBe(false);
+      expect(result.current.items).toHaveLength(0);
     });
     expect(window.sessionStorage.getItem(storageKey)).toBeNull();
   });
@@ -415,13 +769,14 @@ describe('CommandQueuePanel', () => {
     const { container } = render(
       <CommandQueuePanel
         items={[]}
-        running={false}
         paused={false}
+        interactionLocked={false}
         onPause={vi.fn()}
         onResume={vi.fn()}
+        onInteractionLock={vi.fn()}
+        onInteractionUnlock={vi.fn()}
         onUpdate={vi.fn(() => true)}
-        onMoveUp={vi.fn()}
-        onMoveDown={vi.fn()}
+        onReorder={vi.fn()}
         onRemove={vi.fn()}
         onClear={vi.fn()}
       />
@@ -430,104 +785,234 @@ describe('CommandQueuePanel', () => {
     expect(container).toBeEmptyDOMElement();
   });
 
-  it('renders queue controls and forwards button actions', async () => {
-    const user = userEvent.setup();
-    const onPause = vi.fn();
-    const onMoveUp = vi.fn();
-    const onMoveDown = vi.fn();
-    const onRemove = vi.fn();
-    const onClear = vi.fn();
-
-    render(
+  it('can transition from an empty queue to queued items without crashing hooks order', () => {
+    const { rerender } = render(
       <CommandQueuePanel
-        items={baseItems}
-        running={false}
+        items={[]}
         paused={false}
-        onPause={onPause}
+        interactionLocked={false}
+        onPause={vi.fn()}
         onResume={vi.fn()}
+        onInteractionLock={vi.fn()}
+        onInteractionUnlock={vi.fn()}
         onUpdate={vi.fn(() => true)}
-        onMoveUp={onMoveUp}
-        onMoveDown={onMoveDown}
-        onRemove={onRemove}
-        onClear={onClear}
-      />
-    );
-
-    expect(screen.getByText('Queued Commands')).toBeInTheDocument();
-    expect(screen.getByText('2 queued')).toBeInTheDocument();
-    expect(screen.getByText('Ready to continue')).toBeInTheDocument();
-    expect(screen.getByText('2 files')).toBeInTheDocument();
-
-    const upButtons = screen.getAllByRole('button', { name: 'Up' });
-    const downButtons = screen.getAllByRole('button', { name: 'Down' });
-
-    expect(upButtons[0]).toBeDisabled();
-    expect(downButtons[1]).toBeDisabled();
-
-    await user.click(screen.getByRole('button', { name: 'Pause' }));
-    await user.click(screen.getByRole('button', { name: 'Clear queue' }));
-    await user.click(upButtons[1]);
-    await user.click(downButtons[0]);
-    await user.click(screen.getAllByRole('button', { name: 'Remove' })[1]);
-
-    expect(onPause).toHaveBeenCalledTimes(1);
-    expect(onClear).toHaveBeenCalledTimes(1);
-    expect(onMoveUp).toHaveBeenCalledWith('2');
-    expect(onMoveDown).toHaveBeenCalledWith('1');
-    expect(onRemove).toHaveBeenCalledWith('2');
-  });
-
-  it('pauses before editing from an active queue and lets users cancel safely', async () => {
-    const user = userEvent.setup();
-    const onPause = vi.fn();
-
-    render(
-      <CommandQueuePanel
-        items={baseItems}
-        running={true}
-        paused={false}
-        onPause={onPause}
-        onResume={vi.fn()}
-        onUpdate={vi.fn(() => true)}
-        onMoveUp={vi.fn()}
-        onMoveDown={vi.fn()}
+        onReorder={vi.fn()}
         onRemove={vi.fn()}
         onClear={vi.fn()}
       />
     );
 
-    await user.click(screen.getAllByRole('button', { name: 'Edit' })[0]);
+    rerender(
+      <CommandQueuePanel
+        items={baseItems}
+        paused={false}
+        interactionLocked={false}
+        onPause={vi.fn()}
+        onResume={vi.fn()}
+        onInteractionLock={vi.fn()}
+        onInteractionUnlock={vi.fn()}
+        onUpdate={vi.fn(() => true)}
+        onReorder={vi.fn()}
+        onRemove={vi.fn()}
+        onClear={vi.fn()}
+      />
+    );
+
+    expect(screen.getByLabelText('Queued Commands')).toBeInTheDocument();
+    expect(screen.getAllByRole('button', { name: 'Drag to reorder queued command' })).toHaveLength(2);
+  });
+
+  it('renders queue controls and forwards button actions', async () => {
+    const user = userEvent.setup();
+    const onReorder = vi.fn();
+    const onRemove = vi.fn();
+
+    render(
+      <CommandQueuePanel
+        items={baseItems}
+        paused={false}
+        interactionLocked={false}
+        onPause={vi.fn()}
+        onResume={vi.fn()}
+        onInteractionLock={vi.fn()}
+        onInteractionUnlock={vi.fn()}
+        onUpdate={vi.fn(() => true)}
+        onReorder={onReorder}
+        onRemove={onRemove}
+        onClear={vi.fn()}
+      />
+    );
+
+    expect(screen.getByText('2 files')).toBeInTheDocument();
+    expect(screen.getByLabelText('Queued Commands')).toBeInTheDocument();
+
+    const removeButtons = screen.getAllByRole('button', { name: 'Remove' });
+    const moreButtons = screen.getAllByRole('button', { name: 'More actions' });
+
+    expect(screen.queryByRole('button', { name: 'Up' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Down' })).not.toBeInTheDocument();
+    expect(moreButtons).toHaveLength(2);
+    expect(screen.getAllByRole('button', { name: 'Drag to reorder queued command' })).toHaveLength(2);
+
+    await user.click(removeButtons[1]);
+
+    expect(onReorder).not.toHaveBeenCalled();
+    expect(onRemove).toHaveBeenCalledWith('2');
+  });
+
+  it('uses theme tokens for queue chrome instead of hard-coded light colors', () => {
+    const { container } = render(
+      <CommandQueuePanel
+        items={baseItems}
+        paused={false}
+        interactionLocked={false}
+        onPause={vi.fn()}
+        onResume={vi.fn()}
+        onInteractionLock={vi.fn()}
+        onInteractionUnlock={vi.fn()}
+        onUpdate={vi.fn(() => true)}
+        onReorder={vi.fn()}
+        onRemove={vi.fn()}
+        onClear={vi.fn()}
+      />
+    );
+
+    const panel = screen.getByLabelText('Queued Commands');
+    const firstItem = container.querySelector('[data-command-id="1"]');
+    const queueList = container.querySelector('[data-command-queue-list="true"]');
+    const queueArrows = container.querySelectorAll('[data-queue-arrow="true"]');
+    const dragHandles = screen.getAllByRole('button', { name: 'Drag to reorder queued command' });
+
+    expect(panel.getAttribute('style')).toContain('var(--color-bg-1)');
+    expect(panel.getAttribute('style')).toContain('var(--color-border-2)');
+    expect(queueList?.getAttribute('data-drag-axis')).toBe('vertical');
+    expect(queueList?.getAttribute('data-drag-bounds')).toBe('queue');
+    expect(firstItem?.getAttribute('style')).toContain('var(--color-bg-1)');
+    expect(firstItem?.getAttribute('style')).toContain('var(--color-border-2)');
+    expect(queueArrows).toHaveLength(2);
+    expect(queueArrows[0]?.getAttribute('style')).toContain('var(--color-text-3)');
+    expect(dragHandles[0]?.getAttribute('style')).toContain('var(--color-text-3)');
+    expect(dragHandles[0]?.getAttribute('style')).not.toContain('var(--color-fill-1)');
+    expect(dragHandles[0]?.getAttribute('style')).not.toContain('box-shadow');
+  });
+
+  it('keeps the overflow menu limited to edit and clear actions', async () => {
+    const user = userEvent.setup();
+
+    render(
+      <CommandQueuePanel
+        items={baseItems}
+        paused={false}
+        interactionLocked={false}
+        onPause={vi.fn()}
+        onResume={vi.fn()}
+        onInteractionLock={vi.fn()}
+        onInteractionUnlock={vi.fn()}
+        onUpdate={vi.fn(() => true)}
+        onReorder={vi.fn()}
+        onRemove={vi.fn()}
+        onClear={vi.fn()}
+      />
+    );
+
+    await user.click(screen.getAllByRole('button', { name: 'More actions' })[0]);
+
+    expect(screen.getByRole('button', { name: 'Edit' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Clear queue' })).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Pause' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Resume' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Cancel queue' })).not.toBeInTheDocument();
+  });
+
+  it('shows a leading arrow and drag handle on every queued item without legacy next text', () => {
+    const { container } = render(
+      <CommandQueuePanel
+        items={baseItems}
+        paused={false}
+        interactionLocked={false}
+        onPause={vi.fn()}
+        onResume={vi.fn()}
+        onInteractionLock={vi.fn()}
+        onInteractionUnlock={vi.fn()}
+        onUpdate={vi.fn(() => true)}
+        onReorder={vi.fn()}
+        onRemove={vi.fn()}
+        onClear={vi.fn()}
+      />
+    );
+
+    const queueArrows = container.querySelectorAll('[data-queue-arrow="true"]');
+    const dragHandles = screen.getAllByRole('button', { name: 'Drag to reorder queued command' });
+
+    expect(queueArrows).toHaveLength(2);
+    expect(dragHandles).toHaveLength(2);
+    expect(dragHandles[0]?.getAttribute('data-drag-handle')).toBe('enabled');
+    expect(dragHandles[0]?.getAttribute('data-floating-handle')).toBe('visible');
+    expect(dragHandles[0]?.className).toContain('opacity-0');
+    expect(dragHandles[0]?.className).toContain('group-hover:opacity-100');
+    expect(dragHandles[0]?.className).toContain('focus-visible:opacity-100');
+    expect(dragHandles[0]?.className).not.toContain('rd-999px');
+    expect(dragHandles[0]?.className).not.toContain('group-focus-within:opacity-100');
+    expect(screen.queryByText('Next')).not.toBeInTheDocument();
+    expect(screen.queryByText('下一条')).not.toBeInTheDocument();
+  });
+
+  it('pauses before editing from an active queue and lets users cancel safely', async () => {
+    const user = userEvent.setup();
+    const onPause = vi.fn();
+    const onResume = vi.fn();
+
+    render(
+      <CommandQueuePanel
+        items={baseItems}
+        paused={false}
+        interactionLocked={false}
+        onPause={onPause}
+        onResume={onResume}
+        onInteractionLock={vi.fn()}
+        onInteractionUnlock={vi.fn()}
+        onUpdate={vi.fn(() => true)}
+        onReorder={vi.fn()}
+        onRemove={vi.fn()}
+        onClear={vi.fn()}
+      />
+    );
+
+    await user.click(screen.getAllByRole('button', { name: 'More actions' })[0]);
+    await user.click(screen.getByRole('button', { name: 'Edit' }));
 
     expect(onPause).toHaveBeenCalledTimes(1);
     expect(screen.getByDisplayValue('first command')).toBeInTheDocument();
 
-    await user.click(screen.getByRole('button', { name: 'Cancel' }));
+    const cancelButtons = screen.getAllByRole('button', { name: 'Cancel' });
+    await user.click(cancelButtons[cancelButtons.length - 1]!);
 
+    expect(onResume).toHaveBeenCalledTimes(1);
     expect(screen.queryByDisplayValue('first command')).not.toBeInTheDocument();
   });
 
-  it('saves edits and keeps resume disabled while an edit is still in progress', async () => {
+  it('saves edits from the overflow menu', async () => {
     const user = userEvent.setup();
     const onUpdate = vi.fn(() => true);
 
     render(
       <CommandQueuePanel
         items={baseItems}
-        running={false}
         paused={true}
+        interactionLocked={false}
         onPause={vi.fn()}
         onResume={vi.fn()}
+        onInteractionLock={vi.fn()}
+        onInteractionUnlock={vi.fn()}
         onUpdate={onUpdate}
-        onMoveUp={vi.fn()}
-        onMoveDown={vi.fn()}
+        onReorder={vi.fn()}
         onRemove={vi.fn()}
         onClear={vi.fn()}
       />
     );
 
-    await user.click(screen.getAllByRole('button', { name: 'Edit' })[0]);
-
-    expect(screen.getByRole('button', { name: 'Resume' })).toBeDisabled();
+    await user.click(screen.getAllByRole('button', { name: 'More actions' })[0]);
+    await user.click(screen.getByRole('button', { name: 'Edit' }));
 
     const editor = screen.getByRole('textbox');
     await user.clear(editor);
@@ -538,6 +1023,34 @@ describe('CommandQueuePanel', () => {
     expect(screen.queryByRole('button', { name: 'Save' })).not.toBeInTheDocument();
   });
 
+  it('closes edit mode without updating when the queued input was not changed', async () => {
+    const user = userEvent.setup();
+    const onUpdate = vi.fn(() => true);
+
+    render(
+      <CommandQueuePanel
+        items={baseItems}
+        paused={true}
+        interactionLocked={false}
+        onPause={vi.fn()}
+        onResume={vi.fn()}
+        onInteractionLock={vi.fn()}
+        onInteractionUnlock={vi.fn()}
+        onUpdate={onUpdate}
+        onReorder={vi.fn()}
+        onRemove={vi.fn()}
+        onClear={vi.fn()}
+      />
+    );
+
+    await user.click(screen.getAllByRole('button', { name: 'More actions' })[0]);
+    await user.click(screen.getByRole('button', { name: 'Edit' }));
+    await user.click(screen.getByRole('button', { name: 'Save' }));
+
+    expect(onUpdate).not.toHaveBeenCalled();
+    expect(screen.queryByRole('button', { name: 'Save' })).not.toBeInTheDocument();
+  });
+
   it('keeps edit mode open when saving fails validation', async () => {
     const user = userEvent.setup();
     const onUpdate = vi.fn(() => false);
@@ -545,24 +1058,222 @@ describe('CommandQueuePanel', () => {
     render(
       <CommandQueuePanel
         items={baseItems}
-        running={false}
         paused={true}
+        interactionLocked={false}
         onPause={vi.fn()}
         onResume={vi.fn()}
+        onInteractionLock={vi.fn()}
+        onInteractionUnlock={vi.fn()}
         onUpdate={onUpdate}
-        onMoveUp={vi.fn()}
-        onMoveDown={vi.fn()}
+        onReorder={vi.fn()}
         onRemove={vi.fn()}
         onClear={vi.fn()}
       />
     );
 
-    await user.click(screen.getAllByRole('button', { name: 'Edit' })[0]);
+    await user.click(screen.getAllByRole('button', { name: 'More actions' })[0]);
+    await user.click(screen.getByRole('button', { name: 'Edit' }));
     await user.clear(screen.getByRole('textbox'));
     await user.type(screen.getByRole('textbox'), '   ');
     await user.click(screen.getByRole('button', { name: 'Save' }));
 
     expect(onUpdate).toHaveBeenCalledWith('1', '   ');
     expect(screen.getByRole('button', { name: 'Save' })).toBeInTheDocument();
+  });
+
+  it('switches queue cards into neutral theme-aware edit styling while editing', async () => {
+    const user = userEvent.setup();
+    const { container } = render(
+      <CommandQueuePanel
+        items={baseItems}
+        paused={true}
+        interactionLocked={false}
+        onPause={vi.fn()}
+        onResume={vi.fn()}
+        onInteractionLock={vi.fn()}
+        onInteractionUnlock={vi.fn()}
+        onUpdate={vi.fn(() => true)}
+        onReorder={vi.fn()}
+        onRemove={vi.fn()}
+        onClear={vi.fn()}
+      />
+    );
+
+    await user.click(screen.getAllByRole('button', { name: 'More actions' })[0]);
+    await user.click(screen.getByRole('button', { name: 'Edit' }));
+
+    const firstItem = container.querySelector('[data-command-id="1"]');
+    const secondItem = container.querySelector('[data-command-id="2"]');
+    const editor = screen.getByRole('textbox');
+    const cancelButtons = screen.getAllByRole('button', { name: 'Cancel' });
+    const saveButton = screen.getByRole('button', { name: 'Save' });
+    const dragHandles = screen.getAllByRole('button', { name: 'Drag to reorder queued command' });
+
+    expect(firstItem?.getAttribute('data-sortable')).toBe('disabled');
+    expect(secondItem?.getAttribute('data-sortable')).toBe('disabled');
+    expect(dragHandles[0]?.getAttribute('data-drag-handle')).toBe('disabled');
+    expect(firstItem?.getAttribute('style')).toContain('var(--color-border-3)');
+    expect(firstItem?.getAttribute('style')).toContain('var(--color-fill-1)');
+    expect(editor.getAttribute('style')).toContain('var(--color-fill-1)');
+    expect(editor.getAttribute('style')).toContain('var(--color-border-2)');
+    expect(editor.getAttribute('style')).toContain('var(--color-text-1)');
+    expect(editor.className).toContain('rd-8px');
+    expect(cancelButtons.at(-1)?.getAttribute('style')).toContain('var(--color-text-3)');
+    expect(cancelButtons.at(-1)?.getAttribute('style')).toContain('var(--color-fill-1)');
+    expect(cancelButtons.at(-1)?.className).toContain('rd-7px');
+    expect(saveButton.getAttribute('style')).toContain('var(--color-text-1)');
+    expect(saveButton.getAttribute('style')).toContain('var(--color-fill-2)');
+    expect(saveButton.className).toContain('rd-7px');
+  });
+
+  it('exits edit mode when the edited queued command disappears from the queue', async () => {
+    const user = userEvent.setup();
+    const { rerender } = render(
+      <CommandQueuePanel
+        items={baseItems}
+        paused={true}
+        interactionLocked={false}
+        onPause={vi.fn()}
+        onResume={vi.fn()}
+        onInteractionLock={vi.fn()}
+        onInteractionUnlock={vi.fn()}
+        onUpdate={vi.fn(() => true)}
+        onReorder={vi.fn()}
+        onRemove={vi.fn()}
+        onClear={vi.fn()}
+      />
+    );
+
+    await user.click(screen.getAllByRole('button', { name: 'More actions' })[0]);
+    await user.click(screen.getByRole('button', { name: 'Edit' }));
+
+    expect(screen.getByDisplayValue('first command')).toBeInTheDocument();
+
+    rerender(
+      <CommandQueuePanel
+        items={[baseItems[1]!]}
+        paused={true}
+        interactionLocked={false}
+        onPause={vi.fn()}
+        onResume={vi.fn()}
+        onInteractionLock={vi.fn()}
+        onInteractionUnlock={vi.fn()}
+        onUpdate={vi.fn(() => true)}
+        onReorder={vi.fn()}
+        onRemove={vi.fn()}
+        onClear={vi.fn()}
+      />
+    );
+
+    await waitFor(() => {
+      expect(screen.queryByDisplayValue('first command')).not.toBeInTheDocument();
+    });
+  });
+
+  it('switches the overflow action to cancel while the item is being edited', async () => {
+    const user = userEvent.setup();
+
+    render(
+      <CommandQueuePanel
+        items={baseItems}
+        paused={true}
+        interactionLocked={false}
+        onPause={vi.fn()}
+        onResume={vi.fn()}
+        onInteractionLock={vi.fn()}
+        onInteractionUnlock={vi.fn()}
+        onUpdate={vi.fn(() => true)}
+        onReorder={vi.fn()}
+        onRemove={vi.fn()}
+        onClear={vi.fn()}
+      />
+    );
+
+    await user.click(screen.getAllByRole('button', { name: 'More actions' })[0]);
+    await user.click(screen.getByRole('button', { name: 'Edit' }));
+    await user.click(screen.getAllByRole('button', { name: 'More actions' })[0]);
+
+    expect(screen.getByRole('button', { name: 'Cancel' })).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Edit' })).not.toBeInTheDocument();
+  });
+
+  it('clears the queue from the overflow menu', async () => {
+    const user = userEvent.setup();
+    const onClear = vi.fn();
+
+    render(
+      <CommandQueuePanel
+        items={baseItems}
+        paused={false}
+        interactionLocked={false}
+        onPause={vi.fn()}
+        onResume={vi.fn()}
+        onInteractionLock={vi.fn()}
+        onInteractionUnlock={vi.fn()}
+        onUpdate={vi.fn(() => true)}
+        onReorder={vi.fn()}
+        onRemove={vi.fn()}
+        onClear={onClear}
+      />
+    );
+
+    await user.click(screen.getAllByRole('button', { name: 'More actions' })[0]);
+    await user.click(screen.getByRole('button', { name: 'Clear queue' }));
+
+    expect(onClear).toHaveBeenCalledTimes(1);
+  });
+
+  it('auto-resumes after canceling an edit that paused the queue temporarily', async () => {
+    const user = userEvent.setup();
+    const onPause = vi.fn();
+    const onResume = vi.fn();
+
+    render(
+      <CommandQueuePanel
+        items={baseItems}
+        paused={false}
+        interactionLocked={false}
+        onPause={onPause}
+        onResume={onResume}
+        onInteractionLock={vi.fn()}
+        onInteractionUnlock={vi.fn()}
+        onUpdate={vi.fn(() => true)}
+        onReorder={vi.fn()}
+        onRemove={vi.fn()}
+        onClear={vi.fn()}
+      />
+    );
+
+    await user.click(screen.getAllByRole('button', { name: 'More actions' })[1]);
+    await user.click(screen.getByRole('button', { name: 'Edit' }));
+    await user.click(screen.getAllByRole('button', { name: 'Cancel' }).at(-1)!);
+
+    expect(onPause).toHaveBeenCalledTimes(1);
+    expect(onResume).toHaveBeenCalledTimes(1);
+  });
+
+  it('keeps the drag handle interactive through pointer down without exposing extra chrome', () => {
+    render(
+      <CommandQueuePanel
+        items={baseItems}
+        paused={false}
+        interactionLocked={false}
+        onPause={vi.fn()}
+        onResume={vi.fn()}
+        onInteractionLock={vi.fn()}
+        onInteractionUnlock={vi.fn()}
+        onUpdate={vi.fn(() => true)}
+        onReorder={vi.fn()}
+        onRemove={vi.fn()}
+        onClear={vi.fn()}
+      />
+    );
+
+    const dragHandle = screen.getAllByRole('button', { name: 'Drag to reorder queued command' })[0]!;
+
+    fireEvent.pointerDown(dragHandle);
+
+    expect(dragHandle.getAttribute('data-floating-handle')).toBe('visible');
+    expect(dragHandle.getAttribute('data-drag-handle')).toBe('enabled');
   });
 });

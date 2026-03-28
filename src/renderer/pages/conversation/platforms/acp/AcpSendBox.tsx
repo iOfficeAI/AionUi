@@ -8,6 +8,7 @@ import { getSendBoxDraftHook, type FileOrFolderItem } from '@/renderer/hooks/cha
 import { createSetUploadFile, useSendBoxFiles } from '@/renderer/hooks/chat/useSendBoxFiles';
 import { useAddOrUpdateMessage } from '@/renderer/pages/conversation/Messages/hooks';
 import {
+  shouldEnqueueConversationCommand,
   useConversationCommandQueue,
   type ConversationCommandQueueItem,
 } from '@/renderer/pages/conversation/platforms/useConversationCommandQueue';
@@ -190,14 +191,18 @@ Please check your local CLI tool authentication status`,
   const {
     items: queuedCommands,
     isPaused: isQueuePaused,
+    isInteractionLocked: isQueueInteractionLocked,
+    hasPendingCommands,
     enqueue,
     update,
     remove,
     clear,
-    moveUp,
-    moveDown,
+    reorder,
     pause,
     resume,
+    lockInteraction,
+    unlockInteraction,
+    resetActiveExecution,
   } = useConversationCommandQueue({
     conversationId: conversation_id,
     isBusy,
@@ -211,7 +216,7 @@ Please check your local CLI tool authentication status`,
     clearFiles();
     emitter.emit('acp.selected.file.clear');
 
-    if (isBusy) {
+    if (shouldEnqueueConversationCommand({ isBusy, hasPendingCommands })) {
       enqueue({ input: message, files: allFiles });
       return;
     }
@@ -240,13 +245,11 @@ Please check your local CLI tool authentication status`,
   // Stop conversation handler
   const handleStop = async (): Promise<void> => {
     // Use finally to ensure UI state is reset even if backend stop fails
-    if (queuedCommands.length > 0) {
-      pause();
-    }
     try {
       await ipcBridge.conversation.stop.invoke({ conversation_id });
     } finally {
       resetState();
+      resetActiveExecution('stop');
     }
   };
 
@@ -255,13 +258,14 @@ Please check your local CLI tool authentication status`,
       <ThoughtDisplay thought={thought} running={running || aiProcessing} onStop={handleStop} />
       <CommandQueuePanel
         items={queuedCommands}
-        running={isBusy}
         paused={isQueuePaused}
+        interactionLocked={isQueueInteractionLocked}
         onPause={pause}
         onResume={resume}
+        onInteractionLock={lockInteraction}
+        onInteractionUnlock={unlockInteraction}
         onUpdate={(commandId, input) => update(commandId, { input })}
-        onMoveUp={moveUp}
-        onMoveDown={moveDown}
+        onReorder={reorder}
         onRemove={remove}
         onClear={clear}
       />
