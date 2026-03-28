@@ -13,6 +13,7 @@ import {
   useConversationCommandQueue,
   type ConversationCommandQueueItem,
 } from '@/renderer/pages/conversation/platforms/useConversationCommandQueue';
+import { assertBridgeSuccess } from '@/renderer/pages/conversation/platforms/assertBridgeSuccess';
 import { allSupportedExts } from '@/renderer/services/FileService';
 import { emitter, useAddEventListener } from '@/renderer/utils/emitter';
 import { mergeFileSelectionItems } from '@/renderer/utils/file/fileSelection';
@@ -142,12 +143,13 @@ const AcpSendBox: React.FC<{
       setAiProcessing(true);
 
       try {
-        await ipcBridge.acpConversation.sendMessage.invoke({
+        const result = await ipcBridge.acpConversation.sendMessage.invoke({
           input,
           msg_id,
           conversation_id,
           files,
         });
+        assertBridgeSuccess(result, `Failed to send message to ${backend}`);
         void checkAndUpdateTitle(conversation_id, input);
         emitter.emit('chat.history.refresh');
       } catch (error: unknown) {
@@ -191,6 +193,7 @@ Please check your local CLI tool authentication status`,
     items: queuedCommands,
     isPaused: isQueuePaused,
     enqueue,
+    update,
     remove,
     clear,
     moveUp,
@@ -258,6 +261,7 @@ Please check your local CLI tool authentication status`,
         paused={isQueuePaused}
         onPause={pause}
         onResume={resume}
+        onUpdate={(commandId, input) => update(commandId, { input })}
         onMoveUp={moveUp}
         onMoveDown={moveDown}
         onRemove={remove}

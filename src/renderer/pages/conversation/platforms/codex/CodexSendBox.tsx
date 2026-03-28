@@ -11,6 +11,7 @@ import {
   useConversationCommandQueue,
   type ConversationCommandQueueItem,
 } from '@/renderer/pages/conversation/platforms/useConversationCommandQueue';
+import { assertBridgeSuccess } from '@/renderer/pages/conversation/platforms/assertBridgeSuccess';
 import { allSupportedExts, type FileMetadata } from '@/renderer/services/FileService';
 import { emitter, useAddEventListener } from '@/renderer/utils/emitter';
 import { mergeFileSelectionItems } from '@/renderer/utils/file/fileSelection';
@@ -299,12 +300,13 @@ const CodexSendBox: React.FC<{ conversation_id: string }> = ({ conversation_id }
       addOrUpdateMessage(userMessage, true);
       setAiProcessing(true);
       try {
-        await ipcBridge.codexConversation.sendMessage.invoke({
+        const result = await ipcBridge.codexConversation.sendMessage.invoke({
           input: displayMessage,
           msg_id,
           conversation_id,
           files,
         });
+        assertBridgeSuccess(result, 'Failed to send message to Codex');
         void checkAndUpdateTitle(conversation_id, input);
         emitter.emit('chat.history.refresh');
       } catch (error) {
@@ -320,6 +322,7 @@ const CodexSendBox: React.FC<{ conversation_id: string }> = ({ conversation_id }
     items,
     isPaused: isQueuePaused,
     enqueue,
+    update,
     remove,
     clear,
     moveUp,
@@ -403,13 +406,14 @@ const CodexSendBox: React.FC<{ conversation_id: string }> = ({ conversation_id }
         addOrUpdateMessage(userMessage, true); // 立即保存到存储，避免刷新丢失
 
         // 发送消息到后端处理
-        await ipcBridge.codexConversation.sendMessage.invoke({
+        const result = await ipcBridge.codexConversation.sendMessage.invoke({
           input: initialDisplayMessage,
           msg_id,
           conversation_id,
           files,
           loading_id,
         });
+        assertBridgeSuccess(result, 'Failed to send initial message to Codex');
         void checkAndUpdateTitle(conversation_id, input);
         emitter.emit('chat.history.refresh');
 
@@ -460,6 +464,7 @@ const CodexSendBox: React.FC<{ conversation_id: string }> = ({ conversation_id }
         paused={isQueuePaused}
         onPause={pause}
         onResume={resume}
+        onUpdate={(commandId, input) => update(commandId, { input })}
         onMoveUp={moveUp}
         onMoveDown={moveDown}
         onRemove={remove}

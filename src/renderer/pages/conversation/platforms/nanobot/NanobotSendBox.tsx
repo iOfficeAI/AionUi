@@ -17,6 +17,7 @@ import {
   useConversationCommandQueue,
   type ConversationCommandQueueItem,
 } from '@/renderer/pages/conversation/platforms/useConversationCommandQueue';
+import { assertBridgeSuccess } from '@/renderer/pages/conversation/platforms/assertBridgeSuccess';
 import { allSupportedExts, type FileMetadata } from '@/renderer/services/FileService';
 import { emitter, useAddEventListener } from '@/renderer/utils/emitter';
 import { mergeFileSelectionItems } from '@/renderer/utils/file/fileSelection';
@@ -230,12 +231,13 @@ const NanobotSendBox: React.FC<{ conversation_id: string }> = ({ conversation_id
       addOrUpdateMessage(userMessage, true);
       setAiProcessing(true);
       try {
-        await ipcBridge.conversation.sendMessage.invoke({
+        const result = await ipcBridge.conversation.sendMessage.invoke({
           input: displayMessage,
           msg_id,
           conversation_id,
           files,
         });
+        assertBridgeSuccess(result, 'Failed to send message to Nanobot');
         void checkAndUpdateTitle(conversation_id, input);
         emitter.emit('chat.history.refresh');
       } catch (error) {
@@ -251,6 +253,7 @@ const NanobotSendBox: React.FC<{ conversation_id: string }> = ({ conversation_id
     items,
     isPaused: isQueuePaused,
     enqueue,
+    update,
     remove,
     clear,
     moveUp,
@@ -322,12 +325,13 @@ const NanobotSendBox: React.FC<{ conversation_id: string }> = ({ conversation_id
         // 重置 AI 回复用于新一轮
         addOrUpdateMessage(userMessage, true);
 
-        await ipcBridge.conversation.sendMessage.invoke({
+        const result = await ipcBridge.conversation.sendMessage.invoke({
           input: initialDisplayMessage,
           msg_id,
           conversation_id,
           files,
         });
+        assertBridgeSuccess(result, 'Failed to send initial message to Nanobot');
         void checkAndUpdateTitle(conversation_id, input);
         emitter.emit('chat.history.refresh');
         sessionStorage.removeItem(storageKey);
@@ -360,6 +364,7 @@ const NanobotSendBox: React.FC<{ conversation_id: string }> = ({ conversation_id
         paused={isQueuePaused}
         onPause={pause}
         onResume={resume}
+        onUpdate={(commandId, input) => update(commandId, { input })}
         onMoveUp={moveUp}
         onMoveDown={moveDown}
         onRemove={remove}

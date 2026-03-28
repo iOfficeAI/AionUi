@@ -1,12 +1,15 @@
 import {
   createQueuedCommandItem,
+  estimateQueueStateBytes,
   MAX_QUEUED_COMMANDS,
   MAX_QUEUED_COMMAND_FILES,
   MAX_QUEUED_COMMAND_INPUT_LENGTH,
+  MAX_QUEUED_COMMAND_STATE_BYTES,
   moveQueuedCommand,
   normalizeQueueState,
   removeQueuedCommand,
   restoreQueuedCommand,
+  updateQueuedCommand,
   validateQueuedCommandItem,
   type ConversationCommandQueueItem,
 } from '@/renderer/pages/conversation/platforms/useConversationCommandQueue';
@@ -50,6 +53,24 @@ describe('conversation command queue helpers', () => {
     expect(restoreQueuedCommand(queue, createItem('1')).map((item) => item.id)).toEqual(['1', '2', '3']);
   });
 
+  it('updates a queued command in place without changing its position', () => {
+    const queue = [createItem('1'), createItem('2')];
+
+    expect(updateQueuedCommand(queue, '2', { input: 'updated command' })).toEqual([
+      createItem('1'),
+      {
+        ...createItem('2'),
+        input: 'updated command',
+      },
+    ]);
+  });
+
+  it('deduplicates files when updating a queued command', () => {
+    const queue = [createItem('1')];
+
+    expect(updateQueuedCommand(queue, '1', { files: ['a.ts', 'a.ts', 'b.ts'] })[0]?.files).toEqual(['a.ts', 'b.ts']);
+  });
+
   it('clears paused state when queue becomes empty', () => {
     expect(normalizeQueueState({ items: [], isPaused: true })).toEqual({
       items: [],
@@ -64,6 +85,59 @@ describe('conversation command queue helpers', () => {
         isPaused: true,
       }).items.map((item) => item.id)
     ).toEqual(['1']);
+  });
+
+  it('drops persisted items that violate queue input and file limits', () => {
+    const normalized = normalizeQueueState({
+      items: [
+        createItem('safe'),
+        {
+          id: 'too-long',
+          input: 'x'.repeat(MAX_QUEUED_COMMAND_INPUT_LENGTH + 1),
+          files: [],
+          createdAt: 0,
+        },
+        {
+          id: 'too-many-files',
+          input: 'hello',
+          files: Array.from({ length: MAX_QUEUED_COMMAND_FILES + 1 }, (_, index) => `${index}.txt`),
+          createdAt: 0,
+        },
+      ],
+      isPaused: true,
+    });
+
+    expect(normalized).toEqual({
+      items: [createItem('safe')],
+      isPaused: true,
+    });
+  });
+
+  it('caps restored queue length to the maximum allowed size', () => {
+    const normalized = normalizeQueueState({
+      items: Array.from({ length: MAX_QUEUED_COMMANDS + 5 }, (_, index) => createItem(String(index))),
+      isPaused: true,
+    });
+
+    expect(normalized.items).toHaveLength(MAX_QUEUED_COMMANDS);
+    expect(normalized.items.at(-1)?.id).toBe(String(MAX_QUEUED_COMMANDS - 1));
+  });
+
+  it('drops restored items when persisted state exceeds the storage budget', () => {
+    const oversizedInput = 'x'.repeat(18_000);
+    const normalized = normalizeQueueState({
+      items: Array.from({ length: MAX_QUEUED_COMMANDS }, (_, index) => ({
+        id: String(index),
+        input: oversizedInput,
+        files: [],
+        createdAt: index,
+      })),
+      isPaused: true,
+    });
+
+    expect(estimateQueueStateBytes(normalized)).toBeLessThanOrEqual(MAX_QUEUED_COMMAND_STATE_BYTES);
+    expect(normalized.items.length).toBeLessThan(MAX_QUEUED_COMMANDS);
+    expect(normalized.isPaused).toBe(true);
   });
 
   it('deduplicates attached files when creating a queued command item', () => {
@@ -82,6 +156,18 @@ describe('conversation command queue helpers', () => {
     );
 
     expect(result).toEqual({ ok: false, reason: 'inputTooLong' });
+  });
+
+  it('rejects empty queued command input', () => {
+    const result = validateQueuedCommandItem(
+      createQueuedCommandItem({
+        input: '   ',
+        files: [],
+      }),
+      { items: [], isPaused: false }
+    );
+
+    expect(result).toEqual({ ok: false, reason: 'emptyInput' });
   });
 
   it('rejects queued commands with too many files', () => {
