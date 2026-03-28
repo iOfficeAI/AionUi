@@ -138,6 +138,7 @@ Add a new entry to `ASSISTANT_PRESETS` array in `aionui/src/common/config/preset
 - These are battle-tested prompts that are proven to produce good results with the skill
 - If no iteration data exists, write prompts that showcase the skill's unique strengths
 - Prompts should be diverse (different use cases) and practical (things real users would ask)
+- **CRITICAL: Prompts must be self-contained** — the user should be able to click the prompt and get a complete result without needing to provide any data, files, or attachments. Bad: "I have a CSV file, build a dashboard from it". Good: "Create a SaaS MRR dashboard with 12 months of sample data showing growth trends and churn breakdown". The assistant should generate sample data or pick a topic on its own.
 
 ## Step 5 — Verify
 
@@ -161,11 +162,13 @@ Add a new entry to `ASSISTANT_PRESETS` array in `aionui/src/common/config/preset
 
 When packaging a new assistant, review existing officecli-based assistants to avoid description overlap:
 
-| ID            | Skill          | Focus                                           |
-| ------------- | -------------- | ----------------------------------------------- |
-| morph-ppt     | morph-ppt      | Morph-animated presentations with visual styles |
-| ppt-creator   | officecli-pptx | General PPT creation, editing, analysis         |
-| word-creator  | officecli-docx | Word documents — reports, proposals, letters    |
-| excel-creator | officecli-xlsx | Excel — financial models, trackers, formulas    |
+| ID                | Skill                    | Focus                                                 |
+| ----------------- | ------------------------ | ----------------------------------------------------- |
+| morph-ppt         | morph-ppt                | Morph-animated presentations with visual styles       |
+| word-creator      | officecli-docx           | Word documents — reports, proposals, letters          |
+| academic-paper    | officecli-academic-paper | Formal academic papers — TOC, equations, bibliography |
+| ppt-creator       | officecli-pptx           | General PPT creation, editing, analysis               |
+| excel-creator     | officecli-xlsx           | Excel — financial models, trackers, formulas          |
+| dashboard-creator | officecli-data-dashboard | CSV → Excel dashboards with KPI, charts, auto-scaling |
 
 Update this table when adding new assistants.
