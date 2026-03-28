@@ -611,26 +611,25 @@ export const useConversationCommandQueue = ({
       isPaused: false,
     }));
 
-    void onExecute(nextCommand)
-      .catch((error) => {
-        console.error('[conversation-command-queue] Failed to execute queued command:', error);
-        logCommandQueue(conversationId, 'execute-failed', {
-          item: summarizeQueuedCommand(nextCommand),
-          error: error instanceof Error ? error.message : String(error),
-        });
-        waitingForTurnStartRef.current = false;
-        waitingForTurnCompletionRef.current = false;
-        pausedRef.current = true;
-        void updateState((state) => ({
-          items: restoreQueuedCommand(state.items, nextCommand),
-          isPaused: true,
-        }));
-        Message.warning(
-          t('conversation.commandQueue.pausedAfterFailure', {
-            defaultValue: 'The next queued command could not start. Edit, reorder, or remove it to continue.',
-          })
-        );
+    void onExecute(nextCommand).catch((error) => {
+      console.error('[conversation-command-queue] Failed to execute queued command:', error);
+      logCommandQueue(conversationId, 'execute-failed', {
+        item: summarizeQueuedCommand(nextCommand),
+        error: error instanceof Error ? error.message : String(error),
       });
+      waitingForTurnStartRef.current = false;
+      waitingForTurnCompletionRef.current = false;
+      pausedRef.current = true;
+      void updateState((state) => ({
+        items: restoreQueuedCommand(state.items, nextCommand),
+        isPaused: true,
+      }));
+      Message.warning(
+        t('conversation.commandQueue.pausedAfterFailure', {
+          defaultValue: 'The next queued command could not start. Edit, reorder, or remove it to continue.',
+        })
+      );
+    });
   }, [conversationId, data.items, executionGateVersion, isBusy, isInteractionLocked, onExecute, t, updateState]);
 
   return {
