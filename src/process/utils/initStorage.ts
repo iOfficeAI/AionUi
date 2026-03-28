@@ -601,6 +601,7 @@ const getBuiltinAssistants = (): AcpBackendConfig[] => {
       preset.id === 'word-creator' ||
       preset.id === 'ppt-creator' ||
       preset.id === 'excel-creator' ||
+      preset.id === 'academic-paper' ||
       preset.id === 'morph-ppt' ||
       preset.id === 'cowork' ||
       preset.id === 'openclaw-setup' ||
