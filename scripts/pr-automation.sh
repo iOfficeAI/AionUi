@@ -3,10 +3,11 @@
 # Runs continuously: launch one Claude instance, wait, sleep, repeat.
 #
 # Environment variables:
-#   SLEEP_SECONDS   Seconds to sleep between Claude runs (default: 30)
-#   MAX_CLAUDE_SECS Maximum seconds a Claude run may take (default: 3600)
-#   LOG_DIR         Directory for log files (default: ~/Library/Logs/AionUi)
-#   LOG_FILE        Full log file path (overrides LOG_DIR if set)
+#   SLEEP_SECONDS      Seconds to sleep between Claude runs (default: 30)
+#   MAX_CLAUDE_SECS    Maximum seconds a Claude run may take (default: 3600)
+#   LOG_DIR            Directory for log files (default: ~/Library/Logs/AionUi)
+#   LOG_FILE           Full log file path (overrides LOG_DIR if set)
+#   PR_DAYS_LOOKBACK   Only process PRs created within the last N days (default: 7)
 set -euo pipefail
 
 REPO_DIR="$(cd "$(dirname "$0")/.." && pwd)"
@@ -72,7 +73,7 @@ if [ -f "$PID_FILE" ]; then
 fi
 
 echo $$ > "$PID_FILE"
-log_info "PR automation daemon started. PID=$$, SLEEP_SECONDS=$SLEEP_SECONDS, MAX_CLAUDE_SECS=$MAX_CLAUDE_SECS"
+log_info "PR automation daemon started. PID=$$, SLEEP_SECONDS=$SLEEP_SECONDS, MAX_CLAUDE_SECS=$MAX_CLAUDE_SECS, PR_DAYS_LOOKBACK=${PR_DAYS_LOOKBACK:-7}"
 log_info "Log file: $LOG_FILE | Repo dir: $REPO_DIR"
 
 ITERATION=0

@@ -27,6 +27,7 @@ No arguments required. The daemon script `scripts/pr-automation.sh` manages the 
 TRUSTED_CONTRIBUTORS_TEAM: detected from REPO org (e.g. iOfficeAI/trusted-contributors)
 CRITICAL_PATH_PATTERN: (empty — define when needed, e.g. ^src/preload\.ts|^src/process/channels/)
 LARGE_PR_FILE_THRESHOLD: 50
+PR_DAYS_LOOKBACK: 7 (env var — override via PR_DAYS_LOOKBACK=N when starting the daemon)
 ```
 
 **REPO** is detected automatically at runtime — do not hardcode it:
@@ -59,10 +60,13 @@ ORG=$(echo "$REPO" | cut -d'/' -f1)
 
 ### Step 1 — Fetch Candidate PRs
 
+Read the lookback window from the environment (default 7 days):
+
 ```bash
+DAYS=${PR_DAYS_LOOKBACK:-7}
 gh pr list \
   --state open \
-  --search "created:>=$(date -v-7d '+%Y-%m-%d' 2>/dev/null || date -d '7 days ago' '+%Y-%m-%d') -is:draft" \
+  --search "created:>=$(date -v-${DAYS}d '+%Y-%m-%d' 2>/dev/null || date -d "${DAYS} days ago" '+%Y-%m-%d') -is:draft" \
   --json number,title,labels,createdAt,author \
   --limit 50
 ```
