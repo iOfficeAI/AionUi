@@ -39,19 +39,21 @@ describe('WeixinLoginHandler', () => {
     // Spy on the private renderQRPage — avoids spinning up a real hidden BrowserWindow
     vi.spyOn(handler as never, 'renderQRPage').mockResolvedValue(FAKE_DATA_URL as never);
 
-    let capturedOnQR: ((url: string) => void) | undefined;
+    let capturedOnQR: ((url: string, qrcodeData: string) => void) | undefined;
     let capturedOnDone: ((r: unknown) => void) | undefined;
 
-    mockStartLoginFn = vi.fn(({ onQR, onDone }: { onQR: (url: string) => void; onDone: (r: unknown) => void }) => {
-      capturedOnQR = onQR;
-      capturedOnDone = onDone;
-      return { abort: vi.fn() };
-    });
+    mockStartLoginFn = vi.fn(
+      ({ onQR, onDone }: { onQR: (url: string, qrcodeData: string) => void; onDone: (r: unknown) => void }) => {
+        capturedOnQR = onQR;
+        capturedOnDone = onDone;
+        return { abort: vi.fn() };
+      }
+    );
 
     const loginPromise = handler.startLogin();
 
     // Trigger onQR — handler calls renderQRPage(pageUrl) then sends the data URL to renderer
-    capturedOnQR?.('https://qr.weixin.qq.com/page');
+    capturedOnQR?.('https://qr.weixin.qq.com/page', 'ticket_raw_value');
 
     // Flush the promise chain (renderQRPage is mocked to resolve immediately)
     await Promise.resolve();
