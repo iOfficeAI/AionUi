@@ -82,6 +82,21 @@ export interface GeminiRequest {
 }
 
 /**
+ * Sanitize a function name to comply with Gemini's naming rules.
+ * Gemini requires: ^[a-zA-Z_][a-zA-Z0-9_]*$
+ * MCP tools may contain characters like `-`, `.`, `/`, `:` etc.
+ */
+export function sanitizeGeminiFunctionName(name: string): string {
+  // Replace any non-alphanumeric/underscore character with underscore
+  let sanitized = name.replace(/[^a-zA-Z0-9_]/g, '_');
+  // Ensure it starts with a letter or underscore
+  if (sanitized.length > 0 && /^[0-9]/.test(sanitized)) {
+    sanitized = `_${sanitized}`;
+  }
+  return sanitized || '_unnamed';
+}
+
+/**
  * Converter for transforming OpenAI chat completion format to/from Gemini format
  */
 export class OpenAI2GeminiConverter implements ProtocolConverter<
@@ -172,7 +187,7 @@ export class OpenAI2GeminiConverter implements ProtocolConverter<
       request.tools = [
         {
           functionDeclarations: params.tools.map((tool) => ({
-            name: tool.function.name,
+            name: sanitizeGeminiFunctionName(tool.function.name),
             description: tool.function.description,
             parameters: tool.function.parameters, // Keep as native object, don't stringify
           })),

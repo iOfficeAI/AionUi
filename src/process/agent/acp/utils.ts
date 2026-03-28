@@ -47,7 +47,7 @@ export async function killChild(child: ChildProcess, isDetached: boolean): Promi
     try {
       await execFile('taskkill', ['/PID', String(pid), '/T', '/F'], { windowsHide: true, timeout: 5000 });
     } catch (forceError) {
-      console.warn(`[ACP] taskkill /T /F failed for PID ${pid}:`, forceError);
+      console.warn(`[ACP] taskkill /T /F failed for PID ${pid}:`, decodeWindowsError(forceError));
     }
   } else if (isDetached && pid) {
     try {
@@ -62,6 +62,32 @@ export async function killChild(child: ChildProcess, isDetached: boolean): Promi
   if (pid) {
     await waitForProcessExit(pid, 3000);
   }
+}
+
+/**
+ * Decode a Windows command error for readable logging.
+ * Windows commands like `taskkill` output in the system's native encoding (e.g. GBK for Chinese),
+ * which gets garbled when Node.js interprets it as UTF-8. This re-decodes stderr as GBK if available.
+ */
+export function decodeWindowsError(error: unknown): string {
+  const err = error as { stderr?: string | Buffer; code?: number; message?: string };
+  if (err?.stderr) {
+    const stderr = err.stderr;
+    if (Buffer.isBuffer(stderr)) {
+      try {
+        return new TextDecoder('gbk').decode(stderr);
+      } catch {
+        return stderr.toString('utf-8');
+      }
+    }
+    // stderr is a string — check if it looks garbled (contains replacement chars)
+    if (typeof stderr === 'string' && stderr.includes('\ufffd')) {
+      // Already garbled, fall back to exit code
+      return `exit code ${err.code ?? 'unknown'}`;
+    }
+    return stderr;
+  }
+  return err?.message ?? String(error);
 }
 
 // ── File I/O utilities ──────────────────────────────────────────────
