@@ -24,6 +24,7 @@ const ipcMock = vi.hoisted(() => ({
   refreshCustomAgents: vi.fn().mockResolvedValue(undefined),
   getCustomAgents: vi.fn(),
   getAssistants: vi.fn(),
+  remoteAgentList: vi.fn().mockResolvedValue([]),
 }));
 
 // ---------------------------------------------------------------------------
@@ -39,6 +40,9 @@ vi.mock('../../src/common', () => ({
     },
     extensions: {
       getAssistants: { invoke: ipcMock.getAssistants },
+    },
+    remoteAgent: {
+      list: { invoke: ipcMock.remoteAgentList },
     },
   },
 }));

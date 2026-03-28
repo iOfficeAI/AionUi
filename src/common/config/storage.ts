@@ -333,6 +333,30 @@ export type TChatConversation =
         }
       >,
       'model'
+    >
+  | Omit<
+      IChatConversation<
+        'remote',
+        {
+          workspace?: string;
+          customWorkspace?: boolean;
+          /** Remote agent config ID (FK to remote_agents table) */
+          remoteAgentId: string;
+          /** Remote session key for resume */
+          sessionKey?: string;
+          /** Enabled skills list */
+          enabledSkills?: string[];
+          /** Preset assistant ID */
+          presetAssistantId?: string;
+          /** Whether this conversation is pinned */
+          pinned?: boolean;
+          /** Pin timestamp in milliseconds */
+          pinnedAt?: number;
+          /** Explicit marker for temporary health-check conversations */
+          isHealthCheck?: boolean;
+        }
+      >,
+      'model'
     >;
 
 export type IChatConversationRefer = {

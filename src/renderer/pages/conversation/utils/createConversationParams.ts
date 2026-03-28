@@ -61,6 +61,8 @@ export function getConversationTypeForBackend(backend: string): ICreateConversat
       return 'openclaw-gateway';
     case 'nanobot':
       return 'nanobot';
+    case 'remote':
+      return 'remote';
     default:
       // claude, qwen, codex, iflow, goose, auggie, kimi, opencode, copilot, qoder, codebuddy, droid, vibe, etc.
       // Note: codex now uses ACP path; legacy 'codex' type is not used for new conversations.

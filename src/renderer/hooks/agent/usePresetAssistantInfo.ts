@@ -150,8 +150,29 @@ export function usePresetAssistantInfo(conversation: TChatConversation | undefin
     ipcBridge.extensions.getAcpAdapters.invoke().catch(() => [] as Record<string, unknown>[])
   );
 
+  // Fetch remote agents for remote conversations
+  const remoteAgentId =
+    conversation?.type === 'remote' ? (conversation.extra as { remoteAgentId?: string })?.remoteAgentId : undefined;
+  const { data: remoteAgent, isLoading: isLoadingRemoteAgent } = useSWR(
+    remoteAgentId ? `remote-agent.get.${remoteAgentId}` : null,
+    () => (remoteAgentId ? ipcBridge.remoteAgent.get.invoke({ id: remoteAgentId }) : null)
+  );
+
   return useMemo(() => {
     if (!conversation) return { info: null, isLoading: false };
+
+    // Handle remote agent conversations
+    if (conversation.type === 'remote' && remoteAgentId) {
+      if (isLoadingRemoteAgent) return { info: null, isLoading: true };
+      if (remoteAgent) {
+        const normalized = normalizeAvatar(remoteAgent.avatar);
+        return {
+          info: { name: remoteAgent.name, logo: normalized.logo, isEmoji: normalized.isEmoji },
+          isLoading: false,
+        };
+      }
+      return { info: null, isLoading: false };
+    }
 
     const presetId = resolvePresetId(conversation);
     if (!presetId) return { info: null, isLoading: false };
@@ -222,5 +243,8 @@ export function usePresetAssistantInfo(conversation: TChatConversation | undefin
     isLoadingExtAssistants,
     extensionAcpAdapters,
     isLoadingExtAdapters,
+    remoteAgentId,
+    remoteAgent,
+    isLoadingRemoteAgent,
   ]);
 }
