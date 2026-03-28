@@ -14,6 +14,7 @@ import { getSendBoxDraftHook, type FileOrFolderItem } from '@/renderer/hooks/cha
 import { createSetUploadFile } from '@/renderer/hooks/chat/useSendBoxFiles';
 import { useAddOrUpdateMessage, useRemoveMessageByMsgId } from '@/renderer/pages/conversation/Messages/hooks';
 import {
+  shouldEnqueueConversationCommand,
   useConversationCommandQueue,
   type ConversationCommandQueueItem,
 } from '@/renderer/pages/conversation/platforms/useConversationCommandQueue';
@@ -252,14 +253,18 @@ const NanobotSendBox: React.FC<{ conversation_id: string }> = ({ conversation_id
   const {
     items,
     isPaused: isQueuePaused,
+    isInteractionLocked: isQueueInteractionLocked,
+    hasPendingCommands,
     enqueue,
     update,
     remove,
     clear,
-    moveUp,
-    moveDown,
+    reorder,
     pause,
     resume,
+    lockInteraction,
+    unlockInteraction,
+    resetActiveExecution,
   } = useConversationCommandQueue({
     conversationId: conversation_id,
     isBusy: aiProcessing,
@@ -272,7 +277,7 @@ const NanobotSendBox: React.FC<{ conversation_id: string }> = ({ conversation_id
     setAtPath([]);
     setUploadFile([]);
 
-    if (aiProcessing) {
+    if (shouldEnqueueConversationCommand({ isBusy: aiProcessing, hasPendingCommands })) {
       enqueue({ input: message, files: filePaths });
       return;
     }
@@ -344,14 +349,12 @@ const NanobotSendBox: React.FC<{ conversation_id: string }> = ({ conversation_id
   }, [conversation_id, addOrUpdateMessage]);
 
   const handleStop = async (): Promise<void> => {
-    if (items.length > 0) {
-      pause();
-    }
     try {
       await ipcBridge.conversation.stop.invoke({ conversation_id });
     } finally {
       setAiProcessing(false);
       setThought({ subject: '', description: '' });
+      resetActiveExecution('stop');
     }
   };
 
@@ -360,13 +363,14 @@ const NanobotSendBox: React.FC<{ conversation_id: string }> = ({ conversation_id
       <ThoughtDisplay thought={thought} running={aiProcessing} onStop={handleStop} />
       <CommandQueuePanel
         items={items}
-        running={aiProcessing}
         paused={isQueuePaused}
+        interactionLocked={isQueueInteractionLocked}
         onPause={pause}
         onResume={resume}
+        onInteractionLock={lockInteraction}
+        onInteractionUnlock={unlockInteraction}
         onUpdate={(commandId, input) => update(commandId, { input })}
-        onMoveUp={moveUp}
-        onMoveDown={moveDown}
+        onReorder={reorder}
         onRemove={remove}
         onClear={clear}
       />

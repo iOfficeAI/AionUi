@@ -14,6 +14,7 @@ import { getSendBoxDraftHook, type FileOrFolderItem } from '@/renderer/hooks/cha
 import { createSetUploadFile } from '@/renderer/hooks/chat/useSendBoxFiles';
 import { useAddOrUpdateMessage, useRemoveMessageByMsgId } from '@/renderer/pages/conversation/Messages/hooks';
 import {
+  shouldEnqueueConversationCommand,
   useConversationCommandQueue,
   type ConversationCommandQueueItem,
 } from '@/renderer/pages/conversation/platforms/useConversationCommandQueue';
@@ -439,14 +440,18 @@ const OpenClawSendBox: React.FC<{ conversation_id: string }> = ({ conversation_i
   const {
     items,
     isPaused: isQueuePaused,
+    isInteractionLocked: isQueueInteractionLocked,
+    hasPendingCommands,
     enqueue,
     update,
     remove,
     clear,
-    moveUp,
-    moveDown,
+    reorder,
     pause,
     resume,
+    lockInteraction,
+    unlockInteraction,
+    resetActiveExecution,
   } = useConversationCommandQueue({
     conversationId: conversation_id,
     isBusy: aiProcessing,
@@ -459,7 +464,7 @@ const OpenClawSendBox: React.FC<{ conversation_id: string }> = ({ conversation_i
     setAtPath([]);
     setUploadFile([]);
 
-    if (aiProcessing) {
+    if (shouldEnqueueConversationCommand({ isBusy: aiProcessing, hasPendingCommands })) {
       enqueue({ input: message, files: filePaths });
       return;
     }
@@ -553,9 +558,6 @@ const OpenClawSendBox: React.FC<{ conversation_id: string }> = ({ conversation_i
   }, [conversation_id, openclawStatus, addOrUpdateMessage]);
 
   const handleStop = async (): Promise<void> => {
-    if (items.length > 0) {
-      pause();
-    }
     try {
       await ipcBridge.conversation.stop.invoke({ conversation_id });
     } finally {
@@ -563,6 +565,7 @@ const OpenClawSendBox: React.FC<{ conversation_id: string }> = ({ conversation_i
       aiProcessingRef.current = false;
       setThought({ subject: '', description: '' });
       hasContentInTurnRef.current = false;
+      resetActiveExecution('stop');
     }
   };
 
@@ -571,13 +574,14 @@ const OpenClawSendBox: React.FC<{ conversation_id: string }> = ({ conversation_i
       <ThoughtDisplay thought={thought} running={aiProcessing} onStop={handleStop} />
       <CommandQueuePanel
         items={items}
-        running={aiProcessing}
         paused={isQueuePaused}
+        interactionLocked={isQueueInteractionLocked}
         onPause={pause}
         onResume={resume}
+        onInteractionLock={lockInteraction}
+        onInteractionUnlock={unlockInteraction}
         onUpdate={(commandId, input) => update(commandId, { input })}
-        onMoveUp={moveUp}
-        onMoveDown={moveDown}
+        onReorder={reorder}
         onRemove={remove}
         onClear={clear}
       />

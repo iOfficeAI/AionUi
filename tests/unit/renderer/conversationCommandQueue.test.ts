@@ -5,10 +5,11 @@ import {
   MAX_QUEUED_COMMAND_FILES,
   MAX_QUEUED_COMMAND_INPUT_LENGTH,
   MAX_QUEUED_COMMAND_STATE_BYTES,
-  moveQueuedCommand,
   normalizeQueueState,
+  reorderQueuedCommand,
   removeQueuedCommand,
   restoreQueuedCommand,
+  shouldEnqueueConversationCommand,
   updateQueuedCommand,
   validateQueuedCommandItem,
   type ConversationCommandQueueItem,
@@ -28,23 +29,24 @@ describe('conversation command queue helpers', () => {
     expect(removeQueuedCommand(queue, '2').map((item) => item.id)).toEqual(['1', '3']);
   });
 
-  it('moves a queued command upward', () => {
+  it('reorders a queued command before another command', () => {
     const queue = [createItem('1'), createItem('2'), createItem('3')];
 
-    expect(moveQueuedCommand(queue, '2', 'up').map((item) => item.id)).toEqual(['2', '1', '3']);
+    expect(reorderQueuedCommand(queue, '3', '1').map((item) => item.id)).toEqual(['3', '1', '2']);
   });
 
-  it('moves a queued command downward', () => {
+  it('moves a queued command to the hovered position when dragging downward', () => {
     const queue = [createItem('1'), createItem('2'), createItem('3')];
 
-    expect(moveQueuedCommand(queue, '2', 'down').map((item) => item.id)).toEqual(['1', '3', '2']);
+    expect(reorderQueuedCommand(queue, '1', '3').map((item) => item.id)).toEqual(['2', '3', '1']);
   });
 
-  it('keeps queue unchanged when moving out of bounds', () => {
+  it('keeps queue unchanged when reorder target is invalid', () => {
     const queue = [createItem('1'), createItem('2'), createItem('3')];
 
-    expect(moveQueuedCommand(queue, '1', 'up').map((item) => item.id)).toEqual(['1', '2', '3']);
-    expect(moveQueuedCommand(queue, '3', 'down').map((item) => item.id)).toEqual(['1', '2', '3']);
+    expect(reorderQueuedCommand(queue, 'missing', '2').map((item) => item.id)).toEqual(['1', '2', '3']);
+    expect(reorderQueuedCommand(queue, '1', 'missing').map((item) => item.id)).toEqual(['1', '2', '3']);
+    expect(reorderQueuedCommand(queue, '2', '2').map((item) => item.id)).toEqual(['1', '2', '3']);
   });
 
   it('restores a failed command to the front of the queue', () => {
@@ -69,6 +71,33 @@ describe('conversation command queue helpers', () => {
     const queue = [createItem('1')];
 
     expect(updateQueuedCommand(queue, '1', { files: ['a.ts', 'a.ts', 'b.ts'] })[0]?.files).toEqual(['a.ts', 'b.ts']);
+  });
+
+  it('keeps new commands in the queue while the current turn is still busy', () => {
+    expect(
+      shouldEnqueueConversationCommand({
+        isBusy: true,
+        hasPendingCommands: false,
+      })
+    ).toBe(true);
+  });
+
+  it('keeps new commands in the queue when older queued work is still pending', () => {
+    expect(
+      shouldEnqueueConversationCommand({
+        isBusy: false,
+        hasPendingCommands: true,
+      })
+    ).toBe(true);
+  });
+
+  it('allows direct execution only when the conversation is idle and the queue is empty', () => {
+    expect(
+      shouldEnqueueConversationCommand({
+        isBusy: false,
+        hasPendingCommands: false,
+      })
+    ).toBe(false);
   });
 
   it('clears paused state when queue becomes empty', () => {
