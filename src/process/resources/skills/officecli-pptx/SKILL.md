@@ -31,11 +31,11 @@ officecli --version
 
 ## Quick Reference
 
-| Task | Action |
-|------|--------|
-| Read / analyze content | Use `view` and `get` commands below |
-| Edit existing presentation | Read [editing.md](editing.md) |
-| Create from scratch | Read [creating.md](creating.md) |
+| Task                       | Action                              |
+| -------------------------- | ----------------------------------- |
+| Read / analyze content     | Use `view` and `get` commands below |
+| Edit existing presentation | Read [editing.md](editing.md)       |
+| Create from scratch        | Read [creating.md](creating.md)     |
 
 ---
 
@@ -139,18 +139,18 @@ officecli view slides.pptx html --browser
 
 Choose colors that match your topic -- don't default to generic blue:
 
-| Theme | Primary | Secondary | Accent | Text | Muted/Caption |
-|-------|---------|-----------|--------|------|---------------|
-| **Coral Energy** | `F96167` (coral) | `F9E795` (gold) | `2F3C7E` (navy) | `333333` (charcoal) | `8B7E6A` (warm gray) |
-| **Midnight Executive** | `1E2761` (navy) | `CADCFC` (ice blue) | `FFFFFF` (white) | `333333` (charcoal) | `8899BB` (slate) |
-| **Forest & Moss** | `2C5F2D` (forest) | `97BC62` (moss) | `F5F5F5` (cream) | `2D2D2D` (near-black) | `6B8E6B` (faded green) |
-| **Charcoal Minimal** | `36454F` (charcoal) | `F2F2F2` (off-white) | `212121` (black) | `333333` (dark gray) | `7A8A94` (cool gray) |
-| **Warm Terracotta** | `B85042` (terracotta) | `E7E8D1` (sand) | `A7BEAE` (sage) | `3D2B2B` (brown-black) | `8C7B75` (dusty brown) |
-| **Berry & Cream** | `6D2E46` (berry) | `A26769` (dusty rose) | `ECE2D0` (cream) | `3D2233` (dark berry) | `8C6B7A` (mauve gray) |
-| **Ocean Gradient** | `065A82` (deep blue) | `1C7293` (teal) | `21295C` (midnight) | `2B3A4E` (dark slate) | `6B8FAA` (steel blue) |
-| **Teal Trust** | `028090` (teal) | `00A896` (seafoam) | `02C39A` (mint) | `2D3B3B` (dark teal) | `5E8C8C` (muted teal) |
-| **Sage Calm** | `84B59F` (sage) | `69A297` (eucalyptus) | `50808E` (slate) | `2D3D35` (dark green) | `7A9488` (faded sage) |
-| **Cherry Bold** | `990011` (cherry) | `FCF6F5` (off-white) | `2F3C7E` (navy) | `333333` (charcoal) | `8B6B6B` (dusty red) |
+| Theme                  | Primary               | Secondary             | Accent              | Text                   | Muted/Caption          |
+| ---------------------- | --------------------- | --------------------- | ------------------- | ---------------------- | ---------------------- |
+| **Coral Energy**       | `F96167` (coral)      | `F9E795` (gold)       | `2F3C7E` (navy)     | `333333` (charcoal)    | `8B7E6A` (warm gray)   |
+| **Midnight Executive** | `1E2761` (navy)       | `CADCFC` (ice blue)   | `FFFFFF` (white)    | `333333` (charcoal)    | `8899BB` (slate)       |
+| **Forest & Moss**      | `2C5F2D` (forest)     | `97BC62` (moss)       | `F5F5F5` (cream)    | `2D2D2D` (near-black)  | `6B8E6B` (faded green) |
+| **Charcoal Minimal**   | `36454F` (charcoal)   | `F2F2F2` (off-white)  | `212121` (black)    | `333333` (dark gray)   | `7A8A94` (cool gray)   |
+| **Warm Terracotta**    | `B85042` (terracotta) | `E7E8D1` (sand)       | `A7BEAE` (sage)     | `3D2B2B` (brown-black) | `8C7B75` (dusty brown) |
+| **Berry & Cream**      | `6D2E46` (berry)      | `A26769` (dusty rose) | `ECE2D0` (cream)    | `3D2233` (dark berry)  | `8C6B7A` (mauve gray)  |
+| **Ocean Gradient**     | `065A82` (deep blue)  | `1C7293` (teal)       | `21295C` (midnight) | `2B3A4E` (dark slate)  | `6B8FAA` (steel blue)  |
+| **Teal Trust**         | `028090` (teal)       | `00A896` (seafoam)    | `02C39A` (mint)     | `2D3B3B` (dark teal)   | `5E8C8C` (muted teal)  |
+| **Sage Calm**          | `84B59F` (sage)       | `69A297` (eucalyptus) | `50808E` (slate)    | `2D3D35` (dark green)  | `7A9488` (faded sage)  |
+| **Cherry Bold**        | `990011` (cherry)     | `FCF6F5` (off-white)  | `2F3C7E` (navy)     | `333333` (charcoal)    | `8B6B6B` (dusty red)   |
 
 Use **Text** for body copy on light backgrounds, **Muted** for captions, labels, and axis text. On dark backgrounds, use the Secondary or `FFFFFF` for body text and Muted for captions.
 
@@ -160,29 +160,30 @@ Use **Text** for body copy on light backgrounds, **Muted** for captions, labels,
 
 **Choose an interesting font pairing** -- don't default to Arial.
 
-| Header Font | Body Font | Best For |
-|-------------|-----------|----------|
-| Georgia | Calibri | Formal business, finance, executive reports |
-| Arial Black | Arial | Bold marketing, product launches |
-| Calibri | Calibri Light | Clean corporate, minimal design |
-| Cambria | Calibri | Traditional professional, legal, academic |
-| Trebuchet MS | Calibri | Friendly tech, startups, SaaS |
-| Impact | Arial | Bold headlines, event decks, keynotes |
-| Palatino | Garamond | Elegant editorial, luxury, nonprofit |
-| Consolas | Calibri | Developer tools, technical/engineering |
+| Header Font  | Body Font     | Best For                                    |
+| ------------ | ------------- | ------------------------------------------- |
+| Georgia      | Calibri       | Formal business, finance, executive reports |
+| Arial Black  | Arial         | Bold marketing, product launches            |
+| Calibri      | Calibri Light | Clean corporate, minimal design             |
+| Cambria      | Calibri       | Traditional professional, legal, academic   |
+| Trebuchet MS | Calibri       | Friendly tech, startups, SaaS               |
+| Impact       | Arial         | Bold headlines, event decks, keynotes       |
+| Palatino     | Garamond      | Elegant editorial, luxury, nonprofit        |
+| Consolas     | Calibri       | Developer tools, technical/engineering      |
 
-| Element | Size |
-|---------|------|
-| Slide title | 36-44pt bold |
-| Section header | 20-24pt bold |
-| Body text | 14-16pt |
-| Captions | 10-12pt muted |
+| Element        | Size          |
+| -------------- | ------------- |
+| Slide title    | 36-44pt bold  |
+| Section header | 20-24pt bold  |
+| Body text      | 14-16pt       |
+| Captions       | 10-12pt muted |
 
 ### Layout Variety
 
 **Every slide needs a visual element** -- image, chart, icon, or shape. Text-only slides are forgettable.
 
 Vary across these layout types:
+
 - Two-column (text left, visual right)
 - Icon + text rows (icon in colored circle, bold header, description)
 - 2x2 or 2x3 grid (content blocks)
@@ -195,16 +196,16 @@ Vary across these layout types:
 
 These are starting points. Adapt based on content density and narrative flow.
 
-| Content Type | Recommended Layout | Why |
-|---|---|---|
-| Pricing / plan tiers | 2-3 column cards (comparison) | Side-by-side enables instant comparison |
-| Team / people | Icon grid or 2x3 cards | Faces/avatars need equal visual weight |
-| Timeline / roadmap | Process flow with arrows or numbered steps | Left-to-right communicates sequence |
-| Key metrics / KPIs | Large stat callouts (3-4 big numbers) | Big numbers grab attention; labels below |
-| Testimonials / quotes | Full-width quote with attribution | Generous whitespace signals credibility |
-| Feature comparison | Two-column before/after or table | Parallel structure aids scanning |
-| Architecture / system | Shapes + connectors diagram | Spatial relationships need visual expression |
-| Financial data | Chart + summary table side-by-side | Chart shows trend; table provides precision |
+| Content Type          | Recommended Layout                         | Why                                          |
+| --------------------- | ------------------------------------------ | -------------------------------------------- |
+| Pricing / plan tiers  | 2-3 column cards (comparison)              | Side-by-side enables instant comparison      |
+| Team / people         | Icon grid or 2x3 cards                     | Faces/avatars need equal visual weight       |
+| Timeline / roadmap    | Process flow with arrows or numbered steps | Left-to-right communicates sequence          |
+| Key metrics / KPIs    | Large stat callouts (3-4 big numbers)      | Big numbers grab attention; labels below     |
+| Testimonials / quotes | Full-width quote with attribution          | Generous whitespace signals credibility      |
+| Feature comparison    | Two-column before/after or table           | Parallel structure aids scanning             |
+| Architecture / system | Shapes + connectors diagram                | Spatial relationships need visual expression |
+| Financial data        | Chart + summary table side-by-side         | Chart shows trend; table provides precision  |
 
 ### Spacing
 
@@ -293,6 +294,7 @@ Report ALL issues found.
 ```
 
 **Editing-specific QA checklist (in addition to the above):**
+
 - [ ] On every template slide (not new blank slides), verify that NO decorative element (`!!`-prefixed shape) overlaps or obscures content text
 - [ ] Verify all hero numbers / key metrics are visible (not hidden by card fills or same-color-as-background)
 - [ ] On dark background slides, verify chart bars/lines, axis labels, and gridlines are visible
@@ -329,24 +331,24 @@ Before declaring a presentation complete, verify:
 
 ## Common Pitfalls
 
-| Pitfall | Correct Approach |
-|---------|-----------------|
-| `--name "foo"` | Use `--prop name="foo"` -- all attributes go through `--prop` |
-| `x=-3cm` | Negative coordinates not supported. Use `x=0cm` instead |
-| `/shape[myname]` | Name indexing not supported. Use numeric index: `/shape[3]` |
-| Guessing property names | Run `officecli pptx set shape` to see exact names |
-| `\n` in shell strings | Use `\\n` for newlines in `--prop text="line1\\nline2"` |
-| Modifying an open file | Close the file in PowerPoint/WPS first |
-| Hex colors with `#` | Use `FF0000` not `#FF0000` -- no hash prefix |
-| Theme colors | Use `accent1`..`accent6`, `dk1`, `dk2`, `lt1`, `lt2` -- not hex |
-| Forgetting alt text | Always set `--prop alt="description"` on pictures for accessibility |
-| Paths are 1-based | `/slide[1]`, `/shape[1]` -- XPath convention |
-| `--index` is 0-based | `--index 0` = first position -- array convention |
-| Unquoted `[N]` in zsh/bash | Shell glob-expands `/slide[1]` -- always quote paths: `"/slide[1]"` |
-| Z-order (shapes overlapping) | Use `--prop zorder=back` or `zorder=front` / `forward` / `backward` / absolute position number. **WARNING:** Z-order changes cause shape index renumbering -- re-query with `get --depth 1` after any z-order change before referencing shapes by index. Process highest index first when changing multiple shapes. |
-| `gap`/`gapwidth` on chart add | Ignored during `add` -- set it after creation: `officecli set ... /slide[N]/chart[M] --prop gap=80` |
-| `$` and `'` in batch JSON text | Use heredoc: `cat <<'EOF' \| officecli batch` -- single-quoted delimiter prevents shell expansion of `$`, apostrophes, and backticks |
-| Template text at wrong size | Template shapes have baked-in font sizes. Always include `size`, `font`, and `color` in every `set` on template shapes. See editing.md "Font Cascade from Template Shapes" section. |
+| Pitfall                        | Correct Approach                                                                                                                                                                                                                                                                                                    |
+| ------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `--name "foo"`                 | Use `--prop name="foo"` -- all attributes go through `--prop`                                                                                                                                                                                                                                                       |
+| `x=-3cm`                       | Negative coordinates not supported. Use `x=0cm` instead                                                                                                                                                                                                                                                             |
+| `/shape[myname]`               | Name indexing not supported. Use numeric index: `/shape[3]`                                                                                                                                                                                                                                                         |
+| Guessing property names        | Run `officecli pptx set shape` to see exact names                                                                                                                                                                                                                                                                   |
+| `\n` in shell strings          | Use `\\n` for newlines in `--prop text="line1\\nline2"`                                                                                                                                                                                                                                                             |
+| Modifying an open file         | Close the file in PowerPoint/WPS first                                                                                                                                                                                                                                                                              |
+| Hex colors with `#`            | Use `FF0000` not `#FF0000` -- no hash prefix                                                                                                                                                                                                                                                                        |
+| Theme colors                   | Use `accent1`..`accent6`, `dk1`, `dk2`, `lt1`, `lt2` -- not hex                                                                                                                                                                                                                                                     |
+| Forgetting alt text            | Always set `--prop alt="description"` on pictures for accessibility                                                                                                                                                                                                                                                 |
+| Paths are 1-based              | `/slide[1]`, `/shape[1]` -- XPath convention                                                                                                                                                                                                                                                                        |
+| `--index` is 0-based           | `--index 0` = first position -- array convention                                                                                                                                                                                                                                                                    |
+| Unquoted `[N]` in zsh/bash     | Shell glob-expands `/slide[1]` -- always quote paths: `"/slide[1]"`                                                                                                                                                                                                                                                 |
+| Z-order (shapes overlapping)   | Use `--prop zorder=back` or `zorder=front` / `forward` / `backward` / absolute position number. **WARNING:** Z-order changes cause shape index renumbering -- re-query with `get --depth 1` after any z-order change before referencing shapes by index. Process highest index first when changing multiple shapes. |
+| `gap`/`gapwidth` on chart add  | Ignored during `add` -- set it after creation: `officecli set ... /slide[N]/chart[M] --prop gap=80`                                                                                                                                                                                                                 |
+| `$` and `'` in batch JSON text | Use heredoc: `cat <<'EOF' \| officecli batch` -- single-quoted delimiter prevents shell expansion of `$`, apostrophes, and backticks                                                                                                                                                                                |
+| Template text at wrong size    | Template shapes have baked-in font sizes. Always include `size`, `font`, and `color` in every `set` on template shapes. See editing.md "Font Cascade from Template Shapes" section.                                                                                                                                 |
 
 ---
 
@@ -384,15 +386,15 @@ Batch fields: `command`, `path`, `parent`, `type`, `from`, `to`, `index`, `props
 
 ## Known Issues
 
-| Issue | Workaround |
-|---|---|
-| **Chart series cannot be added after creation**: `set --prop data=` and `set --prop seriesN=` on an existing chart can only update existing series -- they cannot add new series. The series count is fixed at creation time. | Include all series in the `add` command (using `series1`+`series2` props or the `data` prop). Both forms work reliably in single commands and in batch mode. If you need to add series to an existing chart, delete it and recreate: `officecli remove file.pptx "/slide[N]/chart[M]"` then `officecli add` with all series. See creating.md "Multi-Series Column Chart" and editing.md "Update Charts". |
-| **Chart schema validation warning**: Some modern chart styling combinations produce a `ChartShapeProperties` schema warning from `officecli validate`. This does not affect PowerPoint rendering. | Ignore the warning if the chart opens correctly in PowerPoint. |
-| **Table font cascade overwritten by row set**: Setting `size`/`font` on the table path and then setting row content with `set tr[N]` resets font properties on that row to defaults. | Set table-level `size`/`font` **after** all row content is populated, or include `size`/`font` in each row-level `set` command. |
-| **Shell quoting in batch with `echo`**: `echo '...' \| officecli batch` fails when JSON values contain apostrophes or `$` characters (common in English text and currency). | Use a heredoc instead: `cat <<'EOF' \| officecli batch file.pptx` ... `EOF`. The single-quoted heredoc delimiter prevents all shell interpolation. |
-| **Batch intermittent failure**: Approximately 1-in-15 batch operations may fail with "Failed to send to resident" when using batch mode with resident mode (`open`/`close`). | Retry the failed batch command. If the error persists, close and re-open the file: `officecli close file.pptx && officecli open file.pptx`, then retry. For critical workflows, consider splitting large batch arrays into smaller chunks (10-15 operations each). |
-| **Table cell solidFill schema warning**: Setting `color` on table cell run properties may produce `solidFill` schema validation errors. The table renders correctly in PowerPoint. | Ignore if the table opens correctly. Alternatively, set text color at the row level (`set tr[N] --prop color=HEX`) instead of the cell level. |
-| **Multi-series chart rendering in SVG/screenshot**: SVG and screenshot renders may show fewer series than actually exist in the chart data. The chart data is correct but the rendering engine does not always display all series visually. | Verify multi-series charts by opening the .pptx in PowerPoint or by using `get /slide[N]/chart[M]` to confirm all series are present in the data. Do not rely solely on SVG/screenshot visual QA for multi-series verification. |
+| Issue                                                                                                                                                                                                                                       | Workaround                                                                                                                                                                                                                                                                                                                                                                                               |
+| ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Chart series cannot be added after creation**: `set --prop data=` and `set --prop seriesN=` on an existing chart can only update existing series -- they cannot add new series. The series count is fixed at creation time.               | Include all series in the `add` command (using `series1`+`series2` props or the `data` prop). Both forms work reliably in single commands and in batch mode. If you need to add series to an existing chart, delete it and recreate: `officecli remove file.pptx "/slide[N]/chart[M]"` then `officecli add` with all series. See creating.md "Multi-Series Column Chart" and editing.md "Update Charts". |
+| **Chart schema validation warning**: Some modern chart styling combinations produce a `ChartShapeProperties` schema warning from `officecli validate`. This does not affect PowerPoint rendering.                                           | Ignore the warning if the chart opens correctly in PowerPoint.                                                                                                                                                                                                                                                                                                                                           |
+| **Table font cascade overwritten by row set**: Setting `size`/`font` on the table path and then setting row content with `set tr[N]` resets font properties on that row to defaults.                                                        | Set table-level `size`/`font` **after** all row content is populated, or include `size`/`font` in each row-level `set` command.                                                                                                                                                                                                                                                                          |
+| **Shell quoting in batch with `echo`**: `echo '...' \| officecli batch` fails when JSON values contain apostrophes or `$` characters (common in English text and currency).                                                                 | Use a heredoc instead: `cat <<'EOF' \| officecli batch file.pptx` ... `EOF`. The single-quoted heredoc delimiter prevents all shell interpolation.                                                                                                                                                                                                                                                       |
+| **Batch intermittent failure**: Approximately 1-in-15 batch operations may fail with "Failed to send to resident" when using batch mode with resident mode (`open`/`close`).                                                                | Retry the failed batch command. If the error persists, close and re-open the file: `officecli close file.pptx && officecli open file.pptx`, then retry. For critical workflows, consider splitting large batch arrays into smaller chunks (10-15 operations each).                                                                                                                                       |
+| **Table cell solidFill schema warning**: Setting `color` on table cell run properties may produce `solidFill` schema validation errors. The table renders correctly in PowerPoint.                                                          | Ignore if the table opens correctly. Alternatively, set text color at the row level (`set tr[N] --prop color=HEX`) instead of the cell level.                                                                                                                                                                                                                                                            |
+| **Multi-series chart rendering in SVG/screenshot**: SVG and screenshot renders may show fewer series than actually exist in the chart data. The chart data is correct but the rendering engine does not always display all series visually. | Verify multi-series charts by opening the .pptx in PowerPoint or by using `get /slide[N]/chart[M]` to confirm all series are present in the data. Do not rely solely on SVG/screenshot visual QA for multi-series verification.                                                                                                                                                                          |
 
 ---
 

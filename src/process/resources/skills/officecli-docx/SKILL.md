@@ -31,11 +31,11 @@ officecli --version
 
 ## Quick Reference
 
-| Task | Action |
-|------|--------|
+| Task                   | Action                              |
+| ---------------------- | ----------------------------------- |
 | Read / analyze content | Use `view` and `get` commands below |
-| Edit existing document | Read [editing.md](editing.md) |
-| Create from scratch | Read [creating.md](creating.md) |
+| Edit existing document | Read [editing.md](editing.md)       |
+| Create from scratch    | Read [creating.md](creating.md)     |
 
 ---
 
@@ -171,18 +171,18 @@ Use color sparingly in documents -- accent color for headings or table headers, 
 
 ### Content-to-Element Mapping
 
-| Content Type | Recommended Element(s) | Why |
-|---|---|---|
-| Sequential items | Bulleted list (`listStyle=bullet`) | Scanning is faster than inline commas |
-| Step-by-step process | Numbered list (`listStyle=numbered`) | Numbers communicate order |
-| Comparative data | Table with header row | Columns enable side-by-side comparison |
-| Trend data | Embedded chart (`chartType=line/column`) | Visual pattern recognition |
-| Key definition | Hanging indent paragraph | Offset term from definition |
-| Legal/contract clause | Numbered list with bookmarks | Cross-referencing via bookmarks |
-| Mathematical content | Equation element (`formula=LaTeX`) | Proper OMML rendering |
-| Citation/reference | Footnote or endnote | Keeps body text clean |
-| Pull quote / callout | Paragraph with border + shading | Visual distinction from body |
-| Multi-section layout | Section breaks with columns | Column control per section |
+| Content Type          | Recommended Element(s)                   | Why                                    |
+| --------------------- | ---------------------------------------- | -------------------------------------- |
+| Sequential items      | Bulleted list (`listStyle=bullet`)       | Scanning is faster than inline commas  |
+| Step-by-step process  | Numbered list (`listStyle=numbered`)     | Numbers communicate order              |
+| Comparative data      | Table with header row                    | Columns enable side-by-side comparison |
+| Trend data            | Embedded chart (`chartType=line/column`) | Visual pattern recognition             |
+| Key definition        | Hanging indent paragraph                 | Offset term from definition            |
+| Legal/contract clause | Numbered list with bookmarks             | Cross-referencing via bookmarks        |
+| Mathematical content  | Equation element (`formula=LaTeX`)       | Proper OMML rendering                  |
+| Citation/reference    | Footnote or endnote                      | Keeps body text clean                  |
+| Pull quote / callout  | Paragraph with border + shading          | Visual distinction from body           |
+| Multi-section layout  | Section breaks with columns              | Column control per section             |
 
 ---
 
@@ -258,6 +258,7 @@ officecli validate doc.docx
 **NOTE**: Unlike pptx, there is no visual preview mode (`view svg`/`view html`) for docx. Content verification relies on `view text`, `view annotated`, `view outline`, `view issues`, and `validate`. For visual verification, the user must open the file in Word.
 
 **QA display notes:**
+
 - `view text` shows "1." for ALL numbered list items regardless of their actual rendered number. This is a display limitation -- the actual document renders correct auto-incrementing numbers (1, 2, 3...) in Word and LibreOffice. Do not treat this as a defect.
 - `view issues` flags "body paragraph missing first-line indent" on centered paragraphs, list items, bibliography entries, and other intentionally non-indented content. These are expected for block-style formatting and can be ignored when the paragraph has explicit `spaceAfter`, `listStyle`, `alignment=center`, or `hangingIndent`.
 
@@ -265,23 +266,23 @@ officecli validate doc.docx
 
 ## Common Pitfalls
 
-| Pitfall | Correct Approach |
-|---------|-----------------|
-| `--name "foo"` | Use `--prop name="foo"` -- all attributes go through `--prop` |
-| Guessing property names | Run `officecli docx set paragraph` to see exact names |
-| `\n` in shell strings | Use `\\n` for newlines in `--prop text="line1\\nline2"` |
-| Modifying an open file | Close the file in Word first |
-| Hex colors with `#` | Use `FF0000` not `#FF0000` -- no hash prefix |
-| Paths are 1-based | `/body/p[1]`, `/body/tbl[1]` -- XPath convention |
-| `--index` is 0-based | `--index 0` = first position -- array convention |
-| Unquoted `[N]` in zsh/bash | Shell glob-expands `/body/p[1]` -- always quote paths: `"/body/p[1]"` |
-| Spacing in raw numbers | Use unit-qualified values: `'12pt'`, `'0.5cm'`, `'1.5x'` not raw twips |
-| Empty paragraphs for spacing | Use `spaceBefore`/`spaceAfter` properties on paragraphs |
-| `$` and `'` in batch JSON | Use heredoc: `cat <<'EOF' \| officecli batch` -- single-quoted delimiter prevents shell expansion |
-| Wrong border format | Use `style;size;color;space` format: `single;4;FF0000;1` |
-| listStyle on run instead of paragraph | `listStyle` is a paragraph property, not a run property |
-| Row-level bold/color/shd | Row `set` only supports `height`, `header`, and `c1/c2/c3` text shortcuts. Use cell-level `set` for formatting (bold, shd, color, font) |
-| Section vs root property names | Section uses `pagewidth`/`pageheight` (lowercase). Document root uses `pageWidth`/`pageHeight` (camelCase) |
+| Pitfall                               | Correct Approach                                                                                                                        |
+| ------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------- |
+| `--name "foo"`                        | Use `--prop name="foo"` -- all attributes go through `--prop`                                                                           |
+| Guessing property names               | Run `officecli docx set paragraph` to see exact names                                                                                   |
+| `\n` in shell strings                 | Use `\\n` for newlines in `--prop text="line1\\nline2"`                                                                                 |
+| Modifying an open file                | Close the file in Word first                                                                                                            |
+| Hex colors with `#`                   | Use `FF0000` not `#FF0000` -- no hash prefix                                                                                            |
+| Paths are 1-based                     | `/body/p[1]`, `/body/tbl[1]` -- XPath convention                                                                                        |
+| `--index` is 0-based                  | `--index 0` = first position -- array convention                                                                                        |
+| Unquoted `[N]` in zsh/bash            | Shell glob-expands `/body/p[1]` -- always quote paths: `"/body/p[1]"`                                                                   |
+| Spacing in raw numbers                | Use unit-qualified values: `'12pt'`, `'0.5cm'`, `'1.5x'` not raw twips                                                                  |
+| Empty paragraphs for spacing          | Use `spaceBefore`/`spaceAfter` properties on paragraphs                                                                                 |
+| `$` and `'` in batch JSON             | Use heredoc: `cat <<'EOF' \| officecli batch` -- single-quoted delimiter prevents shell expansion                                       |
+| Wrong border format                   | Use `style;size;color;space` format: `single;4;FF0000;1`                                                                                |
+| listStyle on run instead of paragraph | `listStyle` is a paragraph property, not a run property                                                                                 |
+| Row-level bold/color/shd              | Row `set` only supports `height`, `header`, and `c1/c2/c3` text shortcuts. Use cell-level `set` for formatting (bold, shd, color, font) |
+| Section vs root property names        | Section uses `pagewidth`/`pageheight` (lowercase). Document root uses `pageWidth`/`pageHeight` (camelCase)                              |
 
 ---
 
@@ -319,20 +320,20 @@ Batch fields: `command`, `path`, `parent`, `type`, `from`, `to`, `index`, `props
 
 ## Known Issues
 
-| Issue | Workaround |
-|---|---|
-| **No visual preview** | Unlike pptx (SVG/HTML), docx has no built-in rendering. Use `view text`/`view outline`/`view annotated`/`view issues` for verification. Users must open in Word for visual check. |
-| **Track changes creation requires raw XML** | OfficeCLI can accept/reject tracked changes (`set / --prop accept-changes=all`) but cannot create tracked changes (insertions/deletions with author markup) via high-level commands. Use `raw-set` with XML for tracked change creation. |
-| **Tab stops may require raw XML** | Tab stop creation is not exposed in officecli docx high-level commands. Use `raw-set` to add tab stop definitions in paragraph properties. |
-| **Chart series cannot be added after creation** | Same as pptx: `set --prop data=` can only update existing series, not add new ones. Delete and recreate the chart with all series in the `add` command. |
-| **Complex numbering definitions** | `listStyle=bullet/numbered` covers simple cases. For multi-level lists with custom formatting, use `numId`/`numLevel` properties. Creating new numbering definitions may require understanding the numbering part. |
-| **Shell quoting in batch with echo** | `echo '...' \| officecli batch` fails when JSON values contain apostrophes or `$`. Use heredoc: `cat <<'EOF' \| officecli batch doc.docx`. |
-| **Batch intermittent failure** | Approximately 1-in-15 batch operations may fail with "Failed to send to resident" when using batch+resident mode. Retry the command, or close/reopen the file. Split large batch arrays into 10-15 operation chunks. |
-| **Table-level `padding` produces invalid XML** | Do not use `set tbl[N] --prop padding=N`. It creates invalid `tblCellMar`. Use cell-level `padding.top`/`padding.bottom` instead. If already applied, remove with `raw-set --xpath "//w:tbl[N]/w:tblPr/w:tblCellMar" --action remove`. |
-| **Internal hyperlinks not supported** | The `hyperlink` command only accepts absolute URIs (`https://...`). Fragment URLs (`#bookmark`) are rejected. For internal cross-references, use descriptive text or `raw-set` with `<w:hyperlink w:anchor="bookmarkName">`. |
-| **Table `--index` positioning unreliable** | `--index N` on `add /body --type table` may be ignored (table appends to end). `move` also may not work for tables. Workaround: add content in the desired order, or remove/re-add surrounding elements. |
-| **`\mathcal` in equations causes validation errors** | The `\mathcal` LaTeX command generates invalid `m:scr` XML. Use `\mathit` or plain letters instead. |
-| **`view text` shows "1." for all numbered items** | Display-only limitation. Rendered output in Word/LibreOffice shows correct auto-incrementing numbers. |
+| Issue                                                | Workaround                                                                                                                                                                                                                               |
+| ---------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **No visual preview**                                | Unlike pptx (SVG/HTML), docx has no built-in rendering. Use `view text`/`view outline`/`view annotated`/`view issues` for verification. Users must open in Word for visual check.                                                        |
+| **Track changes creation requires raw XML**          | OfficeCLI can accept/reject tracked changes (`set / --prop accept-changes=all`) but cannot create tracked changes (insertions/deletions with author markup) via high-level commands. Use `raw-set` with XML for tracked change creation. |
+| **Tab stops may require raw XML**                    | Tab stop creation is not exposed in officecli docx high-level commands. Use `raw-set` to add tab stop definitions in paragraph properties.                                                                                               |
+| **Chart series cannot be added after creation**      | Same as pptx: `set --prop data=` can only update existing series, not add new ones. Delete and recreate the chart with all series in the `add` command.                                                                                  |
+| **Complex numbering definitions**                    | `listStyle=bullet/numbered` covers simple cases. For multi-level lists with custom formatting, use `numId`/`numLevel` properties. Creating new numbering definitions may require understanding the numbering part.                       |
+| **Shell quoting in batch with echo**                 | `echo '...' \| officecli batch` fails when JSON values contain apostrophes or `$`. Use heredoc: `cat <<'EOF' \| officecli batch doc.docx`.                                                                                               |
+| **Batch intermittent failure**                       | Approximately 1-in-15 batch operations may fail with "Failed to send to resident" when using batch+resident mode. Retry the command, or close/reopen the file. Split large batch arrays into 10-15 operation chunks.                     |
+| **Table-level `padding` produces invalid XML**       | Do not use `set tbl[N] --prop padding=N`. It creates invalid `tblCellMar`. Use cell-level `padding.top`/`padding.bottom` instead. If already applied, remove with `raw-set --xpath "//w:tbl[N]/w:tblPr/w:tblCellMar" --action remove`.   |
+| **Internal hyperlinks not supported**                | The `hyperlink` command only accepts absolute URIs (`https://...`). Fragment URLs (`#bookmark`) are rejected. For internal cross-references, use descriptive text or `raw-set` with `<w:hyperlink w:anchor="bookmarkName">`.             |
+| **Table `--index` positioning unreliable**           | `--index N` on `add /body --type table` may be ignored (table appends to end). `move` also may not work for tables. Workaround: add content in the desired order, or remove/re-add surrounding elements.                                 |
+| **`\mathcal` in equations causes validation errors** | The `\mathcal` LaTeX command generates invalid `m:scr` XML. Use `\mathit` or plain letters instead.                                                                                                                                      |
+| **`view text` shows "1." for all numbered items**    | Display-only limitation. Rendered output in Word/LibreOffice shows correct auto-incrementing numbers.                                                                                                                                    |
 
 ---
 

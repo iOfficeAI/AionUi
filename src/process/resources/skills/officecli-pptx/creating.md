@@ -255,6 +255,7 @@ Omit `targets` to apply to all shapes on the slide.
 ### Multi-Paragraph Text (Rich Text)
 
 **When to use rich text vs. \\n:**
+
 - Use `\\n` within a single `--prop text="..."` for simple same-style paragraphs
 - Use paragraph/run operations when you need mixed formatting (bold heading + normal body in the same text box)
 
@@ -377,6 +378,7 @@ officecli add slides.pptx /slide[1] --type chart \
 ```
 
 Key styling properties:
+
 - `plotFill=none` and `chartFill=none` -- clean transparent background
 - `gridlines="E2E8F0:0.5"` -- subtle, light gridlines
 - `series.outline="FFFFFF-0.5"` -- thin white border between bars
@@ -553,6 +555,7 @@ Classes: entrance (default), exit, emphasis
 Triggers: click (default for 1st on slide), after (default for subsequent), with
 
 **Timing guidance:**
+
 - Entrance animations: 300-500ms (fast enough to not feel sluggish)
 - Emphasis: 600-800ms
 - Sequential element reveals: use `after` trigger with 100-200ms delay between elements
@@ -578,6 +581,7 @@ officecli set slides.pptx /slide[1] --prop transition=fade --prop advanceTime=30
 Morph transitions automatically add `!!` prefix to shape names for cross-slide matching. Give shapes the same name on consecutive slides to pair them for morph animation. **When editing templates:** Shapes with `!!`-prefixed names (e.g., `!!bar1`, `!!dot3`) are decorative elements used for morph transitions. Leave them in place -- removing or renaming them breaks the animation. These shapes may be positioned off-screen (x>33cm) to morph-in on transition.
 
 **Recommended pairings:**
+
 - Title/closing slides: `fade` (clean, professional)
 - Content slides: `push-left` or `wipe-right` (directional flow)
 - Section dividers: `fade` or `dissolve` (signals topic change)

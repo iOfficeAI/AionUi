@@ -31,11 +31,11 @@ officecli set doc.docx / --prop defaultFont=Calibri
 
 ### Page Size Reference
 
-| Paper | pageWidth | pageHeight |
-|-------|-----------|------------|
-| US Letter | 12240 | 15840 |
-| A4 | 11906 | 16838 |
-| Legal | 12240 | 20160 |
+| Paper     | pageWidth | pageHeight |
+| --------- | --------- | ---------- |
+| US Letter | 12240     | 15840      |
+| A4        | 11906     | 16838      |
+| Legal     | 12240     | 20160      |
 
 Values are in twips (1440 twips = 1 inch, 567 twips = 1 cm).
 
@@ -495,6 +495,7 @@ officecli set doc.docx "/body/p[5]/r[2]" --prop "formula=\alpha + \beta = \gamma
 **LaTeX subset reference**: `\frac{}{}`, `\sqrt{}`, `\sum`, `\int`, `\lim`, `\nabla`, `\partial`, Greek letters (`\alpha`, `\beta`, etc.), subscripts (`_`), superscripts (`^`), `\binom{}{}`, `\rightarrow`, `\rightleftharpoons`, `\pm`, `\times`, `\cdot`, `\infty`, `\begin{pmatrix}...\end{pmatrix}`
 
 **Equation caveats:**
+
 - `\mathcal` is NOT reliably supported -- it generates invalid `m:scr` XML. Use `\mathit{L}` or plain italic letters instead.
 - After adding equations, immediately verify with `view text` -- equations appear as `[Equation]` markers. If the marker is missing, the equation was not created correctly.
 - When fixing validation errors or removing empty paragraphs, re-check that `[Equation]` markers are still present. Equation paragraphs (oMathPara) share the paragraph index space and can be accidentally deleted.
@@ -767,14 +768,17 @@ officecli query doc.docx 'image:no-alt'
 ### L1, L2, L3 Escalation (When to Use Raw XML)
 
 **L1 -- High-level commands (use first)**:
+
 - `add`, `set`, `get`, `query`, `remove`, `move`, `swap`
 - Covers 90% of use cases
 
 **L2 -- Batch with selectors**:
+
 - `set doc.docx 'selector' --prop key=value`
 - For bulk modifications across document
 
 **L3 -- Raw XML (last resort)**:
+
 - `raw` to inspect XML
 - `raw-set` to modify XML directly
 - `add-part` to create new document parts (returns rId)
