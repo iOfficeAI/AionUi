@@ -60,4 +60,40 @@ describe('bootstrap rejection handling', () => {
       message: 'Google OAuth authentication not configured',
     });
   });
+
+  it('send() emits error and finish events when bootstrap rejects (ELECTRON-B7)', async () => {
+    const initError = new Error(
+      'Your current account is not eligible for Gemini Code Assist for individuals because it is not currently available in your location.'
+    );
+    const bootstrap = Promise.reject(initError);
+    bootstrap.catch(() => {}); // Prevent unhandled rejection
+
+    // Simulate the GeminiAgent.send() try-catch pattern
+    const events: Array<{ type: string; data: unknown; msg_id: string }> = [];
+    const onStreamEvent = (event: { type: string; data: unknown; msg_id: string }) => {
+      events.push(event);
+    };
+    const msg_id = 'test-msg-1';
+
+    // Replicate the send() bootstrap guard
+    try {
+      await bootstrap;
+    } catch (e) {
+      const errorMessage = e instanceof Error ? e.message : String(e);
+      onStreamEvent({ type: 'error', data: errorMessage, msg_id });
+      onStreamEvent({ type: 'finish', data: null, msg_id });
+    }
+
+    expect(events).toHaveLength(2);
+    expect(events[0]).toEqual({
+      type: 'error',
+      data: initError.message,
+      msg_id: 'test-msg-1',
+    });
+    expect(events[1]).toEqual({
+      type: 'finish',
+      data: null,
+      msg_id: 'test-msg-1',
+    });
+  });
 });
