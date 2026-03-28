@@ -173,14 +173,47 @@ export const ASSISTANT_PRESETS: AssistantPreset[] = [
     },
     promptsI18n: {
       'en-US': [
-        'I have a SaaS MRR tracker CSV — build a board-meeting dashboard with MRR trend, month-over-month growth, and churn breakdown',
-        'Create a regional sales dashboard from my 200-row e-commerce dataset: revenue by region, weekly trends, and category split',
-        'Build a budget-vs-actuals dashboard for the C-suite showing department performance with variance indicators',
+        'Create a SaaS MRR dashboard with 12 months of sample data — show MRR trend, month-over-month growth, and churn breakdown for a board meeting',
+        'Build an e-commerce regional sales dashboard with sample data across 5 regions: revenue by region, weekly trends, and category split',
+        'Make a budget-vs-actuals dashboard for 8 departments showing variance indicators and over/under-budget status',
       ],
       'zh-CN': [
-        '我有一份 SaaS MRR 追踪 CSV，帮我做一个董事会汇报用的仪表盘，要有 MRR 趋势、环比增长和流失分析',
-        '用我 200 行的电商数据做一个区域销售仪表盘：按区域的收入、周趋势和品类占比',
-        '做一个预算 vs 实际的高管仪表盘，展示各部门执行情况和偏差指标',
+        '做一个 SaaS MRR 仪表盘，用 12 个月的示例数据，展示 MRR 趋势、环比增长和流失分析，适合董事会汇报',
+        '做一个电商区域销售仪表盘，生成 5 个区域的示例数据，展示按区域收入、周趋势和品类占比',
+        '做一个 8 个部门的预算 vs 实际仪表盘，展示偏差指标和超支/节余状态',
+      ],
+    },
+  },
+  {
+    id: 'academic-paper',
+    avatar: '📚',
+    presetAgentType: 'gemini',
+    resourceDir: 'src/process/resources/assistant/academic-paper',
+    ruleFiles: {
+      'en-US': 'academic-paper.md',
+      'zh-CN': 'academic-paper.zh-CN.md',
+    },
+    defaultEnabledSkills: ['officecli-academic-paper'],
+    nameI18n: {
+      'en-US': 'Academic Paper',
+      'zh-CN': '学术论文助手',
+    },
+    descriptionI18n: {
+      'en-US':
+        'Create formally structured academic papers, research papers, and white papers with native Word TOC, LaTeX-to-OMML equations, scholarly bibliography (APA/Physics/Chicago), footnotes, multi-column layouts, and paper-type-specific styling.',
+      'zh-CN':
+        '创建正式结构的学术论文、研究论文和白皮书，支持原生 Word 目录、LaTeX 转 OMML 公式、学术参考文献（APA/物理/芝加哥格式）、脚注、多栏排版和论文类型专属样式。',
+    },
+    promptsI18n: {
+      'en-US': [
+        'Create a white paper on rural EV charging infrastructure with executive summary, data tables, footnotes, CONFIDENTIAL watermark, and professional headers',
+        'Write a physics paper on topological insulators with display equations, multi-column abstract, theorem/definition blocks, and landscape figures',
+        'Create an APA-style research paper on organizational culture with 3 data tables, endnotes, 15 references with hanging indent, and double spacing',
+      ],
+      'zh-CN': [
+        '创建一份农村电动汽车充电基础设施白皮书，包含执行摘要、数据表格、脚注、CONFIDENTIAL 水印和专业页头',
+        '写一篇拓扑绝缘体物理论文，包含展示式公式、多栏摘要、定理/定义模块和横向图表',
+        '创建一份 APA 格式的组织文化研究论文，包含 3 个数据表格、尾注、15 条挂缩进参考文献和双倍行距',
       ],
     },
   },
