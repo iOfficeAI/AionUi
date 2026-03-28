@@ -152,6 +152,39 @@ export const ASSISTANT_PRESETS: AssistantPreset[] = [
     },
   },
   {
+    id: 'dashboard-creator',
+    avatar: '📊',
+    presetAgentType: 'gemini',
+    resourceDir: 'src/process/resources/assistant/dashboard-creator',
+    ruleFiles: {
+      'en-US': 'dashboard-creator.md',
+      'zh-CN': 'dashboard-creator.zh-CN.md',
+    },
+    defaultEnabledSkills: ['officecli-data-dashboard'],
+    nameI18n: {
+      'en-US': 'Dashboard Creator',
+      'zh-CN': '数据仪表盘',
+    },
+    descriptionI18n: {
+      'en-US':
+        'Turn CSV or tabular data into polished Excel dashboards with KPI cards, charts linked to live data, sparklines, and conditional formatting. Automatically scales complexity to dataset size — from quick summaries to full analytics panels.',
+      'zh-CN':
+        '将 CSV 或表格数据转化为精美的 Excel 仪表盘，包含 KPI 卡片、关联实时数据的图表、迷你图和条件格式。根据数据量自动缩放复杂度——从简洁汇总到完整分析面板。',
+    },
+    promptsI18n: {
+      'en-US': [
+        'I have a SaaS MRR tracker CSV — build a board-meeting dashboard with MRR trend, month-over-month growth, and churn breakdown',
+        'Create a regional sales dashboard from my 200-row e-commerce dataset: revenue by region, weekly trends, and category split',
+        'Build a budget-vs-actuals dashboard for the C-suite showing department performance with variance indicators',
+      ],
+      'zh-CN': [
+        '我有一份 SaaS MRR 追踪 CSV，帮我做一个董事会汇报用的仪表盘，要有 MRR 趋势、环比增长和流失分析',
+        '用我 200 行的电商数据做一个区域销售仪表盘：按区域的收入、周趋势和品类占比',
+        '做一个预算 vs 实际的高管仪表盘，展示各部门执行情况和偏差指标',
+      ],
+    },
+  },
+  {
     id: 'star-office-helper',
     avatar: '📺',
     presetAgentType: 'gemini',
