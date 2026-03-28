@@ -23,7 +23,7 @@ import { Tooltip } from '@arco-design/web-react';
 import { getSiderTooltipProps } from '@/renderer/utils/ui/siderTooltip';
 
 /** Builtin settings tab IDs in display order (must match router paths). */
-const BUILTIN_TAB_IDS = [
+export const BUILTIN_TAB_IDS = [
   'gemini',
   'agent',
   'model',
