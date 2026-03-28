@@ -22,7 +22,9 @@ const restrictQueueDragToVerticalAxis: Modifier = ({ transform }) => ({
   x: 0,
 });
 
-const createRestrictToQueueContainerModifier = (queueContainerRef: React.RefObject<HTMLDivElement | null>): Modifier => {
+const createRestrictToQueueContainerModifier = (
+  queueContainerRef: React.RefObject<HTMLDivElement | null>
+): Modifier => {
   return ({ draggingNodeRect, overlayNodeRect, transform }) => {
     const queueContainerRect = queueContainerRef.current?.getBoundingClientRect();
     const activeRect = overlayNodeRect ?? draggingNodeRect;
@@ -162,9 +164,7 @@ const QueueItemCard: React.FC<QueueItemCardProps> = ({
         borderColor: isEditing
           ? 'color-mix(in srgb, var(--color-border-3) 92%, var(--color-bg-1))'
           : 'color-mix(in srgb, var(--color-border-2) 66%, transparent)',
-        background: isEditing
-          ? 'color-mix(in srgb, var(--color-fill-1) 58%, var(--color-bg-1))'
-          : 'var(--color-bg-1)',
+        background: isEditing ? 'color-mix(in srgb, var(--color-fill-1) 58%, var(--color-bg-1))' : 'var(--color-bg-1)',
       }}
     >
       <div className='flex items-center justify-between gap-5px'>
@@ -296,32 +296,32 @@ const QueueItemCard: React.FC<QueueItemCardProps> = ({
             }}
           />
           <div className='flex items-center justify-end gap-3px flex-wrap'>
-              <Button
-                size='mini'
-                type='secondary'
-                className='min-w-52px h-24px px-10px rd-7px text-12px'
-                onClick={onCancelEdit}
-                style={{
-                  borderColor: 'transparent',
-                  color: 'var(--color-text-3)',
-                  background: 'color-mix(in srgb, var(--color-fill-1) 94%, var(--color-bg-1))',
-                }}
-              >
-                {t('conversation.commandQueue.cancelEdit', { defaultValue: 'Cancel' })}
-              </Button>
-              <Button
-                size='mini'
-                type='secondary'
-                className='min-w-52px h-24px px-10px rd-7px text-12px font-500'
-                onClick={onSaveEdit}
-                style={{
-                  borderColor: 'transparent',
-                  color: 'var(--color-text-1)',
-                  background: 'color-mix(in srgb, var(--color-fill-2) 96%, var(--color-bg-1))',
-                }}
-              >
-                {t('conversation.commandQueue.saveEdit', { defaultValue: 'Save' })}
-              </Button>
+            <Button
+              size='mini'
+              type='secondary'
+              className='min-w-52px h-24px px-10px rd-7px text-12px'
+              onClick={onCancelEdit}
+              style={{
+                borderColor: 'transparent',
+                color: 'var(--color-text-3)',
+                background: 'color-mix(in srgb, var(--color-fill-1) 94%, var(--color-bg-1))',
+              }}
+            >
+              {t('conversation.commandQueue.cancelEdit', { defaultValue: 'Cancel' })}
+            </Button>
+            <Button
+              size='mini'
+              type='secondary'
+              className='min-w-52px h-24px px-10px rd-7px text-12px font-500'
+              onClick={onSaveEdit}
+              style={{
+                borderColor: 'transparent',
+                color: 'var(--color-text-1)',
+                background: 'color-mix(in srgb, var(--color-fill-2) 96%, var(--color-bg-1))',
+              }}
+            >
+              {t('conversation.commandQueue.saveEdit', { defaultValue: 'Save' })}
+            </Button>
           </div>
         </div>
       ) : null}

@@ -320,8 +320,8 @@ vi.mock('@/renderer/utils/file/fileSelection', () => ({
 }));
 
 vi.mock('@/renderer/utils/file/messageFiles', () => ({
-  buildDisplayMessage: vi.fn((input: string, files: string[], workspacePath: string) =>
-    `${input}|${files.join(',')}|${workspacePath}`
+  buildDisplayMessage: vi.fn(
+    (input: string, files: string[], workspacePath: string) => `${input}|${files.join(',')}|${workspacePath}`
   ),
   collectSelectedFiles: vi.fn((uploadFile: string[], atPath: Array<string | { path: string }>) => [
     ...uploadFile,
@@ -477,19 +477,22 @@ describe('platform send box queue integration', () => {
         expect(payload.conversation_id).toBe('conv-openclaw');
       },
     ],
-  ])('sends commands immediately for %s when queueing is not required', async (_name, element, sendSpy, assertPayload) => {
-    render(element);
+  ])(
+    'sends commands immediately for %s when queueing is not required',
+    async (_name, element, sendSpy, assertPayload) => {
+      render(element);
 
-    fireEvent.click(screen.getByRole('button', { name: 'trigger-send' }));
+      fireEvent.click(screen.getByRole('button', { name: 'trigger-send' }));
 
-    await waitFor(() => {
-      expect(sendSpy).toHaveBeenCalledTimes(1);
-    });
+      await waitFor(() => {
+        expect(sendSpy).toHaveBeenCalledTimes(1);
+      });
 
-    assertPayload(sendSpy.mock.calls[0]?.[0] as { input: string; conversation_id: string });
-    expect(queueSpies.enqueue).not.toHaveBeenCalled();
-    expect(mockAssertBridgeSuccess).toHaveBeenCalled();
-  });
+      assertPayload(sendSpy.mock.calls[0]?.[0] as { input: string; conversation_id: string });
+      expect(queueSpies.enqueue).not.toHaveBeenCalled();
+      expect(mockAssertBridgeSuccess).toHaveBeenCalled();
+    }
+  );
 
   it.each([
     ['codex', <CodexSendBox conversation_id='conv-codex' />],
