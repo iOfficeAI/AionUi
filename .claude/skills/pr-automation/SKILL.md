@@ -486,6 +486,31 @@ Save `FILES_CHANGED` and `HAS_CRITICAL` for later steps.
 
 ### Step 6 — Run pr-review (automation mode)
 
+**Before running a new review, check if a valid cached review already exists:**
+
+```bash
+LAST_REVIEW_TIME=$(gh pr view <PR_NUMBER> --json comments \
+  --jq '[.comments[] | select(.body | startswith("<!-- pr-review-bot -->"))] | last | .createdAt // ""')
+
+LATEST_COMMIT_TIME=$(gh pr view <PR_NUMBER> --json commits \
+  --jq '.commits | last | .committedDate')
+```
+
+If `LAST_REVIEW_TIME` is non-empty AND `LATEST_COMMIT_TIME <= LAST_REVIEW_TIME`:
+
+The existing review is still valid (no new commits since it was posted). Load the cached conclusion from the existing comment:
+
+```bash
+gh pr view <PR_NUMBER> --json comments \
+  --jq '[.comments[] | select(.body | startswith("<!-- pr-review-bot -->"))] | last | .body'
+```
+
+Parse the `<!-- automation-result -->` block from the cached comment. Set `CONCLUSION` and `IS_CRITICAL_PATH` from it, then **skip to Step 7** (do not run pr-review again).
+
+Log: `[pr-automation] PR #<PR_NUMBER> has valid cached review (no new commits since review) — skipping re-review.`
+
+Otherwise (no existing review, or new commits have been pushed since the last review): run a fresh review:
+
 ```
 /pr-review <PR_NUMBER> --automation
 ```
