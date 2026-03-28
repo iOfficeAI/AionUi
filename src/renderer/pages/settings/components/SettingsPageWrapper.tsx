@@ -72,7 +72,12 @@ const SettingsPageWrapper: React.FC<SettingsPageWrapperProps> = ({ children, cla
         path: 'skills-hub',
       },
       tools: { id: 'tools', label: t('settings.tools'), icon: <Toolkit theme='outline' size='16' />, path: 'tools' },
-      display: { id: 'display', label: t('settings.display'), icon: <Computer theme='outline' size='16' />, path: 'display' },
+      display: {
+        id: 'display',
+        label: t('settings.display'),
+        icon: <Computer theme='outline' size='16' />,
+        path: 'display',
+      },
       webui: {
         id: 'webui',
         label: t('settings.webui'),
