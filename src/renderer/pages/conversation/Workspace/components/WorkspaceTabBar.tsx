@@ -66,8 +66,8 @@ const INDENT = 12;
 
 const BranchList: React.FC<BranchListProps> = ({ node, currentBranch, expanded, onToggle, prefix = '', depth = 0 }) => {
   const entries = Array.from(node.children.entries());
-  const folders = entries.filter(([, c]) => c.children.size > 0).sort(([a], [b]) => a.localeCompare(b));
-  const leaves = entries.filter(([, c]) => c.children.size === 0).sort(([a], [b]) => a.localeCompare(b));
+  const folders = entries.filter(([, c]) => c.children.size > 0).toSorted(([a], [b]) => a.localeCompare(b));
+  const leaves = entries.filter(([, c]) => c.children.size === 0).toSorted(([a], [b]) => a.localeCompare(b));
 
   return (
     <>
@@ -81,7 +81,11 @@ const BranchList: React.FC<BranchListProps> = ({ node, currentBranch, expanded, 
               style={{ paddingLeft: 8 + depth * INDENT }}
               onClick={() => onToggle(folderPath)}
             >
-              {isOpen ? <Down size={10} className='shrink-0 mr-4px' /> : <Right size={10} className='shrink-0 mr-4px' />}
+              {isOpen ? (
+                <Down size={10} className='shrink-0 mr-4px' />
+              ) : (
+                <Right size={10} className='shrink-0 mr-4px' />
+              )}
               {name}
             </div>
             {isOpen && (
@@ -105,11 +109,7 @@ const BranchList: React.FC<BranchListProps> = ({ node, currentBranch, expanded, 
             className={`flex items-center h-26px px-8px text-12px ${isCurrent ? 'text-primary-6' : 'text-t-primary'}`}
             style={{ paddingLeft: 8 + depth * INDENT }}
           >
-            {isCurrent ? (
-              <CheckSmall size={14} className='shrink-0 mr-2px' />
-            ) : (
-              <span className='w-16px shrink-0' />
-            )}
+            {isCurrent ? <CheckSmall size={14} className='shrink-0 mr-2px' /> : <span className='w-16px shrink-0' />}
             <span className={`truncate ${isCurrent ? 'font-medium' : ''}`}>{name}</span>
           </div>
         );
@@ -163,12 +163,7 @@ const WorkspaceTabBar: React.FC<WorkspaceTabBarProps> = ({
               border: '1px solid var(--color-border)',
             }}
           >
-            <BranchList
-              node={tree}
-              currentBranch={branch}
-              expanded={expanded}
-              onToggle={toggleFolder}
-            />
+            <BranchList node={tree} currentBranch={branch} expanded={expanded} onToggle={toggleFolder} />
           </div>
         }
       >

@@ -50,7 +50,10 @@ export function useFileChanges({ workspace, conversationId }: UseFileChangesPara
         setSnapshotInfo(info);
         initializedRef.current = true;
         if (info.mode === 'git-repo') {
-          ipcBridge.fileSnapshot.getBranches.invoke({ workspace }).then(setBranches).catch(() => {});
+          ipcBridge.fileSnapshot.getBranches
+            .invoke({ workspace })
+            .then(setBranches)
+            .catch(() => {});
         }
       })
       .catch((err) => {
