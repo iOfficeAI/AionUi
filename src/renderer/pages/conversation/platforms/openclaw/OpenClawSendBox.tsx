@@ -17,6 +17,7 @@ import {
   useConversationCommandQueue,
   type ConversationCommandQueueItem,
 } from '@/renderer/pages/conversation/platforms/useConversationCommandQueue';
+import { assertBridgeSuccess } from '@/renderer/pages/conversation/platforms/assertBridgeSuccess';
 import { allSupportedExts, type FileMetadata } from '@/renderer/services/FileService';
 import { emitter, useAddEventListener } from '@/renderer/utils/emitter';
 import { mergeFileSelectionItems } from '@/renderer/utils/file/fileSelection';
@@ -356,7 +357,8 @@ const OpenClawSendBox: React.FC<{ conversation_id: string }> = ({ conversation_i
       starOfficeInstallInFlightRef.current = true;
       ipcBridge.openclawConversation.sendMessage
         .invoke({ input: text, msg_id, conversation_id, injectSkills: ['star-office-helper'] })
-        .then(() => {
+        .then((result) => {
+          assertBridgeSuccess(result, 'Failed to send Star Office install command');
           void checkAndUpdateTitle(conversation_id, text);
           emitter.emit('chat.history.refresh');
         })
@@ -415,12 +417,13 @@ const OpenClawSendBox: React.FC<{ conversation_id: string }> = ({ conversation_i
       setAiProcessing(true);
       aiProcessingRef.current = true;
       try {
-        await ipcBridge.openclawConversation.sendMessage.invoke({
+        const result = await ipcBridge.openclawConversation.sendMessage.invoke({
           input: displayMessage,
           msg_id,
           conversation_id,
           files,
         });
+        assertBridgeSuccess(result, 'Failed to send message to OpenClaw');
         void checkAndUpdateTitle(conversation_id, input);
         emitter.emit('chat.history.refresh');
       } catch (error) {
@@ -437,6 +440,7 @@ const OpenClawSendBox: React.FC<{ conversation_id: string }> = ({ conversation_i
     items,
     isPaused: isQueuePaused,
     enqueue,
+    update,
     remove,
     clear,
     moveUp,
@@ -518,13 +522,14 @@ const OpenClawSendBox: React.FC<{ conversation_id: string }> = ({ conversation_i
         // 重置 AI 回复用于新一轮
         addOrUpdateMessage(userMessage, true);
 
-        await ipcBridge.openclawConversation.sendMessage.invoke({
+        const result = await ipcBridge.openclawConversation.sendMessage.invoke({
           input: initialDisplayMessage,
           msg_id,
           conversation_id,
           files,
           loading_id,
         });
+        assertBridgeSuccess(result, 'Failed to send initial message to OpenClaw');
         void checkAndUpdateTitle(conversation_id, input);
         emitter.emit('chat.history.refresh');
         sessionStorage.removeItem(storageKey);
@@ -570,6 +575,7 @@ const OpenClawSendBox: React.FC<{ conversation_id: string }> = ({ conversation_i
         paused={isQueuePaused}
         onPause={pause}
         onResume={resume}
+        onUpdate={(commandId, input) => update(commandId, { input })}
         onMoveUp={moveUp}
         onMoveDown={moveDown}
         onRemove={remove}

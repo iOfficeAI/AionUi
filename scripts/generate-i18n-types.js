@@ -12,6 +12,10 @@ const { execSync } = require('child_process');
 
 const LOCALES_DIR = path.resolve(__dirname, '../src/renderer/services/i18n/locales');
 const OUTPUT_FILE = path.resolve(__dirname, '../src/renderer/services/i18n/i18n-keys.d.ts');
+const OXFMT_BIN = path.resolve(
+  __dirname,
+  process.platform === 'win32' ? '../node_modules/.bin/oxfmt.exe' : '../node_modules/.bin/oxfmt'
+);
 const i18nConfig = require('../src/common/config/i18n-config.json');
 const REFERENCE_LANGUAGE = i18nConfig.referenceLanguage;
 const REQUIRED_MODULES = i18nConfig.modules;
@@ -64,6 +68,25 @@ function generateI18nKeysDtsContent() {
   return buildI18nKeysDts(keys);
 }
 
+function formatOutputFile(filePath) {
+  const commands = [`bunx prettier --write "${filePath}"`];
+
+  if (fs.existsSync(OXFMT_BIN)) {
+    commands.push(`"${OXFMT_BIN}" "${filePath}"`);
+  }
+
+  for (const command of commands) {
+    try {
+      execSync(command, { stdio: 'inherit' });
+      return;
+    } catch {
+      // Try the next available formatter.
+    }
+  }
+
+  console.warn(`⚠️  Unable to auto-format ${path.relative(process.cwd(), filePath)}. Continuing without formatting.`);
+}
+
 function writeOutputFile(content) {
   const current = fs.existsSync(OUTPUT_FILE) ? fs.readFileSync(OUTPUT_FILE, 'utf-8') : null;
   if (current === content) {
@@ -72,7 +95,7 @@ function writeOutputFile(content) {
   }
 
   fs.writeFileSync(OUTPUT_FILE, content, 'utf-8');
-  execSync(`bunx prettier --write "${OUTPUT_FILE}"`, { stdio: 'inherit' });
+  formatOutputFile(OUTPUT_FILE);
   console.log(`✅ i18n key types generated: ${path.relative(process.cwd(), OUTPUT_FILE)}`);
 }
 

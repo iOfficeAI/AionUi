@@ -19,6 +19,7 @@ import {
   useConversationCommandQueue,
   type ConversationCommandQueueItem,
 } from '@/renderer/pages/conversation/platforms/useConversationCommandQueue';
+import { assertBridgeSuccess } from '@/renderer/pages/conversation/platforms/assertBridgeSuccess';
 import { usePreviewContext } from '@/renderer/pages/conversation/Preview';
 import { allSupportedExts } from '@/renderer/services/FileService';
 import { emitter, useAddEventListener } from '@/renderer/utils/emitter';
@@ -237,12 +238,13 @@ const GeminiSendBox: React.FC<{
       );
 
       try {
-        await ipcBridge.geminiConversation.sendMessage.invoke({
+        const result = await ipcBridge.geminiConversation.sendMessage.invoke({
           input: displayMessage,
           msg_id,
           conversation_id,
           files,
         });
+        assertBridgeSuccess(result, 'Failed to send message to Gemini');
         void checkAndUpdateTitle(conversation_id, input);
         emitter.emit('chat.history.refresh');
         if (files.length > 0) {
@@ -269,6 +271,7 @@ const GeminiSendBox: React.FC<{
     items: queuedCommands,
     isPaused: isQueuePaused,
     enqueue,
+    update,
     remove,
     clear,
     moveUp,
@@ -351,6 +354,7 @@ const GeminiSendBox: React.FC<{
         paused={isQueuePaused}
         onPause={pause}
         onResume={resume}
+        onUpdate={(commandId, input) => update(commandId, { input })}
         onMoveUp={moveUp}
         onMoveDown={moveDown}
         onRemove={remove}
