@@ -152,6 +152,39 @@ export const ASSISTANT_PRESETS: AssistantPreset[] = [
     },
   },
   {
+    id: 'pitch-deck-creator',
+    avatar: '🎯',
+    presetAgentType: 'gemini',
+    resourceDir: 'src/process/resources/assistant/pitch-deck-creator',
+    ruleFiles: {
+      'en-US': 'pitch-deck-creator.md',
+      'zh-CN': 'pitch-deck-creator.zh-CN.md',
+    },
+    defaultEnabledSkills: ['officecli-pitch-deck'],
+    nameI18n: {
+      'en-US': 'Pitch Deck Creator',
+      'zh-CN': '路演 PPT 助手',
+    },
+    descriptionI18n: {
+      'en-US':
+        'Build investor pitch decks, product launch presentations, and enterprise sales decks with gradient designs, data charts, competitive tables, team slides, and speaker notes. Supports seed to Series A+ decks.',
+      'zh-CN':
+        '制作投资路演、产品发布和企业销售演示文稿，包含渐变设计、数据图表、竞品表格、团队页和演讲者备注。支持从种子轮到 A 轮及以上的路演。',
+    },
+    promptsI18n: {
+      'en-US': [
+        'Create a 12-slide Series A investor deck for a B2B SaaS data pipeline startup with ARR charts, competitive comparison table, team avatars, and financial projections',
+        'Create an 8-slide product launch deck for an AI code review tool with 5 feature icons, before/after comparison, customer satisfaction doughnut chart, and 3-tier pricing table',
+        'Create a 10-slide enterprise sales deck for a cybersecurity platform with ROI analysis, radar chart vs competitors, financial impact table, and implementation timeline',
+      ],
+      'zh-CN': [
+        '为一个 B2B SaaS 数据管道创业公司制作 12 页 A 轮投资路演，包含 ARR 图表、竞品对比表、团队头像和财务预测',
+        '为一个 AI 代码审查工具制作 8 页产品发布演示，包含 5 个功能图标、前后对比、客户满意度环形图和 3 档定价表',
+        '为一个网络安全平台制作 10 页企业销售演示，包含 ROI 分析、雷达图竞品对比、财务影响表和实施时间线',
+      ],
+    },
+  },
+  {
     id: 'dashboard-creator',
     avatar: '📊',
     presetAgentType: 'gemini',
@@ -214,6 +247,39 @@ export const ASSISTANT_PRESETS: AssistantPreset[] = [
         '创建一份农村电动汽车充电基础设施白皮书，包含执行摘要、数据表格、脚注、CONFIDENTIAL 水印和专业页头',
         '写一篇拓扑绝缘体物理论文，包含展示式公式、多栏摘要、定理/定义模块和横向图表',
         '创建一份 APA 格式的组织文化研究论文，包含 3 个数据表格、尾注、15 条挂缩进参考文献和双倍行距',
+      ],
+    },
+  },
+  {
+    id: 'financial-model-creator',
+    avatar: '💰',
+    presetAgentType: 'gemini',
+    resourceDir: 'src/process/resources/assistant/financial-model-creator',
+    ruleFiles: {
+      'en-US': 'financial-model-creator.md',
+      'zh-CN': 'financial-model-creator.zh-CN.md',
+    },
+    defaultEnabledSkills: ['officecli-financial-model'],
+    nameI18n: {
+      'en-US': 'Financial Model Creator',
+      'zh-CN': '财务建模助手',
+    },
+    descriptionI18n: {
+      'en-US':
+        'Build formula-driven financial models from text prompts: 3-statement models, DCF valuations, cap tables, scenario analyses, sensitivity tables, and debt schedules. All values flow from assumptions through interconnected formula chains.',
+      'zh-CN':
+        '根据文本描述构建公式驱动的财务模型：三表联动、DCF 估值、股权表、情景分析、敏感性分析和债务计划。所有数值通过公式链从假设条件层层推导。',
+    },
+    promptsI18n: {
+      'en-US': [
+        'Build a 3-year SaaS financial model with income statement, balance sheet, cash flow, and dashboard charts',
+        'Create a DCF valuation for a manufacturing company with WACC calculation and sensitivity table',
+        'Build a cap table with seed and Series A rounds, liquidation preferences, and exit waterfall analysis',
+      ],
+      'zh-CN': [
+        '搭建一个 3 年期 SaaS 财务模型，包含利润表、资产负债表、现金流量表和看板图表',
+        '为制造业公司创建 DCF 估值模型，包含 WACC 计算和敏感性分析表',
+        '搭建股权表，包含种子轮和 A 轮融资、清算优先权和退出瀑布分析',
       ],
     },
   },
