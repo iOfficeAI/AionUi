@@ -53,8 +53,14 @@ const SettingsPageWrapper: React.FC<SettingsPageWrapperProps> = ({ children, cla
       { id: 'gemini', label: t('settings.gemini'), icon: <Gemini theme='outline' size='16' />, path: 'gemini' },
       { id: 'model', label: t('settings.model'), icon: <LinkCloud theme='outline' size='16' />, path: 'model' },
       {
-        id: 'agent',
+        id: 'assistants',
         label: t('settings.assistants', { defaultValue: 'Assistants' }),
+        icon: <Robot theme='outline' size='16' />,
+        path: 'assistants',
+      },
+      {
+        id: 'agent',
+        label: t('settings.agents', { defaultValue: 'Agents' }),
         icon: <Robot theme='outline' size='16' />,
         path: 'agent',
       },
