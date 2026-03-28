@@ -302,6 +302,49 @@ export const useGuidSend = (deps: GuidSendDeps): GuidSendResult => {
       return;
     }
 
+    // Remote agent path
+    if (selectedAgent === 'remote' && selectedAgentKey.startsWith('remote:')) {
+      const remoteAgentId = selectedAgentKey.slice(7);
+      try {
+        const conversation = await ipcBridge.conversation.create.invoke({
+          type: 'remote',
+          name: input,
+          model: {} as import('@/common/config/storage').TProviderWithModel,
+          extra: {
+            defaultFiles: files,
+            workspace: finalWorkspace,
+            customWorkspace: isCustomWorkspace,
+            remoteAgentId,
+          },
+        });
+
+        if (!conversation || !conversation.id) {
+          console.error('Failed to create remote conversation');
+          return;
+        }
+
+        if (isCustomWorkspace) {
+          closeAllTabs();
+          updateWorkspaceTime(finalWorkspace);
+          openTab(conversation);
+        }
+
+        emitter.emit('chat.history.refresh');
+
+        const initialMessage = {
+          input,
+          files: files.length > 0 ? files : undefined,
+        };
+        sessionStorage.setItem(`remote_initial_message_${conversation.id}`, JSON.stringify(initialMessage));
+
+        await navigate(`/conversation/${conversation.id}`);
+      } catch (error: unknown) {
+        console.error('Failed to create remote conversation:', error);
+        throw error;
+      }
+      return;
+    }
+
     // ACP path (including preset with claude agent type)
     {
       // Agent-type fallback only applies to preset assistants whose primary agent

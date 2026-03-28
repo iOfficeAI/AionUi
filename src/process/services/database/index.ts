@@ -34,8 +34,14 @@ import type {
   PluginStatus,
 } from '@process/channels/types';
 import type { ConversationSource, TProviderWithModel } from '@/common/config/storage';
+import type { RemoteAgentConfig, RemoteAgentStatus } from '@process/agent/remote';
 import { rowToChannelUser, rowToChannelSession, rowToPairingRequest } from '@process/channels/types';
-import { encryptCredentials, decryptCredentials } from '@process/channels/utils/credentialCrypto';
+import {
+  encryptCredentials,
+  decryptCredentials,
+  encryptString,
+  decryptString,
+} from '@process/channels/utils/credentialCrypto';
 
 type IConversationMessageSearchRow = IConversationRow & {
   message_id: string;
@@ -1396,6 +1402,175 @@ export class AionUIDatabase {
       return { success: true, data: result.changes };
     } catch (error: any) {
       return { success: false, error: error.message, data: 0 };
+    }
+  }
+
+  /**
+   * ==================
+   * Remote Agent operations
+   * ==================
+   */
+
+  getRemoteAgents(): RemoteAgentConfig[] {
+    const rows = this.db.prepare('SELECT * FROM remote_agents ORDER BY created_at DESC').all() as Array<{
+      id: string;
+      name: string;
+      protocol: string;
+      url: string;
+      auth_type: string;
+      auth_token: string | null;
+      avatar: string | null;
+      description: string | null;
+      device_id: string | null;
+      device_public_key: string | null;
+      device_private_key: string | null;
+      device_token: string | null;
+      status: string | null;
+      last_connected_at: number | null;
+      created_at: number;
+      updated_at: number;
+    }>;
+
+    return rows.map((row) => ({
+      id: row.id,
+      name: row.name,
+      protocol: row.protocol as RemoteAgentConfig['protocol'],
+      url: row.url,
+      authType: row.auth_type as RemoteAgentConfig['authType'],
+      authToken: row.auth_token ? decryptString(row.auth_token) : undefined,
+      avatar: row.avatar ?? undefined,
+      description: row.description ?? undefined,
+      deviceId: row.device_id ?? undefined,
+      devicePublicKey: row.device_public_key ? decryptString(row.device_public_key) : undefined,
+      devicePrivateKey: row.device_private_key ? decryptString(row.device_private_key) : undefined,
+      deviceToken: row.device_token ? decryptString(row.device_token) : undefined,
+      status: (row.status as RemoteAgentStatus) ?? 'unknown',
+      lastConnectedAt: row.last_connected_at ?? undefined,
+      createdAt: row.created_at,
+      updatedAt: row.updated_at,
+    }));
+  }
+
+  getRemoteAgent(id: string): RemoteAgentConfig | null {
+    const row = this.db.prepare('SELECT * FROM remote_agents WHERE id = ?').get(id) as
+      | {
+          id: string;
+          name: string;
+          protocol: string;
+          url: string;
+          auth_type: string;
+          auth_token: string | null;
+          avatar: string | null;
+          description: string | null;
+          device_id: string | null;
+          device_public_key: string | null;
+          device_private_key: string | null;
+          device_token: string | null;
+          status: string | null;
+          last_connected_at: number | null;
+          created_at: number;
+          updated_at: number;
+        }
+      | undefined;
+
+    if (!row) return null;
+
+    return {
+      id: row.id,
+      name: row.name,
+      protocol: row.protocol as RemoteAgentConfig['protocol'],
+      url: row.url,
+      authType: row.auth_type as RemoteAgentConfig['authType'],
+      authToken: row.auth_token ? decryptString(row.auth_token) : undefined,
+      avatar: row.avatar ?? undefined,
+      description: row.description ?? undefined,
+      deviceId: row.device_id ?? undefined,
+      devicePublicKey: row.device_public_key ? decryptString(row.device_public_key) : undefined,
+      devicePrivateKey: row.device_private_key ? decryptString(row.device_private_key) : undefined,
+      deviceToken: row.device_token ? decryptString(row.device_token) : undefined,
+      status: (row.status as RemoteAgentStatus) ?? 'unknown',
+      lastConnectedAt: row.last_connected_at ?? undefined,
+      createdAt: row.created_at,
+      updatedAt: row.updated_at,
+    };
+  }
+
+  createRemoteAgent(config: RemoteAgentConfig): IQueryResult<RemoteAgentConfig> {
+    try {
+      this.db
+        .prepare(
+          `INSERT INTO remote_agents (id, name, protocol, url, auth_type, auth_token, avatar, description, device_id, device_public_key, device_private_key, device_token, status, last_connected_at, created_at, updated_at)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+        )
+        .run(
+          config.id,
+          config.name,
+          config.protocol,
+          config.url,
+          config.authType,
+          config.authToken ? encryptString(config.authToken) : null,
+          config.avatar ?? null,
+          config.description ?? null,
+          config.deviceId ?? null,
+          config.devicePublicKey ? encryptString(config.devicePublicKey) : null,
+          config.devicePrivateKey ? encryptString(config.devicePrivateKey) : null,
+          config.deviceToken ? encryptString(config.deviceToken) : null,
+          config.status ?? 'unknown',
+          config.lastConnectedAt ?? null,
+          config.createdAt,
+          config.updatedAt
+        );
+      return { success: true, data: config };
+    } catch (error: any) {
+      return { success: false, error: error.message };
+    }
+  }
+
+  updateRemoteAgent(
+    id: string,
+    updates: Partial<{
+      name: string;
+      protocol: string;
+      url: string;
+      auth_type: string;
+      auth_token: string;
+      avatar: string;
+      description: string;
+      device_id: string;
+      device_public_key: string;
+      device_private_key: string;
+      device_token: string;
+      status: string;
+      last_connected_at: number;
+    }>
+  ): IQueryResult<boolean> {
+    const ENCRYPTED_FIELDS = new Set(['auth_token', 'device_public_key', 'device_private_key', 'device_token']);
+    try {
+      const sets: string[] = [];
+      const values: unknown[] = [];
+
+      for (const [key, value] of Object.entries(updates)) {
+        sets.push(`${key} = ?`);
+        values.push(ENCRYPTED_FIELDS.has(key) && typeof value === 'string' ? encryptString(value) : (value ?? null));
+      }
+
+      sets.push('updated_at = ?');
+      values.push(Date.now());
+      values.push(id);
+
+      this.db.prepare(`UPDATE remote_agents SET ${sets.join(', ')} WHERE id = ?`).run(...values);
+      return { success: true, data: true };
+    } catch (error: any) {
+      return { success: false, error: error.message };
+    }
+  }
+
+  deleteRemoteAgent(id: string): IQueryResult<boolean> {
+    try {
+      const result = this.db.prepare('DELETE FROM remote_agents WHERE id = ?').run(id);
+      return { success: true, data: result.changes > 0 };
+    } catch (error: any) {
+      return { success: false, error: error.message };
     }
   }
 

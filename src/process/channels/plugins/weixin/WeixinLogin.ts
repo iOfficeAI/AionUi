@@ -13,7 +13,9 @@ const REQUEST_TIMEOUT_MS = 15_000;
 const MAX_QR_RETRIES = 3;
 
 export interface LoginCallbacks {
-  onQR: (qrcodeUrl: string) => void;
+  /** @param qrcodeUrl  The page/image URL from the API (used in Electron to render via canvas).
+   *  @param qrcodeData The raw QR code ticket — encode this directly when generating your own image. */
+  onQR: (qrcodeUrl: string, qrcodeData: string) => void;
   onScanned: () => void;
   onDone: (result: { accountId: string; botToken: string; baseUrl: string }) => void;
   onError: (error: Error) => void;
@@ -56,7 +58,7 @@ async function runLoginFlow(callbacks: LoginCallbacks, signal: AbortSignal): Pro
     if (!qrResult.qrcode_img_content || !qrResult.qrcode) {
       throw new Error(`Invalid QR code response: ${JSON.stringify(qrResult)}`);
     }
-    callbacks.onQR(qrResult.qrcode_img_content);
+    callbacks.onQR(qrResult.qrcode_img_content, qrResult.qrcode);
 
     // oxlint-disable-next-line eslint/no-await-in-loop
     const pollResult = await pollQRStatus(qrResult.qrcode, callbacks, signal);

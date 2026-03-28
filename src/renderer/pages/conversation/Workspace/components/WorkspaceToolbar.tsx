@@ -9,6 +9,7 @@ import { isElectronDesktop } from '@/renderer/utils/platform';
 import { Dropdown, Input, Menu, Tooltip } from '@arco-design/web-react';
 import { Down, Plus, Refresh, Search } from '@icon-park/react';
 import React, { useId } from 'react';
+import UploadProgressBar from '@/renderer/components/media/UploadProgressBar';
 import type { TFunction } from 'i18next';
 import type { RefInputType } from '@arco-design/web-react/es/Input/interface';
 
@@ -204,6 +205,7 @@ const WorkspaceToolbar: React.FC<WorkspaceToolbarProps> = ({
           </Tooltip>
         </div>
       </div>
+      <UploadProgressBar source='workspace' />
     </div>
   );
 };

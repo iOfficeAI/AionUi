@@ -57,6 +57,9 @@ const resolveAgentIdentity = (conversation: TChatConversation): { backend: strin
     const agentName = String(conversation.extra?.agentName || 'OpenClaw');
     return { backend, agentName };
   }
+  if (conversation.type === 'remote') {
+    return { backend: 'remote', agentName: 'Remote Agent' };
+  }
   return { backend: 'nanobot', agentName: 'NanoBot' };
 };
 

@@ -78,8 +78,8 @@ export class OpenClawGatewayConnection {
   private deviceIdentity: DeviceIdentity;
 
   constructor(opts: OpenClawGatewayClientOptions) {
-    // Load or create device identity for authentication
-    this.deviceIdentity = loadOrCreateDeviceIdentity();
+    // Use injected device identity (remote agent) or load from file (local gateway)
+    this.deviceIdentity = opts.deviceIdentity ?? loadOrCreateDeviceIdentity();
 
     this.opts = {
       minProtocol: OPENCLAW_PROTOCOL_VERSION,
@@ -105,6 +105,7 @@ export class OpenClawGatewayConnection {
     const url = this.opts.url ?? 'ws://127.0.0.1:18789';
     this.ws = new WebSocket(url, {
       maxPayload: 25 * 1024 * 1024, // Allow large responses
+      rejectUnauthorized: false,
     });
 
     this.ws.on('open', () => {
@@ -251,7 +252,11 @@ export class OpenClawGatewayConnection {
     const nonce = this.connectNonce ?? undefined;
 
     // Load stored device token first, fall back to opts.token
-    const storedToken = loadDeviceAuthToken({ deviceId: this.deviceIdentity.deviceId, role })?.token;
+    // Remote scenario: use opts.deviceToken (from DB); Local scenario: use file-based store
+    const isExternalIdentity = Boolean(this.opts.deviceIdentity);
+    const storedToken = isExternalIdentity
+      ? (this.opts.deviceToken ?? undefined)
+      : loadDeviceAuthToken({ deviceId: this.deviceIdentity.deviceId, role })?.token;
     const authToken = storedToken ?? this.opts.token ?? undefined;
     const canFallbackToShared = Boolean(storedToken && this.opts.token);
 
@@ -306,12 +311,18 @@ export class OpenClawGatewayConnection {
         // Store device token if returned
         const authInfo = helloOk?.auth;
         if (authInfo?.deviceToken) {
-          storeDeviceAuthToken({
-            deviceId: this.deviceIdentity.deviceId,
-            role: authInfo.role ?? role,
-            token: authInfo.deviceToken,
-            scopes: authInfo.scopes ?? [],
-          });
+          if (this.opts.onDeviceTokenIssued) {
+            // Remote scenario: notify caller to persist token (e.g., write to DB)
+            this.opts.onDeviceTokenIssued(authInfo.deviceToken);
+          } else {
+            // Local scenario: write to file (~/.openclaw/identity/device-auth.json)
+            storeDeviceAuthToken({
+              deviceId: this.deviceIdentity.deviceId,
+              role: authInfo.role ?? role,
+              token: authInfo.deviceToken,
+              scopes: authInfo.scopes ?? [],
+            });
+          }
         }
 
         this._isConnected = true;
@@ -325,10 +336,17 @@ export class OpenClawGatewayConnection {
         this.opts.onHelloOk?.(helloOk);
       })
       .catch((err) => {
-        console.error('[OpenClawGateway] Connect failed:', err);
+        const details = (err as Error & { details?: { code?: string } }).details;
+        const isPairing = details?.code === 'PAIRING_REQUIRED' || /pairing.required/i.test(err?.message ?? '');
+        if (isPairing) {
+          console.log('[OpenClawGateway] Pairing required, awaiting approval');
+        } else {
+          console.error('[OpenClawGateway] Connect failed:', err);
+        }
 
         // Clear stored token if it was invalid and we can fall back to shared token
-        if (canFallbackToShared) {
+        // Only for local scenario (file-based token store)
+        if (canFallbackToShared && !isExternalIdentity) {
           clearDeviceAuthToken({
             deviceId: this.deviceIdentity.deviceId,
             role,
@@ -395,7 +413,10 @@ export class OpenClawGatewayConnection {
           if (res.ok) {
             pending.resolve(res.payload);
           } else {
-            pending.reject(new Error(res.error?.message ?? 'Unknown error'));
+            const err = new Error(res.error?.message ?? 'Unknown error');
+            // Attach structured error details for callers to inspect (e.g., recommendedNextStep)
+            (err as Error & { details?: unknown }).details = res.error?.details;
+            pending.reject(err);
           }
           break;
         }
