@@ -158,7 +158,7 @@ const WorkspaceTabBar: React.FC<WorkspaceTabBarProps> = ({
             style={{
               maxHeight: 320,
               overflowY: 'auto',
-              minWidth: 180,
+              width: 220,
               background: 'var(--color-bg-popup)',
               border: '1px solid var(--color-border)',
             }}
