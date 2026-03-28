@@ -155,7 +155,7 @@ Define 6-8 actors on Slide 1:
 - Easy to debug: search for `#s1-` to find all slide 1 content
 - Backup verification (duplicate detection) exists but has edge cases
 
-**Note**: Always use single quotes to prevent shell interpretation of special characters.
+**Note**: In Python build scripts, `#` and `!!` require no special quoting — pass them as plain strings (e.g. `"--prop", "name=#s1-title"`).
 
 ### How Morph Pairing Works
 

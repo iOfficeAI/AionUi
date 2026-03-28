@@ -267,6 +267,6 @@ echo '[
 
 # Validate and review
 echo "Validating..."
-bash "$(dirname "$0")/../../morph-helpers.sh" validate "$DECK"
+python3 "$(dirname "$0")/../../morph-helpers.py" final-check "$DECK"
 
 echo "✅ Build complete: $DECK"
