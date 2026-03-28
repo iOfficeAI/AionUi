@@ -28,6 +28,52 @@ interface SettingsPageWrapperProps {
   contentClassName?: string;
 }
 
+type NavItem = { label: string; icon: React.ReactElement; path: string; id: string };
+
+type TranslateFn = (key: string, options?: { defaultValue?: string }) => string;
+
+export function getBuiltinSettingsNavItems(isDesktop: boolean, t: TranslateFn): NavItem[] {
+  const builtinMap: Record<string, NavItem> = {
+    gemini: { id: 'gemini', label: t('settings.gemini'), icon: <Gemini theme='outline' size='16' />, path: 'gemini' },
+    model: { id: 'model', label: t('settings.model'), icon: <LinkCloud theme='outline' size='16' />, path: 'model' },
+    assistants: {
+      id: 'assistants',
+      label: t('settings.assistants', { defaultValue: 'Assistants' }),
+      icon: <Robot theme='outline' size='16' />,
+      path: 'assistants',
+    },
+    agent: {
+      id: 'agent',
+      label: t('settings.agents', { defaultValue: 'Agents' }),
+      icon: <Robot theme='outline' size='16' />,
+      path: 'agent',
+    },
+    'skills-hub': {
+      id: 'skills-hub',
+      label: t('settings.skillsHub.title', { defaultValue: 'Skills Hub' }),
+      icon: <Puzzle theme='outline' size='16' />,
+      path: 'skills-hub',
+    },
+    tools: { id: 'tools', label: t('settings.tools'), icon: <Toolkit theme='outline' size='16' />, path: 'tools' },
+    display: {
+      id: 'display',
+      label: t('settings.display'),
+      icon: <Computer theme='outline' size='16' />,
+      path: 'display',
+    },
+    webui: {
+      id: 'webui',
+      label: t('settings.webui'),
+      icon: isDesktop ? <Earth theme='outline' size='16' /> : <Communication theme='outline' size='16' />,
+      path: 'webui',
+    },
+    system: { id: 'system', label: t('settings.system'), icon: <System theme='outline' size='16' />, path: 'system' },
+    about: { id: 'about', label: t('settings.about'), icon: <Info theme='outline' size='16' />, path: 'about' },
+  };
+
+  return BUILTIN_TAB_IDS.map((id) => builtinMap[id]);
+}
+
 const SettingsPageWrapper: React.FC<SettingsPageWrapperProps> = ({ children, className, contentClassName }) => {
   const layout = useLayoutContext();
   const isMobile = layout?.isMobile ?? false;
@@ -47,48 +93,8 @@ const SettingsPageWrapper: React.FC<SettingsPageWrapperProps> = ({ children, cla
 
   const { resolveExtTabName } = useExtI18n();
 
-  type NavItem = { label: string; icon: React.ReactElement; path: string; id: string };
-
   const menuItems = React.useMemo(() => {
-    const builtinMap: Record<string, NavItem> = {
-      gemini: { id: 'gemini', label: t('settings.gemini'), icon: <Gemini theme='outline' size='16' />, path: 'gemini' },
-      model: { id: 'model', label: t('settings.model'), icon: <LinkCloud theme='outline' size='16' />, path: 'model' },
-      assistants: {
-        id: 'assistants',
-        label: t('settings.assistants', { defaultValue: 'Assistants' }),
-        icon: <Robot theme='outline' size='16' />,
-        path: 'assistants',
-      },
-      agent: {
-        id: 'agent',
-        label: t('settings.agents', { defaultValue: 'Agents' }),
-        icon: <Robot theme='outline' size='16' />,
-        path: 'agent',
-      },
-      'skills-hub': {
-        id: 'skills-hub',
-        label: t('settings.skillsHub.title', { defaultValue: 'Skills Hub' }),
-        icon: <Puzzle theme='outline' size='16' />,
-        path: 'skills-hub',
-      },
-      tools: { id: 'tools', label: t('settings.tools'), icon: <Toolkit theme='outline' size='16' />, path: 'tools' },
-      display: {
-        id: 'display',
-        label: t('settings.display'),
-        icon: <Computer theme='outline' size='16' />,
-        path: 'display',
-      },
-      webui: {
-        id: 'webui',
-        label: t('settings.webui'),
-        icon: isDesktop ? <Earth theme='outline' size='16' /> : <Communication theme='outline' size='16' />,
-        path: 'webui',
-      },
-      system: { id: 'system', label: t('settings.system'), icon: <System theme='outline' size='16' />, path: 'system' },
-      about: { id: 'about', label: t('settings.about'), icon: <Info theme='outline' size='16' />, path: 'about' },
-    };
-
-    const builtins: NavItem[] = BUILTIN_TAB_IDS.map((id) => builtinMap[id]);
+    const builtins = getBuiltinSettingsNavItems(isDesktop, t);
 
     // Insert extension tabs before system (unanchored default) or at anchor position
     const result = [...builtins];
