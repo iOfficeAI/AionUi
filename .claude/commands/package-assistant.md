@@ -57,6 +57,7 @@ Before writing descriptions and prompts, **study the skill thoroughly**:
 Create two rule files in `aionui/src/process/resources/assistant/<assistant-id>/`:
 
 **`<assistant-id>.md`** (English):
+
 ```markdown
 # <Assistant Display Name>
 
@@ -93,6 +94,7 @@ Add a new entry to `ASSISTANT_PRESETS` array in `aionui/src/common/config/preset
 **Placement**: New officecli-based assistants go at the **top** of the array (after morph-ppt).
 
 **Entry structure**:
+
 ```typescript
 {
   id: '<assistant-id>',
@@ -124,12 +126,14 @@ Add a new entry to `ASSISTANT_PRESETS` array in `aionui/src/common/config/preset
 ```
 
 **Description writing rules**:
+
 - Users see multiple assistants side by side and decide which to use based on descriptions
 - Each description must answer: "Why would I use THIS assistant instead of another?"
 - Mention the specific output type, use case, and unique strength
 - Avoid generic phrases like "professional documents" — be specific about what kind
 
 **Prompt selection rules**:
+
 - First priority: High-scoring prompts from `/Users/veryliu/Documents/GitHub/officecli/iterations/`
 - These are battle-tested prompts that are proven to produce good results with the skill
 - If no iteration data exists, write prompts that showcase the skill's unique strengths
@@ -157,11 +161,11 @@ Add a new entry to `ASSISTANT_PRESETS` array in `aionui/src/common/config/preset
 
 When packaging a new assistant, review existing officecli-based assistants to avoid description overlap:
 
-| ID | Skill | Focus |
-|---|---|---|
-| morph-ppt | morph-ppt | Morph-animated presentations with visual styles |
-| ppt-creator | officecli-pptx | General PPT creation, editing, analysis |
-| word-creator | officecli-docx | Word documents — reports, proposals, letters |
-| excel-creator | officecli-xlsx | Excel — financial models, trackers, formulas |
+| ID            | Skill          | Focus                                           |
+| ------------- | -------------- | ----------------------------------------------- |
+| morph-ppt     | morph-ppt      | Morph-animated presentations with visual styles |
+| ppt-creator   | officecli-pptx | General PPT creation, editing, analysis         |
+| word-creator  | officecli-docx | Word documents — reports, proposals, letters    |
+| excel-creator | officecli-xlsx | Excel — financial models, trackers, formulas    |
 
 Update this table when adding new assistants.

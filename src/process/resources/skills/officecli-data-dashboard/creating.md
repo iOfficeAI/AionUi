@@ -61,16 +61,17 @@ If the data has **multiple categorical dimensions** (e.g., region x category x d
 
 > **This table is the authoritative source for output complexity.** When any other text in this skill (including Core Concepts in SKILL.md) conflicts with this table, **this table wins.**
 
-| Data Size | KPIs | Charts | Sparklines | CF Rules | Named Ranges | Preset |
-|-----------|------|--------|------------|----------|--------------|--------|
-| < 10 rows | 1-2 | 1 | NO | 0-1 | NO | minimal |
-| 10-50 rows | 2-3 | 2 | Optional (time-series only) | 1-2 | NO | dashboard |
-| 50-200 rows | 3-5 | 2-3 | YES (time-series only) | 2-3 | Optional | dashboard |
-| 200+ rows | 3-5 | 3 | YES (time-series only) | 3-4 | Recommended | dashboard |
+| Data Size   | KPIs | Charts | Sparklines                  | CF Rules | Named Ranges | Preset    |
+| ----------- | ---- | ------ | --------------------------- | -------- | ------------ | --------- |
+| < 10 rows   | 1-2  | 1      | NO                          | 0-1      | NO           | minimal   |
+| 10-50 rows  | 2-3  | 2      | Optional (time-series only) | 1-2      | NO           | dashboard |
+| 50-200 rows | 3-5  | 2-3    | YES (time-series only)      | 2-3      | Optional     | dashboard |
+| 200+ rows   | 3-5  | 3      | YES (time-series only)      | 3-4      | Recommended  | dashboard |
 
 Sparkline column: "YES/Optional" applies only when data is a **sequential time series**. For cross-sectional or categorical data, skip sparklines regardless of row count (see Step 5 decision gate).
 
 > **STOP here and plan.** Before writing any commands, write out:
+>
 > 1. How many KPIs? Which formulas?
 > 2. How many charts? Which types? Which data columns?
 > 3. Which CF rules? On which columns?
@@ -78,14 +79,14 @@ Sparkline column: "YES/Optional" applies only when data is a **sequential time s
 
 ### A.4 Chart Type Selection Guide
 
-| Data Pattern | Recommended Chart | Example |
-|-------------|-------------------|---------|
-| Trend over time (single series) | `line` | MRR over 12 months |
-| Trend over time (multiple series) | `line` (multi-series) or `columnStacked` | Revenue components over time |
-| Comparison across categories | `column` or `bar` | Revenue by region |
-| Part-of-whole breakdown | `doughnut` | Spend by category |
-| Budget vs Actual | `combo` (bars + line) | Department budget performance |
-| Correlation | `scatter` (see note below) | Price vs volume |
+| Data Pattern                      | Recommended Chart                        | Example                       |
+| --------------------------------- | ---------------------------------------- | ----------------------------- |
+| Trend over time (single series)   | `line`                                   | MRR over 12 months            |
+| Trend over time (multiple series) | `line` (multi-series) or `columnStacked` | Revenue components over time  |
+| Comparison across categories      | `column` or `bar`                        | Revenue by region             |
+| Part-of-whole breakdown           | `doughnut`                               | Spend by category             |
+| Budget vs Actual                  | `combo` (bars + line)                    | Department budget performance |
+| Correlation                       | `scatter` (see note below)               | Price vs volume               |
 
 > **Scatter chart syntax differs from other charts.** Scatter charts do NOT use `series1.categories`. Instead, use `series1.xValues` for the X-axis data. Using `series1.categories` on a scatter chart produces an invalid `<cat>` element in the OOXML and will fail validation. See the scatter chart template in Step 6.
 
@@ -124,6 +125,7 @@ officecli import dashboard.xlsx /Sheet1 --file data.csv --header
 ```
 
 `--header` automatically sets:
+
 - Freeze pane at A2 (row 1 frozen)
 - AutoFilter on the full data range
 
@@ -137,14 +139,14 @@ After import, note the **last data row number** (e.g., row 13 for 12 data rows +
 
 **Recommended widths by column type:**
 
-| Content Type | Width |
-|-------------|-------|
-| Date (yyyy-mm-dd) | 14 |
-| Currency ($#,##0) | 15 |
-| Percentage (0.0%) | 12 |
-| Short text | 15 |
-| Long text | 20-25 |
-| Integer / count | 12 |
+| Content Type      | Width |
+| ----------------- | ----- |
+| Date (yyyy-mm-dd) | 14    |
+| Currency ($#,##0) | 15    |
+| Percentage (0.0%) | 12    |
+| Short text        | 15    |
+| Long text         | 20-25 |
+| Integer / count   | 12    |
 
 **Individual commands:**
 
@@ -218,16 +220,16 @@ EOF
 
 **Common KPI formulas:**
 
-| KPI | Formula | numFmt |
-|-----|---------|--------|
-| Total | `=SUM(Sheet1!B2:B13)` | `$#,##0` |
-| Average | `=AVERAGE(Sheet1!B2:B13)` | `$#,##0` |
-| Max | `=MAX(Sheet1!B2:B13)` | `$#,##0` |
-| Min | `=MIN(Sheet1!B2:B13)` | `$#,##0` |
-| Count | `=COUNT(Sheet1!B2:B13)` | `#,##0` |
-| Growth rate | `=IFERROR((Sheet1!B13-Sheet1!B2)/Sheet1!B2,0)` | `0.0%` |
-| Average rate | `=AVERAGE(Sheet1!E2:E13)` | `0.0%` |
-| Percentage change | `=IFERROR(Sheet1!B13/Sheet1!B12-1,0)` | `0.0%` |
+| KPI               | Formula                                        | numFmt   |
+| ----------------- | ---------------------------------------------- | -------- |
+| Total             | `=SUM(Sheet1!B2:B13)`                          | `$#,##0` |
+| Average           | `=AVERAGE(Sheet1!B2:B13)`                      | `$#,##0` |
+| Max               | `=MAX(Sheet1!B2:B13)`                          | `$#,##0` |
+| Min               | `=MIN(Sheet1!B2:B13)`                          | `$#,##0` |
+| Count             | `=COUNT(Sheet1!B2:B13)`                        | `#,##0`  |
+| Growth rate       | `=IFERROR((Sheet1!B13-Sheet1!B2)/Sheet1!B2,0)` | `0.0%`   |
+| Average rate      | `=AVERAGE(Sheet1!E2:E13)`                      | `0.0%`   |
+| Percentage change | `=IFERROR(Sheet1!B13/Sheet1!B12-1,0)`          | `0.0%`   |
 
 Always wrap division formulas in `IFERROR` to prevent `#DIV/0!` errors.
 
@@ -268,6 +270,7 @@ Adjust the number of columns to match your KPI count. For 5+ KPIs, add columns I
 ### Step 5: Add Sparklines Next to KPIs
 
 > **DECISION GATE: When to SKIP sparklines**
+>
 > - SKIP if data has **fewer than 10 rows** (too few points for a meaningful trend).
 > - SKIP if data is **cross-sectional, not time-series** (e.g., regions, departments, products with no time ordering). Sparklines show 1D trends -- they are meaningless for categorical/cross-sectional data. Skip even if the complexity table says "YES" or "Optional."
 > - INCLUDE only when rows represent a **sequential time series** (dates, months, quarters) with 10+ data points.
@@ -304,6 +307,7 @@ officecli add dashboard.xlsx /Dashboard --type sparkline \
 ```
 
 Sparkline rules:
+
 - Range must be 1D (single row or single column)
 - Cross-sheet ranges work: `range="Sheet1!B2:B13"`
 - Sparklines are add-only (cannot modify after creation)
@@ -329,14 +333,15 @@ Sparkline rules:
 
 These properties work on `add` ONLY. They are NOT in `--help` output. The agent cannot discover them -- they must be specified from this reference.
 
-| Property | Syntax | When to Use |
-|----------|--------|-------------|
-| `preset` | `--prop preset=dashboard` | **EVERY chart.** Options: minimal, dark, corporate, magazine, dashboard, colorful, monochrome |
-| `referenceline` | `--prop referenceline="value:color:label:dash"` | Budget targets, averages, thresholds |
-| `trendline` | `--prop trendline=linear` | Time-series charts to show direction |
-| `axisNumFmt` | `--prop axisNumFmt='$#,##0'` | Currency/percentage value axes |
+| Property        | Syntax                                          | When to Use                                                                                   |
+| --------------- | ----------------------------------------------- | --------------------------------------------------------------------------------------------- |
+| `preset`        | `--prop preset=dashboard`                       | **EVERY chart.** Options: minimal, dark, corporate, magazine, dashboard, colorful, monochrome |
+| `referenceline` | `--prop referenceline="value:color:label:dash"` | Budget targets, averages, thresholds                                                          |
+| `trendline`     | `--prop trendline=linear`                       | Time-series charts to show direction                                                          |
+| `axisNumFmt`    | `--prop axisNumFmt='$#,##0'`                    | Currency/percentage value axes                                                                |
 
 **Reference line format variants:**
+
 - `"125"` -- value only
 - `"125:FF0000"` -- value + color
 - `"125:FF0000:Target"` -- value + color + label
@@ -477,14 +482,17 @@ For combo charts, `comboSplit=N` makes the first N series bars and the rest line
 If a chart `add` command fails or produces an unexpected result:
 
 1. **Check how many charts exist:**
+
    ```bash
    officecli query dashboard.xlsx 'chart'
    ```
 
 2. **Remove a broken or ghost chart** (N is the 1-based chart index):
+
    ```bash
    officecli remove dashboard.xlsx '/Dashboard/chart[N]'
    ```
+
    Example: to remove the 2nd chart on Dashboard: `officecli remove dashboard.xlsx '/Dashboard/chart[2]'`
 
 3. **Retry the chart add** with corrected parameters.
@@ -548,11 +556,11 @@ officecli add dashboard.xlsx /Sheet1 --type formulacf \
 
 **Semantic colors reference:**
 
-| Meaning | Fill | Font Color |
-|---------|------|------------|
-| Good / Positive | C8E6C9 | 2E7D32 |
-| Bad / Negative | FFCDD2 | C62828 |
-| Neutral | F5F5F5 | 666666 |
+| Meaning         | Fill   | Font Color |
+| --------------- | ------ | ---------- |
+| Good / Positive | C8E6C9 | 2E7D32     |
+| Bad / Negative  | FFCDD2 | C62828     |
+| Neutral         | F5F5F5 | 666666     |
 
 ---
 
@@ -644,6 +652,7 @@ officecli validate dashboard.xlsx
 ```
 
 Must return zero errors. If errors are found:
+
 - Check for `font.bold` in formulacf -- remove it
 - Check calcPr XML ordering -- use correct xpath anchor
 - Check for duplicate bookViews -- raw-set may have been run twice
@@ -676,6 +685,7 @@ month,new_mrr,expansion_mrr,churned_mrr,net_mrr
 **Data analysis:** 12 rows, 5 columns. Primary dimension: month (date). Numeric columns: 4 (all currency). Per the complexity table: 2-3 KPIs, 2 charts, optional sparklines, 1-2 CF rules.
 
 **Plan:**
+
 - KPIs: Latest Net MRR, MoM Growth Rate, Average Churn Rate, Total Net New MRR
 - Charts: Line chart (Net MRR trend with trendline), Stacked column (MRR components)
 - Sparklines: 4 (one per KPI)
