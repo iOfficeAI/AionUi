@@ -8,30 +8,69 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 
 const originalPlatform = process.platform;
 
-// Shared mock instances that survive across dynamic imports
-const mockTrayInstance = {
-  setToolTip: vi.fn(),
-  setContextMenu: vi.fn(),
-  on: vi.fn(),
-  destroy: vi.fn(),
-};
+// vi.hoisted ensures these are available when vi.mock factories execute (which are hoisted above all other code)
+const hoisted = vi.hoisted(() => {
+  const mockTrayInstance = {
+    setToolTip: vi.fn(),
+    setContextMenu: vi.fn(),
+    on: vi.fn(),
+    destroy: vi.fn(),
+  };
 
-const mockMenuInstance = { items: [] };
-const mockBuildFromTemplate = vi.fn(() => mockMenuInstance);
-const mockListTasks = vi.fn(() => []);
-const mockGetUserConversations = vi.fn(() => ({ data: [] }));
-const mockGetDatabase = vi.fn(() => ({
-  getUserConversations: mockGetUserConversations,
-}));
+  const mockMenuInstance = { items: [] };
+  const mockBuildFromTemplate = vi.fn(() => mockMenuInstance);
+  const mockListTasks = vi.fn(() => []);
+  const mockGetUserConversations = vi.fn(() => ({ data: [] }));
+  const mockGetDatabase = vi.fn(() => ({
+    getUserConversations: mockGetUserConversations,
+  }));
 
-const mockNativeImage = {
-  resize: vi.fn().mockReturnThis(),
-  isEmpty: vi.fn(() => false),
-};
-const mockDock = {
-  show: vi.fn(),
-  hide: vi.fn(),
-};
+  const mockNativeImage = {
+    resize: vi.fn().mockReturnThis(),
+    isEmpty: vi.fn(() => false),
+  };
+  const mockDock = {
+    show: vi.fn(),
+    hide: vi.fn(),
+  };
+
+  const mockApp = {
+    isPackaged: false,
+    relaunch: vi.fn(),
+    exit: vi.fn(),
+    quit: vi.fn(),
+    dock: mockDock,
+  };
+
+  // Tray must be a proper constructor for `new Tray(icon)` to work.
+  // shouldThrowOnConstruct allows the failure test to toggle behavior
+  // without vi.doMock (which breaks hoisted vi.mock restoration).
+  let shouldThrowOnConstruct = false;
+  class MockTray {
+    constructor() {
+      if (shouldThrowOnConstruct) {
+        throw new Error('Tray init failed');
+      }
+      Object.assign(this, mockTrayInstance);
+    }
+  }
+
+  return {
+    mockTrayInstance,
+    mockMenuInstance,
+    mockBuildFromTemplate,
+    mockListTasks,
+    mockGetUserConversations,
+    mockGetDatabase,
+    mockNativeImage,
+    mockDock,
+    mockApp,
+    MockTray,
+    setThrowOnConstruct(v: boolean) {
+      shouldThrowOnConstruct = v;
+    },
+  };
+});
 
 const createMockWindow = () =>
   ({
@@ -46,74 +85,72 @@ const createMockWindow = () =>
     },
   }) as any;
 
-// Tray must be a proper constructor for `new Tray(icon)` to work
-class MockTray {
-  constructor() {
-    Object.assign(this, mockTrayInstance);
-  }
-}
+const {
+  mockTrayInstance,
+  mockMenuInstance,
+  mockBuildFromTemplate,
+  mockListTasks,
+  mockGetUserConversations,
+  mockGetDatabase,
+  mockNativeImage,
+  mockDock,
+  mockApp,
+  MockTray,
+} = hoisted;
 
-const mockApp = {
-  isPackaged: false,
-  relaunch: vi.fn(),
-  exit: vi.fn(),
-  quit: vi.fn(),
-  dock: mockDock,
-};
+// Hoisted vi.mock — applied at the module-system level before any import resolution,
+// preventing flaky failures from module cache pollution in concurrent test runs.
+vi.mock('@/common/electronSafe', () => ({
+  electronApp: mockApp,
+  electronTray: MockTray,
+  electronMenu: {
+    buildFromTemplate: mockBuildFromTemplate,
+  },
+  electronNativeImage: {
+    createFromPath: vi.fn(() => mockNativeImage),
+  },
+  electronBrowserWindow: null,
+  electronNotification: null,
+  electronUtilityProcess: null,
+  electronPowerSaveBlocker: null,
+}));
 
-const mockModules = () => {
-  vi.doMock('@/common/electronSafe', () => ({
-    electronApp: mockApp,
-    electronTray: MockTray,
-    electronMenu: {
-      buildFromTemplate: mockBuildFromTemplate,
+vi.mock('@/common', () => ({
+  ipcBridge: {
+    systemSettings: {
+      setCloseToTray: { invoke: vi.fn() },
     },
-    electronNativeImage: {
-      createFromPath: vi.fn(() => mockNativeImage),
-    },
-    electronBrowserWindow: null,
-    electronNotification: null,
-    electronUtilityProcess: null,
-    electronPowerSaveBlocker: null,
-  }));
+  },
+}));
 
-  vi.doMock('@/common', () => ({
-    ipcBridge: {
-      systemSettings: {
-        setCloseToTray: { invoke: vi.fn() },
-      },
-    },
-  }));
+vi.mock('@process/services/i18n', () => ({
+  default: { t: vi.fn((key: string) => key) },
+}));
 
-  vi.doMock('@process/services/i18n', () => ({
-    default: { t: vi.fn((key: string) => key) },
-  }));
+vi.mock('@process/task/workerTaskManagerSingleton', () => ({
+  workerTaskManager: { listTasks: mockListTasks },
+}));
 
-  vi.doMock('@process/task/workerTaskManagerSingleton', () => ({
-    workerTaskManager: { listTasks: mockListTasks },
-  }));
+vi.mock('@process/services/database', () => ({
+  getDatabase: mockGetDatabase,
+}));
 
-  vi.doMock('@process/services/database', () => ({
-    getDatabase: mockGetDatabase,
-  }));
-
-  vi.doMock('@process/utils/initStorage', () => ({
-    ProcessChat: { get: vi.fn(async () => []) },
-    getSkillsDir: vi.fn(() => '/mock/skills'),
-    getBuiltinSkillsCopyDir: vi.fn(() => '/mock/builtin-skills'),
-    getSystemDir: vi.fn(() => ({ cacheDir: '/mock/cache' })),
-  }));
-};
+vi.mock('@process/utils/initStorage', () => ({
+  ProcessChat: { get: vi.fn(async () => []) },
+  getSkillsDir: vi.fn(() => '/mock/skills'),
+  getBuiltinSkillsCopyDir: vi.fn(() => '/mock/builtin-skills'),
+  getSystemDir: vi.fn(() => ({ cacheDir: '/mock/cache' })),
+}));
 
 describe('tray module', () => {
   beforeEach(() => {
     vi.resetModules();
     vi.clearAllMocks();
+    hoisted.setThrowOnConstruct(false);
     Object.defineProperty(process, 'platform', {
       value: originalPlatform,
       configurable: true,
     });
-    mockModules();
   });
 
   afterEach(() => {
@@ -121,12 +158,6 @@ describe('tray module', () => {
       value: originalPlatform,
       configurable: true,
     });
-    vi.doUnmock('@/common/electronSafe');
-    vi.doUnmock('@/common');
-    vi.doUnmock('@process/services/i18n');
-    vi.doUnmock('@process/task/workerTaskManagerSingleton');
-    vi.doUnmock('@process/services/database');
-    vi.doUnmock('@process/utils/initStorage');
   });
 
   describe('state accessors', () => {
@@ -187,22 +218,7 @@ describe('tray module', () => {
     });
 
     it('should handle Tray constructor failure gracefully', async () => {
-      // Re-mock with a throwing Tray constructor
-      vi.doUnmock('@/common/electronSafe');
-      vi.doMock('@/common/electronSafe', () => ({
-        electronApp: mockApp,
-        electronTray: class {
-          constructor() {
-            throw new Error('Tray init failed');
-          }
-        },
-        electronMenu: { buildFromTemplate: vi.fn(() => mockMenuInstance) },
-        electronNativeImage: { createFromPath: vi.fn(() => mockNativeImage) },
-        electronBrowserWindow: null,
-        electronNotification: null,
-        electronUtilityProcess: null,
-        electronPowerSaveBlocker: null,
-      }));
+      hoisted.setThrowOnConstruct(true);
 
       const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
       const { createOrUpdateTray } = await import('@process/utils/tray');
@@ -211,6 +227,7 @@ describe('tray module', () => {
 
       expect(consoleSpy).toHaveBeenCalledWith('[Tray] Failed to create tray:', expect.any(Error));
       consoleSpy.mockRestore();
+      hoisted.setThrowOnConstruct(false);
     });
   });
 
@@ -271,7 +288,6 @@ describe('tray module', () => {
     const setupWithOverrides = () => {
       vi.resetModules();
       vi.clearAllMocks();
-      mockModules();
       mockListTasks.mockReturnValue([]);
       mockGetUserConversations.mockReturnValue({ data: [] });
       mockGetDatabase.mockImplementation(() => ({
@@ -280,7 +296,7 @@ describe('tray module', () => {
     };
 
     const getTemplateFromRefresh = async () => {
-      // Pre-import mocked modules to ensure doMock is resolved before tray imports them
+      // Pre-import mocked modules to ensure mock is resolved before tray imports them
       await import('@/common/electronSafe');
       await import('@process/services/database');
       const { createOrUpdateTray, refreshTrayMenu } = await import('@process/utils/tray');

@@ -176,7 +176,7 @@ const AssistantSelectionArea: React.FC<AssistantSelectionAreaProps> = ({
         <div
           className='flex items-center justify-center h-28px w-28px rd-50% bg-fill-0 hover:bg-fill-2 cursor-pointer b-1 b-dashed select-none transition-colors'
           style={{ borderWidth: '1px', borderColor: 'color-mix(in srgb, var(--color-border-2) 70%, transparent)' }}
-          onClick={() => navigate('/settings/agent')}
+          onClick={() => navigate('/settings/assistants')}
         >
           <Plus theme='outline' size={14} className='line-height-0 text-[var(--color-text-3)]' />
         </div>

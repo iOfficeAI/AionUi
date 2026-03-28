@@ -293,6 +293,12 @@ export interface OpenClawGatewayClientOptions {
   scopes?: string[];
   minProtocol?: number;
   maxProtocol?: number;
+  /** External device identity (remote agent scenario). If omitted, loads from ~/.openclaw/identity/ */
+  deviceIdentity?: import('./deviceIdentity').DeviceIdentity;
+  /** Stored device token from a previous hello-ok (remote agent scenario) */
+  deviceToken?: string;
+  /** Called when Gateway issues a new device token in hello-ok */
+  onDeviceTokenIssued?: (token: string) => void;
   onEvent?: (evt: EventFrame) => void;
   onHelloOk?: (hello: HelloOk) => void;
   onConnectError?: (err: Error) => void;

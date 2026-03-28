@@ -510,6 +510,30 @@ export const openclawConversation = {
   >('openclaw.get-runtime'),
 };
 
+// Remote Agent configuration CRUD
+export const remoteAgent = {
+  list: bridge.buildProvider<import('@process/agent/remote/types').RemoteAgentConfig[], void>('remote-agent.list'),
+  get: bridge.buildProvider<import('@process/agent/remote/types').RemoteAgentConfig | null, { id: string }>(
+    'remote-agent.get'
+  ),
+  create: bridge.buildProvider<
+    import('@process/agent/remote/types').RemoteAgentConfig,
+    import('@process/agent/remote/types').RemoteAgentInput
+  >('remote-agent.create'),
+  update: bridge.buildProvider<
+    boolean,
+    { id: string; updates: Partial<import('@process/agent/remote/types').RemoteAgentInput> }
+  >('remote-agent.update'),
+  delete: bridge.buildProvider<boolean, { id: string }>('remote-agent.delete'),
+  testConnection: bridge.buildProvider<
+    { success: boolean; error?: string },
+    { url: string; authType: string; authToken?: string }
+  >('remote-agent.test-connection'),
+  handshake: bridge.buildProvider<{ status: 'ok' | 'pending_approval' | 'error'; error?: string }, { id: string }>(
+    'remote-agent.handshake'
+  ),
+};
+
 // Database operations
 export const database = {
   getConversationMessages: bridge.buildProvider<
@@ -747,7 +771,7 @@ export interface IConfirmMessageParams {
 }
 
 export interface ICreateConversationParams {
-  type: 'gemini' | 'acp' | 'codex' | 'openclaw-gateway' | 'nanobot';
+  type: 'gemini' | 'acp' | 'codex' | 'openclaw-gateway' | 'nanobot' | 'remote';
   id?: string;
   name?: string;
   model: TProviderWithModel;
@@ -793,6 +817,8 @@ export interface ICreateConversationParams {
     };
     /** Explicit marker for temporary health-check conversations */
     isHealthCheck?: boolean;
+    /** Remote agent config ID (FK to remote_agents table) — required when type='remote' */
+    remoteAgentId?: string;
   };
 }
 interface IResetConversationParams {

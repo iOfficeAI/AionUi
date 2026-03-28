@@ -60,7 +60,7 @@ describe('startLogin', () => {
     const handle = startLogin({ onQR, onScanned, onDone, onError });
     await new Promise((r) => setTimeout(r, 50));
 
-    expect(onQR).toHaveBeenCalledWith('https://qr.weixin.qq.com/abc');
+    expect(onQR).toHaveBeenCalledWith('https://qr.weixin.qq.com/abc', 'ticket_1');
     expect(onDone).toHaveBeenCalledWith({
       accountId: 'user_123',
       botToken: 'tok_test',
@@ -100,7 +100,7 @@ describe('startLogin', () => {
     await new Promise((r) => setTimeout(r, 100));
 
     expect(onQR).toHaveBeenCalledTimes(2);
-    expect(onQR).toHaveBeenNthCalledWith(2, 'https://qr2.example.com');
+    expect(onQR).toHaveBeenNthCalledWith(2, 'https://qr2.example.com', 't2');
     expect(onDone).toHaveBeenCalledTimes(1);
     handle.abort();
   });

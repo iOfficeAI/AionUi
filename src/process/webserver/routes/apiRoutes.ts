@@ -18,6 +18,7 @@ import { isActivePreviewPort } from '@process/bridge/pptPreviewBridge';
 import { AIONUI_TIMESTAMP_SEPARATOR } from '@/common/config/constants';
 import directoryApi from '../directoryApi';
 import { apiRateLimiter } from '../middleware/security';
+import { registerWeixinLoginRoutes } from './weixinLoginRoutes';
 
 /** Max upload size in bytes (30MB per Issue #1233) */
 const MAX_UPLOAD_SIZE = 30 * 1024 * 1024;
@@ -562,6 +563,12 @@ export function registerApiRoutes(app: Express): void {
 
     req.pipe(proxyReq, { end: true });
   });
+
+  /**
+   * WeChat QR-code login (WebUI mode)
+   * GET /api/channel/weixin/login
+   */
+  registerWeixinLoginRoutes(app, validateApiAccess);
 
   /**
    * 通用 API 端点 - Generic API endpoint

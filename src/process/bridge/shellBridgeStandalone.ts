@@ -35,5 +35,13 @@ export function initShellBridgeStandalone(): void {
 
   ipcBridge.shell.showItemInFolder.provider((filePath) => runOpen([path.dirname(filePath)]));
 
-  ipcBridge.shell.openExternal.provider((url) => runOpen([url]));
+  ipcBridge.shell.openExternal.provider((url) => {
+    try {
+      new URL(url);
+    } catch {
+      console.warn(`[shellBridge] Invalid URL passed to openExternal: ${url}`);
+      return Promise.resolve();
+    }
+    return runOpen([url]);
+  });
 }

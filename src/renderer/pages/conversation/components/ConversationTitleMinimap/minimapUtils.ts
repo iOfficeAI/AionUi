@@ -74,8 +74,11 @@ export const readPopoverVisualStyle = (): MinimapVisualStyle => {
 
 export const getPanelWidth = () => {
   if (typeof window === 'undefined') return PANEL_MAX_WIDTH;
-  const viewportCap = Math.max(280, window.innerWidth - PANEL_MARGIN * 2);
-  const ratioWidth = Math.floor(window.innerWidth * PANEL_WIDTH_RATIO);
+  const viewportWidth = window.innerWidth;
+  const viewportCap = viewportWidth - PANEL_MARGIN * 2;
+  // On narrow viewports, take full available width
+  if (viewportWidth < 768) return Math.max(240, viewportCap);
+  const ratioWidth = Math.floor(viewportWidth * PANEL_WIDTH_RATIO);
   const target = Math.min(PANEL_MAX_WIDTH, ratioWidth, viewportCap);
   return Math.max(Math.min(PANEL_MIN_WIDTH, viewportCap), target);
 };

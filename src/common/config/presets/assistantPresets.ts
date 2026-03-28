@@ -24,6 +24,102 @@ export type AssistantPreset = {
 
 export const ASSISTANT_PRESETS: AssistantPreset[] = [
   {
+    id: 'word-creator',
+    avatar: '📝',
+    presetAgentType: 'gemini',
+    resourceDir: 'src/process/resources/assistant/word-creator',
+    ruleFiles: {
+      'en-US': 'word-creator.md',
+      'zh-CN': 'word-creator.zh-CN.md',
+    },
+    defaultEnabledSkills: ['officecli-docx'],
+    nameI18n: {
+      'en-US': 'Word Creator',
+      'zh-CN': 'Word 文档助手',
+    },
+    descriptionI18n: {
+      'en-US':
+        'Create, edit, and analyze professional Word documents with officecli. Reports, proposals, letters, memos, and more.',
+      'zh-CN': '使用 officecli 创建、编辑和分析专业 Word 文档。报告、方案、信函、备忘录等。',
+    },
+    promptsI18n: {
+      'en-US': [
+        'Create a Q1 2026 quarterly report with TOC, financial highlights table, revenue trend chart, and KPI metrics section',
+        'Write an academic research paper on machine learning with LaTeX equations, citations, data tables, and bibliography',
+        'Create a project status report with DRAFT watermark, color-coded status table, and a Gantt timeline in landscape section',
+      ],
+      'zh-CN': [
+        '创建一份 2026 年 Q1 季度报告，包含目录、财务亮点表格、营收趋势图和 KPI 指标',
+        '写一篇关于机器学习的学术论文，包含 LaTeX 公式、引用、数据表格和参考文献',
+        '创建一份项目状态报告，带 DRAFT 水印、彩色状态表格和横向甘特图时间线',
+      ],
+    },
+  },
+  {
+    id: 'ppt-creator',
+    avatar: '📊',
+    presetAgentType: 'gemini',
+    resourceDir: 'src/process/resources/assistant/ppt-creator',
+    ruleFiles: {
+      'en-US': 'ppt-creator.md',
+      'zh-CN': 'ppt-creator.zh-CN.md',
+    },
+    defaultEnabledSkills: ['officecli-pptx'],
+    nameI18n: {
+      'en-US': 'PPT Creator',
+      'zh-CN': 'PPT 演示助手',
+    },
+    descriptionI18n: {
+      'en-US':
+        'Create, edit, and analyze professional PowerPoint presentations with officecli. Bold designs, varied layouts, and visual impact.',
+      'zh-CN': '使用 officecli 创建、编辑和分析专业 PPT 演示文稿。大胆设计、丰富版式、视觉冲击。',
+    },
+    promptsI18n: {
+      'en-US': [
+        'Create a 10-slide Kubernetes migration proposal with architecture comparison, cost analysis, and migration timeline',
+        'Create a 10-slide SaaS analytics dashboard for a project management tool with user growth charts, conversion funnel, and competitive landscape',
+        'Create a 10-slide fintech product roadmap for a digital payment platform with user growth trajectory and investment analysis',
+      ],
+      'zh-CN': [
+        '做一份 10 页的 Kubernetes 迁移方案 PPT，包含架构对比、成本分析和迁移时间线',
+        '做一份 10 页的 SaaS 产品数据看板 PPT，包含用户增长图表、转化漏斗和竞品分析',
+        '做一份 10 页的金融科技产品路线图 PPT，包含用户增长趋势和投资分析',
+      ],
+    },
+  },
+  {
+    id: 'excel-creator',
+    avatar: '📈',
+    presetAgentType: 'gemini',
+    resourceDir: 'src/process/resources/assistant/excel-creator',
+    ruleFiles: {
+      'en-US': 'excel-creator.md',
+      'zh-CN': 'excel-creator.zh-CN.md',
+    },
+    defaultEnabledSkills: ['officecli-xlsx'],
+    nameI18n: {
+      'en-US': 'Excel Creator',
+      'zh-CN': 'Excel 表格助手',
+    },
+    descriptionI18n: {
+      'en-US':
+        'Create, edit, and analyze professional Excel spreadsheets with officecli. Financial models, dashboards, trackers, and data analysis.',
+      'zh-CN': '使用 officecli 创建、编辑和分析专业 Excel 表格。财务模型、数据看板、追踪表和数据分析。',
+    },
+    promptsI18n: {
+      'en-US': [
+        'Build a 3-sheet financial dashboard with income statement, revenue breakdown chart, and conditional formatting for variances',
+        'Create a sales pipeline tracker with deal stages, weighted pipeline formulas, funnel chart, and rep performance scorecards',
+        'Create a budget tracker with cross-sheet variance formulas, budget vs actuals bar chart, and color-coded over-budget highlights',
+      ],
+      'zh-CN': [
+        '创建一个 3 页的财务看板，包含利润表、营收分布图和差异条件格式',
+        '创建一个销售管道追踪表，包含阶段统计、加权管道公式、漏斗图和销售代表业绩看板',
+        '创建一个预算追踪表，包含跨表差异公式、预算对比柱状图和超支红色高亮',
+      ],
+    },
+  },
+  {
     id: 'morph-ppt',
     avatar: '✨',
     presetAgentType: 'gemini',
@@ -52,6 +148,72 @@ export const ASSISTANT_PRESETS: AssistantPreset[] = [
         '自己想一个有趣的主题，帮我做一份PPT',
         '做一个你认为最好看的 PPT，主题你定',
         '做一份咖啡品牌介绍PPT，要极简高级感',
+      ],
+    },
+  },
+  {
+    id: 'dashboard-creator',
+    avatar: '📊',
+    presetAgentType: 'gemini',
+    resourceDir: 'src/process/resources/assistant/dashboard-creator',
+    ruleFiles: {
+      'en-US': 'dashboard-creator.md',
+      'zh-CN': 'dashboard-creator.zh-CN.md',
+    },
+    defaultEnabledSkills: ['officecli-data-dashboard'],
+    nameI18n: {
+      'en-US': 'Dashboard Creator',
+      'zh-CN': '数据仪表盘',
+    },
+    descriptionI18n: {
+      'en-US':
+        'Turn CSV or tabular data into polished Excel dashboards with KPI cards, charts linked to live data, sparklines, and conditional formatting. Automatically scales complexity to dataset size — from quick summaries to full analytics panels.',
+      'zh-CN':
+        '将 CSV 或表格数据转化为精美的 Excel 仪表盘，包含 KPI 卡片、关联实时数据的图表、迷你图和条件格式。根据数据量自动缩放复杂度——从简洁汇总到完整分析面板。',
+    },
+    promptsI18n: {
+      'en-US': [
+        'Create a SaaS MRR dashboard with 12 months of sample data — show MRR trend, month-over-month growth, and churn breakdown for a board meeting',
+        'Build an e-commerce regional sales dashboard with sample data across 5 regions: revenue by region, weekly trends, and category split',
+        'Make a budget-vs-actuals dashboard for 8 departments showing variance indicators and over/under-budget status',
+      ],
+      'zh-CN': [
+        '做一个 SaaS MRR 仪表盘，用 12 个月的示例数据，展示 MRR 趋势、环比增长和流失分析，适合董事会汇报',
+        '做一个电商区域销售仪表盘，生成 5 个区域的示例数据，展示按区域收入、周趋势和品类占比',
+        '做一个 8 个部门的预算 vs 实际仪表盘，展示偏差指标和超支/节余状态',
+      ],
+    },
+  },
+  {
+    id: 'academic-paper',
+    avatar: '📚',
+    presetAgentType: 'gemini',
+    resourceDir: 'src/process/resources/assistant/academic-paper',
+    ruleFiles: {
+      'en-US': 'academic-paper.md',
+      'zh-CN': 'academic-paper.zh-CN.md',
+    },
+    defaultEnabledSkills: ['officecli-academic-paper'],
+    nameI18n: {
+      'en-US': 'Academic Paper',
+      'zh-CN': '学术论文助手',
+    },
+    descriptionI18n: {
+      'en-US':
+        'Create formally structured academic papers, research papers, and white papers with native Word TOC, LaTeX-to-OMML equations, scholarly bibliography (APA/Physics/Chicago), footnotes, multi-column layouts, and paper-type-specific styling.',
+      'zh-CN':
+        '创建正式结构的学术论文、研究论文和白皮书，支持原生 Word 目录、LaTeX 转 OMML 公式、学术参考文献（APA/物理/芝加哥格式）、脚注、多栏排版和论文类型专属样式。',
+    },
+    promptsI18n: {
+      'en-US': [
+        'Create a white paper on rural EV charging infrastructure with executive summary, data tables, footnotes, CONFIDENTIAL watermark, and professional headers',
+        'Write a physics paper on topological insulators with display equations, multi-column abstract, theorem/definition blocks, and landscape figures',
+        'Create an APA-style research paper on organizational culture with 3 data tables, endnotes, 15 references with hanging indent, and double spacing',
+      ],
+      'zh-CN': [
+        '创建一份农村电动汽车充电基础设施白皮书，包含执行摘要、数据表格、脚注、CONFIDENTIAL 水印和专业页头',
+        '写一篇拓扑绝缘体物理论文，包含展示式公式、多栏摘要、定理/定义模块和横向图表',
+        '创建一份 APA 格式的组织文化研究论文，包含 3 个数据表格、尾注、15 条挂缩进参考文献和双倍行距',
       ],
     },
   },
@@ -123,7 +285,7 @@ export const ASSISTANT_PRESETS: AssistantPreset[] = [
       'en-US': 'cowork-skills.md',
       'zh-CN': 'cowork-skills.zh-CN.md',
     },
-    defaultEnabledSkills: ['skill-creator', 'pptx', 'docx', 'pdf', 'xlsx'],
+    defaultEnabledSkills: ['skill-creator', 'officecli-pptx', 'officecli-docx', 'pdf', 'officecli-xlsx'],
     nameI18n: {
       'en-US': 'Cowork',
       'zh-CN': 'Cowork',
@@ -141,62 +303,64 @@ export const ASSISTANT_PRESETS: AssistantPreset[] = [
       'zh-CN': ['分析当前项目结构并建议改进方案', '自动化构建和部署流程', '提取并总结所有 PDF 文件的关键信息'],
     },
   },
-  {
-    id: 'pptx-generator',
-    avatar: '📊',
-    presetAgentType: 'gemini',
-    resourceDir: 'src/process/resources/assistant/pptx-generator',
-    ruleFiles: {
-      'en-US': 'pptx-generator.md',
-      'zh-CN': 'pptx-generator.zh-CN.md',
-    },
-    nameI18n: {
-      'en-US': 'PPTX Generator',
-      'zh-CN': 'PPTX 生成器',
-    },
-    descriptionI18n: {
-      'en-US': 'Generate local PPTX assets and structure for pptxgenjs.',
-      'zh-CN': '生成本地 PPTX 资产与结构（pptxgenjs）。',
-    },
-    promptsI18n: {
-      'en-US': [
-        'Create a professional slide deck about AI trends with 10 slides',
-        'Generate a quarterly business report presentation',
-        'Make a product launch presentation with visual elements',
-      ],
-      'zh-CN': ['创建一个包含 10 页的专业 AI 趋势幻灯片', '生成季度业务报告演示文稿', '制作包含视觉元素的产品发布演示'],
-    },
-  },
-  {
-    id: 'pdf-to-ppt',
-    avatar: '📄',
-    presetAgentType: 'gemini',
-    resourceDir: 'src/process/resources/assistant/pdf-to-ppt',
-    ruleFiles: {
-      'en-US': 'pdf-to-ppt.md',
-      'zh-CN': 'pdf-to-ppt.zh-CN.md',
-    },
-    nameI18n: {
-      'en-US': 'PDF to PPT',
-      'zh-CN': 'PDF 转 PPT',
-    },
-    descriptionI18n: {
-      'en-US': 'Convert PDF to PPT with watermark removal rules.',
-      'zh-CN': 'PDF 转 PPT 并去除水印规则',
-    },
-    promptsI18n: {
-      'en-US': [
-        'Convert report.pdf to a PowerPoint presentation',
-        'Extract all charts and diagrams from whitepaper.pdf',
-        'Transform this PDF document into slides with proper formatting',
-      ],
-      'zh-CN': [
-        '将 report.pdf 转换为 PowerPoint 演示文稿',
-        '从白皮书提取所有图表和示意图',
-        '将此 PDF 文档转换为格式正确的幻灯片',
-      ],
-    },
-  },
+  // Deprecated: replaced by ppt-creator (officecli-based)
+  // {
+  //   id: 'pptx-generator',
+  //   avatar: '📊',
+  //   presetAgentType: 'gemini',
+  //   resourceDir: 'src/process/resources/assistant/pptx-generator',
+  //   ruleFiles: {
+  //     'en-US': 'pptx-generator.md',
+  //     'zh-CN': 'pptx-generator.zh-CN.md',
+  //   },
+  //   nameI18n: {
+  //     'en-US': 'PPTX Generator',
+  //     'zh-CN': 'PPTX 生成器',
+  //   },
+  //   descriptionI18n: {
+  //     'en-US': 'Generate local PPTX assets and structure for pptxgenjs.',
+  //     'zh-CN': '生成本地 PPTX 资产与结构（pptxgenjs）。',
+  //   },
+  //   promptsI18n: {
+  //     'en-US': [
+  //       'Create a professional slide deck about AI trends with 10 slides',
+  //       'Generate a quarterly business report presentation',
+  //       'Make a product launch presentation with visual elements',
+  //     ],
+  //     'zh-CN': ['创建一个包含 10 页的专业 AI 趋势幻灯片', '生成季度业务报告演示文稿', '制作包含视觉元素的产品发布演示'],
+  //   },
+  // },
+  // Deprecated: replaced by ppt-creator (officecli-based)
+  // {
+  //   id: 'pdf-to-ppt',
+  //   avatar: '📄',
+  //   presetAgentType: 'gemini',
+  //   resourceDir: 'src/process/resources/assistant/pdf-to-ppt',
+  //   ruleFiles: {
+  //     'en-US': 'pdf-to-ppt.md',
+  //     'zh-CN': 'pdf-to-ppt.zh-CN.md',
+  //   },
+  //   nameI18n: {
+  //     'en-US': 'PDF to PPT',
+  //     'zh-CN': 'PDF 转 PPT',
+  //   },
+  //   descriptionI18n: {
+  //     'en-US': 'Convert PDF to PPT with watermark removal rules.',
+  //     'zh-CN': 'PDF 转 PPT 并去除水印规则',
+  //   },
+  //   promptsI18n: {
+  //     'en-US': [
+  //       'Convert report.pdf to a PowerPoint presentation',
+  //       'Extract all charts and diagrams from whitepaper.pdf',
+  //       'Transform this PDF document into slides with proper formatting',
+  //     ],
+  //     'zh-CN': [
+  //       '将 report.pdf 转换为 PowerPoint 演示文稿',
+  //       '从白皮书提取所有图表和示意图',
+  //       '将此 PDF 文档转换为格式正确的幻灯片',
+  //     ],
+  //   },
+  // },
   {
     id: 'game-3d',
     avatar: '🎮',
