@@ -215,7 +215,7 @@ export function initFsBridge(): void {
     const allowedProtocols = new Set(['http:', 'https:']);
     const parsedUrl = new URL(targetUrl);
     if (!allowedProtocols.has(parsedUrl.protocol)) {
-      return Promise.reject(new Error('Unsupported protocol'));
+      throw new Error('Unsupported protocol');
     }
 
     // 仅允许白名单域名，避免随意访问 / Restrict to a whitelist of hosts for safety
@@ -224,7 +224,7 @@ export function initFsBridge(): void {
       (host) => parsedUrl.hostname === host || parsedUrl.hostname.endsWith(`.${host}`)
     );
     if (!isAllowedHost) {
-      return Promise.reject(new Error('URL not allowed for remote fetch'));
+      throw new Error('URL not allowed for remote fetch');
     }
 
     return new Promise((resolve, reject) => {
