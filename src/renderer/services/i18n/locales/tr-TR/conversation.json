@@ -153,7 +153,28 @@
       "downloadFailed": "İndirme başarısız"
     },
     "expand": "Çalışma Alanını Genişlet",
-    "collapse": "Çalışma Alanını Daralt"
+    "collapse": "Çalışma Alanını Daralt",
+    "changes": {
+      "tab": "Değişiklikler",
+      "filesTab": "Dosyalar",
+      "summary": "{{count}} dosya değiştirildi",
+      "insertions": "+{{count}} ekleme",
+      "deletions": "-{{count}} silme",
+      "empty": "Henüz değişiklik yok",
+      "emptyDescription": "AI dosyaları değiştirdiğinde değişiklikler burada görünecektir",
+      "refresh": "Yenile",
+      "staged": "Hazırlanmış Değişiklikler",
+      "unstaged": "Değişiklikler",
+      "changedFiles": "Değişen Dosyalar",
+      "stage": "Hazırla",
+      "stageAll": "Tüm Değişiklikleri Hazırla",
+      "unstage": "Hazırlamayı Geri Al",
+      "unstageAll": "Tüm Hazırlamaları Geri Al",
+      "discard": "Değişiklikleri Sil",
+      "reset": "Değişiklikleri Geri Al",
+      "noUnstaged": "Hazırlanmamış değişiklik yok",
+      "noStaged": "Hazırlanmış değişiklik yok"
+    }
   },
   "minimap": {
     "searchAria": "Sohbeti ara",
@@ -177,6 +198,22 @@
     "tryAnotherAgent": "Try another agent:",
     "switchedToAgent": "Switched to {{agent}}",
     "switchAgentFailed": "Failed to switch agent"
+  },
+  "sideQuestion": {
+    "title": "Kısa Soru",
+    "description": "Mevcut konuşma hakkında hızlı bir yan soru sor",
+    "started": "Yan soru başlatılıyor...",
+    "answered": "Yan soru yanıtlandı.",
+    "noAnswer": "Geçerli konuşma bağlamında net bir yanıt yok.",
+    "loading": "Düşünüyor...",
+    "parentTaskRunning": "Ana görev arka planda çalışmaya devam ediyor.",
+    "dismissHint": "Kapatmak için Escape, Enter veya Space tuşuna basın",
+    "unsupported": "Bu konuşma için yan sorular kullanılamıyor.",
+    "alreadyRunning": "Zaten çalışan bir yan soru var.",
+    "attachmentsNotAllowed": "Yan sorular dosya veya DOM parçacıkları içeremez.",
+    "emptyQuestion": "/btw sonrasına bir soru yazın.",
+    "toolsRequired": "/btw yalnızca bu konuşmada zaten mevcut olan bilgilere dayanarak yanıt verebilir. Arama yapma, göz atma veya yeni bilgi getirme erişimi yoktur.",
+    "error": "Yan soru yanıtlanamadı."
   },
   "contextUsage": {
     "contextUsed": "bağlam kullanıldı"

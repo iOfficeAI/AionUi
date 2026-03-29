@@ -49,6 +49,38 @@ git branch --show-current
 
 If working directory is dirty, **STOP** and ask user to commit or stash first.
 
+#### Step 1.1b: Load Skip List (Daemon Mode Only)
+
+In daemon mode (`limit > 0`), load the skip list to avoid re-analyzing issues that were already
+triaged in previous sessions. The skip list is stored at:
+
+```
+~/.aionui-fix-sentry/skip-list.json
+```
+
+Format:
+
+```json
+{
+  "ELECTRON-6X": { "reason": "already_fixed", "expires": "2026-03-28T03:00:00Z", "summary": "PR #1758 merged" },
+  "ELECTRON-A7": { "reason": "system_level", "expires": "2026-04-03T03:00:00Z", "summary": "EPIPE in net.Socket" }
+}
+```
+
+**On load:**
+
+1. Read the file (if it doesn't exist, start with an empty skip list)
+2. Remove all entries where `expires` < current time (expired entries get re-analyzed)
+3. Keep the remaining entries as the active skip list
+
+**During Phase 1.2 (Fetch Issues):**
+
+When iterating through fetched issues, if an issue's short ID (e.g., `ELECTRON-6X`) is in the
+active skip list, **skip it immediately** without calling `get_issue_details` or doing any analysis.
+Log the skip: `Skipping ELECTRON-6X (cached: already_fixed — PR #1758 merged)`
+
+**In batch mode (`limit=0`):** skip list is ignored — always analyze everything fresh.
+
 #### Step 1.2: Fetch Unresolved Issues
 
 **Always include `is:unresolved`** to exclude issues already marked as resolved in Sentry.
@@ -368,6 +400,40 @@ Proceed to the next group.
 
 After all groups are processed, output a summary report.
 See [references/report-template.md](references/report-template.md) for the exact format.
+
+#### Step 3.1: Update Skip List (Daemon Mode Only)
+
+In daemon mode (`limit > 0`), after the summary report, update `~/.aionui-fix-sentry/skip-list.json`
+with all issues that were **skipped** in this session. This prevents the next session from
+re-analyzing the same issues.
+
+**TTL by classification:**
+
+| Classification    | TTL      | Reason                                            |
+| ----------------- | -------- | ------------------------------------------------- |
+| system_level      | 7 days   | These never change (EPIPE, ENOSPC, EIO, uv, etc.) |
+| already_fixed     | 48 hours | Re-check in case of regression                    |
+| unfixable         | 24 hours | Might become fixable with new code changes        |
+| fix_pending_merge | 12 hours | PR might get merged, issue might resolve          |
+
+**Write rules:**
+
+1. Read the existing file first (preserve entries from previous sessions that haven't expired)
+2. For each skipped issue in this session, add or update its entry with the appropriate TTL
+3. For issues that were **fixed** in this session (PR created), do NOT add to skip list —
+   they should be detected as "already fixed" by the next session's normal triage
+4. Write the merged result back to the file
+
+**Example output:**
+
+```json
+{
+  "ELECTRON-A7": { "reason": "system_level", "expires": "2026-04-03T03:00:00Z", "summary": "EPIPE in net.Socket" },
+  "ELECTRON-6X": { "reason": "already_fixed", "expires": "2026-03-29T03:00:00Z", "summary": "PR #1758 merged" },
+  "ELECTRON-16": { "reason": "system_level", "expires": "2026-04-03T03:00:00Z", "summary": "Electron SingletonCookie" },
+  "ELECTRON-X": { "reason": "fix_pending_merge", "expires": "2026-03-27T15:00:00Z", "summary": "PR #1498 open" }
+}
+```
 
 ## Configuration
 

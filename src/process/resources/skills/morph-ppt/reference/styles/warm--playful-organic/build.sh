@@ -381,6 +381,6 @@ officecli set "$OUTPUT" '/slide[6]/shape[29]' --prop x=3.9cm
 # VALIDATE & COMPLETE
 # ============================================
 echo "Validating..."
-bash "$(dirname "$0")/../../morph-helpers.sh" validate "$OUTPUT"
+python3 "$(dirname "$0")/../../morph-helpers.py" final-check "$OUTPUT"
 
 echo "✅ Build complete: $OUTPUT"

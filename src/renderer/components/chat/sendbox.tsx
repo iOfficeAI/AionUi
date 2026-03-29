@@ -5,8 +5,10 @@
  */
 
 import { ipcBridge } from '@/common';
+import BtwOverlay from '@/renderer/components/chat/BtwOverlay';
 import { useInputFocusRing } from '@/renderer/hooks/chat/useInputFocusRing';
 import SlashCommandMenu, { type SlashCommandMenuItem } from '@/renderer/components/chat/SlashCommandMenu';
+import { useBtwCommand } from '@/renderer/components/chat/BtwOverlay/useBtwCommand';
 import { useSlashCommandController } from '@/renderer/hooks/chat/useSlashCommandController';
 import { useLayoutContext } from '@/renderer/hooks/context/LayoutContext';
 import { useConversationContextSafe } from '@/renderer/hooks/context/ConversationContext';
@@ -18,6 +20,7 @@ import type { SlashCommandItem } from '@/common/chat/slash/types';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useCompositionInput } from '@renderer/hooks/chat/useCompositionInput';
+import { useConversationExport } from '@renderer/hooks/file/useConversationExport';
 import { useDragUpload } from '@renderer/hooks/file/useDragUpload';
 import { useLatestRef } from '@renderer/hooks/ui/useLatestRef';
 import { usePasteService } from '@renderer/hooks/file/usePasteService';
@@ -31,6 +34,12 @@ const constVoid = (): void => undefined;
 // 临界值：超过该字符数直接切换至多行模式，避免为超长文本做昂贵的宽度测量
 // Threshold: switch to multi-line mode directly when character count exceeds this value to avoid heavy layout work
 const MAX_SINGLE_LINE_CHARACTERS = 800;
+const BTW_COMMAND_RE = /^\/btw(?:\s+([\s\S]*))?$/i;
+
+function extractBtwQuestion(value: string): string | null {
+  const match = value.trim().match(BTW_COMMAND_RE);
+  return match ? match[1] || '' : null;
+}
 
 const SendBox: React.FC<{
   value?: string;
@@ -50,6 +59,8 @@ const SendBox: React.FC<{
   sendButtonPrefix?: React.ReactNode;
   slashCommands?: SlashCommandItem[];
   onSlashBuiltinCommand?: (name: string) => void;
+  hasPendingAttachments?: boolean;
+  enableBtw?: boolean;
 }> = ({
   onSend,
   onStop,
@@ -68,6 +79,8 @@ const SendBox: React.FC<{
   sendButtonPrefix,
   slashCommands = [],
   onSlashBuiltinCommand,
+  hasPendingAttachments = false,
+  enableBtw = false,
 }) => {
   const layout = useLayoutContext();
   const isMobile = layout?.isMobile ?? false;
@@ -208,20 +221,45 @@ const SendBox: React.FC<{
 
   const { isUploading } = useUploadState('sendbox');
   const [message, context] = Message.useMessage();
+  const conversationExport = useConversationExport({
+    conversationId: conversationContext?.conversationId,
+    workspace: conversationContext?.workspace,
+    t,
+    messageApi: message,
+  });
+  const btwCommand = useBtwCommand(conversationContext?.conversationId, enableBtw);
+  const btwQuestion = useMemo(() => extractBtwQuestion(input), [input]);
+  const isBtwInput = enableBtw && btwQuestion !== null;
 
   const builtinSlashCommands = useMemo<SlashCommandItem[]>(() => {
-    if (!onSlashBuiltinCommand) {
-      return [];
+    const commands: SlashCommandItem[] = [];
+    if (enableBtw) {
+      commands.push({
+        name: 'btw',
+        description: t('conversation.sideQuestion.description'),
+        kind: 'builtin',
+        source: 'builtin',
+        selectionBehavior: 'insert',
+      });
     }
-    return [
-      {
+    if (onSlashBuiltinCommand) {
+      commands.push({
         name: 'open',
         description: t('conversation.workspace.addFile', { defaultValue: 'Add File' }),
         kind: 'builtin',
         source: 'builtin',
-      },
-    ];
-  }, [onSlashBuiltinCommand, t]);
+      });
+    }
+    if (conversationContext?.conversationId) {
+      commands.push({
+        name: 'export',
+        description: t('messages.export.commandDescription'),
+        kind: 'builtin',
+        source: 'builtin',
+      });
+    }
+    return commands;
+  }, [conversationContext?.conversationId, enableBtw, onSlashBuiltinCommand, t]);
 
   const mergedSlashCommands = useMemo(() => {
     const map = new Map<string, SlashCommandItem>();
@@ -240,7 +278,11 @@ const SendBox: React.FC<{
     input,
     commands: mergedSlashCommands,
     onExecuteBuiltin: (name) => {
-      onSlashBuiltinCommand?.(name);
+      if (name === 'export') {
+        void conversationExport.openExportFlow();
+      } else {
+        onSlashBuiltinCommand?.(name);
+      }
       setInput('');
     },
     onSelectTemplate: (name) => {
@@ -258,6 +300,81 @@ const SendBox: React.FC<{
       })),
     [slashController.filteredCommands]
   );
+
+  const isCommandMenuOpen = conversationExport.isOpen || slashController.isOpen;
+  const isOverlayOpen = isCommandMenuOpen || btwCommand.isOpen;
+
+  const handleTextAreaChange = (value: string) => {
+    if (conversationExport.isOpen && value) {
+      conversationExport.closeExportFlow();
+    }
+    setInput(value);
+  };
+
+  const handleOverlayKeyDown = (event: React.KeyboardEvent) => {
+    return conversationExport.handleKeyDown(event) || slashController.onKeyDown(event);
+  };
+
+  const renderExportFileNamePanel = () => {
+    return (
+      <div
+        className='rounded-14px border border-solid overflow-hidden p-12px flex flex-col gap-10px'
+        style={{
+          borderColor: 'var(--color-border-2)',
+          background: 'color-mix(in srgb, var(--color-bg-1) 88%, transparent)',
+          backdropFilter: 'blur(14px) saturate(1.1)',
+          WebkitBackdropFilter: 'blur(14px) saturate(1.1)',
+        }}
+      >
+        <div className='text-13px font-semibold text-t-primary'>{t('messages.export.fileNameLabel')}</div>
+        <Input
+          autoFocus
+          value={conversationExport.filename}
+          onChange={conversationExport.setFilename}
+          placeholder={t('messages.export.fileNamePlaceholder')}
+          disabled={conversationExport.loading}
+          onKeyDown={(event) => {
+            conversationExport.handleKeyDown(event);
+          }}
+        />
+        <div className='text-12px text-t-secondary break-all'>
+          {t('messages.export.pathLabel')}: {conversationExport.pathPreview}
+        </div>
+        <div className='flex items-center justify-end gap-8px'>
+          <Button
+            size='small'
+            type='secondary'
+            disabled={conversationExport.loading}
+            onClick={() => {
+              conversationExport.closeExportFlow();
+            }}
+          >
+            {t('common.cancel')}
+          </Button>
+          <Button
+            size='small'
+            type='secondary'
+            disabled={conversationExport.loading}
+            onClick={() => {
+              conversationExport.showMenu();
+            }}
+          >
+            {t('common.back')}
+          </Button>
+          <Button
+            size='small'
+            type='primary'
+            loading={conversationExport.loading}
+            onClick={() => {
+              void conversationExport.submitFilename();
+            }}
+          >
+            {t('common.save')}
+          </Button>
+        </div>
+      </div>
+    );
+  };
 
   // 使用共享的输入法合成处理
   const { compositionHandlers, createKeyDownHandler } = useCompositionInput();
@@ -325,6 +442,25 @@ const SendBox: React.FC<{
   }, []);
 
   const sendMessageHandler = () => {
+    if (enableBtw && btwQuestion !== null) {
+      const normalizedQuestion = btwQuestion.trim();
+      if (!normalizedQuestion) {
+        message.warning(t('conversation.sideQuestion.emptyQuestion'));
+        return;
+      }
+      if (btwCommand.isLoading) {
+        message.warning(t('conversation.sideQuestion.alreadyRunning'));
+        return;
+      }
+      if (hasPendingAttachments || domSnippets.length > 0) {
+        message.warning(t('conversation.sideQuestion.attachmentsNotAllowed'));
+        return;
+      }
+      setInput('');
+      void btwCommand.ask(normalizedQuestion);
+      return;
+    }
+
     if (loading || isLoading) {
       message.warning(t('messages.conversationInProgress'));
       return;
@@ -364,12 +500,8 @@ const SendBox: React.FC<{
     }
   };
 
-  // Calculate button disabled state and style
+  // Calculate button disabled state
   const isButtonDisabled = disabled || isUploading || (!input.trim() && domSnippets.length === 0);
-  const buttonStyle = {
-    backgroundColor: isButtonDisabled ? undefined : '#000000',
-    borderColor: isButtonDisabled ? undefined : '#000000',
-  };
 
   // Reusable send button component
   const sendButton = (
@@ -378,7 +510,6 @@ const SendBox: React.FC<{
       type='primary'
       disabled={isButtonDisabled}
       className='send-button-custom'
-      style={buttonStyle}
       icon={<ArrowUp theme='filled' size='14' fill='white' strokeWidth={5} />}
       onClick={() => {
         sendMessageHandler();
@@ -390,7 +521,7 @@ const SendBox: React.FC<{
     <div className={className}>
       <div
         ref={containerRef}
-        className={`relative p-16px border-3 b bg-dialog-fill-0 b-solid rd-20px flex flex-col ${slashController.isOpen ? 'overflow-visible' : 'overflow-hidden'} ${isFileDragging ? 'b-dashed' : ''}`}
+        className={`relative p-16px border-3 b bg-dialog-fill-0 b-solid rd-20px flex flex-col ${isOverlayOpen ? 'overflow-visible' : 'overflow-hidden'} ${isFileDragging ? 'b-dashed' : ''}`}
         style={{
           transition: 'box-shadow 0.25s ease, border-color 0.25s ease',
           ...(isFileDragging
@@ -407,23 +538,51 @@ const SendBox: React.FC<{
         }}
         {...dragHandlers}
       >
-        {slashController.isOpen && (
+        <BtwOverlay
+          answer={btwCommand.answer}
+          anchorEl={containerRef.current}
+          isLoading={btwCommand.isLoading}
+          isOpen={btwCommand.isOpen}
+          onDismiss={btwCommand.dismiss}
+          parentTaskRunning={Boolean(loading || isLoading)}
+          question={btwCommand.question}
+        />
+        {isCommandMenuOpen && (
           <div className='absolute left-12px right-12px bottom-[calc(100%+8px)] z-70'>
-            <SlashCommandMenu
-              title={t('messages.slash.title', { defaultValue: 'Commands' })}
-              hint={t('messages.slash.hint', { defaultValue: 'Type / to open command menu' })}
-              items={slashMenuItems}
-              activeIndex={slashController.activeIndex}
-              loading={false}
-              onHoverItem={slashController.setActiveIndex}
-              onSelectItem={(item) => {
-                const targetIndex = slashController.filteredCommands.findIndex((command) => command.name === item.key);
-                if (targetIndex >= 0) {
-                  slashController.onSelectByIndex(targetIndex);
-                }
-              }}
-              emptyText={t('messages.slash.empty', { defaultValue: 'No commands found' })}
-            />
+            {conversationExport.step === 'menu' ? (
+              <SlashCommandMenu
+                title={t('messages.export.menuTitle')}
+                hint={t('messages.export.menuHint')}
+                items={conversationExport.menuItems}
+                activeIndex={conversationExport.activeIndex}
+                loading={conversationExport.loading}
+                onHoverItem={conversationExport.setActiveIndex}
+                onSelectItem={(item) => {
+                  conversationExport.onSelectMenuItem(item.key);
+                }}
+                emptyText={t('messages.slash.empty', { defaultValue: 'No commands found' })}
+              />
+            ) : conversationExport.step === 'filename' ? (
+              renderExportFileNamePanel()
+            ) : (
+              <SlashCommandMenu
+                title={t('messages.slash.title', { defaultValue: 'Commands' })}
+                hint={t('messages.slash.hint', { defaultValue: 'Type / to open command menu' })}
+                items={slashMenuItems}
+                activeIndex={slashController.activeIndex}
+                loading={false}
+                onHoverItem={slashController.setActiveIndex}
+                onSelectItem={(item) => {
+                  const targetIndex = slashController.filteredCommands.findIndex(
+                    (command) => command.name === item.key
+                  );
+                  if (targetIndex >= 0) {
+                    slashController.onSelectByIndex(targetIndex);
+                  }
+                }}
+                emptyText={t('messages.slash.empty', { defaultValue: 'No commands found' })}
+              />
+            )}
           </div>
         )}
         <div style={{ width: '100%' }}>
@@ -478,9 +637,7 @@ const SendBox: React.FC<{
               wordBreak: isSingleLine ? 'normal' : 'break-word',
               overflowWrap: 'break-word',
             }}
-            onChange={(v) => {
-              setInput(v);
-            }}
+            onChange={handleTextAreaChange}
             onPaste={onPaste}
             onTouchStart={markMobileFocusIntent}
             onMouseDown={markMobileFocusIntent}
@@ -488,12 +645,12 @@ const SendBox: React.FC<{
             onBlur={handleInputBlur}
             {...compositionHandlers}
             autoSize={isSingleLine ? false : { minRows: 1, maxRows: 10 }}
-            onKeyDown={createKeyDownHandler(sendMessageHandler, slashController.onKeyDown)}
+            onKeyDown={createKeyDownHandler(sendMessageHandler, handleOverlayKeyDown)}
           ></Input.TextArea>
           {isSingleLine && (
             <div className='flex items-center gap-2'>
               {sendButtonPrefix}
-              {isLoading || loading ? (
+              {isLoading || (loading && !isBtwInput) ? (
                 <Button
                   shape='circle'
                   type='secondary'
@@ -512,7 +669,7 @@ const SendBox: React.FC<{
             <div className={isMobile ? 'sendbox-tools sendbox-tools-scroll-mobile' : 'sendbox-tools'}>{tools}</div>
             <div className='flex items-center gap-2'>
               {sendButtonPrefix}
-              {isLoading || loading ? (
+              {isLoading || (loading && !isBtwInput) ? (
                 <Button
                   shape='circle'
                   type='secondary'

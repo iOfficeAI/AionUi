@@ -1,4 +1,4 @@
-name: '✅ PR Checks'
+name: 'PR Checks'
 
 on:
   workflow_dispatch:
@@ -71,6 +71,7 @@ jobs:
         uses: oven-sh/setup-bun@v2
         with:
           bun-version: latest
+          cache: true
 
       - name: Install dependencies
         run: bun install --no-frozen-lockfile
@@ -113,6 +114,14 @@ jobs:
         uses: oven-sh/setup-bun@v2
         with:
           bun-version: latest
+          cache: true
+
+      - name: Disable Windows Defender (Windows only)
+        if: matrix.os == 'windows-2022'
+        shell: pwsh
+        run: |
+          Set-MpPreference -DisableRealtimeMonitoring $true
+          Add-MpPreference -ExclusionPath "${{ github.workspace }}"
 
       - name: Install dependencies
         run: bun install --no-frozen-lockfile
@@ -148,6 +157,7 @@ jobs:
         uses: oven-sh/setup-bun@v2
         with:
           bun-version: latest
+          cache: true
 
       - name: Install dependencies
         run: bun install --no-frozen-lockfile
@@ -224,6 +234,7 @@ jobs:
         uses: oven-sh/setup-bun@v2
         with:
           bun-version: latest
+          cache: true
 
       - name: Install dependencies
         run: bun install --no-frozen-lockfile
@@ -310,6 +321,7 @@ jobs:
         uses: oven-sh/setup-bun@v2
         with:
           bun-version: latest
+          cache: true
 
       - name: Setup Python
         uses: actions/setup-python@v5

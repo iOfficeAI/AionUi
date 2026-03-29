@@ -79,8 +79,7 @@ const McpManagement: React.FC<McpManagementProps> = ({ message }) => {
     syncMcpToAgents,
     removeMcpFromAgents,
     checkSingleServerInstallStatus,
-    setAgentInstallStatus,
-    message
+    setAgentInstallStatus
   );
 
   // OAuth 登录处理

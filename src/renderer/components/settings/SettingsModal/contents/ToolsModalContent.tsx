@@ -92,8 +92,7 @@ const ModalMcpManagementSection: React.FC<{
     syncMcpToAgents,
     removeMcpFromAgents,
     checkSingleServerInstallStatus,
-    setAgentInstallStatus,
-    message
+    setAgentInstallStatus
   );
 
   const handleOAuthLogin = useCallback(

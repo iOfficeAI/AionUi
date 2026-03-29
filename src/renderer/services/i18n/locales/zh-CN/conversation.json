@@ -158,6 +158,27 @@
       "download": "下载",
       "downloadSuccess": "下载成功",
       "downloadFailed": "下载失败"
+    },
+    "changes": {
+      "tab": "变更",
+      "filesTab": "文件",
+      "summary": "{{count}} 个文件已变更",
+      "insertions": "+{{count}} 行新增",
+      "deletions": "-{{count}} 行删除",
+      "empty": "暂无变更",
+      "emptyDescription": "AI 修改文件后，变更记录将显示在此处",
+      "refresh": "刷新",
+      "staged": "已暂存的更改",
+      "unstaged": "更改",
+      "changedFiles": "已更改的文件",
+      "stage": "暂存",
+      "stageAll": "暂存所有更改",
+      "unstage": "取消暂存",
+      "unstageAll": "取消暂存所有更改",
+      "discard": "放弃更改",
+      "reset": "还原更改",
+      "noUnstaged": "没有未暂存的更改",
+      "noStaged": "没有已暂存的更改"
     }
   },
   "minimap": {
@@ -182,6 +203,22 @@
     "tryAnotherAgent": "尝试其他 Agent：",
     "switchedToAgent": "已切换到 {{agent}}",
     "switchAgentFailed": "切换 Agent 失败"
+  },
+  "sideQuestion": {
+    "title": "顺便问一下",
+    "description": "针对当前对话快速提一个小问题",
+    "started": "正在发起顺便提问...",
+    "answered": "顺便提问已返回结果。",
+    "noAnswer": "当前会话里没有明确的答案。",
+    "loading": "思考中...",
+    "parentTaskRunning": "主任务仍在后台继续运行。",
+    "dismissHint": "按 Escape、Enter 或 Space 关闭",
+    "unsupported": "当前会话暂不支持顺便提问。",
+    "alreadyRunning": "已有一个顺便提问正在进行中。",
+    "attachmentsNotAllowed": "顺便提问不能附带文件或 DOM 片段。",
+    "emptyQuestion": "请在 /btw 后输入问题。",
+    "toolsRequired": "/btw 只能根据当前对话中已有的内容作答，无法搜索、浏览或获取新信息。",
+    "error": "顺便提问失败。"
   },
   "contextUsage": {
     "contextUsed": "上下文已使用"

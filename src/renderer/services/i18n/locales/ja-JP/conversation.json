@@ -158,6 +158,27 @@
       "download": "ダウンロード",
       "downloadSuccess": "ダウンロードしました",
       "downloadFailed": "ダウンロードに失敗しました"
+    },
+    "changes": {
+      "tab": "変更",
+      "filesTab": "ファイル",
+      "summary": "{{count}} 個のファイルが変更されました",
+      "insertions": "+{{count}} 行追加",
+      "deletions": "-{{count}} 行削除",
+      "empty": "変更はまだありません",
+      "emptyDescription": "AIがファイルを変更すると、変更内容がここに表示されます",
+      "refresh": "更新",
+      "staged": "ステージ済みの変更",
+      "unstaged": "変更",
+      "changedFiles": "変更されたファイル",
+      "stage": "ステージ",
+      "stageAll": "すべての変更をステージ",
+      "unstage": "ステージ解除",
+      "unstageAll": "すべてのステージを解除",
+      "discard": "変更を破棄",
+      "reset": "変更を元に戻す",
+      "noUnstaged": "ステージされていない変更はありません",
+      "noStaged": "ステージ済みの変更はありません"
     }
   },
   "minimap": {
@@ -182,6 +203,22 @@
     "tryAnotherAgent": "別のエージェントを試す：",
     "switchedToAgent": "{{agent}}に切り替えました",
     "switchAgentFailed": "エージェントの切り替えに失敗しました"
+  },
+  "sideQuestion": {
+    "title": "ちょっと質問",
+    "description": "現在の会話について短い補足質問をする",
+    "started": "補足質問を開始しています...",
+    "answered": "補足質問に回答しました。",
+    "noAnswer": "現在の会話コンテキストには明確な答えがありません。",
+    "loading": "考え中...",
+    "parentTaskRunning": "メインのタスクはバックグラウンドで実行中です。",
+    "dismissHint": "Escape、Enter、Space で閉じる",
+    "unsupported": "この会話では補足質問を利用できません。",
+    "alreadyRunning": "補足質問はすでに実行中です。",
+    "attachmentsNotAllowed": "補足質問にはファイルや DOM スニペットを含められません。",
+    "emptyQuestion": "/btw の後に質問を入力してください。",
+    "toolsRequired": "/btw はこの会話にすでにある内容に基づいてのみ回答できます。検索や閲覧、新しい情報の取得はできません。",
+    "error": "補足質問への回答に失敗しました。"
   },
   "contextUsage": {
     "contextUsed": "コンテキスト使用量"

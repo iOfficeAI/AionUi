@@ -316,6 +316,23 @@ const createWindow = (): void => {
 
   mainWindow.webContents.on('render-process-gone', (_event, details) => {
     console.error('[AionUi] render-process-gone:', details);
+
+    // Reload the renderer to recover from the crash.
+    // The isDestroyed() guard in adapter/main.ts prevents further sends
+    // to the dead webContents while the reload is in progress.
+    if (!mainWindow.isDestroyed()) {
+      console.log('[AionUi] Attempting to recover from renderer crash by reloading...');
+
+      if (!app.isPackaged && rendererUrl) {
+        mainWindow.loadURL(rendererUrl).catch((error) => {
+          console.error('[AionUi] Recovery loadURL failed:', error.message || error);
+        });
+      } else {
+        mainWindow.loadFile(fallbackFile).catch((error) => {
+          console.error('[AionUi] Recovery loadFile failed:', error.message || error);
+        });
+      }
+    }
   });
 
   mainWindow.webContents.on('unresponsive', () => {
@@ -341,6 +358,7 @@ const createWindow = (): void => {
   // 关闭拦截：当启用"关闭到托盘"时，隐藏窗口而非关闭
   // Close interception: hide window instead of closing when "close to tray" is enabled
   mainWindow.on('close', (event) => {
+    if (mainWindow.isDestroyed()) return;
     if (getCloseToTrayEnabled() && !getIsQuitting()) {
       event.preventDefault();
       mainWindow.hide();
@@ -404,18 +422,13 @@ const handleAppReady = async (): Promise<void> => {
   if (isResetPasswordMode) {
     // Handle password reset without creating window
     try {
-      // Get username argument, filtering out flags (--xxx)
-      // 获取用户名参数，过滤掉标志（--xxx）
-      const resetPasswordIndex = process.argv.indexOf('--resetpass');
-      const argsAfterCommand = process.argv.slice(resetPasswordIndex + 1);
-      const username = argsAfterCommand.find((arg) => !arg.startsWith('--')) || 'admin';
+      const { resetPasswordCLI, resolveResetPasswordUsername } = await import('./process/utils/resetPasswordCLI');
+      const username = resolveResetPasswordUsername(process.argv);
 
-      // Import resetpass logic
-      const { resetPasswordCLI } = await import('./process/utils/resetPasswordCLI');
       await resetPasswordCLI(username);
 
       app.quit();
-    } catch (error) {
+    } catch {
       app.exit(1);
     }
   } else if (isWebUIMode) {

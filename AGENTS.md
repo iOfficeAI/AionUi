@@ -89,7 +89,7 @@ Common Oxfmt rules (Prettier-compatible, avoid a fix pass):
 
 Commit format: `<type>(<scope>): <subject>` in English. Types: feat, fix, refactor, chore, docs, test, style, perf. **NEVER add AI signatures** (Co-Authored-By, Generated with, etc.).
 
-For pull request creation, see the `pr` skill (`.claude/skills/pr/SKILL.md`).
+For pull request creation, see the `oss-pr` skill (`.claude/skills/oss-pr/SKILL.md`).
 
 ## Skills Index
 
@@ -100,7 +100,8 @@ Detailed rules and guidelines are organized into Skills for better modularity:
 | **architecture** | File & directory structure conventions for all process types                       | Creating files, adding modules, architectural decisions            |
 | **i18n**         | Internationalization workflow and standards                                        | Adding user-facing text, creating components with user-facing text |
 | **testing**      | Testing workflow and quality standards                                             | Writing tests, adding features, before claiming completion         |
-| **pr**           | Pull request workflow: ensure issue exists, push branch, open PR                   | Creating pull requests, after committing, `/oss-pr`                |
+| **oss-pr**       | Full commit + PR workflow: branch management, quality checks, issue linking, PR    | Creating pull requests, after committing, `/oss-pr`                |
+| **bump-version** | Version bump workflow: update package.json, checks, branch, PR, tag release        | Bumping version, `/bump-version`                                   |
 | **pr-review**    | Local PR code review with full project context, no truncation limits               | Reviewing a PR, user says "review PR", `/pr-review`                |
 | **pr-fix**       | Fix all issues from a pr-review report, create a follow-up PR, and verify each fix | After pr-review, user says "fix all issues", `/pr-fix`             |
 

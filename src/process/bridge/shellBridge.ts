@@ -9,7 +9,14 @@ import { ipcBridge } from '@/common';
 
 export function initShellBridge(): void {
   ipcBridge.shell.openFile.provider(async (path) => {
-    await shell.openPath(path);
+    try {
+      const errorMessage = await shell.openPath(path);
+      if (errorMessage) {
+        console.warn(`[shellBridge] Failed to open path: ${errorMessage}`);
+      }
+    } catch (error) {
+      console.warn(`[shellBridge] Failed to open path:`, (error as Error).message);
+    }
   });
 
   ipcBridge.shell.showItemInFolder.provider((path) => {

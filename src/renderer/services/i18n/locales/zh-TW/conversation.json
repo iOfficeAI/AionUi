@@ -158,6 +158,27 @@
       "download": "下載",
       "downloadSuccess": "下載成功",
       "downloadFailed": "下載失敗"
+    },
+    "changes": {
+      "tab": "變更",
+      "filesTab": "檔案",
+      "summary": "{{count}} 個檔案已變更",
+      "insertions": "+{{count}} 行新增",
+      "deletions": "-{{count}} 行刪除",
+      "empty": "暫無變更",
+      "emptyDescription": "AI 修改檔案後，變更記錄將顯示在此處",
+      "refresh": "重新整理",
+      "staged": "已暫存的變更",
+      "unstaged": "變更",
+      "changedFiles": "已變更的檔案",
+      "stage": "暫存",
+      "stageAll": "暫存所有變更",
+      "unstage": "取消暫存",
+      "unstageAll": "取消暫存所有變更",
+      "discard": "捨棄變更",
+      "reset": "還原變更",
+      "noUnstaged": "沒有未暫存的變更",
+      "noStaged": "沒有已暫存的變更"
     }
   },
   "minimap": {
@@ -182,6 +203,22 @@
     "tryAnotherAgent": "嘗試其他 Agent：",
     "switchedToAgent": "已切換到 {{agent}}",
     "switchAgentFailed": "切換 Agent 失敗"
+  },
+  "sideQuestion": {
+    "title": "順便問一下",
+    "description": "針對目前對話快速提出一個小問題",
+    "started": "正在發起順便提問...",
+    "answered": "順便提問已返回結果。",
+    "noAnswer": "目前的會話內容裡沒有明確答案。",
+    "loading": "思考中...",
+    "parentTaskRunning": "主任務仍在背景持續執行。",
+    "dismissHint": "按 Escape、Enter 或 Space 關閉",
+    "unsupported": "目前會話暫不支援順便提問。",
+    "alreadyRunning": "已有一個順便提問正在進行中。",
+    "attachmentsNotAllowed": "順便提問不能附帶檔案或 DOM 片段。",
+    "emptyQuestion": "請在 /btw 後輸入問題。",
+    "toolsRequired": "/btw 只能根據目前對話中已有的內容作答，無法搜尋、瀏覽或取得新資訊。",
+    "error": "順便提問失敗。"
   },
   "contextUsage": {
     "contextUsed": "上下文已使用"

@@ -158,6 +158,27 @@
       "download": "Download",
       "downloadSuccess": "Download successful",
       "downloadFailed": "Download failed"
+    },
+    "changes": {
+      "tab": "Changes",
+      "filesTab": "Files",
+      "summary": "{{count}} file(s) changed",
+      "insertions": "+{{count}} insertions",
+      "deletions": "-{{count}} deletions",
+      "empty": "No changes yet",
+      "emptyDescription": "File changes will appear here when AI modifies files",
+      "refresh": "Refresh",
+      "staged": "Staged Changes",
+      "unstaged": "Changes",
+      "changedFiles": "Changed Files",
+      "stage": "Stage",
+      "stageAll": "Stage All Changes",
+      "unstage": "Unstage",
+      "unstageAll": "Unstage All Changes",
+      "discard": "Discard Changes",
+      "reset": "Revert Changes",
+      "noUnstaged": "No unstaged changes",
+      "noStaged": "No staged changes"
     }
   },
   "minimap": {
@@ -182,6 +203,22 @@
     "tryAnotherAgent": "Try another agent:",
     "switchedToAgent": "Switched to {{agent}}",
     "switchAgentFailed": "Failed to switch agent"
+  },
+  "sideQuestion": {
+    "title": "Side Question",
+    "description": "Ask a quick question about the current conversation",
+    "started": "Starting side question...",
+    "answered": "Side question answered.",
+    "noAnswer": "The side question did not have a clear answer in the current conversation.",
+    "loading": "Thinking...",
+    "parentTaskRunning": "Main task still running in the background.",
+    "dismissHint": "Press Escape, Enter, or Space to dismiss",
+    "unsupported": "Side questions are not available for this conversation.",
+    "alreadyRunning": "A side question is already running.",
+    "attachmentsNotAllowed": "Side questions cannot include files or DOM snippets.",
+    "emptyQuestion": "Please enter a side question after /btw.",
+    "toolsRequired": "/btw can only answer questions based on what's already in this conversation. It doesn't have access to search, browse, or fetch new information.",
+    "error": "Failed to answer the side question."
   },
   "contextUsage": {
     "contextUsed": "context used"

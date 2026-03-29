@@ -32,7 +32,7 @@ export class WorkerTaskManager implements IWorkerTaskManager {
     const conversation = await this.repo.getConversation(id);
     if (conversation) return this._buildAndCache(conversation, options);
 
-    return Promise.reject(new Error(`Conversation not found: ${id}`));
+    throw new Error(`Conversation not found: ${id}`);
   }
 
   private _buildAndCache(conversation: TChatConversation, options?: BuildConversationOptions): IAgentManager {

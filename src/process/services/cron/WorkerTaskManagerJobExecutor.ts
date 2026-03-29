@@ -32,17 +32,26 @@ export class WorkerTaskManagerJobExecutor implements ICronJobExecutor {
     // Reuse existing task if possible; ensure yoloMode is active for scheduled runs.
     const existingTask = this.taskManager.getTask(conversationId);
     let task;
-    if (existingTask) {
-      const yoloEnabled = await (existingTask as BaseAgentManager<unknown>).ensureYoloMode();
-      if (yoloEnabled) {
-        task = existingTask;
+    try {
+      if (existingTask) {
+        const yoloEnabled = await (existingTask as BaseAgentManager<unknown>).ensureYoloMode();
+        if (yoloEnabled) {
+          task = existingTask;
+        } else {
+          // Cannot enable yoloMode dynamically — kill and recreate.
+          this.taskManager.kill(conversationId);
+          task = await this.taskManager.getOrBuildTask(conversationId, { yoloMode: true });
+        }
       } else {
-        // Cannot enable yoloMode dynamically — kill and recreate.
-        this.taskManager.kill(conversationId);
         task = await this.taskManager.getOrBuildTask(conversationId, { yoloMode: true });
       }
-    } else {
-      task = await this.taskManager.getOrBuildTask(conversationId, { yoloMode: true });
+    } catch (err) {
+      // Conversation may have been deleted between scheduling and execution.
+      // Re-throw with context so the caller (CronService) can log and update job state.
+      throw new Error(
+        `Failed to acquire task for conversation ${conversationId}: ${err instanceof Error ? err.message : String(err)}`,
+        { cause: err }
+      );
     }
 
     // Mark busy only after task acquisition succeeds. This ensures that if

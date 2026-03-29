@@ -51,6 +51,10 @@ export const conversation = {
     IBridgeResponse<{ commands: SlashCommandItem[] }>,
     { conversation_id: string }
   >('conversation.get-slash-commands'),
+  askSideQuestion: bridge.buildProvider<
+    IBridgeResponse<ConversationSideQuestionResult>,
+    { conversation_id: string; question: string }
+  >('conversation.ask-side-question'),
   confirmMessage: bridge.buildProvider<IBridgeResponse, IConfirmMessageParams>('conversation.confirm.message'), // 通用确认消息
   responseStream: bridge.buildEmitter<IResponseMessage>('chat.response.stream'), // 接收消息（统一接口）
   turnCompleted: bridge.buildEmitter<IConversationTurnCompletedEvent>('conversation.turn.completed'),
@@ -307,6 +311,36 @@ export const fileStream = {
   }>('file-stream-content-update'), // Agent 写入文件时的流式内容更新 / Streaming content update when agent writes file
 };
 
+// File snapshot providers for tracking file changes
+export const fileSnapshot = {
+  init: bridge.buildProvider<import('@/common/types/fileSnapshot').SnapshotInfo, { workspace: string }>(
+    'file-snapshot-init'
+  ),
+  compare: bridge.buildProvider<import('@/common/types/fileSnapshot').CompareResult, { workspace: string }>(
+    'file-snapshot-compare'
+  ),
+  getBaselineContent: bridge.buildProvider<string | null, { workspace: string; filePath: string }>(
+    'file-snapshot-baseline'
+  ),
+  getInfo: bridge.buildProvider<import('@/common/types/fileSnapshot').SnapshotInfo, { workspace: string }>(
+    'file-snapshot-info'
+  ),
+  dispose: bridge.buildProvider<void, { workspace: string }>('file-snapshot-dispose'),
+  stageFile: bridge.buildProvider<void, { workspace: string; filePath: string }>('file-snapshot-stage-file'),
+  stageAll: bridge.buildProvider<void, { workspace: string }>('file-snapshot-stage-all'),
+  unstageFile: bridge.buildProvider<void, { workspace: string; filePath: string }>('file-snapshot-unstage-file'),
+  unstageAll: bridge.buildProvider<void, { workspace: string }>('file-snapshot-unstage-all'),
+  discardFile: bridge.buildProvider<
+    void,
+    { workspace: string; filePath: string; operation: import('@/common/types/fileSnapshot').FileChangeOperation }
+  >('file-snapshot-discard-file'),
+  resetFile: bridge.buildProvider<
+    void,
+    { workspace: string; filePath: string; operation: import('@/common/types/fileSnapshot').FileChangeOperation }
+  >('file-snapshot-reset-file'),
+  getBranches: bridge.buildProvider<string[], { workspace: string }>('file-snapshot-get-branches'),
+};
+
 export const googleAuth = {
   login: bridge.buildProvider<IBridgeResponse<{ account: string }>, { proxy?: string }>('google.auth.login'),
   logout: bridge.buildProvider<void, {}>('google.auth.logout'),
@@ -512,6 +546,30 @@ export const openclawConversation = {
     }>,
     { conversation_id: string }
   >('openclaw.get-runtime'),
+};
+
+// Remote Agent configuration CRUD
+export const remoteAgent = {
+  list: bridge.buildProvider<import('@process/agent/remote/types').RemoteAgentConfig[], void>('remote-agent.list'),
+  get: bridge.buildProvider<import('@process/agent/remote/types').RemoteAgentConfig | null, { id: string }>(
+    'remote-agent.get'
+  ),
+  create: bridge.buildProvider<
+    import('@process/agent/remote/types').RemoteAgentConfig,
+    import('@process/agent/remote/types').RemoteAgentInput
+  >('remote-agent.create'),
+  update: bridge.buildProvider<
+    boolean,
+    { id: string; updates: Partial<import('@process/agent/remote/types').RemoteAgentInput> }
+  >('remote-agent.update'),
+  delete: bridge.buildProvider<boolean, { id: string }>('remote-agent.delete'),
+  testConnection: bridge.buildProvider<
+    { success: boolean; error?: string },
+    { url: string; authType: string; authToken?: string; allowInsecure?: boolean }
+  >('remote-agent.test-connection'),
+  handshake: bridge.buildProvider<{ status: 'ok' | 'pending_approval' | 'error'; error?: string }, { id: string }>(
+    'remote-agent.handshake'
+  ),
 };
 
 // Database operations
@@ -751,7 +809,7 @@ export interface IConfirmMessageParams {
 }
 
 export interface ICreateConversationParams {
-  type: 'gemini' | 'acp' | 'codex' | 'openclaw-gateway' | 'nanobot';
+  type: 'gemini' | 'acp' | 'codex' | 'openclaw-gateway' | 'nanobot' | 'remote';
   id?: string;
   name?: string;
   model: TProviderWithModel;
@@ -797,6 +855,8 @@ export interface ICreateConversationParams {
     };
     /** Explicit marker for temporary health-check conversations */
     isHealthCheck?: boolean;
+    /** Remote agent config ID (FK to remote_agents table) — required when type='remote' */
+    remoteAgentId?: string;
   };
 }
 interface IResetConversationParams {
@@ -873,6 +933,26 @@ export interface IConversationListChangedEvent {
   action: 'created' | 'updated' | 'deleted';
   source?: string;
 }
+
+export type ConversationSideQuestionResult =
+  | {
+      status: 'ok';
+      answer: string;
+    }
+  | {
+      status: 'noAnswer';
+    }
+  | {
+      status: 'unsupported';
+    }
+  | {
+      status: 'invalid';
+      reason: 'emptyQuestion';
+    }
+  | {
+      status: 'toolsRequired';
+    };
+
 interface IBridgeResponse<D = {}> {
   success: boolean;
   data?: D;

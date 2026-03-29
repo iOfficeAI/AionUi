@@ -70,6 +70,37 @@ describe('shellBridge', () => {
     });
   });
 
+  describe('openFile — error handling', () => {
+    beforeEach(() => {
+      initShellBridge();
+    });
+
+    it('calls shell.openPath with the given path', async () => {
+      shellMock.openPath.mockResolvedValue('');
+      await openFileProvider.fn!('/some/file.txt');
+      expect(shellMock.openPath).toHaveBeenCalledWith('/some/file.txt');
+    });
+
+    it('logs warning when shell.openPath returns an error string', async () => {
+      const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
+      shellMock.openPath.mockResolvedValue('No application associated with this file type');
+      await openFileProvider.fn!('/some/file.xyz');
+      expect(warnSpy).toHaveBeenCalledWith(expect.stringContaining('Failed to open path'));
+      warnSpy.mockRestore();
+    });
+
+    it('does not throw when shell.openPath rejects', async () => {
+      const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
+      shellMock.openPath.mockRejectedValue(new Error('Failed to open: 没有应用程序与此操作的指定文件有关联。 (0x483)'));
+      await expect(openFileProvider.fn!('/some/file.xyz')).resolves.toBeUndefined();
+      expect(warnSpy).toHaveBeenCalledWith(
+        expect.stringContaining('Failed to open path'),
+        expect.stringContaining('没有应用程序')
+      );
+      warnSpy.mockRestore();
+    });
+  });
+
   describe('openExternal — URL validation', () => {
     beforeEach(() => {
       initShellBridge();

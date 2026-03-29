@@ -15,13 +15,16 @@ import {
   getWorkspaceDisplayName as getDisplayName,
 } from '@/renderer/utils/workspace/workspace';
 import { Empty, Message, Tree } from '@arco-design/web-react';
-import React, { useCallback, useMemo } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import FileChangeList from './components/FileChangeList';
 import MigrationModal from './components/MigrationModal';
 import PasteConfirmModal from './components/PasteConfirmModal';
 import WorkspaceContextMenu from './components/WorkspaceContextMenu';
 import WorkspaceDialogs from './components/WorkspaceDialogs';
+import WorkspaceTabBar from './components/WorkspaceTabBar';
 import WorkspaceToolbar from './components/WorkspaceToolbar';
+import { useFileChanges } from './hooks/useFileChanges';
 import { useWorkspaceCollapse } from './hooks/useWorkspaceCollapse';
 import { useWorkspaceDragImport } from './hooks/useWorkspaceDragImport';
 import { useWorkspaceEvents } from './hooks/useWorkspaceEvents';
@@ -31,7 +34,7 @@ import { useWorkspaceModals } from './hooks/useWorkspaceModals';
 import { useWorkspacePaste } from './hooks/useWorkspacePaste';
 import { useWorkspaceSearch } from './hooks/useWorkspaceSearch';
 import { useWorkspaceTree } from './hooks/useWorkspaceTree';
-import type { WorkspaceProps } from './types';
+import type { WorkspaceProps, WorkspaceTab } from './types';
 import {
   computeContextMenuPosition,
   extractNodeData,
@@ -57,6 +60,10 @@ const ChatWorkspace: React.FC<WorkspaceProps> = ({
   const [internalMessageApi, messageContext] = Message.useMessage();
   const messageApi = externalMessageApi ?? internalMessageApi;
   const shouldRenderLocalMessageContext = !externalMessageApi;
+
+  // Tab state and file changes
+  const [activeTab, setActiveTab] = useState<WorkspaceTab>('files');
+  const fileChangesHook = useFileChanges({ workspace, conversationId: conversation_id });
 
   // Initialize all hooks
   const { isWorkspaceCollapsed, setIsWorkspaceCollapsed } = useWorkspaceCollapse();
@@ -172,6 +179,24 @@ const ChatWorkspace: React.FC<WorkspaceProps> = ({
     [treeHook.ensureNodeSelected, modalsHook.setContextMenu]
   );
 
+  const handleOpenChangeDiff = useCallback(
+    (diffContent: string, fileName: string, filePath: string) => {
+      openPreview(diffContent, 'diff', {
+        fileName,
+        filePath,
+        workspace,
+      });
+    },
+    [openPreview, workspace]
+  );
+
+  // Auto-refresh changes when switching to changes tab
+  useEffect(() => {
+    if (activeTab === 'changes') {
+      fileChangesHook.refreshChanges();
+    }
+  }, [activeTab, fileChangesHook.refreshChanges]);
+
   // Get target folder path for paste confirm modal
   const targetFolderPathForModal = getTargetFolderPath(
     treeHook.selectedNodeRef.current,
@@ -273,29 +298,41 @@ const ChatWorkspace: React.FC<WorkspaceProps> = ({
           handleFilesToAdd={pasteHook.handleFilesToAdd}
         />
 
-        {/* Toolbar: search input + directory name + action buttons */}
-        <WorkspaceToolbar
+        {/* Tab bar */}
+        <WorkspaceTabBar
           t={t}
-          isWorkspaceCollapsed={isWorkspaceCollapsed}
-          setIsWorkspaceCollapsed={setIsWorkspaceCollapsed}
-          isTemporaryWorkspace={isTemporaryWorkspace}
-          workspaceDisplayName={workspaceDisplayName}
-          showSearch={searchHook.showSearch}
-          searchText={searchHook.searchText}
-          setSearchText={searchHook.setSearchText}
-          onSearch={searchHook.onSearch}
-          searchInputRef={searchHook.searchInputRef}
-          loading={treeHook.loading}
-          refreshWorkspace={treeHook.refreshWorkspace}
-          handleSelectHostFiles={pasteHook.handleSelectHostFiles}
-          handleUploadDeviceFiles={pasteHook.handleUploadDeviceFiles}
-          setShowHostFileSelector={searchHook.setShowHostFileSelector}
-          handleOpenMigrationModal={migrationHook.handleOpenMigrationModal}
-          handleOpenWorkspaceRoot={migrationHook.handleOpenWorkspaceRoot}
+          activeTab={activeTab}
+          onTabChange={setActiveTab}
+          changeCount={fileChangesHook.changeCount}
+          branch={fileChangesHook.snapshotInfo?.branch ?? null}
+          branches={fileChangesHook.branches}
         />
 
+        {/* Toolbar: search input + directory name + action buttons */}
+        {activeTab === 'files' && (
+          <WorkspaceToolbar
+            t={t}
+            isWorkspaceCollapsed={isWorkspaceCollapsed}
+            setIsWorkspaceCollapsed={setIsWorkspaceCollapsed}
+            isTemporaryWorkspace={isTemporaryWorkspace}
+            workspaceDisplayName={workspaceDisplayName}
+            showSearch={searchHook.showSearch}
+            searchText={searchHook.searchText}
+            setSearchText={searchHook.setSearchText}
+            onSearch={searchHook.onSearch}
+            searchInputRef={searchHook.searchInputRef}
+            loading={treeHook.loading}
+            refreshWorkspace={treeHook.refreshWorkspace}
+            handleSelectHostFiles={pasteHook.handleSelectHostFiles}
+            handleUploadDeviceFiles={pasteHook.handleUploadDeviceFiles}
+            setShowHostFileSelector={searchHook.setShowHostFileSelector}
+            handleOpenMigrationModal={migrationHook.handleOpenMigrationModal}
+            handleOpenWorkspaceRoot={migrationHook.handleOpenWorkspaceRoot}
+          />
+        )}
+
         {/* Main content area */}
-        {!isWorkspaceCollapsed && (
+        {!isWorkspaceCollapsed && activeTab === 'files' && (
           <FlexFullContainer containerClassName='overflow-y-auto'>
             {/* Context Menu */}
             <WorkspaceContextMenu
@@ -489,6 +526,28 @@ const ChatWorkspace: React.FC<WorkspaceProps> = ({
                 }}
               ></Tree>
             )}
+          </FlexFullContainer>
+        )}
+
+        {/* Changes tab content */}
+        {!isWorkspaceCollapsed && activeTab === 'changes' && (
+          <FlexFullContainer containerClassName='overflow-y-auto'>
+            <FileChangeList
+              t={t}
+              workspace={workspace}
+              staged={fileChangesHook.staged}
+              unstaged={fileChangesHook.unstaged}
+              loading={fileChangesHook.loading}
+              snapshotInfo={fileChangesHook.snapshotInfo}
+              onRefresh={fileChangesHook.refreshChanges}
+              onOpenDiff={handleOpenChangeDiff}
+              onStageFile={fileChangesHook.stageFile}
+              onStageAll={fileChangesHook.stageAll}
+              onUnstageFile={fileChangesHook.unstageFile}
+              onUnstageAll={fileChangesHook.unstageAll}
+              onDiscardFile={fileChangesHook.discardFile}
+              onResetFile={fileChangesHook.resetFile}
+            />
           </FlexFullContainer>
         )}
       </div>

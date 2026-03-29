@@ -287,6 +287,6 @@ JSON
 
 # Validate
 echo "Validating..."
-bash "$(dirname "$0")/../../morph-helpers.sh" validate "$OUT"
+python3 "$(dirname "$0")/../../morph-helpers.py" final-check "$OUT"
 
 echo "✅ Build complete: $OUT"

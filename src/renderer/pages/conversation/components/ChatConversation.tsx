@@ -24,6 +24,7 @@ import ChatSider from './ChatSider';
 import CodexChat from '../platforms/codex/CodexChat';
 import NanobotChat from '../platforms/nanobot/NanobotChat';
 import OpenClawChat from '../platforms/openclaw/OpenClawChat';
+import RemoteChat from '../platforms/remote/RemoteChat';
 import GeminiChat from '../platforms/gemini/GeminiChat';
 import AcpModelSelector from '@/renderer/components/agent/AcpModelSelector';
 import GeminiModelSelector from '../platforms/gemini/GeminiModelSelector';
@@ -220,6 +221,14 @@ const ChatConversation: React.FC<{
             workspace={conversation.extra?.workspace}
           />
         );
+      case 'remote':
+        return (
+          <RemoteChat
+            key={conversation.id}
+            conversation_id={conversation.id}
+            workspace={conversation.extra?.workspace}
+          />
+        );
       default:
         return null;
     }
@@ -286,7 +295,9 @@ const ChatConversation: React.FC<{
                   ? 'openclaw-gateway'
                   : conversation?.type === 'nanobot'
                     ? 'nanobot'
-                    : undefined,
+                    : conversation?.type === 'remote'
+                      ? 'remote'
+                      : undefined,
           agentName: (conversation?.extra as { agentName?: string })?.agentName,
         };
 

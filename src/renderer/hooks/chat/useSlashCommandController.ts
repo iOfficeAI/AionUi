@@ -38,6 +38,13 @@ export function getScrollTopForActiveItem(input: ActiveItemScrollInput): number 
   return containerScrollTop;
 }
 
+function getSelectionBehavior(command: SlashCommandItem): 'execute' | 'insert' {
+  if (command.selectionBehavior) {
+    return command.selectionBehavior;
+  }
+  return command.kind === 'builtin' ? 'execute' : 'insert';
+}
+
 interface UseSlashCommandControllerOptions {
   input: string;
   commands: SlashCommandItem[];
@@ -78,7 +85,9 @@ export function useSlashCommandController(options: UseSlashCommandControllerOpti
       if (!command) {
         return false;
       }
-      if (command.kind === 'builtin') {
+      if (getSelectionBehavior(command) === 'insert') {
+        onSelectTemplate?.(command.name);
+      } else if (command.kind === 'builtin') {
         onExecuteBuiltin?.(command.name);
       } else {
         onSelectTemplate?.(command.name);

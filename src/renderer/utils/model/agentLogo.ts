@@ -53,6 +53,7 @@ const AGENT_LOGO_MAP = {
   'openclaw-gateway': OpenClawLogo,
   vibe: MistralLogo,
   nanobot: NanobotLogo,
+  remote: OpenClawLogo,
   qoder: QoderLogo,
   cursor: CursorLogo,
 } as const satisfies Record<string, string>;
