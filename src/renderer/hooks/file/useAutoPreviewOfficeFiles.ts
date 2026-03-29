@@ -8,11 +8,7 @@ import { joinPath } from '@/common/chat/chatLib';
 import type { TMessage } from '@/common/chat/chatLib';
 import { usePreviewContext } from '@/renderer/pages/conversation/Preview';
 import { getFileTypeInfo } from '@/renderer/utils/file/fileType';
-import { useEffect } from 'react';
-
-// Module-level set — persists across conversation navigation (component re-mounts).
-// Ensures each tool call triggers auto-preview at most once per app session.
-const firedSessionIds = new Set<string>();
+import { useEffect, useRef } from 'react';
 
 const OFFICE_EXTENSIONS = /\.(pptx|docx|xlsx)$/i;
 
@@ -28,8 +24,9 @@ function resolveFilePath(raw: string, workspace: string | undefined): string {
 }
 
 /**
- * Auto-opens a preview tab when an AI tool call produces a .pptx/.docx/.xlsx file.
- * Fires at most once per tool call per conversation session.
+ * Auto-opens a preview tab when an AI tool call produces a .pptx/.docx/.xlsx file,
+ * but ONLY for tool calls that complete while the user is actively watching —
+ * i.e. the tool was not yet Success when this component mounted.
  *
  * Handles two message types:
  * - tool_group: Claude/Gemini/ACP mode (WriteFile + Bash tools)
@@ -40,7 +37,32 @@ function resolveFilePath(raw: string, workspace: string | undefined): string {
 export const useAutoPreviewOfficeFiles = (messages: TMessage[], workspace: string | undefined) => {
   const { findPreviewTab, openPreview } = usePreviewContext();
 
+  // Baseline: callIds that were already Success when this component mounted.
+  // Only tool calls that become Success AFTER mount (user watched it happen) trigger auto-preview.
+  const baselineRef = useRef<Set<string> | null>(null);
+
+  // Per-mount dedup: prevents double-firing if messages re-renders multiple times.
+  const firedRef = useRef<Set<string>>(new Set());
+
   useEffect(() => {
+    // On first run: record all currently-Success callIds as baseline — do not trigger them.
+    if (baselineRef.current === null) {
+      const baseline = new Set<string>();
+      for (const message of messages) {
+        if (message.type === 'tool_group') {
+          for (const tool of message.content) {
+            if (tool.status === 'Success') baseline.add(tool.callId);
+          }
+        } else if (message.type === 'codex_tool_call' && message.content.status === 'success') {
+          baseline.add(message.id);
+        }
+      }
+      baselineRef.current = baseline;
+      return;
+    }
+
+    const baseline = baselineRef.current;
+
     for (const message of messages) {
       // --- tool_group: Claude / Gemini / ACP mode ---
       if (message.type === 'tool_group') {
@@ -48,7 +70,7 @@ export const useAutoPreviewOfficeFiles = (messages: TMessage[], workspace: strin
           if (tool.status !== 'Success') continue;
 
           const { callId, name, description, resultDisplay } = tool;
-          if (firedSessionIds.has(callId)) continue;
+          if (baseline.has(callId) || firedRef.current.has(callId)) continue;
 
           let filePath: string | null = null;
 
@@ -81,7 +103,7 @@ export const useAutoPreviewOfficeFiles = (messages: TMessage[], workspace: strin
           }
 
           if (!filePath) continue;
-          tryOpenPreview(callId, filePath, workspace, findPreviewTab, openPreview);
+          tryOpenPreview(callId, filePath, workspace, firedRef, findPreviewTab, openPreview);
         }
         continue;
       }
@@ -91,9 +113,8 @@ export const useAutoPreviewOfficeFiles = (messages: TMessage[], workspace: strin
         const mc = message.content;
         if (mc.status !== 'success') continue;
 
-        // Use message.id as dedup key — each logical tool call is one merged message
         const id = message.id;
-        if (firedSessionIds.has(id)) continue;
+        if (baseline.has(id) || firedRef.current.has(id)) continue;
 
         let filePath: string | null = null;
 
@@ -113,7 +134,7 @@ export const useAutoPreviewOfficeFiles = (messages: TMessage[], workspace: strin
         }
 
         if (!filePath) continue;
-        tryOpenPreview(id, filePath, workspace, findPreviewTab, openPreview);
+        tryOpenPreview(id, filePath, workspace, firedRef, findPreviewTab, openPreview);
       }
     }
   }, [messages, workspace, findPreviewTab, openPreview]);
@@ -123,6 +144,7 @@ function tryOpenPreview(
   id: string,
   filePath: string,
   workspace: string | undefined,
+  firedRef: React.RefObject<Set<string>>,
   findPreviewTab: ReturnType<typeof usePreviewContext>['findPreviewTab'],
   openPreview: ReturnType<typeof usePreviewContext>['openPreview']
 ): void {
@@ -130,7 +152,7 @@ function tryOpenPreview(
   const fileName = filePath.split(/[\\/]/).pop() ?? filePath;
   const alreadyOpen = findPreviewTab(contentType, '', { filePath, fileName });
 
-  firedSessionIds.add(id);
+  firedRef.current.add(id);
 
   if (!alreadyOpen) {
     openPreview('', contentType, { filePath, fileName, title: fileName, workspace, editable: false });

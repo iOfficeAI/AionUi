@@ -5,19 +5,15 @@
  */
 
 /**
- * Tests for useAutoPreviewOfficeFiles hook:
- * - WriteFile Success with .pptx triggers openPreview
- * - WriteFile Success with .ts does NOT trigger
- * - Bash Success with "Saved to report.docx" triggers openPreview
- * - Same callId does NOT trigger twice (dedup)
- * - Already-open tab (findPreviewTab returns truthy) does NOT call openPreview
- * - Tool status 'Executing' does NOT trigger
- * - Multiple messages: only fires for the new one added
+ * Tests for useAutoPreviewOfficeFiles hook.
+ *
+ * Core rule: auto-preview only fires for tool calls that become Success
+ * AFTER the component mounts (user watched it happen). Tool calls that are
+ * already Success at mount time are treated as historical and never trigger.
  */
 
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { renderHook } from '@testing-library/react';
-import { act } from '@testing-library/react';
+import { renderHook, act } from '@testing-library/react';
 
 // ── Mocks ───────────────────────────────────────────────────────────────────
 
@@ -44,7 +40,6 @@ vi.mock('@/common/chat/chatLib', async (importOriginal) => {
   };
 });
 
-// Import after mocks
 import { useAutoPreviewOfficeFiles } from '../../src/renderer/hooks/file/useAutoPreviewOfficeFiles';
 import type { IMessageToolGroup } from '../../src/common/chat/chatLib';
 
@@ -52,9 +47,9 @@ import type { IMessageToolGroup } from '../../src/common/chat/chatLib';
 
 type ToolEntry = IMessageToolGroup['content'][number];
 
-function makeToolGroup(tools: ToolEntry[]): IMessageToolGroup {
+function makeToolGroup(tools: ToolEntry[], msgId = 'msg-1'): IMessageToolGroup {
   return {
-    id: 'msg-1',
+    id: msgId,
     type: 'tool_group',
     position: 'left',
     conversation_id: 'conv-1',
@@ -90,144 +85,148 @@ function makeBashTool(callId: string, output: string, status: ToolEntry['status'
 describe('useAutoPreviewOfficeFiles', () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    // Default: no existing tab open, file type returns 'ppt'
     mockFindPreviewTab.mockReturnValue(null);
     mockGetFileTypeInfo.mockReturnValue({ contentType: 'ppt' });
   });
 
-  it('WriteFile Success with .pptx triggers openPreview', async () => {
-    const tool = makeWriteFileTool('call-1', 'slides.pptx');
-    const messages = [makeToolGroup([tool])];
+  it('tool already Success at mount (historical) does NOT trigger', async () => {
+    const tool = makeWriteFileTool('call-historical', 'old.pptx');
+    renderHook(() => useAutoPreviewOfficeFiles([makeToolGroup([tool])], '/workspace'));
+    await act(async () => {});
+    expect(mockOpenPreview).not.toHaveBeenCalled();
+  });
 
-    renderHook(() => useAutoPreviewOfficeFiles(messages, '/workspace'));
+  it('tool becomes Success after mount (user watching) triggers openPreview', async () => {
+    const executing = makeWriteFileTool('call-1', 'slides.pptx', 'Executing');
+    const success = makeWriteFileTool('call-1', 'slides.pptx', 'Success');
 
+    const { rerender } = renderHook(
+      ({ messages }: { messages: IMessageToolGroup[] }) =>
+        useAutoPreviewOfficeFiles(messages, '/workspace'),
+      { initialProps: { messages: [makeToolGroup([executing])] } }
+    );
+    await act(async () => {});
+    expect(mockOpenPreview).not.toHaveBeenCalled();
+
+    rerender({ messages: [makeToolGroup([success])] });
     await act(async () => {});
 
     expect(mockOpenPreview).toHaveBeenCalledOnce();
     expect(mockOpenPreview).toHaveBeenCalledWith(
       '',
       'ppt',
-      expect.objectContaining({
-        filePath: '/workspace/slides.pptx',
-        fileName: 'slides.pptx',
-      })
+      expect.objectContaining({ filePath: '/workspace/slides.pptx', fileName: 'slides.pptx' })
     );
   });
 
-  it('WriteFile Success with .ts does NOT trigger openPreview', async () => {
-    const tool = makeWriteFileTool('call-ts', 'index.ts');
-    const messages = [makeToolGroup([tool])];
+  it('WriteFile with non-office extension does NOT trigger', async () => {
+    const executing = makeWriteFileTool('call-ts', 'index.ts', 'Executing');
+    const success = makeWriteFileTool('call-ts', 'index.ts', 'Success');
 
-    renderHook(() => useAutoPreviewOfficeFiles(messages, '/workspace'));
+    const { rerender } = renderHook(
+      ({ messages }: { messages: IMessageToolGroup[] }) =>
+        useAutoPreviewOfficeFiles(messages, '/workspace'),
+      { initialProps: { messages: [makeToolGroup([executing])] } }
+    );
+    await act(async () => {});
 
+    rerender({ messages: [makeToolGroup([success])] });
     await act(async () => {});
 
     expect(mockOpenPreview).not.toHaveBeenCalled();
   });
 
-  it('Bash Success with "Saved to report.docx" triggers openPreview', async () => {
+  it('Bash output "Saved to report.docx" triggers openPreview', async () => {
     mockGetFileTypeInfo.mockReturnValue({ contentType: 'word' });
-    const tool = makeBashTool('call-bash', 'Saved to report.docx');
-    const messages = [makeToolGroup([tool])];
+    const executing = makeBashTool('call-bash', '', 'Executing');
+    const success = makeBashTool('call-bash', 'Saved to report.docx', 'Success');
 
-    renderHook(() => useAutoPreviewOfficeFiles(messages, '/workspace'));
+    const { rerender } = renderHook(
+      ({ messages }: { messages: IMessageToolGroup[] }) =>
+        useAutoPreviewOfficeFiles(messages, '/workspace'),
+      { initialProps: { messages: [makeToolGroup([executing])] } }
+    );
+    await act(async () => {});
 
+    rerender({ messages: [makeToolGroup([success])] });
     await act(async () => {});
 
     expect(mockOpenPreview).toHaveBeenCalledOnce();
     expect(mockOpenPreview).toHaveBeenCalledWith(
       '',
       'word',
-      expect.objectContaining({
-        filePath: '/workspace/report.docx',
-        fileName: 'report.docx',
-      })
+      expect.objectContaining({ filePath: '/workspace/report.docx', fileName: 'report.docx' })
     );
   });
 
-  it('same callId does NOT trigger openPreview twice (dedup)', async () => {
-    mockGetFileTypeInfo.mockReturnValue({ contentType: 'ppt' });
-    const tool = makeWriteFileTool('call-dedup', 'deck.pptx');
-    const initialMessages = [makeToolGroup([tool])];
+  it('same callId does NOT trigger twice (dedup)', async () => {
+    const executing = makeWriteFileTool('call-dedup', 'deck.pptx', 'Executing');
+    const success = makeWriteFileTool('call-dedup', 'deck.pptx', 'Success');
 
     const { rerender } = renderHook(
-      ({ messages, workspace }: { messages: typeof initialMessages; workspace: string }) =>
-        useAutoPreviewOfficeFiles(messages, workspace),
-      { initialProps: { messages: initialMessages, workspace: '/workspace' } }
+      ({ messages }: { messages: IMessageToolGroup[] }) =>
+        useAutoPreviewOfficeFiles(messages, '/workspace'),
+      { initialProps: { messages: [makeToolGroup([executing])] } }
     );
-
     await act(async () => {});
 
+    rerender({ messages: [makeToolGroup([success])] });
+    await act(async () => {});
     expect(mockOpenPreview).toHaveBeenCalledOnce();
 
     vi.clearAllMocks();
     mockFindPreviewTab.mockReturnValue(null);
     mockGetFileTypeInfo.mockReturnValue({ contentType: 'ppt' });
 
-    // Re-render with the same messages (same callId) — should not fire again
-    rerender({ messages: initialMessages, workspace: '/workspace' });
-
+    // Re-render again with same messages — callId already in firedRef
+    rerender({ messages: [makeToolGroup([success])] });
     await act(async () => {});
-
     expect(mockOpenPreview).not.toHaveBeenCalled();
   });
 
-  it('already-open tab (findPreviewTab returns truthy) does NOT call openPreview', async () => {
+  it('already-open tab does NOT call openPreview', async () => {
     mockGetFileTypeInfo.mockReturnValue({ contentType: 'ppt' });
-    mockFindPreviewTab.mockReturnValue({ id: 'existing-tab', type: 'ppt', content: '' });
+    mockFindPreviewTab.mockReturnValue({ id: 'existing-tab' });
 
-    const tool = makeWriteFileTool('call-open', 'already-open.pptx');
-    const messages = [makeToolGroup([tool])];
+    const executing = makeWriteFileTool('call-open', 'already-open.pptx', 'Executing');
+    const success = makeWriteFileTool('call-open', 'already-open.pptx', 'Success');
 
-    renderHook(() => useAutoPreviewOfficeFiles(messages, '/workspace'));
+    const { rerender } = renderHook(
+      ({ messages }: { messages: IMessageToolGroup[] }) =>
+        useAutoPreviewOfficeFiles(messages, '/workspace'),
+      { initialProps: { messages: [makeToolGroup([executing])] } }
+    );
+    await act(async () => {});
 
+    rerender({ messages: [makeToolGroup([success])] });
     await act(async () => {});
 
     expect(mockFindPreviewTab).toHaveBeenCalled();
     expect(mockOpenPreview).not.toHaveBeenCalled();
   });
 
-  it("tool status 'Executing' does NOT trigger openPreview", async () => {
-    const tool = makeWriteFileTool('call-exec', 'slides.pptx', 'Executing');
-    const messages = [makeToolGroup([tool])];
-
-    renderHook(() => useAutoPreviewOfficeFiles(messages, '/workspace'));
-
-    await act(async () => {});
-
-    expect(mockOpenPreview).not.toHaveBeenCalled();
-  });
-
-  it('multiple messages: only fires for newly added tool calls', async () => {
+  it('new tool added after mount triggers; historical tool does not re-trigger', async () => {
     mockGetFileTypeInfo.mockReturnValue({ contentType: 'word' });
 
-    const tool1 = makeWriteFileTool('call-first', 'first.docx');
-    const initialMessages = [makeToolGroup([tool1])];
+    // tool1 is already Success at mount → historical
+    const tool1 = makeWriteFileTool('call-first', 'first.docx', 'Success');
+    // tool2 starts as Executing
+    const tool2Executing = makeWriteFileTool('call-second', 'data.xlsx', 'Executing');
 
     const { rerender } = renderHook(
-      ({ messages, workspace }: { messages: typeof initialMessages; workspace: string }) =>
-        useAutoPreviewOfficeFiles(messages, workspace),
-      { initialProps: { messages: initialMessages, workspace: '/workspace' } }
+      ({ messages }: { messages: IMessageToolGroup[] }) =>
+        useAutoPreviewOfficeFiles(messages, '/workspace'),
+      { initialProps: { messages: [makeToolGroup([tool1]), makeToolGroup([tool2Executing], 'msg-2')] } }
     );
-
     await act(async () => {});
+    expect(mockOpenPreview).not.toHaveBeenCalled();
 
-    expect(mockOpenPreview).toHaveBeenCalledOnce();
-    expect(mockOpenPreview).toHaveBeenCalledWith('', 'word', expect.objectContaining({ fileName: 'first.docx' }));
-
-    vi.clearAllMocks();
-    mockFindPreviewTab.mockReturnValue(null);
+    // tool2 completes
     mockGetFileTypeInfo.mockReturnValue({ contentType: 'excel' });
-
-    // Add a second tool call message
-    const tool2 = makeWriteFileTool('call-second', 'data.xlsx');
-    const updatedMessages = [makeToolGroup([tool1]), makeToolGroup([tool2])];
-
-    rerender({ messages: updatedMessages, workspace: '/workspace' });
-
+    const tool2Success = makeWriteFileTool('call-second', 'data.xlsx', 'Success');
+    rerender({ messages: [makeToolGroup([tool1]), makeToolGroup([tool2Success], 'msg-2')] });
     await act(async () => {});
 
-    // Should only fire for the NEW tool (tool2), not tool1 again
     expect(mockOpenPreview).toHaveBeenCalledOnce();
     expect(mockOpenPreview).toHaveBeenCalledWith('', 'excel', expect.objectContaining({ fileName: 'data.xlsx' }));
   });
