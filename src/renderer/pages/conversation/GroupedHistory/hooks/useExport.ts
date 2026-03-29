@@ -10,6 +10,7 @@ import { isElectronDesktop } from '@/renderer/utils/platform';
 import { Message } from '@arco-design/web-react';
 import { useCallback, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import { formatTimestamp, joinFilePath, sanitizeFileName } from '@/renderer/utils/chat/conversationExport';
 
 import type { ExportTask, ExportZipFile } from '../types';
 import {
@@ -18,9 +19,6 @@ import {
   buildConversationMarkdown,
   buildTopicFolderName,
   EXPORT_IO_TIMEOUT_MS,
-  formatTimestamp,
-  joinFilePath,
-  sanitizeFileName,
   withTimeout,
 } from '../utils/exportHelpers';
 
@@ -62,19 +60,13 @@ export const useExport = ({
   const createUniqueFilePath = useCallback(
     async (directory: string, fileNameWithoutExt: string, ext: 'json' | 'md' | 'zip') => {
       const safeBaseName = sanitizeFileName(fileNameWithoutExt);
-      const candidate = joinFilePath(directory, `${safeBaseName}.${ext}`);
-      if (!(await fileExists(candidate))) {
-        return candidate;
-      }
+      const findCandidate = async (index: number): Promise<string> => {
+        const suffix = index === 0 ? '' : `-${Date.now()}-${index}`;
+        const candidate = joinFilePath(directory, `${safeBaseName}${suffix}.${ext}`);
+        return (await fileExists(candidate)) ? findCandidate(index + 1) : candidate;
+      };
 
-      for (let index = 1; index < Number.MAX_SAFE_INTEGER; index += 1) {
-        const nextCandidate = joinFilePath(directory, `${safeBaseName}-${Date.now()}-${index}.${ext}`);
-        if (!(await fileExists(nextCandidate))) {
-          return nextCandidate;
-        }
-      }
-
-      return candidate;
+      return findCandidate(0);
     },
     [fileExists]
   );
@@ -298,12 +290,17 @@ export const useExport = ({
       }
 
       const files: ExportZipFile[] = [];
-      for (const conversation of selectedConversations) {
-        throwIfCanceled();
-        const topicFiles = await buildConversationExportFiles(conversation, buildTopicFolderName(conversation));
-        throwIfCanceled();
+      const topicFilesList = await Promise.all(
+        selectedConversations.map(async (conversation) => {
+          throwIfCanceled();
+          const topicFiles = await buildConversationExportFiles(conversation, buildTopicFolderName(conversation));
+          throwIfCanceled();
+          return topicFiles;
+        })
+      );
+      topicFilesList.forEach((topicFiles) => {
         files.push(...topicFiles);
-      }
+      });
       const exportPath = await createUniqueFilePath(directory, `batch-export-${formatTimestamp()}`, 'zip');
       throwIfCanceled();
       const success = await runCreateZip(exportPath, files, requestId);

@@ -12,12 +12,12 @@ For general pptx building blocks (shapes, pictures, rich text, animations, batch
 
 ### A.1 Deck Type Selection
 
-| Deck Type | Slides | When to Use | Recommended Slide Sequence |
-|-----------|--------|------------|---------------------------|
-| Seed Pitch | 6 | Pre-seed/seed, < $1M, early metrics | Title, Problem+Solution, Market, Traction, Team, Ask |
-| Product Launch | 8 | Feature announcement, product release | Title, Problem, Features, Before/After, Demo, Results, Pricing, CTA |
-| Full Investor | 10-12 | Series A+, significant traction | Title, Problem, Solution, Market, Product, Traction, Business Model, Competitive, Roadmap, Team, Financials, Ask |
-| Enterprise Sales | 10 | B2B, C-level audience, data-heavy | Title, Threat/Problem, Solution, Architecture, ROI, Case Study, Competitive, Impact, Timeline, Next Steps |
+| Deck Type        | Slides | When to Use                           | Recommended Slide Sequence                                                                                       |
+| ---------------- | ------ | ------------------------------------- | ---------------------------------------------------------------------------------------------------------------- |
+| Seed Pitch       | 6      | Pre-seed/seed, < $1M, early metrics   | Title, Problem+Solution, Market, Traction, Team, Ask                                                             |
+| Product Launch   | 8      | Feature announcement, product release | Title, Problem, Features, Before/After, Demo, Results, Pricing, CTA                                              |
+| Full Investor    | 10-12  | Series A+, significant traction       | Title, Problem, Solution, Market, Product, Traction, Business Model, Competitive, Roadmap, Team, Financials, Ask |
+| Enterprise Sales | 10     | B2B, C-level audience, data-heavy     | Title, Threat/Problem, Solution, Architecture, ROI, Case Study, Competitive, Impact, Timeline, Next Steps        |
 
 These are starting points. **Respect the user's slide count** -- never pad to a longer deck. Adapt the sequence to the user's specific request.
 
@@ -26,16 +26,19 @@ These are starting points. **Respect the user's slide count** -- never pad to a 
 Define palette as shell variables before building. All subsequent commands reference variables.
 
 **Professional Navy** (investor decks):
+
 ```bash
 PRIMARY="0F2B46"; SECONDARY="1A73E8"; ACCENT1="34A853"; ACCENT2="F9AB00"; DARK="0A1628"; LIGHT="F0F4F8"
 ```
 
 **Tech Purple** (product launches):
+
 ```bash
 PRIMARY="6C2BD9"; SECONDARY="1DB954"; ACCENT1="FF6B35"; ACCENT2="00B4D8"; DARK="1A1A2E"; LIGHT="F8F7FF"
 ```
 
 **Dark Premium** (enterprise sales):
+
 ```bash
 PRIMARY="0D0D1A"; SECONDARY="00D4AA"; ACCENT1="FF4757"; ACCENT2="FFA502"; ACCENT3="2ED573"; LIGHT_TEXT="E8E8E8"; MUTED="6B7B8D"
 ```
@@ -44,14 +47,14 @@ If the user provides specific colors, use those. If not, select the closest pale
 
 ### A.3 Font Pairing
 
-| Element | Font | Size |
-|---------|------|------|
-| Slide title | Georgia, bold | 32-44pt |
+| Element        | Font                     | Size    |
+| -------------- | ------------------------ | ------- |
+| Slide title    | Georgia, bold            | 32-44pt |
 | Section header | Georgia or Calibri, bold | 18-24pt |
-| Body text | Calibri | 14-16pt |
-| Stat number | Georgia, bold | 36-64pt |
-| Stat label | Calibri | 12-14pt |
-| Caption/footer | Calibri | 10-12pt |
+| Body text      | Calibri                  | 14-16pt |
+| Stat number    | Georgia, bold            | 36-64pt |
+| Stat label     | Calibri                  | 12-14pt |
+| Caption/footer | Calibri                  | 10-12pt |
 
 ---
 
@@ -96,11 +99,11 @@ Each pattern includes: visual description, positioning table, and batch template
 
 3-4 text shapes on gradient background. Slide 1 in all decks. Transition: `fade`.
 
-| Element | X | Y | Width | Height | Font/Size |
-|---------|---|---|-------|--------|-----------|
-| Title | 2cm | 5cm | 29.87cm | 4cm | Georgia bold 44pt |
-| Tagline | 2cm | 10cm | 29.87cm | 2cm | Calibri 20pt |
-| Footer | 2cm | 13cm | 29.87cm | 1.5cm | Calibri 12pt |
+| Element | X   | Y    | Width   | Height | Font/Size         |
+| ------- | --- | ---- | ------- | ------ | ----------------- |
+| Title   | 2cm | 5cm  | 29.87cm | 4cm    | Georgia bold 44pt |
+| Tagline | 2cm | 10cm | 29.87cm | 2cm    | Calibri 20pt      |
+| Footer  | 2cm | 13cm | 29.87cm | 1.5cm  | Calibri 12pt      |
 
 Background: `"$DARK-$DARK2-180"` (linear gradient). See SKILL.md Quick Start for full batch template.
 
@@ -109,10 +112,10 @@ Background: `"$DARK-$DARK2-180"` (linear gradient). See SKILL.md Quick Start for
 Title + 3 number/label pairs. Numbers: Georgia bold 64pt. Labels: Calibri 14pt, muted.
 
 | Stat | Number X | Label X | Width | Number Y | Label Y |
-|------|----------|---------|-------|----------|---------|
-| 1 | 2cm | 2cm | 9cm | 5cm | 9.5cm |
-| 2 | 12.5cm | 12.5cm | 9cm | 5cm | 9.5cm |
-| 3 | 23cm | 23cm | 9cm | 5cm | 9.5cm |
+| ---- | -------- | ------- | ----- | -------- | ------- |
+| 1    | 2cm      | 2cm     | 9cm   | 5cm      | 9.5cm   |
+| 2    | 12.5cm   | 12.5cm  | 9cm   | 5cm      | 9.5cm   |
+| 3    | 23cm     | 23cm    | 9cm   | 5cm      | 9.5cm   |
 
 Title at y=1cm, height 3cm. Number height 4cm, label height 2cm.
 
@@ -128,11 +131,11 @@ Stat X positions: 1.5cm, 9.5cm, 17.5cm, 25.5cm. Width: 7cm each.
 
 Chart on left 55%, stat callouts stacked on right. Post-batch: `officecli set "/slide[N]/chart[1]" --prop gap=80` for column/bar.
 
-| Element | X | Y | Width | Height |
-|---------|---|---|-------|--------|
-| Title | 2cm | 1cm | 29.87cm | 3cm |
-| Chart | 2cm | 4cm | 17cm | 13cm |
-| Stats | 21cm | 4cm+ | 11cm | 2.5cm number + 1.2cm label |
+| Element | X    | Y    | Width   | Height                     |
+| ------- | ---- | ---- | ------- | -------------------------- |
+| Title   | 2cm  | 1cm  | 29.87cm | 3cm                        |
+| Chart   | 2cm  | 4cm  | 17cm    | 13cm                       |
+| Stats   | 21cm | 4cm+ | 11cm    | 2.5cm number + 1.2cm label |
 
 Stat spacing: ~3.7cm per pair. For 5 stats, use size=44pt.
 
@@ -148,14 +151,14 @@ Stat spacing: ~3.7cm per pair. For 5 stats, use size=44pt.
 
 Problem+solution, before/after. Card backgrounds (roundRect) first, then text on top.
 
-| Element | X | Y | Width | Height |
-|---------|---|---|-------|--------|
-| Left card bg | 2cm | 4.5cm | 14.5cm | 13cm |
-| Left header | 3cm | 5cm | 12.5cm | 2cm |
-| Left body | 3cm | 7.5cm | 12.5cm | 9cm |
-| Right card bg | 17.5cm | 4.5cm | 14.5cm | 13cm |
-| Right header | 18.5cm | 5cm | 12.5cm | 2cm |
-| Right body | 18.5cm | 7.5cm | 12.5cm | 9cm |
+| Element       | X      | Y     | Width  | Height |
+| ------------- | ------ | ----- | ------ | ------ |
+| Left card bg  | 2cm    | 4.5cm | 14.5cm | 13cm   |
+| Left header   | 3cm    | 5cm   | 12.5cm | 2cm    |
+| Left body     | 3cm    | 7.5cm | 12.5cm | 9cm    |
+| Right card bg | 17.5cm | 4.5cm | 14.5cm | 13cm   |
+| Right header  | 18.5cm | 5cm   | 12.5cm | 2cm    |
+| Right body    | 18.5cm | 7.5cm | 12.5cm | 9cm    |
 
 ### C.8 Comparison Table (Full-Width)
 
@@ -175,6 +178,7 @@ Title = shape[1]. Flow shapes start at shape[2]. Add all shapes BEFORE connector
 Spine: connector at y=10cm, full width. 4 milestones (3x3cm circles) at x=4, 12, 20, 28cm, y=8.5cm. Alternating above/below labels: odd at y=5.5cm/7cm, even at y=12cm/13.5cm. ~19 elements -- single batch (reliable).
 
 Add the spine connector first:
+
 ```bash
 officecli add deck.pptx "/slide[N]" --type connector --prop preset=straight --prop startX=2cm --prop startY=10cm --prop endX=32cm --prop endY=10cm --prop line=$SECONDARY --prop lineWidth=2pt
 ```
@@ -199,6 +203,7 @@ Mirror slide 1 gradient. Main CTA (44-48pt) at y=4cm, details (16pt) at y=9cm, c
 Apply to EVERY chart. No default PowerPoint styling is acceptable.
 
 **Light theme** (white/light backgrounds):
+
 ```
 plotFill=none, chartFill=none, gridlines="E2E8F0:0.5",
 axisFont="10:64748B:Calibri", legendFont="10:64748B:Calibri",
@@ -206,6 +211,7 @@ series.outline="FFFFFF-0.5", legend=bottom
 ```
 
 **Dark theme** (dark backgrounds):
+
 ```
 plotFill=none, chartFill=none, gridlines="2A2A4A:0.5",
 axisFont="10:6B7B8D:Calibri", legendFont="10:6B7B8D:Calibri",
@@ -308,6 +314,7 @@ officecli add deck.pptx "/slide[N]" --type chart \
 ## Section E: Tables
 
 > **CONSTRUCTION ORDER (violating this produces inconsistent fonts):**
+>
 > 1. Create table (`add --type table`)
 > 2. Populate all rows with `set tr[N]`
 > 3. Set table-level `size`/`font`/`border`
@@ -460,21 +467,21 @@ officecli view deck.pptx issues
 >
 > **HARD RULE items are non-negotiable -- violation produces broken output. WARNING items are strong guidance that should be followed unless you have a specific reason not to. Known limitation items cannot be worked around.**
 
-| # | Issue | Workaround |
-|---|-------|-----------|
-| H-1 | `gap` ignored during chart `add` | Apply via `officecli set "/slide[N]/chart[1]" --prop gap=80` after creation |
-| H-2 | Table font cascade overwritten by row `set` | Set table-level `size`/`font` AFTER all rows populated |
-| H-3 | Shell `$` in batch JSON (e.g., `$10M`) | Use heredoc: `cat <<'EOF' \| officecli batch` |
-| H-4 | Combo chart requires both `comboSplit=1` AND `secondary=2` | Missing either causes incorrect rendering. Always include both |
-| H-5 | Cell merge (`merge.right=N`) produces validation errors | PowerPoint renders correctly. Note in delivery message |
-| H-6 | Cell-level `color` on table cells causes validation errors | Use row-level `color` instead; cell-level `fill` + `bold` only |
-| H-7 | Custom gradient stops (`@`) fail on slide backgrounds | Use 2/3-color gradients. `@` syntax works only on shape `gradient` fills |
-| H-8 | Connector shape indices: title = shape[1] | Flow shapes start at shape[2]. Count from first shape on slide |
-| H-9 | z-order changes cause shape index renumbering | Process highest index first. Re-query with `get --depth 1` if needed |
-| H-10 | Chart series count fixed at creation | Include ALL series in `add`. To add series, delete and recreate |
-| H-11 | Dark theme text invisible (defaults to black) | Explicitly set light `color` on every text shape on dark backgrounds |
-| H-12 | zsh glob-expands `[N]` in paths | Always double-quote: `"/slide[1]/chart[1]"` |
-| H-13 | Batch threshold | Reliable for up to ~20 operations per batch. Split larger batches into groups of 15-20. Heredoc syntax mandatory |
-| H-14 | Connector arrows may not all render in batch | Add connectors in separate batch after shapes. If still missing, add one at a time |
-| H-15 | Doughnut chart `colors` parameter may not apply | CLI accepts the parameter without error but PowerPoint renders default colors. No workaround. Verify via screenshot. |
-| H-16 | Empty table cell string `c1=""` causes validation error | Use a space character `c1=" "` instead of empty string for blank cells |
+| #    | Issue                                                      | Workaround                                                                                                           |
+| ---- | ---------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------- |
+| H-1  | `gap` ignored during chart `add`                           | Apply via `officecli set "/slide[N]/chart[1]" --prop gap=80` after creation                                          |
+| H-2  | Table font cascade overwritten by row `set`                | Set table-level `size`/`font` AFTER all rows populated                                                               |
+| H-3  | Shell `$` in batch JSON (e.g., `$10M`)                     | Use heredoc: `cat <<'EOF' \| officecli batch`                                                                        |
+| H-4  | Combo chart requires both `comboSplit=1` AND `secondary=2` | Missing either causes incorrect rendering. Always include both                                                       |
+| H-5  | Cell merge (`merge.right=N`) produces validation errors    | PowerPoint renders correctly. Note in delivery message                                                               |
+| H-6  | Cell-level `color` on table cells causes validation errors | Use row-level `color` instead; cell-level `fill` + `bold` only                                                       |
+| H-7  | Custom gradient stops (`@`) fail on slide backgrounds      | Use 2/3-color gradients. `@` syntax works only on shape `gradient` fills                                             |
+| H-8  | Connector shape indices: title = shape[1]                  | Flow shapes start at shape[2]. Count from first shape on slide                                                       |
+| H-9  | z-order changes cause shape index renumbering              | Process highest index first. Re-query with `get --depth 1` if needed                                                 |
+| H-10 | Chart series count fixed at creation                       | Include ALL series in `add`. To add series, delete and recreate                                                      |
+| H-11 | Dark theme text invisible (defaults to black)              | Explicitly set light `color` on every text shape on dark backgrounds                                                 |
+| H-12 | zsh glob-expands `[N]` in paths                            | Always double-quote: `"/slide[1]/chart[1]"`                                                                          |
+| H-13 | Batch threshold                                            | Reliable for up to ~20 operations per batch. Split larger batches into groups of 15-20. Heredoc syntax mandatory     |
+| H-14 | Connector arrows may not all render in batch               | Add connectors in separate batch after shapes. If still missing, add one at a time                                   |
+| H-15 | Doughnut chart `colors` parameter may not apply            | CLI accepts the parameter without error but PowerPoint renders default colors. No workaround. Verify via screenshot. |
+| H-16 | Empty table cell string `c1=""` causes validation error    | Use a space character `c1=" "` instead of empty string for blank cells                                               |
