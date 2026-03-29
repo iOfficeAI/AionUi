@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { BACKGROUND_BLOCK_START } from '@/renderer/components/CssThemeSettings/backgroundUtils';
+import { BACKGROUND_BLOCK_START } from '@/renderer/pages/settings/DisplaySettings/backgroundUtils';
 import {
   CSS_SYNC_RECENT_UPDATE_WINDOW_MS,
   computeCssSyncDecision,

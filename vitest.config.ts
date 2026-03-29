@@ -26,7 +26,12 @@ export default defineConfig({
         test: {
           name: 'node',
           environment: 'node',
-          include: ['tests/unit/**/*.test.ts', 'tests/unit/**/test_*.ts', 'tests/integration/**/*.test.ts'],
+          include: [
+            'tests/unit/**/*.test.ts',
+            'tests/unit/**/test_*.ts',
+            'tests/integration/**/*.test.ts',
+            'tests/regression/**/*.test.ts',
+          ],
           exclude: ['tests/unit/**/*.dom.test.ts', 'tests/unit/**/*.dom.test.tsx'],
           setupFiles: ['./tests/vitest.setup.ts'],
         },
