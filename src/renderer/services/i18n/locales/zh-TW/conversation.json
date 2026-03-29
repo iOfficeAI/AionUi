@@ -158,6 +158,27 @@
       "download": "下載",
       "downloadSuccess": "下載成功",
       "downloadFailed": "下載失敗"
+    },
+    "changes": {
+      "tab": "變更",
+      "filesTab": "檔案",
+      "summary": "{{count}} 個檔案已變更",
+      "insertions": "+{{count}} 行新增",
+      "deletions": "-{{count}} 行刪除",
+      "empty": "暫無變更",
+      "emptyDescription": "AI 修改檔案後，變更記錄將顯示在此處",
+      "refresh": "重新整理",
+      "staged": "已暫存的變更",
+      "unstaged": "變更",
+      "changedFiles": "已變更的檔案",
+      "stage": "暫存",
+      "stageAll": "暫存所有變更",
+      "unstage": "取消暫存",
+      "unstageAll": "取消暫存所有變更",
+      "discard": "捨棄變更",
+      "reset": "還原變更",
+      "noUnstaged": "沒有未暫存的變更",
+      "noStaged": "沒有已暫存的變更"
     }
   },
   "minimap": {

@@ -103,3 +103,5 @@ export type ExtractNodeDataFn = (node: NodeInstance | null | undefined) => IDirO
 export type ExtractNodeKeyFn = (node: NodeInstance | null | undefined) => string | null;
 export type GetPathSeparatorFn = (targetPath: string) => string;
 export type FindNodeByKeyFn = (list: IDirOrFile[], key: string) => IDirOrFile | null;
+
+export type WorkspaceTab = 'files' | 'changes';

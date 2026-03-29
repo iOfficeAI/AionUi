@@ -146,32 +146,36 @@ const EditModeModal = ModalHOC<{ data?: IProvider; onChange(data: IProvider): vo
         style={{ minHeight: '400px', maxHeight: '90vh', borderRadius: 16 }}
         contentStyle={{ background: 'var(--bg-1)', borderRadius: 16, padding: '20px 24px 16px', overflow: 'auto' }}
         onOk={async () => {
-          const values = await form.validate();
-          const updatedProvider: IProvider = {
-            ...data,
-            ...values,
-            // Ensure model is always an array
-            model: Array.isArray(values.model) ? values.model : [values.model],
-          };
-
-          // Add Bedrock configuration if platform is Bedrock
-          if (isBedrock) {
-            updatedProvider.bedrockConfig = {
-              authMethod: values.bedrockAuthMethod,
-              region: values.bedrockRegion,
-              ...(values.bedrockAuthMethod === 'accessKey'
-                ? {
-                    accessKeyId: values.bedrockAccessKeyId,
-                    secretAccessKey: values.bedrockSecretAccessKey,
-                  }
-                : {
-                    profile: values.bedrockProfile,
-                  }),
+          try {
+            const values = await form.validate();
+            const updatedProvider: IProvider = {
+              ...data,
+              ...values,
+              // Ensure model is always an array
+              model: Array.isArray(values.model) ? values.model : [values.model],
             };
-          }
 
-          props.onChange(updatedProvider);
-          modalCtrl.close();
+            // Add Bedrock configuration if platform is Bedrock
+            if (isBedrock) {
+              updatedProvider.bedrockConfig = {
+                authMethod: values.bedrockAuthMethod,
+                region: values.bedrockRegion,
+                ...(values.bedrockAuthMethod === 'accessKey'
+                  ? {
+                      accessKeyId: values.bedrockAccessKeyId,
+                      secretAccessKey: values.bedrockSecretAccessKey,
+                    }
+                  : {
+                      profile: values.bedrockProfile,
+                    }),
+              };
+            }
+
+            props.onChange(updatedProvider);
+            modalCtrl.close();
+          } catch {
+            // Validation failed — Arco Form highlights invalid fields automatically
+          }
         }}
         okText={t('common.save')}
         cancelText={t('common.cancel')}

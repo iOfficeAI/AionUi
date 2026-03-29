@@ -7,7 +7,7 @@
 import { ipcBridge } from '@/common';
 import { usePreviewToolbarExtras } from '../../context/PreviewToolbarExtrasContext';
 import { Button, Message } from '@arco-design/web-react';
-import React, { useCallback, useEffect, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import MarkdownPreview from './MarkdownViewer';
 
@@ -51,11 +51,6 @@ const OfficeDocPreview: React.FC<OfficeDocPreviewProps> = ({ filePath, docType, 
   const toolbarExtrasContext = usePreviewToolbarExtras();
   const usePortalToolbar = Boolean(toolbarExtrasContext) && !hideToolbar;
 
-  const messageApiRef = useRef(messageApi);
-  useEffect(() => {
-    messageApiRef.current = messageApi;
-  }, [messageApi]);
-
   /**
    * Load Word document and convert to Markdown
    * 加载 Word 文档并转换为 Markdown
@@ -93,7 +88,7 @@ const OfficeDocPreview: React.FC<OfficeDocPreviewProps> = ({ filePath, docType, 
         const defaultMessage = t('preview.word.loadFailed');
         const errorMessage = err instanceof Error ? err.message : defaultMessage;
         setError(`${errorMessage}\n${t('preview.pathLabel')}: ${filePath}`);
-        messageApiRef.current?.error?.(errorMessage);
+        Message.error(errorMessage);
       } finally {
         setLoading(false);
       }

@@ -1,7 +1,6 @@
 /* Sendbox component styles */
 
 /* Send button disabled state - override Arco Design default disabled styles */
-/* Note: Active state is handled via style prop in component */
 .send-button-custom:disabled {
   background-color: #d3d4d9 !important;
   border-color: #d3d4d9 !important;

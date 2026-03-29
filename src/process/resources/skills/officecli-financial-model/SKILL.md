@@ -52,13 +52,13 @@ officecli --version
 
 ## Do NOT Use When
 
-| User Request | Correct Skill |
-|-------------|--------------|
-| CSV data to dashboard / charts | officecli-data-dashboard |
-| Edit/modify an existing .xlsx | officecli-xlsx (editing.md) |
-| KPI dashboard or metrics summary | officecli-data-dashboard |
-| 1-2 sheet visualization from existing data | officecli-data-dashboard |
-| Word document or PowerPoint | officecli-docx / officecli-pitch-deck |
+| User Request                               | Correct Skill                         |
+| ------------------------------------------ | ------------------------------------- |
+| CSV data to dashboard / charts             | officecli-data-dashboard              |
+| Edit/modify an existing .xlsx              | officecli-xlsx (editing.md)           |
+| KPI dashboard or metrics summary           | officecli-data-dashboard              |
+| 1-2 sheet visualization from existing data | officecli-data-dashboard              |
+| Word document or PowerPoint                | officecli-docx / officecli-pitch-deck |
 
 ---
 
@@ -66,17 +66,17 @@ officecli --version
 
 A single `.xlsx` file with 4-10 interconnected sheets:
 
-| Sheet Type | Purpose | Key Characteristic |
-|------------|---------|-------------------|
-| Assumptions | All hardcoded inputs in one place | Blue font (`0000FF`) on every input cell |
-| Income Statement | Revenue through Net Income | All rows are formulas referencing Assumptions |
-| Balance Sheet | Assets, Liabilities, Equity | Must balance every period; includes check row |
-| Cash Flow Statement | Operating, Investing, Financing | Ending Cash must equal BS Cash |
-| DCF / Valuation | WACC, FCF, Terminal Value, Equity Value | Named ranges for key inputs |
-| Sensitivity Table | 2-variable grid of implied values | Each cell is a self-contained formula |
-| Scenarios | Dropdown-driven Base/Bull/Bear | IF/INDEX formulas reference dropdown |
-| Error Checks | Balance, cash reconciliation, ISERROR scan | "ALL CLEAR" or "ERRORS FOUND" summary |
-| Dashboard / Charts | Visual summary of model outputs | Charts use cell range references |
+| Sheet Type          | Purpose                                    | Key Characteristic                            |
+| ------------------- | ------------------------------------------ | --------------------------------------------- |
+| Assumptions         | All hardcoded inputs in one place          | Blue font (`0000FF`) on every input cell      |
+| Income Statement    | Revenue through Net Income                 | All rows are formulas referencing Assumptions |
+| Balance Sheet       | Assets, Liabilities, Equity                | Must balance every period; includes check row |
+| Cash Flow Statement | Operating, Investing, Financing            | Ending Cash must equal BS Cash                |
+| DCF / Valuation     | WACC, FCF, Terminal Value, Equity Value    | Named ranges for key inputs                   |
+| Sensitivity Table   | 2-variable grid of implied values          | Each cell is a self-contained formula         |
+| Scenarios           | Dropdown-driven Base/Bull/Bear             | IF/INDEX formulas reference dropdown          |
+| Error Checks        | Balance, cash reconciliation, ISERROR scan | "ALL CLEAR" or "ERRORS FOUND" summary         |
+| Dashboard / Charts  | Visual summary of model outputs            | Charts use cell range references              |
 
 ALL values on statement sheets are formulas. The only hardcoded numbers are on the Assumptions sheet.
 
@@ -108,39 +108,39 @@ ALL values on statement sheets are formulas. The only hardcoded numbers are on t
 
 ## Quick Reference: Key Warnings
 
-| Warning | Detail |
-|---------|--------|
-| Cross-sheet `!` escaping | Use heredoc batch for ALL cross-sheet formulas. Verify with `officecli get` after each batch. |
-| Batch size limit | 8-12 operations per batch, non-resident mode. Larger batches have ~33% failure rate. |
-| Batch JSON values | ALL values must be strings: `"true"` not `true`, `"24"` not `24` |
-| fullCalcOnLoad + iterate | MANDATORY. Always use `//x:definedNames --action insertafter` (financial models always have named ranges) |
-| Blue inputs / black formulas | `font.color=0000FF` on Assumptions inputs, `font.color=000000` on all formula cells |
-| Balance sheet must balance | Explicit check formula: `=TotalAssets - TotalLiabilities - TotalEquity` must equal 0 |
-| Cash reconciliation | CF ending cash must equal BS cash for every period |
-| No Excel Data Tables | Sensitivity tables must be manual formula grids. Each cell is an explicit self-contained formula. |
-| Number format `$` quoting | Use heredoc batch or single quotes to prevent shell expansion of `$` |
-| Named ranges required | Define for all key assumptions (WACC, growth rates, tax rate). Required for auditability. |
-| Column widths | No auto-fit. Set explicitly: labels=22-28, numbers=14-18, year headers=12-14 |
-| formulacf no font.bold | Use `fill` + `font.color` only. `font.bold` causes validation errors. |
-| raw-set ordering | activeTab and calcPr MUST be the absolute last commands |
-| BS Cash = CF Ending Cash | BS Cash ALWAYS equals `=Cash Flow!B19`, including Year 1. Never use cash-as-plug or reference Assumptions directly. |
-| Chart title `$` in shell | Use heredoc batch for chart titles containing `$` to prevent shell expansion. |
+| Warning                      | Detail                                                                                                              |
+| ---------------------------- | ------------------------------------------------------------------------------------------------------------------- |
+| Cross-sheet `!` escaping     | Use heredoc batch for ALL cross-sheet formulas. Verify with `officecli get` after each batch.                       |
+| Batch size limit             | 8-12 operations per batch, non-resident mode. Larger batches have ~33% failure rate.                                |
+| Batch JSON values            | ALL values must be strings: `"true"` not `true`, `"24"` not `24`                                                    |
+| fullCalcOnLoad + iterate     | MANDATORY. Always use `//x:definedNames --action insertafter` (financial models always have named ranges)           |
+| Blue inputs / black formulas | `font.color=0000FF` on Assumptions inputs, `font.color=000000` on all formula cells                                 |
+| Balance sheet must balance   | Explicit check formula: `=TotalAssets - TotalLiabilities - TotalEquity` must equal 0                                |
+| Cash reconciliation          | CF ending cash must equal BS cash for every period                                                                  |
+| No Excel Data Tables         | Sensitivity tables must be manual formula grids. Each cell is an explicit self-contained formula.                   |
+| Number format `$` quoting    | Use heredoc batch or single quotes to prevent shell expansion of `$`                                                |
+| Named ranges required        | Define for all key assumptions (WACC, growth rates, tax rate). Required for auditability.                           |
+| Column widths                | No auto-fit. Set explicitly: labels=22-28, numbers=14-18, year headers=12-14                                        |
+| formulacf no font.bold       | Use `fill` + `font.color` only. `font.bold` causes validation errors.                                               |
+| raw-set ordering             | activeTab and calcPr MUST be the absolute last commands                                                             |
+| BS Cash = CF Ending Cash     | BS Cash ALWAYS equals `=Cash Flow!B19`, including Year 1. Never use cash-as-plug or reference Assumptions directly. |
+| Chart title `$` in shell     | Use heredoc batch for chart titles containing `$` to prevent shell expansion.                                       |
 
 ---
 
 ## Known Issues
 
-| Issue | Workaround |
-|-------|------------|
-| `!` escaping in cross-sheet formulas | Always use heredoc batch. Verify with `officecli get`. |
-| Batch failure at scale | Keep batches to 8-12 ops. Non-resident mode. Retry individually on failure. |
-| Cannot rename sheets | Plan sheet names upfront before creation. |
-| Sensitivity tables are manual | Each cell needs an explicit formula. No Excel DATA TABLE support. |
-| Chart series fixed at creation | Cannot add series later. Plan all series before `add`. |
-| Formula cached values blank | `view text` shows blank for formula cells. This is normal. Set fullCalcOnLoad. |
-| Waterfall chart totals | Cannot mark bars as totals programmatically. Use color convention. |
-| Circular references | Use `<calcPr iterate="1" ...>`. Design model to avoid unnecessary circularity. |
-| Chart title `$` stripping | Shell expands `$` in `--prop title`. Use heredoc batch for chart titles with `$`, or omit `$` from titles. |
+| Issue                                | Workaround                                                                                                 |
+| ------------------------------------ | ---------------------------------------------------------------------------------------------------------- |
+| `!` escaping in cross-sheet formulas | Always use heredoc batch. Verify with `officecli get`.                                                     |
+| Batch failure at scale               | Keep batches to 8-12 ops. Non-resident mode. Retry individually on failure.                                |
+| Cannot rename sheets                 | Plan sheet names upfront before creation.                                                                  |
+| Sensitivity tables are manual        | Each cell needs an explicit formula. No Excel DATA TABLE support.                                          |
+| Chart series fixed at creation       | Cannot add series later. Plan all series before `add`.                                                     |
+| Formula cached values blank          | `view text` shows blank for formula cells. This is normal. Set fullCalcOnLoad.                             |
+| Waterfall chart totals               | Cannot mark bars as totals programmatically. Use color convention.                                         |
+| Circular references                  | Use `<calcPr iterate="1" ...>`. Design model to avoid unnecessary circularity.                             |
+| Chart title `$` stripping            | Shell expands `$` in `--prop title`. Use heredoc batch for chart titles with `$`, or omit `$` from titles. |
 
 ---
 

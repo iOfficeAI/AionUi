@@ -158,6 +158,27 @@
       "download": "下载",
       "downloadSuccess": "下载成功",
       "downloadFailed": "下载失败"
+    },
+    "changes": {
+      "tab": "变更",
+      "filesTab": "文件",
+      "summary": "{{count}} 个文件已变更",
+      "insertions": "+{{count}} 行新增",
+      "deletions": "-{{count}} 行删除",
+      "empty": "暂无变更",
+      "emptyDescription": "AI 修改文件后，变更记录将显示在此处",
+      "refresh": "刷新",
+      "staged": "已暂存的更改",
+      "unstaged": "更改",
+      "changedFiles": "已更改的文件",
+      "stage": "暂存",
+      "stageAll": "暂存所有更改",
+      "unstage": "取消暂存",
+      "unstageAll": "取消暂存所有更改",
+      "discard": "放弃更改",
+      "reset": "还原更改",
+      "noUnstaged": "没有未暂存的更改",
+      "noStaged": "没有已暂存的更改"
     }
   },
   "minimap": {

@@ -36,6 +36,10 @@ agentFactory.register('acp', (conv, opts) => {
     ...c.extra,
     conversation_id: c.id,
     yoloMode: opts?.yoloMode,
+    // Use persisted user override if available, otherwise fall back to the channel's
+    // configured model (c.model.useModel). This ensures gemini-cli and other non-claude
+    // backends apply the correct model at session start.
+    currentModelId: c.extra?.currentModelId ?? c.model?.useModel,
   }) as unknown as ReturnType<typeof agentFactory.create>;
 });
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
