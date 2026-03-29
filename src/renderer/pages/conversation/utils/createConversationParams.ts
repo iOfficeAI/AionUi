@@ -75,7 +75,7 @@ export function getConversationTypeForBackend(backend: string): ICreateConversat
  * ACP-routed types include claude, codebuddy, opencode, qwen, codex.
  */
 export function getConversationTypeForPreset(presetAgentType: string): ICreateConversationParams['type'] {
-  const ACP_ROUTED_TYPES = ['claude', 'codebuddy', 'opencode', 'qwen', 'codex'];
+  const ACP_ROUTED_TYPES = ['claude', 'codebuddy', 'opencode', 'qwen', 'codex', 'kiro'];
   if (ACP_ROUTED_TYPES.includes(presetAgentType)) {
     return 'acp';
   }

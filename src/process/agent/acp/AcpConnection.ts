@@ -267,6 +267,7 @@ export class AcpConnection {
       case 'qoder':
       case 'vibe':
       case 'cursor':
+      case 'kiro':
         if (!cliPath) {
           throw new Error(`CLI path is required for ${backend} backend`);
         }
