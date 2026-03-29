@@ -25,53 +25,45 @@ function resolveFilePath(raw: string, workspace: string | undefined): string {
 
 /**
  * Auto-opens a preview tab when an AI tool call produces a .pptx/.docx/.xlsx file,
- * but ONLY for tool calls that complete while the user is actively watching —
- * i.e. the tool was not yet Success when this component mounted.
+ * but ONLY when the user is watching the generation happen live.
+ *
+ * A tool call only triggers auto-preview if we observed it in a non-Success state
+ * (Executing / Pending / Confirming) during this component's mount lifetime before
+ * it completed. Historical tool calls that arrive already-Success at mount time
+ * are never triggered.
  *
  * Handles two message types:
  * - tool_group: Claude/Gemini/ACP mode (WriteFile + Bash tools)
  * - codex_tool_call: Claude Code mode (patch_apply + exec_command tools)
- *
- * Must be called inside both MessageListProvider and ConversationProvider scopes.
  */
 export const useAutoPreviewOfficeFiles = (messages: TMessage[], workspace: string | undefined) => {
   const { findPreviewTab, openPreview } = usePreviewContext();
 
-  // Baseline: callIds that were already Success when this component mounted.
-  // Only tool calls that become Success AFTER mount (user watched it happen) trigger auto-preview.
-  const baselineRef = useRef<Set<string> | null>(null);
+  // callIds we have seen in an in-progress state during this mount.
+  // Only these are eligible to trigger auto-preview when they reach Success.
+  const seenInProgress = useRef<Set<string>>(new Set());
 
-  // Per-mount dedup: prevents double-firing if messages re-renders multiple times.
-  const firedRef = useRef<Set<string>>(new Set());
+  // callIds for which we have already fired auto-preview (dedup).
+  const fired = useRef<Set<string>>(new Set());
 
   useEffect(() => {
-    // On first run: record all currently-Success callIds as baseline — do not trigger them.
-    if (baselineRef.current === null) {
-      const baseline = new Set<string>();
-      for (const message of messages) {
-        if (message.type === 'tool_group') {
-          for (const tool of message.content) {
-            if (tool.status === 'Success') baseline.add(tool.callId);
-          }
-        } else if (message.type === 'codex_tool_call' && message.content.status === 'success') {
-          baseline.add(message.id);
-        }
-      }
-      baselineRef.current = baseline;
-      return;
-    }
-
-    const baseline = baselineRef.current;
-
     for (const message of messages) {
       // --- tool_group: Claude / Gemini / ACP mode ---
       if (message.type === 'tool_group') {
         for (const tool of message.content) {
-          if (tool.status !== 'Success') continue;
+          const { callId, status } = tool;
 
-          const { callId, name, description, resultDisplay } = tool;
-          if (baseline.has(callId) || firedRef.current.has(callId)) continue;
+          // Track any non-terminal state so we know the user watched it run.
+          if (status === 'Executing' || status === 'Pending' || status === 'Confirming') {
+            seenInProgress.current.add(callId);
+            continue;
+          }
 
+          if (status !== 'Success') continue;
+          if (!seenInProgress.current.has(callId)) continue; // historical — skip
+          if (fired.current.has(callId)) continue;
+
+          const { name, description, resultDisplay } = tool;
           let filePath: string | null = null;
 
           if (
@@ -80,22 +72,17 @@ export const useAutoPreviewOfficeFiles = (messages: TMessage[], workspace: strin
             typeof resultDisplay === 'object' &&
             'fileName' in resultDisplay
           ) {
-            // WriteFile: structured result carries the filename directly
             const fileName = (resultDisplay as { fileName: string }).fileName;
             if (OFFICE_EXTENSIONS.test(fileName)) {
               filePath = resolveFilePath(fileName, workspace);
             }
           } else if (typeof resultDisplay === 'string') {
-            // Shell/Bash: try matching output text first
             const match = BASH_OUTPUT_REGEX.exec(resultDisplay);
             if (match) filePath = resolveFilePath(match[1], workspace);
           }
 
-          // officecli command fallback: description contains the command text, e.g.
-          // 'officecli create "Financial_Dashboard.xlsx"'. Only scan when "officecli"
-          // appears in the description to avoid false positives from non-shell tools
-          // that mention office formats in passing.
-          // Takes the LAST match so "input.docx output.pptx" resolves to output.pptx.
+          // officecli command fallback: only when "officecli" appears in the description.
+          // Takes the LAST filename so "input.docx output.pptx" resolves to output.pptx.
           if (!filePath && description && description.toLowerCase().includes('officecli')) {
             const matches = [...description.matchAll(DESCRIPTION_OFFICE_RE)];
             const last = matches[matches.length - 1];
@@ -103,28 +90,34 @@ export const useAutoPreviewOfficeFiles = (messages: TMessage[], workspace: strin
           }
 
           if (!filePath) continue;
-          tryOpenPreview(callId, filePath, workspace, firedRef, findPreviewTab, openPreview);
+          openOfficePreview(callId, filePath, workspace, fired, findPreviewTab, openPreview);
         }
         continue;
       }
 
       // --- codex_tool_call: Claude Code mode ---
+      // codex messages don't surface an intermediate Executing state in the message list;
+      // use message.id presence before success as the proxy for "in progress".
       if (message.type === 'codex_tool_call') {
         const mc = message.content;
-        if (mc.status !== 'success') continue;
-
         const id = message.id;
-        if (baseline.has(id) || firedRef.current.has(id)) continue;
+
+        if (mc.status !== 'success') {
+          // Still running — mark as seen in progress.
+          seenInProgress.current.add(id);
+          continue;
+        }
+
+        if (!seenInProgress.current.has(id)) continue; // historical — skip
+        if (fired.current.has(id)) continue;
 
         let filePath: string | null = null;
 
-        // Patch operations: content items carry filePath for written files
         const diffItem = mc.content?.find((c) => c.filePath && OFFICE_EXTENSIONS.test(c.filePath));
         if (diffItem?.filePath) {
           filePath = diffItem.filePath;
         }
 
-        // Exec operations: scan output content for office file references
         if (!filePath) {
           const outputItem = mc.content?.find((c) => c.type === 'output' && c.output);
           if (outputItem?.output) {
@@ -134,27 +127,26 @@ export const useAutoPreviewOfficeFiles = (messages: TMessage[], workspace: strin
         }
 
         if (!filePath) continue;
-        tryOpenPreview(id, filePath, workspace, firedRef, findPreviewTab, openPreview);
+        openOfficePreview(id, filePath, workspace, fired, findPreviewTab, openPreview);
       }
     }
   }, [messages, workspace, findPreviewTab, openPreview]);
 };
 
-function tryOpenPreview(
+function openOfficePreview(
   id: string,
   filePath: string,
   workspace: string | undefined,
-  firedRef: React.RefObject<Set<string>>,
+  fired: React.RefObject<Set<string>>,
   findPreviewTab: ReturnType<typeof usePreviewContext>['findPreviewTab'],
   openPreview: ReturnType<typeof usePreviewContext>['openPreview']
 ): void {
+  fired.current.add(id);
+
   const { contentType } = getFileTypeInfo(filePath);
   const fileName = filePath.split(/[\\/]/).pop() ?? filePath;
-  const alreadyOpen = findPreviewTab(contentType, '', { filePath, fileName });
 
-  firedRef.current.add(id);
-
-  if (!alreadyOpen) {
+  if (!findPreviewTab(contentType, '', { filePath, fileName })) {
     openPreview('', contentType, { filePath, fileName, title: fileName, workspace, editable: false });
   }
 }
