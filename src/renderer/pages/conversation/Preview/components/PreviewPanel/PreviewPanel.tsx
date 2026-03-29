@@ -372,16 +372,28 @@ const PreviewPanel: React.FC = () => {
   // 在系统默认应用中打开文件 / Open file in system default application
   const handleOpenInSystem = useCallback(async () => {
     if (!metadata?.filePath) {
-      messageApi.error(t('preview.openInSystemFailed'));
+      try {
+        messageApi.error(t('preview.openInSystemFailed'));
+      } catch {
+        // Context holder may be unmounted
+      }
       return;
     }
 
     try {
       // 使用系统默认应用打开文件 / Open file with system default application
       await ipcBridge.shell.openFile.invoke(metadata.filePath);
-      messageApi.success(t('preview.openInSystemSuccess'));
+      try {
+        messageApi.success(t('preview.openInSystemSuccess'));
+      } catch {
+        // Context holder may be unmounted after async operation
+      }
     } catch (err) {
-      messageApi.error(t('preview.openInSystemFailed'));
+      try {
+        messageApi.error(t('preview.openInSystemFailed'));
+      } catch {
+        // Context holder may be unmounted after async operation
+      }
     }
   }, [metadata?.filePath, messageApi, t]);
 

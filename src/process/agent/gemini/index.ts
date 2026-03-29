@@ -334,6 +334,13 @@ export class GeminiAgent {
   private async initialize(): Promise<void> {
     const path = this.workspace;
 
+    // Ensure workspace directory exists before loading config.
+    // The temp directory created by buildWorkspaceWidthFiles may have been removed
+    // by OS cleanup or antivirus before the worker process starts initialization.
+    // loadServerHierarchicalMemory calls fs.realpath(workspace) without try-catch,
+    // causing an unhandled ENOENT rejection (Sentry ELECTRON-6W).
+    await fs.promises.mkdir(path, { recursive: true });
+
     const settings = loadSettings(path).merged;
     if (this.contextFileName) {
       settings.contextFileName = this.contextFileName;

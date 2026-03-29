@@ -71,7 +71,7 @@ export class WeixinLoginHandler {
       const win = this.getWindow();
 
       this.loginHandle = startLogin({
-        onQR: (pageUrl) => {
+        onQR: (pageUrl, _qrcodeData) => {
           this.renderQRPage(pageUrl)
             .then((dataUrl) => win?.webContents.send('weixin:login:qr', { qrcodeUrl: dataUrl }))
             .catch((err) => console.error('[WeixinLoginHandler] Failed to render QR page:', err));

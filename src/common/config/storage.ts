@@ -228,6 +228,8 @@ export type TChatConversation =
           pinnedAt?: number;
           /** ACP 后端的 session UUID，用于会话恢复 / ACP backend session UUID for session resume */
           acpSessionId?: string;
+          /** Conversation ID that owns the ACP session / 拥有该 ACP session 的会话 ID */
+          acpSessionConversationId?: string;
           /** ACP session 最后更新时间 / Last update time of ACP session */
           acpSessionUpdatedAt?: number;
           /** Last context usage from usage_update */
@@ -327,6 +329,30 @@ export type TChatConversation =
           /** 是否置顶会话 / Whether this conversation is pinned */
           pinned?: boolean;
           /** 置顶时间戳（毫秒）/ Pin timestamp in milliseconds */
+          pinnedAt?: number;
+          /** Explicit marker for temporary health-check conversations */
+          isHealthCheck?: boolean;
+        }
+      >,
+      'model'
+    >
+  | Omit<
+      IChatConversation<
+        'remote',
+        {
+          workspace?: string;
+          customWorkspace?: boolean;
+          /** Remote agent config ID (FK to remote_agents table) */
+          remoteAgentId: string;
+          /** Remote session key for resume */
+          sessionKey?: string;
+          /** Enabled skills list */
+          enabledSkills?: string[];
+          /** Preset assistant ID */
+          presetAssistantId?: string;
+          /** Whether this conversation is pinned */
+          pinned?: boolean;
+          /** Pin timestamp in milliseconds */
           pinnedAt?: number;
           /** Explicit marker for temporary health-check conversations */
           isHealthCheck?: boolean;

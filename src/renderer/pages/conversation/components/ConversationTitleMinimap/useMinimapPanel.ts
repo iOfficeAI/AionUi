@@ -149,18 +149,31 @@ export const useMinimapPanel = (conversationId?: string): UseMinimapPanelReturn 
     return Math.max(PANEL_MIN_HEIGHT, Math.min(PANEL_HEIGHT, computed));
   }, [filteredItems.length, items.length, loading]);
 
-  // Panel positioning
+  // Panel positioning — always center within the chat header area
   const updatePanelLayout = useCallback((height = PANEL_HEIGHT) => {
-    if (typeof window === 'undefined' || !triggerRef.current) return;
+    if (typeof window === 'undefined') return;
     const width = getPanelWidth();
-    const rect = triggerRef.current.getBoundingClientRect();
-    let left = rect.left;
-    left = Math.max(PANEL_MARGIN, Math.min(left, window.innerWidth - width - PANEL_MARGIN));
-    let top = rect.bottom + PANEL_OFFSET;
-    const maxTop = window.innerHeight - height - PANEL_MARGIN;
-    if (top > maxTop) {
-      top = Math.max(PANEL_MARGIN, rect.top - height - PANEL_OFFSET);
+
+    let left: number;
+    let top: number;
+
+    const isNarrow = window.innerWidth < 768;
+    const header = document.querySelector('.chat-layout-header');
+    if (isNarrow) {
+      // On narrow viewports, align flush with margins
+      left = PANEL_MARGIN;
+      top = header ? header.getBoundingClientRect().bottom + PANEL_OFFSET : 60;
+    } else if (header) {
+      const headerRect = header.getBoundingClientRect();
+      left = headerRect.left + Math.round((headerRect.width - width) / 2);
+      top = headerRect.bottom + PANEL_OFFSET;
+    } else {
+      left = Math.round((window.innerWidth - width) / 2);
+      top = 60;
     }
+
+    left = Math.max(PANEL_MARGIN, Math.min(left, window.innerWidth - width - PANEL_MARGIN));
+    top = Math.max(PANEL_MARGIN, Math.min(top, window.innerHeight - height - PANEL_MARGIN));
     setPanelWidth(width);
     setPanelPos({ left: Math.round(left), top: Math.round(top) });
   }, []);

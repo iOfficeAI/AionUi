@@ -7,27 +7,11 @@
 import type { TMessage } from '@/common/chat/chatLib';
 import type { IDirOrFile } from '@/common/adapter/ipcBridge';
 import type { TChatConversation } from '@/common/config/storage';
+import { getMessageRoleKey, readMessageContent, sanitizeFileName } from '@/renderer/utils/chat/conversationExport';
 
 import type { ExportZipFile } from '../types';
 
-export const INVALID_FILENAME_CHARS_RE = /[<>:"/\\|?*]/g;
 export const EXPORT_IO_TIMEOUT_MS = 15000;
-
-export const sanitizeFileName = (name: string): string => {
-  const cleaned = name.replace(INVALID_FILENAME_CHARS_RE, '_').trim();
-  return (cleaned || 'conversation').slice(0, 80);
-};
-
-export const joinFilePath = (dir: string, fileName: string): string => {
-  const separator = dir.includes('\\') ? '\\' : '/';
-  return dir.endsWith('/') || dir.endsWith('\\') ? `${dir}${fileName}` : `${dir}${separator}${fileName}`;
-};
-
-export const formatTimestamp = (time = Date.now()): string => {
-  const date = new Date(time);
-  const pad = (value: number) => String(value).padStart(2, '0');
-  return `${date.getFullYear()}${pad(date.getMonth() + 1)}${pad(date.getDate())}-${pad(date.getHours())}${pad(date.getMinutes())}${pad(date.getSeconds())}`;
-};
 
 export const normalizeZipPath = (value: string): string => value.replace(/\\/g, '/').replace(/^\/+/, '');
 
@@ -69,6 +53,9 @@ export const getBackendKeyFromConversation = (conversation: TChatConversation): 
   if (conversation.type === 'openclaw-gateway') {
     return conversation.extra?.backend || 'openclaw-gateway';
   }
+  if (conversation.type === 'remote') {
+    return 'remote';
+  }
   return conversation.type;
 };
 
@@ -88,28 +75,15 @@ export const withTimeout = async <T>(promise: Promise<T>, timeoutMs: number, lab
   }
 };
 
-export const readMessageContent = (message: TMessage): string => {
-  const content = message.content as Record<string, unknown> | string | undefined;
-
-  if (typeof content === 'string') {
-    return content;
+const getMarkdownMessageRoleLabel = (message: TMessage): string => {
+  switch (getMessageRoleKey(message)) {
+    case 'user':
+      return 'User';
+    case 'assistant':
+      return 'Assistant';
+    case 'system':
+      return 'System';
   }
-
-  if (content && typeof content === 'object' && typeof content.content === 'string') {
-    return content.content;
-  }
-
-  try {
-    return JSON.stringify(content ?? {}, null, 2);
-  } catch {
-    return String(content ?? '');
-  }
-};
-
-export const getMessageRoleLabel = (message: TMessage): string => {
-  if (message.position === 'right') return 'User';
-  if (message.position === 'left') return 'Assistant';
-  return 'System';
 };
 
 export const buildConversationMarkdown = (conversation: TChatConversation, messages: TMessage[]): string => {
@@ -124,7 +98,7 @@ export const buildConversationMarkdown = (conversation: TChatConversation, messa
   lines.push('');
 
   messages.forEach((message, index) => {
-    lines.push(`### ${index + 1}. ${getMessageRoleLabel(message)} (${message.type})`);
+    lines.push(`### ${index + 1}. ${getMarkdownMessageRoleLabel(message)} (${message.type})`);
     lines.push('');
     lines.push('```text');
     lines.push(readMessageContent(message));

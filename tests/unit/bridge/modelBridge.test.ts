@@ -51,6 +51,16 @@ vi.mock('@/common', () => ({
 
 vi.mock('openai', () => ({
   default: class MockOpenAI {
+    constructor(config: { apiKey?: string }) {
+      // Simulate real OpenAI SDK behavior: throw when apiKey is undefined or whitespace-only
+      const key = config.apiKey;
+      if (key === undefined || key.trim() === '') {
+        throw new Error(
+          'Missing credentials. Please pass an `apiKey`, or set the `OPENAI_API_KEY` environment variable.'
+        );
+      }
+    }
+
     models = {
       list: mockModelsList,
     };
@@ -134,6 +144,48 @@ describe('modelBridge fetchModelList', () => {
 
     expect(result.success).toBe(false);
     expect(result.msg).toContain('API key is required');
+    expect(mockModelsList).not.toHaveBeenCalled();
+  });
+
+  it('returns error when apiKey is whitespace-only for new-api platform (Fixes ELECTRON-6X)', async () => {
+    const fetchModelList = getFetchModelListHandler();
+
+    const result = await fetchModelList({
+      base_url: 'https://new-api.example.com',
+      api_key: '   ',
+      platform: 'new-api',
+    });
+
+    expect(result.success).toBe(false);
+    expect(result.msg).toContain('API key is required');
+    expect(mockModelsList).not.toHaveBeenCalled();
+  });
+
+  it('returns error when apiKey is whitespace-only for default OpenAI path (Fixes ELECTRON-6X)', async () => {
+    const fetchModelList = getFetchModelListHandler();
+
+    const result = await fetchModelList({
+      base_url: 'https://api.openai.com/v1',
+      api_key: ' \t\n ',
+      try_fix: false,
+    });
+
+    expect(result.success).toBe(false);
+    expect(result.msg).toContain('API key is required');
+    expect(mockModelsList).not.toHaveBeenCalled();
+  });
+
+  it('catches OpenAI constructor errors instead of unhandled rejection (Fixes ELECTRON-6X)', async () => {
+    const fetchModelList = getFetchModelListHandler();
+
+    // Even if apiKey somehow passes the guard, the constructor error should be caught
+    const result = await fetchModelList({
+      base_url: 'https://api.openai.com/v1',
+      api_key: undefined as unknown as string,
+      try_fix: false,
+    });
+
+    expect(result.success).toBe(false);
     expect(mockModelsList).not.toHaveBeenCalled();
   });
 

@@ -153,7 +153,28 @@
       "downloadFailed": "İndirme başarısız"
     },
     "expand": "Çalışma Alanını Genişlet",
-    "collapse": "Çalışma Alanını Daralt"
+    "collapse": "Çalışma Alanını Daralt",
+    "changes": {
+      "tab": "Değişiklikler",
+      "filesTab": "Dosyalar",
+      "summary": "{{count}} dosya değiştirildi",
+      "insertions": "+{{count}} ekleme",
+      "deletions": "-{{count}} silme",
+      "empty": "Henüz değişiklik yok",
+      "emptyDescription": "AI dosyaları değiştirdiğinde değişiklikler burada görünecektir",
+      "refresh": "Yenile",
+      "staged": "Hazırlanmış Değişiklikler",
+      "unstaged": "Değişiklikler",
+      "changedFiles": "Değişen Dosyalar",
+      "stage": "Hazırla",
+      "stageAll": "Tüm Değişiklikleri Hazırla",
+      "unstage": "Hazırlamayı Geri Al",
+      "unstageAll": "Tüm Hazırlamaları Geri Al",
+      "discard": "Değişiklikleri Sil",
+      "reset": "Değişiklikleri Geri Al",
+      "noUnstaged": "Hazırlanmamış değişiklik yok",
+      "noStaged": "Hazırlanmış değişiklik yok"
+    }
   },
   "minimap": {
     "searchAria": "Sohbeti ara",

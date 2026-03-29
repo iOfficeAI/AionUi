@@ -113,8 +113,14 @@ const JsonImportModal: React.FC<JsonImportModalProps> = ({ visible, server, onCa
   };
 
   const handleSubmit = () => {
-    // 语法校验已经通过了（按钮禁用逻辑保证），直接解析
-    const config = JSON.parse(jsonInput);
+    // Re-validate at submit time to guard against race between useEffect validation and click
+    let config: Record<string, any>;
+    try {
+      config = JSON.parse(jsonInput);
+    } catch {
+      setValidation({ isValid: false, errorMessage: 'Invalid JSON format' });
+      return;
+    }
     const mcpServers = config.mcpServers || config;
 
     if (Array.isArray(mcpServers)) {
