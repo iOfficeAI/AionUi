@@ -459,7 +459,7 @@ describe('SendBox queue and interaction behaviors', () => {
     fireEvent.click(screen.getByText('/plan'));
     expect(slashControllerState.onSelectByIndex).toHaveBeenCalledWith(1);
 
-    expect(slashControllerArgs?.commands.map((command) => command.name)).toEqual(['open', 'plan']);
+    expect(slashControllerArgs?.commands.map((command) => command.name)).toEqual(['open', 'export', 'plan']);
   });
 
   it('executes builtin slash actions and template selection through the controller callbacks', async () => {
