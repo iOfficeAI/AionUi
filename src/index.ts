@@ -341,6 +341,7 @@ const createWindow = (): void => {
   // 关闭拦截：当启用"关闭到托盘"时，隐藏窗口而非关闭
   // Close interception: hide window instead of closing when "close to tray" is enabled
   mainWindow.on('close', (event) => {
+    if (mainWindow.isDestroyed()) return;
     if (getCloseToTrayEnabled() && !getIsQuitting()) {
       event.preventDefault();
       mainWindow.hide();
