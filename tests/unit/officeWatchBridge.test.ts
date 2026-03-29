@@ -20,6 +20,7 @@ const {
   execSyncMock,
   realpathSyncMock,
   fakePort,
+  portConnectSucceeds,
 } = vi.hoisted(() => ({
   wordStartHandler: { fn: undefined as ((...args: any[]) => any) | undefined },
   wordStopHandler: { fn: undefined as ((...args: any[]) => any) | undefined },
@@ -31,6 +32,9 @@ const {
   execSyncMock: vi.fn(),
   realpathSyncMock: vi.fn((p: string) => p),
   fakePort: { value: 55555 },
+  // Controls whether net.connect resolves (port ready) or rejects (port not ready).
+  // Set to false in tests that expect the process to fail before the port opens.
+  portConnectSucceeds: { value: true },
 }));
 
 vi.mock('electron', () => ({
@@ -99,7 +103,11 @@ vi.mock('node:net', () => ({
     },
     connect: (_port: number, _host: string) => {
       const emitter = new EventEmitter();
-      queueMicrotask(() => emitter.emit('connect'));
+      if (portConnectSucceeds.value) {
+        queueMicrotask(() => emitter.emit('connect'));
+      } else {
+        queueMicrotask(() => emitter.emit('error', new Error('ECONNREFUSED')));
+      }
       return Object.assign(emitter, { destroy: () => {} });
     },
   },
@@ -147,6 +155,7 @@ beforeEach(async () => {
   vi.clearAllMocks();
   realpathSyncMock.mockImplementation((p: string) => p);
   fakePort.value = 55555;
+  portConnectSucceeds.value = true;
 
   const mod = await import('../../src/process/bridge/officeWatchBridge');
   initOfficeWatchBridge = mod.initOfficeWatchBridge;
@@ -218,6 +227,7 @@ describe('officeWatchBridge', () => {
     });
 
     it('returns error result when word process exits with non-zero code', async () => {
+      portConnectSucceeds.value = false; // port never opens; process exit settles first
       initOfficeWatchBridge();
       const child = createMockChildProcess();
       spawnMock.mockReturnValue(child);
@@ -280,6 +290,7 @@ describe('officeWatchBridge', () => {
     });
 
     it('returns error result when excel process is killed by signal', async () => {
+      portConnectSucceeds.value = false; // port never opens; process exit settles first
       initOfficeWatchBridge();
       const child = createMockChildProcess();
       spawnMock.mockReturnValue(child);
@@ -479,6 +490,7 @@ describe('officeWatchBridge', () => {
     });
 
     it('rejects if auto-install fails for excel', async () => {
+      portConnectSucceeds.value = false; // port never opens; ENOENT error settles first
       initOfficeWatchBridge();
       const child = createMockChildProcess();
       spawnMock.mockReturnValue(child);

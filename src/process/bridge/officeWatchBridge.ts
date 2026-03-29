@@ -66,7 +66,7 @@ function findFreePort(): Promise<number> {
 /**
  * Wait until a TCP connection to localhost:port succeeds.
  */
-function waitForPort(port: number, maxRetries = 20, interval = 100): Promise<void> {
+function waitForPort(port: number, maxRetries = 150, interval = 100): Promise<void> {
   return new Promise((resolve, reject) => {
     let attempt = 0;
     const tryConnect = () => {
@@ -195,33 +195,27 @@ async function startWatch(
       if (err) reject(err);
     };
 
-    child.stdout?.on('data', (data: Buffer) => {
-      const text = data.toString();
-      if (!settled && text.includes('Watch:')) {
-        // Check if session was aborted while we waited for stdout
+    // Poll the port directly after spawn instead of parsing stdout.
+    // When spawned as a child process stdout is fully-buffered (non-TTY), so
+    // "Watch:" may never flush within our timeout window. Port polling is
+    // reliable regardless of output buffering.
+    const url = `http://localhost:${port}`;
+    waitForPort(port, 150, 100)
+      .then(() => {
         if (session.aborted) {
           settle(new Error('Watch session was aborted'));
           return;
         }
-        const url = `http://localhost:${port}`;
-        waitForPort(port)
-          .then(() => {
-            if (session.aborted) {
-              settle(new Error('Watch session was aborted'));
-              return;
-            }
-            if (!settled) {
-              settled = true;
-              clearTimeout(timeout);
-              resolve(url);
-            }
-          })
-          .catch(() => {
-            settle(new Error('officecli watch server did not become ready'));
-            killSession(filePath, sessions);
-          });
-      }
-    });
+        if (!settled) {
+          settled = true;
+          clearTimeout(timeout);
+          resolve(url);
+        }
+      })
+      .catch(() => {
+        settle(new Error('officecli watch server did not become ready'));
+        killSession(filePath, sessions);
+      });
 
     child.stderr?.on('data', (data: Buffer) => {
       console.error(`[officeWatch] officecli stderr (${docType}):`, data.toString().trim());
