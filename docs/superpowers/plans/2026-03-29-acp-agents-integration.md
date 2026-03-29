@@ -12,24 +12,25 @@
 
 ## File Map
 
-| Action | File | Responsibility |
-|--------|------|---------------|
-| Create | `src/renderer/pages/settings/AgentSettings/AgentCard.tsx` | Unified card for detected + custom agents |
-| Create | `src/renderer/pages/settings/AgentSettings/InlineAgentEditor.tsx` | Inline expandable edit form |
-| Modify | `src/renderer/pages/settings/AgentSettings/LocalAgents.tsx` | Integrate both agent types with sections |
-| Modify | `src/renderer/components/layout/Router.tsx` | Remove `/settings/acp` route |
-| Modify | `src/renderer/pages/settings/components/SettingsSider.tsx` | Remove `acp` from sidebar |
-| Modify | `src/renderer/pages/settings/components/SettingsPageWrapper.tsx` | Remove `acp` from nav items |
-| Modify | 6 locale files under `src/renderer/services/i18n/locales/` | Add new keys, remove `acp` key |
-| Delete | `src/renderer/pages/settings/AcpSettings/index.tsx` | Entire directory |
-| Delete | `src/renderer/pages/settings/AgentSettings/CustomAcpAgent.tsx` | Migrated to LocalAgents |
-| Delete | `src/renderer/pages/settings/AgentSettings/CustomAcpAgentModal.tsx` | Migrated to InlineAgentEditor |
+| Action | File                                                                | Responsibility                            |
+| ------ | ------------------------------------------------------------------- | ----------------------------------------- |
+| Create | `src/renderer/pages/settings/AgentSettings/AgentCard.tsx`           | Unified card for detected + custom agents |
+| Create | `src/renderer/pages/settings/AgentSettings/InlineAgentEditor.tsx`   | Inline expandable edit form               |
+| Modify | `src/renderer/pages/settings/AgentSettings/LocalAgents.tsx`         | Integrate both agent types with sections  |
+| Modify | `src/renderer/components/layout/Router.tsx`                         | Remove `/settings/acp` route              |
+| Modify | `src/renderer/pages/settings/components/SettingsSider.tsx`          | Remove `acp` from sidebar                 |
+| Modify | `src/renderer/pages/settings/components/SettingsPageWrapper.tsx`    | Remove `acp` from nav items               |
+| Modify | 6 locale files under `src/renderer/services/i18n/locales/`          | Add new keys, remove `acp` key            |
+| Delete | `src/renderer/pages/settings/AcpSettings/index.tsx`                 | Entire directory                          |
+| Delete | `src/renderer/pages/settings/AgentSettings/CustomAcpAgent.tsx`      | Migrated to LocalAgents                   |
+| Delete | `src/renderer/pages/settings/AgentSettings/CustomAcpAgentModal.tsx` | Migrated to InlineAgentEditor             |
 
 ---
 
 ### Task 1: Add i18n keys for new sections
 
 **Files:**
+
 - Modify: `src/renderer/services/i18n/locales/en-US/settings.json`
 - Modify: `src/renderer/services/i18n/locales/ja-JP/settings.json`
 - Modify: `src/renderer/services/i18n/locales/ko-KR/settings.json`
@@ -112,6 +113,7 @@ git commit -m "feat(i18n): add agent section i18n keys for all 6 locales"
 ### Task 2: Create AgentCard component
 
 **Files:**
+
 - Create: `src/renderer/pages/settings/AgentSettings/AgentCard.tsx`
 
 - [ ] **Step 1: Create AgentCard component**
@@ -235,6 +237,7 @@ git commit -m "feat(settings): create unified AgentCard component"
 ### Task 3: Create InlineAgentEditor component
 
 **Files:**
+
 - Create: `src/renderer/pages/settings/AgentSettings/InlineAgentEditor.tsx`
 
 - [ ] **Step 1: Create InlineAgentEditor**
@@ -505,7 +508,13 @@ const InlineAgentEditor: React.FC<InlineAgentEditorProps> = ({ agent, onSave, on
             </div>
           ))}
         </div>
-        <Button type='text' size='small' icon={<Plus theme='outline' size={14} />} onClick={addEnvVar} className='mt-8px text-t-secondary'>
+        <Button
+          type='text'
+          size='small'
+          icon={<Plus theme='outline' size={14} />}
+          onClick={addEnvVar}
+          className='mt-8px text-t-secondary'
+        >
           {t('settings.addEnvVar')}
         </Button>
       </div>
@@ -513,18 +522,39 @@ const InlineAgentEditor: React.FC<InlineAgentEditorProps> = ({ agent, onSave, on
       {/* Test Connection */}
       <div>
         <Space>
-          <Button type='outline' size='small' disabled={isTestDisabled} onClick={handleTestConnection} loading={testStatus === 'testing'}>
+          <Button
+            type='outline'
+            size='small'
+            disabled={isTestDisabled}
+            onClick={handleTestConnection}
+            loading={testStatus === 'testing'}
+          >
             {testStatus === 'testing' ? t('settings.testConnectionTesting') : t('settings.testConnectionBtn')}
           </Button>
         </Space>
         {testStatus === 'success' && (
-          <Alert className='mt-8px' type='success' icon={<CheckOne theme='filled' size={16} />} content={t('settings.testConnectionSuccess')} />
+          <Alert
+            className='mt-8px'
+            type='success'
+            icon={<CheckOne theme='filled' size={16} />}
+            content={t('settings.testConnectionSuccess')}
+          />
         )}
         {testStatus === 'fail_cli' && (
-          <Alert className='mt-8px' type='error' icon={<CloseOne theme='filled' size={16} />} content={t('settings.testConnectionFailCli')} />
+          <Alert
+            className='mt-8px'
+            type='error'
+            icon={<CloseOne theme='filled' size={16} />}
+            content={t('settings.testConnectionFailCli')}
+          />
         )}
         {testStatus === 'fail_acp' && (
-          <Alert className='mt-8px' type='warning' icon={<CloseOne theme='filled' size={16} />} content={t('settings.testConnectionFailAcp')} />
+          <Alert
+            className='mt-8px'
+            type='warning'
+            icon={<CloseOne theme='filled' size={16} />}
+            content={t('settings.testConnectionFailAcp')}
+          />
         )}
       </div>
 
@@ -535,7 +565,10 @@ const InlineAgentEditor: React.FC<InlineAgentEditorProps> = ({ agent, onSave, on
         bordered={false}
         style={{ background: 'transparent' }}
       >
-        <Collapse.Item name='advanced' header={<span className='text-sm text-t-secondary'>{t('settings.advancedMode')}</span>}>
+        <Collapse.Item
+          name='advanced'
+          header={<span className='text-sm text-t-secondary'>{t('settings.advancedMode')}</span>}
+        >
           <div className='pt-8px'>
             <CodeMirror
               value={jsonInput}
@@ -590,6 +623,7 @@ git commit -m "feat(settings): create InlineAgentEditor component"
 ### Task 4: Refactor LocalAgents to integrate both agent types
 
 **Files:**
+
 - Modify: `src/renderer/pages/settings/AgentSettings/LocalAgents.tsx`
 
 - [ ] **Step 1: Rewrite LocalAgents.tsx**
@@ -857,6 +891,7 @@ git commit -m "feat(settings): integrate custom agents into LocalAgents tab"
 ### Task 5: Remove ACP route, sidebar entry, and deleted files
 
 **Files:**
+
 - Modify: `src/renderer/components/layout/Router.tsx`
 - Modify: `src/renderer/pages/settings/components/SettingsSider.tsx`
 - Modify: `src/renderer/pages/settings/components/SettingsPageWrapper.tsx`
@@ -868,18 +903,21 @@ git commit -m "feat(settings): integrate custom agents into LocalAgents tab"
 - [ ] **Step 1: Remove ACP route and lazy import from Router.tsx**
 
 In `src/renderer/components/layout/Router.tsx`:
+
 - Remove line 10: `const AcpSettings = React.lazy(() => import('@renderer/pages/settings/AcpSettings'));`
 - Remove line 60: `<Route path='/settings/acp' element={withRouteFallback(AcpSettings)} />`
 
 - [ ] **Step 2: Remove `acp` from SettingsSider.tsx**
 
 In `src/renderer/pages/settings/components/SettingsSider.tsx`:
+
 - Remove `'acp',` from `BUILTIN_TAB_IDS` array (line 32)
 - Remove the entire `acp: { ... }` entry from `builtinMap` (lines 139-144)
 
 - [ ] **Step 3: Remove `acp` from SettingsPageWrapper.tsx**
 
 In `src/renderer/pages/settings/components/SettingsPageWrapper.tsx`:
+
 - Remove the entire `acp: { ... }` entry from `getBuiltinSettingsNavItems` builtinMap (lines 57-62)
 
 - [ ] **Step 4: Remove `"acp"` key from all 6 locale files**
@@ -941,6 +979,7 @@ Expected: All checks pass
 - [ ] **Step 5: Fix any issues and commit**
 
 If lint/format produced changes:
+
 ```bash
 git add -A
 git commit -m "style(settings): fix lint and formatting issues"
@@ -958,6 +997,7 @@ Expected: App starts without build errors
 - [ ] **Step 2: Verify Agent Settings page**
 
 Navigate to Settings → Agents. Verify:
+
 - Local Agents tab shows "Add Custom Agent" button at top
 - "Detected" section shows auto-detected agents (Gemini, etc.)
 - "Custom" section shows custom agents (or empty state message)

@@ -12,12 +12,12 @@ Merge the standalone ACP custom agent settings page (`/settings/acp`) into the A
 
 ## Design Decisions
 
-| Decision | Choice |
-|----------|--------|
+| Decision                             | Choice                                                           |
+| ------------------------------------ | ---------------------------------------------------------------- |
 | How detected + custom agents coexist | Unified card style with section dividers ("Detected" / "Custom") |
-| What happens to `/settings/acp` | Completely removed (route, sidebar entry, component directory) |
-| Add/Edit interaction | Inline expansion below card (replaces modal) |
-| "Add Custom Agent" button placement | Top of Local Agents tab |
+| What happens to `/settings/acp`      | Completely removed (route, sidebar entry, component directory)   |
+| Add/Edit interaction                 | Inline expansion below card (replaces modal)                     |
+| "Add Custom Agent" button placement  | Top of Local Agents tab                                          |
 
 ## Component Structure
 
@@ -70,7 +70,7 @@ type AgentCardProps =
       onEdit: () => void;
       onDelete: () => void;
       onToggle: (enabled: boolean) => void;
-    }
+    };
 ```
 
 ### Card Layout

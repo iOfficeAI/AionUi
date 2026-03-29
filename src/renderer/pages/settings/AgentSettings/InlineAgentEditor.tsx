@@ -261,7 +261,13 @@ const InlineAgentEditor: React.FC<InlineAgentEditorProps> = ({ agent, onSave, on
             </div>
           ))}
         </div>
-        <Button type='text' size='small' icon={<Plus theme='outline' size={14} />} onClick={addEnvVar} className='mt-8px text-t-secondary'>
+        <Button
+          type='text'
+          size='small'
+          icon={<Plus theme='outline' size={14} />}
+          onClick={addEnvVar}
+          className='mt-8px text-t-secondary'
+        >
           {t('settings.addEnvVar')}
         </Button>
       </div>
@@ -269,18 +275,39 @@ const InlineAgentEditor: React.FC<InlineAgentEditorProps> = ({ agent, onSave, on
       {/* Test Connection */}
       <div>
         <Space>
-          <Button type='outline' size='small' disabled={isTestDisabled} onClick={handleTestConnection} loading={testStatus === 'testing'}>
+          <Button
+            type='outline'
+            size='small'
+            disabled={isTestDisabled}
+            onClick={handleTestConnection}
+            loading={testStatus === 'testing'}
+          >
             {testStatus === 'testing' ? t('settings.testConnectionTesting') : t('settings.testConnectionBtn')}
           </Button>
         </Space>
         {testStatus === 'success' && (
-          <Alert className='mt-8px' type='success' icon={<CheckOne theme='filled' size={16} />} content={t('settings.testConnectionSuccess')} />
+          <Alert
+            className='mt-8px'
+            type='success'
+            icon={<CheckOne theme='filled' size={16} />}
+            content={t('settings.testConnectionSuccess')}
+          />
         )}
         {testStatus === 'fail_cli' && (
-          <Alert className='mt-8px' type='error' icon={<CloseOne theme='filled' size={16} />} content={t('settings.testConnectionFailCli')} />
+          <Alert
+            className='mt-8px'
+            type='error'
+            icon={<CloseOne theme='filled' size={16} />}
+            content={t('settings.testConnectionFailCli')}
+          />
         )}
         {testStatus === 'fail_acp' && (
-          <Alert className='mt-8px' type='warning' icon={<CloseOne theme='filled' size={16} />} content={t('settings.testConnectionFailAcp')} />
+          <Alert
+            className='mt-8px'
+            type='warning'
+            icon={<CloseOne theme='filled' size={16} />}
+            content={t('settings.testConnectionFailAcp')}
+          />
         )}
       </div>
 
@@ -291,7 +318,10 @@ const InlineAgentEditor: React.FC<InlineAgentEditorProps> = ({ agent, onSave, on
         bordered={false}
         style={{ background: 'transparent' }}
       >
-        <Collapse.Item name='advanced' header={<span className='text-sm text-t-secondary'>{t('settings.advancedMode')}</span>}>
+        <Collapse.Item
+          name='advanced'
+          header={<span className='text-sm text-t-secondary'>{t('settings.advancedMode')}</span>}
+        >
           <div className='pt-8px'>
             <CodeMirror
               value={jsonInput}
