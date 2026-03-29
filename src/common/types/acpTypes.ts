@@ -18,7 +18,7 @@
  * 预设助手的主 Agent 类型，用于决定创建哪种类型的对话
  * The primary agent type for preset assistants, used to determine which conversation type to create.
  */
-export type PresetAgentType = 'gemini' | 'claude' | 'codex' | 'codebuddy' | 'opencode' | 'qwen';
+export type PresetAgentType = 'gemini' | 'claude' | 'codex' | 'codebuddy' | 'opencode' | 'qwen' | 'kiro';
 
 /**
  * 使用 ACP 协议的预设 Agent 类型（需要通过 ACP 后端路由）
@@ -33,6 +33,7 @@ export const ACP_ROUTED_PRESET_TYPES: readonly PresetAgentType[] = [
   'opencode',
   'codex',
   'qwen',
+  'kiro',
 ] as const;
 
 export const CODEX_ACP_BRIDGE_VERSION = '0.9.5';
@@ -70,6 +71,7 @@ export type AcpBackendAll =
   | 'vibe' // Mistral Vibe CLI
   | 'nanobot' // nanobot CLI
   | 'cursor' // Cursor AI Agent CLI
+  | 'kiro' // Kiro CLI (AWS)
   | 'remote' // Remote agent (WebSocket, no local CLI)
   | 'custom'; // User-configured custom ACP agent
 
@@ -473,6 +475,15 @@ export const ACP_BACKENDS_ALL: Record<AcpBackendAll, AcpBackendConfig> = {
     enabled: true, // ✅ Cursor AI Agent CLI, launched via `agent acp`
     supportsStreaming: false,
     acpArgs: ['acp'], // Cursor uses `agent acp` subcommand
+  },
+  kiro: {
+    id: 'kiro',
+    name: 'Kiro',
+    cliCommand: 'kiro-cli',
+    authRequired: true, // Requires Kiro / AWS Builder ID login
+    enabled: true, // ✅ Kiro CLI, launched via `kiro-cli acp`
+    supportsStreaming: false,
+    acpArgs: ['acp'], // Kiro uses `kiro-cli acp` subcommand
   },
   remote: {
     id: 'remote',
