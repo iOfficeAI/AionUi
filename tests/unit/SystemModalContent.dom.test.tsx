@@ -77,6 +77,13 @@ const mockOpenFile = vi.fn();
 const mockShowOpen = vi.fn();
 const mockUpdateSystemInfo = vi.fn();
 
+vi.mock('@/common/config/storage', () => ({
+  ConfigStorage: {
+    get: vi.fn().mockResolvedValue(undefined),
+    set: vi.fn().mockResolvedValue(undefined),
+  },
+}));
+
 vi.mock('@/common', () => ({
   ipcBridge: {
     application: {
@@ -113,8 +120,8 @@ let swrMutateCallback: ((key: string) => void) | null = null;
 
 vi.mock('swr', () => {
   const useSWR = (key: string, fetcher: () => Promise<any>) => {
-    const [data, setData] = React.useState<any>(undefined);
-    const [isLoading, setIsLoading] = React.useState(true);
+    const [data, setData] = React.useState<any>(() => swrCache[key]);
+    const [isLoading, setIsLoading] = React.useState(() => swrCache[key] === undefined);
 
     React.useEffect(() => {
       if (swrCache[key] !== undefined) {
