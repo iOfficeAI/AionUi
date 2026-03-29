@@ -778,7 +778,14 @@ export class GeminiAgent {
   }
 
   async send(message: string | Array<{ text: string }>, msg_id = '', files?: string[]) {
-    await this.bootstrap;
+    try {
+      await this.bootstrap;
+    } catch (e) {
+      const errorMessage = e instanceof Error ? e.message : String(e);
+      this.onStreamEvent({ type: 'error', data: errorMessage, msg_id });
+      this.onStreamEvent({ type: 'finish', data: null, msg_id });
+      return;
+    }
     const abortController = this.createAbortController();
 
     const stripFilesMarker = (text: string): string => {
