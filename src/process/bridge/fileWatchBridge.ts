@@ -81,6 +81,8 @@ export function initFileWatchBridge(): void {
 
       const emitted = new Set<string>();
 
+      // Note: { recursive: true } works on macOS and Windows but is not supported
+      // on Linux (Node.js limitation). Only top-level files are watched there.
       const watcher = fs.watch(workspace, { recursive: true }, (eventType, filename) => {
         if (!filename || eventType !== 'rename') return;
         if (!WORKSPACE_OFFICE_RE.test(filename)) return;

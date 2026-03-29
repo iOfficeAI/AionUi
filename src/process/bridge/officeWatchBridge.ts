@@ -232,6 +232,9 @@ async function startWatch(
       sessions.delete(filePath);
       if ((err as NodeJS.ErrnoException).code === 'ENOENT' && !retry) {
         // officecli not found — try auto-install then retry once
+        // settle() without error: defuses the current promise machinery
+        // (clears timeout, prevents double-settle) while the recursive retry
+        // call below chains its own resolve/reject to the outer promise.
         settle();
         if (installOfficecli(emitStatus)) {
           startWatch(filePath, docType, emitStatus, true).then(resolve, reject);
