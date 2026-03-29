@@ -6,15 +6,13 @@
 
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-const { mockConnect, mockSetSessionMode, mockSetModel, mockDisconnect, mockGetInitializeResponse } = vi.hoisted(
-  () => ({
-    mockConnect: vi.fn().mockResolvedValue(undefined),
-    mockSetSessionMode: vi.fn().mockResolvedValue(undefined),
-    mockSetModel: vi.fn().mockResolvedValue(undefined),
-    mockDisconnect: vi.fn().mockResolvedValue(undefined),
-    mockGetInitializeResponse: vi.fn().mockReturnValue(null),
-  })
-);
+const { mockConnect, mockSetSessionMode, mockSetModel, mockDisconnect, mockGetInitializeResponse } = vi.hoisted(() => ({
+  mockConnect: vi.fn().mockResolvedValue(undefined),
+  mockSetSessionMode: vi.fn().mockResolvedValue(undefined),
+  mockSetModel: vi.fn().mockResolvedValue(undefined),
+  mockDisconnect: vi.fn().mockResolvedValue(undefined),
+  mockGetInitializeResponse: vi.fn().mockReturnValue(null),
+}));
 
 vi.mock('../../src/process/agent/acp/AcpConnection', () => ({
   AcpConnection: class {
