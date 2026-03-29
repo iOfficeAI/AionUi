@@ -4,6 +4,7 @@
  */
 import type { AssistantListItem, SkillInfo } from './types';
 import { hasBuiltinSkills } from './assistantUtils';
+import { ACP_BACKENDS_ALL } from '@/common/types/acpTypes';
 import EmojiPicker from '@/renderer/components/chat/EmojiPicker';
 import MarkdownView from '@/renderer/components/Markdown';
 import { Avatar, Button, Checkbox, Collapse, Drawer, Input, Select, Tag, Typography } from '@arco-design/web-react';
@@ -261,15 +262,11 @@ const AssistantEditDrawer: React.FC<AssistantEditDrawerProps> = ({
               onChange={(value) => setEditAgent(value as string)}
               disabled={isReadonlyAssistant}
             >
-              {[
-                { value: 'gemini', label: 'Gemini CLI' },
-                { value: 'claude', label: 'Claude Code' },
-                { value: 'qwen', label: 'Qwen Code' },
-                { value: 'codex', label: 'Codex' },
-                { value: 'codebuddy', label: 'CodeBuddy' },
-                { value: 'opencode', label: 'OpenCode' },
-              ]
-                .filter((opt) => availableBackends.has(opt.value))
+              {Array.from(availableBackends)
+                .map((id) => {
+                  const config = ACP_BACKENDS_ALL[id as keyof typeof ACP_BACKENDS_ALL];
+                  return { value: id, label: config?.name ?? id };
+                })
                 .map((opt) => (
                   <Select.Option key={opt.value} value={opt.value}>
                     {opt.label}
