@@ -57,6 +57,8 @@
     "server:start:remote": "NODE_ENV=development ALLOW_REMOTE=true bun dist-server/server.mjs",
     "server:start:prod": "NODE_ENV=production bun dist-server/server.mjs",
     "server:start:prod:remote": "NODE_ENV=production ALLOW_REMOTE=true bun dist-server/server.mjs",
+    "server:resetpass": "NODE_ENV=development bun dist-server/server.mjs --resetpass",
+    "server:resetpass:prod": "NODE_ENV=production bun dist-server/server.mjs --resetpass",
     "build:renderer:web": "bunx vite build --config vite.renderer.config.ts",
     "build:server": "node scripts/build-server.mjs"
   },

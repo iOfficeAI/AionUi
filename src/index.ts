@@ -422,18 +422,13 @@ const handleAppReady = async (): Promise<void> => {
   if (isResetPasswordMode) {
     // Handle password reset without creating window
     try {
-      // Get username argument, filtering out flags (--xxx)
-      // 获取用户名参数，过滤掉标志（--xxx）
-      const resetPasswordIndex = process.argv.indexOf('--resetpass');
-      const argsAfterCommand = process.argv.slice(resetPasswordIndex + 1);
-      const username = argsAfterCommand.find((arg) => !arg.startsWith('--')) || 'admin';
+      const { resetPasswordCLI, resolveResetPasswordUsername } = await import('./process/utils/resetPasswordCLI');
+      const username = resolveResetPasswordUsername(process.argv);
 
-      // Import resetpass logic
-      const { resetPasswordCLI } = await import('./process/utils/resetPasswordCLI');
       await resetPasswordCLI(username);
 
       app.quit();
-    } catch (error) {
+    } catch {
       app.exit(1);
     }
   } else if (isWebUIMode) {
