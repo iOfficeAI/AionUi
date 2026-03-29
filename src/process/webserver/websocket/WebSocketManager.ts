@@ -136,13 +136,17 @@ export class WebSocketManager {
 
         // Forward other messages to bridge system
         onMessage(name, data, ws);
-      } catch (error) {
-        ws.send(
-          JSON.stringify({
-            error: 'Invalid message format',
-            expected: '{ "name": "event-name", "data": {...} }',
-          })
-        );
+      } catch {
+        try {
+          ws.send(
+            JSON.stringify({
+              error: 'Invalid message format',
+              expected: '{ "name": "event-name", "data": {...} }',
+            })
+          );
+        } catch {
+          // Socket may be broken; ignore send failure
+        }
       }
     });
   }
@@ -222,7 +226,11 @@ export class WebSocketManager {
       // Check if client timed out
       if (this.isClientTimeout(clientInfo, now)) {
         console.log('[WebSocketManager] Client heartbeat timeout, closing connection');
-        ws.close(WEBSOCKET_CONFIG.CLOSE_CODES.POLICY_VIOLATION, 'Heartbeat timeout');
+        try {
+          ws.close(WEBSOCKET_CONFIG.CLOSE_CODES.POLICY_VIOLATION, 'Heartbeat timeout');
+        } catch {
+          ws.terminate();
+        }
         this.clients.delete(ws);
         continue;
       }
@@ -230,13 +238,20 @@ export class WebSocketManager {
       // Validate if WebSocket token is still valid
       if (!(await TokenMiddleware.validateWebSocketToken(clientInfo.token))) {
         console.log('[WebSocketManager] Token expired, closing connection');
-        ws.send(
-          JSON.stringify({
-            name: 'auth-expired',
-            data: { message: 'Token expired, please login again' },
-          })
-        );
-        ws.close(WEBSOCKET_CONFIG.CLOSE_CODES.POLICY_VIOLATION, 'Token expired');
+        try {
+          if (ws.readyState === WebSocket.OPEN) {
+            ws.send(
+              JSON.stringify({
+                name: 'auth-expired',
+                data: { message: 'Token expired, please login again' },
+              })
+            );
+          }
+          ws.close(WEBSOCKET_CONFIG.CLOSE_CODES.POLICY_VIOLATION, 'Token expired');
+        } catch {
+          // Socket may already be broken (EPIPE); terminate instead
+          ws.terminate();
+        }
         this.clients.delete(ws);
         continue;
       }
