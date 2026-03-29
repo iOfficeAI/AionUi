@@ -17,8 +17,7 @@ interface ExcelPreviewProps {
 }
 
 /**
- * Excel Preview Component (watch mode)
- * Excel 预览组件（实时预览模式）
+ * Excel Preview Component
  *
  * Launches officecli watch as a local HTTP server and renders the
  * live preview in a webview. Automatically cleans up the watch

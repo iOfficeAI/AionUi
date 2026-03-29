@@ -12,21 +12,12 @@ import React, { useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 
 interface OfficeDocPreviewProps {
-  /**
-   * Office document file path (absolute path on disk)
-   * Office 文档文件路径（磁盘上的绝对路径）
-   */
   filePath?: string;
-  /**
-   * Office document content (not used, kept for compatibility)
-   * Office 文档内容（暂不使用，保留用于兼容）
-   */
   content?: string;
 }
 
 /**
- * Word Document Preview Component (watch mode)
- * Word 文档预览组件（实时预览模式）
+ * Word Document Preview Component
  *
  * Launches officecli watch as a local HTTP server and renders the
  * live preview in a webview. Automatically cleans up the watch

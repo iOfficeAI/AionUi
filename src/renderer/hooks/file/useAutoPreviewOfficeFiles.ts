@@ -14,6 +14,10 @@ const OFFICE_EXTENSIONS = /\.(pptx|docx|xlsx)$/i;
 
 const BASH_OUTPUT_REGEX = /(?:Saved to|Generated|officecli\S*)\s+(\S+\.(?:pptx|docx|xlsx))/i;
 
+// Matches quoted or unquoted office filenames in shell command descriptions
+// e.g. officecli create "Financial_Dashboard.xlsx" or create report.pptx
+const DESCRIPTION_REGEX = /["']?(\S+\.(?:pptx|docx|xlsx))["']?/i;
+
 function resolveFilePath(raw: string, workspace: string | undefined): string {
   const isAbsolute = raw.startsWith('/') || /^[A-Za-z]:/.test(raw);
   return isAbsolute || !workspace ? raw : joinPath(workspace, raw);
@@ -40,7 +44,7 @@ export const useAutoPreviewOfficeFiles = (messages: TMessage[], workspace: strin
         for (const tool of message.content) {
           if (tool.status !== 'Success') continue;
 
-          const { callId, name, resultDisplay } = tool;
+          const { callId, name, description, resultDisplay } = tool;
           if (firedIds.current.has(callId)) continue;
 
           let filePath: string | null = null;
@@ -51,12 +55,21 @@ export const useAutoPreviewOfficeFiles = (messages: TMessage[], workspace: strin
             typeof resultDisplay === 'object' &&
             'fileName' in resultDisplay
           ) {
+            // WriteFile: structured result carries the filename directly
             const fileName = (resultDisplay as { fileName: string }).fileName;
             if (OFFICE_EXTENSIONS.test(fileName)) {
               filePath = resolveFilePath(fileName, workspace);
             }
           } else if (typeof resultDisplay === 'string') {
+            // Shell/Bash: try matching output text first
             const match = BASH_OUTPUT_REGEX.exec(resultDisplay);
+            if (match) filePath = resolveFilePath(match[1], workspace);
+          }
+
+          // Shell/Bash fallback: scan the command description for office filenames
+          // e.g. description = 'officecli create "Financial_Dashboard.xlsx" ...'
+          if (!filePath && description) {
+            const match = DESCRIPTION_REGEX.exec(description);
             if (match) filePath = resolveFilePath(match[1], workspace);
           }
 
