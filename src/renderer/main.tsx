@@ -48,6 +48,7 @@ import './styles/themes/index.css';
 
 // i18n
 import './services/i18n';
+import { registerPwa } from './services/registerPwa';
 
 // Components and utilities
 import Layout from './components/layout/Layout';
@@ -124,6 +125,8 @@ const Main = () => {
 };
 
 const App = HOC.Wrapper(Config)(Main);
+
+void registerPwa();
 
 const root = createRoot(document.getElementById('root')!);
 root.render(React.createElement(AppProviders, null, React.createElement(App)));

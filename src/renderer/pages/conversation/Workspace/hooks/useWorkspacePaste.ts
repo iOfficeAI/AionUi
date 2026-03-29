@@ -9,6 +9,7 @@ import type { IDirOrFile } from '@/common/adapter/ipcBridge';
 import { ConfigStorage } from '@/common/config/storage';
 import { usePasteService } from '@/renderer/hooks/file/usePasteService';
 import { uploadFileViaHttp, MAX_UPLOAD_SIZE_MB } from '@/renderer/services/FileService';
+import { trackUpload } from '@/renderer/hooks/file/useUploadState';
 import { isElectronDesktop } from '@/renderer/utils/platform';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import type { MessageApi, PasteConfirmState, SelectedNodeRef } from '../types';
@@ -114,8 +115,9 @@ export function useWorkspacePaste(options: UseWorkspacePasteOptions) {
         let successCount = 0;
         try {
           for (let i = 0; i < fileList.length; i++) {
+            const tracker = trackUpload(fileList[i].size, 'workspace');
             try {
-              await uploadFileViaHttp(fileList[i], conversationId);
+              await uploadFileViaHttp(fileList[i], conversationId, tracker.onProgress);
               successCount++;
             } catch (error) {
               if (error instanceof Error && error.message === 'FILE_TOO_LARGE') {
@@ -123,6 +125,8 @@ export function useWorkspacePaste(options: UseWorkspacePasteOptions) {
               } else {
                 messageApi.error(t('common.unknownError') || 'Upload failed');
               }
+            } finally {
+              tracker.finish();
             }
           }
           if (successCount > 0) {

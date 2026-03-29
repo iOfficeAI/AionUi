@@ -109,8 +109,11 @@ const migrateLegacyData = async () => {
   return false;
 };
 
-const WriteFile = (path: string, data: string) => {
-  return fs.writeFile(path, data);
+const WriteFile = async (filePath: string, data: string) => {
+  // Ensure parent directory exists to prevent ENOENT on first write
+  const dir = nodePath.dirname(filePath);
+  await fs.mkdir(dir, { recursive: true });
+  return fs.writeFile(filePath, data);
 };
 
 const ReadFile = (path: string) => {
@@ -595,6 +598,10 @@ const getBuiltinAssistants = (): AcpBackendConfig[] => {
     // Read default enabled skills from preset config (excluding cron, which is builtin and auto-injected)
     const defaultEnabledSkills = preset.defaultEnabledSkills;
     const enabledByDefault =
+      preset.id === 'word-creator' ||
+      preset.id === 'ppt-creator' ||
+      preset.id === 'excel-creator' ||
+      preset.id === 'academic-paper' ||
       preset.id === 'morph-ppt' ||
       preset.id === 'cowork' ||
       preset.id === 'openclaw-setup' ||

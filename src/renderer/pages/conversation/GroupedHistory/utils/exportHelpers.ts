@@ -69,6 +69,9 @@ export const getBackendKeyFromConversation = (conversation: TChatConversation): 
   if (conversation.type === 'openclaw-gateway') {
     return conversation.extra?.backend || 'openclaw-gateway';
   }
+  if (conversation.type === 'remote') {
+    return 'remote';
+  }
   return conversation.type;
 };
 

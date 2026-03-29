@@ -766,13 +766,103 @@ const migration_v15: IMigration = {
 };
 
 /**
+ * Migration v15 -> v16: Add remote_agents table + 'remote' to conversations type
+ */
+const migration_v16: IMigration = {
+  version: 16,
+  name: 'Add remote_agents table and remote conversation type',
+  up: (db) => {
+    // 1. Create remote_agents table
+    db.exec(`CREATE TABLE IF NOT EXISTS remote_agents (
+        id TEXT PRIMARY KEY,
+        name TEXT NOT NULL,
+        protocol TEXT NOT NULL DEFAULT 'openclaw',
+        url TEXT NOT NULL,
+        auth_type TEXT NOT NULL DEFAULT 'bearer',
+        auth_token TEXT,
+        avatar TEXT,
+        description TEXT,
+        status TEXT DEFAULT 'unknown',
+        last_connected_at INTEGER,
+        created_at INTEGER NOT NULL,
+        updated_at INTEGER NOT NULL
+      )`);
+    db.exec('CREATE INDEX IF NOT EXISTS idx_remote_agents_protocol ON remote_agents(protocol)');
+
+    // 2. Recreate conversations with 'remote' added to type CHECK
+    db.exec(`CREATE TABLE IF NOT EXISTS conversations_new (
+        id TEXT PRIMARY KEY,
+        user_id TEXT NOT NULL,
+        name TEXT NOT NULL,
+        type TEXT NOT NULL CHECK(type IN ('gemini', 'acp', 'codex', 'openclaw-gateway', 'nanobot', 'remote')),
+        extra TEXT NOT NULL,
+        model TEXT,
+        status TEXT CHECK(status IN ('pending', 'running', 'finished')),
+        source TEXT,
+        channel_chat_id TEXT,
+        created_at INTEGER NOT NULL,
+        updated_at INTEGER NOT NULL,
+        FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+      )`);
+    db.exec(`INSERT INTO conversations_new (id, user_id, name, type, extra, model, status, source, channel_chat_id, created_at, updated_at)
+      SELECT id, user_id, name, type, extra, model, status, source, channel_chat_id, created_at, updated_at FROM conversations`);
+    db.exec('DROP TABLE conversations');
+    db.exec('ALTER TABLE conversations_new RENAME TO conversations');
+    db.exec('CREATE INDEX IF NOT EXISTS idx_conversations_user_id ON conversations(user_id)');
+    db.exec('CREATE INDEX IF NOT EXISTS idx_conversations_updated_at ON conversations(updated_at)');
+    db.exec('CREATE INDEX IF NOT EXISTS idx_conversations_type ON conversations(type)');
+    db.exec('CREATE INDEX IF NOT EXISTS idx_conversations_user_updated ON conversations(user_id, updated_at DESC)');
+    db.exec('CREATE INDEX IF NOT EXISTS idx_conversations_source ON conversations(source)');
+    db.exec('CREATE INDEX IF NOT EXISTS idx_conversations_source_updated ON conversations(source, updated_at DESC)');
+    db.exec(
+      'CREATE INDEX IF NOT EXISTS idx_conversations_source_chat ON conversations(source, channel_chat_id, updated_at DESC)'
+    );
+
+    console.log('[Migration v16] Added remote_agents table and remote conversation type');
+  },
+  down: (db) => {
+    db.exec('DROP INDEX IF EXISTS idx_remote_agents_protocol');
+    db.exec('DROP TABLE IF EXISTS remote_agents');
+    console.log('[Migration v16] Rolled back: Removed remote_agents table');
+  },
+};
+
+/**
+ * Migration v16 -> v17: Add device identity columns to remote_agents
+ */
+const migration_v17: IMigration = {
+  version: 17,
+  name: 'Add device identity columns to remote_agents',
+  up: (db) => {
+    const columns = new Set((db.pragma('table_info(remote_agents)') as Array<{ name: string }>).map((c) => c.name));
+    if (!columns.has('device_id')) {
+      db.exec('ALTER TABLE remote_agents ADD COLUMN device_id TEXT');
+    }
+    if (!columns.has('device_public_key')) {
+      db.exec('ALTER TABLE remote_agents ADD COLUMN device_public_key TEXT');
+    }
+    if (!columns.has('device_private_key')) {
+      db.exec('ALTER TABLE remote_agents ADD COLUMN device_private_key TEXT');
+    }
+    if (!columns.has('device_token')) {
+      db.exec('ALTER TABLE remote_agents ADD COLUMN device_token TEXT');
+    }
+    console.log('[Migration v17] Added device identity columns to remote_agents');
+  },
+  down: (_db) => {
+    // SQLite does not support DROP COLUMN before 3.35.0; skip rollback to prevent data loss.
+    console.warn('[Migration v17] Rollback skipped: cannot drop columns safely.');
+  },
+};
+
+/**
  * All migrations in order
  */
 // prettier-ignore
 export const ALL_MIGRATIONS: IMigration[] = [
   migration_v1, migration_v2, migration_v3, migration_v4, migration_v5, migration_v6,
   migration_v7, migration_v8, migration_v9, migration_v10, migration_v11, migration_v12,
-  migration_v13, migration_v14, migration_v15,
+  migration_v13, migration_v14, migration_v15, migration_v16, migration_v17,
 ];
 
 /**

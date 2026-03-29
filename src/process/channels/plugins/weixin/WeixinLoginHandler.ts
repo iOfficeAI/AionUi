@@ -28,11 +28,16 @@ export class WeixinLoginHandler {
       });
 
       const timeoutId = setTimeout(() => {
+        clearInterval(poll);
         hidden.destroy();
         reject(new Error('Timeout waiting for QR canvas to render'));
       }, 10_000);
 
       const poll = setInterval(() => {
+        if (hidden.isDestroyed()) {
+          clearInterval(poll);
+          return;
+        }
         hidden.webContents
           .executeJavaScript(
             `(function(){const c=document.querySelector('canvas');return c?c.toDataURL('image/png'):null})()`
@@ -66,7 +71,7 @@ export class WeixinLoginHandler {
       const win = this.getWindow();
 
       this.loginHandle = startLogin({
-        onQR: (pageUrl) => {
+        onQR: (pageUrl, _qrcodeData) => {
           this.renderQRPage(pageUrl)
             .then((dataUrl) => win?.webContents.send('weixin:login:qr', { qrcodeUrl: dataUrl }))
             .catch((err) => console.error('[WeixinLoginHandler] Failed to render QR page:', err));

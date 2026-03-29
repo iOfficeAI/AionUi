@@ -53,7 +53,11 @@ const PptViewer: React.FC<PptViewerProps> = ({ filePath }) => {
       setStatus('starting');
       setError(null);
       try {
-        const { url } = await ipcBridge.pptPreview.start.invoke({ filePath });
+        const result = await ipcBridge.pptPreview.start.invoke({ filePath });
+        const url = result.url;
+        if (!url || ('error' in result && result.error)) {
+          throw new Error((result as { error?: string }).error || t('preview.ppt.startFailed'));
+        }
         // Small delay to ensure watch HTTP server is fully ready for webview
         await new Promise((r) => setTimeout(r, 300));
         if (!cancelled) {

@@ -43,6 +43,7 @@ function iconParkPlugin() {
 export default defineConfig({
   base: './',
   root: resolve('src/renderer'),
+  publicDir: resolve('public'),
   resolve: {
     alias: {
       '@': resolve('src'),

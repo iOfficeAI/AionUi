@@ -70,7 +70,7 @@ export interface IConversationRow {
   id: string;
   user_id: string;
   name: string;
-  type: 'gemini' | 'acp' | 'codex' | 'openclaw-gateway' | 'nanobot';
+  type: 'gemini' | 'acp' | 'codex' | 'openclaw-gateway' | 'nanobot' | 'remote';
   extra: string; // JSON string of extra data
   model?: string; // JSON string of TProviderWithModel (gemini type has this)
   status?: 'pending' | 'running' | 'finished';
@@ -185,6 +185,15 @@ export function rowToConversation(row: IConversationRow): TChatConversation {
     return {
       ...base,
       type: 'nanobot' as const,
+      extra: JSON.parse(row.extra),
+    } as TChatConversation;
+  }
+
+  // Remote type
+  if (row.type === 'remote') {
+    return {
+      ...base,
+      type: 'remote' as const,
       extra: JSON.parse(row.extra),
     } as TChatConversation;
   }
