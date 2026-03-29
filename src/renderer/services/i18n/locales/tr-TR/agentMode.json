@@ -5,6 +5,8 @@
   "autoEdit": "Auto Edit",
   "yolo": "YOLO",
   "yoloNoSandbox": "Tam Otomatik (Sandbox Yok)",
+  "auto": "Otomatik",
+  "dontAsk": "Yalnızca Ön Onaylı",
   "bypass": "Bypass (YOLO)",
   "bypassPermissions": "YOLO",
   "smart": "Akıllı",
