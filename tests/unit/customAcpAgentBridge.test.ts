@@ -62,4 +62,54 @@ describe('testCustomAgentConnection', () => {
     expect(result.success).toBe(false);
     expect(result.data?.step).toBe('acp_initialize');
   });
+
+  it('passes env and acpArgs to AcpConnection.connect', async () => {
+    vi.mocked(execFileSync).mockReturnValue('/usr/local/bin/my-agent');
+    mockConnect.mockResolvedValue(undefined);
+    mockDisconnect.mockResolvedValue(undefined);
+
+    await testCustomAgentConnection({
+      command: 'my-agent',
+      acpArgs: ['--acp'],
+      env: { API_KEY: 'secret', NODE_ENV: 'test' },
+    });
+
+    expect(mockConnect).toHaveBeenCalledWith(
+      'custom',
+      'my-agent',
+      expect.any(String),
+      ['--acp'],
+      { API_KEY: 'secret', NODE_ENV: 'test' },
+    );
+  });
+
+  it('suppresses disconnect error on ACP failure', async () => {
+    vi.mocked(execFileSync).mockReturnValue('/usr/local/bin/my-agent');
+    mockConnect.mockRejectedValue(new Error('handshake failed'));
+    mockDisconnect.mockRejectedValue(new Error('disconnect also failed'));
+
+    const result = await testCustomAgentConnection({
+      command: 'my-agent',
+    });
+
+    expect(result.success).toBe(false);
+    expect(result.data?.step).toBe('acp_initialize');
+    expect(result.msg).toContain('handshake failed');
+  });
+
+  it('extracts base command from multi-word command', async () => {
+    vi.mocked(execFileSync).mockReturnValue('/usr/local/bin/npx');
+    mockConnect.mockResolvedValue(undefined);
+    mockDisconnect.mockResolvedValue(undefined);
+
+    await testCustomAgentConnection({
+      command: 'npx my-agent-cli',
+    });
+
+    expect(execFileSync).toHaveBeenCalledWith(
+      expect.any(String),
+      ['npx'],
+      expect.any(Object),
+    );
+  });
 });
