@@ -66,7 +66,13 @@
     "title": "Word 文件",
     "loading": "正在載入 Word 文件...",
     "invalid": "請確認這是有效的 Word 文件",
-    "loadFailed": "載入 Word 文件失敗"
+    "loadFailed": "載入 Word 文件失敗",
+    "watch": {
+      "loading": "正在載入 Word 文件...",
+      "installing": "正在安裝 officecli...",
+      "startFailed": "啟動 Word 預覽失敗",
+      "installHint": "需要 officecli，將自動安裝。"
+    }
   },
   "excel": {
     "title": "Excel 試算表",
@@ -77,7 +83,13 @@
     "convertFailed": "Excel 轉換失敗",
     "loadFailed": "載入 Excel 文件失敗",
     "emptySheet": "此工作表沒有資料",
-    "emptySheetHint": "請確認工作表內是否包含資料或圖片"
+    "emptySheetHint": "請確認工作表內是否包含資料或圖片",
+    "watch": {
+      "loading": "正在載入 Excel 文件...",
+      "installing": "正在安裝 officecli...",
+      "startFailed": "啟動 Excel 預覽失敗",
+      "installHint": "需要 officecli，將自動安裝。"
+    }
   },
   "pdf": {
     "title": "PDF 文件",

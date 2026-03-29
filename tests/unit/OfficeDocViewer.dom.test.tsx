@@ -4,24 +4,29 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { render, act, waitFor } from '@testing-library/react';
+import { render, screen, act } from '@testing-library/react';
 import React from 'react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 // --- Mocks ---
 
-const convertInvokeMock = vi.fn();
+const startInvokeMock = vi.fn();
+const stopInvokeMock = vi.fn();
+const statusOnMock = vi.fn();
+const statusUnsubMock = vi.fn();
 
 vi.mock('../../src/common', () => ({
   ipcBridge: {
-    document: {
-      convert: {
-        invoke: (...args: any[]) => convertInvokeMock(...args),
+    wordPreview: {
+      start: {
+        invoke: (...args: any[]) => startInvokeMock(...args),
       },
-    },
-    shell: {
-      openFile: { invoke: vi.fn() },
-      showItemInFolder: { invoke: vi.fn() },
+      stop: {
+        invoke: (...args: any[]) => stopInvokeMock(...args),
+      },
+      status: {
+        on: (...args: any[]) => statusOnMock(...args),
+      },
     },
   },
 }));
@@ -32,29 +37,18 @@ vi.mock('react-i18next', () => ({
   }),
 }));
 
-const messageErrorMock = vi.fn();
-
 vi.mock('@arco-design/web-react', () => ({
-  Button: ({ children, onClick }: any) => React.createElement('button', { onClick }, children),
-  Message: Object.assign(
-    {},
-    {
-      useMessage: () => [
-        { error: vi.fn(), info: vi.fn() },
-        React.createElement('div', { 'data-testid': 'message-holder' }),
-      ],
-      error: (...args: any[]) => messageErrorMock(...args),
-    }
+  Spin: ({ size }: { size?: number }) => (
+    <div data-testid='spin' data-size={size}>
+      loading...
+    </div>
   ),
 }));
 
-vi.mock('../../src/renderer/pages/conversation/Preview/context/PreviewToolbarExtrasContext', () => ({
-  usePreviewToolbarExtras: () => null,
-}));
-
-vi.mock('../../src/renderer/pages/conversation/Preview/components/viewers/MarkdownViewer', () => ({
-  default: ({ content }: { content: string }) =>
-    React.createElement('div', { 'data-testid': 'markdown-preview' }, content),
+vi.mock('../../src/renderer/components/media/WebviewHost', () => ({
+  default: ({ url, className }: { url: string; className?: string }) => (
+    <div data-testid='webview-host' data-url={url} className={className} />
+  ),
 }));
 
 import OfficeDocPreview from '../../src/renderer/pages/conversation/Preview/components/viewers/OfficeDocViewer';
@@ -62,59 +56,93 @@ import OfficeDocPreview from '../../src/renderer/pages/conversation/Preview/comp
 describe('OfficeDocViewer', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    statusOnMock.mockReturnValue(statusUnsubMock);
+    stopInvokeMock.mockResolvedValue(undefined);
   });
 
   afterEach(() => {
     vi.restoreAllMocks();
   });
 
-  it('uses static Message.error when document conversion fails', async () => {
-    convertInvokeMock.mockRejectedValue(new Error('conversion failed'));
+  it('shows loading spinner initially', () => {
+    startInvokeMock.mockReturnValue(new Promise(() => {})); // never resolves
 
-    render(
-      React.createElement(OfficeDocPreview, {
-        filePath: '/test/doc.docx',
-        docType: 'word' as const,
-      })
-    );
+    render(<OfficeDocPreview filePath='/test/file.docx' />);
 
-    await waitFor(() => {
-      expect(messageErrorMock).toHaveBeenCalledWith('conversion failed');
-    });
+    expect(screen.getByTestId('spin')).toBeInTheDocument();
+    expect(screen.getByText('preview.word.watch.loading')).toBeInTheDocument();
   });
 
-  it('shows error text when conversion fails', async () => {
-    convertInvokeMock.mockRejectedValue(new Error('File corrupt'));
+  it('shows error when filePath is not provided', () => {
+    render(<OfficeDocPreview />);
 
-    const { container } = render(
-      React.createElement(OfficeDocPreview, {
-        filePath: '/test/bad.docx',
-        docType: 'word' as const,
-      })
-    );
-
-    await waitFor(() => {
-      expect(container.textContent).toContain('File corrupt');
-    });
+    expect(screen.getByText('preview.errors.missingFilePath')).toBeInTheDocument();
   });
 
-  it('renders markdown when conversion succeeds', async () => {
-    convertInvokeMock.mockResolvedValue({
-      to: 'markdown',
-      result: { success: true, data: '# Test Content' },
+  it('renders webview after successful start', async () => {
+    startInvokeMock.mockResolvedValue({ url: 'http://localhost:12345' });
+
+    await act(async () => {
+      render(<OfficeDocPreview filePath='/test/file.docx' />);
     });
 
-    const { container } = render(
-      React.createElement(OfficeDocPreview, {
-        filePath: '/test/good.docx',
-        docType: 'word' as const,
-      })
-    );
-
-    await waitFor(() => {
-      expect(container.textContent).toContain('# Test Content');
+    // Wait for the 300ms delay
+    await act(async () => {
+      await new Promise((r) => setTimeout(r, 350));
     });
 
-    expect(messageErrorMock).not.toHaveBeenCalled();
+    const webview = screen.getByTestId('webview-host');
+    expect(webview).toBeInTheDocument();
+    expect(webview.getAttribute('data-url')).toBe('http://localhost:12345');
+  });
+
+  it('shows error when start fails', async () => {
+    startInvokeMock.mockRejectedValue(new Error('spawn failed'));
+
+    await act(async () => {
+      render(<OfficeDocPreview filePath='/test/file.docx' />);
+    });
+
+    expect(screen.getByText('spawn failed')).toBeInTheDocument();
+    expect(screen.getByText('preview.word.watch.installHint')).toBeInTheDocument();
+  });
+
+  it('subscribes to status emitter and unsubscribes on unmount', () => {
+    startInvokeMock.mockReturnValue(new Promise(() => {}));
+
+    const { unmount } = render(<OfficeDocPreview filePath='/test/file.docx' />);
+
+    expect(statusOnMock).toHaveBeenCalledTimes(1);
+    expect(statusOnMock).toHaveBeenCalledWith(expect.any(Function));
+
+    unmount();
+
+    expect(statusUnsubMock).toHaveBeenCalledTimes(1);
+  });
+
+  it('calls stop on unmount', () => {
+    startInvokeMock.mockReturnValue(new Promise(() => {}));
+
+    const { unmount } = render(<OfficeDocPreview filePath='/test/file.docx' />);
+
+    unmount();
+
+    expect(stopInvokeMock).toHaveBeenCalledWith({ filePath: '/test/file.docx' });
+  });
+
+  it('shows installing text when status emitter fires installing', () => {
+    startInvokeMock.mockReturnValue(new Promise(() => {}));
+
+    render(<OfficeDocPreview filePath='/test/file.docx' />);
+
+    expect(screen.getByText('preview.word.watch.loading')).toBeInTheDocument();
+
+    const statusHandler = statusOnMock.mock.calls[0][0];
+
+    act(() => {
+      statusHandler({ state: 'installing' });
+    });
+
+    expect(screen.getByText('preview.word.watch.installing')).toBeInTheDocument();
   });
 });

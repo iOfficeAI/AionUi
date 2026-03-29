@@ -33,6 +33,7 @@ import MessageToolGroupSummary from './components/MessageToolGroupSummary';
 import MessageText from './components/MessagetText';
 import type { WriteFileResult } from './types';
 import { useAutoScroll } from './useAutoScroll';
+import { useAutoPreviewOfficeFiles } from '@/renderer/hooks/file/useAutoPreviewOfficeFiles';
 
 type TurnDiffContent = Extract<CodexToolCallUpdate, { subtype: 'turn_diff' }>;
 
@@ -145,6 +146,7 @@ const MessageItem: React.FC<{ message: TMessage; highlighted?: boolean }> = Reac
 const MessageList: React.FC<{ className?: string }> = () => {
   const list = useMessageList();
   const conversationContext = useConversationContextSafe();
+  useAutoPreviewOfficeFiles(conversationContext?.workspace);
   const { t } = useTranslation();
   const location = useLocation();
   const locationState = (location.state || {}) as ConversationLocationState;

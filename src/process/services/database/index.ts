@@ -642,8 +642,17 @@ export class AionUIDatabase {
         )
         .all(finalUserId, pageSize, page * pageSize) as IConversationRow[];
 
+      const data: TChatConversation[] = [];
+      for (const row of rows) {
+        try {
+          data.push(rowToConversation(row));
+        } catch (e) {
+          console.warn('[Database] Skipping conversation row with unknown type:', row.type, row.id);
+        }
+      }
+
       return {
-        data: rows.map(rowToConversation),
+        data,
         total: countResult.count,
         page,
         pageSize,

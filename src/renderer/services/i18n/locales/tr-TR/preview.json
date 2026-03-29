@@ -66,7 +66,13 @@
     "title": "Word Belgesi",
     "loading": "Word belgesi yükleniyor...",
     "invalid": "Lütfen dosyanın geçerli bir Word belgesi olduğunu onaylayın",
-    "loadFailed": "Word belgesi yüklenemedi"
+    "loadFailed": "Word belgesi yüklenemedi",
+    "watch": {
+      "loading": "Word belgesi yükleniyor...",
+      "installing": "officecli yükleniyor...",
+      "startFailed": "Word önizlemesi başlatılamadı",
+      "installHint": "officecli gereklidir. Otomatik olarak yüklenecektir."
+    }
   },
   "excel": {
     "title": "Excel Tablosu",
@@ -77,7 +83,13 @@
     "convertFailed": "Excel dönüştürme başarısız",
     "loadFailed": "Excel çalışma kitabı yüklenemedi",
     "emptySheet": "Bu çalışma sayfasında veri yok",
-    "emptySheetHint": "Sayfanın veri veya resim içerip içermediğini kontrol edin"
+    "emptySheetHint": "Sayfanın veri veya resim içerip içermediğini kontrol edin",
+    "watch": {
+      "loading": "Excel dosyası yükleniyor...",
+      "installing": "officecli yükleniyor...",
+      "startFailed": "Excel önizlemesi başlatılamadı",
+      "installHint": "officecli gereklidir. Otomatik olarak yüklenecektir."
+    }
   },
   "pdf": {
     "title": "PDF Belgesi",

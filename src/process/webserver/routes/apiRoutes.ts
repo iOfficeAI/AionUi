@@ -16,6 +16,7 @@ import { TokenMiddleware } from '@process/webserver/auth/middleware/TokenMiddlew
 import { ExtensionRegistry } from '@process/extensions';
 import { SpeechToTextService } from '@process/bridge/services/SpeechToTextService';
 import { isActivePreviewPort } from '@process/bridge/pptPreviewBridge';
+import { isActiveOfficeWatchPort } from '@process/bridge/officeWatchBridge';
 import { AIONUI_TIMESTAMP_SEPARATOR } from '@/common/config/constants';
 import directoryApi from '../directoryApi';
 import { apiRateLimiter } from '../middleware/security';
@@ -482,90 +483,91 @@ export function registerApiRoutes(app: Express): void {
   });
 
   /**
-   * PPT 预览反向代理 - PPT Preview Reverse Proxy
-   * GET /api/ppt-proxy/:port/*
+   * Shared reverse proxy handler for officecli watch servers.
    *
-   * Proxies requests to the officecli watch server running on localhost:<port>.
-   * Only active PPT preview sessions are allowed (prevents SSRF).
-   * Used by the web renderer to load PPT previews in an iframe.
+   * Guards against SSRF by validating the port against active sessions.
+   * Rewrites Location headers and injects a navigation guard script into HTML
+   * responses so the preview iframe cannot escape the proxy base path.
    */
-  app.use('/api/ppt-proxy/:port', apiRateLimiter, validateApiAccess, (req: Request, res: Response) => {
-    const port = parseInt(req.params.port as string, 10);
-    const isActive = !isNaN(port) && isActivePreviewPort(port);
-    if (!isActive) {
-      res.status(404).json({ message: 'PPT preview session not found' });
-      return;
-    }
-
-    const subPath = req.path || '/';
-    const queryIndex = req.url.indexOf('?');
-    const query = queryIndex !== -1 ? req.url.slice(queryIndex) : '';
-
-    // Strip hop-by-hop headers and auth before forwarding to local officecli server
-    const hopByHop = new Set([
-      'connection',
-      'keep-alive',
-      'proxy-authenticate',
-      'proxy-authorization',
-      'te',
-      'trailer',
-      'transfer-encoding',
-      'upgrade',
-      'cookie',
-      'authorization',
-    ]);
-    const proxyHeaders: Record<string, string | string[]> = { host: `127.0.0.1:${port}` };
-    for (const [key, value] of Object.entries(req.headers)) {
-      if (!hopByHop.has(key.toLowerCase()) && value !== undefined) {
-        proxyHeaders[key] = value as string | string[];
+  function registerOfficecliWatchProxy(
+    routePath: string,
+    portValidator: (port: number) => boolean,
+    sessionLabel: string
+  ): void {
+    app.use(routePath + '/:port', apiRateLimiter, validateApiAccess, (req: Request, res: Response) => {
+      const port = parseInt(req.params.port as string, 10);
+      if (isNaN(port) || !portValidator(port)) {
+        res.status(404).json({ message: `${sessionLabel} session not found` });
+        return;
       }
-    }
 
-    const PROXY_TIMEOUT_MS = 30_000;
+      const subPath = req.path || '/';
+      const queryIndex = req.url.indexOf('?');
+      const query = queryIndex !== -1 ? req.url.slice(queryIndex) : '';
 
-    const options: http.RequestOptions = {
-      hostname: '127.0.0.1',
-      port,
-      path: subPath + query,
-      method: req.method,
-      headers: proxyHeaders,
-      timeout: PROXY_TIMEOUT_MS,
-    };
-
-    const proxyReq = http.request(options, (proxyRes) => {
-      const statusCode = proxyRes.statusCode ?? 200;
-
-      // Rewrite Location headers so the browser follows redirects through the proxy
-      // instead of hitting http://localhost:PORT directly (which the browser can't reach).
-      const responseHeaders: Record<string, string | string[]> = {};
-      for (const [key, value] of Object.entries(proxyRes.headers)) {
-        if (key.toLowerCase() === 'location' && typeof value === 'string') {
-          // Rewrite absolute localhost URLs
-          let rewritten = value.replace(
-            new RegExp(`^https?://(?:localhost|127\\.0\\.0\\.1):${port}`),
-            `/api/ppt-proxy/${port}`
-          );
-          // Also rewrite root-relative paths (e.g. Location: /) through the proxy
-          if (rewritten === '/' || (rewritten.startsWith('/') && !rewritten.startsWith('/api/ppt-proxy/'))) {
-            rewritten = `/api/ppt-proxy/${port}${rewritten === '/' ? '/' : rewritten}`;
-          }
-          responseHeaders[key] = rewritten;
-        } else if (value !== undefined) {
-          responseHeaders[key] = value as string | string[];
+      // Strip hop-by-hop headers and auth before forwarding to local officecli server
+      const hopByHop = new Set([
+        'connection',
+        'keep-alive',
+        'proxy-authenticate',
+        'proxy-authorization',
+        'te',
+        'trailer',
+        'transfer-encoding',
+        'upgrade',
+        'cookie',
+        'authorization',
+      ]);
+      const proxyHeaders: Record<string, string | string[]> = { host: `127.0.0.1:${port}` };
+      for (const [key, value] of Object.entries(req.headers)) {
+        if (!hopByHop.has(key.toLowerCase()) && value !== undefined) {
+          proxyHeaders[key] = value as string | string[];
         }
       }
-      // Override global X-Frame-Options: deny so the proxy URL can be loaded inside an iframe.
-      // The injected guard script prevents the iframe from navigating outside the proxy base path.
-      // cspell:ignore SAMEORIGIN
-      responseHeaders['x-frame-options'] = 'SAMEORIGIN';
 
-      // For HTML responses, buffer and inject a navigation guard script so that
-      // the preview page JS cannot navigate the iframe to the root app URL.
-      const contentType = String(responseHeaders['content-type'] ?? '');
-      if (contentType.includes('text/html')) {
-        const proxyBase = `/api/ppt-proxy/${port}`;
-        // Injected as the first script in <head> so it runs before any page scripts.
-        const guardScript = `<script>
+      const proxyReq = http.request(
+        {
+          hostname: '127.0.0.1',
+          port,
+          path: subPath + query,
+          method: req.method,
+          headers: proxyHeaders,
+          timeout: 30_000,
+        },
+        (proxyRes) => {
+          const statusCode = proxyRes.statusCode ?? 200;
+
+          // Rewrite Location headers so the browser follows redirects through the proxy
+          // instead of hitting http://localhost:PORT directly (which the browser can't reach).
+          const responseHeaders: Record<string, string | string[]> = {};
+          for (const [key, value] of Object.entries(proxyRes.headers)) {
+            if (key.toLowerCase() === 'location' && typeof value === 'string') {
+              // Rewrite absolute localhost URLs
+              let rewritten = value.replace(
+                new RegExp(`^https?://(?:localhost|127\\.0\\.0\\.1):${port}`),
+                `${routePath}/${port}`
+              );
+              // Also rewrite root-relative paths (e.g. Location: /) through the proxy
+              if (rewritten === '/' || (rewritten.startsWith('/') && !rewritten.startsWith(routePath))) {
+                rewritten = `${routePath}/${port}${rewritten === '/' ? '/' : rewritten}`;
+              }
+              responseHeaders[key] = rewritten;
+            } else if (value !== undefined) {
+              responseHeaders[key] = value as string | string[];
+            }
+          }
+          // Override global X-Frame-Options: deny so the proxy URL can be loaded inside an iframe.
+          // The injected guard script prevents the iframe from navigating outside the proxy base path.
+          // cspell:ignore SAMEORIGIN
+          responseHeaders['x-frame-options'] = 'SAMEORIGIN';
+
+          // For HTML responses, buffer and inject a navigation guard script so that
+          // the preview page JS cannot navigate the iframe to the root app URL.
+          const contentType = String(responseHeaders['content-type'] ?? '');
+          if (contentType.includes('text/html')) {
+            const proxyBase = `${routePath}/${port}`;
+            // Injected as the first script in <head> so it runs before any page scripts.
+            const guardScript = `<script>
 (function(b){
   function rw(u){if(!u)return u;var s=String(u);var m=/^https?:\\/\\/(?:localhost|127\\.0\\.0\\.1)(:\\d+)?(\\/.*)?$/.exec(s);if(m){var p=m[2]||'/';if(!p.startsWith(b))return b+(p==='/'?'/':p);}if(s==='/'||(s[0]==='/'&&s[1]!=='/'&&!s.startsWith(b)))return b+(s==='/'?'/':s);return s;}
   var _a=location.assign.bind(location),_r=location.replace.bind(location);
@@ -577,48 +579,60 @@ export function registerApiRoutes(app: Express): void {
 })('${proxyBase}');
 </script>`;
 
-        const chunks: Buffer[] = [];
-        proxyRes.on('data', (chunk: Buffer) => chunks.push(chunk));
-        proxyRes.on('end', () => {
-          let html = Buffer.concat(chunks).toString('utf8');
-          // Inject right after opening <head> tag so the guard runs first
-          if (/<head[^>]*>/i.test(html)) {
-            html = html.replace(/(<head[^>]*>)/i, `$1${guardScript}`);
+            const chunks: Buffer[] = [];
+            proxyRes.on('data', (chunk: Buffer) => chunks.push(chunk));
+            proxyRes.on('end', () => {
+              let html = Buffer.concat(chunks).toString('utf8');
+              // Inject right after opening <head> tag so the guard runs first
+              if (/<head[^>]*>/i.test(html)) {
+                html = html.replace(/(<head[^>]*>)/i, `$1${guardScript}`);
+              } else {
+                html = guardScript + html;
+              }
+              delete responseHeaders['content-length']; // length changed after injection
+              res.removeHeader('X-Frame-Options');
+              res.writeHead(statusCode, responseHeaders);
+              res.end(html);
+            });
+            proxyRes.on('error', () => {
+              if (!res.headersSent) res.status(502).end();
+            });
           } else {
-            html = guardScript + html;
+            res.removeHeader('X-Frame-Options');
+            res.writeHead(statusCode, responseHeaders);
+            proxyRes.on('error', () => {
+              // headers already sent via writeHead — can't change status, just destroy
+              res.destroy();
+            });
+            proxyRes.pipe(res, { end: true });
           }
-          delete responseHeaders['content-length']; // length changed after injection
-          res.removeHeader('X-Frame-Options');
-          res.writeHead(statusCode, responseHeaders);
-          res.end(html);
-        });
-        proxyRes.on('error', () => {
-          if (!res.headersSent) res.status(502).end();
-        });
-      } else {
-        res.removeHeader('X-Frame-Options');
-        res.writeHead(statusCode, responseHeaders);
-        proxyRes.on('error', () => {
-          // headers already sent via writeHead — can't change status, just destroy
-          res.destroy();
-        });
-        proxyRes.pipe(res, { end: true });
-      }
-    });
+        }
+      );
 
-    proxyReq.on('timeout', () => {
-      proxyReq.destroy();
-      if (!res.headersSent) res.status(504).json({ message: 'PPT preview proxy timeout' });
-    });
+      proxyReq.on('timeout', () => {
+        proxyReq.destroy();
+        if (!res.headersSent) res.status(504).json({ message: `${sessionLabel} proxy timeout` });
+      });
 
-    proxyReq.on('error', () => {
-      if (!res.headersSent) {
-        res.status(502).json({ message: 'PPT preview proxy error' });
-      }
-    });
+      proxyReq.on('error', () => {
+        if (!res.headersSent) res.status(502).json({ message: `${sessionLabel} proxy error` });
+      });
 
-    req.pipe(proxyReq, { end: true });
-  });
+      req.pipe(proxyReq, { end: true });
+    });
+  }
+
+  /**
+   * PPT 预览反向代理 - PPT Preview Reverse Proxy
+   * GET /api/ppt-proxy/:port/*
+   */
+  registerOfficecliWatchProxy('/api/ppt-proxy', isActivePreviewPort, 'PPT preview');
+
+  /**
+   * Office Watch 预览反向代理 (Word & Excel) - Office Watch Preview Reverse Proxy
+   * GET /api/office-watch-proxy/:port/*
+   */
+  registerOfficecliWatchProxy('/api/office-watch-proxy', isActiveOfficeWatchPort, 'Office watch preview');
 
   /**
    * WeChat QR-code login (WebUI mode)

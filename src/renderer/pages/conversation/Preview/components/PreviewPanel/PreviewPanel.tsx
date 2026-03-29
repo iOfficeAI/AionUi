@@ -629,7 +629,7 @@ const PreviewPanel: React.FC = () => {
     } else if (contentType === 'ppt') {
       return <PptViewer filePath={metadata?.filePath} content={content} />;
     } else if (contentType === 'word') {
-      return <OfficeDocPreview filePath={metadata?.filePath} content={content} docType='word' />;
+      return <OfficeDocPreview filePath={metadata?.filePath} content={content} />;
     } else if (contentType === 'excel') {
       return <ExcelPreview filePath={metadata?.filePath} content={content} />;
     } else if (contentType === 'image') {
