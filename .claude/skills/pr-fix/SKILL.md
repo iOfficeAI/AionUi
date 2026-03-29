@@ -85,6 +85,12 @@ If the 汇总 table is empty, abort with:
 
 **LOW issues:** Skip — do not fix.
 
+After filtering out LOW issues, if no CRITICAL / HIGH / MEDIUM issues remain, abort with:
+
+> All issues are LOW severity — nothing actionable to fix. (pr-fix only addresses CRITICAL, HIGH, and MEDIUM issues)
+
+This guard prevents running the full workflow (checkout, quality gate, commit) with no changes to make.
+
 ---
 
 ### Step 2 — Pre-flight Checks
@@ -314,7 +320,7 @@ After posting, output the same verification table in the conversation for immedi
 ## Mandatory Rules
 
 - **No AI signature** — no `Co-Authored-By`, `Generated with`, or any AI byline
-- **Always reference original PR** — every commit and PR body must include `Follow-up to #<PR_NUMBER>`
+- **Always reference original PR** — every commit and PR body must include `Review follow-up for #<PR_NUMBER>`
 - **No issue creation** — this skill skips the issue-association step in pr skill
 - **Fix, don't workaround** — no `// @ts-ignore`, no lint suppression; address the root cause
 

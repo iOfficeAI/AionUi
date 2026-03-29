@@ -408,13 +408,16 @@ gh pr comment <PR_NUMBER> --body "<!-- pr-review-bot -->
 
 **Automation mode only — after posting the comment, output the machine-readable result block:**
 
-Map the review conclusion to CONCLUSION value:
+Map the review conclusion to CONCLUSION value based on the **highest severity issue found**:
 
-| Review 结论   | CONCLUSION  |
-| ------------- | ----------- |
-| ✅ 批准合并   | APPROVED    |
-| ⚠️ 有条件批准 | CONDITIONAL |
-| ❌ 需要修改   | REJECTED    |
+| Highest issue severity | Review 结论      | CONCLUSION  |
+| ---------------------- | ---------------- | ----------- |
+| None / LOW only        | ✅ 批准合并      | APPROVED    |
+| MEDIUM                 | ⚠️ 有条件批准   | CONDITIONAL |
+| HIGH                   | ⚠️ 有条件批准   | CONDITIONAL |
+| CRITICAL               | ❌ 需要修改      | REJECTED    |
+
+**Key rule:** If all issues are LOW (or there are no issues), emit `APPROVED` even when the human-facing verdict says "有条件批准". `pr-fix` explicitly skips LOW issues, so triggering a fix session for LOW-only reviews wastes a round with no actionable outcome.
 
 Determine `IS_CRITICAL_PATH` using the same `CRITICAL_PATH_PATTERN` as pr-automation (currently empty — always `false`).
 When a pattern is defined, check:
