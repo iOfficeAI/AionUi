@@ -114,6 +114,13 @@ jobs:
         with:
           bun-version: latest
 
+      - name: Disable Windows Defender (Windows only)
+        if: matrix.os == 'windows-2022'
+        shell: pwsh
+        run: |
+          Set-MpPreference -DisableRealtimeMonitoring $true
+          Add-MpPreference -ExclusionPath "${{ github.workspace }}"
+
       - name: Install dependencies
         run: bun install --no-frozen-lockfile
 
