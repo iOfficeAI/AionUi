@@ -45,6 +45,55 @@
   color: var(--text-primary) !important;
 }
 
+.speech-input-button {
+  width: 28px;
+  min-width: 28px;
+  height: 28px;
+  padding: 0 !important;
+  border-color: var(--color-border-2) !important;
+  background: var(--color-fill-2) !important;
+  color: var(--text-secondary) !important;
+}
+
+.speech-input-button:hover,
+.speech-input-button:active,
+.speech-input-button:focus,
+.speech-input-button:focus-visible {
+  border-color: rgb(var(--primary-4)) !important;
+  color: var(--text-primary) !important;
+}
+
+.speech-input-button--listening,
+.speech-input-button--listening:hover,
+.speech-input-button--listening:active,
+.speech-input-button--listening:focus,
+.speech-input-button--listening:focus-visible {
+  border-color: rgb(var(--danger-3)) !important;
+  background: rgb(var(--danger-1)) !important;
+  color: rgb(var(--danger-6)) !important;
+  animation: speech-input-pulse 1.2s ease-in-out infinite;
+}
+
+.speech-input-button--processing,
+.speech-input-button--processing:hover,
+.speech-input-button--processing:active,
+.speech-input-button--processing:focus,
+.speech-input-button--processing:focus-visible {
+  border-color: rgb(var(--warning-3)) !important;
+  background: rgb(var(--warning-1)) !important;
+  color: rgb(var(--warning-6)) !important;
+}
+
+@keyframes speech-input-pulse {
+  0%,
+  100% {
+    box-shadow: 0 0 0 0 rgba(var(--danger-6), 0.08);
+  }
+  50% {
+    box-shadow: 0 0 0 4px rgba(var(--danger-6), 0.16);
+  }
+}
+
 /* Mobile: allow horizontal scrolling for sendbox tools (model/permission pills) */
 @media (max-width: 767px) {
   .sendbox-tools-scroll-mobile {

@@ -5,6 +5,7 @@
  */
 
 import type { AcpBackend, AcpBackendAll, AcpBackendConfig } from '@/common/types/acpTypes';
+import type { SpeechToTextConfig } from '@/common/types/speech';
 import { storage } from '@office-ai/platform';
 
 /**
@@ -80,6 +81,7 @@ export interface IConfigStorageRefer {
     /** @deprecated Image generation is now controlled via built-in MCP server toggle */
     switch?: boolean;
   };
+  'tools.speechToText'?: SpeechToTextConfig;
   // 是否在粘贴文件到工作区时询问确认（true = 不再询问）
   'workspace.pasteConfirm'?: boolean;
   // guid 页面上次选择的 agent 类型 / Last selected agent type on guid page

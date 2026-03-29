@@ -44,6 +44,7 @@ type GuidActionRowProps = {
   // Send button
   loading: boolean;
   isButtonDisabled: boolean;
+  speechInputNode?: React.ReactNode;
   onSend: () => void;
 };
 
@@ -63,6 +64,7 @@ const GuidActionRow: React.FC<GuidActionRowProps> = ({
   onClosePresetTag,
   loading,
   isButtonDisabled,
+  speechInputNode,
   onSend,
 }) => {
   const { t } = useTranslation();
@@ -242,6 +244,7 @@ const GuidActionRow: React.FC<GuidActionRowProps> = ({
         )}
       </div>
       <div className={styles.actionSubmit}>
+        {speechInputNode}
         <Button
           shape='circle'
           type='primary'

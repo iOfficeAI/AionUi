@@ -202,7 +202,25 @@
     "confirmationLoadError": "確認ダイアログの読み込みに失敗しました",
     "tryAnotherAgent": "別のエージェントを試す：",
     "switchedToAgent": "{{agent}}に切り替えました",
-    "switchAgentFailed": "エージェントの切り替えに失敗しました"
+    "switchAgentFailed": "エージェントの切り替えに失敗しました",
+    "speech": {
+      "recordTooltip": "音声入力を開始",
+      "pickFileTooltip": "音声ファイルを選択",
+      "stopTooltip": "録音を停止",
+      "processing": "音声を文字起こし中...",
+      "unsupported": "この環境では音声入力を利用できません",
+      "startShort": "音声",
+      "stopShort": "停止",
+      "transcribingShort": "...",
+      "audioCaptureError": "利用可能なマイクが見つかりません",
+      "fileTooLarge": "音声ファイルが大きすぎます",
+      "networkError": "音声の文字起こし中にネットワークエラーが発生しました",
+      "notConfigured": "音声文字起こしがまだ設定されていません",
+      "permissionDenied": "マイク権限が拒否されました",
+      "recordingUnsupported": "この環境では直接録音できません。音声ファイルをアップロードしてください",
+      "transcriptionFailed": "音声の文字起こしに失敗しました",
+      "genericError": "音声入力に失敗しました。もう一度お試しください"
+    }
   },
   "sideQuestion": {
     "title": "ちょっと質問",

@@ -8,6 +8,8 @@ import { resolveLocaleKey } from '@/common/utils';
 import { useInputFocusRing } from '@/renderer/hooks/chat/useInputFocusRing';
 import { openExternalUrl } from '@/renderer/utils/platform';
 import { useConversationTabs } from '@/renderer/pages/conversation/hooks/ConversationTabsContext';
+import SpeechInputButton from '@/renderer/components/chat/SpeechInputButton';
+import { appendSpeechTranscript } from '@/renderer/hooks/system/useSpeechInput';
 import AgentPillBar from './components/AgentPillBar';
 import AssistantSelectionArea from './components/AssistantSelectionArea';
 import { AgentPillBarSkeleton, AssistantsSkeleton } from './components/GuidSkeleton';
@@ -237,6 +239,13 @@ const GuidPage: React.FC = () => {
     ]
   );
 
+  const handleSpeechTranscript = useCallback(
+    (transcript: string) => {
+      guidInput.setInput((current) => appendSpeechTranscript(current, transcript));
+    },
+    [guidInput.setInput]
+  );
+
   // Typewriter placeholder
   const typewriterPlaceholder = useTypewriterPlaceholder(t('conversation.welcome.placeholder'));
 
@@ -289,6 +298,13 @@ const GuidPage: React.FC = () => {
       onClosePresetTag={() => agentSelection.setSelectedAgentKey('gemini')}
       loading={guidInput.loading}
       isButtonDisabled={send.isButtonDisabled}
+      speechInputNode={
+        <SpeechInputButton
+          disabled={guidInput.loading}
+          locale={i18n.language || 'en-US'}
+          onTranscript={handleSpeechTranscript}
+        />
+      }
       onSend={() => {
         send.handleSend().catch((error) => {
           console.error('Failed to send message:', error);

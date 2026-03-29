@@ -202,7 +202,25 @@
     "confirmationLoadError": "確認對話框載入失敗",
     "tryAnotherAgent": "嘗試其他 Agent：",
     "switchedToAgent": "已切換到 {{agent}}",
-    "switchAgentFailed": "切換 Agent 失敗"
+    "switchAgentFailed": "切換 Agent 失敗",
+    "speech": {
+      "recordTooltip": "開始語音輸入",
+      "pickFileTooltip": "選擇音訊檔案",
+      "stopTooltip": "停止錄音",
+      "processing": "正在轉寫音訊...",
+      "unsupported": "目前環境不支援語音輸入",
+      "startShort": "語音",
+      "stopShort": "停止",
+      "transcribingShort": "...",
+      "audioCaptureError": "未偵測到可用麥克風",
+      "fileTooLarge": "音訊檔案過大",
+      "networkError": "音訊轉寫時發生網路錯誤",
+      "notConfigured": "語音轉文字尚未設定",
+      "permissionDenied": "麥克風權限被拒絕",
+      "recordingUnsupported": "目前環境不支援直接錄音，請改為上傳音訊檔案",
+      "transcriptionFailed": "音訊轉寫失敗",
+      "genericError": "語音輸入失敗，請再試一次"
+    }
   },
   "sideQuestion": {
     "title": "順便問一下",

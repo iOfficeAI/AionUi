@@ -197,7 +197,25 @@
     "confirmationLoadError": "Onay penceresi yüklenemedi",
     "tryAnotherAgent": "Try another agent:",
     "switchedToAgent": "Switched to {{agent}}",
-    "switchAgentFailed": "Failed to switch agent"
+    "switchAgentFailed": "Ajan değiştirilemedi",
+    "speech": {
+      "recordTooltip": "Sesli girişi başlat",
+      "pickFileTooltip": "Ses dosyası seç",
+      "stopTooltip": "Kaydı durdur",
+      "processing": "Ses yazıya dönüştürülüyor...",
+      "unsupported": "Bu ortamda sesli giriş kullanılamıyor",
+      "startShort": "Ses",
+      "stopShort": "Dur",
+      "transcribingShort": "...",
+      "audioCaptureError": "Kullanılabilir mikrofon bulunamadı",
+      "fileTooLarge": "Ses dosyası çok büyük",
+      "networkError": "Ses dönüştürme sırasında ağ hatası oluştu",
+      "notConfigured": "Konuşmadan yazıya dönüştürme henüz yapılandırılmadı",
+      "permissionDenied": "Mikrofon izni reddedildi",
+      "recordingUnsupported": "Bu ortamda doğrudan kayıt desteklenmiyor. Lütfen bir ses dosyası yükleyin",
+      "transcriptionFailed": "Ses yazıya dönüştürülemedi",
+      "genericError": "Sesli giriş başarısız oldu. Lütfen tekrar deneyin"
+    }
   },
   "sideQuestion": {
     "title": "Kısa Soru",

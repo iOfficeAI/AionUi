@@ -85,6 +85,7 @@ vi.mock('@arco-design/web-react', () => ({
     useMessage: () => [{ warning: vi.fn() }, null],
   },
   Tag: ({ children }: { children: React.ReactNode }) => React.createElement('div', {}, children),
+  Tooltip: ({ children }: { children: React.ReactNode }) => React.createElement(React.Fragment, {}, children),
 }));
 
 vi.mock('@icon-park/react', () => ({
@@ -95,6 +96,9 @@ vi.mock('@icon-park/react', () => ({
 vi.mock('react-i18next', () => ({
   useTranslation: () => ({
     t: (key: string) => key,
+    i18n: {
+      language: 'en-US',
+    },
   }),
 }));
 
@@ -120,6 +124,11 @@ vi.mock('@/renderer/hooks/chat/useSlashCommandController', () => ({
     onSelectByIndex: vi.fn(),
     onKeyDown: vi.fn(),
   }),
+}));
+
+vi.mock('@/renderer/components/chat/SpeechInputButton', () => ({
+  __esModule: true,
+  default: () => React.createElement('div', {}, 'SpeechInputButton'),
 }));
 
 vi.mock('@/renderer/utils/ui/focus', () => ({

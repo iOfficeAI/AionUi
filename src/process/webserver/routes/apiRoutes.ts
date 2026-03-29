@@ -14,6 +14,7 @@ import { getDatabase } from '@process/services/database';
 import { getSystemDir } from '@process/utils/initStorage';
 import { TokenMiddleware } from '@process/webserver/auth/middleware/TokenMiddleware';
 import { ExtensionRegistry } from '@process/extensions';
+import { SpeechToTextService } from '@process/bridge/services/SpeechToTextService';
 import { isActivePreviewPort } from '@process/bridge/pptPreviewBridge';
 import { AIONUI_TIMESTAMP_SEPARATOR } from '@/common/config/constants';
 import directoryApi from '../directoryApi';
@@ -374,6 +375,61 @@ export function registerApiRoutes(app: Express): void {
         res.status(500).json({
           success: false,
           msg: error instanceof Error ? error.message : 'Failed to upload file',
+        });
+      }
+    }
+  );
+
+  app.post(
+    '/api/stt',
+    apiRateLimiter,
+    validateApiAccess,
+    (req: Request, res: Response, next: NextFunction) => {
+      upload.single('audio')(req, res, (err: unknown) => {
+        if (err && typeof err === 'object' && 'code' in err && (err as { code: string }).code === 'LIMIT_FILE_SIZE') {
+          res.status(413).json({
+            success: false,
+            msg: `File too large (max ${MAX_UPLOAD_SIZE / 1024 / 1024}MB)`,
+          });
+          return;
+        }
+        if (err) {
+          next(err);
+          return;
+        }
+        next();
+      });
+    },
+    async (req: Request, res: Response) => {
+      try {
+        const audio = req.file;
+        const languageHint = typeof req.body.languageHint === 'string' ? req.body.languageHint : undefined;
+        const mimeType =
+          typeof req.body.mimeType === 'string' && req.body.mimeType.trim().length > 0
+            ? req.body.mimeType
+            : audio?.mimetype || 'application/octet-stream';
+
+        if (!audio) {
+          res.status(400).json({ success: false, msg: 'Missing audio file' });
+          return;
+        }
+
+        const result = await SpeechToTextService.transcribe({
+          audioBuffer: Uint8Array.from(audio.buffer),
+          fileName: sanitizeFileName(audio.originalname || `speech-${Date.now()}.webm`),
+          languageHint,
+          mimeType,
+        });
+
+        res.json({
+          success: true,
+          data: result,
+        });
+      } catch (error) {
+        console.error('[API] Speech-to-text error:', error);
+        res.status(500).json({
+          success: false,
+          msg: error instanceof Error ? error.message : 'Speech-to-text failed',
         });
       }
     }

@@ -202,7 +202,25 @@
     "confirmationLoadError": "확인 대화 상자 로드 실패",
     "tryAnotherAgent": "다른 에이전트 시도:",
     "switchedToAgent": "{{agent}}(으)로 전환되었습니다",
-    "switchAgentFailed": "에이전트 전환 실패"
+    "switchAgentFailed": "에이전트 전환 실패",
+    "speech": {
+      "recordTooltip": "음성 입력 시작",
+      "pickFileTooltip": "오디오 파일 선택",
+      "stopTooltip": "녹음 중지",
+      "processing": "오디오를 전사하는 중...",
+      "unsupported": "현재 환경에서는 음성 입력을 사용할 수 없습니다",
+      "startShort": "음성",
+      "stopShort": "중지",
+      "transcribingShort": "...",
+      "audioCaptureError": "사용 가능한 마이크를 찾지 못했습니다",
+      "fileTooLarge": "오디오 파일이 너무 큽니다",
+      "networkError": "오디오 전사 중 네트워크 오류가 발생했습니다",
+      "notConfigured": "음성 전사 설정이 아직 완료되지 않았습니다",
+      "permissionDenied": "마이크 권한이 거부되었습니다",
+      "recordingUnsupported": "현재 환경에서는 직접 녹음할 수 없습니다. 오디오 파일을 업로드해 주세요",
+      "transcriptionFailed": "오디오 전사에 실패했습니다",
+      "genericError": "음성 입력에 실패했습니다. 다시 시도해 주세요"
+    }
   },
   "sideQuestion": {
     "title": "잠깐 질문",

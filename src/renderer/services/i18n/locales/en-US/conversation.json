@@ -202,7 +202,25 @@
     "confirmationLoadError": "Failed to load confirmation dialog",
     "tryAnotherAgent": "Try another agent:",
     "switchedToAgent": "Switched to {{agent}}",
-    "switchAgentFailed": "Failed to switch agent"
+    "switchAgentFailed": "Failed to switch agent",
+    "speech": {
+      "recordTooltip": "Start voice input",
+      "pickFileTooltip": "Select an audio file",
+      "stopTooltip": "Stop recording",
+      "processing": "Transcribing audio...",
+      "unsupported": "Voice input is not available in this environment",
+      "startShort": "Mic",
+      "stopShort": "Stop",
+      "transcribingShort": "...",
+      "audioCaptureError": "No microphone was detected",
+      "fileTooLarge": "Audio file is too large",
+      "networkError": "Network error while transcribing audio",
+      "notConfigured": "Speech-to-text is not configured yet",
+      "permissionDenied": "Microphone permission was denied",
+      "recordingUnsupported": "Live recording is not supported here. Please upload an audio file instead",
+      "transcriptionFailed": "Audio transcription failed",
+      "genericError": "Voice input failed. Please try again"
+    }
   },
   "sideQuestion": {
     "title": "Side Question",

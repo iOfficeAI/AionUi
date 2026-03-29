@@ -202,7 +202,25 @@
     "confirmationLoadError": "确认对话框加载失败",
     "tryAnotherAgent": "尝试其他 Agent：",
     "switchedToAgent": "已切换到 {{agent}}",
-    "switchAgentFailed": "切换 Agent 失败"
+    "switchAgentFailed": "切换 Agent 失败",
+    "speech": {
+      "recordTooltip": "开始语音输入",
+      "pickFileTooltip": "选择音频文件",
+      "stopTooltip": "停止录音",
+      "processing": "正在转写音频...",
+      "unsupported": "当前环境不支持语音输入",
+      "startShort": "语音",
+      "stopShort": "停止",
+      "transcribingShort": "...",
+      "audioCaptureError": "未检测到可用麦克风",
+      "fileTooLarge": "音频文件过大",
+      "networkError": "音频转写时网络异常",
+      "notConfigured": "语音转文字尚未配置",
+      "permissionDenied": "麦克风权限被拒绝",
+      "recordingUnsupported": "当前环境不支持直接录音，请改为上传音频文件",
+      "transcriptionFailed": "音频转写失败",
+      "genericError": "语音输入失败，请重试"
+    }
   },
   "sideQuestion": {
     "title": "顺便问一下",

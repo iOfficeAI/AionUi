@@ -95,6 +95,16 @@ vi.mock('@arco-design/web-react', () => {
     Divider: () => <hr />,
     Form: Object.assign(FormComponent, { Item: FormItem }),
     Tooltip: ({ children }: React.PropsWithChildren) => <>{children}</>,
+    Input: Object.assign(
+      ({ value, onChange }: { value?: string; onChange?: (value: string) => void }) => (
+        <input value={value} onChange={(event) => onChange?.(event.target.value)} />
+      ),
+      {
+        Password: ({ value, onChange }: { value?: string; onChange?: (value: string) => void }) => (
+          <input type='password' value={value} onChange={(event) => onChange?.(event.target.value)} />
+        ),
+      }
+    ),
     Button: ({
       children,
       onClick,
@@ -156,7 +166,7 @@ vi.mock('@/renderer/components/base/AionSelect', () => {
     value,
     onChange,
   }: React.PropsWithChildren<{ value?: string; onChange?: (value: string) => void }>) => (
-    <select aria-label='image-model' onChange={(event) => onChange?.(event.target.value)} value={value}>
+    <select onChange={(event) => onChange?.(event.target.value)} value={value}>
       {children}
     </select>
   );
@@ -306,7 +316,7 @@ describe('ToolsModalContent image generation status refresh', () => {
   it('refreshes image generation agent status only after sync completes when enabling the builtin MCP server', async () => {
     render(<ToolsModalContent />);
 
-    const toggle = await screen.findByRole('switch', { name: 'switch' });
+    const toggle = (await screen.findAllByRole('switch', { name: 'switch' }))[0];
     expect(toggle).not.toBeDisabled();
 
     fireEvent.click(toggle);
@@ -330,5 +340,53 @@ describe('ToolsModalContent image generation status refresh', () => {
       expect(testState.mockCheckSingleServerInstallStatus).toHaveBeenCalledOnce();
     });
     expect(testState.mockCheckSingleServerInstallStatus).toHaveBeenCalledWith('aionui-image-generation');
+  });
+
+  it('persists speech-to-text provider settings when the user switches provider and updates credentials', async () => {
+    render(<ToolsModalContent />);
+
+    const providerSelect = await screen.findByLabelText(/settings\.speechToTextProvider/);
+    fireEvent.change(providerSelect, { target: { value: 'deepgram' } });
+
+    await waitFor(() => {
+      expect(testState.mockConfigSet).toHaveBeenCalledWith(
+        'tools.speechToText',
+        expect.objectContaining({
+          provider: 'deepgram',
+        })
+      );
+    });
+
+    const apiKeyInput = await screen.findByLabelText(/settings\.speechToTextApiKey/);
+    fireEvent.change(apiKeyInput, { target: { value: 'deepgram-secret' } });
+
+    await waitFor(() => {
+      expect(testState.mockConfigSet).toHaveBeenLastCalledWith(
+        'tools.speechToText',
+        expect.objectContaining({
+          provider: 'deepgram',
+          deepgram: expect.objectContaining({
+            apiKey: 'deepgram-secret',
+          }),
+        })
+      );
+    });
+  });
+
+  it('shows required and optional markers for OpenAI and Deepgram speech-to-text fields', async () => {
+    render(<ToolsModalContent />);
+
+    await screen.findByLabelText(/settings\.speechToTextApiKey/);
+
+    expect(screen.getAllByText(/settings\.speechToTextRequired/)).toHaveLength(1);
+    expect(screen.getAllByText(/settings\.speechToTextOptional/)).toHaveLength(3);
+
+    const providerSelect = screen.getByLabelText(/settings\.speechToTextProvider/);
+    fireEvent.change(providerSelect, { target: { value: 'deepgram' } });
+
+    await screen.findByLabelText(/settings\.speechToTextDetectLanguage/);
+
+    expect(screen.getAllByText(/settings\.speechToTextRequired/)).toHaveLength(1);
+    expect(screen.getAllByText(/settings\.speechToTextOptional/)).toHaveLength(6);
   });
 });
