@@ -37,6 +37,27 @@ describe('toUnifiedIncomingMessage', () => {
     expect(msg.content.text).toBe('Hello world');
   });
 
+  it('appends attachment markers after the text body', () => {
+    const msg = toUnifiedIncomingMessage({
+      ...baseRequest,
+      attachments: [
+        { kind: 'image', name: 'photo', path: '/tmp/photo.png' },
+        { kind: 'file', name: 'report.pdf', path: '/tmp/report.pdf' },
+      ],
+    });
+
+    expect(msg.content.text).toBe('Hello world\n\n[Image: /tmp/photo.png]\n[File "report.pdf": /tmp/report.pdf]');
+  });
+
+  it('uses attachment markers as the whole message when no text is present', () => {
+    const msg = toUnifiedIncomingMessage({
+      conversationId: 'user_abc123',
+      attachments: [{ kind: 'file', name: 'notes.txt', path: '/tmp/notes.txt' }],
+    });
+
+    expect(msg.content.text).toBe('[File "notes.txt": /tmp/notes.txt]');
+  });
+
   it('provides a numeric timestamp', () => {
     const before = Date.now();
     const msg = toUnifiedIncomingMessage(baseRequest);
