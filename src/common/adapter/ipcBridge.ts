@@ -620,6 +620,24 @@ export const pptPreview = {
   ),
 };
 
+// Word preview via officecli watch
+export const wordPreview = {
+  start: bridge.buildProvider<{ url: string }, { filePath: string }>('word-preview.start'),
+  stop: bridge.buildProvider<void, { filePath: string }>('word-preview.stop'),
+  status: bridge.buildEmitter<{ state: 'starting' | 'installing' | 'ready' | 'error'; message?: string }>(
+    'word-preview.status'
+  ),
+};
+
+// Excel preview via officecli watch
+export const excelPreview = {
+  start: bridge.buildProvider<{ url: string }, { filePath: string }>('excel-preview.start'),
+  stop: bridge.buildProvider<void, { filePath: string }>('excel-preview.stop'),
+  status: bridge.buildEmitter<{ state: 'starting' | 'installing' | 'ready' | 'error'; message?: string }>(
+    'excel-preview.status'
+  ),
+};
+
 // Deep link protocol handling / 深度链接协议处理
 export const deepLink = {
   /** Emitted when app is opened via aionui:// protocol URL */

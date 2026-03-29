@@ -66,7 +66,13 @@
     "title": "Word ドキュメント",
     "loading": "Word ドキュメントを読み込み中...",
     "invalid": "有効な Word ドキュメントか確認してください",
-    "loadFailed": "Word ドキュメントの読み込みに失敗しました"
+    "loadFailed": "Word ドキュメントの読み込みに失敗しました",
+    "watch": {
+      "loading": "Word ドキュメントを読み込み中...",
+      "installing": "officecli をインストール中...",
+      "startFailed": "Word プレビューの起動に失敗しました",
+      "installHint": "officecli が必要です。自動的にインストールされます。"
+    }
   },
   "excel": {
     "title": "Excel スプレッドシート",
@@ -77,7 +83,13 @@
     "convertFailed": "Excel の変換に失敗しました",
     "loadFailed": "Excel ファイルの読み込みに失敗しました",
     "emptySheet": "このワークシートにはデータがありません",
-    "emptySheetHint": "ワークシートにデータまたは画像が含まれているか確認してください"
+    "emptySheetHint": "ワークシートにデータまたは画像が含まれているか確認してください",
+    "watch": {
+      "loading": "Excel ファイルを読み込み中...",
+      "installing": "officecli をインストール中...",
+      "startFailed": "Excel プレビューの起動に失敗しました",
+      "installHint": "officecli が必要です。自動的にインストールされます。"
+    }
   },
   "pdf": {
     "title": "PDF ドキュメント",

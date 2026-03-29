@@ -66,7 +66,13 @@
     "title": "Word 문서",
     "loading": "Word 문서 로딩 중...",
     "invalid": "유효한 Word 문서인지 확인하세요",
-    "loadFailed": "Word 문서를 불러오지 못했습니다"
+    "loadFailed": "Word 문서를 불러오지 못했습니다",
+    "watch": {
+      "loading": "Word 문서 로딩 중...",
+      "installing": "officecli 설치 중...",
+      "startFailed": "Word 미리보기 시작 실패",
+      "installHint": "officecli가 필요합니다. 자동으로 설치됩니다."
+    }
   },
   "excel": {
     "title": "Excel 스프레드시트",
@@ -77,7 +83,13 @@
     "convertFailed": "Excel 변환 실패",
     "loadFailed": "Excel 통합 문서를 불러오지 못했습니다",
     "emptySheet": "이 워크시트에는 데이터가 없습니다",
-    "emptySheetHint": "시트에 데이터나 이미지가 포함되어 있는지 확인하세요"
+    "emptySheetHint": "시트에 데이터나 이미지가 포함되어 있는지 확인하세요",
+    "watch": {
+      "loading": "Excel 파일 로딩 중...",
+      "installing": "officecli 설치 중...",
+      "startFailed": "Excel 미리보기 시작 실패",
+      "installHint": "officecli가 필요합니다. 자동으로 설치됩니다."
+    }
   },
   "pdf": {
     "title": "PDF 문서",

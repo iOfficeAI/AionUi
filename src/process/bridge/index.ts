@@ -35,6 +35,7 @@ import { initSystemSettingsBridge } from './systemSettingsBridge';
 import { initWindowControlsBridge } from './windowControlsBridge';
 import { initNotificationBridge } from './notificationBridge';
 import { initPptPreviewBridge } from './pptPreviewBridge';
+import { initOfficeWatchBridge } from './officeWatchBridge';
 import { initExtensionsBridge } from './extensionsBridge';
 import { initWeixinLoginBridge } from './weixinLoginBridge';
 import { initWorkspaceSnapshotBridge } from './workspaceSnapshotBridge';
@@ -68,6 +69,7 @@ export function initAllBridges(deps: BridgeDependencies): void {
   initPreviewHistoryBridge();
   initDocumentBridge();
   initPptPreviewBridge();
+  initOfficeWatchBridge();
   initWindowControlsBridge();
   initUpdateBridge();
   initWebuiBridge();
@@ -115,6 +117,7 @@ export {
   initMcpBridge,
   initModelBridge,
   initNotificationBridge,
+  initOfficeWatchBridge,
   initPptPreviewBridge,
   initPreviewHistoryBridge,
   initShellBridge,
