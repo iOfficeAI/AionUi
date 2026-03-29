@@ -69,7 +69,7 @@ officecli set paper.docx / --prop defaultFont="Times New Roman"
 officecli set paper.docx / --prop title="Paper Title" --prop author="Author Name"
 
 # Set margins (1 inch = 1440 twips on all sides)
-officecli set paper.docx /section[1] --prop marginTop=1440 --prop marginBottom=1440 --prop marginLeft=1440 --prop marginRight=1440
+officecli set paper.docx '/section[1]' --prop marginTop=1440 --prop marginBottom=1440 --prop marginLeft=1440 --prop marginRight=1440
 ```
 
 **Paper-type line spacing:**
@@ -94,6 +94,9 @@ officecli add paper.docx /styles --type style --prop id=Heading3 --prop name="He
 
 # Create custom styles (only if needed per Feature Selection Table)
 officecli add paper.docx /styles --type style --prop id=AbstractTitle --prop name="Abstract Title" --prop basedOn=Normal --prop font="Times New Roman" --prop size=14 --prop bold=true --prop alignment=center
+# AbstractTitle is a separate style (not Heading1) to prevent the abstract from appearing
+# in the TOC. If you use Heading1 for "Abstract", it will be listed in the Table of Contents
+# alongside body sections.
 officecli add paper.docx /styles --type style --prop id=Caption --prop name=Caption --prop basedOn=Normal --prop font="Times New Roman" --prop size=10 --prop italic=true
 
 # Physics/Math only: Theorem, Definition, Proof styles
@@ -122,7 +125,7 @@ p[8] = next content         <-- shifted +1
 
 **Plan all section breaks BEFORE building.** Count them and add their +1 offsets to your paragraph index plan.
 
-**Multi-column abstract** -- section break pair with columns=2, then explicit revert:
+**Multi-column abstract** -- section break pair with columns=2, then explicit revert. For dual-column abstracts, ensure at least 150-200 words so both columns are filled evenly. Short abstracts (< 100 words) will appear only in the left column.
 
 > **WARNING: The final sectPr inherits the last section's properties. Adding a section break does NOT automatically revert columns to 1. You MUST explicitly set `columns=1` on the section after the multi-column zone, or the rest of the document (including body text, references, etc.) will render as 2-column.**
 
@@ -174,6 +177,12 @@ officecli add paper.docx /body --type toc --prop levels=1-3 --prop title="Table 
 
 The TOC is a native Word field. It shows "Update Field" prompt in Word -- right-click and select "Update entire table" to populate. Add the TOC early in the document; it picks up all headings regardless of section breaks.
 
+Add a page break after the TOC to separate it from body content:
+
+```bash
+officecli add paper.docx /body --type pagebreak
+```
+
 ### C.3 Body Sections with Headings
 
 ```bash
@@ -209,6 +218,8 @@ EOF
 ```
 
 **Shell escaping:** bash `--prop` = double backslash (`\\frac`), batch JSON = quadruple (`\\\\frac`), heredoc = double (`\\frac`).
+
+> **WARNING: Inline equations are appended to the end of the target paragraph, not inserted at a specific position within the text.** For best results, structure the paragraph so the equation naturally belongs at the end, or split the sentence into two paragraphs with the equation between them.
 
 > **D-2: `\left`/`\right` + subscript/superscript crashes.** Any `\left[...\right]` or `\left(...\right)` containing subscript or superscript content throws a cast error. Use plain `(`, `)`, `[`, `]` instead -- OMML auto-sizes delimiters in display mode.
 
@@ -421,6 +432,8 @@ The raw XML confirms: no `<w:pBdr>` element is written to the style definition e
 - Batch JSON (no heredoc): quadruple backslash -- `"formula": "\\\\frac{a}{b}"`
 - Heredoc batch (recommended): double backslash -- `"formula": "\\frac{a}{b}"`
 
+For `$` dollar signs in text, see D-10.
+
 ### D-6: Batch JSON Values Must Be Strings
 
 `CORRECT: {"bold":"true","size":"11"}` / `WRONG: {"bold":true,"size":11}` -- non-string values fail with deserialization error.
@@ -436,3 +449,15 @@ May fail with "Failed to send to resident". Keep arrays to 10-15 max, retry on f
 ### D-9: Internal Hyperlinks Not Supported
 
 `hyperlink` only accepts `https://...` URIs. Use REF field + bookmark for internal cross-references (Section E.3).
+
+### D-10: Dollar Sign `$` in Text Content
+
+Bash interprets `$` inside double quotes as variable expansion. `--prop text="costs $2.8 billion"` silently drops `$2` (undefined variable → empty string).
+
+```
+WRONG:  --prop text="costs $2.8 billion"     → "costs .8 billion"
+CORRECT: --prop text='costs $2.8 billion'     → single quotes prevent expansion
+CORRECT: --prop text="costs \$2.8 billion"    → escaped dollar sign
+```
+
+Use single quotes for any text containing `$`. If the text also contains single quotes, use heredoc batch syntax.

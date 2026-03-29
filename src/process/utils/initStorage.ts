@@ -965,12 +965,26 @@ const initStorage = async () => {
           builtin.promptsI18n &&
           JSON.stringify(existing.promptsI18n) !== JSON.stringify(builtin.promptsI18n);
         const needsPromptsI18nUpdate = needsPromptsI18nMigration || promptsI18nMissing || promptsI18nChanged;
+        const nameI18nMissing = !existing.nameI18n && !!builtin.nameI18n;
+        const nameI18nChanged =
+          existing.nameI18n &&
+          builtin.nameI18n &&
+          JSON.stringify(existing.nameI18n) !== JSON.stringify(builtin.nameI18n);
+        const descriptionI18nMissing = !existing.descriptionI18n && !!builtin.descriptionI18n;
+        const descriptionI18nChanged =
+          existing.descriptionI18n &&
+          builtin.descriptionI18n &&
+          JSON.stringify(existing.descriptionI18n) !== JSON.stringify(builtin.descriptionI18n);
         const shouldUpdate =
           existing.name !== builtin.name ||
           existing.description !== builtin.description ||
           existing.avatar !== builtin.avatar ||
           existing.isPreset !== builtin.isPreset ||
           existing.isBuiltin !== builtin.isBuiltin ||
+          nameI18nMissing ||
+          !!nameI18nChanged ||
+          descriptionI18nMissing ||
+          !!descriptionI18nChanged ||
           needsPromptsI18nUpdate;
         // 当 enabled 是 undefined 或需要迁移时，设置默认值（Cowork 启用，其他禁用）
         // When enabled is undefined or migration needed, set default value (Cowork enabled, others disabled)

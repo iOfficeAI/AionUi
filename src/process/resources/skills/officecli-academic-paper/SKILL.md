@@ -145,6 +145,7 @@ Run verification loop: `validate`, `view outline`, `view issues`, `view text`. F
 | pbdr at style level          | `add /styles --prop pbdr.all=...` is silently dropped. `set /styles/X --prop pbdr.all=...` is rejected. Always set borders per-paragraph after creation. |
 | Section break +1 offset      | Each section break inserts one empty paragraph into /body. Account for +1 index offset on all subsequent `p[N]` references.                              |
 | Shell escaping for LaTeX     | Double backslashes in bash: `--prop "formula=\\frac{a}{b}"`. Use heredoc for complex formulas.                                                           |
+| Dollar sign `$` in text      | Bash expands `$` as variable in double quotes. Use single quotes or `\$`. See creating.md D-10.                                                          |
 | Batch JSON values            | ALL values must be strings: `"true"` not `true`, `"24"` not `24`.                                                                                        |
 | Batch intermittent failure   | ~1-in-15 failure rate. Retry on error. Keep arrays to 10-15 max.                                                                                         |
 
