@@ -2,6 +2,10 @@
  * Tests that SystemActions handles 'weixin' platform in all three ternary chains.
  */
 import { describe, it, expect, vi, beforeEach } from 'vitest';
+import fs from 'fs';
+import os from 'os';
+import path from 'path';
+import { GOOGLE_AUTH_PROVIDER_ID } from '@/common/config/constants';
 
 // Mock electron before any imports
 vi.mock('electron', () => ({
@@ -26,6 +30,7 @@ vi.mock('@process/model/providerListStore', () => ({
 
 describe('SystemActions weixin platform handling', () => {
   beforeEach(() => {
+    vi.resetModules();
     vi.clearAllMocks();
     mockGet.mockResolvedValue(undefined);
   });
@@ -50,16 +55,81 @@ describe('SystemActions weixin platform handling', () => {
   });
 
   it('getChannelDefaultModel still reads assistant.telegram.defaultModel for telegram', async () => {
-    vi.resetModules();
     const { getChannelDefaultModel } = await import('@process/channels/actions/SystemActions');
 
     mockGet.mockResolvedValue(undefined);
-    try {
-      await getChannelDefaultModel('telegram');
-    } catch {
-      // fallback throws — fine
-    }
+    await getChannelDefaultModel('telegram');
     expect(mockGet).toHaveBeenCalledWith('assistant.telegram.defaultModel');
     expect(mockGet).not.toHaveBeenCalledWith('assistant.weixin.defaultModel');
+  });
+
+  it('uses local Gemini OAuth credentials when the saved weixin model is Google Auth', async () => {
+    const { getChannelDefaultModel } = await import('@process/channels/actions/SystemActions');
+
+    mockGet.mockImplementation((key: string) => {
+      if (key === 'model.config') return Promise.resolve([]);
+      if (key === 'assistant.weixin.defaultModel') {
+        return Promise.resolve({ id: GOOGLE_AUTH_PROVIDER_ID, useModel: 'gemini-2.5-pro' });
+      }
+      return Promise.resolve(undefined);
+    });
+    vi.spyOn(os, 'homedir').mockReturnValue('/tmp/test-home');
+    vi.spyOn(fs.promises, 'readFile').mockResolvedValue(JSON.stringify({ access_token: 'token' }) as never);
+
+    const result = await getChannelDefaultModel('weixin');
+
+    expect(result.id).toBe(GOOGLE_AUTH_PROVIDER_ID);
+    expect(result.platform).toBe('gemini-with-google-auth');
+    expect(result.useModel).toBe('gemini-2.5-pro');
+    expect(fs.promises.readFile).toHaveBeenCalledWith(
+      path.join('/tmp/test-home', '.gemini', 'oauth_creds.json'),
+      'utf-8'
+    );
+  });
+
+  it('falls back to a Gemini API-key provider when Google Auth is selected but local creds are missing', async () => {
+    const { getChannelDefaultModel } = await import('@process/channels/actions/SystemActions');
+
+    mockGet.mockImplementation((key: string) => {
+      if (key === 'model.config') {
+        return Promise.resolve([
+          {
+            id: 'gemini-api',
+            platform: 'gemini',
+            apiKey: 'sk-test',
+            model: ['gemini-2.0-flash', 'gemini-2.5-pro'],
+          },
+        ]);
+      }
+      if (key === 'assistant.weixin.defaultModel') {
+        return Promise.resolve({ id: GOOGLE_AUTH_PROVIDER_ID, useModel: 'gemini-2.5-pro' });
+      }
+      return Promise.resolve(undefined);
+    });
+    vi.spyOn(os, 'homedir').mockReturnValue('/tmp/test-home');
+    vi.spyOn(fs.promises, 'readFile').mockRejectedValue(new Error('missing creds'));
+
+    const result = await getChannelDefaultModel('weixin');
+
+    expect(result.id).toBe('gemini-api');
+    expect(result.platform).toBe('gemini');
+    expect(result.useModel).toBe('gemini-2.5-pro');
+  });
+
+  it('falls back to Google Auth credentials when no API-key provider exists', async () => {
+    const { getChannelDefaultModel } = await import('@process/channels/actions/SystemActions');
+
+    mockGet.mockImplementation((key: string) => {
+      if (key === 'model.config') return Promise.resolve([]);
+      return Promise.resolve(undefined);
+    });
+    vi.spyOn(os, 'homedir').mockReturnValue('/tmp/test-home');
+    vi.spyOn(fs.promises, 'readFile').mockResolvedValue(JSON.stringify({ refresh_token: 'refresh' }) as never);
+
+    const result = await getChannelDefaultModel('weixin');
+
+    expect(result.id).toBe(GOOGLE_AUTH_PROVIDER_ID);
+    expect(result.platform).toBe('gemini-with-google-auth');
+    expect(result.useModel).toBe('gemini-2.0-flash');
   });
 });

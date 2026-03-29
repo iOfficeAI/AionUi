@@ -265,6 +265,7 @@ class AcpAgentManager extends BaseAgentManager<AcpAgentManagerData, AcpPermissio
           agentName: data.agentName,
           acpSessionId: data.acpSessionId,
           acpSessionUpdatedAt: data.acpSessionUpdatedAt,
+          currentModelId: this.persistedModelId ?? undefined,
         },
         onSessionIdUpdate: (sessionId: string) => {
           // Save ACP session ID to database for resume support

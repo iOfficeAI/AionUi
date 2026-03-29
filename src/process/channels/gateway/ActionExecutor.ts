@@ -224,6 +224,16 @@ function convertTMessageToOutgoing(
       // Check if there are tools that need confirmation
       const confirmingTool = message.content.find((tool) => tool.status === 'Confirming' && tool.confirmationDetails);
       if (confirmingTool && confirmingTool.confirmationDetails) {
+        // WeChat (weixin) uses yoloMode — tool confirmations are auto-approved in the background.
+        // Showing "Continue?" without interactive buttons is confusing, so just show tool progress.
+        if (platform === 'weixin') {
+          return {
+            type: 'text',
+            text: toolLines.join('\n') || '⏳ 正在执行工具...',
+            parseMode: 'HTML',
+          };
+        }
+
         // 根据确认类型生成选项
         // Generate options based on confirmation type
         const options = getConfirmationOptions(confirmingTool.confirmationDetails.type);

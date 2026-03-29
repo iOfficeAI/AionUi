@@ -106,6 +106,8 @@ export interface AcpAgentConfig {
     acpSessionId?: string;
     /** Last update time of ACP session / ACP session 最后更新时间 */
     acpSessionUpdatedAt?: number;
+    /** Initial model ID to apply at session start (from channel config or persisted user choice) */
+    currentModelId?: string;
   };
   onStreamEvent: (data: IResponseMessage) => void;
   onSignalEvent?: (data: IResponseMessage) => void; // 新增：仅发送信号，不更新UI
@@ -132,6 +134,8 @@ export class AcpAgent {
     acpSessionId?: string;
     /** Last update time of ACP session / ACP session 最后更新时间 */
     acpSessionUpdatedAt?: number;
+    /** Initial model ID to apply at session start (from channel config or persisted user choice) */
+    currentModelId?: string;
   };
   private connection: AcpConnection;
   private adapter: AcpAdapter;
@@ -372,6 +376,16 @@ export class AcpAgent {
               );
             }
           }
+        }
+      } else if (this.extra.currentModelId) {
+        // For non-claude backends (e.g. gemini-cli), apply the model configured in
+        // channel settings or persisted from a prior user model switch.
+        try {
+          await this.connection.setModel(this.extra.currentModelId);
+        } catch (error) {
+          console.warn(
+            `[ACP] Failed to set model "${this.extra.currentModelId}": ${error instanceof Error ? error.message : String(error)}`
+          );
         }
       }
 
