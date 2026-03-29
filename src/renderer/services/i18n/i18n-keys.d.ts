@@ -55,6 +55,7 @@ export type I18nKey =
   | 'agentMode.switchMode'
   | 'agentMode.switchSuccess'
   | 'agentMode.yolo'
+  | 'agentMode.yoloNoSandbox'
   | 'codex.config.export_success'
   | 'codex.config.import_failed'
   | 'codex.config.import_success'

@@ -4,6 +4,7 @@
   "acceptEdits": "Accept Edits",
   "autoEdit": "Auto Edit",
   "yolo": "YOLO",
+  "yoloNoSandbox": "Full Auto (No Sandbox)",
   "bypass": "Bypass (YOLO)",
   "bypassPermissions": "YOLO",
   "smart": "Smart",

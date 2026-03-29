@@ -4,6 +4,12 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
+import {
+  CODEX_MODE_AUTO_EDIT,
+  CODEX_MODE_FULL_AUTO,
+  CODEX_MODE_FULL_AUTO_NO_SANDBOX,
+} from '@/common/types/codex/codexModes';
+
 /**
  * Agent mode option interface
  * 代理模式选项接口
@@ -30,7 +36,7 @@ export interface AgentModeOption {
  * - OpenCode: plan/build modes via ACP session/set_mode (no yolo support)
  * - iFlow: smart/yolo/default/plan modes via ACP session/set_mode (verified)
  * - Gemini: supports default/autoEdit/yolo (auto-approve at manager layer, not via ACP)
- * - Codex: supports suggest/autoEdit/fullAuto (maps to CLI's Suggest/Auto Edit/Full Auto via Shift+Tab)
+ * - Codex: default modes stay sandboxed; a dedicated unsafe full-auto mode disables the sandbox
  * - Goose: mode set at startup only, not during session
  * - Cursor: agent/plan/ask modes via ACP session/set_mode (verified via `agent acp` session/new response)
  */
@@ -63,8 +69,9 @@ export const AGENT_MODES: Record<string, AgentModeOption[]> = {
   ],
   codex: [
     { value: 'default', label: 'Plan' },
-    { value: 'autoEdit', label: 'Auto Edit' },
-    { value: 'yolo', label: 'Full Auto' },
+    { value: CODEX_MODE_AUTO_EDIT, label: 'Auto Edit' },
+    { value: CODEX_MODE_FULL_AUTO, label: 'Full Auto' },
+    { value: CODEX_MODE_FULL_AUTO_NO_SANDBOX, label: 'Full Auto (No Sandbox)' },
   ],
   cursor: [
     { value: 'agent', label: 'Agent', description: 'Full agent capabilities with tool access' },

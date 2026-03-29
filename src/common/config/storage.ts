@@ -38,6 +38,7 @@ export interface IConfigStorageRefer {
   'codex.config'?: {
     cliPath?: string;
     yoloMode?: boolean;
+    sandboxMode?: 'read-only' | 'workspace-write' | 'danger-full-access';
   };
   'acp.config': {
     [backend in AcpBackend]?: {

@@ -85,7 +85,10 @@ export class CodexAgent {
     try {
       // 让 CodexConnection 根据版本自动检测合适的命令 / Let CodexConnection auto-detect the appropriate command based on version
       // Pass yoloMode option for cron jobs to enable automatic execution
-      await this.conn.start(this.cliPath || 'codex', this.workingDir, [], { yoloMode: this.yoloMode });
+      await this.conn.start(this.cliPath || 'codex', this.workingDir, [], {
+        yoloMode: this.yoloMode,
+        sandboxMode: this.sandboxMode,
+      });
 
       // Wait for MCP server to be fully ready
       await this.conn.waitForServerReady(30000);

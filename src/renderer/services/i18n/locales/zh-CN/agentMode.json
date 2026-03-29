@@ -4,6 +4,7 @@
   "acceptEdits": "自动接受编辑",
   "autoEdit": "自动编辑",
   "yolo": "全自动",
+  "yoloNoSandbox": "全自动（无沙盒）",
   "bypass": "绕过检查",
   "bypassPermissions": "全自动",
   "smart": "智能",

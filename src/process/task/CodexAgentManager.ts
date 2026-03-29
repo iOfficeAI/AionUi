@@ -13,6 +13,7 @@ import type { ICodexMessageEmitter } from '@process/agent/codex/messaging/CodexM
 import { channelEventBus } from '@process/channels/agent/ChannelEventBus';
 import { ipcBridge } from '@/common';
 import type { CronMessageMeta, IConfirmation, TMessage } from '@/common/chat/chatLib';
+import { isCodexAutoApproveMode } from '@/common/types/codex/codexModes';
 import { transformMessage } from '@/common/chat/chatLib';
 import type { CodexAgentManagerData } from '@/common/types/codex/types';
 import { DEFAULT_CODEX_MODELS, DEFAULT_CODEX_MODEL_ID } from '@/common/types/codex/codexModels';
@@ -30,6 +31,11 @@ import BaseAgentManager from '@process/task/BaseAgentManager';
 import { IpcAgentEventEmitter } from '@process/task/IpcAgentEventEmitter';
 import { prepareFirstMessageWithSkillsIndex } from '@process/task/agentUtils';
 import { handlePreviewOpenEvent } from '@process/utils/previewUtils';
+import {
+  getCodexSandboxModeForSessionMode as resolveCodexSandboxMode,
+  type CodexSandboxMode,
+  writeCodexSandboxMode,
+} from '@process/agent/codex/connection/codexConfig';
 import i18n from '@process/services/i18n';
 import {
   getConfiguredAppClientName,
@@ -119,6 +125,11 @@ class CodexAgentManager extends BaseAgentManager<CodexAgentManagerData> implemen
       // yoloMode 优先级：data.yoloMode（来自 CronService）> 配置设置
       const codexConfig = await ProcessConfig.get('codex.config');
       const legacyYoloMode = data.yoloMode ?? codexConfig?.yoloMode;
+      const sandboxMode: CodexSandboxMode = resolveCodexSandboxMode(
+        data.sessionMode || this.currentMode,
+        data.sandboxMode || codexConfig?.sandboxMode || 'workspace-write'
+      );
+      await writeCodexSandboxMode(sandboxMode);
 
       // Migrate legacy yoloMode config (from SecurityModalContent) to currentMode.
       // When old config has yoloMode=true and no explicit session mode was set,
@@ -130,7 +141,7 @@ class CodexAgentManager extends BaseAgentManager<CodexAgentManagerData> implemen
 
       // When legacy config has yoloMode=true but user explicitly chose a non-yolo mode
       // on the Guid page, clear the legacy config so it won't re-activate next time.
-      if (legacyYoloMode && data.sessionMode && data.sessionMode !== 'yolo') {
+      if (legacyYoloMode && data.sessionMode && !isCodexAutoApproveMode(data.sessionMode)) {
         void this.clearLegacyYoloConfig();
       }
 
@@ -147,7 +158,7 @@ class CodexAgentManager extends BaseAgentManager<CodexAgentManagerData> implemen
         eventHandler,
         sessionManager,
         fileOperationHandler,
-        sandboxMode: data.sandboxMode || 'workspace-write', // Enable file writing within workspace by default
+        sandboxMode,
         yoloMode: false, // Always false — approval handled by Manager, not CLI
         onNetworkError: (error) => {
           this.handleNetworkError(error);
@@ -374,11 +385,14 @@ class CodexAgentManager extends BaseAgentManager<CodexAgentManagerData> implemen
   async setMode(mode: string): Promise<{ success: boolean; msg?: string; data?: { mode: string } }> {
     const prev = this.currentMode;
     this.currentMode = mode;
+    const sandboxMode = resolveCodexSandboxMode(mode, this.options.sandboxMode);
+    this.options.sandboxMode = sandboxMode;
+    await writeCodexSandboxMode(sandboxMode);
     this.saveSessionMode(mode);
 
     // Sync legacy yoloMode config: when leaving yolo mode, clear the old
     // SecurityModalContent setting to prevent it from re-activating on next session.
-    if (prev === 'yolo' && mode !== 'yolo') {
+    if (isCodexAutoApproveMode(prev) && !isCodexAutoApproveMode(mode)) {
       void this.clearLegacyYoloConfig();
     }
 
@@ -654,7 +668,7 @@ class CodexAgentManager extends BaseAgentManager<CodexAgentManagerData> implemen
     // Codex confirmations use action='edit' for file patches and action='exec' for shell commands.
     // yolo: auto-approve ALL operations
     // autoEdit: auto-approve file edits only, shell commands still require confirmation
-    if (this.currentMode === 'yolo' || (this.currentMode === 'autoEdit' && data.action === 'edit')) {
+    if (isCodexAutoApproveMode(this.currentMode) || (this.currentMode === 'autoEdit' && data.action === 'edit')) {
       // Direct synchronous approval — avoids the timing issue with async confirm().
       // When auto-approving, we must respond to the CLI within the same event-handling
       // call chain (handleIncoming → onEvent → addConfirmation). The async confirm()

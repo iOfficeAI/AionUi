@@ -2,6 +2,7 @@ import { AcpAgent } from '@process/agent/acp';
 import { channelEventBus } from '@process/channels/agent/ChannelEventBus';
 import { ipcBridge } from '@/common';
 import type { CronMessageMeta, TMessage } from '@/common/chat/chatLib';
+import { isCodexAutoApproveMode } from '@/common/types/codex/codexModes';
 import type { SlashCommandItem } from '@/common/chat/slash/types';
 import { transformMessage } from '@/common/chat/chatLib';
 import { AIONUI_FILES_MARKER } from '@/common/config/constants';
@@ -22,6 +23,11 @@ import { addMessage, addOrUpdateMessage, nextTickToLocalFinish } from '@process/
 import { handlePreviewOpenEvent } from '@process/utils/previewUtils';
 import { cronBusyGuard } from '@process/services/cron/CronBusyGuard';
 import { mainLog, mainWarn, mainError } from '@process/utils/mainLogger';
+import {
+  getCodexSandboxModeForSessionMode,
+  type CodexSandboxMode,
+  writeCodexSandboxMode,
+} from '@process/agent/codex/connection/codexConfig';
 /** Enable ACP performance diagnostics via ACP_PERF=1 */
 const ACP_PERF_LOG = process.env.ACP_PERF === '1';
 
@@ -55,6 +61,7 @@ interface AcpAgentManagerData {
   sessionMode?: string;
   /** Persisted model ID for resume support / 持久化的模型 ID，用于恢复 */
   currentModelId?: string;
+  sandboxMode?: CodexSandboxMode;
 }
 
 type BufferedStreamTextMessage = {
@@ -90,7 +97,7 @@ class AcpAgentManager extends BaseAgentManager<AcpAgentManagerData, AcpPermissio
     this.persistedModelId = data.currentModelId || null;
     this.status = 'pending';
     // Sync yoloMode from sessionMode so addConfirmation auto-approves when Full Auto is selected
-    this.yoloMode = this.yoloMode || this.currentMode === 'yolo' || this.currentMode === 'bypassPermissions';
+    this.yoloMode = this.yoloMode || this.isYoloMode(this.currentMode);
   }
 
   private makeStreamBufferKey(message: Extract<TMessage, { type: 'text' }>): string {
@@ -199,6 +206,7 @@ class AcpAgentManager extends BaseAgentManager<AcpAgentManagerData, AcpPermissio
       } else if (data.backend !== 'custom') {
         // Handle built-in backends: read from acp.config
         const config = await ProcessConfig.get('acp.config');
+        const codexConfig = data.backend === 'codex' ? await ProcessConfig.get('codex.config') : undefined;
         if (!cliPath && config?.[data.backend]?.cliPath) {
           cliPath = config[data.backend].cliPath;
         }
@@ -240,6 +248,15 @@ class AcpAgentManager extends BaseAgentManager<AcpAgentManagerData, AcpPermissio
         // If cliPath is not configured, fallback to default cliCommand from ACP_BACKENDS_ALL
         if (!cliPath && backendConfig?.cliCommand) {
           cliPath = backendConfig.cliCommand;
+        }
+
+        if (data.backend === 'codex') {
+          const sandboxMode = getCodexSandboxModeForSessionMode(
+            data.sessionMode || this.currentMode,
+            data.sandboxMode || codexConfig?.sandboxMode || 'workspace-write'
+          ) as CodexSandboxMode;
+          await writeCodexSandboxMode(sandboxMode);
+          data.sandboxMode = sandboxMode;
         }
       } else {
         // backend === 'custom' but no customAgentId - this is an invalid state
@@ -913,6 +930,9 @@ class AcpAgentManager extends BaseAgentManager<AcpAgentManagerData, AcpPermissio
       const prev = this.currentMode;
       this.currentMode = mode;
       this.yoloMode = this.isYoloMode(mode);
+      const sandboxMode = getCodexSandboxModeForSessionMode(mode, this.options.sandboxMode);
+      this.options.sandboxMode = sandboxMode;
+      await writeCodexSandboxMode(sandboxMode);
       this.saveSessionMode(mode);
 
       if (this.isYoloMode(prev) && !this.isYoloMode(mode)) {
@@ -962,7 +982,7 @@ class AcpAgentManager extends BaseAgentManager<AcpAgentManagerData, AcpPermissio
 
   /** Check if a mode value represents YOLO mode for any backend */
   private isYoloMode(mode: string): boolean {
-    return mode === 'yolo' || mode === 'bypassPermissions';
+    return mode === 'yolo' || mode === 'bypassPermissions' || isCodexAutoApproveMode(mode);
   }
 
   /**
