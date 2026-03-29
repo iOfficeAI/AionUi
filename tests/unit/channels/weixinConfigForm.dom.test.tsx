@@ -69,7 +69,7 @@ vi.mock('@/common/config/storage', () => ({
 }));
 
 vi.mock('@/renderer/pages/conversation/platforms/gemini/GeminiModelSelector', () => ({
-  default: () => <div data-testid='model-selector' />,
+  default: ({ label }: { label?: string }) => <div data-testid='model-selector'>{label}</div>,
 }));
 
 vi.mock('qrcode.react', () => ({
@@ -77,6 +77,7 @@ vi.mock('qrcode.react', () => ({
 }));
 
 import WeixinConfigForm from '@/renderer/components/settings/SettingsModal/contents/channels/WeixinConfigForm';
+import { ConfigStorage } from '@/common/config/storage';
 
 const noopModelSelection = {
   currentModel: undefined,
@@ -133,6 +134,16 @@ describe('WeixinConfigForm', () => {
   it('renders login button in idle state', () => {
     render(<WeixinConfigForm pluginStatus={null} modelSelection={noopModelSelection} onStatusChange={vi.fn()} />);
     expect(screen.getByText('Scan to Login')).toBeTruthy();
+  });
+
+  it('shows auto-follow label when a non-gemini agent is selected', async () => {
+    vi.mocked(ConfigStorage.get).mockResolvedValueOnce({ backend: 'claude', name: 'Claude' });
+
+    render(<WeixinConfigForm pluginStatus={null} modelSelection={noopModelSelection} onStatusChange={vi.fn()} />);
+
+    await waitFor(() => {
+      expect(screen.getByText('Automatically follow the model when CLI is running')).toBeTruthy();
+    });
   });
 
   it('shows loading state when login starts', async () => {
