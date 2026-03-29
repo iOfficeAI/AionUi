@@ -68,7 +68,15 @@ vi.mock('swr', () => ({
 }));
 
 vi.mock('@arco-design/web-react', () => ({
-  Button: ({ children, onClick, disabled }: { children: React.ReactNode; onClick?: () => void; disabled?: boolean }) => (
+  Button: ({
+    children,
+    onClick,
+    disabled,
+  }: {
+    children: React.ReactNode;
+    onClick?: () => void;
+    disabled?: boolean;
+  }) => (
     <button onClick={onClick} disabled={disabled}>
       {children}
     </button>
@@ -101,13 +109,7 @@ vi.mock('@arco-design/web-react', () => ({
   Message: {
     useMessage: () => [mockMessage, <div key='msg' />],
   },
-  Switch: ({
-    checked,
-    onChange,
-  }: {
-    checked?: boolean;
-    onChange?: (v: boolean) => void;
-  }) => (
+  Switch: ({ checked, onChange }: { checked?: boolean; onChange?: (v: boolean) => void }) => (
     <button role='switch' aria-checked={checked} onClick={() => onChange?.(!checked)}>
       switch
     </button>
@@ -123,12 +125,7 @@ vi.mock('@arco-design/web-react', () => ({
     onChange?: (v: string) => void;
     placeholder?: string;
   }) => (
-    <input
-      value={value ?? ''}
-      placeholder={placeholder}
-      onChange={(e) => onChange?.(e.target.value)}
-      role='textbox'
-    />
+    <input value={value ?? ''} placeholder={placeholder} onChange={(e) => onChange?.(e.target.value)} role='textbox' />
   ),
   Space: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
   Alert: ({ content }: { content?: React.ReactNode }) => <div>{content}</div>,
@@ -156,7 +153,7 @@ vi.mock('@arco-design/web-react', () => ({
           <div>{children}</div>
         </div>
       ),
-    },
+    }
   ),
 }));
 

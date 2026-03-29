@@ -74,13 +74,10 @@ describe('testCustomAgentConnection', () => {
       env: { API_KEY: 'secret', NODE_ENV: 'test' },
     });
 
-    expect(mockConnect).toHaveBeenCalledWith(
-      'custom',
-      'my-agent',
-      expect.any(String),
-      ['--acp'],
-      { API_KEY: 'secret', NODE_ENV: 'test' },
-    );
+    expect(mockConnect).toHaveBeenCalledWith('custom', 'my-agent', expect.any(String), ['--acp'], {
+      API_KEY: 'secret',
+      NODE_ENV: 'test',
+    });
   });
 
   it('suppresses disconnect error on ACP failure', async () => {
@@ -106,10 +103,6 @@ describe('testCustomAgentConnection', () => {
       command: 'npx my-agent-cli',
     });
 
-    expect(execFileSync).toHaveBeenCalledWith(
-      expect.any(String),
-      ['npx'],
-      expect.any(Object),
-    );
+    expect(execFileSync).toHaveBeenCalledWith(expect.any(String), ['npx'], expect.any(Object));
   });
 });

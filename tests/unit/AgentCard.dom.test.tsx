@@ -93,7 +93,7 @@ describe('AgentCard – detected variant', () => {
         agent={{ backend: 'gemini', name: 'Gemini' }}
         settingsDisabled={false}
         onSettings={onSettings}
-      />,
+      />
     );
     const settingIcon = screen.getByTestId('icon-setting');
     const button = settingIcon.closest('button');
@@ -106,13 +106,7 @@ describe('AgentCard – detected variant', () => {
 describe('AgentCard – custom variant', () => {
   it('renders the custom agent name and CLI path', () => {
     render(
-      <AgentCard
-        type='custom'
-        agent={makeCustomAgent()}
-        onEdit={vi.fn()}
-        onDelete={vi.fn()}
-        onToggle={vi.fn()}
-      />,
+      <AgentCard type='custom' agent={makeCustomAgent()} onEdit={vi.fn()} onDelete={vi.fn()} onToggle={vi.fn()} />
     );
     expect(screen.getByText('My Custom Agent')).toBeTruthy();
     expect(screen.getByText('/usr/bin/agent')).toBeTruthy();
@@ -126,7 +120,7 @@ describe('AgentCard – custom variant', () => {
         onEdit={vi.fn()}
         onDelete={vi.fn()}
         onToggle={vi.fn()}
-      />,
+      />
     );
     expect(screen.getByText('/usr/bin/agent --acp --verbose')).toBeTruthy();
   });
@@ -139,22 +133,14 @@ describe('AgentCard – custom variant', () => {
         onEdit={vi.fn()}
         onDelete={vi.fn()}
         onToggle={vi.fn()}
-      />,
+      />
     );
     expect(screen.getByText('Custom Agent')).toBeTruthy();
   });
 
   it('calls onEdit when the edit button is clicked', () => {
     const onEdit = vi.fn();
-    render(
-      <AgentCard
-        type='custom'
-        agent={makeCustomAgent()}
-        onEdit={onEdit}
-        onDelete={vi.fn()}
-        onToggle={vi.fn()}
-      />,
-    );
+    render(<AgentCard type='custom' agent={makeCustomAgent()} onEdit={onEdit} onDelete={vi.fn()} onToggle={vi.fn()} />);
     const editIcon = screen.getByTestId('icon-edit');
     const button = editIcon.closest('button');
     expect(button).toBeTruthy();
@@ -165,13 +151,7 @@ describe('AgentCard – custom variant', () => {
   it('calls onDelete when the delete button is clicked', () => {
     const onDelete = vi.fn();
     render(
-      <AgentCard
-        type='custom'
-        agent={makeCustomAgent()}
-        onEdit={vi.fn()}
-        onDelete={onDelete}
-        onToggle={vi.fn()}
-      />,
+      <AgentCard type='custom' agent={makeCustomAgent()} onEdit={vi.fn()} onDelete={onDelete} onToggle={vi.fn()} />
     );
     const deleteIcon = screen.getByTestId('icon-delete');
     const button = deleteIcon.closest('button');
@@ -182,13 +162,7 @@ describe('AgentCard – custom variant', () => {
 
   it('renders a Switch element with role="switch"', () => {
     render(
-      <AgentCard
-        type='custom'
-        agent={makeCustomAgent()}
-        onEdit={vi.fn()}
-        onDelete={vi.fn()}
-        onToggle={vi.fn()}
-      />,
+      <AgentCard type='custom' agent={makeCustomAgent()} onEdit={vi.fn()} onDelete={vi.fn()} onToggle={vi.fn()} />
     );
     expect(screen.getByRole('switch')).toBeTruthy();
   });
