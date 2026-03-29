@@ -174,6 +174,10 @@ export default defineConfig(({ mode }) => {
         rollupOptions: {
           input: { index: resolve('src/renderer/index.html') },
           external: ['node:crypto', 'crypto'],
+          onwarn(warning, warn) {
+            if (warning.code === 'EVAL') return;
+            warn(warning);
+          },
           output: {
             manualChunks(id: string) {
               if (!id.includes('node_modules')) return undefined;
