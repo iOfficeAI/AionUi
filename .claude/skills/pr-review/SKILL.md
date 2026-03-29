@@ -17,7 +17,10 @@ Perform a thorough local code review with full project context — reads source 
 /pr-review [pr_number]
 ```
 
-`$ARGUMENTS` is an optional PR number. If omitted, auto-detect from the current branch.
+`$ARGUMENTS` may contain an optional PR number and/or `--automation` flag.
+
+- Without `--automation`: interactive mode (prompts for confirmation, comment, cleanup)
+- With `--automation`: non-interactive mode (auto-post comment, auto-delete branch, output machine-readable result)
 
 ---
 
@@ -36,6 +39,15 @@ gh pr view --json number -q .number
 If this also fails (not on a PR branch), abort with:
 
 > No PR number provided and cannot detect one from the current branch. Usage: `/pr-review <pr_number>`
+
+Also parse `--automation` from `$ARGUMENTS`:
+
+```bash
+AUTOMATION_MODE=false
+if echo "$ARGUMENTS" | grep -q -- '--automation'; then
+  AUTOMATION_MODE=true
+fi
+```
 
 ### Step 2 — Check CI Status
 
@@ -60,13 +72,15 @@ gh pr view <PR_NUMBER> --json statusCheckRollup \
 - `statusCheckRollup` 为空（CI 从未触发）
 - `statusCheckRollup` 非空，但所有必检 job 均不在列表中（说明 pr-checks.yml 工作流整体未触发，如仅改动 docs/md 文件的 PR）
 
-**解析逻辑：** 对上述必检 job 逐一检查，跳过列表中不存在的 job，对存在的分三种情形处理：
+**解析逻辑：** 分三种情形处理：
 
-**情形 1 — 全部通过**（所有必检 job 均满足 `status == COMPLETED && conclusion == SUCCESS`）
+**Informational checks exclusion:** `codecov/patch` and `codecov/project` are configured as `informational: true` in `codecov.yml` — they never block merging and must be **excluded** from all failure checks below. Treat them as non-existent when evaluating CI status.
+
+**情形 1 — 全部通过**（所有必检 job 均满足 `status == COMPLETED && conclusion == SUCCESS`，**且** `statusCheckRollup` 中无任何**非 informational** job 的 `conclusion` 为 `FAILURE` 或 `CANCELLED`；`codecov/*` 失败不影响此判断）
 
 直接继续后续步骤，无需提示。
 
-**情形 2 — 部分仍在运行**（存在 `status` 为 `QUEUED` 或 `IN_PROGRESS` 的必检 job）
+**情形 2 — 部分仍在运行**（存在 `status` 为 `QUEUED` 或 `IN_PROGRESS` 的**必检** job；非必检 job 仍在运行不影响此判断）
 
 显示警告并询问：
 
@@ -76,7 +90,17 @@ gh pr view <PR_NUMBER> --json statusCheckRollup \
 - 用户选 **no** → 终止
 - 用户选 **yes** → 继续后续步骤
 
-**情形 3 — 存在失败**（存在 `conclusion` 为 `FAILURE` 或 `CANCELLED` 的必检 job）
+- **Automation mode:** do not prompt. Output signal and stop:
+  ```
+  <!-- automation-result -->
+  CONCLUSION: CI_NOT_READY
+  IS_CRITICAL_PATH: false
+  PR_NUMBER: <PR_NUMBER>
+  <!-- /automation-result -->
+  ```
+  Then exit.
+
+**情形 3 — 存在失败**（`statusCheckRollup` 中存在**任意非 informational** job 的 `conclusion` 为 `FAILURE` 或 `CANCELLED`，不限于必检列表；`codecov/*` 始终排除在外）
 
 显示警告并询问：
 
@@ -89,6 +113,16 @@ gh pr view <PR_NUMBER> --json statusCheckRollup \
   > 是否在 PR #\<PR_NUMBER\> 发表评论，提醒作者修复失败的 CI job？(yes/no)
   - 用户选 **yes** → 发布 CI 失败提醒评论（格式见下方"CI 失败提醒评论"节），然后退出
   - 用户选 **no** → 直接退出
+
+- **Automation mode:** do not prompt. Post CI failure comment automatically (same format as "CI 失败提醒评论"), then output signal and stop:
+  ```
+  <!-- automation-result -->
+  CONCLUSION: CI_FAILED
+  IS_CRITICAL_PATH: false
+  PR_NUMBER: <PR_NUMBER>
+  <!-- /automation-result -->
+  ```
+  Then exit.
 
 #### CI 失败提醒评论
 
@@ -172,13 +206,14 @@ git diff origin/<baseRefName>...HEAD
 git diff --name-status origin/<baseRefName>...HEAD
 ```
 
-**Existing pr-assess comment (if any):**
+**PR discussion comments (excluding bot review comments):**
 
 ```bash
-gh pr view <PR_NUMBER> --json comments --jq '.comments[] | select(.body | startswith("<!-- pr-assess-bot -->")) | .body'
+gh pr view <PR_NUMBER> --json comments \
+  --jq '[.comments[] | select(.body | startswith("<!-- pr-review-bot -->") | not) | select(.body | startswith("<!-- pr-automation-bot -->") | not) | {author: .author.login, body: .body, createdAt: .createdAt}]'
 ```
 
-If a pr-assess comment exists, use it as supplementary context (risk signals, change overview) when forming your review. Do not re-verify its conclusions — treat it as background information only.
+Save as `pr_discussion`. Use in Step 9 as supplementary context for **方案合理性** evaluation — if participants have explained design decisions or flagged known trade-offs, factor that in. Code is always the authoritative source; comments are context only.
 
 ### Step 7 — Run Lint on Changed Files
 
@@ -234,6 +269,7 @@ Review dimensions:
   - 修改了逻辑但未更新已有相关测试
   - 新增的源文件被 `vitest.config.ts` 的 `coverage.exclude` 意外排除（即本应计入覆盖但被错误排除）
   - 已有测试不符合 testing skill Step 2 的质量规则
+  - `codecov/patch` CI check 显示 FAILURE（patch 覆盖率低于 50%）：虽然 `codecov.yml` 将此 check 设为 `informational: true`（不阻塞合并），但覆盖率不足说明本次改动新增代码缺乏测试，应在 review 中指出（级别 LOW，供作者参考）
 - **可测试性** — 变更后的代码是否仍可独立测试；依赖是否可 mock；
   是否与已有模块保持解耦；能否在不依赖完整运行环境的情况下运行单元测试。
   发现耦合时区分来源：
@@ -342,11 +378,15 @@ If no issues are found across all dimensions, output:
 
 ### Step 10 — Ask to Post Comment
 
-Print the complete review report to the terminal, then ask the user:
+Print the complete review report to the terminal.
 
+**Automation mode:** skip the prompt — automatically proceed to post the comment.
+
+**Non-automation mode:** ask the user:
 > Review 完成。是否将此报告发布为 PR #<PR_NUMBER> 的评论？(yes/no)
+If the user says **no**, skip posting.
 
-If the user says **yes**:
+To post:
 
 1. Check for an existing review comment:
 ```bash
@@ -369,6 +409,41 @@ gh pr comment <PR_NUMBER> --body "<!-- pr-review-bot -->
 <review_report>"
 ```
 
+**Automation mode only — after posting the comment, output the machine-readable result block:**
+
+Map the review conclusion to CONCLUSION value based on the **highest severity issue found**:
+
+| Highest issue severity | Review 结论   | CONCLUSION  |
+| ---------------------- | ------------- | ----------- |
+| None / LOW only        | ✅ 批准合并   | APPROVED    |
+| MEDIUM                 | ⚠️ 有条件批准 | CONDITIONAL |
+| HIGH                   | ⚠️ 有条件批准 | CONDITIONAL |
+| CRITICAL               | ❌ 需要修改   | REJECTED    |
+
+**Key rule:** If all issues are LOW (or there are no issues), emit `APPROVED` even when the human-facing verdict says "有条件批准". `pr-fix` explicitly skips LOW issues, so triggering a fix session for LOW-only reviews wastes a round with no actionable outcome.
+
+Determine `IS_CRITICAL_PATH` using the same `CRITICAL_PATH_PATTERN` as pr-automation (currently empty — always `false`).
+When a pattern is defined, check:
+
+```bash
+CRITICAL_PATH_PATTERN=""  # Keep in sync with pr-automation Configuration
+if [ -n "$CRITICAL_PATH_PATTERN" ]; then
+  git diff origin/<baseRefName>...HEAD --name-only | grep -qE "$CRITICAL_PATH_PATTERN" && echo true || echo false
+else
+  echo false
+fi
+```
+
+Output:
+
+```
+<!-- automation-result -->
+CONCLUSION: APPROVED
+IS_CRITICAL_PATH: false
+PR_NUMBER: 123
+<!-- /automation-result -->
+```
+
 ### Step 11 — Cleanup
 
 Switch back to the original branch:
@@ -377,7 +452,13 @@ Switch back to the original branch:
 git checkout <original_branch>
 ```
 
-Ask the user:
+**Automation mode:** delete the local PR branch automatically without prompting:
+
+```bash
+git branch -D <pr_branch>
+```
+
+**Non-automation mode:** ask the user:
 
 > 是否删除本地 PR 分支 `<pr_branch>`？(yes/no)
 
