@@ -71,6 +71,7 @@ jobs:
         uses: oven-sh/setup-bun@v2
         with:
           bun-version: latest
+          cache: true
 
       - name: Install dependencies
         run: bun install --no-frozen-lockfile
@@ -113,6 +114,7 @@ jobs:
         uses: oven-sh/setup-bun@v2
         with:
           bun-version: latest
+          cache: true
 
       - name: Disable Windows Defender (Windows only)
         if: matrix.os == 'windows-2022'
@@ -155,6 +157,7 @@ jobs:
         uses: oven-sh/setup-bun@v2
         with:
           bun-version: latest
+          cache: true
 
       - name: Install dependencies
         run: bun install --no-frozen-lockfile
@@ -231,6 +234,7 @@ jobs:
         uses: oven-sh/setup-bun@v2
         with:
           bun-version: latest
+          cache: true
 
       - name: Install dependencies
         run: bun install --no-frozen-lockfile
@@ -317,6 +321,7 @@ jobs:
         uses: oven-sh/setup-bun@v2
         with:
           bun-version: latest
+          cache: true
 
       - name: Setup Python
         uses: actions/setup-python@v5
