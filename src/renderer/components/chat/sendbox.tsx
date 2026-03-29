@@ -5,8 +5,10 @@
  */
 
 import { ipcBridge } from '@/common';
+import BtwOverlay from '@/renderer/components/chat/BtwOverlay';
 import { useInputFocusRing } from '@/renderer/hooks/chat/useInputFocusRing';
 import SlashCommandMenu, { type SlashCommandMenuItem } from '@/renderer/components/chat/SlashCommandMenu';
+import { useBtwCommand } from '@/renderer/components/chat/BtwOverlay/useBtwCommand';
 import { useSlashCommandController } from '@/renderer/hooks/chat/useSlashCommandController';
 import { useLayoutContext } from '@/renderer/hooks/context/LayoutContext';
 import { useConversationContextSafe } from '@/renderer/hooks/context/ConversationContext';
@@ -32,6 +34,12 @@ const constVoid = (): void => undefined;
 // 临界值：超过该字符数直接切换至多行模式，避免为超长文本做昂贵的宽度测量
 // Threshold: switch to multi-line mode directly when character count exceeds this value to avoid heavy layout work
 const MAX_SINGLE_LINE_CHARACTERS = 800;
+const BTW_COMMAND_RE = /^\/btw(?:\s+([\s\S]*))?$/i;
+
+function extractBtwQuestion(value: string): string | null {
+  const match = value.trim().match(BTW_COMMAND_RE);
+  return match ? match[1] || '' : null;
+}
 
 const SendBox: React.FC<{
   value?: string;
@@ -51,6 +59,8 @@ const SendBox: React.FC<{
   sendButtonPrefix?: React.ReactNode;
   slashCommands?: SlashCommandItem[];
   onSlashBuiltinCommand?: (name: string) => void;
+  hasPendingAttachments?: boolean;
+  enableBtw?: boolean;
 }> = ({
   onSend,
   onStop,
@@ -69,6 +79,8 @@ const SendBox: React.FC<{
   sendButtonPrefix,
   slashCommands = [],
   onSlashBuiltinCommand,
+  hasPendingAttachments = false,
+  enableBtw = false,
 }) => {
   const layout = useLayoutContext();
   const isMobile = layout?.isMobile ?? false;
@@ -215,9 +227,21 @@ const SendBox: React.FC<{
     t,
     messageApi: message,
   });
+  const btwCommand = useBtwCommand(conversationContext?.conversationId, enableBtw);
+  const btwQuestion = useMemo(() => extractBtwQuestion(input), [input]);
+  const isBtwInput = enableBtw && btwQuestion !== null;
 
   const builtinSlashCommands = useMemo<SlashCommandItem[]>(() => {
     const commands: SlashCommandItem[] = [];
+    if (enableBtw) {
+      commands.push({
+        name: 'btw',
+        description: t('conversation.sideQuestion.description'),
+        kind: 'builtin',
+        source: 'builtin',
+        selectionBehavior: 'insert',
+      });
+    }
     if (onSlashBuiltinCommand) {
       commands.push({
         name: 'open',
@@ -235,7 +259,7 @@ const SendBox: React.FC<{
       });
     }
     return commands;
-  }, [conversationContext?.conversationId, onSlashBuiltinCommand, t]);
+  }, [conversationContext?.conversationId, enableBtw, onSlashBuiltinCommand, t]);
 
   const mergedSlashCommands = useMemo(() => {
     const map = new Map<string, SlashCommandItem>();
@@ -277,7 +301,8 @@ const SendBox: React.FC<{
     [slashController.filteredCommands]
   );
 
-  const isOverlayOpen = conversationExport.isOpen || slashController.isOpen;
+  const isCommandMenuOpen = conversationExport.isOpen || slashController.isOpen;
+  const isOverlayOpen = isCommandMenuOpen || btwCommand.isOpen;
 
   const handleTextAreaChange = (value: string) => {
     if (conversationExport.isOpen && value) {
@@ -417,6 +442,25 @@ const SendBox: React.FC<{
   }, []);
 
   const sendMessageHandler = () => {
+    if (enableBtw && btwQuestion !== null) {
+      const normalizedQuestion = btwQuestion.trim();
+      if (!normalizedQuestion) {
+        message.warning(t('conversation.sideQuestion.emptyQuestion'));
+        return;
+      }
+      if (btwCommand.isLoading) {
+        message.warning(t('conversation.sideQuestion.alreadyRunning'));
+        return;
+      }
+      if (hasPendingAttachments || domSnippets.length > 0) {
+        message.warning(t('conversation.sideQuestion.attachmentsNotAllowed'));
+        return;
+      }
+      setInput('');
+      void btwCommand.ask(normalizedQuestion);
+      return;
+    }
+
     if (loading || isLoading) {
       message.warning(t('messages.conversationInProgress'));
       return;
@@ -494,7 +538,16 @@ const SendBox: React.FC<{
         }}
         {...dragHandlers}
       >
-        {isOverlayOpen && (
+        <BtwOverlay
+          answer={btwCommand.answer}
+          anchorEl={containerRef.current}
+          isLoading={btwCommand.isLoading}
+          isOpen={btwCommand.isOpen}
+          onDismiss={btwCommand.dismiss}
+          parentTaskRunning={Boolean(loading || isLoading)}
+          question={btwCommand.question}
+        />
+        {isCommandMenuOpen && (
           <div className='absolute left-12px right-12px bottom-[calc(100%+8px)] z-70'>
             {conversationExport.step === 'menu' ? (
               <SlashCommandMenu
@@ -597,7 +650,7 @@ const SendBox: React.FC<{
           {isSingleLine && (
             <div className='flex items-center gap-2'>
               {sendButtonPrefix}
-              {isLoading || loading ? (
+              {isLoading || (loading && !isBtwInput) ? (
                 <Button
                   shape='circle'
                   type='secondary'
@@ -616,7 +669,7 @@ const SendBox: React.FC<{
             <div className={isMobile ? 'sendbox-tools sendbox-tools-scroll-mobile' : 'sendbox-tools'}>{tools}</div>
             <div className='flex items-center gap-2'>
               {sendButtonPrefix}
-              {isLoading || loading ? (
+              {isLoading || (loading && !isBtwInput) ? (
                 <Button
                   shape='circle'
                   type='secondary'

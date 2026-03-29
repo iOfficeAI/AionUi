@@ -51,6 +51,10 @@ export const conversation = {
     IBridgeResponse<{ commands: SlashCommandItem[] }>,
     { conversation_id: string }
   >('conversation.get-slash-commands'),
+  askSideQuestion: bridge.buildProvider<
+    IBridgeResponse<ConversationSideQuestionResult>,
+    { conversation_id: string; question: string }
+  >('conversation.ask-side-question'),
   confirmMessage: bridge.buildProvider<IBridgeResponse, IConfirmMessageParams>('conversation.confirm.message'), // 通用确认消息
   responseStream: bridge.buildEmitter<IResponseMessage>('chat.response.stream'), // 接收消息（统一接口）
   turnCompleted: bridge.buildEmitter<IConversationTurnCompletedEvent>('conversation.turn.completed'),
@@ -925,6 +929,26 @@ export interface IConversationListChangedEvent {
   action: 'created' | 'updated' | 'deleted';
   source?: string;
 }
+
+export type ConversationSideQuestionResult =
+  | {
+      status: 'ok';
+      answer: string;
+    }
+  | {
+      status: 'noAnswer';
+    }
+  | {
+      status: 'unsupported';
+    }
+  | {
+      status: 'invalid';
+      reason: 'emptyQuestion';
+    }
+  | {
+      status: 'toolsRequired';
+    };
+
 interface IBridgeResponse<D = {}> {
   success: boolean;
   data?: D;

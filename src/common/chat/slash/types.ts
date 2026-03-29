@@ -12,6 +12,13 @@
 export type SlashCommandKind = 'template' | 'builtin';
 
 /**
+ * Defines what happens when the user selects a slash command from the menu.
+ * - `execute`: run the command immediately
+ * - `insert`: insert `/<name> ` into the input
+ */
+export type SlashCommandSelectionBehavior = 'execute' | 'insert';
+
+/**
  * Indicates where the slash command originates from.
  * - `acp`: Provided by the ACP agent (e.g., Claude)
  * - `builtin`: Built into the application
@@ -32,4 +39,6 @@ export interface SlashCommandItem {
   source: SlashCommandSource;
   /** Optional keyboard hint (e.g., "⌘O") */
   hint?: string;
+  /** Optional override for how selection behaves in the slash menu */
+  selectionBehavior?: SlashCommandSelectionBehavior;
 }

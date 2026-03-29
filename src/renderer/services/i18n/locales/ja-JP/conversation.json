@@ -204,6 +204,22 @@
     "switchedToAgent": "{{agent}}に切り替えました",
     "switchAgentFailed": "エージェントの切り替えに失敗しました"
   },
+  "sideQuestion": {
+    "title": "ちょっと質問",
+    "description": "現在の会話について短い補足質問をする",
+    "started": "補足質問を開始しています...",
+    "answered": "補足質問に回答しました。",
+    "noAnswer": "現在の会話コンテキストには明確な答えがありません。",
+    "loading": "考え中...",
+    "parentTaskRunning": "メインのタスクはバックグラウンドで実行中です。",
+    "dismissHint": "Escape、Enter、Space で閉じる",
+    "unsupported": "この会話では補足質問を利用できません。",
+    "alreadyRunning": "補足質問はすでに実行中です。",
+    "attachmentsNotAllowed": "補足質問にはファイルや DOM スニペットを含められません。",
+    "emptyQuestion": "/btw の後に質問を入力してください。",
+    "toolsRequired": "/btw はこの会話にすでにある内容に基づいてのみ回答できます。検索や閲覧、新しい情報の取得はできません。",
+    "error": "補足質問への回答に失敗しました。"
+  },
   "contextUsage": {
     "contextUsed": "コンテキスト使用量"
   },

@@ -550,6 +550,7 @@ const OpenClawSendBox: React.FC<{ conversation_id: string }> = ({ conversation_i
         }
         onStop={handleStop}
         onFilesAdded={handleFilesAdded}
+        hasPendingAttachments={uploadFile.length > 0 || atPath.length > 0}
         supportedExts={allSupportedExts}
         defaultMultiLine={true}
         lockMultiLine={true}
