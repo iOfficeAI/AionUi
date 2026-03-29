@@ -186,9 +186,8 @@ export class WorkspaceSnapshotService {
 
   private async detectMode(workspacePath: string): Promise<'git-repo' | 'snapshot'> {
     try {
-      const gitPath = path.join(workspacePath, '.git');
-      const stat = await fs.stat(gitPath);
-      return stat.isDirectory() ? 'git-repo' : 'snapshot';
+      await execFileAsync('git', ['rev-parse', '--git-dir'], { cwd: workspacePath });
+      return 'git-repo';
     } catch {
       return 'snapshot';
     }
@@ -351,7 +350,17 @@ export class WorkspaceSnapshotService {
     await execFileAsync('git', [...gitArgs, 'add', '.'], { cwd: workspacePath });
     await execFileAsync(
       'git',
-      [...gitArgs, '-c', 'user.name=AionUI', '-c', 'user.email=snapshot@aionui.local', 'commit', '-m', 'baseline'],
+      [
+        ...gitArgs,
+        '-c',
+        'user.name=AionUI',
+        '-c',
+        'user.email=snapshot@aionui.local',
+        'commit',
+        '--allow-empty',
+        '-m',
+        'baseline',
+      ],
       { cwd: workspacePath }
     );
 
