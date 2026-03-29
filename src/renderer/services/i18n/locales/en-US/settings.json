@@ -697,6 +697,8 @@
     "tokenPlaceholder": "Enter token",
     "description": "Description",
     "descriptionPlaceholder": "Optional description",
+    "allowInsecure": "Allow Insecure Connection",
+    "allowInsecureHint": "Skip TLS certificate verification (for self-signed certificates)",
     "testConnection": "Test Connection",
     "testSuccess": "Connection successful",
     "testFailed": "Connection failed: {{error}}",

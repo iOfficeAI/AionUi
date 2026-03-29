@@ -699,6 +699,8 @@
     "tokenPlaceholder": "토큰 입력",
     "description": "설명",
     "descriptionPlaceholder": "선택적 설명",
+    "allowInsecure": "안전하지 않은 연결 허용",
+    "allowInsecureHint": "TLS 인증서 검증 건너뛰기 (자체 서명 인증서용)",
     "testConnection": "연결 테스트",
     "testSuccess": "연결 성공",
     "testFailed": "연결 실패: {{error}}",

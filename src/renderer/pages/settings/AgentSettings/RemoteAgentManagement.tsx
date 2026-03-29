@@ -17,6 +17,7 @@ import {
   Select,
   Space,
   Spin,
+  Switch,
   Tag,
   Typography,
 } from '@arco-design/web-react';
@@ -102,10 +103,11 @@ const RemoteAgentFormModal: React.FC<{
   );
 
   const handleTestConnection = useCallback(async () => {
-    const values = form.getFieldsValue(['url', 'authType', 'authToken']) as {
+    const values = form.getFieldsValue(['url', 'authType', 'authToken', 'allowInsecure']) as {
       url?: string;
       authType?: string;
       authToken?: string;
+      allowInsecure?: boolean;
     };
     if (!values.url) {
       Message.warning(t('settings.remoteAgent.urlRequired'));
@@ -117,6 +119,7 @@ const RemoteAgentFormModal: React.FC<{
         url: values.url,
         authType: values.authType || 'none',
         authToken: values.authToken,
+        allowInsecure: values.allowInsecure,
       });
       if (result.success) {
         Message.success(t('settings.remoteAgent.testSuccess'));
@@ -259,6 +262,7 @@ const RemoteAgentFormModal: React.FC<{
             url: editAgent.url,
             authType: editAgent.authType,
             authToken: editAgent.authToken,
+            allowInsecure: editAgent.allowInsecure,
           });
         } else {
           setActiveProtocol('openclaw');
@@ -324,6 +328,25 @@ const RemoteAgentFormModal: React.FC<{
                   rules={[{ required: true, message: t('settings.remoteAgent.tokenRequired') }]}
                 >
                   <Input.Password placeholder={t('settings.remoteAgent.tokenPlaceholder')} />
+                </FormItem>
+              ) : null
+            }
+          </Form.Item>
+
+          <Form.Item shouldUpdate noStyle>
+            {(values: Record<string, unknown>) =>
+              typeof values.url === 'string' && values.url.startsWith('wss://') ? (
+                <FormItem
+                  label={t('settings.remoteAgent.allowInsecure')}
+                  field='allowInsecure'
+                  triggerPropName='checked'
+                  extra={
+                    <Typography.Text type='secondary' className='text-12px'>
+                      {t('settings.remoteAgent.allowInsecureHint')}
+                    </Typography.Text>
+                  }
+                >
+                  <Switch />
                 </FormItem>
               ) : null
             }

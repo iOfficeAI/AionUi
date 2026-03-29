@@ -557,7 +557,7 @@ export const remoteAgent = {
   delete: bridge.buildProvider<boolean, { id: string }>('remote-agent.delete'),
   testConnection: bridge.buildProvider<
     { success: boolean; error?: string },
-    { url: string; authType: string; authToken?: string }
+    { url: string; authType: string; authToken?: string; allowInsecure?: boolean }
   >('remote-agent.test-connection'),
   handshake: bridge.buildProvider<{ status: 'ok' | 'pending_approval' | 'error'; error?: string }, { id: string }>(
     'remote-agent.handshake'

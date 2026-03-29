@@ -697,6 +697,8 @@
     "tokenPlaceholder": "Token girin",
     "description": "Açıklama",
     "descriptionPlaceholder": "İsteğe bağlı açıklama",
+    "allowInsecure": "Güvensiz Bağlantıya İzin Ver",
+    "allowInsecureHint": "TLS sertifika doğrulamasını atla (kendinden imzalı sertifikalar için)",
     "testConnection": "Bağlantıyı Test Et",
     "testSuccess": "Bağlantı başarılı",
     "testFailed": "Bağlantı başarısız: {{error}}",

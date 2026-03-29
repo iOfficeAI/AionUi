@@ -699,6 +699,8 @@
     "tokenPlaceholder": "輸入 Token",
     "description": "描述",
     "descriptionPlaceholder": "可選描述資訊",
+    "allowInsecure": "允許不安全連線",
+    "allowInsecureHint": "跳過 TLS 憑證驗證（用於自簽憑證）",
     "testConnection": "測試連線",
     "testSuccess": "連線成功",
     "testFailed": "連線失敗：{{error}}",

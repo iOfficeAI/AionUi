@@ -1208,6 +1208,8 @@ export type I18nKey =
   | 'settings.quickScan'
   | 'settings.remoteAgent.add'
   | 'settings.remoteAgent.addTitle'
+  | 'settings.remoteAgent.allowInsecure'
+  | 'settings.remoteAgent.allowInsecureHint'
   | 'settings.remoteAgent.authBearer'
   | 'settings.remoteAgent.authNone'
   | 'settings.remoteAgent.authToken'
