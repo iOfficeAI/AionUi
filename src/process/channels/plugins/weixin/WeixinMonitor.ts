@@ -62,6 +62,7 @@ const BACKOFF_DELAY_MS = 30_000;
 const MAX_CONSECUTIVE_FAILURES = 3;
 const TEXT_ITEM_TYPE = 1;
 const IMAGE_ITEM_TYPE = 2;
+const VOICE_ITEM_TYPE = 3;
 const FILE_ITEM_TYPE = 4;
 const CDN_BASE_URL = 'https://novac2c.cdn.weixin.qq.com/c2c';
 const UPLOADS_TTL_MS = 72 * 60 * 60 * 1000;
@@ -87,6 +88,7 @@ type WeixinMediaData = {
 type WeixinRawItem = {
   type?: number;
   text_item?: { text?: string };
+  voice_item?: { text?: string };
   image_item?: WeixinMediaData;
   file_item?: WeixinMediaData;
 };
@@ -368,12 +370,15 @@ async function runMonitor(
       for (const msg of resp.msgs ?? []) {
         const items = msg.item_list ?? [];
         const textItem = items.find((i) => i.type === TEXT_ITEM_TYPE);
+        const voiceTextItems = items.filter((i) => i.type === VOICE_ITEM_TYPE && i.voice_item?.text);
         const mediaItems = items.filter((i) => i.type === IMAGE_ITEM_TYPE || i.type === FILE_ITEM_TYPE);
 
-        if (!textItem && mediaItems.length === 0) continue;
+        if (!textItem && voiceTextItems.length === 0 && mediaItems.length === 0) continue;
 
         const conversationId = msg.from_user_id ?? '';
-        const text = textItem?.text_item?.text ?? '';
+        const text = [textItem?.text_item?.text?.trim(), ...voiceTextItems.map((item) => item.voice_item?.text?.trim())]
+          .filter((part): part is string => Boolean(part))
+          .join('\n\n');
         const msgId = msg.msg_id ?? String(Date.now());
 
         // Download attachments if any
