@@ -1,0 +1,65 @@
+name: 'PR Checks (docs only)'
+
+on:
+  pull_request:
+    types: [opened, synchronize, edited]
+    branches: [main, dev]
+    paths:
+      - '**/*.md'
+      - 'docs/**'
+      - '.vscode/**'
+      - '.github/ISSUE_TEMPLATE/**'
+
+permissions:
+  contents: read
+
+jobs:
+  code-quality:
+    name: Code Quality
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Setup bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - name: Install dependencies
+        run: bun install --no-frozen-lockfile
+
+      - name: Run postinstall
+        run: npm run postinstall || true
+
+      - name: Install prek
+        run: npm install -g @j178/prek
+
+      - name: Run prek checks
+        run: prek run --from-ref origin/${{ github.base_ref }} --to-ref HEAD
+
+  unit-tests-ubuntu:
+    name: Unit Tests (ubuntu-latest)
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo "Docs-only PR, skipping unit tests."
+
+  unit-tests-macos:
+    name: Unit Tests (macos-14)
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo "Docs-only PR, skipping unit tests."
+
+  unit-tests-windows:
+    name: Unit Tests (windows-2022)
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo "Docs-only PR, skipping unit tests."

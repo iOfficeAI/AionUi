@@ -1,4 +1,4 @@
-name: '✅ PR Checks'
+name: 'PR Checks'
 
 on:
   workflow_dispatch:
