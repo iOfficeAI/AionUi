@@ -146,7 +146,7 @@ const MessageItem: React.FC<{ message: TMessage; highlighted?: boolean }> = Reac
 const MessageList: React.FC<{ className?: string }> = () => {
   const list = useMessageList();
   const conversationContext = useConversationContextSafe();
-  useAutoPreviewOfficeFiles(list, conversationContext?.workspace);
+  useAutoPreviewOfficeFiles(conversationContext?.workspace);
   const { t } = useTranslation();
   const location = useLocation();
   const locationState = (location.state || {}) as ConversationLocationState;

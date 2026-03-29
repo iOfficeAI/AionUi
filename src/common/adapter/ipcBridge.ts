@@ -296,6 +296,13 @@ export const fileWatch = {
   fileChanged: bridge.buildEmitter<{ filePath: string; eventType: string }>('file-changed'), // 文件变化事件
 };
 
+// 工作空间 Office 文件监听（检测新增的 .pptx/.docx/.xlsx）/ Workspace office file watcher (detects new .pptx/.docx/.xlsx)
+export const workspaceOfficeWatch = {
+  start: bridge.buildProvider<IBridgeResponse, { workspace: string }>('workspace-office-watch-start'),
+  stop: bridge.buildProvider<IBridgeResponse, { workspace: string }>('workspace-office-watch-stop'),
+  fileAdded: bridge.buildEmitter<{ filePath: string; workspace: string }>('workspace-office-file-added'),
+};
+
 // 文件流式更新（Agent 写入文件时实时推送内容）/ File streaming updates (real-time content push when agent writes)
 export const fileStream = {
   contentUpdate: bridge.buildEmitter<{

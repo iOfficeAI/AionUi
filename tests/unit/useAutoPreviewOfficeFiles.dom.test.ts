@@ -7,9 +7,8 @@
 /**
  * Tests for useAutoPreviewOfficeFiles hook.
  *
- * Core rule: auto-preview only fires for tool calls that become Success
- * AFTER the component mounts (user watched it happen). Tool calls that are
- * already Success at mount time are treated as historical and never trigger.
+ * The hook delegates detection to the main process via workspaceOfficeWatch IPC.
+ * It starts the watcher on mount, subscribes to fileAdded events, and stops on unmount.
  */
 
 import { describe, it, expect, vi, beforeEach } from 'vitest';
@@ -32,84 +31,67 @@ vi.mock('@/renderer/utils/file/fileType', () => ({
   getFileTypeInfo: (...args: unknown[]) => mockGetFileTypeInfo(...args),
 }));
 
-vi.mock('@/common/chat/chatLib', async (importOriginal) => {
-  const actual = await importOriginal<typeof import('@/common/chat/chatLib')>();
-  return {
-    ...actual,
-    joinPath: (base: string, rel: string) => `${base}/${rel}`,
-  };
-});
+// Capture the fileAdded subscriber so tests can fire it directly
+let fileAddedHandler: ((evt: { filePath: string; workspace: string }) => void) | null = null;
+const mockStartInvoke = vi.fn().mockResolvedValue({ success: true });
+const mockStopInvoke = vi.fn().mockResolvedValue({ success: true });
+const mockFileAddedUnsub = vi.fn();
+
+vi.mock('@/common', () => ({
+  ipcBridge: {
+    workspaceOfficeWatch: {
+      start: { invoke: (...args: unknown[]) => mockStartInvoke(...args) },
+      stop: { invoke: (...args: unknown[]) => mockStopInvoke(...args) },
+      fileAdded: {
+        on: (handler: (evt: { filePath: string; workspace: string }) => void) => {
+          fileAddedHandler = handler;
+          return mockFileAddedUnsub;
+        },
+      },
+    },
+  },
+}));
 
 import { useAutoPreviewOfficeFiles } from '../../src/renderer/hooks/file/useAutoPreviewOfficeFiles';
-import type { IMessageToolGroup } from '../../src/common/chat/chatLib';
-
-// ── Helpers ─────────────────────────────────────────────────────────────────
-
-type ToolEntry = IMessageToolGroup['content'][number];
-
-function makeToolGroup(tools: ToolEntry[], msgId = 'msg-1'): IMessageToolGroup {
-  return {
-    id: msgId,
-    type: 'tool_group',
-    position: 'left',
-    conversation_id: 'conv-1',
-    content: tools,
-    createdAt: Date.now(),
-  };
-}
-
-function makeWriteFileTool(callId: string, fileName: string, status: ToolEntry['status'] = 'Success'): ToolEntry {
-  return {
-    callId,
-    name: 'WriteFile',
-    description: 'Write a file',
-    renderOutputAsMarkdown: false,
-    status,
-    resultDisplay: { fileName, fileDiff: '' },
-  };
-}
-
-function makeBashTool(callId: string, output: string, status: ToolEntry['status'] = 'Success'): ToolEntry {
-  return {
-    callId,
-    name: 'Bash',
-    description: 'Run a bash command',
-    renderOutputAsMarkdown: false,
-    status,
-    resultDisplay: output,
-  };
-}
 
 // ── Tests ────────────────────────────────────────────────────────────────────
 
 describe('useAutoPreviewOfficeFiles', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    fileAddedHandler = null;
     mockFindPreviewTab.mockReturnValue(null);
     mockGetFileTypeInfo.mockReturnValue({ contentType: 'ppt' });
+    mockStartInvoke.mockResolvedValue({ success: true });
+    mockStopInvoke.mockResolvedValue({ success: true });
   });
 
-  it('tool already Success at mount (historical) does NOT trigger', async () => {
-    const tool = makeWriteFileTool('call-historical', 'old.pptx');
-    renderHook(() => useAutoPreviewOfficeFiles([makeToolGroup([tool])], '/workspace'));
-    await act(async () => {});
-    expect(mockOpenPreview).not.toHaveBeenCalled();
+  it('calls start on mount and stop on unmount', () => {
+    const { unmount } = renderHook(() => useAutoPreviewOfficeFiles('/workspace'));
+
+    expect(mockStartInvoke).toHaveBeenCalledWith({ workspace: '/workspace' });
+
+    unmount();
+
+    expect(mockFileAddedUnsub).toHaveBeenCalled();
+    expect(mockStopInvoke).toHaveBeenCalledWith({ workspace: '/workspace' });
   });
 
-  it('tool becomes Success after mount (user watching) triggers openPreview', async () => {
-    const executing = makeWriteFileTool('call-1', 'slides.pptx', 'Executing');
-    const success = makeWriteFileTool('call-1', 'slides.pptx', 'Success');
+  it('does nothing when workspace is undefined', () => {
+    renderHook(() => useAutoPreviewOfficeFiles(undefined));
 
-    const { rerender } = renderHook(
-      ({ messages }: { messages: IMessageToolGroup[] }) =>
-        useAutoPreviewOfficeFiles(messages, '/workspace'),
-      { initialProps: { messages: [makeToolGroup([executing])] } }
-    );
-    await act(async () => {});
-    expect(mockOpenPreview).not.toHaveBeenCalled();
+    expect(mockStartInvoke).not.toHaveBeenCalled();
+    expect(mockStopInvoke).not.toHaveBeenCalled();
+  });
 
-    rerender({ messages: [makeToolGroup([success])] });
-    await act(async () => {});
+  it('opens preview when fileAdded event fires for current workspace', async () => {
+    mockGetFileTypeInfo.mockReturnValue({ contentType: 'ppt' });
+
+    renderHook(() => useAutoPreviewOfficeFiles('/workspace'));
+
+    await act(async () => {
+      fileAddedHandler?.({ filePath: '/workspace/slides.pptx', workspace: '/workspace' });
+    });
 
     expect(mockOpenPreview).toHaveBeenCalledOnce();
     expect(mockOpenPreview).toHaveBeenCalledWith(
@@ -119,115 +101,55 @@ describe('useAutoPreviewOfficeFiles', () => {
     );
   });
 
-  it('WriteFile with non-office extension does NOT trigger', async () => {
-    const executing = makeWriteFileTool('call-ts', 'index.ts', 'Executing');
-    const success = makeWriteFileTool('call-ts', 'index.ts', 'Success');
+  it('ignores fileAdded events from a different workspace', async () => {
+    renderHook(() => useAutoPreviewOfficeFiles('/workspace-A'));
 
-    const { rerender } = renderHook(
-      ({ messages }: { messages: IMessageToolGroup[] }) =>
-        useAutoPreviewOfficeFiles(messages, '/workspace'),
-      { initialProps: { messages: [makeToolGroup([executing])] } }
-    );
-    await act(async () => {});
-
-    rerender({ messages: [makeToolGroup([success])] });
-    await act(async () => {});
+    await act(async () => {
+      fileAddedHandler?.({ filePath: '/workspace-B/slides.pptx', workspace: '/workspace-B' });
+    });
 
     expect(mockOpenPreview).not.toHaveBeenCalled();
   });
 
-  it('Bash output "Saved to report.docx" triggers openPreview', async () => {
-    mockGetFileTypeInfo.mockReturnValue({ contentType: 'word' });
-    const executing = makeBashTool('call-bash', '', 'Executing');
-    const success = makeBashTool('call-bash', 'Saved to report.docx', 'Success');
-
-    const { rerender } = renderHook(
-      ({ messages }: { messages: IMessageToolGroup[] }) =>
-        useAutoPreviewOfficeFiles(messages, '/workspace'),
-      { initialProps: { messages: [makeToolGroup([executing])] } }
-    );
-    await act(async () => {});
-
-    rerender({ messages: [makeToolGroup([success])] });
-    await act(async () => {});
-
-    expect(mockOpenPreview).toHaveBeenCalledOnce();
-    expect(mockOpenPreview).toHaveBeenCalledWith(
-      '',
-      'word',
-      expect.objectContaining({ filePath: '/workspace/report.docx', fileName: 'report.docx' })
-    );
-  });
-
-  it('same callId does NOT trigger twice (dedup)', async () => {
-    const executing = makeWriteFileTool('call-dedup', 'deck.pptx', 'Executing');
-    const success = makeWriteFileTool('call-dedup', 'deck.pptx', 'Success');
-
-    const { rerender } = renderHook(
-      ({ messages }: { messages: IMessageToolGroup[] }) =>
-        useAutoPreviewOfficeFiles(messages, '/workspace'),
-      { initialProps: { messages: [makeToolGroup([executing])] } }
-    );
-    await act(async () => {});
-
-    rerender({ messages: [makeToolGroup([success])] });
-    await act(async () => {});
-    expect(mockOpenPreview).toHaveBeenCalledOnce();
-
-    vi.clearAllMocks();
-    mockFindPreviewTab.mockReturnValue(null);
-    mockGetFileTypeInfo.mockReturnValue({ contentType: 'ppt' });
-
-    // Re-render again with same messages — callId already in firedRef
-    rerender({ messages: [makeToolGroup([success])] });
-    await act(async () => {});
-    expect(mockOpenPreview).not.toHaveBeenCalled();
-  });
-
-  it('already-open tab does NOT call openPreview', async () => {
-    mockGetFileTypeInfo.mockReturnValue({ contentType: 'ppt' });
+  it('does NOT call openPreview when tab is already open', async () => {
     mockFindPreviewTab.mockReturnValue({ id: 'existing-tab' });
 
-    const executing = makeWriteFileTool('call-open', 'already-open.pptx', 'Executing');
-    const success = makeWriteFileTool('call-open', 'already-open.pptx', 'Success');
+    renderHook(() => useAutoPreviewOfficeFiles('/workspace'));
 
-    const { rerender } = renderHook(
-      ({ messages }: { messages: IMessageToolGroup[] }) =>
-        useAutoPreviewOfficeFiles(messages, '/workspace'),
-      { initialProps: { messages: [makeToolGroup([executing])] } }
-    );
-    await act(async () => {});
-
-    rerender({ messages: [makeToolGroup([success])] });
-    await act(async () => {});
+    await act(async () => {
+      fileAddedHandler?.({ filePath: '/workspace/report.docx', workspace: '/workspace' });
+    });
 
     expect(mockFindPreviewTab).toHaveBeenCalled();
     expect(mockOpenPreview).not.toHaveBeenCalled();
   });
 
-  it('new tool added after mount triggers; historical tool does not re-trigger', async () => {
+  it('restarts watcher when workspace changes', () => {
+    const { rerender } = renderHook(({ ws }: { ws: string }) => useAutoPreviewOfficeFiles(ws), {
+      initialProps: { ws: '/workspace-A' },
+    });
+
+    expect(mockStartInvoke).toHaveBeenCalledWith({ workspace: '/workspace-A' });
+
+    rerender({ ws: '/workspace-B' });
+
+    expect(mockStopInvoke).toHaveBeenCalledWith({ workspace: '/workspace-A' });
+    expect(mockStartInvoke).toHaveBeenCalledWith({ workspace: '/workspace-B' });
+  });
+
+  it('passes correct contentType and fileName for docx', async () => {
     mockGetFileTypeInfo.mockReturnValue({ contentType: 'word' });
 
-    // tool1 is already Success at mount → historical
-    const tool1 = makeWriteFileTool('call-first', 'first.docx', 'Success');
-    // tool2 starts as Executing
-    const tool2Executing = makeWriteFileTool('call-second', 'data.xlsx', 'Executing');
+    renderHook(() => useAutoPreviewOfficeFiles('/ws'));
 
-    const { rerender } = renderHook(
-      ({ messages }: { messages: IMessageToolGroup[] }) =>
-        useAutoPreviewOfficeFiles(messages, '/workspace'),
-      { initialProps: { messages: [makeToolGroup([tool1]), makeToolGroup([tool2Executing], 'msg-2')] } }
+    await act(async () => {
+      fileAddedHandler?.({ filePath: '/ws/report.docx', workspace: '/ws' });
+    });
+
+    expect(mockOpenPreview).toHaveBeenCalledWith(
+      '',
+      'word',
+      expect.objectContaining({ filePath: '/ws/report.docx', fileName: 'report.docx', workspace: '/ws' })
     );
-    await act(async () => {});
-    expect(mockOpenPreview).not.toHaveBeenCalled();
-
-    // tool2 completes
-    mockGetFileTypeInfo.mockReturnValue({ contentType: 'excel' });
-    const tool2Success = makeWriteFileTool('call-second', 'data.xlsx', 'Success');
-    rerender({ messages: [makeToolGroup([tool1]), makeToolGroup([tool2Success], 'msg-2')] });
-    await act(async () => {});
-
-    expect(mockOpenPreview).toHaveBeenCalledOnce();
-    expect(mockOpenPreview).toHaveBeenCalledWith('', 'excel', expect.objectContaining({ fileName: 'data.xlsx' }));
   });
 });
