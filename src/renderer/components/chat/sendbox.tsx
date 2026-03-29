@@ -24,12 +24,14 @@ import { useConversationExport } from '@renderer/hooks/file/useConversationExpor
 import { useDragUpload } from '@renderer/hooks/file/useDragUpload';
 import { useLatestRef } from '@renderer/hooks/ui/useLatestRef';
 import { usePasteService } from '@renderer/hooks/file/usePasteService';
+import { useMessageList } from '@renderer/pages/conversation/Messages/hooks';
 import type { FileMetadata } from '@renderer/services/FileService';
 import { useUploadState } from '@renderer/hooks/file/useUploadState';
 import UploadProgressBar from '@renderer/components/media/UploadProgressBar';
 import { allSupportedExts } from '@renderer/services/FileService';
 import SpeechInputButton from '@/renderer/components/chat/SpeechInputButton';
 import { appendSpeechTranscript } from '@/renderer/hooks/system/useSpeechInput';
+import { getConversationInputHistory, isCaretOnFirstLine } from '@/renderer/utils/chat/messageHistory';
 import './sendbox.css';
 
 const constVoid = (): void => undefined;
@@ -101,6 +103,9 @@ const SendBox: React.FC<{
   const warmupTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const latestInputRef = useLatestRef(input);
   const setInputRef = useLatestRef(setInput);
+  const messageList = useMessageList();
+  const [historyNavigationIndex, setHistoryNavigationIndex] = useState<number | null>(null);
+  const historyDraftRef = useRef<string | null>(null);
 
   // 集成预览面板的"添加到聊天"功能 / Integrate preview panel's "Add to chat" functionality
   const { setSendBoxHandler, domSnippets, removeDomSnippet, clearDomSnippets } = usePreviewContext();
@@ -232,6 +237,10 @@ const SendBox: React.FC<{
   const btwCommand = useBtwCommand(conversationContext?.conversationId, enableBtw);
   const btwQuestion = useMemo(() => extractBtwQuestion(input), [input]);
   const isBtwInput = enableBtw && btwQuestion !== null;
+  const inputHistory = useMemo(
+    () => getConversationInputHistory(messageList, conversationContext?.conversationId),
+    [conversationContext?.conversationId, messageList]
+  );
 
   const builtinSlashCommands = useMemo<SlashCommandItem[]>(() => {
     const commands: SlashCommandItem[] = [];
@@ -307,6 +316,10 @@ const SendBox: React.FC<{
   const isOverlayOpen = isCommandMenuOpen || btwCommand.isOpen;
 
   const handleTextAreaChange = (value: string) => {
+    if (historyNavigationIndex !== null) {
+      historyDraftRef.current = null;
+      setHistoryNavigationIndex(null);
+    }
     if (conversationExport.isOpen && value) {
       conversationExport.closeExportFlow();
     }
@@ -443,6 +456,104 @@ const SendBox: React.FC<{
     setIsInputFocused(false);
   }, []);
 
+  useEffect(() => {
+    historyDraftRef.current = null;
+    setHistoryNavigationIndex(null);
+  }, [conversationContext?.conversationId]);
+
+  const applyHistoryInput = useCallback(
+    (value: string) => {
+      setInputRef.current(value);
+      requestAnimationFrame(() => {
+        const textarea = containerRef.current?.querySelector('textarea');
+        if (!(textarea instanceof HTMLTextAreaElement)) {
+          return;
+        }
+        const caret = textarea.value.length;
+        textarea.setSelectionRange(caret, caret);
+      });
+    },
+    [setInputRef]
+  );
+
+  const exitHistoryNavigation = useCallback(
+    (restoreDraft: boolean) => {
+      const draft = historyDraftRef.current;
+      historyDraftRef.current = null;
+      setHistoryNavigationIndex(null);
+      if (restoreDraft && draft !== null) {
+        applyHistoryInput(draft);
+      }
+    },
+    [applyHistoryInput]
+  );
+
+  const handleHistoryKeyDown = useCallback(
+    (event: React.KeyboardEvent) => {
+      if (event.altKey || event.ctrlKey || event.metaKey || event.shiftKey) {
+        return false;
+      }
+
+      if (!(event.currentTarget instanceof HTMLTextAreaElement)) {
+        return false;
+      }
+
+      if (event.key === 'Escape' && historyNavigationIndex !== null) {
+        event.preventDefault();
+        exitHistoryNavigation(true);
+        return true;
+      }
+
+      if (!inputHistory.length) {
+        return false;
+      }
+
+      if (event.key === 'ArrowUp') {
+        if (historyNavigationIndex === null && !isCaretOnFirstLine(event.currentTarget)) {
+          return false;
+        }
+
+        const nextIndex =
+          historyNavigationIndex === null ? 0 : Math.min(historyNavigationIndex + 1, inputHistory.length - 1);
+        const nextValue = inputHistory[nextIndex];
+        if (nextValue === undefined) {
+          return false;
+        }
+
+        if (historyNavigationIndex === null) {
+          historyDraftRef.current = latestInputRef.current;
+        }
+
+        event.preventDefault();
+        setHistoryNavigationIndex(nextIndex);
+        applyHistoryInput(nextValue);
+        return true;
+      }
+
+      if (event.key === 'ArrowDown' && historyNavigationIndex !== null) {
+        event.preventDefault();
+        if (historyNavigationIndex === 0) {
+          exitHistoryNavigation(true);
+          return true;
+        }
+
+        const nextIndex = historyNavigationIndex - 1;
+        const nextValue = inputHistory[nextIndex];
+        if (nextValue === undefined) {
+          exitHistoryNavigation(true);
+          return true;
+        }
+
+        setHistoryNavigationIndex(nextIndex);
+        applyHistoryInput(nextValue);
+        return true;
+      }
+
+      return false;
+    },
+    [applyHistoryInput, exitHistoryNavigation, historyNavigationIndex, inputHistory, latestInputRef]
+  );
+
   const sendMessageHandler = () => {
     if (enableBtw && btwQuestion !== null) {
       const normalizedQuestion = btwQuestion.trim();
@@ -458,6 +569,8 @@ const SendBox: React.FC<{
         message.warning(t('conversation.sideQuestion.attachmentsNotAllowed'));
         return;
       }
+      historyDraftRef.current = null;
+      setHistoryNavigationIndex(null);
       setInput('');
       void btwCommand.ask(normalizedQuestion);
       return;
@@ -471,6 +584,8 @@ const SendBox: React.FC<{
       return;
     }
     setIsLoading(true);
+    historyDraftRef.current = null;
+    setHistoryNavigationIndex(null);
 
     // 构建消息内容：如果有 DOM 片段，附加完整 HTML / Build message: if has DOM snippets, append full HTML
     let finalMessage = input;
@@ -656,7 +771,9 @@ const SendBox: React.FC<{
             onBlur={handleInputBlur}
             {...compositionHandlers}
             autoSize={isSingleLine ? false : { minRows: 1, maxRows: 10 }}
-            onKeyDown={createKeyDownHandler(sendMessageHandler, handleOverlayKeyDown)}
+            onKeyDown={createKeyDownHandler(sendMessageHandler, (event) => {
+              return handleOverlayKeyDown(event) || handleHistoryKeyDown(event);
+            })}
           ></Input.TextArea>
           {isSingleLine && (
             <div className='flex items-center gap-2'>
