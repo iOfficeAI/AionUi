@@ -102,7 +102,7 @@ export class OpenClawGatewayConnection {
       return;
     }
 
-    const url = this.opts.url ?? 'ws://127.0.0.1:18789';
+    const url = normalizeWsUrl(this.opts.url ?? 'ws://127.0.0.1:18789');
     this.ws = new WebSocket(url, {
       maxPayload: 25 * 1024 * 1024, // Allow large responses
       rejectUnauthorized: this.opts.rejectUnauthorized ?? true,
@@ -524,6 +524,13 @@ export class OpenClawGatewayConnection {
   set sessionKey(key: string | null) {
     this._sessionKey = key;
   }
+}
+
+/**
+ * Prepend ws:// if the URL has no WebSocket protocol (e.g. "127.0.0.1:42617")
+ */
+export function normalizeWsUrl(raw: string): string {
+  return /^wss?:\/\//i.test(raw) ? raw : `ws://${raw}`;
 }
 
 /**
