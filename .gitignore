@@ -193,6 +193,7 @@ lint-results.txt
 
 # Superpowers brainstorm tool (runtime files, session data)
 .superpowers/
+docs/superpowers/
 resources/bundled-bun
 
 # Server build output
