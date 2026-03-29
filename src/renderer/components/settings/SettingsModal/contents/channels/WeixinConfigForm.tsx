@@ -431,7 +431,9 @@ const WeixinConfigForm: React.FC<WeixinConfigFormProps> = ({ pluginStatus, model
               <span>{t('settings.weixin.scanned', 'Scanned, waiting for confirmation...')}</span>
             </div>
           ) : (
-            <span className='text-13px text-t-secondary'>{t('settings.weixin.scanPrompt', 'Please scan the QR code with WeChat')}</span>
+            <span className='text-13px text-t-secondary'>
+              {t('settings.weixin.scanPrompt', 'Please scan the QR code with WeChat')}
+            </span>
           )}
         </div>
       );
@@ -532,7 +534,11 @@ const WeixinConfigForm: React.FC<WeixinConfigFormProps> = ({ pluginStatus, model
         <GeminiModelSelector
           selection={isGeminiAgent ? modelSelection : undefined}
           disabled={!isGeminiAgent}
-          label={!isGeminiAgent ? t('settings.assistant.autoFollowCliModel', 'Automatically follow the model when CLI is running') : undefined}
+          label={
+            !isGeminiAgent
+              ? t('settings.assistant.autoFollowCliModel', 'Automatically follow the model when CLI is running')
+              : undefined
+          }
           variant='settings'
         />
       </PreferenceRow>
@@ -546,10 +552,18 @@ const WeixinConfigForm: React.FC<WeixinConfigFormProps> = ({ pluginStatus, model
               <strong>1.</strong> {t('settings.weixin.step1', 'Find and send a message to your bot in WeChat')}
             </p>
             <p className='m-0'>
-              <strong>2.</strong> {t('settings.weixin.step2', 'A pairing request will appear below. Click "Approve" to authorize the user.')}
+              <strong>2.</strong>{' '}
+              {t(
+                'settings.weixin.step2',
+                'A pairing request will appear below. Click "Approve" to authorize the user.'
+              )}
             </p>
             <p className='m-0'>
-              <strong>3.</strong> {t('settings.weixin.step3', 'Once approved, you can start chatting with the AI assistant through WeChat!')}
+              <strong>3.</strong>{' '}
+              {t(
+                'settings.weixin.step3',
+                'Once approved, you can start chatting with the AI assistant through WeChat!'
+              )}
             </p>
           </div>
         </div>
