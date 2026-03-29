@@ -246,12 +246,14 @@ async function startWatch(filePath: string, retry = false): Promise<string> {
       console.error('[pptPreview] spawn error:', err.message);
       sessions.delete(filePath);
       if ((err as NodeJS.ErrnoException).code === 'ENOENT' && !retry) {
-        // officecli not found — try auto-install then retry once
-        settle();
+        // officecli not found — try auto-install then retry once.
+        // Clear timeout before potentially long sync install.
+        clearTimeout(timeout);
         if (installOfficecli()) {
+          settled = true;
           startWatch(filePath, true).then(resolve, reject);
         } else {
-          reject(new Error('officecli is not installed and auto-install failed'));
+          settle(new Error('officecli is not installed and auto-install failed'));
         }
       } else {
         settle(new Error(`Failed to start officecli: ${err.message}`));
@@ -297,15 +299,17 @@ export function initPptPreviewBridge(): void {
   setTimeout(() => checkForUpdate(), 5000);
 
   ipcBridge.pptPreview.start.provider(async ({ filePath }) => {
-    try {
-      const url = await startWatch(filePath);
-      return { url };
-    } catch (err) {
-      // Never re-throw — bridge.subscribe() lacks .catch(), so thrown errors
-      // become unhandled promise rejections (Sentry ELECTRON-CT).
-      console.error('[pptPreview] start failed:', err);
-      return { url: '', error: err instanceof Error ? err.message : String(err) };
-    }
+    // Attach .catch() synchronously on the promise to ensure the rejection
+    // handler is registered before microtask processing. The bridge framework's
+    // internal promise chain does not propagate await's handlers, so bare
+    // await/try-catch leaves rejections unhandled (Sentry ELECTRON-CW, ELECTRON-CT).
+    const result = await startWatch(filePath)
+      .then((url) => ({ url }))
+      .catch((err: unknown) => {
+        console.error('[pptPreview] start failed:', err);
+        return { url: '', error: err instanceof Error ? err.message : String(err) };
+      });
+    return result;
   });
 
   ipcBridge.pptPreview.stop.provider(async ({ filePath }) => {

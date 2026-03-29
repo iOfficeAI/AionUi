@@ -279,6 +279,37 @@ describe('pptPreviewBridge', () => {
       expect(result).toEqual({ url: '', error: 'officecli is not installed and auto-install failed' });
     });
 
+    it('does not produce unhandled rejection when auto-install fails (ELECTRON-CW)', async () => {
+      const unhandled = vi.fn();
+      process.on('unhandledRejection', unhandled);
+
+      initPptPreviewBridge();
+      const child = createMockChildProcess();
+      spawnMock.mockReturnValue(child);
+
+      execSyncMock.mockImplementation(() => {
+        throw new Error('install failed');
+      });
+
+      const promise = startHandler.fn!({ filePath: '/test/file.pptx' });
+      await flush();
+
+      const enoentErr = Object.assign(new Error('spawn officecli ENOENT'), { code: 'ENOENT' });
+      child.emit('error', enoentErr);
+
+      // Also emit exit (real child processes emit both error and exit for ENOENT)
+      child.emit('exit', null, null);
+
+      const result = await promise;
+      expect(result.url).toBe('');
+      expect(result.error).toContain('officecli is not installed');
+
+      // Allow microtask queue to flush for unhandled rejection detection
+      await flush();
+      expect(unhandled).not.toHaveBeenCalled();
+      process.removeListener('unhandledRejection', unhandled);
+    });
+
     it('reuses existing alive session', async () => {
       initPptPreviewBridge();
       const child = createMockChildProcess();
