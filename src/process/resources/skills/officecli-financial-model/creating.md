@@ -18,24 +18,24 @@ Non-negotiable: all statement values are formulas (only Assumptions has hardcode
 
 ### A.2 Sheet Structure Convention
 
-| Sheet | Tab Color | Purpose |
-|-------|-----------|---------|
-| Assumptions | `4472C4` (blue) | All hardcoded inputs |
-| Income Statement | `A5A5A5` (gray) | Revenue through Net Income |
-| Balance Sheet | `A5A5A5` (gray) | Assets, Liabilities, Equity |
-| Cash Flow | `A5A5A5` (gray) | Operating, Investing, Financing |
-| Valuation / DCF | `ED7D31` (orange) | WACC, FCF, Terminal Value |
-| Scenarios | `4472C4` (blue) | Dropdown + scenario assumptions |
-| Error Checks | `FF0000` (red) | Balance, reconciliation, ISERROR |
-| Dashboard | `70AD47` (green) | Charts and summary KPIs |
+| Sheet            | Tab Color         | Purpose                          |
+| ---------------- | ----------------- | -------------------------------- |
+| Assumptions      | `4472C4` (blue)   | All hardcoded inputs             |
+| Income Statement | `A5A5A5` (gray)   | Revenue through Net Income       |
+| Balance Sheet    | `A5A5A5` (gray)   | Assets, Liabilities, Equity      |
+| Cash Flow        | `A5A5A5` (gray)   | Operating, Investing, Financing  |
+| Valuation / DCF  | `ED7D31` (orange) | WACC, FCF, Terminal Value        |
+| Scenarios        | `4472C4` (blue)   | Dropdown + scenario assumptions  |
+| Error Checks     | `FF0000` (red)    | Balance, reconciliation, ISERROR |
+| Dashboard        | `70AD47` (green)  | Charts and summary KPIs          |
 
 ### A.3 Financial Color Coding
 
-| Cell Type | Font Color | Hex |
-|-----------|-----------|-----|
-| Input (hardcoded) | Blue | `0000FF` |
-| Formula (same sheet) | Black | `000000` |
-| Cross-sheet reference | Green | `008000` |
+| Cell Type             | Font Color | Hex      |
+| --------------------- | ---------- | -------- |
+| Input (hardcoded)     | Blue       | `0000FF` |
+| Formula (same sheet)  | Black      | `000000` |
+| Cross-sheet reference | Green      | `008000` |
 
 Apply colors in the formatting batch (step 8 of build order):
 
@@ -50,14 +50,14 @@ EOF
 
 ### A.4 Number Format Map
 
-| Type | Format Code | Example |
-|------|------------|---------|
+| Type       | Format Code                                  | Example               |
+| ---------- | -------------------------------------------- | --------------------- |
 | Accounting | `_($* #,##0_);_($* (#,##0);_($* "-"_);_(@_)` | `$ 1,234` / `$ (567)` |
-| Currency | `$#,##0;($#,##0);"-"` | `$1,234` / `($567)` |
-| Percentage | `0.0%` | `12.5%` |
-| Multiples | `0.0x` | `3.2x` |
-| Shares | `#,##0` | `10,000,000` |
-| Per-share | `$#,##0.00` | `$14.50` |
+| Currency   | `$#,##0;($#,##0);"-"`                        | `$1,234` / `($567)`   |
+| Percentage | `0.0%`                                       | `12.5%`               |
+| Multiples  | `0.0x`                                       | `3.2x`                |
+| Shares     | `#,##0`                                      | `10,000,000`          |
+| Per-share  | `$#,##0.00`                                  | `$14.50`              |
 
 Use heredoc batch for all number formats to avoid shell `$` expansion.
 
@@ -450,7 +450,7 @@ EOF
 
 Replicate B4:B8 formulas across columns C through F for each exit scenario. The `MAX` formula handles the conversion decision automatically: when pro-rata share exceeds liquidation preference, the class converts; otherwise it takes the preference. Total Check must equal the exit value in every column.
 
-> **Note:** For participating preferred (double-dip), replace MAX with: LiqPref + MAX(0, (ExitValue - TotalLiqPrefs) * OwnershipPct).
+> **Note:** For participating preferred (double-dip), replace MAX with: LiqPref + MAX(0, (ExitValue - TotalLiqPrefs) \* OwnershipPct).
 
 ### C.5 Debt Schedule
 
@@ -475,7 +475,7 @@ EOF
 
 Closing balance period N = Opening balance period N+1 (continuity check). Interest on opening balance, NOT average -- avoids circularity.
 
-**Revolver:** Available = Facility Limit - Term Loan Outstanding. Draw/Repay = `MIN(CashShortfall, Available)`. Interest = Opening Revolver Balance * Revolver Rate. Place after Term Loan on the same Debt Schedule sheet.
+**Revolver:** Available = Facility Limit - Term Loan Outstanding. Draw/Repay = `MIN(CashShortfall, Available)`. Interest = Opening Revolver Balance \* Revolver Rate. Place after Term Loan on the same Debt Schedule sheet.
 
 ### C.6 Working Capital Model
 
@@ -511,13 +511,13 @@ Fixed Costs / Contribution Margin = Break-Even Units. Key formulas: `Fixed Costs
 
 ### D.1 Financial Chart Types
 
-| Data Pattern | Chart Type | Use Case |
-|-------------|-----------|----------|
-| Revenue + margin trend | `combo` | Revenue bars (left) + Margin line (right) |
-| Values over time | `column` | Revenue by year or scenario comparison |
-| Trend line | `line` | Cash balance, cumulative FCF |
-| Cash progression | `area` | Cash balance over time |
-| P&L bridge | `waterfall` | Revenue breakdown, cost waterfall |
+| Data Pattern           | Chart Type  | Use Case                                  |
+| ---------------------- | ----------- | ----------------------------------------- |
+| Revenue + margin trend | `combo`     | Revenue bars (left) + Margin line (right) |
+| Values over time       | `column`    | Revenue by year or scenario comparison    |
+| Trend line             | `line`      | Cash balance, cumulative FCF              |
+| Cash progression       | `area`      | Cash balance over time                    |
+| P&L bridge             | `waterfall` | Revenue breakdown, cost waterfall         |
 
 ### D.2 Chart Recipes
 
@@ -630,18 +630,18 @@ officecli view model.xlsx text                                   # 9. Visual che
 
 ## Section F: Known Issues and Workarounds
 
-| # | Issue | Workaround |
-|---|-------|------------|
-| F-1 | `!` escaping in cross-sheet formulas | Always use heredoc batch. Verify with `officecli get`. If `\!` appears, delete and re-run. |
-| F-2 | Batch failure at scale | 8-12 ops per batch. Non-resident mode. Retry individually. Build time ~3-5 min for complex models. |
-| F-3 | calcPr XML ordering | Always `//x:definedNames --action insertafter` (financial models always have named ranges). Validate after. |
-| F-4 | No auto-fit column width | Set explicitly: labels=24-28, numbers=14-18. |
-| F-5 | Cannot rename sheets | Plan names upfront. Create with correct name. |
-| F-6 | Sensitivity tables are manual | Each cell = explicit self-contained formula. Build row-by-row in separate batches. |
-| F-7 | Chart series fixed at creation | Plan all series before `add`. Delete and recreate if wrong. |
-| F-8 | Formula cached values blank | `view text` shows blank for formulas. Normal. fullCalcOnLoad ensures calc on open. |
-| F-9 | formulacf no font.bold | Use `fill` + `font.color` only. `font.bold` causes validation errors. |
-| F-10 | Number format `$` quoting | Use heredoc batch or single quotes: `--prop numFmt='$#,##0'`. |
-| F-11 | Waterfall chart totals | Cannot mark as totals. Use totalColor property for visual convention. |
-| F-12 | Circular references | Set `iterate="1"` in calcPr. Avoid: use prior-period cash + net CF, interest on opening balance. |
-| F-13 | Chart title `$` stripping | Shell expands `$` in `--prop title`. Use heredoc batch for chart titles containing `$`, or omit `$` from titles (e.g., "Exit Waterfall (50M)" not "Exit Waterfall ($50M)"). |
+| #    | Issue                                | Workaround                                                                                                                                                                  |
+| ---- | ------------------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| F-1  | `!` escaping in cross-sheet formulas | Always use heredoc batch. Verify with `officecli get`. If `\!` appears, delete and re-run.                                                                                  |
+| F-2  | Batch failure at scale               | 8-12 ops per batch. Non-resident mode. Retry individually. Build time ~3-5 min for complex models.                                                                          |
+| F-3  | calcPr XML ordering                  | Always `//x:definedNames --action insertafter` (financial models always have named ranges). Validate after.                                                                 |
+| F-4  | No auto-fit column width             | Set explicitly: labels=24-28, numbers=14-18.                                                                                                                                |
+| F-5  | Cannot rename sheets                 | Plan names upfront. Create with correct name.                                                                                                                               |
+| F-6  | Sensitivity tables are manual        | Each cell = explicit self-contained formula. Build row-by-row in separate batches.                                                                                          |
+| F-7  | Chart series fixed at creation       | Plan all series before `add`. Delete and recreate if wrong.                                                                                                                 |
+| F-8  | Formula cached values blank          | `view text` shows blank for formulas. Normal. fullCalcOnLoad ensures calc on open.                                                                                          |
+| F-9  | formulacf no font.bold               | Use `fill` + `font.color` only. `font.bold` causes validation errors.                                                                                                       |
+| F-10 | Number format `$` quoting            | Use heredoc batch or single quotes: `--prop numFmt='$#,##0'`.                                                                                                               |
+| F-11 | Waterfall chart totals               | Cannot mark as totals. Use totalColor property for visual convention.                                                                                                       |
+| F-12 | Circular references                  | Set `iterate="1"` in calcPr. Avoid: use prior-period cash + net CF, interest on opening balance.                                                                            |
+| F-13 | Chart title `$` stripping            | Shell expands `$` in `--prop title`. Use heredoc batch for chart titles containing `$`, or omit `$` from titles (e.g., "Exit Waterfall (50M)" not "Exit Waterfall ($50M)"). |
