@@ -17,14 +17,7 @@ describe('AGENT_MODES.claude', () => {
 
   it('contains all 6 Claude Code permission modes', () => {
     const values = claudeModes.map((m) => m.value);
-    expect(values).toEqual([
-      'default',
-      'acceptEdits',
-      'plan',
-      'auto',
-      'bypassPermissions',
-      'dontAsk',
-    ]);
+    expect(values).toEqual(['default', 'acceptEdits', 'plan', 'auto', 'bypassPermissions', 'dontAsk']);
   });
 
   it('each mode has a non-empty label', () => {
@@ -34,9 +27,7 @@ describe('AGENT_MODES.claude', () => {
   });
 
   it('acceptEdits, auto, dontAsk have descriptions', () => {
-    const withDesc = claudeModes.filter((m) =>
-      ['acceptEdits', 'auto', 'dontAsk'].includes(m.value),
-    );
+    const withDesc = claudeModes.filter((m) => ['acceptEdits', 'auto', 'dontAsk'].includes(m.value));
     expect(withDesc).toHaveLength(3);
     for (const mode of withDesc) {
       expect(mode.description).toBeTruthy();
