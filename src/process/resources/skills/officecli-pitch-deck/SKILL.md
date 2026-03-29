@@ -44,24 +44,24 @@ officecli --version
 
 ## Don't Use When
 
-| User Request | Correct Skill |
-|-------------|--------------|
-| Morph-animated or cinematic presentations | morph-ppt |
-| Edit/modify an existing .pptx | officecli-pptx (editing.md) |
-| Excel dashboard or data report | officecli-data-dashboard |
-| Word document | officecli-docx |
-| Request is primarily about animation/motion effects | morph-ppt |
+| User Request                                        | Correct Skill               |
+| --------------------------------------------------- | --------------------------- |
+| Morph-animated or cinematic presentations           | morph-ppt                   |
+| Edit/modify an existing .pptx                       | officecli-pptx (editing.md) |
+| Excel dashboard or data report                      | officecli-data-dashboard    |
+| Word document                                       | officecli-docx              |
+| Request is primarily about animation/motion effects | morph-ppt                   |
 
 ### pitch-deck vs morph-ppt
 
-| Aspect | pitch-deck (this skill) | morph-ppt |
-|--------|------------------------|-----------|
-| Core mechanic | Layout diversity + content density | Morph transition + scene actors |
-| Slide construction | Build each slide fresh from scratch | Clone + ghost + modify actors |
-| Animation | Standard transitions (fade, push) | Morph (shape-matching across slides) |
-| Naming convention | No special naming | `!!actor` + `#sN-content` |
-| Data visualization | Charts, tables, stat callouts | None (text + shapes only) |
-| Helper scripts | None needed | morph-helpers.sh required |
+| Aspect             | pitch-deck (this skill)             | morph-ppt                            |
+| ------------------ | ----------------------------------- | ------------------------------------ |
+| Core mechanic      | Layout diversity + content density  | Morph transition + scene actors      |
+| Slide construction | Build each slide fresh from scratch | Clone + ghost + modify actors        |
+| Animation          | Standard transitions (fade, push)   | Morph (shape-matching across slides) |
+| Naming convention  | No special naming                   | `!!actor` + `#sN-content`            |
+| Data visualization | Charts, tables, stat callouts       | None (text + shapes only)            |
+| Helper scripts     | None needed                         | morph-helpers.sh required            |
 
 ---
 
@@ -174,19 +174,19 @@ Run before every delivery. See [creating.md](creating.md) Section G for the full
 
 See [creating.md](creating.md) Section H for the full list with workarounds. Key issues:
 
-| Issue | Impact |
-|-------|--------|
-| `gap` ignored during chart `add` | Must apply via separate `set` command |
-| Cell merge produces validation errors | PowerPoint renders correctly; note in delivery |
-| Cell-level `color` on table cells causes validation errors | Use row-level `color` instead |
-| Custom gradient stops (`@`) fail on slide backgrounds | Use 2-color or 3-color gradients only |
-| Combo chart requires both `comboSplit=1` and `secondary=2` | Missing either renders incorrectly |
-| Dual-axis scale mismatch makes smaller series invisible | **HARD RULE:** If ranges differ >10x, MUST split into two separate charts. See creating.md D.4 |
-| Stat values wrap at 60pt in 7cm width | **HARD RULE:** Max 4 chars for `$X.YM` patterns (wide `$`+`.` glyphs); max 5 chars for other values. Use 44-48pt or C.2 (3-stat, 9cm) for longer |
-| Doughnut chart `colors` parameter may not apply | CLI accepts without error but PowerPoint renders default colors. No workaround. Verify via screenshot |
-| Empty table cell `c1=""` causes validation error | Use `c1=" "` (space character) instead of empty string |
-| Connector arrows may not all render in batch | Add connectors in separate batch after shapes; if still missing, add one at a time |
-| Empty series values (gaps) not supported | Use `0` for missing data points; produces zero-height bars |
+| Issue                                                      | Impact                                                                                                                                           |
+| ---------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `gap` ignored during chart `add`                           | Must apply via separate `set` command                                                                                                            |
+| Cell merge produces validation errors                      | PowerPoint renders correctly; note in delivery                                                                                                   |
+| Cell-level `color` on table cells causes validation errors | Use row-level `color` instead                                                                                                                    |
+| Custom gradient stops (`@`) fail on slide backgrounds      | Use 2-color or 3-color gradients only                                                                                                            |
+| Combo chart requires both `comboSplit=1` and `secondary=2` | Missing either renders incorrectly                                                                                                               |
+| Dual-axis scale mismatch makes smaller series invisible    | **HARD RULE:** If ranges differ >10x, MUST split into two separate charts. See creating.md D.4                                                   |
+| Stat values wrap at 60pt in 7cm width                      | **HARD RULE:** Max 4 chars for `$X.YM` patterns (wide `$`+`.` glyphs); max 5 chars for other values. Use 44-48pt or C.2 (3-stat, 9cm) for longer |
+| Doughnut chart `colors` parameter may not apply            | CLI accepts without error but PowerPoint renders default colors. No workaround. Verify via screenshot                                            |
+| Empty table cell `c1=""` causes validation error           | Use `c1=" "` (space character) instead of empty string                                                                                           |
+| Connector arrows may not all render in batch               | Add connectors in separate batch after shapes; if still missing, add one at a time                                                               |
+| Empty series values (gaps) not supported                   | Use `0` for missing data points; produces zero-height bars                                                                                       |
 
 ---
 
