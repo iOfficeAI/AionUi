@@ -17,7 +17,7 @@ import { useTranslation } from 'react-i18next';
 
 type TestStatus = 'idle' | 'testing' | 'success' | 'fail_cli' | 'fail_acp';
 
-interface EnvVar {
+export interface EnvVar {
   id: string;
   key: string;
   value: string;
@@ -30,7 +30,7 @@ interface InlineAgentEditorProps {
 }
 
 /** Parse a space-separated argument string into an array, respecting quotes. */
-function parseArgsString(input: string): string[] {
+export function parseArgsString(input: string): string[] {
   const args: string[] = [];
   let current = '';
   let inQuote: string | null = null;
@@ -57,7 +57,7 @@ function parseArgsString(input: string): string[] {
   return args;
 }
 
-function envVarsToObject(vars: EnvVar[]): Record<string, string> {
+export function envVarsToObject(vars: EnvVar[]): Record<string, string> {
   const obj: Record<string, string> = {};
   for (const v of vars) {
     const key = v.key.trim();
@@ -66,7 +66,7 @@ function envVarsToObject(vars: EnvVar[]): Record<string, string> {
   return obj;
 }
 
-function objectToEnvVars(obj: Record<string, string> | undefined): EnvVar[] {
+export function objectToEnvVars(obj: Record<string, string> | undefined): EnvVar[] {
   if (!obj || Object.keys(obj).length === 0) return [];
   return Object.entries(obj).map(([key, value]) => ({ id: uuid(), key, value }));
 }
