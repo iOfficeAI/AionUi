@@ -4,7 +4,6 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import type { TChatConversation } from '@/common/config/storage';
 import { getAgentLogo } from '@/renderer/utils/model/agentLogo';
 import FlexFullContainer from '@/renderer/components/layout/FlexFullContainer';
 import { usePresetAssistantInfo } from '@/renderer/hooks/agent/usePresetAssistantInfo';
@@ -87,6 +86,16 @@ const ConversationRow: React.FC<ConversationRowProps> = (props) => {
     onConversationClick(conversation);
   };
 
+  const handleRowContextMenu = (event: React.MouseEvent<HTMLDivElement>) => {
+    event.preventDefault();
+    event.stopPropagation();
+    cleanupSiderTooltips();
+    if (batchMode) {
+      return;
+    }
+    onOpenMenu(conversation);
+  };
+
   const renderCompletionUnreadDot = () => {
     if (batchMode || !hasCompletionUnread || isGenerating) {
       return null;
@@ -117,6 +126,7 @@ const ConversationRow: React.FC<ConversationRowProps> = (props) => {
           }
         )}
         onClick={handleRowClick}
+        onContextMenu={handleRowContextMenu}
       >
         {batchMode && (
           <span
