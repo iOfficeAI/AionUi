@@ -8,7 +8,7 @@ Convert an OfficeCLI skill into a fully wired AionUi assistant preset, or update
 /package-assistant <skill-name> [assistant-id] [avatar]
 ```
 
-- `<skill-name>` — Name of the skill directory under `/Users/veryliu/Documents/GitHub/officecli/skills/` (e.g. `docx`, `pptx`, `xlsx`, `data-dashboard`)
+- `<skill-name>` — Name of the skill directory under `/Users/veryliu/Documents/GitHub/officecli/skills/` (e.g. `officecli-docx`, `officecli-pptx`, `officecli-xlsx`, `officecli-data-dashboard`)
 - `[assistant-id]` — Optional. ID for the new assistant (defaults to `<skill-name>-creator`)
 - `[avatar]` — Optional. Emoji avatar (defaults to auto-selected based on skill type)
 
@@ -20,7 +20,7 @@ Arguments: $ARGUMENTS
 
 Before doing anything, check whether this skill has already been packaged:
 
-1. Check if `aionui/src/process/resources/skills/officecli-<skill-name>/` exists
+1. Check if `aionui/src/process/resources/skills/<skill-name>/` exists
 2. Check if the assistant-id already appears in `assistantPresets.ts`
 
 - **Both exist** → **Update mode**: Only re-copy skill files (Step 1). Skip Steps 2–4.
@@ -32,9 +32,10 @@ Before doing anything, check whether this skill has already been packaged:
 ## Step 1 — Copy Skill Files
 
 1. Read all files from `officecli/skills/<skill-name>/` (SKILL.md, creating.md, editing.md, reference/, etc.)
-2. Create target directory at `aionui/src/process/resources/skills/officecli-<skill-name>/`
+2. Create target directory at `aionui/src/process/resources/skills/<skill-name>/` — **directory name must be identical** to the officecli source directory name (both repos use the same `officecli-xxx` naming convention)
 3. Copy all files, but apply these transformations to SKILL.md:
    - **Remove version comments**: Delete any `# officecli: vX.X.X` line from inside the frontmatter. AionUi's frontmatter parser (`/^---\s*\n([\s\S]*?)\n---/`) requires clean YAML — version tracking comments break parsing and skills won't appear in the Skills Center.
+   - **Verify `name` field matches directory name**: The `name` field in SKILL.md frontmatter **MUST match the skill directory name exactly**. Both officecli and aionui use the same directory name (e.g. `officecli-docx`), so the `name` field should already be correct. If not, fix it. Mismatches cause: `params/name must be equal to one of the allowed values`.
    - **Keep frontmatter fields**: `name` and `description` must stay intact
    - **Keep BEFORE YOU START section**: The officecli install/update check section must be preserved — it's critical for users who don't have officecli installed
 4. Copy creating.md, editing.md, and any other files (reference/ directories, etc.) as-is
@@ -105,7 +106,7 @@ Add a new entry to `ASSISTANT_PRESETS` array in `aionui/src/common/config/preset
     'en-US': '<assistant-id>.md',
     'zh-CN': '<assistant-id>.zh-CN.md',
   },
-  defaultEnabledSkills: ['officecli-<skill-name>'],
+  defaultEnabledSkills: ['<skill-name>'],
   nameI18n: {
     'en-US': '<English Name>',
     'zh-CN': '<Chinese Name>',
@@ -155,8 +156,7 @@ Add a new entry to `ASSISTANT_PRESETS` array in `aionui/src/common/config/preset
 - The `_builtin/office-cli` skill already handles officecli discovery, but each skill's "BEFORE YOU START" section provides skill-specific install guidance — keep both.
 - Avatar selection guide: 📝 for docx/word, 📊 for pptx/slides, 📈 for xlsx/excel, 📉 for dashboards/data, ✨ for morph/animation
 - All assistants use `presetAgentType: 'gemini'` as default
-- Skill directory in aionui uses `officecli-` prefix to distinguish from legacy python-based skills
-- If the skill name already starts with a non-officecli prefix (like `data-dashboard`), the aionui skill dir is still `officecli-<full-name>` (e.g. `officecli-data-dashboard`)
+- Both officecli and aionui use the same `officecli-xxx` directory naming convention. The skill directory name, SKILL.md `name` field, and `defaultEnabledSkills` entry must all be identical (e.g. `officecli-docx`). Exception: `morph-ppt` does not use the prefix.
 
 ## Existing Assistants Reference
 
