@@ -1155,6 +1155,7 @@ class AcpAgentManager extends BaseAgentManager<AcpAgentManagerData, AcpPermissio
         const updatedExtra = {
           ...conversation.extra,
           acpSessionId: sessionId,
+          acpSessionConversationId: this.conversation_id,
           acpSessionUpdatedAt: Date.now(),
         };
         db.updateConversation(this.conversation_id, {

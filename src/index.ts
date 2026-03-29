@@ -316,6 +316,23 @@ const createWindow = (): void => {
 
   mainWindow.webContents.on('render-process-gone', (_event, details) => {
     console.error('[AionUi] render-process-gone:', details);
+
+    // Reload the renderer to recover from the crash.
+    // The isDestroyed() guard in adapter/main.ts prevents further sends
+    // to the dead webContents while the reload is in progress.
+    if (!mainWindow.isDestroyed()) {
+      console.log('[AionUi] Attempting to recover from renderer crash by reloading...');
+
+      if (!app.isPackaged && rendererUrl) {
+        mainWindow.loadURL(rendererUrl).catch((error) => {
+          console.error('[AionUi] Recovery loadURL failed:', error.message || error);
+        });
+      } else {
+        mainWindow.loadFile(fallbackFile).catch((error) => {
+          console.error('[AionUi] Recovery loadFile failed:', error.message || error);
+        });
+      }
+    }
   });
 
   mainWindow.webContents.on('unresponsive', () => {

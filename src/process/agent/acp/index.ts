@@ -104,6 +104,8 @@ export interface AcpAgentConfig {
     agentName?: string;
     /** ACP session ID for resume support / ACP session ID 用于会话恢复 */
     acpSessionId?: string;
+    /** Conversation ID that owns the ACP session / 拥有该 ACP session 的会话 ID */
+    acpSessionConversationId?: string;
     /** Last update time of ACP session / ACP session 最后更新时间 */
     acpSessionUpdatedAt?: number;
     /** Initial model ID to apply at session start (from channel config or persisted user choice) */
@@ -132,6 +134,8 @@ export class AcpAgent {
     agentName?: string;
     /** ACP session ID for resume support / ACP session ID 用于会话恢复 */
     acpSessionId?: string;
+    /** Conversation ID that owns the ACP session / 拥有该 ACP session 的会话 ID */
+    acpSessionConversationId?: string;
     /** Last update time of ACP session / ACP session 最后更新时间 */
     acpSessionUpdatedAt?: number;
     /** Initial model ID to apply at session start (from channel config or persisted user choice) */
@@ -1424,12 +1428,16 @@ export class AcpAgent {
    */
   private async createOrResumeSession(): Promise<void> {
     const resumeSessionId = this.extra.acpSessionId;
+    const resumeConversationId = this.extra.acpSessionConversationId;
     const mcpServers = await this.loadBuiltinSessionMcpServers();
 
-    // If we have a stored session ID, attempt to resume it.
-    // Resume can fail when the ACP bridge package changed (e.g. claude-code-acp → claude-agent-acp)
-    // or the session simply expired. In that case, fall back to creating a fresh session.
-    if (resumeSessionId) {
+    // Validate session ownership: only resume if the stored session belongs to this conversation.
+    if (resumeSessionId && resumeConversationId && resumeConversationId !== this.id) {
+      console.warn(
+        `[AcpAgent] Session ${resumeSessionId} belongs to conversation ${resumeConversationId}, ` +
+          `but current conversation is ${this.id}. Discarding stale session and starting fresh.`
+      );
+    } else if (resumeSessionId) {
       try {
         let response: { sessionId?: string };
 
