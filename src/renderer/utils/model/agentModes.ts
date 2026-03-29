@@ -30,7 +30,7 @@ export interface AgentModeOption {
  *
  * Note:
  * - Claude: supports session/set_mode via ACP
- *   - Modes: default (execute), plan, bypassPermissions (YOLO)
+ *   - Modes: default, acceptEdits, plan, auto, bypassPermissions (YOLO), dontAsk
  * - Qwen: ACP session/set_mode returns success but does not enforce plan mode behavior.
  *   Plan mode disabled until upstream fix. See https://github.com/QwenLM/qwen-code/issues/1806
  * - OpenCode: plan/build modes via ACP session/set_mode (no yolo support)
@@ -43,8 +43,11 @@ export interface AgentModeOption {
 export const AGENT_MODES: Record<string, AgentModeOption[]> = {
   claude: [
     { value: 'default', label: 'Default' },
+    { value: 'acceptEdits', label: 'Accept Edits', description: 'Auto-approve file edits, prompt for commands' },
     { value: 'plan', label: 'Plan' },
+    { value: 'auto', label: 'Auto', description: 'Autonomous execution with safety classifier' },
     { value: 'bypassPermissions', label: 'YOLO' },
+    { value: 'dontAsk', label: "Don't Ask", description: 'Block all actions except pre-approved rules' },
   ],
   // Qwen: ACP session/set_mode returns success but does not enforce plan mode behavior.
   // Plan mode disabled until upstream fix. See https://github.com/QwenLM/qwen-code/issues/1806
