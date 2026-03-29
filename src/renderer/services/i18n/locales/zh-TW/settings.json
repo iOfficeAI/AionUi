@@ -694,6 +694,26 @@
     "agent": "對話Agent",
     "agentDesc": "用於與Channel進行對話"
   },
+  "weixin": {
+    "accountId": "帳號 ID",
+    "scanPrompt": "請用微信掃描二維碼",
+    "loginButton": "掃碼登入",
+    "connected": "已連接",
+    "disconnect": "斷開連接",
+    "scanned": "已掃碼，等待確認...",
+    "pluginEnabled": "微信頻道已啟用",
+    "pluginDisabled": "微信頻道已停用",
+    "enableFailed": "啟用微信插件失敗",
+    "disableFailed": "斷開連接失敗",
+    "loginExpired": "二維碼已過期，請重試",
+    "loginError": "微信登入失敗",
+    "agent": "對話Agent",
+    "agentDesc": "用於與Channel進行對話",
+    "defaultModelDesc": "用於Agent對話時調用",
+    "step1": "在微信中找到並給你的機器人發送任意消息",
+    "step2": "配對請求會顯示在下方，點擊「批准」授權用戶",
+    "step3": "授權成功後，即可通過微信與 AI 助手對話"
+  },
   "extensionAssistantReadonly": "擴展助手為唯讀，你可以複製它並編輯副本。",
   "agentManagement": {
     "localAgents": "本機 Agents",

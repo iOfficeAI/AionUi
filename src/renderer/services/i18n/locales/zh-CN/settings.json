@@ -692,6 +692,26 @@
     "agent": "对话Agent",
     "agentDesc": "用于与Channel进行对话"
   },
+  "weixin": {
+    "accountId": "账号 ID",
+    "scanPrompt": "请用微信扫描二维码",
+    "loginButton": "扫码登录",
+    "connected": "已连接",
+    "disconnect": "断开连接",
+    "scanned": "已扫码，等待确认...",
+    "pluginEnabled": "微信频道已启用",
+    "pluginDisabled": "微信频道已禁用",
+    "enableFailed": "启用微信插件失败",
+    "disableFailed": "断开连接失败",
+    "loginExpired": "二维码已过期，请重试",
+    "loginError": "微信登录失败",
+    "agent": "对话Agent",
+    "agentDesc": "用于与Channel进行对话",
+    "defaultModelDesc": "用于Agent对话时调用",
+    "step1": "在微信中找到并给你的机器人发送任意消息",
+    "step2": "配对请求会显示在下方，点击「批准」授权用户",
+    "step3": "授权成功后，即可通过微信与 AI 助手对话"
+  },
   "addAssistant": "添加助手",
   "extensionAssistantReadonly": "扩展助手为只读，你可以复制它并编辑副本。",
   "agentManagement": {

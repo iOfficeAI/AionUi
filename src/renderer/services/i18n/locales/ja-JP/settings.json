@@ -694,6 +694,26 @@
     "agent": "エージェント",
     "agentDesc": "DingTalk の会話に使用"
   },
+  "weixin": {
+    "accountId": "アカウント ID",
+    "scanPrompt": "WeChat で QR コードをスキャンしてください",
+    "loginButton": "スキャンしてログイン",
+    "connected": "接続済み",
+    "disconnect": "切断",
+    "scanned": "スキャン済み、確認を待っています...",
+    "pluginEnabled": "WeChat チャンネルが有効になりました",
+    "pluginDisabled": "WeChat チャンネルが無効になりました",
+    "enableFailed": "WeChat プラグインの有効化に失敗しました",
+    "disableFailed": "切断に失敗しました",
+    "loginExpired": "QR コードの有効期限が切れました。もう一度お試しください",
+    "loginError": "WeChat ログインに失敗しました",
+    "agent": "エージェント",
+    "agentDesc": "WeChat の会話に使用",
+    "defaultModelDesc": "WeChat の会話に使用するモデル",
+    "step1": "WeChat でボットを見つけてメッセージを送信してください",
+    "step2": "ペアリングリクエストが下に表示されます。「承認」をクリックしてユーザーを承認してください",
+    "step3": "承認後、WeChat を通じて AI アシスタントとチャットできます！"
+  },
   "extensionAssistantReadonly": "拡張アシスタントは読み取り専用です。複製して編集することができます。",
   "agentManagement": {
     "localAgents": "ローカルエージェント",

@@ -692,6 +692,26 @@
     "agent": "Ajan",
     "agentDesc": "DingTalk sohbetleri icin kullanilir"
   },
+  "weixin": {
+    "accountId": "Hesap ID",
+    "scanPrompt": "WeChat ile QR kodunu tarayin",
+    "loginButton": "Tarayarak giris yap",
+    "connected": "Bagli",
+    "disconnect": "Baglanti kes",
+    "scanned": "Tarandi, onay bekleniyor...",
+    "pluginEnabled": "WeChat kanali etkinlestirildi",
+    "pluginDisabled": "WeChat kanali devre disi birakildi",
+    "enableFailed": "WeChat eklentisi etkinlestirilemedi",
+    "disableFailed": "Baglanti kesilemedi",
+    "loginExpired": "QR kodunun suresi doldu, tekrar deneyin",
+    "loginError": "WeChat girisi basarisiz",
+    "agent": "Ajan",
+    "agentDesc": "WeChat sohbetleri icin kullanilir",
+    "defaultModelDesc": "WeChat sohbetleri icin kullanilan model",
+    "step1": "WeChat'te botunuzu bulun ve bir mesaj gonderin",
+    "step2": "Bir eslesme istegi asagida gorunecektir. Kullaniciyi yetkilendirmek icin \"Onayla\"'ya tiklayin",
+    "step3": "Onaylandiktan sonra, WeChat uzerinden AI asistani ile sohbet edebilirsiniz!"
+  },
   "extensionAssistantReadonly": "Uzantı asistanları salt okunurdur. Kopyalayıp düzenleyebilirsiniz.",
   "agentManagement": {
     "localAgents": "Yerel Ajanlar",

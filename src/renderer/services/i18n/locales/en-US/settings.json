@@ -692,6 +692,26 @@
     "agent": "Agent",
     "agentDesc": "Used for DingTalk conversations"
   },
+  "weixin": {
+    "accountId": "Account ID",
+    "scanPrompt": "Please scan the QR code with WeChat",
+    "loginButton": "Scan to Login",
+    "connected": "Connected",
+    "disconnect": "Disconnect",
+    "scanned": "Scanned, waiting for confirmation...",
+    "pluginEnabled": "WeChat channel enabled",
+    "pluginDisabled": "WeChat channel disabled",
+    "enableFailed": "Failed to enable WeChat plugin",
+    "disableFailed": "Failed to disconnect",
+    "loginExpired": "QR code expired, please try again",
+    "loginError": "WeChat login failed",
+    "agent": "Agent",
+    "agentDesc": "Used for WeChat conversations",
+    "defaultModelDesc": "Model used for WeChat conversations",
+    "step1": "Find and send a message to your bot in WeChat",
+    "step2": "A pairing request will appear below. Click \"Approve\" to authorize the user.",
+    "step3": "Once approved, you can start chatting with the AI assistant through WeChat!"
+  },
   "extensionAssistantReadonly": "Extension assistants are read-only. You can duplicate it and edit the copy.",
   "agentManagement": {
     "localAgents": "Local Agents",
