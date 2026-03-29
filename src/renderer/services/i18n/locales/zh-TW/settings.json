@@ -54,7 +54,6 @@
   "customCss": "Custom CSS",
   "customCssDesc": "Enter custom CSS styles here to modify the interface appearance. The system will automatically add !important to ensure highest priority. Changes will take effect immediately.",
   "assistants": "助理",
-  "acp": "Agents",
   "agents": "Agents",
   "assistantsList": "可用助理清單",
   "assistantsEmpty": "目前沒有可用的助理。",

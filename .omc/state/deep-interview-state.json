@@ -1,0 +1,16 @@
+{
+  "active": true,
+  "current_phase": "execution-bridge",
+  "interview_id": "di-1729-custom-acp",
+  "type": "brownfield",
+  "current_ambiguity": "0.15",
+  "threshold": "0.20",
+  "rounds_completed": "6",
+  "spec_path": ".omc/specs/deep-interview-custom-acp-agent.md",
+  "_meta": {
+    "mode": "deep-interview",
+    "sessionId": null,
+    "updatedAt": "2026-03-27T07:43:26.303Z",
+    "updatedBy": "state_write_tool"
+  }
+}

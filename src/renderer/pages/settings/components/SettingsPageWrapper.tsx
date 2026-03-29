@@ -54,12 +54,6 @@ export function getBuiltinSettingsNavItems(isDesktop: boolean, t: TranslateFn): 
       icon: <Puzzle theme='outline' size='16' />,
       path: 'skills-hub',
     },
-    acp: {
-      id: 'acp',
-      label: t('settings.acp', { defaultValue: 'ACP' }),
-      icon: <Toolkit theme='outline' size='16' />,
-      path: 'acp',
-    },
     tools: { id: 'tools', label: t('settings.tools'), icon: <Toolkit theme='outline' size='16' />, path: 'tools' },
     display: {
       id: 'display',

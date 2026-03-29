@@ -54,7 +54,6 @@
   "customCss": "사용자 정의 CSS",
   "customCssDesc": "인터페이스 모양을 수정하려면 여기에 사용자 정의 CSS 스타일을 입력하세요. 시스템은 !important를 자동으로 추가하여 가장 높은 우선 순위를 보장합니다. 변경 사항은 즉시 적용됩니다.",
   "assistants": "어시스턴트",
-  "acp": "Agents",
   "agents": "에이전트",
   "assistantsList": "사용 가능한 어시스턴트",
   "assistantsEmpty": "구성된 어시스턴트가 없습니다.",
