@@ -25,7 +25,7 @@ No arguments required. The daemon script `scripts/pr-automation.sh` manages the 
 
 ```
 TRUSTED_CONTRIBUTORS_TEAM: detected from REPO org (e.g. iOfficeAI/trusted-contributors)
-CRITICAL_PATH_PATTERN: (empty — define when needed, e.g. ^src/preload\.ts|^src/process/channels/)
+CRITICAL_PATH_PATTERN: ^\.claude/skills/|^scripts/pr-automation\.sh
 LARGE_PR_FILE_THRESHOLD: 50
 PR_DAYS_LOOKBACK: 7 (env var — override via PR_DAYS_LOOKBACK=N when starting the daemon)
 ```
@@ -241,7 +241,7 @@ Otherwise, compute merge gate:
 ```bash
 BASE_REF=$(gh pr view <PR_NUMBER> --json baseRefName --jq '.baseRefName')
 FILES_CHANGED=$(git diff origin/${BASE_REF}...HEAD --name-only | wc -l | tr -d ' ')
-CRITICAL_PATH_PATTERN=""
+# CRITICAL_PATH_PATTERN: defined in Configuration section above
 HAS_CRITICAL=false
 [ -n "$CRITICAL_PATH_PATTERN" ] && \
   git diff origin/${BASE_REF}...HEAD --name-only | grep -qE "$CRITICAL_PATH_PATTERN" && \
@@ -454,9 +454,7 @@ BASE_REF=$(gh pr view <PR_NUMBER> --json baseRefName --jq '.baseRefName')
 
 FILES_CHANGED=$(git diff origin/${BASE_REF}...HEAD --name-only | wc -l | tr -d ' ')
 
-# CRITICAL_PATH_PATTERN is empty by default.
-# Add patterns here when needed, e.g. "^src/preload\.ts|^src/process/channels/"
-CRITICAL_PATH_PATTERN=""
+# CRITICAL_PATH_PATTERN: defined in Configuration section above
 if [ -n "$CRITICAL_PATH_PATTERN" ]; then
   HAS_CRITICAL=$(git diff origin/${BASE_REF}...HEAD --name-only \
     | grep -qE "$CRITICAL_PATH_PATTERN" && echo true || echo false)
