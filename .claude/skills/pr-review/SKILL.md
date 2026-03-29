@@ -74,7 +74,9 @@ gh pr view <PR_NUMBER> --json statusCheckRollup \
 
 **解析逻辑：** 分三种情形处理：
 
-**情形 1 — 全部通过**（所有必检 job 均满足 `status == COMPLETED && conclusion == SUCCESS`，**且** `statusCheckRollup` 中无任何 job 的 `conclusion` 为 `FAILURE` 或 `CANCELLED`）
+**Informational checks exclusion:** `codecov/patch` and `codecov/project` are configured as `informational: true` in `codecov.yml` — they never block merging and must be **excluded** from all failure checks below. Treat them as non-existent when evaluating CI status.
+
+**情形 1 — 全部通过**（所有必检 job 均满足 `status == COMPLETED && conclusion == SUCCESS`，**且** `statusCheckRollup` 中无任何**非 informational** job 的 `conclusion` 为 `FAILURE` 或 `CANCELLED`；`codecov/*` 失败不影响此判断）
 
 直接继续后续步骤，无需提示。
 
@@ -98,7 +100,7 @@ gh pr view <PR_NUMBER> --json statusCheckRollup \
   ```
   Then exit.
 
-**情形 3 — 存在失败**（`statusCheckRollup` 中存在**任意** job 的 `conclusion` 为 `FAILURE` 或 `CANCELLED`，不限于必检列表）
+**情形 3 — 存在失败**（`statusCheckRollup` 中存在**任意非 informational** job 的 `conclusion` 为 `FAILURE` 或 `CANCELLED`，不限于必检列表；`codecov/*` 始终排除在外）
 
 显示警告并询问：
 
@@ -267,6 +269,7 @@ Review dimensions:
   - 修改了逻辑但未更新已有相关测试
   - 新增的源文件被 `vitest.config.ts` 的 `coverage.exclude` 意外排除（即本应计入覆盖但被错误排除）
   - 已有测试不符合 testing skill Step 2 的质量规则
+  - `codecov/patch` CI check 显示 FAILURE（patch 覆盖率低于 50%）：虽然 `codecov.yml` 将此 check 设为 `informational: true`（不阻塞合并），但覆盖率不足说明本次改动新增代码缺乏测试，应在 review 中指出（级别 LOW，供作者参考）
 - **可测试性** — 变更后的代码是否仍可独立测试；依赖是否可 mock；
   是否与已有模块保持解耦；能否在不依赖完整运行环境的情况下运行单元测试。
   发现耦合时区分来源：
