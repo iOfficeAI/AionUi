@@ -110,6 +110,8 @@ export interface AcpAgentConfig {
     acpSessionUpdatedAt?: number;
     /** Initial model ID to apply at session start (from channel config or persisted user choice) */
     currentModelId?: string;
+    /** Initial session mode to apply at session start (e.g., acceptEdits, auto, dontAsk, plan) */
+    sessionMode?: string;
   };
   onStreamEvent: (data: IResponseMessage) => void;
   onSignalEvent?: (data: IResponseMessage) => void; // 新增：仅发送信号，不更新UI
@@ -140,6 +142,8 @@ export class AcpAgent {
     acpSessionUpdatedAt?: number;
     /** Initial model ID to apply at session start (from channel config or persisted user choice) */
     currentModelId?: string;
+    /** Initial session mode to apply at session start (e.g., acceptEdits, auto, dontAsk, plan) */
+    sessionMode?: string;
   };
   private connection: AcpConnection;
   private adapter: AcpAdapter;
@@ -339,18 +343,12 @@ export class AcpAgent {
         };
         const sessionMode = yoloModeMap[this.extra.backend];
         if (sessionMode) {
-          try {
-            const modeStart = Date.now();
-            await this.connection.setSessionMode(sessionMode);
-            if (ACP_PERF_LOG) console.log(`[ACP-PERF] start: session mode set ${Date.now() - modeStart}ms`);
-          } catch (error) {
-            const errorMessage = error instanceof Error ? error.message : String(error);
-            throw new Error(
-              `[ACP] Failed to enable ${this.extra.backend} YOLO mode (${sessionMode}): ${errorMessage}`,
-              { cause: error }
-            );
-          }
+          await this.applySessionMode(sessionMode, true, `${this.extra.backend} YOLO mode`);
         }
+      } else if (this.extra.sessionMode && this.extra.sessionMode !== 'default') {
+        // Apply non-default, non-YOLO session mode (e.g., acceptEdits, auto, dontAsk, plan)
+        // so the CLI backend reflects the mode selected by the user on the Guid page.
+        await this.applySessionMode(this.extra.sessionMode, false, `session mode`);
       }
 
       // Apply model from ~/.claude/settings.json for Claude backend.
@@ -402,6 +400,26 @@ export class AcpAgent {
       if (ACP_PERF_LOG) console.log(`[ACP-PERF] start: failed after ${Date.now() - startTotal}ms`);
       this.emitStatusMessage('error');
       throw error;
+    }
+  }
+
+  /**
+   * Apply a session mode via the ACP connection.
+   * @param mode   The mode string to set (e.g., 'bypassPermissions', 'acceptEdits').
+   * @param fatal  If true, throw on failure (YOLO — must succeed); if false, warn and continue.
+   * @param label  Human-readable label for log messages (e.g., 'claude YOLO mode').
+   */
+  private async applySessionMode(mode: string, fatal: boolean, label: string): Promise<void> {
+    try {
+      const modeStart = Date.now();
+      await this.connection.setSessionMode(mode);
+      if (ACP_PERF_LOG) console.log(`[ACP-PERF] start: session mode set ${Date.now() - modeStart}ms`);
+    } catch (error) {
+      const msg = error instanceof Error ? error.message : String(error);
+      if (fatal) {
+        throw new Error(`[ACP] Failed to enable ${label} (${mode}): ${msg}`, { cause: error });
+      }
+      console.warn(`[ACP] Failed to set session mode "${mode}": ${msg}`);
     }
   }
 
