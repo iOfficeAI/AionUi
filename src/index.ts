@@ -31,7 +31,7 @@ import { setInitialLanguage } from '@process/services/i18n';
 import { workerTaskManager } from './process/task/workerTaskManagerSingleton';
 import { setupApplicationMenu } from './process/utils/appMenu';
 import { startWebServer } from './process/webserver';
-import { applyZoomToWindow } from './process/utils/zoom';
+import { applyZoomToWindow, initializeZoomFactor } from './process/utils/zoom';
 import {
   clearPendingDeepLinkUrl,
   getPendingDeepLinkUrl,
@@ -417,6 +417,14 @@ const handleAppReady = async (): Promise<void> => {
     console.error('Failed to initialize process:', error);
     app.exit(1);
     return;
+  }
+
+  try {
+    initializeZoomFactor(await ProcessConfig.get('ui.zoomFactor'));
+    mark('initializeZoomFactor');
+  } catch (error) {
+    console.error('[AionUi] Failed to restore zoom factor:', error);
+    initializeZoomFactor(undefined);
   }
 
   if (isResetPasswordMode) {

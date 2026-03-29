@@ -8,6 +8,7 @@ import type { BrowserWindow } from 'electron';
 import { app } from 'electron';
 import { ipcBridge } from '@/common';
 import type { IWorkerTaskManager } from '@process/task/IWorkerTaskManager';
+import { ProcessConfig } from '@process/utils/initStorage';
 import { getZoomFactor, setZoomFactor } from '@process/utils/zoom';
 import { getCdpStatus, updateCdpConfig } from '@process/utils/configureChromium';
 import { initApplicationBridgeCore } from './applicationBridgeCore';
@@ -72,8 +73,14 @@ export function initApplicationBridge(workerTaskManager: IWorkerTaskManager): vo
 
   ipcBridge.application.getZoomFactor.provider(() => Promise.resolve(getZoomFactor()));
 
-  ipcBridge.application.setZoomFactor.provider(({ factor }) => {
-    return Promise.resolve(setZoomFactor(factor));
+  ipcBridge.application.setZoomFactor.provider(async ({ factor }) => {
+    const updatedFactor = setZoomFactor(factor);
+    try {
+      await ProcessConfig.set('ui.zoomFactor', updatedFactor);
+    } catch (error) {
+      console.error('[ApplicationBridge] Failed to persist zoom factor:', error);
+    }
+    return updatedFactor;
   });
 
   // CDP status and configuration

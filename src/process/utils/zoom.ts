@@ -23,6 +23,12 @@ const clampZoomFactor = (value: number): number => {
 // 获取当前全局缩放值（供 renderer 查询显示）/ Expose current zoom for renderer state syncing
 export const getZoomFactor = (): number => currentZoomFactor;
 
+// 用持久化值初始化缩放，供应用启动时恢复 / Restore zoom from persisted config during startup
+export const initializeZoomFactor = (factor: number | undefined): number => {
+  currentZoomFactor = clampZoomFactor(factor ?? UI_SCALE_DEFAULT);
+  return currentZoomFactor;
+};
+
 // 在新建窗口时应用最近一次缩放值 / Apply stored zoom to a newly created window
 export const applyZoomToWindow = (win: BrowserWindow): void => {
   win.webContents.setZoomFactor(currentZoomFactor);
