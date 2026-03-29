@@ -1,5 +1,6 @@
 import React, { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
-import { withCsrfToken } from '@process/webserver/middleware/csrfClient';
+import { withCsrfToken, hasValidCsrfToken, clearCookie } from '@process/webserver/middleware/csrfClient';
+import { CSRF_COOKIE_NAME } from '@process/webserver/config/constants';
 
 type AuthStatus = 'checking' | 'authenticated' | 'unauthenticated';
 
@@ -14,12 +15,19 @@ interface LoginParams {
   remember?: boolean;
 }
 
-type LoginErrorCode = 'invalidCredentials' | 'tooManyAttempts' | 'serverError' | 'networkError' | 'unknown';
+type LoginErrorCode =
+  | 'invalidCredentials'
+  | 'tooManyAttempts'
+  | 'serverError'
+  | 'networkError'
+  | 'csrfError'
+  | 'unknown';
 
 interface LoginResult {
   success: boolean;
   message?: string;
   code?: LoginErrorCode;
+  shouldClearCache?: boolean;
 }
 
 interface AuthContextValue {
@@ -29,6 +37,7 @@ interface AuthContextValue {
   login: (params: LoginParams) => Promise<LoginResult>;
   logout: () => Promise<void>;
   refresh: () => Promise<void>;
+  clearAuthCache: () => void;
 }
 
 const AuthContext = createContext<AuthContextValue | undefined>(undefined);
@@ -36,6 +45,30 @@ const AuthContext = createContext<AuthContextValue | undefined>(undefined);
 const AUTH_USER_ENDPOINT = '/api/auth/user';
 
 const isDesktopRuntime = typeof window !== 'undefined' && Boolean(window.electronAPI);
+
+// Clear expired auth cache including cookies and localStorage
+// 清除过期的认证缓存，包括 Cookie 和 localStorage
+function clearAuthCache(): void {
+  if (typeof window === 'undefined') return;
+
+  try {
+    // Clear CSRF cookie
+    clearCookie(CSRF_COOKIE_NAME);
+    clearCookie(CSRF_COOKIE_NAME, '/');
+
+    // Clear localStorage auth-related items
+    const keysToRemove: string[] = [];
+    for (let i = 0; i < localStorage.length; i++) {
+      const key = localStorage.key(i);
+      if (key && (key.includes('auth') || key.includes('csrf') || key.includes('token'))) {
+        keysToRemove.push(key);
+      }
+    }
+    keysToRemove.forEach((key) => localStorage.removeItem(key));
+  } catch (error) {
+    console.error('Failed to clear auth cache:', error);
+  }
+}
 
 async function fetchCurrentUser(signal?: AbortSignal): Promise<AuthUser | null> {
   try {
@@ -49,7 +82,10 @@ async function fetchCurrentUser(signal?: AbortSignal): Promise<AuthUser | null> 
       return null;
     }
 
-    const data = (await response.json()) as { success: boolean; user?: AuthUser };
+    const data = (await response.json()) as {
+      success: boolean;
+      user?: AuthUser;
+    };
     if (data.success && data.user) {
       return data.user;
     }
@@ -107,6 +143,15 @@ export const AuthProvider: React.FC<React.PropsWithChildren> = ({ children }) =>
         return { success: true };
       }
 
+      // Check CSRF token availability before login
+      // If token is missing, clear cache and inform user
+      const csrfTokenValid = hasValidCsrfToken();
+      if (!csrfTokenValid) {
+        console.warn('CSRF token missing or invalid, clearing cache');
+        clearAuthCache();
+        // Allow login to proceed anyway - server will set new token
+      }
+
       // P1 安全修复：登录请求需要 CSRF Token / P1 Security fix: Login needs CSRF token
       const response = await fetch('/login', {
         method: 'POST',
@@ -125,18 +170,37 @@ export const AuthProvider: React.FC<React.PropsWithChildren> = ({ children }) =>
 
       if (!response.ok || !data.success || !data.user) {
         let code: LoginErrorCode = 'unknown';
+        let message = data?.message ?? 'Login failed';
+        let shouldClearCache = false;
+
         if (response.status === 401) {
           code = 'invalidCredentials';
+        } else if (response.status === 403) {
+          // CSRF validation failed - clear cache
+          code = 'csrfError';
+          message = 'Security token expired. Please try again.';
+          shouldClearCache = true;
         } else if (response.status === 429) {
           code = 'tooManyAttempts';
         } else if (response.status >= 500) {
           code = 'serverError';
+        } else if (!csrfTokenValid) {
+          // If we knew CSRF was invalid and login failed, suggest cache clear
+          code = 'csrfError';
+          message = 'Login failed due to cached data. Please clear your browser cache and try again.';
+          shouldClearCache = true;
+        }
+
+        // Clear cache on CSRF-related errors
+        if (shouldClearCache) {
+          clearAuthCache();
         }
 
         return {
           success: false,
-          message: data?.message ?? 'Login failed',
+          message,
           code,
+          shouldClearCache,
         };
       }
 
@@ -152,6 +216,20 @@ export const AuthProvider: React.FC<React.PropsWithChildren> = ({ children }) =>
       return { success: true };
     } catch (error) {
       console.error('Login request failed:', error);
+
+      // Check if error is related to CSRF token parsing
+      const errorMessage = (error as Error).message;
+      if (errorMessage?.includes('parse') || errorMessage?.includes('csrf') || errorMessage?.includes('cookie')) {
+        // CSRF or cookie parsing error - clear cache
+        clearAuthCache();
+        return {
+          success: false,
+          message: 'Login failed due to cached data. Please clear your browser cache and try again.',
+          code: 'csrfError',
+          shouldClearCache: true,
+        };
+      }
+
       return {
         success: false,
         message: 'Network error. Please try again.',
@@ -183,6 +261,8 @@ export const AuthProvider: React.FC<React.PropsWithChildren> = ({ children }) =>
     } finally {
       setUser(null);
       setStatus('unauthenticated');
+      // Clear cache on logout for security
+      clearAuthCache();
     }
   }, []);
 
@@ -194,6 +274,7 @@ export const AuthProvider: React.FC<React.PropsWithChildren> = ({ children }) =>
       login,
       logout,
       refresh,
+      clearAuthCache,
     }),
     [login, logout, ready, refresh, status, user]
   );
