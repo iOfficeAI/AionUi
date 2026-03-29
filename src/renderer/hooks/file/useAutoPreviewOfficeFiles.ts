@@ -18,9 +18,9 @@ const OFFICE_EXTENSIONS = /\.(pptx|docx|xlsx)$/i;
 
 const BASH_OUTPUT_REGEX = /(?:Saved to|Generated|officecli\S*)\s+(\S+\.(?:pptx|docx|xlsx))/i;
 
-// Matches quoted or unquoted office filenames in shell command descriptions
-// e.g. officecli create "Financial_Dashboard.xlsx" or create report.pptx
-const DESCRIPTION_REGEX = /["']?(\S+\.(?:pptx|docx|xlsx))["']?/i;
+// Matches office filenames in officecli command descriptions.
+// Takes the LAST match so "input.docx output.pptx" resolves to the output file.
+const DESCRIPTION_OFFICE_RE = /["']?([A-Za-z0-9][^"'\s]*\.(?:pptx|docx|xlsx))["']?/gi;
 
 function resolveFilePath(raw: string, workspace: string | undefined): string {
   const isAbsolute = raw.startsWith('/') || /^[A-Za-z]:/.test(raw);
@@ -69,11 +69,15 @@ export const useAutoPreviewOfficeFiles = (messages: TMessage[], workspace: strin
             if (match) filePath = resolveFilePath(match[1], workspace);
           }
 
-          // Shell/Bash fallback: scan the command description for office filenames
-          // e.g. description = 'officecli create "Financial_Dashboard.xlsx" ...'
-          if (!filePath && description) {
-            const match = DESCRIPTION_REGEX.exec(description);
-            if (match) filePath = resolveFilePath(match[1], workspace);
+          // officecli command fallback: description contains the command text, e.g.
+          // 'officecli create "Financial_Dashboard.xlsx"'. Only scan when "officecli"
+          // appears in the description to avoid false positives from non-shell tools
+          // that mention office formats in passing.
+          // Takes the LAST match so "input.docx output.pptx" resolves to output.pptx.
+          if (!filePath && description && description.toLowerCase().includes('officecli')) {
+            const matches = [...description.matchAll(DESCRIPTION_OFFICE_RE)];
+            const last = matches[matches.length - 1];
+            if (last) filePath = resolveFilePath(last[1], workspace);
           }
 
           if (!filePath) continue;
