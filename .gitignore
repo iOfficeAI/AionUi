@@ -197,3 +197,5 @@ resources/bundled-bun
 
 # Server build output
 dist-server/
+.omc/
+.superset/

@@ -1,7 +1,0 @@
-{
-  "tool_name": "Bash",
-  "tool_input_preview": "{\"command\":\"git add /Users/rl.yang/.superset/worktrees/AionUi/buttery-den/src/renderer/pages/settings/components/SettingsPageWrapper.tsx && git commit -m \\\"$(cat <<'EOF'\\nfeat(i18n): add agent section...",
-  "error": "Exit code 1\nOn branch buttery-den\nYour branch is ahead of 'fork/buttery-den' by 84 commits.\n  (use \"git push\" to publish your local commits)\n\nUntracked files:\n  (use \"git add <file>...\" to include in what will be committed)\n\t.omc/\n\t.superset/\n\tdocs/superpowers/plans/2026-03-27-acp-settings-sidebar.md\n\tdocs/superpowers/plans/2026-03-27-custom-acp-agent.md\n\tdocs/superpowers/plans/2026-03-29-acp-agents-integration.md\n\tdocs/superpowers/specs/2026-03-29-acp-agents-integration-design.md\n\nnothing added...",
-  "timestamp": "2026-03-29T08:26:57.319Z",
-  "retry_count": 1
-}

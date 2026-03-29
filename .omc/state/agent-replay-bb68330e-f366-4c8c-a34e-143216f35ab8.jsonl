@@ -1,7 +1,0 @@
-{"t":0,"agent":"system","event":"skill_invoked","skill_name":"superpowers:executing-plans"}
-{"t":0,"agent":"afe9072","agent_type":"executor","event":"agent_start","parent_mode":"none"}
-{"t":0,"agent":"a28e8db","agent_type":"executor","event":"agent_start","parent_mode":"none"}
-{"t":0,"agent":"a35ff6c","agent_type":"executor","event":"agent_start","parent_mode":"none"}
-{"t":0,"agent":"a28e8db","agent_type":"executor","event":"agent_stop","success":true,"duration_ms":63216}
-{"t":0,"agent":"afe9072","agent_type":"executor","event":"agent_stop","success":true,"duration_ms":115948}
-{"t":0,"agent":"a35ff6c","agent_type":"executor","event":"agent_stop","success":true,"duration_ms":65271}
