@@ -8,7 +8,11 @@ import { joinPath } from '@/common/chat/chatLib';
 import type { TMessage } from '@/common/chat/chatLib';
 import { usePreviewContext } from '@/renderer/pages/conversation/Preview';
 import { getFileTypeInfo } from '@/renderer/utils/file/fileType';
-import { useEffect, useRef } from 'react';
+import { useEffect } from 'react';
+
+// Module-level set — persists across conversation navigation (component re-mounts).
+// Ensures each tool call triggers auto-preview at most once per app session.
+const firedSessionIds = new Set<string>();
 
 const OFFICE_EXTENSIONS = /\.(pptx|docx|xlsx)$/i;
 
@@ -35,7 +39,6 @@ function resolveFilePath(raw: string, workspace: string | undefined): string {
  */
 export const useAutoPreviewOfficeFiles = (messages: TMessage[], workspace: string | undefined) => {
   const { findPreviewTab, openPreview } = usePreviewContext();
-  const firedIds = useRef<Set<string>>(new Set());
 
   useEffect(() => {
     for (const message of messages) {
@@ -45,7 +48,7 @@ export const useAutoPreviewOfficeFiles = (messages: TMessage[], workspace: strin
           if (tool.status !== 'Success') continue;
 
           const { callId, name, description, resultDisplay } = tool;
-          if (firedIds.current.has(callId)) continue;
+          if (firedSessionIds.has(callId)) continue;
 
           let filePath: string | null = null;
 
@@ -74,7 +77,7 @@ export const useAutoPreviewOfficeFiles = (messages: TMessage[], workspace: strin
           }
 
           if (!filePath) continue;
-          tryOpenPreview(callId, filePath, workspace, firedIds, findPreviewTab, openPreview);
+          tryOpenPreview(callId, filePath, workspace, findPreviewTab, openPreview);
         }
         continue;
       }
@@ -86,7 +89,7 @@ export const useAutoPreviewOfficeFiles = (messages: TMessage[], workspace: strin
 
         // Use message.id as dedup key — each logical tool call is one merged message
         const id = message.id;
-        if (firedIds.current.has(id)) continue;
+        if (firedSessionIds.has(id)) continue;
 
         let filePath: string | null = null;
 
@@ -106,7 +109,7 @@ export const useAutoPreviewOfficeFiles = (messages: TMessage[], workspace: strin
         }
 
         if (!filePath) continue;
-        tryOpenPreview(id, filePath, workspace, firedIds, findPreviewTab, openPreview);
+        tryOpenPreview(id, filePath, workspace, findPreviewTab, openPreview);
       }
     }
   }, [messages, workspace, findPreviewTab, openPreview]);
@@ -116,7 +119,6 @@ function tryOpenPreview(
   id: string,
   filePath: string,
   workspace: string | undefined,
-  firedIds: React.RefObject<Set<string>>,
   findPreviewTab: ReturnType<typeof usePreviewContext>['findPreviewTab'],
   openPreview: ReturnType<typeof usePreviewContext>['openPreview']
 ): void {
@@ -124,7 +126,7 @@ function tryOpenPreview(
   const fileName = filePath.split(/[\\/]/).pop() ?? filePath;
   const alreadyOpen = findPreviewTab(contentType, '', { filePath, fileName });
 
-  firedIds.current.add(id);
+  firedSessionIds.add(id);
 
   if (!alreadyOpen) {
     openPreview('', contentType, { filePath, fileName, title: fileName, workspace, editable: false });
