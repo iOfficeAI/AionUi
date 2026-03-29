@@ -286,12 +286,12 @@ gh pr view <PR_NUMBER> --json statusCheckRollup \
 
 Required jobs: `Code Quality`, `Unit Tests (ubuntu-latest)`, `Unit Tests (macos-14)`, `Unit Tests (windows-2022)`, `Coverage Test`, `i18n-check`
 
-| Condition                                                                                  | Action                                                                                                                             |
-| ------------------------------------------------------------------------------------------ | ---------------------------------------------------------------------------------------------------------------------------------- |
-| All required jobs SUCCESS **and** no non-informational jobs FAILURE/CANCELLED              | Continue to Step 4.5                                                                                                               |
-| Any **required** job QUEUED or IN_PROGRESS                                                 | Remove `bot:reviewing` → log `[pr-automation:skip] action=ci_running pr=#<PR_NUMBER> reason="CI still running"` → **find next PR** |
-| `statusCheckRollup` empty (CI never triggered)                                             | Approve workflow (see below) → remove `bot:reviewing` → **EXIT**                                                                   |
-| Any **non-informational** job (required or not) FAILURE or CANCELLED (excl. `codecov/*`)  | Check dedup (see below) → **find next PR** or post comment → **EXIT**                                                              |
+| Condition                                                                                | Action                                                                                                                             |
+| ---------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------- |
+| All required jobs SUCCESS **and** no non-informational jobs FAILURE/CANCELLED            | Continue to Step 4.5                                                                                                               |
+| Any **required** job QUEUED or IN_PROGRESS                                               | Remove `bot:reviewing` → log `[pr-automation:skip] action=ci_running pr=#<PR_NUMBER> reason="CI still running"` → **find next PR** |
+| `statusCheckRollup` empty (CI never triggered)                                           | Approve workflow (see below) → remove `bot:reviewing` → **EXIT**                                                                   |
+| Any **non-informational** job (required or not) FAILURE or CANCELLED (excl. `codecov/*`) | Check dedup (see below) → **find next PR** or post comment → **EXIT**                                                              |
 
 **Workflow approval** (CI never triggered):
 
