@@ -12,20 +12,21 @@
 
 ## 文件变更一览
 
-| 路径 | 操作 | 说明 |
-|------|------|------|
-| `.claude/skills/pr-fix/SKILL.md` | 修改 | 删除 LOW 询问（所有模式）；新增 automation 模式 |
-| `.claude/skills/pr-review/SKILL.md` | 修改 | 新增 automation 模式（无交互、自动发布、输出结论块） |
-| `.claude/skills/pr-automation/SKILL.md` | 新建 | 主编排 skill |
-| `scripts/pr-automation.sh` | 新建 | cron 入口脚本（lock + N 实例） |
-| `docs/conventions/pr-automation.md` | 新建 | 面向 agent 和人工的对接文档 |
-| `AGENTS.md` | 修改 | 新增 PR 自动化简介和引用 |
+| 路径                                    | 操作 | 说明                                                 |
+| --------------------------------------- | ---- | ---------------------------------------------------- |
+| `.claude/skills/pr-fix/SKILL.md`        | 修改 | 删除 LOW 询问（所有模式）；新增 automation 模式      |
+| `.claude/skills/pr-review/SKILL.md`     | 修改 | 新增 automation 模式（无交互、自动发布、输出结论块） |
+| `.claude/skills/pr-automation/SKILL.md` | 新建 | 主编排 skill                                         |
+| `scripts/pr-automation.sh`              | 新建 | cron 入口脚本（lock + N 实例）                       |
+| `docs/conventions/pr-automation.md`     | 新建 | 面向 agent 和人工的对接文档                          |
+| `AGENTS.md`                             | 修改 | 新增 PR 自动化简介和引用                             |
 
 ---
 
 ## Task 1: 修改 pr-fix skill — 删除 LOW 询问 + 新增 automation 模式
 
 **Files:**
+
 - Modify: `.claude/skills/pr-fix/SKILL.md`
 
 ### 改动说明
@@ -52,7 +53,7 @@ If **no**, exclude LOW issues from this run.
 
 在 `## Steps` 之前（即 `## Usage` 后），新增一个 `## Mode Detection` 小节：
 
-```markdown
+````markdown
 ## Mode Detection
 
 At the very start of execution, check `$ARGUMENTS` for the `--automation` flag:
@@ -64,8 +65,10 @@ if echo "$ARGUMENTS" | grep -q -- '--automation'; then
   AUTOMATION_MODE=true
 fi
 ```
+````
 
 In **automation mode**:
+
 - Skip all yes/no confirmation prompts — follow the default best path
 - When `isCrossRepository=true` (external fork PR): do NOT abort with an error; instead output the signal below and exit immediately
 - The signal format (output to stdout so pr-automation can detect it):
@@ -76,7 +79,8 @@ SIGNAL: SKIP_EXTERNAL
 PR_NUMBER: <number>
 <!-- /pr-fix-signal -->
 ```
-```
+
+````
 
 **改动 C：外部 fork PR 处理（automation 模式）**
 
@@ -87,7 +91,7 @@ If state is `OPEN` and isCrossRepository is `true`, abort with:
 
 > PR #<PR_NUMBER> is still open and was submitted from an external fork. Direct push is not possible.
 > Please wait for the PR to be merged, then run `/pr-fix` again.
-```
+````
 
 替换为：
 
@@ -95,21 +99,28 @@ If state is `OPEN` and isCrossRepository is `true`, abort with:
 If state is `OPEN` and isCrossRepository is `true`:
 
 - **Non-automation mode:** abort with:
+
   > PR #<PR_NUMBER> is still open and was submitted from an external fork. Direct push is not possible.
   > Please wait for the PR to be merged, then run `/pr-fix` again.
 
 - **Automation mode:** output the signal below and exit cleanly (do NOT proceed with fixes):
-  ```
+```
+
   <!-- pr-fix-signal -->
-  SIGNAL: SKIP_EXTERNAL
-  PR_NUMBER: <PR_NUMBER>
+
+SIGNAL: SKIP_EXTERNAL
+PR_NUMBER: <PR_NUMBER>
+
   <!-- /pr-fix-signal -->
-  ```
+
+```
+
 ```
 
 - [ ] **Step 1: 应用改动 A — 删除 LOW 询问**
 
   用 Edit 工具，找到以下内容：
+
   ```
   **LOW issues — ask user once:**
 
@@ -117,7 +128,9 @@ If state is `OPEN` and isCrossRepository is `true`:
 
   If **no**, exclude LOW issues from this run.
   ```
+
   替换为：
+
   ```
   **LOW issues:** Always include all LOW issues in the fix run — no prompt needed.
   ```
@@ -125,7 +138,8 @@ If state is `OPEN` and isCrossRepository is `true`:
 - [ ] **Step 2: 应用改动 B — 在 `## Steps` 前插入 Mode Detection 节**
 
   用 Edit 工具，在 `## Steps` 前插入：
-  ```markdown
+
+  ````markdown
   ## Mode Detection
 
   At the very start of execution, check `$ARGUMENTS` for the `--automation` flag:
@@ -137,6 +151,7 @@ If state is `OPEN` and isCrossRepository is `true`:
     AUTOMATION_MODE=true
   fi
   ```
+  ````
 
   In **automation mode**:
   - Skip all yes/no confirmation prompts — follow the default best path
@@ -151,16 +166,21 @@ If state is `OPEN` and isCrossRepository is `true`:
 
   ```
 
+  ```
+
 - [ ] **Step 3: 应用改动 C — 修改外部 fork abort 路径**
 
   用 Edit 工具找到：
+
   ```
   If state is `OPEN` and isCrossRepository is `true`, abort with:
 
   > PR #<PR_NUMBER> is still open and was submitted from an external fork. Direct push is not possible.
   > Please wait for the PR to be merged, then run `/pr-fix` again.
   ```
+
   替换为：
+
   ```
   If state is `OPEN` and isCrossRepository is `true`:
 
@@ -169,12 +189,16 @@ If state is `OPEN` and isCrossRepository is `true`:
     > Please wait for the PR to be merged, then run `/pr-fix` again.
 
   - **Automation mode:** output the signal below and exit cleanly (do NOT proceed with fixes):
-    ```
+  ```
+
     <!-- pr-fix-signal -->
-    SIGNAL: SKIP_EXTERNAL
-    PR_NUMBER: <PR_NUMBER>
+
+  SIGNAL: SKIP_EXTERNAL
+  PR_NUMBER: <PR_NUMBER>
     <!-- /pr-fix-signal -->
-    ```
+
+  ```
+
   ```
 
 - [ ] **Step 4: 确认文件内容正确**
@@ -196,6 +220,7 @@ If state is `OPEN` and isCrossRepository is `true`:
 ## Task 2: 修改 pr-review skill — 新增 automation 模式
 
 **Files:**
+
 - Modify: `.claude/skills/pr-review/SKILL.md`
 
 ### 改动说明
@@ -205,8 +230,11 @@ If state is `OPEN` and isCrossRepository is `true`:
 在 Usage 节追加 automation 用法：
 
 ```markdown
+
 ```
+
 /pr-review [pr_number] [--automation]
+
 ```
 
 `$ARGUMENTS` may contain an optional PR number and/or `--automation` flag.
@@ -218,7 +246,7 @@ If state is `OPEN` and isCrossRepository is `true`:
 
 在 Step 1 末尾（确定 PR 号之后）追加：
 
-```markdown
+````markdown
 Also parse `--automation` from `$ARGUMENTS`:
 
 ```bash
@@ -227,7 +255,9 @@ if echo "$ARGUMENTS" | grep -q -- '--automation'; then
   AUTOMATION_MODE=true
 fi
 ```
-```
+````
+
+````
 
 **改动 C：Step 2（CI 检查）中 automation 模式行为**
 
@@ -237,28 +267,36 @@ fi
 
 ```markdown
 - **Automation mode:** do not prompt. Output signal and stop:
-  ```
+````
+
   <!-- automation-result -->
-  CONCLUSION: CI_NOT_READY
-  IS_CRITICAL_PATH: false
-  PR_NUMBER: <PR_NUMBER>
+
+CONCLUSION: CI_NOT_READY
+IS_CRITICAL_PATH: false
+PR_NUMBER: <PR_NUMBER>
+
   <!-- /automation-result -->
-  ```
-  Then exit.
+
+```
+Then exit.
 ```
 
 情形 3（FAILURE/CANCELLED）追加：
 
 ```markdown
 - **Automation mode:** do not prompt. Post CI failure comment automatically (same format as "CI 失败提醒评论"), then output signal and stop:
-  ```
+```
+
   <!-- automation-result -->
-  CONCLUSION: CI_FAILED
-  IS_CRITICAL_PATH: false
-  PR_NUMBER: <PR_NUMBER>
+
+CONCLUSION: CI_FAILED
+IS_CRITICAL_PATH: false
+PR_NUMBER: <PR_NUMBER>
+
   <!-- /automation-result -->
-  ```
-  Then exit.
+
+```
+Then exit.
 ```
 
 **改动 D：Step 10（发布评论）— automation 模式无需询问**
@@ -269,6 +307,7 @@ fi
 **Automation mode:** skip the prompt — automatically post (or update) the review comment using the same create/update logic below.
 
 **Non-automation mode:** ask the user:
+
 > Review 完成。是否将此报告发布为 PR #<PR_NUMBER> 的评论？(yes/no)
 ```
 
@@ -276,18 +315,19 @@ fi
 
 在 Step 10 末尾（发布评论完成后）追加：
 
-```markdown
+````markdown
 **Automation mode only — after posting the comment, output the machine-readable result block:**
 
 Map the review conclusion to CONCLUSION value:
 
-| Review 结论 | CONCLUSION |
-|---|---|
-| ✅ 批准合并 | APPROVED |
+| Review 结论   | CONCLUSION  |
+| ------------- | ----------- |
+| ✅ 批准合并   | APPROVED    |
 | ⚠️ 有条件批准 | CONDITIONAL |
-| ❌ 需要修改 | REJECTED |
+| ❌ 需要修改   | REJECTED    |
 
 Determine `IS_CRITICAL_PATH` by checking whether the diff contains any of these paths:
+
 - `src/preload.ts`
 - `src/process/channels/`
 - `src/common/config/`
@@ -295,6 +335,7 @@ Determine `IS_CRITICAL_PATH` by checking whether the diff contains any of these 
 ```bash
 git diff origin/<baseRefName>...HEAD --name-only | grep -qE '^(src/preload\.ts|src/process/channels/|src/common/config/)' && echo true || echo false
 ```
+````
 
 Then output:
 
@@ -305,7 +346,8 @@ IS_CRITICAL_PATH: false
 PR_NUMBER: 123
 <!-- /automation-result -->
 ```
-```
+
+````
 
 **改动 F：Step 11（Cleanup）— automation 模式自动删除本地分支**
 
@@ -320,8 +362,9 @@ If yes:
 
 ```bash
 git branch -D <pr_branch>
-```
-```
+````
+
+````
 
 替换为：
 
@@ -330,7 +373,7 @@ git branch -D <pr_branch>
 
 ```bash
 git branch -D <pr_branch>
-```
+````
 
 **Non-automation mode:** ask the user:
 
@@ -341,71 +384,82 @@ If yes:
 ```bash
 git branch -D <pr_branch>
 ```
+
 ```
 
 - [ ] **Step 1: 应用改动 A — 更新 Usage**
 
   找到：
-  ```
-  `$ARGUMENTS` is an optional PR number. If omitted, auto-detect from the current branch.
-  ```
-  替换为：
-  ```
-  `$ARGUMENTS` may contain an optional PR number and/or `--automation` flag.
-  - Without `--automation`: interactive mode (prompts for confirmation, comment, cleanup)
-  - With `--automation`: non-interactive mode (auto-post comment, auto-delete branch, output machine-readable result)
-  ```
+```
+
+`$ARGUMENTS` is an optional PR number. If omitted, auto-detect from the current branch.
+
+```
+替换为：
+```
+
+`$ARGUMENTS` may contain an optional PR number and/or `--automation` flag.
+
+- Without `--automation`: interactive mode (prompts for confirmation, comment, cleanup)
+- With `--automation`: non-interactive mode (auto-post comment, auto-delete branch, output machine-readable result)
+
+```
 
 - [ ] **Step 2: 应用改动 B — Step 1 末尾追加 flag 检测**
 
-  找到 Step 1 末尾 abort 消息之后：
-  ```
-  > No PR number provided and cannot detect one from the current branch. Usage: `/pr-review <pr_number>`
-  ```
-  在其后插入：
-  ```markdown
+找到 Step 1 末尾 abort 消息之后：
+```
 
-  Also parse `--automation` from `$ARGUMENTS`:
+> No PR number provided and cannot detect one from the current branch. Usage: `/pr-review <pr_number>`
 
-  ```bash
-  AUTOMATION_MODE=false
-  if echo "$ARGUMENTS" | grep -q -- '--automation'; then
-    AUTOMATION_MODE=true
-  fi
-  ```
-  ```
+````
+在其后插入：
+```markdown
+
+Also parse `--automation` from `$ARGUMENTS`:
+
+```bash
+AUTOMATION_MODE=false
+if echo "$ARGUMENTS" | grep -q -- '--automation'; then
+  AUTOMATION_MODE=true
+fi
+````
+
+````
 
 - [ ] **Step 3: 应用改动 C — Step 2 CI check automation 分支**
 
-  找到情形 2 的 "用户选 **no** → 终止" 后，追加 automation 处理：
-  ```markdown
-  - **Automation mode:** do not prompt. Output signal and stop:
-    ```
-    <!-- automation-result -->
-    CONCLUSION: CI_NOT_READY
-    IS_CRITICAL_PATH: false
-    PR_NUMBER: <PR_NUMBER>
-    <!-- /automation-result -->
-    ```
-    Then exit.
+找到情形 2 的 "用户选 **no** → 终止" 后，追加 automation 处理：
+```markdown
+- **Automation mode:** do not prompt. Output signal and stop:
   ```
+  <!-- automation-result -->
+  CONCLUSION: CI_NOT_READY
+  IS_CRITICAL_PATH: false
+  PR_NUMBER: <PR_NUMBER>
+  <!-- /automation-result -->
+  ```
+  Then exit.
+````
 
-  找到情形 3 的 "用户选 **no** → 终止 review" 后，追加 automation 处理：
-  ```markdown
-  - **Automation mode:** do not prompt. Post CI failure comment automatically (same format as "CI 失败提醒评论"), then output signal and stop:
-    ```
-    <!-- automation-result -->
-    CONCLUSION: CI_FAILED
-    IS_CRITICAL_PATH: false
-    PR_NUMBER: <PR_NUMBER>
-    <!-- /automation-result -->
-    ```
-    Then exit.
+找到情形 3 的 "用户选 **no** → 终止 review" 后，追加 automation 处理：
+
+````markdown
+- **Automation mode:** do not prompt. Post CI failure comment automatically (same format as "CI 失败提醒评论"), then output signal and stop:
   ```
+  <!-- automation-result -->
+  CONCLUSION: CI_FAILED
+  IS_CRITICAL_PATH: false
+  PR_NUMBER: <PR_NUMBER>
+  <!-- /automation-result -->
+  ```
+  Then exit.
+````
 
 - [ ] **Step 4: 应用改动 D — Step 10 发布评论 automation 无需询问**
 
   找到：
+
   ```
   Print the complete review report to the terminal, then ask the user:
 
@@ -413,7 +467,9 @@ git branch -D <pr_branch>
 
   If the user says **yes**:
   ```
+
   替换为：
+
   ```
   Print the complete review report to the terminal.
 
@@ -429,18 +485,20 @@ git branch -D <pr_branch>
 - [ ] **Step 5: 应用改动 E — Step 10 末尾追加 automation-result 输出**
 
   在 Step 10 末尾（Step 11 之前）追加：
-  ```markdown
+
+  ````markdown
   **Automation mode only — after posting the comment, output the machine-readable result block:**
 
   Map the review conclusion to CONCLUSION value:
 
-  | Review 结论 | CONCLUSION |
-  |---|---|
-  | ✅ 批准合并 | APPROVED |
+  | Review 结论   | CONCLUSION  |
+  | ------------- | ----------- |
+  | ✅ 批准合并   | APPROVED    |
   | ⚠️ 有条件批准 | CONDITIONAL |
-  | ❌ 需要修改 | REJECTED |
+  | ❌ 需要修改   | REJECTED    |
 
   Determine `IS_CRITICAL_PATH` by checking whether the diff contains any of these paths:
+
   - `src/preload.ts`
   - `src/process/channels/`
   - `src/common/config/`
@@ -448,6 +506,7 @@ git branch -D <pr_branch>
   ```bash
   git diff origin/<baseRefName>...HEAD --name-only | grep -qE '^(src/preload\.ts|src/process/channels/|src/common/config/)' && echo true || echo false
   ```
+  ````
 
   Output:
 
@@ -458,12 +517,16 @@ git branch -D <pr_branch>
   PR_NUMBER: 123
   <!-- /automation-result -->
   ```
+
+  ```
+
   ```
 
 - [ ] **Step 6: 应用改动 F — Step 11 Cleanup automation 自动删分支**
 
   找到：
-  ```
+
+  ````
   Ask the user:
 
   > 是否删除本地 PR 分支 `<pr_branch>`？(yes/no)
@@ -472,10 +535,12 @@ git branch -D <pr_branch>
 
   ```bash
   git branch -D <pr_branch>
-  ```
+  ````
+
   ```
   替换为：
   ```
+
   **Automation mode:** delete the local PR branch automatically without prompting:
 
   ```bash
@@ -491,6 +556,9 @@ git branch -D <pr_branch>
   ```bash
   git branch -D <pr_branch>
   ```
+
+  ```
+
   ```
 
 - [ ] **Step 7: 确认文件内容正确**
@@ -514,6 +582,7 @@ git branch -D <pr_branch>
 ## Task 3: 新建 pr-automation SKILL.md
 
 **Files:**
+
 - Create: `.claude/skills/pr-automation/SKILL.md`
 
 - [ ] **Step 1: 创建目录（确认不存在）**
@@ -521,6 +590,7 @@ git branch -D <pr_branch>
   ```bash
   ls .claude/skills/
   ```
+
   若 `pr-automation/` 不存在，继续下一步（不需要手动 mkdir，Write 工具会创建）。
 
 - [ ] **Step 2: 创建 SKILL.md**
@@ -592,6 +662,7 @@ git branch -D <pr_branch>
   ### Step 3 — Select Target PR
 
   Sort `candidate_prs` using this two-key order:
+
   1. **Primary**: author.login in `trusted_logins` → trusted PRs first
   2. **Secondary**: createdAt ascending (oldest first / FIFO)
 
@@ -599,13 +670,13 @@ git branch -D <pr_branch>
 
   **Skip conditions** (skip this PR, try next):
 
-  | Condition | Check |
-  |---|---|
+  | Condition                               | Check                                 |
+  | --------------------------------------- | ------------------------------------- |
   | Title contains `WIP` (case-insensitive) | `title.toLowerCase().includes('wip')` |
-  | Has label `bot:needs-human-review` | check labels array |
-  | Has label `bot:done` | check labels array |
-  | Has label `bot:reviewing` | check labels array |
-  | Has label `bot:fixing` | check labels array |
+  | Has label `bot:needs-human-review`      | check labels array                    |
+  | Has label `bot:done`                    | check labels array                    |
+  | Has label `bot:reviewing`               | check labels array                    |
+  | Has label `bot:fixing`                  | check labels array                    |
 
   **Special: `bot:needs-fix` PR** — do not skip immediately. First check:
 
@@ -643,6 +714,7 @@ git branch -D <pr_branch>
   ```
 
   **Required jobs:**
+
   - `Code Quality`
   - `Unit Tests (ubuntu-latest)`
   - `Unit Tests (macos-14)`
@@ -652,12 +724,12 @@ git branch -D <pr_branch>
 
   **Decision table:**
 
-  | Condition | Action |
-  |---|---|
-  | All required jobs: `status=COMPLETED && conclusion=SUCCESS` | Continue to Step 5 |
-  | Any required job: `status=QUEUED` or `IN_PROGRESS` | Remove `bot:reviewing` → log "CI still running for PR #N" → exit |
-  | `statusCheckRollup` is empty (CI never triggered) | Attempt workflow approval (see below) → remove `bot:reviewing` → exit |
-  | Any required job: `conclusion=FAILURE` or `CANCELLED` | Post CI failure comment (see below) → remove `bot:reviewing` → exit |
+  | Condition                                                   | Action                                                                |
+  | ----------------------------------------------------------- | --------------------------------------------------------------------- |
+  | All required jobs: `status=COMPLETED && conclusion=SUCCESS` | Continue to Step 5                                                    |
+  | Any required job: `status=QUEUED` or `IN_PROGRESS`          | Remove `bot:reviewing` → log "CI still running for PR #N" → exit      |
+  | `statusCheckRollup` is empty (CI never triggered)           | Attempt workflow approval (see below) → remove `bot:reviewing` → exit |
+  | Any required job: `conclusion=FAILURE` or `CANCELLED`       | Post CI failure comment (see below) → remove `bot:reviewing` → exit   |
 
   **Workflow approval** (CI never triggered — new contributor):
 
@@ -721,6 +793,7 @@ git branch -D <pr_branch>
   ```
 
   Also update `**最后运行**：` with the current timestamp:
+
   ```bash
   date '+%Y-%m-%d %H:%M'
   ```
@@ -760,12 +833,14 @@ git branch -D <pr_branch>
   (Any isExternal)
 
   1. Post comment:
+
      ```bash
      gh pr comment <PR_NUMBER> --body "<!-- pr-automation-bot -->
      ✅ 已自动 review，无阻塞性问题，正在触发自动合并。$([ "$HAS_CRITICAL" = "true" ] && echo "
 
      > ⚠️ **注意**：本 PR 涉及核心路径文件（\`src/preload.ts\` 等），建议人工确认合并后行为是否符合预期。")"
      ```
+
   2. Trigger auto-merge:
      ```bash
      gh pr merge <PR_NUMBER> --squash --auto
@@ -801,6 +876,7 @@ git branch -D <pr_branch>
   #### CONCLUSION = CONDITIONAL, IS_EXTERNAL = true (fork PR)
 
   1. Post comment with full review report link:
+
      ```bash
      gh pr comment <PR_NUMBER> --body "<!-- pr-automation-bot -->
      ⚠️ 本 PR 已完成自动 review，存在若干需修复的问题（详见上方 review 报告）。
@@ -809,6 +885,7 @@ git branch -D <pr_branch>
 
      > ⚠️ **注意**：本 PR 涉及核心路径文件（\`src/preload.ts\` 等），建议人工确认合并后行为是否符合预期。")"
      ```
+
   2. Update labels:
      ```bash
      gh pr edit <PR_NUMBER> --remove-label "bot:reviewing" --add-label "bot:needs-fix"
@@ -818,12 +895,14 @@ git branch -D <pr_branch>
   #### CONCLUSION = REJECTED (any isExternal)
 
   1. Post comment:
+
      ```bash
      gh pr comment <PR_NUMBER> --body "<!-- pr-automation-bot -->
      ❌ 本 PR 存在阻塞性问题，无法自动处理，已转交人工 review。详见上方 review 报告。$([ "$HAS_CRITICAL" = "true" ] && echo "
 
      > ⚠️ **注意**：本 PR 涉及核心路径文件（\`src/preload.ts\` 等），建议人工确认合并后行为是否符合预期。")"
      ```
+
   2. Update labels:
      ```bash
      gh pr edit <PR_NUMBER> --remove-label "bot:reviewing" --add-label "bot:needs-human-review"
@@ -853,13 +932,13 @@ git branch -D <pr_branch>
 
   1. Map `ACTION_TAKEN` to display strings:
 
-     | ACTION_TAKEN | 结论列 | 操作列 |
-     |---|---|---|
-     | approved-merged | ✅ 批准合并 | 已触发自动合并 |
-     | conditional-fixed-merged | ⚠️ 有条件批准 | 已 fix，等待 CI 合并 |
-     | conditional-needs-fix | ⚠️ 有条件批准（外部 PR） | 已通知作者修复 |
-     | rejected-human-review | ❌ 需要修改 | 转人工 |
-     | ci-skipped | ⏳ CI 未就绪 | 跳过 |
+     | ACTION_TAKEN             | 结论列                   | 操作列               |
+     | ------------------------ | ------------------------ | -------------------- |
+     | approved-merged          | ✅ 批准合并              | 已触发自动合并       |
+     | conditional-fixed-merged | ⚠️ 有条件批准            | 已 fix，等待 CI 合并 |
+     | conditional-needs-fix    | ⚠️ 有条件批准（外部 PR） | 已通知作者修复       |
+     | rejected-human-review    | ❌ 需要修改              | 转人工               |
+     | ci-skipped               | ⏳ CI 未就绪             | 跳过                 |
 
   2. Prepend a new row to the `## 最近处理记录` table (keep at most 10 rows, drop oldest):
 
@@ -903,6 +982,7 @@ git branch -D <pr_branch>
   ```bash
   ls .claude/skills/pr-automation/
   ```
+
   Expected: `SKILL.md`
 
 - [ ] **Step 4: Commit**
@@ -917,6 +997,7 @@ git branch -D <pr_branch>
 ## Task 4: 新建 scripts/pr-automation.sh
 
 **Files:**
+
 - Create: `scripts/pr-automation.sh`
 
 **注意:** `scripts/` 目录已有 18 个文件（超出 10 个子项限制），但这是既有状态，按设计文档创建此文件即可。
@@ -1022,6 +1103,7 @@ git branch -D <pr_branch>
   ```bash
   bash -n scripts/pr-automation.sh
   ```
+
   Expected: 无输出（语法正确）
 
 - [ ] **Step 4: 手动测试 Lock 逻辑（dry run）**
@@ -1034,6 +1116,7 @@ git branch -D <pr_branch>
   # 运行脚本 —— 它应该识别到 crash 并清理，然后因为没有 claude 命令可能报错
   # 重要的是 lock 文件行为正确
   ```
+
   确认脚本打印 "Previous run ... appears to have crashed" 日志。
 
   注意：完整端到端测试需要 `claude` 命令可用并指向真实仓库，留到部署时验证。
@@ -1050,6 +1133,7 @@ git branch -D <pr_branch>
 ## Task 5: 新建 docs/conventions/pr-automation.md
 
 **Files:**
+
 - Create: `docs/conventions/pr-automation.md`
 
 - [ ] **Step 1: 确认 docs/conventions/ 目录存在**
@@ -1073,13 +1157,13 @@ git branch -D <pr_branch>
 
   所有自动化状态通过 `bot:` 前缀 label 追踪，无需本地状态文件。
 
-  | Label | 含义 | 下一步 |
-  |---|---|---|
-  | `bot:reviewing` | 正在 review 中（防并发占位） | 等待完成后自动移除 |
-  | `bot:fixing` | 正在 fix 中（防并发占位） | 等待完成后自动移除 |
-  | `bot:needs-fix` | 已 review，等待作者按报告修复 | 作者推送新 commit 后自动重新处理 |
-  | `bot:needs-human-review` | 需人工介入（存在阻塞性问题） | 人工处理后手动移除 label |
-  | `bot:done` | 已完成（已合并或无需操作） | 无 |
+  | Label                    | 含义                          | 下一步                           |
+  | ------------------------ | ----------------------------- | -------------------------------- |
+  | `bot:reviewing`          | 正在 review 中（防并发占位）  | 等待完成后自动移除               |
+  | `bot:fixing`             | 正在 fix 中（防并发占位）     | 等待完成后自动移除               |
+  | `bot:needs-fix`          | 已 review，等待作者按报告修复 | 作者推送新 commit 后自动重新处理 |
+  | `bot:needs-human-review` | 需人工介入（存在阻塞性问题）  | 人工处理后手动移除 label         |
+  | `bot:done`               | 已完成（已合并或无需操作）    | 无                               |
 
   ---
 
@@ -1114,12 +1198,12 @@ git branch -D <pr_branch>
 
   ## 决策矩阵
 
-  | Review 结论 | PR 来源 | 行动 |
-  |---|---|---|
-  | ✅ 批准合并 | 任意 | 自动合并（squash）|
-  | ⚠️ 有条件批准 | 内部分支 | 自动修复 → 自动合并 |
-  | ⚠️ 有条件批准 | 外部 fork | 评论通知作者修复 → `bot:needs-fix` |
-  | ❌ 需要修改 | 任意 | 评论说明 → `bot:needs-human-review` |
+  | Review 结论   | PR 来源   | 行动                                |
+  | ------------- | --------- | ----------------------------------- |
+  | ✅ 批准合并   | 任意      | 自动合并（squash）                  |
+  | ⚠️ 有条件批准 | 内部分支  | 自动修复 → 自动合并                 |
+  | ⚠️ 有条件批准 | 外部 fork | 评论通知作者修复 → `bot:needs-fix`  |
+  | ❌ 需要修改   | 任意      | 评论说明 → `bot:needs-human-review` |
 
   合并使用 `--squash --auto`：等所有必检 CI 通过后才执行，不会立即强制合并。
 
@@ -1186,6 +1270,7 @@ git branch -D <pr_branch>
 ## Task 6: 更新 AGENTS.md — 新增 PR 自动化简介
 
 **Files:**
+
 - Modify: `AGENTS.md`
 
 - [ ] **Step 1: 读取 AGENTS.md，找到 Skills Index 表格末尾**
@@ -1205,7 +1290,6 @@ git branch -D <pr_branch>
   - **状态追踪**：通过 `bot:*` label（`bot:reviewing`、`bot:fixing`、`bot:needs-fix`、`bot:needs-human-review`、`bot:done`）
   - **阻止处理**：在 PR 标题加 `WIP` 或手动打 `bot:needs-human-review` label
   - **详细说明**：[docs/conventions/pr-automation.md](docs/conventions/pr-automation.md)
-
   ```
 
 - [ ] **Step 3: 确认 Skills Index 表格也需要添加 pr-automation 条目**

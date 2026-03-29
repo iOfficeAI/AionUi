@@ -18,6 +18,7 @@ Perform a thorough local code review with full project context — reads source 
 ```
 
 `$ARGUMENTS` may contain an optional PR number and/or `--automation` flag.
+
 - Without `--automation`: interactive mode (prompts for confirmation, comment, cleanup)
 - With `--automation`: non-interactive mode (auto-post comment, auto-delete branch, output machine-readable result)
 
@@ -409,11 +410,11 @@ gh pr comment <PR_NUMBER> --body "<!-- pr-review-bot -->
 
 Map the review conclusion to CONCLUSION value:
 
-| Review 结论 | CONCLUSION |
-|---|---|
-| ✅ 批准合并 | APPROVED |
+| Review 结论   | CONCLUSION  |
+| ------------- | ----------- |
+| ✅ 批准合并   | APPROVED    |
 | ⚠️ 有条件批准 | CONDITIONAL |
-| ❌ 需要修改 | REJECTED |
+| ❌ 需要修改   | REJECTED    |
 
 Determine `IS_CRITICAL_PATH` using the same `CRITICAL_PATH_PATTERN` as pr-automation (currently empty — always `false`).
 When a pattern is defined, check:

@@ -39,15 +39,15 @@ ORG=$(echo "$REPO" | cut -d'/' -f1)
 
 ## Label State Machine
 
-| Label | Meaning | Terminal? |
-|---|---|---|
-| `bot:reviewing` | Review in progress (mutex) | No |
-| `bot:ready-to-fix` | CONDITIONAL review done, waiting for bot to fix next session | No |
-| `bot:fixing` | Fix in progress (mutex) | No |
-| `bot:ci-waiting` | CI failed and author notified — snoozed until author pushes new commits | No |
-| `bot:needs-human-review` | Blocking issues or unresolvable conflicts — human must intervene | Yes |
-| `bot:ready-to-merge` | Bot done, code is clean — human just needs to confirm and merge | Yes |
-| `bot:done` | Auto-merged by bot | Yes |
+| Label                    | Meaning                                                                 | Terminal? |
+| ------------------------ | ----------------------------------------------------------------------- | --------- |
+| `bot:reviewing`          | Review in progress (mutex)                                              | No        |
+| `bot:ready-to-fix`       | CONDITIONAL review done, waiting for bot to fix next session            | No        |
+| `bot:fixing`             | Fix in progress (mutex)                                                 | No        |
+| `bot:ci-waiting`         | CI failed and author notified — snoozed until author pushes new commits | No        |
+| `bot:needs-human-review` | Blocking issues or unresolvable conflicts — human must intervene        | Yes       |
+| `bot:ready-to-merge`     | Bot done, code is clean — human just needs to confirm and merge         | Yes       |
+| `bot:done`               | Auto-merged by bot                                                      | Yes       |
 
 ## Exit Rules
 
@@ -86,6 +86,7 @@ Save as `trusted_logins`. If API call fails, treat as empty array.
 ### Step 3 — Select Target PR
 
 Sort `candidate_prs` using this **three-key** order:
+
 1. **Primary**: has label `bot:ready-to-fix` → these PRs first
 2. **Secondary**: author.login in `trusted_logins` → trusted PRs next
 3. **Tertiary**: createdAt ascending (oldest first / FIFO)
@@ -94,24 +95,26 @@ Iterate through sorted list to find the **first eligible PR**.
 
 **Skip conditions** (skip this PR, try next — stay in session):
 
-| Condition | Check |
-|---|---|
-| Title contains `WIP` (case-insensitive) | `title.toLowerCase().includes('wip')` |
-| Has label `bot:needs-human-review` | check labels array |
-| Has label `bot:ready-to-merge` | check labels array |
-| Has label `bot:done` | check labels array |
-| Has label `bot:reviewing` | check labels array |
-| Has label `bot:fixing` | check labels array |
-| Has label `bot:ci-waiting` | check labels array — wake-up check runs as fallback if no eligible PR found |
+| Condition                               | Check                                                                       |
+| --------------------------------------- | --------------------------------------------------------------------------- |
+| Title contains `WIP` (case-insensitive) | `title.toLowerCase().includes('wip')`                                       |
+| Has label `bot:needs-human-review`      | check labels array                                                          |
+| Has label `bot:ready-to-merge`          | check labels array                                                          |
+| Has label `bot:done`                    | check labels array                                                          |
+| Has label `bot:reviewing`               | check labels array                                                          |
+| Has label `bot:fixing`                  | check labels array                                                          |
+| Has label `bot:ci-waiting`              | check labels array — wake-up check runs as fallback if no eligible PR found |
 
 **When eligible PR found:**
 
 For **fresh PRs** (no bot: label): add `bot:reviewing` to claim it:
+
 ```bash
 gh pr edit <PR_NUMBER> --add-label "bot:reviewing"
 ```
 
 For **`bot:ready-to-fix` PRs**: swap label atomically:
+
 ```bash
 gh pr edit <PR_NUMBER> --remove-label "bot:ready-to-fix" --add-label "bot:fixing"
 ```
@@ -189,11 +192,11 @@ gh pr view <PR_NUMBER> --json statusCheckRollup \
 
 Required jobs: `Code Quality`, `Unit Tests (ubuntu-latest)`, `Unit Tests (macos-14)`, `Unit Tests (windows-2022)`, `Coverage Test`, `i18n-check`
 
-| Condition | Action |
-|---|---|
-| All required jobs SUCCESS | Continue to pr-fix below |
-| Any job QUEUED or IN_PROGRESS | Remove `bot:fixing` → log "CI still running for PR #N" → EXIT |
-| Any job FAILURE or CANCELLED | Remove `bot:fixing` → log "CI failed for PR #N, re-queueing" → EXIT |
+| Condition                     | Action                                                              |
+| ----------------------------- | ------------------------------------------------------------------- |
+| All required jobs SUCCESS     | Continue to pr-fix below                                            |
+| Any job QUEUED or IN_PROGRESS | Remove `bot:fixing` → log "CI still running for PR #N" → EXIT       |
+| Any job FAILURE or CANCELLED  | Remove `bot:fixing` → log "CI failed for PR #N, re-queueing" → EXIT |
 
 **Load the existing review report into the current session** (pr-fix requires it to be present):
 
@@ -303,12 +306,12 @@ gh pr view <PR_NUMBER> --json statusCheckRollup \
 
 Required jobs: `Code Quality`, `Unit Tests (ubuntu-latest)`, `Unit Tests (macos-14)`, `Unit Tests (windows-2022)`, `Coverage Test`, `i18n-check`
 
-| Condition | Action |
-|---|---|
-| All required jobs SUCCESS **and** no jobs FAILURE/CANCELLED | Continue to Step 4.5 |
-| Any **required** job QUEUED or IN_PROGRESS | Remove `bot:reviewing` → log `[pr-automation:skip] action=ci_running pr=#<PR_NUMBER> reason="CI still running"` → **find next PR** |
-| `statusCheckRollup` empty (CI never triggered) | Approve workflow (see below) → remove `bot:reviewing` → **EXIT** |
-| Any job (required or not) FAILURE or CANCELLED | Check dedup (see below) → **find next PR** or post comment → **EXIT** |
+| Condition                                                   | Action                                                                                                                             |
+| ----------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------- |
+| All required jobs SUCCESS **and** no jobs FAILURE/CANCELLED | Continue to Step 4.5                                                                                                               |
+| Any **required** job QUEUED or IN_PROGRESS                  | Remove `bot:reviewing` → log `[pr-automation:skip] action=ci_running pr=#<PR_NUMBER> reason="CI still running"` → **find next PR** |
+| `statusCheckRollup` empty (CI never triggered)              | Approve workflow (see below) → remove `bot:reviewing` → **EXIT**                                                                   |
+| Any job (required or not) FAILURE or CANCELLED              | Check dedup (see below) → **find next PR** or post comment → **EXIT**                                                              |
 
 **Workflow approval** (CI never triggered):
 
@@ -328,6 +331,7 @@ Log: `[pr-automation] Approved workflow runs for PR #<PR_NUMBER>.`
 Log: `[pr-automation:exit] action=workflow_approved pr=#<PR_NUMBER> reason="CI not triggered, approved workflow runs"`
 
 Remove `bot:reviewing`:
+
 ```bash
 gh pr edit <PR_NUMBER> --remove-label "bot:reviewing"
 ```
@@ -348,9 +352,11 @@ LATEST_COMMIT_TIME=$(gh pr view <PR_NUMBER> --json commits \
 
 - If `LAST_CI_COMMENT_TIME` is non-empty AND `LATEST_COMMIT_TIME <= LAST_CI_COMMENT_TIME`:
   No new commits since last CI failure comment — swap labels and find next PR:
+
   ```bash
   gh pr edit <PR_NUMBER> --remove-label "bot:reviewing" --add-label "bot:ci-waiting"
   ```
+
   Log `[pr-automation:skip] action=ci_failure_dedup pr=#<PR_NUMBER> reason="CI failed, no new commits since last comment"` → **find next PR**
 
 - Otherwise: post CI failure comment below → log `[pr-automation:exit] action=ci_failed pr=#<PR_NUMBER> reason="CI failure, commented"` → remove `bot:reviewing` → **EXIT**
@@ -378,12 +384,12 @@ gh pr view <PR_NUMBER> --json mergeable,mergeStateStatus,headRefName,baseRefName
   --jq '{mergeable, mergeStateStatus, head: .headRefName, base: .baseRefName}'
 ```
 
-| `mergeable` | `mergeStateStatus` | Action |
-|---|---|---|
-| `MERGEABLE` | `BEHIND` | Continue to Step 5 (review first; update-branch is deferred to pre-merge) |
-| `MERGEABLE` | other | Continue to Step 5 |
-| `UNKNOWN` | any | Remove `bot:reviewing` → log `[pr-automation:skip] action=merge_unknown pr=#<PR_NUMBER> reason="mergeability unknown, will retry"` → **find next PR** |
-| `CONFLICTING` | any | Run conflict dedup check (see below) |
+| `mergeable`   | `mergeStateStatus` | Action                                                                                                                                                |
+| ------------- | ------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `MERGEABLE`   | `BEHIND`           | Continue to Step 5 (review first; update-branch is deferred to pre-merge)                                                                             |
+| `MERGEABLE`   | other              | Continue to Step 5                                                                                                                                    |
+| `UNKNOWN`     | any                | Remove `bot:reviewing` → log `[pr-automation:skip] action=merge_unknown pr=#<PR_NUMBER> reason="mergeability unknown, will retry"` → **find next PR** |
+| `CONFLICTING` | any                | Run conflict dedup check (see below)                                                                                                                  |
 
 **Merge conflict dedup check:**
 
@@ -551,12 +557,14 @@ When `NEEDS_HUMAN_REVIEW=true`, route to human review regardless of CONCLUSION (
 **If `NEEDS_HUMAN_REVIEW=true`** (large PR or critical path):
 
 1. Post comment:
+
    ```bash
    gh pr comment <PR_NUMBER> --body "<!-- pr-automation-bot -->
    ✅ 已自动 review，代码无阻塞性问题。
 
    > ⚠️ **本 PR 规模较大（改动文件 ${FILES_CHANGED} 个）或涉及核心路径，请人工确认后合并。**"
    ```
+
 2. Update labels:
    ```bash
    gh pr edit <PR_NUMBER> --remove-label "bot:reviewing" --add-label "bot:ready-to-merge"

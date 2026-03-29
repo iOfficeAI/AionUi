@@ -5,6 +5,7 @@
 **Goal:** 将 PR 自动化系统从 cron + 并发模式改造为单进程守护进程模式，实现以 label 为状态机的异步处理流程，利用 admin 权限直接修复任意 PR（含外部 fork）。
 
 **Architecture:**
+
 - 守护进程替代 cron：无限循环，每次只起一个 Claude，超时自动 kill
 - Label 状态机：新增 `bot:ready-to-fix`，去掉 `bot:needs-fix`，review 和 fix 跨 session 异步执行
 - Exit 规则：任何实质操作后 EXIT；纯 skip 继续找下一个 PR
@@ -19,26 +20,26 @@
 
 ## Label 体系（最终版）
 
-| Label | 含义 | 终态？ |
-|---|---|---|
-| `bot:reviewing` | review 进行中（mutex） | 否 |
-| `bot:ready-to-fix` | CONDITIONAL review 完成，等 bot 下次 session 执行 fix | 否 |
-| `bot:fixing` | fix 进行中（mutex） | 否 |
-| `bot:needs-human-review` | 需人工介入（阻塞性问题或冲突无法自动解决） | ✅ |
-| `bot:done` | 已完成 | ✅ |
+| Label                    | 含义                                                  | 终态？ |
+| ------------------------ | ----------------------------------------------------- | ------ |
+| `bot:reviewing`          | review 进行中（mutex）                                | 否     |
+| `bot:ready-to-fix`       | CONDITIONAL review 完成，等 bot 下次 session 执行 fix | 否     |
+| `bot:fixing`             | fix 进行中（mutex）                                   | 否     |
+| `bot:needs-human-review` | 需人工介入（阻塞性问题或冲突无法自动解决）            | ✅     |
+| `bot:done`               | 已完成                                                | ✅     |
 
 `bot:needs-fix` 完全移除（admin 权限可直接修改任意 PR，无需要求作者手动修复）。
 
 ## Exit 规则
 
-| 操作类型 | 行为 |
-|---|---|
+| 操作类型                                                          | 行为            |
+| ----------------------------------------------------------------- | --------------- |
 | skip（WIP、draft、已有终态 label、CI 跑中、mergeability UNKNOWN） | 继续找下一个 PR |
-| CI 失败评论（去重后决定发送） | EXIT |
-| approve workflow | EXIT |
-| merge conflict 处理（rebase 或评论） | EXIT |
-| review 完成（任何结论） | EXIT |
-| pr-fix 完成（push） | EXIT |
+| CI 失败评论（去重后决定发送）                                     | EXIT            |
+| approve workflow                                                  | EXIT            |
+| merge conflict 处理（rebase 或评论）                              | EXIT            |
+| review 完成（任何结论）                                           | EXIT            |
+| pr-fix 完成（push）                                               | EXIT            |
 
 ## 完整执行流程
 
@@ -75,23 +76,25 @@
 
 ## 文件变更清单
 
-| 文件 | 操作 | 说明 |
-|---|---|---|
-| `scripts/pr-automation.sh` | 重写 | cron 入口 → 守护进程（无限循环、单 claude、超时 kill、详细日志） |
+| 文件                                    | 操作 | 说明                                                                                                        |
+| --------------------------------------- | ---- | ----------------------------------------------------------------------------------------------------------- |
+| `scripts/pr-automation.sh`              | 重写 | cron 入口 → 守护进程（无限循环、单 claude、超时 kill、详细日志）                                            |
 | `.claude/skills/pr-automation/SKILL.md` | 重写 | 新状态机逻辑、bot:ready-to-fix、exit 规则、评论去重、合并冲突自动 rebase、去掉看板/isExternal/bot:needs-fix |
-| `.claude/skills/pr-fix/SKILL.md` | 修改 | 去掉 Path A、去掉 SKIP_EXTERNAL 信号、isCrossRepository 不再影响路径 |
-| `docs/conventions/pr-automation.md` | 重写 | 同步所有变更：daemon、新 label 体系、新决策矩阵 |
+| `.claude/skills/pr-fix/SKILL.md`        | 修改 | 去掉 Path A、去掉 SKIP_EXTERNAL 信号、isCrossRepository 不再影响路径                                        |
+| `docs/conventions/pr-automation.md`     | 重写 | 同步所有变更：daemon、新 label 体系、新决策矩阵                                                             |
 
 ---
 
 ## Task 1：重写 `scripts/pr-automation.sh` 为守护进程
 
 **Files:**
+
 - Modify: `scripts/pr-automation.sh`
 
 - [ ] **Step 1: 完整替换脚本内容**
 
 新脚本核心行为：
+
 - 无限循环，每次只启动一个 `claude` 进程
 - 每 5 秒轮询 claude 进程是否存活，超过 `MAX_CLAUDE_SECS` 则 kill
 - SIGTERM/SIGINT 时优雅退出（kill claude、清理 label、删 PID 文件）
@@ -233,6 +236,7 @@ git commit -m "feat(pr-automation): replace cron script with daemon loop (single
 ## Task 2：重写 `pr-automation` SKILL.md
 
 **Files:**
+
 - Modify: `.claude/skills/pr-automation/SKILL.md`
 
 完整重写，体现最终状态机逻辑。用新内容全量替换旧文件。
@@ -256,9 +260,10 @@ Pure skips continue within the same session to find the next eligible PR.
 **Announce at start:** "I'm using pr-automation skill to process PRs."
 
 ## Usage
-
 ```
+
 /pr-automation
+
 ```
 
 No arguments required. The daemon script `scripts/pr-automation.sh` manages the automation loop.
@@ -266,26 +271,28 @@ No arguments required. The daemon script `scripts/pr-automation.sh` manages the 
 ## Configuration
 
 ```
+
 TRUSTED_CONTRIBUTORS_TEAM: detected from REPO org (e.g. iOfficeAI/trusted-contributors)
 CRITICAL_PATH_PATTERN: ^(src/preload\.ts|src/process/channels/|src/common/config/)
-```
+
+````
 
 **REPO** is detected automatically at runtime — do not hardcode it:
 
 ```bash
 REPO=$(gh repo view --json nameWithOwner --jq '.nameWithOwner')
 ORG=$(echo "$REPO" | cut -d'/' -f1)
-```
+````
 
 ## Label State Machine
 
-| Label | Meaning | Terminal? |
-|---|---|---|
-| `bot:reviewing` | Review in progress (mutex) | No |
-| `bot:ready-to-fix` | CONDITIONAL review done, waiting for bot to fix next session | No |
-| `bot:fixing` | Fix in progress (mutex) | No |
-| `bot:needs-human-review` | Human intervention required | Yes |
-| `bot:done` | Completed | Yes |
+| Label                    | Meaning                                                      | Terminal? |
+| ------------------------ | ------------------------------------------------------------ | --------- |
+| `bot:reviewing`          | Review in progress (mutex)                                   | No        |
+| `bot:ready-to-fix`       | CONDITIONAL review done, waiting for bot to fix next session | No        |
+| `bot:fixing`             | Fix in progress (mutex)                                      | No        |
+| `bot:needs-human-review` | Human intervention required                                  | Yes       |
+| `bot:done`               | Completed                                                    | Yes       |
 
 ## Exit Rules
 
@@ -321,6 +328,7 @@ Save as `trusted_logins`. If API call fails, treat as empty array.
 ### Step 3 — Select Target PR
 
 Sort `candidate_prs` using this **three-key** order:
+
 1. **Primary**: has label `bot:ready-to-fix` → these PRs first
 2. **Secondary**: author.login in `trusted_logins` → trusted PRs next
 3. **Tertiary**: createdAt ascending (oldest first / FIFO)
@@ -329,22 +337,24 @@ Iterate through sorted list to find the **first eligible PR**.
 
 **Skip conditions** (skip this PR, try next — stay in session):
 
-| Condition | Check |
-|---|---|
+| Condition                               | Check                                 |
+| --------------------------------------- | ------------------------------------- |
 | Title contains `WIP` (case-insensitive) | `title.toLowerCase().includes('wip')` |
-| Has label `bot:needs-human-review` | check labels array |
-| Has label `bot:done` | check labels array |
-| Has label `bot:reviewing` | check labels array |
-| Has label `bot:fixing` | check labels array |
+| Has label `bot:needs-human-review`      | check labels array                    |
+| Has label `bot:done`                    | check labels array                    |
+| Has label `bot:reviewing`               | check labels array                    |
+| Has label `bot:fixing`                  | check labels array                    |
 
 **When eligible PR found:**
 
 For **fresh PRs** (no bot: label): add `bot:reviewing` to claim it:
+
 ```bash
 gh pr edit <PR_NUMBER> --add-label "bot:reviewing"
 ```
 
 For **`bot:ready-to-fix` PRs**: swap label atomically:
+
 ```bash
 gh pr edit <PR_NUMBER> --remove-label "bot:ready-to-fix" --add-label "bot:fixing"
 ```
@@ -388,11 +398,11 @@ gh pr view <PR_NUMBER> --json statusCheckRollup \
 
 Required jobs: `Code Quality`, `Unit Tests (ubuntu-latest)`, `Unit Tests (macos-14)`, `Unit Tests (windows-2022)`, `Coverage Test`, `i18n-check`
 
-| Condition | Action |
-|---|---|
-| All required jobs SUCCESS | Continue to pr-fix below |
-| Any job QUEUED or IN_PROGRESS | Remove `bot:fixing` → log "CI still running for PR #N" → EXIT |
-| Any job FAILURE or CANCELLED | Remove `bot:fixing` → log "CI failed for PR #N, re-queueing" → EXIT |
+| Condition                     | Action                                                              |
+| ----------------------------- | ------------------------------------------------------------------- |
+| All required jobs SUCCESS     | Continue to pr-fix below                                            |
+| Any job QUEUED or IN_PROGRESS | Remove `bot:fixing` → log "CI still running for PR #N" → EXIT       |
+| Any job FAILURE or CANCELLED  | Remove `bot:fixing` → log "CI failed for PR #N, re-queueing" → EXIT |
 
 **Run pr-fix:**
 
@@ -420,12 +430,12 @@ gh pr view <PR_NUMBER> --json statusCheckRollup \
 
 Required jobs: `Code Quality`, `Unit Tests (ubuntu-latest)`, `Unit Tests (macos-14)`, `Unit Tests (windows-2022)`, `Coverage Test`, `i18n-check`
 
-| Condition | Action |
-|---|---|
-| All required jobs SUCCESS | Continue to Step 4.5 |
-| Any job QUEUED or IN_PROGRESS | Remove `bot:reviewing` → log "CI still running for PR #N" → **find next PR** |
-| `statusCheckRollup` empty (CI never triggered) | Approve workflow (see below) → remove `bot:reviewing` → **EXIT** |
-| Any job FAILURE or CANCELLED | Check dedup (see below) → **find next PR** or post comment → **EXIT** |
+| Condition                                      | Action                                                                       |
+| ---------------------------------------------- | ---------------------------------------------------------------------------- |
+| All required jobs SUCCESS                      | Continue to Step 4.5                                                         |
+| Any job QUEUED or IN_PROGRESS                  | Remove `bot:reviewing` → log "CI still running for PR #N" → **find next PR** |
+| `statusCheckRollup` empty (CI never triggered) | Approve workflow (see below) → remove `bot:reviewing` → **EXIT**             |
+| Any job FAILURE or CANCELLED                   | Check dedup (see below) → **find next PR** or post comment → **EXIT**        |
 
 **Workflow approval** (CI never triggered):
 
@@ -440,6 +450,7 @@ done
 Log: `[pr-automation] Approved workflow runs for PR #<PR_NUMBER>.`
 
 Remove `bot:reviewing`:
+
 ```bash
 gh pr edit <PR_NUMBER> --remove-label "bot:reviewing"
 ```
@@ -486,11 +497,11 @@ gh pr view <PR_NUMBER> --json mergeable,mergeStateStatus,headRefName,baseRefName
   --jq '{mergeable, mergeStateStatus, head: .headRefName, base: .baseRefName}'
 ```
 
-| `mergeable` | Action |
-|---|---|
-| `MERGEABLE` | Continue to Step 5 |
-| `UNKNOWN` | Remove `bot:reviewing` → log "Mergeability unknown for PR #N, will retry" → **find next PR** |
-| `CONFLICTING` | Run conflict dedup check (see below) |
+| `mergeable`   | Action                                                                                       |
+| ------------- | -------------------------------------------------------------------------------------------- |
+| `MERGEABLE`   | Continue to Step 5                                                                           |
+| `UNKNOWN`     | Remove `bot:reviewing` → log "Mergeability unknown for PR #N, will retry" → **find next PR** |
+| `CONFLICTING` | Run conflict dedup check (see below)                                                         |
 
 **Merge conflict dedup check:**
 
@@ -603,12 +614,14 @@ If block is missing: set `CONCLUSION=REJECTED`, log the error, continue to Step 
 #### CONCLUSION = APPROVED
 
 1. Post comment:
+
    ```bash
    gh pr comment <PR_NUMBER> --body "<!-- pr-automation-bot -->
    ✅ 已自动 review，无阻塞性问题，正在触发自动合并。$([ "$HAS_CRITICAL" = "true" ] && echo "
 
    > ⚠️ **注意**：本 PR 涉及核心路径文件（\`src/preload.ts\` 等），建议人工确认合并后行为是否符合预期。")"
    ```
+
 2. Trigger auto-merge:
    ```bash
    gh pr merge <PR_NUMBER> --squash --auto
@@ -632,12 +645,14 @@ If block is missing: set `CONCLUSION=REJECTED`, log the error, continue to Step 
 #### CONCLUSION = REJECTED
 
 1. Post comment:
+
    ```bash
    gh pr comment <PR_NUMBER> --body "<!-- pr-automation-bot -->
    ❌ 本 PR 存在阻塞性问题，无法自动处理，已转交人工 review。详见上方 review 报告。$([ "$HAS_CRITICAL" = "true" ] && echo "
 
    > ⚠️ **注意**：本 PR 涉及核心路径文件（\`src/preload.ts\` 等），建议人工确认合并后行为是否符合预期。")"
    ```
+
 2. Update labels:
    ```bash
    gh pr edit <PR_NUMBER> --remove-label "bot:reviewing" --add-label "bot:needs-human-review"
@@ -666,47 +681,58 @@ Safety fallback (Step 4 should have caught these):
 - **No AI signature** — no `Co-Authored-By`, no `Generated with` in any comment or commit
 - **Label atomicity** — when swapping labels, do both in a single `gh pr edit` call
 - **Comment dedup** — always check for existing bot comment before posting CI failure or conflict comments
-```
+
+````
 
 - [ ] **Step 2: Commit**
 
 ```bash
 git add .claude/skills/pr-automation/SKILL.md
 git commit -m "feat(pr-automation): rewrite skill with new label state machine, dedup comments, auto-rebase, remove status board"
-```
+````
 
 ---
 
 ## Task 3：修改 `pr-fix` SKILL.md — 去掉 Path A 和 SKIP_EXTERNAL
 
 **Files:**
+
 - Modify: `.claude/skills/pr-fix/SKILL.md`
 
 - [ ] **Step 1: 修改 Mode Detection 节 — 删除 SKIP_EXTERNAL**
 
 将以下内容：
+
 ```markdown
 In **automation mode**:
+
 - Skip all yes/no confirmation prompts — follow the default best path
 - When `isCrossRepository=true` (external fork PR): do NOT abort with an error; instead output the signal below and exit immediately
-
 ```
+
 <!-- pr-fix-signal -->
+
 SIGNAL: SKIP_EXTERNAL
 PR_NUMBER: <number>
+
 <!-- /pr-fix-signal -->
+
 ```
+
 ```
 
 替换为：
+
 ```markdown
 In **automation mode**:
+
 - Skip all yes/no confirmation prompts — follow the default best path
 ```
 
 - [ ] **Step 2: 修改 Step 2 Pre-flight Checks**
 
 删除并行检查中的 `isCrossRepository` 块：
+
 ```bash
 # Check whether the PR is from a fork
 gh pr view <PR_NUMBER> --json isCrossRepository -q '.isCrossRepository'
@@ -726,6 +752,7 @@ gh pr view <PR_NUMBER> --json isCrossRepository -q '.isCrossRepository'
 | `MERGED` | Abort — nothing to fix           |
 
 If state is `MERGED`: abort with:
+
 > PR #<PR_NUMBER> has already been merged. Nothing to fix.
 ```
 
@@ -735,7 +762,7 @@ If state is `MERGED`: abort with:
 
 将 Step 3 全部内容替换为：
 
-```markdown
+````markdown
 ### Step 3 — Prepare Working Branch
 
 Check out the existing head branch directly — no new branch needed:
@@ -745,9 +772,11 @@ git fetch origin <head_branch>
 git checkout <head_branch>
 git pull origin <head_branch>
 ```
+````
 
 Fixes will be committed directly onto this branch, and the open PR will update automatically.
-```
+
+````
 
 - [ ] **Step 4: 修改 Step 7 — 删除 Path A，只保留 Path B**
 
@@ -758,12 +787,13 @@ Fixes will be committed directly onto this branch, and the open PR will update a
 
 ```bash
 git push origin <head_branch>
-```
+````
 
 Output to user:
 
 > 已推送到 `<head_branch>`，PR #<PR_NUMBER> 已自动更新。无需创建新 PR。
-```
+
+````
 
 - [ ] **Step 5: 修改 Step 8 — 删除 Path A verification，只保留 Path B**
 
@@ -796,9 +826,10 @@ gh pr comment <PR_NUMBER> --body "$(cat <<'EOF'
 **总结：** ✅ 已修复 N 个 | ❌ 未能修复 N 个
 EOF
 )"
-```
+````
 
 After posting, output the same verification table in the conversation for immediate review.
+
 ```
 
 - [ ] **Step 6: 更新 Quick Reference 节**
@@ -806,32 +837,35 @@ After posting, output the same verification table in the conversation for immedi
 将 Quick Reference 代码块替换为：
 
 ```
+
 0. Get review report (current session OR fetch from PR comments)
 1. Parse 汇总 table → ordered issue list
 2. Pre-flight: clean working tree + fetch PR branch info
-   + detect: state (merged/open)
-   → ABORT: state=MERGED — nothing to fix
-   → Path B: state=OPEN — push to original branch (internal or external fork)
+   - detect: state (merged/open)
+     → ABORT: state=MERGED — nothing to fix
+     → Path B: state=OPEN — push to original branch (internal or external fork)
 3. git fetch origin <head_branch> && git checkout <head_branch> && git pull
 4. Fix issues CRITICAL→HIGH→MEDIUM→LOW; bunx tsc --noEmit after each file batch
 5. bun run lint:fix && bun run format && bunx tsc --noEmit && bun run test
 6. Commit: fix(<scope>): address review issues from PR #N
 7. git push origin <head_branch> (PR auto-updated, no new PR)
 8. Verify → post as gh pr comment PR_NUMBER + output in conversation
-```
+
+````
 
 - [ ] **Step 7: Commit**
 
 ```bash
 git add .claude/skills/pr-fix/SKILL.md
 git commit -m "feat(pr-fix): remove Path A and SKIP_EXTERNAL, admin token supports pushing to any branch"
-```
+````
 
 ---
 
 ## Task 4：重写 `docs/conventions/pr-automation.md`
 
 **Files:**
+
 - Modify: `docs/conventions/pr-automation.md`
 
 - [ ] **Step 1: 完整替换文件内容**
@@ -845,45 +879,46 @@ git commit -m "feat(pr-fix): remove Path A and SKIP_EXTERNAL, admin token suppor
 
 ## Label 体系
 
-| Label | 含义 | 终态？ |
-|---|---|---|
-| `bot:reviewing` | review 进行中（防重入占位） | 否 |
-| `bot:ready-to-fix` | CONDITIONAL review 完成，等 bot 下次执行 fix | 否 |
-| `bot:fixing` | fix 进行中（防重入占位） | 否 |
-| `bot:needs-human-review` | 需人工介入（阻塞性问题 / 冲突无法自动解决） | ✅ |
-| `bot:done` | 已完成 | ✅ |
+| Label                    | 含义                                         | 终态？ |
+| ------------------------ | -------------------------------------------- | ------ |
+| `bot:reviewing`          | review 进行中（防重入占位）                  | 否     |
+| `bot:ready-to-fix`       | CONDITIONAL review 完成，等 bot 下次执行 fix | 否     |
+| `bot:fixing`             | fix 进行中（防重入占位）                     | 否     |
+| `bot:needs-human-review` | 需人工介入（阻塞性问题 / 冲突无法自动解决）  | ✅     |
+| `bot:done`               | 已完成                                       | ✅     |
 
 ---
 
 ## 处理流程
+```
 
-```
 选 PR（优先 bot:ready-to-fix > trusted > FIFO）
- │
- ├─ 无 PR → EXIT
- │
- ├─ bot:ready-to-fix → 重新检查 CI
- │     ├─ CI 跑中/失败 → 移除标签，重入队列 → EXIT
- │     └─ CI 过 → pr-fix → push → --auto → bot:done → EXIT
- │
- └─ 新鲜 PR → 加 bot:reviewing → 检查 CI
-       ├─ 从未触发 → approve workflow → EXIT
-       ├─ CI 跑中 → 移除 bot:reviewing → 找下一个
-       ├─ CI 失败 → 去重检查
-       │     ├─ 已评论且无新 commit → 找下一个
-       │     └─ 否则 → 发评论 → EXIT
-       └─ CI 过 → 检查 merge conflict
-             ├─ UNKNOWN → 找下一个
-             ├─ CONFLICTING → 去重检查
-             │     ├─ 已评论且无新 commit → 找下一个
-             │     └─ 否则 → 尝试自动 rebase
-             │           ├─ 成功 → push → EXIT
-             │           └─ 失败 → 评论 + bot:needs-human-review → EXIT
-             └─ MERGEABLE → pr-review
-                   ├─ APPROVED → --auto merge → bot:done → EXIT
-                   ├─ CONDITIONAL → bot:ready-to-fix → EXIT
-                   └─ REJECTED → bot:needs-human-review → EXIT
-```
+│
+├─ 无 PR → EXIT
+│
+├─ bot:ready-to-fix → 重新检查 CI
+│ ├─ CI 跑中/失败 → 移除标签，重入队列 → EXIT
+│ └─ CI 过 → pr-fix → push → --auto → bot:done → EXIT
+│
+└─ 新鲜 PR → 加 bot:reviewing → 检查 CI
+├─ 从未触发 → approve workflow → EXIT
+├─ CI 跑中 → 移除 bot:reviewing → 找下一个
+├─ CI 失败 → 去重检查
+│ ├─ 已评论且无新 commit → 找下一个
+│ └─ 否则 → 发评论 → EXIT
+└─ CI 过 → 检查 merge conflict
+├─ UNKNOWN → 找下一个
+├─ CONFLICTING → 去重检查
+│ ├─ 已评论且无新 commit → 找下一个
+│ └─ 否则 → 尝试自动 rebase
+│ ├─ 成功 → push → EXIT
+│ └─ 失败 → 评论 + bot:needs-human-review → EXIT
+└─ MERGEABLE → pr-review
+├─ APPROVED → --auto merge → bot:done → EXIT
+├─ CONDITIONAL → bot:ready-to-fix → EXIT
+└─ REJECTED → bot:needs-human-review → EXIT
+
+````
 
 ### Skip 条件（继续找下一个 PR）
 
@@ -911,7 +946,7 @@ git commit -m "feat(pr-fix): remove Path A and SKIP_EXTERNAL, admin token suppor
 
 ```bash
 tail -f /tmp/pr-automation.log
-```
+````
 
 ---
 
@@ -957,11 +992,12 @@ LOG_FILE=/var/log/pr-automation.log
 1. 确认 `gh auth login` 已完成，有足够权限（PR labels、合并、向外部 fork 推送）
 2. 手动运行一次：`./scripts/pr-automation.sh` 并观察日志
 3. 确认输出 `No eligible PR found this round` 或正常处理一个 PR
-```
+
+````
 
 - [ ] **Step 2: Commit**
 
 ```bash
 git add docs/conventions/pr-automation.md
 git commit -m "docs(pr-automation): rewrite for daemon mode, new label state machine, dedup logic"
-```
+````

@@ -35,6 +35,7 @@ fi
 ```
 
 In **automation mode**:
+
 - Skip all yes/no confirmation prompts — follow the default best path
 
 ---
@@ -108,14 +109,15 @@ Save `<head_branch>`, `<base_branch>`, `<state>`, `<IS_FORK>`, `<CAN_MODIFY>`, a
 
 **Determine path based on results:**
 
-| state    | IS_FORK | CAN_MODIFY | Path                                      |
-| -------- | ------- | ---------- | ----------------------------------------- |
-| `MERGED` | any     | any        | Abort — nothing to fix                    |
-| `OPEN`   | `false` | any        | Same-repo — push to original branch       |
-| `OPEN`   | `true`  | `true`     | Fork — push to fork branch via gh checkout |
+| state    | IS_FORK | CAN_MODIFY | Path                                           |
+| -------- | ------- | ---------- | ---------------------------------------------- |
+| `MERGED` | any     | any        | Abort — nothing to fix                         |
+| `OPEN`   | `false` | any        | Same-repo — push to original branch            |
+| `OPEN`   | `true`  | `true`     | Fork — push to fork branch via gh checkout     |
 | `OPEN`   | `true`  | `false`    | Fork fallback — create fix branch on main repo |
 
 If state is `MERGED`: abort with:
+
 > PR #<PR_NUMBER> has already been merged. Nothing to fix.
 
 If `IS_FORK=true` AND `CAN_MODIFY=false`: set `FORK_FALLBACK=true` and continue.
