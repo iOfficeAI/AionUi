@@ -15,14 +15,28 @@ Smart commit + PR workflow: branch management → quality checks → tests → c
 
 ```bash
 git branch --show-current
+git diff --name-only HEAD
 git status --short
 git config user.name
 ```
 
 **Branch rules:**
 
-- If on `main` or `master`: ask for a branch name, prefix with `{username}/` (lowercase, hyphens), create and switch, then continue
 - If already on a feature branch: proceed directly
+- If on `main` or `master`: auto-generate a branch name, create and switch immediately — no confirmation needed
+
+**Auto-generating a branch name:**
+
+Analyze the changed files from `git diff --name-only HEAD` to infer:
+
+1. **type** — pick one: `feat` / `fix` / `refactor` / `chore`
+   - `feat`: new user-facing functionality
+   - `fix`: bug fix
+   - `refactor`: restructuring without behavior change
+   - `chore`: config, scripts, skills, docs, deps
+2. **slug** — 2–3 lowercase words derived from the most relevant changed paths, joined by hyphens. Keep it short and specific.
+
+Create branch `{username}/{type}/{slug}` directly and announce the name chosen.
 
 **Branch naming reference:**
 
