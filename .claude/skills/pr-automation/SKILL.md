@@ -271,15 +271,29 @@ Log: `[pr-automation:exit] action=ready_to_merge pr=#<PR_NUMBER> reason="large P
 gh pr merge <PR_NUMBER> --squash --auto
 
 # Verify merge was actually enabled or PR already merged
-MERGE_CHECK=$(gh pr view <PR_NUMBER> --json state,autoMergeRequest \
-  --jq '{state: .state, autoMerge: (.autoMergeRequest != null)}')
+# GitHub mergeStateStatus can briefly be UNKNOWN right after CI completes — retry once
+check_merge() {
+  gh pr view <PR_NUMBER> --json state,autoMergeRequest \
+    --jq '{state: .state, autoMerge: (.autoMergeRequest != null)}'
+}
+
+MERGE_CHECK=$(check_merge)
 MERGE_STATE=$(echo "$MERGE_CHECK" | jq -r '.state')
 AUTO_MERGE=$(echo "$MERGE_CHECK" | jq -r '.autoMerge')
+
+if [ "$MERGE_STATE" != "MERGED" ] && [ "$AUTO_MERGE" != "true" ]; then
+  # First check failed — wait 5s for GitHub state to stabilize, then retry once
+  sleep 5
+  gh pr merge <PR_NUMBER> --squash --auto
+  MERGE_CHECK=$(check_merge)
+  MERGE_STATE=$(echo "$MERGE_CHECK" | jq -r '.state')
+  AUTO_MERGE=$(echo "$MERGE_CHECK" | jq -r '.autoMerge')
+fi
 
 if [ "$MERGE_STATE" = "MERGED" ] || [ "$AUTO_MERGE" = "true" ]; then
   gh pr edit <PR_NUMBER> --remove-label "bot:fixing" --add-label "bot:done"
 else
-  # Merge command failed silently — fall back to human review
+  # Both attempts failed — fall back to human review
   gh pr edit <PR_NUMBER> --remove-label "bot:fixing" --add-label "bot:ready-to-merge"
   gh pr comment <PR_NUMBER> --body "<!-- pr-automation-bot -->
 ⚠️ 自动合并触发失败（auto-merge 未成功启用），已标记 bot:ready-to-merge，请人工确认后合并。"
@@ -576,15 +590,29 @@ When `NEEDS_HUMAN_REVIEW=true`, route to human review regardless of CONCLUSION (
    gh pr merge <PR_NUMBER> --squash --auto
 
    # Verify merge was actually enabled or PR already merged
-   MERGE_CHECK=$(gh pr view <PR_NUMBER> --json state,autoMergeRequest \
-     --jq '{state: .state, autoMerge: (.autoMergeRequest != null)}')
+   # GitHub mergeStateStatus can briefly be UNKNOWN right after CI completes — retry once
+   check_merge() {
+     gh pr view <PR_NUMBER> --json state,autoMergeRequest \
+       --jq '{state: .state, autoMerge: (.autoMergeRequest != null)}'
+   }
+
+   MERGE_CHECK=$(check_merge)
    MERGE_STATE=$(echo "$MERGE_CHECK" | jq -r '.state')
    AUTO_MERGE=$(echo "$MERGE_CHECK" | jq -r '.autoMerge')
+
+   if [ "$MERGE_STATE" != "MERGED" ] && [ "$AUTO_MERGE" != "true" ]; then
+     # First check failed — wait 5s for GitHub state to stabilize, then retry once
+     sleep 5
+     gh pr merge <PR_NUMBER> --squash --auto
+     MERGE_CHECK=$(check_merge)
+     MERGE_STATE=$(echo "$MERGE_CHECK" | jq -r '.state')
+     AUTO_MERGE=$(echo "$MERGE_CHECK" | jq -r '.autoMerge')
+   fi
 
    if [ "$MERGE_STATE" = "MERGED" ] || [ "$AUTO_MERGE" = "true" ]; then
      gh pr edit <PR_NUMBER> --remove-label "bot:reviewing" --add-label "bot:done"
    else
-     # Merge command failed silently — fall back to human review
+     # Both attempts failed — fall back to human review
      gh pr edit <PR_NUMBER> --remove-label "bot:reviewing" --add-label "bot:ready-to-merge"
      gh pr comment <PR_NUMBER> --body "<!-- pr-automation-bot -->
    ⚠️ 自动合并触发失败（auto-merge 未成功启用），已标记 bot:ready-to-merge，请人工确认后合并。"
