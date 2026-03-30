@@ -875,6 +875,34 @@ const migration_v18: IMigration = {
 };
 
 /**
+ * Migration v18 -> v19: Add teams table for Team mode
+ */
+const migration_v19: IMigration = {
+  version: 19,
+  name: 'Add teams table',
+  up: (db) => {
+    db.exec(`CREATE TABLE IF NOT EXISTS teams (
+      id TEXT PRIMARY KEY,
+      user_id TEXT NOT NULL,
+      name TEXT NOT NULL,
+      workspace TEXT NOT NULL,
+      workspace_mode TEXT NOT NULL DEFAULT 'shared',
+      agents TEXT NOT NULL DEFAULT '[]',
+      created_at INTEGER NOT NULL,
+      updated_at INTEGER NOT NULL,
+      FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+    )`);
+    db.exec('CREATE INDEX IF NOT EXISTS idx_teams_user_id ON teams(user_id)');
+    db.exec('CREATE INDEX IF NOT EXISTS idx_teams_updated_at ON teams(updated_at)');
+  },
+  down: (db) => {
+    db.exec('DROP INDEX IF EXISTS idx_teams_updated_at');
+    db.exec('DROP INDEX IF EXISTS idx_teams_user_id');
+    db.exec('DROP TABLE IF EXISTS teams');
+  },
+};
+
+/**
  * All migrations in order
  */
 // prettier-ignore
@@ -882,6 +910,7 @@ export const ALL_MIGRATIONS: IMigration[] = [
   migration_v1, migration_v2, migration_v3, migration_v4, migration_v5, migration_v6,
   migration_v7, migration_v8, migration_v9, migration_v10, migration_v11, migration_v12,
   migration_v13, migration_v14, migration_v15, migration_v16, migration_v17, migration_v18,
+  migration_v19,
 ];
 
 /**
