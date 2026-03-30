@@ -35,6 +35,17 @@ export class WorkspaceSnapshotService {
       await this.dispose(workspacePath);
     }
 
+    // Verify workspace directory exists before attempting snapshot.
+    // Temp directories (claude-temp-*, .gemini, etc.) may be deleted before init runs.
+    try {
+      const stat = await fs.stat(workspacePath);
+      if (!stat.isDirectory()) {
+        return { mode: 'snapshot', branch: null };
+      }
+    } catch {
+      return { mode: 'snapshot', branch: null };
+    }
+
     const mode = await this.detectMode(workspacePath);
 
     if (mode === 'git-repo') {
@@ -233,7 +244,16 @@ export class WorkspaceSnapshotService {
       createdGitignore = true;
     }
 
-    const gitdir = await this.createWorkingTreeSnapshot(workspacePath);
+    let gitdir: string | undefined;
+    try {
+      gitdir = await this.createWorkingTreeSnapshot(workspacePath);
+    } catch {
+      // Workspace may have been removed during snapshot creation — clean up and bail
+      if (createdGitignore) {
+        await fs.unlink(gitignorePath).catch(() => {});
+      }
+      return { mode: 'snapshot', branch: null };
+    }
 
     const { stdout: oidOut } = await execFileAsync(
       'git',

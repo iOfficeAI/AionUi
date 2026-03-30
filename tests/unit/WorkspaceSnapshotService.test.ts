@@ -134,6 +134,39 @@ describe('WorkspaceSnapshotService', () => {
     });
   });
 
+  describe('non-existent workspace', () => {
+    it('init returns snapshot default when workspace directory does not exist', async () => {
+      const nonExistent = path.join(tmpDir, 'does-not-exist');
+      const info = await service.init(nonExistent);
+      expect(info.mode).toBe('snapshot');
+      expect(info.branch).toBeNull();
+    });
+
+    it('init returns snapshot default when workspace path is a file, not a directory', async () => {
+      const filePath = path.join(tmpDir, 'a-file.txt');
+      await fs.writeFile(filePath, 'not a directory');
+      const info = await service.init(filePath);
+      expect(info.mode).toBe('snapshot');
+      expect(info.branch).toBeNull();
+    });
+
+    it('init does not register a snapshot state for non-existent workspace', async () => {
+      const nonExistent = path.join(tmpDir, 'gone');
+      await service.init(nonExistent);
+      const info = await service.getInfo(nonExistent);
+      expect(info.mode).toBe('snapshot');
+      expect(info.branch).toBeNull();
+    });
+
+    it('compare returns empty for workspace that was removed before init', async () => {
+      const nonExistent = path.join(tmpDir, 'removed');
+      await service.init(nonExistent);
+      const { staged, unstaged } = await service.compare(nonExistent);
+      expect(staged).toEqual([]);
+      expect(unstaged).toEqual([]);
+    });
+  });
+
   describe('git-repo mode (has .git)', () => {
     beforeEach(async () => {
       await exec('git', ['init'], { cwd: tmpDir });
