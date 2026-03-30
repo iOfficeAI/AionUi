@@ -58,7 +58,19 @@ bunx tsc --noEmit
 - **lint fails** → Stop, report errors. Do not proceed.
 - **format** → Auto-fixes silently.
 - **tsc fails** → Stop, report errors. Do not proceed.
-- **All pass** → Proceed silently.
+- **All pass** → Proceed to i18n check below.
+
+**i18n check** (run if any `src/renderer/`, `locales/`, or `src/common/config/i18n` files are modified):
+
+```bash
+bun run i18n:types
+node scripts/check-i18n.js
+```
+
+- **i18n:types fails** → Stop, report errors. Do not proceed.
+- **check-i18n exits 1 (errors)** → Stop, report errors. Do not proceed.
+- **check-i18n exits 0 (warnings only)** → Continue silently.
+- **No i18n-sensitive files changed** → Skip both commands.
 
 ### Step 2: Run Tests
 
