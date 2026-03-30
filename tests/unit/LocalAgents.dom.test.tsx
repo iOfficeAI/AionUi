@@ -150,6 +150,17 @@ vi.mock('../../src/common/utils', () => ({
   uuid: () => 'test-uuid-123',
 }));
 
+vi.mock('../../src/renderer/pages/settings/AgentSettings/InlineAgentEditor', () => ({
+  default: ({ onSave }: { onSave: (agent: Record<string, unknown>) => void }) => (
+    <button
+      data-testid='inline-editor-save'
+      onClick={() => onSave({ id: 'test-uuid-123', name: 'New Agent', defaultCliPath: 'test', enabled: true })}
+    >
+      SaveAgent
+    </button>
+  ),
+}));
+
 // ---------------------------------------------------------------------------
 // Imports
 // ---------------------------------------------------------------------------
@@ -216,34 +227,32 @@ describe('LocalAgents', () => {
       context: 'test context',
     };
 
-    // Config has one preset agent
     mockConfigGet.mockResolvedValue([presetAgent]);
 
     await act(async () => {
       render(<LocalAgents />);
     });
 
-    // Click add button
+    // Click add button to show InlineAgentEditor
     const addButton = screen.getByText('settings.addCustomAgentTitle');
     await act(async () => {
       fireEvent.click(addButton);
     });
 
-    // The InlineAgentEditor should appear — find the save button by
-    // looking for the form submit. Since InlineAgentEditor calls onSave
-    // with the agent data, we simulate that directly by checking the
-    // ConfigStorage.set call preserves preset agents.
+    // Trigger save via the mocked InlineAgentEditor
+    const saveButton = screen.getByTestId('inline-editor-save');
+    await act(async () => {
+      fireEvent.click(saveButton);
+    });
 
-    // The critical assertion is in the save callback logic:
-    // When saving, it reads ALL agents first, then appends/updates.
-    // Verify: ConfigStorage.set should be called with both the preset
-    // and the new custom agent (not just the custom agent).
-
-    // Since the InlineAgentEditor requires filling form fields and
-    // the mock setup is complex, let's verify the logic indirectly:
-    // The loadCustomAgents filters out presets from display, but
-    // handleSaveAgent reads allAgents from config before writing.
-    expect(mockConfigGet).toHaveBeenCalledWith('acp.customAgents');
+    // Core assertion: ConfigStorage.set must be called with presets preserved
+    expect(mockConfigSet).toHaveBeenCalledWith(
+      'acp.customAgents',
+      expect.arrayContaining([
+        expect.objectContaining({ id: 'cowork', isPreset: true }),
+        expect.objectContaining({ name: 'New Agent' }),
+      ])
+    );
   });
 });
 
