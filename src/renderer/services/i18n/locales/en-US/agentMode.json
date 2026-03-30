@@ -5,6 +5,8 @@
   "autoEdit": "Auto Edit",
   "yolo": "YOLO",
   "yoloNoSandbox": "Full Auto (No Sandbox)",
+  "auto": "Auto",
+  "dontAsk": "Don't Ask",
   "bypass": "Bypass (YOLO)",
   "bypassPermissions": "YOLO",
   "smart": "Smart",

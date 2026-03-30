@@ -5,6 +5,8 @@
   "autoEdit": "自動編集",
   "yolo": "全自動",
   "yoloNoSandbox": "全自動（サンドボックスなし）",
+  "auto": "自動",
+  "dontAsk": "事前承認のみ",
   "bypass": "チェックをバイパス",
   "bypassPermissions": "全自動",
   "smart": "スマート",
