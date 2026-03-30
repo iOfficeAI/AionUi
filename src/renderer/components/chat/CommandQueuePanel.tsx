@@ -222,7 +222,7 @@ const QueueItemCard: React.FC<QueueItemCardProps> = ({
             </span>
           ) : null}
           {!isEditing ? (
-            <Typography.Ellipsis rows={1} showTooltip className='min-w-0 flex-1 text-12px leading-15px'>
+            <Typography.Ellipsis rows={1} showTooltip className='min-w-0 flex-1 text-12px leading-15px text-t-primary'>
               {preview}
             </Typography.Ellipsis>
           ) : (
