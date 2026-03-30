@@ -7,39 +7,16 @@
 import type { ICreateConversationParams } from '@/common/adapter/ipcBridge';
 import type { TChatConversation, TProviderWithModel } from '@/common/config/storage';
 import type { PresetAgentType } from '@/common/types/acpTypes';
+import { getSkillsDirsForBackend, hasNativeSkillSupport } from '@/common/types/acpTypes';
 import { uuid } from '@/common/utils';
+
+// Re-export for backward compatibility (tests mock this path)
+export { hasNativeSkillSupport };
 import { existsSync } from 'fs';
 import fs from 'fs/promises';
 import path from 'path';
 import { getSkillsDir, getBuiltinSkillsCopyDir, getAutoSkillsDir, getSystemDir } from './initStorage';
 import { computeOpenClawIdentityHash } from './openclawUtils';
-
-/**
- * Agent 类型/backend 到原生 skills 目录的映射
- * Mapping from agent type/backend to native skills directory
- *
- * 只有在此映射中的 CLI 才支持原生 skill 发现（CLI 自动扫描目录中的 SKILL.md）
- * Only CLIs listed here support native skill discovery (CLI auto-scans directory for SKILL.md)
- *
- * 不在此映射中的 backend 将 fallback 到首条消息注入（prompt injection）方案
- * Backends NOT in this map will fallback to first-message injection (prompt injection)
- */
-const AGENT_SKILLS_DIRS: Record<string, string[]> = {
-  // Verified native skill discovery support:
-  gemini: ['.gemini/skills'],
-  claude: ['.claude/skills'],
-  codebuddy: ['.codebuddy/skills'],
-  codex: ['.codex/skills'],
-  qwen: ['.qwen/skills'],
-  iflow: ['.iflow/skills'],
-  goose: ['.goose/skills'],
-  droid: ['.factory/skills'],
-  kimi: ['.kimi/skills'],
-  vibe: ['.vibe/skills'],
-  cursor: ['.cursor/skills'],
-  // NOT supported (fallback to prompt injection):
-  // opencode, auggie, copilot, nanobot, qoder
-};
 
 /**
  * 为 assistant 设置原生 workspace 结构（skill symlinks）
@@ -54,14 +31,6 @@ const AGENT_SKILLS_DIRS: Record<string, string[]> = {
  * 注意：Rules/人格设定通过 system prompt 注入，不写 context file
  * Note: Rules/personality are injected via system prompt, NOT written to context files
  */
-/**
- * Check if a given agent type/backend supports native skill discovery.
- * When false, callers should fallback to prompt injection for skills.
- */
-export function hasNativeSkillSupport(agentTypeOrBackend: string | undefined): boolean {
-  return !!agentTypeOrBackend && agentTypeOrBackend in AGENT_SKILLS_DIRS;
-}
-
 export async function setupAssistantWorkspace(
   workspace: string,
   options: {
@@ -70,9 +39,9 @@ export async function setupAssistantWorkspace(
     enabledSkills?: string[];
   }
 ): Promise<void> {
-  // Determine skills directories based on agent type or backend
+  // Determine skills directories from ACP_BACKENDS_ALL config
   const key = options.backend || options.agentType || '';
-  const skillsDirs = AGENT_SKILLS_DIRS[key];
+  const skillsDirs = getSkillsDirsForBackend(key);
 
   // If no native skill directory is known for this CLI, skip symlink setup.
   // The caller should use prompt injection as fallback.
