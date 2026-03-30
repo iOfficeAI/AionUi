@@ -83,6 +83,12 @@ const capturedConnCallbacks = vi.hoisted(
     }) as Record<string, ((...args: unknown[]) => void) | null>
 );
 
+const mockWebSocketState = vi.hoisted(() => ({
+  lastUrl: '',
+  lastOptions: undefined as Record<string, unknown> | undefined,
+  throwOnUrl: undefined as string | undefined,
+}));
+
 vi.mock('../../src/process/agent/openclaw/OpenClawGatewayConnection', () => ({
   OpenClawGatewayConnection: class {
     start = vi.fn();
@@ -101,7 +107,13 @@ vi.mock('../../src/process/agent/openclaw/OpenClawGatewayConnection', () => ({
 vi.mock('ws', () => ({
   default: class MockWebSocket {
     private handlers = new Map<string, (arg: unknown) => void>();
-    constructor() {
+    constructor(url: string, options?: Record<string, unknown>) {
+      mockWebSocketState.lastUrl = url;
+      mockWebSocketState.lastOptions = options;
+      if (mockWebSocketState.throwOnUrl && url.includes(mockWebSocketState.throwOnUrl)) {
+        throw new SyntaxError('Invalid URL');
+      }
+
       // Simulate successful connection after a tick
       setTimeout(() => this.handlers.get('open')?.(undefined), 0);
     }
@@ -122,6 +134,9 @@ describe('remoteAgentBridge', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     providerMap.clear();
+    mockWebSocketState.lastUrl = '';
+    mockWebSocketState.lastOptions = undefined;
+    mockWebSocketState.throwOnUrl = undefined;
     initRemoteAgentBridge();
   });
 
@@ -258,6 +273,25 @@ describe('remoteAgentBridge', () => {
       const handler = providerMap.get('testConnection')!;
       const result = await handler({ url: 'wss://test', authType: 'none' });
       expect(result).toEqual({ success: true });
+    });
+
+    it('normalizes urls without protocol prefix', async () => {
+      const handler = providerMap.get('testConnection')!;
+
+      const result = await handler({ url: '127.0.0.1:42617', authType: 'none' });
+
+      expect(result).toEqual({ success: true });
+      expect(mockWebSocketState.lastUrl).toBe('ws://127.0.0.1:42617');
+    });
+
+    it('returns a failure result when websocket construction throws', async () => {
+      const handler = providerMap.get('testConnection')!;
+      mockWebSocketState.throwOnUrl = 'invalid-endpoint';
+
+      const result = await handler({ url: 'invalid-endpoint', authType: 'none' });
+
+      expect(result).toEqual({ success: false, error: 'Invalid URL' });
+      expect(mockWebSocketState.lastUrl).toBe('ws://invalid-endpoint');
     });
   });
 
