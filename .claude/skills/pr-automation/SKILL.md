@@ -25,7 +25,7 @@ No arguments required. The daemon script `scripts/pr-automation.sh` manages the 
 
 ```
 TRUSTED_CONTRIBUTORS_TEAM: detected from REPO org (e.g. iOfficeAI/trusted-contributors)
-CRITICAL_PATH_PATTERN: ^\.claude/skills/|^scripts/pr-automation\.sh
+CRITICAL_PATH_PATTERN: ^\.claude/skills/|^scripts/pr-automation\.sh|^src/process/services/database/
 LARGE_PR_FILE_THRESHOLD: 50
 PR_DAYS_LOOKBACK: 7 (env var — override via PR_DAYS_LOOKBACK=N when starting the daemon)
 ```
