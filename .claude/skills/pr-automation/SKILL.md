@@ -282,8 +282,8 @@ MERGE_STATE=$(echo "$MERGE_CHECK" | jq -r '.state')
 AUTO_MERGE=$(echo "$MERGE_CHECK" | jq -r '.autoMerge')
 
 if [ "$MERGE_STATE" != "MERGED" ] && [ "$AUTO_MERGE" != "true" ]; then
-  # First check failed — wait 5s for GitHub state to stabilize, then retry once
-  sleep 5
+  # First check failed — wait 10s for GitHub state to stabilize, then retry once
+  sleep 10
   gh pr merge <PR_NUMBER> --squash --auto
   MERGE_CHECK=$(check_merge)
   MERGE_STATE=$(echo "$MERGE_CHECK" | jq -r '.state')
