@@ -16,11 +16,7 @@ export class TeamSession extends EventEmitter {
   private activeSubTaskSlotId: string | null = null;
   private subAgentOutputBuffer: string = '';
 
-  constructor(
-    team: TTeam,
-    workerTaskManager: IWorkerTaskManager,
-    conversationService: IConversationService
-  ) {
+  constructor(team: TTeam, workerTaskManager: IWorkerTaskManager, conversationService: IConversationService) {
     super();
     this.team = team;
     this.workerTaskManager = workerTaskManager;
@@ -101,10 +97,7 @@ export class TeamSession extends EventEmitter {
         this.dispatchBuffer += (msg.data as { text: string }).text;
       }
 
-      if (
-        this.activeSubTaskSlotId &&
-        this.slotIdForConversation(msg.conversation_id) === this.activeSubTaskSlotId
-      ) {
+      if (this.activeSubTaskSlotId && this.slotIdForConversation(msg.conversation_id) === this.activeSubTaskSlotId) {
         if (typeof (msg.data as { text?: string }).text === 'string') {
           this.subAgentOutputBuffer += (msg.data as { text: string }).text;
         }

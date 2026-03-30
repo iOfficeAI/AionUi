@@ -81,38 +81,38 @@ const TeamCreateModal: React.FC<Props> = ({ visible, onClose, onCreated }) => {
       wrapStyle={{ zIndex: 10000 }}
       maskStyle={{ zIndex: 9999 }}
     >
-      <Steps current={step} className="mb-6">
+      <Steps current={step} className='mb-6'>
         <Steps.Step title={t('team.create.step.dispatch', { defaultValue: 'Dispatch Agent' })} />
         <Steps.Step title={t('team.create.step.subAgents', { defaultValue: 'Sub Agents' })} />
         <Steps.Step title={t('team.create.step.workspace', { defaultValue: 'Workspace' })} />
       </Steps>
 
       {step === 0 && (
-        <div className="flex flex-col gap-4">
+        <div className='flex flex-col gap-4'>
           <Input
             placeholder={t('team.create.namePlaceholder', { defaultValue: 'Team name' })}
             value={name}
             onChange={setName}
           />
-          <p className="text-[var(--color-text-3)] text-sm">
-            {t('team.create.dispatchHint', { defaultValue: 'Set a name for your team and configure the dispatch agent.' })}
+          <p className='text-[var(--color-text-3)] text-sm'>
+            {t('team.create.dispatchHint', {
+              defaultValue: 'Set a name for your team and configure the dispatch agent.',
+            })}
           </p>
-          <Button type="primary" disabled={!name.trim()} onClick={() => setStep(1)}>
+          <Button type='primary' disabled={!name.trim()} onClick={() => setStep(1)}>
             {t('team.create.next', { defaultValue: 'Next' })}
           </Button>
         </div>
       )}
 
       {step === 1 && (
-        <div className="flex flex-col gap-4">
-          <p className="text-[var(--color-text-3)] text-sm">
+        <div className='flex flex-col gap-4'>
+          <p className='text-[var(--color-text-3)] text-sm'>
             {t('team.create.subAgentsHint', { defaultValue: 'Sub agents can be added after the team is created.' })}
           </p>
-          <div className="flex gap-2 justify-between mt-4">
-            <Button onClick={() => setStep(0)}>
-              {t('team.create.back', { defaultValue: 'Back' })}
-            </Button>
-            <Button type="primary" onClick={() => setStep(2)}>
+          <div className='flex gap-2 justify-between mt-4'>
+            <Button onClick={() => setStep(0)}>{t('team.create.back', { defaultValue: 'Back' })}</Button>
+            <Button type='primary' onClick={() => setStep(2)}>
               {t('team.create.next', { defaultValue: 'Next' })}
             </Button>
           </div>
@@ -120,28 +120,19 @@ const TeamCreateModal: React.FC<Props> = ({ visible, onClose, onCreated }) => {
       )}
 
       {step === 2 && (
-        <div className="flex flex-col gap-4">
+        <div className='flex flex-col gap-4'>
           <Input
             placeholder={t('team.create.workspacePlaceholder', { defaultValue: 'Workspace path (optional)' })}
             value={workspace}
             onChange={setWorkspace}
           />
-          <Radio.Group
-            value={workspaceMode}
-            onChange={(val) => setWorkspaceMode(val as WorkspaceMode)}
-          >
-            <Radio value="shared">
-              {t('team.create.workspaceShared', { defaultValue: 'Shared' })}
-            </Radio>
-            <Radio value="isolated">
-              {t('team.create.workspaceIsolated', { defaultValue: 'Isolated' })}
-            </Radio>
+          <Radio.Group value={workspaceMode} onChange={(val) => setWorkspaceMode(val as WorkspaceMode)}>
+            <Radio value='shared'>{t('team.create.workspaceShared', { defaultValue: 'Shared' })}</Radio>
+            <Radio value='isolated'>{t('team.create.workspaceIsolated', { defaultValue: 'Isolated' })}</Radio>
           </Radio.Group>
-          <div className="flex gap-2 justify-between mt-4">
-            <Button onClick={() => setStep(1)}>
-              {t('team.create.back', { defaultValue: 'Back' })}
-            </Button>
-            <Button type="primary" loading={loading} onClick={handleCreate}>
+          <div className='flex gap-2 justify-between mt-4'>
+            <Button onClick={() => setStep(1)}>{t('team.create.back', { defaultValue: 'Back' })}</Button>
+            <Button type='primary' loading={loading} onClick={handleCreate}>
               {t('team.create.confirm', { defaultValue: 'Create Team' })}
             </Button>
           </div>

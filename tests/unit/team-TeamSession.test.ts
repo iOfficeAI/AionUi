@@ -36,7 +36,13 @@ function makeTeam(): TTeam {
     workspace: '/tmp/ws',
     workspaceMode: 'shared',
     agents: [
-      { slotId: 'slot-dispatch', conversationId: 'conv-dispatch', role: 'dispatch', agentType: 'acp', agentName: 'Claude' },
+      {
+        slotId: 'slot-dispatch',
+        conversationId: 'conv-dispatch',
+        role: 'dispatch',
+        agentType: 'acp',
+        agentName: 'Claude',
+      },
       { slotId: 'slot-sub', conversationId: 'conv-sub', role: 'sub', agentType: 'gemini', agentName: 'Gemini' },
     ],
     createdAt: 1000,

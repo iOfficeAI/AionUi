@@ -9,12 +9,10 @@ type Props = {
 
 const AgentTab: React.FC<Props> = ({ agent, runtime }) => {
   return (
-    <span className="flex items-center gap-1.5">
+    <span className='flex items-center gap-1.5'>
       <AgentStatusBadge status={runtime.status} />
-      <span className="text-sm">{agent.agentName}</span>
-      {agent.role === 'dispatch' && (
-        <span className="text-xs text-[var(--color-text-3)] ml-0.5">▸</span>
-      )}
+      <span className='text-sm'>{agent.agentName}</span>
+      {agent.role === 'dispatch' && <span className='text-xs text-[var(--color-text-3)] ml-0.5'>▸</span>}
     </span>
   );
 };

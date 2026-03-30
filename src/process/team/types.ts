@@ -6,11 +6,11 @@ export type WorkspaceMode = 'shared' | 'isolated';
 
 /** Persisted agent configuration within a team */
 export type TeamAgent = {
-  slotId: string;          // unique within this team, e.g. "slot-abc123"
-  conversationId: string;  // corresponding TChatConversation id
+  slotId: string; // unique within this team, e.g. "slot-abc123"
+  conversationId: string; // corresponding TChatConversation id
   role: TeamAgentRole;
-  agentType: string;       // 'acp' | 'gemini' | 'codex' | ...
-  agentName: string;       // display name shown in tab
+  agentType: string; // 'acp' | 'gemini' | 'codex' | ...
+  agentName: string; // display name shown in tab
 };
 
 /** Persisted team record (stored in SQLite `teams` table) */
@@ -20,7 +20,7 @@ export type TTeam = {
   name: string;
   workspace: string;
   workspaceMode: WorkspaceMode;
-  agents: TeamAgent[];     // agents[0] is always the dispatch agent
+  agents: TeamAgent[]; // agents[0] is always the dispatch agent
   createdAt: number;
   updatedAt: number;
 };
@@ -29,7 +29,7 @@ export type TTeam = {
 export type TeamAgentRuntime = {
   slotId: string;
   status: TeamAgentStatus;
-  lastMessage?: string;    // short summary for status badge tooltip
+  lastMessage?: string; // short summary for status badge tooltip
 };
 
 /** IPC event pushed to renderer when agent status changes */

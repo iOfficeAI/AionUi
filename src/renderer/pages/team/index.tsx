@@ -8,10 +8,7 @@ import TeamPage from './TeamPage';
 const TeamIndex: React.FC = () => {
   const { id } = useParams<{ id: string }>();
 
-  const { data: team, isLoading } = useSWR(
-    id ? `team/${id}` : null,
-    () => ipcBridge.team.get.invoke({ id: id! })
-  );
+  const { data: team, isLoading } = useSWR(id ? `team/${id}` : null, () => ipcBridge.team.get.invoke({ id: id! }));
 
   if (isLoading) return <Spin loading />;
   if (!team) return null;

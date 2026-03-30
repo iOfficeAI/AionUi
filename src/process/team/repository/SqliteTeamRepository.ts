@@ -71,9 +71,7 @@ export class SqliteTeamRepository implements ITeamRepository {
 
   async findAll(userId: string): Promise<TTeam[]> {
     const db = await this.getDb();
-    const rows = db
-      .prepare('SELECT * FROM teams WHERE user_id = ? ORDER BY updated_at DESC')
-      .all(userId) as TeamRow[];
+    const rows = db.prepare('SELECT * FROM teams WHERE user_id = ? ORDER BY updated_at DESC').all(userId) as TeamRow[];
     return rows.map(rowToTeam);
   }
 
