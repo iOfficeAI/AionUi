@@ -132,6 +132,13 @@ describe('remoteAgentBridge', () => {
       expect(mockDb.getRemoteAgents).toHaveBeenCalled();
       expect(result).toEqual([expect.objectContaining({ id: 'a1', name: 'Agent1' })]);
     });
+
+    it('returns empty array when getRemoteAgents returns [] (e.g. missing table)', async () => {
+      mockDb.getRemoteAgents.mockReturnValueOnce([]);
+      const handler = providerMap.get('list')!;
+      const result = await handler();
+      expect(result).toEqual([]);
+    });
   });
 
   describe('get provider', () => {
@@ -145,6 +152,13 @@ describe('remoteAgentBridge', () => {
     it('returns null for non-existent agent', async () => {
       const handler = providerMap.get('get')!;
       const result = await handler({ id: 'missing' });
+      expect(result).toBeNull();
+    });
+
+    it('returns null when getRemoteAgent returns null (e.g. missing table)', async () => {
+      mockDb.getRemoteAgent.mockReturnValueOnce(null);
+      const handler = providerMap.get('get')!;
+      const result = await handler({ id: 'a1' });
       expect(result).toBeNull();
     });
   });
