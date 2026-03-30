@@ -4,7 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { useCallback, useRef } from 'react';
+import { useCallback, useEffect, useRef } from 'react';
 import { SCROLL_SYNC_DEBOUNCE } from '../constants';
 
 /**
@@ -71,6 +71,44 @@ export const useScrollSync = ({
   previewContainerRef,
 }: UseScrollSyncOptions): UseScrollSyncReturn => {
   const isSyncingRef = useRef(false);
+  const rafIdRef = useRef<number | null>(null);
+  const timeoutIdRef = useRef<number | null>(null);
+
+  const scheduleSyncUnlock = useCallback(() => {
+    if (rafIdRef.current !== null) {
+      cancelAnimationFrame(rafIdRef.current);
+      rafIdRef.current = null;
+    }
+    if (timeoutIdRef.current !== null) {
+      window.clearTimeout(timeoutIdRef.current);
+      timeoutIdRef.current = null;
+    }
+
+    if (typeof window.requestAnimationFrame === 'function') {
+      rafIdRef.current = window.requestAnimationFrame(() => {
+        isSyncingRef.current = false;
+        rafIdRef.current = null;
+      });
+      return;
+    }
+
+    timeoutIdRef.current = window.setTimeout(() => {
+      isSyncingRef.current = false;
+      timeoutIdRef.current = null;
+    }, SCROLL_SYNC_DEBOUNCE);
+  }, []);
+
+  useEffect(() => {
+    return () => {
+      if (rafIdRef.current !== null) {
+        cancelAnimationFrame(rafIdRef.current);
+      }
+      if (timeoutIdRef.current !== null) {
+        window.clearTimeout(timeoutIdRef.current);
+      }
+      isSyncingRef.current = false;
+    };
+  }, []);
 
   const handleEditorScroll = useCallback(
     (scrollTop: number, scrollHeight: number, clientHeight: number) => {
@@ -89,11 +127,9 @@ export const useScrollSync = ({
         previewContainer.scrollTop = targetScroll;
       }
 
-      setTimeout(() => {
-        isSyncingRef.current = false;
-      }, SCROLL_SYNC_DEBOUNCE);
+      scheduleSyncUnlock();
     },
-    [enabled, previewContainerRef]
+    [enabled, previewContainerRef, scheduleSyncUnlock]
   );
 
   const handlePreviewScroll = useCallback(
@@ -113,11 +149,9 @@ export const useScrollSync = ({
         editorContainer.scrollTop = targetScroll;
       }
 
-      setTimeout(() => {
-        isSyncingRef.current = false;
-      }, SCROLL_SYNC_DEBOUNCE);
+      scheduleSyncUnlock();
     },
-    [enabled, editorContainerRef]
+    [enabled, editorContainerRef, scheduleSyncUnlock]
   );
 
   return {
