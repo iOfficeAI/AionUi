@@ -1162,3 +1162,9 @@ export const channel = {
   ),
   userAuthorized: bridge.buildEmitter<IChannelUser>('channel.user-authorized'),
 };
+
+// Team Mode API
+export const team = {
+  messageStream: bridge.buildEmitter<import('@process/team/types').ITeamMessageEvent>('team.message.stream'),
+  agentStatusChanged: bridge.buildEmitter<import('@process/team/types').ITeamAgentStatusEvent>('team.agent.status'),
+};
