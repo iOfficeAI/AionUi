@@ -238,7 +238,6 @@ const SendBox: React.FC<{
   });
   const btwCommand = useBtwCommand(conversationContext?.conversationId, enableBtw);
   const btwQuestion = useMemo(() => extractBtwQuestion(input), [input]);
-  const isBtwInput = enableBtw && btwQuestion !== null;
   const inputHistory = useMemo(
     () => getConversationInputHistory(messageList, conversationContext?.conversationId),
     [conversationContext?.conversationId, messageList]
