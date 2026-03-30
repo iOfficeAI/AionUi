@@ -83,6 +83,7 @@ vi.mock('@/common', () => {
 
 // Mock fs/promises to control readFile behavior
 const mockReadFile = vi.fn();
+const mockStat = vi.fn();
 vi.mock('fs/promises', async (importOriginal) => {
   const actual = await importOriginal<typeof import('fs/promises')>();
   return {
@@ -90,7 +91,7 @@ vi.mock('fs/promises', async (importOriginal) => {
     default: {
       ...actual,
       readFile: mockReadFile,
-      stat: vi.fn(),
+      stat: mockStat,
       readdir: vi.fn(),
       mkdir: vi.fn(),
       writeFile: vi.fn(),
@@ -129,6 +130,7 @@ describe('fsBridge readFile/readFileBuffer EBUSY handling', () => {
     const readFileCb = providerCallbacks['readFile'] as (args: { path: string }) => Promise<string | null>;
     expect(readFileCb).toBeDefined();
 
+    mockStat.mockResolvedValueOnce({ size: 100 });
     mockReadFile.mockRejectedValueOnce(makeErrnoError('EBUSY', 'EBUSY: resource busy or locked'));
 
     const result = await readFileCb({ path: '/some/locked/file.pptx' });
@@ -139,7 +141,7 @@ describe('fsBridge readFile/readFileBuffer EBUSY handling', () => {
     await setupProviders();
     const readFileCb = providerCallbacks['readFile'] as (args: { path: string }) => Promise<string | null>;
 
-    mockReadFile.mockRejectedValueOnce(makeErrnoError('ENOENT', 'ENOENT: no such file or directory'));
+    mockStat.mockRejectedValueOnce(makeErrnoError('ENOENT', 'ENOENT: no such file or directory'));
 
     const result = await readFileCb({ path: '/missing/file.txt' });
     expect(result).toBeNull();
@@ -149,9 +151,22 @@ describe('fsBridge readFile/readFileBuffer EBUSY handling', () => {
     await setupProviders();
     const readFileCb = providerCallbacks['readFile'] as (args: { path: string }) => Promise<string | null>;
 
+    mockStat.mockResolvedValueOnce({ size: 100 });
     mockReadFile.mockRejectedValueOnce(makeErrnoError('EPERM', 'EPERM: operation not permitted'));
 
     await expect(readFileCb({ path: '/forbidden/file.txt' })).rejects.toThrow('EPERM');
+  });
+
+  it('readFile returns null for files exceeding 256MB size limit (ELECTRON-D3)', async () => {
+    await setupProviders();
+    const readFileCb = providerCallbacks['readFile'] as (args: { path: string }) => Promise<string | null>;
+
+    const oversizedBytes = 256 * 1024 * 1024 + 1; // 256 MB + 1 byte
+    mockStat.mockResolvedValueOnce({ size: oversizedBytes });
+
+    const result = await readFileCb({ path: '/huge/database.bin' });
+    expect(result).toBeNull();
+    expect(mockReadFile).not.toHaveBeenCalled();
   });
 
   it('readFileBuffer returns null for EBUSY', async () => {
@@ -171,6 +186,7 @@ describe('fsBridge readFile/readFileBuffer EBUSY handling', () => {
     await setupProviders();
     const readFileCb = providerCallbacks['readFile'] as (args: { path: string }) => Promise<string | null>;
 
+    mockStat.mockResolvedValueOnce({ size: 1024 });
     mockReadFile.mockResolvedValueOnce('file content');
 
     const result = await readFileCb({ path: '/valid/file.txt' });
