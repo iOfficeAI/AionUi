@@ -416,7 +416,11 @@ export function initConversationBridge(
 
   // 通用 sendMessage 实现 - 统一调用 IAgentManager.sendMessage
   // Generic sendMessage - dispatches via IAgentManager.sendMessage interface
-  ipcBridge.conversation.sendMessage.provider(async ({ conversation_id, files, ...other }) => {
+  ipcBridge.conversation.sendMessage.provider(async (params) => {
+    if (!params) {
+      return { success: false, msg: 'Missing request parameters' };
+    }
+    const { conversation_id, files, ...other } = params;
     let task: IAgentManager | undefined;
     try {
       task = await workerTaskManager.getOrBuildTask(conversation_id);
