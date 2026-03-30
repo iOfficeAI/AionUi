@@ -78,8 +78,16 @@ const AcpSendBox: React.FC<{
   sessionMode?: string;
   agentName?: string;
 }> = ({ conversation_id, backend, sessionMode, agentName }) => {
-  const { thought, running, acpStatus, aiProcessing, setAiProcessing, resetState, tokenUsage, contextLimit } =
-    useAcpMessage(conversation_id);
+  const {
+    running,
+    acpStatus,
+    aiProcessing,
+    setAiProcessing,
+    resetState,
+    tokenUsage,
+    contextLimit,
+    hasThinkingMessage,
+  } = useAcpMessage(conversation_id);
   const { t } = useTranslation();
   const { checkAndUpdateTitle } = useAutoTitle();
   const slashCommands = useSlashCommands(conversation_id, { agentStatus: acpStatus });
@@ -226,7 +234,7 @@ const AcpSendBox: React.FC<{
 
   return (
     <div className='max-w-800px w-full mx-auto flex flex-col mt-auto mb-16px'>
-      <ThoughtDisplay thought={thought} running={running || aiProcessing} onStop={handleStop} />
+      <ThoughtDisplay running={(running || aiProcessing) && !hasThinkingMessage} onStop={handleStop} />
 
       <SendBox
         value={content}
