@@ -130,6 +130,7 @@ Output the PR URL when done.
 ```
 0. Check branch (create if on main)
 1. bun run lint && bun run format && bunx tsc --noEmit
+   (if i18n files changed: bun run i18n:types && node scripts/check-i18n.js)
 2. bunx vitest run
 3. Commit (conventional commits, no AI attribution)
 4. git push -u origin <branch>
