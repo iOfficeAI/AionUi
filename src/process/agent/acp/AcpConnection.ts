@@ -733,6 +733,9 @@ export class AcpConnection {
               this.configOptions = updatePayload.configOptions;
             }
           }
+          {
+            const updateType = (message.params?.update as Record<string, unknown>)?.sessionUpdate;
+          }
           this.onSessionUpdate(message.params);
           break;
         case ACP_METHODS.REQUEST_PERMISSION:

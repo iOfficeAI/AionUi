@@ -66,18 +66,33 @@ export function useAutoScroll({ messages, itemCount }: UseAutoScrollOptions): Us
   );
 
   // Virtuoso native followOutput - handles streaming auto-scroll internally
-  // without external scrollToIndex calls that cause jitter
-  const handleFollowOutput = useCallback((isAtBottom: boolean): false | 'auto' => {
-    if (userScrolledRef.current || !isAtBottom) return false;
-    return 'auto';
+  // without external scrollToIndex calls that cause jitter.
+  // Only respect userScrolledRef — when user scrolled up intentionally, stop following.
+  // Don't gate on isAtBottom: after user sends a message we force-scroll to bottom,
+  // but Virtuoso's atBottom state may lag behind, causing followOutput to stop tracking.
+  const handleFollowOutput = useCallback((_isAtBottom: boolean): false | 'auto' => {
+    const result = userScrolledRef.current ? false : 'auto';
+    console.debug(
+      '[AutoScroll] followOutput:',
+      result,
+      'isAtBottom:',
+      _isAtBottom,
+      'userScrolled:',
+      userScrolledRef.current
+    );
+    return result;
   }, []);
 
   // Reliable bottom state detection from Virtuoso
   const handleAtBottomStateChange = useCallback((atBottom: boolean) => {
+    console.debug('[AutoScroll] atBottomStateChange:', atBottom, 'userScrolled:', userScrolledRef.current);
     setShowScrollButton(!atBottom);
 
     if (atBottom) {
       userScrolledRef.current = false;
+      // Guard against Virtuoso's internal micro-adjustments being misdetected
+      // as user scroll immediately after reaching bottom
+      lastProgrammaticScrollTimeRef.current = Date.now();
     }
   }, []);
 
@@ -86,15 +101,21 @@ export function useAutoScroll({ messages, itemCount }: UseAutoScrollOptions): Us
     const target = e.target as HTMLDivElement;
     const currentScrollTop = target.scrollTop;
 
-    // Ignore scroll events shortly after a programmatic scroll to avoid
-    // Virtuoso's internal layout adjustments being misdetected as user scroll
-    if (Date.now() - lastProgrammaticScrollTimeRef.current < PROGRAMMATIC_SCROLL_GUARD_MS) {
+    // Ignore scroll events shortly after a programmatic scroll or atBottom reset
+    // to avoid Virtuoso's internal layout adjustments being misdetected as user scroll
+    const timeSinceGuard = Date.now() - lastProgrammaticScrollTimeRef.current;
+    if (timeSinceGuard < PROGRAMMATIC_SCROLL_GUARD_MS) {
+      const delta = currentScrollTop - lastScrollTopRef.current;
+      if (delta < -10) {
+        console.debug('[AutoScroll] guard blocked upward scroll, delta:', delta, 'guardAge:', timeSinceGuard, 'ms');
+      }
       lastScrollTopRef.current = currentScrollTop;
       return;
     }
 
     const delta = currentScrollTop - lastScrollTopRef.current;
     if (delta < -10) {
+      console.debug('[AutoScroll] upward scroll detected, delta:', delta, 'setting userScrolled=true');
       userScrolledRef.current = true;
     }
 

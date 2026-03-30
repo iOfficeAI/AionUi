@@ -234,7 +234,7 @@ const AcpSendBox: React.FC<{
 
   return (
     <div className='max-w-800px w-full mx-auto flex flex-col mt-auto mb-16px'>
-      <ThoughtDisplay running={(running || aiProcessing) && !hasThinkingMessage} onStop={handleStop} />
+      <ThoughtDisplay running={aiProcessing && !hasThinkingMessage} onStop={handleStop} />
 
       <SendBox
         value={content}

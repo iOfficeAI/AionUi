@@ -1,7 +1,7 @@
 import type { BadgeProps } from '@arco-design/web-react';
 import { Badge } from '@arco-design/web-react';
 import { IconDown, IconRight } from '@arco-design/web-react/icon';
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import type { IMessageAcpToolCall, IMessageToolGroup } from '@/common/chat/chatLib';
 import './MessageToolGroupSummary.css';
 
@@ -155,15 +155,18 @@ const ToolItemDetail: React.FC<{ item: ToolItem }> = ({ item }) => {
 const MessageToolGroupSummary: React.FC<{ messages: Array<IMessageToolGroup | IMessageAcpToolCall> }> = ({
   messages,
 }) => {
-  const [showMore, setShowMore] = useState(() => {
-    if (!messages.length) return false;
-    return messages.some(
-      (m) =>
-        (m.type === 'tool_group' &&
-          m.content.some((t) => t.status !== 'Success' && t.status !== 'Error' && t.status !== 'Canceled')) ||
-        (m.type === 'acp_tool_call' && m.content.update.status !== 'completed')
-    );
-  });
+  const hasRunningTools = messages.some(
+    (m) =>
+      (m.type === 'tool_group' &&
+        m.content.some((t) => t.status !== 'Success' && t.status !== 'Error' && t.status !== 'Canceled')) ||
+      (m.type === 'acp_tool_call' && m.content.update.status !== 'completed')
+  );
+  const [showMore, setShowMore] = useState(hasRunningTools);
+
+  // Auto-expand when new tools start running (during creation)
+  useEffect(() => {
+    if (hasRunningTools) setShowMore(true);
+  }, [hasRunningTools]);
   const tools = useMemo(() => {
     return messages.flatMap((m) => {
       if (m.type === 'tool_group') return ToolGroupMapper(m);
