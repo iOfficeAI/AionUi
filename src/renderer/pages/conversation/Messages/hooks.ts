@@ -216,7 +216,7 @@ function composeMessageWithIndex(message: TMessage, list: TMessage[], index: Mes
 export const useAddOrUpdateMessage = () => {
   const update = useUpdateMessageList();
   const pendingRef = useRef<Array<{ message: TMessage; add: boolean }>>([]);
-  const rafRef = useRef<any | null>(null);
+  const rafRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const flush = useCallback(() => {
     rafRef.current = null;
@@ -279,6 +279,17 @@ export const useAddOrUpdateMessage = () => {
       }
     },
     [flush]
+  );
+};
+
+export const useRemoveMessageByMsgId = () => {
+  const update = useUpdateMessageList();
+
+  return useCallback(
+    (msgId: string) => {
+      update((list) => list.filter((message) => message.msg_id !== msgId));
+    },
+    [update]
   );
 };
 
