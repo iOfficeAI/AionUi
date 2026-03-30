@@ -347,7 +347,17 @@ export class WorkspaceSnapshotService {
     const gitArgs = [`--git-dir=${gitdir}`, `--work-tree=${workspacePath}`];
 
     await execFileAsync('git', ['init', '--bare', gitdir]);
-    await execFileAsync('git', [...gitArgs, 'add', '.'], { cwd: workspacePath });
+    // Use --ignore-errors so locked/permission-denied files don't abort the entire snapshot.
+    // The command still exits non-zero when some files fail, so catch and verify the commit succeeds.
+    try {
+      await execFileAsync('git', [...gitArgs, 'add', '--ignore-errors', '.'], { cwd: workspacePath });
+    } catch (error) {
+      const stderr = (error as { stderr?: string }).stderr ?? '';
+      // Re-throw if the error is NOT a partial indexing failure (e.g. git not found)
+      if (!stderr.includes('Permission denied') && !stderr.includes('unable to index file')) {
+        throw error;
+      }
+    }
     await execFileAsync(
       'git',
       [

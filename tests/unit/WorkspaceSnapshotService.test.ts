@@ -30,6 +30,26 @@ describe('WorkspaceSnapshotService', () => {
       expect(info.branch).toBeNull();
     });
 
+    it('init succeeds when a file is not readable (permission denied)', async () => {
+      await fs.writeFile(path.join(tmpDir, 'readable.txt'), 'ok');
+      const unreadablePath = path.join(tmpDir, 'locked.txt');
+      await fs.writeFile(unreadablePath, 'locked content');
+      // Remove all permissions so git cannot read the file
+      await fs.chmod(unreadablePath, 0o000);
+
+      try {
+        const info = await service.init(tmpDir);
+        expect(info.mode).toBe('snapshot');
+
+        // The readable file should still be tracked
+        const content = await service.getBaselineContent(tmpDir, 'readable.txt');
+        expect(content).toBe('ok');
+      } finally {
+        // Restore permissions for cleanup
+        await fs.chmod(unreadablePath, 0o644);
+      }
+    });
+
     it('compare detects new file as create', async () => {
       await fs.writeFile(path.join(tmpDir, 'a.txt'), 'original');
       await service.init(tmpDir);
