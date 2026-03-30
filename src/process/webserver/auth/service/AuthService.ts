@@ -412,17 +412,17 @@ export class AuthService {
 
     // 仅要求最小长度 / Only require minimum length
     if (password.length < 8) {
-      errors.push('Password must be at least 8 characters long');
+      errors.push('PASSWORD_TOO_SHORT');
     }
 
     if (password.length > 128) {
-      errors.push('Password must be less than 128 characters long');
+      errors.push('PASSWORD_TOO_LONG');
     }
 
     // 禁止明显的弱密码 / Block obvious weak passwords
     const weakPasswords = ['password', '12345678', '123456789', 'qwertyui', 'abcdefgh'];
     if (weakPasswords.includes(password.toLowerCase())) {
-      errors.push('Password is too common, please choose a stronger one');
+      errors.push('PASSWORD_TOO_COMMON');
     }
 
     return {
