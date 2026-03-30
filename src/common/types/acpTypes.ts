@@ -254,6 +254,17 @@ export interface AcpBackendConfig {
    */
   acpArgs?: string[];
 
+  /**
+   * 原生 skill 发现目录（相对于 workspace 根目录）
+   * 只有配置了此字段的 CLI 才支持原生 skill 发现（CLI 自动扫描目录中的 SKILL.md）
+   * 未配置的 backend 将 fallback 到首条消息注入（prompt injection）
+   *
+   * Native skill discovery directories (relative to workspace root).
+   * Only CLIs with this field support native skill discovery (CLI auto-scans directory for SKILL.md).
+   * Backends without this field will fallback to first-message injection (prompt injection).
+   */
+  skillsDirs?: string[];
+
   /** 是否为基于提示词的预设（无需 CLI 二进制文件）/ Whether this is a prompt-based preset (no CLI binary required) */
   isPreset?: boolean;
 
@@ -328,6 +339,7 @@ export const ACP_BACKENDS_ALL: Record<AcpBackendAll, AcpBackendConfig> = {
     authRequired: true,
     enabled: true,
     supportsStreaming: false,
+    skillsDirs: ['.claude/skills'],
   },
   gemini: {
     id: 'gemini',
@@ -336,6 +348,7 @@ export const ACP_BACKENDS_ALL: Record<AcpBackendAll, AcpBackendConfig> = {
     authRequired: true,
     enabled: false,
     supportsStreaming: true,
+    skillsDirs: ['.gemini/skills'],
   },
   qwen: {
     id: 'qwen',
@@ -346,6 +359,7 @@ export const ACP_BACKENDS_ALL: Record<AcpBackendAll, AcpBackendConfig> = {
     enabled: true, // ✅ 已验证支持：Qwen CLI v0.0.10+ 支持 --acp
     supportsStreaming: true,
     acpArgs: ['--acp'], // Use --acp instead of deprecated --experimental-acp
+    skillsDirs: ['.qwen/skills'],
   },
   iflow: {
     id: 'iflow',
@@ -354,6 +368,7 @@ export const ACP_BACKENDS_ALL: Record<AcpBackendAll, AcpBackendConfig> = {
     authRequired: true,
     enabled: true,
     supportsStreaming: false,
+    skillsDirs: ['.iflow/skills'],
   },
   codex: {
     id: 'codex',
@@ -364,6 +379,7 @@ export const ACP_BACKENDS_ALL: Record<AcpBackendAll, AcpBackendConfig> = {
     enabled: true, // ✅ Codex via codex-acp ACP bridge
     supportsStreaming: false,
     acpArgs: [], // codex-acp is ACP by default, no flag needed
+    skillsDirs: ['.codex/skills'],
   },
   codebuddy: {
     id: 'codebuddy',
@@ -374,6 +390,7 @@ export const ACP_BACKENDS_ALL: Record<AcpBackendAll, AcpBackendConfig> = {
     enabled: true, // ✅ Tencent CodeBuddy Code CLI，使用 `codebuddy --acp` 启动
     supportsStreaming: false,
     acpArgs: ['--acp'], // codebuddy 使用 --acp flag
+    skillsDirs: ['.codebuddy/skills'],
   },
   goose: {
     id: 'goose',
@@ -383,6 +400,7 @@ export const ACP_BACKENDS_ALL: Record<AcpBackendAll, AcpBackendConfig> = {
     enabled: true, // ✅ Block's Goose CLI，使用 `goose acp` 启动
     supportsStreaming: false,
     acpArgs: ['acp'], // goose 使用子命令而非 flag
+    skillsDirs: ['.goose/skills'],
   },
   auggie: {
     id: 'auggie',
@@ -401,6 +419,7 @@ export const ACP_BACKENDS_ALL: Record<AcpBackendAll, AcpBackendConfig> = {
     enabled: true, // ✅ Kimi CLI (Moonshot)，使用 `kimi acp` 启动
     supportsStreaming: false,
     acpArgs: ['acp'], // kimi 使用 acp 子命令
+    skillsDirs: ['.kimi/skills'],
   },
   opencode: {
     id: 'opencode',
@@ -420,6 +439,7 @@ export const ACP_BACKENDS_ALL: Record<AcpBackendAll, AcpBackendConfig> = {
     enabled: true, // ✅ Factory docs: `droid exec --output-format acp` (JetBrains/Zed ACP integration)
     supportsStreaming: false,
     acpArgs: ['exec', '--output-format', 'acp'],
+    skillsDirs: ['.factory/skills'],
   },
   copilot: {
     id: 'copilot',
@@ -447,6 +467,7 @@ export const ACP_BACKENDS_ALL: Record<AcpBackendAll, AcpBackendConfig> = {
     enabled: true, // ✅ Mistral Vibe CLI，使用 `vibe-acp` 启动
     supportsStreaming: false,
     acpArgs: [],
+    skillsDirs: ['.vibe/skills'],
   },
   'openclaw-gateway': {
     id: 'openclaw-gateway',
@@ -475,6 +496,7 @@ export const ACP_BACKENDS_ALL: Record<AcpBackendAll, AcpBackendConfig> = {
     enabled: true, // ✅ Cursor AI Agent CLI, launched via `agent acp`
     supportsStreaming: false,
     acpArgs: ['acp'], // Cursor uses `agent acp` subcommand
+    skillsDirs: ['.cursor/skills'],
   },
   kiro: {
     id: 'kiro',
@@ -534,6 +556,27 @@ export function getAllAcpBackends(): AcpBackendConfig[] {
 // 检查后端是否启用 / Check if a backend is enabled
 export function isAcpBackendEnabled(backend: AcpBackendAll): boolean {
   return ACP_BACKENDS_ALL[backend]?.enabled ?? false;
+}
+
+/**
+ * 检查给定 agent 类型/backend 是否支持原生 skill 发现
+ * Check if a given agent type/backend supports native skill discovery.
+ * When false, callers should fallback to prompt injection for skills.
+ */
+export function hasNativeSkillSupport(agentTypeOrBackend: string | undefined): boolean {
+  if (!agentTypeOrBackend) return false;
+  const config = ACP_BACKENDS_ALL[agentTypeOrBackend as AcpBackendAll];
+  return !!config?.skillsDirs?.length;
+}
+
+/**
+ * 获取指定 backend 的原生 skill 目录列表
+ * Get native skill directories for a given backend.
+ * Returns undefined if the backend does not support native skill discovery.
+ */
+export function getSkillsDirsForBackend(agentTypeOrBackend: string | undefined): string[] | undefined {
+  if (!agentTypeOrBackend) return undefined;
+  return ACP_BACKENDS_ALL[agentTypeOrBackend as AcpBackendAll]?.skillsDirs;
 }
 
 // ACP 错误类型系统 - 优雅的错误处理 / ACP Error Type System - Elegant error handling
