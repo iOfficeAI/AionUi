@@ -124,6 +124,35 @@ describe('conversationBridge', () => {
     initConversationBridge(service, taskManager);
   });
 
+  describe('create', () => {
+    it('returns undefined and skips service when type is missing', async () => {
+      const handler = handlers['create'];
+
+      const result = await handler({
+        name: 'missing type',
+        model: { id: 'm1' },
+        extra: {},
+      } as unknown);
+
+      expect(result).toBeUndefined();
+      expect(service.createConversation).not.toHaveBeenCalled();
+    });
+
+    it('returns undefined and skips service when type is unknown', async () => {
+      const handler = handlers['create'];
+
+      const result = await handler({
+        type: 'unknown-agent',
+        name: 'invalid type',
+        model: { id: 'm1' },
+        extra: {},
+      } as unknown);
+
+      expect(result).toBeUndefined();
+      expect(service.createConversation).not.toHaveBeenCalled();
+    });
+  });
+
   describe('getAssociateConversation — listAllConversations path', () => {
     it('returns data from injected service without calling getDatabase()', async () => {
       const current = makeConversation('c1', '/ws/project');
