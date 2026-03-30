@@ -311,7 +311,7 @@ _Toplu yeniden adlandırma, otomatik organizasyon, akıllı sınıflandırma, do
 _Excel verilerini derinlemesine analiz edin, raporları otomatik olarak güzelleştirin ve içgörüler oluşturun — hepsi AI Agent'lar tarafından desteklenir._
 
 <p align="center">
-  <img src="./resources/generate_xlsx.gif" alt="Excel Processing" width="800">
+  <img src="./resources/readme-demo-generate-excel.gif" alt="Excel Processing" width="800">
 </p>
 
 <details>

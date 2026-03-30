@@ -311,7 +311,7 @@ _Renomeação em lote, organização automática, classificação inteligente, m
 _Analise profundamente os dados do Excel, embeleze automaticamente os relatórios e gere insights — tudo alimentado por AI Agents._
 
 <p align="center">
-  <img src="./resources/generate_xlsx.gif" alt="Excel Processing" width="800">
+  <img src="./resources/readme-demo-generate-excel.gif" alt="Excel Processing" width="800">
 </p>
 
 <details>
