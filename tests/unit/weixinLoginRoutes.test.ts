@@ -59,7 +59,7 @@ describe('registerWeixinLoginRoutes', () => {
     expect(res.setHeader).toHaveBeenCalledWith('Cache-Control', 'no-cache');
     expect(res.setHeader).toHaveBeenCalledWith('Connection', 'keep-alive');
     expect(res.flushHeaders).toHaveBeenCalled();
-    expect(writes).toContain('event: qr\ndata: {"qrcodeData":"https://qr.page/url"}\n\n');
+    expect(writes).toContain('event: qr\ndata: {"qrcodeData":"ticket_raw"}\n\n');
     expect(writes).toContain('event: scanned\ndata: {}\n\n');
     expect(writes).toContain(
       'event: done\ndata: {"accountId":"acc1","botToken":"bot1","baseUrl":"https://base.url"}\n\n'
