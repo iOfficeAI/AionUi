@@ -59,7 +59,7 @@ const normalizeAudioBuffer = (audioBuffer: SpeechToTextAudioBuffer): Uint8Array 
 
   const orderedKeys = Object.keys(audioBuffer)
     .filter((key) => /^\d+$/.test(key))
-    .sort((a, b) => Number(a) - Number(b));
+    .toSorted((a, b) => Number(a) - Number(b));
 
   return Uint8Array.from(orderedKeys.map((key) => audioBuffer[key] ?? 0));
 };
