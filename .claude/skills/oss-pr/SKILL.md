@@ -58,7 +58,19 @@ bunx tsc --noEmit
 - **lint fails** → Stop, report errors. Do not proceed.
 - **format** → Auto-fixes silently.
 - **tsc fails** → Stop, report errors. Do not proceed.
-- **All pass** → Proceed silently.
+- **All pass** → Proceed to i18n check below.
+
+**i18n check** (run if any `src/renderer/`, `locales/`, or `src/common/config/i18n` files are modified):
+
+```bash
+bun run i18n:types
+node scripts/check-i18n.js
+```
+
+- **i18n:types fails** → Stop, report errors. Do not proceed.
+- **check-i18n exits 1 (errors)** → Stop, report errors. Do not proceed.
+- **check-i18n exits 0 (warnings only)** → Continue silently.
+- **No i18n-sensitive files changed** → Skip both commands.
 
 ### Step 2: Run Tests
 
@@ -74,6 +86,12 @@ bunx vitest run
 ```bash
 git status
 git diff
+```
+
+Stage **all** modified files — including any files auto-fixed by `format` in Step 1:
+
+```bash
+git add -u
 ```
 
 Generate commit message in English using conventional commits format: `<type>(<scope>): <subject>`.
@@ -118,6 +136,7 @@ Output the PR URL when done.
 ```
 0. Check branch (create if on main)
 1. bun run lint && bun run format && bunx tsc --noEmit
+   (if i18n files changed: bun run i18n:types && node scripts/check-i18n.js)
 2. bunx vitest run
 3. Commit (conventional commits, no AI attribution)
 4. git push -u origin <branch>

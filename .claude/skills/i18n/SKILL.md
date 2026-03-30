@@ -116,7 +116,14 @@ Match the module to the feature area. If no module fits, consider whether a new 
 
 ### Step 4: Add to ALL Locale Directories
 
-**CRITICAL:** Every new key must be added to **every** locale directory listed in `supportedLanguages`. Write the reference language first, then all others.
+**CRITICAL:** Every new key must be added to **every** locale in `supportedLanguages`. Use this checklist for each key:
+
+- [ ] `en-US/<module>.json` — reference language (added in Step 3)
+- [ ] `zh-CN/<module>.json` — added
+- [ ] `zh-TW/<module>.json` — added
+- [ ] Any other language listed in `src/common/config/i18n-config.json` → `supportedLanguages` — added
+
+A key missing from even one locale will cause `node scripts/check-i18n.js` to fail in CI.
 
 ### Step 5: Use in Component
 
@@ -131,12 +138,17 @@ function MyComponent() {
 
 ### Step 6: Regenerate Types and Validate
 
+Run these two commands **in order** — both must pass before committing:
+
 ```bash
-bun run i18n:types          # Regenerate i18n-keys.d.ts
-node scripts/check-i18n.js  # Validate completeness
+bun run i18n:types          # Step A: regenerate i18n-keys.d.ts from reference locale
+node scripts/check-i18n.js  # Step B: validate structure, keys, and type sync
 ```
 
-**Both commands must pass before committing.**
+- `i18n:types` must be run **before** `check-i18n.js` — the check validates the generated file
+- If `check-i18n.js` exits with errors (❌), fix them before proceeding
+- If `check-i18n.js` exits with warnings only (⚠️), review but may proceed
+- **Never commit with a stale `i18n-keys.d.ts`**
 
 ## Adding a New Module
 
@@ -217,8 +229,8 @@ Before submitting code with new text:
 - [ ] New keys added to **every** locale directory in `supportedLanguages`
 - [ ] No hardcoded Chinese/English in JSX
 - [ ] zh-TW reviewed for term differences
-- [ ] `bun run i18n:types` ran (regenerate type definitions)
-- [ ] `node scripts/check-i18n.js` passed (no errors)
+- [ ] `bun run i18n:types` ran first (regenerates `i18n-keys.d.ts`)
+- [ ] `node scripts/check-i18n.js` passed after types regenerated (no errors)
 
 ## Common Mistakes
 
