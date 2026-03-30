@@ -574,9 +574,7 @@ export function hasNativeSkillSupport(agentTypeOrBackend: string | undefined): b
  * Get native skill directories for a given backend.
  * Returns undefined if the backend does not support native skill discovery.
  */
-export function getSkillsDirsForBackend(
-  agentTypeOrBackend: string | undefined
-): string[] | undefined {
+export function getSkillsDirsForBackend(agentTypeOrBackend: string | undefined): string[] | undefined {
   if (!agentTypeOrBackend) return undefined;
   return ACP_BACKENDS_ALL[agentTypeOrBackend as AcpBackendAll]?.skillsDirs;
 }

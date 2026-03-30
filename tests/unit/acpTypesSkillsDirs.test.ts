@@ -1,9 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import {
-  ACP_BACKENDS_ALL,
-  hasNativeSkillSupport,
-  getSkillsDirsForBackend,
-} from '@/common/types/acpTypes';
+import { ACP_BACKENDS_ALL, hasNativeSkillSupport, getSkillsDirsForBackend } from '@/common/types/acpTypes';
 
 describe('acpTypes — skillsDirs integration', () => {
   describe('ACP_BACKENDS_ALL skillsDirs consistency', () => {
@@ -47,8 +43,17 @@ describe('acpTypes — skillsDirs integration', () => {
   describe('hasNativeSkillSupport', () => {
     it('should return true for backends with skillsDirs', () => {
       const supported = [
-        'gemini', 'claude', 'codebuddy', 'codex', 'qwen',
-        'iflow', 'goose', 'droid', 'kimi', 'vibe', 'cursor',
+        'gemini',
+        'claude',
+        'codebuddy',
+        'codex',
+        'qwen',
+        'iflow',
+        'goose',
+        'droid',
+        'kimi',
+        'vibe',
+        'cursor',
       ];
       for (const backend of supported) {
         expect(hasNativeSkillSupport(backend), `${backend}`).toBe(true);
