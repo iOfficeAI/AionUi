@@ -103,6 +103,10 @@ export function initConversationBridge(
   });
 
   ipcBridge.conversation.create.provider(async (params): Promise<TChatConversation> => {
+    if (!params.type) {
+      console.error('[conversationBridge] Missing required field "type" in create params:', params);
+      throw new Error(`Missing required field "type" in create conversation params`);
+    }
     const conversation = await conversationService.createConversation({
       ...params,
       source: 'aionui', // Mark conversations created by AionUI as aionui
