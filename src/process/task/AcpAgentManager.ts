@@ -310,6 +310,17 @@ class AcpAgentManager extends BaseAgentManager<AcpAgentManagerData, AcpPermissio
           for (const resolve of waiters) {
             resolve(this.getAcpSlashCommands());
           }
+
+          // Notify frontend that slash commands are now available.
+          // During bootstrap, agent_status events are suppressed, so the
+          // frontend acpStatus never updates and useSlashCommands never
+          // re-fetches. This dedicated event bypasses the bootstrap filter.
+          ipcBridge.acpConversation.responseStream.emit({
+            type: 'slash_commands_updated',
+            conversation_id: this.conversation_id,
+            msg_id: '',
+            data: null,
+          });
         },
         onStreamEvent: (message) => {
           // During bootstrap (warmup), suppress UI stream events to avoid
