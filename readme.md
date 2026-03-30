@@ -91,7 +91,7 @@ The three assistant types map to file workflows, and the final outputs are direc
 
 #### **PPT assistant**
 
-> **Output:** editable Morph PPT (`.pptx`)  
+> **Output:** editable Morph PPT (`.pptx`)
 > Morph-animated slide-to-slide transitions with coherent story pacing; powered by [OfficeCLI](https://github.com/iOfficeAI/OfficeCli).
 
 <table>
@@ -107,7 +107,7 @@ The three assistant types map to file workflows, and the final outputs are direc
 
 #### **Word assistant**
 
-> **Output:** editable Word (`.docx`)  
+> **Output:** editable Word (`.docx`)
 > Paper/thesis writing and production-ready document editing via the `docx` skill; powered by [OfficeCLI](https://github.com/iOfficeAI/OfficeCli).
 
 <table>
@@ -123,7 +123,7 @@ The three assistant types map to file workflows, and the final outputs are direc
 
 #### **Excel assistant**
 
-> **Output:** usable Excel (`.xlsx/.xlsm/.csv`)  
+> **Output:** usable Excel (`.xlsx/.xlsm/.csv`)
 > Generate/refresh spreadsheets with `xlsx` for analysis, auto-formatting, and charts; powered by [OfficeCLI](https://github.com/iOfficeAI/OfficeCli).
 
 <table>

@@ -86,12 +86,12 @@ AionUi 自带完整的 AI Agent。不像其他工具需要你手动安装各种 
 
 ### **办公助手（PPT / Word / Excel）**
 
-想把文档/表格直接交给 Agent？AionUi 内置 **[OfficeCLI](https://github.com/iOfficeAI/OfficeCli)**，让 PPT（Morph 转场）、Word（`.docx`）与 Excel（`.xlsx/.xlsm/.csv`）从需求到可交付结果更高效、更稳定。  
+想把文档/表格直接交给 Agent？AionUi 内置 **[OfficeCLI](https://github.com/iOfficeAI/OfficeCli)**，让 PPT（Morph 转场）、Word（`.docx`）与 Excel（`.xlsx/.xlsm/.csv`）从需求到可交付结果更高效、更稳定。
 三类助手对应各自的文件工作流：生成的成稿可直接编辑、可复用。
 
 #### **PPT 助手（Morph 转场）**
 
-> **输出：可编辑 Morph PPT（`.pptx`）**  
+> **输出：可编辑 Morph PPT（`.pptx`）**
 > 页间转场连贯、风格统一；底层由 [OfficeCLI](https://github.com/iOfficeAI/OfficeCli) 驱动。
 
 <table>
@@ -107,7 +107,7 @@ AionUi 自带完整的 AI Agent。不像其他工具需要你手动安装各种 
 
 #### **Word 助手（论文/写作）**
 
-> **输出：可编辑 Word（`.docx`）**  
+> **输出：可编辑 Word（`.docx`）**
 > 支持论文/写作的结构、段落与格式组织；底层由 [OfficeCLI](https://github.com/iOfficeAI/OfficeCli) 驱动。
 
 <table>
@@ -123,7 +123,7 @@ AionUi 自带完整的 AI Agent。不像其他工具需要你手动安装各种 
 
 #### **Excel 助手（生成/分析）**
 
-> **输出：可直接复算的 Excel（`.xlsx/.xlsm/.csv`）**  
+> **输出：可直接复算的 Excel（`.xlsx/.xlsm/.csv`）**
 > 用 `xlsx` 生成/更新表格，自动美化并完成数据分析；底层由 [OfficeCLI](https://github.com/iOfficeAI/OfficeCli) 驱动。
 
 <table>
