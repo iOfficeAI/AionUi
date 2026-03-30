@@ -28,9 +28,19 @@ function rowToTeam(row: TeamRow): TTeam {
   };
 }
 
-/** Lazy-initialized SQLite repository for team records. */
 export class SqliteTeamRepository implements ITeamRepository {
+  private readonly _driver: ISqliteDriver | undefined;
+
+  /**
+   * @param driver - Optional ISqliteDriver for constructor injection (e.g., tests).
+   *   When omitted, the global database singleton is used via getDatabase().
+   */
+  constructor(driver?: ISqliteDriver) {
+    this._driver = driver;
+  }
+
   private async getDb(): Promise<ISqliteDriver> {
+    if (this._driver) return this._driver;
     const aionDb = await getDatabase();
     return aionDb.getDriver();
   }
