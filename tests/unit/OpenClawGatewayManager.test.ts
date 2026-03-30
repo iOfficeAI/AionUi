@@ -4,9 +4,14 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
+import path from 'node:path';
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import type { ChildProcess } from 'child_process';
 import EventEmitter from 'events';
+
+const isWindows = process.platform === 'win32';
+const mockBinDir = isWindows ? 'C:\\usr\\local\\bin' : '/usr/local/bin';
+const mockPath = isWindows ? 'C:\\bin;C:\\usr\\local\\bin' : '/usr/bin:/usr/local/bin';
 
 // ---------------------------------------------------------------------------
 // Hoisted mocks
@@ -46,7 +51,7 @@ vi.mock('node:fs', () => ({
 
 vi.mock('@process/utils/shellEnv', () => ({
   getEnhancedEnv: vi.fn((customEnv?: Record<string, string>) => ({
-    PATH: '/usr/bin:/usr/local/bin',
+    PATH: mockPath,
     ...customEnv,
   })),
 }));
@@ -102,9 +107,9 @@ describe('OpenClawGatewayManager', () => {
 
   describe('start() with available CLI binary', () => {
     it('should spawn the process when CLI is found', async () => {
-      // Only allow /usr/local/bin/openclaw
+      const expectedBinary = path.join(mockBinDir, 'openclaw');
       mockAccessSync.mockImplementation((p: string) => {
-        if (p === '/usr/local/bin/openclaw') return;
+        if (p === expectedBinary) return;
         throw new Error('ENOENT');
       });
 
@@ -119,11 +124,7 @@ describe('OpenClawGatewayManager', () => {
 
       const port = await promise;
       expect(port).toBe(18789);
-      expect(mockSpawn).toHaveBeenCalledWith(
-        '/usr/local/bin/openclaw',
-        ['gateway', '--port', '18789'],
-        expect.any(Object)
-      );
+      expect(mockSpawn).toHaveBeenCalledWith(expectedBinary, ['gateway', '--port', '18789'], expect.any(Object));
     });
   });
 });
