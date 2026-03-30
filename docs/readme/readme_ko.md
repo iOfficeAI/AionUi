@@ -311,7 +311,7 @@ _일괄 이름 변경, 자동 정리, 스마트 분류, 파일 병합——Cowor
 _Excel 데이터를 깊이 분석하고, 보고서를 자동으로 아름답게 만들고, 인사이트를 생성합니다——모두 AI Agent가 구동합니다._
 
 <p align="center">
-  <img src="./resources/generate_xlsx.gif" alt="Excel Processing" width="800">
+  <img src="./resources/readme-demo-generate-excel.gif" alt="Excel Processing" width="800">
 </p>
 
 <details>
