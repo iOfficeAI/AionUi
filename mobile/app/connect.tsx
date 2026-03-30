@@ -1,5 +1,6 @@
 import React, { useState, useRef } from 'react';
 import { View, TouchableOpacity, StyleSheet, Alert, ActivityIndicator, TextInput, KeyboardAvoidingView, Platform } from 'react-native';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { CameraView, useCameraPermissions, type BarcodeScanningResult } from 'expo-camera';
 import { useRouter } from 'expo-router';
 import { useTranslation } from 'react-i18next';
@@ -38,6 +39,7 @@ export default function ConnectScreen() {
   const [mode, setMode] = useState<'scan' | 'paste'>('scan');
   const [pasteUrl, setPasteUrl] = useState('');
   const scannedRef = useRef(false);
+  const insets = useSafeAreaInsets();
 
   const connectWithUrl = async (url: string, onInvalid: () => void) => {
     const parsed = parseQrLoginUrl(url);
@@ -99,16 +101,16 @@ export default function ConnectScreen() {
   // Still loading permission status
   if (!permission) {
     return (
-      <View style={[styles.container, styles.center, { backgroundColor: background }]}>
+      <SafeAreaView style={[styles.container, styles.center, { backgroundColor: background }]}>
         <ActivityIndicator size='large' color={tint} />
-      </View>
+      </SafeAreaView>
     );
   }
 
   // Permission not granted — show request UI
   if (!permission.granted) {
     return (
-      <View style={[styles.container, styles.center, { backgroundColor: background }]}>
+      <SafeAreaView style={[styles.container, styles.center, { backgroundColor: background }]}>
         <ThemedText type='title' style={styles.permissionTitle}>
           {t('connect.cameraPermissionTitle')}
         </ThemedText>
@@ -116,17 +118,18 @@ export default function ConnectScreen() {
         <TouchableOpacity style={[styles.permissionButton, { backgroundColor: tint }]} onPress={requestPermission}>
           <ThemedText style={styles.permissionButtonText}>{t('connect.requestPermission')}</ThemedText>
         </TouchableOpacity>
-      </View>
+      </SafeAreaView>
     );
   }
 
   // Paste link mode
   if (mode === 'paste') {
     return (
-      <KeyboardAvoidingView
-        style={[styles.container, { backgroundColor: background }]}
-        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-      >
+      <SafeAreaView style={[styles.container, { backgroundColor: background }]}>
+        <KeyboardAvoidingView
+          style={styles.container}
+          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        >
         <View style={[styles.container, styles.center]}>
           <ThemedText type='title' style={styles.permissionTitle}>
             {t('connect.pasteLink')}
@@ -160,7 +163,8 @@ export default function ConnectScreen() {
             <ThemedText style={{ color: tint }}>{t('connect.scanTitle')}</ThemedText>
           </TouchableOpacity>
         </View>
-      </KeyboardAvoidingView>
+        </KeyboardAvoidingView>
+      </SafeAreaView>
     );
   }
 
@@ -189,7 +193,7 @@ export default function ConnectScreen() {
       </View>
 
       {/* Switch to paste mode */}
-      <View style={styles.pasteLinkContainer}>
+      <View style={[styles.pasteLinkContainer, { bottom: 60 + insets.bottom }]}>
         <TouchableOpacity style={[styles.pasteLinkButton, { backgroundColor: 'rgba(255,255,255,0.9)' }]} onPress={() => setMode('paste')}>
           <ThemedText style={[styles.pasteLinkText, { color: '#333' }]}>{t('connect.pasteLink')}</ThemedText>
         </TouchableOpacity>
@@ -305,7 +309,6 @@ const styles = StyleSheet.create({
   },
   pasteLinkContainer: {
     position: 'absolute',
-    bottom: 60,
     left: 0,
     right: 0,
     alignItems: 'center',
