@@ -6,17 +6,17 @@
   "addAgent": "添加成员",
   "newAgent": "新成员",
   "noMessages": "暂无消息。",
+  "agentNotConfigured": "Agent 尚未配置。",
+  "sendBox": {
+    "placeholder": "向调度 Agent 发消息..."
+  },
   "create": {
     "title": "创建团队",
     "namePlaceholder": "团队名称",
-    "dispatchHint": "设置团队名称并配置调度 Agent。",
-    "subAgentsHint": "子 Agent 可在团队创建后添加。",
+    "dispatchAgentPlaceholder": "选择调度 Agent",
+    "subAgentsPlaceholder": "选择子 Agent",
     "workspacePlaceholder": "工作目录路径（可选）",
-    "workspaceShared": "共享",
-    "workspaceIsolated": "独立",
     "confirm": "创建团队",
-    "next": "下一步",
-    "back": "上一步",
     "step": {
       "dispatch": "调度 Agent",
       "subAgents": "子 Agent",

@@ -1,10 +1,13 @@
-import { Tabs, Button } from '@arco-design/web-react';
+import { Tabs, Button, Message } from '@arco-design/web-react';
 import { Plus } from '@icon-park/react';
-import React, { useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import type { TTeam, TeamAgentRuntime } from '@process/team/types';
 import AgentTab from './components/AgentTab';
+import TeamAgentPanel from './components/TeamAgentPanel';
 import { useTeamSession } from './hooks/useTeamSession';
+import ChatLayout from '@/renderer/pages/conversation/components/ChatLayout';
+import ChatWorkspace from '@/renderer/pages/conversation/Workspace';
 import styles from './TeamPage.module.css';
 
 type Props = {
@@ -15,58 +18,81 @@ const IDLE_RUNTIME: Omit<TeamAgentRuntime, 'slotId'> = { status: 'idle' };
 
 const TeamPage: React.FC<Props> = ({ team }) => {
   const { t } = useTranslation();
-  const { runtimes, messages, addAgent } = useTeamSession(team);
+  const { runtimes, addAgent, sendMessage } = useTeamSession(team);
   const [activeSlotId, setActiveSlotId] = useState(team.agents[0]?.slotId ?? '');
+  const [messageApi, messageContext] = Message.useMessage({ maxCount: 1 });
+
+  const dispatchAgent = team.agents.find((a) => a.role === 'dispatch');
+  const workspaceEnabled = Boolean(team.workspace);
+
+  const siderTitle = useMemo(
+    () => (
+      <div className='flex items-center justify-between'>
+        <span className='text-16px font-bold text-t-primary'>{t('conversation.workspace.title')}</span>
+      </div>
+    ),
+    [t]
+  );
+
+  const sider = useMemo(() => {
+    if (!workspaceEnabled || !dispatchAgent?.conversationId) return <div />;
+    return (
+      <ChatWorkspace
+        conversation_id={dispatchAgent.conversationId}
+        workspace={team.workspace}
+        eventPrefix='acp'
+        messageApi={messageApi}
+      />
+    );
+  }, [workspaceEnabled, dispatchAgent?.conversationId, team.workspace, messageApi]);
 
   return (
-    <div className={styles.teamPage}>
-      <Tabs
-        activeTab={activeSlotId}
-        onChange={setActiveSlotId}
-        type='line'
-        size='small'
-        extra={
-          <Button
-            type='text'
+    <>
+      {messageContext}
+      <ChatLayout title={team.name} siderTitle={siderTitle} sider={sider} workspaceEnabled={workspaceEnabled}>
+        <div className={styles.teamPage}>
+          <Tabs
+            activeTab={activeSlotId}
+            onChange={setActiveSlotId}
+            type='line'
             size='small'
-            icon={<Plus />}
-            onClick={() => {
-              void addAgent({
-                conversationId: '',
-                role: 'sub',
-                agentType: 'acp',
-                agentName: t('team.newAgent', { defaultValue: 'New Agent' }),
-              });
-            }}
+            className={styles.tabs}
+            extra={
+              <Button
+                type='text'
+                size='small'
+                icon={<Plus />}
+                onClick={() => {
+                  void addAgent({
+                    conversationId: '',
+                    role: 'sub',
+                    agentType: 'acp',
+                    agentName: t('team.newAgent'),
+                  });
+                }}
+              >
+                {t('team.addAgent')}
+              </Button>
+            }
           >
-            {t('team.addAgent', { defaultValue: 'Add Member' })}
-          </Button>
-        }
-      >
-        {team.agents.map((agent) => {
-          const runtime = runtimes.get(agent.slotId) ?? { slotId: agent.slotId, ...IDLE_RUNTIME };
-          const agentMessages = messages.get(agent.slotId) ?? [];
-
-          return (
-            <Tabs.TabPane key={agent.slotId} title={<AgentTab agent={agent} runtime={runtime} />}>
-              <div className='p-4 flex flex-col gap-2 text-[var(--color-text-2)]'>
-                {agentMessages.length === 0 ? (
-                  <span className='text-[var(--color-text-3)] text-sm'>
-                    {t('team.noMessages', { defaultValue: 'No messages yet.' })}
-                  </span>
-                ) : (
-                  agentMessages.map((msg) => (
-                    <div key={msg.msg_id} className='text-sm break-all'>
-                      {String(msg.data)}
-                    </div>
-                  ))
-                )}
-              </div>
-            </Tabs.TabPane>
-          );
-        })}
-      </Tabs>
-    </div>
+            {team.agents.map((agent) => {
+              const runtime = runtimes.get(agent.slotId) ?? { slotId: agent.slotId, ...IDLE_RUNTIME };
+              return (
+                <Tabs.TabPane key={agent.slotId} title={<AgentTab agent={agent} runtime={runtime} />}>
+                  <TeamAgentPanel
+                    conversationId={agent.conversationId}
+                    workspace={team.workspace}
+                    isDispatch={agent.role === 'dispatch'}
+                    status={runtime.status}
+                    sendMessage={sendMessage}
+                  />
+                </Tabs.TabPane>
+              );
+            })}
+          </Tabs>
+        </div>
+      </ChatLayout>
+    </>
   );
 };
 

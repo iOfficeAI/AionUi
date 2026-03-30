@@ -1,9 +1,15 @@
 import React, { useState } from 'react';
-import { Modal, Steps, Button, Input, Radio } from '@arco-design/web-react';
+import { Modal, Button, Input, Select } from '@arco-design/web-react';
+import { FolderOpen, Robot } from '@icon-park/react';
 import { useTranslation } from 'react-i18next';
 import { ipcBridge } from '@/common';
-import type { TTeam, TeamAgent, WorkspaceMode } from '@process/team/types';
+import type { TTeam, TeamAgent } from '@process/team/types';
 import { useAuth } from '@renderer/hooks/context/AuthContext';
+import { useConversationAgents } from '@renderer/pages/conversation/hooks/useConversationAgents';
+import { getAgentLogo } from '@renderer/utils/model/agentLogo';
+import { isElectronDesktop } from '@renderer/utils/platform';
+import { CUSTOM_AVATAR_IMAGE_MAP } from '@renderer/pages/guid/constants';
+import type { AvailableAgent } from '@renderer/utils/model/agentTypes';
 
 type Props = {
   visible: boolean;
@@ -11,55 +17,96 @@ type Props = {
   onCreated: (team: TTeam) => void;
 };
 
-type AgentDraft = {
-  agentType: string;
-  agentName: string;
-  conversationId: string;
-};
+// Unique key for each agent option
+function agentKey(agent: AvailableAgent): string {
+  return agent.customAgentId ? `preset::${agent.customAgentId}` : `cli::${agent.backend}`;
+}
 
-const INITIAL_DRAFT: AgentDraft = {
-  agentType: '',
-  agentName: '',
-  conversationId: '',
+function agentFromKey(key: string, allAgents: AvailableAgent[]): AvailableAgent | undefined {
+  return allAgents.find((a) => agentKey(a) === key);
+}
+
+const AgentOptionLabel: React.FC<{ agent: AvailableAgent }> = ({ agent }) => {
+  const logo = getAgentLogo(agent.backend);
+  const avatarImage = agent.avatar ? CUSTOM_AVATAR_IMAGE_MAP[agent.avatar] : undefined;
+  const isEmoji = agent.avatar && !avatarImage && !agent.avatar.endsWith('.svg');
+  return (
+    <div className='flex items-center gap-8px'>
+      {avatarImage ? (
+        <img src={avatarImage} alt={agent.name} style={{ width: 16, height: 16, objectFit: 'contain' }} />
+      ) : isEmoji ? (
+        <span style={{ fontSize: 14, lineHeight: '16px' }}>{agent.avatar}</span>
+      ) : logo ? (
+        <img src={logo} alt={agent.name} style={{ width: 16, height: 16, objectFit: 'contain' }} />
+      ) : (
+        <Robot size='16' />
+      )}
+      <span>{agent.name}</span>
+    </div>
+  );
 };
 
 const TeamCreateModal: React.FC<Props> = ({ visible, onClose, onCreated }) => {
   const { t } = useTranslation();
   const { user } = useAuth();
-  const [step, setStep] = useState(0);
+  const { cliAgents, presetAssistants } = useConversationAgents();
   const [name, setName] = useState('');
+  const [dispatchAgentKey, setDispatchAgentKey] = useState<string | undefined>(undefined);
+  const [subAgentKeys, setSubAgentKeys] = useState<string[]>([]);
   const [workspace, setWorkspace] = useState('');
-  const [workspaceMode, setWorkspaceMode] = useState<WorkspaceMode>('shared');
-  const [_dispatchAgent, setDispatchAgent] = useState<AgentDraft>(INITIAL_DRAFT);
   const [loading, setLoading] = useState(false);
 
+  const allAgents = [...cliAgents, ...presetAssistants];
+  const isDesktop = isElectronDesktop();
+
   const handleClose = () => {
-    setStep(0);
     setName('');
+    setDispatchAgentKey(undefined);
+    setSubAgentKeys([]);
     setWorkspace('');
-    setWorkspaceMode('shared');
-    setDispatchAgent(INITIAL_DRAFT);
     onClose();
   };
 
+  const handleBrowseWorkspace = async () => {
+    const files = await ipcBridge.dialog.showOpen.invoke({ properties: ['openDirectory'] });
+    if (files?.[0]) {
+      setWorkspace(files[0]);
+    }
+  };
+
   const handleCreate = async () => {
-    if (!user?.id) return;
+    const userId = user?.id ?? 'system_default_user';
     setLoading(true);
     try {
-      const agents: TeamAgent[] = [
-        {
-          slotId: `slot-${crypto.randomUUID().slice(0, 8)}`,
-          conversationId: '',
-          role: 'dispatch',
-          agentType: 'acp',
-          agentName: name,
-        },
-      ];
+      const agents: TeamAgent[] = [];
+
+      const dispatchAgent = dispatchAgentKey ? agentFromKey(dispatchAgentKey, allAgents) : undefined;
+      agents.push({
+        slotId: `slot-${crypto.randomUUID().slice(0, 8)}`,
+        conversationId: '',
+        role: 'dispatch',
+        agentType: dispatchAgent?.backend ?? 'acp',
+        agentName: dispatchAgent?.name ?? name,
+      });
+
+      for (const key of subAgentKeys) {
+        const subAgent = agentFromKey(key, allAgents);
+        if (subAgent) {
+          agents.push({
+            slotId: `slot-${crypto.randomUUID().slice(0, 8)}`,
+            conversationId: '',
+            role: 'sub',
+            agentType: subAgent.backend,
+            agentName: subAgent.name,
+          });
+        }
+      }
+
       const team = await ipcBridge.team.create.invoke({
-        userId: user.id,
+        userId,
         name,
         workspace,
-        workspaceMode,
+        workspaceMode: 'shared',
         agents,
       });
       onCreated(team);
@@ -69,75 +116,165 @@ const TeamCreateModal: React.FC<Props> = ({ visible, onClose, onCreated }) => {
     }
   };
 
+  const canCreate = name.trim().length > 0 && dispatchAgentKey !== undefined;
+
   return (
     <Modal
       title={t('team.create.title', { defaultValue: 'Create Team' })}
       visible={visible}
       onCancel={handleClose}
       footer={null}
-      style={{ width: 560 }}
+      style={{ width: 520 }}
       autoFocus={false}
       focusLock
       wrapStyle={{ zIndex: 10000 }}
       maskStyle={{ zIndex: 9999 }}
     >
-      <Steps current={step} className='mb-6'>
-        <Steps.Step title={t('team.create.step.dispatch', { defaultValue: 'Dispatch Agent' })} />
-        <Steps.Step title={t('team.create.step.subAgents', { defaultValue: 'Sub Agents' })} />
-        <Steps.Step title={t('team.create.step.workspace', { defaultValue: 'Workspace' })} />
-      </Steps>
-
-      {step === 0 && (
-        <div className='flex flex-col gap-4'>
+      <div className='flex flex-col gap-20px'>
+        {/* Team name */}
+        <div className='flex flex-col gap-6px'>
+          <label className='text-sm text-[var(--color-text-2)] font-medium'>
+            {t('team.create.namePlaceholder', { defaultValue: 'Team name' })}
+          </label>
           <Input
             placeholder={t('team.create.namePlaceholder', { defaultValue: 'Team name' })}
             value={name}
             onChange={setName}
           />
-          <p className='text-[var(--color-text-3)] text-sm'>
-            {t('team.create.dispatchHint', {
-              defaultValue: 'Set a name for your team and configure the dispatch agent.',
-            })}
-          </p>
-          <Button type='primary' disabled={!name.trim()} onClick={() => setStep(1)}>
-            {t('team.create.next', { defaultValue: 'Next' })}
+        </div>
+
+        {/* Dispatch Agent - single select */}
+        <div className='flex flex-col gap-6px'>
+          <label className='text-sm text-[var(--color-text-2)] font-medium'>
+            {t('team.create.step.dispatch', { defaultValue: 'Dispatch Agent' })}
+          </label>
+          <Select
+            placeholder={t('team.create.dispatchAgentPlaceholder', { defaultValue: 'Select dispatch agent' })}
+            value={dispatchAgentKey}
+            onChange={setDispatchAgentKey}
+            showSearch
+            allowClear
+            renderFormat={(option) => {
+              const agent = option?.value ? agentFromKey(option.value as string, allAgents) : undefined;
+              return agent ? <AgentOptionLabel agent={agent} /> : <span>{option?.children}</span>;
+            }}
+          >
+            {cliAgents.length > 0 && (
+              <Select.OptGroup label={t('conversation.dropdown.cliAgents', { defaultValue: 'CLI Agents' })}>
+                {cliAgents.map((agent) => (
+                  <Select.Option key={agentKey(agent)} value={agentKey(agent)}>
+                    <AgentOptionLabel agent={agent} />
+                  </Select.Option>
+                ))}
+              </Select.OptGroup>
+            )}
+            {presetAssistants.length > 0 && (
+              <Select.OptGroup
+                label={t('conversation.dropdown.presetAssistants', { defaultValue: 'Preset Assistants' })}
+              >
+                {presetAssistants.map((agent) => (
+                  <Select.Option key={agentKey(agent)} value={agentKey(agent)}>
+                    <AgentOptionLabel agent={agent} />
+                  </Select.Option>
+                ))}
+              </Select.OptGroup>
+            )}
+          </Select>
+        </div>
+
+        {/* Sub Agents - multi select */}
+        <div className='flex flex-col gap-6px'>
+          <label className='text-sm text-[var(--color-text-2)] font-medium'>
+            {t('team.create.step.subAgents', { defaultValue: 'Sub Agents' })}
+            <span className='ml-4px text-[var(--color-text-4)] font-normal text-xs'>
+              {t('common.optional', { defaultValue: '(optional)' })}
+            </span>
+          </label>
+          <Select
+            mode='multiple'
+            placeholder={t('team.create.subAgentsPlaceholder', { defaultValue: 'Select sub agents' })}
+            value={subAgentKeys}
+            onChange={setSubAgentKeys}
+            showSearch
+            allowClear
+            renderTag={({ value, closable, onClose }) => {
+              const agent = agentFromKey(value as string, allAgents);
+              return (
+                <span
+                  key={value as string}
+                  className='flex items-center gap-4px px-6px py-2px rounded-4px bg-[var(--fill-2)] text-sm mr-4px mb-2px'
+                >
+                  {agent?.name ?? (value as string)}
+                  {closable && (
+                    <span className='cursor-pointer opacity-60 hover:opacity-100 ml-2px' onClick={onClose}>
+                      ×
+                    </span>
+                  )}
+                </span>
+              );
+            }}
+          >
+            {cliAgents.length > 0 && (
+              <Select.OptGroup label={t('conversation.dropdown.cliAgents', { defaultValue: 'CLI Agents' })}>
+                {cliAgents.map((agent) => (
+                  <Select.Option key={agentKey(agent)} value={agentKey(agent)}>
+                    <AgentOptionLabel agent={agent} />
+                  </Select.Option>
+                ))}
+              </Select.OptGroup>
+            )}
+            {presetAssistants.length > 0 && (
+              <Select.OptGroup
+                label={t('conversation.dropdown.presetAssistants', { defaultValue: 'Preset Assistants' })}
+              >
+                {presetAssistants.map((agent) => (
+                  <Select.Option key={agentKey(agent)} value={agentKey(agent)}>
+                    <AgentOptionLabel agent={agent} />
+                  </Select.Option>
+                ))}
+              </Select.OptGroup>
+            )}
+          </Select>
+        </div>
+
+        {/* Workspace - optional folder picker (desktop only) or text input (webui) */}
+        <div className='flex flex-col gap-6px'>
+          <label className='text-sm text-[var(--color-text-2)] font-medium'>
+            {t('team.create.step.workspace', { defaultValue: 'Workspace' })}
+            <span className='ml-4px text-[var(--color-text-4)] font-normal text-xs'>
+              {t('common.optional', { defaultValue: '(optional)' })}
+            </span>
+          </label>
+          {isDesktop ? (
+            <div className='flex items-center gap-8px'>
+              <div className='flex-1 px-12px py-6px rounded-6px bg-[var(--fill-2)] text-sm text-[var(--color-text-3)] truncate min-h-32px flex items-center'>
+                {workspace || t('team.create.workspacePlaceholder', { defaultValue: 'Workspace path (optional)' })}
+              </div>
+              <Button icon={<FolderOpen size='16' />} onClick={handleBrowseWorkspace}>
+                {t('common.browse', { defaultValue: 'Browse' })}
+              </Button>
+              {workspace && (
+                <Button type='text' onClick={() => setWorkspace('')}>
+                  {t('common.clear', { defaultValue: 'Clear' })}
+                </Button>
+              )}
+            </div>
+          ) : (
+            <Input
+              placeholder={t('team.create.workspacePlaceholder', { defaultValue: 'Workspace path (optional)' })}
+              value={workspace}
+              onChange={setWorkspace}
+            />
+          )}
+        </div>
+
+        {/* Footer */}
+        <div className='flex justify-end pt-4px'>
+          <Button type='primary' loading={loading} disabled={!canCreate} onClick={handleCreate}>
+            {t('team.create.confirm', { defaultValue: 'Create Team' })}
           </Button>
         </div>
-      )}
-
-      {step === 1 && (
-        <div className='flex flex-col gap-4'>
-          <p className='text-[var(--color-text-3)] text-sm'>
-            {t('team.create.subAgentsHint', { defaultValue: 'Sub agents can be added after the team is created.' })}
-          </p>
-          <div className='flex gap-2 justify-between mt-4'>
-            <Button onClick={() => setStep(0)}>{t('team.create.back', { defaultValue: 'Back' })}</Button>
-            <Button type='primary' onClick={() => setStep(2)}>
-              {t('team.create.next', { defaultValue: 'Next' })}
-            </Button>
-          </div>
-        </div>
-      )}
-
-      {step === 2 && (
-        <div className='flex flex-col gap-4'>
-          <Input
-            placeholder={t('team.create.workspacePlaceholder', { defaultValue: 'Workspace path (optional)' })}
-            value={workspace}
-            onChange={setWorkspace}
-          />
-          <Radio.Group value={workspaceMode} onChange={(val) => setWorkspaceMode(val as WorkspaceMode)}>
-            <Radio value='shared'>{t('team.create.workspaceShared', { defaultValue: 'Shared' })}</Radio>
-            <Radio value='isolated'>{t('team.create.workspaceIsolated', { defaultValue: 'Isolated' })}</Radio>
-          </Radio.Group>
-          <div className='flex gap-2 justify-between mt-4'>
-            <Button onClick={() => setStep(1)}>{t('team.create.back', { defaultValue: 'Back' })}</Button>
-            <Button type='primary' loading={loading} onClick={handleCreate}>
-              {t('team.create.confirm', { defaultValue: 'Create Team' })}
-            </Button>
-          </div>
-        </div>
-      )}
+      </div>
     </Modal>
   );
 };

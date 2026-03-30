@@ -6,17 +6,17 @@
   "addAgent": "Add Member",
   "newAgent": "New Agent",
   "noMessages": "No messages yet.",
+  "agentNotConfigured": "에이전트가 아직 구성되지 않았습니다.",
+  "sendBox": {
+    "placeholder": "디스패치 에이전트에 메시지 보내기..."
+  },
   "create": {
     "title": "Create Team",
     "namePlaceholder": "Team name",
-    "dispatchHint": "Set a name for your team and configure the dispatch agent.",
-    "subAgentsHint": "Sub agents can be added after the team is created.",
+    "dispatchAgentPlaceholder": "Select dispatch agent",
+    "subAgentsPlaceholder": "Select sub agents",
     "workspacePlaceholder": "Workspace path (optional)",
-    "workspaceShared": "Shared",
-    "workspaceIsolated": "Isolated",
     "confirm": "Create Team",
-    "next": "Next",
-    "back": "Back",
     "step": {
       "dispatch": "Dispatch Agent",
       "subAgents": "Sub Agents",

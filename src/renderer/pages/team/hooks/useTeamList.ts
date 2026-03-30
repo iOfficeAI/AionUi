@@ -7,11 +7,11 @@ import useSWR from 'swr';
 
 export function useTeamList() {
   const { user } = useAuth();
-  const userId = user?.id ?? null;
+  const userId = user?.id ?? 'system_default_user';
 
   const { data: teams = [], mutate } = useSWR<TTeam[]>(
-    userId ? `teams/${userId}` : null,
-    () => ipcBridge.team.list.invoke({ userId: userId! }),
+    `teams/${userId}`,
+    () => ipcBridge.team.list.invoke({ userId }),
     { revalidateOnFocus: false }
   );
 
