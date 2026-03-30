@@ -6,6 +6,7 @@
 
 import { ipcBridge } from '@/common';
 import type { TChatConversation } from '@/common/config/storage';
+import { refreshConversationCache } from '@/renderer/pages/conversation/utils/conversationCache';
 import { emitter } from '@/renderer/utils/emitter';
 import { blockMobileInputFocus, blurActiveElement } from '@/renderer/utils/ui/focus';
 import { Message, Modal } from '@arco-design/web-react';
@@ -190,6 +191,7 @@ export const useConversationActions = ({
       });
 
       if (success) {
+        await refreshConversationCache(renameModalId);
         updateTabName(renameModalId, renameModalName.trim());
         emitter.emit('chat.history.refresh');
         setRenameModalVisible(false);
