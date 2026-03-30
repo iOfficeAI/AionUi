@@ -350,6 +350,12 @@ export class AcpConnection {
         let errMsg: string;
         if (stderrCombined) {
           errMsg = `${backend} ACP process exited during startup (code: ${code}):\n${stderrCombined}`;
+        } else if (code === 0) {
+          // Exit code 0 with no stderr strongly suggests the CLI version does not support ACP mode
+          errMsg =
+            `${backend} ACP process exited during startup (code: 0). ` +
+            `This usually means the installed ${backend} CLI version does not support ACP mode. ` +
+            `Please upgrade to a newer version that supports ACP.`;
         } else {
           errMsg = `${backend} ACP process exited during startup (code: ${code}, signal: ${signal})`;
         }
