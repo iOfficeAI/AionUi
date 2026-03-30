@@ -4,7 +4,12 @@ import { ipcBridge } from '@/common';
 import type { IWorkerTaskManager } from '@process/task/IWorkerTaskManager';
 import type { IConversationService } from '@process/services/IConversationService';
 import type { IResponseMessage, IConversationTurnCompletedEvent } from '@/common/adapter/ipcBridge';
-import { parseAssignTasks, buildResultInjection } from './assignTaskParser';
+import {
+  parseAssignTasks,
+  buildResultInjection,
+  buildDispatchSystemPrompt,
+  buildSubAgentFirstMessage,
+} from './assignTaskParser';
 import type { TTeam, TeamAgent, TeamAgentRuntime, TeamAgentStatus, ITeamMessageEvent } from './types';
 
 export class TeamSession extends EventEmitter {
@@ -15,6 +20,8 @@ export class TeamSession extends EventEmitter {
   private dispatchBuffer: string = '';
   private activeSubTaskSlotId: string | null = null;
   private subAgentOutputBuffer: string = '';
+  private dispatchInitialized: boolean = false;
+  private readonly initializedSubAgents: Set<string> = new Set();
 
   constructor(team: TTeam, workerTaskManager: IWorkerTaskManager, conversationService: IConversationService) {
     super();
@@ -37,7 +44,18 @@ export class TeamSession extends EventEmitter {
     this.dispatchBuffer = '';
     this.setStatus(dispatchAgent.slotId, 'working');
     const task = await this.workerTaskManager.getOrBuildTask(dispatchAgent.conversationId);
-    await task.sendMessage(content);
+    const payload = this.buildDispatchPayload(content);
+    await task.sendMessage(payload);
+  }
+
+  private buildDispatchPayload(content: string): string {
+    if (this.dispatchInitialized) return content;
+    this.dispatchInitialized = true;
+    const subAgents = this.team.agents
+      .filter((a) => a.role === 'sub')
+      .map((a) => ({ slotId: a.slotId, agentName: a.agentName, agentType: a.agentType }));
+    const systemPrompt = buildDispatchSystemPrompt(subAgents);
+    return `[Assistant Rules - You MUST follow these instructions]\n${systemPrompt}\n\n[User Request]\n${content}`;
   }
 
   async routeTask(task: { slotId: string; prompt: string }): Promise<void> {
@@ -49,7 +67,14 @@ export class TeamSession extends EventEmitter {
     this.activeSubTaskSlotId = task.slotId;
     this.subAgentOutputBuffer = '';
     const agentTask = await this.workerTaskManager.getOrBuildTask(agent.conversationId);
-    await agentTask.sendMessage(task.prompt);
+    const payload = this.buildSubAgentPayload(agent, task.prompt);
+    await agentTask.sendMessage(payload);
+  }
+
+  private buildSubAgentPayload(agent: TeamAgent, taskPrompt: string): string {
+    if (this.initializedSubAgents.has(agent.slotId)) return taskPrompt;
+    this.initializedSubAgents.add(agent.slotId);
+    return buildSubAgentFirstMessage(agent.agentName, agent.agentType, taskPrompt);
   }
 
   addAgent(agent: TeamAgent): void {
