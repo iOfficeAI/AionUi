@@ -7,7 +7,8 @@
 import { ipcBridge } from '@/common';
 import { ConfigStorage } from '@/common/config/storage';
 import { openExternalUrl } from '@/renderer/utils/platform';
-import { Message, Switch } from '@arco-design/web-react';
+import { CloseSmall } from '@icon-park/react';
+import { Button, Message, Switch } from '@arco-design/web-react';
 import React, { useCallback, useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 
@@ -19,6 +20,7 @@ const SkillsMarketBanner: React.FC = () => {
   const [enabled, setEnabled] = useState(false);
   const [loading, setLoading] = useState(false);
   const [initialized, setInitialized] = useState(false);
+  const [dismissed, setDismissed] = useState(false);
 
   useEffect(() => {
     const timeout = setTimeout(() => {
@@ -73,7 +75,7 @@ const SkillsMarketBanner: React.FC = () => {
     }
   }, [i18n.language]);
 
-  if (!initialized) return null;
+  if (!initialized || dismissed) return null;
 
   return (
     <div className='absolute right-12px z-10' style={{ top: 'calc(12px + env(safe-area-inset-top, 0px))' }}>
@@ -89,7 +91,18 @@ const SkillsMarketBanner: React.FC = () => {
             </span>
           </div>
         </div>
-        <Switch className='shrink-0' size='small' checked={enabled} loading={loading} onChange={handleToggle} />
+        <div className='shrink-0 flex flex-col items-end gap-6px self-start'>
+          <Button
+            type='text'
+            shape='circle'
+            size='mini'
+            className='text-[var(--color-text-3)] hover:text-[var(--color-text-1)]'
+            icon={<CloseSmall theme='outline' size={14} />}
+            aria-label={t('common.close')}
+            onClick={() => setDismissed(true)}
+          />
+          <Switch size='small' checked={enabled} loading={loading} onChange={handleToggle} />
+        </div>
       </div>
     </div>
   );
