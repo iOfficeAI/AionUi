@@ -128,6 +128,56 @@ describe('useConversationCommandQueue', () => {
     expect(window.sessionStorage.getItem(storageKey)).toBeNull();
   });
 
+  it('waits for the conversation runtime status to hydrate before auto-dequeuing restored commands', async () => {
+    const conversationId = createConversationId();
+    const onExecute = vi.fn().mockResolvedValue(undefined);
+
+    window.sessionStorage.setItem(
+      `conversation-command-queue/${conversationId}`,
+      JSON.stringify({
+        isPaused: false,
+        items: [
+          {
+            id: 'queued-1',
+            input: 'restored queued command',
+            files: [],
+            createdAt: Date.now(),
+          },
+        ],
+      })
+    );
+
+    const { result, rerender } = renderHook(
+      ({ isBusy, isHydrated }) =>
+        useConversationCommandQueue({
+          conversationId,
+          isBusy,
+          isHydrated,
+          onExecute,
+        }),
+      {
+        initialProps: { isBusy: false, isHydrated: false },
+      }
+    );
+
+    await waitFor(() => {
+      expect(result.current.items).toHaveLength(1);
+    });
+
+    expect(onExecute).not.toHaveBeenCalled();
+
+    rerender({ isBusy: false, isHydrated: true });
+
+    await waitFor(() => {
+      expect(onExecute).toHaveBeenCalledTimes(1);
+    });
+    expect(onExecute).toHaveBeenCalledWith(
+      expect.objectContaining({
+        input: 'restored queued command',
+      })
+    );
+  });
+
   it('keeps queued commands paused until resumed', async () => {
     const conversationId = createConversationId();
     const onExecute = vi.fn().mockResolvedValue(undefined);

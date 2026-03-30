@@ -61,6 +61,7 @@ const CodexSendBox: React.FC<{ conversation_id: string }> = ({ conversation_id }
 
   const [running, setRunning] = useState(false);
   const [aiProcessing, setAiProcessing] = useState(false); // New loading state for AI response
+  const [hasHydratedRunningState, setHasHydratedRunningState] = useState(false);
   const [codexStatus, setCodexStatus] = useState<string | null>(null);
   const slashCommands = useSlashCommands(conversation_id, {
     conversationType: 'codex',
@@ -153,19 +154,34 @@ const CodexSendBox: React.FC<{ conversation_id: string }> = ({ conversation_id }
 
   // Reset state when conversation changes and restore actual running status
   useEffect(() => {
+    let cancelled = false;
+
     setRunning(false);
     setAiProcessing(false);
+    setHasHydratedRunningState(false);
     setCodexStatus(null);
     setThought({ subject: '', description: '' });
     hasContentInTurnRef.current = false;
 
     // Check actual conversation status from backend
     void ipcBridge.conversation.get.invoke({ id: conversation_id }).then((res) => {
-      if (!res) return;
+      if (cancelled) {
+        return;
+      }
+
+      if (!res) {
+        setHasHydratedRunningState(true);
+        return;
+      }
       if (res.status === 'running') {
         setAiProcessing(true);
       }
+      setHasHydratedRunningState(true);
     });
+
+    return () => {
+      cancelled = true;
+    };
   }, [conversation_id]);
 
   // 注册预览面板添加到发送框的 handler
@@ -337,6 +353,7 @@ const CodexSendBox: React.FC<{ conversation_id: string }> = ({ conversation_id }
   } = useConversationCommandQueue({
     conversationId: conversation_id,
     isBusy,
+    isHydrated: hasHydratedRunningState,
     onExecute: executeCommand,
   });
 

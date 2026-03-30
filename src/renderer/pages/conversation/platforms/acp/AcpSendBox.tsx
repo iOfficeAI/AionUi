@@ -1,6 +1,5 @@
 import { ipcBridge } from '@/common';
 import type { AcpBackend } from '@/common/types/acpTypes';
-import type { TMessage } from '@/common/chat/chatLib';
 import { isSideQuestionSupported } from '@/common/chat/sideQuestion';
 import { uuid } from '@/common/utils';
 import SendBox from '@/renderer/components/chat/sendbox';
@@ -87,6 +86,7 @@ const AcpSendBox: React.FC<{
 }> = ({ conversation_id, backend, sessionMode, agentName }) => {
   const {
     running,
+    hasHydratedRunningState,
     acpStatus,
     aiProcessing,
     setAiProcessing,
@@ -216,6 +216,7 @@ Please check your local CLI tool authentication status`,
   } = useConversationCommandQueue({
     conversationId: conversation_id,
     isBusy,
+    isHydrated: hasHydratedRunningState,
     onExecute: executeCommand,
   });
 

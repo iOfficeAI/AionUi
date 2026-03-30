@@ -11,6 +11,7 @@ export const useGeminiMessage = (conversation_id: string, onError?: (message: IR
   const [streamRunning, setStreamRunning] = useState(false); // API 流是否在运行
   const [hasActiveTools, setHasActiveTools] = useState(false); // 是否有工具在执行或等待确认
   const [waitingResponse, setWaitingResponse] = useState(false); // 等待后端响应（发送消息后到收到 start 之前）
+  const [hasHydratedRunningState, setHasHydratedRunningState] = useState(false);
   const [thought, setThought] = useState<ThoughtData>({
     description: '',
     subject: '',
@@ -288,13 +289,20 @@ export const useGeminiMessage = (conversation_id: string, onError?: (message: IR
   }, [conversation_id, addOrUpdateMessage, onError]);
 
   useEffect(() => {
+    let cancelled = false;
+
     setThought({ subject: '', description: '' });
     setTokenUsage(null);
     hasContentInTurnRef.current = false;
+    setHasHydratedRunningState(false);
 
     // Check actual conversation status from backend before resetting all running states
     // to avoid flicker when switching to a running conversation
     void ipcBridge.conversation.get.invoke({ id: conversation_id }).then((res) => {
+      if (cancelled) {
+        return;
+      }
+
       if (!res) {
         setStreamRunning(false);
         streamRunningRef.current = false;
@@ -302,6 +310,7 @@ export const useGeminiMessage = (conversation_id: string, onError?: (message: IR
         hasActiveToolsRef.current = false;
         setWaitingResponse(false);
         waitingResponseRef.current = false;
+        setHasHydratedRunningState(true);
         return;
       }
       const isRunning = res.status === 'running';
@@ -319,7 +328,12 @@ export const useGeminiMessage = (conversation_id: string, onError?: (message: IR
           setTokenUsage(lastTokenUsage);
         }
       }
+      setHasHydratedRunningState(true);
     });
+
+    return () => {
+      cancelled = true;
+    };
   }, [conversation_id]);
 
   const resetState = useCallback(() => {
@@ -339,6 +353,7 @@ export const useGeminiMessage = (conversation_id: string, onError?: (message: IR
     thought,
     setThought,
     running,
+    hasHydratedRunningState,
     tokenUsage,
     setActiveMsgId,
     setWaitingResponse,
