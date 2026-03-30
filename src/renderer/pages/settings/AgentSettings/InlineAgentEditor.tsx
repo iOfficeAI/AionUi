@@ -127,8 +127,11 @@ const InlineAgentEditor: React.FC<InlineAgentEditorProps> = ({ agent, onSave, on
     setShowAdvanced(false);
   }, [agent]);
 
+  const jsonEditTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
   const handleJsonChange = useCallback((value: string) => {
     isJsonEditingRef.current = true;
+    if (jsonEditTimerRef.current) clearTimeout(jsonEditTimerRef.current);
     setJsonInput(value);
     try {
       const parsed = JSON.parse(value);
@@ -142,8 +145,9 @@ const InlineAgentEditor: React.FC<InlineAgentEditorProps> = ({ agent, onSave, on
     } catch {
       setJsonError('Invalid JSON');
     }
-    setTimeout(() => {
+    jsonEditTimerRef.current = setTimeout(() => {
       isJsonEditingRef.current = false;
+      jsonEditTimerRef.current = null;
     }, 500);
   }, []);
 
