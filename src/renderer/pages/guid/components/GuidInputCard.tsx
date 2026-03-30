@@ -5,6 +5,7 @@
  */
 
 import FilePreview from '@/renderer/components/media/FilePreview';
+import UploadProgressBar from '@/renderer/components/media/UploadProgressBar';
 import { useLayoutContext } from '@/renderer/hooks/context/LayoutContext';
 import { useCompositionInput } from '@/renderer/hooks/chat/useCompositionInput';
 import { Input, Tooltip } from '@arco-design/web-react';
@@ -132,6 +133,7 @@ const GuidInputCard: React.FC<GuidInputCardProps> = ({
           ))}
         </div>
       )}
+      <UploadProgressBar source='sendbox' />
       {actionRow}
       {dir && (
         <div
