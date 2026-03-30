@@ -586,6 +586,7 @@ When `NEEDS_HUMAN_REVIEW=true`, route to human review regardless of CONCLUSION (
    ✅ 已自动 review，无阻塞性问题，正在触发自动合并。"
    ```
 2. Trigger auto-merge and verify:
+
    ```bash
    gh pr merge <PR_NUMBER> --squash --auto
 
@@ -618,6 +619,7 @@ When `NEEDS_HUMAN_REVIEW=true`, route to human review regardless of CONCLUSION (
    ⚠️ 自动合并触发失败（auto-merge 未成功启用），已标记 bot:ready-to-merge，请人工确认后合并。"
    fi
    ```
+
 3. Log: `[pr-automation] PR #<PR_NUMBER> approved, auto-merge triggered.`
 4. Log: `[pr-automation:exit] action=approved pr=#<PR_NUMBER> reason="review passed, auto-merge triggered"`
 5. **EXIT.**
