@@ -400,7 +400,7 @@ const WeixinConfigForm: React.FC<WeixinConfigFormProps> = ({ pluginStatus, model
       return (
         <div className='flex items-center gap-8px'>
           <CheckOne theme='filled' size={16} className='text-green-500' />
-          <span className='text-14px text-t-primary'>{t('settings.weixin.connected', '已连接')}</span>
+          <span className='text-14px text-t-primary'>{t('settings.weixin.connected', 'Connected')}</span>
           {pluginStatus?.botUsername && <span className='text-12px text-t-tertiary'>({pluginStatus.botUsername})</span>}
           <Button
             type='secondary'
@@ -410,7 +410,7 @@ const WeixinConfigForm: React.FC<WeixinConfigFormProps> = ({ pluginStatus, model
               void handleDisconnect();
             }}
           >
-            {t('settings.weixin.disconnect', '断开连接')}
+            {t('settings.weixin.disconnect', 'Disconnect')}
           </Button>
         </div>
       );
@@ -428,10 +428,12 @@ const WeixinConfigForm: React.FC<WeixinConfigFormProps> = ({ pluginStatus, model
           {loginState === 'scanned' ? (
             <div className='flex items-center gap-6px text-13px text-t-secondary'>
               <Spin size={14} />
-              <span>{t('settings.weixin.scanned', '已扫码，等待确认...')}</span>
+              <span>{t('settings.weixin.scanned', 'Scanned, waiting for confirmation...')}</span>
             </div>
           ) : (
-            <span className='text-13px text-t-secondary'>{t('settings.weixin.scanPrompt', '请用微信扫描二维码')}</span>
+            <span className='text-13px text-t-secondary'>
+              {t('settings.weixin.scanPrompt', 'Please scan the QR code with WeChat')}
+            </span>
           )}
         </div>
       );
@@ -446,7 +448,7 @@ const WeixinConfigForm: React.FC<WeixinConfigFormProps> = ({ pluginStatus, model
           void handleLogin();
         }}
       >
-        {t('settings.weixin.loginButton', '扫码登录')}
+        {t('settings.weixin.loginButton', 'Scan to Login')}
       </Button>
     );
   };
@@ -455,10 +457,10 @@ const WeixinConfigForm: React.FC<WeixinConfigFormProps> = ({ pluginStatus, model
     <div className='flex flex-col gap-24px'>
       {/* Login / connection status */}
       <PreferenceRow
-        label={t('settings.weixin.accountId', '账号 ID')}
+        label={t('settings.weixin.accountId', 'Account ID')}
         description={
           loginState === 'idle' || loginState === 'loading_qr'
-            ? t('settings.weixin.scanPrompt', '请用微信扫描二维码')
+            ? t('settings.weixin.scanPrompt', 'Please scan the QR code with WeChat')
             : undefined
         }
       >
@@ -467,7 +469,7 @@ const WeixinConfigForm: React.FC<WeixinConfigFormProps> = ({ pluginStatus, model
 
       {/* Agent Selection */}
       <PreferenceRow
-        label={t('settings.weixin.agent', '对话Agent')}
+        label={t('settings.weixin.agent', 'Agent')}
         description={t('settings.weixin.agentDesc', 'Used for WeChat conversations')}
       >
         <Dropdown
@@ -526,13 +528,17 @@ const WeixinConfigForm: React.FC<WeixinConfigFormProps> = ({ pluginStatus, model
 
       {/* Default Model Selection */}
       <PreferenceRow
-        label={t('settings.assistant.defaultModel', '对话模型')}
-        description={t('settings.weixin.defaultModelDesc', '用于Agent对话时调用')}
+        label={t('settings.assistant.defaultModel', 'Default Model')}
+        description={t('settings.weixin.defaultModelDesc', 'Model used for WeChat conversations')}
       >
         <GeminiModelSelector
           selection={isGeminiAgent ? modelSelection : undefined}
           disabled={!isGeminiAgent}
-          label={!isGeminiAgent ? t('settings.assistant.autoFollowCliModel', '自动跟随CLI运行时的模型') : undefined}
+          label={
+            !isGeminiAgent
+              ? t('settings.assistant.autoFollowCliModel', 'Automatically follow the model when CLI is running')
+              : undefined
+          }
           variant='settings'
         />
       </PreferenceRow>
@@ -543,13 +549,21 @@ const WeixinConfigForm: React.FC<WeixinConfigFormProps> = ({ pluginStatus, model
           <SectionHeader title={t('settings.assistant.nextSteps', 'Next Steps')} />
           <div className='text-14px text-t-secondary space-y-8px'>
             <p className='m-0'>
-              <strong>1.</strong> {t('settings.weixin.step1', '在微信中找到并给你的机器人发送任意消息')}
+              <strong>1.</strong> {t('settings.weixin.step1', 'Find and send a message to your bot in WeChat')}
             </p>
             <p className='m-0'>
-              <strong>2.</strong> {t('settings.weixin.step2', '配对请求会显示在下方，点击「批准」授权用户')}
+              <strong>2.</strong>{' '}
+              {t(
+                'settings.weixin.step2',
+                'A pairing request will appear below. Click "Approve" to authorize the user.'
+              )}
             </p>
             <p className='m-0'>
-              <strong>3.</strong> {t('settings.weixin.step3', '授权成功后，即可通过微信与 AI 助手对话')}
+              <strong>3.</strong>{' '}
+              {t(
+                'settings.weixin.step3',
+                'Once approved, you can start chatting with the AI assistant through WeChat!'
+              )}
             </p>
           </div>
         </div>

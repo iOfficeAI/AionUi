@@ -69,7 +69,7 @@ vi.mock('@/common/config/storage', () => ({
 }));
 
 vi.mock('@/renderer/pages/conversation/platforms/gemini/GeminiModelSelector', () => ({
-  default: () => <div data-testid='model-selector' />,
+  default: ({ label }: { label?: string }) => <div data-testid='model-selector'>{label}</div>,
 }));
 
 vi.mock('qrcode.react', () => ({
@@ -77,6 +77,7 @@ vi.mock('qrcode.react', () => ({
 }));
 
 import WeixinConfigForm from '@/renderer/components/settings/SettingsModal/contents/channels/WeixinConfigForm';
+import { ConfigStorage } from '@/common/config/storage';
 
 const noopModelSelection = {
   currentModel: undefined,
@@ -132,7 +133,17 @@ describe('WeixinConfigForm', () => {
 
   it('renders login button in idle state', () => {
     render(<WeixinConfigForm pluginStatus={null} modelSelection={noopModelSelection} onStatusChange={vi.fn()} />);
-    expect(screen.getByText('扫码登录')).toBeTruthy();
+    expect(screen.getByText('Scan to Login')).toBeTruthy();
+  });
+
+  it('shows auto-follow label when a non-gemini agent is selected', async () => {
+    vi.mocked(ConfigStorage.get).mockResolvedValueOnce({ backend: 'claude', name: 'Claude' });
+
+    render(<WeixinConfigForm pluginStatus={null} modelSelection={noopModelSelection} onStatusChange={vi.fn()} />);
+
+    await waitFor(() => {
+      expect(screen.getByText('Automatically follow the model when CLI is running')).toBeTruthy();
+    });
   });
 
   it('shows loading state when login starts', async () => {
@@ -142,11 +153,11 @@ describe('WeixinConfigForm', () => {
     render(<WeixinConfigForm pluginStatus={null} modelSelection={noopModelSelection} onStatusChange={vi.fn()} />);
 
     await act(async () => {
-      fireEvent.click(screen.getByText('扫码登录'));
+      fireEvent.click(screen.getByText('Scan to Login'));
     });
 
     // Button should be loading/disabled
-    const btn = screen.getByRole('button', { name: /扫码登录/i });
+    const btn = screen.getByRole('button', { name: /Scan to Login/i });
     expect(btn).toBeTruthy();
   });
 
@@ -161,7 +172,7 @@ describe('WeixinConfigForm', () => {
     render(<WeixinConfigForm pluginStatus={null} modelSelection={noopModelSelection} onStatusChange={vi.fn()} />);
 
     await act(async () => {
-      fireEvent.click(screen.getByText('扫码登录'));
+      fireEvent.click(screen.getByText('Scan to Login'));
     });
 
     await act(async () => {
@@ -170,7 +181,7 @@ describe('WeixinConfigForm', () => {
 
     const img = screen.getByRole('img');
     expect((img as HTMLImageElement).src).toContain('qr.png');
-    expect(screen.getByText('请用微信扫描二维码')).toBeTruthy();
+    expect(screen.getByText('Please scan the QR code with WeChat')).toBeTruthy();
   });
 
   it('shows scanned text when onScanned fires', async () => {
@@ -190,7 +201,7 @@ describe('WeixinConfigForm', () => {
     render(<WeixinConfigForm pluginStatus={null} modelSelection={noopModelSelection} onStatusChange={vi.fn()} />);
 
     await act(async () => {
-      fireEvent.click(screen.getByText('扫码登录'));
+      fireEvent.click(screen.getByText('Scan to Login'));
     });
     await act(async () => {
       qrCallback?.({ qrcodeUrl: 'https://example.com/qr.png' });
@@ -199,7 +210,7 @@ describe('WeixinConfigForm', () => {
       scannedCallback?.();
     });
 
-    expect(screen.getByText('已扫码，等待确认...')).toBeTruthy();
+    expect(screen.getByText('Scanned, waiting for confirmation...')).toBeTruthy();
   });
 
   it('shows already-connected state when pluginStatus.hasToken is true', () => {
@@ -221,9 +232,9 @@ describe('WeixinConfigForm', () => {
       />
     );
 
-    expect(screen.getByText('已连接')).toBeTruthy();
+    expect(screen.getByText('Connected')).toBeTruthy();
     // Login button should not be shown
-    expect(screen.queryByText('扫码登录')).toBeNull();
+    expect(screen.queryByText('Scan to Login')).toBeNull();
   });
 
   it('does not show connected state when plugin has token but is disabled', () => {
@@ -245,8 +256,8 @@ describe('WeixinConfigForm', () => {
       />
     );
 
-    expect(screen.queryByText('已连接')).toBeNull();
-    expect(screen.getByText('扫码登录')).toBeTruthy();
+    expect(screen.queryByText('Connected')).toBeNull();
+    expect(screen.getByText('Scan to Login')).toBeTruthy();
   });
 
   it('uses the WebUI EventSource login flow when electron login bridge is unavailable', async () => {
@@ -262,7 +273,7 @@ describe('WeixinConfigForm', () => {
     );
 
     await act(async () => {
-      fireEvent.click(screen.getByText('扫码登录'));
+      fireEvent.click(screen.getByText('Scan to Login'));
     });
 
     const es = MockEventSource.instances[0];
@@ -277,7 +288,7 @@ describe('WeixinConfigForm', () => {
     await act(async () => {
       es?.emit('scanned');
     });
-    expect(screen.getByText('已扫码，等待确认...')).toBeTruthy();
+    expect(screen.getByText('Scanned, waiting for confirmation...')).toBeTruthy();
 
     await act(async () => {
       es?.emit('done', { accountId: 'acc-1', botToken: 'bot-1' });
@@ -300,7 +311,7 @@ describe('WeixinConfigForm', () => {
     render(<WeixinConfigForm pluginStatus={null} modelSelection={noopModelSelection} onStatusChange={vi.fn()} />);
 
     await act(async () => {
-      fireEvent.click(screen.getByText('扫码登录'));
+      fireEvent.click(screen.getByText('Scan to Login'));
     });
 
     const es = MockEventSource.instances[0];
@@ -310,7 +321,7 @@ describe('WeixinConfigForm', () => {
     });
 
     await waitFor(() => {
-      expect(screen.getByText('扫码登录')).toBeTruthy();
+      expect(screen.getByText('Scan to Login')).toBeTruthy();
     });
   });
 
@@ -320,7 +331,7 @@ describe('WeixinConfigForm', () => {
     render(<WeixinConfigForm pluginStatus={null} modelSelection={noopModelSelection} onStatusChange={vi.fn()} />);
 
     await act(async () => {
-      fireEvent.click(screen.getByText('扫码登录'));
+      fireEvent.click(screen.getByText('Scan to Login'));
     });
 
     const es = MockEventSource.instances[0];
@@ -334,7 +345,7 @@ describe('WeixinConfigForm', () => {
     });
 
     await waitFor(() => {
-      expect(screen.getByText('扫码登录')).toBeTruthy();
+      expect(screen.getByText('Scan to Login')).toBeTruthy();
     });
     expect(es?.close).toHaveBeenCalled();
   });
@@ -345,7 +356,7 @@ describe('WeixinConfigForm', () => {
     render(<WeixinConfigForm pluginStatus={null} modelSelection={noopModelSelection} onStatusChange={vi.fn()} />);
 
     await act(async () => {
-      fireEvent.click(screen.getByText('扫码登录'));
+      fireEvent.click(screen.getByText('Scan to Login'));
     });
 
     const es = MockEventSource.instances[0];
@@ -359,7 +370,7 @@ describe('WeixinConfigForm', () => {
     });
 
     await waitFor(() => {
-      expect(screen.getByText('扫码登录')).toBeTruthy();
+      expect(screen.getByText('Scan to Login')).toBeTruthy();
     });
     expect(es?.close).toHaveBeenCalled();
   });
@@ -386,11 +397,11 @@ describe('WeixinConfigForm', () => {
     );
 
     await act(async () => {
-      fireEvent.click(screen.getByText('断开连接'));
+      fireEvent.click(screen.getByText('Disconnect'));
     });
 
     expect(mockDisablePlugin).toHaveBeenCalledWith({ pluginId: 'weixin_default' });
-    expect(screen.getByText('已连接')).toBeTruthy();
+    expect(screen.getByText('Connected')).toBeTruthy();
   });
 
   it('closes EventSource on component unmount', async () => {
@@ -401,7 +412,7 @@ describe('WeixinConfigForm', () => {
     );
 
     await act(async () => {
-      fireEvent.click(screen.getByText('扫码登录'));
+      fireEvent.click(screen.getByText('Scan to Login'));
     });
 
     const es = MockEventSource.instances[0];
@@ -443,13 +454,13 @@ describe('WeixinConfigForm', () => {
     render(<TestHarness />);
 
     await act(async () => {
-      fireEvent.click(screen.getByText('断开连接'));
+      fireEvent.click(screen.getByText('Disconnect'));
     });
 
     expect(mockDisablePlugin).toHaveBeenCalledWith({ pluginId: 'weixin_default' });
     expect(onStatusChange).toHaveBeenCalledWith(null);
     await waitFor(() => {
-      expect(screen.getByText('扫码登录')).toBeTruthy();
+      expect(screen.getByText('Scan to Login')).toBeTruthy();
     });
   });
 });
