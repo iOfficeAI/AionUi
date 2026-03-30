@@ -1127,12 +1127,15 @@ export class AcpAgent {
         return;
       }
 
+      // Allow users up to 30 minutes to respond to permission prompts.
+      // The previous 70-second timeout caused auto-rejections when users
+      // stepped away briefly, leading to "internal error" on return.
       setTimeout(() => {
         if (this.pendingPermissions.has(requestId)) {
           this.pendingPermissions.delete(requestId);
           reject(new Error('Permission request timed out'));
         }
-      }, 70000);
+      }, 1800000);
     });
   }
 
