@@ -88,6 +88,12 @@ git status
 git diff
 ```
 
+Stage **all** modified files — including any files auto-fixed by `format` in Step 1:
+
+```bash
+git add -u
+```
+
 Generate commit message in English using conventional commits format: `<type>(<scope>): <subject>`.
 
 **NEVER include `Co-authored-by` or any AI attribution.**
