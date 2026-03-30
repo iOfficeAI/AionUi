@@ -79,6 +79,15 @@ prek run --from-ref origin/main --to-ref HEAD
 > Note: `prek` uses `lint` (check only) and `format:check` (check only) — it will fail if there are issues but won't fix them.
 > If prek reports formatting or lint issues, run the auto-fix commands above first, then re-run prek to verify.
 
+**i18n validation:** If your changes touch `src/renderer/`, `locales/`, or `src/common/config/i18n`, run:
+
+```bash
+bun run i18n:types
+node scripts/check-i18n.js
+```
+
+Both must pass before opening a PR. The `oss-pr` skill enforces this automatically.
+
 Common Oxfmt rules (Prettier-compatible, avoid a fix pass):
 
 - Single-element arrays that fit on one line → inline: `[{ id: 'a', value: 'b' }]`
@@ -98,7 +107,7 @@ Detailed rules and guidelines are organized into Skills for better modularity:
 | Skill             | Purpose                                                                              | Triggers                                                           |
 | ----------------- | ------------------------------------------------------------------------------------ | ------------------------------------------------------------------ |
 | **architecture**  | File & directory structure conventions for all process types                         | Creating files, adding modules, architectural decisions            |
-| **i18n**          | Internationalization workflow and standards                                          | Adding user-facing text, creating components with user-facing text |
+| **i18n**          | Internationalization workflow and standards                                          | Adding user-facing text, creating components with user-facing text, modifying or creating locale files (`locales/`) |
 | **testing**       | Testing workflow and quality standards                                               | Writing tests, adding features, before claiming completion         |
 | **oss-pr**        | Full commit + PR workflow: branch management, quality checks, issue linking, PR      | Creating pull requests, after committing, `/oss-pr`                |
 | **bump-version**  | Version bump workflow: update package.json, checks, branch, PR, tag release          | Bumping version, `/bump-version`                                   |
