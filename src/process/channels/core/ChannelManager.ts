@@ -82,6 +82,7 @@ export class ChannelManager {
       // Initialize sub-components
       this.pairingService = new PairingService();
       this.sessionManager = new SessionManager();
+      await this.sessionManager.ready;
       this.pluginManager = new PluginManager(this.sessionManager);
 
       // Create action executor and wire up message handling

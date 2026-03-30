@@ -19,8 +19,11 @@ export class SessionManager {
   // In-memory cache of active sessions keyed by composite key (userId:chatId)
   private activeSessions: Map<string, IChannelSession> = new Map();
 
+  /** Resolves once persisted sessions have been loaded into memory. */
+  readonly ready: Promise<void>;
+
   constructor() {
-    this.loadActiveSessions();
+    this.ready = this.loadActiveSessions();
   }
 
   /**
