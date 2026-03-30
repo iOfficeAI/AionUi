@@ -11,6 +11,7 @@ export default function TabLayout() {
   const { t } = useTranslation();
   const tint = useThemeColor({}, 'tint');
   const tabIconDefault = useThemeColor({}, 'tabIconDefault');
+  const background = useThemeColor({}, 'background');
   const { isConfigured } = useConnection();
   const router = useRouter();
   const insets = useSafeAreaInsets();
@@ -23,7 +24,7 @@ export default function TabLayout() {
   }, [isConfigured, router]);
 
   return (
-    <SafeAreaView style={{ flex: 1 }} edges={['top']}>
+    <SafeAreaView style={{ flex: 1, backgroundColor: background }} edges={['top']}>
       <ConnectionBanner />
       <SafeAreaInsetsContext.Provider value={{ ...insets, top: 0 }}>
       <Tabs
