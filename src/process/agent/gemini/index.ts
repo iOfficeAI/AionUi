@@ -341,6 +341,11 @@ export class GeminiAgent {
     // causing an unhandled ENOENT rejection (Sentry ELECTRON-6W).
     await fs.promises.mkdir(path, { recursive: true });
 
+    // Verify workspace is resolvable before aioncli-core attempts fs.realpath()
+    // internally. The mkdir above handles ENOENT, but EACCES (permission denied)
+    // still causes an unhandled rejection inside the library (Sentry ELECTRON-BM).
+    await fs.promises.realpath(path);
+
     const settings = loadSettings(path).merged;
     if (this.contextFileName) {
       settings.contextFileName = this.contextFileName;
