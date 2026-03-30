@@ -6,13 +6,12 @@
 
 import { resolveLocaleKey } from '@/common/utils';
 import { useInputFocusRing } from '@/renderer/hooks/chat/useInputFocusRing';
-import { openExternalUrl } from '@/renderer/utils/platform';
+import { openExternalUrl, resolveExtensionAssetUrl } from '@/renderer/utils/platform';
 import { useConversationTabs } from '@/renderer/pages/conversation/hooks/ConversationTabsContext';
-import SpeechInputButton from '@/renderer/components/chat/SpeechInputButton';
-import { appendSpeechTranscript } from '@/renderer/hooks/system/useSpeechInput';
+import { CUSTOM_AVATAR_IMAGE_MAP } from './constants';
 import AgentPillBar from './components/AgentPillBar';
 import AssistantSelectionArea from './components/AssistantSelectionArea';
-import { AgentPillBarSkeleton, AssistantsSkeleton } from './components/GuidSkeleton';
+import { AgentPillBarSkeleton } from './components/GuidSkeleton';
 import GuidActionRow from './components/GuidActionRow';
 import GuidInputCard from './components/GuidInputCard';
 import GuidModelSelector from './components/GuidModelSelector';
@@ -25,8 +24,9 @@ import { useGuidMention } from './hooks/useGuidMention';
 import { useGuidModelSelection } from './hooks/useGuidModelSelection';
 import { useGuidSend } from './hooks/useGuidSend';
 import { useTypewriterPlaceholder } from './hooks/useTypewriterPlaceholder';
-import { ConfigProvider } from '@arco-design/web-react';
-import React, { useCallback, useRef } from 'react';
+import { Button, ConfigProvider } from '@arco-design/web-react';
+import { Left, Robot } from '@icon-park/react';
+import React, { useCallback, useMemo, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useLocation, useNavigate } from 'react-router-dom';
 import styles from './index.module.css';
@@ -36,6 +36,7 @@ const GuidPage: React.FC = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const guidContainerRef = useRef<HTMLDivElement>(null);
+  const openAssistantDetailsRef = useRef<(() => void) | null>(null);
   const { closeAllTabs, openTab } = useConversationTabs();
   const { activeBorderColor, inactiveBorderColor, activeShadow } = useInputFocusRing();
   const localeKey = resolveLocaleKey(i18n.language);
@@ -80,6 +81,7 @@ const GuidPage: React.FC = () => {
     dir: guidInput.dir,
     setDir: guidInput.setDir,
     setLoading: guidInput.setLoading,
+    loading: guidInput.loading,
 
     // Agent state
     selectedAgent: agentSelection.selectedAgent,
@@ -239,15 +241,56 @@ const GuidPage: React.FC = () => {
     ]
   );
 
-  const handleSpeechTranscript = useCallback(
-    (transcript: string) => {
-      guidInput.setInput((current) => appendSpeechTranscript(current, transcript));
-    },
-    [guidInput.setInput]
-  );
-
   // Typewriter placeholder
   const typewriterPlaceholder = useTypewriterPlaceholder(t('conversation.welcome.placeholder'));
+  const heroTitle = agentSelection.isPresetAgent && mention.selectedAgentLabel
+    ? mention.selectedAgentLabel
+    : t('conversation.welcome.title');
+  const selectedAssistantDescription = useMemo(() => {
+    if (!agentSelection.isPresetAgent || !agentSelection.selectedAgentInfo?.customAgentId) return '';
+    const selectedId = agentSelection.selectedAgentInfo.customAgentId;
+    const strippedId = selectedId.replace(/^builtin-/, '');
+    const candidates = new Set([selectedId, `builtin-${strippedId}`, strippedId]);
+    const assistant = agentSelection.customAgents.find((item) => candidates.has(item.id));
+    return assistant?.descriptionI18n?.[localeKey] || assistant?.description || '';
+  }, [
+    agentSelection.customAgents,
+    agentSelection.isPresetAgent,
+    agentSelection.selectedAgentInfo?.customAgentId,
+    localeKey,
+  ]);
+  const selectedAssistantAvatar = useMemo(() => {
+    if (!agentSelection.isPresetAgent) return null;
+    const selectedId = agentSelection.selectedAgentInfo?.customAgentId;
+    const strippedId = selectedId?.replace(/^builtin-/, '');
+    const candidates = new Set(
+      selectedId && strippedId ? [selectedId, `builtin-${strippedId}`, strippedId] : []
+    );
+    const selectedAssistant = agentSelection.customAgents.find((item) => candidates.has(item.id));
+    const avatarValue = selectedAssistant?.avatar?.trim() || agentSelection.selectedAgentInfo?.avatar?.trim();
+    if (!avatarValue) return { kind: 'icon' as const };
+    const mappedAvatar = CUSTOM_AVATAR_IMAGE_MAP[avatarValue];
+    const resolvedAvatar = resolveExtensionAssetUrl(avatarValue);
+    const avatarImage = mappedAvatar || resolvedAvatar;
+    const isImageAvatar = Boolean(
+      avatarImage &&
+      (/\.(svg|png|jpe?g|webp|gif)$/i.test(avatarImage) ||
+        /^(https?:|aion-asset:\/\/|file:\/\/|data:)/i.test(avatarImage))
+    );
+    if (isImageAvatar && avatarImage) {
+      return { kind: 'image' as const, value: avatarImage };
+    }
+    return { kind: 'emoji' as const, value: avatarValue };
+  }, [
+    agentSelection.customAgents,
+    agentSelection.isPresetAgent,
+    agentSelection.selectedAgentInfo?.avatar,
+    agentSelection.selectedAgentInfo?.customAgentId,
+  ]);
+  const assistantDetailLabel = useMemo(() => {
+    const fullLabel = t('settings.editAssistant', { defaultValue: 'Assistant Details' });
+    return fullLabel.replace(/^Assistant\s+/i, '').replace(/^助手/, '');
+  }, [t]);
 
   // Determine if model selector should be in Gemini mode
   const isGeminiMode =
@@ -298,13 +341,6 @@ const GuidPage: React.FC = () => {
       onClosePresetTag={() => agentSelection.setSelectedAgentKey('gemini')}
       loading={guidInput.loading}
       isButtonDisabled={send.isButtonDisabled}
-      speechInputNode={
-        <SpeechInputButton
-          disabled={guidInput.loading}
-          locale={i18n.language || 'en-US'}
-          onTranscript={handleSpeechTranscript}
-        />
-      }
       onSend={() => {
         send.handleSend().catch((error) => {
           console.error('Failed to send message:', error);
@@ -318,9 +354,51 @@ const GuidPage: React.FC = () => {
       <div ref={guidContainerRef} className={styles.guidContainer}>
         <SkillsMarketBanner />
         <div className={styles.guidLayout}>
-          <p className='text-2xl font-semibold mb-6 text-0 text-center'>{t('conversation.welcome.title')}</p>
+          <div className={styles.heroHeader}>
+            {agentSelection.isPresetAgent ? (
+              <p className={`${styles.heroTitle} text-2xl font-semibold mb-0 text-0 text-center`}>
+                <span className={styles.heroTitleInlineIcon} aria-hidden='true'>
+                  {selectedAssistantAvatar?.kind === 'image' ? (
+                    <img src={selectedAssistantAvatar.value} alt='' width={22} height={22} style={{ objectFit: 'contain' }} />
+                  ) : selectedAssistantAvatar?.kind === 'emoji' ? (
+                    <span className={styles.heroTitleEmoji}>{selectedAssistantAvatar.value}</span>
+                  ) : (
+                    <Robot theme='outline' size={19} fill='currentColor' />
+                  )}
+                </span>
+                <span>{heroTitle}</span>
+              </p>
+            ) : (
+              <p className='text-2xl font-semibold mb-0 text-0 text-center'>{heroTitle}</p>
+            )}
+          </div>
 
-          {agentSelection.availableAgents === undefined ? (
+          {agentSelection.isPresetAgent && selectedAssistantDescription ? (
+            <div className={styles.heroSubtitle}>
+              <Button
+                size='mini'
+                type='outline'
+                shape='circle'
+                icon={<Left theme='outline' size={12} fill='currentColor' />}
+                className={styles.heroSubtitleBack}
+                onClick={() => {
+                  agentSelection.setSelectedAgentKey('gemini');
+                  guidInput.setInput('');
+                }}
+                aria-label={t('common.back')}
+              >
+              </Button>
+              <div className={styles.heroSubtitleText}>{selectedAssistantDescription}</div>
+              <Button
+                type='secondary'
+                size='mini'
+                className={styles.heroSubtitleDetail}
+                onClick={() => openAssistantDetailsRef.current?.()}
+              >
+                {assistantDetailLabel}
+              </Button>
+            </div>
+          ) : agentSelection.availableAgents === undefined ? (
             <AgentPillBarSkeleton />
           ) : agentSelection.availableAgents.length > 0 ? (
             <AgentPillBar
@@ -364,20 +442,20 @@ const GuidPage: React.FC = () => {
             actionRow={actionRowNode}
           />
 
-          {agentSelection.availableAgents === undefined ? (
-            <AssistantsSkeleton />
-          ) : (
-            <AssistantSelectionArea
-              isPresetAgent={agentSelection.isPresetAgent}
-              selectedAgentInfo={agentSelection.selectedAgentInfo}
-              customAgents={agentSelection.customAgents}
-              localeKey={localeKey}
-              currentEffectiveAgentInfo={agentSelection.currentEffectiveAgentInfo}
-              onSelectAssistant={handleSelectAssistant}
-              onSetInput={guidInput.setInput}
-              onFocusInput={guidInput.handleTextareaFocus}
-            />
-          )}
+          <AssistantSelectionArea
+            isPresetAgent={agentSelection.isPresetAgent}
+            selectedAgentInfo={agentSelection.selectedAgentInfo}
+            customAgents={agentSelection.customAgents}
+            localeKey={localeKey}
+            currentEffectiveAgentInfo={agentSelection.currentEffectiveAgentInfo}
+            onSelectAssistant={handleSelectAssistant}
+            onSetInput={guidInput.setInput}
+            onFocusInput={guidInput.handleTextareaFocus}
+            onRegisterOpenDetails={(openDetails) => {
+              openAssistantDetailsRef.current = openDetails;
+            }}
+            onPresetAgentTypeSwitched={agentSelection.refreshCustomAgents}
+          />
         </div>
 
         <QuickActionButtons

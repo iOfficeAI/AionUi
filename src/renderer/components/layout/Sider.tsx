@@ -91,69 +91,86 @@ const Sider: React.FC<SiderProps> = ({ onSessionClick, collapsed = false }) => {
           </Suspense>
         ) : (
           <div className='size-full flex flex-col'>
-            <div className='mb-8px shrink-0 flex items-center gap-8px'>
-              <Tooltip {...siderTooltipProps} content={t('conversation.welcome.newConversation')} position='right'>
-                <div
-                  className={classNames(
-                    'h-40px flex-1 flex items-center justify-start gap-10px px-12px hover:bg-hover rd-0.5rem cursor-pointer group',
-                    isMobile && 'sider-action-btn-mobile'
-                  )}
-                  onClick={() => {
-                    cleanupSiderTooltips();
-                    blurActiveElement();
-                    closePreview();
-                    setIsBatchMode(false);
-                    Promise.resolve(navigate('/guid')).catch((error) => {
-                      console.error('Navigation failed:', error);
-                    });
-                    // 点击new chat后自动隐藏sidebar / Hide sidebar after starting new chat on mobile
-                    if (onSessionClick) {
-                      onSessionClick();
-                    }
-                  }}
+            <div className='mb-8px shrink-0 flex flex-col gap-8px'>
+              <div className={classNames('flex items-center gap-8px', collapsed && 'justify-center')}>
+                <Tooltip {...siderTooltipProps} content={t('conversation.welcome.newConversation')} position='right'>
+                  <div
+                    className={classNames(
+                      'h-40px flex items-center rd-0.5rem cursor-pointer group transition-all bg-transparent text-t-primary hover:bg-fill-3 active:bg-fill-4',
+                      collapsed ? 'w-40px justify-center gap-0 px-0' : 'flex-1 justify-start gap-10px px-12px',
+                      isMobile && 'sider-action-btn-mobile',
+                    )}
+                    onClick={() => {
+                      cleanupSiderTooltips();
+                      blurActiveElement();
+                      closePreview();
+                      setIsBatchMode(false);
+                      Promise.resolve(navigate('/guid')).catch((error) => {
+                        console.error('Navigation failed:', error);
+                      });
+                      // 点击new chat后自动隐藏sidebar / Hide sidebar after starting new chat on mobile
+                      if (onSessionClick) {
+                        onSessionClick();
+                      }
+                    }}
+                  >
+                    {collapsed ? (
+                      <Plus
+                        theme='outline'
+                        size='24'
+                        fill='currentColor'
+                        className='block leading-none shrink-0'
+                        style={{ lineHeight: 0 }}
+                      />
+                    ) : (
+                      <div className='size-34px rd-12px bg-aou-2 border border-solid border-[var(--color-border-2)] group-hover:bg-fill-3 group-hover:border-transparent flex items-center justify-center shrink-0 transition-colors'>
+                        <Plus
+                          theme='outline'
+                          size='22'
+                          fill='currentColor'
+                          className='block leading-none'
+                          style={{ lineHeight: 0 }}
+                        />
+                      </div>
+                    )}
+                    <span className='collapsed-hidden text-t-primary text-16px font-medium leading-24px'>
+                      {t('conversation.welcome.newConversation')}
+                    </span>
+                  </div>
+                </Tooltip>
+                <Tooltip
+                  {...siderTooltipProps}
+                  content={isBatchMode ? t('conversation.history.batchModeExit') : t('conversation.history.batchManage')}
+                  position='right'
                 >
-                  <Plus
-                    theme='outline'
-                    size='24'
-                    fill={iconColors.primary}
-                    className='block leading-none shrink-0'
-                    style={{ lineHeight: 0 }}
-                  />
-                  <span className='collapsed-hidden font-bold text-t-primary leading-24px'>
-                    {t('conversation.welcome.newConversation')}
-                  </span>
-                </div>
-              </Tooltip>
+                  <div
+                    className={classNames(
+                      'h-40px w-40px rd-0.5rem flex items-center justify-center cursor-pointer shrink-0 transition-all border border-solid border-transparent',
+                      isMobile && 'sider-action-icon-btn-mobile',
+                      {
+                        'hover:bg-fill-2 hover:border-[var(--color-border-2)]': !isBatchMode,
+                        'bg-[rgba(var(--primary-6),0.12)] border-[rgba(var(--primary-6),0.24)] text-primary': isBatchMode,
+                      }
+                    )}
+                    onClick={handleToggleBatchMode}
+                  >
+                    <ListCheckbox
+                      theme='outline'
+                      size='20'
+                      className='block leading-none shrink-0'
+                      style={{ lineHeight: 0 }}
+                    />
+                  </div>
+                </Tooltip>
+              </div>
               <Tooltip {...siderTooltipProps} content={t('conversation.historySearch.tooltip')} position='right'>
-                <div>
+                <div className={classNames(collapsed ? 'w-40px mx-auto' : 'w-full')}>
                   <ConversationSearchPopover
                     onSessionClick={onSessionClick}
                     onConversationSelect={handleConversationSelect}
-                    buttonClassName={classNames(isMobile && 'sider-action-icon-btn-mobile')}
-                  />
-                </div>
-              </Tooltip>
-              <Tooltip
-                {...siderTooltipProps}
-                content={isBatchMode ? t('conversation.history.batchModeExit') : t('conversation.history.batchManage')}
-                position='right'
-              >
-                <div
-                  className={classNames(
-                    'h-40px w-40px rd-0.5rem flex items-center justify-center cursor-pointer shrink-0 transition-all border border-solid border-transparent',
-                    isMobile && 'sider-action-icon-btn-mobile',
-                    {
-                      'hover:bg-fill-2 hover:border-[var(--color-border-2)]': !isBatchMode,
-                      'bg-[rgba(var(--primary-6),0.12)] border-[rgba(var(--primary-6),0.24)] text-primary': isBatchMode,
-                    }
-                  )}
-                  onClick={handleToggleBatchMode}
-                >
-                  <ListCheckbox
-                    theme='outline'
-                    size='20'
-                    className='block leading-none shrink-0'
-                    style={{ lineHeight: 0 }}
+                    label={collapsed ? undefined : t('conversation.historySearch.shortTitle')}
+                    fullWidth={!collapsed}
+                    buttonClassName={classNames(isMobile && 'sider-action-btn-mobile')}
                   />
                 </div>
               </Tooltip>

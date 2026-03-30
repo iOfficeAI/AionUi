@@ -1,9 +1,183 @@
 .guidLayout {
+  --assistant-surface-bg: color-mix(in srgb, var(--bg-2) 65%, transparent);
+  --assistant-surface-bg-hover: color-mix(in srgb, var(--bg-2) 85%, transparent);
   width: clamp(var(--app-min-width, 360px), calc(100% - 32px), 800px);
   max-width: 100%;
   padding: 0 16px;
   box-sizing: border-box;
   margin: 0 auto;
+}
+
+.heroHeader {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 16px;
+}
+
+.heroTitle {
+  margin: 0;
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.heroTitleInlineIcon {
+  width: 22px;
+  height: 22px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--color-text-0);
+  flex-shrink: 0;
+}
+
+.heroTitleInlineIcon img {
+  display: block;
+}
+
+.heroTitleEmoji {
+  font-size: 20px;
+  line-height: 1;
+}
+
+.heroSubtitle {
+  margin: 0 auto 14px;
+  max-width: 760px;
+  height: 40px;
+  padding: 0 14px;
+  border-radius: 20px;
+  color: var(--color-text-2);
+  background: var(--assistant-surface-bg);
+  border: none;
+  line-height: 20px;
+  font-size: 14px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  box-sizing: border-box;
+}
+
+.heroSubtitleBack {
+  flex-shrink: 0;
+  width: 24px !important;
+  height: 24px !important;
+  min-width: 24px !important;
+  padding: 0 !important;
+  border-radius: 999px !important;
+  color: var(--color-text-2) !important;
+  border-color: var(--color-border-2) !important;
+  background: var(--bg-active) !important;
+}
+
+.heroSubtitleBack:hover {
+  background: var(--bg-3) !important;
+}
+
+.heroSubtitleText {
+  flex: 1;
+  min-width: 0;
+  display: -webkit-box;
+  -webkit-line-clamp: 1;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  line-height: 20px;
+}
+
+.heroSubtitleDetail {
+  flex-shrink: 0;
+  height: 22px !important;
+  min-height: 22px !important;
+  padding: 0 6px !important;
+  border-radius: 10px !important;
+  border: 0 !important;
+  outline: 0 !important;
+  box-shadow: none !important;
+  background: transparent !important;
+  color: var(--color-text-3) !important;
+  font-size: 12px !important;
+  font-weight: 500 !important;
+  opacity: 0.9;
+}
+
+.heroSubtitleDetail:hover {
+  background: var(--color-fill-2) !important;
+  color: var(--color-text-2) !important;
+  border: 0 !important;
+  box-shadow: none !important;
+  opacity: 1;
+}
+
+.heroSubtitleDetail:focus,
+.heroSubtitleDetail:focus-visible,
+.heroSubtitleDetail:active {
+  border: 0 !important;
+  outline: 0 !important;
+  box-shadow: none !important;
+}
+
+.assistantPromptChip {
+  background: var(--assistant-surface-bg);
+}
+
+.assistantPromptHint {
+  color: var(--color-text-3);
+  font-size: 13px;
+  line-height: 20px;
+}
+
+.assistantPromptAgentSwitcher {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 24px;
+  padding: 0 8px;
+  border-radius: 12px;
+  background: var(--color-fill-1);
+  border: 1px solid var(--color-border-2);
+  color: var(--color-text-2);
+  cursor: pointer;
+  user-select: none;
+  transform: translateY(-1px);
+  transition:
+    background-color 0.2s,
+    border-color 0.2s,
+    color 0.2s;
+}
+
+.assistantPromptAgentSwitcher:hover {
+  background: var(--color-fill-2);
+  border-color: var(--color-border-3);
+  color: var(--color-text-1);
+}
+
+.assistantPromptAgentSwitcherName {
+  font-size: 13px;
+  font-weight: 500;
+  line-height: 20px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 170px;
+}
+
+.assistantPromptAgentSwitcherDot {
+  width: 7px;
+  height: 7px;
+  border-radius: 999px;
+  background: rgb(var(--success-6));
+  flex-shrink: 0;
+}
+
+.assistantPromptAgentSwitcherLogo {
+  width: 13px;
+  height: 13px;
+  object-fit: contain;
+  flex-shrink: 0;
+}
+
+.assistantPromptChip:hover {
+  background: var(--assistant-surface-bg-hover);
 }
 
 .guidInputCard {
@@ -87,7 +261,6 @@
 .actionSubmit {
   display: flex;
   align-items: center;
-  gap: 8px;
   flex-shrink: 0;
   margin-left: auto;
 }
@@ -265,22 +438,34 @@
   display: flex;
   align-items: center;
   gap: 6px;
-  background: var(--color-fill-2);
+  background: color-mix(in srgb, var(--color-fill-3) 75%, transparent);
+  border: none;
   padding: 4px 6px 4px 10px;
   border-radius: 16px;
   cursor: pointer;
   user-select: none;
-  transition: background-color 0.2s;
+  transition:
+    background-color 0.2s;
   max-width: 100%;
   min-width: 0;
 }
 
 .presetAgentTag:hover {
-  background: var(--color-fill-3);
+  background: color-mix(in srgb, var(--color-fill-3) 92%, transparent);
+}
+
+.presetAgentTagActiveDot {
+  width: 8px;
+  height: 8px;
+  border-radius: 999px;
+  background: rgb(var(--success-6));
+  box-shadow: 0 0 8px color-mix(in srgb, rgb(var(--success-6)) 45%, transparent);
+  flex-shrink: 0;
 }
 
 .presetAgentTagName {
   font-size: 14px;
+  font-weight: 500;
   color: var(--color-text-1);
   white-space: nowrap;
   overflow: hidden;
