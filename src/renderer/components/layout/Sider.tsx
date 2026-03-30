@@ -1,4 +1,4 @@
-import { ArrowCircleLeft, ListCheckbox, Plus, SettingTwo } from '@icon-park/react';
+import { ArrowCircleLeft, ListCheckbox, People, Plus, SettingTwo } from '@icon-park/react';
 import { IconMoonFill, IconSunFill } from '@arco-design/web-react/icon';
 import classNames from 'classnames';
 import React, { Suspense, useEffect, useRef, useState } from 'react';
@@ -12,6 +12,8 @@ import { useLayoutContext } from '@renderer/hooks/context/LayoutContext';
 import { blurActiveElement } from '@renderer/utils/ui/focus';
 import { useThemeContext } from '@renderer/hooks/context/ThemeContext';
 import ConversationSearchPopover from '@renderer/pages/conversation/GroupedHistory/ConversationSearchPopover';
+import { useTeamList } from '@renderer/pages/team/hooks/useTeamList';
+import TeamCreateModal from '@renderer/pages/team/components/TeamCreateModal';
 
 const WorkspaceGroupedHistory = React.lazy(() => import('@renderer/pages/conversation/GroupedHistory'));
 const SettingsSider = React.lazy(() => import('@renderer/pages/settings/components/SettingsSider'));
@@ -32,6 +34,8 @@ const Sider: React.FC<SiderProps> = ({ onSessionClick, collapsed = false }) => {
   const { closePreview } = usePreviewContext();
   const { theme, setTheme } = useThemeContext();
   const [isBatchMode, setIsBatchMode] = useState(false);
+  const [createTeamVisible, setCreateTeamVisible] = useState(false);
+  const { teams, mutate: refreshTeams } = useTeamList();
   const isSettings = pathname.startsWith('/settings');
   const lastNonSettingsPathRef = useRef('/guid');
 
@@ -161,6 +165,57 @@ const Sider: React.FC<SiderProps> = ({ onSessionClick, collapsed = false }) => {
             <Suspense fallback={<div className='flex-1 min-h-0' />}>
               <WorkspaceGroupedHistory {...workspaceHistoryProps}></WorkspaceGroupedHistory>
             </Suspense>
+            {/* Team section */}
+            <div className='shrink-0 mt-8px'>
+              <div className='flex items-center justify-between px-4px mb-4px'>
+                <span className='collapsed-hidden text-t-secondary text-12px font-medium leading-20px'>
+                  {t('team.sider.title', { defaultValue: 'Teams' })}
+                </span>
+                <Tooltip
+                  {...siderTooltipProps}
+                  content={t('team.sider.createTeam', { defaultValue: 'New Team' })}
+                  position='right'
+                >
+                  <div
+                    className='h-24px w-24px rd-0.25rem flex items-center justify-center cursor-pointer hover:bg-hover shrink-0'
+                    onClick={() => setCreateTeamVisible(true)}
+                  >
+                    <Plus
+                      theme='outline'
+                      size='16'
+                      fill={iconColors.primary}
+                      className='block leading-none'
+                      style={{ lineHeight: 0 }}
+                    />
+                  </div>
+                </Tooltip>
+              </div>
+              {teams.map((team) => (
+                <div
+                  key={team.id}
+                  className='h-36px flex items-center gap-8px px-8px rd-0.5rem cursor-pointer hover:bg-hover'
+                  onClick={() => {
+                    cleanupSiderTooltips();
+                    blurActiveElement();
+                    Promise.resolve(navigate(`/team/${team.id}`)).catch((error) => {
+                      console.error('Navigation failed:', error);
+                    });
+                    if (onSessionClick) {
+                      onSessionClick();
+                    }
+                  }}
+                >
+                  <People
+                    theme='outline'
+                    size='16'
+                    fill={iconColors.primary}
+                    className='block leading-none shrink-0'
+                    style={{ lineHeight: 0 }}
+                  />
+                  <span className='collapsed-hidden text-t-primary text-14px truncate'>{team.name}</span>
+                </div>
+              ))}
+            </div>
           </div>
         )}
       </div>
@@ -220,6 +275,13 @@ const Sider: React.FC<SiderProps> = ({ onSessionClick, collapsed = false }) => {
           </Tooltip>
         </div>
       </div>
+      <TeamCreateModal
+        visible={createTeamVisible}
+        onClose={() => setCreateTeamVisible(false)}
+        onCreated={() => {
+          void refreshTeams();
+        }}
+      />
     </div>
   );
 };
