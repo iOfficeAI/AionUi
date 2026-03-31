@@ -149,6 +149,12 @@ export class TeamSessionService {
     return newAgent;
   }
 
+  private resolveBackend(agentType: string, agents: TeamAgent[]): string {
+    if (agentType !== 'acp') return agentType;
+    const lead = agents.find((a) => a.role === 'lead');
+    return lead && lead.agentType !== 'acp' ? lead.agentType : 'claude';
+  }
+
   private resolveConversationType(agentType: string): AgentType {
     if (agentType === 'gemini') return 'gemini';
     if (agentType === 'codex') return 'codex';

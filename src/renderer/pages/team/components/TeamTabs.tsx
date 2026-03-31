@@ -16,13 +16,15 @@ const TAB_OVERFLOW_THRESHOLD = 10;
 type TeamTabViewProps = {
   slotId: string;
   agentName: string;
+  agentType: string;
   isActive: boolean;
   status: TeammateStatus;
   isLead: boolean;
   onSwitch: (slotId: string) => void;
 };
 
-const TeamTabView: React.FC<TeamTabViewProps> = ({ slotId, agentName, isActive, status, isLead, onSwitch }) => {
+const TeamTabView: React.FC<TeamTabViewProps> = ({ slotId, agentName, agentType, isActive, status, isLead, onSwitch }) => {
+  const logo = getAgentLogo(agentType);
   return (
     <div
       className={`flex items-center gap-8px px-12px h-full max-w-240px cursor-pointer transition-all duration-200 shrink-0 border-r border-[color:var(--border-base)] ${
@@ -33,6 +35,13 @@ const TeamTabView: React.FC<TeamTabViewProps> = ({ slotId, agentName, isActive, 
       onClick={() => onSwitch(slotId)}
     >
       <AgentStatusBadge status={status} />
+      {logo && (
+        <img
+          src={logo}
+          alt={agentType}
+          className={`w-14px h-14px object-contain rounded-2px ${isActive ? 'opacity-100' : 'opacity-70'}`}
+        />
+      )}
       <span className='text-15px whitespace-nowrap overflow-hidden text-ellipsis select-none flex-1'>{agentName}</span>
       {isLead && <span className='text-xs text-[color:var(--color-text-4)]'>&#9656;</span>}
     </div>
@@ -161,6 +170,7 @@ const TeamTabs: React.FC<TeamTabsProps> = ({ onAddAgent }) => {
                 key={agent.slotId}
                 slotId={agent.slotId}
                 agentName={agent.agentName}
+                agentType={agent.agentType}
                 isActive={agent.slotId === activeSlotId}
                 status={statusInfo?.status ?? agent.status}
                 isLead={agent.role === 'lead'}
