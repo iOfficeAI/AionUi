@@ -266,11 +266,7 @@ const GuidPage: React.FC = () => {
     const strippedId = selectedId.replace(/^builtin-/, '');
     const candidates = new Set([selectedId, `builtin-${strippedId}`, strippedId]);
     return agentSelection.customAgents.find((item) => candidates.has(item.id));
-  }, [
-    agentSelection.customAgents,
-    agentSelection.isPresetAgent,
-    agentSelection.selectedAgentInfo?.customAgentId,
-  ]);
+  }, [agentSelection.customAgents, agentSelection.isPresetAgent, agentSelection.selectedAgentInfo?.customAgentId]);
   const heroTitle = useMemo(() => {
     if (!agentSelection.isPresetAgent) return t('conversation.welcome.title');
     const i18nName = selectedAssistantRecord?.nameI18n?.[localeKey];

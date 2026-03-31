@@ -553,6 +553,7 @@ export type I18nKey =
   | 'guid.scanning.statusQueued'
   | 'guid.scanning.statusTesting'
   | 'guid.scanning.statusUnreachable'
+  | 'guid.switchedToAgent'
   | 'login.brand'
   | 'login.errors.empty'
   | 'login.errors.invalidCredentials'
