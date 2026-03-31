@@ -317,6 +317,7 @@ const CodexSendBox: React.FC<{ conversation_id: string }> = ({ conversation_id }
       addOrUpdateMessage(userMessage, true);
       setAiProcessing(true);
       try {
+        void checkAndUpdateTitle(conversation_id, input);
         const result = await ipcBridge.codexConversation.sendMessage.invoke({
           input: displayMessage,
           msg_id,
@@ -324,7 +325,6 @@ const CodexSendBox: React.FC<{ conversation_id: string }> = ({ conversation_id }
           files,
         });
         assertBridgeSuccess(result, 'Failed to send message to Codex');
-        void checkAndUpdateTitle(conversation_id, input);
         emitter.emit('chat.history.refresh');
       } catch (error) {
         removeMessageByMsgId(msg_id);
@@ -428,6 +428,7 @@ const CodexSendBox: React.FC<{ conversation_id: string }> = ({ conversation_id }
         addOrUpdateMessage(userMessage, true); // 立即保存到存储，避免刷新丢失
 
         // 发送消息到后端处理
+        void checkAndUpdateTitle(conversation_id, input);
         const result = await ipcBridge.codexConversation.sendMessage.invoke({
           input: initialDisplayMessage,
           msg_id,
@@ -436,7 +437,6 @@ const CodexSendBox: React.FC<{ conversation_id: string }> = ({ conversation_id }
           loading_id,
         });
         assertBridgeSuccess(result, 'Failed to send initial message to Codex');
-        void checkAndUpdateTitle(conversation_id, input);
         emitter.emit('chat.history.refresh');
 
         // 成功后移除初始消息存储

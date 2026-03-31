@@ -372,11 +372,11 @@ const OpenClawSendBox: React.FC<{ conversation_id: string }> = ({ conversation_i
       setAiProcessing(true);
       aiProcessingRef.current = true;
       starOfficeInstallInFlightRef.current = true;
+      void checkAndUpdateTitle(conversation_id, text);
       ipcBridge.openclawConversation.sendMessage
         .invoke({ input: text, msg_id, conversation_id, injectSkills: ['star-office-helper'] })
         .then((result) => {
           assertBridgeSuccess(result, 'Failed to send Star Office install command');
-          void checkAndUpdateTitle(conversation_id, text);
           emitter.emit('chat.history.refresh');
         })
         .catch(() => {
@@ -434,6 +434,7 @@ const OpenClawSendBox: React.FC<{ conversation_id: string }> = ({ conversation_i
       setAiProcessing(true);
       aiProcessingRef.current = true;
       try {
+        void checkAndUpdateTitle(conversation_id, input);
         const result = await ipcBridge.openclawConversation.sendMessage.invoke({
           input: displayMessage,
           msg_id,
@@ -441,7 +442,6 @@ const OpenClawSendBox: React.FC<{ conversation_id: string }> = ({ conversation_i
           files,
         });
         assertBridgeSuccess(result, 'Failed to send message to OpenClaw');
-        void checkAndUpdateTitle(conversation_id, input);
         emitter.emit('chat.history.refresh');
       } catch (error) {
         removeMessageByMsgId(msg_id);
@@ -544,6 +544,7 @@ const OpenClawSendBox: React.FC<{ conversation_id: string }> = ({ conversation_i
         // 重置 AI 回复用于新一轮
         addOrUpdateMessage(userMessage, true);
 
+        void checkAndUpdateTitle(conversation_id, input);
         const result = await ipcBridge.openclawConversation.sendMessage.invoke({
           input: initialDisplayMessage,
           msg_id,
@@ -552,7 +553,6 @@ const OpenClawSendBox: React.FC<{ conversation_id: string }> = ({ conversation_i
           loading_id,
         });
         assertBridgeSuccess(result, 'Failed to send initial message to OpenClaw');
-        void checkAndUpdateTitle(conversation_id, input);
         emitter.emit('chat.history.refresh');
         sessionStorage.removeItem(storageKey);
       } catch {

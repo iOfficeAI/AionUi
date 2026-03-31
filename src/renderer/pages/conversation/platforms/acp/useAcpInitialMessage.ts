@@ -52,6 +52,7 @@ export const useAcpInitialMessage = ({
         setAiProcessing(true);
 
         // Send the message
+        void checkAndUpdateTitle(conversationId, input);
         const result = await ipcBridge.acpConversation.sendMessage.invoke({
           input,
           msg_id,
@@ -61,7 +62,6 @@ export const useAcpInitialMessage = ({
 
         if (result && result.success === true) {
           // Initial message sent successfully
-          void checkAndUpdateTitle(conversationId, input);
           emitter.emit('chat.history.refresh');
         } else {
           // Handle send failure

@@ -91,6 +91,7 @@ export const useGeminiInitialMessage = ({
         );
 
         // Send message to backend
+        void checkAndUpdateTitle(conversationId, input);
         const result = await ipcBridge.geminiConversation.sendMessage.invoke({
           input,
           msg_id,
@@ -99,7 +100,6 @@ export const useGeminiInitialMessage = ({
         });
         assertBridgeSuccess(result, 'Failed to send initial message to Gemini');
 
-        void checkAndUpdateTitle(conversationId, input);
         emitter.emit('chat.history.refresh');
         if (files && files.length > 0) {
           emitter.emit('gemini.workspace.refresh');

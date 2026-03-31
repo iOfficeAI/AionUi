@@ -250,13 +250,13 @@ const RemoteSendBox: React.FC<{ conversation_id: string }> = ({ conversation_id 
         setAiProcessing(true);
         aiProcessingRef.current = true;
 
+        void checkAndUpdateTitle(conversation_id, input);
         await ipcBridge.conversation.sendMessage.invoke({
           input: initialDisplayMessage,
           msg_id,
           conversation_id,
           files,
         });
-        void checkAndUpdateTitle(conversation_id, input);
         emitter.emit('chat.history.refresh');
         sessionStorage.removeItem(storageKey);
       } catch {
@@ -322,6 +322,7 @@ const RemoteSendBox: React.FC<{ conversation_id: string }> = ({ conversation_id 
       setAiProcessing(true);
       aiProcessingRef.current = true;
       try {
+        void checkAndUpdateTitle(conversation_id, message);
         const atPathStrings = currentAtPath.map((item) => (typeof item === 'string' ? item : item.path));
         await ipcBridge.conversation.sendMessage.invoke({
           input: displayMessage,
@@ -329,7 +330,6 @@ const RemoteSendBox: React.FC<{ conversation_id: string }> = ({ conversation_id 
           conversation_id,
           files: [...currentUploadFile, ...atPathStrings],
         });
-        void checkAndUpdateTitle(conversation_id, message);
         emitter.emit('chat.history.refresh');
       } catch {
         setAiProcessing(false);

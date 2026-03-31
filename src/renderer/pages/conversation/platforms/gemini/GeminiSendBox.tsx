@@ -237,6 +237,7 @@ const GeminiSendBox: React.FC<{
       );
 
       try {
+        void checkAndUpdateTitle(conversation_id, input);
         const result = await ipcBridge.geminiConversation.sendMessage.invoke({
           input: displayMessage,
           msg_id,
@@ -244,7 +245,6 @@ const GeminiSendBox: React.FC<{
           files,
         });
         assertBridgeSuccess(result, 'Failed to send message to Gemini');
-        void checkAndUpdateTitle(conversation_id, input);
         emitter.emit('chat.history.refresh');
         if (files.length > 0) {
           emitter.emit('gemini.workspace.refresh');
