@@ -12,7 +12,7 @@ const TeamIndex: React.FC = () => {
 
   if (isLoading) return <Spin loading />;
   if (!team) return null;
-  return <TeamPage team={team} />;
+  return <TeamPage key={team.id} team={team} />;
 };
 
 export default TeamIndex;
