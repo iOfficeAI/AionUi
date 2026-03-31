@@ -28,7 +28,7 @@ import {
 } from '../plugins/dingtalk/DingTalkCards';
 import { convertHtmlToDingTalkMarkdown } from '../plugins/dingtalk/DingTalkAdapter';
 import { createMainMenuKeyboard, createToolConfirmationKeyboard } from '../plugins/telegram/TelegramKeyboards';
-import { escapeHtml } from '../plugins/telegram/TelegramAdapter';
+import { escapeHtml, markdownToTelegramHtml } from '../plugins/telegram/TelegramAdapter';
 import { stripHtml } from '../plugins/weixin/WeixinAdapter';
 import type { ChannelAgentType, IUnifiedIncomingMessage, IUnifiedOutgoingMessage, PluginType } from '../types';
 import type { PluginManager } from './PluginManager';
@@ -106,6 +106,9 @@ function formatTextForPlatform(text: string, platform: PluginType): string {
   }
   if (platform === 'dingtalk') {
     return convertHtmlToDingTalkMarkdown(text);
+  }
+  if (platform === 'telegram') {
+    return markdownToTelegramHtml(text);
   }
   if (platform === 'weixin') {
     return stripHtml(text);
