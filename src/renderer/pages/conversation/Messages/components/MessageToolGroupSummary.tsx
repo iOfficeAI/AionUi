@@ -161,8 +161,8 @@ const ToolItemDetail: React.FC<{ item: ToolItem }> = ({ item }) => {
           }
           onClick={hasDetail ? () => setExpanded(!expanded) : undefined}
         >
-          <span className='font-medium'>{item.name}</span>
-          {item.desc !== item.name && <span className='m-l-4px opacity-80'>{item.desc}</span>}
+          <span className='font-medium text-13px'>{item.name}</span>
+          {item.desc !== item.name && <span className='m-l-4px opacity-80 text-13px'>{item.desc}</span>}
         </span>
         {hasDetail && (
           <span
