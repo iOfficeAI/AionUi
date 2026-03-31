@@ -72,6 +72,16 @@ describe('configureChromium Linux headless flags', () => {
     expect(mockApp.commandLine.appendSwitch).toHaveBeenCalledWith('disable-software-rasterizer');
   });
 
+  it('forces headless ozone flags in --resetpass mode on linux', async () => {
+    process.env.DISPLAY = ':99';
+
+    const mockApp = await loadModuleWithArgs(['--resetpass'], 'linux');
+
+    expect(mockApp.commandLine.appendSwitch).toHaveBeenCalledWith('ozone-platform', 'headless');
+    expect(mockApp.commandLine.appendSwitch).toHaveBeenCalledWith('disable-gpu');
+    expect(mockApp.commandLine.appendSwitch).toHaveBeenCalledWith('disable-software-rasterizer');
+  });
+
   it('does not add headless ozone flags in normal desktop startup', async () => {
     process.env.DISPLAY = ':99';
 
