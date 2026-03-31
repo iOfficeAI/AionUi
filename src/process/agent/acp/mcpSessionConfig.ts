@@ -36,7 +36,7 @@ export interface AcpMcpCapabilities {
 }
 
 const DEFAULT_ACP_MCP_CAPABILITIES: AcpMcpCapabilities = {
-  stdio: true,
+  stdio: false,
   http: true,
   sse: true,
 };

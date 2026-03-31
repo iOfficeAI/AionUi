@@ -887,6 +887,8 @@ export interface ICreateConversationParams {
     isHealthCheck?: boolean;
     /** Remote agent config ID (FK to remote_agents table) — required when type='remote' */
     remoteAgentId?: string;
+    /** Team ownership — conversations with teamId are hidden from the sidebar */
+    teamId?: string;
   };
 }
 interface IResetConversationParams {

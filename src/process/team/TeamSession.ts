@@ -7,6 +7,8 @@ import { Mailbox } from './Mailbox';
 import { TaskManager } from './TaskManager';
 import { TeammateManager } from './TeammateManager';
 
+type SpawnAgentFn = (agentName: string, agentType?: string) => Promise<TeamAgent>;
+
 /**
  * Thin coordinator that owns Mailbox, TaskManager, and TeammateManager.
  * All agent orchestration is delegated to TeammateManager.
@@ -18,7 +20,7 @@ export class TeamSession extends EventEmitter {
   private readonly taskManager: TaskManager;
   private readonly teammateManager: TeammateManager;
 
-  constructor(team: TTeam, repo: ITeamRepository, workerTaskManager: IWorkerTaskManager) {
+  constructor(team: TTeam, repo: ITeamRepository, workerTaskManager: IWorkerTaskManager, spawnAgent?: SpawnAgentFn) {
     super();
     this.team = team;
     this.teamId = team.id;
@@ -30,6 +32,7 @@ export class TeamSession extends EventEmitter {
       mailbox: this.mailbox,
       taskManager: this.taskManager,
       workerTaskManager,
+      spawnAgent,
     });
   }
 

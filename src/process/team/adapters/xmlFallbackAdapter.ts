@@ -18,6 +18,9 @@ Create a new task:
 Update task status:
 <task_update task_id="..." status="completed"/>
 
+Create a new teammate:
+<spawn_agent name="AgentName" type="acp"/>
+
 Signal that you are idle:
 <idle reason="available" summary="..." completed_task_id="..."/>`;
 
@@ -101,6 +104,20 @@ function parseXmlActions(text: string): { actions: ParsedAction[]; consumedSpans
       taskId,
       status: extractAttr(tag, 'status'),
       owner: extractAttr(tag, 'owner'),
+    });
+    consumedSpans.push([match.index!, match.index! + match[0].length]);
+  }
+
+  // <spawn_agent .../> - attributes in any order
+  const spawnAgentRe = /<spawn_agent\s+[^>]*\/>/g;
+  for (const match of text.matchAll(spawnAgentRe)) {
+    const tag = match[0];
+    const agentName = extractAttr(tag, 'name');
+    if (!agentName) continue;
+    actions.push({
+      type: 'spawn_agent',
+      agentName,
+      agentType: extractAttr(tag, 'type'),
     });
     consumedSpans.push([match.index!, match.index! + match[0].length]);
   }

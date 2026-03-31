@@ -9,12 +9,15 @@ import type { TaskManager } from './TaskManager';
 import type { AgentResponse } from './adapters/PlatformAdapter';
 import { createPlatformAdapter } from './adapters/PlatformAdapter';
 
+type SpawnAgentFn = (agentName: string, agentType?: string) => Promise<TeamAgent>;
+
 type TeammateManagerParams = {
   teamId: string;
   agents: TeamAgent[];
   mailbox: Mailbox;
   taskManager: TaskManager;
   workerTaskManager: IWorkerTaskManager;
+  spawnAgent?: SpawnAgentFn;
 };
 
 /**
@@ -27,6 +30,7 @@ export class TeammateManager extends EventEmitter {
   private readonly mailbox: Mailbox;
   private readonly taskManager: TaskManager;
   private readonly workerTaskManager: IWorkerTaskManager;
+  private readonly spawnAgentFn?: SpawnAgentFn;
 
   /** Accumulated text response per conversationId */
   private readonly responseBuffer = new Map<string, string>();
@@ -50,6 +54,7 @@ export class TeammateManager extends EventEmitter {
     this.mailbox = params.mailbox;
     this.taskManager = params.taskManager;
     this.workerTaskManager = params.workerTaskManager;
+    this.spawnAgentFn = params.spawnAgent;
 
     for (const agent of this.agents) {
       this.ownedConversationIds.add(agent.conversationId);
@@ -265,6 +270,23 @@ export class TeammateManager extends EventEmitter {
         if (action.status === 'completed') {
           await this.taskManager.checkUnblocks(action.taskId);
         }
+        break;
+      }
+
+      case 'spawn_agent': {
+        if (!this.spawnAgentFn) {
+          console.warn('[TeammateManager] spawnAgent not available');
+          break;
+        }
+        const newAgent = await this.spawnAgentFn(action.agentName, action.agentType);
+        this.addAgent(newAgent);
+        // Notify the lead that the agent was created
+        await this.mailbox.write({
+          teamId: this.teamId,
+          toAgentId: fromSlotId,
+          fromAgentId: newAgent.slotId,
+          content: `Teammate "${action.agentName}" (${newAgent.slotId}) has been created and is ready.`,
+        });
         break;
       }
 

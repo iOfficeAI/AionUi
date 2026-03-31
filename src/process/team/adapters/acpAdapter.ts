@@ -52,6 +52,18 @@ const TEAM_TOOLS: ToolDefinition[] = [
     },
   },
   {
+    name: 'SpawnAgent',
+    description: 'Create a new teammate agent and add it to the team',
+    parameters: {
+      type: 'object',
+      properties: {
+        agentName: { type: 'string', description: 'Name for the new teammate (e.g. "xiaokuai", "researcher")' },
+        agentType: { type: 'string', description: 'Backend type: acp (default), gemini, codex, etc.' },
+      },
+      required: ['agentName'],
+    },
+  },
+  {
     name: 'idle_notification',
     description: 'Notify the team that this agent is now idle',
     parameters: {
@@ -150,6 +162,14 @@ export function createAcpAdapter(): TeamPlatformAdapter {
                 taskId: String(input.taskId ?? ''),
                 status: input.status != null ? String(input.status) : undefined,
                 owner: input.owner != null ? String(input.owner) : undefined,
+              });
+              break;
+
+            case 'SpawnAgent':
+              actions.push({
+                type: 'spawn_agent',
+                agentName: String(input.agentName ?? ''),
+                agentType: input.agentType != null ? String(input.agentType) : undefined,
               });
               break;
 

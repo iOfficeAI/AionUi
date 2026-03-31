@@ -91,6 +91,21 @@ export class TeamSessionService {
   async deleteTeam(id: string): Promise<void> {
     this.sessions.get(id)?.dispose();
     this.sessions.delete(id);
+
+    // Delete conversations owned by this team's agents
+    const team = await this.repo.findById(id);
+    if (team) {
+      for (const agent of team.agents) {
+        if (agent.conversationId) {
+          try {
+            await this.conversationService.deleteConversation(agent.conversationId);
+          } catch (err) {
+            console.warn(`[TeamSessionService] Failed to delete conversation ${agent.conversationId}:`, err);
+          }
+        }
+      }
+    }
+
     await this.repo.deleteMailboxByTeam(id);
     await this.repo.deleteTasksByTeam(id);
     await this.repo.delete(id);
@@ -150,7 +165,17 @@ export class TeamSessionService {
     if (existing) return existing;
     const team = await this.repo.findById(teamId);
     if (!team) throw new Error(`Team "${teamId}" not found`);
-    const session = new TeamSession(team, this.repo, this.workerTaskManager);
+    const spawnAgent = async (agentName: string, agentType?: string) => {
+      return this.addAgent(teamId, {
+        conversationId: '',
+        role: 'teammate',
+        agentType: agentType || 'acp',
+        agentName,
+        status: 'pending',
+        conversationType: (agentType || 'acp') as 'acp',
+      });
+    };
+    const session = new TeamSession(team, this.repo, this.workerTaskManager, spawnAgent);
     this.sessions.set(teamId, session);
     return session;
   }
