@@ -355,7 +355,7 @@ const MessageList: React.FC<{ className?: string }> = () => {
             data={processedList}
             initialTopMostItemIndex={processedList.length - 1}
             atBottomThreshold={100}
-            increaseViewportBy={200}
+            increaseViewportBy={800}
             itemContent={renderItem}
             followOutput={handleFollowOutput}
             onScroll={handleScroll}
