@@ -1,5 +1,6 @@
 // src/process/team/TeamSession.ts
 import { EventEmitter } from 'events';
+import { ipcBridge } from '@/common';
 import type { IWorkerTaskManager } from '@process/task/IWorkerTaskManager';
 import type { ITeamRepository } from './repository/ITeamRepository';
 import type { TTeam, TeamAgent } from './types';
@@ -76,12 +77,25 @@ export class TeamSession extends EventEmitter {
     await this.startMcpServer();
 
     const leadSlotId = this.team.leadAgentId;
+    const leadAgent = this.teammateManager.getAgents().find((a) => a.slotId === leadSlotId);
+
     await this.mailbox.write({
       teamId: this.teamId,
       toAgentId: leadSlotId,
       fromAgentId: 'user',
       content,
     });
+
+    // Emit user message to lead's conversation so it appears as a user bubble in the chat UI
+    if (leadAgent?.conversationId) {
+      ipcBridge.conversation.responseStream.emit({
+        type: 'user_content',
+        conversation_id: leadAgent.conversationId,
+        msg_id: crypto.randomUUID(),
+        data: content,
+      });
+    }
+
     await this.teammateManager.wake(leadSlotId);
   }
 

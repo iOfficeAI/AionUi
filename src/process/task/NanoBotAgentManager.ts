@@ -85,13 +85,13 @@ class NanoBotAgentManager extends BaseAgentManager<NanoBotAgentManagerData> {
     ipcBridge.conversation.responseStream.emit(msg);
   }
 
-  async sendMessage(data: { content: string; files?: string[]; msg_id?: string }) {
+  async sendMessage(data: { content: string; files?: string[]; msg_id?: string; silent?: boolean }) {
     cronBusyGuard.setProcessing(this.conversation_id, true);
     try {
       await this.bootstrap;
 
       // Save user message to chat history (frontend handles display directly)
-      if (data.msg_id && data.content) {
+      if (data.msg_id && data.content && !data.silent) {
         const userMessage: TMessage = {
           id: data.msg_id,
           msg_id: data.msg_id,

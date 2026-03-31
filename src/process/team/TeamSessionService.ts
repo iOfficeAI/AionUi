@@ -46,7 +46,7 @@ export class TeamSessionService {
         const extra: Record<string, unknown> = {
           workspace,
           customWorkspace: true,
-          backend: agent.agentType as AcpBackendAll,
+          backend: this.resolveBackend(agent.agentType, params.agents) as AcpBackendAll,
           agentName: agent.agentName,
           teamId,
         };
@@ -123,7 +123,7 @@ export class TeamSessionService {
     const addExtra: Record<string, unknown> = {
       workspace,
       customWorkspace: true,
-      backend: agent.agentType as AcpBackendAll,
+      backend: this.resolveBackend(agent.agentType, team.agents) as AcpBackendAll,
       agentName: agent.agentName,
       teamId,
     };

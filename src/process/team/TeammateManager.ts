@@ -8,8 +8,6 @@ import type { Mailbox } from './Mailbox';
 import type { TaskManager } from './TaskManager';
 import type { AgentResponse } from './adapters/PlatformAdapter';
 import { createPlatformAdapter } from './adapters/PlatformAdapter';
-import { extractToolCallInfo, isTeamToolCall, parseToolCallAction } from './adapters/toolCallAdapter';
-import type { ToolCallUpdate } from '@/common/types/acpTypes';
 
 type SpawnAgentFn = (agentName: string, agentType?: string) => Promise<TeamAgent>;
 
@@ -132,8 +130,8 @@ export class TeammateManager extends EventEmitter {
       // Gemini uses { input, msg_id }, all others use { content, msg_id }.
       const messageData =
         agent.conversationType === 'gemini'
-          ? { input: payload.message, msg_id: msgId }
-          : { content: payload.message, msg_id: msgId };
+          ? { input: payload.message, msg_id: msgId, silent: true }
+          : { content: payload.message, msg_id: msgId, silent: true };
 
       await agentTask.sendMessage(messageData);
 
