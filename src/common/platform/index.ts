@@ -1,3 +1,4 @@
+import path from 'path';
 import type { IPlatformServices } from './IPlatformServices';
 import { NodePlatformServices } from './NodePlatformServices';
 
@@ -32,7 +33,13 @@ export function getPlatformServices(): IPlatformServices {
           getDataDir: () => app.getPath('userData'),
           getTempDir: () => app.getPath('temp'),
           getHomeDir: () => app.getPath('home'),
-          getLogsDir: () => app.getPath('logs'),
+          getLogsDir: () => {
+            try {
+              return app.getPath('logs');
+            } catch {
+              return path.join(app.getPath('userData'), 'logs');
+            }
+          },
           getAppPath: () => app.getAppPath(),
           isPackaged: () => app.isPackaged,
           getSystemPath: (name) => app.getPath(name),
