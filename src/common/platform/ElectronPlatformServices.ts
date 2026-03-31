@@ -1,5 +1,6 @@
 // This is the only file in src/common/platform/ permitted to import from 'electron'.
 import { app, Notification, powerSaveBlocker, utilityProcess, type UtilityProcess } from 'electron';
+import path from 'path';
 import type { IPlatformServices, IWorkerProcess } from './IPlatformServices';
 
 class ElectronWorkerProcess implements IWorkerProcess {
@@ -24,7 +25,13 @@ export class ElectronPlatformServices implements IPlatformServices {
     getDataDir: () => app.getPath('userData'),
     getTempDir: () => app.getPath('temp'),
     getHomeDir: () => app.getPath('home'),
-    getLogsDir: () => app.getPath('logs'),
+    getLogsDir: () => {
+      try {
+        return app.getPath('logs');
+      } catch {
+        return path.join(app.getPath('userData'), 'logs');
+      }
+    },
     getAppPath: () => app.getAppPath(),
     isPackaged: () => app.isPackaged,
     getSystemPath: (name: 'desktop' | 'home' | 'downloads') => app.getPath(name),
