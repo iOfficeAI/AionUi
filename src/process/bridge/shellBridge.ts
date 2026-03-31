@@ -117,7 +117,14 @@ async function openFolderWithTool(folderPath: string, tool: 'vscode' | 'terminal
         // Using 'start' command ensures PowerShell opens in a visible window
         const child = spawn(
           'cmd.exe',
-          ['/c', 'start', 'powershell.exe', '-NoExit', '-Command', `Set-Location -LiteralPath '${folderPath.replace(/'/g, "''")}'`],
+          [
+            '/c',
+            'start',
+            'powershell.exe',
+            '-NoExit',
+            '-Command',
+            `Set-Location -LiteralPath '${folderPath.replace(/'/g, "''")}'`,
+          ],
           {
             detached: true,
             windowsHide: false,

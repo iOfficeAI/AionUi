@@ -127,9 +127,7 @@ const WorkspaceOpenButton: React.FC<WorkspaceOpenButtonProps> = ({ workspacePath
         >
           <span className='flex items-center justify-center w-20px h-20px'>{option.icon}</span>
           <span className='text-14px'>{option.label}</span>
-          {currentTool === option.key && (
-            <span className='ml-auto text-12px text-[var(--color-text-3)]'>✓</span>
-          )}
+          {currentTool === option.key && <span className='ml-auto text-12px text-[var(--color-text-3)]'>✓</span>}
         </div>
       ))}
     </div>
@@ -137,10 +135,7 @@ const WorkspaceOpenButton: React.FC<WorkspaceOpenButtonProps> = ({ workspacePath
 
   return (
     <div className='workspace-open-button flex items-center'>
-      <Tooltip
-        content={t('conversation.workspace.openWorkspace', { defaultValue: 'Open workspace folder' })}
-        mini
-      >
+      <Tooltip content={t('conversation.workspace.openWorkspace', { defaultValue: 'Open workspace folder' })} mini>
         <Button
           type='text'
           size='small'
@@ -164,10 +159,7 @@ const WorkspaceOpenButton: React.FC<WorkspaceOpenButtonProps> = ({ workspacePath
           className='workspace-open-button__dropdown-btn px-4px'
           style={{ marginLeft: '-4px' }}
         >
-          <Down
-            size={12}
-            className={`transition-transform duration-200 ${dropdownOpen ? 'rotate-180' : ''}`}
-          />
+          <Down size={12} className={`transition-transform duration-200 ${dropdownOpen ? 'rotate-180' : ''}`} />
         </Button>
       </Dropdown>
     </div>
