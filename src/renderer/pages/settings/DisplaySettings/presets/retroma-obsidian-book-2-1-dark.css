@@ -52,8 +52,7 @@
 }
 
 [data-theme='dark'] .message-item.user .message-bubble {
-  background:
-    linear-gradient(180deg, rgba(62, 54, 71, 0.98) 0%, rgba(47, 41, 55, 0.98) 100%) !important;
+  background: linear-gradient(180deg, rgba(62, 54, 71, 0.98) 0%, rgba(47, 41, 55, 0.98) 100%) !important;
   border: 1px solid rgba(132, 118, 96, 0.72) !important;
   box-shadow:
     inset 0 1px 0 rgba(240, 237, 224, 0.04),
@@ -62,8 +61,7 @@
 
 [data-theme='dark'] .message-item.ai .message-bubble,
 [data-theme='dark'] .message-item.assistant .message-bubble {
-  background:
-    linear-gradient(180deg, rgba(36, 33, 29, 0.98) 0%, rgba(28, 25, 22, 0.98) 100%) !important;
+  background: linear-gradient(180deg, rgba(36, 33, 29, 0.98) 0%, rgba(28, 25, 22, 0.98) 100%) !important;
   border: 1px solid rgba(79, 71, 56, 0.82) !important;
   box-shadow:
     inset 0 1px 0 rgba(232, 230, 216, 0.03),
@@ -74,8 +72,7 @@
 [data-theme='dark'] .markdown-body pre,
 [data-theme='dark'] .markdown-shadow-body pre,
 [data-theme='dark'] [class*='markdown'] pre {
-  background:
-    linear-gradient(180deg, rgba(28, 27, 21, 0.98) 0%, rgba(22, 21, 16, 0.98) 100%) !important;
+  background: linear-gradient(180deg, rgba(28, 27, 21, 0.98) 0%, rgba(22, 21, 16, 0.98) 100%) !important;
   border-color: rgba(84, 76, 61, 0.9) !important;
   box-shadow:
     inset 0 1px 0 rgba(232, 230, 216, 0.03),
@@ -84,8 +81,7 @@
 
 [data-theme='dark'] .sendbox-panel,
 [data-theme='dark'] .guid-input-card-shell {
-  background:
-    linear-gradient(180deg, rgba(32, 30, 24, 0.96) 0%, rgba(24, 23, 18, 0.96) 100%) !important;
+  background: linear-gradient(180deg, rgba(32, 30, 24, 0.96) 0%, rgba(24, 23, 18, 0.96) 100%) !important;
   border-color: rgba(90, 81, 64, 0.88) !important;
   box-shadow:
     inset 0 1px 0 rgba(232, 230, 216, 0.04),
@@ -98,8 +94,7 @@
 [data-theme='dark'] .arco-popover-content,
 [data-theme='dark'] .arco-dropdown-menu,
 [data-theme='dark'] .arco-select-popup {
-  background:
-    linear-gradient(180deg, rgba(31, 29, 23, 0.98) 0%, rgba(24, 23, 18, 0.98) 100%) !important;
+  background: linear-gradient(180deg, rgba(31, 29, 23, 0.98) 0%, rgba(24, 23, 18, 0.98) 100%) !important;
   border-color: rgba(84, 76, 61, 0.86) !important;
   box-shadow:
     inset 0 1px 0 rgba(232, 230, 216, 0.03),
