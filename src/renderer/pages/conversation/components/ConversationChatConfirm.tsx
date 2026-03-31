@@ -23,8 +23,8 @@ const ConversationChatConfirm: React.FC<PropsWithChildren<{ conversation_id: str
   // Keys 在后端解析（单一数据源）
   const checkAndAutoConfirm = useCallback(
     async (confirmation: IConfirmation<string>): Promise<boolean> => {
-      // Only check gemini agent type (others don't have approval store yet)
-      if (agentType !== 'gemini') return false;
+      // Only check agent types that have approval store
+      if (agentType !== 'gemini' && agentType !== 'aioncli') return false;
 
       const { action, commandType } = confirmation;
       // Skip if no action (backend will return false for empty keys)

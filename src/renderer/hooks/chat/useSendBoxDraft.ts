@@ -118,6 +118,13 @@ const setDraft = <K extends TChatConversation['type']>(
         store.remote.delete(conversation_id);
       }
       break;
+    case 'aioncli':
+      if (draft) {
+        store.aioncli.set(conversation_id, draft as Extract<Draft, { _type: 'aioncli' }>);
+      } else {
+        store.aioncli.delete(conversation_id);
+      }
+      break;
     default:
       break;
   }
@@ -141,6 +148,8 @@ const getDraft = <K extends TChatConversation['type']>(
       return store.nanobot.get(conversation_id) as Extract<Draft, { _type: K }>;
     case 'remote':
       return store.remote.get(conversation_id) as Extract<Draft, { _type: K }>;
+    case 'aioncli':
+      return store.aioncli.get(conversation_id) as Extract<Draft, { _type: K }>;
     default:
       return undefined;
   }

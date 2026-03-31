@@ -27,7 +27,7 @@ export interface ConversationContextValue {
    * Conversation type
    * 会话类型
    */
-  type: 'gemini' | 'acp' | 'codex' | 'openclaw-gateway' | 'nanobot' | 'remote';
+  type: 'gemini' | 'acp' | 'codex' | 'openclaw-gateway' | 'nanobot' | 'remote' | 'aioncli';
 }
 
 /**

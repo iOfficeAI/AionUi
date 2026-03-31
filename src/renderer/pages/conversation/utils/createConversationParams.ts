@@ -12,6 +12,44 @@ import { loadPresetAssistantResources } from '@/renderer/utils/model/presetAssis
 import type { AvailableAgent } from '@/renderer/utils/model/agentTypes';
 import type { AcpBackend, AcpBackendAll } from '@/common/types/acpTypes';
 
+/** Platforms supported by aioncli-agent */
+const AIONCLI_SUPPORTED_PLATFORMS = ['anthropic', 'openai', 'ali-intl', 'aws'];
+
+/**
+ * Get a model from configured providers that is compatible with aioncli-agent.
+ * Throws if no compatible provider is configured.
+ */
+export async function getDefaultAioncliModel(): Promise<TProviderWithModel> {
+  const providers = await ConfigStorage.get('model.config');
+
+  if (!providers || providers.length === 0) {
+    throw new Error('No model provider configured');
+  }
+
+  const provider = providers.find((p) => p.enabled !== false && AIONCLI_SUPPORTED_PLATFORMS.includes(p.platform));
+  if (!provider) {
+    throw new Error('No compatible model provider for Aion CLI (requires Anthropic, OpenAI, or AWS)');
+  }
+
+  const enabledModel = provider.model.find((m) => provider.modelEnabled?.[m] !== false);
+
+  return {
+    id: provider.id,
+    platform: provider.platform,
+    name: provider.name,
+    baseUrl: provider.baseUrl,
+    apiKey: provider.apiKey,
+    useModel: enabledModel || provider.model[0],
+    capabilities: provider.capabilities,
+    contextLimit: provider.contextLimit,
+    modelProtocols: provider.modelProtocols,
+    bedrockConfig: provider.bedrockConfig,
+    enabled: provider.enabled,
+    modelEnabled: provider.modelEnabled,
+    modelHealth: provider.modelHealth,
+  };
+}
+
 /**
  * Get the default Gemini model configuration from user settings.
  * Throws if no enabled provider or model is configured.
@@ -56,6 +94,8 @@ export function getConversationTypeForBackend(backend: string): ICreateConversat
   switch (backend) {
     case 'gemini':
       return 'gemini';
+    case 'aioncli':
+      return 'aioncli';
     case 'openclaw-gateway':
     case 'openclaw':
       return 'openclaw-gateway';
@@ -110,17 +150,22 @@ export async function buildCliAgentParams(
   // Gemini type uses a placeholder model (matching Guid page behavior in useGuidSend).
   // The Guid page uses currentModel || placeholderModel, so Gemini does NOT require
   // a configured model provider - it works with Google auth instead.
-  const model: TProviderWithModel =
-    type === 'gemini'
-      ? {
-          id: 'gemini-placeholder',
-          name: 'Gemini',
-          useModel: 'default',
-          platform: 'gemini-with-google-auth' as TProviderWithModel['platform'],
-          baseUrl: '',
-          apiKey: '',
-        }
-      : ({} as TProviderWithModel);
+  let model: TProviderWithModel;
+  if (type === 'gemini') {
+    model = {
+      id: 'gemini-placeholder',
+      name: 'Gemini',
+      useModel: 'default',
+      platform: 'gemini-with-google-auth' as TProviderWithModel['platform'],
+      baseUrl: '',
+      apiKey: '',
+    };
+  } else if (type === 'aioncli') {
+    // Aioncli needs a real model from configured providers (anthropic, openai, ali-intl, aws)
+    model = await getDefaultAioncliModel();
+  } else {
+    model = {} as TProviderWithModel;
+  }
 
   return { type, model, name: agentName, extra };
 }

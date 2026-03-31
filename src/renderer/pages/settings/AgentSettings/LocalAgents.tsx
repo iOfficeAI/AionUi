@@ -25,9 +25,10 @@ const LocalAgents: React.FC = () => {
     return [];
   });
 
-  // Gemini CLI first among detected agents
+  // Gemini CLI and Aion CLI first among detected agents
   const geminiAgent = detectedAgents?.find((a) => a.backend === 'gemini');
-  const otherDetected = detectedAgents?.filter((a) => a.backend !== 'gemini') ?? [];
+  const aioncliAgent = detectedAgents?.find((a) => a.backend === 'aioncli');
+  const otherDetected = detectedAgents?.filter((a) => a.backend !== 'gemini' && a.backend !== 'aioncli') ?? [];
 
   return (
     <div className='flex flex-col gap-8px py-16px'>
@@ -55,6 +56,14 @@ const LocalAgents: React.FC = () => {
             agent={geminiAgent}
             settingsDisabled={false}
             onSettings={() => navigate('/settings/gemini')}
+          />
+        )}
+        {aioncliAgent && (
+          <AgentCard
+            type='detected'
+            agent={aioncliAgent}
+            settingsDisabled={false}
+            onSettings={() => navigate('/settings/aioncli')}
           />
         )}
         {otherDetected.map((agent) => (

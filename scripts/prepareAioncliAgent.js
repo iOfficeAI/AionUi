@@ -251,7 +251,9 @@ function prepareAioncliAgent() {
     };
 
     writeJson(path.join(targetDir, 'manifest.json'), manifest);
-    console.log(`  Bundled aioncli-agent prepared: resources/bundled-aioncli/${runtimeKey}/${binaryName} [source=${sourceType}]`);
+    console.log(
+      `  Bundled aioncli-agent prepared: resources/bundled-aioncli/${runtimeKey}/${binaryName} [source=${sourceType}]`
+    );
 
     if (tempDir) removeDirectorySafe(tempDir);
     return { prepared: true, dir: targetDir, sourceType };
