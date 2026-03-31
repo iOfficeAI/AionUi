@@ -187,4 +187,39 @@ describe('useScrollSync', () => {
 
     expect(cancelAnimationFrameMock).toHaveBeenCalledWith(202);
   });
+
+  it('cleans up timeout fallback on unmount when requestAnimationFrame is unavailable', () => {
+    vi.useFakeTimers();
+
+    const clearTimeoutMock = vi.spyOn(window, 'clearTimeout');
+    Object.defineProperty(window, 'requestAnimationFrame', {
+      configurable: true,
+      writable: true,
+      value: undefined,
+    });
+
+    const editorContainer = document.createElement('div');
+    const previewContainer = document.createElement('div');
+    defineScrollableElement(editorContainer, 1000, 250);
+    defineScrollableElement(previewContainer, 1200, 300);
+
+    const editorContainerRef = { current: editorContainer } as RefObject<HTMLDivElement>;
+    const previewContainerRef = { current: previewContainer } as RefObject<HTMLDivElement>;
+
+    const { result, unmount } = renderHook(() =>
+      useScrollSync({
+        enabled: true,
+        editorContainerRef,
+        previewContainerRef,
+      })
+    );
+
+    act(() => {
+      result.current.handleEditorScroll(100, 1000, 250);
+    });
+
+    unmount();
+
+    expect(clearTimeoutMock).toHaveBeenCalledTimes(1);
+  });
 });
