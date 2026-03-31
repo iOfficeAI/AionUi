@@ -169,6 +169,9 @@ git worktree remove "$WORKTREE_DIR" --force 2>/dev/null || true
 # Fetch PR head and create detached worktree
 git fetch origin pull/${PR_NUMBER}/head
 git worktree add "$WORKTREE_DIR" FETCH_HEAD --detach
+
+# Symlink node_modules so lint/tsc/test can run in the worktree
+ln -s "$REPO_ROOT/node_modules" "$WORKTREE_DIR/node_modules"
 ```
 
 Save `REPO_ROOT` and `WORKTREE_DIR` for use in subsequent steps. All file reads, lint, and diff commands from this point forward run inside `WORKTREE_DIR`.
