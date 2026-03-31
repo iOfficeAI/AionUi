@@ -154,37 +154,33 @@ gh pr comment <PR_NUMBER> --body "<!-- pr-review-bot -->
 
 ---
 
-### Step 3 — Check Working Tree
+### Step 3 — Create Worktree
+
+Create an isolated worktree for this PR review. The main repo stays on its current branch.
 
 ```bash
-git status --porcelain
+REPO_ROOT=$(git rev-parse --show-toplevel)
+PR_NUMBER=<PR_NUMBER>
+WORKTREE_DIR="/tmp/aionui-pr-${PR_NUMBER}"
+
+# Clean up any stale worktree from a previous crash
+git worktree remove "$WORKTREE_DIR" --force 2>/dev/null || true
+
+# Fetch PR head and create detached worktree
+git fetch origin pull/${PR_NUMBER}/head
+git worktree add "$WORKTREE_DIR" FETCH_HEAD --detach
 ```
 
-If the output is non-empty, abort with:
+Save `REPO_ROOT` and `WORKTREE_DIR` for use in subsequent steps. All file reads, lint, and diff commands from this point forward run inside `WORKTREE_DIR`.
 
-> Working tree has uncommitted changes. Please commit or stash them before running pr-review.
-
-### Step 4 — Record Current Branch
+Save the checked-out HEAD info:
 
 ```bash
-git branch --show-current
+cd "$WORKTREE_DIR"
+git log --oneline -1
 ```
 
-Save this as `<original_branch>` for Step 10.
-
-### Step 5 — Checkout PR Branch
-
-```bash
-gh pr checkout <PR_NUMBER>
-```
-
-Save the checked-out branch name:
-
-```bash
-git branch --show-current
-```
-
-### Step 6 — Collect Context (Parallel)
+### Step 4 — Collect Context (Parallel)
 
 Run the following in parallel:
 
@@ -197,12 +193,14 @@ gh pr view <PR_NUMBER> --json title,body,author,labels,headRefName,baseRefName,s
 **Full diff (no truncation):**
 
 ```bash
+cd "$WORKTREE_DIR"
 git diff origin/<baseRefName>...HEAD
 ```
 
 **Changed file list:**
 
 ```bash
+cd "$WORKTREE_DIR"
 git diff --name-status origin/<baseRefName>...HEAD
 ```
 
@@ -213,25 +211,26 @@ gh pr view <PR_NUMBER> --json comments \
   --jq '[.comments[] | select(.body | startswith("<!-- pr-review-bot -->") | not) | select(.body | startswith("<!-- pr-automation-bot -->") | not) | {author: .author.login, body: .body, createdAt: .createdAt}]'
 ```
 
-Save as `pr_discussion`. Use in Step 9 as supplementary context for **方案合理性** evaluation — if participants have explained design decisions or flagged known trade-offs, factor that in. Code is always the authoritative source; comments are context only.
+Save as `pr_discussion`. Use in Step 7 as supplementary context for **方案合理性** evaluation — if participants have explained design decisions or flagged known trade-offs, factor that in. Code is always the authoritative source; comments are context only.
 
-### Step 7 — Run Lint on Changed Files
+### Step 5 — Run Lint on Changed Files
 
 Run oxlint on all changed `.ts` / `.tsx` files (skip deleted files):
 
 ```bash
+cd "$WORKTREE_DIR"
 bunx oxlint <changed_ts_tsx_files...>
 ```
 
-Save the lint output as **lint baseline**. Use it when reviewing style and code quality in Step 8:
+Save the lint output as **lint baseline**. Use it when reviewing style and code quality in Step 6:
 
 - If a pattern produces **no lint warning** → it is project-approved; do not flag it as a style issue.
 - If a pattern produces **a lint warning/error** → it is a real violation; report it at the appropriate severity (ERROR → HIGH, WARNING → LOW).
 - Do **not** suggest replacing a lint-clean pattern with an alternative based on general convention alone (e.g. do not suggest spread over `Object.assign` if `no-map-spread` is active).
 
-### Step 8 — Read Changed File Contents
+### Step 6 — Read Changed File Contents
 
-Use the Read tool to read each changed file locally.
+> Use the Read tool to read each changed file from the **worktree** path (`$WORKTREE_DIR/<relative_path>`), not from the main repo.
 
 **Skip:**
 
@@ -250,7 +249,7 @@ Use the Read tool to read each changed file locally.
 
 Also read key interface/type definition files imported by the changed files when they provide important context.
 
-### Step 9 — Perform Code Review
+### Step 7 — Perform Code Review
 
 Write the code review report in **Chinese**.
 
@@ -376,7 +375,7 @@ If no issues are found across all dimensions, output:
 
 > ✅ 未发现明显问题，代码质量良好，建议批准合并。
 
-### Step 10 — Ask to Post Comment
+### Step 8 — Ask to Post Comment
 
 Print the complete review report to the terminal.
 
@@ -422,12 +421,13 @@ Map the review conclusion to CONCLUSION value based on the **highest severity is
 
 **Key rule:** If all issues are LOW (or there are no issues), emit `APPROVED` even when the human-facing verdict says "有条件批准". `pr-fix` explicitly skips LOW issues, so triggering a fix session for LOW-only reviews wastes a round with no actionable outcome.
 
-Determine `IS_CRITICAL_PATH` using the same `CRITICAL_PATH_PATTERN` as pr-automation (currently empty — always `false`).
+Determine `IS_CRITICAL_PATH` using the `CRITICAL_PATH_PATTERN` env var (defined in `scripts/pr-automation.conf`, passed by daemon at runtime).
 When a pattern is defined, check:
 
 ```bash
-CRITICAL_PATH_PATTERN=""  # Keep in sync with pr-automation Configuration
+# CRITICAL_PATH_PATTERN is an env var — set by pr-automation daemon or manually
 if [ -n "$CRITICAL_PATH_PATTERN" ]; then
+  cd "$WORKTREE_DIR"
   git diff origin/<baseRefName>...HEAD --name-only | grep -qE "$CRITICAL_PATH_PATTERN" && echo true || echo false
 else
   echo false
@@ -444,26 +444,13 @@ PR_NUMBER: 123
 <!-- /automation-result -->
 ```
 
-### Step 11 — Cleanup
+### Step 9 — Cleanup
 
-Switch back to the original branch:
-
-```bash
-git checkout <original_branch>
-```
-
-**Automation mode:** delete the local PR branch automatically without prompting:
+Remove the worktree. No branch switching needed — the main repo was never touched.
 
 ```bash
-git branch -D <pr_branch>
+cd "$REPO_ROOT"
+git worktree remove "$WORKTREE_DIR" --force 2>/dev/null || true
 ```
 
-**Non-automation mode:** ask the user:
-
-> 是否删除本地 PR 分支 `<pr_branch>`？(yes/no)
-
-If yes:
-
-```bash
-git branch -D <pr_branch>
-```
+Both automation and non-automation modes use the same cleanup — no prompt needed since worktree removal has no side effects.

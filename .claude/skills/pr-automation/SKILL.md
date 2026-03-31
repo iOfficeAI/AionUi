@@ -25,9 +25,9 @@ No arguments required. The daemon script `scripts/pr-automation.sh` manages the 
 
 ```
 TRUSTED_CONTRIBUTORS_TEAM: detected from REPO org (e.g. iOfficeAI/trusted-contributors)
-CRITICAL_PATH_PATTERN: ^\.claude/skills/|^scripts/|^src/process/services/database/|^src/preload\.ts|^\.github/|^AGENTS\.md|^CLAUDE\.md|^readme\.md|^\.gitignore|^\.oxfmtrc\.json|^\.oxlintrc\.json|^\.prettierignore|^\.prettierrc\.json|^package\.json|^bun\.lock|^electron-builder\.yml|^electron\.vite\.config\.ts|^tsconfig\.json|^uno\.config\.ts|^\.pre-commit-config\.yaml|^codecov\.yml|^entitlements\.plist|^docs/|^\.npmrc
-LARGE_PR_FILE_THRESHOLD: 50
-PR_DAYS_LOOKBACK: 7 (env var — override via PR_DAYS_LOOKBACK=N when starting the daemon)
+CRITICAL_PATH_PATTERN: env var, default in scripts/pr-automation.conf
+LARGE_PR_FILE_THRESHOLD: env var (default: 50), also in scripts/pr-automation.conf
+PR_DAYS_LOOKBACK: env var (default: 7), also in scripts/pr-automation.conf
 ```
 
 **REPO** is detected automatically at runtime — do not hardcode it:
@@ -236,15 +236,16 @@ Log: `[pr-automation:exit] action=fork_fallback pr=#<PR_NUMBER> reason="pr-fix c
 
 **EXIT.**
 
-Otherwise, compute merge gate:
+Otherwise, **compute merge gate** (using remote refs — no checkout needed):
 
 ```bash
+git fetch origin pull/${PR_NUMBER}/head
 BASE_REF=$(gh pr view <PR_NUMBER> --json baseRefName --jq '.baseRefName')
-FILES_CHANGED=$(git diff origin/${BASE_REF}...HEAD --name-only | wc -l | tr -d ' ')
+FILES_CHANGED=$(git diff origin/${BASE_REF}...FETCH_HEAD --name-only | wc -l | tr -d ' ')
 # CRITICAL_PATH_PATTERN: defined in Configuration section above
 HAS_CRITICAL=false
 [ -n "$CRITICAL_PATH_PATTERN" ] && \
-  git diff origin/${BASE_REF}...HEAD --name-only | grep -qE "$CRITICAL_PATH_PATTERN" && \
+  git diff origin/${BASE_REF}...FETCH_HEAD --name-only | grep -qE "$CRITICAL_PATH_PATTERN" && \
   HAS_CRITICAL=true
 
 if [ "$FILES_CHANGED" -gt 50 ] || [ "$HAS_CRITICAL" = "true" ]; then
@@ -414,18 +415,27 @@ LATEST_COMMIT_TIME=$(gh pr view <PR_NUMBER> --json commits \
 
 - Otherwise: attempt auto-rebase below.
 
-**Auto-rebase attempt:**
+**Auto-rebase attempt (in worktree):**
 
 ```bash
-git fetch origin
+REPO_ROOT=$(git rev-parse --show-toplevel)
+WORKTREE_DIR="/tmp/aionui-pr-${PR_NUMBER}"
+
+# Clean up any stale worktree
+git worktree remove "$WORKTREE_DIR" --force 2>/dev/null || true
+
+# Create worktree on the PR's head branch
+git fetch origin <head_branch>
+git worktree add "$WORKTREE_DIR" origin/<head_branch>
+cd "$WORKTREE_DIR"
 git checkout <head_branch>
-git pull origin <head_branch>
 git rebase origin/<base_branch>
 ```
 
 If rebase succeeds, run quality check:
 
 ```bash
+cd "$WORKTREE_DIR"
 bunx tsc --noEmit
 bun run lint:fix
 ```
@@ -433,8 +443,10 @@ bun run lint:fix
 If quality check passes:
 
 ```bash
+cd "$WORKTREE_DIR"
 git push --force-with-lease origin <head_branch>
-git checkout -
+cd "$REPO_ROOT"
+git worktree remove "$WORKTREE_DIR" --force 2>/dev/null || true
 gh pr edit <PR_NUMBER> --remove-label "bot:reviewing"
 ```
 
@@ -445,8 +457,8 @@ Log: `[pr-automation] Resolved merge conflicts for PR #<PR_NUMBER>, pushed rebas
 **Fallback** — if rebase fails OR quality check fails:
 
 ```bash
-git rebase --abort 2>/dev/null || true
-git checkout - 2>/dev/null || true
+cd "$REPO_ROOT"
+git worktree remove "$WORKTREE_DIR" --force 2>/dev/null || true
 ```
 
 Post comment:
@@ -476,21 +488,21 @@ Log: `[pr-automation:exit] action=conflict_unresolved pr=#<PR_NUMBER> reason="me
 
 ### Step 5 — Assess PR Scale and Critical Path
 
+No checkout needed — use remote refs to check the diff:
+
 ```bash
-gh pr checkout <PR_NUMBER>
+git fetch origin pull/${PR_NUMBER}/head
 BASE_REF=$(gh pr view <PR_NUMBER> --json baseRefName --jq '.baseRefName')
 
-FILES_CHANGED=$(git diff origin/${BASE_REF}...HEAD --name-only | wc -l | tr -d ' ')
+FILES_CHANGED=$(git diff origin/${BASE_REF}...FETCH_HEAD --name-only | wc -l | tr -d ' ')
 
 # CRITICAL_PATH_PATTERN: defined in Configuration section above
 if [ -n "$CRITICAL_PATH_PATTERN" ]; then
-  HAS_CRITICAL=$(git diff origin/${BASE_REF}...HEAD --name-only \
+  HAS_CRITICAL=$(git diff origin/${BASE_REF}...FETCH_HEAD --name-only \
     | grep -qE "$CRITICAL_PATH_PATTERN" && echo true || echo false)
 else
   HAS_CRITICAL=false
 fi
-
-git checkout -
 ```
 
 Save `FILES_CHANGED` and `HAS_CRITICAL` for later steps.
