@@ -120,6 +120,7 @@ const ConversationTabs: React.FC = () => {
 
   const { cliAgents, presetAssistants, isLoading } = useConversationAgents();
   const defaultConversationName = t('conversation.welcome.newConversation');
+  const isCreatingRef = useRef(false);
 
   // 更新 Tab 溢出状态
   const updateTabOverflow = useCallback(() => {
@@ -196,8 +197,12 @@ const ConversationTabs: React.FC = () => {
   // 创建新会话 - 通过下拉菜单选择 Agent/助手后创建
   const handleCreateConversation = useCallback(
     async (key: string) => {
+      if (isCreatingRef.current) return;
+      isCreatingRef.current = true;
+
       const currentTab = openTabs.find((tab) => tab.id === activeTabId);
       if (!currentTab?.workspace) {
+        isCreatingRef.current = false;
         void navigate('/guid');
         return;
       }
@@ -245,6 +250,8 @@ const ConversationTabs: React.FC = () => {
         // [BUG-3] Unified catch: handles both param building errors (getDefaultGeminiModel) and IPC errors
         console.error('Failed to create conversation:', error);
         Message.error(t('conversation.createFailed'));
+      } finally {
+        isCreatingRef.current = false;
       }
     },
     [
