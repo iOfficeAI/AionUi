@@ -34,7 +34,7 @@
 </p>
 
 <p align="center">
-  <strong>💬 社区：</strong> <a href="https://discord.gg/2QAwJn7Egx" target="_blank">Discord (English)</a> | <a href="./resources/wx-5.png" target="_blank">微信 (中文群)</a> | <a href="https://twitter.com/AionUI" target="_blank">Twitter</a>
+  <strong>💬 社区：</strong> <a href="https://discord.gg/2QAwJn7Egx" target="_blank">Discord (English)</a> | <a href="../../resources/wx-5.png" target="_blank">微信 (中文群)</a> | <a href="https://twitter.com/AionUI" target="_blank">Twitter</a>
 </p>
 
 ---
@@ -619,7 +619,7 @@ brew install aionui
 - [报告问题](https://github.com/iOfficeAI/AionUi/issues) — 遇到 bug 或有新功能想法？告诉我们
 - [发布更新](https://github.com/iOfficeAI/AionUi/releases) — 获取最新版本
 - [Discord 社区](https://discord.gg/2QAwJn7Egx) — 英语社区
-- [微信群](./resources/wx-5.png) — 中文社区
+- [微信群](../../resources/wx-5.png) — 中文社区
 
 ### 贡献
 
@@ -660,7 +660,7 @@ brew install aionui
 
 ## 许可证
 
-本项目采用 [Apache-2.0](LICENSE) 许可证。
+本项目采用 [Apache-2.0](../../LICENSE) 许可证。
 
 ---
 

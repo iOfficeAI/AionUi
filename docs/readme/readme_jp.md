@@ -34,7 +34,7 @@
 </p>
 
 <p align="center">
-  <strong>💬 コミュニティ：</strong> <a href="https://discord.gg/2QAwJn7Egx" target="_blank">Discord (English)</a> | <a href="./resources/wx-5.png" target="_blank">微信 (中文群)</a> | <a href="https://twitter.com/AionUI" target="_blank">Twitter</a>
+  <strong>💬 コミュニティ：</strong> <a href="https://discord.gg/2QAwJn7Egx" target="_blank">Discord (English)</a> | <a href="../../resources/wx-5.png" target="_blank">微信 (中文群)</a> | <a href="https://twitter.com/AionUI" target="_blank">Twitter</a>
 </p>
 
 ---
@@ -564,7 +564,7 @@ brew install aionui
 - [問題を報告](https://github.com/iOfficeAI/AionUi/issues) — バグと機能リクエスト
 - [リリース更新](https://github.com/iOfficeAI/AionUi/releases) — 最新版を取得
 - [Discord コミュニティ](https://discord.gg/2QAwJn7Egx) — 英語コミュニティ
-- [WeChat グループ](./resources/wx-5.png) — 中国語コミュニティ
+- [WeChat グループ](../../resources/wx-5.png) — 中国語コミュニティ
 
 ### 貢献
 
@@ -578,7 +578,7 @@ brew install aionui
 
 ## ライセンス
 
-このプロジェクトは [Apache-2.0](LICENSE) ライセンスの下でライセンスされています。
+このプロジェクトは [Apache-2.0](../../LICENSE) ライセンスの下でライセンスされています。
 
 ---
 
