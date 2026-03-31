@@ -389,11 +389,14 @@ const Layout: React.FC<{
       document.body.style.userSelect = '';
     };
 
+    const handleBlur = () => endDrag();
     window.addEventListener('mousemove', handleMouseMove);
     window.addEventListener('mouseup', endDrag);
+    window.addEventListener('blur', handleBlur);
     return () => {
       window.removeEventListener('mousemove', handleMouseMove);
       window.removeEventListener('mouseup', endDrag);
+      window.removeEventListener('blur', handleBlur);
       endDrag();
     };
   }, []);

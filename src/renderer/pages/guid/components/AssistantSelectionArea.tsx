@@ -190,7 +190,15 @@ const AssistantSelectionArea: React.FC<AssistantSelectionAreaProps> = ({
     }
 
     void editor.handleEdit(targetAssistant);
-  }, [agentMessage, assistants, customAgents, editor, selectedAgentInfo?.customAgentId, selectedAgentKey, t]);
+  }, [
+    agentMessage,
+    assistants,
+    customAgents,
+    editor.handleEdit,
+    selectedAgentInfo?.customAgentId,
+    selectedAgentKey,
+    t,
+  ]);
 
   useLayoutEffect(() => {
     if (!onRegisterOpenDetails) return;
@@ -199,6 +207,103 @@ const AssistantSelectionArea: React.FC<AssistantSelectionAreaProps> = ({
 
   // Only render if there are preset agents
   if (!customAgents || !customAgents.some((a) => a.isPreset)) return null;
+
+  const modalTree = (
+    <>
+      {agentMessageContext}
+      <AssistantEditDrawer
+        editVisible={editor.editVisible}
+        setEditVisible={editor.setEditVisible}
+        isCreating={editor.isCreating}
+        editName={editor.editName}
+        setEditName={editor.setEditName}
+        editDescription={editor.editDescription}
+        setEditDescription={editor.setEditDescription}
+        editAvatar={editor.editAvatar}
+        setEditAvatar={editor.setEditAvatar}
+        editAvatarImage={editAvatarImage}
+        editAgent={editor.editAgent}
+        setEditAgent={editor.setEditAgent}
+        editContext={editor.editContext}
+        setEditContext={editor.setEditContext}
+        promptViewMode={editor.promptViewMode}
+        setPromptViewMode={editor.setPromptViewMode}
+        availableSkills={editor.availableSkills}
+        selectedSkills={editor.selectedSkills}
+        setSelectedSkills={editor.setSelectedSkills}
+        pendingSkills={editor.pendingSkills}
+        customSkills={editor.customSkills}
+        setDeletePendingSkillName={editor.setDeletePendingSkillName}
+        setDeleteCustomSkillName={editor.setDeleteCustomSkillName}
+        setSkillsModalVisible={editor.setSkillsModalVisible}
+        activeAssistant={activeAssistant}
+        activeAssistantId={activeAssistantId}
+        isReadonlyAssistant={isReadonlyAssistant}
+        isExtensionAssistant={isExtensionAssistant}
+        availableBackends={availableBackends}
+        extensionAcpAdapters={extensionAcpAdapters}
+        handleSave={editor.handleSave}
+        handleDeleteClick={editor.handleDeleteClick}
+      />
+
+      <DeleteAssistantModal
+        visible={editor.deleteConfirmVisible}
+        onCancel={() => editor.setDeleteConfirmVisible(false)}
+        onConfirm={editor.handleDeleteConfirm}
+        activeAssistant={activeAssistant}
+        avatarImageMap={avatarImageMap}
+      />
+
+      <AddSkillsModal
+        visible={editor.skillsModalVisible}
+        onCancel={() => {
+          editor.setSkillsModalVisible(false);
+          skills.setSearchExternalQuery('');
+        }}
+        externalSources={skills.externalSources}
+        activeSourceTab={skills.activeSourceTab}
+        setActiveSourceTab={skills.setActiveSourceTab}
+        activeSource={skills.activeSource}
+        filteredExternalSkills={skills.filteredExternalSkills}
+        externalSkillsLoading={skills.externalSkillsLoading}
+        searchExternalQuery={skills.searchExternalQuery}
+        setSearchExternalQuery={skills.setSearchExternalQuery}
+        refreshing={skills.refreshing}
+        handleRefreshExternal={skills.handleRefreshExternal}
+        setShowAddPathModal={skills.setShowAddPathModal}
+        customSkills={editor.customSkills}
+        handleAddFoundSkills={skills.handleAddFoundSkills}
+      />
+
+      <SkillConfirmModals
+        deletePendingSkillName={editor.deletePendingSkillName}
+        setDeletePendingSkillName={editor.setDeletePendingSkillName}
+        pendingSkills={editor.pendingSkills}
+        setPendingSkills={editor.setPendingSkills}
+        deleteCustomSkillName={editor.deleteCustomSkillName}
+        setDeleteCustomSkillName={editor.setDeleteCustomSkillName}
+        customSkills={editor.customSkills}
+        setCustomSkills={editor.setCustomSkills}
+        selectedSkills={editor.selectedSkills}
+        setSelectedSkills={editor.setSelectedSkills}
+        message={agentMessage}
+      />
+
+      <AddCustomPathModal
+        visible={skills.showAddPathModal}
+        onCancel={() => {
+          skills.setShowAddPathModal(false);
+          skills.setCustomPathName('');
+          skills.setCustomPathValue('');
+        }}
+        onOk={() => void skills.handleAddCustomPath()}
+        customPathName={skills.customPathName}
+        setCustomPathName={skills.setCustomPathName}
+        customPathValue={skills.customPathValue}
+        setCustomPathValue={skills.setCustomPathValue}
+      />
+    </>
+  );
 
   if (isPresetAgent && selectedAgentInfo) {
     // Selected Assistant View
@@ -295,98 +400,7 @@ const AssistantSelectionArea: React.FC<AssistantSelectionAreaProps> = ({
             return null;
           })()}
         </div>
-        {agentMessageContext}
-        <AssistantEditDrawer
-          editVisible={editor.editVisible}
-          setEditVisible={editor.setEditVisible}
-          isCreating={editor.isCreating}
-          editName={editor.editName}
-          setEditName={editor.setEditName}
-          editDescription={editor.editDescription}
-          setEditDescription={editor.setEditDescription}
-          editAvatar={editor.editAvatar}
-          setEditAvatar={editor.setEditAvatar}
-          editAvatarImage={editAvatarImage}
-          editAgent={editor.editAgent}
-          setEditAgent={editor.setEditAgent}
-          editContext={editor.editContext}
-          setEditContext={editor.setEditContext}
-          promptViewMode={editor.promptViewMode}
-          setPromptViewMode={editor.setPromptViewMode}
-          availableSkills={editor.availableSkills}
-          selectedSkills={editor.selectedSkills}
-          setSelectedSkills={editor.setSelectedSkills}
-          pendingSkills={editor.pendingSkills}
-          customSkills={editor.customSkills}
-          setDeletePendingSkillName={editor.setDeletePendingSkillName}
-          setDeleteCustomSkillName={editor.setDeleteCustomSkillName}
-          setSkillsModalVisible={editor.setSkillsModalVisible}
-          activeAssistant={activeAssistant}
-          activeAssistantId={activeAssistantId}
-          isReadonlyAssistant={isReadonlyAssistant}
-          isExtensionAssistant={isExtensionAssistant}
-          availableBackends={availableBackends}
-          extensionAcpAdapters={extensionAcpAdapters}
-          handleSave={editor.handleSave}
-          handleDeleteClick={editor.handleDeleteClick}
-        />
-
-        <DeleteAssistantModal
-          visible={editor.deleteConfirmVisible}
-          onCancel={() => editor.setDeleteConfirmVisible(false)}
-          onConfirm={editor.handleDeleteConfirm}
-          activeAssistant={activeAssistant}
-          avatarImageMap={avatarImageMap}
-        />
-
-        <AddSkillsModal
-          visible={editor.skillsModalVisible}
-          onCancel={() => {
-            editor.setSkillsModalVisible(false);
-            skills.setSearchExternalQuery('');
-          }}
-          externalSources={skills.externalSources}
-          activeSourceTab={skills.activeSourceTab}
-          setActiveSourceTab={skills.setActiveSourceTab}
-          activeSource={skills.activeSource}
-          filteredExternalSkills={skills.filteredExternalSkills}
-          externalSkillsLoading={skills.externalSkillsLoading}
-          searchExternalQuery={skills.searchExternalQuery}
-          setSearchExternalQuery={skills.setSearchExternalQuery}
-          refreshing={skills.refreshing}
-          handleRefreshExternal={skills.handleRefreshExternal}
-          setShowAddPathModal={skills.setShowAddPathModal}
-          customSkills={editor.customSkills}
-          handleAddFoundSkills={skills.handleAddFoundSkills}
-        />
-
-        <SkillConfirmModals
-          deletePendingSkillName={editor.deletePendingSkillName}
-          setDeletePendingSkillName={editor.setDeletePendingSkillName}
-          pendingSkills={editor.pendingSkills}
-          setPendingSkills={editor.setPendingSkills}
-          deleteCustomSkillName={editor.deleteCustomSkillName}
-          setDeleteCustomSkillName={editor.setDeleteCustomSkillName}
-          customSkills={editor.customSkills}
-          setCustomSkills={editor.setCustomSkills}
-          selectedSkills={editor.selectedSkills}
-          setSelectedSkills={editor.setSelectedSkills}
-          message={agentMessage}
-        />
-
-        <AddCustomPathModal
-          visible={skills.showAddPathModal}
-          onCancel={() => {
-            skills.setShowAddPathModal(false);
-            skills.setCustomPathName('');
-            skills.setCustomPathValue('');
-          }}
-          onOk={() => void skills.handleAddCustomPath()}
-          customPathName={skills.customPathName}
-          setCustomPathName={skills.setCustomPathName}
-          customPathValue={skills.customPathValue}
-          setCustomPathValue={skills.setCustomPathValue}
-        />
+        {modalTree}
       </div>
     );
   }
@@ -444,99 +458,7 @@ const AssistantSelectionArea: React.FC<AssistantSelectionAreaProps> = ({
         </div>
       </div>
 
-      {agentMessageContext}
-
-      <AssistantEditDrawer
-        editVisible={editor.editVisible}
-        setEditVisible={editor.setEditVisible}
-        isCreating={editor.isCreating}
-        editName={editor.editName}
-        setEditName={editor.setEditName}
-        editDescription={editor.editDescription}
-        setEditDescription={editor.setEditDescription}
-        editAvatar={editor.editAvatar}
-        setEditAvatar={editor.setEditAvatar}
-        editAvatarImage={editAvatarImage}
-        editAgent={editor.editAgent}
-        setEditAgent={editor.setEditAgent}
-        editContext={editor.editContext}
-        setEditContext={editor.setEditContext}
-        promptViewMode={editor.promptViewMode}
-        setPromptViewMode={editor.setPromptViewMode}
-        availableSkills={editor.availableSkills}
-        selectedSkills={editor.selectedSkills}
-        setSelectedSkills={editor.setSelectedSkills}
-        pendingSkills={editor.pendingSkills}
-        customSkills={editor.customSkills}
-        setDeletePendingSkillName={editor.setDeletePendingSkillName}
-        setDeleteCustomSkillName={editor.setDeleteCustomSkillName}
-        setSkillsModalVisible={editor.setSkillsModalVisible}
-        activeAssistant={activeAssistant}
-        activeAssistantId={activeAssistantId}
-        isReadonlyAssistant={isReadonlyAssistant}
-        isExtensionAssistant={isExtensionAssistant}
-        availableBackends={availableBackends}
-        extensionAcpAdapters={extensionAcpAdapters}
-        handleSave={editor.handleSave}
-        handleDeleteClick={editor.handleDeleteClick}
-      />
-
-      <DeleteAssistantModal
-        visible={editor.deleteConfirmVisible}
-        onCancel={() => editor.setDeleteConfirmVisible(false)}
-        onConfirm={editor.handleDeleteConfirm}
-        activeAssistant={activeAssistant}
-        avatarImageMap={avatarImageMap}
-      />
-
-      <AddSkillsModal
-        visible={editor.skillsModalVisible}
-        onCancel={() => {
-          editor.setSkillsModalVisible(false);
-          skills.setSearchExternalQuery('');
-        }}
-        externalSources={skills.externalSources}
-        activeSourceTab={skills.activeSourceTab}
-        setActiveSourceTab={skills.setActiveSourceTab}
-        activeSource={skills.activeSource}
-        filteredExternalSkills={skills.filteredExternalSkills}
-        externalSkillsLoading={skills.externalSkillsLoading}
-        searchExternalQuery={skills.searchExternalQuery}
-        setSearchExternalQuery={skills.setSearchExternalQuery}
-        refreshing={skills.refreshing}
-        handleRefreshExternal={skills.handleRefreshExternal}
-        setShowAddPathModal={skills.setShowAddPathModal}
-        customSkills={editor.customSkills}
-        handleAddFoundSkills={skills.handleAddFoundSkills}
-      />
-
-      <SkillConfirmModals
-        deletePendingSkillName={editor.deletePendingSkillName}
-        setDeletePendingSkillName={editor.setDeletePendingSkillName}
-        pendingSkills={editor.pendingSkills}
-        setPendingSkills={editor.setPendingSkills}
-        deleteCustomSkillName={editor.deleteCustomSkillName}
-        setDeleteCustomSkillName={editor.setDeleteCustomSkillName}
-        customSkills={editor.customSkills}
-        setCustomSkills={editor.setCustomSkills}
-        selectedSkills={editor.selectedSkills}
-        setSelectedSkills={editor.setSelectedSkills}
-        message={agentMessage}
-      />
-
-      <AddCustomPathModal
-        visible={skills.showAddPathModal}
-        onCancel={() => {
-          skills.setShowAddPathModal(false);
-          skills.setCustomPathName('');
-          skills.setCustomPathValue('');
-        }}
-        onOk={() => void skills.handleAddCustomPath()}
-        customPathName={skills.customPathName}
-        setCustomPathName={skills.setCustomPathName}
-        customPathValue={skills.customPathValue}
-        setCustomPathValue={skills.setCustomPathValue}
-      />
+      {modalTree}
     </div>
   );
 };

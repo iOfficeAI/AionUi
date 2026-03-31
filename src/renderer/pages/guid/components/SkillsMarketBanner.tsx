@@ -91,8 +91,8 @@ const SkillsMarketBanner: React.FC = () => {
         style={
           enabled
             ? {
-                backgroundColor: 'rgba(255, 255, 255, 0.45)',
-                borderColor: 'rgba(0, 0, 0, 0.08)',
+                backgroundColor: 'color-mix(in srgb, var(--color-bg-2) 45%, transparent)',
+                borderColor: 'var(--color-border-1)',
               }
             : undefined
         }
