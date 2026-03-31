@@ -11,6 +11,9 @@ import { createPlatformAdapter } from './adapters/PlatformAdapter';
 
 type SpawnAgentFn = (agentName: string, agentType?: string) => Promise<TeamAgent>;
 
+/** Conversation types whose AgentManager supports MCP server injection via session/new */
+const MCP_CAPABLE_TYPES = new Set(['acp']);
+
 type TeammateManagerParams = {
   teamId: string;
   agents: TeamAgent[];
@@ -32,7 +35,8 @@ export class TeammateManager extends EventEmitter {
   private readonly taskManager: TaskManager;
   private readonly workerTaskManager: IWorkerTaskManager;
   private readonly spawnAgentFn?: SpawnAgentFn;
-  private hasMcpTools: boolean;
+  /** Whether the team MCP server has been started (global flag) */
+  private mcpServerStarted: boolean;
 
   /** Accumulated text response per conversationId */
   private readonly responseBuffer = new Map<string, string>();
@@ -59,7 +63,7 @@ export class TeammateManager extends EventEmitter {
     this.taskManager = params.taskManager;
     this.workerTaskManager = params.workerTaskManager;
     this.spawnAgentFn = params.spawnAgent;
-    this.hasMcpTools = params.hasMcpTools ?? false;
+    this.mcpServerStarted = params.hasMcpTools ?? false;
 
     for (const agent of this.agents) {
       this.ownedConversationIds.add(agent.conversationId);
@@ -80,7 +84,12 @@ export class TeammateManager extends EventEmitter {
   }
 
   setHasMcpTools(value: boolean): void {
-    this.hasMcpTools = value;
+    this.mcpServerStarted = value;
+  }
+
+  /** Check if a specific agent actually has MCP tools available */
+  private agentHasMcpTools(agent: TeamAgent): boolean {
+    return this.mcpServerStarted && MCP_CAPABLE_TYPES.has(agent.conversationType);
   }
 
   /** Add a new agent to the team and notify renderer */
@@ -111,7 +120,7 @@ export class TeammateManager extends EventEmitter {
 
       this.setStatus(slotId, 'active');
 
-      const adapter = createPlatformAdapter(agent.conversationType, this.hasMcpTools);
+      const adapter = createPlatformAdapter(agent.conversationType, this.agentHasMcpTools(agent));
       const [mailboxMessages, tasks] = await Promise.all([
         this.mailbox.readUnread(this.teamId, slotId),
         this.taskManager.list(this.teamId),
@@ -246,7 +255,7 @@ export class TeammateManager extends EventEmitter {
       this.wakeTimeouts.delete(agent.slotId);
     }
 
-    const adapter = createPlatformAdapter(agent.conversationType, this.hasMcpTools);
+    const adapter = createPlatformAdapter(agent.conversationType, this.agentHasMcpTools(agent));
     const agentResponse: AgentResponse = { text: accumulatedText };
 
     let actions: ParsedAction[];
