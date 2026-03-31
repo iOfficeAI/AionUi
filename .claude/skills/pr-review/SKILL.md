@@ -95,6 +95,7 @@ gh pr view <PR_NUMBER> --json statusCheckRollup \
   <!-- automation-result -->
   CONCLUSION: CI_NOT_READY
   IS_CRITICAL_PATH: false
+  CRITICAL_PATH_FILES: (none)
   PR_NUMBER: <PR_NUMBER>
   <!-- /automation-result -->
   ```
@@ -119,6 +120,7 @@ gh pr view <PR_NUMBER> --json statusCheckRollup \
   <!-- automation-result -->
   CONCLUSION: CI_FAILED
   IS_CRITICAL_PATH: false
+  CRITICAL_PATH_FILES: (none)
   PR_NUMBER: <PR_NUMBER>
   <!-- /automation-result -->
   ```
@@ -425,15 +427,21 @@ Map the review conclusion to CONCLUSION value based on the **highest severity is
 **Key rule:** If all issues are LOW (or there are no issues), emit `APPROVED` even when the human-facing verdict says "有条件批准". `pr-fix` explicitly skips LOW issues, so triggering a fix session for LOW-only reviews wastes a round with no actionable outcome.
 
 Determine `IS_CRITICAL_PATH` using the `CRITICAL_PATH_PATTERN` env var (defined in `scripts/pr-automation.conf`, passed by daemon at runtime).
-When a pattern is defined, check:
+When a pattern is defined, check and capture matched files:
 
 ```bash
 # CRITICAL_PATH_PATTERN is an env var — set by pr-automation daemon or manually
 if [ -n "$CRITICAL_PATH_PATTERN" ]; then
   cd "$WORKTREE_DIR"
-  git diff origin/<baseRefName>...HEAD --name-only | grep -qE "$CRITICAL_PATH_PATTERN" && echo true || echo false
+  CRITICAL_FILES=$(git diff origin/<baseRefName>...HEAD --name-only | grep -E "$CRITICAL_PATH_PATTERN")
+  if [ -n "$CRITICAL_FILES" ]; then
+    IS_CRITICAL_PATH=true
+  else
+    IS_CRITICAL_PATH=false
+  fi
 else
-  echo false
+  IS_CRITICAL_PATH=false
+  CRITICAL_FILES=""
 fi
 ```
 
@@ -443,7 +451,21 @@ Output:
 <!-- automation-result -->
 CONCLUSION: APPROVED
 IS_CRITICAL_PATH: false
+CRITICAL_PATH_FILES: (none)
 PR_NUMBER: 123
+<!-- /automation-result -->
+```
+
+When `IS_CRITICAL_PATH` is true, list matched files one per line:
+
+```
+<!-- automation-result -->
+CONCLUSION: APPROVED
+IS_CRITICAL_PATH: true
+CRITICAL_PATH_FILES:
+- docs/feature/extension-market/agent-hub-requirements.md
+- docs/feature/extension-market/research/architecture.md
+PR_NUMBER: 456
 <!-- /automation-result -->
 ```
 
