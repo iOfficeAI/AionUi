@@ -9,8 +9,24 @@ import type { TChatConversation } from '@/common/config/storage';
 import { addEventListener } from '@/renderer/utils/emitter';
 import { useCallback, useEffect, useSyncExternalStore } from 'react';
 
-const shouldIgnoreStreamMessage = (type: string): boolean => {
-  return type === 'user_content' || type === 'request_trace' || type === 'finished';
+/**
+ * Whitelist of message types that indicate content generation is in progress.
+ * Only these types should trigger the sidebar loading spinner.
+ * Using a whitelist (instead of a blacklist) prevents unknown/internal message
+ * types (e.g. slash_commands_updated, acp_context_usage) from falsely
+ * triggering the generating state.
+ */
+const isGeneratingStreamMessage = (type: string): boolean => {
+  return (
+    type === 'content' ||
+    type === 'start' ||
+    type === 'thought' ||
+    type === 'thinking' ||
+    type === 'tool_group' ||
+    type === 'acp_tool_call' ||
+    type === 'acp_permission' ||
+    type === 'plan'
+  );
 };
 
 const isTerminalAgentStatus = (data: unknown): boolean => {
@@ -177,11 +193,9 @@ const initializeConversationListSyncStore = () => {
       return;
     }
 
-    if (shouldIgnoreStreamMessage(message.type)) {
-      return;
+    if (isGeneratingStreamMessage(message.type)) {
+      markGenerating(conversationId);
     }
-
-    markGenerating(conversationId);
   });
   ipcBridge.conversation.turnCompleted.on((event) => {
     if (isTerminalTurnState(event.state) && activeConversationIdState !== event.sessionId) {
