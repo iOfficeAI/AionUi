@@ -25,8 +25,9 @@ const EXPANDED_STATES_MAX_SIZE = 200;
 // Capped at EXPANDED_STATES_MAX_SIZE entries to prevent unbounded growth.
 const expandedStates = new Map<string, boolean>();
 
-function getBlockFingerprint(language: string, firstLine: string): string {
-  const key = `${language}:${firstLine}`;
+function getBlockFingerprint(language: string, lines: string[]): string {
+  const preview = lines.slice(0, PREVIEW_LINES).join('\n');
+  const key = `${language}:${lines.length}:${preview}`;
   // Evict oldest entries when exceeding size limit
   if (!expandedStates.has(key) && expandedStates.size >= EXPANDED_STATES_MAX_SIZE) {
     const firstKey = expandedStates.keys().next().value;
@@ -121,7 +122,7 @@ function CodeBlock(props: CodeBlockProps) {
   const totalLines = allLines.length;
   const canCollapse = totalLines > PREVIEW_LINES;
 
-  const blockKey = getBlockFingerprint(language, allLines[0] || '');
+  const blockKey = getBlockFingerprint(language, allLines);
   const expanded = expandedStates.get(blockKey) ?? false;
   const setExpanded = (val: boolean) => {
     expandedStates.set(blockKey, val);

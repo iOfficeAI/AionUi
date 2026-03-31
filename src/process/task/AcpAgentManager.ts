@@ -809,13 +809,6 @@ class AcpAgentManager extends BaseAgentManager<AcpAgentManagerData, AcpPermissio
   }
 
   /**
-   * Filter think tags from message content during streaming
-   * This ensures users don't see internal reasoning tags in real-time
-   *
-   * @param message - The streaming message to filter
-   * @returns Message with think tags removed from content
-   */
-  /**
    * Emit a thinking message to the UI stream.
    * Creates a new thinking msg_id on first call per turn, reuses it for subsequent calls.
    */
