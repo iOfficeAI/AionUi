@@ -6,7 +6,7 @@ import type { TTeam, TeamAgent } from './types';
 import { Mailbox } from './Mailbox';
 import { TaskManager } from './TaskManager';
 import { TeammateManager } from './TeammateManager';
-import { TeamMcpServer } from './TeamMcpServer';
+import { TeamMcpServer, type StdioMcpConfig } from './TeamMcpServer';
 
 type SpawnAgentFn = (agentName: string, agentType?: string) => Promise<TeamAgent>;
 
@@ -22,7 +22,7 @@ export class TeamSession extends EventEmitter {
   private readonly taskManager: TaskManager;
   private readonly teammateManager: TeammateManager;
   private readonly mcpServer: TeamMcpServer;
-  private mcpServerUrl: string | null = null;
+  private mcpStdioConfig: StdioMcpConfig | null = null;
 
   constructor(team: TTeam, repo: ITeamRepository, workerTaskManager: IWorkerTaskManager, spawnAgent?: SpawnAgentFn) {
     super();
@@ -51,19 +51,19 @@ export class TeamSession extends EventEmitter {
   }
 
   /**
-   * Start the MCP server and return its URL.
+   * Start the MCP server and return its stdio config.
    * Must be called before sendMessage to ensure agents have access to team tools.
    */
-  async startMcpServer(): Promise<string> {
-    if (!this.mcpServerUrl) {
-      this.mcpServerUrl = await this.mcpServer.start();
+  async startMcpServer(): Promise<StdioMcpConfig> {
+    if (!this.mcpStdioConfig) {
+      this.mcpStdioConfig = await this.mcpServer.start();
     }
-    return this.mcpServerUrl;
+    return this.mcpStdioConfig;
   }
 
-  /** Get the MCP server URL (null if not started) */
-  getMcpServerUrl(): string | null {
-    return this.mcpServerUrl;
+  /** Get the MCP stdio config (null if not started) */
+  getStdioConfig(): StdioMcpConfig | null {
+    return this.mcpStdioConfig;
   }
 
   /**
@@ -98,7 +98,7 @@ export class TeamSession extends EventEmitter {
   async dispose(): Promise<void> {
     this.teammateManager.dispose();
     await this.mcpServer.stop();
-    this.mcpServerUrl = null;
+    this.mcpStdioConfig = null;
     this.removeAllListeners();
   }
 }

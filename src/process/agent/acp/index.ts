@@ -1503,22 +1503,25 @@ export class AcpAgent {
         servers.push(...buildBuiltinAcpSessionMcpServers(mcpConfig as IMcpServer[], capabilities));
       }
 
-      // Inject team MCP server if this agent belongs to a team
-      const teamMcpUrl = (this.extra as Record<string, unknown>).teamMcpUrl;
-      if (typeof teamMcpUrl === 'string' && teamMcpUrl.length > 0) {
+      // Inject team MCP server if this agent belongs to a team (stdio mode)
+      const teamMcpStdioConfig = (this.extra as Record<string, unknown>).teamMcpStdioConfig as
+        | { name: string; command: string; args: string[]; env: Array<{ name: string; value: string }> }
+        | undefined;
+      if (teamMcpStdioConfig && teamMcpStdioConfig.command) {
         servers.push({
-          type: 'http',
-          name: 'aionui-team',
-          url: teamMcpUrl,
+          name: teamMcpStdioConfig.name,
+          command: teamMcpStdioConfig.command,
+          args: teamMcpStdioConfig.args,
+          env: teamMcpStdioConfig.env,
         });
-        mainLog(`[ACP ${this.extra.backend}]`, `Injecting team MCP server: ${teamMcpUrl}`);
+        mainLog(`[ACP ${this.extra.backend}]`, `Injecting team MCP server (stdio): ${teamMcpStdioConfig.name}`);
       }
 
       if (servers.length > 0) {
         mainLog(
           `[ACP ${this.extra.backend}]`,
           `Injecting ${servers.length} MCP server(s) into session/new`,
-          servers.map((server) => `${server.name}:${server.type}`)
+          servers.map((server) => `${server.name}:${'type' in server ? server.type : 'stdio'}`)
         );
       }
 

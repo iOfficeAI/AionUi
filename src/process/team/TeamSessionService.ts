@@ -179,12 +179,12 @@ export class TeamSessionService {
         status: 'pending',
         conversationType: (agentType || 'acp') as 'acp',
       });
-      // Inject team MCP URL into the new agent's conversation
-      const mcpUrl = session.getMcpServerUrl();
-      if (mcpUrl && newAgent.conversationId) {
+      // Inject team MCP stdio config into the new agent's conversation
+      const stdioConfig = session.getStdioConfig();
+      if (stdioConfig && newAgent.conversationId) {
         await this.conversationService.updateConversation(
           newAgent.conversationId,
-          { extra: { teamMcpUrl: mcpUrl } } as any,
+          { extra: { teamMcpStdioConfig: stdioConfig } } as any,
           true
         );
       }
@@ -193,14 +193,14 @@ export class TeamSessionService {
     const session = new TeamSession(team, this.repo, this.workerTaskManager, spawnAgent);
     this.sessions.set(teamId, session);
 
-    // Start MCP server and inject URL into all agent conversations
-    const mcpUrl = await session.startMcpServer();
+    // Start MCP server and inject stdio config into all agent conversations
+    const stdioConfig = await session.startMcpServer();
     await Promise.all(
       team.agents.map(async (agent) => {
         if (agent.conversationId) {
           await this.conversationService.updateConversation(
             agent.conversationId,
-            { extra: { teamMcpUrl: mcpUrl } } as any,
+            { extra: { teamMcpStdioConfig: stdioConfig } } as any,
             true
           );
         }
