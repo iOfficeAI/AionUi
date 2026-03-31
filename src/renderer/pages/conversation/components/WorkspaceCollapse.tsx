@@ -4,7 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { Down } from '@icon-park/react';
+import { Down, FolderClose, FolderOpen } from '@icon-park/react';
 import classNames from 'classnames';
 import React from 'react';
 
@@ -45,14 +45,12 @@ const WorkspaceCollapse: React.FC<WorkspaceCollapseProps> = ({
           className='flex items-center ml-2px gap-8px h-32px p-4px cursor-pointer hover:bg-hover rd-4px transition-colors min-w-0'
           onClick={onToggle}
         >
-          {/* 展开/收起箭头 */}
-          <Down
-            size={16}
-            className={classNames(
-              'line-height-0 transition-transform duration-200 flex-shrink-0',
-              expanded ? 'rotate-0' : '-rotate-90'
-            )}
-          />
+          {/* 展开/收起文件夹图标 */}
+          {expanded ? (
+            <FolderOpen size={16} className='line-height-0 flex-shrink-0' />
+          ) : (
+            <FolderClose size={16} className='line-height-0 flex-shrink-0' />
+          )}
 
           {/* 标题内容 */}
           <div className='flex-1 ml-6px min-w-0 overflow-hidden'>{header}</div>

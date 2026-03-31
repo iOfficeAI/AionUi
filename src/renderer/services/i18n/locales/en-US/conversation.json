@@ -71,9 +71,9 @@
   "historySearch": {
     "tooltip": "Search messages",
     "title": "Search conversation content",
+    "shortTitle": "Search",
     "description": "Search historical messages by keyword, load more on scroll, and jump to the matched message.",
     "placeholder": "Search message content...",
-    "shortTitle": "Search",
     "idle": "Enter keywords to search messages",
     "empty": "No matching messages found",
     "loadingMore": "Loading more...",

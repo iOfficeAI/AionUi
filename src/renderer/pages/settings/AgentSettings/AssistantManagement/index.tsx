@@ -33,9 +33,18 @@ import AssistantEditDrawer from './AssistantEditDrawer';
 import AssistantListPanel from './AssistantListPanel';
 import DeleteAssistantModal from './DeleteAssistantModal';
 import SkillConfirmModals from './SkillConfirmModals';
-import React, { useMemo } from 'react';
+import React, { useEffect, useMemo, useRef } from 'react';
+import { useLocation } from 'react-router-dom';
+
+type AssistantNavigationState = {
+  openAssistantId?: string;
+  openAssistantEditor?: boolean;
+};
+const OPEN_ASSISTANT_EDITOR_INTENT_KEY = 'guid.openAssistantEditorIntent';
 
 const AssistantManagement: React.FC<AssistantManagementProps> = ({ message }) => {
+  const location = useLocation();
+  const navigationState = (location.state as AssistantNavigationState | null) ?? null;
   const avatarImageMap: Record<string, string> = useMemo(
     () => ({
       'cowork.svg': coworkSvg,
@@ -82,6 +91,41 @@ const AssistantManagement: React.FC<AssistantManagementProps> = ({ message }) =>
   });
 
   const editAvatarImage = resolveAvatarImageSrc(editor.editAvatar, avatarImageMap);
+  const hasConsumedNavigationIntentRef = useRef(false);
+
+  useEffect(() => {
+    if (hasConsumedNavigationIntentRef.current) return;
+    const openAssistantFromRoute =
+      navigationState?.openAssistantEditor && navigationState.openAssistantId ? navigationState.openAssistantId : null;
+
+    let openAssistantFromSession: string | null = null;
+    try {
+      const rawIntent = sessionStorage.getItem(OPEN_ASSISTANT_EDITOR_INTENT_KEY);
+      if (rawIntent) {
+        const parsedIntent = JSON.parse(rawIntent) as { assistantId?: string; openAssistantEditor?: boolean };
+        if (parsedIntent.openAssistantEditor && parsedIntent.assistantId) {
+          openAssistantFromSession = parsedIntent.assistantId;
+        }
+      }
+    } catch (error) {
+      console.error('[AssistantManagement] Failed to parse assistant open intent:', error);
+    }
+
+    const targetAssistantId = openAssistantFromRoute ?? openAssistantFromSession;
+    if (!targetAssistantId) return;
+    if (assistants.length === 0) return;
+
+    const targetAssistant = assistants.find((assistant) => assistant.id === targetAssistantId);
+    if (!targetAssistant) return;
+
+    hasConsumedNavigationIntentRef.current = true;
+    try {
+      sessionStorage.removeItem(OPEN_ASSISTANT_EDITOR_INTENT_KEY);
+    } catch (error) {
+      console.error('[AssistantManagement] Failed to clear assistant open intent:', error);
+    }
+    void editor.handleEdit(targetAssistant);
+  }, [assistants, editor, navigationState]);
 
   return (
     <div>

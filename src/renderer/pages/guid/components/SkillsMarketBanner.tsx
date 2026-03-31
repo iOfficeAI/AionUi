@@ -73,51 +73,30 @@ const SkillsMarketBanner: React.FC = () => {
     }
   }, [i18n.language]);
 
+  const [hovered, setHovered] = useState(false);
+
   if (!initialized) return null;
 
   return (
     <div
-      className={enabled ? 'absolute right-8px z-10' : 'absolute right-12px z-10'}
-      style={{
-        top: enabled ? 'calc(8px + env(safe-area-inset-top, 0px))' : 'calc(12px + env(safe-area-inset-top, 0px))',
-      }}
+      className='absolute right-12px z-10'
+      style={{ top: 'calc(12px + env(safe-area-inset-top, 0px))' }}
+      onMouseEnter={() => setHovered(true)}
+      onMouseLeave={() => setHovered(false)}
     >
       <div
-        className={
-          enabled
-            ? 'flex items-center transition-all duration-300 gap-8px rd-8px px-10px py-6px max-w-300px border border-solid'
-            : 'flex items-center border border-solid border-[var(--color-border-2)] bg-fill-0 transition-all duration-300 gap-12px rd-10px px-16px py-10px max-w-280px'
-        }
-        style={
-          enabled
-            ? {
-                backgroundColor: 'color-mix(in srgb, var(--color-bg-2) 45%, transparent)',
-                borderColor: 'var(--color-border-1)',
-              }
-            : undefined
-        }
+        className='flex items-center border border-solid border-[var(--color-border-2)] bg-fill-0 transition-all duration-300 gap-8px rd-10px overflow-hidden'
+        style={{
+          padding: hovered ? '10px 16px' : '6px 10px',
+          maxWidth: hovered ? '300px' : '220px',
+        }}
       >
-        <div className={enabled ? 'flex flex-1 min-w-0 items-center gap-6px' : 'flex-1 min-w-0'}>
-          <div
-            className={
-              enabled
-                ? 'text-13px font-medium text-[var(--color-text-1)] whitespace-nowrap'
-                : 'text-14px font-medium text-[var(--color-text-1)] whitespace-nowrap'
-            }
-          >
+        <div className='flex-1 min-w-0'>
+          <div className='text-13px font-medium text-[var(--color-text-1)] whitespace-nowrap'>
             {t('conversation.welcome.skillsMarket')}
           </div>
-          {enabled ? (
-            <Tooltip content={t('conversation.welcome.skillsMarketDesc')}>
-              <span
-                className='text-11px text-brand hover:text-brand-hover font-semibold cursor-pointer hover:underline shrink-0 transition-colors'
-                onClick={handleOpenDetails}
-              >
-                {t('conversation.welcome.skillsMarketDetails')}
-              </span>
-            </Tooltip>
-          ) : (
-            <div className='text-12px text-[var(--color-text-3)] mt-2px leading-tight'>
+          {hovered && (
+            <div className='text-12px text-[var(--color-text-3)] mt-2px leading-tight animate-fade-in'>
               {t('conversation.welcome.skillsMarketDesc')}{' '}
               <span
                 className='text-brand hover:text-brand-hover font-semibold cursor-pointer hover:underline transition-colors'

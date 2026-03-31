@@ -395,19 +395,8 @@ const AddPlatformModal = ModalHOC<{
       cancelText={t('common.cancel')}
     >
       {messageContext}
-      <div className='flex flex-col gap-12px pt-8px pb-20px'>
-        <div
-          className='rd-8px px-12px py-8px text-12px leading-5 border border-solid'
-          style={{
-            borderColor: 'rgba(var(--primary-6),0.32)',
-            backgroundColor: 'rgba(var(--primary-6),0.08)',
-            color: 'rgb(var(--primary-6))',
-          }}
-        >
-          {t('settings.customModelSupportNote')}
-        </div>
-
-        <Form form={form} layout='vertical' className='space-y-0'>
+      <div className='pt-4px pb-12px'>
+        <Form form={form} layout='vertical' className='[&_.arco-form-item]:mb-12px [&_.arco-form-item:last-child]:mb-0'>
           {/* 模型平台选择（第一层）/ Model Platform Selection (first level) */}
           <Form.Item
             initialValue='gemini'

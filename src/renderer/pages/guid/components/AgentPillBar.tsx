@@ -116,8 +116,8 @@ const AgentPillBar: React.FC<AgentPillBarProps> = ({
         <Tooltip content={t('settings.agentManagement.connectRemoteAgent')}>
           <div
             className='flex items-center justify-center cursor-pointer p-4px opacity-60 hover:opacity-100 self-center'
-            style={{ transition: 'opacity 0.2s ease', flexShrink: 0, marginTop: 2 }}
-            onClick={() => navigate('/settings/agent')}
+            style={{ transition: 'opacity 0.2s ease', flexShrink: 0, marginTop: 4 }}
+            onClick={() => navigate('/settings/agent?tab=remote')}
           >
             <Plus theme='outline' size={20} fill='currentColor' style={{ flexShrink: 0 }} />
           </div>
