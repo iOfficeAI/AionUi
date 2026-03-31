@@ -12,6 +12,7 @@ import { useLayoutContext } from '@renderer/hooks/context/LayoutContext';
 import { blurActiveElement } from '@renderer/utils/ui/focus';
 import { useThemeContext } from '@renderer/hooks/context/ThemeContext';
 import ConversationSearchPopover from '@renderer/pages/conversation/GroupedHistory/ConversationSearchPopover';
+import styles from './Sider.module.css';
 
 const WorkspaceGroupedHistory = React.lazy(() => import('@renderer/pages/conversation/GroupedHistory'));
 const SettingsSider = React.lazy(() => import('@renderer/pages/settings/components/SettingsSider'));
@@ -96,6 +97,7 @@ const Sider: React.FC<SiderProps> = ({ onSessionClick, collapsed = false }) => {
                 <Tooltip {...siderTooltipProps} content={t('conversation.welcome.newConversation')} position='right'>
                   <div
                     className={classNames(
+                      styles.newChatTrigger,
                       'h-40px flex items-center rd-0.5rem cursor-pointer group transition-all bg-transparent text-t-primary hover:bg-fill-3 active:bg-fill-4',
                       collapsed ? 'w-40px justify-center gap-0 px-0' : 'flex-1 justify-start gap-10px px-12px',
                       isMobile && 'sider-action-btn-mobile'
@@ -119,7 +121,7 @@ const Sider: React.FC<SiderProps> = ({ onSessionClick, collapsed = false }) => {
                         theme='outline'
                         size='24'
                         fill='currentColor'
-                        className='block leading-none shrink-0'
+                        className={classNames(styles.newChatIcon, 'block leading-none shrink-0 origin-center')}
                         style={{ lineHeight: 0 }}
                       />
                     ) : (
@@ -128,7 +130,7 @@ const Sider: React.FC<SiderProps> = ({ onSessionClick, collapsed = false }) => {
                           theme='outline'
                           size='22'
                           fill='currentColor'
-                          className='block leading-none'
+                          className={classNames(styles.newChatIcon, 'block leading-none origin-center')}
                           style={{ lineHeight: 0 }}
                         />
                       </div>

@@ -1,0 +1,29 @@
+/* GPU-friendly: transform applies to the + SVG only (see Sider.tsx), not the padded row or icon frame */
+
+.newChatTrigger {
+  position: relative;
+}
+
+.newChatIcon {
+  transform: translateZ(0);
+  transition: transform 0.14s cubic-bezier(0.33, 1, 0.68, 1);
+}
+
+.newChatTrigger:hover .newChatIcon {
+  transform: scale(0.92) translateZ(0);
+}
+
+.newChatTrigger:active .newChatIcon {
+  transform: scale(0.84) translateZ(0);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .newChatIcon {
+    transition: none;
+  }
+
+  .newChatTrigger:hover .newChatIcon,
+  .newChatTrigger:active .newChatIcon {
+    transform: translateZ(0);
+  }
+}
