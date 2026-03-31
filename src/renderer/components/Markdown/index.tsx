@@ -17,12 +17,18 @@ import 'katex/dist/katex.min.css';
 
 import { openExternalUrl } from '@/renderer/utils/platform';
 import classNames from 'classnames';
-import React, { useMemo } from 'react';
+import React, { useCallback, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import { convertLatexDelimiters } from '@renderer/utils/chat/latexDelimiters';
 import LocalImageView from '@renderer/components/media/LocalImageView';
 import CodeBlock from './CodeBlock';
 import ShadowView from './ShadowView';
+
+const isLocalFilePath = (src: string): boolean => {
+  if (src.startsWith('http://') || src.startsWith('https://')) return false;
+  if (src.startsWith('data:')) return false;
+  return true;
+};
 
 type MarkdownViewProps = {
   children: string;
@@ -53,15 +59,81 @@ const MarkdownView: React.FC<MarkdownViewProps> = ({
     return childrenProp;
   }, [childrenProp]);
 
-  const isLocalFilePath = (src: string): boolean => {
-    if (src.startsWith('http://') || src.startsWith('https://')) {
-      return false;
-    }
-    if (src.startsWith('data:')) {
-      return false;
-    }
-    return true;
-  };
+  const handleLinkClick = useCallback(
+    (e: React.MouseEvent<HTMLAnchorElement>) => {
+      e.preventDefault();
+      e.stopPropagation();
+      const href = (e.currentTarget as HTMLAnchorElement).href;
+      if (!href) return;
+      openExternalUrl(href).catch((error: unknown) => {
+        console.error(t('messages.openLinkFailed'), error);
+      });
+    },
+    [t]
+  );
+
+  // Memoize components so React preserves component identity across re-renders.
+  // Without this, every streaming update creates new function references → React
+  // unmounts/remounts all custom components → hooks & DOM state are lost.
+  const components = useMemo(
+    () => ({
+      span: ({ node: _node, className: cn, children: ch, ...rest }: Record<string, unknown>) => (
+        <span {...(rest as React.HTMLAttributes<HTMLSpanElement>)} className={cn as string}>
+          {ch as React.ReactNode}
+        </span>
+      ),
+      code: (props: Record<string, unknown>) => (
+        <CodeBlock
+          {...(props as Parameters<typeof CodeBlock>[0])}
+          codeStyle={codeStyle}
+          hiddenCodeCopyButton={hiddenCodeCopyButton}
+        />
+      ),
+      a: ({ node: _node, ...rest }: Record<string, unknown>) => (
+        <a
+          {...(rest as React.AnchorHTMLAttributes<HTMLAnchorElement>)}
+          target='_blank'
+          rel='noreferrer'
+          onClick={handleLinkClick}
+        />
+      ),
+      table: ({ node: _node, ...rest }: Record<string, unknown>) => (
+        <div style={{ overflowX: 'auto', maxWidth: '100%' }}>
+          <table
+            {...(rest as React.TableHTMLAttributes<HTMLTableElement>)}
+            style={{
+              ...(rest as { style?: React.CSSProperties }).style,
+              borderCollapse: 'collapse',
+              border: '1px solid var(--bg-3)',
+              minWidth: '100%',
+            }}
+          />
+        </div>
+      ),
+      td: ({ node: _node, ...rest }: Record<string, unknown>) => (
+        <td
+          {...(rest as React.TdHTMLAttributes<HTMLTableCellElement>)}
+          style={{
+            ...(rest as { style?: React.CSSProperties }).style,
+            padding: '8px',
+            border: '1px solid var(--bg-3)',
+            minWidth: '120px',
+          }}
+        />
+      ),
+      img: ({ node: _node, ...rest }: Record<string, unknown>) => {
+        const imgProps = rest as React.ImgHTMLAttributes<HTMLImageElement>;
+        if (isLocalFilePath(imgProps.src || '')) {
+          const src = decodeURIComponent(imgProps.src || '');
+          return <LocalImageView src={src} alt={imgProps.alt || ''} className={imgProps.className} />;
+        }
+        return <img {...imgProps} />;
+      },
+    }),
+    [codeStyle, hiddenCodeCopyButton, handleLinkClick]
+  );
+
+  const rehypePlugins = useMemo(() => (allowHtml ? [rehypeRaw, rehypeKatex] : [rehypeKatex]), [allowHtml]);
 
   return (
     <div className={classNames('relative w-full', className)}>
@@ -69,64 +141,8 @@ const MarkdownView: React.FC<MarkdownViewProps> = ({
         <div ref={onRef} className='markdown-shadow-body'>
           <ReactMarkdown
             remarkPlugins={[remarkGfm, remarkMath, remarkBreaks]}
-            rehypePlugins={allowHtml ? [rehypeRaw, rehypeKatex] : [rehypeKatex]}
-            components={{
-              span: ({ node: _node, className, children, ...props }) => {
-                return (
-                  <span {...props} className={className}>
-                    {children}
-                  </span>
-                );
-              },
-              code: (props: Record<string, unknown>) =>
-                CodeBlock({ ...(props as Parameters<typeof CodeBlock>[0]), codeStyle, hiddenCodeCopyButton }),
-              a: ({ node: _node, ...props }) => (
-                <a
-                  {...props}
-                  target='_blank'
-                  rel='noreferrer'
-                  onClick={(e) => {
-                    e.preventDefault();
-                    e.stopPropagation();
-                    if (!props.href) return;
-                    openExternalUrl(props.href).catch((error: unknown) => {
-                      console.error(t('messages.openLinkFailed'), error);
-                    });
-                  }}
-                />
-              ),
-              table: ({ node: _node, ...props }) => (
-                <div style={{ overflowX: 'auto', maxWidth: '100%' }}>
-                  <table
-                    {...props}
-                    style={{
-                      ...props.style,
-                      borderCollapse: 'collapse',
-                      border: '1px solid var(--bg-3)',
-                      minWidth: '100%',
-                    }}
-                  />
-                </div>
-              ),
-              td: ({ node: _node, ...props }) => (
-                <td
-                  {...props}
-                  style={{
-                    ...props.style,
-                    padding: '8px',
-                    border: '1px solid var(--bg-3)',
-                    minWidth: '120px',
-                  }}
-                />
-              ),
-              img: ({ node: _node, ...props }) => {
-                if (isLocalFilePath(props.src || '')) {
-                  const src = decodeURIComponent(props.src || '');
-                  return <LocalImageView src={src} alt={props.alt || ''} className={props.className} />;
-                }
-                return <img {...props} />;
-              },
-            }}
+            rehypePlugins={rehypePlugins}
+            components={components}
           >
             {normalizedChildren}
           </ReactMarkdown>

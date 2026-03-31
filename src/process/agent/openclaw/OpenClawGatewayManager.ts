@@ -56,9 +56,16 @@ export class OpenClawGatewayManager extends EventEmitter {
     this.customEnv = config.customEnv;
   }
 
-  private resolveCommandPath(cmd: string, envPath?: string): string {
-    // Absolute/relative paths: use as-is.
-    if (cmd.includes('/') || cmd.includes('\\')) return cmd;
+  private resolveCommandPath(cmd: string, envPath?: string): string | null {
+    // Absolute/relative paths: verify they exist.
+    if (cmd.includes('/') || cmd.includes('\\')) {
+      try {
+        fs.accessSync(cmd, fs.constants.X_OK);
+        return cmd;
+      } catch {
+        return null;
+      }
+    }
     const p = envPath || process.env.PATH || '';
     const sep = process.platform === 'win32' ? ';' : ':';
     for (const dir of p.split(sep)) {
@@ -71,7 +78,7 @@ export class OpenClawGatewayManager extends EventEmitter {
         // continue
       }
     }
-    return cmd;
+    return null;
   }
 
   private parseNodeVersion(raw: string): { major: number; minor: number; patch: number } | null {
@@ -183,6 +190,15 @@ export class OpenClawGatewayManager extends EventEmitter {
       const isWindows = process.platform === 'win32';
 
       const resolvedCli = this.resolveCommandPath(this.cliPath, env.PATH);
+      if (!resolvedCli) {
+        reject(
+          new Error(
+            `[OpenClawGatewayManager] CLI not found: "${this.cliPath}". ` +
+              'Please install openclaw or set the correct cliPath.'
+          )
+        );
+        return;
+      }
       const bestNode = this.findBestNodeBinary(env);
       const runViaNode = bestNode && this.shouldRunCliViaNode(resolvedCli);
 

@@ -9,9 +9,16 @@ import type { TMessage } from '@/common/chat/chatLib';
 import { transformMessage } from '@/common/chat/chatLib';
 import { uuid } from '@/common/utils';
 import SendBox from '@/renderer/components/chat/sendbox';
+import CommandQueuePanel from '@/renderer/components/chat/CommandQueuePanel';
 import { getSendBoxDraftHook, type FileOrFolderItem } from '@/renderer/hooks/chat/useSendBoxDraft';
 import { createSetUploadFile } from '@/renderer/hooks/chat/useSendBoxFiles';
-import { useAddOrUpdateMessage } from '@/renderer/pages/conversation/Messages/hooks';
+import { useAddOrUpdateMessage, useRemoveMessageByMsgId } from '@/renderer/pages/conversation/Messages/hooks';
+import {
+  shouldEnqueueConversationCommand,
+  useConversationCommandQueue,
+  type ConversationCommandQueueItem,
+} from '@/renderer/pages/conversation/platforms/useConversationCommandQueue';
+import { assertBridgeSuccess } from '@/renderer/pages/conversation/platforms/assertBridgeSuccess';
 import { allSupportedExts, type FileMetadata } from '@/renderer/services/FileService';
 import { emitter, useAddEventListener } from '@/renderer/utils/emitter';
 import { mergeFileSelectionItems } from '@/renderer/utils/file/fileSelection';
@@ -52,9 +59,11 @@ const NanobotSendBox: React.FC<{ conversation_id: string }> = ({ conversation_id
   const { checkAndUpdateTitle } = useAutoTitle();
   const slashCommands = useSlashCommands(conversation_id);
   const addOrUpdateMessage = useAddOrUpdateMessage();
+  const removeMessageByMsgId = useRemoveMessageByMsgId();
   const { setSendBoxHandler } = usePreviewContext();
 
   const [aiProcessing, setAiProcessing] = useState(false);
+  const [hasHydratedRunningState, setHasHydratedRunningState] = useState(false);
   const [thought, setThought] = useState<ThoughtData>({
     description: '',
     subject: '',
@@ -132,8 +141,25 @@ const NanobotSendBox: React.FC<{ conversation_id: string }> = ({ conversation_id
   const atPathRef = useLatestRef(atPath);
 
   useEffect(() => {
+    let cancelled = false;
+
     setAiProcessing(false);
+    setHasHydratedRunningState(false);
     setThought({ subject: '', description: '' });
+
+    void ipcBridge.conversation.get.invoke({ id: conversation_id }).then((res) => {
+      if (cancelled) {
+        return;
+      }
+
+      const isRunning = res?.status === 'running';
+      setAiProcessing(isRunning);
+      setHasHydratedRunningState(true);
+    });
+
+    return () => {
+      cancelled = true;
+    };
   }, [conversation_id]);
 
   useEffect(() => {
@@ -207,50 +233,75 @@ const NanobotSendBox: React.FC<{ conversation_id: string }> = ({ conversation_id
     }, 10);
   });
 
+  const executeCommand = useCallback(
+    async ({ input, files }: Pick<ConversationCommandQueueItem, 'input' | 'files'>) => {
+      const msg_id = uuid();
+      const displayMessage = buildDisplayMessage(input, files, workspacePath);
+
+      const userMessage: TMessage = {
+        id: msg_id,
+        msg_id,
+        conversation_id,
+        type: 'text',
+        position: 'right',
+        content: { content: displayMessage },
+        createdAt: Date.now(),
+      };
+      addOrUpdateMessage(userMessage, true);
+      setAiProcessing(true);
+      try {
+        void checkAndUpdateTitle(conversation_id, input);
+        const result = await ipcBridge.conversation.sendMessage.invoke({
+          input: displayMessage,
+          msg_id,
+          conversation_id,
+          files,
+        });
+        assertBridgeSuccess(result, 'Failed to send message to Nanobot');
+        emitter.emit('chat.history.refresh');
+      } catch (error) {
+        removeMessageByMsgId(msg_id);
+        setAiProcessing(false);
+        throw error;
+      }
+    },
+    [addOrUpdateMessage, checkAndUpdateTitle, conversation_id, removeMessageByMsgId, workspacePath]
+  );
+
+  const {
+    items,
+    isPaused: isQueuePaused,
+    isInteractionLocked: isQueueInteractionLocked,
+    hasPendingCommands,
+    enqueue,
+    update,
+    remove,
+    clear,
+    reorder,
+    pause,
+    resume,
+    lockInteraction,
+    unlockInteraction,
+    resetActiveExecution,
+  } = useConversationCommandQueue({
+    conversationId: conversation_id,
+    isBusy: aiProcessing,
+    isHydrated: hasHydratedRunningState,
+    onExecute: executeCommand,
+  });
+
   const onSendHandler = async (message: string) => {
-    const msg_id = uuid();
-    // Content is already cleared by the shared SendBox component (setInput(''))
-    // before calling onSend — no need to clear again here.
     emitter.emit('nanobot.selected.file.clear');
-    const currentAtPath = [...atPath];
-    const currentUploadFile = [...uploadFile];
+    const filePaths = [...uploadFile, ...atPath.map((item) => (typeof item === 'string' ? item : item.path))];
     setAtPath([]);
     setUploadFile([]);
 
-    const filePaths = [
-      ...currentUploadFile,
-      ...currentAtPath.map((item) => (typeof item === 'string' ? item : item.path)),
-    ];
-    const displayMessage = buildDisplayMessage(message, filePaths, workspacePath);
-
-    // Frontend adds user message directly — no reliance on backend user_content emission
-    const userMessage: TMessage = {
-      id: msg_id,
-      msg_id,
-      conversation_id,
-      type: 'text',
-      position: 'right',
-      content: { content: displayMessage },
-      createdAt: Date.now(),
-    };
-    // Reset AI reply for new turn
-    // 重置 AI 回复用于新一轮
-    addOrUpdateMessage(userMessage, true);
-    setAiProcessing(true);
-    try {
-      const atPathStrings = currentAtPath.map((item) => (typeof item === 'string' ? item : item.path));
-      await ipcBridge.conversation.sendMessage.invoke({
-        input: displayMessage,
-        msg_id,
-        conversation_id,
-        files: [...currentUploadFile, ...atPathStrings],
-      });
-      void checkAndUpdateTitle(conversation_id, message);
-      emitter.emit('chat.history.refresh');
-    } catch {
-      // Only reset on invoke failure; normal completion is handled by the 'finish' stream event
-      setAiProcessing(false);
+    if (shouldEnqueueConversationCommand({ isBusy: aiProcessing, hasPendingCommands })) {
+      enqueue({ input: message, files: filePaths });
+      return;
     }
+
+    await executeCommand({ input: message, files: filePaths });
   };
 
   const appendSelectedFiles = useCallback(
@@ -298,16 +349,17 @@ const NanobotSendBox: React.FC<{ conversation_id: string }> = ({ conversation_id
         // 重置 AI 回复用于新一轮
         addOrUpdateMessage(userMessage, true);
 
-        await ipcBridge.conversation.sendMessage.invoke({
+        void checkAndUpdateTitle(conversation_id, input);
+        const result = await ipcBridge.conversation.sendMessage.invoke({
           input: initialDisplayMessage,
           msg_id,
           conversation_id,
           files,
         });
-        void checkAndUpdateTitle(conversation_id, input);
+        assertBridgeSuccess(result, 'Failed to send initial message to Nanobot');
         emitter.emit('chat.history.refresh');
         sessionStorage.removeItem(storageKey);
-      } catch (err) {
+      } catch {
         sessionStorage.removeItem(processedKey);
         setAiProcessing(false);
       }
@@ -321,12 +373,26 @@ const NanobotSendBox: React.FC<{ conversation_id: string }> = ({ conversation_id
     } finally {
       setAiProcessing(false);
       setThought({ subject: '', description: '' });
+      resetActiveExecution('stop');
     }
   };
 
   return (
     <div className='max-w-800px w-full mx-auto flex flex-col mt-auto mb-16px'>
       <ThoughtDisplay thought={thought} running={aiProcessing} onStop={handleStop} />
+      <CommandQueuePanel
+        items={items}
+        paused={isQueuePaused}
+        interactionLocked={isQueueInteractionLocked}
+        onPause={pause}
+        onResume={resume}
+        onInteractionLock={lockInteraction}
+        onInteractionUnlock={unlockInteraction}
+        onUpdate={(commandId, input) => update(commandId, { input })}
+        onReorder={reorder}
+        onRemove={remove}
+        onClear={clear}
+      />
 
       <SendBox
         value={content}
@@ -409,6 +475,7 @@ const NanobotSendBox: React.FC<{ conversation_id: string }> = ({ conversation_id
         onSend={onSendHandler}
         slashCommands={slashCommands}
         onSlashBuiltinCommand={onSlashBuiltinCommand}
+        allowSendWhileLoading
       ></SendBox>
     </div>
   );

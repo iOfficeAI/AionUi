@@ -38,9 +38,19 @@ describe('transformMessage', () => {
   });
 
   it('returns undefined for transient message types', () => {
-    for (const type of ['start', 'finish', 'thought', 'system', 'acp_model_info', 'request_trace']) {
+    for (const type of ['start', 'finish', 'thought', 'info', 'system', 'acp_model_info', 'request_trace']) {
       expect(transformMessage(makeMessage(type))).toBeUndefined();
     }
+  });
+
+  it('does not warn for info messages', () => {
+    const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
+
+    const result = transformMessage(makeMessage('info', 'retrying'));
+
+    expect(result).toBeUndefined();
+    expect(warnSpy).not.toHaveBeenCalled();
+    warnSpy.mockRestore();
   });
 
   it('warns and returns undefined for unknown message types instead of throwing', () => {

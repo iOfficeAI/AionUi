@@ -95,21 +95,11 @@ This guard prevents running the full workflow (checkout, quality gate, commit) w
 
 ### Step 2 — Pre-flight Checks
 
-Run in parallel:
-
-```bash
-git status --porcelain
-```
-
 ```bash
 gh pr view <PR_NUMBER> \
   --json headRefName,baseRefName,state,isCrossRepository,maintainerCanModify,headRepositoryOwner \
   --jq '{head: .headRefName, base: .baseRefName, state: .state, isFork: .isCrossRepository, canModify: .maintainerCanModify, forkOwner: .headRepositoryOwner.login}'
 ```
-
-If working tree is dirty, abort with:
-
-> Working tree has uncommitted changes. Please commit or stash them before running pr-fix.
 
 Save `<head_branch>`, `<base_branch>`, `<state>`, `<IS_FORK>`, `<CAN_MODIFY>`, and `<FORK_OWNER>` for later steps.
 
@@ -132,47 +122,63 @@ Save `FIX_BRANCH=bot/fix-pr-<PR_NUMBER>` for use in Step 3 and Step 7.
 
 ---
 
-### Step 3 — Prepare Working Branch
+### Step 3 — Create Worktree and Prepare Branch
 
-Check out the existing head branch directly — no new branch needed.
+Create an isolated worktree for this PR fix. The main repo stays on its current branch.
+
+```bash
+REPO_ROOT=$(git rev-parse --show-toplevel)
+PR_NUMBER=<PR_NUMBER>
+WORKTREE_DIR="/tmp/aionui-pr-${PR_NUMBER}"
+
+# Clean up any stale worktree from a previous crash
+git worktree remove "$WORKTREE_DIR" --force 2>/dev/null || true
+```
 
 **Same-repo PR (`IS_FORK=false`):**
 
 ```bash
 git fetch origin <head_branch>
+git worktree add "$WORKTREE_DIR" origin/<head_branch>
+cd "$WORKTREE_DIR"
 git checkout <head_branch>
-git pull origin <head_branch>
 ```
 
 **Fork PR with maintainer access (`IS_FORK=true`, `CAN_MODIFY=true`):**
 
 ```bash
+git worktree add "$WORKTREE_DIR" --detach
+cd "$WORKTREE_DIR"
 gh pr checkout <PR_NUMBER>
 ```
 
-`gh pr checkout` automatically adds the fork as a named remote (e.g. `<FORK_OWNER>`) and sets the local branch tracking to the fork's branch. Do NOT run `git fetch/pull origin <head_branch>` beforehand — that would create a same-name branch in the main repo and contaminate the tracking setup.
+`gh pr checkout` inside the worktree sets up the fork remote and branch tracking correctly.
 
-Fixes will be committed directly onto this branch, and the open PR will update automatically.
-
-**Fork PR without maintainer access (`IS_FORK=true`, `CAN_MODIFY=false`, `FORK_FALLBACK=true`):**
-
-Cannot push to the fork. Create a new fix branch on the main repo based on the PR's current head:
+**Fork PR without maintainer access (`FORK_FALLBACK=true`):**
 
 ```bash
-BASE_REF=$(gh pr view <PR_NUMBER> --json baseRefName --jq '.baseRefName')
-git fetch origin ${BASE_REF}
-git checkout -b bot/fix-pr-<PR_NUMBER> origin/${BASE_REF}
-# Cherry-pick the PR's commits so the fix starts from the same code
+git fetch origin <base_branch>
+git worktree add "$WORKTREE_DIR" -b bot/fix-pr-<PR_NUMBER> origin/<base_branch>
+cd "$WORKTREE_DIR"
+# Merge PR's commits into the fix branch
 gh pr checkout <PR_NUMBER> --detach
 git checkout bot/fix-pr-<PR_NUMBER>
 git merge --no-ff --no-edit FETCH_HEAD
 ```
 
-Fixes will be committed onto `bot/fix-pr-<PR_NUMBER>` and a new PR will be opened in Step 7.
+After creating the worktree (all three paths), symlink `node_modules` so lint/tsc/test can run:
+
+```bash
+ln -s "$REPO_ROOT/node_modules" "$WORKTREE_DIR/node_modules"
+```
+
+Save `REPO_ROOT` and `WORKTREE_DIR` for later steps. All file reads, edits, lint, and test commands from this point forward run inside `WORKTREE_DIR`.
 
 ---
 
 ### Step 4 — Fix Issues by Priority
+
+All file operations in this step use worktree paths. The Read tool should target `$WORKTREE_DIR/<relative_path>`, and the Edit tool should modify files at the same worktree paths.
 
 Process issues CRITICAL → HIGH → MEDIUM only. Skip LOW. For each issue:
 
@@ -192,6 +198,8 @@ Resolve any type errors before moving to the next issue.
 ---
 
 ### Step 5 — Full Quality Gate
+
+All commands run inside the worktree (`$WORKTREE_DIR`):
 
 ```bash
 bun run lint:fix
@@ -225,12 +233,14 @@ Review follow-up for #<PR_NUMBER>
 **Same-repo PR (`IS_FORK=false`):**
 
 ```bash
+cd "$WORKTREE_DIR"
 git push origin <head_branch>
 ```
 
 **Fork PR with maintainer access (`IS_FORK=true`, `CAN_MODIFY=true`):**
 
 ```bash
+cd "$WORKTREE_DIR"
 git push <FORK_OWNER> HEAD:<head_branch>
 ```
 
@@ -245,6 +255,7 @@ Output to user:
 Push the fix branch to the main repo and open a new PR:
 
 ```bash
+cd "$WORKTREE_DIR"
 git push origin bot/fix-pr-<PR_NUMBER>
 ```
 
@@ -317,6 +328,17 @@ After posting, output the same verification table in the conversation for immedi
 
 ---
 
+### Step 9 — Cleanup
+
+Remove the worktree. The main repo was never touched.
+
+```bash
+cd "$REPO_ROOT"
+git worktree remove "$WORKTREE_DIR" --force 2>/dev/null || true
+```
+
+---
+
 ## Mandatory Rules
 
 - **No AI signature** — no `Co-Authored-By`, `Generated with`, or any AI byline
@@ -330,20 +352,17 @@ After posting, output the same verification table in the conversation for immedi
 
 ```
 0. Require pr-review report in current session — abort if not found
-1. Parse 汇总 table → ordered issue list
-2. Pre-flight: clean working tree + fetch PR info (state, isCrossRepository, maintainerCanModify, forkOwner)
+1. Parse summary table → ordered issue list
+2. Pre-flight: fetch PR info (state, isCrossRepository, maintainerCanModify, forkOwner)
    → ABORT: state=MERGED
-   → same-repo: push to original branch
-   → fork + canModify=true: push to fork branch via gh checkout
-   → fork + canModify=false: FORK_FALLBACK — create bot/fix-pr-N branch on main repo
-3. same-repo:        git fetch/checkout/pull origin <head_branch>
-   fork+canModify:   gh pr checkout <PR_NUMBER>
-   fork+fallback:    git checkout -b bot/fix-pr-N origin/<BASE_REF>, then merge fork head
+3. Create worktree at /tmp/aionui-pr-<PR_NUMBER>:
+   → same-repo:        git fetch + git worktree add + checkout <head_branch>
+   → fork+canModify:   git worktree add --detach + gh pr checkout <PR_NUMBER>
+   → fork+fallback:    git worktree add -b bot/fix-pr-N + merge fork head
 4. Fix issues CRITICAL→HIGH→MEDIUM only (skip LOW); bunx tsc --noEmit after each file batch
-5. bun run lint:fix && bun run format && bunx tsc --noEmit && bun run test
+5. bun run lint:fix && bun run format && bunx tsc --noEmit && bun run test (in worktree)
 6. Commit: fix(<scope>): address review issues from PR #N
-7. same-repo:        git push origin <head_branch>
-   fork+canModify:   git push <FORK_OWNER> HEAD:<head_branch>
-   fork+fallback:    git push origin bot/fix-pr-N → gh pr create → comment on original PR
+7. Push from worktree (same-repo / fork+canModify / fork+fallback)
 8. Verify → post as gh pr comment PR_NUMBER + output in conversation
+9. Cleanup: git worktree remove /tmp/aionui-pr-<PR_NUMBER>
 ```

@@ -512,19 +512,16 @@ body {
 
 .arco-modal,
 .arco-dropdown-menu,
-.arco-select-popup,
-.arco-trigger-popup {
+.arco-select-popup {
   background: var(--horizon-surface) !important;
   border-radius: 20px !important;
   border: 1px solid var(--border-base) !important;
   box-shadow: var(--horizon-shadow-soft) !important;
-  overflow: hidden !important;
 }
 
 [data-theme='dark'] .arco-modal,
 [data-theme='dark'] .arco-dropdown-menu,
-[data-theme='dark'] .arco-select-popup,
-[data-theme='dark'] .arco-trigger-popup {
+[data-theme='dark'] .arco-select-popup {
   background: var(--horizon-surface-soft) !important;
   box-shadow: var(--horizon-shadow-soft) !important;
 }
@@ -830,12 +827,20 @@ body {
 .arco-dropdown-menu {
   padding: 0 !important;
   border-radius: 14px !important;
-  overflow: hidden !important;
+  max-height: min(40vh, 220px) !important;
+  overflow-x: hidden !important;
+  overflow-y: auto !important;
+  overscroll-behavior: contain !important;
+  -webkit-overflow-scrolling: touch;
 }
 
-.arco-dropdown-menu-inner {
+.arco-select-popup .arco-select-popup-inner {
   border-radius: inherit !important;
-  overflow: hidden !important;
+  max-height: min(40vh, 220px) !important;
+  overflow-x: hidden !important;
+  overflow-y: auto !important;
+  overscroll-behavior: contain !important;
+  -webkit-overflow-scrolling: touch;
 }
 
 .arco-dropdown-menu-item {

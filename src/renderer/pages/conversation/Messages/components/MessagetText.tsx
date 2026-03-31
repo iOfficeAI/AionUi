@@ -10,7 +10,7 @@ import { iconColors } from '@/renderer/styles/colors';
 import { Alert, Message, Tooltip } from '@arco-design/web-react';
 import { Copy } from '@icon-park/react';
 import classNames from 'classnames';
-import React, { useMemo, useState } from 'react';
+import React, { useCallback, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { copyText } from '@/renderer/utils/ui/clipboard';
 import CollapsibleContent from '@renderer/components/chat/CollapsibleContent';
@@ -99,6 +99,26 @@ const MessageText: React.FC<{ message: IMessageText }> = ({ message }) => {
     </Tooltip>
   );
 
+  const formatTime = useCallback((timestamp: number) => {
+    const date = new Date(timestamp);
+    const now = new Date();
+    const hours = date.getHours().toString().padStart(2, '0');
+    const minutes = date.getMinutes().toString().padStart(2, '0');
+    const time = `${hours}:${minutes}`;
+
+    // If not today, prepend the date
+    if (
+      date.getFullYear() !== now.getFullYear() ||
+      date.getMonth() !== now.getMonth() ||
+      date.getDate() !== now.getDate()
+    ) {
+      const month = (date.getMonth() + 1).toString().padStart(2, '0');
+      const day = date.getDate().toString().padStart(2, '0');
+      return `${month}-${day} ${time}`;
+    }
+    return time;
+  }, []);
+
   const cronMeta = message.content.cronMeta;
 
   return (
@@ -139,12 +159,16 @@ const MessageText: React.FC<{ message: IMessageText }> = ({ message }) => {
           )}
         </div>
         <div
-          className={classNames('h-32px flex items-center mt-4px', {
-            'justify-end': isUserMessage,
-            'justify-start': !isUserMessage,
+          className={classNames('h-32px flex items-center mt-4px gap-8px', {
+            'flex-row-reverse': isUserMessage,
           })}
         >
           {copyButton}
+          {message.createdAt && (
+            <span className='text-12px c-text-4 opacity-0 group-hover:opacity-100 transition-opacity select-none'>
+              {formatTime(message.createdAt)}
+            </span>
+          )}
         </div>
       </div>
       {showCopyAlert && (

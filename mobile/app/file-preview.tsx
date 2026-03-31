@@ -11,6 +11,7 @@ import {
 import { useLocalSearchParams, useNavigation } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { Ionicons } from '@expo/vector-icons';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { ThemedText } from '../src/components/ui/ThemedText';
 import { MarkdownContent } from '../src/components/chat/MarkdownContent';
 import { bridge } from '../src/services/bridge';
@@ -74,6 +75,7 @@ export default function FilePreviewScreen() {
   const bg = useThemeColor({}, 'background');
   const textColor = useThemeColor({}, 'text');
   const { width: screenWidth } = useWindowDimensions();
+  const insets = useSafeAreaInsets();
 
   const [content, setContent] = useState<string | null>(null);
   const [imageUri, setImageUri] = useState<string | null>(null);
@@ -164,7 +166,7 @@ export default function FilePreviewScreen() {
     return (
       <ScrollView
         style={{ backgroundColor: bg }}
-        contentContainerStyle={styles.imageContainer}
+        contentContainerStyle={[styles.imageContainer, { paddingBottom: insets.bottom }]}
         maximumZoomScale={3}
         minimumZoomScale={1}
       >
@@ -177,7 +179,7 @@ export default function FilePreviewScreen() {
   const renderedContent = contentType === 'markdown' ? content! : `\`\`\`${language}\n${content}\n\`\`\``;
 
   return (
-    <ScrollView style={{ backgroundColor: bg }} contentContainerStyle={styles.textContainer}>
+    <ScrollView style={{ backgroundColor: bg }} contentContainerStyle={[styles.textContainer, { paddingBottom: 16 + insets.bottom }]}>
       <MarkdownContent content={renderedContent} />
     </ScrollView>
   );

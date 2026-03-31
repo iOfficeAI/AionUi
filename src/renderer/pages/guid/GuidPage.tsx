@@ -528,6 +528,7 @@ const GuidPage: React.FC = () => {
             onRegisterOpenDetails={(openDetails) => {
               openAssistantDetailsRef.current = openDetails;
             }}
+            onPresetAgentTypeSwitched={agentSelection.refreshCustomAgents}
           />
         </div>
 

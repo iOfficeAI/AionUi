@@ -178,10 +178,8 @@ describe('useAutoScroll - scroll to bottom on message send (#977)', () => {
       initialProps: { messages: [], itemCount: 0 },
     });
 
-    // When at bottom and not user-scrolled, should return 'auto'
+    // When not user-scrolled, should return 'auto' regardless of isAtBottom
     expect(result.current.handleFollowOutput(true)).toBe('auto');
-
-    // When not at bottom, should return false
-    expect(result.current.handleFollowOutput(false)).toBe(false);
+    expect(result.current.handleFollowOutput(false)).toBe('auto');
   });
 });

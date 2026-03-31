@@ -338,8 +338,16 @@ export function initFsBridge(): void {
   });
 
   // 读取文件内容（UTF-8编码）/ Read file content (UTF-8 encoding)
+  // V8 string length limit is ~512MB; guard against RangeError on oversized files
+  const MAX_READ_FILE_SIZE = 256 * 1024 * 1024; // 256 MB
+
   ipcBridge.fs.readFile.provider(async ({ path: filePath }) => {
     try {
+      const stat = await fs.stat(filePath);
+      if (stat.size > MAX_READ_FILE_SIZE) {
+        console.warn(`[fsBridge] File too large to read as text (${stat.size} bytes): ${filePath}`);
+        return null;
+      }
       const content = await fs.readFile(filePath, 'utf-8');
       return content;
     } catch (error) {

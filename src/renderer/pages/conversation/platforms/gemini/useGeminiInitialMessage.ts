@@ -3,6 +3,7 @@ import { uuid } from '@/common/utils';
 import { useAutoTitle } from '@/renderer/hooks/chat/useAutoTitle';
 import { useLatestRef } from '@/renderer/hooks/ui/useLatestRef';
 import { useAddOrUpdateMessage } from '@/renderer/pages/conversation/Messages/hooks';
+import { assertBridgeSuccess } from '@/renderer/pages/conversation/platforms/assertBridgeSuccess';
 import { emitter } from '@/renderer/utils/emitter';
 import { useEffect } from 'react';
 
@@ -90,14 +91,15 @@ export const useGeminiInitialMessage = ({
         );
 
         // Send message to backend
-        await ipcBridge.geminiConversation.sendMessage.invoke({
+        void checkAndUpdateTitle(conversationId, input);
+        const result = await ipcBridge.geminiConversation.sendMessage.invoke({
           input,
           msg_id,
           conversation_id: conversationId,
           files: files || [],
         });
+        assertBridgeSuccess(result, 'Failed to send initial message to Gemini');
 
-        void checkAndUpdateTitle(conversationId, input);
         emitter.emit('chat.history.refresh');
         if (files && files.length > 0) {
           emitter.emit('gemini.workspace.refresh');

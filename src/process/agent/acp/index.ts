@@ -628,6 +628,7 @@ export class AcpAgent {
       });
 
       this.adapter.resetMessageTracking();
+      this.adapter.resetPlanTracking();
       let processedContent = data.content;
 
       // Add @ prefix to ALL uploaded files (including images) with FULL PATH
@@ -1127,12 +1128,15 @@ export class AcpAgent {
         return;
       }
 
+      // Allow users up to 30 minutes to respond to permission prompts.
+      // The previous 70-second timeout caused auto-rejections when users
+      // stepped away briefly, leading to "internal error" on return.
       setTimeout(() => {
         if (this.pendingPermissions.has(requestId)) {
           this.pendingPermissions.delete(requestId);
           reject(new Error('Permission request timed out'));
         }
-      }, 70000);
+      }, 1800000);
     });
   }
 
@@ -1378,7 +1382,6 @@ export class AcpAgent {
         // Distinguish between thought messages and error messages
         if (message.content.type === 'warning' && message.position === 'center') {
           const subject = this.extractThoughtSubject(message.content.content);
-
           responseMessage.type = 'thought';
           responseMessage.data = {
             subject,

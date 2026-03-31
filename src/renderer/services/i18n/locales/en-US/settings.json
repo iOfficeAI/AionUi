@@ -258,6 +258,9 @@
   "webui.confirmPasswordRequired": "Please confirm new password",
   "webui.passwordMinLength": "Password must be at least 8 characters",
   "webui.passwordMismatch": "Passwords do not match",
+  "webui.passwordTooShort": "Password must be at least 8 characters long",
+  "webui.passwordTooLong": "Password must be less than 128 characters long",
+  "webui.passwordTooCommon": "Password is too common, please choose a stronger one",
   "webui.passwordChanged": "Password changed successfully",
   "webui.passwordChangeFailed": "Failed to change password",
   "webui.usernameChanged": "Username updated successfully",
@@ -470,7 +473,9 @@
     "disabledHint": "CDP is currently disabled.",
     "restartRequired": "CDP startup setting changed. Restart is required to apply.",
     "configSaved": "CDP config saved",
-    "configFailed": "Failed to save CDP config"
+    "configFailed": "Failed to save CDP config",
+    "playwrightMcpConfig": "Playwright MCP Configuration",
+    "playwrightMcpConfigHint": "Use Playwright MCP to connect via CDP endpoint, with accessibility snapshots and browser automation."
   },
   "mcpNoDescription": "No description",
   "mcpAuthRequired": "Authentication required",

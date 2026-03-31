@@ -4,7 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 
 // ---------------------------------------------------------------------------
 // Hoisted mocks
@@ -83,6 +83,12 @@ const capturedConnCallbacks = vi.hoisted(
     }) as Record<string, ((...args: unknown[]) => void) | null>
 );
 
+const mockWebSocketState = vi.hoisted(() => ({
+  lastUrl: '',
+  lastOptions: undefined as Record<string, unknown> | undefined,
+  throwOnUrl: undefined as string | undefined,
+}));
+
 vi.mock('../../src/process/agent/openclaw/OpenClawGatewayConnection', () => ({
   OpenClawGatewayConnection: class {
     start = vi.fn();
@@ -101,7 +107,13 @@ vi.mock('../../src/process/agent/openclaw/OpenClawGatewayConnection', () => ({
 vi.mock('ws', () => ({
   default: class MockWebSocket {
     private handlers = new Map<string, (arg: unknown) => void>();
-    constructor() {
+    constructor(url: string, options?: Record<string, unknown>) {
+      mockWebSocketState.lastUrl = url;
+      mockWebSocketState.lastOptions = options;
+      if (mockWebSocketState.throwOnUrl && url.includes(mockWebSocketState.throwOnUrl)) {
+        throw new SyntaxError('Invalid URL');
+      }
+
       // Simulate successful connection after a tick
       setTimeout(() => this.handlers.get('open')?.(undefined), 0);
     }
@@ -122,6 +134,9 @@ describe('remoteAgentBridge', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     providerMap.clear();
+    mockWebSocketState.lastUrl = '';
+    mockWebSocketState.lastOptions = undefined;
+    mockWebSocketState.throwOnUrl = undefined;
     initRemoteAgentBridge();
   });
 
@@ -131,6 +146,13 @@ describe('remoteAgentBridge', () => {
       const result = await handler();
       expect(mockDb.getRemoteAgents).toHaveBeenCalled();
       expect(result).toEqual([expect.objectContaining({ id: 'a1', name: 'Agent1' })]);
+    });
+
+    it('returns empty array when getRemoteAgents returns [] (e.g. missing table)', async () => {
+      mockDb.getRemoteAgents.mockReturnValueOnce([]);
+      const handler = providerMap.get('list')!;
+      const result = await handler();
+      expect(result).toEqual([]);
     });
   });
 
@@ -145,6 +167,13 @@ describe('remoteAgentBridge', () => {
     it('returns null for non-existent agent', async () => {
       const handler = providerMap.get('get')!;
       const result = await handler({ id: 'missing' });
+      expect(result).toBeNull();
+    });
+
+    it('returns null when getRemoteAgent returns null (e.g. missing table)', async () => {
+      mockDb.getRemoteAgent.mockReturnValueOnce(null);
+      const handler = providerMap.get('get')!;
+      const result = await handler({ id: 'a1' });
       expect(result).toBeNull();
     });
   });
@@ -244,6 +273,43 @@ describe('remoteAgentBridge', () => {
       const handler = providerMap.get('testConnection')!;
       const result = await handler({ url: 'wss://test', authType: 'none' });
       expect(result).toEqual({ success: true });
+    });
+
+    it('normalizes urls without protocol prefix', async () => {
+      const handler = providerMap.get('testConnection')!;
+
+      const result = await handler({ url: '127.0.0.1:42617', authType: 'none' });
+
+      expect(result).toEqual({ success: true });
+      expect(mockWebSocketState.lastUrl).toBe('ws://127.0.0.1:42617/');
+    });
+
+    it('returns a failure result when websocket construction throws', async () => {
+      const handler = providerMap.get('testConnection')!;
+      mockWebSocketState.throwOnUrl = 'invalid-endpoint';
+
+      const result = await handler({ url: 'invalid-endpoint', authType: 'none' });
+
+      expect(result).toEqual({ success: false, error: 'Invalid URL' });
+      expect(mockWebSocketState.lastUrl).toBe('ws://invalid-endpoint/');
+    });
+
+    it('rejects URLs with disallowed protocols (http://)', async () => {
+      const handler = providerMap.get('testConnection')!;
+      const result = await handler({ url: 'http://example.com', authType: 'none' });
+      expect(result).toEqual({ success: false, error: 'Unsupported protocol: http:' });
+    });
+
+    it('rejects URLs with disallowed protocols (file://)', async () => {
+      const handler = providerMap.get('testConnection')!;
+      const result = await handler({ url: 'file:///etc/passwd', authType: 'none' });
+      expect(result).toEqual({ success: false, error: 'Unsupported protocol: file:' });
+    });
+
+    it('rejects invalid URL formats', async () => {
+      const handler = providerMap.get('testConnection')!;
+      const result = await handler({ url: 'ws://[invalid', authType: 'none' });
+      expect(result).toEqual({ success: false, error: 'Invalid URL' });
     });
   });
 

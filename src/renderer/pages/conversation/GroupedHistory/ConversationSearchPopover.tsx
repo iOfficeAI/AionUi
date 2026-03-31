@@ -9,7 +9,6 @@ import type { IMessageSearchItem } from '@/common/types/database';
 import AionModal from '@/renderer/components/base/AionModal';
 import { usePresetAssistantInfo } from '@/renderer/hooks/agent/usePresetAssistantInfo';
 import { useOptionalConversationTabs } from '@/renderer/pages/conversation/hooks/ConversationTabsContext';
-import { useCronJobsMap } from '@/renderer/pages/cron';
 import { getAgentLogo } from '@/renderer/utils/model/agentLogo';
 import { blockMobileInputFocus, blurActiveElement } from '@/renderer/utils/ui/focus';
 import { Empty, Spin, Typography } from '@arco-design/web-react';
@@ -148,7 +147,6 @@ const ConversationSearchPopover: React.FC<ConversationSearchPopoverProps> = ({
   const { t } = useTranslation();
   const navigate = useNavigate();
   const conversationTabs = useOptionalConversationTabs();
-  const { markAsRead } = useCronJobsMap();
   const [visible, setVisible] = useState(false);
   const [keyword, setKeyword] = useState('');
   const [debouncedKeyword, setDebouncedKeyword] = useState('');
@@ -281,8 +279,6 @@ const ConversationSearchPopover: React.FC<ConversationSearchPopoverProps> = ({
       const customWorkspace = item.conversation.extra?.customWorkspace;
       const newWorkspace = item.conversation.extra?.workspace;
 
-      markAsRead(item.conversation.id);
-
       if (conversationTabs) {
         const { closeAllTabs, openTab, activeTab } = conversationTabs;
         if (!customWorkspace) {
@@ -306,7 +302,7 @@ const ConversationSearchPopover: React.FC<ConversationSearchPopoverProps> = ({
       );
       onSessionClick?.();
     },
-    [conversationTabs, markAsRead, navigate, onConversationSelect, onSessionClick, resetSearchState]
+    [conversationTabs, navigate, onConversationSelect, onSessionClick, resetSearchState]
   );
 
   const handleClose = useCallback(() => {

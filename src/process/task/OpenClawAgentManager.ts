@@ -52,6 +52,9 @@ class OpenClawAgentManager extends BaseAgentManager<OpenClawAgentManagerData> {
     this.status = 'pending';
 
     this.bootstrap = this.initAgent(data);
+    // Prevent unhandled promise rejection when gateway fails to start (e.g. binary not found).
+    // The error still propagates when sendMessage() awaits this.bootstrap.
+    this.bootstrap.catch(() => {});
   }
 
   private async initAgent(data: OpenClawAgentManagerData): Promise<OpenClawAgent> {

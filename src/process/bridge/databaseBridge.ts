@@ -12,7 +12,8 @@ import type { IConversationRepository } from '@process/services/database/IConver
 
 export function initDatabaseBridge(repo: IConversationRepository): void {
   // Get conversation messages from database
-  ipcBridge.database.getConversationMessages.provider(async ({ conversation_id, page = 0, pageSize = 10000 }) => {
+  ipcBridge.database.getConversationMessages.provider(async (_params) => {
+    const { conversation_id, page = 0, pageSize = 10000 } = _params ?? {};
     try {
       const result = await repo.getMessages(conversation_id, page, pageSize);
       return result.data;
@@ -23,7 +24,8 @@ export function initDatabaseBridge(repo: IConversationRepository): void {
   });
 
   // Get user conversations from database with lazy migration from file storage
-  ipcBridge.database.getUserConversations.provider(async ({ page = 0, pageSize = 10000 }) => {
+  ipcBridge.database.getUserConversations.provider(async (_params) => {
+    const { page = 0, pageSize = 10000 } = _params ?? {};
     try {
       const result = await repo.getUserConversations(undefined, page * pageSize, pageSize);
       const dbConversations = result.data;
@@ -63,7 +65,8 @@ export function initDatabaseBridge(repo: IConversationRepository): void {
     }
   });
 
-  ipcBridge.database.searchConversationMessages.provider(async ({ keyword, page = 0, pageSize = 20 }) => {
+  ipcBridge.database.searchConversationMessages.provider(async (_params) => {
+    const { keyword, page = 0, pageSize = 20 } = _params ?? {};
     try {
       const result = await repo.searchMessages(keyword, page, pageSize);
       return result;

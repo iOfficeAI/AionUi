@@ -64,6 +64,49 @@ export function stripThinkTags(content: string): string {
 }
 
 /**
+ * Extract think tag content and return both the thinking text and the stripped content.
+ * Unlike stripThinkTags (which discards thinking) and extractThinkContent (which discards content),
+ * this returns both parts for use in the inline thinking display.
+ *
+ * @param content - The text content to process
+ * @returns Object with thinking content and stripped content
+ */
+export function extractAndStripThinkTags(content: string): { thinking: string; content: string } {
+  if (!content || typeof content !== 'string') {
+    return { thinking: '', content: '' };
+  }
+
+  const thinkingParts: string[] = [];
+
+  // Extract complete <think>...</think> blocks
+  for (const match of content.matchAll(/<\s*think\s*>([\s\S]*?)<\s*\/\s*think\s*>/gi)) {
+    const part = match[1].trim();
+    if (part) thinkingParts.push(part);
+  }
+
+  // Extract complete <thinking>...</thinking> blocks
+  for (const match of content.matchAll(/<\s*thinking\s*>([\s\S]*?)<\s*\/\s*thinking\s*>/gi)) {
+    const part = match[1].trim();
+    if (part) thinkingParts.push(part);
+  }
+
+  // Handle MiniMax-style: content before orphaned </think>
+  if (thinkingParts.length === 0) {
+    const orphanMatch = content.match(/^([\s\S]*?)<\s*\/\s*think(?:ing)?\s*>/i);
+    if (orphanMatch) {
+      const part = orphanMatch[1].trim();
+      if (part) thinkingParts.push(part);
+    }
+  }
+
+  const stripped = stripThinkTags(content);
+  return {
+    thinking: thinkingParts.join('\n\n'),
+    content: stripped,
+  };
+}
+
+/**
  * Extract think tag content (for debugging or analytics)
  * Returns array of thinking content blocks
  *

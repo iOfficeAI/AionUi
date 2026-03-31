@@ -14,7 +14,7 @@ import type { GeminiModelSelection } from '@/renderer/pages/conversation/platfor
 import { useGeminiModelSelection } from '@/renderer/pages/conversation/platforms/gemini/useGeminiModelSelection';
 import { Input, InputNumber, Message, Select, Switch } from '@arco-design/web-react';
 import { CheckOne } from '@icon-park/react';
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useSettingsViewMode } from '../../settingsViewContext';
 import ChannelItem from './ChannelItem';
@@ -62,6 +62,12 @@ const useChannelModelSelection = (configKey: ChannelModelConfigKey): GeminiModel
   const { providers } = useModelProviderList();
   const [resolvedInitialModel, setResolvedInitialModel] = useState<TProviderWithModel | undefined>(undefined);
   const [restored, setRestored] = useState(false);
+  const retryCountRef = useRef(0);
+
+  // Cap retries to prevent infinite re-runs when a saved provider ID is stale
+  // (e.g. provider deleted, or agent switched to a non-gemini backend like iflow).
+  // The Google Auth provider typically loads within 1-2 SWR cycles, so 5 is generous.
+  const MAX_RESTORE_RETRIES = 5;
 
   useEffect(() => {
     if (restored || providers.length === 0) return;
@@ -77,7 +83,11 @@ const useChannelModelSelection = (configKey: ChannelModelConfigKey): GeminiModel
 
         const provider = providers.find((p) => p.id === saved.id);
         if (!provider) {
-          // Provider not found in current list — don't mark as restored.
+          retryCountRef.current += 1;
+          if (retryCountRef.current >= MAX_RESTORE_RETRIES) {
+            // Provider is permanently missing — give up to avoid infinite retries
+            setRestored(true);
+          }
           // The Google Auth provider may load after API-key providers;
           // leaving restored=false lets this effect re-run when providers update.
           return;

@@ -2,34 +2,42 @@ import { useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
 import { ipcBridge } from '@/common';
 import { useConversationTabs } from '@/renderer/pages/conversation/hooks/ConversationTabsContext';
+import { deriveAutoTitleFromMessages } from '@/renderer/utils/chat/autoTitle';
 import { emitter } from '@/renderer/utils/emitter';
-import { stripThinkTags, hasThinkTags } from '@/renderer/utils/chat/thinkTagFilter';
 
 export const useAutoTitle = () => {
   const { t } = useTranslation();
   const { updateTabName } = useConversationTabs();
 
-  const checkAndUpdateTitle = useCallback(
-    async (conversationId: string, messageContent: string) => {
+  const syncTitleFromHistory = useCallback(
+    async (conversationId: string, fallbackContent?: string) => {
       const defaultTitle = t('conversation.welcome.newConversation');
       try {
         const conversation = await ipcBridge.conversation.get.invoke({ id: conversationId });
-        // Only update if current name matches the default "New Chat" name
-        if (conversation && conversation.name === defaultTitle) {
-          // Strip think tags before extracting title to avoid thinking content in conversation name
-          const cleanContent = hasThinkTags(messageContent) ? stripThinkTags(messageContent) : messageContent;
-          // Create title from message: take first 50 chars, remove newlines
-          const newTitle = cleanContent.split('\n')[0].substring(0, 50).trim();
-          if (!newTitle) return; // Don't update if empty
-
-          await ipcBridge.conversation.update.invoke({
-            id: conversationId,
-            updates: { name: newTitle },
-          });
-
-          updateTabName(conversationId, newTitle);
-          emitter.emit('chat.history.refresh');
+        if (!conversation || conversation.name !== defaultTitle) {
+          return;
         }
+
+        const messages = await ipcBridge.database.getConversationMessages.invoke({
+          conversation_id: conversationId,
+          page: 0,
+          pageSize: 1000,
+        });
+        const newTitle = deriveAutoTitleFromMessages(messages, fallbackContent);
+        if (!newTitle) {
+          return;
+        }
+
+        const success = await ipcBridge.conversation.update.invoke({
+          id: conversationId,
+          updates: { name: newTitle },
+        });
+        if (!success) {
+          return;
+        }
+
+        updateTabName(conversationId, newTitle);
+        emitter.emit('chat.history.refresh');
       } catch (error) {
         console.error('Failed to auto-update conversation title:', error);
       }
@@ -37,5 +45,15 @@ export const useAutoTitle = () => {
     [t, updateTabName]
   );
 
-  return { checkAndUpdateTitle };
+  const checkAndUpdateTitle = useCallback(
+    async (conversationId: string, messageContent: string) => {
+      await syncTitleFromHistory(conversationId, messageContent);
+    },
+    [syncTitleFromHistory]
+  );
+
+  return {
+    checkAndUpdateTitle,
+    syncTitleFromHistory,
+  };
 };

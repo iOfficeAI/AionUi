@@ -109,6 +109,7 @@
   line-height: 1.6;
 }
 
+
 .heroSubtitleDetail {
   flex-shrink: 0;
   height: 22px !important;
@@ -476,7 +477,16 @@
 }
 
 .presetAgentTag:hover {
-  background: var(--color-fill-3);
+  background: color-mix(in srgb, var(--color-fill-3) 92%, transparent);
+}
+
+.presetAgentTagActiveDot {
+  width: 8px;
+  height: 8px;
+  border-radius: 999px;
+  background: rgb(var(--success-6));
+  box-shadow: 0 0 8px color-mix(in srgb, rgb(var(--success-6)) 45%, transparent);
+  flex-shrink: 0;
 }
 
 /* Left clickable area: agent logo + avatar + name */

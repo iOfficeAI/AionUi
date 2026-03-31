@@ -98,4 +98,41 @@ describe('adapter emit - isDestroyed guard', () => {
     // Should not throw
     expect(() => capturedEmit('test.event', {})).not.toThrow();
   });
+
+  it('should not throw when data is too large to serialize (ELECTRON-D9)', async () => {
+    const { initMainAdapterWithWindow } = await import('@/common/adapter/main');
+    const { broadcastToAll } = await import('@/common/adapter/registry');
+
+    const win = createMockWindow(false, false);
+    initMainAdapterWithWindow(win as any);
+
+    // Create an object that causes JSON.stringify to throw RangeError
+    const circularFreeHugeData = { payload: '' };
+    const originalStringify = JSON.stringify;
+    vi.spyOn(JSON, 'stringify').mockImplementation((...args: Parameters<typeof JSON.stringify>) => {
+      // Only throw for our oversized data, not for other calls
+      if (args[0] && typeof args[0] === 'object' && 'name' in args[0] && args[0].name === 'huge.event') {
+        throw new RangeError('Invalid string length');
+      }
+      return originalStringify(...args);
+    });
+
+    const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+
+    // Should not throw — the error is caught internally
+    expect(() => capturedEmit('huge.event', circularFreeHugeData)).not.toThrow();
+
+    // Window should NOT receive the message since serialization failed
+    expect(win.webContents.send).not.toHaveBeenCalled();
+    // broadcastToAll should NOT be called since we return early
+    expect(broadcastToAll).not.toHaveBeenCalled();
+    // Error should be logged
+    expect(consoleSpy).toHaveBeenCalledWith(
+      '[adapter] Failed to serialize bridge event:',
+      'huge.event',
+      expect.any(RangeError)
+    );
+
+    consoleSpy.mockRestore();
+  });
 });

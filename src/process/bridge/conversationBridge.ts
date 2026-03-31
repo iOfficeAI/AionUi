@@ -30,6 +30,15 @@ const refreshTrayMenuSafely = async (): Promise<void> => {
   }
 };
 
+const VALID_CONVERSATION_TYPES = new Set<TChatConversation['type']>([
+  'gemini',
+  'acp',
+  'codex',
+  'openclaw-gateway',
+  'nanobot',
+  'remote',
+]);
+
 export function initConversationBridge(
   conversationService: IConversationService,
   workerTaskManager: IWorkerTaskManager
@@ -103,9 +112,9 @@ export function initConversationBridge(
   });
 
   ipcBridge.conversation.create.provider(async (params): Promise<TChatConversation> => {
-    if (!params.type) {
-      console.error('[conversationBridge] Missing required field "type" in create params:', params);
-      throw new Error(`Missing required field "type" in create conversation params`);
+    if (!VALID_CONVERSATION_TYPES.has(params?.type as TChatConversation['type'])) {
+      console.warn('[conversationBridge] Rejecting create request with invalid conversation type:', params?.type);
+      return undefined as unknown as TChatConversation;
     }
     const conversation = await conversationService.createConversation({
       ...params,

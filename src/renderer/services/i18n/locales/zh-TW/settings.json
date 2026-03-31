@@ -258,6 +258,9 @@
   "webui.confirmPasswordRequired": "請確認新密碼",
   "webui.passwordMinLength": "密碼至少8位",
   "webui.passwordMismatch": "兩次密碼不一致",
+  "webui.passwordTooShort": "密碼至少8個字元",
+  "webui.passwordTooLong": "密碼不能超過128個字元",
+  "webui.passwordTooCommon": "密碼過於常見，請選擇更強的密碼",
   "webui.passwordChanged": "密碼修改成功",
   "webui.passwordChangeFailed": "密碼修改失敗",
   "webui.usernameChanged": "使用者名稱修改成功",
@@ -470,7 +473,9 @@
     "disabledHint": "CDP is currently disabled.",
     "restartRequired": "CDP startup setting changed. Restart is required to apply.",
     "configSaved": "CDP config saved",
-    "configFailed": "Failed to save CDP config"
+    "configFailed": "Failed to save CDP config",
+    "playwrightMcpConfig": "Playwright MCP 設定",
+    "playwrightMcpConfigHint": "使用 Playwright MCP 透過 CDP 端點連線，支援無障礙樹快照和瀏覽器自動化。"
   },
   "mcpNoDescription": "暫無描述",
   "mcpAuthRequired": "需要身份驗證",
