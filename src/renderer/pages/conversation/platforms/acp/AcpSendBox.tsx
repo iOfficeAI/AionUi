@@ -152,6 +152,7 @@ const AcpSendBox: React.FC<{
       setAiProcessing(true);
 
       try {
+        void checkAndUpdateTitle(conversation_id, input);
         const result = await ipcBridge.acpConversation.sendMessage.invoke({
           input,
           msg_id,
@@ -159,7 +160,6 @@ const AcpSendBox: React.FC<{
           files,
         });
         assertBridgeSuccess(result, `Failed to send message to ${backend}`);
-        void checkAndUpdateTitle(conversation_id, input);
         emitter.emit('chat.history.refresh');
       } catch (error: unknown) {
         const errorMsg = error instanceof Error ? error.message : String(error);
