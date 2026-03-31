@@ -361,12 +361,7 @@ const GuidPage: React.FC = () => {
     return () => observer.disconnect();
   }, [agentSelection.isPresetAgent, selectedAssistantDescription]);
 
-  const selectedAssistantForSwitcher = useMemo(() => {
-    if (!agentSelection.isPresetAgent || !agentSelection.selectedAgentInfo?.customAgentId) return undefined;
-    return agentSelection.customAgents.find((a) => a.id === agentSelection.selectedAgentInfo?.customAgentId);
-  }, [agentSelection.customAgents, agentSelection.isPresetAgent, agentSelection.selectedAgentInfo?.customAgentId]);
-  const currentPresetAgentType =
-    (selectedAssistantForSwitcher?.presetAgentType as PresetAgentType | undefined) || 'gemini';
+  const currentPresetAgentType = (selectedAssistantRecord?.presetAgentType as PresetAgentType | undefined) || 'gemini';
   const agentSwitcherItems = useMemo(() => {
     const builtinItems = BUILTIN_AGENT_OPTIONS.filter((opt) => availableBackends.has(opt.value)).map((opt) => ({
       key: opt.value,
@@ -389,17 +384,25 @@ const GuidPage: React.FC = () => {
     async (nextType: string) => {
       const customAgentId = agentSelection.selectedAgentInfo?.customAgentId;
       if (!customAgentId || nextType === currentPresetAgentType) return;
-      const agents = ((await ConfigStorage.get('acp.customAgents')) || []) as AcpBackendConfig[];
-      const idx = agents.findIndex((a) => a.id === customAgentId);
-      if (idx < 0) return;
-      const updated = [...agents];
-      updated[idx] = { ...updated[idx], presetAgentType: nextType as PresetAgentType };
-      await ConfigStorage.set('acp.customAgents', updated);
-      await agentSelection.refreshCustomAgents();
-      const agentName = ACP_BACKENDS_ALL[nextType as PresetAgentType]?.name || nextType;
-      Message.success(t('guid.switchedToAgent', { agent: agentName }));
+      try {
+        const agents = ((await ConfigStorage.get('acp.customAgents')) || []) as AcpBackendConfig[];
+        const idx = agents.findIndex((a) => a.id === customAgentId);
+        if (idx < 0) {
+          Message.warning(t('common.failed', { defaultValue: 'Failed' }));
+          return;
+        }
+        const updated = [...agents];
+        updated[idx] = { ...updated[idx], presetAgentType: nextType as PresetAgentType };
+        await ConfigStorage.set('acp.customAgents', updated);
+        await agentSelection.refreshCustomAgents();
+        const agentName = ACP_BACKENDS_ALL[nextType as PresetAgentType]?.name || nextType;
+        Message.success(t('guid.switchedToAgent', { agent: agentName }));
+      } catch (error) {
+        console.error('[GuidPage] Failed to switch preset agent type:', error);
+        Message.error(t('common.failed', { defaultValue: 'Failed' }));
+      }
     },
-    [agentSelection, currentPresetAgentType]
+    [agentSelection, currentPresetAgentType, t]
   );
 
   // Determine if model selector should be in Gemini mode
