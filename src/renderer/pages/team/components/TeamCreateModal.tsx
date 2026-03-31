@@ -74,6 +74,17 @@ const TeamCreateModal: React.FC<Props> = ({ visible, onClose, onCreated }) => {
     }
   };
 
+  const resolveConversationType = (
+    backend: string
+  ): 'gemini' | 'acp' | 'codex' | 'openclaw-gateway' | 'nanobot' | 'remote' => {
+    if (backend === 'gemini') return 'gemini';
+    if (backend === 'codex') return 'codex';
+    if (backend === 'openclaw-gateway') return 'openclaw-gateway';
+    if (backend === 'nanobot') return 'nanobot';
+    if (backend === 'remote') return 'remote';
+    return 'acp';
+  };
+
   const handleCreate = async () => {
     const userId = user?.id ?? 'system_default_user';
     setLoading(true);
@@ -87,6 +98,7 @@ const TeamCreateModal: React.FC<Props> = ({ visible, onClose, onCreated }) => {
         role: 'dispatch',
         agentType: dispatchAgent?.backend ?? 'acp',
         agentName: dispatchAgent?.name ?? name,
+        conversationType: resolveConversationType(dispatchAgent?.backend ?? 'acp'),
       });
 
       for (const key of subAgentKeys) {
@@ -98,6 +110,7 @@ const TeamCreateModal: React.FC<Props> = ({ visible, onClose, onCreated }) => {
             role: 'sub',
             agentType: subAgent.backend,
             agentName: subAgent.name,
+            conversationType: resolveConversationType(subAgent.backend),
           });
         }
       }
