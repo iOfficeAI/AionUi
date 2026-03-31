@@ -120,6 +120,17 @@ export class TeamSessionService {
 
     const workspace = this.resolveWorkspace(team.workspace);
     const convType = (agent.conversationType || this.resolveConversationType(agent.agentType)) as AgentType;
+    // Inherit sessionMode from lead agent so spawned agents share the same permission level
+    const leadAgent = team.agents.find((a) => a.role === 'lead');
+    let inheritedSessionMode: string | undefined;
+    if (leadAgent?.conversationId) {
+      const leadConv = await this.conversationService.getConversation(leadAgent.conversationId);
+      const leadExtra = leadConv?.extra as Record<string, unknown> | undefined;
+      if (leadExtra?.sessionMode && typeof leadExtra.sessionMode === 'string') {
+        inheritedSessionMode = leadExtra.sessionMode;
+      }
+    }
+
     const addExtra: Record<string, unknown> = {
       workspace,
       customWorkspace: true,
@@ -128,6 +139,7 @@ export class TeamSessionService {
       teamId,
     };
     if (agent.cliPath) addExtra.cliPath = agent.cliPath;
+    if (inheritedSessionMode) addExtra.sessionMode = inheritedSessionMode;
 
     const conversation = await this.conversationService.createConversation({
       type: convType,
@@ -140,6 +152,7 @@ export class TeamSessionService {
 
     const newAgent: TeamAgent = {
       ...agent,
+      agentType: this.resolveBackend(agent.agentType, team.agents),
       slotId: `slot-${uuid(8)}`,
       conversationId: conversation.id,
     };
