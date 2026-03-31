@@ -166,6 +166,12 @@ git checkout bot/fix-pr-<PR_NUMBER>
 git merge --no-ff --no-edit FETCH_HEAD
 ```
 
+After creating the worktree (all three paths), symlink `node_modules` so lint/tsc/test can run:
+
+```bash
+ln -s "$REPO_ROOT/node_modules" "$WORKTREE_DIR/node_modules"
+```
+
 Save `REPO_ROOT` and `WORKTREE_DIR` for later steps. All file reads, edits, lint, and test commands from this point forward run inside `WORKTREE_DIR`.
 
 ---

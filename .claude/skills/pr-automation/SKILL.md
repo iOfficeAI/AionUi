@@ -427,6 +427,10 @@ git worktree remove "$WORKTREE_DIR" --force 2>/dev/null || true
 # Create worktree on the PR's head branch
 git fetch origin <head_branch>
 git worktree add "$WORKTREE_DIR" origin/<head_branch>
+
+# Symlink node_modules so tsc/lint can run in the worktree
+ln -s "$REPO_ROOT/node_modules" "$WORKTREE_DIR/node_modules"
+
 cd "$WORKTREE_DIR"
 git checkout <head_branch>
 git rebase origin/<base_branch>
