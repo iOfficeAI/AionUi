@@ -467,12 +467,20 @@ const ConversationSearchPopover: React.FC<ConversationSearchPopoverProps> = ({
       >
         {fullWidth ? (
           <span className='w-34px h-34px flex items-center justify-center shrink-0'>
-            <Search theme='outline' size='20' fill='currentColor' className='block leading-none' style={{ lineHeight: 0 }} />
+            <Search
+              theme='outline'
+              size='20'
+              fill='currentColor'
+              className='block leading-none'
+              style={{ lineHeight: 0 }}
+            />
           </span>
         ) : (
           <Search theme='outline' size='20' className='block leading-none shrink-0' style={{ lineHeight: 0 }} />
         )}
-        {fullWidth && label ? <span className='collapsed-hidden text-t-primary text-16px font-medium leading-24px'>{label}</span> : null}
+        {fullWidth && label ? (
+          <span className='collapsed-hidden text-t-primary text-16px font-medium leading-24px'>{label}</span>
+        ) : null}
       </button>
 
       <AionModal

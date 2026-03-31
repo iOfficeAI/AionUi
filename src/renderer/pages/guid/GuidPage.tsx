@@ -243,9 +243,10 @@ const GuidPage: React.FC = () => {
 
   // Typewriter placeholder
   const typewriterPlaceholder = useTypewriterPlaceholder(t('conversation.welcome.placeholder'));
-  const heroTitle = agentSelection.isPresetAgent && mention.selectedAgentLabel
-    ? mention.selectedAgentLabel
-    : t('conversation.welcome.title');
+  const heroTitle =
+    agentSelection.isPresetAgent && mention.selectedAgentLabel
+      ? mention.selectedAgentLabel
+      : t('conversation.welcome.title');
   const selectedAssistantDescription = useMemo(() => {
     if (!agentSelection.isPresetAgent || !agentSelection.selectedAgentInfo?.customAgentId) return '';
     const selectedId = agentSelection.selectedAgentInfo.customAgentId;
@@ -263,9 +264,7 @@ const GuidPage: React.FC = () => {
     if (!agentSelection.isPresetAgent) return null;
     const selectedId = agentSelection.selectedAgentInfo?.customAgentId;
     const strippedId = selectedId?.replace(/^builtin-/, '');
-    const candidates = new Set(
-      selectedId && strippedId ? [selectedId, `builtin-${strippedId}`, strippedId] : []
-    );
+    const candidates = new Set(selectedId && strippedId ? [selectedId, `builtin-${strippedId}`, strippedId] : []);
     const selectedAssistant = agentSelection.customAgents.find((item) => candidates.has(item.id));
     const avatarValue = selectedAssistant?.avatar?.trim() || agentSelection.selectedAgentInfo?.avatar?.trim();
     if (!avatarValue) return { kind: 'icon' as const };
@@ -359,7 +358,13 @@ const GuidPage: React.FC = () => {
               <p className={`${styles.heroTitle} text-2xl font-semibold mb-0 text-0 text-center`}>
                 <span className={styles.heroTitleInlineIcon} aria-hidden='true'>
                   {selectedAssistantAvatar?.kind === 'image' ? (
-                    <img src={selectedAssistantAvatar.value} alt='' width={22} height={22} style={{ objectFit: 'contain' }} />
+                    <img
+                      src={selectedAssistantAvatar.value}
+                      alt=''
+                      width={22}
+                      height={22}
+                      style={{ objectFit: 'contain' }}
+                    />
                   ) : selectedAssistantAvatar?.kind === 'emoji' ? (
                     <span className={styles.heroTitleEmoji}>{selectedAssistantAvatar.value}</span>
                   ) : (
@@ -386,8 +391,7 @@ const GuidPage: React.FC = () => {
                   guidInput.setInput('');
                 }}
                 aria-label={t('common.back')}
-              >
-              </Button>
+              ></Button>
               <div className={styles.heroSubtitleText}>{selectedAssistantDescription}</div>
               <Button
                 type='secondary'

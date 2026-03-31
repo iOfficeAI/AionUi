@@ -153,7 +153,14 @@ const AssistantSelectionArea: React.FC<AssistantSelectionAreaProps> = ({
         agentMessage.error(t('common.failed', { defaultValue: 'Failed' }));
       }
     },
-    [agentMessage, currentPresetAgentType, loadAssistants, onPresetAgentTypeSwitched, selectedAgentInfo?.customAgentId, t]
+    [
+      agentMessage,
+      currentPresetAgentType,
+      loadAssistants,
+      onPresetAgentTypeSwitched,
+      selectedAgentInfo?.customAgentId,
+      t,
+    ]
   );
 
   const resolveOpenAssistantId = (): string | null => {
@@ -183,15 +190,7 @@ const AssistantSelectionArea: React.FC<AssistantSelectionAreaProps> = ({
     }
 
     void editor.handleEdit(targetAssistant);
-  }, [
-    agentMessage,
-    assistants,
-    customAgents,
-    editor,
-    selectedAgentInfo?.customAgentId,
-    selectedAgentKey,
-    t,
-  ]);
+  }, [agentMessage, assistants, customAgents, editor, selectedAgentInfo?.customAgentId, selectedAgentKey, t]);
 
   useLayoutEffect(() => {
     if (!onRegisterOpenDetails) return;

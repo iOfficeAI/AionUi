@@ -78,7 +78,9 @@ const SkillsMarketBanner: React.FC = () => {
   return (
     <div
       className={enabled ? 'absolute right-8px z-10' : 'absolute right-12px z-10'}
-      style={{ top: enabled ? 'calc(8px + env(safe-area-inset-top, 0px))' : 'calc(12px + env(safe-area-inset-top, 0px))' }}
+      style={{
+        top: enabled ? 'calc(8px + env(safe-area-inset-top, 0px))' : 'calc(12px + env(safe-area-inset-top, 0px))',
+      }}
     >
       <div
         className={

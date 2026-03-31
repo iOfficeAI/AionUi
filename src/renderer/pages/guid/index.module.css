@@ -444,8 +444,7 @@
   border-radius: 16px;
   cursor: pointer;
   user-select: none;
-  transition:
-    background-color 0.2s;
+  transition: background-color 0.2s;
   max-width: 100%;
   min-width: 0;
 }

@@ -98,7 +98,7 @@ const Sider: React.FC<SiderProps> = ({ onSessionClick, collapsed = false }) => {
                     className={classNames(
                       'h-40px flex items-center rd-0.5rem cursor-pointer group transition-all bg-transparent text-t-primary hover:bg-fill-3 active:bg-fill-4',
                       collapsed ? 'w-40px justify-center gap-0 px-0' : 'flex-1 justify-start gap-10px px-12px',
-                      isMobile && 'sider-action-btn-mobile',
+                      isMobile && 'sider-action-btn-mobile'
                     )}
                     onClick={() => {
                       cleanupSiderTooltips();
@@ -140,7 +140,9 @@ const Sider: React.FC<SiderProps> = ({ onSessionClick, collapsed = false }) => {
                 </Tooltip>
                 <Tooltip
                   {...siderTooltipProps}
-                  content={isBatchMode ? t('conversation.history.batchModeExit') : t('conversation.history.batchManage')}
+                  content={
+                    isBatchMode ? t('conversation.history.batchModeExit') : t('conversation.history.batchManage')
+                  }
                   position='right'
                 >
                   <div
@@ -149,7 +151,8 @@ const Sider: React.FC<SiderProps> = ({ onSessionClick, collapsed = false }) => {
                       isMobile && 'sider-action-icon-btn-mobile',
                       {
                         'hover:bg-fill-2 hover:border-[var(--color-border-2)]': !isBatchMode,
-                        'bg-[rgba(var(--primary-6),0.12)] border-[rgba(var(--primary-6),0.24)] text-primary': isBatchMode,
+                        'bg-[rgba(var(--primary-6),0.12)] border-[rgba(var(--primary-6),0.24)] text-primary':
+                          isBatchMode,
                       }
                     )}
                     onClick={handleToggleBatchMode}
