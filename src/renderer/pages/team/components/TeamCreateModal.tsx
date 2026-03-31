@@ -52,7 +52,7 @@ const TeamCreateModal: React.FC<Props> = ({ visible, onClose, onCreated }) => {
 
       const dispatchAgent = dispatchAgentKey ? agentFromKey(dispatchAgentKey, allAgents) : undefined;
       agents.push({
-        slotId: `slot-${crypto.randomUUID().slice(0, 8)}`,
+        slotId: '',
         conversationId: '',
         role: 'lead',
         status: 'pending',
@@ -66,7 +66,7 @@ const TeamCreateModal: React.FC<Props> = ({ visible, onClose, onCreated }) => {
         const subAgent = agentFromKey(key, allAgents);
         if (subAgent) {
           agents.push({
-            slotId: `slot-${crypto.randomUUID().slice(0, 8)}`,
+            slotId: '',
             conversationId: '',
             role: 'teammate',
             status: 'pending',

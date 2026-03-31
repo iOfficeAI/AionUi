@@ -15,9 +15,15 @@ function formatTasks(tasks: TeamTask[]): string {
     .join('\n');
 }
 
-function formatMessages(messages: MailboxMessage[]): string {
+function formatMessages(messages: MailboxMessage[], teammates: TeamAgent[]): string {
   if (messages.length === 0) return 'No unread messages.';
-  return messages.map((m) => `[From ${m.fromAgentId === 'user' ? 'User' : m.fromAgentId}] ${m.content}`).join('\n');
+  return messages
+    .map((m) => {
+      if (m.fromAgentId === 'user') return `[From User] ${m.content}`;
+      const sender = teammates.find((t) => t.slotId === m.fromAgentId);
+      return `[From ${sender?.agentName ?? m.fromAgentId}] ${m.content}`;
+    })
+    .join('\n');
 }
 
 /**
@@ -82,5 +88,5 @@ Do NOT prioritize type errors or code style issues unless they affect runtime be
 ${formatTasks(tasks)}
 
 ## Unread Messages
-${formatMessages(unreadMessages)}`;
+${formatMessages(unreadMessages, teammates)}`;
 }

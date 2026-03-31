@@ -13,6 +13,7 @@ export interface AcpSessionMcpNameValue {
 }
 
 export interface AcpSessionMcpServerStdio {
+  type?: 'stdio';
   name: string;
   command: string;
   args: string[];
@@ -35,7 +36,7 @@ export interface AcpMcpCapabilities {
 }
 
 const DEFAULT_ACP_MCP_CAPABILITIES: AcpMcpCapabilities = {
-  stdio: false,
+  stdio: true,
   http: true,
   sse: true,
 };
@@ -93,6 +94,7 @@ export function buildBuiltinAcpSessionMcpServers(
         case 'stdio':
           if (!effectiveCapabilities.stdio) return null;
           return {
+            type: 'stdio',
             name: server.name,
             command: server.transport.command,
             args: server.transport.args || [],

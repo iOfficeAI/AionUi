@@ -13,7 +13,7 @@ type BuildRolePromptParams = {
 
 /**
  * Select the correct role prompt (lead vs teammate) based on the agent's role.
- * Used by both acpAdapter and xmlFallbackAdapter to prepend identity context.
+ * Used by xmlFallbackAdapter to prepend identity context.
  */
 export function buildRolePrompt(params: BuildRolePromptParams): string {
   const { agent, mailboxMessages, tasks, teammates } = params;

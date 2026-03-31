@@ -295,13 +295,18 @@ export class TeamMcpServer {
   private async handleTaskUpdate(args: Record<string, unknown>): Promise<string> {
     const { taskManager } = this.params;
     const taskId = String(args.task_id ?? '');
-    const status = args.status ? String(args.status) : undefined;
+    const rawStatus = args.status ? String(args.status) : undefined;
     const owner = args.owner ? String(args.owner) : undefined;
 
-    await taskManager.update(taskId, {
-      status: status as 'pending' | 'in_progress' | 'completed' | 'deleted' | undefined,
-      owner,
-    });
+    const VALID_STATUSES = new Set(['pending', 'in_progress', 'completed', 'deleted']);
+    const status = rawStatus && VALID_STATUSES.has(rawStatus)
+      ? (rawStatus as 'pending' | 'in_progress' | 'completed' | 'deleted')
+      : undefined;
+    if (rawStatus && !status) {
+      throw new Error(`Invalid task status "${rawStatus}". Must be one of: ${[...VALID_STATUSES].join(', ')}`);
+    }
+
+    await taskManager.update(taskId, { status, owner });
     if (status === 'completed') {
       await taskManager.checkUnblocks(taskId);
     }
