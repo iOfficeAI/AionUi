@@ -30,7 +30,7 @@ export class TeamSessionService {
     // Create a real conversation for each agent
     const agentsWithConversations = await Promise.all(
       params.agents.map(async (agent) => {
-        const convType = agent.conversationType ?? this.resolveConversationType(agent.agentType);
+        const convType = (agent.conversationType || this.resolveConversationType(agent.agentType)) as AgentType;
         const conversation = await this.conversationService.createConversation({
           type: convType,
           name: `${params.name} - ${agent.agentName}`,
@@ -82,7 +82,7 @@ export class TeamSessionService {
     const team = await this.repo.findById(teamId);
     if (!team) throw new Error(`Team "${teamId}" not found`);
 
-    const convType = agent.conversationType ?? this.resolveConversationType(agent.agentType);
+    const convType = (agent.conversationType || this.resolveConversationType(agent.agentType)) as AgentType;
     const conversation = await this.conversationService.createConversation({
       type: convType,
       name: `${team.name} - ${agent.agentName}`,

@@ -1,7 +1,13 @@
 // src/process/team/adapters/acpAdapter.ts
 
-import type { ParsedAction, PlatformCapability } from '../types'
-import type { AgentPayload, AgentResponse, BuildPayloadParams, TeamPlatformAdapter, ToolDefinition } from './PlatformAdapter'
+import type { ParsedAction, PlatformCapability } from '../types';
+import type {
+  AgentPayload,
+  AgentResponse,
+  BuildPayloadParams,
+  TeamPlatformAdapter,
+  ToolDefinition,
+} from './PlatformAdapter';
 
 /** Tool definitions exposed to ACP-compatible agents */
 const TEAM_TOOLS: ToolDefinition[] = [
@@ -66,24 +72,24 @@ const TEAM_TOOLS: ToolDefinition[] = [
       required: ['reason', 'summary'],
     },
   },
-]
+];
 
 /** Format unread mailbox messages into a human-readable section */
 function formatMailboxMessages(messages: BuildPayloadParams['mailboxMessages']): string {
   if (messages.length === 0) {
-    return ''
+    return '';
   }
-  const lines = messages.map((m) => `[From ${m.fromAgentId}] ${m.content}`)
-  return `## Unread Messages\n${lines.join('\n')}`
+  const lines = messages.map((m) => `[From ${m.fromAgentId}] ${m.content}`);
+  return `## Unread Messages\n${lines.join('\n')}`;
 }
 
 /** Format tasks into a human-readable section */
 function formatTasks(tasks: BuildPayloadParams['tasks']): string {
   if (tasks.length === 0) {
-    return ''
+    return '';
   }
-  const lines = tasks.map((t) => `- [${t.id}] ${t.subject} (${t.status}, owner: ${t.owner ?? 'unassigned'})`)
-  return `## Current Tasks\n${lines.join('\n')}`
+  const lines = tasks.map((t) => `- [${t.id}] ${t.subject} (${t.status}, owner: ${t.owner ?? 'unassigned'})`);
+  return `## Current Tasks\n${lines.join('\n')}`;
 }
 
 /**
@@ -93,35 +99,35 @@ function formatTasks(tasks: BuildPayloadParams['tasks']): string {
 export function createAcpAdapter(): TeamPlatformAdapter {
   return {
     getCapability(): PlatformCapability {
-      return { supportsToolUse: true, supportsStreaming: true }
+      return { supportsToolUse: true, supportsStreaming: true };
     },
 
     buildPayload(params: BuildPayloadParams): AgentPayload {
-      const { mailboxMessages, tasks } = params
-      const sections: string[] = []
+      const { mailboxMessages, tasks } = params;
+      const sections: string[] = [];
 
-      const mailboxSection = formatMailboxMessages(mailboxMessages)
+      const mailboxSection = formatMailboxMessages(mailboxMessages);
       if (mailboxSection) {
-        sections.push(mailboxSection)
+        sections.push(mailboxSection);
       }
 
-      const tasksSection = formatTasks(tasks)
+      const tasksSection = formatTasks(tasks);
       if (tasksSection) {
-        sections.push(tasksSection)
+        sections.push(tasksSection);
       }
 
       return {
         message: sections.join('\n\n'),
         tools: TEAM_TOOLS,
-      }
+      };
     },
 
     parseResponse(response: AgentResponse): ParsedAction[] {
-      const actions: ParsedAction[] = []
+      const actions: ParsedAction[] = [];
 
       if (response.toolCalls && response.toolCalls.length > 0) {
         for (const call of response.toolCalls) {
-          const input = call.input
+          const input = call.input;
 
           switch (call.name) {
             case 'SendMessage':
@@ -130,8 +136,8 @@ export function createAcpAdapter(): TeamPlatformAdapter {
                 to: String(input.to ?? ''),
                 content: String(input.message ?? ''),
                 summary: input.summary != null ? String(input.summary) : undefined,
-              })
-              break
+              });
+              break;
 
             case 'TaskCreate':
               actions.push({
@@ -139,8 +145,8 @@ export function createAcpAdapter(): TeamPlatformAdapter {
                 subject: String(input.subject ?? ''),
                 description: input.description != null ? String(input.description) : undefined,
                 owner: input.owner != null ? String(input.owner) : undefined,
-              })
-              break
+              });
+              break;
 
             case 'TaskUpdate':
               actions.push({
@@ -148,8 +154,8 @@ export function createAcpAdapter(): TeamPlatformAdapter {
                 taskId: String(input.taskId ?? ''),
                 status: input.status != null ? String(input.status) : undefined,
                 owner: input.owner != null ? String(input.owner) : undefined,
-              })
-              break
+              });
+              break;
 
             case 'idle_notification':
               actions.push({
@@ -157,22 +163,22 @@ export function createAcpAdapter(): TeamPlatformAdapter {
                 reason: String(input.reason ?? ''),
                 summary: String(input.summary ?? ''),
                 completedTaskId: input.completedTaskId != null ? String(input.completedTaskId) : undefined,
-              })
-              break
+              });
+              break;
 
             default:
-              break
+              break;
           }
         }
       }
 
       // Any remaining text content becomes a plain_response
-      const trimmedText = response.text.trim()
+      const trimmedText = response.text.trim();
       if (trimmedText) {
-        actions.push({ type: 'plain_response', content: trimmedText })
+        actions.push({ type: 'plain_response', content: trimmedText });
       }
 
-      return actions
+      return actions;
     },
-  }
+  };
 }

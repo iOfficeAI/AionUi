@@ -95,7 +95,8 @@ const TeamCreateModal: React.FC<Props> = ({ visible, onClose, onCreated }) => {
       agents.push({
         slotId: `slot-${crypto.randomUUID().slice(0, 8)}`,
         conversationId: '',
-        role: 'dispatch',
+        role: 'lead',
+        status: 'pending',
         agentType: dispatchAgent?.backend ?? 'acp',
         agentName: dispatchAgent?.name ?? name,
         conversationType: resolveConversationType(dispatchAgent?.backend ?? 'acp'),
@@ -107,7 +108,8 @@ const TeamCreateModal: React.FC<Props> = ({ visible, onClose, onCreated }) => {
           agents.push({
             slotId: `slot-${crypto.randomUUID().slice(0, 8)}`,
             conversationId: '',
-            role: 'sub',
+            role: 'teammate',
+            status: 'pending',
             agentType: subAgent.backend,
             agentName: subAgent.name,
             conversationType: resolveConversationType(subAgent.backend),

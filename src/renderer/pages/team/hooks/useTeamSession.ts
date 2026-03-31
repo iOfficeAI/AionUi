@@ -4,10 +4,10 @@ import type { ITeamAgentStatusEvent, ITeamMessageEvent, TeamAgent, TeammateStatu
 import { useCallback, useEffect, useState } from 'react';
 
 type AgentStatusInfo = {
-  slotId: string
-  status: TeammateStatus
-  lastMessage?: string
-}
+  slotId: string;
+  status: TeammateStatus;
+  lastMessage?: string;
+};
 
 export function useTeamSession(team: TTeam) {
   const [statusMap, setStatusMap] = useState<Map<string, AgentStatusInfo>>(

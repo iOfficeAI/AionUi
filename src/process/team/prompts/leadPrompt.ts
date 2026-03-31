@@ -1,25 +1,23 @@
 // src/process/team/prompts/leadPrompt.ts
 
-import type { MailboxMessage, TeamAgent, TeamTask } from '../types'
+import type { MailboxMessage, TeamAgent, TeamTask } from '../types';
 
 export type LeadPromptParams = {
-  teammates: TeamAgent[]
-  tasks: TeamTask[]
-  unreadMessages: MailboxMessage[]
-}
+  teammates: TeamAgent[];
+  tasks: TeamTask[];
+  unreadMessages: MailboxMessage[];
+};
 
 function formatTasks(tasks: TeamTask[]): string {
-  if (tasks.length === 0) return 'No tasks yet.'
+  if (tasks.length === 0) return 'No tasks yet.';
   return tasks
     .map((t) => `- [${t.id.slice(0, 8)}] ${t.subject} (${t.status}${t.owner ? `, owner: ${t.owner}` : ''})`)
-    .join('\n')
+    .join('\n');
 }
 
 function formatMessages(messages: MailboxMessage[]): string {
-  if (messages.length === 0) return 'No unread messages.'
-  return messages
-    .map((m) => `[From ${m.fromAgentId === 'user' ? 'User' : m.fromAgentId}] ${m.content}`)
-    .join('\n')
+  if (messages.length === 0) return 'No unread messages.';
+  return messages.map((m) => `[From ${m.fromAgentId === 'user' ? 'User' : m.fromAgentId}] ${m.content}`).join('\n');
 }
 
 /**
@@ -29,12 +27,12 @@ function formatMessages(messages: MailboxMessage[]): string {
  * synthesizes results.
  */
 export function buildLeadPrompt(params: LeadPromptParams): string {
-  const { teammates, tasks, unreadMessages } = params
+  const { teammates, tasks, unreadMessages } = params;
 
   const teammateList =
     teammates.length === 0
       ? '(no teammates yet)'
-      : teammates.map((t) => `- ${t.agentName} (${t.agentType}, status: ${t.status})`).join('\n')
+      : teammates.map((t) => `- ${t.agentName} (${t.agentType}, status: ${t.status})`).join('\n');
 
   return `# You are the Team Lead
 
@@ -69,5 +67,5 @@ ${teammateList}
 ${formatTasks(tasks)}
 
 ## Unread Messages
-${formatMessages(unreadMessages)}`
+${formatMessages(unreadMessages)}`;
 }

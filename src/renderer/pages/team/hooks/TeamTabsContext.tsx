@@ -2,10 +2,10 @@ import React, { createContext, useCallback, useContext, useState } from 'react';
 import type { TeamAgent, TeammateStatus } from '@process/team/types';
 
 type AgentStatusInfo = {
-  slotId: string
-  status: TeammateStatus
-  lastMessage?: string
-}
+  slotId: string;
+  status: TeammateStatus;
+  lastMessage?: string;
+};
 
 export type TeamTabsContextValue = {
   agents: TeamAgent[];
