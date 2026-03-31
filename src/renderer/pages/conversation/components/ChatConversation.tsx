@@ -13,7 +13,7 @@ import { usePresetAssistantInfo } from '@/renderer/hooks/agent/usePresetAssistan
 import { iconColors } from '@/renderer/styles/colors';
 import { Button, Dropdown, Menu, Tooltip, Typography } from '@arco-design/web-react';
 import { History } from '@icon-park/react';
-import React, { useCallback, useMemo } from 'react';
+import React, { useCallback, useMemo, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
 import useSWR from 'swr';
@@ -84,6 +84,7 @@ const _AssociatedConversation: React.FC<{ conversation_id: string }> = ({ conver
 const _AddNewConversation: React.FC<{ conversation: TChatConversation }> = ({ conversation }) => {
   const { t } = useTranslation();
   const navigate = useNavigate();
+  const isCreatingRef = useRef(false);
   if (!conversation.extra?.workspace) return null;
   return (
     <Tooltip content={t('conversation.workspace.createNewConversation')}>
@@ -91,12 +92,14 @@ const _AddNewConversation: React.FC<{ conversation: TChatConversation }> = ({ co
         size='mini'
         icon={<img src={addChatIcon} alt='Add chat' className='w-14px h-14px block m-auto' />}
         onClick={async () => {
-          const id = uuid();
-          // Fetch latest conversation from DB to ensure sessionMode is current
-          const latest = await ipcBridge.conversation.get.invoke({ id: conversation.id }).catch((): null => null);
-          const source = latest || conversation;
-          ipcBridge.conversation.createWithConversation
-            .invoke({
+          if (isCreatingRef.current) return;
+          isCreatingRef.current = true;
+          try {
+            const id = uuid();
+            // Fetch latest conversation from DB to ensure sessionMode is current
+            const latest = await ipcBridge.conversation.get.invoke({ id: conversation.id }).catch((): null => null);
+            const source = latest || conversation;
+            await ipcBridge.conversation.createWithConversation.invoke({
               conversation: {
                 ...source,
                 id,
@@ -108,16 +111,14 @@ const _AddNewConversation: React.FC<{ conversation: TChatConversation }> = ({ co
                     ? { ...source.extra, acpSessionId: undefined, acpSessionUpdatedAt: undefined }
                     : source.extra,
               } as TChatConversation,
-            })
-            .then(() => {
-              Promise.resolve(navigate(`/conversation/${id}`)).catch((error) => {
-                console.error('Navigation failed:', error);
-              });
-              emitter.emit('chat.history.refresh');
-            })
-            .catch((error) => {
-              console.error('Failed to create conversation:', error);
             });
+            void navigate(`/conversation/${id}`);
+            emitter.emit('chat.history.refresh');
+          } catch (error) {
+            console.error('Failed to create conversation:', error);
+          } finally {
+            isCreatingRef.current = false;
+          }
         }}
       />
     </Tooltip>
