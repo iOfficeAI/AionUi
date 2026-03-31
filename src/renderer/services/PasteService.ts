@@ -146,6 +146,7 @@ class PasteServiceClass {
     if (files && files.length > 0) {
       // 处理文件，跳过文本处理
       const fileList: FileMetadata[] = [];
+      const usedFileNames = new Set<string>();
       for (let i = 0; i < files.length; i++) {
         const file = files[i];
         const filePath = (file as File & { path?: string }).path;
@@ -161,13 +162,25 @@ class PasteServiceClass {
               const arrayBuffer = await file.arrayBuffer();
               const uint8Array = new Uint8Array(arrayBuffer);
 
-              // 生成简洁的文件名，如果剪贴板图片有奇怪的默认名，替换为简洁名称
+              // Generate a concise filename; replace system-generated default names
               const now = new Date();
               const timeStr = `${now.getHours().toString().padStart(2, '0')}${now.getMinutes().toString().padStart(2, '0')}${now.getSeconds().toString().padStart(2, '0')}`;
 
-              // 如果文件名看起来像系统生成的（包含时间戳格式），使用我们的命名
               const isSystemGenerated = file.name && /^[a-zA-Z]?_?\d{4}-\d{2}-\d{2}_\d{2}-\d{2}-\d{2}/.test(file.name);
-              const fileName = file.name && !isSystemGenerated ? file.name : `pasted_image_${timeStr}${fileExt}`;
+              let fileName = file.name && !isSystemGenerated ? file.name : `pasted_image_${timeStr}${fileExt}`;
+              // Ensure unique filename within the same paste batch to prevent
+              // collisions when multiple images are pasted simultaneously
+              if (usedFileNames.has(fileName)) {
+                const extIdx = fileName.lastIndexOf('.');
+                const baseName = extIdx > 0 ? fileName.slice(0, extIdx) : fileName;
+                const ext = extIdx > 0 ? fileName.slice(extIdx) : fileExt;
+                let counter = 2;
+                while (usedFileNames.has(`${baseName}_${counter}${ext}`)) {
+                  counter++;
+                }
+                fileName = `${baseName}_${counter}${ext}`;
+              }
+              usedFileNames.add(fileName);
 
               // 创建临时文件并写入数据（Electron 使用 IPC，WebUI 使用 HTTP API）
               const tempPath = await createTempFile(fileName, uint8Array, file.type, conversationId);
@@ -218,10 +231,20 @@ class PasteServiceClass {
               const arrayBuffer = await file.arrayBuffer();
               const uint8Array = new Uint8Array(arrayBuffer);
 
-              // 使用原文件名
-              const fileName = file.name;
+              // Ensure unique filename within the same paste batch
+              let fileName = file.name;
+              if (usedFileNames.has(fileName)) {
+                const extIdx = fileName.lastIndexOf('.');
+                const baseName = extIdx > 0 ? fileName.slice(0, extIdx) : fileName;
+                const ext = extIdx > 0 ? fileName.slice(extIdx) : fileExt;
+                let counter = 2;
+                while (usedFileNames.has(`${baseName}_${counter}${ext}`)) {
+                  counter++;
+                }
+                fileName = `${baseName}_${counter}${ext}`;
+              }
+              usedFileNames.add(fileName);
 
-              // 创建临时文件并写入数据（Electron 使用 IPC，WebUI 使用 HTTP API）
               const tempPath = await createTempFile(
                 fileName,
                 uint8Array,

@@ -9,9 +9,16 @@ import type { TMessage } from '@/common/chat/chatLib';
 import { transformMessage } from '@/common/chat/chatLib';
 import { uuid } from '@/common/utils';
 import SendBox from '@/renderer/components/chat/sendbox';
+import CommandQueuePanel from '@/renderer/components/chat/CommandQueuePanel';
 import { getSendBoxDraftHook, type FileOrFolderItem } from '@/renderer/hooks/chat/useSendBoxDraft';
 import { createSetUploadFile } from '@/renderer/hooks/chat/useSendBoxFiles';
-import { useAddOrUpdateMessage } from '@/renderer/pages/conversation/Messages/hooks';
+import { useAddOrUpdateMessage, useRemoveMessageByMsgId } from '@/renderer/pages/conversation/Messages/hooks';
+import {
+  shouldEnqueueConversationCommand,
+  useConversationCommandQueue,
+  type ConversationCommandQueueItem,
+} from '@/renderer/pages/conversation/platforms/useConversationCommandQueue';
+import { assertBridgeSuccess } from '@/renderer/pages/conversation/platforms/assertBridgeSuccess';
 import { allSupportedExts, type FileMetadata } from '@/renderer/services/FileService';
 import { emitter, useAddEventListener } from '@/renderer/utils/emitter';
 import { mergeFileSelectionItems } from '@/renderer/utils/file/fileSelection';
@@ -28,6 +35,8 @@ import { useOpenFileSelector } from '@/renderer/hooks/file/useOpenFileSelector';
 import FileAttachButton from '@/renderer/components/media/FileAttachButton';
 import { useAutoTitle } from '@/renderer/hooks/chat/useAutoTitle';
 import { useSlashCommands } from '@/renderer/hooks/chat/useSlashCommands';
+
+const normalizeRuntimeValue = (value?: string | null): string => (value || '').trim();
 
 interface OpenClawDraftData {
   _type: 'openclaw-gateway';
@@ -58,26 +67,40 @@ const validateRuntimeMismatch = async (conversationId: string): Promise<boolean>
   const expected = runtimeResult.data.expected || {};
   const mismatches: string[] = [];
 
-  const norm = (v?: string | null) => (v || '').trim();
   const eqPath = (a?: string | null, b?: string | null) =>
-    norm(a).replace(/[\\/]+$/, '') === norm(b).replace(/[\\/]+$/, '');
+    normalizeRuntimeValue(a).replace(/[\\/]+$/, '') === normalizeRuntimeValue(b).replace(/[\\/]+$/, '');
 
   if (expected.expectedWorkspace && !eqPath(expected.expectedWorkspace, runtime.workspace)) {
     mismatches.push(`workspace: expected=${expected.expectedWorkspace || '-'} actual=${runtime.workspace || '-'}`);
   }
-  if (expected.expectedBackend && norm(expected.expectedBackend) !== norm(runtime.backend)) {
+  if (
+    expected.expectedBackend &&
+    normalizeRuntimeValue(expected.expectedBackend) !== normalizeRuntimeValue(runtime.backend)
+  ) {
     mismatches.push(`backend: expected=${expected.expectedBackend || '-'} actual=${runtime.backend || '-'}`);
   }
-  if (expected.expectedAgentName && norm(expected.expectedAgentName) !== norm(runtime.agentName)) {
+  if (
+    expected.expectedAgentName &&
+    normalizeRuntimeValue(expected.expectedAgentName) !== normalizeRuntimeValue(runtime.agentName)
+  ) {
     mismatches.push(`agent: expected=${expected.expectedAgentName || '-'} actual=${runtime.agentName || '-'}`);
   }
-  if (expected.expectedCliPath && norm(expected.expectedCliPath) !== norm(runtime.cliPath)) {
+  if (
+    expected.expectedCliPath &&
+    normalizeRuntimeValue(expected.expectedCliPath) !== normalizeRuntimeValue(runtime.cliPath)
+  ) {
     mismatches.push(`cliPath: expected=${expected.expectedCliPath || '-'} actual=${runtime.cliPath || '-'}`);
   }
-  if (expected.expectedModel && norm(expected.expectedModel) !== norm(runtime.model)) {
+  if (
+    expected.expectedModel &&
+    normalizeRuntimeValue(expected.expectedModel) !== normalizeRuntimeValue(runtime.model)
+  ) {
     mismatches.push(`model: expected=${expected.expectedModel || '-'} actual=${runtime.model || '-'}`);
   }
-  if (expected.expectedIdentityHash && norm(expected.expectedIdentityHash) !== norm(runtime.identityHash)) {
+  if (
+    expected.expectedIdentityHash &&
+    normalizeRuntimeValue(expected.expectedIdentityHash) !== normalizeRuntimeValue(runtime.identityHash)
+  ) {
     mismatches.push(`identity: expected=${expected.expectedIdentityHash || '-'} actual=${runtime.identityHash || '-'}`);
   }
 
@@ -96,6 +119,7 @@ const OpenClawSendBox: React.FC<{ conversation_id: string }> = ({ conversation_i
   const { checkAndUpdateTitle } = useAutoTitle();
   const slashCommands = useSlashCommands(conversation_id);
   const addOrUpdateMessage = useAddOrUpdateMessage();
+  const removeMessageByMsgId = useRemoveMessageByMsgId();
   const { setSendBoxHandler } = usePreviewContext();
 
   const [aiProcessing, setAiProcessing] = useState(false);
@@ -334,7 +358,8 @@ const OpenClawSendBox: React.FC<{ conversation_id: string }> = ({ conversation_i
       starOfficeInstallInFlightRef.current = true;
       ipcBridge.openclawConversation.sendMessage
         .invoke({ input: text, msg_id, conversation_id, injectSkills: ['star-office-helper'] })
-        .then(() => {
+        .then((result) => {
+          assertBridgeSuccess(result, 'Failed to send Star Office install command');
           void checkAndUpdateTitle(conversation_id, text);
           emitter.emit('chat.history.refresh');
         })
@@ -370,25 +395,15 @@ const OpenClawSendBox: React.FC<{ conversation_id: string }> = ({ conversation_i
     }, 10);
   });
 
-  const sendOpenClawMessage = useCallback(
-    async (message: string) => {
+  const executeCommand = useCallback(
+    async ({ input, files }: Pick<ConversationCommandQueueItem, 'input' | 'files'>) => {
       const runtimeOk = await validateRuntimeMismatch(conversation_id);
-      if (!runtimeOk) return;
+      if (!runtimeOk) {
+        throw new Error('OpenClaw runtime validation failed');
+      }
 
       const msg_id = uuid();
-      // Content is already cleared by the shared SendBox component (setInput(''))
-      // before calling onSend — no need to clear again here.
-      emitter.emit('openclaw-gateway.selected.file.clear');
-      const currentAtPath = [...atPath];
-      const currentUploadFile = [...uploadFile];
-      setAtPath([]);
-      setUploadFile([]);
-
-      const filePaths = [
-        ...currentUploadFile,
-        ...currentAtPath.map((item) => (typeof item === 'string' ? item : item.path)),
-      ];
-      const displayMessage = buildDisplayMessage(message, filePaths, workspacePath);
+      const displayMessage = buildDisplayMessage(input, files, workspacePath);
 
       const userMessage: TMessage = {
         id: msg_id,
@@ -403,44 +418,66 @@ const OpenClawSendBox: React.FC<{ conversation_id: string }> = ({ conversation_i
       setAiProcessing(true);
       aiProcessingRef.current = true;
       try {
-        const atPathStrings = currentAtPath.map((item) => (typeof item === 'string' ? item : item.path));
-        await ipcBridge.openclawConversation.sendMessage.invoke({
+        const result = await ipcBridge.openclawConversation.sendMessage.invoke({
           input: displayMessage,
           msg_id,
           conversation_id,
-          files: [...currentUploadFile, ...atPathStrings],
+          files,
         });
-        void checkAndUpdateTitle(conversation_id, message);
+        assertBridgeSuccess(result, 'Failed to send message to OpenClaw');
+        void checkAndUpdateTitle(conversation_id, input);
         emitter.emit('chat.history.refresh');
       } catch (error) {
-        // Only reset aiProcessing on error, normal flow is reset by 'finish' event
+        removeMessageByMsgId(msg_id);
         setAiProcessing(false);
         aiProcessingRef.current = false;
         throw error;
       }
     },
-    [
-      conversation_id,
-      atPath,
-      uploadFile,
-      workspacePath,
-      addOrUpdateMessage,
-      checkAndUpdateTitle,
-      setAtPath,
-      setUploadFile,
-    ]
+    [addOrUpdateMessage, checkAndUpdateTitle, conversation_id, removeMessageByMsgId, workspacePath]
   );
 
+  const {
+    items,
+    isPaused: isQueuePaused,
+    isInteractionLocked: isQueueInteractionLocked,
+    hasPendingCommands,
+    enqueue,
+    update,
+    remove,
+    clear,
+    reorder,
+    pause,
+    resume,
+    lockInteraction,
+    unlockInteraction,
+    resetActiveExecution,
+  } = useConversationCommandQueue({
+    conversationId: conversation_id,
+    isBusy: aiProcessing,
+    onExecute: executeCommand,
+  });
+
   const onSendHandler = async (message: string) => {
-    await sendOpenClawMessage(message);
+    emitter.emit('openclaw-gateway.selected.file.clear');
+    const filePaths = [...uploadFile, ...atPath.map((item) => (typeof item === 'string' ? item : item.path))];
+    setAtPath([]);
+    setUploadFile([]);
+
+    if (shouldEnqueueConversationCommand({ isBusy: aiProcessing, hasPendingCommands })) {
+      enqueue({ input: message, files: filePaths });
+      return;
+    }
+
+    await executeCommand({ input: message, files: filePaths });
   };
 
   useEffect(() => {
-    immediateSendRef.current = sendOpenClawMessage;
+    immediateSendRef.current = (text) => executeCommand({ input: text, files: [] });
     return () => {
       immediateSendRef.current = null;
     };
-  }, [sendOpenClawMessage]);
+  }, [executeCommand]);
 
   const appendSelectedFiles = useCallback(
     (files: string[]) => {
@@ -490,17 +527,18 @@ const OpenClawSendBox: React.FC<{ conversation_id: string }> = ({ conversation_i
         // 重置 AI 回复用于新一轮
         addOrUpdateMessage(userMessage, true);
 
-        await ipcBridge.openclawConversation.sendMessage.invoke({
+        const result = await ipcBridge.openclawConversation.sendMessage.invoke({
           input: initialDisplayMessage,
           msg_id,
           conversation_id,
           files,
           loading_id,
         });
+        assertBridgeSuccess(result, 'Failed to send initial message to OpenClaw');
         void checkAndUpdateTitle(conversation_id, input);
         emitter.emit('chat.history.refresh');
         sessionStorage.removeItem(storageKey);
-      } catch (err) {
+      } catch {
         sessionStorage.removeItem(processedKey);
         // Only reset aiProcessing on error, normal flow is reset by 'finish' event
         setAiProcessing(false);
@@ -527,12 +565,26 @@ const OpenClawSendBox: React.FC<{ conversation_id: string }> = ({ conversation_i
       aiProcessingRef.current = false;
       setThought({ subject: '', description: '' });
       hasContentInTurnRef.current = false;
+      resetActiveExecution('stop');
     }
   };
 
   return (
     <div className='max-w-800px w-full mx-auto flex flex-col mt-auto mb-16px'>
       <ThoughtDisplay thought={thought} running={aiProcessing} onStop={handleStop} />
+      <CommandQueuePanel
+        items={items}
+        paused={isQueuePaused}
+        interactionLocked={isQueueInteractionLocked}
+        onPause={pause}
+        onResume={resume}
+        onInteractionLock={lockInteraction}
+        onInteractionUnlock={unlockInteraction}
+        onUpdate={(commandId, input) => update(commandId, { input })}
+        onReorder={reorder}
+        onRemove={remove}
+        onClear={clear}
+      />
 
       <SendBox
         value={content}
@@ -617,6 +669,7 @@ const OpenClawSendBox: React.FC<{ conversation_id: string }> = ({ conversation_i
         onSend={onSendHandler}
         slashCommands={slashCommands}
         onSlashBuiltinCommand={onSlashBuiltinCommand}
+        allowSendWhileLoading
       ></SendBox>
     </div>
   );

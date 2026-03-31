@@ -34,6 +34,9 @@ class NanoBotAgentManager extends BaseAgentManager<NanoBotAgentManagerData> {
     this.workspace = data.workspace ?? '';
 
     this.bootstrap = this.initAgent(data);
+    // Prevent unhandled promise rejection when agent fails to start.
+    // The error still propagates when sendMessage() awaits this.bootstrap.
+    this.bootstrap.catch(() => {});
   }
 
   private async initAgent(data: NanoBotAgentManagerData): Promise<NanobotAgent> {

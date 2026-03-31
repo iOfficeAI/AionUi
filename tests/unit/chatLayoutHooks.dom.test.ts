@@ -11,6 +11,7 @@ import { renderHook, act } from '@testing-library/react';
 // ── Mocks ──────────────────────────────────────────────────────────────────
 
 const mockConversationUpdateInvoke = vi.fn().mockResolvedValue(true);
+const mockRefreshConversationCache = vi.fn().mockResolvedValue(undefined);
 
 vi.mock('@/common', () => ({
   ipcBridge: {
@@ -22,6 +23,10 @@ vi.mock('@/common', () => ({
 
 vi.mock('@/renderer/utils/emitter', () => ({
   emitter: { emit: vi.fn() },
+}));
+
+vi.mock('@/renderer/pages/conversation/utils/conversationCache', () => ({
+  refreshConversationCache: (...args: unknown[]) => mockRefreshConversationCache(...args),
 }));
 
 vi.mock('@arco-design/web-react', () => ({
@@ -86,6 +91,7 @@ describe('useTitleRename', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mockConversationUpdateInvoke.mockResolvedValue(true);
+    mockRefreshConversationCache.mockResolvedValue(undefined);
   });
 
   it('initial state: editingTitle is false, titleDraft syncs with title param', () => {
@@ -154,6 +160,7 @@ describe('useTitleRename', () => {
       id: 'conv-1',
       updates: { name: 'New Title' },
     });
+    expect(mockRefreshConversationCache).toHaveBeenCalledWith('conv-1');
     expect(mockUpdateTabName).toHaveBeenCalledWith('conv-1', 'New Title');
     expect(result.current.editingTitle).toBe(false);
     expect(result.current.renameLoading).toBe(false);

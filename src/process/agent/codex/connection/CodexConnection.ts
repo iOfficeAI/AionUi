@@ -213,7 +213,10 @@ export class CodexConnection {
         });
 
         this.child.on('exit', (code, signal) => {
+          // Reject the start promise immediately on unexpected exit during startup,
+          // instead of waiting for the 5-second timeout with a generic error message.
           if (code !== 0 && code !== null) {
+            reject(new Error(`Codex process exited during startup (code: ${code}, signal: ${signal || 'none'})`));
             this.handleProcessExit(code, signal);
           }
         });
@@ -490,7 +493,9 @@ export class CodexConnection {
     return new Promise((resolve, reject) => {
       this.permissionResolvers.set(callId, { resolve, reject });
 
-      // Auto-timeout after 30 seconds
+      // Allow users up to 30 minutes to respond to permission prompts.
+      // The previous 30-second timeout caused auto-rejections when users
+      // stepped away briefly, leading to "internal error" on return.
       setTimeout(() => {
         if (this.permissionResolvers.has(callId)) {
           this.permissionResolvers.delete(callId);
@@ -504,7 +509,7 @@ export class CodexConnection {
 
           reject(new Error('Permission request timed out'));
         }
-      }, 30000);
+      }, 1800000);
     });
   }
 

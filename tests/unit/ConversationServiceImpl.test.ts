@@ -142,4 +142,12 @@ describe('ConversationServiceImpl.createConversation', () => {
     const svc = new ConversationServiceImpl(repo);
     await expect(svc.createConversation({ type: 'unknown' as any, model: {} as any, extra: {} })).rejects.toThrow();
   });
+
+  it('throws for undefined conversation type (ELECTRON-FP)', async () => {
+    const repo = makeRepo();
+    const svc = new ConversationServiceImpl(repo);
+    await expect(svc.createConversation({ type: undefined as any, model: {} as any, extra: {} })).rejects.toThrow(
+      'Invalid conversation type'
+    );
+  });
 });

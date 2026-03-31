@@ -11,6 +11,11 @@ import { generateIdentity } from '@process/agent/openclaw/deviceIdentity';
 import { OpenClawGatewayConnection } from '@process/agent/openclaw/OpenClawGatewayConnection';
 import WebSocket from 'ws';
 
+function normalizeWebSocketUrl(url: string): string {
+  const trimmedUrl = url.trim();
+  return /^wss?:\/\//i.test(trimmedUrl) ? trimmedUrl : `ws://${trimmedUrl}`;
+}
+
 export function initRemoteAgentBridge(): void {
   ipcBridge.remoteAgent.list.provider(async () => {
     const db = await getDatabase();
@@ -72,28 +77,47 @@ export function initRemoteAgentBridge(): void {
 
   ipcBridge.remoteAgent.testConnection.provider(async ({ url, authType, authToken, allowInsecure }) => {
     return new Promise<{ success: boolean; error?: string }>((resolve) => {
-      const timeout = setTimeout(() => {
-        ws.close();
-        resolve({ success: false, error: 'Connection timed out (10s)' });
-      }, 10_000);
-
+      let settled = false;
+      let ws: WebSocket | undefined;
       const headers: Record<string, string> = {};
       if (authType === 'bearer' && authToken) {
         headers['Authorization'] = `Bearer ${authToken}`;
       }
 
-      const ws = new WebSocket(url, { headers, handshakeTimeout: 10_000, rejectUnauthorized: !allowInsecure });
+      const finish = (result: { success: boolean; error?: string }) => {
+        if (settled) {
+          return;
+        }
+        settled = true;
+        clearTimeout(timeout);
+        ws?.close();
+        resolve(result);
+      };
+
+      const timeout = setTimeout(() => {
+        finish({ success: false, error: 'Connection timed out (10s)' });
+      }, 10_000);
+
+      try {
+        ws = new WebSocket(normalizeWebSocketUrl(url), {
+          headers,
+          handshakeTimeout: 10_000,
+          rejectUnauthorized: !allowInsecure,
+        });
+      } catch (error) {
+        finish({
+          success: false,
+          error: error instanceof Error ? error.message : String(error),
+        });
+        return;
+      }
 
       ws.on('open', () => {
-        clearTimeout(timeout);
-        ws.close();
-        resolve({ success: true });
+        finish({ success: true });
       });
 
       ws.on('error', (err) => {
-        clearTimeout(timeout);
-        ws.close();
-        resolve({ success: false, error: err.message });
+        finish({ success: false, error: err.message });
       });
     });
   });

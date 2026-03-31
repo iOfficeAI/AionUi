@@ -350,6 +350,12 @@ export class AcpConnection {
         let errMsg: string;
         if (stderrCombined) {
           errMsg = `${backend} ACP process exited during startup (code: ${code}):\n${stderrCombined}`;
+        } else if (code === 0) {
+          // Exit code 0 with no stderr strongly suggests the CLI version does not support ACP mode
+          errMsg =
+            `${backend} ACP process exited during startup (code: 0). ` +
+            `This usually means the installed ${backend} CLI version does not support ACP mode. ` +
+            `Please upgrade to a newer version that supports ACP.`;
         } else {
           errMsg = `${backend} ACP process exited during startup (code: ${code}, signal: ${signal})`;
         }
@@ -549,23 +555,19 @@ export class AcpConnection {
   }
 
   // 恢复指定请求的超时计时器
+  // Reset startTime so the full timeout budget restarts after a permission pause.
+  // Without this, long permission waits cause immediate timeout on resume.
   private resumeRequestTimeout(requestId: number): void {
     const request = this.pendingRequests.get(requestId);
     if (request && request.isPaused) {
-      const elapsedTime = Date.now() - request.startTime;
-      const remainingTime = Math.max(0, request.timeoutDuration - elapsedTime);
-
-      if (remainingTime > 0) {
-        request.timeoutId = setTimeout(() => {
-          if (this.pendingRequests.has(requestId) && !request.isPaused) {
-            this.handlePromptTimeout(requestId, request);
-          }
-        }, remainingTime);
-        request.isPaused = false;
-      } else {
-        // 时间已超过，立即触发超时
-        this.handlePromptTimeout(requestId, request);
-      }
+      request.startTime = Date.now();
+      request.promptOriginTime = Date.now();
+      request.timeoutId = setTimeout(() => {
+        if (this.pendingRequests.has(requestId) && !request.isPaused) {
+          this.handlePromptTimeout(requestId, request);
+        }
+      }, request.timeoutDuration);
+      request.isPaused = false;
     }
   }
 

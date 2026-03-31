@@ -103,6 +103,10 @@ export function initConversationBridge(
   });
 
   ipcBridge.conversation.create.provider(async (params): Promise<TChatConversation> => {
+    if (!params.type) {
+      console.error('[conversationBridge] Missing required field "type" in create params:', params);
+      throw new Error(`Missing required field "type" in create conversation params`);
+    }
     const conversation = await conversationService.createConversation({
       ...params,
       source: 'aionui', // Mark conversations created by AionUI as aionui
@@ -416,7 +420,11 @@ export function initConversationBridge(
 
   // 通用 sendMessage 实现 - 统一调用 IAgentManager.sendMessage
   // Generic sendMessage - dispatches via IAgentManager.sendMessage interface
-  ipcBridge.conversation.sendMessage.provider(async ({ conversation_id, files, ...other }) => {
+  ipcBridge.conversation.sendMessage.provider(async (params) => {
+    if (!params) {
+      return { success: false, msg: 'Missing request parameters' };
+    }
+    const { conversation_id, files, ...other } = params;
     let task: IAgentManager | undefined;
     try {
       task = await workerTaskManager.getOrBuildTask(conversation_id);

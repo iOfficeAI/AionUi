@@ -15,8 +15,7 @@ import { startLogin } from '@process/channels/plugins/weixin/WeixinLogin';
  *   Opens an SSE stream and runs the WeChat iLink login flow.
  *   Emits events: qr | scanned | done | error
  *
- *   qr event: { qrcodeData: string } — the page URL to encode as QR image on the client.
- *   (WeChat's QR page encodes window.location.href, which is the qrcode_img_content URL.)
+ *   qr event: { qrcodeData: string } — the raw QR ticket to encode as QR image on the client.
  */
 export function registerWeixinLoginRoutes(app: Express, validateApiAccess: RequestHandler): void {
   app.get('/api/channel/weixin/login', validateApiAccess, (req: Request, res: Response) => {
@@ -30,8 +29,8 @@ export function registerWeixinLoginRoutes(app: Express, validateApiAccess: Reque
     };
 
     const handle = startLogin({
-      onQR: (pageUrl, _qrcodeData) => {
-        send('qr', { qrcodeData: pageUrl });
+      onQR: (_pageUrl, qrcodeData) => {
+        send('qr', { qrcodeData });
       },
       onScanned: () => {
         send('scanned', {});

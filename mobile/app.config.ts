@@ -23,7 +23,8 @@ export default ({ config }: ConfigContext): ExpoConfig => {
     },
     android: {
       adaptiveIcon: {
-        backgroundColor: '#1a1a2e',
+        foregroundImage: './assets/images/icon.png',
+        backgroundColor: '#000000',
       },
       package: 'ai.resopod.aionui',
       versionCode: VERSION.buildNumber,

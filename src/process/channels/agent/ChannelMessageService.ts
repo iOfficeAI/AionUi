@@ -31,7 +31,13 @@ interface IStreamState {
   turnCount: number;
   /** Number of 'finish' events received */
   finishCount: number;
+  /** Last visible message type seen in the stream */
+  lastVisibleMessageType?: TMessage['type'];
+  /** Timer used to wait for a continuation turn after a tool-only finish */
+  finishTimer?: ReturnType<typeof setTimeout>;
 }
+
+const TOOL_CONTINUATION_WAIT_MS = 15_000;
 
 /**
  * ChannelMessageService - Manages message sending for Channel
@@ -63,6 +69,19 @@ export class ChannelMessageService {
   private initialized = false;
 
   private messageListMap = new Map<string, TMessage[]>();
+
+  private clearFinishTimer(stream: IStreamState): void {
+    if (stream.finishTimer) {
+      clearTimeout(stream.finishTimer);
+      stream.finishTimer = undefined;
+    }
+  }
+
+  private resolveStream(conversationId: string, stream: IStreamState): void {
+    this.clearFinishTimer(stream);
+    this.activeStreams.delete(conversationId);
+    stream.resolve(stream.msgId);
+  }
 
   /**
    * 初始化服务，注册全局事件监听
@@ -99,6 +118,7 @@ export class ChannelMessageService {
     // The Gemini agent emits a new 'start' for each submitQuery turn, including continuations
     // triggered by onAllToolCallsComplete. We must wait for all turns to finish.
     if (event.type === 'start') {
+      this.clearFinishTimer(stream);
       stream.turnCount++;
       return;
     }
@@ -108,8 +128,17 @@ export class ChannelMessageService {
     if (event.type === 'finish') {
       stream.finishCount++;
       if (stream.turnCount === 0 || stream.finishCount >= stream.turnCount) {
-        this.activeStreams.delete(conversationId);
-        stream.resolve(stream.msgId);
+        const shouldWaitForContinuation = stream.lastVisibleMessageType === 'tool_group';
+        if (shouldWaitForContinuation) {
+          this.clearFinishTimer(stream);
+          stream.finishTimer = setTimeout(() => {
+            if (this.activeStreams.get(conversationId) === stream) {
+              this.resolveStream(conversationId, stream);
+            }
+          }, TOOL_CONTINUATION_WAIT_MS);
+        } else {
+          this.resolveStream(conversationId, stream);
+        }
       }
       return;
     }
@@ -122,6 +151,8 @@ export class ChannelMessageService {
       // transformMessage returns undefined for message types that don't need processing (like thought, start)
       return;
     }
+
+    stream.lastVisibleMessageType = message.type;
 
     let messageList = this.messageListMap.get(conversationId);
     if (!messageList) {
@@ -198,6 +229,11 @@ export class ChannelMessageService {
     }
 
     return new Promise((resolve, reject) => {
+      const existingStream = this.activeStreams.get(conversationId);
+      if (existingStream) {
+        this.resolveStream(conversationId, existingStream);
+      }
+
       // 注册流状态
       // Register stream state
       this.activeStreams.set(conversationId, {
@@ -208,6 +244,8 @@ export class ChannelMessageService {
         reject,
         turnCount: 0,
         finishCount: 0,
+        lastVisibleMessageType: undefined,
+        finishTimer: undefined,
       });
 
       // Build payload based on agent type.
@@ -231,6 +269,10 @@ export class ChannelMessageService {
           },
           true
         );
+        const stream = this.activeStreams.get(conversationId);
+        if (stream) {
+          this.clearFinishTimer(stream);
+        }
         this.activeStreams.delete(conversationId);
         reject(error);
       });
@@ -254,6 +296,7 @@ export class ChannelMessageService {
   clearStreamByConversationId(conversationId: string): void {
     const stream = this.activeStreams.get(conversationId);
     if (!stream) return;
+    this.clearFinishTimer(stream);
     this.activeStreams.delete(conversationId);
     // Resolve (not reject) so the caller's post-stream cleanup runs normally
     // (e.g., ActionExecutor finalizing the card with action buttons).

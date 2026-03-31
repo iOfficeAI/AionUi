@@ -341,6 +341,11 @@ export class GeminiAgent {
     // causing an unhandled ENOENT rejection (Sentry ELECTRON-6W).
     await fs.promises.mkdir(path, { recursive: true });
 
+    // Verify workspace is resolvable before aioncli-core attempts fs.realpath()
+    // internally. The mkdir above handles ENOENT, but EACCES (permission denied)
+    // still causes an unhandled rejection inside the library (Sentry ELECTRON-BM).
+    await fs.promises.realpath(path);
+
     const settings = loadSettings(path).merged;
     if (this.contextFileName) {
       settings.contextFileName = this.contextFileName;
@@ -926,9 +931,14 @@ export class GeminiAgent {
   async injectConversationHistory(text: string): Promise<void> {
     try {
       if (!this.config || !this.workspace || !this.settings) return;
+      if (this.geminiClient) {
+        await this.geminiClient.resetChat();
+      }
+
       // Prepare one-time prefix for first outgoing message after (re)start
       this.historyPrefix = `Conversation history (recent):\n${text}\n\n`;
       this.historyUsedOnce = false;
+      this.skillsIndexPrependedOnce = false;
       // 使用 refreshServerHierarchicalMemory 刷新 memory，然后追加聊天历史
       // Use refreshServerHierarchicalMemory to refresh memory, then append chat history
       const { memoryContent } = await refreshServerHierarchicalMemory(this.config);

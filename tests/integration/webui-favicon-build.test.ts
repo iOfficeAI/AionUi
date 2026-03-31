@@ -138,7 +138,7 @@ describe('Built WebUI favicon integrity', () => {
   runOrSkip('should include the built favicon asset referenced by renderer index.html', () => {
     const faviconHref = extractFaviconHref(rendererIndexPath);
 
-    expect(faviconHref).toMatch(/^\.\/assets\/.+\.(png|ico|svg)$/);
+    expect(faviconHref).toMatch(/^\.\/(assets|pwa)\/.+\.(png|ico|svg)$/);
 
     const assetRelativePath = toPosixPath(path.join('out/renderer', faviconHref.replace(/^\.\//, '')));
     const assetAbsolutePath = path.resolve(path.dirname(rendererIndexPath), faviconHref);

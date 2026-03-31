@@ -8,6 +8,7 @@ import { ipcBridge } from '@/common';
 import type { TChatConversation } from '@/common/config/storage';
 import FlexFullContainer from '@/renderer/components/layout/FlexFullContainer';
 import { CronJobIndicator, useCronJobsMap } from '@/renderer/pages/cron';
+import { refreshConversationCache } from '@/renderer/pages/conversation/utils/conversationCache';
 import { addEventListener, emitter } from '@/renderer/utils/emitter';
 import { blockMobileInputFocus, blurActiveElement } from '@/renderer/utils/ui/focus';
 import { cleanupSiderTooltips, getSiderTooltipProps } from '@/renderer/utils/ui/siderTooltip';
@@ -155,6 +156,7 @@ const ChatHistory: React.FC<{ onSessionClick?: () => void; collapsed?: boolean }
       });
 
       if (success) {
+        await refreshConversationCache(editingId);
         // Trigger refresh to reload from database
         emitter.emit('chat.history.refresh');
       }

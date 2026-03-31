@@ -65,6 +65,7 @@ const SendBox: React.FC<{
   onSlashBuiltinCommand?: (name: string) => void;
   hasPendingAttachments?: boolean;
   enableBtw?: boolean;
+  allowSendWhileLoading?: boolean;
 }> = ({
   onSend,
   onStop,
@@ -85,6 +86,7 @@ const SendBox: React.FC<{
   onSlashBuiltinCommand,
   hasPendingAttachments = false,
   enableBtw = false,
+  allowSendWhileLoading = false,
 }) => {
   const layout = useLayoutContext();
   const isMobile = layout?.isMobile ?? false;
@@ -236,7 +238,6 @@ const SendBox: React.FC<{
   });
   const btwCommand = useBtwCommand(conversationContext?.conversationId, enableBtw);
   const btwQuestion = useMemo(() => extractBtwQuestion(input), [input]);
-  const isBtwInput = enableBtw && btwQuestion !== null;
   const inputHistory = useMemo(
     () => getConversationInputHistory(messageList, conversationContext?.conversationId),
     [conversationContext?.conversationId, messageList]
@@ -576,13 +577,27 @@ const SendBox: React.FC<{
       return;
     }
 
-    if (loading || isLoading) {
+    if (!allowSendWhileLoading && (isLoading || loading)) {
+      console.info('[sendbox]', {
+        event: 'blocked-while-loading',
+        allowSendWhileLoading,
+        isLoading,
+        loading,
+      });
       message.warning(t('messages.conversationInProgress'));
       return;
     }
     if (!input.trim() && domSnippets.length === 0) {
       return;
     }
+    console.info('[sendbox]', {
+      event: 'submit',
+      allowSendWhileLoading,
+      isLoading,
+      loading,
+      inputLength: input.length,
+      domSnippetCount: domSnippets.length,
+    });
     setIsLoading(true);
     historyDraftRef.current = null;
     setHistoryNavigationIndex(null);
@@ -642,6 +657,33 @@ const SendBox: React.FC<{
       }}
     />
   );
+
+  const stopButton = (
+    <Button
+      shape='circle'
+      type='secondary'
+      className='bg-animate'
+      icon={<div className='mx-auto size-12px bg-6'></div>}
+      onClick={stopHandler}
+    ></Button>
+  );
+
+  const renderActionButtons = () => {
+    if (allowSendWhileLoading && (isLoading || loading)) {
+      return (
+        <>
+          {stopButton}
+          {sendButton}
+        </>
+      );
+    }
+
+    if (isLoading || loading) {
+      return stopButton;
+    }
+
+    return sendButton;
+  };
 
   return (
     <div className={className}>
@@ -783,17 +825,7 @@ const SendBox: React.FC<{
                 onTranscript={handleSpeechTranscript}
               />
               {sendButtonPrefix}
-              {isLoading || (loading && !isBtwInput) ? (
-                <Button
-                  shape='circle'
-                  type='secondary'
-                  className='bg-animate'
-                  icon={<div className='mx-auto size-12px bg-6'></div>}
-                  onClick={stopHandler}
-                ></Button>
-              ) : (
-                sendButton
-              )}
+              {renderActionButtons()}
             </div>
           )}
         </div>
@@ -807,17 +839,7 @@ const SendBox: React.FC<{
                 onTranscript={handleSpeechTranscript}
               />
               {sendButtonPrefix}
-              {isLoading || (loading && !isBtwInput) ? (
-                <Button
-                  shape='circle'
-                  type='secondary'
-                  className='bg-animate'
-                  icon={<div className='mx-auto size-12px bg-6'></div>}
-                  onClick={stopHandler}
-                ></Button>
-              ) : (
-                sendButton
-              )}
+              {renderActionButtons()}
             </div>
           </div>
         )}
