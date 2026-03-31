@@ -18,6 +18,7 @@ import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js'
 import { z } from 'zod';
 import * as net from 'node:net';
 
+process.stderr.write(`[team-mcp-stdio] Script started. PID=${process.pid}, TEAM_MCP_PORT=${process.env.TEAM_MCP_PORT || 'unset'}\n`);
 const TEAM_MCP_PORT = parseInt(process.env.TEAM_MCP_PORT || '0', 10);
 
 if (!TEAM_MCP_PORT) {

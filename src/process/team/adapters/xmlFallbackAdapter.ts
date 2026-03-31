@@ -122,7 +122,7 @@ function parseXmlActions(text: string): { actions: ParsedAction[]; consumedSpans
  * Creates an adapter for platforms that do not support tool use (e.g. Gemini, Codex).
  * Agents communicate structured actions via XML tags embedded in plain text.
  */
-export function createXmlFallbackAdapter(): TeamPlatformAdapter {
+export function createXmlFallbackAdapter(options?: { hasMcpTools?: boolean }): TeamPlatformAdapter {
   return {
     getCapability(): PlatformCapability {
       return { supportsToolUse: false, supportsStreaming: true };
@@ -136,8 +136,10 @@ export function createXmlFallbackAdapter(): TeamPlatformAdapter {
       const rolePrompt = buildRolePrompt({ agent, mailboxMessages, tasks, teammates });
       sections.push(rolePrompt);
 
-      // Append XML fallback instructions (no MCP tools on this platform)
-      sections.push(TEAM_INSTRUCTIONS);
+      // Only append XML fallback instructions when MCP tools are NOT available
+      if (!options?.hasMcpTools) {
+        sections.push(TEAM_INSTRUCTIONS);
+      }
 
       return { message: sections.join('\n\n') };
     },

@@ -20,6 +20,7 @@ type TeammateManagerParams = {
   taskManager: TaskManager;
   workerTaskManager: IWorkerTaskManager;
   spawnAgent?: SpawnAgentFn;
+  hasMcpTools?: boolean;
 };
 
 /**
@@ -33,6 +34,7 @@ export class TeammateManager extends EventEmitter {
   private readonly taskManager: TaskManager;
   private readonly workerTaskManager: IWorkerTaskManager;
   private readonly spawnAgentFn?: SpawnAgentFn;
+  private hasMcpTools: boolean;
 
   /** Accumulated text response per conversationId */
   private readonly responseBuffer = new Map<string, string>();
@@ -59,6 +61,7 @@ export class TeammateManager extends EventEmitter {
     this.taskManager = params.taskManager;
     this.workerTaskManager = params.workerTaskManager;
     this.spawnAgentFn = params.spawnAgent;
+    this.hasMcpTools = params.hasMcpTools ?? false;
 
     for (const agent of this.agents) {
       this.ownedConversationIds.add(agent.conversationId);
@@ -76,6 +79,10 @@ export class TeammateManager extends EventEmitter {
   /** Get the current agents list */
   getAgents(): TeamAgent[] {
     return [...this.agents];
+  }
+
+  setHasMcpTools(value: boolean): void {
+    this.hasMcpTools = value;
   }
 
   /** Add a new agent to the team and notify renderer */
@@ -106,7 +113,7 @@ export class TeammateManager extends EventEmitter {
 
       this.setStatus(slotId, 'active');
 
-      const adapter = createPlatformAdapter(agent.conversationType);
+      const adapter = createPlatformAdapter(agent.conversationType, this.hasMcpTools);
       const [mailboxMessages, tasks] = await Promise.all([
         this.mailbox.readUnread(this.teamId, slotId),
         this.taskManager.list(this.teamId),
@@ -118,7 +125,7 @@ export class TeammateManager extends EventEmitter {
       // Clear previous buffer for this conversation
       this.responseBuffer.set(agent.conversationId, '');
 
-      const agentTask = await this.workerTaskManager.getOrBuildTask(agent.conversationId);
+      const agentTask = await this.workerTaskManager.getOrBuildTask(agent.conversationId, { skipCache: true });
       const msgId = crypto.randomUUID();
 
       // Each AgentManager implementation expects a specific object shape.
@@ -241,7 +248,7 @@ export class TeammateManager extends EventEmitter {
       this.wakeTimeouts.delete(agent.slotId);
     }
 
-    const adapter = createPlatformAdapter(agent.conversationType);
+    const adapter = createPlatformAdapter(agent.conversationType, this.hasMcpTools);
     const agentResponse: AgentResponse = { text: accumulatedText };
 
     let actions: ParsedAction[];

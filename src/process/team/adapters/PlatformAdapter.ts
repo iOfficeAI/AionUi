@@ -52,6 +52,6 @@ export type TeamPlatformAdapter = {
  * session — the agent only sees tools registered when the session was created.
  * XML instructions embedded in the message text work universally across all backends.
  */
-export function createPlatformAdapter(_conversationType: string): TeamPlatformAdapter {
-  return createXmlFallbackAdapter();
+export function createPlatformAdapter(_conversationType: string, hasMcpTools?: boolean): TeamPlatformAdapter {
+  return createXmlFallbackAdapter({ hasMcpTools });
 }
