@@ -112,6 +112,8 @@ export interface AcpAgentConfig {
     currentModelId?: string;
     /** Initial session mode to apply at session start (e.g., acceptEdits, auto, dontAsk, plan) */
     sessionMode?: string;
+    /** Team MCP server stdio config injected by TeamSessionService */
+    teamMcpStdioConfig?: { name: string; command: string; args: string[]; env: Array<{ name: string; value: string }> };
   };
   onStreamEvent: (data: IResponseMessage) => void;
   onSignalEvent?: (data: IResponseMessage) => void; // 新增：仅发送信号，不更新UI
@@ -144,6 +146,8 @@ export class AcpAgent {
     currentModelId?: string;
     /** Initial session mode to apply at session start (e.g., acceptEdits, auto, dontAsk, plan) */
     sessionMode?: string;
+    /** Team MCP server stdio config injected by TeamSessionService */
+    teamMcpStdioConfig?: { name: string; command: string; args: string[]; env: Array<{ name: string; value: string }> };
   };
   private connection: AcpConnection;
   private adapter: AcpAdapter;
@@ -1504,9 +1508,7 @@ export class AcpAgent {
       }
 
       // Inject team MCP server if this agent belongs to a team (stdio mode)
-      const teamMcpStdioConfig = (this.extra as Record<string, unknown>).teamMcpStdioConfig as
-        | { name: string; command: string; args: string[]; env: Array<{ name: string; value: string }> }
-        | undefined;
+      const teamMcpStdioConfig = this.extra.teamMcpStdioConfig;
       if (teamMcpStdioConfig && teamMcpStdioConfig.command) {
         servers.push({
           name: teamMcpStdioConfig.name,
