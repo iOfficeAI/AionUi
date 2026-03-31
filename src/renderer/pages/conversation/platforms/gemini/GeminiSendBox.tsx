@@ -124,10 +124,8 @@ const GeminiSendBox: React.FC<{
     handleSelectModel,
   });
 
-  const { thought, running, tokenUsage, setActiveMsgId, setWaitingResponse, resetState } = useGeminiMessage(
-    conversation_id,
-    handleGeminiError
-  );
+  const { thought, running, hasHydratedRunningState, tokenUsage, setActiveMsgId, setWaitingResponse, resetState } =
+    useGeminiMessage(conversation_id, handleGeminiError);
 
   const { atPath, uploadFile, setAtPath, setUploadFile, content, setContent } = useSendBoxDraft(conversation_id);
 
@@ -286,6 +284,7 @@ const GeminiSendBox: React.FC<{
   } = useConversationCommandQueue({
     conversationId: conversation_id,
     isBusy,
+    isHydrated: hasHydratedRunningState,
     onExecute: executeCommand,
   });
 

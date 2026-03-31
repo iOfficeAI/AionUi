@@ -16,6 +16,7 @@ type UseAcpMessageReturn = {
   thought: ThoughtData;
   setThought: React.Dispatch<React.SetStateAction<ThoughtData>>;
   running: boolean;
+  hasHydratedRunningState: boolean;
   acpStatus: 'connecting' | 'connected' | 'authenticated' | 'session_active' | 'disconnected' | 'error' | null;
   aiProcessing: boolean;
   setAiProcessing: React.Dispatch<React.SetStateAction<boolean>>;
@@ -28,6 +29,7 @@ type UseAcpMessageReturn = {
 export const useAcpMessage = (conversation_id: string): UseAcpMessageReturn => {
   const addOrUpdateMessage = useAddOrUpdateMessage();
   const [running, setRunning] = useState(false);
+  const [hasHydratedRunningState, setHasHydratedRunningState] = useState(false);
   const [thought, setThought] = useState<ThoughtData>({
     description: '',
     subject: '',
@@ -303,20 +305,28 @@ export const useAcpMessage = (conversation_id: string): UseAcpMessageReturn => {
 
   // Reset state when conversation changes and restore actual running status
   useEffect(() => {
+    let cancelled = false;
+
     setThought({ subject: '', description: '' });
     setAcpStatus(null);
     setTokenUsage(null);
     setContextLimit(0);
     hasContentInTurnRef.current = false;
+    setHasHydratedRunningState(false);
 
     // Check actual conversation status from backend before resetting running/aiProcessing
     // to avoid flicker when switching to a running conversation
     void ipcBridge.conversation.get.invoke({ id: conversation_id }).then((res) => {
+      if (cancelled) {
+        return;
+      }
+
       if (!res) {
         setRunning(false);
         runningRef.current = false;
         setAiProcessing(false);
         aiProcessingRef.current = false;
+        setHasHydratedRunningState(true);
         return;
       }
       const isRunning = res.status === 'running';
@@ -324,6 +334,7 @@ export const useAcpMessage = (conversation_id: string): UseAcpMessageReturn => {
       runningRef.current = isRunning;
       setAiProcessing(isRunning);
       aiProcessingRef.current = isRunning;
+      setHasHydratedRunningState(true);
 
       // Restore persisted context usage data
       if (res.type === 'acp' && res.extra?.lastTokenUsage) {
@@ -336,6 +347,10 @@ export const useAcpMessage = (conversation_id: string): UseAcpMessageReturn => {
         }
       }
     });
+
+    return () => {
+      cancelled = true;
+    };
   }, [conversation_id]);
 
   const resetState = useCallback(() => {
@@ -354,6 +369,7 @@ export const useAcpMessage = (conversation_id: string): UseAcpMessageReturn => {
     thought,
     setThought,
     running,
+    hasHydratedRunningState,
     acpStatus,
     aiProcessing,
     setAiProcessing,

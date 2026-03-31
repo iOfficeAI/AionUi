@@ -63,6 +63,7 @@ const NanobotSendBox: React.FC<{ conversation_id: string }> = ({ conversation_id
   const { setSendBoxHandler } = usePreviewContext();
 
   const [aiProcessing, setAiProcessing] = useState(false);
+  const [hasHydratedRunningState, setHasHydratedRunningState] = useState(false);
   const [thought, setThought] = useState<ThoughtData>({
     description: '',
     subject: '',
@@ -140,8 +141,25 @@ const NanobotSendBox: React.FC<{ conversation_id: string }> = ({ conversation_id
   const atPathRef = useLatestRef(atPath);
 
   useEffect(() => {
+    let cancelled = false;
+
     setAiProcessing(false);
+    setHasHydratedRunningState(false);
     setThought({ subject: '', description: '' });
+
+    void ipcBridge.conversation.get.invoke({ id: conversation_id }).then((res) => {
+      if (cancelled) {
+        return;
+      }
+
+      const isRunning = res?.status === 'running';
+      setAiProcessing(isRunning);
+      setHasHydratedRunningState(true);
+    });
+
+    return () => {
+      cancelled = true;
+    };
   }, [conversation_id]);
 
   useEffect(() => {
@@ -268,6 +286,7 @@ const NanobotSendBox: React.FC<{ conversation_id: string }> = ({ conversation_id
   } = useConversationCommandQueue({
     conversationId: conversation_id,
     isBusy: aiProcessing,
+    isHydrated: hasHydratedRunningState,
     onExecute: executeCommand,
   });
 

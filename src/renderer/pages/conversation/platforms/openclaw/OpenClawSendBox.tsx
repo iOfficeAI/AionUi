@@ -123,6 +123,7 @@ const OpenClawSendBox: React.FC<{ conversation_id: string }> = ({ conversation_i
   const { setSendBoxHandler } = usePreviewContext();
 
   const [aiProcessing, setAiProcessing] = useState(false);
+  const [hasHydratedRunningState, setHasHydratedRunningState] = useState(false);
   const [openclawStatus, setOpenClawStatus] = useState<string | null>(null);
   const [thought, setThought] = useState<ThoughtData>({
     description: '',
@@ -213,6 +214,11 @@ const OpenClawSendBox: React.FC<{ conversation_id: string }> = ({ conversation_i
   const immediateSendRef = useRef<((text: string) => Promise<void>) | null>(null);
   // Reset state when conversation changes and restore actual running status
   useEffect(() => {
+    let cancelled = false;
+
+    setAiProcessing(false);
+    aiProcessingRef.current = false;
+    setHasHydratedRunningState(false);
     setOpenClawStatus(null);
     setThought({ subject: '', description: '' });
     hasContentInTurnRef.current = false;
@@ -221,14 +227,20 @@ const OpenClawSendBox: React.FC<{ conversation_id: string }> = ({ conversation_i
     // to avoid flicker when switching to a running conversation
     // 先获取后端状态再重置 aiProcessing，避免切换到运行中的会话时闪烁
     void ipcBridge.conversation.get.invoke({ id: conversation_id }).then((res) => {
+      if (cancelled) {
+        return;
+      }
+
       if (!res) {
         setAiProcessing(false);
         aiProcessingRef.current = false;
+        setHasHydratedRunningState(true);
         return;
       }
       const isRunning = res.status === 'running';
       setAiProcessing(isRunning);
       aiProcessingRef.current = isRunning;
+      setHasHydratedRunningState(true);
     });
 
     // Eagerly initialize the OpenClaw agent and recover its connection status.
@@ -245,6 +257,10 @@ const OpenClawSendBox: React.FC<{ conversation_id: string }> = ({ conversation_i
       .catch(() => {
         // Agent not ready or conversation not found – ignore
       });
+
+    return () => {
+      cancelled = true;
+    };
   }, [conversation_id]);
 
   useEffect(() => {
@@ -455,6 +471,7 @@ const OpenClawSendBox: React.FC<{ conversation_id: string }> = ({ conversation_i
   } = useConversationCommandQueue({
     conversationId: conversation_id,
     isBusy: aiProcessing,
+    isHydrated: hasHydratedRunningState,
     onExecute: executeCommand,
   });
 
