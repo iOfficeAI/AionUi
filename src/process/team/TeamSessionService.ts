@@ -58,6 +58,13 @@ export class TeamSessionService {
           model: {} as TProviderWithModel,
           extra,
         });
+        // Ensure teamId is in extra regardless of which factory function was used
+        // (some factories like createCodexAgent/createGeminiAgent drop unknown extra fields)
+        await this.conversationService.updateConversation(
+          conversation.id,
+          { extra: { teamId } } as any,
+          true
+        );
         return { ...agent, conversationId: conversation.id };
       })
     );
@@ -132,6 +139,12 @@ export class TeamSessionService {
       model: {} as TProviderWithModel,
       extra: addExtra,
     });
+    // Ensure teamId is in extra regardless of which factory function was used
+    await this.conversationService.updateConversation(
+      conversation.id,
+      { extra: { teamId } } as any,
+      true
+    );
 
     const newAgent: TeamAgent = {
       ...agent,
