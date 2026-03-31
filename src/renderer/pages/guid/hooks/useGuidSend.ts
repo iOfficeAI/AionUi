@@ -6,12 +6,13 @@
 
 import { ipcBridge } from '@/common';
 import type { TProviderWithModel } from '@/common/config/storage';
+import type { TChatConversation } from '@/common/config/storage';
 import { emitter } from '@/renderer/utils/emitter';
 import { buildDisplayMessage } from '@/renderer/utils/file/messageFiles';
 import { updateWorkspaceTime } from '@/renderer/utils/workspace/workspaceHistory';
 import { isAcpRoutedPresetType, type PresetAgentType } from '@/common/types/acpTypes';
 import { Message } from '@arco-design/web-react';
-import { useCallback } from 'react';
+import { useCallback, useRef } from 'react';
 import { type TFunction } from 'i18next';
 import type { NavigateFunction } from 'react-router-dom';
 import type { AcpBackend, AvailableAgent, EffectiveAgentInfo } from '../types';
@@ -25,6 +26,7 @@ export type GuidSendDeps = {
   dir: string;
   setDir: React.Dispatch<React.SetStateAction<string>>;
   setLoading: React.Dispatch<React.SetStateAction<boolean>>;
+  loading: boolean;
 
   // Agent state
   selectedAgent: AcpBackend | 'custom';
@@ -58,7 +60,7 @@ export type GuidSendDeps = {
   // Navigation & tabs
   navigate: NavigateFunction;
   closeAllTabs: () => void;
-  openTab: (conversation: any) => void;
+  openTab: (conversation: TChatConversation) => void;
   t: TFunction;
 };
 
@@ -80,6 +82,7 @@ export const useGuidSend = (deps: GuidSendDeps): GuidSendResult => {
     dir,
     setDir,
     setLoading,
+    loading,
     selectedAgent,
     selectedAgentKey,
     selectedAgentInfo,
@@ -104,6 +107,7 @@ export const useGuidSend = (deps: GuidSendDeps): GuidSendResult => {
     openTab,
     t,
   } = deps;
+  const sendingRef = useRef(false);
 
   const handleSend = useCallback(async () => {
     const isCustomWorkspace = !!dir;
@@ -185,8 +189,6 @@ export const useGuidSend = (deps: GuidSendDeps): GuidSendResult => {
         };
         sessionStorage.setItem(`gemini_initial_message_${conversation.id}`, JSON.stringify(initialMessage));
 
-        // Pre-warm worker bootstrap before navigation so it starts during page transition
-        ipcBridge.conversation.warmup.invoke({ conversation_id: conversation.id }).catch(() => {});
         void navigate(`/conversation/${conversation.id}`);
       } catch (error: unknown) {
         console.error('Failed to create Gemini conversation:', error);
@@ -243,8 +245,6 @@ export const useGuidSend = (deps: GuidSendDeps): GuidSendResult => {
         };
         sessionStorage.setItem(`openclaw_initial_message_${conversation.id}`, JSON.stringify(initialMessage));
 
-        // Pre-warm worker bootstrap before navigation so it starts during page transition
-        ipcBridge.conversation.warmup.invoke({ conversation_id: conversation.id }).catch(() => {});
         await navigate(`/conversation/${conversation.id}`);
       } catch (error: unknown) {
         const errorMessage = error instanceof Error ? error.message : String(error);
@@ -291,55 +291,10 @@ export const useGuidSend = (deps: GuidSendDeps): GuidSendResult => {
         };
         sessionStorage.setItem(`nanobot_initial_message_${conversation.id}`, JSON.stringify(initialMessage));
 
-        // Pre-warm worker bootstrap before navigation so it starts during page transition
-        ipcBridge.conversation.warmup.invoke({ conversation_id: conversation.id }).catch(() => {});
         await navigate(`/conversation/${conversation.id}`);
       } catch (error: unknown) {
         const errorMessage = error instanceof Error ? error.message : String(error);
         alert(`Failed to create Nanobot conversation: ${errorMessage}`);
-        throw error;
-      }
-      return;
-    }
-
-    // Remote agent path
-    if (selectedAgent === 'remote' && selectedAgentKey.startsWith('remote:')) {
-      const remoteAgentId = selectedAgentKey.slice(7);
-      try {
-        const conversation = await ipcBridge.conversation.create.invoke({
-          type: 'remote',
-          name: input,
-          model: {} as import('@/common/config/storage').TProviderWithModel,
-          extra: {
-            defaultFiles: files,
-            workspace: finalWorkspace,
-            customWorkspace: isCustomWorkspace,
-            remoteAgentId,
-          },
-        });
-
-        if (!conversation || !conversation.id) {
-          console.error('Failed to create remote conversation');
-          return;
-        }
-
-        if (isCustomWorkspace) {
-          closeAllTabs();
-          updateWorkspaceTime(finalWorkspace);
-          openTab(conversation);
-        }
-
-        emitter.emit('chat.history.refresh');
-
-        const initialMessage = {
-          input,
-          files: files.length > 0 ? files : undefined,
-        };
-        sessionStorage.setItem(`remote_initial_message_${conversation.id}`, JSON.stringify(initialMessage));
-
-        await navigate(`/conversation/${conversation.id}`);
-      } catch (error: unknown) {
-        console.error('Failed to create remote conversation:', error);
         throw error;
       }
       return;
@@ -406,8 +361,6 @@ export const useGuidSend = (deps: GuidSendDeps): GuidSendResult => {
         };
         sessionStorage.setItem(`acp_initial_message_${conversation.id}`, JSON.stringify(initialMessage));
 
-        // Pre-warm worker bootstrap before navigation so it starts during page transition
-        ipcBridge.conversation.warmup.invoke({ conversation_id: conversation.id }).catch(() => {});
         await navigate(`/conversation/${conversation.id}`);
       } catch (error: unknown) {
         console.error('Failed to create ACP conversation:', error);
@@ -438,6 +391,8 @@ export const useGuidSend = (deps: GuidSendDeps): GuidSendResult => {
   ]);
 
   const sendMessageHandler = useCallback(() => {
+    if (loading || sendingRef.current) return;
+    sendingRef.current = true;
     setLoading(true);
     handleSend()
       .then(() => {
@@ -453,9 +408,11 @@ export const useGuidSend = (deps: GuidSendDeps): GuidSendResult => {
         console.error('Failed to send message:', error);
       })
       .finally(() => {
+        sendingRef.current = false;
         setLoading(false);
       });
   }, [
+    loading,
     handleSend,
     setLoading,
     setInput,
@@ -469,6 +426,7 @@ export const useGuidSend = (deps: GuidSendDeps): GuidSendResult => {
 
   // Calculate button disabled state
   const isButtonDisabled =
+    loading ||
     !input.trim() ||
     ((((!selectedAgent || selectedAgent === 'gemini') && !isPresetAgent) ||
       (isPresetAgent && currentEffectiveAgentInfo.agentType === 'gemini' && currentEffectiveAgentInfo.isAvailable)) &&

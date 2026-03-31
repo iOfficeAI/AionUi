@@ -14,6 +14,30 @@
   --conversation-search-highlight-fg: #2563eb;
 }
 
+.conversation-search-trigger-full {
+  appearance: none;
+  -webkit-appearance: none;
+  border: none !important;
+  outline: none !important;
+  box-shadow: none !important;
+  background: transparent;
+}
+
+.conversation-search-trigger-full:hover {
+  background: var(--color-fill-3) !important;
+}
+
+.conversation-search-trigger-full:active {
+  background: var(--color-fill-4) !important;
+}
+
+.conversation-search-trigger-full:focus,
+.conversation-search-trigger-full:focus-visible {
+  border: none !important;
+  outline: none !important;
+  box-shadow: 0 0 0 2px color-mix(in srgb, rgb(var(--primary-6)) 24%, transparent) !important;
+}
+
 [data-theme='dark'] .conversation-search-modal,
 body[arco-theme='dark'] .conversation-search-modal {
   --conversation-search-mask-bg: color-mix(in srgb, var(--color-bg-5) 58%, transparent);

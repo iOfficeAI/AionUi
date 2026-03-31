@@ -115,9 +115,11 @@ describe('useGuidSend', () => {
 
       expect(mockCreate).toHaveBeenCalledWith(
         expect.objectContaining({
-          type: 'remote',
+          type: 'acp',
           name: 'test message',
-          extra: expect.objectContaining({ remoteAgentId: 'agent-1' }),
+          extra: expect.objectContaining({
+            backend: 'remote',
+          }),
         })
       );
     });
@@ -130,7 +132,7 @@ describe('useGuidSend', () => {
         await result.current.handleSend();
       });
 
-      const stored = sessionStorage.getItem('remote_initial_message_new-conv');
+      const stored = sessionStorage.getItem('acp_initial_message_new-conv');
       expect(stored).toBeTruthy();
       const parsed = JSON.parse(stored!);
       expect(parsed.input).toBe('test message');
@@ -192,7 +194,7 @@ describe('useGuidSend', () => {
         await result.current.handleSend();
       });
 
-      const stored = sessionStorage.getItem('remote_initial_message_new-conv');
+      const stored = sessionStorage.getItem('acp_initial_message_new-conv');
       const parsed = JSON.parse(stored!);
       expect(parsed.files).toEqual(['/tmp/a.ts']);
     });
