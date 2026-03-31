@@ -71,21 +71,11 @@ export function useAutoScroll({ messages, itemCount }: UseAutoScrollOptions): Us
   // Don't gate on isAtBottom: after user sends a message we force-scroll to bottom,
   // but Virtuoso's atBottom state may lag behind, causing followOutput to stop tracking.
   const handleFollowOutput = useCallback((_isAtBottom: boolean): false | 'auto' => {
-    const result = userScrolledRef.current ? false : 'auto';
-    console.debug(
-      '[AutoScroll] followOutput:',
-      result,
-      'isAtBottom:',
-      _isAtBottom,
-      'userScrolled:',
-      userScrolledRef.current
-    );
-    return result;
+    return userScrolledRef.current ? false : 'auto';
   }, []);
 
   // Reliable bottom state detection from Virtuoso
   const handleAtBottomStateChange = useCallback((atBottom: boolean) => {
-    console.debug('[AutoScroll] atBottomStateChange:', atBottom, 'userScrolled:', userScrolledRef.current);
     setShowScrollButton(!atBottom);
 
     if (atBottom) {
@@ -105,17 +95,12 @@ export function useAutoScroll({ messages, itemCount }: UseAutoScrollOptions): Us
     // to avoid Virtuoso's internal layout adjustments being misdetected as user scroll
     const timeSinceGuard = Date.now() - lastProgrammaticScrollTimeRef.current;
     if (timeSinceGuard < PROGRAMMATIC_SCROLL_GUARD_MS) {
-      const delta = currentScrollTop - lastScrollTopRef.current;
-      if (delta < -10) {
-        console.debug('[AutoScroll] guard blocked upward scroll, delta:', delta, 'guardAge:', timeSinceGuard, 'ms');
-      }
       lastScrollTopRef.current = currentScrollTop;
       return;
     }
 
     const delta = currentScrollTop - lastScrollTopRef.current;
     if (delta < -10) {
-      console.debug('[AutoScroll] upward scroll detected, delta:', delta, 'setting userScrolled=true');
       userScrolledRef.current = true;
     }
 

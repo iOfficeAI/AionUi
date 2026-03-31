@@ -17,14 +17,24 @@ import { useTranslation } from 'react-i18next';
 import { formatCode, getDiffLineStyle } from './markdownUtils';
 
 const PREVIEW_LINES = 3;
+const EXPANDED_STATES_MAX_SIZE = 200;
 
 // Persist expanded state across component remounts during streaming.
 // Keyed by a fingerprint (language + first line) so state survives
 // when ReactMarkdown recreates the component tree on each content update.
+// Capped at EXPANDED_STATES_MAX_SIZE entries to prevent unbounded growth.
 const expandedStates = new Map<string, boolean>();
 
 function getBlockFingerprint(language: string, firstLine: string): string {
-  return `${language}:${firstLine}`;
+  const key = `${language}:${firstLine}`;
+  // Evict oldest entries when exceeding size limit
+  if (!expandedStates.has(key) && expandedStates.size >= EXPANDED_STATES_MAX_SIZE) {
+    const firstKey = expandedStates.keys().next().value;
+    if (firstKey !== undefined) {
+      expandedStates.delete(firstKey);
+    }
+  }
+  return key;
 }
 
 type CodeBlockProps = {
