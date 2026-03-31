@@ -195,6 +195,7 @@ lint-results.txt
 .superpowers/
 docs/superpowers/
 resources/bundled-bun
+resources/bundled-aioncli
 
 # Server build output
 dist-server/

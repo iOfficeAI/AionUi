@@ -20,10 +20,11 @@ function getBinaryName(): string {
  *  3. System PATH
  */
 export function resolveAioncliBinary(): string | null {
-  // 1. Bundled binary (production)
+  // 1. Bundled binary (production) — same layout as bundled-bun
   const resourcesPath = (process as NodeJS.Process & { resourcesPath?: string }).resourcesPath;
   if (resourcesPath) {
-    const bundled = join(resourcesPath, 'bin', getBinaryName());
+    const runtimeKey = `${process.platform}-${process.arch}`;
+    const bundled = join(resourcesPath, 'bundled-aioncli', runtimeKey, getBinaryName());
     if (existsSync(bundled)) return bundled;
   }
 

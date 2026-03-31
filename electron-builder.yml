@@ -110,10 +110,8 @@ extraResources:
   - from: resources/bundled-bun
     to: bundled-bun
   # aioncli-agent binary (pre-compiled per platform/arch)
-  - from: bin/${os}/${arch}/aioncli-agent
-    to: bin/aioncli-agent
-    filter:
-      - '**/*'
+  - from: resources/bundled-aioncli
+    to: bundled-aioncli
 
 win:
   target:
