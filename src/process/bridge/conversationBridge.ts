@@ -14,6 +14,7 @@ import { ipcBridge } from '@/common';
 import { getSkillsDir, getBuiltinSkillsCopyDir, getSystemDir, ProcessChat } from '@process/utils/initStorage';
 import type AcpAgentManager from '../task/AcpAgentManager';
 import type { GeminiAgentManager } from '../task/GeminiAgentManager';
+import { AioncliApprovalStore, type AioncliAgentManager } from '../task/AioncliAgentManager';
 import type OpenClawAgentManager from '../task/OpenClawAgentManager';
 import { prepareFirstMessage } from '../task/agentUtils';
 import { refreshTrayMenu } from '@process/utils/tray';
@@ -37,6 +38,7 @@ const VALID_CONVERSATION_TYPES = new Set<TChatConversation['type']>([
   'openclaw-gateway',
   'nanobot',
   'remote',
+  'aioncli',
 ]);
 
 export function initConversationBridge(
@@ -516,12 +518,26 @@ export function initConversationBridge(
   // Keys are parsed from raw action+commandType here (single source of truth)
   // Keys 在此处从原始 action+commandType 解析（单一数据源）
   ipcBridge.conversation.approval.check.provider(async ({ conversation_id, action, commandType }) => {
-    const task = workerTaskManager.getTask(conversation_id) as unknown as GeminiAgentManager | undefined;
-    if (!task || task.type !== 'gemini' || !task.approvalStore) {
+    const task = workerTaskManager.getTask(conversation_id) as unknown as
+      | GeminiAgentManager
+      | AioncliAgentManager
+      | undefined;
+    if (!task || !('approvalStore' in task) || !task.approvalStore) {
       return false;
     }
-    const keys = GeminiApprovalStore.createKeysFromConfirmation(action, commandType);
-    if (keys.length === 0) return false;
-    return task.approvalStore.allApproved(keys);
+
+    if (task.type === 'gemini') {
+      const keys = GeminiApprovalStore.createKeysFromConfirmation(action, commandType);
+      if (keys.length === 0) return false;
+      return task.approvalStore.allApproved(keys);
+    }
+
+    if (task.type === 'aioncli') {
+      const keys = AioncliApprovalStore.createKeysFromConfirmation(action, commandType);
+      if (keys.length === 0) return false;
+      return task.approvalStore.allApproved(keys);
+    }
+
+    return false;
   });
 }

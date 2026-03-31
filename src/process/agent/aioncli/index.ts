@@ -1,0 +1,297 @@
+/**
+ * @license
+ * Copyright 2025 AionUi (aionui.com)
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
+import { spawn, type ChildProcess } from 'node:child_process';
+import { createInterface } from 'node:readline';
+import type { TProviderWithModel } from '@/common/config/storage';
+import { resolveAioncliBinary } from './binaryResolver';
+import { buildSpawnConfig } from './envBuilder';
+import type { AioncliEvent, AioncliCommand } from './protocol';
+
+type StreamEventHandler = (event: { type: string; data: unknown; msg_id: string }) => void;
+
+export type AioncliAgentOptions = {
+  workspace: string;
+  model: TProviderWithModel;
+  proxy?: string;
+  yoloMode?: boolean;
+  presetRules?: string;
+  maxTokens?: number;
+  maxTurns?: number;
+  onStreamEvent: StreamEventHandler;
+};
+
+export class AioncliAgent {
+  private childProcess: ChildProcess | null = null;
+  private ready = false;
+  private readyPromise: Promise<void>;
+  private readyResolve!: () => void;
+  private readyReject!: (err: Error) => void;
+  private onStreamEvent: StreamEventHandler;
+  private options: AioncliAgentOptions;
+  private activeMsgId: string | null = null;
+
+  constructor(options: AioncliAgentOptions) {
+    this.options = options;
+    this.onStreamEvent = options.onStreamEvent;
+    this.readyPromise = new Promise((resolve, reject) => {
+      this.readyResolve = resolve;
+      this.readyReject = reject;
+    });
+  }
+
+  get bootstrap(): Promise<void> {
+    return this.readyPromise;
+  }
+
+  async start(): Promise<void> {
+    const binaryPath = resolveAioncliBinary();
+    if (!binaryPath) {
+      throw new Error('aioncli-agent binary not found');
+    }
+
+    const { args, env } = buildSpawnConfig(this.options.model, {
+      workspace: this.options.workspace,
+      maxTokens: this.options.maxTokens,
+      maxTurns: this.options.maxTurns,
+      autoApprove: this.options.yoloMode,
+    });
+
+    this.childProcess = spawn(binaryPath, args, {
+      env: { ...process.env, ...env },
+      stdio: ['pipe', 'pipe', 'pipe'],
+      cwd: this.options.workspace,
+    });
+
+    // Parse stdout JSON Lines
+    const rl = createInterface({ input: this.childProcess.stdout! });
+    rl.on('line', (line) => {
+      try {
+        const event = JSON.parse(line) as AioncliEvent;
+        this.handleEvent(event);
+      } catch {
+        console.error('[AioncliAgent] Failed to parse event:', line);
+      }
+    });
+
+    // Log stderr as diagnostics
+    this.childProcess.stderr?.on('data', (chunk: Buffer) => {
+      console.error('[aioncli-agent]', chunk.toString());
+    });
+
+    // Handle process exit
+    this.childProcess.on('exit', (code) => {
+      if (!this.ready) {
+        this.readyReject(new Error(`aioncli-agent exited with code ${code} during init`));
+      }
+      this.childProcess = null;
+    });
+
+    // Wait for ready event with timeout
+    const timeout = new Promise<void>((_, reject) => {
+      setTimeout(() => reject(new Error('aioncli-agent ready timeout (30s)')), 30000);
+    });
+    await Promise.race([this.readyPromise, timeout]);
+
+    // Inject preset rules as history context
+    if (this.options.presetRules) {
+      this.sendCommand({
+        type: 'init_history',
+        text: `[Assistant System Rules]\n${this.options.presetRules}`,
+      });
+    }
+  }
+
+  private handleEvent(event: AioncliEvent): void {
+    switch (event.type) {
+      case 'ready':
+        this.ready = true;
+        this.readyResolve();
+        break;
+
+      case 'stream_start':
+        this.activeMsgId = event.msg_id;
+        this.onStreamEvent({ type: 'start', data: '', msg_id: event.msg_id });
+        break;
+
+      case 'text_delta':
+        this.onStreamEvent({ type: 'content', data: event.text, msg_id: event.msg_id });
+        break;
+
+      case 'thinking':
+        this.onStreamEvent({ type: 'thought', data: event.text, msg_id: event.msg_id });
+        break;
+
+      case 'tool_request':
+        this.onStreamEvent({
+          type: 'tool_group',
+          data: [
+            {
+              callId: event.call_id,
+              name: event.tool.name,
+              description: event.tool.description,
+              status: 'Confirming',
+              renderOutputAsMarkdown: false,
+              confirmationDetails: this.mapConfirmationDetails(event),
+            },
+          ],
+          msg_id: event.msg_id,
+        });
+        break;
+
+      case 'tool_running':
+        this.onStreamEvent({
+          type: 'tool_group',
+          data: [
+            {
+              callId: event.call_id,
+              name: event.tool_name,
+              description: '',
+              status: 'Executing',
+              renderOutputAsMarkdown: false,
+            },
+          ],
+          msg_id: event.msg_id,
+        });
+        break;
+
+      case 'tool_result':
+        this.onStreamEvent({
+          type: 'tool_group',
+          data: [
+            {
+              callId: event.call_id,
+              name: event.tool_name,
+              description: '',
+              status: event.status === 'success' ? 'Success' : 'Error',
+              resultDisplay:
+                event.output_type === 'diff'
+                  ? { fileDiff: event.output, fileName: (event.metadata as Record<string, string>)?.file_path ?? '' }
+                  : event.output,
+              renderOutputAsMarkdown: event.output_type === 'text',
+            },
+          ],
+          msg_id: event.msg_id,
+        });
+        break;
+
+      case 'tool_cancelled':
+        this.onStreamEvent({
+          type: 'tool_group',
+          data: [
+            {
+              callId: event.call_id,
+              name: '',
+              description: event.reason,
+              status: 'Canceled',
+              renderOutputAsMarkdown: false,
+            },
+          ],
+          msg_id: event.msg_id,
+        });
+        break;
+
+      case 'stream_end':
+        this.onStreamEvent({ type: 'finish', data: event.usage ?? '', msg_id: event.msg_id });
+        this.activeMsgId = null;
+        break;
+
+      case 'error':
+        this.onStreamEvent({
+          type: 'error',
+          data: event.error.message,
+          msg_id: event.msg_id ?? this.activeMsgId ?? '',
+        });
+        break;
+
+      case 'info':
+        this.onStreamEvent({
+          type: 'info',
+          data: event.message,
+          msg_id: event.msg_id,
+        });
+        break;
+    }
+  }
+
+  /**
+   * Map aioncli tool_request to AionUi confirmation details format.
+   */
+  private mapConfirmationDetails(event: AioncliEvent & { type: 'tool_request' }) {
+    const { tool } = event;
+
+    switch (tool.category) {
+      case 'edit':
+        return {
+          type: 'edit' as const,
+          title: tool.description,
+          fileName: (tool.args as Record<string, string>).file_path ?? '',
+          fileDiff: '',
+        };
+      case 'exec':
+        return {
+          type: 'exec' as const,
+          title: tool.description,
+          rootCommand: (tool.args as Record<string, string>).command?.split(' ')[0] ?? tool.name,
+          command: (tool.args as Record<string, string>).command ?? JSON.stringify(tool.args),
+        };
+      case 'mcp':
+        return {
+          type: 'mcp' as const,
+          title: tool.description,
+          toolName: tool.name,
+          toolDisplayName: tool.name,
+          serverName: '',
+        };
+      case 'info':
+      default:
+        return {
+          type: 'info' as const,
+          title: tool.description,
+          prompt: JSON.stringify(tool.args, null, 2),
+        };
+    }
+  }
+
+  sendCommand(cmd: AioncliCommand): void {
+    if (!this.childProcess?.stdin?.writable) return;
+    this.childProcess.stdin.write(JSON.stringify(cmd) + '\n');
+  }
+
+  async send(input: string, msgId: string, files?: string[]): Promise<void> {
+    await this.readyPromise;
+    this.sendCommand({
+      type: 'message',
+      msg_id: msgId,
+      input,
+      files,
+    });
+  }
+
+  injectConversationHistory(text: string): Promise<void> {
+    this.sendCommand({ type: 'init_history', text });
+    return Promise.resolve();
+  }
+
+  stop(): void {
+    this.sendCommand({ type: 'stop' });
+  }
+
+  approveTool(callId: string, scope: 'once' | 'always' = 'once'): void {
+    this.sendCommand({ type: 'tool_approve', call_id: callId, scope });
+  }
+
+  denyTool(callId: string, reason = ''): void {
+    this.sendCommand({ type: 'tool_deny', call_id: callId, reason });
+  }
+
+  kill(): void {
+    if (this.childProcess) {
+      this.childProcess.kill('SIGTERM');
+      this.childProcess = null;
+    }
+  }
+}
