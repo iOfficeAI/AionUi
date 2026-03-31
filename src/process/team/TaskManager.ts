@@ -1,22 +1,22 @@
 // src/process/team/TaskManager.ts
-import type { ITeamRepository } from './repository/ITeamRepository'
-import type { TeamTask } from './types'
+import type { ITeamRepository } from './repository/ITeamRepository';
+import type { TeamTask } from './types';
 
 /** Parameters for creating a new task */
 type CreateTaskParams = {
-  teamId: string
-  subject: string
-  description?: string
-  owner?: string
-  blockedBy?: string[]
-}
+  teamId: string;
+  subject: string;
+  description?: string;
+  owner?: string;
+  blockedBy?: string[];
+};
 
 /** Parameters for updating an existing task */
 type UpdateTaskParams = {
-  status?: TeamTask['status']
-  owner?: string
-  description?: string
-}
+  status?: TeamTask['status'];
+  owner?: string;
+  description?: string;
+};
 
 /**
  * Service layer for task CRUD with dependency graph resolution.
@@ -31,7 +31,7 @@ export class TaskManager {
    * upstream task to maintain bidirectional links.
    */
   async create(params: CreateTaskParams): Promise<TeamTask> {
-    const now = Date.now()
+    const now = Date.now();
     const task: TeamTask = {
       id: crypto.randomUUID(),
       teamId: params.teamId,
@@ -44,27 +44,26 @@ export class TaskManager {
       metadata: {},
       createdAt: now,
       updatedAt: now,
-    }
+    };
 
-    const created = await this.repo.createTask(task)
+    const created = await this.repo.createTask(task);
 
     // Update `blocks` on each upstream task (bidirectional link)
     if (created.blockedBy.length > 0) {
       await Promise.all(
         created.blockedBy.map(async (upstreamId) => {
-          const tasks = await this.repo.findTasksByTeam(params.teamId)
-          const upstream = tasks.find((t) => t.id === upstreamId)
+          const upstream = await this.repo.findTaskById(upstreamId);
           if (upstream) {
             await this.repo.updateTask(upstreamId, {
               blocks: [...upstream.blocks, created.id],
               updatedAt: now,
-            })
+            });
           }
-        }),
-      )
+        })
+      );
     }
 
-    return created
+    return created;
   }
 
   /**
@@ -74,21 +73,21 @@ export class TaskManager {
     return this.repo.updateTask(taskId, {
       ...updates,
       updatedAt: Date.now(),
-    })
+    });
   }
 
   /**
    * List all tasks for a team.
    */
   async list(teamId: string): Promise<TeamTask[]> {
-    return this.repo.findTasksByTeam(teamId)
+    return this.repo.findTasksByTeam(teamId);
   }
 
   /**
    * Get tasks assigned to a specific agent.
    */
   async getByOwner(teamId: string, ownerId: string): Promise<TeamTask[]> {
-    return this.repo.findTasksByOwner(teamId, ownerId)
+    return this.repo.findTasksByOwner(teamId, ownerId);
   }
 
   /**
@@ -99,40 +98,24 @@ export class TaskManager {
    */
   async checkUnblocks(taskId: string): Promise<TeamTask[]> {
     // Locate the completed task to get its teamId
-    const completedTask = await this._findTaskById(taskId)
-    if (!completedTask) return []
+    const completedTask = await this.repo.findTaskById(taskId);
+    if (!completedTask) return [];
 
-    const allTasks = await this.repo.findTasksByTeam(completedTask.teamId)
-    const dependents = allTasks.filter((t) => t.blockedBy.includes(taskId))
+    const allTasks = await this.repo.findTasksByTeam(completedTask.teamId);
+    const dependents = allTasks.filter((t) => t.blockedBy.includes(taskId));
 
-    if (dependents.length === 0) return []
+    if (dependents.length === 0) return [];
 
-    const now = Date.now()
+    const now = Date.now();
     const updated = await Promise.all(
       dependents.map((t) =>
         this.repo.updateTask(t.id, {
           blockedBy: t.blockedBy.filter((id) => id !== taskId),
           updatedAt: now,
-        }),
-      ),
-    )
+        })
+      )
+    );
 
-    return updated.filter((t) => t.blockedBy.length === 0)
-  }
-
-  /** Internal helper: find a single task by ID across the repository. */
-  private async _findTaskById(taskId: string): Promise<TeamTask | null> {
-    // ITeamRepository has no findTaskById — walk via a broad search using
-    // findTasksByTeam after discovering the teamId from the task record.
-    // We rely on the fact that tasks are stored with their teamId embedded,
-    // so we probe using a dummy owner search that returns all teams' tasks.
-    // Instead, use updateTask to first read — but the interface lacks a read.
-    // The only safe fallback is to retrieve the task through an update no-op
-    // and capture the returned value.
-    try {
-      return await this.repo.updateTask(taskId, { updatedAt: Date.now() })
-    } catch {
-      return null
-    }
+    return updated.filter((t) => t.blockedBy.length === 0);
   }
 }

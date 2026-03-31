@@ -17,6 +17,7 @@ export interface ITeamRepository {
 
   // Task operations
   createTask(task: TeamTask): Promise<TeamTask>;
+  findTaskById(id: string): Promise<TeamTask | null>;
   updateTask(id: string, updates: Partial<TeamTask>): Promise<TeamTask>;
   findTasksByTeam(teamId: string): Promise<TeamTask[]>;
   findTasksByOwner(teamId: string, owner: string): Promise<TeamTask[]>;

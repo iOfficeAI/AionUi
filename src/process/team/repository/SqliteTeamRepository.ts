@@ -146,9 +146,7 @@ export class SqliteTeamRepository implements ITeamRepository {
 
   async findAll(userId: string): Promise<TTeam[]> {
     const db = await this.getDb();
-    const rows = db
-      .prepare('SELECT * FROM teams WHERE user_id = ? ORDER BY updated_at DESC')
-      .all(userId) as TeamRow[];
+    const rows = db.prepare('SELECT * FROM teams WHERE user_id = ? ORDER BY updated_at DESC').all(userId) as TeamRow[];
     return rows.map(rowToTeam);
   }
 
@@ -253,8 +251,14 @@ export class SqliteTeamRepository implements ITeamRepository {
     return task;
   }
 
+  async findTaskById(id: string): Promise<TeamTask | null> {
+    const db = await this.getDb();
+    const row = db.prepare('SELECT * FROM team_tasks WHERE id = ?').get(id) as TaskRow | undefined;
+    return row ? rowToTask(row) : null;
+  }
+
   async updateTask(id: string, updates: Partial<TeamTask>): Promise<TeamTask> {
-    const current = await this._findTaskById(id);
+    const current = await this.findTaskById(id);
     if (!current) throw new Error(`Task "${id}" not found`);
     const merged: TeamTask = { ...current, ...updates };
     const db = await this.getDb();
@@ -288,9 +292,7 @@ export class SqliteTeamRepository implements ITeamRepository {
   async findTasksByOwner(teamId: string, owner: string): Promise<TeamTask[]> {
     const db = await this.getDb();
     const rows = db
-      .prepare(
-        `SELECT * FROM team_tasks WHERE team_id = ? AND owner = ? ORDER BY created_at ASC`
-      )
+      .prepare(`SELECT * FROM team_tasks WHERE team_id = ? AND owner = ? ORDER BY created_at ASC`)
       .all(teamId, owner) as TaskRow[];
     return rows.map(rowToTask);
   }
@@ -298,15 +300,5 @@ export class SqliteTeamRepository implements ITeamRepository {
   async deleteTask(id: string): Promise<void> {
     const db = await this.getDb();
     db.prepare('DELETE FROM team_tasks WHERE id = ?').run(id);
-  }
-
-  // -------------------------------------------------------------------------
-  // Private helpers
-  // -------------------------------------------------------------------------
-
-  private async _findTaskById(id: string): Promise<TeamTask | null> {
-    const db = await this.getDb();
-    const row = db.prepare('SELECT * FROM team_tasks WHERE id = ?').get(id) as TaskRow | undefined;
-    return row ? rowToTask(row) : null;
   }
 }
