@@ -34,6 +34,7 @@ const ACP_PERF_LOG = process.env.ACP_PERF === '1';
 import BaseAgentManager from './BaseAgentManager';
 import { IpcAgentEventEmitter } from './IpcAgentEventEmitter';
 import { hasCronCommands } from './CronCommandDetector';
+import { extractAndStripThinkTags } from './ThinkTagDetector';
 import { hasNativeSkillSupport } from '@/common/types/acpTypes';
 import { prepareFirstMessageWithSkillsIndex } from '@process/task/agentUtils';
 import { extractTextFromMessage, processCronInMessage } from './MessageMiddleware';
@@ -444,6 +445,18 @@ class AcpAgentManager extends BaseAgentManager<AcpAgentManagerData, AcpPermissio
             }
           }
 
+          // Strip inline <think> tags from content messages to prevent leaking
+          // internal reasoning to the UI (e.g. MiniMax models embed think tags in content)
+          if (message.type === 'content' && typeof message.data === 'string') {
+            const { thinking, content: stripped } = extractAndStripThinkTags(message.data);
+            if (thinking) {
+              this.emitThinkingMessage(thinking, 'thinking');
+            }
+            if (stripped !== message.data) {
+              message = { ...message, data: stripped };
+            }
+          }
+
           const emitStart = Date.now();
           ipcBridge.acpConversation.responseStream.emit(message as IResponseMessage);
           const emitDuration = Date.now() - emitStart;
@@ -808,13 +821,6 @@ class AcpAgentManager extends BaseAgentManager<AcpAgentManagerData, AcpPermissio
     });
   }
 
-  /**
-   * Filter think tags from message content during streaming
-   * This ensures users don't see internal reasoning tags in real-time
-   *
-   * @param message - The streaming message to filter
-   * @returns Message with think tags removed from content
-   */
   /**
    * Emit a thinking message to the UI stream.
    * Creates a new thinking msg_id on first call per turn, reuses it for subsequent calls.
