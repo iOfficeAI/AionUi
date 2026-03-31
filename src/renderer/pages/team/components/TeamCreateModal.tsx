@@ -3,7 +3,7 @@ import { Modal, Button, Input, Select, Message } from '@arco-design/web-react';
 import { FolderOpen, Robot } from '@icon-park/react';
 import { useTranslation } from 'react-i18next';
 import { ipcBridge } from '@/common';
-import type { TTeam, TeamAgent } from '@process/team/types';
+import type { TTeam, TeamAgent } from '@/common/types/teamTypes';
 import { useAuth } from '@renderer/hooks/context/AuthContext';
 import { useConversationAgents } from '@renderer/pages/conversation/hooks/useConversationAgents';
 import { getAgentLogo } from '@renderer/utils/model/agentLogo';

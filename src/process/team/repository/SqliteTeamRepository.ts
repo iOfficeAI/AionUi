@@ -176,6 +176,16 @@ export class SqliteTeamRepository implements ITeamRepository {
     db.prepare('DELETE FROM teams WHERE id = ?').run(id);
   }
 
+  async deleteMailboxByTeam(teamId: string): Promise<void> {
+    const db = await this.getDb();
+    db.prepare('DELETE FROM mailbox WHERE team_id = ?').run(teamId);
+  }
+
+  async deleteTasksByTeam(teamId: string): Promise<void> {
+    const db = await this.getDb();
+    db.prepare('DELETE FROM team_tasks WHERE team_id = ?').run(teamId);
+  }
+
   // -------------------------------------------------------------------------
   // Mailbox operations
   // -------------------------------------------------------------------------

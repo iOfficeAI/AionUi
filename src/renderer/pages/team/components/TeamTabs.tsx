@@ -7,7 +7,7 @@ import { getAgentLogo } from '@/renderer/utils/model/agentLogo';
 import { CUSTOM_AVATAR_IMAGE_MAP } from '@/renderer/pages/guid/constants';
 import { iconColors } from '@/renderer/styles/colors';
 import type { AvailableAgent } from '@/renderer/utils/model/agentTypes';
-import type { TeammateStatus } from '@process/team/types';
+import type { TeammateStatus } from '@/common/types/teamTypes';
 import AgentStatusBadge from './AgentStatusBadge';
 import { useTeamTabs } from '../hooks/TeamTabsContext';
 

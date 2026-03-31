@@ -32,6 +32,13 @@ export class TeammateManager extends EventEmitter {
   private readonly responseBuffer = new Map<string, string>();
   /** Tracks which slotIds currently have an in-progress wake to avoid loops */
   private readonly activeWakes = new Set<string>();
+  /** Timeout handles for active wakes, keyed by slotId */
+  private readonly wakeTimeouts = new Map<string, ReturnType<typeof setTimeout>>();
+  /** O(1) lookup set of conversationIds owned by this team, for fast IPC event filtering */
+  private readonly ownedConversationIds = new Set<string>();
+
+  /** Maximum time (ms) to wait for a turnCompleted event before force-releasing a wake */
+  private static readonly WAKE_TIMEOUT_MS = 5 * 60 * 1000;
 
   private readonly unsubResponseStream: () => void;
   private readonly unsubTurnCompleted: () => void;
@@ -43,6 +50,10 @@ export class TeammateManager extends EventEmitter {
     this.mailbox = params.mailbox;
     this.taskManager = params.taskManager;
     this.workerTaskManager = params.workerTaskManager;
+
+    for (const agent of this.agents) {
+      this.ownedConversationIds.add(agent.conversationId);
+    }
 
     this.unsubResponseStream = ipcBridge.conversation.responseStream.on((msg: IResponseMessage) => {
       this.handleResponseStream(msg);
@@ -61,6 +72,7 @@ export class TeammateManager extends EventEmitter {
   /** Add a new agent to the team */
   addAgent(agent: TeamAgent): void {
     this.agents = [...this.agents, agent];
+    this.ownedConversationIds.add(agent.conversationId);
   }
 
   /**
@@ -94,13 +106,32 @@ export class TeammateManager extends EventEmitter {
       this.responseBuffer.set(agent.conversationId, '');
 
       const agentTask = await this.workerTaskManager.getOrBuildTask(agent.conversationId);
-      await agentTask.sendMessage(payload.message);
+      const msgId = crypto.randomUUID();
+
+      // Each AgentManager implementation expects a specific object shape.
+      // Gemini uses { input, msg_id }, all others use { content, msg_id }.
+      const messageData =
+        agent.conversationType === 'gemini'
+          ? { input: payload.message, msg_id: msgId }
+          : { content: payload.message, msg_id: msgId };
+
+      await agentTask.sendMessage(messageData);
+
+      // Set a timeout to force-release the wake if turnCompleted never fires
+      const timeoutHandle = setTimeout(() => {
+        if (this.activeWakes.has(slotId)) {
+          this.activeWakes.delete(slotId);
+          this.wakeTimeouts.delete(slotId);
+          this.setStatus(slotId, 'failed', 'Wake timed out waiting for turnCompleted');
+        }
+      }, TeammateManager.WAKE_TIMEOUT_MS);
+      this.wakeTimeouts.set(slotId, timeoutHandle);
     } catch (error) {
       this.setStatus(slotId, 'failed');
       this.activeWakes.delete(slotId);
       throw error;
     }
-    // activeWakes entry is removed when turnCompleted fires
+    // activeWakes entry is removed when turnCompleted fires (or by timeout)
   }
 
   /** Set agent status, update the local agents array, and emit IPC event */
@@ -110,10 +141,15 @@ export class TeammateManager extends EventEmitter {
     this.emit('agentStatusChanged', { teamId: this.teamId, slotId, status, lastMessage });
   }
 
-  /** Clean up all IPC listeners and EventEmitter handlers */
+  /** Clean up all IPC listeners, timers, and EventEmitter handlers */
   dispose(): void {
     this.unsubResponseStream();
     this.unsubTurnCompleted();
+    for (const handle of this.wakeTimeouts.values()) {
+      clearTimeout(handle);
+    }
+    this.wakeTimeouts.clear();
+    this.activeWakes.clear();
     this.removeAllListeners();
   }
 
@@ -122,6 +158,9 @@ export class TeammateManager extends EventEmitter {
   // ---------------------------------------------------------------------------
 
   private handleResponseStream(msg: IResponseMessage): void {
+    // Fast O(1) check: skip events for conversations not owned by this team
+    if (!this.ownedConversationIds.has(msg.conversation_id)) return;
+
     const agent = this.agents.find((a) => a.conversationId === msg.conversation_id);
     if (!agent) return;
 
@@ -145,12 +184,22 @@ export class TeammateManager extends EventEmitter {
   }
 
   private async handleTurnCompleted(event: IConversationTurnCompletedEvent): Promise<void> {
+    // Fast O(1) check: skip events for conversations not owned by this team
+    if (!this.ownedConversationIds.has(event.sessionId)) return;
+
     const agent = this.agents.find((a) => a.conversationId === event.sessionId);
     if (!agent) return;
 
     const accumulatedText = this.responseBuffer.get(event.sessionId) ?? '';
     this.responseBuffer.delete(event.sessionId);
     this.activeWakes.delete(agent.slotId);
+
+    // Clear the wake timeout since turnCompleted arrived normally
+    const timeoutHandle = this.wakeTimeouts.get(agent.slotId);
+    if (timeoutHandle) {
+      clearTimeout(timeoutHandle);
+      this.wakeTimeouts.delete(agent.slotId);
+    }
 
     const adapter = createPlatformAdapter(agent.conversationType);
     const agentResponse: AgentResponse = { text: accumulatedText };

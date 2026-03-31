@@ -2,6 +2,7 @@
 
 import type { ParsedAction, PlatformCapability } from '../types';
 import type { AgentPayload, AgentResponse, BuildPayloadParams, TeamPlatformAdapter } from './PlatformAdapter';
+import { buildRolePrompt } from './buildRolePrompt';
 
 /** Instructions appended to the payload so agents know the XML action format */
 const XML_INSTRUCTIONS = `## Available Actions
@@ -51,6 +52,13 @@ function removeXmlSpans(text: string, spans: Array<[number, number]>): string {
   return result;
 }
 
+/** Extract a named attribute value from an XML tag string, order-independent */
+function extractAttr(tag: string, name: string): string | undefined {
+  const re = new RegExp(`${name}="([^"]*)"`, 'i');
+  const m = tag.match(re);
+  return m ? m[1] : undefined;
+}
+
 /** Parse XML action tags from response text using regex */
 function parseXmlActions(text: string): { actions: ParsedAction[]; consumedSpans: Array<[number, number]> } {
   const actions: ParsedAction[] = [];
@@ -67,38 +75,48 @@ function parseXmlActions(text: string): { actions: ParsedAction[]; consumedSpans
     consumedSpans.push([match.index!, match.index! + match[0].length]);
   }
 
-  // <task_create subject="..." owner="..." description="..."/>
-  const taskCreateRe = /<task_create\s+subject="([^"]+)"(?:\s+owner="([^"]*)")?(?:\s+description="([^"]*)")?\s*\/>/g;
+  // <task_create .../> - attributes in any order
+  const taskCreateRe = /<task_create\s+[^>]*\/>/g;
   for (const match of text.matchAll(taskCreateRe)) {
+    const tag = match[0];
+    const subject = extractAttr(tag, 'subject');
+    if (!subject) continue; // subject is required
     actions.push({
       type: 'task_create',
-      subject: match[1],
-      owner: match[2] ? match[2] : undefined,
-      description: match[3] ? match[3] : undefined,
+      subject,
+      owner: extractAttr(tag, 'owner'),
+      description: extractAttr(tag, 'description'),
     });
     consumedSpans.push([match.index!, match.index! + match[0].length]);
   }
 
-  // <task_update task_id="..." status="..." owner="..."/>
-  const taskUpdateRe = /<task_update\s+task_id="([^"]+)"(?:\s+status="([^"]*)")?(?:\s+owner="([^"]*)")?\s*\/>/g;
+  // <task_update .../> - attributes in any order
+  const taskUpdateRe = /<task_update\s+[^>]*\/>/g;
   for (const match of text.matchAll(taskUpdateRe)) {
+    const tag = match[0];
+    const taskId = extractAttr(tag, 'task_id');
+    if (!taskId) continue; // task_id is required
     actions.push({
       type: 'task_update',
-      taskId: match[1],
-      status: match[2] ? match[2] : undefined,
-      owner: match[3] ? match[3] : undefined,
+      taskId,
+      status: extractAttr(tag, 'status'),
+      owner: extractAttr(tag, 'owner'),
     });
     consumedSpans.push([match.index!, match.index! + match[0].length]);
   }
 
-  // <idle reason="..." summary="..." completed_task_id="..."/>
-  const idleRe = /<idle\s+reason="([^"]+)"\s+summary="([^"]*)"(?:\s+completed_task_id="([^"]*)")?\s*\/>/g;
+  // <idle .../> - attributes in any order
+  const idleRe = /<idle\s+[^>]*\/>/g;
   for (const match of text.matchAll(idleRe)) {
+    const tag = match[0];
+    const reason = extractAttr(tag, 'reason');
+    const summary = extractAttr(tag, 'summary');
+    if (!reason || summary == null) continue; // both required
     actions.push({
       type: 'idle_notification',
-      reason: match[1],
-      summary: match[2],
-      completedTaskId: match[3] ? match[3] : undefined,
+      reason,
+      summary,
+      completedTaskId: extractAttr(tag, 'completed_task_id'),
     });
     consumedSpans.push([match.index!, match.index! + match[0].length]);
   }
@@ -117,8 +135,12 @@ export function createXmlFallbackAdapter(): TeamPlatformAdapter {
     },
 
     buildPayload(params: BuildPayloadParams): AgentPayload {
-      const { mailboxMessages, tasks } = params;
+      const { agent, mailboxMessages, tasks, teammates } = params;
       const sections: string[] = [];
+
+      // Inject role-specific system prompt so agents know their identity
+      const rolePrompt = buildRolePrompt({ agent, mailboxMessages, tasks, teammates });
+      sections.push(rolePrompt);
 
       const mailboxSection = formatMailboxMessages(mailboxMessages);
       if (mailboxSection) {

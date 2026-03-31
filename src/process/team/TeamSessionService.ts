@@ -88,6 +88,8 @@ export class TeamSessionService {
   async deleteTeam(id: string): Promise<void> {
     this.sessions.get(id)?.dispose();
     this.sessions.delete(id);
+    await this.repo.deleteMailboxByTeam(id);
+    await this.repo.deleteTasksByTeam(id);
     await this.repo.delete(id);
   }
 

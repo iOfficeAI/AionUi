@@ -8,6 +8,7 @@ import type {
   TeamPlatformAdapter,
   ToolDefinition,
 } from './PlatformAdapter';
+import { buildRolePrompt } from './buildRolePrompt';
 
 /** Tool definitions exposed to ACP-compatible agents */
 const TEAM_TOOLS: ToolDefinition[] = [
@@ -48,15 +49,6 @@ const TEAM_TOOLS: ToolDefinition[] = [
         owner: { type: 'string', description: 'Name of the agent now assigned to the task' },
       },
       required: ['taskId'],
-    },
-  },
-  {
-    name: 'TaskList',
-    description: 'List all tasks on the shared task board',
-    parameters: {
-      type: 'object',
-      properties: {},
-      required: [],
     },
   },
   {
@@ -103,8 +95,12 @@ export function createAcpAdapter(): TeamPlatformAdapter {
     },
 
     buildPayload(params: BuildPayloadParams): AgentPayload {
-      const { mailboxMessages, tasks } = params;
+      const { agent, mailboxMessages, tasks, teammates } = params;
       const sections: string[] = [];
+
+      // Inject role-specific system prompt so agents know their identity
+      const rolePrompt = buildRolePrompt({ agent, mailboxMessages, tasks, teammates });
+      sections.push(rolePrompt);
 
       const mailboxSection = formatMailboxMessages(mailboxMessages);
       if (mailboxSection) {

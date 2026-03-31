@@ -3,7 +3,7 @@ import React, { useCallback, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import useSWR from 'swr';
 import { ipcBridge } from '@/common';
-import type { TTeam } from '@process/team/types';
+import type { TTeam } from '@/common/types/teamTypes';
 import type { AvailableAgent } from '@/renderer/utils/model/agentTypes';
 import ChatLayout from '@/renderer/pages/conversation/components/ChatLayout';
 import ChatSider from '@/renderer/pages/conversation/components/ChatSider';

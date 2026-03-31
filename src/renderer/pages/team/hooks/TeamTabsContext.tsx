@@ -1,5 +1,5 @@
 import React, { createContext, useCallback, useContext, useState } from 'react';
-import type { TeamAgent, TeammateStatus } from '@process/team/types';
+import type { TeamAgent, TeammateStatus } from '@/common/types/teamTypes';
 
 type AgentStatusInfo = {
   slotId: string;

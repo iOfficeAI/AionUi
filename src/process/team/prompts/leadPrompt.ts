@@ -48,7 +48,6 @@ ${teammateList}
 - SendMessage(to, message, summary?) - Send a message to a teammate
 - TaskCreate(subject, description?, owner?) - Create a task
 - TaskUpdate(taskId, status?, owner?) - Update task status or reassign
-- TaskList() - View all tasks
 
 ## Workflow
 1. Receive user request

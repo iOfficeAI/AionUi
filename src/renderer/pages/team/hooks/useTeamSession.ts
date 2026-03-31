@@ -1,6 +1,6 @@
 // src/renderer/pages/team/hooks/useTeamSession.ts
 import { ipcBridge } from '@/common';
-import type { ITeamAgentStatusEvent, ITeamMessageEvent, TeamAgent, TeammateStatus, TTeam } from '@process/team/types';
+import type { ITeamAgentStatusEvent, ITeamMessageEvent, TeamAgent, TeammateStatus, TTeam } from '@/common/types/teamTypes';
 import { useCallback, useEffect, useState } from 'react';
 
 type AgentStatusInfo = {

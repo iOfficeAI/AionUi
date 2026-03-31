@@ -1,37 +1,18 @@
 // src/process/team/types.ts
+//
+// Re-export shared types from @/common so existing process-side imports
+// continue to work. Renderer code should import from @/common/types/teamTypes.
+export type {
+  TeammateRole,
+  TeammateStatus,
+  WorkspaceMode,
+  TeamAgent,
+  TTeam,
+  ITeamAgentStatusEvent,
+  ITeamMessageEvent,
+} from '@/common/types/teamTypes';
 
-/** Role of a teammate within a team */
-export type TeammateRole = 'lead' | 'teammate';
-
-/** Lifecycle status of a teammate agent */
-export type TeammateStatus = 'pending' | 'idle' | 'active' | 'completed' | 'failed';
-
-/** Workspace sharing strategy for the team */
-export type WorkspaceMode = 'shared' | 'isolated';
-
-/** Persisted agent configuration within a team */
-export type TeamAgent = {
-  slotId: string; // unique within this team, e.g. "slot-abc123"
-  conversationId: string; // corresponding TChatConversation id
-  role: TeammateRole;
-  agentType: string; // claude, gemini, codex, qwen, etc.
-  agentName: string; // display name shown in tab
-  conversationType: string; // acp, gemini, codex, etc.
-  status: TeammateStatus;
-};
-
-/** Persisted team record (stored in SQLite `teams` table) */
-export type TTeam = {
-  id: string;
-  userId: string;
-  name: string;
-  workspace: string;
-  workspaceMode: WorkspaceMode;
-  leadAgentId: string; // slotId of the lead agent
-  agents: TeamAgent[];
-  createdAt: number;
-  updatedAt: number;
-};
+// ---------- Process-only types (not needed by renderer) ----------
 
 /**
  * An inter-agent mailbox message for asynchronous communication
@@ -92,21 +73,3 @@ export type ParsedAction =
   | { type: 'task_update'; taskId: string; status?: string; owner?: string }
   | { type: 'idle_notification'; reason: string; summary: string; completedTaskId?: string }
   | { type: 'plain_response'; content: string };
-
-/** IPC event pushed to renderer when agent status changes */
-export type ITeamAgentStatusEvent = {
-  teamId: string;
-  slotId: string;
-  status: TeammateStatus;
-  lastMessage?: string;
-};
-
-/** IPC event for streaming agent messages to renderer */
-export type ITeamMessageEvent = {
-  teamId: string;
-  slotId: string;
-  type: string;
-  data: unknown;
-  msg_id: string;
-  conversation_id: string;
-};
