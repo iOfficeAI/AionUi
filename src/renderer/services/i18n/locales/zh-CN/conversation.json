@@ -180,6 +180,12 @@
       "reset": "还原更改",
       "noUnstaged": "没有未暂存的更改",
       "noStaged": "没有已暂存的更改"
+    },
+    "openWorkspace": "打开工作区文件夹",
+    "openWith": {
+      "vscode": "VS Code",
+      "terminal": "终端",
+      "explorer": "文件资源管理器"
     }
   },
   "minimap": {
