@@ -11,6 +11,8 @@ export type TeamAgent = {
   role: TeamAgentRole;
   agentType: string; // 'acp' | 'gemini' | 'codex' | ...
   agentName: string; // display name shown in tab
+  /** The conversation type for this agent (defaults to agentType if compatible) */
+  conversationType?: 'gemini' | 'acp' | 'codex' | 'openclaw-gateway' | 'nanobot' | 'remote';
 };
 
 /** Persisted team record (stored in SQLite `teams` table) */
