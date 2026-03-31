@@ -33,6 +33,7 @@
   "select": "Seç",
   "expandMore": "Daha Fazla",
   "collapse": "Daralt",
+  "viewMoreLines": "Daha Fazla Göster ({{count}} satır)",
   "success": "Başarılı",
   "error": "Hata",
   "saveSuccess": "Başarıyla kaydedildi",

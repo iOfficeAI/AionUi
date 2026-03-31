@@ -242,7 +242,7 @@ function CodeBlock(props: CodeBlockProps) {
               <Up theme='outline' size='20' fill='var(--text-secondary)' title={t('common.collapse', 'Collapse')} />
             ) : (
               <span style={{ color: 'var(--text-secondary)', fontSize: '12px', lineHeight: '20px' }}>
-                View More ({totalLines - PREVIEW_LINES} lines){' '}
+                {t('common.viewMoreLines', { count: totalLines - PREVIEW_LINES })}{' '}
                 <Down theme='outline' size='14' fill='var(--text-secondary)' />
               </span>
             )}

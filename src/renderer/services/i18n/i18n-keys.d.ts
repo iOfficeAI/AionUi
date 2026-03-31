@@ -225,6 +225,7 @@ export type I18nKey =
   | 'common.unknownError'
   | 'common.upload'
   | 'common.version'
+  | 'common.viewMoreLines'
   | 'common.website'
   | 'common.workspace'
   | 'conversation.chat.apiErrorNoCli'
