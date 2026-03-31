@@ -1,28 +1,48 @@
-import { Tabs, Button, Message } from '@arco-design/web-react';
-import { Plus } from '@icon-park/react';
-import React, { useMemo, useState } from 'react';
+import { Message } from '@arco-design/web-react';
+import React, { useCallback, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
-import type { TTeam, TeamAgentRuntime } from '@process/team/types';
-import AgentTab from './components/AgentTab';
-import TeamAgentPanel from './components/TeamAgentPanel';
-import { useTeamSession } from './hooks/useTeamSession';
+import useSWR from 'swr';
+import { ipcBridge } from '@/common';
+import type { TTeam } from '@process/team/types';
+import type { AvailableAgent } from '@/renderer/utils/model/agentTypes';
 import ChatLayout from '@/renderer/pages/conversation/components/ChatLayout';
-import ChatWorkspace from '@/renderer/pages/conversation/Workspace';
-import styles from './TeamPage.module.css';
+import ChatSider from '@/renderer/pages/conversation/components/ChatSider';
+import TeamTabs from './components/TeamTabs';
+import TeamChatView from './components/TeamChatView';
+import { TeamTabsProvider, useTeamTabs } from './hooks/TeamTabsContext';
+import { useTeamSession } from './hooks/useTeamSession';
 
 type Props = {
   team: TTeam;
 };
 
-const IDLE_RUNTIME: Omit<TeamAgentRuntime, 'slotId'> = { status: 'idle' };
+type TeamPageContentProps = {
+  team: TTeam;
+  onAddAgent: (agent: AvailableAgent) => void;
+};
 
-const TeamPage: React.FC<Props> = ({ team }) => {
+/** Inner component that reads active tab from context and renders the chat layout */
+const TeamPageContent: React.FC<TeamPageContentProps> = ({ team, onAddAgent }) => {
   const { t } = useTranslation();
-  const { runtimes, addAgent, sendMessage } = useTeamSession(team);
-  const [activeSlotId, setActiveSlotId] = useState(team.agents[0]?.slotId ?? '');
-  const [messageApi, messageContext] = Message.useMessage({ maxCount: 1 });
+  const { activeSlotId } = useTeamTabs();
+  const [, messageContext] = Message.useMessage({ maxCount: 1 });
 
+  const activeAgent = team.agents.find((a) => a.slotId === activeSlotId);
+  const isSubAgent = activeAgent?.role === 'sub';
+
+  // Fetch the conversation for the active agent
+  const { data: activeConversation } = useSWR(
+    activeAgent?.conversationId ? ['team-conversation', activeAgent.conversationId] : null,
+    () => ipcBridge.conversation.get.invoke({ id: activeAgent!.conversationId })
+  );
+
+  // Fetch the dispatch agent's conversation to use as workspace sider
   const dispatchAgent = team.agents.find((a) => a.role === 'dispatch');
+  const { data: dispatchConversation } = useSWR(
+    dispatchAgent?.conversationId ? ['team-conversation', dispatchAgent.conversationId] : null,
+    () => ipcBridge.conversation.get.invoke({ id: dispatchAgent!.conversationId })
+  );
+
   const workspaceEnabled = Boolean(team.workspace);
 
   const siderTitle = useMemo(
@@ -35,64 +55,57 @@ const TeamPage: React.FC<Props> = ({ team }) => {
   );
 
   const sider = useMemo(() => {
-    if (!workspaceEnabled || !dispatchAgent?.conversationId) return <div />;
-    return (
-      <ChatWorkspace
-        conversation_id={dispatchAgent.conversationId}
-        workspace={team.workspace}
-        eventPrefix='acp'
-        messageApi={messageApi}
-      />
-    );
-  }, [workspaceEnabled, dispatchAgent?.conversationId, team.workspace, messageApi]);
+    if (!workspaceEnabled || !dispatchConversation) return <div />;
+    return <ChatSider conversation={dispatchConversation} />;
+  }, [workspaceEnabled, dispatchConversation]);
+
+  const tabsSlot = useMemo(() => <TeamTabs onAddAgent={onAddAgent} />, [onAddAgent]);
 
   return (
     <>
       {messageContext}
-      <ChatLayout title={team.name} siderTitle={siderTitle} sider={sider} workspaceEnabled={workspaceEnabled}>
-        <div className={styles.teamPage}>
-          <Tabs
-            activeTab={activeSlotId}
-            onChange={setActiveSlotId}
-            type='line'
-            size='small'
-            className={styles.tabs}
-            extra={
-              <Button
-                type='text'
-                size='small'
-                icon={<Plus />}
-                onClick={() => {
-                  void addAgent({
-                    conversationId: '',
-                    role: 'sub',
-                    agentType: 'acp',
-                    agentName: t('team.newAgent'),
-                  });
-                }}
-              >
-                {t('team.addAgent')}
-              </Button>
-            }
-          >
-            {team.agents.map((agent) => {
-              const runtime = runtimes.get(agent.slotId) ?? { slotId: agent.slotId, ...IDLE_RUNTIME };
-              return (
-                <Tabs.TabPane key={agent.slotId} title={<AgentTab agent={agent} runtime={runtime} />}>
-                  <TeamAgentPanel
-                    conversationId={agent.conversationId}
-                    workspace={team.workspace}
-                    isDispatch={agent.role === 'dispatch'}
-                    status={runtime.status}
-                    sendMessage={sendMessage}
-                  />
-                </Tabs.TabPane>
-              );
-            })}
-          </Tabs>
-        </div>
+      <ChatLayout
+        title={team.name}
+        siderTitle={siderTitle}
+        sider={sider}
+        workspaceEnabled={workspaceEnabled}
+        tabsSlot={tabsSlot}
+        conversationId={activeAgent?.conversationId}
+        backend={activeAgent?.agentType}
+        agentName={activeAgent?.agentName}
+      >
+        {activeConversation ? (
+          <TeamChatView conversation={activeConversation} hideSendBox={isSubAgent} />
+        ) : (
+          <div className='flex flex-1 items-center justify-center text-[color:var(--color-text-3)] text-sm'>
+            {t('team.agentNotConfigured')}
+          </div>
+        )}
       </ChatLayout>
     </>
+  );
+};
+
+const TeamPage: React.FC<Props> = ({ team }) => {
+  const { runtimes, addAgent } = useTeamSession(team);
+  const defaultSlotId = team.agents[0]?.slotId ?? '';
+
+  const handleAddAgent = useCallback(
+    async (agent: AvailableAgent) => {
+      await addAgent({
+        conversationId: '',
+        role: 'sub',
+        agentType: agent.backend ?? 'acp',
+        agentName: agent.name,
+      });
+    },
+    [addAgent]
+  );
+
+  return (
+    <TeamTabsProvider agents={team.agents} runtimes={runtimes} defaultActiveSlotId={defaultSlotId}>
+      <TeamPageContent team={team} onAddAgent={handleAddAgent} />
+    </TeamTabsProvider>
   );
 };
 
