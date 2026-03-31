@@ -40,6 +40,12 @@ export interface LifecycleContext {
  * Run a lifecycle hook script for an extension.
  * Scripts run in the main process (same as Channel Plugins).
  * Returns true if the hook ran successfully, false if it failed or doesn't exist.
+ *
+ * TODO: Migrate to SandboxHost (Worker Thread) for crash isolation.
+ * Lifecycle hooks currently execute with full Node.js + Electron main process
+ * privileges. A buggy hook can crash the entire application. Move to a
+ * short-lived sandbox Worker (run-once-and-exit pattern) so hook failures
+ * are contained. See: docs/feature/extension-market/research/security-model.md
  */
 async function runLifecycleHook(
   extension: LoadedExtension,

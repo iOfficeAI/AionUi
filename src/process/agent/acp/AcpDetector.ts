@@ -57,6 +57,10 @@ class AcpDetector {
 
         // 当前 ACP 运行时仅支持 CLI adapter；HTTP/WebSocket adapter 先跳过
         if (!defaultCliPath) {
+          const connectionType = typeof adapter.connectionType === 'string' ? adapter.connectionType : 'unknown';
+          console.warn(
+            `[AcpDetector] Skipping adapter "${name}" (${connectionType}): only CLI/stdio adapters are supported at runtime`
+          );
           continue;
         }
 
