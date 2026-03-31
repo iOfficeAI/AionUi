@@ -278,8 +278,11 @@ const Sider: React.FC<SiderProps> = ({ onSessionClick, collapsed = false }) => {
       <TeamCreateModal
         visible={createTeamVisible}
         onClose={() => setCreateTeamVisible(false)}
-        onCreated={() => {
+        onCreated={(team) => {
           void refreshTeams();
+          Promise.resolve(navigate(`/team/${team.id}`)).catch((error) => {
+            console.error('Navigation failed:', error);
+          });
         }}
       />
     </div>

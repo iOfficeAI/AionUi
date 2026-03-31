@@ -162,7 +162,7 @@ const TeamTabs: React.FC<TeamTabsProps> = ({ onAddAgent }) => {
                 slotId={agent.slotId}
                 agentName={agent.agentName}
                 isActive={agent.slotId === activeSlotId}
-                status={statusInfo?.status ?? 'idle'}
+                status={statusInfo?.status ?? agent.status}
                 isLead={agent.role === 'lead'}
                 onSwitch={switchTab}
               />

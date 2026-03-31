@@ -78,6 +78,7 @@ const TeamChatView: React.FC<TeamChatViewProps> = ({ conversation, hideSendBox }
           key={conversation.id}
           conversation_id={conversation.id}
           workspace={conversation.extra?.workspace}
+          hideSendBox={hideSendBox}
         />
       );
     case 'nanobot':
@@ -86,11 +87,17 @@ const TeamChatView: React.FC<TeamChatViewProps> = ({ conversation, hideSendBox }
           key={conversation.id}
           conversation_id={conversation.id}
           workspace={conversation.extra?.workspace}
+          hideSendBox={hideSendBox}
         />
       );
     case 'remote':
       return (
-        <RemoteChat key={conversation.id} conversation_id={conversation.id} workspace={conversation.extra?.workspace} />
+        <RemoteChat
+          key={conversation.id}
+          conversation_id={conversation.id}
+          workspace={conversation.extra?.workspace}
+          hideSendBox={hideSendBox}
+        />
       );
     default:
       return null;
