@@ -11,7 +11,11 @@ export const buildAutoTitleFromContent = (content: string): string | null => {
     .filter((line) => line && line !== '```');
 
   const firstLine = lines[0] ?? '';
-  const normalized = firstLine.replace(/^[#>*\-\d.\s]+/u, '').replace(/\s+/g, ' ').trim().slice(0, 50);
+  const normalized = firstLine
+    .replace(/^[#>*\-\d.\s]+/u, '')
+    .replace(/\s+/g, ' ')
+    .trim()
+    .slice(0, 50);
 
   return normalized || null;
 };
