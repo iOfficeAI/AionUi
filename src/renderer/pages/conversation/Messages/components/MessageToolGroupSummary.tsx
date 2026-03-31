@@ -70,6 +70,44 @@ const ToolGroupMapper = (m: IMessageToolGroup): ToolItem[] => {
   });
 };
 
+/**
+ * Build a concise summary string from rawInput based on tool kind.
+ * Shows the most relevant parameters so users can identify what the tool is doing.
+ * e.g. Grep → "pattern" in path, Read → file_path, Execute → command
+ */
+const buildParamSummary = (kind: string, rawInput?: Record<string, unknown>): string | undefined => {
+  if (!rawInput) return undefined;
+
+  if (kind === 'read' || kind === 'edit') {
+    return (rawInput.file_path as string) || (rawInput.path as string) || (rawInput.fileName as string);
+  }
+  if (kind === 'execute') {
+    return rawInput.command as string;
+  }
+  if (kind === 'search' || kind === 'grep') {
+    const parts: string[] = [];
+    if (rawInput.pattern) parts.push(`"${rawInput.pattern}"`);
+    if (rawInput.path) parts.push(`in ${rawInput.path}`);
+    else if (rawInput.glob) parts.push(`in ${rawInput.glob}`);
+    return parts.length > 0 ? parts.join(' ') : undefined;
+  }
+  if (kind === 'glob') {
+    const parts: string[] = [];
+    if (rawInput.pattern) parts.push(`${rawInput.pattern}`);
+    if (rawInput.path) parts.push(`in ${rawInput.path}`);
+    return parts.length > 0 ? parts.join(' ') : undefined;
+  }
+  if (kind === 'write') {
+    return (rawInput.file_path as string) || (rawInput.path as string);
+  }
+
+  // Fallback: pick the first meaningful param value
+  for (const key of ['file_path', 'command', 'path', 'pattern', 'query', 'url']) {
+    if (rawInput[key] && typeof rawInput[key] === 'string') return rawInput[key] as string;
+  }
+  return undefined;
+};
+
 const ToolAcpMapper = (message: IMessageAcpToolCall): ToolItem | undefined => {
   const update = message.content.update;
   if (!update) return;
@@ -90,10 +128,12 @@ const ToolAcpMapper = (message: IMessageAcpToolCall): ToolItem | undefined => {
       .join('\n');
   }
 
+  const keyParam = buildParamSummary(update.kind, update.rawInput);
+
   return {
     key: update.toolCallId,
-    name: (update.rawInput?.description as string) || update.title,
-    desc: (update.rawInput?.command as string) || update.kind,
+    name: update.title,
+    desc: keyParam || (update.rawInput?.command as string) || update.kind,
     status:
       update.status === 'completed'
         ? 'success'
@@ -121,7 +161,8 @@ const ToolItemDetail: React.FC<{ item: ToolItem }> = ({ item }) => {
           }
           onClick={hasDetail ? () => setExpanded(!expanded) : undefined}
         >
-          {`${item.name}(${item.desc})`}
+          <span className='font-medium'>{item.name}</span>
+          {item.desc !== item.name && <span className='m-l-4px opacity-80'>{item.desc}</span>}
         </span>
         {hasDetail && (
           <span
