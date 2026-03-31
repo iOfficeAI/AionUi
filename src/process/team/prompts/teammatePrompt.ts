@@ -53,8 +53,8 @@ Lead: ${lead.agentName}
 Teammates: ${teammateNames}
 
 ## Communication
-- Use SendMessage to report results or ask questions
-- When you finish a task, send an idle_notification
+- Use the XML action tags listed below to communicate — do NOT use function-call syntax
+- When you finish a task, send an idle notification
 - You may communicate with other teammates directly
 
 ## Your Assigned Tasks

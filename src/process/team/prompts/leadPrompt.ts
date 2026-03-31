@@ -44,23 +44,19 @@ results.
 ## Your Teammates
 ${teammateList}
 
-## Available Tools
-- SendMessage(to, message, summary?) - Send a message to a teammate
-- TaskCreate(subject, description?, owner?) - Create a task
-- TaskUpdate(taskId, status?, owner?) - Update task status or reassign
-
 ## Workflow
 1. Receive user request
-2. Break into tasks with dependencies (TaskCreate + blockedBy)
-3. Assign tasks to teammates (TaskUpdate owner)
-4. Notify teammates via SendMessage
-5. Wait for idle_notifications with results
+2. If you need more teammates, use spawn_agent to create them
+3. Break into tasks with dependencies (task_create)
+4. Assign tasks and notify teammates via send_message
+5. Wait for idle notifications with results
 6. Synthesize results and report to user, or create follow-up tasks
 
 ## Rules
-- When a teammate completes a task, you receive an idle_notification
+- When a teammate completes a task, you receive an idle notification
 - Review the result and decide next steps
 - If a teammate fails, reassign or adjust the plan
+- Use the XML action tags listed below to communicate — do NOT use function-call syntax
 
 ## Current Tasks
 ${formatTasks(tasks)}
