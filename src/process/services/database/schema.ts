@@ -75,6 +75,54 @@ export function initSchema(db: ISqliteDriver): void {
   db.exec('CREATE INDEX IF NOT EXISTS idx_messages_msg_id ON messages(msg_id)');
   db.exec('CREATE INDEX IF NOT EXISTS idx_messages_conversation_created ON messages(conversation_id, created_at)');
 
+  // Teams table (团队模式)
+  db.exec(`CREATE TABLE IF NOT EXISTS teams (
+    id TEXT PRIMARY KEY,
+    user_id TEXT NOT NULL,
+    name TEXT NOT NULL,
+    workspace TEXT NOT NULL,
+    workspace_mode TEXT NOT NULL DEFAULT 'shared',
+    lead_agent_id TEXT NOT NULL DEFAULT '',
+    agents TEXT NOT NULL DEFAULT '[]',
+    created_at INTEGER NOT NULL,
+    updated_at INTEGER NOT NULL,
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+  )`);
+  db.exec('CREATE INDEX IF NOT EXISTS idx_teams_user_id ON teams(user_id)');
+  db.exec('CREATE INDEX IF NOT EXISTS idx_teams_updated_at ON teams(updated_at)');
+
+  // Mailbox table (团队消息邮箱)
+  db.exec(`CREATE TABLE IF NOT EXISTS mailbox (
+    id TEXT PRIMARY KEY,
+    team_id TEXT NOT NULL,
+    to_agent_id TEXT NOT NULL,
+    from_agent_id TEXT NOT NULL,
+    type TEXT NOT NULL DEFAULT 'message',
+    content TEXT NOT NULL,
+    summary TEXT,
+    read INTEGER NOT NULL DEFAULT 0,
+    created_at INTEGER NOT NULL,
+    FOREIGN KEY (team_id) REFERENCES teams(id) ON DELETE CASCADE
+  )`);
+  db.exec('CREATE INDEX IF NOT EXISTS idx_mailbox_to ON mailbox(team_id, to_agent_id, read)');
+
+  // Team tasks table (团队任务)
+  db.exec(`CREATE TABLE IF NOT EXISTS team_tasks (
+    id TEXT PRIMARY KEY,
+    team_id TEXT NOT NULL,
+    subject TEXT NOT NULL,
+    description TEXT,
+    status TEXT NOT NULL DEFAULT 'pending',
+    owner TEXT,
+    blocked_by TEXT NOT NULL DEFAULT '[]',
+    blocks TEXT NOT NULL DEFAULT '[]',
+    metadata TEXT NOT NULL DEFAULT '{}',
+    created_at INTEGER NOT NULL,
+    updated_at INTEGER NOT NULL,
+    FOREIGN KEY (team_id) REFERENCES teams(id) ON DELETE CASCADE
+  )`);
+  db.exec('CREATE INDEX IF NOT EXISTS idx_tasks_team ON team_tasks(team_id, status)');
+
   console.log('[Database] Schema initialized successfully');
 }
 
