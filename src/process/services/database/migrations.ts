@@ -906,7 +906,28 @@ const migration_v20: IMigration = {
   version: 20,
   name: 'Add lead_agent_id to teams, create mailbox and team_tasks tables',
   up: (db) => {
-    db.exec(`ALTER TABLE teams ADD COLUMN lead_agent_id TEXT NOT NULL DEFAULT ''`);
+    // Ensure teams table exists (v19 should have created it, but guard against
+    // dev databases where v19 ran without the teams migration content)
+    db.exec(`CREATE TABLE IF NOT EXISTS teams (
+      id TEXT PRIMARY KEY,
+      user_id TEXT NOT NULL,
+      name TEXT NOT NULL,
+      workspace TEXT NOT NULL,
+      workspace_mode TEXT NOT NULL DEFAULT 'shared',
+      agents TEXT NOT NULL DEFAULT '[]',
+      created_at INTEGER NOT NULL,
+      updated_at INTEGER NOT NULL,
+      FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+    )`);
+    db.exec('CREATE INDEX IF NOT EXISTS idx_teams_user_id ON teams(user_id)');
+    db.exec('CREATE INDEX IF NOT EXISTS idx_teams_updated_at ON teams(updated_at)');
+
+    // Add lead_agent_id column (ignore if already exists from a prior v19 run)
+    try {
+      db.exec(`ALTER TABLE teams ADD COLUMN lead_agent_id TEXT NOT NULL DEFAULT ''`);
+    } catch {
+      // Column already exists — safe to ignore
+    }
     db.exec(`CREATE TABLE IF NOT EXISTS mailbox (
       id TEXT PRIMARY KEY,
       team_id TEXT NOT NULL,
