@@ -28,7 +28,6 @@ const TeamPageContent: React.FC<TeamPageContentProps> = ({ team, onAddAgent }) =
   const [, messageContext] = Message.useMessage({ maxCount: 1 });
 
   const activeAgent = team.agents.find((a) => a.slotId === activeSlotId);
-  const isSubAgent = activeAgent?.role === 'teammate';
 
   const leadAgent = team.agents.find((a) => a.role === 'lead');
 
@@ -44,7 +43,6 @@ const TeamPageContent: React.FC<TeamPageContentProps> = ({ team, onAddAgent }) =
   );
 
   // Pre-warm the active agent's worker so it's ready when the user sends a message.
-  // Team sub-agents have hideSendBox=true, so the sendbox warmup never fires for them.
   useEffect(() => {
     if (!activeAgent?.conversationId) return;
     ipcBridge.conversation.warmup.invoke({ conversation_id: activeAgent.conversationId }).catch(() => {});
@@ -101,7 +99,7 @@ const TeamPageContent: React.FC<TeamPageContentProps> = ({ team, onAddAgent }) =
         agentName={activeAgent?.agentName}
       >
         {activeConversation ? (
-          <TeamChatView conversation={activeConversation} hideSendBox={isSubAgent} />
+          <TeamChatView conversation={activeConversation} />
         ) : (
           <div className='flex flex-1 items-center justify-center text-[color:var(--color-text-3)] text-sm'>
             {t('team.agentNotConfigured')}

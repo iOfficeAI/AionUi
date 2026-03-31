@@ -171,6 +171,11 @@ export class TeammateManager extends EventEmitter {
     const agent = this.agents.find((a) => a.conversationId === msg.conversation_id);
     if (!agent) return;
 
+    // Auto-activate agent on first response from a direct user message
+    if (agent.status !== 'active') {
+      this.setStatus(agent.slotId, 'active');
+    }
+
     // Forward to renderer
     const teamMsg: ITeamMessageEvent = {
       teamId: this.teamId,
