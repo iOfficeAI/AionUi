@@ -100,6 +100,7 @@ const TeamCreateModal: React.FC<Props> = ({ visible, onClose, onCreated }) => {
         agentType: dispatchAgent?.backend ?? 'acp',
         agentName: dispatchAgent?.name ?? name,
         conversationType: resolveConversationType(dispatchAgent?.backend ?? 'acp'),
+        cliPath: dispatchAgent?.cliPath,
       });
 
       for (const key of subAgentKeys) {
@@ -113,6 +114,7 @@ const TeamCreateModal: React.FC<Props> = ({ visible, onClose, onCreated }) => {
             agentType: subAgent.backend,
             agentName: subAgent.name,
             conversationType: resolveConversationType(subAgent.backend),
+            cliPath: subAgent.cliPath,
           });
         }
       }

@@ -20,6 +20,7 @@ export type TeamAgent = {
   agentName: string;
   conversationType: string;
   status: TeammateStatus;
+  cliPath?: string;
 };
 
 /** Persisted team record (stored in SQLite `teams` table) */

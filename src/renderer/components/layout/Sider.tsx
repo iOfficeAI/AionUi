@@ -1,11 +1,11 @@
-import { ArrowCircleLeft, ListCheckbox, People, Plus, SettingTwo } from '@icon-park/react';
+import { ArrowCircleLeft, Delete, ListCheckbox, People, Plus, SettingTwo } from '@icon-park/react';
 import { IconMoonFill, IconSunFill } from '@arco-design/web-react/icon';
 import classNames from 'classnames';
 import React, { Suspense, useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { iconColors } from '@renderer/styles/colors';
-import { Tooltip } from '@arco-design/web-react';
+import { Popconfirm, Tooltip } from '@arco-design/web-react';
 import { usePreviewContext } from '@renderer/pages/conversation/Preview/context/PreviewContext';
 import { cleanupSiderTooltips, getSiderTooltipProps } from '@renderer/utils/ui/siderTooltip';
 import { useLayoutContext } from '@renderer/hooks/context/LayoutContext';
@@ -35,7 +35,7 @@ const Sider: React.FC<SiderProps> = ({ onSessionClick, collapsed = false }) => {
   const { theme, setTheme } = useThemeContext();
   const [isBatchMode, setIsBatchMode] = useState(false);
   const [createTeamVisible, setCreateTeamVisible] = useState(false);
-  const { teams, mutate: refreshTeams } = useTeamList();
+  const { teams, mutate: refreshTeams, removeTeam } = useTeamList();
   const isSettings = pathname.startsWith('/settings');
   const lastNonSettingsPathRef = useRef('/guid');
 
@@ -193,7 +193,7 @@ const Sider: React.FC<SiderProps> = ({ onSessionClick, collapsed = false }) => {
               {teams.map((team) => (
                 <div
                   key={team.id}
-                  className='h-36px flex items-center gap-8px px-8px rd-0.5rem cursor-pointer hover:bg-hover'
+                  className='h-36px flex items-center gap-8px px-8px rd-0.5rem cursor-pointer hover:bg-hover group'
                   onClick={() => {
                     cleanupSiderTooltips();
                     blurActiveElement();
@@ -212,7 +212,25 @@ const Sider: React.FC<SiderProps> = ({ onSessionClick, collapsed = false }) => {
                     className='block leading-none shrink-0'
                     style={{ lineHeight: 0 }}
                   />
-                  <span className='collapsed-hidden text-t-primary text-14px truncate'>{team.name}</span>
+                  <span className='collapsed-hidden text-t-primary text-14px truncate flex-1'>{team.name}</span>
+                  <Popconfirm
+                    title={t('team.deleteConfirm', { defaultValue: 'Delete this team?' })}
+                    onOk={async (e) => {
+                      e?.stopPropagation();
+                      await removeTeam(team.id);
+                      if (pathname.startsWith(`/team/${team.id}`)) {
+                        Promise.resolve(navigate('/')).catch(() => {});
+                      }
+                    }}
+                    onCancel={(e) => e?.stopPropagation()}
+                  >
+                    <div
+                      className='collapsed-hidden opacity-0 group-hover:opacity-100 shrink-0 p-2px rd-4px hover:bg-fill-3'
+                      onClick={(e) => e.stopPropagation()}
+                    >
+                      <Delete theme='outline' size='14' fill='var(--color-text-3)' />
+                    </div>
+                  </Popconfirm>
                 </div>
               ))}
             </div>

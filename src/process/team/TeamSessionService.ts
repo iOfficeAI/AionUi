@@ -43,17 +43,20 @@ export class TeamSessionService {
     const agentsWithConversations = await Promise.all(
       params.agents.map(async (agent) => {
         const convType = (agent.conversationType || this.resolveConversationType(agent.agentType)) as AgentType;
-        const conversation = await this.conversationService.createConversation({
-          type: convType,
-          name: `${params.name} - ${agent.agentName}`,
-          model: {} as TProviderWithModel,
-          extra: {
+        const extra: Record<string, unknown> = {
             workspace,
             customWorkspace: true,
             backend: agent.agentType as AcpBackendAll,
             agentName: agent.agentName,
             teamId,
-          },
+          };
+        if (agent.cliPath) extra.cliPath = agent.cliPath;
+
+        const conversation = await this.conversationService.createConversation({
+          type: convType,
+          name: `${params.name} - ${agent.agentName}`,
+          model: {} as TProviderWithModel,
+          extra,
         });
         return { ...agent, conversationId: conversation.id };
       })
@@ -99,17 +102,20 @@ export class TeamSessionService {
 
     const workspace = this.resolveWorkspace(team.workspace);
     const convType = (agent.conversationType || this.resolveConversationType(agent.agentType)) as AgentType;
+    const addExtra: Record<string, unknown> = {
+      workspace,
+      customWorkspace: true,
+      backend: agent.agentType as AcpBackendAll,
+      agentName: agent.agentName,
+      teamId,
+    };
+    if (agent.cliPath) addExtra.cliPath = agent.cliPath;
+
     const conversation = await this.conversationService.createConversation({
       type: convType,
       name: `${team.name} - ${agent.agentName}`,
       model: {} as TProviderWithModel,
-      extra: {
-        workspace,
-        customWorkspace: true,
-        backend: agent.agentType as AcpBackendAll,
-        agentName: agent.agentName,
-        teamId,
-      },
+      extra: addExtra,
     });
 
     const newAgent: TeamAgent = {
