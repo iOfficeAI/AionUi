@@ -5,7 +5,7 @@ import type { IWorkerTaskManager } from '@process/task/IWorkerTaskManager';
 import type { IConversationService } from '@process/services/IConversationService';
 import type { AgentType } from '@process/task/agentTypes';
 import type { AcpBackendAll } from '@/common/types/acpTypes';
-import type { TChatConversation, TProviderWithModel } from '@/common/config/storage';
+import type { TProviderWithModel } from '@/common/config/storage';
 import { TeamSession } from './TeamSession';
 import type { TTeam, TeamAgent } from './types';
 import os from 'os';
