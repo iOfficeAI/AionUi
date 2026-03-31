@@ -8,6 +8,7 @@ export type {
   WorkspaceMode,
   TeamAgent,
   TTeam,
+  ITeamAgentSpawnedEvent,
   ITeamAgentStatusEvent,
   ITeamMessageEvent,
 } from '@/common/types/teamTypes';

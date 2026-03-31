@@ -44,6 +44,12 @@ export type ITeamAgentStatusEvent = {
   lastMessage?: string;
 };
 
+/** IPC event pushed to renderer when a new agent is spawned at runtime */
+export type ITeamAgentSpawnedEvent = {
+  teamId: string;
+  agent: TeamAgent;
+};
+
 /** IPC event for streaming agent messages to renderer */
 export type ITeamMessageEvent = {
   teamId: string;

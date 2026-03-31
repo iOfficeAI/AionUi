@@ -93,7 +93,10 @@ const TeamPageContent: React.FC<TeamPageContentProps> = ({ team, onAddAgent }) =
         agentName={activeAgent?.agentName}
       >
         {activeConversation ? (
-          <TeamChatView conversation={activeConversation} />
+          <TeamChatView
+            conversation={activeConversation}
+            teamId={activeAgent?.slotId === leadAgent?.slotId ? team.id : undefined}
+          />
         ) : (
           <div className='flex flex-1 items-center justify-center'>
             <Spin loading />

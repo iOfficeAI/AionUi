@@ -77,7 +77,8 @@ const AcpSendBox: React.FC<{
   backend: AcpBackend;
   sessionMode?: string;
   agentName?: string;
-}> = ({ conversation_id, backend, sessionMode, agentName }) => {
+  teamId?: string;
+}> = ({ conversation_id, backend, sessionMode, agentName, teamId }) => {
   const { thought, running, acpStatus, aiProcessing, setAiProcessing, resetState, tokenUsage, contextLimit } =
     useAcpMessage(conversation_id);
   const { t } = useTranslation();
@@ -147,14 +148,18 @@ const AcpSendBox: React.FC<{
     // Start AI processing loading state
     setAiProcessing(true);
 
-    // Send message via ACP
+    // Send message via team bridge (if in team mode) or direct ACP
     try {
-      await ipcBridge.acpConversation.sendMessage.invoke({
-        input: message,
-        msg_id,
-        conversation_id,
-        files: allFiles,
-      });
+      if (teamId) {
+        await ipcBridge.team.sendMessage.invoke({ teamId, content: message });
+      } else {
+        await ipcBridge.acpConversation.sendMessage.invoke({
+          input: message,
+          msg_id,
+          conversation_id,
+          files: allFiles,
+        });
+      }
       void checkAndUpdateTitle(conversation_id, message);
       emitter.emit('chat.history.refresh');
     } catch (error: unknown) {

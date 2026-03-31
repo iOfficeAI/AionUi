@@ -1,6 +1,7 @@
 // src/renderer/pages/team/hooks/useTeamSession.ts
 import { ipcBridge } from '@/common';
 import type {
+  ITeamAgentSpawnedEvent,
   ITeamAgentStatusEvent,
   ITeamMessageEvent,
   TeamAgent,
@@ -49,11 +50,18 @@ export function useTeamSession(team: TTeam) {
       });
     });
 
+    const unsubSpawned = ipcBridge.team.agentSpawned.on((event: ITeamAgentSpawnedEvent) => {
+      if (event.teamId !== team.id) return;
+      // Refresh team data so the new agent appears in tabs
+      void mutateTeam();
+    });
+
     return () => {
       unsubStatus();
       unsubMessages();
+      unsubSpawned();
     };
-  }, [team.id]);
+  }, [team.id, mutateTeam]);
 
   const sendMessage = useCallback(
     async (content: string) => {

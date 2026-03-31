@@ -8,6 +8,8 @@ import type { Mailbox } from './Mailbox';
 import type { TaskManager } from './TaskManager';
 import type { AgentResponse } from './adapters/PlatformAdapter';
 import { createPlatformAdapter } from './adapters/PlatformAdapter';
+import { extractToolCallInfo, isTeamToolCall, parseToolCallAction } from './adapters/toolCallAdapter';
+import type { ToolCallUpdate } from '@/common/types/acpTypes';
 
 type SpawnAgentFn = (agentName: string, agentType?: string) => Promise<TeamAgent>;
 
@@ -40,6 +42,8 @@ export class TeammateManager extends EventEmitter {
   private readonly wakeTimeouts = new Map<string, ReturnType<typeof setTimeout>>();
   /** O(1) lookup set of conversationIds owned by this team, for fast IPC event filtering */
   private readonly ownedConversationIds = new Set<string>();
+  /** Tracks conversationIds whose turn has already been finalized, to prevent double processing */
+  private readonly finalizedTurns = new Set<string>();
 
   /** Maximum time (ms) to wait for a turnCompleted event before force-releasing a wake */
   private static readonly WAKE_TIMEOUT_MS = 5 * 60 * 1000;
@@ -193,20 +197,42 @@ export class TeammateManager extends EventEmitter {
       const existing = this.responseBuffer.get(msg.conversation_id) ?? '';
       this.responseBuffer.set(msg.conversation_id, existing + text);
     }
+
+    // Detect terminal stream messages and trigger turn completion.
+    // The turnCompleted IPC event is never emitted by agent managers, so we
+    // derive turn completion from the responseStream 'finish' message instead.
+    if (msg.type === 'finish' || msg.type === 'error') {
+      void this.finalizeTurn(msg.conversation_id);
+    }
   }
 
   private async handleTurnCompleted(event: IConversationTurnCompletedEvent): Promise<void> {
     // Fast O(1) check: skip events for conversations not owned by this team
     if (!this.ownedConversationIds.has(event.sessionId)) return;
+    // Delegate to shared finalizeTurn (deduplication handled there)
+    void this.finalizeTurn(event.sessionId);
+  }
 
-    const agent = this.agents.find((a) => a.conversationId === event.sessionId);
+  /**
+   * Shared turn completion handler. Called from both responseStream 'finish'
+   * detection and the turnCompleted IPC event (if it ever fires).
+   * Uses finalizedTurns set to prevent double processing.
+   */
+  private async finalizeTurn(conversationId: string): Promise<void> {
+    // Dedup: skip if this turn was already finalized
+    if (this.finalizedTurns.has(conversationId)) return;
+    this.finalizedTurns.add(conversationId);
+    // Clean up the dedup entry after a short delay so future turns can be processed
+    setTimeout(() => this.finalizedTurns.delete(conversationId), 5000);
+
+    const agent = this.agents.find((a) => a.conversationId === conversationId);
     if (!agent) return;
 
-    const accumulatedText = this.responseBuffer.get(event.sessionId) ?? '';
-    this.responseBuffer.delete(event.sessionId);
+    const accumulatedText = this.responseBuffer.get(conversationId) ?? '';
+    this.responseBuffer.delete(conversationId);
     this.activeWakes.delete(agent.slotId);
 
-    // Clear the wake timeout since turnCompleted arrived normally
+    // Clear the wake timeout since the turn completed normally
     const timeoutHandle = this.wakeTimeouts.get(agent.slotId);
     if (timeoutHandle) {
       clearTimeout(timeoutHandle);
@@ -287,6 +313,8 @@ export class TeammateManager extends EventEmitter {
         }
         const newAgent = await this.spawnAgentFn(action.agentName, action.agentType);
         this.addAgent(newAgent);
+        // Notify renderer so it can refresh the team data (tabs, etc.)
+        ipcBridge.team.agentSpawned.emit({ teamId: this.teamId, agent: newAgent });
         // Notify the lead that the agent was created
         await this.mailbox.write({
           teamId: this.teamId,

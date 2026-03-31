@@ -43,13 +43,15 @@ const GeminiTeamChat: React.FC<{
 type TeamChatViewProps = {
   conversation: TChatConversation;
   hideSendBox?: boolean;
+  /** When set, the SendBox routes messages through team.sendMessage instead of direct conversation send */
+  teamId?: string;
 };
 
 /**
  * Routes to the correct platform chat component based on conversation type.
  * Does NOT wrap in ChatLayout — that is done by the parent TeamPage.
  */
-const TeamChatView: React.FC<TeamChatViewProps> = ({ conversation, hideSendBox }) => {
+const TeamChatView: React.FC<TeamChatViewProps> = ({ conversation, hideSendBox, teamId }) => {
   const content = (() => {
     switch (conversation.type) {
       case 'acp':
@@ -62,6 +64,7 @@ const TeamChatView: React.FC<TeamChatViewProps> = ({ conversation, hideSendBox }
             sessionMode={conversation.extra?.sessionMode}
             agentName={(conversation.extra as { agentName?: string })?.agentName}
             hideSendBox={hideSendBox}
+            teamId={teamId}
           />
         );
       case 'codex':
