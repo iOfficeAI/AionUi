@@ -47,6 +47,8 @@ const ChatLayout: React.FC<{
   workspaceEnabled?: boolean;
   /** Conversation ID for mode switching */
   conversationId?: string;
+  /** Custom tabs slot; when provided, replaces the default ConversationTabs */
+  tabsSlot?: React.ReactNode;
 }> = (props) => {
   const { conversationId } = props;
   const { backend, agentName, agentLogo, agentLogoIsEmoji, workspaceEnabled = true } = props;
@@ -168,7 +170,7 @@ const ChatLayout: React.FC<{
 
   const headerBlock = (
     <>
-      <ConversationTabs />
+      {props.tabsSlot !== undefined ? props.tabsSlot : <ConversationTabs />}
       <ArcoLayout.Header
         className={classNames(
           'min-h-44px flex items-center justify-between px-16px pt-8px pb-10px gap-16px !bg-1 chat-layout-header chat-layout-header--glass overflow-hidden',
@@ -224,9 +226,11 @@ const ChatLayout: React.FC<{
   return (
     <ArcoLayout
       className='size-full color-black '
-      style={{
-        // fontFamily: `cursive,"anthropicSans","anthropicSans Fallback",system-ui,Segoe UI,Roboto,Helvetica,Arial,sans-serif`,
-      }}
+      style={
+        {
+          // fontFamily: `cursive,"anthropicSans","anthropicSans Fallback",system-ui,Segoe UI,Roboto,Helvetica,Arial,sans-serif`,
+        }
+      }
     >
       <div ref={containerRef} className='flex flex-1 relative w-full overflow-hidden'>
         <div
