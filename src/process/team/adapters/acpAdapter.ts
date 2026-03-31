@@ -78,24 +78,6 @@ const TEAM_TOOLS: ToolDefinition[] = [
   },
 ];
 
-/** Format unread mailbox messages into a human-readable section */
-function formatMailboxMessages(messages: BuildPayloadParams['mailboxMessages']): string {
-  if (messages.length === 0) {
-    return '';
-  }
-  const lines = messages.map((m) => `[From ${m.fromAgentId}] ${m.content}`);
-  return `## Unread Messages\n${lines.join('\n')}`;
-}
-
-/** Format tasks into a human-readable section */
-function formatTasks(tasks: BuildPayloadParams['tasks']): string {
-  if (tasks.length === 0) {
-    return '';
-  }
-  const lines = tasks.map((t) => `- [${t.id}] ${t.subject} (${t.status}, owner: ${t.owner ?? 'unassigned'})`);
-  return `## Current Tasks\n${lines.join('\n')}`;
-}
-
 /**
  * Creates an adapter for ACP-compatible platforms (e.g. Claude via ACP).
  * Agents on this platform can use tool_use blocks for structured actions.
@@ -108,24 +90,12 @@ export function createAcpAdapter(): TeamPlatformAdapter {
 
     buildPayload(params: BuildPayloadParams): AgentPayload {
       const { agent, mailboxMessages, tasks, teammates } = params;
-      const sections: string[] = [];
 
-      // Inject role-specific system prompt so agents know their identity
+      // Role prompt already includes teammates, tasks, and unread messages
       const rolePrompt = buildRolePrompt({ agent, mailboxMessages, tasks, teammates });
-      sections.push(rolePrompt);
-
-      const mailboxSection = formatMailboxMessages(mailboxMessages);
-      if (mailboxSection) {
-        sections.push(mailboxSection);
-      }
-
-      const tasksSection = formatTasks(tasks);
-      if (tasksSection) {
-        sections.push(tasksSection);
-      }
 
       return {
-        message: sections.join('\n\n'),
+        message: rolePrompt,
         tools: TEAM_TOOLS,
       };
     },

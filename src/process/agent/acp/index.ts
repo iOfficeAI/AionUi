@@ -1496,22 +1496,33 @@ export class AcpAgent {
   private async loadBuiltinSessionMcpServers(): Promise<AcpSessionMcpServer[]> {
     try {
       const mcpConfig = await ProcessConfig.get('mcp.config');
-      if (!Array.isArray(mcpConfig) || mcpConfig.length === 0) {
-        return [];
+      const servers: AcpSessionMcpServer[] = [];
+
+      if (Array.isArray(mcpConfig) && mcpConfig.length > 0) {
+        const capabilities = parseAcpMcpCapabilities(this.connection.getInitializeResponse());
+        servers.push(...buildBuiltinAcpSessionMcpServers(mcpConfig as IMcpServer[], capabilities));
       }
 
-      const capabilities = parseAcpMcpCapabilities(this.connection.getInitializeResponse());
-      const sessionMcpServers = buildBuiltinAcpSessionMcpServers(mcpConfig as IMcpServer[], capabilities);
+      // Inject team MCP server if this agent belongs to a team
+      const teamMcpUrl = (this.extra as Record<string, unknown>).teamMcpUrl;
+      if (typeof teamMcpUrl === 'string' && teamMcpUrl.length > 0) {
+        servers.push({
+          type: 'http',
+          name: 'aionui-team',
+          url: teamMcpUrl,
+        });
+        mainLog(`[ACP ${this.extra.backend}]`, `Injecting team MCP server: ${teamMcpUrl}`);
+      }
 
-      if (sessionMcpServers.length > 0) {
+      if (servers.length > 0) {
         mainLog(
           `[ACP ${this.extra.backend}]`,
-          `Injecting ${sessionMcpServers.length} built-in MCP server(s) into session/new`,
-          sessionMcpServers.map((server) => `${server.name}:${server.type}`)
+          `Injecting ${servers.length} MCP server(s) into session/new`,
+          servers.map((server) => `${server.name}:${server.type}`)
         );
       }
 
-      return sessionMcpServers;
+      return servers;
     } catch (error) {
       console.warn(
         `[ACP ${this.extra.backend}] Failed to load built-in MCP config for session/new:`,

@@ -92,7 +92,7 @@ export class TeamSessionService {
   }
 
   async deleteTeam(id: string): Promise<void> {
-    this.sessions.get(id)?.dispose();
+    await this.sessions.get(id)?.dispose();
     this.sessions.delete(id);
 
     // Delete conversations owned by this team's agents
@@ -171,7 +171,7 @@ export class TeamSessionService {
     const team = await this.repo.findById(teamId);
     if (!team) throw new Error(`Team "${teamId}" not found`);
     const spawnAgent = async (agentName: string, agentType?: string) => {
-      return this.addAgent(teamId, {
+      const newAgent = await this.addAgent(teamId, {
         conversationId: '',
         role: 'teammate',
         agentType: agentType || 'acp',
@@ -179,14 +179,39 @@ export class TeamSessionService {
         status: 'pending',
         conversationType: (agentType || 'acp') as 'acp',
       });
+      // Inject team MCP URL into the new agent's conversation
+      const mcpUrl = session.getMcpServerUrl();
+      if (mcpUrl && newAgent.conversationId) {
+        await this.conversationService.updateConversation(
+          newAgent.conversationId,
+          { extra: { teamMcpUrl: mcpUrl } } as any,
+          true
+        );
+      }
+      return newAgent;
     };
     const session = new TeamSession(team, this.repo, this.workerTaskManager, spawnAgent);
     this.sessions.set(teamId, session);
+
+    // Start MCP server and inject URL into all agent conversations
+    const mcpUrl = await session.startMcpServer();
+    await Promise.all(
+      team.agents.map(async (agent) => {
+        if (agent.conversationId) {
+          await this.conversationService.updateConversation(
+            agent.conversationId,
+            { extra: { teamMcpUrl: mcpUrl } } as any,
+            true
+          );
+        }
+      })
+    );
+
     return session;
   }
 
-  stopSession(teamId: string): void {
-    this.sessions.get(teamId)?.dispose();
+  async stopSession(teamId: string): Promise<void> {
+    await this.sessions.get(teamId)?.dispose();
     this.sessions.delete(teamId);
   }
 }

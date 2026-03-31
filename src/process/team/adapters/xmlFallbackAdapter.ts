@@ -4,43 +4,20 @@ import type { ParsedAction, PlatformCapability } from '../types';
 import type { AgentPayload, AgentResponse, BuildPayloadParams, TeamPlatformAdapter } from './PlatformAdapter';
 import { buildRolePrompt } from './buildRolePrompt';
 
-/** Instructions appended to the payload so agents know the XML action format */
-const XML_INSTRUCTIONS = `## Available Actions
+/**
+ * XML fallback instructions for platforms that do NOT support MCP tool use.
+ * Only describes XML tag syntax — no mention of MCP tools (those are in the role prompts).
+ */
+const TEAM_INSTRUCTIONS = `## Team Coordination (XML Fallback)
 
-Use the following XML tags to take actions. Place them anywhere in your response.
+The team_* MCP tools are NOT available in your current session.
+Use these XML tags instead to coordinate with your team:
 
-Send a message to a teammate:
 <send_message to="AgentName">message</send_message>
-
-Create a new task:
 <task_create subject="..." owner="..." description="..."/>
-
-Update task status:
 <task_update task_id="..." status="completed"/>
-
-Create a new teammate:
 <spawn_agent name="AgentName" type="acp"/>
-
-Signal that you are idle:
 <idle reason="available" summary="..." completed_task_id="..."/>`;
-
-/** Format unread mailbox messages into a human-readable section */
-function formatMailboxMessages(messages: BuildPayloadParams['mailboxMessages']): string {
-  if (messages.length === 0) {
-    return '';
-  }
-  const lines = messages.map((m) => `[From ${m.fromAgentId}] ${m.content}`);
-  return `## Unread Messages\n${lines.join('\n')}`;
-}
-
-/** Format tasks into a human-readable section */
-function formatTasks(tasks: BuildPayloadParams['tasks']): string {
-  if (tasks.length === 0) {
-    return '';
-  }
-  const lines = tasks.map((t) => `- [${t.id}] ${t.subject} (${t.status}, owner: ${t.owner ?? 'unassigned'})`);
-  return `## Current Tasks\n${lines.join('\n')}`;
-}
 
 /** Remove matched XML tag spans from a string and return the remaining text */
 function removeXmlSpans(text: string, spans: Array<[number, number]>): string {
@@ -155,21 +132,12 @@ export function createXmlFallbackAdapter(): TeamPlatformAdapter {
       const { agent, mailboxMessages, tasks, teammates } = params;
       const sections: string[] = [];
 
-      // Inject role-specific system prompt so agents know their identity
+      // Role prompt already includes teammates, tasks, and unread messages
       const rolePrompt = buildRolePrompt({ agent, mailboxMessages, tasks, teammates });
       sections.push(rolePrompt);
 
-      const mailboxSection = formatMailboxMessages(mailboxMessages);
-      if (mailboxSection) {
-        sections.push(mailboxSection);
-      }
-
-      const tasksSection = formatTasks(tasks);
-      if (tasksSection) {
-        sections.push(tasksSection);
-      }
-
-      sections.push(XML_INSTRUCTIONS);
+      // Append XML fallback instructions (no MCP tools on this platform)
+      sections.push(TEAM_INSTRUCTIONS);
 
       return { message: sections.join('\n\n') };
     },

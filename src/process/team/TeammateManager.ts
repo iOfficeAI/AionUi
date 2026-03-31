@@ -78,10 +78,12 @@ export class TeammateManager extends EventEmitter {
     return [...this.agents];
   }
 
-  /** Add a new agent to the team */
+  /** Add a new agent to the team and notify renderer */
   addAgent(agent: TeamAgent): void {
     this.agents = [...this.agents, agent];
     this.ownedConversationIds.add(agent.conversationId);
+    // Notify renderer so it can refresh team data (tabs, status, etc.)
+    ipcBridge.team.agentSpawned.emit({ teamId: this.teamId, agent });
   }
 
   /**
@@ -313,8 +315,6 @@ export class TeammateManager extends EventEmitter {
         }
         const newAgent = await this.spawnAgentFn(action.agentName, action.agentType);
         this.addAgent(newAgent);
-        // Notify renderer so it can refresh the team data (tabs, etc.)
-        ipcBridge.team.agentSpawned.emit({ teamId: this.teamId, agent: newAgent });
         // Notify the lead that the agent was created
         await this.mailbox.write({
           teamId: this.teamId,
