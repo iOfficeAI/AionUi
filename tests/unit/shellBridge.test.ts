@@ -8,10 +8,12 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 // --- Mocks (vi.hoisted so factories can reference them) ---
 
-const { openFileProvider, showItemInFolderProvider, openExternalProvider, shellMock } = vi.hoisted(() => ({
+const { openFileProvider, showItemInFolderProvider, openExternalProvider, checkToolInstalledProvider, openFolderWithProvider, shellMock } = vi.hoisted(() => ({
   openFileProvider: { fn: undefined as ((...args: any[]) => any) | undefined },
   showItemInFolderProvider: { fn: undefined as ((...args: any[]) => any) | undefined },
   openExternalProvider: { fn: undefined as ((...args: any[]) => any) | undefined },
+  checkToolInstalledProvider: { fn: undefined as ((...args: any[]) => any) | undefined },
+  openFolderWithProvider: { fn: undefined as ((...args: any[]) => any) | undefined },
   shellMock: {
     openPath: vi.fn().mockResolvedValue(''),
     showItemInFolder: vi.fn(),
@@ -37,6 +39,16 @@ vi.mock('@/common', () => ({
           openExternalProvider.fn = fn;
         }),
       },
+      checkToolInstalled: {
+        provider: vi.fn((fn: (...args: any[]) => any) => {
+          checkToolInstalledProvider.fn = fn;
+        }),
+      },
+      openFolderWith: {
+        provider: vi.fn((fn: (...args: any[]) => any) => {
+          openFolderWithProvider.fn = fn;
+        }),
+      },
     },
   },
 }));
@@ -55,6 +67,8 @@ beforeEach(async () => {
   openFileProvider.fn = undefined;
   showItemInFolderProvider.fn = undefined;
   openExternalProvider.fn = undefined;
+  checkToolInstalledProvider.fn = undefined;
+  openFolderWithProvider.fn = undefined;
 
   const mod = await import('../../src/process/bridge/shellBridge');
   initShellBridge = mod.initShellBridge;
@@ -62,11 +76,13 @@ beforeEach(async () => {
 
 describe('shellBridge', () => {
   describe('initShellBridge', () => {
-    it('registers all three shell providers', () => {
+    it('registers all five shell providers', () => {
       initShellBridge();
       expect(openFileProvider.fn).toBeDefined();
       expect(showItemInFolderProvider.fn).toBeDefined();
       expect(openExternalProvider.fn).toBeDefined();
+      expect(checkToolInstalledProvider.fn).toBeDefined();
+      expect(openFolderWithProvider.fn).toBeDefined();
     });
   });
 
