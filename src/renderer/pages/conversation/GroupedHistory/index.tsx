@@ -338,8 +338,6 @@ const WorkspaceGroupedHistory: React.FC<WorkspaceGroupedHistoryProps> = ({
         </div>
       )}
 
-
-
       <div className='size-full overflow-y-auto overflow-x-hidden'>
         <DndContext
           sensors={sensors}

@@ -296,10 +296,7 @@ async function findSessionName(sessionId: string): Promise<string> {
  * Returns workspace (cwd) from session_meta and name from session_index for proper grouping.
  */
 export async function parseCodexSession(sessionId: string): Promise<ExternalParseResult> {
-  const [rolloutPath, sessionName] = await Promise.all([
-    findRolloutFile(sessionId),
-    findSessionName(sessionId),
-  ]);
+  const [rolloutPath, sessionName] = await Promise.all([findRolloutFile(sessionId), findSessionName(sessionId)]);
   if (!rolloutPath) return { messages: [], workspace: '', name: sessionName };
 
   let content: string;

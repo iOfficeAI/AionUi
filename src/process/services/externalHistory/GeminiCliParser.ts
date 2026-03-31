@@ -126,9 +126,10 @@ export async function listGeminiCliSessions(): Promise<ExternalSessionInfo[]> {
         if (session.messages.length < 2) continue;
 
         // Use summary field as title (Gemini CLI generates this)
-        const name = session.summary
-          || extractContentText(session.messages.find((m) => m.type === 'user')?.content ?? '').slice(0, 80)
-          || 'Gemini CLI Session';
+        const name =
+          session.summary ||
+          extractContentText(session.messages.find((m) => m.type === 'user')?.content ?? '').slice(0, 80) ||
+          'Gemini CLI Session';
 
         const updatedAt = new Date(session.lastUpdated || session.startTime).getTime();
 
@@ -217,10 +218,9 @@ export async function parseGeminiCliSession(sessionId: string): Promise<External
   // Read workspace from .project_root
   let workspace = '';
   try {
-    workspace = (await fs.readFile(
-      path.join(getGeminiBaseDir(), 'history', found.dirName, '.project_root'),
-      'utf-8',
-    )).trim();
+    workspace = (
+      await fs.readFile(path.join(getGeminiBaseDir(), 'history', found.dirName, '.project_root'), 'utf-8')
+    ).trim();
   } catch {
     // No project root info
   }
@@ -243,9 +243,7 @@ export async function parseGeminiCliSession(sessionId: string): Promise<External
 
   // Session title: prefer summary, fallback to first user message
   const firstUser = messages.find((m) => m.role === 'user');
-  const name = session.summary
-    || firstUser?.content.slice(0, 80)
-    || 'Gemini CLI Session';
+  const name = session.summary || firstUser?.content.slice(0, 80) || 'Gemini CLI Session';
 
   return { messages, workspace, name };
 }

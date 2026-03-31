@@ -104,9 +104,7 @@ function encodeProjectPath(projectPath: string): string {
  * Look up the project path and display name for a given session ID from history.jsonl.
  * Returns the entry with the latest timestamp, consistent with listClaudeCodeSessions.
  */
-async function findSessionMeta(
-  sessionId: string
-): Promise<{ project: string; name: string } | null> {
+async function findSessionMeta(sessionId: string): Promise<{ project: string; name: string } | null> {
   const historyPath = path.join(getClaudeConfigDir(), 'history.jsonl');
 
   let content: string;
@@ -141,9 +139,7 @@ async function findSessionMeta(
  * Only extracts user and assistant text messages.
  * Looks up the project path and title from history.jsonl internally.
  */
-export async function parseClaudeSession(
-  sessionId: string
-): Promise<ExternalParseResult> {
+export async function parseClaudeSession(sessionId: string): Promise<ExternalParseResult> {
   const meta = await findSessionMeta(sessionId);
   if (!meta) return { messages: [], workspace: '', name: '' };
 

@@ -73,9 +73,9 @@ export async function listOpenCodeSessions(): Promise<ExternalSessionInfo[]> {
   if (!db) return [];
 
   try {
-    const rows = db.prepare(
-      'SELECT id, title, directory, time_updated FROM session ORDER BY time_updated DESC',
-    ).all() as OpenCodeSessionRow[];
+    const rows = db
+      .prepare('SELECT id, title, directory, time_updated FROM session ORDER BY time_updated DESC')
+      .all() as OpenCodeSessionRow[];
 
     return rows.map((row) => ({
       id: row.id,
@@ -102,18 +102,18 @@ export async function parseOpenCodeSession(sessionId: string): Promise<ExternalP
 
   try {
     // Get session info for workspace
-    const sessionRow = db.prepare(
-      'SELECT title, directory FROM session WHERE id = ?',
-    ).get(sessionId) as { title: string; directory: string } | undefined;
+    const sessionRow = db.prepare('SELECT title, directory FROM session WHERE id = ?').get(sessionId) as
+      | { title: string; directory: string }
+      | undefined;
 
     const dir = sessionRow?.directory;
     const workspace = dir && dir !== '.' ? dir : '';
     const name = sessionRow?.title ?? 'OpenCode Session';
 
     // Get messages ordered by creation time
-    const messageRows = db.prepare(
-      'SELECT id, data, time_created FROM message WHERE session_id = ? ORDER BY time_created ASC',
-    ).all(sessionId) as OpenCodeMessageRow[];
+    const messageRows = db
+      .prepare('SELECT id, data, time_created FROM message WHERE session_id = ? ORDER BY time_created ASC')
+      .all(sessionId) as OpenCodeMessageRow[];
 
     const messages: ExternalMessage[] = [];
 
@@ -128,9 +128,9 @@ export async function parseOpenCodeSession(sessionId: string): Promise<ExternalP
       if (msgData.role !== 'user' && msgData.role !== 'assistant') continue;
 
       // Get text parts for this message
-      const partRows = db.prepare(
-        'SELECT data FROM part WHERE message_id = ? ORDER BY time_created ASC',
-      ).all(msgRow.id) as OpenCodePartRow[];
+      const partRows = db
+        .prepare('SELECT data FROM part WHERE message_id = ? ORDER BY time_created ASC')
+        .all(msgRow.id) as OpenCodePartRow[];
 
       const textParts: string[] = [];
       for (const partRow of partRows) {

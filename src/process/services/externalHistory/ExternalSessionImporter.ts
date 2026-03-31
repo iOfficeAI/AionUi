@@ -21,10 +21,7 @@ import { parseGeminiCliSession } from './GeminiCliParser';
 import { parseOpenCodeSession } from './OpenCodeParser';
 import type { ExternalMessage, ExternalParseResult } from './types';
 
-function convertToTMessages(
-  conversationId: string,
-  externalMessages: ExternalMessage[]
-): TMessage[] {
+function convertToTMessages(conversationId: string, externalMessages: ExternalMessage[]): TMessage[] {
   return externalMessages.map((msg) => ({
     id: uuid(),
     type: 'text' as const,

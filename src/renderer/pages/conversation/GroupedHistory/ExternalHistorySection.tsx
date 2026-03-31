@@ -17,7 +17,6 @@ import { Download, FolderOpen, Refresh, Search, Terminal } from '@icon-park/reac
 import React, { useCallback, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 
-
 /**
  * Unique key for a session (avoids collision across backends).
  */
@@ -40,13 +39,16 @@ export const ExternalHistoryButton: React.FC<{ collapsed?: boolean }> = ({ colla
   const [filterBackend, setFilterBackend] = useState<ExternalSessionBackend | 'all'>('all');
   const [searchQuery, setSearchQuery] = useState('');
 
-  const backendOptions = useMemo(() => [
-    { value: 'all', label: t('conversation.externalHistory.filterAll') },
-    { value: 'claude', label: 'Claude Code' },
-    { value: 'codex', label: 'Codex' },
-    { value: 'gemini-cli', label: 'Gemini CLI' },
-    { value: 'opencode', label: 'OpenCode' },
-  ], [t]);
+  const backendOptions = useMemo(
+    () => [
+      { value: 'all', label: t('conversation.externalHistory.filterAll') },
+      { value: 'claude', label: 'Claude Code' },
+      { value: 'codex', label: 'Codex' },
+      { value: 'gemini-cli', label: 'Gemini CLI' },
+      { value: 'opencode', label: 'OpenCode' },
+    ],
+    [t]
+  );
 
   /** Sessions filtered by backend + search query. */
   const filteredSessions = useMemo(() => {
@@ -56,11 +58,7 @@ export const ExternalHistoryButton: React.FC<{ collapsed?: boolean }> = ({ colla
     }
     const q = searchQuery.trim().toLowerCase();
     if (q) {
-      list = list.filter(
-        (s) =>
-          s.name.toLowerCase().includes(q) ||
-          (s.workspace?.toLowerCase().includes(q) ?? false),
-      );
+      list = list.filter((s) => s.name.toLowerCase().includes(q) || (s.workspace?.toLowerCase().includes(q) ?? false));
     }
     return list.toSorted((a, b) => b.updatedAt - a.updatedAt);
   }, [sessions, filterBackend, searchQuery]);
@@ -127,15 +125,8 @@ export const ExternalHistoryButton: React.FC<{ collapsed?: boolean }> = ({ colla
             void handleOpenDrawer();
           }}
         >
-          <Terminal
-            theme='outline'
-            size='20'
-            className='block leading-none shrink-0'
-            style={{ lineHeight: 0 }}
-          />
-          <span className='collapsed-hidden text-t-primary'>
-            {t('conversation.externalHistory.importButton')}
-          </span>
+          <Terminal theme='outline' size='20' className='block leading-none shrink-0' style={{ lineHeight: 0 }} />
+          <span className='collapsed-hidden text-t-primary'>{t('conversation.externalHistory.importButton')}</span>
         </div>
       </Tooltip>
 
@@ -198,18 +189,13 @@ export const ExternalHistoryButton: React.FC<{ collapsed?: boolean }> = ({ colla
         {loading && !loaded && (
           <div className='flex-center py-40px flex-col gap-8px'>
             <Spin size={24} />
-            <span className='text-13px text-t-secondary'>
-              {t('conversation.externalHistory.loading')}
-            </span>
+            <span className='text-13px text-t-secondary'>{t('conversation.externalHistory.loading')}</span>
           </div>
         )}
 
         {/* Error state */}
         {error && !loading && (
-          <Empty
-            description={t('conversation.externalHistory.loadError')}
-            style={{ marginTop: '40px' }}
-          />
+          <Empty description={t('conversation.externalHistory.loadError')} style={{ marginTop: '40px' }} />
         )}
 
         {/* Empty state */}
@@ -253,9 +239,7 @@ export const ExternalHistoryButton: React.FC<{ collapsed?: boolean }> = ({ colla
                       {t('conversation.externalHistory.timeAgo', { time: formatTimeDiff(session.updatedAt) })}
                     </span>
                   </div>
-                  <div className='text-13px text-t-primary leading-20px mb-2px'>
-                    {session.name}
-                  </div>
+                  <div className='text-13px text-t-primary leading-20px mb-2px'>{session.name}</div>
                   {session.workspace && (
                     <Tooltip content={session.workspace} mini>
                       <div className='text-11px text-t-secondary truncate flex items-center gap-2px'>
@@ -277,9 +261,7 @@ export const ExternalHistoryButton: React.FC<{ collapsed?: boolean }> = ({ colla
                   }}
                   style={{ flexShrink: 0, marginTop: '2px' }}
                 >
-                  {isImporting
-                    ? t('conversation.externalHistory.importing')
-                    : t('conversation.externalHistory.import')}
+                  {isImporting ? t('conversation.externalHistory.importing') : t('conversation.externalHistory.import')}
                 </Button>
               </div>
             );
@@ -311,22 +293,32 @@ function formatTimeDiff(timestamp: number): string {
 /** Map backend to Arco Tag color. */
 function backendTagColor(backend: string): string {
   switch (backend) {
-    case 'claude': return 'orangered';
-    case 'codex': return 'green';
-    case 'gemini-cli': return 'arcoblue';
-    case 'opencode': return 'purple';
-    default: return 'gray';
+    case 'claude':
+      return 'orangered';
+    case 'codex':
+      return 'green';
+    case 'gemini-cli':
+      return 'arcoblue';
+    case 'opencode':
+      return 'purple';
+    default:
+      return 'gray';
   }
 }
 
 /** Map backend to display label. */
 function backendTagLabel(backend: string): string {
   switch (backend) {
-    case 'claude': return 'Claude Code';
-    case 'codex': return 'Codex';
-    case 'gemini-cli': return 'Gemini CLI';
-    case 'opencode': return 'OpenCode';
-    default: return backend;
+    case 'claude':
+      return 'Claude Code';
+    case 'codex':
+      return 'Codex';
+    case 'gemini-cli':
+      return 'Gemini CLI';
+    case 'opencode':
+      return 'OpenCode';
+    default:
+      return backend;
   }
 }
 

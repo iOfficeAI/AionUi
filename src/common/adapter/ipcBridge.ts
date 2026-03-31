@@ -602,10 +602,9 @@ export const database = {
 
 // External CLI session history (Claude Code, Codex, etc.)
 export const externalHistory = {
-  list: bridge.buildProvider<
-    import('@/common/externalHistoryTypes').ExternalSessionInfo[],
-    void
-  >('external-history.list'),
+  list: bridge.buildProvider<import('@/common/externalHistoryTypes').ExternalSessionInfo[], void>(
+    'external-history.list'
+  ),
   import: bridge.buildProvider<
     import('@/common/externalHistoryTypes').ImportSessionResult,
     { backend: import('@/common/externalHistoryTypes').ExternalSessionBackend; id: string }
