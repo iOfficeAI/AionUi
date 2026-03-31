@@ -573,7 +573,13 @@ class AcpAgentManager extends BaseAgentManager<AcpAgentManagerData, AcpPermissio
     return this.bootstrap;
   }
 
-  async sendMessage(data: { content: string; files?: string[]; msg_id?: string; cronMeta?: CronMessageMeta; silent?: boolean }): Promise<{
+  async sendMessage(data: {
+    content: string;
+    files?: string[];
+    msg_id?: string;
+    cronMeta?: CronMessageMeta;
+    silent?: boolean;
+  }): Promise<{
     success: boolean;
     msg?: string;
     message?: string;

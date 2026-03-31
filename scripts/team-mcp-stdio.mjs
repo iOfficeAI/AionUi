@@ -19,7 +19,9 @@ import { z } from 'zod';
 import * as net from 'node:net';
 
 const TEAM_AGENT_SLOT_ID = process.env.TEAM_AGENT_SLOT_ID || undefined;
-process.stderr.write(`[team-mcp-stdio] Script started. PID=${process.pid}, TEAM_MCP_PORT=${process.env.TEAM_MCP_PORT || 'unset'}, SLOT=${TEAM_AGENT_SLOT_ID || 'unset'}\n`);
+process.stderr.write(
+  `[team-mcp-stdio] Script started. PID=${process.pid}, TEAM_MCP_PORT=${process.env.TEAM_MCP_PORT || 'unset'}, SLOT=${TEAM_AGENT_SLOT_ID || 'unset'}\n`
+);
 const TEAM_MCP_PORT = parseInt(process.env.TEAM_MCP_PORT || '0', 10);
 
 if (!TEAM_MCP_PORT) {
@@ -185,10 +187,7 @@ Use this to:
 - Update task status when work is done`,
   {
     task_id: z.string().describe('Task ID (first 8 chars are enough)'),
-    status: z
-      .enum(['pending', 'in_progress', 'completed', 'deleted'])
-      .optional()
-      .describe('New task status'),
+    status: z.enum(['pending', 'in_progress', 'completed', 'deleted']).optional().describe('New task status'),
     owner: z.string().optional().describe('New owner (teammate name)'),
   },
   TEAM_MCP_PORT,

@@ -19,7 +19,15 @@ type TeamTabViewProps = {
   onSwitch: (slotId: string) => void;
 };
 
-const TeamTabView: React.FC<TeamTabViewProps> = ({ slotId, agentName, agentType, isActive, status, isLead, onSwitch }) => {
+const TeamTabView: React.FC<TeamTabViewProps> = ({
+  slotId,
+  agentName,
+  agentType,
+  isActive,
+  status,
+  isLead,
+  onSwitch,
+}) => {
   const logo = getAgentLogo(agentType);
   return (
     <div

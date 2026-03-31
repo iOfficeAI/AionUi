@@ -309,7 +309,13 @@ export class GeminiAgentManager extends BaseAgentManager<
     }
   }
 
-  async sendMessage(data: { input: string; msg_id: string; files?: string[]; cronMeta?: CronMessageMeta; silent?: boolean }) {
+  async sendMessage(data: {
+    input: string;
+    msg_id: string;
+    files?: string[];
+    cronMeta?: CronMessageMeta;
+    silent?: boolean;
+  }) {
     if (data.silent) {
       await this.refreshWorkerIfMcpChanged();
       this.status = 'pending';

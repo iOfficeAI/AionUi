@@ -220,8 +220,10 @@ export class TeamMcpServer {
 
     const agents = getAgents();
     // Use actual caller identity when available, fall back to lead
-    const fromAgent = (callerSlotId && agents.find((a) => a.slotId === callerSlotId))
-      ?? agents.find((a) => a.role === 'lead') ?? agents[0];
+    const fromAgent =
+      (callerSlotId && agents.find((a) => a.slotId === callerSlotId)) ??
+      agents.find((a) => a.role === 'lead') ??
+      agents[0];
     const fromSlotId = fromAgent?.slotId ?? 'unknown';
 
     if (to === '*') {
@@ -269,8 +271,10 @@ export class TeamMcpServer {
 
     const newAgent = await spawnAgent(name, agentType);
     const agents = getAgents();
-    const fromAgent = (callerSlotId && agents.find((a) => a.slotId === callerSlotId))
-      ?? agents.find((a) => a.role === 'lead') ?? agents[0];
+    const fromAgent =
+      (callerSlotId && agents.find((a) => a.slotId === callerSlotId)) ??
+      agents.find((a) => a.role === 'lead') ??
+      agents[0];
     const fromSlotId = fromAgent?.slotId ?? 'unknown';
     await mailbox.write({
       teamId,
@@ -299,9 +303,10 @@ export class TeamMcpServer {
     const owner = args.owner ? String(args.owner) : undefined;
 
     const VALID_STATUSES = new Set(['pending', 'in_progress', 'completed', 'deleted']);
-    const status = rawStatus && VALID_STATUSES.has(rawStatus)
-      ? (rawStatus as 'pending' | 'in_progress' | 'completed' | 'deleted')
-      : undefined;
+    const status =
+      rawStatus && VALID_STATUSES.has(rawStatus)
+        ? (rawStatus as 'pending' | 'in_progress' | 'completed' | 'deleted')
+        : undefined;
     if (rawStatus && !status) {
       throw new Error(`Invalid task status "${rawStatus}". Must be one of: ${[...VALID_STATUSES].join(', ')}`);
     }
@@ -320,7 +325,7 @@ export class TeamMcpServer {
       return 'No tasks on the board yet.';
     }
     const lines = tasks.map(
-      (t) => `- [${t.id.slice(0, 8)}] ${t.subject} (${t.status}${t.owner ? `, owner: ${t.owner}` : ', unassigned'})`,
+      (t) => `- [${t.id.slice(0, 8)}] ${t.subject} (${t.status}${t.owner ? `, owner: ${t.owner}` : ', unassigned'})`
     );
     return `## Team Tasks\n${lines.join('\n')}`;
   }

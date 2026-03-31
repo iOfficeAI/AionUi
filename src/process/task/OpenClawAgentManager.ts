@@ -189,7 +189,13 @@ class OpenClawAgentManager extends BaseAgentManager<OpenClawAgentManagerData> {
     }
   }
 
-  async sendMessage(data: { content: string; agentContent?: string; files?: string[]; msg_id?: string; silent?: boolean }) {
+  async sendMessage(data: {
+    content: string;
+    agentContent?: string;
+    files?: string[];
+    msg_id?: string;
+    silent?: boolean;
+  }) {
     cronBusyGuard.setProcessing(this.conversation_id, true);
     // Set status to running when message is being processed
     this.status = 'running';

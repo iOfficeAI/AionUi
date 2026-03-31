@@ -15,7 +15,6 @@ type Props = {
   onCreated: (team: TTeam) => void;
 };
 
-
 const TeamCreateModal: React.FC<Props> = ({ visible, onClose, onCreated }) => {
   const { t } = useTranslation();
   const { user } = useAuth();
