@@ -4,7 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 
 // ---------------------------------------------------------------------------
 // Hoisted mocks
@@ -281,7 +281,7 @@ describe('remoteAgentBridge', () => {
       const result = await handler({ url: '127.0.0.1:42617', authType: 'none' });
 
       expect(result).toEqual({ success: true });
-      expect(mockWebSocketState.lastUrl).toBe('ws://127.0.0.1:42617');
+      expect(mockWebSocketState.lastUrl).toBe('ws://127.0.0.1:42617/');
     });
 
     it('returns a failure result when websocket construction throws', async () => {
@@ -291,7 +291,25 @@ describe('remoteAgentBridge', () => {
       const result = await handler({ url: 'invalid-endpoint', authType: 'none' });
 
       expect(result).toEqual({ success: false, error: 'Invalid URL' });
-      expect(mockWebSocketState.lastUrl).toBe('ws://invalid-endpoint');
+      expect(mockWebSocketState.lastUrl).toBe('ws://invalid-endpoint/');
+    });
+
+    it('rejects URLs with disallowed protocols (http://)', async () => {
+      const handler = providerMap.get('testConnection')!;
+      const result = await handler({ url: 'http://example.com', authType: 'none' });
+      expect(result).toEqual({ success: false, error: 'Unsupported protocol: http:' });
+    });
+
+    it('rejects URLs with disallowed protocols (file://)', async () => {
+      const handler = providerMap.get('testConnection')!;
+      const result = await handler({ url: 'file:///etc/passwd', authType: 'none' });
+      expect(result).toEqual({ success: false, error: 'Unsupported protocol: file:' });
+    });
+
+    it('rejects invalid URL formats', async () => {
+      const handler = providerMap.get('testConnection')!;
+      const result = await handler({ url: 'ws://[invalid', authType: 'none' });
+      expect(result).toEqual({ success: false, error: 'Invalid URL' });
     });
   });
 

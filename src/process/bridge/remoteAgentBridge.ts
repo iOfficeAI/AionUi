@@ -11,9 +11,27 @@ import { generateIdentity } from '@process/agent/openclaw/deviceIdentity';
 import { OpenClawGatewayConnection } from '@process/agent/openclaw/OpenClawGatewayConnection';
 import WebSocket from 'ws';
 
-function normalizeWebSocketUrl(url: string): string {
-  const trimmedUrl = url.trim();
-  return /^wss?:\/\//i.test(trimmedUrl) ? trimmedUrl : `ws://${trimmedUrl}`;
+/**
+ * Normalize and validate a WebSocket URL.
+ * Prepends `ws://` when no protocol is provided so that bare host:port strings
+ * (e.g. "127.0.0.1:42617") work, then enforces ws/wss protocol to prevent
+ * SSRF via other schemes.
+ *
+ * @returns the validated URL string, or `null` together with an error message.
+ */
+function validateWebSocketUrl(url: string): { url: string } | { error: string } {
+  try {
+    const trimmed = url.trim();
+    const hasScheme = /^[a-z][a-z0-9+\-.]*:\/\//i.test(trimmed);
+    const raw = hasScheme ? trimmed : `ws://${trimmed}`;
+    const parsed = new URL(raw);
+    if (parsed.protocol !== 'ws:' && parsed.protocol !== 'wss:') {
+      return { error: `Unsupported protocol: ${parsed.protocol}` };
+    }
+    return { url: parsed.toString() };
+  } catch {
+    return { error: 'Invalid URL' };
+  }
 }
 
 export function initRemoteAgentBridge(): void {
@@ -77,6 +95,16 @@ export function initRemoteAgentBridge(): void {
 
   ipcBridge.remoteAgent.testConnection.provider(async ({ url, authType, authToken, allowInsecure }) => {
     return new Promise<{ success: boolean; error?: string }>((resolve) => {
+      // Normalize & validate URL: prepend ws:// when no protocol is provided
+      // so that bare host:port strings (e.g. "127.0.0.1:42617") work, then
+      // enforce ws/wss protocol to prevent SSRF via other schemes.
+      const validated = validateWebSocketUrl(url);
+      if ('error' in validated) {
+        resolve({ success: false, error: validated.error });
+        return;
+      }
+      const wsUrl = validated.url;
+
       let settled = false;
       let ws: WebSocket | undefined;
       const headers: Record<string, string> = {};
@@ -99,7 +127,7 @@ export function initRemoteAgentBridge(): void {
       }, 10_000);
 
       try {
-        ws = new WebSocket(normalizeWebSocketUrl(url), {
+        ws = new WebSocket(wsUrl, {
           headers,
           handshakeTimeout: 10_000,
           rejectUnauthorized: !allowInsecure,
