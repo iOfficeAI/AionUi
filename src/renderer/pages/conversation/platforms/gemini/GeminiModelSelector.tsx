@@ -107,6 +107,7 @@ const GeminiModelSelector: React.FC<{
             <div className={`w-6px h-6px rounded-full shrink-0 ${currentModelHealth.color}`} />
           )}
           <span className={compact ? 'block truncate' : undefined}>{label}</span>
+          <Down theme='outline' size={12} className='shrink-0' />
         </span>
       </Button>
     );

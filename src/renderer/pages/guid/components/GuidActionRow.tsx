@@ -43,6 +43,7 @@ type GuidActionRowProps = {
   agentLogo?: string | null;
   agentSwitcherItems?: AgentSwitcherItem[];
   onAgentSwitch?: (key: string) => void;
+  hidePresetTag?: boolean;
 
   // Send button
   loading: boolean;
@@ -68,6 +69,7 @@ const GuidActionRow: React.FC<GuidActionRowProps> = ({
   agentLogo,
   agentSwitcherItems,
   onAgentSwitch,
+  hidePresetTag = false,
   loading,
   isButtonDisabled,
   speechInputNode,
@@ -116,11 +118,7 @@ const GuidActionRow: React.FC<GuidActionRowProps> = ({
   const getModeDisplayLabel = (mode: AgentModeOption): string =>
     t(`agentMode.${mode.value}`, { defaultValue: mode.label });
 
-  const permissionLabel = currentModeOption
-    ? isMobile
-      ? getModeDisplayLabel(currentModeOption)
-      : `${t('agentMode.permission')} · ${getModeDisplayLabel(currentModeOption)}`
-    : t('agentMode.permission');
+  const permissionLabel = currentModeOption ? getModeDisplayLabel(currentModeOption) : t('agentMode.permission');
 
   const isWebUI = !isElectronDesktop();
 
@@ -240,16 +238,18 @@ const GuidActionRow: React.FC<GuidActionRowProps> = ({
           )}
         </div>
 
-        {isPresetAgent && selectedAgentInfo && (
-          <PresetAgentTag
-            agentInfo={selectedAgentInfo}
-            customAgents={customAgents}
-            localeKey={localeKey}
-            onClose={onClosePresetTag}
-            agentLogo={agentLogo}
-            agentSwitcherItems={agentSwitcherItems}
-            onAgentSwitch={onAgentSwitch}
-          />
+        {!hidePresetTag && isPresetAgent && selectedAgentInfo && (
+          <div className={styles.actionPresetAgent}>
+            <PresetAgentTag
+              agentInfo={selectedAgentInfo}
+              customAgents={customAgents}
+              localeKey={localeKey}
+              onClose={onClosePresetTag}
+              agentLogo={agentLogo}
+              agentSwitcherItems={agentSwitcherItems}
+              onAgentSwitch={onAgentSwitch}
+            />
+          </div>
         )}
       </div>
       <div className={styles.actionSubmit}>

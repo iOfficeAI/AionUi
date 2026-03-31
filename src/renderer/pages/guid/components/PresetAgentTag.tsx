@@ -7,7 +7,7 @@
 import { CUSTOM_AVATAR_IMAGE_MAP } from '../constants';
 import type { AcpBackendConfig, AvailableAgent } from '../types';
 import { IconClose } from '@arco-design/web-react/icon';
-import { Robot } from '@icon-park/react';
+import { Down, Robot } from '@icon-park/react';
 import React from 'react';
 import { resolveExtensionAssetUrl } from '@/renderer/utils/platform';
 import { Dropdown, Menu } from '@arco-design/web-react';
@@ -70,8 +70,17 @@ const PresetAgentTag: React.FC<PresetAgentTagProps> = ({
       {agentLogo ? (
         <>
           <img src={agentLogo} alt='' width={15} height={15} className={styles.presetAgentTagAgentLogo} />
+          {hasSwitcher ? (
+            <span className={styles.presetAgentTagChevron} aria-hidden='true'>
+              <Down theme='outline' size={12} fill='currentColor' />
+            </span>
+          ) : null}
           <span className={styles.presetAgentTagInnerDivider} aria-hidden='true' />
         </>
+      ) : hasSwitcher ? (
+        <span className={styles.presetAgentTagChevron} aria-hidden='true'>
+          <Down theme='outline' size={12} fill='currentColor' />
+        </span>
       ) : null}
       {isImageAvatar ? (
         <img src={avatarImage} alt='' width={15} height={15} style={{ objectFit: 'contain', flexShrink: 0 }} />

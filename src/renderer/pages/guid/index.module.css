@@ -15,16 +15,112 @@
   margin-bottom: 16px;
 }
 
+.heroHeaderControls {
+  width: 100%;
+  max-width: 760px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  min-height: 36px;
+  flex-wrap: nowrap;
+}
+
+.heroHeaderLeft {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+  min-height: 36px;
+  flex: 1 1 auto;
+  white-space: nowrap;
+}
+
+.heroHeaderRight {
+  display: inline-flex;
+  align-items: center;
+  justify-content: flex-end;
+  min-height: 36px;
+  flex: 0 0 auto;
+  padding-right: 2px;
+}
+
+.heroBackButton {
+  width: 30px !important;
+  height: 30px !important;
+  min-width: 30px !important;
+  color: var(--color-text-2) !important;
+  border-radius: 999px !important;
+  background: var(--color-fill-2) !important;
+  display: inline-flex !important;
+  align-items: center;
+  justify-content: center;
+  padding: 0 !important;
+}
+
+.heroBackButton:hover {
+  background: var(--color-fill-3) !important;
+}
+
+.heroBackButton :global(svg),
+.heroTitleEdit :global(svg),
+.heroAgentSwitchButton :global(svg) {
+  display: block;
+}
+
+.heroBackButton :global(.arco-btn-icon) {
+  margin: 0 !important;
+  line-height: 0 !important;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.heroTitleEdit {
+  width: 20px !important;
+  height: 20px !important;
+  min-width: 20px !important;
+  padding: 0 !important;
+  border: none !important;
+  border-radius: 0 !important;
+  color: var(--color-text-3) !important;
+  background: transparent !important;
+  display: inline-flex !important;
+  align-items: center;
+  justify-content: center;
+  transform: translateY(1px);
+}
+
+.heroTitleEdit:hover {
+  background: transparent !important;
+  color: var(--color-text-2) !important;
+}
+
+.heroAgentSwitchButton {
+  color: var(--color-text-2) !important;
+  padding: 0 6px !important;
+  height: 34px !important;
+  min-height: 34px !important;
+  display: inline-flex !important;
+  align-items: center;
+  transform: translateY(1px);
+}
+
+.heroAgentSwitchIcon {
+  object-fit: contain;
+  flex-shrink: 0;
+}
+
 .heroTitle {
   margin: 0;
   display: inline-flex;
   align-items: center;
-  gap: 10px;
+  gap: 3px;
 }
 
 .heroTitleInlineIcon {
-  width: 22px;
-  height: 22px;
+  width: 28px;
+  height: 28px;
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -37,7 +133,7 @@
 }
 
 .heroTitleEmoji {
-  font-size: 20px;
+  font-size: 26px;
   line-height: 1;
 }
 
@@ -71,6 +167,10 @@
   cursor: default;
 }
 
+.heroSubtitleExpanded:hover {
+  background: var(--assistant-surface-bg);
+}
+
 .heroSubtitleExpanded .heroSubtitleBack {
   margin-top: 2px;
 }
@@ -91,6 +191,28 @@
   background: var(--bg-3) !important;
 }
 
+.heroSubtitleToggle {
+  flex-shrink: 0;
+  width: 28px !important;
+  height: 28px !important;
+  min-width: 28px !important;
+  padding: 0 !important;
+  border: none !important;
+  box-shadow: none !important;
+  background: transparent !important;
+  color: var(--color-text-3) !important;
+  transition: transform 0.2s ease;
+}
+
+.heroSubtitleToggle:hover {
+  background: transparent !important;
+  color: var(--color-text-2) !important;
+}
+
+.heroSubtitleToggleExpanded {
+  transform: rotate(180deg);
+}
+
 .heroSubtitleText {
   flex: 1;
   min-width: 0;
@@ -108,7 +230,6 @@
   white-space: normal;
   line-height: 1.6;
 }
-
 
 .heroSubtitleDetail {
   flex-shrink: 0;
