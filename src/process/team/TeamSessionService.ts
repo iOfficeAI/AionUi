@@ -46,12 +46,16 @@ export class TeamSessionService {
       })
     );
 
+    const leadAgent = agentsWithConversations.find((a) => a.role === 'lead');
+    if (!leadAgent) throw new Error('Team must have at least one lead agent');
+
     const team: TTeam = {
       id: uuid(36),
       userId: params.userId,
       name: params.name,
       workspace: params.workspace,
       workspaceMode: params.workspaceMode,
+      leadAgentId: leadAgent.slotId,
       agents: agentsWithConversations,
       createdAt: now,
       updatedAt: now,
@@ -123,7 +127,7 @@ export class TeamSessionService {
     if (existing) return existing;
     const team = await this.repo.findById(teamId);
     if (!team) throw new Error(`Team "${teamId}" not found`);
-    const session = new TeamSession(team, this.workerTaskManager, this.conversationService);
+    const session = new TeamSession(team, this.repo, this.workerTaskManager);
     this.sessions.set(teamId, session);
     return session;
   }
