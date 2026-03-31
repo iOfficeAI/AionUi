@@ -44,6 +44,7 @@
 import * as fs from 'fs';
 import * as path from 'path';
 import { getDataPath } from '@process/utils';
+import { isPathWithinDirectory } from './pathSafety';
 
 const STORAGE_DIR_NAME = 'extension-storage';
 
@@ -73,14 +74,14 @@ export class ExtensionStorage {
 
   async set(extensionName: string, key: string, value: unknown): Promise<void> {
     const data = this.loadData(extensionName);
-    data[key] = value;
-    this.saveData(extensionName, data);
+    const updated = { ...data, [key]: value };
+    this.saveData(extensionName, updated);
   }
 
   async delete(extensionName: string, key: string): Promise<void> {
     const data = this.loadData(extensionName);
-    delete data[key];
-    this.saveData(extensionName, data);
+    const { [key]: _, ...rest } = data;
+    this.saveData(extensionName, rest);
   }
 
   /**
@@ -100,7 +101,11 @@ export class ExtensionStorage {
   }
 
   private getFilePath(extensionName: string): string {
-    return path.join(this.storageDir, `${extensionName}.json`);
+    const filePath = path.join(this.storageDir, `${extensionName}.json`);
+    if (!isPathWithinDirectory(filePath, this.storageDir)) {
+      throw new Error(`[ExtensionStorage] Invalid extension name: "${extensionName}"`);
+    }
+    return filePath;
   }
 
   private loadData(extensionName: string): Record<string, unknown> {
