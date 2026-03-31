@@ -260,23 +260,26 @@ const GuidPage: React.FC = () => {
 
   // Typewriter placeholder
   const typewriterPlaceholder = useTypewriterPlaceholder(t('conversation.welcome.placeholder'));
-  const heroTitle =
-    agentSelection.isPresetAgent && mention.selectedAgentLabel
-      ? mention.selectedAgentLabel
-      : t('conversation.welcome.title');
-  const selectedAssistantDescription = useMemo(() => {
-    if (!agentSelection.isPresetAgent || !agentSelection.selectedAgentInfo?.customAgentId) return '';
+  const selectedAssistantRecord = useMemo(() => {
+    if (!agentSelection.isPresetAgent || !agentSelection.selectedAgentInfo?.customAgentId) return undefined;
     const selectedId = agentSelection.selectedAgentInfo.customAgentId;
     const strippedId = selectedId.replace(/^builtin-/, '');
     const candidates = new Set([selectedId, `builtin-${strippedId}`, strippedId]);
-    const assistant = agentSelection.customAgents.find((item) => candidates.has(item.id));
-    return assistant?.descriptionI18n?.[localeKey] || assistant?.description || '';
+    return agentSelection.customAgents.find((item) => candidates.has(item.id));
   }, [
     agentSelection.customAgents,
     agentSelection.isPresetAgent,
     agentSelection.selectedAgentInfo?.customAgentId,
-    localeKey,
   ]);
+  const heroTitle = useMemo(() => {
+    if (!agentSelection.isPresetAgent) return t('conversation.welcome.title');
+    const i18nName = selectedAssistantRecord?.nameI18n?.[localeKey];
+    if (i18nName) return i18nName;
+    return mention.selectedAgentLabel || t('conversation.welcome.title');
+  }, [agentSelection.isPresetAgent, selectedAssistantRecord, localeKey, mention.selectedAgentLabel, t]);
+  const selectedAssistantDescription = useMemo(() => {
+    return selectedAssistantRecord?.descriptionI18n?.[localeKey] || selectedAssistantRecord?.description || '';
+  }, [selectedAssistantRecord, localeKey]);
   const selectedAssistantAvatar = useMemo(() => {
     if (!agentSelection.isPresetAgent) return null;
     const selectedId = agentSelection.selectedAgentInfo?.customAgentId;
