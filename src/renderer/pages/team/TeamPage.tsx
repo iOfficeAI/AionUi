@@ -28,7 +28,7 @@ const TeamPageContent: React.FC<TeamPageContentProps> = ({ team, onAddAgent }) =
   const [, messageContext] = Message.useMessage({ maxCount: 1 });
 
   const activeAgent = team.agents.find((a) => a.slotId === activeSlotId);
-  const isSubAgent = activeAgent?.role === 'sub';
+  const isSubAgent = activeAgent?.role === 'teammate';
 
   // Fetch the conversation for the active agent
   const { data: activeConversation } = useSWR(
@@ -36,11 +36,11 @@ const TeamPageContent: React.FC<TeamPageContentProps> = ({ team, onAddAgent }) =
     () => ipcBridge.conversation.get.invoke({ id: activeAgent!.conversationId })
   );
 
-  // Fetch the dispatch agent's conversation to use as workspace sider
-  const dispatchAgent = team.agents.find((a) => a.role === 'dispatch');
+  // Fetch the lead agent's conversation to use as workspace sider
+  const leadAgent = team.agents.find((a) => a.role === 'lead');
   const { data: dispatchConversation } = useSWR(
-    dispatchAgent?.conversationId ? ['team-conversation', dispatchAgent.conversationId] : null,
-    () => ipcBridge.conversation.get.invoke({ id: dispatchAgent!.conversationId })
+    leadAgent?.conversationId ? ['team-conversation', leadAgent.conversationId] : null,
+    () => ipcBridge.conversation.get.invoke({ id: leadAgent!.conversationId })
   );
 
   const workspaceEnabled = Boolean(team.workspace);
@@ -87,23 +87,25 @@ const TeamPageContent: React.FC<TeamPageContentProps> = ({ team, onAddAgent }) =
 };
 
 const TeamPage: React.FC<Props> = ({ team }) => {
-  const { runtimes, addAgent } = useTeamSession(team);
+  const { statusMap, addAgent } = useTeamSession(team);
   const defaultSlotId = team.agents[0]?.slotId ?? '';
 
   const handleAddAgent = useCallback(
     async (agent: AvailableAgent) => {
       await addAgent({
         conversationId: '',
-        role: 'sub',
+        role: 'teammate',
         agentType: agent.backend ?? 'acp',
         agentName: agent.name,
+        status: 'pending',
+        conversationType: 'chat',
       });
     },
     [addAgent]
   );
 
   return (
-    <TeamTabsProvider agents={team.agents} runtimes={runtimes} defaultActiveSlotId={defaultSlotId}>
+    <TeamTabsProvider agents={team.agents} statusMap={statusMap} defaultActiveSlotId={defaultSlotId}>
       <TeamPageContent team={team} onAddAgent={handleAddAgent} />
     </TeamTabsProvider>
   );

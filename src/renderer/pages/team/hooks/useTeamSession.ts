@@ -1,11 +1,17 @@
 // src/renderer/pages/team/hooks/useTeamSession.ts
 import { ipcBridge } from '@/common';
-import type { ITeamAgentStatusEvent, ITeamMessageEvent, TeamAgent, TeamAgentRuntime, TTeam } from '@process/team/types';
+import type { ITeamAgentStatusEvent, ITeamMessageEvent, TeamAgent, TeammateStatus, TTeam } from '@process/team/types';
 import { useCallback, useEffect, useState } from 'react';
 
+type AgentStatusInfo = {
+  slotId: string
+  status: TeammateStatus
+  lastMessage?: string
+}
+
 export function useTeamSession(team: TTeam) {
-  const [runtimes, setRuntimes] = useState<Map<string, TeamAgentRuntime>>(
-    new Map(team.agents.map((a) => [a.slotId, { slotId: a.slotId, status: 'idle' as const }]))
+  const [statusMap, setStatusMap] = useState<Map<string, AgentStatusInfo>>(
+    new Map(team.agents.map((a) => [a.slotId, { slotId: a.slotId, status: a.status }]))
   );
 
   const [messages, setMessages] = useState<Map<string, ITeamMessageEvent[]>>(
@@ -15,7 +21,7 @@ export function useTeamSession(team: TTeam) {
   useEffect(() => {
     const unsubStatus = ipcBridge.team.agentStatusChanged.on((event: ITeamAgentStatusEvent) => {
       if (event.teamId !== team.id) return;
-      setRuntimes((prev) => {
+      setStatusMap((prev) => {
         const next = new Map(prev);
         next.set(event.slotId, { slotId: event.slotId, status: event.status, lastMessage: event.lastMessage });
         return next;
@@ -52,5 +58,5 @@ export function useTeamSession(team: TTeam) {
     [team.id]
   );
 
-  return { runtimes, messages, sendMessage, addAgent };
+  return { statusMap, messages, sendMessage, addAgent };
 }

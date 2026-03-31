@@ -2,13 +2,14 @@
 export type {
   TTeam,
   TeamAgent,
-  TeamAgentRuntime,
+  TeammateRole,
+  TeammateStatus,
+  WorkspaceMode,
+  MailboxMessage,
+  TeamTask,
+  ParsedAction,
   ITeamMessageEvent,
   ITeamAgentStatusEvent,
-  AssignTask,
-  TeamAgentRole,
-  TeamAgentStatus,
-  WorkspaceMode,
 } from './types';
 export { TeamSession } from './TeamSession';
 export { TeamSessionService } from './TeamSessionService';

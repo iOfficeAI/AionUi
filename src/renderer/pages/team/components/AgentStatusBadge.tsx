@@ -1,22 +1,23 @@
 import React from 'react';
-import type { TeamAgentStatus } from '@process/team/types';
+import type { TeammateStatus } from '@process/team/types';
 
 type Props = {
-  status: TeamAgentStatus;
+  status: TeammateStatus;
 };
 
-const STATUS_CONFIG: Record<TeamAgentStatus, { color: string }> = {
+const STATUS_CONFIG: Record<TeammateStatus, { color: string }> = {
+  pending: { color: 'bg-[var(--color-neutral-3)]' },
   idle: { color: 'bg-[var(--color-neutral-4)]' },
-  working: { color: 'bg-[var(--color-primary-6)]' },
-  done: { color: 'bg-[var(--color-success-6)]' },
-  error: { color: 'bg-[var(--color-danger-6)]' },
+  active: { color: 'bg-[var(--color-primary-6)]' },
+  completed: { color: 'bg-[var(--color-success-6)]' },
+  failed: { color: 'bg-[var(--color-danger-6)]' },
 };
 
 const AgentStatusBadge: React.FC<Props> = ({ status }) => {
   const { color } = STATUS_CONFIG[status];
   return (
     <span
-      className={`inline-block w-2 h-2 rounded-full ${color} ${status === 'working' ? 'animate-pulse' : ''}`}
+      className={`inline-block w-2 h-2 rounded-full ${color} ${status === 'active' ? 'animate-pulse' : ''}`}
       aria-label={status}
     />
   );

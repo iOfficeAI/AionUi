@@ -7,6 +7,7 @@ import { getAgentLogo } from '@/renderer/utils/model/agentLogo';
 import { CUSTOM_AVATAR_IMAGE_MAP } from '@/renderer/pages/guid/constants';
 import { iconColors } from '@/renderer/styles/colors';
 import type { AvailableAgent } from '@/renderer/utils/model/agentTypes';
+import type { TeammateStatus } from '@process/team/types';
 import AgentStatusBadge from './AgentStatusBadge';
 import { useTeamTabs } from '../hooks/TeamTabsContext';
 
@@ -16,12 +17,12 @@ type TeamTabViewProps = {
   slotId: string;
   agentName: string;
   isActive: boolean;
-  status: 'idle' | 'working' | 'done' | 'error';
-  isDispatch: boolean;
+  status: TeammateStatus;
+  isLead: boolean;
   onSwitch: (slotId: string) => void;
 };
 
-const TeamTabView: React.FC<TeamTabViewProps> = ({ slotId, agentName, isActive, status, isDispatch, onSwitch }) => {
+const TeamTabView: React.FC<TeamTabViewProps> = ({ slotId, agentName, isActive, status, isLead, onSwitch }) => {
   return (
     <div
       className={`flex items-center gap-8px px-12px h-full max-w-240px cursor-pointer transition-all duration-200 shrink-0 border-r border-[color:var(--border-base)] ${
@@ -33,7 +34,7 @@ const TeamTabView: React.FC<TeamTabViewProps> = ({ slotId, agentName, isActive, 
     >
       <AgentStatusBadge status={status} />
       <span className='text-15px whitespace-nowrap overflow-hidden text-ellipsis select-none flex-1'>{agentName}</span>
-      {isDispatch && <span className='text-xs text-[color:var(--color-text-4)]'>&#9656;</span>}
+      {isLead && <span className='text-xs text-[color:var(--color-text-4)]'>&#9656;</span>}
     </div>
   );
 };
@@ -114,7 +115,7 @@ type TeamTabsProps = {
  * Supports scroll overflow with fade indicators and add-agent dropdown.
  */
 const TeamTabs: React.FC<TeamTabsProps> = ({ onAddAgent }) => {
-  const { agents, activeSlotId, runtimes, switchTab } = useTeamTabs();
+  const { agents, activeSlotId, statusMap, switchTab } = useTeamTabs();
   const tabsContainerRef = useRef<HTMLDivElement>(null);
   const [showLeftFade, setShowLeftFade] = useState(false);
   const [showRightFade, setShowRightFade] = useState(false);
@@ -154,15 +155,15 @@ const TeamTabs: React.FC<TeamTabsProps> = ({ onAddAgent }) => {
           className='flex items-center h-full flex-1 overflow-x-auto overflow-y-hidden [scrollbar-width:none]'
         >
           {agents.map((agent) => {
-            const runtime = runtimes.get(agent.slotId);
+            const statusInfo = statusMap.get(agent.slotId);
             return (
               <TeamTabView
                 key={agent.slotId}
                 slotId={agent.slotId}
                 agentName={agent.agentName}
                 isActive={agent.slotId === activeSlotId}
-                status={runtime?.status ?? 'idle'}
-                isDispatch={agent.role === 'dispatch'}
+                status={statusInfo?.status ?? 'idle'}
+                isLead={agent.role === 'lead'}
                 onSwitch={switchTab}
               />
             );

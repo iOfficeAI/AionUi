@@ -1,10 +1,16 @@
 import React, { createContext, useCallback, useContext, useState } from 'react';
-import type { TeamAgent, TeamAgentRuntime } from '@process/team/types';
+import type { TeamAgent, TeammateStatus } from '@process/team/types';
+
+type AgentStatusInfo = {
+  slotId: string
+  status: TeammateStatus
+  lastMessage?: string
+}
 
 export type TeamTabsContextValue = {
   agents: TeamAgent[];
   activeSlotId: string;
-  runtimes: Map<string, TeamAgentRuntime>;
+  statusMap: Map<string, AgentStatusInfo>;
   switchTab: (slotId: string) => void;
 };
 
@@ -13,9 +19,9 @@ const TeamTabsContext = createContext<TeamTabsContextValue | null>(null);
 export const TeamTabsProvider: React.FC<{
   children: React.ReactNode;
   agents: TeamAgent[];
-  runtimes: Map<string, TeamAgentRuntime>;
+  statusMap: Map<string, AgentStatusInfo>;
   defaultActiveSlotId: string;
-}> = ({ children, agents, runtimes, defaultActiveSlotId }) => {
+}> = ({ children, agents, statusMap, defaultActiveSlotId }) => {
   const [activeSlotId, setActiveSlotId] = useState(defaultActiveSlotId);
 
   const switchTab = useCallback((slotId: string) => {
@@ -23,7 +29,7 @@ export const TeamTabsProvider: React.FC<{
   }, []);
 
   return (
-    <TeamTabsContext.Provider value={{ agents, activeSlotId, runtimes, switchTab }}>
+    <TeamTabsContext.Provider value={{ agents, activeSlotId, statusMap, switchTab }}>
       {children}
     </TeamTabsContext.Provider>
   );
