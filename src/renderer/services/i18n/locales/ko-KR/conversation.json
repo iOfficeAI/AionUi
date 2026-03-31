@@ -180,6 +180,12 @@
       "reset": "변경 사항 되돌리기",
       "noUnstaged": "스테이지되지 않은 변경 사항 없음",
       "noStaged": "스테이지된 변경 사항 없음"
+    },
+    "openWorkspace": "작업 공간 열기",
+    "openWith": {
+      "vscode": "VS Code",
+      "terminal": "터미널",
+      "explorer": "파일 탐색기"
     }
   },
   "minimap": {
