@@ -5,9 +5,10 @@ import type { IWorkerTaskManager } from '@process/task/IWorkerTaskManager';
 import type { IConversationService } from '@process/services/IConversationService';
 import type { AgentType } from '@process/task/agentTypes';
 import type { AcpBackendAll } from '@/common/types/acpTypes';
-import type { TProviderWithModel } from '@/common/config/storage';
+import type { TChatConversation, TProviderWithModel } from '@/common/config/storage';
 import { TeamSession } from './TeamSession';
 import type { TTeam, TeamAgent } from './types';
+import os from 'os';
 
 export class TeamSessionService {
   private readonly sessions: Map<string, TeamSession> = new Map();
@@ -18,6 +19,15 @@ export class TeamSessionService {
     private readonly conversationService: IConversationService
   ) {}
 
+  /**
+   * Ensure workspace is a non-empty string.
+   * Falls back to user home directory when the caller provides an empty or missing value.
+   */
+  private resolveWorkspace(workspace: string | undefined): string {
+    if (workspace && workspace.trim().length > 0) return workspace;
+    return os.homedir();
+  }
+
   async createTeam(params: {
     userId: string;
     name: string;
@@ -26,6 +36,8 @@ export class TeamSessionService {
     agents: TeamAgent[];
   }): Promise<TTeam> {
     const now = Date.now();
+    const teamId = uuid(36);
+    const workspace = this.resolveWorkspace(params.workspace);
 
     // Create a real conversation for each agent
     const agentsWithConversations = await Promise.all(
@@ -36,10 +48,11 @@ export class TeamSessionService {
           name: `${params.name} - ${agent.agentName}`,
           model: {} as TProviderWithModel,
           extra: {
-            workspace: params.workspace,
-            customWorkspace: Boolean(params.workspace),
+            workspace,
+            customWorkspace: true,
             backend: agent.agentType as AcpBackendAll,
             agentName: agent.agentName,
+            teamId,
           },
         });
         return { ...agent, conversationId: conversation.id };
@@ -50,10 +63,10 @@ export class TeamSessionService {
     if (!leadAgent) throw new Error('Team must have at least one lead agent');
 
     const team: TTeam = {
-      id: uuid(36),
+      id: teamId,
       userId: params.userId,
       name: params.name,
-      workspace: params.workspace,
+      workspace,
       workspaceMode: params.workspaceMode,
       leadAgentId: leadAgent.slotId,
       agents: agentsWithConversations,
@@ -82,16 +95,18 @@ export class TeamSessionService {
     const team = await this.repo.findById(teamId);
     if (!team) throw new Error(`Team "${teamId}" not found`);
 
+    const workspace = this.resolveWorkspace(team.workspace);
     const convType = (agent.conversationType || this.resolveConversationType(agent.agentType)) as AgentType;
     const conversation = await this.conversationService.createConversation({
       type: convType,
       name: `${team.name} - ${agent.agentName}`,
       model: {} as TProviderWithModel,
       extra: {
-        workspace: team.workspace,
-        customWorkspace: Boolean(team.workspace),
+        workspace,
+        customWorkspace: true,
         backend: agent.agentType as AcpBackendAll,
         agentName: agent.agentName,
+        teamId,
       },
     });
 

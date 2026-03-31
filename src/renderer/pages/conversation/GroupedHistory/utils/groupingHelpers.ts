@@ -125,11 +125,20 @@ export const groupConversationsByTimelineAndWorkspace = (
   return sections;
 };
 
+/** Check whether a conversation belongs to a team (should be hidden from sidebar). */
+const isTeamConversation = (conversation: TChatConversation): boolean => {
+  const extra = conversation.extra as { teamId?: string } | undefined;
+  return Boolean(extra?.teamId);
+};
+
 export const buildGroupedHistory = (
   conversations: TChatConversation[],
   t: (key: string) => string
 ): GroupedHistoryResult => {
-  const pinnedConversations = conversations
+  // Filter out team-owned conversations; they are only visible via the Teams panel
+  const visibleConversations = conversations.filter((conv) => !isTeamConversation(conv));
+
+  const pinnedConversations = visibleConversations
     .filter((conversation) => isConversationPinned(conversation))
     .toSorted((a, b) => {
       const orderA = getConversationSortOrder(a);
@@ -140,7 +149,7 @@ export const buildGroupedHistory = (
       return getConversationPinnedAt(b) - getConversationPinnedAt(a);
     });
 
-  const normalConversations = conversations.filter((conversation) => !isConversationPinned(conversation));
+  const normalConversations = visibleConversations.filter((conversation) => !isConversationPinned(conversation));
 
   return {
     pinnedConversations,
