@@ -96,7 +96,10 @@ export class WorkspaceSnapshotService {
   // --- Branch operations (git-repo mode only) ---
 
   async getBranches(workspacePath: string): Promise<string[]> {
-    this.ensureGitRepo(workspacePath);
+    const state = this.snapshots.get(workspacePath);
+    if (!state || state.mode !== 'git-repo') {
+      return [];
+    }
     const { stdout } = await execFileAsync('git', ['branch', '--format=%(refname:short)'], { cwd: workspacePath });
     return stdout
       .split('\n')
