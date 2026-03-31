@@ -383,6 +383,7 @@
   "channels.extension.noConfig": "追加の設定は不要です。",
   "channels.extension.selectPlaceholder": "選択してください",
   "channels.extension.defaultDesc": "拡張チャンネルプラグイン",
+  "channels.mediaSendFailed": "{{name}} の送信に失敗しました",
   "display": "表示",
   "imageGeneration": "画像生成",
   "imageGenerationToggle": "画像生成ツールを有効にする",

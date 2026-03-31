@@ -6,6 +6,7 @@ import fs from 'fs';
 import os from 'os';
 import path from 'path';
 import { GOOGLE_AUTH_PROVIDER_ID } from '@/common/config/constants';
+import { buildChannelConversationExtra, getChannelEnabledSkills } from '@process/channels/utils';
 
 // Mock electron before any imports
 vi.mock('electron', () => ({
@@ -131,5 +132,30 @@ describe('SystemActions weixin platform handling', () => {
     expect(result.id).toBe(GOOGLE_AUTH_PROVIDER_ID);
     expect(result.platform).toBe('gemini-with-google-auth');
     expect(result.useModel).toBe('gemini-2.0-flash');
+  });
+
+  it('enables weixin-file-send only for weixin channel conversations', () => {
+    expect(getChannelEnabledSkills('weixin')).toEqual(['weixin-file-send']);
+    expect(getChannelEnabledSkills('telegram')).toBeUndefined();
+  });
+
+  it('builds channel conversation extra with enabledSkills for weixin across backends', () => {
+    expect(buildChannelConversationExtra({ platform: 'weixin', backend: 'gemini' })).toEqual({
+      enabledSkills: ['weixin-file-send'],
+    });
+
+    expect(
+      buildChannelConversationExtra({
+        platform: 'weixin',
+        backend: 'claude',
+        customAgentId: 'agent-1',
+        agentName: 'Claude',
+      })
+    ).toEqual({
+      backend: 'claude',
+      customAgentId: 'agent-1',
+      agentName: 'Claude',
+      enabledSkills: ['weixin-file-send'],
+    });
   });
 });

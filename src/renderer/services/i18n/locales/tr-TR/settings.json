@@ -383,6 +383,7 @@
   "channels.extension.noConfig": "Ek yapılandırma gerekmiyor.",
   "channels.extension.selectPlaceholder": "Lütfen seçin",
   "channels.extension.defaultDesc": "Kanal uzantısı eklentisi",
+  "channels.mediaSendFailed": "{{name}} gönderilemedi",
   "display": "Görünüm",
   "imageGeneration": "Görüntü Oluşturma",
   "imageGenerationToggle": "Görüntü oluşturma aracını etkinleştir",

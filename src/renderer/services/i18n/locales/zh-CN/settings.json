@@ -383,6 +383,7 @@
   "channels.extension.noConfig": "无需额外配置。",
   "channels.extension.selectPlaceholder": "请选择",
   "channels.extension.defaultDesc": "扩展渠道插件",
+  "channels.mediaSendFailed": "发送 {{name}} 失败",
   "display": "显示",
   "imageGeneration": "图像生成",
   "imageGenerationToggle": "启用图像生成工具",

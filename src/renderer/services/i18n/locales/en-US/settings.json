@@ -383,6 +383,7 @@
   "channels.extension.noConfig": "No extra configuration required.",
   "channels.extension.selectPlaceholder": "Please select",
   "channels.extension.defaultDesc": "Extension channel plugin",
+  "channels.mediaSendFailed": "Failed to send {{name}}",
   "display": "Display",
   "imageGeneration": "Image Generation",
   "imageGenerationToggle": "Enable image generation tool",

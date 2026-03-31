@@ -383,6 +383,7 @@
   "channels.extension.noConfig": "不需要額外設定。",
   "channels.extension.selectPlaceholder": "請選擇",
   "channels.extension.defaultDesc": "擴充頻道外掛",
+  "channels.mediaSendFailed": "發送 {{name}} 失敗",
   "display": "顯示",
   "imageGeneration": "圖像生成",
   "imageGenerationToggle": "啟用圖像生成工具",

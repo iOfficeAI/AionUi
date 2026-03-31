@@ -986,6 +986,7 @@ export type I18nKey =
   | 'settings.channels.guide'
   | 'settings.channels.larkDesc'
   | 'settings.channels.larkTitle'
+  | 'settings.channels.mediaSendFailed'
   | 'settings.channels.notConfigured'
   | 'settings.channels.selectFirst'
   | 'settings.channels.slackDesc'

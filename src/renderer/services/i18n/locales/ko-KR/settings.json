@@ -383,6 +383,7 @@
   "channels.extension.noConfig": "추가 설정이 필요하지 않습니다.",
   "channels.extension.selectPlaceholder": "선택하세요",
   "channels.extension.defaultDesc": "확장 채널 플러그인",
+  "channels.mediaSendFailed": "{{name}} 전송에 실패했습니다",
   "display": "디스플레이",
   "imageGeneration": "이미지 생성",
   "imageGenerationToggle": "이미지 생성 도구 활성화",

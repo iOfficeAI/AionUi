@@ -1,5 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import type { IChannelPluginConfig, IUnifiedOutgoingMessage } from '@process/channels/types';
+import type { IChannelPluginConfig } from '@process/channels/types';
+import { extractChannelSendProtocol } from '@process/channels/utils';
 import type { MonitorOptions } from '@process/channels/plugins/weixin/WeixinMonitor';
 import os from 'os';
 import path from 'path';
@@ -60,6 +61,24 @@ describe('WeixinPlugin — initialization', () => {
   });
 });
 
+describe('Weixin channel send protocol', () => {
+  it('extracts valid protocol blocks and keeps invalid blocks visible', () => {
+    const parsed = extractChannelSendProtocol(`Done
+
+[AIONUI_CHANNEL_SEND]
+{"type":"image","path":"./chart.png","caption":"Chart"}
+[/AIONUI_CHANNEL_SEND]
+
+[AIONUI_CHANNEL_SEND]
+not-json
+[/AIONUI_CHANNEL_SEND]`);
+
+    expect(parsed.visibleText).toContain('Done');
+    expect(parsed.visibleText).toContain('not-json');
+    expect(parsed.actions).toEqual([{ type: 'image', path: './chart.png', caption: 'Chart' }]);
+  });
+});
+
 describe('WeixinPlugin — Promise bridge', () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -91,6 +110,7 @@ describe('WeixinPlugin — Promise bridge', () => {
 
     const response = await chatPromise;
     expect(response.text).toBe('Final answer');
+    expect(response.mediaActions).toEqual([]);
     expect(received).toHaveLength(1);
   });
 
@@ -114,6 +134,29 @@ describe('WeixinPlugin — Promise bridge', () => {
     const { agent } = mockStartFn.mock.calls[0][0] as MonitorOptions;
     const response = await agent.chat({ conversationId: 'user_abc', text: 'hi' });
     expect(response.text).toBe('final complete text');
+  });
+
+  it('resolves mediaActions even when final visible text is empty', async () => {
+    const WeixinPlugin = await loadPluginClass();
+    const plugin = new WeixinPlugin();
+    await plugin.initialize(createConfig());
+
+    plugin.onMessage(async (msg) => {
+      const msgId = await plugin.sendMessage(msg.chatId, { type: 'text', text: 'working' });
+      await plugin.editMessage(msg.chatId, msgId, {
+        type: 'text',
+        text: '',
+        mediaActions: [{ type: 'file', path: '/tmp/report.pdf', fileName: 'report.pdf' }],
+        replyMarkup: {},
+      });
+    });
+
+    await plugin.start();
+    const { agent } = mockStartFn.mock.calls[0][0] as MonitorOptions;
+    const response = await agent.chat({ conversationId: 'user_abc', text: 'hi' });
+
+    expect(response.text).toBeUndefined();
+    expect(response.mediaActions).toEqual([{ type: 'file', path: '/tmp/report.pdf', fileName: 'report.pdf' }]);
   });
 
   it('rejects superseded Promise when second chat arrives before first resolves', async () => {
