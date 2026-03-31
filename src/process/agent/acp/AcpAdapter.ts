@@ -67,20 +67,6 @@ export class AcpAdapter {
     switch (update.sessionUpdate) {
       case 'agent_message_chunk': {
         if (update.content) {
-          // Redirect system status messages (e.g. "Compacting...") to thought path
-          const text = update.content.text?.trim();
-          if (text && /^compacting/i.test(text)) {
-            messages.push({
-              id: uuid(),
-              conversation_id: this.conversationId,
-              createdAt: Date.now(),
-              position: 'center' as const,
-              type: 'tips',
-              content: { content: text, type: 'warning' },
-            });
-            this.resetMessageTracking();
-            break;
-          }
           const message = this.convertSessionUpdateChunk(update);
           if (message) {
             messages.push(message);
