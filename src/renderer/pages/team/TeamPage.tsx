@@ -4,11 +4,12 @@ import { useTranslation } from 'react-i18next';
 import useSWR from 'swr';
 import { ipcBridge } from '@/common';
 import type { TTeam } from '@/common/types/teamTypes';
-import type { AvailableAgent } from '@/renderer/utils/model/agentTypes';
 import ChatLayout from '@/renderer/pages/conversation/components/ChatLayout';
 import ChatSider from '@/renderer/pages/conversation/components/ChatSider';
+import { useConversationAgents } from '@/renderer/pages/conversation/hooks/useConversationAgents';
 import TeamTabs from './components/TeamTabs';
 import TeamChatView from './components/TeamChatView';
+import { agentFromKey, agentKey, resolveConversationType } from './components/agentSelectUtils';
 import { TeamTabsProvider, useTeamTabs } from './hooks/TeamTabsContext';
 import { useTeamSession } from './hooks/useTeamSession';
 
@@ -18,7 +19,7 @@ type Props = {
 
 type TeamPageContentProps = {
   team: TTeam;
-  onAddAgent: (agent: AvailableAgent) => void;
+  onAddAgent: (data: { agentName: string; agentKey: string }) => void;
 };
 
 /** Inner component that reads active tab from context and renders the chat layout */
@@ -109,20 +110,25 @@ const TeamPageContent: React.FC<TeamPageContentProps> = ({ team, onAddAgent }) =
 
 const TeamPage: React.FC<Props> = ({ team }) => {
   const { statusMap, addAgent } = useTeamSession(team);
+  const { cliAgents, presetAssistants } = useConversationAgents();
   const defaultSlotId = team.agents[0]?.slotId ?? '';
 
   const handleAddAgent = useCallback(
-    async (agent: AvailableAgent) => {
+    async (data: { agentName: string; agentKey: string }) => {
+      const allAgents = [...cliAgents, ...presetAssistants];
+      const agent = agentFromKey(data.agentKey, allAgents);
+      const backend = agent?.backend ?? 'claude';
       await addAgent({
         conversationId: '',
         role: 'teammate',
-        agentType: agent.backend ?? 'acp',
-        agentName: agent.name,
+        agentType: backend,
+        agentName: data.agentName,
         status: 'pending',
-        conversationType: 'chat',
+        conversationType: resolveConversationType(backend),
+        cliPath: agent?.cliPath,
       });
     },
-    [addAgent]
+    [addAgent, cliAgents, presetAssistants]
   );
 
   return (

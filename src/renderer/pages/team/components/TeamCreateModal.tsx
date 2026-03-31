@@ -1,15 +1,13 @@
 import React, { useState } from 'react';
 import { Modal, Button, Input, Select, Message } from '@arco-design/web-react';
-import { FolderOpen, Robot } from '@icon-park/react';
+import { FolderOpen } from '@icon-park/react';
 import { useTranslation } from 'react-i18next';
 import { ipcBridge } from '@/common';
 import type { TTeam, TeamAgent } from '@/common/types/teamTypes';
 import { useAuth } from '@renderer/hooks/context/AuthContext';
 import { useConversationAgents } from '@renderer/pages/conversation/hooks/useConversationAgents';
-import { getAgentLogo } from '@renderer/utils/model/agentLogo';
 import { isElectronDesktop } from '@renderer/utils/platform';
-import { CUSTOM_AVATAR_IMAGE_MAP } from '@renderer/pages/guid/constants';
-import type { AvailableAgent } from '@renderer/utils/model/agentTypes';
+import { agentKey, agentFromKey, resolveConversationType, AgentOptionLabel } from './agentSelectUtils';
 
 type Props = {
   visible: boolean;
@@ -17,34 +15,6 @@ type Props = {
   onCreated: (team: TTeam) => void;
 };
 
-// Unique key for each agent option
-function agentKey(agent: AvailableAgent): string {
-  return agent.customAgentId ? `preset::${agent.customAgentId}` : `cli::${agent.backend}`;
-}
-
-function agentFromKey(key: string, allAgents: AvailableAgent[]): AvailableAgent | undefined {
-  return allAgents.find((a) => agentKey(a) === key);
-}
-
-const AgentOptionLabel: React.FC<{ agent: AvailableAgent }> = ({ agent }) => {
-  const logo = getAgentLogo(agent.backend);
-  const avatarImage = agent.avatar ? CUSTOM_AVATAR_IMAGE_MAP[agent.avatar] : undefined;
-  const isEmoji = agent.avatar && !avatarImage && !agent.avatar.endsWith('.svg');
-  return (
-    <div className='flex items-center gap-8px'>
-      {avatarImage ? (
-        <img src={avatarImage} alt={agent.name} style={{ width: 16, height: 16, objectFit: 'contain' }} />
-      ) : isEmoji ? (
-        <span style={{ fontSize: 14, lineHeight: '16px' }}>{agent.avatar}</span>
-      ) : logo ? (
-        <img src={logo} alt={agent.name} style={{ width: 16, height: 16, objectFit: 'contain' }} />
-      ) : (
-        <Robot size='16' />
-      )}
-      <span>{agent.name}</span>
-    </div>
-  );
-};
 
 const TeamCreateModal: React.FC<Props> = ({ visible, onClose, onCreated }) => {
   const { t } = useTranslation();
@@ -72,17 +42,6 @@ const TeamCreateModal: React.FC<Props> = ({ visible, onClose, onCreated }) => {
     if (files?.[0]) {
       setWorkspace(files[0]);
     }
-  };
-
-  const resolveConversationType = (
-    backend: string
-  ): 'gemini' | 'acp' | 'codex' | 'openclaw-gateway' | 'nanobot' | 'remote' => {
-    if (backend === 'gemini') return 'gemini';
-    if (backend === 'codex') return 'codex';
-    if (backend === 'openclaw-gateway') return 'openclaw-gateway';
-    if (backend === 'nanobot') return 'nanobot';
-    if (backend === 'remote') return 'remote';
-    return 'acp';
   };
 
   const handleCreate = async () => {

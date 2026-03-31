@@ -1,14 +1,10 @@
-import { Dropdown, Menu } from '@arco-design/web-react';
 import { Plus } from '@icon-park/react';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
-import { useTranslation } from 'react-i18next';
-import { useConversationAgents } from '@/renderer/pages/conversation/hooks/useConversationAgents';
 import { getAgentLogo } from '@/renderer/utils/model/agentLogo';
-import { CUSTOM_AVATAR_IMAGE_MAP } from '@/renderer/pages/guid/constants';
 import { iconColors } from '@/renderer/styles/colors';
-import type { AvailableAgent } from '@/renderer/utils/model/agentTypes';
 import type { TeammateStatus } from '@/common/types/teamTypes';
 import AgentStatusBadge from './AgentStatusBadge';
+import AddAgentModal from './AddAgentModal';
 import { useTeamTabs } from '../hooks/TeamTabsContext';
 
 const TAB_OVERFLOW_THRESHOLD = 10;
@@ -49,74 +45,28 @@ const TeamTabView: React.FC<TeamTabViewProps> = ({ slotId, agentName, agentType,
 };
 
 type AddAgentTriggerProps = {
-  onAddAgent: (agent: AvailableAgent) => void;
+  onAddAgent: (data: { agentName: string; agentKey: string }) => void;
 };
 
 const AddAgentTrigger: React.FC<AddAgentTriggerProps> = ({ onAddAgent }) => {
-  const { t } = useTranslation();
-  const { cliAgents, presetAssistants } = useConversationAgents();
-
-  const menu = (
-    <Menu
-      onClickMenuItem={(key) => {
-        const allAgents = [...cliAgents, ...presetAssistants];
-        const agent = allAgents.find((a) =>
-          a.customAgentId ? `preset:${a.customAgentId}` === key : `cli:${a.backend}` === key
-        );
-        if (agent) onAddAgent(agent);
-      }}
-    >
-      {cliAgents.length > 0 && (
-        <Menu.ItemGroup title={t('conversation.dropdown.cliAgents')}>
-          {cliAgents.map((agent) => (
-            <Menu.Item key={`cli:${agent.backend}`}>
-              <div className='flex items-center gap-8px'>
-                <img src={getAgentLogo(agent.backend)} alt={agent.name} className='w-16px h-16px object-contain' />
-                <span>{agent.name}</span>
-              </div>
-            </Menu.Item>
-          ))}
-        </Menu.ItemGroup>
-      )}
-      {presetAssistants.length > 0 && (
-        <Menu.ItemGroup title={t('conversation.dropdown.presetAssistants')}>
-          {presetAssistants.map((agent) => {
-            const avatarImage = agent.avatar ? CUSTOM_AVATAR_IMAGE_MAP[agent.avatar] : undefined;
-            const isEmoji = agent.avatar && !avatarImage && !agent.avatar.endsWith('.svg');
-            return (
-              <Menu.Item key={`preset:${agent.customAgentId}`}>
-                <div className='flex items-center gap-8px'>
-                  {avatarImage ? (
-                    <img src={avatarImage} alt={agent.name} className='w-16px h-16px object-contain' />
-                  ) : isEmoji ? (
-                    <span className='text-14px leading-16px'>{agent.avatar}</span>
-                  ) : (
-                    <img src={getAgentLogo(agent.backend)} alt={agent.name} className='w-16px h-16px object-contain' />
-                  )}
-                  <span>{agent.name}</span>
-                </div>
-              </Menu.Item>
-            );
-          })}
-        </Menu.ItemGroup>
-      )}
-    </Menu>
-  );
+  const [modalVisible, setModalVisible] = useState(false);
 
   return (
-    <Dropdown droplist={menu} trigger='click' position='bl'>
+    <>
       <div
         className='flex items-center justify-center w-40px h-40px shrink-0 cursor-pointer hover:bg-[var(--fill-2)] transition-colors duration-200'
         style={{ borderLeft: '1px solid var(--border-base)' }}
+        onClick={() => setModalVisible(true)}
       >
         <Plus theme='outline' size='16' fill={iconColors.primary} strokeWidth={3} />
       </div>
-    </Dropdown>
+      <AddAgentModal visible={modalVisible} onClose={() => setModalVisible(false)} onConfirm={onAddAgent} />
+    </>
   );
 };
 
 type TeamTabsProps = {
-  onAddAgent: (agent: AvailableAgent) => void;
+  onAddAgent: (data: { agentName: string; agentKey: string }) => void;
 };
 
 /**
