@@ -321,8 +321,8 @@ export class TeammateManager extends EventEmitter {
           break;
         }
         const newAgent = await this.spawnAgentFn(action.agentName, action.agentType);
-        this.addAgent(newAgent);
         // Notify the lead that the agent was created
+        // Note: spawnAgentFn already calls TeammateManager.addAgent internally via session.addAgent
         await this.mailbox.write({
           teamId: this.teamId,
           toAgentId: fromSlotId,

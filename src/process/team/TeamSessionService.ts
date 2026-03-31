@@ -174,10 +174,10 @@ export class TeamSessionService {
       const newAgent = await this.addAgent(teamId, {
         conversationId: '',
         role: 'teammate',
-        agentType: agentType || 'acp',
+        agentType: agentType || 'claude',
         agentName,
         status: 'pending',
-        conversationType: (agentType || 'acp') as 'acp',
+        conversationType: this.resolveConversationType(agentType || 'claude') as 'acp',
       });
       // Inject team MCP stdio config into the new agent's conversation
       const stdioConfig = session.getStdioConfig();
