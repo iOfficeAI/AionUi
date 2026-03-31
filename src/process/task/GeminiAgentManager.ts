@@ -93,6 +93,15 @@ export class GeminiAgentManager extends BaseAgentManager<
     }
   }
 
+  /**
+   * Abort the current stream, then rebuild Gemini's in-memory conversation
+   * state from persisted history so the next turn keeps prior context.
+   */
+  async stop() {
+    await super.stop();
+    await this.injectHistoryFromDatabase();
+  }
+
   /** Force yolo mode (for cron jobs) / 强制 yolo 模式（用于定时任务） */
   private forceYoloMode?: boolean;
 

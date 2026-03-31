@@ -200,6 +200,12 @@ export const useAcpMessage = (conversation_id: string): UseAcpMessageReturn => {
         case 'acp_model_info':
           // Model info updates are handled by AcpModelSelector, no action needed here
           break;
+        case 'slash_commands_updated':
+          // Slash commands became available (often during bootstrap when
+          // agent_status events are suppressed). Update acpStatus so
+          // useSlashCommands re-fetches.
+          setAcpStatus((prev) => prev ?? 'session_active');
+          break;
         case 'acp_context_usage': {
           const usageData = message.data as { used: number; size: number };
           if (usageData && typeof usageData.used === 'number') {

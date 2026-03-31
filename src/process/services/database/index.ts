@@ -1421,91 +1421,101 @@ export class AionUIDatabase {
    */
 
   getRemoteAgents(): RemoteAgentConfig[] {
-    const rows = this.db.prepare('SELECT * FROM remote_agents ORDER BY created_at DESC').all() as Array<{
-      id: string;
-      name: string;
-      protocol: string;
-      url: string;
-      auth_type: string;
-      auth_token: string | null;
-      avatar: string | null;
-      description: string | null;
-      device_id: string | null;
-      device_public_key: string | null;
-      device_private_key: string | null;
-      device_token: string | null;
-      allow_insecure: number | null;
-      status: string | null;
-      last_connected_at: number | null;
-      created_at: number;
-      updated_at: number;
-    }>;
+    try {
+      const rows = this.db.prepare('SELECT * FROM remote_agents ORDER BY created_at DESC').all() as Array<{
+        id: string;
+        name: string;
+        protocol: string;
+        url: string;
+        auth_type: string;
+        auth_token: string | null;
+        avatar: string | null;
+        description: string | null;
+        device_id: string | null;
+        device_public_key: string | null;
+        device_private_key: string | null;
+        device_token: string | null;
+        allow_insecure: number | null;
+        status: string | null;
+        last_connected_at: number | null;
+        created_at: number;
+        updated_at: number;
+      }>;
 
-    return rows.map((row) => ({
-      id: row.id,
-      name: row.name,
-      protocol: row.protocol as RemoteAgentConfig['protocol'],
-      url: row.url,
-      authType: row.auth_type as RemoteAgentConfig['authType'],
-      authToken: row.auth_token ? decryptString(row.auth_token) : undefined,
-      allowInsecure: !!row.allow_insecure,
-      avatar: row.avatar ?? undefined,
-      description: row.description ?? undefined,
-      deviceId: row.device_id ?? undefined,
-      devicePublicKey: row.device_public_key ? decryptString(row.device_public_key) : undefined,
-      devicePrivateKey: row.device_private_key ? decryptString(row.device_private_key) : undefined,
-      deviceToken: row.device_token ? decryptString(row.device_token) : undefined,
-      status: (row.status as RemoteAgentStatus) ?? 'unknown',
-      lastConnectedAt: row.last_connected_at ?? undefined,
-      createdAt: row.created_at,
-      updatedAt: row.updated_at,
-    }));
+      return rows.map((row) => ({
+        id: row.id,
+        name: row.name,
+        protocol: row.protocol as RemoteAgentConfig['protocol'],
+        url: row.url,
+        authType: row.auth_type as RemoteAgentConfig['authType'],
+        authToken: row.auth_token ? decryptString(row.auth_token) : undefined,
+        allowInsecure: !!row.allow_insecure,
+        avatar: row.avatar ?? undefined,
+        description: row.description ?? undefined,
+        deviceId: row.device_id ?? undefined,
+        devicePublicKey: row.device_public_key ? decryptString(row.device_public_key) : undefined,
+        devicePrivateKey: row.device_private_key ? decryptString(row.device_private_key) : undefined,
+        deviceToken: row.device_token ? decryptString(row.device_token) : undefined,
+        status: (row.status as RemoteAgentStatus) ?? 'unknown',
+        lastConnectedAt: row.last_connected_at ?? undefined,
+        createdAt: row.created_at,
+        updatedAt: row.updated_at,
+      }));
+    } catch (error) {
+      console.error('[Database] getRemoteAgents error:', error);
+      return [];
+    }
   }
 
   getRemoteAgent(id: string): RemoteAgentConfig | null {
-    const row = this.db.prepare('SELECT * FROM remote_agents WHERE id = ?').get(id) as
-      | {
-          id: string;
-          name: string;
-          protocol: string;
-          url: string;
-          auth_type: string;
-          auth_token: string | null;
-          avatar: string | null;
-          description: string | null;
-          device_id: string | null;
-          device_public_key: string | null;
-          device_private_key: string | null;
-          device_token: string | null;
-          allow_insecure: number | null;
-          status: string | null;
-          last_connected_at: number | null;
-          created_at: number;
-          updated_at: number;
-        }
-      | undefined;
+    try {
+      const row = this.db.prepare('SELECT * FROM remote_agents WHERE id = ?').get(id) as
+        | {
+            id: string;
+            name: string;
+            protocol: string;
+            url: string;
+            auth_type: string;
+            auth_token: string | null;
+            avatar: string | null;
+            description: string | null;
+            device_id: string | null;
+            device_public_key: string | null;
+            device_private_key: string | null;
+            device_token: string | null;
+            allow_insecure: number | null;
+            status: string | null;
+            last_connected_at: number | null;
+            created_at: number;
+            updated_at: number;
+          }
+        | undefined;
 
-    if (!row) return null;
+      if (!row) return null;
 
-    return {
-      id: row.id,
-      name: row.name,
-      protocol: row.protocol as RemoteAgentConfig['protocol'],
-      url: row.url,
-      authType: row.auth_type as RemoteAgentConfig['authType'],
-      authToken: row.auth_token ? decryptString(row.auth_token) : undefined,
-      allowInsecure: !!row.allow_insecure,
-      avatar: row.avatar ?? undefined,
-      description: row.description ?? undefined,
-      deviceId: row.device_id ?? undefined,
-      devicePublicKey: row.device_public_key ? decryptString(row.device_public_key) : undefined,
-      devicePrivateKey: row.device_private_key ? decryptString(row.device_private_key) : undefined,
-      deviceToken: row.device_token ? decryptString(row.device_token) : undefined,
-      status: (row.status as RemoteAgentStatus) ?? 'unknown',
-      lastConnectedAt: row.last_connected_at ?? undefined,
-      createdAt: row.created_at,
-      updatedAt: row.updated_at,
-    };
+      return {
+        id: row.id,
+        name: row.name,
+        protocol: row.protocol as RemoteAgentConfig['protocol'],
+        url: row.url,
+        authType: row.auth_type as RemoteAgentConfig['authType'],
+        authToken: row.auth_token ? decryptString(row.auth_token) : undefined,
+        allowInsecure: !!row.allow_insecure,
+        avatar: row.avatar ?? undefined,
+        description: row.description ?? undefined,
+        deviceId: row.device_id ?? undefined,
+        devicePublicKey: row.device_public_key ? decryptString(row.device_public_key) : undefined,
+        devicePrivateKey: row.device_private_key ? decryptString(row.device_private_key) : undefined,
+        deviceToken: row.device_token ? decryptString(row.device_token) : undefined,
+        status: (row.status as RemoteAgentStatus) ?? 'unknown',
+        lastConnectedAt: row.last_connected_at ?? undefined,
+        createdAt: row.created_at,
+        updatedAt: row.updated_at,
+      };
+    } catch (error) {
+      console.error('[Database] getRemoteAgent error:', error);
+      return null;
+    }
   }
 
   createRemoteAgent(config: RemoteAgentConfig): IQueryResult<RemoteAgentConfig> {

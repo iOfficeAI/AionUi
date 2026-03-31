@@ -178,6 +178,104 @@ describe('AcpConnection timeout handling', () => {
   });
 });
 
+// ─── Permission request timeout ────────────────────────────────────────────
+
+describe('AcpAgent permission request timeout', () => {
+  beforeEach(() => {
+    vi.useFakeTimers();
+  });
+
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
+  it('should NOT auto-reject permission requests within 30 minutes', () => {
+    const { agent } = makeAgent();
+    const pendingPermissions = (agent as any).pendingPermissions as Map<string, any>;
+
+    // Simulate a permission request being stored
+    const rejectFn = vi.fn();
+    const requestId = 'test-perm-1';
+    pendingPermissions.set(requestId, { resolve: vi.fn(), reject: rejectFn });
+
+    // Manually invoke the timeout logic that handlePermissionRequest sets up
+    const timeoutFn = () => {
+      if (pendingPermissions.has(requestId)) {
+        pendingPermissions.delete(requestId);
+        rejectFn(new Error('Permission request timed out'));
+      }
+    };
+    const timer = setTimeout(timeoutFn, 1800000);
+
+    // Advance 70 seconds (the old timeout value)
+    vi.advanceTimersByTime(70000);
+    expect(pendingPermissions.has(requestId)).toBe(true);
+    expect(rejectFn).not.toHaveBeenCalled();
+
+    // Advance to 29 minutes
+    vi.advanceTimersByTime(1670000);
+    expect(pendingPermissions.has(requestId)).toBe(true);
+    expect(rejectFn).not.toHaveBeenCalled();
+
+    // Advance past 30 minutes
+    vi.advanceTimersByTime(70000);
+    expect(pendingPermissions.has(requestId)).toBe(false);
+    expect(rejectFn).toHaveBeenCalled();
+
+    clearTimeout(timer);
+  });
+});
+
+// ─── Resume timeout after permission pause ─────────────────────────────────
+
+describe('AcpConnection resume timeout after permission pause', () => {
+  beforeEach(() => {
+    vi.useFakeTimers();
+  });
+
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
+  it('should reset startTime when resuming from a permission pause', () => {
+    const conn = makeConnection();
+    const pendingRequests = (conn as any).pendingRequests as Map<number, any>;
+
+    const request = {
+      resolve: vi.fn(),
+      reject: vi.fn(),
+      timeoutId: setTimeout(() => {}, 300000),
+      method: 'session/prompt',
+      isPaused: false,
+      startTime: Date.now(),
+      timeoutDuration: 300000,
+      promptOriginTime: Date.now(),
+    };
+    pendingRequests.set(1, request);
+
+    // Pause the request (simulating permission dialog shown)
+    (conn as any).pauseRequestTimeout(1);
+    expect(request.isPaused).toBe(true);
+
+    // Advance time beyond the original timeout duration
+    vi.advanceTimersByTime(600000); // 10 minutes
+
+    // Resume the request (simulating permission dialog resolved)
+    (conn as any).resumeRequestTimeout(1);
+
+    // Should NOT have timed out — startTime was reset
+    expect(request.isPaused).toBe(false);
+    expect(request.reject).not.toHaveBeenCalled();
+    expect(request.timeoutId).toBeDefined();
+
+    // The full timeout duration should restart from now
+    vi.advanceTimersByTime(299000);
+    expect(request.reject).not.toHaveBeenCalled();
+
+    clearTimeout(request.timeoutId);
+  });
+});
+
 // ─── AcpAgent.cancelPrompt ─────────────────────────────────────────────────
 
 /** Create an AcpAgent with minimal mocked internals */

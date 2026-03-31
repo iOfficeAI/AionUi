@@ -311,7 +311,7 @@ _Renombrado por lotes, organización automática, clasificación inteligente, fu
 _Analiza profundamente los datos de Excel, embellece automáticamente los informes y genera insights — todo impulsado por AI Agents._
 
 <p align="center">
-  <img src="./resources/generate_xlsx.gif" alt="Excel Processing" width="800">
+  <img src="./resources/readme-demo-generate-excel.gif" alt="Excel Processing" width="800">
 </p>
 
 <details>
