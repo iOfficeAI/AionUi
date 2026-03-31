@@ -961,6 +961,8 @@ export type I18nKey =
   | 'settings.cdp.mcpConfig'
   | 'settings.cdp.mcpConfigHint'
   | 'settings.cdp.openInBrowser'
+  | 'settings.cdp.playwrightMcpConfig'
+  | 'settings.cdp.playwrightMcpConfigHint'
   | 'settings.cdp.restartRequired'
   | 'settings.cdp.title'
   | 'settings.channels'

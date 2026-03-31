@@ -473,7 +473,9 @@
     "disabledHint": "CDP is currently disabled.",
     "restartRequired": "CDP startup setting changed. Restart is required to apply.",
     "configSaved": "CDP config saved",
-    "configFailed": "Failed to save CDP config"
+    "configFailed": "Failed to save CDP config",
+    "playwrightMcpConfig": "Playwright MCP 구성",
+    "playwrightMcpConfigHint": "Playwright MCP를 사용하여 CDP 엔드포인트를 통해 연결하고, 접근성 스냅샷 및 브라우저 자동화를 지원합니다."
   },
   "mcpNoDescription": "설명 없음",
   "mcpAuthRequired": "인증 필요",

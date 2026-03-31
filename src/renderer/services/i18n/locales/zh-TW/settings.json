@@ -473,7 +473,9 @@
     "disabledHint": "CDP is currently disabled.",
     "restartRequired": "CDP startup setting changed. Restart is required to apply.",
     "configSaved": "CDP config saved",
-    "configFailed": "Failed to save CDP config"
+    "configFailed": "Failed to save CDP config",
+    "playwrightMcpConfig": "Playwright MCP 設定",
+    "playwrightMcpConfigHint": "使用 Playwright MCP 透過 CDP 端點連線，支援無障礙樹快照和瀏覽器自動化。"
   },
   "mcpNoDescription": "暫無描述",
   "mcpAuthRequired": "需要身份驗證",

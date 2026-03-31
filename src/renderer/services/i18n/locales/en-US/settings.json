@@ -473,7 +473,9 @@
     "disabledHint": "CDP is currently disabled.",
     "restartRequired": "CDP startup setting changed. Restart is required to apply.",
     "configSaved": "CDP config saved",
-    "configFailed": "Failed to save CDP config"
+    "configFailed": "Failed to save CDP config",
+    "playwrightMcpConfig": "Playwright MCP Configuration",
+    "playwrightMcpConfigHint": "Use Playwright MCP to connect via CDP endpoint, with accessibility snapshots and browser automation."
   },
   "mcpNoDescription": "No description",
   "mcpAuthRequired": "Authentication required",

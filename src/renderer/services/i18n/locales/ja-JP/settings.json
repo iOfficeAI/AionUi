@@ -473,7 +473,9 @@
     "disabledHint": "CDP is currently disabled.",
     "restartRequired": "CDP startup setting changed. Restart is required to apply.",
     "configSaved": "CDP config saved",
-    "configFailed": "Failed to save CDP config"
+    "configFailed": "Failed to save CDP config",
+    "playwrightMcpConfig": "Playwright MCP 設定",
+    "playwrightMcpConfigHint": "Playwright MCP を使用して CDP エンドポイント経由で接続し、アクセシビリティスナップショットとブラウザ自動化をサポートします。"
   },
   "mcpNoDescription": "説明なし",
   "mcpAuthRequired": "認証が必要です",

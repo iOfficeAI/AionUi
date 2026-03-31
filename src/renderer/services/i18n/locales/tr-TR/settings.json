@@ -473,7 +473,9 @@
     "disabledHint": "CDP is currently disabled.",
     "restartRequired": "CDP startup setting changed. Restart is required to apply.",
     "configSaved": "CDP config saved",
-    "configFailed": "Failed to save CDP config"
+    "configFailed": "Failed to save CDP config",
+    "playwrightMcpConfig": "Playwright MCP Yapılandırması",
+    "playwrightMcpConfigHint": "CDP uç noktası üzerinden bağlanmak için Playwright MCP kullanın, erişilebilirlik anlık görüntüleri ve tarayıcı otomasyonunu destekler."
   },
   "mcpNoDescription": "Açıklama yok",
   "mcpAuthRequired": "Kimlik doğrulama gerekli",

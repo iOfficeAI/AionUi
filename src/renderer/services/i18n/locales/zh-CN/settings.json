@@ -473,7 +473,9 @@
     "disabledHint": "CDP 当前已禁用。",
     "restartRequired": "CDP 启动设置已变更，需要重启后生效。",
     "configSaved": "CDP 配置已保存",
-    "configFailed": "CDP 配置保存失败"
+    "configFailed": "CDP 配置保存失败",
+    "playwrightMcpConfig": "Playwright MCP 配置",
+    "playwrightMcpConfigHint": "使用 Playwright MCP 通过 CDP 端点连接，支持无障碍树快照和浏览器自动化。"
   },
   "mcpNoDescription": "暂无描述",
   "mcpAuthRequired": "需要身份验证",
