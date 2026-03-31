@@ -113,6 +113,13 @@ describe('WorkspaceSnapshotService', () => {
       expect(content).toBe('original content');
     });
 
+    it('getBranches returns empty array in snapshot mode', async () => {
+      await fs.writeFile(path.join(tmpDir, 'a.txt'), 'content');
+      await service.init(tmpDir);
+      const branches = await service.getBranches(tmpDir);
+      expect(branches).toEqual([]);
+    });
+
     it('getBaselineContent returns null for non-existent file', async () => {
       await fs.writeFile(path.join(tmpDir, 'a.txt'), 'original');
       await service.init(tmpDir);
@@ -176,6 +183,11 @@ describe('WorkspaceSnapshotService', () => {
       const info = await service.getInfo(nonExistent);
       expect(info.mode).toBe('snapshot');
       expect(info.branch).toBeNull();
+    });
+
+    it('getBranches returns empty array for uninitialised workspace', async () => {
+      const branches = await service.getBranches(path.join(tmpDir, 'nope'));
+      expect(branches).toEqual([]);
     });
 
     it('compare returns empty for workspace that was removed before init', async () => {
