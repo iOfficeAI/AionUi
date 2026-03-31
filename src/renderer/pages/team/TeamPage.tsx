@@ -1,5 +1,5 @@
 import { Message } from '@arco-design/web-react';
-import React, { useCallback, useMemo } from 'react';
+import React, { useCallback, useEffect, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import useSWR from 'swr';
 import { ipcBridge } from '@/common';
@@ -30,18 +30,44 @@ const TeamPageContent: React.FC<TeamPageContentProps> = ({ team, onAddAgent }) =
   const activeAgent = team.agents.find((a) => a.slotId === activeSlotId);
   const isSubAgent = activeAgent?.role === 'teammate';
 
-  // Fetch the conversation for the active agent
-  const { data: activeConversation } = useSWR(
+  const leadAgent = team.agents.find((a) => a.role === 'lead');
+
+  // Fetch both conversations in parallel via SWR (independent keys fire concurrently)
+  const { data: activeConversation, mutate: mutateActiveConversation } = useSWR(
     activeAgent?.conversationId ? ['team-conversation', activeAgent.conversationId] : null,
     () => ipcBridge.conversation.get.invoke({ id: activeAgent!.conversationId })
   );
 
-  // Fetch the lead agent's conversation to use as workspace sider
-  const leadAgent = team.agents.find((a) => a.role === 'lead');
   const { data: dispatchConversation } = useSWR(
     leadAgent?.conversationId ? ['team-conversation', leadAgent.conversationId] : null,
     () => ipcBridge.conversation.get.invoke({ id: leadAgent!.conversationId })
   );
+
+  // Pre-warm the active agent's worker so it's ready when the user sends a message.
+  // Team sub-agents have hideSendBox=true, so the sendbox warmup never fires for them.
+  useEffect(() => {
+    if (!activeAgent?.conversationId) return;
+    ipcBridge.conversation.warmup.invoke({ conversation_id: activeAgent.conversationId }).catch(() => {});
+  }, [activeAgent?.conversationId]);
+
+  // Refresh active conversation when new messages arrive for this agent
+  useEffect(() => {
+    let debounceTimer: NodeJS.Timeout | null = null;
+    const unsubMessages = ipcBridge.team.messageStream.on(
+      (event: import('@/common/types/teamTypes').ITeamMessageEvent) => {
+        if (event.teamId !== team.id || event.slotId !== activeSlotId) return;
+        // Debounce by waiting a bit before refetching, to batch multiple messages
+        if (debounceTimer) clearTimeout(debounceTimer);
+        debounceTimer = setTimeout(() => {
+          mutateActiveConversation();
+        }, 500);
+      }
+    );
+    return () => {
+      if (debounceTimer) clearTimeout(debounceTimer);
+      unsubMessages();
+    };
+  }, [team.id, activeSlotId, mutateActiveConversation]);
 
   const workspaceEnabled = Boolean(team.workspace);
 

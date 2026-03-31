@@ -1,7 +1,6 @@
 // src/process/team/adapters/PlatformAdapter.ts
 
 import type { MailboxMessage, ParsedAction, PlatformCapability, TeamAgent, TeamTask } from '../types';
-import { createAcpAdapter } from './acpAdapter';
 import { createXmlFallbackAdapter } from './xmlFallbackAdapter';
 
 /** The message payload built by the adapter to send to an agent */
@@ -47,11 +46,12 @@ export type TeamPlatformAdapter = {
 
 /**
  * Factory function that returns the appropriate adapter for a given conversation type.
- * Routes 'acp' to the ACP tool-use adapter; all others to the XML fallback adapter.
+ *
+ * All conversation types currently use the XML fallback adapter because team-specific
+ * tools (SpawnAgent, SendMessage, etc.) cannot be injected into an existing agent
+ * session — the agent only sees tools registered when the session was created.
+ * XML instructions embedded in the message text work universally across all backends.
  */
-export function createPlatformAdapter(conversationType: string): TeamPlatformAdapter {
-  if (conversationType === 'acp') {
-    return createAcpAdapter();
-  }
+export function createPlatformAdapter(_conversationType: string): TeamPlatformAdapter {
   return createXmlFallbackAdapter();
 }

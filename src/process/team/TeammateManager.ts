@@ -101,8 +101,10 @@ export class TeammateManager extends EventEmitter {
       this.setStatus(slotId, 'active');
 
       const adapter = createPlatformAdapter(agent.conversationType);
-      const mailboxMessages = await this.mailbox.readUnread(this.teamId, slotId);
-      const tasks = await this.taskManager.list(this.teamId);
+      const [mailboxMessages, tasks] = await Promise.all([
+        this.mailbox.readUnread(this.teamId, slotId),
+        this.taskManager.list(this.teamId),
+      ]);
       const teammates = this.agents.filter((a) => a.slotId !== slotId);
 
       const payload = adapter.buildPayload({ agent, mailboxMessages, tasks, teammates });

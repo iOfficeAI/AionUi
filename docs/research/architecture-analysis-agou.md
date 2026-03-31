@@ -16,11 +16,13 @@
 证据链：
 
 **Actor 特征（符合）：**
+
 - 每个 Teammate 有独立的信箱（`~/.claude/teams/{team}/inboxes/{name}.json`），对应 Actor 的 mailbox
 - 消息处理是单线程的（每个 Agent 内部是 `while` 循环串行处理）
 - 通过消息驱动行为，不共享可变状态
 
 **Actor 特征（不符合）：**
+
 - 没有 Actor 地址空间/注册表 —— 用的是文件路径（`teammateMailbox.ts:56-66`）
 - 没有 Supervisor 层 —— Leader 手动管理生命周期
 - 消息投递不保证顺序（文件锁竞争，`LOCK_OPTIONS` 重试10次，`teammateMailbox.ts:35-41`）
@@ -87,12 +89,12 @@ Claude Code Team:
 
 **两套并存的实现：**
 
-| 维度 | File Mailbox (`teammateMailbox.ts`) | Memory Mailbox (`mailbox.ts`) |
-|---|---|---|
-| 存储 | JSON 文件 (`~/.claude/teams/...`) | 内存队列 |
-| 并发控制 | `proper-lockfile` 文件锁 | 同步 JS（单线程安全） |
-| 用途 | 跨进程（tmux）+ 进程内 | 仅 in-process 场景的候选（未实际用于 Team） |
-| 消息类型 | 13 种结构化协议消息 | 通用 Message |
+| 维度     | File Mailbox (`teammateMailbox.ts`) | Memory Mailbox (`mailbox.ts`)               |
+| -------- | ----------------------------------- | ------------------------------------------- |
+| 存储     | JSON 文件 (`~/.claude/teams/...`)   | 内存队列                                    |
+| 并发控制 | `proper-lockfile` 文件锁            | 同步 JS（单线程安全）                       |
+| 用途     | 跨进程（tmux）+ 进程内              | 仅 in-process 场景的候选（未实际用于 Team） |
+| 消息类型 | 13 种结构化协议消息                 | 通用 Message                                |
 
 `mailbox.ts` 是一个 73 行的精巧的内存信箱实现（`send/poll/receive` + `waiters` 模式），但**实际上 Team 模式没有使用它**。所有 Teammate 通信走的都是 File Mailbox。这是一个重要发现 —— 说明 in-process 路径虽然共享进程，但通信仍然走文件 I/O。
 
@@ -138,6 +140,7 @@ startInProcessTeammate()           -- 入口，fire-and-forget
 `runAgent()` 本身是一个 `AsyncGenerator<Message>`（`runAgent.ts:248-329`），这个设计很优雅 —— 它 yield 每条消息，调用方可以逐条处理、更新进度、检查 abort。
 
 **关键依赖（强耦合点）：**
+
 - `query()` —— Claude API 调用，这是最核心的运行时依赖（`runAgent.ts:748`）
 - `toolUseContext` —— 工具使用上下文，包含 `getAppState`、`setAppState`（React 状态管理）
 - `createSubagentContext()` —— 创建子 Agent 隔离的上下文
@@ -167,14 +170,14 @@ TeammateExecutor（统一接口）
 
 ```typescript
 type TeammateExecutor = {
-  readonly type: BackendType
-  isAvailable(): Promise<boolean>
-  spawn(config: TeammateSpawnConfig): Promise<TeammateSpawnResult>
-  sendMessage(agentId: string, message: TeammateMessage): Promise<void>
-  terminate(agentId: string, reason?: string): Promise<boolean>
-  kill(agentId: string): Promise<boolean>
-  isActive(agentId: string): Promise<boolean>
-}
+  readonly type: BackendType;
+  isAvailable(): Promise<boolean>;
+  spawn(config: TeammateSpawnConfig): Promise<TeammateSpawnResult>;
+  sendMessage(agentId: string, message: TeammateMessage): Promise<void>;
+  terminate(agentId: string, reason?: string): Promise<boolean>;
+  kill(agentId: string): Promise<boolean>;
+  isActive(agentId: string): Promise<boolean>;
+};
 ```
 
 **后端选择逻辑（`registry.ts:351-388`）：**
@@ -253,34 +256,34 @@ isInProcessEnabled() 判定流程：
 
 ### 强耦合模块（不可移植，需要重写）
 
-| 模块 | 耦合对象 | 原因 |
-|---|---|---|
-| `inProcessRunner.ts` | `query()`, `AppState`, `ToolUseContext`, `Tool` | 整个执行循环围绕 Claude Code 的 API 调用和状态管理构建 |
-| `runAgent.ts` | `query()`, `getSystemPrompt()`, `createSubagentContext()` | Agent 的 LLM 调用核心 |
-| `leaderPermissionBridge.ts` | React `ToolUseConfirm` 组件 | 直接操作 Leader UI 的权限对话框队列 |
-| `agentSwarmsEnabled.ts` | `GrowthBook` (feature flag) | Anthropic 服务端开关 |
+| 模块                        | 耦合对象                                                  | 原因                                                   |
+| --------------------------- | --------------------------------------------------------- | ------------------------------------------------------ |
+| `inProcessRunner.ts`        | `query()`, `AppState`, `ToolUseContext`, `Tool`           | 整个执行循环围绕 Claude Code 的 API 调用和状态管理构建 |
+| `runAgent.ts`               | `query()`, `getSystemPrompt()`, `createSubagentContext()` | Agent 的 LLM 调用核心                                  |
+| `leaderPermissionBridge.ts` | React `ToolUseConfirm` 组件                               | 直接操作 Leader UI 的权限对话框队列                    |
+| `agentSwarmsEnabled.ts`     | `GrowthBook` (feature flag)                               | Anthropic 服务端开关                                   |
 
 ### 弱耦合模块（可移植，改造成本低）
 
-| 模块 | 移植改造量 | 说明 |
-|---|---|---|
-| `teammateMailbox.ts` | 极低 | 纯文件 I/O + JSON + `proper-lockfile`，几乎可以直接用 |
-| `mailbox.ts` | 极低 | 73 行的内存信箱，完全通用 |
-| `teammateContext.ts` | 极低 | 97 行，只用了 `AsyncLocalStorage`，直接复用 |
-| `teammate.ts` | 低 | 身份查询函数集，去掉 `dynamicTeamContext` 就是纯工具函数 |
-| `backends/types.ts` | 低 | 接口定义，无运行时依赖 |
-| `backends/TmuxBackend.ts` | 低 | 只依赖 `tmux` CLI，可独立运行 |
-| `teamHelpers.ts` | 低 | 文件操作 + JSON，去掉 `git worktree` 部分就很干净 |
-| `swarm/constants.ts` | 极低 | 纯常量定义 |
+| 模块                      | 移植改造量 | 说明                                                     |
+| ------------------------- | ---------- | -------------------------------------------------------- |
+| `teammateMailbox.ts`      | 极低       | 纯文件 I/O + JSON + `proper-lockfile`，几乎可以直接用    |
+| `mailbox.ts`              | 极低       | 73 行的内存信箱，完全通用                                |
+| `teammateContext.ts`      | 极低       | 97 行，只用了 `AsyncLocalStorage`，直接复用              |
+| `teammate.ts`             | 低         | 身份查询函数集，去掉 `dynamicTeamContext` 就是纯工具函数 |
+| `backends/types.ts`       | 低         | 接口定义，无运行时依赖                                   |
+| `backends/TmuxBackend.ts` | 低         | 只依赖 `tmux` CLI，可独立运行                            |
+| `teamHelpers.ts`          | 低         | 文件操作 + JSON，去掉 `git worktree` 部分就很干净        |
+| `swarm/constants.ts`      | 极低       | 纯常量定义                                               |
 
 ### 中等耦合模块
 
-| 模块 | 原因 |
-|---|---|
-| `backends/InProcessBackend.ts` | 接口干净，但实现依赖 `ToolUseContext` |
-| `backends/registry.ts` | 后端选择逻辑可复用，但检测逻辑绑定终端环境 |
-| `spawnInProcess.ts` | 创建和注册逻辑清晰，但 `AppState` 绑定 |
-| `permissionSync.ts` | Mailbox 路径可复用，但和 Claude Code 的权限系统耦合 |
+| 模块                           | 原因                                                |
+| ------------------------------ | --------------------------------------------------- |
+| `backends/InProcessBackend.ts` | 接口干净，但实现依赖 `ToolUseContext`               |
+| `backends/registry.ts`         | 后端选择逻辑可复用，但检测逻辑绑定终端环境          |
+| `spawnInProcess.ts`            | 创建和注册逻辑清晰，但 `AppState` 绑定              |
+| `permissionSync.ts`            | Mailbox 路径可复用，但和 Claude Code 的权限系统耦合 |
 
 ---
 
@@ -325,14 +328,14 @@ aion-teams/
 
 ### 4.2 技术选型建议
 
-| 维度 | Claude Code 方案 | Aion 建议 | 理由 |
-|---|---|---|---|
-| 消息总线 | 文件 JSON + lockfile | **直接复用文件方案** | 已验证可靠，无需引入 Redis/MQ 增加运维负担 |
-| 身份隔离 | AsyncLocalStorage | **直接复用** | Node.js 标准方案，0 改造成本 |
-| Agent 执行 | `runAgent()` -> `query()` | **接口抽象** | 定义 `AgentRuntime` 接口，背后对接 Aion 自己的 LLM 调用 |
-| 状态管理 | React `AppState` | **替换为独立状态** | Aion 如果不是 React/Ink，用 EventEmitter 或简单 Store |
-| 权限系统 | ToolUseConfirm + Mailbox | **只实现 Mailbox 路径** | UI 桥接太耦合，先用 Mailbox 全覆盖 |
-| 进度跟踪 | AppState.tasks | **自定义 TaskStore** | 不需要 React 渲染所需的 immutable update |
+| 维度       | Claude Code 方案          | Aion 建议               | 理由                                                    |
+| ---------- | ------------------------- | ----------------------- | ------------------------------------------------------- |
+| 消息总线   | 文件 JSON + lockfile      | **直接复用文件方案**    | 已验证可靠，无需引入 Redis/MQ 增加运维负担              |
+| 身份隔离   | AsyncLocalStorage         | **直接复用**            | Node.js 标准方案，0 改造成本                            |
+| Agent 执行 | `runAgent()` -> `query()` | **接口抽象**            | 定义 `AgentRuntime` 接口，背后对接 Aion 自己的 LLM 调用 |
+| 状态管理   | React `AppState`          | **替换为独立状态**      | Aion 如果不是 React/Ink，用 EventEmitter 或简单 Store   |
+| 权限系统   | ToolUseConfirm + Mailbox  | **只实现 Mailbox 路径** | UI 桥接太耦合，先用 Mailbox 全覆盖                      |
+| 进度跟踪   | AppState.tasks            | **自定义 TaskStore**    | 不需要 React 渲染所需的 immutable update                |
 
 ### 4.3 核心接口定义（建议）
 
@@ -340,26 +343,26 @@ aion-teams/
 // AgentRuntime 接口 -- 替代 runAgent() + query()
 interface AgentRuntime {
   run(config: {
-    systemPrompt: string
-    messages: Message[]
-    tools: ToolDefinition[]
-    abortSignal: AbortSignal
-  }): AsyncGenerator<AgentMessage>
+    systemPrompt: string;
+    messages: Message[];
+    tools: ToolDefinition[];
+    abortSignal: AbortSignal;
+  }): AsyncGenerator<AgentMessage>;
 }
 
 // TeammateExecutor 接口 -- 直接从 Claude Code 搬运
 interface TeammateExecutor {
-  readonly type: BackendType
-  spawn(config: TeammateSpawnConfig): Promise<TeammateSpawnResult>
-  sendMessage(agentId: string, message: TeammateMessage): Promise<void>
-  terminate(agentId: string, reason?: string): Promise<boolean>
-  kill(agentId: string): Promise<boolean>
-  isActive(agentId: string): Promise<boolean>
+  readonly type: BackendType;
+  spawn(config: TeammateSpawnConfig): Promise<TeammateSpawnResult>;
+  sendMessage(agentId: string, message: TeammateMessage): Promise<void>;
+  terminate(agentId: string, reason?: string): Promise<boolean>;
+  kill(agentId: string): Promise<boolean>;
+  isActive(agentId: string): Promise<boolean>;
 }
 
 // Runner 接口 -- 替代 inProcessRunner 的 while 循环
 interface TeammateRunner {
-  start(config: RunnerConfig): Promise<RunnerResult>
+  start(config: RunnerConfig): Promise<RunnerResult>;
   // 内部: while -> runtime.run() -> idle -> poll mailbox -> wake
 }
 ```
@@ -411,14 +414,14 @@ Phase 4（2 周）: 权限 + 健壮性
 
 ### 修正评估
 
-| 层 | 报告估计 | 我的评估 | 理由 |
-|---|---|---|---|
-| Mailbox + Protocol | 70% | **90%** | 几乎可以 copy-paste |
-| Identity | 65% | **95%** | 标准 AsyncLocalStorage，直接用 |
-| Backend 接口 | 60% | **85%** | 接口定义100%可用，实现需适配 |
-| Runner 核心 | 50% | **30%** | 和 Claude Code 运行时深度耦合 |
-| Permission | 55% | **40%** | UI Bridge 不可移植，Mailbox 路径可用 |
-| Prompt 工程 | 不适用 | **20%** | 需要针对 Aion 的模型全部重写 |
+| 层                 | 报告估计 | 我的评估 | 理由                                 |
+| ------------------ | -------- | -------- | ------------------------------------ |
+| Mailbox + Protocol | 70%      | **90%**  | 几乎可以 copy-paste                  |
+| Identity           | 65%      | **95%**  | 标准 AsyncLocalStorage，直接用       |
+| Backend 接口       | 60%      | **85%**  | 接口定义100%可用，实现需适配         |
+| Runner 核心        | 50%      | **30%**  | 和 Claude Code 运行时深度耦合        |
+| Permission         | 55%      | **40%**  | UI Bridge 不可移植，Mailbox 路径可用 |
+| Prompt 工程        | 不适用   | **20%**  | 需要针对 Aion 的模型全部重写         |
 
 **综合复刻度：按代码行加权约 55%，按功能完整度约 50%。**
 
@@ -487,27 +490,27 @@ Phase 4（2 周）: 权限 + 健壮性
 
 ## 附录 B: 关键源码行号索引
 
-| 关注点 | 文件 | 行号 |
-|---|---|---|
-| 轮询间隔 | inProcessRunner.ts | 114, 697 |
-| 主循环入口 | inProcessRunner.ts | 883-1534 |
-| Agent 执行 | inProcessRunner.ts | 1175-1203 |
-| 权限函数 | inProcessRunner.ts | 128-451 |
-| 信箱写入 | teammateMailbox.ts | 134-192 |
-| 信箱读取 | teammateMailbox.ts | 84-108 |
-| 文件锁配置 | teammateMailbox.ts | 35-41 |
-| 消息类型判定 | teammateMailbox.ts | 1073-1095 |
-| AsyncLocalStorage | teammateContext.ts | 41 |
-| TeammateExecutor 接口 | backends/types.ts | 279-300 |
-| 后端选择 | backends/registry.ts | 351-388 |
-| InProcess spawn | spawnInProcess.ts | 104-216 |
-| InProcess kill | spawnInProcess.ts | 227-328 |
-| runAgent AsyncGen | runAgent.ts | 248-329 |
-| query() 调用 | runAgent.ts | 748-806 |
-| Team 创建 | TeamCreateTool.ts | 128-237 |
-| 发送消息路由 | SendMessageTool.ts | 741-913 |
-| 功能开关 | agentSwarmsEnabled.ts | 24-44 |
-| 权限请求构造 | permissionSync.ts | 167-207 |
+| 关注点                | 文件                  | 行号      |
+| --------------------- | --------------------- | --------- |
+| 轮询间隔              | inProcessRunner.ts    | 114, 697  |
+| 主循环入口            | inProcessRunner.ts    | 883-1534  |
+| Agent 执行            | inProcessRunner.ts    | 1175-1203 |
+| 权限函数              | inProcessRunner.ts    | 128-451   |
+| 信箱写入              | teammateMailbox.ts    | 134-192   |
+| 信箱读取              | teammateMailbox.ts    | 84-108    |
+| 文件锁配置            | teammateMailbox.ts    | 35-41     |
+| 消息类型判定          | teammateMailbox.ts    | 1073-1095 |
+| AsyncLocalStorage     | teammateContext.ts    | 41        |
+| TeammateExecutor 接口 | backends/types.ts     | 279-300   |
+| 后端选择              | backends/registry.ts  | 351-388   |
+| InProcess spawn       | spawnInProcess.ts     | 104-216   |
+| InProcess kill        | spawnInProcess.ts     | 227-328   |
+| runAgent AsyncGen     | runAgent.ts           | 248-329   |
+| query() 调用          | runAgent.ts           | 748-806   |
+| Team 创建             | TeamCreateTool.ts     | 128-237   |
+| 发送消息路由          | SendMessageTool.ts    | 741-913   |
+| 功能开关              | agentSwarmsEnabled.ts | 24-44     |
+| 权限请求构造          | permissionSync.ts     | 167-207   |
 
 ---
 

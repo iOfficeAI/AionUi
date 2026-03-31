@@ -8,14 +8,14 @@
 
 Claude Code 有两套并行的多 Agent 体系，设计哲学根本不同：
 
-| 维度 | Subagent 体系 | Teammate/Team 体系 |
-|---|---|---|
-| **拓扑** | 星型（一主多从） | 扁平（平等节点） |
-| **通信** | 函数调用返回值 | 文件信箱 + 内存队列（双通道）|
-| **生命周期** | 一次性调用，用完销毁 | 持续运行，while 循环监听 |
-| **消息触发** | 主动调用 | 推送注入（自动出现为新对话轮）|
-| **失败隔离** | 子 Agent 失败不影响主 Agent | 任意节点宕机影响整体 |
-| **适合场景** | 分发→执行→汇总 | 协商→讨论→决策 |
+| 维度         | Subagent 体系               | Teammate/Team 体系             |
+| ------------ | --------------------------- | ------------------------------ |
+| **拓扑**     | 星型（一主多从）            | 扁平（平等节点）               |
+| **通信**     | 函数调用返回值              | 文件信箱 + 内存队列（双通道）  |
+| **生命周期** | 一次性调用，用完销毁        | 持续运行，while 循环监听       |
+| **消息触发** | 主动调用                    | 推送注入（自动出现为新对话轮） |
+| **失败隔离** | 子 Agent 失败不影响主 Agent | 任意节点宕机影响整体           |
+| **适合场景** | 分发→执行→汇总              | 协商→讨论→决策                 |
 
 **一句话：Subagent 像调用函数，Team 像开了企业微信群——消息主动弹出来，不用你去刷新。**
 
@@ -26,21 +26,18 @@ Claude Code 有两套并行的多 Agent 体系，设计哲学根本不同：
 ```typescript
 // src/utils/agentSwarmsEnabled.ts
 export function isAgentSwarmsEnabled(): boolean {
-  if (process.env.USER_TYPE === 'ant') return true   // Anthropic 内部：直接开
+  if (process.env.USER_TYPE === 'ant') return true; // Anthropic 内部：直接开
 
-  if (
-    !isEnvTruthy(process.env.CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS) &&
-    !process.argv.includes('--agent-teams')
-  ) {
-    return false   // 外部用户：必须 opt-in
+  if (!isEnvTruthy(process.env.CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS) && !process.argv.includes('--agent-teams')) {
+    return false; // 外部用户：必须 opt-in
   }
 
   // 服务端 killswitch，用户无法绕过
   if (!getFeatureValue_CACHED_MAY_BE_STALE('tengu_amber_flint', true)) {
-    return false
+    return false;
   }
 
-  return true
+  return true;
 }
 ```
 
@@ -76,33 +73,33 @@ CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS=true claude --agent-teams
 
 ```typescript
 type TeammateMessage = {
-  from: string
-  text: string
-  timestamp: number   // Unix 毫秒
-  read: boolean
-  color?: string
-  summary?: string    // 用于 DM 摘要通知
-}
+  from: string;
+  text: string;
+  timestamp: number; // Unix 毫秒
+  read: boolean;
+  color?: string;
+  summary?: string; // 用于 DM 摘要通知
+};
 // 文件内容是 TeammateMessage[]，追加写入
 ```
 
 **完整的 13 种消息类型：**
 
-| 消息类型 | 说明 |
-|---|---|
-| `permission_request` | 请求操作权限 |
-| `permission_response` | 权限响应 |
-| `sandbox_permission_request` | 沙箱权限请求 |
-| `sandbox_permission_response` | 沙箱权限响应 |
-| `shutdown_request` | 请求关闭 Teammate |
-| `shutdown_approved` | 同意关闭 |
-| `shutdown_rejected` | 拒绝关闭 |
-| `team_permission_update` | 团队权限更新 |
-| `mode_set_request` | 设置模式请求 |
-| `plan_approval_request` | 方案审批请求 |
-| `plan_approval_response` | 方案审批响应 |
-| `idle_notification` | Teammate 空闲通知 |
-| `task_assignment` | 任务分配 |
+| 消息类型                      | 说明              |
+| ----------------------------- | ----------------- |
+| `permission_request`          | 请求操作权限      |
+| `permission_response`         | 权限响应          |
+| `sandbox_permission_request`  | 沙箱权限请求      |
+| `sandbox_permission_response` | 沙箱权限响应      |
+| `shutdown_request`            | 请求关闭 Teammate |
+| `shutdown_approved`           | 同意关闭          |
+| `shutdown_rejected`           | 拒绝关闭          |
+| `team_permission_update`      | 团队权限更新      |
+| `mode_set_request`            | 设置模式请求      |
+| `plan_approval_request`       | 方案审批请求      |
+| `plan_approval_response`      | 方案审批响应      |
+| `idle_notification`           | Teammate 空闲通知 |
+| `task_assignment`             | 任务分配          |
 
 ---
 
@@ -116,18 +113,18 @@ async function writeToMailbox(inboxPath: string, message: TeammateMessage) {
     retries: 10,
     minTimeout: 5,
     maxTimeout: 100,
-  })
+  });
 
   try {
     // 2. 重新读取（防止 lock 期间被其他进程修改）
-    const existing = readMailboxSync(inboxPath)
+    const existing = readMailboxSync(inboxPath);
     // 3. 追加消息
-    existing.push(message)
+    existing.push(message);
     // 4. 写入
-    await fs.writeFile(inboxPath, JSON.stringify(existing))
+    await fs.writeFile(inboxPath, JSON.stringify(existing));
   } finally {
     // 5. 无论成功或失败都释放锁
-    await lockfile.unlock(inboxPath)
+    await lockfile.unlock(inboxPath);
   }
 }
 // 锁文件路径：{inboxPath}.lock
@@ -143,16 +140,16 @@ async function writeToMailbox(inboxPath: string, message: TeammateMessage) {
 // src/tools/SendMessageTool/SendMessageTool.ts — 发送路由逻辑
 async function sendMessage(to: string, message: TeammateMessage) {
   // 检查目标 Agent 是否在内存注册表（in-process 且正在运行）
-  const agent = agentNameRegistry.get(to)
+  const agent = agentNameRegistry.get(to);
 
   if (agent) {
     // 路径 A：内存队列，0ms 延迟
-    queuePendingMessage(agent, message)
+    queuePendingMessage(agent, message);
     // 如果 Agent 已停止，唤醒它
-    resumeAgentBackground(agent)
+    resumeAgentBackground(agent);
   } else {
     // 路径 B：文件信箱，0-500ms 延迟
-    await writeToMailbox(getInboxPath(to), message)
+    await writeToMailbox(getInboxPath(to), message);
   }
 }
 // 注意：即使是 in-process 模式，Teammate→Leader 方向仍走文件信箱
@@ -189,35 +186,35 @@ These messages appear automatically as new conversation turns
 
 ```typescript
 // src/utils/swarm/inProcessRunner.ts — 核心循环
-const POLL_INTERVAL_MS = 500
-const PERMISSION_POLL_INTERVAL_MS = 500
+const POLL_INTERVAL_MS = 500;
+const PERMISSION_POLL_INTERVAL_MS = 500;
 
 // Teammate 生命周期（fire-and-forget 启动）
-void runInProcessTeammate(config).catch(handleError)
+void runInProcessTeammate(config).catch(handleError);
 
 async function runInProcessTeammate(config) {
   while (!abort) {
-    await runAgent()            // 执行一个 Agent 轮次
+    await runAgent(); // 执行一个 Agent 轮次
 
-    setIsIdle(true)
-    sendIdleNotification()      // 告知 Team Lead "我空闲了"
+    setIsIdle(true);
+    sendIdleNotification(); // 告知 Team Lead "我空闲了"
 
     // 等待下一条消息（优先级：shutdown > team-lead > peers > task）
-    await waitForNextPromptOrShutdown()
+    await waitForNextPromptOrShutdown();
   }
 }
 
 async function waitForNextPromptOrShutdown() {
-  let firstIteration = true
+  let firstIteration = true;
   while (true) {
-    if (!firstIteration) await sleep(POLL_INTERVAL_MS)  // 第一轮不等
-    firstIteration = false
+    if (!firstIteration) await sleep(POLL_INTERVAL_MS); // 第一轮不等
+    firstIteration = false;
 
     // 优先级检查（高→低）：
-    if (hasShutdownRequest()) return handleShutdown()   // 最高优先级
-    if (hasTeamLeadMessage()) return processMessage()
-    if (hasPeerMessage()) return processMessage()       // FIFO
-    if (hasTaskUpdate()) return processTask()
+    if (hasShutdownRequest()) return handleShutdown(); // 最高优先级
+    if (hasTeamLeadMessage()) return processMessage();
+    if (hasPeerMessage()) return processMessage(); // FIFO
+    if (hasTaskUpdate()) return processTask();
   }
 }
 ```
@@ -246,23 +243,23 @@ Teammate   →  shutdown_approved / shutdown_rejected  →  Team Lead
 ```typescript
 // src/utils/swarm/backends/registry.ts — 后端探测优先级
 async function detectAndGetBackend() {
-  if (await isInsideTmux())          return TmuxBackend     // 优先1：在 tmux session 内
+  if (await isInsideTmux()) return TmuxBackend; // 优先1：在 tmux session 内
   if (isInITerm2()) {
-    if (await isIt2CliAvailable())   return ITermBackend    // 优先2：iTerm2 + it2 CLI
-    if (await isTmuxAvailable())     return TmuxBackend     // 优先3：iTerm2 无 it2，tmux 回退
-    throw new Error('需要安装 it2 或 tmux')
+    if (await isIt2CliAvailable()) return ITermBackend; // 优先2：iTerm2 + it2 CLI
+    if (await isTmuxAvailable()) return TmuxBackend; // 优先3：iTerm2 无 it2，tmux 回退
+    throw new Error('需要安装 it2 或 tmux');
   }
-  if (await isTmuxAvailable())       return TmuxBackend     // 优先4：外部 tmux session
-  throw getTmuxInstallInstructions()                        // 无法启动
+  if (await isTmuxAvailable()) return TmuxBackend; // 优先4：外部 tmux session
+  throw getTmuxInstallInstructions(); // 无法启动
 }
 
 // 强制 In-Process 的条件：
 function isInProcessEnabled() {
-  if (getIsNonInteractiveSession()) return true  // -p 非交互模式，强制 in-process
-  if (mode === 'in-process') return true
-  if (mode === 'tmux') return false
+  if (getIsNonInteractiveSession()) return true; // -p 非交互模式，强制 in-process
+  if (mode === 'in-process') return true;
+  if (mode === 'tmux') return false;
   // auto 模式：不在 tmux 且不在 iTerm2 时，才使用 in-process
-  return !isInsideTmuxSync() && !isInITerm2()
+  return !isInsideTmuxSync() && !isInITerm2();
 }
 ```
 
@@ -272,7 +269,7 @@ function isInProcessEnabled() {
 
 ```typescript
 // src/tasks/InProcessTeammateTask/types.ts
-export const TEAMMATE_MESSAGES_UI_CAP = 50
+export const TEAMMATE_MESSAGES_UI_CAP = 50;
 
 // 源码注释原文：
 // ~20MB RSS per agent at 500+ turn sessions
@@ -289,14 +286,12 @@ export const TEAMMATE_MESSAGES_UI_CAP = 50
 
 ```typescript
 // Subagent 不能嵌套（代码抛异常，提示词无法绕过）
-throw Error(
-  "Fork is not available inside a forked worker. Complete your task directly using your tools."
-)
+throw Error('Fork is not available inside a forked worker. Complete your task directly using your tools.');
 
 // Teammate 不能生成 Teammate（代码抛异常）
 throw Error(
-  "Teammates cannot spawn other teammates — the team roster is flat. To spawn a subagent instead, omit the `name` parameter."
-)
+  'Teammates cannot spawn other teammates — the team roster is flat. To spawn a subagent instead, omit the `name` parameter.'
+);
 ```
 
 ---
@@ -305,16 +300,16 @@ throw Error(
 
 ### 复刻度分项评估
 
-| 模块 | 复刻度 | 说明 |
-|---|---|---|
-| **文件信箱 + 文件锁** | 92% | `proper-lockfile` 是标准 npm 库，lock→read→write→unlock 可精确复制 |
-| **消息格式 + 13 种类型** | 85% | 结构已知，可完整实现子集 |
-| **消息发送路由** | 88% | 文件写入逻辑清楚，内存队列可用 Map 近似 |
-| **消息接收（推送模型）** | 35% | 底层需注入"新对话轮"，是 Claude Code 运行时内置，外部无法复制 |
-| **持续运行事件循环** | 25% | 500ms 轮询可近似，但 Bun 事件循环驱动机制不可复制 |
-| **Team Lead 权限结构** | 50% | 3-way shutdown 可提示词近似，Plan 审批无系统级强制 |
-| **提示词/身份注入** | 75% | 原文已知可直接使用，SendMessage 内置训练语义层无法复制 |
-| **功能开关** | 30% | env var 可激活，但 killswitch 服务端控制 |
+| 模块                     | 复刻度 | 说明                                                               |
+| ------------------------ | ------ | ------------------------------------------------------------------ |
+| **文件信箱 + 文件锁**    | 92%    | `proper-lockfile` 是标准 npm 库，lock→read→write→unlock 可精确复制 |
+| **消息格式 + 13 种类型** | 85%    | 结构已知，可完整实现子集                                           |
+| **消息发送路由**         | 88%    | 文件写入逻辑清楚，内存队列可用 Map 近似                            |
+| **消息接收（推送模型）** | 35%    | 底层需注入"新对话轮"，是 Claude Code 运行时内置，外部无法复制      |
+| **持续运行事件循环**     | 25%    | 500ms 轮询可近似，但 Bun 事件循环驱动机制不可复制                  |
+| **Team Lead 权限结构**   | 50%    | 3-way shutdown 可提示词近似，Plan 审批无系统级强制                 |
+| **提示词/身份注入**      | 75%    | 原文已知可直接使用，SendMessage 内置训练语义层无法复制             |
+| **功能开关**             | 30%    | env var 可激活，但 killswitch 服务端控制                           |
 
 **综合复刻度：60-65%**
 
@@ -352,13 +347,13 @@ throw Error(
 
 ### 不做
 
-| 不做的事 | 原因 |
-|---|---|
-| 完整事件循环复刻 | request-response → actor 是换系统，投入产出比极差 |
-| 把官方 Team 模式当生产基础设施 | killswitch 随时可关，功能稳定性不可依赖 |
-| 从 Subagent 全面切换到纯 Team | 破坏现有稳定系统，失去主 Agent 全局视野 |
-| 超过 10 个并发 Agent | 生产数据：125MB/个，292 个 = 36.8GB，设上限 |
-| Peer DM 摘要系统 | 每条 DM 额外 LLM 调用，成本高，调试功能非产品功能 |
+| 不做的事                       | 原因                                              |
+| ------------------------------ | ------------------------------------------------- |
+| 完整事件循环复刻               | request-response → actor 是换系统，投入产出比极差 |
+| 把官方 Team 模式当生产基础设施 | killswitch 随时可关，功能稳定性不可依赖           |
+| 从 Subagent 全面切换到纯 Team  | 破坏现有稳定系统，失去主 Agent 全局视野           |
+| 超过 10 个并发 Agent           | 生产数据：125MB/个，292 个 = 36.8GB，设上限       |
+| Peer DM 摘要系统               | 每条 DM 额外 LLM 调用，成本高，调试功能非产品功能 |
 
 ### MVP（1-2 天）
 
@@ -385,9 +380,9 @@ Team 模式的核心是两件事：**持久运行 + 消息推送**。
 
 ---
 
-*基于真实源码分析：`src/utils/agentSwarmsEnabled.ts`、`src/utils/teammateMailbox.ts`、`src/utils/swarm/inProcessRunner.ts`（1553行）、`src/tools/SendMessageTool/`、`src/utils/swarm/backends/registry.ts`、`src/utils/swarm/constants.ts`*
+_基于真实源码分析：`src/utils/agentSwarmsEnabled.ts`、`src/utils/teammateMailbox.ts`、`src/utils/swarm/inProcessRunner.ts`（1553行）、`src/tools/SendMessageTool/`、`src/utils/swarm/backends/registry.ts`、`src/utils/swarm/constants.ts`_
 
-*初版分析成员：阿构 · 老尺 · 老锤 · 小快 · 郭聪明 · 老乔 · 郭总（仲裁）*
+_初版分析成员：阿构 · 老尺 · 老锤 · 小快 · 郭聪明 · 老乔 · 郭总（仲裁）_
 
 ---
 
@@ -418,16 +413,16 @@ Team 模式的核心是两件事：**持久运行 + 消息推送**。
 
 ### 复刻度修正
 
-| 维度 | 原报告 | 辩论后共识 |
-|---|---|---|
-| **综合复刻度** | 60-65% | **65-75%**（使用 Claude 模型）/ **50-60%**（使用其他模型） |
-| 文件信箱 + 协议层 | 92% | **90-95%**（几乎可 copy-paste） |
-| 消息接收（推送模型） | 35% | **75-85%**（轮询 + 消息注入完全可做） |
-| 持续运行事件循环 | 25% | **70-80%**（骨架可复用，精细逻辑需重写） |
-| Runner 核心 | 未单独评估 | **30-50%**（骨架简单，但 auto-compaction/权限/abort 深度耦合 Claude Code） |
-| 权限系统 | 50% | **40%**（UI Bridge 不可移植，Mailbox 路径可用；`createInProcessCanUseTool()` 323 行是核心硬骨头） |
-| Prompt 工程 | 75% | **55-70%**（用 Claude 模型 XML 天然兼容）/ **20-30%**（用其他模型需全部重写） |
-| SendMessage 语义层 | 30% | **争议未解**（老锤：无训练绑定；小快：有间接证据但确信度 60%；阿构：有差距可通过 prompt 缩小） |
+| 维度                 | 原报告     | 辩论后共识                                                                                        |
+| -------------------- | ---------- | ------------------------------------------------------------------------------------------------- |
+| **综合复刻度**       | 60-65%     | **65-75%**（使用 Claude 模型）/ **50-60%**（使用其他模型）                                        |
+| 文件信箱 + 协议层    | 92%        | **90-95%**（几乎可 copy-paste）                                                                   |
+| 消息接收（推送模型） | 35%        | **75-85%**（轮询 + 消息注入完全可做）                                                             |
+| 持续运行事件循环     | 25%        | **70-80%**（骨架可复用，精细逻辑需重写）                                                          |
+| Runner 核心          | 未单独评估 | **30-50%**（骨架简单，但 auto-compaction/权限/abort 深度耦合 Claude Code）                        |
+| 权限系统             | 50%        | **40%**（UI Bridge 不可移植，Mailbox 路径可用；`createInProcessCanUseTool()` 323 行是核心硬骨头） |
+| Prompt 工程          | 75%        | **55-70%**（用 Claude 模型 XML 天然兼容）/ **20-30%**（用其他模型需全部重写）                     |
+| SendMessage 语义层   | 30%        | **争议未解**（老锤：无训练绑定；小快：有间接证据但确信度 60%；阿构：有差距可通过 prompt 缩小）    |
 
 ### 关键分歧（未完全对齐）
 
@@ -450,20 +445,21 @@ Team 模式的核心是两件事：**持久运行 + 消息推送**。
 
 三人一致同意的最小闭环：
 
-| 组件 | 行数 | 来源 |
-|---|---|---|
-| FileMailbox (lock/read/write/unlock) | ~150 行 | 搬运 `teammateMailbox.ts` 精简版 |
-| MemoryMailbox (in-process) | 73 行 | **直接搬运** `mailbox.ts` |
-| 消息类型定义 (text + idle + task_assignment) | ~60-80 行 | 搬运 |
-| TeammateContext (AsyncLocalStorage) | ~50 行 | 直接搬运 |
-| Runner 主循环 (while + run + idle + poll) | ~200-400 行 | 重写 |
-| LLM 调用封装 (AgentRuntime adapter) | ~100-150 行 | 重写（依赖现有 API） |
-| Prompt 注入 (system prompt + XML format) | ~50-80 行 | 搬运+调整 |
-| Leader 端 (spawn + send task + receive result) | ~100-150 行 | 重写 |
+| 组件                                           | 行数        | 来源                             |
+| ---------------------------------------------- | ----------- | -------------------------------- |
+| FileMailbox (lock/read/write/unlock)           | ~150 行     | 搬运 `teammateMailbox.ts` 精简版 |
+| MemoryMailbox (in-process)                     | 73 行       | **直接搬运** `mailbox.ts`        |
+| 消息类型定义 (text + idle + task_assignment)   | ~60-80 行   | 搬运                             |
+| TeammateContext (AsyncLocalStorage)            | ~50 行      | 直接搬运                         |
+| Runner 主循环 (while + run + idle + poll)      | ~200-400 行 | 重写                             |
+| LLM 调用封装 (AgentRuntime adapter)            | ~100-150 行 | 重写（依赖现有 API）             |
+| Prompt 注入 (system prompt + XML format)       | ~50-80 行   | 搬运+调整                        |
+| Leader 端 (spawn + send task + receive result) | ~100-150 行 | 重写                             |
 
 **前提条件：** 有可调用的 LLM API（如 Anthropic SDK）。如果需要从头搭建，加 2 天。
 
 **MVP 不包含（留给后续 Phase）：**
+
 - 完整权限系统（`createInProcessCanUseTool()` 323 行）
 - auto-compaction（长会话压缩）
 - per-turn abort（单轮中断）
@@ -472,12 +468,12 @@ Team 模式的核心是两件事：**持久运行 + 消息推送**。
 
 #### 生产级路径（6-12 周）
 
-| Phase | 时间 | 内容 |
-|---|---|---|
-| Phase 1 | 2-3 周 | Mailbox + Identity + Protocol 完整移植 |
-| Phase 2 | 3-4 周 | Runner 抽象层 + AgentRuntime 对接 LLM API |
+| Phase   | 时间   | 内容                                        |
+| ------- | ------ | ------------------------------------------- |
+| Phase 1 | 2-3 周 | Mailbox + Identity + Protocol 完整移植      |
+| Phase 2 | 3-4 周 | Runner 抽象层 + AgentRuntime 对接 LLM API   |
 | Phase 3 | 2-3 周 | Backend + TeamCreate/SendMessage/TeamDelete |
-| Phase 4 | 2 周 | 权限系统（Mailbox 路径）+ 健壮性 |
+| Phase 4 | 2 周   | 权限系统（Mailbox 路径）+ 健壮性            |
 
 ### 替代原报告第十二节的最终结论
 
@@ -495,6 +491,6 @@ Team 模式的核心是两件事：**持久运行 + 消息推送**。
 
 ---
 
-*辩论参与者：老锤（主力开发）· 小快（快速开发）· 阿构（架构师）*
-*辩论方式：三人各自独立阅读 23+ 源码文件 → 独立出分析报告 → 交叉阅读 → 逐条回应分歧*
-*未参与辩论的角色：老尺（待架构复核）、刺猬/镜子（待源码行号验证）*
+_辩论参与者：老锤（主力开发）· 小快（快速开发）· 阿构（架构师）_
+_辩论方式：三人各自独立阅读 23+ 源码文件 → 独立出分析报告 → 交叉阅读 → 逐条回应分歧_
+_未参与辩论的角色：老尺（待架构复核）、刺猬/镜子（待源码行号验证）_

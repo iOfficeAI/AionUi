@@ -1,7 +1,14 @@
 // src/renderer/pages/team/hooks/useTeamSession.ts
 import { ipcBridge } from '@/common';
-import type { ITeamAgentStatusEvent, ITeamMessageEvent, TeamAgent, TeammateStatus, TTeam } from '@/common/types/teamTypes';
+import type {
+  ITeamAgentStatusEvent,
+  ITeamMessageEvent,
+  TeamAgent,
+  TeammateStatus,
+  TTeam,
+} from '@/common/types/teamTypes';
 import { useCallback, useEffect, useState } from 'react';
+import useSWR from 'swr';
 
 type AgentStatusInfo = {
   slotId: string;
@@ -10,6 +17,10 @@ type AgentStatusInfo = {
 };
 
 export function useTeamSession(team: TTeam) {
+  const { mutate: mutateTeam } = useSWR(team.id ? `team/${team.id}` : null, () =>
+    ipcBridge.team.get.invoke({ id: team.id })
+  );
+
   const [statusMap, setStatusMap] = useState<Map<string, AgentStatusInfo>>(
     new Map(team.agents.map((a) => [a.slotId, { slotId: a.slotId, status: a.status }]))
   );
@@ -54,8 +65,10 @@ export function useTeamSession(team: TTeam) {
   const addAgent = useCallback(
     async (agent: Omit<TeamAgent, 'slotId'>) => {
       await ipcBridge.team.addAgent.invoke({ teamId: team.id, agent });
+      // Refresh team data after agent is added so that UI gets the new agent's conversationId
+      await mutateTeam();
     },
-    [team.id]
+    [team.id, mutateTeam]
   );
 
   return { statusMap, messages, sendMessage, addAgent };

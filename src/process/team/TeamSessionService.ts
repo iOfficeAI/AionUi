@@ -44,12 +44,12 @@ export class TeamSessionService {
       params.agents.map(async (agent) => {
         const convType = (agent.conversationType || this.resolveConversationType(agent.agentType)) as AgentType;
         const extra: Record<string, unknown> = {
-            workspace,
-            customWorkspace: true,
-            backend: agent.agentType as AcpBackendAll,
-            agentName: agent.agentName,
-            teamId,
-          };
+          workspace,
+          customWorkspace: true,
+          backend: agent.agentType as AcpBackendAll,
+          agentName: agent.agentName,
+          teamId,
+        };
         if (agent.cliPath) extra.cliPath = agent.cliPath;
 
         const conversation = await this.conversationService.createConversation({
@@ -60,11 +60,7 @@ export class TeamSessionService {
         });
         // Ensure teamId is in extra regardless of which factory function was used
         // (some factories like createCodexAgent/createGeminiAgent drop unknown extra fields)
-        await this.conversationService.updateConversation(
-          conversation.id,
-          { extra: { teamId } } as any,
-          true
-        );
+        await this.conversationService.updateConversation(conversation.id, { extra: { teamId } } as any, true);
         return { ...agent, conversationId: conversation.id };
       })
     );
@@ -140,11 +136,7 @@ export class TeamSessionService {
       extra: addExtra,
     });
     // Ensure teamId is in extra regardless of which factory function was used
-    await this.conversationService.updateConversation(
-      conversation.id,
-      { extra: { teamId } } as any,
-      true
-    );
+    await this.conversationService.updateConversation(conversation.id, { extra: { teamId } } as any, true);
 
     const newAgent: TeamAgent = {
       ...agent,
