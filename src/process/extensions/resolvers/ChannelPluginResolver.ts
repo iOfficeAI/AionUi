@@ -155,6 +155,10 @@ export function resolveChannelPlugins(extensions: LoadedExtension[]): Map<string
           `  ⚠️  Only load extensions from trusted sources.`
       );
 
+      // TODO: Migrate to SandboxHost (Worker Thread) instead of running in main process.
+      // Channel plugin code currently executes with full Node.js + Electron main process
+      // privileges. Move to createSandbox() for crash isolation and permission enforcement.
+      // See: docs/feature/extension-market/research/security-model.md
       try {
         // eslint-disable-next-line no-eval
         const nativeRequire = eval('require');

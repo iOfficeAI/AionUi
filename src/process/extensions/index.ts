@@ -52,7 +52,10 @@ export {
 
 // --- Sandbox (Figma-inspired worker thread isolation) ---
 export { SandboxHost, createSandbox, destroySandbox, destroyAllSandboxes, getSandbox } from './sandbox/sandbox';
-export type { SandboxHostOptions, SandboxMessage } from './sandbox/sandbox';
+export type { SandboxHostOptions, SandboxMessage, SandboxApiHandler, SandboxUIMessageHandler } from './sandbox/sandbox';
+
+// --- Extension Storage (per-extension KV store) ---
+export { ExtensionStorage, getExtensionStorage } from './sandbox/ExtensionStorage';
 
 // --- UI Protocol (Figma-inspired dual-thread communication) ---
 export {

@@ -91,12 +91,23 @@ const aionProxy = {
 };
 
 let callIdCounter = 0;
-const pendingMainCalls = new Map<string, { resolve: (v: unknown) => void; reject: (e: Error) => void }>();
+const pendingMainCalls = new Map<
+  string,
+  { resolve: (v: unknown) => void; reject: (e: Error) => void; timer: ReturnType<typeof setTimeout> }
+>();
+
+/** Timeout for Worker → Host API calls (ms). Matches Host's default callTimeout. */
+const CALL_MAIN_TIMEOUT = 30_000;
 
 function callMainThread(method: string, args: unknown[]): Promise<unknown> {
   const id = `w-${++callIdCounter}`;
   return new Promise((resolve, reject) => {
-    pendingMainCalls.set(id, { resolve, reject });
+    const timer = setTimeout(() => {
+      pendingMainCalls.delete(id);
+      reject(new Error(`[Sandbox Worker] Call "${method}" timed out after ${CALL_MAIN_TIMEOUT}ms`));
+    }, CALL_MAIN_TIMEOUT);
+
+    pendingMainCalls.set(id, { resolve, reject, timer });
     port.postMessage({ type: 'api-call', id, method, args } satisfies SandboxMessage);
   });
 }
@@ -116,6 +127,7 @@ port.on('message', (msg: SandboxMessage) => {
       // Response to our call to main thread
       const pending = pendingMainCalls.get(msg.id);
       if (pending) {
+        clearTimeout(pending.timer);
         pendingMainCalls.delete(msg.id);
         if (msg.error) {
           pending.reject(new Error(msg.error));
