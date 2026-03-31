@@ -1,4 +1,4 @@
-import { Message } from '@arco-design/web-react';
+import { Message, Spin } from '@arco-design/web-react';
 import React, { useCallback, useEffect, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import useSWR from 'swr';
@@ -41,12 +41,6 @@ const TeamPageContent: React.FC<TeamPageContentProps> = ({ team, onAddAgent }) =
     leadAgent?.conversationId ? ['team-conversation', leadAgent.conversationId] : null,
     () => ipcBridge.conversation.get.invoke({ id: leadAgent!.conversationId })
   );
-
-  // Pre-warm the active agent's worker so it's ready when the user sends a message.
-  useEffect(() => {
-    if (!activeAgent?.conversationId) return;
-    ipcBridge.conversation.warmup.invoke({ conversation_id: activeAgent.conversationId }).catch(() => {});
-  }, [activeAgent?.conversationId]);
 
   // Refresh active conversation when new messages arrive for this agent
   useEffect(() => {
@@ -101,8 +95,8 @@ const TeamPageContent: React.FC<TeamPageContentProps> = ({ team, onAddAgent }) =
         {activeConversation ? (
           <TeamChatView conversation={activeConversation} />
         ) : (
-          <div className='flex flex-1 items-center justify-center text-[color:var(--color-text-3)] text-sm'>
-            {t('team.agentNotConfigured')}
+          <div className='flex flex-1 items-center justify-center'>
+            <Spin loading />
           </div>
         )}
       </ChatLayout>

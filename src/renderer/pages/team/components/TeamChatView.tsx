@@ -1,13 +1,15 @@
 import { ipcBridge } from '@/common';
 import type { IProvider, TChatConversation, TProviderWithModel } from '@/common/config/storage';
-import React, { useCallback } from 'react';
-import AcpChat from '@/renderer/pages/conversation/platforms/acp/AcpChat';
-import CodexChat from '@/renderer/pages/conversation/platforms/codex/CodexChat';
-import GeminiChat from '@/renderer/pages/conversation/platforms/gemini/GeminiChat';
+import { Spin } from '@arco-design/web-react';
+import React, { Suspense, useCallback } from 'react';
 import { useGeminiModelSelection } from '@/renderer/pages/conversation/platforms/gemini/useGeminiModelSelection';
-import OpenClawChat from '@/renderer/pages/conversation/platforms/openclaw/OpenClawChat';
-import NanobotChat from '@/renderer/pages/conversation/platforms/nanobot/NanobotChat';
-import RemoteChat from '@/renderer/pages/conversation/platforms/remote/RemoteChat';
+
+const AcpChat = React.lazy(() => import('@/renderer/pages/conversation/platforms/acp/AcpChat'));
+const CodexChat = React.lazy(() => import('@/renderer/pages/conversation/platforms/codex/CodexChat'));
+const GeminiChat = React.lazy(() => import('@/renderer/pages/conversation/platforms/gemini/GeminiChat'));
+const OpenClawChat = React.lazy(() => import('@/renderer/pages/conversation/platforms/openclaw/OpenClawChat'));
+const NanobotChat = React.lazy(() => import('@/renderer/pages/conversation/platforms/nanobot/NanobotChat'));
+const RemoteChat = React.lazy(() => import('@/renderer/pages/conversation/platforms/remote/RemoteChat'));
 
 // Narrow to Gemini conversations so model field is always available
 type GeminiConversation = Extract<TChatConversation, { type: 'gemini' }>;
@@ -48,60 +50,64 @@ type TeamChatViewProps = {
  * Does NOT wrap in ChatLayout — that is done by the parent TeamPage.
  */
 const TeamChatView: React.FC<TeamChatViewProps> = ({ conversation, hideSendBox }) => {
-  switch (conversation.type) {
-    case 'acp':
-      return (
-        <AcpChat
-          key={conversation.id}
-          conversation_id={conversation.id}
-          workspace={conversation.extra?.workspace}
-          backend={conversation.extra?.backend || 'claude'}
-          sessionMode={conversation.extra?.sessionMode}
-          agentName={(conversation.extra as { agentName?: string })?.agentName}
-          hideSendBox={hideSendBox}
-        />
-      );
-    case 'codex':
-      return (
-        <CodexChat
-          key={conversation.id}
-          conversation_id={conversation.id}
-          workspace={conversation.extra?.workspace}
-          hideSendBox={hideSendBox}
-        />
-      );
-    case 'gemini':
-      return <GeminiTeamChat key={conversation.id} conversation={conversation} hideSendBox={hideSendBox} />;
-    case 'openclaw-gateway':
-      return (
-        <OpenClawChat
-          key={conversation.id}
-          conversation_id={conversation.id}
-          workspace={conversation.extra?.workspace}
-          hideSendBox={hideSendBox}
-        />
-      );
-    case 'nanobot':
-      return (
-        <NanobotChat
-          key={conversation.id}
-          conversation_id={conversation.id}
-          workspace={conversation.extra?.workspace}
-          hideSendBox={hideSendBox}
-        />
-      );
-    case 'remote':
-      return (
-        <RemoteChat
-          key={conversation.id}
-          conversation_id={conversation.id}
-          workspace={conversation.extra?.workspace}
-          hideSendBox={hideSendBox}
-        />
-      );
-    default:
-      return null;
-  }
+  const content = (() => {
+    switch (conversation.type) {
+      case 'acp':
+        return (
+          <AcpChat
+            key={conversation.id}
+            conversation_id={conversation.id}
+            workspace={conversation.extra?.workspace}
+            backend={conversation.extra?.backend || 'claude'}
+            sessionMode={conversation.extra?.sessionMode}
+            agentName={(conversation.extra as { agentName?: string })?.agentName}
+            hideSendBox={hideSendBox}
+          />
+        );
+      case 'codex':
+        return (
+          <CodexChat
+            key={conversation.id}
+            conversation_id={conversation.id}
+            workspace={conversation.extra?.workspace}
+            hideSendBox={hideSendBox}
+          />
+        );
+      case 'gemini':
+        return <GeminiTeamChat key={conversation.id} conversation={conversation} hideSendBox={hideSendBox} />;
+      case 'openclaw-gateway':
+        return (
+          <OpenClawChat
+            key={conversation.id}
+            conversation_id={conversation.id}
+            workspace={conversation.extra?.workspace}
+            hideSendBox={hideSendBox}
+          />
+        );
+      case 'nanobot':
+        return (
+          <NanobotChat
+            key={conversation.id}
+            conversation_id={conversation.id}
+            workspace={conversation.extra?.workspace}
+            hideSendBox={hideSendBox}
+          />
+        );
+      case 'remote':
+        return (
+          <RemoteChat
+            key={conversation.id}
+            conversation_id={conversation.id}
+            workspace={conversation.extra?.workspace}
+            hideSendBox={hideSendBox}
+          />
+        );
+      default:
+        return null;
+    }
+  })();
+
+  return <Suspense fallback={<Spin loading className='flex flex-1 items-center justify-center' />}>{content}</Suspense>;
 };
 
 export default TeamChatView;
