@@ -41,6 +41,8 @@ vi.mock('@arco-design/web-react', async (importOriginal) => {
 });
 
 vi.mock('@icon-park/react', () => ({
+  Copy: () => <span data-testid='icon-copy' />,
+  Down: ({ className }: any) => <span data-testid='icon-down' className={className} />,
   FolderOpen: () => <span data-testid='icon-folder-open' />,
   FolderSearch: () => <span data-testid='icon-folder-search' />,
   Link: () => <span data-testid='icon-link' />,
@@ -410,10 +412,32 @@ describe('SystemModalContent', () => {
         expect(screen.getByText('settings.cdp.mcpConfig')).toBeInTheDocument();
       });
 
-      // Check MCP config contains the port
-      const preElement = screen.getByText(/chrome-devtools-mcp@0\.16\.0/);
-      expect(preElement).toBeInTheDocument();
-      expect(preElement.textContent).toContain('--browser-url=http://127.0.0.1:9230');
+      // Both MCP config entries should be visible as collapse headers
+      expect(screen.getByText('chrome-devtools')).toBeInTheDocument();
+      expect(screen.getByText('playwright')).toBeInTheDocument();
+    });
+
+    it('should hide port and MCP config when CDP is disabled', async () => {
+      mockGetCdpStatus.mockResolvedValue({
+        data: {
+          enabled: true,
+          configEnabled: false,
+          startupEnabled: false,
+          port: 9230,
+          isDevMode: true,
+        },
+      });
+
+      render(<SystemModalContent />);
+
+      await waitFor(() => {
+        expect(screen.getByText('settings.cdp.enable')).toBeInTheDocument();
+      });
+
+      expect(screen.queryByText('http://127.0.0.1:9230')).not.toBeInTheDocument();
+      expect(screen.queryByText('settings.cdp.mcpConfig')).not.toBeInTheDocument();
+      expect(screen.queryByText('chrome-devtools')).not.toBeInTheDocument();
+      expect(screen.queryByText('playwright')).not.toBeInTheDocument();
     });
 
     it('should open CDP URL in browser', async () => {
