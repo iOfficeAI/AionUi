@@ -40,12 +40,15 @@ export function useTeamSession(team: TTeam) {
       });
     });
 
+    const MESSAGE_BUFFER_LIMIT = 200;
     const unsubMessages = ipcBridge.team.messageStream.on((event: ITeamMessageEvent) => {
       if (event.teamId !== team.id) return;
       setMessages((prev) => {
         const next = new Map(prev);
         const existing = next.get(event.slotId) ?? [];
-        next.set(event.slotId, [...existing, event]);
+        const updated = [...existing, event];
+        // Keep only the most recent messages to prevent unbounded growth
+        next.set(event.slotId, updated.length > MESSAGE_BUFFER_LIMIT ? updated.slice(-MESSAGE_BUFFER_LIMIT) : updated);
         return next;
       });
     });

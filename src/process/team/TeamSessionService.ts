@@ -198,8 +198,8 @@ export class TeamSessionService {
         status: 'pending',
         conversationType: this.resolveConversationType(agentType || 'claude') as 'acp',
       });
-      // Inject team MCP stdio config into the new agent's conversation
-      const stdioConfig = session.getStdioConfig();
+      // Inject team MCP stdio config into the new agent's conversation (with agent identity)
+      const stdioConfig = session.getStdioConfig(newAgent.slotId);
       if (stdioConfig && newAgent.conversationId) {
         await this.conversationService.updateConversation(
           newAgent.conversationId,
@@ -212,14 +212,15 @@ export class TeamSessionService {
     const session = new TeamSession(team, this.repo, this.workerTaskManager, spawnAgent);
     this.sessions.set(teamId, session);
 
-    // Start MCP server and inject stdio config into all agent conversations
-    const stdioConfig = await session.startMcpServer();
+    // Start MCP server and inject per-agent stdio config into all agent conversations
+    await session.startMcpServer();
     await Promise.all(
       team.agents.map(async (agent) => {
         if (agent.conversationId) {
+          const agentStdioConfig = session.getStdioConfig(agent.slotId);
           await this.conversationService.updateConversation(
             agent.conversationId,
-            { extra: { teamMcpStdioConfig: stdioConfig } } as any,
+            { extra: { teamMcpStdioConfig: agentStdioConfig } } as any,
             true
           );
         }

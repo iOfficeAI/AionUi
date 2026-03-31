@@ -115,16 +115,25 @@ export class TeamMcpServer {
     return this.getStdioConfig();
   }
 
-  /** Get the stdio MCP server configuration to inject into session/new */
-  getStdioConfig(): StdioMcpConfig {
+  /**
+   * Get the stdio MCP server configuration to inject into session/new.
+   * @param agentSlotId - When provided, the stdio script will attach this
+   *   slot ID to every TCP request so the server knows who is calling.
+   */
+  getStdioConfig(agentSlotId?: string): StdioMcpConfig {
     const root = resolveProjectRoot();
     const scriptPath = path.join(root, 'scripts', 'team-mcp-stdio.mjs');
+
+    const env: StdioMcpConfig['env'] = [{ name: 'TEAM_MCP_PORT', value: String(this._port) }];
+    if (agentSlotId) {
+      env.push({ name: 'TEAM_AGENT_SLOT_ID', value: agentSlotId });
+    }
 
     return {
       name: `aionui-team-${this.params.teamId}`,
       command: 'node',
       args: [scriptPath],
-      env: [{ name: 'TEAM_MCP_PORT', value: String(this._port) }],
+      env,
     };
   }
 
@@ -159,12 +168,13 @@ export class TeamMcpServer {
 
   private handleTcpConnection(socket: net.Socket): void {
     const reader = createTcpMessageReader(async (msg) => {
-      const request = msg as { tool?: string; args?: Record<string, unknown> };
+      const request = msg as { tool?: string; args?: Record<string, unknown>; from_slot_id?: string };
       const toolName = request.tool ?? '';
       const args = request.args ?? {};
+      const fromSlotId = request.from_slot_id;
 
       try {
-        const result = await this.handleToolCall(toolName, args);
+        const result = await this.handleToolCall(toolName, args, fromSlotId);
         writeTcpMessage(socket, { result });
       } catch (err) {
         const errMsg = err instanceof Error ? err.message : String(err);
@@ -181,12 +191,12 @@ export class TeamMcpServer {
 
   // ── Tool dispatch ───────────────────────────────────────────────────────────
 
-  private async handleToolCall(toolName: string, args: Record<string, unknown>): Promise<string> {
+  private async handleToolCall(toolName: string, args: Record<string, unknown>, fromSlotId?: string): Promise<string> {
     switch (toolName) {
       case 'team_send_message':
-        return this.handleSendMessage(args);
+        return this.handleSendMessage(args, fromSlotId);
       case 'team_spawn_agent':
-        return this.handleSpawnAgent(args);
+        return this.handleSpawnAgent(args, fromSlotId);
       case 'team_task_create':
         return this.handleTaskCreate(args);
       case 'team_task_update':
@@ -202,14 +212,16 @@ export class TeamMcpServer {
 
   // ── Tool handlers (logic preserved from original registerTools) ─────────────
 
-  private async handleSendMessage(args: Record<string, unknown>): Promise<string> {
+  private async handleSendMessage(args: Record<string, unknown>, callerSlotId?: string): Promise<string> {
     const { teamId, getAgents, mailbox, wakeAgent } = this.params;
     const to = String(args.to ?? '');
     const message = String(args.message ?? '');
     const summary = args.summary ? String(args.summary) : undefined;
 
     const agents = getAgents();
-    const fromAgent = agents.find((a) => a.role === 'lead') ?? agents[0];
+    // Use actual caller identity when available, fall back to lead
+    const fromAgent = (callerSlotId && agents.find((a) => a.slotId === callerSlotId))
+      ?? agents.find((a) => a.role === 'lead') ?? agents[0];
     const fromSlotId = fromAgent?.slotId ?? 'unknown';
 
     if (to === '*') {
@@ -246,7 +258,7 @@ export class TeamMcpServer {
     return `Message sent to ${to}'s inbox. They will process it shortly.`;
   }
 
-  private async handleSpawnAgent(args: Record<string, unknown>): Promise<string> {
+  private async handleSpawnAgent(args: Record<string, unknown>, callerSlotId?: string): Promise<string> {
     const { teamId, getAgents, mailbox, spawnAgent, wakeAgent } = this.params;
     const name = String(args.name ?? '');
     const agentType = args.agent_type ? String(args.agent_type) : undefined;
@@ -257,7 +269,8 @@ export class TeamMcpServer {
 
     const newAgent = await spawnAgent(name, agentType);
     const agents = getAgents();
-    const fromAgent = agents.find((a) => a.role === 'lead') ?? agents[0];
+    const fromAgent = (callerSlotId && agents.find((a) => a.slotId === callerSlotId))
+      ?? agents.find((a) => a.role === 'lead') ?? agents[0];
     const fromSlotId = fromAgent?.slotId ?? 'unknown';
     await mailbox.write({
       teamId,

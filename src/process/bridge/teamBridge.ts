@@ -74,7 +74,7 @@ export function initTeamBridge(teamSessionService: TeamSessionService): void {
 
   ipcBridge.team.stop.provider(
     safeProvider(async ({ teamId }) => {
-      teamSessionService.stopSession(teamId);
+      await teamSessionService.stopSession(teamId);
     })
   );
 }

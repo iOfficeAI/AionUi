@@ -1,4 +1,4 @@
-import React, { createContext, useCallback, useContext, useState } from 'react';
+import React, { createContext, useCallback, useContext, useEffect, useState } from 'react';
 import type { TeamAgent, TeammateStatus } from '@/common/types/teamTypes';
 
 type AgentStatusInfo = {
@@ -23,6 +23,13 @@ export const TeamTabsProvider: React.FC<{
   defaultActiveSlotId: string;
 }> = ({ children, agents, statusMap, defaultActiveSlotId }) => {
   const [activeSlotId, setActiveSlotId] = useState(defaultActiveSlotId);
+
+  // Auto-switch to newly spawned agent's tab
+  useEffect(() => {
+    if (agents.length > 0 && !agents.some((a) => a.slotId === activeSlotId)) {
+      setActiveSlotId(agents[agents.length - 1].slotId);
+    }
+  }, [agents, activeSlotId]);
 
   const switchTab = useCallback((slotId: string) => {
     setActiveSlotId(slotId);

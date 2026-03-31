@@ -63,9 +63,12 @@ export class TeamSession extends EventEmitter {
     return this.mcpStdioConfig;
   }
 
-  /** Get the MCP stdio config (null if not started) */
-  getStdioConfig(): StdioMcpConfig | null {
-    return this.mcpStdioConfig;
+  /** Get the MCP stdio config, optionally tagged with a specific agent's slotId */
+  getStdioConfig(agentSlotId?: string): StdioMcpConfig | null {
+    if (!this.mcpStdioConfig) return null;
+    if (!agentSlotId) return this.mcpStdioConfig;
+    // Return a copy with the agent's slotId in env
+    return this.mcpServer.getStdioConfig(agentSlotId);
   }
 
   /**

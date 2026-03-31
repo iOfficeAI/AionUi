@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
-import { Modal, Button, Input, Select } from '@arco-design/web-react';
+import { Button, Input, Select } from '@arco-design/web-react';
 import { useTranslation } from 'react-i18next';
+import AionModal from '@renderer/components/base/AionModal';
 import { useConversationAgents } from '@renderer/pages/conversation/hooks/useConversationAgents';
 import { agentKey, AgentOptionLabel } from './agentSelectUtils';
 
@@ -33,18 +34,26 @@ const AddAgentModal: React.FC<Props> = ({ visible, onClose, onConfirm }) => {
   const canConfirm = agentName.trim().length > 0 && selectedKey !== undefined;
 
   return (
-    <Modal
-      title={t('team.addAgent.title', { defaultValue: 'Add Agent' })}
+    <AionModal
       visible={visible}
       onCancel={handleClose}
-      footer={null}
-      style={{ width: 420 }}
-      autoFocus={false}
-      focusLock
-      wrapStyle={{ zIndex: 10000 }}
-      maskStyle={{ zIndex: 9999 }}
+      header={t('team.addAgent.title', { defaultValue: 'Add Agent' })}
+      footer={
+        <div className='flex justify-end pt-4px'>
+          <Button
+            type='primary'
+            disabled={!canConfirm}
+            onClick={handleConfirm}
+            className='px-20px min-w-80px'
+            style={{ borderRadius: 8 }}
+          >
+            {t('team.addAgent.confirm', { defaultValue: 'Add' })}
+          </Button>
+        </div>
+      }
+      size='small'
     >
-      <div className='flex flex-col gap-20px'>
+      <div className='flex flex-col gap-20px p-20px'>
         <div className='flex flex-col gap-6px'>
           <label className='text-sm text-[var(--color-text-2)] font-medium'>
             {t('team.addAgent.name', { defaultValue: 'Agent Name' })}
@@ -66,6 +75,7 @@ const AddAgentModal: React.FC<Props> = ({ visible, onClose, onConfirm }) => {
             onChange={setSelectedKey}
             showSearch
             allowClear
+            getPopupContainer={() => document.body}
             renderFormat={(option) => {
               const agent = option?.value ? allAgents.find((a) => agentKey(a) === option.value) : undefined;
               return agent ? <AgentOptionLabel agent={agent} /> : <span>{option?.children}</span>;
@@ -93,14 +103,8 @@ const AddAgentModal: React.FC<Props> = ({ visible, onClose, onConfirm }) => {
             )}
           </Select>
         </div>
-
-        <div className='flex justify-end pt-4px'>
-          <Button type='primary' disabled={!canConfirm} onClick={handleConfirm}>
-            {t('team.addAgent.confirm', { defaultValue: 'Add' })}
-          </Button>
-        </div>
       </div>
-    </Modal>
+    </AionModal>
   );
 };
 
