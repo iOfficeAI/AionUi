@@ -22,6 +22,7 @@ type UseAcpMessageReturn = {
   resetState: () => void;
   tokenUsage: TokenUsageData | null;
   contextLimit: number;
+  hasThinkingMessage: boolean;
 };
 
 export const useAcpMessage = (conversation_id: string): UseAcpMessageReturn => {
@@ -43,8 +44,15 @@ export const useAcpMessage = (conversation_id: string): UseAcpMessageReturn => {
   const aiProcessingRef = useRef(aiProcessing);
 
   // Track whether current turn has content output
-  // Only reset aiProcessing when finish arrives after content (not after tool calls)
   const hasContentInTurnRef = useRef(false);
+
+  // Guard: after finish arrives, prevent auto-recover from setting running=true
+  // until a new 'start' signal arrives for the next turn
+  const turnFinishedRef = useRef(false);
+
+  // Track whether current turn has a thinking message in the conversation
+  const hasThinkingMessageRef = useRef(false);
+  const [hasThinkingMessage, setHasThinkingMessage] = useState(false);
 
   // Track request trace state for displaying complete request lifecycle
   const requestTraceRef = useRef<{
@@ -111,20 +119,37 @@ export const useAcpMessage = (conversation_id: string): UseAcpMessageReturn => {
       const transformedMessage = transformMessage(message);
       switch (message.type) {
         case 'thought':
-          // Auto-recover running state if thought arrives after finish
-          if (!runningRef.current) {
+          // Thought events are now handled by AcpAgentManager (converted to thinking messages)
+          // Only auto-recover running state if turn hasn't finished
+          if (!runningRef.current && !turnFinishedRef.current) {
             setRunning(true);
             runningRef.current = true;
           }
-          throttledSetThought(message.data as ThoughtData);
           break;
+        case 'thinking': {
+          const thinkingData = message.data as { status?: string };
+          // Only set running for active thinking, not for done signal
+          if (thinkingData?.status !== 'done' && !runningRef.current && !turnFinishedRef.current) {
+            setRunning(true);
+            runningRef.current = true;
+          }
+          hasThinkingMessageRef.current = true;
+          setHasThinkingMessage(true);
+          addOrUpdateMessage(transformedMessage);
+          break;
+        }
         case 'start':
+          // New turn starting — clear the finished guard and content flag
+          turnFinishedRef.current = false;
+          hasContentInTurnRef.current = false;
           setRunning(true);
           runningRef.current = true;
           // Don't reset aiProcessing here - let content arrival handle it
           break;
         case 'finish':
           {
+            // Mark turn as finished to prevent auto-recover from late messages
+            turnFinishedRef.current = true;
             // Immediate state reset (notification is handled by centralized hook)
             setRunning(false);
             runningRef.current = false;
@@ -132,6 +157,8 @@ export const useAcpMessage = (conversation_id: string): UseAcpMessageReturn => {
             aiProcessingRef.current = false;
             setThought({ subject: '', description: '' });
             hasContentInTurnRef.current = false;
+            hasThinkingMessageRef.current = false;
+            setHasThinkingMessage(false);
             // Log request completion
             if (requestTraceRef.current) {
               const duration = Date.now() - requestTraceRef.current.startTime;
@@ -145,10 +172,14 @@ export const useAcpMessage = (conversation_id: string): UseAcpMessageReturn => {
           }
           break;
         case 'content': {
-          // Mark that current turn has content output
-          hasContentInTurnRef.current = true;
-          // Auto-recover running state if content arrives after finish
-          if (!runningRef.current) {
+          // First content token — AI has started responding, clear processing indicator
+          if (!hasContentInTurnRef.current) {
+            hasContentInTurnRef.current = true;
+            setAiProcessing(false);
+            aiProcessingRef.current = false;
+          }
+          // Auto-recover running state only if turn hasn't finished
+          if (!runningRef.current && !turnFinishedRef.current) {
             setRunning(true);
             runningRef.current = true;
           }
@@ -158,8 +189,8 @@ export const useAcpMessage = (conversation_id: string): UseAcpMessageReturn => {
           break;
         }
         case 'agent_status': {
-          // Auto-recover running state if agent_status arrives after finish
-          if (!runningRef.current) {
+          // Auto-recover running state only if turn hasn't finished
+          if (!runningRef.current && !turnFinishedRef.current) {
             setRunning(true);
             runningRef.current = true;
           }
@@ -190,8 +221,8 @@ export const useAcpMessage = (conversation_id: string): UseAcpMessageReturn => {
           addOrUpdateMessage(transformedMessage);
           break;
         case 'acp_permission':
-          // Auto-recover running state if permission request arrives after finish
-          if (!runningRef.current) {
+          // Auto-recover running state only if turn hasn't finished
+          if (!runningRef.current && !turnFinishedRef.current) {
             setRunning(true);
             runningRef.current = true;
           }
@@ -235,6 +266,7 @@ export const useAcpMessage = (conversation_id: string): UseAcpMessageReturn => {
           break;
         case 'error':
           // Stop all loading states when error occurs
+          turnFinishedRef.current = true;
           setRunning(false);
           runningRef.current = false;
           setAiProcessing(false);
@@ -253,8 +285,8 @@ export const useAcpMessage = (conversation_id: string): UseAcpMessageReturn => {
           }
           break;
         default:
-          // Auto-recover running state if other messages arrive after finish
-          if (!runningRef.current) {
+          // Auto-recover running state only if turn hasn't finished
+          if (!runningRef.current && !turnFinishedRef.current) {
             setRunning(true);
             runningRef.current = true;
           }
@@ -307,12 +339,15 @@ export const useAcpMessage = (conversation_id: string): UseAcpMessageReturn => {
   }, [conversation_id]);
 
   const resetState = useCallback(() => {
+    turnFinishedRef.current = true;
     setRunning(false);
     runningRef.current = false;
     setAiProcessing(false);
     aiProcessingRef.current = false;
     setThought({ subject: '', description: '' });
     hasContentInTurnRef.current = false;
+    hasThinkingMessageRef.current = false;
+    setHasThinkingMessage(false);
   }, []);
 
   return {
@@ -325,5 +360,6 @@ export const useAcpMessage = (conversation_id: string): UseAcpMessageReturn => {
     resetState,
     tokenUsage,
     contextLimit,
+    hasThinkingMessage,
   };
 };

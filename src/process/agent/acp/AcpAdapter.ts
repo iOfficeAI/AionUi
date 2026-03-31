@@ -24,6 +24,7 @@ export class AcpAdapter {
   private backend: AcpBackend;
   private activeToolCalls: Map<string, IMessageAcpToolCall> = new Map();
   private currentMessageId: string | null = uuid(); // Track current message for streaming chunks
+  private currentPlanMsgId: string | null = null; // Stable id for plan within a turn
 
   constructor(conversationId: string, backend: AcpBackend) {
     this.conversationId = conversationId;
@@ -36,6 +37,13 @@ export class AcpAdapter {
    */
   resetMessageTracking() {
     this.currentMessageId = uuid();
+  }
+
+  /**
+   * Reset plan tracking for a new turn (called when user sends a new message)
+   */
+  resetPlanTracking() {
+    this.currentPlanMsgId = null;
   }
 
   /**
@@ -268,9 +276,13 @@ export class AcpAdapter {
    * Convert plan update to AionUI message
    */
   private convertPlanUpdate(update: PlanUpdate): IMessagePlan | null {
+    // Reuse the same msg_id within a turn so plan updates merge into one message
+    if (!this.currentPlanMsgId) {
+      this.currentPlanMsgId = uuid();
+    }
     const baseMessage = {
-      id: uuid(),
-      msg_id: uuid(), // 生成独立的 msg_id，避免与其他消息合并
+      id: this.currentPlanMsgId,
+      msg_id: this.currentPlanMsgId,
       conversation_id: this.conversationId,
       createdAt: Date.now(),
       position: 'left' as const,

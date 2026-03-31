@@ -37,7 +37,6 @@ import { hasCronCommands } from './CronCommandDetector';
 import { hasNativeSkillSupport } from '@/common/types/acpTypes';
 import { prepareFirstMessageWithSkillsIndex } from '@process/task/agentUtils';
 import { extractTextFromMessage, processCronInMessage } from './MessageMiddleware';
-import { stripThinkTags } from './ThinkTagDetector';
 
 interface AcpAgentManagerData {
   workspace?: string;
@@ -83,6 +82,13 @@ class AcpAgentManager extends BaseAgentManager<AcpAgentManagerData, AcpPermissio
   // Track current message for cron detection (accumulated from streaming chunks)
   private currentMsgId: string | null = null;
   private currentMsgContent: string = '';
+  /** Current turn's thinking message msg_id for accumulating content */
+  private thinkingMsgId: string | null = null;
+  /** Timestamp when thinking started for duration calculation */
+  private thinkingStartTime: number | null = null;
+  /** Accumulated thinking content for persistence */
+  private thinkingContent: string = '';
+  private thinkingDbFlushTimer: ReturnType<typeof setTimeout> | null = null;
   private acpAvailableSlashCommands: SlashCommandItem[] = [];
   private acpAvailableSlashWaiters: Array<(commands: SlashCommandItem[]) => void> = [];
   private readonly streamDbFlushIntervalMs = 120;
@@ -379,7 +385,27 @@ class AcpAgentManager extends BaseAgentManager<AcpAgentManagerData, AcpPermissio
             this.saveContextUsage(usageData);
           }
 
-          if (message.type !== 'thought' && message.type !== 'acp_model_info' && message.type !== 'acp_context_usage') {
+          // Convert thought events to thinking messages in conversation flow
+          if (message.type === 'thought') {
+            const thoughtData = message.data as { subject?: string; description?: string };
+            const content = thoughtData?.description || thoughtData?.subject || '';
+            if (content) {
+              this.emitThinkingMessage(content, 'thinking');
+            }
+          } else if (this.thinkingMsgId) {
+            // Any non-thought message means thinking phase is over
+            this.emitThinkingMessage('', 'done');
+            this.thinkingMsgId = null;
+            this.thinkingStartTime = null;
+            this.thinkingContent = '';
+          }
+
+          if (
+            message.type !== 'thought' &&
+            message.type !== 'thinking' &&
+            message.type !== 'acp_model_info' &&
+            message.type !== 'acp_context_usage'
+          ) {
             const transformStart = Date.now();
             const tMessage = transformMessage(message as IResponseMessage);
             const transformDuration = Date.now() - transformStart;
@@ -418,20 +444,14 @@ class AcpAgentManager extends BaseAgentManager<AcpAgentManagerData, AcpPermissio
             }
           }
 
-          // Filter think tags from streaming content before emitting to UI
-          // 在发送到 UI 之前过滤流式内容中的 think 标签
-          const filterStart = Date.now();
-          const filteredMessage = this.filterThinkTagsFromMessage(message as IResponseMessage);
-          const filterDuration = Date.now() - filterStart;
-
           const emitStart = Date.now();
-          ipcBridge.acpConversation.responseStream.emit(filteredMessage);
+          ipcBridge.acpConversation.responseStream.emit(message as IResponseMessage);
           const emitDuration = Date.now() - emitStart;
 
           // Also emit to Channel global event bus (Telegram/Lark streaming)
           // 同时发送到 Channel 全局事件总线（用于 Telegram/Lark 等外部平台）
           channelEventBus.emitAgentMessage(this.conversation_id, {
-            ...filteredMessage,
+            ...(message as IResponseMessage),
             conversation_id: this.conversation_id,
           });
 
@@ -439,7 +459,7 @@ class AcpAgentManager extends BaseAgentManager<AcpAgentManagerData, AcpPermissio
           if (totalDuration > 10) {
             if (ACP_PERF_LOG)
               console.log(
-                `[ACP-PERF] stream: onStreamEvent pipeline ${totalDuration}ms (filter=${filterDuration}ms, emit=${emitDuration}ms) type=${message.type}`
+                `[ACP-PERF] stream: onStreamEvent pipeline ${totalDuration}ms (emit=${emitDuration}ms) type=${message.type}`
               );
           }
         },
@@ -473,9 +493,17 @@ class AcpAgentManager extends BaseAgentManager<AcpAgentManagerData, AcpPermissio
             return;
           }
 
-          // Clear busy guard when turn ends
+          // Clear busy guard and finalize thinking message when turn ends
           if (v.type === 'finish') {
             cronBusyGuard.setProcessing(this.conversation_id, false);
+            this.status = 'finished';
+            // Finalize thinking message with done status
+            if (this.thinkingMsgId) {
+              this.emitThinkingMessage('', 'done');
+              this.thinkingMsgId = null;
+              this.thinkingStartTime = null;
+              this.thinkingContent = '';
+            }
           }
 
           // Process cron commands when turn ends (finish signal)
@@ -787,27 +815,65 @@ class AcpAgentManager extends BaseAgentManager<AcpAgentManagerData, AcpPermissio
    * @param message - The streaming message to filter
    * @returns Message with think tags removed from content
    */
-  private filterThinkTagsFromMessage(message: IResponseMessage): IResponseMessage {
-    // Only filter content messages
-    if (message.type !== 'content' || typeof message.data !== 'string') {
-      return message;
+  /**
+   * Emit a thinking message to the UI stream.
+   * Creates a new thinking msg_id on first call per turn, reuses it for subsequent calls.
+   */
+  private emitThinkingMessage(content: string, status: 'thinking' | 'done' = 'thinking'): void {
+    if (!this.thinkingMsgId) {
+      this.thinkingMsgId = uuid();
+      this.thinkingStartTime = Date.now();
+      this.thinkingContent = '';
     }
 
-    const content = message.data;
-    // Quick check to avoid unnecessary processing
-    // Match both opening and closing tags (including orphaned </think> from MiniMax-style models)
-    if (!/<\s*\/?\s*think(?:ing)?\s*>/i.test(content)) {
-      return message;
+    // Accumulate content during streaming
+    if (status === 'thinking') {
+      this.thinkingContent += content;
     }
 
-    // Strip think tags from content
-    const cleanedContent = stripThinkTags(content);
+    const duration = status === 'done' && this.thinkingStartTime ? Date.now() - this.thinkingStartTime : undefined;
 
-    // Return new message object with cleaned content
-    return {
-      ...message,
-      data: cleanedContent,
+    ipcBridge.acpConversation.responseStream.emit({
+      type: 'thinking',
+      conversation_id: this.conversation_id,
+      msg_id: this.thinkingMsgId,
+      data: {
+        content,
+        duration,
+        status,
+      },
+    });
+
+    // Persist: done flushes immediately, streaming chunks use buffered timer
+    if (status === 'done') {
+      this.flushThinkingToDb(duration, 'done');
+    } else if (!this.thinkingDbFlushTimer) {
+      this.thinkingDbFlushTimer = setTimeout(() => {
+        this.flushThinkingToDb(undefined, 'thinking');
+      }, this.streamDbFlushIntervalMs);
+    }
+  }
+
+  private flushThinkingToDb(duration: number | undefined, status: 'thinking' | 'done'): void {
+    if (this.thinkingDbFlushTimer) {
+      clearTimeout(this.thinkingDbFlushTimer);
+      this.thinkingDbFlushTimer = null;
+    }
+    if (!this.thinkingMsgId) return;
+    const tMessage: TMessage = {
+      id: this.thinkingMsgId,
+      msg_id: this.thinkingMsgId,
+      type: 'thinking',
+      position: 'left',
+      conversation_id: this.conversation_id,
+      content: {
+        content: this.thinkingContent,
+        duration,
+        status,
+      },
+      createdAt: this.thinkingStartTime || Date.now(),
     };
+    addOrUpdateMessage(this.conversation_id, tMessage, this.options.backend);
   }
 
   /**

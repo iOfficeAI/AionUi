@@ -33,6 +33,7 @@
   "select": "选择",
   "expandMore": "展开更多",
   "collapse": "收起",
+  "viewMoreLines": "查看更多 ({{count}} 行)",
   "success": "成功",
   "error": "错误",
   "saveSuccess": "保存成功",

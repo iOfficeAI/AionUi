@@ -628,6 +628,7 @@ export class AcpAgent {
       });
 
       this.adapter.resetMessageTracking();
+      this.adapter.resetPlanTracking();
       let processedContent = data.content;
 
       // Add @ prefix to ALL uploaded files (including images) with FULL PATH
@@ -1381,7 +1382,6 @@ export class AcpAgent {
         // Distinguish between thought messages and error messages
         if (message.content.type === 'warning' && message.position === 'center') {
           const subject = this.extractThoughtSubject(message.content.content);
-
           responseMessage.type = 'thought';
           responseMessage.data = {
             subject,
