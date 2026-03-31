@@ -7,37 +7,74 @@
 import { ipcBridge } from '@/common';
 import type { TeamSessionService } from '@process/team/TeamSessionService';
 
+/**
+ * Wrap an async provider handler so that unhandled rejections are caught and
+ * logged instead of silently swallowed by the platform bridge (which only
+ * chains `.then()` without `.catch()` on the provider callback).
+ *
+ * Returning `{ __bridgeError: true, message }` unblocks the renderer-side
+ * `invoke()` promise so the UI never "freezes".
+ */
+function safeProvider<R, P>(fn: (params: P) => Promise<R>) {
+  return async (params: P): Promise<R> => {
+    try {
+      return await fn(params);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      console.error('[teamBridge] provider error:', message);
+      // Return a sentinel the renderer can detect
+      return { __bridgeError: true, message } as unknown as R;
+    }
+  };
+}
+
 export function initTeamBridge(teamSessionService: TeamSessionService): void {
-  ipcBridge.team.create.provider(async (params) => {
-    return teamSessionService.createTeam(params);
-  });
+  ipcBridge.team.create.provider(
+    safeProvider(async (params) => {
+      return teamSessionService.createTeam(params);
+    })
+  );
 
-  ipcBridge.team.list.provider(async ({ userId }) => {
-    return teamSessionService.listTeams(userId);
-  });
+  ipcBridge.team.list.provider(
+    safeProvider(async ({ userId }) => {
+      return teamSessionService.listTeams(userId);
+    })
+  );
 
-  ipcBridge.team.get.provider(async ({ id }) => {
-    return teamSessionService.getTeam(id);
-  });
+  ipcBridge.team.get.provider(
+    safeProvider(async ({ id }) => {
+      return teamSessionService.getTeam(id);
+    })
+  );
 
-  ipcBridge.team.remove.provider(async ({ id }) => {
-    await teamSessionService.deleteTeam(id);
-  });
+  ipcBridge.team.remove.provider(
+    safeProvider(async ({ id }) => {
+      await teamSessionService.deleteTeam(id);
+    })
+  );
 
-  ipcBridge.team.addAgent.provider(async ({ teamId, agent }) => {
-    return teamSessionService.addAgent(teamId, agent);
-  });
+  ipcBridge.team.addAgent.provider(
+    safeProvider(async ({ teamId, agent }) => {
+      return teamSessionService.addAgent(teamId, agent);
+    })
+  );
 
-  ipcBridge.team.removeAgent.provider(async ({ teamId, slotId }) => {
-    await teamSessionService.removeAgent(teamId, slotId);
-  });
+  ipcBridge.team.removeAgent.provider(
+    safeProvider(async ({ teamId, slotId }) => {
+      await teamSessionService.removeAgent(teamId, slotId);
+    })
+  );
 
-  ipcBridge.team.sendMessage.provider(async ({ teamId, content }) => {
-    const session = await teamSessionService.getOrStartSession(teamId);
-    await session.sendMessage(content);
-  });
+  ipcBridge.team.sendMessage.provider(
+    safeProvider(async ({ teamId, content }) => {
+      const session = await teamSessionService.getOrStartSession(teamId);
+      await session.sendMessage(content);
+    })
+  );
 
-  ipcBridge.team.stop.provider(async ({ teamId }) => {
-    teamSessionService.stopSession(teamId);
-  });
+  ipcBridge.team.stop.provider(
+    safeProvider(async ({ teamId }) => {
+      teamSessionService.stopSession(teamId);
+    })
+  );
 }

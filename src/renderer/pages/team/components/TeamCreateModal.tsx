@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Modal, Button, Input, Select } from '@arco-design/web-react';
+import { Modal, Button, Input, Select, Message } from '@arco-design/web-react';
 import { FolderOpen, Robot } from '@icon-park/react';
 import { useTranslation } from 'react-i18next';
 import { ipcBridge } from '@/common';
@@ -124,8 +124,19 @@ const TeamCreateModal: React.FC<Props> = ({ visible, onClose, onCreated }) => {
         workspaceMode: 'shared',
         agents,
       });
+
+      // The platform bridge swallows provider errors and returns a sentinel object
+      const result = team as unknown as { __bridgeError?: boolean; message?: string };
+      if (result.__bridgeError) {
+        Message.error(result.message ?? t('team.create.error', { defaultValue: 'Failed to create team' }));
+        return;
+      }
+
       onCreated(team);
       handleClose();
+    } catch (error) {
+      const msg = error instanceof Error ? error.message : String(error);
+      Message.error(msg || t('team.create.error', { defaultValue: 'Failed to create team' }));
     } finally {
       setLoading(false);
     }
