@@ -89,4 +89,14 @@ describe('configureChromium Linux headless flags', () => {
 
     expect(mockApp.commandLine.appendSwitch).not.toHaveBeenCalledWith('ozone-platform', 'headless');
   });
+
+  it('does not force linux headless flags on non-linux --webui startup', async () => {
+    process.env.DISPLAY = ':99';
+
+    const mockApp = await loadModuleWithArgs(['--webui'], 'darwin');
+
+    expect(mockApp.commandLine.appendSwitch).not.toHaveBeenCalledWith('ozone-platform', 'headless');
+    expect(mockApp.commandLine.appendSwitch).not.toHaveBeenCalledWith('disable-gpu');
+    expect(mockApp.commandLine.appendSwitch).not.toHaveBeenCalledWith('disable-software-rasterizer');
+  });
 });
