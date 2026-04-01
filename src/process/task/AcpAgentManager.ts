@@ -738,6 +738,7 @@ class AcpAgentManager extends BaseAgentManager<AcpAgentManagerData, AcpPermissio
         if (this.isFirstMessage) {
           const useNativeSkills =
             hasNativeSkillSupport(this.options.backend) && !this.options.customWorkspace;
+          const contentBeforeInjection = contentToSend;
           if (useNativeSkills) {
             // Native skill discovery via workspace symlinks — only inject preset rules
             if (this.options.presetContext) {
@@ -751,23 +752,27 @@ class AcpAgentManager extends BaseAgentManager<AcpAgentManagerData, AcpPermissio
             });
           }
 
-          // Inject multi-agent orchestration capability on first message
-          const enabledBackends = getEnabledAcpBackends()
-            .map((c) => c.id as import("@/common/types/acpTypes").AcpBackend)
-            .filter((id) => id !== this.options.backend);
-          if (enabledBackends.length > 0) {
-            const orchestrationSection = buildOrchestratorSystemPromptSection(enabledBackends);
-            if (orchestrationSection) {
-              contentToSend = `${orchestrationSection}\n[User Request]\n${contentToSend}`;
+          // Inject multi-agent orchestration capability only when content was already
+          // modified by presetContext/skill injection. This avoids polluting bare
+          // conversations that have no system-level context.
+          if (contentToSend !== contentBeforeInjection) {
+            const enabledBackends = getEnabledAcpBackends()
+              .map((c) => c.id as import("@/common/types/acpTypes").AcpBackend)
+              .filter((id) => id !== this.options.backend);
+            if (enabledBackends.length > 0) {
+              const orchestrationSection = buildOrchestratorSystemPromptSection(enabledBackends);
+              if (orchestrationSection) {
+                contentToSend = `${orchestrationSection}\n\n${contentToSend}`;
+              }
+              this.orchestratorBridge = new OrchestratorMcpBridge(
+                this.conversation_id,
+                this.options.backend,
+                {
+                  runSubAgent: (targetBackend, task, context, convId, delegationId) =>
+                    this.runSubAgentDelegation(targetBackend, task, context, convId, delegationId),
+                },
+              );
             }
-            this.orchestratorBridge = new OrchestratorMcpBridge(
-              this.conversation_id,
-              this.options.backend,
-              {
-                runSubAgent: (targetBackend, task, context, convId, delegationId) =>
-                  this.runSubAgentDelegation(targetBackend, task, context, convId, delegationId),
-              },
-            );
           }
         }
 
