@@ -72,9 +72,11 @@ const mockDevToolsStateChangedOn = vi.fn(() => vi.fn());
 const mockGetCloseToTray = vi.fn();
 const mockGetNotificationEnabled = vi.fn();
 const mockGetCronNotificationEnabled = vi.fn();
+const mockGetSaveUploadToWorkspace = vi.fn();
 const mockSetCloseToTray = vi.fn();
 const mockSetNotificationEnabled = vi.fn();
 const mockSetCronNotificationEnabled = vi.fn();
+const mockSetSaveUploadToWorkspace = vi.fn();
 const mockOpenFile = vi.fn();
 const mockShowOpen = vi.fn();
 const mockUpdateSystemInfo = vi.fn();
@@ -102,9 +104,11 @@ vi.mock('@/common', () => ({
       getCloseToTray: { invoke: (...args: any[]) => mockGetCloseToTray(...args) },
       getNotificationEnabled: { invoke: (...args: any[]) => mockGetNotificationEnabled(...args) },
       getCronNotificationEnabled: { invoke: (...args: any[]) => mockGetCronNotificationEnabled(...args) },
+      getSaveUploadToWorkspace: { invoke: (...args: any[]) => mockGetSaveUploadToWorkspace(...args) },
       setCloseToTray: { invoke: (...args: any[]) => mockSetCloseToTray(...args) },
       setNotificationEnabled: { invoke: (...args: any[]) => mockSetNotificationEnabled(...args) },
       setCronNotificationEnabled: { invoke: (...args: any[]) => mockSetCronNotificationEnabled(...args) },
+      setSaveUploadToWorkspace: { invoke: (...args: any[]) => mockSetSaveUploadToWorkspace(...args) },
     },
     dialog: {
       showOpen: { invoke: (...args: any[]) => mockShowOpen(...args) },
@@ -189,6 +193,7 @@ describe('SystemModalContent', () => {
     mockGetCloseToTray.mockResolvedValue(false);
     mockGetNotificationEnabled.mockResolvedValue(true);
     mockGetCronNotificationEnabled.mockResolvedValue(false);
+    mockGetSaveUploadToWorkspace.mockResolvedValue(false);
   });
 
   it('should render system settings with language switcher and preferences', async () => {
