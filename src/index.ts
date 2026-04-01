@@ -25,7 +25,7 @@ import { AION_ASSET_PROTOCOL } from '@process/extensions';
 import { initializeProcess } from './process';
 import { ProcessConfig } from './process/utils/initStorage';
 import { loadShellEnvironmentAsync, logEnvironmentDiagnostics, mergePaths } from './process/utils/shellEnv';
-import { initializeAcpDetector, registerWindowMaximizeListeners } from '@process/bridge';
+import { initializeAcpDetector, registerWindowMaximizeListeners, disposeAllTeamSessions } from '@process/bridge';
 import { onCloseToTrayChanged, onLanguageChanged } from './process/bridge/systemSettingsBridge';
 import { setInitialLanguage } from '@process/services/i18n';
 import { workerTaskManager } from './process/task/workerTaskManagerSingleton';
@@ -652,6 +652,9 @@ app.on('before-quit', async () => {
   destroyTray();
   // 在应用退出前清理工作进程
   workerTaskManager.clear();
+
+  // Stop all active team sessions (TCP servers + child processes)
+  await disposeAllTeamSessions().catch((err) => console.error('[App] Failed to dispose team sessions:', err));
 
   // Shutdown Channel subsystem
   try {

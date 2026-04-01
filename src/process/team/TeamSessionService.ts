@@ -234,4 +234,8 @@ export class TeamSessionService {
     await this.sessions.get(teamId)?.dispose();
     this.sessions.delete(teamId);
   }
+
+  async stopAllSessions(): Promise<void> {
+    await Promise.all(Array.from(this.sessions.keys()).map((id) => this.stopSession(id)));
+  }
 }

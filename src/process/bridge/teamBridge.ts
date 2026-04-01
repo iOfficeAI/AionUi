@@ -28,7 +28,10 @@ function safeProvider<R, P>(fn: (params: P) => Promise<R>) {
   };
 }
 
+let _teamSessionService: TeamSessionService | null = null;
+
 export function initTeamBridge(teamSessionService: TeamSessionService): void {
+  _teamSessionService = teamSessionService;
   ipcBridge.team.create.provider(
     safeProvider(async (params) => {
       return teamSessionService.createTeam(params);
@@ -77,4 +80,9 @@ export function initTeamBridge(teamSessionService: TeamSessionService): void {
       await teamSessionService.stopSession(teamId);
     })
   );
+}
+
+/** Stop all active team sessions (TCP servers + child processes). Call on app quit. */
+export function disposeAllTeamSessions(): Promise<void> {
+  return _teamSessionService?.stopAllSessions() ?? Promise.resolve();
 }

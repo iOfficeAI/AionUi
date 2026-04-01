@@ -280,6 +280,23 @@ export class TeammateManager extends EventEmitter {
       }
     }
 
+    // Auto-send idle notification to leader if agent didn't explicitly output one
+    const hasExplicitIdle = actions.some((a) => a.type === 'idle_notification');
+    if (!hasExplicitIdle && agent.role !== 'lead') {
+      const leadAgent = this.agents.find((a) => a.role === 'lead');
+      if (leadAgent && leadAgent.slotId !== agent.slotId) {
+        const summary = accumulatedText.slice(0, 200).trim() || 'Turn completed';
+        await this.mailbox.write({
+          teamId: this.teamId,
+          toAgentId: leadAgent.slotId,
+          fromAgentId: agent.slotId,
+          content: summary,
+          type: 'idle_notification',
+        });
+        await this.wake(leadAgent.slotId);
+      }
+    }
+
     // Only set idle if executeAction did not already change status (e.g. idle_notification)
     const currentAgent = this.agents.find((a) => a.slotId === agent.slotId);
     if (currentAgent?.status === 'active') {

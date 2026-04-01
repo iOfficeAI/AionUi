@@ -140,5 +140,6 @@ export {
   initWorkspaceSnapshotBridge,
 };
 export { disposeAllSnapshots } from './workspaceSnapshotBridge';
+export { disposeAllTeamSessions } from './teamBridge';
 // 导出窗口控制相关工具函数
 export { registerWindowMaximizeListeners } from './windowControlsBridge';

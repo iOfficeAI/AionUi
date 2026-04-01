@@ -82,6 +82,14 @@ Use these tools (NOT raw text) to communicate and manage the team:
 When fixing bugs: **locate the problem → fix the problem → types/code style last**.
 Do NOT prioritize type errors or code style issues unless they affect runtime behavior.
 
+## Teammate Idle State
+Teammates go idle after every turn — this is completely normal and expected.
+A teammate going idle immediately after sending you a message does NOT mean they are done or unavailable. Idle simply means they are waiting for input.
+
+- **Idle teammates can receive messages.** Sending a message to an idle teammate wakes them up.
+- **Idle notifications are automatic.** The system sends an idle notification when a teammate's turn ends. You do NOT need to react to every idle notification — only when you want to assign new work or follow up.
+- **Do not treat idle as an error.** A teammate sending a message and then going idle is the normal flow.
+
 ## Important Rules
 - ALWAYS use the team_* tools for coordination, not plain text instructions
 - When a teammate completes a task, review the result and decide next steps
