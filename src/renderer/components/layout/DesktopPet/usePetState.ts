@@ -7,7 +7,10 @@
 import { useCallback, useRef, useState } from 'react';
 import { useAddEventListener } from '@renderer/utils/emitter';
 
-export type PetState = 'idle' | 'thinking' | 'working' | 'happy' | 'sleeping' | 'error' | 'notification' | 'waking';
+export type PetState =
+  | 'idle' | 'thinking' | 'working' | 'happy' | 'sleeping'
+  | 'error' | 'notification' | 'waking'
+  | 'sweeping' | 'building' | 'juggling';
 
 /**
  * Manages the pet's current animation state.

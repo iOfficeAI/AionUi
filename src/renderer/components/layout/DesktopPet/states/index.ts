@@ -12,3 +12,6 @@ export { default as SleepingPet } from './SleepingPet';
 export { default as ErrorPet } from './ErrorPet';
 export { default as NotificationPet } from './NotificationPet';
 export { default as WakingPet } from './WakingPet';
+export { default as SweepingPet } from './SweepingPet';
+export { default as BuildingPet } from './BuildingPet';
+export { default as JugglingPet } from './JugglingPet';

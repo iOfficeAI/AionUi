@@ -17,6 +17,9 @@ import {
   ErrorPet,
   NotificationPet,
   WakingPet,
+  SweepingPet,
+  BuildingPet,
+  JugglingPet,
 } from './states';
 
 const STATE_COMPONENTS: Record<PetState, React.FC> = {
@@ -28,6 +31,9 @@ const STATE_COMPONENTS: Record<PetState, React.FC> = {
   error: ErrorPet,
   notification: NotificationPet,
   waking: WakingPet,
+  sweeping: SweepingPet,
+  building: BuildingPet,
+  juggling: JugglingPet,
 };
 
 const PET_SIZE = 80;
