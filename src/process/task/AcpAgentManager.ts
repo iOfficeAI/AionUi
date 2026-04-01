@@ -711,7 +711,6 @@ class AcpAgentManager extends BaseAgentManager<AcpAgentManagerData, AcpPermissio
               enabledSkills: this.options.enabledSkills,
             });
           }
-        }
 
           // Inject multi-agent orchestration capability on first message
           const enabledBackends = getEnabledAcpBackends()
