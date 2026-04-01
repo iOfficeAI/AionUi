@@ -12,11 +12,9 @@ import { loadPresetAssistantResources } from '@/renderer/utils/model/presetAssis
 import type { AvailableAgent } from '@/renderer/utils/model/agentTypes';
 import type { AcpBackend, AcpBackendAll } from '@/common/types/acpTypes';
 
-/** Platforms supported by aionrs */
-const AIONRS_SUPPORTED_PLATFORMS = ['anthropic', 'openai', 'ali-intl', 'aws'];
-
 /**
  * Get a model from configured providers that is compatible with aionrs.
+ * aionrs supports all platforms via OpenAI-compatible protocol.
  * Throws if no compatible provider is configured.
  */
 export async function getDefaultAionrsModel(): Promise<TProviderWithModel> {
@@ -26,9 +24,10 @@ export async function getDefaultAionrsModel(): Promise<TProviderWithModel> {
     throw new Error('No model provider configured');
   }
 
-  const provider = providers.find((p) => p.enabled !== false && AIONRS_SUPPORTED_PLATFORMS.includes(p.platform));
+  // aionrs supports all platforms via OpenAI-compatible protocol
+  const provider = providers.find((p) => p.enabled !== false);
   if (!provider) {
-    throw new Error('No compatible model provider for Aion CLI (requires Anthropic, OpenAI, or AWS)');
+    throw new Error('No enabled model provider for Aion CLI');
   }
 
   const enabledModel = provider.model.find((m) => provider.modelEnabled?.[m] !== false);

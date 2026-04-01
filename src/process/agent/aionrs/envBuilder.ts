@@ -18,6 +18,8 @@ function mapProvider(model: TProviderWithModel): AionrsProvider {
     'ali-intl': 'openai', // OpenAI-compatible
     aws: 'bedrock',
     vertex: 'vertex',
+    gemini: 'openai', // Gemini via OpenAI-compatible endpoint
+    'gemini-with-google-auth': 'openai',
   };
   return mapping[model.platform] ?? 'openai';
 }
@@ -70,6 +72,10 @@ export function buildSpawnConfig(
     case 'openai':
       if (model.apiKey) env.OPENAI_API_KEY = model.apiKey;
       if (model.baseUrl) env.OPENAI_BASE_URL = model.baseUrl;
+      // Gemini OpenAI-compatible endpoint
+      if (model.platform === 'gemini' && !model.baseUrl) {
+        env.OPENAI_BASE_URL = 'https://generativelanguage.googleapis.com/v1beta/openai';
+      }
       break;
 
     case 'bedrock': {
