@@ -28,6 +28,11 @@ export interface ConversationContextValue {
    * 会话类型
    */
   type: 'gemini' | 'acp' | 'codex' | 'openclaw-gateway' | 'nanobot' | 'remote';
+
+  /**
+   * Cron job ID (if this conversation was created by a scheduled task)
+   */
+  cronJobId?: string;
 }
 
 /**

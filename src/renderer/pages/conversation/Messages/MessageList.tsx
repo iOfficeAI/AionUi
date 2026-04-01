@@ -198,7 +198,8 @@ const MessageList: React.FC<{ className?: string }> = () => {
 
     for (let i = 0, len = list.length; i < len; i++) {
       const message = list[i];
-      // Skip available_commands messages
+      // Skip hidden and available_commands messages
+      if (message.hidden) continue;
       if (message.type === 'available_commands') continue;
       if (message.type === 'codex_tool_call' && message.content.subtype === 'turn_diff') {
         pushFileDffChanges(parseDiff((message.content as TurnDiffContent).data.unified_diff), message.id);
@@ -356,6 +357,7 @@ const MessageList: React.FC<{ className?: string }> = () => {
             className='flex-1 h-full pb-10px box-border'
             data={processedList}
             initialTopMostItemIndex={processedList.length - 1}
+            defaultItemHeight={40}
             atBottomThreshold={100}
             increaseViewportBy={1200}
             itemContent={renderItem}

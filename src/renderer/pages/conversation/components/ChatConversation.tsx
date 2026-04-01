@@ -155,7 +155,7 @@ const GeminiConversationPanel: React.FC<{ conversation: GeminiConversation; slid
     siderTitle: sliderTitle,
     sider: <ChatSider conversation={conversation} />,
     headerLeft: <GeminiModelSelector selection={modelSelection} />,
-    headerExtra: conversation.extra?.cronJobId ? undefined : <CronJobManager conversationId={conversation.id} />,
+    headerExtra: <CronJobManager conversationId={conversation.id} cronJobId={conversation.extra?.cronJobId as string | undefined} />,
     workspaceEnabled,
     backend: 'gemini' as const,
     // 传递预设助手信息 / Pass preset assistant info
@@ -196,6 +196,7 @@ const ChatConversation: React.FC<{
             backend={conversation.extra?.backend || 'claude'}
             sessionMode={conversation.extra?.sessionMode}
             agentName={(conversation.extra as { agentName?: string })?.agentName}
+            cronJobId={(conversation.extra as { cronJobId?: string })?.cronJobId}
           ></AcpChat>
         );
       case 'codex': // Legacy: new Codex conversations use ACP protocol. Kept for existing sessions.
@@ -314,11 +315,11 @@ const ChatConversation: React.FC<{
           />
         </div>
       )}
-      {conversation && !conversation.extra?.cronJobId ? (
+      {conversation && (
         <div className='shrink-0'>
-          <CronJobManager conversationId={conversation.id} />
+          <CronJobManager conversationId={conversation.id} cronJobId={conversation.extra?.cronJobId as string | undefined} />
         </div>
-      ) : null}
+      )}
     </div>
   );
 
