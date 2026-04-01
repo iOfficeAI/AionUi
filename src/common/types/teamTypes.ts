@@ -50,6 +50,12 @@ export type ITeamAgentSpawnedEvent = {
   agent: TeamAgent;
 };
 
+/** IPC event pushed to renderer when an agent is removed from the team */
+export type ITeamAgentRemovedEvent = {
+  teamId: string;
+  slotId: string;
+};
+
 /** IPC event for streaming agent messages to renderer */
 export type ITeamMessageEvent = {
   teamId: string;

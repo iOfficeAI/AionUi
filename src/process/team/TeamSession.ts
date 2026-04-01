@@ -126,6 +126,11 @@ export class TeamSession extends EventEmitter {
     this.teammateManager.addAgent(agent);
   }
 
+  /** Remove an agent from the team at runtime and clean up its state */
+  removeAgent(slotId: string): void {
+    this.teammateManager.removeAgent(slotId);
+  }
+
   /** Get current agent states */
   getAgents(): TeamAgent[] {
     return this.teammateManager.getAgents();

@@ -132,7 +132,7 @@ const TeamPageContent: React.FC<TeamPageContentProps> = ({ team, onAddAgent }) =
 };
 
 const TeamPage: React.FC<Props> = ({ team }) => {
-  const { statusMap, addAgent, renameAgent } = useTeamSession(team);
+  const { statusMap, addAgent, renameAgent, removeAgent } = useTeamSession(team);
   const { cliAgents, presetAssistants } = useConversationAgents();
   const defaultSlotId = team.agents[0]?.slotId ?? '';
 
@@ -160,6 +160,7 @@ const TeamPage: React.FC<Props> = ({ team }) => {
       statusMap={statusMap}
       defaultActiveSlotId={defaultSlotId}
       renameAgent={renameAgent}
+      removeAgent={removeAgent}
     >
       <TeamPageContent team={team} onAddAgent={handleAddAgent} />
     </TeamTabsProvider>

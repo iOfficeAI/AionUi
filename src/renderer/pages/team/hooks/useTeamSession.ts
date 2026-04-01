@@ -1,6 +1,7 @@
 // src/renderer/pages/team/hooks/useTeamSession.ts
 import { ipcBridge } from '@/common';
 import type {
+  ITeamAgentRemovedEvent,
   ITeamAgentSpawnedEvent,
   ITeamAgentStatusEvent,
   ITeamMessageEvent,
@@ -59,10 +60,17 @@ export function useTeamSession(team: TTeam) {
       void mutateTeam();
     });
 
+    const unsubRemoved = ipcBridge.team.agentRemoved.on((event: ITeamAgentRemovedEvent) => {
+      if (event.teamId !== team.id) return;
+      // Refresh team data so the removed agent's tab disappears
+      void mutateTeam();
+    });
+
     return () => {
       unsubStatus();
       unsubMessages();
       unsubSpawned();
+      unsubRemoved();
     };
   }, [team.id, mutateTeam]);
 
@@ -90,5 +98,13 @@ export function useTeamSession(team: TTeam) {
     [team.id, mutateTeam]
   );
 
-  return { statusMap, messages, sendMessage, addAgent, renameAgent };
+  const removeAgent = useCallback(
+    async (slotId: string) => {
+      await ipcBridge.team.removeAgent.invoke({ teamId: team.id, slotId });
+      await mutateTeam();
+    },
+    [team.id, mutateTeam]
+  );
+
+  return { statusMap, messages, sendMessage, addAgent, renameAgent, removeAgent };
 }

@@ -517,6 +517,31 @@ export class TeammateManager extends EventEmitter {
     }
   }
 
+  /** Remove an agent: cancel pending wake, clear buffers, remove from in-memory list */
+  removeAgent(slotId: string): void {
+    const agent = this.agents.find((a) => a.slotId === slotId);
+    if (!agent) return;
+
+    // Cancel any pending wake timeout
+    const timeoutHandle = this.wakeTimeouts.get(slotId);
+    if (timeoutHandle) {
+      clearTimeout(timeoutHandle);
+      this.wakeTimeouts.delete(slotId);
+    }
+    this.activeWakes.delete(slotId);
+
+    // Clean up buffers and owned conversation tracking
+    if (agent.conversationId) {
+      this.responseBuffer.delete(agent.conversationId);
+      this.ownedConversationIds.delete(agent.conversationId);
+      this.finalizedTurns.delete(agent.conversationId);
+    }
+
+    this.agents = this.agents.filter((a) => a.slotId !== slotId);
+    console.log(`[TeammateManager] Agent ${slotId} (${agent.agentName}) removed`);
+    ipcBridge.team.agentRemoved.emit({ teamId: this.teamId, slotId });
+  }
+
   /** Rename an agent. Updates in-memory state; caller is responsible for persistence. */
   renameAgent(slotId: string, newName: string): void {
     const trimmed = newName.trim();

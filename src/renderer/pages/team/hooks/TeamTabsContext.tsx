@@ -26,10 +26,12 @@ export const TeamTabsProvider: React.FC<{
 }> = ({ children, agents, statusMap, defaultActiveSlotId, renameAgent }) => {
   const [activeSlotId, setActiveSlotId] = useState(defaultActiveSlotId);
 
-  // Auto-switch to newly spawned agent's tab
+  // Auto-switch when active tab is removed or on first spawn
   useEffect(() => {
     if (agents.length > 0 && !agents.some((a) => a.slotId === activeSlotId)) {
-      setActiveSlotId(agents[agents.length - 1].slotId);
+      // Prefer leader tab; fall back to first agent
+      const leadAgent = agents.find((a) => a.role === 'lead');
+      setActiveSlotId(leadAgent?.slotId ?? agents[0].slotId);
     }
   }, [agents, activeSlotId]);
 

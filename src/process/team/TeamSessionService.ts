@@ -206,6 +206,13 @@ export class TeamSessionService {
   async removeAgent(teamId: string, slotId: string): Promise<void> {
     const team = await this.repo.findById(teamId);
     if (!team) throw new Error(`Team "${teamId}" not found`);
+
+    // If there's an active session, clean up in-memory state first
+    const session = this.sessions.get(teamId);
+    if (session) {
+      session.removeAgent(slotId);
+    }
+
     const updatedAgents = team.agents.filter((a) => a.slotId !== slotId);
     await this.repo.update(teamId, { agents: updatedAgents, updatedAt: Date.now() });
   }
