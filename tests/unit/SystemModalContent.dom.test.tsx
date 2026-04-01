@@ -205,6 +205,7 @@ describe('SystemModalContent', () => {
 
     expect(screen.getByText('settings.language')).toBeInTheDocument();
     expect(screen.getByText('settings.closeToTray')).toBeInTheDocument();
+    expect(screen.getByText('settings.saveUploadToWorkspace')).toBeInTheDocument();
   });
 
   it('should render DevTools toggle button', async () => {
