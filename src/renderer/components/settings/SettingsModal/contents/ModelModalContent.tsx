@@ -20,6 +20,7 @@ import EditModeModal from '@/renderer/pages/settings/components/EditModeModal';
 import AionScrollArea from '@/renderer/components/base/AionScrollArea';
 import { useSettingsViewMode } from '../settingsViewContext';
 import { consumePendingDeepLink } from '@/renderer/hooks/system/useDeepLink';
+import { classifyHealthCheckMessage } from './healthCheckUtils';
 import '../model-provider.css';
 
 /**
@@ -240,8 +241,13 @@ const ModelModalContent: React.FC = () => {
             );
           }
 
-          // 监听完成事件
-          if (msg.type === 'error') {
+          const action = classifyHealthCheckMessage(msg.type);
+
+          if (action === 'skip') {
+            return;
+          }
+
+          if (action === 'error') {
             const duration = Date.now() - startTime;
             // 输出错误链路到 console
             if (requestTraceData) {
@@ -261,11 +267,7 @@ const ModelModalContent: React.FC = () => {
             return;
           }
 
-          if (msg.type === 'start') {
-            return;
-          }
-
-          // 以“首个响应包到达时间”作为健康判定，避免流式完成时间过长影响检测
+          // 以”首个响应包到达时间”作为健康判定，避免流式完成时间过长影响检测
           const duration = Date.now() - startTime;
           if (requestTraceData) {
             const displayName = requestTraceData.backend || requestTraceData.provider || 'unknown';
