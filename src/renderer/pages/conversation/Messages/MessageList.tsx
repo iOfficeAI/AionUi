@@ -239,6 +239,7 @@ const MessageList: React.FC<{ className?: string }> = () => {
   // Use auto-scroll hook
   const {
     virtuosoRef,
+    handleScrollerRef,
     handleScroll,
     handleAtBottomStateChange,
     handleFollowOutput,
@@ -351,11 +352,12 @@ const MessageList: React.FC<{ className?: string }> = () => {
         <ImagePreviewContext.Provider value={{ inPreviewGroup: true }}>
           <Virtuoso
             ref={virtuosoRef}
+            scrollerRef={handleScrollerRef}
             className='flex-1 h-full pb-10px box-border'
             data={processedList}
             initialTopMostItemIndex={processedList.length - 1}
             atBottomThreshold={100}
-            increaseViewportBy={800}
+            increaseViewportBy={1200}
             itemContent={renderItem}
             followOutput={handleFollowOutput}
             onScroll={handleScroll}
