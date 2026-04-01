@@ -261,7 +261,7 @@ const Sider: React.FC<SiderProps> = ({ onSessionClick, collapsed = false }) => {
                   teams.map((team) => (
                     <div
                       key={team.id}
-                      className='h-36px flex items-center gap-8px px-8px rd-0.5rem cursor-pointer hover:bg-hover group'
+                      className='py-8px flex items-center px-12px rd-8px cursor-pointer hover:bg-hover group relative overflow-hidden shrink-0'
                       onClick={() => {
                         cleanupSiderTooltips();
                         blurActiveElement();
@@ -275,12 +275,12 @@ const Sider: React.FC<SiderProps> = ({ onSessionClick, collapsed = false }) => {
                     >
                       <People
                         theme='outline'
-                        size='16'
+                        size='20'
                         fill={iconColors.primary}
                         className='block leading-none shrink-0'
                         style={{ lineHeight: 0 }}
                       />
-                      <span className='text-t-primary text-14px truncate flex-1'>{team.name}</span>
+                      <span className='text-t-primary text-14px truncate flex-1 ml-10px'>{team.name}</span>
                       <Popconfirm
                         title={t('team.deleteConfirm', { defaultValue: 'Delete this team?' })}
                         onOk={async (e) => {
