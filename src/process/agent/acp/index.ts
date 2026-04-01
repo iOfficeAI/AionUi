@@ -1550,7 +1550,10 @@ export class AcpAgent {
    */
   async setMode(mode: string): Promise<{ success: boolean; error?: string }> {
     if (!this.connection.isConnected || !this.connection.hasActiveSession) {
-      return { success: false, error: 'No active session. Please send a message first to establish a session.' };
+      // No live session — persist the mode so it takes effect on next session start.
+      // AcpAgentManager reads extra.sessionMode during startSession().
+      this.extra.sessionMode = mode;
+      return { success: true };
     }
     try {
       await this.connection.setSessionMode(mode);
