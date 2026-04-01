@@ -1,9 +1,10 @@
 // src/process/team/TeammateManager.ts
 import { EventEmitter } from 'events';
 import { ipcBridge } from '@/common';
+import { teamEventBus } from './teamEventBus';
 import { addMessage } from '@process/utils/message';
 import type { IWorkerTaskManager } from '@process/task/IWorkerTaskManager';
-import type { IResponseMessage, IConversationTurnCompletedEvent } from '@/common/adapter/ipcBridge';
+import type { IResponseMessage } from '@/common/adapter/ipcBridge';
 import type { TeamAgent, TeammateStatus, TeamTask, ParsedAction, ITeamMessageEvent } from './types';
 import type { Mailbox } from './Mailbox';
 import type { TaskManager } from './TaskManager';
@@ -55,7 +56,6 @@ export class TeammateManager extends EventEmitter {
   private static readonly WAKE_TIMEOUT_MS = 60 * 1000;
 
   private readonly unsubResponseStream: () => void;
-  private readonly unsubTurnCompleted: () => void;
 
   constructor(params: TeammateManagerParams) {
     super();
@@ -71,13 +71,11 @@ export class TeammateManager extends EventEmitter {
       this.ownedConversationIds.add(agent.conversationId);
     }
 
-    this.unsubResponseStream = ipcBridge.conversation.responseStream.on((msg: IResponseMessage) => {
-      this.handleResponseStream(msg);
-    });
-
-    this.unsubTurnCompleted = ipcBridge.conversation.turnCompleted.on((event: IConversationTurnCompletedEvent) => {
-      void this.handleTurnCompleted(event);
-    });
+    // Listen on teamEventBus instead of ipcBridge: ipcBridge.emit() routes through
+    // webContents.send() and never triggers same-process .on() listeners.
+    const boundHandler = (msg: IResponseMessage) => this.handleResponseStream(msg);
+    teamEventBus.on('responseStream', boundHandler);
+    this.unsubResponseStream = () => teamEventBus.removeListener('responseStream', boundHandler);
   }
 
   /** Get the current agents list */
@@ -216,7 +214,6 @@ export class TeammateManager extends EventEmitter {
   /** Clean up all IPC listeners, timers, and EventEmitter handlers */
   dispose(): void {
     this.unsubResponseStream();
-    this.unsubTurnCompleted();
     for (const handle of this.wakeTimeouts.values()) {
       clearTimeout(handle);
     }
@@ -265,13 +262,6 @@ export class TeammateManager extends EventEmitter {
     if (msg.type === 'finish' || msg.type === 'error') {
       void this.finalizeTurn(msg.conversation_id);
     }
-  }
-
-  private async handleTurnCompleted(event: IConversationTurnCompletedEvent): Promise<void> {
-    // Fast O(1) check: skip events for conversations not owned by this team
-    if (!this.ownedConversationIds.has(event.sessionId)) return;
-    // Delegate to shared finalizeTurn (deduplication handled there)
-    void this.finalizeTurn(event.sessionId);
   }
 
   /**

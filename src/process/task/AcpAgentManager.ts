@@ -1,5 +1,6 @@
 import { AcpAgent } from '@process/agent/acp';
 import { channelEventBus } from '@process/channels/agent/ChannelEventBus';
+import { teamEventBus } from '@process/team/teamEventBus';
 import { ipcBridge } from '@/common';
 import type { CronMessageMeta, TMessage } from '@/common/chat/chatLib';
 import { isCodexAutoApproveMode } from '@/common/types/codex/codexModes';
@@ -463,6 +464,12 @@ class AcpAgentManager extends BaseAgentManager<AcpAgentManagerData, AcpPermissio
 
           const emitStart = Date.now();
           ipcBridge.acpConversation.responseStream.emit(message as IResponseMessage);
+          // Also emit to main-process-local bus so TeammateManager (same process)
+          // can receive events — ipcBridge.emit only delivers to renderer via webContents.send()
+          teamEventBus.emit('responseStream', {
+            ...(message as IResponseMessage),
+            conversation_id: this.conversation_id,
+          });
           const emitDuration = Date.now() - emitStart;
 
           // Also emit to Channel global event bus (Telegram/Lark streaming)
@@ -572,6 +579,11 @@ class AcpAgentManager extends BaseAgentManager<AcpAgentManagerData, AcpPermissio
           }
 
           ipcBridge.acpConversation.responseStream.emit(v);
+          // Also emit to main-process-local bus (same reason as onStreamEvent above)
+          teamEventBus.emit('responseStream', {
+            ...(v as IResponseMessage),
+            conversation_id: this.conversation_id,
+          });
 
           // Forward signals (finish/error/etc.) to Channel global event bus
           channelEventBus.emitAgentMessage(this.conversation_id, {
