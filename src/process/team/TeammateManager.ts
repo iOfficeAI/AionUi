@@ -368,7 +368,14 @@ export class TeammateManager extends EventEmitter {
       }
     }
 
-    // Auto-send idle notification to leader if agent didn't explicitly output one
+    // Only set idle if executeAction did not already change status (e.g. idle_notification)
+    const currentAgent = this.agents.find((a) => a.slotId === agent.slotId);
+    if (currentAgent?.status === 'active') {
+      this.setStatus(agent.slotId, 'idle');
+    }
+
+    // Auto-send idle notification to leader if agent didn't explicitly output one.
+    // Must run AFTER setStatus(idle) so maybeWakeLeaderWhenAllIdle sees the updated state.
     const hasExplicitIdle = actions.some((a) => a.type === 'idle_notification');
     if (!hasExplicitIdle && agent.role !== 'lead') {
       const leadAgent = this.agents.find((a) => a.role === 'lead');
@@ -381,14 +388,10 @@ export class TeammateManager extends EventEmitter {
           content: summary,
           type: 'idle_notification',
         });
-        void this.wake(leadAgent.slotId);
+        // Only wake leader when ALL non-lead teammates are idle/completed/failed/pending.
+        // This prevents death loops where each idle notification triggers a new leader turn.
+        this.maybeWakeLeaderWhenAllIdle(leadAgent.slotId);
       }
-    }
-
-    // Only set idle if executeAction did not already change status (e.g. idle_notification)
-    const currentAgent = this.agents.find((a) => a.slotId === agent.slotId);
-    if (currentAgent?.status === 'active') {
-      this.setStatus(agent.slotId, 'idle');
     }
   }
 
@@ -484,7 +487,8 @@ export class TeammateManager extends EventEmitter {
             content: action.summary,
             type: 'idle_notification',
           });
-          await this.wake(leadAgent.slotId);
+          // Only wake leader when ALL non-lead teammates are idle/completed/failed/pending.
+          this.maybeWakeLeaderWhenAllIdle(leadAgent.slotId);
         }
         break;
       }
@@ -492,6 +496,26 @@ export class TeammateManager extends EventEmitter {
       case 'plain_response':
         // Already forwarded via responseStream; nothing further needed
         break;
+    }
+  }
+
+  /**
+   * Wake the leader only when ALL non-lead teammates are settled (idle/completed/failed/pending).
+   * Prevents death loops where each individual idle notification triggers a new leader turn
+   * before other teammates have finished, causing the leader to re-dispatch work repeatedly.
+   */
+  private maybeWakeLeaderWhenAllIdle(leadSlotId: string): void {
+    const nonLeadAgents = this.agents.filter((a) => a.role !== 'lead');
+    if (nonLeadAgents.length === 0) return;
+    const allSettled = nonLeadAgents.every(
+      (a) =>
+        a.status === 'idle' ||
+        a.status === 'completed' ||
+        a.status === 'failed' ||
+        a.status === 'pending',
+    );
+    if (allSettled) {
+      void this.wake(leadSlotId);
     }
   }
 
