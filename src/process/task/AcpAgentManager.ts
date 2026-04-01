@@ -629,6 +629,7 @@ class AcpAgentManager extends BaseAgentManager<AcpAgentManagerData, AcpPermissio
     // Allow stream events through once user actually sends a message,
     // so initAgent progress (agent_status) is visible during the wait.
     this.bootstrapping = false;
+    this._lastActivityAt = Date.now();
 
     const managerSendStart = Date.now();
     // Mark conversation as busy to prevent cron jobs from running

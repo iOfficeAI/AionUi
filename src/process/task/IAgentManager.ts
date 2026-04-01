@@ -17,6 +17,8 @@ export interface IAgentManager {
   readonly status: AgentStatus | undefined;
   readonly workspace: string;
   readonly conversation_id: string;
+  /** Timestamp of the last sendMessage call. Used for idle-timeout cleanup. */
+  readonly lastActivityAt: number;
 
   sendMessage(data: unknown): Promise<void>;
   stop(): Promise<void>;

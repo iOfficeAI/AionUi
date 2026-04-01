@@ -11,13 +11,36 @@ import type { BuildConversationOptions, AgentType } from './agentTypes';
 import type { IConversationRepository } from '@process/services/database/IConversationRepository';
 import type { TChatConversation } from '@/common/config/storage';
 
+/** CLI-backed agents (acp, codex) idle for longer than this are killed to reclaim memory. */
+const AGENT_IDLE_TIMEOUT_MS = 30 * 60 * 1000;
+/** How often to scan for idle CLI-backed agents. */
+const AGENT_IDLE_CHECK_INTERVAL_MS = 5 * 60 * 1000;
+
 export class WorkerTaskManager implements IWorkerTaskManager {
   private taskList: Array<{ id: string; task: IAgentManager }> = [];
+  private idleCheckTimer: ReturnType<typeof setInterval> | undefined;
 
   constructor(
     private readonly factory: IAgentFactory,
     private readonly repo: IConversationRepository
-  ) {}
+  ) {
+    this.idleCheckTimer = setInterval(() => this.killIdleAcpTasks(), AGENT_IDLE_CHECK_INTERVAL_MS);
+  }
+
+  private killIdleAcpTasks(): void {
+    const now = Date.now();
+    const idleIds = this.taskList
+      .filter(
+        (item) =>
+          (item.task.type === 'acp' || item.task.type === 'codex') &&
+          item.task.status !== 'running' &&
+          now - item.task.lastActivityAt > AGENT_IDLE_TIMEOUT_MS
+      )
+      .map((item) => item.id);
+    for (const id of idleIds) {
+      this.kill(id);
+    }
+  }
 
   getTask(id: string): IAgentManager | undefined {
     return this.taskList.find((item) => item.id === id)?.task;
@@ -60,6 +83,8 @@ export class WorkerTaskManager implements IWorkerTaskManager {
   }
 
   clear(): void {
+    clearInterval(this.idleCheckTimer);
+    this.idleCheckTimer = undefined;
     this.taskList.forEach((item) => item.task.kill());
     this.taskList = [];
   }
