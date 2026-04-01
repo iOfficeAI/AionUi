@@ -291,9 +291,11 @@ const GuidPage: React.FC = () => {
     return fullLabel.replace(/^Assistant\s+/i, '').replace(/^助手/, '');
   }, [t]);
 
-  // Determine if model selector should be in Gemini mode
+  // Determine if model selector should use provider-based mode (Gemini & Aion CLI)
+  // Both gemini and aionrs use configured model providers, not ACP probe-based models
+  const PROVIDER_BASED_AGENTS = new Set(['gemini', 'aionrs']);
   const isGeminiMode =
-    (agentSelection.selectedAgent === 'gemini' && !agentSelection.isPresetAgent) ||
+    (PROVIDER_BASED_AGENTS.has(agentSelection.selectedAgent) && !agentSelection.isPresetAgent) ||
     (agentSelection.isPresetAgent &&
       agentSelection.currentEffectiveAgentInfo.agentType === 'gemini' &&
       agentSelection.currentEffectiveAgentInfo.isAvailable);
