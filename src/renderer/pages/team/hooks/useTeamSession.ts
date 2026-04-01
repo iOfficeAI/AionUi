@@ -82,5 +82,13 @@ export function useTeamSession(team: TTeam) {
     [team.id, mutateTeam]
   );
 
-  return { statusMap, messages, sendMessage, addAgent };
+  const renameAgent = useCallback(
+    async (slotId: string, newName: string) => {
+      await ipcBridge.team.renameAgent.invoke({ teamId: team.id, slotId, newName });
+      await mutateTeam();
+    },
+    [team.id, mutateTeam]
+  );
+
+  return { statusMap, messages, sendMessage, addAgent, renameAgent };
 }

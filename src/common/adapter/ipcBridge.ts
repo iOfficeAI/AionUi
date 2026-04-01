@@ -1188,6 +1188,7 @@ export const team = {
   removeAgent: bridge.buildProvider<void, { teamId: string; slotId: string }>('team.remove-agent'),
   sendMessage: bridge.buildProvider<void, { teamId: string; content: string }>('team.send-message'),
   stop: bridge.buildProvider<void, { teamId: string }>('team.stop'),
+  renameAgent: bridge.buildProvider<void, { teamId: string; slotId: string; newName: string }>('team.rename-agent'),
   messageStream: bridge.buildEmitter<import('@process/team/types').ITeamMessageEvent>('team.message.stream'),
   agentStatusChanged: bridge.buildEmitter<import('@process/team/types').ITeamAgentStatusEvent>('team.agent.status'),
   agentSpawned: bridge.buildEmitter<import('@/common/types/teamTypes').ITeamAgentSpawnedEvent>('team.agent.spawned'),

@@ -61,7 +61,8 @@ export class TeamSessionService {
         // Ensure teamId is in extra regardless of which factory function was used
         // (some factories like createCodexAgent/createGeminiAgent drop unknown extra fields)
         await this.conversationService.updateConversation(conversation.id, { extra: { teamId } } as any, true);
-        return { ...agent, conversationId: conversation.id };
+        const slotId = agent.slotId || `slot-${uuid(8)}`;
+        return { ...agent, slotId, conversationId: conversation.id };
       })
     );
 
@@ -175,6 +176,20 @@ export class TeamSessionService {
     if (agentType === 'nanobot') return 'nanobot';
     if (agentType === 'remote') return 'remote';
     return 'acp';
+  }
+
+  async renameAgent(teamId: string, slotId: string, newName: string): Promise<void> {
+    // Update in-memory session if running
+    const session = this.sessions.get(teamId);
+    if (session) {
+      session.renameAgent(slotId, newName);
+      return; // TeamSession.renameAgent already persists
+    }
+    // No active session — update DB directly
+    const team = await this.repo.findById(teamId);
+    if (!team) throw new Error(`Team "${teamId}" not found`);
+    const updatedAgents = team.agents.map((a) => (a.slotId === slotId ? { ...a, agentName: newName.trim() } : a));
+    await this.repo.update(teamId, { agents: updatedAgents, updatedAt: Date.now() });
   }
 
   async removeAgent(teamId: string, slotId: string): Promise<void> {

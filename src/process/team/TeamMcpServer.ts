@@ -21,6 +21,7 @@ type TeamMcpServerParams = {
   mailbox: Mailbox;
   taskManager: TaskManager;
   spawnAgent?: SpawnAgentFn;
+  renameAgent?: (slotId: string, newName: string) => void;
   wakeAgent: (slotId: string) => Promise<void>;
 };
 
@@ -224,6 +225,8 @@ export class TeamMcpServer {
         return this.handleTaskList();
       case 'team_members':
         return this.handleTeamMembers();
+      case 'team_rename_agent':
+        return this.handleRenameAgent(args);
       default:
         throw new Error(`Unknown tool: ${toolName}`);
     }
@@ -356,5 +359,26 @@ export class TeamMcpServer {
     }
     const lines = agents.map((a) => `- ${a.agentName} (type: ${a.agentType}, role: ${a.role}, status: ${a.status})`);
     return `## Team Members\n${lines.join('\n')}`;
+  }
+
+  private handleRenameAgent(args: Record<string, unknown>): string {
+    const agentRef = String(args.agent ?? '');
+    const newName = String(args.new_name ?? '');
+
+    if (!this.params.renameAgent) {
+      throw new Error('Agent renaming is not available for this team.');
+    }
+
+    const resolvedSlotId = this.resolveSlotId(agentRef);
+    if (!resolvedSlotId) {
+      const agents = this.params.getAgents();
+      throw new Error(`Agent "${agentRef}" not found. Available: ${agents.map((a) => a.agentName).join(', ')}`);
+    }
+
+    const agents = this.params.getAgents();
+    const oldName = agents.find((a) => a.slotId === resolvedSlotId)?.agentName ?? agentRef;
+
+    this.params.renameAgent(resolvedSlotId, newName);
+    return `Agent renamed: "${oldName}" → "${newName.trim()}"`;
   }
 }

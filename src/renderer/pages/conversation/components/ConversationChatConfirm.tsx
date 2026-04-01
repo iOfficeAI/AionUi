@@ -22,9 +22,15 @@ const ConversationChatConfirm: React.FC<PropsWithChildren<{ conversation_id: str
   const agentType = conversationContext?.type || 'unknown';
   const teamPermission = useTeamPermission();
 
-  // In team mode, listen on all team conversation IDs; in standalone mode, only this conversation
+  // In team mode: lead listens to all agents (centralized approval hub),
+  // members only listen to their own conversation (so other agents' confirmations don't block their SendBox).
+  // In standalone mode: only this conversation.
   const listenConversationIds = useMemo(
-    () => (teamPermission ? teamPermission.allConversationIds : [conversation_id]),
+    () => {
+      if (!teamPermission) return [conversation_id];
+      if (teamPermission.isLeadAgent) return teamPermission.allConversationIds;
+      return [conversation_id];
+    },
     [teamPermission, conversation_id]
   );
 

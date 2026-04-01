@@ -68,6 +68,12 @@ export function initTeamBridge(teamSessionService: TeamSessionService): void {
     })
   );
 
+  ipcBridge.team.renameAgent.provider(
+    safeProvider(async ({ teamId, slotId, newName }) => {
+      await teamSessionService.renameAgent(teamId, slotId, newName);
+    })
+  );
+
   ipcBridge.team.sendMessage.provider(
     safeProvider(async ({ teamId, content }) => {
       const session = await teamSessionService.getOrStartSession(teamId);

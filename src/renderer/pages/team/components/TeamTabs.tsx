@@ -1,4 +1,4 @@
-import { Plus } from '@icon-park/react';
+import { Edit, Plus } from '@icon-park/react';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { getAgentLogo } from '@/renderer/utils/model/agentLogo';
 import { iconColors } from '@/renderer/styles/colors';
@@ -17,6 +17,7 @@ type TeamTabViewProps = {
   status: TeammateStatus;
   isLead: boolean;
   onSwitch: (slotId: string) => void;
+  onRename?: (slotId: string, newName: string) => void;
 };
 
 const TeamTabView: React.FC<TeamTabViewProps> = ({
@@ -27,16 +28,60 @@ const TeamTabView: React.FC<TeamTabViewProps> = ({
   status,
   isLead,
   onSwitch,
+  onRename,
 }) => {
   const logo = getAgentLogo(agentType);
+  const [editing, setEditing] = useState(false);
+  const [editValue, setEditValue] = useState(agentName);
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    if (editing) {
+      inputRef.current?.focus();
+      inputRef.current?.select();
+    }
+  }, [editing]);
+
+  const commitRename = useCallback(() => {
+    const trimmed = editValue.trim();
+    setEditing(false);
+    if (trimmed && trimmed !== agentName && onRename) {
+      onRename(slotId, trimmed);
+    } else {
+      setEditValue(agentName);
+    }
+  }, [editValue, agentName, slotId, onRename]);
+
+  const handleKeyDown = useCallback(
+    (e: React.KeyboardEvent) => {
+      if (e.key === 'Enter') {
+        commitRename();
+      } else if (e.key === 'Escape') {
+        setEditValue(agentName);
+        setEditing(false);
+      }
+    },
+    [commitRename, agentName]
+  );
+
+  const startEditing = useCallback(
+    (e: React.MouseEvent) => {
+      e.stopPropagation();
+      setEditValue(agentName);
+      setEditing(true);
+    },
+    [agentName]
+  );
+
   return (
     <div
-      className={`flex items-center gap-8px px-12px h-full max-w-240px cursor-pointer transition-all duration-200 shrink-0 border-r border-[color:var(--border-base)] ${
+      className={`group flex items-center gap-8px px-12px h-full max-w-240px cursor-pointer transition-all duration-200 shrink-0 border-r border-[color:var(--border-base)] ${
         isActive
           ? 'bg-1 text-[color:var(--color-text-1)] font-medium'
           : 'bg-2 text-[color:var(--color-text-3)] hover:text-[color:var(--color-text-2)] border-b border-[color:var(--border-base)]'
       }`}
-      onClick={() => onSwitch(slotId)}
+      onClick={() => !editing && onSwitch(slotId)}
+      onDoubleClick={onRename ? startEditing : undefined}
     >
       <AgentStatusBadge status={status} />
       {logo && (
@@ -46,8 +91,27 @@ const TeamTabView: React.FC<TeamTabViewProps> = ({
           className={`w-14px h-14px object-contain rounded-2px ${isActive ? 'opacity-100' : 'opacity-70'}`}
         />
       )}
-      <span className='text-15px whitespace-nowrap overflow-hidden text-ellipsis select-none flex-1'>{agentName}</span>
+      {editing ? (
+        <input
+          ref={inputRef}
+          className='text-15px flex-1 min-w-0 bg-transparent border-none outline-none text-[color:var(--color-text-1)] p-0'
+          value={editValue}
+          onChange={(e) => setEditValue(e.target.value)}
+          onBlur={commitRename}
+          onKeyDown={handleKeyDown}
+        />
+      ) : (
+        <span className='text-15px whitespace-nowrap overflow-hidden text-ellipsis select-none flex-1'>{agentName}</span>
+      )}
       {isLead && <span className='text-xs text-[color:var(--color-text-4)]'>&#9656;</span>}
+      {!editing && onRename && (
+        <span
+          className='opacity-0 group-hover:opacity-60 hover:!opacity-100 transition-opacity duration-150 shrink-0 flex items-center'
+          onClick={startEditing}
+        >
+          <Edit theme='outline' size='12' fill='currentColor' />
+        </span>
+      )}
     </div>
   );
 };
@@ -82,7 +146,7 @@ type TeamTabsProps = {
  * Supports scroll overflow with fade indicators and add-agent dropdown.
  */
 const TeamTabs: React.FC<TeamTabsProps> = ({ onAddAgent }) => {
-  const { agents, activeSlotId, statusMap, switchTab } = useTeamTabs();
+  const { agents, activeSlotId, statusMap, switchTab, renameAgent } = useTeamTabs();
   const tabsContainerRef = useRef<HTMLDivElement>(null);
   const [showLeftFade, setShowLeftFade] = useState(false);
   const [showRightFade, setShowRightFade] = useState(false);
@@ -133,6 +197,7 @@ const TeamTabs: React.FC<TeamTabsProps> = ({ onAddAgent }) => {
                 status={statusInfo?.status ?? agent.status}
                 isLead={agent.role === 'lead'}
                 onSwitch={switchTab}
+                onRename={renameAgent ? (sid, name) => void renameAgent(sid, name) : undefined}
               />
             );
           })}

@@ -21,6 +21,7 @@ type SpawnAgentFn = (agentName: string, agentType?: string) => Promise<TeamAgent
 export class TeamSession extends EventEmitter {
   readonly teamId: string;
   private readonly team: TTeam;
+  private readonly repo: ITeamRepository;
   private readonly mailbox: Mailbox;
   private readonly taskManager: TaskManager;
   private readonly teammateManager: TeammateManager;
@@ -31,6 +32,7 @@ export class TeamSession extends EventEmitter {
     super();
     this.team = team;
     this.teamId = team.id;
+    this.repo = repo;
     this.mailbox = new Mailbox(repo);
     this.taskManager = new TaskManager(repo);
     this.teammateManager = new TeammateManager({
@@ -49,6 +51,10 @@ export class TeamSession extends EventEmitter {
       mailbox: this.mailbox,
       taskManager: this.taskManager,
       spawnAgent,
+      renameAgent: (slotId: string, newName: string) => {
+        this.teammateManager.renameAgent(slotId, newName);
+        void this.repo.update(team.id, { agents: this.teammateManager.getAgents(), updatedAt: Date.now() });
+      },
       wakeAgent: (slotId: string) => this.teammateManager.wake(slotId),
     });
   }
@@ -113,6 +119,12 @@ export class TeamSession extends EventEmitter {
     }
 
     await this.teammateManager.wake(leadSlotId);
+  }
+
+  /** Rename an agent and persist to DB */
+  renameAgent(slotId: string, newName: string): void {
+    this.teammateManager.renameAgent(slotId, newName);
+    void this.repo.update(this.teamId, { agents: this.teammateManager.getAgents(), updatedAt: Date.now() });
   }
 
   /** Add a new agent to the team at runtime */

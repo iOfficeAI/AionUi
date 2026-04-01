@@ -12,6 +12,7 @@ export type TeamTabsContextValue = {
   activeSlotId: string;
   statusMap: Map<string, AgentStatusInfo>;
   switchTab: (slotId: string) => void;
+  renameAgent?: (slotId: string, newName: string) => Promise<void>;
 };
 
 const TeamTabsContext = createContext<TeamTabsContextValue | null>(null);
@@ -21,7 +22,8 @@ export const TeamTabsProvider: React.FC<{
   agents: TeamAgent[];
   statusMap: Map<string, AgentStatusInfo>;
   defaultActiveSlotId: string;
-}> = ({ children, agents, statusMap, defaultActiveSlotId }) => {
+  renameAgent?: (slotId: string, newName: string) => Promise<void>;
+}> = ({ children, agents, statusMap, defaultActiveSlotId, renameAgent }) => {
   const [activeSlotId, setActiveSlotId] = useState(defaultActiveSlotId);
 
   // Auto-switch to newly spawned agent's tab
@@ -36,7 +38,7 @@ export const TeamTabsProvider: React.FC<{
   }, []);
 
   return (
-    <TeamTabsContext.Provider value={{ agents, activeSlotId, statusMap, switchTab }}>
+    <TeamTabsContext.Provider value={{ agents, activeSlotId, statusMap, switchTab, renameAgent }}>
       {children}
     </TeamTabsContext.Provider>
   );

@@ -384,6 +384,23 @@ export class TeammateManager extends EventEmitter {
     }
   }
 
+  /** Rename an agent. Updates in-memory state; caller is responsible for persistence. */
+  renameAgent(slotId: string, newName: string): void {
+    const trimmed = newName.trim();
+    if (!trimmed) throw new Error('Agent name cannot be empty');
+
+    const agent = this.agents.find((a) => a.slotId === slotId);
+    if (!agent) throw new Error(`Agent "${slotId}" not found`);
+
+    const needle = TeammateManager.normalize(trimmed);
+    const duplicate = this.agents.find((a) => a.slotId !== slotId && TeammateManager.normalize(a.agentName) === needle);
+    if (duplicate) throw new Error(`Agent name "${trimmed}" is already taken by ${duplicate.slotId}`);
+
+    const oldName = agent.agentName;
+    this.agents = this.agents.map((a) => (a.slotId === slotId ? { ...a, agentName: trimmed } : a));
+    console.log(`[TeammateManager] Agent ${slotId} renamed: "${oldName}" → "${trimmed}"`);
+  }
+
   /**
    * Resolve an agent identifier (slotId or agentName) to a slotId.
    * Agent outputs may reference teammates by name rather than slotId.
