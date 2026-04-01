@@ -238,16 +238,19 @@ export class TeammateManager extends EventEmitter {
       this.setStatus(agent.slotId, 'active');
     }
 
-    // Forward to renderer
-    const teamMsg: ITeamMessageEvent = {
-      teamId: this.teamId,
-      slotId: agent.slotId,
-      type: msg.type,
-      data: msg.data,
-      msg_id: msg.msg_id,
-      conversation_id: msg.conversation_id,
-    };
-    ipcBridge.team.messageStream.emit(teamMsg);
+    // Forward content events to renderer (skip finish/error/null-data — renderer
+    // already receives those directly via ipcBridge.acpConversation.responseStream)
+    if (msg.data != null && msg.type !== 'finish' && msg.type !== 'error') {
+      const teamMsg: ITeamMessageEvent = {
+        teamId: this.teamId,
+        slotId: agent.slotId,
+        type: msg.type,
+        data: msg.data,
+        msg_id: msg.msg_id,
+        conversation_id: msg.conversation_id,
+      };
+      ipcBridge.team.messageStream.emit(teamMsg);
+    }
 
     // Accumulate text content for later parsing
     const text = (msg.data as { text?: string } | null)?.text;
