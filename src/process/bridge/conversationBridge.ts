@@ -118,13 +118,18 @@ export function initConversationBridge(
       console.warn('[conversationBridge] Rejecting create request with invalid conversation type:', params?.type);
       return undefined as unknown as TChatConversation;
     }
-    const conversation = await conversationService.createConversation({
-      ...params,
-      source: 'aionui', // Mark conversations created by AionUI as aionui
-    });
-    emitConversationListChanged(conversation, 'created');
-    await refreshTrayMenuSafely();
-    return conversation;
+    try {
+      const conversation = await conversationService.createConversation({
+        ...params,
+        source: 'aionui', // Mark conversations created by AionUI as aionui
+      });
+      emitConversationListChanged(conversation, 'created');
+      await refreshTrayMenuSafely();
+      return conversation;
+    } catch (error) {
+      console.error('[conversationBridge] Failed to create conversation:', error);
+      throw error;
+    }
   });
 
   // Manually reload conversation context (Gemini): inject recent history into memory
