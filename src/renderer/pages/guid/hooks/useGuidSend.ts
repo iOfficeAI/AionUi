@@ -300,6 +300,54 @@ export const useGuidSend = (deps: GuidSendDeps): GuidSendResult => {
       return;
     }
 
+    // Aionrs path
+    if (selectedAgent === 'aionrs') {
+      const aionrsAgentInfo = agentInfo || findAgentByKey(selectedAgentKey);
+
+      try {
+        const conversation = await ipcBridge.conversation.create.invoke({
+          type: 'aionrs',
+          name: input,
+          model: currentModel!,
+          extra: {
+            defaultFiles: files,
+            workspace: finalWorkspace,
+            customWorkspace: isCustomWorkspace,
+            presetRules: isPreset ? presetRules : undefined,
+            enabledSkills: isPreset ? enabledSkills : undefined,
+            presetAssistantId: isPreset ? aionrsAgentInfo?.customAgentId : undefined,
+            sessionMode: selectedMode,
+          },
+        });
+
+        if (!conversation || !conversation.id) {
+          alert('Failed to create Aion CLI conversation. Please ensure aionrs is installed.');
+          return;
+        }
+
+        if (isCustomWorkspace) {
+          closeAllTabs();
+          updateWorkspaceTime(finalWorkspace);
+          openTab(conversation);
+        }
+
+        emitter.emit('chat.history.refresh');
+
+        const initialMessage = {
+          input,
+          files: files.length > 0 ? files : undefined,
+        };
+        sessionStorage.setItem(`aionrs_initial_message_${conversation.id}`, JSON.stringify(initialMessage));
+
+        await navigate(`/conversation/${conversation.id}`);
+      } catch (error: unknown) {
+        const errorMessage = error instanceof Error ? error.message : String(error);
+        alert(`Failed to create Aion CLI conversation: ${errorMessage}`);
+        throw error;
+      }
+      return;
+    }
+
     // ACP path (including preset with claude agent type)
     {
       // Agent-type fallback only applies to preset assistants whose primary agent

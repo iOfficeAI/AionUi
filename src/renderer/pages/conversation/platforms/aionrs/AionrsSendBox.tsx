@@ -220,6 +220,33 @@ const AionrsSendBox: React.FC<{
     onExecute: executeCommand,
   });
 
+  // Handle initial message from Guid page
+  useEffect(() => {
+    if (!conversation_id) return;
+
+    const storageKey = `aionrs_initial_message_${conversation_id}`;
+    const processedKey = `aionrs_initial_processed_${conversation_id}`;
+
+    const processInitialMessage = async () => {
+      if (sessionStorage.getItem(processedKey)) return;
+      const storedMessage = sessionStorage.getItem(storageKey);
+      if (!storedMessage) return;
+
+      sessionStorage.setItem(processedKey, '1');
+      sessionStorage.removeItem(storageKey);
+
+      try {
+        const { input, files: initialFiles } = JSON.parse(storedMessage);
+        await executeCommand({ input, files: initialFiles || [] });
+      } catch (error) {
+        console.error('[AionrsSendBox] Failed to send initial message:', error);
+        sessionStorage.removeItem(processedKey);
+      }
+    };
+
+    void processInitialMessage();
+  }, [conversation_id, executeCommand]);
+
   const onSendHandler = async (message: string) => {
     const filesToSend = collectSelectedFiles(uploadFile, atPath);
     clearFiles();
