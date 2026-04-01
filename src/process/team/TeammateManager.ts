@@ -132,6 +132,33 @@ export class TeammateManager extends EventEmitter {
       ]);
       const teammates = this.agents.filter((a) => a.slotId !== slotId);
 
+      // Write each mailbox message into agent's conversation as user bubble
+      // so the UI shows what triggered this agent's response
+      if (agent.conversationId && mailboxMessages.length > 0) {
+        for (const msg of mailboxMessages) {
+          const sender = this.agents.find((a) => a.slotId === msg.fromAgentId);
+          const senderName = msg.fromAgentId === 'user' ? 'User' : (sender?.agentName ?? msg.fromAgentId);
+          const displayContent =
+            mailboxMessages.length > 1 ? `[${senderName}] ${msg.content}` : msg.content;
+          const msgId = crypto.randomUUID();
+          addMessage(agent.conversationId, {
+            id: msgId,
+            msg_id: msgId,
+            type: 'text',
+            position: 'right',
+            conversation_id: agent.conversationId,
+            content: { content: displayContent },
+            createdAt: Date.now(),
+          });
+          ipcBridge.conversation.responseStream.emit({
+            type: 'user_content',
+            conversation_id: agent.conversationId,
+            msg_id: msgId,
+            data: displayContent,
+          });
+        }
+      }
+
       const availableAgentTypes = acpDetector.getDetectedAgents().map((a) => ({
         type: a.backend,
         name: a.name,
