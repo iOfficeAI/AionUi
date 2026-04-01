@@ -138,9 +138,12 @@ async function runLifecycleHook(
     });
 
     child.on('exit', (code) => {
-      // If already settled by 'message', this is a no-op
+      // Fallback: settle on any exit, in case the child exits without sending a message
+      // (e.g. IPC disconnect, unexpected early exit). settle() is idempotent.
       if (code !== 0) {
         settle(false, `child process exited with code ${code}`);
+      } else {
+        settle(false, 'child process exited without sending a result');
       }
     });
 
