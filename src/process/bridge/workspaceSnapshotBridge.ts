@@ -10,9 +10,6 @@ import { WorkspaceSnapshotService } from '@process/services/WorkspaceSnapshotSer
 const snapshotService = new WorkspaceSnapshotService();
 
 export function initWorkspaceSnapshotBridge(): void {
-  // Fire-and-forget: clean up leftover snapshot dirs from previous sessions
-  WorkspaceSnapshotService.cleanupStaleSnapshots().catch(() => {});
-
   ipcBridge.fileSnapshot.init.provider(async ({ workspace }) => {
     return snapshotService.init(workspace);
   });
