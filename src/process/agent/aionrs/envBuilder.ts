@@ -28,6 +28,20 @@ function mapProvider(model: TProviderWithModel): AionrsProvider {
   return mapping[model.platform] ?? 'openai';
 }
 
+const GEMINI_OPENAI_COMPAT_PATH = '/v1beta/openai';
+
+/**
+ * Resolve base URL for OpenAI-compatible providers.
+ * For Gemini, ensure the URL includes the `/v1beta/openai` path suffix.
+ */
+function resolveOpenAIBaseUrl(model: TProviderWithModel): string {
+  if (model.platform === 'gemini') {
+    const raw = (model.baseUrl || 'https://generativelanguage.googleapis.com').replace(/\/+$/, '');
+    return raw.endsWith(GEMINI_OPENAI_COMPAT_PATH) ? raw : `${raw}${GEMINI_OPENAI_COMPAT_PATH}`;
+  }
+  return model.baseUrl || '';
+}
+
 /**
  * Strip trailing `/v1` (with optional trailing slash) from a base URL.
  * aionrs appends `/v1/chat/completions` internally, so passing a URL
@@ -80,8 +94,7 @@ export function buildSpawnConfig(
 
     case 'openai': {
       if (model.apiKey) env.OPENAI_API_KEY = model.apiKey;
-      const baseUrl =
-        model.baseUrl || (model.platform === 'gemini' ? 'https://generativelanguage.googleapis.com/v1beta/openai' : '');
+      const baseUrl = resolveOpenAIBaseUrl(model);
       if (baseUrl) args.push('--base-url', stripTrailingV1(baseUrl));
       break;
     }
@@ -115,15 +128,30 @@ export function buildSpawnConfig(
  * Build `.aionrs.toml` project config content for provider compat overrides.
  * Returns non-empty string only when overrides are needed.
  *
- * OpenAI official API requires `max_completion_tokens` instead of `max_tokens`
- * for newer models (gpt-5.x, o-series, etc.).
+ * - Gemini's OpenAI-compatible endpoint already includes version in the base URL
+ *   (`/v1beta/openai`), so we override api_path to `/chat/completions` to avoid
+ *   the default `/v1/chat/completions` which would produce a 404.
+ * - OpenAI official API requires `max_completion_tokens` instead of `max_tokens`
+ *   for newer models (gpt-5.x, o-series, etc.).
  */
 function buildProjectConfig(model: TProviderWithModel, provider: AionrsProvider): string {
   if (provider !== 'openai') return '';
 
-  // Only override for OpenAI official API; third-party compatible APIs use default max_tokens
-  const baseUrl = model.baseUrl || '';
-  if (!baseUrl || !isOpenAIHost(baseUrl)) return '';
+  const lines: string[] = [];
 
-  return ['[providers.openai.compat]', 'max_tokens_field = "max_completion_tokens"', ''].join('\n');
+  // Gemini uses /v1beta/openai as base URL — skip the default /v1 prefix
+  if (model.platform === 'gemini') {
+    lines.push('[providers.openai.compat]', 'api_path = "/chat/completions"');
+  }
+
+  // OpenAI official API needs max_completion_tokens for newer models
+  const baseUrl = model.baseUrl || '';
+  if (baseUrl && isOpenAIHost(baseUrl)) {
+    if (lines.length === 0) lines.push('[providers.openai.compat]');
+    lines.push('max_tokens_field = "max_completion_tokens"');
+  }
+
+  if (lines.length === 0) return '';
+  lines.push('');
+  return lines.join('\n');
 }
