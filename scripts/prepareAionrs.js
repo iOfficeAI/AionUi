@@ -178,7 +178,8 @@ function downloadAndExtract(platform, arch, version) {
 function prepareAionrs() {
   const projectRoot = path.resolve(__dirname, '..');
   const platform = process.platform;
-  const arch = process.arch;
+  // Support cross-compilation: AIONRS_ARCH > npm_config_target_arch > process.arch
+  const arch = process.env.AIONRS_ARCH || process.env.npm_config_target_arch || process.arch;
   const runtimeKey = `${platform}-${arch}`;
   const version = getVersion();
 
