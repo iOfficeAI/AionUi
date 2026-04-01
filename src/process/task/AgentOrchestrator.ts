@@ -14,11 +14,11 @@
  * - 委派具有传递性：子 agent 也可以再委派给孙 agent
  */
 
-import { uuid } from '@/common/utils';
+import { uuid } from "@/common/utils";
 
 // ── 委派状态机 ────────────────────────────────────────────────────────────────
 
-export type DelegationStatus = 'pending' | 'running' | 'completed' | 'failed';
+export type DelegationStatus = "pending" | "running" | "completed" | "failed";
 
 export interface IAgentDelegation {
   /** 委派任务唯一 ID */
@@ -59,7 +59,7 @@ export class AgentOrchestrator {
     options?: {
       sharedContext?: string;
       parentDelegationId?: string;
-    }
+    },
   ): IAgentDelegation {
     const delegation: IAgentDelegation = {
       id: uuid(),
@@ -68,7 +68,7 @@ export class AgentOrchestrator {
       taskDescription,
       sharedContext: options?.sharedContext,
       parentDelegationId: options?.parentDelegationId,
-      status: 'pending',
+      status: "pending",
       createdAt: Date.now(),
     };
     this.delegations.set(delegation.id, delegation);
@@ -84,7 +84,7 @@ export class AgentOrchestrator {
   updateDelegation(
     id: string,
     status: DelegationStatus,
-    payload?: { result?: string; error?: string }
+    payload?: { result?: string; error?: string },
   ): IAgentDelegation | null {
     const delegation = this.delegations.get(id);
     if (!delegation) return null;
@@ -94,7 +94,7 @@ export class AgentOrchestrator {
     if (payload?.error !== undefined) delegation.error = payload.error;
 
     // 完成或失败后延迟清理，保留足够时间供调用方读取结果
-    if (status === 'completed' || status === 'failed') {
+    if (status === "completed" || status === "failed") {
       setTimeout(() => this.delegations.delete(id), 5 * 60 * 1000);
     }
 
@@ -107,7 +107,7 @@ export class AgentOrchestrator {
 
   getActiveDelegations(): IAgentDelegation[] {
     return Array.from(this.delegations.values()).filter(
-      (d) => d.status === 'pending' || d.status === 'running'
+      (d) => d.status === "pending" || d.status === "running",
     );
   }
 }
