@@ -57,6 +57,13 @@ vi.mock('@arco-design/web-react', () => ({
   Tooltip: ({ children }: { children: React.ReactNode }) => <>{children}</>,
   Avatar: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
   Space: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
+  Button: ({ children, onClick }: { children: React.ReactNode; onClick?: () => void }) => (
+    <button onClick={onClick}>{children}</button>
+  ),
+  Dropdown: ({ children }: { children: React.ReactNode }) => <>{children}</>,
+  Menu: Object.assign(({ children }: { children: React.ReactNode }) => <div>{children}</div>, {
+    Item: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
+  }),
   Switch: ({ checked, onChange }: { checked?: boolean; onChange?: (v: boolean) => void }) => (
     <button role='switch' aria-checked={checked} onClick={() => onChange?.(!checked)}>
       switch
@@ -64,9 +71,19 @@ vi.mock('@arco-design/web-react', () => ({
   ),
 }));
 
+vi.mock('@/renderer/components/base/AionModal', () => ({
+  default: ({ children, visible }: { children: React.ReactNode; visible: boolean }) =>
+    visible ? <div>{children}</div> : null,
+}));
+
+vi.mock('@/common/config/storage', () => ({
+  ConfigStorage: { get: vi.fn().mockResolvedValue([]), set: vi.fn().mockResolvedValue(undefined) },
+}));
+
 vi.mock('@icon-park/react', () => ({
   Setting: () => <span data-testid='icon-setting'>SettingIcon</span>,
   Robot: () => <span data-testid='icon-robot'>RobotIcon</span>,
+  Plus: () => <span data-testid='icon-plus'>PlusIcon</span>,
 }));
 
 vi.mock('@/renderer/utils/model/agentLogo', () => ({
@@ -75,6 +92,10 @@ vi.mock('@/renderer/utils/model/agentLogo', () => ({
 
 vi.mock('@/renderer/hooks/context/ThemeContext', () => ({
   useThemeContext: () => ({ theme: 'light' }),
+}));
+
+vi.mock('../../src/renderer/pages/settings/AgentSettings/InlineAgentEditor', () => ({
+  default: () => <div data-testid='inline-agent-editor' />,
 }));
 
 // ---------------------------------------------------------------------------
