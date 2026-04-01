@@ -18,7 +18,7 @@ import { ProcessConfig } from '@process/utils/initStorage';
 import type { CronBusyGuard } from './CronBusyGuard';
 import type { CronJob } from './CronStore';
 import type { ICronJobExecutor } from './ICronJobExecutor';
-import { getCronSkillDir } from './cronSkillFile';
+import { getCronSkillDir, hasCronSkillFile } from './cronSkillFile';
 
 /** Lazy-import to break circular dependency: cronServiceSingleton ↔ conversationServiceSingleton */
 async function getConversationService() {
@@ -40,10 +40,16 @@ export class WorkerTaskManagerJobExecutor implements ICronJobExecutor {
   async executeJob(job: CronJob, onAcquired?: () => void, preparedConversationId?: string): Promise<string | void> {
     let conversationId = preparedConversationId ?? job.metadata.conversationId;
 
-    // new_conversation mode: create a fresh conversation for this execution (skip if already prepared)
-    if (!preparedConversationId && job.target.executionMode === 'new_conversation' && job.metadata.agentConfig) {
-      const newConv = await this.buildConversationForJob(job);
-      conversationId = newConv.id;
+    // Create a conversation when needed (skip if already prepared):
+    // - new_conversation mode: always create a fresh conversation per execution
+    // - existing mode with empty conversationId: first execution creates the shared conversation
+    if (!preparedConversationId && job.metadata.agentConfig) {
+      const needsCreate =
+        job.target.executionMode === 'new_conversation' || !conversationId;
+      if (needsCreate) {
+        const newConv = await this.buildConversationForJob(job);
+        conversationId = newConv.id;
+      }
     }
 
     const messageText = await this.buildMessageText(job);
@@ -92,11 +98,14 @@ export class WorkerTaskManagerJobExecutor implements ICronJobExecutor {
       triggeredAt: Date.now(),
     };
 
+    // Hide the prompt message from UI in new_conversation mode
+    const hidden = job.target.executionMode === 'new_conversation';
+
     // ACP/Codex agents use 'content'; Gemini uses 'input'.
     if (task.type === 'codex' || task.type === 'acp') {
-      await task.sendMessage({ content: messageText, msg_id: msgId, files: workspaceFiles, cronMeta });
+      await task.sendMessage({ content: messageText, msg_id: msgId, files: workspaceFiles, cronMeta, hidden });
     } else {
-      await task.sendMessage({ input: messageText, msg_id: msgId, files: workspaceFiles, cronMeta });
+      await task.sendMessage({ input: messageText, msg_id: msgId, files: workspaceFiles, cronMeta, hidden });
     }
 
     // Return the conversationId used (may differ from job.metadata.conversationId in new_conversation mode)
@@ -114,7 +123,10 @@ export class WorkerTaskManagerJobExecutor implements ICronJobExecutor {
 
     const agentType = this.getAgentType(config.backend);
 
-    // Resolve the cron skill directory path for symlink injection into workspace
+    // Check if a per-task SKILL.md exists (user-saved via "Turn into skill").
+    // If yes: inject it into the workspace and exclude the cron builtin skill.
+    // If no: execution context is prepended to the prompt in buildMessageText() instead.
+    const hasSkill = await hasCronSkillFile(job.id);
     const cronSkillDir = getCronSkillDir(job.id);
 
     const params: CreateConversationParams = {
@@ -128,8 +140,9 @@ export class WorkerTaskManagerJobExecutor implements ICronJobExecutor {
         customAgentId: config.customAgentId,
         presetAssistantId: config.isPreset ? config.customAgentId : undefined,
         cronJobId: job.id,
-        extraSkillPaths: [cronSkillDir],
-        excludeBuiltinSkills: ['cron'],
+        ...(hasSkill
+          ? { extraSkillPaths: [cronSkillDir], excludeBuiltinSkills: ['cron'] }
+          : { excludeBuiltinSkills: ['cron'] }),
       },
     };
 
@@ -263,15 +276,38 @@ export class WorkerTaskManagerJobExecutor implements ICronJobExecutor {
 
   /**
    * Build the message text for a cron job execution.
-   * The skill content is already injected into the workspace via symlink,
-   * so the message only needs the raw payload text (like a normal user message).
+   *
+   * For new_conversation mode without a dedicated skill:
+   * Prepend execution context directly into the prompt. Workspace skills rely on
+   * description matching which is unreliable for arbitrary cron prompts, so we
+   * inject the guidance inline instead.
+   *
+   * For jobs with a dedicated skill or existing conversation mode:
+   * Return the raw payload text — the skill or conversation history provides context.
    */
-  private buildMessageText(job: CronJob): string {
-    return job.target.payload.text;
+  private async buildMessageText(job: CronJob): Promise<string> {
+    const rawText = job.target.payload.text;
+
+    // Only prepend context for new_conversation mode without a dedicated skill
+    if (job.target.executionMode !== 'new_conversation') {
+      return rawText;
+    }
+
+    const hasSkill = await hasCronSkillFile(job.id);
+    if (hasSkill) {
+      return rawText;
+    }
+
+    return buildCronExecutionPrompt(job.name, job.schedule.description, rawText);
   }
 
   async prepareConversation(job: CronJob): Promise<string> {
-    if (job.target.executionMode === 'new_conversation' && job.metadata.agentConfig) {
+    // Create a new conversation when:
+    // 1. new_conversation mode: always create per execution
+    // 2. existing mode with empty conversationId: initial setup (e.g. created from UI without a conversation)
+    const needsNewConversation =
+      (job.target.executionMode === 'new_conversation' || !job.metadata.conversationId) && job.metadata.agentConfig;
+    if (needsNewConversation) {
       const conv = await this.buildConversationForJob(job);
       return conv.id;
     }
@@ -285,4 +321,41 @@ export class WorkerTaskManagerJobExecutor implements ICronJobExecutor {
   setProcessing(conversationId: string, busy: boolean): void {
     this.busyGuard.setProcessing(conversationId, busy);
   }
+}
+
+/**
+ * Build the full prompt for a scheduled task execution without a dedicated skill.
+ * Injects execution context and skill suggestion guidance before the user's raw prompt.
+ */
+function buildCronExecutionPrompt(taskName: string, scheduleDesc: string, userPrompt: string): string {
+  return `[Scheduled Task Context]
+Task: ${taskName}
+Schedule: ${scheduleDesc}
+
+Rules:
+1. Execute the task directly — do NOT ask clarifying questions.
+2. Focus on producing useful, actionable output.
+3. If the task requires external data (news, weather, etc.), search for the latest information.
+
+This is a recurring scheduled task. After completing the task, always output a skill suggestion
+block at the very end of your response to help optimize future executions. The skill should
+capture output format, tone, sources, steps, or any patterns that ensure consistency.
+
+Use this exact format:
+
+[SKILL_SUGGEST]
+name: skill-name
+description: One-line description of what this skill does
+content:
+---
+name: skill-name
+description: One-line description
+---
+
+(Full SKILL.md body: clear instructions for executing this task, including output format,
+sources to check, steps to follow, quality criteria.)
+[/SKILL_SUGGEST]
+[/Scheduled Task Context]
+
+${userPrompt}`;
 }

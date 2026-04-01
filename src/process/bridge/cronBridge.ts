@@ -6,6 +6,7 @@
 
 import { ipcBridge } from '@/common';
 import { cronService } from '@process/services/cron/cronServiceSingleton';
+import { writeRawCronSkillFile, hasCronSkillFile } from '@process/services/cron/cronSkillFile';
 
 /**
  * Initialize cron IPC bridge handlers
@@ -42,5 +43,14 @@ export function initCronBridge(): void {
     // Message sending runs in background; frontend navigates to the conversation.
     const conversationId = await cronService.runNow(jobId);
     return { conversationId };
+  });
+
+  // Skill management
+  ipcBridge.cron.saveSkill.provider(async ({ jobId, content }) => {
+    await writeRawCronSkillFile(jobId, content);
+  });
+
+  ipcBridge.cron.hasSkill.provider(async ({ jobId }) => {
+    return hasCronSkillFile(jobId);
   });
 }

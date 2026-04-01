@@ -774,6 +774,8 @@ export const cron = {
   updateJob: bridge.buildProvider<ICronJob, { jobId: string; updates: Partial<ICronJob> }>('cron.update-job'),
   removeJob: bridge.buildProvider<void, { jobId: string }>('cron.remove-job'),
   runNow: bridge.buildProvider<{ conversationId: string }, { jobId: string }>('cron.run-now'),
+  saveSkill: bridge.buildProvider<void, { jobId: string; content: string }>('cron.save-skill'),
+  hasSkill: bridge.buildProvider<boolean, { jobId: string }>('cron.has-skill'),
   // Events
   onJobCreated: bridge.buildEmitter<ICronJob>('cron.job-created'),
   onJobUpdated: bridge.buildEmitter<ICronJob>('cron.job-updated'),
@@ -947,6 +949,7 @@ export interface IResponseMessage {
   data: unknown;
   msg_id: string;
   conversation_id: string;
+  hidden?: boolean;
 }
 
 export interface IConversationTurnCompletedEvent {

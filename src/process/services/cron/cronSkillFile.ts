@@ -17,12 +17,44 @@ export function getCronSkillDir(jobId: string): string {
 }
 
 /**
- * Build SKILL.md content with YAML frontmatter.
- * Mirrors Claude Code's buildTaskFileContent().
+ * Build SKILL.md content with YAML frontmatter and execution context.
+ *
+ * The generated content serves as the agent's instruction when a scheduled task fires.
+ * It includes context about the task (name, schedule) and a clear directive so the agent
+ * knows exactly what to do — even without prior conversation history.
  */
-export function buildCronSkillContent(name: string, description: string, prompt: string): string {
+export function buildCronSkillContent(
+  name: string,
+  description: string,
+  prompt: string,
+  scheduleDescription?: string
+): string {
   const sanitizedDesc = description.replace(/[\r\n]+/g, ' ').trim();
-  return `---\nname: ${name}\ndescription: ${sanitizedDesc}\n---\n\n${prompt}`;
+
+  const lines = [
+    '---',
+    `name: ${name}`,
+    `description: ${sanitizedDesc}`,
+    '---',
+    '',
+    `This is a scheduled task: **${name}**`,
+  ];
+
+  if (scheduleDescription) {
+    lines.push(`Schedule: ${scheduleDescription}`);
+  }
+
+  lines.push(
+    '',
+    '## Instructions',
+    '',
+    'You are executing a scheduled task. Follow the instructions below directly.',
+    'Do NOT ask clarifying questions — just execute the task and produce the result.',
+    '',
+    prompt
+  );
+
+  return lines.join('\n');
 }
 
 /**
@@ -34,17 +66,39 @@ export function parseCronSkillContent(content: string): { name: string; descript
   if (!match) return null;
 
   const frontmatter = match[1];
-  const prompt = match[2];
+  let body = match[2];
 
   const nameMatch = frontmatter.match(/^name: (.+)$/m);
   const descMatch = frontmatter.match(/^description: (.+)$/m);
 
   if (!nameMatch?.[1] || !descMatch?.[1]) return null;
 
+  // Extract the user's original prompt from the Instructions section
+  const instructionsIdx = body.indexOf('## Instructions');
+  if (instructionsIdx !== -1) {
+    // Skip the heading and the two directive lines
+    const afterHeading = body.substring(instructionsIdx);
+    const promptLines = afterHeading.split('\n');
+    // Find the first non-empty line after the directive lines
+    let startIdx = 0;
+    let directivesPassed = 0;
+    for (let i = 1; i < promptLines.length; i++) {
+      const line = promptLines[i].trim();
+      if (line === '') continue;
+      if (line.startsWith('You are executing') || line.startsWith('Do NOT ask')) {
+        directivesPassed++;
+        continue;
+      }
+      startIdx = i;
+      break;
+    }
+    body = promptLines.slice(startIdx).join('\n');
+  }
+
   return {
     name: nameMatch[1].trim(),
     description: descMatch[1].trim(),
-    prompt: prompt.trimEnd(),
+    prompt: body.trimEnd(),
   };
 }
 
@@ -56,13 +110,57 @@ export async function writeCronSkillFile(
   jobId: string,
   name: string,
   description: string,
-  prompt: string
+  prompt: string,
+  scheduleDescription?: string
 ): Promise<string> {
   const dir = path.join(getCronSkillsDir(), jobId);
   const filePath = path.join(dir, 'SKILL.md');
   await fs.mkdir(dir, { recursive: true });
-  const content = buildCronSkillContent(name, description, prompt);
+  const content = buildCronSkillContent(name, description, prompt, scheduleDescription);
   await fs.writeFile(filePath, content, 'utf-8');
+  return filePath;
+}
+
+/**
+ * Validate that content is a well-formed SKILL.md with YAML frontmatter (name + description) and a non-empty body.
+ * Returns a normalized result or null if invalid.
+ */
+export function validateSkillContent(content: string): { name: string; description: string; body: string } | null {
+  if (!content || typeof content !== 'string') return null;
+
+  const match = content.match(/^---\s*\n([\s\S]*?)\n---\s*\n+([\s\S]*)$/);
+  if (!match) return null;
+
+  const frontmatter = match[1];
+  const body = match[2]?.trim();
+
+  const nameMatch = frontmatter.match(/^name:\s*(.+)$/m);
+  const descMatch = frontmatter.match(/^description:\s*(.+)$/m);
+
+  if (!nameMatch?.[1]?.trim() || !descMatch?.[1]?.trim()) return null;
+  if (!body) return null;
+
+  return {
+    name: nameMatch[1].trim(),
+    description: descMatch[1].trim(),
+    body,
+  };
+}
+
+/**
+ * Write raw SKILL.md content directly (e.g. AI-generated skill from [SKILL_SUGGEST]).
+ * Validates the content before writing. Throws if content is not a valid SKILL.md.
+ */
+export async function writeRawCronSkillFile(jobId: string, rawContent: string): Promise<string> {
+  const validated = validateSkillContent(rawContent);
+  if (!validated) {
+    throw new Error('Invalid SKILL.md content: must have YAML frontmatter with name/description and a non-empty body');
+  }
+
+  const dir = path.join(getCronSkillsDir(), jobId);
+  const filePath = path.join(dir, 'SKILL.md');
+  await fs.mkdir(dir, { recursive: true });
+  await fs.writeFile(filePath, rawContent, 'utf-8');
   return filePath;
 }
 
@@ -76,6 +174,19 @@ export async function readCronSkillContent(jobId: string): Promise<string | null
     return await fs.readFile(filePath, 'utf-8');
   } catch {
     return null;
+  }
+}
+
+/**
+ * Check whether a per-task SKILL.md exists for the given cron job.
+ */
+export async function hasCronSkillFile(jobId: string): Promise<boolean> {
+  const filePath = path.join(getCronSkillsDir(), jobId, 'SKILL.md');
+  try {
+    await fs.access(filePath);
+    return true;
+  } catch {
+    return false;
   }
 }
 

@@ -91,6 +91,7 @@ export interface IMessageRow {
   content: string; // JSON string of message content
   position?: 'left' | 'right' | 'center' | 'pop';
   status?: 'finish' | 'pending' | 'error' | 'work';
+  hidden?: number; // 0 or 1, maps to boolean IMessage.hidden
   created_at: number;
 }
 
@@ -214,6 +215,7 @@ export function messageToRow(message: TMessage): IMessageRow {
     content: JSON.stringify(message.content),
     position: message.position,
     status: message.status,
+    hidden: message.hidden ? 1 : 0,
     created_at: message.createdAt || Date.now(),
   };
 }
@@ -230,6 +232,7 @@ export function rowToMessage(row: IMessageRow): TMessage {
     content: JSON.parse(row.content),
     position: row.position,
     status: row.status,
+    hidden: row.hidden === 1 ? true : undefined,
     createdAt: row.created_at,
   } as TMessage;
 }

@@ -923,6 +923,21 @@ const migration_v20: IMigration = {
   },
 };
 
+const migration_v21: IMigration = {
+  version: 21,
+  name: 'Add hidden column to messages table',
+  up: (db) => {
+    const columns = new Set((db.pragma('table_info(messages)') as Array<{ name: string }>).map((c) => c.name));
+    if (!columns.has('hidden')) {
+      db.exec(`ALTER TABLE messages ADD COLUMN hidden INTEGER DEFAULT 0`);
+    }
+    console.log('[Migration v21] Added hidden column to messages table');
+  },
+  down: (_db) => {
+    console.warn('[Migration v21] Rollback skipped: cannot drop columns safely.');
+  },
+};
+
 /**
  * All migrations in order
  */
@@ -931,7 +946,7 @@ export const ALL_MIGRATIONS: IMigration[] = [
   migration_v1, migration_v2, migration_v3, migration_v4, migration_v5, migration_v6,
   migration_v7, migration_v8, migration_v9, migration_v10, migration_v11, migration_v12,
   migration_v13, migration_v14, migration_v15, migration_v16, migration_v17, migration_v18,
-  migration_v19, migration_v20,
+  migration_v19, migration_v20, migration_v21,
 ];
 
 /**

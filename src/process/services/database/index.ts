@@ -754,8 +754,8 @@ export class AionUIDatabase {
       const row = messageToRow(message);
 
       const stmt = this.db.prepare(`
-        INSERT INTO messages (id, conversation_id, msg_id, type, content, position, status, created_at)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+        INSERT INTO messages (id, conversation_id, msg_id, type, content, position, status, hidden, created_at)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
       `);
 
       stmt.run(
@@ -766,6 +766,7 @@ export class AionUIDatabase {
         row.content,
         row.position,
         row.status,
+        row.hidden ?? 0,
         row.created_at
       );
 

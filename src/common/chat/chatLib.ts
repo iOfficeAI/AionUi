@@ -111,6 +111,10 @@ interface IMessage<T extends TMessageType, Content extends Record<string, any>> 
    * 消息状态
    */
   status?: 'finish' | 'pending' | 'error' | 'work';
+  /**
+   * Hidden from UI display but persisted to DB and sent to agent.
+   */
+  hidden?: boolean;
 }
 
 export type CronMessageMeta = {
@@ -385,6 +389,7 @@ export const transformMessage = (message: IResponseMessage): TMessage => {
               cronMeta: (data as { cronMeta?: CronMessageMeta }).cronMeta,
             }
           : { content: data as string },
+        ...(message.hidden && { hidden: true }),
       };
     }
     case 'tool_call': {

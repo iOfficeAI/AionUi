@@ -68,6 +68,7 @@ export class GeminiAgentManager extends BaseAgentManager<
   presetRules?: string;
   contextContent?: string;
   enabledSkills?: string[];
+  excludeBuiltinSkills?: string[];
   private bootstrap: Promise<void>;
 
   /** Fingerprint of MCP config used by the current worker, for change detection */
@@ -126,6 +127,8 @@ export class GeminiAgentManager extends BaseAgentManager<
       yoloMode?: boolean;
       /** Persisted session mode for resume support / 持久化的会话模式，用于恢复 */
       sessionMode?: string;
+      /** Builtin skill names to exclude from discovery (e.g. 'cron' for cron-spawned conversations) */
+      excludeBuiltinSkills?: string[];
     },
     model: TProviderWithModel
   ) {
@@ -136,6 +139,7 @@ export class GeminiAgentManager extends BaseAgentManager<
     this.contextFileName = data.contextFileName;
     this.presetRules = data.presetRules;
     this.enabledSkills = data.enabledSkills;
+    this.excludeBuiltinSkills = data.excludeBuiltinSkills;
     this.forceYoloMode = data.yoloMode;
     this.currentMode = data.sessionMode || 'default';
     this.webSearchEngine = data.webSearchEngine;
@@ -181,7 +185,10 @@ export class GeminiAgentManager extends BaseAgentManager<
         // 将内置 skill 名称合并到 enabledSkills，使 worker 的 SkillManager 能找到它们
         const skillManager = AcpSkillManager.getInstance(this.enabledSkills);
         await skillManager.discoverSkills(this.enabledSkills);
-        const builtinSkillNames = skillManager.getBuiltinSkillsIndex().map((s) => s.name);
+        const excludeSet = new Set(this.excludeBuiltinSkills ?? []);
+        const builtinSkillNames = skillManager.getBuiltinSkillsIndex()
+          .map((s) => s.name)
+          .filter((name) => !excludeSet.has(name));
         const allEnabledSkills = [...new Set([...builtinSkillNames, ...(this.enabledSkills || [])])];
 
         // Determine yoloMode from legacy config (SecurityModalContent)

@@ -621,7 +621,7 @@ class AcpAgentManager extends BaseAgentManager<AcpAgentManagerData, AcpPermissio
     return this.bootstrap;
   }
 
-  async sendMessage(data: { content: string; files?: string[]; msg_id?: string; cronMeta?: CronMessageMeta }): Promise<{
+  async sendMessage(data: { content: string; files?: string[]; msg_id?: string; cronMeta?: CronMessageMeta; hidden?: boolean }): Promise<{
     success: boolean;
     msg?: string;
     message?: string;
@@ -650,6 +650,7 @@ class AcpAgentManager extends BaseAgentManager<AcpAgentManagerData, AcpPermissio
             ...(data.cronMeta && { cronMeta: data.cronMeta }),
           },
           createdAt: Date.now(),
+          ...(data.hidden && { hidden: true }),
         };
         addMessage(this.conversation_id, userMessage);
         // Ensure conversation list sorting updates immediately after user sends.
@@ -665,6 +666,7 @@ class AcpAgentManager extends BaseAgentManager<AcpAgentManagerData, AcpPermissio
           data: data.cronMeta
             ? { content: userMessage.content.content, cronMeta: data.cronMeta }
             : userMessage.content.content,
+          ...(data.hidden && { hidden: true }),
         };
         ipcBridge.acpConversation.responseStream.emit(userResponseMessage);
       }
