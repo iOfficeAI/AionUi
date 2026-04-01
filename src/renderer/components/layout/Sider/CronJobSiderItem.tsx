@@ -4,7 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import React, { useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import classNames from 'classnames';
 import { Down } from '@icon-park/react';
 import type { ICronJob } from '@/common/adapter/ipcBridge';
@@ -22,7 +22,20 @@ const MAX_VISIBLE_CONVERSATIONS = 5;
 const CronJobSiderItem: React.FC<CronJobSiderItemProps> = ({ job, pathname, onNavigate }) => {
   const isNewConversationMode = job.target.executionMode === 'new_conversation';
   const { conversations } = useCronJobConversations(isNewConversationMode ? job.id : undefined);
+
+  // Auto-expand when the current route matches this job's detail page or any child conversation
+  const childConversationIds = useMemo(() => new Set(conversations.map((c) => c.id)), [conversations]);
+  const isActiveChild = pathname.startsWith('/conversation/') && childConversationIds.has(pathname.split('/')[2]);
+  const isActiveDetail = pathname === `/scheduled/${job.id}`;
+
   const [expanded, setExpanded] = useState(false);
+
+  // Auto-expand when navigating to a child conversation or task detail
+  useEffect(() => {
+    if (isActiveChild || isActiveDetail) {
+      setExpanded(true);
+    }
+  }, [isActiveChild, isActiveDetail]);
 
   const hasChildren =
     (!isNewConversationMode && !!job.metadata.conversationId) || (isNewConversationMode && conversations.length > 0);
