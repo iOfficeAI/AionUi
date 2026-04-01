@@ -15,42 +15,42 @@
  * 5. 支持传递性：子 agent 也可以发起新的委派
  */
 
-import { agentOrchestrator, type IAgentDelegation } from './AgentOrchestrator';
-import { uuid } from '@/common/utils';
-import { mainLog, mainWarn, mainError } from '@process/utils/mainLogger';
-import type { AcpBackend } from '@/common/types/acpTypes';
-import { isValidAcpBackend } from '@/common/types/acpTypes';
+import { agentOrchestrator, type IAgentDelegation } from "./AgentOrchestrator";
+import { uuid } from "@/common/utils";
+import { mainLog, mainWarn, mainError } from "@process/utils/mainLogger";
+import type { AcpBackend } from "@/common/types/acpTypes";
+import { isValidAcpBackend } from "@/common/types/acpTypes";
 
 // ── 委派工具的 JSON Schema 定义 ───────────────────────────────────────────────
 // 注入到主 agent 的 system prompt，让主 agent 知道可以调用此工具
 
-export const DELEGATE_TOOL_NAME = 'delegate_to_agent';
+export const DELEGATE_TOOL_NAME = "delegate_to_agent";
 
 export const DELEGATE_TOOL_SCHEMA = {
   name: DELEGATE_TOOL_NAME,
   description:
-    'Delegate a subtask to another AI agent (e.g., gemini, codex, qwen). ' +
-    'Use this when a different agent has a comparative advantage for the subtask. ' +
-    'The result will be returned to you so you can continue the main task.',
+    "Delegate a subtask to another AI agent (e.g., gemini, codex, qwen). " +
+    "Use this when a different agent has a comparative advantage for the subtask. " +
+    "The result will be returned to you so you can continue the main task.",
   inputSchema: {
-    type: 'object',
+    type: "object",
     properties: {
       target_agent: {
-        type: 'string',
+        type: "string",
         description:
           'The backend name of the target agent. Examples: "gemini", "codex", "qwen", "claude", "opencode".',
       },
       task: {
-        type: 'string',
-        description: 'A clear, self-contained description of the subtask for the target agent.',
+        type: "string",
+        description: "A clear, self-contained description of the subtask for the target agent.",
       },
       context: {
-        type: 'string',
+        type: "string",
         description:
-          'Optional. Relevant context to share with the target agent (e.g., file contents, prior results).',
+          "Optional. Relevant context to share with the target agent (e.g., file contents, prior results).",
       },
     },
-    required: ['target_agent', 'task'],
+    required: ["target_agent", "task"],
   },
 } as const;
 
@@ -59,23 +59,23 @@ export const DELEGATE_TOOL_SCHEMA = {
  * 当 AionUi 无法通过 MCP server 动态注入工具时，使用此方式。
  */
 export function buildOrchestratorSystemPromptSection(availableAgents: AcpBackend[]): string {
-  if (availableAgents.length === 0) return '';
+  if (availableAgents.length === 0) return "";
 
-  const agentList = availableAgents.join(', ');
+  const agentList = availableAgents.join(", ");
   return [
-    '## Multi-Agent Collaboration',
-    '',
+    "## Multi-Agent Collaboration",
+    "",
     `You can delegate subtasks to other AI agents. Available agents: ${agentList}.`,
-    '',
-    'To delegate, output a tool call with the following format:',
-    '```json',
+    "",
+    "To delegate, output a tool call with the following format:",
+    "```json",
     `{"tool": "${DELEGATE_TOOL_NAME}", "input": {"target_agent": "<agent>", "task": "<task description>", "context": "<optional context>"}}`,
-    '```',
-    '',
-    'The result will be returned to you as a tool result. You can then continue the main task.',
-    'Delegation is transitive: the target agent can also delegate to other agents.',
-    '',
-  ].join('\n');
+    "```",
+    "",
+    "The result will be returned to you as a tool result. You can then continue the main task.",
+    "Delegation is transitive: the target agent can also delegate to other agents.",
+    "",
+  ].join("\n");
 }
 
 // ── 委派执行器 ────────────────────────────────────────────────────────────────
@@ -96,7 +96,7 @@ export interface DelegationExecutor {
     task: string,
     context: string | undefined,
     conversationId: string,
-    delegationId: string
+    delegationId: string,
   ): Promise<string>;
 }
 
@@ -131,7 +131,7 @@ export class OrchestratorMcpBridge {
         return parsed.input as DelegateToolInput;
       }
     } catch {
-      mainWarn('[OrchestratorMcpBridge]', 'Failed to parse delegation JSON block');
+      mainWarn("[OrchestratorMcpBridge]", "Failed to parse delegation JSON block");
     }
     return null;
   }
@@ -142,20 +142,20 @@ export class OrchestratorMcpBridge {
    */
   async executeDelegation(
     input: DelegateToolInput,
-    parentDelegationId?: string
+    parentDelegationId?: string,
   ): Promise<{ delegation: IAgentDelegation; result: string }> {
     const targetBackend = input.target_agent as AcpBackend;
 
     if (!isValidAcpBackend(targetBackend)) {
       const errMsg = `Unknown agent backend: "${input.target_agent}". Available backends can be found in AionUi settings.`;
-      mainWarn('[OrchestratorMcpBridge]', errMsg);
+      mainWarn("[OrchestratorMcpBridge]", errMsg);
       const delegation = agentOrchestrator.createDelegation(
         this.sourceBackend,
         input.target_agent,
         input.task,
-        { parentDelegationId }
+        { parentDelegationId },
       );
-      agentOrchestrator.updateDelegation(delegation.id, 'failed', { error: errMsg });
+      agentOrchestrator.updateDelegation(delegation.id, "failed", { error: errMsg });
       return { delegation, result: `[Delegation failed] ${errMsg}` };
     }
 
@@ -163,15 +163,15 @@ export class OrchestratorMcpBridge {
       this.sourceBackend,
       targetBackend,
       input.task,
-      { sharedContext: input.context, parentDelegationId }
+      { sharedContext: input.context, parentDelegationId },
     );
 
     mainLog(
-      '[OrchestratorMcpBridge]',
-      `Delegating from ${this.sourceBackend} → ${targetBackend}: "${input.task.slice(0, 80)}..."`
+      "[OrchestratorMcpBridge]",
+      `Delegating from ${this.sourceBackend} → ${targetBackend}: "${input.task.slice(0, 80)}..."`,
     );
 
-    agentOrchestrator.updateDelegation(delegation.id, 'running');
+    agentOrchestrator.updateDelegation(delegation.id, "running");
 
     try {
       const result = await this.executor.runSubAgent(
@@ -179,15 +179,18 @@ export class OrchestratorMcpBridge {
         input.task,
         input.context,
         this.conversationId,
-        delegation.id
+        delegation.id,
       );
-      agentOrchestrator.updateDelegation(delegation.id, 'completed', { result });
-      mainLog('[OrchestratorMcpBridge]', `Delegation ${delegation.id} completed (${targetBackend})`);
+      agentOrchestrator.updateDelegation(delegation.id, "completed", { result });
+      mainLog(
+        "[OrchestratorMcpBridge]",
+        `Delegation ${delegation.id} completed (${targetBackend})`,
+      );
       return { delegation, result };
     } catch (err) {
       const errMsg = err instanceof Error ? err.message : String(err);
-      agentOrchestrator.updateDelegation(delegation.id, 'failed', { error: errMsg });
-      mainError('[OrchestratorMcpBridge]', `Delegation ${delegation.id} failed:`, errMsg);
+      agentOrchestrator.updateDelegation(delegation.id, "failed", { error: errMsg });
+      mainError("[OrchestratorMcpBridge]", `Delegation ${delegation.id} failed:`, errMsg);
       return {
         delegation,
         result: `[Delegation failed] ${targetBackend} agent encountered an error: ${errMsg}`,
