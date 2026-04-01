@@ -29,6 +29,15 @@ function mapProvider(model: TProviderWithModel): AionrsProvider {
 }
 
 /**
+ * Strip trailing `/v1` (with optional trailing slash) from a base URL.
+ * aionrs appends `/v1/chat/completions` internally, so passing a URL
+ * that already ends with `/v1` would produce a double `/v1/v1/…` path.
+ */
+function stripTrailingV1(url: string): string {
+  return url.replace(/\/v1\/?$/, '');
+}
+
+/**
  * Build CLI args and env vars for spawning aionrs.
  */
 export function buildSpawnConfig(
@@ -58,21 +67,24 @@ export function buildSpawnConfig(
     args.push('--auto-approve');
   }
 
-  // Set auth env vars based on provider
+  // Set auth credentials and base URL via CLI args and env vars.
+  // aionrs reads: --api-key / API_KEY / OPENAI_API_KEY / ANTHROPIC_API_KEY
+  //               --base-url / BASE_URL (NOT OPENAI_BASE_URL)
+  // aionrs appends `/v1/chat/completions` to base_url, so URLs that already
+  // end with `/v1` (e.g. DashScope) must be stripped to avoid double `/v1`.
   switch (provider) {
     case 'anthropic':
       if (model.apiKey) env.ANTHROPIC_API_KEY = model.apiKey;
-      if (model.baseUrl) env.ANTHROPIC_BASE_URL = model.baseUrl;
+      if (model.baseUrl) args.push('--base-url', stripTrailingV1(model.baseUrl));
       break;
 
-    case 'openai':
+    case 'openai': {
       if (model.apiKey) env.OPENAI_API_KEY = model.apiKey;
-      if (model.baseUrl) env.OPENAI_BASE_URL = model.baseUrl;
-      // Gemini OpenAI-compatible endpoint
-      if (model.platform === 'gemini' && !model.baseUrl) {
-        env.OPENAI_BASE_URL = 'https://generativelanguage.googleapis.com/v1beta/openai';
-      }
+      const baseUrl =
+        model.baseUrl || (model.platform === 'gemini' ? 'https://generativelanguage.googleapis.com/v1beta/openai' : '');
+      if (baseUrl) args.push('--base-url', stripTrailingV1(baseUrl));
       break;
+    }
 
     case 'bedrock': {
       const bc = (model as TProviderWithModel & { bedrockConfig?: any }).bedrockConfig;
