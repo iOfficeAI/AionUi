@@ -714,8 +714,8 @@ class AcpAgentManager extends BaseAgentManager<AcpAgentManagerData, AcpPermissio
 
           // Inject multi-agent orchestration capability on first message
           const enabledBackends = getEnabledAcpBackends()
-            .map((c) => c.id)
-            .filter((id) => id !== data.backend);
+            .map((c) => c.id as import('@/common/types/acpTypes').AcpBackend)
+            .filter((id) => id !== this.options.backend);
           if (enabledBackends.length > 0) {
             const orchestrationSection = buildOrchestratorSystemPromptSection(enabledBackends);
             if (orchestrationSection) {
@@ -723,7 +723,7 @@ class AcpAgentManager extends BaseAgentManager<AcpAgentManagerData, AcpPermissio
             }
             this.orchestratorBridge = new OrchestratorMcpBridge(
               this.conversation_id,
-              data.backend,
+              this.options.backend,
               {
                 runSubAgent: (targetBackend, task, context, convId, delegationId) =>
                   this.runSubAgentDelegation(targetBackend, task, context, convId, delegationId),
@@ -1233,26 +1233,27 @@ class AcpAgentManager extends BaseAgentManager<AcpAgentManagerData, AcpPermissio
     delegationId: string
   ): Promise<string> {
     const { AcpAgent } = await import('@process/agent/acp');
-    const subAgent = new AcpAgent({
-      backend: targetBackend,
-      workspace: this.workspace,
-    });
+    const outputChunks: string[] = [];
 
     const fullPrompt = context
       ? `[Context from orchestrator]\n${context}\n\n[Task]\n${task}`
       : task;
 
-    const outputChunks: string[] = [];
-
     await new Promise<void>((resolve, reject) => {
-      subAgent.on('streamEvent', (msg: { type: string; data: unknown }) => {
-        if (msg.type === 'content' && typeof msg.data === 'string') {
-          outputChunks.push(msg.data);
-        }
-      });
-      subAgent.on('signalEvent', (sig: { type: string }) => {
-        if (sig.type === 'finish') resolve();
-        if (sig.type === 'error') reject(new Error(`Sub-agent ${targetBackend} error`));
+      const subAgent = new AcpAgent({
+        id: `delegation-${delegationId}`,
+        backend: targetBackend,
+        workingDir: this.workspace,
+        extra: { backend: targetBackend, workspace: this.workspace },
+        onStreamEvent: (msg) => {
+          if (msg.type === 'content' && typeof msg.data === 'string') {
+            outputChunks.push(msg.data);
+          }
+        },
+        onSignalEvent: (sig) => {
+          if (sig.type === 'finish') resolve();
+          if (sig.type === 'error') reject(new Error(`Sub-agent ${targetBackend} error`));
+        },
       });
 
       subAgent.start()
@@ -1260,7 +1261,6 @@ class AcpAgentManager extends BaseAgentManager<AcpAgentManagerData, AcpPermissio
         .catch(reject);
     });
 
-    await subAgent.kill?.();
     mainLog('[AcpAgentManager]', `Sub-agent delegation ${delegationId} (${targetBackend}) collected ${outputChunks.length} chunks`);
     return outputChunks.join('');
   }
