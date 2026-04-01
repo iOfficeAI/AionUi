@@ -202,9 +202,7 @@ describe('ActionExecutor pure functions', () => {
     });
 
     it('escapes multiple characters', () => {
-      expect(escapeHtml('<div>Hello & "world"</div>')).toBe(
-        '&lt;div&gt;Hello &amp; &quot;world&quot;&lt;/div&gt;'
-      );
+      expect(escapeHtml('<div>Hello & "world"</div>')).toBe('&lt;div&gt;Hello &amp; &quot;world&quot;&lt;/div&gt;');
     });
 
     it('handles empty string', () => {
@@ -234,15 +232,11 @@ describe('ActionExecutor pure functions', () => {
     }
 
     function convertHtmlToDingTalkMarkdown(html: string): string {
-      return html
-        .replace(/<b>(.*?)<\/b>/g, '**$1**')
-        .replace(/<code>(.*?)<\/code>/g, '`$1`');
+      return html.replace(/<b>(.*?)<\/b>/g, '**$1**').replace(/<code>(.*?)<\/code>/g, '`$1`');
     }
 
     function markdownToTelegramHtml(markdown: string): string {
-      return markdown
-        .replace(/\*\*(.*?)\*\*/g, '<b>$1</b>')
-        .replace(/`(.*?)`/g, '<code>$1</code>');
+      return markdown.replace(/\*\*(.*?)\*\*/g, '<b>$1</b>').replace(/`(.*?)`/g, '<code>$1</code>');
     }
 
     function stripHtml(html: string): string {

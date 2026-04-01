@@ -40,9 +40,7 @@ describe('apiRoutes - resolveUploadWorkspace', () => {
   });
 
   it('throws error when conversationId is undefined-like', async () => {
-    await expect(resolveUploadWorkspace('' as string, undefined)).rejects.toThrow(
-      'Missing conversation id'
-    );
+    await expect(resolveUploadWorkspace('' as string, undefined)).rejects.toThrow('Missing conversation id');
   });
 
   it('throws error when conversation workspace not found', async () => {
@@ -54,9 +52,7 @@ describe('apiRoutes - resolveUploadWorkspace', () => {
     };
     vi.mocked(getDatabase).mockResolvedValue(mockDb as any);
 
-    await expect(resolveUploadWorkspace('conv-123', undefined)).rejects.toThrow(
-      'Conversation workspace not found'
-    );
+    await expect(resolveUploadWorkspace('conv-123', undefined)).rejects.toThrow('Conversation workspace not found');
   });
 
   it('throws error when conversation has no workspace', async () => {
@@ -68,9 +64,7 @@ describe('apiRoutes - resolveUploadWorkspace', () => {
     };
     vi.mocked(getDatabase).mockResolvedValue(mockDb as any);
 
-    await expect(resolveUploadWorkspace('conv-123', undefined)).rejects.toThrow(
-      'Conversation workspace not found'
-    );
+    await expect(resolveUploadWorkspace('conv-123', undefined)).rejects.toThrow('Conversation workspace not found');
   });
 
   it('throws workspace mismatch error when requested workspace differs', async () => {
@@ -84,9 +78,7 @@ describe('apiRoutes - resolveUploadWorkspace', () => {
     };
     vi.mocked(getDatabase).mockResolvedValue(mockDb as any);
 
-    await expect(resolveUploadWorkspace('conv-123', '/different/workspace')).rejects.toThrow(
-      'Workspace mismatch'
-    );
+    await expect(resolveUploadWorkspace('conv-123', '/different/workspace')).rejects.toThrow('Workspace mismatch');
   });
 
   it('returns conversation workspace when no requested workspace', async () => {

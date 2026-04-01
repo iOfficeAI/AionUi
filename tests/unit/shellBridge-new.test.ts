@@ -36,11 +36,31 @@ vi.mock('fs', () => ({
 vi.mock('@/common', () => ({
   ipcBridge: {
     shell: {
-      openFile: { provider: vi.fn((fn: Function) => { registeredProviders['openFile'] = fn; }) },
-      showItemInFolder: { provider: vi.fn((fn: Function) => { registeredProviders['showItemInFolder'] = fn; }) },
-      openExternal: { provider: vi.fn((fn: Function) => { registeredProviders['openExternal'] = fn; }) },
-      checkToolInstalled: { provider: vi.fn((fn: Function) => { registeredProviders['checkToolInstalled'] = fn; }) },
-      openFolderWith: { provider: vi.fn((fn: Function) => { registeredProviders['openFolderWith'] = fn; }) },
+      openFile: {
+        provider: vi.fn((fn: Function) => {
+          registeredProviders['openFile'] = fn;
+        }),
+      },
+      showItemInFolder: {
+        provider: vi.fn((fn: Function) => {
+          registeredProviders['showItemInFolder'] = fn;
+        }),
+      },
+      openExternal: {
+        provider: vi.fn((fn: Function) => {
+          registeredProviders['openExternal'] = fn;
+        }),
+      },
+      checkToolInstalled: {
+        provider: vi.fn((fn: Function) => {
+          registeredProviders['checkToolInstalled'] = fn;
+        }),
+      },
+      openFolderWith: {
+        provider: vi.fn((fn: Function) => {
+          registeredProviders['openFolderWith'] = fn;
+        }),
+      },
     },
   },
 }));
@@ -55,7 +75,7 @@ describe('shellBridge with actual providers', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     // Clear registered providers
-    Object.keys(registeredProviders).forEach(key => delete registeredProviders[key]);
+    Object.keys(registeredProviders).forEach((key) => delete registeredProviders[key]);
     // Re-initialize to register providers
     initShellBridge();
   });
@@ -207,14 +227,7 @@ describe('shellBridge with actual providers', () => {
 
       expect(spawn).toHaveBeenCalledWith(
         'cmd.exe',
-        [
-          '/c',
-          'start',
-          'powershell.exe',
-          '-NoExit',
-          '-Command',
-          expect.stringContaining('Set-Location'),
-        ],
+        ['/c', 'start', 'powershell.exe', '-NoExit', '-Command', expect.stringContaining('Set-Location')],
         {
           detached: true,
           windowsHide: false,
@@ -253,11 +266,10 @@ describe('shellBridge with actual providers', () => {
 
       await registeredProviders['openFolderWith']({ folderPath: '/project', tool: 'terminal' });
 
-      expect(spawn).toHaveBeenCalledWith(
-        'gnome-terminal',
-        ['--working-directory=/project'],
-        { detached: true, stdio: 'ignore' }
-      );
+      expect(spawn).toHaveBeenCalledWith('gnome-terminal', ['--working-directory=/project'], {
+        detached: true,
+        stdio: 'ignore',
+      });
     });
 
     it('falls back to xdg-open on Linux when no terminal found', async () => {
