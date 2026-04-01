@@ -27,6 +27,7 @@ const TaskDetailPage: React.FC = () => {
   const [runningNow, setRunningNow] = useState(false);
 
   const isNewConversationMode = job?.target.executionMode === 'new_conversation';
+  const isManualOnly = job?.schedule.kind === 'cron' && !job.schedule.expr;
   const { conversations } = useCronJobConversations(isNewConversationMode ? jobId : undefined);
 
   const fetchJob = useCallback(async () => {
@@ -206,7 +207,7 @@ const TaskDetailPage: React.FC = () => {
         {/* Instructions */}
         <div className='mt-24px'>
           <h3 className='text-14px font-medium text-text-2 mb-8px'>{t('cron.detail.instructions')}</h3>
-          <div className='bg-fill-1 rd-8px px-16px py-12px text-14px text-text-1 whitespace-pre-wrap'>
+          <div className='bg-fill-1 rd-8px py-12px text-14px text-text-1 whitespace-pre-wrap'>
             {job.target.payload.text || '-'}
           </div>
         </div>
@@ -215,8 +216,14 @@ const TaskDetailPage: React.FC = () => {
         <div className='mt-24px'>
           <h3 className='text-14px font-medium text-text-2 mb-8px'>{t('cron.detail.repeats')}</h3>
           <div className='flex items-center gap-12px'>
-            <Switch size='small' checked={job.enabled} onChange={handleToggleEnabled} />
-            <span className='text-14px text-text-1'>{formatSchedule(job)}</span>
+            {isManualOnly ? (
+              <span className='text-14px text-text-1'>{formatSchedule(job)}</span>
+            ) : (
+              <>
+                <Switch size='small' checked={job.enabled} onChange={handleToggleEnabled} />
+                <span className='text-14px text-text-1'>{formatSchedule(job)}</span>
+              </>
+            )}
           </div>
         </div>
 

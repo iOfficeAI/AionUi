@@ -31,7 +31,7 @@ interface CreateTaskDialogProps {
   agentType?: string;
 }
 
-type FrequencyType = 'manual' | 'hourly' | 'daily' | 'weekdays' | 'weekly' | 'custom';
+type FrequencyType = 'manual' | 'hourly' | 'daily' | 'weekdays' | 'weekly';
 
 const WEEKDAYS = [
   { value: 'MON', label: 'monday' },
@@ -50,7 +50,7 @@ function parseCronExpr(expr: string): { frequency: FrequencyType; time: string; 
   if (!expr) return { frequency: 'manual', time: '09:00', weekday: 'MON' };
 
   const parts = expr.trim().split(/\s+/);
-  if (parts.length < 5) return { frequency: 'custom', time: '09:00', weekday: 'MON' };
+  if (parts.length < 5) return { frequency: 'daily', time: '09:00', weekday: 'MON' };
 
   const [min, hour, , , dow] = parts;
 
@@ -69,7 +69,7 @@ function parseCronExpr(expr: string): { frequency: FrequencyType; time: string; 
     const dayUpper = dow.toUpperCase();
     const matched = WEEKDAYS.find((d) => d.value === dayUpper);
     if (matched) return { frequency: 'weekly', time, weekday: dayUpper };
-    return { frequency: 'custom', time, weekday: 'MON' };
+    return { frequency: 'daily', time, weekday: 'MON' };
   }
 
   // Daily: min hour * * *
@@ -118,8 +118,6 @@ const CreateTaskDialog: React.FC<CreateTaskDialogProps> = ({
         description: editJob.schedule.description || editJob.name,
         prompt: editJob.target.payload.text,
         agent: getAgentKeyFromJob(editJob),
-        schedule: parsed.frequency === 'custom' ? cronExpr : undefined,
-        scheduleDescription: parsed.frequency === 'custom' ? editJob.schedule.description : undefined,
       });
     } else {
       form.resetFields();
@@ -151,8 +149,6 @@ const CreateTaskDialog: React.FC<CreateTaskDialogProps> = ({
           description: t('cron.page.scheduleDesc.weeklyAt', { day: t(`cron.page.weekday.${dayLabel}`), time }),
         };
       }
-      case 'custom':
-        return { expr: '', description: '' };
       default:
         return { expr: '', description: '' };
     }
@@ -203,15 +199,8 @@ const CreateTaskDialog: React.FC<CreateTaskDialogProps> = ({
       const values = await form.validate();
       setSubmitting(true);
 
-      let scheduleExpr: string;
-      let scheduleDesc: string;
-      if (frequency === 'custom') {
-        scheduleExpr = values.schedule;
-        scheduleDesc = values.scheduleDescription;
-      } else {
-        scheduleExpr = scheduleInfo.expr;
-        scheduleDesc = scheduleInfo.description;
-      }
+      const scheduleExpr = scheduleInfo.expr;
+      const scheduleDesc = scheduleInfo.description;
 
       const { agentConfig, resolvedAgentType } = resolveAgentConfig(values.agent);
 
@@ -401,7 +390,6 @@ const CreateTaskDialog: React.FC<CreateTaskDialogProps> = ({
             <Option value='daily'>{t('cron.page.freq.daily')}</Option>
             <Option value='weekdays'>{t('cron.page.freq.weekdays')}</Option>
             <Option value='weekly'>{t('cron.page.freq.weekly')}</Option>
-            <Option value='custom'>{t('cron.page.freq.custom')}</Option>
           </Select>
         </FormItem>
 
@@ -436,29 +424,10 @@ const CreateTaskDialog: React.FC<CreateTaskDialogProps> = ({
         )}
 
         {/* Hint text */}
-        {frequency !== 'manual' && frequency !== 'custom' && (
+        {frequency !== 'manual' && (
           <p className='text-text-3 text-12px mt-0 mb-16px'>{t('cron.page.scheduleHint')}</p>
         )}
 
-        {/* Custom cron fields */}
-        {frequency === 'custom' && (
-          <>
-            <FormItem
-              label={t('cron.page.form.cronExpr')}
-              field='schedule'
-              rules={[{ required: true, message: t('cron.page.form.cronExprRequired') }]}
-            >
-              <Input placeholder='0 9 * * MON' />
-            </FormItem>
-            <FormItem
-              label={t('cron.page.form.scheduleDesc')}
-              field='scheduleDescription'
-              rules={[{ required: true, message: t('cron.page.form.scheduleDescRequired') }]}
-            >
-              <Input placeholder={t('cron.page.form.scheduleDescPlaceholder')} />
-            </FormItem>
-          </>
-        )}
       </Form>
     </ModalWrapper>
   );
