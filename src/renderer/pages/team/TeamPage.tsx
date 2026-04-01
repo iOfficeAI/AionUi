@@ -95,6 +95,7 @@ const TeamPageContent: React.FC<TeamPageContentProps> = ({ team, onAddAgent }) =
     if (activeAgent.conversationType === 'acp' || activeAgent.conversationType === 'codex') {
       return (
         <AcpModelSelector
+          key={activeAgent.conversationId}
           conversationId={activeAgent.conversationId}
           backend={activeAgent.agentType}
           initialModelId={initialModelId}
