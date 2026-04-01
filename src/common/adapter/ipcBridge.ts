@@ -72,6 +72,15 @@ export const conversation = {
     'conversation.response.search.workspace'
   ),
   reloadContext: bridge.buildProvider<IBridgeResponse, { conversation_id: string }>('conversation.reload-context'),
+  commandQueue: {
+    execute: bridge.buildProvider<
+      IBridgeResponse<{
+        started: boolean;
+        reason: 'started' | 'busy' | 'locked';
+      }>,
+      { conversation_id: string; input: string; files: string[] }
+    >('conversation.command-queue.execute'),
+  },
   confirmation: {
     add: bridge.buildEmitter<IConfirmation<any> & { conversation_id: string }>('confirmation.add'),
     update: bridge.buildEmitter<IConfirmation<any> & { conversation_id: string }>('confirmation.update'),

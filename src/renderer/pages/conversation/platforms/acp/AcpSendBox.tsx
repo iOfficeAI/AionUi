@@ -217,7 +217,11 @@ Please check your local CLI tool authentication status`,
     conversationId: conversation_id,
     isBusy,
     isHydrated: hasHydratedRunningState,
-    onExecute: executeCommand,
+    onStarted: (item) => {
+      setAiProcessing(true);
+      void checkAndUpdateTitle(conversation_id, item.input);
+      emitter.emit('chat.history.refresh');
+    },
   });
 
   const onSendHandler = async (message: string) => {

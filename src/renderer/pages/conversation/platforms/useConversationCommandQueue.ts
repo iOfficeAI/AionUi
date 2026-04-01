@@ -1,3 +1,4 @@
+import { ipcBridge } from '@/common';
 import { uuid } from '@/common/utils';
 import { useAddEventListener } from '@/renderer/utils/emitter';
 import { Message } from '@arco-design/web-react';
@@ -307,7 +308,8 @@ type UseConversationCommandQueueOptions = {
   conversationId: string;
   isBusy: boolean;
   isHydrated?: boolean;
-  onExecute: (item: ConversationCommandQueueItem) => Promise<void>;
+  onExecute?: (item: ConversationCommandQueueItem) => void | Promise<void>;
+  onStarted?: (item: ConversationCommandQueueItem) => void;
 };
 
 type EnqueueCommandInput = Pick<ConversationCommandQueueItem, 'input' | 'files'>;
@@ -344,6 +346,7 @@ export const useConversationCommandQueue = ({
   isBusy,
   isHydrated = true,
   onExecute,
+  onStarted,
 }: UseConversationCommandQueueOptions) => {
   const { t } = useTranslation();
   const { data = createDefaultQueueState(), mutate } = useSWR(
@@ -355,6 +358,7 @@ export const useConversationCommandQueue = ({
   const pausedRef = useRef(data.isPaused);
   const waitingForTurnStartRef = useRef(false);
   const waitingForTurnCompletionRef = useRef(false);
+  const executionRequestInFlightRef = useRef(false);
   const interactionLockedRef = useRef(false);
   const [isInteractionLocked, setIsInteractionLocked] = useState(false);
   const [executionGateVersion, setExecutionGateVersion] = useState(0);
@@ -595,6 +599,7 @@ export const useConversationCommandQueue = ({
       !isHydrated ||
       pausedRef.current ||
       isBusy ||
+      executionRequestInFlightRef.current ||
       waitingForTurnStartRef.current ||
       waitingForTurnCompletionRef.current ||
       interactionLockedRef.current ||
@@ -604,35 +609,61 @@ export const useConversationCommandQueue = ({
     }
 
     const [nextCommand, ...remainingCommands] = data.items;
-    waitingForTurnStartRef.current = true;
-    logCommandQueue(conversationId, 'dequeued', {
-      item: summarizeQueuedCommand(nextCommand),
-      remainingItemCount: remainingCommands.length,
-    });
-    void updateState(() => ({
-      items: remainingCommands,
-      isPaused: false,
-    }));
+    executionRequestInFlightRef.current = true;
 
-    void onExecute(nextCommand).catch((error) => {
-      console.error('[conversation-command-queue] Failed to execute queued command:', error);
-      logCommandQueue(conversationId, 'execute-failed', {
-        item: summarizeQueuedCommand(nextCommand),
-        error: error instanceof Error ? error.message : String(error),
+    void ipcBridge.conversation.commandQueue.execute
+      .invoke({
+        conversation_id: conversationId,
+        input: nextCommand.input,
+        files: nextCommand.files,
+      })
+      .then((result) => {
+        if (!result?.success) {
+          throw new Error(result?.msg || 'Failed to execute queued command');
+        }
+
+        if (!result.data?.started) {
+          logCommandQueue(conversationId, 'execute-deferred', {
+            item: summarizeQueuedCommand(nextCommand),
+            reason: result.data?.reason || 'busy',
+          });
+          return;
+        }
+
+        waitingForTurnStartRef.current = true;
+        logCommandQueue(conversationId, 'dequeued', {
+          item: summarizeQueuedCommand(nextCommand),
+          remainingItemCount: remainingCommands.length,
+        });
+        void onExecute?.(nextCommand);
+        onStarted?.(nextCommand);
+        void updateState(() => ({
+          items: remainingCommands,
+          isPaused: false,
+        }));
+      })
+      .catch((error) => {
+        console.error('[conversation-command-queue] Failed to execute queued command:', error);
+        logCommandQueue(conversationId, 'execute-failed', {
+          item: summarizeQueuedCommand(nextCommand),
+          error: error instanceof Error ? error.message : String(error),
+        });
+        waitingForTurnStartRef.current = false;
+        waitingForTurnCompletionRef.current = false;
+        pausedRef.current = true;
+        void updateState((state) => ({
+          items: restoreQueuedCommand(state.items, nextCommand),
+          isPaused: true,
+        }));
+        Message.warning(
+          t('conversation.commandQueue.pausedAfterFailure', {
+            defaultValue: 'The next queued command could not start. Edit, reorder, or remove it to continue.',
+          })
+        );
+      })
+      .finally(() => {
+        executionRequestInFlightRef.current = false;
       });
-      waitingForTurnStartRef.current = false;
-      waitingForTurnCompletionRef.current = false;
-      pausedRef.current = true;
-      void updateState((state) => ({
-        items: restoreQueuedCommand(state.items, nextCommand),
-        isPaused: true,
-      }));
-      Message.warning(
-        t('conversation.commandQueue.pausedAfterFailure', {
-          defaultValue: 'The next queued command could not start. Edit, reorder, or remove it to continue.',
-        })
-      );
-    });
   }, [
     conversationId,
     data.items,
@@ -641,6 +672,7 @@ export const useConversationCommandQueue = ({
     isHydrated,
     isInteractionLocked,
     onExecute,
+    onStarted,
     t,
     updateState,
   ]);

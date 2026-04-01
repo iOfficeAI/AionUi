@@ -7,6 +7,8 @@
 import type { CodexAgentManager } from '@process/agent/codex';
 import { GeminiAgent, GeminiApprovalStore } from '@process/agent/gemini';
 import type { TChatConversation } from '@/common/config/storage';
+import { AIONUI_FILES_MARKER, AIONUI_TIMESTAMP_REGEX } from '@/common/config/constants';
+import { uuid } from '@/common/utils';
 import type { IAgentManager } from '@process/task/IAgentManager';
 import type { IConversationService } from '@process/services/IConversationService';
 import type { IWorkerTaskManager } from '@process/task/IWorkerTaskManager';
@@ -28,6 +30,7 @@ import { computeOpenClawIdentityHash } from '@process/utils/openclawUtils';
 import fs from 'fs';
 import path from 'path';
 import { migrateConversationToDatabase } from './migrationUtils';
+import { ConversationCommandExecutionService } from './services/ConversationCommandExecutionService';
 import { ConversationSideQuestionService } from './services/ConversationSideQuestionService';
 
 const refreshTrayMenuSafely = async (): Promise<void> => {
@@ -47,11 +50,120 @@ const VALID_CONVERSATION_TYPES = new Set<TChatConversation['type']>([
   'remote',
 ]);
 
+const buildDisplayMessage = (input: string, files: string[], workspacePath: string): string => {
+  if (!files.length) {
+    return input;
+  }
+
+  const displayPaths = files.map((filePath) => {
+    if (!workspacePath) {
+      return filePath;
+    }
+
+    const isAbsolute = filePath.startsWith('/') || /^[A-Za-z]:/.test(filePath);
+    if (isAbsolute) {
+      const normalizedFile = filePath.replace(/\\/g, '/');
+      const normalizedWorkspace = workspacePath.replace(/[\\/]+$/, '').replace(/\\/g, '/');
+      if (normalizedFile.startsWith(normalizedWorkspace + '/')) {
+        const relativePath = normalizedFile.slice(normalizedWorkspace.length + 1);
+        return `${workspacePath}/${relativePath.replace(AIONUI_TIMESTAMP_REGEX, '$1')}`;
+      }
+
+      const parts = filePath.split(/[\\/]/);
+      const fileName = (parts[parts.length - 1] || filePath).replace(AIONUI_TIMESTAMP_REGEX, '$1');
+      return `${workspacePath}/${fileName}`;
+    }
+
+    return `${workspacePath}/${filePath}`;
+  });
+
+  return `${input}\n\n${AIONUI_FILES_MARKER}\n${displayPaths.join('\n')}`;
+};
+
 export function initConversationBridge(
   conversationService: IConversationService,
   workerTaskManager: IWorkerTaskManager
 ): void {
   const sideQuestionService = new ConversationSideQuestionService(conversationService);
+
+  const dispatchConversationMessage = async ({
+    conversation_id,
+    input,
+    files,
+    msg_id,
+    injectSkills,
+  }: {
+    conversation_id: string;
+    input: string;
+    files?: string[];
+    msg_id?: string;
+    injectSkills?: string[];
+  }): Promise<{
+    task: IAgentManager;
+    workspaceFiles: string[];
+    isGeminiAgent: boolean;
+  }> => {
+    const task = await workerTaskManager.getOrBuildTask(conversation_id);
+
+    let workspaceFiles: string[];
+    const isGeminiAgent = task.type === 'gemini';
+
+    if (isGeminiAgent) {
+      try {
+        workspaceFiles = await copyFilesToDirectory(task.workspace, files, false, getSystemDir().cacheDir);
+      } catch (error) {
+        console.error('[conversationBridge] sendMessage: failed to copy files to workspace:', error);
+        workspaceFiles = [];
+      }
+    } else {
+      workspaceFiles = (files || []).filter((filePath) => path.isAbsolute(filePath));
+    }
+
+    let agentContent = input;
+    if (injectSkills?.length) {
+      agentContent = await prepareFirstMessage(input, {
+        enabledSkills: injectSkills,
+      });
+      const skillsDir = getSkillsDir();
+      const builtinSkillsCopyDir = getBuiltinSkillsCopyDir();
+      agentContent = agentContent.replace(
+        '[User Request]',
+        `[Skills Directory]\nBuiltin skills: ${builtinSkillsCopyDir}\nUser skills: ${skillsDir}\nWhen skill instructions reference relative paths like "skills/{name}/scripts/...", resolve them under the appropriate directory.\n\n[User Request]`
+      );
+    }
+
+    await task.sendMessage({
+      input,
+      msg_id,
+      injectSkills,
+      content: input,
+      files: workspaceFiles,
+      agentContent,
+    });
+
+    return {
+      task,
+      workspaceFiles,
+      isGeminiAgent,
+    };
+  };
+
+  const commandExecutionService = new ConversationCommandExecutionService(
+    conversationService,
+    workerTaskManager,
+    async ({ conversationId, input, files }) => {
+      const conversation = await conversationService.getConversation(conversationId);
+      const task = await workerTaskManager.getOrBuildTask(conversationId);
+      const formattedInput = conversation?.type === 'acp' ? input : buildDisplayMessage(input, files, task.workspace);
+
+      await dispatchConversationMessage({
+        conversation_id: conversationId,
+        input: formattedInput,
+        files,
+        msg_id: uuid(),
+      });
+    }
+  );
 
   const emitConversationListChanged = (
     conversation: Pick<TChatConversation, 'id' | 'source'>,
@@ -442,68 +554,13 @@ export function initConversationBridge(
       return { success: false, msg: 'Missing request parameters' };
     }
     const { conversation_id, files, ...other } = params;
-    let task: IAgentManager | undefined;
     try {
-      task = await workerTaskManager.getOrBuildTask(conversation_id);
-    } catch (err) {
-      console.error(`[conversationBridge] sendMessage: failed to get/build task: ${conversation_id}`, err);
-      return {
-        success: false,
-        msg: err instanceof Error ? err.message : 'conversation not found',
-      };
-    }
-
-    if (!task) {
-      return { success: false, msg: 'conversation not found' };
-    }
-
-    // Handle file paths based on agent type
-    // Gemini requires files in workspace; other agents can use cache directory directly
-    let workspaceFiles: string[];
-    const isGeminiAgent = task.type === 'gemini';
-
-    if (isGeminiAgent) {
-      // Gemini: Copy files to workspace (required for gemini CLI)
-      // Wrap in try-catch to prevent unhandled rejection when workspace directory is missing
-      try {
-        workspaceFiles = await copyFilesToDirectory(task.workspace, files, false, getSystemDir().cacheDir);
-      } catch (error) {
-        console.error('[conversationBridge] sendMessage: failed to copy files to workspace:', error);
-        workspaceFiles = [];
-      }
-    } else {
-      // Non-Gemini agents (ACP, Codex, NanoBot, OpenClaw, Remote): Use cache directory paths directly
-      // Filter to only include absolute paths that exist
-      workspaceFiles = (files ?? []).filter((f) => path.isAbsolute(f));
-    }
-
-    // Precompute agent content with optional skill injection.
-    // OpenClaw uses full-content mode: inject full skill text rather than index paths,
-    // because the CLI may not proactively read SKILL.md files the way ACP agents do.
-    let agentContent = other.input;
-    if (other.injectSkills?.length) {
-      agentContent = await prepareFirstMessage(other.input, {
-        enabledSkills: other.injectSkills,
-      });
-      // Provide absolute skills directory so agent can resolve relative script paths
-      // e.g. "skills/star-office-helper/scripts/..." → "${skillsDir}/star-office-helper/scripts/..."
-      const skillsDir = getSkillsDir();
-      const builtinSkillsCopyDir = getBuiltinSkillsCopyDir();
-      agentContent = agentContent.replace(
-        '[User Request]',
-        `[Skills Directory]\nBuiltin skills: ${builtinSkillsCopyDir}\nUser skills: ${skillsDir}\nWhen skill instructions reference relative paths like "skills/{name}/scripts/...", resolve them under the appropriate directory.\n\n[User Request]`
-      );
-    }
-
-    try {
-      // Pass unified data — each agent reads the fields it needs from the unknown payload.
-      // `content` aliases `input` for ACP/Codex/NanoBot/OpenClaw agents.
-      // `agentContent` carries the skill-injected text for OpenClaw (equals `input` when no skills).
-      await task.sendMessage({
-        ...other,
-        content: other.input,
-        files: workspaceFiles,
-        agentContent,
+      const { task, workspaceFiles, isGeminiAgent } = await dispatchConversationMessage({
+        conversation_id,
+        input: other.input,
+        files,
+        msg_id: other.msg_id,
+        injectSkills: other.injectSkills,
       });
 
       // Defer cleanup until after Gemini worker finishes processing the files.
@@ -533,7 +590,27 @@ export function initConversationBridge(
       }
 
       return { success: true };
-    } catch (err: unknown) {
+    } catch (err) {
+      return {
+        success: false,
+        msg: err instanceof Error ? err.message : String(err),
+      };
+    }
+  });
+
+  ipcBridge.conversation.commandQueue?.execute?.provider(async ({ conversation_id, input, files }) => {
+    try {
+      const result = await commandExecutionService.execute({
+        conversationId: conversation_id,
+        input,
+        files,
+      });
+      return {
+        success: true,
+        data: result,
+      };
+    } catch (err) {
+      console.error(`[conversationBridge] sendMessage: failed to get/build task: ${conversation_id}`, err);
       return {
         success: false,
         msg: err instanceof Error ? err.message : String(err),

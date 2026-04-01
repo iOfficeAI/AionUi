@@ -13,10 +13,26 @@ import { emitter } from '@/renderer/utils/emitter';
 import React from 'react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
+const { executeQueuedCommandMock } = vi.hoisted(() => ({
+  executeQueuedCommandMock: vi.fn(),
+}));
+
 vi.mock('react-i18next', () => ({
   useTranslation: () => ({
     t: (key: string, options?: Record<string, unknown>) => (options?.defaultValue as string | undefined) ?? key,
   }),
+}));
+
+vi.mock('@/common', () => ({
+  ipcBridge: {
+    conversation: {
+      commandQueue: {
+        execute: {
+          invoke: executeQueuedCommandMock,
+        },
+      },
+    },
+  },
 }));
 
 vi.mock('@arco-design/web-react', async () => {
@@ -72,6 +88,13 @@ describe('useConversationCommandQueue', () => {
   beforeEach(() => {
     window.sessionStorage.clear();
     vi.clearAllMocks();
+    executeQueuedCommandMock.mockResolvedValue({
+      success: true,
+      data: {
+        started: true,
+        reason: 'started',
+      },
+    });
   });
 
   afterEach(() => {
@@ -178,6 +201,61 @@ describe('useConversationCommandQueue', () => {
     );
   });
 
+  it('keeps the queued command in place when process still reports the conversation as busy', async () => {
+    const conversationId = createConversationId();
+    const onExecute = vi.fn();
+
+    executeQueuedCommandMock.mockResolvedValue({
+      success: true,
+      data: {
+        started: false,
+        reason: 'busy',
+      },
+    });
+
+    const { result, rerender } = renderHook(
+      ({ isBusy, isHydrated }) =>
+        useConversationCommandQueue({
+          conversationId,
+          isBusy,
+          isHydrated,
+          onExecute,
+        }),
+      {
+        initialProps: { isBusy: false, isHydrated: true },
+      }
+    );
+
+    act(() => {
+      result.current.enqueue({
+        input: 'still busy in process',
+        files: [],
+      });
+    });
+
+    await waitFor(() => {
+      expect(executeQueuedCommandMock).toHaveBeenCalledTimes(1);
+    });
+    expect(onExecute).not.toHaveBeenCalled();
+    expect(result.current.items).toHaveLength(1);
+
+    executeQueuedCommandMock.mockResolvedValue({
+      success: true,
+      data: {
+        started: true,
+        reason: 'started',
+      },
+    });
+
+    rerender({ isBusy: true, isHydrated: true });
+    rerender({ isBusy: false, isHydrated: true });
+
+    await waitFor(() => {
+      expect(onExecute).toHaveBeenCalledTimes(1);
+    });
+    expect(result.current.items).toHaveLength(0);
+  });
+
   it('keeps queued commands paused until resumed', async () => {
     const conversationId = createConversationId();
     const onExecute = vi.fn().mockResolvedValue(undefined);
@@ -230,10 +308,13 @@ describe('useConversationCommandQueue', () => {
 
   it('restores the failed command to the front of the queue and pauses execution', async () => {
     const conversationId = createConversationId();
-    const onExecute = vi.fn().mockRejectedValue(new Error('send failed'));
+    const onExecute = vi.fn();
     const warningSpy = vi.mocked(Message.warning);
     const errorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
     const storageKey = `conversation-command-queue/${conversationId}`;
+
+    executeQueuedCommandMock.mockRejectedValue(new Error('send failed'));
+
     const { result, rerender } = renderHook(
       ({ isBusy }) =>
         useConversationCommandQueue({
@@ -260,7 +341,7 @@ describe('useConversationCommandQueue', () => {
     rerender({ isBusy: false });
 
     await waitFor(() => {
-      expect(onExecute).toHaveBeenCalledTimes(1);
+      expect(executeQueuedCommandMock).toHaveBeenCalledTimes(1);
     });
 
     await waitFor(() => {

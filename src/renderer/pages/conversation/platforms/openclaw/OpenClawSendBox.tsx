@@ -472,7 +472,11 @@ const OpenClawSendBox: React.FC<{ conversation_id: string }> = ({ conversation_i
     conversationId: conversation_id,
     isBusy: aiProcessing,
     isHydrated: hasHydratedRunningState,
-    onExecute: executeCommand,
+    onStarted: (item) => {
+      setAiProcessing(true);
+      void checkAndUpdateTitle(conversation_id, item.input);
+      emitter.emit('chat.history.refresh');
+    },
   });
 
   const onSendHandler = async (message: string) => {
