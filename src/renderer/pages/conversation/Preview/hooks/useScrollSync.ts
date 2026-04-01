@@ -4,7 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { useCallback, useRef } from 'react';
+import { useCallback, useEffect, useRef } from 'react';
 import { SCROLL_SYNC_DEBOUNCE } from '../constants';
 
 /**
@@ -56,11 +56,11 @@ interface UseScrollSyncReturn {
  * 在编辑器和预览器之间同步滚动位置，基于滚动百分比进行同步
  * Synchronizes scroll position between editor and preview based on scroll percentage
  *
- * 使用防抖机制避免循环触发和性能问题
- * Uses debounce mechanism to avoid circular triggers and performance issues
- *
- * TODO: 考虑使用 requestAnimationFrame 替代 setTimeout 以提升性能
- * TODO: Consider using requestAnimationFrame instead of setTimeout for better performance
+ * 使用防抖机制避免循环触发和性能问题；优先使用 requestAnimationFrame 解锁同步状态，
+ * 并在不可用时降级到 setTimeout + SCROLL_SYNC_DEBOUNCE，确保兼容性与安全降级。
+ * Uses debounce to avoid circular triggers and performance issues; it prefers
+ * requestAnimationFrame to unlock sync state, and falls back to
+ * setTimeout + SCROLL_SYNC_DEBOUNCE when unavailable for compatibility and safe degradation.
  *
  * @param options - 滚动同步配置 / Scroll sync configuration
  * @returns 滚动事件处理函数 / Scroll event handlers
@@ -71,6 +71,44 @@ export const useScrollSync = ({
   previewContainerRef,
 }: UseScrollSyncOptions): UseScrollSyncReturn => {
   const isSyncingRef = useRef(false);
+  const rafIdRef = useRef<number | null>(null);
+  const timeoutIdRef = useRef<number | null>(null);
+
+  const scheduleSyncUnlock = useCallback(() => {
+    if (rafIdRef.current !== null) {
+      cancelAnimationFrame(rafIdRef.current);
+      rafIdRef.current = null;
+    }
+    if (timeoutIdRef.current !== null) {
+      window.clearTimeout(timeoutIdRef.current);
+      timeoutIdRef.current = null;
+    }
+
+    if (typeof window.requestAnimationFrame === 'function') {
+      rafIdRef.current = window.requestAnimationFrame(() => {
+        isSyncingRef.current = false;
+        rafIdRef.current = null;
+      });
+      return;
+    }
+
+    timeoutIdRef.current = window.setTimeout(() => {
+      isSyncingRef.current = false;
+      timeoutIdRef.current = null;
+    }, SCROLL_SYNC_DEBOUNCE);
+  }, []);
+
+  useEffect(() => {
+    return () => {
+      if (rafIdRef.current !== null) {
+        cancelAnimationFrame(rafIdRef.current);
+      }
+      if (timeoutIdRef.current !== null) {
+        window.clearTimeout(timeoutIdRef.current);
+      }
+      isSyncingRef.current = false;
+    };
+  }, []);
 
   const handleEditorScroll = useCallback(
     (scrollTop: number, scrollHeight: number, clientHeight: number) => {
@@ -89,11 +127,9 @@ export const useScrollSync = ({
         previewContainer.scrollTop = targetScroll;
       }
 
-      setTimeout(() => {
-        isSyncingRef.current = false;
-      }, SCROLL_SYNC_DEBOUNCE);
+      scheduleSyncUnlock();
     },
-    [enabled, previewContainerRef]
+    [enabled, previewContainerRef, scheduleSyncUnlock]
   );
 
   const handlePreviewScroll = useCallback(
@@ -113,11 +149,9 @@ export const useScrollSync = ({
         editorContainer.scrollTop = targetScroll;
       }
 
-      setTimeout(() => {
-        isSyncingRef.current = false;
-      }, SCROLL_SYNC_DEBOUNCE);
+      scheduleSyncUnlock();
     },
-    [enabled, editorContainerRef]
+    [enabled, editorContainerRef, scheduleSyncUnlock]
   );
 
   return {

@@ -109,7 +109,11 @@ describe('fsBridge skills functionality', () => {
           }),
           stat: vi.fn(async (filePath: string) => {
             const fp = resolvePath(filePath);
-            if (!(fp in mockFsStore)) throw new Error(`ENOENT: stat '${fp}'`);
+            if (!(fp in mockFsStore)) {
+              const err = new Error(`ENOENT: no such file or directory, stat '${fp}'`) as NodeJS.ErrnoException;
+              err.code = 'ENOENT';
+              throw err;
+            }
             return {
               isDirectory: () => !!mockFsStore[fp]?.isDirectory,
               isFile: () => !mockFsStore[fp]?.isDirectory,

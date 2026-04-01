@@ -7,6 +7,7 @@
 import { Worker, type MessagePort } from 'worker_threads';
 import * as path from 'path';
 import type { ExtPermissions } from './permissions';
+import { extensionEventBus } from '../lifecycle/ExtensionEventBus';
 
 /**
  * Extension Sandbox — Worker Thread isolation for extension code execution.
@@ -40,6 +41,17 @@ export type SandboxMessage =
 
 // ============ Sandbox Host (Main Thread) ============
 
+/**
+ * Handler for Worker → Host API calls (e.g. storage.get, storage.set).
+ * Returns the result or throws on error.
+ */
+export type SandboxApiHandler = (...args: unknown[]) => Promise<unknown> | unknown;
+
+/**
+ * Callback invoked when the worker sends a UI-bound message via aion.postToUI().
+ */
+export type SandboxUIMessageHandler = (extensionName: string, payload: unknown) => void;
+
 export interface SandboxHostOptions {
   extensionName: string;
   extensionDir: string;
@@ -49,6 +61,13 @@ export interface SandboxHostOptions {
   initTimeout?: number;
   /** Timeout for individual API calls (ms). Default 30000 */
   callTimeout?: number;
+  /**
+   * Map of method names to handlers for Worker → Host API calls.
+   * Keys match the `method` field in api-call messages (e.g. 'storage.get').
+   */
+  apiHandlers?: Record<string, SandboxApiHandler>;
+  /** Callback for messages sent via aion.postToUI() in the worker. */
+  onUIMessage?: SandboxUIMessageHandler;
 }
 
 /**
@@ -74,7 +93,7 @@ export class SandboxHost {
     { resolve: (v: unknown) => void; reject: (e: Error) => void; timer: ReturnType<typeof setTimeout> }
   >();
   private callCounter = 0;
-  private readonly options: Required<SandboxHostOptions>;
+  private readonly options: SandboxHostOptions & { initTimeout: number; callTimeout: number };
   private _running = false;
 
   constructor(options: SandboxHostOptions) {
@@ -217,6 +236,11 @@ export class SandboxHost {
 
   private handleMessage(msg: SandboxMessage): void {
     switch (msg.type) {
+      case 'api-call': {
+        // Worker → Host RPC: route to registered apiHandlers
+        this.handleWorkerApiCall(msg.id, msg.method, msg.args);
+        break;
+      }
       case 'api-response': {
         const pending = this.pendingCalls.get(msg.id);
         if (pending) {
@@ -238,11 +262,51 @@ export class SandboxHost {
           logFn(prefix, ...msg.args);
         }
         break;
-      case 'event':
-        // Extension emitting events back to main — handled by event bus
+      case 'event': {
+        const { name, payload } = msg;
+        if (name === 'ui-message') {
+          // aion.postToUI() — forward to the registered UI message handler
+          this.options.onUIMessage?.(this.options.extensionName, payload);
+        } else if (name.startsWith('ext:')) {
+          // aion.emitEvent() — forward to the extension event bus
+          extensionEventBus.emitExtensionEvent(this.options.extensionName, name.slice(4), payload);
+        }
         break;
+      }
       default:
         break;
+    }
+  }
+
+  /**
+   * Handle an api-call from the Worker and send back an api-response.
+   */
+  private handleWorkerApiCall(id: string, method: string, args: unknown[]): void {
+    const handler = this.options.apiHandlers?.[method];
+    if (!handler) {
+      this.worker?.postMessage({
+        type: 'api-response',
+        id,
+        error: `No handler registered for "${method}"`,
+      } satisfies SandboxMessage);
+      return;
+    }
+
+    try {
+      const result = handler(...args);
+      if (result && typeof (result as Promise<unknown>).then === 'function') {
+        (result as Promise<unknown>)
+          .then((r) => {
+            this.worker?.postMessage({ type: 'api-response', id, result: r } satisfies SandboxMessage);
+          })
+          .catch((e) => {
+            this.worker?.postMessage({ type: 'api-response', id, error: String(e) } satisfies SandboxMessage);
+          });
+      } else {
+        this.worker?.postMessage({ type: 'api-response', id, result } satisfies SandboxMessage);
+      }
+    } catch (error) {
+      this.worker?.postMessage({ type: 'api-response', id, error: String(error) } satisfies SandboxMessage);
     }
   }
 }

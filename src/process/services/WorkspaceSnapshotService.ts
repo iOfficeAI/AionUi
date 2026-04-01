@@ -96,7 +96,10 @@ export class WorkspaceSnapshotService {
   // --- Branch operations (git-repo mode only) ---
 
   async getBranches(workspacePath: string): Promise<string[]> {
-    this.ensureGitRepo(workspacePath);
+    const state = this.snapshots.get(workspacePath);
+    if (!state || state.mode !== 'git-repo') {
+      return [];
+    }
     const { stdout } = await execFileAsync('git', ['branch', '--format=%(refname:short)'], { cwd: workspacePath });
     return stdout
       .split('\n')
@@ -113,7 +116,7 @@ export class WorkspaceSnapshotService {
 
   async stageAll(workspacePath: string): Promise<void> {
     this.ensureGitRepo(workspacePath);
-    await execFileAsync('git', ['add', '-A'], { cwd: workspacePath });
+    await execFileAsync('git', ['add', '-A'], { cwd: workspacePath, maxBuffer: 10 * 1024 * 1024 });
   }
 
   async unstageFile(workspacePath: string, filePath: string): Promise<void> {
@@ -388,7 +391,10 @@ export class WorkspaceSnapshotService {
     // Use --ignore-errors so locked/permission-denied files don't abort the entire snapshot.
     // The command still exits non-zero when some files fail, so catch and verify the commit succeeds.
     try {
-      await execFileAsync('git', [...gitArgs, 'add', '--ignore-errors', '.'], { cwd: workspacePath });
+      await execFileAsync('git', [...gitArgs, 'add', '--ignore-errors', '.'], {
+        cwd: workspacePath,
+        maxBuffer: 10 * 1024 * 1024,
+      });
     } catch (error) {
       const stderr = (error as { stderr?: string }).stderr ?? '';
       // Re-throw if the error is NOT a partial indexing failure (e.g. git not found)
@@ -409,7 +415,7 @@ export class WorkspaceSnapshotService {
         '-m',
         'baseline',
       ],
-      { cwd: workspacePath }
+      { cwd: workspacePath, maxBuffer: 10 * 1024 * 1024 }
     );
 
     return gitdir;

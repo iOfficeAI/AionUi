@@ -31,6 +31,7 @@ import MessageToolCall from './components/MessageToolCall';
 import MessageToolGroup from './components/MessageToolGroup';
 import MessageToolGroupSummary from './components/MessageToolGroupSummary';
 import MessageText from './components/MessagetText';
+import MessageThinking from './components/MessageThinking';
 import type { WriteFileResult } from './types';
 import { useAutoScroll } from './useAutoScroll';
 import { useAutoPreviewOfficeFiles } from '@/renderer/hooks/file/useAutoPreviewOfficeFiles';
@@ -129,6 +130,8 @@ const MessageItem: React.FC<{ message: TMessage; highlighted?: boolean }> = Reac
         return <MessageCodexToolCall message={message}></MessageCodexToolCall>;
       case 'plan':
         return <MessagePlan message={message}></MessagePlan>;
+      case 'thinking':
+        return <MessageThinking message={message}></MessageThinking>;
       case 'available_commands':
         return null;
       default:
@@ -236,6 +239,7 @@ const MessageList: React.FC<{ className?: string }> = () => {
   // Use auto-scroll hook
   const {
     virtuosoRef,
+    handleScrollerRef,
     handleScroll,
     handleAtBottomStateChange,
     handleFollowOutput,
@@ -348,11 +352,12 @@ const MessageList: React.FC<{ className?: string }> = () => {
         <ImagePreviewContext.Provider value={{ inPreviewGroup: true }}>
           <Virtuoso
             ref={virtuosoRef}
+            scrollerRef={handleScrollerRef}
             className='flex-1 h-full pb-10px box-border'
             data={processedList}
             initialTopMostItemIndex={processedList.length - 1}
             atBottomThreshold={100}
-            increaseViewportBy={200}
+            increaseViewportBy={1200}
             itemContent={renderItem}
             followOutput={handleFollowOutput}
             onScroll={handleScroll}

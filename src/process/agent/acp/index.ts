@@ -632,6 +632,7 @@ export class AcpAgent {
       });
 
       this.adapter.resetMessageTracking();
+      this.adapter.resetPlanTracking();
       let processedContent = data.content;
 
       // Add @ prefix to ALL uploaded files (including images) with FULL PATH
@@ -1132,14 +1133,14 @@ export class AcpAgent {
       }
 
       // In team mode, wait indefinitely for leader to approve (like Claude).
-      // In standalone mode, keep the 70s timeout as a safety net.
+      // In standalone mode, allow up to 30 minutes to respond to permission prompts.
       if (!this.extra.teamMcpStdioConfig) {
         setTimeout(() => {
           if (this.pendingPermissions.has(requestId)) {
             this.pendingPermissions.delete(requestId);
             reject(new Error('Permission request timed out'));
           }
-        }, 70000);
+        }, 1800000);
       }
     });
   }
@@ -1386,7 +1387,6 @@ export class AcpAgent {
         // Distinguish between thought messages and error messages
         if (message.content.type === 'warning' && message.position === 'center') {
           const subject = this.extractThoughtSubject(message.content.content);
-
           responseMessage.type = 'thought';
           responseMessage.data = {
             subject,

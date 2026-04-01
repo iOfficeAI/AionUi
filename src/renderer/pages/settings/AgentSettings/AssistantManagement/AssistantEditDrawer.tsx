@@ -4,9 +4,9 @@
  */
 import type { AssistantListItem, SkillInfo } from './types';
 import { hasBuiltinSkills } from './assistantUtils';
-import { ACP_BACKENDS_ALL } from '@/common/types/acpTypes';
 import EmojiPicker from '@/renderer/components/chat/EmojiPicker';
 import MarkdownView from '@/renderer/components/Markdown';
+import { getAgentLogo } from '@/renderer/utils/model/agentLogo';
 import { Avatar, Button, Checkbox, Collapse, Drawer, Input, Select, Tag, Typography } from '@arco-design/web-react';
 import { Close, Delete, Plus, Robot } from '@icon-park/react';
 import React, { useEffect, useRef, useState } from 'react';
@@ -81,7 +81,7 @@ const AssistantEditDrawer: React.FC<AssistantEditDrawerProps> = ({
   selectedSkills,
   setSelectedSkills,
   pendingSkills,
-  customSkills,
+  customSkills: _customSkills,
   setDeletePendingSkillName,
   setDeleteCustomSkillName,
   setSkillsModalVisible,
@@ -97,6 +97,7 @@ const AssistantEditDrawer: React.FC<AssistantEditDrawerProps> = ({
   const { t } = useTranslation();
   const textareaWrapperRef = useRef<HTMLDivElement>(null);
   const [drawerWidth, setDrawerWidth] = useState(500);
+  const [rulesExpanded, setRulesExpanded] = useState(false);
 
   // Auto focus textarea when drawer opens in edit mode
   useEffect(() => {
@@ -113,7 +114,7 @@ const AssistantEditDrawer: React.FC<AssistantEditDrawerProps> = ({
   useEffect(() => {
     const updateDrawerWidth = () => {
       if (typeof window === 'undefined') return;
-      const nextWidth = Math.min(500, Math.max(320, Math.floor(window.innerWidth - 32)));
+      const nextWidth = Math.min(1024, Math.max(480, Math.floor(window.innerWidth * 0.5)));
       setDrawerWidth(nextWidth);
     };
 
@@ -127,6 +128,28 @@ const AssistantEditDrawer: React.FC<AssistantEditDrawerProps> = ({
     isCreating ||
     (activeAssistantId !== null && hasBuiltinSkills(activeAssistantId)) ||
     (activeAssistant !== null && !activeAssistant.isBuiltin && !isExtensionAssistant(activeAssistant));
+
+  const customSkillItems = availableSkills.filter((skill) => skill.isCustom);
+  const builtinSkillItems = availableSkills.filter((skill) => !skill.isCustom);
+  const customActiveCount = selectedSkills.filter(
+    (name) =>
+      pendingSkills.some((skill) => skill.name === name) || customSkillItems.some((skill) => skill.name === name)
+  ).length;
+  const builtinActiveCount = selectedSkills.filter((name) =>
+    builtinSkillItems.some((skill) => skill.name === name)
+  ).length;
+  const customStatusDotColor = customActiveCount > 0 ? 'rgb(var(--success-6))' : 'var(--color-text-4)';
+  const builtinStatusDotColor = builtinActiveCount > 0 ? 'rgb(var(--success-6))' : 'var(--color-text-4)';
+  const totalSkillsCount = pendingSkills.length + customSkillItems.length + builtinSkillItems.length;
+  const totalActiveSkillsCount = selectedSkills.filter(
+    (name) => pendingSkills.some((skill) => skill.name === name) || availableSkills.some((skill) => skill.name === name)
+  ).length;
+  const isRuleEditable = !activeAssistant?.isBuiltin && !isReadonlyAssistant;
+  const rulesContainerHeight = rulesExpanded
+    ? '420px'
+    : isRuleEditable && promptViewMode === 'edit'
+      ? '260px'
+      : '220px';
 
   return (
     <Drawer
@@ -154,6 +177,7 @@ const AssistantEditDrawer: React.FC<AssistantEditDrawerProps> = ({
       placement='right'
       width={drawerWidth}
       zIndex={1200}
+      getPopupContainer={() => document.body}
       autoFocus={false}
       onCancel={() => {
         setEditVisible(false);
@@ -262,23 +286,49 @@ const AssistantEditDrawer: React.FC<AssistantEditDrawerProps> = ({
               onChange={(value) => setEditAgent(value as string)}
               disabled={isReadonlyAssistant}
             >
-              {Array.from(availableBackends)
-                .map((id) => {
-                  const config = ACP_BACKENDS_ALL[id as keyof typeof ACP_BACKENDS_ALL];
-                  return { value: id, label: config?.name ?? id };
-                })
-                .map((opt) => (
-                  <Select.Option key={opt.value} value={opt.value}>
-                    {opt.label}
-                  </Select.Option>
-                ))}
+              {[
+                { value: 'gemini', label: 'Gemini CLI' },
+                { value: 'claude', label: 'Claude Code' },
+                { value: 'qwen', label: 'Qwen Code' },
+                { value: 'codex', label: 'Codex' },
+                { value: 'codebuddy', label: 'CodeBuddy' },
+                { value: 'opencode', label: 'OpenCode' },
+              ]
+                .filter((opt) => availableBackends.has(opt.value))
+                .map((opt) => {
+                  const logo = getAgentLogo(opt.value);
+                  return (
+                    <Select.Option key={opt.value} value={opt.value}>
+                      <span className='flex items-center gap-6px'>
+                        {logo ? (
+                          <img
+                            src={logo}
+                            alt=''
+                            width={16}
+                            height={16}
+                            style={{ objectFit: 'contain', flexShrink: 0 }}
+                          />
+                        ) : (
+                          <Robot theme='outline' size={16} fill='currentColor' style={{ flexShrink: 0 }} />
+                        )}
+                        {opt.label}
+                      </span>
+                    </Select.Option>
+                  );
+                })}
               {/* Extension-contributed ACP adapters */}
               {extensionAcpAdapters?.map((adapter) => {
                 const id = adapter.id as string;
                 const name = (adapter.name as string) || id;
+                const logo = getAgentLogo(id);
                 return (
                   <Select.Option key={id} value={id}>
                     <span className='flex items-center gap-6px'>
+                      {logo ? (
+                        <img src={logo} alt='' width={16} height={16} style={{ objectFit: 'contain', flexShrink: 0 }} />
+                      ) : (
+                        <Robot theme='outline' size={16} fill='currentColor' style={{ flexShrink: 0 }} />
+                      )}
                       {name}
                       <Tag size='small' color='arcoblue'>
                         ext
@@ -290,13 +340,39 @@ const AssistantEditDrawer: React.FC<AssistantEditDrawerProps> = ({
             </Select>
           </div>
 
+          {/* Summary */}
+          <div className='flex flex-wrap items-center gap-8px p-10px rd-10px bg-fill-1'>
+            <span className='text-12px text-t-secondary'>
+              {t('settings.assistantMainAgent', { defaultValue: 'Main Agent' })}:
+            </span>
+            <Tag size='small' color='arcoblue'>
+              {editAgent}
+            </Tag>
+            <span className='text-12px text-t-secondary ml-6px'>
+              {t('settings.assistantSkills', { defaultValue: 'Skills' })}:
+            </span>
+            <Tag size='small' color={totalActiveSkillsCount > 0 ? 'green' : 'gray'}>
+              {totalActiveSkillsCount > 0 ? `${totalActiveSkillsCount}/${totalSkillsCount}` : totalSkillsCount}
+            </Tag>
+          </div>
+
           {/* Rules / Prompt */}
           <div className='flex-shrink-0'>
-            <Typography.Text bold className='flex-shrink-0'>
-              {t('settings.assistantRules', { defaultValue: 'Rules' })}
-            </Typography.Text>
-            <div className='mt-10px border border-border-2 overflow-hidden rounded-4px' style={{ height: '300px' }}>
-              {!activeAssistant?.isBuiltin && !isReadonlyAssistant && (
+            <div className='flex items-center justify-between'>
+              <Typography.Text bold className='flex-shrink-0'>
+                {t('settings.assistantRules', { defaultValue: 'Rules' })}
+              </Typography.Text>
+              <Button type='text' size='mini' onClick={() => setRulesExpanded((prev) => !prev)}>
+                {rulesExpanded
+                  ? t('common.collapse', { defaultValue: 'Collapse' })
+                  : t('common.expand', { defaultValue: 'Expand' })}
+              </Button>
+            </div>
+            <div
+              className='mt-10px border border-border-2 overflow-hidden rounded-4px'
+              style={{ height: rulesContainerHeight }}
+            >
+              {isRuleEditable && (
                 <div className='flex items-center h-36px bg-fill-2 border-b border-border-2 flex-shrink-0'>
                   <div
                     className={`flex items-center h-full px-16px cursor-pointer transition-all text-13px font-medium ${promptViewMode === 'edit' ? 'text-primary border-b-2 border-primary bg-bg-1' : 'text-t-secondary hover:text-t-primary'}`}
@@ -315,11 +391,11 @@ const AssistantEditDrawer: React.FC<AssistantEditDrawerProps> = ({
               <div
                 className='bg-fill-2'
                 style={{
-                  height: activeAssistant?.isBuiltin || isReadonlyAssistant ? '100%' : 'calc(100% - 36px)',
+                  height: isRuleEditable ? 'calc(100% - 36px)' : '100%',
                   overflow: 'auto',
                 }}
               >
-                {promptViewMode === 'edit' && !activeAssistant?.isBuiltin && !isReadonlyAssistant ? (
+                {promptViewMode === 'edit' && isRuleEditable ? (
                   <div ref={textareaWrapperRef} className='h-full'>
                     <Input.TextArea
                       value={editContext}
@@ -332,7 +408,7 @@ const AssistantEditDrawer: React.FC<AssistantEditDrawerProps> = ({
                     />
                   </div>
                 ) : (
-                  <div className='p-16px'>
+                  <div className='p-16px text-14px leading-7'>
                     {editContext ? (
                       <MarkdownView hiddenCodeCopyButton>{editContext}</MarkdownView>
                     ) : (
@@ -373,9 +449,18 @@ const AssistantEditDrawer: React.FC<AssistantEditDrawerProps> = ({
                   name='custom-skills'
                   className='mb-8px'
                   extra={
-                    <span className='text-12px text-t-secondary'>
-                      {pendingSkills.length + availableSkills.filter((skill) => skill.isCustom).length}
-                    </span>
+                    <div className='flex items-center gap-8px'>
+                      <span
+                        className='inline-block w-8px h-8px rd-50%'
+                        style={{ background: customStatusDotColor }}
+                        aria-hidden='true'
+                      />
+                      <span className='text-12px text-t-secondary'>
+                        {customActiveCount > 0
+                          ? `${customActiveCount}/${pendingSkills.length + customSkillItems.length}`
+                          : pendingSkills.length + customSkillItems.length}
+                      </span>
+                    </div>
                   }
                 >
                   <div className='space-y-4px'>
@@ -420,48 +505,46 @@ const AssistantEditDrawer: React.FC<AssistantEditDrawerProps> = ({
                       </div>
                     ))}
                     {/* All imported custom skills */}
-                    {availableSkills
-                      .filter((skill) => skill.isCustom)
-                      .map((skill) => (
-                        <div
-                          key={`custom-${skill.name}`}
-                          className='flex items-start gap-8px p-8px hover:bg-fill-1 rounded-4px group'
-                        >
-                          <Checkbox
-                            checked={selectedSkills.includes(skill.name)}
-                            className='mt-2px cursor-pointer'
-                            onChange={() => {
-                              if (selectedSkills.includes(skill.name)) {
-                                setSelectedSkills(selectedSkills.filter((s) => s !== skill.name));
-                              } else {
-                                setSelectedSkills([...selectedSkills, skill.name]);
-                              }
-                            }}
-                          />
-                          <div className='flex-1 min-w-0'>
-                            <div className='flex items-center gap-6px'>
-                              <div className='text-13px font-medium text-t-primary'>{skill.name}</div>
-                              <span className='bg-[rgba(242,156,27,0.08)] text-[rgb(242,156,27)] border border-[rgba(242,156,27,0.2)] text-10px px-4px py-1px rd-4px font-medium uppercase'>
-                                {t('settings.skillsHub.custom', { defaultValue: 'Custom' })}
-                              </span>
-                            </div>
-                            {skill.description && (
-                              <div className='text-12px text-t-secondary mt-2px line-clamp-2'>{skill.description}</div>
-                            )}
+                    {customSkillItems.map((skill) => (
+                      <div
+                        key={`custom-${skill.name}`}
+                        className='flex items-start gap-8px p-8px hover:bg-fill-1 rounded-4px group'
+                      >
+                        <Checkbox
+                          checked={selectedSkills.includes(skill.name)}
+                          className='mt-2px cursor-pointer'
+                          onChange={() => {
+                            if (selectedSkills.includes(skill.name)) {
+                              setSelectedSkills(selectedSkills.filter((s) => s !== skill.name));
+                            } else {
+                              setSelectedSkills([...selectedSkills, skill.name]);
+                            }
+                          }}
+                        />
+                        <div className='flex-1 min-w-0'>
+                          <div className='flex items-center gap-6px'>
+                            <div className='text-13px font-medium text-t-primary'>{skill.name}</div>
+                            <span className='bg-[rgba(242,156,27,0.08)] text-[rgb(242,156,27)] border border-[rgba(242,156,27,0.2)] text-10px px-4px py-1px rd-4px font-medium uppercase'>
+                              {t('settings.skillsHub.custom', { defaultValue: 'Custom' })}
+                            </span>
                           </div>
-                          <button
-                            className='opacity-0 group-hover:opacity-100 transition-opacity p-4px hover:bg-fill-2 rounded-4px'
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              setDeleteCustomSkillName(skill.name);
-                            }}
-                            title={t('settings.removeFromAssistant', { defaultValue: 'Remove from assistant' })}
-                          >
-                            <Delete size={16} fill='var(--color-text-3)' />
-                          </button>
+                          {skill.description && (
+                            <div className='text-12px text-t-secondary mt-2px line-clamp-2'>{skill.description}</div>
+                          )}
                         </div>
-                      ))}
-                    {pendingSkills.length === 0 && availableSkills.filter((skill) => skill.isCustom).length === 0 && (
+                        <button
+                          className='opacity-0 group-hover:opacity-100 transition-opacity p-4px hover:bg-fill-2 rounded-4px'
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setDeleteCustomSkillName(skill.name);
+                          }}
+                          title={t('settings.removeFromAssistant', { defaultValue: 'Remove from assistant' })}
+                        >
+                          <Delete size={16} fill='var(--color-text-3)' />
+                        </button>
+                      </div>
+                    ))}
+                    {pendingSkills.length === 0 && customSkillItems.length === 0 && (
                       <div className='text-center text-t-secondary text-12px py-16px'>
                         {t('settings.noCustomSkills', { defaultValue: 'No custom skills added' })}
                       </div>
@@ -478,38 +561,43 @@ const AssistantEditDrawer: React.FC<AssistantEditDrawerProps> = ({
                   }
                   name='builtin-skills'
                   extra={
-                    <span className='text-12px text-t-secondary'>
-                      {availableSkills.filter((skill) => !skill.isCustom).length}
-                    </span>
+                    <div className='flex items-center gap-8px'>
+                      <span
+                        className='inline-block w-8px h-8px rd-50%'
+                        style={{ background: builtinStatusDotColor }}
+                        aria-hidden='true'
+                      />
+                      <span className='text-12px text-t-secondary'>
+                        {builtinActiveCount > 0
+                          ? `${builtinActiveCount}/${builtinSkillItems.length}`
+                          : builtinSkillItems.length}
+                      </span>
+                    </div>
                   }
                 >
-                  {availableSkills.filter((skill) => !skill.isCustom).length > 0 ? (
+                  {builtinSkillItems.length > 0 ? (
                     <div className='space-y-4px'>
-                      {availableSkills
-                        .filter((skill) => !skill.isCustom)
-                        .map((skill) => (
-                          <div key={skill.name} className='flex items-start gap-8px p-8px hover:bg-fill-1 rounded-4px'>
-                            <Checkbox
-                              checked={selectedSkills.includes(skill.name)}
-                              className='mt-2px cursor-pointer'
-                              onChange={() => {
-                                if (selectedSkills.includes(skill.name)) {
-                                  setSelectedSkills(selectedSkills.filter((s) => s !== skill.name));
-                                } else {
-                                  setSelectedSkills([...selectedSkills, skill.name]);
-                                }
-                              }}
-                            />
-                            <div className='flex-1 min-w-0'>
-                              <div className='text-13px font-medium text-t-primary'>{skill.name}</div>
-                              {skill.description && (
-                                <div className='text-12px text-t-secondary mt-2px line-clamp-2'>
-                                  {skill.description}
-                                </div>
-                              )}
-                            </div>
+                      {builtinSkillItems.map((skill) => (
+                        <div key={skill.name} className='flex items-start gap-8px p-8px hover:bg-fill-1 rounded-4px'>
+                          <Checkbox
+                            checked={selectedSkills.includes(skill.name)}
+                            className='mt-2px cursor-pointer'
+                            onChange={() => {
+                              if (selectedSkills.includes(skill.name)) {
+                                setSelectedSkills(selectedSkills.filter((s) => s !== skill.name));
+                              } else {
+                                setSelectedSkills([...selectedSkills, skill.name]);
+                              }
+                            }}
+                          />
+                          <div className='flex-1 min-w-0'>
+                            <div className='text-13px font-medium text-t-primary'>{skill.name}</div>
+                            {skill.description && (
+                              <div className='text-12px text-t-secondary mt-2px line-clamp-2'>{skill.description}</div>
+                            )}
                           </div>
-                        ))}
+                        </div>
+                      ))}
                     </div>
                   ) : (
                     <div className='text-center text-t-secondary text-12px py-16px'>

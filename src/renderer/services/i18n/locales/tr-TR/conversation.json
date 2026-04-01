@@ -71,6 +71,7 @@
   "historySearch": {
     "tooltip": "Mesajları ara",
     "title": "Sohbet içeriğini ara",
+    "shortTitle": "Ara",
     "description": "Anahtar kelimeyle geçmiş mesajları arayın, kaydırarak daha fazla yükleyin ve eşleşen mesaja tıklayarak gidin.",
     "placeholder": "Mesaj içeriğini ara...",
     "idle": "Mesajları aramak için anahtar kelime girin",
@@ -232,6 +233,25 @@
     "emptyQuestion": "/btw sonrasına bir soru yazın.",
     "toolsRequired": "/btw yalnızca bu konuşmada zaten mevcut olan bilgilere dayanarak yanıt verebilir. Arama yapma, göz atma veya yeni bilgi getirme erişimi yoktur.",
     "error": "Yan soru yanıtlanamadı."
+  },
+  "commandQueue": {
+    "title": "Sıradaki Komutlar",
+    "clear": "Kuyruğu Temizle",
+    "edit": "Düzenle",
+    "editing": "Düzenleniyor",
+    "editPlaceholder": "Bu bekleyen komutu çalıştırılmadan önce güncelleyin.",
+    "cancelEdit": "İptal",
+    "saveEdit": "Kaydet",
+    "moreActions": "Diğer işlemler",
+    "reorder": "Sıradaki komutu yeniden sıralamak için sürükleyin",
+    "remove": "Kaldır",
+    "files": "{{count}} dosya",
+    "pausedAfterFailure": "Sıradaki komut başlatılamadı. Devam etmek için düzenleyin, yeniden sıralayın veya kaldırın.",
+    "emptyInput": "Kuyruktaki komutlar boş olamaz.",
+    "queueFull": "Kuyruk dolu. Yeni komut eklemeden önce bazılarını kaldırın.",
+    "inputTooLong": "Sıraya alınan komut çok uzun. Göndermeden önce kısaltın.",
+    "tooManyFiles": "Bu kuyruk komutuna çok fazla dosya eklendi.",
+    "queueTooLarge": "Kuyruk verisi güvenli şekilde saklanamayacak kadar büyük. Önce bazı komutları kaldırın."
   },
   "contextUsage": {
     "contextUsed": "bağlam kullanıldı"

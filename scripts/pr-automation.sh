@@ -8,11 +8,40 @@
 #   LOG_DIR            Directory for log files (default: ~/Library/Logs/AionUi)
 #   LOG_FILE           Full log file path (overrides LOG_DIR if set)
 #   PR_DAYS_LOOKBACK   Only process PRs created within the last N days (default: 7)
+#   CRITICAL_PATH_PATTERN  Regex for files that trigger human review (default: see pr-automation.conf)
 set -euo pipefail
 
 REPO_DIR="$(cd "$(dirname "$0")/.." && pwd)"
+CONF_FILE="$REPO_DIR/scripts/pr-automation.conf"
+
+# Save env overrides before sourcing config (env vars take precedence)
+_ENV_SLEEP=${SLEEP_SECONDS:-}
+_ENV_MAX=${MAX_CLAUDE_SECS:-}
+_ENV_PATTERN=${CRITICAL_PATH_PATTERN:-}
+_ENV_LOOKBACK=${PR_DAYS_LOOKBACK:-}
+_ENV_THRESHOLD=${LARGE_PR_FILE_THRESHOLD:-}
+_ENV_MODEL=${CLAUDE_MODEL:-}
+
+# Source config file for defaults
+# shellcheck source=pr-automation.conf
+[ -f "$CONF_FILE" ] && . "$CONF_FILE"
+
+# Restore env overrides (if set before sourcing)
+[ -n "$_ENV_SLEEP" ] && SLEEP_SECONDS="$_ENV_SLEEP"
+[ -n "$_ENV_MAX" ] && MAX_CLAUDE_SECS="$_ENV_MAX"
+[ -n "$_ENV_PATTERN" ] && CRITICAL_PATH_PATTERN="$_ENV_PATTERN"
+[ -n "$_ENV_LOOKBACK" ] && PR_DAYS_LOOKBACK="$_ENV_LOOKBACK"
+[ -n "$_ENV_THRESHOLD" ] && LARGE_PR_FILE_THRESHOLD="$_ENV_THRESHOLD"
+[ -n "$_ENV_MODEL" ] && CLAUDE_MODEL="$_ENV_MODEL"
+
+# Apply final defaults for anything still unset
 SLEEP_SECONDS=${SLEEP_SECONDS:-30}
 MAX_CLAUDE_SECS=${MAX_CLAUDE_SECS:-3600}
+# Export vars that Claude's Bash tool needs to read at runtime
+export CRITICAL_PATH_PATTERN=${CRITICAL_PATH_PATTERN:-""}
+export LARGE_PR_FILE_THRESHOLD=${LARGE_PR_FILE_THRESHOLD:-50}
+export PR_DAYS_LOOKBACK=${PR_DAYS_LOOKBACK:-7}
+CLAUDE_MODEL=${CLAUDE_MODEL:-sonnet}
 LOG_DIR=${LOG_DIR:-$HOME/Library/Logs/AionUi}
 LOG_FILE=${LOG_FILE:-$LOG_DIR/pr-automation-$(date '+%Y-%m-%d').log}
 PID_FILE="$LOG_DIR/pr-automation-daemon.pid"
@@ -41,6 +70,16 @@ cleanup_labels() {
   if git -C "$REPO_DIR" rebase --show-current-patch >/dev/null 2>&1; then
     log_warn "Detected in-progress rebase. Aborting..."
     git -C "$REPO_DIR" rebase --abort 2>/dev/null || true
+  fi
+  # Clean up stale worktrees from killed Claude sessions
+  local stale_wts
+  stale_wts=$(find /tmp -maxdepth 1 -name 'aionui-pr-*' -type d 2>/dev/null || true)
+  if [ -n "$stale_wts" ]; then
+    log_warn "Cleaning up stale worktrees: $stale_wts"
+    echo "$stale_wts" | while read -r wt; do
+      git -C "$REPO_DIR" worktree remove "$wt" --force 2>/dev/null || rm -rf "$wt"
+    done
+    git -C "$REPO_DIR" worktree prune 2>/dev/null || true
   fi
 }
 
@@ -73,7 +112,7 @@ if [ -f "$PID_FILE" ]; then
 fi
 
 echo $$ > "$PID_FILE"
-log_info "PR automation daemon started. PID=$$, SLEEP_SECONDS=$SLEEP_SECONDS, MAX_CLAUDE_SECS=$MAX_CLAUDE_SECS, PR_DAYS_LOOKBACK=${PR_DAYS_LOOKBACK:-7}"
+log_info "PR automation daemon started. PID=$$, MODEL=$CLAUDE_MODEL, SLEEP_SECONDS=$SLEEP_SECONDS, MAX_CLAUDE_SECS=$MAX_CLAUDE_SECS, PR_DAYS_LOOKBACK=${PR_DAYS_LOOKBACK:-7}"
 log_info "Log file: $LOG_FILE | Repo dir: $REPO_DIR"
 
 ITERATION=0
@@ -88,7 +127,7 @@ while true; do
   > "$CLAUDE_LOG_FILE"
 
   # Stream: raw JSON → CLAUDE_SESSION_TMP (for session_id) + human-readable → CLAUDE_LOG_FILE
-  claude --dangerously-skip-permissions --output-format stream-json --verbose -p "/pr-automation" \
+  claude --dangerously-skip-permissions --output-format stream-json --verbose --model "$CLAUDE_MODEL" -p "/pr-automation" \
     2>&1 | tee "$CLAUDE_SESSION_TMP" | \
     jq -r --unbuffered '
       if .type == "assistant" then

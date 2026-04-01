@@ -33,6 +33,7 @@
   "select": "選択",
   "expandMore": "さらに表示",
   "collapse": "折りたたむ",
+  "viewMoreLines": "もっと見る ({{count}} 行)",
   "success": "成功",
   "error": "エラー",
   "saveSuccess": "保存に成功しました",

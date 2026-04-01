@@ -15,17 +15,17 @@ export interface ThoughtData {
 }
 
 interface ThoughtDisplayProps {
-  thought: ThoughtData;
+  thought?: ThoughtData;
   style?: 'default' | 'compact';
   running?: boolean;
   onStop?: () => void;
 }
 
-// 背景渐变常量 Background gradient constants
+// Background gradient constants
 const GRADIENT_DARK = 'linear-gradient(135deg, #464767 0%, #323232 100%)';
 const GRADIENT_LIGHT = 'linear-gradient(90deg, #F0F3FF 0%, #F2F2F2 100%)';
 
-// 格式化时间 Format elapsed time
+// Format elapsed time
 const formatElapsedTime = (seconds: number): string => {
   if (seconds < 60) {
     return `${seconds}s`;
@@ -46,14 +46,13 @@ const ThoughtDisplay: React.FC<ThoughtDisplayProps> = ({
   const [elapsedTime, setElapsedTime] = useState(0);
   const startTimeRef = useRef<number>(Date.now());
 
-  // 计时器 Timer for elapsed time
+  // Timer for elapsed time
   useEffect(() => {
     if (!running && !thought?.subject) {
       setElapsedTime(0);
       return;
     }
 
-    // 开始新的计时
     startTimeRef.current = Date.now();
     setElapsedTime(0);
 
@@ -65,7 +64,7 @@ const ThoughtDisplay: React.FC<ThoughtDisplayProps> = ({
     return () => clearInterval(timer);
   }, [running, thought?.subject]);
 
-  // 根据主题和样式计算最终样式 Calculate final style based on theme and style prop
+  // Calculate final style based on theme and style prop
   const containerStyle = useMemo(() => {
     const background = theme === 'dark' ? GRADIENT_DARK : GRADIENT_LIGHT;
 
@@ -80,20 +79,19 @@ const ThoughtDisplay: React.FC<ThoughtDisplayProps> = ({
 
     return {
       background,
-      transform: 'translateY(36px)',
     };
   }, [theme, style]);
 
-  // 如果没有 thought 且不在运行中，不显示
+  // Hide when not running and no thought data
   if (!thought?.subject && !running) {
     return null;
   }
 
-  // 运行中但没有 thought 时显示默认处理状态
+  // Loading-only mode: running without thought data (used by ACP when thinking is inline)
   if (running && !thought?.subject) {
     return (
       <div
-        className='px-10px py-10px rd-20px text-14px pb-40px lh-20px text-t-primary flex items-center gap-8px'
+        className='relative z-1 mb--20px pb-30px px-10px py-10px rd-t-20px text-14px lh-20px text-t-primary flex items-center gap-8px'
         style={containerStyle}
       >
         <Spin size={14} />
@@ -105,17 +103,20 @@ const ThoughtDisplay: React.FC<ThoughtDisplayProps> = ({
     );
   }
 
-  // Check if description is different from subject (avoid showing duplicate content)
-  const showDescription = thought.description && thought.description !== thought.subject;
+  // Full thought display mode: used by non-ACP platforms that still pass thought data
+  const showDescription = thought?.description && thought.description !== thought.subject;
 
   return (
-    <div className='px-10px py-10px rd-20px text-14px pb-40px lh-20px text-t-primary' style={containerStyle}>
+    <div
+      className='relative z-1 mb--20px pb-30px px-10px py-10px rd-t-20px text-14px lh-20px text-t-primary'
+      style={containerStyle}
+    >
       <div className='flex items-center gap-8px'>
         {running && <Spin size={14} />}
         <Tag color='arcoblue' size='small'>
-          {thought.subject}
+          {thought?.subject}
         </Tag>
-        {showDescription && <span className='flex-1 truncate'>{thought.description}</span>}
+        {showDescription && <span className='flex-1 truncate'>{thought?.description}</span>}
         {running && (
           <span className='text-t-tertiary text-12px whitespace-nowrap'>({formatElapsedTime(elapsedTime)})</span>
         )}

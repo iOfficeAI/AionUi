@@ -1,0 +1,115 @@
+/* Retroma Obsidian Book 2.1 Dark
+ * Dark-only material pass: keep the bookish palette, but add depth and
+ * parchment-like surfaces so dark mode feels less flat.
+ */
+
+/* Required variables — inherited from retroma-obsidian-book base */
+:root {
+  --color-primary: #0f7887;
+  --bg-1: #f5f4ef;
+}
+
+[data-theme='dark'] {
+  --color-primary: #6e8ddb;
+  --bg-1: #1a1917;
+}
+
+[data-theme='dark'] {
+  --bg-base: #0d0d0a;
+  --bg-1: #15150f;
+  --bg-2: #201f17;
+  --bg-3: #2a291f;
+  --bg-4: #3a372b;
+  --bg-5: #514b3d;
+  --bg-6: #6c6556;
+
+  --border-base: #484031;
+  --border-light: #342e23;
+  --border-special: #5a5140;
+
+  --message-user-bg: #332d39;
+  --message-tips-bg: #24211d;
+  --workspace-btn-bg: #211d16;
+
+  --hl-chip-bg: #c8baa2;
+  --hl-chip-text: #352b20;
+  --hl-chip-border: #9c8c73;
+}
+
+[data-theme='dark'] .layout-sider,
+[data-theme='dark'] .layout-content,
+[data-theme='dark'] .arco-layout,
+[data-theme='dark'] .arco-layout-content {
+  background:
+    radial-gradient(circle at top left, rgba(190, 128, 191, 0.05), transparent 34%),
+    radial-gradient(circle at bottom right, rgba(162, 165, 84, 0.06), transparent 28%),
+    linear-gradient(180deg, #15150f 0%, #12110d 100%) !important;
+}
+
+[data-theme='dark'] .layout-sider {
+  border-right: 1px solid rgba(90, 81, 64, 0.8) !important;
+  box-shadow: inset -1px 0 0 rgba(232, 230, 216, 0.03) !important;
+}
+
+[data-theme='dark'] .message-item.user .message-bubble {
+  background: linear-gradient(180deg, rgba(62, 54, 71, 0.98) 0%, rgba(47, 41, 55, 0.98) 100%) !important;
+  border: 1px solid rgba(132, 118, 96, 0.72) !important;
+  box-shadow:
+    inset 0 1px 0 rgba(240, 237, 224, 0.04),
+    0 10px 24px rgba(0, 0, 0, 0.2) !important;
+}
+
+[data-theme='dark'] .message-item.ai .message-bubble,
+[data-theme='dark'] .message-item.assistant .message-bubble {
+  background: linear-gradient(180deg, rgba(36, 33, 29, 0.98) 0%, rgba(28, 25, 22, 0.98) 100%) !important;
+  border: 1px solid rgba(79, 71, 56, 0.82) !important;
+  box-shadow:
+    inset 0 1px 0 rgba(232, 230, 216, 0.03),
+    0 12px 28px rgba(0, 0, 0, 0.22) !important;
+}
+
+[data-theme='dark'] .message-content pre,
+[data-theme='dark'] .markdown-body pre,
+[data-theme='dark'] .markdown-shadow-body pre,
+[data-theme='dark'] [class*='markdown'] pre {
+  background: linear-gradient(180deg, rgba(28, 27, 21, 0.98) 0%, rgba(22, 21, 16, 0.98) 100%) !important;
+  border-color: rgba(84, 76, 61, 0.9) !important;
+  box-shadow:
+    inset 0 1px 0 rgba(232, 230, 216, 0.03),
+    0 8px 22px rgba(0, 0, 0, 0.24) !important;
+}
+
+[data-theme='dark'] .sendbox-panel,
+[data-theme='dark'] .guid-input-card-shell {
+  background: linear-gradient(180deg, rgba(32, 30, 24, 0.96) 0%, rgba(24, 23, 18, 0.96) 100%) !important;
+  border-color: rgba(90, 81, 64, 0.88) !important;
+  box-shadow:
+    inset 0 1px 0 rgba(232, 230, 216, 0.04),
+    0 16px 36px rgba(0, 0, 0, 0.22) !important;
+}
+
+[data-theme='dark'] .arco-modal,
+[data-theme='dark'] .arco-drawer-content,
+[data-theme='dark'] .arco-card,
+[data-theme='dark'] .arco-popover-content,
+[data-theme='dark'] .arco-dropdown-menu,
+[data-theme='dark'] .arco-select-popup {
+  background: linear-gradient(180deg, rgba(31, 29, 23, 0.98) 0%, rgba(24, 23, 18, 0.98) 100%) !important;
+  border-color: rgba(84, 76, 61, 0.86) !important;
+  box-shadow:
+    inset 0 1px 0 rgba(232, 230, 216, 0.03),
+    0 18px 40px rgba(0, 0, 0, 0.3) !important;
+}
+
+[data-theme='dark'] .arco-input-wrapper,
+[data-theme='dark'] .arco-textarea-wrapper,
+[data-theme='dark'] .arco-input-inner-wrapper,
+[data-theme='dark'] .arco-select-view {
+  background: linear-gradient(180deg, rgba(37, 34, 28, 0.98) 0%, rgba(29, 27, 22, 0.98) 100%) !important;
+  border-color: rgba(83, 74, 59, 0.88) !important;
+  box-shadow: inset 0 1px 0 rgba(232, 230, 216, 0.03) !important;
+}
+
+[data-theme='dark'] ::selection {
+  background: color-mix(in srgb, #be80bf 22%, rgba(214, 204, 184, 0.2)) !important;
+}

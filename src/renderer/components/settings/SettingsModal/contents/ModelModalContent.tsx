@@ -20,6 +20,7 @@ import EditModeModal from '@/renderer/pages/settings/components/EditModeModal';
 import AionScrollArea from '@/renderer/components/base/AionScrollArea';
 import { useSettingsViewMode } from '../settingsViewContext';
 import { consumePendingDeepLink } from '@/renderer/hooks/system/useDeepLink';
+import { classifyHealthCheckMessage } from './healthCheckUtils';
 import '../model-provider.css';
 
 /**
@@ -240,8 +241,13 @@ const ModelModalContent: React.FC = () => {
             );
           }
 
-          // 监听完成事件
-          if (msg.type === 'error') {
+          const action = classifyHealthCheckMessage(msg.type);
+
+          if (action === 'skip') {
+            return;
+          }
+
+          if (action === 'error') {
             const duration = Date.now() - startTime;
             // 输出错误链路到 console
             if (requestTraceData) {
@@ -261,11 +267,7 @@ const ModelModalContent: React.FC = () => {
             return;
           }
 
-          if (msg.type === 'start') {
-            return;
-          }
-
-          // 以“首个响应包到达时间”作为健康判定，避免流式完成时间过长影响检测
+          // 以”首个响应包到达时间”作为健康判定，避免流式完成时间过长影响检测
           const duration = Date.now() - startTime;
           if (requestTraceData) {
             const displayName = requestTraceData.backend || requestTraceData.provider || 'unknown';
@@ -460,27 +462,39 @@ const ModelModalContent: React.FC = () => {
       {addModelModalContext}
 
       {/* Header with Add Button */}
-      <div className='flex-shrink-0 border-b border-[var(--color-border-2)] pb-12px mb-14px flex items-center justify-between gap-8px flex-wrap'>
-        <div className='text-20px font-600 text-t-primary leading-34px'>{t('settings.model')}</div>
-        <div className='flex items-center gap-8px flex-wrap'>
-          <Button
-            type='outline'
-            shape='round'
-            size='small'
-            onClick={clearAllHealthData}
-            className='rd-100px border-1 border-solid border-[var(--color-border-2)] h-34px px-14px text-t-secondary hover:text-t-primary'
-          >
-            {t('settings.clearStatus')}
-          </Button>
-          <Button
-            type='outline'
-            shape='round'
-            icon={<Plus size='16' />}
-            onClick={() => addPlatformModalCtrl.open()}
-            className='rd-100px border-1 border-solid border-[var(--color-border-2)] h-34px px-14px text-t-secondary hover:text-t-primary'
-          >
-            {t('settings.addModel')}
-          </Button>
+      <div className='flex-shrink-0 border-b border-[var(--color-border-2)] pb-12px mb-14px flex flex-col gap-10px'>
+        <div className='flex items-center justify-between gap-8px flex-wrap'>
+          <div className='text-20px font-600 text-t-primary leading-34px'>{t('settings.model')}</div>
+          <div className='flex items-center gap-8px flex-wrap'>
+            <Button
+              type='outline'
+              shape='round'
+              size='small'
+              onClick={clearAllHealthData}
+              className='rd-100px border-1 border-solid border-[var(--color-border-2)] h-34px px-14px text-t-secondary hover:text-t-primary'
+            >
+              {t('settings.clearStatus')}
+            </Button>
+            <Button
+              type='outline'
+              shape='round'
+              icon={<Plus size='16' />}
+              onClick={() => addPlatformModalCtrl.open()}
+              className='rd-100px border-1 border-solid border-[var(--color-border-2)] h-34px px-14px text-t-secondary hover:text-t-primary'
+            >
+              {t('settings.addModel')}
+            </Button>
+          </div>
+        </div>
+        <div
+          className='rd-8px px-12px py-8px text-12px leading-5 border border-solid'
+          style={{
+            borderColor: 'rgba(var(--primary-6),0.32)',
+            backgroundColor: 'rgba(var(--primary-6),0.08)',
+            color: 'rgb(var(--primary-6))',
+          }}
+        >
+          {t('settings.customModelSupportNote')}
         </div>
       </div>
 

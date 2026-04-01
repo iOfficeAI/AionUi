@@ -8,7 +8,7 @@ import fs from 'fs';
 import path from 'path';
 
 import { getPlatformServices } from '@/common/platform';
-import type { IChannelPluginConfig, IUnifiedOutgoingMessage, PluginType } from '../../types';
+import type { IChannelMediaAction, IChannelPluginConfig, IUnifiedOutgoingMessage, PluginType } from '../../types';
 import { BasePlugin } from '../BasePlugin';
 import { toUnifiedIncomingMessage, stripHtml } from './WeixinAdapter';
 import { startMonitor } from './WeixinMonitor';
@@ -20,6 +20,7 @@ interface PendingResponse {
   resolve: (response: WeixinChatResponse) => void;
   reject: (error: Error) => void;
   accumulatedText: string;
+  mediaActions: IChannelMediaAction[];
   timer: ReturnType<typeof setTimeout>;
 }
 
@@ -78,7 +79,7 @@ export class WeixinPlugin extends BasePlugin {
 
   async sendMessage(chatId: string, message: IUnifiedOutgoingMessage): Promise<string> {
     const pending = this.pendingResponses.get(chatId);
-    if (pending && message.text) {
+    if (pending && message.text !== undefined) {
       pending.accumulatedText = stripHtml(message.text);
     }
     return `weixin_pending_${chatId}`;
@@ -88,14 +89,20 @@ export class WeixinPlugin extends BasePlugin {
     const pending = this.pendingResponses.get(chatId);
     if (!pending) return;
 
-    if (message.text) {
-      pending.accumulatedText = message.text;
+    if (message.text !== undefined) {
+      pending.accumulatedText = stripHtml(message.text);
+    }
+    if (message.mediaActions) {
+      pending.mediaActions = message.mediaActions;
     }
 
     if (message.replyMarkup !== undefined) {
       clearTimeout(pending.timer);
       this.pendingResponses.delete(chatId);
-      pending.resolve({ text: pending.accumulatedText || undefined });
+      pending.resolve({
+        text: pending.accumulatedText || undefined,
+        mediaActions: pending.mediaActions,
+      });
     }
   }
 
@@ -134,6 +141,7 @@ export class WeixinPlugin extends BasePlugin {
         resolve,
         reject,
         accumulatedText: '',
+        mediaActions: [],
         timer,
       });
 
@@ -144,7 +152,10 @@ export class WeixinPlugin extends BasePlugin {
           if (pending) {
             clearTimeout(pending.timer);
             this.pendingResponses.delete(conversationId);
-            pending.resolve({ text: pending.accumulatedText || undefined });
+            pending.resolve({
+              text: pending.accumulatedText || undefined,
+              mediaActions: pending.mediaActions,
+            });
           }
         })
         .catch((error: unknown) => {

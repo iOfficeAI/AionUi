@@ -3,9 +3,16 @@ import type { TMessage } from '@/common/chat/chatLib';
 import { transformMessage } from '@/common/chat/chatLib';
 import { uuid } from '@/common/utils';
 import SendBox from '@/renderer/components/chat/sendbox';
+import CommandQueuePanel from '@/renderer/components/chat/CommandQueuePanel';
 import { getSendBoxDraftHook, type FileOrFolderItem } from '@/renderer/hooks/chat/useSendBoxDraft';
 import { createSetUploadFile } from '@/renderer/hooks/chat/useSendBoxFiles';
-import { useAddOrUpdateMessage } from '@/renderer/pages/conversation/Messages/hooks';
+import { useAddOrUpdateMessage, useRemoveMessageByMsgId } from '@/renderer/pages/conversation/Messages/hooks';
+import {
+  shouldEnqueueConversationCommand,
+  useConversationCommandQueue,
+  type ConversationCommandQueueItem,
+} from '@/renderer/pages/conversation/platforms/useConversationCommandQueue';
+import { assertBridgeSuccess } from '@/renderer/pages/conversation/platforms/assertBridgeSuccess';
 import { allSupportedExts, type FileMetadata } from '@/renderer/services/FileService';
 import { emitter, useAddEventListener } from '@/renderer/utils/emitter';
 import { mergeFileSelectionItems } from '@/renderer/utils/file/fileSelection';
@@ -52,10 +59,12 @@ const CodexSendBox: React.FC<{ conversation_id: string }> = ({ conversation_id }
   const showModeSelector = !teamPermission || teamPermission.isLeadAgent;
   const { checkAndUpdateTitle } = useAutoTitle();
   const addOrUpdateMessage = useAddOrUpdateMessage();
+  const removeMessageByMsgId = useRemoveMessageByMsgId();
   const { setSendBoxHandler } = usePreviewContext();
 
   const [running, setRunning] = useState(false);
   const [aiProcessing, setAiProcessing] = useState(false); // New loading state for AI response
+  const [hasHydratedRunningState, setHasHydratedRunningState] = useState(false);
   const [codexStatus, setCodexStatus] = useState<string | null>(null);
   const slashCommands = useSlashCommands(conversation_id, {
     conversationType: 'codex',
@@ -65,6 +74,7 @@ const CodexSendBox: React.FC<{ conversation_id: string }> = ({ conversation_id }
     description: '',
     subject: '',
   });
+  const isBusy = running || aiProcessing;
 
   // Track whether current turn has content output
   // Only reset aiProcessing when finish arrives after content (not after tool calls)
@@ -147,19 +157,34 @@ const CodexSendBox: React.FC<{ conversation_id: string }> = ({ conversation_id }
 
   // Reset state when conversation changes and restore actual running status
   useEffect(() => {
+    let cancelled = false;
+
     setRunning(false);
     setAiProcessing(false);
+    setHasHydratedRunningState(false);
     setCodexStatus(null);
     setThought({ subject: '', description: '' });
     hasContentInTurnRef.current = false;
 
     // Check actual conversation status from backend
     void ipcBridge.conversation.get.invoke({ id: conversation_id }).then((res) => {
-      if (!res) return;
+      if (cancelled) {
+        return;
+      }
+
+      if (!res) {
+        setHasHydratedRunningState(true);
+        return;
+      }
       if (res.status === 'running') {
         setAiProcessing(true);
       }
+      setHasHydratedRunningState(true);
     });
+
+    return () => {
+      cancelled = true;
+    };
   }, [conversation_id]);
 
   // 注册预览面板添加到发送框的 handler
@@ -278,51 +303,75 @@ const CodexSendBox: React.FC<{ conversation_id: string }> = ({ conversation_id }
     }, 10);
   });
 
+  const executeCommand = useCallback(
+    async ({ input, files }: Pick<ConversationCommandQueueItem, 'input' | 'files'>) => {
+      const msg_id = uuid();
+      const displayMessage = buildDisplayMessage(input, files, workspacePath);
+
+      const userMessage: TMessage = {
+        id: msg_id,
+        msg_id,
+        conversation_id,
+        type: 'text',
+        position: 'right',
+        content: { content: displayMessage },
+        createdAt: Date.now(),
+      };
+      addOrUpdateMessage(userMessage, true);
+      setAiProcessing(true);
+      try {
+        void checkAndUpdateTitle(conversation_id, input);
+        const result = await ipcBridge.codexConversation.sendMessage.invoke({
+          input: displayMessage,
+          msg_id,
+          conversation_id,
+          files,
+        });
+        assertBridgeSuccess(result, 'Failed to send message to Codex');
+        emitter.emit('chat.history.refresh');
+      } catch (error) {
+        removeMessageByMsgId(msg_id);
+        setAiProcessing(false);
+        throw error;
+      }
+    },
+    [addOrUpdateMessage, checkAndUpdateTitle, conversation_id, removeMessageByMsgId, workspacePath]
+  );
+
+  const {
+    items,
+    isPaused: isQueuePaused,
+    isInteractionLocked: isQueueInteractionLocked,
+    hasPendingCommands,
+    enqueue,
+    update,
+    remove,
+    clear,
+    reorder,
+    pause,
+    resume,
+    lockInteraction,
+    unlockInteraction,
+    resetActiveExecution,
+  } = useConversationCommandQueue({
+    conversationId: conversation_id,
+    isBusy,
+    isHydrated: hasHydratedRunningState,
+    onExecute: executeCommand,
+  });
+
   const onSendHandler = async (message: string) => {
-    const msg_id = uuid();
-    // Content is already cleared by the shared SendBox component (setInput(''))
-    // before calling onSend — no need to clear again here.
     emitter.emit('codex.selected.file.clear');
-    const currentAtPath = [...atPath];
-    const currentUploadFile = [...uploadFile];
+    const filePaths = [...uploadFile, ...atPath.map((item) => (typeof item === 'string' ? item : item.path))];
     setAtPath([]);
     setUploadFile([]);
 
-    // 不再自动添加 @ 前缀，避免消息显示换行和歧义
-    const filePaths = [
-      ...currentUploadFile,
-      ...currentAtPath.map((item) => (typeof item === 'string' ? item : item.path)),
-    ];
-    const displayMessage = buildDisplayMessage(message, filePaths, workspacePath);
-
-    // 前端先写入用户消息，避免导航/事件竞争导致看不到消息
-    const userMessage: TMessage = {
-      id: msg_id,
-      msg_id,
-      conversation_id,
-      type: 'text',
-      position: 'right',
-      content: { content: displayMessage },
-      createdAt: Date.now(),
-    };
-    addOrUpdateMessage(userMessage, true); // 立即保存到存储，避免刷新丢失
-    setAiProcessing(true);
-    try {
-      // 提取实际的文件路径发送给后端
-      const atPathStrings = currentAtPath.map((item) => (typeof item === 'string' ? item : item.path));
-      await ipcBridge.codexConversation.sendMessage.invoke({
-        input: displayMessage,
-        msg_id,
-        conversation_id,
-        files: [...currentUploadFile, ...atPathStrings], // 包含上传文件和选中的工作空间文件
-      });
-      void checkAndUpdateTitle(conversation_id, message);
-      emitter.emit('chat.history.refresh');
-    } catch (error) {
-      // Only reset aiProcessing on error, normal flow is reset by 'finish' event
-      setAiProcessing(false);
-      throw error;
+    if (shouldEnqueueConversationCommand({ isBusy, hasPendingCommands })) {
+      enqueue({ input: message, files: filePaths });
+      return;
     }
+
+    await executeCommand({ input: message, files: filePaths });
   };
 
   const appendSelectedFiles = useCallback(
@@ -382,19 +431,20 @@ const CodexSendBox: React.FC<{ conversation_id: string }> = ({ conversation_id }
         addOrUpdateMessage(userMessage, true); // 立即保存到存储，避免刷新丢失
 
         // 发送消息到后端处理
-        await ipcBridge.codexConversation.sendMessage.invoke({
+        void checkAndUpdateTitle(conversation_id, input);
+        const result = await ipcBridge.codexConversation.sendMessage.invoke({
           input: initialDisplayMessage,
           msg_id,
           conversation_id,
           files,
           loading_id,
         });
-        void checkAndUpdateTitle(conversation_id, input);
+        assertBridgeSuccess(result, 'Failed to send initial message to Codex');
         emitter.emit('chat.history.refresh');
 
         // 成功后移除初始消息存储
         sessionStorage.removeItem(storageKey);
-      } catch (err) {
+      } catch {
         // 发送失败时清理处理标记，允许重试
         sessionStorage.removeItem(processedKey);
         // Only reset aiProcessing on error, normal flow is reset by 'finish' event
@@ -424,17 +474,31 @@ const CodexSendBox: React.FC<{ conversation_id: string }> = ({ conversation_id }
       setAiProcessing(false);
       setThought({ subject: '', description: '' });
       hasContentInTurnRef.current = false;
+      resetActiveExecution('stop');
     }
   };
 
   return (
     <div className='max-w-800px w-full mx-auto flex flex-col mt-auto mb-16px'>
       <ThoughtDisplay thought={thought} running={aiProcessing || running} onStop={handleStop} />
+      <CommandQueuePanel
+        items={items}
+        paused={isQueuePaused}
+        interactionLocked={isQueueInteractionLocked}
+        onPause={pause}
+        onResume={resume}
+        onInteractionLock={lockInteraction}
+        onInteractionUnlock={unlockInteraction}
+        onUpdate={(commandId, input) => update(commandId, { input })}
+        onReorder={reorder}
+        onRemove={remove}
+        onClear={clear}
+      />
 
       <SendBox
         value={content}
         onChange={setContent}
-        loading={running || aiProcessing}
+        loading={isBusy}
         disabled={false}
         className='z-10'
         placeholder={
@@ -533,6 +597,7 @@ const CodexSendBox: React.FC<{ conversation_id: string }> = ({ conversation_id }
         onSend={onSendHandler}
         slashCommands={slashCommands}
         onSlashBuiltinCommand={onSlashBuiltinCommand}
+        allowSendWhileLoading
       ></SendBox>
     </div>
   );

@@ -38,6 +38,9 @@ class RemoteAgentManager extends BaseAgentManager<RemoteAgentManagerData> {
     this.status = 'pending';
 
     this.bootstrap = this.initCore(data);
+    // Prevent unhandled promise rejection when remote agent fails to initialize.
+    // The error still propagates when sendMessage() awaits this.bootstrap.
+    this.bootstrap.catch(() => {});
   }
 
   private async initCore(data: RemoteAgentManagerData): Promise<RemoteAgentCore> {

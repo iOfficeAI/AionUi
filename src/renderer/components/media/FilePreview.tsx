@@ -13,6 +13,12 @@ import fileIcon from '@/renderer/assets/icons/file-icon.svg';
 
 const IMAGE_EXTS = new Set(['.jpg', '.jpeg', '.png', '.gif', '.bmp', '.webp', '.svg']);
 
+// Substring from the base64-encoded "Image not found" placeholder SVG returned by getImageBase64 on ENOENT.
+// This is the aligned base64 encoding of ">Image not found<" within the SVG data URL.
+const IMAGE_NOT_FOUND_B64_MARKER = 'kltYWdlIG5vdCBmb3VuZD';
+const MAX_IMAGE_RETRIES = 5;
+const IMAGE_RETRY_DELAY_MS = 800;
+
 const isImageFile = (path: string): boolean => {
   const ext = path.toLowerCase().slice(path.lastIndexOf('.'));
   return IMAGE_EXTS.has(ext);
@@ -60,16 +66,40 @@ const FilePreview: React.FC<FilePreviewProps> = ({ path, onRemove, readonly = fa
       });
 
     // 如果是图片，获取图片的base64
+    // Retry when the file is not found yet (race condition: display message rendered
+    // before the backend finishes copying the pasted image to the workspace).
     if (isImage) {
-      ipcBridge.fs.getImageBase64
-        .invoke({ path })
-        .then((base64) => {
-          setImageUrl(base64);
-        })
-        .catch((error) => {
-          console.error('[FilePreview] Failed to load image:', { path, error });
-        });
+      let cancelled = false;
+      let retryCount = 0;
+      let retryTimer: ReturnType<typeof setTimeout>;
+
+      const loadImage = () => {
+        ipcBridge.fs.getImageBase64
+          .invoke({ path })
+          .then((base64) => {
+            if (cancelled) return;
+            if (base64.includes(IMAGE_NOT_FOUND_B64_MARKER) && retryCount < MAX_IMAGE_RETRIES) {
+              retryCount++;
+              retryTimer = setTimeout(loadImage, IMAGE_RETRY_DELAY_MS);
+            } else {
+              setImageUrl(base64);
+            }
+          })
+          .catch((error) => {
+            if (cancelled) return;
+            console.error('[FilePreview] Failed to load image:', { path, error });
+          });
+      };
+
+      loadImage();
+
+      return () => {
+        cancelled = true;
+        clearTimeout(retryTimer);
+      };
     }
+
+    return undefined;
   }, [path, isImage]);
 
   const handleRemove = (e: React.MouseEvent) => {

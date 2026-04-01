@@ -71,6 +71,7 @@
   "historySearch": {
     "tooltip": "搜尋訊息",
     "title": "搜尋對話內容",
+    "shortTitle": "搜尋",
     "description": "透過關鍵字搜尋歷史訊息，滾動載入更多，點擊跳轉到匹配的訊息。",
     "placeholder": "搜尋訊息內容...",
     "idle": "輸入關鍵字搜尋訊息",
@@ -237,6 +238,25 @@
     "emptyQuestion": "請在 /btw 後輸入問題。",
     "toolsRequired": "/btw 只能根據目前對話中已有的內容作答，無法搜尋、瀏覽或取得新資訊。",
     "error": "順便提問失敗。"
+  },
+  "commandQueue": {
+    "title": "佇列中的指令",
+    "clear": "清空佇列",
+    "edit": "編輯",
+    "editing": "編輯中",
+    "editPlaceholder": "可以在執行前先調整這筆排隊指令。",
+    "cancelEdit": "取消",
+    "saveEdit": "儲存",
+    "moreActions": "更多操作",
+    "reorder": "拖動以調整排隊指令順序",
+    "remove": "移除",
+    "files": "{{count}} 個檔案",
+    "pausedAfterFailure": "下一條排隊指令啟動失敗。請編輯、調整順序或移除後再繼續。",
+    "emptyInput": "排隊指令不能為空。",
+    "queueFull": "佇列已滿，請先移除部分指令再繼續新增。",
+    "inputTooLong": "排隊指令內容過長，請縮短後再發送。",
+    "tooManyFiles": "這條排隊指令附加的檔案過多。",
+    "queueTooLarge": "佇列資料過大，無法安全快取，請先移除部分排隊指令。"
   },
   "contextUsage": {
     "contextUsed": "上下文已使用"

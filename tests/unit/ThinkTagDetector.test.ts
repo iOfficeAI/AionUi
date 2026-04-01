@@ -5,7 +5,12 @@
  */
 
 import { describe, expect, it } from 'vitest';
-import { hasThinkTags, stripThinkTags, extractThinkContent } from '@process/task/ThinkTagDetector';
+import {
+  hasThinkTags,
+  stripThinkTags,
+  extractThinkContent,
+  extractAndStripThinkTags,
+} from '@process/task/ThinkTagDetector';
 
 describe('ThinkTagDetector', () => {
   describe('hasThinkTags', () => {
@@ -184,6 +189,48 @@ Line 2
       expect(extractThinkContent('')).toEqual([]);
       expect(extractThinkContent(null as unknown as string)).toEqual([]);
       expect(extractThinkContent(undefined as unknown as string)).toEqual([]);
+    });
+  });
+
+  describe('extractAndStripThinkTags', () => {
+    it('should extract thinking content and return stripped content', () => {
+      const input = '<think>reasoning here</think>actual response';
+      const result = extractAndStripThinkTags(input);
+      expect(result.thinking).toBe('reasoning here');
+      expect(result.content).toBe('actual response');
+    });
+
+    it('should handle <thinking> tags', () => {
+      const input = '<thinking>deep thought</thinking>answer';
+      const result = extractAndStripThinkTags(input);
+      expect(result.thinking).toBe('deep thought');
+      expect(result.content).toBe('answer');
+    });
+
+    it('should handle multiple think blocks', () => {
+      const input = '<think>first</think>middle<think>second</think>end';
+      const result = extractAndStripThinkTags(input);
+      expect(result.thinking).toBe('first\n\nsecond');
+      expect(result.content).toBe('middleend');
+    });
+
+    it('should return empty thinking when no tags present', () => {
+      const input = 'no thinking here';
+      const result = extractAndStripThinkTags(input);
+      expect(result.thinking).toBe('');
+      expect(result.content).toBe('no thinking here');
+    });
+
+    it('should handle MiniMax-style orphaned closing tag', () => {
+      const input = 'internal reasoning\n</think>\nthe real answer';
+      const result = extractAndStripThinkTags(input);
+      expect(result.thinking).toBe('internal reasoning');
+      expect(result.content).toBe('the real answer');
+    });
+
+    it('should handle empty/null input', () => {
+      expect(extractAndStripThinkTags('')).toEqual({ thinking: '', content: '' });
+      expect(extractAndStripThinkTags(null as unknown as string)).toEqual({ thinking: '', content: '' });
     });
   });
 

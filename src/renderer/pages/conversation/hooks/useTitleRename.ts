@@ -1,4 +1,5 @@
 import { ipcBridge } from '@/common';
+import { refreshConversationCache } from '@/renderer/pages/conversation/utils/conversationCache';
 import { emitter } from '@/renderer/utils/emitter';
 import { Message } from '@arco-design/web-react';
 import type React from 'react';
@@ -63,6 +64,7 @@ export function useTitleRename({ title, conversationId, updateTabName }: UseTitl
       });
 
       if (success) {
+        await refreshConversationCache(conversationId);
         updateTabName(conversationId, nextTitle);
         emitter.emit('chat.history.refresh');
         setEditingTitle(false);

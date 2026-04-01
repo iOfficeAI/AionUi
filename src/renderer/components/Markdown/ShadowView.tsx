@@ -66,8 +66,9 @@ const createInitStyle = (currentTheme = 'light', cssVars?: Record<string, string
     margin-top: 8px;
     margin-bottom: 8px;
   }
-  code{
-    font-size:14px;
+  code span{
+    font-size:13px;
+    line-height:20px;
   }
 
   .markdown-shadow-body>p:last-child{

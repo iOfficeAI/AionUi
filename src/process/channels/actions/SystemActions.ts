@@ -46,7 +46,7 @@ import type { ChannelAgentType, PluginType } from '../types';
 import type { ActionHandler, IRegisteredAction } from './types';
 import { SystemActionNames, createErrorResponse, createSuccessResponse } from './types';
 import { GOOGLE_AUTH_PROVIDER_ID } from '@/common/config/constants';
-import type { AcpBackend } from '@/common/types/acpTypes';
+import { buildChannelConversationExtra } from '../utils';
 
 /**
  * Get the default model for Channel assistant (Telegram/Lark)
@@ -263,6 +263,12 @@ export const handleSessionNew: ActionHandler = async (context) => {
   const channelChatId = context.chatId;
   const { convType, convBackend } = resolveChannelConvType(backend);
   const name = getChannelConversationName(platform, convType, convBackend, channelChatId);
+  const conversationExtra = buildChannelConversationExtra({
+    platform,
+    backend,
+    customAgentId,
+    agentName,
+  });
 
   let newConversation: TChatConversation;
   try {
@@ -273,7 +279,7 @@ export const handleSessionNew: ActionHandler = async (context) => {
         source,
         name,
         channelChatId,
-        extra: {},
+        extra: conversationExtra,
       });
     } else if (backend === 'codex') {
       newConversation = await conversationServiceSingleton.createConversation({
@@ -282,7 +288,7 @@ export const handleSessionNew: ActionHandler = async (context) => {
         source,
         name,
         channelChatId,
-        extra: {},
+        extra: conversationExtra,
       });
     } else if (backend === 'openclaw-gateway') {
       newConversation = await conversationServiceSingleton.createConversation({
@@ -291,7 +297,7 @@ export const handleSessionNew: ActionHandler = async (context) => {
         source,
         name,
         channelChatId,
-        extra: {},
+        extra: conversationExtra,
       });
     } else {
       newConversation = await conversationServiceSingleton.createConversation({
@@ -300,11 +306,7 @@ export const handleSessionNew: ActionHandler = async (context) => {
         source,
         name,
         channelChatId,
-        extra: {
-          backend: backend as AcpBackend,
-          customAgentId,
-          agentName,
-        },
+        extra: conversationExtra,
       });
     }
   } catch (error) {

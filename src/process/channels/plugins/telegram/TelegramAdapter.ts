@@ -283,6 +283,12 @@ export function escapeMarkdownV2(text: string): string {
 export function markdownToTelegramHtml(text: string): string {
   let result = escapeHtml(text);
 
+  // Code block must be processed before inline code to avoid partial matches
+  result = result.replace(/```(\w*)\n?([\s\S]*?)```/g, '<pre><code>$2</code></pre>');
+
+  // Inline code: `code`
+  result = result.replace(/`([^`]+)`/g, '<code>$1</code>');
+
   // Bold: **text** or __text__
   result = result.replace(/\*\*(.+?)\*\*/g, '<b>$1</b>');
   result = result.replace(/__(.+?)__/g, '<b>$1</b>');
@@ -290,12 +296,6 @@ export function markdownToTelegramHtml(text: string): string {
   // Italic: *text* or _text_
   result = result.replace(/\*(.+?)\*/g, '<i>$1</i>');
   result = result.replace(/_(.+?)_/g, '<i>$1</i>');
-
-  // Code: `code`
-  result = result.replace(/`([^`]+)`/g, '<code>$1</code>');
-
-  // Code block: ```code```
-  result = result.replace(/```(\w*)\n?([\s\S]*?)```/g, '<pre><code>$2</code></pre>');
 
   // Links: [text](url)
   result = result.replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2">$1</a>');

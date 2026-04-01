@@ -1,17 +1,22 @@
 import { ipcBridge } from '@/common';
 import { Spin } from '@arco-design/web-react';
 import React, { useEffect, useRef } from 'react';
+import { useTranslation } from 'react-i18next';
 import { useParams } from 'react-router-dom';
 import useSWR from 'swr';
 import ChatConversation from './components/ChatConversation';
 import { usePreviewContext } from '@/renderer/pages/conversation/Preview';
 import { useConversationTabs } from './hooks/ConversationTabsContext';
+import { useAutoTitle } from '@/renderer/hooks/chat/useAutoTitle';
 
 const ChatConversationIndex: React.FC = () => {
   const { id } = useParams();
+  const { t } = useTranslation();
   const { closePreview } = usePreviewContext();
   const { openTab } = useConversationTabs();
+  const { syncTitleFromHistory } = useAutoTitle();
   const previousConversationIdRef = useRef<string | undefined>(undefined);
+  const defaultConversationTitle = t('conversation.welcome.newConversation');
 
   useEffect(() => {
     if (!id) return;
@@ -26,9 +31,29 @@ const ChatConversationIndex: React.FC = () => {
     previousConversationIdRef.current = id;
   }, [id, closePreview]);
 
-  const { data, isLoading } = useSWR(`conversation/${id}`, () => {
+  const { data, isLoading, mutate } = useSWR(`conversation/${id}`, () => {
     return ipcBridge.conversation.get.invoke({ id });
   });
+
+  useEffect(() => {
+    if (!id) return;
+
+    return ipcBridge.conversation.listChanged.on((event) => {
+      if (event.conversationId !== id || event.action !== 'updated') {
+        return;
+      }
+
+      void mutate();
+    });
+  }, [id, mutate]);
+
+  useEffect(() => {
+    if (!data || data.name !== defaultConversationTitle) {
+      return;
+    }
+
+    void syncTitleFromHistory(data.id);
+  }, [data, defaultConversationTitle, syncTitleFromHistory]);
 
   // 当会话数据加载完成后，自动打开 tab
   // Automatically open tab when conversation data is loaded

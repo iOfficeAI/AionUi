@@ -8,6 +8,8 @@ import crypto from 'node:crypto';
 import fs from 'node:fs';
 import path from 'node:path';
 
+import i18n from '@process/services/i18n';
+import type { IChannelMediaAction } from '../../types';
 import { TypingManager } from './WeixinTyping';
 
 // ==================== Public types ====================
@@ -26,6 +28,7 @@ export type WeixinChatRequest = {
 
 export type WeixinChatResponse = {
   text?: string;
+  mediaActions?: IChannelMediaAction[];
 };
 
 export type WeixinAgent = {
@@ -53,6 +56,35 @@ function formatError(err: unknown): string {
   return String(err);
 }
 
+function stringifyLogValue(value: unknown): string {
+  try {
+    return JSON.stringify(value);
+  } catch {
+    return String(value);
+  }
+}
+
+function summarizeUploadUrlResponse(data: unknown): string {
+  if (!data || typeof data !== 'object' || Array.isArray(data)) {
+    return stringifyLogValue(data);
+  }
+
+  const record = data as Record<string, unknown>;
+  const summary = {
+    keys: Object.keys(record),
+    ret: record.ret,
+    errcode: record.errcode,
+    errmsg: record.errmsg,
+    msg: record.msg,
+    message: record.message,
+    upload_full_url_type: typeof record.upload_full_url,
+    upload_full_url_preview:
+      typeof record.upload_full_url === 'string' ? record.upload_full_url.slice(0, 160) : record.upload_full_url,
+  };
+
+  return stringifyLogValue(summary);
+}
+
 // ==================== Constants ====================
 
 const LONG_POLL_TIMEOUT_MS = 35_000;
@@ -60,6 +92,7 @@ const API_TIMEOUT_MS = 15_000;
 const RETRY_DELAY_MS = 2_000;
 const BACKOFF_DELAY_MS = 30_000;
 const MAX_CONSECUTIVE_FAILURES = 3;
+const UPLOAD_MAX_RETRIES = 3;
 const TEXT_ITEM_TYPE = 1;
 const IMAGE_ITEM_TYPE = 2;
 const VOICE_ITEM_TYPE = 3;
@@ -98,6 +131,11 @@ type WeixinRawMessage = {
   context_token?: string;
   msg_id?: string;
   item_list?: WeixinRawItem[];
+};
+
+type GetUploadUrlResp = {
+  upload_param?: string;
+  upload_full_url?: string;
 };
 
 // ==================== HTTP ====================
@@ -189,6 +227,235 @@ async function callSendMessage(
     wechatUin,
     API_TIMEOUT_MS
     // No abort signal — send should complete even if the monitor is stopping
+  );
+}
+
+type UploadedWeixinMedia = {
+  itemType: typeof IMAGE_ITEM_TYPE | typeof FILE_ITEM_TYPE;
+  fileName: string;
+  rawSize: number;
+  ciphertextSize: number;
+  aesKeyForMessage: string;
+  downloadEncryptedQueryParam: string;
+};
+
+function getWeixinUploadMediaType(action: IChannelMediaAction): 1 | 3 {
+  return action.type === 'image' ? 1 : 3;
+}
+
+function getWeixinSendItemType(action: IChannelMediaAction): typeof IMAGE_ITEM_TYPE | typeof FILE_ITEM_TYPE {
+  return action.type === 'image' ? IMAGE_ITEM_TYPE : FILE_ITEM_TYPE;
+}
+
+function getAesEcbPaddedSize(size: number): number {
+  return Math.ceil((size + 1) / 16) * 16;
+}
+
+function encryptAesEcb(buffer: Buffer, key: Buffer): Buffer {
+  const cipher = crypto.createCipheriv('aes-128-ecb', key, null);
+  cipher.setAutoPadding(true);
+  return Buffer.concat([cipher.update(buffer), cipher.final()]);
+}
+
+async function callGetUploadUrl(
+  baseUrl: string,
+  token: string,
+  wechatUin: string,
+  toUserId: string,
+  action: IChannelMediaAction,
+  fileData: Buffer,
+  aesKeyHex: string,
+  fileKey: string,
+  log?: (msg: string) => void
+): Promise<{ uploadFullUrl?: string; uploadParam?: string }> {
+  const data = await apiPost<GetUploadUrlResp>(
+    baseUrl,
+    'ilink/bot/getuploadurl',
+    {
+      filekey: fileKey,
+      media_type: getWeixinUploadMediaType(action),
+      to_user_id: toUserId,
+      rawsize: fileData.length,
+      rawfilemd5: crypto.createHash('md5').update(fileData).digest('hex'),
+      filesize: getAesEcbPaddedSize(fileData.length),
+      no_need_thumb: true,
+      aeskey: aesKeyHex,
+      base_info: {},
+    },
+    token,
+    wechatUin,
+    API_TIMEOUT_MS
+  );
+
+  const uploadParam = String(data.upload_param ?? '').trim();
+  const uploadUrl = String(data.upload_full_url ?? '').trim();
+  if (!uploadUrl && !uploadParam) {
+    log?.(
+      `[weixin] getuploadurl missing upload url for ${toUserId}: ${summarizeUploadUrlResponse(data)} metadata=${stringifyLogValue({ type: action.type, fileName: action.fileName || path.basename(action.path), path: action.path, size: fileData.length })}`
+    );
+    throw new Error('getuploadurl missing upload url');
+  }
+  return {
+    uploadFullUrl: uploadUrl || undefined,
+    uploadParam: uploadParam || undefined,
+  };
+}
+
+function buildCdnUploadUrl(uploadParam: string, fileKey: string): string {
+  return `${CDN_BASE_URL}/upload?encrypted_query_param=${encodeURIComponent(uploadParam)}&filekey=${encodeURIComponent(fileKey)}`;
+}
+
+async function uploadBufferToCdn(
+  fileData: Buffer,
+  upload: { uploadFullUrl?: string; uploadParam?: string },
+  fileKey: string,
+  aesKey: Buffer,
+  log?: (msg: string) => void
+): Promise<{
+  downloadEncryptedQueryParam: string;
+  ciphertextSize: number;
+}> {
+  const ciphertext = encryptAesEcb(fileData, aesKey);
+  const trimmedUploadFullUrl = upload.uploadFullUrl?.trim();
+  const uploadUrl = trimmedUploadFullUrl
+    ? trimmedUploadFullUrl
+    : upload.uploadParam
+      ? buildCdnUploadUrl(upload.uploadParam, fileKey)
+      : '';
+
+  if (!uploadUrl) {
+    throw new Error('CDN upload URL missing');
+  }
+
+  let lastError: Error | undefined;
+  for (let attempt = 1; attempt <= UPLOAD_MAX_RETRIES; attempt++) {
+    try {
+      const resp = await fetch(uploadUrl, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/octet-stream',
+        },
+        body: new Uint8Array(ciphertext),
+        signal: AbortSignal.timeout(30_000),
+      });
+      const errorHeader = String(resp.headers.get('x-error-message') ?? '').trim();
+      const downloadEncryptedQueryParam = String(resp.headers.get('x-encrypted-param') ?? '').trim();
+
+      if (resp.status >= 400 && resp.status < 500) {
+        throw new Error(`CDN upload client error ${resp.status}: ${errorHeader || 'no error message'}`);
+      }
+      if (resp.status !== 200) {
+        throw new Error(`CDN upload server error ${resp.status}: ${errorHeader || 'no error message'}`);
+      }
+      if (!downloadEncryptedQueryParam) {
+        throw new Error('CDN upload response missing x-encrypted-param header');
+      }
+
+      return {
+        downloadEncryptedQueryParam,
+        ciphertextSize: ciphertext.length,
+      };
+    } catch (err) {
+      const uploadError = err instanceof Error ? err : new Error(String(err));
+      lastError = uploadError;
+      if (uploadError.message.includes('client error')) {
+        throw uploadError;
+      }
+      if (attempt < UPLOAD_MAX_RETRIES) {
+        log?.(`[weixin] CDN upload attempt ${attempt} failed for ${fileKey}, retrying: ${uploadError.message}`);
+      } else {
+        log?.(`[weixin] CDN upload failed for ${fileKey} after ${UPLOAD_MAX_RETRIES} attempts: ${uploadError.message}`);
+      }
+    }
+  }
+
+  throw lastError ?? new Error('CDN upload failed');
+}
+
+async function uploadMediaAction(
+  baseUrl: string,
+  token: string,
+  wechatUin: string,
+  toUserId: string,
+  action: IChannelMediaAction,
+  log?: (msg: string) => void
+): Promise<UploadedWeixinMedia> {
+  const fileStats = fs.statSync(action.path);
+  if (!fileStats.isFile()) {
+    throw new Error(`not a file: ${action.path}`);
+  }
+  if (fileStats.size > UPLOADS_MAX_BYTES) {
+    throw new Error(`file too large: ${fileStats.size}`);
+  }
+  const fileData = await fs.promises.readFile(action.path);
+
+  const aesKey = crypto.randomBytes(16);
+  const aesKeyHex = aesKey.toString('hex');
+  const fileKey = crypto.randomBytes(16).toString('hex');
+  const upload = await callGetUploadUrl(baseUrl, token, wechatUin, toUserId, action, fileData, aesKeyHex, fileKey, log);
+  const uploaded = await uploadBufferToCdn(fileData, upload, fileKey, aesKey, log);
+
+  return {
+    itemType: getWeixinSendItemType(action),
+    fileName: action.fileName || path.basename(action.path),
+    rawSize: fileData.length,
+    ciphertextSize: uploaded.ciphertextSize,
+    aesKeyForMessage: Buffer.from(aesKeyHex, 'utf-8').toString('base64'),
+    downloadEncryptedQueryParam: uploaded.downloadEncryptedQueryParam,
+  };
+}
+
+async function callSendMediaMessage(
+  baseUrl: string,
+  token: string,
+  wechatUin: string,
+  toUserId: string,
+  media: UploadedWeixinMedia,
+  contextToken?: string
+): Promise<void> {
+  const item =
+    media.itemType === IMAGE_ITEM_TYPE
+      ? {
+          type: IMAGE_ITEM_TYPE,
+          image_item: {
+            media: {
+              encrypt_query_param: media.downloadEncryptedQueryParam,
+              aes_key: media.aesKeyForMessage,
+              encrypt_type: 1,
+            },
+            mid_size: media.ciphertextSize,
+          },
+        }
+      : {
+          type: FILE_ITEM_TYPE,
+          file_item: {
+            media: {
+              encrypt_query_param: media.downloadEncryptedQueryParam,
+              aes_key: media.aesKeyForMessage,
+              encrypt_type: 1,
+            },
+            file_name: media.fileName,
+            len: String(media.rawSize),
+          },
+        };
+
+  await apiPost(
+    baseUrl,
+    'ilink/bot/sendmessage',
+    {
+      msg: {
+        to_user_id: toUserId,
+        client_id: crypto.randomUUID(),
+        message_type: 2,
+        message_state: 2,
+        item_list: [item],
+        context_token: contextToken,
+      },
+      base_info: {},
+    },
+    token,
+    wechatUin,
+    API_TIMEOUT_MS
   );
 }
 
@@ -416,10 +683,30 @@ async function runMonitor(
         }
         // oxlint-disable-next-line eslint/no-await-in-loop
         await stopTyping();
-        if (response.text) {
+        const fallbackNotices: string[] = [];
+        for (const mediaAction of response.mediaActions ?? []) {
+          try {
+            if (mediaAction.caption) {
+              // Match openclaw-weixin ordering: send caption text before media item.
+              // oxlint-disable-next-line eslint/no-await-in-loop
+              await callSendMessage(baseUrl, token, wechatUin, conversationId, mediaAction.caption, msg.context_token);
+            }
+            // oxlint-disable-next-line eslint/no-await-in-loop
+            const uploaded = await uploadMediaAction(baseUrl, token, wechatUin, conversationId, mediaAction, log);
+            // oxlint-disable-next-line eslint/no-await-in-loop
+            await callSendMediaMessage(baseUrl, token, wechatUin, conversationId, uploaded, msg.context_token);
+          } catch (sendErr) {
+            const failedName = mediaAction.fileName || path.basename(mediaAction.path);
+            fallbackNotices.push(i18n.t('settings.channels.mediaSendFailed', { name: failedName }));
+            log(`[weixin] media send error for ${conversationId}: ${formatError(sendErr)}`);
+          }
+        }
+
+        const finalText = [response.text, ...fallbackNotices].filter(Boolean).join('\n\n');
+        if (finalText) {
           try {
             // oxlint-disable-next-line eslint/no-await-in-loop
-            await callSendMessage(baseUrl, token, wechatUin, conversationId, response.text, msg.context_token);
+            await callSendMessage(baseUrl, token, wechatUin, conversationId, finalText, msg.context_token);
           } catch (sendErr) {
             log(`[weixin] send error for ${conversationId}: ${formatError(sendErr)}`);
           }

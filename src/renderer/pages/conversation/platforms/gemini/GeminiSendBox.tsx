@@ -5,6 +5,7 @@ import ContextUsageIndicator from '@/renderer/components/agent/ContextUsageIndic
 import FilePreview from '@/renderer/components/media/FilePreview';
 import HorizontalFileList from '@/renderer/components/media/HorizontalFileList';
 import SendBox from '@/renderer/components/chat/sendbox';
+import CommandQueuePanel from '@/renderer/components/chat/CommandQueuePanel';
 import { useAgentReadinessCheck } from '@/renderer/hooks/agent/useAgentReadinessCheck';
 import { useAutoTitle } from '@/renderer/hooks/chat/useAutoTitle';
 import { useLatestRef } from '@/renderer/hooks/ui/useLatestRef';
@@ -13,14 +14,20 @@ import FileAttachButton from '@/renderer/components/media/FileAttachButton';
 import { getSendBoxDraftHook, type FileOrFolderItem } from '@/renderer/hooks/chat/useSendBoxDraft';
 import { createSetUploadFile, useSendBoxFiles } from '@/renderer/hooks/chat/useSendBoxFiles';
 import { useSlashCommands } from '@/renderer/hooks/chat/useSlashCommands';
-import { useAddOrUpdateMessage } from '@/renderer/pages/conversation/Messages/hooks';
+import { useAddOrUpdateMessage, useRemoveMessageByMsgId } from '@/renderer/pages/conversation/Messages/hooks';
+import {
+  shouldEnqueueConversationCommand,
+  useConversationCommandQueue,
+  type ConversationCommandQueueItem,
+} from '@/renderer/pages/conversation/platforms/useConversationCommandQueue';
+import { assertBridgeSuccess } from '@/renderer/pages/conversation/platforms/assertBridgeSuccess';
 import { usePreviewContext } from '@/renderer/pages/conversation/Preview';
 import { allSupportedExts } from '@/renderer/services/FileService';
 import { emitter, useAddEventListener } from '@/renderer/utils/emitter';
 import { mergeFileSelectionItems } from '@/renderer/utils/file/fileSelection';
 import { buildDisplayMessage, collectSelectedFiles } from '@/renderer/utils/file/messageFiles';
 import { getModelContextLimit } from '@/renderer/utils/model/modelContextLimits';
-import { Tag } from '@arco-design/web-react';
+import { Message, Tag } from '@arco-design/web-react';
 import { Shield } from '@icon-park/react';
 import { iconColors } from '@/renderer/styles/colors';
 import AgentModeSelector from '@/renderer/components/agent/AgentModeSelector';
@@ -51,8 +58,8 @@ const useSendBoxDraft = (conversation_id: string) => {
   const content = data?.content ?? '';
 
   const setAtPath = useCallback(
-    (atPath: Array<string | FileOrFolderItem>) => {
-      mutate((prev) => ({ ...prev, atPath }));
+    (nextAtPath: Array<string | FileOrFolderItem>) => {
+      mutate((prev) => ({ ...prev, atPath: nextAtPath }));
     },
     [data, mutate]
   );
@@ -60,8 +67,8 @@ const useSendBoxDraft = (conversation_id: string) => {
   const setUploadFile = createSetUploadFile(mutate, data);
 
   const setContent = useCallback(
-    (content: string) => {
-      mutate((prev) => ({ ...prev, content }));
+    (nextContent: string) => {
+      mutate((prev) => ({ ...prev, content: nextContent }));
     },
     [data, mutate]
   );
@@ -120,10 +127,16 @@ const GeminiSendBox: React.FC<{
     handleSelectModel,
   });
 
-  const { thought, running, tokenUsage, setActiveMsgId, setWaitingResponse, resetState } = useGeminiMessage(
-    conversation_id,
-    handleGeminiError
-  );
+  const {
+    thought,
+    running,
+    hasHydratedRunningState,
+    tokenUsage,
+    setActiveMsgId,
+    setWaitingResponse,
+    resetState,
+    hasThinkingMessage,
+  } = useGeminiMessage(conversation_id, handleGeminiError);
 
   const { atPath, uploadFile, setAtPath, setUploadFile, content, setContent } = useSendBoxDraft(conversation_id);
 
@@ -174,7 +187,9 @@ const GeminiSendBox: React.FC<{
   const slashCommands = useSlashCommands(conversation_id);
 
   const addOrUpdateMessage = useAddOrUpdateMessage();
+  const removeMessageByMsgId = useRemoveMessageByMsgId();
   const { setSendBoxHandler } = usePreviewContext();
+  const isBusy = running;
 
   // Use useLatestRef to keep latest setters to avoid re-registering handler
   const setContentRef = useLatestRef(setContent);
@@ -206,50 +221,95 @@ const GeminiSendBox: React.FC<{
     setUploadFile,
   });
 
-  const onSendHandler = async (message: string) => {
-    if (!currentModel?.useModel) return;
+  const executeCommand = useCallback(
+    async ({ input, files }: Pick<ConversationCommandQueueItem, 'input' | 'files'>) => {
+      if (!currentModel?.useModel) {
+        Message.warning(t('conversation.chat.noModelSelected'));
+        throw new Error('No model selected');
+      }
 
-    const msg_id = uuid();
-    // Set current active message ID to filter out events from old requests
-    setActiveMsgId(msg_id);
-    setWaitingResponse(true);
+      const msg_id = uuid();
+      setActiveMsgId(msg_id);
+      setWaitingResponse(true);
 
-    // Save file list before clearing
-    const filesToSend = collectSelectedFiles(uploadFile, atPath);
-    const hasFiles = filesToSend.length > 0;
-
-    // Content is already cleared by the shared SendBox component (setInput(''))
-    // before calling onSend — no need to clear again here.
-    clearFiles();
-
-    // User message: Display in UI immediately (Backend will persist when receiving from IPC)
-    const displayMessage = buildDisplayMessage(message, filesToSend, workspacePath);
-    addOrUpdateMessage(
-      {
-        id: msg_id,
-        type: 'text',
-        position: 'right',
-        conversation_id,
-        content: {
-          content: displayMessage,
+      const displayMessage = buildDisplayMessage(input, files, workspacePath);
+      addOrUpdateMessage(
+        {
+          id: msg_id,
+          type: 'text',
+          position: 'right',
+          conversation_id,
+          content: {
+            content: displayMessage,
+          },
+          createdAt: Date.now(),
         },
-        createdAt: Date.now(),
-      },
-      true
-    );
-    // Files are passed via files param, no longer adding @ prefix in message
-    await ipcBridge.geminiConversation.sendMessage.invoke({
-      input: displayMessage,
-      msg_id,
+        true
+      );
+
+      try {
+        void checkAndUpdateTitle(conversation_id, input);
+        const result = await ipcBridge.geminiConversation.sendMessage.invoke({
+          input: displayMessage,
+          msg_id,
+          conversation_id,
+          files,
+        });
+        assertBridgeSuccess(result, 'Failed to send message to Gemini');
+        emitter.emit('chat.history.refresh');
+        if (files.length > 0) {
+          emitter.emit('gemini.workspace.refresh');
+        }
+      } catch (error) {
+        removeMessageByMsgId(msg_id);
+        throw error;
+      }
+    },
+    [
+      addOrUpdateMessage,
+      checkAndUpdateTitle,
       conversation_id,
-      files: filesToSend,
-    });
-    void checkAndUpdateTitle(conversation_id, message);
-    emitter.emit('chat.history.refresh');
+      currentModel?.useModel,
+      setActiveMsgId,
+      removeMessageByMsgId,
+      setWaitingResponse,
+      workspacePath,
+    ]
+  );
+
+  const {
+    items: queuedCommands,
+    isPaused: isQueuePaused,
+    isInteractionLocked: isQueueInteractionLocked,
+    hasPendingCommands,
+    enqueue,
+    update,
+    remove,
+    clear,
+    reorder,
+    pause,
+    resume,
+    lockInteraction,
+    unlockInteraction,
+    resetActiveExecution,
+  } = useConversationCommandQueue({
+    conversationId: conversation_id,
+    isBusy,
+    isHydrated: hasHydratedRunningState,
+    onExecute: executeCommand,
+  });
+
+  const onSendHandler = async (message: string) => {
+    const filesToSend = collectSelectedFiles(uploadFile, atPath);
+    clearFiles();
     emitter.emit('gemini.selected.file.clear');
-    if (hasFiles) {
-      emitter.emit('gemini.workspace.refresh');
+
+    if (shouldEnqueueConversationCommand({ isBusy, hasPendingCommands })) {
+      enqueue({ input: message, files: filesToSend });
+      return;
     }
+
+    await executeCommand({ input: message, files: filesToSend });
   };
 
   const appendSelectedFiles = useCallback(
@@ -263,8 +323,8 @@ const GeminiSendBox: React.FC<{
   });
 
   useAddEventListener('gemini.selected.file', setAtPath);
-  useAddEventListener('gemini.selected.file.append', (items: Array<string | FileOrFolderItem>) => {
-    const merged = mergeFileSelectionItems(atPathRef.current, items);
+  useAddEventListener('gemini.selected.file.append', (selectedItems: Array<string | FileOrFolderItem>) => {
+    const merged = mergeFileSelectionItems(atPathRef.current, selectedItems);
     if (merged !== atPathRef.current) {
       setAtPath(merged as Array<string | FileOrFolderItem>);
     }
@@ -277,6 +337,7 @@ const GeminiSendBox: React.FC<{
       await ipcBridge.conversation.stop.invoke({ conversation_id });
     } finally {
       resetState();
+      resetActiveExecution('stop');
     }
   };
 
@@ -299,12 +360,29 @@ const GeminiSendBox: React.FC<{
         />
       )}
 
-      <ThoughtDisplay thought={thought} running={running} onStop={handleStop} />
+      <ThoughtDisplay
+        thought={hasThinkingMessage ? undefined : thought}
+        running={running && !hasThinkingMessage}
+        onStop={handleStop}
+      />
+      <CommandQueuePanel
+        items={queuedCommands}
+        paused={isQueuePaused}
+        interactionLocked={isQueueInteractionLocked}
+        onPause={pause}
+        onResume={resume}
+        onInteractionLock={lockInteraction}
+        onInteractionUnlock={unlockInteraction}
+        onUpdate={(commandId, input) => update(commandId, { input })}
+        onReorder={reorder}
+        onRemove={remove}
+        onClear={clear}
+      />
 
       <SendBox
         value={content}
         onChange={setContent}
-        loading={running}
+        loading={isBusy}
         disabled={!currentModel?.useModel}
         placeholder={
           currentModel?.useModel
@@ -406,6 +484,7 @@ const GeminiSendBox: React.FC<{
         onSend={onSendHandler}
         slashCommands={slashCommands}
         onSlashBuiltinCommand={onSlashBuiltinCommand}
+        allowSendWhileLoading
       ></SendBox>
     </div>
   );

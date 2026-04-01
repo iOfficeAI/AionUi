@@ -113,6 +113,13 @@ describe('WorkspaceSnapshotService', () => {
       expect(content).toBe('original content');
     });
 
+    it('getBranches returns empty array in snapshot mode', async () => {
+      await fs.writeFile(path.join(tmpDir, 'a.txt'), 'content');
+      await service.init(tmpDir);
+      const branches = await service.getBranches(tmpDir);
+      expect(branches).toEqual([]);
+    });
+
     it('getBaselineContent returns null for non-existent file', async () => {
       await fs.writeFile(path.join(tmpDir, 'a.txt'), 'original');
       await service.init(tmpDir);
@@ -176,6 +183,11 @@ describe('WorkspaceSnapshotService', () => {
       const info = await service.getInfo(nonExistent);
       expect(info.mode).toBe('snapshot');
       expect(info.branch).toBeNull();
+    });
+
+    it('getBranches returns empty array for uninitialised workspace', async () => {
+      const branches = await service.getBranches(path.join(tmpDir, 'nope'));
+      expect(branches).toEqual([]);
     });
 
     it('compare returns empty for workspace that was removed before init', async () => {
@@ -296,6 +308,48 @@ describe('WorkspaceSnapshotService', () => {
       const info = await service.getInfo(tmpDir);
       expect(info.mode).toBe('git-repo');
       expect(typeof info.branch).toBe('string');
+    });
+  });
+
+  describe('maxBuffer handling (ELECTRON-G4)', () => {
+    it('snapshot init handles workspace with many files without maxBuffer error', async () => {
+      // Create many files to exercise the git add . path with substantial output
+      const subdir = path.join(tmpDir, 'deep', 'nested', 'dir');
+      await fs.mkdir(subdir, { recursive: true });
+      const writePromises = [];
+      for (let i = 0; i < 200; i++) {
+        writePromises.push(fs.writeFile(path.join(subdir, `file-${i}.txt`), `content-${i}`));
+      }
+      await Promise.all(writePromises);
+
+      // This should not throw "stderr maxBuffer length exceeded"
+      const info = await service.init(tmpDir);
+      expect(info.mode).toBe('snapshot');
+
+      const { unstaged } = await service.compare(tmpDir);
+      expect(unstaged).toEqual([]);
+    });
+
+    it('stageAll handles many files without maxBuffer error', async () => {
+      await exec('git', ['init'], { cwd: tmpDir });
+      await exec(
+        'git',
+        ['-c', 'user.name=Test', '-c', 'user.email=test@test.com', 'commit', '--allow-empty', '-m', 'init'],
+        { cwd: tmpDir }
+      );
+      await service.init(tmpDir);
+
+      const writePromises = [];
+      for (let i = 0; i < 200; i++) {
+        writePromises.push(fs.writeFile(path.join(tmpDir, `file-${i}.txt`), `content-${i}`));
+      }
+      await Promise.all(writePromises);
+
+      // This should not throw "stderr maxBuffer length exceeded"
+      await service.stageAll(tmpDir);
+
+      const { staged } = await service.compare(tmpDir);
+      expect(staged.length).toBe(200);
     });
   });
 });

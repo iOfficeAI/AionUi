@@ -71,6 +71,7 @@
   "historySearch": {
     "tooltip": "检索会话",
     "title": "检索会话内容",
+    "shortTitle": "搜索",
     "description": "输入关键词搜索历史消息，支持分页加载并跳转到对应消息。",
     "placeholder": "搜索消息内容...",
     "idle": "输入关键词检索历史消息",
@@ -237,6 +238,25 @@
     "emptyQuestion": "请在 /btw 后输入问题。",
     "toolsRequired": "/btw 只能根据当前对话中已有的内容作答，无法搜索、浏览或获取新信息。",
     "error": "顺便提问失败。"
+  },
+  "commandQueue": {
+    "title": "排队指令",
+    "clear": "清空队列",
+    "edit": "编辑",
+    "editing": "编辑中",
+    "editPlaceholder": "可以在执行前先修改这条排队指令。",
+    "cancelEdit": "取消",
+    "saveEdit": "保存",
+    "moreActions": "更多操作",
+    "reorder": "拖动以调整排队指令顺序",
+    "remove": "移除",
+    "files": "{{count}} 个文件",
+    "pausedAfterFailure": "下一条排队指令启动失败。请编辑、调整顺序或移除后再继续。",
+    "emptyInput": "排队指令不能为空。",
+    "queueFull": "队列已满，请先移除部分指令再继续添加。",
+    "inputTooLong": "排队指令内容过长，请缩短后再发送。",
+    "tooManyFiles": "这条排队指令附加的文件过多。",
+    "queueTooLarge": "队列数据过大，无法安全缓存，请先移除部分排队指令。"
   },
   "contextUsage": {
     "contextUsed": "上下文已使用"

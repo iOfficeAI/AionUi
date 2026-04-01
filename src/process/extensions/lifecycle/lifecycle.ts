@@ -6,6 +6,7 @@
 
 import * as path from 'path';
 import * as fs from 'fs';
+import { fork, type ChildProcess } from 'child_process';
 import type { LoadedExtension } from '../types';
 import { isPathWithinDirectory } from '../sandbox/pathSafety';
 import { extensionEventBus, ExtensionSystemEvents, type ExtensionLifecyclePayload } from './ExtensionEventBus';
@@ -23,11 +24,13 @@ import { extensionEventBus, ExtensionSystemEvents, type ExtensionLifecyclePayloa
  * }
  * ```
  */
+export type LifecycleHookValue = string | { script: string; timeout?: number };
+
 export interface LifecycleHooks {
-  onActivate?: string;
-  onDeactivate?: string;
-  onInstall?: string;
-  onUninstall?: string;
+  onActivate?: LifecycleHookValue;
+  onDeactivate?: LifecycleHookValue;
+  onInstall?: LifecycleHookValue;
+  onUninstall?: LifecycleHookValue;
 }
 
 export interface LifecycleContext {
@@ -37,21 +40,43 @@ export interface LifecycleContext {
 }
 
 /**
- * Run a lifecycle hook script for an extension.
- * Scripts run in the main process (same as Channel Plugins).
+ * Default timeout per hook type (ms).
+ * Extension developers can override via manifest: { script: "...", timeout: N }.
+ */
+const DEFAULT_HOOK_TIMEOUTS: Record<keyof LifecycleHooks, number> = {
+  onInstall: 120_000, // 2 min — may download binaries
+  onUninstall: 60_000, // 1 min — cleanup
+  onActivate: 30_000, // 30s
+  onDeactivate: 30_000, // 30s
+};
+
+/**
+ * Run a lifecycle hook script in a forked child process.
+ *
+ * The hook runs in a separate Node.js process (child_process.fork) so that:
+ * - Heavy operations (e.g. `bun add -g`) don't block the main process event loop
+ * - A buggy hook crash or process.exit() doesn't take down the application
+ * - Timeout can forcibly kill the child without affecting the main process
+ *
  * Returns true if the hook ran successfully, false if it failed or doesn't exist.
  */
 async function runLifecycleHook(
   extension: LoadedExtension,
   hookName: keyof LifecycleHooks,
-  scriptRelativePath: string
+  hookValue: string | { script?: string; timeout?: number }
 ): Promise<boolean> {
-  const scriptPath = path.resolve(extension.directory, scriptRelativePath);
+  const script = typeof hookValue === 'string' ? hookValue : hookValue.script;
+  if (!script) return false;
+  const timeout =
+    typeof hookValue === 'string'
+      ? DEFAULT_HOOK_TIMEOUTS[hookName]
+      : (hookValue.timeout ?? DEFAULT_HOOK_TIMEOUTS[hookName]);
+  const scriptPath = path.resolve(extension.directory, script);
 
   // Security: ensure script is within extension directory
   if (!isPathWithinDirectory(scriptPath, extension.directory)) {
     console.warn(
-      `[Extension Lifecycle] Path traversal detected in ${hookName} hook for "${extension.manifest.name}": ${scriptRelativePath}`
+      `[Extension Lifecycle] Path traversal detected in ${hookName} hook for "${extension.manifest.name}": ${script}`
     );
     return false;
   }
@@ -67,30 +92,64 @@ async function runLifecycleHook(
     version: extension.manifest.version,
   };
 
-  try {
-    // eslint-disable-next-line no-eval
-    const nativeRequire = eval('require');
-    const mod = nativeRequire(scriptPath);
-    const hookFn = mod.default || mod[hookName] || mod;
+  const runnerScript = path.join(__dirname, 'lifecycleRunner.js');
 
-    if (typeof hookFn === 'function') {
-      const result = hookFn(context);
-      // Support both sync and async hooks
-      if (result && typeof result.then === 'function') {
-        await result;
+  return new Promise<boolean>((resolve) => {
+    let child: ChildProcess;
+    let settled = false;
+
+    const settle = (success: boolean, reason?: string) => {
+      if (settled) return;
+      settled = true;
+      clearTimeout(timer);
+
+      if (success) {
+        console.log(`[Extension Lifecycle] ${hookName} completed for "${extension.manifest.name}"`);
+      } else {
+        console.error(
+          `[Extension Lifecycle] ${hookName} failed for "${extension.manifest.name}"${reason ? `: ${reason}` : ''}`
+        );
       }
-      console.log(`[Extension Lifecycle] ${hookName} completed for "${extension.manifest.name}"`);
-      return true;
-    } else {
-      console.warn(
-        `[Extension Lifecycle] Hook script for "${extension.manifest.name}" does not export a callable function`
-      );
-      return false;
+      resolve(success);
+    };
+
+    const timer = setTimeout(() => {
+      settle(false, `timed out after ${timeout}ms`);
+      child?.kill('SIGKILL');
+    }, timeout);
+
+    try {
+      child = fork(runnerScript, [], {
+        cwd: extension.directory,
+        env: process.env,
+        silent: false, // inherit stdio so hook console.log is visible
+      });
+    } catch (error) {
+      settle(false, `failed to fork child process: ${error}`);
+      return;
     }
-  } catch (error) {
-    console.error(`[Extension Lifecycle] ${hookName} failed for "${extension.manifest.name}":`, error);
-    return false;
-  }
+
+    child.on('message', (msg: { success: boolean; error?: string }) => {
+      settle(msg.success, msg.error);
+    });
+
+    child.on('error', (error) => {
+      settle(false, `child process error: ${error.message}`);
+    });
+
+    child.on('exit', (code) => {
+      // Fallback: settle on any exit, in case the child exits without sending a message
+      // (e.g. IPC disconnect, unexpected early exit). settle() is idempotent.
+      if (code !== 0) {
+        settle(false, `child process exited with code ${code}`);
+      } else {
+        settle(false, 'child process exited without sending a result');
+      }
+    });
+
+    // Send hook details to child process
+    child.send({ scriptPath, hookName, context });
+  });
 }
 
 /**

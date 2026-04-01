@@ -71,6 +71,7 @@
   "historySearch": {
     "tooltip": "메시지 검색",
     "title": "대화 내용 검색",
+    "shortTitle": "검색",
     "description": "키워드로 기록 메시지를 검색하고, 스크롤하여 더 불러오고, 클릭하여 해당 메시지로 이동합니다.",
     "placeholder": "메시지 내용 검색...",
     "idle": "키워드를 입력하여 메시지를 검색하세요",
@@ -237,6 +238,25 @@
     "emptyQuestion": "/btw 뒤에 질문을 입력해 주세요.",
     "toolsRequired": "/btw는 이 대화에 이미 있는 내용만으로 답변할 수 있습니다. 검색, 탐색 또는 새로운 정보를 가져올 수 없습니다.",
     "error": "보조 질문에 답하지 못했습니다."
+  },
+  "commandQueue": {
+    "title": "대기 중인 명령",
+    "clear": "대기열 비우기",
+    "edit": "편집",
+    "editing": "편집 중",
+    "editPlaceholder": "실행되기 전에 이 대기 명령을 수정하세요.",
+    "cancelEdit": "취소",
+    "saveEdit": "저장",
+    "moreActions": "추가 작업",
+    "reorder": "드래그하여 대기 명령 순서 변경",
+    "remove": "삭제",
+    "files": "{{count}}개 파일",
+    "pausedAfterFailure": "다음 대기 명령을 시작할 수 없습니다. 편집, 재정렬 또는 삭제 후 계속하세요.",
+    "emptyInput": "대기 명령은 비워 둘 수 없습니다.",
+    "queueFull": "대기열이 가득 찼습니다. 일부 명령을 제거한 뒤 다시 추가하세요.",
+    "inputTooLong": "대기열에 넣을 명령이 너무 깁니다. 줄인 뒤 다시 보내세요.",
+    "tooManyFiles": "이 대기 명령에는 파일이 너무 많이 첨부되었습니다.",
+    "queueTooLarge": "대기열 데이터가 너무 커서 안전하게 저장할 수 없습니다. 일부 명령을 먼저 제거하세요."
   },
   "contextUsage": {
     "contextUsed": "사용된 컨텍스트"

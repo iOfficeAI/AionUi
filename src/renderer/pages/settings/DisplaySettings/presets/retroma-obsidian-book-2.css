@@ -1,0 +1,102 @@
+/* Retroma Obsidian Book 2.0
+ * Compare preset: keep the original palette and layout, but make markdown
+ * emphasis behave closer to the calmer Y2K chip logic.
+ * Patch applied on top of retroma-obsidian-book.css
+ */
+
+/* Required variables — inherited from retroma-obsidian-book base */
+:root {
+  --color-primary: #0f7887;
+  --bg-1: #f5f4ef;
+}
+
+[data-theme='dark'] {
+  --color-primary: #6e8ddb;
+  --bg-1: #1a1917;
+}
+
+/* Keep inline code as the only prominent chip treatment. */
+.message-content strong,
+.markdown-body strong,
+.markdown-shadow-body strong,
+[class*='markdown'] strong,
+[data-theme='dark'] .message-content strong,
+[data-theme='dark'] .markdown-body strong,
+[data-theme='dark'] .markdown-shadow-body strong,
+[data-theme='dark'] [class*='markdown'] strong {
+  background: transparent !important;
+  color: inherit !important;
+  border: none !important;
+  border-radius: 0 !important;
+  padding: 0 !important;
+  box-shadow: none !important;
+  text-shadow: none !important;
+  -webkit-text-fill-color: currentColor !important;
+}
+
+.message-content strong *,
+.markdown-body strong *,
+.markdown-shadow-body strong *,
+[class*='markdown'] strong *,
+[data-theme='dark'] .message-content strong *,
+[data-theme='dark'] .markdown-body strong *,
+[data-theme='dark'] .markdown-shadow-body strong *,
+[data-theme='dark'] [class*='markdown'] strong * {
+  color: inherit !important;
+  -webkit-text-fill-color: currentColor !important;
+  opacity: 1 !important;
+}
+
+/* Keep mark as a soft editorial underline/highlight instead of a chip. */
+[data-theme='light'] .message-content mark,
+[data-theme='light'] .markdown-body mark,
+[data-theme='light'] .markdown-shadow-body mark,
+[data-theme='light'] [class*='markdown'] mark {
+  background: rgba(215, 204, 183, 0.38) !important;
+  color: inherit !important;
+  border: none !important;
+  border-radius: 3px !important;
+  padding: 0 0.16em !important;
+  -webkit-text-fill-color: currentColor !important;
+}
+
+[data-theme='dark'] .message-content mark,
+[data-theme='dark'] .markdown-body mark,
+[data-theme='dark'] .markdown-shadow-body mark,
+[data-theme='dark'] [class*='markdown'] mark {
+  background: rgba(214, 204, 184, 0.18) !important;
+  color: inherit !important;
+  border: none !important;
+  border-radius: 3px !important;
+  padding: 0 0.16em !important;
+  -webkit-text-fill-color: currentColor !important;
+}
+
+.message-content mark *,
+.markdown-body mark *,
+.markdown-shadow-body mark *,
+[class*='markdown'] mark *,
+[data-theme='dark'] .message-content mark *,
+[data-theme='dark'] .markdown-body mark *,
+[data-theme='dark'] .markdown-shadow-body mark *,
+[data-theme='dark'] [class*='markdown'] mark * {
+  color: inherit !important;
+  -webkit-text-fill-color: currentColor !important;
+  opacity: 1 !important;
+}
+
+/* Tighten inline code slightly so it reads like Y2K's restrained chip treatment. */
+.message-content code:not(pre code),
+.markdown-body code:not(pre code),
+.markdown-shadow-body code:not(pre code),
+[class*='markdown'] code:not(pre code),
+[data-theme='dark'] .message-content code:not(pre code),
+[data-theme='dark'] .markdown-body code:not(pre code),
+[data-theme='dark'] .markdown-shadow-body code:not(pre code),
+[data-theme='dark'] [class*='markdown'] code:not(pre code) {
+  border-radius: 4px !important;
+  padding: 1px 5px !important;
+  font-size: 0.88em !important;
+  font-weight: 600 !important;
+  box-shadow: none !important;
+}

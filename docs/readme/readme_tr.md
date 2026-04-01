@@ -34,7 +34,7 @@
 </p>
 
 <p align="center">
-  <strong>💬 Topluluk:</strong> <a href="https://discord.gg/2QAwJn7Egx" target="_blank">Discord (English)</a> | <a href="./resources/wx-5.png" target="_blank">微信 (中文群)</a> | <a href="https://twitter.com/AionUI" target="_blank">Twitter</a>
+  <strong>💬 Topluluk:</strong> <a href="https://discord.gg/2QAwJn7Egx" target="_blank">Discord (English)</a> | <a href="../../resources/wx-5.png" target="_blank">微信 (中文群)</a> | <a href="https://twitter.com/AionUI" target="_blank">Twitter</a>
 </p>
 
 ---
@@ -311,7 +311,7 @@ _Toplu yeniden adlandırma, otomatik organizasyon, akıllı sınıflandırma, do
 _Excel verilerini derinlemesine analiz edin, raporları otomatik olarak güzelleştirin ve içgörüler oluşturun — hepsi AI Agent'lar tarafından desteklenir._
 
 <p align="center">
-  <img src="./resources/generate_xlsx.gif" alt="Excel Processing" width="800">
+  <img src="./resources/readme-demo-generate-excel.gif" alt="Excel Processing" width="800">
 </p>
 
 <details>
@@ -564,7 +564,7 @@ brew install aionui
 - [Sorun Bildir](https://github.com/iOfficeAI/AionUi/issues) — hatalar ve özellik istekleri
 - [Sürüm Güncellemeleri](https://github.com/iOfficeAI/AionUi/releases) — en son sürümü alın
 - [Discord Topluluğu](https://discord.gg/2QAwJn7Egx) — İngilizce topluluk
-- [WeChat Grubu](./resources/wx-5.png) — Çince topluluk
+- [WeChat Grubu](../../resources/wx-5.png) — Çince topluluk
 
 ### Katkıda Bulunma
 
@@ -578,7 +578,7 @@ brew install aionui
 
 ## Lisans
 
-Bu proje [Apache-2.0](LICENSE) lisansı altında lisanslanmıştır.
+Bu proje [Apache-2.0](../../LICENSE) lisansı altında lisanslanmıştır.
 
 ---
 

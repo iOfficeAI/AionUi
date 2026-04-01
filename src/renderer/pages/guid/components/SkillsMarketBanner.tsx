@@ -7,8 +7,7 @@
 import { ipcBridge } from '@/common';
 import { ConfigStorage } from '@/common/config/storage';
 import { openExternalUrl } from '@/renderer/utils/platform';
-import { CloseSmall } from '@icon-park/react';
-import { Button, Message, Switch } from '@arco-design/web-react';
+import { Message, Switch, Tooltip } from '@arco-design/web-react';
 import React, { useCallback, useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 
@@ -20,7 +19,6 @@ const SkillsMarketBanner: React.FC = () => {
   const [enabled, setEnabled] = useState(false);
   const [loading, setLoading] = useState(false);
   const [initialized, setInitialized] = useState(false);
-  const [dismissed, setDismissed] = useState(false);
 
   useEffect(() => {
     const timeout = setTimeout(() => {
@@ -75,34 +73,41 @@ const SkillsMarketBanner: React.FC = () => {
     }
   }, [i18n.language]);
 
-  if (!initialized || dismissed) return null;
+  const [hovered, setHovered] = useState(false);
+
+  if (!initialized) return null;
 
   return (
-    <div className='absolute right-12px z-10' style={{ top: 'calc(12px + env(safe-area-inset-top, 0px))' }}>
-      <div className='flex items-center border border-solid border-[var(--color-border-2)] bg-fill-0 transition-all duration-300 gap-12px rd-10px px-16px py-10px max-w-280px'>
+    <div
+      className='absolute right-12px z-10'
+      style={{ top: 'calc(12px + env(safe-area-inset-top, 0px))' }}
+      onMouseEnter={() => setHovered(true)}
+      onMouseLeave={() => setHovered(false)}
+    >
+      <div
+        className='flex items-center border border-solid border-[var(--color-border-2)] bg-fill-0 transition-all duration-300 gap-8px rd-10px overflow-hidden'
+        style={{
+          padding: hovered ? '10px 16px' : '6px 10px',
+          maxWidth: hovered ? '300px' : '220px',
+        }}
+      >
         <div className='flex-1 min-w-0'>
-          <div className='text-14px font-medium text-[var(--color-text-1)] whitespace-nowrap'>
+          <div className='text-13px font-medium text-[var(--color-text-1)] whitespace-nowrap'>
             {t('conversation.welcome.skillsMarket')}
           </div>
-          <div className='text-12px text-[var(--color-text-3)] mt-2px leading-tight'>
-            {t('conversation.welcome.skillsMarketDesc')}{' '}
-            <span className='text-[rgb(var(--primary-6))] cursor-pointer hover:underline' onClick={handleOpenDetails}>
-              {t('conversation.welcome.skillsMarketDetails')}
-            </span>
-          </div>
+          {hovered && (
+            <div className='text-12px text-[var(--color-text-3)] mt-2px leading-tight animate-fade-in'>
+              {t('conversation.welcome.skillsMarketDesc')}{' '}
+              <span
+                className='text-brand hover:text-brand-hover font-semibold cursor-pointer hover:underline transition-colors'
+                onClick={handleOpenDetails}
+              >
+                {t('conversation.welcome.skillsMarketDetails')}
+              </span>
+            </div>
+          )}
         </div>
-        <div className='shrink-0 flex flex-col items-end gap-6px self-start'>
-          <Button
-            type='text'
-            shape='circle'
-            size='mini'
-            className='text-[var(--color-text-3)] hover:text-[var(--color-text-1)]'
-            icon={<CloseSmall theme='outline' size={14} />}
-            aria-label={t('common.close')}
-            onClick={() => setDismissed(true)}
-          />
-          <Switch size='small' checked={enabled} loading={loading} onChange={handleToggle} />
-        </div>
+        <Switch className='shrink-0' size='small' checked={enabled} loading={loading} onChange={handleToggle} />
       </div>
     </div>
   );

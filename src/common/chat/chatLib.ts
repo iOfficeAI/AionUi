@@ -76,6 +76,7 @@ type TMessageType =
   | 'codex_permission'
   | 'codex_tool_call'
   | 'plan'
+  | 'thinking'
   | 'available_commands';
 
 interface IMessage<T extends TMessageType, Content extends Record<string, any>> {
@@ -292,6 +293,16 @@ export type IMessagePlan = IMessage<
   }
 >;
 
+export type IMessageThinking = IMessage<
+  'thinking',
+  {
+    content: string;
+    subject?: string;
+    duration?: number;
+    status: 'thinking' | 'done';
+  }
+>;
+
 // Available commands from ACP agents (Claude, etc.)
 export type AvailableCommand = {
   name: string;
@@ -318,6 +329,7 @@ export type TMessage =
   | IMessageCodexPermission
   | IMessageCodexToolCall
   | IMessagePlan
+  | IMessageThinking
   | IMessageAvailableCommands;
 
 // 统一所有需要用户交互的用户类型
@@ -454,12 +466,34 @@ export const transformMessage = (message: IResponseMessage): TMessage => {
         content: message.data as any,
       };
     }
+    case 'thinking': {
+      const data = message.data as {
+        content: string;
+        subject?: string;
+        duration?: number;
+        status: 'thinking' | 'done';
+      };
+      return {
+        id: uuid(),
+        type: 'thinking',
+        msg_id: message.msg_id,
+        position: 'left',
+        conversation_id: message.conversation_id,
+        content: {
+          content: data.content,
+          subject: data.subject,
+          duration: data.duration,
+          status: data.status,
+        },
+      };
+    }
     // Disabled: available_commands messages are too noisy and distracting in the chat UI
     case 'available_commands':
       break;
     case 'start':
     case 'finish':
     case 'thought':
+    case 'info': // Stream retry notifications and similar transient agent updates
     case 'system': // Cron system responses, ignored
     case 'acp_model_info': // Model info updates, handled by AcpModelSelector
     case 'codex_model_info': // Codex model info updates, handled by AcpModelSelector
@@ -598,6 +632,32 @@ export const composeMessage = (
     }
     return pushMessage(message);
     // If no existing plan found, add new one
+  }
+
+  // Handle thinking message merging — append streaming content by msg_id
+  if (message.type === 'thinking') {
+    for (let i = list.length - 1; i >= 0; i--) {
+      const msg = list[i];
+      if (msg.type === 'thinking' && msg.msg_id === message.msg_id) {
+        // If incoming is 'done', update status and duration but keep accumulated content
+        if (message.content.status === 'done') {
+          const merged = {
+            ...msg.content,
+            status: message.content.status as 'done',
+            duration: message.content.duration,
+          };
+          return updateMessage(i, { ...msg, content: merged });
+        }
+        // Otherwise append content
+        const merged = {
+          ...msg.content,
+          content: msg.content.content + message.content.content,
+          subject: message.content.subject || msg.content.subject,
+        };
+        return updateMessage(i, { ...msg, content: merged });
+      }
+    }
+    return pushMessage(message);
   }
 
   if (last.msg_id !== message.msg_id || last.type !== message.type) {

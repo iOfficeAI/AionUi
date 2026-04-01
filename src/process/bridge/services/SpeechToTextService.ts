@@ -198,7 +198,8 @@ export class SpeechToTextService {
 
     const language = request.languageHint || config.openai?.language;
     if (language) {
-      formData.append('language', language);
+      // OpenAI Whisper requires ISO 639-1 codes (e.g. "en"), not BCP 47 (e.g. "en-us")
+      formData.append('language', language.split('-')[0].toLowerCase());
     }
     if (config.openai?.prompt) {
       formData.append('prompt', config.openai.prompt);

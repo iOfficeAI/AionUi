@@ -11,7 +11,6 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 const searchConversationMessagesInvoke = vi.fn();
 const navigateMock = vi.fn();
-const markAsReadMock = vi.fn();
 const closeAllTabsMock = vi.fn();
 const openTabMock = vi.fn();
 const blockMobileInputFocusMock = vi.fn();
@@ -41,12 +40,6 @@ vi.mock('../../src/renderer/pages/conversation/hooks/ConversationTabsContext', (
     closeAllTabs: closeAllTabsMock,
     openTab: openTabMock,
     activeTab: null,
-  }),
-}));
-
-vi.mock('../../src/renderer/pages/cron', () => ({
-  useCronJobsMap: () => ({
-    markAsRead: markAsReadMock,
   }),
 }));
 
@@ -87,7 +80,6 @@ describe('ConversationSearchPopover', () => {
   beforeEach(() => {
     searchConversationMessagesInvoke.mockReset();
     navigateMock.mockReset();
-    markAsReadMock.mockReset();
     closeAllTabsMock.mockReset();
     openTabMock.mockReset();
     blockMobileInputFocusMock.mockReset();
@@ -171,7 +163,6 @@ describe('ConversationSearchPopover', () => {
       });
     });
 
-    expect(markAsReadMock).toHaveBeenCalledWith('conv-1');
     expect(closeAllTabsMock).toHaveBeenCalledTimes(1);
     expect(openTabMock).toHaveBeenCalledWith(
       expect.objectContaining({

@@ -12,6 +12,7 @@ import {
   LinkCloud,
   Puzzle,
   Robot,
+  Speed,
   System,
   Toolkit,
 } from '@icon-park/react';
@@ -126,7 +127,7 @@ const SettingsSider: React.FC<{ collapsed?: boolean; tooltipEnabled?: boolean }>
       agent: {
         id: 'agent',
         label: t('settings.agents', { defaultValue: 'Agents' }),
-        icon: <Robot />,
+        icon: <Speed />,
         path: 'agent',
       },
       'skills-hub': {

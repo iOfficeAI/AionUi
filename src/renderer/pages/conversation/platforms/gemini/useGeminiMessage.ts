@@ -11,6 +11,7 @@ export const useGeminiMessage = (conversation_id: string, onError?: (message: IR
   const [streamRunning, setStreamRunning] = useState(false); // API 流是否在运行
   const [hasActiveTools, setHasActiveTools] = useState(false); // 是否有工具在执行或等待确认
   const [waitingResponse, setWaitingResponse] = useState(false); // 等待后端响应（发送消息后到收到 start 之前）
+  const [hasHydratedRunningState, setHasHydratedRunningState] = useState(false);
   const [thought, setThought] = useState<ThoughtData>({
     description: '',
     subject: '',
@@ -27,6 +28,10 @@ export const useGeminiMessage = (conversation_id: string, onError?: (message: IR
   // Track whether current turn has content output
   // Only reset waitingResponse when finish arrives after content (not after tool calls)
   const hasContentInTurnRef = useRef(false);
+
+  // Track whether current turn has a thinking message in the conversation
+  const hasThinkingMessageRef = useRef(false);
+  const [hasThinkingMessage, setHasThinkingMessage] = useState(false);
 
   // Track request trace state for displaying complete request lifecycle
   const requestTraceRef = useRef<{
@@ -121,6 +126,18 @@ export const useGeminiMessage = (conversation_id: string, onError?: (message: IR
           }
           throttledSetThought(message.data as ThoughtData);
           break;
+        case 'thinking': {
+          const thinkingData = message.data as { status?: string };
+          // Only set running for active thinking, not for done signal
+          if (thinkingData?.status !== 'done' && !streamRunningRef.current) {
+            setStreamRunning(true);
+            streamRunningRef.current = true;
+          }
+          hasThinkingMessageRef.current = true;
+          setHasThinkingMessage(true);
+          addOrUpdateMessage(transformMessage(message));
+          break;
+        }
         case 'start':
           setStreamRunning(true);
           streamRunningRef.current = true;
@@ -135,6 +152,8 @@ export const useGeminiMessage = (conversation_id: string, onError?: (message: IR
             waitingResponseRef.current = false;
             setThought({ subject: '', description: '' });
             hasContentInTurnRef.current = false;
+            hasThinkingMessageRef.current = false;
+            setHasThinkingMessage(false);
             // Log request completion
             if (requestTraceRef.current) {
               const duration = Date.now() - requestTraceRef.current.startTime;
@@ -288,13 +307,22 @@ export const useGeminiMessage = (conversation_id: string, onError?: (message: IR
   }, [conversation_id, addOrUpdateMessage, onError]);
 
   useEffect(() => {
+    let cancelled = false;
+
     setThought({ subject: '', description: '' });
     setTokenUsage(null);
     hasContentInTurnRef.current = false;
+    hasThinkingMessageRef.current = false;
+    setHasThinkingMessage(false);
+    setHasHydratedRunningState(false);
 
     // Check actual conversation status from backend before resetting all running states
     // to avoid flicker when switching to a running conversation
     void ipcBridge.conversation.get.invoke({ id: conversation_id }).then((res) => {
+      if (cancelled) {
+        return;
+      }
+
       if (!res) {
         setStreamRunning(false);
         streamRunningRef.current = false;
@@ -302,6 +330,7 @@ export const useGeminiMessage = (conversation_id: string, onError?: (message: IR
         hasActiveToolsRef.current = false;
         setWaitingResponse(false);
         waitingResponseRef.current = false;
+        setHasHydratedRunningState(true);
         return;
       }
       const isRunning = res.status === 'running';
@@ -319,7 +348,12 @@ export const useGeminiMessage = (conversation_id: string, onError?: (message: IR
           setTokenUsage(lastTokenUsage);
         }
       }
+      setHasHydratedRunningState(true);
     });
+
+    return () => {
+      cancelled = true;
+    };
   }, [conversation_id]);
 
   const resetState = useCallback(() => {
@@ -331,6 +365,8 @@ export const useGeminiMessage = (conversation_id: string, onError?: (message: IR
     hasActiveToolsRef.current = false;
     setThought({ subject: '', description: '' });
     hasContentInTurnRef.current = false;
+    hasThinkingMessageRef.current = false;
+    setHasThinkingMessage(false);
     // Clear active message ID to prevent filtering events from new messages after stop
     activeMsgIdRef.current = null;
   }, []);
@@ -339,9 +375,11 @@ export const useGeminiMessage = (conversation_id: string, onError?: (message: IR
     thought,
     setThought,
     running,
+    hasHydratedRunningState,
     tokenUsage,
     setActiveMsgId,
     setWaitingResponse,
     resetState,
+    hasThinkingMessage,
   };
 };

@@ -28,11 +28,11 @@ import {
 } from '../plugins/dingtalk/DingTalkCards';
 import { convertHtmlToDingTalkMarkdown } from '../plugins/dingtalk/DingTalkAdapter';
 import { createMainMenuKeyboard, createToolConfirmationKeyboard } from '../plugins/telegram/TelegramKeyboards';
-import { escapeHtml } from '../plugins/telegram/TelegramAdapter';
+import { escapeHtml, markdownToTelegramHtml } from '../plugins/telegram/TelegramAdapter';
 import { stripHtml } from '../plugins/weixin/WeixinAdapter';
 import type { ChannelAgentType, IUnifiedIncomingMessage, IUnifiedOutgoingMessage, PluginType } from '../types';
 import type { PluginManager } from './PluginManager';
-import type { AcpBackend } from '@/common/types/acpTypes';
+import { buildChannelConversationExtra, resolveChannelSendProtocol } from '../utils';
 
 // ==================== Platform-specific Helpers ====================
 
@@ -106,6 +106,9 @@ function formatTextForPlatform(text: string, platform: PluginType): string {
   }
   if (platform === 'dingtalk') {
     return convertHtmlToDingTalkMarkdown(text);
+  }
+  if (platform === 'telegram') {
+    return markdownToTelegramHtml(text);
   }
   if (platform === 'weixin') {
     return stripHtml(text);
@@ -423,6 +426,12 @@ export class ActionExecutor {
         // Map backend to conversation type for lookup
         const { convType, convBackend } = resolveChannelConvType(backend);
         const conversationName = getChannelConversationName(platform, convType, convBackend, chatId);
+        const conversationExtra = buildChannelConversationExtra({
+          platform,
+          backend,
+          customAgentId,
+          agentName,
+        });
 
         // Lookup existing conversation by source + chatId + type + backend (per-chat isolation)
         const db2 = await getDatabase();
@@ -439,7 +448,7 @@ export class ActionExecutor {
                 name: conversationName,
                 source,
                 channelChatId: chatId,
-                extra: {},
+                extra: conversationExtra,
               });
             } else if (backend === 'codex') {
               sessionConversation = await conversationServiceSingleton.createConversation({
@@ -448,7 +457,7 @@ export class ActionExecutor {
                 name: conversationName,
                 source,
                 channelChatId: chatId,
-                extra: {},
+                extra: conversationExtra,
               });
             } else if (backend === 'openclaw-gateway') {
               sessionConversation = await conversationServiceSingleton.createConversation({
@@ -457,7 +466,7 @@ export class ActionExecutor {
                 name: conversationName,
                 source,
                 channelChatId: chatId,
-                extra: {},
+                extra: conversationExtra,
               });
             } else {
               sessionConversation = await conversationServiceSingleton.createConversation({
@@ -466,11 +475,7 @@ export class ActionExecutor {
                 name: conversationName,
                 source,
                 channelChatId: chatId,
-                extra: {
-                  backend: backend as AcpBackend,
-                  customAgentId,
-                  agentName,
-                },
+                extra: conversationExtra,
               });
             }
           } catch (error) {
@@ -734,11 +739,28 @@ export class ActionExecutor {
       // After stream ends, update last message with action buttons (keep original content)
       const lastMsgId = sentMessageIds[sentMessageIds.length - 1] || thinkingMsgId;
       try {
+        const finalizedMessage =
+          context.platform === 'weixin' && context.conversationId && lastMessageContent?.text !== undefined
+            ? await resolveChannelSendProtocol(lastMessageContent.text, context.conversationId)
+            : null;
+
         // 使用最后一条消息的实际内容，添加操作按钮（根据平台）
         // Use actual content of last message, add action buttons (based on platform)
-        const responseMarkup = getResponseActionsMarkup(context.platform as PluginType, lastMessageContent?.text);
+        const responseMarkup = getResponseActionsMarkup(
+          context.platform as PluginType,
+          finalizedMessage?.visibleText ?? lastMessageContent?.text
+        );
         const finalMessage: IUnifiedOutgoingMessage = lastMessageContent
-          ? { ...lastMessageContent, replyMarkup: responseMarkup }
+          ? {
+              ...lastMessageContent,
+              ...(finalizedMessage
+                ? {
+                    text: finalizedMessage.visibleText,
+                    mediaActions: finalizedMessage.mediaActions,
+                  }
+                : {}),
+              replyMarkup: responseMarkup,
+            }
           : {
               type: 'text',
               text: '✅ Done',
