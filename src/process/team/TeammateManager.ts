@@ -8,6 +8,7 @@ import type { Mailbox } from './Mailbox';
 import type { TaskManager } from './TaskManager';
 import type { AgentResponse } from './adapters/PlatformAdapter';
 import { createPlatformAdapter } from './adapters/PlatformAdapter';
+import { acpDetector } from '@process/agent/acp/AcpDetector';
 
 type SpawnAgentFn = (agentName: string, agentType?: string) => Promise<TeamAgent>;
 
@@ -127,7 +128,12 @@ export class TeammateManager extends EventEmitter {
       ]);
       const teammates = this.agents.filter((a) => a.slotId !== slotId);
 
-      const payload = adapter.buildPayload({ agent, mailboxMessages, tasks, teammates });
+      const availableAgentTypes = acpDetector.getDetectedAgents().map((a) => ({
+        type: a.backend,
+        name: a.name,
+      }));
+
+      const payload = adapter.buildPayload({ agent, mailboxMessages, tasks, teammates, availableAgentTypes });
 
       // Clear previous buffer for this conversation
       this.responseBuffer.set(agent.conversationId, '');

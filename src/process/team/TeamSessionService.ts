@@ -170,7 +170,7 @@ export class TeamSessionService {
 
   private resolveConversationType(agentType: string): AgentType {
     if (agentType === 'gemini') return 'gemini';
-    if (agentType === 'codex') return 'codex';
+    if (agentType === 'codex') return 'acp';
     if (agentType === 'openclaw-gateway') return 'openclaw-gateway';
     if (agentType === 'nanobot') return 'nanobot';
     if (agentType === 'remote') return 'remote';

@@ -16,7 +16,7 @@ Use these XML tags instead to coordinate with your team:
 <send_message to="AgentName">message</send_message>
 <task_create subject="..." owner="..." description="..."/>
 <task_update task_id="..." status="completed"/>
-<spawn_agent name="AgentName" type="acp"/>
+<spawn_agent name="AgentName" type="agent_type"/>
 <idle reason="available" summary="..." completed_task_id="..."/>`;
 
 /** Remove matched XML tag spans from a string and return the remaining text */
@@ -133,7 +133,7 @@ export function createXmlFallbackAdapter(options?: { hasMcpTools?: boolean }): T
       const sections: string[] = [];
 
       // Role prompt already includes teammates, tasks, and unread messages
-      const rolePrompt = buildRolePrompt({ agent, mailboxMessages, tasks, teammates });
+      const rolePrompt = buildRolePrompt({ agent, mailboxMessages, tasks, teammates, availableAgentTypes: params.availableAgentTypes });
       sections.push(rolePrompt);
 
       // Only append XML fallback instructions when MCP tools are NOT available

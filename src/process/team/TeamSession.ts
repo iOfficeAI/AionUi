@@ -1,7 +1,9 @@
 // src/process/team/TeamSession.ts
 import { EventEmitter } from 'events';
 import { ipcBridge } from '@/common';
+import type { TMessage } from '@/common/chat/chatLib';
 import type { IWorkerTaskManager } from '@process/task/IWorkerTaskManager';
+import { addMessage } from '@process/utils/message';
 import type { ITeamRepository } from './repository/ITeamRepository';
 import type { TTeam, TeamAgent } from './types';
 import { Mailbox } from './Mailbox';
@@ -89,12 +91,23 @@ export class TeamSession extends EventEmitter {
       content,
     });
 
-    // Emit user message to lead's conversation so it appears as a user bubble in the chat UI
+    // Persist user message in lead's conversation so it appears as a user bubble in the chat UI
     if (leadAgent?.conversationId) {
+      const msgId = crypto.randomUUID();
+      const userMessage: TMessage = {
+        id: msgId,
+        msg_id: msgId,
+        type: 'text',
+        position: 'right',
+        conversation_id: leadAgent.conversationId,
+        content: { content },
+        createdAt: Date.now(),
+      };
+      addMessage(leadAgent.conversationId, userMessage);
       ipcBridge.conversation.responseStream.emit({
         type: 'user_content',
         conversation_id: leadAgent.conversationId,
-        msg_id: crypto.randomUUID(),
+        msg_id: msgId,
         data: content,
       });
     }

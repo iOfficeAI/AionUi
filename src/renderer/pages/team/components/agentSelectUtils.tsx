@@ -16,7 +16,7 @@ export function resolveConversationType(
   backend: string
 ): 'gemini' | 'acp' | 'codex' | 'openclaw-gateway' | 'nanobot' | 'remote' {
   if (backend === 'gemini') return 'gemini';
-  if (backend === 'codex') return 'codex';
+  if (backend === 'codex') return 'acp';
   if (backend === 'openclaw-gateway') return 'openclaw-gateway';
   if (backend === 'nanobot') return 'nanobot';
   if (backend === 'remote') return 'remote';

@@ -35,6 +35,7 @@ export type BuildPayloadParams = {
   mailboxMessages: MailboxMessage[];
   tasks: TeamTask[];
   teammates: TeamAgent[];
+  availableAgentTypes?: Array<{ type: string; name: string }>;
 };
 
 /** Unified adapter interface for cross-platform agent communication */

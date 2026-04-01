@@ -6,6 +6,7 @@ export type LeadPromptParams = {
   teammates: TeamAgent[];
   tasks: TeamTask[];
   unreadMessages: MailboxMessage[];
+  availableAgentTypes?: Array<{ type: string; name: string }>;
 };
 
 function formatTasks(tasks: TeamTask[]): string {
@@ -34,12 +35,17 @@ function formatMessages(messages: MailboxMessage[], teammates: TeamAgent[]): str
  * that are automatically available in the tool list.
  */
 export function buildLeadPrompt(params: LeadPromptParams): string {
-  const { teammates, tasks, unreadMessages } = params;
+  const { teammates, tasks, unreadMessages, availableAgentTypes } = params;
 
   const teammateList =
     teammates.length === 0
       ? '(no teammates yet — use team_spawn_agent to create them)'
       : teammates.map((t) => `- ${t.agentName} (${t.agentType}, status: ${t.status})`).join('\n');
+
+  const availableTypesSection =
+    availableAgentTypes && availableAgentTypes.length > 0
+      ? `\n\n## Available Agent Types for Spawning\n${availableAgentTypes.map((a) => `- \`${a.type}\` — ${a.name}`).join('\n')}`
+      : '';
 
   return `# You are the Team Lead
 
@@ -49,7 +55,7 @@ yourself. You break down tasks, assign them to teammates, and synthesize
 results.
 
 ## Your Teammates
-${teammateList}
+${teammateList}${availableTypesSection}
 
 ## Team Coordination Tools
 You have access to the following MCP tools for team coordination.
