@@ -36,11 +36,11 @@ export class WorkerTaskManagerJobExecutor implements ICronJobExecutor {
     return this.busyGuard.isProcessing(conversationId);
   }
 
-  async executeJob(job: CronJob, onAcquired?: () => void): Promise<string | void> {
-    let conversationId = job.metadata.conversationId;
+  async executeJob(job: CronJob, onAcquired?: () => void, preparedConversationId?: string): Promise<string | void> {
+    let conversationId = preparedConversationId ?? job.metadata.conversationId;
 
-    // new_conversation mode: create a fresh conversation for this execution
-    if (job.target.executionMode === 'new_conversation' && job.metadata.agentConfig) {
+    // new_conversation mode: create a fresh conversation for this execution (skip if already prepared)
+    if (!preparedConversationId && job.target.executionMode === 'new_conversation' && job.metadata.agentConfig) {
       const newConv = await this.buildConversationForJob(job);
       conversationId = newConv.id;
     }
@@ -258,6 +258,14 @@ export class WorkerTaskManagerJobExecutor implements ICronJobExecutor {
    */
   private buildMessageText(job: CronJob): string {
     return job.target.payload.text;
+  }
+
+  async prepareConversation(job: CronJob): Promise<string> {
+    if (job.target.executionMode === 'new_conversation' && job.metadata.agentConfig) {
+      const conv = await this.buildConversationForJob(job);
+      return conv.id;
+    }
+    return job.metadata.conversationId;
   }
 
   onceIdle(conversationId: string, callback: () => Promise<void>): void {

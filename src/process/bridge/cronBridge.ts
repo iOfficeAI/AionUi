@@ -38,8 +38,9 @@ export function initCronBridge(): void {
   });
 
   ipcBridge.cron.runNow.provider(async ({ jobId }) => {
-    // Fire-and-forget: don't await so the IPC responds immediately.
-    // The frontend listens to onJobUpdated / onJobExecuted for progress.
-    void cronService.triggerJob(jobId);
+    // Create conversation (if needed) and return immediately.
+    // Message sending runs in background; frontend navigates to the conversation.
+    const conversationId = await cronService.runNow(jobId);
+    return { conversationId };
   });
 }

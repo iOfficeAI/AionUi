@@ -303,7 +303,7 @@ describe('CronService', () => {
     // Advance exactly one interval period to fire the timer once.
     await vi.advanceTimersByTimeAsync(60000);
 
-    expect(executor.executeJob).toHaveBeenCalledWith(job, expect.any(Function));
+    expect(executor.executeJob).toHaveBeenCalledWith(job, expect.any(Function), undefined);
     expect(repo.update).toHaveBeenCalledWith(
       'j1',
       expect.objectContaining({

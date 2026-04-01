@@ -275,7 +275,8 @@ export class CronService {
   }
 
   /**
-   * Trigger a job to execute immediately
+   * Trigger a job to execute immediately (blocks until complete).
+   * Used by scheduled timer execution.
    */
   async triggerJob(jobId: string): Promise<void> {
     const job = await this.repo.getById(jobId);
@@ -283,6 +284,21 @@ export class CronService {
       throw new Error(`Job not found: ${jobId}`);
     }
     await this.executeJob(job);
+  }
+
+  /**
+   * Run a job now: create the conversation (if needed), then execute in background.
+   * Returns the conversationId immediately so the frontend can navigate to it.
+   */
+  async runNow(jobId: string): Promise<string> {
+    const job = await this.repo.getById(jobId);
+    if (!job) {
+      throw new Error(`Job not found: ${jobId}`);
+    }
+    const conversationId = await this.executor.prepareConversation(job);
+    // Fire-and-forget: execute in background, pass the prepared conversationId to skip re-creation
+    void this.executeJob(job, conversationId);
+    return conversationId;
   }
 
   /**
@@ -416,8 +432,8 @@ export class CronService {
    * Execute a job - send message to conversation
    * Handles conversation busy state with retries and power management
    */
-  private async executeJob(job: CronJob): Promise<void> {
-    const { conversationId } = job.metadata;
+  private async executeJob(job: CronJob, preparedConversationId?: string): Promise<void> {
+    const conversationId = preparedConversationId ?? job.metadata.conversationId;
 
     // Check if conversation is busy
     const isBusy = this.executor.isConversationBusy(conversationId);
@@ -463,9 +479,13 @@ export class CronService {
       // executeJob marks the conversation busy only after task acquisition succeeds.
       // The onAcquired callback registers the completion notification while the
       // conversation is already busy, preventing premature onceIdle fires.
-      await this.executor.executeJob(job, () => {
-        this.registerCompletionNotification(job);
-      });
+      await this.executor.executeJob(
+        job,
+        () => {
+          this.registerCompletionNotification(job);
+        },
+        preparedConversationId
+      );
 
       // Success
       this.retryCounts.delete(job.id);

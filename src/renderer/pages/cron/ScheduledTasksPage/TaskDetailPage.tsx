@@ -81,14 +81,17 @@ const TaskDetailPage: React.FC = () => {
     if (!job) return;
     setRunningNow(true);
     try {
-      await ipcBridge.cron.runNow.invoke({ jobId: job.id });
+      const result = await ipcBridge.cron.runNow.invoke({ jobId: job.id });
       Message.success(t('cron.runNowSuccess'));
+      if (result?.conversationId) {
+        navigate(`/conversation/${result.conversationId}`);
+      }
     } catch (err) {
       Message.error(String(err));
     } finally {
       setRunningNow(false);
     }
-  }, [job, t]);
+  }, [job, t, navigate]);
 
   const handleDelete = useCallback(async () => {
     if (!job) return;
