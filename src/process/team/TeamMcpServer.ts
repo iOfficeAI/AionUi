@@ -227,6 +227,8 @@ export class TeamMcpServer {
         return this.handleTeamMembers();
       case 'team_rename_agent':
         return this.handleRenameAgent(args);
+      case 'team_shutdown_agent':
+        return this.handleShutdownAgent(args, fromSlotId);
       default:
         throw new Error(`Unknown tool: ${toolName}`);
     }
@@ -359,6 +361,35 @@ export class TeamMcpServer {
     }
     const lines = agents.map((a) => `- ${a.agentName} (type: ${a.agentType}, role: ${a.role}, status: ${a.status})`);
     return `## Team Members\n${lines.join('\n')}`;
+  }
+
+  private async handleShutdownAgent(args: Record<string, unknown>, callerSlotId?: string): Promise<string> {
+    const { teamId, getAgents, mailbox, wakeAgent } = this.params;
+    const agentRef = String(args.agent ?? '');
+
+    const resolvedSlotId = this.resolveSlotId(agentRef);
+    if (!resolvedSlotId) {
+      const agents = getAgents();
+      throw new Error(`Agent "${agentRef}" not found. Available: ${agents.map((a) => a.agentName).join(', ')}`);
+    }
+    const agents = getAgents();
+    const agent = agents.find((a) => a.slotId === resolvedSlotId);
+    if (agent?.role === 'lead') {
+      throw new Error('Cannot shut down the team lead.');
+    }
+
+    const fromSlotId = callerSlotId ?? agents.find((a) => a.role === 'lead')?.slotId ?? 'unknown';
+
+    await mailbox.write({
+      teamId,
+      toAgentId: resolvedSlotId,
+      fromAgentId: fromSlotId,
+      type: 'shutdown_request',
+      content: 'The team lead has requested you to shut down. Reply "shutdown_approved" to confirm, or "shutdown_rejected: <reason>" to refuse.',
+    });
+    void wakeAgent(resolvedSlotId);
+
+    return `Shutdown request sent to "${agent?.agentName ?? agentRef}". Waiting for their confirmation.`;
   }
 
   private handleRenameAgent(args: Record<string, unknown>): string {

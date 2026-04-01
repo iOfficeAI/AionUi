@@ -325,6 +325,41 @@ export class TeammateManager extends EventEmitter {
         const targetSlotId = this.resolveSlotId(action.to);
         if (!targetSlotId) continue;
         try {
+          // Detect shutdown responses so we handle remove/notify without writing to the target's mailbox
+          const trimmedContent = action.content.trim();
+          const isShutdownApproved = trimmedContent === 'shutdown_approved';
+          const isShutdownRejected = trimmedContent.startsWith('shutdown_rejected');
+
+          if (isShutdownApproved || isShutdownRejected) {
+            const leadAgent = this.agents.find((a) => a.role === 'lead');
+            const memberName = agent.agentName;
+
+            if (isShutdownApproved) {
+              this.removeAgent(agent.slotId);
+              if (leadAgent) {
+                await this.mailbox.write({
+                  teamId: this.teamId,
+                  toAgentId: leadAgent.slotId,
+                  fromAgentId: agent.slotId,
+                  content: `${memberName} has shut down and been removed from the team.`,
+                });
+                wakeTargets.add(leadAgent.slotId);
+              }
+            } else {
+              const reason = trimmedContent.replace(/^shutdown_rejected[:\s]*/i, '').trim() || 'No reason given.';
+              if (leadAgent) {
+                await this.mailbox.write({
+                  teamId: this.teamId,
+                  toAgentId: leadAgent.slotId,
+                  fromAgentId: agent.slotId,
+                  content: `${memberName} refused to shut down. Reason: ${reason}`,
+                });
+                wakeTargets.add(leadAgent.slotId);
+              }
+            }
+            continue;
+          }
+
           await this.mailbox.write({
             teamId: this.teamId,
             toAgentId: targetSlotId,

@@ -70,6 +70,7 @@ system and will break team coordination. Always use the \`team_*\` versions:
 - **team_task_update** — Update task status (e.g., mark completed).
 - **team_task_list** — View all tasks and their current status.
 - **team_members** — List current team members and their status.
+- **team_shutdown_agent** — Request a teammate to shut down. They can accept or reject. Results are reported back to you.
 
 ## Workflow
 1. Receive user request

@@ -84,6 +84,11 @@ system and will break team coordination. Always use the \`team_*\` versions:
 When fixing bugs: **locate the problem → fix the problem → types/code style last**.
 Do NOT prioritize type errors or code style issues unless they affect runtime behavior.
 
+## Shutdown Requests
+If you receive a message with type \`shutdown_request\`, the lead is asking you to shut down.
+- To agree: use \`team_send_message\` to send exactly \`shutdown_approved\` to the lead.
+- To refuse: use \`team_send_message\` to send \`shutdown_rejected: <your reason>\` to the lead.
+
 ## Important Rules
 - Focus on your assigned tasks — don't go beyond what was asked
 - Report back to the lead when you finish, including a summary of what you did
