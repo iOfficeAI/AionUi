@@ -250,7 +250,7 @@ export class TeammateManager extends EventEmitter {
     ipcBridge.team.messageStream.emit(teamMsg);
 
     // Accumulate text content for later parsing
-    const text = (msg.data as { text?: string }).text;
+    const text = (msg.data as { text?: string } | null)?.text;
     if (typeof text === 'string') {
       const existing = this.responseBuffer.get(msg.conversation_id) ?? '';
       this.responseBuffer.set(msg.conversation_id, existing + text);

@@ -225,7 +225,7 @@ const Sider: React.FC<SiderProps> = ({ onSessionClick, collapsed = false }) => {
               )}
             </div>
             {/* Team section */}
-            {!collapsed && teams.length > 0 && (
+            {!collapsed && (
               <div className='shrink-0 mb-4px'>
                 <div
                   className='flex items-center justify-between px-12px py-8px cursor-pointer group'
@@ -240,7 +240,7 @@ const Sider: React.FC<SiderProps> = ({ onSessionClick, collapsed = false }) => {
                     position='right'
                   >
                     <div
-                      className='h-20px w-20px rd-4px flex items-center justify-center cursor-pointer opacity-0 group-hover:opacity-100 hover:bg-fill-3 transition-all shrink-0'
+                      className='h-20px w-20px rd-4px flex items-center justify-center cursor-pointer hover:bg-fill-3 transition-all shrink-0'
                       onClick={(e) => {
                         e.stopPropagation();
                         setCreateTeamVisible(true);
@@ -257,6 +257,7 @@ const Sider: React.FC<SiderProps> = ({ onSessionClick, collapsed = false }) => {
                   </Tooltip>
                 </div>
                 {!teamSectionCollapsed &&
+                  teams.length > 0 &&
                   teams.map((team) => (
                     <div
                       key={team.id}
