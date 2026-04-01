@@ -8,14 +8,34 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 // --- Mocks (vi.hoisted so factories can reference them) ---
 
-const { openFileProvider, showItemInFolderProvider, openExternalProvider, shellMock } = vi.hoisted(() => ({
+const {
+  openFileProvider,
+  showItemInFolderProvider,
+  openExternalProvider,
+  checkToolInstalledProvider,
+  openFolderWithProvider,
+  shellMock,
+  execMock,
+  spawnMock,
+  fsMock,
+} = vi.hoisted(() => ({
   openFileProvider: { fn: undefined as ((...args: any[]) => any) | undefined },
   showItemInFolderProvider: { fn: undefined as ((...args: any[]) => any) | undefined },
   openExternalProvider: { fn: undefined as ((...args: any[]) => any) | undefined },
+  checkToolInstalledProvider: { fn: undefined as ((...args: any[]) => any) | undefined },
+  openFolderWithProvider: { fn: undefined as ((...args: any[]) => any) | undefined },
   shellMock: {
     openPath: vi.fn().mockResolvedValue(''),
     showItemInFolder: vi.fn(),
     openExternal: vi.fn().mockResolvedValue(undefined),
+  },
+  execMock: vi.fn(),
+  spawnMock: vi.fn().mockReturnValue({
+    on: vi.fn(),
+    unref: vi.fn(),
+  }),
+  fsMock: {
+    existsSync: vi.fn(),
   },
 }));
 
@@ -37,12 +57,31 @@ vi.mock('@/common', () => ({
           openExternalProvider.fn = fn;
         }),
       },
+      checkToolInstalled: {
+        provider: vi.fn((fn: (...args: any[]) => any) => {
+          checkToolInstalledProvider.fn = fn;
+        }),
+      },
+      openFolderWith: {
+        provider: vi.fn((fn: (...args: any[]) => any) => {
+          openFolderWithProvider.fn = fn;
+        }),
+      },
     },
   },
 }));
 
 vi.mock('electron', () => ({
   shell: shellMock,
+}));
+
+vi.mock('child_process', () => ({
+  exec: execMock,
+  spawn: spawnMock,
+}));
+
+vi.mock('fs', () => ({
+  existsSync: fsMock.existsSync,
 }));
 
 // --- Tests ---
@@ -55,6 +94,11 @@ beforeEach(async () => {
   openFileProvider.fn = undefined;
   showItemInFolderProvider.fn = undefined;
   openExternalProvider.fn = undefined;
+  checkToolInstalledProvider.fn = undefined;
+  openFolderWithProvider.fn = undefined;
+
+  // Default mocks
+  Object.defineProperty(process, 'platform', { value: 'win32' });
 
   const mod = await import('../../src/process/bridge/shellBridge');
   initShellBridge = mod.initShellBridge;
@@ -62,11 +106,13 @@ beforeEach(async () => {
 
 describe('shellBridge', () => {
   describe('initShellBridge', () => {
-    it('registers all three shell providers', () => {
+    it('registers all five shell providers', () => {
       initShellBridge();
       expect(openFileProvider.fn).toBeDefined();
       expect(showItemInFolderProvider.fn).toBeDefined();
       expect(openExternalProvider.fn).toBeDefined();
+      expect(checkToolInstalledProvider.fn).toBeDefined();
+      expect(openFolderWithProvider.fn).toBeDefined();
     });
   });
 
@@ -124,6 +170,78 @@ describe('shellBridge', () => {
       await openExternalProvider.fn!('');
       expect(shellMock.openExternal).not.toHaveBeenCalled();
       warnSpy.mockRestore();
+    });
+  });
+
+  describe('checkToolInstalled', () => {
+    beforeEach(() => {
+      initShellBridge();
+    });
+
+    it('returns true for terminal on Windows', async () => {
+      Object.defineProperty(process, 'platform', { value: 'win32' });
+      const result = await checkToolInstalledProvider.fn!({ tool: 'terminal' });
+      expect(result).toBe(true);
+    });
+
+    it('returns true for terminal on macOS', async () => {
+      Object.defineProperty(process, 'platform', { value: 'darwin' });
+      const result = await checkToolInstalledProvider.fn!({ tool: 'terminal' });
+      expect(result).toBe(true);
+    });
+
+    it('returns true for terminal on Linux', async () => {
+      Object.defineProperty(process, 'platform', { value: 'linux' });
+      const result = await checkToolInstalledProvider.fn!({ tool: 'terminal' });
+      expect(result).toBe(true);
+    });
+
+    it('returns true for explorer', async () => {
+      const result = await checkToolInstalledProvider.fn!({ tool: 'explorer' });
+      expect(result).toBe(true);
+    });
+
+    it('returns false for unknown tool', async () => {
+      const result = await checkToolInstalledProvider.fn!({ tool: 'unknown-tool' as any });
+      expect(result).toBe(false);
+    });
+  });
+
+  describe('openFolderWith', () => {
+    beforeEach(() => {
+      initShellBridge();
+      execMock.mockImplementation((cmd: string, callback: (err: Error | null) => void) => {
+        callback(null);
+      });
+    });
+
+    it('opens folder with explorer on Windows', async () => {
+      Object.defineProperty(process, 'platform', { value: 'win32' });
+      shellMock.openPath.mockResolvedValue('');
+
+      await openFolderWithProvider.fn!({ folderPath: 'C:\\Projects', tool: 'explorer' });
+
+      expect(shellMock.openPath).toHaveBeenCalledWith('C:\\Projects');
+    });
+
+    it('opens folder with terminal on macOS', async () => {
+      Object.defineProperty(process, 'platform', { value: 'darwin' });
+
+      await openFolderWithProvider.fn!({ folderPath: '/workspace/project', tool: 'terminal' });
+
+      expect(spawnMock).toHaveBeenCalledWith('open', ['-a', 'Terminal', '/workspace/project'], {
+        detached: true,
+        stdio: 'ignore',
+      });
+    });
+
+    it('handles folder path with special characters', async () => {
+      const folderWithSpecialChars = "/path/with'quotes";
+      shellMock.openPath.mockResolvedValue('');
+
+      await openFolderWithProvider.fn!({ folderPath: folderWithSpecialChars, tool: 'explorer' });
+
+      expect(shellMock.openPath).toHaveBeenCalledWith(folderWithSpecialChars);
     });
   });
 });

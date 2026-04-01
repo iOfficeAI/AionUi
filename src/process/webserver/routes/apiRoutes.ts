@@ -12,6 +12,7 @@ import path from 'path';
 import multer from 'multer';
 import { getDatabase } from '@process/services/database';
 import { getSystemDir } from '@process/utils/initStorage';
+import { ProcessConfig } from '@process/utils/initStorage';
 import { TokenMiddleware } from '@process/webserver/auth/middleware/TokenMiddleware';
 import { ExtensionRegistry } from '@process/extensions';
 import { SpeechToTextService } from '@process/bridge/services/SpeechToTextService';
@@ -314,7 +315,10 @@ export function registerApiRoutes(app: Express): void {
         }
 
         let uploadDir: string;
-        if (conversationId) {
+        // Check user preference: save to workspace or cache directory
+        // Default to cache directory (false) to avoid cluttering workspace
+        const saveToWorkspace = await ProcessConfig.get('upload.saveToWorkspace').catch(() => false);
+        if (conversationId && saveToWorkspace) {
           let workspace: string;
           try {
             workspace = await resolveUploadWorkspace(conversationId, requestedWorkspace);

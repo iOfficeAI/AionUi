@@ -47,6 +47,7 @@ const SystemModalContent: React.FC = () => {
   const [notificationEnabled, setNotificationEnabled] = useState(true);
   const [cronNotificationEnabled, setCronNotificationEnabled] = useState(false);
   const [promptTimeout, setPromptTimeout] = useState<number>(300);
+  const [saveUploadToWorkspace, setSaveUploadToWorkspace] = useState(false);
 
   useEffect(() => {
     if (!isDesktop) {
@@ -89,6 +90,13 @@ const SystemModalContent: React.FC = () => {
       .then((val) => {
         if (val && val > 0) setPromptTimeout(val);
       })
+      .catch(() => {});
+  }, []);
+
+  useEffect(() => {
+    ipcBridge.systemSettings.getSaveUploadToWorkspace
+      .invoke()
+      .then((enabled) => setSaveUploadToWorkspace(enabled))
       .catch(() => {});
   }, []);
 
@@ -143,6 +151,13 @@ const SystemModalContent: React.FC = () => {
     ConfigStorage.set('acp.promptTimeout', seconds).catch(() => {});
   }, []);
 
+  const handleSaveUploadToWorkspaceChange = useCallback((checked: boolean) => {
+    setSaveUploadToWorkspace(checked);
+    ipcBridge.systemSettings.setSaveUploadToWorkspace.invoke({ enabled: checked }).catch(() => {
+      setSaveUploadToWorkspace(!checked);
+    });
+  }, []);
+
   // Get system directory info
   const { data: systemInfo } = useSWR('system.dir.info', () => ipcBridge.application.systemInfo.invoke());
 
@@ -186,6 +201,11 @@ const SystemModalContent: React.FC = () => {
           suffix='s'
         />
       ),
+    },
+    {
+      key: 'saveUploadToWorkspace',
+      label: t('settings.saveUploadToWorkspace'),
+      component: <Switch checked={saveUploadToWorkspace} onChange={handleSaveUploadToWorkspaceChange} />,
     },
   ];
 

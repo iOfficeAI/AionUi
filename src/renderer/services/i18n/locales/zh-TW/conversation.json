@@ -180,6 +180,12 @@
       "reset": "還原變更",
       "noUnstaged": "沒有未暫存的變更",
       "noStaged": "沒有已暫存的變更"
+    },
+    "openWorkspace": "開啟工作區資料夾",
+    "openWith": {
+      "vscode": "VS Code",
+      "terminal": "終端機",
+      "explorer": "檔案總管"
     }
   },
   "minimap": {

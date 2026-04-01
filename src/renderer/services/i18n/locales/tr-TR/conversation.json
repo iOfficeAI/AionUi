@@ -175,6 +175,12 @@
       "reset": "Değişiklikleri Geri Al",
       "noUnstaged": "Hazırlanmamış değişiklik yok",
       "noStaged": "Hazırlanmış değişiklik yok"
+    },
+    "openWorkspace": "Çalışma alanını aç",
+    "openWith": {
+      "vscode": "VS Code",
+      "terminal": "Terminal",
+      "explorer": "Dosya Gezgini"
     }
   },
   "minimap": {
