@@ -389,6 +389,8 @@ export type TChatConversation =
         sessionMode?: string;
         /** Explicit marker for temporary health-check conversations */
         isHealthCheck?: boolean;
+        /** Last token usage stats */
+        lastTokenUsage?: TokenUsageData;
       }
     >;
 

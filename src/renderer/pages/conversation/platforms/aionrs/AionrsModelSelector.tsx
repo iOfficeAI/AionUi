@@ -53,9 +53,7 @@ const AionrsModelSelector: React.FC<{
           style={{ cursor: 'default' }}
         >
           <span className='flex items-center gap-6px min-w-0'>
-            <span className={compact ? 'block truncate' : undefined}>
-              {t('conversation.welcome.useCliModel')}
-            </span>
+            <span className={compact ? 'block truncate' : undefined}>{t('conversation.welcome.useCliModel')}</span>
           </span>
         </Button>
       </Tooltip>
@@ -95,9 +93,7 @@ const AionrsModelSelector: React.FC<{
                   return (
                     <Menu.Item
                       key={`${provider.id}-${modelName}`}
-                      className={
-                        currentModel?.id + currentModel?.useModel === provider.id + modelName ? '!bg-2' : ''
-                      }
+                      className={currentModel?.id + currentModel?.useModel === provider.id + modelName ? '!bg-2' : ''}
                       onClick={() => void handleSelectModel(provider, modelName)}
                     >
                       <div className='flex items-center gap-8px w-full'>
