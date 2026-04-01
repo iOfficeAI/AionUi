@@ -67,6 +67,7 @@ const MessageText: React.FC<{ message: IMessageText }> = ({ message }) => {
   const { t } = useTranslation();
   const [showCopyAlert, setShowCopyAlert] = useState(false);
   const isUserMessage = message.position === 'right';
+  const isTeammateMessage = message.position === 'left' && message.content.teammateMessage === true;
 
   // 过滤空内容，避免渲染空DOM
   if (!message.content.content || (typeof message.content.content === 'string' && !message.content.content.trim())) {
@@ -143,9 +144,10 @@ const MessageText: React.FC<{ message: IMessageText }> = ({ message }) => {
         <div
           className={classNames('min-w-0 [&>p:first-child]:mt-0px [&>p:last-child]:mb-0px md:max-w-780px', {
             'bg-aou-2 p-8px': isUserMessage || cronMeta,
-            'w-full': !(isUserMessage || cronMeta),
+            'bg-3 p-8px': isTeammateMessage,
+            'w-full': !(isUserMessage || cronMeta || isTeammateMessage),
           })}
-          style={isUserMessage || cronMeta ? { borderRadius: '8px 0 8px 8px' } : undefined}
+          style={isUserMessage || cronMeta ? { borderRadius: '8px 0 8px 8px' } : isTeammateMessage ? { borderRadius: '0 8px 8px 8px' } : undefined}
         >
           {/* JSON 内容使用折叠组件 Use CollapsibleContent for JSON content */}
           {json ? (

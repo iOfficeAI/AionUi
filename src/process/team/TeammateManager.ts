@@ -149,7 +149,7 @@ export class TeammateManager extends EventEmitter {
             type: 'text',
             position: isLeaderReceiving ? 'left' : 'right',
             conversation_id: agent.conversationId,
-            content: { content: displayContent },
+            content: { content: displayContent, teammateMessage: true },
             createdAt: Date.now(),
           });
           if (!isLeaderReceiving) {
@@ -346,7 +346,7 @@ export class TeammateManager extends EventEmitter {
               type: 'text',
               position: isLeaderReceiving ? 'left' : 'right',
               conversation_id: targetAgent.conversationId,
-              content: { content: action.content },
+              content: { content: action.content, teammateMessage: true },
               createdAt: Date.now(),
             });
             if (!isLeaderReceiving) {
@@ -422,7 +422,7 @@ export class TeammateManager extends EventEmitter {
             type: 'text',
             position: isLeaderReceiving ? 'left' : 'right',
             conversation_id: targetAgent.conversationId,
-            content: { content: action.content },
+            content: { content: action.content, teammateMessage: true },
             createdAt: Date.now(),
           });
           if (!isLeaderReceiving) {
