@@ -110,10 +110,10 @@ function generatePotentialAcpClis(): PotentialAcpCli[] {
   // Must be called after ACP_BACKENDS_ALL is defined, so use lazy initialization
   return Object.entries(ACP_BACKENDS_ALL)
     .filter(([id, config]) => {
-      // 排除没有 CLI 命令的后端（gemini 内置，custom 用户配置）
-      // Exclude backends without CLI command (gemini is built-in, custom is user-configured)
+      // 排除没有 CLI 命令的后端（gemini 内置，custom 用户配置，aionrs 非 ACP 类型）
+      // Exclude backends without CLI command (gemini is built-in, custom is user-configured, aionrs is not ACP type)
       if (!config.cliCommand) return false;
-      if (id === 'gemini' || id === 'custom') return false;
+      if (id === 'gemini' || id === 'custom' || id === 'aionrs') return false;
       return config.enabled;
     })
     .map(([id, config]) => ({
