@@ -106,13 +106,15 @@ export class TeammateManager extends EventEmitter {
    * Skips if the agent's wake is already in progress.
    */
   async wake(slotId: string): Promise<void> {
-    if (this.activeWakes.has(slotId)) return;
+    if (this.activeWakes.has(slotId)) {
+      console.log(`[TeammateManager] wake(${slotId}): SKIPPED (activeWakes)`);
+      return;
+    }
 
     const agent = this.agents.find((a) => a.slotId === slotId);
     if (!agent) return;
 
-    // Skip if agent is already processing a turn
-    if (agent.status === 'active') return;
+    console.log(`[TeammateManager] wake(${agent.agentName}): status=${agent.status}, proceeding`);
 
     this.activeWakes.add(slotId);
     try {
@@ -236,11 +238,6 @@ export class TeammateManager extends EventEmitter {
 
     const agent = this.agents.find((a) => a.conversationId === msg.conversation_id);
     if (!agent) return;
-
-    // Auto-activate agent on first response from a direct user message
-    if (agent.status !== 'active') {
-      this.setStatus(agent.slotId, 'active');
-    }
 
     // Forward content events to renderer (skip finish/error/null-data — renderer
     // already receives those directly via ipcBridge.acpConversation.responseStream)
@@ -514,6 +511,7 @@ export class TeammateManager extends EventEmitter {
         a.status === 'failed' ||
         a.status === 'pending',
     );
+    console.log(`[TeammateManager] maybeWakeLeaderWhenAllIdle: ${nonLeadAgents.map((a) => `${a.agentName}:${a.status}`).join(', ')} → ${allSettled ? 'WAKE' : 'SKIP'}`);
     if (allSettled) {
       void this.wake(leadSlotId);
     }
