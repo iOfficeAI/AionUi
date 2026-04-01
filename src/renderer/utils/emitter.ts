@@ -46,6 +46,8 @@ interface EventTypes {
   'sendbox.fill': [string]; // prompt text to fill
   'staroffice.install.request': [{ conversationId: string; text: string; detectedUrl?: string | null }];
   'staroffice.install.finished': [{ conversationId: string }];
+  // 桌面宠物状态事件 / Desktop pet state event
+  'pet.state': ['idle' | 'thinking' | 'working' | 'happy' | 'sleeping' | 'error' | 'notification' | 'waking'];
 }
 
 export const emitter = new EventEmitter<EventTypes>();

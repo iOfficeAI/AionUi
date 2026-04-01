@@ -53,6 +53,9 @@ const RemoteSendBox: React.FC<{ conversation_id: string }> = ({ conversation_id 
 
   const [agentName, setAgentName] = useState('Remote Agent');
   const [aiProcessing, setAiProcessing] = useState(false);
+  useEffect(() => {
+    emitter.emit('pet.state', aiProcessing ? 'working' : 'idle');
+  }, [aiProcessing]);
   const [thought, setThought] = useState<ThoughtData>({ description: '', subject: '' });
 
   const aiProcessingRef = useRef(aiProcessing);

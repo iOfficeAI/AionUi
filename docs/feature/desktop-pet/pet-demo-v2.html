@@ -1,0 +1,587 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="UTF-8">
+<title>AionUi Pet Demo</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    background: #1a1b2e;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    min-height: 100vh;
+    font-family: system-ui, sans-serif;
+    color: #fff;
+    gap: 32px;
+  }
+  h1 { font-size: 18px; opacity: 0.6; letter-spacing: 2px; }
+
+  .pet-stage {
+    display: flex;
+    gap: 40px;
+    flex-wrap: wrap;
+    justify-content: center;
+  }
+  .pet-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+  }
+  .pet-item span {
+    font-size: 12px;
+    opacity: 0.5;
+    letter-spacing: 1px;
+  }
+
+  /* ── Brand colors ── */
+  svg.aion-pet {
+    --body:       #7583b2;
+    --body-dark:  #5a6899;
+    --body-light: #9aa3c8;
+    --eye:        #1a1b2e;
+    --shadow:     #3d4466;
+    --hat:        #165dff;
+    --hat-dark:   #0f3fbf;
+    --hat-rim:    #0d35a0;
+    --bubble-bg:  #ffffff;
+    --bubble-dot: #165dff;
+    --blush:      #ff9eb5;
+  }
+
+  /* ── Hat wiggle animations ── */
+  .hat-idle  { transform-origin: 7.5px 6px; animation: hat-idle  4s   infinite ease-in-out; }
+  .hat-think { transform-origin: 7.5px 6px; animation: hat-think 12s  infinite ease-in-out; }
+  .hat-work  { transform-origin: 7.5px 6px; animation: hat-work  0.4s infinite ease-in-out; }
+
+  @keyframes hat-idle  {
+    0%,40%,100% { transform: rotate(0deg); }
+    20%         { transform: rotate(3deg); }
+    65%         { transform: rotate(-2.5deg); }
+  }
+  @keyframes hat-think {
+    0%,100% { transform: rotate(0deg); }
+    50%     { transform: rotate(-5deg); }
+  }
+  @keyframes hat-work  {
+    0%,100% { transform: rotate(-6deg); }
+    50%     { transform: rotate(6deg); }
+  }
+
+  /* ── Body animations ── */
+  .breathe {
+    transform-origin: 7.5px 10px;
+    animation: breathe 3.2s infinite ease-in-out;
+  }
+  .blink {
+    transform-origin: 7.5px 8px;
+    animation: blink 4s infinite ease-in-out;
+  }
+  .think-body   { transform-origin: 7.5px 13px; animation: body-think  12s  infinite ease-in-out; }
+  .think-eyes   { transform-origin: 7.5px 8px;  animation: eyes-think  12s  infinite ease-in-out; }
+  .think-arm-r  { transform-origin: 14px 10px;  animation: arm-r-think 12s  infinite ease-in-out; }
+  .think-arm-l  { transform-origin: 1px 10px;   animation: arm-l-think 12s  infinite ease-in-out; }
+  .work-body    { transform-origin: 7.5px 10px; animation: work-bounce 0.45s infinite ease-in-out; }
+  .work-arm-l   { transform-origin: 1px 10px;   animation: work-arm-l  0.45s infinite ease-in-out; }
+  .work-arm-r   { transform-origin: 14px 10px;  animation: work-arm-r  0.45s 0.22s infinite ease-in-out; }
+  .happy-body   { transform-origin: 7.5px 13px; animation: happy-jump  0.55s 3 ease-in-out; }
+  .sleep-body   { transform-origin: 7.5px 10px; animation: sleep-breathe 5s  infinite ease-in-out; }
+  .error-body   { animation: error-shake 0.35s 3 ease-in-out; }
+
+  .dot { opacity: 0; }
+  .d1  { animation: dot-pop 1.8s 0s    infinite; }
+  .d2  { animation: dot-pop 1.8s 0.36s infinite; }
+  .d3  { animation: dot-pop 1.8s 0.72s infinite; }
+  .z1  { animation: zzz 3s 0s   infinite ease-in-out; }
+  .z2  { animation: zzz 3s 0.9s infinite ease-in-out; }
+  .z3  { animation: zzz 3s 1.8s infinite ease-in-out; }
+
+  @keyframes breathe {
+    0%,100% { transform: scale(1,1) translate(0,0); }
+    50%     { transform: scale(1.02,.98) translate(0,.4px); }
+  }
+  @keyframes blink {
+    0%,8%,100% { transform: scaleY(1); }
+    4%         { transform: scaleY(0.08); }
+  }
+  @keyframes body-think {
+    0%,35%,80%,100% { transform: rotate(0deg) translate(0,0); }
+    50%             { transform: rotate(1.5deg) translate(.3px,0); }
+  }
+  @keyframes eyes-think {
+    0%,14%          { transform: translate(.5px,-.3px) scaleY(1); }
+    16%             { transform: translate(.5px,-.3px) scaleY(.08); }
+    18%,42%         { transform: translate(.5px,-.3px) scaleY(1); }
+    44%             { transform: translate(.5px,-.3px) scaleY(.08); }
+    46%,56%         { transform: translate(.5px,-.3px) scaleY(1); }
+    70%,74%         { transform: translate(-.5px,0) scaleY(1); }
+    76%             { transform: translate(-.5px,0) scaleY(.08); }
+    78%,88%,100%    { transform: translate(.5px,-.3px) scaleY(1); }
+  }
+  @keyframes arm-r-think {
+    0%,38%,75%,100% { transform: rotate(-130deg); }
+    52%             { transform: rotate(-138deg); }
+    62%             { transform: rotate(-127deg); }
+  }
+  @keyframes arm-l-think {
+    0%,40%,78%,100% { transform: rotate(22deg); }
+    55%             { transform: rotate(26deg); }
+  }
+  @keyframes work-bounce {
+    0%,100% { transform: translateY(0); }
+    50%     { transform: translateY(-1.8px); }
+  }
+  @keyframes work-arm-l {
+    0%,100% { transform: rotate(0deg); }
+    50%     { transform: rotate(-18deg); }
+  }
+  @keyframes work-arm-r {
+    0%,100% { transform: rotate(0deg); }
+    50%     { transform: rotate(18deg); }
+  }
+  @keyframes happy-jump {
+    0%,100% { transform: translateY(0) scale(1,1); }
+    30%     { transform: translateY(-6px) scale(.97,1.04); }
+    70%     { transform: translateY(1px) scale(1.03,.97); }
+  }
+  @keyframes sleep-breathe {
+    0%,100% { transform: scale(1,1); }
+    50%     { transform: scale(1.01,.99) translate(0,.25px); }
+  }
+  @keyframes error-shake {
+    0%,100% { transform: translateX(0); }
+    20%     { transform: translateX(-2.5px); }
+    60%     { transform: translateX(2.5px); }
+  }
+  @keyframes dot-pop {
+    0%,15%  { opacity:0; transform:translateY(0); }
+    50%     { opacity:1; transform:translateY(-1px); }
+    85%,100%{ opacity:0; transform:translateY(0); }
+  }
+  @keyframes zzz {
+    0%   { opacity:0; transform:translate(0,0) scale(.5); }
+    35%  { opacity:1; }
+    100% { opacity:0; transform:translate(5px,-10px) scale(1.1); }
+  }
+
+  /* ── Controls ── */
+  .controls {
+    display: flex;
+    gap: 12px;
+    flex-wrap: wrap;
+    justify-content: center;
+  }
+  button {
+    padding: 8px 18px;
+    border: 1px solid #7583b2;
+    border-radius: 6px;
+    background: transparent;
+    color: #a1aacb;
+    cursor: pointer;
+    font-size: 13px;
+    transition: all 0.15s;
+  }
+  button:hover  { background: #7583b222; color: #fff; }
+  button.active { background: #7583b2;   color: #fff; }
+  .live-demo {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 12px;
+  }
+  .pet-wrap {
+    width: 130px; height: 130px;
+    display: flex; align-items: center; justify-content: center;
+  }
+  #live-label { font-size: 13px; color: #7583b2; letter-spacing: 1px; }
+</style>
+</head>
+<body>
+
+<h1>AIONUI PET — DEMO v2</h1>
+
+<div class="pet-stage">
+
+  <!-- IDLE -->
+  <div class="pet-item">
+    <svg class="aion-pet" viewBox="-4 -20 23 36" width="110" height="110">
+      <!-- shadow -->
+      <ellipse cx="7.5" cy="16" rx="5" ry=".8" fill="var(--shadow)" opacity=".6"/>
+      <!-- legs -->
+      <rect x="3"  y="11" width="1.5" height="4" fill="var(--body)"/>
+      <rect x="5.5" y="11" width="1.5" height="4" fill="var(--body)"/>
+      <rect x="8.5" y="11" width="1.5" height="4" fill="var(--body)"/>
+      <rect x="11"  y="11" width="1.5" height="4" fill="var(--body)"/>
+      <!-- body group: breathe -->
+      <g class="breathe">
+        <!-- torso -->
+        <rect x="2" y="5" width="11" height="7" rx="1" fill="var(--body)"/>
+        <!-- arms -->
+        <rect x="0"  y="8" width="2" height="2.5" rx=".5" fill="var(--body)"/>
+        <rect x="13" y="8" width="2" height="2.5" rx=".5" fill="var(--body)"/>
+        <!-- chest dot -->
+        <circle cx="7.5" cy="10" r=".8" fill="var(--hat)"/>
+        <!-- smile -->
+        <path d="M5 11.5 Q7.5 13.2 10 11.5" stroke="var(--eye)" stroke-width=".6" fill="none" stroke-linecap="round"/>
+        <!-- eyes -->
+        <g class="blink" fill="var(--eye)">
+          <rect x="4"  y="7" width="1.5" height="2.2" rx=".4"/>
+          <rect x="9.5" y="7" width="1.5" height="2.2" rx=".4"/>
+        </g>
+        <!-- POINTY HAT -->
+        <g class="hat-idle">
+          <!-- brim -->
+          <rect x="1" y="4.2" width="13" height="1.2" rx=".4" fill="var(--hat-rim)"/>
+          <!-- cone body -->
+          <polygon points="7.5,-9  2,4.2  13,4.2" fill="var(--hat)"/>
+          <!-- cone shadow stripe -->
+          <polygon points="7.5,-9  9,4.2  11,4.2" fill="var(--hat-dark)" opacity=".35"/>
+          <!-- tip star/dot -->
+          <circle cx="7.5" cy="-9.5" r="1" fill="#fff" opacity=".9"/>
+        </g>
+      </g>
+    </svg>
+    <span>idle</span>
+  </div>
+
+  <!-- THINKING -->
+  <div class="pet-item">
+    <svg class="aion-pet" viewBox="-4 -20 23 36" width="110" height="110">
+      <!-- thought bubble (upper-left) -->
+      <g transform="translate(-2,-5)">
+        <rect x="1" y="1" width="9" height="6"  rx="1.5" fill="var(--bubble-bg)" opacity=".9"/>
+        <rect x="8" y="6" width="2" height="2"  rx=".5"  fill="var(--bubble-bg)" opacity=".9"/>
+        <rect x="9" y="8" width="1.2" height="1.2" rx=".4" fill="var(--bubble-bg)" opacity=".9"/>
+        <circle class="dot d1" cx="3"   cy="4" r=".8" fill="var(--bubble-dot)"/>
+        <circle class="dot d2" cx="5.5" cy="4" r=".8" fill="var(--bubble-dot)"/>
+        <circle class="dot d3" cx="8"   cy="4" r=".8" fill="var(--bubble-dot)"/>
+      </g>
+      <!-- character (mirrored so it looks toward bubble) -->
+      <g transform="translate(15,0) scale(-1,1)">
+        <ellipse cx="7.5" cy="16" rx="5" ry=".8" fill="var(--shadow)" opacity=".6"/>
+        <rect x="3"  y="11" width="1.5" height="4" fill="var(--body)"/>
+        <rect x="5.5" y="11" width="1.5" height="4" fill="var(--body)"/>
+        <rect x="8.5" y="11" width="1.5" height="4" fill="var(--body)"/>
+        <rect x="11"  y="11" width="1.5" height="4" fill="var(--body)"/>
+        <g class="think-body">
+          <g class="breathe">
+            <rect x="2" y="5" width="11" height="7" rx="1" fill="var(--body)"/>
+            <g class="think-arm-l"><rect x="0" y="8" width="3" height="2.5" rx=".5" fill="var(--body)"/></g>
+            <g class="think-arm-r"><rect x="13" y="8" width="2" height="2.5" rx=".5" fill="var(--body)"/></g>
+            <circle cx="7.5" cy="10" r=".8" fill="var(--hat)"/>
+            <g class="think-eyes" fill="var(--eye)">
+              <rect x="4"  y="7" width="1.5" height="2.2" rx=".4"/>
+              <rect x="9.5" y="7" width="1.5" height="2.2" rx=".4"/>
+            </g>
+            <g class="hat-think">
+              <rect x="1" y="4.2" width="13" height="1.2" rx=".4" fill="var(--hat-rim)"/>
+              <polygon points="7.5,-9  2,4.2  13,4.2" fill="var(--hat)"/>
+              <polygon points="7.5,-9  9,4.2  11,4.2" fill="var(--hat-dark)" opacity=".35"/>
+              <circle cx="7.5" cy="-9.5" r="1" fill="#fff" opacity=".9"/>
+            </g>
+          </g>
+        </g>
+      </g>
+    </svg>
+    <span>thinking</span>
+  </div>
+
+  <!-- WORKING -->
+  <div class="pet-item">
+    <svg class="aion-pet" viewBox="-4 -20 23 36" width="110" height="110">
+      <ellipse cx="7.5" cy="16" rx="5" ry=".8" fill="var(--shadow)" opacity=".6"/>
+      <rect x="3"  y="11" width="1.5" height="4" fill="var(--body)"/>
+      <rect x="5.5" y="11" width="1.5" height="4" fill="var(--body)"/>
+      <rect x="8.5" y="11" width="1.5" height="4" fill="var(--body)"/>
+      <rect x="11"  y="11" width="1.5" height="4" fill="var(--body)"/>
+      <g class="work-body">
+        <rect x="2" y="5" width="11" height="7" rx="1" fill="var(--body)"/>
+        <g class="work-arm-l"><rect x="0"  y="8" width="2" height="2.5" rx=".5" fill="var(--body)"/></g>
+        <g class="work-arm-r"><rect x="13" y="8" width="2" height="2.5" rx=".5" fill="var(--body)"/></g>
+        <circle cx="7.5" cy="10" r=".8" fill="var(--hat)"/>
+        <!-- focused eyes (slightly squinted) -->
+        <rect x="4"   y="7.4" width="1.5" height="1.6" rx=".4" fill="var(--eye)"/>
+        <rect x="9.5" y="7.4" width="1.5" height="1.6" rx=".4" fill="var(--eye)"/>
+        <g class="hat-work">
+          <rect x="1" y="4.2" width="13" height="1.2" rx=".4" fill="var(--hat-rim)"/>
+          <polygon points="7.5,-9  2,4.2  13,4.2" fill="var(--hat)"/>
+          <polygon points="7.5,-9  9,4.2  11,4.2" fill="var(--hat-dark)" opacity=".35"/>
+          <circle cx="7.5" cy="-9.5" r="1" fill="#fff" opacity=".9"/>
+        </g>
+      </g>
+    </svg>
+    <span>working</span>
+  </div>
+
+  <!-- HAPPY — >w< face -->
+  <div class="pet-item">
+    <svg class="aion-pet" viewBox="-4 -20 23 36" width="110" height="110">
+      <ellipse cx="7.5" cy="16" rx="5" ry=".8" fill="var(--shadow)" opacity=".6"/>
+      <rect x="3"  y="11" width="1.5" height="4" fill="var(--body)"/>
+      <rect x="5.5" y="11" width="1.5" height="4" fill="var(--body)"/>
+      <rect x="8.5" y="11" width="1.5" height="4" fill="var(--body)"/>
+      <rect x="11"  y="11" width="1.5" height="4" fill="var(--body)"/>
+      <g class="happy-body">
+        <rect x="2" y="5" width="11" height="7" rx="1" fill="var(--body)"/>
+        <!-- raised arms (yay!) -->
+        <rect x="-1" y="6"  width="3" height="2" rx=".5" fill="var(--body-light)" transform="rotate(-30,1,7)"/>
+        <rect x="13" y="6"  width="3" height="2" rx=".5" fill="var(--body-light)" transform="rotate(30,14,7)"/>
+        <circle cx="7.5" cy="10" r=".8" fill="var(--hat)"/>
+        <!-- blush cheeks -->
+        <ellipse cx="4"    cy="9.5" rx="1.2" ry=".7" fill="var(--blush)" opacity=".55"/>
+        <ellipse cx="11"   cy="9.5" rx="1.2" ry=".7" fill="var(--blush)" opacity=".55"/>
+        <!-- >w< eyes -->
+        <!-- left eye ">" -->
+        <path d="M3.8 7.2 L5 8.1 L3.8 9" stroke="var(--eye)" stroke-width=".7" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+        <!-- right eye "<" -->
+        <path d="M11.2 7.2 L10 8.1 L11.2 9" stroke="var(--eye)" stroke-width=".7" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+        <!-- w mouth -->
+        <path d="M5 10.8 Q5.8 12 7.5 11.2 Q9.2 12 10 10.8" stroke="var(--eye)" stroke-width=".65" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+        <!-- hat tilted (happy) -->
+        <g transform="rotate(-10,7.5,4)">
+          <rect x="1" y="4.2" width="13" height="1.2" rx=".4" fill="var(--hat-rim)"/>
+          <polygon points="7.5,-9  2,4.2  13,4.2" fill="var(--hat)"/>
+          <polygon points="7.5,-9  9,4.2  11,4.2" fill="var(--hat-dark)" opacity=".35"/>
+          <circle cx="7.5" cy="-9.5" r="1" fill="#fff" opacity=".9"/>
+        </g>
+      </g>
+    </svg>
+    <span>happy</span>
+  </div>
+
+  <!-- SLEEPING -->
+  <div class="pet-item">
+    <svg class="aion-pet" viewBox="-4 -20 23 36" width="110" height="110">
+      <ellipse cx="7.5" cy="16" rx="4.5" ry=".7" fill="var(--shadow)" opacity=".4"/>
+      <rect x="3"  y="11" width="1.5" height="4" fill="var(--body-dark)"/>
+      <rect x="5.5" y="11" width="1.5" height="4" fill="var(--body-dark)"/>
+      <rect x="8.5" y="11" width="1.5" height="4" fill="var(--body-dark)"/>
+      <rect x="11"  y="11" width="1.5" height="4" fill="var(--body-dark)"/>
+      <g class="sleep-body">
+        <rect x="2" y="5" width="11" height="7" rx="1" fill="var(--body-dark)"/>
+        <rect x="0"  y="8" width="2" height="2.5" rx=".5" fill="var(--body-dark)"/>
+        <rect x="13" y="8" width="2" height="2.5" rx=".5" fill="var(--body-dark)"/>
+        <circle cx="7.5" cy="10" r=".8" fill="var(--shadow)"/>
+        <!-- closed eyes — )( -->
+        <path d="M3.8 8.2 Q5 7.2 6.2 8.2"  stroke="var(--eye)" stroke-width=".65" fill="none" stroke-linecap="round"/>
+        <path d="M8.8 8.2 Q10 7.2 11.2 8.2" stroke="var(--eye)" stroke-width=".65" fill="none" stroke-linecap="round"/>
+        <!-- hat drooped sideways -->
+        <g transform="rotate(18,7.5,4.2)">
+          <rect x="1" y="4.2" width="13" height="1.2" rx=".4" fill="var(--hat-rim)" opacity=".7"/>
+          <polygon points="7.5,-9  2,4.2  13,4.2" fill="var(--hat)" opacity=".7"/>
+          <polygon points="7.5,-9  9,4.2  11,4.2" fill="var(--hat-dark)" opacity=".25"/>
+          <circle cx="7.5" cy="-9.5" r="1" fill="#fff" opacity=".5"/>
+        </g>
+      </g>
+      <!-- zzz -->
+      <g fill="var(--body-light)" font-size="3.5" font-family="monospace" font-weight="bold">
+        <text class="z1" x="15" y="3">z</text>
+        <text class="z2" x="18" y="-1">z</text>
+        <text class="z3" x="21" y="-6">Z</text>
+      </g>
+    </svg>
+    <span>sleeping</span>
+  </div>
+
+  <!-- ERROR -->
+  <div class="pet-item">
+    <svg class="aion-pet" viewBox="-4 -20 23 36" width="110" height="110">
+      <ellipse cx="7.5" cy="16" rx="5" ry=".8" fill="var(--shadow)" opacity=".6"/>
+      <rect x="3"  y="11" width="1.5" height="4" fill="#b05050"/>
+      <rect x="5.5" y="11" width="1.5" height="4" fill="#b05050"/>
+      <rect x="8.5" y="11" width="1.5" height="4" fill="#b05050"/>
+      <rect x="11"  y="11" width="1.5" height="4" fill="#b05050"/>
+      <g class="error-body">
+        <rect x="2" y="5" width="11" height="7" rx="1" fill="#c05858"/>
+        <rect x="0"  y="8" width="2" height="2.5" rx=".5" fill="#c05858"/>
+        <rect x="13" y="8" width="2" height="2.5" rx=".5" fill="#c05858"/>
+        <circle cx="7.5" cy="10" r=".8" fill="#ff5050"/>
+        <!-- x x eyes -->
+        <line x1="3.8" y1="7"   x2="5.5" y2="9"   stroke="var(--eye)" stroke-width=".8" stroke-linecap="round"/>
+        <line x1="5.5" y1="7"   x2="3.8" y2="9"   stroke="var(--eye)" stroke-width=".8" stroke-linecap="round"/>
+        <line x1="9.5" y1="7"   x2="11.2" y2="9"  stroke="var(--eye)" stroke-width=".8" stroke-linecap="round"/>
+        <line x1="11.2" y1="7"  x2="9.5" y2="9"   stroke="var(--eye)" stroke-width=".8" stroke-linecap="round"/>
+        <!-- wavy unhappy mouth -->
+        <path d="M5 11.5 Q6.2 10.5 7.5 11.5 Q8.8 12.5 10 11.5" stroke="var(--eye)" stroke-width=".65" fill="none" stroke-linecap="round"/>
+        <!-- hat knocked off at angle -->
+        <g transform="rotate(-25,7.5,4.2) translate(0,-2)">
+          <rect x="1" y="4.2" width="13" height="1.2" rx=".4" fill="var(--hat-rim)"/>
+          <polygon points="7.5,-9  2,4.2  13,4.2" fill="var(--hat)"/>
+          <polygon points="7.5,-9  9,4.2  11,4.2" fill="var(--hat-dark)" opacity=".35"/>
+          <circle cx="7.5" cy="-9.5" r="1" fill="#fff" opacity=".9"/>
+        </g>
+      </g>
+    </svg>
+    <span>error</span>
+  </div>
+
+</div>
+
+<!-- Live interactive demo -->
+<div class="live-demo">
+  <div class="pet-wrap" id="live-pet-wrap"></div>
+  <div id="live-label">— idle —</div>
+  <div class="controls">
+    <button class="active" onclick="go('idle')">idle</button>
+    <button onclick="go('thinking')">thinking</button>
+    <button onclick="go('working')">working</button>
+    <button onclick="go('happy')">happy</button>
+    <button onclick="go('sleeping')">sleeping</button>
+    <button onclick="go('error')">error</button>
+  </div>
+</div>
+
+<script>
+const HAT_NORMAL = `
+  <rect x="1" y="4.2" width="13" height="1.2" rx=".4" fill="var(--hat-rim)"/>
+  <polygon points="7.5,-9  2,4.2  13,4.2" fill="var(--hat)"/>
+  <polygon points="7.5,-9  9,4.2  11,4.2" fill="var(--hat-dark)" opacity=".35"/>
+  <circle cx="7.5" cy="-9.5" r="1" fill="#fff" opacity=".9"/>`;
+
+const LEGS_NORMAL = `
+  <rect x="3"   y="11" width="1.5" height="4" fill="var(--body)"/>
+  <rect x="5.5" y="11" width="1.5" height="4" fill="var(--body)"/>
+  <rect x="8.5" y="11" width="1.5" height="4" fill="var(--body)"/>
+  <rect x="11"  y="11" width="1.5" height="4" fill="var(--body)"/>`;
+
+const SVGS = {
+idle: `<svg class="aion-pet" viewBox="-4 -20 23 36" width="110" height="110">
+  <ellipse cx="7.5" cy="16" rx="5" ry=".8" fill="var(--shadow)" opacity=".6"/>
+  ${LEGS_NORMAL}
+  <g class="breathe">
+    <rect x="2" y="5" width="11" height="7" rx="1" fill="var(--body)"/>
+    <rect x="0"  y="8" width="2" height="2.5" rx=".5" fill="var(--body)"/>
+    <rect x="13" y="8" width="2" height="2.5" rx=".5" fill="var(--body)"/>
+    <circle cx="7.5" cy="10" r=".8" fill="var(--hat)"/>
+    <path d="M5 11.5 Q7.5 13.2 10 11.5" stroke="var(--eye)" stroke-width=".6" fill="none" stroke-linecap="round"/>
+    <g class="blink" fill="var(--eye)">
+      <rect x="4"   y="7" width="1.5" height="2.2" rx=".4"/>
+      <rect x="9.5" y="7" width="1.5" height="2.2" rx=".4"/>
+    </g>
+    <g class="hat-idle">${HAT_NORMAL}</g>
+  </g>
+</svg>`,
+
+thinking: `<svg class="aion-pet" viewBox="-4 -20 23 36" width="110" height="110">
+  <g transform="translate(-2,-5)">
+    <rect x="1" y="1" width="9" height="6" rx="1.5" fill="var(--bubble-bg)" opacity=".9"/>
+    <rect x="8" y="6" width="2" height="2" rx=".5" fill="var(--bubble-bg)" opacity=".9"/>
+    <rect x="9" y="8" width="1.2" height="1.2" rx=".4" fill="var(--bubble-bg)" opacity=".9"/>
+    <circle class="dot d1" cx="3"   cy="4" r=".8" fill="var(--bubble-dot)"/>
+    <circle class="dot d2" cx="5.5" cy="4" r=".8" fill="var(--bubble-dot)"/>
+    <circle class="dot d3" cx="8"   cy="4" r=".8" fill="var(--bubble-dot)"/>
+  </g>
+  <g transform="translate(15,0) scale(-1,1)">
+    <ellipse cx="7.5" cy="16" rx="5" ry=".8" fill="var(--shadow)" opacity=".6"/>
+    ${LEGS_NORMAL}
+    <g class="think-body"><g class="breathe">
+      <rect x="2" y="5" width="11" height="7" rx="1" fill="var(--body)"/>
+      <g class="think-arm-l"><rect x="0" y="8" width="3" height="2.5" rx=".5" fill="var(--body)"/></g>
+      <g class="think-arm-r"><rect x="13" y="8" width="2" height="2.5" rx=".5" fill="var(--body)"/></g>
+      <circle cx="7.5" cy="10" r=".8" fill="var(--hat)"/>
+      <g class="think-eyes" fill="var(--eye)">
+        <rect x="4"   y="7" width="1.5" height="2.2" rx=".4"/>
+        <rect x="9.5" y="7" width="1.5" height="2.2" rx=".4"/>
+      </g>
+      <g class="hat-think">${HAT_NORMAL}</g>
+    </g></g>
+  </g>
+</svg>`,
+
+working: `<svg class="aion-pet" viewBox="-4 -20 23 36" width="110" height="110">
+  <ellipse cx="7.5" cy="16" rx="5" ry=".8" fill="var(--shadow)" opacity=".6"/>
+  ${LEGS_NORMAL}
+  <g class="work-body">
+    <rect x="2" y="5" width="11" height="7" rx="1" fill="var(--body)"/>
+    <g class="work-arm-l"><rect x="0"  y="8" width="2" height="2.5" rx=".5" fill="var(--body)"/></g>
+    <g class="work-arm-r"><rect x="13" y="8" width="2" height="2.5" rx=".5" fill="var(--body)"/></g>
+    <circle cx="7.5" cy="10" r=".8" fill="var(--hat)"/>
+    <rect x="4"   y="7.4" width="1.5" height="1.6" rx=".4" fill="var(--eye)"/>
+    <rect x="9.5" y="7.4" width="1.5" height="1.6" rx=".4" fill="var(--eye)"/>
+    <g class="hat-work">${HAT_NORMAL}</g>
+  </g>
+</svg>`,
+
+happy: `<svg class="aion-pet" viewBox="-4 -20 23 36" width="110" height="110">
+  <ellipse cx="7.5" cy="16" rx="5" ry=".8" fill="var(--shadow)" opacity=".6"/>
+  ${LEGS_NORMAL}
+  <g class="happy-body">
+    <rect x="2" y="5" width="11" height="7" rx="1" fill="var(--body)"/>
+    <rect x="-1" y="6" width="3" height="2" rx=".5" fill="var(--body-light)" transform="rotate(-30,1,7)"/>
+    <rect x="13" y="6" width="3" height="2" rx=".5" fill="var(--body-light)" transform="rotate(30,14,7)"/>
+    <circle cx="7.5" cy="10" r=".8" fill="var(--hat)"/>
+    <ellipse cx="4"  cy="9.5" rx="1.2" ry=".7" fill="var(--blush)" opacity=".55"/>
+    <ellipse cx="11" cy="9.5" rx="1.2" ry=".7" fill="var(--blush)" opacity=".55"/>
+    <path d="M3.8 7.2 L5 8.1 L3.8 9"     stroke="var(--eye)" stroke-width=".7" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+    <path d="M11.2 7.2 L10 8.1 L11.2 9"  stroke="var(--eye)" stroke-width=".7" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+    <path d="M5 10.8 Q5.8 12 7.5 11.2 Q9.2 12 10 10.8" stroke="var(--eye)" stroke-width=".65" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+    <g transform="rotate(-10,7.5,4)">${HAT_NORMAL}</g>
+  </g>
+</svg>`,
+
+sleeping: `<svg class="aion-pet" viewBox="-4 -20 23 36" width="110" height="110">
+  <ellipse cx="7.5" cy="16" rx="4.5" ry=".7" fill="var(--shadow)" opacity=".4"/>
+  <rect x="3"   y="11" width="1.5" height="4" fill="var(--body-dark)"/>
+  <rect x="5.5" y="11" width="1.5" height="4" fill="var(--body-dark)"/>
+  <rect x="8.5" y="11" width="1.5" height="4" fill="var(--body-dark)"/>
+  <rect x="11"  y="11" width="1.5" height="4" fill="var(--body-dark)"/>
+  <g class="sleep-body">
+    <rect x="2" y="5" width="11" height="7" rx="1" fill="var(--body-dark)"/>
+    <rect x="0"  y="8" width="2" height="2.5" rx=".5" fill="var(--body-dark)"/>
+    <rect x="13" y="8" width="2" height="2.5" rx=".5" fill="var(--body-dark)"/>
+    <circle cx="7.5" cy="10" r=".8" fill="var(--shadow)"/>
+    <path d="M3.8 8.2 Q5 7.2 6.2 8.2"  stroke="var(--eye)" stroke-width=".65" fill="none" stroke-linecap="round"/>
+    <path d="M8.8 8.2 Q10 7.2 11.2 8.2" stroke="var(--eye)" stroke-width=".65" fill="none" stroke-linecap="round"/>
+    <g transform="rotate(18,7.5,4.2)">
+      <rect x="1" y="4.2" width="13" height="1.2" rx=".4" fill="var(--hat-rim)" opacity=".7"/>
+      <polygon points="7.5,-9  2,4.2  13,4.2" fill="var(--hat)" opacity=".7"/>
+      <polygon points="7.5,-9  9,4.2  11,4.2" fill="var(--hat-dark)" opacity=".25"/>
+      <circle cx="7.5" cy="-9.5" r="1" fill="#fff" opacity=".5"/>
+    </g>
+  </g>
+  <g fill="var(--body-light)" font-size="3.5" font-family="monospace" font-weight="bold">
+    <text class="z1" x="15" y="3">z</text>
+    <text class="z2" x="18" y="-1">z</text>
+    <text class="z3" x="21" y="-6">Z</text>
+  </g>
+</svg>`,
+
+error: `<svg class="aion-pet" viewBox="-4 -20 23 36" width="110" height="110">
+  <ellipse cx="7.5" cy="16" rx="5" ry=".8" fill="var(--shadow)" opacity=".6"/>
+  <rect x="3"   y="11" width="1.5" height="4" fill="#b05050"/>
+  <rect x="5.5" y="11" width="1.5" height="4" fill="#b05050"/>
+  <rect x="8.5" y="11" width="1.5" height="4" fill="#b05050"/>
+  <rect x="11"  y="11" width="1.5" height="4" fill="#b05050"/>
+  <g class="error-body">
+    <rect x="2" y="5" width="11" height="7" rx="1" fill="#c05858"/>
+    <rect x="0"  y="8" width="2" height="2.5" rx=".5" fill="#c05858"/>
+    <rect x="13" y="8" width="2" height="2.5" rx=".5" fill="#c05858"/>
+    <circle cx="7.5" cy="10" r=".8" fill="#ff5050"/>
+    <line x1="3.8"  y1="7" x2="5.5"  y2="9"  stroke="var(--eye)" stroke-width=".8" stroke-linecap="round"/>
+    <line x1="5.5"  y1="7" x2="3.8"  y2="9"  stroke="var(--eye)" stroke-width=".8" stroke-linecap="round"/>
+    <line x1="9.5"  y1="7" x2="11.2" y2="9"  stroke="var(--eye)" stroke-width=".8" stroke-linecap="round"/>
+    <line x1="11.2" y1="7" x2="9.5"  y2="9"  stroke="var(--eye)" stroke-width=".8" stroke-linecap="round"/>
+    <path d="M5 11.5 Q6.2 10.5 7.5 11.5 Q8.8 12.5 10 11.5" stroke="var(--eye)" stroke-width=".65" fill="none" stroke-linecap="round"/>
+    <g transform="rotate(-25,7.5,4.2) translate(0,-2)">${HAT_NORMAL}</g>
+  </g>
+</svg>`
+};
+
+function go(state) {
+  document.getElementById('live-pet-wrap').innerHTML = SVGS[state];
+  document.getElementById('live-label').textContent = `— ${state} —`;
+  document.querySelectorAll('button').forEach(b =>
+    b.classList.toggle('active', b.textContent === state)
+  );
+}
+
+go('idle');
+
+const order = ['idle','thinking','working','happy','sleeping','error'];
+let i = 0;
+setInterval(() => { i = (i+1) % order.length; go(order[i]); }, 3000);
+</script>
+</body>
+</html>

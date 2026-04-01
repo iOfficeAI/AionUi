@@ -1,0 +1,627 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="UTF-8">
+<title>AionUi Pet — pixel canvas</title>
+<style>
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body {
+    background: #1a1b2e;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    min-height: 100vh;
+    font-family: system-ui, sans-serif;
+    color: #fff;
+    gap: 36px;
+  }
+  h1 { font-size: 14px; opacity: 0.45; letter-spacing: 3px; text-transform: uppercase; }
+
+  .pet-stage {
+    display: flex;
+    gap: 36px;
+    flex-wrap: wrap;
+    justify-content: center;
+  }
+  .pet-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 10px;
+  }
+  .pet-item span {
+    font-size: 11px;
+    opacity: 0.4;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+  }
+
+  canvas {
+    image-rendering: pixelated;
+    image-rendering: crisp-edges;
+  }
+
+  .live-demo { display:flex; flex-direction:column; align-items:center; gap:14px; }
+  .pet-wrap  { display:flex; align-items:center; justify-content:center; }
+  #live-label{ font-size:12px; color:#7583b2; letter-spacing:2px; text-transform:uppercase; }
+  .controls  { display:flex; gap:10px; flex-wrap:wrap; justify-content:center; }
+  button {
+    padding: 7px 16px;
+    border: 1px solid #7583b2;
+    border-radius: 4px;
+    background: transparent;
+    color: #a1aacb;
+    cursor: pointer;
+    font-size: 12px;
+    letter-spacing: 1px;
+    transition: all 0.1s;
+  }
+  button:hover  { background:#7583b222; color:#fff; }
+  button.active { background:#7583b2;   color:#fff; }
+  .divider { width: 320px; height: 1px; background: #ffffff0f; }
+</style>
+</head>
+<body>
+
+<h1>AionUi Pet · pixel canvas</h1>
+<div class="pet-stage" id="stage"></div>
+<div class="divider"></div>
+<div class="live-demo">
+  <div class="pet-wrap"><canvas id="live-canvas"></canvas></div>
+  <div id="live-label">— idle —</div>
+  <div class="controls">
+    <button class="active" onclick="go('idle')">idle</button>
+    <button onclick="go('thinking')">thinking</button>
+    <button onclick="go('working')">working</button>
+    <button onclick="go('happy')">happy</button>
+    <button onclick="go('sleeping')">sleeping</button>
+    <button onclick="go('error')">error</button>
+  </div>
+</div>
+
+<script>
+// ─────────────────────────────────────────────
+// PALETTE
+// ─────────────────────────────────────────────
+const C = {
+  body:    '#97A0C5',
+  bodyDk:  '#7583b2',
+  bodyLt:  '#b8bfd8',
+  eye:     '#1a1b2e',
+  hat:     '#D95226',
+  hatDk:   '#a83c1a',
+  hatHi:   '#f0784a',
+  ear:     '#7e8ab0',
+  nose:    '#1a1b2e',
+  blush:   '#f0a0b0',
+  shadow:  '#3a3f60',
+  bg:      '#1a1b2e',
+  bubble:  '#ffffff',
+  dotC:    '#165dff',
+  red:     '#c05050',
+  redDk:   '#8b3030',
+};
+
+// ─────────────────────────────────────────────
+// CANVAS SCALE  — draw at 20×22, display at 8×
+// ─────────────────────────────────────────────
+const W = 20, H = 22, SCALE = 7;
+
+function makeCanvas(w, h, scale) {
+  const c = document.createElement('canvas');
+  c.width  = (w || W);
+  c.height = (h || H);
+  c.style.width  = ((w || W) * scale) + 'px';
+  c.style.height = ((h || H) * scale) + 'px';
+  c.style.imageRendering = 'pixelated';
+  return c;
+}
+
+// ─────────────────────────────────────────────
+// DRAW HELPERS
+// ─────────────────────────────────────────────
+function px(ctx, color, x, y, w=1, h=1) {
+  ctx.fillStyle = color;
+  ctx.fillRect(x, y, w, h);
+}
+
+// pixel-art "Z" glyph  (5×4 grid)
+// ████
+//   █
+//  █
+// ████
+function drawZ(ctx, color, x, y, size=1) {
+  const s = size;
+  ctx.fillStyle = color;
+  ctx.fillRect(x,       y,       3*s, s);   // top bar
+  ctx.fillRect(x+2*s,   y+s,     s,   s);   // diagonal step 1
+  ctx.fillRect(x+s,     y+2*s,   s,   s);   // diagonal step 2
+  ctx.fillRect(x,       y+3*s,   3*s, s);   // bottom bar
+}
+
+// ─────────────────────────────────────────────
+// CHARACTER DRAW  — all coords on 20×22 grid
+//
+//  anatomy (no legs!):
+//   y  0– 5  : hat cone
+//   y  5– 6  : hat brim
+//   y  6– 7  : head-top gap / ears top
+//   y  6–14  : head (round-ish pixel circle)
+//   y 14–19  : body / torso
+//   y 14–17  : arms (sides)
+//   y 19–20  : shadow
+// ─────────────────────────────────────────────
+
+function drawShadow(ctx, ox=0, oy=0, w=8) {
+  ctx.fillStyle = C.shadow;
+  ctx.globalAlpha = 0.45;
+  ctx.fillRect(6+ox, 19+oy, w, 1);
+  ctx.globalAlpha = 1;
+}
+
+// hat: ice-cream cone shape, staircase pyramid
+// tip at (cx, tipY), base width bw at baseY
+function drawHat(ctx, cx, tipY, baseY, color, dk, hi) {
+  // cone rows — each row: centered, narrows by 2 per step
+  const rows = baseY - tipY;
+  for (let r = 0; r < rows; r++) {
+    const y = tipY + r;
+    const half = Math.round((r / (rows - 1)) * 3); // 0..3
+    const x = cx - half;
+    const w = half * 2 + (r === 0 ? 2 : 2);
+    px(ctx, color, x, y, Math.max(2, half*2), 1);
+  }
+  // tip highlight (top 2 rows left edge)
+  px(ctx, hi, cx-1, tipY+1, 1, 1);
+  // shadow stripe (right side)
+  px(ctx, dk, cx+1, tipY+2, 1, 2);
+  // brim
+  px(ctx, dk, cx-4, baseY, 10, 1);
+}
+
+// head: pixel circle approximation (10 wide, 8 tall)
+// top-left corner at (hx, hy)
+function drawHead(ctx, hx, hy, color, eyeState, noseOn, blushOn) {
+  // pixel circle rows (width per row from center)
+  //      row 0: 6 wide (offset 2)
+  //      row 1: 8 wide (offset 1)
+  //      row 2-5: 10 wide (offset 0)
+  //      row 6: 8 wide (offset 1)
+  //      row 7: 6 wide (offset 2)
+  const rows = [
+    [2,6],[1,8],[0,10],[0,10],[0,10],[0,10],[1,8],[2,6]
+  ];
+  rows.forEach(([off, w], r) => px(ctx, color, hx+off, hy+r, w, 1));
+
+  // ears (diamond-ish: 2×2 rotated = 3 px cross)
+  px(ctx, C.ear, hx-2, hy+2, 1, 1);
+  px(ctx, C.ear, hx-2, hy+3, 1, 1);
+  px(ctx, C.ear, hx-1, hy+3, 1, 1);
+  px(ctx, C.ear, hx+10, hy+2, 1, 1);
+  px(ctx, C.ear, hx+10, hy+3, 1, 1);
+  px(ctx, C.ear, hx+11, hy+3, 1, 1);
+
+  // blush
+  if (blushOn) {
+    ctx.fillStyle = C.blush;
+    ctx.globalAlpha = 0.55;
+    ctx.fillRect(hx+1, hy+5, 2, 1);
+    ctx.fillRect(hx+7, hy+5, 2, 1);
+    ctx.globalAlpha = 1;
+  }
+
+  // eyes
+  if (eyeState === 'open') {
+    px(ctx, C.eye, hx+2, hy+2, 2, 2);
+    px(ctx, C.eye, hx+6, hy+2, 2, 2);
+    // shine
+    ctx.fillStyle = '#ffffff66';
+    ctx.fillRect(hx+2, hy+2, 1, 1);
+    ctx.fillRect(hx+6, hy+2, 1, 1);
+  } else if (eyeState === 'blink') {
+    px(ctx, C.eye, hx+2, hy+3, 2, 1);
+    px(ctx, C.eye, hx+6, hy+3, 2, 1);
+  } else if (eyeState === 'happy') {
+    // ^ ^ pixel arcs
+    px(ctx, C.eye, hx+3, hy+2, 1, 1);
+    px(ctx, C.eye, hx+2, hy+3, 1, 1);
+    px(ctx, C.eye, hx+4, hy+3, 1, 1);
+    px(ctx, C.eye, hx+7, hy+2, 1, 1);
+    px(ctx, C.eye, hx+6, hy+3, 1, 1);
+    px(ctx, C.eye, hx+8, hy+3, 1, 1);
+  } else if (eyeState === 'sleep') {
+    // — — closed
+    px(ctx, C.eye, hx+2, hy+3, 2, 1);
+    px(ctx, C.eye, hx+6, hy+3, 2, 1);
+  } else if (eyeState === 'error') {
+    // × ×
+    px(ctx, C.eye, hx+2, hy+2, 1, 1); px(ctx, C.eye, hx+4, hy+2, 1, 1);
+    px(ctx, C.eye, hx+3, hy+3, 1, 1);
+    px(ctx, C.eye, hx+2, hy+4, 1, 1); px(ctx, C.eye, hx+4, hy+4, 1, 1);
+    px(ctx, C.eye, hx+6, hy+2, 1, 1); px(ctx, C.eye, hx+8, hy+2, 1, 1);
+    px(ctx, C.eye, hx+7, hy+3, 1, 1);
+    px(ctx, C.eye, hx+6, hy+4, 1, 1); px(ctx, C.eye, hx+8, hy+4, 1, 1);
+  } else if (eyeState === 'look-left') {
+    px(ctx, C.eye, hx+1, hy+2, 2, 2);
+    px(ctx, C.eye, hx+5, hy+2, 2, 2);
+  }
+
+  // nose dot
+  if (noseOn) px(ctx, C.nose, hx+4, hy+5, 1, 1);
+
+  // smile pixels (arc: 3 dots)
+  // removed per design — no mouth
+}
+
+// body (torso, no legs, with arms)
+function drawBody(ctx, bx, by, color, dk, armState) {
+  // torso: 10 wide × 5 tall, slight taper top
+  px(ctx, color, bx+1, by,   8, 1); // top slightly narrow
+  px(ctx, color, bx,   by+1, 10, 4);
+  // chest dot
+  px(ctx, C.dotC, bx+4, by+3, 2, 2);
+
+  // arms
+  if (armState === 'normal') {
+    px(ctx, dk, bx-2, by+1, 2, 3);
+    px(ctx, dk, bx+10, by+1, 2, 3);
+  } else if (armState === 'raised') {
+    // both arms up (happy)
+    px(ctx, C.bodyLt, bx-2, by-1, 2, 2);
+    px(ctx, C.bodyLt, bx+10, by-1, 2, 2);
+  } else if (armState === 'think') {
+    // right arm up to chin
+    px(ctx, dk, bx-2, by+1, 2, 3);
+    px(ctx, dk, bx+10, by, 2, 2);
+    px(ctx, dk, bx+9,  by+2, 1, 1); // forearm toward head
+  } else if (armState === 'wave-l') {
+    // left arm up, right arm down
+    px(ctx, dk, bx-2, by-1, 2, 2);
+    px(ctx, dk, bx+10, by+1, 2, 3);
+  } else if (armState === 'wave-r') {
+    px(ctx, dk, bx-2, by+1, 2, 3);
+    px(ctx, dk, bx+10, by-1, 2, 2);
+  } else if (armState === 'low') {
+    px(ctx, dk, bx-2, by+2, 2, 2);
+    px(ctx, dk, bx+10, by+2, 2, 2);
+  }
+}
+
+// ─────────────────────────────────────────────
+// FULL CHARACTER  (assembled)
+// headY: top of head pixel row
+// hatTilt: rotate transform hack — we'll do it via offset
+// ─────────────────────────────────────────────
+function drawChar(ctx, opts={}) {
+  const {
+    headY    = 6,
+    bodyY    = 14,
+    hatTipY  = 0,
+    hatOff   = 0,   // horizontal hat offset for tilt feel
+    eyeState = 'open',
+    armState = 'normal',
+    blush    = false,
+    bodyColor = C.body,
+    bodyDk    = C.bodyDk,
+    hatColor  = C.hat,
+    hatDk     = C.hatDk,
+    hatHi     = C.hatHi,
+  } = opts;
+
+  drawShadow(ctx);
+
+  // hat (centered at x=10, tip at hatTipY)
+  const cx = 10 + hatOff;
+  const brimY = headY; // brim sits just above head
+  const rows = brimY - hatTipY;
+  for (let r = 0; r < rows; r++) {
+    const y = hatTipY + r;
+    const half = r === 0 ? 1
+               : r === 1 ? 2
+               : r === 2 ? 3
+               : r === 3 ? 4
+               : 5;
+    const w = Math.min(half*2, 10);
+    const x = cx - Math.floor(w/2);
+    px(ctx, hatColor, x, y, w, 1);
+  }
+  // hat highlight left edge
+  px(ctx, hatHi, cx-1, hatTipY+1, 1, 1);
+  px(ctx, hatHi, cx-2, hatTipY+2, 1, 1);
+  // hat shadow right
+  px(ctx, hatDk, cx+1, hatTipY+2, 1, 1);
+  px(ctx, hatDk, cx+2, hatTipY+3, 1, 2);
+  // brim
+  px(ctx, hatDk, cx-5, brimY-1, 11, 1);
+
+  drawHead(ctx, 5, headY, bodyColor, eyeState, true, blush);
+  drawBody(ctx, 5, bodyY, bodyColor, bodyDk, armState);
+}
+
+// ─────────────────────────────────────────────
+// STATES  — each returns an animate() fn
+// ─────────────────────────────────────────────
+
+function stateIdle(canvas) {
+  const ctx = canvas.getContext('2d');
+  ctx.imageSmoothingEnabled = false;
+  let t = 0;
+  let blink = false;
+  let blinkTimer = 0;
+  let nextBlink = 180;
+
+  return function tick() {
+    ctx.clearRect(0, 0, W, H);
+
+    // breathe: body bobs slightly every 120 frames
+    const breathOffset = Math.sin(t * 0.04) > 0.6 ? 1 : 0;
+
+    blinkTimer++;
+    if (blinkTimer >= nextBlink) {
+      blink = true;
+      if (blinkTimer >= nextBlink + 4) {
+        blink = false;
+        blinkTimer = 0;
+        nextBlink = 120 + Math.floor(Math.random() * 120);
+      }
+    }
+
+    // hat sway: gentle left/right every ~90 frames
+    const hatOff = Math.round(Math.sin(t * 0.025) * 1);
+
+    drawChar(ctx, {
+      headY: 6 + breathOffset,
+      bodyY: 14 + breathOffset,
+      hatTipY: breathOffset,
+      hatOff,
+      eyeState: blink ? 'blink' : 'open',
+    });
+    t++;
+  };
+}
+
+function stateThinking(canvas) {
+  const ctx = canvas.getContext('2d');
+  ctx.imageSmoothingEnabled = false;
+  let t = 0;
+  // thought bubble dots
+  const DOT_CYCLE = 40;
+
+  return function tick() {
+    ctx.clearRect(0, 0, W, H);
+
+    const breathOffset = Math.sin(t * 0.035) > 0.5 ? 1 : 0;
+    const hatOff = t > 60 && t < 120 ? -1 : 0; // lean left when "thinking deep"
+
+    drawChar(ctx, {
+      headY: 6 + breathOffset,
+      bodyY: 14 + breathOffset,
+      hatTipY: breathOffset,
+      hatOff,
+      eyeState: 'look-left',
+      armState: 'think',
+    });
+
+    // thought bubble (upper-left)
+    const bx = 0, by = 2;
+    px(ctx, C.bubble, bx,   by,   7, 1);
+    px(ctx, C.bubble, bx-1, by+1, 9, 3);
+    px(ctx, C.bubble, bx,   by+4, 7, 1);
+    // tail
+    px(ctx, C.bubble, bx+5, by+5, 2, 1);
+    px(ctx, C.bubble, bx+6, by+6, 1, 1);
+
+    // animated dots
+    const phase = Math.floor(t / (DOT_CYCLE/3)) % 3;
+    const dotY = by + 2;
+    [1, 3, 5].forEach((dx, i) => {
+      ctx.fillStyle = i <= phase ? C.dotC : '#cccccc55';
+      ctx.fillRect(bx+dx, dotY, 1, 1);
+    });
+
+    t++;
+  };
+}
+
+function stateWorking(canvas) {
+  const ctx = canvas.getContext('2d');
+  ctx.imageSmoothingEnabled = false;
+  let t = 0;
+
+  return function tick() {
+    ctx.clearRect(0, 0, W, H);
+
+    // fast bounce every 12 frames
+    const bounce = (t % 12) < 6 ? 0 : -1;
+    // arms alternate
+    const arm = (t % 12) < 6 ? 'wave-l' : 'wave-r';
+    // hat rocks with bounce
+    const hatOff = (t % 12) < 6 ? -1 : 1;
+
+    drawChar(ctx, {
+      headY: 6 + bounce,
+      bodyY: 14 + bounce,
+      hatTipY: bounce,
+      hatOff,
+      eyeState: 'open',
+      armState: arm,
+    });
+    t++;
+  };
+}
+
+function stateHappy(canvas) {
+  const ctx = canvas.getContext('2d');
+  ctx.imageSmoothingEnabled = false;
+  let t = 0;
+  // 3 jumps then settle
+  const JUMP_PERIOD = 30;
+  const JUMPS = 3;
+
+  return function tick() {
+    ctx.clearRect(0, 0, W, H);
+
+    let jumpOff = 0;
+    if (t < JUMP_PERIOD * JUMPS) {
+      const phase = (t % JUMP_PERIOD) / JUMP_PERIOD;
+      // arc: up then down
+      jumpOff = -Math.round(Math.sin(phase * Math.PI) * 4);
+    }
+
+    const arm = jumpOff < -1 ? 'raised' : 'normal';
+    const hatOff = jumpOff < -2 ? (t % 6 < 3 ? -1 : 1) : 0;
+
+    drawChar(ctx, {
+      headY: 6 + jumpOff,
+      bodyY: 14 + jumpOff,
+      hatTipY: jumpOff,
+      hatOff,
+      eyeState: 'happy',
+      armState: arm,
+      blush: true,
+    });
+    t++;
+  };
+}
+
+function stateSleeping(canvas) {
+  const ctx = canvas.getContext('2d');
+  ctx.imageSmoothingEnabled = false;
+  let t = 0;
+
+  // z-particle state
+  const ZS = [
+    { delay: 0,   x: 15, startY: 12 },
+    { delay: 60,  x: 16, startY: 11 },
+    { delay: 120, x: 17, startY: 10 },
+  ];
+  const Z_LIFE = 90;
+
+  return function tick() {
+    ctx.clearRect(0, 0, W, H);
+
+    // slow breathe every 80 frames
+    const breathOffset = Math.sin(t * 0.022) > 0.55 ? 1 : 0;
+    // hat droops right
+    const hatOff = 1;
+
+    drawChar(ctx, {
+      headY: 6 + breathOffset,
+      bodyY: 14 + breathOffset,
+      hatTipY: breathOffset,
+      hatOff,
+      eyeState: 'sleep',
+      armState: 'low',
+      bodyColor: C.bodyDk,
+      bodyDk: C.shadow,
+    });
+
+    // floating pixel Z's
+    ZS.forEach(z => {
+      const age = (t - z.delay);
+      if (age < 0 || age > Z_LIFE) return;
+      const progress = age / Z_LIFE;
+      const zy = Math.round(z.startY - progress * 8);
+      const alpha = progress < 0.2 ? progress/0.2
+                  : progress > 0.7 ? (1 - progress)/0.3
+                  : 1;
+      ctx.globalAlpha = alpha * 0.85;
+      drawZ(ctx, C.bodyLt, z.x, zy, 1);
+      ctx.globalAlpha = 1;
+    });
+    // loop z timers
+    ZS.forEach(z => { if (t - z.delay > Z_LIFE) z.delay = t; });
+
+    t++;
+  };
+}
+
+function stateError(canvas) {
+  const ctx = canvas.getContext('2d');
+  ctx.imageSmoothingEnabled = false;
+  let t = 0;
+  // shake: 3 bursts then hold
+  const SHAKE_END = 36;
+
+  return function tick() {
+    ctx.clearRect(0, 0, W, H);
+
+    let shakeX = 0;
+    if (t < SHAKE_END) {
+      const cycle = t % 6;
+      shakeX = cycle < 2 ? -1 : cycle < 4 ? 1 : 0;
+    }
+
+    // hat knocked: stays tilted right after shake
+    const hatOff = t < SHAKE_END ? shakeX * 2 : 3;
+
+    ctx.save();
+    ctx.translate(shakeX, 0);
+    drawChar(ctx, {
+      headY: 6,
+      bodyY: 14,
+      hatTipY: 0,
+      hatOff,
+      eyeState: 'error',
+      armState: 'low',
+      bodyColor: C.red,
+      bodyDk: C.redDk,
+      hatColor: C.hat,
+    });
+    ctx.restore();
+    t++;
+  };
+}
+
+// ─────────────────────────────────────────────
+// RUNNER
+// ─────────────────────────────────────────────
+const STATES = { idle: stateIdle, thinking: stateThinking, working: stateWorking, happy: stateHappy, sleeping: stateSleeping, error: stateError };
+const STATE_NAMES = Object.keys(STATES);
+
+// build static showcase
+const stage = document.getElementById('stage');
+STATE_NAMES.forEach(name => {
+  const item = document.createElement('div');
+  item.className = 'pet-item';
+  const canvas = makeCanvas(W, H, SCALE);
+  const label = document.createElement('span');
+  label.textContent = name;
+  item.appendChild(canvas);
+  item.appendChild(label);
+  stage.appendChild(item);
+
+  const tick = STATES[name](canvas);
+  function loop() { tick(); requestAnimationFrame(loop); }
+  loop();
+});
+
+// live demo
+let liveRAF = null;
+const liveCanvas = document.getElementById('live-canvas');
+liveCanvas.width = W;
+liveCanvas.height = H;
+liveCanvas.style.width  = (W * SCALE * 1.5) + 'px';
+liveCanvas.style.height = (H * SCALE * 1.5) + 'px';
+liveCanvas.style.imageRendering = 'pixelated';
+
+function go(name) {
+  if (liveRAF) cancelAnimationFrame(liveRAF);
+  document.getElementById('live-label').textContent = `— ${name} —`;
+  document.querySelectorAll('button').forEach(b =>
+    b.classList.toggle('active', b.textContent === name)
+  );
+  const tick = STATES[name](liveCanvas);
+  function loop() { tick(); liveRAF = requestAnimationFrame(loop); }
+  loop();
+}
+go('idle');
+
+// auto-cycle
+const order = STATE_NAMES;
+let ci = 0;
+setInterval(() => { ci = (ci+1) % order.length; go(order[ci]); }, 3500);
+</script>
+</body>
+</html>

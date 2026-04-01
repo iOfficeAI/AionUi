@@ -123,6 +123,9 @@ const OpenClawSendBox: React.FC<{ conversation_id: string }> = ({ conversation_i
   const { setSendBoxHandler } = usePreviewContext();
 
   const [aiProcessing, setAiProcessing] = useState(false);
+  useEffect(() => {
+    emitter.emit('pet.state', aiProcessing ? 'working' : 'idle');
+  }, [aiProcessing]);
   const [hasHydratedRunningState, setHasHydratedRunningState] = useState(false);
   const [openclawStatus, setOpenClawStatus] = useState<string | null>(null);
   const [thought, setThought] = useState<ThoughtData>({

@@ -60,7 +60,10 @@ const CodexSendBox: React.FC<{ conversation_id: string }> = ({ conversation_id }
   const { setSendBoxHandler } = usePreviewContext();
 
   const [running, setRunning] = useState(false);
-  const [aiProcessing, setAiProcessing] = useState(false); // New loading state for AI response
+  const [aiProcessing, setAiProcessing] = useState(false);
+  useEffect(() => {
+    emitter.emit('pet.state', aiProcessing ? 'working' : 'idle');
+  }, [aiProcessing]);
   const [hasHydratedRunningState, setHasHydratedRunningState] = useState(false);
   const [codexStatus, setCodexStatus] = useState<string | null>(null);
   const slashCommands = useSlashCommands(conversation_id, {

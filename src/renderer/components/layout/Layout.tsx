@@ -23,6 +23,7 @@ import { cleanupSiderTooltips } from '@renderer/utils/ui/siderTooltip';
 import { useConversationShortcuts } from '@renderer/hooks/ui/useConversationShortcuts';
 import { isElectronDesktop } from '@renderer/utils/platform';
 import { computeCssSyncDecision, resolveCssByActiveTheme } from '@renderer/utils/theme/themeCssSync';
+import { PetWidget } from '@renderer/components/layout/DesktopPet';
 import '@renderer/styles/layout.css';
 
 const useDebug = () => {
@@ -531,6 +532,7 @@ const Layout: React.FC<{
             {multiAgentContextHolder}
             {directorySelectionContextHolder}
             <PwaPullToRefresh />
+            <PetWidget />
             <Suspense fallback={null}>
               <UpdateModal />
             </Suspense>
