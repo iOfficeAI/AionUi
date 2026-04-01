@@ -238,6 +238,7 @@ const ModelModalContent: React.FC = () => {
               'color: inherit',
               trace
             );
+            return;
           }
 
           // 监听完成事件
