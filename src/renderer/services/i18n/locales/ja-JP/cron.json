@@ -48,6 +48,7 @@
     "backToAll": "すべてのスケジュールタスク",
     "runNow": "今すぐ実行",
     "description": "説明",
+    "agent": "エージェント",
     "instructions": "実行内容",
     "repeats": "繰り返し",
     "history": "実行履歴",

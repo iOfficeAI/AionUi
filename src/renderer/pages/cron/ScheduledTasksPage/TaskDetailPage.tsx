@@ -11,6 +11,7 @@ import { Button, Message, Switch, Tag, Popconfirm, Spin, Empty } from '@arco-des
 import { Left, Delete, PlayOne, Editor } from '@icon-park/react';
 import { ipcBridge } from '@/common';
 import type { ICronJob } from '@/common/adapter/ipcBridge';
+import { getAgentLogo } from '@renderer/utils/model/agentLogo';
 import CreateTaskDialog from './CreateTaskDialog';
 import { formatSchedule, formatNextRun } from '@renderer/pages/cron/cronUtils';
 import { useCronJobConversations } from '@renderer/pages/cron/useCronJobs';
@@ -183,6 +184,21 @@ const TaskDetailPage: React.FC = () => {
             </Button>
           </div>
         </div>
+
+        {/* Agent */}
+        {job.metadata.agentConfig && (
+          <div className='mt-24px'>
+            <h3 className='text-14px font-medium text-text-2 mb-8px'>{t('cron.detail.agent')}</h3>
+            <div className='flex items-center gap-8px'>
+              <img
+                src={getAgentLogo(job.metadata.agentConfig.backend)}
+                alt={job.metadata.agentConfig.name}
+                className='w-24px h-24px rounded-50%'
+              />
+              <span className='text-14px text-text-1'>{job.metadata.agentConfig.name}</span>
+            </div>
+          </div>
+        )}
 
         {/* Instructions */}
         <div className='mt-24px'>

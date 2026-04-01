@@ -47,6 +47,7 @@
     "backToAll": "All scheduled tasks",
     "runNow": "Run now",
     "description": "Description",
+    "agent": "Agent",
     "instructions": "Instructions",
     "repeats": "Repeats",
     "history": "History",

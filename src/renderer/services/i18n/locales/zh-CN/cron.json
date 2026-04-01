@@ -48,6 +48,7 @@
     "backToAll": "全部定时任务",
     "runNow": "立即执行",
     "description": "描述",
+    "agent": "执行 Agent",
     "instructions": "执行指令",
     "repeats": "重复执行",
     "history": "执行历史",

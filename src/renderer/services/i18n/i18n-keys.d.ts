@@ -484,6 +484,7 @@ export type I18nKey =
   | 'cron.allScheduledTasks'
   | 'cron.confirmDelete'
   | 'cron.deleteSuccess'
+  | 'cron.detail.agent'
   | 'cron.detail.backToAll'
   | 'cron.detail.description'
   | 'cron.detail.history'
