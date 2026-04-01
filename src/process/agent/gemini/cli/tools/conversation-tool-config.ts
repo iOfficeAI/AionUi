@@ -8,11 +8,13 @@ import type { TProviderWithModel } from '@/common/config/storage';
 import { uuid } from '@/common/utils';
 import type { GeminiClient } from '@office-ai/aioncli-core';
 import { AuthType, Config } from '@office-ai/aioncli-core';
+import { ImageGenerationTool } from './img-gen';
 import { WebFetchTool } from './web-fetch';
 import { WebSearchTool } from './web-search';
 
 interface ConversationToolConfigOptions {
   proxy: string;
+  imageGenerationModel?: TProviderWithModel;
   webSearchEngine?: 'google' | 'default';
 }
 
@@ -29,9 +31,11 @@ export class ConversationToolConfig {
   private dedicatedConfig: Config | null = null; // 缓存专门的Config（用于OAuth认证）
   private webSearchEngine: 'google' | 'default' = 'default';
   private proxy: string = '';
+  private imageGenerationModel: TProviderWithModel | null = null;
   constructor(options: ConversationToolConfigOptions) {
     this.proxy = options.proxy;
     this.webSearchEngine = options.webSearchEngine ?? 'default';
+    this.imageGenerationModel = options.imageGenerationModel ?? null;
   }
 
   /**
@@ -130,6 +134,11 @@ export class ConversationToolConfig {
     if (this.useAionuiWebFetch) {
       const customWebFetchTool = new WebFetchTool(geminiClient, config.getMessageBus());
       toolRegistry.registerTool(customWebFetchTool);
+    }
+
+    if (this.imageGenerationModel?.useModel) {
+      const imageGenerationTool = new ImageGenerationTool(config, this.imageGenerationModel, this.proxy);
+      toolRegistry.registerTool(imageGenerationTool);
     }
 
     // 注册 gemini_web_search 工具（仅OpenAI模型）

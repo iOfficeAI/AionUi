@@ -29,6 +29,7 @@ import { mainLog, mainWarn, mainError } from '@process/utils/mainLogger';
 import { hasCronCommands } from './CronCommandDetector';
 import { extractTextFromMessage, processCronInMessage } from './MessageMiddleware';
 import { stripThinkTags } from './ThinkTagDetector';
+import { isBuiltinImageGenName, isBuiltinImageGenTransport } from '@process/resources/builtinMcp/constants';
 import * as fs from 'node:fs';
 
 // gemini agent管理器类
@@ -42,6 +43,39 @@ type UiMcpServerConfig = {
   description?: string;
 };
 
+export function isGeminiMcpServerAvailable(server: IMcpServer): boolean {
+  if (!server.enabled) {
+    return false;
+  }
+
+  if (server.status === 'connected') {
+    return true;
+  }
+
+  // Backward compatibility: the built-in image generation MCP server was
+  // persisted without an explicit status, but it is safe to inject locally.
+  if (server.builtin === true && server.status === undefined) {
+    return true;
+  }
+
+  return false;
+}
+
+export function shouldRegisterGeminiImageGenerationTool(imageGenerationModel?: TProviderWithModel): boolean {
+  return !!imageGenerationModel?.useModel;
+}
+
+export function shouldGeminiIncludeMcpServer(server: IMcpServer, imageGenerationModel?: TProviderWithModel): boolean {
+  if (
+    shouldRegisterGeminiImageGenerationTool(imageGenerationModel) &&
+    (server.builtin === true || isBuiltinImageGenName(server.name) || isBuiltinImageGenTransport(server.transport))
+  ) {
+    return false;
+  }
+
+  return true;
+}
+
 export class GeminiAgentManager extends BaseAgentManager<
   {
     workspace: string;
@@ -52,6 +86,7 @@ export class GeminiAgentManager extends BaseAgentManager<
     // 系统规则 / System rules
     presetRules?: string;
     contextContent?: string; // 向后兼容 / Backward compatible
+    imageGenerationModel?: TProviderWithModel;
     GOOGLE_CLOUD_PROJECT?: string;
     /** 内置 skills 目录路径 / Builtin skills directory path */
     skillsDir?: string;
@@ -152,8 +187,12 @@ export class GeminiAgentManager extends BaseAgentManager<
    * Extracted to allow re-bootstrapping when MCP config changes.
    */
   private createBootstrap(): Promise<void> {
-    return Promise.all([ProcessConfig.get('gemini.config'), this.getMcpServers()])
-      .then(async ([config, mcpServers]) => {
+    return Promise.all([
+      ProcessConfig.get('gemini.config'),
+      ProcessConfig.get('tools.imageGenerationModel'),
+      this.getMcpServers(),
+    ])
+      .then(async ([config, imageGenerationModel, mcpServers]) => {
         let projectId: string | undefined;
         const authType = getProviderAuthType(this.model);
         const needsGoogleOAuth = authType === AuthType.LOGIN_WITH_GOOGLE || authType === AuthType.USE_VERTEX_AI;
@@ -201,6 +240,7 @@ export class GeminiAgentManager extends BaseAgentManager<
           model: this.model,
           webSearchEngine: this.webSearchEngine,
           mcpServers,
+          imageGenerationModel,
           contextFileName: this.contextFileName,
           // presetRules are no longer injected here — they are in GEMINI.md
           // Keep for backward compatibility with existing conversations
@@ -246,6 +286,7 @@ export class GeminiAgentManager extends BaseAgentManager<
     try {
       const mcpServers = await ProcessConfig.get('mcp.config');
       const allServers: IMcpServer[] = Array.isArray(mcpServers) ? mcpServers : [];
+      const imageGenerationModel = await ProcessConfig.get('tools.imageGenerationModel');
 
       // Merge extension-contributed MCP servers
       // 合并扩展贡献的 MCP servers
@@ -286,7 +327,8 @@ export class GeminiAgentManager extends BaseAgentManager<
       // MCPServerConfig supports: stdio (command/args/env), sse/http (url/type/headers)
       const mcpConfig: Record<string, UiMcpServerConfig> = {};
       allServers
-        .filter((server: IMcpServer) => server.enabled && server.status === 'connected') // 只使用启用且连接成功的服务器
+        .filter((server) => shouldGeminiIncludeMcpServer(server, imageGenerationModel))
+        .filter(isGeminiMcpServerAvailable)
         .forEach((server: IMcpServer) => {
           if (server.transport.type === 'stdio') {
             mcpConfig[server.name] = {
@@ -386,6 +428,10 @@ export class GeminiAgentManager extends BaseAgentManager<
    */
   private async refreshWorkerIfMcpChanged(): Promise<void> {
     try {
+      if (this.mcpFingerprint === '') {
+        await this.bootstrap;
+      }
+
       const mcpServers = await ProcessConfig.get('mcp.config');
       const currentFingerprint = GeminiAgentManager.computeMcpFingerprint(mcpServers);
 

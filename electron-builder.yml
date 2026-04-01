@@ -1,10 +1,10 @@
 appId: com.aionui.app
-productName: AionUi
+productName: Lumen
 executableName: AionUi
-copyright: Copyright © 2024 AionUi
+copyright: Copyright © 2024 Lumen
 
 protocols:
-  - name: AionUi Protocol
+  - name: Lumen Protocol
     schemes:
       - aionui
 
@@ -175,7 +175,7 @@ linux:
   description: ${description}
   desktop:
     entry:
-      Name: AionUi
+      Name: Lumen
       Comment: ${description}
       Icon: aionui
       Categories: Office;Utility;

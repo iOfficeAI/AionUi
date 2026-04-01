@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # ============================================================================
-# AionUi — Ubuntu / Debian 一鍵自動化安裝腳本
+# Lumen — Ubuntu / Debian 一鍵自動化安裝腳本
 # ============================================================================
 # 功能：
 #   1. 自動偵測系統架構 (amd64 / arm64)
@@ -40,7 +40,7 @@ die()     { error "$*"; exit 1; }
 banner() {
     echo -e "${CYAN}${BOLD}"
     echo "  ╔══════════════════════════════════════════════╗"
-    echo "  ║          AionUi Installer for Ubuntu         ║"
+    echo "  ║           Lumen Installer for Ubuntu         ║"
     echo "  ╚══════════════════════════════════════════════╝"
     echo -e "${NC}"
 }
@@ -84,6 +84,34 @@ detect_arch() {
     info "偵測到系統架構: ${BOLD}$machine${NC} → 套件架構: ${BOLD}$DEB_ARCH${NC}"
 }
 
+resolve_release_asset() {
+    local candidate_names=(
+        "Lumen-${VERSION}-linux-${DEB_ARCH}.deb"
+        "AionUi-${VERSION}-linux-${DEB_ARCH}.deb"
+    )
+
+    for candidate in "${candidate_names[@]}"; do
+        local candidate_url="https://github.com/iOfficeAI/AionUi/releases/download/v${VERSION}/${candidate}"
+
+        if command -v curl &>/dev/null; then
+            if curl -fsIL -o /dev/null "$candidate_url"; then
+                DEB_FILENAME="$candidate"
+                DOWNLOAD_URL="$candidate_url"
+                return
+            fi
+        elif command -v wget &>/dev/null; then
+            if wget --spider -q "$candidate_url"; then
+                DEB_FILENAME="$candidate"
+                DOWNLOAD_URL="$candidate_url"
+                return
+            fi
+        fi
+    done
+
+    DEB_FILENAME="Lumen-${VERSION}-linux-${DEB_ARCH}.deb"
+    DOWNLOAD_URL="https://github.com/iOfficeAI/AionUi/releases/download/v${VERSION}/${DEB_FILENAME}"
+}
+
 # ─── 取得版本號 ──────────────────────────────────────────────────────────────
 resolve_version() {
     if [[ -n "${AIONUI_VERSION:-}" ]]; then
@@ -108,8 +136,7 @@ resolve_version() {
         info "最新版本: ${BOLD}v$VERSION${NC}"
     fi
 
-    DEB_FILENAME="AionUi-${VERSION}-linux-${DEB_ARCH}.deb"
-    DOWNLOAD_URL="https://github.com/iOfficeAI/AionUi/releases/download/v${VERSION}/${DEB_FILENAME}"
+    resolve_release_asset
 }
 
 # ─── 下載 .deb 套件 ──────────────────────────────────────────────────────────
@@ -134,7 +161,7 @@ download_deb() {
 
 # ─── 安裝 .deb + 修復依賴 ────────────────────────────────────────────────────
 install_deb() {
-    info "安裝 AionUi .deb 套件..."
+    info "安裝 Lumen .deb 套件..."
 
     # dpkg 安裝（可能會缺依賴）
     $SUDO dpkg -i "$DEB_PATH" 2>/dev/null || true
@@ -143,13 +170,13 @@ install_deb() {
     info "修復依賴套件..."
     $SUDO apt-get install -f -y
 
-    success "AionUi v${VERSION} 安裝完成"
+    success "Lumen v${VERSION} 安裝完成"
 
     # 驗證安裝
     if command -v AionUi &>/dev/null || [[ -x /usr/bin/AionUi ]]; then
-        success "AionUi 已安裝至 $(which AionUi 2>/dev/null || echo '/usr/bin/AionUi')"
+        success "Lumen 已安裝至 $(which AionUi 2>/dev/null || echo '/usr/bin/AionUi')"
     else
-        warn "安裝可能不完整，找不到 AionUi 執行檔"
+        warn "安裝可能不完整，找不到 Lumen 執行檔"
     fi
 
     # 清理暫存
@@ -186,7 +213,7 @@ create_service_script() {
     $SUDO tee "$script_path" > /dev/null << 'SCRIPT_EOF'
 #!/bin/bash
 # ============================================================================
-# AionUi WebUI Headless 服務管理腳本
+# Lumen WebUI Headless 服務管理腳本
 # 用法: ./start-aionui.sh [start|stop|restart|status|logs]
 # ============================================================================
 
@@ -196,11 +223,11 @@ WORKDIR="${AIONUI_WORKDIR:-$HOME}"
 
 start() {
     if [ -f "$PIDFILE" ] && kill -0 "$(cat "$PIDFILE")" 2>/dev/null; then
-        echo "⚡ AionUi 已在執行中 (PID: $(cat "$PIDFILE"))"
+        echo "⚡ Lumen 已在執行中 (PID: $(cat "$PIDFILE"))"
         return 1
     fi
 
-    echo "🚀 正在啟動 AionUi WebUI..."
+    echo "🚀 正在啟動 Lumen WebUI..."
     cd "$WORKDIR" || exit 1
 
     nohup xvfb-run --auto-servernum --server-args="-screen 0 1920x1080x24" \
@@ -211,12 +238,12 @@ start() {
     sleep 3
 
     if kill -0 "$(cat "$PIDFILE")" 2>/dev/null; then
-        echo "✅ AionUi 啟動成功 (PID: $(cat "$PIDFILE"))"
+        echo "✅ Lumen 啟動成功 (PID: $(cat "$PIDFILE"))"
         local ip
         ip=$(hostname -I 2>/dev/null | awk '{print $1}')
         echo "🌐 WebUI: http://${ip:-localhost}:25808"
     else
-        echo "❌ AionUi 啟動失敗，請查看日誌: $LOGFILE"
+        echo "❌ Lumen 啟動失敗，請查看日誌: $LOGFILE"
         rm -f "$PIDFILE"
         return 1
     fi
@@ -224,18 +251,18 @@ start() {
 
 stop() {
     if [ ! -f "$PIDFILE" ]; then
-        echo "⚠️  AionUi 未在執行"
+        echo "⚠️  Lumen 未在執行"
         return 1
     fi
     local pid
     pid=$(cat "$PIDFILE")
-    echo "🛑 正在停止 AionUi (PID: $pid)..."
+    echo "🛑 正在停止 Lumen (PID: $pid)..."
     kill "$pid" 2>/dev/null
     sleep 2
     kill -9 "$pid" 2>/dev/null
     pkill -f "AionUi --webui" 2>/dev/null
     rm -f "$PIDFILE"
-    echo "✅ AionUi 已停止"
+    echo "✅ Lumen 已停止"
 }
 
 restart() {
@@ -246,10 +273,10 @@ restart() {
 
 status() {
     if [ -f "$PIDFILE" ] && kill -0 "$(cat "$PIDFILE")" 2>/dev/null; then
-        echo "✅ AionUi 執行中 (PID: $(cat "$PIDFILE"))"
+        echo "✅ Lumen 執行中 (PID: $(cat "$PIDFILE"))"
         ss -tlnp 2>/dev/null | grep 25808 || netstat -tlnp 2>/dev/null | grep 25808 || true
     else
-        echo "⚠️  AionUi 未在執行"
+        echo "⚠️  Lumen 未在執行"
         rm -f "$PIDFILE" 2>/dev/null
     fi
 }
@@ -272,7 +299,7 @@ case "${1:-}" in
         echo "用法: $0 {start|stop|restart|status|logs}"
         echo ""
         echo "環境變數:"
-        echo "  AIONUI_WORKDIR  - AionUi 工作目錄 (預設: \$HOME)"
+        echo "  AIONUI_WORKDIR  - Lumen 工作目錄 (預設: \$HOME)"
         ;;
     *)
         echo "用法: $0 {start|stop|restart|status|logs}"
@@ -299,7 +326,7 @@ create_systemd_service() {
 
     $SUDO tee "$service_path" > /dev/null << 'SERVICE_EOF'
 [Unit]
-Description=AionUi AI Agent Desktop App (WebUI Mode)
+Description=Lumen AI Agent Desktop App (WebUI Mode)
 Documentation=https://github.com/iOfficeAI/AionUi
 After=network-online.target
 Wants=network-online.target
@@ -341,7 +368,7 @@ create_desktop_entry() {
 
     cat > "$desktop_file" << 'DESKTOP_EOF'
 [Desktop Entry]
-Name=AionUi
+Name=Lumen
 Comment=AI Agent Cowork Platform
 Exec=/usr/bin/AionUi --no-sandbox %U
 Icon=AionUi
@@ -359,7 +386,7 @@ DESKTOP_EOF
 print_summary() {
     echo ""
     echo -e "${GREEN}${BOLD}══════════════════════════════════════════════════${NC}"
-    echo -e "${GREEN}${BOLD}  🎉 AionUi v${VERSION} 安裝完成！${NC}"
+    echo -e "${GREEN}${BOLD}  🎉 Lumen v${VERSION} 安裝完成！${NC}"
     echo -e "${GREEN}${BOLD}══════════════════════════════════════════════════${NC}"
     echo ""
     echo -e "  ${BOLD}📍 執行檔位置:${NC}  /usr/bin/AionUi"
@@ -388,7 +415,7 @@ print_summary() {
         echo "    # 直接啟動（桌面環境）"
         echo "    AionUi --no-sandbox"
         echo ""
-        echo "    # 或從應用程式選單尋找 AionUi"
+        echo "    # 或從應用程式選單尋找 Lumen"
         echo ""
     fi
 

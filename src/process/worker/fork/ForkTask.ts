@@ -37,6 +37,7 @@ export class ForkTask<Data> extends Pipe {
   kill() {
     if (this.fcp) {
       this.fcp.kill();
+      this.fcp = undefined;
     }
     process.off('exit', this.killFn);
   }
@@ -59,9 +60,15 @@ export class ForkTask<Data> extends Pipe {
       const e = args[0] as IForkData;
       if (e.type === 'complete') {
         fcp.kill();
+        if (this.fcp === fcp) {
+          this.fcp = undefined;
+        }
         this.emit('complete', e.data);
       } else if (e.type === 'error') {
         fcp.kill();
+        if (this.fcp === fcp) {
+          this.fcp = undefined;
+        }
         this.emit('error', e.data);
       } else {
         // clientId约束为主/子进程间通信钥匙
@@ -77,12 +84,18 @@ export class ForkTask<Data> extends Pipe {
       }
     });
     fcp.on('error', (...args: unknown[]) => {
+      if (this.fcp === fcp) {
+        this.fcp = undefined;
+      }
       this.emit('error', args[0] as Error);
     });
     this.fcp = fcp;
   }
   start() {
     if (!this.enableFork) return Promise.resolve();
+    if (!this.fcp) {
+      this.init();
+    }
     const { data } = this;
     return this.postMessagePromise('start', data);
   }

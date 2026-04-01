@@ -664,7 +664,7 @@ const ChannelModalContent: React.FC = () => {
     const telegramChannel: ChannelConfig = {
       id: 'telegram',
       title: t('settings.channels.telegramTitle', 'Telegram'),
-      description: t('settings.channels.telegramDesc', 'Chat with AionUi assistant via Telegram'),
+      description: t('settings.channels.telegramDesc', 'Chat with Lumen assistant via Telegram'),
       status: 'active',
       enabled: pluginStatus?.enabled || false,
       disabled: enableLoading,
@@ -686,7 +686,7 @@ const ChannelModalContent: React.FC = () => {
     const larkChannel: ChannelConfig = {
       id: 'lark',
       title: t('settings.channels.larkTitle', 'Lark / Feishu'),
-      description: t('settings.channels.larkDesc', 'Chat with AionUi assistant via Lark or Feishu'),
+      description: t('settings.channels.larkDesc', 'Chat with Lumen assistant via Lark or Feishu'),
       status: 'active',
       enabled: larkPluginStatus?.enabled || false,
       disabled: larkEnableLoading,
@@ -704,7 +704,7 @@ const ChannelModalContent: React.FC = () => {
     const dingtalkChannel: ChannelConfig = {
       id: 'dingtalk',
       title: t('settings.channels.dingtalkTitle', 'DingTalk'),
-      description: t('settings.channels.dingtalkDesc', 'Chat with AionUi assistant via DingTalk'),
+      description: t('settings.channels.dingtalkDesc', 'Chat with Lumen assistant via DingTalk'),
       status: 'active',
       enabled: dingtalkPluginStatus?.enabled || false,
       disabled: dingtalkEnableLoading,
@@ -722,7 +722,7 @@ const ChannelModalContent: React.FC = () => {
     const weixinChannel: ChannelConfig = {
       id: 'weixin',
       title: t('settings.channels.weixinTitle', 'WeChat'),
-      description: t('settings.channels.weixinDesc', 'Chat with AionUi assistant via WeChat'),
+      description: t('settings.channels.weixinDesc', 'Chat with Lumen assistant via WeChat'),
       status: 'active',
       enabled: weixinPluginStatus?.enabled || false,
       disabled: weixinEnableLoading,
@@ -761,7 +761,7 @@ const ChannelModalContent: React.FC = () => {
       {
         id: 'slack',
         title: t('settings.channels.slackTitle', 'Slack'),
-        description: t('settings.channels.slackDesc', 'Chat with AionUi assistant via Slack'),
+        description: t('settings.channels.slackDesc', 'Chat with Lumen assistant via Slack'),
         status: 'coming_soon' as const,
         enabled: false,
         disabled: true,
@@ -776,7 +776,7 @@ const ChannelModalContent: React.FC = () => {
       {
         id: 'discord',
         title: t('settings.channels.discordTitle', 'Discord'),
-        description: t('settings.channels.discordDesc', 'Chat with AionUi assistant via Discord'),
+        description: t('settings.channels.discordDesc', 'Chat with Lumen assistant via Discord'),
         status: 'coming_soon' as const,
         enabled: false,
         disabled: true,
@@ -824,7 +824,7 @@ const ChannelModalContent: React.FC = () => {
     return undefined;
   };
   const channelGuideText = t('settings.webui.featureChannelsDesc', {
-    defaultValue: 'Connect Telegram, Lark, and DingTalk to interact with AionUi from IM apps.',
+    defaultValue: 'Connect Telegram, Lark, and DingTalk to interact with Lumen from IM apps.',
   });
   const channelSetupSteps = [
     t('settings.channels.selectFirst', {

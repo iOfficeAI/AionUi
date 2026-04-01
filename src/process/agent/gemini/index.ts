@@ -85,6 +85,7 @@ interface GeminiAgent2Options {
   workspace: string;
   proxy?: string;
   model: TProviderWithModel;
+  imageGenerationModel?: TProviderWithModel;
   webSearchEngine?: 'google' | 'default';
   yoloMode?: boolean;
   GOOGLE_CLOUD_PROJECT?: string;
@@ -155,6 +156,7 @@ export class GeminiAgent {
     this.toolConfig = new ConversationToolConfig({
       proxy: this.proxy,
       webSearchEngine: this.webSearchEngine,
+      imageGenerationModel: options.imageGenerationModel,
     });
 
     // Register as current agent for flashFallbackHandler access

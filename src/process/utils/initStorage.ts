@@ -748,8 +748,9 @@ const ensureBuiltinMcpServers = async (): Promise<void> => {
         ((existing.transport.args || [])[0] !== scriptPath || needsNameMigration);
 
       const needsMigration = shouldEnable && !existing.enabled;
+      const needsStatusInit = existing.status === undefined;
 
-      if (needsNameMigration || needsPathUpdate || needsMigration) {
+      if (needsNameMigration || needsPathUpdate || needsMigration || needsStatusInit) {
         let updatedTransport: IMcpServer['transport'] = existing.transport;
 
         if (existing.transport.type === 'stdio') {
@@ -774,6 +775,7 @@ const ensureBuiltinMcpServers = async (): Promise<void> => {
           transport: updatedTransport,
           originalJson: newOriginalJson,
           enabled: needsMigration ? true : existing.enabled,
+          status: needsStatusInit ? 'connected' : existing.status,
           updatedAt: now,
         };
         changed = true;
@@ -786,6 +788,7 @@ const ensureBuiltinMcpServers = async (): Promise<void> => {
         name: BUILTIN_IMAGE_GEN_NAME,
         description: 'Built-in image generation tool powered by AI models. Configure the model in Settings > Tools.',
         enabled: shouldEnable,
+        status: 'connected',
         builtin: true,
         transport: {
           type: 'stdio',
