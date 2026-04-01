@@ -3,7 +3,6 @@ import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { getAgentLogo } from '@/renderer/utils/model/agentLogo';
 import { iconColors } from '@/renderer/styles/colors';
 import type { TeammateStatus } from '@/common/types/teamTypes';
-import AgentStatusBadge from './AgentStatusBadge';
 import AddAgentModal from './AddAgentModal';
 import { useTeamTabs } from '../hooks/TeamTabsContext';
 
@@ -73,6 +72,8 @@ const TeamTabView: React.FC<TeamTabViewProps> = ({
     [agentName]
   );
 
+  const isRunning = status === 'active';
+
   return (
     <div
       className={`group flex items-center gap-8px px-12px h-full max-w-240px cursor-pointer transition-all duration-200 shrink-0 border-r border-[color:var(--border-base)] ${
@@ -80,10 +81,10 @@ const TeamTabView: React.FC<TeamTabViewProps> = ({
           ? 'bg-1 text-[color:var(--color-text-1)] font-medium'
           : 'bg-2 text-[color:var(--color-text-3)] hover:text-[color:var(--color-text-2)] border-b border-[color:var(--border-base)]'
       }`}
+      style={isRunning ? { animation: 'team-tab-breathe 2s ease-in-out infinite' } : undefined}
       onClick={() => !editing && onSwitch(slotId)}
       onDoubleClick={onRename ? startEditing : undefined}
     >
-      <AgentStatusBadge status={status} />
       {logo && (
         <img
           src={logo}

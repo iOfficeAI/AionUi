@@ -443,6 +443,18 @@ class AcpAgentManager extends BaseAgentManager<AcpAgentManagerData, AcpPermissio
           // 仅发送信号到前端，不更新消息列表
           if (v.type === 'acp_permission') {
             const { toolCall, options } = v.data as AcpPermissionRequest;
+
+            // Auto-approve team MCP tools — they are internal tools provided by AionUi,
+            // not external MCP servers, so they should never require user confirmation.
+            const toolTitle = toolCall.title || '';
+            if (toolTitle.includes('aionui-team') && options.length > 0) {
+              const autoOption = options[0];
+              setTimeout(() => {
+                void this.confirm(v.msg_id, toolCall.toolCallId || v.msg_id, autoOption);
+              }, 50);
+              return;
+            }
+
             this.addConfirmation({
               title: toolCall.title || 'messages.permissionRequest',
               action: 'messages.command',
