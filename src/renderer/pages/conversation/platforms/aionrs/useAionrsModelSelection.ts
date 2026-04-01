@@ -6,7 +6,7 @@
 
 import type { IProvider, TProviderWithModel } from '@/common/config/storage';
 import { useModelProviderList } from '@/renderer/hooks/agent/useModelProviderList';
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 
 export type AionrsModelSelection = {
   currentModel?: TProviderWithModel;
@@ -31,7 +31,13 @@ export const useAionrsModelSelection = ({
     setCurrentModel(initialModel);
   }, [initialModel?.id, initialModel?.useModel]);
 
-  const { providers, getAvailableModels, formatModelLabel } = useModelProviderList();
+  const { providers: allProviders, getAvailableModels, formatModelLabel } = useModelProviderList();
+
+  // AionCLI does not support Google Auth — filter it out
+  const providers = useMemo(
+    () => allProviders.filter((p) => !p.platform?.toLowerCase().includes('gemini-with-google-auth')),
+    [allProviders]
+  );
 
   const handleSelectModel = useCallback(
     async (provider: IProvider, modelName: string) => {

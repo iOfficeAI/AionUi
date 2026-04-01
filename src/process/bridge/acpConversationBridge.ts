@@ -60,11 +60,10 @@ export function initAcpConversationBridge(workerTaskManager: IWorkerTaskManager)
       // Insert at front so Aion CLI appears before other agents (including Gemini)
       const aionrs = detectAionrs();
       if (aionrs.available) {
+        const aionrsAgent = { backend: 'aionrs' as const, name: 'Aion CLI', cliPath: aionrs.path };
         enriched.unshift({
-          backend: 'aionrs',
-          name: 'Aion CLI',
-          cliPath: aionrs.path,
-          supportedTransports: [],
+          ...aionrsAgent,
+          supportedTransports: mcpService.getSupportedTransportsForAgent(aionrsAgent),
         } as (typeof enriched)[number]);
       }
 
