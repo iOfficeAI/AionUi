@@ -910,7 +910,9 @@ const migration_v20: IMigration = {
       db.exec(`ALTER TABLE cron_jobs ADD COLUMN agent_config TEXT`);
     }
     // Fix legacy jobs: empty conversation_id means they were created before execution_mode existed
-    db.exec(`UPDATE cron_jobs SET execution_mode = 'new_conversation' WHERE conversation_id = '' OR conversation_id IS NULL`);
+    db.exec(
+      `UPDATE cron_jobs SET execution_mode = 'new_conversation' WHERE conversation_id = '' OR conversation_id IS NULL`
+    );
     db.exec(
       `CREATE INDEX IF NOT EXISTS idx_conversations_cron_job_id ON conversations(json_extract(extra, '$.cronJobId'))`
     );
