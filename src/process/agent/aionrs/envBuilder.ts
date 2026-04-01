@@ -10,16 +10,19 @@ type AionrsProvider = 'anthropic' | 'openai' | 'bedrock' | 'vertex';
 
 /**
  * Map AionUi platform name to aionrs provider name.
+ *
+ * AionUi PlatformType values: 'custom' | 'new-api' | 'gemini' | 'gemini-vertex-ai' | 'anthropic' | 'bedrock'
  */
 function mapProvider(model: TProviderWithModel): AionrsProvider {
   const mapping: Record<string, AionrsProvider> = {
     anthropic: 'anthropic',
-    openai: 'openai',
-    'ali-intl': 'openai', // OpenAI-compatible
-    aws: 'bedrock',
-    vertex: 'vertex',
-    gemini: 'openai', // Gemini via OpenAI-compatible endpoint
-    'gemini-with-google-auth': 'openai',
+    bedrock: 'bedrock',
+    'gemini-vertex-ai': 'vertex',
+    // Gemini uses OpenAI-compatible endpoint
+    gemini: 'openai',
+    // custom / new-api use OpenAI-compatible protocol
+    custom: 'openai',
+    'new-api': 'openai',
   };
   return mapping[model.platform] ?? 'openai';
 }
@@ -39,15 +42,7 @@ export function buildSpawnConfig(
 ): { args: string[]; env: Record<string, string> } {
   const provider = mapProvider(model);
   const env: Record<string, string> = {};
-  const args: string[] = [
-    '--json-stream',
-    '--provider',
-    provider,
-    '--model',
-    model.useModel,
-    '--workspace',
-    options.workspace,
-  ];
+  const args: string[] = ['--json-stream', '--provider', provider, '--model', model.useModel];
 
   if (options.maxTokens) {
     args.push('--max-tokens', String(options.maxTokens));
