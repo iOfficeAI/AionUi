@@ -65,9 +65,7 @@ const SiderSearchEntry: React.FC<SiderSearchEntryProps> = ({
               className='block leading-none shrink-0'
               style={{ lineHeight: 0 }}
             />
-            <span className='collapsed-hidden text-t-primary text-13px'>
-              {t('conversation.historySearch.tooltip')}
-            </span>
+            <span className='collapsed-hidden text-t-primary text-13px'>{t('conversation.historySearch.tooltip')}</span>
           </div>
         </Tooltip>
       )}
