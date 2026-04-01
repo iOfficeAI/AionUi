@@ -79,13 +79,21 @@ export const ExtensionMetaSchema = z
     lifecycle: z
       .object({
         /** Run when the extension is first installed or upgraded */
-        onInstall: z.string().optional(),
+        onInstall: z
+          .union([z.string(), z.object({ script: z.string(), timeout: z.number().int().positive().optional() })])
+          .optional(),
         /** Run when the extension is activated (enabled) */
-        onActivate: z.string().optional(),
+        onActivate: z
+          .union([z.string(), z.object({ script: z.string(), timeout: z.number().int().positive().optional() })])
+          .optional(),
         /** Run when the extension is deactivated (disabled) */
-        onDeactivate: z.string().optional(),
+        onDeactivate: z
+          .union([z.string(), z.object({ script: z.string(), timeout: z.number().int().positive().optional() })])
+          .optional(),
         /** Run when the extension is uninstalled (removed) */
-        onUninstall: z.string().optional(),
+        onUninstall: z
+          .union([z.string(), z.object({ script: z.string(), timeout: z.number().int().positive().optional() })])
+          .optional(),
       })
       .optional(),
     /**

@@ -185,6 +185,24 @@ export class WorkspaceSnapshotService {
     await Promise.all(workspaces.map((ws) => this.dispose(ws)));
   }
 
+  /**
+   * Remove leftover `aionui-snapshot-*` directories from previous sessions
+   * that were not cleaned up (e.g. due to a crash). Safe to call at startup
+   * as a fire-and-forget — errors are silently ignored.
+   */
+  static async cleanupStaleSnapshots(): Promise<void> {
+    const tmpdir = os.tmpdir();
+    let entries: string[];
+    try {
+      entries = await fs.readdir(tmpdir);
+    } catch {
+      return;
+    }
+
+    const stale = entries.filter((name) => name.startsWith('aionui-snapshot-'));
+    await Promise.allSettled(stale.map((name) => fs.rm(path.join(tmpdir, name), { recursive: true, force: true })));
+  }
+
   // --- Private ---
 
   private gitArgs(state: SnapshotState): string[] {

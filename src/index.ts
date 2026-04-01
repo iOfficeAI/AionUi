@@ -26,6 +26,7 @@ import { initializeProcess } from './process';
 import { ProcessConfig } from './process/utils/initStorage';
 import { loadShellEnvironmentAsync, logEnvironmentDiagnostics, mergePaths } from './process/utils/shellEnv';
 import { initializeAcpDetector, registerWindowMaximizeListeners } from '@process/bridge';
+import { wasLaunchedAtLogin } from '@process/bridge/applicationBridge';
 import { onCloseToTrayChanged, onLanguageChanged } from './process/bridge/systemSettingsBridge';
 import { setInitialLanguage } from '@process/services/i18n';
 import { workerTaskManager } from './process/task/workerTaskManagerSingleton';
@@ -188,7 +189,7 @@ let isExplicitQuit = false;
 
 let mainWindow: BrowserWindow;
 
-const createWindow = (): void => {
+const createWindow = ({ showOnReady = true }: { showOnReady?: boolean } = {}): void => {
   console.log('[AionUi] Creating main window...');
   // Get primary display size
   const primaryDisplay = screen.getPrimaryDisplay();
@@ -241,24 +242,28 @@ const createWindow = (): void => {
   // Show window after content is ready to prevent FOUC (Flash of Unstyled Content)
   // Use 'ready-to-show' which fires when renderer has painted first frame,
   // combined with 'did-finish-load' as belt-and-suspenders approach.
-  const showWindow = () => {
-    if (!mainWindow.isDestroyed() && !mainWindow.isVisible()) {
-      console.log('[AionUi] Showing main window');
-      mainWindow.show();
-      mainWindow.focus();
-    }
-  };
-  mainWindow.once('ready-to-show', () => {
-    console.log('[AionUi] Window ready-to-show');
-    showWindow();
-  });
-  // Belt-and-suspenders: also show on did-finish-load in case ready-to-show already fired
-  mainWindow.webContents.once('did-finish-load', () => {
-    console.log('[AionUi] Renderer did-finish-load');
-    showWindow();
-  });
-  // Fallback: show window after 5s even if events don't fire (e.g. loadURL failure)
-  setTimeout(showWindow, 5000);
+  if (showOnReady) {
+    const showWindow = () => {
+      if (!mainWindow.isDestroyed() && !mainWindow.isVisible()) {
+        console.log('[AionUi] Showing main window');
+        mainWindow.show();
+        mainWindow.focus();
+      }
+    };
+    mainWindow.once('ready-to-show', () => {
+      console.log('[AionUi] Window ready-to-show');
+      showWindow();
+    });
+    // Belt-and-suspenders: also show on did-finish-load in case ready-to-show already fired
+    mainWindow.webContents.once('did-finish-load', () => {
+      console.log('[AionUi] Renderer did-finish-load');
+      showWindow();
+    });
+    // Fallback: show window after 5s even if events don't fire (e.g. loadURL failure)
+    setTimeout(showWindow, 5000);
+  } else if (process.platform === 'darwin' && app.dock) {
+    void app.dock.hide();
+  }
 
   initMainAdapterWithWindow(mainWindow);
   bindMainWindowReferences(mainWindow);
@@ -465,27 +470,6 @@ const handleAppReady = async (): Promise<void> => {
       }
     });
   } else {
-    createWindow();
-    mark('createWindow');
-
-    // Run ACP detection in parallel with renderer loading.
-    // By the time React mounts and calls getAvailableAgents (~300ms+),
-    // detection (~700ms) is usually already done.
-    initializeAcpDetector()
-      .then(() => mark('initializeAcpDetector'))
-      .catch((error) => console.error('[ACP] Detection failed:', error));
-
-    // 读取语言设置并初始化主进程 i18n，然后刷新托盘菜单
-    // Read language setting and initialize main process i18n, then refresh tray menu
-    try {
-      const savedLanguage = await ProcessConfig.get('language');
-      await setInitialLanguage(savedLanguage);
-      // After language is set, refresh tray menu if it exists
-      await refreshTrayMenu();
-    } catch (error) {
-      console.error('[index] Failed to initialize i18n language:', error);
-    }
-
     // 初始化关闭到托盘设置 / Initialize close-to-tray setting
     if (isE2ETestMode) {
       setCloseToTrayEnabled(false);
@@ -509,6 +493,29 @@ const handleAppReady = async (): Promise<void> => {
           destroyTray();
         }
       });
+    }
+
+    const showMainWindowOnReady = !(wasLaunchedAtLogin() && getCloseToTrayEnabled());
+
+    createWindow({ showOnReady: showMainWindowOnReady });
+    mark('createWindow');
+
+    // Run ACP detection in parallel with renderer loading.
+    // By the time React mounts and calls getAvailableAgents (~300ms+),
+    // detection (~700ms) is usually already done.
+    initializeAcpDetector()
+      .then(() => mark('initializeAcpDetector'))
+      .catch((error) => console.error('[ACP] Detection failed:', error));
+
+    // 读取语言设置并初始化主进程 i18n，然后刷新托盘菜单
+    // Read language setting and initialize main process i18n, then refresh tray menu
+    try {
+      const savedLanguage = await ProcessConfig.get('language');
+      await setInitialLanguage(savedLanguage);
+      // After language is set, refresh tray menu if it exists
+      await refreshTrayMenu();
+    } catch (error) {
+      console.error('[index] Failed to initialize i18n language:', error);
     }
 
     // 监听语言变更，刷新托盘菜单文案 / Listen for language changes to refresh tray menu labels

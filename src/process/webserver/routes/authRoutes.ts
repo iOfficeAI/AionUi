@@ -181,23 +181,22 @@ export function registerAuthRoutes(app: Express): void {
   // Rate limit auth status endpoint to prevent enumeration
   // 为认证状态端点添加速率限制以防止枚举攻击
   app.get('/api/auth/status', apiRateLimiter, (_req: Request, res: Response) => {
-    try {
-      const hasUsers = UserRepository.hasUsers();
-      const userCount = UserRepository.countUsers();
-
-      res.json({
-        success: true,
-        needsSetup: !hasUsers,
-        userCount,
-        isAuthenticated: false, // Will be determined by frontend based on token
+    Promise.all([UserRepository.hasUsers(), UserRepository.countUsers()])
+      .then(([hasUsers, userCount]) => {
+        res.json({
+          success: true,
+          needsSetup: !hasUsers,
+          userCount,
+          isAuthenticated: false, // Will be determined by frontend based on token
+        });
+      })
+      .catch((error) => {
+        console.error('Auth status error:', error);
+        res.status(500).json({
+          success: false,
+          error: 'Internal server error',
+        });
       });
-    } catch (error) {
-      console.error('Auth status error:', error);
-      res.status(500).json({
-        success: false,
-        error: 'Internal server error',
-      });
-    }
   });
 
   /**

@@ -124,8 +124,16 @@ const GeminiSendBox: React.FC<{
     handleSelectModel,
   });
 
-  const { thought, running, hasHydratedRunningState, tokenUsage, setActiveMsgId, setWaitingResponse, resetState } =
-    useGeminiMessage(conversation_id, handleGeminiError);
+  const {
+    thought,
+    running,
+    hasHydratedRunningState,
+    tokenUsage,
+    setActiveMsgId,
+    setWaitingResponse,
+    resetState,
+    hasThinkingMessage,
+  } = useGeminiMessage(conversation_id, handleGeminiError);
 
   const { atPath, uploadFile, setAtPath, setUploadFile, content, setContent } = useSendBoxDraft(conversation_id);
 
@@ -349,7 +357,11 @@ const GeminiSendBox: React.FC<{
         />
       )}
 
-      <ThoughtDisplay thought={thought} running={running} onStop={handleStop} />
+      <ThoughtDisplay
+        thought={hasThinkingMessage ? undefined : thought}
+        running={running && !hasThinkingMessage}
+        onStop={handleStop}
+      />
       <CommandQueuePanel
         items={queuedCommands}
         paused={isQueuePaused}
