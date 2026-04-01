@@ -227,7 +227,8 @@ export class TeamSessionService {
     const session = new TeamSession(team, this.repo, this.workerTaskManager, spawnAgent);
     this.sessions.set(teamId, session);
 
-    // Start MCP server and inject per-agent stdio config into all agent conversations
+    // Start MCP server and inject per-agent stdio config into all agent conversations.
+    // After DB update, rebuild cached agent tasks so they pick up teamMcpStdioConfig.
     await session.startMcpServer();
     await Promise.all(
       team.agents.map(async (agent) => {
@@ -238,6 +239,8 @@ export class TeamSessionService {
             { extra: { teamMcpStdioConfig: agentStdioConfig } } as any,
             true
           );
+          // Force-rebuild cached agent task so it reads the updated extra from DB
+          await this.workerTaskManager.getOrBuildTask(agent.conversationId, { skipCache: true });
         }
       })
     );

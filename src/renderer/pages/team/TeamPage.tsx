@@ -7,6 +7,7 @@ import type { TTeam } from '@/common/types/teamTypes';
 import ChatLayout from '@/renderer/pages/conversation/components/ChatLayout';
 import ChatSider from '@/renderer/pages/conversation/components/ChatSider';
 import { useConversationAgents } from '@/renderer/pages/conversation/hooks/useConversationAgents';
+import AcpModelSelector from '@/renderer/components/agent/AcpModelSelector';
 import TeamTabs from './components/TeamTabs';
 import TeamChatView from './components/TeamChatView';
 import { agentFromKey, agentKey, resolveConversationType } from './components/agentSelectUtils';
@@ -82,6 +83,20 @@ const TeamPageContent: React.FC<TeamPageContentProps> = ({ team, onAddAgent }) =
 
   const tabsSlot = useMemo(() => <TeamTabs onAddAgent={onAddAgent} />, [onAddAgent]);
 
+  const headerExtra = useMemo(() => {
+    if (!activeAgent?.conversationId) return undefined;
+    if (activeAgent.conversationType === 'acp' || activeAgent.conversationType === 'codex') {
+      return (
+        <AcpModelSelector
+          conversationId={activeAgent.conversationId}
+          backend={activeAgent.agentType}
+          initialModelId={(activeConversation?.extra as { currentModelId?: string })?.currentModelId}
+        />
+      );
+    }
+    return undefined;
+  }, [activeAgent, activeConversation]);
+
   return (
     <TeamPermissionProvider isLeadAgent={isLeadAgent} allConversationIds={allConversationIds}>
       {messageContext}
@@ -94,6 +109,7 @@ const TeamPageContent: React.FC<TeamPageContentProps> = ({ team, onAddAgent }) =
         conversationId={activeAgent?.conversationId}
         backend={activeAgent?.agentType}
         agentName={activeAgent?.agentName}
+        headerExtra={headerExtra}
       >
         {activeConversation ? (
           <TeamChatView conversation={activeConversation} teamId={isLeadAgent ? team.id : undefined} />
@@ -131,7 +147,12 @@ const TeamPage: React.FC<Props> = ({ team }) => {
   );
 
   return (
-    <TeamTabsProvider agents={team.agents} statusMap={statusMap} defaultActiveSlotId={defaultSlotId} renameAgent={renameAgent}>
+    <TeamTabsProvider
+      agents={team.agents}
+      statusMap={statusMap}
+      defaultActiveSlotId={defaultSlotId}
+      renameAgent={renameAgent}
+    >
       <TeamPageContent team={team} onAddAgent={handleAddAgent} />
     </TeamTabsProvider>
   );

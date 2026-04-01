@@ -101,7 +101,9 @@ const TeamTabView: React.FC<TeamTabViewProps> = ({
           onKeyDown={handleKeyDown}
         />
       ) : (
-        <span className='text-15px whitespace-nowrap overflow-hidden text-ellipsis select-none flex-1'>{agentName}</span>
+        <span className='text-15px whitespace-nowrap overflow-hidden text-ellipsis select-none flex-1'>
+          {agentName}
+        </span>
       )}
       {isLead && <span className='text-xs text-[color:var(--color-text-4)]'>&#9656;</span>}
       {!editing && onRename && (
