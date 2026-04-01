@@ -5,6 +5,7 @@
  */
 
 import type { TProviderWithModel } from '@/common/config/storage';
+import { isOpenAIHost } from '@/common/utils/urlValidation';
 
 type AionrsProvider = 'anthropic' | 'openai' | 'bedrock' | 'vertex';
 
@@ -39,7 +40,7 @@ export function buildSpawnConfig(
     systemPrompt?: string;
     autoApprove?: boolean;
   }
-): { args: string[]; env: Record<string, string> } {
+): { args: string[]; env: Record<string, string>; projectConfig: string } {
   const provider = mapProvider(model);
   const env: Record<string, string> = {};
   const args: string[] = ['--json-stream', '--provider', provider, '--model', model.useModel];
@@ -92,5 +93,25 @@ export function buildSpawnConfig(
       break;
   }
 
-  return { args, env };
+  // Generate project config for compat overrides (e.g., max_tokens_field)
+  const projectConfig = buildProjectConfig(model, provider);
+
+  return { args, env, projectConfig };
+}
+
+/**
+ * Build `.aionrs.toml` project config content for provider compat overrides.
+ * Returns non-empty string only when overrides are needed.
+ *
+ * OpenAI official API requires `max_completion_tokens` instead of `max_tokens`
+ * for newer models (gpt-5.x, o-series, etc.).
+ */
+function buildProjectConfig(model: TProviderWithModel, provider: AionrsProvider): string {
+  if (provider !== 'openai') return '';
+
+  // Only override for OpenAI official API; third-party compatible APIs use default max_tokens
+  const baseUrl = model.baseUrl || '';
+  if (!baseUrl || !isOpenAIHost(baseUrl)) return '';
+
+  return ['[providers.openai.compat]', 'max_tokens_field = "max_completion_tokens"', ''].join('\n');
 }

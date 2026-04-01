@@ -5,11 +5,15 @@
  */
 
 import { spawn, type ChildProcess } from 'node:child_process';
+import { existsSync, readFileSync, unlinkSync, writeFileSync } from 'node:fs';
+import { join } from 'node:path';
 import { createInterface } from 'node:readline';
 import type { TProviderWithModel } from '@/common/config/storage';
 import { resolveAionrsBinary } from './binaryResolver';
 import { buildSpawnConfig } from './envBuilder';
 import type { AionrsEvent, AionrsCommand } from './protocol';
+
+const AIONRS_PROJECT_CONFIG = '.aionrs.toml';
 
 type StreamEventHandler = (event: { type: string; data: unknown; msg_id: string }) => void;
 
@@ -33,6 +37,7 @@ export class AionrsAgent {
   private onStreamEvent: StreamEventHandler;
   private options: AionrsAgentOptions;
   private activeMsgId: string | null = null;
+  private configBackup: { path: string; content: string | null } | null = null;
 
   constructor(options: AionrsAgentOptions) {
     this.options = options;
@@ -53,12 +58,17 @@ export class AionrsAgent {
       throw new Error('aionrs binary not found');
     }
 
-    const { args, env } = buildSpawnConfig(this.options.model, {
+    const { args, env, projectConfig } = buildSpawnConfig(this.options.model, {
       workspace: this.options.workspace,
       maxTokens: this.options.maxTokens,
       maxTurns: this.options.maxTurns,
       autoApprove: this.options.yoloMode,
     });
+
+    // Write temporary .aionrs.toml for provider compat overrides
+    if (projectConfig) {
+      this.writeProjectConfig(projectConfig);
+    }
 
     this.childProcess = spawn(binaryPath, args, {
       env: { ...process.env, ...env },
@@ -84,6 +94,7 @@ export class AionrsAgent {
 
     // Handle process exit
     this.childProcess.on('exit', (code) => {
+      this.restoreProjectConfig();
       if (!this.ready) {
         this.readyReject(new Error(`aionrs exited with code ${code} during init`));
       }
@@ -289,9 +300,43 @@ export class AionrsAgent {
   }
 
   kill(): void {
+    this.restoreProjectConfig();
     if (this.childProcess) {
       this.childProcess.kill('SIGTERM');
       this.childProcess = null;
+    }
+  }
+
+  /**
+   * Write a temporary .aionrs.toml in the workspace for provider compat overrides.
+   * Backs up existing file content so it can be restored on exit.
+   */
+  private writeProjectConfig(content: string): void {
+    const configPath = join(this.options.workspace, AIONRS_PROJECT_CONFIG);
+    const existing = existsSync(configPath) ? readFileSync(configPath, 'utf-8') : null;
+    this.configBackup = { path: configPath, content: existing };
+
+    // If a project config already exists, append our overrides
+    const finalContent = existing ? `${existing}\n${content}` : content;
+    writeFileSync(configPath, finalContent, 'utf-8');
+  }
+
+  /**
+   * Restore or remove the .aionrs.toml written by writeProjectConfig.
+   */
+  private restoreProjectConfig(): void {
+    if (!this.configBackup) return;
+    const { path, content } = this.configBackup;
+    this.configBackup = null;
+
+    try {
+      if (content === null) {
+        unlinkSync(path);
+      } else {
+        writeFileSync(path, content, 'utf-8');
+      }
+    } catch {
+      // Best-effort cleanup; file may already be removed
     }
   }
 }
