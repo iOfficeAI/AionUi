@@ -4,7 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import type { CodexPermissionRequest } from "@/common/types/codex/types";
+import type { CodexPermissionRequest } from '@/common/types/codex/types';
 import type {
   ExecCommandBeginData,
   ExecCommandEndData,
@@ -16,15 +16,10 @@ import type {
   TurnDiffData,
   WebSearchBeginData,
   WebSearchEndData,
-} from "@/common/types/codex/types/eventData";
-import type {
-  AcpBackend,
-  AcpPermissionRequest,
-  PlanUpdate,
-  ToolCallUpdate,
-} from "@/common/types/acpTypes";
-import type { IResponseMessage } from "../adapter/ipcBridge";
-import { uuid } from "../utils";
+} from '@/common/types/codex/types/eventData';
+import type { AcpBackend, AcpPermissionRequest, PlanUpdate, ToolCallUpdate } from '@/common/types/acpTypes';
+import type { IResponseMessage } from '../adapter/ipcBridge';
+import { uuid } from '../utils';
 
 /**
  * 安全的路径拼接函数，兼容Windows和Mac
@@ -34,22 +29,22 @@ import { uuid } from "../utils";
  */
 export const joinPath = (basePath: string, relativePath: string): string => {
   // 标准化路径分隔符为 /
-  const normalizePath = (path: string) => path.replace(/\\/g, "/");
+  const normalizePath = (path: string) => path.replace(/\\/g, '/');
 
   const base = normalizePath(basePath);
   const relative = normalizePath(relativePath);
 
   // 去掉base路径末尾的斜杠
-  const cleanBase = base.replace(/\/+$/, "");
+  const cleanBase = base.replace(/\/+$/, '');
 
   // 处理相对路径中的 ./ 和 ../
-  const parts = relative.split("/");
+  const parts = relative.split('/');
   const resultParts = [];
 
   for (const part of parts) {
-    if (part === "." || part === "") {
+    if (part === '.' || part === '') {
       continue; // 跳过 . 和空字符串
-    } else if (part === "..") {
+    } else if (part === '..') {
       // 处理上级目录
       if (resultParts.length > 0) {
         resultParts.pop(); // 移除最后一个部分
@@ -60,10 +55,10 @@ export const joinPath = (basePath: string, relativePath: string): string => {
   }
 
   // 拼接路径
-  const result = cleanBase + "/" + resultParts.join("/");
+  const result = cleanBase + '/' + resultParts.join('/');
 
   // 确保路径格式正确
-  return result.replace(/\/+/g, "/"); // 将多个连续的斜杠替换为单个
+  return result.replace(/\/+/g, '/'); // 将多个连续的斜杠替换为单个
 };
 
 /**
@@ -71,19 +66,19 @@ export const joinPath = (basePath: string, relativePath: string): string => {
  */
 
 type TMessageType =
-  | "text"
-  | "tips"
-  | "tool_call"
-  | "tool_group"
-  | "agent_status"
-  | "acp_permission"
-  | "acp_tool_call"
-  | "codex_permission"
-  | "codex_tool_call"
-  | "plan"
-  | "thinking"
-  | "available_commands"
-  | "agent_delegation";
+  | 'text'
+  | 'tips'
+  | 'tool_call'
+  | 'tool_group'
+  | 'agent_status'
+  | 'acp_permission'
+  | 'acp_tool_call'
+  | 'codex_permission'
+  | 'codex_tool_call'
+  | 'plan'
+  | 'thinking'
+  | 'available_commands'
+  | 'agent_delegation';
 
 interface IMessage<T extends TMessageType, Content extends Record<string, any>> {
   /**
@@ -112,35 +107,32 @@ interface IMessage<T extends TMessageType, Content extends Record<string, any>> 
   /**
    * 消息位置
    */
-  position?: "left" | "right" | "center" | "pop";
+  position?: 'left' | 'right' | 'center' | 'pop';
   /**
    * 消息状态
    */
-  status?: "finish" | "pending" | "error" | "work";
+  status?: 'finish' | 'pending' | 'error' | 'work';
 }
 
 export type CronMessageMeta = {
-  source: "cron";
+  source: 'cron';
   cronJobId: string;
   cronJobName: string;
   triggeredAt: number;
 };
 
-export type IMessageText = IMessage<"text", { content: string; cronMeta?: CronMessageMeta }>;
+export type IMessageText = IMessage<'text', { content: string; cronMeta?: CronMessageMeta }>;
 
-export type IMessageTips = IMessage<
-  "tips",
-  { content: string; type: "error" | "success" | "warning" }
->;
+export type IMessageTips = IMessage<'tips', { content: string; type: 'error' | 'success' | 'warning' }>;
 
 export type IMessageToolCall = IMessage<
-  "tool_call",
+  'tool_call',
   {
     callId: string;
     name: string;
     args: Record<string, any>;
     error?: string;
-    status?: "success" | "error";
+    status?: 'success' | 'error';
   }
 >;
 
@@ -150,7 +142,7 @@ type IMessageToolGroupConfirmationDetailsBase<Type, Extra extends Record<string,
 } & Extra;
 
 export type IMessageToolGroup = IMessage<
-  "tool_group",
+  'tool_group',
   Array<{
     callId: string;
     description: string;
@@ -166,10 +158,10 @@ export type IMessageToolGroup = IMessage<
           img_url: string;
           relative_path: string;
         };
-    status: "Executing" | "Success" | "Error" | "Canceled" | "Pending" | "Confirming";
+    status: 'Executing' | 'Success' | 'Error' | 'Canceled' | 'Pending' | 'Confirming';
     confirmationDetails?:
       | IMessageToolGroupConfirmationDetailsBase<
-          "edit",
+          'edit',
           {
             fileName: string;
             fileDiff: string;
@@ -177,21 +169,21 @@ export type IMessageToolGroup = IMessage<
           }
         >
       | IMessageToolGroupConfirmationDetailsBase<
-          "exec",
+          'exec',
           {
             rootCommand: string;
             command: string;
           }
         >
       | IMessageToolGroupConfirmationDetailsBase<
-          "info",
+          'info',
           {
             urls?: string[];
             prompt: string;
           }
         >
       | IMessageToolGroupConfirmationDetailsBase<
-          "mcp",
+          'mcp',
           {
             toolName: string;
             toolDisplayName: string;
@@ -203,16 +195,10 @@ export type IMessageToolGroup = IMessage<
 
 // Unified agent status message type for all ACP-based agents (Claude, Qwen, Codex, etc.)
 export type IMessageAgentStatus = IMessage<
-  "agent_status",
+  'agent_status',
   {
     backend: AcpBackend; // Agent identifier: 'claude', 'qwen', 'codex', etc.
-    status:
-      | "connecting"
-      | "connected"
-      | "authenticated"
-      | "session_active"
-      | "disconnected"
-      | "error";
+    status: 'connecting' | 'connected' | 'authenticated' | 'session_active' | 'disconnected' | 'error';
     /** Display name for the agent (e.g. extension-contributed adapter name) / Agent 显示名称 */
     agentName?: string;
     // Optional legacy fields for backward compatibility
@@ -222,23 +208,23 @@ export type IMessageAgentStatus = IMessage<
   }
 >;
 
-export type IMessageAcpPermission = IMessage<"acp_permission", AcpPermissionRequest>;
+export type IMessageAcpPermission = IMessage<'acp_permission', AcpPermissionRequest>;
 
-export type IMessageAcpToolCall = IMessage<"acp_tool_call", ToolCallUpdate>;
+export type IMessageAcpToolCall = IMessage<'acp_tool_call', ToolCallUpdate>;
 
-export type IMessageCodexPermission = IMessage<"codex_permission", CodexPermissionRequest>;
+export type IMessageCodexPermission = IMessage<'codex_permission', CodexPermissionRequest>;
 
 // Base interface for all tool call updates
 interface BaseCodexToolCallUpdate {
   toolCallId: string;
-  status: "pending" | "executing" | "success" | "error" | "canceled";
+  status: 'pending' | 'executing' | 'success' | 'error' | 'canceled';
   title?: string; // Optional - can be derived from data or kind
-  kind: "execute" | "patch" | "mcp" | "web_search";
+  kind: 'execute' | 'patch' | 'mcp' | 'web_search';
 
   // UI display data
   description?: string;
   content?: Array<{
-    type: "text" | "diff" | "output";
+    type: 'text' | 'diff' | 'output';
     text?: string;
     output?: string;
     filePath?: string;
@@ -254,67 +240,67 @@ interface BaseCodexToolCallUpdate {
 // Specific subtypes using the original event data structures
 export type CodexToolCallUpdate =
   | (BaseCodexToolCallUpdate & {
-      subtype: "exec_command_begin";
+      subtype: 'exec_command_begin';
       data: ExecCommandBeginData;
     })
   | (BaseCodexToolCallUpdate & {
-      subtype: "exec_command_output_delta";
+      subtype: 'exec_command_output_delta';
       data: ExecCommandOutputDeltaData;
     })
   | (BaseCodexToolCallUpdate & {
-      subtype: "exec_command_end";
+      subtype: 'exec_command_end';
       data: ExecCommandEndData;
     })
   | (BaseCodexToolCallUpdate & {
-      subtype: "patch_apply_begin";
+      subtype: 'patch_apply_begin';
       data: PatchApplyBeginData;
     })
   | (BaseCodexToolCallUpdate & {
-      subtype: "patch_apply_end";
+      subtype: 'patch_apply_end';
       data: PatchApplyEndData;
     })
   | (BaseCodexToolCallUpdate & {
-      subtype: "mcp_tool_call_begin";
+      subtype: 'mcp_tool_call_begin';
       data: McpToolCallBeginData;
     })
   | (BaseCodexToolCallUpdate & {
-      subtype: "mcp_tool_call_end";
+      subtype: 'mcp_tool_call_end';
       data: McpToolCallEndData;
     })
   | (BaseCodexToolCallUpdate & {
-      subtype: "web_search_begin";
+      subtype: 'web_search_begin';
       data: WebSearchBeginData;
     })
   | (BaseCodexToolCallUpdate & {
-      subtype: "web_search_end";
+      subtype: 'web_search_end';
       data: WebSearchEndData;
     })
   | (BaseCodexToolCallUpdate & {
-      subtype: "turn_diff";
+      subtype: 'turn_diff';
       data: TurnDiffData;
     })
   | (BaseCodexToolCallUpdate & {
-      subtype: "generic";
+      subtype: 'generic';
       data?: any; // For generic updates that don't map to specific events
     });
 
-export type IMessageCodexToolCall = IMessage<"codex_tool_call", CodexToolCallUpdate>;
+export type IMessageCodexToolCall = IMessage<'codex_tool_call', CodexToolCallUpdate>;
 
 export type IMessagePlan = IMessage<
-  "plan",
+  'plan',
   {
     sessionId: string;
-    entries: PlanUpdate["update"]["entries"];
+    entries: PlanUpdate['update']['entries'];
   }
 >;
 
 export type IMessageThinking = IMessage<
-  "thinking",
+  'thinking',
   {
     content: string;
     subject?: string;
     duration?: number;
-    status: "thinking" | "done";
+    status: 'thinking' | 'done';
   }
 >;
 
@@ -326,7 +312,7 @@ export type AvailableCommand = {
 };
 
 export type IMessageAvailableCommands = IMessage<
-  "available_commands",
+  'available_commands',
   {
     commands: AvailableCommand[];
   }
@@ -343,12 +329,12 @@ export interface AgentDelegationContent {
   /** 任务描述 */
   taskDescription: string;
   /** 当前状态 */
-  status: "pending" | "running" | "completed" | "failed";
+  status: 'pending' | 'running' | 'completed' | 'failed';
   /** 执行结果（完成后填入） */
   result?: string;
 }
 
-export type IMessageAgentDelegation = IMessage<"agent_delegation", AgentDelegationContent>;
+export type IMessageAgentDelegation = IMessage<'agent_delegation', AgentDelegationContent>;
 
 export type TMessage =
   | IMessageText
@@ -389,28 +375,28 @@ export interface IConfirmation<Option extends any = any> {
  * */
 export const transformMessage = (message: IResponseMessage): TMessage => {
   switch (message.type) {
-    case "error": {
+    case 'error': {
       return {
         id: uuid(),
-        type: "tips",
+        type: 'tips',
         msg_id: message.msg_id,
-        position: "center",
+        position: 'center',
         conversation_id: message.conversation_id,
         content: {
           content: message.data as string,
-          type: "error",
+          type: 'error',
         },
       };
     }
-    case "content":
-    case "user_content": {
+    case 'content':
+    case 'user_content': {
       const data = message.data;
-      const isRichData = typeof data === "object" && data !== null && "content" in data;
+      const isRichData = typeof data === 'object' && data !== null && 'content' in data;
       return {
         id: uuid(),
-        type: "text",
+        type: 'text',
         msg_id: message.msg_id,
-        position: message.type === "content" ? "left" : "right",
+        position: message.type === 'content' ? 'left' : 'right',
         conversation_id: message.conversation_id,
         content: isRichData
           ? {
@@ -420,97 +406,97 @@ export const transformMessage = (message: IResponseMessage): TMessage => {
           : { content: data as string },
       };
     }
-    case "tool_call": {
+    case 'tool_call': {
       return {
         id: uuid(),
-        type: "tool_call",
+        type: 'tool_call',
         msg_id: message.msg_id,
         conversation_id: message.conversation_id,
-        position: "left",
+        position: 'left',
         content: message.data as any,
       };
     }
-    case "tool_group": {
+    case 'tool_group': {
       return {
-        type: "tool_group",
+        type: 'tool_group',
         id: uuid(),
         msg_id: message.msg_id,
-        conversation_id: message.conversation_id,
-        content: message.data as any,
-      };
-    }
-    case "agent_status": {
-      return {
-        id: uuid(),
-        type: "agent_status",
-        msg_id: message.msg_id,
-        position: "center",
         conversation_id: message.conversation_id,
         content: message.data as any,
       };
     }
-    case "acp_permission": {
+    case 'agent_status': {
       return {
         id: uuid(),
-        type: "acp_permission",
+        type: 'agent_status',
         msg_id: message.msg_id,
-        position: "left",
+        position: 'center',
         conversation_id: message.conversation_id,
         content: message.data as any,
       };
     }
-    case "acp_tool_call": {
+    case 'acp_permission': {
       return {
         id: uuid(),
-        type: "acp_tool_call",
+        type: 'acp_permission',
         msg_id: message.msg_id,
-        position: "left",
+        position: 'left',
         conversation_id: message.conversation_id,
         content: message.data as any,
       };
     }
-    case "codex_permission": {
+    case 'acp_tool_call': {
       return {
         id: uuid(),
-        type: "codex_permission",
+        type: 'acp_tool_call',
         msg_id: message.msg_id,
-        position: "left",
+        position: 'left',
         conversation_id: message.conversation_id,
         content: message.data as any,
       };
     }
-    case "codex_tool_call": {
+    case 'codex_permission': {
       return {
         id: uuid(),
-        type: "codex_tool_call",
+        type: 'codex_permission',
         msg_id: message.msg_id,
-        position: "left",
+        position: 'left',
         conversation_id: message.conversation_id,
         content: message.data as any,
       };
     }
-    case "plan": {
+    case 'codex_tool_call': {
       return {
         id: uuid(),
-        type: "plan",
+        type: 'codex_tool_call',
         msg_id: message.msg_id,
-        position: "left",
+        position: 'left',
         conversation_id: message.conversation_id,
         content: message.data as any,
       };
     }
-    case "thinking": {
+    case 'plan': {
+      return {
+        id: uuid(),
+        type: 'plan',
+        msg_id: message.msg_id,
+        position: 'left',
+        conversation_id: message.conversation_id,
+        content: message.data as any,
+      };
+    }
+    case 'thinking': {
       const data = message.data as {
         content: string;
         subject?: string;
         duration?: number;
-        status: "thinking" | "done";
+        status: 'thinking' | 'done';
       };
       return {
         id: uuid(),
-        type: "thinking",
+        type: 'thinking',
         msg_id: message.msg_id,
-        position: "left",
+        position: 'left',
         conversation_id: message.conversation_id,
         content: {
           content: data.content,
@@ -521,21 +507,21 @@ export const transformMessage = (message: IResponseMessage): TMessage => {
       };
     }
     // Disabled: available_commands messages are too noisy and distracting in the chat UI
-    case "available_commands":
+    case 'available_commands':
       break;
-    case "start":
-    case "finish":
-    case "thought":
-    case "info": // Stream retry notifications and similar transient agent updates
-    case "system": // Cron system responses, ignored
-    case "acp_model_info": // Model info updates, handled by AcpModelSelector
-    case "codex_model_info": // Codex model info updates, handled by AcpModelSelector
-    case "acp_context_usage": // Context usage updates, handled by AcpSendBox
-    case "request_trace": // Request trace events, logged to F12 console (not persisted)
+    case 'start':
+    case 'finish':
+    case 'thought':
+    case 'info': // Stream retry notifications and similar transient agent updates
+    case 'system': // Cron system responses, ignored
+    case 'acp_model_info': // Model info updates, handled by AcpModelSelector
+    case 'codex_model_info': // Codex model info updates, handled by AcpModelSelector
+    case 'acp_context_usage': // Context usage updates, handled by AcpSendBox
+    case 'request_trace': // Request trace events, logged to F12 console (not persisted)
       break;
     default: {
       console.warn(
-        `[transformMessage] Unsupported message type '${message.type}'. All non-standard message types should be pre-processed by respective AgentManagers.`,
+        `[transformMessage] Unsupported message type '${message.type}'. All non-standard message types should be pre-processed by respective AgentManagers.`
       );
       break;
     }
@@ -548,11 +534,11 @@ export const transformMessage = (message: IResponseMessage): TMessage => {
 export const composeMessage = (
   message: TMessage | undefined,
   list: TMessage[] | undefined,
-  messageHandler: (type: "update" | "insert", message: TMessage) => void = () => {},
+  messageHandler: (type: 'update' | 'insert', message: TMessage) => void = () => {}
 ): TMessage[] => {
   if (!message) return list || [];
   if (!list?.length) {
-    messageHandler("insert", message);
+    messageHandler('insert', message);
     return [message];
   }
   const last = list[list.length - 1];
@@ -560,23 +546,23 @@ export const composeMessage = (
   const updateMessage = (index: number, message: TMessage, change = true) => {
     message.id = list[index].id;
     list[index] = message;
-    if (change) messageHandler("update", message);
+    if (change) messageHandler('update', message);
     return list.slice();
   };
   const pushMessage = (message: TMessage) => {
     list.push(message);
-    messageHandler("insert", message);
+    messageHandler('insert', message);
     return list.slice();
   };
 
-  if (message.type === "tool_group") {
+  if (message.type === 'tool_group') {
     const remainingToolsMap = new Map(message.content.map((t) => [t.callId, t] as const));
     if (remainingToolsMap.size === 0) return list;
 
     const updatesToReport: TMessage[] = [];
 
     const updatedList = list.map((existingMessage) => {
-      if (existingMessage.type !== "tool_group") return existingMessage;
+      if (existingMessage.type !== 'tool_group') return existingMessage;
       if (!existingMessage.content.length) return existingMessage;
 
       let didMergeIntoThisMessage = false;
@@ -597,7 +583,7 @@ export const composeMessage = (
 
     const didUpdateExisting = updatesToReport.length > 0;
     for (const updatedMessage of updatesToReport) {
-      messageHandler("update", updatedMessage);
+      messageHandler('update', updatedMessage);
     }
 
     const baseList = didUpdateExisting ? updatedList : list;
@@ -606,7 +592,7 @@ export const composeMessage = (
     if (remainingToolsMap.size > 0) {
       const newTools = Array.from(remainingToolsMap.values());
       const insertMessage = { ...message, content: newTools } as TMessage;
-      messageHandler("insert", insertMessage);
+      messageHandler('insert', insertMessage);
       return baseList.concat(insertMessage);
     }
     // No new tools appended; return a new list only if something was updated
@@ -614,10 +600,10 @@ export const composeMessage = (
   }
 
   // Handle Gemini tool_call message merging
-  if (message.type === "tool_call") {
+  if (message.type === 'tool_call') {
     for (let i = 0, len = list.length; i < len; i++) {
       const msg = list[i];
-      if (msg.type === "tool_call" && msg.content.callId === message.content.callId) {
+      if (msg.type === 'tool_call' && msg.content.callId === message.content.callId) {
         // Create new object instead of mutating original
         return updateMessage(i, { ...msg, content: { ...msg.content, ...message.content } });
       }
@@ -627,10 +613,10 @@ export const composeMessage = (
   }
 
   // Handle codex_tool_call message merging
-  if (message.type === "codex_tool_call") {
+  if (message.type === 'codex_tool_call') {
     for (let i = 0, len = list.length; i < len; i++) {
       const msg = list[i];
-      if (msg.type === "codex_tool_call" && msg.content.toolCallId === message.content.toolCallId) {
+      if (msg.type === 'codex_tool_call' && msg.content.toolCallId === message.content.toolCallId) {
         // Create new object instead of mutating original
         const merged = { ...msg.content, ...message.content };
         return updateMessage(i, { ...msg, content: merged });
@@ -641,13 +627,10 @@ export const composeMessage = (
   }
 
   // Handle acp_tool_call message merging (same logic as codex_tool_call)
-  if (message.type === "acp_tool_call") {
+  if (message.type === 'acp_tool_call') {
     for (let i = 0, len = list.length; i < len; i++) {
       const msg = list[i];
-      if (
-        msg.type === "acp_tool_call" &&
-        msg.content.update?.toolCallId === message.content.update?.toolCallId
-      ) {
+      if (msg.type === 'acp_tool_call' && msg.content.update?.toolCallId === message.content.update?.toolCallId) {
         // Create new object instead of mutating original
         const merged = { ...msg.content, ...message.content };
         return updateMessage(i, { ...msg, content: merged });
@@ -657,10 +640,10 @@ export const composeMessage = (
     return pushMessage(message);
   }
 
-  if (message.type === "plan") {
+  if (message.type === 'plan') {
     for (let i = 0, len = list.length; i < len; i++) {
       const msg = list[i];
-      if (msg.type === "plan" && msg.content.sessionId === message.content.sessionId) {
+      if (msg.type === 'plan' && msg.content.sessionId === message.content.sessionId) {
         // Create new object instead of mutating original
         const merged = { ...msg.content, ...message.content };
         return updateMessage(i, { ...msg, content: merged });
@@ -671,15 +654,15 @@ export const composeMessage = (
   }
 
   // Handle thinking message merging — append streaming content by msg_id
-  if (message.type === "thinking") {
+  if (message.type === 'thinking') {
     for (let i = list.length - 1; i >= 0; i--) {
       const msg = list[i];
-      if (msg.type === "thinking" && msg.msg_id === message.msg_id) {
+      if (msg.type === 'thinking' && msg.msg_id === message.msg_id) {
         // If incoming is 'done', update status and duration but keep accumulated content
-        if (message.content.status === "done") {
+        if (message.content.status === 'done') {
           const merged = {
             ...msg.content,
-            status: message.content.status as "done",
+            status: message.content.status as 'done',
             duration: message.content.duration,
           };
           return updateMessage(i, { ...msg, content: merged });
@@ -699,18 +682,15 @@ export const composeMessage = (
   if (last.msg_id !== message.msg_id || last.type !== message.type) {
     return pushMessage(message);
   }
-  if (message.type === "text" && last.type === "text") {
+  if (message.type === 'text' && last.type === 'text') {
     message.content.content = last.content.content + message.content.content;
   }
   return updateMessage(list.length - 1, Object.assign({}, last, message));
 };
 
-export const handleImageGenerationWithWorkspace = (
-  message: TMessage,
-  workspace: string,
-): TMessage => {
+export const handleImageGenerationWithWorkspace = (message: TMessage, workspace: string): TMessage => {
   // 只处理text类型的消息
-  if (message.type !== "text") {
+  if (message.type !== 'text') {
     return message;
   }
 
@@ -719,25 +699,22 @@ export const handleImageGenerationWithWorkspace = (
     ...message,
     content: {
       ...message.content,
-      content: message.content.content.replace(
-        /!\[([^\]]*)\]\(([^)]+)\)/g,
-        (match, alt, imagePath) => {
-          // 如果是绝对路径、http链接或data URL，保持不变
-          if (
-            imagePath.startsWith("http") ||
-            imagePath.startsWith("data:") ||
-            imagePath.startsWith("/") ||
-            imagePath.startsWith("file:") ||
-            imagePath.startsWith("\\") ||
-            /^[A-Za-z]:/.test(imagePath)
-          ) {
-            return match;
-          }
-          // 如果是相对路径，与workspace拼接
-          const absolutePath = joinPath(workspace, imagePath);
-          return `![${alt}](${encodeURI(absolutePath)})`;
-        },
-      ),
+      content: message.content.content.replace(/!\[([^\]]*)\]\(([^)]+)\)/g, (match, alt, imagePath) => {
+        // 如果是绝对路径、http链接或data URL，保持不变
+        if (
+          imagePath.startsWith('http') ||
+          imagePath.startsWith('data:') ||
+          imagePath.startsWith('/') ||
+          imagePath.startsWith('file:') ||
+          imagePath.startsWith('\\') ||
+          /^[A-Za-z]:/.test(imagePath)
+        ) {
+          return match;
+        }
+        // 如果是相对路径，与workspace拼接
+        const absolutePath = joinPath(workspace, imagePath);
+        return `![${alt}](${encodeURI(absolutePath)})`;
+      }),
     },
   };
 
