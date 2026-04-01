@@ -144,6 +144,7 @@
   "cacheClearSuccess": "缓存清理成功",
   "cacheClearFailed": "缓存清理失败",
   "language": "语言",
+  "saveUploadToWorkspace": "上传文件保存到工作区",
   "closeToTray": "关闭到托盘",
   "notification": "通知",
   "cronNotificationEnabled": "定时任务完成通知",

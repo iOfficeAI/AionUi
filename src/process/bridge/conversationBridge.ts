@@ -11,7 +11,13 @@ import type { IAgentManager } from '@process/task/IAgentManager';
 import type { IConversationService } from '@process/services/IConversationService';
 import type { IWorkerTaskManager } from '@process/task/IWorkerTaskManager';
 import { ipcBridge } from '@/common';
-import { getSkillsDir, getBuiltinSkillsCopyDir, getSystemDir, ProcessChat } from '@process/utils/initStorage';
+import {
+  getSkillsDir,
+  getBuiltinSkillsCopyDir,
+  getSystemDir,
+  ProcessChat,
+  ProcessConfig,
+} from '@process/utils/initStorage';
 import type AcpAgentManager from '../task/AcpAgentManager';
 import type { GeminiAgentManager } from '../task/GeminiAgentManager';
 import type OpenClawAgentManager from '../task/OpenClawAgentManager';
@@ -19,6 +25,8 @@ import { prepareFirstMessage } from '../task/agentUtils';
 import { refreshTrayMenu } from '@process/utils/tray';
 import { copyFilesToDirectory, readDirectoryRecursive } from '@process/utils';
 import { computeOpenClawIdentityHash } from '@process/utils/openclawUtils';
+import fs from 'fs';
+import path from 'path';
 import { migrateConversationToDatabase } from './migrationUtils';
 import { ConversationSideQuestionService } from './services/ConversationSideQuestionService';
 
@@ -449,15 +457,24 @@ export function initConversationBridge(
       return { success: false, msg: 'conversation not found' };
     }
 
-    // Copy files to workspace (unified for all agents)
-    // Wrap in try-catch to prevent unhandled rejection when workspace directory is missing
-    // (bridge library does not attach .catch to provider promises)
+    // Handle file paths based on agent type
+    // Gemini requires files in workspace; other agents can use cache directory directly
     let workspaceFiles: string[];
-    try {
-      workspaceFiles = await copyFilesToDirectory(task.workspace, files, false, getSystemDir().cacheDir);
-    } catch (error) {
-      console.error('[conversationBridge] sendMessage: failed to copy files to workspace:', error);
-      workspaceFiles = [];
+    const isGeminiAgent = task.type === 'gemini';
+
+    if (isGeminiAgent) {
+      // Gemini: Copy files to workspace (required for gemini CLI)
+      // Wrap in try-catch to prevent unhandled rejection when workspace directory is missing
+      try {
+        workspaceFiles = await copyFilesToDirectory(task.workspace, files, false, getSystemDir().cacheDir);
+      } catch (error) {
+        console.error('[conversationBridge] sendMessage: failed to copy files to workspace:', error);
+        workspaceFiles = [];
+      }
+    } else {
+      // Non-Gemini agents (ACP, Codex, NanoBot, OpenClaw, Remote): Use cache directory paths directly
+      // Filter to only include absolute paths that exist
+      workspaceFiles = files.filter((f) => path.isAbsolute(f));
     }
 
     // Precompute agent content with optional skill injection.
@@ -488,6 +505,29 @@ export function initConversationBridge(
         files: workspaceFiles,
         agentContent,
       });
+
+      // After sending, clean up workspace file copies for Gemini (only if saveToWorkspace is disabled)
+      // 发送后为 Gemini 清理工作区的文件副本（仅在 saveToWorkspace 禁用时）
+      if (isGeminiAgent && workspaceFiles.length > 0) {
+        const saveToWorkspace = await ProcessConfig.get('upload.saveToWorkspace').catch(() => false);
+        if (!saveToWorkspace) {
+          for (const filePath of workspaceFiles) {
+            try {
+              // Only delete if it's inside the workspace (not original files)
+              const resolvedFile = path.resolve(filePath);
+              const resolvedWorkspace = path.resolve(task.workspace);
+              if (resolvedFile.startsWith(resolvedWorkspace + path.sep)) {
+                await fs.promises.unlink(filePath);
+                console.log('[conversationBridge] Cleaned up workspace file:', filePath);
+              }
+            } catch (cleanupError) {
+              // Ignore cleanup errors - file might be in use or already deleted
+              console.warn('[conversationBridge] Failed to cleanup file:', filePath, cleanupError);
+            }
+          }
+        }
+      }
+
       return { success: true };
     } catch (err: unknown) {
       return {

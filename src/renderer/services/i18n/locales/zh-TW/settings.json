@@ -144,6 +144,7 @@
   "cacheClearSuccess": "Cache cleared successfully",
   "cacheClearFailed": "Failed to clear cache",
   "language": "語言",
+  "saveUploadToWorkspace": "上傳文件保存到工作區",
   "closeToTray": "關閉到托盤",
   "notification": "通知",
   "cronNotificationEnabled": "定時任務完成通知",

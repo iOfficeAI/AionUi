@@ -8,7 +8,14 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 // --- Mocks (vi.hoisted so factories can reference them) ---
 
-const { openFileProvider, showItemInFolderProvider, openExternalProvider, checkToolInstalledProvider, openFolderWithProvider, shellMock } = vi.hoisted(() => ({
+const {
+  openFileProvider,
+  showItemInFolderProvider,
+  openExternalProvider,
+  checkToolInstalledProvider,
+  openFolderWithProvider,
+  shellMock,
+} = vi.hoisted(() => ({
   openFileProvider: { fn: undefined as ((...args: any[]) => any) | undefined },
   showItemInFolderProvider: { fn: undefined as ((...args: any[]) => any) | undefined },
   openExternalProvider: { fn: undefined as ((...args: any[]) => any) | undefined },

@@ -38,6 +38,7 @@ const SystemModalContent: React.FC = () => {
   const [notificationEnabled, setNotificationEnabled] = useState(true);
   const [cronNotificationEnabled, setCronNotificationEnabled] = useState(false);
   const [promptTimeout, setPromptTimeout] = useState<number>(300);
+  const [saveUploadToWorkspace, setSaveUploadToWorkspace] = useState(false);
 
   useEffect(() => {
     ipcBridge.systemSettings.getCloseToTray
@@ -68,6 +69,13 @@ const SystemModalContent: React.FC = () => {
       .catch(() => {});
   }, []);
 
+  useEffect(() => {
+    ipcBridge.systemSettings.getSaveUploadToWorkspace
+      .invoke()
+      .then((enabled) => setSaveUploadToWorkspace(enabled))
+      .catch(() => {});
+  }, []);
+
   const handleCloseToTrayChange = useCallback((checked: boolean) => {
     setCloseToTray(checked);
     ipcBridge.systemSettings.setCloseToTray.invoke({ enabled: checked }).catch(() => {
@@ -93,6 +101,13 @@ const SystemModalContent: React.FC = () => {
     const seconds = val ?? 300;
     setPromptTimeout(seconds);
     ConfigStorage.set('acp.promptTimeout', seconds).catch(() => {});
+  }, []);
+
+  const handleSaveUploadToWorkspaceChange = useCallback((checked: boolean) => {
+    setSaveUploadToWorkspace(checked);
+    ipcBridge.systemSettings.setSaveUploadToWorkspace.invoke({ enabled: checked }).catch(() => {
+      setSaveUploadToWorkspace(!checked);
+    });
   }, []);
 
   // Get system directory info
@@ -130,6 +145,11 @@ const SystemModalContent: React.FC = () => {
           suffix='s'
         />
       ),
+    },
+    {
+      key: 'saveUploadToWorkspace',
+      label: t('settings.saveUploadToWorkspace'),
+      component: <Switch checked={saveUploadToWorkspace} onChange={handleSaveUploadToWorkspaceChange} />,
     },
   ];
 

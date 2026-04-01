@@ -694,6 +694,10 @@ export const systemSettings = {
   changeLanguage: bridge.buildProvider<void, { language: string }>('system-settings:change-language'),
   // Broadcast language change to all renderers (desktop + WebUI) for real-time sync
   languageChanged: bridge.buildEmitter<{ language: string }>('system-settings:language-changed'),
+  getSaveUploadToWorkspace: bridge.buildProvider<boolean, void>('system-settings:get-save-upload-to-workspace'),
+  setSaveUploadToWorkspace: bridge.buildProvider<void, { enabled: boolean }>(
+    'system-settings:set-save-upload-to-workspace'
+  ),
 };
 
 // 系统通知接口 / System notification API

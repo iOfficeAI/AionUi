@@ -144,6 +144,7 @@
   "cacheClearSuccess": "Cache cleared successfully",
   "cacheClearFailed": "Failed to clear cache",
   "language": "Language",
+  "saveUploadToWorkspace": "Save Uploads to Workspace",
   "closeToTray": "Close to Tray",
   "notification": "Notifications",
   "cronNotificationEnabled": "Scheduled Task Completion",
