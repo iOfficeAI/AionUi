@@ -1,12 +1,12 @@
 /**
- * Prepare aioncli-agent binary for Electron packaging.
+ * Prepare aionrs binary for Electron packaging.
  *
  * Resolution order:
- *  1. AIONCLI_AGENT_PATH env var (explicit local build path)
- *  2. System PATH (which/where aioncli-agent)
- *  3. GitHub release download (requires AIONCLI_AGENT_VERSION or defaults to "latest")
+ *  1. AIONRS_PATH env var (explicit local build path)
+ *  2. System PATH (which/where aionrs)
+ *  3. GitHub release download (requires AIONRS_VERSION or defaults to "latest")
  *
- * Output: resources/bundled-aioncli/{platform}-{arch}/aioncli-agent[.exe]
+ * Output: resources/bundled-aionrs/{platform}-{arch}/aionrs[.exe]
  *
  * Pattern follows prepareBundledBun.js.
  */
@@ -17,7 +17,7 @@ const os = require('os');
 const path = require('path');
 
 const GITHUB_OWNER = 'iOfficeAI';
-const GITHUB_REPO = 'aioncli-agent';
+const GITHUB_REPO = 'aionrs';
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -50,11 +50,11 @@ function writeJson(filePath, payload) {
 }
 
 function getBinaryName(platform) {
-  return platform === 'win32' ? 'aioncli-agent.exe' : 'aioncli-agent';
+  return platform === 'win32' ? 'aionrs.exe' : 'aionrs';
 }
 
 function getVersion() {
-  return (process.env.AIONCLI_AGENT_VERSION || 'latest').trim();
+  return (process.env.AIONRS_VERSION || 'latest').trim();
 }
 
 // ---------------------------------------------------------------------------
@@ -62,10 +62,10 @@ function getVersion() {
 // ---------------------------------------------------------------------------
 
 /**
- * 1. Explicit path via AIONCLI_AGENT_PATH
+ * 1. Explicit path via AIONRS_PATH
  */
 function resolveFromEnv() {
-  const envPath = process.env.AIONCLI_AGENT_PATH;
+  const envPath = process.env.AIONRS_PATH;
   if (envPath && fs.existsSync(envPath)) return envPath;
   return null;
 }
@@ -75,7 +75,7 @@ function resolveFromEnv() {
  */
 function resolveFromSystemPath(platform) {
   try {
-    const cmd = platform === 'win32' ? 'where aioncli-agent' : 'which aioncli-agent';
+    const cmd = platform === 'win32' ? 'where aionrs' : 'which aionrs';
     const result = execSync(cmd, { encoding: 'utf-8', timeout: 5000 }).trim();
     if (result && fs.existsSync(result)) return result;
   } catch {}
@@ -92,7 +92,7 @@ function getAssetName(platform, arch) {
   const normalizedPlatform = platformMap[platform];
   if (!normalizedArch || !normalizedPlatform) return null;
   const ext = platform === 'win32' ? '.zip' : '.tar.gz';
-  return `aioncli-agent-${normalizedArch}-${normalizedPlatform}${ext}`;
+  return `aionrs-${normalizedArch}-${normalizedPlatform}${ext}`;
 }
 
 function getDownloadUrl(assetName, version) {
@@ -104,7 +104,7 @@ function getDownloadUrl(assetName, version) {
 }
 
 function downloadFile(url, outputPath) {
-  console.log(`  Downloading aioncli-agent from ${url}`);
+  console.log(`  Downloading aionrs from ${url}`);
   if (process.platform === 'win32') {
     const ps = `$ProgressPreference='SilentlyContinue'; Invoke-WebRequest -Uri '${url}' -OutFile '${outputPath.replace(/'/g, "''")}'`;
     execFileSync('powershell', ['-NoProfile', '-NonInteractive', '-Command', ps], { timeout: 120000 });
@@ -148,11 +148,11 @@ function findBinaryInDir(dir, binaryName) {
 function downloadAndExtract(platform, arch, version) {
   const assetName = getAssetName(platform, arch);
   if (!assetName) {
-    throw new Error(`Unsupported aioncli-agent target: ${platform}-${arch}`);
+    throw new Error(`Unsupported aionrs target: ${platform}-${arch}`);
   }
 
   const url = getDownloadUrl(assetName, version);
-  const tempDir = path.join(os.tmpdir(), 'aionui-aioncli-agent', version, `${platform}-${arch}`);
+  const tempDir = path.join(os.tmpdir(), 'aionui-aionrs', version, `${platform}-${arch}`);
   const archivePath = path.join(tempDir, assetName);
   const extractDir = path.join(tempDir, 'extracted');
 
@@ -175,18 +175,18 @@ function downloadAndExtract(platform, arch, version) {
 // Main
 // ---------------------------------------------------------------------------
 
-function prepareAioncliAgent() {
+function prepareAionrs() {
   const projectRoot = path.resolve(__dirname, '..');
   const platform = process.platform;
   const arch = process.arch;
   const runtimeKey = `${platform}-${arch}`;
   const version = getVersion();
 
-  const targetDir = path.join(projectRoot, 'resources', 'bundled-aioncli', runtimeKey);
+  const targetDir = path.join(projectRoot, 'resources', 'bundled-aionrs', runtimeKey);
   const binaryName = getBinaryName(platform);
   const targetBinaryPath = path.join(targetDir, binaryName);
 
-  console.log(`Preparing aioncli-agent for ${runtimeKey} (version: ${version})`);
+  console.log(`Preparing aionrs for ${runtimeKey} (version: ${version})`);
 
   removeDirectorySafe(targetDir);
   ensureDirectory(targetDir);
@@ -201,7 +201,7 @@ function prepareAioncliAgent() {
   if (sourcePath) {
     sourceType = 'env';
     sourceDetail = { path: sourcePath };
-    console.log(`  Found via AIONCLI_AGENT_PATH: ${sourcePath}`);
+    console.log(`  Found via AIONRS_PATH: ${sourcePath}`);
   }
 
   // 2. System PATH
@@ -252,7 +252,7 @@ function prepareAioncliAgent() {
 
     writeJson(path.join(targetDir, 'manifest.json'), manifest);
     console.log(
-      `  Bundled aioncli-agent prepared: resources/bundled-aioncli/${runtimeKey}/${binaryName} [source=${sourceType}]`
+      `  Bundled aionrs prepared: resources/bundled-aionrs/${runtimeKey}/${binaryName} [source=${sourceType}]`
     );
 
     if (tempDir) removeDirectorySafe(tempDir);
@@ -269,12 +269,12 @@ function prepareAioncliAgent() {
     source: {},
     files: [],
     skipped: true,
-    reason: 'aioncli-agent binary not found (set AIONCLI_AGENT_PATH, install to PATH, or ensure GitHub release exists)',
+    reason: 'aionrs binary not found (set AIONRS_PATH, install to PATH, or ensure GitHub release exists)',
   };
 
   writeJson(path.join(targetDir, 'manifest.json'), manifest);
-  console.warn(`  aioncli-agent not found — skipping bundle (agent will not be available in packaged app)`);
+  console.warn(`  aionrs not found — skipping bundle (agent will not be available in packaged app)`);
   return { prepared: false, reason: 'not_found' };
 }
 
-module.exports = prepareAioncliAgent;
+module.exports = prepareAionrs;

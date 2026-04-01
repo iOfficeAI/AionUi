@@ -27,8 +27,8 @@ const LocalAgents: React.FC = () => {
 
   // Gemini CLI and Aion CLI first among detected agents
   const geminiAgent = detectedAgents?.find((a) => a.backend === 'gemini');
-  const aioncliAgent = detectedAgents?.find((a) => a.backend === 'aioncli');
-  const otherDetected = detectedAgents?.filter((a) => a.backend !== 'gemini' && a.backend !== 'aioncli') ?? [];
+  const aionrsAgent = detectedAgents?.find((a) => a.backend === 'aionrs');
+  const otherDetected = detectedAgents?.filter((a) => a.backend !== 'gemini' && a.backend !== 'aionrs') ?? [];
 
   return (
     <div className='flex flex-col gap-8px py-16px'>
@@ -58,12 +58,12 @@ const LocalAgents: React.FC = () => {
             onSettings={() => navigate('/settings/gemini')}
           />
         )}
-        {aioncliAgent && (
+        {aionrsAgent && (
           <AgentCard
             type='detected'
-            agent={aioncliAgent}
+            agent={aionrsAgent}
             settingsDisabled={false}
-            onSettings={() => navigate('/settings/aioncli')}
+            onSettings={() => navigate('/settings/aionrs')}
           />
         )}
         {otherDetected.map((agent) => (

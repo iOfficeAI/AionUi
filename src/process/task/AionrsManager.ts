@@ -18,8 +18,8 @@ import BaseAgentManager from './BaseAgentManager';
 import { IpcAgentEventEmitter } from './IpcAgentEventEmitter';
 import { mainError } from '@process/utils/mainLogger';
 
-// Aioncli-specific approval key — reuses same pattern as GeminiApprovalStore
-type AioncliApprovalKey = IApprovalKey & {
+// Aionrs-specific approval key — reuses same pattern as GeminiApprovalStore
+type AionrsApprovalKey = IApprovalKey & {
   action: 'exec' | 'edit' | 'info' | 'mcp';
   identifier?: string;
 };
@@ -28,8 +28,8 @@ function isValidCommandName(name: string): boolean {
   return /^[a-zA-Z_][a-zA-Z0-9_-]*$/.test(name);
 }
 
-export class AioncliApprovalStore extends BaseApprovalStore<AioncliApprovalKey> {
-  static createKeysFromConfirmation(action: string, commandType?: string): AioncliApprovalKey[] {
+export class AionrsApprovalStore extends BaseApprovalStore<AionrsApprovalKey> {
+  static createKeysFromConfirmation(action: string, commandType?: string): AionrsApprovalKey[] {
     if (action === 'exec' && commandType) {
       return commandType
         .split(',')
@@ -39,13 +39,13 @@ export class AioncliApprovalStore extends BaseApprovalStore<AioncliApprovalKey> 
         .map((cmd) => ({ action: 'exec' as const, identifier: cmd }));
     }
     if (action === 'edit' || action === 'info' || action === 'mcp') {
-      return [{ action: action as AioncliApprovalKey['action'] }];
+      return [{ action: action as AionrsApprovalKey['action'] }];
     }
     return [];
   }
 }
 
-type AioncliManagerData = {
+type AionrsManagerData = {
   workspace: string;
   proxy?: string;
   model: TProviderWithModel;
@@ -57,14 +57,14 @@ type AioncliManagerData = {
   sessionMode?: string;
 };
 
-export class AioncliAgentManager extends BaseAgentManager<AioncliManagerData, string> {
+export class AionrsManager extends BaseAgentManager<AionrsManagerData, string> {
   workspace: string;
   model: TProviderWithModel;
-  readonly approvalStore = new AioncliApprovalStore();
+  readonly approvalStore = new AionrsApprovalStore();
   private currentMode: string = 'default';
 
-  constructor(data: AioncliManagerData, model: TProviderWithModel) {
-    super('aioncli', { ...data, model }, new IpcAgentEventEmitter());
+  constructor(data: AionrsManagerData, model: TProviderWithModel) {
+    super('aionrs', { ...data, model }, new IpcAgentEventEmitter());
     this.workspace = data.workspace;
     this.conversation_id = data.conversation_id;
     this.model = model;
@@ -131,7 +131,7 @@ export class AioncliAgentManager extends BaseAgentManager<AioncliManagerData, st
       const action = content.confirmationDetails?.type ?? 'info';
       const commandType =
         action === 'exec' ? (content.confirmationDetails as { rootCommand?: string })?.rootCommand : undefined;
-      const keys = AioncliApprovalStore.createKeysFromConfirmation(action, commandType);
+      const keys = AionrsApprovalStore.createKeysFromConfirmation(action, commandType);
       if (keys.length > 0 && this.approvalStore.allApproved(keys)) {
         void this.postMessagePromise(content.callId, ToolConfirmationOutcome.ProceedOnce);
         continue;
@@ -158,7 +158,7 @@ export class AioncliAgentManager extends BaseAgentManager<AioncliManagerData, st
 
   init() {
     super.init();
-    this.on('aioncli.message', (data) => {
+    this.on('aionrs.message', (data) => {
       const contentTypes = ['content', 'tool_group'];
       if (contentTypes.includes(data.type)) {
         this.status = 'finished';
@@ -171,7 +171,7 @@ export class AioncliAgentManager extends BaseAgentManager<AioncliManagerData, st
           conversation_id: this.conversation_id,
           msg_id: uuid(),
           data: {
-            agentType: 'aioncli' as const,
+            agentType: 'aionrs' as const,
             provider: this.model.name,
             modelId: this.model.useModel,
             baseUrl: this.model.baseUrl,
@@ -188,7 +188,7 @@ export class AioncliAgentManager extends BaseAgentManager<AioncliManagerData, st
       if (!skipTransformTypes.includes(data.type)) {
         const tMessage = transformMessage(data as IResponseMessage);
         if (tMessage) {
-          addOrUpdateMessage(this.conversation_id, tMessage, 'aioncli');
+          addOrUpdateMessage(this.conversation_id, tMessage, 'aionrs');
           if (tMessage.type === 'tool_group') {
             this.handleConformationMessage(tMessage);
           }
@@ -213,14 +213,14 @@ export class AioncliAgentManager extends BaseAgentManager<AioncliManagerData, st
     try {
       const db = await getDatabase();
       const result = db.getConversation(this.conversation_id);
-      if (result.success && result.data && result.data.type === 'aioncli') {
+      if (result.success && result.data && result.data.type === 'aionrs') {
         const conversation = result.data;
         db.updateConversation(this.conversation_id, {
           extra: { ...conversation.extra, sessionMode: mode },
         } as Partial<typeof conversation>);
       }
     } catch (error) {
-      mainError('[AioncliAgentManager]', 'Failed to save session mode', error);
+      mainError('[AionrsManager]', 'Failed to save session mode', error);
     }
   }
 
@@ -229,7 +229,7 @@ export class AioncliAgentManager extends BaseAgentManager<AioncliManagerData, st
     if (data === ToolConfirmationOutcome.ProceedAlways) {
       const confirmation = this.confirmations.find((c) => c.callId === callId);
       if (confirmation?.action) {
-        const keys = AioncliApprovalStore.createKeysFromConfirmation(confirmation.action, confirmation.commandType);
+        const keys = AionrsApprovalStore.createKeysFromConfirmation(confirmation.action, confirmation.commandType);
         this.approvalStore.approveAll(keys);
       }
     }

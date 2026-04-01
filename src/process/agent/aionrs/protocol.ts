@@ -4,8 +4,8 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-// aioncli-agent JSON Stream Protocol types
-// Reference: aioncli-agent/docs/json-stream-protocol.md
+// aionrs JSON Stream Protocol types
+// Reference: aionrs/docs/json-stream-protocol.md
 
 // ============================================
 // Agent -> Client Events (stdout)
@@ -27,7 +27,7 @@ export type TokenUsage = {
   cache_write_tokens?: number;
 };
 
-export type AioncliEvent =
+export type AionrsEvent =
   | {
       type: 'ready';
       version: string;
@@ -71,7 +71,7 @@ export type AioncliEvent =
 // Client -> Agent Commands (stdin)
 // ============================================
 
-export type AioncliCommand =
+export type AionrsCommand =
   | { type: 'message'; msg_id: string; input: string; files?: string[] }
   | { type: 'stop' }
   | { type: 'tool_approve'; call_id: string; scope: 'once' | 'always' }

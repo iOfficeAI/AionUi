@@ -14,7 +14,7 @@ import { ipcBridge } from '@/common';
 import { getSkillsDir, getBuiltinSkillsCopyDir, getSystemDir, ProcessChat } from '@process/utils/initStorage';
 import type AcpAgentManager from '../task/AcpAgentManager';
 import type { GeminiAgentManager } from '../task/GeminiAgentManager';
-import { AioncliApprovalStore, type AioncliAgentManager } from '../task/AioncliAgentManager';
+import { AionrsApprovalStore, type AionrsManager } from '../task/AionrsManager';
 import type OpenClawAgentManager from '../task/OpenClawAgentManager';
 import { prepareFirstMessage } from '../task/agentUtils';
 import { refreshTrayMenu } from '@process/utils/tray';
@@ -38,7 +38,7 @@ const VALID_CONVERSATION_TYPES = new Set<TChatConversation['type']>([
   'openclaw-gateway',
   'nanobot',
   'remote',
-  'aioncli',
+  'aionrs',
 ]);
 
 export function initConversationBridge(
@@ -520,7 +520,7 @@ export function initConversationBridge(
   ipcBridge.conversation.approval.check.provider(async ({ conversation_id, action, commandType }) => {
     const task = workerTaskManager.getTask(conversation_id) as unknown as
       | GeminiAgentManager
-      | AioncliAgentManager
+      | AionrsManager
       | undefined;
     if (!task || !('approvalStore' in task) || !task.approvalStore) {
       return false;
@@ -532,8 +532,8 @@ export function initConversationBridge(
       return task.approvalStore.allApproved(keys);
     }
 
-    if (task.type === 'aioncli') {
-      const keys = AioncliApprovalStore.createKeysFromConfirmation(action, commandType);
+    if (task.type === 'aionrs') {
+      const keys = AionrsApprovalStore.createKeysFromConfirmation(action, commandType);
       if (keys.length === 0) return false;
       return task.approvalStore.allApproved(keys);
     }

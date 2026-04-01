@@ -10,20 +10,20 @@ import { Tag, Typography } from '@arco-design/web-react';
 import { useTranslation } from 'react-i18next';
 import SettingsPageWrapper from './components/SettingsPageWrapper';
 
-type AioncliAgentInfo = {
+type AionrsAgentInfo = {
   available: boolean;
   version?: string;
   path?: string;
 };
 
-const AioncliSettings: React.FC = () => {
+const AionrsSettings: React.FC = () => {
   const { t } = useTranslation();
-  const [agentInfo, setAgentInfo] = useState<AioncliAgentInfo | null>(null);
+  const [agentInfo, setAgentInfo] = useState<AionrsAgentInfo | null>(null);
 
   useEffect(() => {
     void ipcBridge.acpConversation.getAvailableAgents.invoke().then((result) => {
       if (result.success) {
-        const agent = result.data.find((a) => a.backend === 'aioncli');
+        const agent = result.data.find((a) => a.backend === 'aionrs');
         setAgentInfo(agent ? { available: true, path: agent.cliPath } : { available: false });
       }
     });
@@ -44,25 +44,25 @@ const AioncliSettings: React.FC = () => {
             </Typography.Text>
             <Tag color={agentInfo?.available ? 'green' : 'red'} size='small'>
               {agentInfo?.available
-                ? t('settings.aioncli.available', { defaultValue: 'Available' })
-                : t('settings.aioncli.notFound', { defaultValue: 'Not Found' })}
+                ? t('settings.aionrs.available', { defaultValue: 'Available' })
+                : t('settings.aionrs.notFound', { defaultValue: 'Not Found' })}
             </Tag>
           </div>
           {agentInfo?.version && (
             <Typography.Text type='secondary' className='text-12px'>
-              {t('settings.aioncli.version', { defaultValue: 'Version' })}: {agentInfo.version}
+              {t('settings.aionrs.version', { defaultValue: 'Version' })}: {agentInfo.version}
             </Typography.Text>
           )}
           {agentInfo?.path && (
             <Typography.Text type='secondary' className='text-12px break-all'>
-              {t('settings.aioncli.path', { defaultValue: 'Path' })}: {agentInfo.path}
+              {t('settings.aionrs.path', { defaultValue: 'Path' })}: {agentInfo.path}
             </Typography.Text>
           )}
         </div>
 
         {/* Info */}
         <Typography.Text type='secondary' className='text-12px'>
-          {t('settings.aioncli.providerNote', {
+          {t('settings.aionrs.providerNote', {
             defaultValue:
               'Provider and API key settings are managed in the Models page. Aion CLI supports: Anthropic, OpenAI, AWS Bedrock.',
           })}
@@ -72,4 +72,4 @@ const AioncliSettings: React.FC = () => {
   );
 };
 
-export default AioncliSettings;
+export default AionrsSettings;

@@ -4,18 +4,18 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { AioncliAgent } from '@process/agent/aioncli';
+import { AionrsAgent } from '@process/agent/aionrs';
 import { forkTask } from './utils';
 
 export default forkTask(({ data }, pipe) => {
-  pipe.log('aioncli.init', data);
+  pipe.log('aionrs.init', data);
 
   // Track registered confirmation listeners to prevent duplicate pipe.once registrations.
   // Same deduplication pattern as gemini worker.
   const registeredConfirmCallIds = new Set<string>();
   const confirmCallbacks = new Map<string, (key: string) => void>();
 
-  const agent = new AioncliAgent({
+  const agent = new AionrsAgent({
     ...data,
     onStreamEvent(event) {
       if (event.type === 'tool_group') {
@@ -23,7 +23,7 @@ export default forkTask(({ data }, pipe) => {
           const { confirmationDetails, ...other } = tool;
 
           if (confirmationDetails && tool.status === 'Confirming') {
-            // For aioncli, approval goes through the binary's stdin
+            // For aionrs, approval goes through the binary's stdin
             const onConfirm = (confirmKey: string) => {
               if (confirmKey === 'cancel') {
                 agent.denyTool(tool.callId, 'User cancelled');
@@ -52,7 +52,7 @@ export default forkTask(({ data }, pipe) => {
         });
       }
 
-      pipe.call('aioncli.message', event);
+      pipe.call('aionrs.message', event);
     },
   });
 

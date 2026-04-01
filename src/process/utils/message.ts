@@ -122,7 +122,7 @@ async function ensureConversationExists(
 export const addOrUpdateMessage = (
   conversation_id: string,
   message: TMessage,
-  backend?: AcpBackend | 'aioncli'
+  backend?: AcpBackend | 'aionrs'
 ): void => {
   // Validate message
   if (!message) {

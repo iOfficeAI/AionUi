@@ -15,7 +15,7 @@ const fs = require('fs');
 const path = require('path');
 const crypto = require('crypto');
 const prepareBundledBun = require('./prepareBundledBun');
-const prepareAioncliAgent = require('./prepareAioncliAgent');
+const prepareAionrs = require('./prepareAionrs');
 
 // DMG retry logic for macOS: detects DMG creation failures by checking artifacts
 // (.app exists but .dmg missing) and retries only the DMG step using
@@ -454,8 +454,8 @@ try {
   // This only affects packaging assets; runtime integration will be added in a future PR.
   prepareBundledBun();
 
-  // 5b. Prepare aioncli-agent binary (Rust CLI for agent integration)
-  prepareAioncliAgent();
+  // 5b. Prepare aionrs binary (Rust CLI for agent integration)
+  prepareAionrs();
 
   // 6. 运行 electron-builder 生成分发包（DMG/ZIP/EXE等）
   // Run electron-builder to create distributables (DMG/ZIP/EXE, etc.)

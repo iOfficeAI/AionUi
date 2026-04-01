@@ -12,21 +12,21 @@ import { loadPresetAssistantResources } from '@/renderer/utils/model/presetAssis
 import type { AvailableAgent } from '@/renderer/utils/model/agentTypes';
 import type { AcpBackend, AcpBackendAll } from '@/common/types/acpTypes';
 
-/** Platforms supported by aioncli-agent */
-const AIONCLI_SUPPORTED_PLATFORMS = ['anthropic', 'openai', 'ali-intl', 'aws'];
+/** Platforms supported by aionrs */
+const AIONRS_SUPPORTED_PLATFORMS = ['anthropic', 'openai', 'ali-intl', 'aws'];
 
 /**
- * Get a model from configured providers that is compatible with aioncli-agent.
+ * Get a model from configured providers that is compatible with aionrs.
  * Throws if no compatible provider is configured.
  */
-export async function getDefaultAioncliModel(): Promise<TProviderWithModel> {
+export async function getDefaultAionrsModel(): Promise<TProviderWithModel> {
   const providers = await ConfigStorage.get('model.config');
 
   if (!providers || providers.length === 0) {
     throw new Error('No model provider configured');
   }
 
-  const provider = providers.find((p) => p.enabled !== false && AIONCLI_SUPPORTED_PLATFORMS.includes(p.platform));
+  const provider = providers.find((p) => p.enabled !== false && AIONRS_SUPPORTED_PLATFORMS.includes(p.platform));
   if (!provider) {
     throw new Error('No compatible model provider for Aion CLI (requires Anthropic, OpenAI, or AWS)');
   }
@@ -94,8 +94,8 @@ export function getConversationTypeForBackend(backend: string): ICreateConversat
   switch (backend) {
     case 'gemini':
       return 'gemini';
-    case 'aioncli':
-      return 'aioncli';
+    case 'aionrs':
+      return 'aionrs';
     case 'openclaw-gateway':
     case 'openclaw':
       return 'openclaw-gateway';
@@ -160,9 +160,9 @@ export async function buildCliAgentParams(
       baseUrl: '',
       apiKey: '',
     };
-  } else if (type === 'aioncli') {
-    // Aioncli needs a real model from configured providers (anthropic, openai, ali-intl, aws)
-    model = await getDefaultAioncliModel();
+  } else if (type === 'aionrs') {
+    // Aionrs needs a real model from configured providers (anthropic, openai, ali-intl, aws)
+    model = await getDefaultAionrsModel();
   } else {
     model = {} as TProviderWithModel;
   }

@@ -6,13 +6,13 @@
 
 import type { TProviderWithModel } from '@/common/config/storage';
 
-type AioncliProvider = 'anthropic' | 'openai' | 'bedrock' | 'vertex';
+type AionrsProvider = 'anthropic' | 'openai' | 'bedrock' | 'vertex';
 
 /**
- * Map AionUi platform name to aioncli-agent provider name.
+ * Map AionUi platform name to aionrs provider name.
  */
-function mapProvider(model: TProviderWithModel): AioncliProvider {
-  const mapping: Record<string, AioncliProvider> = {
+function mapProvider(model: TProviderWithModel): AionrsProvider {
+  const mapping: Record<string, AionrsProvider> = {
     anthropic: 'anthropic',
     openai: 'openai',
     'ali-intl': 'openai', // OpenAI-compatible
@@ -23,7 +23,7 @@ function mapProvider(model: TProviderWithModel): AioncliProvider {
 }
 
 /**
- * Build CLI args and env vars for spawning aioncli-agent.
+ * Build CLI args and env vars for spawning aionrs.
  */
 export function buildSpawnConfig(
   model: TProviderWithModel,

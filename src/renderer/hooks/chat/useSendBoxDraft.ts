@@ -46,7 +46,7 @@ type Draft =
       uploadFile: string[];
     }
   | {
-      _type: 'aioncli';
+      _type: 'aionrs';
       content: string;
       atPath: Array<string | FileOrFolderItem>;
       uploadFile: string[];
@@ -66,7 +66,7 @@ const store: SendBoxDraftStore = {
   'openclaw-gateway': new Map(),
   nanobot: new Map(),
   remote: new Map(),
-  aioncli: new Map(),
+  aionrs: new Map(),
 };
 
 const setDraft = <K extends TChatConversation['type']>(
@@ -118,11 +118,11 @@ const setDraft = <K extends TChatConversation['type']>(
         store.remote.delete(conversation_id);
       }
       break;
-    case 'aioncli':
+    case 'aionrs':
       if (draft) {
-        store.aioncli.set(conversation_id, draft as Extract<Draft, { _type: 'aioncli' }>);
+        store.aionrs.set(conversation_id, draft as Extract<Draft, { _type: 'aionrs' }>);
       } else {
-        store.aioncli.delete(conversation_id);
+        store.aionrs.delete(conversation_id);
       }
       break;
     default:
@@ -148,8 +148,8 @@ const getDraft = <K extends TChatConversation['type']>(
       return store.nanobot.get(conversation_id) as Extract<Draft, { _type: K }>;
     case 'remote':
       return store.remote.get(conversation_id) as Extract<Draft, { _type: K }>;
-    case 'aioncli':
-      return store.aioncli.get(conversation_id) as Extract<Draft, { _type: K }>;
+    case 'aionrs':
+      return store.aionrs.get(conversation_id) as Extract<Draft, { _type: K }>;
     default:
       return undefined;
   }

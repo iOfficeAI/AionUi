@@ -366,7 +366,7 @@ export type TChatConversation =
       'model'
     >
   | IChatConversation<
-      'aioncli',
+      'aionrs',
       {
         workspace: string;
         customWorkspace?: boolean;

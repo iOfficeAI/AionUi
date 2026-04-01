@@ -7,7 +7,7 @@
 import { acpDetector } from '@process/agent/acp/AcpDetector';
 import { AcpConnection } from '@process/agent/acp/AcpConnection';
 import { buildAcpModelInfo, summarizeAcpModelInfo } from '@process/agent/acp/modelInfo';
-import { detectAioncliAgent } from '@process/agent/aioncli/binaryResolver';
+import { detectAionrs } from '@process/agent/aionrs/binaryResolver';
 import { CodexConnection } from '@process/agent/codex/connection/CodexConnection';
 import type { IWorkerTaskManager } from '@process/task/IWorkerTaskManager';
 import AcpAgentManager from '@process/task/AcpAgentManager';
@@ -55,13 +55,13 @@ export function initAcpConversationBridge(workerTaskManager: IWorkerTaskManager)
         supportedTransports: mcpService.getSupportedTransportsForAgent(agent),
       }));
 
-      // Detect aioncli-agent binary (non-ACP, uses JSON Lines protocol)
-      const aioncli = detectAioncliAgent();
-      if (aioncli.available) {
+      // Detect aionrs binary (non-ACP, uses JSON Lines protocol)
+      const aionrs = detectAionrs();
+      if (aionrs.available) {
         enriched.push({
-          backend: 'aioncli',
+          backend: 'aionrs',
           name: 'Aion CLI',
-          cliPath: aioncli.path,
+          cliPath: aionrs.path,
           supportedTransports: [],
         } as (typeof enriched)[number]);
       }

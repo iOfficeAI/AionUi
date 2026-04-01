@@ -73,7 +73,7 @@ export type AcpBackendAll =
   | 'cursor' // Cursor AI Agent CLI
   | 'kiro' // Kiro CLI (AWS)
   | 'remote' // Remote agent (WebSocket, no local CLI)
-  | 'aioncli' // Aion CLI agent (Rust binary, JSON Lines protocol)
+  | 'aionrs' // Aion CLI agent (Rust binary, JSON Lines protocol)
   | 'custom'; // User-configured custom ACP agent
 
 /**
@@ -516,10 +516,10 @@ export const ACP_BACKENDS_ALL: Record<AcpBackendAll, AcpBackendConfig> = {
     enabled: true,
     supportsStreaming: true,
   },
-  aioncli: {
-    id: 'aioncli',
+  aionrs: {
+    id: 'aionrs',
     name: 'Aion CLI',
-    cliCommand: 'aioncli-agent',
+    cliCommand: 'aionrs',
     authRequired: false, // Auth handled via env vars from model config
     enabled: true,
     supportsStreaming: true,

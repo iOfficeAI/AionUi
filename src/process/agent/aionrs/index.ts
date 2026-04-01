@@ -7,13 +7,13 @@
 import { spawn, type ChildProcess } from 'node:child_process';
 import { createInterface } from 'node:readline';
 import type { TProviderWithModel } from '@/common/config/storage';
-import { resolveAioncliBinary } from './binaryResolver';
+import { resolveAionrsBinary } from './binaryResolver';
 import { buildSpawnConfig } from './envBuilder';
-import type { AioncliEvent, AioncliCommand } from './protocol';
+import type { AionrsEvent, AionrsCommand } from './protocol';
 
 type StreamEventHandler = (event: { type: string; data: unknown; msg_id: string }) => void;
 
-export type AioncliAgentOptions = {
+export type AionrsAgentOptions = {
   workspace: string;
   model: TProviderWithModel;
   proxy?: string;
@@ -24,17 +24,17 @@ export type AioncliAgentOptions = {
   onStreamEvent: StreamEventHandler;
 };
 
-export class AioncliAgent {
+export class AionrsAgent {
   private childProcess: ChildProcess | null = null;
   private ready = false;
   private readyPromise: Promise<void>;
   private readyResolve!: () => void;
   private readyReject!: (err: Error) => void;
   private onStreamEvent: StreamEventHandler;
-  private options: AioncliAgentOptions;
+  private options: AionrsAgentOptions;
   private activeMsgId: string | null = null;
 
-  constructor(options: AioncliAgentOptions) {
+  constructor(options: AionrsAgentOptions) {
     this.options = options;
     this.onStreamEvent = options.onStreamEvent;
     this.readyPromise = new Promise((resolve, reject) => {
@@ -48,9 +48,9 @@ export class AioncliAgent {
   }
 
   async start(): Promise<void> {
-    const binaryPath = resolveAioncliBinary();
+    const binaryPath = resolveAionrsBinary();
     if (!binaryPath) {
-      throw new Error('aioncli-agent binary not found');
+      throw new Error('aionrs binary not found');
     }
 
     const { args, env } = buildSpawnConfig(this.options.model, {
@@ -70,29 +70,29 @@ export class AioncliAgent {
     const rl = createInterface({ input: this.childProcess.stdout! });
     rl.on('line', (line) => {
       try {
-        const event = JSON.parse(line) as AioncliEvent;
+        const event = JSON.parse(line) as AionrsEvent;
         this.handleEvent(event);
       } catch {
-        console.error('[AioncliAgent] Failed to parse event:', line);
+        console.error('[AionrsAgent] Failed to parse event:', line);
       }
     });
 
     // Log stderr as diagnostics
     this.childProcess.stderr?.on('data', (chunk: Buffer) => {
-      console.error('[aioncli-agent]', chunk.toString());
+      console.error('[aionrs]', chunk.toString());
     });
 
     // Handle process exit
     this.childProcess.on('exit', (code) => {
       if (!this.ready) {
-        this.readyReject(new Error(`aioncli-agent exited with code ${code} during init`));
+        this.readyReject(new Error(`aionrs exited with code ${code} during init`));
       }
       this.childProcess = null;
     });
 
     // Wait for ready event with timeout
     const timeout = new Promise<void>((_, reject) => {
-      setTimeout(() => reject(new Error('aioncli-agent ready timeout (30s)')), 30000);
+      setTimeout(() => reject(new Error('aionrs ready timeout (30s)')), 30000);
     });
     await Promise.race([this.readyPromise, timeout]);
 
@@ -105,7 +105,7 @@ export class AioncliAgent {
     }
   }
 
-  private handleEvent(event: AioncliEvent): void {
+  private handleEvent(event: AionrsEvent): void {
     switch (event.type) {
       case 'ready':
         this.ready = true;
@@ -218,9 +218,9 @@ export class AioncliAgent {
   }
 
   /**
-   * Map aioncli tool_request to AionUi confirmation details format.
+   * Map aionrs tool_request to AionUi confirmation details format.
    */
-  private mapConfirmationDetails(event: AioncliEvent & { type: 'tool_request' }) {
+  private mapConfirmationDetails(event: AionrsEvent & { type: 'tool_request' }) {
     const { tool } = event;
 
     switch (tool.category) {
@@ -256,7 +256,7 @@ export class AioncliAgent {
     }
   }
 
-  sendCommand(cmd: AioncliCommand): void {
+  sendCommand(cmd: AionrsCommand): void {
     if (!this.childProcess?.stdin?.writable) return;
     this.childProcess.stdin.write(JSON.stringify(cmd) + '\n');
   }

@@ -9,32 +9,32 @@ import { join } from 'node:path';
 import { execSync } from 'node:child_process';
 
 function getBinaryName(): string {
-  return process.platform === 'win32' ? 'aioncli-agent.exe' : 'aioncli-agent';
+  return process.platform === 'win32' ? 'aionrs.exe' : 'aionrs';
 }
 
 /**
- * Resolve the aioncli-agent binary path.
+ * Resolve the aionrs binary path.
  * Search order:
  *  1. Bundled with app (production)
- *  2. AIONCLI_AGENT_PATH env var (development)
+ *  2. AIONRS_PATH env var (development)
  *  3. System PATH
  */
-export function resolveAioncliBinary(): string | null {
+export function resolveAionrsBinary(): string | null {
   // 1. Bundled binary (production) — same layout as bundled-bun
   const resourcesPath = (process as NodeJS.Process & { resourcesPath?: string }).resourcesPath;
   if (resourcesPath) {
     const runtimeKey = `${process.platform}-${process.arch}`;
-    const bundled = join(resourcesPath, 'bundled-aioncli', runtimeKey, getBinaryName());
+    const bundled = join(resourcesPath, 'bundled-aionrs', runtimeKey, getBinaryName());
     if (existsSync(bundled)) return bundled;
   }
 
   // 2. Development: explicit path via env
-  const devPath = process.env.AIONCLI_AGENT_PATH;
+  const devPath = process.env.AIONRS_PATH;
   if (devPath && existsSync(devPath)) return devPath;
 
   // 3. System PATH
   try {
-    const cmd = process.platform === 'win32' ? 'where aioncli-agent' : 'which aioncli-agent';
+    const cmd = process.platform === 'win32' ? 'where aionrs' : 'which aionrs';
     const result = execSync(cmd, { encoding: 'utf-8', timeout: 5000 }).trim();
     if (result && existsSync(result)) return result;
   } catch {
@@ -44,19 +44,19 @@ export function resolveAioncliBinary(): string | null {
   return null;
 }
 
-export function isAioncliAvailable(): boolean {
-  return resolveAioncliBinary() !== null;
+export function isAionrsAvailable(): boolean {
+  return resolveAionrsBinary() !== null;
 }
 
 /**
- * Detect aioncli-agent availability and version for settings UI.
+ * Detect aionrs availability and version for settings UI.
  */
-export function detectAioncliAgent(): {
+export function detectAionrs(): {
   available: boolean;
   version?: string;
   path?: string;
 } {
-  const binaryPath = resolveAioncliBinary();
+  const binaryPath = resolveAionrsBinary();
   if (!binaryPath) return { available: false };
 
   try {
