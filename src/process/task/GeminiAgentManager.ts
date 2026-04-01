@@ -29,6 +29,7 @@ import { mainLog, mainWarn, mainError } from '@process/utils/mainLogger';
 import { hasCronCommands } from './CronCommandDetector';
 import { extractTextFromMessage, processCronInMessage } from './MessageMiddleware';
 import { stripThinkTags, extractAndStripThinkTags } from './ThinkTagDetector';
+import { teamEventBus } from '@process/team/teamEventBus';
 import * as fs from 'node:fs';
 
 // gemini agent管理器类
@@ -734,6 +735,10 @@ export class GeminiAgentManager extends BaseAgentManager<
       // Filter think tags from streaming content before emitting to UI
       const filteredData = this.filterThinkTagsFromMessage(data);
       ipcBridge.geminiConversation.responseStream.emit(filteredData);
+
+      // Also emit to main-process-local bus so TeammateManager (same process)
+      // can receive events — ipcBridge.emit only delivers to renderer via webContents.send()
+      teamEventBus.emit('responseStream', filteredData);
 
       // Emit to Channel global event bus (for Telegram and other external platforms)
       channelEventBus.emitAgentMessage(this.conversation_id, filteredData);

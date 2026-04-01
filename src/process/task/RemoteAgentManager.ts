@@ -16,6 +16,7 @@ import { addMessage, addOrUpdateMessage } from '@process/utils/message';
 import { cronBusyGuard } from '@process/services/cron/CronBusyGuard';
 import BaseAgentManager from '@process/task/BaseAgentManager';
 import { IpcAgentEventEmitter } from '@process/task/IpcAgentEventEmitter';
+import { teamEventBus } from '@process/team/teamEventBus';
 
 export interface RemoteAgentManagerData {
   conversation_id: string;
@@ -89,6 +90,8 @@ class RemoteAgentManager extends BaseAgentManager<RemoteAgentManagerData> {
     }
 
     ipcBridge.conversation.responseStream.emit(msg);
+    // Also emit to main-process-local bus so TeammateManager can receive events
+    teamEventBus.emit('responseStream', msg);
     channelEventBus.emitAgentMessage(this.conversation_id, msg);
   }
 
@@ -127,6 +130,8 @@ class RemoteAgentManager extends BaseAgentManager<RemoteAgentManagerData> {
     }
 
     ipcBridge.conversation.responseStream.emit(msg);
+    // Also emit to main-process-local bus so TeammateManager can receive events
+    teamEventBus.emit('responseStream', msg);
     channelEventBus.emitAgentMessage(this.conversation_id, msg);
   }
 
@@ -226,6 +231,7 @@ class RemoteAgentManager extends BaseAgentManager<RemoteAgentManagerData> {
     }
 
     ipcBridge.conversation.responseStream.emit(message);
+    teamEventBus.emit('responseStream', message);
   }
 
   async ensureYoloMode(): Promise<boolean> {

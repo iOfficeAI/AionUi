@@ -14,6 +14,7 @@ import { addMessage, addOrUpdateMessage } from '@process/utils/message';
 import { cronBusyGuard } from '@process/services/cron/CronBusyGuard';
 import BaseAgentManager from '@process/task/BaseAgentManager';
 import { IpcAgentEventEmitter } from '@process/task/IpcAgentEventEmitter';
+import { teamEventBus } from '@process/team/teamEventBus';
 
 export interface NanoBotAgentManagerData {
   conversation_id: string;
@@ -74,6 +75,8 @@ class NanoBotAgentManager extends BaseAgentManager<NanoBotAgentManagerData> {
 
     // Emit to frontend via unified conversation stream
     ipcBridge.conversation.responseStream.emit(msg);
+    // Also emit to main-process-local bus so TeammateManager can receive events
+    teamEventBus.emit('responseStream', msg);
   }
 
   private handleSignalEvent(message: IResponseMessage): void {
@@ -86,6 +89,8 @@ class NanoBotAgentManager extends BaseAgentManager<NanoBotAgentManagerData> {
 
     // Emit signal events to frontend
     ipcBridge.conversation.responseStream.emit(msg);
+    // Also emit to main-process-local bus so TeammateManager can receive events
+    teamEventBus.emit('responseStream', msg);
   }
 
   async sendMessage(data: { content: string; files?: string[]; msg_id?: string; silent?: boolean }) {
@@ -141,6 +146,7 @@ class NanoBotAgentManager extends BaseAgentManager<NanoBotAgentManagerData> {
     }
 
     ipcBridge.conversation.responseStream.emit(message);
+    teamEventBus.emit('responseStream', message);
   }
 
   /**

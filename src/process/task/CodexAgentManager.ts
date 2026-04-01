@@ -43,6 +43,7 @@ import {
   getConfiguredCodexMcpProtocolVersion,
   setAppConfig,
 } from '@/common/utils/appConfig';
+import { teamEventBus } from '@process/team/teamEventBus';
 
 const APP_CLIENT_NAME = getConfiguredAppClientName();
 const APP_CLIENT_VERSION = getConfiguredAppClientVersion();
@@ -661,6 +662,10 @@ class CodexAgentManager extends BaseAgentManager<CodexAgentManagerData> implemen
 
     // Always emit to frontend for UI display
     ipcBridge.codexConversation.responseStream.emit(message);
+
+    // Also emit to main-process-local bus so TeammateManager (same process)
+    // can receive events — ipcBridge.emit only delivers to renderer via webContents.send()
+    teamEventBus.emit('responseStream', message);
 
     // Also emit to Channel global event bus (Telegram/Lark streaming)
     channelEventBus.emitAgentMessage(this.conversation_id, message);
