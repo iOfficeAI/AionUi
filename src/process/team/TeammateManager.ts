@@ -1,6 +1,7 @@
 // src/process/team/TeammateManager.ts
 import { EventEmitter } from 'events';
 import { ipcBridge } from '@/common';
+import { addMessage } from '@process/utils/message';
 import type { IWorkerTaskManager } from '@process/task/IWorkerTaskManager';
 import type { IResponseMessage, IConversationTurnCompletedEvent } from '@/common/adapter/ipcBridge';
 import type { TeamAgent, TeammateStatus, TeamTask, ParsedAction, ITeamMessageEvent } from './types';
@@ -51,7 +52,7 @@ export class TeammateManager extends EventEmitter {
   private readonly finalizedTurns = new Set<string>();
 
   /** Maximum time (ms) to wait for a turnCompleted event before force-releasing a wake */
-  private static readonly WAKE_TIMEOUT_MS = 5 * 60 * 1000;
+  private static readonly WAKE_TIMEOUT_MS = 60 * 1000;
 
   private readonly unsubResponseStream: () => void;
   private readonly unsubTurnCompleted: () => void;
@@ -112,6 +113,9 @@ export class TeammateManager extends EventEmitter {
     const agent = this.agents.find((a) => a.slotId === slotId);
     if (!agent) return;
 
+    // Skip if agent is already processing a turn
+    if (agent.status === 'active') return;
+
     this.activeWakes.add(slotId);
     try {
       // Transition pending -> idle on first activation
@@ -150,12 +154,18 @@ export class TeammateManager extends EventEmitter {
 
       await agentTask.sendMessage(messageData);
 
-      // Set a timeout to force-release the wake if turnCompleted never fires
+      // Release wake lock immediately after message is sent.
+      // finalizeTurn will also delete it (safe no-op). This prevents permanent
+      // deadlock when finish events are lost or finalizeTurn never fires.
+      this.activeWakes.delete(slotId);
+
+      // Fallback timeout: if turnCompleted never fires, set idle so the agent
+      // can be woken again. 60s is enough for any reasonable response time.
       const timeoutHandle = setTimeout(() => {
-        if (this.activeWakes.has(slotId)) {
-          this.activeWakes.delete(slotId);
-          this.wakeTimeouts.delete(slotId);
-          this.setStatus(slotId, 'failed', 'Wake timed out waiting for turnCompleted');
+        this.wakeTimeouts.delete(slotId);
+        const currentAgent = this.agents.find((a) => a.slotId === slotId);
+        if (currentAgent?.status === 'active') {
+          this.setStatus(slotId, 'idle', 'Wake timed out');
         }
       }, TeammateManager.WAKE_TIMEOUT_MS);
       this.wakeTimeouts.set(slotId, timeoutHandle);
@@ -272,11 +282,60 @@ export class TeammateManager extends EventEmitter {
       return;
     }
 
-    for (const action of actions) {
+    // Separate send_message from actions that must run serially
+    const serialActions = actions.filter((a) => a.type !== 'send_message');
+    const sendMessageActions = actions.filter((a) => a.type === 'send_message');
+
+    for (const action of serialActions) {
       try {
         await this.executeAction(action, agent.slotId);
       } catch {
-        // Log via structured path; continue executing remaining actions
+        // continue executing remaining actions
+      }
+    }
+
+    // send_message: write in order (preserve message ordering), then wake all targets in parallel
+    if (sendMessageActions.length > 0) {
+      const wakeTargets = new Set<string>();
+      for (const action of sendMessageActions) {
+        if (action.type !== 'send_message') continue;
+        const targetSlotId = this.resolveSlotId(action.to);
+        if (!targetSlotId) continue;
+        try {
+          await this.mailbox.write({
+            teamId: this.teamId,
+            toAgentId: targetSlotId,
+            fromAgentId: agent.slotId,
+            content: action.content,
+            summary: action.summary,
+          });
+          // Write dispatched message into target agent's conversation as user bubble
+          const targetAgent = this.agents.find((a) => a.slotId === targetSlotId);
+          if (targetAgent?.conversationId) {
+            const msgId = crypto.randomUUID();
+            addMessage(targetAgent.conversationId, {
+              id: msgId,
+              msg_id: msgId,
+              type: 'text',
+              position: 'right',
+              conversation_id: targetAgent.conversationId,
+              content: { content: action.content },
+              createdAt: Date.now(),
+            });
+            ipcBridge.conversation.responseStream.emit({
+              type: 'user_content',
+              conversation_id: targetAgent.conversationId,
+              msg_id: msgId,
+              data: action.content,
+            });
+          }
+          wakeTargets.add(targetSlotId);
+        } catch {
+          // continue
+        }
+      }
+      if (wakeTargets.size > 0) {
+        await Promise.allSettled([...wakeTargets].map((slotId) => this.wake(slotId)));
       }
     }
 
@@ -293,7 +352,7 @@ export class TeammateManager extends EventEmitter {
           content: summary,
           type: 'idle_notification',
         });
-        await this.wake(leadAgent.slotId);
+        void this.wake(leadAgent.slotId);
       }
     }
 
@@ -320,6 +379,26 @@ export class TeammateManager extends EventEmitter {
           content: action.content,
           summary: action.summary,
         });
+        // Write dispatched message into target agent's conversation as user bubble
+        const targetAgent = this.agents.find((a) => a.slotId === targetSlotId);
+        if (targetAgent?.conversationId) {
+          const msgId = crypto.randomUUID();
+          addMessage(targetAgent.conversationId, {
+            id: msgId,
+            msg_id: msgId,
+            type: 'text',
+            position: 'right',
+            conversation_id: targetAgent.conversationId,
+            content: { content: action.content },
+            createdAt: Date.now(),
+          });
+          ipcBridge.conversation.responseStream.emit({
+            type: 'user_content',
+            conversation_id: targetAgent.conversationId,
+            msg_id: msgId,
+            data: action.content,
+          });
+        }
         await this.wake(targetSlotId);
         break;
       }

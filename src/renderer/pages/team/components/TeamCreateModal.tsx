@@ -21,7 +21,6 @@ const TeamCreateModal: React.FC<Props> = ({ visible, onClose, onCreated }) => {
   const { cliAgents, presetAssistants } = useConversationAgents();
   const [name, setName] = useState('');
   const [dispatchAgentKey, setDispatchAgentKey] = useState<string | undefined>(undefined);
-  const [subAgentKeys, setSubAgentKeys] = useState<string[]>([]);
   const [workspace, setWorkspace] = useState('');
   const [loading, setLoading] = useState(false);
 
@@ -31,7 +30,6 @@ const TeamCreateModal: React.FC<Props> = ({ visible, onClose, onCreated }) => {
   const handleClose = () => {
     setName('');
     setDispatchAgentKey(undefined);
-    setSubAgentKeys([]);
     setWorkspace('');
     onClose();
   };
@@ -60,22 +58,6 @@ const TeamCreateModal: React.FC<Props> = ({ visible, onClose, onCreated }) => {
         conversationType: resolveConversationType(dispatchAgent?.backend ?? 'acp'),
         cliPath: dispatchAgent?.cliPath,
       });
-
-      for (const key of subAgentKeys) {
-        const subAgent = agentFromKey(key, allAgents);
-        if (subAgent) {
-          agents.push({
-            slotId: '',
-            conversationId: '',
-            role: 'teammate',
-            status: 'pending',
-            agentType: subAgent.backend,
-            agentName: subAgent.name,
-            conversationType: resolveConversationType(subAgent.backend),
-            cliPath: subAgent.cliPath,
-          });
-        }
-      }
 
       const team = await ipcBridge.team.create.invoke({
         userId,
@@ -143,61 +125,6 @@ const TeamCreateModal: React.FC<Props> = ({ visible, onClose, onCreated }) => {
             renderFormat={(option) => {
               const agent = option?.value ? agentFromKey(option.value as string, allAgents) : undefined;
               return agent ? <AgentOptionLabel agent={agent} /> : <span>{option?.children}</span>;
-            }}
-          >
-            {cliAgents.length > 0 && (
-              <Select.OptGroup label={t('conversation.dropdown.cliAgents', { defaultValue: 'CLI Agents' })}>
-                {cliAgents.map((agent) => (
-                  <Select.Option key={agentKey(agent)} value={agentKey(agent)}>
-                    <AgentOptionLabel agent={agent} />
-                  </Select.Option>
-                ))}
-              </Select.OptGroup>
-            )}
-            {presetAssistants.length > 0 && (
-              <Select.OptGroup
-                label={t('conversation.dropdown.presetAssistants', { defaultValue: 'Preset Assistants' })}
-              >
-                {presetAssistants.map((agent) => (
-                  <Select.Option key={agentKey(agent)} value={agentKey(agent)}>
-                    <AgentOptionLabel agent={agent} />
-                  </Select.Option>
-                ))}
-              </Select.OptGroup>
-            )}
-          </Select>
-        </div>
-
-        {/* Sub Agents - multi select */}
-        <div className='flex flex-col gap-6px'>
-          <label className='text-sm text-[var(--color-text-2)] font-medium'>
-            {t('team.create.step.subAgents', { defaultValue: 'Sub Agents' })}
-            <span className='ml-4px text-[var(--color-text-4)] font-normal text-xs'>
-              {t('common.optional', { defaultValue: '(optional)' })}
-            </span>
-          </label>
-          <Select
-            mode='multiple'
-            placeholder={t('team.create.subAgentsPlaceholder', { defaultValue: 'Select sub agents' })}
-            value={subAgentKeys}
-            onChange={setSubAgentKeys}
-            showSearch
-            allowClear
-            renderTag={({ value, closable, onClose }) => {
-              const agent = agentFromKey(value as string, allAgents);
-              return (
-                <span
-                  key={value as string}
-                  className='flex items-center gap-4px px-6px py-2px rounded-4px bg-[var(--fill-2)] text-sm mr-4px mb-2px'
-                >
-                  {agent?.name ?? (value as string)}
-                  {closable && (
-                    <span className='cursor-pointer opacity-60 hover:opacity-100 ml-2px' onClick={onClose}>
-                      ×
-                    </span>
-                  )}
-                </span>
-              );
             }}
           >
             {cliAgents.length > 0 && (

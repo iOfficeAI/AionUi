@@ -46,6 +46,11 @@ const TeamPageContent: React.FC<TeamPageContentProps> = ({ team, onAddAgent }) =
     () => ipcBridge.conversation.get.invoke({ id: leadAgent!.conversationId })
   );
 
+  // Refresh conversation data when switching tabs
+  useEffect(() => {
+    void mutateActiveConversation();
+  }, [activeSlotId]);
+
   // Refresh active conversation when new messages arrive for this agent
   useEffect(() => {
     let debounceTimer: NodeJS.Timeout | null = null;
@@ -83,6 +88,8 @@ const TeamPageContent: React.FC<TeamPageContentProps> = ({ team, onAddAgent }) =
 
   const tabsSlot = useMemo(() => <TeamTabs onAddAgent={onAddAgent} />, [onAddAgent]);
 
+  const initialModelId = (activeConversation?.extra as { currentModelId?: string })?.currentModelId;
+
   const headerExtra = useMemo(() => {
     if (!activeAgent?.conversationId) return undefined;
     if (activeAgent.conversationType === 'acp' || activeAgent.conversationType === 'codex') {
@@ -90,12 +97,12 @@ const TeamPageContent: React.FC<TeamPageContentProps> = ({ team, onAddAgent }) =
         <AcpModelSelector
           conversationId={activeAgent.conversationId}
           backend={activeAgent.agentType}
-          initialModelId={(activeConversation?.extra as { currentModelId?: string })?.currentModelId}
+          initialModelId={initialModelId}
         />
       );
     }
     return undefined;
-  }, [activeAgent, activeConversation]);
+  }, [activeAgent?.conversationId, activeAgent?.conversationType, activeAgent?.agentType, initialModelId]);
 
   return (
     <TeamPermissionProvider isLeadAgent={isLeadAgent} allConversationIds={allConversationIds}>

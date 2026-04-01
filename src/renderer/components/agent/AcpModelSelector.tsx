@@ -45,9 +45,20 @@ const AcpModelSelector: React.FC<{
   modelInfoRef.current = modelInfo;
   // Track whether user has manually switched model via dropdown
   const hasUserChangedModel = useRef(false);
+  // Track the last conversationId to detect tab switches
+  const prevConversationIdRef = useRef(conversationId);
 
   // Fetch initial model info on mount, fallback to cached models if manager not ready
   useEffect(() => {
+    // If user manually changed model and we're returning to the same conversation, skip reload
+    if (hasUserChangedModel.current && prevConversationIdRef.current === conversationId) return;
+
+    // Reset flag when switching to a different conversation
+    if (prevConversationIdRef.current !== conversationId) {
+      hasUserChangedModel.current = false;
+      prevConversationIdRef.current = conversationId;
+    }
+
     let cancelled = false;
     ipcBridge.acpConversation.getModelInfo
       .invoke({ conversationId })
@@ -151,6 +162,7 @@ const AcpModelSelector: React.FC<{
   const handleSelectModel = useCallback(
     (modelId: string) => {
       hasUserChangedModel.current = true;
+      setModelInfo((prev) => (prev ? { ...prev, currentModelId: modelId } : prev));
       ipcBridge.acpConversation.setModel
         .invoke({ conversationId, modelId })
         .then((result) => {

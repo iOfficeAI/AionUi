@@ -124,11 +124,21 @@ export class TeamSessionService {
     // Inherit sessionMode from lead agent so spawned agents share the same permission level
     const leadAgent = team.agents.find((a) => a.role === 'lead');
     let inheritedSessionMode: string | undefined;
+    let inheritedModelId: string | undefined;
     if (leadAgent?.conversationId) {
       const leadConv = await this.conversationService.getConversation(leadAgent.conversationId);
       const leadExtra = leadConv?.extra as Record<string, unknown> | undefined;
       if (leadExtra?.sessionMode && typeof leadExtra.sessionMode === 'string') {
         inheritedSessionMode = leadExtra.sessionMode;
+      }
+      const newMemberBackend = this.resolveBackend(agent.agentType, team.agents);
+      const leadBackend = leadExtra?.backend as string | undefined;
+      if (
+        newMemberBackend === leadBackend &&
+        leadExtra?.currentModelId &&
+        typeof leadExtra.currentModelId === 'string'
+      ) {
+        inheritedModelId = leadExtra.currentModelId;
       }
     }
 
@@ -141,6 +151,7 @@ export class TeamSessionService {
     };
     if (agent.cliPath) addExtra.cliPath = agent.cliPath;
     if (inheritedSessionMode) addExtra.sessionMode = inheritedSessionMode;
+    if (inheritedModelId) addExtra.currentModelId = inheritedModelId;
 
     const conversation = await this.conversationService.createConversation({
       type: convType,
