@@ -138,7 +138,7 @@ export class TeammateManager extends EventEmitter {
       // Clear previous buffer for this conversation
       this.responseBuffer.set(agent.conversationId, '');
 
-      const agentTask = await this.workerTaskManager.getOrBuildTask(agent.conversationId, { skipCache: true });
+      const agentTask = await this.workerTaskManager.getOrBuildTask(agent.conversationId);
       const msgId = crypto.randomUUID();
 
       // Each AgentManager implementation expects a specific object shape.
@@ -388,10 +388,21 @@ export class TeammateManager extends EventEmitter {
    * Resolve an agent identifier (slotId or agentName) to a slotId.
    * Agent outputs may reference teammates by name rather than slotId.
    */
+  /** Normalize a string for fuzzy matching: trim, collapse whitespace, strip quotes */
+  private static normalize(s: string): string {
+    return s
+      .trim()
+      .replace(/\u00a0|\u200b|\u200c|\u200d|\ufeff/g, ' ')
+      .replace(/[\u201c\u201d\u201e\u2018\u2019"']/g, '')
+      .replace(/\s+/g, ' ')
+      .toLowerCase();
+  }
+
   private resolveSlotId(nameOrSlotId: string): string | undefined {
     const bySlot = this.agents.find((a) => a.slotId === nameOrSlotId);
     if (bySlot) return bySlot.slotId;
-    const byName = this.agents.find((a) => a.agentName.toLowerCase() === nameOrSlotId.toLowerCase());
+    const needle = TeammateManager.normalize(nameOrSlotId);
+    const byName = this.agents.find((a) => TeammateManager.normalize(a.agentName) === needle);
     return byName?.slotId;
   }
 }

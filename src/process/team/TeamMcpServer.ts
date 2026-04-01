@@ -156,11 +156,22 @@ export class TeamMcpServer {
     return this._port;
   }
 
+  /** Normalize a string for fuzzy matching: trim, collapse whitespace, strip quotes */
+  private static normalize(s: string): string {
+    return s
+      .trim()
+      .replace(/\u00a0|\u200b|\u200c|\u200d|\ufeff/g, ' ')
+      .replace(/[\u201c\u201d\u201e\u2018\u2019"']/g, '')
+      .replace(/\s+/g, ' ')
+      .toLowerCase();
+  }
+
   private resolveSlotId(nameOrSlotId: string): string | undefined {
     const agents = this.params.getAgents();
     const bySlot = agents.find((a) => a.slotId === nameOrSlotId);
     if (bySlot) return bySlot.slotId;
-    const byName = agents.find((a) => a.agentName.toLowerCase() === nameOrSlotId.toLowerCase());
+    const needle = TeamMcpServer.normalize(nameOrSlotId);
+    const byName = agents.find((a) => TeamMcpServer.normalize(a.agentName) === needle);
     return byName?.slotId;
   }
 

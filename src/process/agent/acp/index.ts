@@ -1131,12 +1131,16 @@ export class AcpAgent {
         return;
       }
 
-      setTimeout(() => {
-        if (this.pendingPermissions.has(requestId)) {
-          this.pendingPermissions.delete(requestId);
-          reject(new Error('Permission request timed out'));
-        }
-      }, 70000);
+      // In team mode, wait indefinitely for leader to approve (like Claude).
+      // In standalone mode, keep the 70s timeout as a safety net.
+      if (!this.extra.teamMcpStdioConfig) {
+        setTimeout(() => {
+          if (this.pendingPermissions.has(requestId)) {
+            this.pendingPermissions.delete(requestId);
+            reject(new Error('Permission request timed out'));
+          }
+        }, 70000);
+      }
     });
   }
 
