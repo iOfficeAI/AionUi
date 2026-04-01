@@ -92,7 +92,8 @@ export class CronService {
       const allJobs = await this.repo.listAll();
       for (const job of allJobs) {
         // new_conversation mode jobs are not bound to a single conversation — skip orphan check.
-        if (job.target.executionMode === 'new_conversation') {
+        // Also skip when conversationId is empty (legacy jobs created before execution_mode existed).
+        if (job.target.executionMode === 'new_conversation' || !job.metadata.conversationId) {
           continue;
         }
         const conversation = await this.conversationRepo.getConversation(job.metadata.conversationId);
