@@ -1,4 +1,4 @@
-import { ArrowCircleLeft, Delete, ListCheckbox, People, Plus, SettingTwo } from '@icon-park/react';
+import { ArrowCircleLeft, Delete, ListCheckbox, PeopleSpeak, Plus, SettingTwo } from '@icon-park/react';
 import { IconMoonFill, IconSunFill } from '@arco-design/web-react/icon';
 import classNames from 'classnames';
 import React, { Suspense, useEffect, useRef, useState } from 'react';
@@ -273,7 +273,7 @@ const Sider: React.FC<SiderProps> = ({ onSessionClick, collapsed = false }) => {
                         }
                       }}
                     >
-                      <People
+                      <PeopleSpeak
                         theme='outline'
                         size='20'
                         fill={iconColors.primary}
