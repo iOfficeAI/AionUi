@@ -136,6 +136,8 @@ export class TeammateManager extends EventEmitter {
       // so the UI shows what triggered this agent's response
       if (agent.conversationId && mailboxMessages.length > 0) {
         for (const msg of mailboxMessages) {
+          // Skip user messages — already written by TeamSession.sendMessage()
+          if (msg.fromAgentId === 'user') continue;
           const sender = this.agents.find((a) => a.slotId === msg.fromAgentId);
           const senderName = msg.fromAgentId === 'user' ? 'User' : (sender?.agentName ?? msg.fromAgentId);
           const displayContent =
