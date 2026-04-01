@@ -17,8 +17,6 @@ interface CronJobSiderItemProps {
   onNavigate: (path: string) => void;
 }
 
-const MAX_VISIBLE_CONVERSATIONS = 5;
-
 const CronJobSiderItem: React.FC<CronJobSiderItemProps> = ({ job, pathname, onNavigate }) => {
   const isNewConversationMode = job.target.executionMode === 'new_conversation';
   const { conversations } = useCronJobConversations(isNewConversationMode ? job.id : undefined);
@@ -100,7 +98,7 @@ const CronJobSiderItem: React.FC<CronJobSiderItemProps> = ({ job, pathname, onNa
 
             {/* new_conversation mode: child conversations */}
             {isNewConversationMode &&
-              conversations.slice(0, MAX_VISIBLE_CONVERSATIONS).map((conv) => (
+              conversations.map((conv) => (
                 <div
                   key={conv.id}
                   className={classNames(
@@ -114,17 +112,6 @@ const CronJobSiderItem: React.FC<CronJobSiderItemProps> = ({ job, pathname, onNa
                   <span className='text-13px truncate text-t-primary min-w-0'>{conv.name || conv.id}</span>
                 </div>
               ))}
-
-            {isNewConversationMode && conversations.length > MAX_VISIBLE_CONVERSATIONS && (
-              <div
-                className='flex items-center h-36px px-8px rd-4px cursor-pointer hover:bg-[rgba(var(--primary-6),0.14)] transition-colors'
-                onClick={() => onNavigate(`/scheduled/${job.id}`)}
-              >
-                <span className='text-12px text-primary'>
-                  +{conversations.length - MAX_VISIBLE_CONVERSATIONS} more...
-                </span>
-              </div>
-            )}
           </div>
         </div>
       )}
