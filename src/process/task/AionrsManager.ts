@@ -12,7 +12,7 @@ import type { TProviderWithModel } from '@/common/config/storage';
 import { BaseApprovalStore, type IApprovalKey } from '@/common/chat/approval';
 import { ToolConfirmationOutcome } from '../agent/gemini/cli/tools/tools';
 import { getDatabase } from '@process/services/database';
-import { addOrUpdateMessage } from '@process/utils/message';
+import { addMessage, addOrUpdateMessage } from '@process/utils/message';
 import { uuid } from '@/common/utils';
 import BaseAgentManager from './BaseAgentManager';
 import { IpcAgentEventEmitter } from './IpcAgentEventEmitter';
@@ -97,6 +97,19 @@ export class AionrsManager extends BaseAgentManager<AionrsManagerData, string> {
   }
 
   async sendMessage(data: { input: string; msg_id: string; files?: string[] }) {
+    const message: TMessage = {
+      id: data.msg_id,
+      type: 'text',
+      position: 'right',
+      conversation_id: this.conversation_id,
+      content: { content: data.input },
+    };
+    addMessage(this.conversation_id, message);
+    try {
+      (await getDatabase()).updateConversation(this.conversation_id, {});
+    } catch {
+      // Conversation might not exist in DB yet
+    }
     this.status = 'pending';
     return super.sendMessage(data);
   }
