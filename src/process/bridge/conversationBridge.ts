@@ -506,25 +506,29 @@ export function initConversationBridge(
         agentContent,
       });
 
-      // After sending, clean up workspace file copies for Gemini (only if saveToWorkspace is disabled)
-      // 发送后为 Gemini 清理工作区的文件副本（仅在 saveToWorkspace 禁用时）
+      // Defer cleanup until after Gemini worker finishes processing the files.
+      // sendMessage() resolves when the worker acknowledges receipt, but the worker
+      // continues reading files asynchronously during streaming. Deleting immediately
+      // after sendMessage() causes a race condition where Gemini CLI reads deleted files.
       if (isGeminiAgent && workspaceFiles.length > 0) {
         const saveToWorkspace = await ProcessConfig.get('upload.saveToWorkspace').catch(() => false);
         if (!saveToWorkspace) {
-          for (const filePath of workspaceFiles) {
-            try {
-              // Only delete if it's inside the workspace (not original files)
+          const geminiTask = task as unknown as GeminiAgentManager;
+          const filesToCleanup = [...workspaceFiles];
+          const resolvedWorkspace = path.resolve(task.workspace);
+          const handleMessage = (data: { type: string }) => {
+            if (data.type !== 'finish') return;
+            geminiTask.off('gemini.message', handleMessage);
+            for (const filePath of filesToCleanup) {
               const resolvedFile = path.resolve(filePath);
-              const resolvedWorkspace = path.resolve(task.workspace);
               if (resolvedFile.startsWith(resolvedWorkspace + path.sep)) {
-                await fs.promises.unlink(filePath);
-                console.log('[conversationBridge] Cleaned up workspace file:', filePath);
+                fs.promises.unlink(filePath).catch((cleanupError) => {
+                  console.warn('[conversationBridge] Failed to cleanup file:', filePath, cleanupError);
+                });
               }
-            } catch (cleanupError) {
-              // Ignore cleanup errors - file might be in use or already deleted
-              console.warn('[conversationBridge] Failed to cleanup file:', filePath, cleanupError);
             }
-          }
+          };
+          geminiTask.on('gemini.message', handleMessage);
         }
       }
 

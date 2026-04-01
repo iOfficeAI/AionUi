@@ -29,19 +29,6 @@ async function commandExists(command: string): Promise<boolean> {
 }
 
 /**
- * Check if PowerShell is available
- */
-async function isPowerShellAvailable(): Promise<boolean> {
-  if (process.platform !== 'win32') return false;
-  try {
-    await execAsync('powershell.exe -Command "exit 0"');
-    return true;
-  } catch {
-    return false;
-  }
-}
-
-/**
  * Check if VS Code is installed
  */
 async function isVSCodeInstalled(): Promise<boolean> {
@@ -95,19 +82,17 @@ async function openFolderWithTool(folderPath: string, tool: 'vscode' | 'terminal
 
   switch (tool) {
     case 'vscode': {
-      // Try to use code command first
-      try {
-        await execAsync(`code "${folderPath}"`);
-      } catch {
-        // Fallback: try to find code executable
+      const vsChild = spawn('code', [folderPath], { detached: true, stdio: 'ignore' });
+      vsChild.unref();
+      vsChild.on('error', async () => {
         const codePath = await findVSCodeExecutable();
         if (codePath) {
-          spawn(codePath, [folderPath], { detached: true, stdio: 'ignore' });
+          const fallback = spawn(codePath, [folderPath], { detached: true, stdio: 'ignore' });
+          fallback.unref();
         } else {
-          // Last resort: open with default application
           await shell.openPath(folderPath);
         }
-      }
+      });
       break;
     }
 

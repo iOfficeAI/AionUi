@@ -287,17 +287,24 @@ describe('shellBridge with actual providers', () => {
 
     it('finds VS Code on macOS in Applications folder', async () => {
       Object.defineProperty(process, 'platform', { value: 'darwin' });
-      // Mock exec to fail (code command not found)
-      vi.mocked(exec).mockImplementation((cmd: string, callback: Function) => {
-        callback(new Error('not found'), { stdout: '', stderr: '' });
-        return undefined as any;
-      });
+      // Mock spawn to fire error event synchronously for the 'code' command,
+      // then return a normal mock for the fallback spawn call
+      vi.mocked(spawn)
+        .mockReturnValueOnce({
+          on: vi.fn().mockImplementation((event: string, cb: Function) => {
+            if (event === 'error') cb(new Error('spawn ENOENT'));
+          }),
+          unref: vi.fn(),
+        } as any)
+        .mockReturnValue({ on: vi.fn(), unref: vi.fn() } as any);
       // Mock fs.existsSync to find VS Code in macOS path
       vi.mocked(fs.existsSync).mockImplementation((filepath: string) => {
         return filepath === '/Applications/Visual Studio Code.app/Contents/Resources/app/bin/code';
       });
 
       await registeredProviders['openFolderWith']({ folderPath: '/project', tool: 'vscode' });
+      // Flush microtasks so the async error handler completes
+      await new Promise((resolve) => setTimeout(resolve));
 
       expect(fs.existsSync).toHaveBeenCalledWith(
         '/Applications/Visual Studio Code.app/Contents/Resources/app/bin/code'
@@ -307,17 +314,24 @@ describe('shellBridge with actual providers', () => {
 
     it('finds VS Code on Linux in common paths', async () => {
       Object.defineProperty(process, 'platform', { value: 'linux' });
-      // Mock exec to fail
-      vi.mocked(exec).mockImplementation((cmd: string, callback: Function) => {
-        callback(new Error('not found'), { stdout: '', stderr: '' });
-        return undefined as any;
-      });
+      // Mock spawn to fire error event synchronously for the 'code' command,
+      // then return a normal mock for the fallback spawn call
+      vi.mocked(spawn)
+        .mockReturnValueOnce({
+          on: vi.fn().mockImplementation((event: string, cb: Function) => {
+            if (event === 'error') cb(new Error('spawn ENOENT'));
+          }),
+          unref: vi.fn(),
+        } as any)
+        .mockReturnValue({ on: vi.fn(), unref: vi.fn() } as any);
       // Mock fs.existsSync to find VS Code in Linux path
       vi.mocked(fs.existsSync).mockImplementation((filepath: string) => {
         return filepath === '/usr/bin/code';
       });
 
       await registeredProviders['openFolderWith']({ folderPath: '/project', tool: 'vscode' });
+      // Flush microtasks so the async error handler completes
+      await new Promise((resolve) => setTimeout(resolve));
 
       expect(fs.existsSync).toHaveBeenCalledWith('/usr/bin/code');
       expect(spawn).toHaveBeenCalled();
