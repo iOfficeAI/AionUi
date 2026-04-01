@@ -134,6 +134,9 @@ const MessageItem: React.FC<{ message: TMessage; highlighted?: boolean }> = Reac
         return <MessageThinking message={message}></MessageThinking>;
       case 'available_commands':
         return null;
+      case 'agent_delegation':
+        // Delegation status is shown via system messages in the chat flow
+        return null;
       default:
         return <div>{t('messages.unknownMessageType', { type: getUnhandledMessageType(message) })}</div>;
     }
