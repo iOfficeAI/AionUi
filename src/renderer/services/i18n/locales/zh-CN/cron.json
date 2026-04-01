@@ -44,11 +44,79 @@
   "allScheduledTasks": "全部定时任务",
   "noTasks": "暂无定时任务",
   "runNowSuccess": "任务已触发执行",
+  "detail": {
+    "backToAll": "全部定时任务",
+    "runNow": "立即执行",
+    "description": "描述",
+    "instructions": "执行指令",
+    "repeats": "重复执行",
+    "history": "执行历史",
+    "noHistory": "暂无执行记录",
+    "notFound": "未找到任务"
+  },
   "notification": {
     "taskComplete": "任务完成",
     "scheduledTask": "定时任务",
     "scheduledTaskComplete": "{{title}}的定时任务完成",
     "taskDone": "任务已完成"
+  },
+  "page": {
+    "newTask": "新建任务",
+    "description": "定时任务会在指定时间自动执行。任务仅在电脑唤醒状态下运行。",
+    "awakeBanner": "定时任务仅在电脑唤醒状态下运行。",
+    "keepAwake": "保持唤醒",
+    "keepAwakeTooltip": "开启后，AionUi 将阻止电脑进入休眠状态",
+    "createTask": "创建定时任务",
+    "editTask": "编辑定时任务",
+    "createSuccess": "任务创建成功",
+    "updateSuccess": "任务更新成功",
+    "scheduleHint": "定时任务会有几分钟的随机延迟以优化服务器性能。",
+    "weekday": {
+      "monday": "星期一",
+      "tuesday": "星期二",
+      "wednesday": "星期三",
+      "thursday": "星期四",
+      "friday": "星期五",
+      "saturday": "星期六",
+      "sunday": "星期日"
+    },
+    "save": "保存",
+    "cancel": "取消",
+    "form": {
+      "name": "名称",
+      "nameRequired": "请输入任务名称",
+      "namePlaceholder": "输入任务名称",
+      "description": "描述",
+      "descriptionPlaceholder": "简要描述任务用途",
+      "prompt": "执行指令",
+      "promptRequired": "请输入执行指令",
+      "promptPlaceholder": "Agent 触发时执行的指令",
+      "frequency": "频率",
+      "cronExpr": "Cron 表达式",
+      "cronExprRequired": "请输入 Cron 表达式",
+      "scheduleDesc": "调度描述",
+      "scheduleDescRequired": "请输入调度描述",
+      "scheduleDescPlaceholder": "例如：每周一上午 9:00",
+      "descriptionRequired": "请输入描述",
+      "agent": "执行 Agent",
+      "agentRequired": "请选择执行 Agent",
+      "agentPlaceholder": "选择执行任务的 Agent"
+    },
+    "freq": {
+      "manual": "手动触发",
+      "hourly": "每小时",
+      "daily": "每天",
+      "weekdays": "工作日",
+      "weekly": "每周",
+      "custom": "自定义 Cron..."
+    },
+    "scheduleDesc": {
+      "manual": "手动触发",
+      "hourly": "每小时执行",
+      "dailyAt": "每天 {{time}} 执行",
+      "weekdaysAt": "工作日 {{time}} 执行",
+      "weeklyAt": "每周{{day}} {{time}} 执行"
+    }
   },
   "error": {
     "alreadyExists": "该会话已存在定时任务 \"{{name}}\" (ID: {{id}})。请先删除它，或使用 [CRON_LIST] 查看已有任务。",

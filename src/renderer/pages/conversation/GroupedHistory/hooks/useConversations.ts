@@ -29,7 +29,9 @@ export const useConversations = () => {
   // re-expanding workspaces after a user manually collapses them (#1156)
   const hasAutoExpandedRef = useRef(false);
 
-  // Scroll active conversation into view
+  // Scroll active conversation into view.
+  // Use double-RAF to wait for async sibling content (e.g. CronJobSiderSection)
+  // to finish rendering before calculating scroll position.
   useEffect(() => {
     if (!id) {
       setActiveConversation(null);
@@ -38,13 +40,23 @@ export const useConversations = () => {
 
     setActiveConversation(id);
     clearCompletionUnread(id);
-    const rafId = requestAnimationFrame(() => {
-      const element = document.getElementById('c-' + id);
-      if (element) {
-        element.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-      }
+    let cancelled = false;
+    let outerRafId: number;
+    let innerRafId: number;
+    outerRafId = requestAnimationFrame(() => {
+      innerRafId = requestAnimationFrame(() => {
+        if (cancelled) return;
+        const element = document.getElementById('c-' + id);
+        if (element) {
+          element.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+        }
+      });
     });
-    return () => cancelAnimationFrame(rafId);
+    return () => {
+      cancelled = true;
+      cancelAnimationFrame(outerRafId);
+      cancelAnimationFrame(innerRafId);
+    };
   }, [clearCompletionUnread, id, setActiveConversation]);
 
   // Persist expansion state

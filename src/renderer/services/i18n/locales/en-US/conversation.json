@@ -22,10 +22,7 @@
     "skillsMarketDetails": "View More >>"
   },
   "history": {
-    "today": "Today",
-    "yesterday": "Yesterday",
-    "recent7Days": "Last 7 Days",
-    "earlier": "Earlier",
+    "recents": "Recents",
     "noHistory": "No chat history",
     "deleteTitle": "Delete",
     "deleteConfirm": "Are you sure you want to delete this chat?",

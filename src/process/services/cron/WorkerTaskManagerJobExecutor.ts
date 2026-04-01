@@ -5,13 +5,25 @@
  */
 
 import type { CronMessageMeta } from '@/common/chat/chatLib';
+import type { TChatConversation, TProviderWithModel } from '@/common/config/storage';
+import type { AcpBackendAll } from '@/common/types/acpTypes';
 import { uuid } from '@/common/utils';
 import type BaseAgentManager from '@process/task/BaseAgentManager';
 import type { IWorkerTaskManager } from '@process/task/IWorkerTaskManager';
 import { copyFilesToDirectory } from '@process/utils';
+import type { CreateConversationParams } from '@process/services/IConversationService';
+import type { AgentType } from '@process/task/agentTypes';
+import { ProcessConfig } from '@process/utils/initStorage';
 import type { CronBusyGuard } from './CronBusyGuard';
 import type { CronJob } from './CronStore';
 import type { ICronJobExecutor } from './ICronJobExecutor';
+import { getCronSkillDir } from './cronSkillFile';
+
+/** Lazy-import to break circular dependency: cronServiceSingleton ↔ conversationServiceSingleton */
+async function getConversationService() {
+  const mod = await import('@process/services/conversationServiceSingleton');
+  return mod.conversationServiceSingleton;
+}
 
 /** Executes cron jobs by delegating to WorkerTaskManager and tracking busy state via CronBusyGuard. */
 export class WorkerTaskManagerJobExecutor implements ICronJobExecutor {
@@ -24,9 +36,16 @@ export class WorkerTaskManagerJobExecutor implements ICronJobExecutor {
     return this.busyGuard.isProcessing(conversationId);
   }
 
-  async executeJob(job: CronJob, onAcquired?: () => void): Promise<void> {
-    const { conversationId } = job.metadata;
-    const messageText = job.target.payload.text;
+  async executeJob(job: CronJob, onAcquired?: () => void): Promise<string | void> {
+    let conversationId = job.metadata.conversationId;
+
+    // new_conversation mode: create a fresh conversation for this execution
+    if (job.target.executionMode === 'new_conversation' && job.metadata.agentConfig) {
+      const newConv = await this.buildConversationForJob(job);
+      conversationId = newConv.id;
+    }
+
+    const messageText = await this.buildMessageText(job);
     const msgId = uuid();
 
     // Reuse existing task if possible; ensure yoloMode is active for scheduled runs.
@@ -78,6 +97,167 @@ export class WorkerTaskManagerJobExecutor implements ICronJobExecutor {
     } else {
       await task.sendMessage({ input: messageText, msg_id: msgId, files: workspaceFiles, cronMeta });
     }
+
+    // Return the conversationId used (may differ from job.metadata.conversationId in new_conversation mode)
+    return conversationId !== job.metadata.conversationId ? conversationId : undefined;
+  }
+
+  /**
+   * Build a new conversation for new_conversation execution mode via ConversationServiceImpl.
+   * Delegates all workspace init, model setup and DB persistence to the service layer.
+   */
+  private async buildConversationForJob(job: CronJob): Promise<TChatConversation> {
+    const config = job.metadata.agentConfig!;
+    const model = await this.resolveModelForBackend(config.backend);
+    const convName = `${job.name} - ${this.formatExecutionTimestamp(job)}`;
+
+    const agentType = this.getAgentType(config.backend);
+
+    // Resolve the cron skill directory path for symlink injection into workspace
+    const cronSkillDir = getCronSkillDir(job.id);
+
+    const params: CreateConversationParams = {
+      type: agentType,
+      name: convName,
+      model,
+      extra: {
+        backend: config.backend,
+        agentName: config.name,
+        cliPath: config.cliPath,
+        customAgentId: config.customAgentId,
+        presetAssistantId: config.isPreset ? config.customAgentId : undefined,
+        cronJobId: job.id,
+        extraSkillPaths: [cronSkillDir],
+        excludeBuiltinSkills: ['cron'],
+      },
+    };
+
+    const service = await getConversationService();
+    return service.createConversation(params);
+  }
+
+  /**
+   * Map backend identifier to the AgentType used by createConversation.
+   */
+  private getAgentType(backend: AcpBackendAll): AgentType {
+    switch (backend) {
+      case 'gemini':
+        return 'gemini';
+      case 'openclaw-gateway':
+      case 'openclaw' as AcpBackendAll:
+        return 'openclaw-gateway';
+      case 'nanobot':
+        return 'nanobot';
+      case 'remote':
+        return 'remote';
+      default:
+        return 'acp';
+    }
+  }
+
+  /**
+   * Format execution timestamp based on the job's schedule frequency.
+   * - Manual / one-shot: full date+time (MM/DD HH:mm)
+   * - Minute-level (≤1h): time only (HH:mm:ss)
+   * - Hourly (≤24h): date + time (MM/DD HH:mm)
+   * - Daily / cron with day granularity: date (MM/DD)
+   * - Weekly+: weekday + date (ddd MM/DD)
+   */
+  private formatExecutionTimestamp(job: CronJob): string {
+    const now = new Date();
+    const pad = (n: number) => String(n).padStart(2, '0');
+    const mm = pad(now.getMonth() + 1);
+    const dd = pad(now.getDate());
+    const hh = pad(now.getHours());
+    const mi = pad(now.getMinutes());
+    const ss = pad(now.getSeconds());
+    const dateStr = `${mm}/${dd}`;
+    const timeStr = `${hh}:${mi}`;
+
+    const { schedule } = job;
+
+    if (schedule.kind === 'every') {
+      const ms = schedule.everyMs;
+      if (ms <= 3600_000) {
+        // Minute/hourly interval: show time with seconds
+        return `${hh}:${mi}:${ss}`;
+      }
+      if (ms <= 86400_000) {
+        // Sub-daily: date + time
+        return `${dateStr} ${timeStr}`;
+      }
+      // Daily+: just date
+      return dateStr;
+    }
+
+    if (schedule.kind === 'cron' && schedule.expr) {
+      const parts = schedule.expr.trim().split(/\s+/);
+      // Standard cron: min hour dom month dow
+      // If dom is * and dow is not * → weekly
+      if (parts.length >= 5 && parts[4] !== '*') {
+        const days = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+        return `${days[now.getDay()]} ${dateStr}`;
+      }
+      // If hour is * → minute-level
+      if (parts.length >= 2 && parts[1] === '*') {
+        return `${hh}:${mi}:${ss}`;
+      }
+      // If dom is * → daily, show date + time
+      if (parts.length >= 3 && parts[2] === '*') {
+        return `${dateStr} ${timeStr}`;
+      }
+      // Monthly or more: just date
+      return dateStr;
+    }
+
+    // 'at' (one-shot) or manual trigger: date + time
+    return `${dateStr} ${timeStr}`;
+  }
+
+  /**
+   * Resolve a TProviderWithModel for the given backend from user's configured providers.
+   */
+  private async resolveModelForBackend(backend: string): Promise<TProviderWithModel> {
+    const providers = await ProcessConfig.get('model.config');
+    const providerList = (providers && Array.isArray(providers) ? providers : []) as unknown as TProviderWithModel[];
+
+    // For gemini, prefer google-auth provider
+    if (backend === 'gemini') {
+      const googleAuth = providerList.find((p) => p.platform === 'gemini-with-google-auth' || p.platform === 'gemini');
+      if (googleAuth) {
+        return { ...googleAuth, useModel: googleAuth.useModel || 'auto' } as TProviderWithModel;
+      }
+    }
+
+    // For other backends, find a matching provider
+    const match = providerList.find((p) => p.platform === backend || p.id === backend);
+    if (match) {
+      return { ...match, useModel: match.useModel || 'auto' } as TProviderWithModel;
+    }
+
+    // Fallback: return first available provider
+    if (providerList.length > 0) {
+      return { ...providerList[0], useModel: providerList[0].useModel || 'auto' } as TProviderWithModel;
+    }
+
+    // Last resort placeholder
+    return {
+      id: `${backend}-fallback`,
+      name: backend,
+      useModel: 'auto',
+      platform: backend,
+      baseUrl: '',
+      apiKey: '',
+    } as TProviderWithModel;
+  }
+
+  /**
+   * Build the message text for a cron job execution.
+   * The skill content is already injected into the workspace via symlink,
+   * so the message only needs the raw payload text (like a normal user message).
+   */
+  private buildMessageText(job: CronJob): string {
+    return job.target.payload.text;
   }
 
   onceIdle(conversationId: string, callback: () => Promise<void>): void {

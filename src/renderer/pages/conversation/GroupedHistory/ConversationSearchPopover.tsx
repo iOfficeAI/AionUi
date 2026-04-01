@@ -96,6 +96,7 @@ interface ConversationSearchPopoverProps {
   buttonClassName?: string;
   label?: string;
   fullWidth?: boolean;
+  renderTrigger?: (props: { onClick: () => void; isActive: boolean }) => React.ReactNode;
 }
 
 const ConversationAgentMark: React.FC<{ conversation: IMessageSearchItem['conversation'] }> = ({ conversation }) => {
@@ -143,6 +144,7 @@ const ConversationSearchPopover: React.FC<ConversationSearchPopoverProps> = ({
   buttonClassName,
   label,
   fullWidth = false,
+  renderTrigger,
 }) => {
   const { t } = useTranslation();
   const navigate = useNavigate();
@@ -449,45 +451,49 @@ const ConversationSearchPopover: React.FC<ConversationSearchPopoverProps> = ({
 
   return (
     <>
-      <button
-        type='button'
-        aria-label={triggerAriaLabel}
-        className={classNames(
-          triggerClassName,
-          {
-            'hover:bg-fill-3 active:bg-fill-4': !disabled && fullWidth,
-            'hover:bg-fill-2 hover:border-[color:var(--color-border-2)]': !disabled && !fullWidth,
-            'opacity-50 cursor-not-allowed': disabled,
-            'bg-aou-2 text-primary border-[color:var(--color-primary-light-3)]': visible && !disabled && !fullWidth,
-          },
-          buttonClassName
-        )}
-        onClick={handleOpen}
-        disabled={disabled}
-      >
-        {fullWidth ? (
-          <span className='w-28px h-28px flex items-center justify-center shrink-0'>
+      {renderTrigger ? (
+        renderTrigger({ onClick: handleOpen, isActive: visible })
+      ) : (
+        <button
+          type='button'
+          aria-label={triggerAriaLabel}
+          className={classNames(
+            triggerClassName,
+            {
+              'hover:bg-fill-3 active:bg-fill-4': !disabled && fullWidth,
+              'hover:bg-fill-2 hover:border-[color:var(--color-border-2)]': !disabled && !fullWidth,
+              'opacity-50 cursor-not-allowed': disabled,
+              'bg-aou-2 text-primary border-[color:var(--color-primary-light-3)]': visible && !disabled && !fullWidth,
+            },
+            buttonClassName
+          )}
+          onClick={handleOpen}
+          disabled={disabled}
+        >
+          {fullWidth ? (
+            <span className='w-28px h-28px flex items-center justify-center shrink-0'>
+              <Search
+                theme='outline'
+                size='18'
+                fill='currentColor'
+                className='block leading-none'
+                style={{ lineHeight: 0 }}
+              />
+            </span>
+          ) : (
             <Search
               theme='outline'
-              size='18'
+              size='20'
               fill='currentColor'
-              className='block leading-none'
+              className='block leading-none shrink-0'
               style={{ lineHeight: 0 }}
             />
-          </span>
-        ) : (
-          <Search
-            theme='outline'
-            size='20'
-            fill='currentColor'
-            className='block leading-none shrink-0'
-            style={{ lineHeight: 0 }}
-          />
-        )}
-        {fullWidth && label ? (
-          <span className='collapsed-hidden text-t-primary text-14px font-medium leading-22px'>{label}</span>
-        ) : null}
-      </button>
+          )}
+          {fullWidth && label ? (
+            <span className='collapsed-hidden text-t-primary text-14px font-medium leading-22px'>{label}</span>
+          ) : null}
+        </button>
+      )}
 
       <AionModal
         visible={visible}

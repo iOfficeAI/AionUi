@@ -3,6 +3,13 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 vi.mock('electron', () => ({ app: { isPackaged: false, getPath: vi.fn(() => '/tmp') } }));
 vi.mock('@/common/utils', () => ({ uuid: vi.fn(() => 'test-uuid') }));
 vi.mock('@process/utils', () => ({ copyFilesToDirectory: vi.fn(async () => []) }));
+vi.mock('@process/utils/initStorage', () => ({
+  getCronSkillsDir: vi.fn(() => '/mock/cronSkills'),
+}));
+vi.mock('@/process/services/cron/cronSkillFile', () => ({
+  readCronSkillContent: vi.fn(async () => null),
+  parseCronSkillContent: vi.fn(() => null),
+}));
 
 import { WorkerTaskManagerJobExecutor } from '../../src/process/services/cron/WorkerTaskManagerJobExecutor';
 import { CronBusyGuard } from '../../src/process/services/cron/CronBusyGuard';
@@ -95,5 +102,17 @@ describe('WorkerTaskManagerJobExecutor', () => {
 
     expect(task.sendMessage).toHaveBeenCalledTimes(1);
     expect(busyGuard.isProcessing('conv-1')).toBe(true);
+  });
+
+  it('uses raw payload text for message content (skill content injected via workspace symlink)', async () => {
+    const task = makeTask('acp');
+    const taskManager = makeTaskManager({
+      getTask: vi.fn(() => task as any),
+    });
+    const executor = new WorkerTaskManagerJobExecutor(taskManager, busyGuard);
+
+    await executor.executeJob(makeJob('conv-1'));
+
+    expect(task.sendMessage).toHaveBeenCalledWith(expect.objectContaining({ content: 'hello' }));
   });
 });

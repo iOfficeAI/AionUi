@@ -10,7 +10,7 @@ import { iconColors } from '@/renderer/styles/colors';
 import { Alert, Message, Tooltip } from '@arco-design/web-react';
 import { Copy } from '@icon-park/react';
 import classNames from 'classnames';
-import React, { useCallback, useMemo, useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { copyText } from '@/renderer/utils/ui/clipboard';
 import CollapsibleContent from '@renderer/components/chat/CollapsibleContent';
@@ -18,6 +18,29 @@ import FilePreview from '@renderer/components/media/FilePreview';
 import HorizontalFileList from '@renderer/components/media/HorizontalFileList';
 import MarkdownView from '@renderer/components/Markdown';
 import { stripThinkTags, hasThinkTags } from '@renderer/utils/chat/thinkTagFilter';
+
+/**
+ * Format a timestamp for message display.
+ * Today: "HH:mm", older: "MM-DD HH:mm".
+ */
+export const formatMessageTime = (timestamp: number): string => {
+  const date = new Date(timestamp);
+  const now = new Date();
+  const hours = date.getHours().toString().padStart(2, '0');
+  const minutes = date.getMinutes().toString().padStart(2, '0');
+  const time = `${hours}:${minutes}`;
+
+  if (
+    date.getFullYear() !== now.getFullYear() ||
+    date.getMonth() !== now.getMonth() ||
+    date.getDate() !== now.getDate()
+  ) {
+    const month = (date.getMonth() + 1).toString().padStart(2, '0');
+    const day = date.getDate().toString().padStart(2, '0');
+    return `${month}-${day} ${time}`;
+  }
+  return time;
+};
 import MessageCronBadge from './MessageCronBadge';
 
 const parseFileMarker = (content: string) => {
@@ -99,26 +122,6 @@ const MessageText: React.FC<{ message: IMessageText }> = ({ message }) => {
     </Tooltip>
   );
 
-  const formatTime = useCallback((timestamp: number) => {
-    const date = new Date(timestamp);
-    const now = new Date();
-    const hours = date.getHours().toString().padStart(2, '0');
-    const minutes = date.getMinutes().toString().padStart(2, '0');
-    const time = `${hours}:${minutes}`;
-
-    // If not today, prepend the date
-    if (
-      date.getFullYear() !== now.getFullYear() ||
-      date.getMonth() !== now.getMonth() ||
-      date.getDate() !== now.getDate()
-    ) {
-      const month = (date.getMonth() + 1).toString().padStart(2, '0');
-      const day = date.getDate().toString().padStart(2, '0');
-      return `${month}-${day} ${time}`;
-    }
-    return time;
-  }, []);
-
   const cronMeta = message.content.cronMeta;
 
   return (
@@ -166,7 +169,7 @@ const MessageText: React.FC<{ message: IMessageText }> = ({ message }) => {
           {copyButton}
           {message.createdAt && (
             <span className='text-12px c-text-4 opacity-0 group-hover:opacity-100 transition-opacity select-none'>
-              {formatTime(message.createdAt)}
+              {formatMessageTime(message.createdAt)}
             </span>
           )}
         </div>

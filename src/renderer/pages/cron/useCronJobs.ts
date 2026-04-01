@@ -6,6 +6,7 @@
 
 import { ipcBridge } from '@/common';
 import type { ICronJob } from '@/common/adapter/ipcBridge';
+import type { TChatConversation } from '@/common/config/storage';
 import { emitter } from '@/renderer/utils/emitter';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
@@ -177,7 +178,9 @@ export function useAllCronJobs() {
     setLoading(true);
     try {
       const allJobs = await ipcBridge.cron.listJobs.invoke();
-      setJobs(allJobs || []);
+      // Only show jobs created via the new UI system (createdBy: 'user')
+      // Old skill-based jobs (createdBy: 'agent') are managed via CronJobManager in their conversation
+      setJobs((allJobs || []).filter((j) => j.metadata.createdBy === 'user'));
     } catch (err) {
       console.error('[useAllCronJobs] Failed to fetch jobs:', err);
     } finally {
@@ -194,6 +197,7 @@ export function useAllCronJobs() {
   const eventHandlers = useMemo<CronJobEventHandlers>(
     () => ({
       onJobCreated: (job: ICronJob) => {
+        if (job.metadata.createdBy !== 'user') return;
         setJobs((prev) => (prev.some((j) => j.id === job.id) ? prev : [...prev, job]));
       },
       onJobUpdated: (job: ICronJob) => {
@@ -468,6 +472,51 @@ export function useCronJobsMap() {
       fetchAllJobs,
     ]
   );
+}
+
+/**
+ * Hook for fetching conversations spawned by a specific cron job
+ * @param jobId - The cron job ID to fetch conversations for
+ */
+export function useCronJobConversations(jobId: string | undefined) {
+  const [conversations, setConversations] = useState<TChatConversation[]>([]);
+  const [loading, setLoading] = useState(false);
+
+  const fetchConversations = useCallback(async () => {
+    if (!jobId) {
+      setConversations([]);
+      return;
+    }
+
+    setLoading(true);
+    try {
+      const result = await ipcBridge.conversation.listByCronJob.invoke({ cronJobId: jobId });
+      setConversations(result || []);
+    } catch (err) {
+      console.error('[useCronJobConversations] Failed to fetch:', err);
+      setConversations([]);
+    } finally {
+      setLoading(false);
+    }
+  }, [jobId]);
+
+  // Initial fetch
+  useEffect(() => {
+    void fetchConversations();
+  }, [fetchConversations]);
+
+  // Refetch when job executes
+  useEffect(() => {
+    if (!jobId) return;
+    const unsub = ipcBridge.cron.onJobExecuted.on((data) => {
+      if (data.jobId === jobId) {
+        void fetchConversations();
+      }
+    });
+    return unsub;
+  }, [jobId, fetchConversations]);
+
+  return { conversations, loading };
 }
 
 export default useCronJobs;

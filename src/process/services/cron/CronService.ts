@@ -17,18 +17,24 @@ import type { CronJob, CronSchedule } from './CronStore';
 import type { ICronRepository } from './ICronRepository';
 import type { ICronEventEmitter } from './ICronEventEmitter';
 import type { ICronJobExecutor } from './ICronJobExecutor';
+import { writeCronSkillFile, deleteCronSkillFile } from './cronSkillFile';
 
 /**
  * Parameters for creating a new cron job
  */
 export type CreateCronJobParams = {
   name: string;
+  description?: string;
   schedule: CronSchedule;
-  message: string;
+  /** New UI system uses `prompt`; old skill system uses `message` */
+  prompt?: string;
+  message?: string;
   conversationId: string;
   conversationTitle?: string;
   agentType: import('@/common/types/acpTypes').AcpBackendAll;
   createdBy: 'user' | 'agent';
+  executionMode?: 'existing' | 'new_conversation';
+  agentConfig?: import('./CronStore').CronJob['metadata']['agentConfig'];
 };
 
 /**
@@ -85,6 +91,10 @@ export class CronService {
     try {
       const allJobs = await this.repo.listAll();
       for (const job of allJobs) {
+        // new_conversation mode jobs are not bound to a single conversation — skip orphan check.
+        if (job.target.executionMode === 'new_conversation') {
+          continue;
+        }
         const conversation = await this.conversationRepo.getConversation(job.metadata.conversationId);
         if (!conversation) {
           console.log(
@@ -92,6 +102,11 @@ export class CronService {
           );
           this.stopTimer(job.id);
           await this.repo.delete(job.id);
+          try {
+            await deleteCronSkillFile(job.id);
+          } catch {
+            // Ignore cleanup errors
+          }
           this.emitter.emitJobRemoved(job.id);
         }
       }
@@ -106,15 +121,18 @@ export class CronService {
    */
   async addJob(params: CreateCronJobParams): Promise<CronJob> {
     // Check if conversation already has a cron job (one job per conversation limit)
-    const existingJobs = await this.repo.listByConversation(params.conversationId);
-    if (existingJobs.length > 0) {
-      const existingJob = existingJobs[0];
-      throw new Error(
-        i18n.t('cron:error.alreadyExists', {
-          name: existingJob.name,
-          id: existingJob.id,
-        })
-      );
+    // Skip for new_conversation mode since each execution creates a new conversation
+    if (params.executionMode !== 'new_conversation' && params.conversationId) {
+      const existingJobs = await this.repo.listByConversation(params.conversationId);
+      if (existingJobs.length > 0) {
+        const existingJob = existingJobs[0];
+        throw new Error(
+          i18n.t('cron:error.alreadyExists', {
+            name: existingJob.name,
+            id: existingJob.id,
+          })
+        );
+      }
     }
 
     const now = Date.now();
@@ -126,7 +144,8 @@ export class CronService {
       enabled: true,
       schedule: params.schedule,
       target: {
-        payload: { kind: 'message', text: params.message },
+        payload: { kind: 'message', text: params.prompt ?? params.message ?? '' },
+        executionMode: params.executionMode ?? 'existing',
       },
       metadata: {
         conversationId: params.conversationId,
@@ -135,6 +154,7 @@ export class CronService {
         createdBy: params.createdBy,
         createdAt: now,
         updatedAt: now,
+        agentConfig: params.agentConfig,
       },
       state: {
         runCount: 0,
@@ -149,13 +169,23 @@ export class CronService {
     // Save to database
     await this.repo.insert(job);
 
-    // Update conversation modifyTime so it appears at the top of the list
+    // Write SKILL.md file for the cron job (all modes, even existing)
     try {
-      await this.conversationRepo.updateConversation(params.conversationId, {
-        modifyTime: now,
-      });
+      const text = params.prompt ?? params.message ?? '';
+      await writeCronSkillFile(jobId, params.name, params.description ?? params.name, text);
     } catch (err) {
-      console.warn('[CronService] Failed to update conversation modifyTime:', err);
+      console.warn('[CronService] Failed to write SKILL.md:', err);
+    }
+
+    // Update conversation modifyTime so it appears at the top of the list (skip for new_conversation mode)
+    if (params.executionMode !== 'new_conversation' && params.conversationId) {
+      try {
+        await this.conversationRepo.updateConversation(params.conversationId, {
+          modifyTime: now,
+        });
+      } catch (err) {
+        console.warn('[CronService] Failed to update conversation modifyTime:', err);
+      }
     }
 
     // Start timer
@@ -182,6 +212,21 @@ export class CronService {
 
     // Update in database
     await this.repo.update(jobId, updates);
+
+    // Rewrite SKILL.md if prompt changed
+    if (updates.target?.payload?.text) {
+      try {
+        const updatedForSkill = (await this.repo.getById(jobId))!;
+        await writeCronSkillFile(
+          jobId,
+          updatedForSkill.name,
+          updatedForSkill.name,
+          updatedForSkill.target.payload.text
+        );
+      } catch (err) {
+        console.warn('[CronService] Failed to rewrite SKILL.md:', err);
+      }
+    }
 
     // Get updated job
     const updated = (await this.repo.getById(jobId))!;
@@ -214,10 +259,29 @@ export class CronService {
 
     // Delete from database
     await this.repo.delete(jobId);
+
+    // Clean up SKILL.md file
+    try {
+      await deleteCronSkillFile(jobId);
+    } catch (err) {
+      console.warn('[CronService] Failed to delete SKILL.md:', err);
+    }
+
     await this.updatePowerBlocker();
 
     // Emit event to notify frontend
     this.emitter.emitJobRemoved(jobId);
+  }
+
+  /**
+   * Trigger a job to execute immediately
+   */
+  async triggerJob(jobId: string): Promise<void> {
+    const job = await this.repo.getById(jobId);
+    if (!job) {
+      throw new Error(`Job not found: ${jobId}`);
+    }
+    await this.executeJob(job);
   }
 
   /**
@@ -253,6 +317,12 @@ export class CronService {
 
     switch (schedule.kind) {
       case 'cron': {
+        // Skip timer creation for manual trigger (empty cron expression)
+        if (!schedule.expr) {
+          job.state.nextRunAtMs = undefined;
+          break;
+        }
+
         const timer = new Cron(
           schedule.expr,
           {
@@ -433,6 +503,7 @@ export class CronService {
     if (updatedJob) {
       this.emitter.emitJobUpdated(updatedJob);
     }
+    this.emitter.emitJobExecuted(job.id, lastStatus, lastError);
   }
 
   /**

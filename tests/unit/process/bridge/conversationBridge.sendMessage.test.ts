@@ -35,6 +35,7 @@ vi.mock('@/common', () => ({
       sendMessage: mockProvider('conversation.sendMessage'),
       confirmMessage: mockProvider('conversation.confirmMessage'),
       listChanged: { emit: vi.fn() },
+      listByCronJob: mockProvider('conversation.listByCronJob'),
       responseStream: { emit: vi.fn() },
       confirmation: {
         confirm: mockProvider('conversation.confirmation.confirm'),

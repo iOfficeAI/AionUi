@@ -43,11 +43,79 @@
   "allScheduledTasks": "All Scheduled Tasks",
   "noTasks": "No scheduled tasks",
   "runNowSuccess": "Task execution triggered",
+  "detail": {
+    "backToAll": "All scheduled tasks",
+    "runNow": "Run now",
+    "description": "Description",
+    "instructions": "Instructions",
+    "repeats": "Repeats",
+    "history": "History",
+    "noHistory": "No runs yet",
+    "notFound": "Task not found"
+  },
   "notification": {
     "taskComplete": "Task Complete",
     "scheduledTask": "Scheduled Task",
     "scheduledTaskComplete": "{{title}} - Scheduled task complete",
     "taskDone": "Task done"
+  },
+  "page": {
+    "newTask": "New task",
+    "description": "Scheduled tasks run automatically at specified times. Tasks only run while your computer is awake.",
+    "awakeBanner": "Scheduled tasks only run while your computer is awake.",
+    "keepAwake": "Keep awake",
+    "keepAwakeTooltip": "When enabled, AionUi will prevent your computer from going to sleep",
+    "createTask": "Create Scheduled Task",
+    "editTask": "Edit Scheduled Task",
+    "createSuccess": "Task created successfully",
+    "updateSuccess": "Task updated successfully",
+    "scheduleHint": "Scheduled tasks use a randomized delay of several minutes for server performance.",
+    "weekday": {
+      "monday": "Monday",
+      "tuesday": "Tuesday",
+      "wednesday": "Wednesday",
+      "thursday": "Thursday",
+      "friday": "Friday",
+      "saturday": "Saturday",
+      "sunday": "Sunday"
+    },
+    "save": "Save",
+    "cancel": "Cancel",
+    "form": {
+      "name": "Name",
+      "nameRequired": "Name is required",
+      "namePlaceholder": "Enter task name",
+      "description": "Description",
+      "descriptionPlaceholder": "Brief description of the task",
+      "prompt": "Prompt",
+      "promptRequired": "Prompt is required",
+      "promptPlaceholder": "Instructions for the agent to execute",
+      "frequency": "Frequency",
+      "cronExpr": "Cron Expression",
+      "cronExprRequired": "Cron expression is required",
+      "scheduleDesc": "Schedule Description",
+      "scheduleDescRequired": "Schedule description is required",
+      "scheduleDescPlaceholder": "e.g., Every Monday at 9:00 AM",
+      "descriptionRequired": "Description is required",
+      "agent": "Agent",
+      "agentRequired": "Please select an agent",
+      "agentPlaceholder": "Select the agent to execute this task"
+    },
+    "freq": {
+      "manual": "Manual",
+      "hourly": "Hourly",
+      "daily": "Daily",
+      "weekdays": "Weekdays",
+      "weekly": "Weekly",
+      "custom": "Custom cron..."
+    },
+    "scheduleDesc": {
+      "manual": "Manual",
+      "hourly": "Every hour",
+      "dailyAt": "Every day at {{time}}",
+      "weekdaysAt": "Weekdays at {{time}}",
+      "weeklyAt": "Every {{day}} at {{time}}"
+    }
   },
   "error": {
     "alreadyExists": "This conversation already has a scheduled task \"{{name}}\" (ID: {{id}}). Please delete it first before creating a new one, or use [CRON_LIST] to view existing tasks.",

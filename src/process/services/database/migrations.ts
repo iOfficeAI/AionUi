@@ -875,6 +875,51 @@ const migration_v18: IMigration = {
 };
 
 /**
+ * Migration v18 -> v19: Add execution_mode column to cron_jobs table
+ */
+const migration_v19: IMigration = {
+  version: 19,
+  name: 'Add execution_mode and agent_config to cron_jobs, add cronJobId index',
+  up: (db) => {
+    const columns = new Set((db.pragma('table_info(cron_jobs)') as Array<{ name: string }>).map((c) => c.name));
+    if (!columns.has('execution_mode')) {
+      db.exec(`ALTER TABLE cron_jobs ADD COLUMN execution_mode TEXT DEFAULT 'existing'`);
+    }
+    if (!columns.has('agent_config')) {
+      db.exec(`ALTER TABLE cron_jobs ADD COLUMN agent_config TEXT`);
+    }
+    db.exec(
+      `CREATE INDEX IF NOT EXISTS idx_conversations_cron_job_id ON conversations(json_extract(extra, '$.cronJobId'))`
+    );
+    console.log('[Migration v19] Added execution_mode, agent_config columns and cronJobId index');
+  },
+  down: (_db) => {
+    console.warn('[Migration v19] Rollback skipped: cannot drop columns safely.');
+  },
+};
+
+const migration_v20: IMigration = {
+  version: 20,
+  name: 'Ensure execution_mode and agent_config columns exist on cron_jobs',
+  up: (db) => {
+    const columns = new Set((db.pragma('table_info(cron_jobs)') as Array<{ name: string }>).map((c) => c.name));
+    if (!columns.has('execution_mode')) {
+      db.exec(`ALTER TABLE cron_jobs ADD COLUMN execution_mode TEXT DEFAULT 'existing'`);
+    }
+    if (!columns.has('agent_config')) {
+      db.exec(`ALTER TABLE cron_jobs ADD COLUMN agent_config TEXT`);
+    }
+    db.exec(
+      `CREATE INDEX IF NOT EXISTS idx_conversations_cron_job_id ON conversations(json_extract(extra, '$.cronJobId'))`
+    );
+    console.log('[Migration v20] Ensured execution_mode, agent_config columns and cronJobId index');
+  },
+  down: (_db) => {
+    console.warn('[Migration v20] Rollback skipped: cannot drop columns safely.');
+  },
+};
+
+/**
  * All migrations in order
  */
 // prettier-ignore
@@ -882,6 +927,7 @@ export const ALL_MIGRATIONS: IMigration[] = [
   migration_v1, migration_v2, migration_v3, migration_v4, migration_v5, migration_v6,
   migration_v7, migration_v8, migration_v9, migration_v10, migration_v11, migration_v12,
   migration_v13, migration_v14, migration_v15, migration_v16, migration_v17, migration_v18,
+  migration_v19, migration_v20,
 ];
 
 /**

@@ -187,6 +187,10 @@ export function initConversationBridge(
     }
   });
 
+  ipcBridge.conversation.listByCronJob.provider(async ({ cronJobId }) => {
+    return conversationService.getConversationsByCronJob(cronJobId);
+  });
+
   ipcBridge.conversation.createWithConversation.provider(
     async ({ conversation, sourceConversationId, migrateCron }) => {
       try {

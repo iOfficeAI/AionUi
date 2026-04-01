@@ -44,11 +44,74 @@
   "allScheduledTasks": "Tüm zamanlanmış görevler",
   "noTasks": "Zamanlanmış görev yok",
   "runNowSuccess": "Görev çalıştırma tetiklendi",
+  "detail": {
+    "backToAll": "Tüm zamanlanmış görevler",
+    "runNow": "Şimdi çalıştır",
+    "description": "Açıklama",
+    "instructions": "Talimatlar",
+    "repeats": "Tekrarlar",
+    "history": "Geçmiş",
+    "noHistory": "Henüz çalıştırılmadı",
+    "notFound": "Görev bulunamadı"
+  },
   "notification": {
     "taskComplete": "Görev Tamamlandı",
     "scheduledTask": "Zamanlanmış Görev",
     "scheduledTaskComplete": "{{title}} - Zamanlanmış görev tamamlandı",
     "taskDone": "Görev bitti"
+  },
+  "page": {
+    "newTask": "Yeni görev",
+    "description": "Zamanlanmış görevler belirtilen zamanlarda otomatik olarak çalışır. Görevler yalnızca bilgisayarınız açıkken çalışır.",
+    "awakeBanner": "Zamanlanmış görevler yalnızca bilgisayarınız açıkken çalışır.",
+    "keepAwake": "Uyanık tut",
+    "keepAwakeTooltip": "Etkinleştirildiğinde AionUi bilgisayarınızın uyku moduna geçmesini engeller",
+    "createTask": "Zamanlanmış Görev Oluştur",
+    "createSuccess": "Görev başarıyla oluşturuldu",
+    "scheduleHint": "Zamanlanmış görevler sunucu performansı için birkaç dakikalık rastgele gecikme kullanır.",
+    "weekday": {
+      "monday": "Pazartesi",
+      "tuesday": "Salı",
+      "wednesday": "Çarşamba",
+      "thursday": "Perşembe",
+      "friday": "Cuma",
+      "saturday": "Cumartesi",
+      "sunday": "Pazar"
+    },
+    "save": "Kaydet",
+    "cancel": "İptal",
+    "form": {
+      "name": "Ad",
+      "nameRequired": "Ad gereklidir",
+      "namePlaceholder": "Görev adı girin",
+      "description": "Açıklama",
+      "descriptionPlaceholder": "Görevin kısa açıklaması",
+      "prompt": "Komut",
+      "promptRequired": "Komut gereklidir",
+      "promptPlaceholder": "Ajanın yürüteceği talimatlar",
+      "frequency": "Sıklık",
+      "cronExpr": "Cron İfadesi",
+      "cronExprRequired": "Cron ifadesi gereklidir",
+      "scheduleDesc": "Zamanlama Açıklaması",
+      "scheduleDescRequired": "Zamanlama açıklaması gereklidir",
+      "scheduleDescPlaceholder": "Örn: Her Pazartesi saat 09:00",
+      "descriptionRequired": "Açıklama gereklidir"
+    },
+    "freq": {
+      "manual": "Manuel",
+      "hourly": "Saatlik",
+      "daily": "Günlük",
+      "weekdays": "Hafta içi",
+      "weekly": "Haftalık",
+      "custom": "Özel Cron..."
+    },
+    "scheduleDesc": {
+      "manual": "Manuel",
+      "hourly": "Her saat çalıştır",
+      "dailyAt": "Her gün {{time}}'de çalıştır",
+      "weekdaysAt": "Hafta içi {{time}}'de çalıştır",
+      "weeklyAt": "Her {{day}} {{time}}'de çalıştır"
+    }
   },
   "error": {
     "alreadyExists": "Bu oturumda zaten \"{{name}}\" (ID: {{id}}) adlı zamanlanmış bir görev var. Önce silin veya mevcut görevleri görmek için [CRON_LIST] kullanın.",

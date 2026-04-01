@@ -6,14 +6,14 @@
 
 import type { TChatConversation } from '@/common/config/storage';
 import DirectorySelectionModal from '@/renderer/components/settings/DirectorySelectionModal';
-import FlexFullContainer from '@/renderer/components/layout/FlexFullContainer';
 import { CronJobIndicator, useCronJobsMap } from '@/renderer/pages/cron';
 import { DndContext, DragOverlay, closestCenter } from '@dnd-kit/core';
 import { SortableContext, verticalListSortingStrategy } from '@dnd-kit/sortable';
 import { Button, Empty, Input, Modal } from '@arco-design/web-react';
 import { FolderOpen } from '@icon-park/react';
 import classNames from 'classnames';
-import React, { useCallback, useEffect, useMemo } from 'react';
+import { Down, Right } from '@icon-park/react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useParams } from 'react-router-dom';
 
@@ -38,6 +38,15 @@ const WorkspaceGroupedHistory: React.FC<WorkspaceGroupedHistoryProps> = ({
   const { id } = useParams();
   const { t } = useTranslation();
   const { getJobStatus, markAsRead, setActiveConversation } = useCronJobsMap();
+  const [collapsedSections, setCollapsedSections] = useState<Set<string>>(() => new Set());
+  const toggleSection = useCallback((key: string) => {
+    setCollapsedSections((prev) => {
+      const next = new Set(prev);
+      if (next.has(key)) next.delete(key);
+      else next.add(key);
+      return next;
+    });
+  }, []);
 
   // Sync active conversation ref when route changes (for URL navigation)
   // This doesn't trigger state update, avoiding double render
@@ -170,16 +179,14 @@ const WorkspaceGroupedHistory: React.FC<WorkspaceGroupedHistoryProps> = ({
 
   if (timelineSections.length === 0 && pinnedConversations.length === 0) {
     return (
-      <FlexFullContainer>
-        <div className='flex-center'>
-          <Empty description={t('conversation.history.noHistory')} />
-        </div>
-      </FlexFullContainer>
+      <div className='py-48px flex-center'>
+        <Empty description={t('conversation.history.noHistory')} />
+      </div>
     );
   }
 
   return (
-    <FlexFullContainer>
+    <>
       <Modal
         title={t('conversation.history.renameTitle')}
         visible={renameModalVisible}
@@ -338,7 +345,7 @@ const WorkspaceGroupedHistory: React.FC<WorkspaceGroupedHistoryProps> = ({
         </div>
       )}
 
-      <div className='size-full overflow-y-auto overflow-x-hidden'>
+      <div>
         <DndContext
           sensors={sensors}
           collisionDetection={closestCenter}
@@ -349,22 +356,36 @@ const WorkspaceGroupedHistory: React.FC<WorkspaceGroupedHistoryProps> = ({
           {pinnedConversations.length > 0 && (
             <div className='mb-8px min-w-0'>
               {!collapsed && (
-                <div className='chat-history__section px-12px py-8px text-13px text-t-secondary font-bold'>
-                  {t('conversation.history.pinnedSection')}
+                <div
+                  className='group flex items-center px-12px py-6px cursor-pointer select-none sticky top-0 z-10 bg-fill-2'
+                  onClick={() => toggleSection('pinned')}
+                >
+                  <span className='text-12px text-t-secondary font-medium'>
+                    {t('conversation.history.pinnedSection')}
+                  </span>
+                  <span className='ml-auto opacity-0 group-hover:opacity-100 transition-opacity text-t-secondary flex items-center'>
+                    {collapsedSections.has('pinned') ? (
+                      <Right theme='outline' size={12} />
+                    ) : (
+                      <Down theme='outline' size={12} />
+                    )}
+                  </span>
                 </div>
               )}
-              <SortableContext items={pinnedIds} strategy={verticalListSortingStrategy}>
-                <div className='min-w-0'>
-                  {pinnedConversations.map((conversation) => {
-                    const props = getConversationRowProps(conversation);
-                    return isDragEnabled ? (
-                      <SortableConversationRow key={conversation.id} {...props} />
-                    ) : (
-                      <ConversationRow key={conversation.id} {...props} />
-                    );
-                  })}
-                </div>
-              </SortableContext>
+              {!collapsedSections.has('pinned') && (
+                <SortableContext items={pinnedIds} strategy={verticalListSortingStrategy}>
+                  <div className='min-w-0'>
+                    {pinnedConversations.map((conversation) => {
+                      const props = getConversationRowProps(conversation);
+                      return isDragEnabled ? (
+                        <SortableConversationRow key={conversation.id} {...props} />
+                      ) : (
+                        <ConversationRow key={conversation.id} {...props} />
+                      );
+                    })}
+                  </div>
+                </SortableContext>
+              )}
             </div>
           )}
 
@@ -376,46 +397,57 @@ const WorkspaceGroupedHistory: React.FC<WorkspaceGroupedHistoryProps> = ({
         {timelineSections.map((section) => (
           <div key={section.timeline} className='mb-8px min-w-0'>
             {!collapsed && (
-              <div className='chat-history__section px-12px py-8px text-13px text-t-secondary font-bold'>
-                {section.timeline}
+              <div
+                className='group flex items-center px-12px py-6px cursor-pointer select-none sticky top-0 z-10 bg-fill-2'
+                onClick={() => toggleSection(section.timeline)}
+              >
+                <span className='text-12px text-t-secondary font-medium'>{section.timeline}</span>
+                <span className='ml-auto opacity-0 group-hover:opacity-100 transition-opacity text-t-secondary flex items-center'>
+                  {collapsedSections.has(section.timeline) ? (
+                    <Right theme='outline' size={12} />
+                  ) : (
+                    <Down theme='outline' size={12} />
+                  )}
+                </span>
               </div>
             )}
 
-            {section.items.map((item) => {
-              if (item.type === 'workspace' && item.workspaceGroup) {
-                const group = item.workspaceGroup;
-                return (
-                  <div key={group.workspace} className={classNames('min-w-0', { 'px-8px': !collapsed })}>
-                    <WorkspaceCollapse
-                      expanded={expandedWorkspaces.includes(group.workspace)}
-                      onToggle={() => handleToggleWorkspace(group.workspace)}
-                      siderCollapsed={collapsed}
-                      header={
-                        <div className='flex items-center gap-8px text-14px min-w-0'>
-                          <span className='font-medium truncate flex-1 text-t-primary min-w-0'>
-                            {group.displayName}
-                          </span>
+            {!collapsedSections.has(section.timeline) &&
+              section.items.map((item) => {
+                if (item.type === 'workspace' && item.workspaceGroup) {
+                  const group = item.workspaceGroup;
+                  return (
+                    <div key={group.workspace} className={classNames('min-w-0', { 'px-8px': !collapsed })}>
+                      <WorkspaceCollapse
+                        expanded={expandedWorkspaces.includes(group.workspace)}
+                        onToggle={() => handleToggleWorkspace(group.workspace)}
+                        siderCollapsed={collapsed}
+                        header={
+                          <div className='flex items-center gap-8px text-14px min-w-0'>
+                            <span className='font-medium truncate flex-1 text-t-primary min-w-0'>
+                              {group.displayName}
+                            </span>
+                          </div>
+                        }
+                      >
+                        <div className={classNames('flex flex-col gap-2px min-w-0', { 'mt-4px': !collapsed })}>
+                          {group.conversations.map((conversation) => renderConversation(conversation))}
                         </div>
-                      }
-                    >
-                      <div className={classNames('flex flex-col gap-2px min-w-0', { 'mt-4px': !collapsed })}>
-                        {group.conversations.map((conversation) => renderConversation(conversation))}
-                      </div>
-                    </WorkspaceCollapse>
-                  </div>
-                );
-              }
+                      </WorkspaceCollapse>
+                    </div>
+                  );
+                }
 
-              if (item.type === 'conversation' && item.conversation) {
-                return renderConversation(item.conversation);
-              }
+                if (item.type === 'conversation' && item.conversation) {
+                  return renderConversation(item.conversation);
+                }
 
-              return null;
-            })}
+                return null;
+              })}
           </div>
         ))}
       </div>
-    </FlexFullContainer>
+    </>
   );
 };
 

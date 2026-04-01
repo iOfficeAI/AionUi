@@ -44,11 +44,74 @@
   "allScheduledTasks": "모든 예약 작업",
   "noTasks": "예약 작업 없음",
   "runNowSuccess": "작업 실행이 트리거되었습니다",
+  "detail": {
+    "backToAll": "모든 예약 작업",
+    "runNow": "지금 실행",
+    "description": "설명",
+    "instructions": "실행 지시",
+    "repeats": "반복",
+    "history": "실행 기록",
+    "noHistory": "실행 기록 없음",
+    "notFound": "작업을 찾을 수 없음"
+  },
   "notification": {
     "taskComplete": "작업 완료",
     "scheduledTask": "예약 작업",
     "scheduledTaskComplete": "{{title}} - 예약 작업 완료",
     "taskDone": "작업 완료"
+  },
+  "page": {
+    "newTask": "새 작업",
+    "description": "예약 작업은 지정된 시간에 자동으로 실행됩니다. 작업은 컴퓨터가 깨어 있는 동안에만 실행됩니다.",
+    "awakeBanner": "예약 작업은 컴퓨터가 깨어 있는 동안에만 실행됩니다.",
+    "keepAwake": "절전 방지",
+    "keepAwakeTooltip": "활성화하면 AionUi가 컴퓨터의 절전 모드를 방지합니다",
+    "createTask": "예약 작업 만들기",
+    "createSuccess": "작업이 성공적으로 생성되었습니다",
+    "scheduleHint": "예약 작업은 서버 성능을 위해 몇 분의 무작위 지연이 있습니다.",
+    "weekday": {
+      "monday": "월요일",
+      "tuesday": "화요일",
+      "wednesday": "수요일",
+      "thursday": "목요일",
+      "friday": "금요일",
+      "saturday": "토요일",
+      "sunday": "일요일"
+    },
+    "save": "저장",
+    "cancel": "취소",
+    "form": {
+      "name": "이름",
+      "nameRequired": "이름은 필수입니다",
+      "namePlaceholder": "작업 이름 입력",
+      "description": "설명",
+      "descriptionPlaceholder": "작업에 대한 간단한 설명",
+      "prompt": "프롬프트",
+      "promptRequired": "프롬프트는 필수입니다",
+      "promptPlaceholder": "에이전트가 실행할 지시사항",
+      "frequency": "빈도",
+      "cronExpr": "Cron 표현식",
+      "cronExprRequired": "Cron 표현식은 필수입니다",
+      "scheduleDesc": "일정 설명",
+      "scheduleDescRequired": "일정 설명은 필수입니다",
+      "scheduleDescPlaceholder": "예: 매주 월요일 오전 9:00",
+      "descriptionRequired": "설명은 필수입니다"
+    },
+    "freq": {
+      "manual": "수동",
+      "hourly": "매시간",
+      "daily": "매일",
+      "weekdays": "평일",
+      "weekly": "매주",
+      "custom": "사용자 정의 Cron..."
+    },
+    "scheduleDesc": {
+      "manual": "수동",
+      "hourly": "매시간 실행",
+      "dailyAt": "매일 {{time}}에 실행",
+      "weekdaysAt": "평일 {{time}}에 실행",
+      "weeklyAt": "매주 {{day}} {{time}}에 실행"
+    }
   },
   "error": {
     "alreadyExists": "이 세션에는 이미 \"{{name}}\" (ID: {{id}}) 예약 작업이 있습니다. 먼저 삭제하거나 [CRON_LIST]를 사용하여 기존 작업을 확인하세요.",

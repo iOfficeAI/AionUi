@@ -13,7 +13,7 @@ export interface ICronJobExecutor {
    * @param onAcquired - Called after task acquisition succeeds, before sendMessage.
    *   Use this hook to register completion notifications while guaranteeing that
    *   busy-state has already been set (avoiding premature onceIdle fires). */
-  executeJob(job: CronJob, onAcquired?: () => void): Promise<void>;
+  executeJob(job: CronJob, onAcquired?: () => void): Promise<string | void>;
   /** Register a callback to fire once the conversation becomes idle. */
   onceIdle(conversationId: string, callback: () => Promise<void>): void;
   /** Mark the conversation as busy/not-busy. */

@@ -44,11 +44,74 @@
   "allScheduledTasks": "全部定時任務",
   "noTasks": "暫無定時任務",
   "runNowSuccess": "任務已觸發執行",
+  "detail": {
+    "backToAll": "全部定時任務",
+    "runNow": "立即執行",
+    "description": "描述",
+    "instructions": "執行指令",
+    "repeats": "重複執行",
+    "history": "執行歷史",
+    "noHistory": "暫無執行記錄",
+    "notFound": "未找到任務"
+  },
   "notification": {
     "taskComplete": "任務完成",
     "scheduledTask": "定時任務",
     "scheduledTaskComplete": "{{title}}的定時任務完成",
     "taskDone": "任務已完成"
+  },
+  "page": {
+    "newTask": "新建任務",
+    "description": "定時任務會在指定時間自動執行。任務僅在電腦喚醒狀態下運行。",
+    "awakeBanner": "定時任務僅在電腦喚醒狀態下運行。",
+    "keepAwake": "保持喚醒",
+    "keepAwakeTooltip": "開啟後，AionUi 將阻止電腦進入休眠狀態",
+    "createTask": "建立定時任務",
+    "createSuccess": "任務建立成功",
+    "scheduleHint": "定時任務會有幾分鐘的隨機延遲以優化伺服器效能。",
+    "weekday": {
+      "monday": "星期一",
+      "tuesday": "星期二",
+      "wednesday": "星期三",
+      "thursday": "星期四",
+      "friday": "星期五",
+      "saturday": "星期六",
+      "sunday": "星期日"
+    },
+    "save": "儲存",
+    "cancel": "取消",
+    "form": {
+      "name": "名稱",
+      "nameRequired": "請輸入任務名稱",
+      "namePlaceholder": "輸入任務名稱",
+      "description": "描述",
+      "descriptionPlaceholder": "簡要描述任務用途",
+      "prompt": "執行指令",
+      "promptRequired": "請輸入執行指令",
+      "promptPlaceholder": "Agent 觸發時執行的指令",
+      "frequency": "頻率",
+      "cronExpr": "Cron 運算式",
+      "cronExprRequired": "請輸入 Cron 運算式",
+      "scheduleDesc": "排程描述",
+      "scheduleDescRequired": "請輸入排程描述",
+      "scheduleDescPlaceholder": "例如：每週一上午 9:00",
+      "descriptionRequired": "請輸入描述"
+    },
+    "freq": {
+      "manual": "手動觸發",
+      "hourly": "每小時",
+      "daily": "每天",
+      "weekdays": "工作日",
+      "weekly": "每週",
+      "custom": "自訂 Cron..."
+    },
+    "scheduleDesc": {
+      "manual": "手動觸發",
+      "hourly": "每小時執行",
+      "dailyAt": "每天 {{time}} 執行",
+      "weekdaysAt": "工作日 {{time}} 執行",
+      "weeklyAt": "每週{{day}} {{time}} 執行"
+    }
   },
   "error": {
     "alreadyExists": "此對話已存在定時任務 \"{{name}}\" (ID: {{id}})。請先刪除它，或使用 [CRON_LIST] 查看已有任務。",

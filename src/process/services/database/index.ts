@@ -670,6 +670,21 @@ export class AionUIDatabase {
     }
   }
 
+  getConversationsByCronJobId(cronJobId: string): TChatConversation[] {
+    const rows = this.db
+      .prepare(`SELECT * FROM conversations WHERE json_extract(extra, '$.cronJobId') = ? ORDER BY created_at DESC`)
+      .all(cronJobId) as IConversationRow[];
+    const result: TChatConversation[] = [];
+    for (const row of rows) {
+      try {
+        result.push(rowToConversation(row));
+      } catch (e) {
+        console.warn('[Database] Skipping conversation row with unknown type:', row.type, row.id);
+      }
+    }
+    return result;
+  }
+
   updateConversation(conversationId: string, updates: Partial<TChatConversation>): IQueryResult<boolean> {
     try {
       const existing = this.getConversation(conversationId);

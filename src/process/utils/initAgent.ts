@@ -37,6 +37,10 @@ export async function setupAssistantWorkspace(
     agentType?: PresetAgentType | string;
     backend?: string;
     enabledSkills?: string[];
+    /** Builtin skill names to exclude from auto-injection (e.g. 'cron' for cron-spawned conversations) */
+    excludeBuiltinSkills?: string[];
+    /** Absolute paths to extra skill directories to symlink (e.g. cron job skill dirs) */
+    extraSkillPaths?: string[];
   }
 ): Promise<void> {
   // Determine skills directories from ACP_BACKENDS_ALL config
@@ -61,7 +65,9 @@ export async function setupAssistantWorkspace(
     } catch {
       // _builtin dir not ready yet, skip
     }
+    const excludeSet = new Set(options.excludeBuiltinSkills ?? []);
     for (const skillName of autoSkillNames) {
+      if (excludeSet.has(skillName)) continue;
       const sourceSkillDir = path.join(autoSkillsDir, skillName);
       const targetSkillDir = path.join(targetSkillsDir, skillName);
       try {
@@ -100,6 +106,23 @@ export async function setupAssistantWorkspace(
         }
       } catch {
         console.warn(`[setupAssistantWorkspace] Skill directory not found: ${sourceSkillDir}`);
+      }
+    }
+
+    // Symlink extra skill directories (e.g. cron job SKILL.md dirs)
+    for (const extraPath of options.extraSkillPaths ?? []) {
+      const skillDirName = path.basename(extraPath);
+      const targetSkillDir = path.join(targetSkillsDir, skillDirName);
+      try {
+        await fs.stat(extraPath);
+        try {
+          await fs.lstat(targetSkillDir);
+        } catch {
+          await fs.symlink(extraPath, targetSkillDir, 'junction');
+          console.log(`[setupAssistantWorkspace] Symlinked extra skill: ${extraPath} -> ${targetSkillDir}`);
+        }
+      } catch {
+        console.warn(`[setupAssistantWorkspace] Extra skill directory not found: ${extraPath}`);
       }
     }
   }
@@ -146,7 +169,9 @@ export const createGeminiAgent = async (
   enabledSkills?: string[],
   presetAssistantId?: string,
   sessionMode?: string,
-  isHealthCheck?: boolean
+  isHealthCheck?: boolean,
+  extraSkillPaths?: string[],
+  excludeBuiltinSkills?: string[]
 ): Promise<TChatConversation> => {
   const { workspace: newWorkspace, customWorkspace: finalCustomWorkspace } = await buildWorkspaceWidthFiles(
     `gemini-temp-${Date.now()}`,
@@ -161,6 +186,8 @@ export const createGeminiAgent = async (
     await setupAssistantWorkspace(newWorkspace, {
       agentType: 'gemini',
       enabledSkills,
+      extraSkillPaths,
+      excludeBuiltinSkills,
     });
   }
 
@@ -208,6 +235,8 @@ export const createAcpAgent = async (options: ICreateConversationParams): Promis
     await setupAssistantWorkspace(workspace, {
       backend: extra.backend,
       enabledSkills: extra.enabledSkills,
+      extraSkillPaths: extra.extraSkillPaths,
+      excludeBuiltinSkills: extra.excludeBuiltinSkills,
     });
   }
 
@@ -255,6 +284,8 @@ export const createCodexAgent = async (options: ICreateConversationParams): Prom
     await setupAssistantWorkspace(workspace, {
       agentType: 'codex',
       enabledSkills: extra.enabledSkills,
+      extraSkillPaths: extra.extraSkillPaths,
+      excludeBuiltinSkills: extra.excludeBuiltinSkills,
     });
   }
 
@@ -299,6 +330,8 @@ export const createNanobotAgent = async (options: ICreateConversationParams): Pr
     await setupAssistantWorkspace(workspace, {
       agentType: 'nanobot',
       enabledSkills: extra.enabledSkills,
+      extraSkillPaths: extra.extraSkillPaths,
+      excludeBuiltinSkills: extra.excludeBuiltinSkills,
     });
   }
 
@@ -329,6 +362,8 @@ export const createRemoteAgent = async (options: ICreateConversationParams): Pro
   if (!customWorkspace) {
     await setupAssistantWorkspace(workspace, {
       enabledSkills: extra.enabledSkills,
+      extraSkillPaths: extra.extraSkillPaths,
+      excludeBuiltinSkills: extra.excludeBuiltinSkills,
     });
   }
 
@@ -361,6 +396,8 @@ export const createOpenClawAgent = async (options: ICreateConversationParams): P
   if (!customWorkspace) {
     await setupAssistantWorkspace(workspace, {
       enabledSkills: extra.enabledSkills,
+      extraSkillPaths: extra.extraSkillPaths,
+      excludeBuiltinSkills: extra.excludeBuiltinSkills,
     });
   }
 

@@ -39,7 +39,8 @@ export const conversation = {
   get: bridge.buildProvider<TChatConversation, { id: string }>('get-conversation'), // 获取对话信息
   getAssociateConversation: bridge.buildProvider<TChatConversation[], { conversation_id: string }>(
     'get-associated-conversation'
-  ), // 获取关联对话
+  ),
+  listByCronJob: bridge.buildProvider<TChatConversation[], { cronJobId: string }>('conversation.list-by-cron-job'), // 获取关联对话
   remove: bridge.buildProvider<boolean, { id: string }>('remove-conversation'), // 删除对话
   update: bridge.buildProvider<boolean, { id: string; updates: Partial<TChatConversation>; mergeExtra?: boolean }>(
     'update-conversation'
@@ -687,6 +688,8 @@ export const systemSettings = {
   setCronNotificationEnabled: bridge.buildProvider<void, { enabled: boolean }>(
     'system-settings:set-cron-notification-enabled'
   ),
+  getKeepAwake: bridge.buildProvider<boolean, void>('system-settings:get-keep-awake'),
+  setKeepAwake: bridge.buildProvider<void, { enabled: boolean }>('system-settings:set-keep-awake'),
   changeLanguage: bridge.buildProvider<void, { language: string }>('system-settings:change-language'),
   // Broadcast language change to all renderers (desktop + WebUI) for real-time sync
   languageChanged: bridge.buildEmitter<{ language: string }>('system-settings:language-changed'),
@@ -770,6 +773,7 @@ export const cron = {
   addJob: bridge.buildProvider<ICronJob, ICreateCronJobParams>('cron.add-job'),
   updateJob: bridge.buildProvider<ICronJob, { jobId: string; updates: Partial<ICronJob> }>('cron.update-job'),
   removeJob: bridge.buildProvider<void, { jobId: string }>('cron.remove-job'),
+  runNow: bridge.buildProvider<void, { jobId: string }>('cron.run-now'),
   // Events
   onJobCreated: bridge.buildEmitter<ICronJob>('cron.job-created'),
   onJobUpdated: bridge.buildEmitter<ICronJob>('cron.job-updated'),
@@ -790,7 +794,10 @@ export interface ICronJob {
   name: string;
   enabled: boolean;
   schedule: ICronSchedule;
-  target: { payload: { kind: 'message'; text: string } };
+  target: {
+    payload: { kind: 'message'; text: string };
+    executionMode?: 'existing' | 'new_conversation';
+  };
   metadata: {
     conversationId: string;
     conversationTitle?: string;
@@ -798,6 +805,7 @@ export interface ICronJob {
     createdBy: 'user' | 'agent';
     createdAt: number;
     updatedAt: number;
+    agentConfig?: ICronAgentConfig;
   };
   state: {
     nextRunAtMs?: number;
@@ -810,14 +818,28 @@ export interface ICronJob {
   };
 }
 
+export interface ICronAgentConfig {
+  backend: AcpBackendAll;
+  name: string;
+  cliPath?: string;
+  isPreset?: boolean;
+  customAgentId?: string;
+  presetAgentType?: string;
+}
+
 export interface ICreateCronJobParams {
   name: string;
+  description?: string;
   schedule: ICronSchedule;
-  message: string;
+  /** New UI system uses `prompt`; old skill system uses `message` */
+  prompt?: string;
+  message?: string;
   conversationId: string;
   conversationTitle?: string;
   agentType: AcpBackendAll;
   createdBy: 'user' | 'agent';
+  executionMode?: 'existing' | 'new_conversation';
+  agentConfig?: ICronAgentConfig;
 }
 
 interface ISendMessageParams {
@@ -887,6 +909,10 @@ export interface ICreateConversationParams {
     isHealthCheck?: boolean;
     /** Remote agent config ID (FK to remote_agents table) — required when type='remote' */
     remoteAgentId?: string;
+    /** Extra skill directory paths to symlink into workspace (e.g. cron job skill dirs) */
+    extraSkillPaths?: string[];
+    /** Builtin skill names to exclude from auto-injection (e.g. 'cron' for cron-spawned conversations) */
+    excludeBuiltinSkills?: string[];
   };
 }
 interface IResetConversationParams {

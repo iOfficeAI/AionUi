@@ -19,6 +19,10 @@ export class IpcCronEventEmitter implements ICronEventEmitter {
     ipcBridge.cron.onJobUpdated.emit(job);
   }
 
+  emitJobExecuted(jobId: string, status: 'ok' | 'error' | 'skipped' | 'missed', error?: string): void {
+    ipcBridge.cron.onJobExecuted.emit({ jobId, status, error });
+  }
+
   emitJobRemoved(jobId: string): void {
     ipcBridge.cron.onJobRemoved.emit({ jobId });
   }

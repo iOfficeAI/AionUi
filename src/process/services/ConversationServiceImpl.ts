@@ -33,6 +33,10 @@ export class ConversationServiceImpl implements IConversationService {
     return this.repo.listAllConversations();
   }
 
+  async getConversationsByCronJob(cronJobId: string): Promise<TChatConversation[]> {
+    return this.repo.getConversationsByCronJob(cronJobId);
+  }
+
   async deleteConversation(id: string): Promise<void> {
     try {
       const jobs = await cronService.listJobsByConversation(id);
@@ -141,7 +145,9 @@ export class ConversationServiceImpl implements IConversationService {
           params.extra.enabledSkills as string[] | undefined,
           params.extra.presetAssistantId,
           params.extra.sessionMode,
-          params.extra.isHealthCheck
+          params.extra.isHealthCheck,
+          params.extra.extraSkillPaths as string[] | undefined,
+          params.extra.excludeBuiltinSkills as string[] | undefined
         );
         break;
       }
@@ -176,6 +182,17 @@ export class ConversationServiceImpl implements IConversationService {
     if (params.name) overrides.name = params.name;
     if (params.source) overrides.source = params.source;
     if (params.channelChatId) overrides.channelChatId = params.channelChatId;
+    // Merge extra fields from params that the factory didn't consume (e.g. cronJobId).
+    // Factory-produced values take precedence; only novel keys from params.extra are added.
+    if (params.extra && conversation.extra) {
+      const factoryExtra = conversation.extra as Record<string, unknown>;
+      for (const [key, value] of Object.entries(params.extra)) {
+        if (value !== undefined && !(key in factoryExtra)) {
+          factoryExtra[key] = value;
+        }
+      }
+    }
+
     // The spread preserves the discriminant field (type) from `conversation`;
     // the assertion is safe because `overrides` only contains non-discriminant fields.
     const finalConversation = {
