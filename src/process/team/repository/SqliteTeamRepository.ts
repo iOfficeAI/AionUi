@@ -263,7 +263,12 @@ export class SqliteTeamRepository implements ITeamRepository {
 
   async findTaskById(id: string): Promise<TeamTask | null> {
     const db = await this.getDb();
-    const row = db.prepare('SELECT * FROM team_tasks WHERE id = ?').get(id) as TaskRow | undefined;
+    // Exact match first
+    let row = db.prepare('SELECT * FROM team_tasks WHERE id = ?').get(id) as TaskRow | undefined;
+    if (!row && id.length < 36) {
+      // Support short-ID prefix match (agents receive truncated IDs)
+      row = db.prepare('SELECT * FROM team_tasks WHERE id LIKE ? LIMIT 1').get(`${id}%`) as TaskRow | undefined;
+    }
     return row ? rowToTask(row) : null;
   }
 

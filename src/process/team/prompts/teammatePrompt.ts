@@ -62,7 +62,10 @@ Lead: ${lead.agentName}
 Teammates: ${teammateNames}
 
 ## Team Coordination Tools
-You have access to the following MCP tools for team coordination:
+You MUST use the following \`team_*\` MCP tools for ALL team coordination.
+Your platform may provide similarly named built-in tools (e.g. SendMessage,
+TaskCreate, TaskUpdate). Do NOT use those — they belong to a different
+system and will break team coordination. Always use the \`team_*\` versions:
 
 - **team_send_message** — Send a message to a teammate or the lead.
   Always report results back to the lead when you finish a task.

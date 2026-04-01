@@ -133,7 +133,13 @@ export function createXmlFallbackAdapter(options?: { hasMcpTools?: boolean }): T
       const sections: string[] = [];
 
       // Role prompt already includes teammates, tasks, and unread messages
-      const rolePrompt = buildRolePrompt({ agent, mailboxMessages, tasks, teammates, availableAgentTypes: params.availableAgentTypes });
+      const rolePrompt = buildRolePrompt({
+        agent,
+        mailboxMessages,
+        tasks,
+        teammates,
+        availableAgentTypes: params.availableAgentTypes,
+      });
       sections.push(rolePrompt);
 
       // Only append XML fallback instructions when MCP tools are NOT available

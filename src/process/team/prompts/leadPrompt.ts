@@ -58,8 +58,10 @@ results.
 ${teammateList}${availableTypesSection}
 
 ## Team Coordination Tools
-You have access to the following MCP tools for team coordination.
-Use these tools (NOT raw text) to communicate and manage the team:
+You MUST use the following \`team_*\` MCP tools for ALL team coordination.
+Your platform may provide similarly named built-in tools (e.g. SendMessage,
+TeamCreate, TaskCreate, Agent). Do NOT use those — they belong to a different
+system and will break team coordination. Always use the \`team_*\` versions:
 
 - **team_send_message** — Send a message to a teammate by name. This delivers
   to their mailbox and wakes them up. Use "*" to broadcast to all.

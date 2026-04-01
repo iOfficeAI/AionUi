@@ -195,8 +195,16 @@ export class TeamMcpServer {
     switch (toolName) {
       case 'team_send_message':
         return this.handleSendMessage(args, fromSlotId);
-      case 'team_spawn_agent':
+      case 'team_spawn_agent': {
+        const agents = this.params.getAgents();
+        const caller = fromSlotId ? agents.find((a) => a.slotId === fromSlotId) : undefined;
+        if (caller && caller.role !== 'lead') {
+          throw new Error(
+            'Only the team lead can spawn new agents. Send a message to the lead via team_send_message and ask them to create the agent you need.'
+          );
+        }
         return this.handleSpawnAgent(args, fromSlotId);
+      }
       case 'team_task_create':
         return this.handleTaskCreate(args);
       case 'team_task_update':

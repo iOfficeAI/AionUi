@@ -11,6 +11,7 @@ import TeamTabs from './components/TeamTabs';
 import TeamChatView from './components/TeamChatView';
 import { agentFromKey, agentKey, resolveConversationType } from './components/agentSelectUtils';
 import { TeamTabsProvider, useTeamTabs } from './hooks/TeamTabsContext';
+import { TeamPermissionProvider } from './hooks/TeamPermissionContext';
 import { useTeamSession } from './hooks/useTeamSession';
 
 type Props = {
@@ -29,8 +30,9 @@ const TeamPageContent: React.FC<TeamPageContentProps> = ({ team, onAddAgent }) =
   const [, messageContext] = Message.useMessage({ maxCount: 1 });
 
   const activeAgent = team.agents.find((a) => a.slotId === activeSlotId);
-
   const leadAgent = team.agents.find((a) => a.role === 'lead');
+  const isLeadAgent = activeAgent?.slotId === leadAgent?.slotId;
+  const allConversationIds = useMemo(() => team.agents.map((a) => a.conversationId).filter(Boolean), [team.agents]);
 
   // Fetch both conversations in parallel via SWR (independent keys fire concurrently)
   const { data: activeConversation, mutate: mutateActiveConversation } = useSWR(
@@ -81,7 +83,7 @@ const TeamPageContent: React.FC<TeamPageContentProps> = ({ team, onAddAgent }) =
   const tabsSlot = useMemo(() => <TeamTabs onAddAgent={onAddAgent} />, [onAddAgent]);
 
   return (
-    <>
+    <TeamPermissionProvider isLeadAgent={isLeadAgent} allConversationIds={allConversationIds}>
       {messageContext}
       <ChatLayout
         title={team.name}
@@ -94,17 +96,14 @@ const TeamPageContent: React.FC<TeamPageContentProps> = ({ team, onAddAgent }) =
         agentName={activeAgent?.agentName}
       >
         {activeConversation ? (
-          <TeamChatView
-            conversation={activeConversation}
-            teamId={activeAgent?.slotId === leadAgent?.slotId ? team.id : undefined}
-          />
+          <TeamChatView conversation={activeConversation} teamId={isLeadAgent ? team.id : undefined} />
         ) : (
           <div className='flex flex-1 items-center justify-center'>
             <Spin loading />
           </div>
         )}
       </ChatLayout>
-    </>
+    </TeamPermissionProvider>
   );
 };
 
