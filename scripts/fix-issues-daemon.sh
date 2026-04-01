@@ -1,22 +1,22 @@
 #!/usr/bin/env bash
-# Fix-Sentry Daemon
-# Continuously launches Claude processes to fix Sentry issues one at a time.
-# Claude handles all Sentry API interaction via MCP — daemon is just a scheduler.
+# Fix-Issues Daemon
+# Continuously launches Claude processes to fix GitHub bug issues one at a time.
+# Claude handles all GitHub API interaction via gh CLI — daemon is just a scheduler.
 #
 # Usage:
-#   ./scripts/fix-sentry-daemon.sh              # start daemon
-#   ./scripts/fix-sentry-daemon.sh stop         # stop daemon (kills all child processes)
-#   nohup ./scripts/fix-sentry-daemon.sh &      # survives terminal close
+#   ./scripts/fix-issues-daemon.sh              # start daemon
+#   ./scripts/fix-issues-daemon.sh stop         # stop daemon (kills all child processes)
+#   nohup ./scripts/fix-issues-daemon.sh &      # survives terminal close
 #
 # Logs:
-#   Main log:    ~/.aionui-fix-sentry/daemon.log
-#   Session logs: ~/.aionui-fix-sentry/tmp/session-<uuid>.log
+#   Main log:    ~/.aionui-fix-issues/daemon.log
+#   Session logs: ~/.aionui-fix-issues/tmp/session-<uuid>.log
 
 set -euo pipefail
 
 # ─── Stop command ───
 
-LOG_DIR="${HOME}/.aionui-fix-sentry"
+LOG_DIR="${HOME}/.aionui-fix-issues"
 LOCK_FILE="${LOG_DIR}/daemon.lock"
 
 if [ "${1:-}" = "stop" ]; then
@@ -38,7 +38,6 @@ fi
 # ─── Configuration ───
 
 COOLDOWN=60                    # seconds to wait after each Claude process
-SENTRY_PROJECT="electron"     # Sentry project slug passed to skill
 IDLE_BASE=1800                 # base idle time when no fixable issues (30 min)
 IDLE_MAX=7200                  # max idle time with exponential backoff (2 hours)
 
@@ -52,16 +51,6 @@ mkdir -p "${LOG_DIR}/tmp"
 
 # Clean up session logs older than 7 days
 find "${LOG_DIR}/tmp" -name "session-*.log" -mtime +7 -delete 2>/dev/null || true
-
-# Clean up orphan worktrees left by previous daemon crashes
-WORKTREES_DIR="${REPO_ROOT}/.worktrees"
-if [ -d "$WORKTREES_DIR" ]; then
-  for wt in "$WORKTREES_DIR"/fix-sentry-*; do
-    [ -d "$wt" ] || continue
-    git -C "$REPO_ROOT" worktree remove "$wt" --force 2>/dev/null || rm -rf "$wt"
-  done
-fi
-git -C "$REPO_ROOT" worktree prune 2>/dev/null || true
 
 # Prevent multiple instances
 if [ -f "$LOCK_FILE" ]; then
@@ -82,19 +71,17 @@ if command -v caffeinate &>/dev/null; then
   CAFFEINATE_PID=$!
 fi
 
-# Track current worktree for cleanup on exit
-CURRENT_WORKTREE=""
+STOPPING=0
 
 cleanup() {
-  # Clean up current worktree if it exists
-  if [ -n "$CURRENT_WORKTREE" ] && [ -d "$CURRENT_WORKTREE" ]; then
-    git -C "$REPO_ROOT" worktree remove "$CURRENT_WORKTREE" --force 2>/dev/null || rm -rf "$CURRENT_WORKTREE"
-  fi
-  git -C "$REPO_ROOT" worktree prune 2>/dev/null || true
+  # Prevent re-entrant cleanup (EXIT fires after INT/TERM handler)
+  [ "$STOPPING" -eq 1 ] && return
+  STOPPING=1
   rm -f "$LOCK_FILE"
-  # Kill child processes (caffeinate, sleep, etc.)
+  # Kill child processes (caffeinate, sleep, claude, etc.)
   jobs -p | xargs kill 2>/dev/null || true
   echo "$(date -u +%Y-%m-%dT%H:%M:%SZ) Daemon stopped." >> "$LOG_FILE"
+  exit 0
 }
 
 trap cleanup EXIT INT TERM
@@ -116,29 +103,23 @@ log() {
 
 NO_FIX_STREAK=0
 
-log "Daemon started (PID: $$, cooldown: ${COOLDOWN}s, project: ${SENTRY_PROJECT}, caffeinate: ${CAFFEINATE_PID})"
+log "Daemon started (PID: $$, cooldown: ${COOLDOWN}s, caffeinate: ${CAFFEINATE_PID})"
 
 while true; do
-  # Create isolated worktree from latest main
-  WORKTREE_DIR="${REPO_ROOT}/.worktrees/fix-sentry-$(date +%s)"
-  git -C "$REPO_ROOT" fetch origin main 2>/dev/null || true
-  git -C "$REPO_ROOT" worktree add "$WORKTREE_DIR" origin/main --detach 2>/dev/null || {
-    log "Failed to create worktree, retrying in ${COOLDOWN}s"
-    sleep "$COOLDOWN"
-    continue
-  }
-  CURRENT_WORKTREE="$WORKTREE_DIR"
+  # Ensure we're on main with latest code
+  cd "$REPO_ROOT"
+  git checkout main 2>/dev/null || true
+  git pull origin main 2>/dev/null || true
 
   SESSION_ID=$(uuidgen | tr '[:upper:]' '[:lower:]')
   ISSUE_LOG="${LOG_DIR}/tmp/session-${SESSION_ID}.log"
 
-  log ">>> Launching Claude (session: ${SESSION_ID}, worktree: ${WORKTREE_DIR})"
+  log ">>> Launching Claude (session: ${SESSION_ID})"
 
-  # Claude handles everything: fetch issues via MCP, triage, fix, create PR
-  # stream-json outputs realtime (plain -p buffers everything until exit)
-  (cd "$WORKTREE_DIR" && claude -p \
+  # Claude handles everything: fetch issues via gh, triage, fix, create PR
+  (cd "$REPO_ROOT" && claude -p \
     --output-format stream-json --verbose \
-    "/fix-sentry limit=1 project=${SENTRY_PROJECT}" \
+    "/fix-issues limit=1" \
     --session-id "$SESSION_ID" \
     --dangerously-skip-permissions < /dev/null 2>&1) \
     > "$ISSUE_LOG" || true
@@ -169,10 +150,9 @@ for u in sorted(urls): print(u)
     log "    No PR created this session"
   fi
 
-  # Cleanup worktree
-  git -C "$REPO_ROOT" worktree remove "$WORKTREE_DIR" --force 2>/dev/null || rm -rf "$WORKTREE_DIR"
-  git -C "$REPO_ROOT" worktree prune 2>/dev/null || true
-  CURRENT_WORKTREE=""
+  # Return to main after Claude finishes (Claude should do this, but ensure it)
+  cd "$REPO_ROOT"
+  git checkout main 2>/dev/null || true
 
   # Check if Claude found anything to fix — adjust wait time accordingly
   if grep -q '\[NO_FIXABLE_ISSUES\]' "$ISSUE_LOG" 2>/dev/null; then
