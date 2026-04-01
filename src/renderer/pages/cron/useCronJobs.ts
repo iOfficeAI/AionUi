@@ -505,15 +505,23 @@ export function useCronJobConversations(jobId: string | undefined) {
     void fetchConversations();
   }, [fetchConversations]);
 
-  // Refetch when job executes
+  // Refetch when job executes or a new conversation is created
   useEffect(() => {
     if (!jobId) return;
-    const unsub = ipcBridge.cron.onJobExecuted.on((data) => {
+    const unsubExecuted = ipcBridge.cron.onJobExecuted.on((data) => {
       if (data.jobId === jobId) {
         void fetchConversations();
       }
     });
-    return unsub;
+    const unsubListChanged = ipcBridge.conversation.listChanged.on((data) => {
+      if (data.action === 'created') {
+        void fetchConversations();
+      }
+    });
+    return () => {
+      unsubExecuted();
+      unsubListChanged();
+    };
   }, [jobId, fetchConversations]);
 
   return { conversations, loading };

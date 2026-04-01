@@ -4,6 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
+import { ipcBridge } from '@/common';
 import type { CronMessageMeta } from '@/common/chat/chatLib';
 import type { TChatConversation, TProviderWithModel } from '@/common/config/storage';
 import type { AcpBackendAll } from '@/common/types/acpTypes';
@@ -133,7 +134,16 @@ export class WorkerTaskManagerJobExecutor implements ICronJobExecutor {
     };
 
     const service = await getConversationService();
-    return service.createConversation(params);
+    const conversation = await service.createConversation(params);
+
+    // Notify frontend so sider updates immediately
+    ipcBridge.conversation.listChanged.emit({
+      conversationId: conversation.id,
+      action: 'created',
+      source: conversation.source || 'aionui',
+    });
+
+    return conversation;
   }
 
   /**
