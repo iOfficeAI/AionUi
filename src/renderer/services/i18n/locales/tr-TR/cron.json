@@ -114,6 +114,14 @@
       "weeklyAt": "Her {{day}} {{time}}'de çalıştır"
     }
   },
+  "skill": {
+    "turnIntoSkill": "Bu görevi Skill'e dönüştür",
+    "save": "Skill olarak kaydet",
+    "dismiss": "Kapat",
+    "preview": "Skill içeriğini önizle",
+    "saveSuccess": "Skill kaydedildi — sonraki çalıştırmalar bu Skill'i kullanacak",
+    "saveFailed": "Skill kaydedilemedi"
+  },
   "error": {
     "alreadyExists": "Bu oturumda zaten \"{{name}}\" (ID: {{id}}) adlı zamanlanmış bir görev var. Önce silin veya mevcut görevleri görmek için [CRON_LIST] kullanın.",
     "missedJob": "⏰ \"{{name}}\" zamanlanmış görevi sistem uykusu sırasında çalışmadı.\nPlanlanan saat: {{time}}\nZamanlayıcı yeniden başlatıldı, bir sonraki planlanan saatte çalışacak.",

@@ -178,9 +178,7 @@ export function useAllCronJobs() {
     setLoading(true);
     try {
       const allJobs = await ipcBridge.cron.listJobs.invoke();
-      // Only show jobs created via the new UI system (createdBy: 'user')
-      // Old skill-based jobs (createdBy: 'agent') are managed via CronJobManager in their conversation
-      setJobs((allJobs || []).filter((j) => j.metadata.createdBy === 'user'));
+      setJobs(allJobs || []);
     } catch (err) {
       console.error('[useAllCronJobs] Failed to fetch jobs:', err);
     } finally {
@@ -197,7 +195,6 @@ export function useAllCronJobs() {
   const eventHandlers = useMemo<CronJobEventHandlers>(
     () => ({
       onJobCreated: (job: ICronJob) => {
-        if (job.metadata.createdBy !== 'user') return;
         setJobs((prev) => (prev.some((j) => j.id === job.id) ? prev : [...prev, job]));
       },
       onJobUpdated: (job: ICronJob) => {

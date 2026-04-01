@@ -27,18 +27,6 @@
   "deleteSuccess": "Task deleted",
   "pauseSuccess": "Task paused",
   "resumeSuccess": "Task resumed",
-  "drawer.title": "Scheduled Task Details",
-  "drawer.name": "Name",
-  "drawer.namePlaceholder": "Enter task name",
-  "drawer.taskStatus": "Task Status",
-  "drawer.enabled": "Enabled",
-  "drawer.disabled": "Disabled",
-  "drawer.command": "Command",
-  "drawer.commandPlaceholder": "Enter command to execute",
-  "drawer.schedule": "Schedule",
-  "drawer.nextRun": "Next Run",
-  "drawer.save": "Save",
-  "drawer.saveSuccess": "Saved successfully",
   "message.badge": "Scheduled",
   "allScheduledTasks": "All Scheduled Tasks",
   "noTasks": "No scheduled tasks",
@@ -100,7 +88,12 @@
       "descriptionRequired": "Description is required",
       "agent": "Agent",
       "agentRequired": "Please select an agent",
-      "agentPlaceholder": "Select the agent to execute this task"
+      "agentPlaceholder": "Select the agent to execute this task",
+      "executionMode": "Execution Mode",
+      "newConversation": "New conversation",
+      "existingConversation": "Same conversation",
+      "newConversationHint": "Each execution creates a new conversation",
+      "existingConversationHint": "All executions share the same conversation"
     },
     "freq": {
       "manual": "Manual",
@@ -117,6 +110,14 @@
       "weekdaysAt": "Weekdays at {{time}}",
       "weeklyAt": "Every {{day}} at {{time}}"
     }
+  },
+  "skill": {
+    "turnIntoSkill": "Turn this task into a skill",
+    "save": "Save as Skill",
+    "dismiss": "Dismiss",
+    "preview": "Preview skill content",
+    "saveSuccess": "Skill saved — future executions will use it",
+    "saveFailed": "Failed to save skill"
   },
   "error": {
     "alreadyExists": "This conversation already has a scheduled task \"{{name}}\" (ID: {{id}}). Please delete it first before creating a new one, or use [CRON_LIST] to view existing tasks.",

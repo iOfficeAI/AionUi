@@ -114,6 +114,14 @@
       "weeklyAt": "毎週{{day}} {{time}} に実行"
     }
   },
+  "skill": {
+    "turnIntoSkill": "このタスクをSkillに変換",
+    "save": "Skillとして保存",
+    "dismiss": "無視",
+    "preview": "Skill内容をプレビュー",
+    "saveSuccess": "Skillが保存されました。今後の実行ではこのSkillを使用します",
+    "saveFailed": "Skillの保存に失敗しました"
+  },
   "error": {
     "alreadyExists": "このセッションには既に \"{{name}}\" (ID: {{id}}) というスケジュールタスクが存在します。まず削除するか、[CRON_LIST] を使用して既存のタスクを確認してください。",
     "missedJob": "⏰ スケジュールタスク \"{{name}}\" はシステムスリープ中に実行されませんでした。\n予定時刻：{{time}}\nタイマーが再起動され、次回の予定時刻に実行されます。",

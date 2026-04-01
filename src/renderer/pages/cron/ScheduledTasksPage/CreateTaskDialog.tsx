@@ -6,7 +6,7 @@
 
 import React, { useState, useMemo, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Form, Input, Select, Message, TimePicker } from '@arco-design/web-react';
+import { Form, Input, Select, Message, TimePicker, Radio } from '@arco-design/web-react';
 import ModalWrapper from '@renderer/components/base/ModalWrapper';
 import { Robot } from '@icon-park/react';
 import { ipcBridge } from '@/common';
@@ -103,6 +103,7 @@ const CreateTaskDialog: React.FC<CreateTaskDialogProps> = ({
   const [weekday, setWeekday] = useState('MON');
 
   const isEditMode = !!editJob;
+  const [executionMode, setExecutionMode] = useState<'new_conversation' | 'existing'>('new_conversation');
 
   // Populate form when entering edit mode
   useEffect(() => {
@@ -113,6 +114,7 @@ const CreateTaskDialog: React.FC<CreateTaskDialogProps> = ({
       setFrequency(parsed.frequency);
       setTime(parsed.time);
       setWeekday(parsed.weekday);
+      setExecutionMode(editJob.target.executionMode || 'existing');
       form.setFieldsValue({
         name: editJob.name,
         description: editJob.schedule.description || editJob.name,
@@ -124,6 +126,7 @@ const CreateTaskDialog: React.FC<CreateTaskDialogProps> = ({
       setFrequency('manual');
       setTime('09:00');
       setWeekday('MON');
+      setExecutionMode('new_conversation');
     }
   }, [visible, editJob, form]);
 
@@ -211,7 +214,11 @@ const CreateTaskDialog: React.FC<CreateTaskDialogProps> = ({
           updates: {
             name: values.name,
             schedule: { kind: 'cron', expr: scheduleExpr, description: scheduleDesc },
-            target: { ...editJob!.target, payload: { kind: 'message', text: values.prompt } },
+            target: {
+              ...editJob!.target,
+              payload: { kind: 'message', text: values.prompt },
+              executionMode,
+            },
             metadata: {
               ...editJob!.metadata,
               agentType: resolvedAgentType,
@@ -232,7 +239,7 @@ const CreateTaskDialog: React.FC<CreateTaskDialogProps> = ({
           conversationTitle,
           agentType: resolvedAgentType,
           createdBy: 'user',
-          executionMode: 'new_conversation',
+          executionMode,
           agentConfig,
         };
         await ipcBridge.cron.addJob.invoke(params);
@@ -372,6 +379,18 @@ const CreateTaskDialog: React.FC<CreateTaskDialogProps> = ({
               </OptGroup>
             )}
           </Select>
+        </FormItem>
+
+        <FormItem label={t('cron.page.form.executionMode')}>
+          <Radio.Group value={executionMode} onChange={setExecutionMode} type='button'>
+            <Radio value='new_conversation'>{t('cron.page.form.newConversation')}</Radio>
+            <Radio value='existing'>{t('cron.page.form.existingConversation')}</Radio>
+          </Radio.Group>
+          <div className='text-text-3 text-12px mt-4px'>
+            {executionMode === 'new_conversation'
+              ? t('cron.page.form.newConversationHint')
+              : t('cron.page.form.existingConversationHint')}
+          </div>
         </FormItem>
 
         <FormItem

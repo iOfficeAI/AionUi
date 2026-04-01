@@ -29,7 +29,7 @@ const CronJobSiderSection: React.FC<CronJobSiderSectionProps> = ({ jobs, pathnam
         onClick={() => setExpanded((prev) => !prev)}
       >
         <span className='text-12px text-t-secondary font-medium'>{t('cron.scheduledTasks')}</span>
-        <span className='ml-auto opacity-0 group-hover:opacity-100 transition-opacity text-t-secondary flex items-center'>
+        <span className='ml-auto opacity-0 group-hover:opacity-100 transition-opacity text-t-primary flex items-center'>
           {expanded ? <Down theme='outline' size={12} /> : <Right theme='outline' size={12} />}
         </span>
       </div>

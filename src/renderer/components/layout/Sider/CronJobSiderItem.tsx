@@ -5,6 +5,7 @@
  */
 
 import React, { useEffect, useMemo, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import classNames from 'classnames';
 import { Down } from '@icon-park/react';
 import type { ICronJob } from '@/common/adapter/ipcBridge';
@@ -18,6 +19,7 @@ interface CronJobSiderItemProps {
 }
 
 const CronJobSiderItem: React.FC<CronJobSiderItemProps> = ({ job, pathname, onNavigate }) => {
+  const { t } = useTranslation();
   const isNewConversationMode = job.target.executionMode === 'new_conversation';
   const { conversations } = useCronJobConversations(isNewConversationMode ? job.id : undefined);
 
@@ -91,7 +93,7 @@ const CronJobSiderItem: React.FC<CronJobSiderItemProps> = ({ job, pathname, onNa
                 onClick={() => onNavigate(`/conversation/${job.metadata.conversationId}`)}
               >
                 <span className='text-13px truncate text-t-primary min-w-0'>
-                  {job.metadata.conversationTitle || job.metadata.conversationId}
+                  {job.metadata.conversationTitle || t('cron.page.form.newConversation')}
                 </span>
               </div>
             )}
@@ -109,7 +111,7 @@ const CronJobSiderItem: React.FC<CronJobSiderItemProps> = ({ job, pathname, onNa
                   )}
                   onClick={() => onNavigate(`/conversation/${conv.id}`)}
                 >
-                  <span className='text-13px truncate text-t-primary min-w-0'>{conv.name || conv.id}</span>
+                  <span className='text-13px truncate text-t-primary min-w-0'>{conv.name || t('cron.page.form.newConversation')}</span>
                 </div>
               ))}
           </div>

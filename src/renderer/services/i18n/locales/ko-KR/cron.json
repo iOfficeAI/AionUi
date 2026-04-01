@@ -28,18 +28,6 @@
   "deleteSuccess": "작업이 삭제되었습니다",
   "pauseSuccess": "작업이 일시 중지되었습니다",
   "resumeSuccess": "작업이 재개되었습니다",
-  "drawer.title": "Scheduled Task Details",
-  "drawer.name": "Name",
-  "drawer.namePlaceholder": "Enter task name",
-  "drawer.taskStatus": "Task Status",
-  "drawer.enabled": "Enabled",
-  "drawer.disabled": "Disabled",
-  "drawer.command": "Command",
-  "drawer.commandPlaceholder": "Enter command to execute",
-  "drawer.schedule": "Schedule",
-  "drawer.nextRun": "Next Run",
-  "drawer.save": "Save",
-  "drawer.saveSuccess": "Saved successfully",
   "message.badge": "Scheduled",
   "allScheduledTasks": "모든 예약 작업",
   "noTasks": "예약 작업 없음",
@@ -96,7 +84,15 @@
       "scheduleDesc": "일정 설명",
       "scheduleDescRequired": "일정 설명은 필수입니다",
       "scheduleDescPlaceholder": "예: 매주 월요일 오전 9:00",
-      "descriptionRequired": "설명은 필수입니다"
+      "descriptionRequired": "설명은 필수입니다",
+      "agent": "실행 Agent",
+      "agentRequired": "실행 Agent를 선택하세요",
+      "agentPlaceholder": "작업을 실행할 Agent 선택",
+      "executionMode": "실행 모드",
+      "newConversation": "새 대화",
+      "existingConversation": "동일 대화",
+      "newConversationHint": "매 실행마다 새 대화를 생성합니다",
+      "existingConversationHint": "모든 실행이 동일한 대화를 공유합니다"
     },
     "freq": {
       "manual": "수동",
@@ -113,6 +109,14 @@
       "weekdaysAt": "평일 {{time}}에 실행",
       "weeklyAt": "매주 {{day}} {{time}}에 실행"
     }
+  },
+  "skill": {
+    "turnIntoSkill": "이 작업을 Skill로 전환",
+    "save": "Skill로 저장",
+    "dismiss": "무시",
+    "preview": "Skill 내용 미리보기",
+    "saveSuccess": "Skill이 저장되었습니다. 이후 실행에서 이 Skill을 사용합니다",
+    "saveFailed": "Skill 저장 실패"
   },
   "error": {
     "alreadyExists": "이 세션에는 이미 \"{{name}}\" (ID: {{id}}) 예약 작업이 있습니다. 먼저 삭제하거나 [CRON_LIST]를 사용하여 기존 작업을 확인하세요.",

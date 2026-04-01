@@ -28,18 +28,6 @@
   "deleteSuccess": "任务已删除",
   "pauseSuccess": "任务已暂停",
   "resumeSuccess": "任务已恢复",
-  "drawer.title": "定时任务详细",
-  "drawer.name": "名称",
-  "drawer.namePlaceholder": "请输入任务名称",
-  "drawer.taskStatus": "任务状态",
-  "drawer.enabled": "已开启",
-  "drawer.disabled": "已暂停",
-  "drawer.command": "定时指令",
-  "drawer.commandPlaceholder": "请输入要执行的指令",
-  "drawer.schedule": "执行规则",
-  "drawer.nextRun": "下次执行",
-  "drawer.save": "保存",
-  "drawer.saveSuccess": "保存成功",
   "message.badge": "定时任务",
   "allScheduledTasks": "全部定时任务",
   "noTasks": "暂无定时任务",
@@ -101,7 +89,12 @@
       "descriptionRequired": "请输入描述",
       "agent": "执行 Agent",
       "agentRequired": "请选择执行 Agent",
-      "agentPlaceholder": "选择执行任务的 Agent"
+      "agentPlaceholder": "选择执行任务的 Agent",
+      "executionMode": "执行模式",
+      "newConversation": "新建会话",
+      "existingConversation": "同一会话",
+      "newConversationHint": "每次执行都创建新的会话",
+      "existingConversationHint": "所有执行共享同一个会话"
     },
     "freq": {
       "manual": "手动触发",
@@ -118,6 +111,14 @@
       "weekdaysAt": "工作日 {{time}} 执行",
       "weeklyAt": "每周{{day}} {{time}} 执行"
     }
+  },
+  "skill": {
+    "turnIntoSkill": "将此任务转为 Skill",
+    "save": "保存为 Skill",
+    "dismiss": "忽略",
+    "preview": "预览 Skill 内容",
+    "saveSuccess": "Skill 已保存，后续执行将使用此 Skill",
+    "saveFailed": "保存 Skill 失败"
   },
   "error": {
     "alreadyExists": "该会话已存在定时任务 \"{{name}}\" (ID: {{id}})。请先删除它，或使用 [CRON_LIST] 查看已有任务。",
