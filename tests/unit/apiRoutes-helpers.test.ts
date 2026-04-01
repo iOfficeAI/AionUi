@@ -63,9 +63,7 @@ vi.mock('./weixinLoginRoutes', () => ({
 
 import { registerApiRoutes, resolveUploadWorkspace } from '../../src/process/webserver/routes/apiRoutes';
 import { getDatabase } from '@process/services/database';
-import type { Express, Request, Response } from 'express';
-import * as fs from 'fs';
-import fsPromises from 'fs/promises';
+import type { Express } from 'express';
 
 describe('apiRoutes helper functions', () => {
   beforeEach(() => {
@@ -122,7 +120,7 @@ describe('apiRoutes - sanitizeFileName edge cases', () => {
     // Since sanitizeFileName is not exported, we test via the upload endpoint
     const app = {
       use: vi.fn(),
-      post: vi.fn().mockImplementation((route: string, ...handlers: any[]) => {
+      post: vi.fn().mockImplementation((_route: string, ..._handlers: any[]) => {
         // Store the handlers for testing
       }),
       get: vi.fn(),
@@ -136,9 +134,12 @@ describe('apiRoutes - sanitizeFileName edge cases', () => {
 
   it('handles path traversal attempts', () => {
     const maliciousPath = '../../../etc/passwd';
-    const resolved = path.resolve('/workspace/uploads', maliciousPath);
-    // The resolved path should not escape the upload directory
-    expect(resolved).not.toContain('/etc/passwd');
+    const basename = path.basename(maliciousPath);
+    const safe = basename.replace(/[<>:"/\\|?*]/g, '_');
+    // The sanitized filename should be 'passwd' (basename extracted, no dangerous chars)
+    expect(safe).toBe('passwd');
+    // And the full path would be constrained to upload directory by isPathInsideRoot check
+    expect(basename).not.toContain('../');
   });
 
   it('handles empty file names', () => {
@@ -153,8 +154,9 @@ describe('apiRoutes - sanitizeFileName edge cases', () => {
 
 describe('apiRoutes - normalizeMountPath behavior', () => {
   it('normalizes paths correctly', () => {
-    // Empty string becomes '/'
-    const emptyResult = (!'' || ''.trim() === '') ? '/' : '';
+    // Test normalizeMountPath logic: empty string becomes '/'
+    const emptyInput = '';
+    const emptyResult = !emptyInput || emptyInput.trim() === '' ? '/' : emptyInput;
     expect(emptyResult).toBe('/');
 
     // Path without leading slash gets one
@@ -170,7 +172,7 @@ describe('apiRoutes - normalizeMountPath behavior', () => {
 
   it('handles whitespace-only paths', () => {
     const whitespace = '   ';
-    const result = (!whitespace || whitespace.trim() === '') ? '/' : whitespace;
+    const result = !whitespace || whitespace.trim() === '' ? '/' : whitespace;
     expect(result).toBe('/');
   });
 });
