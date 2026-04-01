@@ -77,7 +77,8 @@ type TMessageType =
   | 'codex_tool_call'
   | 'plan'
   | 'thinking'
-  | 'available_commands';
+  | 'available_commands'
+  | 'agent_delegation';
 
 interface IMessage<T extends TMessageType, Content extends Record<string, any>> {
   /**
@@ -318,6 +319,23 @@ export type IMessageAvailableCommands = IMessage<
 >;
 
 // eslint-disable-next-line max-len
+export interface AgentDelegationContent {
+  /** 委派任务 ID */
+  delegationId: string;
+  /** 发起方 agent */
+  sourceAgentId: string;
+  /** 目标 agent */
+  targetAgentId: string;
+  /** 任务描述 */
+  taskDescription: string;
+  /** 当前状态 */
+  status: 'pending' | 'running' | 'completed' | 'failed';
+  /** 执行结果（完成后填入） */
+  result?: string;
+}
+
+export type IMessageAgentDelegation = IMessage<'agent_delegation', AgentDelegationContent>;
+
 export type TMessage =
   | IMessageText
   | IMessageTips
@@ -330,7 +348,8 @@ export type TMessage =
   | IMessageCodexToolCall
   | IMessagePlan
   | IMessageThinking
-  | IMessageAvailableCommands;
+  | IMessageAvailableCommands
+  | IMessageAgentDelegation;
 
 // 统一所有需要用户交互的用户类型
 export interface IConfirmation<Option extends any = any> {
