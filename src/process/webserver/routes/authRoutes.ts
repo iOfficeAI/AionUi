@@ -297,37 +297,39 @@ export function registerAuthRoutes(app: Express): void {
    * POST /api/auth/refresh
    */
   app.post('/api/auth/refresh', apiRateLimiter, authenticatedActionLimiter, (req: Request, res: Response) => {
-    try {
-      const { token } = req.body;
+    void (async () => {
+      try {
+        const { token } = req.body;
 
-      if (!token) {
-        res.status(400).json({
-          success: false,
-          error: 'Token is required',
+        if (!token) {
+          res.status(400).json({
+            success: false,
+            error: 'Token is required',
+          });
+          return;
+        }
+
+        const newToken = await AuthService.refreshToken(token);
+        if (!newToken) {
+          res.status(401).json({
+            success: false,
+            error: 'Invalid or expired token',
+          });
+          return;
+        }
+
+        res.json({
+          success: true,
+          token: newToken,
         });
-        return;
-      }
-
-      const newToken = AuthService.refreshToken(token);
-      if (!newToken) {
-        res.status(401).json({
+      } catch (error) {
+        console.error('Token refresh error:', error);
+        res.status(500).json({
           success: false,
-          error: 'Invalid or expired token',
+          error: 'Internal server error',
         });
-        return;
       }
-
-      res.json({
-        success: true,
-        token: newToken,
-      });
-    } catch (error) {
-      console.error('Token refresh error:', error);
-      res.status(500).json({
-        success: false,
-        error: 'Internal server error',
-      });
-    }
+    })();
   });
 
   /**
