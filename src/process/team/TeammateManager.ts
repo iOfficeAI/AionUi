@@ -141,21 +141,25 @@ export class TeammateManager extends EventEmitter {
           const displayContent =
             mailboxMessages.length > 1 ? `[${senderName}] ${msg.content}` : msg.content;
           const msgId = crypto.randomUUID();
+          // Leader receives member messages on the left (incoming); members receive leader instructions on the right (input)
+          const isLeaderReceiving = agent.role === 'lead';
           addMessage(agent.conversationId, {
             id: msgId,
             msg_id: msgId,
             type: 'text',
-            position: 'right',
+            position: isLeaderReceiving ? 'left' : 'right',
             conversation_id: agent.conversationId,
             content: { content: displayContent },
             createdAt: Date.now(),
           });
-          ipcBridge.conversation.responseStream.emit({
-            type: 'user_content',
-            conversation_id: agent.conversationId,
-            msg_id: msgId,
-            data: displayContent,
-          });
+          if (!isLeaderReceiving) {
+            ipcBridge.conversation.responseStream.emit({
+              type: 'user_content',
+              conversation_id: agent.conversationId,
+              msg_id: msgId,
+              data: displayContent,
+            });
+          }
         }
       }
 
@@ -331,25 +335,28 @@ export class TeammateManager extends EventEmitter {
             content: action.content,
             summary: action.summary,
           });
-          // Write dispatched message into target agent's conversation as user bubble
+          // Write dispatched message into target agent's conversation
           const targetAgent = this.agents.find((a) => a.slotId === targetSlotId);
           if (targetAgent?.conversationId) {
             const msgId = crypto.randomUUID();
+            const isLeaderReceiving = targetAgent.role === 'lead';
             addMessage(targetAgent.conversationId, {
               id: msgId,
               msg_id: msgId,
               type: 'text',
-              position: 'right',
+              position: isLeaderReceiving ? 'left' : 'right',
               conversation_id: targetAgent.conversationId,
               content: { content: action.content },
               createdAt: Date.now(),
             });
-            ipcBridge.conversation.responseStream.emit({
-              type: 'user_content',
-              conversation_id: targetAgent.conversationId,
-              msg_id: msgId,
-              data: action.content,
-            });
+            if (!isLeaderReceiving) {
+              ipcBridge.conversation.responseStream.emit({
+                type: 'user_content',
+                conversation_id: targetAgent.conversationId,
+                msg_id: msgId,
+                data: action.content,
+              });
+            }
           }
           wakeTargets.add(targetSlotId);
         } catch {
@@ -401,25 +408,28 @@ export class TeammateManager extends EventEmitter {
           content: action.content,
           summary: action.summary,
         });
-        // Write dispatched message into target agent's conversation as user bubble
+        // Write dispatched message into target agent's conversation
         const targetAgent = this.agents.find((a) => a.slotId === targetSlotId);
         if (targetAgent?.conversationId) {
           const msgId = crypto.randomUUID();
+          const isLeaderReceiving = targetAgent.role === 'lead';
           addMessage(targetAgent.conversationId, {
             id: msgId,
             msg_id: msgId,
             type: 'text',
-            position: 'right',
+            position: isLeaderReceiving ? 'left' : 'right',
             conversation_id: targetAgent.conversationId,
             content: { content: action.content },
             createdAt: Date.now(),
           });
-          ipcBridge.conversation.responseStream.emit({
-            type: 'user_content',
-            conversation_id: targetAgent.conversationId,
-            msg_id: msgId,
-            data: action.content,
-          });
+          if (!isLeaderReceiving) {
+            ipcBridge.conversation.responseStream.emit({
+              type: 'user_content',
+              conversation_id: targetAgent.conversationId,
+              msg_id: msgId,
+              data: action.content,
+            });
+          }
         }
         await this.wake(targetSlotId);
         break;
