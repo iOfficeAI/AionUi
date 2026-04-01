@@ -827,6 +827,7 @@ export type I18nKey =
   | 'settings.agentManagement.advancedConfig'
   | 'settings.agentManagement.connectRemoteAgent'
   | 'settings.agentManagement.custom'
+  | 'settings.agentManagement.customAgents'
   | 'settings.agentManagement.customEmpty'
   | 'settings.agentManagement.detectCustomAgent'
   | 'settings.agentManagement.detected'

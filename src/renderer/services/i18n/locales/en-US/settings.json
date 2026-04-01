@@ -737,6 +737,7 @@
     "editCustomAgent": "Edit Custom Agent",
     "localAgentsEmpty": "No local agents detected",
     "detected": "Detected",
+    "customAgents": "Custom Agents",
     "custom": "Custom",
     "addCustomAgent": "Add Custom Agent",
     "customEmpty": "No custom agents configured. Click \"Add Custom Agent\" to create one."

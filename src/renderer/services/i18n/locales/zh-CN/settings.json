@@ -738,6 +738,7 @@
     "editCustomAgent": "编辑自定义 Agent",
     "localAgentsEmpty": "未检测到本地 Agent",
     "detected": "已检测",
+    "customAgents": "自定义 Agent",
     "custom": "自定义",
     "addCustomAgent": "添加自定义 Agent",
     "customEmpty": "暂无自定义 Agent，点击「添加自定义 Agent」创建。"

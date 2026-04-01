@@ -42,14 +42,12 @@ const LocalAgents: React.FC = () => {
   const handleSaveCustomAgent = useCallback(
     async (agent: AcpBackendConfig) => {
       const current = (await ConfigStorage.get('acp.customAgents')) || [];
-      const agents = current as AcpBackendConfig[];
-      const existingIndex = agents.findIndex((a) => a.id === agent.id);
-      if (existingIndex >= 0) {
-        agents[existingIndex] = agent;
-      } else {
-        agents.push(agent);
-      }
-      await ConfigStorage.set('acp.customAgents', agents);
+      const existingIndex = (current as AcpBackendConfig[]).findIndex((a) => a.id === agent.id);
+      const updatedAgents =
+        existingIndex >= 0
+          ? (current as AcpBackendConfig[]).map((a, i) => (i === existingIndex ? agent : a))
+          : [...(current as AcpBackendConfig[]), agent];
+      await ConfigStorage.set('acp.customAgents', updatedAgents);
       await mutateCustomAgents();
       setEditorVisible(false);
       setEditingAgent(null);
@@ -70,11 +68,11 @@ const LocalAgents: React.FC = () => {
   const handleToggleCustomAgent = useCallback(
     async (agentId: string, enabled: boolean) => {
       const current = (await ConfigStorage.get('acp.customAgents')) || [];
-      const agents = current as AcpBackendConfig[];
-      const agent = agents.find((a) => a.id === agentId && !a.isPreset);
-      if (agent) {
-        agent.enabled = enabled;
-        await ConfigStorage.set('acp.customAgents', agents);
+      const updatedAgents = (current as AcpBackendConfig[]).map((a) =>
+        a.id === agentId && !a.isPreset ? { ...a, enabled } : a
+      );
+      if (updatedAgents.some((a) => a.id === agentId && !a.isPreset)) {
+        await ConfigStorage.set('acp.customAgents', updatedAgents);
         await mutateCustomAgents();
       }
     },
@@ -155,7 +153,7 @@ const LocalAgents: React.FC = () => {
       {(editorVisible || (customAgents && customAgents.length > 0)) && (
         <div className='px-16px mt-16px'>
           <Typography.Text className='text-12px font-medium text-t-secondary mb-4px block'>
-            {t('settings.agentManagement.customAgents', { defaultValue: 'Custom Agents' })}
+            {t('settings.agentManagement.customAgents')}
           </Typography.Text>
         </div>
       )}

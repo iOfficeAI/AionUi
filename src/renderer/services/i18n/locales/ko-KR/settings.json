@@ -739,6 +739,7 @@
     "editCustomAgent": "커스텀 에이전트 편집",
     "localAgentsEmpty": "로컬 에이전트가 감지되지 않았습니다",
     "detected": "감지됨",
+    "customAgents": "커스텀 에이전트",
     "custom": "사용자 정의",
     "addCustomAgent": "사용자 정의 에이전트 추가",
     "customEmpty": "구성된 사용자 정의 에이전트가 없습니다. \"사용자 정의 에이전트 추가\"를 클릭하여 생성하세요."

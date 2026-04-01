@@ -737,6 +737,7 @@
     "editCustomAgent": "Özel Ajanı Düzenle",
     "localAgentsEmpty": "Yerel ajan algılanmadı",
     "detected": "Algılanan",
+    "customAgents": "Özel Ajanlar",
     "custom": "Özel",
     "addCustomAgent": "Özel Ajan Ekle",
     "customEmpty": "Yapılandırılmış özel ajan yok. Oluşturmak için \"Özel Ajan Ekle\"ye tıklayın."

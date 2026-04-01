@@ -739,6 +739,7 @@
     "editCustomAgent": "カスタムエージェントを編集",
     "localAgentsEmpty": "ローカルエージェントが検出されていません",
     "detected": "検出済み",
+    "customAgents": "カスタムエージェント",
     "custom": "カスタム",
     "addCustomAgent": "カスタムエージェントを追加",
     "customEmpty": "カスタムエージェントが設定されていません。「カスタムエージェントを追加」をクリックして作成してください。"
