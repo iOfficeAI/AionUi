@@ -316,9 +316,16 @@ export class AionrsAgent {
     const existing = existsSync(configPath) ? readFileSync(configPath, 'utf-8') : null;
     this.configBackup = { path: configPath, content: existing };
 
-    // If a project config already exists, append our overrides
-    const finalContent = existing ? `${existing}\n${content}` : content;
-    writeFileSync(configPath, finalContent, 'utf-8');
+    // If a project config already exists, only append lines that are not yet present.
+    // This prevents duplicate TOML sections when restore failed on a previous run.
+    if (existing) {
+      const missingLines = content.split('\n').filter((line) => line.trim() && !existing.includes(line.trim()));
+      if (missingLines.length > 0) {
+        writeFileSync(configPath, `${existing}\n${missingLines.join('\n')}\n`, 'utf-8');
+      }
+    } else {
+      writeFileSync(configPath, content, 'utf-8');
+    }
   }
 
   /**

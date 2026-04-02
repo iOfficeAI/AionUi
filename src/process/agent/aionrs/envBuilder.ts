@@ -137,21 +137,21 @@ export function buildSpawnConfig(
 function buildProjectConfig(model: TProviderWithModel, provider: AionrsProvider): string {
   if (provider !== 'openai') return '';
 
-  const lines: string[] = [];
+  // Collect compat overrides as key-value pairs
+  const overrides: string[] = [];
 
   // Gemini uses /v1beta/openai as base URL — skip the default /v1 prefix
   if (model.platform === 'gemini') {
-    lines.push('[providers.openai.compat]', 'api_path = "/chat/completions"');
+    overrides.push('api_path = "/chat/completions"');
   }
 
-  // OpenAI official API needs max_completion_tokens for newer models
+  // OpenAI official API needs max_completion_tokens for newer models.
+  // Only apply when the host is actually OpenAI (not Gemini or other providers).
   const baseUrl = model.baseUrl || '';
   if (baseUrl && isOpenAIHost(baseUrl)) {
-    if (lines.length === 0) lines.push('[providers.openai.compat]');
-    lines.push('max_tokens_field = "max_completion_tokens"');
+    overrides.push('max_tokens_field = "max_completion_tokens"');
   }
 
-  if (lines.length === 0) return '';
-  lines.push('');
-  return lines.join('\n');
+  if (overrides.length === 0) return '';
+  return ['[providers.openai.compat]', ...overrides, ''].join('\n');
 }
