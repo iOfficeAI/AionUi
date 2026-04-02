@@ -46,8 +46,13 @@ const AgentChatSlot: React.FC<{
 
   return (
     <div
-      className={`transition-all duration-300 ease-in-out ${isFullscreen ? 'absolute inset-0 z-50 bg-1 flex flex-col' : 'flex flex-col h-full'}`}
-      style={isLead ? { borderLeft: '3px solid var(--color-primary-6)', background: 'rgba(var(--primary-6-rgb, 82, 130, 255), 0.03)' } : undefined}
+      className={`transition-all duration-300 ease-in-out ${isFullscreen ? 'absolute inset-0 z-50 flex flex-col' : 'flex flex-col h-full'}`}
+      style={{
+        ...(isLead ? {
+          borderLeft: '3px solid var(--color-primary-6)',
+          background: 'color-mix(in srgb, var(--color-primary-6) 3%, var(--color-bg-1))',
+        } : { background: 'var(--color-bg-1)' }),
+      }}
     >
       <div
         className='flex items-center justify-between gap-8px px-12px h-40px shrink-0 border-b border-solid border-[color:var(--border-base)] relative z-10'
@@ -63,7 +68,7 @@ const AgentChatSlot: React.FC<{
         </div>
         <div className='flex items-center gap-8px shrink-0'>
           {showModelSelector && (
-            <div className='max-w-160px overflow-hidden'>
+            <div className='max-w-100px overflow-hidden'>
               <AcpModelSelector
                 key={agent.conversationId}
                 conversationId={agent.conversationId}
@@ -175,10 +180,13 @@ const TeamPageContent: React.FC<TeamPageContentProps> = ({ team, onAddAgent }) =
   const handleTabClick = useCallback(
     (slotId: string) => {
       switchTab(slotId);
-      const el = agentRefs.current[slotId];
-      if (el && scrollContainerRef.current) {
-        el.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'start' });
-      }
+      // Delay scroll until width transition completes (300ms)
+      setTimeout(() => {
+        const el = agentRefs.current[slotId];
+        if (el) {
+          el.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'start' });
+        }
+      }, 320);
     },
     [switchTab]
   );
