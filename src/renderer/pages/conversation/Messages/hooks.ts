@@ -382,11 +382,38 @@ export const useMessageLstCache = (key: string) => {
             if (!sameConversation.length) return messages;
             const dbIds = new Set(messages.map((m) => m.id));
             const dbMsgIds = new Set(messages.map((m) => m.msg_id).filter(Boolean));
+
+            // Build a map of streaming messages by msg_id for content-length comparison.
+            // During streaming, the DB may have an older snapshot (due to 2000ms save debounce),
+            // so we keep whichever version has more content to avoid losing streamed data.
+            const streamingByMsgId = new Map<string, TMessage>();
+            for (const m of sameConversation) {
+              if (m.msg_id && m.type === 'text' && dbMsgIds.has(m.msg_id)) {
+                streamingByMsgId.set(m.msg_id, m);
+              }
+            }
+
+            // Replace DB messages with streaming versions when streaming has more content
+            const mergedMessages = messages.map((dbMsg) => {
+              if (!dbMsg.msg_id || dbMsg.type !== 'text') return dbMsg;
+              const streamMsg = streamingByMsgId.get(dbMsg.msg_id);
+              if (!streamMsg) return dbMsg;
+              const dbContent =
+                typeof dbMsg.content === 'object' && 'content' in dbMsg.content
+                  ? String((dbMsg.content as { content: unknown }).content)
+                  : '';
+              const streamContent =
+                typeof streamMsg.content === 'object' && 'content' in streamMsg.content
+                  ? String((streamMsg.content as { content: unknown }).content)
+                  : '';
+              return streamContent.length > dbContent.length ? streamMsg : dbMsg;
+            });
+
             const streamingOnly = sameConversation.filter(
               (m) => !dbIds.has(m.id) && !(m.msg_id && dbMsgIds.has(m.msg_id))
             );
-            if (!streamingOnly.length) return messages;
-            return [...messages, ...streamingOnly];
+            if (!streamingOnly.length && !streamingByMsgId.size) return messages;
+            return [...mergedMessages, ...streamingOnly];
           });
         }
       })

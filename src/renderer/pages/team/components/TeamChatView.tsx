@@ -7,7 +7,6 @@ import { useAionrsModelSelection } from '@/renderer/pages/conversation/platforms
 
 const AcpChat = React.lazy(() => import('@/renderer/pages/conversation/platforms/acp/AcpChat'));
 const AionrsChat = React.lazy(() => import('@/renderer/pages/conversation/platforms/aionrs/AionrsChat'));
-const CodexChat = React.lazy(() => import('@/renderer/pages/conversation/platforms/codex/CodexChat'));
 const GeminiChat = React.lazy(() => import('@/renderer/pages/conversation/platforms/gemini/GeminiChat'));
 const OpenClawChat = React.lazy(() => import('@/renderer/pages/conversation/platforms/openclaw/OpenClawChat'));
 const NanobotChat = React.lazy(() => import('@/renderer/pages/conversation/platforms/nanobot/NanobotChat'));
@@ -99,13 +98,16 @@ const TeamChatView: React.FC<TeamChatViewProps> = ({ conversation, hideSendBox, 
             agentSlotId={agentSlotId}
           />
         );
-      case 'codex':
+      case 'codex': // Legacy: codex now uses ACP protocol
         return (
-          <CodexChat
+          <AcpChat
             key={conversation.id}
             conversation_id={conversation.id}
             workspace={conversation.extra?.workspace}
+            backend='codex'
             hideSendBox={hideSendBox}
+            teamId={teamId}
+            agentSlotId={agentSlotId}
           />
         );
       case 'aionrs':

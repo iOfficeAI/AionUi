@@ -64,6 +64,7 @@ export class NodePlatformServices implements IPlatformServices {
   power = {
     preventSleep: (): number | null => null,
     allowSleep: (_id: number | null): void => {},
+    preventDisplaySleep: (): number | null => null,
   };
 
   notification = {

@@ -1045,6 +1045,78 @@ const migration_v21: IMigration = {
 };
 
 /**
+ * Migration v21 -> v22: Remove CHECK constraint on conversations.type,
+ * add cron job columns, hidden messages, and cronJobId index.
+ *
+ * The CHECK(type IN (...)) constraint forced a heavy table-rebuild migration
+ * every time a new agent type was added (v10, v11, v14, v15, v16, v21 all did this).
+ * By removing the constraint, new agent types only need TypeScript-level changes
+ * (TChatConversation union + rowToConversation branch) — no database migration.
+ */
+const migration_v22: IMigration = {
+  version: 22,
+  name: 'Remove type CHECK, add cron columns, hidden messages',
+  up: (db) => {
+    // 1. Remove CHECK constraint on conversations.type
+    db.exec(`CREATE TABLE IF NOT EXISTS conversations_new (
+        id TEXT PRIMARY KEY,
+        user_id TEXT NOT NULL,
+        name TEXT NOT NULL,
+        type TEXT NOT NULL,
+        extra TEXT NOT NULL,
+        model TEXT,
+        status TEXT CHECK(status IN ('pending', 'running', 'finished')),
+        source TEXT,
+        channel_chat_id TEXT,
+        created_at INTEGER NOT NULL,
+        updated_at INTEGER NOT NULL,
+        FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+      )`);
+    db.exec(`INSERT INTO conversations_new (id, user_id, name, type, extra, model, status, source, channel_chat_id, created_at, updated_at)
+      SELECT id, user_id, name, type, extra, model, status, source, channel_chat_id, created_at, updated_at FROM conversations`);
+    db.exec('DROP TABLE conversations');
+    db.exec('ALTER TABLE conversations_new RENAME TO conversations');
+    db.exec('CREATE INDEX IF NOT EXISTS idx_conversations_user_id ON conversations(user_id)');
+    db.exec('CREATE INDEX IF NOT EXISTS idx_conversations_updated_at ON conversations(updated_at)');
+    db.exec('CREATE INDEX IF NOT EXISTS idx_conversations_type ON conversations(type)');
+    db.exec('CREATE INDEX IF NOT EXISTS idx_conversations_user_updated ON conversations(user_id, updated_at DESC)');
+    db.exec('CREATE INDEX IF NOT EXISTS idx_conversations_source ON conversations(source)');
+    db.exec('CREATE INDEX IF NOT EXISTS idx_conversations_source_updated ON conversations(source, updated_at DESC)');
+    db.exec(
+      'CREATE INDEX IF NOT EXISTS idx_conversations_source_chat ON conversations(source, channel_chat_id, updated_at DESC)'
+    );
+    db.exec(
+      `CREATE INDEX IF NOT EXISTS idx_conversations_cron_job_id ON conversations(json_extract(extra, '$.cronJobId'))`
+    );
+
+    // 2. Add cron job columns (execution_mode, agent_config)
+    const cronColumns = new Set((db.pragma('table_info(cron_jobs)') as Array<{ name: string }>).map((c) => c.name));
+    if (!cronColumns.has('execution_mode')) {
+      db.exec(`ALTER TABLE cron_jobs ADD COLUMN execution_mode TEXT DEFAULT 'existing'`);
+    }
+    if (!cronColumns.has('agent_config')) {
+      db.exec(`ALTER TABLE cron_jobs ADD COLUMN agent_config TEXT`);
+    }
+    // Fix legacy jobs: empty conversation_id means they were created before execution_mode existed
+    db.exec(
+      `UPDATE cron_jobs SET execution_mode = 'new_conversation' WHERE conversation_id = '' OR conversation_id IS NULL`
+    );
+
+    // 3. Add hidden column to messages
+    const msgColumns = new Set((db.pragma('table_info(messages)') as Array<{ name: string }>).map((c) => c.name));
+    if (!msgColumns.has('hidden')) {
+      db.exec(`ALTER TABLE messages ADD COLUMN hidden INTEGER DEFAULT 0`);
+    }
+
+    console.log('[Migration v22] Removed type CHECK, added cron columns, hidden messages');
+  },
+  down: (_db) => {
+    // Cannot safely rollback — re-adding CHECK would reject unknown types already in the table.
+    console.warn('[Migration v22] Rollback skipped: re-adding CHECK constraint could reject existing data.');
+  },
+};
+
+/**
  * All migrations in order
  */
 // prettier-ignore
@@ -1052,7 +1124,7 @@ export const ALL_MIGRATIONS: IMigration[] = [
   migration_v1, migration_v2, migration_v3, migration_v4, migration_v5, migration_v6,
   migration_v7, migration_v8, migration_v9, migration_v10, migration_v11, migration_v12,
   migration_v13, migration_v14, migration_v15, migration_v16, migration_v17, migration_v18,
-  migration_v19, migration_v20, migration_v21,
+  migration_v19, migration_v20, migration_v21, migration_v22,
 ];
 
 /**

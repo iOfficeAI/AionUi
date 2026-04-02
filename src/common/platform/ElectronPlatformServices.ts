@@ -57,6 +57,7 @@ export class ElectronPlatformServices implements IPlatformServices {
     allowSleep: (id: number | null): void => {
       if (id !== null) powerSaveBlocker.stop(id);
     },
+    preventDisplaySleep: (): number | null => powerSaveBlocker.start('prevent-display-sleep'),
   };
 
   notification = {

@@ -30,6 +30,11 @@ export interface ConversationContextValue {
   type: 'gemini' | 'acp' | 'codex' | 'openclaw-gateway' | 'nanobot' | 'remote' | 'aionrs';
 
   /**
+   * Cron job ID (if this conversation was created by a scheduled task)
+   */
+  cronJobId?: string;
+
+  /**
    * When true, platform chat components should hide the SendBox (e.g. sub-agents in team mode)
    */
   hideSendBox?: boolean;

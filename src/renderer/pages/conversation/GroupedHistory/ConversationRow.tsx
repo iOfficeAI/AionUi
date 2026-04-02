@@ -199,7 +199,7 @@ const ConversationRow: React.FC<ConversationRowProps> = (props) => {
                       return;
                     }
                     if (key === 'export') {
-                      onExport(conversation);
+                      onExport?.(conversation);
                       return;
                     }
                     if (key === 'delete') {
@@ -219,12 +219,14 @@ const ConversationRow: React.FC<ConversationRowProps> = (props) => {
                       <span>{t('conversation.history.rename')}</span>
                     </div>
                   </Menu.Item>
-                  <Menu.Item key='export'>
-                    <div className='flex items-center gap-8px'>
-                      <Export theme='outline' size='14' />
-                      <span>{t('conversation.history.export')}</span>
-                    </div>
-                  </Menu.Item>
+                  {onExport && (
+                    <Menu.Item key='export'>
+                      <div className='flex items-center gap-8px'>
+                        <Export theme='outline' size='14' />
+                        <span>{t('conversation.history.export')}</span>
+                      </div>
+                    </Menu.Item>
+                  )}
                   <Menu.Item key='delete'>
                     <div className='flex items-center gap-8px text-[rgb(var(--warning-6))]'>
                       <DeleteOne theme='outline' size='14' />

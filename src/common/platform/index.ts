@@ -54,7 +54,7 @@ export function getPlatformServices(): IPlatformServices {
               throw new Error('[Platform] Worker not available before registerPlatformServices()');
             },
           },
-          power: { preventSleep: () => null, allowSleep: () => {} },
+          power: { preventSleep: () => null, allowSleep: () => {}, preventDisplaySleep: () => null },
           notification: { send: () => {} },
         };
       }

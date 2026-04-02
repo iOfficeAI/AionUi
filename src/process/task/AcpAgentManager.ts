@@ -28,13 +28,14 @@ import {
   getCodexSandboxModeForSessionMode,
   type CodexSandboxMode,
   writeCodexSandboxMode,
-} from '@process/agent/codex/connection/codexConfig';
+} from '@process/task/codexConfig';
 /** Enable ACP performance diagnostics via ACP_PERF=1 */
 const ACP_PERF_LOG = process.env.ACP_PERF === '1';
 
 import BaseAgentManager from './BaseAgentManager';
 import { IpcAgentEventEmitter } from './IpcAgentEventEmitter';
 import { hasCronCommands } from './CronCommandDetector';
+import { skillSuggestWatcher } from '@process/services/cron/SkillSuggestWatcher';
 import { extractAndStripThinkTags } from './ThinkTagDetector';
 import type { AgentKillReason } from './IAgentManager';
 import { hasNativeSkillSupport } from '@/common/types/acpTypes';
@@ -552,6 +553,8 @@ class AcpAgentManager extends BaseAgentManager<AcpAgentManagerData, AcpPermissio
               this.thinkingStartTime = null;
               this.thinkingContent = '';
             }
+            // Check for SKILL_SUGGEST.md updates (registered by cron executor)
+            skillSuggestWatcher.onFinish(this.conversation_id);
           }
 
           // Process cron commands when turn ends (finish signal)
@@ -666,6 +669,7 @@ class AcpAgentManager extends BaseAgentManager<AcpAgentManagerData, AcpPermissio
     files?: string[];
     msg_id?: string;
     cronMeta?: CronMessageMeta;
+    hidden?: boolean;
     silent?: boolean;
   }): Promise<{
     success: boolean;
@@ -697,6 +701,7 @@ class AcpAgentManager extends BaseAgentManager<AcpAgentManagerData, AcpPermissio
             ...(data.cronMeta && { cronMeta: data.cronMeta }),
           },
           createdAt: Date.now(),
+          ...(data.hidden && { hidden: true }),
         };
         addMessage(this.conversation_id, userMessage);
         // Ensure conversation list sorting updates immediately after user sends.
@@ -712,6 +717,7 @@ class AcpAgentManager extends BaseAgentManager<AcpAgentManagerData, AcpPermissio
           data: data.cronMeta
             ? { content: userMessage.content.content, cronMeta: data.cronMeta }
             : userMessage.content.content,
+          ...(data.hidden && { hidden: true }),
         };
         ipcBridge.acpConversation.responseStream.emit(userResponseMessage);
       }

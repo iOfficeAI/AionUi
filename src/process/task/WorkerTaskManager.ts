@@ -32,7 +32,7 @@ export class WorkerTaskManager implements IWorkerTaskManager {
     const now = Date.now();
     const idleTasks = this.taskList.filter(
       (item) =>
-        (item.task.type === 'acp' || item.task.type === 'codex') &&
+        item.task.type === 'acp' &&
         !cronBusyGuard.isProcessing(item.id) &&
         now - item.task.lastActivityAt > AGENT_IDLE_TIMEOUT_MS
     );

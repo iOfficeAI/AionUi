@@ -14,6 +14,7 @@ import { uuid } from '@/common/utils';
 import { getDatabase } from '@process/services/database';
 import { addMessage, addOrUpdateMessage } from '@process/utils/message';
 import { cronBusyGuard } from '@process/services/cron/CronBusyGuard';
+import { skillSuggestWatcher } from '@process/services/cron/SkillSuggestWatcher';
 import BaseAgentManager from '@process/task/BaseAgentManager';
 import { IpcAgentEventEmitter } from '@process/task/IpcAgentEventEmitter';
 import { teamEventBus } from '@process/team/teamEventBus';
@@ -127,6 +128,7 @@ class RemoteAgentManager extends BaseAgentManager<RemoteAgentManagerData> {
 
     if (msg.type === 'finish') {
       cronBusyGuard.setProcessing(this.conversation_id, false);
+      skillSuggestWatcher.onFinish(this.conversation_id);
     }
 
     ipcBridge.conversation.responseStream.emit(msg);
@@ -175,6 +177,7 @@ class RemoteAgentManager extends BaseAgentManager<RemoteAgentManagerData> {
     agentContent?: string;
     files?: string[];
     msg_id?: string;
+    hidden?: boolean;
     silent?: boolean;
   }) {
     cronBusyGuard.setProcessing(this.conversation_id, true);
@@ -191,6 +194,7 @@ class RemoteAgentManager extends BaseAgentManager<RemoteAgentManagerData> {
           conversation_id: this.conversation_id,
           content: { content: data.content },
           createdAt: Date.now(),
+          ...(data.hidden && { hidden: true }),
         };
         addMessage(this.conversation_id, userMessage);
       }

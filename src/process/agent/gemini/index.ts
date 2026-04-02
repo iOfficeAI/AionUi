@@ -560,7 +560,7 @@ export class GeminiAgent {
         this.onStreamEvent({
           type: 'error',
           data: `Connection lost: ${event.reason}. Please try again.`,
-          msg_id,
+          msg_id: uuid(),
         });
       }
     };
@@ -603,9 +603,11 @@ export class GeminiAgent {
           return;
         }
 
+        // Use a fresh msg_id for error events so error/tips messages don't
+        // replace already-streamed content that shares the original msg_id.
         this.onStreamEvent({
           ...data,
-          msg_id,
+          msg_id: data.type === 'error' ? uuid() : msg_id,
         });
       },
       { onConnectionEvent }
@@ -642,7 +644,7 @@ export class GeminiAgent {
           this.onStreamEvent({
             type: 'error',
             data: 'Invalid response stream detected after multiple retries. Please try again.',
-            msg_id,
+            msg_id: uuid(),
           });
           return;
         }
@@ -674,10 +676,12 @@ export class GeminiAgent {
         for (const req of toolCallRequests) {
           globalToolCallGuard.unprotect(req.callId);
         }
+        // Use a fresh msg_id so the error message does not replace
+        // already-streamed content that shares the same msg_id.
         this.onStreamEvent({
           type: 'error',
           data: errorMessage,
-          msg_id,
+          msg_id: uuid(),
         });
       });
   }
@@ -760,7 +764,7 @@ export class GeminiAgent {
           this.onStreamEvent({
             type: 'error',
             data: errorMessage,
-            msg_id,
+            msg_id: uuid(),
           });
         })
         .finally(() => {
@@ -777,7 +781,7 @@ export class GeminiAgent {
       this.onStreamEvent({
         type: 'error',
         data: errorMessage,
-        msg_id,
+        msg_id: uuid(),
       });
     }
   }

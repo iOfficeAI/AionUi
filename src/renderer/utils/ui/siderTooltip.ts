@@ -21,7 +21,7 @@ export const cleanupSiderTooltips = () => {
   document.querySelectorAll(`.${SIDER_TOOLTIP_CLASS}, .arco-tooltip-popup`).forEach((node) => node.remove());
 };
 
-type SiderTooltipProps = Pick<
+export type SiderTooltipProps = Pick<
   TooltipProps,
   'className' | 'trigger' | 'disabled' | 'unmountOnExit' | 'popupHoverStay' | 'popupVisible' | 'getPopupContainer'
 >;

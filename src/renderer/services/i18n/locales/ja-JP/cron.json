@@ -24,7 +24,7 @@
     "delete": "削除",
     "runNow": "今すぐ実行"
   },
-  "confirmDelete": "このスケジュールタスクを削除しますか？",
+  "confirmDeleteWithConversations": "このスケジュールタスクを削除しますか？このタスクのすべての会話も削除されます。",
   "deleteSuccess": "タスクを削除しました",
   "pauseSuccess": "タスクを一時停止しました",
   "resumeSuccess": "タスクを再開しました",
@@ -44,11 +44,97 @@
   "allScheduledTasks": "すべてのスケジュールタスク",
   "noTasks": "スケジュールタスクがありません",
   "runNowSuccess": "タスクの実行をトリガーしました",
+  "detail": {
+    "backToAll": "すべてのスケジュールタスク",
+    "runNow": "今すぐ実行",
+    "description": "説明",
+    "agent": "エージェント",
+    "instructions": "実行内容",
+    "repeats": "繰り返し",
+    "history": "実行履歴",
+    "noHistory": "実行履歴はありません",
+    "notFound": "タスクが見つかりません"
+  },
   "notification": {
     "taskComplete": "タスク完了",
     "scheduledTask": "スケジュールタスク",
     "scheduledTaskComplete": "{{title}}のスケジュールタスク完了",
     "taskDone": "タスク完了"
+  },
+  "page": {
+    "newTask": "新規タスク",
+    "description": "スケジュールタスクは指定された時間に自動的に実行されます。タスクはコンピュータが起動している間のみ実行されます。",
+    "awakeBanner": "スケジュールタスクはコンピュータが起動している間のみ実行されます。",
+    "keepAwake": "スリープを防止",
+    "keepAwakeTooltip": "有効にすると、AionUi がコンピュータのスリープを防止します",
+    "createTask": "スケジュールタスクを作成",
+    "editTask": "スケジュールタスクを編集",
+    "createSuccess": "タスクが正常に作成されました",
+    "updateSuccess": "タスクが正常に更新されました",
+    "scheduleHint": "スケジュールタスクはサーバーパフォーマンスのため、数分のランダムな遅延があります。",
+    "weekday": {
+      "monday": "月曜日",
+      "tuesday": "火曜日",
+      "wednesday": "水曜日",
+      "thursday": "木曜日",
+      "friday": "金曜日",
+      "saturday": "土曜日",
+      "sunday": "日曜日"
+    },
+    "save": "保存",
+    "cancel": "キャンセル",
+    "form": {
+      "name": "名前",
+      "nameRequired": "名前は必須です",
+      "namePlaceholder": "タスク名を入力",
+      "description": "説明",
+      "descriptionPlaceholder": "タスクの簡単な説明",
+      "prompt": "プロンプト",
+      "promptRequired": "プロンプトは必須です",
+      "promptPlaceholder": "エージェントが実行する指示",
+      "frequency": "頻度",
+      "cronExpr": "Cron 式",
+      "cronExprRequired": "Cron 式は必須です",
+      "scheduleDesc": "スケジュール説明",
+      "scheduleDescRequired": "スケジュール説明は必須です",
+      "scheduleDescPlaceholder": "例：毎週月曜日 午前9:00",
+      "descriptionRequired": "説明は必須です",
+      "agent": "エージェント",
+      "agentRequired": "エージェントを選択してください",
+      "agentPlaceholder": "このタスクを実行するエージェントを選択",
+      "executionMode": "実行モード",
+      "newConversation": "新しい会話",
+      "existingConversation": "同じ会話",
+      "newConversationHint": "実行ごとに新しい会話を作成します",
+      "existingConversationHint": "すべての実行が同じ会話を共有します",
+      "executionModeEditHint": "作成後に実行モードは変更できません。モードを切り替えるには、タスクを削除して再作成してください。"
+    },
+    "freq": {
+      "manual": "手動",
+      "hourly": "毎時",
+      "daily": "毎日",
+      "weekdays": "平日",
+      "weekly": "毎週",
+      "custom": "カスタム Cron..."
+    },
+    "scheduleDesc": {
+      "manual": "手動",
+      "hourly": "毎時実行",
+      "dailyAt": "毎日 {{time}} に実行",
+      "weekdaysAt": "平日 {{time}} に実行",
+      "weeklyAt": "毎週{{day}} {{time}} に実行"
+    }
+  },
+  "trigger": {
+    "runScheduledTask": "スケジュールタスクを実行：{{name}}"
+  },
+  "skill": {
+    "turnIntoSkill": "このタスクをSkillに変換",
+    "save": "Skillとして保存",
+    "dismiss": "無視",
+    "preview": "Skill内容をプレビュー",
+    "saveSuccess": "Skillが保存されました。今後の実行ではこのSkillを使用します",
+    "saveFailed": "Skillの保存に失敗しました"
   },
   "error": {
     "alreadyExists": "このセッションには既に \"{{name}}\" (ID: {{id}}) というスケジュールタスクが存在します。まず削除するか、[CRON_LIST] を使用して既存のタスクを確認してください。",

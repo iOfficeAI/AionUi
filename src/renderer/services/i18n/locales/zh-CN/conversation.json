@@ -22,10 +22,7 @@
     "skillsMarketDetails": "详情 >>"
   },
   "history": {
-    "today": "今天",
-    "yesterday": "昨天",
-    "recent7Days": "最近7天",
-    "earlier": "更早",
+    "recents": "最近",
     "noHistory": "暂无对话历史",
     "deleteTitle": "删除",
     "deleteConfirm": "确定删除该对话吗？",

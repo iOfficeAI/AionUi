@@ -77,7 +77,9 @@ type TMessageType =
   | 'codex_tool_call'
   | 'plan'
   | 'thinking'
-  | 'available_commands';
+  | 'available_commands'
+  | 'skill_suggest'
+  | 'cron_trigger';
 
 interface IMessage<T extends TMessageType, Content extends Record<string, any>> {
   /**
@@ -111,6 +113,10 @@ interface IMessage<T extends TMessageType, Content extends Record<string, any>> 
    * 消息状态
    */
   status?: 'finish' | 'pending' | 'error' | 'work';
+  /**
+   * Hidden from UI display but persisted to DB and sent to agent.
+   */
+  hidden?: boolean;
 }
 
 export type CronMessageMeta = {
@@ -326,6 +332,26 @@ export type IMessageAvailableCommands = IMessage<
   }
 >;
 
+export type IMessageSkillSuggest = IMessage<
+  'skill_suggest',
+  {
+    cronJobId: string;
+    name: string;
+    description: string;
+    /** Full SKILL.md content (including frontmatter) */
+    skillContent: string;
+  }
+>;
+
+export type IMessageCronTrigger = IMessage<
+  'cron_trigger',
+  {
+    cronJobId: string;
+    cronJobName: string;
+    triggeredAt: number;
+  }
+>;
+
 // eslint-disable-next-line max-len
 export type TMessage =
   | IMessageText
@@ -339,7 +365,9 @@ export type TMessage =
   | IMessageCodexToolCall
   | IMessagePlan
   | IMessageThinking
-  | IMessageAvailableCommands;
+  | IMessageAvailableCommands
+  | IMessageSkillSuggest
+  | IMessageCronTrigger;
 
 // 统一所有需要用户交互的用户类型
 export interface IConfirmation<Option extends any = any> {
@@ -394,6 +422,7 @@ export const transformMessage = (message: IResponseMessage): TMessage => {
               cronMeta: (data as { cronMeta?: CronMessageMeta }).cronMeta,
             }
           : { content: data as string },
+        ...(message.hidden && { hidden: true }),
       };
     }
     case 'tool_call': {
@@ -499,6 +528,37 @@ export const transformMessage = (message: IResponseMessage): TMessage => {
     // Disabled: available_commands messages are too noisy and distracting in the chat UI
     case 'available_commands':
       break;
+    case 'skill_suggest': {
+      const suggestData = message.data as {
+        cronJobId: string;
+        name: string;
+        description: string;
+        skillContent: string;
+      };
+      return {
+        id: uuid(),
+        type: 'skill_suggest',
+        msg_id: message.msg_id,
+        conversation_id: message.conversation_id,
+        position: 'center',
+        content: suggestData,
+      };
+    }
+    case 'cron_trigger': {
+      const triggerData = message.data as {
+        cronJobId: string;
+        cronJobName: string;
+        triggeredAt: number;
+      };
+      return {
+        id: uuid(),
+        type: 'cron_trigger',
+        msg_id: message.msg_id,
+        conversation_id: message.conversation_id,
+        position: 'center',
+        content: triggerData,
+      };
+    }
     case 'start':
     case 'finish':
     case 'thought':

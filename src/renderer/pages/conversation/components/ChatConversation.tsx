@@ -21,7 +21,6 @@ import { emitter } from '../../../utils/emitter';
 import AcpChat from '../platforms/acp/AcpChat';
 import ChatLayout from './ChatLayout';
 import ChatSider from './ChatSider';
-import CodexChat from '../platforms/codex/CodexChat';
 import NanobotChat from '../platforms/nanobot/NanobotChat';
 import OpenClawChat from '../platforms/openclaw/OpenClawChat';
 import RemoteChat from '../platforms/remote/RemoteChat';
@@ -159,7 +158,12 @@ const GeminiConversationPanel: React.FC<{
     siderTitle: sliderTitle,
     sider: <ChatSider conversation={conversation} />,
     headerLeft: <GeminiModelSelector selection={modelSelection} />,
-    headerExtra: <CronJobManager conversationId={conversation.id} />,
+    headerExtra: (
+      <CronJobManager
+        conversationId={conversation.id}
+        cronJobId={conversation.extra?.cronJobId as string | undefined}
+      />
+    ),
     workspaceEnabled,
     backend: 'gemini' as const,
     // 传递预设助手信息 / Pass preset assistant info
@@ -174,6 +178,7 @@ const GeminiConversationPanel: React.FC<{
         conversation_id={conversation.id}
         workspace={conversation.extra.workspace}
         modelSelection={modelSelection}
+        cronJobId={conversation.extra?.cronJobId as string | undefined}
         hideSendBox={hideSendBox}
       />
     </ChatLayout>
@@ -254,15 +259,17 @@ const ChatConversation: React.FC<{
             backend={conversation.extra?.backend || 'claude'}
             sessionMode={conversation.extra?.sessionMode}
             agentName={(conversation.extra as { agentName?: string })?.agentName}
+            cronJobId={(conversation.extra as { cronJobId?: string })?.cronJobId}
             hideSendBox={hideSendBox}
           ></AcpChat>
         );
-      case 'codex': // Legacy: new Codex conversations use ACP protocol. Kept for existing sessions.
+      case 'codex': // Legacy: codex now uses ACP protocol
         return (
-          <CodexChat
+          <AcpChat
             key={conversation.id}
             conversation_id={conversation.id}
             workspace={conversation.extra?.workspace}
+            backend='codex'
             hideSendBox={hideSendBox}
           />
         );
@@ -272,6 +279,7 @@ const ChatConversation: React.FC<{
             key={conversation.id}
             conversation_id={conversation.id}
             workspace={conversation.extra?.workspace}
+            cronJobId={(conversation.extra as { cronJobId?: string })?.cronJobId}
           />
         );
       case 'nanobot':
@@ -280,6 +288,7 @@ const ChatConversation: React.FC<{
             key={conversation.id}
             conversation_id={conversation.id}
             workspace={conversation.extra?.workspace}
+            cronJobId={(conversation.extra as { cronJobId?: string })?.cronJobId}
           />
         );
       case 'remote':
@@ -288,6 +297,7 @@ const ChatConversation: React.FC<{
             key={conversation.id}
             conversation_id={conversation.id}
             workspace={conversation.extra?.workspace}
+            cronJobId={(conversation.extra as { cronJobId?: string })?.cronJobId}
           />
         );
       default:
@@ -387,11 +397,14 @@ const ChatConversation: React.FC<{
           />
         </div>
       )}
-      {conversation ? (
+      {conversation && (
         <div className='shrink-0'>
-          <CronJobManager conversationId={conversation.id} />
+          <CronJobManager
+            conversationId={conversation.id}
+            cronJobId={conversation.extra?.cronJobId as string | undefined}
+          />
         </div>
-      ) : null}
+      )}
     </div>
   );
 
