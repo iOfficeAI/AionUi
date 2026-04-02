@@ -34,19 +34,21 @@ export class ConversationCommandExecutionService {
     }
 
     const task = this.workerTaskManager.getTask(params.conversationId);
-    if (isRuntimeBusy(task?.status)) {
-      return {
-        started: false,
-        reason: 'busy',
-      };
-    }
-
-    const conversation = await this.conversationService.getConversation(params.conversationId);
-    if (isRuntimeBusy(conversation?.status)) {
-      return {
-        started: false,
-        reason: 'busy',
-      };
+    if (task) {
+      if (isRuntimeBusy(task.status)) {
+        return {
+          started: false,
+          reason: 'busy',
+        };
+      }
+    } else {
+      const conversation = await this.conversationService.getConversation(params.conversationId);
+      if (isRuntimeBusy(conversation?.status)) {
+        return {
+          started: false,
+          reason: 'busy',
+        };
+      }
     }
 
     this.inFlightConversationIds.add(params.conversationId);
