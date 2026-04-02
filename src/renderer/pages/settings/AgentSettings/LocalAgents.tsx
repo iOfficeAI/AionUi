@@ -25,7 +25,7 @@ const LocalAgents: React.FC = () => {
     return [];
   });
 
-  // Gemini CLI and Aion CLI first among detected agents
+  // Aion CLI and Gemini CLI first among detected agents
   const geminiAgent = detectedAgents?.find((a) => a.backend === 'gemini');
   const aionrsAgent = detectedAgents?.find((a) => a.backend === 'aionrs');
   const otherDetected = detectedAgents?.filter((a) => a.backend !== 'gemini' && a.backend !== 'aionrs') ?? [];
@@ -50,20 +50,20 @@ const LocalAgents: React.FC = () => {
         </Typography.Text>
       </div>
       <div className='flex flex-col gap-4px px-0'>
-        {geminiAgent && (
-          <AgentCard
-            type='detected'
-            agent={geminiAgent}
-            settingsDisabled={false}
-            onSettings={() => navigate('/settings/gemini')}
-          />
-        )}
         {aionrsAgent && (
           <AgentCard
             type='detected'
             agent={aionrsAgent}
             settingsDisabled={false}
             onSettings={() => navigate('/settings/aionrs')}
+          />
+        )}
+        {geminiAgent && (
+          <AgentCard
+            type='detected'
+            agent={geminiAgent}
+            settingsDisabled={false}
+            onSettings={() => navigate('/settings/gemini')}
           />
         )}
         {otherDetected.map((agent) => (
