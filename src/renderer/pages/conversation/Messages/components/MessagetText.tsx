@@ -19,6 +19,7 @@ import HorizontalFileList from '@renderer/components/media/HorizontalFileList';
 import MarkdownView from '@renderer/components/Markdown';
 import { stripThinkTags, hasThinkTags } from '@renderer/utils/chat/thinkTagFilter';
 import MessageCronBadge from './MessageCronBadge';
+import { getAgentLogo } from '@/renderer/utils/model/agentLogo';
 
 const parseFileMarker = (content: string) => {
   const markerIndex = content.indexOf(AIONUI_FILES_MARKER);
@@ -121,11 +122,26 @@ const MessageText: React.FC<{ message: IMessageText }> = ({ message }) => {
   }, []);
 
   const cronMeta = message.content.cronMeta;
+  const senderName = message.content.senderName;
+  const senderAgentType = message.content.senderAgentType;
+  const agentLogo = senderAgentType ? getAgentLogo(senderAgentType) : null;
 
   return (
     <>
       <div className={classNames('min-w-0 flex flex-col group', isUserMessage ? 'items-end' : 'items-start')}>
         {cronMeta && <MessageCronBadge meta={cronMeta} />}
+        {isTeammateMessage && senderName && (
+          <div className='flex items-center gap-6px mb-4px'>
+            {agentLogo ? (
+              <img src={agentLogo} alt={senderName} className='w-20px h-20px rounded-full object-contain' />
+            ) : (
+              <div className='w-20px h-20px rounded-full bg-fill-3 flex items-center justify-center text-10px text-t-secondary font-medium'>
+                {senderName.charAt(0).toUpperCase()}
+              </div>
+            )}
+            <span className='text-12px text-t-secondary'>{senderName}</span>
+          </div>
+        )}
         {files.length > 0 && (
           <div className={classNames('mt-6px', { 'self-end': isUserMessage })}>
             {files.length === 1 ? (

@@ -151,7 +151,7 @@ export class TeammateManager extends EventEmitter {
             type: 'text',
             position: 'left',
             conversation_id: agent.conversationId,
-            content: { content: displayContent, teammateMessage: true },
+            content: { content: displayContent, teammateMessage: true, senderName, senderAgentType: sender?.agentType },
             createdAt: Date.now(),
           });
         }
@@ -377,7 +377,12 @@ export class TeammateManager extends EventEmitter {
               type: 'text',
               position: 'left',
               conversation_id: targetAgent.conversationId,
-              content: { content: action.content, teammateMessage: true },
+              content: {
+                content: action.content,
+                teammateMessage: true,
+                senderName: agent.agentName,
+                senderAgentType: agent.agentType,
+              },
               createdAt: Date.now(),
             });
           }
@@ -438,13 +443,19 @@ export class TeammateManager extends EventEmitter {
         const targetAgent = this.agents.find((a) => a.slotId === targetSlotId);
         if (targetAgent?.conversationId) {
           const msgId = crypto.randomUUID();
+          const fromAgent = this.agents.find((a) => a.slotId === fromSlotId);
           addMessage(targetAgent.conversationId, {
             id: msgId,
             msg_id: msgId,
             type: 'text',
             position: 'left',
             conversation_id: targetAgent.conversationId,
-            content: { content: action.content, teammateMessage: true },
+            content: {
+              content: action.content,
+              teammateMessage: true,
+              senderName: fromAgent?.agentName,
+              senderAgentType: fromAgent?.agentType,
+            },
             createdAt: Date.now(),
           });
         }
