@@ -2,9 +2,7 @@
  * Prepare aionrs binary for Electron packaging.
  *
  * Resolution order:
- *  1. AIONRS_PATH env var (explicit local build path)
- *  2. System PATH (which/where aionrs)
- *  3. GitHub release download (requires AIONRS_VERSION or defaults to "latest")
+ *  1. GitHub release download (requires AIONRS_VERSION or defaults to "latest")
  *
  * Output: resources/bundled-aionrs/{platform}-{arch}/aionrs[.exe]
  *
@@ -62,28 +60,7 @@ function getVersion() {
 // ---------------------------------------------------------------------------
 
 /**
- * 1. Explicit path via AIONRS_PATH
- */
-function resolveFromEnv() {
-  const envPath = process.env.AIONRS_PATH;
-  if (envPath && fs.existsSync(envPath)) return envPath;
-  return null;
-}
-
-/**
- * 2. System PATH
- */
-function resolveFromSystemPath(platform) {
-  try {
-    const cmd = platform === 'win32' ? 'where aionrs' : 'which aionrs';
-    const result = execSync(cmd, { encoding: 'utf-8', timeout: 5000 }).trim();
-    if (result && fs.existsSync(result)) return result;
-  } catch {}
-  return null;
-}
-
-/**
- * 3. Download from GitHub releases
+ * 1. Download from GitHub releases
  */
 function getAssetName(platform, arch) {
   const archMap = { x64: 'x86_64', arm64: 'aarch64' };
@@ -197,25 +174,7 @@ function prepareAionrs() {
   let sourceDetail = {};
   let tempDir = null;
 
-  // 1. Explicit env path
-  sourcePath = resolveFromEnv();
-  if (sourcePath) {
-    sourceType = 'env';
-    sourceDetail = { path: sourcePath };
-    console.log(`  Found via AIONRS_PATH: ${sourcePath}`);
-  }
-
-  // 2. System PATH
-  if (!sourcePath) {
-    sourcePath = resolveFromSystemPath(platform);
-    if (sourcePath) {
-      sourceType = 'system_path';
-      sourceDetail = { path: sourcePath };
-      console.log(`  Found in system PATH: ${sourcePath}`);
-    }
-  }
-
-  // 3. Download from GitHub releases
+  // 1. Download from GitHub releases
   if (!sourcePath) {
     try {
       const result = downloadAndExtract(platform, arch, version);
@@ -270,7 +229,7 @@ function prepareAionrs() {
     source: {},
     files: [],
     skipped: true,
-    reason: 'aionrs binary not found (set AIONRS_PATH, install to PATH, or ensure GitHub release exists)',
+    reason: 'aionrs binary not found (ensure GitHub release exists)',
   };
 
   writeJson(path.join(targetDir, 'manifest.json'), manifest);

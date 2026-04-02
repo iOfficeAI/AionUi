@@ -16,8 +16,7 @@ function getBinaryName(): string {
  * Resolve the aionrs binary path.
  * Search order:
  *  1. Bundled with app (production)
- *  2. AIONRS_PATH env var (development)
- *  3. System PATH
+ *  2. System PATH
  */
 export function resolveAionrsBinary(): string | null {
   // 1. Bundled binary (production) — same layout as bundled-bun
@@ -28,11 +27,7 @@ export function resolveAionrsBinary(): string | null {
     if (existsSync(bundled)) return bundled;
   }
 
-  // 2. Development: explicit path via env
-  const devPath = process.env.AIONRS_PATH;
-  if (devPath && existsSync(devPath)) return devPath;
-
-  // 3. System PATH
+  // 2. System PATH
   try {
     const cmd = process.platform === 'win32' ? 'where aionrs' : 'which aionrs';
     const result = execSync(cmd, { encoding: 'utf-8', timeout: 5000 }).trim();
