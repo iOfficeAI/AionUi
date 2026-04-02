@@ -1,3 +1,4 @@
+import path from 'node:path';
 import { describe, expect, it, vi } from 'vitest';
 import {
   buildCronSkillContent,
@@ -214,9 +215,11 @@ describe('writeRawCronSkillFile', () => {
     const fs = (await import('fs/promises')).default;
     const content = '---\nname: My Task\ndescription: A real task\n---\n\nDo the thing.';
     const result = await writeRawCronSkillFile('job-123', content);
-    expect(result).toBe('/mock/cron-skills/job-123/SKILL.md');
-    expect(fs.mkdir).toHaveBeenCalledWith('/mock/cron-skills/job-123', { recursive: true });
-    expect(fs.writeFile).toHaveBeenCalledWith('/mock/cron-skills/job-123/SKILL.md', content, 'utf-8');
+    const expectedDir = path.join('/mock/cron-skills', 'job-123');
+    const expectedFile = path.join(expectedDir, 'SKILL.md');
+    expect(result).toBe(expectedFile);
+    expect(fs.mkdir).toHaveBeenCalledWith(expectedDir, { recursive: true });
+    expect(fs.writeFile).toHaveBeenCalledWith(expectedFile, content, 'utf-8');
   });
 
   it('throws for invalid content', async () => {
