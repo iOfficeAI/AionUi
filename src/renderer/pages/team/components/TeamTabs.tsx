@@ -142,13 +142,14 @@ const AddAgentTrigger: React.FC<AddAgentTriggerProps> = ({ onAddAgent }) => {
 
 type TeamTabsProps = {
   onAddAgent: (data: { agentName: string; agentKey: string }) => void;
+  onTabClick?: (slotId: string) => void;
 };
 
 /**
  * Tab bar for team mode showing agent tabs with status badges.
  * Supports scroll overflow with fade indicators and add-agent dropdown.
  */
-const TeamTabs: React.FC<TeamTabsProps> = ({ onAddAgent }) => {
+const TeamTabs: React.FC<TeamTabsProps> = ({ onAddAgent, onTabClick }) => {
   const { agents, activeSlotId, statusMap, switchTab, renameAgent } = useTeamTabs();
   const tabsContainerRef = useRef<HTMLDivElement>(null);
   const [showLeftFade, setShowLeftFade] = useState(false);
@@ -199,7 +200,7 @@ const TeamTabs: React.FC<TeamTabsProps> = ({ onAddAgent }) => {
                 isActive={agent.slotId === activeSlotId}
                 status={statusInfo?.status ?? agent.status}
                 isLead={agent.role === 'lead'}
-                onSwitch={switchTab}
+                onSwitch={onTabClick ?? switchTab}
                 onRename={renameAgent ? (sid, name) => void renameAgent(sid, name) : undefined}
               />
             );

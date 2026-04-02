@@ -1,5 +1,5 @@
 import { Message, Spin } from '@arco-design/web-react';
-import React, { useCallback, useMemo } from 'react';
+import React, { useCallback, useMemo, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import useSWR from 'swr';
 import { ipcBridge } from '@/common';
@@ -15,6 +15,7 @@ import { agentFromKey, resolveConversationType } from './components/agentSelectU
 import { TeamTabsProvider, useTeamTabs } from './hooks/TeamTabsContext';
 import { TeamPermissionProvider } from './hooks/TeamPermissionContext';
 import { useTeamSession } from './hooks/useTeamSession';
+import { getAgentLogo } from '@/renderer/utils/model/agentLogo';
 
 type Props = {
   team: TTeam;
@@ -25,30 +26,37 @@ type TeamPageContentProps = {
   onAddAgent: (data: { agentName: string; agentKey: string }) => void;
 };
 
-/** Fetches conversation for a single agent and renders TeamChatView, kept alive via display toggle */
+/** Fetches conversation for a single agent and renders TeamChatView */
 const AgentChatSlot: React.FC<{
   agent: TeamAgent;
   teamId: string;
-  isActive: boolean;
   isLead: boolean;
-}> = ({ agent, teamId, isActive, isLead }) => {
+}> = ({ agent, teamId, isLead }) => {
   const { data: conversation } = useSWR(agent.conversationId ? ['team-conversation', agent.conversationId] : null, () =>
     ipcBridge.conversation.get.invoke({ id: agent.conversationId })
   );
+  const logo = getAgentLogo(agent.agentType);
 
   return (
-    <div style={{ display: isActive ? 'flex' : 'none' }} className='flex-1 flex flex-col min-h-0'>
-      {conversation ? (
-        <TeamChatView
-          conversation={conversation as TChatConversation}
-          teamId={teamId}
-          agentSlotId={isLead ? undefined : agent.slotId}
-        />
-      ) : (
-        <div className='flex flex-1 items-center justify-center'>
-          <Spin loading />
-        </div>
-      )}
+    <div className='flex flex-col h-full'>
+      <div className='flex items-center gap-8px px-12px h-32px shrink-0 border-b border-solid border-[color:var(--border-base)] bg-2'>
+        {logo && <img src={logo} alt={agent.agentType} className='w-14px h-14px object-contain rounded-2px opacity-80' />}
+        <span className='text-13px text-[color:var(--color-text-2)] font-medium truncate'>{agent.agentName}</span>
+        {isLead && <span className='text-11px text-[color:var(--color-text-4)] shrink-0'>lead</span>}
+      </div>
+      <div className='flex flex-col flex-1 min-h-0'>
+        {conversation ? (
+          <TeamChatView
+            conversation={conversation as TChatConversation}
+            teamId={teamId}
+            agentSlotId={isLead ? undefined : agent.slotId}
+          />
+        ) : (
+          <div className='flex flex-1 items-center justify-center'>
+            <Spin loading />
+          </div>
+        )}
+      </div>
     </div>
   );
 };
@@ -56,8 +64,11 @@ const AgentChatSlot: React.FC<{
 /** Inner component that reads active tab from context and renders the chat layout */
 const TeamPageContent: React.FC<TeamPageContentProps> = ({ team, onAddAgent }) => {
   const { t } = useTranslation();
-  const { activeSlotId } = useTeamTabs();
+  const { activeSlotId, switchTab } = useTeamTabs();
   const [, messageContext] = Message.useMessage({ maxCount: 1 });
+
+  const scrollContainerRef = useRef<HTMLDivElement>(null);
+  const agentRefs = useRef<Record<string, HTMLDivElement | null>>({});
 
   const activeAgent = team.agents.find((a) => a.slotId === activeSlotId);
   const leadAgent = team.agents.find((a) => a.role === 'lead');
@@ -92,7 +103,18 @@ const TeamPageContent: React.FC<TeamPageContentProps> = ({ team, onAddAgent }) =
     return <ChatSider conversation={dispatchConversation} />;
   }, [workspaceEnabled, dispatchConversation]);
 
-  const tabsSlot = useMemo(() => <TeamTabs onAddAgent={onAddAgent} />, [onAddAgent]);
+  const handleTabClick = useCallback(
+    (slotId: string) => {
+      switchTab(slotId);
+      const el = agentRefs.current[slotId];
+      if (el && scrollContainerRef.current) {
+        el.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'start' });
+      }
+    },
+    [switchTab]
+  );
+
+  const tabsSlot = useMemo(() => <TeamTabs onAddAgent={onAddAgent} onTabClick={handleTabClick} />, [onAddAgent, handleTabClick]);
 
   const initialModelId = (activeConversation?.extra as { currentModelId?: string })?.currentModelId;
 
@@ -125,15 +147,34 @@ const TeamPageContent: React.FC<TeamPageContentProps> = ({ team, onAddAgent }) =
         agentName={activeAgent?.agentName}
         headerExtra={headerExtra}
       >
-        {team.agents.map((agent) => (
-          <AgentChatSlot
-            key={agent.slotId}
-            agent={agent}
-            teamId={team.id}
-            isActive={agent.slotId === activeSlotId}
-            isLead={agent.slotId === leadAgent?.slotId}
-          />
-        ))}
+        <div
+          ref={scrollContainerRef}
+          className='flex h-full overflow-x-auto overflow-y-hidden [scrollbar-width:none]'
+          style={{ scrollSnapType: 'x mandatory' }}
+        >
+          {team.agents.map((agent) => {
+            const isSingle = team.agents.length <= 2;
+            return (
+              <div
+                key={agent.slotId}
+                ref={(el) => { agentRefs.current[agent.slotId] = el; }}
+                className='shrink-0 h-full border-r border-solid border-[color:var(--border-base)]'
+                style={{
+                  width: isSingle ? undefined : '400px',
+                  flex: isSingle ? 1 : undefined,
+                  minWidth: isSingle ? '240px' : '400px',
+                  scrollSnapAlign: 'start',
+                }}
+              >
+                <AgentChatSlot
+                  agent={agent}
+                  teamId={team.id}
+                  isLead={agent.slotId === leadAgent?.slotId}
+                />
+              </div>
+            );
+          })}
+        </div>
       </ChatLayout>
     </TeamPermissionProvider>
   );
