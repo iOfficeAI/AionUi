@@ -72,6 +72,21 @@ describe('WorkspaceOpenButton', () => {
     expect(container).toBeEmptyDOMElement();
   });
 
+  it('does not break when switching between temporary and regular workspaces', async () => {
+    const { rerender, container } = render(<WorkspaceOpenButton workspacePath='/workspace/project' />);
+
+    await waitFor(() => {
+      expect(mockCheckToolInstalled).toHaveBeenCalledWith({ tool: 'vscode' });
+    });
+
+    expect(() => {
+      rerender(<WorkspaceOpenButton workspacePath='/tmp/codex-temp-1775037616514' />);
+      rerender(<WorkspaceOpenButton workspacePath='/workspace/project' />);
+    }).not.toThrow();
+
+    expect(container).not.toBeEmptyDOMElement();
+  });
+
   it('opens the saved preferred tool when it is available', async () => {
     localStorage.setItem(STORAGE_KEY, 'explorer');
     mockCheckToolInstalled.mockResolvedValue(true);
