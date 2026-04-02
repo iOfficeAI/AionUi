@@ -7,7 +7,7 @@
 import { ipcBridge } from '@/common';
 import { Alert, Button, Collapse, Message, Switch, Tooltip } from '@arco-design/web-react';
 import { Copy, Down, Link } from '@icon-park/react';
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import useSWR, { mutate } from 'swr';
 import PreferenceRow from './PreferenceRow';
@@ -23,6 +23,7 @@ const DevSettings: React.FC = () => {
   const [switchLoading, setSwitchLoading] = useState(false);
   const [isDevToolsOpen, setIsDevToolsOpen] = useState(false);
   const [expandedMcpKeys, setExpandedMcpKeys] = useState<string[]>([]);
+  const hasLocalDevToolsToggleRef = useRef(false);
 
   const status = cdpStatus?.data;
 
@@ -31,21 +32,32 @@ const DevSettings: React.FC = () => {
 
   // Initialize DevTools state from Main Process
   useEffect(() => {
+    let cancelled = false;
+
     if (isLoading || status?.isDevMode === false) return;
 
     ipcBridge.application.isDevToolsOpened
       .invoke()
-      .then((isOpen) => setIsDevToolsOpen(isOpen))
+      .then((isOpen) => {
+        if (cancelled || hasLocalDevToolsToggleRef.current) {
+          return;
+        }
+        setIsDevToolsOpen(isOpen);
+      })
       .catch((error) => console.error('Failed to get DevTools state:', error));
 
     const unsubscribe = ipcBridge.application.devToolsStateChanged.on((event) => {
       setIsDevToolsOpen(event.isOpen);
     });
 
-    return () => unsubscribe();
+    return () => {
+      cancelled = true;
+      unsubscribe();
+    };
   }, [isLoading, status?.isDevMode]);
 
   const handleToggleDevTools = () => {
+    hasLocalDevToolsToggleRef.current = true;
     ipcBridge.application.openDevTools
       .invoke()
       .then((isOpen) => setIsDevToolsOpen(Boolean(isOpen)))

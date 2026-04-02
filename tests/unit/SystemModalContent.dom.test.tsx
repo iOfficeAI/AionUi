@@ -383,6 +383,39 @@ describe('SystemModalContent', () => {
     });
   });
 
+  it('should keep the toggled DevTools state when the initial async state resolves late', async () => {
+    let resolveInitialState: ((value: boolean) => void) | null = null;
+    mockIsDevToolsOpened.mockImplementation(
+      () =>
+        new Promise<boolean>((resolve) => {
+          resolveInitialState = resolve;
+        })
+    );
+    mockOpenDevTools.mockResolvedValue(true);
+
+    render(<SystemModalContent />);
+
+    await waitFor(() => {
+      expect(screen.getByText('settings.openDevTools')).toBeInTheDocument();
+    });
+
+    await act(async () => {
+      fireEvent.click(screen.getByText('settings.openDevTools'));
+    });
+
+    await waitFor(() => {
+      expect(screen.getByText('settings.closeDevTools')).toBeInTheDocument();
+    });
+
+    await act(async () => {
+      resolveInitialState?.(false);
+    });
+
+    await waitFor(() => {
+      expect(screen.getByText('settings.closeDevTools')).toBeInTheDocument();
+    });
+  });
+
   it('should update DevTools state via event listener', async () => {
     let eventCallback: ((event: { isOpen: boolean }) => void) | null = null;
     mockDevToolsStateChangedOn.mockImplementation((cb: any) => {
