@@ -13,6 +13,7 @@ export type TeamTabsContextValue = {
   statusMap: Map<string, AgentStatusInfo>;
   switchTab: (slotId: string) => void;
   renameAgent?: (slotId: string, newName: string) => Promise<void>;
+  reorderAgents: (fromSlotId: string, toSlotId: string) => void;
 };
 
 const TeamTabsContext = createContext<TeamTabsContextValue | null>(null);
@@ -23,8 +24,16 @@ export const TeamTabsProvider: React.FC<{
   statusMap: Map<string, AgentStatusInfo>;
   defaultActiveSlotId: string;
   renameAgent?: (slotId: string, newName: string) => Promise<void>;
-}> = ({ children, agents, statusMap, defaultActiveSlotId, renameAgent }) => {
+}> = ({ children, agents: externalAgents, statusMap, defaultActiveSlotId, renameAgent }) => {
   const [activeSlotId, setActiveSlotId] = useState(defaultActiveSlotId);
+  const [localAgents, setLocalAgents] = useState<TeamAgent[]>(externalAgents);
+
+  // Sync external agent list changes (e.g., new agent added)
+  useEffect(() => {
+    setLocalAgents(externalAgents);
+  }, [externalAgents]);
+
+  const agents = localAgents;
 
   // Auto-switch when active tab is removed or on first spawn
   useEffect(() => {
@@ -39,8 +48,21 @@ export const TeamTabsProvider: React.FC<{
     setActiveSlotId(slotId);
   }, []);
 
+  const reorderAgents = useCallback((fromSlotId: string, toSlotId: string) => {
+    if (fromSlotId === toSlotId) return;
+    setLocalAgents((prev) => {
+      const fromIndex = prev.findIndex((a) => a.slotId === fromSlotId);
+      const toIndex = prev.findIndex((a) => a.slotId === toSlotId);
+      if (fromIndex === -1 || toIndex === -1) return prev;
+      const next = [...prev];
+      const [removed] = next.splice(fromIndex, 1);
+      next.splice(toIndex, 0, removed);
+      return next;
+    });
+  }, []);
+
   return (
-    <TeamTabsContext.Provider value={{ agents, activeSlotId, statusMap, switchTab, renameAgent }}>
+    <TeamTabsContext.Provider value={{ agents, activeSlotId, statusMap, switchTab, renameAgent, reorderAgents }}>
       {children}
     </TeamTabsContext.Provider>
   );

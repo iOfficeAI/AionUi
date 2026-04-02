@@ -1,5 +1,6 @@
 import { Message, Spin } from '@arco-design/web-react';
-import React, { useCallback, useMemo, useRef } from 'react';
+import { FullScreen, OffScreen, Peoples } from '@icon-park/react';
+import React, { useCallback, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import useSWR from 'swr';
 import { ipcBridge } from '@/common';
@@ -37,13 +38,36 @@ const AgentChatSlot: React.FC<{
     ipcBridge.conversation.get.invoke({ id: agent.conversationId })
   );
   const logo = getAgentLogo(agent.agentType);
+  const [isFullscreen, setIsFullscreen] = useState(false);
+
+  const initialModelId = (conversation?.extra as { currentModelId?: string })?.currentModelId;
+  const showModelSelector =
+    agent.conversationId && (agent.conversationType === 'acp' || agent.conversationType === 'codex');
 
   return (
-    <div className='flex flex-col h-full'>
-      <div className='flex items-center gap-8px px-12px h-32px shrink-0 border-b border-solid border-[color:var(--border-base)] bg-2'>
-        {logo && <img src={logo} alt={agent.agentType} className='w-14px h-14px object-contain rounded-2px opacity-80' />}
-        <span className='text-13px text-[color:var(--color-text-2)] font-medium truncate'>{agent.agentName}</span>
-        {isLead && <span className='text-11px text-[color:var(--color-text-4)] shrink-0'>lead</span>}
+    <div className={isFullscreen ? 'fixed inset-0 z-100 bg-1 flex flex-col' : 'flex flex-col h-full'}>
+      <div className='flex items-center justify-between gap-8px px-12px h-40px shrink-0 border-b border-solid border-[color:var(--border-base)] bg-2'>
+        <div className='flex items-center gap-8px min-w-0'>
+          {logo && <img src={logo} alt={agent.agentType} className='w-16px h-16px object-contain rounded-2px opacity-80' />}
+          <span className='text-13px text-[color:var(--color-text-2)] font-medium truncate'>{agent.agentName}</span>
+          {isLead && <span className='text-11px text-[color:var(--color-text-4)] shrink-0'>lead</span>}
+        </div>
+        <div className='flex items-center gap-8px shrink-0'>
+          {showModelSelector && (
+            <AcpModelSelector
+              key={agent.conversationId}
+              conversationId={agent.conversationId}
+              backend={agent.agentType}
+              initialModelId={initialModelId}
+            />
+          )}
+          <div
+            className='cursor-pointer hover:bg-[var(--fill-3)] p-4px rd-4px text-[color:var(--color-text-3)] hover:text-[color:var(--color-text-1)] transition-colors'
+            onClick={() => setIsFullscreen(!isFullscreen)}
+          >
+            {isFullscreen ? <OffScreen size='16' fill='currentColor' /> : <FullScreen size='16' fill='currentColor' />}
+          </div>
+        </div>
       </div>
       <div className='flex flex-col flex-1 min-h-0'>
         {conversation ? (
@@ -77,12 +101,6 @@ const TeamPageContent: React.FC<TeamPageContentProps> = ({ team, onAddAgent }) =
   // isLeadAgent is false at the global level; each slot checks against leadConversationId
   const isLeadAgent = false;
   const allConversationIds = useMemo(() => team.agents.map((a) => a.conversationId).filter(Boolean), [team.agents]);
-
-  // Fetch active agent's conversation to read initialModelId for the header
-  const { data: activeConversation } = useSWR(
-    activeAgent?.conversationId ? ['team-conversation', activeAgent.conversationId] : null,
-    () => ipcBridge.conversation.get.invoke({ id: activeAgent!.conversationId })
-  );
 
   // Fetch lead agent's conversation for the workspace sider
   const { data: dispatchConversation } = useSWR(
@@ -119,22 +137,15 @@ const TeamPageContent: React.FC<TeamPageContentProps> = ({ team, onAddAgent }) =
 
   const tabsSlot = useMemo(() => <TeamTabs onAddAgent={onAddAgent} onTabClick={handleTabClick} />, [onAddAgent, handleTabClick]);
 
-  const initialModelId = (activeConversation?.extra as { currentModelId?: string })?.currentModelId;
-
-  const headerExtra = useMemo(() => {
-    if (!activeAgent?.conversationId) return undefined;
-    if (activeAgent.conversationType === 'acp' || activeAgent.conversationType === 'codex') {
-      return (
-        <AcpModelSelector
-          key={activeAgent.conversationId}
-          conversationId={activeAgent.conversationId}
-          backend={activeAgent.agentType}
-          initialModelId={initialModelId}
-        />
-      );
-    }
-    return undefined;
-  }, [activeAgent?.conversationId, activeAgent?.conversationType, activeAgent?.agentType, initialModelId]);
+  const headerTitle = useMemo(
+    () => (
+      <div className='flex items-center gap-8px'>
+        <Peoples theme='outline' size='18' fill='currentColor' />
+        <span>{team.name}</span>
+      </div>
+    ),
+    [team.name]
+  );
 
   return (
     <TeamPermissionProvider isLeadAgent={isLeadAgent} leadConversationId={leadConversationId} allConversationIds={allConversationIds}>
@@ -143,7 +154,7 @@ const TeamPageContent: React.FC<TeamPageContentProps> = ({ team, onAddAgent }) =
         <TeamConfirmOverlay allConversationIds={allConversationIds} />
       )}
       <ChatLayout
-        title={team.name}
+        title={headerTitle}
         siderTitle={siderTitle}
         sider={sider}
         workspaceEnabled={workspaceEnabled}
@@ -151,7 +162,6 @@ const TeamPageContent: React.FC<TeamPageContentProps> = ({ team, onAddAgent }) =
         conversationId={activeAgent?.conversationId}
         backend={activeAgent?.agentType}
         agentName={activeAgent?.agentName}
-        headerExtra={headerExtra}
       >
         <div
           ref={scrollContainerRef}

@@ -6,6 +6,8 @@ import type { TeammateStatus } from '@/common/types/teamTypes';
 import AddAgentModal from './AddAgentModal';
 import { useTeamTabs } from '../hooks/TeamTabsContext';
 
+const DRAG_OVER_CLASS = 'border-l-2 border-[color:var(--color-primary-6)]';
+
 const TAB_OVERFLOW_THRESHOLD = 10;
 
 type TeamTabViewProps = {
@@ -17,6 +19,10 @@ type TeamTabViewProps = {
   isLead: boolean;
   onSwitch: (slotId: string) => void;
   onRename?: (slotId: string, newName: string) => void;
+  onDragStart: (slotId: string) => void;
+  onDragOver: (slotId: string) => void;
+  onDrop: () => void;
+  isDragOver: boolean;
 };
 
 const TeamTabView: React.FC<TeamTabViewProps> = ({
@@ -28,6 +34,10 @@ const TeamTabView: React.FC<TeamTabViewProps> = ({
   isLead,
   onSwitch,
   onRename,
+  onDragStart,
+  onDragOver,
+  onDrop,
+  isDragOver,
 }) => {
   const logo = getAgentLogo(agentType);
   const [editing, setEditing] = useState(false);
@@ -76,14 +86,29 @@ const TeamTabView: React.FC<TeamTabViewProps> = ({
 
   return (
     <div
+      draggable={true}
       className={`group flex items-center gap-8px px-12px h-full max-w-240px cursor-pointer transition-all duration-200 shrink-0 border-r border-[color:var(--border-base)] ${
         isActive
           ? 'bg-1 text-[color:var(--color-text-1)] font-medium'
           : 'bg-2 text-[color:var(--color-text-3)] hover:text-[color:var(--color-text-2)] border-b border-[color:var(--border-base)]'
-      }`}
+      } ${isDragOver ? DRAG_OVER_CLASS : ''}`}
       style={isRunning ? { animation: 'team-tab-breathe 2s ease-in-out infinite' } : undefined}
       onClick={() => !editing && onSwitch(slotId)}
       onDoubleClick={onRename ? startEditing : undefined}
+      onDragStart={(e) => {
+        e.dataTransfer.effectAllowed = 'move';
+        onDragStart(slotId);
+      }}
+      onDragOver={(e) => {
+        e.preventDefault();
+        e.dataTransfer.dropEffect = 'move';
+        onDragOver(slotId);
+      }}
+      onDrop={(e) => {
+        e.preventDefault();
+        onDrop();
+      }}
+      onDragEnd={() => onDrop()}
     >
       {logo && (
         <img
@@ -150,10 +175,12 @@ type TeamTabsProps = {
  * Supports scroll overflow with fade indicators and add-agent dropdown.
  */
 const TeamTabs: React.FC<TeamTabsProps> = ({ onAddAgent, onTabClick }) => {
-  const { agents, activeSlotId, statusMap, switchTab, renameAgent } = useTeamTabs();
+  const { agents, activeSlotId, statusMap, switchTab, renameAgent, reorderAgents } = useTeamTabs();
   const tabsContainerRef = useRef<HTMLDivElement>(null);
   const [showLeftFade, setShowLeftFade] = useState(false);
   const [showRightFade, setShowRightFade] = useState(false);
+  const dragSourceRef = useRef<string | null>(null);
+  const [dragOverSlotId, setDragOverSlotId] = useState<string | null>(null);
 
   const updateTabOverflow = useCallback(() => {
     const container = tabsContainerRef.current;
@@ -180,6 +207,24 @@ const TeamTabs: React.FC<TeamTabsProps> = ({ onAddAgent, onTabClick }) => {
     };
   }, [updateTabOverflow]);
 
+  const handleDragStart = useCallback((slotId: string) => {
+    dragSourceRef.current = slotId;
+  }, []);
+
+  const handleDragOver = useCallback((slotId: string) => {
+    if (dragSourceRef.current && dragSourceRef.current !== slotId) {
+      setDragOverSlotId(slotId);
+    }
+  }, []);
+
+  const handleDrop = useCallback(() => {
+    if (dragSourceRef.current && dragOverSlotId) {
+      reorderAgents(dragSourceRef.current, dragOverSlotId);
+    }
+    dragSourceRef.current = null;
+    setDragOverSlotId(null);
+  }, [dragOverSlotId, reorderAgents]);
+
   if (agents.length === 0) return null;
 
   return (
@@ -202,6 +247,10 @@ const TeamTabs: React.FC<TeamTabsProps> = ({ onAddAgent, onTabClick }) => {
                 isLead={agent.role === 'lead'}
                 onSwitch={onTabClick ?? switchTab}
                 onRename={renameAgent ? (sid, name) => void renameAgent(sid, name) : undefined}
+                onDragStart={handleDragStart}
+                onDragOver={handleDragOver}
+                onDrop={handleDrop}
+                isDragOver={dragOverSlotId === agent.slotId}
               />
             );
           })}
