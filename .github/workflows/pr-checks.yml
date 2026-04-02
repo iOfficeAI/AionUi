@@ -13,7 +13,7 @@ on:
         required: false
         default: false
   pull_request:
-    types: [opened, synchronize, edited, closed]
+    types: [opened, synchronize, edited, closed, ready_for_review]
     branches: [main, dev]
     paths-ignore:
       - '**/*.md'
@@ -47,7 +47,7 @@ jobs:
   # Job 1: Code quality checks (TypeScript, Oxlint, Oxfmt)
   code-quality:
     name: Code Quality
-    if: github.event_name == 'workflow_dispatch' || github.event.action != 'closed'
+    if: github.event_name == 'workflow_dispatch' || (github.event.action != 'closed' && github.event.pull_request.draft == false)
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
@@ -88,7 +88,7 @@ jobs:
   # Job 2: Unit tests across all platforms
   unit-tests:
     name: Unit Tests (${{ matrix.os }})
-    if: github.event_name == 'workflow_dispatch' || github.event.action != 'closed'
+    if: github.event_name == 'workflow_dispatch' || (github.event.action != 'closed' && github.event.pull_request.draft == false)
     runs-on: ${{ matrix.os }}
     timeout-minutes: 10
     strategy:
@@ -135,7 +135,7 @@ jobs:
   # Job 3: Coverage test (Linux only)
   coverage-tests:
     name: Coverage Test
-    if: github.event_name == 'workflow_dispatch' || github.event.action != 'closed'
+    if: github.event_name == 'workflow_dispatch' || (github.event.action != 'closed' && github.event.pull_request.draft == false)
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
@@ -218,7 +218,7 @@ jobs:
 
   i18n-check:
     name: I18n Check
-    if: github.event_name == 'workflow_dispatch' || github.event.action != 'closed'
+    if: github.event_name == 'workflow_dispatch' || (github.event.action != 'closed' && github.event.pull_request.draft == false)
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
@@ -270,7 +270,7 @@ jobs:
   # Job 4: Build test across all platforms (parallel with code-quality and unit-tests)
   build-test:
     name: Build Test (${{ matrix.platform }})
-    if: github.event.action != 'closed' && inputs.skip_build_test != true
+    if: github.event.action != 'closed' && github.event.pull_request.draft == false && inputs.skip_build_test != true
     runs-on: ${{ matrix.os }}
     timeout-minutes: 45
     strategy:
@@ -553,7 +553,7 @@ jobs:
   # Job 5: Test release scripts (fast, no build required)
   release-script-test:
     name: Release Script Test
-    if: github.event.action != 'closed'
+    if: github.event.action != 'closed' && github.event.pull_request.draft == false
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:

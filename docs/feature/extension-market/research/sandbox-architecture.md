@@ -1,7 +1,8 @@
 # Extension Sandbox 架构详解
 
-> 日期：2026-03-31
+> 日期：2026-03-31 (初版) · 2026-03-31 (更新: Bug #4/#5 已修复)
 > 关联：[security-model.md](security-model.md) · [architecture.md](architecture.md)
+> PR：[#1991](https://github.com/iOfficeAI/AionUi/pull/1991)
 
 ## 1. 进程模型总览
 
@@ -75,7 +76,8 @@ flowchart LR
 api-call        Host → Worker     主进程调用扩展的方法
                 Worker → Host     扩展调用主进程的 API (如 storage)
 
-api-response    双向              对 api-call 的响应
+api-response    Host → Worker     对应 api-call 的结果或错误
+                Worker → Host     对应 callMainThread() 的结果或错误
 
 event           Host → Worker     主进程向扩展推送事件
                 Worker → Host     扩展向外发布事件 / 向 UI 发消息
@@ -89,9 +91,9 @@ shutdown        Host → Worker     主进程要求 Worker 退出
 
 ---
 
-## 4. 正常流程 — Host 调用扩展方法 (正常工作)
+## 4. Host → Worker RPC — 主进程调用扩展方法
 
-这是 **Host → Worker** 方向的 RPC，目前能正常工作：
+Host 通过 `call(method, args)` 调用 Worker 中扩展导出的方法：
 
 ```mermaid
 sequenceDiagram
@@ -121,69 +123,93 @@ sequenceDiagram
 
 ---
 
-## 5. Bug #4 — 扩展调用 storage API (永远 hang)
+## 5. Worker → Host RPC — 扩展调用 storage API
 
-这是 **Worker → Host** 方向的 RPC，目前坏掉了：
+这是 **Worker → Host** 方向的 RPC，扩展通过 `aion.storage.*` 调用主进程服务。
 
 ```mermaid
 sequenceDiagram
   participant H as SandboxHost<br/>(主进程)
   participant W as sandboxWorker<br/>(Worker 线程)
-  participant E as 扩展代码
+  participant E as 扩展代码<br/>(如 main.js)
+  participant S as apiHandlers<br/>(如 ExtensionStorage)
 
-  Note over E,H: 扩展调用 aion.storage.get('key')
+  Note over E,S: 扩展调用 aion.storage.get('key')
 
   E->>W: aion.storage.get('key')
   W->>W: callMainThread('storage.get', ['key'])
   W->>W: 生成 id='w-1', 存入 pendingMainCalls
-  W->>W: ⚠️ 没有超时计时器!
+  W->>W: 启动 30s 超时计时器
 
   W->>H: postMessage({type:'api-call', id:'w-1', method:'storage.get', args:['key']})
 
-  H->>H: handleMessage() 收到消息
-  H->>H: switch(msg.type)
-  Note over H: case 'api-response': ✗ 不匹配<br/>case 'log': ✗ 不匹配<br/>case 'event': ✗ 不匹配<br/>default: break ← 静默丢弃!
+  H->>H: handleMessage() → case 'api-call'
+  H->>H: handleWorkerApiCall('w-1', 'storage.get', ['key'])
+  H->>S: apiHandlers['storage.get']('key')
+  S-->>H: 返回结果
 
-  Note over W: Worker 端 pendingMainCalls<br/>里的 Promise 永远<br/>不会 resolve 也不会 reject
-  Note over E: ❌ await 永远不返回<br/>扩展代码卡死在这一行
+  H->>W: postMessage({type:'api-response', id:'w-1', result: ...})
+
+  W->>W: pendingMainCalls.get('w-1') → resolve(result)
+  W->>W: 清除超时计时器
+  W-->>E: 返回结果
 ```
 
-**问题本质**：消息协议是对称设计的（双方都能发 `api-call`），
-但 Host 端的 `handleMessage()` 只实现了接收 `api-response` 的一侧，
-没有实现接收 `api-call` 的一侧。
+**设计要点**：
+
+- `SandboxHostOptions.apiHandlers` 是通用的 `Record<string, handler>` map，不绑定具体 API
+- `ExtensionStorage.createApiHandlers(extensionName)` 生成按扩展名隔离的 storage handlers
+- 无 handler 时 Host 回 error response（不静默丢弃），Worker 端 Promise reject
+- Worker 端有 30s 超时保护，超时后 reject 并清理 pendingMainCalls
+
+> **历史**: 此流程在 PR #1991 之前不工作。`handleMessage()` 缺少 `case 'api-call'`，
+> Worker 发来的消息落入 `default: break` 被静默丢弃，导致 `aion.storage.*` 调用永远 hang。
+> 同时 `callMainThread()` 没有超时，hang 后无法自行恢复。
 
 ---
 
-## 6. Bug #5 — 扩展发布事件 (静默丢弃)
+## 6. Worker → Host 事件 — emitEvent 与 postToUI
+
+扩展通过 `aion.emitEvent()` 和 `aion.postToUI()` 向外发送事件，
+Host 按 `name` 字段路由到不同目标：
 
 ```mermaid
 sequenceDiagram
-  participant Bus as ExtensionEventBus
   participant H as SandboxHost<br/>(主进程)
   participant W as sandboxWorker<br/>(Worker 线程)
-  participant E as 扩展代码
+  participant Bus as ExtensionEventBus
+  participant E as 扩展代码<br/>(如 main.js)
 
   Note over E,Bus: 扩展调用 aion.emitEvent('data-ready', payload)
 
   E->>W: aion.emitEvent('data-ready', payload)
   W->>H: postMessage({type:'event', name:'ext:data-ready', payload})
-
-  H->>H: handleMessage() 收到消息
-  H->>H: switch(msg.type)
-  H->>H: case 'event': break ← 空操作!
-
-  Note over Bus: ExtensionEventBus<br/>从未收到事件
-  Note over H: 注释写着<br/>"handled by event bus"<br/>但实际没有任何代码
+  H->>H: handleMessage() → case 'event'
+  H->>H: name.startsWith('ext:') → true
+  H->>Bus: emitExtensionEvent('extName', 'data-ready', payload)
+  Bus->>Bus: emit('extName:data-ready', payload)
+  Note over Bus: 订阅了该事件的其他扩展收到通知
 ```
 
-**aion.postToUI() 同样受影响**：
+```mermaid
+sequenceDiagram
+  participant R as 渲染进程<br/>(iframe)
+  participant H as SandboxHost<br/>(主进程)
+  participant W as sandboxWorker<br/>(Worker 线程)
+  participant E as 扩展代码<br/>(如 main.js)
 
+  Note over E,R: 扩展调用 aion.postToUI(data)
+
+  E->>W: aion.postToUI(data)
+  W->>H: postMessage({type:'event', name:'ui-message', payload: data})
+  H->>H: handleMessage() → case 'event'
+  H->>H: name === 'ui-message' → true
+  H->>H: onUIMessage(extensionName, payload)
+  H->>R: 通过 IPC bridge 转发到渲染进程
 ```
-扩展调用 aion.postToUI(data)
-  → Worker 发送 {type:'event', name:'ui-message', payload: data}
-  → Host 收到 → case 'event': break
-  → 丢弃, UI 收不到任何东西
-```
+
+> **历史**: 此流程在 PR #1991 之前不工作。`case 'event'` 只有一个空 `break`（注释写着
+> "handled by event bus" 但无任何代码），所有 Worker 发出的事件和 UI 消息都被静默丢弃。
 
 ---
 
@@ -347,37 +373,53 @@ Host 处理方式     onUIMessage 回调                   extensionEventBus
 
 ---
 
-## 9. 完整消息流总览 — 正常 vs 断路
+## 9. 完整消息流总览
 
 ```
-            Host (主进程)                          Worker (子线程)
-            ═════════════                          ═══════════════
+          Host (主进程)                          Worker (子线程)
+          ════════════                           ═══════════════
 
   ┌──────────────────────────┐              ┌──────────────────────────┐
   │                          │              │                          │
-  │  call(method, args)      │──api-call───→│  handleApiCall()         │
-  │  pendingCalls.resolve    │←──api-resp───│  extensionMethods.get()  │
+  │  call(method, args)      │──api-call──→ │  handleApiCall()         │
+  │  pendingCalls.resolve    │←─api-resp─── │  extensionMethods.get()  │
   │  ✓ 正常工作              │              │  ✓ 正常工作              │
   │                          │              │                          │
-  │  emit(event, payload)    │────event────→│  eventHandlers 分发      │
+  │  emit(event, payload)    │───event───→  │  eventHandlers 分发      │
   │  ✓ 正常工作              │              │  ✓ 正常工作              │
   │                          │              │                          │
-  │  ✗ 无 api-call handler   │←───api-call──│  callMainThread()        │
-  │  (Bug #4: storage hang)  │              │  aion.storage.get/set    │
+  │  handleWorkerApiCall()   │←──api-call── │  callMainThread()        │
+  │  → apiHandlers 路由      │              │  aion.storage.get/set    │
+  │  → 回 api-response       │──api-resp──→ │  pendingMainCalls.resolve│
+  │  ✓ 已修复 (PR 1991)      │              │  ✓ 30s 超时保护          │
   │                          │              │                          │
-  │  ✗ event case 为空       │←────event────│  aion.emitEvent()        │
-  │  (Bug #5: event 丢弃)    │              │  aion.postToUI()         │
+  │  case 'event' 路由:      │←───event──── │  aion.emitEvent()        │
+  │  ext:* → eventBus        │              │  aion.postToUI()         │
+  │  ui-message → onUIMessage│              │                          │
+  │  ✓ 已修复 (PR 1991)      │              │                          │
   │                          │              │                          │
-  │  console.log(prefix,...) │←────log──────│  sandboxConsole.*        │
+  │  console.log(prefix,...) │←────log───── │  sandboxConsole.*        │
   │  ✓ 正常工作              │              │  ✓ 正常工作              │
   │                          │              │                          │
-  │  resolve start()         │←────ready────│  初始化完成              │
+  │  resolve start()         │←───ready──── │  初始化完成              │
   │  ✓ 正常工作              │              │  ✓ 正常工作              │
   │                          │              │                          │
-  │  worker.postMessage()    │───shutdown──→│  cleanup() + exit        │
+  │  worker.postMessage()    │──shutdown──→ │  cleanup() + exit        │
   │  ✓ 正常工作              │              │  ✓ 正常工作              │
   └──────────────────────────┘              └──────────────────────────┘
 
-  总结: Host → Worker 方向全部正常
-        Worker → Host 方向除了 log/ready 外全部断路
+  总结: 所有 6 种消息类型双向通信均正常工作
 ```
+
+---
+
+## 10. 剩余 TODO
+
+| 项目                           | 现状                     | 说明                                                                     |
+| ------------------------------ | ------------------------ | ------------------------------------------------------------------------ |
+| ChannelPlugin 迁移到 Sandbox   | 主进程 `eval('require')` | 代码已标 TODO，待迁移到 `createSandbox()`                                |
+| Lifecycle hooks 迁移到 Sandbox | 主进程 `eval('require')` | 代码已标 TODO，需 run-once-and-exit Worker 模式                          |
+| `createSandbox()` 实际调用     | 无调用方                 | 上述两项迁移后才会有调用方                                               |
+| `ExtensionStorage` 接入        | 已实现，未接入           | 等 `createSandbox()` 有调用方后通过 `apiHandlers` 注入                   |
+| `onUIMessage` IPC 通道         | 回调机制已就位           | 需要实现从主进程到渲染进程的 IPC bridge                                  |
+| Extension 开发者 Wiki          | 未开始                   | 需编写扩展开发文档：贡献类型、manifest 规范、`aion` API 说明、发布流程等 |

@@ -168,7 +168,7 @@ const GeminiConversationPanel: React.FC<{ conversation: GeminiConversation; slid
   };
 
   return (
-    <ChatLayout {...chatLayoutProps} conversationId={conversation.id}>
+    <ChatLayout {...chatLayoutProps} conversationId={conversation.id} workspacePath={conversation.extra.workspace}>
       <GeminiChat
         conversation_id={conversation.id}
         workspace={conversation.extra.workspace}
@@ -392,6 +392,7 @@ const ChatConversation: React.FC<{
       siderTitle={sliderTitle}
       sider={<ChatSider conversation={conversation} />}
       workspaceEnabled={workspaceEnabled}
+      workspacePath={conversation?.extra?.workspace}
       conversationId={conversation?.id}
     >
       {conversationNode}

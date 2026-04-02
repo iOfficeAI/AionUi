@@ -9,6 +9,8 @@
 import type { IConfirmation } from '@/common/chat/chatLib';
 import type { AgentType, AgentStatus } from './agentTypes';
 
+export type AgentKillReason = 'idle_timeout';
+
 export interface IAgentManager {
   readonly type: AgentType;
   /**
@@ -17,10 +19,12 @@ export interface IAgentManager {
   readonly status: AgentStatus | undefined;
   readonly workspace: string;
   readonly conversation_id: string;
+  /** Timestamp of the last sendMessage call. Used for idle-timeout cleanup. */
+  readonly lastActivityAt: number;
 
   sendMessage(data: unknown): Promise<void>;
   stop(): Promise<void>;
   confirm(msgId: string, callId: string, data: unknown): void;
   getConfirmations(): IConfirmation[];
-  kill(): void;
+  kill(reason?: AgentKillReason): void;
 }

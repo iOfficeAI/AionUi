@@ -95,7 +95,9 @@ self.addEventListener('fetch', (event) => {
   }
 
   const destination = event.request.destination;
-  if (['script', 'style', 'image', 'font'].includes(destination)) {
+  if (['script', 'style'].includes(destination)) {
+    event.respondWith(networkFirst(event.request));
+  } else if (['image', 'font'].includes(destination)) {
     event.respondWith(staleWhileRevalidate(event.request));
   }
 });

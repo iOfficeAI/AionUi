@@ -105,7 +105,7 @@ export function registerAuthRoutes(app: Express): void {
       const user = await UserRepository.findByUsername(username);
       if (!user) {
         // Use constant time verification to prevent timing attacks
-        await AuthService.constantTimeVerify('dummy', 'dummy', true);
+        await AuthService.constantTimeVerifyMissingUser();
         res.status(401).json({
           success: false,
           message: 'Invalid username or password',
@@ -181,23 +181,22 @@ export function registerAuthRoutes(app: Express): void {
   // Rate limit auth status endpoint to prevent enumeration
   // 为认证状态端点添加速率限制以防止枚举攻击
   app.get('/api/auth/status', apiRateLimiter, (_req: Request, res: Response) => {
-    try {
-      const hasUsers = UserRepository.hasUsers();
-      const userCount = UserRepository.countUsers();
-
-      res.json({
-        success: true,
-        needsSetup: !hasUsers,
-        userCount,
-        isAuthenticated: false, // Will be determined by frontend based on token
+    Promise.all([UserRepository.hasUsers(), UserRepository.countUsers()])
+      .then(([hasUsers, userCount]) => {
+        res.json({
+          success: true,
+          needsSetup: !hasUsers,
+          userCount,
+          isAuthenticated: false, // Will be determined by frontend based on token
+        });
+      })
+      .catch((error) => {
+        console.error('Auth status error:', error);
+        res.status(500).json({
+          success: false,
+          error: 'Internal server error',
+        });
       });
-    } catch (error) {
-      console.error('Auth status error:', error);
-      res.status(500).json({
-        success: false,
-        error: 'Internal server error',
-      });
-    }
   });
 
   /**
@@ -297,37 +296,39 @@ export function registerAuthRoutes(app: Express): void {
    * POST /api/auth/refresh
    */
   app.post('/api/auth/refresh', apiRateLimiter, authenticatedActionLimiter, (req: Request, res: Response) => {
-    try {
-      const { token } = req.body;
+    void (async () => {
+      try {
+        const { token } = req.body;
 
-      if (!token) {
-        res.status(400).json({
-          success: false,
-          error: 'Token is required',
+        if (!token) {
+          res.status(400).json({
+            success: false,
+            error: 'Token is required',
+          });
+          return;
+        }
+
+        const newToken = await AuthService.refreshToken(token);
+        if (!newToken) {
+          res.status(401).json({
+            success: false,
+            error: 'Invalid or expired token',
+          });
+          return;
+        }
+
+        res.json({
+          success: true,
+          token: newToken,
         });
-        return;
-      }
-
-      const newToken = AuthService.refreshToken(token);
-      if (!newToken) {
-        res.status(401).json({
+      } catch (error) {
+        console.error('Token refresh error:', error);
+        res.status(500).json({
           success: false,
-          error: 'Invalid or expired token',
+          error: 'Internal server error',
         });
-        return;
       }
-
-      res.json({
-        success: true,
-        token: newToken,
-      });
-    } catch (error) {
-      console.error('Token refresh error:', error);
-      res.status(500).json({
-        success: false,
-        error: 'Internal server error',
-      });
-    }
+    })();
   });
 
   /**

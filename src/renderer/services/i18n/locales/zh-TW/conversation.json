@@ -71,9 +71,9 @@
   "historySearch": {
     "tooltip": "搜尋訊息",
     "title": "搜尋對話內容",
+    "shortTitle": "搜尋",
     "description": "透過關鍵字搜尋歷史訊息，滾動載入更多，點擊跳轉到匹配的訊息。",
     "placeholder": "搜尋訊息內容...",
-    "shortTitle": "搜尋",
     "idle": "輸入關鍵字搜尋訊息",
     "empty": "沒有找到匹配的訊息",
     "loadingMore": "載入更多...",
@@ -180,6 +180,12 @@
       "reset": "還原變更",
       "noUnstaged": "沒有未暫存的變更",
       "noStaged": "沒有已暫存的變更"
+    },
+    "openWorkspace": "開啟工作區資料夾",
+    "openWith": {
+      "vscode": "VS Code",
+      "terminal": "終端機",
+      "explorer": "檔案總管"
     }
   },
   "minimap": {

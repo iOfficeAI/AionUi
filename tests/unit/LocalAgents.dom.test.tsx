@@ -25,6 +25,7 @@ Object.defineProperty(window, 'matchMedia', {
 const mockNavigate = vi.hoisted(() => vi.fn());
 const mockGetAvailableAgents = vi.hoisted(() => vi.fn());
 const mockSwrMutate = vi.hoisted(() => vi.fn().mockResolvedValue(undefined));
+const mockMessageInfo = vi.hoisted(() => vi.fn());
 
 vi.mock('react-i18next', () => ({
   useTranslation: () => ({ t: (key: string) => key, i18n: { language: 'en-US' } }),
@@ -57,6 +58,36 @@ vi.mock('@arco-design/web-react', () => ({
   Tooltip: ({ children }: { children: React.ReactNode }) => <>{children}</>,
   Avatar: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
   Space: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
+  Button: ({ children, onClick }: { children: React.ReactNode; onClick?: () => void }) => (
+    <button onClick={onClick}>{children}</button>
+  ),
+  Dropdown: ({ children, droplist }: { children: React.ReactNode; droplist?: React.ReactNode }) => (
+    <div>
+      {children}
+      {droplist}
+    </div>
+  ),
+  Menu: Object.assign(
+    ({ children, onClickMenuItem }: { children: React.ReactNode; onClickMenuItem?: (key: string) => void }) => (
+      <div>
+        {React.Children.map(children, (child) => {
+          if (!React.isValidElement(child)) {
+            return child;
+          }
+          const itemKey = typeof child.key === 'string' ? child.key.replace(/^\.\$?/, '') : String(child.key);
+          return React.cloneElement(child, { onClick: () => onClickMenuItem?.(itemKey) });
+        })}
+      </div>
+    ),
+    {
+      Item: ({ children, onClick }: { children: React.ReactNode; onClick?: () => void }) => (
+        <button onClick={onClick}>{children}</button>
+      ),
+    }
+  ),
+  Message: {
+    info: mockMessageInfo,
+  },
   Switch: ({ checked, onChange }: { checked?: boolean; onChange?: (v: boolean) => void }) => (
     <button role='switch' aria-checked={checked} onClick={() => onChange?.(!checked)}>
       switch
@@ -64,9 +95,19 @@ vi.mock('@arco-design/web-react', () => ({
   ),
 }));
 
+vi.mock('@/renderer/components/base/AionModal', () => ({
+  default: ({ children, visible }: { children: React.ReactNode; visible: boolean }) =>
+    visible ? <div>{children}</div> : null,
+}));
+
+vi.mock('@/common/config/storage', () => ({
+  ConfigStorage: { get: vi.fn().mockResolvedValue([]), set: vi.fn().mockResolvedValue(undefined) },
+}));
+
 vi.mock('@icon-park/react', () => ({
   Setting: () => <span data-testid='icon-setting'>SettingIcon</span>,
   Robot: () => <span data-testid='icon-robot'>RobotIcon</span>,
+  Plus: () => <span data-testid='icon-plus'>PlusIcon</span>,
 }));
 
 vi.mock('@/renderer/utils/model/agentLogo', () => ({
@@ -77,12 +118,17 @@ vi.mock('@/renderer/hooks/context/ThemeContext', () => ({
   useThemeContext: () => ({ theme: 'light' }),
 }));
 
+vi.mock('../../src/renderer/pages/settings/AgentSettings/InlineAgentEditor', () => ({
+  default: () => <div data-testid='inline-agent-editor' />,
+}));
+
 // ---------------------------------------------------------------------------
 // Imports
 // ---------------------------------------------------------------------------
 
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, act } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import React from 'react';
 import LocalAgents from '../../src/renderer/pages/settings/AgentSettings/LocalAgents';
 
@@ -120,5 +166,16 @@ describe('LocalAgents', () => {
     });
 
     expect(screen.getByText('settings.agentManagement.localAgentsEmpty')).toBeTruthy();
+  });
+
+  it('shows market coming soon message when market menu item is clicked', async () => {
+    const user = userEvent.setup();
+    await act(async () => {
+      render(<LocalAgents />);
+    });
+
+    await user.click(screen.getByText('settings.agentManagement.installFromMarket'));
+
+    expect(mockMessageInfo).toHaveBeenCalledWith('settings.agentManagement.marketComingSoon');
   });
 });

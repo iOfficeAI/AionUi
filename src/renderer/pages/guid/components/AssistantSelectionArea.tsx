@@ -17,14 +17,11 @@ import AssistantEditDrawer from '@/renderer/pages/settings/AgentSettings/Assista
 import DeleteAssistantModal from '@/renderer/pages/settings/AgentSettings/AssistantManagement/DeleteAssistantModal';
 import SkillConfirmModals from '@/renderer/pages/settings/AgentSettings/AssistantManagement/SkillConfirmModals';
 import { resolveAvatarImageSrc } from '@/renderer/pages/settings/AgentSettings/AssistantManagement/assistantUtils';
-import { ConfigStorage } from '@/common/config/storage';
-import { ACP_BACKENDS_ALL, type PresetAgentType } from '@/common/types/acpTypes';
-import { getAgentLogo } from '@/renderer/utils/model/agentLogo';
 import { CUSTOM_AVATAR_IMAGE_MAP } from '../constants';
 import styles from '../index.module.css';
 import type { AcpBackendConfig, AvailableAgent, EffectiveAgentInfo } from '../types';
-import { Dropdown, Menu, Message } from '@arco-design/web-react';
-import { Down, Plus, Robot } from '@icon-park/react';
+import { Message } from '@arco-design/web-react';
+import { Plus, Robot } from '@icon-park/react';
 import React, { useCallback, useLayoutEffect, useMemo } from 'react';
 import { resolveExtensionAssetUrl } from '@/renderer/utils/platform';
 import { useTranslation } from 'react-i18next';
@@ -41,7 +38,6 @@ type AssistantSelectionAreaProps = {
   onSetInput: (text: string) => void;
   onFocusInput: () => void;
   onRegisterOpenDetails?: (openDetails: (() => void) | null) => void;
-  onPresetAgentTypeSwitched?: () => Promise<void>;
 };
 
 const resolveAssistantCandidateIds = (assistantId: string): string[] => {
@@ -60,7 +56,6 @@ const AssistantSelectionArea: React.FC<AssistantSelectionAreaProps> = ({
   onSetInput,
   onFocusInput,
   onRegisterOpenDetails,
-  onPresetAgentTypeSwitched,
 }) => {
   const { t } = useTranslation();
   const navigate = useNavigate();
@@ -109,104 +104,6 @@ const AssistantSelectionArea: React.FC<AssistantSelectionAreaProps> = ({
   });
 
   const editAvatarImage = resolveAvatarImageSrc(editor.editAvatar, avatarImageMap);
-  const effectiveAgentLabel = useMemo(() => {
-    const type = currentEffectiveAgentInfo.agentType;
-    if (typeof type !== 'string') return '';
-    const backend = ACP_BACKENDS_ALL[type as keyof typeof ACP_BACKENDS_ALL];
-    return backend?.name || type.charAt(0).toUpperCase() + type.slice(1);
-  }, [currentEffectiveAgentInfo.agentType]);
-  const switchablePresetAgentTypes: PresetAgentType[] = ['gemini', 'claude', 'qwen', 'codex', 'opencode'];
-  const selectedAssistant = selectedAgentInfo?.customAgentId
-    ? customAgents.find((assistant) => assistant.id === selectedAgentInfo.customAgentId)
-    : undefined;
-  const currentPresetAgentType = (selectedAssistant?.presetAgentType as PresetAgentType | undefined) || 'gemini';
-  const effectiveAgentLogo = useMemo(() => {
-    const type = currentEffectiveAgentInfo.agentType;
-    if (typeof type !== 'string') return null;
-    return getAgentLogo(type);
-  }, [currentEffectiveAgentInfo.agentType]);
-
-  const handlePresetAgentTypeSwitch = useCallback(
-    async (nextType: PresetAgentType) => {
-      if (!selectedAgentInfo?.customAgentId) return;
-      if (nextType === currentPresetAgentType) return;
-
-      try {
-        const agents = ((await ConfigStorage.get('acp.customAgents')) || []) as AcpBackendConfig[];
-        const targetIndex = agents.findIndex((assistant) => assistant.id === selectedAgentInfo.customAgentId);
-        if (targetIndex < 0) {
-          agentMessage.warning(t('common.failed', { defaultValue: 'Failed' }));
-          return;
-        }
-
-        const updatedAgents = [...agents];
-        updatedAgents[targetIndex] = {
-          ...updatedAgents[targetIndex],
-          presetAgentType: nextType,
-        };
-        await ConfigStorage.set('acp.customAgents', updatedAgents);
-        await onPresetAgentTypeSwitched?.();
-        await loadAssistants();
-        agentMessage.success(t('common.saved', { defaultValue: 'Saved' }));
-      } catch (error) {
-        console.error('[AssistantSelectionArea] Failed to switch preset agent type:', error);
-        agentMessage.error(t('common.failed', { defaultValue: 'Failed' }));
-      }
-    },
-    [
-      agentMessage,
-      currentPresetAgentType,
-      loadAssistants,
-      onPresetAgentTypeSwitched,
-      selectedAgentInfo?.customAgentId,
-      t,
-    ]
-  );
-
-  const resolveOpenAssistantId = (): string | null => {
-    if (selectedAgentInfo?.customAgentId) return selectedAgentInfo.customAgentId;
-    if (selectedAgentKey?.startsWith('custom:')) return selectedAgentKey.slice(7);
-    return null;
-  };
-
-  const openAssistantDetails = useCallback(() => {
-    const assistantId = resolveOpenAssistantId();
-    if (!assistantId) {
-      agentMessage.warning(
-        t('common.failed', { defaultValue: 'Failed' }) +
-          `: ${t('settings.editAssistant', { defaultValue: 'Assistant Details' })}`
-      );
-      return;
-    }
-
-    const candidates = resolveAssistantCandidateIds(assistantId);
-    const targetAssistant = [...assistants, ...customAgents].find((assistant) => candidates.includes(assistant.id));
-    if (!targetAssistant) {
-      agentMessage.warning(
-        t('common.failed', { defaultValue: 'Failed' }) +
-          `: ${t('settings.editAssistant', { defaultValue: 'Assistant Details' })}`
-      );
-      return;
-    }
-
-    void editor.handleEdit(targetAssistant);
-  }, [
-    agentMessage,
-    assistants,
-    customAgents,
-    editor.handleEdit,
-    selectedAgentInfo?.customAgentId,
-    selectedAgentKey,
-    t,
-  ]);
-
-  useLayoutEffect(() => {
-    if (!onRegisterOpenDetails) return;
-    onRegisterOpenDetails(openAssistantDetails);
-  }, [onRegisterOpenDetails, openAssistantDetails]);
-
-  // Only render if there are preset agents
-  if (!customAgents || !customAgents.some((a) => a.isPreset)) return null;
 
   const modalTree = (
     <>
@@ -245,7 +142,6 @@ const AssistantSelectionArea: React.FC<AssistantSelectionAreaProps> = ({
         handleSave={editor.handleSave}
         handleDeleteClick={editor.handleDeleteClick}
       />
-
       <DeleteAssistantModal
         visible={editor.deleteConfirmVisible}
         onCancel={() => editor.setDeleteConfirmVisible(false)}
@@ -253,7 +149,6 @@ const AssistantSelectionArea: React.FC<AssistantSelectionAreaProps> = ({
         activeAssistant={activeAssistant}
         avatarImageMap={avatarImageMap}
       />
-
       <AddSkillsModal
         visible={editor.skillsModalVisible}
         onCancel={() => {
@@ -274,7 +169,6 @@ const AssistantSelectionArea: React.FC<AssistantSelectionAreaProps> = ({
         customSkills={editor.customSkills}
         handleAddFoundSkills={skills.handleAddFoundSkills}
       />
-
       <SkillConfirmModals
         deletePendingSkillName={editor.deletePendingSkillName}
         setDeletePendingSkillName={editor.setDeletePendingSkillName}
@@ -288,7 +182,6 @@ const AssistantSelectionArea: React.FC<AssistantSelectionAreaProps> = ({
         setSelectedSkills={editor.setSelectedSkills}
         message={agentMessage}
       />
-
       <AddCustomPathModal
         visible={skills.showAddPathModal}
         onCancel={() => {
@@ -304,6 +197,43 @@ const AssistantSelectionArea: React.FC<AssistantSelectionAreaProps> = ({
       />
     </>
   );
+
+  const resolveOpenAssistantId = (): string | null => {
+    if (selectedAgentInfo?.customAgentId) return selectedAgentInfo.customAgentId;
+    if (selectedAgentKey?.startsWith('custom:')) return selectedAgentKey.slice(7);
+    return null;
+  };
+
+  const openAssistantDetails = useCallback(() => {
+    const assistantId = resolveOpenAssistantId();
+    if (!assistantId) {
+      agentMessage.warning(
+        t('common.failed', { defaultValue: 'Failed' }) +
+          `: ${t('settings.editAssistant', { defaultValue: 'Assistant Details' })}`
+      );
+      return;
+    }
+
+    const candidates = resolveAssistantCandidateIds(assistantId);
+    const targetAssistant = [...assistants, ...customAgents].find((assistant) => candidates.includes(assistant.id));
+    if (!targetAssistant) {
+      agentMessage.warning(
+        t('common.failed', { defaultValue: 'Failed' }) +
+          `: ${t('settings.editAssistant', { defaultValue: 'Assistant Details' })}`
+      );
+      return;
+    }
+
+    void editor.handleEdit(targetAssistant);
+  }, [agentMessage, assistants, customAgents, editor, selectedAgentInfo?.customAgentId, selectedAgentKey, t]);
+
+  useLayoutEffect(() => {
+    if (!onRegisterOpenDetails) return;
+    onRegisterOpenDetails(openAssistantDetails);
+  }, [onRegisterOpenDetails, openAssistantDetails]);
+
+  // Only render if there are preset agents
+  if (!customAgents || !customAgents.some((a) => a.isPreset)) return null;
 
   if (isPresetAgent && selectedAgentInfo) {
     // Selected Assistant View
@@ -340,45 +270,8 @@ const AssistantSelectionArea: React.FC<AssistantSelectionAreaProps> = ({
             if (prompts && prompts.length > 0) {
               return (
                 <div className='mt-16px'>
-                  <div className='flex items-start justify-between gap-8px'>
-                    <div className={styles.assistantPromptHint}>
-                      {t('guid.promptExamplesHint', { defaultValue: 'Try these example prompts:' })}
-                    </div>
-                    <Dropdown
-                      trigger='click'
-                      position='bl'
-                      droplist={
-                        <Menu
-                          onClickMenuItem={(key) => {
-                            void handlePresetAgentTypeSwitch(key as PresetAgentType);
-                          }}
-                        >
-                          {switchablePresetAgentTypes.map((agentType) => (
-                            <Menu.Item key={agentType}>
-                              <div className='flex items-center justify-between gap-12px min-w-140px'>
-                                <span>{ACP_BACKENDS_ALL[agentType]?.name || agentType}</span>
-                                {agentType === currentPresetAgentType ? <span>✓</span> : null}
-                              </div>
-                            </Menu.Item>
-                          ))}
-                        </Menu>
-                      }
-                    >
-                      <div
-                        className={styles.assistantPromptAgentSwitcher}
-                        role='button'
-                        tabIndex={0}
-                        aria-label={`${t('guid.agentSwitcherLabel', { defaultValue: 'Agent' })}: ${effectiveAgentLabel}`}
-                      >
-                        {effectiveAgentLogo ? (
-                          <img src={effectiveAgentLogo} alt='' className={styles.assistantPromptAgentSwitcherLogo} />
-                        ) : null}
-                        <span className={styles.assistantPromptAgentSwitcherName}>
-                          {t('guid.agentSwitcherLabel', { defaultValue: 'Agent' })}: {effectiveAgentLabel}
-                        </span>
-                        <Down theme='outline' size={12} fill='currentColor' />
-                      </div>
-                    </Dropdown>
+                  <div className={styles.assistantPromptHint}>
+                    {t('guid.promptExamplesHint', { defaultValue: 'Try these example prompts:' })}
                   </div>
                   <div className='flex flex-wrap gap-8px mt-12px'>
                     {prompts.map((prompt: string, index: number) => (
@@ -457,7 +350,6 @@ const AssistantSelectionArea: React.FC<AssistantSelectionAreaProps> = ({
           <Plus theme='outline' size={14} className='line-height-0 text-[var(--color-text-3)]' />
         </div>
       </div>
-
       {modalTree}
     </div>
   );

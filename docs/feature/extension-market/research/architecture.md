@@ -266,8 +266,9 @@ src/process/extensions/
 │   ├── statePersistence.ts           enabled/disabled 状态持久化 (JSON)
 │   └── hotReload.ts                  FSWatcher 热重载
 ├── sandbox/
-│   ├── sandbox.ts                    SandboxHost: Worker Thread 隔离
-│   ├── sandboxWorker.ts              Worker 脚本: aion API proxy
+│   ├── sandbox.ts                    SandboxHost: Worker Thread 隔离 + 消息路由
+│   ├── sandboxWorker.ts              Worker 脚本: aion API proxy + callMainThread
+│   ├── ExtensionStorage.ts           扩展 KV 存储 (JSON 文件, 按扩展隔离)
 │   ├── permissions.ts                权限分析、风险等级分类
 │   └── pathSafety.ts                 路径遍历防护
 ├── protocol/

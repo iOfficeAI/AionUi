@@ -2,7 +2,7 @@ name: 'PR Checks (docs only)'
 
 on:
   pull_request:
-    types: [opened, synchronize, edited]
+    types: [opened, synchronize, edited, ready_for_review]
     branches: [main, dev]
     paths:
       - '**/*.md'
@@ -16,6 +16,7 @@ permissions:
 jobs:
   code-quality:
     name: Code Quality
+    if: github.event.pull_request.draft == false
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:

@@ -47,8 +47,10 @@ const ChatLayout: React.FC<{
   workspaceEnabled?: boolean;
   /** Conversation ID for mode switching */
   conversationId?: string;
+  /** Workspace path for opening in external tools */
+  workspacePath?: string;
 }> = (props) => {
-  const { conversationId } = props;
+  const { conversationId, workspacePath } = props;
   const { backend, agentName, agentLogo, agentLogoIsEmoji, workspaceEnabled = true } = props;
   const layout = useLayoutContext();
   const isMacRuntime = isMacEnvironment();
@@ -302,6 +304,7 @@ const ChatLayout: React.FC<{
               collapsed={rightSiderCollapsed}
               onToggle={() => dispatchWorkspaceToggleEvent()}
               togglePlacement={layout?.isMobile ? 'left' : 'right'}
+              workspacePath={workspacePath}
             >
               {props.siderTitle}
             </WorkspacePanelHeader>
@@ -320,6 +323,7 @@ const ChatLayout: React.FC<{
             mobileWorkspaceHandleRight={mobileWorkspaceHandleRight}
             siderTitle={props.siderTitle}
             sider={props.sider}
+            workspacePath={workspacePath}
           />
         )}
 

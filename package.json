@@ -1,6 +1,6 @@
 {
   "name": "AionUi",
-  "version": "1.9.4",
+  "version": "1.9.5",
   "description": "Transform your command-line AI agent into a modern, efficient AI Chat interface.",
   "keywords": [],
   "license": "Apache-2.0",
@@ -11,6 +11,7 @@
   "main": "./out/main/index.js",
   "scripts": {
     "start": "electron-vite dev",
+    "start:multi": "cross-env AIONUI_MULTI_INSTANCE=1 electron-vite dev",
     "cli": "electron-vite dev",
     "webui": "rm -rf out/renderer && electron-vite dev -- --webui",
     "webui:remote": "rm -rf out/renderer && electron-vite dev -- --webui --remote",

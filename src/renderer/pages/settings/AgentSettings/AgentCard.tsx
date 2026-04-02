@@ -68,8 +68,12 @@ const AgentCard: React.FC<AgentCardProps> = (props) => {
   return (
     <div className='flex items-center justify-between px-16px py-10px rd-8px bg-aou-1 hover:bg-aou-2'>
       <div className='flex items-center gap-12px min-w-0 flex-1'>
-        <Avatar size={32} shape='square' style={{ flexShrink: 0, backgroundColor: 'transparent' }}>
-          <Robot theme='outline' size='20' />
+        <Avatar
+          size={32}
+          shape='square'
+          style={{ flexShrink: 0, backgroundColor: agent.avatar ? 'var(--color-fill-2)' : 'transparent', fontSize: 18 }}
+        >
+          {agent.avatar || <Robot theme='outline' size='20' />}
         </Avatar>
         <div className='min-w-0 flex-1'>
           <Typography.Text className='font-medium text-14px'>{agent.name || 'Custom Agent'}</Typography.Text>

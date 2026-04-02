@@ -145,6 +145,30 @@ while true; do
 
   log "<<< Claude done (session: ${SESSION_ID}, log: ${ISSUE_LOG})"
 
+  # Extract PR URLs from gh pr create results only (ignore PR URLs in issue bodies / triage)
+  PR_URLS=$(python3 -c "
+import json, re, sys
+ids = set()
+urls = set()
+for line in open(sys.argv[1]):
+    try:
+        for c in (json.loads(line).get('message') or {}).get('content') or []:
+            if not isinstance(c, dict): continue
+            if c.get('type') == 'tool_use' and c.get('name') == 'Bash' and 'gh pr create' in (c.get('input') or {}).get('command', ''):
+                ids.add(c['id'])
+            if c.get('type') == 'tool_result' and c.get('tool_use_id') in ids:
+                urls.update(re.findall(r'https://github\.com/[^/]+/[^/]+/pull/\d+', str(c.get('content',''))))
+    except: pass
+for u in sorted(urls): print(u)
+" "$ISSUE_LOG" 2>/dev/null || true)
+  if [ -n "$PR_URLS" ]; then
+    while IFS= read -r pr_url; do
+      log "    PR created: ${pr_url}"
+    done <<< "$PR_URLS"
+  else
+    log "    No PR created this session"
+  fi
+
   # Cleanup worktree
   git -C "$REPO_ROOT" worktree remove "$WORKTREE_DIR" --force 2>/dev/null || rm -rf "$WORKTREE_DIR"
   git -C "$REPO_ROOT" worktree prune 2>/dev/null || true
