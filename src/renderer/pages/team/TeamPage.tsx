@@ -185,10 +185,15 @@ const TeamPageContent: React.FC<TeamPageContentProps> = ({ team, onAddAgent }) =
         const el = agentRefs.current[slotId];
         if (el) {
           el.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'start' });
-          // Flash effect after scroll completes
+          // Flash: opacity 1→0→1
           setTimeout(() => {
-            el.classList.add('team-slot-flash');
-            setTimeout(() => el.classList.remove('team-slot-flash'), 600);
+            el.style.transition = 'opacity 150ms ease-out';
+            el.style.opacity = '0';
+            setTimeout(() => {
+              el.style.transition = 'opacity 150ms ease-in';
+              el.style.opacity = '1';
+              setTimeout(() => { el.style.transition = ''; }, 200);
+            }, 150);
           }, 400);
         }
       }, 320);
@@ -230,7 +235,7 @@ const TeamPageContent: React.FC<TeamPageContentProps> = ({ team, onAddAgent }) =
               style={{ background: 'linear-gradient(90deg, var(--color-bg-1) 40%, transparent)' }}
               onClick={scrollToPrev}
             >
-              <div className='w-32px h-32px rd-full flex items-center justify-center' style={{ background: 'rgba(0,0,0,0.5)' }}>
+              <div className='w-32px h-32px rd-full flex items-center justify-center' style={{ background: 'rgba(0,0,0,0.5)', lineHeight: 0 }}>
                 <Left size='24' fill='#fff' />
               </div>
             </div>
@@ -248,7 +253,7 @@ const TeamPageContent: React.FC<TeamPageContentProps> = ({ team, onAddAgent }) =
                 <div
                   key={agent.slotId}
                   ref={(el) => { agentRefs.current[agent.slotId] = el; }}
-                  className='shrink-0 h-full border-r border-solid border-[color:var(--border-base)]'
+                  className='relative shrink-0 h-full border-r border-solid border-[color:var(--border-base)]'
                   style={{
                     width: isSingle ? undefined : (isActive ? '500px' : '360px'),
                     flex: isSingle ? 1 : undefined,
@@ -272,7 +277,7 @@ const TeamPageContent: React.FC<TeamPageContentProps> = ({ team, onAddAgent }) =
               style={{ background: 'linear-gradient(270deg, var(--color-bg-1) 40%, transparent)' }}
               onClick={scrollToNext}
             >
-              <div className='w-32px h-32px rd-full flex items-center justify-center' style={{ background: 'rgba(0,0,0,0.5)' }}>
+              <div className='w-32px h-32px rd-full flex items-center justify-center' style={{ background: 'rgba(0,0,0,0.5)', lineHeight: 0 }}>
                 <Right size='24' fill='#fff' />
               </div>
             </div>
