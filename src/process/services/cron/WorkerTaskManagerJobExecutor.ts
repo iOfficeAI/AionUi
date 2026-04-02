@@ -140,6 +140,9 @@ export class WorkerTaskManagerJobExecutor implements ICronJobExecutor {
     });
 
     if (needsSkillSuggest) {
+      // Defensively unregister first in case a previous execution left a stale entry
+      skillSuggestWatcher.unregister(conversationId);
+
       if (isGemini) {
         // Gemini: SKILL_SUGGEST instructions are already in the prompt.
         // Just register the watcher (no onFirstFinish) and start polling.

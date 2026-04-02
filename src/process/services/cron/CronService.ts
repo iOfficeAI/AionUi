@@ -328,7 +328,9 @@ export class CronService {
       console.warn('[CronService] Failed to delete SKILL.md:', err);
     }
 
-    // Clean up associated conversations
+    // Clean up associated conversations.
+    // Note: deleteConversation relies on SQLite ON DELETE CASCADE to remove
+    // related messages rows — see migration v1 foreign key definition.
     if (job) {
       try {
         if (job.target.executionMode === 'new_conversation') {
