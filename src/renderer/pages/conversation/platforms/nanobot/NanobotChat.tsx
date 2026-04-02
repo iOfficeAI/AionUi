@@ -26,7 +26,9 @@ const NanobotChat: React.FC<{
     updateLocalImage({ root: workspace });
   }, [workspace, updateLocalImage]);
   return (
-    <ConversationProvider value={{ conversationId: conversation_id, workspace, type: 'nanobot', cronJobId, hideSendBox }}>
+    <ConversationProvider
+      value={{ conversationId: conversation_id, workspace, type: 'nanobot', cronJobId, hideSendBox }}
+    >
       <div className='flex-1 flex flex-col px-20px min-h-0'>
         <FlexFullContainer>
           <MessageList className='flex-1'></MessageList>

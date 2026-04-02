@@ -174,10 +174,7 @@ const TaskDetailPage: React.FC = () => {
               icon={<Editor theme='outline' size={16} />}
               onClick={() => setEditDialogVisible(true)}
             />
-            <Popconfirm
-              title={t('cron.confirmDeleteWithConversations')}
-              onOk={handleDelete}
-            >
+            <Popconfirm title={t('cron.confirmDeleteWithConversations')} onOk={handleDelete}>
               <Button type='text' status='danger' icon={<Delete theme='outline' size={16} />} />
             </Popconfirm>
             <Button

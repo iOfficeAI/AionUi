@@ -103,15 +103,7 @@ vi.mock('@arco-design/web-react', () => ({
     const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
       onChange?.(e.target.checked);
     };
-    return (
-      <input
-        type='checkbox'
-        data-testid='switch'
-        data-size={size}
-        checked={checked}
-        onChange={handleChange}
-      />
-    );
+    return <input type='checkbox' data-testid='switch' data-size={size} checked={checked} onChange={handleChange} />;
   },
   Tag: ({ children, color, className }: { children: React.ReactNode; color?: string; className?: string }) => (
     <span data-testid='tag' data-color={color} className={className}>
@@ -241,7 +233,12 @@ describe('ScheduledTasksPage', () => {
     const jobs = [
       createMockJob({ id: 'job-1', enabled: true, state: { ...createMockJob().state, lastStatus: 'ok' } }),
       createMockJob({ id: 'job-2', name: 'Task 2', enabled: false }),
-      createMockJob({ id: 'job-3', name: 'Task 3', enabled: true, state: { ...createMockJob().state, lastStatus: 'error' } }),
+      createMockJob({
+        id: 'job-3',
+        name: 'Task 3',
+        enabled: true,
+        state: { ...createMockJob().state, lastStatus: 'error' },
+      }),
     ];
     mockListJobs.mockResolvedValue(jobs);
 
@@ -533,9 +530,7 @@ describe('ScheduledTasksPage', () => {
   });
 
   it('should render multiple jobs in grid layout', async () => {
-    const jobs = Array.from({ length: 5 }, (_, i) =>
-      createMockJob({ id: `job-${i}`, name: `Task ${i + 1}` })
-    );
+    const jobs = Array.from({ length: 5 }, (_, i) => createMockJob({ id: `job-${i}`, name: `Task ${i + 1}` }));
     mockListJobs.mockResolvedValue(jobs);
 
     const { default: ScheduledTasksPage } = await import('@renderer/pages/cron/ScheduledTasksPage');

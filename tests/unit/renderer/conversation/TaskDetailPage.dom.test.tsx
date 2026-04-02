@@ -97,14 +97,7 @@ vi.mock('@arco-design/web-react', () => {
     Tag: ({ children, color }: { children: React.ReactNode; color?: string }) => (
       <span data-testid={`tag-${color}`}>{children}</span>
     ),
-    Popconfirm: ({
-      children,
-      onOk,
-    }: {
-      children: React.ReactElement;
-      title?: string;
-      onOk?: () => void;
-    }) => {
+    Popconfirm: ({ children, onOk }: { children: React.ReactElement; title?: string; onOk?: () => void }) => {
       return React.cloneElement(children, {
         onClick: onOk,
       });
@@ -129,15 +122,7 @@ vi.mock('@/renderer/utils/chat/timeline', () => ({
 
 // Mock CreateTaskDialog component
 vi.mock('@/renderer/pages/cron/ScheduledTasksPage/CreateTaskDialog', () => ({
-  default: ({
-    visible,
-    onClose,
-    editJob,
-  }: {
-    visible: boolean;
-    onClose: () => void;
-    editJob?: ICronJob;
-  }) => {
+  default: ({ visible, onClose, editJob }: { visible: boolean; onClose: () => void; editJob?: ICronJob }) => {
     if (!visible) return null;
     return (
       <div data-testid='create-task-dialog'>
@@ -642,9 +627,11 @@ describe('TaskDetailPage', () => {
 
     await waitFor(() => {
       // Check that the next run section is rendered by looking for text that contains the key
-      expect(screen.getByText((content, element) => {
-        return element?.className?.includes('text-13px') && content.includes('cron.nextRun');
-      })).toBeInTheDocument();
+      expect(
+        screen.getByText((content, element) => {
+          return element?.className?.includes('text-13px') && content.includes('cron.nextRun');
+        })
+      ).toBeInTheDocument();
     });
 
     // Verify date is displayed (look for year 2026 in the timestamp)

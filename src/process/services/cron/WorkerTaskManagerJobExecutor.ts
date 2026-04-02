@@ -127,7 +127,14 @@ export class WorkerTaskManagerJobExecutor implements ICronJobExecutor {
     this.emitCronTriggerMessage(conversationId, job.id, job.name, triggeredAt);
 
     // Pass both content and input — each agent type picks the field it uses.
-    await task.sendMessage({ content: messageText, input: messageText, msg_id: msgId, files: workspaceFiles, cronMeta, hidden });
+    await task.sendMessage({
+      content: messageText,
+      input: messageText,
+      msg_id: msgId,
+      files: workspaceFiles,
+      cronMeta,
+      hidden,
+    });
 
     // Register skill suggest watcher so that when the agent's finish event fires
     // (via skillSuggestWatcher.onFinish in each AgentManager), it sends the

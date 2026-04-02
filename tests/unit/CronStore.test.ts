@@ -527,9 +527,7 @@ describe('CronStore', () => {
     it('update throws error when job not found', async () => {
       mockPrepareInstance.get.mockReturnValue(undefined);
 
-      await expect(cronStore.update('missing-job', { name: 'New' })).rejects.toThrow(
-        'Cron job not found: missing-job'
-      );
+      await expect(cronStore.update('missing-job', { name: 'New' })).rejects.toThrow('Cron job not found: missing-job');
     });
 
     it('update updates schedule correctly', async () => {

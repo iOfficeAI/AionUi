@@ -1,14 +1,12 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 
-const { mockReadFile, mockEmitConv, mockEmitOc, mockHasCronSkillFile, mockValidateSkillContent } = vi.hoisted(
-  () => ({
-    mockReadFile: vi.fn(),
-    mockEmitConv: vi.fn(),
-    mockEmitOc: vi.fn(),
-    mockHasCronSkillFile: vi.fn(async () => false),
-    mockValidateSkillContent: vi.fn(),
-  })
-);
+const { mockReadFile, mockEmitConv, mockEmitOc, mockHasCronSkillFile, mockValidateSkillContent } = vi.hoisted(() => ({
+  mockReadFile: vi.fn(),
+  mockEmitConv: vi.fn(),
+  mockEmitOc: vi.fn(),
+  mockHasCronSkillFile: vi.fn(async () => false),
+  mockValidateSkillContent: vi.fn(),
+}));
 
 vi.mock('fs/promises', () => ({
   default: { readFile: mockReadFile },

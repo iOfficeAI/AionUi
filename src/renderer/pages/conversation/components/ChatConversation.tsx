@@ -269,7 +269,7 @@ const ChatConversation: React.FC<{
             key={conversation.id}
             conversation_id={conversation.id}
             workspace={conversation.extra?.workspace}
-            backend="codex"
+            backend='codex'
             hideSendBox={hideSendBox}
           />
         );

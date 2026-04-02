@@ -179,11 +179,7 @@ export function initAcpConversationBridge(workerTaskManager: IWorkerTaskManager)
     const task = workerTaskManager.getTask(conversationId);
     if (
       !task ||
-      !(
-        task instanceof AcpAgentManager ||
-        task instanceof GeminiAgentManager ||
-        task instanceof AionrsManager
-      )
+      !(task instanceof AcpAgentManager || task instanceof GeminiAgentManager || task instanceof AionrsManager)
     ) {
       return Promise.resolve({
         success: true,
@@ -279,13 +275,7 @@ export function initAcpConversationBridge(workerTaskManager: IWorkerTaskManager)
       if (!task) {
         return { success: false, msg: 'Conversation not found' };
       }
-      if (
-        !(
-          task instanceof AcpAgentManager ||
-          task instanceof GeminiAgentManager ||
-          task instanceof AionrsManager
-        )
-      ) {
+      if (!(task instanceof AcpAgentManager || task instanceof GeminiAgentManager || task instanceof AionrsManager)) {
         return {
           success: false,
           msg: 'Mode switching not supported for this agent type',

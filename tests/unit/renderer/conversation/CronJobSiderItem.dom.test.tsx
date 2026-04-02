@@ -342,7 +342,9 @@ describe('CronJobSiderItem', () => {
   });
 
   it('auto-expands when current route is a child conversation', async () => {
-    render(<CronJobSiderItem job={mockJobNewConversation} pathname='/conversation/conv-1' onNavigate={mockOnNavigate} />);
+    render(
+      <CronJobSiderItem job={mockJobNewConversation} pathname='/conversation/conv-1' onNavigate={mockOnNavigate} />
+    );
 
     // Should auto-expand and show children
     await waitFor(() => {

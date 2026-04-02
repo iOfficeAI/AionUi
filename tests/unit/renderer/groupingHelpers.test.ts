@@ -185,7 +185,6 @@ describe('getConversationPinnedAt', () => {
 });
 
 describe('groupConversationsByWorkspace', () => {
-
   it('groups conversations by workspace', () => {
     const conversations: TChatConversation[] = [
       {
@@ -367,7 +366,6 @@ describe('groupConversationsByWorkspace', () => {
 });
 
 describe('buildGroupedHistory', () => {
-
   it('separates pinned conversations from normal conversations', () => {
     const conversations: TChatConversation[] = [
       {

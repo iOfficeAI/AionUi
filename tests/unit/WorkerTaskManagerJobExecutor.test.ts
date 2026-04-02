@@ -212,9 +212,7 @@ describe('WorkerTaskManagerJobExecutor', () => {
 
       await executor.executeJob(makeJob('conv-1'));
 
-      expect(task.sendMessage).toHaveBeenCalledWith(
-        expect.objectContaining({ hidden: true })
-      );
+      expect(task.sendMessage).toHaveBeenCalledWith(expect.objectContaining({ hidden: true }));
     });
   });
 

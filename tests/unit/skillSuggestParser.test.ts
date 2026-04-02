@@ -68,7 +68,8 @@ describe('parseSkillSuggest', () => {
   });
 
   it('should reject placeholder description "one-line description"', () => {
-    const placeholderContent = '---\nname: Real Name\ndescription: One-line description of what this does\n---\n\nReal body';
+    const placeholderContent =
+      '---\nname: Real Name\ndescription: One-line description of what this does\n---\n\nReal body';
     const text = wrapBlock('Real Name', 'One-line description', placeholderContent);
     expect(parseSkillSuggest(text)).toBeNull();
   });
@@ -89,13 +90,9 @@ describe('parseSkillSuggest', () => {
       '',
       'Real body here',
     ].join('\n');
-    const text = [
-      '[SKILL_SUGGEST]',
-      'name: My Skill',
-      'content:',
-      contentWithoutBlockDesc,
-      '[/SKILL_SUGGEST]',
-    ].join('\n');
+    const text = ['[SKILL_SUGGEST]', 'name: My Skill', 'content:', contentWithoutBlockDesc, '[/SKILL_SUGGEST]'].join(
+      '\n'
+    );
     const result = parseSkillSuggest(text);
     // The regex matches "description:" inside the content frontmatter,
     // so the block-level description actually picks up "Inner Desc"
