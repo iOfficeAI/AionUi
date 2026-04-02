@@ -166,16 +166,26 @@ const TeamPageContent: React.FC<TeamPageContentProps> = ({ team, onAddAgent }) =
   }, [updateScrollArrows]);
 
   const scrollToPrev = useCallback(() => {
-    const container = scrollContainerRef.current;
-    if (!container) return;
-    container.scrollBy({ left: -400, behavior: 'smooth' });
-  }, []);
+    const idx = agents.findIndex((a) => a.slotId === activeSlotId);
+    if (idx > 0) {
+      const prevSlotId = agents[idx - 1].slotId;
+      switchTab(prevSlotId);
+      setTimeout(() => {
+        agentRefs.current[prevSlotId]?.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'start' });
+      }, 320);
+    }
+  }, [agents, activeSlotId, switchTab]);
 
   const scrollToNext = useCallback(() => {
-    const container = scrollContainerRef.current;
-    if (!container) return;
-    container.scrollBy({ left: 400, behavior: 'smooth' });
-  }, []);
+    const idx = agents.findIndex((a) => a.slotId === activeSlotId);
+    if (idx < agents.length - 1) {
+      const nextSlotId = agents[idx + 1].slotId;
+      switchTab(nextSlotId);
+      setTimeout(() => {
+        agentRefs.current[nextSlotId]?.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'start' });
+      }, 320);
+    }
+  }, [agents, activeSlotId, switchTab]);
 
   const handleTabClick = useCallback(
     (slotId: string) => {
