@@ -134,16 +134,15 @@ export default defineConfig(({ mode }) => {
       base: './',
       publicDir: resolve('public'),
       server: {
-        // Keep renderer HTTP port deterministic for Electron runtime URL injection.
-        // If 5173 is unavailable, fail fast instead of auto-switching to 5174+,
-        // which causes renderer resource requests to target the wrong origin.
+        // Default to 5173; when occupied (e.g. another AionUi clone is running),
+        // Vite auto-increments to the next available port.
+        // electron-vite reads the actual port and sets ELECTRON_RENDERER_URL accordingly.
         port: 5173,
-        strictPort: true,
-        // Explicit HMR config so Vite client connects directly to the Vite dev server,
-        // not to the WebUI proxy server (which would reject the WebSocket and cause infinite reload)
+        // Explicit HMR host so Vite client connects directly to the Vite dev server,
+        // not to the WebUI proxy server (which would reject the WebSocket and cause infinite reload).
+        // Port is omitted so it automatically matches the server port.
         hmr: {
           host: 'localhost',
-          port: 5173,
         },
       },
       resolve: {

@@ -11,6 +11,7 @@
   "main": "./out/main/index.js",
   "scripts": {
     "start": "electron-vite dev",
+    "start:multi": "cross-env AIONUI_MULTI_INSTANCE=1 electron-vite dev",
     "cli": "electron-vite dev",
     "webui": "rm -rf out/renderer && electron-vite dev -- --webui",
     "webui:remote": "rm -rf out/renderer && electron-vite dev -- --webui --remote",

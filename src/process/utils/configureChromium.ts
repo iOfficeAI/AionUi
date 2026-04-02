@@ -16,11 +16,14 @@ import os from 'os';
 // 开发模式下设置独立 app 名称，userData 目录将与正式版隔离，允许同时运行
 // 这必须在所有其他代码之前执行，因为 getPath('userData') 会锁定当前的 app 名称
 if (!app.isPackaged) {
-  app.setName('AionUi-Dev');
+  // Multi-instance support: use a separate userData directory to avoid DB lock contention
+  const isMultiInstance = process.env.AIONUI_MULTI_INSTANCE === '1';
+  const devAppName = isMultiInstance ? 'AionUi-Dev-2' : 'AionUi-Dev';
+  app.setName(devAppName);
   // In Electron 28+, setName alone no longer updates userData path on macOS.
-  // Explicitly override userData to the AionUi-Dev directory.
+  // Explicitly override userData to the dev directory.
   const appSupportDir = path.dirname(app.getPath('userData'));
-  app.setPath('userData', path.join(appSupportDir, 'AionUi-Dev'));
+  app.setPath('userData', path.join(appSupportDir, devAppName));
 }
 
 // Configure Chromium command-line flags for WebUI and CLI modes
