@@ -5,9 +5,12 @@
  */
 
 import type { TProviderWithModel } from '@/common/config/storage';
+import { getPlatformServices } from '@/common/platform';
 import { uuid } from '@/common/utils';
 import type { GeminiClient } from '@office-ai/aioncli-core';
 import { AuthType, Config } from '@office-ai/aioncli-core';
+import { mkdirSync } from 'fs';
+import path from 'path';
 import { WebFetchTool } from './web-fetch';
 import { WebSearchTool } from './web-search';
 
@@ -15,6 +18,11 @@ interface ConversationToolConfigOptions {
   proxy: string;
   webSearchEngine?: 'google' | 'default';
 }
+
+const getGeminiWebSearchRuntimeDir = () => {
+  const dataDir = getPlatformServices().paths.getDataDir();
+  return path.join(dataDir, 'runtime', 'gemini-websearch');
+};
 
 /**
  * 对话级别的工具配置
@@ -93,11 +101,18 @@ export class ConversationToolConfig {
    * 创建专门的Gemini配置
    */
   private createDedicatedGeminiConfig(geminiModel: TProviderWithModel): Config {
+    const runtimeDir = getGeminiWebSearchRuntimeDir();
+
+    mkdirSync(runtimeDir, { recursive: true });
+
     // 创建一个最小化的配置，只用于Gemini WebSearch
     return new Config({
       sessionId: 'gemini-websearch-' + Date.now(),
-      targetDir: process.cwd(),
-      cwd: process.cwd(),
+      // Keep Gemini tool sessions out of the repository tree so Bun does not
+      // scan source and node_modules. Use the platform data directory so the
+      // runtime location is stable across Electron and standalone server modes.
+      targetDir: runtimeDir,
+      cwd: runtimeDir,
       debugMode: false,
       question: '',
       // fullContext 参数在 aioncli-core v0.18.4 中已移除

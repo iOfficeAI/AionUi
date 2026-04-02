@@ -4,9 +4,9 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { Worker, type MessagePort } from 'worker_threads';
+import { Worker } from 'worker_threads';
 import * as path from 'path';
-import type { ExtPermissions } from './permissions';
+import { getSandboxPermissionDeniedError, type ExtPermissions } from './permissions';
 import { extensionEventBus } from '../lifecycle/ExtensionEventBus';
 
 /**
@@ -282,6 +282,16 @@ export class SandboxHost {
    * Handle an api-call from the Worker and send back an api-response.
    */
   private handleWorkerApiCall(id: string, method: string, args: unknown[]): void {
+    const permissionError = getSandboxPermissionDeniedError(method, this.options.permissions);
+    if (permissionError) {
+      this.worker?.postMessage({
+        type: 'api-response',
+        id,
+        error: permissionError,
+      } satisfies SandboxMessage);
+      return;
+    }
+
     const handler = this.options.apiHandlers?.[method];
     if (!handler) {
       this.worker?.postMessage({

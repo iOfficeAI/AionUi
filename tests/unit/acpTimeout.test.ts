@@ -407,3 +407,46 @@ describe('AcpAgent disconnect messaging', () => {
     );
   });
 });
+
+describe('AcpAgent file operation presentation', () => {
+  it('emits ACP file reads as tool-call steps instead of plain text messages', () => {
+    const onStreamEvent = vi.fn();
+    const agent = new AcpAgent({
+      id: 'file-op-agent',
+      onStreamEvent,
+      extra: { backend: 'codex' as any, workspace: '/tmp' },
+    } as any);
+
+    (agent as any).handleFileOperation({
+      method: 'fs/read_text_file',
+      path: '/tmp/example.md',
+      sessionId: 'session-1',
+    });
+
+    expect(onStreamEvent).toHaveBeenCalledWith(
+      expect.objectContaining({
+        type: 'acp_tool_call',
+        conversation_id: 'file-op-agent',
+        data: expect.objectContaining({
+          update: expect.objectContaining({
+            sessionUpdate: 'tool_call',
+            status: 'completed',
+            title: 'File Read',
+            kind: 'read',
+            rawInput: expect.objectContaining({
+              file_path: '/tmp/example.md',
+              method: 'fs/read_text_file',
+            }),
+          }),
+        }),
+      })
+    );
+
+    expect(onStreamEvent).not.toHaveBeenCalledWith(
+      expect.objectContaining({
+        type: 'content',
+        data: expect.stringContaining('File read'),
+      })
+    );
+  });
+});

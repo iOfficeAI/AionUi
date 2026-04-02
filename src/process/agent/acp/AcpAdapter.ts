@@ -82,8 +82,6 @@ export class AcpAdapter {
             messages.push(message);
           }
         }
-        // Reset message tracking for next agent_message_chunk
-        this.resetMessageTracking();
         break;
       }
 
@@ -92,8 +90,6 @@ export class AcpAdapter {
         if (toolCallMessage) {
           messages.push(toolCallMessage);
         }
-        // Reset message tracking so next agent_message_chunk gets new msg_id
-        this.resetMessageTracking();
         break;
       }
 
@@ -102,8 +98,6 @@ export class AcpAdapter {
         if (toolCallUpdateMessage) {
           messages.push(toolCallUpdateMessage);
         }
-        // Reset message tracking so next agent_message_chunk gets new msg_id
-        this.resetMessageTracking();
         break;
       }
 
@@ -112,8 +106,6 @@ export class AcpAdapter {
         if (planMessage) {
           messages.push(planMessage);
         }
-        // Reset message tracking so next agent_message_chunk gets new msg_id
-        this.resetMessageTracking();
         break;
       }
 
@@ -128,8 +120,6 @@ export class AcpAdapter {
 
       // Disabled: available_commands messages are too noisy and distracting in the chat UI
       case 'available_commands_update':
-        // Still reset message tracking so next agent_message_chunk gets new msg_id
-        this.resetMessageTracking();
         break;
 
       // User message chunks are echoed back during session/load restore.

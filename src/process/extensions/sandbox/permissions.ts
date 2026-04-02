@@ -78,6 +78,17 @@ export interface PermissionSummary {
   granted: boolean;
 }
 
+export function hasSandboxStoragePermission(permissions?: ExtPermissions): boolean {
+  return permissions?.storage === true;
+}
+
+export function getSandboxPermissionDeniedError(method: string, permissions?: ExtPermissions): string | null {
+  if (method.startsWith('storage.') && !hasSandboxStoragePermission(permissions)) {
+    return 'Permission denied: storage access requires "storage: true" in manifest';
+  }
+  return null;
+}
+
 // ============ Permission Analysis ============
 
 /**

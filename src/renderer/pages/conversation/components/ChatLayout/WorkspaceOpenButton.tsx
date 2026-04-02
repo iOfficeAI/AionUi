@@ -30,9 +30,11 @@ const WorkspaceOpenButton: React.FC<WorkspaceOpenButtonProps> = ({ workspacePath
   const [vscodeInstalled, setVscodeInstalled] = useState(false);
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const [preferredTool, setPreferredTool] = useState<ToolType | null>(null);
+  const isTemporary = isTemporaryWorkspace(workspacePath);
 
   // Check if VS Code is installed and load preferred tool
   useEffect(() => {
+    if (isTemporary) return;
     const checkTools = async () => {
       try {
         const installed = await ipcBridge.shell.checkToolInstalled.invoke({ tool: 'vscode' });
@@ -50,12 +52,7 @@ const WorkspaceOpenButton: React.FC<WorkspaceOpenButtonProps> = ({ workspacePath
     }
 
     void checkTools();
-  }, []);
-
-  // Don't render if workspace is temporary
-  if (isTemporaryWorkspace(workspacePath)) {
-    return null;
-  }
+  }, [isTemporary]);
 
   const handleOpenWith = async (tool: ToolType) => {
     try {
@@ -96,11 +93,14 @@ const WorkspaceOpenButton: React.FC<WorkspaceOpenButtonProps> = ({ workspacePath
 
   // Determine current tool: preferred > first available > explorer
   const currentTool: ToolType = useMemo(() => {
+    if (isTemporary) {
+      return 'explorer';
+    }
     if (preferredTool && availableOptions.some((opt) => opt.key === preferredTool)) {
       return preferredTool;
     }
     return availableOptions[0]?.key ?? 'explorer';
-  }, [preferredTool, availableOptions]);
+  }, [isTemporary, preferredTool, availableOptions]);
 
   // Get current icon based on selected tool
   const currentIcon = useMemo(() => {
@@ -114,6 +114,9 @@ const WorkspaceOpenButton: React.FC<WorkspaceOpenButtonProps> = ({ workspacePath
         return <Terminal size={16} />;
     }
   }, [currentTool]);
+
+  // Don't render if workspace is temporary
+  if (isTemporary) return null;
 
   const dropdownList = (
     <div className='workspace-open-dropdown p-4px'>
