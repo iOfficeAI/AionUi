@@ -110,7 +110,23 @@ export class AionrsAgent {
     const timeout = new Promise<void>((_, reject) => {
       setTimeout(() => reject(new Error('aionrs ready timeout (30s)')), 30000);
     });
-    await Promise.race([this.readyPromise, timeout]);
+
+    try {
+      await Promise.race([this.readyPromise, timeout]);
+    } catch (err) {
+      // If resume failed (session not found), fallback to a new session
+      if (this.options.resume) {
+        console.error('[AionrsAgent] Resume failed, falling back to new session:', err);
+        this.options = { ...this.options, resume: undefined, sessionId: this.options.resume };
+        this.ready = false;
+        this.readyPromise = new Promise((resolve, reject) => {
+          this.readyResolve = resolve;
+          this.readyReject = reject;
+        });
+        return this.start();
+      }
+      throw err;
+    }
 
     // Inject preset rules as history context (skip on resume — rules were already injected)
     if (this.options.presetRules && !this.options.resume) {
