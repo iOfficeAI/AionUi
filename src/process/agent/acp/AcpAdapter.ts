@@ -76,6 +76,9 @@ export class AcpAdapter {
       }
 
       case 'agent_thought_chunk': {
+        // Reset message tracking so content after thinking gets a new msg_id,
+        // ensuring the thinking message appears above subsequent content in the UI
+        this.resetMessageTracking();
         if (update.content) {
           const message = this.convertThoughtChunk(update);
           if (message) {
