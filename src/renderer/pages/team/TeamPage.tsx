@@ -5,12 +5,14 @@ import { useTranslation } from 'react-i18next';
 import useSWR from 'swr';
 import { ipcBridge } from '@/common';
 import type { TeamAgent, TTeam } from '@/common/types/teamTypes';
-import type { TChatConversation } from '@/common/config/storage';
+import type { TChatConversation, TProviderWithModel } from '@/common/config/storage';
 import ChatLayout from '@/renderer/pages/conversation/components/ChatLayout';
 import ChatSider from '@/renderer/pages/conversation/components/ChatSider';
 import TeamConfirmOverlay from './components/TeamConfirmOverlay';
 import { useConversationAgents } from '@/renderer/pages/conversation/hooks/useConversationAgents';
 import AcpModelSelector from '@/renderer/components/agent/AcpModelSelector';
+import GeminiModelSelector from '@/renderer/pages/conversation/platforms/gemini/GeminiModelSelector';
+import { useGeminiModelSelection } from '@/renderer/pages/conversation/platforms/gemini/useGeminiModelSelection';
 import TeamTabs from './components/TeamTabs';
 import TeamChatView from './components/TeamChatView';
 import { agentFromKey, resolveConversationType, resolveTeamAgentType } from './components/agentSelectUtils';
@@ -18,6 +20,7 @@ import { TeamTabsProvider, useTeamTabs } from './hooks/TeamTabsContext';
 import { TeamPermissionProvider } from './hooks/TeamPermissionContext';
 import { useTeamSession } from './hooks/useTeamSession';
 import { getAgentLogo } from '@/renderer/utils/model/agentLogo';
+import { dispatchWorkspaceHasFilesEvent } from '@/renderer/utils/workspace/workspaceEvents';
 
 type Props = {
   team: TTeam;
@@ -41,8 +44,23 @@ const AgentChatSlot: React.FC<{
   const [isFullscreen, setIsFullscreen] = useState(false);
 
   const initialModelId = (conversation?.extra as { currentModelId?: string })?.currentModelId;
-  const showModelSelector =
-    agent.conversationId && (agent.conversationType === 'acp' || agent.conversationType === 'codex');
+  const isAcpLike = agent.conversationType === 'acp' || agent.conversationType === 'codex';
+  const isGemini = agent.conversationType === 'gemini';
+
+  const geminiOnSelectModel = useCallback(
+    async (_provider: import('@/common/config/storage').IProvider, modelName: string) => {
+      if (!conversation) return false;
+      const selected = { ..._provider, useModel: modelName } as TProviderWithModel;
+      const ok = await ipcBridge.conversation.update.invoke({ id: conversation.id, updates: { model: selected } });
+      return Boolean(ok);
+    },
+    [conversation]
+  );
+  const geminiModelSelection = useGeminiModelSelection({
+    initialModel:
+      isGemini && conversation ? (conversation as Extract<TChatConversation, { type: 'gemini' }>).model : undefined,
+    onSelectModel: geminiOnSelectModel,
+  });
 
   return (
     <div
@@ -76,7 +94,7 @@ const AgentChatSlot: React.FC<{
           )}
         </div>
         <div className='flex items-center gap-8px shrink-0'>
-          {showModelSelector && (
+          {agent.conversationId && isAcpLike && (
             <div className='max-w-100px overflow-hidden'>
               <AcpModelSelector
                 key={agent.conversationId}
@@ -84,6 +102,11 @@ const AgentChatSlot: React.FC<{
                 backend={agent.agentType}
                 initialModelId={initialModelId}
               />
+            </div>
+          )}
+          {agent.conversationId && isGemini && (
+            <div className='max-w-120px overflow-hidden'>
+              <GeminiModelSelector selection={geminiModelSelection} />
             </div>
           )}
           <div
@@ -137,6 +160,13 @@ const TeamPageContent: React.FC<TeamPageContentProps> = ({ team, onAddAgent }) =
 
   const workspaceEnabled = Boolean(team.workspace);
 
+  // Auto-expand workspace panel on mount when team has a workspace
+  useEffect(() => {
+    if (workspaceEnabled && leadAgent?.conversationId) {
+      dispatchWorkspaceHasFilesEvent(true, leadAgent.conversationId);
+    }
+  }, [workspaceEnabled, leadAgent?.conversationId]);
+
   const siderTitle = useMemo(
     () => (
       <div className='flex items-center justify-between'>
@@ -177,8 +207,7 @@ const TeamPageContent: React.FC<TeamPageContentProps> = ({ team, onAddAgent }) =
   const handleTabClick = useCallback(
     (slotId: string) => {
       switchTab(slotId);
-      // Delay scroll until width transition completes (300ms)
-      setTimeout(() => {
+      requestAnimationFrame(() => {
         const el = agentRefs.current[slotId];
         if (el) {
           el.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'start' });
@@ -193,9 +222,9 @@ const TeamPageContent: React.FC<TeamPageContentProps> = ({ team, onAddAgent }) =
                 el.style.transition = '';
               }, 200);
             }, 150);
-          }, 400);
+          }, 200);
         }
-      }, 320);
+      });
     },
     [switchTab]
   );
@@ -229,9 +258,9 @@ const TeamPageContent: React.FC<TeamPageContentProps> = ({ team, onAddAgent }) =
                 el.style.transition = '';
               }, 200);
             }, 150);
-          }, 400);
+          }, 200);
         }
-      }, 320);
+      }, 100);
       return () => clearTimeout(timer);
     }
   }, []); // empty deps = only on mount
@@ -267,6 +296,7 @@ const TeamPageContent: React.FC<TeamPageContentProps> = ({ team, onAddAgent }) =
         tabsSlot={tabsSlot}
         conversationId={activeAgent?.conversationId}
         agentName={undefined}
+        workspacePath={team.workspace}
       >
         <div className='relative flex h-full'>
           {showLeftArrow && (
@@ -300,10 +330,9 @@ const TeamPageContent: React.FC<TeamPageContentProps> = ({ team, onAddAgent }) =
                   }}
                   className='relative shrink-0 h-full border-r border-solid border-[color:var(--border-base)]'
                   style={{
-                    width: isSingle ? undefined : isActive ? '500px' : '360px',
                     flex: isSingle ? 1 : undefined,
-                    minWidth: isSingle ? '240px' : isActive ? '500px' : '360px',
-                    transition: 'width 300ms ease-in-out, min-width 300ms ease-in-out',
+                    width: isSingle ? undefined : '400px',
+                    minWidth: isSingle ? '240px' : '400px',
                     scrollSnapAlign: 'start',
                   }}
                 >
