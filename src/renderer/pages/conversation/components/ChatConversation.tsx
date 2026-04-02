@@ -21,7 +21,6 @@ import { emitter } from '../../../utils/emitter';
 import AcpChat from '../platforms/acp/AcpChat';
 import ChatLayout from './ChatLayout';
 import ChatSider from './ChatSider';
-import CodexChat from '../platforms/codex/CodexChat';
 import NanobotChat from '../platforms/nanobot/NanobotChat';
 import OpenClawChat from '../platforms/openclaw/OpenClawChat';
 import RemoteChat from '../platforms/remote/RemoteChat';
@@ -264,12 +263,13 @@ const ChatConversation: React.FC<{
             hideSendBox={hideSendBox}
           ></AcpChat>
         );
-      case 'codex': // Legacy: new Codex conversations use ACP protocol. Kept for existing sessions.
+      case 'codex': // Legacy: codex now uses ACP protocol
         return (
-          <CodexChat
+          <AcpChat
             key={conversation.id}
             conversation_id={conversation.id}
             workspace={conversation.extra?.workspace}
+            backend="codex"
             hideSendBox={hideSendBox}
           />
         );
