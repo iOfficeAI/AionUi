@@ -51,13 +51,13 @@ const CronJobSiderSection: React.FC<CronJobSiderSectionProps> = ({ jobs, pathnam
   if (jobs.length === 0) return null;
 
   return (
-    <div className='mt-2px'>
+    <div className='mb-8px min-w-0'>
       <div
-        className='group flex items-center px-12px py-6px cursor-pointer select-none sticky top-0 z-10 bg-[var(--color-bg-2)]'
+        className='group flex items-center px-12px py-6px cursor-pointer select-none sticky top-0 z-10 bg-fill-2'
         onClick={() => setExpanded((prev) => !prev)}
       >
         <span className='text-12px text-t-secondary font-medium'>{t('cron.scheduledTasks')}</span>
-        <span className='ml-auto opacity-0 group-hover:opacity-100 transition-opacity text-t-primary flex items-center'>
+        <span className='ml-auto opacity-0 group-hover:opacity-100 transition-opacity text-t-secondary flex items-center'>
           {expanded ? <Down theme='outline' size={12} /> : <Right theme='outline' size={12} />}
         </span>
       </div>

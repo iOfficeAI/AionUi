@@ -230,11 +230,9 @@ const Sider: React.FC<SiderProps> = ({ onSessionClick, collapsed = false }) => {
                 </div>
               )}
               {/* Scheduled section */}
-              <div className='mb-4px'>
-                {!collapsed && (
-                  <CronJobSiderSection jobs={cronJobs} pathname={pathname} onNavigate={handleCronNavigate} />
-                )}
-              </div>
+              {!collapsed && (
+                <CronJobSiderSection jobs={cronJobs} pathname={pathname} onNavigate={handleCronNavigate} />
+              )}
               <Suspense fallback={<div className='min-h-200px' />}>
                 <WorkspaceGroupedHistory {...workspaceHistoryProps} />
               </Suspense>
