@@ -185,6 +185,11 @@ const TeamPageContent: React.FC<TeamPageContentProps> = ({ team, onAddAgent }) =
         const el = agentRefs.current[slotId];
         if (el) {
           el.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'start' });
+          // Flash effect after scroll completes
+          setTimeout(() => {
+            el.classList.add('team-slot-flash');
+            setTimeout(() => el.classList.remove('team-slot-flash'), 600);
+          }, 400);
         }
       }, 320);
     },
@@ -225,8 +230,8 @@ const TeamPageContent: React.FC<TeamPageContentProps> = ({ team, onAddAgent }) =
               style={{ background: 'linear-gradient(90deg, var(--color-bg-1) 40%, transparent)' }}
               onClick={scrollToPrev}
             >
-              <div className='w-28px h-28px rd-full bg-[var(--color-bg-3)] flex items-center justify-center shadow-sm'>
-                <Left size='16' fill='currentColor' />
+              <div className='w-32px h-32px rd-full flex items-center justify-center' style={{ background: 'rgba(0,0,0,0.5)' }}>
+                <Left size='24' fill='#fff' />
               </div>
             </div>
           )}
@@ -267,8 +272,8 @@ const TeamPageContent: React.FC<TeamPageContentProps> = ({ team, onAddAgent }) =
               style={{ background: 'linear-gradient(270deg, var(--color-bg-1) 40%, transparent)' }}
               onClick={scrollToNext}
             >
-              <div className='w-28px h-28px rd-full bg-[var(--color-bg-3)] flex items-center justify-center shadow-sm'>
-                <Right size='16' fill='currentColor' />
+              <div className='w-32px h-32px rd-full flex items-center justify-center' style={{ background: 'rgba(0,0,0,0.5)' }}>
+                <Right size='24' fill='#fff' />
               </div>
             </div>
           )}

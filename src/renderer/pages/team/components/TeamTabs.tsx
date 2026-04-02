@@ -249,7 +249,7 @@ const TeamTabs: React.FC<TeamTabsProps> = ({ onAddAgent, onTabClick }) => {
                 isActive={agent.slotId === activeSlotId}
                 status={statusInfo?.status ?? agent.status}
                 isLead={agent.role === 'lead'}
-                onSwitch={onTabClick ?? switchTab}
+                onSwitch={(slotId) => { switchTab(slotId); onTabClick?.(slotId); }}
                 onRename={renameAgent ? (sid, name) => void renameAgent(sid, name) : undefined}
                 onDragStart={handleDragStart}
                 onDragOver={handleDragOver}
