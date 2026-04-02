@@ -1,5 +1,6 @@
 import { AcpAgent } from '@process/agent/acp';
 import { channelEventBus } from '@process/channels/agent/ChannelEventBus';
+import { teamEventBus } from '@process/team/teamEventBus';
 import { ipcBridge } from '@/common';
 import type { CronMessageMeta, TMessage } from '@/common/chat/chatLib';
 import { isCodexAutoApproveMode } from '@/common/types/codex/codexModes';
@@ -292,6 +293,10 @@ class AcpAgentManager extends BaseAgentManager<AcpAgentManagerData, AcpPermissio
           acpSessionUpdatedAt: data.acpSessionUpdatedAt,
           currentModelId: this.persistedModelId ?? undefined,
           sessionMode: this.currentMode,
+          // Forward team MCP stdio config so AcpAgent.loadBuiltinSessionMcpServers() can inject it
+          teamMcpStdioConfig: (data as unknown as Record<string, unknown>).teamMcpStdioConfig as
+            | { name: string; command: string; args: string[]; env: Array<{ name: string; value: string }> }
+            | undefined,
         },
         onSessionIdUpdate: (sessionId: string) => {
           // Save ACP session ID to database for resume support
@@ -460,6 +465,12 @@ class AcpAgentManager extends BaseAgentManager<AcpAgentManagerData, AcpPermissio
 
           const emitStart = Date.now();
           ipcBridge.acpConversation.responseStream.emit(message as IResponseMessage);
+          // Also emit to main-process-local bus so TeammateManager (same process)
+          // can receive events — ipcBridge.emit only delivers to renderer via webContents.send()
+          teamEventBus.emit('responseStream', {
+            ...(message as IResponseMessage),
+            conversation_id: this.conversation_id,
+          });
           const emitDuration = Date.now() - emitStart;
 
           // Also emit to Channel global event bus (Telegram/Lark streaming)
@@ -484,6 +495,29 @@ class AcpAgentManager extends BaseAgentManager<AcpAgentManagerData, AcpPermissio
           // 仅发送信号到前端，不更新消息列表
           if (v.type === 'acp_permission') {
             const { toolCall, options } = v.data as AcpPermissionRequest;
+
+            // Auto-approve ALL tools when in yolo/bypassPermissions mode.
+            // Fallback for cases where this.yoloMode wasn't set correctly
+            // (e.g., setMode IPC failed silently for spawned agents).
+            if (this.isYoloMode(this.currentMode) && options.length > 0) {
+              const autoOption = options[0];
+              setTimeout(() => {
+                void this.confirm(v.msg_id, toolCall.toolCallId || v.msg_id, autoOption);
+              }, 50);
+              return;
+            }
+
+            // Auto-approve team MCP tools — they are internal tools provided by AionUi,
+            // not external MCP servers, so they should never require user confirmation.
+            const toolTitle = toolCall.title || '';
+            if (toolTitle.includes('aionui-team') && options.length > 0) {
+              const autoOption = options[0];
+              setTimeout(() => {
+                void this.confirm(v.msg_id, toolCall.toolCallId || v.msg_id, autoOption);
+              }, 50);
+              return;
+            }
+
             this.addConfirmation({
               title: toolCall.title || 'messages.permissionRequest',
               action: 'messages.command',
@@ -557,6 +591,11 @@ class AcpAgentManager extends BaseAgentManager<AcpAgentManagerData, AcpPermissio
           }
 
           ipcBridge.acpConversation.responseStream.emit(v);
+          // Also emit to main-process-local bus (same reason as onStreamEvent above)
+          teamEventBus.emit('responseStream', {
+            ...(v as IResponseMessage),
+            conversation_id: this.conversation_id,
+          });
 
           // Forward signals (finish/error/etc.) to Channel global event bus
           channelEventBus.emitAgentMessage(this.conversation_id, {
@@ -622,7 +661,13 @@ class AcpAgentManager extends BaseAgentManager<AcpAgentManagerData, AcpPermissio
     return this.bootstrap;
   }
 
-  async sendMessage(data: { content: string; files?: string[]; msg_id?: string; cronMeta?: CronMessageMeta }): Promise<{
+  async sendMessage(data: {
+    content: string;
+    files?: string[];
+    msg_id?: string;
+    cronMeta?: CronMessageMeta;
+    silent?: boolean;
+  }): Promise<{
     success: boolean;
     msg?: string;
     message?: string;
@@ -640,7 +685,7 @@ class AcpAgentManager extends BaseAgentManager<AcpAgentManagerData, AcpPermissio
     try {
       // Emit/persist user message immediately so UI can refresh without waiting
       // for ACP connection/auth/session initialization.
-      if (data.msg_id && data.content) {
+      if (data.msg_id && data.content && !data.silent) {
         const userMessage: TMessage = {
           id: data.msg_id,
           msg_id: data.msg_id,

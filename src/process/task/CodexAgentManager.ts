@@ -44,6 +44,7 @@ import {
   getConfiguredCodexMcpProtocolVersion,
   setAppConfig,
 } from '@/common/utils/appConfig';
+import { teamEventBus } from '@process/team/teamEventBus';
 
 const APP_CLIENT_NAME = getConfiguredAppClientName();
 const APP_CLIENT_VERSION = getConfiguredAppClientVersion();
@@ -243,7 +244,13 @@ class CodexAgentManager extends BaseAgentManager<CodexAgentManagerData> implemen
     }
   }
 
-  async sendMessage(data: { content: string; files?: string[]; msg_id?: string; cronMeta?: CronMessageMeta }) {
+  async sendMessage(data: {
+    content: string;
+    files?: string[];
+    msg_id?: string;
+    cronMeta?: CronMessageMeta;
+    silent?: boolean;
+  }) {
     this._lastActivityAt = Date.now();
     cronBusyGuard.setProcessing(this.conversation_id, true);
     // Set status to running when message is being processed
@@ -255,7 +262,7 @@ class CodexAgentManager extends BaseAgentManager<CodexAgentManagerData> implemen
         : data.content;
 
       // Save user message to chat history only (renderer already inserts right-hand bubble)
-      if (data.msg_id && data.content) {
+      if (data.msg_id && data.content && !data.silent) {
         const userMessage: TMessage = {
           id: data.msg_id,
           msg_id: data.msg_id,
@@ -657,6 +664,10 @@ class CodexAgentManager extends BaseAgentManager<CodexAgentManagerData> implemen
 
     // Always emit to frontend for UI display
     ipcBridge.codexConversation.responseStream.emit(message);
+
+    // Also emit to main-process-local bus so TeammateManager (same process)
+    // can receive events — ipcBridge.emit only delivers to renderer via webContents.send()
+    teamEventBus.emit('responseStream', message);
 
     // Also emit to Channel global event bus (Telegram/Lark streaming)
     channelEventBus.emitAgentMessage(this.conversation_id, message);

@@ -232,6 +232,8 @@ export const createAcpAgent = async (options: ICreateConversationParams): Promis
       currentModelId: extra.currentModelId,
       // Explicit marker for temporary health-check conversations
       isHealthCheck: extra.isHealthCheck,
+      // Team ownership — used by sidebar filter to hide team-owned conversations
+      ...(extra.teamId ? { teamId: extra.teamId } : {}),
     },
     createTime: Date.now(),
     modifyTime: Date.now(),

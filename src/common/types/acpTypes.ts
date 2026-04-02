@@ -42,7 +42,8 @@ export const CODEX_ACP_NPX_PACKAGE = `@zed-industries/codex-acp@${CODEX_ACP_BRID
 export const CLAUDE_ACP_BRIDGE_VERSION = '0.21.0';
 export const CLAUDE_ACP_NPX_PACKAGE = `@zed-industries/claude-agent-acp@${CLAUDE_ACP_BRIDGE_VERSION}`;
 
-export const CODEBUDDY_ACP_NPX_PACKAGE = '@tencent-ai/codebuddy-code';
+export const CODEBUDDY_ACP_BRIDGE_VERSION = '2.70.1';
+export const CODEBUDDY_ACP_NPX_PACKAGE = `@tencent-ai/codebuddy-code@${CODEBUDDY_ACP_BRIDGE_VERSION}`;
 
 /**
  * 检查预设 Agent 类型是否需要通过 ACP 后端路由

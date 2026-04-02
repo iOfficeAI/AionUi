@@ -1,0 +1,33 @@
+{
+  "sider": {
+    "title": "团队",
+    "createTeam": "新建团队"
+  },
+  "addAgent": {
+    "title": "添加 Agent",
+    "name": "Agent 名称",
+    "namePlaceholder": "输入 Agent 名称",
+    "type": "Agent 类型",
+    "typePlaceholder": "选择 Agent 类型",
+    "confirm": "添加"
+  },
+  "newAgent": "新成员",
+  "noMessages": "暂无消息。",
+  "agentNotConfigured": "Agent 尚未配置。",
+  "sendBox": {
+    "placeholder": "向调度 Agent 发消息..."
+  },
+  "create": {
+    "title": "创建团队",
+    "namePlaceholder": "团队名称",
+    "dispatchAgentPlaceholder": "选择调度 Agent",
+    "subAgentsPlaceholder": "选择子 Agent",
+    "workspacePlaceholder": "工作目录路径（可选）",
+    "confirm": "创建团队",
+    "step": {
+      "dispatch": "调度 Agent",
+      "subAgents": "子 Agent",
+      "workspace": "工作空间"
+    }
+  }
+}

@@ -17,21 +17,24 @@ import NanobotSendBox from './NanobotSendBox';
 const NanobotChat: React.FC<{
   conversation_id: string;
   workspace: string;
-}> = ({ conversation_id, workspace }) => {
+  hideSendBox?: boolean;
+}> = ({ conversation_id, workspace, hideSendBox }) => {
   useMessageLstCache(conversation_id);
   const updateLocalImage = LocalImageView.useUpdateLocalImage();
   useEffect(() => {
     updateLocalImage({ root: workspace });
   }, [workspace, updateLocalImage]);
   return (
-    <ConversationProvider value={{ conversationId: conversation_id, workspace, type: 'nanobot' }}>
+    <ConversationProvider value={{ conversationId: conversation_id, workspace, type: 'nanobot', hideSendBox }}>
       <div className='flex-1 flex flex-col px-20px min-h-0'>
         <FlexFullContainer>
           <MessageList className='flex-1'></MessageList>
         </FlexFullContainer>
-        <ConversationChatConfirm conversation_id={conversation_id}>
-          <NanobotSendBox conversation_id={conversation_id} />
-        </ConversationChatConfirm>
+        {!hideSendBox && (
+          <ConversationChatConfirm conversation_id={conversation_id}>
+            <NanobotSendBox conversation_id={conversation_id} />
+          </ConversationChatConfirm>
+        )}
       </div>
     </ConversationProvider>
   );

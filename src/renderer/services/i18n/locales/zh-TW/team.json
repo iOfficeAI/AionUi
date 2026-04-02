@@ -1,0 +1,33 @@
+{
+  "sider": {
+    "title": "Teams",
+    "createTeam": "New Team"
+  },
+  "addAgent": {
+    "title": "新增 Agent",
+    "name": "Agent 名稱",
+    "namePlaceholder": "輸入 Agent 名稱",
+    "type": "Agent 類型",
+    "typePlaceholder": "選擇 Agent 類型",
+    "confirm": "新增"
+  },
+  "newAgent": "New Agent",
+  "noMessages": "No messages yet.",
+  "agentNotConfigured": "Agent 尚未設定。",
+  "sendBox": {
+    "placeholder": "向調度 Agent 發訊息..."
+  },
+  "create": {
+    "title": "Create Team",
+    "namePlaceholder": "Team name",
+    "dispatchAgentPlaceholder": "Select dispatch agent",
+    "subAgentsPlaceholder": "Select sub agents",
+    "workspacePlaceholder": "Workspace path (optional)",
+    "confirm": "Create Team",
+    "step": {
+      "dispatch": "Dispatch Agent",
+      "subAgents": "Sub Agents",
+      "workspace": "Workspace"
+    }
+  }
+}

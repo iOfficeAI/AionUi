@@ -47,6 +47,8 @@ const ChatLayout: React.FC<{
   workspaceEnabled?: boolean;
   /** Conversation ID for mode switching */
   conversationId?: string;
+  /** Custom tabs slot; when provided, replaces the default ConversationTabs */
+  tabsSlot?: React.ReactNode;
   /** Workspace path for opening in external tools */
   workspacePath?: string;
 }> = (props) => {
@@ -170,7 +172,7 @@ const ChatLayout: React.FC<{
 
   const headerBlock = (
     <>
-      <ConversationTabs />
+      {props.tabsSlot !== undefined ? props.tabsSlot : <ConversationTabs />}
       <ArcoLayout.Header
         className={classNames(
           'min-h-44px flex items-center justify-between px-16px pt-8px pb-10px gap-16px !bg-1 chat-layout-header chat-layout-header--glass overflow-hidden',

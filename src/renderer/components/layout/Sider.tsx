@@ -1,17 +1,19 @@
-import { ArrowCircleLeft, ListCheckbox, Plus, SettingTwo } from '@icon-park/react';
+import { ArrowCircleLeft, Delete, ListCheckbox, Peoples, Plus, SettingTwo } from '@icon-park/react';
 import { IconMoonFill, IconSunFill } from '@arco-design/web-react/icon';
 import classNames from 'classnames';
 import React, { Suspense, useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { iconColors } from '@renderer/styles/colors';
-import { Tooltip } from '@arco-design/web-react';
+import { Popconfirm, Tooltip } from '@arco-design/web-react';
 import { usePreviewContext } from '@renderer/pages/conversation/Preview/context/PreviewContext';
 import { cleanupSiderTooltips, getSiderTooltipProps } from '@renderer/utils/ui/siderTooltip';
 import { useLayoutContext } from '@renderer/hooks/context/LayoutContext';
 import { blurActiveElement } from '@renderer/utils/ui/focus';
 import { useThemeContext } from '@renderer/hooks/context/ThemeContext';
 import ConversationSearchPopover from '@renderer/pages/conversation/GroupedHistory/ConversationSearchPopover';
+import { useTeamList } from '@renderer/pages/team/hooks/useTeamList';
+import TeamCreateModal from '@renderer/pages/team/components/TeamCreateModal';
 import styles from './Sider.module.css';
 
 const WorkspaceGroupedHistory = React.lazy(() => import('@renderer/pages/conversation/GroupedHistory'));
@@ -33,6 +35,9 @@ const Sider: React.FC<SiderProps> = ({ onSessionClick, collapsed = false }) => {
   const { closePreview } = usePreviewContext();
   const { theme, setTheme } = useThemeContext();
   const [isBatchMode, setIsBatchMode] = useState(false);
+  const [createTeamVisible, setCreateTeamVisible] = useState(false);
+  const [teamSectionCollapsed, setTeamSectionCollapsed] = useState(false);
+  const { teams, mutate: refreshTeams, removeTeam } = useTeamList();
   const isSettings = pathname.startsWith('/settings');
   const lastNonSettingsPathRef = useRef('/guid');
 
@@ -98,7 +103,10 @@ const Sider: React.FC<SiderProps> = ({ onSessionClick, collapsed = false }) => {
                 <div className='flex flex-col items-center gap-2px w-full'>
                   <Tooltip {...siderTooltipProps} content={t('conversation.welcome.newConversation')} position='right'>
                     <div
-                      className='w-full py-6px flex items-center justify-center cursor-pointer transition-colors text-t-primary rd-8px hover:bg-fill-3 active:bg-fill-4'
+                      className={classNames(
+                        'w-full py-6px flex items-center justify-center cursor-pointer transition-colors text-t-primary rd-8px hover:bg-fill-3 active:bg-fill-4',
+                        styles.newChatTrigger
+                      )}
                       onClick={() => {
                         cleanupSiderTooltips();
                         blurActiveElement();
@@ -116,7 +124,7 @@ const Sider: React.FC<SiderProps> = ({ onSessionClick, collapsed = false }) => {
                         theme='outline'
                         size='22'
                         fill='currentColor'
-                        className='block leading-none'
+                        className={classNames('block leading-none', styles.newChatIcon)}
                         style={{ lineHeight: 0 }}
                       />
                     </div>
@@ -144,6 +152,7 @@ const Sider: React.FC<SiderProps> = ({ onSessionClick, collapsed = false }) => {
                       <div
                         className={classNames(
                           'h-36px flex-1 flex items-center justify-start gap-8px px-10px rd-0.5rem cursor-pointer group transition-all bg-transparent text-t-primary hover:bg-fill-3 active:bg-fill-4',
+                          styles.newChatTrigger,
                           isMobile && 'sider-action-btn-mobile'
                         )}
                         onClick={() => {
@@ -164,7 +173,7 @@ const Sider: React.FC<SiderProps> = ({ onSessionClick, collapsed = false }) => {
                             theme='outline'
                             size='18'
                             fill='currentColor'
-                            className='block leading-none'
+                            className={classNames('block leading-none', styles.newChatIcon)}
                             style={{ lineHeight: 0 }}
                           />
                         </div>
@@ -215,6 +224,85 @@ const Sider: React.FC<SiderProps> = ({ onSessionClick, collapsed = false }) => {
                 </>
               )}
             </div>
+            {/* Team section */}
+            {!collapsed && (
+              <div className='shrink-0 mb-4px'>
+                <div
+                  className='flex items-center justify-between px-12px py-8px cursor-pointer group'
+                  onClick={() => setTeamSectionCollapsed((prev) => !prev)}
+                >
+                  <span className='text-13px text-t-secondary font-bold leading-20px'>
+                    {t('team.sider.title', { defaultValue: '群聊' })}
+                  </span>
+                  <Tooltip
+                    {...siderTooltipProps}
+                    content={t('team.sider.createTeam', { defaultValue: 'New Team' })}
+                    position='right'
+                  >
+                    <div
+                      className='h-20px w-20px rd-4px flex items-center justify-center cursor-pointer hover:bg-fill-3 transition-all shrink-0'
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setCreateTeamVisible(true);
+                      }}
+                    >
+                      <Plus
+                        theme='outline'
+                        size='14'
+                        fill='var(--color-text-2)'
+                        className='block leading-none'
+                        style={{ lineHeight: 0 }}
+                      />
+                    </div>
+                  </Tooltip>
+                </div>
+                {!teamSectionCollapsed &&
+                  teams.length > 0 &&
+                  teams.map((team) => (
+                    <div
+                      key={team.id}
+                      className='py-8px flex items-center px-12px rd-8px cursor-pointer hover:bg-hover group relative overflow-hidden shrink-0'
+                      onClick={() => {
+                        cleanupSiderTooltips();
+                        blurActiveElement();
+                        Promise.resolve(navigate(`/team/${team.id}`)).catch((error) => {
+                          console.error('Navigation failed:', error);
+                        });
+                        if (onSessionClick) {
+                          onSessionClick();
+                        }
+                      }}
+                    >
+                      <Peoples
+                        theme='outline'
+                        size='20'
+                        fill={iconColors.primary}
+                        className='block leading-none shrink-0'
+                        style={{ lineHeight: 0 }}
+                      />
+                      <span className='text-t-primary text-14px truncate flex-1 ml-10px'>{team.name}</span>
+                      <Popconfirm
+                        title={t('team.deleteConfirm', { defaultValue: 'Delete this team?' })}
+                        onOk={async (e) => {
+                          e?.stopPropagation();
+                          await removeTeam(team.id);
+                          if (pathname.startsWith(`/team/${team.id}`)) {
+                            Promise.resolve(navigate('/')).catch(() => {});
+                          }
+                        }}
+                        onCancel={(e) => e?.stopPropagation()}
+                      >
+                        <div
+                          className='opacity-0 group-hover:opacity-100 shrink-0 p-2px rd-4px hover:bg-fill-3'
+                          onClick={(e) => e.stopPropagation()}
+                        >
+                          <Delete theme='outline' size='14' fill='var(--color-text-3)' />
+                        </div>
+                      </Popconfirm>
+                    </div>
+                  ))}
+              </div>
+            )}
             <Suspense fallback={<div className='flex-1 min-h-0' />}>
               <WorkspaceGroupedHistory {...workspaceHistoryProps}></WorkspaceGroupedHistory>
             </Suspense>
@@ -277,6 +365,16 @@ const Sider: React.FC<SiderProps> = ({ onSessionClick, collapsed = false }) => {
           </Tooltip>
         </div>
       </div>
+      <TeamCreateModal
+        visible={createTeamVisible}
+        onClose={() => setCreateTeamVisible(false)}
+        onCreated={(team) => {
+          void refreshTeams();
+          Promise.resolve(navigate(`/team/${team.id}`)).catch((error) => {
+            console.error('Navigation failed:', error);
+          });
+        }}
+      />
     </div>
   );
 };

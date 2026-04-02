@@ -222,6 +222,13 @@ export const useAcpMessage = (conversation_id: string): UseAcpMessageReturn => {
         case 'user_content':
           addOrUpdateMessage(transformedMessage);
           break;
+        case 'teammate_message': {
+          const tmMsg = message.data as import('@/common/chat/chatLib').TMessage;
+          if (tmMsg && tmMsg.conversation_id === conversation_id) {
+            addOrUpdateMessage(tmMsg);
+          }
+          break;
+        }
         case 'acp_permission':
           // Auto-recover running state only if turn hasn't finished
           if (!runningRef.current && !turnFinishedRef.current) {

@@ -45,6 +45,8 @@ export interface AgentModeSelectorProps {
   compactLabelPrefix?: string;
   /** Hide compact prefix on mobile */
   hideCompactLabelPrefixOnMobile?: boolean;
+  /** Callback fired after a successful mode change (for team-mode propagation) */
+  onModeChanged?: (mode: string) => void;
 }
 
 /**
@@ -70,6 +72,7 @@ const AgentModeSelector: React.FC<AgentModeSelectorProps> = ({
   modeLabelFormatter,
   compactLabelPrefix,
   hideCompactLabelPrefixOnMobile = false,
+  onModeChanged,
 }) => {
   const { t } = useTranslation();
   const layout = useLayoutContext();
@@ -138,6 +141,7 @@ const AgentModeSelector: React.FC<AgentModeSelectorProps> = ({
       if (!conversationId && onModeSelect) {
         setCurrentMode(mode);
         onModeSelect(mode);
+        onModeChanged?.(mode);
         return;
       }
 
@@ -152,6 +156,7 @@ const AgentModeSelector: React.FC<AgentModeSelectorProps> = ({
 
         if (result.success) {
           setCurrentMode(result.data?.mode ?? mode);
+          onModeChanged?.(result.data?.mode ?? mode);
           Message.success('Mode switched');
         } else {
           const errorMsg = result.msg || 'Switch failed';

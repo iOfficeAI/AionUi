@@ -59,9 +59,7 @@ export class WorkerTaskManager implements IWorkerTaskManager {
 
   private _buildAndCache(conversation: TChatConversation, options?: BuildConversationOptions): IAgentManager {
     const task = this.factory.create(conversation, options);
-    if (!options?.skipCache) {
-      this.taskList.push({ id: conversation.id, task });
-    }
+    this.addTask(conversation.id, task);
     return task;
   }
 

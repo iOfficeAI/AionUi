@@ -912,6 +912,8 @@ export interface ICreateConversationParams {
     isHealthCheck?: boolean;
     /** Remote agent config ID (FK to remote_agents table) — required when type='remote' */
     remoteAgentId?: string;
+    /** Team ownership — conversations with teamId are hidden from the sidebar */
+    teamId?: string;
   };
 }
 interface IResetConversationParams {
@@ -1186,4 +1188,38 @@ export const channel = {
     'channel.plugin-status-changed'
   ),
   userAuthorized: bridge.buildEmitter<IChannelUser>('channel.user-authorized'),
+};
+
+// Team Mode API
+export type ICreateTeamParams = {
+  userId: string;
+  name: string;
+  workspace: string;
+  workspaceMode: 'shared' | 'isolated';
+  agents: import('@process/team/types').TeamAgent[];
+};
+
+export type IAddTeamAgentParams = {
+  teamId: string;
+  agent: Omit<import('@process/team/types').TeamAgent, 'slotId'>;
+};
+
+export const team = {
+  create: bridge.buildProvider<import('@process/team/types').TTeam, ICreateTeamParams>('team.create'),
+  list: bridge.buildProvider<import('@process/team/types').TTeam[], { userId: string }>('team.list'),
+  get: bridge.buildProvider<import('@process/team/types').TTeam | null, { id: string }>('team.get'),
+  remove: bridge.buildProvider<void, { id: string }>('team.remove'),
+  addAgent: bridge.buildProvider<import('@process/team/types').TeamAgent, IAddTeamAgentParams>('team.add-agent'),
+  removeAgent: bridge.buildProvider<void, { teamId: string; slotId: string }>('team.remove-agent'),
+  sendMessage: bridge.buildProvider<void, { teamId: string; content: string }>('team.send-message'),
+  sendMessageToAgent: bridge.buildProvider<void, { teamId: string; slotId: string; content: string }>(
+    'team.send-message-to-agent'
+  ),
+  stop: bridge.buildProvider<void, { teamId: string }>('team.stop'),
+  renameAgent: bridge.buildProvider<void, { teamId: string; slotId: string; newName: string }>('team.rename-agent'),
+  messageStream: bridge.buildEmitter<import('@process/team/types').ITeamMessageEvent>('team.message.stream'),
+  agentStatusChanged: bridge.buildEmitter<import('@process/team/types').ITeamAgentStatusEvent>('team.agent.status'),
+  agentSpawned: bridge.buildEmitter<import('@/common/types/teamTypes').ITeamAgentSpawnedEvent>('team.agent.spawned'),
+  agentRemoved: bridge.buildEmitter<import('@/common/types/teamTypes').ITeamAgentRemovedEvent>('team.agent.removed'),
+  agentRenamed: bridge.buildEmitter<import('@/common/types/teamTypes').ITeamAgentRenamedEvent>('team.agent.renamed'),
 };

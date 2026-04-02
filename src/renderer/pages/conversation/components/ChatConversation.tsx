@@ -132,10 +132,11 @@ const _AddNewConversation: React.FC<{ conversation: TChatConversation }> = ({ co
 // Narrow to Gemini conversations so model field is always available
 type GeminiConversation = Extract<TChatConversation, { type: 'gemini' }>;
 
-const GeminiConversationPanel: React.FC<{ conversation: GeminiConversation; sliderTitle: React.ReactNode }> = ({
-  conversation,
-  sliderTitle,
-}) => {
+const GeminiConversationPanel: React.FC<{
+  conversation: GeminiConversation;
+  sliderTitle: React.ReactNode;
+  hideSendBox?: boolean;
+}> = ({ conversation, sliderTitle, hideSendBox }) => {
   // Save model selection to conversation via IPC
   const onSelectModel = useCallback(
     async (_provider: IProvider, modelName: string) => {
@@ -173,6 +174,7 @@ const GeminiConversationPanel: React.FC<{ conversation: GeminiConversation; slid
         conversation_id={conversation.id}
         workspace={conversation.extra.workspace}
         modelSelection={modelSelection}
+        hideSendBox={hideSendBox}
       />
     </ChatLayout>
   );
@@ -231,7 +233,8 @@ const AionrsConversationPanel: React.FC<{ conversation: AionrsConversation; slid
 
 const ChatConversation: React.FC<{
   conversation?: TChatConversation;
-}> = ({ conversation }) => {
+  hideSendBox?: boolean;
+}> = ({ conversation, hideSendBox }) => {
   const { t } = useTranslation();
   const { openPreview } = usePreviewContext();
   const workspaceEnabled = Boolean(conversation?.extra?.workspace);
@@ -251,6 +254,7 @@ const ChatConversation: React.FC<{
             backend={conversation.extra?.backend || 'claude'}
             sessionMode={conversation.extra?.sessionMode}
             agentName={(conversation.extra as { agentName?: string })?.agentName}
+            hideSendBox={hideSendBox}
           ></AcpChat>
         );
       case 'codex': // Legacy: new Codex conversations use ACP protocol. Kept for existing sessions.
@@ -259,6 +263,7 @@ const ChatConversation: React.FC<{
             key={conversation.id}
             conversation_id={conversation.id}
             workspace={conversation.extra?.workspace}
+            hideSendBox={hideSendBox}
           />
         );
       case 'openclaw-gateway':
@@ -288,7 +293,7 @@ const ChatConversation: React.FC<{
       default:
         return null;
     }
-  }, [conversation, isGeminiConversation, isAionrsConversation]);
+  }, [conversation, isGeminiConversation, isAionrsConversation, hideSendBox]);
 
   // 使用统一的 Hook 获取预设助手信息（ACP/Codex 会话）
   // Use unified hook for preset assistant info (ACP/Codex conversations)
@@ -332,7 +337,14 @@ const ChatConversation: React.FC<{
   if (conversation && conversation.type === 'gemini') {
     // Gemini 会话独立渲染，带右上角模型选择
     // Render Gemini layout with dedicated top-right model selector
-    return <GeminiConversationPanel key={conversation.id} conversation={conversation} sliderTitle={sliderTitle} />;
+    return (
+      <GeminiConversationPanel
+        key={conversation.id}
+        conversation={conversation}
+        sliderTitle={sliderTitle}
+        hideSendBox={hideSendBox}
+      />
+    );
   }
 
   // 如果有预设助手信息，使用预设助手的 logo 和名称；加载中时不进入 fallback；否则使用 backend 的 logo

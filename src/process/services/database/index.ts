@@ -220,6 +220,14 @@ export class AionUIDatabase {
     }
   }
   /**
+   * Expose the underlying SQLite driver for repositories that need raw SQL access.
+   * Prefer using dedicated methods on AionUIDatabase where possible.
+   */
+  getDriver(): ISqliteDriver {
+    return this.db;
+  }
+
+  /**
    * Close database connection
    */
   close(): void {
