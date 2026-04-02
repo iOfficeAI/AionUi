@@ -114,6 +114,12 @@ export class TeamSession extends EventEmitter {
         createdAt: Date.now(),
       };
       addMessage(leadAgent.conversationId, userMessage);
+      ipcBridge.conversation.responseStream.emit({
+        type: 'user_content',
+        conversation_id: leadAgent.conversationId,
+        msg_id: msgId,
+        data: content,
+      });
     }
 
     await this.teammateManager.wake(leadSlotId);
@@ -146,6 +152,12 @@ export class TeamSession extends EventEmitter {
         createdAt: Date.now(),
       };
       addMessage(agent.conversationId, userMessage);
+      ipcBridge.conversation.responseStream.emit({
+        type: 'user_content',
+        conversation_id: agent.conversationId,
+        msg_id: msgId,
+        data: content,
+      });
     }
 
     await this.teammateManager.wake(slotId);
