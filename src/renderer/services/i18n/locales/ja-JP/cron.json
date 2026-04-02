@@ -106,7 +106,8 @@
       "newConversation": "新しい会話",
       "existingConversation": "同じ会話",
       "newConversationHint": "実行ごとに新しい会話を作成します",
-      "existingConversationHint": "すべての実行が同じ会話を共有します"
+      "existingConversationHint": "すべての実行が同じ会話を共有します",
+      "executionModeEditHint": "作成後に実行モードは変更できません。モードを切り替えるには、タスクを削除して再作成してください。"
     },
     "freq": {
       "manual": "手動",

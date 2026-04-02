@@ -23,34 +23,28 @@ interface CronJobSiderItemProps {
   job: ICronJob;
   pathname: string;
   onNavigate: (path: string) => void;
+  /** Pre-fetched conversation for existing mode (fetched by parent to avoid N+1 IPC) */
+  existingConversation?: TChatConversation;
 }
 
-const CronJobSiderItem: React.FC<CronJobSiderItemProps> = ({ job, pathname, onNavigate }) => {
+const CronJobSiderItem: React.FC<CronJobSiderItemProps> = ({
+  job,
+  pathname,
+  onNavigate,
+  existingConversation: existingConversationProp,
+}) => {
   const { t } = useTranslation();
   const { id: currentConversationId } = useParams();
   const navigate = useNavigate();
   const isNewConversationMode = job.target.executionMode === 'new_conversation';
   const { conversations } = useCronJobConversations(isNewConversationMode ? job.id : undefined);
 
-  // For existing mode, fetch the conversation object to pass to ConversationRow
-  const [existingConversation, setExistingConversation] = useState<TChatConversation | null>(null);
-  useEffect(() => {
-    if (!isNewConversationMode && job.metadata.conversationId) {
-      ipcBridge.conversation.get
-        .invoke({ id: job.metadata.conversationId })
-        .then((conv) => {
-          if (conv) setExistingConversation(conv);
-        })
-        .catch(() => {});
-    }
-  }, [isNewConversationMode, job.metadata.conversationId]);
-
   // Unified child conversation list for both modes
   const childConversations = useMemo(() => {
     if (isNewConversationMode) return conversations;
-    if (existingConversation) return [existingConversation];
+    if (existingConversationProp) return [existingConversationProp];
     return [];
-  }, [isNewConversationMode, conversations, existingConversation]);
+  }, [isNewConversationMode, conversations, existingConversationProp]);
 
   // Auto-expand when the current route matches this job or any child conversation
   const childConversationIds = useMemo(() => new Set(childConversations.map((c) => c.id)), [childConversations]);
@@ -195,9 +189,7 @@ const CronJobSiderItem: React.FC<CronJobSiderItemProps> = ({ job, pathname, onNa
       <div
         className={classNames(
           'flex items-center ml-2px gap-8px h-32px p-4px rd-4px transition-colors min-w-0',
-          pathname === `/scheduled/${job.id}`
-            ? 'bg-[rgba(var(--primary-6),0.08)]'
-            : 'hover:bg-[rgba(var(--primary-6),0.14)]'
+          pathname === `/scheduled/${job.id}` ? 'bg-[rgba(var(--primary-6),0.12)]' : 'hover:bg-fill-3 active:bg-fill-4'
         )}
       >
         {/* Expand/collapse arrow */}

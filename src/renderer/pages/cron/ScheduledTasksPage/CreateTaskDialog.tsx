@@ -382,14 +382,16 @@ const CreateTaskDialog: React.FC<CreateTaskDialogProps> = ({
         </FormItem>
 
         <FormItem label={t('cron.page.form.executionMode')}>
-          <Radio.Group value={executionMode} onChange={setExecutionMode} type='button'>
+          <Radio.Group value={executionMode} onChange={setExecutionMode} type='button' disabled={isEditMode}>
             <Radio value='new_conversation'>{t('cron.page.form.newConversation')}</Radio>
             <Radio value='existing'>{t('cron.page.form.existingConversation')}</Radio>
           </Radio.Group>
           <div className='text-text-3 text-12px mt-4px'>
-            {executionMode === 'new_conversation'
-              ? t('cron.page.form.newConversationHint')
-              : t('cron.page.form.existingConversationHint')}
+            {isEditMode
+              ? t('cron.page.form.executionModeEditHint')
+              : executionMode === 'new_conversation'
+                ? t('cron.page.form.newConversationHint')
+                : t('cron.page.form.existingConversationHint')}
           </div>
         </FormItem>
 

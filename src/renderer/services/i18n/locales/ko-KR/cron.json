@@ -94,7 +94,8 @@
       "newConversation": "새 대화",
       "existingConversation": "동일 대화",
       "newConversationHint": "매 실행마다 새 대화를 생성합니다",
-      "existingConversationHint": "모든 실행이 동일한 대화를 공유합니다"
+      "existingConversationHint": "모든 실행이 동일한 대화를 공유합니다",
+      "executionModeEditHint": "생성 후에는 실행 모드를 변경할 수 없습니다. 모드를 전환하려면 작업을 삭제한 후 다시 만드세요."
     },
     "freq": {
       "manual": "수동",

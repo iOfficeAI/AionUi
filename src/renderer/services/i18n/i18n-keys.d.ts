@@ -529,6 +529,7 @@ export type I18nKey =
   | 'cron.page.form.descriptionPlaceholder'
   | 'cron.page.form.descriptionRequired'
   | 'cron.page.form.executionMode'
+  | 'cron.page.form.executionModeEditHint'
   | 'cron.page.form.existingConversation'
   | 'cron.page.form.existingConversationHint'
   | 'cron.page.form.frequency'

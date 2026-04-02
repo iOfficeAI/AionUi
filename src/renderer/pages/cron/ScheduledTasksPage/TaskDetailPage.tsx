@@ -34,9 +34,8 @@ const TaskDetailPage: React.FC = () => {
     if (!jobId) return;
     setLoading(true);
     try {
-      const allJobs = await ipcBridge.cron.listJobs.invoke();
-      const found = allJobs?.find((j) => j.id === jobId) ?? null;
-      setJob(found);
+      const found = await ipcBridge.cron.getJob.invoke({ jobId });
+      setJob(found ?? null);
     } catch (err) {
       console.error('[TaskDetailPage] Failed to fetch job:', err);
     } finally {

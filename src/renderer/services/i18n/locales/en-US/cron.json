@@ -93,7 +93,8 @@
       "newConversation": "New conversation",
       "existingConversation": "Same conversation",
       "newConversationHint": "Each execution creates a new conversation",
-      "existingConversationHint": "All executions share the same conversation"
+      "existingConversationHint": "All executions share the same conversation",
+      "executionModeEditHint": "Execution mode cannot be changed after creation. Delete and recreate the task to switch modes."
     },
     "freq": {
       "manual": "Manual",

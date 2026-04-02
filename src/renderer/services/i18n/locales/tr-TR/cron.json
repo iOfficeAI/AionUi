@@ -106,7 +106,8 @@
       "newConversation": "Yeni konuşma",
       "existingConversation": "Aynı konuşma",
       "newConversationHint": "Her çalıştırma yeni bir konuşma oluşturur",
-      "existingConversationHint": "Tüm çalıştırmalar aynı konuşmayı paylaşır"
+      "existingConversationHint": "Tüm çalıştırmalar aynı konuşmayı paylaşır",
+      "executionModeEditHint": "Oluşturulduktan sonra çalıştırma modu değiştirilemez. Mod değiştirmek için görevi silip yeniden oluşturun."
     },
     "freq": {
       "manual": "Manuel",

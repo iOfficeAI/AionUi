@@ -94,7 +94,8 @@
       "newConversation": "新建對話",
       "existingConversation": "同一對話",
       "newConversationHint": "每次執行都建立新的對話",
-      "existingConversationHint": "所有執行共用同一個對話"
+      "existingConversationHint": "所有執行共用同一個對話",
+      "executionModeEditHint": "建立後無法更改執行模式，如需切換請刪除任務後重新建立。"
     },
     "freq": {
       "manual": "手動觸發",
