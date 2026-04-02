@@ -261,7 +261,7 @@ const Sider: React.FC<SiderProps> = ({ onSessionClick, collapsed = false }) => {
                   teams.map((team) => (
                     <div
                       key={team.id}
-                      className='py-8px flex items-center px-12px rd-8px cursor-pointer hover:bg-hover group relative overflow-hidden shrink-0'
+                      className={`py-8px flex items-center px-12px rd-8px cursor-pointer hover:bg-hover group relative overflow-hidden shrink-0 ${pathname.startsWith(`/team/${team.id}`) ? 'bg-hover' : ''}`}
                       onClick={() => {
                         cleanupSiderTooltips();
                         blurActiveElement();
