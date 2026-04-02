@@ -136,20 +136,9 @@ const TeamCreateModal: React.FC<Props> = ({ visible, onClose, onCreated }) => {
               return agent ? <AgentOptionLabel agent={agent} /> : <span>{option?.children}</span>;
             }}
           >
-            {cliAgents.length > 0 && (
+            {allAgents.length > 0 && (
               <Select.OptGroup label={t('conversation.dropdown.cliAgents', { defaultValue: 'CLI Agents' })}>
-                {cliAgents.map((agent) => (
-                  <Select.Option key={agentKey(agent)} value={agentKey(agent)}>
-                    <AgentOptionLabel agent={agent} />
-                  </Select.Option>
-                ))}
-              </Select.OptGroup>
-            )}
-            {presetAssistants.length > 0 && (
-              <Select.OptGroup
-                label={t('conversation.dropdown.presetAssistants', { defaultValue: 'Preset Assistants' })}
-              >
-                {presetAssistants.map((agent) => (
+                {allAgents.map((agent) => (
                   <Select.Option key={agentKey(agent)} value={agentKey(agent)}>
                     <AgentOptionLabel agent={agent} />
                   </Select.Option>
