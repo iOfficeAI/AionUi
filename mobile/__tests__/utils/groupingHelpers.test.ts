@@ -86,5 +86,28 @@ describe('groupingHelpers', () => {
       expect(labels).toContain('Last 7 Days');
       expect(labels).toContain('Earlier');
     });
+
+    it('uses localized temporary workspace labels for workspace groups', () => {
+      const localT = (key: string): string => {
+        const translations: Record<string, string> = {
+          'workspace.today': 'Today',
+          'workspace.yesterday': 'Yesterday',
+          'workspace.recent7Days': 'Last 7 Days',
+          'workspace.earlier': 'Earlier',
+          'workspace.temporarySpace': '临时会话',
+        };
+        return translations[key] || key;
+      };
+
+      const convs = [makeConv({ id: '1', extra: { workspace: '/tmp/codex-temp-1700000000', customWorkspace: true } })];
+
+      const sections = groupConversationsByTimelineAndWorkspace(convs, localT);
+      const todaySection = sections.find((s) => s.timeline === 'Today');
+      const wsItem = todaySection?.items.find((item) => item.type === 'workspace');
+
+      expect(wsItem).toBeTruthy();
+      expect(wsItem?.workspaceGroup?.displayName).toContain('临时会话');
+      expect(wsItem?.workspaceGroup?.displayName).not.toContain('Temporary Session');
+    });
   });
 });

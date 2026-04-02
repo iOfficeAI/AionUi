@@ -84,7 +84,7 @@ export const groupConversationsByTimelineAndWorkspace = (
 
     workspaceGroupsByTimeline.get(timeline)!.push({
       workspace,
-      displayName: getWorkspaceDisplayName(workspace),
+      displayName: getWorkspaceDisplayName(workspace, t),
       conversations: sortedConvs,
     });
   });
