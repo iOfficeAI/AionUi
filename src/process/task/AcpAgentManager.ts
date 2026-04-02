@@ -38,6 +38,12 @@ import { extractAndStripThinkTags } from './ThinkTagDetector';
 import { hasNativeSkillSupport } from '@/common/types/acpTypes';
 import { prepareFirstMessageWithSkillsIndex } from '@process/task/agentUtils';
 import { extractTextFromMessage, processCronInMessage } from './MessageMiddleware';
+import {
+  OrchestratorMcpBridge,
+  buildOrchestratorSystemPromptSection,
+  type DelegateToolInput,
+} from './OrchestratorMcpBridge';
+import { getEnabledAcpBackends } from '@/common/types/acpTypes';
 
 interface AcpAgentManagerData {
   workspace?: string;
@@ -90,6 +96,8 @@ class AcpAgentManager extends BaseAgentManager<AcpAgentManagerData, AcpPermissio
   /** Accumulated thinking content for persistence */
   private thinkingContent: string = '';
   private thinkingDbFlushTimer: ReturnType<typeof setTimeout> | null = null;
+  /** Orchestration bridge — null when orchestration is disabled for this conversation */
+  private orchestratorBridge: OrchestratorMcpBridge | null = null;
   private acpAvailableSlashCommands: SlashCommandItem[] = [];
   private acpAvailableSlashWaiters: Array<(commands: SlashCommandItem[]) => void> = [];
   private readonly streamDbFlushIntervalMs = 120;
@@ -555,6 +563,24 @@ class AcpAgentManager extends BaseAgentManager<AcpAgentManagerData, AcpPermissio
             this.currentMsgContent = '';
           }
 
+          // Check for delegation tool call in accumulated content
+          if (v.type === 'finish' && this.currentMsgContent && this.orchestratorBridge) {
+            const delegationInput = this.orchestratorBridge.detectDelegationInText(this.currentMsgContent);
+            if (delegationInput) {
+              this.currentMsgContent = '';
+              this.currentMsgId = null;
+              this.handleDelegation(delegationInput).catch((err) => {
+                mainError('[AcpAgentManager]', 'Delegation failed, emitting finish to recover UI', err);
+                ipcBridge.acpConversation.responseStream.emit(v);
+                channelEventBus.emitAgentMessage(this.conversation_id, {
+                  ...(v as any),
+                  conversation_id: this.conversation_id,
+                });
+              });
+              return; // Don't emit finish yet — will re-emit after delegation completes
+            }
+          }
+
           ipcBridge.acpConversation.responseStream.emit(v);
 
           // Forward signals (finish/error/etc.) to Channel global event bus
@@ -686,6 +712,7 @@ class AcpAgentManager extends BaseAgentManager<AcpAgentManagerData, AcpPermissio
         // So custom workspaces or backends without native skill discovery need prompt injection.
         if (this.isFirstMessage) {
           const useNativeSkills = hasNativeSkillSupport(this.options.backend) && !this.options.customWorkspace;
+          const contentBeforeInjection = contentToSend;
           if (useNativeSkills) {
             // Native skill discovery via workspace symlinks — only inject preset rules
             if (this.options.presetContext) {
@@ -697,6 +724,25 @@ class AcpAgentManager extends BaseAgentManager<AcpAgentManagerData, AcpPermissio
               presetContext: this.options.presetContext,
               enabledSkills: this.options.enabledSkills,
             });
+          }
+
+          // Inject multi-agent orchestration capability only when content was already
+          // modified by presetContext/skill injection. This avoids polluting bare
+          // conversations that have no system-level context.
+          if (contentToSend !== contentBeforeInjection) {
+            const enabledBackends = getEnabledAcpBackends()
+              .map((c) => c.id as import('@/common/types/acpTypes').AcpBackend)
+              .filter((id) => id !== this.options.backend);
+            if (enabledBackends.length > 0) {
+              const orchestrationSection = buildOrchestratorSystemPromptSection(enabledBackends);
+              if (orchestrationSection) {
+                contentToSend = `${orchestrationSection}\n\n${contentToSend}`;
+              }
+              this.orchestratorBridge = new OrchestratorMcpBridge(this.conversation_id, this.options.backend, {
+                runSubAgent: (targetBackend, task, context, convId, delegationId) =>
+                  this.runSubAgentDelegation(targetBackend, task, context, convId, delegationId),
+              });
+            }
           }
         }
 
@@ -1162,6 +1208,82 @@ class AcpAgentManager extends BaseAgentManager<AcpAgentManagerData, AcpPermissio
     } catch (error) {
       mainError('[AcpAgentManager]', 'Failed to save session mode', error);
     }
+  }
+
+  /**
+   * Handle a delegation tool call detected in the main agent's output.
+   * Runs the sub-agent, then injects the result back as a tool result.
+   */
+  private async handleDelegation(input: DelegateToolInput): Promise<void> {
+    if (!this.orchestratorBridge) return;
+
+    // Emit a delegation status message to the UI
+    const delegationStatusMsg = {
+      type: 'system' as const,
+      conversation_id: this.conversation_id,
+      msg_id: uuid(),
+      data: `[Orchestrator] Delegating to ${input.target_agent}: "${input.task.slice(0, 80)}${input.task.length > 80 ? '...' : ''}"`,
+    };
+    ipcBridge.acpConversation.responseStream.emit(delegationStatusMsg);
+
+    const { result } = await this.orchestratorBridge.executeDelegation(input);
+
+    // Inject result back into main agent as a system message
+    const toolResult = `[Delegation Result from ${input.target_agent}]\n${result}`;
+    if (this.agent) {
+      await this.agent.sendMessage({ content: toolResult });
+    }
+  }
+
+  /**
+   * Run a sub-agent for a delegation request.
+   * Creates a temporary AcpAgent, sends the task, collects the full output.
+   */
+  private async runSubAgentDelegation(
+    targetBackend: AcpBackend,
+    task: string,
+    context: string | undefined,
+    _conversationId: string,
+    delegationId: string
+  ): Promise<string> {
+    const { AcpAgent } = await import('@process/agent/acp');
+    const outputChunks: string[] = [];
+
+    const fullPrompt = context ? `[Context from orchestrator]\n${context}\n\n[Task]\n${task}` : task;
+
+    let subAgent: AcpAgent | null = null;
+    try {
+      await new Promise<void>((resolve, reject) => {
+        subAgent = new AcpAgent({
+          id: `delegation-${delegationId}`,
+          backend: targetBackend,
+          workingDir: this.workspace,
+          extra: { backend: targetBackend, workspace: this.workspace },
+          onStreamEvent: (msg) => {
+            if (msg.type === 'content' && typeof msg.data === 'string') {
+              outputChunks.push(msg.data);
+            }
+          },
+          onSignalEvent: (sig) => {
+            if (sig.type === 'finish') resolve();
+            if (sig.type === 'error') reject(new Error(`Sub-agent ${targetBackend} error`));
+          },
+        });
+
+        subAgent
+          .start()
+          .then(() => subAgent!.sendMessage({ content: fullPrompt }))
+          .catch(reject);
+      });
+    } finally {
+      await subAgent?.kill().catch(() => {});
+    }
+
+    mainLog(
+      '[AcpAgentManager]',
+      `Sub-agent delegation ${delegationId} (${targetBackend}) collected ${outputChunks.length} chunks`
+    );
+    return outputChunks.join('');
   }
 
   /**
