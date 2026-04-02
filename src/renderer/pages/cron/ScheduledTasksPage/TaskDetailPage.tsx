@@ -204,6 +204,17 @@ const TaskDetailPage: React.FC = () => {
           </div>
         )}
 
+        {/* Execution Mode */}
+        <div className='mt-24px'>
+          <h3 className='text-14px font-medium text-text-2 mb-8px'>{t('cron.page.form.executionMode')}</h3>
+          <span className='text-14px text-text-1'>
+            {isNewConversationMode ? t('cron.page.form.newConversation') : t('cron.page.form.existingConversation')}
+          </span>
+          <span className='text-12px text-text-3 ml-8px'>
+            {isNewConversationMode ? t('cron.page.form.newConversationHint') : t('cron.page.form.existingConversationHint')}
+          </span>
+        </div>
+
         {/* Instructions */}
         <div className='mt-24px'>
           <h3 className='text-14px font-medium text-text-2 mb-8px'>{t('cron.detail.instructions')}</h3>
