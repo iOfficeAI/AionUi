@@ -231,12 +231,12 @@ describe('CronJobSiderSection', () => {
     expect(screen.getByTestId('cron-job-item-job-1')).toBeInTheDocument();
   });
 
-  it('maintains correct structure with mt-2px wrapper', () => {
+  it('maintains correct structure with mb-8px wrapper', () => {
     const { container } = render(<CronJobSiderSection jobs={mockJobs} pathname='/' onNavigate={mockOnNavigate} />);
 
     const wrapper = container.firstChild as HTMLElement;
     expect(wrapper).toBeInTheDocument();
-    expect(wrapper.className).toContain('mt-2px');
+    expect(wrapper.className).toContain('mb-8px');
   });
 
   it('header has correct styling classes', () => {

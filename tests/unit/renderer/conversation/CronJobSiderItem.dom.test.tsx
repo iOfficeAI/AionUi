@@ -370,8 +370,8 @@ describe('CronJobSiderItem', () => {
     expect(mockOnNavigate).toHaveBeenCalledWith('/conversation/conv-1');
   });
 
-  it('handles existing conversation mode by fetching single conversation', async () => {
-    const existingConv = {
+  it('handles existing conversation mode via pre-fetched prop', async () => {
+    const existingConv: TChatConversation = {
       id: 'existing-conv',
       name: 'Existing Conversation',
       agentId: 'agent-1',
@@ -381,13 +381,17 @@ describe('CronJobSiderItem', () => {
       extra: {},
     };
 
-    mockConversationGet.mockResolvedValue(existingConv);
+    render(
+      <CronJobSiderItem
+        job={mockJobExistingConversation}
+        pathname='/'
+        onNavigate={mockOnNavigate}
+        existingConversation={existingConv}
+      />
+    );
 
-    render(<CronJobSiderItem job={mockJobExistingConversation} pathname='/' onNavigate={mockOnNavigate} />);
-
-    await waitFor(() => {
-      expect(mockConversationGet).toHaveBeenCalledWith({ id: 'conv-123' });
-    });
+    // Should NOT call conversation.get — parent provides it via prop
+    expect(mockConversationGet).not.toHaveBeenCalled();
 
     // Expand to see the existing conversation
     await waitFor(() => {
@@ -448,7 +452,7 @@ describe('CronJobSiderItem', () => {
 
     await waitFor(() => {
       // Check for the highlight class
-      const highlightedElement = container.querySelector('.bg-\\[rgba\\(var\\(--primary-6\\)\\,0\\.08\\)\\]');
+      const highlightedElement = container.querySelector('.bg-\\[rgba\\(var\\(--primary-6\\)\\,0\\.12\\)\\]');
       expect(highlightedElement).toBeInTheDocument();
     });
   });
@@ -459,7 +463,7 @@ describe('CronJobSiderItem', () => {
     );
 
     await waitFor(() => {
-      const hoverElement = container.querySelector('.hover\\:bg-\\[rgba\\(var\\(--primary-6\\)\\,0\\.14\\)\\]');
+      const hoverElement = container.querySelector('.hover\\:bg-fill-3');
       expect(hoverElement).toBeInTheDocument();
     });
   });
