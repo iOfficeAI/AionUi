@@ -13,7 +13,7 @@ import { useConversationAgents } from '@/renderer/pages/conversation/hooks/useCo
 import AcpModelSelector from '@/renderer/components/agent/AcpModelSelector';
 import TeamTabs from './components/TeamTabs';
 import TeamChatView from './components/TeamChatView';
-import { agentFromKey, resolveConversationType } from './components/agentSelectUtils';
+import { agentFromKey, resolveConversationType, resolveTeamAgentType } from './components/agentSelectUtils';
 import { TeamTabsProvider, useTeamTabs } from './hooks/TeamTabsContext';
 import { TeamPermissionProvider } from './hooks/TeamPermissionContext';
 import { useTeamSession } from './hooks/useTeamSession';
@@ -341,7 +341,7 @@ const TeamPage: React.FC<Props> = ({ team }) => {
     async (data: { agentName: string; agentKey: string }) => {
       const allAgents = [...cliAgents, ...presetAssistants];
       const agent = agentFromKey(data.agentKey, allAgents);
-      const backend = agent?.backend ?? 'claude';
+      const backend = resolveTeamAgentType(agent, 'claude');
       await addAgent({
         conversationId: '',
         role: 'teammate',
@@ -350,6 +350,7 @@ const TeamPage: React.FC<Props> = ({ team }) => {
         status: 'pending',
         conversationType: resolveConversationType(backend),
         cliPath: agent?.cliPath,
+        customAgentId: agent?.customAgentId,
       });
     },
     [addAgent, cliAgents, presetAssistants]

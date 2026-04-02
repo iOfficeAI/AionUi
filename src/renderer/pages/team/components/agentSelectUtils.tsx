@@ -12,6 +12,10 @@ export function agentFromKey(key: string, allAgents: AvailableAgent[]): Availabl
   return allAgents.find((a) => agentKey(a) === key);
 }
 
+export function resolveTeamAgentType(agent: AvailableAgent | undefined, fallback: string): string {
+  return agent?.presetAgentType || agent?.backend || fallback;
+}
+
 export function resolveConversationType(
   backend: string
 ): 'gemini' | 'acp' | 'codex' | 'openclaw-gateway' | 'nanobot' | 'remote' {

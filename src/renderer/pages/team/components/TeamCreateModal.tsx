@@ -7,7 +7,13 @@ import type { TTeam, TeamAgent } from '@/common/types/teamTypes';
 import { useAuth } from '@renderer/hooks/context/AuthContext';
 import { useConversationAgents } from '@renderer/pages/conversation/hooks/useConversationAgents';
 import { isElectronDesktop } from '@renderer/utils/platform';
-import { agentKey, agentFromKey, resolveConversationType, AgentOptionLabel } from './agentSelectUtils';
+import {
+  agentKey,
+  agentFromKey,
+  resolveConversationType,
+  resolveTeamAgentType,
+  AgentOptionLabel,
+} from './agentSelectUtils';
 
 type Props = {
   visible: boolean;
@@ -48,15 +54,17 @@ const TeamCreateModal: React.FC<Props> = ({ visible, onClose, onCreated }) => {
       const agents: TeamAgent[] = [];
 
       const dispatchAgent = dispatchAgentKey ? agentFromKey(dispatchAgentKey, allAgents) : undefined;
+      const dispatchAgentType = resolveTeamAgentType(dispatchAgent, 'acp');
       agents.push({
         slotId: '',
         conversationId: '',
         role: 'lead',
         status: 'pending',
-        agentType: dispatchAgent?.backend ?? 'acp',
+        agentType: dispatchAgentType,
         agentName: dispatchAgent?.name ?? name,
-        conversationType: resolveConversationType(dispatchAgent?.backend ?? 'acp'),
+        conversationType: resolveConversationType(dispatchAgentType),
         cliPath: dispatchAgent?.cliPath,
+        customAgentId: dispatchAgent?.customAgentId,
       });
 
       const team = await ipcBridge.team.create.invoke({

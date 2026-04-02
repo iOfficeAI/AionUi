@@ -1,14 +1,18 @@
 // src/process/team/TeamSessionService.ts
 import { uuid } from '@/common/utils';
+import { GOOGLE_AUTH_PROVIDER_ID } from '@/common/config/constants';
 import type { ITeamRepository } from './repository/ITeamRepository';
 import type { IWorkerTaskManager } from '@process/task/IWorkerTaskManager';
 import type { IConversationService } from '@process/services/IConversationService';
 import type { AgentType } from '@process/task/agentTypes';
 import type { AcpBackendAll } from '@/common/types/acpTypes';
 import type { TProviderWithModel } from '@/common/config/storage';
+import { ProcessConfig } from '@process/utils/initStorage';
 import { TeamSession } from './TeamSession';
 import type { TTeam, TeamAgent } from './types';
 import os from 'os';
+import fs from 'fs/promises';
+import path from 'path';
 
 export class TeamSessionService {
   private readonly sessions: Map<string, TeamSession> = new Map();
@@ -28,6 +32,155 @@ export class TeamSessionService {
     return os.homedir();
   }
 
+  private async hasGeminiOauthCreds(): Promise<boolean> {
+    try {
+      const credsPath = path.join(os.homedir(), '.gemini', 'oauth_creds.json');
+      const content = await fs.readFile(credsPath, 'utf-8');
+      const creds = JSON.parse(content) as { access_token?: string; refresh_token?: string };
+      return Boolean(creds.access_token || creds.refresh_token);
+    } catch {
+      return false;
+    }
+  }
+
+  private createGoogleAuthGeminiModel(useModel: string): TProviderWithModel {
+    return {
+      id: GOOGLE_AUTH_PROVIDER_ID,
+      name: 'Gemini Google Auth',
+      platform: 'gemini-with-google-auth',
+      baseUrl: '',
+      apiKey: '',
+      model: [useModel],
+      useModel,
+      enabled: true,
+    } as TProviderWithModel;
+  }
+
+  private async resolveDefaultModel(): Promise<TProviderWithModel> {
+    const savedGeminiModel = await ProcessConfig.get('gemini.defaultModel');
+    const configuredProviders = await ProcessConfig.get('model.config');
+    const providers = Array.isArray(configuredProviders)
+      ? configuredProviders.filter((provider) => provider.enabled !== false)
+      : [];
+
+    const buildProviderModel = (provider: (typeof providers)[number], useModel: string): TProviderWithModel => {
+      return {
+        ...provider,
+        useModel,
+      } as TProviderWithModel;
+    };
+
+    if (
+      savedGeminiModel &&
+      typeof savedGeminiModel === 'object' &&
+      'id' in savedGeminiModel &&
+      'useModel' in savedGeminiModel
+    ) {
+      if (savedGeminiModel.id === GOOGLE_AUTH_PROVIDER_ID && (await this.hasGeminiOauthCreds())) {
+        return this.createGoogleAuthGeminiModel(savedGeminiModel.useModel);
+      }
+
+      const matchedProvider = providers.find(
+        (provider) => provider.id === savedGeminiModel.id && provider.model?.includes(savedGeminiModel.useModel)
+      );
+      if (matchedProvider) {
+        return buildProviderModel(matchedProvider, savedGeminiModel.useModel);
+      }
+    }
+
+    if (typeof savedGeminiModel === 'string') {
+      const matchedProvider = providers.find((provider) => provider.model?.includes(savedGeminiModel));
+      if (matchedProvider) {
+        return buildProviderModel(matchedProvider, savedGeminiModel);
+      }
+    }
+
+    const geminiProvider = providers.find((provider) => provider.platform === 'gemini' && provider.model?.length);
+    if (geminiProvider) {
+      const enabledModel = geminiProvider.model.find((model) => geminiProvider.modelEnabled?.[model] !== false);
+      return buildProviderModel(geminiProvider, enabledModel || geminiProvider.model[0]);
+    }
+
+    if (await this.hasGeminiOauthCreds()) {
+      const oauthModel =
+        typeof savedGeminiModel === 'object' && 'useModel' in savedGeminiModel
+          ? savedGeminiModel.useModel
+          : typeof savedGeminiModel === 'string'
+            ? savedGeminiModel
+            : 'gemini-2.0-flash';
+      return this.createGoogleAuthGeminiModel(oauthModel);
+    }
+
+    const fallbackProvider = providers.find((provider) => provider.model?.length);
+    if (fallbackProvider) {
+      const enabledModel = fallbackProvider.model.find((model) => fallbackProvider.modelEnabled?.[model] !== false);
+      return buildProviderModel(fallbackProvider, enabledModel || fallbackProvider.model[0]);
+    }
+
+    return this.createGoogleAuthGeminiModel('gemini-2.0-flash');
+  }
+
+  private async resolvePreferredAcpModelId(agentType: string): Promise<string | undefined> {
+    const acpConfig = await ProcessConfig.get('acp.config');
+    const preferredModelId = (acpConfig as Record<string, { preferredModelId?: string } | undefined> | undefined)?.[
+      agentType
+    ]?.preferredModelId;
+    if (typeof preferredModelId === 'string' && preferredModelId.trim().length > 0) {
+      return preferredModelId;
+    }
+
+    const cachedModels = await ProcessConfig.get('acp.cachedModels');
+    const cachedModelId = cachedModels?.[agentType]?.currentModelId;
+    if (typeof cachedModelId === 'string' && cachedModelId.trim().length > 0) {
+      return cachedModelId;
+    }
+
+    return undefined;
+  }
+
+  private async buildConversationParams(params: {
+    teamId: string;
+    teamName: string;
+    workspace: string;
+    agent: Omit<TeamAgent, 'slotId'> | TeamAgent;
+    agents: TeamAgent[];
+    inheritedSessionMode?: string;
+    inheritedModelId?: string;
+  }): Promise<{
+    type: AgentType;
+    name: string;
+    model: TProviderWithModel;
+    extra: Record<string, unknown>;
+  }> {
+    const { teamId, teamName, workspace, agent, agents, inheritedSessionMode, inheritedModelId } = params;
+    const convType = (agent.conversationType || this.resolveConversationType(agent.agentType)) as AgentType;
+    const backend = this.resolveBackend(agent.agentType, agents) as AcpBackendAll;
+    const model = await this.resolveDefaultModel();
+    const extra: Record<string, unknown> = {
+      workspace,
+      customWorkspace: true,
+      backend,
+      agentName: agent.agentName,
+      teamId,
+    };
+
+    if (agent.cliPath) extra.cliPath = agent.cliPath;
+    if (agent.customAgentId) extra.presetAssistantId = agent.customAgentId;
+    if (inheritedSessionMode) extra.sessionMode = inheritedSessionMode;
+
+    if (convType === 'acp') {
+      const preferredModelId = inheritedModelId || (await this.resolvePreferredAcpModelId(backend));
+      if (preferredModelId) extra.currentModelId = preferredModelId;
+    }
+
+    return {
+      type: convType,
+      name: `${teamName} - ${agent.agentName}`,
+      model,
+      extra,
+    };
+  }
+
   async createTeam(params: {
     userId: string;
     name: string;
@@ -42,22 +195,14 @@ export class TeamSessionService {
     // Create a real conversation for each agent
     const agentsWithConversations = await Promise.all(
       params.agents.map(async (agent) => {
-        const convType = (agent.conversationType || this.resolveConversationType(agent.agentType)) as AgentType;
-        const extra: Record<string, unknown> = {
-          workspace,
-          customWorkspace: true,
-          backend: this.resolveBackend(agent.agentType, params.agents) as AcpBackendAll,
-          agentName: agent.agentName,
+        const conversationParams = await this.buildConversationParams({
           teamId,
-        };
-        if (agent.cliPath) extra.cliPath = agent.cliPath;
-
-        const conversation = await this.conversationService.createConversation({
-          type: convType,
-          name: `${params.name} - ${agent.agentName}`,
-          model: {} as TProviderWithModel,
-          extra,
+          teamName: params.name,
+          workspace,
+          agent,
+          agents: params.agents,
         });
+        const conversation = await this.conversationService.createConversation(conversationParams);
         // Ensure teamId is in extra regardless of which factory function was used
         // (some factories like createCodexAgent/createGeminiAgent drop unknown extra fields)
         await this.conversationService.updateConversation(conversation.id, { extra: { teamId } } as any, true);
@@ -120,7 +265,6 @@ export class TeamSessionService {
     if (!team) throw new Error(`Team "${teamId}" not found`);
 
     const workspace = this.resolveWorkspace(team.workspace);
-    const convType = (agent.conversationType || this.resolveConversationType(agent.agentType)) as AgentType;
     // Inherit sessionMode from lead agent so spawned agents share the same permission level
     const leadAgent = team.agents.find((a) => a.role === 'lead');
     let inheritedSessionMode: string | undefined;
@@ -142,23 +286,16 @@ export class TeamSessionService {
       }
     }
 
-    const addExtra: Record<string, unknown> = {
-      workspace,
-      customWorkspace: true,
-      backend: this.resolveBackend(agent.agentType, team.agents) as AcpBackendAll,
-      agentName: agent.agentName,
+    const conversationParams = await this.buildConversationParams({
       teamId,
-    };
-    if (agent.cliPath) addExtra.cliPath = agent.cliPath;
-    if (inheritedSessionMode) addExtra.sessionMode = inheritedSessionMode;
-    if (inheritedModelId) addExtra.currentModelId = inheritedModelId;
-
-    const conversation = await this.conversationService.createConversation({
-      type: convType,
-      name: `${team.name} - ${agent.agentName}`,
-      model: {} as TProviderWithModel,
-      extra: addExtra,
+      teamName: team.name,
+      workspace,
+      agent,
+      agents: team.agents,
+      inheritedSessionMode,
+      inheritedModelId,
     });
+    const conversation = await this.conversationService.createConversation(conversationParams);
     // Ensure teamId is in extra regardless of which factory function was used
     await this.conversationService.updateConversation(conversation.id, { extra: { teamId } } as any, true);
 
