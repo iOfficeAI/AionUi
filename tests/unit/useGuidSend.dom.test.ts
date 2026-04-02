@@ -115,10 +115,10 @@ describe('useGuidSend', () => {
 
       expect(mockCreate).toHaveBeenCalledWith(
         expect.objectContaining({
-          type: 'acp',
+          type: 'remote',
           name: 'test message',
           extra: expect.objectContaining({
-            backend: 'remote',
+            remoteAgentId: undefined,
           }),
         })
       );
