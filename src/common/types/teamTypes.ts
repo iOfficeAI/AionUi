@@ -56,6 +56,14 @@ export type ITeamAgentRemovedEvent = {
   slotId: string;
 };
 
+/** IPC event pushed to renderer when an agent is renamed */
+export type ITeamAgentRenamedEvent = {
+  teamId: string;
+  slotId: string;
+  oldName: string;
+  newName: string;
+};
+
 /** IPC event for streaming agent messages to renderer */
 export type ITeamMessageEvent = {
   teamId: string;

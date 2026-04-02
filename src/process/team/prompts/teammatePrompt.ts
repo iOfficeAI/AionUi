@@ -8,6 +8,7 @@ export type TeammatePromptParams = {
   teammates: TeamAgent[];
   assignedTasks: TeamTask[];
   unreadMessages: MailboxMessage[];
+  renamedAgents?: Map<string, string>;
 };
 
 function roleDescription(agentType: string): string {
@@ -48,9 +49,17 @@ function formatMessages(messages: MailboxMessage[], allAgents: TeamAgent[]): str
  * assignments via mailbox and uses MCP tools to communicate results back.
  */
 export function buildTeammatePrompt(params: TeammatePromptParams): string {
-  const { agent, lead, teammates, assignedTasks, unreadMessages } = params;
+  const { agent, lead, teammates, assignedTasks, unreadMessages, renamedAgents } = params;
 
-  const teammateNames = teammates.length === 0 ? '(none)' : teammates.map((t) => t.agentName).join(', ');
+  const teammateNames =
+    teammates.length === 0
+      ? '(none)'
+      : teammates
+          .map((t) => {
+            const formerly = renamedAgents?.get(t.slotId);
+            return formerly ? `${t.agentName} [formerly: ${formerly}]` : t.agentName;
+          })
+          .join(', ');
 
   return `# You are a Team Member
 
@@ -72,6 +81,7 @@ system and will break team coordination. Always use the \`team_*\` versions:
 - **team_task_update** — Update task status when you start or complete work.
 - **team_task_list** — Check what tasks are available.
 - **team_members** — See who else is on the team.
+- **team_rename_agent** — Rename yourself or request the lead to rename you.
 
 ## How to Work
 1. Read your unread messages to understand your assignment

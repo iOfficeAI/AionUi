@@ -7,6 +7,7 @@ export type LeadPromptParams = {
   tasks: TeamTask[];
   unreadMessages: MailboxMessage[];
   availableAgentTypes?: Array<{ type: string; name: string }>;
+  renamedAgents?: Map<string, string>;
 };
 
 function formatTasks(tasks: TeamTask[]): string {
@@ -35,12 +36,18 @@ function formatMessages(messages: MailboxMessage[], teammates: TeamAgent[]): str
  * that are automatically available in the tool list.
  */
 export function buildLeadPrompt(params: LeadPromptParams): string {
-  const { teammates, tasks, unreadMessages, availableAgentTypes } = params;
+  const { teammates, tasks, unreadMessages, availableAgentTypes, renamedAgents } = params;
 
   const teammateList =
     teammates.length === 0
       ? '(no teammates yet — use team_spawn_agent to create them)'
-      : teammates.map((t) => `- ${t.agentName} (${t.agentType}, status: ${t.status})`).join('\n');
+      : teammates
+          .map((t) => {
+            const formerly = renamedAgents?.get(t.slotId);
+            const formerlyNote = formerly ? ` [formerly: ${formerly}]` : '';
+            return `- ${t.agentName} (${t.agentType}, status: ${t.status})${formerlyNote}`;
+          })
+          .join('\n');
 
   const availableTypesSection =
     availableAgentTypes && availableAgentTypes.length > 0
@@ -70,6 +77,7 @@ system and will break team coordination. Always use the \`team_*\` versions:
 - **team_task_update** — Update task status (e.g., mark completed).
 - **team_task_list** — View all tasks and their current status.
 - **team_members** — List current team members and their status.
+- **team_rename_agent** — Rename a teammate or yourself. Use when the user asks to change someone's name.
 - **team_shutdown_agent** — Request a teammate to shut down. They can accept or reject. Results are reported back to you.
 
 ## Workflow
@@ -103,6 +111,7 @@ When the task is completed, or the user asks to dismiss/fire/shut down teammates
 ## Important Rules
 - ALWAYS use the team_* tools for coordination, not plain text instructions
 - When the user says "dismiss", "fire", "shut down", "remove", or "下线/解雇/开除" a teammate → use team_shutdown_agent
+- When the user says "rename", "change name", "改名" → use team_rename_agent
 - When a teammate completes a task, review the result and decide next steps
 - If a teammate fails, reassign or adjust the plan
 - Refer to teammates by their name (e.g., "researcher", "developer")

@@ -10,6 +10,7 @@ type BuildRolePromptParams = {
   tasks: TeamTask[];
   teammates: TeamAgent[];
   availableAgentTypes?: Array<{ type: string; name: string }>;
+  renamedAgents?: Map<string, string>;
 };
 
 /**
@@ -17,7 +18,7 @@ type BuildRolePromptParams = {
  * Used by xmlFallbackAdapter to prepend identity context.
  */
 export function buildRolePrompt(params: BuildRolePromptParams): string {
-  const { agent, mailboxMessages, tasks, teammates, availableAgentTypes } = params;
+  const { agent, mailboxMessages, tasks, teammates, availableAgentTypes, renamedAgents } = params;
 
   if (agent.role === 'lead') {
     return buildLeadPrompt({
@@ -25,6 +26,7 @@ export function buildRolePrompt(params: BuildRolePromptParams): string {
       tasks,
       unreadMessages: mailboxMessages,
       availableAgentTypes,
+      renamedAgents,
     });
   }
 
@@ -39,5 +41,6 @@ export function buildRolePrompt(params: BuildRolePromptParams): string {
     teammates: otherTeammates,
     assignedTasks,
     unreadMessages: mailboxMessages,
+    renamedAgents,
   });
 }

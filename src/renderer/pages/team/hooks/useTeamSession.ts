@@ -2,6 +2,7 @@
 import { ipcBridge } from '@/common';
 import type {
   ITeamAgentRemovedEvent,
+  ITeamAgentRenamedEvent,
   ITeamAgentSpawnedEvent,
   ITeamAgentStatusEvent,
   ITeamMessageEvent,
@@ -66,11 +67,18 @@ export function useTeamSession(team: TTeam) {
       void mutateTeam();
     });
 
+    const unsubRenamed = ipcBridge.team.agentRenamed.on((event: ITeamAgentRenamedEvent) => {
+      if (event.teamId !== team.id) return;
+      // Refresh team data so the renamed agent's tab updates
+      void mutateTeam();
+    });
+
     return () => {
       unsubStatus();
       unsubMessages();
       unsubSpawned();
       unsubRemoved();
+      unsubRenamed();
     };
   }, [team.id, mutateTeam]);
 

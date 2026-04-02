@@ -51,6 +51,8 @@ export class TeammateManager extends EventEmitter {
   private readonly ownedConversationIds = new Set<string>();
   /** Tracks conversationIds whose turn has already been finalized, to prevent double processing */
   private readonly finalizedTurns = new Set<string>();
+  /** Maps slotId → original name before rename, for "formerly: X" hints in prompts */
+  private readonly renamedAgents = new Map<string, string>();
 
   /** Maximum time (ms) to wait for a turnCompleted event before force-releasing a wake */
   private static readonly WAKE_TIMEOUT_MS = 60 * 1000;
@@ -169,7 +171,14 @@ export class TeammateManager extends EventEmitter {
         name: a.name,
       }));
 
-      const payload = adapter.buildPayload({ agent, mailboxMessages, tasks, teammates, availableAgentTypes });
+      const payload = adapter.buildPayload({
+        agent,
+        mailboxMessages,
+        tasks,
+        teammates,
+        availableAgentTypes,
+        renamedAgents: this.renamedAgents,
+      });
 
       // Clear previous buffer for this conversation
       this.responseBuffer.set(agent.conversationId, '');
@@ -587,8 +596,13 @@ export class TeammateManager extends EventEmitter {
     if (duplicate) throw new Error(`Agent name "${trimmed}" is already taken by ${duplicate.slotId}`);
 
     const oldName = agent.agentName;
+    // Only store the very first original name so multiple renames show the original
+    if (!this.renamedAgents.has(slotId)) {
+      this.renamedAgents.set(slotId, oldName);
+    }
     this.agents = this.agents.map((a) => (a.slotId === slotId ? { ...a, agentName: trimmed } : a));
     console.log(`[TeammateManager] Agent ${slotId} renamed: "${oldName}" → "${trimmed}"`);
+    ipcBridge.team.agentRenamed.emit({ teamId: this.teamId, slotId, oldName, newName: trimmed });
   }
 
   /**
