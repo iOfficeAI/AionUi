@@ -165,28 +165,6 @@ const TeamPageContent: React.FC<TeamPageContentProps> = ({ team, onAddAgent }) =
     };
   }, [updateScrollArrows]);
 
-  const scrollToPrev = useCallback(() => {
-    const idx = agents.findIndex((a) => a.slotId === activeSlotId);
-    if (idx > 0) {
-      const prevSlotId = agents[idx - 1].slotId;
-      switchTab(prevSlotId);
-      setTimeout(() => {
-        agentRefs.current[prevSlotId]?.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'start' });
-      }, 320);
-    }
-  }, [agents, activeSlotId, switchTab]);
-
-  const scrollToNext = useCallback(() => {
-    const idx = agents.findIndex((a) => a.slotId === activeSlotId);
-    if (idx < agents.length - 1) {
-      const nextSlotId = agents[idx + 1].slotId;
-      switchTab(nextSlotId);
-      setTimeout(() => {
-        agentRefs.current[nextSlotId]?.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'start' });
-      }, 320);
-    }
-  }, [agents, activeSlotId, switchTab]);
-
   const handleTabClick = useCallback(
     (slotId: string) => {
       switchTab(slotId);
@@ -210,6 +188,16 @@ const TeamPageContent: React.FC<TeamPageContentProps> = ({ team, onAddAgent }) =
     },
     [switchTab]
   );
+
+  const scrollToPrev = useCallback(() => {
+    const idx = agents.findIndex((a) => a.slotId === activeSlotId);
+    if (idx > 0) handleTabClick(agents[idx - 1].slotId);
+  }, [agents, activeSlotId, handleTabClick]);
+
+  const scrollToNext = useCallback(() => {
+    const idx = agents.findIndex((a) => a.slotId === activeSlotId);
+    if (idx < agents.length - 1) handleTabClick(agents[idx + 1].slotId);
+  }, [agents, activeSlotId, handleTabClick]);
 
   const tabsSlot = useMemo(() => <TeamTabs onAddAgent={onAddAgent} onTabClick={handleTabClick} />, [onAddAgent, handleTabClick]);
 
