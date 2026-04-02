@@ -9,6 +9,8 @@
 
 import * as net from 'node:net';
 import * as path from 'node:path';
+import type { TMessage } from '@/common/chat/chatLib';
+import { addMessage } from '@process/utils/message';
 import type { Mailbox } from './Mailbox';
 import type { TaskManager } from './TaskManager';
 import type { TeamAgent } from './types';
@@ -262,6 +264,24 @@ export class TeamMcpServer {
           content: message,
           summary,
         });
+        if (agent.conversationId) {
+          const bubbleMsgId = crypto.randomUUID();
+          const bubbleMsg: TMessage = {
+            id: bubbleMsgId,
+            msg_id: bubbleMsgId,
+            type: 'text',
+            position: 'left',
+            conversation_id: agent.conversationId,
+            content: {
+              content: message,
+              teammateMessage: true,
+              senderName: fromAgent?.agentName,
+              senderAgentType: fromAgent?.agentType,
+            },
+            createdAt: Date.now(),
+          };
+          addMessage(agent.conversationId, bubbleMsg);
+        }
         recipients.push(agent.agentName);
         void wakeAgent(agent.slotId);
       }
@@ -318,6 +338,25 @@ export class TeamMcpServer {
       content: message,
       summary,
     });
+    const targetAgent = agents.find((a) => a.slotId === targetSlotId);
+    if (targetAgent?.conversationId) {
+      const bubbleMsgId = crypto.randomUUID();
+      const bubbleMsg: TMessage = {
+        id: bubbleMsgId,
+        msg_id: bubbleMsgId,
+        type: 'text',
+        position: 'left',
+        conversation_id: targetAgent.conversationId,
+        content: {
+          content: message,
+          teammateMessage: true,
+          senderName: fromAgent?.agentName,
+          senderAgentType: fromAgent?.agentType,
+        },
+        createdAt: Date.now(),
+      };
+      addMessage(targetAgent.conversationId, bubbleMsg);
+    }
     void wakeAgent(targetSlotId);
 
     return `Message sent to ${to}'s inbox. They will process it shortly.`;
