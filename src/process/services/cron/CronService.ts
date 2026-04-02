@@ -100,6 +100,15 @@ export class CronService {
         }
         const conversation = await this.conversationRepo.getConversation(job.metadata.conversationId);
         if (!conversation) {
+          // Double-check: if the job has child conversations (via cronJobId), it's not truly orphaned.
+          // This can happen when a job's original conversationId is stale but it has produced executions.
+          const childConversations = await this.conversationRepo.getConversationsByCronJob(job.id);
+          if (childConversations.length > 0) {
+            console.log(
+              `[CronService] Skipping orphan cleanup for "${job.name}" (${job.id}): has ${childConversations.length} child conversations`
+            );
+            continue;
+          }
           console.log(
             `[CronService] Removing orphan job "${job.name}" (${job.id}): conversation ${job.metadata.conversationId} not found`
           );
