@@ -46,8 +46,8 @@ const AgentChatSlot: React.FC<{
 
   return (
     <div
-      className={`transition-all duration-300 ease-in-out ${isFullscreen ? 'absolute inset-0 z-50 bg-1 flex flex-col' : 'flex flex-col h-full'} ${isLead ? 'border-l-3 border-l-[var(--color-primary-6)]' : ''}`}
-      style={isLead ? { background: 'color-mix(in srgb, var(--color-primary-6) 2%, var(--color-bg-1))' } : undefined}
+      className={`transition-all duration-300 ease-in-out ${isFullscreen ? 'absolute inset-0 z-50 bg-1 flex flex-col' : 'flex flex-col h-full'}`}
+      style={isLead ? { borderLeft: '3px solid var(--color-primary-6)', background: 'rgba(var(--primary-6-rgb, 82, 130, 255), 0.03)' } : undefined}
     >
       <div
         className='flex items-center justify-between gap-8px px-12px h-40px shrink-0 border-b border-solid border-[color:var(--border-base)] relative z-10'
@@ -213,8 +213,8 @@ const TeamPageContent: React.FC<TeamPageContentProps> = ({ team, onAddAgent }) =
         <div className='relative flex h-full'>
           {showLeftArrow && (
             <div
-              className='absolute left-0 top-0 bottom-0 w-40px z-20 flex items-center justify-center cursor-pointer opacity-0 hover:opacity-100 transition-opacity'
-              style={{ background: 'linear-gradient(90deg, var(--color-bg-1) 30%, transparent)' }}
+              className='absolute left-0 top-0 bottom-0 w-40px z-20 flex items-center justify-center cursor-pointer opacity-60 hover:opacity-100 transition-opacity'
+              style={{ background: 'linear-gradient(90deg, var(--color-bg-1) 40%, transparent)' }}
               onClick={scrollToPrev}
             >
               <Left size='20' fill='currentColor' />
@@ -223,7 +223,7 @@ const TeamPageContent: React.FC<TeamPageContentProps> = ({ team, onAddAgent }) =
           <div
             ref={scrollContainerRef}
             className='flex h-full w-full overflow-x-auto overflow-y-hidden [scrollbar-width:none]'
-            style={{ scrollSnapType: 'x mandatory' }}
+            style={{ scrollSnapType: 'x proximity' }}
           >
             {agents.map((agent) => {
               const isSingle = agents.length <= 2;
@@ -253,8 +253,8 @@ const TeamPageContent: React.FC<TeamPageContentProps> = ({ team, onAddAgent }) =
           </div>
           {showRightArrow && (
             <div
-              className='absolute right-0 top-0 bottom-0 w-40px z-20 flex items-center justify-center cursor-pointer opacity-0 hover:opacity-100 transition-opacity'
-              style={{ background: 'linear-gradient(270deg, var(--color-bg-1) 30%, transparent)' }}
+              className='absolute right-0 top-0 bottom-0 w-40px z-20 flex items-center justify-center cursor-pointer opacity-60 hover:opacity-100 transition-opacity'
+              style={{ background: 'linear-gradient(270deg, var(--color-bg-1) 40%, transparent)' }}
               onClick={scrollToNext}
             >
               <Right size='20' fill='currentColor' />
