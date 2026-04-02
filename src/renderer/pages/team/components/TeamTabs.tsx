@@ -219,11 +219,15 @@ const TeamTabs: React.FC<TeamTabsProps> = ({ onAddAgent, onTabClick }) => {
 
   const handleDrop = useCallback(() => {
     if (dragSourceRef.current && dragOverSlotId) {
-      reorderAgents(dragSourceRef.current, dragOverSlotId);
+      // Prevent dropping onto the leader's position (index 0)
+      const targetIndex = agents.findIndex((a) => a.slotId === dragOverSlotId);
+      if (targetIndex !== 0) {
+        reorderAgents(dragSourceRef.current, dragOverSlotId);
+      }
     }
     dragSourceRef.current = null;
     setDragOverSlotId(null);
-  }, [dragOverSlotId, reorderAgents]);
+  }, [dragOverSlotId, reorderAgents, agents]);
 
   if (agents.length === 0) return null;
 

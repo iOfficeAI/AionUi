@@ -45,11 +45,14 @@ const AgentChatSlot: React.FC<{
     agent.conversationId && (agent.conversationType === 'acp' || agent.conversationType === 'codex');
 
   return (
-    <div className={`transition-all duration-300 ease-in-out ${isFullscreen ? 'absolute inset-0 z-50 bg-1 flex flex-col' : 'flex flex-col h-full'}`}>
+    <div
+      className={`transition-all duration-300 ease-in-out ${isFullscreen ? 'absolute inset-0 z-50 bg-1 flex flex-col' : 'flex flex-col h-full'} ${isLead ? 'border-l-3 border-l-[var(--color-primary-6)]' : ''}`}
+      style={isLead ? { background: 'color-mix(in srgb, var(--color-primary-6) 2%, var(--color-bg-1))' } : undefined}
+    >
       <div
         className='flex items-center justify-between gap-8px px-12px h-40px shrink-0 border-b border-solid border-[color:var(--border-base)] relative z-10'
         style={isLead
-          ? { background: 'color-mix(in srgb, var(--color-primary-6) 5%, var(--color-bg-2))' }
+          ? { background: 'color-mix(in srgb, var(--color-primary-6) 8%, var(--color-bg-2))' }
           : { background: 'var(--color-bg-2)' }
         }
       >
@@ -224,22 +227,25 @@ const TeamPageContent: React.FC<TeamPageContentProps> = ({ team, onAddAgent }) =
           >
             {agents.map((agent) => {
               const isSingle = agents.length <= 2;
+              const isActive = agent.slotId === activeSlotId;
+              const isLeadSlot = agent.slotId === leadAgent?.slotId;
               return (
                 <div
                   key={agent.slotId}
                   ref={(el) => { agentRefs.current[agent.slotId] = el; }}
                   className='shrink-0 h-full border-r border-solid border-[color:var(--border-base)]'
                   style={{
-                    width: isSingle ? undefined : '400px',
+                    width: isSingle ? undefined : (isActive ? '500px' : '360px'),
                     flex: isSingle ? 1 : undefined,
-                    minWidth: isSingle ? '240px' : '400px',
+                    minWidth: isSingle ? '240px' : (isActive ? '500px' : '360px'),
+                    transition: 'width 300ms ease-in-out, min-width 300ms ease-in-out',
                     scrollSnapAlign: 'start',
                   }}
                 >
                   <AgentChatSlot
                     agent={agent}
                     teamId={team.id}
-                    isLead={agent.slotId === leadAgent?.slotId}
+                    isLead={isLeadSlot}
                   />
                 </div>
               );

@@ -57,6 +57,12 @@ export const TeamTabsProvider: React.FC<{
       const next = [...prev];
       const [removed] = next.splice(fromIndex, 1);
       next.splice(toIndex, 0, removed);
+      // Ensure leader always stays at index 0
+      const leadIdx = next.findIndex((a) => a.role === 'lead');
+      if (leadIdx > 0) {
+        const [lead] = next.splice(leadIdx, 1);
+        next.unshift(lead);
+      }
       return next;
     });
   }, []);
