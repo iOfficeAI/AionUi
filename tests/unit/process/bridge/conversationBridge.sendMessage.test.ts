@@ -140,4 +140,29 @@ describe('conversationBridge.sendMessage', () => {
 
     expect(result).toEqual({ success: false, msg: 'not found' });
   });
+
+  it('defaults non-gemini files to an empty array when files are omitted', async () => {
+    const handler = providerCallbacks.get('conversation.sendMessage');
+    const task = {
+      type: 'acp',
+      workspace: '/mock/workspace',
+      sendMessage: vi.fn(async () => undefined),
+    };
+    mockWorkerTaskManager.getOrBuildTask.mockResolvedValue(task);
+
+    const result = await handler!({
+      conversation_id: 'acp-conversation',
+      input: 'hello',
+      msg_id: 'msg-1',
+    });
+
+    expect(result).toEqual({ success: true });
+    expect(task.sendMessage).toHaveBeenCalledWith(
+      expect.objectContaining({
+        content: 'hello',
+        files: [],
+        agentContent: 'hello',
+      })
+    );
+  });
 });

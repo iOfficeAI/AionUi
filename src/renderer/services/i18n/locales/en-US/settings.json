@@ -738,6 +738,7 @@
     "discoverMoreAgents": "Discover More Agents",
     "addAgent": "Add Agent",
     "installFromMarket": "Install from Market",
+    "marketComingSoon": "AionHub market is coming soon.",
     "detectCustomAgent": "Detect Custom Agent",
     "editCustomAgent": "Edit Custom Agent",
     "localAgentsEmpty": "No local agents detected",

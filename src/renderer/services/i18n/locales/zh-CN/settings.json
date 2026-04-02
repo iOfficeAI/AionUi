@@ -739,6 +739,7 @@
     "discoverMoreAgents": "发现更多 Agent",
     "addAgent": "添加 Agent",
     "installFromMarket": "从市场安装",
+    "marketComingSoon": "AionHub 市场即将上线。",
     "detectCustomAgent": "识别自定义 Agent",
     "editCustomAgent": "编辑自定义 Agent",
     "localAgentsEmpty": "未检测到本地 Agent",

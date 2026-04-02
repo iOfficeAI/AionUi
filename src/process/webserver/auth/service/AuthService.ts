@@ -50,6 +50,9 @@ const comparePasswordAsync = (password: string, hash: string): Promise<boolean> 
     });
   });
 
+const DUMMY_BCRYPT_PASSWORD = 'aionui-auth-dummy-password';
+const DUMMY_BCRYPT_HASH = '$2a$12$s5cKddFA1hp06nhAubmZa.eT3/xT9Bmve36cul7fZ6ch2mz9EITDu';
+
 /**
  * 认证服务 - 提供密码哈希、Token 生成与验证等能力
  * Authentication Service - handles password hashing, token issuance, and validation
@@ -498,6 +501,14 @@ export class AuthService {
     }
 
     return result;
+  }
+
+  /**
+   * 对不存在的用户执行真实的 bcrypt 校验，避免用户名枚举时序差异
+   * Perform a real bcrypt verification for missing users to avoid username-enumeration timing differences
+   */
+  public static async constantTimeVerifyMissingUser(): Promise<boolean> {
+    return this.constantTimeVerify(DUMMY_BCRYPT_PASSWORD, DUMMY_BCRYPT_HASH, true);
   }
 }
 

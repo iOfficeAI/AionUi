@@ -51,8 +51,12 @@ export const DEFAULT_IMAGE_EXTENSION = '.png';
 
 // ===== WebUI 相关常量 =====
 
-/** WebUI default port: 25808 for production, 25809 for development (environment isolation) */
-export const WEBUI_DEFAULT_PORT = process.env.NODE_ENV === 'production' ? 25808 : 25809;
+/** WebUI default port: 25808 for production, 25809 for development, 25810 for multi-instance dev */
+export const WEBUI_DEFAULT_PORT = (() => {
+  if (process.env.NODE_ENV === 'production') return 25808;
+  if (process.env.AIONUI_MULTI_INSTANCE === '1') return 25810;
+  return 25809;
+})();
 
 // ===== AI Provider 相关常量 =====
 

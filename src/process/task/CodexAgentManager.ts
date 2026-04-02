@@ -28,6 +28,7 @@ import { cronBusyGuard } from '@process/services/cron/CronBusyGuard';
 import { getDatabase } from '@process/services/database';
 import { ProcessConfig } from '@process/utils/initStorage';
 import BaseAgentManager from '@process/task/BaseAgentManager';
+import type { AgentKillReason } from '@process/task/IAgentManager';
 import { IpcAgentEventEmitter } from '@process/task/IpcAgentEventEmitter';
 import { prepareFirstMessageWithSkillsIndex } from '@process/task/agentUtils';
 import { handlePreviewOpenEvent } from '@process/utils/previewUtils';
@@ -250,6 +251,7 @@ class CodexAgentManager extends BaseAgentManager<CodexAgentManagerData> implemen
     cronMeta?: CronMessageMeta;
     silent?: boolean;
   }) {
+    this._lastActivityAt = Date.now();
     cronBusyGuard.setProcessing(this.conversation_id, true);
     // Set status to running when message is being processed
     this.status = 'running';
@@ -606,7 +608,7 @@ class CodexAgentManager extends BaseAgentManager<CodexAgentManagerData> implemen
   }
 
   // Ensure we clean up agent resources on kill
-  kill() {
+  kill(_reason?: AgentKillReason) {
     try {
       this.agent?.stop?.().catch((error) => {
         console.error('Failed to stop Codex agent during kill:', error);

@@ -740,6 +740,7 @@ export class GeminiAgentManager extends BaseAgentManager<
       // can receive events — ipcBridge.emit only delivers to renderer via webContents.send()
       teamEventBus.emit('responseStream', filteredData);
 
+
       // Emit to Channel global event bus (for Telegram and other external platforms)
       channelEventBus.emitAgentMessage(this.conversation_id, filteredData);
     });
