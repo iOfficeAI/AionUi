@@ -201,14 +201,27 @@ const TeamPageContent: React.FC<TeamPageContentProps> = ({ team, onAddAgent }) =
     if (agents[target]) handleTabClick(agents[target].slotId);
   }, [agents, activeSlotId, handleTabClick]);
 
-  // On first render, trigger scroll + flash for the initially selected tab
-  const initializedRef = useRef(false);
+  // Every time the page mounts, scroll + flash the active tab
   useEffect(() => {
-    if (!initializedRef.current && activeSlotId && agents.length > 0) {
-      initializedRef.current = true;
-      handleTabClick(activeSlotId);
+    if (activeSlotId && agents.length > 0) {
+      const timer = setTimeout(() => {
+        const el = agentRefs.current[activeSlotId];
+        if (el) {
+          el.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'start' });
+          setTimeout(() => {
+            el.style.transition = 'opacity 150ms ease-out';
+            el.style.opacity = '0';
+            setTimeout(() => {
+              el.style.transition = 'opacity 150ms ease-in';
+              el.style.opacity = '1';
+              setTimeout(() => { el.style.transition = ''; }, 200);
+            }, 150);
+          }, 400);
+        }
+      }, 320);
+      return () => clearTimeout(timer);
     }
-  }, [activeSlotId, agents.length, handleTabClick]);
+  }, []); // empty deps = only on mount
 
   const tabsSlot = useMemo(() => <TeamTabs onAddAgent={onAddAgent} onTabClick={handleTabClick} />, [onAddAgent, handleTabClick]);
 
