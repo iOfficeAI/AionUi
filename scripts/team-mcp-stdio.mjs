@@ -218,5 +218,37 @@ Use this to discover available teammates before sending messages or assigning ta
   TEAM_AGENT_SLOT_ID
 );
 
+// ---- team_rename_agent ----
+createTeamTool(
+  server,
+  'team_rename_agent',
+  `Rename a teammate. Use this to give a teammate a more descriptive name.`,
+  {
+    agent: z.string().describe('Current agent name or slot ID'),
+    new_name: z.string().describe('New name for the agent'),
+  },
+  TEAM_MCP_PORT,
+  TEAM_AGENT_SLOT_ID
+);
+
+// ---- team_shutdown_agent ----
+createTeamTool(
+  server,
+  'team_shutdown_agent',
+  `Request a teammate to shut down gracefully. The teammate can accept or reject the request.
+
+Use this when:
+- A task is completed and the teammate is no longer needed
+- The user asks to dismiss, fire, or shut down a teammate
+
+The teammate will receive a shutdown request and respond with approval or rejection.
+You will be notified of the result either way.`,
+  {
+    agent: z.string().describe('Teammate name to request shutdown'),
+  },
+  TEAM_MCP_PORT,
+  TEAM_AGENT_SLOT_ID
+);
+
 const transport = new StdioServerTransport();
 await server.connect(transport);
