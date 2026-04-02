@@ -115,6 +115,9 @@
       "weeklyAt": "毎週{{day}} {{time}} に実行"
     }
   },
+  "trigger": {
+    "runScheduledTask": "スケジュールタスクを実行：{{name}}"
+  },
   "skill": {
     "turnIntoSkill": "このタスクをSkillに変換",
     "save": "Skillとして保存",

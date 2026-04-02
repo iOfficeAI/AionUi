@@ -78,7 +78,8 @@ type TMessageType =
   | 'plan'
   | 'thinking'
   | 'available_commands'
-  | 'skill_suggest';
+  | 'skill_suggest'
+  | 'cron_trigger';
 
 interface IMessage<T extends TMessageType, Content extends Record<string, any>> {
   /**
@@ -333,6 +334,15 @@ export type IMessageSkillSuggest = IMessage<
   }
 >;
 
+export type IMessageCronTrigger = IMessage<
+  'cron_trigger',
+  {
+    cronJobId: string;
+    cronJobName: string;
+    triggeredAt: number;
+  }
+>;
+
 // eslint-disable-next-line max-len
 export type TMessage =
   | IMessageText
@@ -347,7 +357,8 @@ export type TMessage =
   | IMessagePlan
   | IMessageThinking
   | IMessageAvailableCommands
-  | IMessageSkillSuggest;
+  | IMessageSkillSuggest
+  | IMessageCronTrigger;
 
 // 统一所有需要用户交互的用户类型
 export interface IConfirmation<Option extends any = any> {
@@ -522,6 +533,21 @@ export const transformMessage = (message: IResponseMessage): TMessage => {
         conversation_id: message.conversation_id,
         position: 'center',
         content: suggestData,
+      };
+    }
+    case 'cron_trigger': {
+      const triggerData = message.data as {
+        cronJobId: string;
+        cronJobName: string;
+        triggeredAt: number;
+      };
+      return {
+        id: uuid(),
+        type: 'cron_trigger',
+        msg_id: message.msg_id,
+        conversation_id: message.conversation_id,
+        position: 'center',
+        content: triggerData,
       };
     }
     case 'start':

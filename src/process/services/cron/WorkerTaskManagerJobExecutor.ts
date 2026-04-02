@@ -4,10 +4,11 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
+import crypto from 'crypto';
 import fs from 'fs/promises';
 import path from 'path';
 import { ipcBridge } from '@/common';
-import type { CronMessageMeta } from '@/common/chat/chatLib';
+import type { CronMessageMeta, TMessage } from '@/common/chat/chatLib';
 import type { IResponseMessage } from '@/common/adapter/ipcBridge';
 import type { TChatConversation, TProviderWithModel } from '@/common/config/storage';
 import type { AcpBackendAll } from '@/common/types/acpTypes';
@@ -21,7 +22,9 @@ import { ProcessConfig } from '@process/utils/initStorage';
 import type { CronBusyGuard } from './CronBusyGuard';
 import type { CronJob } from './CronStore';
 import type { ICronJobExecutor } from './ICronJobExecutor';
+import { addMessage } from '@process/utils/message';
 import { getCronSkillDir, hasCronSkillFile } from './cronSkillFile';
+import { skillSuggestWatcher } from './SkillSuggestWatcher';
 
 /** Lazy-import to break circular dependency: cronServiceSingleton ↔ conversationServiceSingleton */
 async function getConversationService() {
@@ -55,7 +58,6 @@ export class WorkerTaskManagerJobExecutor implements ICronJobExecutor {
       }
     }
 
-    const messageText = await this.buildMessageText(job);
     const msgId = uuid();
 
     // Reuse existing task if possible; ensure yoloMode is active for scheduled runs.
@@ -94,20 +96,26 @@ export class WorkerTaskManagerJobExecutor implements ICronJobExecutor {
     const workspace = (task as { workspace?: string }).workspace;
     const workspaceFiles = workspace ? await copyFilesToDirectory(workspace, [], false) : [];
 
+    const hasSkill = await hasCronSkillFile(job.id);
+    const needsSkillSuggest =
+      job.target.executionMode === 'new_conversation' && !!workspace && !hasSkill;
+
+    const messageText = this.buildMessageText(job, hasSkill);
+
+    const triggeredAt = Date.now();
     const cronMeta: CronMessageMeta = {
       source: 'cron',
       cronJobId: job.id,
       cronJobName: job.name,
-      triggeredAt: Date.now(),
+      triggeredAt,
     };
 
-    // Hide the prompt message from UI in new_conversation mode
-    const hidden = job.target.executionMode === 'new_conversation';
+    // Always hide cron prompt messages from UI — a cron_trigger card replaces them.
+    const hidden = true;
 
-    // Check if we need to detect SKILL_SUGGEST.md after agent finishes.
-    // Only needed when no per-task skill exists yet (first execution).
-    const needsSkillDetection =
-      job.target.executionMode === 'new_conversation' && !!workspace && !(await hasCronSkillFile(job.id));
+    // Emit and persist a cron_trigger message so users see a clickable card
+    // linking back to the scheduled task detail page.
+    this.emitCronTriggerMessage(conversationId, job.id, job.name, triggeredAt);
 
     // ACP/Codex agents use 'content'; Gemini uses 'input'.
     if (task.type === 'codex' || task.type === 'acp') {
@@ -116,12 +124,12 @@ export class WorkerTaskManagerJobExecutor implements ICronJobExecutor {
       await task.sendMessage({ input: messageText, msg_id: msgId, files: workspaceFiles, cronMeta, hidden });
     }
 
-    // Detect SKILL_SUGGEST.md with retries. sendMessage resolves when the message is
-    // delivered to the worker, NOT when the agent finishes. The agent may still be
-    // processing tool calls (e.g. write_file for SKILL_SUGGEST.md). Poll with retries
-    // to catch the file once the agent truly finishes.
-    if (needsSkillDetection) {
-      void this.detectSkillSuggestWithRetry(job.id, workspace!, conversationId, 0);
+    // After the task completes, send a follow-up message asking the agent to write
+    // SKILL_SUGGEST.md, then poll for the file.
+    if (needsSkillSuggest) {
+      this.busyGuard.onceIdle(conversationId, async () => {
+        await this.sendSkillSuggestRequest(task, job, conversationId, workspace!);
+      });
     }
 
     // Return the conversationId used (may differ from job.metadata.conversationId in new_conversation mode)
@@ -297,19 +305,25 @@ export class WorkerTaskManagerJobExecutor implements ICronJobExecutor {
    * - No dedicated skill: inject full execution context with SKILL_SUGGEST guidance.
    * - existing mode: return raw payload (conversation history provides context).
    */
-  private async buildMessageText(job: CronJob): Promise<string> {
+  /**
+   * Build the message text for a cron job execution.
+   *
+   * @param job - The cron job to build the message for.
+   * @param includeSkillSuggest - Whether to include SKILL_SUGGEST.md writing instructions.
+   *   Pre-computed by the caller so the same condition drives both prompt and detection.
+   */
+  private buildMessageText(job: CronJob, hasSkill: boolean): string {
     const rawText = job.target.payload.text;
 
     if (job.target.executionMode !== 'new_conversation') {
-      return rawText;
+      return buildExistingConvPrompt(job.name, job.schedule.description, rawText);
     }
 
-    const hasSkill = await hasCronSkillFile(job.id);
     if (hasSkill) {
-      return buildCronSkillExecutionPrompt(job.name, rawText);
+      return buildNewConvWithSkillPrompt(job.name, rawText);
     }
 
-    return buildCronExecutionPrompt(job.name, job.schedule.description, rawText);
+    return buildNewConvPrompt(job.name, job.schedule.description, rawText);
   }
 
   async prepareConversation(job: CronJob): Promise<string> {
@@ -325,14 +339,44 @@ export class WorkerTaskManagerJobExecutor implements ICronJobExecutor {
     return job.metadata.conversationId;
   }
 
-  /** Max retries for detecting SKILL_SUGGEST.md (agent may still be writing it). */
+  /**
+   * Send a follow-up hidden message asking the agent to write SKILL_SUGGEST.md,
+   * then start polling for the file.
+   */
+  private async sendSkillSuggestRequest(
+    task: { type: string; sendMessage: (data: unknown) => Promise<void> },
+    job: CronJob,
+    conversationId: string,
+    workspace: string,
+  ): Promise<void> {
+    const msgId = uuid();
+    const prompt = buildSkillSuggestPrompt(job.name);
+
+    try {
+      if (task.type === 'codex' || task.type === 'acp') {
+        await task.sendMessage({ content: prompt, msg_id: msgId, hidden: true });
+      } else {
+        await task.sendMessage({ input: prompt, msg_id: msgId, hidden: true });
+      }
+    } catch (err) {
+      console.warn(`[CronExecutor] Failed to send SKILL_SUGGEST request for job ${job.id}:`, err);
+      // Still register watcher in case user manually asks agent to write it
+      skillSuggestWatcher.register(conversationId, job.id, workspace);
+      return;
+    }
+
+    void this.detectSkillSuggestWithRetry(job.id, workspace, conversationId, 0);
+  }
+
+  /** Max retries for initial SKILL_SUGGEST.md detection (agent may still be writing it). */
   private static readonly SKILL_DETECT_MAX_RETRIES = 10;
   private static readonly SKILL_DETECT_INTERVAL_MS = 3000;
 
   /**
-   * Poll for SKILL_SUGGEST.md with retries. The agent writes this file as part of its
-   * turn, but sendMessage resolves before the turn completes. Retry until the file
-   * appears or we exhaust attempts.
+   * Poll for SKILL_SUGGEST.md with retries, then register the conversation
+   * with the singleton SkillSuggestWatcher for ongoing monitoring.
+   * Subsequent detection happens via AgentManager finish handlers calling
+   * `skillSuggestWatcher.onFinish()`.
    */
   private detectSkillSuggestWithRetry(jobId: string, workspace: string, conversationId: string, attempt: number): void {
     const filePath = path.join(workspace, SKILL_SUGGEST_FILENAME);
@@ -344,32 +388,14 @@ export class WorkerTaskManagerJobExecutor implements ICronJobExecutor {
         }
 
         console.log(`[CronExecutor] Found ${SKILL_SUGGEST_FILENAME} (${content.length} chars) for job ${jobId} on attempt ${attempt + 1}`);
-        const { validateSkillContent } = await import('./cronSkillFile');
-        const validated = validateSkillContent(content);
-        if (!validated) {
-          console.warn(`[CronExecutor] ${SKILL_SUGGEST_FILENAME} validation failed for job ${jobId}`);
-          return;
-        }
 
-        // Emit a skill_suggest message to frontend (not persisted to DB).
-        // Only visible if the user currently has this conversation open.
-        const message: IResponseMessage = {
-          type: 'skill_suggest',
-          conversation_id: conversationId,
-          msg_id: uuid(),
-          data: {
-            cronJobId: jobId,
-            name: validated.name,
-            description: validated.description,
-            skillContent: content,
-          },
-        };
+        // Register for ongoing monitoring and set the initial hash
+        skillSuggestWatcher.register(conversationId, jobId, workspace);
+        const hash = contentHash(content);
+        skillSuggestWatcher.setLastHash(conversationId, hash);
 
-        // Emit on both the generic and OpenClaw-specific streams so that
-        // the frontend hook picks it up regardless of platform.
-        ipcBridge.conversation.responseStream.emit(message);
-        ipcBridge.openclawConversation.responseStream.emit(message);
-        console.log(`[CronExecutor] Emitted skill_suggest message for job ${jobId}, conversation ${conversationId}`);
+        // Emit the initial detection
+        await this.emitSkillSuggestInitial(jobId, conversationId, content);
       })
       .catch((err) => {
         // File not found or empty — retry if attempts remain
@@ -377,12 +403,80 @@ export class WorkerTaskManagerJobExecutor implements ICronJobExecutor {
           setTimeout(() => {
             this.detectSkillSuggestWithRetry(jobId, workspace, conversationId, attempt + 1);
           }, WorkerTaskManagerJobExecutor.SKILL_DETECT_INTERVAL_MS);
+        } else {
+          // Exhausted retries — register anyway in case the user asks AI to write it later
+          skillSuggestWatcher.register(conversationId, jobId, workspace);
+          console.log(`[CronExecutor] Registered watcher for job ${jobId} (file not found after ${attempt + 1} retries)`);
         }
         // Only log unexpected errors (not ENOENT/EMPTY which are expected during retries)
         if ((err as NodeJS.ErrnoException)?.code !== 'ENOENT' && (err as { code?: string })?.code !== 'EMPTY') {
           console.warn(`[CronExecutor] Error detecting ${SKILL_SUGGEST_FILENAME} for job ${jobId}:`, err);
         }
       });
+  }
+
+  /**
+   * Emit the initial skill_suggest message when SKILL_SUGGEST.md is first found.
+   */
+  private async emitSkillSuggestInitial(jobId: string, conversationId: string, content: string): Promise<void> {
+    if (await hasCronSkillFile(jobId)) {
+      skillSuggestWatcher.unregister(conversationId);
+      return;
+    }
+
+    const { validateSkillContent } = await import('./cronSkillFile');
+    const validated = validateSkillContent(content);
+    if (!validated) {
+      console.warn(`[CronExecutor] ${SKILL_SUGGEST_FILENAME} validation failed for job ${jobId}`);
+      return;
+    }
+
+    const message: IResponseMessage = {
+      type: 'skill_suggest',
+      conversation_id: conversationId,
+      msg_id: uuid(),
+      data: {
+        cronJobId: jobId,
+        name: validated.name,
+        description: validated.description,
+        skillContent: content,
+      },
+    };
+
+    ipcBridge.conversation.responseStream.emit(message);
+    ipcBridge.openclawConversation.responseStream.emit(message);
+    console.log(`[CronExecutor] Emitted initial skill_suggest for job ${jobId}, conversation ${conversationId}`);
+  }
+
+  /**
+   * Emit and persist a cron_trigger message so the frontend renders a clickable
+   * card linking to the scheduled task detail page.
+   */
+  private emitCronTriggerMessage(conversationId: string, cronJobId: string, cronJobName: string, triggeredAt: number): void {
+    const msgId = uuid();
+    const triggerMessage: TMessage = {
+      id: msgId,
+      msg_id: msgId,
+      type: 'cron_trigger',
+      position: 'center',
+      conversation_id: conversationId,
+      content: { cronJobId, cronJobName, triggeredAt },
+      createdAt: triggeredAt,
+      status: 'finish',
+    };
+
+    // Persist to database
+    addMessage(conversationId, triggerMessage);
+
+    // Emit to frontend for immediate display
+    const ipcMessage: IResponseMessage = {
+      type: 'cron_trigger',
+      conversation_id: conversationId,
+      msg_id: msgId,
+      data: { cronJobId, cronJobName, triggeredAt },
+    };
+    ipcBridge.conversation.responseStream.emit(ipcMessage);
+    ipcBridge.openclawConversation.responseStream.emit(ipcMessage);
   }
 
   onceIdle(conversationId: string, callback: () => Promise<void>): void {
@@ -394,15 +488,19 @@ export class WorkerTaskManagerJobExecutor implements ICronJobExecutor {
   }
 }
 
+/** Content hash for deduplication. */
+function contentHash(str: string): string {
+  return crypto.createHash('sha256').update(str).digest('hex');
+}
+
 /** The fixed filename agents write skill suggestions to in the workspace root. */
 export const SKILL_SUGGEST_FILENAME = 'SKILL_SUGGEST.md';
 
 /**
- * Build the full prompt for a scheduled task execution without a dedicated skill.
- * Instructs the agent to write a SKILL_SUGGEST.md file in the workspace instead of
- * outputting skill suggestion tags in the response body.
+ * New-conversation mode, first run (no saved skill yet).
+ * Pure task context — SKILL_SUGGEST.md is triggered separately after completion.
  */
-function buildCronExecutionPrompt(taskName: string, scheduleDesc: string, userPrompt: string): string {
+function buildNewConvPrompt(taskName: string, scheduleDesc: string, userPrompt: string): string {
   return `[Scheduled Task Context]
 Task: ${taskName}
 Schedule: ${scheduleDesc}
@@ -411,31 +509,16 @@ Rules:
 1. Execute the task directly — do NOT ask clarifying questions.
 2. Focus on producing useful, actionable output.
 3. If the task requires external data (news, weather, etc.), search for the latest information.
-
-IMPORTANT — Skill suggestion (do NOT output this in your response):
-This is a recurring scheduled task. After completing the task, silently write a file named
-"${SKILL_SUGGEST_FILENAME}" in the current working directory. This file captures the execution
-pattern so future runs stay consistent. Do NOT mention this file or its content in your response.
-
-The file must be a valid SKILL.md with YAML frontmatter. Example structure:
----
-name: <short kebab-case name, e.g. daily-greeting>
-description: <one-line description of what this task does>
----
-
-<Full instructions: output format, tone, sources to check, steps to follow, quality criteria.>
-
-Replace ALL placeholders with real content specific to this task "${taskName}".
 [/Scheduled Task Context]
 
 ${userPrompt}`;
 }
 
 /**
- * Build the prompt for a scheduled task execution that has a dedicated skill.
- * Reminds the agent to follow the skill instructions in its workspace.
+ * New-conversation mode with a saved skill.
+ * Reminds the agent to follow the skill instructions loaded into its workspace.
  */
-function buildCronSkillExecutionPrompt(taskName: string, userPrompt: string): string {
+function buildNewConvWithSkillPrompt(taskName: string, userPrompt: string): string {
   return `[Scheduled Task Context]
 Task: ${taskName}
 
@@ -449,4 +532,47 @@ Rules:
 [/Scheduled Task Context]
 
 ${userPrompt}`;
+}
+
+/**
+ * Existing-conversation (same conversation) mode.
+ * Wraps the raw user prompt with explicit context so the AI treats it as a
+ * task instruction, not a casual chat message.
+ */
+function buildExistingConvPrompt(taskName: string, scheduleDesc: string, userPrompt: string): string {
+  return `[Scheduled Task Execution]
+Task: ${taskName}
+Schedule: ${scheduleDesc}
+
+This message is NOT a conversation from the user — it is a scheduled task triggered automatically.
+The text below is a TASK INSTRUCTION that you must execute, not something the user is saying to you.
+
+Rules:
+1. Treat the instruction as a command to perform, not as a chat message to respond to.
+2. Execute it directly — do NOT ask clarifying questions.
+3. If the task requires external data (news, weather, etc.), search for the latest information.
+
+Task instruction:
+${userPrompt}`;
+}
+
+/**
+ * Follow-up prompt sent after task completion to ask the agent to write SKILL_SUGGEST.md.
+ * Separated from the task prompt so the agent focuses on execution first.
+ */
+function buildSkillSuggestPrompt(taskName: string): string {
+  return `[System — Skill Suggestion]
+You just completed the scheduled task "${taskName}". This is a recurring task.
+To keep future executions consistent, write a file named "${SKILL_SUGGEST_FILENAME}" in the
+current working directory. Do NOT output anything else — just write the file silently.
+
+The file must be a valid SKILL.md with YAML frontmatter:
+---
+name: <short kebab-case name, e.g. daily-greeting>
+description: <one-line description of what this task does>
+---
+
+<Full instructions capturing the execution pattern you just used: output format, tone,
+sources to check, steps to follow, quality criteria. Replace ALL placeholders with real
+content specific to this task.>`;
 }

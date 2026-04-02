@@ -111,6 +111,9 @@
       "weeklyAt": "매주 {{day}} {{time}}에 실행"
     }
   },
+  "trigger": {
+    "runScheduledTask": "예약 작업 실행: {{name}}"
+  },
   "skill": {
     "turnIntoSkill": "이 작업을 Skill로 전환",
     "save": "Skill로 저장",

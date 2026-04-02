@@ -115,6 +115,9 @@
       "weeklyAt": "Her {{day}} {{time}}'de çalıştır"
     }
   },
+  "trigger": {
+    "runScheduledTask": "Zamanlanmış görev çalıştır: {{name}}"
+  },
   "skill": {
     "turnIntoSkill": "Bu görevi Skill'e dönüştür",
     "save": "Skill olarak kaydet",

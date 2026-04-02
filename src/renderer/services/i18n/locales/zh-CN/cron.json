@@ -113,6 +113,9 @@
       "weeklyAt": "每周{{day}} {{time}} 执行"
     }
   },
+  "trigger": {
+    "runScheduledTask": "执行定时任务：{{name}}"
+  },
   "skill": {
     "turnIntoSkill": "将此任务转为 Skill",
     "save": "保存为 Skill",

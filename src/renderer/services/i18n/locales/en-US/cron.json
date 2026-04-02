@@ -112,6 +112,9 @@
       "weeklyAt": "Every {{day}} at {{time}}"
     }
   },
+  "trigger": {
+    "runScheduledTask": "Run scheduled task: {{name}}"
+  },
   "skill": {
     "turnIntoSkill": "Turn this task into a skill",
     "save": "Save as Skill",

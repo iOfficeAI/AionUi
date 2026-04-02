@@ -49,7 +49,10 @@ const SkillSuggestCard: React.FC<SkillSuggestCardProps> = ({ suggestion, cronJob
   };
 
   return (
-    <div className='mt-8px p-12px rd-8px bg-fill-2 border border-solid border-line-2'>
+    <div
+      className='mt-8px p-12px rd-8px bg-fill-0 b-1 b-solid'
+      style={{ borderColor: 'color-mix(in srgb, var(--color-border-2) 70%, transparent)' }}
+    >
       <div className='flex items-center gap-6px mb-8px'>
         <Lightning theme='filled' size={16} fill={iconColors.warning} />
         <span className='font-500 text-14px'>{t('cron.skill.turnIntoSkill')}</span>

@@ -30,6 +30,7 @@ import MessageTips from './components/MessageTips';
 import MessageToolCall from './components/MessageToolCall';
 import MessageToolGroup from './components/MessageToolGroup';
 import MessageToolGroupSummary from './components/MessageToolGroupSummary';
+import MessageCronTrigger from './components/MessageCronTrigger';
 import MessageSkillSuggest from './components/MessageSkillSuggest';
 import MessageText from './components/MessagetText';
 import MessageThinking from './components/MessageThinking';
@@ -135,6 +136,8 @@ const MessageItem: React.FC<{ message: TMessage; highlighted?: boolean }> = Reac
         return <MessageThinking message={message}></MessageThinking>;
       case 'skill_suggest':
         return <MessageSkillSuggest message={message} />;
+      case 'cron_trigger':
+        return <MessageCronTrigger message={message} />;
       case 'available_commands':
         return null;
       default:

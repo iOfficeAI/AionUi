@@ -34,6 +34,7 @@ const ACP_PERF_LOG = process.env.ACP_PERF === '1';
 import BaseAgentManager from './BaseAgentManager';
 import { IpcAgentEventEmitter } from './IpcAgentEventEmitter';
 import { hasCronCommands } from './CronCommandDetector';
+import { skillSuggestWatcher } from '@process/services/cron/SkillSuggestWatcher';
 import { extractAndStripThinkTags } from './ThinkTagDetector';
 import { hasNativeSkillSupport } from '@/common/types/acpTypes';
 import { prepareFirstMessageWithSkillsIndex } from '@process/task/agentUtils';
@@ -517,6 +518,8 @@ class AcpAgentManager extends BaseAgentManager<AcpAgentManagerData, AcpPermissio
               this.thinkingStartTime = null;
               this.thinkingContent = '';
             }
+            // Check for SKILL_SUGGEST.md updates (registered by cron executor)
+            skillSuggestWatcher.onFinish(this.conversation_id);
           }
 
           // Process cron commands when turn ends (finish signal)

@@ -15,6 +15,7 @@ import type { AcpBackendAll } from '@/common/types/acpTypes';
 import { getDatabase } from '@process/services/database';
 import { addMessage, addOrUpdateMessage } from '@process/utils/message';
 import { cronBusyGuard } from '@process/services/cron/CronBusyGuard';
+import { skillSuggestWatcher } from '@process/services/cron/SkillSuggestWatcher';
 import BaseAgentManager from '@process/task/BaseAgentManager';
 import { IpcAgentEventEmitter } from '@process/task/IpcAgentEventEmitter';
 
@@ -155,6 +156,7 @@ class OpenClawAgentManager extends BaseAgentManager<OpenClawAgentManagerData> {
     // Handle finish event
     if (msg.type === 'finish') {
       cronBusyGuard.setProcessing(this.conversation_id, false);
+      skillSuggestWatcher.onFinish(this.conversation_id);
     }
 
     // Emit signal events to frontend
