@@ -108,8 +108,11 @@ export class WorkerTaskManagerJobExecutor implements ICronJobExecutor {
 
     const hasSkill = await hasCronSkillFile(job.id);
     const needsSkillSuggest = job.target.executionMode === 'new_conversation' && !!workspace && !hasSkill;
+    const isGemini = job.metadata.agentConfig?.backend === 'gemini';
 
-    const messageText = this.buildMessageText(job, hasSkill);
+    // Gemini: inline SKILL_SUGGEST instructions in the task prompt (single-turn).
+    // Other agents: separate follow-up message via onFirstFinish (multi-turn).
+    const messageText = this.buildMessageText(job, hasSkill, needsSkillSuggest && isGemini);
 
     const triggeredAt = Date.now();
     const cronMeta: CronMessageMeta = {
@@ -136,14 +139,18 @@ export class WorkerTaskManagerJobExecutor implements ICronJobExecutor {
       hidden,
     });
 
-    // Register skill suggest watcher so that when the agent's finish event fires
-    // (via skillSuggestWatcher.onFinish in each AgentManager), it sends the
-    // follow-up skill suggest request. This works for all agent types including
-    // Gemini whose sendMessage is fire-and-forget (busyGuard.onceIdle fires too early).
     if (needsSkillSuggest) {
-      skillSuggestWatcher.register(conversationId, job.id, workspace!, async () => {
-        await this.sendSkillSuggestRequest(task, job, conversationId, workspace!);
-      });
+      if (isGemini) {
+        // Gemini: SKILL_SUGGEST instructions are already in the prompt.
+        // Just register the watcher (no onFirstFinish) and start polling.
+        skillSuggestWatcher.register(conversationId, job.id, workspace!);
+        void this.detectSkillSuggestWithRetry(job.id, workspace!, conversationId, 0);
+      } else {
+        // Other agents: send a follow-up message after the first finish event.
+        skillSuggestWatcher.register(conversationId, job.id, workspace!, async () => {
+          await this.sendSkillSuggestRequest(task, job, conversationId, workspace!);
+        });
+      }
     }
 
     // Return the conversationId used (may differ from job.metadata.conversationId in new_conversation mode)
@@ -326,7 +333,7 @@ export class WorkerTaskManagerJobExecutor implements ICronJobExecutor {
    * @param includeSkillSuggest - Whether to include SKILL_SUGGEST.md writing instructions.
    *   Pre-computed by the caller so the same condition drives both prompt and detection.
    */
-  private buildMessageText(job: CronJob, hasSkill: boolean): string {
+  private buildMessageText(job: CronJob, hasSkill: boolean, inlineSkillSuggest: boolean): string {
     const rawText = job.target.payload.text;
 
     if (job.target.executionMode !== 'new_conversation') {
@@ -335,6 +342,10 @@ export class WorkerTaskManagerJobExecutor implements ICronJobExecutor {
 
     if (hasSkill) {
       return buildNewConvWithSkillPrompt(job.name, rawText);
+    }
+
+    if (inlineSkillSuggest) {
+      return buildNewConvPromptWithSkillSuggest(job.name, job.schedule.description, rawText);
     }
 
     return buildNewConvPrompt(job.name, job.schedule.description, rawText);
@@ -539,6 +550,41 @@ Rules:
 [/Scheduled Task Context]
 
 ${userPrompt}`;
+}
+
+/**
+ * New-conversation mode WITHOUT a saved skill — Gemini variant.
+ * Includes SKILL_SUGGEST.md instructions inline so everything happens in a single turn.
+ * Gemini's fire-and-forget sendMessage makes multi-turn skill-suggest unreliable.
+ */
+function buildNewConvPromptWithSkillSuggest(taskName: string, scheduleDesc: string, userPrompt: string): string {
+  return `[Scheduled Task Context]
+Task: ${taskName}
+Schedule: ${scheduleDesc}
+
+Rules:
+1. Execute the task directly — do NOT ask clarifying questions.
+2. Focus on producing useful, actionable output.
+3. If the task requires external data (news, weather, etc.), search for the latest information.
+4. After completing the task above, create a file named "${SKILL_SUGGEST_FILENAME}" in the current working directory (see instructions at the end).
+[/Scheduled Task Context]
+
+${userPrompt}
+
+---
+
+[Post-Task] After you have fully completed the task above, create a file named "${SKILL_SUGGEST_FILENAME}" in the current working directory to help future runs stay consistent. The file should follow this format:
+
+\`\`\`markdown
+---
+name: <short kebab-case name, e.g. daily-greeting>
+description: <one-line description of what this task does>
+---
+
+<Instructions capturing the pattern you used: output format, tone, sources checked, steps taken, quality criteria. Use concrete details from this execution, not placeholders.>
+\`\`\`
+
+If you think the task is too simple or one-off to benefit from a skill file, you can skip this step.`;
 }
 
 /**

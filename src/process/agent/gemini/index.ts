@@ -560,7 +560,7 @@ export class GeminiAgent {
         this.onStreamEvent({
           type: 'error',
           data: `Connection lost: ${event.reason}. Please try again.`,
-          msg_id,
+          msg_id: uuid(),
         });
       }
     };
@@ -603,9 +603,11 @@ export class GeminiAgent {
           return;
         }
 
+        // Use a fresh msg_id for error events so error/tips messages don't
+        // replace already-streamed content that shares the original msg_id.
         this.onStreamEvent({
           ...data,
-          msg_id,
+          msg_id: data.type === 'error' ? uuid() : msg_id,
         });
       },
       { onConnectionEvent }
