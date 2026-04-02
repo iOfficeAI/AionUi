@@ -474,7 +474,7 @@ export function initConversationBridge(
     } else {
       // Non-Gemini agents (ACP, Codex, NanoBot, OpenClaw, Remote): Use cache directory paths directly
       // Filter to only include absolute paths that exist
-      workspaceFiles = files.filter((f) => path.isAbsolute(f));
+      workspaceFiles = (files ?? []).filter((f) => path.isAbsolute(f));
     }
 
     // Precompute agent content with optional skill injection.
