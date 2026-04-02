@@ -38,14 +38,6 @@ export class ConversationServiceImpl implements IConversationService {
   }
 
   async deleteConversation(id: string): Promise<void> {
-    try {
-      const jobs = await cronService.listJobsByConversation(id);
-      for (const job of jobs) {
-        await cronService.removeJob(job.id);
-      }
-    } catch (err) {
-      console.warn('[ConversationServiceImpl] Failed to cleanup cron jobs:', err);
-    }
     await this.repo.deleteConversation(id);
   }
 

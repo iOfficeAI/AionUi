@@ -24,7 +24,6 @@
     "delete": "刪除",
     "runNow": "立即執行"
   },
-  "confirmDelete": "確定要刪除此定時任務嗎？",
   "confirmDeleteWithConversations": "確定要刪除此定時任務嗎？該任務下的所有對話也將被刪除。",
   "deleteSuccess": "任務已刪除",
   "pauseSuccess": "任務已暫停",

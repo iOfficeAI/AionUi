@@ -134,15 +134,13 @@ const ScheduledTasksPage: React.FC = () => {
                 </div>
                 <div className='text-13px text-text-3 truncate mb-8px'>{formatSchedule(job)}</div>
                 <div className='flex items-center justify-between'>
-                  <span className='text-12px text-text-3'>{formatNextRun(job.state.nextRunAtMs)}</span>
+                  <span className='text-12px text-text-3'>
+                    {job.state.nextRunAtMs ? `${t('cron.nextRun')} ${formatNextRun(job.state.nextRunAtMs)}` : ''}
+                  </span>
                   <div className='flex items-center gap-6px' onClick={(e) => e.stopPropagation()}>
                     <Switch size='small' checked={job.enabled} onChange={() => handleToggleEnabled(job)} />
                     <Popconfirm
-                      title={
-                        job.target.executionMode === 'new_conversation'
-                          ? t('cron.confirmDeleteWithConversations')
-                          : t('cron.confirmDelete')
-                      }
+                      title={t('cron.confirmDeleteWithConversations')}
                       onOk={() => handleDelete(job.id)}
                     >
                       <Button size='mini' type='text' status='danger' icon={<Delete theme='outline' size={14} />} />

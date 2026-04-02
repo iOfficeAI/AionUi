@@ -23,7 +23,6 @@
     "resume": "Resume",
     "delete": "Delete"
   },
-  "confirmDelete": "Are you sure you want to delete this scheduled task?",
   "confirmDeleteWithConversations": "Are you sure you want to delete this scheduled task? All conversations from this task will also be deleted.",
   "deleteSuccess": "Task deleted",
   "pauseSuccess": "Task paused",

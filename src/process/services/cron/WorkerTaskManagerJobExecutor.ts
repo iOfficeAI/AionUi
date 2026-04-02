@@ -49,8 +49,19 @@ export class WorkerTaskManagerJobExecutor implements ICronJobExecutor {
     // Create a conversation when needed (skip if already prepared):
     // - new_conversation mode: always create a fresh conversation per execution
     // - existing mode with empty conversationId: first execution creates the shared conversation
+    // - existing mode with deleted conversation: recreate to avoid "not found" errors
     if (!preparedConversationId && job.metadata.agentConfig) {
-      const needsCreate = job.target.executionMode === 'new_conversation' || !conversationId;
+      let needsCreate = job.target.executionMode === 'new_conversation' || !conversationId;
+
+      // For existing mode, verify the conversation still exists (may have been deleted by user)
+      if (!needsCreate && conversationId) {
+        const convService = await getConversationService();
+        const exists = await convService.getConversation(conversationId);
+        if (!exists) {
+          needsCreate = true;
+        }
+      }
+
       if (needsCreate) {
         const newConv = await this.buildConversationForJob(job);
         conversationId = newConv.id;
@@ -115,17 +126,15 @@ export class WorkerTaskManagerJobExecutor implements ICronJobExecutor {
     // linking back to the scheduled task detail page.
     this.emitCronTriggerMessage(conversationId, job.id, job.name, triggeredAt);
 
-    // ACP/Codex agents use 'content'; Gemini uses 'input'.
-    if (task.type === 'codex' || task.type === 'acp') {
-      await task.sendMessage({ content: messageText, msg_id: msgId, files: workspaceFiles, cronMeta, hidden });
-    } else {
-      await task.sendMessage({ input: messageText, msg_id: msgId, files: workspaceFiles, cronMeta, hidden });
-    }
+    // Pass both content and input — each agent type picks the field it uses.
+    await task.sendMessage({ content: messageText, input: messageText, msg_id: msgId, files: workspaceFiles, cronMeta, hidden });
 
-    // After the task completes, send a follow-up message asking the agent to write
-    // SKILL_SUGGEST.md, then poll for the file.
+    // Register skill suggest watcher so that when the agent's finish event fires
+    // (via skillSuggestWatcher.onFinish in each AgentManager), it sends the
+    // follow-up skill suggest request. This works for all agent types including
+    // Gemini whose sendMessage is fire-and-forget (busyGuard.onceIdle fires too early).
     if (needsSkillSuggest) {
-      this.busyGuard.onceIdle(conversationId, async () => {
+      skillSuggestWatcher.register(conversationId, job.id, workspace!, async () => {
         await this.sendSkillSuggestRequest(task, job, conversationId, workspace!);
       });
     }
@@ -351,15 +360,10 @@ export class WorkerTaskManagerJobExecutor implements ICronJobExecutor {
     const prompt = buildSkillSuggestPrompt(job.name);
 
     try {
-      if (task.type === 'codex' || task.type === 'acp') {
-        await task.sendMessage({ content: prompt, msg_id: msgId, hidden: true });
-      } else {
-        await task.sendMessage({ input: prompt, msg_id: msgId, hidden: true });
-      }
+      // Pass both content and input — each agent type picks the field it uses.
+      await task.sendMessage({ content: prompt, input: prompt, msg_id: msgId, hidden: true });
     } catch (err) {
       console.warn(`[CronExecutor] Failed to send SKILL_SUGGEST request for job ${job.id}:`, err);
-      // Still register watcher in case user manually asks agent to write it
-      skillSuggestWatcher.register(conversationId, job.id, workspace);
       return;
     }
 
@@ -446,6 +450,8 @@ export class WorkerTaskManagerJobExecutor implements ICronJobExecutor {
     };
 
     ipcBridge.conversation.responseStream.emit(message);
+    ipcBridge.geminiConversation.responseStream.emit(message);
+    ipcBridge.acpConversation.responseStream.emit(message);
     ipcBridge.openclawConversation.responseStream.emit(message);
     console.log(`[CronExecutor] Emitted initial skill_suggest for job ${jobId}, conversation ${conversationId}`);
   }
@@ -483,6 +489,8 @@ export class WorkerTaskManagerJobExecutor implements ICronJobExecutor {
       data: { cronJobId, cronJobName, triggeredAt },
     };
     ipcBridge.conversation.responseStream.emit(ipcMessage);
+    ipcBridge.geminiConversation.responseStream.emit(ipcMessage);
+    ipcBridge.acpConversation.responseStream.emit(ipcMessage);
     ipcBridge.openclawConversation.responseStream.emit(ipcMessage);
   }
 
@@ -568,18 +576,18 @@ ${userPrompt}`;
  * Separated from the task prompt so the agent focuses on execution first.
  */
 function buildSkillSuggestPrompt(taskName: string): string {
-  return `[System — Skill Suggestion]
-You just completed the scheduled task "${taskName}". This is a recurring task.
-To keep future executions consistent, write a file named "${SKILL_SUGGEST_FILENAME}" in the
-current working directory. Do NOT output anything else — just write the file silently.
+  return `The task "${taskName}" is a recurring scheduled task. Based on what you just did, please create a file named "${SKILL_SUGGEST_FILENAME}" in the current working directory to help future runs stay consistent.
 
-The file must be a valid SKILL.md with YAML frontmatter:
+The file should follow this format:
+
+\`\`\`markdown
 ---
 name: <short kebab-case name, e.g. daily-greeting>
 description: <one-line description of what this task does>
 ---
 
-<Full instructions capturing the execution pattern you just used: output format, tone,
-sources to check, steps to follow, quality criteria. Replace ALL placeholders with real
-content specific to this task.>`;
+<Instructions capturing the pattern you used: output format, tone, sources checked, steps taken, quality criteria. Use concrete details from this execution, not placeholders.>
+\`\`\`
+
+If you think the task is too simple or one-off to benefit from a skill file, you can skip this.`;
 }

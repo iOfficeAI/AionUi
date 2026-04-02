@@ -486,7 +486,6 @@ export type I18nKey =
   | 'cron.actions.pause'
   | 'cron.actions.resume'
   | 'cron.allScheduledTasks'
-  | 'cron.confirmDelete'
   | 'cron.confirmDeleteWithConversations'
   | 'cron.deleteSuccess'
   | 'cron.detail.agent'

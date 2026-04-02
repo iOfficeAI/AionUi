@@ -18,6 +18,8 @@ interface WatchEntry {
   jobId: string;
   workspace: string;
   lastHash: string | null;
+  /** One-shot callback fired on the first onFinish() call (e.g. send skill suggest request). */
+  onFirstFinish?: () => Promise<void>;
 }
 
 /**
@@ -36,9 +38,9 @@ class SkillSuggestWatcher {
    * Register a conversation for SKILL_SUGGEST.md monitoring.
    * Called by the executor after initial detection or when retries are exhausted.
    */
-  register(conversationId: string, jobId: string, workspace: string): void {
+  register(conversationId: string, jobId: string, workspace: string, onFirstFinish?: () => Promise<void>): void {
     if (this.entries.has(conversationId)) return;
-    this.entries.set(conversationId, { jobId, workspace, lastHash: null });
+    this.entries.set(conversationId, { jobId, workspace, lastHash: null, onFirstFinish });
   }
 
   /**
@@ -71,6 +73,18 @@ class SkillSuggestWatcher {
   onFinish(conversationId: string): void {
     const entry = this.entries.get(conversationId);
     if (!entry) return;
+
+    // Fire one-shot callback on first finish (e.g. send skill suggest follow-up message)
+    if (entry.onFirstFinish) {
+      const cb = entry.onFirstFinish;
+      entry.onFirstFinish = undefined;
+      cb().catch((err) => {
+        console.warn(`[SkillSuggestWatcher] onFirstFinish callback failed for ${conversationId}:`, err);
+      });
+      // Skip file check on this finish — the follow-up message hasn't been processed yet.
+      // The next finish (after agent writes the file) will trigger checkWithRetry.
+      return;
+    }
 
     this.checkWithRetry(conversationId, entry, 0);
   }
@@ -131,6 +145,8 @@ class SkillSuggestWatcher {
       };
 
       ipcBridge.conversation.responseStream.emit(message);
+      ipcBridge.geminiConversation.responseStream.emit(message);
+      ipcBridge.acpConversation.responseStream.emit(message);
       ipcBridge.openclawConversation.responseStream.emit(message);
       console.log(`[SkillSuggestWatcher] Emitted skill_suggest for job ${jobId}, conversation ${conversationId}`);
 

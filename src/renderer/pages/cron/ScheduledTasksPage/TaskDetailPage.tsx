@@ -148,7 +148,7 @@ const TaskDetailPage: React.FC = () => {
           className='inline-flex items-center gap-4px text-13px text-text-3 cursor-pointer hover:text-text-1'
           onClick={() => navigate('/scheduled')}
         >
-          <Left theme='outline' size={14} />
+          <Left theme='outline' size={14} className='line-height-0 shrink-0' />
           {t('cron.detail.backToAll')}
         </span>
       </div>
@@ -175,7 +175,7 @@ const TaskDetailPage: React.FC = () => {
               onClick={() => setEditDialogVisible(true)}
             />
             <Popconfirm
-              title={isNewConversationMode ? t('cron.confirmDeleteWithConversations') : t('cron.confirmDelete')}
+              title={t('cron.confirmDeleteWithConversations')}
               onOk={handleDelete}
             >
               <Button type='text' status='danger' icon={<Delete theme='outline' size={16} />} />
@@ -268,7 +268,14 @@ const TaskDetailPage: React.FC = () => {
                 ))}
               </div>
             ) : (
-              <span className='text-14px text-text-3'>{t('cron.detail.noHistory')}</span>
+              <div className='text-14px text-text-3'>
+                <span>{t('cron.detail.noHistory')}</span>
+                {job.enabled && job.state.nextRunAtMs && (
+                  <span className='ml-4px'>
+                    · {t('cron.nextRun')} {formatNextRun(job.state.nextRunAtMs)}
+                  </span>
+                )}
+              </div>
             )
           ) : // existing mode: show last run info
           job.state.lastRunAtMs ? (
@@ -279,7 +286,14 @@ const TaskDetailPage: React.FC = () => {
               )}
             </div>
           ) : (
-            <span className='text-14px text-text-3'>{t('cron.detail.noHistory')}</span>
+            <div className='text-14px text-text-3'>
+              <span>{t('cron.detail.noHistory')}</span>
+              {job.enabled && job.state.nextRunAtMs && (
+                <span className='ml-4px'>
+                  · {t('cron.nextRun')} {formatNextRun(job.state.nextRunAtMs)}
+                </span>
+              )}
+            </div>
           )}
         </div>
       </div>
