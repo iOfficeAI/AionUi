@@ -115,7 +115,7 @@ const AgentChatSlot: React.FC<{
         </div>
         <div className='flex items-center gap-8px shrink-0'>
           {agent.conversationId && !isAionrs && isAcpLike && (
-            <div className='min-w-0'>
+            <div className='min-w-0 max-w-140px [&_button]:max-w-full [&_button_span]:truncate'>
               <AcpModelSelector
                 key={agent.conversationId}
                 conversationId={agent.conversationId}
@@ -125,12 +125,12 @@ const AgentChatSlot: React.FC<{
             </div>
           )}
           {agent.conversationId && isGemini && (
-            <div className='min-w-0'>
+            <div className='min-w-0 max-w-140px [&_button]:max-w-full [&_button_span]:truncate'>
               <GeminiModelSelector selection={geminiModelSelection} />
             </div>
           )}
           {isAionrs && agent.conversationId && (
-            <div className='min-w-0'>
+            <div className='min-w-0 max-w-140px [&_button]:max-w-full [&_button_span]:truncate'>
               <AionrsHeaderModelSelector
                 key={agent.conversationId}
                 conversationId={agent.conversationId}
