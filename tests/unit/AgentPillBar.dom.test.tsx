@@ -155,14 +155,14 @@ describe('AgentPillBar', () => {
     expect(screen.queryByText('Hidden Custom')).toBeNull();
   });
 
-  it('navigates to /settings/agent?tab=remote when + clicked', () => {
+  it('navigates to /settings/agent?tab=local when + clicked', () => {
     const agents: AvailableAgent[] = [makeAgent({ backend: 'claude', name: 'Claude' })];
     render(<AgentPillBar {...defaultProps} availableAgents={agents} />);
     const plusIcon = screen.getByTestId('icon-plus');
     const plusDiv = plusIcon.closest('div') as HTMLElement;
     expect(plusDiv).toBeTruthy();
     fireEvent.click(plusDiv);
-    expect(mockNavigate).toHaveBeenCalledWith('/settings/agent?tab=remote');
+    expect(mockNavigate).toHaveBeenCalledWith('/settings/agent?tab=local');
   });
 
   it('renders separator dividers between agents on desktop', () => {

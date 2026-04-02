@@ -46,6 +46,14 @@
   }
 }
 
+/* Workspace open button dropdown styles */
+.workspace-open-dropdown {
+  background-color: var(--color-bg-2);
+  border-radius: 4px;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+  color: var(--color-text-1);
+}
+
 /* Mobile: conversation header pills */
 @media (max-width: 767px) {
   .agent-mode-compact-pill {

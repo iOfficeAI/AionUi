@@ -180,6 +180,12 @@
       "reset": "Revert Changes",
       "noUnstaged": "No unstaged changes",
       "noStaged": "No staged changes"
+    },
+    "openWorkspace": "Open workspace folder",
+    "openWith": {
+      "vscode": "VS Code",
+      "terminal": "Terminal",
+      "explorer": "File Explorer"
     }
   },
   "minimap": {

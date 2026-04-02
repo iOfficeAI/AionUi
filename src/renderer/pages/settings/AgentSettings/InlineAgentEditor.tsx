@@ -6,8 +6,9 @@
 
 import type { AcpBackendConfig } from '@/common/types/acpTypes';
 import { acpConversation } from '@/common/adapter/ipcBridge';
-import { Alert, Button, Collapse, Input, Space } from '@arco-design/web-react';
+import { Alert, Avatar, Button, Collapse, Input, Space } from '@arco-design/web-react';
 import { Plus, Delete, CheckOne, CloseOne } from '@icon-park/react';
+import EmojiPicker from '@/renderer/components/chat/EmojiPicker';
 import CodeMirror from '@uiw/react-codemirror';
 import { json } from '@codemirror/lang-json';
 import { useThemeContext } from '@/renderer/hooks/context/ThemeContext';
@@ -75,6 +76,7 @@ const InlineAgentEditor: React.FC<InlineAgentEditorProps> = ({ agent, onSave, on
   const { t } = useTranslation();
   const { theme } = useThemeContext();
 
+  const [avatar, setAvatar] = useState('🤖');
   const [name, setName] = useState('');
   const [command, setCommand] = useState('');
   const [argsString, setArgsString] = useState('');
@@ -114,11 +116,13 @@ const InlineAgentEditor: React.FC<InlineAgentEditorProps> = ({ agent, onSave, on
     setJsonError('');
     isJsonEditingRef.current = false;
     if (agent) {
+      setAvatar(agent.avatar || '🤖');
       setName(agent.name || '');
       setCommand(agent.defaultCliPath || '');
       setArgsString(agent.acpArgs?.join(' ') || '');
       setEnvVars(objectToEnvVars(agent.env));
     } else {
+      setAvatar('🤖');
       setName('');
       setCommand('');
       setArgsString('');
@@ -205,6 +209,7 @@ const InlineAgentEditor: React.FC<InlineAgentEditorProps> = ({ agent, onSave, on
     const customAgent: AcpBackendConfig = {
       id: agent?.id || uuid(),
       name: name.trim() || 'Custom Agent',
+      avatar,
       defaultCliPath: command.trim(),
       enabled: agent?.enabled !== false,
       acpArgs: parsedArgs.length > 0 ? parsedArgs : undefined,
@@ -218,10 +223,23 @@ const InlineAgentEditor: React.FC<InlineAgentEditorProps> = ({ agent, onSave, on
 
   return (
     <div className='px-16px py-12px mx-16px rd-8px bg-fill-2 space-y-12px'>
-      {/* Display Name */}
-      <div>
-        <div className='mb-4px text-sm font-medium text-t-primary'>{t('settings.agentDisplayName')}</div>
-        <Input value={name} onChange={handleNameChange} placeholder={t('settings.agentNamePlaceholder')} />
+      {/* Avatar + Name row */}
+      <div className='flex items-center gap-12px'>
+        <EmojiPicker onChange={(emoji) => setAvatar(emoji)}>
+          <div className='cursor-pointer shrink-0'>
+            <Avatar
+              size={48}
+              shape='square'
+              style={{ backgroundColor: 'var(--color-fill-3)', fontSize: 24, borderRadius: 12 }}
+            >
+              {avatar}
+            </Avatar>
+          </div>
+        </EmojiPicker>
+        <div className='flex-1 min-w-0'>
+          <div className='mb-4px text-sm font-medium text-t-primary'>{t('settings.agentDisplayName')}</div>
+          <Input value={name} onChange={handleNameChange} placeholder={t('settings.agentNamePlaceholder')} />
+        </div>
       </div>
 
       {/* Command */}

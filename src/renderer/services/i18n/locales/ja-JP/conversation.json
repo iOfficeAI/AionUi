@@ -180,6 +180,12 @@
       "reset": "変更を元に戻す",
       "noUnstaged": "ステージされていない変更はありません",
       "noStaged": "ステージ済みの変更はありません"
+    },
+    "openWorkspace": "ワークスペースを開く",
+    "openWith": {
+      "vscode": "VS Code",
+      "terminal": "ターミナル",
+      "explorer": "エクスプローラー"
     }
   },
   "minimap": {

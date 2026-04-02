@@ -2,6 +2,7 @@ import { WORKSPACE_HEADER_HEIGHT } from '@/renderer/pages/conversation/utils/lay
 import { dispatchWorkspaceToggleEvent } from '@/renderer/utils/workspace/workspaceEvents';
 import { ExpandLeft, ExpandRight } from '@icon-park/react';
 import React from 'react';
+import WorkspaceOpenButton from './WorkspaceOpenButton';
 
 type WorkspaceHeaderProps = {
   children?: React.ReactNode;
@@ -9,6 +10,7 @@ type WorkspaceHeaderProps = {
   collapsed: boolean;
   onToggle: () => void;
   togglePlacement?: 'left' | 'right';
+  workspacePath?: string;
 };
 
 // Compact header bar for the workspace side panel with optional collapse toggle
@@ -18,6 +20,7 @@ const WorkspacePanelHeader: React.FC<WorkspaceHeaderProps> = ({
   collapsed,
   onToggle,
   togglePlacement = 'right',
+  workspacePath,
 }) => (
   <div
     className='workspace-panel-header flex items-center justify-start px-12px py-4px gap-12px border-b border-[var(--bg-3)]'
@@ -34,6 +37,10 @@ const WorkspacePanelHeader: React.FC<WorkspaceHeaderProps> = ({
       </button>
     )}
     <div className='flex-1 truncate'>{children}</div>
+
+    {/* Open workspace button - shown when workspace path is provided */}
+    {workspacePath && !collapsed && <WorkspaceOpenButton workspacePath={workspacePath} />}
+
     {showToggle && togglePlacement === 'right' && (
       <button type='button' className='workspace-header__toggle' aria-label='Toggle workspace' onClick={onToggle}>
         {collapsed ? <ExpandRight size={16} /> : <ExpandLeft size={16} />}
