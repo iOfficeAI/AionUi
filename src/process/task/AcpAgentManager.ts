@@ -567,7 +567,16 @@ class AcpAgentManager extends BaseAgentManager<AcpAgentManagerData, AcpPermissio
           if (v.type === 'finish' && this.currentMsgContent && this.orchestratorBridge) {
             const delegationInput = this.orchestratorBridge.detectDelegationInText(this.currentMsgContent);
             if (delegationInput) {
-              void this.handleDelegation(delegationInput);
+              this.currentMsgContent = '';
+              this.currentMsgId = null;
+              this.handleDelegation(delegationInput).catch((err) => {
+                mainError('[AcpAgentManager]', 'Delegation failed, emitting finish to recover UI', err);
+                ipcBridge.acpConversation.responseStream.emit(v);
+                channelEventBus.emitAgentMessage(this.conversation_id, {
+                  ...(v as any),
+                  conversation_id: this.conversation_id,
+                });
+              });
               return; // Don't emit finish yet — will re-emit after delegation completes
             }
           }
@@ -1242,28 +1251,33 @@ class AcpAgentManager extends BaseAgentManager<AcpAgentManagerData, AcpPermissio
 
     const fullPrompt = context ? `[Context from orchestrator]\n${context}\n\n[Task]\n${task}` : task;
 
-    await new Promise<void>((resolve, reject) => {
-      const subAgent = new AcpAgent({
-        id: `delegation-${delegationId}`,
-        backend: targetBackend,
-        workingDir: this.workspace,
-        extra: { backend: targetBackend, workspace: this.workspace },
-        onStreamEvent: (msg) => {
-          if (msg.type === 'content' && typeof msg.data === 'string') {
-            outputChunks.push(msg.data);
-          }
-        },
-        onSignalEvent: (sig) => {
-          if (sig.type === 'finish') resolve();
-          if (sig.type === 'error') reject(new Error(`Sub-agent ${targetBackend} error`));
-        },
-      });
+    let subAgent: AcpAgent | null = null;
+    try {
+      await new Promise<void>((resolve, reject) => {
+        subAgent = new AcpAgent({
+          id: `delegation-${delegationId}`,
+          backend: targetBackend,
+          workingDir: this.workspace,
+          extra: { backend: targetBackend, workspace: this.workspace },
+          onStreamEvent: (msg) => {
+            if (msg.type === 'content' && typeof msg.data === 'string') {
+              outputChunks.push(msg.data);
+            }
+          },
+          onSignalEvent: (sig) => {
+            if (sig.type === 'finish') resolve();
+            if (sig.type === 'error') reject(new Error(`Sub-agent ${targetBackend} error`));
+          },
+        });
 
-      subAgent
-        .start()
-        .then(() => subAgent.sendMessage({ content: fullPrompt }))
-        .catch(reject);
-    });
+        subAgent
+          .start()
+          .then(() => subAgent!.sendMessage({ content: fullPrompt }))
+          .catch(reject);
+      });
+    } finally {
+      await subAgent?.kill().catch(() => {});
+    }
 
     mainLog(
       '[AcpAgentManager]',

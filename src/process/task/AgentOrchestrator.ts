@@ -89,16 +89,15 @@ export class AgentOrchestrator {
     const delegation = this.delegations.get(id);
     if (!delegation) return null;
 
-    delegation.status = status;
-    if (payload?.result !== undefined) delegation.result = payload.result;
-    if (payload?.error !== undefined) delegation.error = payload.error;
+    const updated: IAgentDelegation = { ...delegation, status, ...payload };
+    this.delegations.set(id, updated);
 
     // 完成或失败后延迟清理，保留足够时间供调用方读取结果
     if (status === 'completed' || status === 'failed') {
       setTimeout(() => this.delegations.delete(id), 5 * 60 * 1000);
     }
 
-    return delegation;
+    return updated;
   }
 
   getDelegation(id: string): IAgentDelegation | undefined {
