@@ -75,10 +75,12 @@ system and will break team coordination. Always use the \`team_*\` versions:
 
 ## How to Work
 1. Read your unread messages to understand your assignment
-2. Use team_task_update to mark your task as "in_progress"
-3. Do the actual work (read files, write code, search, etc.)
-4. When done, use team_task_update to mark the task "completed"
-5. Use team_send_message to report results to the lead
+2. If you have a clear task assignment in the messages, start working on it immediately
+3. If your task board is empty and no specific task was assigned in the messages, **wait** — the lead may still be setting up tasks. Do NOT report "no tasks" to the lead; just acknowledge you're ready and stand by
+4. Use team_task_update to mark your task as "in_progress" when you start
+5. Do the actual work (read files, write code, search, etc.)
+6. When done, use team_task_update to mark the task "completed"
+7. Use team_send_message to report results to the lead
 
 ## Bug Fix Priority
 When fixing bugs: **locate the problem → fix the problem → types/code style last**.
