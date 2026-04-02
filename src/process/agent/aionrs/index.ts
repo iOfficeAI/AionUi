@@ -25,6 +25,8 @@ export type AionrsAgentOptions = {
   presetRules?: string;
   maxTokens?: number;
   maxTurns?: number;
+  sessionId?: string;
+  resume?: string;
   onStreamEvent: StreamEventHandler;
 };
 
@@ -38,6 +40,7 @@ export class AionrsAgent {
   private options: AionrsAgentOptions;
   private activeMsgId: string | null = null;
   private configBackup: { path: string; content: string | null } | null = null;
+  public sessionId?: string;
 
   constructor(options: AionrsAgentOptions) {
     this.options = options;
@@ -63,6 +66,8 @@ export class AionrsAgent {
       maxTokens: this.options.maxTokens,
       maxTurns: this.options.maxTurns,
       autoApprove: this.options.yoloMode,
+      sessionId: this.options.sessionId,
+      resume: this.options.resume,
     });
 
     // Write temporary .aionrs.toml for provider compat overrides
@@ -107,8 +112,8 @@ export class AionrsAgent {
     });
     await Promise.race([this.readyPromise, timeout]);
 
-    // Inject preset rules as history context
-    if (this.options.presetRules) {
+    // Inject preset rules as history context (skip on resume — rules were already injected)
+    if (this.options.presetRules && !this.options.resume) {
       this.sendCommand({
         type: 'init_history',
         text: `[Assistant System Rules]\n${this.options.presetRules}`,
@@ -120,6 +125,7 @@ export class AionrsAgent {
     switch (event.type) {
       case 'ready':
         this.ready = true;
+        this.sessionId = event.session_id;
         this.readyResolve();
         break;
 
