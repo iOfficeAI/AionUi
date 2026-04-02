@@ -72,7 +72,8 @@ const TeamPageContent: React.FC<TeamPageContentProps> = ({ team, onAddAgent }) =
 
   const activeAgent = team.agents.find((a) => a.slotId === activeSlotId);
   const leadAgent = team.agents.find((a) => a.role === 'lead');
-  const isLeadAgent = activeAgent?.slotId === leadAgent?.slotId;
+  // In multi-window mode, leader's permission selector should always be visible
+  const isLeadAgent = true;
   const allConversationIds = useMemo(() => team.agents.map((a) => a.conversationId).filter(Boolean), [team.agents]);
 
   // Fetch active agent's conversation to read initialModelId for the header
