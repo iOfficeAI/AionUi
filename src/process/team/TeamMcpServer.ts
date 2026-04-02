@@ -265,7 +265,7 @@ export class TeamMcpServer {
           content: message,
           summary,
         });
-        if (agent.conversationId) {
+        if (agent.conversationId && agent.role !== 'lead') {
           const bubbleMsgId = crypto.randomUUID();
           const bubbleMsg: TMessage = {
             id: bubbleMsgId,
@@ -346,7 +346,7 @@ export class TeamMcpServer {
       summary,
     });
     const targetAgent = agents.find((a) => a.slotId === targetSlotId);
-    if (targetAgent?.conversationId) {
+    if (targetAgent?.conversationId && targetAgent.role !== 'lead') {
       const bubbleMsgId = crypto.randomUUID();
       const bubbleMsg: TMessage = {
         id: bubbleMsgId,
