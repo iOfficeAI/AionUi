@@ -765,6 +765,7 @@ export type I18nKey =
   | 'preview.largeTextTruncatedHint'
   | 'preview.loadHistoryFailed'
   | 'preview.loading'
+  | 'preview.mermaidTitle'
   | 'preview.noHistory'
   | 'preview.noTabs'
   | 'preview.openInPanelTooltip'

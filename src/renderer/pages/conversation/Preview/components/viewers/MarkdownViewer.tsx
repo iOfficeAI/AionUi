@@ -27,6 +27,7 @@ import MarkdownEditor from '../editors/MarkdownEditor';
 import SelectionToolbar from '../renderers/SelectionToolbar';
 import { useContainerScroll, useContainerScrollTarget } from '../../hooks/useScrollSyncHelpers';
 import { convertLatexDelimiters } from '@/renderer/utils/chat/latexDelimiters';
+import MermaidBlock from '@/renderer/components/Markdown/MermaidBlock';
 
 interface MarkdownPreviewProps {
   content: string; // Markdown 内容 / Markdown content
@@ -468,6 +469,10 @@ const MarkdownPreview: React.FC<MarkdownPreviewProps> = ({
                         // Fall through to render as code block if KaTeX fails
                       }
                     }
+                  }
+
+                  if (language === 'mermaid') {
+                    return <MermaidBlock code={codeContent} showOpenInPanelButton={false} />;
                   }
 
                   // 代码高亮 / Code highlighting
