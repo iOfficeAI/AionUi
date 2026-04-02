@@ -7,6 +7,7 @@ import type { TChatConversation } from '@/common/config/storage';
 const mockNavigate = vi.hoisted(() => vi.fn());
 const mockUseParams = vi.hoisted(() => vi.fn());
 const mockListJobs = vi.hoisted(() => vi.fn());
+const mockGetJob = vi.hoisted(() => vi.fn());
 const mockUpdateJob = vi.hoisted(() => vi.fn());
 const mockRunNow = vi.hoisted(() => vi.fn());
 const mockRemoveJob = vi.hoisted(() => vi.fn());
@@ -30,6 +31,7 @@ vi.mock('@/common', () => ({
   ipcBridge: {
     cron: {
       listJobs: { invoke: (...args: unknown[]) => mockListJobs(...args) },
+      getJob: { invoke: (...args: unknown[]) => mockGetJob(...args) },
       updateJob: { invoke: (...args: unknown[]) => mockUpdateJob(...args) },
       runNow: { invoke: (...args: unknown[]) => mockRunNow(...args) },
       removeJob: { invoke: (...args: unknown[]) => mockRemoveJob(...args) },
@@ -198,6 +200,7 @@ describe('TaskDetailPage', () => {
     vi.clearAllMocks();
     mockUseParams.mockReturnValue({ jobId: 'job-123' });
     mockListJobs.mockResolvedValue([mockJob]);
+    mockGetJob.mockResolvedValue(mockJob);
     mockUpdateJob.mockResolvedValue({ ...mockJob, enabled: false });
     mockRunNow.mockResolvedValue({ conversationId: 'new-conv-id' });
     mockRemoveJob.mockResolvedValue(undefined);
@@ -216,7 +219,7 @@ describe('TaskDetailPage', () => {
     render(<TaskDetailPage />);
 
     await waitFor(() => {
-      expect(mockListJobs).toHaveBeenCalled();
+      expect(mockGetJob).toHaveBeenCalled();
       expect(screen.getByText('Daily Summary')).toBeInTheDocument();
     });
 
@@ -236,7 +239,7 @@ describe('TaskDetailPage', () => {
 
   it('renders paused status tag when job is disabled', async () => {
     const pausedJob = { ...mockJob, enabled: false };
-    mockListJobs.mockResolvedValue([pausedJob]);
+    mockGetJob.mockResolvedValue(pausedJob);
 
     render(<TaskDetailPage />);
 
@@ -252,7 +255,7 @@ describe('TaskDetailPage', () => {
       ...mockJob,
       state: { ...mockJob.state, lastStatus: 'error' as const, lastError: 'Something went wrong' },
     };
-    mockListJobs.mockResolvedValue([errorJob]);
+    mockGetJob.mockResolvedValue(errorJob);
 
     render(<TaskDetailPage />);
 
@@ -294,7 +297,7 @@ describe('TaskDetailPage', () => {
         },
       },
     };
-    mockListJobs.mockResolvedValue([existingModeJob]);
+    mockGetJob.mockResolvedValue(existingModeJob);
 
     render(<TaskDetailPage />);
 
@@ -447,13 +450,13 @@ describe('TaskDetailPage', () => {
 
     // Should not attempt to fetch when jobId is missing
     await waitFor(() => {
-      expect(mockListJobs).not.toHaveBeenCalled();
+      expect(mockGetJob).not.toHaveBeenCalled();
     });
   });
 
   it('handles invalid jobId and shows empty state', async () => {
     mockUseParams.mockReturnValue({ jobId: 'invalid-job-id' });
-    mockListJobs.mockResolvedValue([mockJob]); // Job not found
+    mockGetJob.mockResolvedValue(null); // Job not found
 
     render(<TaskDetailPage />);
 
@@ -523,7 +526,7 @@ describe('TaskDetailPage', () => {
         },
       },
     };
-    mockListJobs.mockResolvedValue([existingModeJob]);
+    mockGetJob.mockResolvedValue(existingModeJob);
 
     render(<TaskDetailPage />);
 
@@ -547,7 +550,7 @@ describe('TaskDetailPage', () => {
         lastError: 'Execution failed',
       },
     };
-    mockListJobs.mockResolvedValue([errorJob]);
+    mockGetJob.mockResolvedValue(errorJob);
 
     render(<TaskDetailPage />);
 
@@ -565,7 +568,7 @@ describe('TaskDetailPage', () => {
         description: 'Manual',
       },
     };
-    mockListJobs.mockResolvedValue([manualJob]);
+    mockGetJob.mockResolvedValue(manualJob);
 
     render(<TaskDetailPage />);
 
