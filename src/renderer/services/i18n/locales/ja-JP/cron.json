@@ -25,6 +25,7 @@
     "runNow": "今すぐ実行"
   },
   "confirmDelete": "このスケジュールタスクを削除しますか？",
+  "confirmDeleteWithConversations": "このスケジュールタスクを削除しますか？このタスクのすべての会話も削除されます。",
   "deleteSuccess": "タスクを削除しました",
   "pauseSuccess": "タスクを一時停止しました",
   "resumeSuccess": "タスクを再開しました",

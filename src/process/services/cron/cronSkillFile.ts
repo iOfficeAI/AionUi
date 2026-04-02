@@ -121,8 +121,32 @@ export async function writeCronSkillFile(
   return filePath;
 }
 
+// Placeholder patterns that indicate the AI echoed the template instead of generating real content
+const PLACEHOLDER_PATTERNS = [
+  /^skill-name$/i,
+  /^one-line description/i,
+  /^your[- ]skill[- ]name/i,
+  /^description of/i,
+];
+
+const PLACEHOLDER_BODY_PATTERNS = [
+  /^\(Full SKILL\.md body/i,
+  /^Full SKILL\.md body/i,
+  /^\(clear instructions for executing this task/i,
+  /^<Full instructions: output format, tone, sources to check/i,
+];
+
+/**
+ * Check if a value looks like a template placeholder rather than real content.
+ */
+function isPlaceholder(value: string, patterns: RegExp[]): boolean {
+  const trimmed = value.trim();
+  return patterns.some((p) => p.test(trimmed));
+}
+
 /**
  * Validate that content is a well-formed SKILL.md with YAML frontmatter (name + description) and a non-empty body.
+ * Rejects template placeholder content (e.g. "skill-name", "One-line description").
  * Returns a normalized result or null if invalid.
  */
 export function validateSkillContent(content: string): { name: string; description: string; body: string } | null {
@@ -140,11 +164,15 @@ export function validateSkillContent(content: string): { name: string; descripti
   if (!nameMatch?.[1]?.trim() || !descMatch?.[1]?.trim()) return null;
   if (!body) return null;
 
-  return {
-    name: nameMatch[1].trim(),
-    description: descMatch[1].trim(),
-    body,
-  };
+  const name = nameMatch[1].trim();
+  const description = descMatch[1].trim();
+
+  // Reject template placeholders
+  if (isPlaceholder(name, PLACEHOLDER_PATTERNS)) return null;
+  if (isPlaceholder(description, PLACEHOLDER_PATTERNS)) return null;
+  if (isPlaceholder(body, PLACEHOLDER_BODY_PATTERNS)) return null;
+
+  return { name, description, body };
 }
 
 /**

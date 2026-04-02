@@ -4,8 +4,11 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
+import fs from 'fs/promises';
+import path from 'path';
 import { ipcBridge } from '@/common';
 import type { CronMessageMeta } from '@/common/chat/chatLib';
+import type { IResponseMessage } from '@/common/adapter/ipcBridge';
 import type { TChatConversation, TProviderWithModel } from '@/common/config/storage';
 import type { AcpBackendAll } from '@/common/types/acpTypes';
 import { uuid } from '@/common/utils';
@@ -101,11 +104,24 @@ export class WorkerTaskManagerJobExecutor implements ICronJobExecutor {
     // Hide the prompt message from UI in new_conversation mode
     const hidden = job.target.executionMode === 'new_conversation';
 
+    // Check if we need to detect SKILL_SUGGEST.md after agent finishes.
+    // Only needed when no per-task skill exists yet (first execution).
+    const needsSkillDetection =
+      job.target.executionMode === 'new_conversation' && !!workspace && !(await hasCronSkillFile(job.id));
+
     // ACP/Codex agents use 'content'; Gemini uses 'input'.
     if (task.type === 'codex' || task.type === 'acp') {
       await task.sendMessage({ content: messageText, msg_id: msgId, files: workspaceFiles, cronMeta, hidden });
     } else {
       await task.sendMessage({ input: messageText, msg_id: msgId, files: workspaceFiles, cronMeta, hidden });
+    }
+
+    // Detect SKILL_SUGGEST.md with retries. sendMessage resolves when the message is
+    // delivered to the worker, NOT when the agent finishes. The agent may still be
+    // processing tool calls (e.g. write_file for SKILL_SUGGEST.md). Poll with retries
+    // to catch the file once the agent truly finishes.
+    if (needsSkillDetection) {
+      void this.detectSkillSuggestWithRetry(job.id, workspace!, conversationId, 0);
     }
 
     // Return the conversationId used (may differ from job.metadata.conversationId in new_conversation mode)
@@ -124,8 +140,8 @@ export class WorkerTaskManagerJobExecutor implements ICronJobExecutor {
     const agentType = this.getAgentType(config.backend);
 
     // Check if a per-task SKILL.md exists (user-saved via "Turn into skill").
-    // If yes: inject it into the workspace and exclude the cron builtin skill.
-    // If no: execution context is prepended to the prompt in buildMessageText() instead.
+    // If yes: inject it into the workspace and exclude both cron and cron-run builtin skills.
+    // If no: cron-run builtin skill provides execution context and SKILL_SUGGEST guidance.
     const hasSkill = await hasCronSkillFile(job.id);
     const cronSkillDir = getCronSkillDir(job.id);
 
@@ -277,25 +293,20 @@ export class WorkerTaskManagerJobExecutor implements ICronJobExecutor {
   /**
    * Build the message text for a cron job execution.
    *
-   * For new_conversation mode without a dedicated skill:
-   * Prepend execution context directly into the prompt. Workspace skills rely on
-   * description matching which is unreliable for arbitrary cron prompts, so we
-   * inject the guidance inline instead.
-   *
-   * For jobs with a dedicated skill or existing conversation mode:
-   * Return the raw payload text — the skill or conversation history provides context.
+   * - Has dedicated skill: remind the agent to follow its workspace skill instructions.
+   * - No dedicated skill: inject full execution context with SKILL_SUGGEST guidance.
+   * - existing mode: return raw payload (conversation history provides context).
    */
   private async buildMessageText(job: CronJob): Promise<string> {
     const rawText = job.target.payload.text;
 
-    // Only prepend context for new_conversation mode without a dedicated skill
     if (job.target.executionMode !== 'new_conversation') {
       return rawText;
     }
 
     const hasSkill = await hasCronSkillFile(job.id);
     if (hasSkill) {
-      return rawText;
+      return buildCronSkillExecutionPrompt(job.name, rawText);
     }
 
     return buildCronExecutionPrompt(job.name, job.schedule.description, rawText);
@@ -314,6 +325,66 @@ export class WorkerTaskManagerJobExecutor implements ICronJobExecutor {
     return job.metadata.conversationId;
   }
 
+  /** Max retries for detecting SKILL_SUGGEST.md (agent may still be writing it). */
+  private static readonly SKILL_DETECT_MAX_RETRIES = 10;
+  private static readonly SKILL_DETECT_INTERVAL_MS = 3000;
+
+  /**
+   * Poll for SKILL_SUGGEST.md with retries. The agent writes this file as part of its
+   * turn, but sendMessage resolves before the turn completes. Retry until the file
+   * appears or we exhaust attempts.
+   */
+  private detectSkillSuggestWithRetry(jobId: string, workspace: string, conversationId: string, attempt: number): void {
+    const filePath = path.join(workspace, SKILL_SUGGEST_FILENAME);
+
+    fs.readFile(filePath, 'utf-8')
+      .then(async (content) => {
+        if (!content?.trim()) {
+          throw Object.assign(new Error('empty'), { code: 'EMPTY' });
+        }
+
+        console.log(`[CronExecutor] Found ${SKILL_SUGGEST_FILENAME} (${content.length} chars) for job ${jobId} on attempt ${attempt + 1}`);
+        const { validateSkillContent } = await import('./cronSkillFile');
+        const validated = validateSkillContent(content);
+        if (!validated) {
+          console.warn(`[CronExecutor] ${SKILL_SUGGEST_FILENAME} validation failed for job ${jobId}`);
+          return;
+        }
+
+        // Emit a skill_suggest message to frontend (not persisted to DB).
+        // Only visible if the user currently has this conversation open.
+        const message: IResponseMessage = {
+          type: 'skill_suggest',
+          conversation_id: conversationId,
+          msg_id: uuid(),
+          data: {
+            cronJobId: jobId,
+            name: validated.name,
+            description: validated.description,
+            skillContent: content,
+          },
+        };
+
+        // Emit on both the generic and OpenClaw-specific streams so that
+        // the frontend hook picks it up regardless of platform.
+        ipcBridge.conversation.responseStream.emit(message);
+        ipcBridge.openclawConversation.responseStream.emit(message);
+        console.log(`[CronExecutor] Emitted skill_suggest message for job ${jobId}, conversation ${conversationId}`);
+      })
+      .catch((err) => {
+        // File not found or empty — retry if attempts remain
+        if (attempt < WorkerTaskManagerJobExecutor.SKILL_DETECT_MAX_RETRIES) {
+          setTimeout(() => {
+            this.detectSkillSuggestWithRetry(jobId, workspace, conversationId, attempt + 1);
+          }, WorkerTaskManagerJobExecutor.SKILL_DETECT_INTERVAL_MS);
+        }
+        // Only log unexpected errors (not ENOENT/EMPTY which are expected during retries)
+        if ((err as NodeJS.ErrnoException)?.code !== 'ENOENT' && (err as { code?: string })?.code !== 'EMPTY') {
+          console.warn(`[CronExecutor] Error detecting ${SKILL_SUGGEST_FILENAME} for job ${jobId}:`, err);
+        }
+      });
+  }
+
   onceIdle(conversationId: string, callback: () => Promise<void>): void {
     this.busyGuard.onceIdle(conversationId, callback);
   }
@@ -323,9 +394,13 @@ export class WorkerTaskManagerJobExecutor implements ICronJobExecutor {
   }
 }
 
+/** The fixed filename agents write skill suggestions to in the workspace root. */
+export const SKILL_SUGGEST_FILENAME = 'SKILL_SUGGEST.md';
+
 /**
  * Build the full prompt for a scheduled task execution without a dedicated skill.
- * Injects execution context and skill suggestion guidance before the user's raw prompt.
+ * Instructs the agent to write a SKILL_SUGGEST.md file in the workspace instead of
+ * outputting skill suggestion tags in the response body.
  */
 function buildCronExecutionPrompt(taskName: string, scheduleDesc: string, userPrompt: string): string {
   return `[Scheduled Task Context]
@@ -337,24 +412,40 @@ Rules:
 2. Focus on producing useful, actionable output.
 3. If the task requires external data (news, weather, etc.), search for the latest information.
 
-This is a recurring scheduled task. After completing the task, always output a skill suggestion
-block at the very end of your response to help optimize future executions. The skill should
-capture output format, tone, sources, steps, or any patterns that ensure consistency.
+IMPORTANT — Skill suggestion (do NOT output this in your response):
+This is a recurring scheduled task. After completing the task, silently write a file named
+"${SKILL_SUGGEST_FILENAME}" in the current working directory. This file captures the execution
+pattern so future runs stay consistent. Do NOT mention this file or its content in your response.
 
-Use this exact format:
-
-[SKILL_SUGGEST]
-name: skill-name
-description: One-line description of what this skill does
-content:
+The file must be a valid SKILL.md with YAML frontmatter. Example structure:
 ---
-name: skill-name
-description: One-line description
+name: <short kebab-case name, e.g. daily-greeting>
+description: <one-line description of what this task does>
 ---
 
-(Full SKILL.md body: clear instructions for executing this task, including output format,
-sources to check, steps to follow, quality criteria.)
-[/SKILL_SUGGEST]
+<Full instructions: output format, tone, sources to check, steps to follow, quality criteria.>
+
+Replace ALL placeholders with real content specific to this task "${taskName}".
+[/Scheduled Task Context]
+
+${userPrompt}`;
+}
+
+/**
+ * Build the prompt for a scheduled task execution that has a dedicated skill.
+ * Reminds the agent to follow the skill instructions in its workspace.
+ */
+function buildCronSkillExecutionPrompt(taskName: string, userPrompt: string): string {
+  return `[Scheduled Task Context]
+Task: ${taskName}
+
+This is a scheduled task execution. A skill file with detailed instructions has been loaded
+into your workspace. You MUST read and follow the skill instructions precisely.
+
+Rules:
+1. Execute the task directly — do NOT ask clarifying questions.
+2. Follow the output format, tone, sources, and steps defined in the skill.
+3. If the task requires external data (news, weather, etc.), search for the latest information.
 [/Scheduled Task Context]
 
 ${userPrompt}`;

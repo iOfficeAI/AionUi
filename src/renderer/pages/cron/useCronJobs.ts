@@ -511,7 +511,7 @@ export function useCronJobConversations(jobId: string | undefined) {
       }
     });
     const unsubListChanged = ipcBridge.conversation.listChanged.on((data) => {
-      if (data.action === 'created') {
+      if (data.action === 'created' || data.action === 'deleted') {
         void fetchConversations();
       }
     });

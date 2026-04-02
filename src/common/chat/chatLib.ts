@@ -77,7 +77,8 @@ type TMessageType =
   | 'codex_tool_call'
   | 'plan'
   | 'thinking'
-  | 'available_commands';
+  | 'available_commands'
+  | 'skill_suggest';
 
 interface IMessage<T extends TMessageType, Content extends Record<string, any>> {
   /**
@@ -321,6 +322,17 @@ export type IMessageAvailableCommands = IMessage<
   }
 >;
 
+export type IMessageSkillSuggest = IMessage<
+  'skill_suggest',
+  {
+    cronJobId: string;
+    name: string;
+    description: string;
+    /** Full SKILL.md content (including frontmatter) */
+    skillContent: string;
+  }
+>;
+
 // eslint-disable-next-line max-len
 export type TMessage =
   | IMessageText
@@ -334,7 +346,8 @@ export type TMessage =
   | IMessageCodexToolCall
   | IMessagePlan
   | IMessageThinking
-  | IMessageAvailableCommands;
+  | IMessageAvailableCommands
+  | IMessageSkillSuggest;
 
 // 统一所有需要用户交互的用户类型
 export interface IConfirmation<Option extends any = any> {
@@ -495,6 +508,22 @@ export const transformMessage = (message: IResponseMessage): TMessage => {
     // Disabled: available_commands messages are too noisy and distracting in the chat UI
     case 'available_commands':
       break;
+    case 'skill_suggest': {
+      const suggestData = message.data as {
+        cronJobId: string;
+        name: string;
+        description: string;
+        skillContent: string;
+      };
+      return {
+        id: uuid(),
+        type: 'skill_suggest',
+        msg_id: message.msg_id,
+        conversation_id: message.conversation_id,
+        position: 'center',
+        content: suggestData,
+      };
+    }
     case 'start':
     case 'finish':
     case 'thought':

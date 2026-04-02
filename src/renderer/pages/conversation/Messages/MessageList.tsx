@@ -30,6 +30,7 @@ import MessageTips from './components/MessageTips';
 import MessageToolCall from './components/MessageToolCall';
 import MessageToolGroup from './components/MessageToolGroup';
 import MessageToolGroupSummary from './components/MessageToolGroupSummary';
+import MessageSkillSuggest from './components/MessageSkillSuggest';
 import MessageText from './components/MessagetText';
 import MessageThinking from './components/MessageThinking';
 import type { WriteFileResult } from './types';
@@ -132,6 +133,8 @@ const MessageItem: React.FC<{ message: TMessage; highlighted?: boolean }> = Reac
         return <MessagePlan message={message}></MessagePlan>;
       case 'thinking':
         return <MessageThinking message={message}></MessageThinking>;
+      case 'skill_suggest':
+        return <MessageSkillSuggest message={message} />;
       case 'available_commands':
         return null;
       default:

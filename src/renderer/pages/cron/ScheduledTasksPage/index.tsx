@@ -137,7 +137,7 @@ const ScheduledTasksPage: React.FC = () => {
                   <span className='text-12px text-text-3'>{formatNextRun(job.state.nextRunAtMs)}</span>
                   <div className='flex items-center gap-6px' onClick={(e) => e.stopPropagation()}>
                     <Switch size='small' checked={job.enabled} onChange={() => handleToggleEnabled(job)} />
-                    <Popconfirm title={t('cron.confirmDelete')} onOk={() => handleDelete(job.id)}>
+                    <Popconfirm title={job.target.executionMode === 'new_conversation' ? t('cron.confirmDeleteWithConversations') : t('cron.confirmDelete')} onOk={() => handleDelete(job.id)}>
                       <Button size='mini' type='text' status='danger' icon={<Delete theme='outline' size={14} />} />
                     </Popconfirm>
                   </div>

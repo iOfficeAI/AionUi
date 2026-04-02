@@ -13,14 +13,12 @@ import classNames from 'classnames';
 import React, { useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { copyText } from '@/renderer/utils/ui/clipboard';
-import { useConversationContextSafe } from '@/renderer/hooks/context/ConversationContext';
 import CollapsibleContent from '@renderer/components/chat/CollapsibleContent';
 import FilePreview from '@renderer/components/media/FilePreview';
 import HorizontalFileList from '@renderer/components/media/HorizontalFileList';
 import MarkdownView from '@renderer/components/Markdown';
 import { stripThinkTags, hasThinkTags } from '@renderer/utils/chat/thinkTagFilter';
-import { parseSkillSuggest, stripSkillSuggest, hasSkillSuggest } from '@renderer/utils/chat/skillSuggestParser';
-import SkillSuggestCard from './SkillSuggestCard';
+import { stripSkillSuggest, hasSkillSuggest } from '@renderer/utils/chat/skillSuggestParser';
 
 /**
  * Format a timestamp for message display.
@@ -80,19 +78,19 @@ const useFormatContent = (content: string) => {
 const MessageText: React.FC<{ message: IMessageText }> = ({ message }) => {
   // Filter think tags from content before rendering
   // 在渲染前过滤 think 标签
-  const { contentToRender, skillSuggestion } = useMemo(() => {
+  const contentToRender = useMemo(() => {
     let content = message.content.content;
     if (typeof content === 'string') {
       if (hasThinkTags(content)) {
         content = stripThinkTags(content);
       }
-      const suggestion = hasSkillSuggest(content) ? parseSkillSuggest(content) : null;
-      if (suggestion) {
+      // Strip any inline [SKILL_SUGGEST] blocks (now handled via separate skill_suggest message type)
+      if (hasSkillSuggest(content)) {
         content = stripSkillSuggest(content);
       }
-      return { contentToRender: content, skillSuggestion: suggestion };
+      return content;
     }
-    return { contentToRender: content, skillSuggestion: null };
+    return content;
   }, [message.content.content]);
 
   const { text, files } = parseFileMarker(contentToRender);
@@ -100,7 +98,6 @@ const MessageText: React.FC<{ message: IMessageText }> = ({ message }) => {
   const { t } = useTranslation();
   const [showCopyAlert, setShowCopyAlert] = useState(false);
   const isUserMessage = message.position === 'right';
-  const conversationContext = useConversationContextSafe();
 
   // 过滤空内容，避免渲染空DOM
   if (!message.content.content || (typeof message.content.content === 'string' && !message.content.content.trim())) {
@@ -172,9 +169,6 @@ const MessageText: React.FC<{ message: IMessageText }> = ({ message }) => {
             <MarkdownView codeStyle={{ marginTop: 4, marginBlock: 4 }}>{data}</MarkdownView>
           )}
         </div>
-        {skillSuggestion && (cronMeta?.cronJobId || conversationContext?.cronJobId) && (
-          <SkillSuggestCard suggestion={skillSuggestion} cronJobId={(cronMeta?.cronJobId || conversationContext?.cronJobId)!} />
-        )}
         <div
           className={classNames('h-32px flex items-center mt-4px gap-8px', {
             'flex-row-reverse': isUserMessage,

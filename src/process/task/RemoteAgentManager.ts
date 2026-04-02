@@ -165,7 +165,7 @@ class RemoteAgentManager extends BaseAgentManager<RemoteAgentManagerData> {
     }
   }
 
-  async sendMessage(data: { content: string; agentContent?: string; files?: string[]; msg_id?: string }) {
+  async sendMessage(data: { content: string; agentContent?: string; files?: string[]; msg_id?: string; hidden?: boolean }) {
     cronBusyGuard.setProcessing(this.conversation_id, true);
     this.status = 'running';
     try {
@@ -180,6 +180,7 @@ class RemoteAgentManager extends BaseAgentManager<RemoteAgentManagerData> {
           conversation_id: this.conversation_id,
           content: { content: data.content },
           createdAt: Date.now(),
+          ...(data.hidden && { hidden: true }),
         };
         addMessage(this.conversation_id, userMessage);
       }

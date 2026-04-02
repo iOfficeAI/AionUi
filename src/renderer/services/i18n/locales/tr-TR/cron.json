@@ -25,6 +25,7 @@
     "runNow": "Şimdi Çalıştır"
   },
   "confirmDelete": "Are you sure you want to delete this scheduled task?",
+  "confirmDeleteWithConversations": "Bu zamanlanmış görevi silmek istediğinizden emin misiniz? Bu görevdeki tüm konuşmalar da silinecektir.",
   "deleteSuccess": "Task deleted",
   "pauseSuccess": "Task paused",
   "resumeSuccess": "Task resumed",

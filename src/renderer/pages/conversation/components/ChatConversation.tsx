@@ -170,6 +170,7 @@ const GeminiConversationPanel: React.FC<{ conversation: GeminiConversation; slid
         conversation_id={conversation.id}
         workspace={conversation.extra.workspace}
         modelSelection={modelSelection}
+        cronJobId={conversation.extra?.cronJobId as string | undefined}
       />
     </ChatLayout>
   );
@@ -213,6 +214,7 @@ const ChatConversation: React.FC<{
             key={conversation.id}
             conversation_id={conversation.id}
             workspace={conversation.extra?.workspace}
+            cronJobId={(conversation.extra as { cronJobId?: string })?.cronJobId}
           />
         );
       case 'nanobot':
@@ -221,6 +223,7 @@ const ChatConversation: React.FC<{
             key={conversation.id}
             conversation_id={conversation.id}
             workspace={conversation.extra?.workspace}
+            cronJobId={(conversation.extra as { cronJobId?: string })?.cronJobId}
           />
         );
       case 'remote':
@@ -229,6 +232,7 @@ const ChatConversation: React.FC<{
             key={conversation.id}
             conversation_id={conversation.id}
             workspace={conversation.extra?.workspace}
+            cronJobId={(conversation.extra as { cronJobId?: string })?.cronJobId}
           />
         );
       default:

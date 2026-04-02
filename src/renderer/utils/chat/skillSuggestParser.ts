@@ -11,9 +11,25 @@ export interface SkillSuggestion {
   content: string;
 }
 
+// Placeholder patterns that indicate the AI echoed the template instead of generating real content
+const PLACEHOLDER_NAME_PATTERNS = [/^skill-name$/i, /^your[- ]skill[- ]name/i, /^description of/i];
+const PLACEHOLDER_DESC_PATTERNS = [/^one-line description/i, /^your[- ]skill[- ]name/i];
+const PLACEHOLDER_BODY_PATTERNS = [
+  /^\(Full SKILL\.md body/i,
+  /^Full SKILL\.md body/i,
+  /^\(clear instructions for executing this task/i,
+  /^<Full instructions: output format, tone, sources to check/i,
+];
+
+function matchesAny(value: string, patterns: RegExp[]): boolean {
+  const trimmed = value.trim();
+  return patterns.some((p) => p.test(trimmed));
+}
+
 /**
  * Validate that content is a well-formed SKILL.md:
  * must have YAML frontmatter with name + description, and a non-empty body.
+ * Rejects template placeholder content (e.g. "skill-name", "One-line description").
  */
 function isValidSkillContent(content: string): boolean {
   const match = content.match(/^---\s*\n([\s\S]*?)\n---\s*\n+([\s\S]*)$/);
@@ -22,10 +38,18 @@ function isValidSkillContent(content: string): boolean {
   const frontmatter = match[1];
   const body = match[2]?.trim();
 
-  const hasName = /^name:\s*.+/m.test(frontmatter);
-  const hasDesc = /^description:\s*.+/m.test(frontmatter);
+  const nameMatch = frontmatter.match(/^name:\s*(.+)/m);
+  const descMatch = frontmatter.match(/^description:\s*(.+)/m);
 
-  return hasName && hasDesc && !!body;
+  if (!nameMatch?.[1]?.trim() || !descMatch?.[1]?.trim()) return false;
+  if (!body) return false;
+
+  // Reject template placeholders
+  if (matchesAny(nameMatch[1], PLACEHOLDER_NAME_PATTERNS)) return false;
+  if (matchesAny(descMatch[1], PLACEHOLDER_DESC_PATTERNS)) return false;
+  if (matchesAny(body, PLACEHOLDER_BODY_PATTERNS)) return false;
+
+  return true;
 }
 
 /**

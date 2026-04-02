@@ -328,19 +328,36 @@ export class CronService {
       console.warn('[CronService] Failed to delete SKILL.md:', err);
     }
 
-    // Remove cronJobId from the associated conversation's extra
-    if (job?.metadata.conversationId && job.target.executionMode !== 'new_conversation') {
+    // Clean up associated conversations
+    if (job) {
       try {
-        const conv = await this.conversationRepo.getConversation(job.metadata.conversationId);
-        if (conv) {
-          const existingExtra = (conv.extra ?? {}) as Record<string, unknown>;
-          delete existingExtra.cronJobId;
-          await this.conversationRepo.updateConversation(job.metadata.conversationId, {
-            extra: existingExtra as TChatConversation['extra'],
-          });
+        if (job.target.executionMode === 'new_conversation') {
+          // Delete all child conversations created by this cron job
+          const childConversations = await this.conversationRepo.getConversationsByCronJob(jobId);
+          for (const conv of childConversations) {
+            await this.conversationRepo.deleteConversation(conv.id);
+            ipcBridge.conversation.listChanged.emit({
+              conversationId: conv.id,
+              action: 'deleted',
+              source: conv.source || 'aionui',
+            });
+          }
+          if (childConversations.length > 0) {
+            console.log(`[CronService] Deleted ${childConversations.length} child conversations for job ${jobId}`);
+          }
+        } else if (job.metadata.conversationId) {
+          // Remove cronJobId from the associated conversation's extra
+          const conv = await this.conversationRepo.getConversation(job.metadata.conversationId);
+          if (conv) {
+            const existingExtra = (conv.extra ?? {}) as Record<string, unknown>;
+            delete existingExtra.cronJobId;
+            await this.conversationRepo.updateConversation(job.metadata.conversationId, {
+              extra: existingExtra as TChatConversation['extra'],
+            });
+          }
         }
       } catch (err) {
-        console.warn('[CronService] Failed to remove cronJobId from conversation:', err);
+        console.warn('[CronService] Failed to clean up conversations for job:', err);
       }
     }
 

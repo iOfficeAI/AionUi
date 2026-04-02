@@ -88,7 +88,7 @@ class NanoBotAgentManager extends BaseAgentManager<NanoBotAgentManagerData> {
     ipcBridge.conversation.responseStream.emit(msg);
   }
 
-  async sendMessage(data: { content: string; files?: string[]; msg_id?: string }) {
+  async sendMessage(data: { content: string; files?: string[]; msg_id?: string; hidden?: boolean }) {
     cronBusyGuard.setProcessing(this.conversation_id, true);
     try {
       await this.bootstrap;
@@ -103,6 +103,7 @@ class NanoBotAgentManager extends BaseAgentManager<NanoBotAgentManagerData> {
           conversation_id: this.conversation_id,
           content: { content: data.content },
           createdAt: Date.now(),
+          ...(data.hidden && { hidden: true }),
         };
         addMessage(this.conversation_id, userMessage);
       }

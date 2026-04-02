@@ -25,6 +25,7 @@
     "runNow": "立即执行"
   },
   "confirmDelete": "确定要删除此定时任务吗？",
+  "confirmDeleteWithConversations": "确定要删除此定时任务吗？该任务下的所有会话也将被删除。",
   "deleteSuccess": "任务已删除",
   "pauseSuccess": "任务已暂停",
   "resumeSuccess": "任务已恢复",

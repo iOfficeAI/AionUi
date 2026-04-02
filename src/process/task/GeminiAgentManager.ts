@@ -325,7 +325,7 @@ export class GeminiAgentManager extends BaseAgentManager<
     }
   }
 
-  async sendMessage(data: { input: string; msg_id: string; files?: string[]; cronMeta?: CronMessageMeta }) {
+  async sendMessage(data: { input: string; msg_id: string; files?: string[]; cronMeta?: CronMessageMeta; hidden?: boolean }) {
     const message: TMessage = {
       id: data.msg_id,
       type: 'text',
@@ -335,6 +335,7 @@ export class GeminiAgentManager extends BaseAgentManager<
         content: data.input,
         ...(data.cronMeta && { cronMeta: data.cronMeta }),
       },
+      ...(data.hidden && { hidden: true }),
     };
     addMessage(this.conversation_id, message);
     // Update conversation modifyTime so history list sorts correctly.
@@ -354,6 +355,7 @@ export class GeminiAgentManager extends BaseAgentManager<
         conversation_id: this.conversation_id,
         msg_id: data.msg_id,
         data: { content: message.content.content, cronMeta: data.cronMeta },
+        ...(data.hidden && { hidden: true }),
       };
       ipcBridge.geminiConversation.responseStream.emit(userResponseMessage);
     }

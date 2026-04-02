@@ -22,15 +22,16 @@ const GeminiChat: React.FC<{
   conversation_id: string;
   workspace: string;
   modelSelection: GeminiModelSelection;
-}> = ({ conversation_id, workspace, modelSelection }) => {
+  cronJobId?: string;
+}> = ({ conversation_id, workspace, modelSelection, cronJobId }) => {
   useMessageLstCache(conversation_id);
   const updateLocalImage = LocalImageView.useUpdateLocalImage();
   useEffect(() => {
     updateLocalImage({ root: workspace });
   }, [workspace]);
   const conversationValue = useMemo<ConversationContextValue>(() => {
-    return { conversationId: conversation_id, workspace, type: 'gemini' };
-  }, [conversation_id, workspace]);
+    return { conversationId: conversation_id, workspace, type: 'gemini', cronJobId };
+  }, [conversation_id, workspace, cronJobId]);
 
   return (
     <ConversationProvider value={conversationValue}>
