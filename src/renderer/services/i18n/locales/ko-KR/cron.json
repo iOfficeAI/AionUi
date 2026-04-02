@@ -56,7 +56,9 @@
     "keepAwake": "절전 방지",
     "keepAwakeTooltip": "활성화하면 AionUi가 컴퓨터의 절전 모드를 방지합니다",
     "createTask": "예약 작업 만들기",
+    "editTask": "예약 작업 편집",
     "createSuccess": "작업이 성공적으로 생성되었습니다",
+    "updateSuccess": "작업이 성공적으로 업데이트되었습니다",
     "scheduleHint": "예약 작업은 서버 성능을 위해 몇 분의 무작위 지연이 있습니다.",
     "weekday": {
       "monday": "월요일",

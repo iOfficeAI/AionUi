@@ -68,7 +68,9 @@
     "keepAwake": "Uyanık tut",
     "keepAwakeTooltip": "Etkinleştirildiğinde AionUi bilgisayarınızın uyku moduna geçmesini engeller",
     "createTask": "Zamanlanmış Görev Oluştur",
+    "editTask": "Zamanlanmış Görevi Düzenle",
     "createSuccess": "Görev başarıyla oluşturuldu",
+    "updateSuccess": "Görev başarıyla güncellendi",
     "scheduleHint": "Zamanlanmış görevler sunucu performansı için birkaç dakikalık rastgele gecikme kullanır.",
     "weekday": {
       "monday": "Pazartesi",
@@ -96,7 +98,15 @@
       "scheduleDesc": "Zamanlama Açıklaması",
       "scheduleDescRequired": "Zamanlama açıklaması gereklidir",
       "scheduleDescPlaceholder": "Örn: Her Pazartesi saat 09:00",
-      "descriptionRequired": "Açıklama gereklidir"
+      "descriptionRequired": "Açıklama gereklidir",
+      "agent": "Ajan",
+      "agentRequired": "Lütfen bir ajan seçin",
+      "agentPlaceholder": "Bu görevi yürütecek ajanı seçin",
+      "executionMode": "Çalıştırma Modu",
+      "newConversation": "Yeni konuşma",
+      "existingConversation": "Aynı konuşma",
+      "newConversationHint": "Her çalıştırma yeni bir konuşma oluşturur",
+      "existingConversationHint": "Tüm çalıştırmalar aynı konuşmayı paylaşır"
     },
     "freq": {
       "manual": "Manuel",

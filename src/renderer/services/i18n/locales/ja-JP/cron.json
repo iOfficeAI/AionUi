@@ -68,7 +68,9 @@
     "keepAwake": "スリープを防止",
     "keepAwakeTooltip": "有効にすると、AionUi がコンピュータのスリープを防止します",
     "createTask": "スケジュールタスクを作成",
+    "editTask": "スケジュールタスクを編集",
     "createSuccess": "タスクが正常に作成されました",
+    "updateSuccess": "タスクが正常に更新されました",
     "scheduleHint": "スケジュールタスクはサーバーパフォーマンスのため、数分のランダムな遅延があります。",
     "weekday": {
       "monday": "月曜日",
@@ -96,7 +98,15 @@
       "scheduleDesc": "スケジュール説明",
       "scheduleDescRequired": "スケジュール説明は必須です",
       "scheduleDescPlaceholder": "例：毎週月曜日 午前9:00",
-      "descriptionRequired": "説明は必須です"
+      "descriptionRequired": "説明は必須です",
+      "agent": "エージェント",
+      "agentRequired": "エージェントを選択してください",
+      "agentPlaceholder": "このタスクを実行するエージェントを選択",
+      "executionMode": "実行モード",
+      "newConversation": "新しい会話",
+      "existingConversation": "同じ会話",
+      "newConversationHint": "実行ごとに新しい会話を作成します",
+      "existingConversationHint": "すべての実行が同じ会話を共有します"
     },
     "freq": {
       "manual": "手動",

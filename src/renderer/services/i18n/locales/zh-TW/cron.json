@@ -56,7 +56,9 @@
     "keepAwake": "保持喚醒",
     "keepAwakeTooltip": "開啟後，AionUi 將阻止電腦進入休眠狀態",
     "createTask": "建立定時任務",
+    "editTask": "編輯定時任務",
     "createSuccess": "任務建立成功",
+    "updateSuccess": "任務更新成功",
     "scheduleHint": "定時任務會有幾分鐘的隨機延遲以優化伺服器效能。",
     "weekday": {
       "monday": "星期一",
