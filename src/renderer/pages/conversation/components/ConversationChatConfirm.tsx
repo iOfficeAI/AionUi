@@ -22,13 +22,13 @@ const ConversationChatConfirm: React.FC<PropsWithChildren<{ conversation_id: str
   const agentType = conversationContext?.type || 'unknown';
   const teamPermission = useTeamPermission();
 
-  // In team mode: lead listens to all agents (centralized approval hub),
-  // members only listen to their own conversation (so other agents' confirmations don't block their SendBox).
+  // In team mode: confirmation UI is handled by TeamConfirmOverlay at the page level.
+  // Each slot's ConversationChatConfirm only passes through children without showing any dialog.
   // In standalone mode: only this conversation.
   const listenConversationIds = useMemo(() => {
     if (!teamPermission) return [conversation_id];
-    if (teamPermission.isLeadAgent) return teamPermission.allConversationIds;
-    return [conversation_id];
+    // Team mode: no local confirmation listening — TeamConfirmOverlay handles it
+    return [];
   }, [teamPermission, conversation_id]);
 
   // Check if confirmation should be auto-confirmed via backend approval store

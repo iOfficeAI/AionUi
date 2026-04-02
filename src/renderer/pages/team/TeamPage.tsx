@@ -7,6 +7,7 @@ import type { TeamAgent, TTeam } from '@/common/types/teamTypes';
 import type { TChatConversation } from '@/common/config/storage';
 import ChatLayout from '@/renderer/pages/conversation/components/ChatLayout';
 import ChatSider from '@/renderer/pages/conversation/components/ChatSider';
+import TeamConfirmOverlay from './components/TeamConfirmOverlay';
 import { useConversationAgents } from '@/renderer/pages/conversation/hooks/useConversationAgents';
 import AcpModelSelector from '@/renderer/components/agent/AcpModelSelector';
 import TeamTabs from './components/TeamTabs';
@@ -72,8 +73,9 @@ const TeamPageContent: React.FC<TeamPageContentProps> = ({ team, onAddAgent }) =
 
   const activeAgent = team.agents.find((a) => a.slotId === activeSlotId);
   const leadAgent = team.agents.find((a) => a.role === 'lead');
-  // In multi-window mode, leader's permission selector should always be visible
-  const isLeadAgent = true;
+  const leadConversationId = leadAgent?.conversationId ?? '';
+  // isLeadAgent is false at the global level; each slot checks against leadConversationId
+  const isLeadAgent = false;
   const allConversationIds = useMemo(() => team.agents.map((a) => a.conversationId).filter(Boolean), [team.agents]);
 
   // Fetch active agent's conversation to read initialModelId for the header
@@ -135,8 +137,11 @@ const TeamPageContent: React.FC<TeamPageContentProps> = ({ team, onAddAgent }) =
   }, [activeAgent?.conversationId, activeAgent?.conversationType, activeAgent?.agentType, initialModelId]);
 
   return (
-    <TeamPermissionProvider isLeadAgent={isLeadAgent} allConversationIds={allConversationIds}>
+    <TeamPermissionProvider isLeadAgent={isLeadAgent} leadConversationId={leadConversationId} allConversationIds={allConversationIds}>
       {messageContext}
+      {leadConversationId && (
+        <TeamConfirmOverlay allConversationIds={allConversationIds} />
+      )}
       <ChatLayout
         title={team.name}
         siderTitle={siderTitle}

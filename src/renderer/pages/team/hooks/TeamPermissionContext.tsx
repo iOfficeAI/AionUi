@@ -6,6 +6,8 @@ type TeamPermissionContextValue = {
   isTeamMode: true;
   /** Whether the current active agent is the team lead */
   isLeadAgent: boolean;
+  /** Conversation ID of the lead agent (used to identify lead slot) */
+  leadConversationId: string;
   /** All agent conversation IDs in this team (for centralized confirmation listening) */
   allConversationIds: string[];
   /** Propagate a permission mode change from the leader to all member agents */
@@ -17,8 +19,9 @@ const TeamPermissionContext = createContext<TeamPermissionContextValue | null>(n
 export const TeamPermissionProvider: React.FC<{
   children: React.ReactNode;
   isLeadAgent: boolean;
+  leadConversationId: string;
   allConversationIds: string[];
-}> = ({ children, isLeadAgent, allConversationIds }) => {
+}> = ({ children, isLeadAgent, leadConversationId, allConversationIds }) => {
   const propagateMode = useCallback(
     (mode: string) => {
       for (const conversationId of allConversationIds) {
@@ -34,10 +37,11 @@ export const TeamPermissionProvider: React.FC<{
     () => ({
       isTeamMode: true,
       isLeadAgent,
+      leadConversationId,
       allConversationIds,
       propagateMode,
     }),
-    [isLeadAgent, allConversationIds, propagateMode]
+    [isLeadAgent, leadConversationId, allConversationIds, propagateMode]
   );
 
   return <TeamPermissionContext.Provider value={value}>{children}</TeamPermissionContext.Provider>;

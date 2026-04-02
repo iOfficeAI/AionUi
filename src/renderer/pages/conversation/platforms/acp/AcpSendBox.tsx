@@ -101,7 +101,7 @@ const AcpSendBox: React.FC<{
   const { t } = useTranslation();
   const teamPermission = useTeamPermission();
   // In team mode, only the lead agent shows the permission mode selector
-  const showModeSelector = !teamPermission || teamPermission.isLeadAgent;
+  const showModeSelector = !teamPermission || conversation_id === teamPermission.leadConversationId;
   const { checkAndUpdateTitle } = useAutoTitle();
   const slashCommands = useSlashCommands(conversation_id, { agentStatus: acpStatus });
   const { atPath, uploadFile, setAtPath, setUploadFile, content, setContent } = useSendBoxDraft(conversation_id);
