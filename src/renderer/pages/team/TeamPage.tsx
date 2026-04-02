@@ -191,12 +191,14 @@ const TeamPageContent: React.FC<TeamPageContentProps> = ({ team, onAddAgent }) =
 
   const scrollToPrev = useCallback(() => {
     const idx = agents.findIndex((a) => a.slotId === activeSlotId);
-    if (idx > 0) handleTabClick(agents[idx - 1].slotId);
+    const target = idx > 0 ? idx - 1 : 0;
+    if (agents[target]) handleTabClick(agents[target].slotId);
   }, [agents, activeSlotId, handleTabClick]);
 
   const scrollToNext = useCallback(() => {
     const idx = agents.findIndex((a) => a.slotId === activeSlotId);
-    if (idx < agents.length - 1) handleTabClick(agents[idx + 1].slotId);
+    const target = idx >= 0 && idx < agents.length - 1 ? idx + 1 : 0;
+    if (agents[target]) handleTabClick(agents[target].slotId);
   }, [agents, activeSlotId, handleTabClick]);
 
   const tabsSlot = useMemo(() => <TeamTabs onAddAgent={onAddAgent} onTabClick={handleTabClick} />, [onAddAgent, handleTabClick]);
