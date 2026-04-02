@@ -154,6 +154,7 @@ const Sider: React.FC<SiderProps> = ({ onSessionClick, collapsed = false }) => {
             <SiderScheduledEntry
               isMobile={isMobile}
               isActive={pathname === '/scheduled'}
+              collapsed={collapsed}
               siderTooltipProps={siderTooltipProps}
               onClick={handleScheduledClick}
             />
