@@ -268,6 +268,9 @@ Review dimensions:
 - **性能** — 不必要的重渲染、大循环、阻塞调用
 - **代码质量** — 函数长度、嵌套深度、命名清晰度
 - **遗留 console.log** — 生产代码中是否有调试日志残留
+- **数据库变更** — If PR touches migration files or database schema: (1) migration must be correct (column types, constraints, index, default values, reversibility); (2) changes must be reasonable and match the PR's stated purpose; (3) no data loss risk on existing records; (4) migration order and dependencies are correct. Flag incorrect migrations as CRITICAL.
+- **IPC bridge / preload** — If PR touches `src/preload.ts` or IPC channel definitions: (1) no unnecessary Node.js APIs exposed to renderer; (2) all exposed APIs have proper input validation; (3) renderer cannot trigger privileged operations without authorization. Exposing unsafe APIs is CRITICAL.
+- **Electron 安全配置** — If PR touches `electron-builder.yml`, `entitlements.plist`, or Electron config in `electron.vite.config.ts`: (1) sandbox/nodeIntegration/contextIsolation settings not weakened; (2) entitlements not over-granted; (3) signing and notarization not broken. Security regression is CRITICAL.
 - **测试** — 对照 [testing skill](../testing/SKILL.md) 的标准评估，以下任一情况须指出：
   - 新增功能没有对应测试用例
   - 修改了逻辑但未更新已有相关测试
