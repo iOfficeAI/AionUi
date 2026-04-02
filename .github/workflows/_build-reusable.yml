@@ -26,6 +26,8 @@ on:
 
 env:
   BUN_INSTALL_REGISTRY: 'https://registry.npmjs.org/'
+  # aionrs binary version to bundle (used by scripts/prepareAionrs.js)
+  AIONRS_VERSION: 'latest'
 
 jobs:
   code-quality:

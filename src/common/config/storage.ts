@@ -380,6 +380,36 @@ export type TChatConversation =
         }
       >,
       'model'
+    >
+  | IChatConversation<
+      'aionrs',
+      {
+        workspace: string;
+        customWorkspace?: boolean;
+        proxy?: string;
+        /** System rules injected at initialization */
+        presetRules?: string;
+        /** Enabled skills list */
+        enabledSkills?: string[];
+        /** Preset assistant ID */
+        presetAssistantId?: string;
+        /** Whether this conversation is pinned */
+        pinned?: boolean;
+        /** Pin timestamp in milliseconds */
+        pinnedAt?: number;
+        /** Max tokens per response */
+        maxTokens?: number;
+        /** Max agentic turns */
+        maxTurns?: number;
+        /** Persisted session mode for resume support */
+        sessionMode?: string;
+        /** Explicit marker for temporary health-check conversations */
+        isHealthCheck?: boolean;
+        /** Last token usage stats */
+        lastTokenUsage?: TokenUsageData;
+        /** Cron job ID that spawned this conversation */
+        cronJobId?: string;
+      }
     >;
 
 export type IChatConversationRefer = {

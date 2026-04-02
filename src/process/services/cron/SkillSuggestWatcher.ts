@@ -66,6 +66,13 @@ class SkillSuggestWatcher {
   }
 
   /**
+   * Get the last emitted hash for a conversation.
+   */
+  getLastHash(conversationId: string): string | null {
+    return this.entries.get(conversationId)?.lastHash ?? null;
+  }
+
+  /**
    * Called by AgentManagers when a turn finishes.
    * Follows the same pattern as `checkCronWithRetry` — uses setTimeout
    * with retries to wait for file writes to flush.

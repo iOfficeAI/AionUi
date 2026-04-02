@@ -13,6 +13,43 @@ import type { AvailableAgent } from '@/renderer/utils/model/agentTypes';
 import type { AcpBackend, AcpBackendAll } from '@/common/types/acpTypes';
 
 /**
+ * Get a model from configured providers that is compatible with aionrs.
+ * aionrs supports all platforms via OpenAI-compatible protocol.
+ * Throws if no compatible provider is configured.
+ */
+export async function getDefaultAionrsModel(): Promise<TProviderWithModel> {
+  const providers = await ConfigStorage.get('model.config');
+
+  if (!providers || providers.length === 0) {
+    throw new Error('No model provider configured');
+  }
+
+  // aionrs supports all platforms via OpenAI-compatible protocol
+  const provider = providers.find((p) => p.enabled !== false);
+  if (!provider) {
+    throw new Error('No enabled model provider for Aion CLI');
+  }
+
+  const enabledModel = provider.model.find((m) => provider.modelEnabled?.[m] !== false);
+
+  return {
+    id: provider.id,
+    platform: provider.platform,
+    name: provider.name,
+    baseUrl: provider.baseUrl,
+    apiKey: provider.apiKey,
+    useModel: enabledModel || provider.model[0],
+    capabilities: provider.capabilities,
+    contextLimit: provider.contextLimit,
+    modelProtocols: provider.modelProtocols,
+    bedrockConfig: provider.bedrockConfig,
+    enabled: provider.enabled,
+    modelEnabled: provider.modelEnabled,
+    modelHealth: provider.modelHealth,
+  };
+}
+
+/**
  * Get the default Gemini model configuration from user settings.
  * Throws if no enabled provider or model is configured.
  * [BUG-3 fix]: callers must call this inside a try block
@@ -56,6 +93,8 @@ export function getConversationTypeForBackend(backend: string): ICreateConversat
   switch (backend) {
     case 'gemini':
       return 'gemini';
+    case 'aionrs':
+      return 'aionrs';
     case 'openclaw-gateway':
     case 'openclaw':
       return 'openclaw-gateway';
@@ -110,17 +149,22 @@ export async function buildCliAgentParams(
   // Gemini type uses a placeholder model (matching Guid page behavior in useGuidSend).
   // The Guid page uses currentModel || placeholderModel, so Gemini does NOT require
   // a configured model provider - it works with Google auth instead.
-  const model: TProviderWithModel =
-    type === 'gemini'
-      ? {
-          id: 'gemini-placeholder',
-          name: 'Gemini',
-          useModel: 'default',
-          platform: 'gemini-with-google-auth' as TProviderWithModel['platform'],
-          baseUrl: '',
-          apiKey: '',
-        }
-      : ({} as TProviderWithModel);
+  let model: TProviderWithModel;
+  if (type === 'gemini') {
+    model = {
+      id: 'gemini-placeholder',
+      name: 'Gemini',
+      useModel: 'default',
+      platform: 'gemini-with-google-auth' as TProviderWithModel['platform'],
+      baseUrl: '',
+      apiKey: '',
+    };
+  } else if (type === 'aionrs') {
+    // Aionrs needs a real model from configured providers (anthropic, openai, ali-intl, aws)
+    model = await getDefaultAionrsModel();
+  } else {
+    model = {} as TProviderWithModel;
+  }
 
   return { type, model, name: agentName, extra };
 }

@@ -166,11 +166,15 @@ git checkout bot/fix-pr-<PR_NUMBER>
 git merge --no-ff --no-edit FETCH_HEAD
 ```
 
-After creating the worktree (all three paths), symlink `node_modules` so lint/tsc/test can run:
+**All paths — symlink node_modules and rebuild native modules:**
 
 ```bash
 ln -s "$REPO_ROOT/node_modules" "$WORKTREE_DIR/node_modules"
+cd "$WORKTREE_DIR"
+npx electron-rebuild -f -w better-sqlite3 2>/dev/null || true
 ```
+
+The `electron-rebuild` step recompiles native modules (e.g., `better-sqlite3`) against the Electron version used by this project, ensuring ABI compatibility.
 
 Save `REPO_ROOT` and `WORKTREE_DIR` for later steps. All file reads, edits, lint, and test commands from this point forward run inside `WORKTREE_DIR`.
 

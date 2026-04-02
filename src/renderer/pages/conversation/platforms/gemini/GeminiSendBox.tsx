@@ -31,6 +31,7 @@ import { Message, Tag } from '@arco-design/web-react';
 import { Shield } from '@icon-park/react';
 import { iconColors } from '@/renderer/styles/colors';
 import AgentModeSelector from '@/renderer/components/agent/AgentModeSelector';
+import { useTeamPermission } from '@/renderer/pages/team/hooks/TeamPermissionContext';
 import ThoughtDisplay from '@/renderer/components/chat/ThoughtDisplay';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -88,6 +89,8 @@ const GeminiSendBox: React.FC<{
 }> = ({ conversation_id, modelSelection }) => {
   const [workspacePath, setWorkspacePath] = useState('');
   const { t } = useTranslation();
+  const teamPermission = useTeamPermission();
+  const showModeSelector = !teamPermission || teamPermission.isLeadAgent;
   const { checkAndUpdateTitle } = useAutoTitle();
 
   // Agent auto-detection state - only for new conversation + no auth scenario
@@ -396,15 +399,18 @@ const GeminiSendBox: React.FC<{
         tools={
           <div className='flex items-center gap-4px'>
             <FileAttachButton openFileSelector={openFileSelector} onLocalFilesAdded={handleFilesAdded} />
-            <AgentModeSelector
-              backend='gemini'
-              conversationId={conversation_id}
-              compact
-              compactLeadingIcon={<Shield theme='outline' size='14' fill={iconColors.secondary} />}
-              modeLabelFormatter={(mode) => t(`agentMode.${mode.value}`, { defaultValue: mode.label })}
-              compactLabelPrefix={t('agentMode.permission')}
-              hideCompactLabelPrefixOnMobile
-            />
+            {showModeSelector && (
+              <AgentModeSelector
+                backend='gemini'
+                conversationId={conversation_id}
+                compact
+                compactLeadingIcon={<Shield theme='outline' size='14' fill={iconColors.secondary} />}
+                modeLabelFormatter={(mode) => t(`agentMode.${mode.value}`, { defaultValue: mode.label })}
+                compactLabelPrefix={t('agentMode.permission')}
+                hideCompactLabelPrefixOnMobile
+                onModeChanged={teamPermission?.propagateMode}
+              />
+            )}
           </div>
         }
         sendButtonPrefix={

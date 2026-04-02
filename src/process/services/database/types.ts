@@ -190,6 +190,16 @@ export function rowToConversation(row: IConversationRow): TChatConversation {
     } as TChatConversation;
   }
 
+  // Aionrs type has model field
+  if (row.type === 'aionrs' && row.model) {
+    return {
+      ...base,
+      type: 'aionrs' as const,
+      extra: JSON.parse(row.extra),
+      model: JSON.parse(row.model),
+    } as TChatConversation;
+  }
+
   // Remote type
   if (row.type === 'remote') {
     return {

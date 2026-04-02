@@ -17,6 +17,7 @@ import AcpAgentManager from './AcpAgentManager';
 import OpenClawAgentManager from './OpenClawAgentManager';
 import NanoBotAgentManager from './NanoBotAgentManager';
 import RemoteAgentManager from './RemoteAgentManager';
+import { AionrsManager } from './AionrsManager';
 
 const agentFactory = new AgentFactory();
 
@@ -68,6 +69,15 @@ agentFactory.register('remote', (conv, opts) => {
     conversation_id: c.id,
     yoloMode: opts?.yoloMode,
   }) as unknown as ReturnType<typeof agentFactory.create>;
+});
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+agentFactory.register('aionrs', (conv, opts) => {
+  const c = conv as any;
+  return new AionrsManager(
+    { ...c.extra, conversation_id: c.id, yoloMode: opts?.yoloMode },
+    c.model
+  ) as unknown as ReturnType<typeof agentFactory.create>;
 });
 
 const conversationRepo = new SqliteConversationRepository();

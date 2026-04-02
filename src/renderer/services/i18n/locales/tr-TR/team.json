@@ -1,0 +1,33 @@
+{
+  "sider": {
+    "title": "Teams",
+    "createTeam": "New Team"
+  },
+  "addAgent": {
+    "title": "Add Agent",
+    "name": "Agent Name",
+    "namePlaceholder": "Enter agent name",
+    "type": "Agent Type",
+    "typePlaceholder": "Select agent type",
+    "confirm": "Add"
+  },
+  "newAgent": "New Agent",
+  "noMessages": "No messages yet.",
+  "agentNotConfigured": "Ajan henüz yapılandırılmadı.",
+  "sendBox": {
+    "placeholder": "Dağıtım ajanına mesaj gönder..."
+  },
+  "create": {
+    "title": "Create Team",
+    "namePlaceholder": "Team name",
+    "dispatchAgentPlaceholder": "Select dispatch agent",
+    "subAgentsPlaceholder": "Select sub agents",
+    "workspacePlaceholder": "Workspace path (optional)",
+    "confirm": "Create Team",
+    "step": {
+      "dispatch": "Dispatch Agent",
+      "subAgents": "Sub Agents",
+      "workspace": "Workspace"
+    }
+  }
+}

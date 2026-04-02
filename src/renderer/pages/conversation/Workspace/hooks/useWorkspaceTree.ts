@@ -15,7 +15,7 @@ import { getFirstLevelKeys } from '../utils/treeHelpers';
 interface UseWorkspaceTreeOptions {
   workspace: string;
   conversation_id: string;
-  eventPrefix: 'gemini' | 'acp' | 'codex';
+  eventPrefix: 'gemini' | 'acp' | 'codex' | 'aionrs';
 }
 
 /**

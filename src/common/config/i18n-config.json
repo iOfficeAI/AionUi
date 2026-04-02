@@ -20,6 +20,7 @@
     "cron",
     "starOffice",
     "guid",
-    "agent"
+    "agent",
+    "team"
   ]
 }

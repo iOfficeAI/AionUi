@@ -162,6 +162,10 @@ function composeMessageWithIndex(message: TMessage, list: TMessage[], index: Mes
         if (message.position === 'right') {
           return list;
         }
+        // Complete teammate messages are not streaming chunks — skip if already exists
+        if ((message.content as { teammateMessage?: boolean })?.teammateMessage) {
+          return list;
+        }
         // AI streaming messages (left position) — append chunks
         const newList = list.slice();
         newList[existingIdx] = {

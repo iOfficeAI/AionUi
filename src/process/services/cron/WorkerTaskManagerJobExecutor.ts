@@ -396,6 +396,11 @@ export class WorkerTaskManagerJobExecutor implements ICronJobExecutor {
         // Register for ongoing monitoring and set the initial hash
         skillSuggestWatcher.register(conversationId, jobId, workspace);
         const hash = contentHash(content);
+
+        // Skip if SkillSuggestWatcher.checkAndEmit already processed this content
+        if (skillSuggestWatcher.getLastHash(conversationId) === hash) {
+          return;
+        }
         skillSuggestWatcher.setLastHash(conversationId, hash);
 
         // Emit the initial detection

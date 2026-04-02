@@ -18,6 +18,7 @@ import { cronBusyGuard } from '@process/services/cron/CronBusyGuard';
 import { skillSuggestWatcher } from '@process/services/cron/SkillSuggestWatcher';
 import BaseAgentManager from '@process/task/BaseAgentManager';
 import { IpcAgentEventEmitter } from '@process/task/IpcAgentEventEmitter';
+import { teamEventBus } from '@process/team/teamEventBus';
 
 export interface OpenClawAgentManagerData {
   conversation_id: string;
@@ -116,6 +117,8 @@ class OpenClawAgentManager extends BaseAgentManager<OpenClawAgentManagerData> {
     ipcBridge.openclawConversation.responseStream.emit(msg);
     // Also emit to the unified conversation stream so the generic chat UI can render OpenClaw replies.
     ipcBridge.conversation.responseStream.emit(msg);
+    // Also emit to main-process-local bus so TeammateManager can receive events
+    teamEventBus.emit('responseStream', msg);
 
     // Emit to Channel global event bus (Telegram/Lark streaming)
     channelEventBus.emitAgentMessage(this.conversation_id, msg);
@@ -162,6 +165,8 @@ class OpenClawAgentManager extends BaseAgentManager<OpenClawAgentManagerData> {
     // Emit signal events to frontend
     ipcBridge.openclawConversation.responseStream.emit(msg);
     ipcBridge.conversation.responseStream.emit(msg);
+    // Also emit to main-process-local bus so TeammateManager can receive events
+    teamEventBus.emit('responseStream', msg);
 
     // Forward signals to Channel global event bus
     channelEventBus.emitAgentMessage(this.conversation_id, msg);
@@ -200,6 +205,7 @@ class OpenClawAgentManager extends BaseAgentManager<OpenClawAgentManagerData> {
     files?: string[];
     msg_id?: string;
     hidden?: boolean;
+    silent?: boolean;
   }) {
     cronBusyGuard.setProcessing(this.conversation_id, true);
     // Set status to running when message is being processed
@@ -208,7 +214,7 @@ class OpenClawAgentManager extends BaseAgentManager<OpenClawAgentManagerData> {
       await this.bootstrap;
 
       // Save user message to chat history (always use original content, not injected version)
-      if (data.msg_id && data.content) {
+      if (data.msg_id && data.content && !data.silent) {
         const userMessage: TMessage = {
           id: data.msg_id,
           msg_id: data.msg_id,

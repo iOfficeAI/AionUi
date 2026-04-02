@@ -31,6 +31,7 @@ import { useOpenFileSelector } from '@/renderer/hooks/file/useOpenFileSelector';
 import FileAttachButton from '@/renderer/components/media/FileAttachButton';
 import { useAutoTitle } from '@/renderer/hooks/chat/useAutoTitle';
 import AgentModeSelector from '@/renderer/components/agent/AgentModeSelector';
+import { useTeamPermission } from '@/renderer/pages/team/hooks/TeamPermissionContext';
 import AcpConfigSelector from '@/renderer/components/agent/AcpConfigSelector';
 import { useSlashCommands } from '@/renderer/hooks/chat/useSlashCommands';
 
@@ -54,6 +55,8 @@ const EMPTY_UPLOAD_FILES: string[] = [];
 const CodexSendBox: React.FC<{ conversation_id: string }> = ({ conversation_id }) => {
   const [workspacePath, setWorkspacePath] = useState('');
   const { t } = useTranslation();
+  const teamPermission = useTeamPermission();
+  const showModeSelector = !teamPermission || teamPermission.isLeadAgent;
   const { checkAndUpdateTitle } = useAutoTitle();
   const addOrUpdateMessage = useAddOrUpdateMessage();
   const removeMessageByMsgId = useRemoveMessageByMsgId();
@@ -515,15 +518,18 @@ const CodexSendBox: React.FC<{ conversation_id: string }> = ({ conversation_id }
         tools={
           <div className='flex items-center gap-4px'>
             <FileAttachButton openFileSelector={openFileSelector} onLocalFilesAdded={handleFilesAdded} />
-            <AgentModeSelector
-              backend='codex'
-              conversationId={conversation_id}
-              compact
-              compactLeadingIcon={<Shield theme='outline' size='14' fill={iconColors.secondary} />}
-              modeLabelFormatter={(mode) => t(`agentMode.${mode.value}`, { defaultValue: mode.label })}
-              compactLabelPrefix={t('agentMode.permission')}
-              hideCompactLabelPrefixOnMobile
-            />
+            {showModeSelector && (
+              <AgentModeSelector
+                backend='codex'
+                conversationId={conversation_id}
+                compact
+                compactLeadingIcon={<Shield theme='outline' size='14' fill={iconColors.secondary} />}
+                modeLabelFormatter={(mode) => t(`agentMode.${mode.value}`, { defaultValue: mode.label })}
+                compactLabelPrefix={t('agentMode.permission')}
+                hideCompactLabelPrefixOnMobile
+                onModeChanged={teamPermission?.propagateMode}
+              />
+            )}
             <AcpConfigSelector conversationId={conversation_id} backend='codex' />
           </div>
         }

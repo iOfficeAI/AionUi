@@ -21,23 +21,30 @@ const AcpChat: React.FC<{
   sessionMode?: string;
   agentName?: string;
   cronJobId?: string;
-}> = ({ conversation_id, workspace, backend, sessionMode, agentName, cronJobId }) => {
+  hideSendBox?: boolean;
+  teamId?: string;
+  agentSlotId?: string;
+}> = ({ conversation_id, workspace, backend, sessionMode, agentName, cronJobId, hideSendBox, teamId, agentSlotId }) => {
   useMessageLstCache(conversation_id);
 
   return (
-    <ConversationProvider value={{ conversationId: conversation_id, workspace, type: 'acp', cronJobId }}>
+    <ConversationProvider value={{ conversationId: conversation_id, workspace, type: 'acp', cronJobId, hideSendBox }}>
       <div className='flex-1 flex flex-col px-20px min-h-0'>
         <FlexFullContainer>
           <MessageList className='flex-1'></MessageList>
         </FlexFullContainer>
-        <ConversationChatConfirm conversation_id={conversation_id}>
-          <AcpSendBox
-            conversation_id={conversation_id}
-            backend={backend}
-            sessionMode={sessionMode}
-            agentName={agentName}
-          ></AcpSendBox>
-        </ConversationChatConfirm>
+        {!hideSendBox && (
+          <ConversationChatConfirm conversation_id={conversation_id}>
+            <AcpSendBox
+              conversation_id={conversation_id}
+              backend={backend}
+              sessionMode={sessionMode}
+              agentName={agentName}
+              teamId={teamId}
+              agentSlotId={agentSlotId}
+            ></AcpSendBox>
+          </ConversationChatConfirm>
+        )}
       </div>
     </ConversationProvider>
   );

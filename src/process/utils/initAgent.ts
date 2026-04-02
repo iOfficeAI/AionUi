@@ -261,6 +261,8 @@ export const createAcpAgent = async (options: ICreateConversationParams): Promis
       currentModelId: extra.currentModelId,
       // Explicit marker for temporary health-check conversations
       isHealthCheck: extra.isHealthCheck,
+      // Team ownership — used by sidebar filter to hide team-owned conversations
+      ...(extra.teamId ? { teamId: extra.teamId } : {}),
     },
     createTime: Date.now(),
     modifyTime: Date.now(),
@@ -329,6 +331,34 @@ export const createRemoteAgent = async (options: ICreateConversationParams): Pro
       enabledSkills: extra.enabledSkills,
       presetAssistantId: extra.presetAssistantId,
     },
+    createTime: Date.now(),
+    modifyTime: Date.now(),
+    name: workspace,
+    id: uuid(),
+  };
+};
+
+export const createAionrsAgent = async (options: ICreateConversationParams): Promise<TChatConversation> => {
+  const { extra } = options;
+  const { workspace, customWorkspace } = await buildWorkspaceWidthFiles(
+    `aionrs-temp-${Date.now()}`,
+    extra.workspace,
+    extra.defaultFiles,
+    extra.customWorkspace
+  );
+
+  return {
+    type: 'aionrs',
+    model: options.model,
+    extra: {
+      workspace,
+      customWorkspace,
+      presetRules: extra.presetRules,
+      enabledSkills: extra.enabledSkills,
+      presetAssistantId: extra.presetAssistantId,
+      sessionMode: extra.sessionMode,
+    },
+    desc: customWorkspace ? workspace : '',
     createTime: Date.now(),
     modifyTime: Date.now(),
     name: workspace,
