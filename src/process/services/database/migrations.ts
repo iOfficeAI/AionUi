@@ -876,6 +876,11 @@ const migration_v18: IMigration = {
 
 /**
  * Migration v18 -> v19: Add teams table for Team mode
+ *
+ * NOTE: This migration intentionally omits `lead_agent_id`. That column was
+ * added in v20 via ALTER TABLE. Users who upgrade directly to v20+ get the
+ * column via the v20 migration; the omission here is a known historical gap,
+ * not a bug. Do NOT add `lead_agent_id` here — it would conflict with v20.
  */
 const migration_v19: IMigration = {
   version: 19,

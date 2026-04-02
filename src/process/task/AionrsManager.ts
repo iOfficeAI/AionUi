@@ -114,8 +114,9 @@ export class AionrsManager extends BaseAgentManager<AionrsManagerData, string> {
   }
 
   async stop() {
-    await super.stop();
+    // Inject history BEFORE stopping so the command reaches the running process
     await this.injectHistoryFromDatabase();
+    await super.stop();
   }
 
   async sendMessage(data: { input: string; msg_id: string; files?: string[] }) {
