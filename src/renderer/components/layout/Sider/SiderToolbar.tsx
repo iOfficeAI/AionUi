@@ -36,7 +36,10 @@ const SiderToolbar: React.FC<SiderToolbarProps> = ({
       <div className='mb-8px shrink-0 flex flex-col items-center gap-2px w-full'>
         <Tooltip {...siderTooltipProps} content={t('conversation.welcome.newConversation')} position='right'>
           <div
-            className='w-full py-6px flex items-center justify-center cursor-pointer transition-colors text-t-primary rd-8px hover:bg-fill-3 active:bg-fill-4'
+            className={classNames(
+              'w-full py-6px flex items-center justify-center cursor-pointer transition-colors text-t-primary rd-8px hover:bg-fill-3 active:bg-fill-4',
+              styles.newChatTrigger
+            )}
             onClick={onNewChat}
           >
             <Plus
