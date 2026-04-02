@@ -408,6 +408,19 @@ class AcpAgentManager extends BaseAgentManager<AcpAgentManagerData, AcpPermissio
             this.thinkingContent = '';
           }
 
+          // Strip inline <think> tags from content messages BEFORE transform/DB/emit
+          // so thinking appears before main content and DB stores clean text
+          // (e.g. MiniMax models embed think tags in content)
+          if (message.type === 'content' && typeof message.data === 'string') {
+            const { thinking, content: stripped } = extractAndStripThinkTags(message.data);
+            if (thinking) {
+              this.emitThinkingMessage(thinking, 'thinking');
+            }
+            if (stripped !== message.data) {
+              message = { ...message, data: stripped };
+            }
+          }
+
           if (
             message.type !== 'thought' &&
             message.type !== 'thinking' &&
@@ -449,18 +462,6 @@ class AcpAgentManager extends BaseAgentManager<AcpAgentManagerData, AcpPermissio
                   this.currentMsgContent += textContent;
                 }
               }
-            }
-          }
-
-          // Strip inline <think> tags from content messages to prevent leaking
-          // internal reasoning to the UI (e.g. MiniMax models embed think tags in content)
-          if (message.type === 'content' && typeof message.data === 'string') {
-            const { thinking, content: stripped } = extractAndStripThinkTags(message.data);
-            if (thinking) {
-              this.emitThinkingMessage(thinking, 'thinking');
-            }
-            if (stripped !== message.data) {
-              message = { ...message, data: stripped };
             }
           }
 
