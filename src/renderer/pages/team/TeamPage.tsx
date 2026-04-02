@@ -161,7 +161,7 @@ const TeamPageContent: React.FC<TeamPageContentProps> = ({ team, onAddAgent }) =
         tabsSlot={tabsSlot}
         conversationId={activeAgent?.conversationId}
         backend={activeAgent?.agentType}
-        agentName={activeAgent?.agentName}
+        agentName={undefined}
       >
         <div
           ref={scrollContainerRef}
