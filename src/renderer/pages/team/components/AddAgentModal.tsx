@@ -3,7 +3,7 @@ import { Button, Input, Select } from '@arco-design/web-react';
 import { useTranslation } from 'react-i18next';
 import AionModal from '@renderer/components/base/AionModal';
 import { useConversationAgents } from '@renderer/pages/conversation/hooks/useConversationAgents';
-import { agentKey, AgentOptionLabel } from './agentSelectUtils';
+import { agentKey, filterTeamSupportedAgents, AgentOptionLabel } from './agentSelectUtils';
 
 type Props = {
   visible: boolean;
@@ -17,7 +17,7 @@ const AddAgentModal: React.FC<Props> = ({ visible, onClose, onConfirm }) => {
   const [agentName, setAgentName] = useState('');
   const [selectedKey, setSelectedKey] = useState<string | undefined>(undefined);
 
-  const allAgents = [...cliAgents, ...presetAssistants];
+  const allAgents = filterTeamSupportedAgents([...cliAgents, ...presetAssistants]);
 
   const handleClose = () => {
     setAgentName('');

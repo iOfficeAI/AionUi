@@ -12,6 +12,7 @@ import {
   agentFromKey,
   resolveConversationType,
   resolveTeamAgentType,
+  filterTeamSupportedAgents,
   AgentOptionLabel,
 } from './agentSelectUtils';
 
@@ -30,7 +31,7 @@ const TeamCreateModal: React.FC<Props> = ({ visible, onClose, onCreated }) => {
   const [workspace, setWorkspace] = useState('');
   const [loading, setLoading] = useState(false);
 
-  const allAgents = [...cliAgents, ...presetAssistants];
+  const allAgents = filterTeamSupportedAgents([...cliAgents, ...presetAssistants]);
   const isDesktop = isElectronDesktop();
 
   const handleClose = () => {

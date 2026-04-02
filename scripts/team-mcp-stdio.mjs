@@ -154,7 +154,7 @@ Use this when:
 The new agent will be created and added to the team. You can then assign tasks and send messages to it.`,
   {
     name: z.string().describe('Name for the new teammate (e.g., "researcher", "developer", "tester")'),
-    agent_type: z.string().optional().describe('Agent type/backend (default: "acp"). Options: acp, gemini, codex'),
+    agent_type: z.enum(['acp', 'codex']).optional().describe('Agent type/backend (default: "acp"). Only "acp" and "codex" are supported in team mode.'),
   },
   TEAM_MCP_PORT,
   TEAM_AGENT_SLOT_ID,

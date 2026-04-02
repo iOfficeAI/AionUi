@@ -352,6 +352,12 @@ export class TeamMcpServer {
     const { teamId, getAgents, mailbox, spawnAgent, wakeAgent } = this.params;
     const name = String(args.name ?? '');
     const agentType = args.agent_type ? String(args.agent_type) : undefined;
+    const SUPPORTED_TEAM_TYPES = new Set(['acp', 'codex', 'claude', undefined]);
+    if (!SUPPORTED_TEAM_TYPES.has(agentType)) {
+      throw new Error(
+        `Agent type "${agentType}" is not supported in team mode. Supported types: acp, codex.`
+      );
+    }
 
     if (!spawnAgent) {
       throw new Error('Agent spawning is not available for this team.');

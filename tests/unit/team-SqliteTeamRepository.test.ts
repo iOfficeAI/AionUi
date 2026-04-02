@@ -6,6 +6,18 @@ import { BetterSqlite3Driver } from '@process/services/database/drivers/BetterSq
 import { SqliteTeamRepository } from '@process/team/repository/SqliteTeamRepository';
 import type { TTeam } from '@process/team/types';
 
+let nativeModuleAvailable = true;
+try {
+  const d = new BetterSqlite3Driver(':memory:');
+  d.close();
+} catch (e) {
+  if (e instanceof Error && e.message.includes('NODE_MODULE_VERSION')) {
+    nativeModuleAvailable = false;
+  }
+}
+
+const describeOrSkip = nativeModuleAvailable ? describe : describe.skip;
+
 function makeTeam(overrides: Partial<TTeam> = {}): TTeam {
   return {
     id: 'team-1',
@@ -31,7 +43,7 @@ function makeTeam(overrides: Partial<TTeam> = {}): TTeam {
   };
 }
 
-describe('SqliteTeamRepository', () => {
+describeOrSkip('SqliteTeamRepository', () => {
   let repo: SqliteTeamRepository;
   let driver: BetterSqlite3Driver;
 

@@ -16,6 +16,33 @@ export function resolveTeamAgentType(agent: AvailableAgent | undefined, fallback
   return agent?.presetAgentType || agent?.backend || fallback;
 }
 
+/** Agent backends that support team MCP tools (spawn, task board, messaging) */
+const TEAM_SUPPORTED_BACKENDS = new Set([
+  'claude',
+  'qwen',
+  'codex',
+  'goose',
+  'auggie',
+  'kimi',
+  'opencode',
+  'copilot',
+  'qoder',
+  'codebuddy',
+  'droid',
+  'vibe',
+  'iflow',
+  'cursor',
+  'kiro',
+]);
+
+/** Filter agents to only those supported in team mode */
+export function filterTeamSupportedAgents(agents: AvailableAgent[]): AvailableAgent[] {
+  return agents.filter((a) => {
+    const backend = a.presetAgentType || a.backend;
+    return TEAM_SUPPORTED_BACKENDS.has(backend);
+  });
+}
+
 export function resolveConversationType(
   backend: string
 ): 'gemini' | 'acp' | 'aionrs' | 'codex' | 'openclaw-gateway' | 'nanobot' | 'remote' {
