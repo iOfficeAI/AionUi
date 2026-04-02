@@ -221,11 +221,13 @@ const TeamPageContent: React.FC<TeamPageContentProps> = ({ team, onAddAgent }) =
         <div className='relative flex h-full'>
           {showLeftArrow && (
             <div
-              className='absolute left-0 top-0 bottom-0 w-40px z-20 flex items-center justify-center cursor-pointer opacity-60 hover:opacity-100 transition-opacity'
+              className='absolute left-0 top-0 bottom-0 w-48px z-20 flex items-center justify-center cursor-pointer opacity-80 hover:opacity-100 transition-opacity'
               style={{ background: 'linear-gradient(90deg, var(--color-bg-1) 40%, transparent)' }}
               onClick={scrollToPrev}
             >
-              <Left size='20' fill='currentColor' />
+              <div className='w-28px h-28px rd-full bg-[var(--color-bg-3)] flex items-center justify-center shadow-sm'>
+                <Left size='16' fill='currentColor' />
+              </div>
             </div>
           )}
           <div
@@ -261,11 +263,13 @@ const TeamPageContent: React.FC<TeamPageContentProps> = ({ team, onAddAgent }) =
           </div>
           {showRightArrow && (
             <div
-              className='absolute right-0 top-0 bottom-0 w-40px z-20 flex items-center justify-center cursor-pointer opacity-60 hover:opacity-100 transition-opacity'
+              className='absolute right-0 top-0 bottom-0 w-48px z-20 flex items-center justify-center cursor-pointer opacity-80 hover:opacity-100 transition-opacity'
               style={{ background: 'linear-gradient(270deg, var(--color-bg-1) 40%, transparent)' }}
               onClick={scrollToNext}
             >
-              <Right size='20' fill='currentColor' />
+              <div className='w-28px h-28px rd-full bg-[var(--color-bg-3)] flex items-center justify-center shadow-sm'>
+                <Right size='16' fill='currentColor' />
+              </div>
             </div>
           )}
         </div>
