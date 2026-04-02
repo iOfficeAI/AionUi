@@ -148,8 +148,7 @@ const TeamPageContent: React.FC<TeamPageContentProps> = ({ team, onAddAgent }) =
   const activeAgent = agents.find((a) => a.slotId === activeSlotId);
   const leadAgent = agents.find((a) => a.role === 'lead');
   const leadConversationId = leadAgent?.conversationId ?? '';
-  // isLeadAgent is false at the global level; each slot checks against leadConversationId
-  const isLeadAgent = false;
+  const isLeadAgent = activeAgent?.role === 'lead';
   const allConversationIds = useMemo(() => agents.map((a) => a.conversationId).filter(Boolean), [agents]);
 
   // Fetch lead agent's conversation for the workspace sider
