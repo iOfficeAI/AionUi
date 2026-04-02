@@ -147,7 +147,13 @@ const MessageText: React.FC<{ message: IMessageText }> = ({ message }) => {
             'bg-3 p-8px': isTeammateMessage,
             'w-full': !(isUserMessage || cronMeta || isTeammateMessage),
           })}
-          style={isUserMessage || cronMeta ? { borderRadius: '8px 0 8px 8px' } : isTeammateMessage ? { borderRadius: '0 8px 8px 8px' } : undefined}
+          style={
+            isUserMessage || cronMeta
+              ? { borderRadius: '8px 0 8px 8px' }
+              : isTeammateMessage
+                ? { borderRadius: '0 8px 8px 8px' }
+                : undefined
+          }
         >
           {/* JSON 内容使用折叠组件 Use CollapsibleContent for JSON content */}
           {json ? (

@@ -140,8 +140,7 @@ export class TeammateManager extends EventEmitter {
           if (msg.fromAgentId === 'user') continue;
           const sender = this.agents.find((a) => a.slotId === msg.fromAgentId);
           const senderName = msg.fromAgentId === 'user' ? 'User' : (sender?.agentName ?? msg.fromAgentId);
-          const displayContent =
-            mailboxMessages.length > 1 ? `[${senderName}] ${msg.content}` : msg.content;
+          const displayContent = mailboxMessages.length > 1 ? `[${senderName}] ${msg.content}` : msg.content;
           const msgId = crypto.randomUUID();
           // Leader receives member messages on the left (incoming); members receive leader instructions on the right (input)
           const isLeaderReceiving = agent.role === 'lead';
@@ -540,13 +539,11 @@ export class TeammateManager extends EventEmitter {
     const nonLeadAgents = this.agents.filter((a) => a.role !== 'lead');
     if (nonLeadAgents.length === 0) return;
     const allSettled = nonLeadAgents.every(
-      (a) =>
-        a.status === 'idle' ||
-        a.status === 'completed' ||
-        a.status === 'failed' ||
-        a.status === 'pending',
+      (a) => a.status === 'idle' || a.status === 'completed' || a.status === 'failed' || a.status === 'pending'
     );
-    console.log(`[TeammateManager] maybeWakeLeaderWhenAllIdle: ${nonLeadAgents.map((a) => `${a.agentName}:${a.status}`).join(', ')} → ${allSettled ? 'WAKE' : 'SKIP'}`);
+    console.log(
+      `[TeammateManager] maybeWakeLeaderWhenAllIdle: ${nonLeadAgents.map((a) => `${a.agentName}:${a.status}`).join(', ')} → ${allSettled ? 'WAKE' : 'SKIP'}`
+    );
     if (allSettled) {
       void this.wake(leadSlotId);
     }

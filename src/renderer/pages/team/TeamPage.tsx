@@ -32,9 +32,8 @@ const AgentChatSlot: React.FC<{
   isActive: boolean;
   isLead: boolean;
 }> = ({ agent, teamId, isActive, isLead }) => {
-  const { data: conversation } = useSWR(
-    agent.conversationId ? ['team-conversation', agent.conversationId] : null,
-    () => ipcBridge.conversation.get.invoke({ id: agent.conversationId })
+  const { data: conversation } = useSWR(agent.conversationId ? ['team-conversation', agent.conversationId] : null, () =>
+    ipcBridge.conversation.get.invoke({ id: agent.conversationId })
   );
 
   return (

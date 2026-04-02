@@ -55,6 +55,10 @@ export class TeamSession extends EventEmitter {
         this.teammateManager.renameAgent(slotId, newName);
         void this.repo.update(team.id, { agents: this.teammateManager.getAgents(), updatedAt: Date.now() });
       },
+      removeAgent: (slotId: string) => {
+        this.teammateManager.removeAgent(slotId);
+        void this.repo.update(team.id, { agents: this.teammateManager.getAgents(), updatedAt: Date.now() });
+      },
       wakeAgent: (slotId: string) => this.teammateManager.wake(slotId),
     });
   }

@@ -78,7 +78,11 @@ const AcpModelSelector: React.FC<{
             if (initialModelId && !hasUserChangedModel.current && info.currentModelId !== initialModelId) {
               const match = info.availableModels.find((m) => m.id === initialModelId);
               if (match) {
-                setModelInfo({ ...info, currentModelId: initialModelId, currentModelLabel: match.label || initialModelId });
+                setModelInfo({
+                  ...info,
+                  currentModelId: initialModelId,
+                  currentModelLabel: match.label || initialModelId,
+                });
               } else {
                 setModelInfo(info);
               }

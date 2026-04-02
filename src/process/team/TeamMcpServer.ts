@@ -22,6 +22,7 @@ type TeamMcpServerParams = {
   taskManager: TaskManager;
   spawnAgent?: SpawnAgentFn;
   renameAgent?: (slotId: string, newName: string) => void;
+  removeAgent?: (slotId: string) => void;
   wakeAgent: (slotId: string) => Promise<void>;
 };
 
@@ -272,6 +273,44 @@ export class TeamMcpServer {
       throw new Error(`Teammate "${to}" not found. Available: ${agents.map((a) => a.agentName).join(', ')}`);
     }
 
+    // Intercept shutdown responses from members
+    const trimmedMessage = message.trim();
+    const isShutdownApproved = trimmedMessage === 'shutdown_approved';
+    const isShutdownRejected = trimmedMessage.startsWith('shutdown_rejected');
+
+    if (isShutdownApproved || isShutdownRejected) {
+      const senderAgent = agents.find((a) => a.slotId === fromSlotId);
+      const memberName = senderAgent?.agentName ?? fromSlotId;
+      const leadAgent = agents.find((a) => a.role === 'lead');
+      const leadSlotId = leadAgent?.slotId;
+
+      if (isShutdownApproved && this.params.removeAgent) {
+        this.params.removeAgent(fromSlotId);
+        if (leadSlotId) {
+          await mailbox.write({
+            teamId,
+            toAgentId: leadSlotId,
+            fromAgentId: fromSlotId,
+            content: `${memberName} has shut down and been removed from the team.`,
+          });
+          void wakeAgent(leadSlotId);
+        }
+        return 'Shutdown confirmed. You have been removed from the team.';
+      } else if (isShutdownRejected) {
+        const reason = trimmedMessage.replace(/^shutdown_rejected[:\s]*/i, '').trim() || 'No reason given.';
+        if (leadSlotId) {
+          await mailbox.write({
+            teamId,
+            toAgentId: leadSlotId,
+            fromAgentId: fromSlotId,
+            content: `${memberName} refused to shut down. Reason: ${reason}`,
+          });
+          void wakeAgent(leadSlotId);
+        }
+        return 'Refusal sent to the lead.';
+      }
+    }
+
     await mailbox.write({
       teamId,
       toAgentId: targetSlotId,
@@ -385,7 +424,8 @@ export class TeamMcpServer {
       toAgentId: resolvedSlotId,
       fromAgentId: fromSlotId,
       type: 'shutdown_request',
-      content: 'The team lead has requested you to shut down. Reply "shutdown_approved" to confirm, or "shutdown_rejected: <reason>" to refuse.',
+      content:
+        'The team lead has requested you to shut down. Reply "shutdown_approved" to confirm, or "shutdown_rejected: <reason>" to refuse.',
     });
     void wakeAgent(resolvedSlotId);
 
