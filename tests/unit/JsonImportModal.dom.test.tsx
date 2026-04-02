@@ -132,5 +132,73 @@ describe('JsonImportModal', () => {
         })
       );
     });
+
+    it('supports array-based MCP server import format', async () => {
+      render(<JsonImportModal {...defaultProps} />);
+
+      const textarea = screen.getByTestId('json-input');
+      const arrayJson = JSON.stringify([
+        {
+          name: 'weather',
+          command: 'uv',
+          args: ['run', 'weather.py'],
+          description: 'Weather MCP',
+        },
+      ]);
+      fireEvent.change(textarea, { target: { value: arrayJson } });
+
+      fireEvent.click(screen.getByTestId('ok-button'));
+
+      expect(defaultProps.onSubmit).toHaveBeenCalledWith(
+        expect.objectContaining({
+          name: 'weather',
+          description: 'Weather MCP',
+          transport: expect.objectContaining({ type: 'stdio', command: 'uv' }),
+        })
+      );
+    });
+
+    it('uses batch import when array format contains multiple servers', async () => {
+      render(<JsonImportModal {...defaultProps} />);
+
+      const textarea = screen.getByTestId('json-input');
+      const arrayJson = JSON.stringify([
+        {
+          name: 'weather',
+          command: 'uv',
+          args: ['run', 'weather.py'],
+        },
+        {
+          name: 'search',
+          url: 'https://example.com/mcp',
+          type: 'http',
+        },
+      ]);
+      fireEvent.change(textarea, { target: { value: arrayJson } });
+
+      fireEvent.click(screen.getByTestId('ok-button'));
+
+      expect(defaultProps.onBatchImport).toHaveBeenCalledWith(
+        expect.arrayContaining([
+          expect.objectContaining({ name: 'weather', transport: expect.objectContaining({ type: 'stdio' }) }),
+          expect.objectContaining({ name: 'search', transport: expect.objectContaining({ type: 'http' }) }),
+        ])
+      );
+      expect(defaultProps.onSubmit).not.toHaveBeenCalled();
+    });
+
+    it('shows validation error when array entry is malformed', async () => {
+      render(<JsonImportModal {...defaultProps} />);
+
+      const textarea = screen.getByTestId('json-input');
+      const invalidArrayJson = JSON.stringify([{ command: 'uv', args: ['run', 'weather.py'] }]);
+      fireEvent.change(textarea, { target: { value: invalidArrayJson } });
+
+      fireEvent.click(screen.getByTestId('ok-button'));
+
+      expect(defaultProps.onSubmit).not.toHaveBeenCalled();
+      expect(defaultProps.onBatchImport).not.toHaveBeenCalled();
+      expect(screen.getByText('settings.mcpJsonFormatError')).toBeInTheDocument();
+    });
   });
 });
