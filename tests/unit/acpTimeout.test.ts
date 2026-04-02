@@ -362,3 +362,48 @@ describe('AcpAgent.kill', () => {
     );
   });
 });
+
+describe('AcpAgent disconnect messaging', () => {
+  it('shows a clear idle-timeout reconnect message', () => {
+    const onStreamEvent = vi.fn();
+    const onSignalEvent = vi.fn();
+    const agent = new AcpAgent({
+      id: 'idle-agent',
+      onStreamEvent,
+      onSignalEvent,
+      extra: { backend: 'opencode' as any, workspace: '/tmp' },
+    } as any);
+
+    agent.setExpectedDisconnectReason('idle_timeout');
+    (agent as any).handleDisconnect({ code: null, signal: 'SIGTERM' });
+
+    expect(onStreamEvent).toHaveBeenCalledWith(
+      expect.objectContaining({
+        type: 'error',
+        conversation_id: 'idle-agent',
+        data: 'Session closed after 30 minutes of inactivity. Send a new message to reconnect.',
+      })
+    );
+  });
+
+  it('keeps the unexpected-disconnect message for other exits', () => {
+    const onStreamEvent = vi.fn();
+    const onSignalEvent = vi.fn();
+    const agent = new AcpAgent({
+      id: 'disconnect-agent',
+      onStreamEvent,
+      onSignalEvent,
+      extra: { backend: 'opencode' as any, workspace: '/tmp' },
+    } as any);
+
+    (agent as any).handleDisconnect({ code: null, signal: 'SIGTERM' });
+
+    expect(onStreamEvent).toHaveBeenCalledWith(
+      expect.objectContaining({
+        type: 'error',
+        conversation_id: 'disconnect-agent',
+        data: 'opencode process disconnected unexpectedly (code: null, signal: SIGTERM). Please try sending a new message to reconnect.',
+      })
+    );
+  });
+});
