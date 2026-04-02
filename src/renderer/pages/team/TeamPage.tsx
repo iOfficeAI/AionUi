@@ -1,16 +1,17 @@
 import { Message, Spin } from '@arco-design/web-react';
-import React, { useCallback, useEffect, useMemo } from 'react';
+import React, { useCallback, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import useSWR from 'swr';
 import { ipcBridge } from '@/common';
-import type { TTeam } from '@/common/types/teamTypes';
+import type { TeamAgent, TTeam } from '@/common/types/teamTypes';
+import type { TChatConversation } from '@/common/config/storage';
 import ChatLayout from '@/renderer/pages/conversation/components/ChatLayout';
 import ChatSider from '@/renderer/pages/conversation/components/ChatSider';
 import { useConversationAgents } from '@/renderer/pages/conversation/hooks/useConversationAgents';
 import AcpModelSelector from '@/renderer/components/agent/AcpModelSelector';
 import TeamTabs from './components/TeamTabs';
 import TeamChatView from './components/TeamChatView';
-import { agentFromKey, agentKey, resolveConversationType } from './components/agentSelectUtils';
+import { agentFromKey, resolveConversationType } from './components/agentSelectUtils';
 import { TeamTabsProvider, useTeamTabs } from './hooks/TeamTabsContext';
 import { TeamPermissionProvider } from './hooks/TeamPermissionContext';
 import { useTeamSession } from './hooks/useTeamSession';
@@ -24,6 +25,31 @@ type TeamPageContentProps = {
   onAddAgent: (data: { agentName: string; agentKey: string }) => void;
 };
 
+/** Fetches conversation for a single agent and renders TeamChatView, kept alive via display toggle */
+const AgentChatSlot: React.FC<{
+  agent: TeamAgent;
+  teamId: string;
+  isActive: boolean;
+  isLead: boolean;
+}> = ({ agent, teamId, isActive, isLead }) => {
+  const { data: conversation } = useSWR(
+    agent.conversationId ? ['team-conversation', agent.conversationId] : null,
+    () => ipcBridge.conversation.get.invoke({ id: agent.conversationId })
+  );
+
+  return (
+    <div style={{ display: isActive ? 'flex' : 'none' }} className='flex-1 flex flex-col min-h-0'>
+      {conversation ? (
+        <TeamChatView conversation={conversation as TChatConversation} teamId={isLead ? teamId : undefined} />
+      ) : (
+        <div className='flex flex-1 items-center justify-center'>
+          <Spin loading />
+        </div>
+      )}
+    </div>
+  );
+};
+
 /** Inner component that reads active tab from context and renders the chat layout */
 const TeamPageContent: React.FC<TeamPageContentProps> = ({ team, onAddAgent }) => {
   const { t } = useTranslation();
@@ -35,40 +61,17 @@ const TeamPageContent: React.FC<TeamPageContentProps> = ({ team, onAddAgent }) =
   const isLeadAgent = activeAgent?.slotId === leadAgent?.slotId;
   const allConversationIds = useMemo(() => team.agents.map((a) => a.conversationId).filter(Boolean), [team.agents]);
 
-  // Fetch both conversations in parallel via SWR (independent keys fire concurrently)
-  const { data: activeConversation, mutate: mutateActiveConversation } = useSWR(
+  // Fetch active agent's conversation to read initialModelId for the header
+  const { data: activeConversation } = useSWR(
     activeAgent?.conversationId ? ['team-conversation', activeAgent.conversationId] : null,
     () => ipcBridge.conversation.get.invoke({ id: activeAgent!.conversationId })
   );
 
+  // Fetch lead agent's conversation for the workspace sider
   const { data: dispatchConversation } = useSWR(
     leadAgent?.conversationId ? ['team-conversation', leadAgent.conversationId] : null,
     () => ipcBridge.conversation.get.invoke({ id: leadAgent!.conversationId })
   );
-
-  // Refresh conversation data when switching tabs
-  useEffect(() => {
-    void mutateActiveConversation();
-  }, [activeSlotId]);
-
-  // Refresh active conversation when new messages arrive for this agent
-  useEffect(() => {
-    let debounceTimer: NodeJS.Timeout | null = null;
-    const unsubMessages = ipcBridge.team.messageStream.on(
-      (event: import('@/common/types/teamTypes').ITeamMessageEvent) => {
-        if (event.teamId !== team.id || event.slotId !== activeSlotId) return;
-        // Debounce by waiting a bit before refetching, to batch multiple messages
-        if (debounceTimer) clearTimeout(debounceTimer);
-        debounceTimer = setTimeout(() => {
-          mutateActiveConversation();
-        }, 500);
-      }
-    );
-    return () => {
-      if (debounceTimer) clearTimeout(debounceTimer);
-      unsubMessages();
-    };
-  }, [team.id, activeSlotId, mutateActiveConversation]);
 
   const workspaceEnabled = Boolean(team.workspace);
 
@@ -119,20 +122,22 @@ const TeamPageContent: React.FC<TeamPageContentProps> = ({ team, onAddAgent }) =
         agentName={activeAgent?.agentName}
         headerExtra={headerExtra}
       >
-        {activeConversation ? (
-          <TeamChatView conversation={activeConversation} teamId={isLeadAgent ? team.id : undefined} />
-        ) : (
-          <div className='flex flex-1 items-center justify-center'>
-            <Spin loading />
-          </div>
-        )}
+        {team.agents.map((agent) => (
+          <AgentChatSlot
+            key={agent.slotId}
+            agent={agent}
+            teamId={team.id}
+            isActive={agent.slotId === activeSlotId}
+            isLead={agent.slotId === leadAgent?.slotId}
+          />
+        ))}
       </ChatLayout>
     </TeamPermissionProvider>
   );
 };
 
 const TeamPage: React.FC<Props> = ({ team }) => {
-  const { statusMap, addAgent, renameAgent, removeAgent } = useTeamSession(team);
+  const { statusMap, addAgent, renameAgent } = useTeamSession(team);
   const { cliAgents, presetAssistants } = useConversationAgents();
   const defaultSlotId = team.agents[0]?.slotId ?? '';
 
@@ -160,7 +165,6 @@ const TeamPage: React.FC<Props> = ({ team }) => {
       statusMap={statusMap}
       defaultActiveSlotId={defaultSlotId}
       renameAgent={renameAgent}
-      removeAgent={removeAgent}
     >
       <TeamPageContent team={team} onAddAgent={handleAddAgent} />
     </TeamTabsProvider>
