@@ -174,7 +174,10 @@ const TaskDetailPage: React.FC = () => {
               icon={<Editor theme='outline' size={16} />}
               onClick={() => setEditDialogVisible(true)}
             />
-            <Popconfirm title={isNewConversationMode ? t('cron.confirmDeleteWithConversations') : t('cron.confirmDelete')} onOk={handleDelete}>
+            <Popconfirm
+              title={isNewConversationMode ? t('cron.confirmDeleteWithConversations') : t('cron.confirmDelete')}
+              onOk={handleDelete}
+            >
               <Button type='text' status='danger' icon={<Delete theme='outline' size={16} />} />
             </Popconfirm>
             <Button
@@ -211,7 +214,9 @@ const TaskDetailPage: React.FC = () => {
             {isNewConversationMode ? t('cron.page.form.newConversation') : t('cron.page.form.existingConversation')}
           </span>
           <span className='text-12px text-text-3 ml-8px'>
-            {isNewConversationMode ? t('cron.page.form.newConversationHint') : t('cron.page.form.existingConversationHint')}
+            {isNewConversationMode
+              ? t('cron.page.form.newConversationHint')
+              : t('cron.page.form.existingConversationHint')}
           </span>
         </div>
 

@@ -642,7 +642,7 @@ export class GeminiAgent {
           this.onStreamEvent({
             type: 'error',
             data: 'Invalid response stream detected after multiple retries. Please try again.',
-            msg_id,
+            msg_id: uuid(),
           });
           return;
         }
@@ -674,10 +674,12 @@ export class GeminiAgent {
         for (const req of toolCallRequests) {
           globalToolCallGuard.unprotect(req.callId);
         }
+        // Use a fresh msg_id so the error message does not replace
+        // already-streamed content that shares the same msg_id.
         this.onStreamEvent({
           type: 'error',
           data: errorMessage,
-          msg_id,
+          msg_id: uuid(),
         });
       });
   }
@@ -760,7 +762,7 @@ export class GeminiAgent {
           this.onStreamEvent({
             type: 'error',
             data: errorMessage,
-            msg_id,
+            msg_id: uuid(),
           });
         })
         .finally(() => {
@@ -777,7 +779,7 @@ export class GeminiAgent {
       this.onStreamEvent({
         type: 'error',
         data: errorMessage,
-        msg_id,
+        msg_id: uuid(),
       });
     }
   }

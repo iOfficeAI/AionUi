@@ -394,12 +394,14 @@ export const useMessageLstCache = (key: string) => {
               if (!dbMsg.msg_id || dbMsg.type !== 'text') return dbMsg;
               const streamMsg = streamingByMsgId.get(dbMsg.msg_id);
               if (!streamMsg) return dbMsg;
-              const dbContent = typeof dbMsg.content === 'object' && 'content' in dbMsg.content
-                ? String((dbMsg.content as { content: unknown }).content)
-                : '';
-              const streamContent = typeof streamMsg.content === 'object' && 'content' in streamMsg.content
-                ? String((streamMsg.content as { content: unknown }).content)
-                : '';
+              const dbContent =
+                typeof dbMsg.content === 'object' && 'content' in dbMsg.content
+                  ? String((dbMsg.content as { content: unknown }).content)
+                  : '';
+              const streamContent =
+                typeof streamMsg.content === 'object' && 'content' in streamMsg.content
+                  ? String((streamMsg.content as { content: unknown }).content)
+                  : '';
               return streamContent.length > dbContent.length ? streamMsg : dbMsg;
             });
 

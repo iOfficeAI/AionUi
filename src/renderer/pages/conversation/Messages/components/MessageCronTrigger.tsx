@@ -17,19 +17,26 @@ const MessageCronTrigger: React.FC<{ message: IMessageCronTrigger }> = ({ messag
   const { cronJobId, cronJobName } = message.content;
 
   return (
-    <div
-      className='max-w-780px w-full mx-auto cursor-pointer'
-      onClick={() => navigate(`/scheduled/${cronJobId}`)}
-    >
+    <div className='max-w-780px w-full mx-auto cursor-pointer' onClick={() => navigate(`/scheduled/${cronJobId}`)}>
       <div
         className='flex items-center gap-8px px-16px py-12px rd-12px b-1 b-solid bg-fill-0 hover:bg-fill-1 transition-colors'
         style={{ borderColor: 'color-mix(in srgb, var(--color-border-2) 70%, transparent)' }}
       >
-        <AlarmClock theme='outline' size={18} fill={iconColors.secondary} className='block leading-none shrink-0' style={{ lineHeight: 0 }} />
-        <span className='flex-1 text-14px truncate'>
-          {t('cron.trigger.runScheduledTask', { name: cronJobName })}
-        </span>
-        <Right theme='outline' size={16} fill={iconColors.secondary} className='block leading-none shrink-0' style={{ lineHeight: 0 }} />
+        <AlarmClock
+          theme='outline'
+          size={18}
+          fill={iconColors.secondary}
+          className='block leading-none shrink-0'
+          style={{ lineHeight: 0 }}
+        />
+        <span className='flex-1 text-14px truncate'>{t('cron.trigger.runScheduledTask', { name: cronJobName })}</span>
+        <Right
+          theme='outline'
+          size={16}
+          fill={iconColors.secondary}
+          className='block leading-none shrink-0'
+          style={{ lineHeight: 0 }}
+        />
       </div>
     </div>
   );

@@ -13,10 +13,7 @@ const MessageSkillSuggest: React.FC<{ message: IMessageSkillSuggest }> = ({ mess
 
   return (
     <div className='max-w-780px w-full mx-auto'>
-      <SkillSuggestCard
-        suggestion={{ name, description, content: skillContent }}
-        cronJobId={cronJobId}
-      />
+      <SkillSuggestCard suggestion={{ name, description, content: skillContent }} cronJobId={cronJobId} />
     </div>
   );
 };

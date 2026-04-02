@@ -122,12 +122,7 @@ export async function writeCronSkillFile(
 }
 
 // Placeholder patterns that indicate the AI echoed the template instead of generating real content
-const PLACEHOLDER_PATTERNS = [
-  /^skill-name$/i,
-  /^one-line description/i,
-  /^your[- ]skill[- ]name/i,
-  /^description of/i,
-];
+const PLACEHOLDER_PATTERNS = [/^skill-name$/i, /^one-line description/i, /^your[- ]skill[- ]name/i, /^description of/i];
 
 const PLACEHOLDER_BODY_PATTERNS = [
   /^\(Full SKILL\.md body/i,

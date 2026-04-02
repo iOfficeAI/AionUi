@@ -50,8 +50,7 @@ export class WorkerTaskManagerJobExecutor implements ICronJobExecutor {
     // - new_conversation mode: always create a fresh conversation per execution
     // - existing mode with empty conversationId: first execution creates the shared conversation
     if (!preparedConversationId && job.metadata.agentConfig) {
-      const needsCreate =
-        job.target.executionMode === 'new_conversation' || !conversationId;
+      const needsCreate = job.target.executionMode === 'new_conversation' || !conversationId;
       if (needsCreate) {
         const newConv = await this.buildConversationForJob(job);
         conversationId = newConv.id;
@@ -97,8 +96,7 @@ export class WorkerTaskManagerJobExecutor implements ICronJobExecutor {
     const workspaceFiles = workspace ? await copyFilesToDirectory(workspace, [], false) : [];
 
     const hasSkill = await hasCronSkillFile(job.id);
-    const needsSkillSuggest =
-      job.target.executionMode === 'new_conversation' && !!workspace && !hasSkill;
+    const needsSkillSuggest = job.target.executionMode === 'new_conversation' && !!workspace && !hasSkill;
 
     const messageText = this.buildMessageText(job, hasSkill);
 
@@ -347,7 +345,7 @@ export class WorkerTaskManagerJobExecutor implements ICronJobExecutor {
     task: { type: string; sendMessage: (data: unknown) => Promise<void> },
     job: CronJob,
     conversationId: string,
-    workspace: string,
+    workspace: string
   ): Promise<void> {
     const msgId = uuid();
     const prompt = buildSkillSuggestPrompt(job.name);
@@ -387,7 +385,9 @@ export class WorkerTaskManagerJobExecutor implements ICronJobExecutor {
           throw Object.assign(new Error('empty'), { code: 'EMPTY' });
         }
 
-        console.log(`[CronExecutor] Found ${SKILL_SUGGEST_FILENAME} (${content.length} chars) for job ${jobId} on attempt ${attempt + 1}`);
+        console.log(
+          `[CronExecutor] Found ${SKILL_SUGGEST_FILENAME} (${content.length} chars) for job ${jobId} on attempt ${attempt + 1}`
+        );
 
         // Register for ongoing monitoring and set the initial hash
         skillSuggestWatcher.register(conversationId, jobId, workspace);
@@ -406,7 +406,9 @@ export class WorkerTaskManagerJobExecutor implements ICronJobExecutor {
         } else {
           // Exhausted retries — register anyway in case the user asks AI to write it later
           skillSuggestWatcher.register(conversationId, jobId, workspace);
-          console.log(`[CronExecutor] Registered watcher for job ${jobId} (file not found after ${attempt + 1} retries)`);
+          console.log(
+            `[CronExecutor] Registered watcher for job ${jobId} (file not found after ${attempt + 1} retries)`
+          );
         }
         // Only log unexpected errors (not ENOENT/EMPTY which are expected during retries)
         if ((err as NodeJS.ErrnoException)?.code !== 'ENOENT' && (err as { code?: string })?.code !== 'EMPTY') {
@@ -452,7 +454,12 @@ export class WorkerTaskManagerJobExecutor implements ICronJobExecutor {
    * Emit and persist a cron_trigger message so the frontend renders a clickable
    * card linking to the scheduled task detail page.
    */
-  private emitCronTriggerMessage(conversationId: string, cronJobId: string, cronJobName: string, triggeredAt: number): void {
+  private emitCronTriggerMessage(
+    conversationId: string,
+    cronJobId: string,
+    cronJobName: string,
+    triggeredAt: number
+  ): void {
     const msgId = uuid();
     const triggerMessage: TMessage = {
       id: msgId,

@@ -47,7 +47,7 @@ const CronJobManager: React.FC<CronJobManagerProps> = ({ conversationId, cronJob
   // For regular conversations, use the existing hook
   const { jobs, loading: listLoading, hasJobs } = useCronJobs(cronJobId ? undefined : conversationId);
 
-  const job = cronJobId ? directJob : jobs[0] ?? null;
+  const job = cronJobId ? directJob : (jobs[0] ?? null);
   const loading = cronJobId ? directLoading : listLoading;
   const found = cronJobId ? !!directJob : hasJobs;
 

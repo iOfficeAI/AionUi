@@ -196,7 +196,8 @@ export class GeminiAgentManager extends BaseAgentManager<
         const skillManager = AcpSkillManager.getInstance(this.enabledSkills);
         await skillManager.discoverSkills(this.enabledSkills);
         const excludeSet = new Set(this.excludeBuiltinSkills ?? []);
-        const builtinSkillNames = skillManager.getBuiltinSkillsIndex()
+        const builtinSkillNames = skillManager
+          .getBuiltinSkillsIndex()
           .map((s) => s.name)
           .filter((name) => !excludeSet.has(name));
         const allEnabledSkills = [...new Set([...builtinSkillNames, ...(this.enabledSkills || [])])];
@@ -335,7 +336,13 @@ export class GeminiAgentManager extends BaseAgentManager<
     }
   }
 
-  async sendMessage(data: { input: string; msg_id: string; files?: string[]; cronMeta?: CronMessageMeta; hidden?: boolean }) {
+  async sendMessage(data: {
+    input: string;
+    msg_id: string;
+    files?: string[];
+    cronMeta?: CronMessageMeta;
+    hidden?: boolean;
+  }) {
     const message: TMessage = {
       id: data.msg_id,
       type: 'text',

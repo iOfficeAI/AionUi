@@ -155,7 +155,12 @@ const GeminiConversationPanel: React.FC<{ conversation: GeminiConversation; slid
     siderTitle: sliderTitle,
     sider: <ChatSider conversation={conversation} />,
     headerLeft: <GeminiModelSelector selection={modelSelection} />,
-    headerExtra: <CronJobManager conversationId={conversation.id} cronJobId={conversation.extra?.cronJobId as string | undefined} />,
+    headerExtra: (
+      <CronJobManager
+        conversationId={conversation.id}
+        cronJobId={conversation.extra?.cronJobId as string | undefined}
+      />
+    ),
     workspaceEnabled,
     backend: 'gemini' as const,
     // 传递预设助手信息 / Pass preset assistant info
@@ -321,7 +326,10 @@ const ChatConversation: React.FC<{
       )}
       {conversation && (
         <div className='shrink-0'>
-          <CronJobManager conversationId={conversation.id} cronJobId={conversation.extra?.cronJobId as string | undefined} />
+          <CronJobManager
+            conversationId={conversation.id}
+            cronJobId={conversation.extra?.cronJobId as string | undefined}
+          />
         </div>
       )}
     </div>

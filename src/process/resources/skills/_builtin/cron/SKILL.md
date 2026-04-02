@@ -64,13 +64,14 @@ message: Message content to send when triggered
 
 The `message` is the instruction the AI receives each time the task fires. Think of it as: "When the timer goes off, what should the AI do?" It must be a complete, self-contained prompt — NOT a restatement of the user's request.
 
-| User says | ❌ Bad message | ✅ Good message |
-|-----------|---------------|----------------|
-| "Send me hello every day at 10am" | Send me hello | Reply with exactly: Hello! |
-| "Remind me to drink water daily" | Remind me to drink water | Reply with a friendly reminder to drink water |
-| "Summarize AI news every Monday" | Summarize AI news | Search for the latest AI news from this week and produce a concise bullet-point summary report |
+| User says                         | ❌ Bad message           | ✅ Good message                                                                                |
+| --------------------------------- | ------------------------ | ---------------------------------------------------------------------------------------------- |
+| "Send me hello every day at 10am" | Send me hello            | Reply with exactly: Hello!                                                                     |
+| "Remind me to drink water daily"  | Remind me to drink water | Reply with a friendly reminder to drink water                                                  |
+| "Summarize AI news every Monday"  | Summarize AI news        | Search for the latest AI news from this week and produce a concise bullet-point summary report |
 
 Key principles:
+
 - If the user wants to **receive specific content**, write the message as "Reply with: <content>" or describe the exact output
 - If the user wants the AI to **perform a task**, write a detailed, actionable instruction
 - The message must be **self-contained** — when the AI reads it later with no prior context, it should know exactly what to do

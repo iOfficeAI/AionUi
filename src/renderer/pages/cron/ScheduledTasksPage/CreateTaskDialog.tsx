@@ -443,10 +443,7 @@ const CreateTaskDialog: React.FC<CreateTaskDialogProps> = ({
         )}
 
         {/* Hint text */}
-        {frequency !== 'manual' && (
-          <p className='text-text-3 text-12px mt-0 mb-16px'>{t('cron.page.scheduleHint')}</p>
-        )}
-
+        {frequency !== 'manual' && <p className='text-text-3 text-12px mt-0 mb-16px'>{t('cron.page.scheduleHint')}</p>}
       </Form>
     </ModalWrapper>
   );

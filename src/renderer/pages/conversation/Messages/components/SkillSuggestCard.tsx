@@ -27,9 +27,12 @@ const SkillSuggestCard: React.FC<SkillSuggestCardProps> = ({ suggestion, cronJob
 
   // Check if skill already exists on mount (persists across navigation)
   useEffect(() => {
-    ipcBridge.cron.hasSkill.invoke({ jobId: cronJobId }).then((exists) => {
-      if (exists) setSaved(true);
-    }).catch(() => {});
+    ipcBridge.cron.hasSkill
+      .invoke({ jobId: cronJobId })
+      .then((exists) => {
+        if (exists) setSaved(true);
+      })
+      .catch(() => {});
   }, [cronJobId]);
 
   if (dismissed || saved) return null;
