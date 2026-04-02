@@ -40,9 +40,36 @@ function createHost(overrides: Partial<ConstructorParameters<typeof SandboxHost>
 
 describe('extensions/SandboxHost — handleMessage', () => {
   describe('api-call routing (Bug #4 fix)', () => {
+    it('should reject storage api-call before routing when storage permission is missing', () => {
+      const handler = vi.fn();
+      const host = createHost({
+        apiHandlers: { 'storage.get': handler },
+        permissions: undefined,
+      });
+      const mock = createMockWorker();
+
+      (host as unknown as { worker: unknown }).worker = mock.instance;
+      (host as unknown as { _running: boolean })._running = true;
+
+      const msg: SandboxMessage = { type: 'api-call', id: 'w-0', method: 'storage.get', args: ['myKey'] };
+      (host as unknown as { handleMessage: (m: SandboxMessage) => void }).handleMessage(msg);
+
+      expect(handler).not.toHaveBeenCalled();
+      expect(mock.posted).toEqual([
+        {
+          type: 'api-response',
+          id: 'w-0',
+          error: 'Permission denied: storage access requires "storage: true" in manifest',
+        },
+      ]);
+    });
+
     it('should route Worker api-call to registered apiHandler and respond with result', () => {
       const handler = vi.fn().mockReturnValue('hello');
-      const host = createHost({ apiHandlers: { 'storage.get': handler } });
+      const host = createHost({
+        apiHandlers: { 'storage.get': handler },
+        permissions: { storage: true, events: true },
+      });
       const mock = createMockWorker();
 
       // Inject mock worker
@@ -60,7 +87,10 @@ describe('extensions/SandboxHost — handleMessage', () => {
 
     it('should handle async apiHandler and respond with resolved value', async () => {
       const handler = vi.fn().mockResolvedValue({ items: [1, 2] });
-      const host = createHost({ apiHandlers: { 'storage.get': handler } });
+      const host = createHost({
+        apiHandlers: { 'storage.get': handler },
+        permissions: { storage: true, events: true },
+      });
       const mock = createMockWorker();
       (host as unknown as { worker: unknown }).worker = mock.instance;
       (host as unknown as { _running: boolean })._running = true;
@@ -79,7 +109,10 @@ describe('extensions/SandboxHost — handleMessage', () => {
       const handler = vi.fn().mockImplementation(() => {
         throw new Error('boom');
       });
-      const host = createHost({ apiHandlers: { 'storage.set': handler } });
+      const host = createHost({
+        apiHandlers: { 'storage.set': handler },
+        permissions: { storage: true, events: true },
+      });
       const mock = createMockWorker();
       (host as unknown as { worker: unknown }).worker = mock.instance;
       (host as unknown as { _running: boolean })._running = true;
@@ -93,7 +126,10 @@ describe('extensions/SandboxHost — handleMessage', () => {
 
     it('should respond with error when async apiHandler rejects', async () => {
       const handler = vi.fn().mockRejectedValue(new Error('async boom'));
-      const host = createHost({ apiHandlers: { 'storage.delete': handler } });
+      const host = createHost({
+        apiHandlers: { 'storage.delete': handler },
+        permissions: { storage: true, events: true },
+      });
       const mock = createMockWorker();
       (host as unknown as { worker: unknown }).worker = mock.instance;
       (host as unknown as { _running: boolean })._running = true;
@@ -125,7 +161,9 @@ describe('extensions/SandboxHost — handleMessage', () => {
     });
 
     it('should respond with error when apiHandlers option is not provided', () => {
-      const host = createHost(); // no apiHandlers
+      const host = createHost({
+        permissions: { storage: true, events: true },
+      }); // no apiHandlers
       const mock = createMockWorker();
       (host as unknown as { worker: unknown }).worker = mock.instance;
       (host as unknown as { _running: boolean })._running = true;
