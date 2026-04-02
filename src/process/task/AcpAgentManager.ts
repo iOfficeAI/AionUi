@@ -495,6 +495,17 @@ class AcpAgentManager extends BaseAgentManager<AcpAgentManagerData, AcpPermissio
           if (v.type === 'acp_permission') {
             const { toolCall, options } = v.data as AcpPermissionRequest;
 
+            // Auto-approve ALL tools when in yolo/bypassPermissions mode.
+            // Fallback for cases where this.yoloMode wasn't set correctly
+            // (e.g., setMode IPC failed silently for spawned agents).
+            if (this.isYoloMode(this.currentMode) && options.length > 0) {
+              const autoOption = options[0];
+              setTimeout(() => {
+                void this.confirm(v.msg_id, toolCall.toolCallId || v.msg_id, autoOption);
+              }, 50);
+              return;
+            }
+
             // Auto-approve team MCP tools — they are internal tools provided by AionUi,
             // not external MCP servers, so they should never require user confirmation.
             const toolTitle = toolCall.title || '';
