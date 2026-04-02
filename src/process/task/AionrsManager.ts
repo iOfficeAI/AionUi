@@ -55,6 +55,8 @@ type AionrsManagerData = {
   maxTokens?: number;
   maxTurns?: number;
   sessionMode?: string;
+  sessionId?: string;
+  resume?: string;
 };
 
 export class AionrsManager extends BaseAgentManager<AionrsManagerData, string> {
@@ -72,6 +74,26 @@ export class AionrsManager extends BaseAgentManager<AionrsManagerData, string> {
 
     // Start the worker bootstrap
     void this.start().catch(() => {});
+  }
+
+  /**
+   * Determine new vs resume session, then start the worker.
+   * If the conversation already has messages in the DB, pass --resume;
+   * otherwise pass --session-id for a new session.
+   */
+  override async start() {
+    try {
+      const db = await getDatabase();
+      const result = db.getConversationMessages(this.conversation_id, 0, 1);
+      const hasMessages = (result.data?.length ?? 0) > 0;
+
+      const sessionArgs = hasMessages ? { resume: this.conversation_id } : { sessionId: this.conversation_id };
+
+      return super.start({ ...this.data.data, ...sessionArgs } as AionrsManagerData);
+    } catch {
+      // Fallback: start as new session if DB check fails
+      return super.start({ ...this.data.data, sessionId: this.conversation_id } as AionrsManagerData);
+    }
   }
 
   private async injectHistoryFromDatabase(): Promise<void> {
