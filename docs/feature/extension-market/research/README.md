@@ -1,16 +1,18 @@
 # Extension 系统深度调研
 
-> 日期：2026-03-30
+> 日期：2026-03-30 (初版) · 2026-03-31 (更新: 沙箱 bug 修复)
 > 目的：深度调研 AionUI Extension 系统现状，为 Agent Hub / Assistant Hub / MCP Hub / Skill Hub 等市场化建设提供基础
 
 ## 文档索引
 
-| 文档                                           | 内容                                   |
-| ---------------------------------------------- | -------------------------------------- |
-| [architecture.md](architecture.md)             | 整体架构图、初始化管线、生命周期流程   |
-| [contribution-types.md](contribution-types.md) | Contribution 类型速查 (含冗余分析)     |
-| [security-model.md](security-model.md)         | 安全模型评估（沙箱、权限、路径安全）   |
-| [gap-analysis.md](gap-analysis.md)             | Hub 市场化方案、LobeHub 对比、Gap 分析 |
+| 文档                                                 | 内容                                           |
+| ---------------------------------------------------- | ---------------------------------------------- |
+| [architecture.md](architecture.md)                   | 整体架构图、初始化管线、生命周期流程           |
+| [contribution-types.md](contribution-types.md)       | Contribution 类型速查 (含冗余分析)             |
+| [security-model.md](security-model.md)               | 安全模型评估（沙箱、权限、路径安全）           |
+| [sandbox-architecture.md](sandbox-architecture.md)   | Sandbox 架构详解（Host/Worker 通信、事件路由） |
+| [gap-analysis.md](gap-analysis.md)                   | Hub 市场化方案、LobeHub 对比、Gap 分析         |
+| [distribution-pipeline.md](distribution-pipeline.md) | 分发管线方案（包格式、签名、下载机制）         |
 
 ## 核心结论
 
@@ -102,11 +104,13 @@ aion-extension.json
 | `src/process/extensions/resolvers/*.ts`       | 10 个             | 每种 contribution 的解析逻辑                             |
 | `src/process/extensions/resolvers/utils/*.ts` | 5 个              | 依赖解析、引擎校验、环境变量、文件引用、入口点           |
 | `src/process/extensions/lifecycle/*.ts`       | 4 个              | 生命周期钩子、事件总线、状态持久化、热重载               |
-| `src/process/extensions/sandbox/*.ts`         | 4 个              | Worker 沙箱、权限分析、路径安全                          |
+| `src/process/extensions/sandbox/*.ts`         | 5 个              | Worker 沙箱、权限分析、路径安全、扩展存储                |
 | `src/process/extensions/protocol/*.ts`        | 2 个              | aion-asset:// 协议、iframe UI 通信桥                     |
 | `src/process/bridge/extensionsBridge.ts`      | 265               | IPC Bridge, 16 个通道                                    |
 | `src/common/adapter/ipcBridge.ts`             | ~120 行(ext 部分) | IPC 类型定义                                             |
 
 ### 成熟度结论
 
-Extension 系统的核心架构（Loader → Registry → Resolvers → Lifecycle → IPC）已经 production-ready。但市场化所需的**分发链路**（远程安装、包格式、签名验证、市场 Registry）和**安全执行**（权限强制、沙箱完善）是两个需要从零建设的方向。
+- Extension 系统的核心架构（Loader → Registry → Resolvers → Lifecycle → IPC）已经 production-ready。
+- Worker Thread 沙箱的消息路由已修复（PR [#1991](https://github.com/iOfficeAI/AionUi/pull/1991)：Worker→Host RPC、事件转发、storage API），但 `createSandbox()` 尚未被实际调用（ChannelPlugin 和 Lifecycle hooks 仍在主进程裸跑，待迁移）。
+- 市场化所需的**分发链路**（远程安装、包格式、签名验证、市场 Registry）和**安全执行**（权限强制、沙箱隔离接入）是两个需要从零建设的方向。

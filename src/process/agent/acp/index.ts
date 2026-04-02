@@ -123,6 +123,7 @@ export interface AcpAgentConfig {
 
 // ACP agent任务类
 export class AcpAgent {
+  private expectedDisconnectReason: 'idle_timeout' | null = null;
   private readonly id: string;
   private extra: {
     workspace?: string;
@@ -225,6 +226,10 @@ export class AcpAgent {
     this.connection.onDisconnect = (error) => {
       this.handleDisconnect(error);
     };
+  }
+
+  setExpectedDisconnectReason(reason: 'idle_timeout' | null): void {
+    this.expectedDisconnectReason = reason;
   }
 
   /**
@@ -1185,10 +1190,14 @@ export class AcpAgent {
     this.emitStatusMessage('disconnected');
 
     // 2. Emit error message with helpful information
+    const disconnectReason = this.expectedDisconnectReason;
+    this.expectedDisconnectReason = null;
     const errorMsg =
-      `${this.extra.backend} process disconnected unexpectedly ` +
-      `(code: ${error.code}, signal: ${error.signal}). ` +
-      `Please try sending a new message to reconnect.`;
+      disconnectReason === 'idle_timeout'
+        ? 'Session closed after 30 minutes of inactivity. Send a new message to reconnect.'
+        : `${this.extra.backend} process disconnected unexpectedly ` +
+          `(code: ${error.code}, signal: ${error.signal}). ` +
+          `Please try sending a new message to reconnect.`;
     this.emitErrorMessage(errorMsg);
 
     // 3. Emit finish signal to reset UI loading state

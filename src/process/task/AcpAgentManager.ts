@@ -36,6 +36,7 @@ import { IpcAgentEventEmitter } from './IpcAgentEventEmitter';
 import { hasCronCommands } from './CronCommandDetector';
 import { skillSuggestWatcher } from '@process/services/cron/SkillSuggestWatcher';
 import { extractAndStripThinkTags } from './ThinkTagDetector';
+import type { AgentKillReason } from './IAgentManager';
 import { hasNativeSkillSupport } from '@/common/types/acpTypes';
 import { prepareFirstMessageWithSkillsIndex } from '@process/task/agentUtils';
 import { extractTextFromMessage, processCronInMessage } from './MessageMiddleware';
@@ -632,6 +633,7 @@ class AcpAgentManager extends BaseAgentManager<AcpAgentManagerData, AcpPermissio
     // Allow stream events through once user actually sends a message,
     // so initAgent progress (agent_status) is visible during the wait.
     this.bootstrapping = false;
+    this._lastActivityAt = Date.now();
 
     const managerSendStart = Date.now();
     // Mark conversation as busy to prevent cron jobs from running
@@ -1184,8 +1186,11 @@ class AcpAgentManager extends BaseAgentManager<AcpAgentManagerData, AcpPermissio
    * An idempotent doKill() guard prevents double super.kill() when the hard
    * timeout and graceful path race against each other.
    */
-  kill() {
+  kill(reason?: AgentKillReason) {
     this.flushBufferedStreamTextMessages();
+    if (reason === 'idle_timeout') {
+      this.agent?.setExpectedDisconnectReason('idle_timeout');
+    }
 
     let killed = false;
     const GRACE_PERIOD_MS = 500; // Allow child process time to exit cleanly

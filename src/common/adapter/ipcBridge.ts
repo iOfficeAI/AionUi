@@ -27,6 +27,10 @@ export const shell = {
   openFile: bridge.buildProvider<void, string>('open-file'), // 使用系统默认程序打开文件
   showItemInFolder: bridge.buildProvider<void, string>('show-item-in-folder'), // 打开文件夹
   openExternal: bridge.buildProvider<void, string>('open-external'), // 使用系统默认程序打开外部链接
+  checkToolInstalled: bridge.buildProvider<boolean, { tool: string }>('shell.check-tool-installed'), // 检查工具是否安装
+  openFolderWith: bridge.buildProvider<void, { folderPath: string; tool: 'vscode' | 'terminal' | 'explorer' }>(
+    'shell.open-folder-with'
+  ), // 使用指定工具打开文件夹
 };
 
 //通用会话能力
@@ -126,6 +130,18 @@ export interface ICdpConfig {
   port?: number;
 }
 
+// Start on boot status interface
+export interface IStartOnBootStatus {
+  /** Whether the current runtime can manage start-on-boot */
+  supported: boolean;
+  /** Whether AionUi is currently configured to launch at login */
+  enabled: boolean;
+  /** Whether the app is running from a packaged build */
+  isPackaged: boolean;
+  /** Current platform name */
+  platform: string;
+}
+
 export const application = {
   restart: bridge.buildProvider<void, void>('restart-app'), // 重启应用
   openDevTools: bridge.buildProvider<boolean, void>('open-dev-tools'), // 打开/关闭开发者工具，返回操作后的状态
@@ -141,6 +157,11 @@ export const application = {
   // CDP (Chrome DevTools Protocol) management
   getCdpStatus: bridge.buildProvider<IBridgeResponse<ICdpStatus>, void>('app.get-cdp-status'), // 获取 CDP 状态
   updateCdpConfig: bridge.buildProvider<IBridgeResponse<ICdpConfig>, Partial<ICdpConfig>>('app.update-cdp-config'), // 更新 CDP 配置
+  // Start on boot management
+  getStartOnBootStatus: bridge.buildProvider<IBridgeResponse<IStartOnBootStatus>, void>('app.get-start-on-boot-status'), // 获取开机启动状态
+  setStartOnBoot: bridge.buildProvider<IBridgeResponse<IStartOnBootStatus>, { enabled: boolean }>(
+    'app.set-start-on-boot'
+  ), // 设置开机启动
   // Bridge Main Process logs to Renderer F12 Console
   logStream: bridge.buildEmitter<{ level: 'log' | 'warn' | 'error'; tag: string; message: string; data?: unknown }>(
     'app.log-stream'
@@ -693,6 +714,10 @@ export const systemSettings = {
   changeLanguage: bridge.buildProvider<void, { language: string }>('system-settings:change-language'),
   // Broadcast language change to all renderers (desktop + WebUI) for real-time sync
   languageChanged: bridge.buildEmitter<{ language: string }>('system-settings:language-changed'),
+  getSaveUploadToWorkspace: bridge.buildProvider<boolean, void>('system-settings:get-save-upload-to-workspace'),
+  setSaveUploadToWorkspace: bridge.buildProvider<void, { enabled: boolean }>(
+    'system-settings:set-save-upload-to-workspace'
+  ),
 };
 
 // 系统通知接口 / System notification API

@@ -113,11 +113,11 @@ const AgentPillBar: React.FC<AgentPillBarProps> = ({
             );
           })}
         {!isMobile && <div className='text-16px lh-1 p-2px select-none opacity-30'>|</div>}
-        <Tooltip content={t('settings.agentManagement.connectRemoteAgent')}>
+        <Tooltip content={t('settings.agentManagement.discoverMoreAgents', { defaultValue: '发现更多 Agent' })}>
           <div
             className='flex items-center justify-center cursor-pointer p-4px opacity-60 hover:opacity-100 self-center'
             style={{ transition: 'opacity 0.2s ease', flexShrink: 0, marginTop: 4 }}
-            onClick={() => navigate('/settings/agent?tab=remote')}
+            onClick={() => navigate('/settings/agent?tab=local')}
           >
             <Plus theme='outline' size={20} fill='currentColor' style={{ flexShrink: 0 }} />
           </div>

@@ -540,6 +540,7 @@ export function connectClaude(workingDir: string, hooks: NpxConnectHooks): Promi
     prepareFn: prepareClaude,
     workingDir,
     ...hooks,
+    detached: process.platform !== 'win32',
   });
 }
 

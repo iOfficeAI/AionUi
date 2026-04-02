@@ -11,7 +11,13 @@ import type { IAgentManager } from '@process/task/IAgentManager';
 import type { IConversationService } from '@process/services/IConversationService';
 import type { IWorkerTaskManager } from '@process/task/IWorkerTaskManager';
 import { ipcBridge } from '@/common';
-import { getSkillsDir, getBuiltinSkillsCopyDir, getSystemDir, ProcessChat } from '@process/utils/initStorage';
+import {
+  getSkillsDir,
+  getBuiltinSkillsCopyDir,
+  getSystemDir,
+  ProcessChat,
+  ProcessConfig,
+} from '@process/utils/initStorage';
 import type AcpAgentManager from '../task/AcpAgentManager';
 import type { GeminiAgentManager } from '../task/GeminiAgentManager';
 import type OpenClawAgentManager from '../task/OpenClawAgentManager';
@@ -19,6 +25,8 @@ import { prepareFirstMessage } from '../task/agentUtils';
 import { refreshTrayMenu } from '@process/utils/tray';
 import { copyFilesToDirectory, readDirectoryRecursive } from '@process/utils';
 import { computeOpenClawIdentityHash } from '@process/utils/openclawUtils';
+import fs from 'fs';
+import path from 'path';
 import { migrateConversationToDatabase } from './migrationUtils';
 import { ConversationSideQuestionService } from './services/ConversationSideQuestionService';
 
@@ -453,15 +461,24 @@ export function initConversationBridge(
       return { success: false, msg: 'conversation not found' };
     }
 
-    // Copy files to workspace (unified for all agents)
-    // Wrap in try-catch to prevent unhandled rejection when workspace directory is missing
-    // (bridge library does not attach .catch to provider promises)
+    // Handle file paths based on agent type
+    // Gemini requires files in workspace; other agents can use cache directory directly
     let workspaceFiles: string[];
-    try {
-      workspaceFiles = await copyFilesToDirectory(task.workspace, files, false, getSystemDir().cacheDir);
-    } catch (error) {
-      console.error('[conversationBridge] sendMessage: failed to copy files to workspace:', error);
-      workspaceFiles = [];
+    const isGeminiAgent = task.type === 'gemini';
+
+    if (isGeminiAgent) {
+      // Gemini: Copy files to workspace (required for gemini CLI)
+      // Wrap in try-catch to prevent unhandled rejection when workspace directory is missing
+      try {
+        workspaceFiles = await copyFilesToDirectory(task.workspace, files, false, getSystemDir().cacheDir);
+      } catch (error) {
+        console.error('[conversationBridge] sendMessage: failed to copy files to workspace:', error);
+        workspaceFiles = [];
+      }
+    } else {
+      // Non-Gemini agents (ACP, Codex, NanoBot, OpenClaw, Remote): Use cache directory paths directly
+      // Filter to only include absolute paths that exist
+      workspaceFiles = (files ?? []).filter((f) => path.isAbsolute(f));
     }
 
     // Precompute agent content with optional skill injection.
@@ -492,6 +509,33 @@ export function initConversationBridge(
         files: workspaceFiles,
         agentContent,
       });
+
+      // Defer cleanup until after Gemini worker finishes processing the files.
+      // sendMessage() resolves when the worker acknowledges receipt, but the worker
+      // continues reading files asynchronously during streaming. Deleting immediately
+      // after sendMessage() causes a race condition where Gemini CLI reads deleted files.
+      if (isGeminiAgent && workspaceFiles.length > 0) {
+        const saveToWorkspace = await ProcessConfig.get('upload.saveToWorkspace').catch(() => false);
+        if (!saveToWorkspace) {
+          const geminiTask = task as unknown as GeminiAgentManager;
+          const filesToCleanup = [...workspaceFiles];
+          const resolvedWorkspace = path.resolve(task.workspace);
+          const handleMessage = (data: { type: string }) => {
+            if (data.type !== 'finish') return;
+            geminiTask.off('gemini.message', handleMessage);
+            for (const filePath of filesToCleanup) {
+              const resolvedFile = path.resolve(filePath);
+              if (resolvedFile.startsWith(resolvedWorkspace + path.sep)) {
+                fs.promises.unlink(filePath).catch((cleanupError) => {
+                  console.warn('[conversationBridge] Failed to cleanup file:', filePath, cleanupError);
+                });
+              }
+            }
+          };
+          geminiTask.on('gemini.message', handleMessage);
+        }
+      }
+
       return { success: true };
     } catch (err: unknown) {
       return {

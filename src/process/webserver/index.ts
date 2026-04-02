@@ -310,11 +310,20 @@ export async function startWebServerWithInstance(port: number, allowRemote = fal
 
     server.on('error', (err: NodeJS.ErrnoException) => {
       if (err.code === 'EADDRINUSE') {
-        console.error(`❌ Port ${port} is already in use / 端口 ${port} 已被占用`);
+        const nextPort = port + 1;
+        const maxPort = SERVER_CONFIG.DEFAULT_PORT + 10;
+        if (nextPort <= maxPort) {
+          console.warn(`⚠️ Port ${port} is in use, trying ${nextPort}... / 端口 ${port} 已被占用，尝试 ${nextPort}...`);
+          server.close();
+          resolve(startWebServerWithInstance(nextPort, allowRemote));
+        } else {
+          console.error(`❌ Ports ${SERVER_CONFIG.DEFAULT_PORT}-${maxPort} all in use / 端口全部被占用`);
+          reject(err);
+        }
       } else {
         console.error('❌ Server error / 服务器错误:', err);
+        reject(err);
       }
-      reject(err);
     });
   });
 }

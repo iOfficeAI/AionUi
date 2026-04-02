@@ -100,7 +100,7 @@ export const restoreDesktopWebUIFromPreferences = async (): Promise<void> => {
 
     const instance = await startWebServerWithInstance(preferredPort, allowRemote);
     setWebServerInstance(instance);
-    console.log(`[WebUI] Auto-restored from desktop preferences (port=${preferredPort}, allowRemote=${allowRemote})`);
+    console.log(`[WebUI] Auto-restored from desktop preferences (port=${instance.port}, allowRemote=${allowRemote})`);
   } catch (error) {
     console.error('[WebUI] Failed to auto-restore from desktop preferences:', error);
   }
