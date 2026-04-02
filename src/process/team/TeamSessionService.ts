@@ -222,6 +222,7 @@ export class TeamSessionService {
     if (existing) return existing;
     const team = await this.repo.findById(teamId);
     if (!team) throw new Error(`Team "${teamId}" not found`);
+    let session!: TeamSession;
     const spawnAgent = async (agentName: string, agentType?: string) => {
       const newAgent = await this.addAgent(teamId, {
         conversationId: '',
@@ -232,7 +233,7 @@ export class TeamSessionService {
         conversationType: this.resolveConversationType(agentType || 'claude') as 'acp',
       });
       // Inject team MCP stdio config into the new agent's conversation (with agent identity)
-      const stdioConfig = session.getStdioConfig(newAgent.slotId);
+      const stdioConfig = session?.getStdioConfig(newAgent.slotId);
       if (stdioConfig && newAgent.conversationId) {
         await this.conversationService.updateConversation(
           newAgent.conversationId,
@@ -242,7 +243,7 @@ export class TeamSessionService {
       }
       return newAgent;
     };
-    const session = new TeamSession(team, this.repo, this.workerTaskManager, spawnAgent);
+    session = new TeamSession(team, this.repo, this.workerTaskManager, spawnAgent);
     this.sessions.set(teamId, session);
 
     // Start MCP server and inject per-agent stdio config into all agent conversations.

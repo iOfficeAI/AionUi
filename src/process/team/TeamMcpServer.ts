@@ -253,18 +253,24 @@ export class TeamMcpServer {
 
     if (to === '*') {
       const recipients: string[] = [];
-      for (const agent of agents) {
-        if (agent.slotId === fromSlotId) continue;
-        await mailbox.write({
-          teamId,
-          toAgentId: agent.slotId,
-          fromAgentId: fromSlotId,
-          content: message,
-          summary,
-        });
-        recipients.push(agent.agentName);
-        void wakeAgent(agent.slotId);
-      }
+      await Promise.all(
+        agents
+          .filter((agent) => agent.slotId !== fromSlotId)
+          .map((agent) =>
+            mailbox
+              .write({
+                teamId,
+                toAgentId: agent.slotId,
+                fromAgentId: fromSlotId,
+                content: message,
+                summary,
+              })
+              .then(() => {
+                recipients.push(agent.agentName);
+                void wakeAgent(agent.slotId);
+              })
+          )
+      );
       return `Message broadcast to ${recipients.length} teammate(s): ${recipients.join(', ')}`;
     }
 
