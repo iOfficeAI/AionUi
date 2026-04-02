@@ -665,10 +665,10 @@ If you're in a development environment with Node.js, you can also use:
 
 ```bash
 # In the project directory
-npm run --resetpass
+npm run resetpass
 
 # Or for a specific user
-npm run --resetpass username
+npm run resetpass -- username
 ```
 
 ---
