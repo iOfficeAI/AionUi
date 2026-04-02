@@ -28,6 +28,8 @@ export interface CreateConversationParams {
     contextFileName?: string;
     presetRules?: string;
     enabledSkills?: string[];
+    extraSkillPaths?: string[];
+    excludeBuiltinSkills?: string[];
     presetAssistantId?: string;
     sessionMode?: string;
     isHealthCheck?: boolean;
@@ -49,4 +51,6 @@ export interface IConversationService {
   createWithMigration(params: MigrateConversationParams): Promise<TChatConversation>;
   /** Returns all conversations without pagination. */
   listAllConversations(): Promise<TChatConversation[]>;
+  /** List conversations spawned by a specific cron job. */
+  getConversationsByCronJob(cronJobId: string): Promise<TChatConversation[]>;
 }

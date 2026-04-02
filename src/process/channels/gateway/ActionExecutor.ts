@@ -452,12 +452,12 @@ export class ActionExecutor {
               });
             } else if (backend === 'codex') {
               sessionConversation = await conversationServiceSingleton.createConversation({
-                type: 'codex',
+                type: 'acp',
                 model,
                 name: conversationName,
                 source,
                 channelChatId: chatId,
-                extra: conversationExtra,
+                extra: { ...conversationExtra, backend: 'codex' },
               });
             } else if (backend === 'openclaw-gateway') {
               sessionConversation = await conversationServiceSingleton.createConversation({

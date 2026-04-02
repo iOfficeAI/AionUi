@@ -34,7 +34,6 @@ const mockUseConversationCommandQueue = vi.fn(() => ({
 const mockConversationGetInvoke = vi.fn();
 const mockConversationStopInvoke = vi.fn();
 const mockConversationSendInvoke = vi.fn();
-const mockCodexSendInvoke = vi.fn();
 const mockAcpSendInvoke = vi.fn();
 const mockGeminiSendInvoke = vi.fn();
 const mockOpenClawSendInvoke = vi.fn();
@@ -60,10 +59,6 @@ vi.mock('@/common', () => ({
       get: { invoke: (...args: unknown[]) => mockConversationGetInvoke(...args) },
       stop: { invoke: (...args: unknown[]) => mockConversationStopInvoke(...args) },
       sendMessage: { invoke: (...args: unknown[]) => mockConversationSendInvoke(...args) },
-      responseStream: { on: vi.fn(() => vi.fn()) },
-    },
-    codexConversation: {
-      sendMessage: { invoke: (...args: unknown[]) => mockCodexSendInvoke(...args) },
       responseStream: { on: vi.fn(() => vi.fn()) },
     },
     acpConversation: {
@@ -354,7 +349,6 @@ vi.mock('react-i18next', () => ({
 }));
 
 import AcpSendBox from '@/renderer/pages/conversation/platforms/acp/AcpSendBox';
-import CodexSendBox from '@/renderer/pages/conversation/platforms/codex/CodexSendBox';
 import GeminiSendBox from '@/renderer/pages/conversation/platforms/gemini/GeminiSendBox';
 import NanobotSendBox from '@/renderer/pages/conversation/platforms/nanobot/NanobotSendBox';
 import OpenClawSendBox from '@/renderer/pages/conversation/platforms/openclaw/OpenClawSendBox';
@@ -388,7 +382,6 @@ describe('platform send box queue integration', () => {
     });
     mockConversationStopInvoke.mockResolvedValue(undefined);
     mockConversationSendInvoke.mockResolvedValue({ success: true });
-    mockCodexSendInvoke.mockResolvedValue({ success: true });
     mockAcpSendInvoke.mockResolvedValue({ success: true });
     mockGeminiSendInvoke.mockResolvedValue({ success: true });
     mockOpenClawSendInvoke.mockResolvedValue({ success: true });
@@ -422,15 +415,6 @@ describe('platform send box queue integration', () => {
   });
 
   it.each([
-    [
-      'codex',
-      <CodexSendBox conversation_id='conv-codex' />,
-      mockCodexSendInvoke,
-      (payload: { input: string; conversation_id: string }) => {
-        expect(payload.input).toContain('queued command');
-        expect(payload.conversation_id).toBe('conv-codex');
-      },
-    ],
     [
       'acp',
       <AcpSendBox conversation_id='conv-acp' backend='claude' />,
@@ -495,7 +479,6 @@ describe('platform send box queue integration', () => {
   );
 
   it.each([
-    ['codex', <CodexSendBox conversation_id='conv-codex' />],
     ['acp', <AcpSendBox conversation_id='conv-acp' backend='claude' />],
     [
       'gemini',
@@ -529,7 +512,6 @@ describe('platform send box queue integration', () => {
   });
 
   it.each([
-    ['codex', <CodexSendBox conversation_id='conv-codex' />],
     ['acp', <AcpSendBox conversation_id='conv-acp' backend='claude' />],
     [
       'gemini',

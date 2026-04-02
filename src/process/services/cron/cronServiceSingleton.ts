@@ -12,9 +12,11 @@ import { IpcCronEventEmitter } from './IpcCronEventEmitter';
 import { SqliteCronRepository } from './SqliteCronRepository';
 import { WorkerTaskManagerJobExecutor } from './WorkerTaskManagerJobExecutor';
 
+const conversationRepo = new SqliteConversationRepository();
+
 export const cronService = new CronService(
   new SqliteCronRepository(),
   new IpcCronEventEmitter(),
   new WorkerTaskManagerJobExecutor(workerTaskManager, cronBusyGuard),
-  new SqliteConversationRepository()
+  conversationRepo
 );

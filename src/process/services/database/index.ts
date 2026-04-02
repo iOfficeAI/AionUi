@@ -111,6 +111,17 @@ export class AionUIDatabase {
       instance.initialize();
       return instance;
     } catch (error) {
+      // Distinguish driver-level errors (native module mismatch, missing .node file)
+      // from actual database corruption. Driver errors must NOT trigger recovery —
+      // replacing a healthy database because of a build tooling issue causes data loss.
+      const msg = error instanceof Error ? error.message : String(error);
+      if (msg.includes('NODE_MODULE_VERSION') || msg.includes('was compiled against') || msg.includes('dlopen')) {
+        console.error(
+          '[Database] Native module load error — will NOT attempt recovery (database is likely intact):',
+          msg
+        );
+        throw error;
+      }
       console.error('[Database] Failed to initialize, attempting recovery...', error);
     }
 
@@ -678,6 +689,21 @@ export class AionUIDatabase {
     }
   }
 
+  getConversationsByCronJobId(cronJobId: string): TChatConversation[] {
+    const rows = this.db
+      .prepare(`SELECT * FROM conversations WHERE json_extract(extra, '$.cronJobId') = ? ORDER BY created_at DESC`)
+      .all(cronJobId) as IConversationRow[];
+    const result: TChatConversation[] = [];
+    for (const row of rows) {
+      try {
+        result.push(rowToConversation(row));
+      } catch (e) {
+        console.warn('[Database] Skipping conversation row with unknown type:', row.type, row.id);
+      }
+    }
+    return result;
+  }
+
   updateConversation(conversationId: string, updates: Partial<TChatConversation>): IQueryResult<boolean> {
     try {
       const existing = this.getConversation(conversationId);
@@ -747,8 +773,8 @@ export class AionUIDatabase {
       const row = messageToRow(message);
 
       const stmt = this.db.prepare(`
-        INSERT INTO messages (id, conversation_id, msg_id, type, content, position, status, created_at)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+        INSERT INTO messages (id, conversation_id, msg_id, type, content, position, status, hidden, created_at)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
       `);
 
       stmt.run(
@@ -759,6 +785,7 @@ export class AionUIDatabase {
         row.content,
         row.position,
         row.status,
+        row.hidden ?? 0,
         row.created_at
       );
 

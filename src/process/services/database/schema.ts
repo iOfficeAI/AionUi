@@ -44,7 +44,7 @@ export function initSchema(db: ISqliteDriver): void {
     id TEXT PRIMARY KEY,
     user_id TEXT NOT NULL,
     name TEXT NOT NULL,
-    type TEXT NOT NULL CHECK(type IN ('gemini', 'acp', 'codex', 'openclaw-gateway', 'nanobot', 'remote', 'aionrs')),
+    type TEXT NOT NULL,
     extra TEXT NOT NULL,
     model TEXT,
     status TEXT CHECK(status IN ('pending', 'running', 'finished')),
@@ -151,4 +151,4 @@ export function setDatabaseVersion(db: ISqliteDriver, version: number): void {
  * Current database schema version
  * Update this when adding new migrations in migrations.ts
  */
-export const CURRENT_DB_VERSION = 21;
+export const CURRENT_DB_VERSION = 22;

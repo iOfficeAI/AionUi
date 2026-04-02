@@ -6,6 +6,7 @@
 
 import { ipcBridge } from '@/common';
 import type { ICronJob } from '@/common/adapter/ipcBridge';
+import type { TChatConversation } from '@/common/config/storage';
 import { emitter } from '@/renderer/utils/emitter';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
@@ -468,6 +469,59 @@ export function useCronJobsMap() {
       fetchAllJobs,
     ]
   );
+}
+
+/**
+ * Hook for fetching conversations spawned by a specific cron job
+ * @param jobId - The cron job ID to fetch conversations for
+ */
+export function useCronJobConversations(jobId: string | undefined) {
+  const [conversations, setConversations] = useState<TChatConversation[]>([]);
+  const [loading, setLoading] = useState(false);
+
+  const fetchConversations = useCallback(async () => {
+    if (!jobId) {
+      setConversations([]);
+      return;
+    }
+
+    setLoading(true);
+    try {
+      const result = await ipcBridge.conversation.listByCronJob.invoke({ cronJobId: jobId });
+      setConversations(result || []);
+    } catch (err) {
+      console.error('[useCronJobConversations] Failed to fetch:', err);
+      setConversations([]);
+    } finally {
+      setLoading(false);
+    }
+  }, [jobId]);
+
+  // Initial fetch
+  useEffect(() => {
+    void fetchConversations();
+  }, [fetchConversations]);
+
+  // Refetch when job executes or a new conversation is created
+  useEffect(() => {
+    if (!jobId) return;
+    const unsubExecuted = ipcBridge.cron.onJobExecuted.on((data) => {
+      if (data.jobId === jobId) {
+        void fetchConversations();
+      }
+    });
+    const unsubListChanged = ipcBridge.conversation.listChanged.on((data) => {
+      if (data.action === 'created' || data.action === 'deleted') {
+        void fetchConversations();
+      }
+    });
+    return () => {
+      unsubExecuted();
+      unsubListChanged();
+    };
+  }, [jobId, fetchConversations]);
+
+  return { conversations, loading };
 }
 
 export default useCronJobs;

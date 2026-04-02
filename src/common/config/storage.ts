@@ -106,6 +106,8 @@ export interface IConfigStorageRefer {
   'system.notificationEnabled'?: boolean;
   // 定时任务完成时显示系统通知 / Show system notification when scheduled task completes
   'system.cronNotificationEnabled'?: boolean;
+  // 阻止系统休眠以保证定时任务执行 / Prevent system sleep to ensure scheduled tasks run
+  'system.keepAwake'?: boolean;
   // Telegram assistant default model / Telegram 助手默认模型
   'assistant.telegram.defaultModel'?: {
     id: string;
@@ -212,6 +214,8 @@ export type TChatConversation =
         sessionMode?: string;
         /** Explicit marker for temporary health-check conversations */
         isHealthCheck?: boolean;
+        /** Cron job ID that spawned this conversation */
+        cronJobId?: string;
       }
     >
   | Omit<
@@ -249,6 +253,8 @@ export type TChatConversation =
           currentModelId?: string;
           /** Explicit marker for temporary health-check conversations */
           isHealthCheck?: boolean;
+          /** Cron job ID that spawned this conversation */
+          cronJobId?: string;
         }
       >,
       'model'
@@ -276,6 +282,8 @@ export type TChatConversation =
           codexModel?: string;
           /** Explicit marker for temporary health-check conversations */
           isHealthCheck?: boolean;
+          /** Cron job ID that spawned this conversation */
+          cronJobId?: string;
         }
       >,
       'model'
@@ -319,6 +327,8 @@ export type TChatConversation =
           pinnedAt?: number;
           /** Explicit marker for temporary health-check conversations */
           isHealthCheck?: boolean;
+          /** Cron job ID that spawned this conversation */
+          cronJobId?: string;
         }
       >,
       'model'
@@ -339,6 +349,8 @@ export type TChatConversation =
           pinnedAt?: number;
           /** Explicit marker for temporary health-check conversations */
           isHealthCheck?: boolean;
+          /** Cron job ID that spawned this conversation */
+          cronJobId?: string;
         }
       >,
       'model'
@@ -363,6 +375,8 @@ export type TChatConversation =
           pinnedAt?: number;
           /** Explicit marker for temporary health-check conversations */
           isHealthCheck?: boolean;
+          /** Cron job ID that spawned this conversation */
+          cronJobId?: string;
         }
       >,
       'model'
@@ -393,6 +407,8 @@ export type TChatConversation =
         isHealthCheck?: boolean;
         /** Last token usage stats */
         lastTokenUsage?: TokenUsageData;
+        /** Cron job ID that spawned this conversation */
+        cronJobId?: string;
       }
     >;
 

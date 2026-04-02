@@ -56,7 +56,7 @@ export type ConversationRowProps = {
   onMenuVisibleChange: (conversationId: string, visible: boolean) => void;
   onEditStart: (conversation: TChatConversation) => void;
   onDelete: (conversationId: string) => void;
-  onExport: (conversation: TChatConversation) => void;
+  onExport?: (conversation: TChatConversation) => void;
   onTogglePin: (conversation: TChatConversation) => void;
   getJobStatus: (conversationId: string) => 'none' | 'active' | 'paused' | 'error' | 'unread';
 };

@@ -120,7 +120,6 @@ await build({
   entryPoints: [
     'src/process/worker/gemini.ts',
     'src/process/worker/acp.ts',
-    'src/process/worker/codex.ts',
     'src/process/worker/openclaw-gateway.ts',
     'src/process/worker/nanobot.ts',
   ],

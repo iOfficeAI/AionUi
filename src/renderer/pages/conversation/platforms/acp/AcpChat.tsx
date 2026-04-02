@@ -20,14 +20,15 @@ const AcpChat: React.FC<{
   backend: AcpBackend;
   sessionMode?: string;
   agentName?: string;
+  cronJobId?: string;
   hideSendBox?: boolean;
   teamId?: string;
   agentSlotId?: string;
-}> = ({ conversation_id, workspace, backend, sessionMode, agentName, hideSendBox, teamId, agentSlotId }) => {
+}> = ({ conversation_id, workspace, backend, sessionMode, agentName, cronJobId, hideSendBox, teamId, agentSlotId }) => {
   useMessageLstCache(conversation_id);
 
   return (
-    <ConversationProvider value={{ conversationId: conversation_id, workspace, type: 'acp', hideSendBox }}>
+    <ConversationProvider value={{ conversationId: conversation_id, workspace, type: 'acp', cronJobId, hideSendBox }}>
       <div className='flex-1 flex flex-col px-20px min-h-0'>
         <FlexFullContainer>
           <MessageList className='flex-1'></MessageList>

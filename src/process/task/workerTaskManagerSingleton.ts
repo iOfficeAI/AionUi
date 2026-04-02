@@ -14,7 +14,6 @@ import { WorkerTaskManager } from './WorkerTaskManager';
 import { SqliteConversationRepository } from '@process/services/database/SqliteConversationRepository';
 import { GeminiAgentManager } from './GeminiAgentManager';
 import AcpAgentManager from './AcpAgentManager';
-import { CodexAgentManager } from '@process/agent/codex';
 import OpenClawAgentManager from './OpenClawAgentManager';
 import NanoBotAgentManager from './NanoBotAgentManager';
 import RemoteAgentManager from './RemoteAgentManager';
@@ -41,16 +40,6 @@ agentFactory.register('acp', (conv, opts) => {
     // configured model (c.model.useModel). This ensures gemini-cli and other non-claude
     // backends apply the correct model at session start.
     currentModelId: c.extra?.currentModelId ?? c.model?.useModel,
-  }) as unknown as ReturnType<typeof agentFactory.create>;
-});
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-agentFactory.register('codex', (conv, opts) => {
-  const c = conv as any;
-  return new CodexAgentManager({
-    ...c.extra,
-    conversation_id: c.id,
-    yoloMode: opts?.yoloMode,
-    sessionMode: c.extra.sessionMode,
   }) as unknown as ReturnType<typeof agentFactory.create>;
 });
 // eslint-disable-next-line @typescript-eslint/no-explicit-any

@@ -76,6 +76,12 @@ export interface IPowerManager {
   preventSleep(): number | null;
   /** id may be null (returned by standalone preventSleep); safe no-op in that case. */
   allowSleep(id: number | null): void;
+  /**
+   * Prevent the display (and system) from sleeping.
+   * Uses 'prevent-display-sleep' mode — stronger than preventSleep().
+   * Returns a handle ID, or null if not supported.
+   */
+  preventDisplaySleep(): number | null;
 }
 
 /**

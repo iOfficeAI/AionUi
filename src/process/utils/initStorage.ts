@@ -51,6 +51,7 @@ const STORAGE_PATH = {
   assistants: 'assistants',
   skills: 'skills',
   builtinSkills: 'builtin-skills',
+  cronSkills: 'cron-skills',
 };
 
 const getHomePage = getConfigPath;
@@ -389,6 +390,14 @@ const getAutoSkillsDir = () => {
 };
 
 /**
+ * Get the directory for per-cron-job SKILL.md files.
+ * Each cron job gets its own subdirectory: {cronSkillsDir}/{jobId}/SKILL.md
+ */
+const getCronSkillsDir = () => {
+  return path.join(cacheDir, STORAGE_PATH.cronSkills);
+};
+
+/**
  * 初始化内置助手的规则和技能文件到用户目录
  * Initialize builtin assistant rule and skill files to user directory
  */
@@ -476,6 +485,12 @@ const initBuiltinAssistantRules = async (): Promise<void> => {
   // Ensure user skills directory exists
   if (!existsSync(userSkillsDir)) {
     mkdirSync(userSkillsDir);
+  }
+
+  // Ensure cron skills directory exists (per-job SKILL.md files)
+  const cronSkillsDir = getCronSkillsDir();
+  if (!existsSync(cronSkillsDir)) {
+    mkdirSync(cronSkillsDir);
   }
 
   // 确保助手目录存在 / Ensure assistants directory exists
@@ -1101,6 +1116,7 @@ export {
   getSkillsDir,
   getBuiltinSkillsCopyDir,
   getAutoSkillsDir,
+  getCronSkillsDir,
   BUILTIN_IMAGE_GEN_ID,
   getBuiltinMcpScriptPath,
 };
