@@ -172,7 +172,6 @@ const ChatLayout: React.FC<{
 
   const headerBlock = (
     <>
-      {props.tabsSlot !== undefined ? props.tabsSlot : <ConversationTabs />}
       <ArcoLayout.Header
         className={classNames(
           'min-h-44px flex items-center justify-between px-16px pt-8px pb-10px gap-16px !bg-1 chat-layout-header chat-layout-header--glass overflow-hidden',
@@ -222,6 +221,7 @@ const ChatLayout: React.FC<{
           )}
         </div>
       </ArcoLayout.Header>
+      {props.tabsSlot !== undefined ? props.tabsSlot : <ConversationTabs />}
     </>
   );
 
