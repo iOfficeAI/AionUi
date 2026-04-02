@@ -18,6 +18,7 @@ export function useTeamList() {
   const removeTeam = useCallback(
     async (id: string) => {
       await ipcBridge.team.remove.invoke({ id });
+      localStorage.removeItem(`team-active-slot-${id}`);
       await mutate();
     },
     [mutate]

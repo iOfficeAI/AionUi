@@ -23,9 +23,16 @@ export const TeamTabsProvider: React.FC<{
   agents: TeamAgent[];
   statusMap: Map<string, AgentStatusInfo>;
   defaultActiveSlotId: string;
+  teamId: string;
   renameAgent?: (slotId: string, newName: string) => Promise<void>;
-}> = ({ children, agents: externalAgents, statusMap, defaultActiveSlotId, renameAgent }) => {
-  const [activeSlotId, setActiveSlotId] = useState(defaultActiveSlotId);
+}> = ({ children, agents: externalAgents, statusMap, defaultActiveSlotId, teamId, renameAgent }) => {
+  const storageKey = `team-active-slot-${teamId}`;
+  const savedSlotId = localStorage.getItem(storageKey);
+  const initialSlotId =
+    savedSlotId && externalAgents.some((a) => a.slotId === savedSlotId)
+      ? savedSlotId
+      : defaultActiveSlotId;
+  const [activeSlotId, setActiveSlotId] = useState(initialSlotId);
   const [localAgents, setLocalAgents] = useState<TeamAgent[]>(externalAgents);
 
   // Sync external agent list changes (e.g., new agent added)
@@ -40,13 +47,19 @@ export const TeamTabsProvider: React.FC<{
     if (agents.length > 0 && !agents.some((a) => a.slotId === activeSlotId)) {
       // Prefer leader tab; fall back to first agent
       const leadAgent = agents.find((a) => a.role === 'lead');
-      setActiveSlotId(leadAgent?.slotId ?? agents[0].slotId);
+      const fallbackSlotId = leadAgent?.slotId ?? agents[0]?.slotId ?? '';
+      setActiveSlotId(fallbackSlotId);
+      localStorage.setItem(storageKey, fallbackSlotId);
     }
-  }, [agents, activeSlotId]);
+  }, [agents, activeSlotId, storageKey]);
 
-  const switchTab = useCallback((slotId: string) => {
-    setActiveSlotId(slotId);
-  }, []);
+  const switchTab = useCallback(
+    (slotId: string) => {
+      setActiveSlotId(slotId);
+      localStorage.setItem(storageKey, slotId);
+    },
+    [storageKey]
+  );
 
   const reorderAgents = useCallback((fromSlotId: string, toSlotId: string) => {
     if (fromSlotId === toSlotId) return;

@@ -338,6 +338,7 @@ const TeamPage: React.FC<Props> = ({ team }) => {
       agents={team.agents}
       statusMap={statusMap}
       defaultActiveSlotId={defaultSlotId}
+      teamId={team.id}
       renameAgent={renameAgent}
     >
       <TeamPageContent team={team} onAddAgent={handleAddAgent} />
