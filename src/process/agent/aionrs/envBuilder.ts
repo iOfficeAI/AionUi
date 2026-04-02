@@ -62,6 +62,8 @@ export function buildSpawnConfig(
     maxTurns?: number;
     systemPrompt?: string;
     autoApprove?: boolean;
+    sessionId?: string;
+    resume?: string;
   }
 ): { args: string[]; env: Record<string, string>; projectConfig: string } {
   const provider = mapProvider(model);
@@ -79,6 +81,13 @@ export function buildSpawnConfig(
   }
   if (options.autoApprove) {
     args.push('--auto-approve');
+  }
+
+  // --resume and --session-id are mutually exclusive
+  if (options.resume) {
+    args.push('--resume', options.resume);
+  } else if (options.sessionId) {
+    args.push('--session-id', options.sessionId);
   }
 
   // Set auth credentials and base URL via CLI args and env vars.
