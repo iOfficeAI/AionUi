@@ -32,6 +32,7 @@ class NanoBotAgentManager extends BaseAgentManager<NanoBotAgentManagerData> {
     super('nanobot', data, new IpcAgentEventEmitter());
     this.conversation_id = data.conversation_id;
     this.workspace = data.workspace ?? '';
+    this.status = 'pending';
 
     this.bootstrap = this.initAgent(data);
     // Prevent unhandled promise rejection when agent fails to start.
@@ -82,6 +83,7 @@ class NanoBotAgentManager extends BaseAgentManager<NanoBotAgentManagerData> {
     // Handle finish event
     if (msg.type === 'finish') {
       cronBusyGuard.setProcessing(this.conversation_id, false);
+      this.status = 'finished';
     }
 
     // Emit signal events to frontend
@@ -90,6 +92,7 @@ class NanoBotAgentManager extends BaseAgentManager<NanoBotAgentManagerData> {
 
   async sendMessage(data: { content: string; files?: string[]; msg_id?: string }) {
     cronBusyGuard.setProcessing(this.conversation_id, true);
+    this.status = 'running';
     try {
       await this.bootstrap;
 
@@ -113,6 +116,7 @@ class NanoBotAgentManager extends BaseAgentManager<NanoBotAgentManagerData> {
       // are emitted asynchronously via handleStreamEvent/handleSignalEvent.
       this.agent.sendMessage({ content: data.content }).catch((error) => {
         cronBusyGuard.setProcessing(this.conversation_id, false);
+        this.status = 'finished';
         const errorMsg = error instanceof Error ? error.message : String(error);
         this.emitErrorMessage(`Failed to send message: ${errorMsg}`);
       });
@@ -120,6 +124,7 @@ class NanoBotAgentManager extends BaseAgentManager<NanoBotAgentManagerData> {
       return { success: true, data: null as null };
     } catch (error) {
       cronBusyGuard.setProcessing(this.conversation_id, false);
+      this.status = 'finished';
 
       const errorMsg = error instanceof Error ? error.message : String(error);
       this.emitErrorMessage(`Failed to send message: ${errorMsg}`);
@@ -128,6 +133,8 @@ class NanoBotAgentManager extends BaseAgentManager<NanoBotAgentManagerData> {
   }
 
   private emitErrorMessage(error: string): void {
+    this.status = 'finished';
+
     const message: IResponseMessage = {
       type: 'error',
       conversation_id: this.conversation_id,

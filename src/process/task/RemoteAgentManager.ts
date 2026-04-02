@@ -74,8 +74,7 @@ class RemoteAgentManager extends BaseAgentManager<RemoteAgentManagerData> {
   private handleStreamEvent(message: IResponseMessage): void {
     const msg = { ...message, conversation_id: this.conversation_id };
 
-    const contentTypes = ['content', 'agent_status', 'acp_tool_call', 'plan'];
-    if (contentTypes.includes(msg.type)) {
+    if (msg.type === 'error') {
       this.status = 'finished';
     }
 
@@ -124,6 +123,7 @@ class RemoteAgentManager extends BaseAgentManager<RemoteAgentManagerData> {
 
     if (msg.type === 'finish') {
       cronBusyGuard.setProcessing(this.conversation_id, false);
+      this.status = 'finished';
     }
 
     ipcBridge.conversation.responseStream.emit(msg);
@@ -207,6 +207,8 @@ class RemoteAgentManager extends BaseAgentManager<RemoteAgentManagerData> {
   }
 
   private emitErrorMessage(error: string): void {
+    this.status = 'finished';
+
     const message: IResponseMessage = {
       type: 'error',
       conversation_id: this.conversation_id,

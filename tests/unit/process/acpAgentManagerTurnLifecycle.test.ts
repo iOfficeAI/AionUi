@@ -1,8 +1,9 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-const { mockSetProcessing, mockAgentSendMessage, streamCallbacks } = vi.hoisted(() => ({
+const { mockSetProcessing, mockAgentSendMessage, mockResponseEmit, streamCallbacks } = vi.hoisted(() => ({
   mockSetProcessing: vi.fn(),
   mockAgentSendMessage: vi.fn(async () => ({ success: true })),
+  mockResponseEmit: vi.fn(),
   streamCallbacks: {
     onStreamEvent: undefined as undefined | ((message: any) => void),
     onSignalEvent: undefined as undefined | ((signal: any) => Promise<void>),
@@ -22,7 +23,7 @@ vi.mock('@process/utils/initStorage', () => ({
 }));
 vi.mock('@/common', () => ({
   ipcBridge: {
-    acpConversation: { responseStream: { emit: vi.fn() } },
+    acpConversation: { responseStream: { emit: mockResponseEmit } },
     conversation: {
       confirmation: {
         add: { emit: vi.fn() },
@@ -68,6 +69,8 @@ vi.mock('@process/agent/acp', () => ({
     getModelInfo = vi.fn(() => null);
     getSessionState = vi.fn(() => null);
     on = vi.fn().mockReturnThis();
+    isConnected = true;
+    hasActiveSession = true;
 
     constructor(options: { onStreamEvent?: (message: any) => void; onSignalEvent?: (signal: any) => Promise<void> }) {
       streamCallbacks.onStreamEvent = options.onStreamEvent;
@@ -120,6 +123,80 @@ describe('AcpAgentManager turn lifecycle', () => {
     vi.clearAllMocks();
     streamCallbacks.onStreamEvent = undefined;
     streamCallbacks.onSignalEvent = undefined;
+  });
+
+  it('reconciles a stale running turn after ACP timeout budget is exceeded', async () => {
+    const manager = new AcpAgentManager({
+      conversation_id: 'conv-test',
+      backend: 'claude' as AcpBackend,
+      workspace: '/tmp/workspace',
+    });
+
+    await manager.sendMessage({
+      content: 'hello',
+      msg_id: 'msg-1',
+    });
+
+    const internals = manager as unknown as {
+      activeTurnStartedAt: number | null;
+      activeTurnTimeoutMs: number;
+      reconcileActiveTurnIfStale: (now?: number) => void;
+    };
+    const now = Date.now();
+    internals.activeTurnStartedAt = now - 20_000;
+    internals.activeTurnTimeoutMs = 1_000;
+
+    internals.reconcileActiveTurnIfStale(now);
+
+    expect(manager.status).toBe('finished');
+    expect(mockResponseEmit).toHaveBeenCalledWith(
+      expect.objectContaining({
+        type: 'finish',
+        conversation_id: 'conv-test',
+      })
+    );
+  });
+
+  it('does not reconcile while the turn is waiting for permission', async () => {
+    const manager = new AcpAgentManager({
+      conversation_id: 'conv-test',
+      backend: 'claude' as AcpBackend,
+      workspace: '/tmp/workspace',
+    });
+
+    await manager.sendMessage({
+      content: 'hello',
+      msg_id: 'msg-1',
+    });
+
+    await streamCallbacks.onSignalEvent?.({
+      type: 'acp_permission',
+      conversation_id: 'conv-test',
+      msg_id: 'permission-1',
+      data: {
+        toolCall: {
+          title: 'Need permission',
+          rawInput: { description: 'Allow tool' },
+          toolCallId: 'tool-1',
+        },
+        options: [],
+      },
+    });
+
+    const beforeCalls = mockResponseEmit.mock.calls.length;
+    const internals = manager as unknown as {
+      activeTurnStartedAt: number | null;
+      activeTurnTimeoutMs: number;
+      reconcileActiveTurnIfStale: (now?: number) => void;
+    };
+    const now = Date.now();
+    internals.activeTurnStartedAt = now - 20_000;
+    internals.activeTurnTimeoutMs = 1_000;
+
+    internals.reconcileActiveTurnIfStale(now);
+
+    expect(manager.status).toBe('running');
+    expect(mockResponseEmit).toHaveBeenCalledTimes(beforeCalls);
   });
 
   it('keeps runtime busy until a finish signal arrives', async () => {

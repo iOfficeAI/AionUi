@@ -118,7 +118,7 @@ export class ActivitySnapshotBuilder {
     for (const conversation of conversations) {
       const { backend, agentName } = resolveAgentIdentity(conversation);
       const task = this.taskManager.getTask(conversation.id);
-      const runtimeStatus = normalizeRuntimeStatus(task?.status || conversation.status);
+      const runtimeStatus = normalizeRuntimeStatus(task?.status);
       if (runtimeStatus === 'running' || runtimeStatus === 'pending') {
         runningConversations += 1;
       }

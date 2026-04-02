@@ -42,13 +42,7 @@ export class ConversationCommandExecutionService {
         };
       }
     } else {
-      const conversation = await this.conversationService.getConversation(params.conversationId);
-      if (isRuntimeBusy(conversation?.status)) {
-        return {
-          started: false,
-          reason: 'busy',
-        };
-      }
+      await this.conversationService.getConversation(params.conversationId);
     }
 
     this.inFlightConversationIds.add(params.conversationId);

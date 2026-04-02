@@ -99,11 +99,18 @@ class AcpAgentManager extends BaseAgentManager<AcpAgentManagerData, AcpPermissio
   /** Accumulated thinking content for persistence */
   private thinkingContent: string = '';
   private thinkingDbFlushTimer: ReturnType<typeof setTimeout> | null = null;
+  private static readonly DEFAULT_TURN_TIMEOUT_MS = 300_000;
+  private static readonly STALE_TURN_GRACE_MS = 15_000;
+  private static readonly STALE_TURN_CHECK_INTERVAL_MS = 5_000;
+  private static readonly DISCONNECTED_RECONCILE_GRACE_MS = 5_000;
   private acpAvailableSlashCommands: SlashCommandItem[] = [];
   private acpAvailableSlashWaiters: Array<(commands: SlashCommandItem[]) => void> = [];
   private readonly streamDbFlushIntervalMs = 120;
   private readonly bufferedStreamTextMessages = new Map<string, BufferedStreamTextMessage>();
   private turnLifecycleState: AcpTurnLifecycleState = 'idle';
+  private activeTurnStartedAt: number | null = null;
+  private activeTurnTimeoutMs: number = AcpAgentManager.DEFAULT_TURN_TIMEOUT_MS;
+  private staleTurnWatchdog: ReturnType<typeof setInterval> | null = null;
 
   constructor(data: AcpAgentManagerData) {
     super('acp', data, new IpcAgentEventEmitter());
@@ -120,6 +127,93 @@ class AcpAgentManager extends BaseAgentManager<AcpAgentManagerData, AcpPermissio
   private setTurnLifecycleState(state: AcpTurnLifecycleState): void {
     this.turnLifecycleState = state;
     this.status = state === 'idle' || state === 'error' ? 'finished' : 'running';
+  }
+
+  private async resolveTurnTimeoutMs(): Promise<number> {
+    try {
+      const acpConfig = await ProcessConfig.get('acp.config');
+      const backendTimeout = acpConfig?.[this.options.backend]?.promptTimeout;
+      if (backendTimeout && backendTimeout > 0) {
+        return Math.max(30, backendTimeout) * 1000;
+      }
+
+      const globalTimeout = await ProcessConfig.get('acp.promptTimeout');
+      if (globalTimeout && globalTimeout > 0) {
+        return Math.max(30, globalTimeout) * 1000;
+      }
+    } catch {
+      // Ignore config read errors and use the same 5-minute default as AcpConnection.
+    }
+
+    return AcpAgentManager.DEFAULT_TURN_TIMEOUT_MS;
+  }
+
+  private stopTurnWatchdog(): void {
+    if (this.staleTurnWatchdog) {
+      clearInterval(this.staleTurnWatchdog);
+      this.staleTurnWatchdog = null;
+    }
+    this.activeTurnStartedAt = null;
+    this.activeTurnTimeoutMs = AcpAgentManager.DEFAULT_TURN_TIMEOUT_MS;
+  }
+
+  private startTurnWatchdog(timeoutMs: number): void {
+    this.stopTurnWatchdog();
+    this.activeTurnStartedAt = Date.now();
+    this.activeTurnTimeoutMs = timeoutMs;
+    this.staleTurnWatchdog = setInterval(() => {
+      this.reconcileActiveTurnIfStale();
+    }, AcpAgentManager.STALE_TURN_CHECK_INTERVAL_MS);
+  }
+
+  private reconcileActiveTurnIfStale(now: number = Date.now()): void {
+    if (this.activeTurnStartedAt === null) {
+      return;
+    }
+
+    if (
+      this.turnLifecycleState === 'idle' ||
+      this.turnLifecycleState === 'error' ||
+      this.turnLifecycleState === 'awaiting_permission'
+    ) {
+      return;
+    }
+
+    const elapsed = now - this.activeTurnStartedAt;
+    const agentUnavailable = !!this.agent && (!this.agent.isConnected || !this.agent.hasActiveSession);
+    const exceededTimeout = elapsed > this.activeTurnTimeoutMs + AcpAgentManager.STALE_TURN_GRACE_MS;
+    const exceededDisconnectGrace = agentUnavailable && elapsed > AcpAgentManager.DISCONNECTED_RECONCILE_GRACE_MS;
+
+    if (!exceededTimeout && !exceededDisconnectGrace) {
+      return;
+    }
+
+    mainWarn('[AcpAgentManager]', 'Reconciling stale ACP turn state', {
+      conversationId: this.conversation_id,
+      state: this.turnLifecycleState,
+      elapsed,
+      timeoutMs: this.activeTurnTimeoutMs,
+      isConnected: this.agent?.isConnected,
+      hasActiveSession: this.agent?.hasActiveSession,
+    });
+
+    this.flushBufferedStreamTextMessages();
+    this.clearBusyState();
+    this.currentMsgId = null;
+    this.currentMsgContent = '';
+    if (this.thinkingMsgId) {
+      this.emitThinkingMessage('', 'done');
+      this.thinkingMsgId = null;
+      this.thinkingStartTime = null;
+      this.thinkingContent = '';
+    }
+
+    ipcBridge.acpConversation.responseStream.emit({
+      type: 'finish',
+      conversation_id: this.conversation_id,
+      msg_id: uuid(),
+      data: null,
+    });
   }
 
   private makeStreamBufferKey(message: Extract<TMessage, { type: 'text' }>): string {
@@ -535,6 +629,7 @@ class AcpAgentManager extends BaseAgentManager<AcpAgentManagerData, AcpPermissio
           // Clear busy guard and finalize thinking message when turn ends
           if (v.type === 'finish') {
             cronBusyGuard.setProcessing(this.conversation_id, false);
+            this.stopTurnWatchdog();
             this.setTurnLifecycleState('idle');
             // Finalize thinking message with done status
             if (this.thinkingMsgId) {
@@ -658,9 +753,11 @@ class AcpAgentManager extends BaseAgentManager<AcpAgentManagerData, AcpPermissio
     this._lastActivityAt = Date.now();
 
     const managerSendStart = Date.now();
+    const turnTimeoutMs = await this.resolveTurnTimeoutMs();
     // Mark conversation as busy to prevent cron jobs from running
     cronBusyGuard.setProcessing(this.conversation_id, true);
     this.setTurnLifecycleState('starting');
+    this.startTurnWatchdog(turnTimeoutMs);
     try {
       // Emit/persist user message immediately so UI can refresh without waiting
       // for ACP connection/auth/session initialization.
@@ -1144,6 +1241,7 @@ class AcpAgentManager extends BaseAgentManager<AcpAgentManagerData, AcpPermissio
    */
   private clearBusyState(): void {
     cronBusyGuard.setProcessing(this.conversation_id, false);
+    this.stopTurnWatchdog();
     this.setTurnLifecycleState('idle');
   }
 

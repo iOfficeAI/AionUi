@@ -371,6 +371,7 @@ export class GeminiAgentManager extends BaseAgentManager<
     const result = await this.bootstrap
       .catch((e) => {
         cronBusyGuard.setProcessing(this.conversation_id, false);
+        this.status = 'finished';
         this.emit('gemini.message', {
           type: 'error',
           data: e.message || JSON.stringify(e),
@@ -614,14 +615,12 @@ export class GeminiAgentManager extends BaseAgentManager<
     super.init();
     // 接受来子进程的对话消息
     this.on('gemini.message', (data) => {
-      // Mark as finished when content is output (visible to user)
-      // Gemini uses: content, tool_group
-      const contentTypes = ['content', 'tool_group'];
-      if (contentTypes.includes(data.type)) {
+      if (data.type === 'error') {
         this.status = 'finished';
       }
 
       if (data.type === 'finish') {
+        this.status = 'finished';
         // When stream finishes, check for cron commands in the accumulated message
         // Use longer delay and retry logic to ensure message is persisted
         this.checkCronWithRetry(0);

@@ -100,6 +100,37 @@ describe('ConversationCommandExecutionService', () => {
     });
   });
 
+  it('ignores stale persisted busy status when no runtime task exists', async () => {
+    const dispatch = vi.fn().mockResolvedValue(undefined);
+    const getConversation = vi.fn().mockResolvedValue(createConversation('running'));
+    const service = new ConversationCommandExecutionService(
+      {
+        getConversation,
+      } as never,
+      {
+        getTask: vi.fn().mockReturnValue(undefined),
+      } as never,
+      dispatch
+    );
+
+    await expect(
+      service.execute({
+        conversationId: 'conversation-1',
+        input: 'echo hello',
+        files: [],
+      })
+    ).resolves.toEqual({
+      started: true,
+      reason: 'started',
+    });
+    expect(getConversation).toHaveBeenCalledWith('conversation-1');
+    expect(dispatch).toHaveBeenCalledWith({
+      conversationId: 'conversation-1',
+      input: 'echo hello',
+      files: [],
+    });
+  });
+
   it('does not start when a previous execution attempt is still in flight', async () => {
     let resolveDispatch: (() => void) | undefined;
     const dispatch = vi.fn(

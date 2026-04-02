@@ -224,6 +224,21 @@ describe('RemoteAgentManager', () => {
       expect(channelEventBus.emitAgentMessage).toHaveBeenCalled();
     });
 
+    it('keeps runtime status busy after streamed content until finish arrives', async () => {
+      const mgr = createManager();
+      await mgr.bootstrap;
+      mgr.status = 'running';
+
+      capturedCoreConfig.onStreamEvent!({
+        type: 'content',
+        conversation_id: 'conv-1',
+        msg_id: 'msg-keep-running',
+        data: 'partial',
+      });
+
+      expect(mgr.status).toBe('running');
+    });
+
     it('emits agent_status messages to responseStream and channelEventBus', async () => {
       const mgr = createManager();
       await mgr.bootstrap;
@@ -278,6 +293,7 @@ describe('RemoteAgentManager', () => {
     it('clears busy guard on finish signal', async () => {
       const mgr = createManager();
       await mgr.bootstrap;
+      mgr.status = 'running';
 
       capturedCoreConfig.onSignalEvent!({
         type: 'finish',
@@ -287,6 +303,7 @@ describe('RemoteAgentManager', () => {
       });
 
       expect(cronBusyGuard.setProcessing).toHaveBeenCalledWith('conv-1', false);
+      expect(mgr.status).toBe('finished');
       expect(mockIpcBridge.conversation.responseStream.emit).toHaveBeenCalled();
     });
   });

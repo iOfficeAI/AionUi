@@ -625,10 +625,7 @@ class CodexAgentManager extends BaseAgentManager<CodexAgentManagerData> implemen
       return;
     }
 
-    // Mark as finished when content is output (visible to user)
-    // Codex uses: content, agent_status, codex_tool_call
-    const contentTypes = ['content', 'agent_status', 'codex_tool_call'];
-    if (contentTypes.includes(message.type)) {
+    if (message.type === 'finish' || message.type === 'error') {
       this.status = 'finished';
     }
 

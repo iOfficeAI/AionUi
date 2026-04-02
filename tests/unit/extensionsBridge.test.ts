@@ -152,6 +152,26 @@ describe('ActivitySnapshotBuilder', () => {
     expect(snapshot.runningConversations).toBe(0);
   });
 
+  it('ignores stale persisted running status when no runtime task exists', async () => {
+    const conversations = [makeConversation({ id: 'c1', status: 'running' })];
+    vi.mocked(repo.getUserConversations).mockResolvedValue({
+      data: conversations,
+      total: 1,
+      hasMore: false,
+    });
+    vi.mocked(repo.getMessages).mockResolvedValue({
+      data: [],
+      total: 0,
+      hasMore: false,
+    });
+
+    const snapshot = await new ActivitySnapshotBuilder(repo, taskManager).build();
+
+    expect(snapshot.runningConversations).toBe(0);
+    expect(snapshot.agents[0]?.runtimeStatus).toBe('unknown');
+    expect(snapshot.agents[0]?.state).toBe('idle');
+  });
+
   it('groups conversations by agent backend', async () => {
     const conversations = [
       makeConversation({ id: 'c1', type: 'gemini' as any }),
