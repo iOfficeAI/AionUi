@@ -29,6 +29,7 @@ import { mainLog, mainWarn, mainError } from '@process/utils/mainLogger';
 import { hasCronCommands } from './CronCommandDetector';
 import { extractTextFromMessage, processCronInMessage } from './MessageMiddleware';
 import { stripThinkTags, extractAndStripThinkTags } from './ThinkTagDetector';
+import { teamEventBus } from '@process/team/teamEventBus';
 import * as fs from 'node:fs';
 
 // gemini agent管理器类
@@ -327,7 +328,37 @@ export class GeminiAgentManager extends BaseAgentManager<
     }
   }
 
-  async sendMessage(data: { input: string; msg_id: string; files?: string[]; cronMeta?: CronMessageMeta }) {
+  async sendMessage(data: {
+    input: string;
+    msg_id: string;
+    files?: string[];
+    cronMeta?: CronMessageMeta;
+    silent?: boolean;
+  }) {
+    if (data.silent) {
+      await this.refreshWorkerIfMcpChanged();
+      this.status = 'pending';
+      cronBusyGuard.setProcessing(this.conversation_id, true);
+      await this.bootstrap
+        .catch((e) => {
+          cronBusyGuard.setProcessing(this.conversation_id, false);
+          this.emit('gemini.message', {
+            type: 'error',
+            data: e.message || JSON.stringify(e),
+            msg_id: data.msg_id,
+          });
+          return new Promise((_, reject) => {
+            nextTickToLocalFinish(() => {
+              reject(e);
+            });
+          });
+        })
+        .then(() => super.sendMessage(data))
+        .finally(() => {
+          cronBusyGuard.setProcessing(this.conversation_id, false);
+        });
+      return;
+    }
     const message: TMessage = {
       id: data.msg_id,
       type: 'text',
@@ -704,6 +735,10 @@ export class GeminiAgentManager extends BaseAgentManager<
       // Filter think tags from streaming content before emitting to UI
       const filteredData = this.filterThinkTagsFromMessage(data);
       ipcBridge.geminiConversation.responseStream.emit(filteredData);
+
+      // Also emit to main-process-local bus so TeammateManager (same process)
+      // can receive events — ipcBridge.emit only delivers to renderer via webContents.send()
+      teamEventBus.emit('responseStream', filteredData);
 
       // Emit to Channel global event bus (for Telegram and other external platforms)
       channelEventBus.emitAgentMessage(this.conversation_id, filteredData);

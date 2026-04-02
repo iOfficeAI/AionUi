@@ -13,11 +13,11 @@ export interface AcpSessionMcpNameValue {
 }
 
 export interface AcpSessionMcpServerStdio {
-  type: 'stdio';
+  type?: 'stdio';
   name: string;
   command: string;
-  args?: string[];
-  env?: AcpSessionMcpNameValue[];
+  args: string[];
+  env: AcpSessionMcpNameValue[];
 }
 
 export interface AcpSessionMcpServerHttpLike {
@@ -98,7 +98,7 @@ export function buildBuiltinAcpSessionMcpServers(
             name: server.name,
             command: server.transport.command,
             args: server.transport.args || [],
-            env: toNameValueEntries(server.transport.env),
+            env: toNameValueEntries(server.transport.env) ?? [],
           };
         case 'http':
         case 'streamable_http':

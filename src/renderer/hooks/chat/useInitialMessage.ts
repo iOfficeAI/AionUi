@@ -69,8 +69,8 @@ export const useInitialMessage = (
   }, [conversationId, acpStatus, onSend]);
 
   useEffect(() => {
-    processInitialMessage().catch((error) => {
-      console.error('Failed to process initial message:', error);
+    processInitialMessage().catch((err) => {
+      console.error('Failed to process initial message:', err);
     });
   }, [processInitialMessage]);
 

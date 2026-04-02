@@ -28,6 +28,11 @@ export interface ConversationContextValue {
    * 会话类型
    */
   type: 'gemini' | 'acp' | 'codex' | 'openclaw-gateway' | 'nanobot' | 'remote';
+
+  /**
+   * When true, platform chat components should hide the SendBox (e.g. sub-agents in team mode)
+   */
+  hideSendBox?: boolean;
 }
 
 /**

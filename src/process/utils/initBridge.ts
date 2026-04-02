@@ -11,12 +11,15 @@ import { SqliteConversationRepository } from '@process/services/database/SqliteC
 import { ConversationServiceImpl } from '@process/services/ConversationServiceImpl';
 import { cronService } from '@process/services/cron/cronServiceSingleton';
 import { workerTaskManager } from '@process/task/workerTaskManagerSingleton';
+import { TeamSessionService, SqliteTeamRepository } from '@process/team';
 
 logger.config({ print: true });
 
 const repo = new SqliteConversationRepository();
 const conversationServiceImpl = new ConversationServiceImpl(repo);
 const channelRepo = new SqliteChannelRepository();
+const teamRepo = new SqliteTeamRepository();
+const teamSessionService = new TeamSessionService(teamRepo, workerTaskManager, conversationServiceImpl);
 
 // 初始化所有IPC桥接
 initAllBridges({
@@ -24,6 +27,7 @@ initAllBridges({
   conversationRepo: repo,
   workerTaskManager,
   channelRepo,
+  teamSessionService,
 });
 
 // Initialize cron service (load jobs from database and start timers)
