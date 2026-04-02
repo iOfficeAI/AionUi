@@ -70,6 +70,11 @@ export const AGENT_MODES: Record<string, AgentModeOption[]> = {
     { value: 'autoEdit', label: 'Auto-Accept Edits' },
     { value: 'yolo', label: 'YOLO' },
   ],
+  aionrs: [
+    { value: 'default', label: 'Default' },
+    { value: 'auto_edit', label: 'Auto-Accept Edits' },
+    { value: 'yolo', label: 'YOLO' },
+  ],
   codex: [
     { value: 'default', label: 'Plan' },
     { value: CODEX_MODE_AUTO_EDIT, label: 'Auto Edit' },

@@ -71,6 +71,10 @@ vi.mock('../../src/process/services/mcpServices/McpService', () => ({
   mcpService: { getSupportedTransportsForAgent: vi.fn(() => []) },
 }));
 
+vi.mock('../../src/process/agent/aionrs/binaryResolver', () => ({
+  detectAionrs: vi.fn(() => ({ available: false, path: null })),
+}));
+
 vi.mock('../../src/process/utils/mainLogger', () => ({
   mainLog: vi.fn(),
   mainWarn: vi.fn(),

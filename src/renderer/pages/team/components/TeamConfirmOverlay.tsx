@@ -1,7 +1,7 @@
 import { ipcBridge } from '@/common';
 import type { IConfirmation } from '@/common/chat/chatLib';
 import { Divider, Typography } from '@arco-design/web-react';
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { createPortal } from 'react-dom';
 import { removeStack } from '@/renderer/utils/common';
@@ -23,15 +23,15 @@ const TeamConfirmOverlay: React.FC<{
 
   useEffect(() => {
     const loadConfirmations = async () => {
-      const allData: StoredConfirmation[] = [];
-      for (const cid of allConversationIds) {
-        try {
-          const data = await ipcBridge.conversation.confirmation.list.invoke({ conversation_id: cid });
-          allData.push(...data.map((c) => ({ ...c, conversation_id: cid })));
-        } catch {
-          // ignore per-conversation errors
-        }
-      }
+      const results = await Promise.allSettled(
+        allConversationIds.map((cid) =>
+          ipcBridge.conversation.confirmation.list
+            .invoke({ conversation_id: cid })
+            .then((data) => data.map((c) => ({ ...c, conversation_id: cid })))
+            .catch(() => [] as StoredConfirmation[])
+        )
+      );
+      const allData = results.flatMap((r) => (r.status === 'fulfilled' ? r.value : []));
       setConfirmations(allData);
     };
 

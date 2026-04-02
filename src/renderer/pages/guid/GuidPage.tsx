@@ -305,9 +305,9 @@ const GuidPage: React.FC = () => {
   const [isDescriptionExpanded, setIsDescriptionExpanded] = useState(false);
   const [canExpandDescription, setCanExpandDescription] = useState(false);
 
-  // Reset agent selection and UI state whenever the user navigates to /guid fresh
+  // Reset UI state whenever the user navigates to /guid fresh
+  // (agent selection is preserved via saved preference in useGuidAgentSelection)
   useEffect(() => {
-    agentSelection.setSelectedAgentKey('gemini');
     guidInput.setInput('');
     setIsDescriptionExpanded(false);
   }, [location.key]);
@@ -405,9 +405,11 @@ const GuidPage: React.FC = () => {
     [agentSelection, currentPresetAgentType, t]
   );
 
-  // Determine if model selector should be in Gemini mode
+  // Determine if model selector should use provider-based mode (Gemini & Aion CLI)
+  // Both gemini and aionrs use configured model providers, not ACP probe-based models
+  const PROVIDER_BASED_AGENTS = new Set(['gemini', 'aionrs']);
   const isGeminiMode =
-    (agentSelection.selectedAgent === 'gemini' && !agentSelection.isPresetAgent) ||
+    (PROVIDER_BASED_AGENTS.has(agentSelection.selectedAgent) && !agentSelection.isPresetAgent) ||
     (agentSelection.isPresetAgent &&
       agentSelection.currentEffectiveAgentInfo.agentType === 'gemini' &&
       agentSelection.currentEffectiveAgentInfo.isAvailable);
@@ -422,11 +424,21 @@ const GuidPage: React.FC = () => {
     />
   );
 
+  // AionCLI does not support Google Auth — filter it out when aionrs is selected
+  const isAionrs = agentSelection.selectedAgent === 'aionrs';
+  const filteredModelList = useMemo(
+    () =>
+      isAionrs
+        ? modelSelection.modelList.filter((p) => !p.platform?.toLowerCase().includes('gemini-with-google-auth'))
+        : modelSelection.modelList,
+    [isAionrs, modelSelection.modelList]
+  );
+
   // Build the model selector node
   const modelSelectorNode = (
     <GuidModelSelector
       isGeminiMode={isGeminiMode}
-      modelList={modelSelection.modelList}
+      modelList={filteredModelList}
       currentModel={modelSelection.currentModel}
       setCurrentModel={modelSelection.setCurrentModel}
       geminiModeLookup={modelSelection.geminiModeLookup}
@@ -451,7 +463,7 @@ const GuidPage: React.FC = () => {
       selectedAgentInfo={agentSelection.selectedAgentInfo}
       customAgents={agentSelection.customAgents}
       localeKey={localeKey}
-      onClosePresetTag={() => agentSelection.setSelectedAgentKey('gemini')}
+      onClosePresetTag={() => agentSelection.setSelectedAgentKey(agentSelection.defaultAgentKey)}
       agentLogo={effectiveAgentLogo}
       agentSwitcherItems={agentSwitcherItems}
       onAgentSwitch={(key) => {
@@ -484,7 +496,7 @@ const GuidPage: React.FC = () => {
                     icon={<Left theme='outline' size={18} fill='currentColor' />}
                     className={styles.heroBackButton}
                     onClick={() => {
-                      agentSelection.setSelectedAgentKey('gemini');
+                      agentSelection.setSelectedAgentKey(agentSelection.defaultAgentKey);
                       guidInput.setInput('');
                       setIsDescriptionExpanded(false);
                     }}

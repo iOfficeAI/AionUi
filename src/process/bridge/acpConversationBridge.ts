@@ -7,11 +7,13 @@
 import { acpDetector } from '@process/agent/acp/AcpDetector';
 import { AcpConnection } from '@process/agent/acp/AcpConnection';
 import { buildAcpModelInfo, summarizeAcpModelInfo } from '@process/agent/acp/modelInfo';
+import { detectAionrs } from '@process/agent/aionrs/binaryResolver';
 import { CodexConnection } from '@process/agent/codex/connection/CodexConnection';
 import type { IWorkerTaskManager } from '@process/task/IWorkerTaskManager';
 import AcpAgentManager from '@process/task/AcpAgentManager';
 import CodexAgentManager from '@process/task/CodexAgentManager';
 import { GeminiAgentManager } from '@process/task/GeminiAgentManager';
+import { AionrsManager } from '@process/task/AionrsManager';
 import { mcpService } from '@/process/services/mcpServices/McpService';
 import { mainLog, mainWarn } from '@/process/utils/mainLogger';
 import { ipcBridge } from '@/common';
@@ -53,6 +55,18 @@ export function initAcpConversationBridge(workerTaskManager: IWorkerTaskManager)
         ...agent,
         supportedTransports: mcpService.getSupportedTransportsForAgent(agent),
       }));
+
+      // Detect aionrs binary (non-ACP, uses JSON Lines protocol)
+      // Insert at front so Aion CLI appears before other agents (including Gemini)
+      const aionrs = detectAionrs();
+      if (aionrs.available) {
+        const aionrsAgent = { backend: 'aionrs' as const, name: 'Aion CLI', cliPath: aionrs.path };
+        enriched.unshift({
+          ...aionrsAgent,
+          supportedTransports: mcpService.getSupportedTransportsForAgent(aionrsAgent),
+        } as (typeof enriched)[number]);
+      }
+
       return Promise.resolve({ success: true, data: enriched });
     } catch (error) {
       return Promise.resolve({
@@ -221,7 +235,12 @@ export function initAcpConversationBridge(workerTaskManager: IWorkerTaskManager)
     const task = workerTaskManager.getTask(conversationId);
     if (
       !task ||
-      !(task instanceof AcpAgentManager || task instanceof GeminiAgentManager || task instanceof CodexAgentManager)
+      !(
+        task instanceof AcpAgentManager ||
+        task instanceof GeminiAgentManager ||
+        task instanceof CodexAgentManager ||
+        task instanceof AionrsManager
+      )
     ) {
       return Promise.resolve({
         success: true,
@@ -318,7 +337,12 @@ export function initAcpConversationBridge(workerTaskManager: IWorkerTaskManager)
         return { success: false, msg: 'Conversation not found' };
       }
       if (
-        !(task instanceof AcpAgentManager || task instanceof GeminiAgentManager || task instanceof CodexAgentManager)
+        !(
+          task instanceof AcpAgentManager ||
+          task instanceof GeminiAgentManager ||
+          task instanceof CodexAgentManager ||
+          task instanceof AionrsManager
+        )
       ) {
         return {
           success: false,

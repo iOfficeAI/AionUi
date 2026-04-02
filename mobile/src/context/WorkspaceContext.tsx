@@ -1,4 +1,5 @@
 import React, { createContext, useContext, useEffect, useMemo, useRef } from 'react';
+import { useTranslation } from 'react-i18next';
 import { useConversations } from './ConversationContext';
 import { getWorkspaceDisplayName } from '../utils/workspace';
 
@@ -16,6 +17,7 @@ const WorkspaceContext = createContext<WorkspaceContextType>({
 });
 
 export function WorkspaceProvider({ children }: { children: React.ReactNode }) {
+  const { t } = useTranslation();
   const { conversations, activeConversationId } = useConversations();
   const previousWorkspaceRef = useRef<string | null>(null);
 
@@ -25,7 +27,7 @@ export function WorkspaceProvider({ children }: { children: React.ReactNode }) {
   );
 
   const currentWorkspace = activeConversation?.extra?.workspace ?? null;
-  const workspaceDisplayName = currentWorkspace ? getWorkspaceDisplayName(currentWorkspace) : '';
+  const workspaceDisplayName = currentWorkspace ? getWorkspaceDisplayName(currentWorkspace, t) : '';
 
   const workspaceChanged =
     previousWorkspaceRef.current !== null &&

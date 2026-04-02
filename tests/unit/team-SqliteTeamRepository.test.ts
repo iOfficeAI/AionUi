@@ -38,7 +38,7 @@ describe('SqliteTeamRepository', () => {
   beforeEach(() => {
     driver = new BetterSqlite3Driver(':memory:');
     initSchema(driver);
-    runMigrations(driver, 0, 19);
+    runMigrations(driver, 0, 20);
     // Insert a test user to satisfy the FOREIGN KEY constraint on teams.user_id
     driver
       .prepare(

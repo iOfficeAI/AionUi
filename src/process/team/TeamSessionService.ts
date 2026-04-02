@@ -244,15 +244,16 @@ export class TeamSessionService {
     // Delete conversations owned by this team's agents
     const team = await this.repo.findById(id);
     if (team) {
-      for (const agent of team.agents) {
-        if (agent.conversationId) {
-          try {
-            await this.conversationService.deleteConversation(agent.conversationId);
-          } catch (err) {
-            console.warn(`[TeamSessionService] Failed to delete conversation ${agent.conversationId}:`, err);
-          }
+      const results = await Promise.allSettled(
+        team.agents
+          .filter((agent) => agent.conversationId)
+          .map((agent) => this.conversationService.deleteConversation(agent.conversationId))
+      );
+      results.forEach((r) => {
+        if (r.status === 'rejected') {
+          console.warn(`[TeamSessionService] Failed to delete conversation:`, r.reason);
         }
-      }
+      });
     }
 
     await this.repo.deleteMailboxByTeam(id);
@@ -359,6 +360,7 @@ export class TeamSessionService {
     if (existing) return existing;
     const team = await this.repo.findById(teamId);
     if (!team) throw new Error(`Team "${teamId}" not found`);
+    let session!: TeamSession;
     const spawnAgent = async (agentName: string, agentType?: string) => {
       const newAgent = await this.addAgent(teamId, {
         conversationId: '',
@@ -369,7 +371,7 @@ export class TeamSessionService {
         conversationType: this.resolveConversationType(agentType || 'claude') as 'acp',
       });
       // Inject team MCP stdio config into the new agent's conversation (with agent identity)
-      const stdioConfig = session.getStdioConfig(newAgent.slotId);
+      const stdioConfig = session?.getStdioConfig(newAgent.slotId);
       if (stdioConfig && newAgent.conversationId) {
         await this.conversationService.updateConversation(
           newAgent.conversationId,
@@ -379,7 +381,7 @@ export class TeamSessionService {
       }
       return newAgent;
     };
-    const session = new TeamSession(team, this.repo, this.workerTaskManager, spawnAgent);
+    session = new TeamSession(team, this.repo, this.workerTaskManager, spawnAgent);
     this.sessions.set(teamId, session);
 
     // Start MCP server and inject per-agent stdio config into all agent conversations.

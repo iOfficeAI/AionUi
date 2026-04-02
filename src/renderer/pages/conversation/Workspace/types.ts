@@ -17,7 +17,7 @@ export type MessageApi = ReturnType<typeof Message.useMessage>[0];
 export interface WorkspaceProps {
   workspace: string;
   conversation_id: string;
-  eventPrefix?: 'gemini' | 'acp' | 'codex';
+  eventPrefix?: 'gemini' | 'acp' | 'codex' | 'aionrs';
   messageApi?: MessageApi;
 }
 

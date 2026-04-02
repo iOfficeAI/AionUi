@@ -31,6 +31,13 @@ describe('workspace utils', () => {
       expect(name).toContain('Temp');
     });
 
+    it('supports non-English translation for temporary workspace labels', () => {
+      const t = (key: string) => (key === 'workspace.temporarySpace' ? '临时会话' : key);
+      const name = getWorkspaceDisplayName('/tmp/codex-temp-1700000000', t);
+      expect(name).toContain('临时会话');
+      expect(name).not.toContain('Temporary Session');
+    });
+
     it('handles Windows-style paths', () => {
       expect(getWorkspaceDisplayName('C:\\Users\\dev\\project')).toBe('project');
     });
