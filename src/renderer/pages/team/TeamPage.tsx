@@ -45,7 +45,7 @@ const AgentChatSlot: React.FC<{
     agent.conversationId && (agent.conversationType === 'acp' || agent.conversationType === 'codex');
 
   return (
-    <div className={isFullscreen ? 'fixed inset-0 z-100 bg-1 flex flex-col' : 'flex flex-col h-full'}>
+    <div className={`transition-all duration-300 ease-in-out ${isFullscreen ? 'absolute inset-0 z-50 bg-1 flex flex-col' : 'flex flex-col h-full'}`}>
       <div className='flex items-center justify-between gap-8px px-12px h-40px shrink-0 border-b border-solid border-[color:var(--border-base)] bg-2 relative z-10'>
         <div className='flex items-center gap-8px min-w-0'>
           {logo && <img src={logo} alt={agent.agentType} className='w-16px h-16px object-contain rounded-2px opacity-80' />}
@@ -165,7 +165,7 @@ const TeamPageContent: React.FC<TeamPageContentProps> = ({ team, onAddAgent }) =
       >
         <div
           ref={scrollContainerRef}
-          className='flex h-full overflow-x-auto overflow-y-hidden [scrollbar-width:none]'
+          className='relative flex h-full overflow-x-auto overflow-y-hidden [scrollbar-width:none]'
           style={{ scrollSnapType: 'x mandatory' }}
         >
           {team.agents.map((agent) => {
