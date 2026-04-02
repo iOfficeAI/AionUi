@@ -8,7 +8,7 @@ import { ipcBridge } from '@/common';
 import { iconColors } from '@/renderer/styles/colors';
 import { Button, Message } from '@arco-design/web-react';
 import { Down, Lightning, Up } from '@icon-park/react';
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import MarkdownView from '@renderer/components/Markdown';
 import type { SkillSuggestion } from '@renderer/utils/chat/skillSuggestParser';
@@ -24,6 +24,13 @@ const SkillSuggestCard: React.FC<SkillSuggestCardProps> = ({ suggestion, cronJob
   const [saved, setSaved] = useState(false);
   const [dismissed, setDismissed] = useState(false);
   const [expanded, setExpanded] = useState(false);
+
+  // Check if skill already exists on mount (persists across navigation)
+  useEffect(() => {
+    ipcBridge.cron.hasSkill.invoke({ jobId: cronJobId }).then((exists) => {
+      if (exists) setSaved(true);
+    }).catch(() => {});
+  }, [cronJobId]);
 
   if (dismissed || saved) return null;
 
