@@ -135,8 +135,9 @@ export class TeammateManager extends EventEmitter {
       const teammates = this.agents.filter((a) => a.slotId !== slotId);
 
       // Write each mailbox message into agent's conversation as user bubble
-      // so the UI shows what triggered this agent's response
-      if (agent.conversationId && mailboxMessages.length > 0) {
+      // so the UI shows what triggered this agent's response.
+      // Skip for leader: context is already in buildPayload; bubbles would clutter the lead tab.
+      if (agent.conversationId && mailboxMessages.length > 0 && agent.role !== 'lead') {
         for (const msg of mailboxMessages) {
           // Skip user messages — already written by TeamSession.sendMessage()
           if (msg.fromAgentId === 'user') continue;

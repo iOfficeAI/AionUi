@@ -39,7 +39,11 @@ const AgentChatSlot: React.FC<{
   return (
     <div style={{ display: isActive ? 'flex' : 'none' }} className='flex-1 flex flex-col min-h-0'>
       {conversation ? (
-        <TeamChatView conversation={conversation as TChatConversation} teamId={isLead ? teamId : undefined} />
+        <TeamChatView
+          conversation={conversation as TChatConversation}
+          teamId={teamId}
+          agentSlotId={isLead ? undefined : agent.slotId}
+        />
       ) : (
         <div className='flex flex-1 items-center justify-center'>
           <Spin loading />

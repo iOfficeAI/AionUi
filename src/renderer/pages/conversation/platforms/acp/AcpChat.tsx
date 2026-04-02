@@ -22,7 +22,8 @@ const AcpChat: React.FC<{
   agentName?: string;
   hideSendBox?: boolean;
   teamId?: string;
-}> = ({ conversation_id, workspace, backend, sessionMode, agentName, hideSendBox, teamId }) => {
+  agentSlotId?: string;
+}> = ({ conversation_id, workspace, backend, sessionMode, agentName, hideSendBox, teamId, agentSlotId }) => {
   useMessageLstCache(conversation_id);
 
   return (
@@ -39,6 +40,7 @@ const AcpChat: React.FC<{
               sessionMode={sessionMode}
               agentName={agentName}
               teamId={teamId}
+              agentSlotId={agentSlotId}
             ></AcpSendBox>
           </ConversationChatConfirm>
         )}

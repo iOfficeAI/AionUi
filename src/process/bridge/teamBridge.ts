@@ -81,6 +81,13 @@ export function initTeamBridge(teamSessionService: TeamSessionService): void {
     })
   );
 
+  ipcBridge.team.sendMessageToAgent.provider(
+    safeProvider(async ({ teamId, slotId, content }) => {
+      const session = await teamSessionService.getOrStartSession(teamId);
+      await session.sendMessageToAgent(slotId, content);
+    })
+  );
+
   ipcBridge.team.stop.provider(
     safeProvider(async ({ teamId }) => {
       await teamSessionService.stopSession(teamId);

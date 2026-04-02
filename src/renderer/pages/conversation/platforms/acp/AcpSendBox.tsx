@@ -85,7 +85,8 @@ const AcpSendBox: React.FC<{
   sessionMode?: string;
   agentName?: string;
   teamId?: string;
-}> = ({ conversation_id, backend, sessionMode, agentName, teamId }) => {
+  agentSlotId?: string;
+}> = ({ conversation_id, backend, sessionMode, agentName, teamId, agentSlotId }) => {
   const {
     running,
     hasHydratedRunningState,
@@ -159,10 +160,18 @@ const AcpSendBox: React.FC<{
       try {
         void checkAndUpdateTitle(conversation_id, input);
         if (teamId) {
-          const result = await ipcBridge.team.sendMessage.invoke({ teamId, content: input });
-          const maybeError = result as unknown as { __bridgeError?: boolean; message?: string };
-          if (maybeError.__bridgeError) {
-            throw new Error(maybeError.message || 'Failed to send message to team');
+          if (agentSlotId) {
+            const result = await ipcBridge.team.sendMessageToAgent.invoke({ teamId, slotId: agentSlotId, content: input });
+            const maybeError = result as unknown as { __bridgeError?: boolean; message?: string };
+            if (maybeError.__bridgeError) {
+              throw new Error(maybeError.message || 'Failed to send message to agent');
+            }
+          } else {
+            const result = await ipcBridge.team.sendMessage.invoke({ teamId, content: input });
+            const maybeError = result as unknown as { __bridgeError?: boolean; message?: string };
+            if (maybeError.__bridgeError) {
+              throw new Error(maybeError.message || 'Failed to send message to team');
+            }
           }
         } else {
           const result = await ipcBridge.acpConversation.sendMessage.invoke({
@@ -208,7 +217,7 @@ Please check your local CLI tool authentication status`,
         emitter.emit('acp.workspace.refresh');
       }
     },
-    [backend, checkAndUpdateTitle, conversation_id, setAiProcessing, t, teamId]
+    [agentSlotId, backend, checkAndUpdateTitle, conversation_id, setAiProcessing, t, teamId]
   );
 
   const {
