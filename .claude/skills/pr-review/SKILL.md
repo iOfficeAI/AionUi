@@ -268,9 +268,9 @@ Review dimensions:
 - **性能** — 不必要的重渲染、大循环、阻塞调用
 - **代码质量** — 函数长度、嵌套深度、命名清晰度
 - **遗留 console.log** — 生产代码中是否有调试日志残留
-- **数据库变更** — If PR touches migration files or database schema: (1) migration must be correct (column types, constraints, index, default values, reversibility); (2) changes must be reasonable and match the PR's stated purpose; (3) no data loss risk on existing records; (4) migration order and dependencies are correct. Flag incorrect migrations as CRITICAL.
-- **IPC bridge / preload** — If PR touches `src/preload.ts` or IPC channel definitions: (1) no unnecessary Node.js APIs exposed to renderer; (2) all exposed APIs have proper input validation; (3) renderer cannot trigger privileged operations without authorization. Exposing unsafe APIs is CRITICAL.
-- **Electron 安全配置** — If PR touches `electron-builder.yml`, `entitlements.plist`, or Electron config in `electron.vite.config.ts`: (1) sandbox/nodeIntegration/contextIsolation settings not weakened; (2) entitlements not over-granted; (3) signing and notarization not broken. Security regression is CRITICAL.
+- **数据库变更** — 若 PR 涉及 migration 文件或数据库 schema：(1) migration 是否正确（字段类型、约束、索引、默认值、可回滚性）；(2) 变更是否合理且与 PR 目标一致；(3) 对现有数据是否有丢失风险；(4) migration 顺序和依赖是否正确。不正确的 migration 标记为 CRITICAL。
+- **IPC bridge / preload** — 若 PR 涉及 `src/preload.ts` 或 IPC channel 定义：(1) 是否暴露了不必要的 Node.js API 给 renderer；(2) 所有暴露的 API 是否有输入校验；(3) renderer 是否能在无授权情况下触发特权操作。暴露不安全 API 标记为 CRITICAL。
+- **Electron 安全配置** — 若 PR 涉及 `electron-builder.yml`、`entitlements.plist` 或 `electron.vite.config.ts` 中的 Electron 配置：(1) sandbox/nodeIntegration/contextIsolation 设置是否被弱化；(2) entitlements 是否授权过度；(3) 签名和公证是否被破坏。安全回退标记为 CRITICAL。
 - **测试** — 对照 [testing skill](../testing/SKILL.md) 的标准评估，以下任一情况须指出：
   - 新增功能没有对应测试用例
   - 修改了逻辑但未更新已有相关测试
