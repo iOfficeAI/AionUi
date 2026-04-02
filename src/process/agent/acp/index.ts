@@ -1224,37 +1224,71 @@ export class AcpAgent {
   }
 
   private handleFileOperation(operation: { method: string; path: string; content?: string; sessionId: string }): void {
-    // 创建文件操作消息显示在UI中
-    const fileOperationMessage: TMessage = {
-      id: uuid(),
-      conversation_id: this.id,
-      type: 'text',
-      position: 'left',
-      createdAt: Date.now(),
-      content: {
-        content: this.formatFileOperationMessage(operation),
-      },
-    };
-
-    this.emitMessage(fileOperationMessage);
+    this.emitMessage(this.createFileOperationToolCall(operation));
   }
 
-  private formatFileOperationMessage(operation: {
+  private createFileOperationToolCall(operation: {
     method: string;
     path: string;
     content?: string;
     sessionId: string;
-  }): string {
-    switch (operation.method) {
-      case 'fs/write_text_file': {
-        const content = operation.content || '';
-        return `📝 File written: \`${operation.path}\`\n\n\`\`\`\n${content}\n\`\`\``;
-      }
+  }): TMessage {
+    const toolCallId = uuid();
+    const contentPreview =
+      operation.method === 'fs/write_text_file' && operation.content
+        ? [
+            {
+              type: 'content' as const,
+              content: {
+                type: 'text' as const,
+                text: this.formatFileOperationPreview(operation.content),
+              },
+            },
+          ]
+        : undefined;
+
+    return {
+      id: toolCallId,
+      msg_id: toolCallId,
+      conversation_id: this.id,
+      type: 'acp_tool_call',
+      position: 'left',
+      createdAt: Date.now(),
+      content: {
+        sessionId: operation.sessionId,
+        update: {
+          sessionUpdate: 'tool_call',
+          toolCallId,
+          status: 'completed',
+          title: this.getFileOperationTitle(operation.method),
+          kind: operation.method === 'fs/read_text_file' ? 'read' : 'edit',
+          rawInput: {
+            file_path: operation.path,
+            method: operation.method,
+          },
+          content: contentPreview,
+          locations: [{ path: operation.path }],
+        },
+      },
+    };
+  }
+
+  private getFileOperationTitle(method: string): string {
+    switch (method) {
+      case 'fs/write_text_file':
+        return 'File Write';
       case 'fs/read_text_file':
-        return `📖 File read: \`${operation.path}\``;
+        return 'File Read';
       default:
-        return `🔧 File operation: \`${operation.path}\``;
+        return 'File Operation';
     }
+  }
+
+  private formatFileOperationPreview(content: string): string {
+    if (content.length <= 500) {
+      return content;
+    }
+    return content.slice(0, 500) + '\n... (truncated)';
   }
 
   private emitStatusMessage(
