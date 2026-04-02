@@ -215,6 +215,7 @@ export default defineConfig(({ mode }) => {
       },
       define: {
         'process.env.env': JSON.stringify(process.env.env),
+        'process.env.AIONUI_MULTI_INSTANCE': JSON.stringify(process.env.AIONUI_MULTI_INSTANCE ?? ''),
         'process.env.SENTRY_DSN': JSON.stringify(process.env.SENTRY_DSN ?? ''),
         global: 'globalThis',
       },

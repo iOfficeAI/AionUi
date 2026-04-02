@@ -73,24 +73,25 @@ export function initWebuiBridge(): void {
         webServerInstance = null;
       }
 
-      const port = requestedPort ?? SERVER_CONFIG.DEFAULT_PORT;
+      const preferredPort = requestedPort ?? SERVER_CONFIG.DEFAULT_PORT;
       const remote = allowRemote ?? false;
 
       // 使用预加载的模块 / Use preloaded module
-      const instance = await startWebServerWithInstance(port, remote);
+      const instance = await startWebServerWithInstance(preferredPort, remote);
       webServerInstance = instance;
 
-      // 获取服务器信息 / Get server info
+      // Use actual port from instance (may differ from preferred if auto-incremented)
+      const actualPort = instance.port;
       const status = await WebuiService.getStatus(webServerInstance);
-      const localUrl = `http://localhost:${port}`;
+      const localUrl = `http://localhost:${actualPort}`;
       const lanIP = WebuiService.getLanIP();
-      const networkUrl = remote && lanIP ? `http://${lanIP}:${port}` : undefined;
+      const networkUrl = remote && lanIP ? `http://${lanIP}:${actualPort}` : undefined;
       const initialPassword = status.initialPassword;
 
       // 发送状态变更事件 / Emit status changed event
       webui.statusChanged.emit({
         running: true,
-        port,
+        port: actualPort,
         localUrl,
         networkUrl,
       });
@@ -98,7 +99,7 @@ export function initWebuiBridge(): void {
       return {
         success: true,
         data: {
-          port,
+          port: actualPort,
           localUrl,
           networkUrl,
           lanIP: lanIP ?? undefined,

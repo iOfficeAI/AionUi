@@ -15,9 +15,20 @@ import { AUTH_CONFIG } from '../config/constants';
 import { createRateLimiter } from '../middleware/security';
 
 /**
- * Vite dev server port (electron-vite default)
+ * Vite dev server port — read from ELECTRON_RENDERER_URL when available
+ * (electron-vite sets it to the actual port), fallback to 5173.
  */
-const VITE_DEV_PORT = 5173;
+const VITE_DEV_PORT = (() => {
+  const url = process.env['ELECTRON_RENDERER_URL'];
+  if (url) {
+    try {
+      return Number(new URL(url).port) || 5173;
+    } catch {
+      // ignore parse errors
+    }
+  }
+  return 5173;
+})();
 
 /**
  * Try to resolve built renderer assets path, return null if not found
