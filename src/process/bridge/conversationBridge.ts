@@ -4,11 +4,10 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import type { CodexAgentManager } from '@process/agent/codex';
 import { GeminiAgent, GeminiApprovalStore } from '@process/agent/gemini';
 import type { TChatConversation } from '@/common/config/storage';
 import type { IAgentManager } from '@process/task/IAgentManager';
-import type { IConversationService } from '@process/services/IConversationService';
+import type { IConversationService, CreateConversationParams } from '@process/services/IConversationService';
 import type { IWorkerTaskManager } from '@process/task/IWorkerTaskManager';
 import { ipcBridge } from '@/common';
 import {
@@ -124,10 +123,15 @@ export function initConversationBridge(
       console.warn('[conversationBridge] Rejecting create request with invalid conversation type:', params?.type);
       return undefined as unknown as TChatConversation;
     }
+    // Codex now runs through AcpAgentManager — remap type to 'acp' with backend hint
+    const createParams =
+      params.type === 'codex'
+        ? { ...params, type: 'acp' as const, extra: { ...params.extra, backend: 'codex' as const } }
+        : params;
     const conversation = await conversationService.createConversation({
-      ...params,
-      source: 'aionui', // Mark conversations created by AionUI as aionui
-    });
+      ...createParams,
+      source: 'aionui',
+    } as CreateConversationParams);
     emitConversationListChanged(conversation, 'created');
     await refreshTrayMenuSafely();
     return conversation;
@@ -139,7 +143,6 @@ export function initConversationBridge(
       const task = (await workerTaskManager.getOrBuildTask(conversation_id)) as unknown as
         | GeminiAgentManager
         | AcpAgentManager
-        | CodexAgentManager
         | undefined;
       if (!task) return { success: false, msg: 'conversation not found' };
       if (task.type !== 'gemini') return { success: false, msg: 'only supported for gemini' };

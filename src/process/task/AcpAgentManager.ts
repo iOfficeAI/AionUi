@@ -27,7 +27,7 @@ import {
   getCodexSandboxModeForSessionMode,
   type CodexSandboxMode,
   writeCodexSandboxMode,
-} from '@process/agent/codex/connection/codexConfig';
+} from '@process/task/codexConfig';
 /** Enable ACP performance diagnostics via ACP_PERF=1 */
 const ACP_PERF_LOG = process.env.ACP_PERF === '1';
 

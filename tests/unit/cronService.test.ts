@@ -91,6 +91,8 @@ function makeConversationRepo(overrides?: Partial<IConversationRepository>): ICo
     insertMessage: vi.fn(),
     getUserConversations: vi.fn(() => ({ data: [], total: 0, hasMore: false })),
     listAllConversations: vi.fn(() => []),
+    searchMessages: vi.fn(async () => ({ data: [], total: 0, hasMore: false })),
+    getConversationsByCronJob: vi.fn(async () => []),
     ...overrides,
   };
 }
@@ -198,9 +200,12 @@ describe('CronService', () => {
     expect(job.name).toBe('my-job');
   });
 
-  it('addJob writes SKILL.md file for the job', async () => {
+  it('addJob tags conversation with cronJobId', async () => {
     vi.mocked(repo.listByConversation).mockReturnValue([]);
-    const { writeCronSkillFile } = await import('@/process/services/cron/cronSkillFile');
+    vi.mocked(conversationRepo.getConversation).mockReturnValue({
+      id: 'conv-1',
+      extra: {},
+    } as ReturnType<IConversationRepository['getConversation']>);
 
     await service.addJob({
       name: 'my-job',
@@ -212,7 +217,12 @@ describe('CronService', () => {
       createdBy: 'user',
     });
 
-    expect(writeCronSkillFile).toHaveBeenCalledWith(expect.any(String), 'my-job', 'my description', 'hello');
+    expect(conversationRepo.updateConversation).toHaveBeenCalledWith(
+      'conv-1',
+      expect.objectContaining({
+        extra: expect.objectContaining({ cronJobId: expect.any(String) }),
+      })
+    );
   });
 
   it('addJob stores executionMode when provided', async () => {

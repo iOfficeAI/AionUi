@@ -98,7 +98,6 @@ export default defineConfig(({ mode }) => {
             // splitting places it in a chunks/ subdirectory.
             gemini: resolve('src/process/worker/gemini.ts'),
             acp: resolve('src/process/worker/acp.ts'),
-            codex: resolve('src/process/worker/codex.ts'),
             'openclaw-gateway': resolve('src/process/worker/openclaw-gateway.ts'),
             nanobot: resolve('src/process/worker/nanobot.ts'),
             // Built-in MCP server entry points

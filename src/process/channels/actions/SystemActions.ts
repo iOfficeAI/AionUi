@@ -283,12 +283,12 @@ export const handleSessionNew: ActionHandler = async (context) => {
       });
     } else if (backend === 'codex') {
       newConversation = await conversationServiceSingleton.createConversation({
-        type: 'codex',
+        type: 'acp',
         model,
         source,
         name,
         channelChatId,
-        extra: conversationExtra,
+        extra: { ...conversationExtra, backend: 'codex' },
       });
     } else if (backend === 'openclaw-gateway') {
       newConversation = await conversationServiceSingleton.createConversation({

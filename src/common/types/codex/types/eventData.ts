@@ -315,24 +315,6 @@ export interface TurnAbortedData {
 // Type aliases for better naming consistency
 export type ApplyPatchApprovalRequestData = PatchApprovalData;
 
-// Manager configuration interface
-export interface CodexAgentManagerData {
-  conversation_id: string;
-  workspace?: string;
-  cliPath?: string;
-  sandboxMode?: 'read-only' | 'workspace-write' | 'danger-full-access';
-  webSearchEnabled?: boolean;
-  presetContext?: string; // 智能助手的预设规则/提示词 / Preset context from smart assistant
-  /** 启用的 skills 列表，用于过滤 SkillManager 加载的 skills / Enabled skills list for filtering SkillManager skills */
-  enabledSkills?: string[];
-  /** Full auto mode for cron jobs - skip confirmation prompts while keeping sandbox protection */
-  yoloMode?: boolean;
-  /** Persisted session mode for resume support / 持久化的会话模式，用于恢复 */
-  sessionMode?: string;
-  /** User-selected Codex model from Guid page / 用户在引导页选择的 Codex 模型 */
-  codexModel?: string;
-}
-
 export interface ElicitationCreateData {
   codex_elicitation: string;
   message?: string;

@@ -50,7 +50,6 @@ export {
   type ListCustomPromptsResponseData,
   type TurnAbortedData,
   type ApplyPatchApprovalRequestData,
-  type CodexAgentManagerData,
   type ElicitationCreateData,
   type EventDataMap,
 } from './eventData';

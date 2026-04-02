@@ -1,10 +1,18 @@
-import { describe, expect, it } from 'vitest';
-import { buildCronSkillContent, parseCronSkillContent } from '@/process/services/cron/cronSkillFile';
+import { describe, expect, it, vi } from 'vitest';
+import {
+  buildCronSkillContent,
+  parseCronSkillContent,
+  validateSkillContent,
+  writeRawCronSkillFile,
+} from '@/process/services/cron/cronSkillFile';
 
 describe('buildCronSkillContent', () => {
   it('builds correct YAML frontmatter format', () => {
     const result = buildCronSkillContent('Test Job', 'A test description', 'Do something');
-    expect(result).toBe('---\nname: Test Job\ndescription: A test description\n---\n\nDo something');
+    expect(result).toContain('---\nname: Test Job\ndescription: A test description\n---');
+    expect(result).toContain('This is a scheduled task: **Test Job**');
+    expect(result).toContain('## Instructions');
+    expect(result).toContain('Do something');
   });
 
   it('sanitizes description by removing line breaks', () => {
@@ -14,7 +22,10 @@ describe('buildCronSkillContent', () => {
 
   it('handles empty prompt', () => {
     const result = buildCronSkillContent('Test', 'Description', '');
-    expect(result).toBe('---\nname: Test\ndescription: Description\n---\n\n');
+    expect(result).toContain('---\nname: Test\ndescription: Description\n---');
+    expect(result).toContain('## Instructions');
+    // Prompt is empty, but the instructions template is still present
+    expect(result).toContain('This is a scheduled task: **Test**');
   });
 
   it('preserves prompt with multiple paragraphs', () => {
@@ -110,5 +121,107 @@ describe('buildCronSkillContent and parseCronSkillContent roundtrip', () => {
     const parsed = parseCronSkillContent(built);
 
     expect(parsed).toEqual({ name, description, prompt });
+  });
+});
+
+describe('buildCronSkillContent with scheduleDescription', () => {
+  it('includes schedule info in output when provided', () => {
+    const result = buildCronSkillContent('Daily Report', 'Generate daily report', 'Run report', 'Every day at 9am');
+    expect(result).toContain('Schedule: Every day at 9am');
+    expect(result).toContain('This is a scheduled task: **Daily Report**');
+  });
+
+  it('omits schedule line when undefined', () => {
+    const result = buildCronSkillContent('Daily Report', 'Generate daily report', 'Run report');
+    expect(result).not.toContain('Schedule:');
+  });
+});
+
+describe('validateSkillContent', () => {
+  it('returns { name, description, body } for valid content', () => {
+    const content = '---\nname: My Task\ndescription: Runs a daily check\n---\n\nCheck all systems and report status.';
+    const result = validateSkillContent(content);
+    expect(result).toEqual({
+      name: 'My Task',
+      description: 'Runs a daily check',
+      body: 'Check all systems and report status.',
+    });
+  });
+
+  it('returns null for missing frontmatter', () => {
+    const content = 'Just plain text without frontmatter delimiters';
+    expect(validateSkillContent(content)).toBeNull();
+  });
+
+  it('returns null for missing name', () => {
+    const content = '---\ndescription: Some description\n---\n\nBody content here';
+    expect(validateSkillContent(content)).toBeNull();
+  });
+
+  it('returns null for missing description', () => {
+    const content = '---\nname: Some Name\n---\n\nBody content here';
+    expect(validateSkillContent(content)).toBeNull();
+  });
+
+  it('returns null for empty body', () => {
+    const content = '---\nname: Task\ndescription: Desc\n---\n\n   ';
+    expect(validateSkillContent(content)).toBeNull();
+  });
+
+  it('returns null for placeholder name "skill-name"', () => {
+    const content = '---\nname: skill-name\ndescription: A real description\n---\n\nReal body content';
+    expect(validateSkillContent(content)).toBeNull();
+  });
+
+  it('returns null for placeholder description "one-line description"', () => {
+    const content = '---\nname: Real Name\ndescription: one-line description of the task\n---\n\nReal body content';
+    expect(validateSkillContent(content)).toBeNull();
+  });
+
+  it('returns null for placeholder body "(Full SKILL.md body..."', () => {
+    const content =
+      '---\nname: Real Name\ndescription: Real description\n---\n\n(Full SKILL.md body with instructions)';
+    expect(validateSkillContent(content)).toBeNull();
+  });
+
+  it('returns null for non-string input', () => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    expect(validateSkillContent(undefined as any)).toBeNull();
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    expect(validateSkillContent(null as any)).toBeNull();
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    expect(validateSkillContent(123 as any)).toBeNull();
+  });
+
+  it('returns null for empty string input', () => {
+    expect(validateSkillContent('')).toBeNull();
+  });
+});
+
+vi.mock('fs/promises', () => ({
+  default: {
+    mkdir: vi.fn().mockResolvedValue(undefined),
+    writeFile: vi.fn().mockResolvedValue(undefined),
+  },
+}));
+
+vi.mock('@process/utils/initStorage', () => ({
+  getCronSkillsDir: () => '/mock/cron-skills',
+}));
+
+describe('writeRawCronSkillFile', () => {
+  it('writes valid content and returns file path', async () => {
+    const fs = (await import('fs/promises')).default;
+    const content = '---\nname: My Task\ndescription: A real task\n---\n\nDo the thing.';
+    const result = await writeRawCronSkillFile('job-123', content);
+    expect(result).toBe('/mock/cron-skills/job-123/SKILL.md');
+    expect(fs.mkdir).toHaveBeenCalledWith('/mock/cron-skills/job-123', { recursive: true });
+    expect(fs.writeFile).toHaveBeenCalledWith('/mock/cron-skills/job-123/SKILL.md', content, 'utf-8');
+  });
+
+  it('throws for invalid content', async () => {
+    await expect(writeRawCronSkillFile('job-456', 'not valid')).rejects.toThrow(
+      'Invalid SKILL.md content: must have YAML frontmatter with name/description and a non-empty body'
+    );
   });
 });

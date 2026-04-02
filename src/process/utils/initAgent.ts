@@ -269,53 +269,6 @@ export const createAcpAgent = async (options: ICreateConversationParams): Promis
   };
 };
 
-/** @deprecated Legacy Codex creation. New Codex conversations use ACP protocol via createAcpAgent. */
-export const createCodexAgent = async (options: ICreateConversationParams): Promise<TChatConversation> => {
-  const { extra } = options;
-  const { workspace, customWorkspace } = await buildWorkspaceWidthFiles(
-    `codex-temp-${Date.now()}`,
-    extra.workspace,
-    extra.defaultFiles,
-    extra.customWorkspace
-  );
-
-  // 对 temp workspace 设置 skill symlinks
-  if (!customWorkspace) {
-    await setupAssistantWorkspace(workspace, {
-      agentType: 'codex',
-      enabledSkills: extra.enabledSkills,
-      extraSkillPaths: extra.extraSkillPaths,
-      excludeBuiltinSkills: extra.excludeBuiltinSkills,
-    });
-  }
-
-  return {
-    type: 'codex',
-    extra: {
-      workspace: workspace,
-      customWorkspace,
-      cliPath: extra.cliPath,
-      sandboxMode: 'workspace-write', // 默认为读写权限 / Default to read-write permission
-      presetContext: extra.presetContext, // 智能助手的预设规则/提示词
-      // 启用的 skills 列表（通过 SkillManager 加载）/ Enabled skills list (loaded via SkillManager)
-      enabledSkills: extra.enabledSkills,
-      // 预设助手 ID，用于在会话面板显示助手名称和头像
-      // Preset assistant ID for displaying name and avatar in conversation panel
-      presetAssistantId: extra.presetAssistantId,
-      // Initial session mode selected on Guid page (from AgentModeSelector)
-      sessionMode: extra.sessionMode,
-      // User-selected Codex model from Guid page
-      codexModel: extra.codexModel,
-      // Explicit marker for temporary health-check conversations
-      isHealthCheck: extra.isHealthCheck,
-    },
-    createTime: Date.now(),
-    modifyTime: Date.now(),
-    name: workspace,
-    id: uuid(),
-  };
-};
-
 export const createNanobotAgent = async (options: ICreateConversationParams): Promise<TChatConversation> => {
   const { extra } = options;
   const { workspace, customWorkspace } = await buildWorkspaceWidthFiles(
