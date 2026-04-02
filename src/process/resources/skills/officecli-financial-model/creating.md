@@ -130,7 +130,7 @@ Follow this exact 10-step sequence. Do not reorder.
 | 7 | Named ranges — define for all key assumptions | **INCREMENTAL** |
 | 8 | Formatting + colors — number formats, blue/black font, subtotal styling, tab colors | **BATCH** |
 | 9 | Charts — cell range references, `preset=dashboard` | **INCREMENTAL** |
-| 10 | Protection + raw-set + validate — lock/unlock, activeTab, calcPr (LAST) | **INCREMENTAL** |
+| 10 | Protection + calcPr + validate — lock/unlock, protect, `set / --prop calc.*`, activeTab raw-set (LAST), validate | **INCREMENTAL** |
 
 **Step 8 Formatting — REQUIRED sub-steps (do not skip):**
 
@@ -905,14 +905,9 @@ officecli set model.xlsx "/Income Statement" --prop printArea="A1:D25"
 officecli raw-set model.xlsx /workbook \
   --xpath "//x:sheets" --action insertbefore \
   --xml '<bookViews><workbookView activeTab="0" /></bookViews>'
-# calcPr -- TWO-STEP idempotent recipe.
-# ⚠️ 两步写法是 idempotent 的——remove 先清除可能已存在的 calcPr（退出码 0，无需担心），再重新插入。避免重试时产生重复元素。
-# Step 1: 先移除（safe if not present — exits 0 even when no element found）
-officecli raw-set model.xlsx /workbook --xpath "//x:calcPr" --action remove
-# Step 2: 重新插入
-officecli raw-set model.xlsx /workbook \
-  --xpath "//x:definedNames" --action insertafter \
-  --xml '<calcPr fullCalcOnLoad="1" iterate="1" iterateCount="100" iterateDelta="0.001" />'
+# calcPr -- use high-level set API (do NOT use raw-set, which creates duplicate calcPr elements)
+officecli set model.xlsx / --prop calc.fullCalcOnLoad=true --prop calc.iterate=true --prop calc.iterateCount=100 --prop calc.iterateDelta=0.001
+# Validate immediately
 officecli validate model.xlsx
 ```
 
@@ -958,9 +953,9 @@ cd /Users/veryliu && node /Users/veryliu/Documents/GitHub/OfficeCli/scripts/scre
 | # | Issue | Workaround |
 |---|-------|------------|
 | F-1 | `!` escaping in cross-sheet formulas | Always use heredoc batch. Verify with `officecli get`. If `\!` appears, delete and re-run. |
-| F-5 | Sheet names with `&` or spaces cause `#NAME?` | Wrap in single quotes: `'P&L'!B3`, `'Income Statement'!C4`. Plain `P&L!B3` fails silently — error only visible in screenshots, not in `validate` or `query`. |
 | F-2 | Batch failure at scale | Use resident mode (`open`/`close`) + batch chunks of 15–20 ops. If a batch still fails with "Failed to send to resident", split into smaller chunks and retry. Fall back to individual commands only as last resort. |
-| F-3 | calcPr XML ordering / duplication | Use two-step idempotent recipe: `remove` first (exits 0 if absent), then `//x:definedNames --action insertafter`. Prevents duplicate calcPr on retry. Validate after. |
+| F-3 | calcPr duplicate elements | Use `set / --prop calc.fullCalcOnLoad=true` (high-level API). Do NOT use raw-set to insert calcPr — it creates duplicates. |
+| F-3a | Sheet names with `&` or spaces cause `#NAME?` | Wrap in single quotes: `'P&L'!B3`, `'Income Statement'!C4`. Plain `P&L!B3` fails silently — error only visible in screenshots, not in `validate` or `query`. |
 | F-4 | No auto-fit column width | Set explicitly: labels=24-28, numbers=14-18. |
 | F-5 | Cannot rename sheets | Plan names upfront. Create with correct name. |
 | F-6 | Sensitivity tables are manual | Each cell = explicit self-contained formula. Build row-by-row in separate batches. |

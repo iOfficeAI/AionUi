@@ -881,30 +881,11 @@ officecli raw-set dashboard.xlsx /workbook \
 
 **Command 2: Set fullCalcOnLoad.**
 
-Use the idempotent two-step recipe (remove then insert) to avoid duplicate `<calcPr>` elements if the command is run more than once. Running a plain `insertafter` twice creates a second `<calcPr>` which causes a schema validation error.
-
-The xpath for the insert step depends on whether named ranges exist:
-
 ```bash
-# Step 2a: Remove any existing calcPr (safe if not present — no-op)
-officecli raw-set dashboard.xlsx /workbook \
-  --xpath "//x:calcPr" \
-  --action remove
-
-# Step 2b — If NO named ranges were created (most common):
-officecli raw-set dashboard.xlsx /workbook \
-  --xpath "//x:sheets" \
-  --action insertafter \
-  --xml '<calcPr fullCalcOnLoad="1" />'
-
-# Step 2b — If named ranges WERE created (use definedNames anchor instead):
-officecli raw-set dashboard.xlsx /workbook \
-  --xpath "//x:definedNames" \
-  --action insertafter \
-  --xml '<calcPr fullCalcOnLoad="1" />'
+officecli set dashboard.xlsx / --prop calc.fullCalcOnLoad=true
 ```
 
-The `<calcPr>` element MUST appear AFTER `<sheets>` in the workbook XML. If `<definedNames>` exists (it comes after `<sheets>`), insert after it instead. Wrong placement causes validation errors.
+Do NOT use `raw-set` to insert `<calcPr>` — it creates duplicate elements. The high-level `set` API handles schema ordering automatically.
 
 ---
 
@@ -916,7 +897,7 @@ officecli validate dashboard.xlsx
 
 Must return zero errors. If errors are found:
 - Check for `font.bold` in formulacf -- remove it
-- Check calcPr XML ordering -- use correct xpath anchor
+- Check calcPr -- use `set / --prop calc.fullCalcOnLoad=true` instead of raw-set
 - Check for duplicate bookViews -- raw-set may have been run twice
 - Fix the issue and re-validate
 
@@ -1068,16 +1049,8 @@ officecli raw-set saas_dashboard.xlsx /workbook \
   --action insertbefore \
   --xml '<bookViews><workbookView activeTab="1" /></bookViews>'
 
-# Set fullCalcOnLoad — idempotent two-step recipe
-# Step 1: remove any existing calcPr (safe if not present)
-officecli raw-set saas_dashboard.xlsx /workbook \
-  --xpath "//x:calcPr" \
-  --action remove
-# Step 2: insert after sheets (no named ranges in this example)
-officecli raw-set saas_dashboard.xlsx /workbook \
-  --xpath "//x:sheets" \
-  --action insertafter \
-  --xml '<calcPr fullCalcOnLoad="1" />'
+# Set fullCalcOnLoad (use high-level API, not raw-set)
+officecli set saas_dashboard.xlsx / --prop calc.fullCalcOnLoad=true
 
 # ── Step 11: Close + Validate ──
 officecli close saas_dashboard.xlsx
@@ -1103,18 +1076,13 @@ Non-string values fail with `JSON value could not be converted to System.String`
 
 `preset`, `referenceline`, `trendline`, and `axisNumFmt` are NOT listed in `officecli --help` output. They only work on `add` commands, NOT on `set`. Always include them at chart creation time. You cannot apply a preset to an existing chart.
 
-### D-3: raw-set Ordering -- activeTab and calcPr LAST
+### D-3: raw-set Ordering -- activeTab LAST
 
-Both `raw-set` commands for `activeTab` and `calcPr` MUST be the last commands in the workflow, after all sheets, charts, CF rules, and sparklines are created. Setting `activeTab` before all sheets exist will produce wrong indices.
+The `raw-set` command for `activeTab` MUST be the last raw-set command in the workflow, after all sheets, charts, CF rules, and sparklines are created. Setting `activeTab` before all sheets exist will produce wrong indices.
 
-### D-4: calcPr XPath -- Conditional on Named Ranges, Always Idempotent
+### D-4: calcPr -- Use High-Level API
 
-Always use the two-step idempotent recipe: remove first, then insert. A bare `insertafter` run twice creates duplicate `<calcPr>` elements which fail OOXML schema validation.
-
-- No named ranges: remove first, then `--xpath "//x:sheets" --action insertafter`
-- With named ranges: remove first, then `--xpath "//x:definedNames" --action insertafter`
-
-`<calcPr>` must appear AFTER `<sheets>` (and after `<definedNames>` if present) in the workbook XML. Wrong placement causes validation errors.
+Use `officecli set file.xlsx / --prop calc.fullCalcOnLoad=true` instead of `raw-set` to set calculation properties. The `raw-set` approach creates duplicate `<calcPr>` elements and causes validation errors.
 
 ### D-5: formulacf -- No font.bold
 
