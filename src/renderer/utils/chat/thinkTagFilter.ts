@@ -20,6 +20,10 @@ export function stripThinkTags(content: string): string {
     return content;
   }
 
+  if (!hasThinkTags(content)) {
+    return content;
+  }
+
   return (
     content
       // Step 1: Remove complete <think>...</think> blocks (with optional spaces in tags)
@@ -36,8 +40,6 @@ export function stripThinkTags(content: string): string {
       .replace(/<\s*think(?:ing)?\s*>/gi, '')
       // Step 6: Collapse multiple newlines
       .replace(/\n{3,}/g, '\n\n')
-      // Step 7: Remove leading/trailing whitespace
-      .trim()
   );
 }
 
