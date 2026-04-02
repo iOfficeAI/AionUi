@@ -378,11 +378,14 @@ officecli set paper.docx '/body/tbl[N]/tr[1]/tc[2]' --prop width=5940
 officecli set paper.docx '/body/tbl[N]/tr[1]/tc[3]' --prop width=1188
 
 # Step 3: Add equation to center column
-officecli add paper.docx '/body/tbl[N]/tr[1]/tc[2]' --type equation --prop "formula=E = mc^2"
+# CRITICAL: Do NOT use `--type equation` targeting a table cell path (tc) directly.
+# That generates oMathPara as a direct w:tc child, which is illegal OOXML and causes validate errors.
+# Use --prop mode=inline and target the paragraph inside the cell (tc/p[1]):
+officecli add paper.docx '/body/tbl[N]/tr[1]/tc[2]/p[1]' --type equation --prop "formula=E = mc^2" --prop mode=inline
 
 # Step 4: Add number to right column, right-aligned
 officecli set paper.docx '/body/tbl[N]/tr[1]/tc[3]' --prop alignment=right
-officecli add paper.docx '/body/tbl[N]/tr[1]/tc[3]' --type paragraph --prop text="(1)" --prop alignment=right --prop size=11
+officecli add paper.docx '/body/tbl[N]/tr[1]/tc[3]/p[1]' --type paragraph --prop text="(1)" --prop alignment=right --prop size=11
 
 # Step 5: Hide table borders
 officecli set paper.docx '/body/tbl[N]' --prop border.all="none"
