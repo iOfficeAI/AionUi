@@ -55,12 +55,13 @@ const AgentChatSlot: React.FC<{
   agent: TeamAgent;
   teamId: string;
   isLead: boolean;
-}> = ({ agent, teamId, isLead }) => {
+  isFullscreen?: boolean;
+  onToggleFullscreen?: () => void;
+}> = ({ agent, teamId, isLead, isFullscreen = false, onToggleFullscreen }) => {
   const { data: conversation } = useSWR(agent.conversationId ? ['team-conversation', agent.conversationId] : null, () =>
     ipcBridge.conversation.get.invoke({ id: agent.conversationId })
   );
   const logo = getAgentLogo(agent.agentType);
-  const [isFullscreen, setIsFullscreen] = useState(false);
 
   const isAionrs = conversation?.type === 'aionrs';
   const initialModelId = (conversation?.extra as { currentModelId?: string })?.currentModelId;
@@ -84,7 +85,7 @@ const AgentChatSlot: React.FC<{
 
   return (
     <div
-      className={`transition-all duration-300 ease-in-out ${isFullscreen ? 'absolute inset-0 z-50 flex flex-col' : 'flex flex-col h-full'}`}
+      className='flex flex-col h-full'
       style={
         isLead
           ? {
@@ -140,7 +141,7 @@ const AgentChatSlot: React.FC<{
           )}
           <div
             className='shrink-0 cursor-pointer hover:bg-[var(--fill-3)] p-4px rd-4px text-[color:var(--color-text-3)] hover:text-[color:var(--color-text-1)] transition-colors'
-            onClick={() => setIsFullscreen(!isFullscreen)}
+            onClick={() => onToggleFullscreen?.()}
           >
             {isFullscreen ? <OffScreen size='16' fill='currentColor' /> : <FullScreen size='16' fill='currentColor' />}
           </div>
@@ -173,6 +174,7 @@ const TeamPageContent: React.FC<TeamPageContentProps> = ({ team, onAddAgent }) =
   const agentRefs = useRef<Record<string, HTMLDivElement | null>>({});
   const [showLeftArrow, setShowLeftArrow] = useState(false);
   const [showRightArrow, setShowRightArrow] = useState(false);
+  const [fullscreenSlotId, setFullscreenSlotId] = useState<string | null>(null);
 
   const activeAgent = agents.find((a) => a.slotId === activeSlotId);
   const leadAgent = agents.find((a) => a.role === 'lead');
@@ -329,61 +331,87 @@ const TeamPageContent: React.FC<TeamPageContentProps> = ({ team, onAddAgent }) =
         workspacePath={effectiveWorkspace}
       >
         <div className='relative flex h-full'>
-          {showLeftArrow && (
-            <div
-              className='absolute left-0 top-0 bottom-0 w-48px z-20 flex items-center justify-center cursor-pointer opacity-80 hover:opacity-100 transition-opacity'
-              style={{ background: 'linear-gradient(90deg, var(--color-bg-1) 40%, transparent)' }}
-              onClick={scrollToPrev}
-            >
-              <div
-                className='w-32px h-32px rd-full flex items-center justify-center'
-                style={{ background: 'rgba(0,0,0,0.5)', lineHeight: 0 }}
-              >
-                <Left size='24' fill='#fff' />
-              </div>
-            </div>
-          )}
-          <div
-            ref={scrollContainerRef}
-            className='flex h-full w-full overflow-x-auto overflow-y-hidden [scrollbar-width:none]'
-            style={{ scrollSnapType: 'x proximity' }}
-          >
-            {agents.map((agent) => {
-              const isSingle = agents.length <= 2;
-              const isActive = agent.slotId === activeSlotId;
+          {fullscreenSlotId ? (
+            // Fullscreen: single agent fills the entire content area
+            (() => {
+              const agent = agents.find((a) => a.slotId === fullscreenSlotId);
+              if (!agent) return null;
               const isLeadSlot = agent.slotId === leadAgent?.slotId;
               return (
-                <div
-                  key={agent.slotId}
-                  ref={(el) => {
-                    agentRefs.current[agent.slotId] = el;
-                  }}
-                  className='relative shrink-0 h-full border-r border-solid border-[color:var(--border-base)]'
-                  style={{
-                    flex: isSingle ? 1 : undefined,
-                    width: isSingle ? undefined : '400px',
-                    minWidth: isSingle ? '240px' : '400px',
-                    scrollSnapAlign: 'start',
-                  }}
-                >
-                  <AgentChatSlot agent={agent} teamId={team.id} isLead={isLeadSlot} />
+                <div className='flex-1 h-full'>
+                  <AgentChatSlot
+                    agent={agent}
+                    teamId={team.id}
+                    isLead={isLeadSlot}
+                    isFullscreen
+                    onToggleFullscreen={() => setFullscreenSlotId(null)}
+                  />
                 </div>
               );
-            })}
-          </div>
-          {showRightArrow && (
-            <div
-              className='absolute right-0 top-0 bottom-0 w-48px z-20 flex items-center justify-center cursor-pointer opacity-80 hover:opacity-100 transition-opacity'
-              style={{ background: 'linear-gradient(270deg, var(--color-bg-1) 40%, transparent)' }}
-              onClick={scrollToNext}
-            >
+            })()
+          ) : (
+            <>
+              {showLeftArrow && (
+                <div
+                  className='absolute left-0 top-0 bottom-0 w-48px z-20 flex items-center justify-center cursor-pointer opacity-80 hover:opacity-100 transition-opacity'
+                  style={{ background: 'linear-gradient(90deg, var(--color-bg-1) 40%, transparent)' }}
+                  onClick={scrollToPrev}
+                >
+                  <div
+                    className='w-32px h-32px rd-full flex items-center justify-center'
+                    style={{ background: 'rgba(0,0,0,0.5)', lineHeight: 0 }}
+                  >
+                    <Left size='24' fill='#fff' />
+                  </div>
+                </div>
+              )}
               <div
-                className='w-32px h-32px rd-full flex items-center justify-center'
-                style={{ background: 'rgba(0,0,0,0.5)', lineHeight: 0 }}
+                ref={scrollContainerRef}
+                className='flex h-full w-full overflow-x-auto overflow-y-hidden [scrollbar-width:none]'
+                style={{ scrollSnapType: 'x proximity' }}
               >
-                <Right size='24' fill='#fff' />
+                {agents.map((agent) => {
+                  const isSingle = agents.length <= 2;
+                  const isLeadSlot = agent.slotId === leadAgent?.slotId;
+                  return (
+                    <div
+                      key={agent.slotId}
+                      ref={(el) => {
+                        agentRefs.current[agent.slotId] = el;
+                      }}
+                      className='relative shrink-0 h-full border-r border-solid border-[color:var(--border-base)]'
+                      style={{
+                        flex: isSingle ? 1 : undefined,
+                        width: isSingle ? undefined : '400px',
+                        minWidth: isSingle ? '240px' : '400px',
+                        scrollSnapAlign: 'start',
+                      }}
+                    >
+                      <AgentChatSlot
+                        agent={agent}
+                        teamId={team.id}
+                        isLead={isLeadSlot}
+                        onToggleFullscreen={() => setFullscreenSlotId(agent.slotId)}
+                      />
+                    </div>
+                  );
+                })}
               </div>
-            </div>
+              {showRightArrow && (
+                <div
+                  className='absolute right-0 top-0 bottom-0 w-48px z-20 flex items-center justify-center cursor-pointer opacity-80 hover:opacity-100 transition-opacity'
+                  style={{ background: 'linear-gradient(270deg, var(--color-bg-1) 40%, transparent)' }}
+                  onClick={scrollToNext}
+                >
+                  <div
+                    className='w-32px h-32px rd-full flex items-center justify-center'
+                    style={{ background: 'rgba(0,0,0,0.5)', lineHeight: 0 }}
+                  >
+                    <Right size='24' fill='#fff' />
+                  </div>
+                </div>
+              )}
+            </>
           )}
         </div>
       </ChatLayout>
