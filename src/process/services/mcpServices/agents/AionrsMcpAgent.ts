@@ -4,10 +4,11 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
+import { execSync } from 'child_process';
 import { promises as fs } from 'fs';
-import { homedir } from 'os';
-import { dirname, join } from 'path';
+import { dirname } from 'path';
 import { parse, stringify } from 'smol-toml';
+import { getEnhancedEnv } from '@process/utils/shellEnv';
 import type { McpOperationResult } from '../McpProtocol';
 import { AbstractMcpAgent } from '../McpProtocol';
 import type { IMcpServer, IMcpServerTransport } from '@/common/config/storage';
@@ -34,22 +35,26 @@ type AionrsConfigFile = {
   [key: string]: unknown;
 };
 
+/** Cached config path resolved from `aionrs --config-path` */
+let cachedConfigPath: string | null = null;
+
 /**
- * Get the aionrs global config path, matching Rust `dirs::config_dir()`:
- * - macOS: ~/Library/Application Support/aionrs/config.toml
- * - Linux: ~/.config/aionrs/config.toml  (XDG_CONFIG_HOME)
- * - Windows: %APPDATA%/aionrs/config.toml
+ * Get the aionrs global config path via `aionrs --config-path`.
+ * The result is cached because the path does not change at runtime.
  */
-function getAionrsConfigPath(): string {
-  const platform = process.platform;
-  if (platform === 'darwin') {
-    return join(homedir(), 'Library', 'Application Support', 'aionrs', 'config.toml');
-  }
-  if (platform === 'win32') {
-    return join(process.env.APPDATA || join(homedir(), 'AppData', 'Roaming'), 'aionrs', 'config.toml');
-  }
-  // Linux / other: XDG_CONFIG_HOME or ~/.config
-  return join(process.env.XDG_CONFIG_HOME || join(homedir(), '.config'), 'aionrs', 'config.toml');
+function getAionrsConfigPath(cliPath?: string): string {
+  if (cachedConfigPath) return cachedConfigPath;
+
+  const cmd = cliPath || 'aionrs';
+  const result = execSync(`${cmd} --config-path`, {
+    encoding: 'utf-8',
+    timeout: 3000,
+    env: getEnhancedEnv(),
+    stdio: ['pipe', 'pipe', 'pipe'],
+  }).trim();
+
+  cachedConfigPath = result;
+  return result;
 }
 
 /**
@@ -135,10 +140,13 @@ function toAionrsConfig(server: IMcpServer): AionrsServerConfig {
 /**
  * Aion CLI (aionrs) MCP agent implementation
  *
- * Manages MCP server configuration in ~/.config/aionrs/config.toml
+ * Manages MCP server configuration in the platform config directory (see getAionrsConfigPath())
  * aionrs uses TOML format with [mcp.servers.*] sections
  */
 export class AionrsMcpAgent extends AbstractMcpAgent {
+  /** Remembered cliPath from the most recent detectMcpServers call */
+  private resolvedCliPath?: string;
+
   constructor() {
     super('aionrs');
   }
@@ -151,9 +159,9 @@ export class AionrsMcpAgent extends AbstractMcpAgent {
   /**
    * Read and parse the aionrs config file
    */
-  private async readConfig(): Promise<AionrsConfigFile> {
+  private async readConfig(cliPath?: string): Promise<AionrsConfigFile> {
     try {
-      const content = await fs.readFile(getAionrsConfigPath(), 'utf-8');
+      const content = await fs.readFile(getAionrsConfigPath(cliPath), 'utf-8');
       return parse(content) as AionrsConfigFile;
     } catch (error) {
       if ((error as NodeJS.ErrnoException).code === 'ENOENT') {
@@ -168,7 +176,7 @@ export class AionrsMcpAgent extends AbstractMcpAgent {
    */
   private async writeConfig(config: AionrsConfigFile): Promise<void> {
     // Ensure directory exists
-    const configPath = getAionrsConfigPath();
+    const configPath = getAionrsConfigPath(this.resolvedCliPath);
     await fs.mkdir(dirname(configPath), { recursive: true });
     await fs.writeFile(configPath, stringify(config), 'utf-8');
   }
@@ -176,10 +184,11 @@ export class AionrsMcpAgent extends AbstractMcpAgent {
   /**
    * Detect MCP servers configured in aionrs config.toml
    */
-  detectMcpServers(_cliPath?: string): Promise<IMcpServer[]> {
+  detectMcpServers(cliPath?: string): Promise<IMcpServer[]> {
     const detectOperation = async () => {
       try {
-        const config = await this.readConfig();
+        this.resolvedCliPath = cliPath;
+        const config = await this.readConfig(cliPath);
         const servers = config.mcp?.servers;
 
         if (!servers || Object.keys(servers).length === 0) {
