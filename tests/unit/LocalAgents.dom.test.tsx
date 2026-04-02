@@ -25,6 +25,7 @@ Object.defineProperty(window, 'matchMedia', {
 const mockNavigate = vi.hoisted(() => vi.fn());
 const mockGetAvailableAgents = vi.hoisted(() => vi.fn());
 const mockSwrMutate = vi.hoisted(() => vi.fn().mockResolvedValue(undefined));
+const mockMessageInfo = vi.hoisted(() => vi.fn());
 
 vi.mock('react-i18next', () => ({
   useTranslation: () => ({ t: (key: string) => key, i18n: { language: 'en-US' } }),
@@ -60,10 +61,33 @@ vi.mock('@arco-design/web-react', () => ({
   Button: ({ children, onClick }: { children: React.ReactNode; onClick?: () => void }) => (
     <button onClick={onClick}>{children}</button>
   ),
-  Dropdown: ({ children }: { children: React.ReactNode }) => <>{children}</>,
-  Menu: Object.assign(({ children }: { children: React.ReactNode }) => <div>{children}</div>, {
-    Item: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
-  }),
+  Dropdown: ({ children, droplist }: { children: React.ReactNode; droplist?: React.ReactNode }) => (
+    <div>
+      {children}
+      {droplist}
+    </div>
+  ),
+  Menu: Object.assign(
+    ({ children, onClickMenuItem }: { children: React.ReactNode; onClickMenuItem?: (key: string) => void }) => (
+      <div>
+        {React.Children.map(children, (child) => {
+          if (!React.isValidElement(child)) {
+            return child;
+          }
+          const itemKey = typeof child.key === 'string' ? child.key.replace(/^\.\$?/, '') : String(child.key);
+          return React.cloneElement(child, { onClick: () => onClickMenuItem?.(itemKey) });
+        })}
+      </div>
+    ),
+    {
+      Item: ({ children, onClick }: { children: React.ReactNode; onClick?: () => void }) => (
+        <button onClick={onClick}>{children}</button>
+      ),
+    }
+  ),
+  Message: {
+    info: mockMessageInfo,
+  },
   Switch: ({ checked, onChange }: { checked?: boolean; onChange?: (v: boolean) => void }) => (
     <button role='switch' aria-checked={checked} onClick={() => onChange?.(!checked)}>
       switch
@@ -104,6 +128,7 @@ vi.mock('../../src/renderer/pages/settings/AgentSettings/InlineAgentEditor', () 
 
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, act } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import React from 'react';
 import LocalAgents from '../../src/renderer/pages/settings/AgentSettings/LocalAgents';
 
@@ -141,5 +166,16 @@ describe('LocalAgents', () => {
     });
 
     expect(screen.getByText('settings.agentManagement.localAgentsEmpty')).toBeTruthy();
+  });
+
+  it('shows market coming soon message when market menu item is clicked', async () => {
+    const user = userEvent.setup();
+    await act(async () => {
+      render(<LocalAgents />);
+    });
+
+    await user.click(screen.getByText('settings.agentManagement.installFromMarket'));
+
+    expect(mockMessageInfo).toHaveBeenCalledWith('settings.agentManagement.marketComingSoon');
   });
 });

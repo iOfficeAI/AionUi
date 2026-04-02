@@ -740,6 +740,7 @@
     "discoverMoreAgents": "더 많은 에이전트 찾기",
     "addAgent": "에이전트 추가",
     "installFromMarket": "마켓에서 설치",
+    "marketComingSoon": "AionHub market is coming soon.",
     "detectCustomAgent": "커스텀 에이전트 감지",
     "editCustomAgent": "커스텀 에이전트 편집",
     "localAgentsEmpty": "로컬 에이전트가 감지되지 않았습니다",

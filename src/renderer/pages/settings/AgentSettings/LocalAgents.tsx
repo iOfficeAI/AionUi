@@ -8,7 +8,7 @@ import React, { useCallback, useState } from 'react';
 import { ipcBridge } from '@/common';
 import { ConfigStorage } from '@/common/config/storage';
 import type { AcpBackendConfig } from '@/common/types/acpTypes';
-import { Button, Dropdown, Link, Menu, Typography } from '@arco-design/web-react';
+import { Button, Dropdown, Link, Menu, Message, Typography } from '@arco-design/web-react';
 import AionModal from '@/renderer/components/base/AionModal';
 import { Plus } from '@icon-park/react';
 import { useTranslation } from 'react-i18next';
@@ -99,7 +99,7 @@ const LocalAgents: React.FC = () => {
             <Menu
               onClickMenuItem={(key) => {
                 if (key === 'market') {
-                  // TODO: open AionHub market modal (developing on another branch)
+                  Message.info(t('settings.agentManagement.marketComingSoon'));
                 } else if (key === 'custom') {
                   setEditingAgent(null);
                   setEditorVisible(true);

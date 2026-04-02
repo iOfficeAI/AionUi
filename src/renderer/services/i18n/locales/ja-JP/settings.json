@@ -740,6 +740,7 @@
     "discoverMoreAgents": "もっとエージェントを探す",
     "addAgent": "エージェントを追加",
     "installFromMarket": "マーケットからインストール",
+    "marketComingSoon": "AionHub market is coming soon.",
     "detectCustomAgent": "カスタムエージェントを検出",
     "editCustomAgent": "カスタムエージェントを編集",
     "localAgentsEmpty": "ローカルエージェントが検出されていません",
