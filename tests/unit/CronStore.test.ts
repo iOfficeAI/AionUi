@@ -17,10 +17,12 @@ const mockPrepareInstance = vi.hoisted(() => ({
   all: vi.fn(),
 }));
 
+const mockDriver = vi.hoisted(() => ({
+  prepare: vi.fn(() => mockPrepareInstance),
+}));
+
 const mockDb = vi.hoisted(() => ({
-  db: {
-    prepare: vi.fn(() => mockPrepareInstance),
-  },
+  getDriver: vi.fn(() => mockDriver),
 }));
 
 vi.mock('@process/services/database', () => ({
@@ -79,8 +81,8 @@ describe('CronStore', () => {
       await cronStore.insert(job);
 
       // Verify the INSERT was called
-      expect(mockDb.db.prepare).toHaveBeenCalled();
-      const insertSql = mockDb.db.prepare.mock.calls[0][0];
+      expect(mockDriver.prepare).toHaveBeenCalled();
+      const insertSql = mockDriver.prepare.mock.calls[0][0];
       expect(insertSql).toContain('INSERT INTO cron_jobs');
 
       // Verify the values passed to run()
@@ -428,10 +430,10 @@ describe('CronStore', () => {
       mockPrepareInstance.run.mockImplementation(() => ({ changes: 1 }));
       await cronStore.insert(job);
 
-      expect(mockDb.db.prepare).toHaveBeenCalled();
+      expect(mockDriver.prepare).toHaveBeenCalled();
       expect(mockPrepareInstance.run).toHaveBeenCalled();
 
-      const sql = mockDb.db.prepare.mock.calls[0][0];
+      const sql = mockDriver.prepare.mock.calls[0][0];
       expect(sql).toContain('INSERT INTO cron_jobs');
     });
 
@@ -464,7 +466,7 @@ describe('CronStore', () => {
 
       const job = await cronStore.getById('found-job');
 
-      expect(mockDb.db.prepare).toHaveBeenCalledWith('SELECT * FROM cron_jobs WHERE id = ?');
+      expect(mockDriver.prepare).toHaveBeenCalledWith('SELECT * FROM cron_jobs WHERE id = ?');
       expect(mockPrepareInstance.get).toHaveBeenCalledWith('found-job');
       expect(job).toBeDefined();
       expect(job!.id).toBe('found-job');
@@ -513,9 +515,9 @@ describe('CronStore', () => {
         enabled: false,
       });
 
-      expect(mockDb.db.prepare).toHaveBeenCalledWith('SELECT * FROM cron_jobs WHERE id = ?');
+      expect(mockDriver.prepare).toHaveBeenCalledWith('SELECT * FROM cron_jobs WHERE id = ?');
 
-      const updateSql = mockDb.db.prepare.mock.calls[1][0];
+      const updateSql = mockDriver.prepare.mock.calls[1][0];
       expect(updateSql).toContain('UPDATE cron_jobs SET');
 
       const updateArgs = mockPrepareInstance.run.mock.calls[0];
@@ -580,7 +582,7 @@ describe('CronStore', () => {
 
       await cronStore.delete('delete-job');
 
-      expect(mockDb.db.prepare).toHaveBeenCalledWith('DELETE FROM cron_jobs WHERE id = ?');
+      expect(mockDriver.prepare).toHaveBeenCalledWith('DELETE FROM cron_jobs WHERE id = ?');
       expect(mockPrepareInstance.run).toHaveBeenCalledWith('delete-job');
     });
 
@@ -640,7 +642,7 @@ describe('CronStore', () => {
 
       const jobs = await cronStore.listAll();
 
-      expect(mockDb.db.prepare).toHaveBeenCalledWith('SELECT * FROM cron_jobs ORDER BY created_at DESC');
+      expect(mockDriver.prepare).toHaveBeenCalledWith('SELECT * FROM cron_jobs ORDER BY created_at DESC');
       expect(jobs).toHaveLength(2);
       expect(jobs[0].id).toBe('job-1');
       expect(jobs[1].id).toBe('job-2');
@@ -677,7 +679,7 @@ describe('CronStore', () => {
 
       const jobs = await cronStore.listByConversation('target-conv');
 
-      expect(mockDb.db.prepare).toHaveBeenCalledWith(
+      expect(mockDriver.prepare).toHaveBeenCalledWith(
         'SELECT * FROM cron_jobs WHERE conversation_id = ? ORDER BY created_at DESC'
       );
       expect(mockPrepareInstance.all).toHaveBeenCalledWith('target-conv');
@@ -716,7 +718,7 @@ describe('CronStore', () => {
 
       const jobs = await cronStore.listEnabled();
 
-      expect(mockDb.db.prepare).toHaveBeenCalledWith(
+      expect(mockDriver.prepare).toHaveBeenCalledWith(
         'SELECT * FROM cron_jobs WHERE enabled = 1 ORDER BY next_run_at ASC'
       );
       expect(jobs).toHaveLength(1);
@@ -728,7 +730,7 @@ describe('CronStore', () => {
 
       const deleted = await cronStore.deleteByConversation('conv-to-delete');
 
-      expect(mockDb.db.prepare).toHaveBeenCalledWith('DELETE FROM cron_jobs WHERE conversation_id = ?');
+      expect(mockDriver.prepare).toHaveBeenCalledWith('DELETE FROM cron_jobs WHERE conversation_id = ?');
       expect(mockPrepareInstance.run).toHaveBeenCalledWith('conv-to-delete');
       expect(deleted).toBe(3);
     });
