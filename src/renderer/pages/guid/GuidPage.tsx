@@ -305,9 +305,9 @@ const GuidPage: React.FC = () => {
   const [isDescriptionExpanded, setIsDescriptionExpanded] = useState(false);
   const [canExpandDescription, setCanExpandDescription] = useState(false);
 
-  // Reset agent selection and UI state whenever the user navigates to /guid fresh
+  // Reset UI state whenever the user navigates to /guid fresh
+  // (agent selection is preserved via saved preference in useGuidAgentSelection)
   useEffect(() => {
-    agentSelection.setSelectedAgentKey('gemini');
     guidInput.setInput('');
     setIsDescriptionExpanded(false);
   }, [location.key]);
@@ -463,7 +463,7 @@ const GuidPage: React.FC = () => {
       selectedAgentInfo={agentSelection.selectedAgentInfo}
       customAgents={agentSelection.customAgents}
       localeKey={localeKey}
-      onClosePresetTag={() => agentSelection.setSelectedAgentKey('gemini')}
+      onClosePresetTag={() => agentSelection.setSelectedAgentKey(agentSelection.defaultAgentKey)}
       agentLogo={effectiveAgentLogo}
       agentSwitcherItems={agentSwitcherItems}
       onAgentSwitch={(key) => {
@@ -496,7 +496,7 @@ const GuidPage: React.FC = () => {
                     icon={<Left theme='outline' size={18} fill='currentColor' />}
                     className={styles.heroBackButton}
                     onClick={() => {
-                      agentSelection.setSelectedAgentKey('gemini');
+                      agentSelection.setSelectedAgentKey(agentSelection.defaultAgentKey);
                       guidInput.setInput('');
                       setIsDescriptionExpanded(false);
                     }}
