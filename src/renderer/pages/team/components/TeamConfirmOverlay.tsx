@@ -80,17 +80,26 @@ const TeamConfirmOverlay: React.FC<{
       }
       if (event.key === 'Escape' || event.key.toLowerCase() === 'n') {
         const cancelOpt = options.find((opt) => opt.value === 'cancel');
-        if (cancelOpt) { event.preventDefault(); confirmOption(cancelOpt); }
+        if (cancelOpt) {
+          event.preventDefault();
+          confirmOption(cancelOpt);
+        }
         return;
       }
       if (event.key.toLowerCase() === 'y') {
         const allowOpt = options.find((opt) => opt.value === 'proceed_once');
-        if (allowOpt) { event.preventDefault(); confirmOption(allowOpt); }
+        if (allowOpt) {
+          event.preventDefault();
+          confirmOption(allowOpt);
+        }
         return;
       }
       if (event.key.toLowerCase() === 'a') {
         const alwaysOpt = options.find((opt) => opt.value === 'proceed_always');
-        if (alwaysOpt) { event.preventDefault(); confirmOption(alwaysOpt); }
+        if (alwaysOpt) {
+          event.preventDefault();
+          confirmOption(alwaysOpt);
+        }
         return;
       }
       const num = parseInt(event.key, 10);

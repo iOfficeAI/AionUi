@@ -47,24 +47,33 @@ const AgentChatSlot: React.FC<{
   return (
     <div
       className={`transition-all duration-300 ease-in-out ${isFullscreen ? 'absolute inset-0 z-50 flex flex-col' : 'flex flex-col h-full'}`}
-      style={{
-        ...(isLead ? {
-          borderLeft: '3px solid var(--color-primary-6)',
-          background: 'color-mix(in srgb, var(--color-primary-6) 3%, var(--color-bg-1))',
-        } : { background: 'var(--color-bg-1)' }),
-      }}
+      style={
+        isLead
+          ? {
+              borderLeft: '3px solid var(--color-primary-6)',
+              background: 'color-mix(in srgb, var(--color-primary-6) 3%, var(--color-bg-1))',
+            }
+          : { background: 'var(--color-bg-1)' }
+      }
     >
       <div
         className='flex items-center justify-between gap-8px px-12px h-40px shrink-0 border-b border-solid border-[color:var(--border-base)] relative z-10'
-        style={isLead
-          ? { background: 'color-mix(in srgb, var(--color-primary-6) 8%, var(--color-bg-2))' }
-          : { background: 'var(--color-bg-2)' }
+        style={
+          isLead
+            ? { background: 'color-mix(in srgb, var(--color-primary-6) 8%, var(--color-bg-2))' }
+            : { background: 'var(--color-bg-2)' }
         }
       >
         <div className='flex items-center gap-8px min-w-0'>
-          {logo && <img src={logo} alt={agent.agentType} className='w-16px h-16px object-contain rounded-2px opacity-80' />}
+          {logo && (
+            <img src={logo} alt={agent.agentType} className='w-16px h-16px object-contain rounded-2px opacity-80' />
+          )}
           <span className='text-13px text-[color:var(--color-text-2)] font-medium truncate'>{agent.agentName}</span>
-          {isLead && <span className='text-10px px-4px py-1px rd-4px bg-[var(--color-primary-1)] text-[var(--color-primary-6)] shrink-0'>Lead</span>}
+          {isLead && (
+            <span className='text-10px px-4px py-1px rd-4px bg-[var(--color-primary-1)] text-[var(--color-primary-6)] shrink-0'>
+              Lead
+            </span>
+          )}
         </div>
         <div className='flex items-center gap-8px shrink-0'>
           {showModelSelector && (
@@ -180,7 +189,9 @@ const TeamPageContent: React.FC<TeamPageContentProps> = ({ team, onAddAgent }) =
             setTimeout(() => {
               el.style.transition = 'opacity 150ms ease-in';
               el.style.opacity = '1';
-              setTimeout(() => { el.style.transition = ''; }, 200);
+              setTimeout(() => {
+                el.style.transition = '';
+              }, 200);
             }, 150);
           }, 400);
         }
@@ -214,7 +225,9 @@ const TeamPageContent: React.FC<TeamPageContentProps> = ({ team, onAddAgent }) =
             setTimeout(() => {
               el.style.transition = 'opacity 150ms ease-in';
               el.style.opacity = '1';
-              setTimeout(() => { el.style.transition = ''; }, 200);
+              setTimeout(() => {
+                el.style.transition = '';
+              }, 200);
             }, 150);
           }, 400);
         }
@@ -223,7 +236,10 @@ const TeamPageContent: React.FC<TeamPageContentProps> = ({ team, onAddAgent }) =
     }
   }, []); // empty deps = only on mount
 
-  const tabsSlot = useMemo(() => <TeamTabs onAddAgent={onAddAgent} onTabClick={handleTabClick} />, [onAddAgent, handleTabClick]);
+  const tabsSlot = useMemo(
+    () => <TeamTabs onAddAgent={onAddAgent} onTabClick={handleTabClick} />,
+    [onAddAgent, handleTabClick]
+  );
 
   const headerTitle = useMemo(
     () => (
@@ -236,11 +252,13 @@ const TeamPageContent: React.FC<TeamPageContentProps> = ({ team, onAddAgent }) =
   );
 
   return (
-    <TeamPermissionProvider isLeadAgent={isLeadAgent} leadConversationId={leadConversationId} allConversationIds={allConversationIds}>
+    <TeamPermissionProvider
+      isLeadAgent={isLeadAgent}
+      leadConversationId={leadConversationId}
+      allConversationIds={allConversationIds}
+    >
       {messageContext}
-      {leadConversationId && (
-        <TeamConfirmOverlay allConversationIds={allConversationIds} />
-      )}
+      {leadConversationId && <TeamConfirmOverlay allConversationIds={allConversationIds} />}
       <ChatLayout
         title={headerTitle}
         siderTitle={siderTitle}
@@ -257,7 +275,10 @@ const TeamPageContent: React.FC<TeamPageContentProps> = ({ team, onAddAgent }) =
               style={{ background: 'linear-gradient(90deg, var(--color-bg-1) 40%, transparent)' }}
               onClick={scrollToPrev}
             >
-              <div className='w-32px h-32px rd-full flex items-center justify-center' style={{ background: 'rgba(0,0,0,0.5)', lineHeight: 0 }}>
+              <div
+                className='w-32px h-32px rd-full flex items-center justify-center'
+                style={{ background: 'rgba(0,0,0,0.5)', lineHeight: 0 }}
+              >
                 <Left size='24' fill='#fff' />
               </div>
             </div>
@@ -274,21 +295,19 @@ const TeamPageContent: React.FC<TeamPageContentProps> = ({ team, onAddAgent }) =
               return (
                 <div
                   key={agent.slotId}
-                  ref={(el) => { agentRefs.current[agent.slotId] = el; }}
+                  ref={(el) => {
+                    agentRefs.current[agent.slotId] = el;
+                  }}
                   className='relative shrink-0 h-full border-r border-solid border-[color:var(--border-base)]'
                   style={{
-                    width: isSingle ? undefined : (isActive ? '500px' : '360px'),
+                    width: isSingle ? undefined : isActive ? '500px' : '360px',
                     flex: isSingle ? 1 : undefined,
-                    minWidth: isSingle ? '240px' : (isActive ? '500px' : '360px'),
+                    minWidth: isSingle ? '240px' : isActive ? '500px' : '360px',
                     transition: 'width 300ms ease-in-out, min-width 300ms ease-in-out',
                     scrollSnapAlign: 'start',
                   }}
                 >
-                  <AgentChatSlot
-                    agent={agent}
-                    teamId={team.id}
-                    isLead={isLeadSlot}
-                  />
+                  <AgentChatSlot agent={agent} teamId={team.id} isLead={isLeadSlot} />
                 </div>
               );
             })}
@@ -299,7 +318,10 @@ const TeamPageContent: React.FC<TeamPageContentProps> = ({ team, onAddAgent }) =
               style={{ background: 'linear-gradient(270deg, var(--color-bg-1) 40%, transparent)' }}
               onClick={scrollToNext}
             >
-              <div className='w-32px h-32px rd-full flex items-center justify-center' style={{ background: 'rgba(0,0,0,0.5)', lineHeight: 0 }}>
+              <div
+                className='w-32px h-32px rd-full flex items-center justify-center'
+                style={{ background: 'rgba(0,0,0,0.5)', lineHeight: 0 }}
+              >
                 <Right size='24' fill='#fff' />
               </div>
             </div>

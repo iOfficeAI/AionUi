@@ -161,7 +161,11 @@ const AcpSendBox: React.FC<{
         void checkAndUpdateTitle(conversation_id, input);
         if (teamId) {
           if (agentSlotId) {
-            const result = await ipcBridge.team.sendMessageToAgent.invoke({ teamId, slotId: agentSlotId, content: input });
+            const result = await ipcBridge.team.sendMessageToAgent.invoke({
+              teamId,
+              slotId: agentSlotId,
+              content: input,
+            });
             const maybeError = result as unknown as { __bridgeError?: boolean; message?: string };
             if (maybeError.__bridgeError) {
               throw new Error(maybeError.message || 'Failed to send message to agent');

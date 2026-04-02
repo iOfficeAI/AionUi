@@ -1212,7 +1212,9 @@ export const team = {
   addAgent: bridge.buildProvider<import('@process/team/types').TeamAgent, IAddTeamAgentParams>('team.add-agent'),
   removeAgent: bridge.buildProvider<void, { teamId: string; slotId: string }>('team.remove-agent'),
   sendMessage: bridge.buildProvider<void, { teamId: string; content: string }>('team.send-message'),
-  sendMessageToAgent: bridge.buildProvider<void, { teamId: string; slotId: string; content: string }>('team.send-message-to-agent'),
+  sendMessageToAgent: bridge.buildProvider<void, { teamId: string; slotId: string; content: string }>(
+    'team.send-message-to-agent'
+  ),
   stop: bridge.buildProvider<void, { teamId: string }>('team.stop'),
   renameAgent: bridge.buildProvider<void, { teamId: string; slotId: string; newName: string }>('team.rename-agent'),
   messageStream: bridge.buildEmitter<import('@process/team/types').ITeamMessageEvent>('team.message.stream'),

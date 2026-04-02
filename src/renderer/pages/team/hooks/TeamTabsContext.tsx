@@ -29,9 +29,7 @@ export const TeamTabsProvider: React.FC<{
   const storageKey = `team-active-slot-${teamId}`;
   const savedSlotId = localStorage.getItem(storageKey);
   const initialSlotId =
-    savedSlotId && externalAgents.some((a) => a.slotId === savedSlotId)
-      ? savedSlotId
-      : defaultActiveSlotId;
+    savedSlotId && externalAgents.some((a) => a.slotId === savedSlotId) ? savedSlotId : defaultActiveSlotId;
   const [activeSlotId, setActiveSlotId] = useState(initialSlotId);
   const [localAgents, setLocalAgents] = useState<TeamAgent[]>(externalAgents);
 

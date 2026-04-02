@@ -131,7 +131,11 @@ const TeamTabView: React.FC<TeamTabViewProps> = ({
           {agentName}
         </span>
       )}
-      {isLead && <span className='text-10px px-4px py-1px rd-4px bg-[var(--color-primary-1)] text-[var(--color-primary-6)] shrink-0'>Lead</span>}
+      {isLead && (
+        <span className='text-10px px-4px py-1px rd-4px bg-[var(--color-primary-1)] text-[var(--color-primary-6)] shrink-0'>
+          Lead
+        </span>
+      )}
       {!editing && onRename && (
         <span
           className='opacity-0 group-hover:opacity-60 hover:!opacity-100 transition-opacity duration-150 shrink-0 flex items-center'
@@ -249,7 +253,10 @@ const TeamTabs: React.FC<TeamTabsProps> = ({ onAddAgent, onTabClick }) => {
                 isActive={agent.slotId === activeSlotId}
                 status={statusInfo?.status ?? agent.status}
                 isLead={agent.role === 'lead'}
-                onSwitch={(slotId) => { switchTab(slotId); onTabClick?.(slotId); }}
+                onSwitch={(slotId) => {
+                  switchTab(slotId);
+                  onTabClick?.(slotId);
+                }}
                 onRename={renameAgent ? (sid, name) => void renameAgent(sid, name) : undefined}
                 onDragStart={handleDragStart}
                 onDragOver={handleDragOver}
