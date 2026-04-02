@@ -1,4 +1,4 @@
-import { Delete, Peoples } from '@icon-park/react';
+import { Delete, Peoples, Plus } from '@icon-park/react';
 import { Popconfirm } from '@arco-design/web-react';
 import React, { Suspense, useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -38,7 +38,6 @@ const Sider: React.FC<SiderProps> = ({ onSessionClick, collapsed = false }) => {
   const { theme, setTheme } = useThemeContext();
   const [isBatchMode, setIsBatchMode] = useState(false);
   const [createTeamVisible, setCreateTeamVisible] = useState(false);
-  const [teamSectionCollapsed, setTeamSectionCollapsed] = useState(false);
   const { teams, mutate: refreshTeams, removeTeam } = useTeamList();
   const { jobs: cronJobs } = useAllCronJobs();
   const isSettings = pathname.startsWith('/settings');
@@ -163,31 +162,18 @@ const Sider: React.FC<SiderProps> = ({ onSessionClick, collapsed = false }) => {
               {/* Team section */}
               {!collapsed && (
                 <div className='shrink-0 mb-4px'>
-                  <div
-                    className='flex items-center justify-between px-12px py-8px cursor-pointer group'
-                    onClick={() => setTeamSectionCollapsed((prev) => !prev)}
-                  >
+                  <div className='flex items-center justify-between px-12px py-8px'>
                     <span className='text-13px text-t-secondary font-bold leading-20px'>
                       {t('team.sider.title', { defaultValue: '群聊' })}
                     </span>
                     <div
                       className='h-20px w-20px rd-4px flex items-center justify-center cursor-pointer hover:bg-fill-3 transition-all shrink-0'
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        setCreateTeamVisible(true);
-                      }}
+                      onClick={() => setCreateTeamVisible(true)}
                     >
-                      <Peoples
-                        theme='outline'
-                        size='14'
-                        fill='var(--color-text-2)'
-                        className='block leading-none'
-                        style={{ lineHeight: 0 }}
-                      />
+                      <Plus theme='outline' size='14' fill='var(--color-text-2)' />
                     </div>
                   </div>
-                  {!teamSectionCollapsed &&
-                    teams.length > 0 &&
+                  {teams.length > 0 &&
                     teams.map((team) => (
                       <div
                         key={team.id}
