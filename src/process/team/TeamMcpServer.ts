@@ -352,11 +352,16 @@ export class TeamMcpServer {
     const { teamId, getAgents, mailbox, spawnAgent, wakeAgent } = this.params;
     const name = String(args.name ?? '');
     const agentType = args.agent_type ? String(args.agent_type) : undefined;
-    const SUPPORTED_TEAM_TYPES = new Set(['acp', 'codex', 'claude', undefined]);
-    if (!SUPPORTED_TEAM_TYPES.has(agentType)) {
-      throw new Error(
-        `Agent type "${agentType}" is not supported in team mode. Supported types: acp, codex.`
-      );
+    // Team mode only supports agent types that resolve to ACP conversation type
+    if (agentType && !['acp', 'codex', 'claude'].includes(agentType)) {
+      // Check dynamically: gemini, nanobot, openclaw-gateway, remote, aionrs are not supported
+      const unsupportedNonAcp = new Set(['gemini', 'nanobot', 'openclaw-gateway', 'remote', 'aionrs']);
+      if (unsupportedNonAcp.has(agentType)) {
+        throw new Error(
+          `Agent type "${agentType}" is not supported in team mode. Use an ACP-compatible agent (e.g., claude, codex, qwen).`
+        );
+      }
+      // Any other unknown type — assume it's an ACP backend and let it through
     }
 
     if (!spawnAgent) {

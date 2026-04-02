@@ -16,30 +16,20 @@ export function resolveTeamAgentType(agent: AvailableAgent | undefined, fallback
   return agent?.presetAgentType || agent?.backend || fallback;
 }
 
-/** Agent backends that support team MCP tools (spawn, task board, messaging) */
-const TEAM_SUPPORTED_BACKENDS = new Set([
-  'claude',
-  'qwen',
-  'codex',
-  'goose',
-  'auggie',
-  'kimi',
-  'opencode',
-  'copilot',
-  'qoder',
-  'codebuddy',
-  'droid',
-  'vibe',
-  'iflow',
-  'cursor',
-  'kiro',
-]);
+/**
+ * Check if an agent backend is supported in team mode.
+ * Team mode requires ACP protocol for MCP tool injection (spawn, task board, messaging).
+ * Any backend whose conversationType resolves to 'acp' is supported.
+ */
+export function isTeamSupportedBackend(backend: string): boolean {
+  return resolveConversationType(backend) === 'acp';
+}
 
 /** Filter agents to only those supported in team mode */
 export function filterTeamSupportedAgents(agents: AvailableAgent[]): AvailableAgent[] {
   return agents.filter((a) => {
     const backend = a.presetAgentType || a.backend;
-    return TEAM_SUPPORTED_BACKENDS.has(backend);
+    return isTeamSupportedBackend(backend);
   });
 }
 
