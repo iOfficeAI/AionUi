@@ -31,6 +31,7 @@ export type AionrsEvent =
   | {
       type: 'ready';
       version: string;
+      session_id?: string;
       capabilities: { tool_approval: boolean; thinking: boolean; mcp: boolean };
     }
   | { type: 'stream_start'; msg_id: string }
