@@ -115,7 +115,7 @@ const AgentChatSlot: React.FC<{
         </div>
         <div className='flex items-center gap-8px shrink-0'>
           {agent.conversationId && !isAionrs && isAcpLike && (
-            <div className='max-w-100px overflow-hidden'>
+            <div className='min-w-0'>
               <AcpModelSelector
                 key={agent.conversationId}
                 conversationId={agent.conversationId}
@@ -125,12 +125,12 @@ const AgentChatSlot: React.FC<{
             </div>
           )}
           {agent.conversationId && isGemini && (
-            <div className='max-w-120px overflow-hidden'>
+            <div className='min-w-0'>
               <GeminiModelSelector selection={geminiModelSelection} />
             </div>
           )}
           {isAionrs && agent.conversationId && (
-            <div className='max-w-120px overflow-hidden'>
+            <div className='min-w-0'>
               <AionrsHeaderModelSelector
                 key={agent.conversationId}
                 conversationId={agent.conversationId}
@@ -139,7 +139,7 @@ const AgentChatSlot: React.FC<{
             </div>
           )}
           <div
-            className='cursor-pointer hover:bg-[var(--fill-3)] p-4px rd-4px text-[color:var(--color-text-3)] hover:text-[color:var(--color-text-1)] transition-colors'
+            className='shrink-0 cursor-pointer hover:bg-[var(--fill-3)] p-4px rd-4px text-[color:var(--color-text-3)] hover:text-[color:var(--color-text-1)] transition-colors'
             onClick={() => setIsFullscreen(!isFullscreen)}
           >
             {isFullscreen ? <OffScreen size='16' fill='currentColor' /> : <FullScreen size='16' fill='currentColor' />}
