@@ -20,6 +20,7 @@ import { useCustomAgentsLoader } from './useCustomAgentsLoader';
 export type GuidAgentSelectionResult = {
   selectedAgentKey: string;
   setSelectedAgentKey: (key: string) => void;
+  defaultAgentKey: string;
   selectedAgent: AcpBackend | 'custom';
   selectedAgentInfo: AvailableAgent | undefined;
   isPresetAgent: boolean;
@@ -65,7 +66,7 @@ export const useGuidAgentSelection = ({
   isGoogleAuth,
   localeKey,
 }: UseGuidAgentSelectionOptions): GuidAgentSelectionResult => {
-  const [selectedAgentKey, _setSelectedAgentKey] = useState<string>('gemini');
+  const [selectedAgentKey, _setSelectedAgentKey] = useState<string>('aionrs');
   const [availableAgents, setAvailableAgents] = useState<AvailableAgent[]>();
   const [selectedMode, _setSelectedMode] = useState<string>('default');
   // Track whether mode was loaded from preferences to avoid overwriting during initial load
@@ -208,14 +209,21 @@ export const useGuidAgentSelection = ({
     const loadLastSelectedAgent = async () => {
       try {
         const savedAgentKey = await ConfigStorage.get('guid.lastSelectedAgent');
-        if (cancelled || !savedAgentKey) return;
+        if (cancelled) return;
 
-        const isInAvailable = availableAgents.some((agent) => {
-          return getAgentKey(agent) === savedAgentKey;
-        });
+        if (savedAgentKey) {
+          const isInAvailable = availableAgents.some((agent) => getAgentKey(agent) === savedAgentKey);
+          if (isInAvailable) {
+            _setSelectedAgentKey(savedAgentKey);
+            return;
+          }
+        }
 
-        if (isInAvailable) {
-          _setSelectedAgentKey(savedAgentKey);
+        // No saved preference or saved agent no longer available — default to first agent
+        const firstAgent = availableAgents[0];
+        if (firstAgent) {
+          const firstKey = getAgentKey(firstAgent);
+          _setSelectedAgentKey(firstKey);
         }
       } catch (error) {
         console.error('Failed to load last selected agent:', error);
@@ -435,9 +443,16 @@ export const useGuidAgentSelection = ({
     }
   }, [availableAgents, currentEffectiveAgentInfo, selectedAgent]);
 
+  // Key of the first non-preset CLI agent (used as fallback when leaving preset mode)
+  const defaultAgentKey = useMemo(() => {
+    const firstCliAgent = availableAgents?.find((a) => !a.isPreset);
+    return firstCliAgent ? getAgentKey(firstCliAgent) : 'aionrs';
+  }, [availableAgents]);
+
   return {
     selectedAgentKey,
     setSelectedAgentKey,
+    defaultAgentKey,
     selectedAgent,
     selectedAgentInfo,
     isPresetAgent,

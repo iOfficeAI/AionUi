@@ -350,6 +350,34 @@ export const createRemoteAgent = async (options: ICreateConversationParams): Pro
   };
 };
 
+export const createAionrsAgent = async (options: ICreateConversationParams): Promise<TChatConversation> => {
+  const { extra } = options;
+  const { workspace, customWorkspace } = await buildWorkspaceWidthFiles(
+    `aionrs-temp-${Date.now()}`,
+    extra.workspace,
+    extra.defaultFiles,
+    extra.customWorkspace
+  );
+
+  return {
+    type: 'aionrs',
+    model: options.model,
+    extra: {
+      workspace,
+      customWorkspace,
+      presetRules: extra.presetRules,
+      enabledSkills: extra.enabledSkills,
+      presetAssistantId: extra.presetAssistantId,
+      sessionMode: extra.sessionMode,
+    },
+    desc: customWorkspace ? workspace : '',
+    createTime: Date.now(),
+    modifyTime: Date.now(),
+    name: workspace,
+    id: uuid(),
+  };
+};
+
 export const createOpenClawAgent = async (options: ICreateConversationParams): Promise<TChatConversation> => {
   const { extra } = options;
   const { workspace, customWorkspace } = await buildWorkspaceWidthFiles(

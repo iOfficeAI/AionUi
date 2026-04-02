@@ -19,6 +19,7 @@ import { z } from 'zod';
 import * as net from 'node:net';
 
 const TEAM_AGENT_SLOT_ID = process.env.TEAM_AGENT_SLOT_ID || undefined;
+const TEAM_MCP_TOKEN = process.env.TEAM_MCP_TOKEN || undefined;
 process.stderr.write(
   `[team-mcp-stdio] Script started. PID=${process.pid}, TEAM_MCP_PORT=${process.env.TEAM_MCP_PORT || 'unset'}, SLOT=${TEAM_AGENT_SLOT_ID || 'unset'}\n`
 );
@@ -26,6 +27,11 @@ const TEAM_MCP_PORT = parseInt(process.env.TEAM_MCP_PORT || '0', 10);
 
 if (!TEAM_MCP_PORT) {
   process.stderr.write('TEAM_MCP_PORT environment variable is required\n');
+  process.exit(1);
+}
+
+if (!TEAM_MCP_TOKEN) {
+  process.stderr.write('TEAM_MCP_TOKEN environment variable is required\n');
   process.exit(1);
 }
 
@@ -80,10 +86,10 @@ function sendTcpRequest(port, data) {
 
 // ── Tool helper ──────────────────────────────────────────────────────────────
 
-function createTeamTool(server, toolName, description, schema, tcpPort, agentSlotId) {
+function createTeamTool(server, toolName, description, schema, tcpPort, agentSlotId, authToken) {
   server.tool(toolName, description, schema, async (args) => {
     try {
-      const payload = { tool: toolName, args };
+      const payload = { tool: toolName, args, auth_token: authToken };
       if (agentSlotId) payload.from_slot_id = agentSlotId;
       const response = await sendTcpRequest(tcpPort, payload);
 
@@ -130,7 +136,8 @@ Use "*" to broadcast to all teammates.`,
     summary: z.string().optional().describe('A short 5-10 word summary for the UI'),
   },
   TEAM_MCP_PORT,
-  TEAM_AGENT_SLOT_ID
+  TEAM_AGENT_SLOT_ID,
+  TEAM_MCP_TOKEN
 );
 
 // ---- team_spawn_agent ----
@@ -150,7 +157,8 @@ The new agent will be created and added to the team. You can then assign tasks a
     agent_type: z.string().optional().describe('Agent type/backend (default: "acp"). Options: acp, gemini, codex'),
   },
   TEAM_MCP_PORT,
-  TEAM_AGENT_SLOT_ID
+  TEAM_AGENT_SLOT_ID,
+  TEAM_MCP_TOKEN
 );
 
 // ---- team_task_create ----
@@ -172,7 +180,8 @@ Best practices:
     owner: z.string().optional().describe('Teammate name to assign this task to'),
   },
   TEAM_MCP_PORT,
-  TEAM_AGENT_SLOT_ID
+  TEAM_AGENT_SLOT_ID,
+  TEAM_MCP_TOKEN
 );
 
 // ---- team_task_update ----
@@ -191,7 +200,8 @@ Use this to:
     owner: z.string().optional().describe('New owner (teammate name)'),
   },
   TEAM_MCP_PORT,
-  TEAM_AGENT_SLOT_ID
+  TEAM_AGENT_SLOT_ID,
+  TEAM_MCP_TOKEN
 );
 
 // ---- team_task_list ----
@@ -204,7 +214,8 @@ Shows task ID, subject, status, and owner for each task.
 Use this to check what work is pending, in progress, or completed.`,
   {},
   TEAM_MCP_PORT,
-  TEAM_AGENT_SLOT_ID
+  TEAM_AGENT_SLOT_ID,
+  TEAM_MCP_TOKEN
 );
 
 // ---- team_members ----
@@ -215,7 +226,8 @@ createTeamTool(
 Use this to discover available teammates before sending messages or assigning tasks.`,
   {},
   TEAM_MCP_PORT,
-  TEAM_AGENT_SLOT_ID
+  TEAM_AGENT_SLOT_ID,
+  TEAM_MCP_TOKEN
 );
 
 // ---- team_rename_agent ----
@@ -228,7 +240,8 @@ createTeamTool(
     new_name: z.string().describe('New name for the agent'),
   },
   TEAM_MCP_PORT,
-  TEAM_AGENT_SLOT_ID
+  TEAM_AGENT_SLOT_ID,
+  TEAM_MCP_TOKEN
 );
 
 // ---- team_shutdown_agent ----
@@ -247,7 +260,8 @@ You will be notified of the result either way.`,
     agent: z.string().describe('Teammate name to request shutdown'),
   },
   TEAM_MCP_PORT,
-  TEAM_AGENT_SLOT_ID
+  TEAM_AGENT_SLOT_ID,
+  TEAM_MCP_TOKEN
 );
 
 const transport = new StdioServerTransport();

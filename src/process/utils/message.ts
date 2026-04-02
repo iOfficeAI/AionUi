@@ -119,7 +119,11 @@ async function ensureConversationExists(
  * Add or update a single message
  * If message exists (by id), update it; otherwise insert it
  */
-export const addOrUpdateMessage = (conversation_id: string, message: TMessage, backend?: AcpBackend): void => {
+export const addOrUpdateMessage = (
+  conversation_id: string,
+  message: TMessage,
+  backend?: AcpBackend | 'aionrs'
+): void => {
   // Validate message
   if (!message) {
     console.error('[Message] Cannot add or update undefined message');

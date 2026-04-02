@@ -99,15 +99,16 @@ export class TeamSessionService {
     // Delete conversations owned by this team's agents
     const team = await this.repo.findById(id);
     if (team) {
-      for (const agent of team.agents) {
-        if (agent.conversationId) {
-          try {
-            await this.conversationService.deleteConversation(agent.conversationId);
-          } catch (err) {
-            console.warn(`[TeamSessionService] Failed to delete conversation ${agent.conversationId}:`, err);
-          }
+      const results = await Promise.allSettled(
+        team.agents
+          .filter((agent) => agent.conversationId)
+          .map((agent) => this.conversationService.deleteConversation(agent.conversationId))
+      );
+      results.forEach((r) => {
+        if (r.status === 'rejected') {
+          console.warn(`[TeamSessionService] Failed to delete conversation:`, r.reason);
         }
-      }
+      });
     }
 
     await this.repo.deleteMailboxByTeam(id);

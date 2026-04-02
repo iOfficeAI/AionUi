@@ -7,6 +7,7 @@
 // Each TeamSession owns one TeamMcpServer instance. The stdio config is
 // injected into every agent's ACP session via `session/new { mcpServers }`.
 
+import * as crypto from 'node:crypto';
 import * as net from 'node:net';
 import * as path from 'node:path';
 import type { Mailbox } from './Mailbox';
@@ -90,6 +91,8 @@ export class TeamMcpServer {
   private readonly params: TeamMcpServerParams;
   private tcpServer: net.Server | null = null;
   private _port = 0;
+  /** One-time random token used to authenticate TCP connections from the stdio bridge */
+  private readonly authToken = crypto.randomUUID();
 
   constructor(params: TeamMcpServerParams) {
     this.params = params;
@@ -126,7 +129,10 @@ export class TeamMcpServer {
     const root = resolveProjectRoot();
     const scriptPath = path.join(root, 'scripts', 'team-mcp-stdio.mjs');
 
-    const env: StdioMcpConfig['env'] = [{ name: 'TEAM_MCP_PORT', value: String(this._port) }];
+    const env: StdioMcpConfig['env'] = [
+      { name: 'TEAM_MCP_PORT', value: String(this._port) },
+      { name: 'TEAM_MCP_TOKEN', value: this.authToken },
+    ];
     if (agentSlotId) {
       env.push({ name: 'TEAM_AGENT_SLOT_ID', value: agentSlotId });
     }
@@ -181,7 +187,20 @@ export class TeamMcpServer {
 
   private handleTcpConnection(socket: net.Socket): void {
     const reader = createTcpMessageReader(async (msg) => {
-      const request = msg as { tool?: string; args?: Record<string, unknown>; from_slot_id?: string };
+      const request = msg as {
+        tool?: string;
+        args?: Record<string, unknown>;
+        from_slot_id?: string;
+        auth_token?: string;
+      };
+
+      // Reject requests that do not carry the correct auth token
+      if (request.auth_token !== this.authToken) {
+        writeTcpMessage(socket, { error: 'Unauthorized' });
+        socket.end();
+        return;
+      }
+
       const toolName = request.tool ?? '';
       const args = request.args ?? {};
       const fromSlotId = request.from_slot_id;

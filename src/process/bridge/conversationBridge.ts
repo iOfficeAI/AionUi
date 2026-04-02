@@ -20,6 +20,7 @@ import {
 } from '@process/utils/initStorage';
 import type AcpAgentManager from '../task/AcpAgentManager';
 import type { GeminiAgentManager } from '../task/GeminiAgentManager';
+import { AionrsApprovalStore, type AionrsManager } from '../task/AionrsManager';
 import type OpenClawAgentManager from '../task/OpenClawAgentManager';
 import { prepareFirstMessage } from '../task/agentUtils';
 import { refreshTrayMenu } from '@process/utils/tray';
@@ -45,6 +46,7 @@ const VALID_CONVERSATION_TYPES = new Set<TChatConversation['type']>([
   'openclaw-gateway',
   'nanobot',
   'remote',
+  'aionrs',
 ]);
 
 export function initConversationBridge(
@@ -124,13 +126,18 @@ export function initConversationBridge(
       console.warn('[conversationBridge] Rejecting create request with invalid conversation type:', params?.type);
       return undefined as unknown as TChatConversation;
     }
-    const conversation = await conversationService.createConversation({
-      ...params,
-      source: 'aionui', // Mark conversations created by AionUI as aionui
-    });
-    emitConversationListChanged(conversation, 'created');
-    await refreshTrayMenuSafely();
-    return conversation;
+    try {
+      const conversation = await conversationService.createConversation({
+        ...params,
+        source: 'aionui', // Mark conversations created by AionUI as aionui
+      });
+      emitConversationListChanged(conversation, 'created');
+      await refreshTrayMenuSafely();
+      return conversation;
+    } catch (error) {
+      console.error('[conversationBridge] Failed to create conversation:', error);
+      throw error;
+    }
   });
 
   // Manually reload conversation context (Gemini): inject recent history into memory
@@ -560,12 +567,26 @@ export function initConversationBridge(
   // Keys are parsed from raw action+commandType here (single source of truth)
   // Keys 在此处从原始 action+commandType 解析（单一数据源）
   ipcBridge.conversation.approval.check.provider(async ({ conversation_id, action, commandType }) => {
-    const task = workerTaskManager.getTask(conversation_id) as unknown as GeminiAgentManager | undefined;
-    if (!task || task.type !== 'gemini' || !task.approvalStore) {
+    const task = workerTaskManager.getTask(conversation_id) as unknown as
+      | GeminiAgentManager
+      | AionrsManager
+      | undefined;
+    if (!task || !('approvalStore' in task) || !task.approvalStore) {
       return false;
     }
-    const keys = GeminiApprovalStore.createKeysFromConfirmation(action, commandType);
-    if (keys.length === 0) return false;
-    return task.approvalStore.allApproved(keys);
+
+    if (task.type === 'gemini') {
+      const keys = GeminiApprovalStore.createKeysFromConfirmation(action, commandType);
+      if (keys.length === 0) return false;
+      return task.approvalStore.allApproved(keys);
+    }
+
+    if (task.type === 'aionrs') {
+      const keys = AionrsApprovalStore.createKeysFromConfirmation(action, commandType);
+      if (keys.length === 0) return false;
+      return task.approvalStore.allApproved(keys);
+    }
+
+    return false;
   });
 }
