@@ -216,7 +216,7 @@ const InlineAgentEditor: React.FC<InlineAgentEditorProps> = ({ agent, onSave, on
       env: Object.keys(envObj).length > 0 ? envObj : undefined,
     };
     onSave(customAgent);
-  }, [agent, name, command, argsString, envVars, onSave]);
+  }, [agent, name, avatar, command, argsString, envVars, onSave]);
 
   const isSubmitDisabled = !name.trim() || !command.trim();
   const isTestDisabled = !command.trim() || testStatus === 'testing';
