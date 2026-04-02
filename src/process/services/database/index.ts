@@ -111,6 +111,14 @@ export class AionUIDatabase {
       instance.initialize();
       return instance;
     } catch (error) {
+      // Distinguish driver-level errors (native module mismatch, missing .node file)
+      // from actual database corruption. Driver errors must NOT trigger recovery —
+      // replacing a healthy database because of a build tooling issue causes data loss.
+      const msg = error instanceof Error ? error.message : String(error);
+      if (msg.includes('NODE_MODULE_VERSION') || msg.includes('was compiled against') || msg.includes('dlopen')) {
+        console.error('[Database] Native module load error — will NOT attempt recovery (database is likely intact):', msg);
+        throw error;
+      }
       console.error('[Database] Failed to initialize, attempting recovery...', error);
     }
 
