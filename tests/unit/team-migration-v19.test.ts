@@ -4,7 +4,19 @@ import { initSchema } from '@process/services/database/schema';
 import { runMigrations, ALL_MIGRATIONS } from '@process/services/database/migrations';
 import { BetterSqlite3Driver } from '@process/services/database/drivers/BetterSqlite3Driver';
 
-describe('migration v19: teams table', () => {
+let nativeModuleAvailable = true;
+try {
+  const d = new BetterSqlite3Driver(':memory:');
+  d.close();
+} catch (e) {
+  if (e instanceof Error && e.message.includes('NODE_MODULE_VERSION')) {
+    nativeModuleAvailable = false;
+  }
+}
+
+const describeOrSkip = nativeModuleAvailable ? describe : describe.skip;
+
+describeOrSkip('migration v19: teams table', () => {
   let driver: BetterSqlite3Driver;
 
   beforeEach(() => {
@@ -41,7 +53,7 @@ describe('migration v19: teams table', () => {
   });
 });
 
-describe('migration v20: lead_agent_id, mailbox, team_tasks', () => {
+describeOrSkip('migration v20: lead_agent_id, mailbox, team_tasks', () => {
   let driver: BetterSqlite3Driver;
 
   beforeEach(() => {
