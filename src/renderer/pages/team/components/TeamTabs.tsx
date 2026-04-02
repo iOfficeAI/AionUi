@@ -86,7 +86,7 @@ const TeamTabView: React.FC<TeamTabViewProps> = ({
 
   return (
     <div
-      draggable={true}
+      draggable={!isLead}
       className={`group flex items-center gap-8px px-12px h-full max-w-240px cursor-pointer transition-all duration-200 shrink-0 border-r border-[color:var(--border-base)] ${
         isActive
           ? 'bg-1 text-[color:var(--color-text-1)] font-medium'
@@ -131,7 +131,7 @@ const TeamTabView: React.FC<TeamTabViewProps> = ({
           {agentName}
         </span>
       )}
-      {isLead && <span className='text-xs text-[color:var(--color-text-4)]'>&#9656;</span>}
+      {isLead && <span className='text-10px px-4px py-1px rd-4px bg-[var(--color-primary-1)] text-[var(--color-primary-6)] shrink-0'>Lead</span>}
       {!editing && onRename && (
         <span
           className='opacity-0 group-hover:opacity-60 hover:!opacity-100 transition-opacity duration-150 shrink-0 flex items-center'

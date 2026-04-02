@@ -111,7 +111,7 @@ const TeamConfirmOverlay: React.FC<{
 
   return createPortal(
     <div
-      className='fixed inset-0 flex items-center justify-center'
+      className='fixed inset-0 flex items-end justify-center pb-24px'
       style={{ zIndex: 1000, pointerEvents: 'none' }}
     >
       <div

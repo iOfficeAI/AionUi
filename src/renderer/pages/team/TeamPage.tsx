@@ -1,6 +1,6 @@
 import { Message, Spin } from '@arco-design/web-react';
-import { FullScreen, OffScreen, Peoples } from '@icon-park/react';
-import React, { useCallback, useMemo, useRef, useState } from 'react';
+import { FullScreen, Left, OffScreen, Peoples, Right } from '@icon-park/react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import useSWR from 'swr';
 import { ipcBridge } from '@/common';
@@ -46,20 +46,28 @@ const AgentChatSlot: React.FC<{
 
   return (
     <div className={`transition-all duration-300 ease-in-out ${isFullscreen ? 'absolute inset-0 z-50 bg-1 flex flex-col' : 'flex flex-col h-full'}`}>
-      <div className='flex items-center justify-between gap-8px px-12px h-40px shrink-0 border-b border-solid border-[color:var(--border-base)] bg-2 relative z-10'>
+      <div
+        className='flex items-center justify-between gap-8px px-12px h-40px shrink-0 border-b border-solid border-[color:var(--border-base)] relative z-10'
+        style={isLead
+          ? { background: 'color-mix(in srgb, var(--color-primary-6) 5%, var(--color-bg-2))' }
+          : { background: 'var(--color-bg-2)' }
+        }
+      >
         <div className='flex items-center gap-8px min-w-0'>
           {logo && <img src={logo} alt={agent.agentType} className='w-16px h-16px object-contain rounded-2px opacity-80' />}
           <span className='text-13px text-[color:var(--color-text-2)] font-medium truncate'>{agent.agentName}</span>
-          {isLead && <span className='text-11px text-[color:var(--color-text-4)] shrink-0'>lead</span>}
+          {isLead && <span className='text-10px px-4px py-1px rd-4px bg-[var(--color-primary-1)] text-[var(--color-primary-6)] shrink-0'>Lead</span>}
         </div>
         <div className='flex items-center gap-8px shrink-0'>
           {showModelSelector && (
-            <AcpModelSelector
-              key={agent.conversationId}
-              conversationId={agent.conversationId}
-              backend={agent.agentType}
-              initialModelId={initialModelId}
-            />
+            <div className='max-w-160px overflow-hidden'>
+              <AcpModelSelector
+                key={agent.conversationId}
+                conversationId={agent.conversationId}
+                backend={agent.agentType}
+                initialModelId={initialModelId}
+              />
+            </div>
           )}
           <div
             className='cursor-pointer hover:bg-[var(--fill-3)] p-4px rd-4px text-[color:var(--color-text-3)] hover:text-[color:var(--color-text-1)] transition-colors'
@@ -89,18 +97,20 @@ const AgentChatSlot: React.FC<{
 /** Inner component that reads active tab from context and renders the chat layout */
 const TeamPageContent: React.FC<TeamPageContentProps> = ({ team, onAddAgent }) => {
   const { t } = useTranslation();
-  const { activeSlotId, switchTab } = useTeamTabs();
+  const { agents, activeSlotId, switchTab } = useTeamTabs();
   const [, messageContext] = Message.useMessage({ maxCount: 1 });
 
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const agentRefs = useRef<Record<string, HTMLDivElement | null>>({});
+  const [showLeftArrow, setShowLeftArrow] = useState(false);
+  const [showRightArrow, setShowRightArrow] = useState(false);
 
-  const activeAgent = team.agents.find((a) => a.slotId === activeSlotId);
-  const leadAgent = team.agents.find((a) => a.role === 'lead');
+  const activeAgent = agents.find((a) => a.slotId === activeSlotId);
+  const leadAgent = agents.find((a) => a.role === 'lead');
   const leadConversationId = leadAgent?.conversationId ?? '';
   // isLeadAgent is false at the global level; each slot checks against leadConversationId
   const isLeadAgent = false;
-  const allConversationIds = useMemo(() => team.agents.map((a) => a.conversationId).filter(Boolean), [team.agents]);
+  const allConversationIds = useMemo(() => agents.map((a) => a.conversationId).filter(Boolean), [agents]);
 
   // Fetch lead agent's conversation for the workspace sider
   const { data: dispatchConversation } = useSWR(
@@ -123,6 +133,41 @@ const TeamPageContent: React.FC<TeamPageContentProps> = ({ team, onAddAgent }) =
     if (!workspaceEnabled || !dispatchConversation) return <div />;
     return <ChatSider conversation={dispatchConversation} />;
   }, [workspaceEnabled, dispatchConversation]);
+
+  const updateScrollArrows = useCallback(() => {
+    const container = scrollContainerRef.current;
+    if (!container) return;
+    const hasOverflow = container.scrollWidth > container.clientWidth + 1;
+    setShowLeftArrow(hasOverflow && container.scrollLeft > 10);
+    setShowRightArrow(hasOverflow && container.scrollLeft + container.clientWidth < container.scrollWidth - 10);
+  }, []);
+
+  useEffect(() => {
+    const container = scrollContainerRef.current;
+    if (!container) return;
+    container.addEventListener('scroll', updateScrollArrows, { passive: true });
+    window.addEventListener('resize', updateScrollArrows);
+    const observer = new ResizeObserver(updateScrollArrows);
+    observer.observe(container);
+    updateScrollArrows();
+    return () => {
+      container.removeEventListener('scroll', updateScrollArrows);
+      window.removeEventListener('resize', updateScrollArrows);
+      observer.disconnect();
+    };
+  }, [updateScrollArrows]);
+
+  const scrollToPrev = useCallback(() => {
+    const container = scrollContainerRef.current;
+    if (!container) return;
+    container.scrollBy({ left: -400, behavior: 'smooth' });
+  }, []);
+
+  const scrollToNext = useCallback(() => {
+    const container = scrollContainerRef.current;
+    if (!container) return;
+    container.scrollBy({ left: 400, behavior: 'smooth' });
+  }, []);
 
   const handleTabClick = useCallback(
     (slotId: string) => {
@@ -160,36 +205,55 @@ const TeamPageContent: React.FC<TeamPageContentProps> = ({ team, onAddAgent }) =
         workspaceEnabled={workspaceEnabled}
         tabsSlot={tabsSlot}
         conversationId={activeAgent?.conversationId}
-        backend={activeAgent?.agentType}
         agentName={undefined}
       >
-        <div
-          ref={scrollContainerRef}
-          className='relative flex h-full overflow-x-auto overflow-y-hidden [scrollbar-width:none]'
-          style={{ scrollSnapType: 'x mandatory' }}
-        >
-          {team.agents.map((agent) => {
-            const isSingle = team.agents.length <= 2;
-            return (
-              <div
-                key={agent.slotId}
-                ref={(el) => { agentRefs.current[agent.slotId] = el; }}
-                className='shrink-0 h-full border-r border-solid border-[color:var(--border-base)]'
-                style={{
-                  width: isSingle ? undefined : '400px',
-                  flex: isSingle ? 1 : undefined,
-                  minWidth: isSingle ? '240px' : '400px',
-                  scrollSnapAlign: 'start',
-                }}
-              >
-                <AgentChatSlot
-                  agent={agent}
-                  teamId={team.id}
-                  isLead={agent.slotId === leadAgent?.slotId}
-                />
-              </div>
-            );
-          })}
+        <div className='relative flex h-full'>
+          {showLeftArrow && (
+            <div
+              className='absolute left-0 top-0 bottom-0 w-40px z-20 flex items-center justify-center cursor-pointer opacity-0 hover:opacity-100 transition-opacity'
+              style={{ background: 'linear-gradient(90deg, var(--color-bg-1) 30%, transparent)' }}
+              onClick={scrollToPrev}
+            >
+              <Left size='20' fill='currentColor' />
+            </div>
+          )}
+          <div
+            ref={scrollContainerRef}
+            className='flex h-full w-full overflow-x-auto overflow-y-hidden [scrollbar-width:none]'
+            style={{ scrollSnapType: 'x mandatory' }}
+          >
+            {agents.map((agent) => {
+              const isSingle = agents.length <= 2;
+              return (
+                <div
+                  key={agent.slotId}
+                  ref={(el) => { agentRefs.current[agent.slotId] = el; }}
+                  className='shrink-0 h-full border-r border-solid border-[color:var(--border-base)]'
+                  style={{
+                    width: isSingle ? undefined : '400px',
+                    flex: isSingle ? 1 : undefined,
+                    minWidth: isSingle ? '240px' : '400px',
+                    scrollSnapAlign: 'start',
+                  }}
+                >
+                  <AgentChatSlot
+                    agent={agent}
+                    teamId={team.id}
+                    isLead={agent.slotId === leadAgent?.slotId}
+                  />
+                </div>
+              );
+            })}
+          </div>
+          {showRightArrow && (
+            <div
+              className='absolute right-0 top-0 bottom-0 w-40px z-20 flex items-center justify-center cursor-pointer opacity-0 hover:opacity-100 transition-opacity'
+              style={{ background: 'linear-gradient(270deg, var(--color-bg-1) 30%, transparent)' }}
+              onClick={scrollToNext}
+            >
+              <Right size='20' fill='currentColor' />
+            </div>
+          )}
         </div>
       </ChatLayout>
     </TeamPermissionProvider>
