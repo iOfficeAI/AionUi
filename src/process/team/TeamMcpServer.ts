@@ -10,6 +10,7 @@
 import * as net from 'node:net';
 import * as path from 'node:path';
 import type { TMessage } from '@/common/chat/chatLib';
+import { ipcBridge } from '@/common';
 import { addMessage } from '@process/utils/message';
 import type { Mailbox } from './Mailbox';
 import type { TaskManager } from './TaskManager';
@@ -281,6 +282,12 @@ export class TeamMcpServer {
             createdAt: Date.now(),
           };
           addMessage(agent.conversationId, bubbleMsg);
+          ipcBridge.acpConversation.responseStream.emit({
+            type: 'teammate_message',
+            conversation_id: agent.conversationId,
+            msg_id: bubbleMsgId,
+            data: bubbleMsg,
+          });
         }
         recipients.push(agent.agentName);
         void wakeAgent(agent.slotId);
@@ -356,6 +363,12 @@ export class TeamMcpServer {
         createdAt: Date.now(),
       };
       addMessage(targetAgent.conversationId, bubbleMsg);
+      ipcBridge.acpConversation.responseStream.emit({
+        type: 'teammate_message',
+        conversation_id: targetAgent.conversationId,
+        msg_id: bubbleMsgId,
+        data: bubbleMsg,
+      });
     }
     void wakeAgent(targetSlotId);
 

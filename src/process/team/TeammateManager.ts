@@ -145,14 +145,21 @@ export class TeammateManager extends EventEmitter {
           const displayContent = mailboxMessages.length > 1 ? `[${senderName}] ${msg.content}` : msg.content;
           const msgId = crypto.randomUUID();
           // All messages written to target conversation are incoming from target's perspective
-          addMessage(agent.conversationId, {
+          const teammateMsg = {
             id: msgId,
             msg_id: msgId,
-            type: 'text',
-            position: 'left',
+            type: 'text' as const,
+            position: 'left' as const,
             conversation_id: agent.conversationId,
             content: { content: displayContent, teammateMessage: true, senderName, senderAgentType: sender?.agentType },
             createdAt: Date.now(),
+          };
+          addMessage(agent.conversationId, teammateMsg);
+          ipcBridge.acpConversation.responseStream.emit({
+            type: 'teammate_message',
+            conversation_id: agent.conversationId,
+            msg_id: msgId,
+            data: teammateMsg,
           });
         }
       }
@@ -370,12 +377,11 @@ export class TeammateManager extends EventEmitter {
           const targetAgent = this.agents.find((a) => a.slotId === targetSlotId);
           if (targetAgent?.conversationId) {
             const msgId = crypto.randomUUID();
-            // All messages written to target conversation are incoming from target's perspective
-            addMessage(targetAgent.conversationId, {
+            const dispatchedMsg = {
               id: msgId,
               msg_id: msgId,
-              type: 'text',
-              position: 'left',
+              type: 'text' as const,
+              position: 'left' as const,
               conversation_id: targetAgent.conversationId,
               content: {
                 content: action.content,
@@ -384,6 +390,14 @@ export class TeammateManager extends EventEmitter {
                 senderAgentType: agent.agentType,
               },
               createdAt: Date.now(),
+            };
+            // All messages written to target conversation are incoming from target's perspective
+            addMessage(targetAgent.conversationId, dispatchedMsg);
+            ipcBridge.acpConversation.responseStream.emit({
+              type: 'teammate_message',
+              conversation_id: targetAgent.conversationId,
+              msg_id: msgId,
+              data: dispatchedMsg,
             });
           }
           wakeTargets.add(targetSlotId);
@@ -444,11 +458,11 @@ export class TeammateManager extends EventEmitter {
         if (targetAgent?.conversationId) {
           const msgId = crypto.randomUUID();
           const fromAgent = this.agents.find((a) => a.slotId === fromSlotId);
-          addMessage(targetAgent.conversationId, {
+          const executedMsg = {
             id: msgId,
             msg_id: msgId,
-            type: 'text',
-            position: 'left',
+            type: 'text' as const,
+            position: 'left' as const,
             conversation_id: targetAgent.conversationId,
             content: {
               content: action.content,
@@ -457,6 +471,13 @@ export class TeammateManager extends EventEmitter {
               senderAgentType: fromAgent?.agentType,
             },
             createdAt: Date.now(),
+          };
+          addMessage(targetAgent.conversationId, executedMsg);
+          ipcBridge.acpConversation.responseStream.emit({
+            type: 'teammate_message',
+            conversation_id: targetAgent.conversationId,
+            msg_id: msgId,
+            data: executedMsg,
           });
         }
         await this.wake(targetSlotId);

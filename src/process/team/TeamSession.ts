@@ -119,6 +119,38 @@ export class TeamSession extends EventEmitter {
     await this.teammateManager.wake(leadSlotId);
   }
 
+  /**
+   * Send a user message directly to a specific agent (by slotId), bypassing the lead.
+   * Ensures MCP server is running, writes to agent's mailbox, persists user bubble, then wakes the agent.
+   */
+  async sendMessageToAgent(slotId: string, content: string): Promise<void> {
+    await this.startMcpServer();
+
+    await this.mailbox.write({
+      teamId: this.teamId,
+      toAgentId: slotId,
+      fromAgentId: 'user',
+      content,
+    });
+
+    const agent = this.teammateManager.getAgents().find((a) => a.slotId === slotId);
+    if (agent?.conversationId) {
+      const msgId = crypto.randomUUID();
+      const userMessage: TMessage = {
+        id: msgId,
+        msg_id: msgId,
+        type: 'text',
+        position: 'right',
+        conversation_id: agent.conversationId,
+        content: { content },
+        createdAt: Date.now(),
+      };
+      addMessage(agent.conversationId, userMessage);
+    }
+
+    await this.teammateManager.wake(slotId);
+  }
+
   /** Rename an agent and persist to DB */
   renameAgent(slotId: string, newName: string): void {
     this.teammateManager.renameAgent(slotId, newName);
