@@ -911,9 +911,39 @@ const migration_v19: IMigration = {
     console.log("[Migration v19] Added 'aionrs' to conversations type CHECK");
   },
   down: (db) => {
-    // Revert to previous CHECK without 'aionrs' — any existing aionrs rows will cause the migration to fail,
-    // so callers should delete them first if a true rollback is needed.
-    console.warn('[Migration v19] Rollback skipped: would lose aionrs conversations.');
+    // Remove aionrs conversations before copying to table with stricter constraint
+    db.exec(`DELETE FROM messages WHERE conversation_id IN (SELECT id FROM conversations WHERE type = 'aionrs')`);
+    db.exec(`DELETE FROM conversations WHERE type = 'aionrs'`);
+
+    db.exec(`CREATE TABLE IF NOT EXISTS conversations_rollback (
+        id TEXT PRIMARY KEY,
+        user_id TEXT NOT NULL,
+        name TEXT NOT NULL,
+        type TEXT NOT NULL CHECK(type IN ('gemini', 'acp', 'codex', 'openclaw-gateway', 'nanobot', 'remote')),
+        extra TEXT NOT NULL,
+        model TEXT,
+        status TEXT CHECK(status IN ('pending', 'running', 'finished')),
+        source TEXT,
+        channel_chat_id TEXT,
+        created_at INTEGER NOT NULL,
+        updated_at INTEGER NOT NULL,
+        FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+      )`);
+    db.exec(`INSERT INTO conversations_rollback (id, user_id, name, type, extra, model, status, source, channel_chat_id, created_at, updated_at)
+      SELECT id, user_id, name, type, extra, model, status, source, channel_chat_id, created_at, updated_at FROM conversations`);
+    db.exec('DROP TABLE conversations');
+    db.exec('ALTER TABLE conversations_rollback RENAME TO conversations');
+    db.exec('CREATE INDEX IF NOT EXISTS idx_conversations_user_id ON conversations(user_id)');
+    db.exec('CREATE INDEX IF NOT EXISTS idx_conversations_updated_at ON conversations(updated_at)');
+    db.exec('CREATE INDEX IF NOT EXISTS idx_conversations_type ON conversations(type)');
+    db.exec('CREATE INDEX IF NOT EXISTS idx_conversations_user_updated ON conversations(user_id, updated_at DESC)');
+    db.exec('CREATE INDEX IF NOT EXISTS idx_conversations_source ON conversations(source)');
+    db.exec('CREATE INDEX IF NOT EXISTS idx_conversations_source_updated ON conversations(source, updated_at DESC)');
+    db.exec(
+      'CREATE INDEX IF NOT EXISTS idx_conversations_source_chat ON conversations(source, channel_chat_id, updated_at DESC)'
+    );
+
+    console.log("[Migration v19] Rolled back: Removed 'aionrs' from conversations type CHECK");
   },
 };
 
