@@ -56,6 +56,7 @@ import {
   connectClaude,
   connectCodex,
   createGenericSpawnConfig,
+  spawnGenericBackend,
   spawnNpxBackend,
 } from '../../src/process/agent/acp/acpConnectors';
 
@@ -316,6 +317,59 @@ describe('connectClaude - detached process group', () => {
         shell: true,
       })
     );
+    expect(mockChild.unref).not.toHaveBeenCalled();
+  });
+});
+
+describe('spawnGenericBackend - detached process group', () => {
+  let originalPlatform: PropertyDescriptor | undefined;
+  const mockChild = { unref: vi.fn() };
+
+  beforeEach(() => {
+    originalPlatform = Object.getOwnPropertyDescriptor(process, 'platform');
+    mockSpawn.mockReturnValue(mockChild as unknown as ReturnType<typeof spawn>);
+  });
+
+  afterEach(() => {
+    vi.clearAllMocks();
+    if (originalPlatform) {
+      Object.defineProperty(process, 'platform', originalPlatform);
+    }
+  });
+
+  it('spawns detached on POSIX so generic ACP backends can be killed as a process group', async () => {
+    Object.defineProperty(process, 'platform', { value: 'linux', configurable: true });
+
+    const result = await spawnGenericBackend('qwen', 'qwen', '/cwd', ['--acp']);
+
+    expect(mockSpawn).toHaveBeenCalledWith(
+      'qwen',
+      ['--acp'],
+      expect.objectContaining({
+        cwd: '/cwd',
+        detached: true,
+        shell: false,
+      })
+    );
+    expect(result.isDetached).toBe(true);
+    expect(mockChild.unref).toHaveBeenCalledTimes(1);
+  });
+
+  it('does not detach generic ACP backends on Windows', async () => {
+    Object.defineProperty(process, 'platform', { value: 'win32', configurable: true });
+
+    const result = await spawnGenericBackend('qwen', 'qwen', 'C:\\cwd', ['--acp']);
+
+    expect(mockSpawn).toHaveBeenCalledWith(
+      expect.stringContaining('chcp 65001 >nul &&'),
+      ['--acp'],
+      expect.objectContaining({
+        cwd: 'C:\\cwd',
+        detached: false,
+        shell: true,
+      })
+    );
+    expect(result.isDetached).toBe(false);
     expect(mockChild.unref).not.toHaveBeenCalled();
   });
 });

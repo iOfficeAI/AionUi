@@ -470,11 +470,18 @@ export async function spawnGenericBackend(
   ensureMinNodeVersion(cleanEnv, 18, 17, `${backend} ACP`);
 
   const spawnStart = Date.now();
+  const detached = process.platform !== 'win32';
   const config = createGenericSpawnConfig(cliPath, workingDir, acpArgs, undefined, cleanEnv as Record<string, string>);
-  const child = spawn(config.command, config.args, config.options);
+  const child = spawn(config.command, config.args, {
+    ...config.options,
+    detached,
+  });
+  if (detached) {
+    child.unref();
+  }
   if (ACP_PERF_LOG) console.log(`[ACP-PERF] connect: ${backend} process spawned ${Date.now() - spawnStart}ms`);
 
-  return { child, isDetached: false };
+  return { child, isDetached: detached };
 }
 
 /** Callbacks for wiring a spawned child into the AcpConnection instance. */
