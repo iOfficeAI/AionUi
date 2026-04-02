@@ -222,25 +222,27 @@ cat <<'EOF' | officecli batch deck.pptx
   {"command":"add","parent":"/slide[N]","type":"shape","props":{"preset":"roundRect","x":"1.5cm","y":"4cm","width":"14.5cm","height":"7cm","fill":"F0F4F8","line":"none"}},
   {"command":"add","parent":"/slide[N]","type":"shape","props":{"preset":"ellipse","x":"2cm","y":"4.5cm","width":"2cm","height":"2cm","fill":"$SECONDARY","line":"none"}},
   {"command":"add","parent":"/slide[N]","type":"shape","props":{"text":"Feature One","x":"4.7cm","y":"4.6cm","width":"10.5cm","height":"1.8cm","font":"Calibri","size":"16","bold":"true","color":"$PRIMARY","align":"left","fill":"none"}},
-  {"command":"add","parent":"/slide[N]","type":"shape","props":{"text":"Brief description of feature one and its core benefit.","x":"2cm","y":"7cm","width":"13cm","height":"3.5cm","font":"Calibri","size":"16","color":"444444","align":"left","fill":"none"}},
+  {"command":"add","parent":"/slide[N]","type":"shape","props":{"text":"Brief description of feature one and its core benefit.","x":"2cm","y":"7cm","width":"13cm","height":"3.5cm","font":"Calibri","size":"16","color":"$MUTED_HEX","align":"left","fill":"none"}},
 
   {"command":"add","parent":"/slide[N]","type":"shape","props":{"preset":"roundRect","x":"17.5cm","y":"4cm","width":"14.5cm","height":"7cm","fill":"F0F4F8","line":"none"}},
   {"command":"add","parent":"/slide[N]","type":"shape","props":{"preset":"ellipse","x":"18cm","y":"4.5cm","width":"2cm","height":"2cm","fill":"$ACCENT1","line":"none"}},
   {"command":"add","parent":"/slide[N]","type":"shape","props":{"text":"Feature Two","x":"20.7cm","y":"4.6cm","width":"10.5cm","height":"1.8cm","font":"Calibri","size":"16","bold":"true","color":"$PRIMARY","align":"left","fill":"none"}},
-  {"command":"add","parent":"/slide[N]","type":"shape","props":{"text":"Brief description of feature two and its core benefit.","x":"18cm","y":"7cm","width":"13cm","height":"3.5cm","font":"Calibri","size":"16","color":"444444","align":"left","fill":"none"}},
+  {"command":"add","parent":"/slide[N]","type":"shape","props":{"text":"Brief description of feature two and its core benefit.","x":"18cm","y":"7cm","width":"13cm","height":"3.5cm","font":"Calibri","size":"16","color":"$MUTED_HEX","align":"left","fill":"none"}},
 
   {"command":"add","parent":"/slide[N]","type":"shape","props":{"preset":"roundRect","x":"1.5cm","y":"12cm","width":"14.5cm","height":"7cm","fill":"F0F4F8","line":"none"}},
   {"command":"add","parent":"/slide[N]","type":"shape","props":{"preset":"ellipse","x":"2cm","y":"12.5cm","width":"2cm","height":"2cm","fill":"$ACCENT2","line":"none"}},
   {"command":"add","parent":"/slide[N]","type":"shape","props":{"text":"Feature Three","x":"4.7cm","y":"12.6cm","width":"10.5cm","height":"1.8cm","font":"Calibri","size":"16","bold":"true","color":"$PRIMARY","align":"left","fill":"none"}},
-  {"command":"add","parent":"/slide[N]","type":"shape","props":{"text":"Brief description of feature three and its core benefit.","x":"2cm","y":"15cm","width":"13cm","height":"3.5cm","font":"Calibri","size":"16","color":"444444","align":"left","fill":"none"}},
+  {"command":"add","parent":"/slide[N]","type":"shape","props":{"text":"Brief description of feature three and its core benefit.","x":"2cm","y":"15cm","width":"13cm","height":"3.5cm","font":"Calibri","size":"16","color":"$MUTED_HEX","align":"left","fill":"none"}},
 
   {"command":"add","parent":"/slide[N]","type":"shape","props":{"preset":"roundRect","x":"17.5cm","y":"12cm","width":"14.5cm","height":"7cm","fill":"F0F4F8","line":"none"}},
   {"command":"add","parent":"/slide[N]","type":"shape","props":{"preset":"ellipse","x":"18cm","y":"12.5cm","width":"2cm","height":"2cm","fill":"$PRIMARY","line":"none"}},
   {"command":"add","parent":"/slide[N]","type":"shape","props":{"text":"Feature Four","x":"20.7cm","y":"12.6cm","width":"10.5cm","height":"1.8cm","font":"Calibri","size":"16","bold":"true","color":"$PRIMARY","align":"left","fill":"none"}},
-  {"command":"add","parent":"/slide[N]","type":"shape","props":{"text":"Brief description of feature four and its core benefit.","x":"18cm","y":"15cm","width":"13cm","height":"3.5cm","font":"Calibri","size":"16","color":"444444","align":"left","fill":"none"}}
+  {"command":"add","parent":"/slide[N]","type":"shape","props":{"text":"Brief description of feature four and its core benefit.","x":"18cm","y":"15cm","width":"13cm","height":"3.5cm","font":"Calibri","size":"16","color":"$MUTED_HEX","align":"left","fill":"none"}}
 ]
 EOF
 ```
+
+> **`$MUTED_HEX`**: Replace with the literal hex value of your declared `$MUTED` palette variable (e.g., `64748B`). Variables are not expanded inside heredoc single-quote blocks — you must use the bare hex. Per H-PALETTE, all colors must trace back to a named palette variable; never use `444444` or any undeclared hex.
 
 > For dark-background slides, change card fill to a lighter dark shade (e.g., `fill="1A2540"`) and text color to `FFFFFF`/`E8E8E8`.
 

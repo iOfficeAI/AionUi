@@ -700,8 +700,14 @@ When using `--prop pbdr.bottom=...` to add a bottom border to a paragraph (e.g.,
 # Instead of (may fail due to element order bug):
 officecli set paper.docx '/body/p[N]' --prop "pbdr.bottom=single;4;000000;4"
 
-# Use raw-set with correct element order:
-officecli raw-set paper.docx '/body/p[N]/pPr' --xml '<w:pBdr><w:bottom w:val="single" w:sz="4" w:space="4" w:color="000000"/></w:pBdr>'
+# Use raw-set with correct element order (requires --xpath and --action):
+# Step 1: Remove any existing pBdr (avoids duplicate element)
+officecli raw-set paper.docx /document \
+  --xpath "//w:body/w:p[N]/w:pPr/w:pBdr" --action remove
+# Step 2: Append corrected pBdr to the paragraph's pPr
+officecli raw-set paper.docx '/body/p[N]' \
+  --xpath './w:pPr' --action append \
+  --xml '<w:pBdr xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main"><w:bottom w:val="single" w:sz="4" w:space="4" w:color="000000"/></w:pBdr>'
 ```
 
 > **Note:** This is a CLI-level bug (XML serialization order). The skill is not at fault. Mark as P3 — the CLI team is responsible for the fix. Using `raw-set` as shown above is the correct workaround until the bug is resolved.

@@ -538,36 +538,40 @@ officecli get slides.pptx '/slide[N]/shape[M]'
 
 **均匀间距公式：**
 ```
-left_margin  = 2cm（或按设计）
-right_margin = 2cm（或按设计）
-usable_width = slide_width - left_margin - right_margin
-             = 33.87 - 2 - 2 = 29.87cm（标准 16:9）
+left_margin   = 2cm（或按设计）
+right_margin  = 2cm（或按设计）
+circle_width  = 节点圆的宽度（例如 3cm）
+
+# CRITICAL: usable_width 必须减去 circle_width，否则最后节点右边界会溢出幻灯片
+usable_width = slide_width - left_margin - right_margin - circle_width
+             = 33.87 - 2 - 2 - 3 = 26.87cm（标准 16:9，circle_width=3cm）
 
 node_spacing = usable_width / (N - 1)   # N = 节点总数
 
 node_x[i]   = left_margin + node_spacing × i   # i = 0, 1, ..., N-1
 ```
 
-**示例（4 节点，节圆半径 1.5cm）：**
-```
-node_spacing = 29.87 / 3 ≈ 9.957cm
+> **为什么减 circle_width？** `node_x[i]` 是圆的**左边 x**，最后节点右边界 = `node_x[N-1] + circle_width`。不减的话右边界会超出幻灯片边缘（33.87cm），导致 P1 截断错误。
 
-node_x[0] = 2cm            → circle x=2cm（中心 x=3.5cm）
-node_x[1] = 2 + 9.957     = 11.957cm → circle x=11.957cm
-node_x[2] = 2 + 9.957×2   = 21.914cm → circle x=21.914cm
-node_x[3] = 2 + 9.957×3   = 31.87cm  → circle x=31.87cm（而非直接用 31.87=33.87-2）
+**示例（4 节点，节圆宽 3cm）：**
 ```
+usable_width = 33.87 - 2 - 2 - 3 = 26.87cm
+node_spacing = 26.87 / 3 ≈ 8.957cm
 
-> **注意**：圆形 x/y 是左上角坐标，中心 = x + width/2。上面的 `node_x[i]` 是圆的左边 x，圆宽 3cm 时圆心在 `node_x[i] + 1.5cm`。
+node_x[0] = 2cm              → circle x=2cm,     右边 5cm    ✓
+node_x[1] = 2 + 8.957      = 10.957cm → circle x=10.96cm,   右边 13.96cm  ✓
+node_x[2] = 2 + 8.957×2    = 19.914cm → circle x=19.91cm,   右边 22.91cm  ✓
+node_x[3] = 2 + 8.957×3    = 28.87cm  → circle x=28.87cm,   右边 31.87cm  ✓ (< 33.87)
+```
 
 ```bash
-# 4 节点均匀时间轴示例（node_spacing ≈ 9.957cm，圆宽 3cm）
-# 水平基准线
+# 4 节点均匀时间轴示例（node_spacing ≈ 8.957cm，圆宽 3cm，usable_width=26.87cm）
+# 水平基准线（从第一节点圆心到最后节点圆心）
 officecli add slides.pptx /slide[N] --type connector \
-  --prop x=2cm --prop y=10cm --prop width=29.87cm --prop height=0 \
+  --prop x=3.5cm --prop y=10cm --prop width=27.87cm --prop height=0 \
   --prop line=CADCFC --prop lineWidth=2pt
 
-# 节点 1（i=0）  x = 2cm
+# 节点 1（i=0）  x = 2cm，右边 5cm ✓
 officecli add slides.pptx /slide[N] --type shape \
   --prop preset=ellipse --prop fill=1E2761 \
   --prop x=2cm --prop y=8.5cm --prop width=3cm --prop height=3cm --prop line=none
@@ -576,31 +580,30 @@ officecli add slides.pptx /slide[N] --type shape --prop text="Q1" \
   --prop fill=none --prop color=FFFFFF --prop size=16 --prop bold=true \
   --prop align=center --prop valign=center
 
-# 节点 2（i=1）  x = 2 + 9.957 = 11.957cm → 取 11.96cm
+# 节点 2（i=1）  x = 2 + 8.957 = 10.957cm → 取 10.96cm，右边 13.96cm ✓
 officecli add slides.pptx /slide[N] --type shape \
   --prop preset=ellipse --prop fill=CADCFC \
-  --prop x=11.96cm --prop y=8.5cm --prop width=3cm --prop height=3cm --prop line=none
+  --prop x=10.96cm --prop y=8.5cm --prop width=3cm --prop height=3cm --prop line=none
 officecli add slides.pptx /slide[N] --type shape --prop text="Q2" \
-  --prop x=11.96cm --prop y=8.5cm --prop width=3cm --prop height=3cm \
+  --prop x=10.96cm --prop y=8.5cm --prop width=3cm --prop height=3cm \
   --prop fill=none --prop color=1E2761 --prop size=16 --prop bold=true \
   --prop align=center --prop valign=center
 
-# 节点 3（i=2）  x = 2 + 9.957×2 = 21.914cm → 取 21.91cm
+# 节点 3（i=2）  x = 2 + 8.957×2 = 19.914cm → 取 19.91cm，右边 22.91cm ✓
 officecli add slides.pptx /slide[N] --type shape \
   --prop preset=ellipse --prop fill=1E2761 \
-  --prop x=21.91cm --prop y=8.5cm --prop width=3cm --prop height=3cm --prop line=none
+  --prop x=19.91cm --prop y=8.5cm --prop width=3cm --prop height=3cm --prop line=none
 officecli add slides.pptx /slide[N] --type shape --prop text="Q3" \
-  --prop x=21.91cm --prop y=8.5cm --prop width=3cm --prop height=3cm \
+  --prop x=19.91cm --prop y=8.5cm --prop width=3cm --prop height=3cm \
   --prop fill=none --prop color=FFFFFF --prop size=16 --prop bold=true \
   --prop align=center --prop valign=center
 
-# 节点 4（i=3）  x = 2 + 9.957×3 = 31.871cm → 取 31.87cm
-# 注意：不要写成 33.87-2=31.87（两者恰好相等，但语义不同；若 margin 变化则必须用公式）
+# 节点 4（i=3）  x = 2 + 8.957×3 = 28.871cm → 取 28.87cm，右边 31.87cm ✓ (< 33.87)
 officecli add slides.pptx /slide[N] --type shape \
   --prop preset=ellipse --prop fill=CADCFC \
-  --prop x=31.87cm --prop y=8.5cm --prop width=3cm --prop height=3cm --prop line=none
+  --prop x=28.87cm --prop y=8.5cm --prop width=3cm --prop height=3cm --prop line=none
 officecli add slides.pptx /slide[N] --type shape --prop text="Q4" \
-  --prop x=31.87cm --prop y=8.5cm --prop width=3cm --prop height=3cm \
+  --prop x=28.87cm --prop y=8.5cm --prop width=3cm --prop height=3cm \
   --prop fill=none --prop color=1E2761 --prop size=16 --prop bold=true \
   --prop align=center --prop valign=center
 ```
