@@ -35,12 +35,14 @@ export class TeamSessionService {
   ) {}
 
   /**
-   * Ensure workspace is a non-empty string.
-   * Falls back to user home directory when the caller provides an empty or missing value.
+   * Returns the workspace path as-is, or empty string when not specified.
+   * An empty workspace tells the downstream agent factory (initAgent.ts) to
+   * create a temporary workspace (e.g. `gemini-temp-<timestamp>`), matching
+   * the single-agent conversation behavior.
    */
   private resolveWorkspace(workspace: string | undefined): string {
     if (workspace && workspace.trim().length > 0) return workspace;
-    return os.homedir();
+    return '';
   }
 
   private async hasGeminiOauthCreds(): Promise<boolean> {
@@ -311,6 +313,7 @@ export class TeamSessionService {
       name: `${teamName} - ${agent.agentName}`,
       agentName: agent.agentName,
       workspace,
+      customWorkspace: Boolean(workspace),
       model,
       cliPath: agent.cliPath,
       customAgentId: agent.customAgentId,

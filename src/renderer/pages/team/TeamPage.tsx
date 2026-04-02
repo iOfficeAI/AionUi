@@ -186,9 +186,11 @@ const TeamPageContent: React.FC<TeamPageContentProps> = ({ team, onAddAgent }) =
     () => ipcBridge.conversation.get.invoke({ id: leadAgent!.conversationId })
   );
 
-  const workspaceEnabled = Boolean(team.workspace);
+  // Use team workspace if specified, otherwise fall back to lead agent's conversation workspace (temp workspace)
+  const effectiveWorkspace = team.workspace || (dispatchConversation?.extra as { workspace?: string })?.workspace || '';
+  const workspaceEnabled = Boolean(effectiveWorkspace);
 
-  // Auto-expand workspace panel on mount when team has a workspace
+  // Auto-expand workspace panel on mount when workspace is available
   useEffect(() => {
     if (workspaceEnabled && leadAgent?.conversationId) {
       dispatchWorkspaceHasFilesEvent(true, leadAgent.conversationId);
@@ -324,7 +326,7 @@ const TeamPageContent: React.FC<TeamPageContentProps> = ({ team, onAddAgent }) =
         tabsSlot={tabsSlot}
         conversationId={activeAgent?.conversationId}
         agentName={undefined}
-        workspacePath={team.workspace}
+        workspacePath={effectiveWorkspace}
       >
         <div className='relative flex h-full'>
           {showLeftArrow && (
