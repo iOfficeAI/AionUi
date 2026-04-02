@@ -458,6 +458,7 @@ export class TeamSessionService {
 
   private resolveConversationType(agentType: string): AgentType {
     if (agentType === 'gemini') return 'gemini';
+    if (agentType === 'aionrs') return 'aionrs';
     if (agentType === 'codex') return 'acp';
     if (agentType === 'openclaw-gateway') return 'openclaw-gateway';
     if (agentType === 'nanobot') return 'nanobot';

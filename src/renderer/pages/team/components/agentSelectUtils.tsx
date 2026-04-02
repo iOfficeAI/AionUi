@@ -18,8 +18,9 @@ export function resolveTeamAgentType(agent: AvailableAgent | undefined, fallback
 
 export function resolveConversationType(
   backend: string
-): 'gemini' | 'acp' | 'codex' | 'openclaw-gateway' | 'nanobot' | 'remote' {
+): 'gemini' | 'acp' | 'aionrs' | 'codex' | 'openclaw-gateway' | 'nanobot' | 'remote' {
   if (backend === 'gemini') return 'gemini';
+  if (backend === 'aionrs') return 'aionrs';
   if (backend === 'codex') return 'acp';
   if (backend === 'openclaw-gateway') return 'openclaw-gateway';
   if (backend === 'nanobot') return 'nanobot';

@@ -5,7 +5,7 @@ import { useTranslation } from 'react-i18next';
 import useSWR from 'swr';
 import { ipcBridge } from '@/common';
 import type { TeamAgent, TTeam } from '@/common/types/teamTypes';
-import type { TChatConversation, TProviderWithModel } from '@/common/config/storage';
+import type { IProvider, TChatConversation, TProviderWithModel } from '@/common/config/storage';
 import ChatLayout from '@/renderer/pages/conversation/components/ChatLayout';
 import ChatSider from '@/renderer/pages/conversation/components/ChatSider';
 import TeamConfirmOverlay from './components/TeamConfirmOverlay';
@@ -13,6 +13,8 @@ import { useConversationAgents } from '@/renderer/pages/conversation/hooks/useCo
 import AcpModelSelector from '@/renderer/components/agent/AcpModelSelector';
 import GeminiModelSelector from '@/renderer/pages/conversation/platforms/gemini/GeminiModelSelector';
 import { useGeminiModelSelection } from '@/renderer/pages/conversation/platforms/gemini/useGeminiModelSelection';
+import AionrsModelSelector from '@/renderer/pages/conversation/platforms/aionrs/AionrsModelSelector';
+import { useAionrsModelSelection } from '@/renderer/pages/conversation/platforms/aionrs/useAionrsModelSelection';
 import TeamTabs from './components/TeamTabs';
 import TeamChatView from './components/TeamChatView';
 import { agentFromKey, resolveConversationType, resolveTeamAgentType } from './components/agentSelectUtils';
@@ -31,6 +33,23 @@ type TeamPageContentProps = {
   onAddAgent: (data: { agentName: string; agentKey: string }) => void;
 };
 
+/** Compact aionrs model selector for the agent header */
+const AionrsHeaderModelSelector: React.FC<{ conversationId: string; initialModel?: TProviderWithModel }> = ({
+  conversationId,
+  initialModel,
+}) => {
+  const onSelectModel = useCallback(
+    async (_provider: IProvider, modelName: string) => {
+      const selected = { ..._provider, useModel: modelName } as TProviderWithModel;
+      const ok = await ipcBridge.conversation.update.invoke({ id: conversationId, updates: { model: selected } });
+      return Boolean(ok);
+    },
+    [conversationId]
+  );
+  const modelSelection = useAionrsModelSelection({ initialModel, onSelectModel });
+  return <AionrsModelSelector selection={modelSelection} />;
+};
+
 /** Fetches conversation for a single agent and renders TeamChatView */
 const AgentChatSlot: React.FC<{
   agent: TeamAgent;
@@ -43,12 +62,13 @@ const AgentChatSlot: React.FC<{
   const logo = getAgentLogo(agent.agentType);
   const [isFullscreen, setIsFullscreen] = useState(false);
 
+  const isAionrs = conversation?.type === 'aionrs';
   const initialModelId = (conversation?.extra as { currentModelId?: string })?.currentModelId;
   const isAcpLike = agent.conversationType === 'acp' || agent.conversationType === 'codex';
   const isGemini = agent.conversationType === 'gemini';
 
   const geminiOnSelectModel = useCallback(
-    async (_provider: import('@/common/config/storage').IProvider, modelName: string) => {
+    async (_provider: IProvider, modelName: string) => {
       if (!conversation) return false;
       const selected = { ..._provider, useModel: modelName } as TProviderWithModel;
       const ok = await ipcBridge.conversation.update.invoke({ id: conversation.id, updates: { model: selected } });
@@ -94,7 +114,7 @@ const AgentChatSlot: React.FC<{
           )}
         </div>
         <div className='flex items-center gap-8px shrink-0'>
-          {agent.conversationId && isAcpLike && (
+          {agent.conversationId && !isAionrs && isAcpLike && (
             <div className='max-w-100px overflow-hidden'>
               <AcpModelSelector
                 key={agent.conversationId}
@@ -107,6 +127,15 @@ const AgentChatSlot: React.FC<{
           {agent.conversationId && isGemini && (
             <div className='max-w-120px overflow-hidden'>
               <GeminiModelSelector selection={geminiModelSelection} />
+            </div>
+          )}
+          {isAionrs && agent.conversationId && (
+            <div className='max-w-120px overflow-hidden'>
+              <AionrsHeaderModelSelector
+                key={agent.conversationId}
+                conversationId={agent.conversationId}
+                initialModel={conversation?.model as TProviderWithModel | undefined}
+              />
             </div>
           )}
           <div
