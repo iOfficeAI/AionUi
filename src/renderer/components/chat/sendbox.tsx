@@ -957,7 +957,11 @@ const SendBox: React.FC<{
           <div className='absolute left-12px right-12px bottom-[calc(100%+8px)] z-70'>
             <AtFileMenu
               activeIndex={atFileMenuActiveIndex}
-              emptyText={t('conversation.workspace.search.empty', { defaultValue: 'No files found' })}
+              emptyText={
+                deferredAtFileQuery
+                  ? t('conversation.workspace.search.empty', { defaultValue: 'No files found' })
+                  : t('messages.slash.hint', { defaultValue: 'Type to search files' })
+              }
               items={visibleAtFileMenuItems}
               loading={workspaceMentionLoading}
               onHoverItem={setAtFileMenuActiveIndex}

@@ -87,6 +87,36 @@ describe('workspaceMentions', () => {
       },
     ];
 
-    expect(filterWorkspaceMentionItems(items, '').map((item) => item.relativePath)).toEqual(['a.ts', 'b.ts']);
+    expect(filterWorkspaceMentionItems(items, '').map((item) => item.relativePath)).toEqual([]);
+  });
+
+  it('filters obvious junk files from flattened mention items', () => {
+    const tree: IDirOrFile[] = [
+      {
+        name: 'workspace',
+        fullPath: '/workspace',
+        relativePath: '',
+        isDir: true,
+        isFile: false,
+        children: [
+          {
+            name: '.DS_Store',
+            fullPath: '/workspace/.DS_Store',
+            relativePath: '.DS_Store',
+            isDir: false,
+            isFile: true,
+          },
+          {
+            name: 'README.md',
+            fullPath: '/workspace/README.md',
+            relativePath: 'README.md',
+            isDir: false,
+            isFile: true,
+          },
+        ],
+      },
+    ];
+
+    expect(flattenWorkspaceMentionItems(tree).map((item) => item.name)).toEqual(['README.md']);
   });
 });

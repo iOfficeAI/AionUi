@@ -266,6 +266,20 @@ describe('SendBox @ file menu', () => {
     ]);
   });
 
+  it('shows a search hint instead of dumping all files for bare @', async () => {
+    render(<SendBoxHarness />);
+
+    const textarea = screen.getByRole('textbox') as HTMLTextAreaElement;
+
+    fireEvent.change(textarea, { target: { value: '@' } });
+    textarea.selectionStart = textarea.selectionEnd = textarea.value.length;
+    fireEvent.keyUp(textarea, { key: '@' });
+
+    expect(await screen.findByText('Type to search files')).toBeInTheDocument();
+    expect(screen.queryByText('date.ts')).not.toBeInTheDocument();
+    expect(screen.queryByText('My File.md')).not.toBeInTheDocument();
+  });
+
   it('escapes spaces in inserted paths', async () => {
     render(<SendBoxHarness />);
 

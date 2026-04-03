@@ -2,9 +2,14 @@ import type { IDirOrFile } from '@/common/adapter/ipcBridge';
 import type { FileOrFolderItem } from '@/renderer/utils/file/fileTypes';
 
 const DEFAULT_MENTION_RESULT_LIMIT = 8;
+const IGNORED_FILE_NAMES = new Set(['.ds_store']);
 
 function normalizeSearchValue(value: string): string {
   return value.trim().toLowerCase();
+}
+
+function shouldIgnoreMentionItem(item: FileOrFolderItem): boolean {
+  return IGNORED_FILE_NAMES.has(item.name.toLowerCase());
 }
 
 function computeMentionScore(item: FileOrFolderItem, query: string): number {
@@ -45,12 +50,16 @@ export function flattenWorkspaceMentionItems(nodes: IDirOrFile[]): FileOrFolderI
   const visit = (items: IDirOrFile[]) => {
     for (const item of items) {
       if (item.isFile) {
-        flattened.push({
+        const mentionItem = {
           path: item.fullPath,
           name: item.name,
           isFile: true,
           relativePath: item.relativePath || undefined,
-        });
+        };
+
+        if (!shouldIgnoreMentionItem(mentionItem)) {
+          flattened.push(mentionItem);
+        }
       }
 
       if (item.children?.length) {
@@ -69,6 +78,9 @@ export function filterWorkspaceMentionItems(
   limit = DEFAULT_MENTION_RESULT_LIMIT
 ): FileOrFolderItem[] {
   const normalizedQuery = normalizeSearchValue(query);
+  if (!normalizedQuery) {
+    return [];
+  }
   const scored = items
     .map((item) => ({
       item,
