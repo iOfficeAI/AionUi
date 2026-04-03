@@ -13,7 +13,7 @@
  * the app is launched from Finder / launchd instead of a terminal.
  */
 
-import { execFile, execFileSync } from 'child_process';
+import { execFile, execFileSync, spawn } from 'child_process';
 import { accessSync, existsSync, readdirSync } from 'fs';
 import os from 'os';
 import path from 'path';
@@ -496,23 +496,61 @@ let cachedFullShellEnv: Record<string, string> | null = null;
 /**
  * Load ALL environment variables from user's login shell (no whitelist).
  * Used by agents (e.g. Codex) that need the complete shell env.
- * Shares the same shell invocation approach as loadShellEnvironment()
- * but caches separately and does not filter.
+ *
+ * Uses `-i -l` (interactive login) so that `.zshrc` / `.bashrc` are loaded,
+ * which is where most users export custom env vars (e.g. API keys).
+ * The child is spawned with `detached: true` to create a new session
+ * (setsid), preventing zsh's `tcsetpgrp()` from hijacking the parent's
+ * terminal foreground process group — the root cause of the Ctrl+C
+ * regression fixed in 0039b295.
  */
-export function loadFullShellEnvironment(): Record<string, string> {
+export async function loadFullShellEnvironment(): Promise<Record<string, string>> {
   if (cachedFullShellEnv !== null) return cachedFullShellEnv;
   cachedFullShellEnv = {};
   if (process.platform === 'win32') return cachedFullShellEnv;
 
-  try {
-    const shell = process.env.SHELL || '/bin/bash';
-    if (!path.isAbsolute(shell)) return cachedFullShellEnv;
+  const shell = process.env.SHELL || '/bin/bash';
+  if (!path.isAbsolute(shell)) return cachedFullShellEnv;
 
-    const output = execFileSync(shell, ['-l', '-c', 'env'], {
-      encoding: 'utf-8',
-      timeout: 5000,
-      stdio: ['pipe', 'pipe', 'pipe'],
-      env: { ...process.env, HOME: os.homedir() },
+  try {
+    const output = await new Promise<string>((resolve, reject) => {
+      let stdout = '';
+      let stderr = '';
+      // detached: true → child runs in a new session (setsid on POSIX).
+      // Interactive zsh calls tcsetpgrp() to grab the foreground process
+      // group, but in a detached session it has no controlling terminal,
+      // so the call is harmless and Ctrl+C in the parent is unaffected.
+      const child = spawn(shell, ['-i', '-l', '-c', 'env'], {
+        detached: true,
+        stdio: ['pipe', 'pipe', 'pipe'],
+        env: { ...process.env, HOME: os.homedir() },
+      });
+      child.unref();
+
+      child.stdout!.on('data', (chunk: Buffer) => {
+        stdout += chunk.toString();
+      });
+      child.stderr!.on('data', (chunk: Buffer) => {
+        stderr += chunk.toString();
+      });
+      child.on('error', reject);
+      child.on('close', (code) => {
+        if (code === 0) {
+          resolve(stdout);
+        } else {
+          reject(new Error(`Shell exited with code ${code}: ${stderr.substring(0, 200)}`));
+        }
+      });
+
+      // Safety timeout — don't hang forever if the shell stalls
+      setTimeout(() => {
+        try {
+          child.kill();
+        } catch {
+          // best-effort
+        }
+        reject(new Error('Timed out loading full shell environment'));
+      }, 5000);
     });
 
     cachedFullShellEnv = parseEnvOutput(output);
