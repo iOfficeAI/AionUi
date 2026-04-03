@@ -340,7 +340,7 @@ Please check your local CLI tool authentication status`,
                 onModeChanged={teamPermission?.propagateMode}
               />
             )}
-            <AcpConfigSelector conversationId={conversation_id} backend={backend} />
+            <AcpConfigSelector conversationId={conversation_id} backend={backend} compact={!!teamId} />
           </div>
         }
         prefix={
@@ -408,6 +408,7 @@ Please check your local CLI tool authentication status`,
         slashCommands={slashCommands}
         onSlashBuiltinCommand={onSlashBuiltinCommand}
         allowSendWhileLoading
+        compactActions={!!teamId}
         sendButtonPrefix={
           tokenUsage ? (
             <ContextUsageIndicator

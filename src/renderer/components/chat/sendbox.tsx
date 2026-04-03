@@ -66,6 +66,7 @@ const SendBox: React.FC<{
   hasPendingAttachments?: boolean;
   enableBtw?: boolean;
   allowSendWhileLoading?: boolean;
+  compactActions?: boolean;
 }> = ({
   onSend,
   onStop,
@@ -87,6 +88,7 @@ const SendBox: React.FC<{
   hasPendingAttachments = false,
   enableBtw = false,
   allowSendWhileLoading = false,
+  compactActions = false,
 }) => {
   const layout = useLayoutContext();
   const isMobile = layout?.isMobile ?? false;
@@ -670,6 +672,9 @@ const SendBox: React.FC<{
 
   const renderActionButtons = () => {
     if (allowSendWhileLoading && (isLoading || loading)) {
+      if (compactActions) {
+        return stopButton;
+      }
       return (
         <>
           {stopButton}

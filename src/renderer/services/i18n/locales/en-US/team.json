@@ -1,7 +1,19 @@
 {
   "sider": {
     "title": "Teams",
-    "createTeam": "New Team"
+    "createTeam": "New Team",
+    "pin": "Pin",
+    "unpin": "Unpin",
+    "rename": "Rename",
+    "delete": "Delete",
+    "renameTitle": "Rename Team",
+    "renamePlaceholder": "Team name",
+    "deleteConfirm": "Delete this team?",
+    "deleteConfirmContent": "This action cannot be undone.",
+    "deleteOk": "Delete",
+    "deleteCancel": "Cancel",
+    "renameOk": "Save",
+    "renameCancel": "Cancel"
   },
   "addAgent": {
     "title": "Add Agent",

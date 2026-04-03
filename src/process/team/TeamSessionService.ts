@@ -483,6 +483,12 @@ export class TeamSessionService {
     await this.repo.update(teamId, { agents: updatedAgents, updatedAt: Date.now() });
   }
 
+  async renameTeam(id: string, name: string): Promise<void> {
+    const trimmed = name.trim();
+    if (!trimmed) return;
+    await this.repo.update(id, { name: trimmed, updatedAt: Date.now() });
+  }
+
   async removeAgent(teamId: string, slotId: string): Promise<void> {
     const team = await this.repo.findById(teamId);
     if (!team) throw new Error(`Team "${teamId}" not found`);

@@ -1,8 +1,9 @@
 import { Message, Spin } from '@arco-design/web-react';
-import { FullScreen, Left, OffScreen, Peoples, Right } from '@icon-park/react';
+import { FullScreen, Left, OffScreen, Right } from '@icon-park/react';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import useSWR from 'swr';
+import useSWR, { useSWRConfig } from 'swr';
+import { useAuth } from '@renderer/hooks/context/AuthContext';
 import { ipcBridge } from '@/common';
 import type { TeamAgent, TTeam } from '@/common/types/teamTypes';
 import type { IProvider, TChatConversation, TProviderWithModel } from '@/common/config/storage';
@@ -31,6 +32,7 @@ type Props = {
 type TeamPageContentProps = {
   team: TTeam;
   onAddAgent: (data: { agentName: string; agentKey: string }) => void;
+  onRenameTeam: (newName: string) => Promise<boolean>;
 };
 
 /** Compact aionrs model selector for the agent header */
@@ -165,7 +167,7 @@ const AgentChatSlot: React.FC<{
 };
 
 /** Inner component that reads active tab from context and renders the chat layout */
-const TeamPageContent: React.FC<TeamPageContentProps> = ({ team, onAddAgent }) => {
+const TeamPageContent: React.FC<TeamPageContentProps> = ({ team, onAddAgent, onRenameTeam }) => {
   const { t } = useTranslation();
   const { agents, activeSlotId, switchTab } = useTeamTabs();
   const [, messageContext] = Message.useMessage({ maxCount: 1 });
@@ -302,16 +304,6 @@ const TeamPageContent: React.FC<TeamPageContentProps> = ({ team, onAddAgent }) =
     [onAddAgent, handleTabClick]
   );
 
-  const headerTitle = useMemo(
-    () => (
-      <div className='flex items-center gap-8px'>
-        <Peoples theme='outline' size='18' fill='currentColor' />
-        <span>{team.name}</span>
-      </div>
-    ),
-    [team.name]
-  );
-
   return (
     <TeamPermissionProvider
       isLeadAgent={isLeadAgent}
@@ -321,7 +313,7 @@ const TeamPageContent: React.FC<TeamPageContentProps> = ({ team, onAddAgent }) =
       {messageContext}
       {leadConversationId && <TeamConfirmOverlay allConversationIds={allConversationIds} />}
       <ChatLayout
-        title={headerTitle}
+        title={team.name}
         siderTitle={siderTitle}
         sider={sider}
         workspaceEnabled={workspaceEnabled}
@@ -329,6 +321,7 @@ const TeamPageContent: React.FC<TeamPageContentProps> = ({ team, onAddAgent }) =
         conversationId={activeAgent?.conversationId}
         agentName={undefined}
         workspacePath={effectiveWorkspace}
+        onRenameTitle={onRenameTeam}
       >
         <div className='relative flex h-full'>
           {fullscreenSlotId ? (
@@ -420,7 +413,9 @@ const TeamPageContent: React.FC<TeamPageContentProps> = ({ team, onAddAgent }) =
 };
 
 const TeamPage: React.FC<Props> = ({ team }) => {
-  const { statusMap, addAgent, renameAgent } = useTeamSession(team);
+  const { statusMap, addAgent, renameAgent, mutateTeam } = useTeamSession(team);
+  const { user } = useAuth();
+  const { mutate: globalMutate } = useSWRConfig();
   const { cliAgents, presetAssistants } = useConversationAgents();
   const defaultSlotId = team.agents[0]?.slotId ?? '';
 
@@ -443,6 +438,21 @@ const TeamPage: React.FC<Props> = ({ team }) => {
     [addAgent, cliAgents, presetAssistants]
   );
 
+  const handleRenameTeam = useCallback(
+    async (newName: string): Promise<boolean> => {
+      try {
+        await ipcBridge.team.renameTeam.invoke({ id: team.id, name: newName });
+        await mutateTeam();
+        await globalMutate(`teams/${user?.id ?? 'system_default_user'}`);
+        return true;
+      } catch (error) {
+        console.error('Failed to rename team:', error);
+        return false;
+      }
+    },
+    [team.id, mutateTeam, globalMutate, user]
+  );
+
   return (
     <TeamTabsProvider
       agents={team.agents}
@@ -451,7 +461,7 @@ const TeamPage: React.FC<Props> = ({ team }) => {
       teamId={team.id}
       renameAgent={renameAgent}
     >
-      <TeamPageContent team={team} onAddAgent={handleAddAgent} />
+      <TeamPageContent team={team} onAddAgent={handleAddAgent} onRenameTeam={handleRenameTeam} />
     </TeamTabsProvider>
   );
 };

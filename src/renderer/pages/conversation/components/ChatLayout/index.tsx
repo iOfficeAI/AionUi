@@ -51,6 +51,8 @@ const ChatLayout: React.FC<{
   tabsSlot?: React.ReactNode;
   /** Workspace path for opening in external tools */
   workspacePath?: string;
+  /** Custom rename handler; when provided, replaces the default conversation.update rename flow */
+  onRenameTitle?: (newName: string) => Promise<boolean>;
 }> = (props) => {
   const { conversationId, workspacePath } = props;
   const { backend, agentName, agentLogo, agentLogoIsEmoji, workspaceEnabled = true } = props;
@@ -82,6 +84,7 @@ const ChatLayout: React.FC<{
       title: props.title,
       conversationId,
       updateTabName,
+      onRename: props.onRenameTitle,
     });
 
   // Fetch custom agents config as fallback when agentName is not provided

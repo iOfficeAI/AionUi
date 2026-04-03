@@ -34,7 +34,8 @@ const CONFIG_OPTION_SUPPORTED_BACKENDS: Set<AcpBackend> = new Set(['codex']);
 const AcpConfigSelector: React.FC<{
   conversationId: string;
   backend?: AcpBackend;
-}> = ({ conversationId, backend }) => {
+  compact?: boolean;
+}> = ({ conversationId, backend, compact = false }) => {
   const { t } = useTranslation();
   const [configOptions, setConfigOptions] = useState<AcpSessionConfigOption[]>([]);
 
@@ -163,7 +164,7 @@ const AcpConfigSelector: React.FC<{
           >
             <Button className='sendbox-model-btn agent-mode-compact-pill' shape='round' size='small'>
               <span className='flex items-center gap-6px min-w-0 leading-none'>
-                <span className='block truncate leading-none'>{currentLabel}</span>
+                <span className='block truncate leading-none'>{compact ? currentLabel.slice(0, 3) : currentLabel}</span>
                 <Down size={12} className='text-t-tertiary shrink-0' />
               </span>
             </Button>

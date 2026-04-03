@@ -114,5 +114,5 @@ export function useTeamSession(team: TTeam) {
     [team.id, mutateTeam]
   );
 
-  return { statusMap, messages, sendMessage, addAgent, renameAgent, removeAgent };
+  return { statusMap, messages, sendMessage, addAgent, renameAgent, removeAgent, mutateTeam };
 }

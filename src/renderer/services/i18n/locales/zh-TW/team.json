@@ -1,7 +1,19 @@
 {
   "sider": {
     "title": "Teams",
-    "createTeam": "New Team"
+    "createTeam": "New Team",
+    "pin": "置頂",
+    "unpin": "取消置頂",
+    "rename": "重新命名",
+    "delete": "刪除",
+    "renameTitle": "重新命名團隊",
+    "renamePlaceholder": "團隊名稱",
+    "deleteConfirm": "刪除此團隊？",
+    "deleteConfirmContent": "此操作無法撤銷。",
+    "deleteOk": "刪除",
+    "deleteCancel": "取消",
+    "renameOk": "儲存",
+    "renameCancel": "取消"
   },
   "addAgent": {
     "title": "新增 Agent",
