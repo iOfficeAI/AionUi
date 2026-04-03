@@ -5,6 +5,7 @@
  */
 
 import { ipcBridge } from '@/common';
+import AtFileMenu from '@/renderer/components/chat/AtFileMenu';
 import BtwOverlay from '@/renderer/components/chat/BtwOverlay';
 import { useInputFocusRing } from '@/renderer/hooks/chat/useInputFocusRing';
 import SlashCommandMenu, { type SlashCommandMenuItem } from '@/renderer/components/chat/SlashCommandMenu';
@@ -13,11 +14,15 @@ import { useSlashCommandController } from '@/renderer/hooks/chat/useSlashCommand
 import { useLayoutContext } from '@/renderer/hooks/context/LayoutContext';
 import { useConversationContextSafe } from '@/renderer/hooks/context/ConversationContext';
 import { usePreviewContext } from '@/renderer/pages/conversation/Preview';
+import { buildAtFileInsertion, getActiveAtFileQuery } from '@/renderer/utils/chat/atFileQuery';
+import { emitter, type ReplyQuote, useAddEventListener } from '@/renderer/utils/emitter';
+import type { FileOrFolderItem } from '@/renderer/utils/file/fileTypes';
+import { filterWorkspaceMentionItems, flattenWorkspaceMentionItems } from '@/renderer/utils/file/workspaceMentions';
 import { blurActiveElement, shouldBlockMobileInputFocus } from '@/renderer/utils/ui/focus';
 import { Button, Input, Message, Tag } from '@arco-design/web-react';
 import { ArrowUp, CloseSmall, Quote } from '@icon-park/react';
 import type { SlashCommandItem } from '@/common/chat/slash/types';
-import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import React, { useCallback, useDeferredValue, useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useCompositionInput } from '@renderer/hooks/chat/useCompositionInput';
 import { useConversationExport } from '@renderer/hooks/file/useConversationExport';
@@ -32,7 +37,6 @@ import { allSupportedExts } from '@renderer/services/FileService';
 import SpeechInputButton from '@/renderer/components/chat/SpeechInputButton';
 import { appendSpeechTranscript } from '@/renderer/hooks/system/useSpeechInput';
 import { getConversationInputHistory, isCaretOnFirstLine } from '@/renderer/utils/chat/messageHistory';
-import { type ReplyQuote, useAddEventListener } from '@/renderer/utils/emitter';
 import './sendbox.css';
 
 const constVoid = (): void => undefined;
@@ -112,6 +116,12 @@ const SendBox: React.FC<{
   const [historyNavigationIndex, setHistoryNavigationIndex] = useState<number | null>(null);
   const historyDraftRef = useRef<string | null>(null);
   const [replyQuote, setReplyQuote] = useState<ReplyQuote | null>(null);
+  const [caretPosition, setCaretPosition] = useState(0);
+  const [workspaceMentionItems, setWorkspaceMentionItems] = useState<FileOrFolderItem[]>([]);
+  const [workspaceMentionLoading, setWorkspaceMentionLoading] = useState(false);
+  const [atFileMenuActiveIndex, setAtFileMenuActiveIndex] = useState(0);
+  const [dismissedAtFileToken, setDismissedAtFileToken] = useState<string | null>(null);
+  const workspaceMentionCacheRef = useRef<Map<string, FileOrFolderItem[]>>(new Map());
 
   // Listen for reply events from message actions
   useAddEventListener('sendbox.reply', (quote) => setReplyQuote(quote), []);
@@ -246,6 +256,19 @@ const SendBox: React.FC<{
   });
   const btwCommand = useBtwCommand(conversationContext?.conversationId, enableBtw);
   const btwQuestion = useMemo(() => extractBtwQuestion(input), [input]);
+  const activeAtFileQuery = useMemo(() => {
+    if (!conversationContext?.workspace) {
+      return null;
+    }
+    return getActiveAtFileQuery(input, caretPosition);
+  }, [caretPosition, conversationContext?.workspace, input]);
+  const activeAtFileTokenKey = useMemo(() => {
+    if (!activeAtFileQuery) {
+      return null;
+    }
+    return `${activeAtFileQuery.start}:${activeAtFileQuery.rawQuery}`;
+  }, [activeAtFileQuery]);
+  const deferredAtFileQuery = useDeferredValue(activeAtFileQuery?.query ?? '');
   const inputHistory = useMemo(
     () => getConversationInputHistory(messageList, conversationContext?.conversationId),
     [conversationContext?.conversationId, messageList]
@@ -322,7 +345,32 @@ const SendBox: React.FC<{
   );
 
   const isCommandMenuOpen = conversationExport.isOpen || slashController.isOpen;
-  const isOverlayOpen = isCommandMenuOpen || btwCommand.isOpen;
+  const isAtFileMenuOpen =
+    Boolean(conversationContext?.workspace) &&
+    Boolean(activeAtFileQuery) &&
+    activeAtFileTokenKey !== dismissedAtFileToken &&
+    !isCommandMenuOpen;
+  const visibleAtFileMenuItems = useMemo(
+    () => filterWorkspaceMentionItems(workspaceMentionItems, deferredAtFileQuery),
+    [deferredAtFileQuery, workspaceMentionItems]
+  );
+  const isOverlayOpen = isCommandMenuOpen || btwCommand.isOpen || isAtFileMenuOpen;
+
+  const getTextareaElement = useCallback((): HTMLTextAreaElement | null => {
+    const textarea = containerRef.current?.querySelector('textarea');
+    return textarea instanceof HTMLTextAreaElement ? textarea : null;
+  }, []);
+
+  const syncCaretPosition = useCallback(
+    (target?: EventTarget | null) => {
+      const textarea = target instanceof HTMLTextAreaElement ? target : getTextareaElement();
+      if (!textarea) {
+        return;
+      }
+      setCaretPosition(textarea.selectionStart ?? textarea.value.length);
+    },
+    [getTextareaElement]
+  );
 
   const handleTextAreaChange = (value: string) => {
     if (historyNavigationIndex !== null) {
@@ -333,6 +381,9 @@ const SendBox: React.FC<{
       conversationExport.closeExportFlow();
     }
     setInput(value);
+    requestAnimationFrame(() => {
+      syncCaretPosition();
+    });
   };
 
   const handleOverlayKeyDown = (event: React.KeyboardEvent) => {
@@ -399,6 +450,122 @@ const SendBox: React.FC<{
       </div>
     );
   };
+
+  useEffect(() => {
+    if (!conversationContext?.workspace || !activeAtFileQuery) {
+      return;
+    }
+
+    const workspace = conversationContext.workspace;
+    const cached = workspaceMentionCacheRef.current.get(workspace);
+    if (cached) {
+      setWorkspaceMentionItems(cached);
+      return;
+    }
+
+    let cancelled = false;
+    setWorkspaceMentionLoading(true);
+
+    void ipcBridge.fs.getFilesByDir
+      .invoke({ dir: workspace, root: workspace })
+      .then((result) => {
+        if (cancelled) {
+          return;
+        }
+        const flattened = flattenWorkspaceMentionItems(result);
+        workspaceMentionCacheRef.current.set(workspace, flattened);
+        setWorkspaceMentionItems(flattened);
+      })
+      .catch((error) => {
+        if (!cancelled) {
+          console.warn('[SendBox] Failed to load workspace file mentions:', error);
+          setWorkspaceMentionItems([]);
+        }
+      })
+      .finally(() => {
+        if (!cancelled) {
+          setWorkspaceMentionLoading(false);
+        }
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [activeAtFileQuery, conversationContext?.workspace]);
+
+  useEffect(() => {
+    if (!activeAtFileTokenKey) {
+      setAtFileMenuActiveIndex(0);
+      return;
+    }
+    setAtFileMenuActiveIndex(0);
+  }, [activeAtFileTokenKey]);
+
+  useEffect(() => {
+    if (!visibleAtFileMenuItems.length) {
+      setAtFileMenuActiveIndex(0);
+      return;
+    }
+    setAtFileMenuActiveIndex((previous) => Math.min(previous, visibleAtFileMenuItems.length - 1));
+  }, [visibleAtFileMenuItems]);
+
+  const emitSelectedFileAppend = useCallback(
+    (item: FileOrFolderItem) => {
+      switch (conversationContext?.type) {
+        case 'gemini':
+          emitter.emit('gemini.selected.file.append', [item]);
+          break;
+        case 'aionrs':
+          emitter.emit('aionrs.selected.file.append', [item]);
+          break;
+        case 'acp':
+          emitter.emit('acp.selected.file.append', [item]);
+          break;
+        case 'remote':
+          emitter.emit('remote.selected.file.append', [item]);
+          break;
+        case 'openclaw-gateway':
+          emitter.emit('openclaw-gateway.selected.file.append', [item]);
+          break;
+        case 'nanobot':
+          emitter.emit('nanobot.selected.file.append', [item]);
+          break;
+        case 'codex':
+          emitter.emit('codex.selected.file.append', [item]);
+          break;
+        default:
+          break;
+      }
+    },
+    [conversationContext?.type]
+  );
+
+  const insertSelectedAtFile = useCallback(
+    (item: FileOrFolderItem) => {
+      if (!activeAtFileQuery) {
+        return;
+      }
+
+      const nextInsertion = buildAtFileInsertion(item);
+      const nextValue = input.slice(0, activeAtFileQuery.start) + nextInsertion + input.slice(activeAtFileQuery.end);
+      const nextCaret = activeAtFileQuery.start + nextInsertion.length;
+
+      setDismissedAtFileToken(null);
+      setInput(nextValue);
+      emitSelectedFileAppend(item);
+
+      requestAnimationFrame(() => {
+        const textarea = getTextareaElement();
+        if (!textarea) {
+          return;
+        }
+        textarea.focus();
+        textarea.setSelectionRange(nextCaret, nextCaret);
+        setCaretPosition(nextCaret);
+      });
+    },
+    [activeAtFileQuery, emitSelectedFileAppend, getTextareaElement, input, setInput]
+  );
 
   // 使用共享的输入法合成处理
   const { compositionHandlers, createKeyDownHandler } = useCompositionInput();
@@ -561,6 +728,49 @@ const SendBox: React.FC<{
       return false;
     },
     [applyHistoryInput, exitHistoryNavigation, historyNavigationIndex, inputHistory, latestInputRef]
+  );
+
+  const handleAtFileMenuKeyDown = useCallback(
+    (event: React.KeyboardEvent) => {
+      if (!isAtFileMenuOpen || !activeAtFileTokenKey) {
+        return false;
+      }
+
+      if (event.key === 'Escape') {
+        event.preventDefault();
+        setDismissedAtFileToken(activeAtFileTokenKey);
+        return true;
+      }
+
+      if (!visibleAtFileMenuItems.length) {
+        return false;
+      }
+
+      if (event.key === 'ArrowDown') {
+        event.preventDefault();
+        setAtFileMenuActiveIndex((previous) => (previous + 1) % visibleAtFileMenuItems.length);
+        return true;
+      }
+
+      if (event.key === 'ArrowUp') {
+        event.preventDefault();
+        setAtFileMenuActiveIndex((previous) => (previous === 0 ? visibleAtFileMenuItems.length - 1 : previous - 1));
+        return true;
+      }
+
+      if (event.key === 'Enter') {
+        const selectedItem = visibleAtFileMenuItems[atFileMenuActiveIndex];
+        if (!selectedItem) {
+          return false;
+        }
+        event.preventDefault();
+        insertSelectedAtFile(selectedItem);
+        return true;
+      }
+
+      return false;
+    },
+    [activeAtFileTokenKey, atFileMenuActiveIndex, insertSelectedAtFile, isAtFileMenuOpen, visibleAtFileMenuItems]
   );
 
   const sendMessageHandler = () => {
@@ -738,6 +948,18 @@ const SendBox: React.FC<{
           parentTaskRunning={Boolean(loading || isLoading)}
           question={btwCommand.question}
         />
+        {isAtFileMenuOpen && (
+          <div className='absolute left-12px right-12px bottom-[calc(100%+8px)] z-70'>
+            <AtFileMenu
+              activeIndex={atFileMenuActiveIndex}
+              emptyText={t('conversation.workspace.search.empty', { defaultValue: 'No files found' })}
+              items={visibleAtFileMenuItems}
+              loading={workspaceMentionLoading}
+              onHoverItem={setAtFileMenuActiveIndex}
+              onSelectItem={insertSelectedAtFile}
+            />
+          </div>
+        )}
         {isCommandMenuOpen && (
           <div className='absolute left-12px right-12px bottom-[calc(100%+8px)] z-70'>
             {conversationExport.step === 'menu' ? (
@@ -850,12 +1072,21 @@ const SendBox: React.FC<{
             onPaste={onPaste}
             onTouchStart={markMobileFocusIntent}
             onMouseDown={markMobileFocusIntent}
+            onClick={(event) => {
+              syncCaretPosition(event.target);
+            }}
             onFocus={handleInputFocus}
             onBlur={handleInputBlur}
+            onKeyUp={(event) => {
+              syncCaretPosition(event.currentTarget);
+            }}
+            onSelect={(event) => {
+              syncCaretPosition(event.currentTarget);
+            }}
             {...compositionHandlers}
             autoSize={isSingleLine ? false : { minRows: 1, maxRows: 10 }}
             onKeyDown={createKeyDownHandler(sendMessageHandler, (event) => {
-              return handleOverlayKeyDown(event) || handleHistoryKeyDown(event);
+              return handleAtFileMenuKeyDown(event) || handleOverlayKeyDown(event) || handleHistoryKeyDown(event);
             })}
           ></Input.TextArea>
           {isSingleLine && (
