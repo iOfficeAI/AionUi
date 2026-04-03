@@ -251,6 +251,11 @@ const AionrsSendBox: React.FC<{
   }, [conversation_id, executeCommand]);
 
   const onSendHandler = async (message: string) => {
+    if (!isCommandQueueEnabled && isBusy) {
+      Message.warning(t('messages.conversationInProgress'));
+      return;
+    }
+
     const filesToSend = collectSelectedFiles(uploadFile, atPath);
     clearFiles();
     emitter.emit('aionrs.selected.file.clear');
@@ -410,7 +415,7 @@ const AionrsSendBox: React.FC<{
         onSend={onSendHandler}
         slashCommands={slashCommands}
         onSlashBuiltinCommand={onSlashBuiltinCommand}
-        allowSendWhileLoading
+        allowSendWhileLoading={isCommandQueueEnabled}
       />
     </div>
   );

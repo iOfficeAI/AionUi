@@ -22,7 +22,7 @@ import { assertBridgeSuccess } from '@/renderer/pages/conversation/platforms/ass
 import { allSupportedExts, type FileMetadata } from '@/renderer/services/FileService';
 import { emitter, useAddEventListener } from '@/renderer/utils/emitter';
 import { mergeFileSelectionItems } from '@/renderer/utils/file/fileSelection';
-import { Tag } from '@arco-design/web-react';
+import { Message, Tag } from '@arco-design/web-react';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { buildDisplayMessage } from '@/renderer/utils/file/messageFiles';
@@ -294,6 +294,11 @@ const NanobotSendBox: React.FC<{ conversation_id: string }> = ({ conversation_id
   });
 
   const onSendHandler = async (message: string) => {
+    if (!isCommandQueueEnabled && aiProcessing) {
+      Message.warning(t('messages.conversationInProgress'));
+      return;
+    }
+
     emitter.emit('nanobot.selected.file.clear');
     const filePaths = [...uploadFile, ...atPath.map((item) => (typeof item === 'string' ? item : item.path))];
     setAtPath([]);
@@ -478,7 +483,7 @@ const NanobotSendBox: React.FC<{ conversation_id: string }> = ({ conversation_id
         onSend={onSendHandler}
         slashCommands={slashCommands}
         onSlashBuiltinCommand={onSlashBuiltinCommand}
-        allowSendWhileLoading
+        allowSendWhileLoading={isCommandQueueEnabled}
       ></SendBox>
     </div>
   );

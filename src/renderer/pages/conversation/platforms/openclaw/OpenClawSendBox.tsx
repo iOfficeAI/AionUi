@@ -479,6 +479,11 @@ const OpenClawSendBox: React.FC<{ conversation_id: string }> = ({ conversation_i
   });
 
   const onSendHandler = async (message: string) => {
+    if (!isCommandQueueEnabled && aiProcessing) {
+      Message.warning(t('messages.conversationInProgress'));
+      return;
+    }
+
     emitter.emit('openclaw-gateway.selected.file.clear');
     const filePaths = [...uploadFile, ...atPath.map((item) => (typeof item === 'string' ? item : item.path))];
     setAtPath([]);
@@ -689,7 +694,7 @@ const OpenClawSendBox: React.FC<{ conversation_id: string }> = ({ conversation_i
         onSend={onSendHandler}
         slashCommands={slashCommands}
         onSlashBuiltinCommand={onSlashBuiltinCommand}
-        allowSendWhileLoading
+        allowSendWhileLoading={isCommandQueueEnabled}
       ></SendBox>
     </div>
   );

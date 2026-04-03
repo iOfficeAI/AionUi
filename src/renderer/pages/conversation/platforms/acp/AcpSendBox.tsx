@@ -17,7 +17,7 @@ import { assertBridgeSuccess } from '@/renderer/pages/conversation/platforms/ass
 import { allSupportedExts } from '@/renderer/services/FileService';
 import { emitter, useAddEventListener } from '@/renderer/utils/emitter';
 import { mergeFileSelectionItems } from '@/renderer/utils/file/fileSelection';
-import { Tag } from '@arco-design/web-react';
+import { Message, Tag } from '@arco-design/web-react';
 import { Shield } from '@icon-park/react';
 import { iconColors } from '@/renderer/styles/colors';
 import FileAttachButton from '@/renderer/components/media/FileAttachButton';
@@ -251,6 +251,11 @@ Please check your local CLI tool authentication status`,
   });
 
   const onSendHandler = async (message: string) => {
+    if (!isCommandQueueEnabled && isBusy) {
+      Message.warning(t('messages.conversationInProgress'));
+      return;
+    }
+
     const atPathFiles = atPath.map((item) => (typeof item === 'string' ? item : item.path));
     const allFiles = [...uploadFile, ...atPathFiles];
 
@@ -416,7 +421,7 @@ Please check your local CLI tool authentication status`,
         onSend={onSendHandler}
         slashCommands={slashCommands}
         onSlashBuiltinCommand={onSlashBuiltinCommand}
-        allowSendWhileLoading
+        allowSendWhileLoading={isCommandQueueEnabled}
         compactActions={!!teamId}
         sendButtonPrefix={
           tokenUsage ? (
