@@ -19,9 +19,6 @@ import { getAgentLogo } from '@renderer/utils/model/agentLogo';
 import CronStatusTag from './CronStatusTag';
 import CreateTaskDialog from './CreateTaskDialog';
 
-const cardMetaRowClass = 'min-w-0 flex items-center gap-6px text-12px leading-18px text-text-3';
-const cardMetaIconWrapClass = 'flex h-16px w-16px shrink-0 items-center justify-center text-text-3';
-
 function normalizeAgentBackend(agent: string | undefined): AcpBackendAll | undefined {
   if (!agent) return undefined;
   return agent.replace(/^cli:/, '').replace(/^preset:/, '') as AcpBackendAll;
@@ -86,36 +83,21 @@ const ScheduledTasksPage: React.FC = () => {
     [pauseJob, resumeJob, t]
   );
 
-  const pageShellClass = classNames(
-    'w-full min-h-full box-border overflow-y-auto',
-    isMobile ? 'px-16px py-14px' : 'px-12px py-24px md:px-40px md:py-32px'
-  );
-  const contentFrameClass = classNames(
-    'mx-auto flex w-full max-w-760px box-border flex-col',
-    isMobile ? 'gap-14px' : 'gap-16px'
-  );
-  const headerSectionClass = classNames('flex w-full flex-col', isMobile ? 'gap-6px' : 'gap-8px');
-  const headerTopClass = 'flex w-full items-start justify-between gap-12px sm:gap-16px max-[520px]:flex-wrap';
-  const descriptionClass = classNames(
-    'm-0 w-full text-text-3',
-    isMobile ? 'text-13px leading-20px' : 'text-14px leading-22px'
-  );
-  const awakeBarClass =
-    'grid w-full box-border grid-cols-[minmax(0,1fr)_auto] items-center gap-x-12px gap-y-10px rounded-12px border border-solid border-[var(--color-border-2)] bg-fill-2 px-14px py-12px sm:rounded-14px sm:px-16px max-[520px]:grid-cols-1';
-  const taskGridClass = classNames(
-    'grid w-full items-start grid-cols-1 gap-12px',
-    isMobile ? '' : 'sm:grid-cols-2 lg:grid-cols-3'
-  );
-  const taskCardClass = classNames(
-    'group flex cursor-pointer flex-col border border-solid border-[var(--color-border-2)] bg-fill-1 transition-colors duration-200 hover:border-[var(--color-border-3)] hover:shadow-sm',
-    isMobile ? 'rounded-12px px-16px py-16px' : 'rounded-12px px-20px py-18px'
-  );
-
   return (
-    <div className={pageShellClass}>
-      <div className={contentFrameClass}>
-        <div className={headerSectionClass}>
-          <div className={headerTopClass}>
+    <div
+      className={classNames(
+        'w-full min-h-full box-border overflow-y-auto',
+        isMobile ? 'px-16px py-14px' : 'px-12px py-24px md:px-40px md:py-32px'
+      )}
+    >
+      <div
+        className={classNames(
+          'mx-auto flex w-full max-w-760px box-border flex-col',
+          isMobile ? 'gap-14px' : 'gap-16px'
+        )}
+      >
+        <div className={classNames('flex w-full flex-col', isMobile ? 'gap-6px' : 'gap-8px')}>
+          <div className='flex w-full items-start justify-between gap-12px sm:gap-16px max-[520px]:flex-wrap'>
             <h1
               className={classNames(
                 'm-0 min-w-0 flex-1 font-bold text-text-1',
@@ -134,10 +116,17 @@ const ScheduledTasksPage: React.FC = () => {
               {t('cron.page.newTask')}
             </Button>
           </div>
-          <p className={descriptionClass}>{t('cron.page.description')}</p>
+          <p
+            className={classNames(
+              'm-0 w-full text-text-3',
+              isMobile ? 'text-13px leading-20px' : 'text-14px leading-22px'
+            )}
+          >
+            {t('cron.page.description')}
+          </p>
         </div>
 
-        <div className={awakeBarClass}>
+        <div className='grid w-full box-border grid-cols-[minmax(0,1fr)_auto] items-center gap-x-12px gap-y-10px rounded-12px border border-solid border-[var(--color-border-2)] bg-fill-2 px-14px py-12px sm:rounded-14px sm:px-16px max-[520px]:grid-cols-1'>
           <span
             className={classNames(
               'min-w-0 text-text-2',
@@ -165,7 +154,12 @@ const ScheduledTasksPage: React.FC = () => {
             <Empty description={t('cron.noTasks')} />
           </div>
         ) : (
-          <div className={taskGridClass}>
+          <div
+            className={classNames(
+              'grid w-full items-start grid-cols-1 gap-12px',
+              isMobile ? '' : 'sm:grid-cols-2 lg:grid-cols-3'
+            )}
+          >
             {jobs.map((job) => {
               const agentMeta = getJobAgentMeta(job);
               const isManualOnly = job.schedule.kind === 'cron' && !job.schedule.expr;
@@ -175,7 +169,14 @@ const ScheduledTasksPage: React.FC = () => {
                   : t('cron.page.form.existingConversation');
 
               return (
-                <div key={job.id} className={taskCardClass} onClick={() => handleGoToDetail(job)}>
+                <div
+                  key={job.id}
+                  className={classNames(
+                    'group flex cursor-pointer flex-col border border-solid border-[var(--color-border-2)] bg-fill-1 transition-colors duration-200 hover:border-[var(--color-border-3)] hover:shadow-sm',
+                    isMobile ? 'rounded-12px px-16px py-16px' : 'rounded-12px px-20px py-18px'
+                  )}
+                  onClick={() => handleGoToDetail(job)}
+                >
                   <div className='mb-12px flex items-center justify-between gap-8px'>
                     <span
                       className={classNames(
@@ -209,10 +210,10 @@ const ScheduledTasksPage: React.FC = () => {
                   </div>
 
                   <div className='mt-14px flex items-center justify-between gap-10px'>
-                    <div className={cardMetaRowClass}>
+                    <div className='min-w-0 flex items-center gap-6px text-12px leading-18px text-text-3'>
                       {agentMeta.name ? (
                         <Tooltip content={agentMeta.name}>
-                          <div className={cardMetaIconWrapClass}>
+                          <div className='flex h-16px w-16px shrink-0 items-center justify-center text-text-3'>
                             {agentMeta.logo ? (
                               <img
                                 src={agentMeta.logo}

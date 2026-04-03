@@ -18,13 +18,6 @@ import { formatSchedule, formatNextRun } from '@renderer/pages/cron/cronUtils';
 import { useCronJobConversations } from '@renderer/pages/cron/useCronJobs';
 import { getActivityTime } from '@/renderer/utils/chat/timeline';
 
-const pageShellClass =
-  'w-full min-h-full box-border overflow-y-auto px-14px pt-28px pb-24px md:px-40px md:pt-52px md:pb-42px';
-const contentFrameClass = 'mx-auto flex w-full max-w-760px flex-col gap-28px box-border';
-const softCardClass =
-  'box-border rounded-12px border border-solid border-[var(--color-border-2)] bg-fill-2 px-16px py-14px';
-const sectionHeadingClass = 'm-0 text-13px font-medium text-text-3';
-const fieldValueClass = 'm-0 text-14px leading-22px text-text-1';
 const getDescriptionPreview = (text: string) => {
   const firstLine = text
     .split('\n')
@@ -47,7 +40,7 @@ const TaskDetailPage: React.FC = () => {
 
   const isNewConversationMode = job?.target.executionMode === 'new_conversation';
   const isManualOnly = job?.schedule.kind === 'cron' && !job.schedule.expr;
-  const { conversations } = useCronJobConversations(isNewConversationMode ? jobId : undefined);
+  const { conversations } = useCronJobConversations(jobId);
 
   const fetchJob = useCallback(async () => {
     if (!jobId) return;
@@ -133,8 +126,8 @@ const TaskDetailPage: React.FC = () => {
 
   if (!job) {
     return (
-      <div className={pageShellClass}>
-        <div className={contentFrameClass}>
+      <div className='w-full min-h-full box-border overflow-y-auto px-14px pt-28px pb-24px md:px-40px md:pt-52px md:pb-42px'>
+        <div className='mx-auto flex w-full max-w-760px flex-col gap-28px box-border'>
           <Button
             type='text'
             size='small'
@@ -161,8 +154,8 @@ const TaskDetailPage: React.FC = () => {
     : t('cron.detail.executionModeDescriptionExisting');
 
   return (
-    <div className={pageShellClass}>
-      <div className={contentFrameClass}>
+    <div className='w-full min-h-full box-border overflow-y-auto px-14px pt-28px pb-24px md:px-40px md:pt-52px md:pb-42px'>
+      <div className='mx-auto flex w-full max-w-760px flex-col gap-28px box-border'>
         <Button
           type='text'
           size='small'
@@ -219,13 +212,13 @@ const TaskDetailPage: React.FC = () => {
         <div className='grid w-full min-w-0 grid-cols-1 gap-28px md:grid-cols-[280px_minmax(0,1fr)] md:items-start md:gap-40px'>
           <div className='flex min-w-0 flex-col gap-28px'>
             <section className='flex flex-col gap-10px'>
-              <h2 className={sectionHeadingClass}>{t('cron.detail.description')}</h2>
-              <p className={fieldValueClass}>{descriptionPreview}</p>
+              <h2 className='m-0 text-13px font-medium text-text-3'>{t('cron.detail.description')}</h2>
+              <p className='m-0 text-14px leading-22px text-text-1'>{descriptionPreview}</p>
             </section>
 
             {job.metadata.agentConfig && (
               <section className='flex flex-col gap-10px'>
-                <h2 className={sectionHeadingClass}>{t('cron.detail.agent')}</h2>
+                <h2 className='m-0 text-13px font-medium text-text-3'>{t('cron.detail.agent')}</h2>
                 <div className='flex items-center gap-10px'>
                   <img
                     src={getAgentLogo(job.metadata.agentConfig.backend)}
@@ -238,7 +231,7 @@ const TaskDetailPage: React.FC = () => {
             )}
 
             <section className='flex flex-col gap-10px'>
-              <h2 className={sectionHeadingClass}>{t('cron.detail.repeats')}</h2>
+              <h2 className='m-0 text-13px font-medium text-text-3'>{t('cron.detail.repeats')}</h2>
               <div className='flex flex-wrap items-center gap-10px'>
                 {!isManualOnly && <Switch size='small' checked={job.enabled} onChange={handleToggleEnabled} />}
                 <span className='text-14px text-text-1'>{formatSchedule(job, t)}</span>
@@ -246,12 +239,12 @@ const TaskDetailPage: React.FC = () => {
             </section>
 
             <section className='flex flex-col gap-10px'>
-              <h2 className={sectionHeadingClass}>{t('cron.page.form.executionMode')}</h2>
+              <h2 className='m-0 text-13px font-medium text-text-3'>{t('cron.page.form.executionMode')}</h2>
               <div className='inline-flex items-center gap-4px'>
                 <span className='text-14px leading-22px text-text-1'>{currentExecutionModeLabel}</span>
                 <Attention theme='outline' size={12} className='line-height-0 shrink-0 text-text-3' />
               </div>
-              <div className={softCardClass}>
+              <div className='box-border rounded-12px border border-solid border-[var(--color-border-2)] bg-fill-2 px-16px py-14px'>
                 <div className='flex flex-col gap-10px'>
                   <p className='m-0 text-13px leading-20px text-text-2'>{executionModeExplanation}</p>
                   <div className='h-1px w-full bg-[var(--color-border-2)]' />
@@ -263,8 +256,8 @@ const TaskDetailPage: React.FC = () => {
 
           <div className='flex min-w-0 flex-col gap-28px'>
             <section className='flex flex-col gap-12px'>
-              <h2 className={sectionHeadingClass}>{t('cron.detail.instructions')}</h2>
-              <div className={softCardClass}>
+              <h2 className='m-0 text-13px font-medium text-text-3'>{t('cron.detail.instructions')}</h2>
+              <div className='box-border rounded-12px border border-solid border-[var(--color-border-2)] bg-fill-2 px-16px py-14px'>
                 <div className='whitespace-pre-wrap break-words text-14px leading-22px text-text-1'>
                   {job.target.payload.text || '-'}
                 </div>
@@ -274,45 +267,21 @@ const TaskDetailPage: React.FC = () => {
             <section className='flex flex-col gap-12px'>
               <h2 className='m-0 text-13px font-medium text-text-3'>{t('cron.detail.history')}</h2>
 
-              {isNewConversationMode ? (
-                conversations.length > 0 ? (
-                  <div className='flex flex-col'>
-                    <div className='h-1px w-full bg-[var(--color-border-2)]' />
-                    {conversations.map((conv, index) => (
-                      <React.Fragment key={conv.id}>
-                        <div
-                          className='flex cursor-pointer items-center justify-between gap-14px py-15px transition-colors hover:text-text-1'
-                          onClick={() => navigate(`/conversation/${conv.id}`)}
-                        >
-                          <span className='min-w-0 flex-1 truncate text-14px text-text-1'>{conv.name || conv.id}</span>
-                          <span className='shrink-0 text-13px text-text-3'>{formatNextRun(getActivityTime(conv))}</span>
-                        </div>
-                        {index < conversations.length - 1 && (
-                          <div className='h-1px w-full bg-[var(--color-border-2)]' />
-                        )}
-                      </React.Fragment>
-                    ))}
-                  </div>
-                ) : (
-                  <div className='text-14px text-text-3'>
-                    <span>{t('cron.detail.noHistory')}</span>
-                    {job.enabled && job.state.nextRunAtMs && (
-                      <span className='ml-4px'>
-                        · {t('cron.nextRun')} {formatNextRun(job.state.nextRunAtMs)}
-                      </span>
-                    )}
-                  </div>
-                )
-              ) : job.state.lastRunAtMs ? (
+              {conversations.length > 0 ? (
                 <div className='flex flex-col'>
                   <div className='h-1px w-full bg-[var(--color-border-2)]' />
-                  <div className='py-15px text-14px text-text-2'>{formatNextRun(job.state.lastRunAtMs)}</div>
-                  {job.state.lastStatus === 'error' && job.state.lastError && (
-                    <>
-                      <div className='h-1px w-full bg-[var(--color-border-2)]' />
-                      <span className='block pt-12px text-13px text-[rgb(var(--danger-6))]'>{job.state.lastError}</span>
-                    </>
-                  )}
+                  {conversations.map((conv, index) => (
+                    <React.Fragment key={conv.id}>
+                      <div
+                        className='flex cursor-pointer items-center justify-between gap-14px py-15px transition-colors hover:text-text-1'
+                        onClick={() => navigate(`/conversation/${conv.id}`)}
+                      >
+                        <span className='min-w-0 flex-1 truncate text-14px text-text-1'>{conv.name || conv.id}</span>
+                        <span className='shrink-0 text-13px text-text-3'>{formatNextRun(getActivityTime(conv))}</span>
+                      </div>
+                      {index < conversations.length - 1 && <div className='h-1px w-full bg-[var(--color-border-2)]' />}
+                    </React.Fragment>
+                  ))}
                 </div>
               ) : (
                 <div className='text-14px text-text-3'>
