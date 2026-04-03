@@ -430,7 +430,10 @@ export const useGuidSend = (deps: GuidSendDeps): GuidSendResult => {
 
         // Inject cachedConfigOptions & pendingConfigOptions into the params built by utility
         if (mergedCachedConfigOptions) {
-          agentConversationParams.extra = { ...agentConversationParams.extra, cachedConfigOptions: mergedCachedConfigOptions };
+          agentConversationParams.extra = {
+            ...agentConversationParams.extra,
+            cachedConfigOptions: mergedCachedConfigOptions,
+          };
         }
         if (Object.keys(pendingConfigOptions).length > 0) {
           agentConversationParams.extra = { ...agentConversationParams.extra, pendingConfigOptions };
