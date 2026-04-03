@@ -40,10 +40,13 @@ vi.mock('@/renderer/utils/platform', () => ({
 
 import type { AssistantListItem } from '@/renderer/pages/settings/AgentSettings/AssistantManagement/types';
 import {
-  sortAssistants,
-  normalizeExtensionAssistants,
-  isExtensionAssistant,
+  filterAssistants,
+  getAssistantSource,
+  groupAssistantsByEnabled,
   hasBuiltinSkills,
+  isExtensionAssistant,
+  normalizeExtensionAssistants,
+  sortAssistants,
 } from '@/renderer/pages/settings/AgentSettings/AssistantManagement/assistantUtils';
 
 // Helper to create a minimal AssistantListItem
@@ -213,6 +216,121 @@ describe('isExtensionAssistant', () => {
 
   it('returns false for undefined input', () => {
     expect(isExtensionAssistant(undefined)).toBe(false);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// getAssistantSource
+// ---------------------------------------------------------------------------
+describe('getAssistantSource', () => {
+  it('returns builtin for builtin assistants', () => {
+    const assistant = makeAssistant({ id: 'builtin-alpha', name: 'Alpha', isBuiltin: true });
+    expect(getAssistantSource(assistant)).toBe('builtin');
+  });
+
+  it('returns extension for extension assistants', () => {
+    const assistant = makeAssistant({ id: 'ext-alpha', name: 'Alpha', _source: 'extension' });
+    expect(getAssistantSource(assistant)).toBe('extension');
+  });
+
+  it('returns custom for non-builtin non-extension assistants', () => {
+    const assistant = makeAssistant({ id: 'custom-alpha', name: 'Alpha', isBuiltin: false });
+    expect(getAssistantSource(assistant)).toBe('custom');
+  });
+});
+
+// ---------------------------------------------------------------------------
+// filterAssistants
+// ---------------------------------------------------------------------------
+describe('filterAssistants', () => {
+  const assistants: AssistantListItem[] = [
+    makeAssistant({
+      id: 'builtin-alpha',
+      name: 'Alpha',
+      nameI18n: { 'en-US': 'Alpha' },
+      description: 'Word helper',
+      isBuiltin: true,
+      enabled: true,
+    }),
+    makeAssistant({
+      id: 'custom-beta',
+      name: 'Beta',
+      nameI18n: { 'en-US': 'Beta' },
+      description: 'Sales helper',
+      isBuiltin: false,
+      enabled: false,
+    }),
+    makeAssistant({
+      id: 'ext-gamma',
+      name: 'Gamma',
+      nameI18n: { 'en-US': 'Gamma' },
+      description: 'Extension helper',
+      _source: 'extension',
+      enabled: true,
+    }),
+  ];
+
+  it('returns all assistants for all filter without query', () => {
+    expect(filterAssistants(assistants, '', 'all', 'en-US')).toHaveLength(3);
+  });
+
+  it('filters assistants by enabled status', () => {
+    expect(filterAssistants(assistants, '', 'enabled', 'en-US').map((assistant) => assistant.id)).toEqual([
+      'builtin-alpha',
+      'ext-gamma',
+    ]);
+  });
+
+  it('filters assistants by disabled status', () => {
+    expect(filterAssistants(assistants, '', 'disabled', 'en-US').map((assistant) => assistant.id)).toEqual([
+      'custom-beta',
+    ]);
+  });
+
+  it('filters assistants by source', () => {
+    expect(filterAssistants(assistants, '', 'builtin', 'en-US').map((assistant) => assistant.id)).toEqual([
+      'builtin-alpha',
+      'ext-gamma',
+    ]);
+    expect(filterAssistants(assistants, '', 'custom', 'en-US').map((assistant) => assistant.id)).toEqual([
+      'custom-beta',
+    ]);
+    expect(filterAssistants(assistants, '', 'extension', 'en-US').map((assistant) => assistant.id)).toEqual([
+      'ext-gamma',
+    ]);
+  });
+
+  it('keeps custom assistants out of the system filter', () => {
+    expect(filterAssistants(assistants, '', 'builtin', 'en-US').map((assistant) => assistant.id)).not.toContain(
+      'custom-beta'
+    );
+  });
+
+  it('filters assistants by localized name and description query', () => {
+    expect(filterAssistants(assistants, 'word', 'all', 'en-US').map((assistant) => assistant.id)).toEqual([
+      'builtin-alpha',
+    ]);
+    expect(filterAssistants(assistants, 'gamma', 'all', 'en-US').map((assistant) => assistant.id)).toEqual([
+      'ext-gamma',
+    ]);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// groupAssistantsByEnabled
+// ---------------------------------------------------------------------------
+describe('groupAssistantsByEnabled', () => {
+  it('splits assistants into enabled and disabled groups', () => {
+    const assistants: AssistantListItem[] = [
+      makeAssistant({ id: 'alpha', name: 'Alpha', enabled: true }),
+      makeAssistant({ id: 'beta', name: 'Beta', enabled: false }),
+      makeAssistant({ id: 'gamma', name: 'Gamma', enabled: true }),
+    ];
+
+    expect(groupAssistantsByEnabled(assistants)).toEqual({
+      enabledAssistants: [assistants[0], assistants[2]],
+      disabledAssistants: [assistants[1]],
+    });
   });
 });
 
