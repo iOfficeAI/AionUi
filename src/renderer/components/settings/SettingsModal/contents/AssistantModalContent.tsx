@@ -4,7 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { Collapse, Message } from '@arco-design/web-react';
+import { Message } from '@arco-design/web-react';
 import React from 'react';
 import AssistantManagement from '@/renderer/pages/settings/AgentSettings/AssistantManagement';
 import AionScrollArea from '@/renderer/components/base/AionScrollArea';
@@ -20,9 +20,7 @@ const AssistantModalContent: React.FC = () => {
       {agentMessageContext}
 
       <AionScrollArea className='flex-1 min-h-0 pb-16px scrollbar-hide' disableOverflow={isPageMode}>
-        <Collapse defaultActiveKey={['smart-assistants']}>
-          <AssistantManagement message={agentMessage} />
-        </Collapse>
+        <AssistantManagement message={agentMessage} />
       </AionScrollArea>
     </div>
   );
