@@ -38,6 +38,8 @@
     "subAgentsPlaceholder": "Select sub agents",
     "workspacePlaceholder": "Workspace path (optional)",
     "confirm": "Create Team",
+    "noSupportedAgents": "Desteklenen agent bulunamadı",
+    "supportedAgentsHint": "Şu anda Claude, Codex, CodeBuddy desteklenmektedir. Daha fazla agent yakında eklenecek.",
     "step": {
       "dispatch": "Dispatch Agent",
       "subAgents": "Sub Agents",

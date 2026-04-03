@@ -126,11 +126,16 @@ const TeamCreateModal: React.FC<Props> = ({ visible, onClose, onCreated }) => {
             {t('team.create.step.dispatch', { defaultValue: 'Dispatch Agent' })}
           </label>
           <Select
-            placeholder={t('team.create.dispatchAgentPlaceholder', { defaultValue: 'Select dispatch agent' })}
+            placeholder={
+              allAgents.length === 0
+                ? t('team.create.noSupportedAgents', { defaultValue: 'No supported agents installed' })
+                : t('team.create.dispatchAgentPlaceholder', { defaultValue: 'Select dispatch agent' })
+            }
             value={dispatchAgentKey}
             onChange={setDispatchAgentKey}
             showSearch
             allowClear
+            disabled={allAgents.length === 0}
             renderFormat={(option) => {
               const agent = option?.value ? agentFromKey(option.value as string, allAgents) : undefined;
               return agent ? <AgentOptionLabel agent={agent} /> : <span>{option?.children}</span>;
@@ -146,6 +151,11 @@ const TeamCreateModal: React.FC<Props> = ({ visible, onClose, onCreated }) => {
               </Select.OptGroup>
             )}
           </Select>
+          <span className='text-12px text-[var(--color-text-4)]'>
+            {t('team.create.supportedAgentsHint', {
+              defaultValue: 'Currently supports Claude, Codex, CodeBuddy. More agents coming soon.',
+            })}
+          </span>
         </div>
 
         {/* Workspace - optional folder picker (desktop only) or text input (webui) */}

@@ -38,6 +38,8 @@
     "subAgentsPlaceholder": "Select sub agents",
     "workspacePlaceholder": "Workspace path (optional)",
     "confirm": "Create Team",
+    "noSupportedAgents": "未偵測到支援的 Agent",
+    "supportedAgentsHint": "目前支援 Claude、Codex、CodeBuddy，更多 Agent 適配中",
     "step": {
       "dispatch": "Dispatch Agent",
       "subAgents": "Sub Agents",
