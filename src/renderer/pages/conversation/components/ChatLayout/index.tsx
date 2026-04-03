@@ -51,6 +51,8 @@ const ChatLayout: React.FC<{
   tabsSlot?: React.ReactNode;
   /** Workspace path for opening in external tools */
   workspacePath?: string;
+  /** Custom rename handler; when provided, replaces the default conversation.update rename flow */
+  onRenameTitle?: (newName: string) => Promise<boolean>;
 }> = (props) => {
   const { conversationId, workspacePath } = props;
   const { backend, agentName, agentLogo, agentLogoIsEmoji, workspaceEnabled = true } = props;
@@ -82,6 +84,7 @@ const ChatLayout: React.FC<{
       title: props.title,
       conversationId,
       updateTabName,
+      onRename: props.onRenameTitle,
     });
 
   // Fetch custom agents config as fallback when agentName is not provided
@@ -172,7 +175,6 @@ const ChatLayout: React.FC<{
 
   const headerBlock = (
     <>
-      {props.tabsSlot !== undefined ? props.tabsSlot : <ConversationTabs />}
       <ArcoLayout.Header
         className={classNames(
           'min-h-44px flex items-center justify-between px-16px pt-8px pb-10px gap-16px !bg-1 chat-layout-header chat-layout-header--glass overflow-hidden',
@@ -222,6 +224,7 @@ const ChatLayout: React.FC<{
           )}
         </div>
       </ArcoLayout.Header>
+      {props.tabsSlot !== undefined ? props.tabsSlot : <ConversationTabs />}
     </>
   );
 

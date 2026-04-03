@@ -99,7 +99,7 @@ const Layout: React.FC<{
   const navigate = useNavigate();
   useConversationShortcuts({ navigate });
   const location = useLocation();
-  const workspaceAvailable = location.pathname.startsWith('/conversation/');
+  const workspaceAvailable = location.pathname.startsWith('/conversation/') || location.pathname.startsWith('/team/');
   const collapsedRef = useRef(collapsed);
   const lastCssRef = useRef('');
   const lastUiCssUpdateAtRef = useRef(0);

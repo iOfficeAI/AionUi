@@ -19,14 +19,60 @@ type AgentStatusInfo = {
   lastMessage?: string;
 };
 
+const FAILED_AGENTS_KEY = 'team-failed-agents';
+
+function loadFailedAgents(teamId: string): Set<string> {
+  try {
+    const stored = JSON.parse(localStorage.getItem(FAILED_AGENTS_KEY) ?? '{}') as Record<string, string[]>;
+    return new Set(stored[teamId] ?? []);
+  } catch {
+    return new Set();
+  }
+}
+
+function saveFailedAgent(teamId: string, slotId: string): void {
+  try {
+    const stored = JSON.parse(localStorage.getItem(FAILED_AGENTS_KEY) ?? '{}') as Record<string, string[]>;
+    const set = new Set(stored[teamId] ?? []);
+    set.add(slotId);
+    stored[teamId] = [...set];
+    localStorage.setItem(FAILED_AGENTS_KEY, JSON.stringify(stored));
+  } catch {
+    // ignore
+  }
+}
+
+function clearFailedAgent(teamId: string, slotId: string): void {
+  try {
+    const stored = JSON.parse(localStorage.getItem(FAILED_AGENTS_KEY) ?? '{}') as Record<string, string[]>;
+    const set = new Set(stored[teamId] ?? []);
+    set.delete(slotId);
+    if (set.size === 0) {
+      delete stored[teamId];
+    } else {
+      stored[teamId] = [...set];
+    }
+    localStorage.setItem(FAILED_AGENTS_KEY, JSON.stringify(stored));
+  } catch {
+    // ignore
+  }
+}
+
 export function useTeamSession(team: TTeam) {
   const { mutate: mutateTeam } = useSWR(team.id ? `team/${team.id}` : null, () =>
     ipcBridge.team.get.invoke({ id: team.id })
   );
 
-  const [statusMap, setStatusMap] = useState<Map<string, AgentStatusInfo>>(
-    new Map(team.agents.map((a) => [a.slotId, { slotId: a.slotId, status: a.status }]))
-  );
+  // Initialize statusMap: restore 'failed' from localStorage for agents still in the team
+  const [statusMap, setStatusMap] = useState<Map<string, AgentStatusInfo>>(() => {
+    const failedSet = loadFailedAgents(team.id);
+    return new Map(
+      team.agents.map((a) => [
+        a.slotId,
+        { slotId: a.slotId, status: failedSet.has(a.slotId) ? ('failed' as TeammateStatus) : a.status },
+      ])
+    );
+  });
 
   const [messages, setMessages] = useState<Map<string, ITeamMessageEvent[]>>(
     new Map(team.agents.map((a): [string, ITeamMessageEvent[]] => [a.slotId, []]))
@@ -35,6 +81,9 @@ export function useTeamSession(team: TTeam) {
   useEffect(() => {
     const unsubStatus = ipcBridge.team.agentStatusChanged.on((event: ITeamAgentStatusEvent) => {
       if (event.teamId !== team.id) return;
+      if (event.status === 'failed') {
+        saveFailedAgent(team.id, event.slotId);
+      }
       setStatusMap((prev) => {
         const next = new Map(prev);
         next.set(event.slotId, { slotId: event.slotId, status: event.status, lastMessage: event.lastMessage });
@@ -108,11 +157,12 @@ export function useTeamSession(team: TTeam) {
 
   const removeAgent = useCallback(
     async (slotId: string) => {
+      clearFailedAgent(team.id, slotId);
       await ipcBridge.team.removeAgent.invoke({ teamId: team.id, slotId });
       await mutateTeam();
     },
     [team.id, mutateTeam]
   );
 
-  return { statusMap, messages, sendMessage, addAgent, renameAgent, removeAgent };
+  return { statusMap, messages, sendMessage, addAgent, renameAgent, removeAgent, mutateTeam };
 }

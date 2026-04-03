@@ -123,6 +123,14 @@ export class GeminiAgentManager extends BaseAgentManager<
   /** Stored webSearchEngine for worker re-bootstrap / 保存 webSearchEngine 用于重建 worker */
   private webSearchEngine?: 'google' | 'default';
 
+  /** Team MCP stdio config injected by TeamSessionService */
+  private teamMcpStdioConfig?: {
+    name: string;
+    command: string;
+    args: string[];
+    env: Array<{ name: string; value: string }>;
+  };
+
   constructor(
     data: {
       workspace: string;
@@ -138,6 +146,13 @@ export class GeminiAgentManager extends BaseAgentManager<
       yoloMode?: boolean;
       /** Persisted session mode for resume support / 持久化的会话模式，用于恢复 */
       sessionMode?: string;
+      /** Team MCP server stdio config injected by TeamSessionService */
+      teamMcpStdioConfig?: {
+        name: string;
+        command: string;
+        args: string[];
+        env: Array<{ name: string; value: string }>;
+      };
       /** Builtin skill names to exclude from discovery (e.g. 'cron' for cron-spawned conversations) */
       excludeBuiltinSkills?: string[];
     },
@@ -154,6 +169,7 @@ export class GeminiAgentManager extends BaseAgentManager<
     this.forceYoloMode = data.yoloMode;
     this.currentMode = data.sessionMode || 'default';
     this.webSearchEngine = data.webSearchEngine;
+    this.teamMcpStdioConfig = data.teamMcpStdioConfig;
     // 向后兼容 / Backward compatible
     this.contextContent = data.contextContent || data.presetRules;
     this.bootstrap = this.createBootstrap();
@@ -329,6 +345,19 @@ export class GeminiAgentManager extends BaseAgentManager<
             };
           }
         });
+
+      // Inject team MCP server if this agent belongs to a team (stdio mode)
+      if (this.teamMcpStdioConfig && this.teamMcpStdioConfig.command) {
+        const envObj: Record<string, string> = {};
+        for (const { name, value } of this.teamMcpStdioConfig.env || []) {
+          envObj[name] = value;
+        }
+        mcpConfig[this.teamMcpStdioConfig.name] = {
+          command: this.teamMcpStdioConfig.command,
+          args: this.teamMcpStdioConfig.args || [],
+          env: envObj,
+        };
+      }
 
       return mcpConfig;
     } catch (error) {

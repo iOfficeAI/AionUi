@@ -46,11 +46,12 @@ function cacheConfigOptions(backend: string, options: AcpSessionConfigOption[]):
 const AcpConfigSelector: React.FC<{
   conversationId?: string;
   backend?: AcpBackend;
+  compact?: boolean;
   /** Cached config options for immediate render (from DB or ConfigStorage) */
   initialConfigOptions?: unknown[];
   /** Local mode callback when user selects an option (Guid page) */
   onOptionSelect?: (configId: string, value: string) => void;
-}> = ({ conversationId, backend, initialConfigOptions, onOptionSelect }) => {
+}> = ({ conversationId, backend, compact = false, initialConfigOptions, onOptionSelect }) => {
   const { t } = useTranslation();
   const [configOptions, setConfigOptions] = useState<AcpSessionConfigOption[]>(
     () => (Array.isArray(initialConfigOptions) ? initialConfigOptions : []) as AcpSessionConfigOption[]
@@ -197,7 +198,7 @@ const AcpConfigSelector: React.FC<{
           >
             <Button className='sendbox-model-btn agent-mode-compact-pill' shape='round' size='small'>
               <span className='flex items-center gap-6px min-w-0 leading-none'>
-                <span className='block truncate leading-none'>{currentLabel}</span>
+                <span className='block truncate leading-none'>{compact ? currentLabel.slice(0, 3) : currentLabel}</span>
                 <Down size={12} className='text-t-tertiary shrink-0' />
               </span>
             </Button>

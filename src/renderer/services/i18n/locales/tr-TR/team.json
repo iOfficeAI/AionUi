@@ -1,7 +1,21 @@
 {
   "sider": {
     "title": "Teams",
-    "createTeam": "New Team"
+    "createTeam": "New Team",
+    "pin": "Sabitle",
+    "unpin": "Sabitlemeyi Kaldır",
+    "rename": "Yeniden Adlandır",
+    "delete": "Sil",
+    "renameTitle": "Takımı Yeniden Adlandır",
+    "renamePlaceholder": "Takım adı",
+    "deleteConfirm": "Bu takımı silmek istiyor musunuz?",
+    "deleteConfirmContent": "Bu işlem geri alınamaz.",
+    "deleteOk": "Sil",
+    "deleteCancel": "İptal",
+    "renameOk": "Kaydet",
+    "renameCancel": "İptal",
+    "renameSuccess": "Takım yeniden adlandırıldı",
+    "deleteSuccess": "Takım silindi"
   },
   "addAgent": {
     "title": "Add Agent",
@@ -24,6 +38,8 @@
     "subAgentsPlaceholder": "Select sub agents",
     "workspacePlaceholder": "Workspace path (optional)",
     "confirm": "Create Team",
+    "noSupportedAgents": "Desteklenen agent bulunamadı",
+    "supportedAgentsHint": "Şu anda Claude, Codex, CodeBuddy desteklenmektedir. Daha fazla agent yakında eklenecek.",
     "step": {
       "dispatch": "Dispatch Agent",
       "subAgents": "Sub Agents",

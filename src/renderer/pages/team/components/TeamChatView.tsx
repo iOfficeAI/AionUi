@@ -3,8 +3,10 @@ import type { IProvider, TChatConversation, TProviderWithModel } from '@/common/
 import { Spin } from '@arco-design/web-react';
 import React, { Suspense, useCallback } from 'react';
 import { useGeminiModelSelection } from '@/renderer/pages/conversation/platforms/gemini/useGeminiModelSelection';
+import { useAionrsModelSelection } from '@/renderer/pages/conversation/platforms/aionrs/useAionrsModelSelection';
 
 const AcpChat = React.lazy(() => import('@/renderer/pages/conversation/platforms/acp/AcpChat'));
+const AionrsChat = React.lazy(() => import('@/renderer/pages/conversation/platforms/aionrs/AionrsChat'));
 const GeminiChat = React.lazy(() => import('@/renderer/pages/conversation/platforms/gemini/GeminiChat'));
 const OpenClawChat = React.lazy(() => import('@/renderer/pages/conversation/platforms/openclaw/OpenClawChat'));
 const NanobotChat = React.lazy(() => import('@/renderer/pages/conversation/platforms/nanobot/NanobotChat'));
@@ -35,6 +37,33 @@ const GeminiTeamChat: React.FC<{
       workspace={conversation.extra.workspace}
       modelSelection={modelSelection}
       hideSendBox={hideSendBox}
+    />
+  );
+};
+
+// Narrow to Aionrs conversations so model field is always available
+type AionrsConversation = Extract<TChatConversation, { type: 'aionrs' }>;
+
+/** Aionrs sub-component manages model selection state without adding a ChatLayout wrapper */
+const AionrsTeamChat: React.FC<{
+  conversation: AionrsConversation;
+}> = ({ conversation }) => {
+  const onSelectModel = useCallback(
+    async (_provider: IProvider, modelName: string) => {
+      const selected = { ..._provider, useModel: modelName } as TProviderWithModel;
+      const ok = await ipcBridge.conversation.update.invoke({ id: conversation.id, updates: { model: selected } });
+      return Boolean(ok);
+    },
+    [conversation.id]
+  );
+
+  const modelSelection = useAionrsModelSelection({ initialModel: conversation.model, onSelectModel });
+
+  return (
+    <AionrsChat
+      conversation_id={conversation.id}
+      workspace={conversation.extra.workspace}
+      modelSelection={modelSelection}
     />
   );
 };
@@ -81,6 +110,8 @@ const TeamChatView: React.FC<TeamChatViewProps> = ({ conversation, hideSendBox, 
             agentSlotId={agentSlotId}
           />
         );
+      case 'aionrs':
+        return <AionrsTeamChat key={conversation.id} conversation={conversation as AionrsConversation} />;
       case 'gemini':
         return <GeminiTeamChat key={conversation.id} conversation={conversation} hideSendBox={hideSendBox} />;
       case 'openclaw-gateway':

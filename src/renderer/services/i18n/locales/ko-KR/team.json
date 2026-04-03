@@ -1,7 +1,21 @@
 {
   "sider": {
     "title": "Teams",
-    "createTeam": "New Team"
+    "createTeam": "New Team",
+    "pin": "고정",
+    "unpin": "고정 해제",
+    "rename": "이름 변경",
+    "delete": "삭제",
+    "renameTitle": "팀 이름 변경",
+    "renamePlaceholder": "팀 이름",
+    "deleteConfirm": "이 팀을 삭제하시겠습니까?",
+    "deleteConfirmContent": "이 작업은 되돌릴 수 없습니다.",
+    "deleteOk": "삭제",
+    "deleteCancel": "취소",
+    "renameOk": "저장",
+    "renameCancel": "취소",
+    "renameSuccess": "팀 이름이 변경되었습니다",
+    "deleteSuccess": "팀이 삭제되었습니다"
   },
   "addAgent": {
     "title": "Add Agent",
@@ -24,6 +38,8 @@
     "subAgentsPlaceholder": "Select sub agents",
     "workspacePlaceholder": "Workspace path (optional)",
     "confirm": "Create Team",
+    "noSupportedAgents": "지원되는 에이전트가 설치되지 않았습니다",
+    "supportedAgentsHint": "현재 Claude, Codex, CodeBuddy를 지원합니다. 더 많은 에이전트가 곧 추가됩니다.",
     "step": {
       "dispatch": "Dispatch Agent",
       "subAgents": "Sub Agents",
