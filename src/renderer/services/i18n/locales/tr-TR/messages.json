@@ -17,6 +17,8 @@
   "scrollToBottom": "Aşağı kaydır",
   "availableCommands": "{{count}} Kullanılabilir Komut",
   "atFile.hint": "Type to search for files",
+  "atFile.menuLabel": "Dosya bahsetmeleri",
+  "atFile.loading": "Yükleniyor...",
   "slash.title": "Komutlar",
   "slash.hint": "/ yazarak komut menüsünü aç",
   "slash.empty": "Komut bulunamadı",

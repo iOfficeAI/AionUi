@@ -701,6 +701,8 @@ export type I18nKey =
   | 'mcp.transport'
   | 'messages.agentRequestingPermission'
   | 'messages.atFile.hint'
+  | 'messages.atFile.loading'
+  | 'messages.atFile.menuLabel'
   | 'messages.auto_handling_permissions'
   | 'messages.availableCommands'
   | 'messages.canceledExecution'

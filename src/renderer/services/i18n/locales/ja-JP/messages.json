@@ -17,6 +17,8 @@
   "scrollToBottom": "下にスクロール",
   "availableCommands": "{{count}} 個の利用可能なコマンド",
   "atFile.hint": "Type to search for files",
+  "atFile.menuLabel": "ファイル参照",
+  "atFile.loading": "読み込み中...",
   "slash.title": "コマンド",
   "slash.hint": "/ を入力してコマンドメニューを開く",
   "slash.empty": "コマンドが見つかりません",

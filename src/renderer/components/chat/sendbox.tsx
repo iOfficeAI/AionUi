@@ -1322,7 +1322,9 @@ const SendBox: React.FC<{
                   : t('messages.atFile.hint', { defaultValue: 'Type to search for files' })
               }
               items={visibleAtFileMenuItems}
+              label={t('messages.atFile.menuLabel', { defaultValue: 'File mentions' })}
               loading={workspaceMentionLoading}
+              loadingText={t('messages.atFile.loading', { defaultValue: 'Loading...' })}
               onHoverItem={setAtFileMenuActiveIndex}
               onSelectItem={insertSelectedAtFile}
             />

@@ -5,7 +5,9 @@ type AtFileMenuProps = {
   activeIndex: number;
   emptyText: string;
   items: FileOrFolderItem[];
+  label: string;
   loading: boolean;
+  loadingText: string;
   onHoverItem: (index: number) => void;
   onSelectItem: (item: FileOrFolderItem) => void;
 };
@@ -14,7 +16,9 @@ const AtFileMenu: React.FC<AtFileMenuProps> = ({
   activeIndex,
   emptyText,
   items,
+  label,
   loading,
+  loadingText,
   onHoverItem,
   onSelectItem,
 }) => {
@@ -28,10 +32,10 @@ const AtFileMenu: React.FC<AtFileMenuProps> = ({
         WebkitBackdropFilter: 'blur(14px) saturate(1.05)',
       }}
       role='listbox'
-      aria-label='File mentions'
+      aria-label={label}
     >
       {items.length === 0 ? (
-        <div className='px-12px py-10px text-12px text-t-secondary'>{loading ? 'Loading...' : emptyText}</div>
+        <div className='px-12px py-10px text-12px text-t-secondary'>{loading ? loadingText : emptyText}</div>
       ) : (
         items.map((item, index) => {
           const isActive = index === activeIndex;

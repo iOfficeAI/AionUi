@@ -17,6 +17,8 @@
   "scrollToBottom": "滾動到底部",
   "availableCommands": "{{count}} 個可用指令",
   "atFile.hint": "Type to search for files",
+  "atFile.menuLabel": "檔案提及",
+  "atFile.loading": "載入中...",
   "slash.title": "命令",
   "slash.hint": "輸入 / 開啟命令選單",
   "slash.empty": "找不到命令",
