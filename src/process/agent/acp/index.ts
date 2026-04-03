@@ -188,6 +188,9 @@ export class AcpAgent {
 
   // Whether usage_update session notifications have been received (if so, skip PromptResponse.usage fallback)
   private hasReceivedUsageUpdate = false;
+  // Turn-level observability for "thought shown but no answer rendered" cases.
+  private turnHasThought = false;
+  private turnHasContent = false;
 
   constructor(config: AcpAgentConfig) {
     this.id = config.id;
@@ -612,6 +615,9 @@ export class AcpAgent {
   async sendMessage(data: { content: string; files?: string[]; msg_id?: string }): Promise<AcpResult> {
     const sendStart = Date.now();
     try {
+      this.turnHasThought = false;
+      this.turnHasContent = false;
+
       // Auto-reconnect if connection is lost (e.g., after unexpected process exit)
       if (!this.connection.isConnected || !this.connection.hasActiveSession) {
         const reconnectStart = Date.now();
@@ -1151,6 +1157,12 @@ export class AcpAgent {
   }
 
   private handleEndTurn(): void {
+    if (this.turnHasThought && !this.turnHasContent) {
+      console.warn(
+        `[ACP-STREAM] End turn with thought but no content (conversation=${this.id}, backend=${this.extra.backend})`
+      );
+    }
+
     // 使用信号回调发送 end_turn 事件，不添加到消息列表
     if (this.onSignalEvent) {
       this.onSignalEvent({
@@ -1415,6 +1427,7 @@ export class AcpAgent {
     // Map TMessage types to backend response types
     switch (message.type) {
       case 'text':
+        this.turnHasContent = true;
         responseMessage.type = 'content';
         responseMessage.data = message.content.content;
         break;
@@ -1429,6 +1442,7 @@ export class AcpAgent {
       case 'tips':
         // Distinguish between thought messages and error messages
         if (message.content.type === 'warning' && message.position === 'center') {
+          this.turnHasThought = true;
           const subject = this.extractThoughtSubject(message.content.content);
           responseMessage.type = 'thought';
           responseMessage.data = {
