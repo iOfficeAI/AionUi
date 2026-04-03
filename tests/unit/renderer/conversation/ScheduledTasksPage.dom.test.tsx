@@ -51,6 +51,11 @@ vi.mock('@icon-park/react', () => ({
   AlarmClock: () => <span data-testid='icon-alarm' />,
   Plus: () => <span data-testid='icon-plus' />,
   Delete: () => <span data-testid='icon-delete' />,
+  Info: () => <span data-testid='icon-info' />,
+}));
+
+vi.mock('@renderer/hooks/context/LayoutContext', () => ({
+  useLayoutContext: () => ({ isMobile: false }),
 }));
 
 // Mock @/common (for useCronJobs hook)
@@ -215,7 +220,7 @@ describe('ScheduledTasksPage', () => {
     });
   });
 
-  it('should render job list with task count', async () => {
+  it('should render job list', async () => {
     const jobs = [createMockJob(), createMockJob({ id: 'job-2', name: 'Weekly Report', enabled: false })];
     mockListJobs.mockResolvedValue(jobs);
 
@@ -225,7 +230,6 @@ describe('ScheduledTasksPage', () => {
     await waitFor(() => {
       expect(screen.getByText('Daily Summary')).toBeInTheDocument();
       expect(screen.getByText('Weekly Report')).toBeInTheDocument();
-      expect(screen.getByText('2 tasks')).toBeInTheDocument();
     });
   });
 
@@ -247,14 +251,12 @@ describe('ScheduledTasksPage', () => {
 
     await waitFor(() => {
       const tags = screen.getAllByTestId('tag');
-      // First tag is the task count header, skip it
-      const statusTags = tags.slice(1);
-      expect(statusTags[0]).toHaveAttribute('data-color', 'green'); // Active
-      expect(statusTags[0]).toHaveTextContent('Active');
-      expect(statusTags[1]).toHaveAttribute('data-color', 'gray'); // Paused
-      expect(statusTags[1]).toHaveTextContent('Paused');
-      expect(statusTags[2]).toHaveAttribute('data-color', 'red'); // Error
-      expect(statusTags[2]).toHaveTextContent('Error');
+      expect(tags[0]).toHaveAttribute('data-color', 'green'); // Active
+      expect(tags[0]).toHaveTextContent('Active');
+      expect(tags[1]).toHaveAttribute('data-color', 'gray'); // Paused
+      expect(tags[1]).toHaveTextContent('Paused');
+      expect(tags[2]).toHaveAttribute('data-color', 'red'); // Error
+      expect(tags[2]).toHaveTextContent('Error');
     });
   });
 
