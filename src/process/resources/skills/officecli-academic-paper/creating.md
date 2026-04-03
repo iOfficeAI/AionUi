@@ -31,30 +31,32 @@ Before writing any commands:
 
 > **This table is the authoritative navigation aid.** Use it to decide which sections of this guide to follow. Skip sections marked NO for your paper type.
 
-| Feature | Social Science (APA) | Physics/Math | CS / Engineering | Life Science / Biomedical | White Paper | Section |
-|---------|:---:|:---:|:---:|:---:|:---:|---------|
-| TOC | YES | YES | Optional | Optional | YES | C.2 |
-| Equations (OMML) | NO | YES | Optional | NO | NO | D.1 |
-| Footnotes | YES (endnotes) | YES | YES (see D.3) | NO | YES | D.3 |
-| Multi-column abstract | NO | YES | NO | NO | NO | C.1 |
-| Landscape sections | NO | YES (figures) | NO | YES (figures) | NO | B.3 |
-| Section breaks | NO | YES | NO | YES (cover) | YES (cover) | B.3 |
-| Custom styles (Theorem etc.) | NO | Optional | NO | NO | NO | B.2 |
-| Paragraph borders | NO | Optional | NO | NO | NO | D.2 |
-| Watermark | NO | NO | NO | NO | YES | E.2 |
-| Charts | NO | NO | NO | NO | NO | docx creating.md |
-| Cross-references (REF) | NO | NO | NO | NO | NO | E.3 |
-| Header/footer branding | NO | NO | NO | NO | YES | E.1 |
+| Feature                      | Social Science (APA) | Physics/Math  | CS / Engineering | Life Science / Biomedical | White Paper | Section          |
+| ---------------------------- | :------------------: | :-----------: | :--------------: | :-----------------------: | :---------: | ---------------- |
+| TOC                          |         YES          |      YES      |     Optional     |         Optional          |     YES     | C.2              |
+| Equations (OMML)             |          NO          |      YES      |     Optional     |            NO             |     NO      | D.1              |
+| Footnotes                    |    YES (endnotes)    |      YES      |  YES (see D.3)   |            NO             |     YES     | D.3              |
+| Multi-column abstract        |          NO          |      YES      |        NO        |            NO             |     NO      | C.1              |
+| Landscape sections           |          NO          | YES (figures) |        NO        |       YES (figures)       |     NO      | B.3              |
+| Section breaks               |          NO          |      YES      |        NO        |        YES (cover)        | YES (cover) | B.3              |
+| Custom styles (Theorem etc.) |          NO          |   Optional    |        NO        |            NO             |     NO      | B.2              |
+| Paragraph borders            |          NO          |   Optional    |        NO        |            NO             |     NO      | D.2              |
+| Watermark                    |          NO          |      NO       |        NO        |            NO             |     YES     | E.2              |
+| Charts                       |          NO          |      NO       |        NO        |            NO             |     NO      | docx creating.md |
+| Cross-references (REF)       |          NO          |      NO       |        NO        |            NO             |     NO      | E.3              |
+| Header/footer branding       |          NO          |      NO       |        NO        |            NO             |     YES     | E.1              |
 
 **CS / Engineering paper defaults:** body `lineSpacing=1.5x`, font `Times New Roman` or `Calibri` 11-12pt, references in numbered `[1]` format with `leftIndent=720 hangingIndent=720`, first-line indent optional (block style also acceptable). Use `spaceBefore=360` on Heading1 (same as Physics/Math). Footnotes are supported (see D.3); inline citations in `[N]` format are more common but footnotes may be used when the venue requires them.
 
 **Life Science / Biomedical paper defaults:** Single-column layout (no multi-column abstract). Body `lineSpacing=1.5x` or `2x` (varies by journal — Nature uses 1.5x, many others require double-spaced). Font `Times New Roman` or `Arial` 11-12pt. References in numbered `[N]` format (ACS/Nature/Vancouver style) with `leftIndent=720 hangingIndent=720`. Key structural additions:
+
 - **Figure captions** are critical — use the Caption style below each image/placeholder (figure caption goes BELOW the figure, unlike table captions which go ABOVE)
 - **Ethics statement** / IRB approval section: add as a separate Heading1 section if required by the journal
 - **Author contributions** section (CRediT format): recommended for multi-author papers
 - Use `spaceBefore=360` on Heading1 (same as other science types)
 
 > **STOP here and plan.** Before writing any commands, write out:
+>
 > 1. Which paper type? Which features from the table?
 > 2. How many sections, headings, tables, equations, footnotes?
 > 3. Will you need section breaks? If yes, plan the index offsets now.
@@ -90,12 +92,12 @@ officecli validate paper.docx
 
 **Paper-type line spacing:**
 
-| Paper Type | Body lineSpacing | Font | Size |
-|-----------|-----------------|------|------|
-| APA / Social Science | `2x` (double) | Times New Roman | 12pt |
-| Physics / Math | `1.5x` (recommended) | Times New Roman | 11pt |
-| CS / Engineering | `1.5x` (recommended) | Times New Roman | 11-12pt |
-| White Paper | `1.5x` recommended, `1.15x` minimum | Calibri | 11pt |
+| Paper Type           | Body lineSpacing                    | Font            | Size    |
+| -------------------- | ----------------------------------- | --------------- | ------- |
+| APA / Social Science | `2x` (double)                       | Times New Roman | 12pt    |
+| Physics / Math       | `1.5x` (recommended)                | Times New Roman | 11pt    |
+| CS / Engineering     | `1.5x` (recommended)                | Times New Roman | 11-12pt |
+| White Paper          | `1.5x` recommended, `1.15x` minimum | Calibri         | 11pt    |
 
 > **Line spacing note:** Recommended body line spacing is **1.5x** for all academic paper types. `1.15x` passes validation but is below publication norm — use it only for white papers or internal reports where space is at a premium. For manuscripts submitted for peer review, use `1.5x` or `2x` (double). Never use line spacing below `1.15x`.
 
@@ -129,10 +131,13 @@ officecli add paper.docx /styles --type style --prop id=Proof --prop name=Proof 
 > **D-1: Section break inserts an empty paragraph.** After `add /body --type section`, one empty paragraph is added to `/body`. All subsequent `p[N]` indices shift by +1.
 
 **Before section break:**
+
 ```
 p[6] = "Methods text"
 ```
+
 **After `officecli add paper.docx /body --type section --prop type=continuous`:**
+
 ```
 p[6] = "Methods text"
 p[7] = ""                  <-- empty paragraph (section break marker)
@@ -144,6 +149,7 @@ p[8] = next content         <-- shifted +1
 **Abstract paragraph style — firstLineIndent exemption:**
 
 > Abstract paragraphs use **block paragraph style** (no first-line indent). Do NOT set `firstLineIndent` on the abstract body paragraph.
+>
 > - Control spacing via `spaceBefore` / `spaceAfter` only
 > - If `view issues` reports "body paragraph missing first-line indent" for the abstract paragraph, this is a **false positive** — ignore it. The abstract is intentionally block-formatted per academic convention.
 
@@ -190,18 +196,18 @@ officecli add paper.docx /body --type section --prop type=nextPage --prop orient
 
 **Cover Page Required Elements (≥8 of 10 for ≥60% coverage):**
 
-| # | Element | Required | Notes |
-|---|---------|:--------:|-------|
-| 1 | Paper title | YES | Large font, **20–24pt**, bold, centered |
-| 2 | Subtitle | If applicable | 14–16pt, centered, italic |
-| 3 | Author name(s) — all authors listed | YES | 11–12pt, centered |
-| 4 | Affiliation block (department, university, institution) | YES | 11–12pt, centered, each on its own line |
-| 5 | Submitted to (journal or conference name) | YES | e.g. `"Submitted to: Nature Methods"` |
-| 6 | Submission / preparation date | YES | e.g. `"April 2026"` |
-| 7 | Abstract excerpt (4–8 lines, italic) | YES | First 3–5 sentences of the abstract; label with `"Abstract:"` prefix |
-| 8 | Keywords (5–8 terms, italic) | YES | e.g. `"Keywords: machine learning, NLP, transformer, BERT, fine-tuning"` |
-| 9 | Horizontal rule or decorative divider | Recommended | Use a full-width border paragraph to visually separate sections |
-| 10 | Contact email / ORCID | Optional | e.g. `"Contact: alice@stanford.edu \| ORCID: 0000-0001-2345-6789"` |
+| #   | Element                                                 |   Required    | Notes                                                                    |
+| --- | ------------------------------------------------------- | :-----------: | ------------------------------------------------------------------------ |
+| 1   | Paper title                                             |      YES      | Large font, **20–24pt**, bold, centered                                  |
+| 2   | Subtitle                                                | If applicable | 14–16pt, centered, italic                                                |
+| 3   | Author name(s) — all authors listed                     |      YES      | 11–12pt, centered                                                        |
+| 4   | Affiliation block (department, university, institution) |      YES      | 11–12pt, centered, each on its own line                                  |
+| 5   | Submitted to (journal or conference name)               |      YES      | e.g. `"Submitted to: Nature Methods"`                                    |
+| 6   | Submission / preparation date                           |      YES      | e.g. `"April 2026"`                                                      |
+| 7   | Abstract excerpt (4–8 lines, italic)                    |      YES      | First 3–5 sentences of the abstract; label with `"Abstract:"` prefix     |
+| 8   | Keywords (5–8 terms, italic)                            |      YES      | e.g. `"Keywords: machine learning, NLP, transformer, BERT, fine-tuning"` |
+| 9   | Horizontal rule or decorative divider                   |  Recommended  | Use a full-width border paragraph to visually separate sections          |
+| 10  | Contact email / ORCID                                   |   Optional    | e.g. `"Contact: alice@stanford.edu \| ORCID: 0000-0001-2345-6789"`       |
 
 > **Minimum viable cover:** If the scenario is explicitly minimal, include at minimum: title + authors + affiliation + submission target + date + abstract excerpt + keywords (7 elements). Three lines alone is **never** acceptable.
 
@@ -273,6 +279,7 @@ The TOC is a native Word field. It shows "Update Field" prompt in Word -- right-
 > **⚠️ TOC LibreOffice 渲染说明：** TOC 字段在 LibreOffice 中以占位文本 "Update field to see table of contents" 显示。
 > 这是正常的 OOXML 行为——在 Microsoft Word 中打开后按 Ctrl+A → F9 更新所有字段即可显示完整目录。
 > 如果接收者仅使用 LibreOffice，可以考虑以下替代方案：
+>
 > 1. 在 TOC 字段之后手动添加目录段落（静态文本，每个标题一行），作为 LibreOffice 可见的目录
 > 2. 或在文档开头的覆信中说明"请在 Word 中更新目录字段（F9）"
 
@@ -288,11 +295,11 @@ officecli add paper.docx /body --type pagebreak
 
 Standard academic papers include section numbers directly in the heading text. Use the following format — the number is part of the `text` property, **not** implemented via `numbering` or `listStyle`:
 
-| Level | Format | Example |
-|-------|--------|---------|
-| H1 (主章节) | `"N. Title"` | `"1. Introduction"`, `"2. Methods"`, `"3. Results"` |
-| H2 (子章节) | `"N.M Title"` | `"2.1 Data Collection"`, `"2.2 Analysis"` |
-| H3 (三级) | `"N.M.K Title"` | `"2.1.1 Preprocessing"`, `"2.1.2 Normalization"` |
+| Level       | Format          | Example                                             |
+| ----------- | --------------- | --------------------------------------------------- |
+| H1 (主章节) | `"N. Title"`    | `"1. Introduction"`, `"2. Methods"`, `"3. Results"` |
+| H2 (子章节) | `"N.M Title"`   | `"2.1 Data Collection"`, `"2.2 Analysis"`           |
+| H3 (三级)   | `"N.M.K Title"` | `"2.1.1 Preprocessing"`, `"2.1.2 Normalization"`    |
 
 > **Continuous numbering — ALL body sections, no exceptions:** ALL body sections including Conclusion, Discussion, and Policy Recommendations MUST follow the numbered heading convention (e.g., `"5. Conclusion"`, `"6. Policy Recommendations"`). Do NOT leave any content body section unnumbered. Only **References/Bibliography** and **Acknowledgments** are exempt from numbering by academic convention.
 
@@ -353,7 +360,7 @@ See SKILL.md Core Concepts for the full verified LaTeX subset table.
 
 ```bash
 # Step 1: display equation paragraph (centered)
-officecli add paper.docx /body --type equation --prop "formula=O(n \log n)" 
+officecli add paper.docx /body --type equation --prop "formula=O(n \log n)"
 # The equation is added as its own centered paragraph by default.
 
 # Step 2: equation number paragraph immediately after (right-aligned, no top spacing)
@@ -441,6 +448,7 @@ officecli add paper.docx /body/p[8] --type footnote --prop text="Third footnote.
 For table building blocks (header rows, cell styling, merging), see [docx creating.md](../docx/creating.md#tables----creation--basic-styling). Academic table recipe:
 
 > **Caption placement rule (APA / academic standard):**
+>
 > - **Table captions appear ABOVE the table** — add the caption paragraph BEFORE adding the table.
 > - **Figure captions appear BELOW the figure** — add the caption paragraph AFTER adding the image/placeholder.
 >
@@ -508,6 +516,7 @@ officecli add paper.docx '/footer[1]/p[1]' --type field --prop fieldType=page --
 **Running header — recommended for ALL academic paper types:**
 
 Running headers are expected in academic papers (APA, IEEE, journal submissions, etc.). Add a running header that identifies the document. Typical academic convention:
+
 - **Simple (all pages same):** Shortened paper title, right-aligned, 9pt
 - **Mirrored (odd/even pages different):** Odd pages = shortened title; Even pages = author name(s)
 
@@ -545,6 +554,7 @@ officecli add paper.docx / --type header --prop type=even \
 > **Note:** `type=default` sets the odd-page (right-hand) header. `type=even` sets the even-page (left-hand) header. Only use odd/even headers when the journal explicitly requires mirrored pages.
 
 > **White paper / corporate report header:**
+>
 > ```bash
 > officecli add paper.docx / --type header --prop text="Organization Name | DOC-ID-001" --prop alignment=right --prop size=9 --prop color=888888
 > ```
@@ -554,6 +564,7 @@ officecli add paper.docx / --type header --prop type=even \
 Academic convention requires the cover page to NOT display a page number (or use Roman numerals). The current CLI does not support `differentFirstPage` header/footer control. This means the cover page will show the page number "1" in the footer.
 
 **Known limitation workaround:** After generating the document, inform the user:
+
 > "Note: The cover page displays page number '1' due to a current CLI limitation. To hide it, open the document in Word, go to Insert > Header & Footer, enable 'Different First Page', and delete the content from the first-page footer."
 
 If you want to document this limitation inline in your delivery notes, use this note pattern.
@@ -561,6 +572,7 @@ If you want to document this limitation inline in your delivery notes, use this 
 **"Page X of Y" pattern:** Currently there is no single-command way to produce "Page X of Y" on one line. The `fieldType=page` and `fieldType=numpages` each create their own paragraph. For a simple page number, use the pattern above. For "Page X of Y", see [docx creating.md](../docx/creating.md#headers--footers) for raw-set workarounds, or accept the limitation and use a simple page number field.
 
 **Verification after footer setup:**
+
 ```bash
 officecli get paper.docx '/footer[1]'   # Confirm paragraph count and field presence
 ```

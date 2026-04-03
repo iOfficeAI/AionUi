@@ -243,6 +243,7 @@ officecli view data.xlsx annotated
 The `!` character in cross-sheet references (e.g., `Revenue!B14`) can be corrupted by shell quoting, producing `Revenue\!B14` in the XML. This renders ALL affected formulas broken (Err:508 in Excel/LibreOffice). The `validate` command does NOT catch this.
 
 **Safe patterns:**
+
 ```bash
 # SAFE: batch/heredoc (recommended)
 cat <<'EOF' | officecli batch data.xlsx
@@ -254,6 +255,7 @@ officecli set data.xlsx "/PL/B2" --prop "formula==Revenue!D14"
 ```
 
 **Broken patterns:**
+
 ```bash
 # BROKEN: single quotes
 officecli set data.xlsx "/PL/B2" --prop 'formula==Revenue!D14'
@@ -263,6 +265,7 @@ officecli set data.xlsx "/PL/B2" --prop "formula==Revenue\!D14"
 ```
 
 **Always verify after setting cross-sheet formulas:**
+
 ```bash
 officecli get data.xlsx "/PL/B2"
 # GOOD: formula: Revenue!D14

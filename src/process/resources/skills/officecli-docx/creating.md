@@ -31,11 +31,11 @@ officecli set doc.docx / --prop defaultFont=Calibri
 
 ### Page Size Reference
 
-| Paper | pageWidth | pageHeight |
-|-------|-----------|------------|
-| US Letter | 12240 | 15840 |
-| A4 | 11906 | 16838 |
-| Legal | 12240 | 20160 |
+| Paper     | pageWidth | pageHeight |
+| --------- | --------- | ---------- |
+| US Letter | 12240     | 15840      |
+| A4        | 11906     | 16838      |
+| Legal     | 12240     | 20160      |
 
 Values are in twips (1440 twips = 1 inch, 567 twips = 1 cm).
 
@@ -44,6 +44,7 @@ Values are in twips (1440 twips = 1 inch, 567 twips = 1 cm).
 ## Execution Strategy: Batch vs Incremental
 
 **Use INCREMENTAL (one command at a time):**
+
 - `add /styles --type style` — define all styles before using them; verify they exist
 - `add / --type header/footer/watermark/toc` — structural; verify before building on top
 - `add /body --type table/chart` — creates the container; fill contents after confirming
@@ -51,6 +52,7 @@ Values are in twips (1440 twips = 1 inch, 567 twips = 1 cm).
 - **When in doubt** — a single command gives immediate feedback; if it fails you know exactly where. Batch errors are harder to diagnose.
 
 **Use BATCH (heredoc):**
+
 - Multiple consecutive `add /body --type paragraph/run` — body content has no structural side effects
 - Bulk list items (bullet points, numbered steps)
 - Format painting — applying the same props to multiple paragraphs or table cells
@@ -219,17 +221,18 @@ officecli close report.docx
 
 #### Minimum Element Checklist by Document Type
 
-| Document Type | Required Cover Elements |
-|---|---|
-| **Business Report / Annual Report** | Top accent bar · Company name · Main title (28-32pt) · Subtitle/fiscal year (18-20pt) · Author/department · Date · Version/confidentiality · Bottom bar + contact |
-| **Business Proposal** | Top accent bar · Client name · Proposal title (28-32pt) · Prepared-for / prepared-by block · Date · 3-5 bullet key benefits (optional callout) · Confidentiality notice |
-| **Technical Specification** | Top bar · Product/project name · Document title (28-32pt) · Version number + status (DRAFT/FINAL) · Author · Date · Target audience · Bottom bar |
+| Document Type                       | Required Cover Elements                                                                                                                                                 |
+| ----------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Business Report / Annual Report** | Top accent bar · Company name · Main title (28-32pt) · Subtitle/fiscal year (18-20pt) · Author/department · Date · Version/confidentiality · Bottom bar + contact       |
+| **Business Proposal**               | Top accent bar · Client name · Proposal title (28-32pt) · Prepared-for / prepared-by block · Date · 3-5 bullet key benefits (optional callout) · Confidentiality notice |
+| **Technical Specification**         | Top bar · Product/project name · Document title (28-32pt) · Version number + status (DRAFT/FINAL) · Author · Date · Target audience · Bottom bar                        |
 
 #### Cover Page Lower Half — Must Not Be >40% Empty
 
 A common issue is a cover page where the title block ends near the top or middle, leaving the lower half largely blank. This is a deliverability defect. After placing the title/subtitle/author/date block, check whether the lower half is filled. If not, add one or more of the following blocks before the bottom accent bar:
 
 **Option A — Abstract Excerpt Block** (for reports, technical specs):
+
 ```bash
 # Abstract excerpt shaded block
 officecli add doc.docx /body --type paragraph --prop text="" --prop shd=EBF3FB --prop size=4pt --prop spaceBefore=0pt --prop spaceAfter=0pt
@@ -239,12 +242,14 @@ officecli add doc.docx /body --type paragraph --prop text="" --prop shd=EBF3FB -
 ```
 
 **Option B — Document Scope Statement** (for policy, proposal, formal reports):
+
 ```bash
 officecli add doc.docx /body --type paragraph --prop text="DOCUMENT SCOPE" --prop alignment=center --prop font=Calibri --prop size=9pt --prop bold=true --prop color=888888 --prop spaceBefore=36pt --prop spaceAfter=6pt
 officecli add doc.docx /body --type paragraph --prop text="This document applies to all employees of Acme Corporation and covers Q4 2025 fiscal year results." --prop alignment=center --prop font=Calibri --prop size=10pt --prop color=555555 --prop spaceAfter=8pt --prop leftIndent=720 --prop rightIndent=720
 ```
 
 **Option C — Key Highlights List** (for annual reports, proposals):
+
 ```bash
 officecli add doc.docx /body --type paragraph --prop text="KEY HIGHLIGHTS" --prop alignment=center --prop font=Calibri --prop size=9pt --prop bold=true --prop color=1F4E79 --prop spaceBefore=36pt --prop spaceAfter=8pt
 officecli add doc.docx /body --type paragraph --prop text="Revenue grew 25% year-over-year" --prop listStyle=bullet --prop font=Calibri --prop size=10pt --prop color=333333 --prop spaceAfter=4pt
@@ -255,6 +260,7 @@ officecli add doc.docx /body --type paragraph --prop text="Three new markets lau
 > **Rule: Cover page lower half must not be >40% empty.** If your title/author/date block ends in the upper 60% of the page, add Option A, B, or C above before the bottom accent bar.
 
 #### Filling Visual Space
+
 Use shading bars (`--prop shd=HEX`) and explicit `spaceBefore`/`spaceAfter` on every element to distribute content across the page. Even empty paragraphs with a background color create professional visual structure:
 
 ```bash
@@ -266,10 +272,13 @@ officecli add doc.docx /body --type paragraph --prop text="" --prop shd=4472C4 -
 ```
 
 #### Cover Alignment Rule
+
 Every cover page paragraph **must** use `--prop alignment=center` (or `alignment=left` for left-aligned corporate style). Never leave cover text at default paragraph alignment.
 
 #### Pitfall: `pbdr` Schema Errors on Cover Elements
+
 If you use paragraph borders (`--prop pbdr.all=...`) on cover elements and validation fails, remove the offending border:
+
 ```bash
 officecli validate doc.docx
 # If a pBdr element causes schema error:
@@ -481,6 +490,7 @@ officecli add doc.docx /body --type paragraph \
 ```
 
 **Tips for code blocks:**
+
 - Use `shd=F5F5F5` (light gray) or `shd=F0F0F0` for a subtle background. The `shd` property is always reliable (unlike `pbdr` borders).
 - Omit `spaceAfter` / `spaceBefore` on continuation lines so they appear as a single visual block; add spacing only on the first and last line.
 - To create a reusable style, define a `Code` custom style once via `/styles --type style` and apply `--prop style=Code` to each paragraph instead of repeating all props.
@@ -706,6 +716,7 @@ officecli set doc.docx "/body/p[5]/r[2]" --prop "formula=\alpha + \beta = \gamma
 **LaTeX subset reference**: `\frac{}{}`, `\sqrt{}`, `\sum`, `\int`, `\lim`, `\nabla`, `\partial`, Greek letters (`\alpha`, `\beta`, etc.), subscripts (`_`), superscripts (`^`), `\binom{}{}`, `\rightarrow`, `\rightleftharpoons`, `\pm`, `\times`, `\cdot`, `\infty`, `\begin{pmatrix}...\end{pmatrix}`
 
 **Equation caveats:**
+
 - `\mathcal` is NOT reliably supported -- it generates invalid `m:scr` XML. Use `\mathit{L}` or plain italic letters instead.
 - After adding equations, immediately verify with `view text` -- equations appear as `[Equation]` markers. If the marker is missing, the equation was not created correctly.
 - When fixing validation errors or removing empty paragraphs, re-check that `[Equation]` markers are still present. Equation paragraphs (oMathPara) share the paragraph index space and can be accidentally deleted.
@@ -792,7 +803,7 @@ officecli raw-set doc.docx "/footer[2]" \
 
 #### Composite Footer (Company Name + Page Number)
 
-For corporate documents with a footer like "Acme Corporation | Confidential  ·  Page 1", each `add / --type footer --prop type=default` call appends a new paragraph inside the same footer region. Use this to build multi-line footers, or keep everything in one command for a single-line footer.
+For corporate documents with a footer like "Acme Corporation | Confidential · Page 1", each `add / --type footer --prop type=default` call appends a new paragraph inside the same footer region. Use this to build multi-line footers, or keep everything in one command for a single-line footer.
 
 ```bash
 # Single-line footer: text only (no page number)
@@ -1030,14 +1041,17 @@ officecli query doc.docx 'image:no-alt'
 ### L1, L2, L3 Escalation (When to Use Raw XML)
 
 **L1 -- High-level commands (use first)**:
+
 - `add`, `set`, `get`, `query`, `remove`, `move`, `swap`
 - Covers 90% of use cases
 
 **L2 -- Batch with selectors**:
+
 - `set doc.docx 'selector' --prop key=value`
 - For bulk modifications across document
 
 **L3 -- Raw XML (last resort)**:
+
 - `raw` to inspect XML
 - `raw-set` to modify XML directly
 - `add-part` to create new document parts (returns rId)

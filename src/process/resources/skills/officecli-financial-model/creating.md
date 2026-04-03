@@ -18,24 +18,24 @@ Non-negotiable: all statement values are formulas (only Assumptions has hardcode
 
 ### A.2 Sheet Structure Convention
 
-| Sheet | Tab Color | Purpose |
-|-------|-----------|---------|
-| Assumptions | `4472C4` (blue) | All hardcoded inputs |
-| Income Statement | `A5A5A5` (gray) | Revenue through Net Income |
-| Balance Sheet | `A5A5A5` (gray) | Assets, Liabilities, Equity |
-| Cash Flow | `A5A5A5` (gray) | Operating, Investing, Financing |
-| Valuation / DCF | `ED7D31` (orange) | WACC, FCF, Terminal Value |
-| Scenarios | `4472C4` (blue) | Dropdown + scenario assumptions |
-| Error Checks | `FF0000` (red) | Balance, reconciliation, ISERROR |
-| Dashboard | `70AD47` (green) | Charts and summary KPIs |
+| Sheet            | Tab Color         | Purpose                          |
+| ---------------- | ----------------- | -------------------------------- |
+| Assumptions      | `4472C4` (blue)   | All hardcoded inputs             |
+| Income Statement | `A5A5A5` (gray)   | Revenue through Net Income       |
+| Balance Sheet    | `A5A5A5` (gray)   | Assets, Liabilities, Equity      |
+| Cash Flow        | `A5A5A5` (gray)   | Operating, Investing, Financing  |
+| Valuation / DCF  | `ED7D31` (orange) | WACC, FCF, Terminal Value        |
+| Scenarios        | `4472C4` (blue)   | Dropdown + scenario assumptions  |
+| Error Checks     | `FF0000` (red)    | Balance, reconciliation, ISERROR |
+| Dashboard        | `70AD47` (green)  | Charts and summary KPIs          |
 
 ### A.3 Financial Color Coding
 
-| Cell Type | Font Color | Hex |
-|-----------|-----------|-----|
-| Input (hardcoded) | Blue | `0000FF` |
-| Formula (same sheet) | Black | `000000` |
-| Cross-sheet reference | Green | `008000` |
+| Cell Type             | Font Color | Hex      |
+| --------------------- | ---------- | -------- |
+| Input (hardcoded)     | Blue       | `0000FF` |
+| Formula (same sheet)  | Black      | `000000` |
+| Cross-sheet reference | Green      | `008000` |
 
 Apply colors in the formatting batch (step 8 of build order):
 
@@ -46,14 +46,14 @@ officecli set model.xlsx "/Income Statement/B3:D20" --prop font.color=000000
 
 ### A.4 Number Format Map
 
-| Type | Format Code | Example |
-|------|------------|---------|
+| Type       | Format Code                                  | Example               |
+| ---------- | -------------------------------------------- | --------------------- |
 | Accounting | `_($* #,##0_);_($* (#,##0);_($* "-"_);_(@_)` | `$ 1,234` / `$ (567)` |
-| Currency | `$#,##0;($#,##0);"-"` | `$1,234` / `($567)` |
-| Percentage | `0.0%` | `12.5%` |
-| Multiples | `0.0x` | `3.2x` |
-| Shares | `#,##0` | `10,000,000` |
-| Per-share | `$#,##0.00` | `$14.50` |
+| Currency   | `$#,##0;($#,##0);"-"`                        | `$1,234` / `($567)`   |
+| Percentage | `0.0%`                                       | `12.5%`               |
+| Multiples  | `0.0x`                                       | `3.2x`                |
+| Shares     | `#,##0`                                      | `10,000,000`          |
+| Per-share  | `$#,##0.00`                                  | `$14.50`              |
 
 Use heredoc batch for all number formats to avoid shell `$` expansion.
 
@@ -119,18 +119,18 @@ officecli validate model.xlsx    # ← validate on closed file
 
 Follow this exact 10-step sequence. Do not reorder.
 
-| Step | Task | Mode |
-|------|------|------|
-| 1 | Create workbook + all sheets — plan names upfront (cannot rename) | **INCREMENTAL** |
-| 2 | Column widths + freeze panes — set on every sheet (`freeze=B2` or `freeze=B3`) | **BATCH** |
-| 3 | Headers + row labels — section headers, year labels, row names | **BATCH** |
-| 4 | Assumptions data — hardcoded inputs (blue font in step 8) | **BATCH** |
-| 5 | Statement formulas — IS → BS → CF dependency order; verify after each sheet | **BATCH** + verify |
-| 6 | Valuation / scenario formulas — DCF, sensitivity, scenario switching, error checks | **BATCH** |
-| 7 | Named ranges — define for all key assumptions | **INCREMENTAL** |
-| 8 | Formatting + colors — number formats, blue/black font, subtotal styling, tab colors | **BATCH** |
-| 9 | Charts — cell range references, `preset=dashboard` | **INCREMENTAL** |
-| 10 | Protection + calcPr + validate — lock/unlock, protect, `set / --prop calc.*`, activeTab raw-set (LAST), validate | **INCREMENTAL** |
+| Step | Task                                                                                                             | Mode               |
+| ---- | ---------------------------------------------------------------------------------------------------------------- | ------------------ |
+| 1    | Create workbook + all sheets — plan names upfront (cannot rename)                                                | **INCREMENTAL**    |
+| 2    | Column widths + freeze panes — set on every sheet (`freeze=B2` or `freeze=B3`)                                   | **BATCH**          |
+| 3    | Headers + row labels — section headers, year labels, row names                                                   | **BATCH**          |
+| 4    | Assumptions data — hardcoded inputs (blue font in step 8)                                                        | **BATCH**          |
+| 5    | Statement formulas — IS → BS → CF dependency order; verify after each sheet                                      | **BATCH** + verify |
+| 6    | Valuation / scenario formulas — DCF, sensitivity, scenario switching, error checks                               | **BATCH**          |
+| 7    | Named ranges — define for all key assumptions                                                                    | **INCREMENTAL**    |
+| 8    | Formatting + colors — number formats, blue/black font, subtotal styling, tab colors                              | **BATCH**          |
+| 9    | Charts — cell range references, `preset=dashboard`                                                               | **INCREMENTAL**    |
+| 10   | Protection + calcPr + validate — lock/unlock, protect, `set / --prop calc.*`, activeTab raw-set (LAST), validate | **INCREMENTAL**    |
 
 **Step 8 Formatting — REQUIRED sub-steps (do not skip):**
 
@@ -178,6 +178,7 @@ Follow this exact 10-step sequence. Do not reorder.
 > **⚠️ WARNING: There is no reliable CLI command to detect font color.** `officecli view text` does NOT output font color information. A grep-based check like `grep -v "000000" | grep "formula"` is a **false negative** — it always returns 0 lines regardless of actual font colors, and will mistakenly pass a model where formula cells have no explicit color set.
 >
 > **Correct verification method:**
+>
 > ```bash
 > # Generate HTML preview and open in browser to visually confirm font colors
 > officecli view model.xlsx html > preview.html
@@ -194,6 +195,7 @@ Follow this exact 10-step sequence. Do not reorder.
 Financial models involve 200–400 commands. Using the right execution mode per step cuts wall-clock time by 5–10×.
 
 **Use INCREMENTAL (one command at a time):**
+
 - Any `add` command — creates new structure (sheet, chart, named range, validation, color scale)
 - Any `remove` command
 - Any `raw-set` command
@@ -202,6 +204,7 @@ Financial models involve 200–400 commands. Using the right execution mode per 
 - **When uncertain** — single commands give immediate feedback; a failed batch is harder to diagnose than a failed single command
 
 **Use BATCH (heredoc):**
+
 - Any series of `set` commands — filling values, formulas, widths, formats
 - This covers steps 2, 3, 4, 5, 6, 8 entirely
 
@@ -222,7 +225,7 @@ EOF
 **Cross-sheet formulas in batch:** Use the `formula` prop with `=` prefix — the `==` double-equals trick (`--prop "formula==Sheet!Cell"`) is only needed in shell to escape `!`. In JSON batch, write the formula literally:
 
 ```json
-{"command":"set","path":"/Income Statement/B3","props":{"formula":"=Assumptions!B3"}}
+{ "command": "set", "path": "/Income Statement/B3", "props": { "formula": "=Assumptions!B3" } }
 ```
 
 ---
@@ -279,13 +282,17 @@ EOF
 > 仅设置 A 列时，B/C/D 列在同行会显示白色背景 + 黑色文字，与深色 A 列相邻，对比强烈且可读性极低。
 >
 > **正确做法**（batch 中同时设置整行）：
+>
 > ```json
-> {"command":"set","path":"/P&L/A5:D5","props":{"shd":"1F3864","color":"FFFFFF","bold":true}}
+> { "command": "set", "path": "/P&L/A5:D5", "props": { "shd": "1F3864", "color": "FFFFFF", "bold": true } }
 > ```
+>
 > **错误做法**（只设置 A 列）：
+>
 > ```json
-> {"command":"set","path":"/P&L/A5","props":{"shd":"1F3864","color":"FFFFFF","bold":true}}
+> { "command": "set", "path": "/P&L/A5", "props": { "shd": "1F3864", "color": "FFFFFF", "bold": true } }
 > ```
+>
 > 规则：header 行的 fill 范围必须与数据列范围一致（年度模型 A:D，月度模型 A:AL 等）。
 
 Add data validation on rates (INCREMENTAL — structural `add`):
@@ -323,14 +330,14 @@ officecli get model.xlsx "/Income Statement/B3"
 
 **SaaS ARR Waterfall:** For SaaS/subscription models, always include an ARR waterfall section on the Revenue or Assumptions sheet. Standard row structure:
 
-| Row | Label | Formula |
-|-----|-------|---------|
-| 1 | Beginning ARR | Hardcoded (Year 1) or `=Prior Year Ending ARR` |
-| 2 | New ARR (+) | From Assumptions (new bookings) |
-| 3 | Expansion ARR (+) | From Assumptions (upsell/cross-sell) |
-| 4 | Churn ARR (-) | `=-Beginning ARR * ChurnRate` (negative value) |
-| 5 | Net New ARR | `=New ARR + Expansion ARR + Churn ARR` |
-| 6 | Ending ARR | `=Beginning ARR + Net New ARR` |
+| Row | Label             | Formula                                        |
+| --- | ----------------- | ---------------------------------------------- |
+| 1   | Beginning ARR     | Hardcoded (Year 1) or `=Prior Year Ending ARR` |
+| 2   | New ARR (+)       | From Assumptions (new bookings)                |
+| 3   | Expansion ARR (+) | From Assumptions (upsell/cross-sell)           |
+| 4   | Churn ARR (-)     | `=-Beginning ARR * ChurnRate` (negative value) |
+| 5   | Net New ARR       | `=New ARR + Expansion ARR + Churn ARR`         |
+| 6   | Ending ARR        | `=Beginning ARR + Net New ARR`                 |
 
 ```bash
 # Example: ARR Waterfall on Revenue sheet, rows 4-9
@@ -372,6 +379,7 @@ Assumptions rows needed: B50=Beginning ARR (Year 1 hardcoded), B51:D51=New ARR i
 > 在 Assumptions 中设立独立输入会产生双源不一致风险：若两处数值不同步，waterfall 将从 Year 2 起出现跳跃缺口。
 >
 > 正确做法（参见上方代码示例）：
+>
 > - `C4` = `=B9`（Year 2 Beginning ARR = Year 1 Ending ARR，引用上一年的 Ending ARR 单元格）
 > - `D4` = `=C9`（Year 3 Beginning ARR = Year 2 Ending ARR）
 >
@@ -409,13 +417,14 @@ officecli set model.xlsx "/Balance Sheet/B18" --prop formula="=ROUND(B10-B15-B17
 >
 > Balance check 公式必须分别独立计算 Assets 合计与 Liabilities+Equity 合计，然后做差值。**严禁使用恒真式（tautological formula）**。
 >
-> | 类型 | 公式示例 | 问题 |
-> |------|---------|------|
-> | ANTI-PATTERN（恒真式） | `=IF(B10=B10, "Balanced", "Error")` | 两侧引用同一公式，永远为 TRUE，无论 BS 是否真正平衡 |
-> | ANTI-PATTERN（恒零差） | `=SUM(B5:B10)-SUM(B5:B10)` | 同一区域相减，永远为 0 |
-> | CORRECT | `=ROUND(TotalAssets - (TotalLiabilities + TotalEquity), 0) = 0` | 分别引用 Assets 小计行与 Liabilities/Equity 小计行，差值为 0 才是真正平衡 |
+> | 类型                   | 公式示例                                                        | 问题                                                                      |
+> | ---------------------- | --------------------------------------------------------------- | ------------------------------------------------------------------------- |
+> | ANTI-PATTERN（恒真式） | `=IF(B10=B10, "Balanced", "Error")`                             | 两侧引用同一公式，永远为 TRUE，无论 BS 是否真正平衡                       |
+> | ANTI-PATTERN（恒零差） | `=SUM(B5:B10)-SUM(B5:B10)`                                      | 同一区域相减，永远为 0                                                    |
+> | CORRECT                | `=ROUND(TotalAssets - (TotalLiabilities + TotalEquity), 0) = 0` | 分别引用 Assets 小计行与 Liabilities/Equity 小计行，差值为 0 才是真正平衡 |
 >
 > **正确做法：**
+>
 > - `TotalAssets` = 所有资产行的独立 SUM（如 `=SUM(B4:B9)`）
 > - `TotalLiabilities` = 所有负债行的独立 SUM（如 `=SUM(B12:B14)`）
 > - `TotalEquity` = 所有股本行的独立 SUM（如 `=SUM(B16:B17)`）
@@ -435,12 +444,14 @@ officecli set model.xlsx "/Balance Sheet/B18" --prop formula="=ROUND(B10-B15-B17
 > 原因：硬编码的期初股本几乎必然与期初资产/负债不匹配，导致 Balance Check Year 1 = FALSE，且该误差会传播到所有后续年份（因为 Year 2 期初股本 = Year 1 期末股本）。
 >
 > 正确做法：
+>
 > ```bash
 > # Opening Equity = Opening Assets - Opening Liabilities (从 Assumptions 引用)
 > officecli set model.xlsx "/Balance Sheet/B17" --prop "formula==Assumptions!B10+Assumptions!B15-Assumptions!B40"
 > # 其中 B10=Opening Cash, B15=Opening PP&E, B40=Opening Long-Term Debt
 > # 调整行号以匹配你的 Assumptions 布局
 > ```
+>
 > **验证**：设置后立即检查 Balance Check 是否为 TRUE。若 Year 1 = FALSE，首先检查期初股本公式。
 
 ### B.4 Cash Flow Statement
@@ -476,6 +487,7 @@ Reconciliation check must evaluate to TRUE: CF ending cash = BS cash for every p
 > **#1 risk area.** The `!` in cross-sheet refs (e.g., `Assumptions!B3`) can be corrupted by shell escaping. ALWAYS use heredoc batch.
 
 > **⚠️ Sheet names with special characters** (`&`, spaces, parentheses, etc.) **MUST be wrapped in single quotes** in Excel formulas:
+>
 > - Sheet named `P&L` → reference as `'P&L'!B3` (NOT `P&L!B3`)
 > - Sheet named `Income Statement` → reference as `'Income Statement'!B3`
 > - Sheet names without special characters (e.g., `Assumptions`) → no quotes needed
@@ -499,8 +511,9 @@ Reconciliation check must evaluate to TRUE: CF ending cash = BS cash for every p
 > ```
 >
 > In JSON batch operations, paths inside JSON strings do NOT need this extra quoting — the JSON string boundary already prevents shell splitting:
+>
 > ```json
-> {"command":"set","path":"/Cash Flow/B19","props":{"formula":"=B17+B15"}}
+> { "command": "set", "path": "/Cash Flow/B19", "props": { "formula": "=B17+B15" } }
 > ```
 
 **Correct pattern:**
@@ -547,11 +560,11 @@ For models that need monthly granularity (e.g., 3-year SaaS bottoms-up), use mon
 
 **Column mapping — 36-month layout:**
 
-| Year | Months | Columns | Annual Rollup |
-|------|--------|---------|---------------|
-| Year 1 | Jan–Dec | B–M (12 cols) | AN (or separate section) |
-| Year 2 | Jan–Dec | N–Y (12 cols) | AO |
-| Year 3 | Jan–Dec | Z–AK (12 cols) | AP |
+| Year   | Months  | Columns        | Annual Rollup            |
+| ------ | ------- | -------------- | ------------------------ |
+| Year 1 | Jan–Dec | B–M (12 cols)  | AN (or separate section) |
+| Year 2 | Jan–Dec | N–Y (12 cols)  | AO                       |
+| Year 3 | Jan–Dec | Z–AK (12 cols) | AP                       |
 
 Row 3: month headers (`Jan-Y1`, `Feb-Y1`, ..., `Dec-Y3`). Row 4+: data rows.
 
@@ -757,7 +770,7 @@ officecli set model.xlsx /Waterfall/B8 --prop formula="=B4+B5+B6"
 
 Replicate B4:B8 formulas across columns C through F for each exit scenario. The `MAX` formula handles the conversion decision automatically: when pro-rata share exceeds liquidation preference, the class converts; otherwise it takes the preference. Total Check must equal the exit value in every column.
 
-> **Note:** For participating preferred (double-dip), replace MAX with: LiqPref + MAX(0, (ExitValue - TotalLiqPrefs) * OwnershipPct).
+> **Note:** For participating preferred (double-dip), replace MAX with: LiqPref + MAX(0, (ExitValue - TotalLiqPrefs) \* OwnershipPct).
 
 ### C.5 Debt Schedule
 
@@ -778,7 +791,7 @@ officecli set model.xlsx "/Debt Schedule/B7" --prop "formula==B4*Assumptions!B42
 
 Closing balance period N = Opening balance period N+1 (continuity check). Interest on opening balance, NOT average -- avoids circularity.
 
-**Revolver:** Available = Facility Limit - Term Loan Outstanding. Draw/Repay = `MIN(CashShortfall, Available)`. Interest = Opening Revolver Balance * Revolver Rate. Place after Term Loan on the same Debt Schedule sheet.
+**Revolver:** Available = Facility Limit - Term Loan Outstanding. Draw/Repay = `MIN(CashShortfall, Available)`. Interest = Opening Revolver Balance \* Revolver Rate. Place after Term Loan on the same Debt Schedule sheet.
 
 ### C.6 Working Capital Model
 
@@ -788,11 +801,11 @@ AR = Revenue x DSO/365, Inventory = COGS x DIO/365, AP = COGS x DPO/365. Net WC 
 >
 > AP（Accounts Payable，应付账款）在资产负债表上是**负债（正值）**，但在 NWC 公式中起**减项**作用。公式必须对 COGS 取负：
 >
-> | 行 | 正确公式 | 错误公式 | 原因 |
-> |---|---------|---------|------|
-> | AR | `=Revenue * DSO/365` | — | AR 是资产，正值 |
-> | Inventory | `=-COGS * DIO/365` | `=COGS * DIO/365` | COGS 为负数，取负后 Inventory 为正值 |
-> | AP | `=-COGS * DPO/365` | `=COGS * DPO/365` | COGS 为负数，取负后 AP 为正值；若 COGS 含正号则直接使用 `=COGS * DPO/365` |
+> | 行        | 正确公式             | 错误公式          | 原因                                                                      |
+> | --------- | -------------------- | ----------------- | ------------------------------------------------------------------------- |
+> | AR        | `=Revenue * DSO/365` | —                 | AR 是资产，正值                                                           |
+> | Inventory | `=-COGS * DIO/365`   | `=COGS * DIO/365` | COGS 为负数，取负后 Inventory 为正值                                      |
+> | AP        | `=-COGS * DPO/365`   | `=COGS * DPO/365` | COGS 为负数，取负后 AP 为正值；若 COGS 含正号则直接使用 `=COGS * DPO/365` |
 >
 > **规则：AP 的计算结果必须为正数（表示公司欠供应商的钱）。**
 > 若 COGS 行存储负值（如 `-500,000`），则 AP 公式必须取负：`=-COGS*DPO/365`。
@@ -825,13 +838,13 @@ Fixed Costs / Contribution Margin = Break-Even Units. Key formulas: `Fixed Costs
 
 ### D.1 Financial Chart Types
 
-| Data Pattern | Chart Type | Use Case |
-|-------------|-----------|----------|
-| Revenue + margin trend | `combo` | Revenue bars (left) + Margin line (right) |
-| Values over time | `column` | Revenue by year or scenario comparison |
-| Trend line | `line` | Cash balance, cumulative FCF |
-| Cash progression | `area` | Cash balance over time |
-| P&L bridge | `waterfall` | Revenue breakdown, cost waterfall |
+| Data Pattern           | Chart Type  | Use Case                                  |
+| ---------------------- | ----------- | ----------------------------------------- |
+| Revenue + margin trend | `combo`     | Revenue bars (left) + Margin line (right) |
+| Values over time       | `column`    | Revenue by year or scenario comparison    |
+| Trend line             | `line`      | Cash balance, cumulative FCF              |
+| Cash progression       | `area`      | Cash balance over time                    |
+| P&L bridge             | `waterfall` | Revenue breakdown, cost waterfall         |
 
 ### D.2 Chart Recipes
 
@@ -950,32 +963,32 @@ cd /Users/veryliu && node /Users/veryliu/Documents/GitHub/OfficeCli/scripts/scre
 
 ## Section F: Known Issues and Workarounds
 
-| # | Issue | Workaround |
-|---|-------|------------|
-| F-1 | `!` escaping in cross-sheet formulas | Always use heredoc batch. Verify with `officecli get`. If `\!` appears, delete and re-run. |
-| F-2 | Batch failure at scale | Use resident mode (`open`/`close`) + batch chunks of 15–20 ops. If a batch still fails with "Failed to send to resident", split into smaller chunks and retry. Fall back to individual commands only as last resort. |
-| F-3 | calcPr duplicate elements | Use `set / --prop calc.fullCalcOnLoad=true` (high-level API). Do NOT use raw-set to insert calcPr — it creates duplicates. |
-| F-3a | Sheet names with `&` or spaces cause `#NAME?` | Wrap in single quotes: `'P&L'!B3`, `'Income Statement'!C4`. Plain `P&L!B3` fails silently — error only visible in screenshots, not in `validate` or `query`. |
-| F-4 | No auto-fit column width | Set explicitly: labels=24-28, numbers=14-18. |
-| F-5 | Cannot rename sheets | Plan names upfront. Create with correct name. |
-| F-6 | Sensitivity tables are manual | Each cell = explicit self-contained formula. Build row-by-row in separate batches. |
-| F-7 | Chart series fixed at creation | Plan all series before `add`. Delete and recreate if wrong. |
-| F-8 | Formula cached values blank | `view text` shows blank for formulas. Normal. fullCalcOnLoad ensures calc on open. |
-| F-9 | formulacf no font.bold | Use `fill` + `font.color` only. `font.bold` causes validation errors. |
-| F-10 | Number format `$` quoting | Use heredoc batch or single quotes: `--prop numFmt='$#,##0'`. |
-| F-11 | Waterfall chart totals | Cannot mark as totals. Use totalColor property for visual convention. |
-| F-12 | Circular references | Set `iterate="1"` in calcPr. Avoid: use prior-period cash + net CF, interest on opening balance. |
-| F-13 | Chart title `$` stripping | Shell expands `$` in `--prop title`. Use heredoc batch for chart titles containing `$`, or omit `$` from titles (e.g., "Exit Waterfall (50M)" not "Exit Waterfall ($50M)"). |
-| F-14 | Tautological balance check formula | Balance check formulas must use **independent calculation paths**. ANTI-PATTERN: `=B_assets - B_assets + 1` always equals 1 regardless of whether the BS balances — this is a tautology that provides zero verification value. CORRECT: `=ROUND(TotalAssets - (TotalLiabilities + TotalEquity), 0) = 0` — this equals TRUE only when the BS truly balances. See Pitfall note below. |
+| #    | Issue                                         | Workaround                                                                                                                                                                                                                                                                                                                                                                          |
+| ---- | --------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| F-1  | `!` escaping in cross-sheet formulas          | Always use heredoc batch. Verify with `officecli get`. If `\!` appears, delete and re-run.                                                                                                                                                                                                                                                                                          |
+| F-2  | Batch failure at scale                        | Use resident mode (`open`/`close`) + batch chunks of 15–20 ops. If a batch still fails with "Failed to send to resident", split into smaller chunks and retry. Fall back to individual commands only as last resort.                                                                                                                                                                |
+| F-3  | calcPr duplicate elements                     | Use `set / --prop calc.fullCalcOnLoad=true` (high-level API). Do NOT use raw-set to insert calcPr — it creates duplicates.                                                                                                                                                                                                                                                          |
+| F-3a | Sheet names with `&` or spaces cause `#NAME?` | Wrap in single quotes: `'P&L'!B3`, `'Income Statement'!C4`. Plain `P&L!B3` fails silently — error only visible in screenshots, not in `validate` or `query`.                                                                                                                                                                                                                        |
+| F-4  | No auto-fit column width                      | Set explicitly: labels=24-28, numbers=14-18.                                                                                                                                                                                                                                                                                                                                        |
+| F-5  | Cannot rename sheets                          | Plan names upfront. Create with correct name.                                                                                                                                                                                                                                                                                                                                       |
+| F-6  | Sensitivity tables are manual                 | Each cell = explicit self-contained formula. Build row-by-row in separate batches.                                                                                                                                                                                                                                                                                                  |
+| F-7  | Chart series fixed at creation                | Plan all series before `add`. Delete and recreate if wrong.                                                                                                                                                                                                                                                                                                                         |
+| F-8  | Formula cached values blank                   | `view text` shows blank for formulas. Normal. fullCalcOnLoad ensures calc on open.                                                                                                                                                                                                                                                                                                  |
+| F-9  | formulacf no font.bold                        | Use `fill` + `font.color` only. `font.bold` causes validation errors.                                                                                                                                                                                                                                                                                                               |
+| F-10 | Number format `$` quoting                     | Use heredoc batch or single quotes: `--prop numFmt='$#,##0'`.                                                                                                                                                                                                                                                                                                                       |
+| F-11 | Waterfall chart totals                        | Cannot mark as totals. Use totalColor property for visual convention.                                                                                                                                                                                                                                                                                                               |
+| F-12 | Circular references                           | Set `iterate="1"` in calcPr. Avoid: use prior-period cash + net CF, interest on opening balance.                                                                                                                                                                                                                                                                                    |
+| F-13 | Chart title `$` stripping                     | Shell expands `$` in `--prop title`. Use heredoc batch for chart titles containing `$`, or omit `$` from titles (e.g., "Exit Waterfall (50M)" not "Exit Waterfall ($50M)").                                                                                                                                                                                                         |
+| F-14 | Tautological balance check formula            | Balance check formulas must use **independent calculation paths**. ANTI-PATTERN: `=B_assets - B_assets + 1` always equals 1 regardless of whether the BS balances — this is a tautology that provides zero verification value. CORRECT: `=ROUND(TotalAssets - (TotalLiabilities + TotalEquity), 0) = 0` — this equals TRUE only when the BS truly balances. See Pitfall note below. |
 
 > **⚠️ Balance Check Formula Anti-Pattern**
 >
 > Balance check formulas must be independently verifiable. A tautological formula defeats the entire purpose of the check:
 >
-> | | Formula | Result | Problem |
-> |---|---------|--------|---------|
-> | ANTI-PATTERN | `=B19-B19+1` | Always `1` | References the same cell twice — algebraically always equals 1 regardless of actual balance |
-> | ANTI-PATTERN | `=SUM(B5:B10)-SUM(B5:B10)` | Always `0` | Same issue — always balanced, never catches errors |
-> | CORRECT | `=ROUND(B_total_assets - (B_total_liabilities + B_total_equity), 0) = 0` | `TRUE` only when BS balances | References independent cell ranges for assets vs. liabilities+equity |
+> |              | Formula                                                                  | Result                       | Problem                                                                                     |
+> | ------------ | ------------------------------------------------------------------------ | ---------------------------- | ------------------------------------------------------------------------------------------- |
+> | ANTI-PATTERN | `=B19-B19+1`                                                             | Always `1`                   | References the same cell twice — algebraically always equals 1 regardless of actual balance |
+> | ANTI-PATTERN | `=SUM(B5:B10)-SUM(B5:B10)`                                               | Always `0`                   | Same issue — always balanced, never catches errors                                          |
+> | CORRECT      | `=ROUND(B_total_assets - (B_total_liabilities + B_total_equity), 0) = 0` | `TRUE` only when BS balances | References independent cell ranges for assets vs. liabilities+equity                        |
 >
 > The correct formula must reference **separate cell ranges** for total assets and total liabilities+equity. If either side is misstated, the formula evaluates to FALSE — which is the intended behavior.

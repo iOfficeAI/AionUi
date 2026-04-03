@@ -4,12 +4,14 @@
 
 > [!CAUTION]
 > **zsh 用户（macOS 默认 shell）**：所有含方括号的路径参数**必须加引号**，否则 zsh 会报错 `zsh: no matches found`。
+>
 > - 正确：`officecli set deck.pptx '/slide[1]'` 或 `"slide[1]"`
 > - 错误：`officecli set deck.pptx /slide[1]`
 >
 > **这是首次创建演示文稿时最常见的错误，请在第一条命令前就确认引号已加好。**
 >
 > 快速验证命令：
+>
 > ```bash
 > officecli get deck.pptx '/slide[1]' --depth 1   # 有引号 = 正确
 > officecli get deck.pptx /slide[1] --depth 1     # 无引号 = zsh 报错
@@ -35,6 +37,7 @@ Use this guide when creating a new presentation with no template.
 ### 视觉元素类型及实现方式
 
 **1. Icon in Colored Circle（最通用）**
+
 ```bash
 # 彩色圆形背景
 officecli add slides.pptx /slide[N] --type shape --prop preset=ellipse --prop fill=1E2761 --prop x=2cm --prop y=5cm --prop width=2.5cm --prop height=2.5cm --prop line=none
@@ -43,24 +46,28 @@ officecli add slides.pptx /slide[N] --type shape --prop text="01" --prop x=2cm -
 ```
 
 **2. 色块强调区（filled rectangle/roundRect）**
+
 ```bash
 # 作为背景色块或分隔条
 officecli add slides.pptx /slide[N] --type shape --prop preset=roundRect --prop x=2cm --prop y=4cm --prop width=14cm --prop height=12cm --prop fill=E8EDF3 --prop line=CADCFC --prop lineWidth=1pt
 ```
 
 **3. 大字号统计数字（Stats callout）**
+
 ```bash
 # 60-72pt 数字 + 小标签 = 数字本身就是视觉元素
 officecli add slides.pptx /slide[N] --type shape --prop text="94%" --prop x=2cm --prop y=5cm --prop width=9cm --prop height=4cm --prop font=Georgia --prop size=64 --prop bold=true --prop color=CADCFC --prop align=center --prop fill=none
 ```
 
 **4. 图表**
+
 ```bash
 # 任意图表类型均可作为视觉元素
 officecli add slides.pptx /slide[N] --type chart --prop chartType=column --prop categories="Q1,Q2,Q3,Q4" --prop series1="Revenue:42,58,65,78" --prop x=2cm --prop y=4cm --prop width=20cm --prop height=12cm --prop colors=1E2761,CADCFC
 ```
 
 **5. 渐变背景（Section/Title slides）**
+
 ```bash
 officecli set slides.pptx /slide[N] --prop "background=1E2761-CADCFC-180"
 ```
@@ -317,9 +324,11 @@ For icon + text rows, repeat the pattern at consistent vertical intervals (e.g.,
 示例检查：如果某行高 2cm 且从 y=17.5cm 开始，则末端在 19.5cm —— 超出 slide 底边 0.45cm，**必须修正**。处理方式：调小字号、减少行数、或将第一行上移。**不得依赖 PowerPoint 的自动截断**——被截断的内容在演示时完全不可见。
 
 在完成每张 slide 的所有 shape 后，运行以下命令验证：
+
 ```bash
 officecli get slides.pptx '/slide[N]' --depth 1
 ```
+
 检查每个 shape 的 `y`/`height`/`x`/`width` 数值，确认均在范围内。
 
 ### Aligning & Distributing Shapes
@@ -348,6 +357,7 @@ Omit `targets` to apply to all shapes on the slide.
 ### Multi-Paragraph Text (Rich Text)
 
 **When to use rich text vs. \\n:**
+
 - Use `\\n` within a single `--prop text="..."` for simple same-style paragraphs
 - Use paragraph/run operations when you need mixed formatting (bold heading + normal body in the same text box)
 
@@ -471,6 +481,7 @@ officecli add slides.pptx /slide[1] --type chart \
 ```
 
 Key styling properties:
+
 - `plotFill=none` and `chartFill=none` -- clean transparent background
 - `gridlines="E2E8F0:0.5"` -- subtle, light gridlines
 - `series.outline="FFFFFF-0.5"` -- thin white border between bars
@@ -508,6 +519,7 @@ officecli add slides.pptx /slide[N] --type chart \
 ```
 
 深色背景图表配色规则：
+
 - `axisFont` 和 `legendFont`：使用浅色（如 `CADCFC`、`FFFFFF`）
 - `labelFont`：使用白色或浅色
 - `title.color`：使用白色
@@ -515,6 +527,7 @@ officecli add slides.pptx /slide[N] --type chart \
 - 图表 `series` 颜色：避免深色（如 `1E2761`）；改用高亮色（如 `CADCFC`、`97BC62`）
 
 **颜色对齐提示**：officecli 默认使用系统图表颜色（蓝/橙/灰），与自定义 deck 调色板不符。添加图表后，`colors` prop 指定系列颜色以匹配 deck 主题色：
+
 ```bash
 # 与 Midnight Executive 调色板对齐
 --prop colors=CADCFC,1E2761,8899BB
@@ -522,6 +535,7 @@ officecli add slides.pptx /slide[N] --type chart \
 
 > **多系列图表量级差异警告**：若同一图表中各系列数值差异超过 5x（如 8,000,000 vs 400,000），
 > 小值系列在默认 Y 轴下几乎不可见。解决方案（按推荐顺序）：
+>
 > 1. 拆分为两张独立图表
 > 2. 将最大绝对值系列改为大字号 KPI callout，其余系列单独图表
 > 3. 在图表说明中标注"图表显示相对比例，绝对值见 KPI callout"
@@ -686,6 +700,7 @@ Classes: entrance (default), exit, emphasis
 Triggers: click (default for 1st on slide), after (default for subsequent), with
 
 **Timing guidance:**
+
 - Entrance animations: 300-500ms (fast enough to not feel sluggish)
 - Emphasis: 600-800ms
 - Sequential element reveals: use `after` trigger with 100-200ms delay between elements
@@ -711,6 +726,7 @@ officecli set slides.pptx /slide[1] --prop transition=fade --prop advanceTime=30
 Morph transitions automatically add `!!` prefix to shape names for cross-slide matching. Give shapes the same name on consecutive slides to pair them for morph animation. **When editing templates:** Shapes with `!!`-prefixed names (e.g., `!!bar1`, `!!dot3`) are decorative elements used for morph transitions. Leave them in place -- removing or renaming them breaks the animation. These shapes may be positioned off-screen (x>33cm) to morph-in on transition.
 
 **Recommended pairings:**
+
 - Title/closing slides: `fade` (clean, professional)
 - Content slides: `push-left` or `wipe-right` (directional flow)
 - Section dividers: `fade` or `dissolve` (signals topic change)
@@ -938,6 +954,7 @@ officecli get slides.pptx '/slide[N]' --depth 1
 ```
 
 对每个 shape，手动验证：
+
 - `y + height ≤ 19.05cm`（底边不溢出）
 - `x + width ≤ 33.87cm`（右边不溢出）
 
@@ -950,6 +967,7 @@ officecli get slides.pptx '/slide[N]' --depth 1
 如演示文稿包含 Agenda/TOC/目录 slide：
 
 1. 列出实际 slide 结构：
+
    ```bash
    officecli view slides.pptx outline
    ```
