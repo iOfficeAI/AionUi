@@ -33,10 +33,7 @@ vi.mock('@process/utils/safeExec', () => ({
   safeExec: vi.fn().mockResolvedValue({ stdout: '', stderr: '' }),
 }));
 
-import type {
-  McpConnectionTestResult,
-  McpOperationResult,
-} from '@process/services/mcpServices/McpProtocol';
+import type { McpConnectionTestResult, McpOperationResult } from '@process/services/mcpServices/McpProtocol';
 import type { IMcpServer } from '@/common/config/storage';
 
 // Create a concrete test subclass to access protected methods
@@ -95,7 +92,7 @@ describe('AbstractMcpAgent', () => {
           statusText: 'Unauthorized',
           ok: false,
           headers: new Headers({ 'WWW-Authenticate': 'Bearer realm="mcp"' }),
-        }),
+        })
       );
 
       const result = await testAgent.testHttpConnection({ url: 'http://localhost:3000/mcp' });
@@ -116,7 +113,7 @@ describe('AbstractMcpAgent', () => {
           statusText: 'Unauthorized',
           ok: false,
           headers: new Headers(),
-        }),
+        })
       );
 
       const result = await testAgent.testHttpConnection({ url: 'http://localhost:3000/mcp' });
@@ -136,7 +133,7 @@ describe('AbstractMcpAgent', () => {
           statusText: 'Internal Server Error',
           ok: false,
           headers: new Headers(),
-        }),
+        })
       );
 
       const result = await testAgent.testHttpConnection({ url: 'http://localhost:3000/mcp' });
@@ -168,7 +165,7 @@ describe('AbstractMcpAgent', () => {
           ok: true,
           headers: new Headers({ 'Content-Type': 'application/json' }),
           body: { cancel: cancelFn },
-        }),
+        })
       );
 
       // The delegation will fail because SDK is mocked, but we verify
@@ -186,10 +183,7 @@ describe('AbstractMcpAgent', () => {
 
   describe('testMcpConnection - _meta preservation', () => {
     it('should route http type to testHttpConnection', async () => {
-      vi.stubGlobal(
-        'fetch',
-        vi.fn().mockRejectedValue(new Error('test')),
-      );
+      vi.stubGlobal('fetch', vi.fn().mockRejectedValue(new Error('test')));
 
       const result = await testAgent.testMcpConnection({
         type: 'http' as const,
