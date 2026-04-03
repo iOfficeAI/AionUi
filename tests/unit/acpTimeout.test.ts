@@ -364,7 +364,7 @@ describe('AcpAgent.kill', () => {
 });
 
 describe('AcpAgent disconnect messaging', () => {
-  it('shows a clear idle-timeout reconnect message', () => {
+  it('does not emit status or error messages on idle-timeout disconnect', () => {
     const onStreamEvent = vi.fn();
     const onSignalEvent = vi.fn();
     const agent = new AcpAgent({
@@ -374,19 +374,27 @@ describe('AcpAgent disconnect messaging', () => {
       extra: { backend: 'opencode' as any, workspace: '/tmp' },
     } as any);
 
-    agent.setExpectedDisconnectReason('idle_timeout');
     (agent as any).handleDisconnect({ code: null, signal: 'SIGTERM' });
 
-    expect(onStreamEvent).toHaveBeenCalledWith(
+    // Should NOT emit disconnected status or error messages
+    const statusCalls = onStreamEvent.mock.calls.filter(
+      ([evt]: [any]) => evt.type === 'agent_status' && evt.data?.status === 'disconnected'
+    );
+    const errorCalls = onStreamEvent.mock.calls.filter(([evt]: [any]) => evt.type === 'error');
+    expect(statusCalls).toHaveLength(0);
+    expect(errorCalls).toHaveLength(0);
+
+    // Should still emit finish signal to reset UI loading state
+    expect(onSignalEvent).toHaveBeenCalledWith(
       expect.objectContaining({
-        type: 'error',
+        type: 'finish',
         conversation_id: 'idle-agent',
-        data: 'Session closed after 30 minutes of inactivity. Send a new message to reconnect.',
+        data: null,
       })
     );
   });
 
-  it('keeps the unexpected-disconnect message for other exits', () => {
+  it('does not emit status or error messages on unexpected disconnect', () => {
     const onStreamEvent = vi.fn();
     const onSignalEvent = vi.fn();
     const agent = new AcpAgent({
@@ -398,13 +406,43 @@ describe('AcpAgent disconnect messaging', () => {
 
     (agent as any).handleDisconnect({ code: null, signal: 'SIGTERM' });
 
-    expect(onStreamEvent).toHaveBeenCalledWith(
+    // Should NOT emit disconnected status or error messages
+    const statusCalls = onStreamEvent.mock.calls.filter(
+      ([evt]: [any]) => evt.type === 'agent_status' && evt.data?.status === 'disconnected'
+    );
+    const errorCalls = onStreamEvent.mock.calls.filter(([evt]: [any]) => evt.type === 'error');
+    expect(statusCalls).toHaveLength(0);
+    expect(errorCalls).toHaveLength(0);
+
+    // Should still emit finish signal to reset UI loading state
+    expect(onSignalEvent).toHaveBeenCalledWith(
       expect.objectContaining({
-        type: 'error',
+        type: 'finish',
         conversation_id: 'disconnect-agent',
-        data: 'opencode process disconnected unexpectedly (code: null, signal: SIGTERM). Please try sending a new message to reconnect.',
+        data: null,
       })
     );
+  });
+
+  it('clears internal state after disconnect', () => {
+    const onStreamEvent = vi.fn();
+    const onSignalEvent = vi.fn();
+    const agent = new AcpAgent({
+      id: 'cleanup-agent',
+      onStreamEvent,
+      onSignalEvent,
+      extra: { backend: 'opencode' as any, workspace: '/tmp' },
+    } as any);
+
+    // Set up some internal state
+    (agent as any).pendingPermissions.set('perm-1', { resolve: vi.fn(), reject: vi.fn() });
+    (agent as any).statusMessageId = 'some-status-id';
+
+    (agent as any).handleDisconnect({ code: null, signal: 'SIGTERM' });
+
+    // Internal state should be cleared
+    expect((agent as any).pendingPermissions.size).toBe(0);
+    expect((agent as any).statusMessageId).toBeNull();
   });
 });
 

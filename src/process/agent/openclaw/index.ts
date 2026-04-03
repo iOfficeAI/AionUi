@@ -192,8 +192,6 @@ export class OpenClawAgent {
     this.pendingPermissions.clear();
     this.pendingNavigationTools.clear();
 
-    this.emitStatusMessage('disconnected');
-
     // Emit finish event
     this.onStreamEvent({
       type: 'finish',
@@ -741,9 +739,6 @@ export class OpenClawAgent {
   }
 
   private handleDisconnect(reason: string): void {
-    this.emitStatusMessage('disconnected');
-    this.emitErrorMessage(`Gateway disconnected: ${reason}`, 'disconnect');
-
     if (this.onSignalEvent) {
       this.onSignalEvent({
         type: 'finish',
@@ -761,7 +756,7 @@ export class OpenClawAgent {
 
   // ========== Message Emission ==========
 
-  private emitStatusMessage(status: 'connecting' | 'connected' | 'session_active' | 'disconnected' | 'error'): void {
+  private emitStatusMessage(status: 'connecting' | 'connected' | 'session_active' | 'error'): void {
     if (!this.statusMessageId) {
       this.statusMessageId = uuid();
     }
