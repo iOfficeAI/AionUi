@@ -21,7 +21,6 @@ import { ACP_METHODS, JSONRPC_VERSION } from '@/common/types/acpTypes';
 import type { ChildProcess } from 'child_process';
 import { execFile as execFileCb } from 'child_process';
 import { promisify } from 'util';
-import { buildAcpModelInfo } from './modelInfo';
 import type { AcpSessionMcpServer } from './mcpSessionConfig';
 import { mainLog } from '@process/utils/mainLogger';
 import { promises as fs } from 'fs';
@@ -968,10 +967,6 @@ export class AcpConnection {
     const modelsSource = result.models || (result._meta as Record<string, unknown> | undefined)?.models;
     if (modelsSource && typeof modelsSource === 'object') {
       this.models = modelsSource as AcpSessionModels;
-    }
-    if (this.backend === 'codex') {
-      // Build unified model info (no verbose logging)
-      buildAcpModelInfo(this.configOptions, this.models);
     }
   }
 
