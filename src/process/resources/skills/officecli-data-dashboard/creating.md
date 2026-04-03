@@ -50,12 +50,67 @@ If the data has **multiple categorical dimensions** (e.g., region x category x d
    - `=COUNTIF(col, criteria)` for counting categories
    - `=SUMIFS(value_col, criteria_col, criteria)` for conditional sums
 
+   > **CRITICAL — numFmt for percentage results (Fix-2):** When writing `AVERAGEIFS` or other formulas to Summary sheet cells where the result is a percentage (e.g., conversion rate, churn rate), you MUST set `numFmt` at the same time. Without it, the cell displays as a raw float (e.g., `0.0983333`) instead of a readable percentage.
+   >
+   > ```bash
+   > # When setting a percentage formula on Summary sheet, always include numFmt:
+   > officecli set dashboard.xlsx "Summary!C2" --prop "formula==AVERAGEIFS(Data!C2:C100,Data!A2:A100,B2)" --prop numFmt="0.0%"
+   > # Or in batch JSON:
+   > # {"command":"set","path":"Summary!C2","props":{"formula":"=AVERAGEIFS(Data!C2:C100,Data!A2:A100,B2)","numFmt":"0.0%"}}
+   > ```
+   >
+   > Common numFmt values for Summary sheet formula results:
+   > | Result Type | numFmt |
+   > |-------------|--------|
+   > | Percentage (e.g., rate, ratio) | `0.0%` or `0%` |
+   > | Currency | `$#,##0` or `#,##0` |
+   > | Integer count | `#,##0` |
+   > | Decimal | `#,##0.00` |
+
 3. **Charts with multi-dimensional data.** When rows are not 1:1 with the X-axis (e.g., 20 rows per month across 4 regions x 5 categories):
    - Charts using raw cell ranges will show all rows (e.g., 200 data points). This is acceptable for scatter and line charts but may be noisy.
    - For aggregated views (e.g., "Revenue by Region"), create a **helper summary area** on the Dashboard sheet using `SUMIFS`/`AVERAGEIFS` formulas, then reference those cells as the chart data source.
    - Document any helper cells explicitly so the dashboard remains maintainable.
 
 4. **Sparklines with multi-dimensional data.** Sparklines show 1D trends. If the data is cross-sectional (not a meaningful time series when read row-by-row), sparklines may not be useful. In that case, it is acceptable to skip sparklines even if the complexity table says "YES" or "Optional" -- add a comment explaining why.
+
+5. **Hiding helper columns (MANDATORY).** If you create a helper summary area on the Dashboard sheet for chart data sources, the helper columns MUST be hidden before delivery. Exposed helper columns (raw numbers in columns I, J, K etc.) appear as clutter alongside the KPI cards and charts.
+
+   > **CRITICAL — Chart data source MUST reference visible Summary sheet cells, NOT hidden columns.**
+   > LibreOffice does not recalculate hidden column formulas at render time. If a chart's `series.values` points to a hidden helper column (even one with valid `SUMIFS`/`AVERAGEIFS` formulas), the chart will render as empty/blank because the formula results are never computed.
+   >
+   > **Correct pattern:**
+   >
+   > 1. Write all aggregation formulas (`SUMIFS`, `AVERAGEIFS`) to a **visible** Summary sheet (a dedicated sheet, not hidden columns on Dashboard).
+   > 2. Set chart `series.values` / `series.categories` to reference the **Summary sheet cells**.
+   > 3. After charts are created and verified, you may hide the Summary sheet if desired — but verify charts still render before hiding.
+   >
+   > **Wrong pattern (causes blank charts):**
+   >
+   > - Writing `SUMIFS` formulas to hidden Dashboard columns (e.g., `col[I]` → hidden)
+   > - Pointing chart `series.values` to those hidden cells
+   > - Chart data appears blank in LibreOffice/WPS because hidden column formulas are not evaluated
+
+   **Option A — Use a dedicated Summary sheet (recommended to avoid blank charts):**
+
+   ```bash
+   officecli add dashboard.xlsx / --type sheet --prop name=Summary
+   # Write aggregation formulas to Summary sheet (visible cells)
+   # Point chart series.values to Summary sheet cells
+   # Optionally hide Summary sheet after chart verification:
+   officecli set dashboard.xlsx /Summary --prop hidden=true
+   ```
+
+   **Option B — Hide helper columns on Dashboard (ONLY if charts do NOT reference the hidden columns):**
+
+   ```bash
+   # Only hide columns that are NOT used as chart data sources
+   officecli set dashboard.xlsx '/Dashboard/col[I]' --prop hidden=true
+   officecli set dashboard.xlsx '/Dashboard/col[J]' --prop hidden=true
+   # Repeat for each helper column used
+   ```
+
+   After hiding, verify with `officecli view dashboard.xlsx text` that only KPI cards and chart titles are visible on Dashboard.
 
 ### A.3 Data Size to Complexity Mapping
 
@@ -79,14 +134,14 @@ Sparkline column: "YES/Optional" applies only when data is a **sequential time s
 
 ### A.4 Chart Type Selection Guide
 
-| Data Pattern                      | Recommended Chart                        | Example                       |
-| --------------------------------- | ---------------------------------------- | ----------------------------- |
-| Trend over time (single series)   | `line`                                   | MRR over 12 months            |
-| Trend over time (multiple series) | `line` (multi-series) or `columnStacked` | Revenue components over time  |
-| Comparison across categories      | `column` or `bar`                        | Revenue by region             |
-| Part-of-whole breakdown           | `doughnut`                               | Spend by category             |
-| Budget vs Actual                  | `combo` (bars + line)                    | Department budget performance |
-| Correlation                       | `scatter` (see note below)               | Price vs volume               |
+| Data Pattern                      | Recommended Chart                        | Example                                                                                                                                                                                |
+| --------------------------------- | ---------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Trend over time (single series)   | `line`                                   | MRR over 12 months                                                                                                                                                                     |
+| Trend over time (multiple series) | `line` (multi-series) or `columnStacked` | Revenue components over time                                                                                                                                                           |
+| Comparison across categories      | `column` or `bar`                        | Revenue by region — for time-series data (dates, months, quarters in order), prefer `column` over `bar`; `bar` creates horizontal bars which make left-to-right time reading unnatural |
+| Part-of-whole breakdown           | `doughnut` or `pie`                      | Spend by category                                                                                                                                                                      |
+| Budget vs Actual                  | `combo` (bars + line)                    | Department budget performance                                                                                                                                                          |
+| Correlation                       | `scatter` (see note below)               | Price vs volume                                                                                                                                                                        |
 
 > **Scatter chart syntax differs from other charts.** Scatter charts do NOT use `series1.categories`. Instead, use `series1.xValues` for the X-axis data. Using `series1.categories` on a scatter chart produces an invalid `<cat>` element in the OOXML and will fail validation. See the scatter chart template in Step 6.
 
@@ -116,20 +171,78 @@ Dashboard Sheet Layout:
 
 ### Step 1: Create Workbook and Import Data
 
-```bash
-# Create new workbook
-officecli create dashboard.xlsx
+**Option A — Import from CSV (most common):**
 
-# Import CSV with frozen headers + AutoFilter
+```bash
+officecli create dashboard.xlsx
 officecli import dashboard.xlsx /Sheet1 --file data.csv --header
 ```
 
-`--header` automatically sets:
+`--header` automatically sets freeze pane at A2 and AutoFilter. After import, note the **last data row number** (e.g., row 13 for 12 data rows + 1 header).
 
-- Freeze pane at A2 (row 1 frozen)
-- AutoFilter on the full data range
+**Option B — Build data sheet from scratch (no CSV):**
 
-After import, note the **last data row number** (e.g., row 13 for 12 data rows + 1 header). You need this for all subsequent formula ranges.
+```bash
+officecli create dashboard.xlsx
+officecli add dashboard.xlsx / --type sheet --prop name=Data
+officecli remove dashboard.xlsx /Sheet1
+
+officecli open dashboard.xlsx
+
+# Write headers in row 1
+cat <<'EOF' | officecli batch dashboard.xlsx
+[
+  {"command":"set","path":"/Data/A1","props":{"value":"Month","bold":"true"}},
+  {"command":"set","path":"/Data/B1","props":{"value":"Revenue","bold":"true"}},
+  {"command":"set","path":"/Data/C1","props":{"value":"Units","bold":"true"}},
+  {"command":"set","path":"/Data/D1","props":{"value":"Target","bold":"true"}}
+]
+EOF
+
+# Write data rows via batch — all values must be strings
+cat <<'EOF' | officecli batch dashboard.xlsx
+[
+  {"command":"set","path":"/Data/A2","props":{"value":"Jan"}},
+  {"command":"set","path":"/Data/B2","props":{"value":"120000"}},
+  ...
+]
+EOF
+
+# Set freeze pane manually (equivalent to import --header)
+officecli set dashboard.xlsx /Data --prop freeze=A2
+# Set AutoFilter — must target the sheet path, NOT a cell range path
+# Use autoFilter=true to filter the full used range, or autoFilter=A1:D1 to specify a range
+officecli set dashboard.xlsx /Data --prop autoFilter=A1:D1
+```
+
+> **Multi-sheet dashboards:** If your dashboard has multiple data sheets (e.g., Data + Expenses, or Sheet1 + KPIs), apply `freeze=A2` and `autoFilter` to **every** data sheet, not just the primary one. Applying these settings only to the primary sheet leaves secondary sheets without header lock and filter — inconsistent and unprofessional.
+>
+> ```bash
+> # Apply to each additional data sheet
+> officecli set dashboard.xlsx /Expenses --prop freeze=A2
+> officecli set dashboard.xlsx /Expenses --prop autoFilter=A1:E1
+> officecli set dashboard.xlsx /KPIs --prop freeze=A2
+> officecli set dashboard.xlsx /KPIs --prop autoFilter=A1:C1
+> ```
+
+After setup, proceed with the same Step 2–10 workflow as the CSV path. Note the last data row number for formula ranges.
+
+> **Sheet naming recommendation (Fix-3):** Rename the default `Sheet1` to a semantic name that reflects the data content (e.g., `Data`, `HR_Data`, `Sales_Raw`). This improves readability and makes formula references self-documenting.
+>
+> ```bash
+> officecli set dashboard.xlsx "Sheet1!A1" --prop sheetName="Data"
+> ```
+>
+> **Note:** After renaming, update ALL formulas that reference the old sheet name. For example, `=SUM(Sheet1!B2:B13)` must become `=SUM(Data!B2:B13)`. This includes Dashboard KPI formulas, chart series references, and CF rules. If you prefer to skip renaming to avoid this update burden, ensure the filename itself is descriptive.
+
+**Then open in resident mode** before continuing. All subsequent steps (2–10) run in memory:
+
+```bash
+officecli open dashboard.xlsx   # (skip if already opened in Option B above)
+# ... steps 2–10 ...
+officecli close dashboard.xlsx
+officecli validate dashboard.xlsx
+```
 
 ---
 
@@ -158,26 +271,91 @@ officecli set dashboard.xlsx '/Sheet1/col[D]' --prop width=15
 officecli set dashboard.xlsx '/Sheet1/col[E]' --prop width=12
 ```
 
-**Date column fix:** If dates display as serial numbers (e.g., 45662 instead of 2025-01-15), apply a date number format:
+**Date column fix:** If dates display as serial numbers (e.g., 45662 instead of 2025-01-15), apply a date number format to the **data cell range** (not the column — `numFmt` is not supported on `col[]` targets):
 
 ```bash
-officecli set dashboard.xlsx '/Sheet1/col[A]' --prop numFmt=yyyy-mm-dd
+# CORRECT: apply numFmt to the data range
+officecli set dashboard.xlsx '/Sheet1/A2:A13' --prop numFmt=yyyy-mm-dd
+
+# WRONG: col[] does not support numFmt -- will fail with "UNSUPPORTED props: numFmt"
+# officecli set dashboard.xlsx '/Sheet1/col[A]' --prop numFmt=yyyy-mm-dd
 ```
 
 Common date formats: `yyyy-mm-dd`, `yyyy-mm`, `mm/dd/yyyy`, `mmm yyyy`.
 
+Adjust the range (`A2:A13`) to match your actual data rows.
+
 **Batch alternative** (for many columns):
 
 ```bash
-cat <<'EOF' | officecli batch dashboard.xlsx
-[
-  {"command":"set","path":"/Sheet1/col[A]","props":{"width":"14"}},
-  {"command":"set","path":"/Sheet1/col[B]","props":{"width":"15"}},
-  {"command":"set","path":"/Sheet1/col[C]","props":{"width":"15"}},
-  {"command":"set","path":"/Sheet1/col[D]","props":{"width":"15"}},
-  {"command":"set","path":"/Sheet1/col[E]","props":{"width":"12"}}
-]
-EOF
+officecli set dashboard.xlsx "/Sheet1/col[A]" --prop width=14
+officecli set dashboard.xlsx "/Sheet1/col[B]" --prop width=15
+officecli set dashboard.xlsx "/Sheet1/col[C]" --prop width=15
+officecli set dashboard.xlsx "/Sheet1/col[D]" --prop width=15
+officecli set dashboard.xlsx "/Sheet1/col[E]" --prop width=12
+```
+
+**Summary sheet column widths (MANDATORY when a Summary sheet exists):**
+
+If your dashboard includes a Summary sheet (created in A.2b for multi-dimensional data aggregation), you MUST also set column widths on that sheet. The `col[]` auto-size behavior does NOT apply to formula-populated sheets.
+
+> **Why this matters:** Summary sheets populated with `SUMIFS`/`AVERAGEIFS` formulas default to column width 8. Text labels (Channel, Department, Category, etc.) truncate; numeric values may show `###`. Always set widths after writing Summary data.
+
+```bash
+# Summary sheet column widths — set after writing all Summary formulas/data
+# Text label column (first column: Category, Channel, Department, etc.)
+officecli set dashboard.xlsx "/Summary/col[A]" --prop width=18
+# Numeric value columns (adjust count to match actual column count)
+officecli set dashboard.xlsx "/Summary/col[B]" --prop width=14
+officecli set dashboard.xlsx "/Summary/col[C]" --prop width=14
+officecli set dashboard.xlsx "/Summary/col[D]" --prop width=14
+# General width guidance:
+#   Text/label columns (A): 15-20
+#   Numeric/value columns (B+): 12-15
+```
+
+If Summary has more columns, extend the pattern accordingly.
+
+---
+
+### Step 2b: Header Row Fill Colors (MANDATORY)
+
+> **QUALITY BAR REQUIREMENT:** Every sheet with column headers MUST have a fill color applied to the header row. Failure to set header fill is a Quality Bar violation (Q2 fail).
+
+Apply a dark background fill to row 1 of the Data sheet and Summary sheet. This makes the header row immediately distinguishable from data rows.
+
+**Data sheet header row fill (dark blue with white text):**
+
+```bash
+# Data sheet header row fill
+officecli set dashboard.xlsx '/Sheet1/A1:F1' --prop fill=1F3864 --prop font.color=FFFFFF --prop font.bold=true
+```
+
+Adjust the range (`A1:F1`) to match the actual number of columns in your data sheet.
+
+**Summary sheet header fill (if Summary sheet exists):**
+
+```bash
+# Summary sheet header fill
+officecli set dashboard.xlsx '/Summary/A1:E1' --prop fill=1F3864 --prop font.color=FFFFFF --prop font.bold=true
+```
+
+Adjust the range to match the actual number of columns in your Summary sheet.
+
+**Recommended fill colors by tab color theme:**
+
+| Tab Color Theme | fill     | font.color |
+| --------------- | -------- | ---------- |
+| Blue (#4472C4)  | `1F3864` | `FFFFFF`   |
+| Green (#70AD47) | `2E7B32` | `FFFFFF`   |
+| Gray (#A5A5A5)  | `546E7A` | `FFFFFF`   |
+| Corporate dark  | `37474F` | `FFFFFF`   |
+
+**In the Section C example**, the header fill commands appear immediately after Step 2 column widths:
+
+```bash
+# ── Step 2b: Header row fill colors (MANDATORY) ──
+officecli set saas_dashboard.xlsx '/Sheet1/A1:E1' --prop fill=1F3864 --prop font.color=FFFFFF --prop font.bold=true
 ```
 
 ---
@@ -187,6 +365,28 @@ EOF
 ```bash
 officecli add dashboard.xlsx / --type sheet --prop name=Dashboard
 ```
+
+> **CRITICAL: Dashboard Architecture — Read Before Step 4**
+>
+> The Dashboard sheet MUST contain ALL visible content: KPI cards, charts, and the title area.
+> Summary/Data sheets store data sources only — users will NOT look at these sheets.
+>
+> **Correct architecture:**
+>
+> ```
+> Dashboard (what users see)
+>   ← contains: KPI labels + values (rows 1-2) + charts (rows 5+)
+>   ← all KPI values are formulas referencing Summary or Data sheets
+> Summary (aggregated data — hidden from users)
+>   ← contains: SUMIFS / AVERAGEIFS rollups, helper columns for charts
+> Data / Sheet1 (raw data — hidden from users)
+>   ← contains: imported CSV rows
+> ```
+>
+> **WRONG:** Putting KPI values only in Summary/Data sheet and leaving Dashboard empty.
+> **CORRECT:** KPI label cells (A1, C1, E1, G1) and KPI value cells (A2, C2, E2, G2) MUST be on the Dashboard sheet, with formulas like `=SUM(Sheet1!B2:B13)` pointing to the data sheet.
+>
+> If you are unsure which sheet a KPI value belongs to, ask: "Will the user see this cell when they open the file?" If yes, it belongs on Dashboard.
 
 ---
 
@@ -204,18 +404,14 @@ Each KPI is a **label cell** (row 1) + **value cell** (row 2):
 **Template for 4 KPIs:**
 
 ```bash
-cat <<'EOF' | officecli batch dashboard.xlsx
-[
-  {"command":"set","path":"/Dashboard/A1","props":{"value":"Total Revenue","bold":"true","font.size":"9","font.color":"666666"}},
-  {"command":"set","path":"/Dashboard/A2","props":{"formula":"=SUM(Sheet1!B2:B13)","numFmt":"$#,##0","font.size":"24","bold":"true","font.color":"2E7D32"}},
-  {"command":"set","path":"/Dashboard/C1","props":{"value":"Average Monthly","bold":"true","font.size":"9","font.color":"666666"}},
-  {"command":"set","path":"/Dashboard/C2","props":{"formula":"=AVERAGE(Sheet1!B2:B13)","numFmt":"$#,##0","font.size":"24","bold":"true","font.color":"2E7D32"}},
-  {"command":"set","path":"/Dashboard/E1","props":{"value":"Growth Rate","bold":"true","font.size":"9","font.color":"666666"}},
-  {"command":"set","path":"/Dashboard/E2","props":{"formula":"=IFERROR((Sheet1!B13-Sheet1!B2)/Sheet1!B2,0)","numFmt":"0.0%","font.size":"24","bold":"true","font.color":"2E7D32"}},
-  {"command":"set","path":"/Dashboard/G1","props":{"value":"Latest Value","bold":"true","font.size":"9","font.color":"666666"}},
-  {"command":"set","path":"/Dashboard/G2","props":{"formula":"=Sheet1!B13","numFmt":"$#,##0","font.size":"24","bold":"true","font.color":"2E7D32"}}
-]
-EOF
+officecli set dashboard.xlsx /Dashboard/A1 --prop value="Total Revenue" --prop bold=true --prop font.size=9 --prop font.color=666666
+officecli set dashboard.xlsx /Dashboard/A2 --prop "formula==SUM(Sheet1!B2:B13)" --prop numFmt='$#,##0' --prop font.size=24 --prop bold=true --prop font.color=2E7D32
+officecli set dashboard.xlsx /Dashboard/C1 --prop value="Average Monthly" --prop bold=true --prop font.size=9 --prop font.color=666666
+officecli set dashboard.xlsx /Dashboard/C2 --prop "formula==AVERAGE(Sheet1!B2:B13)" --prop numFmt='$#,##0' --prop font.size=24 --prop bold=true --prop font.color=2E7D32
+officecli set dashboard.xlsx /Dashboard/E1 --prop value="Growth Rate" --prop bold=true --prop font.size=9 --prop font.color=666666
+officecli set dashboard.xlsx /Dashboard/E2 --prop "formula==IFERROR((Sheet1!B13-Sheet1!B2)/Sheet1!B2,0)" --prop numFmt=0.0% --prop font.size=24 --prop bold=true --prop font.color=2E7D32
+officecli set dashboard.xlsx /Dashboard/G1 --prop value="Latest Value" --prop bold=true --prop font.size=9 --prop font.color=666666
+officecli set dashboard.xlsx /Dashboard/G2 --prop "formula==Sheet1!B13" --prop numFmt='$#,##0' --prop font.size=24 --prop bold=true --prop font.color=2E7D32
 ```
 
 **Common KPI formulas:**
@@ -244,18 +440,14 @@ KPI value columns (A, C, E, G) need width 22 to fit formatted numbers like `$6,3
 **Batch command (recommended):**
 
 ```bash
-cat <<'EOF' | officecli batch dashboard.xlsx
-[
-  {"command":"set","path":"/Dashboard/col[A]","props":{"width":"22"}},
-  {"command":"set","path":"/Dashboard/col[B]","props":{"width":"12"}},
-  {"command":"set","path":"/Dashboard/col[C]","props":{"width":"22"}},
-  {"command":"set","path":"/Dashboard/col[D]","props":{"width":"12"}},
-  {"command":"set","path":"/Dashboard/col[E]","props":{"width":"22"}},
-  {"command":"set","path":"/Dashboard/col[F]","props":{"width":"12"}},
-  {"command":"set","path":"/Dashboard/col[G]","props":{"width":"22"}},
-  {"command":"set","path":"/Dashboard/col[H]","props":{"width":"12"}}
-]
-EOF
+officecli set dashboard.xlsx "/Dashboard/col[A]" --prop width=22
+officecli set dashboard.xlsx "/Dashboard/col[B]" --prop width=12
+officecli set dashboard.xlsx "/Dashboard/col[C]" --prop width=22
+officecli set dashboard.xlsx "/Dashboard/col[D]" --prop width=12
+officecli set dashboard.xlsx "/Dashboard/col[E]" --prop width=22
+officecli set dashboard.xlsx "/Dashboard/col[F]" --prop width=12
+officecli set dashboard.xlsx "/Dashboard/col[G]" --prop width=22
+officecli set dashboard.xlsx "/Dashboard/col[H]" --prop width=12
 ```
 
 Adjust the number of columns to match your KPI count. For 5+ KPIs, add columns I and J:
@@ -264,6 +456,17 @@ Adjust the number of columns to match your KPI count. For 5+ KPIs, add columns I
   {"command":"set","path":"/Dashboard/col[I]","props":{"width":"22"}},
   {"command":"set","path":"/Dashboard/col[J]","props":{"width":"12"}}
 ```
+
+**KPI card background fill (Quality Bar item):**
+
+KPI cards on the Dashboard sheet SHOULD have a light background fill (e.g., `F0F4FF` for blue tint). This is a Quality Bar item — omitting it is a P2 quality deduction.
+
+```bash
+# Apply a light blue background to the KPI card area (rows 1-2)
+officecli set dashboard.xlsx '/Dashboard/A1:H2' --prop fill=F0F4FF
+```
+
+Adjust the range to match your KPI column layout (e.g., `A1:J2` for 5 KPI pairs). This is separate from the large 24pt KPI value formatting — the fill is applied to the cell background, not the font.
 
 ---
 
@@ -319,7 +522,10 @@ Sparkline rules:
 > **STOP -- Multi-Dimensional Data Check:**
 > If your data has **repeating values in the X-axis column** (e.g., the same department appearing 4 times for 4 quarters, or the same region appearing across multiple categories), do NOT chart raw rows directly. The chart will have noisy, repeating X-axis labels and be unreadable.
 >
-> **Go to Section A.2b** and create helper summary cells (using `SUMIFS`/`AVERAGEIFS` formulas on the Dashboard sheet) BEFORE charting. Then reference those helper cells as chart data sources instead of the raw data range.
+> **Go to Section A.2b** and create aggregation formulas on a **dedicated Summary sheet** BEFORE charting. Then reference those Summary sheet cells as chart data sources.
+>
+> **CRITICAL — Chart data sources must always reference visible cells.**
+> Do NOT point `series.values` or `series.categories` to hidden columns, even if those columns contain valid formulas. LibreOffice does not evaluate hidden column formulas at render time, resulting in blank/empty charts. Always use a visible Summary sheet as the intermediary for aggregated chart data.
 
 #### 6a: Cell Range References (MANDATORY Pattern)
 
@@ -421,6 +627,8 @@ officecli add dashboard.xlsx /Dashboard --type chart \
 
 **Doughnut chart (composition):**
 
+> **Note:** Doughnut/pie-style charts show part-of-whole breakdowns. Prefer `doughnut` over `pie` — `chartType=pie` has a known rendering issue in LibreOffice (chart renders blank). Use `doughnut` as the safe alternative.
+
 ```bash
 officecli add dashboard.xlsx /Dashboard --type chart \
   --prop chartType=doughnut \
@@ -430,6 +638,7 @@ officecli add dashboard.xlsx /Dashboard --type chart \
   --prop categories="Sheet1!A2:A5" \
   --prop preset=dashboard \
   --prop holesize=60 \
+  --prop axisNumFmt='#,##0' \
   --prop x=11 --prop y=21 --prop width=10 --prop height=15
 ```
 
@@ -445,6 +654,7 @@ officecli add dashboard.xlsx /Dashboard --type chart \
   --prop series1.values="Sheet1!C2:C13" \
   --prop series1.xValues="Sheet1!B2:B13" \
   --prop preset=dashboard \
+  --prop axisNumFmt='#,##0' \
   --prop x=0 --prop y=21 --prop width=10 --prop height=15
 ```
 
@@ -458,6 +668,7 @@ officecli add dashboard.xlsx /Dashboard --type chart \
   --prop series1.values="Sheet1!B2:B13" \
   --prop series1.categories="Sheet1!A2:A13" \
   --prop preset=dashboard \
+  --prop axisNumFmt='$#,##0' \
   --prop "referenceline=100000:FF0000:Target:dash" \
   --prop x=0 --prop y=5 --prop width=10 --prop height=15
 ```
@@ -477,7 +688,49 @@ Each series needs `.name`, `.values`, and `.categories`:
 
 For combo charts, `comboSplit=N` makes the first N series bars and the rest lines.
 
-#### 6d: Chart Error Recovery
+#### 6d: Chart Position Validation (MANDATORY After Adding Each Chart)
+
+After adding each chart, verify it fits within the Dashboard visible area.
+
+**Standard Dashboard visible area:** columns A–L (x: 0–21), rows 1–30 (y: 1–30). Charts outside this range may be truncated or invisible in print/export.
+
+**Print area constraint (MANDATORY when print area is set):**
+If a print area has been defined for the Dashboard sheet, all charts MUST fit within it. Charts that overflow the print area are clipped in PDF/print output and appear broken.
+
+- Determine the print area column width (in column units). For example, a print area of A1:L40 spans 12 columns (x: 0–11).
+- Keep each chart's `x + width` ≤ print area right boundary.
+- **Recommended:** chart width ≤ 90% of print area width (e.g., if print area is 12 columns wide, max chart width = 10).
+- If two charts are placed side-by-side, each chart width must be ≤ 45% of print area width so they both fit.
+
+**Recommended chart sizes:**
+
+| Use Case                    | width | height | Notes                         |
+| --------------------------- | ----- | ------ | ----------------------------- |
+| Standard chart (half-width) | 10    | 15     | Fits two charts side by side  |
+| Wide chart (full-width)     | 20    | 15     | Spans full Dashboard width    |
+| Compact chart               | 8     | 12     | For dashboards with 3+ charts |
+
+**Verify chart position after adding:**
+
+```bash
+# Check chart anchor and position (replace chart[1] with chart[2] etc.)
+officecli get dashboard.xlsx '/Dashboard/chart[1]' --json
+```
+
+In the JSON output, confirm:
+
+- `x` + `width` ≤ 21 (chart does not extend beyond column L)
+- `y` + `height` ≤ 30 (chart does not extend below row 30)
+- If a print area is set: `x` + `width` does not exceed the print area's right column boundary
+
+If a chart exceeds the boundary, remove it and re-add with corrected dimensions:
+
+```bash
+officecli remove dashboard.xlsx '/Dashboard/chart[1]'
+# Re-add with adjusted x/y/width/height values
+```
+
+#### 6f: Chart Error Recovery
 
 If a chart `add` command fails or produces an unexpected result:
 
@@ -614,6 +867,23 @@ officecli add dashboard.xlsx / --type namedrange \
 
 **Command 1: Set Dashboard as active tab.**
 
+Before setting `activeTab`, verify the exact sheet order (0-based index):
+
+```bash
+# List all sheets in order — count from 0 to find Dashboard's index
+officecli query dashboard.xlsx 'sheet'
+```
+
+Example output:
+
+```
+Sheet1    (index 0)
+Summary   (index 1)
+Dashboard (index 2)
+```
+
+Use the 0-based index of the Dashboard sheet. In this example, `activeTab="2"`.
+
 ```bash
 officecli raw-set dashboard.xlsx /workbook \
   --xpath "//x:sheets" \
@@ -621,27 +891,15 @@ officecli raw-set dashboard.xlsx /workbook \
   --xml '<bookViews><workbookView activeTab="1" /></bookViews>'
 ```
 
-`activeTab` is 0-based. If Dashboard is the second sheet (Sheet1=0, Dashboard=1), use `activeTab="1"`.
+`activeTab` is 0-based. If Dashboard is the second sheet (Sheet1=0, Dashboard=1), use `activeTab="1"`. **Always confirm the index with `query 'sheet'` — do NOT guess.**
 
 **Command 2: Set fullCalcOnLoad.**
 
-The xpath depends on whether named ranges exist:
-
 ```bash
-# If NO named ranges were created (most common):
-officecli raw-set dashboard.xlsx /workbook \
-  --xpath "//x:sheets" \
-  --action insertafter \
-  --xml '<calcPr fullCalcOnLoad="1" />'
-
-# If named ranges WERE created:
-officecli raw-set dashboard.xlsx /workbook \
-  --xpath "//x:definedNames" \
-  --action insertafter \
-  --xml '<calcPr fullCalcOnLoad="1" />'
+officecli set dashboard.xlsx / --prop calc.fullCalcOnLoad=true
 ```
 
-The `<calcPr>` element MUST appear AFTER `<sheets>` in the workbook XML. If `<definedNames>` exists (it comes after `<sheets>`), insert after it instead. Wrong placement causes validation errors.
+Do NOT use `raw-set` to insert `<calcPr>` — it creates duplicate elements. The high-level `set` API handles schema ordering automatically.
 
 ---
 
@@ -654,7 +912,7 @@ officecli validate dashboard.xlsx
 Must return zero errors. If errors are found:
 
 - Check for `font.bold` in formulacf -- remove it
-- Check calcPr XML ordering -- use correct xpath anchor
+- Check calcPr -- use `set / --prop calc.fullCalcOnLoad=true` instead of raw-set
 - Check for duplicate bookViews -- raw-set may have been run twice
 - Fix the issue and re-validate
 
@@ -699,46 +957,34 @@ officecli create saas_dashboard.xlsx
 officecli import saas_dashboard.xlsx /Sheet1 --file saas_mrr.csv --header
 
 # ── Step 2: Column widths ──
-cat <<'EOF' | officecli batch saas_dashboard.xlsx
-[
-  {"command":"set","path":"/Sheet1/col[A]","props":{"width":"14"}},
-  {"command":"set","path":"/Sheet1/col[B]","props":{"width":"15"}},
-  {"command":"set","path":"/Sheet1/col[C]","props":{"width":"15"}},
-  {"command":"set","path":"/Sheet1/col[D]","props":{"width":"15"}},
-  {"command":"set","path":"/Sheet1/col[E]","props":{"width":"15"}}
-]
-EOF
+officecli set saas_dashboard.xlsx "/Sheet1/col[A]" --prop width=14
+officecli set saas_dashboard.xlsx "/Sheet1/col[B]" --prop width=15
+officecli set saas_dashboard.xlsx "/Sheet1/col[C]" --prop width=15
+officecli set saas_dashboard.xlsx "/Sheet1/col[D]" --prop width=15
+officecli set saas_dashboard.xlsx "/Sheet1/col[E]" --prop width=15
 
 # ── Step 3: Add Dashboard sheet ──
 officecli add saas_dashboard.xlsx / --type sheet --prop name=Dashboard
 
 # ── Step 4: Build KPI cells ──
-cat <<'EOF' | officecli batch saas_dashboard.xlsx
-[
-  {"command":"set","path":"/Dashboard/A1","props":{"value":"Latest Net MRR","bold":"true","font.size":"9","font.color":"666666"}},
-  {"command":"set","path":"/Dashboard/A2","props":{"formula":"=Sheet1!E13","numFmt":"$#,##0","font.size":"24","bold":"true","font.color":"2E7D32"}},
-  {"command":"set","path":"/Dashboard/C1","props":{"value":"MoM Growth","bold":"true","font.size":"9","font.color":"666666"}},
-  {"command":"set","path":"/Dashboard/C2","props":{"formula":"=IFERROR(Sheet1!E13/Sheet1!E12-1,0)","numFmt":"0.0%","font.size":"24","bold":"true","font.color":"2E7D32"}},
-  {"command":"set","path":"/Dashboard/E1","props":{"value":"Avg Churn Rate","bold":"true","font.size":"9","font.color":"666666"}},
-  {"command":"set","path":"/Dashboard/E2","props":{"formula":"=IFERROR(AVERAGE(Sheet1!D2:D13)/AVERAGE(Sheet1!E2:E13),0)","numFmt":"0.0%","font.size":"24","bold":"true","font.color":"C62828"}},
-  {"command":"set","path":"/Dashboard/G1","props":{"value":"Total Net New MRR","bold":"true","font.size":"9","font.color":"666666"}},
-  {"command":"set","path":"/Dashboard/G2","props":{"formula":"=SUM(Sheet1!E2:E13)","numFmt":"$#,##0","font.size":"24","bold":"true","font.color":"2E7D32"}}
-]
-EOF
+officecli set saas_dashboard.xlsx /Dashboard/A1 --prop value="Latest Net MRR" --prop bold=true --prop font.size=9 --prop font.color=666666
+officecli set saas_dashboard.xlsx /Dashboard/A2 --prop "formula==Sheet1!E13" --prop numFmt='$#,##0' --prop font.size=24 --prop bold=true --prop font.color=2E7D32
+officecli set saas_dashboard.xlsx /Dashboard/C1 --prop value="MoM Growth" --prop bold=true --prop font.size=9 --prop font.color=666666
+officecli set saas_dashboard.xlsx /Dashboard/C2 --prop "formula==IFERROR(Sheet1!E13/Sheet1!E12-1,0)" --prop numFmt=0.0% --prop font.size=24 --prop bold=true --prop font.color=2E7D32
+officecli set saas_dashboard.xlsx /Dashboard/E1 --prop value="Avg Churn Rate" --prop bold=true --prop font.size=9 --prop font.color=666666
+officecli set saas_dashboard.xlsx /Dashboard/E2 --prop "formula==IFERROR(AVERAGE(Sheet1!D2:D13)/AVERAGE(Sheet1!E2:E13),0)" --prop numFmt=0.0% --prop font.size=24 --prop bold=true --prop font.color=C62828
+officecli set saas_dashboard.xlsx /Dashboard/G1 --prop value="Total Net New MRR" --prop bold=true --prop font.size=9 --prop font.color=666666
+officecli set saas_dashboard.xlsx /Dashboard/G2 --prop "formula==SUM(Sheet1!E2:E13)" --prop numFmt='$#,##0' --prop font.size=24 --prop bold=true --prop font.color=2E7D32
 
 # ── Step 4b: Dashboard column widths (MANDATORY -- prevents ### on KPIs) ──
-cat <<'EOF' | officecli batch saas_dashboard.xlsx
-[
-  {"command":"set","path":"/Dashboard/col[A]","props":{"width":"22"}},
-  {"command":"set","path":"/Dashboard/col[B]","props":{"width":"12"}},
-  {"command":"set","path":"/Dashboard/col[C]","props":{"width":"22"}},
-  {"command":"set","path":"/Dashboard/col[D]","props":{"width":"12"}},
-  {"command":"set","path":"/Dashboard/col[E]","props":{"width":"22"}},
-  {"command":"set","path":"/Dashboard/col[F]","props":{"width":"12"}},
-  {"command":"set","path":"/Dashboard/col[G]","props":{"width":"22"}},
-  {"command":"set","path":"/Dashboard/col[H]","props":{"width":"12"}}
-]
-EOF
+officecli set saas_dashboard.xlsx "/Dashboard/col[A]" --prop width=22
+officecli set saas_dashboard.xlsx "/Dashboard/col[B]" --prop width=12
+officecli set saas_dashboard.xlsx "/Dashboard/col[C]" --prop width=22
+officecli set saas_dashboard.xlsx "/Dashboard/col[D]" --prop width=12
+officecli set saas_dashboard.xlsx "/Dashboard/col[E]" --prop width=22
+officecli set saas_dashboard.xlsx "/Dashboard/col[F]" --prop width=12
+officecli set saas_dashboard.xlsx "/Dashboard/col[G]" --prop width=22
+officecli set saas_dashboard.xlsx "/Dashboard/col[H]" --prop width=12
 
 # ── Step 5: Sparklines ──
 officecli add saas_dashboard.xlsx /Dashboard --type sparkline \
@@ -819,13 +1065,11 @@ officecli raw-set saas_dashboard.xlsx /workbook \
   --action insertbefore \
   --xml '<bookViews><workbookView activeTab="1" /></bookViews>'
 
-# Set fullCalcOnLoad (no named ranges, so insert after sheets)
-officecli raw-set saas_dashboard.xlsx /workbook \
-  --xpath "//x:sheets" \
-  --action insertafter \
-  --xml '<calcPr fullCalcOnLoad="1" />'
+# Set fullCalcOnLoad (use high-level API, not raw-set)
+officecli set saas_dashboard.xlsx / --prop calc.fullCalcOnLoad=true
 
-# ── Step 11: Validate ──
+# ── Step 11: Close + Validate ──
+officecli close saas_dashboard.xlsx
 officecli validate saas_dashboard.xlsx
 ```
 
@@ -848,16 +1092,13 @@ Non-string values fail with `JSON value could not be converted to System.String`
 
 `preset`, `referenceline`, `trendline`, and `axisNumFmt` are NOT listed in `officecli --help` output. They only work on `add` commands, NOT on `set`. Always include them at chart creation time. You cannot apply a preset to an existing chart.
 
-### D-3: raw-set Ordering -- activeTab and calcPr LAST
+### D-3: raw-set Ordering -- activeTab LAST
 
-Both `raw-set` commands for `activeTab` and `calcPr` MUST be the last commands in the workflow, after all sheets, charts, CF rules, and sparklines are created. Setting `activeTab` before all sheets exist will produce wrong indices.
+The `raw-set` command for `activeTab` MUST be the last raw-set command in the workflow, after all sheets, charts, CF rules, and sparklines are created. Setting `activeTab` before all sheets exist will produce wrong indices.
 
-### D-4: calcPr XPath -- Conditional on Named Ranges
+### D-4: calcPr -- Use High-Level API
 
-- No named ranges: `--xpath "//x:sheets" --action insertafter`
-- With named ranges: `--xpath "//x:definedNames" --action insertafter`
-
-`<calcPr>` must appear AFTER `<sheets>` (and after `<definedNames>` if present) in the workbook XML. Wrong placement causes validation errors.
+Use `officecli set file.xlsx / --prop calc.fullCalcOnLoad=true` instead of `raw-set` to set calculation properties. The `raw-set` approach creates duplicate `<calcPr>` elements and causes validation errors.
 
 ### D-5: formulacf -- No font.bold
 
@@ -908,6 +1149,24 @@ This also applies to `AVERAGEIFS`, `COUNTIFS`, and any other `*IFS` function whe
 
 `officecli add --type chart` succeeds (exit 0) even when data params (`series1.values=` or `data=`) are omitted entirely. The result is a chart XML structure with no data -- it renders as a blank box in Excel/WPS. **Always verify chart data after creation** using `get --json` (see QA Checklist step 5b). This bug caused blank charts across 3 rounds of testing before detection.
 
+### D-14: Summary Sheet Percentage Formulas -- Missing numFmt Displays as Float
+
+When `AVERAGEIFS`, `SUMIFS/count`, or any formula on the Summary sheet produces a percentage value (e.g., conversion rate, churn rate, win rate), the result is stored internally as a decimal (0.0983333...). Without `numFmt`, the cell displays as a raw float in the spreadsheet, not a percentage.
+
+- **CORRECT:** Set `numFmt` at the same time as the formula:
+  ```bash
+  officecli set dashboard.xlsx "Summary!C2" --prop "formula==AVERAGEIFS(Data!C2:C100,Data!A2:A100,B2)" --prop numFmt="0.0%"
+  ```
+- **WRONG:** Setting only the formula: the cell shows `0.098` instead of `9.8%`.
+
+This applies to ALL formula cells on Summary sheets where the result is a ratio or percentage. Always check Summary sheet percentage columns in QA.
+
+### D-15: Summary Sheet Column Widths -- Formulas Do Not Auto-Size
+
+Like the Data sheet, Summary sheet columns are NOT auto-sized when populated with formulas. Text label columns default to width 8 and will truncate category names. Numeric columns may show `###` for large values.
+
+Always run column width commands after writing Summary sheet data (see Step 2 — Summary sheet column widths section).
+
 ---
 
 ## Section E: QA Checklist
@@ -945,15 +1204,22 @@ officecli query dashboard.xlsx 'chart'
 # For EACH chart, run `get --json` and confirm `series[].values` or `series[].valuesRef` is NOT empty.
 # An empty chart (no data) is a BLOCKER -- the chart renders as a blank box.
 officecli get dashboard.xlsx '/Dashboard/chart[1]' --json
-# Check output: each series MUST have non-empty "values" (inline) or "valuesRef" (cell range).
-# If "values" is empty AND "valuesRef" is missing → the add chart command was missing data params.
+# Check output: each series MUST have non-empty "values" (inline) OR "valuesRef" (cell range).
+# NOTE: When using cell range references (series1.values="Sheet1!B2:B13"), the "values" field
+# will always be empty -- this is NORMAL. Only "valuesRef" will be populated.
+# BLOCKER: If BOTH "values" AND "valuesRef" are empty → chart has no data.
 # FIX: remove the chart and re-add with correct series1.values="Sheet1!B2:B13" params.
 # Repeat for chart[2], chart[3], etc.
 
-# 6. Spot-check a cross-sheet formula (no backslash before !)
+# 6. Verify conditional formatting exists (required for datasets with 10+ rows)
+officecli query dashboard.xlsx 'conditionalformatting'
+# Must return at least 1 rule applied to the Data sheet.
+# Zero CF rules on a 10+ row dataset is a quality failure (Q4 fail).
+
+# 7. Spot-check a cross-sheet formula (no backslash before !)
 officecli get dashboard.xlsx /Dashboard/A2 --json
 
-# 7. Visual content verification (MANDATORY)
+# 8. Visual content verification (MANDATORY)
 # View Dashboard content as text to confirm KPIs display actual values (not ###):
 officecli view dashboard.xlsx text
 # Verify:
@@ -974,8 +1240,15 @@ officecli view dashboard.xlsx text
 - [ ] Every chart has `preset=dashboard` (or `corporate`/`minimal` per plan)
 - [ ] Every chart has a descriptive title (not "Chart 1")
 - [ ] Every chart series has a name (not "Series 1")
+- [ ] **Header row fill color applied (Q2 — MANDATORY):** Data sheet row 1 and Summary sheet row 1 have a non-white fill color. Dark fill (e.g., `1F3864`) with white font required.
+- [ ] **Conditional formatting applied (Q4 — MANDATORY for 10+ row datasets):** At least 1 CF rule (colorscale or databar) present on a numeric column in the Data sheet. Verify with `officecli query dashboard.xlsx 'conditionalformatting'` — zero rules is a quality failure.
+- [ ] **KPI card background fill applied (Q3 — Quality Bar):** Dashboard KPI area (rows 1-2) has a light background fill (e.g., `F0F4FF`). Omitting this is a P2 deduction.
 - [ ] CF rules use correct color direction (green=good, red=bad)
 - [ ] Tab colors are set (Dashboard=blue, data=gray)
 - [ ] Dashboard is active on open (activeTab set)
 - [ ] fullCalcOnLoad is set
 - [ ] Output complexity is proportional to data size (no 3 charts for 5 rows)
+- [ ] **Summary sheet column widths set** (if Summary sheet exists): text/label columns 15-20, numeric columns 12-15 (see Step 2 Summary section)
+- [ ] **Summary sheet percentage formulas have numFmt** (if applicable): cells with AVERAGEIFS/rate results must have `numFmt="0.0%"` or `"0%"`, not raw float display
+- [ ] **Chart data sources reference visible cells only:** No chart `series.values` or `series.categories` points to a hidden column or hidden sheet. Hidden-column formula results are not evaluated by LibreOffice — charts referencing them render blank. Use visible Summary sheet cells as chart data sources.
+- [ ] **Charts within print area (if print area is set):** For each chart, confirm `x + width` does not exceed the print area's right boundary. Recommended: chart width ≤ 90% of print area width. Side-by-side charts: each ≤ 45% of print area width.

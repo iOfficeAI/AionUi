@@ -1,5 +1,36 @@
 <!-- officecli: v1.0.24 -->
 
+<!-- ============================================================
+  SESSION PALETTE & FONT — user-tester-1 (LearnFlow EdTech Series A)
+  Date: 2026-04-02
+  ============================================================
+  Color Palette (Professional Navy for EdTech):
+    PRIMARY   = "0F2B46"   (deep navy — slide titles, dark card fills)
+    SECONDARY = "1A73E8"   (electric blue — CTAs, accent)
+    ACCENT1   = "34A853"   (teal-green — explicitly declared; growth/positive indicators)
+    ACCENT2   = "F9AB00"   (amber — callout numbers, key stats)
+    DARK      = "0A1628"   (darkest navy — gradient start)
+    DARK2     = "0D1F35"   (second dark — gradient end)
+    LIGHT     = "F0F4F8"   (off-white — card backgrounds, light slides)
+    MUTED     = "64748B"   (slate — sub-labels, secondary text)
+
+  Font Pairing (A.3):
+    Titles / Stat numbers : Georgia (bold), 32–44pt titles, 36–64pt stats
+    Body / Labels         : Calibri, 16pt minimum (Hard Rule H-FONT)
+    Stat sub-labels       : Calibri, 16pt minimum (H-FONT — no exceptions)
+    Chart axis/legend     : Calibri, 10pt (chart-internal exception — allowed)
+    Table cells           : Calibri, 11–12pt (table-internal exception — allowed)
+    Footer/caption        : Calibri, 12pt minimum
+    EVERY shape must have explicit font= — no PowerPoint defaults
+
+  H-PALETTE zero-tolerance (R9):
+    ❌ No bare hex outside the 8 variables above
+    ❌ No red for "bad" — use DARK/DARK2 instead
+    ❌ No unregistered green for "good" — use ACCENT1 (34A853, declared above)
+    ❌ No gray (888888, CCCCCC, etc.) — use MUTED (64748B, declared above)
+    ❌ Contrast/status: "without" column → DARK/DARK2; "with" column → SECONDARY/ACCENT1
+  ============================================================ -->
+
 # Creating a Pitch Deck
 
 Complete guide for building professional pitch presentations from scratch. Follow the workflow: decide structure, set up, build slides pattern-by-pattern, polish, QA.
@@ -28,33 +59,59 @@ Define palette as shell variables before building. All subsequent commands refer
 **Professional Navy** (investor decks):
 
 ```bash
-PRIMARY="0F2B46"; SECONDARY="1A73E8"; ACCENT1="34A853"; ACCENT2="F9AB00"; DARK="0A1628"; LIGHT="F0F4F8"
+PRIMARY="0F2B46"; SECONDARY="1A73E8"; ACCENT1="34A853"; ACCENT2="F9AB00"; DARK="0A1628"; DARK2="0D1F35"; LIGHT="F0F4F8"; MUTED="64748B"
 ```
 
 **Tech Purple** (product launches):
 
 ```bash
-PRIMARY="6C2BD9"; SECONDARY="1DB954"; ACCENT1="FF6B35"; ACCENT2="00B4D8"; DARK="1A1A2E"; LIGHT="F8F7FF"
+PRIMARY="6C2BD9"; SECONDARY="1DB954"; ACCENT1="FF6B35"; ACCENT2="00B4D8"; DARK="1A1A2E"; DARK2="12102A"; LIGHT="F8F7FF"; MUTED="64748B"
 ```
 
 **Dark Premium** (enterprise sales):
 
 ```bash
-PRIMARY="0D0D1A"; SECONDARY="00D4AA"; ACCENT1="FF4757"; ACCENT2="FFA502"; ACCENT3="2ED573"; LIGHT_TEXT="E8E8E8"; MUTED="6B7B8D"
+PRIMARY="0D0D1A"; SECONDARY="00D4AA"; ACCENT1="FF4757"; ACCENT2="FFA502"; ACCENT3="2ED573"; DARK="0D0D1A"; DARK2="1A1A3E"; LIGHT_TEXT="E8E8E8"; MUTED="6B7B8D"
+```
+
+**Impact/Humanitarian** (nonprofit / social impact):
+
+```bash
+PRIMARY="2E7D32"; SECONDARY="1565C0"; ACCENT1="E65100"; DARK="1B5E20"; DARK2="0D3B6E"; LIGHT="FAFAFA"; TEXT="212121"; MUTED="64748B"
 ```
 
 If the user provides specific colors, use those. If not, select the closest palette and adapt.
 
+> **Color Palette Discipline (Hard Rule H-PALETTE):** Once defined, use ONLY the named palette variables (`$PRIMARY`, `$SECONDARY`, `$ACCENT1`, `$ACCENT2`, etc.) throughout the entire deck. Do NOT introduce new accent colors mid-deck. If Slide 3 uses purple (`6C2BD9`) but that value was not declared in your initial palette block, purple is out-of-palette and must be removed or replaced with an existing palette variable. Every hex color value in the deck must map to a named palette variable. Consistency check: before delivery, scan all shape `fill` and `color` values — any bare hex not in your palette block is a violation.
+>
+> **Banned color introductions — common traps that WILL cause a FAIL:**
+>
+> - ❌ Red to indicate "bad/wrong/competitor weakness" — use `$DARK` or `$DARK2` instead
+> - ❌ Green to indicate "good/correct/your advantage" — use `$PRIMARY` or `$ACCENT1` instead (unless green is already in your palette)
+> - ❌ Gray (`888888`, `CCCCCC`, etc.) as a neutral or muted-text color — use a declared palette variable; add a `MUTED` variable to your palette block if you need a muted shade
+> - ❌ Any color not present in your declared palette block, regardless of reason
+>
+> **Expressing contrast and status with palette colors only:**
+>
+> - Competitor / "without" column → darker fill from palette (e.g., `$DARK`, `$DARK2`, or a low-opacity `$PRIMARY`)
+> - Your product / "with" column → primary or accent fill (e.g., `$PRIMARY`, `$SECONDARY`)
+> - Comparison table checkmarks vs. crosses → use the same column text color; do NOT switch to red/green
+> - If you need a muted color for sub-labels, declare it upfront: `MUTED="64748B"` and reference `$MUTED` everywhere
+
 ### A.3 Font Pairing
 
-| Element        | Font                     | Size    |
-| -------------- | ------------------------ | ------- |
-| Slide title    | Georgia, bold            | 32-44pt |
-| Section header | Georgia or Calibri, bold | 18-24pt |
-| Body text      | Calibri                  | 14-16pt |
-| Stat number    | Georgia, bold            | 36-64pt |
-| Stat label     | Calibri                  | 12-14pt |
-| Caption/footer | Calibri                  | 10-12pt |
+| Element             | Font                     | Size                                                                |
+| ------------------- | ------------------------ | ------------------------------------------------------------------- |
+| Slide title         | Georgia, bold            | 32-44pt                                                             |
+| Section header      | Georgia or Calibri, bold | 18-24pt                                                             |
+| Body text           | Calibri                  | **16pt minimum** (Hard Rule H-FONT — no exceptions)                 |
+| Stat number         | Georgia, bold            | 36-64pt                                                             |
+| Stat label          | Calibri                  | **16pt minimum** (Hard Rule H-FONT — stat sub-labels are body text) |
+| Chart axis / legend | Calibri                  | 10pt (chart-internal exception — allowed)                           |
+| Table cell text     | Calibri                  | 11-12pt (table-internal exception — allowed)                        |
+| Caption/footer      | Calibri                  | 12pt minimum                                                        |
+
+> **Font consistency (Hard Rule H-FONT):** The pairing above (Georgia + Calibri) applies to EVERY text shape in the deck without exception — including connector labels, footer shapes, page numbers, and any small caption. Do NOT use any other font (Arial, Helvetica, Times New Roman, etc.) anywhere in the deck. Every `add` command must include an explicit `"font"` value; never rely on PowerPoint defaults. Before delivery, scan every shape in your script and confirm only Georgia and Calibri appear.
 
 ---
 
@@ -105,11 +162,11 @@ Each pattern includes: visual description, positioning table, and batch template
 | Tagline | 2cm | 10cm | 29.87cm | 2cm    | Calibri 20pt      |
 | Footer  | 2cm | 13cm | 29.87cm | 1.5cm  | Calibri 12pt      |
 
-Background: `"$DARK-$DARK2-180"` (linear gradient). See SKILL.md Quick Start for full batch template.
+Background: `"$DARK-$DARK2-180"` (linear gradient, angle 180 = top-to-bottom). `DARK2` is the second dark shade defined in the palette (e.g., `0D1F35` for Professional Navy, `12102A` for Tech Purple, `1A1A3E` for Dark Premium). See SKILL.md Quick Start for full batch template.
 
 ### C.2 Stat Callout Row (3-Stat)
 
-Title + 3 number/label pairs. Numbers: Georgia bold 64pt. Labels: Calibri 14pt, muted.
+Title + 3 number/label pairs. Numbers: Georgia bold 64pt. Labels: Calibri **16pt minimum** (Hard Rule H-FONT), muted.
 
 | Stat | Number X | Label X | Width | Number Y | Label Y |
 | ---- | -------- | ------- | ----- | -------- | ------- |
@@ -135,13 +192,65 @@ Chart on left 55%, stat callouts stacked on right. Post-batch: `officecli set "/
 | ------- | ---- | ---- | ------- | -------------------------- |
 | Title   | 2cm  | 1cm  | 29.87cm | 3cm                        |
 | Chart   | 2cm  | 4cm  | 17cm    | 13cm                       |
-| Stats   | 21cm | 4cm+ | 11cm    | 2.5cm number + 1.2cm label |
+| Stats   | 21cm | 4cm+ | 11cm    | 2.5cm number + 1.5cm label |
 
-Stat spacing: ~3.7cm per pair. For 5 stats, use size=44pt.
+Stat spacing: ~3.7cm per pair. For 5 stats, use size=44pt. Stat sub-labels: **16pt minimum** (Hard Rule H-FONT).
 
 ### C.5 Icon-in-Circle Grid (3-Row Vertical)
 
-3 rows at y=4.5cm, 8.5cm, 12.5cm. Each: ellipse 2.5x2.5cm at x=2cm + text overlay (same pos) + label at x=5.5cm (bold 18pt, width 25cm) + description below (14pt, muted). 13 elements total.
+3 rows at y=4.5cm, 8.5cm, 12.5cm. Each: ellipse 2.5x2.5cm at x=2cm + text overlay (same pos) + label at x=5.5cm (bold 18pt, width 25cm) + description below (**16pt minimum**, muted). 13 elements total.
+
+### C.5b 2×2 Feature Grid (4-Item)
+
+4 feature cards in a 2-column × 2-row grid. Use when you have exactly 4 parallel items (product features, service types, pillars, etc.). Each card: rounded-rect background + icon/emoji ellipse + title + description.
+
+| Element                  | X            | Y            | Width  | Height | Notes                       |
+| ------------------------ | ------------ | ------------ | ------ | ------ | --------------------------- |
+| Card 1 (top-left) bg     | 1.5cm        | 4cm          | 14.5cm | 7cm    | roundRect, fill=card color  |
+| Card 2 (top-right) bg    | 17.5cm       | 4cm          | 14.5cm | 7cm    |                             |
+| Card 3 (bottom-left) bg  | 1.5cm        | 12cm         | 14.5cm | 7cm    |                             |
+| Card 4 (bottom-right) bg | 17.5cm       | 12cm         | 14.5cm | 7cm    |                             |
+| Icon ellipse (each card) | card_x+0.5cm | card_y+0.5cm | 2cm    | 2cm    | centered on left            |
+| Title (each card)        | card_x+3.2cm | card_y+0.6cm | 10.5cm | 1.8cm  | bold 16pt                   |
+| Body (each card)         | card_x+0.5cm | card_y+3cm   | 13cm   | 3.5cm  | **16pt** (Hard Rule H-FONT) |
+
+**Slide-level title:** Georgia bold 32pt at y=1cm, height=2.5cm.
+
+> **Z-Order rule:** The batch skeleton below already follows the correct order: each card's background shape appears immediately before that card's text shapes. Do NOT reorder — moving any `roundRect` bg after its text shapes will cause the background to cover the text.
+
+**Batch skeleton:**
+
+```bash
+cat <<'EOF' | officecli batch deck.pptx
+[
+  {"command":"add","parent":"/slide[N]","type":"shape","props":{"text":"Four Pillars of Our Platform","x":"2cm","y":"1cm","width":"29.87cm","height":"2.5cm","font":"Georgia","size":"32","bold":"true","color":"$PRIMARY","align":"left","fill":"none"}},
+
+  {"command":"add","parent":"/slide[N]","type":"shape","props":{"preset":"roundRect","x":"1.5cm","y":"4cm","width":"14.5cm","height":"7cm","fill":"F0F4F8","line":"none"}},
+  {"command":"add","parent":"/slide[N]","type":"shape","props":{"preset":"ellipse","x":"2cm","y":"4.5cm","width":"2cm","height":"2cm","fill":"$SECONDARY","line":"none"}},
+  {"command":"add","parent":"/slide[N]","type":"shape","props":{"text":"Feature One","x":"4.7cm","y":"4.6cm","width":"10.5cm","height":"1.8cm","font":"Calibri","size":"16","bold":"true","color":"$PRIMARY","align":"left","fill":"none"}},
+  {"command":"add","parent":"/slide[N]","type":"shape","props":{"text":"Brief description of feature one and its core benefit.","x":"2cm","y":"7cm","width":"13cm","height":"3.5cm","font":"Calibri","size":"16","color":"$MUTED_HEX","align":"left","fill":"none"}},
+
+  {"command":"add","parent":"/slide[N]","type":"shape","props":{"preset":"roundRect","x":"17.5cm","y":"4cm","width":"14.5cm","height":"7cm","fill":"F0F4F8","line":"none"}},
+  {"command":"add","parent":"/slide[N]","type":"shape","props":{"preset":"ellipse","x":"18cm","y":"4.5cm","width":"2cm","height":"2cm","fill":"$ACCENT1","line":"none"}},
+  {"command":"add","parent":"/slide[N]","type":"shape","props":{"text":"Feature Two","x":"20.7cm","y":"4.6cm","width":"10.5cm","height":"1.8cm","font":"Calibri","size":"16","bold":"true","color":"$PRIMARY","align":"left","fill":"none"}},
+  {"command":"add","parent":"/slide[N]","type":"shape","props":{"text":"Brief description of feature two and its core benefit.","x":"18cm","y":"7cm","width":"13cm","height":"3.5cm","font":"Calibri","size":"16","color":"$MUTED_HEX","align":"left","fill":"none"}},
+
+  {"command":"add","parent":"/slide[N]","type":"shape","props":{"preset":"roundRect","x":"1.5cm","y":"12cm","width":"14.5cm","height":"7cm","fill":"F0F4F8","line":"none"}},
+  {"command":"add","parent":"/slide[N]","type":"shape","props":{"preset":"ellipse","x":"2cm","y":"12.5cm","width":"2cm","height":"2cm","fill":"$ACCENT2","line":"none"}},
+  {"command":"add","parent":"/slide[N]","type":"shape","props":{"text":"Feature Three","x":"4.7cm","y":"12.6cm","width":"10.5cm","height":"1.8cm","font":"Calibri","size":"16","bold":"true","color":"$PRIMARY","align":"left","fill":"none"}},
+  {"command":"add","parent":"/slide[N]","type":"shape","props":{"text":"Brief description of feature three and its core benefit.","x":"2cm","y":"15cm","width":"13cm","height":"3.5cm","font":"Calibri","size":"16","color":"$MUTED_HEX","align":"left","fill":"none"}},
+
+  {"command":"add","parent":"/slide[N]","type":"shape","props":{"preset":"roundRect","x":"17.5cm","y":"12cm","width":"14.5cm","height":"7cm","fill":"F0F4F8","line":"none"}},
+  {"command":"add","parent":"/slide[N]","type":"shape","props":{"preset":"ellipse","x":"18cm","y":"12.5cm","width":"2cm","height":"2cm","fill":"$PRIMARY","line":"none"}},
+  {"command":"add","parent":"/slide[N]","type":"shape","props":{"text":"Feature Four","x":"20.7cm","y":"12.6cm","width":"10.5cm","height":"1.8cm","font":"Calibri","size":"16","bold":"true","color":"$PRIMARY","align":"left","fill":"none"}},
+  {"command":"add","parent":"/slide[N]","type":"shape","props":{"text":"Brief description of feature four and its core benefit.","x":"18cm","y":"15cm","width":"13cm","height":"3.5cm","font":"Calibri","size":"16","color":"$MUTED_HEX","align":"left","fill":"none"}}
+]
+EOF
+```
+
+> **`$MUTED_HEX`**: Replace with the literal hex value of your declared `$MUTED` palette variable (e.g., `64748B`). Variables are not expanded inside heredoc single-quote blocks — you must use the bare hex. Per H-PALETTE, all colors must trace back to a named palette variable; never use `444444` or any undeclared hex.
+
+> For dark-background slides, change card fill to a lighter dark shade (e.g., `fill="1A2540"`) and text color to `FFFFFF`/`E8E8E8`.
 
 ### C.6 Icon-in-Circle Grid (5-Across Horizontal)
 
@@ -150,6 +259,12 @@ Stat spacing: ~3.7cm per pair. For 5 stats, use size=44pt.
 ### C.7 Two-Column Split
 
 Problem+solution, before/after. Card backgrounds (roundRect) first, then text on top.
+
+> **CRITICAL — Shape Z-Order in Batch:**
+> Background card shapes MUST be added BEFORE text shapes in every batch.
+> Shapes added later in batch appear on top (higher z-order) and will cover earlier shapes.
+> **Required order**: `[bg card 1] → [text on card 1] → [bg card 2] → [text on card 2]`
+> If you add background shapes AFTER text shapes, the cards will cover all text completely.
 
 | Element       | X      | Y     | Width  | Height |
 | ------------- | ------ | ----- | ------ | ------ |
@@ -160,18 +275,73 @@ Problem+solution, before/after. Card backgrounds (roundRect) first, then text on
 | Right header  | 18.5cm | 5cm   | 12.5cm | 2cm    |
 | Right body    | 18.5cm | 7.5cm | 12.5cm | 9cm    |
 
+> **Color guidance for before/after contrast:** The two columns MUST be visually distinct. Use contrasting fills — not two shades of the same dark color.
+>
+> - "Without" (problem) column → dark red/orange tint (e.g., `fill="3D1010"` or `fill="2D1505"` for dark themes; `fill="FFF0F0"` for light themes). Header accent: `ACCENT1` red or orange.
+> - "With" (solution) column → dark green/teal tint (e.g., `fill="0D2D1A"` for dark themes; `fill="F0FFF4"` for light themes). Header accent: `ACCENT1` green or `SECONDARY`.
+> - Test via screenshot: both columns must be immediately distinguishable at a glance.
+
 ### C.8 Comparison Table (Full-Width)
 
 Title (2cm, 1cm) + table (2cm, 4.5cm, 29.87cm x 13cm). See Section E for construction.
 
 ### C.9 Flow Diagram (Connectors)
 
-4-node: x=1, 8.5, 16, 23.5cm. Width 6cm, y=8cm, height 3cm.
-5-node: x=0.5, 7, 13.5, 20, 26.5cm. Width 5.5cm.
+**3-node** (most common -- e.g., "Install → Monitor → Save"):
+
+| Element         | X      | Y      | Width | Height |
+| --------------- | ------ | ------ | ----- | ------ |
+| Node 1 (left)   | 1cm    | 9cm    | 7cm   | 4cm    |
+| Arrow 1→2       | 8.5cm  | 10.5cm | 3cm   | 1cm    |
+| Node 2 (center) | 12cm   | 9cm    | 7cm   | 4cm    |
+| Arrow 2→3       | 19.5cm | 10.5cm | 3cm   | 1cm    |
+| Node 3 (right)  | 23cm   | 9cm    | 7cm   | 4cm    |
+
+(slide width = 33.87cm; nodes are vertically centered at y=9cm)
+
+**4-node**: x=1, 8.5, 16, 23.5cm. Width 6cm, y=8cm, height 3cm.
+**5-node**: x=0.5, 7, 13.5, 20, 26.5cm. Width 5.5cm.
 
 Title = shape[1]. Flow shapes start at shape[2]. Add all shapes BEFORE connectors. Connectors work within the same batch.
 
+> **Node text color rule (H-11 enforcement):**
+> Node cards on dark-background slides use dark fills (e.g., `$PRIMARY`, `$DARK2`). All text on these nodes — both the title text and the description text below the node — MUST use light colors.
+>
+> - Node title text: `"color":"FFFFFF"` or `"color":"$LIGHT_TEXT"`
+> - Node description text: `"color":"E8E8E8"` or `"color":"FFFFFF"` — **never use `MUTED` (6B7B8D) on dark node backgrounds; it is too dark to read**
+> - Only use `MUTED` or `"color":"333333"` when the node card has a **light** fill.
+
 > **Connector reliability:** Add connectors in a separate batch AFTER all node shapes are created. Verify each connector is visible. If batch connectors are unreliable, add them one at a time with individual `add` commands.
+
+> **MANDATORY CONNECTOR VERIFICATION (PNG only):**
+> Do NOT use `officecli view slides.pptx svg` to verify connectors — SVG rendering may disagree with LibreOffice.
+> You MUST verify connectors via the authoritative screenshot pipeline:
+> `screenshot.mjs` → PDF → PNG
+>
+> **After generating the PNG, verify ALL of the following — both checks are required:**
+>
+> 1. **Every connector is visible** (not missing or transparent)
+> 2. **No connector overlaps or obscures any text shape** — zoom into each node label in the PNG and confirm the connector line/arrow does not cross over any text content
+>
+> If a connector is missing in the PNG screenshot:
+>
+> - Fall back to a visible `rightArrow` shape instead of connector:
+>   `{"command":"add","parent":"/slide[N]","type":"shape","props":{"preset":"rightArrow","x":"...","y":"...","width":"1.5cm","height":"0.8cm","fill":"ACCENT_COLOR","line":"none"}}`
+> - rightArrow shapes render reliably in all viewers.
+>
+> If a connector overlaps text in the PNG screenshot:
+>
+> - Add 0.5cm of padding to the connector's start or end point by adjusting `startX`/`startY`/`endX`/`endY` to move the endpoint away from the text region; OR
+> - Use `--prop zorder=back` on the connector to send it behind the text shape; OR
+> - Replace with a `rightArrow` fallback (see above) positioned to avoid the text box.
+
+> **Coordinate tip for precise connectors:** Before specifying `startX/startY/endX/endY`, confirm adjacent node positions with:
+>
+> ```bash
+> officecli get deck.pptx "/slide[N]" --depth 1 --json
+> ```
+>
+> Use the returned `x`, `y`, `width`, `height` values to calculate exact connector endpoints (e.g., `startX = nodeX + nodeWidth`, `startY = nodeY + nodeHeight/2`).
 
 ### C.10 Timeline / Roadmap (Horizontal)
 
@@ -185,10 +355,51 @@ officecli add deck.pptx "/slide[N]" --type connector --prop preset=straight --pr
 
 ### C.11 Avatar Grid
 
+**2-person** (centered, symmetric):
+
+| Element         | X    | Y   | Width | Height |
+| --------------- | ---- | --- | ----- | ------ |
+| Person 1 avatar | 7cm  | 6cm | 8cm   | 5cm    |
+| Person 2 avatar | 18cm | 6cm | 8cm   | 5cm    |
+
+Name (bold 16pt) + role (16pt) centered below each avatar; use same X and width as avatar.
+
 **2x2**: circles at (6cm, 4.5cm), (20cm, 4.5cm), (6cm, 12.5cm), (20cm, 12.5cm). Size 3.5x3.5cm.
 **3-row**: circles at x=4.5, 15.5, 26.5cm, y=5cm. Size 3x3cm.
 
-Each member: ellipse + initials overlay + name (bold 14pt) + role (11pt) = 4 elements. Name width 6cm centered.
+Each member: ellipse + initials overlay + name (bold 16pt) + role (16pt) = 4 elements. Name width 6cm centered.
+
+> **CRITICAL — 3-person layout: use the batch template below exactly. Each person occupies a fixed column; bio text is pinned to an absolute y-coordinate to prevent overlap. Do NOT shrink height below the values shown.**
+
+**3-person complete batch example** (x=1.5, 12.0, 22.5cm columns; slide width 33.87cm):
+
+```bash
+cat <<'EOF' | officecli batch deck.pptx
+[
+  {"command":"add","parent":"/slide[N]","type":"shape","props":{"text":"Meet the Team","x":"2cm","y":"1cm","width":"29.87cm","height":"3cm","font":"Georgia","size":"36","bold":"true","color":"$PRIMARY","align":"left","fill":"none"}},
+
+  {"command":"add","parent":"/slide[N]","type":"shape","props":{"preset":"ellipse","x":"2.5cm","y":"4.5cm","width":"3cm","height":"3cm","fill":"$SECONDARY","line":"none"}},
+  {"command":"add","parent":"/slide[N]","type":"shape","props":{"text":"AB","x":"2.5cm","y":"4.5cm","width":"3cm","height":"3cm","font":"Georgia","size":"22","bold":"true","color":"FFFFFF","align":"center","valign":"middle","fill":"none"}},
+  {"command":"add","parent":"/slide[N]","type":"shape","props":{"text":"Alice Brown","x":"1.5cm","y":"8cm","width":"5cm","height":"1.5cm","font":"Calibri","size":"16","bold":"true","color":"$PRIMARY","align":"center","fill":"none"}},
+  {"command":"add","parent":"/slide[N]","type":"shape","props":{"text":"CEO & Co-Founder","x":"1.5cm","y":"9.5cm","width":"5cm","height":"1.5cm","font":"Calibri","size":"16","color":"64748B","align":"center","fill":"none"}},
+  {"command":"add","parent":"/slide[N]","type":"shape","props":{"text":"10 yrs enterprise SaaS. Ex-Salesforce. Led $50M ARR growth.","x":"1.5cm","y":"11.2cm","width":"9cm","height":"5cm","font":"Calibri","size":"16","color":"$PRIMARY","align":"left","fill":"none"}},
+
+  {"command":"add","parent":"/slide[N]","type":"shape","props":{"preset":"ellipse","x":"13.5cm","y":"4.5cm","width":"3cm","height":"3cm","fill":"$ACCENT1","line":"none"}},
+  {"command":"add","parent":"/slide[N]","type":"shape","props":{"text":"CD","x":"13.5cm","y":"4.5cm","width":"3cm","height":"3cm","font":"Georgia","size":"22","bold":"true","color":"FFFFFF","align":"center","valign":"middle","fill":"none"}},
+  {"command":"add","parent":"/slide[N]","type":"shape","props":{"text":"Carlos Diaz","x":"12.5cm","y":"8cm","width":"5cm","height":"1.5cm","font":"Calibri","size":"16","bold":"true","color":"$PRIMARY","align":"center","fill":"none"}},
+  {"command":"add","parent":"/slide[N]","type":"shape","props":{"text":"CTO & Co-Founder","x":"12.5cm","y":"9.5cm","width":"5cm","height":"1.5cm","font":"Calibri","size":"16","color":"64748B","align":"center","fill":"none"}},
+  {"command":"add","parent":"/slide[N]","type":"shape","props":{"text":"ML infra at scale. Ex-Google Brain. 3 patents in NLP.","x":"12.5cm","y":"11.2cm","width":"9cm","height":"5cm","font":"Calibri","size":"16","color":"$PRIMARY","align":"left","fill":"none"}},
+
+  {"command":"add","parent":"/slide[N]","type":"shape","props":{"preset":"ellipse","x":"24.5cm","y":"4.5cm","width":"3cm","height":"3cm","fill":"$ACCENT2","line":"none"}},
+  {"command":"add","parent":"/slide[N]","type":"shape","props":{"text":"EF","x":"24.5cm","y":"4.5cm","width":"3cm","height":"3cm","font":"Georgia","size":"22","bold":"true","color":"FFFFFF","align":"center","valign":"middle","fill":"none"}},
+  {"command":"add","parent":"/slide[N]","type":"shape","props":{"text":"Eva Fischer","x":"23.5cm","y":"8cm","width":"5cm","height":"1.5cm","font":"Calibri","size":"16","bold":"true","color":"$PRIMARY","align":"center","fill":"none"}},
+  {"command":"add","parent":"/slide[N]","type":"shape","props":{"text":"VP Sales","x":"23.5cm","y":"9.5cm","width":"5cm","height":"1.5cm","font":"Calibri","size":"16","color":"64748B","align":"center","fill":"none"}},
+  {"command":"add","parent":"/slide[N]","type":"shape","props":{"text":"$30M pipeline closed in 18 months. Ex-HubSpot, AWS.","x":"23.5cm","y":"11.2cm","width":"9cm","height":"5cm","font":"Calibri","size":"16","color":"$PRIMARY","align":"left","fill":"none"}}
+]
+EOF
+```
+
+> **No-overlap rule:** Each person's column is 11cm wide (gap between columns ≥ 1cm). Avatar at y=4.5cm, name at y=8cm, role at y=9.2cm, bio at y=10.5cm — all three persons share the same y-coordinates. Bio text box height=5.5cm; keep bio text to 2-3 short sentences to avoid overflow.
 
 ### C.12 Closing / CTA (Dark Gradient)
 
@@ -253,6 +464,8 @@ Same as D.1 but with `series1` + `series2` and two colors. Post-creation `gap=80
 > Both `comboSplit=1` AND `secondary=2` are REQUIRED. Missing either causes incorrect rendering.
 
 > **HARD RULE: Before creating a combo chart, verify that both series use similar ranges (e.g., both 0-100 or both 0-10). If ranges differ by more than 10x (e.g., $M values vs % values), DO NOT use a combo chart. Instead, create two separate side-by-side charts: a bar chart for the absolute values and a line chart for the percentages. Place them using pattern C.4 (chart left + stats right) or use two 50% width charts.**
+
+> **⚠️ WARNING — Dual-series magnitude mismatch:** If one series uses values in the millions (e.g., Revenue $M: 2, 5, 8, 12) and the other uses counts or percentages (e.g., Customer Count: 200, 450, 800, 1200), the smaller-magnitude series will be rendered nearly invisible even with `secondary=2`. Examples of dangerous combinations: Revenue ($M) + Customer Count, ARR ($M) + Headcount, Market Share (%) + Absolute Sales. **Check the ratio before building:** if `max(series1) / max(series2) > 10` or `max(series2) / max(series1) > 10`, you MUST split into two separate charts. After building a dual-series chart, always run a screenshot to verify both series are visually legible.
 
 **Single combo chart (ONLY when both series have similar ranges):**
 
@@ -324,6 +537,14 @@ officecli add deck.pptx "/slide[N]" --type chart \
 
 ### E.1 Comparison Table
 
+> **H-PALETTE reminder for comparison tables:** Do NOT use red to mark competitor weaknesses or green to mark your advantages. Use palette colors only:
+>
+> - Your product column header → `fill=$PRIMARY` or `fill=$SECONDARY`, `color=FFFFFF`
+> - Competitor column headers → `fill=$DARK` or `fill=$DARK2`, `color=FFFFFF` (or light palette color on light background)
+> - "Yes" / checkmark cells in your column → `fill=$LIGHT` + `bold=true` (NO green)
+> - "No" / cross cells in competitor columns → leave default fill or use a subtle dark shade from palette (NO red)
+> - Cell text for all status values (Yes/No/Partial/✓/✗) → same `color` as the row; do NOT change individual cell colors to red/green
+
 ```bash
 officecli add deck.pptx "/slide[N]" --type table \
   --prop rows=7 --prop cols=5 --prop x=2cm --prop y=4.5cm --prop width=29.87cm --prop height=13cm
@@ -334,7 +555,7 @@ officecli set deck.pptx "/slide[N]/table[1]/tr[2]" \
   --prop c1="No-code setup" --prop c2="Yes" --prop c3="Partial" --prop c4="No" --prop c5="Partial" --prop size=11
 # ... populate remaining rows, then table-level font ...
 officecli set deck.pptx "/slide[N]/table[1]" --prop size=11 --prop font=Calibri --prop border=E0E0E0
-# Highlight "your product" column: cell-level fill + bold only (NO cell-level color)
+# Highlight "your product" column: cell-level fill + bold only (NO cell-level color, NO green)
 officecli set deck.pptx "/slide[N]/table[1]/tr[2]/tc[2]" --prop fill=E8F0FE --prop bold=true
 ```
 
@@ -443,6 +664,15 @@ officecli validate deck.pptx
 
 # Check for issues
 officecli view deck.pptx issues
+# NOTE: All slides using layout=blank will report "Slide has no title"
+# This is EXPECTED behavior — pitch-deck uses blank layout (no built-in PowerPoint title
+# placeholder). This warning is safe to ignore. Not a bug.
+
+# Visual preview per slide (use --start/--end, NOT --slide or --output which do not exist)
+officecli view deck.pptx svg --start 1 --end 1 > /tmp/slide1.svg   # slide 1
+officecli view deck.pptx svg --start 2 --end 2 > /tmp/slide2.svg   # slide 2
+# For gradient-background slides: SVG renders gradient as white — use html mode for visual QA
+officecli view deck.pptx html --browser
 ```
 
 ### Manual Verification
@@ -456,8 +686,14 @@ officecli view deck.pptx issues
 - [ ] At least one slide has 3+ stat callouts with number >= 36pt and label <= 16pt
 - [ ] Gradient background on both slide 1 and last slide
 - [ ] Color palette consistent across all slides (no random/default colors)
+- [ ] **H-PALETTE:** No red/green/gray introduced for status indicators in comparison tables or flow diagrams — all colors trace back to declared palette variables
+- [ ] **H-FONT font consistency:** Every shape has an explicit `font` value; only Georgia and Calibri appear across all shapes (no Arial, Helvetica, or default fonts)
 - [ ] On dark-background slides, verify all text uses light colors (no default black text)
 - [ ] Charts use modern styling (plotFill=none, chartFill=none, subtle gridlines)
+- [ ] For any slide with connectors: take a screenshot/SVG preview and verify EACH connector is visible before proceeding. CLI may report success even when rendering fails (H-14).
+- [ ] For any dual-series chart: verify both series are visible at scale. If one series appears invisible (ranges differ >10x), STOP and split into two charts immediately (D.4 HARD RULE).
+- [ ] **Layout density check:** Content must occupy ≥ 60% of the canvas on every slide. If a slide has large empty zones (more than 40% whitespace), fix it by: (a) adding a supporting stat or data point, (b) adding a visual element (icon, chart, callout box), or (c) increasing the size of existing elements. Slides with only 2-3 small elements and large blank areas below will fail evaluation.
+- [ ] **Connector overlap check:** For any slide with connectors or arrows, confirm in the PNG screenshot that no connector line or arrowhead overlaps a text box. If overlap is found, reposition or use `zorder=back` before delivery (see C.9).
 
 ---
 
@@ -467,21 +703,21 @@ officecli view deck.pptx issues
 >
 > **HARD RULE items are non-negotiable -- violation produces broken output. WARNING items are strong guidance that should be followed unless you have a specific reason not to. Known limitation items cannot be worked around.**
 
-| #    | Issue                                                      | Workaround                                                                                                           |
-| ---- | ---------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------- |
-| H-1  | `gap` ignored during chart `add`                           | Apply via `officecli set "/slide[N]/chart[1]" --prop gap=80` after creation                                          |
-| H-2  | Table font cascade overwritten by row `set`                | Set table-level `size`/`font` AFTER all rows populated                                                               |
-| H-3  | Shell `$` in batch JSON (e.g., `$10M`)                     | Use heredoc: `cat <<'EOF' \| officecli batch`                                                                        |
-| H-4  | Combo chart requires both `comboSplit=1` AND `secondary=2` | Missing either causes incorrect rendering. Always include both                                                       |
-| H-5  | Cell merge (`merge.right=N`) produces validation errors    | PowerPoint renders correctly. Note in delivery message                                                               |
-| H-6  | Cell-level `color` on table cells causes validation errors | Use row-level `color` instead; cell-level `fill` + `bold` only                                                       |
-| H-7  | Custom gradient stops (`@`) fail on slide backgrounds      | Use 2/3-color gradients. `@` syntax works only on shape `gradient` fills                                             |
-| H-8  | Connector shape indices: title = shape[1]                  | Flow shapes start at shape[2]. Count from first shape on slide                                                       |
-| H-9  | z-order changes cause shape index renumbering              | Process highest index first. Re-query with `get --depth 1` if needed                                                 |
-| H-10 | Chart series count fixed at creation                       | Include ALL series in `add`. To add series, delete and recreate                                                      |
-| H-11 | Dark theme text invisible (defaults to black)              | Explicitly set light `color` on every text shape on dark backgrounds                                                 |
-| H-12 | zsh glob-expands `[N]` in paths                            | Always double-quote: `"/slide[1]/chart[1]"`                                                                          |
-| H-13 | Batch threshold                                            | Reliable for up to ~20 operations per batch. Split larger batches into groups of 15-20. Heredoc syntax mandatory     |
-| H-14 | Connector arrows may not all render in batch               | Add connectors in separate batch after shapes. If still missing, add one at a time                                   |
-| H-15 | Doughnut chart `colors` parameter may not apply            | CLI accepts the parameter without error but PowerPoint renders default colors. No workaround. Verify via screenshot. |
-| H-16 | Empty table cell string `c1=""` causes validation error    | Use a space character `c1=" "` instead of empty string for blank cells                                               |
+| #    | Issue                                                      | Workaround                                                                                                                                                                                                  |
+| ---- | ---------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| H-1  | `gap` ignored during chart `add`                           | Apply via `officecli set "/slide[N]/chart[1]" --prop gap=80` after creation                                                                                                                                 |
+| H-2  | Table font cascade overwritten by row `set`                | Set table-level `size`/`font` AFTER all rows populated                                                                                                                                                      |
+| H-3  | Shell `$` in batch JSON or `set` commands                  | **Batch:** use heredoc: `cat <<'EOF' \| officecli batch`. **Individual `set`:** single-quote the prop: `--prop 'c2=$499'`. Double-quoted `--prop "c2=$499"` silently expands `$499` to empty with no error. |
+| H-4  | Combo chart requires both `comboSplit=1` AND `secondary=2` | Missing either causes incorrect rendering. Always include both                                                                                                                                              |
+| H-5  | Cell merge (`merge.right=N`) produces validation errors    | PowerPoint renders correctly. Note in delivery message                                                                                                                                                      |
+| H-6  | Cell-level `color` on table cells causes validation errors | Use row-level `color` instead; cell-level `fill` + `bold` only                                                                                                                                              |
+| H-7  | Custom gradient stops (`@`) fail on slide backgrounds      | Use 2/3-color gradients. `@` syntax works only on shape `gradient` fills                                                                                                                                    |
+| H-8  | Connector shape indices: title = shape[1]                  | Flow shapes start at shape[2]. Count from first shape on slide                                                                                                                                              |
+| H-9  | z-order changes cause shape index renumbering              | Process highest index first. Re-query with `get --depth 1` if needed                                                                                                                                        |
+| H-10 | Chart series count fixed at creation                       | Include ALL series in `add`. To add series, delete and recreate                                                                                                                                             |
+| H-11 | Dark theme text invisible (defaults to black)              | Explicitly set light `color` on every text shape on dark backgrounds                                                                                                                                        |
+| H-12 | zsh glob-expands `[N]` in paths                            | Always double-quote: `"/slide[1]/chart[1]"`                                                                                                                                                                 |
+| H-13 | Batch threshold                                            | Reliable for up to ~20 operations per batch. Split larger batches into groups of 15-20. Heredoc syntax mandatory                                                                                            |
+| H-14 | Connector arrows may not all render in batch               | Add connectors in separate batch after shapes. If still missing, add one at a time                                                                                                                          |
+| H-15 | Doughnut chart `colors` parameter may not apply            | CLI accepts the parameter without error but PowerPoint renders default colors. No workaround. Verify via screenshot.                                                                                        |
+| H-16 | Empty table cell string `c1=""` causes validation error    | Use a space character `c1=" "` instead of empty string for blank cells                                                                                                                                      |

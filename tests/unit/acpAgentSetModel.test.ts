@@ -144,3 +144,64 @@ describe('AcpAgent.start() — setModel for non-claude backends', () => {
     expect(mockSetModel).not.toHaveBeenCalled();
   });
 });
+
+describe('AcpAgent turn-level thought/content observability', () => {
+  const baseConfig = {
+    id: 'obs-agent',
+    backend: 'claude' as const,
+    workingDir: '/tmp',
+    onStreamEvent: vi.fn(),
+    onSignalEvent: vi.fn(),
+  };
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it('warns at end of turn when thought exists but no content', () => {
+    const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    const agent = new AcpAgent({
+      ...baseConfig,
+      extra: { backend: 'claude' },
+    });
+
+    (agent as any).emitMessage({
+      id: 'tips-1',
+      conversation_id: 'obs-agent',
+      type: 'tips',
+      position: 'center',
+      createdAt: Date.now(),
+      content: { type: 'warning', content: 'Thinking...' },
+    });
+    (agent as any).handleEndTurn();
+
+    expect(warnSpy).toHaveBeenCalledWith(
+      '[ACP-STREAM] End turn with thought but no content (conversation=obs-agent, backend=claude)'
+    );
+    warnSpy.mockRestore();
+  });
+
+  it('does not warn at end of turn when content exists', () => {
+    const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    const agent = new AcpAgent({
+      ...baseConfig,
+      extra: { backend: 'claude' },
+    });
+
+    (agent as any).emitMessage({
+      id: 'text-1',
+      msg_id: 'text-1',
+      conversation_id: 'obs-agent',
+      type: 'text',
+      position: 'left',
+      createdAt: Date.now(),
+      content: { content: 'Final answer' },
+    });
+    (agent as any).handleEndTurn();
+
+    expect(warnSpy).not.toHaveBeenCalledWith(
+      '[ACP-STREAM] End turn with thought but no content (conversation=obs-agent, backend=claude)'
+    );
+    warnSpy.mockRestore();
+  });
+});

@@ -1,4 +1,5 @@
 ---
+# officecli: v1.0.24
 name: officecli-academic-paper
 description: "Use this skill when the user wants to create an academic paper, research paper, white paper, technical report, policy brief, or any formally structured document with TOC, equations, footnotes, endnotes, or scholarly formatting. Trigger on: 'academic paper', 'research paper', 'white paper', 'technical report', 'policy brief', 'journal paper', 'scholarly document', 'paper with equations', 'paper with footnotes', 'paper with TOC', 'manuscript', 'conference paper'. Output is always a single .docx file."
 ---
@@ -79,14 +80,15 @@ Define ALL styles before adding ANY content. Skipping style definitions causes f
 
 ### Font Size Hierarchy
 
-| Style         | Size    | Weight        | spaceBefore    | spaceAfter     |
-| ------------- | ------- | ------------- | -------------- | -------------- |
-| Heading1      | >= 16pt | bold          | 360 (18pt)     | 120 (6pt)      |
-| Heading2      | >= 14pt | bold          | 360 (18pt)     | 80 (4pt)       |
-| Heading3      | >= 12pt | bold + italic | 240 (12pt)     | 80 (4pt)       |
-| Body (Normal) | 11-12pt | regular       | per paper type | per paper type |
-| Caption       | 9-10pt  | italic        | --             | --             |
-| FootnoteText  | 9-10pt  | regular       | --             | --             |
+| Style         | Size                     | Weight        | spaceBefore    | spaceAfter     |
+| ------------- | ------------------------ | ------------- | -------------- | -------------- |
+| Cover title   | **20pt**                 | bold          | 72pt (≈1 inch) | 24pt           |
+| Heading1      | >= 18pt (20pt preferred) | bold          | 360 (18pt)     | 120 (6pt)      |
+| Heading2      | >= 14pt                  | bold          | 360 (18pt)     | 80 (4pt)       |
+| Heading3      | >= 12pt                  | bold + italic | 240 (12pt)     | 80 (4pt)       |
+| Body (Normal) | 11-12pt                  | regular       | per paper type | per paper type |
+| Caption       | 9-10pt                   | italic        | --             | --             |
+| FootnoteText  | 9-10pt                   | regular       | --             | --             |
 
 ### Verified LaTeX Subset
 
@@ -117,6 +119,23 @@ Footnotes are inline reference runs within the target paragraph. They do NOT cre
 
 ---
 
+## Hard Rules (H1–H8)
+
+The following rules are non-negotiable. Any violation constitutes a delivery failure.
+
+| Rule   | Requirement                                                                                                                                                                                                                                                                       |
+| ------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| H1     | `officecli validate` passes — zero XML errors                                                                                                                                                                                                                                     |
+| H2     | Cover page present with ≥7 of 10 required elements (title, authors, affiliation, submission target, date, abstract excerpt, keywords, horizontal rule, contact, subtitle)                                                                                                         |
+| H3     | All body sections use continuous numbered headings (e.g., "1. Introduction", "2. Methods") — see Section C.3                                                                                                                                                                      |
+| H4     | Abstract paragraph has NO `firstLineIndent` (block style)                                                                                                                                                                                                                         |
+| H5     | Table of Contents (TOC) field present                                                                                                                                                                                                                                             |
+| H6     | Dynamic PAGE field in footer (not static text)                                                                                                                                                                                                                                    |
+| H7     | Heading hierarchy is consistent — no level skipping (H1 → H2 → H3, never H1 → H3)                                                                                                                                                                                                 |
+| **H8** | **References/Bibliography section REQUIRED.** Every academic paper must have a final section titled "References" or "Bibliography" containing at minimum 5 formatted citations with hanging indent. A document with inline citations and no reference list is a delivery failure. |
+
+---
+
 ## Workflow Overview
 
 ### Phase 1: Analyze Input
@@ -139,15 +158,18 @@ Run verification loop: `validate`, `view outline`, `view issues`, `view text`. F
 
 ## Quick Reference: Key Warnings
 
-| Warning                      | Detail                                                                                                                                                   |
-| ---------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `\left`/`\right` + sub/super | Crashes with cast error. Use plain `()`, `[]` -- OMML auto-sizes.                                                                                        |
-| pbdr at style level          | `add /styles --prop pbdr.all=...` is silently dropped. `set /styles/X --prop pbdr.all=...` is rejected. Always set borders per-paragraph after creation. |
-| Section break +1 offset      | Each section break inserts one empty paragraph into /body. Account for +1 index offset on all subsequent `p[N]` references.                              |
-| Shell escaping for LaTeX     | Double backslashes in bash: `--prop "formula=\\frac{a}{b}"`. Use heredoc for complex formulas.                                                           |
-| Dollar sign `$` in text      | Bash expands `$` as variable in double quotes. Use single quotes or `\$`. See creating.md D-10.                                                          |
-| Batch JSON values            | ALL values must be strings: `"true"` not `true`, `"24"` not `24`.                                                                                        |
-| Batch intermittent failure   | ~1-in-15 failure rate. Retry on error. Keep arrays to 10-15 max.                                                                                         |
+| Warning                           | Detail                                                                                                                                                                                                                                                                                                                          |
+| --------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `\left`/`\right` + sub/super      | Crashes with cast error. Use plain `()`, `[]` -- OMML auto-sizes.                                                                                                                                                                                                                                                               |
+| pbdr at style level               | `add /styles --prop pbdr.all=...` is silently dropped. `set /styles/X --prop pbdr.all=...` is rejected. Always set borders per-paragraph after creation.                                                                                                                                                                        |
+| Section break +1 offset           | Each section break inserts one empty paragraph into /body. Account for +1 index offset on all subsequent `p[N]` references.                                                                                                                                                                                                     |
+| Shell escaping for LaTeX          | Double backslashes in bash: `--prop "formula=\\frac{a}{b}"`. Use heredoc for complex formulas.                                                                                                                                                                                                                                  |
+| Dollar sign `$` in text           | Bash expands `$` as variable in double quotes. Use single quotes or `\$`. See creating.md D-10.                                                                                                                                                                                                                                 |
+| Batch JSON values                 | ALL values must be strings: `"true"` not `true`, `"24"` not `24`.                                                                                                                                                                                                                                                               |
+| Batch intermittent failure        | ~1-in-15 failure rate. Retry on error. Keep arrays to 10-15 max.                                                                                                                                                                                                                                                                |
+| TOC displays blank in LibreOffice | TOC field renders as "Update field to see table of contents" in LibreOffice/PDF — this is normal OOXML behavior. In Microsoft Word: Ctrl+A → F9 to update all fields. For LibreOffice-only recipients: add static text TOC paragraphs after the field, or include a delivery note asking the user to open in Word and press F9. |
+| `move` on oMathPara not reliable  | `move` command does not reliably reposition equation paragraphs (oMathPara elements). Workaround: use `add /body --type equation` to create the equation at the target position, then `remove` the original. Do NOT use `move` on equations.                                                                                    |
+| `pbdr.bottom` XML order bug (P3)  | `set --prop pbdr.bottom=...` may generate `<w:pBdr>` with child elements in wrong order, causing `validate` to report a pBdr schema error. **Workaround:** use `raw-set` to write the full `<w:pBdr>` XML manually (see creating.md D-4b). This is a known CLI bug — P3, CLI team owns the fix.                                 |
 
 ---
 
@@ -157,7 +179,7 @@ Run verification loop: `validate`, `view outline`, `view issues`, `view text`. F
 officecli create paper.docx
 officecli set paper.docx / --prop defaultFont="Times New Roman"
 officecli set paper.docx '/section[1]' --prop marginTop=1440 --prop marginBottom=1440 --prop marginLeft=1440 --prop marginRight=1440
-officecli add paper.docx /styles --type style --prop id=Heading1 --prop name="Heading 1" --prop type=paragraph --prop font="Times New Roman" --prop size=16 --prop bold=true --prop spaceBefore=360 --prop spaceAfter=120 --prop keepNext=true
+officecli add paper.docx /styles --type style --prop id=Heading1 --prop name="Heading 1" --prop type=paragraph --prop font="Times New Roman" --prop size=20 --prop bold=true --prop spaceBefore=360 --prop spaceAfter=120 --prop keepNext=true
 officecli add paper.docx /body --type toc --prop levels=1-3 --prop title="Table of Contents"
 officecli add paper.docx /body --type paragraph --prop text="Introduction" --prop style=Heading1
 officecli add paper.docx /body --type paragraph --prop text="This paper examines..." --prop size=12 --prop lineSpacing=2x

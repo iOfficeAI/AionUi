@@ -4,7 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { describe, it, expect, beforeEach } from 'vitest';
+import { describe, it, expect, beforeEach, vi, afterEach } from 'vitest';
 import { AcpAdapter } from '../../src/process/agent/acp/AcpAdapter';
 import type { AvailableCommandsUpdate, ToolCallUpdate, ToolCallUpdateStatus } from '../../src/common/types/acpTypes';
 
@@ -250,5 +250,60 @@ describe('AcpAdapter - streaming message grouping', () => {
     expect(firstChunk[0].type).toBe('text');
     expect(secondChunk[0].type).toBe('text');
     expect(firstChunk[0].msg_id).toBe(secondChunk[0].msg_id);
+  });
+});
+
+describe('AcpAdapter - agent_message_chunk extraction', () => {
+  let adapter: AcpAdapter;
+  let warnSpy: ReturnType<typeof vi.spyOn>;
+
+  beforeEach(() => {
+    adapter = new AcpAdapter('test-conversation-id', 'claude');
+    warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
+  });
+
+  afterEach(() => {
+    warnSpy.mockRestore();
+  });
+
+  it('keeps empty text chunks instead of dropping them', () => {
+    const messages = adapter.convertSessionUpdate({
+      sessionId: 'test-session',
+      update: {
+        sessionUpdate: 'agent_message_chunk',
+        content: { type: 'text', text: '' },
+      },
+    } as any);
+
+    expect(messages).toHaveLength(1);
+    expect(messages[0].type).toBe('text');
+    expect((messages[0] as any).content.content).toBe('');
+    expect(warnSpy).not.toHaveBeenCalled();
+  });
+
+  it('drops non-text chunks and emits diagnostics', () => {
+    const messages = adapter.convertSessionUpdate({
+      sessionId: 'test-session',
+      update: {
+        sessionUpdate: 'agent_message_chunk',
+        content: { type: 'image', uri: 'file://test.png' },
+      },
+    } as any);
+
+    expect(messages).toHaveLength(0);
+    expect(warnSpy).toHaveBeenCalledWith('[AcpAdapter] Dropped non-text chunk: content.type=image');
+  });
+
+  it('drops malformed text chunk and emits diagnostics', () => {
+    const messages = adapter.convertSessionUpdate({
+      sessionId: 'test-session',
+      update: {
+        sessionUpdate: 'agent_message_chunk',
+        content: { type: 'text' },
+      },
+    } as any);
+
+    expect(messages).toHaveLength(0);
+    expect(warnSpy).toHaveBeenCalledWith('[AcpAdapter] Dropped text chunk: content.text is not a string');
   });
 });

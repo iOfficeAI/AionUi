@@ -45,7 +45,8 @@ ORG=$(echo "$REPO" | cut -d'/' -f1)
 | `bot:ready-to-fix`       | CONDITIONAL review done, waiting for bot to fix next session            | No        |
 | `bot:fixing`             | Fix in progress (mutex)                                                 | No        |
 | `bot:ci-waiting`         | CI failed and author notified — snoozed until author pushes new commits | No        |
-| `bot:needs-human-review` | Blocking issues or unresolvable conflicts — human must intervene        | Yes       |
+| `bot:needs-rebase`       | Merge conflict that bot cannot auto-resolve — author must rebase        | No        |
+| `bot:needs-human-review` | Blocking issues — human must intervene                                  | Yes       |
 | `bot:ready-to-merge`     | Bot done, code is clean — human just needs to confirm and merge         | Yes       |
 | `bot:done`               | Auto-merged by bot                                                      | Yes       |
 
@@ -98,6 +99,7 @@ Iterate through sorted list to find the **first eligible PR**.
 | Condition                               | Check                                                                       |
 | --------------------------------------- | --------------------------------------------------------------------------- |
 | Title contains `WIP` (case-insensitive) | `title.toLowerCase().includes('wip')`                                       |
+| Has label `bot:needs-rebase`            | check labels array                                                          |
 | Has label `bot:needs-human-review`      | check labels array                                                          |
 | Has label `bot:ready-to-merge`          | check labels array                                                          |
 | Has label `bot:done`                    | check labels array                                                          |
@@ -121,9 +123,21 @@ gh pr edit <PR_NUMBER> --remove-label "bot:ready-to-fix" --add-label "bot:fixing
 
 Save this PR as `target_pr` (number, title, author.login, is_ready_to_fix).
 
-**If no eligible PR found after full iteration:** run the ci-waiting wake-up check as a fallback before giving up.
+Compute trust status for merge gate decisions:
+
+```
+IS_TRUSTED = author.login in trusted_logins
+```
+
+Save `IS_TRUSTED` alongside `target_pr` — it determines whether auto-merge is allowed in Step 3b and Step 7.
+
+**If no eligible PR found after full iteration:** run the snoozed PR wake-up checks as a fallback before giving up.
 
 **Fallback: Wake Up Snoozed PRs**
+
+Check both `bot:ci-waiting` and `bot:needs-rebase` PRs for new commits.
+
+**1. Wake up `bot:ci-waiting` PRs:**
 
 Fetch all open PRs with `bot:ci-waiting` and check if the author has pushed new commits since the last CI failure comment:
 
@@ -154,7 +168,38 @@ Log: `[pr-automation] PR #<PR_NUMBER> woke up from ci-waiting: new commits detec
 
 Save this PR as `target_pr` and **continue to Step 4** (treat it as a freshly claimed PR).
 
-If no PRs were woken up: log `[pr-automation] No eligible PR found this round.` then log `[pr-automation:exit] action=no_eligible_pr reason="all PRs skipped, no ci-waiting PRs woken up"` and EXIT.
+**2. Wake up `bot:needs-rebase` PRs:**
+
+If no `bot:ci-waiting` PR was woken up, check `bot:needs-rebase` PRs:
+
+```bash
+REBASE_PRS=$(gh pr list --state open --label "bot:needs-rebase" \
+  --json number,createdAt,author --limit 50)
+```
+
+For each PR in `REBASE_PRS` (sorted by createdAt ascending, oldest first):
+
+```bash
+PR_NUMBER=<number>
+
+LAST_CONFLICT_COMMENT_TIME=$(gh pr view $PR_NUMBER --json comments \
+  --jq '[.comments[] | select(.body | test("<!-- pr-review-bot -->") and test("合并冲突"))] | last | .createdAt // ""')
+
+LATEST_COMMIT_TIME=$(gh pr view $PR_NUMBER --json commits \
+  --jq '.commits | last | .committedDate')
+```
+
+If `LATEST_COMMIT_TIME > LAST_CONFLICT_COMMENT_TIME` (author pushed new commits since the conflict comment):
+
+```bash
+gh pr edit $PR_NUMBER --remove-label "bot:needs-rebase" --add-label "bot:reviewing"
+```
+
+Log: `[pr-automation] PR #<PR_NUMBER> woke up from needs-rebase: new commits detected. Claiming as target.`
+
+Save this PR as `target_pr` and **continue to Step 4** (treat it as a freshly claimed PR).
+
+If no PRs were woken up: log `[pr-automation] No eligible PR found this round.` then log `[pr-automation:exit] action=no_eligible_pr reason="all PRs skipped, no snoozed PRs woken up"` and EXIT.
 
 ### Step 3b — Handle bot:ready-to-fix PR
 
@@ -268,7 +313,7 @@ Log: `[pr-automation:exit] action=ready_to_merge pr=#<PR_NUMBER> reason="large P
 
 **EXIT.**
 
-**If `NEEDS_HUMAN_REVIEW=false`**:
+**If `NEEDS_HUMAN_REVIEW=false` AND `IS_TRUSTED=true`**:
 
 ```bash
 gh pr merge <PR_NUMBER> --squash --auto
@@ -305,6 +350,21 @@ fi
 
 Log: `[pr-automation] PR #<PR_NUMBER> fix complete, auto-merge triggered.`
 Log: `[pr-automation:exit] action=fixed pr=#<PR_NUMBER> reason="fix complete, auto-merge triggered"`
+
+**EXIT.**
+
+**If `NEEDS_HUMAN_REVIEW=false` AND `IS_TRUSTED=false`** (untrusted contributor — no auto-merge):
+
+```bash
+gh pr edit <PR_NUMBER> --remove-label "bot:fixing" --add-label "bot:ready-to-merge"
+gh pr comment <PR_NUMBER> --body "<!-- pr-automation-bot -->
+✅ 已自动修复，代码无阻塞性问题。
+
+> 🔒 **PR 作者不在 trusted-contributors 团队，需人工确认后合并。**"
+```
+
+Log: `[pr-automation] PR #<PR_NUMBER> fix complete, untrusted author — marked bot:ready-to-merge.`
+Log: `[pr-automation:exit] action=ready_to_merge pr=#<PR_NUMBER> reason="untrusted contributor, needs human confirmation to merge"`
 
 **EXIT.**
 
@@ -485,7 +545,7 @@ git push --force-with-lease
 ```
 
 ```bash
-gh pr edit <PR_NUMBER> --remove-label "bot:reviewing" --add-label "bot:needs-human-review"
+gh pr edit <PR_NUMBER> --remove-label "bot:reviewing" --add-label "bot:needs-rebase"
 ```
 
 Log: `[pr-automation:exit] action=conflict_unresolved pr=#<PR_NUMBER> reason="merge conflict, needs human rebase"`
@@ -615,7 +675,7 @@ When `NEEDS_HUMAN_REVIEW=true`, route to human review regardless of CONCLUSION (
 4. Log: `[pr-automation:exit] action=ready_to_merge pr=#<PR_NUMBER> reason="large PR or critical path, needs human confirmation"`
 5. **EXIT.**
 
-**If `NEEDS_HUMAN_REVIEW=false`**:
+**If `NEEDS_HUMAN_REVIEW=false` AND `IS_TRUSTED=true`**:
 
 1. Post comment:
    ```bash
@@ -659,6 +719,25 @@ When `NEEDS_HUMAN_REVIEW=true`, route to human review regardless of CONCLUSION (
 
 3. Log: `[pr-automation] PR #<PR_NUMBER> approved, auto-merge triggered.`
 4. Log: `[pr-automation:exit] action=approved pr=#<PR_NUMBER> reason="review passed, auto-merge triggered"`
+5. **EXIT.**
+
+**If `NEEDS_HUMAN_REVIEW=false` AND `IS_TRUSTED=false`** (untrusted contributor — no auto-merge):
+
+1. Post comment:
+
+   ```bash
+   gh pr comment <PR_NUMBER> --body "<!-- pr-automation-bot -->
+   ✅ 已自动 review，代码无阻塞性问题。
+
+   > 🔒 **PR 作者不在 trusted-contributors 团队，需人工确认后合并。**"
+   ```
+
+2. Update labels:
+   ```bash
+   gh pr edit <PR_NUMBER> --remove-label "bot:reviewing" --add-label "bot:ready-to-merge"
+   ```
+3. Log: `[pr-automation] PR #<PR_NUMBER> approved, untrusted author — marked bot:ready-to-merge.`
+4. Log: `[pr-automation:exit] action=ready_to_merge pr=#<PR_NUMBER> reason="untrusted contributor, needs human confirmation to merge"`
 5. **EXIT.**
 
 #### CONCLUSION = CONDITIONAL
