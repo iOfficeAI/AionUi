@@ -490,8 +490,12 @@ export function resolveNpxPath(env: Record<string, string | undefined>): string 
   return npxName;
 }
 
-/** Separate cache for full (unfiltered) shell environment */
-let cachedFullShellEnv: Record<string, string> | null = null;
+/**
+ * Promise-based dedup guard so concurrent callers share one spawn.
+ * Without this, a second caller arriving before the first await resolves
+ * would see cachedFullShellEnv as {} and return an empty env.
+ */
+let fullShellEnvPromise: Promise<Record<string, string>> | null = null;
 
 /**
  * Load ALL environment variables from user's login shell (no whitelist).
@@ -504,13 +508,18 @@ let cachedFullShellEnv: Record<string, string> | null = null;
  * terminal foreground process group — the root cause of the Ctrl+C
  * regression fixed in 0039b295.
  */
-export async function loadFullShellEnvironment(): Promise<Record<string, string>> {
-  if (cachedFullShellEnv !== null) return cachedFullShellEnv;
-  cachedFullShellEnv = {};
-  if (process.platform === 'win32') return cachedFullShellEnv;
+export function loadFullShellEnvironment(): Promise<Record<string, string>> {
+  if (!fullShellEnvPromise) {
+    fullShellEnvPromise = loadFullShellEnvironmentImpl();
+  }
+  return fullShellEnvPromise;
+}
+
+async function loadFullShellEnvironmentImpl(): Promise<Record<string, string>> {
+  if (process.platform === 'win32') return {};
 
   const shell = process.env.SHELL || '/bin/bash';
-  if (!path.isAbsolute(shell)) return cachedFullShellEnv;
+  if (!path.isAbsolute(shell)) return {};
 
   try {
     const output = await new Promise<string>((resolve, reject) => {
@@ -534,16 +543,9 @@ export async function loadFullShellEnvironment(): Promise<Record<string, string>
         stderr += chunk.toString();
       });
       child.on('error', reject);
-      child.on('close', (code) => {
-        if (code === 0) {
-          resolve(stdout);
-        } else {
-          reject(new Error(`Shell exited with code ${code}: ${stderr.substring(0, 200)}`));
-        }
-      });
 
       // Safety timeout — don't hang forever if the shell stalls
-      setTimeout(() => {
+      const timer = setTimeout(() => {
         try {
           child.kill();
         } catch {
@@ -551,17 +553,27 @@ export async function loadFullShellEnvironment(): Promise<Record<string, string>
         }
         reject(new Error('Timed out loading full shell environment'));
       }, 5000);
+
+      child.on('close', (code) => {
+        clearTimeout(timer);
+        if (code === 0) {
+          resolve(stdout);
+        } else {
+          reject(new Error(`Shell exited with code ${code}: ${stderr.substring(0, 200)}`));
+        }
+      });
     });
 
-    cachedFullShellEnv = parseEnvOutput(output);
-    const varCount = Object.keys(cachedFullShellEnv).length;
-    const shellPath = cachedFullShellEnv.PATH || '(empty)';
+    const result = parseEnvOutput(output);
+    const varCount = Object.keys(result).length;
+    const shellPath = result.PATH || '(empty)';
     console.log(`[ShellEnv] Full shell env loaded: ${varCount} vars, shell=${shell}`);
     console.log(`[ShellEnv] Shell PATH (first 200 chars): ${shellPath.substring(0, 200)}`);
+    return result;
   } catch (error) {
     console.warn('[ShellEnv] Failed to load full shell env:', error instanceof Error ? error.message : String(error));
+    return {};
   }
-  return cachedFullShellEnv;
 }
 
 /**
