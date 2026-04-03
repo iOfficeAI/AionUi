@@ -458,6 +458,33 @@ describe('SendBox @ file menu', () => {
     expect(mockEmit).not.toHaveBeenCalledWith('gemini.selected.file', []);
   });
 
+  it('keeps an existing add-to-chat selection when the same file is later removed from @ mentions', async () => {
+    render(<SendBoxObjectSelectionHarness />);
+
+    const textarea = screen.getByRole('textbox') as HTMLTextAreaElement;
+
+    expect(await screen.findByText('src/utils/date.ts')).toBeInTheDocument();
+
+    fireEvent.change(textarea, { target: { value: '@date' } });
+    textarea.selectionStart = textarea.selectionEnd = textarea.value.length;
+    fireEvent.keyUp(textarea, { key: 'e' });
+
+    expect(await screen.findByText('date.ts')).toBeInTheDocument();
+    fireEvent.keyDown(textarea, { key: 'Enter' });
+
+    await waitFor(() => {
+      expect(textarea).toHaveValue('@src/utils/date.ts');
+    });
+
+    fireEvent.change(textarea, { target: { value: '' } });
+    textarea.selectionStart = textarea.selectionEnd = 0;
+    fireEvent.keyUp(textarea, { key: 'Backspace' });
+
+    await waitFor(() => {
+      expect(screen.getByText('src/utils/date.ts')).toBeInTheDocument();
+    });
+  });
+
   it('re-fetches workspace mention candidates for later @ searches in the same composer session', async () => {
     render(<SendBoxHarness />);
 

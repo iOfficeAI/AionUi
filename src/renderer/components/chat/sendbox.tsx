@@ -55,11 +55,91 @@ const getSelectedItemMatchKeys = (item: FileSelectionItem): string[] => {
   return [item.relativePath, item.path].filter((value): value is string => Boolean(value));
 };
 
+const getSelectedItemPath = (item: FileSelectionItem): string | undefined => {
+  if (typeof item === 'string') {
+    return item;
+  }
+  return item.path;
+};
+
 const getSelectedItemDisplayLabel = (item: FileSelectionItem): string => {
   if (typeof item === 'string') {
     return item.split(/[\\/]/).pop() || item;
   }
   return item.relativePath || item.name || item.path;
+};
+
+const rememberSelectedItem = (itemsByPath: Map<string, FileSelectionItem>, item: FileSelectionItem): void => {
+  const path = getSelectedItemPath(item);
+  if (!path) {
+    return;
+  }
+
+  const existing = itemsByPath.get(path);
+  if (typeof existing === 'string' && typeof item !== 'string') {
+    itemsByPath.set(path, item);
+    return;
+  }
+
+  if (!existing) {
+    itemsByPath.set(path, item);
+  }
+};
+
+const areSelectionItemsEquivalent = (left: FileSelectionItem[], right: FileSelectionItem[]): boolean => {
+  if (left.length !== right.length) {
+    return false;
+  }
+
+  for (let index = 0; index < left.length; index += 1) {
+    const leftItem = left[index];
+    const rightItem = right[index];
+    if (leftItem === rightItem) {
+      continue;
+    }
+
+    if (typeof leftItem !== typeof rightItem) {
+      return false;
+    }
+
+    if (getSelectedItemPath(leftItem) !== getSelectedItemPath(rightItem)) {
+      return false;
+    }
+  }
+
+  return true;
+};
+
+const buildOwnedSelectionItems = (
+  currentItems: FileSelectionItem[],
+  mentionOwnedPaths: Set<string>,
+  externalOwnedPaths: Set<string>,
+  itemsByPath: Map<string, FileSelectionItem>
+): FileSelectionItem[] => {
+  const ownedPaths = new Set([...mentionOwnedPaths, ...externalOwnedPaths]);
+  const nextItems: FileSelectionItem[] = [];
+  const seenPaths = new Set<string>();
+
+  for (const item of currentItems) {
+    const path = getSelectedItemPath(item);
+    if (!path || seenPaths.has(path) || !ownedPaths.has(path)) {
+      continue;
+    }
+
+    nextItems.push(item);
+    seenPaths.add(path);
+  }
+
+  for (const path of ownedPaths) {
+    if (seenPaths.has(path)) {
+      continue;
+    }
+
+    nextItems.push(itemsByPath.get(path) ?? path);
+    seenPaths.add(path);
+  }
+
+  return nextItems;
 };
 
 function extractBtwQuestion(value: string): string | null {
@@ -142,7 +222,11 @@ const SendBox: React.FC<{
   const [workspaceMentionLoading, setWorkspaceMentionLoading] = useState(false);
   const [atFileMenuActiveIndex, setAtFileMenuActiveIndex] = useState(0);
   const [dismissedAtFileToken, setDismissedAtFileToken] = useState<string | null>(null);
-  const mentionManagedSelectionKeysRef = useRef<Set<string>>(new Set());
+  const mentionOwnedPathsRef = useRef<Set<string>>(new Set());
+  const everMentionOwnedPathsRef = useRef<Set<string>>(new Set());
+  const externalOwnedPathsRef = useRef<Set<string>>(new Set());
+  const selectedItemByPathRef = useRef<Map<string, FileSelectionItem>>(new Map());
+  const suppressedExternalAppendPathsRef = useRef<Set<string>>(new Set());
   const fetchedAtFileSessionKeyRef = useRef<string | null>(null);
   const highlightScrollRef = useRef<HTMLDivElement>(null);
 
@@ -577,47 +661,146 @@ const SendBox: React.FC<{
     }
 
     const mentionQueries = new Set(allAtFileQueries.map((item) => item.query));
-    for (const item of selectedWorkspaceItems) {
-      if (typeof item === 'string' || !item.isFile) {
+    selectedWorkspaceItems.forEach((item) => rememberSelectedItem(selectedItemByPathRef.current, item));
+
+    const nextMentionOwnedPaths = new Set<string>();
+    for (const path of mentionOwnedPathsRef.current) {
+      const item = selectedItemByPathRef.current.get(path);
+      if (!item) {
         continue;
       }
 
-      for (const key of getSelectedItemMatchKeys(item)) {
-        if (mentionQueries.has(key)) {
-          mentionManagedSelectionKeysRef.current.add(key);
-        }
+      if (getSelectedItemMatchKeys(item).some((key) => mentionQueries.has(key))) {
+        nextMentionOwnedPaths.add(path);
       }
     }
 
-    const nextItems = selectedWorkspaceItems.filter((item) => {
-      if (typeof item === 'string') {
-        return true;
+    for (const item of selectedWorkspaceItems) {
+      const path = getSelectedItemPath(item);
+      if (!path) {
+        continue;
       }
-      if (!item.isFile) {
-        return true;
+
+      if (getSelectedItemMatchKeys(item).some((key) => mentionQueries.has(key))) {
+        nextMentionOwnedPaths.add(path);
       }
-      const itemKeys = getSelectedItemMatchKeys(item);
-      const isMentionManaged = itemKeys.some((key) => mentionManagedSelectionKeysRef.current.has(key));
-      if (!isMentionManaged) {
-        return true;
+    }
+
+    const incomingPaths = new Set<string>();
+    for (const item of selectedWorkspaceItems) {
+      const path = getSelectedItemPath(item);
+      if (path) {
+        incomingPaths.add(path);
       }
-      return itemKeys.some((key) => mentionQueries.has(key));
+    }
+
+    const nextExternalOwnedPaths = new Set(
+      Array.from(externalOwnedPathsRef.current).filter((path) => incomingPaths.has(path))
+    );
+    for (const path of incomingPaths) {
+      if (!nextMentionOwnedPaths.has(path) && !everMentionOwnedPathsRef.current.has(path)) {
+        nextExternalOwnedPaths.add(path);
+      }
+    }
+
+    mentionOwnedPathsRef.current = nextMentionOwnedPaths;
+    nextMentionOwnedPaths.forEach((path) => {
+      everMentionOwnedPathsRef.current.add(path);
     });
+    externalOwnedPathsRef.current = nextExternalOwnedPaths;
 
-    const changed =
-      nextItems.length !== selectedWorkspaceItems.length ||
-      nextItems.some((item, index) => item !== selectedWorkspaceItems[index]);
+    const nextItems = buildOwnedSelectionItems(
+      selectedWorkspaceItems,
+      mentionOwnedPathsRef.current,
+      externalOwnedPathsRef.current,
+      selectedItemByPathRef.current
+    );
 
-    if (changed) {
-      const nextMatchKeys = new Set(
-        nextItems.flatMap((item) => (typeof item === 'string' ? [] : getSelectedItemMatchKeys(item)))
-      );
-      mentionManagedSelectionKeysRef.current = new Set(
-        Array.from(mentionManagedSelectionKeysRef.current).filter((key) => nextMatchKeys.has(key))
-      );
+    if (!areSelectionItemsEquivalent(selectedWorkspaceItems, nextItems)) {
       onSelectedWorkspaceItemsChange(nextItems);
     }
   }, [allAtFileQueries, onSelectedWorkspaceItemsChange, selectedWorkspaceItems]);
+
+  const handleExternalSelectionAppend = useCallback((items: FileSelectionItem[]) => {
+    for (const item of items) {
+      const path = getSelectedItemPath(item);
+      if (!path) {
+        continue;
+      }
+
+      if (suppressedExternalAppendPathsRef.current.has(path)) {
+        suppressedExternalAppendPathsRef.current.delete(path);
+        continue;
+      }
+
+      rememberSelectedItem(selectedItemByPathRef.current, item);
+      externalOwnedPathsRef.current.add(path);
+    }
+  }, []);
+
+  useAddEventListener(
+    'gemini.selected.file.append',
+    (items: FileSelectionItem[]) => {
+      if (conversationContext?.type === 'gemini') {
+        handleExternalSelectionAppend(items);
+      }
+    },
+    [conversationContext?.type, handleExternalSelectionAppend]
+  );
+  useAddEventListener(
+    'aionrs.selected.file.append',
+    (items: FileSelectionItem[]) => {
+      if (conversationContext?.type === 'aionrs') {
+        handleExternalSelectionAppend(items);
+      }
+    },
+    [conversationContext?.type, handleExternalSelectionAppend]
+  );
+  useAddEventListener(
+    'acp.selected.file.append',
+    (items: FileSelectionItem[]) => {
+      if (conversationContext?.type === 'acp') {
+        handleExternalSelectionAppend(items);
+      }
+    },
+    [conversationContext?.type, handleExternalSelectionAppend]
+  );
+  useAddEventListener(
+    'remote.selected.file.append',
+    (items: FileSelectionItem[]) => {
+      if (conversationContext?.type === 'remote') {
+        handleExternalSelectionAppend(items);
+      }
+    },
+    [conversationContext?.type, handleExternalSelectionAppend]
+  );
+  useAddEventListener(
+    'openclaw-gateway.selected.file.append',
+    (items: FileSelectionItem[]) => {
+      if (conversationContext?.type === 'openclaw-gateway') {
+        handleExternalSelectionAppend(items);
+      }
+    },
+    [conversationContext?.type, handleExternalSelectionAppend]
+  );
+  useAddEventListener(
+    'nanobot.selected.file.append',
+    (items: FileSelectionItem[]) => {
+      if (conversationContext?.type === 'nanobot') {
+        handleExternalSelectionAppend(items);
+      }
+    },
+    [conversationContext?.type, handleExternalSelectionAppend]
+  );
+  useAddEventListener(
+    'codex.selected.file.append',
+    (items: FileSelectionItem[]) => {
+      if (conversationContext?.type === 'codex') {
+        handleExternalSelectionAppend(items);
+      }
+    },
+    [conversationContext?.type, handleExternalSelectionAppend]
+  );
 
   const emitSelectedFileAppend = useCallback(
     (item: FileOrFolderItem) => {
@@ -660,14 +843,25 @@ const SendBox: React.FC<{
       const nextValue = input.slice(0, activeAtFileQuery.start) + nextInsertion + input.slice(activeAtFileQuery.end);
       const nextCaret = activeAtFileQuery.start + nextInsertion.length;
       const insertedTokenKey = `${activeAtFileQuery.start}:${nextInsertion.slice(1)}`;
+      const path = getSelectedItemPath(item);
 
       setDismissedAtFileToken(insertedTokenKey);
       setInput(nextValue);
-      for (const key of getSelectedItemMatchKeys(item)) {
-        mentionManagedSelectionKeysRef.current.add(key);
+      if (path) {
+        rememberSelectedItem(selectedItemByPathRef.current, item);
+        mentionOwnedPathsRef.current.add(path);
+        everMentionOwnedPathsRef.current.add(path);
+        suppressedExternalAppendPathsRef.current.add(path);
       }
       if (selectedWorkspaceItems && onSelectedWorkspaceItemsChange) {
-        onSelectedWorkspaceItemsChange(mergeFileSelectionItems(selectedWorkspaceItems, [item]));
+        const mergedItems = mergeFileSelectionItems(selectedWorkspaceItems, [item]);
+        const nextItems = buildOwnedSelectionItems(
+          mergedItems,
+          mentionOwnedPathsRef.current,
+          externalOwnedPathsRef.current,
+          selectedItemByPathRef.current
+        );
+        onSelectedWorkspaceItemsChange(nextItems);
       }
       emitSelectedFileAppend(item);
 
@@ -760,6 +954,11 @@ const SendBox: React.FC<{
   useEffect(() => {
     historyDraftRef.current = null;
     setHistoryNavigationIndex(null);
+    mentionOwnedPathsRef.current = new Set();
+    everMentionOwnedPathsRef.current = new Set();
+    externalOwnedPathsRef.current = new Set();
+    selectedItemByPathRef.current = new Map();
+    suppressedExternalAppendPathsRef.current = new Set();
   }, [conversationContext?.conversationId]);
 
   const applyHistoryInput = useCallback(
@@ -1212,9 +1411,18 @@ const SendBox: React.FC<{
                   closable
                   closeIcon={<CloseSmall theme='outline' size='12' />}
                   onClose={() => {
-                    const nextItems =
-                      selectedWorkspaceItems?.filter((currentItem) => currentItem !== item) ?? selectedWorkspaceItems;
-                    onSelectedWorkspaceItemsChange(nextItems ?? []);
+                    const path = getSelectedItemPath(item);
+                    if (!path) {
+                      return;
+                    }
+                    externalOwnedPathsRef.current.delete(path);
+                    const nextItems = buildOwnedSelectionItems(
+                      selectedWorkspaceItems ?? [],
+                      mentionOwnedPathsRef.current,
+                      externalOwnedPathsRef.current,
+                      selectedItemByPathRef.current
+                    );
+                    onSelectedWorkspaceItemsChange(nextItems);
                   }}
                   className='text-12px bg-fill-2 b-1 b-solid b-border-2 rd-4px'
                 >
