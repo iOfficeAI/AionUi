@@ -303,7 +303,7 @@ def morph_final_check(deck):
     rc, out, _ = _run("officecli", "view", deck, "outline")
     total_slides = 0
     first_line = out.split("\n")[0] if out else ""
-    match = re.search(r"(\d+)", first_line)
+    match = re.search(r"(\d+)\s+slides", first_line)
     if match:
         total_slides = int(match.group(1))
 

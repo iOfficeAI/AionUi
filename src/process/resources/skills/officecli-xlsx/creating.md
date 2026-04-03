@@ -8,7 +8,7 @@ Use this guide when creating a new workbook with no template.
 
 1. **Create** blank workbook
 2. **Plan** sheet structure (sheets, data layout, formulas, charts)
-3. **Build** each sheet (data -> formulas -> formatting -> charts/tables)
+3. **Build** each sheet incrementally — run each command and check output before proceeding; use `batch` only for bulk cell data entry (filling many cells or rows with values/formulas)
 4. **QA** (content + formula verification + validation) -- see [SKILL.md](SKILL.md#qa-required)
 
 ---
@@ -34,6 +34,8 @@ officecli set data.xlsx "/Summary" --prop tabColor=2C5F2D
 ```
 
 ---
+
+> **Execute recipes incrementally — one command (or one `batch` block) at a time, not as a single shell script.** Read the output after each command. If a command fails, fix it before continuing. After each structural phase (sheet creation, chart insertion, named ranges), verify with `validate` or `get` before proceeding.
 
 ## Recipe: Financial Dashboard
 
@@ -62,94 +64,70 @@ officecli set financial-dashboard.xlsx "/Dashboard" --prop tabColor=7030A0
 
 # ── Revenue Sheet ──
 # Headers
-cat <<'EOF' | officecli batch financial-dashboard.xlsx
-[
-  {"command":"set","path":"/Revenue/A1","props":{"value":"Month","bold":"true","fill":"1F4E79","font.color":"FFFFFF"}},
-  {"command":"set","path":"/Revenue/B1","props":{"value":"Product A","bold":"true","fill":"1F4E79","font.color":"FFFFFF"}},
-  {"command":"set","path":"/Revenue/C1","props":{"value":"Product B","bold":"true","fill":"1F4E79","font.color":"FFFFFF"}},
-  {"command":"set","path":"/Revenue/D1","props":{"value":"Total","bold":"true","fill":"1F4E79","font.color":"FFFFFF"}}
-]
-EOF
+officecli set financial-dashboard.xlsx /Revenue/A1 --prop value=Month --prop bold=true --prop fill=1F4E79 --prop font.color=FFFFFF
+officecli set financial-dashboard.xlsx /Revenue/B1 --prop value="Product A" --prop bold=true --prop fill=1F4E79 --prop font.color=FFFFFF
+officecli set financial-dashboard.xlsx /Revenue/C1 --prop value="Product B" --prop bold=true --prop fill=1F4E79 --prop font.color=FFFFFF
+officecli set financial-dashboard.xlsx /Revenue/D1 --prop value=Total --prop bold=true --prop fill=1F4E79 --prop font.color=FFFFFF
 
 # Monthly data -- blue text for hardcoded inputs
-cat <<'EOF' | officecli batch financial-dashboard.xlsx
-[
-  {"command":"set","path":"/Revenue/A2","props":{"value":"Jan"}},
-  {"command":"set","path":"/Revenue/A3","props":{"value":"Feb"}},
-  {"command":"set","path":"/Revenue/A4","props":{"value":"Mar"}},
-  {"command":"set","path":"/Revenue/A5","props":{"value":"Apr"}},
-  {"command":"set","path":"/Revenue/A6","props":{"value":"May"}},
-  {"command":"set","path":"/Revenue/A7","props":{"value":"Jun"}},
-  {"command":"set","path":"/Revenue/A8","props":{"value":"Jul"}},
-  {"command":"set","path":"/Revenue/A9","props":{"value":"Aug"}},
-  {"command":"set","path":"/Revenue/A10","props":{"value":"Sep"}},
-  {"command":"set","path":"/Revenue/A11","props":{"value":"Oct"}},
-  {"command":"set","path":"/Revenue/A12","props":{"value":"Nov"}},
-  {"command":"set","path":"/Revenue/A13","props":{"value":"Dec"}}
-]
-EOF
+officecli set financial-dashboard.xlsx /Revenue/A2 --prop value=Jan
+officecli set financial-dashboard.xlsx /Revenue/A3 --prop value=Feb
+officecli set financial-dashboard.xlsx /Revenue/A4 --prop value=Mar
+officecli set financial-dashboard.xlsx /Revenue/A5 --prop value=Apr
+officecli set financial-dashboard.xlsx /Revenue/A6 --prop value=May
+officecli set financial-dashboard.xlsx /Revenue/A7 --prop value=Jun
+officecli set financial-dashboard.xlsx /Revenue/A8 --prop value=Jul
+officecli set financial-dashboard.xlsx /Revenue/A9 --prop value=Aug
+officecli set financial-dashboard.xlsx /Revenue/A10 --prop value=Sep
+officecli set financial-dashboard.xlsx /Revenue/A11 --prop value=Oct
+officecli set financial-dashboard.xlsx /Revenue/A12 --prop value=Nov
+officecli set financial-dashboard.xlsx /Revenue/A13 --prop value=Dec
 
-cat <<'EOF' | officecli batch financial-dashboard.xlsx
-[
-  {"command":"set","path":"/Revenue/B2","props":{"value":"42000","font.color":"0000FF","numFmt":"$#,##0"}},
-  {"command":"set","path":"/Revenue/B3","props":{"value":"45000","font.color":"0000FF","numFmt":"$#,##0"}},
-  {"command":"set","path":"/Revenue/B4","props":{"value":"48000","font.color":"0000FF","numFmt":"$#,##0"}},
-  {"command":"set","path":"/Revenue/B5","props":{"value":"51000","font.color":"0000FF","numFmt":"$#,##0"}},
-  {"command":"set","path":"/Revenue/B6","props":{"value":"53000","font.color":"0000FF","numFmt":"$#,##0"}},
-  {"command":"set","path":"/Revenue/B7","props":{"value":"56000","font.color":"0000FF","numFmt":"$#,##0"}},
-  {"command":"set","path":"/Revenue/B8","props":{"value":"58000","font.color":"0000FF","numFmt":"$#,##0"}},
-  {"command":"set","path":"/Revenue/B9","props":{"value":"55000","font.color":"0000FF","numFmt":"$#,##0"}},
-  {"command":"set","path":"/Revenue/B10","props":{"value":"60000","font.color":"0000FF","numFmt":"$#,##0"}},
-  {"command":"set","path":"/Revenue/B11","props":{"value":"62000","font.color":"0000FF","numFmt":"$#,##0"}},
-  {"command":"set","path":"/Revenue/B12","props":{"value":"65000","font.color":"0000FF","numFmt":"$#,##0"}},
-  {"command":"set","path":"/Revenue/B13","props":{"value":"70000","font.color":"0000FF","numFmt":"$#,##0"}}
-]
-EOF
+officecli set financial-dashboard.xlsx /Revenue/B2 --prop value=42000 --prop font.color=0000FF --prop numFmt='$#,##0'
+officecli set financial-dashboard.xlsx /Revenue/B3 --prop value=45000 --prop font.color=0000FF --prop numFmt='$#,##0'
+officecli set financial-dashboard.xlsx /Revenue/B4 --prop value=48000 --prop font.color=0000FF --prop numFmt='$#,##0'
+officecli set financial-dashboard.xlsx /Revenue/B5 --prop value=51000 --prop font.color=0000FF --prop numFmt='$#,##0'
+officecli set financial-dashboard.xlsx /Revenue/B6 --prop value=53000 --prop font.color=0000FF --prop numFmt='$#,##0'
+officecli set financial-dashboard.xlsx /Revenue/B7 --prop value=56000 --prop font.color=0000FF --prop numFmt='$#,##0'
+officecli set financial-dashboard.xlsx /Revenue/B8 --prop value=58000 --prop font.color=0000FF --prop numFmt='$#,##0'
+officecli set financial-dashboard.xlsx /Revenue/B9 --prop value=55000 --prop font.color=0000FF --prop numFmt='$#,##0'
+officecli set financial-dashboard.xlsx /Revenue/B10 --prop value=60000 --prop font.color=0000FF --prop numFmt='$#,##0'
+officecli set financial-dashboard.xlsx /Revenue/B11 --prop value=62000 --prop font.color=0000FF --prop numFmt='$#,##0'
+officecli set financial-dashboard.xlsx /Revenue/B12 --prop value=65000 --prop font.color=0000FF --prop numFmt='$#,##0'
+officecli set financial-dashboard.xlsx /Revenue/B13 --prop value=70000 --prop font.color=0000FF --prop numFmt='$#,##0'
 
-cat <<'EOF' | officecli batch financial-dashboard.xlsx
-[
-  {"command":"set","path":"/Revenue/C2","props":{"value":"28000","font.color":"0000FF","numFmt":"$#,##0"}},
-  {"command":"set","path":"/Revenue/C3","props":{"value":"30000","font.color":"0000FF","numFmt":"$#,##0"}},
-  {"command":"set","path":"/Revenue/C4","props":{"value":"32000","font.color":"0000FF","numFmt":"$#,##0"}},
-  {"command":"set","path":"/Revenue/C5","props":{"value":"35000","font.color":"0000FF","numFmt":"$#,##0"}},
-  {"command":"set","path":"/Revenue/C6","props":{"value":"36000","font.color":"0000FF","numFmt":"$#,##0"}},
-  {"command":"set","path":"/Revenue/C7","props":{"value":"38000","font.color":"0000FF","numFmt":"$#,##0"}},
-  {"command":"set","path":"/Revenue/C8","props":{"value":"40000","font.color":"0000FF","numFmt":"$#,##0"}},
-  {"command":"set","path":"/Revenue/C9","props":{"value":"37000","font.color":"0000FF","numFmt":"$#,##0"}},
-  {"command":"set","path":"/Revenue/C10","props":{"value":"42000","font.color":"0000FF","numFmt":"$#,##0"}},
-  {"command":"set","path":"/Revenue/C11","props":{"value":"44000","font.color":"0000FF","numFmt":"$#,##0"}},
-  {"command":"set","path":"/Revenue/C12","props":{"value":"46000","font.color":"0000FF","numFmt":"$#,##0"}},
-  {"command":"set","path":"/Revenue/C13","props":{"value":"48000","font.color":"0000FF","numFmt":"$#,##0"}}
-]
-EOF
+officecli set financial-dashboard.xlsx /Revenue/C2 --prop value=28000 --prop font.color=0000FF --prop numFmt='$#,##0'
+officecli set financial-dashboard.xlsx /Revenue/C3 --prop value=30000 --prop font.color=0000FF --prop numFmt='$#,##0'
+officecli set financial-dashboard.xlsx /Revenue/C4 --prop value=32000 --prop font.color=0000FF --prop numFmt='$#,##0'
+officecli set financial-dashboard.xlsx /Revenue/C5 --prop value=35000 --prop font.color=0000FF --prop numFmt='$#,##0'
+officecli set financial-dashboard.xlsx /Revenue/C6 --prop value=36000 --prop font.color=0000FF --prop numFmt='$#,##0'
+officecli set financial-dashboard.xlsx /Revenue/C7 --prop value=38000 --prop font.color=0000FF --prop numFmt='$#,##0'
+officecli set financial-dashboard.xlsx /Revenue/C8 --prop value=40000 --prop font.color=0000FF --prop numFmt='$#,##0'
+officecli set financial-dashboard.xlsx /Revenue/C9 --prop value=37000 --prop font.color=0000FF --prop numFmt='$#,##0'
+officecli set financial-dashboard.xlsx /Revenue/C10 --prop value=42000 --prop font.color=0000FF --prop numFmt='$#,##0'
+officecli set financial-dashboard.xlsx /Revenue/C11 --prop value=44000 --prop font.color=0000FF --prop numFmt='$#,##0'
+officecli set financial-dashboard.xlsx /Revenue/C12 --prop value=46000 --prop font.color=0000FF --prop numFmt='$#,##0'
+officecli set financial-dashboard.xlsx /Revenue/C13 --prop value=48000 --prop font.color=0000FF --prop numFmt='$#,##0'
 
 # Total column -- SUM formulas in black text
-cat <<'EOF' | officecli batch financial-dashboard.xlsx
-[
-  {"command":"set","path":"/Revenue/D2","props":{"formula":"SUM(B2:C2)","font.color":"000000","numFmt":"$#,##0"}},
-  {"command":"set","path":"/Revenue/D3","props":{"formula":"SUM(B3:C3)","font.color":"000000","numFmt":"$#,##0"}},
-  {"command":"set","path":"/Revenue/D4","props":{"formula":"SUM(B4:C4)","font.color":"000000","numFmt":"$#,##0"}},
-  {"command":"set","path":"/Revenue/D5","props":{"formula":"SUM(B5:C5)","font.color":"000000","numFmt":"$#,##0"}},
-  {"command":"set","path":"/Revenue/D6","props":{"formula":"SUM(B6:C6)","font.color":"000000","numFmt":"$#,##0"}},
-  {"command":"set","path":"/Revenue/D7","props":{"formula":"SUM(B7:C7)","font.color":"000000","numFmt":"$#,##0"}},
-  {"command":"set","path":"/Revenue/D8","props":{"formula":"SUM(B8:C8)","font.color":"000000","numFmt":"$#,##0"}},
-  {"command":"set","path":"/Revenue/D9","props":{"formula":"SUM(B9:C9)","font.color":"000000","numFmt":"$#,##0"}},
-  {"command":"set","path":"/Revenue/D10","props":{"formula":"SUM(B10:C10)","font.color":"000000","numFmt":"$#,##0"}},
-  {"command":"set","path":"/Revenue/D11","props":{"formula":"SUM(B11:C11)","font.color":"000000","numFmt":"$#,##0"}},
-  {"command":"set","path":"/Revenue/D12","props":{"formula":"SUM(B12:C12)","font.color":"000000","numFmt":"$#,##0"}},
-  {"command":"set","path":"/Revenue/D13","props":{"formula":"SUM(B13:C13)","font.color":"000000","numFmt":"$#,##0"}}
-]
-EOF
+officecli set financial-dashboard.xlsx /Revenue/D2 --prop formula="SUM(B2:C2)" --prop font.color=000000 --prop numFmt='$#,##0'
+officecli set financial-dashboard.xlsx /Revenue/D3 --prop formula="SUM(B3:C3)" --prop font.color=000000 --prop numFmt='$#,##0'
+officecli set financial-dashboard.xlsx /Revenue/D4 --prop formula="SUM(B4:C4)" --prop font.color=000000 --prop numFmt='$#,##0'
+officecli set financial-dashboard.xlsx /Revenue/D5 --prop formula="SUM(B5:C5)" --prop font.color=000000 --prop numFmt='$#,##0'
+officecli set financial-dashboard.xlsx /Revenue/D6 --prop formula="SUM(B6:C6)" --prop font.color=000000 --prop numFmt='$#,##0'
+officecli set financial-dashboard.xlsx /Revenue/D7 --prop formula="SUM(B7:C7)" --prop font.color=000000 --prop numFmt='$#,##0'
+officecli set financial-dashboard.xlsx /Revenue/D8 --prop formula="SUM(B8:C8)" --prop font.color=000000 --prop numFmt='$#,##0'
+officecli set financial-dashboard.xlsx /Revenue/D9 --prop formula="SUM(B9:C9)" --prop font.color=000000 --prop numFmt='$#,##0'
+officecli set financial-dashboard.xlsx /Revenue/D10 --prop formula="SUM(B10:C10)" --prop font.color=000000 --prop numFmt='$#,##0'
+officecli set financial-dashboard.xlsx /Revenue/D11 --prop formula="SUM(B11:C11)" --prop font.color=000000 --prop numFmt='$#,##0'
+officecli set financial-dashboard.xlsx /Revenue/D12 --prop formula="SUM(B12:C12)" --prop font.color=000000 --prop numFmt='$#,##0'
+officecli set financial-dashboard.xlsx /Revenue/D13 --prop formula="SUM(B13:C13)" --prop font.color=000000 --prop numFmt='$#,##0'
 
 # SUM row at bottom
-cat <<'EOF' | officecli batch financial-dashboard.xlsx
-[
-  {"command":"set","path":"/Revenue/A14","props":{"value":"Total","bold":"true"}},
-  {"command":"set","path":"/Revenue/B14","props":{"formula":"SUM(B2:B13)","font.color":"000000","bold":"true","numFmt":"$#,##0"}},
-  {"command":"set","path":"/Revenue/C14","props":{"formula":"SUM(C2:C13)","font.color":"000000","bold":"true","numFmt":"$#,##0"}},
-  {"command":"set","path":"/Revenue/D14","props":{"formula":"SUM(D2:D13)","font.color":"000000","bold":"true","numFmt":"$#,##0"}}
-]
-EOF
+officecli set financial-dashboard.xlsx /Revenue/A14 --prop value=Total --prop bold=true
+officecli set financial-dashboard.xlsx /Revenue/B14 --prop formula="SUM(B2:B13)" --prop font.color=000000 --prop bold=true --prop numFmt='$#,##0'
+officecli set financial-dashboard.xlsx /Revenue/C14 --prop formula="SUM(C2:C13)" --prop font.color=000000 --prop bold=true --prop numFmt='$#,##0'
+officecli set financial-dashboard.xlsx /Revenue/D14 --prop formula="SUM(D2:D13)" --prop font.color=000000 --prop bold=true --prop numFmt='$#,##0'
 
 # Revenue column widths and freeze
 officecli set financial-dashboard.xlsx "/Revenue/col[A]" --prop width=12
@@ -162,36 +140,28 @@ officecli set financial-dashboard.xlsx "/Revenue" --prop freeze=A2
 officecli add financial-dashboard.xlsx /Revenue --type chart --prop chartType=column --prop title="Monthly Revenue by Product" --prop series1.values="Revenue!B2:B13" --prop series1.categories="Revenue!A2:A13" --prop series1.name="Product A" --prop series2.values="Revenue!C2:C13" --prop series2.categories="Revenue!A2:A13" --prop series2.name="Product B" --prop x=6 --prop y=1 --prop width=12 --prop height=15 --prop colors=1F4E79,4472C4 --prop legend=bottom
 
 # ── Expenses Sheet ──
-cat <<'EOF' | officecli batch financial-dashboard.xlsx
-[
-  {"command":"set","path":"/Expenses/A1","props":{"value":"Category","bold":"true","fill":"1F4E79","font.color":"FFFFFF"}},
-  {"command":"set","path":"/Expenses/B1","props":{"value":"Monthly","bold":"true","fill":"1F4E79","font.color":"FFFFFF"}},
-  {"command":"set","path":"/Expenses/C1","props":{"value":"Annual","bold":"true","fill":"1F4E79","font.color":"FFFFFF"}},
-  {"command":"set","path":"/Expenses/A2","props":{"value":"Rent"}},
-  {"command":"set","path":"/Expenses/A3","props":{"value":"Salaries"}},
-  {"command":"set","path":"/Expenses/A4","props":{"value":"Marketing"}},
-  {"command":"set","path":"/Expenses/A5","props":{"value":"Operations"}},
-  {"command":"set","path":"/Expenses/A6","props":{"value":"Technology"}},
-  {"command":"set","path":"/Expenses/A7","props":{"value":"Total","bold":"true"}},
-  {"command":"set","path":"/Expenses/B2","props":{"value":"5000","font.color":"0000FF","numFmt":"$#,##0"}},
-  {"command":"set","path":"/Expenses/B3","props":{"value":"45000","font.color":"0000FF","numFmt":"$#,##0"}},
-  {"command":"set","path":"/Expenses/B4","props":{"value":"8000","font.color":"0000FF","numFmt":"$#,##0"}},
-  {"command":"set","path":"/Expenses/B5","props":{"value":"6000","font.color":"0000FF","numFmt":"$#,##0"}},
-  {"command":"set","path":"/Expenses/B6","props":{"value":"4000","font.color":"0000FF","numFmt":"$#,##0"}}
-]
-EOF
+officecli set financial-dashboard.xlsx /Expenses/A1 --prop value=Category --prop bold=true --prop fill=1F4E79 --prop font.color=FFFFFF
+officecli set financial-dashboard.xlsx /Expenses/B1 --prop value=Monthly --prop bold=true --prop fill=1F4E79 --prop font.color=FFFFFF
+officecli set financial-dashboard.xlsx /Expenses/C1 --prop value=Annual --prop bold=true --prop fill=1F4E79 --prop font.color=FFFFFF
+officecli set financial-dashboard.xlsx /Expenses/A2 --prop value=Rent
+officecli set financial-dashboard.xlsx /Expenses/A3 --prop value=Salaries
+officecli set financial-dashboard.xlsx /Expenses/A4 --prop value=Marketing
+officecli set financial-dashboard.xlsx /Expenses/A5 --prop value=Operations
+officecli set financial-dashboard.xlsx /Expenses/A6 --prop value=Technology
+officecli set financial-dashboard.xlsx /Expenses/A7 --prop value=Total --prop bold=true
+officecli set financial-dashboard.xlsx /Expenses/B2 --prop value=5000 --prop font.color=0000FF --prop numFmt='$#,##0'
+officecli set financial-dashboard.xlsx /Expenses/B3 --prop value=45000 --prop font.color=0000FF --prop numFmt='$#,##0'
+officecli set financial-dashboard.xlsx /Expenses/B4 --prop value=8000 --prop font.color=0000FF --prop numFmt='$#,##0'
+officecli set financial-dashboard.xlsx /Expenses/B5 --prop value=6000 --prop font.color=0000FF --prop numFmt='$#,##0'
+officecli set financial-dashboard.xlsx /Expenses/B6 --prop value=4000 --prop font.color=0000FF --prop numFmt='$#,##0'
 
-cat <<'EOF' | officecli batch financial-dashboard.xlsx
-[
-  {"command":"set","path":"/Expenses/B7","props":{"formula":"SUM(B2:B6)","font.color":"000000","bold":"true","numFmt":"$#,##0"}},
-  {"command":"set","path":"/Expenses/C2","props":{"formula":"B2*12","font.color":"000000","numFmt":"$#,##0"}},
-  {"command":"set","path":"/Expenses/C3","props":{"formula":"B3*12","font.color":"000000","numFmt":"$#,##0"}},
-  {"command":"set","path":"/Expenses/C4","props":{"formula":"B4*12","font.color":"000000","numFmt":"$#,##0"}},
-  {"command":"set","path":"/Expenses/C5","props":{"formula":"B5*12","font.color":"000000","numFmt":"$#,##0"}},
-  {"command":"set","path":"/Expenses/C6","props":{"formula":"B6*12","font.color":"000000","numFmt":"$#,##0"}},
-  {"command":"set","path":"/Expenses/C7","props":{"formula":"SUM(C2:C6)","font.color":"000000","bold":"true","numFmt":"$#,##0"}}
-]
-EOF
+officecli set financial-dashboard.xlsx /Expenses/B7 --prop formula="SUM(B2:B6)" --prop font.color=000000 --prop bold=true --prop numFmt='$#,##0'
+officecli set financial-dashboard.xlsx /Expenses/C2 --prop formula="B2*12" --prop font.color=000000 --prop numFmt='$#,##0'
+officecli set financial-dashboard.xlsx /Expenses/C3 --prop formula="B3*12" --prop font.color=000000 --prop numFmt='$#,##0'
+officecli set financial-dashboard.xlsx /Expenses/C4 --prop formula="B4*12" --prop font.color=000000 --prop numFmt='$#,##0'
+officecli set financial-dashboard.xlsx /Expenses/C5 --prop formula="B5*12" --prop font.color=000000 --prop numFmt='$#,##0'
+officecli set financial-dashboard.xlsx /Expenses/C6 --prop formula="B6*12" --prop font.color=000000 --prop numFmt='$#,##0'
+officecli set financial-dashboard.xlsx /Expenses/C7 --prop formula="SUM(C2:C6)" --prop font.color=000000 --prop bold=true --prop numFmt='$#,##0'
 
 # Expenses column widths and freeze
 officecli set financial-dashboard.xlsx "/Expenses/col[A]" --prop width=15
@@ -203,27 +173,19 @@ officecli set financial-dashboard.xlsx "/Expenses" --prop freeze=A2
 officecli add financial-dashboard.xlsx /Expenses --type chart --prop chartType=pie --prop title="Expense Breakdown" --prop categories="Rent,Salaries,Marketing,Operations,Technology" --prop data="Monthly:5000,45000,8000,6000,4000" --prop colors=1F4E79,4472C4,70AD47,FFC000,FF6600 --prop dataLabels=percent --prop x=5 --prop y=1 --prop width=10 --prop height=12
 
 # ── P&L Sheet ──
-cat <<'EOF' | officecli batch financial-dashboard.xlsx
-[
-  {"command":"set","path":"/PL/A1","props":{"value":"Metric","bold":"true","fill":"2C5F2D","font.color":"FFFFFF"}},
-  {"command":"set","path":"/PL/B1","props":{"value":"Annual","bold":"true","fill":"2C5F2D","font.color":"FFFFFF"}},
-  {"command":"set","path":"/PL/C1","props":{"value":"Margin %","bold":"true","fill":"2C5F2D","font.color":"FFFFFF"}},
-  {"command":"set","path":"/PL/A2","props":{"value":"Total Revenue"}},
-  {"command":"set","path":"/PL/A3","props":{"value":"Total Expenses"}},
-  {"command":"set","path":"/PL/A4","props":{"value":"Net Income","bold":"true"}},
-  {"command":"set","path":"/PL/A5","props":{"value":"Gross Margin %"}}
-]
-EOF
+officecli set financial-dashboard.xlsx /PL/A1 --prop value=Metric --prop bold=true --prop fill=2C5F2D --prop font.color=FFFFFF
+officecli set financial-dashboard.xlsx /PL/B1 --prop value=Annual --prop bold=true --prop fill=2C5F2D --prop font.color=FFFFFF
+officecli set financial-dashboard.xlsx /PL/C1 --prop value="Margin %" --prop bold=true --prop fill=2C5F2D --prop font.color=FFFFFF
+officecli set financial-dashboard.xlsx /PL/A2 --prop value="Total Revenue"
+officecli set financial-dashboard.xlsx /PL/A3 --prop value="Total Expenses"
+officecli set financial-dashboard.xlsx /PL/A4 --prop value="Net Income" --prop bold=true
+officecli set financial-dashboard.xlsx /PL/A5 --prop value="Gross Margin %"
 
 # Cross-sheet formulas -- green text
-cat <<'EOF' | officecli batch financial-dashboard.xlsx
-[
-  {"command":"set","path":"/PL/B2","props":{"formula":"Revenue!D14","font.color":"008000","numFmt":"$#,##0"}},
-  {"command":"set","path":"/PL/B3","props":{"formula":"Expenses!C7","font.color":"008000","numFmt":"$#,##0"}},
-  {"command":"set","path":"/PL/B4","props":{"formula":"B2-B3","font.color":"000000","bold":"true","numFmt":"$#,##0"}},
-  {"command":"set","path":"/PL/C4","props":{"formula":"IFERROR(B4/B2,0)","font.color":"000000","numFmt":"0.0%"}}
-]
-EOF
+officecli set financial-dashboard.xlsx /PL/B2 --prop "formula==Revenue!D14" --prop font.color=008000 --prop numFmt='$#,##0'
+officecli set financial-dashboard.xlsx /PL/B3 --prop "formula==Expenses!C7" --prop font.color=008000 --prop numFmt='$#,##0'
+officecli set financial-dashboard.xlsx /PL/B4 --prop formula="B2-B3" --prop font.color=000000 --prop bold=true --prop numFmt='$#,##0'
+officecli set financial-dashboard.xlsx /PL/C4 --prop formula="IFERROR(B4/B2,0)" --prop font.color=000000 --prop numFmt=0.0%
 
 # P&L column widths and freeze
 officecli set financial-dashboard.xlsx "/PL/col[A]" --prop width=18
@@ -235,20 +197,16 @@ officecli set financial-dashboard.xlsx "/PL" --prop freeze=A2
 officecli add financial-dashboard.xlsx /PL --type chart --prop chartType=combo --prop title="Revenue vs Margin" --prop categories="Revenue,Expenses,Net Income" --prop series1="Amount:665000,816000,-151000" --prop series2="Margin:100,0,0" --prop comboSplit=1 --prop secondary=2 --prop colors=2C5F2D,FF6600 --prop x=5 --prop y=1 --prop width=12 --prop height=12
 
 # ── Dashboard Sheet ──
-cat <<'EOF' | officecli batch financial-dashboard.xlsx
-[
-  {"command":"set","path":"/Dashboard/A1","props":{"value":"FY2025 Financial Dashboard","bold":"true","font.size":"18","font.color":"1F4E79"}},
-  {"command":"set","path":"/Dashboard/A1:D1","props":{"merge":"true"}},
-  {"command":"set","path":"/Dashboard/A3","props":{"value":"Total Revenue","bold":"true"}},
-  {"command":"set","path":"/Dashboard/B3","props":{"formula":"PL!B2","font.color":"008000","font.size":"16","numFmt":"$#,##0"}},
-  {"command":"set","path":"/Dashboard/A4","props":{"value":"Total Expenses","bold":"true"}},
-  {"command":"set","path":"/Dashboard/B4","props":{"formula":"PL!B3","font.color":"008000","font.size":"16","numFmt":"$#,##0"}},
-  {"command":"set","path":"/Dashboard/A5","props":{"value":"Net Income","bold":"true"}},
-  {"command":"set","path":"/Dashboard/B5","props":{"formula":"PL!B4","font.color":"008000","font.size":"16","bold":"true","numFmt":"$#,##0"}},
-  {"command":"set","path":"/Dashboard/A6","props":{"value":"Margin","bold":"true"}},
-  {"command":"set","path":"/Dashboard/B6","props":{"formula":"PL!C4","font.color":"008000","font.size":"16","numFmt":"0.0%"}}
-]
-EOF
+officecli set financial-dashboard.xlsx /Dashboard/A1 --prop value="FY2025 Financial Dashboard" --prop bold=true --prop font.size=18 --prop font.color=1F4E79
+officecli set financial-dashboard.xlsx /Dashboard/A1:D1 --prop merge=true
+officecli set financial-dashboard.xlsx /Dashboard/A3 --prop value="Total Revenue" --prop bold=true
+officecli set financial-dashboard.xlsx /Dashboard/B3 --prop "formula==PL!B2" --prop font.color=008000 --prop font.size=16 --prop numFmt='$#,##0'
+officecli set financial-dashboard.xlsx /Dashboard/A4 --prop value="Total Expenses" --prop bold=true
+officecli set financial-dashboard.xlsx /Dashboard/B4 --prop "formula==PL!B3" --prop font.color=008000 --prop font.size=16 --prop numFmt='$#,##0'
+officecli set financial-dashboard.xlsx /Dashboard/A5 --prop value="Net Income" --prop bold=true
+officecli set financial-dashboard.xlsx /Dashboard/B5 --prop "formula==PL!B4" --prop font.color=008000 --prop font.size=16 --prop bold=true --prop numFmt='$#,##0'
+officecli set financial-dashboard.xlsx /Dashboard/A6 --prop value=Margin --prop bold=true
+officecli set financial-dashboard.xlsx /Dashboard/B6 --prop "formula==PL!C4" --prop font.color=008000 --prop font.size=16 --prop numFmt=0.0%
 
 # Dashboard column widths
 officecli set financial-dashboard.xlsx "/Dashboard/col[A]" --prop width=20
@@ -291,102 +249,78 @@ officecli remove sales-tracker.xlsx "/Sheet1"
 
 # ── Sales Data Sheet ──
 # Headers
-cat <<'EOF' | officecli batch sales-tracker.xlsx
-[
-  {"command":"set","path":"/Sales Data/A1","props":{"value":"Date","bold":"true","fill":"1F4E79","font.color":"FFFFFF"}},
-  {"command":"set","path":"/Sales Data/B1","props":{"value":"Sales Rep","bold":"true","fill":"1F4E79","font.color":"FFFFFF"}},
-  {"command":"set","path":"/Sales Data/C1","props":{"value":"Region","bold":"true","fill":"1F4E79","font.color":"FFFFFF"}},
-  {"command":"set","path":"/Sales Data/D1","props":{"value":"Product","bold":"true","fill":"1F4E79","font.color":"FFFFFF"}},
-  {"command":"set","path":"/Sales Data/E1","props":{"value":"Amount","bold":"true","fill":"1F4E79","font.color":"FFFFFF"}},
-  {"command":"set","path":"/Sales Data/F1","props":{"value":"Status","bold":"true","fill":"1F4E79","font.color":"FFFFFF"}}
-]
-EOF
+officecli set sales-tracker.xlsx "/Sales Data/A1" --prop value=Date --prop bold=true --prop fill=1F4E79 --prop font.color=FFFFFF
+officecli set sales-tracker.xlsx "/Sales Data/B1" --prop value="Sales Rep" --prop bold=true --prop fill=1F4E79 --prop font.color=FFFFFF
+officecli set sales-tracker.xlsx "/Sales Data/C1" --prop value=Region --prop bold=true --prop fill=1F4E79 --prop font.color=FFFFFF
+officecli set sales-tracker.xlsx "/Sales Data/D1" --prop value=Product --prop bold=true --prop fill=1F4E79 --prop font.color=FFFFFF
+officecli set sales-tracker.xlsx "/Sales Data/E1" --prop value=Amount --prop bold=true --prop fill=1F4E79 --prop font.color=FFFFFF
+officecli set sales-tracker.xlsx "/Sales Data/F1" --prop value=Status --prop bold=true --prop fill=1F4E79 --prop font.color=FFFFFF
 
 # Sample data rows
-cat <<'EOF' | officecli batch sales-tracker.xlsx
-[
-  {"command":"set","path":"/Sales Data/A2","props":{"value":"2025-01-15","numFmt":"yyyy-mm-dd"}},
-  {"command":"set","path":"/Sales Data/B2","props":{"value":"Alice Chen"}},
-  {"command":"set","path":"/Sales Data/C2","props":{"value":"North"}},
-  {"command":"set","path":"/Sales Data/D2","props":{"value":"Widget Pro"}},
-  {"command":"set","path":"/Sales Data/E2","props":{"value":"12500","numFmt":"$#,##0"}},
-  {"command":"set","path":"/Sales Data/F2","props":{"value":"Won"}},
-  {"command":"set","path":"/Sales Data/A3","props":{"value":"2025-01-22","numFmt":"yyyy-mm-dd"}},
-  {"command":"set","path":"/Sales Data/B3","props":{"value":"Bob Martinez"}},
-  {"command":"set","path":"/Sales Data/C3","props":{"value":"South"}},
-  {"command":"set","path":"/Sales Data/D3","props":{"value":"Widget Basic"}},
-  {"command":"set","path":"/Sales Data/E3","props":{"value":"8200","numFmt":"$#,##0"}},
-  {"command":"set","path":"/Sales Data/F3","props":{"value":"Won"}}
-]
-EOF
+officecli set sales-tracker.xlsx "/Sales Data/A2" --prop value=2025-01-15 --prop numFmt=yyyy-mm-dd
+officecli set sales-tracker.xlsx "/Sales Data/B2" --prop value="Alice Chen"
+officecli set sales-tracker.xlsx "/Sales Data/C2" --prop value=North
+officecli set sales-tracker.xlsx "/Sales Data/D2" --prop value="Widget Pro"
+officecli set sales-tracker.xlsx "/Sales Data/E2" --prop value=12500 --prop numFmt='$#,##0'
+officecli set sales-tracker.xlsx "/Sales Data/F2" --prop value=Won
+officecli set sales-tracker.xlsx "/Sales Data/A3" --prop value=2025-01-22 --prop numFmt=yyyy-mm-dd
+officecli set sales-tracker.xlsx "/Sales Data/B3" --prop value="Bob Martinez"
+officecli set sales-tracker.xlsx "/Sales Data/C3" --prop value=South
+officecli set sales-tracker.xlsx "/Sales Data/D3" --prop value="Widget Basic"
+officecli set sales-tracker.xlsx "/Sales Data/E3" --prop value=8200 --prop numFmt='$#,##0'
+officecli set sales-tracker.xlsx "/Sales Data/F3" --prop value=Won
 
-cat <<'EOF' | officecli batch sales-tracker.xlsx
-[
-  {"command":"set","path":"/Sales Data/A4","props":{"value":"2025-02-03","numFmt":"yyyy-mm-dd"}},
-  {"command":"set","path":"/Sales Data/B4","props":{"value":"Carol Wu"}},
-  {"command":"set","path":"/Sales Data/C4","props":{"value":"East"}},
-  {"command":"set","path":"/Sales Data/D4","props":{"value":"Widget Pro"}},
-  {"command":"set","path":"/Sales Data/E4","props":{"value":"15800","numFmt":"$#,##0"}},
-  {"command":"set","path":"/Sales Data/F4","props":{"value":"Pending"}},
-  {"command":"set","path":"/Sales Data/A5","props":{"value":"2025-02-10","numFmt":"yyyy-mm-dd"}},
-  {"command":"set","path":"/Sales Data/B5","props":{"value":"Dave Kim"}},
-  {"command":"set","path":"/Sales Data/C5","props":{"value":"West"}},
-  {"command":"set","path":"/Sales Data/D5","props":{"value":"Widget Enterprise"}},
-  {"command":"set","path":"/Sales Data/E5","props":{"value":"32000","numFmt":"$#,##0"}},
-  {"command":"set","path":"/Sales Data/F5","props":{"value":"Won"}}
-]
-EOF
+officecli set sales-tracker.xlsx "/Sales Data/A4" --prop value=2025-02-03 --prop numFmt=yyyy-mm-dd
+officecli set sales-tracker.xlsx "/Sales Data/B4" --prop value="Carol Wu"
+officecli set sales-tracker.xlsx "/Sales Data/C4" --prop value=East
+officecli set sales-tracker.xlsx "/Sales Data/D4" --prop value="Widget Pro"
+officecli set sales-tracker.xlsx "/Sales Data/E4" --prop value=15800 --prop numFmt='$#,##0'
+officecli set sales-tracker.xlsx "/Sales Data/F4" --prop value=Pending
+officecli set sales-tracker.xlsx "/Sales Data/A5" --prop value=2025-02-10 --prop numFmt=yyyy-mm-dd
+officecli set sales-tracker.xlsx "/Sales Data/B5" --prop value="Dave Kim"
+officecli set sales-tracker.xlsx "/Sales Data/C5" --prop value=West
+officecli set sales-tracker.xlsx "/Sales Data/D5" --prop value="Widget Enterprise"
+officecli set sales-tracker.xlsx "/Sales Data/E5" --prop value=32000 --prop numFmt='$#,##0'
+officecli set sales-tracker.xlsx "/Sales Data/F5" --prop value=Won
 
-cat <<'EOF' | officecli batch sales-tracker.xlsx
-[
-  {"command":"set","path":"/Sales Data/A6","props":{"value":"2025-02-18","numFmt":"yyyy-mm-dd"}},
-  {"command":"set","path":"/Sales Data/B6","props":{"value":"Alice Chen"}},
-  {"command":"set","path":"/Sales Data/C6","props":{"value":"North"}},
-  {"command":"set","path":"/Sales Data/D6","props":{"value":"Widget Basic"}},
-  {"command":"set","path":"/Sales Data/E6","props":{"value":"6500","numFmt":"$#,##0"}},
-  {"command":"set","path":"/Sales Data/F6","props":{"value":"Lost"}},
-  {"command":"set","path":"/Sales Data/A7","props":{"value":"2025-03-01","numFmt":"yyyy-mm-dd"}},
-  {"command":"set","path":"/Sales Data/B7","props":{"value":"Bob Martinez"}},
-  {"command":"set","path":"/Sales Data/C7","props":{"value":"South"}},
-  {"command":"set","path":"/Sales Data/D7","props":{"value":"Widget Pro"}},
-  {"command":"set","path":"/Sales Data/E7","props":{"value":"18500","numFmt":"$#,##0"}},
-  {"command":"set","path":"/Sales Data/F7","props":{"value":"Open"}}
-]
-EOF
+officecli set sales-tracker.xlsx "/Sales Data/A6" --prop value=2025-02-18 --prop numFmt=yyyy-mm-dd
+officecli set sales-tracker.xlsx "/Sales Data/B6" --prop value="Alice Chen"
+officecli set sales-tracker.xlsx "/Sales Data/C6" --prop value=North
+officecli set sales-tracker.xlsx "/Sales Data/D6" --prop value="Widget Basic"
+officecli set sales-tracker.xlsx "/Sales Data/E6" --prop value=6500 --prop numFmt='$#,##0'
+officecli set sales-tracker.xlsx "/Sales Data/F6" --prop value=Lost
+officecli set sales-tracker.xlsx "/Sales Data/A7" --prop value=2025-03-01 --prop numFmt=yyyy-mm-dd
+officecli set sales-tracker.xlsx "/Sales Data/B7" --prop value="Bob Martinez"
+officecli set sales-tracker.xlsx "/Sales Data/C7" --prop value=South
+officecli set sales-tracker.xlsx "/Sales Data/D7" --prop value="Widget Pro"
+officecli set sales-tracker.xlsx "/Sales Data/E7" --prop value=18500 --prop numFmt='$#,##0'
+officecli set sales-tracker.xlsx "/Sales Data/F7" --prop value=Open
 
-cat <<'EOF' | officecli batch sales-tracker.xlsx
-[
-  {"command":"set","path":"/Sales Data/A8","props":{"value":"2025-03-12","numFmt":"yyyy-mm-dd"}},
-  {"command":"set","path":"/Sales Data/B8","props":{"value":"Carol Wu"}},
-  {"command":"set","path":"/Sales Data/C8","props":{"value":"East"}},
-  {"command":"set","path":"/Sales Data/D8","props":{"value":"Widget Enterprise"}},
-  {"command":"set","path":"/Sales Data/E8","props":{"value":"45000","numFmt":"$#,##0"}},
-  {"command":"set","path":"/Sales Data/F8","props":{"value":"Won"}},
-  {"command":"set","path":"/Sales Data/A9","props":{"value":"2025-03-20","numFmt":"yyyy-mm-dd"}},
-  {"command":"set","path":"/Sales Data/B9","props":{"value":"Dave Kim"}},
-  {"command":"set","path":"/Sales Data/C9","props":{"value":"West"}},
-  {"command":"set","path":"/Sales Data/D9","props":{"value":"Widget Pro"}},
-  {"command":"set","path":"/Sales Data/E9","props":{"value":"14200","numFmt":"$#,##0"}},
-  {"command":"set","path":"/Sales Data/F9","props":{"value":"Pending"}}
-]
-EOF
+officecli set sales-tracker.xlsx "/Sales Data/A8" --prop value=2025-03-12 --prop numFmt=yyyy-mm-dd
+officecli set sales-tracker.xlsx "/Sales Data/B8" --prop value="Carol Wu"
+officecli set sales-tracker.xlsx "/Sales Data/C8" --prop value=East
+officecli set sales-tracker.xlsx "/Sales Data/D8" --prop value="Widget Enterprise"
+officecli set sales-tracker.xlsx "/Sales Data/E8" --prop value=45000 --prop numFmt='$#,##0'
+officecli set sales-tracker.xlsx "/Sales Data/F8" --prop value=Won
+officecli set sales-tracker.xlsx "/Sales Data/A9" --prop value=2025-03-20 --prop numFmt=yyyy-mm-dd
+officecli set sales-tracker.xlsx "/Sales Data/B9" --prop value="Dave Kim"
+officecli set sales-tracker.xlsx "/Sales Data/C9" --prop value=West
+officecli set sales-tracker.xlsx "/Sales Data/D9" --prop value="Widget Pro"
+officecli set sales-tracker.xlsx "/Sales Data/E9" --prop value=14200 --prop numFmt='$#,##0'
+officecli set sales-tracker.xlsx "/Sales Data/F9" --prop value=Pending
 
-cat <<'EOF' | officecli batch sales-tracker.xlsx
-[
-  {"command":"set","path":"/Sales Data/A10","props":{"value":"2025-04-05","numFmt":"yyyy-mm-dd"}},
-  {"command":"set","path":"/Sales Data/B10","props":{"value":"Alice Chen"}},
-  {"command":"set","path":"/Sales Data/C10","props":{"value":"North"}},
-  {"command":"set","path":"/Sales Data/D10","props":{"value":"Widget Enterprise"}},
-  {"command":"set","path":"/Sales Data/E10","props":{"value":"52000","numFmt":"$#,##0"}},
-  {"command":"set","path":"/Sales Data/F10","props":{"value":"Won"}},
-  {"command":"set","path":"/Sales Data/A11","props":{"value":"2025-04-15","numFmt":"yyyy-mm-dd"}},
-  {"command":"set","path":"/Sales Data/B11","props":{"value":"Bob Martinez"}},
-  {"command":"set","path":"/Sales Data/C11","props":{"value":"South"}},
-  {"command":"set","path":"/Sales Data/D11","props":{"value":"Widget Basic"}},
-  {"command":"set","path":"/Sales Data/E11","props":{"value":"7800","numFmt":"$#,##0"}},
-  {"command":"set","path":"/Sales Data/F11","props":{"value":"Won"}}
-]
-EOF
+officecli set sales-tracker.xlsx "/Sales Data/A10" --prop value=2025-04-05 --prop numFmt=yyyy-mm-dd
+officecli set sales-tracker.xlsx "/Sales Data/B10" --prop value="Alice Chen"
+officecli set sales-tracker.xlsx "/Sales Data/C10" --prop value=North
+officecli set sales-tracker.xlsx "/Sales Data/D10" --prop value="Widget Enterprise"
+officecli set sales-tracker.xlsx "/Sales Data/E10" --prop value=52000 --prop numFmt='$#,##0'
+officecli set sales-tracker.xlsx "/Sales Data/F10" --prop value=Won
+officecli set sales-tracker.xlsx "/Sales Data/A11" --prop value=2025-04-15 --prop numFmt=yyyy-mm-dd
+officecli set sales-tracker.xlsx "/Sales Data/B11" --prop value="Bob Martinez"
+officecli set sales-tracker.xlsx "/Sales Data/C11" --prop value=South
+officecli set sales-tracker.xlsx "/Sales Data/D11" --prop value="Widget Basic"
+officecli set sales-tracker.xlsx "/Sales Data/E11" --prop value=7800 --prop numFmt='$#,##0'
+officecli set sales-tracker.xlsx "/Sales Data/F11" --prop value=Won
 
 # Data validation
 officecli add sales-tracker.xlsx "/Sales Data" --type validation --prop sqref="C2:C100" --prop type=list --prop formula1="North,South,East,West" --prop showError=true --prop errorTitle="Invalid Region" --prop error="Select: North, South, East, West"
@@ -415,50 +349,38 @@ officecli add sales-tracker.xlsx "/Sales Data" --type colorscale --prop sqref="E
 officecli add sales-tracker.xlsx "/Sales Data" --type formulacf --prop sqref="A2:F11" --prop formula='$F2="Won"' --prop fill=D9E2F3
 
 # ── Summary Sheet ──
-cat <<'EOF' | officecli batch sales-tracker.xlsx
-[
-  {"command":"set","path":"/Summary/A1","props":{"value":"Sales Summary","bold":"true","font.size":"16","font.color":"1F4E79"}},
-  {"command":"set","path":"/Summary/A1:D1","props":{"merge":"true"}},
-  {"command":"set","path":"/Summary/A3","props":{"value":"By Region","bold":"true","font.size":"13"}},
-  {"command":"set","path":"/Summary/A4","props":{"value":"North"}},
-  {"command":"set","path":"/Summary/A5","props":{"value":"South"}},
-  {"command":"set","path":"/Summary/A6","props":{"value":"East"}},
-  {"command":"set","path":"/Summary/A7","props":{"value":"West"}}
-]
-EOF
+officecli set sales-tracker.xlsx /Summary/A1 --prop value="Sales Summary" --prop bold=true --prop font.size=16 --prop font.color=1F4E79
+officecli set sales-tracker.xlsx /Summary/A1:D1 --prop merge=true
+officecli set sales-tracker.xlsx /Summary/A3 --prop value="By Region" --prop bold=true --prop font.size=13
+officecli set sales-tracker.xlsx /Summary/A4 --prop value=North
+officecli set sales-tracker.xlsx /Summary/A5 --prop value=South
+officecli set sales-tracker.xlsx /Summary/A6 --prop value=East
+officecli set sales-tracker.xlsx /Summary/A7 --prop value=West
 
-cat <<'EOF' | officecli batch sales-tracker.xlsx
-[
-  {"command":"set","path":"/Summary/B3","props":{"value":"Total","bold":"true"}},
-  {"command":"set","path":"/Summary/C3","props":{"value":"Count","bold":"true"}},
-  {"command":"set","path":"/Summary/D3","props":{"value":"Trend","bold":"true"}},
-  {"command":"set","path":"/Summary/B4","props":{"formula":"SUMIF('Sales Data'!C2:C11,\"North\",'Sales Data'!E2:E11)","numFmt":"$#,##0"}},
-  {"command":"set","path":"/Summary/B5","props":{"formula":"SUMIF('Sales Data'!C2:C11,\"South\",'Sales Data'!E2:E11)","numFmt":"$#,##0"}},
-  {"command":"set","path":"/Summary/B6","props":{"formula":"SUMIF('Sales Data'!C2:C11,\"East\",'Sales Data'!E2:E11)","numFmt":"$#,##0"}},
-  {"command":"set","path":"/Summary/B7","props":{"formula":"SUMIF('Sales Data'!C2:C11,\"West\",'Sales Data'!E2:E11)","numFmt":"$#,##0"}},
-  {"command":"set","path":"/Summary/C4","props":{"formula":"COUNTIF('Sales Data'!C2:C11,\"North\")"}},
-  {"command":"set","path":"/Summary/C5","props":{"formula":"COUNTIF('Sales Data'!C2:C11,\"South\")"}},
-  {"command":"set","path":"/Summary/C6","props":{"formula":"COUNTIF('Sales Data'!C2:C11,\"East\")"}},
-  {"command":"set","path":"/Summary/C7","props":{"formula":"COUNTIF('Sales Data'!C2:C11,\"West\")"}}
-]
-EOF
+officecli set sales-tracker.xlsx /Summary/B3 --prop value=Total --prop bold=true
+officecli set sales-tracker.xlsx /Summary/C3 --prop value=Count --prop bold=true
+officecli set sales-tracker.xlsx /Summary/D3 --prop value=Trend --prop bold=true
+officecli set sales-tracker.xlsx /Summary/B4 --prop "formula==SUMIF('Sales Data'!C2:C11,\"North\",'Sales Data'!E2:E11)" --prop numFmt='$#,##0'
+officecli set sales-tracker.xlsx /Summary/B5 --prop "formula==SUMIF('Sales Data'!C2:C11,\"South\",'Sales Data'!E2:E11)" --prop numFmt='$#,##0'
+officecli set sales-tracker.xlsx /Summary/B6 --prop "formula==SUMIF('Sales Data'!C2:C11,\"East\",'Sales Data'!E2:E11)" --prop numFmt='$#,##0'
+officecli set sales-tracker.xlsx /Summary/B7 --prop "formula==SUMIF('Sales Data'!C2:C11,\"West\",'Sales Data'!E2:E11)" --prop numFmt='$#,##0'
+officecli set sales-tracker.xlsx /Summary/C4 --prop "formula==COUNTIF('Sales Data'!C2:C11,\"North\")"
+officecli set sales-tracker.xlsx /Summary/C5 --prop "formula==COUNTIF('Sales Data'!C2:C11,\"South\")"
+officecli set sales-tracker.xlsx /Summary/C6 --prop "formula==COUNTIF('Sales Data'!C2:C11,\"East\")"
+officecli set sales-tracker.xlsx /Summary/C7 --prop "formula==COUNTIF('Sales Data'!C2:C11,\"West\")"
 
 # Status summary
 # NOTE: Cross-sheet formulas MUST use batch/heredoc to avoid shell escaping issues with !
-cat <<'EOF' | officecli batch sales-tracker.xlsx
-[
-  {"command":"set","path":"/Summary/A9","props":{"value":"By Status","bold":"true","font.size":"13"}},
-  {"command":"set","path":"/Summary/A10","props":{"value":"Open"}},
-  {"command":"set","path":"/Summary/A11","props":{"value":"Won"}},
-  {"command":"set","path":"/Summary/A12","props":{"value":"Lost"}},
-  {"command":"set","path":"/Summary/A13","props":{"value":"Pending"}},
-  {"command":"set","path":"/Summary/B9","props":{"value":"Count","bold":"true"}},
-  {"command":"set","path":"/Summary/B10","props":{"formula":"COUNTIF('Sales Data'!F2:F11,\"Open\")"}},
-  {"command":"set","path":"/Summary/B11","props":{"formula":"COUNTIF('Sales Data'!F2:F11,\"Won\")"}},
-  {"command":"set","path":"/Summary/B12","props":{"formula":"COUNTIF('Sales Data'!F2:F11,\"Lost\")"}},
-  {"command":"set","path":"/Summary/B13","props":{"formula":"COUNTIF('Sales Data'!F2:F11,\"Pending\")"}}
-]
-EOF
+officecli set sales-tracker.xlsx /Summary/A9 --prop value="By Status" --prop bold=true --prop font.size=13
+officecli set sales-tracker.xlsx /Summary/A10 --prop value=Open
+officecli set sales-tracker.xlsx /Summary/A11 --prop value=Won
+officecli set sales-tracker.xlsx /Summary/A12 --prop value=Lost
+officecli set sales-tracker.xlsx /Summary/A13 --prop value=Pending
+officecli set sales-tracker.xlsx /Summary/B9 --prop value=Count --prop bold=true
+officecli set sales-tracker.xlsx /Summary/B10 --prop "formula==COUNTIF('Sales Data'!F2:F11,\"Open\")"
+officecli set sales-tracker.xlsx /Summary/B11 --prop "formula==COUNTIF('Sales Data'!F2:F11,\"Won\")"
+officecli set sales-tracker.xlsx /Summary/B12 --prop "formula==COUNTIF('Sales Data'!F2:F11,\"Lost\")"
+officecli set sales-tracker.xlsx /Summary/B13 --prop "formula==COUNTIF('Sales Data'!F2:F11,\"Pending\")"
 
 # Sparklines for each region (trend from Amount data)
 officecli add sales-tracker.xlsx /Summary --type sparkline --prop cell=D4 --prop range="'Sales Data'!E2:E4" --prop type=line --prop color=4472C4
@@ -500,91 +422,267 @@ officecli remove data-analysis.xlsx "/Sheet1"
 
 # ── Raw Data Sheet ──
 # Headers
-cat <<'EOF' | officecli batch data-analysis.xlsx
-[
-  {"command":"set","path":"/Raw Data/A1","props":{"value":"Date","bold":"true","fill":"1F4E79","font.color":"FFFFFF"}},
-  {"command":"set","path":"/Raw Data/B1","props":{"value":"Region","bold":"true","fill":"1F4E79","font.color":"FFFFFF"}},
-  {"command":"set","path":"/Raw Data/C1","props":{"value":"Category","bold":"true","fill":"1F4E79","font.color":"FFFFFF"}},
-  {"command":"set","path":"/Raw Data/D1","props":{"value":"Amount","bold":"true","fill":"1F4E79","font.color":"FFFFFF"}},
-  {"command":"set","path":"/Raw Data/E1","props":{"value":"Quantity","bold":"true","fill":"1F4E79","font.color":"FFFFFF"}}
-]
-EOF
+officecli set data-analysis.xlsx "/Raw Data/A1" --prop value=Date --prop bold=true --prop fill=1F4E79 --prop font.color=FFFFFF
+officecli set data-analysis.xlsx "/Raw Data/B1" --prop value=Region --prop bold=true --prop fill=1F4E79 --prop font.color=FFFFFF
+officecli set data-analysis.xlsx "/Raw Data/C1" --prop value=Category --prop bold=true --prop fill=1F4E79 --prop font.color=FFFFFF
+officecli set data-analysis.xlsx "/Raw Data/D1" --prop value=Amount --prop bold=true --prop fill=1F4E79 --prop font.color=FFFFFF
+officecli set data-analysis.xlsx "/Raw Data/E1" --prop value=Quantity --prop bold=true --prop fill=1F4E79 --prop font.color=FFFFFF
 
 # 50 rows of sample data (split into chunks of ~12 for batch reliability)
-cat <<'EOF' | officecli batch data-analysis.xlsx
-[
-  {"command":"set","path":"/Raw Data/A2","props":{"value":"2025-01-05","numFmt":"yyyy-mm-dd"}},{"command":"set","path":"/Raw Data/B2","props":{"value":"North"}},{"command":"set","path":"/Raw Data/C2","props":{"value":"Electronics"}},{"command":"set","path":"/Raw Data/D2","props":{"value":"4500","numFmt":"$#,##0"}},{"command":"set","path":"/Raw Data/E2","props":{"value":"12"}},
-  {"command":"set","path":"/Raw Data/A3","props":{"value":"2025-01-10","numFmt":"yyyy-mm-dd"}},{"command":"set","path":"/Raw Data/B3","props":{"value":"South"}},{"command":"set","path":"/Raw Data/C3","props":{"value":"Clothing"}},{"command":"set","path":"/Raw Data/D3","props":{"value":"2800","numFmt":"$#,##0"}},{"command":"set","path":"/Raw Data/E3","props":{"value":"45"}},
-  {"command":"set","path":"/Raw Data/A4","props":{"value":"2025-01-15","numFmt":"yyyy-mm-dd"}},{"command":"set","path":"/Raw Data/B4","props":{"value":"East"}},{"command":"set","path":"/Raw Data/C4","props":{"value":"Electronics"}},{"command":"set","path":"/Raw Data/D4","props":{"value":"6200","numFmt":"$#,##0"}},{"command":"set","path":"/Raw Data/E4","props":{"value":"18"}},
-  {"command":"set","path":"/Raw Data/A5","props":{"value":"2025-01-20","numFmt":"yyyy-mm-dd"}},{"command":"set","path":"/Raw Data/B5","props":{"value":"West"}},{"command":"set","path":"/Raw Data/C5","props":{"value":"Food"}},{"command":"set","path":"/Raw Data/D5","props":{"value":"1500","numFmt":"$#,##0"}},{"command":"set","path":"/Raw Data/E5","props":{"value":"80"}},
-  {"command":"set","path":"/Raw Data/A6","props":{"value":"2025-02-01","numFmt":"yyyy-mm-dd"}},{"command":"set","path":"/Raw Data/B6","props":{"value":"North"}},{"command":"set","path":"/Raw Data/C6","props":{"value":"Clothing"}},{"command":"set","path":"/Raw Data/D6","props":{"value":"3200","numFmt":"$#,##0"}},{"command":"set","path":"/Raw Data/E6","props":{"value":"50"}},
-  {"command":"set","path":"/Raw Data/A7","props":{"value":"2025-02-05","numFmt":"yyyy-mm-dd"}},{"command":"set","path":"/Raw Data/B7","props":{"value":"South"}},{"command":"set","path":"/Raw Data/C7","props":{"value":"Electronics"}},{"command":"set","path":"/Raw Data/D7","props":{"value":"5800","numFmt":"$#,##0"}},{"command":"set","path":"/Raw Data/E7","props":{"value":"15"}},
-  {"command":"set","path":"/Raw Data/A8","props":{"value":"2025-02-10","numFmt":"yyyy-mm-dd"}},{"command":"set","path":"/Raw Data/B8","props":{"value":"East"}},{"command":"set","path":"/Raw Data/C8","props":{"value":"Food"}},{"command":"set","path":"/Raw Data/D8","props":{"value":"1800","numFmt":"$#,##0"}},{"command":"set","path":"/Raw Data/E8","props":{"value":"90"}},
-  {"command":"set","path":"/Raw Data/A9","props":{"value":"2025-02-15","numFmt":"yyyy-mm-dd"}},{"command":"set","path":"/Raw Data/B9","props":{"value":"West"}},{"command":"set","path":"/Raw Data/C9","props":{"value":"Clothing"}},{"command":"set","path":"/Raw Data/D9","props":{"value":"2100","numFmt":"$#,##0"}},{"command":"set","path":"/Raw Data/E9","props":{"value":"35"}},
-  {"command":"set","path":"/Raw Data/A10","props":{"value":"2025-02-20","numFmt":"yyyy-mm-dd"}},{"command":"set","path":"/Raw Data/B10","props":{"value":"North"}},{"command":"set","path":"/Raw Data/C10","props":{"value":"Food"}},{"command":"set","path":"/Raw Data/D10","props":{"value":"1200","numFmt":"$#,##0"}},{"command":"set","path":"/Raw Data/E10","props":{"value":"60"}},
-  {"command":"set","path":"/Raw Data/A11","props":{"value":"2025-03-01","numFmt":"yyyy-mm-dd"}},{"command":"set","path":"/Raw Data/B11","props":{"value":"South"}},{"command":"set","path":"/Raw Data/C11","props":{"value":"Food"}},{"command":"set","path":"/Raw Data/D11","props":{"value":"1600","numFmt":"$#,##0"}},{"command":"set","path":"/Raw Data/E11","props":{"value":"70"}}
-]
-EOF
+officecli set data-analysis.xlsx "/Raw Data/A2" --prop value=2025-01-05 --prop numFmt=yyyy-mm-dd
+officecli set data-analysis.xlsx "/Raw Data/B2" --prop value=North
+officecli set data-analysis.xlsx "/Raw Data/C2" --prop value=Electronics
+officecli set data-analysis.xlsx "/Raw Data/D2" --prop value=4500 --prop numFmt='$#,##0'
+officecli set data-analysis.xlsx "/Raw Data/E2" --prop value=12
+officecli set data-analysis.xlsx "/Raw Data/A3" --prop value=2025-01-10 --prop numFmt=yyyy-mm-dd
+officecli set data-analysis.xlsx "/Raw Data/B3" --prop value=South
+officecli set data-analysis.xlsx "/Raw Data/C3" --prop value=Clothing
+officecli set data-analysis.xlsx "/Raw Data/D3" --prop value=2800 --prop numFmt='$#,##0'
+officecli set data-analysis.xlsx "/Raw Data/E3" --prop value=45
+officecli set data-analysis.xlsx "/Raw Data/A4" --prop value=2025-01-15 --prop numFmt=yyyy-mm-dd
+officecli set data-analysis.xlsx "/Raw Data/B4" --prop value=East
+officecli set data-analysis.xlsx "/Raw Data/C4" --prop value=Electronics
+officecli set data-analysis.xlsx "/Raw Data/D4" --prop value=6200 --prop numFmt='$#,##0'
+officecli set data-analysis.xlsx "/Raw Data/E4" --prop value=18
+officecli set data-analysis.xlsx "/Raw Data/A5" --prop value=2025-01-20 --prop numFmt=yyyy-mm-dd
+officecli set data-analysis.xlsx "/Raw Data/B5" --prop value=West
+officecli set data-analysis.xlsx "/Raw Data/C5" --prop value=Food
+officecli set data-analysis.xlsx "/Raw Data/D5" --prop value=1500 --prop numFmt='$#,##0'
+officecli set data-analysis.xlsx "/Raw Data/E5" --prop value=80
+officecli set data-analysis.xlsx "/Raw Data/A6" --prop value=2025-02-01 --prop numFmt=yyyy-mm-dd
+officecli set data-analysis.xlsx "/Raw Data/B6" --prop value=North
+officecli set data-analysis.xlsx "/Raw Data/C6" --prop value=Clothing
+officecli set data-analysis.xlsx "/Raw Data/D6" --prop value=3200 --prop numFmt='$#,##0'
+officecli set data-analysis.xlsx "/Raw Data/E6" --prop value=50
+officecli set data-analysis.xlsx "/Raw Data/A7" --prop value=2025-02-05 --prop numFmt=yyyy-mm-dd
+officecli set data-analysis.xlsx "/Raw Data/B7" --prop value=South
+officecli set data-analysis.xlsx "/Raw Data/C7" --prop value=Electronics
+officecli set data-analysis.xlsx "/Raw Data/D7" --prop value=5800 --prop numFmt='$#,##0'
+officecli set data-analysis.xlsx "/Raw Data/E7" --prop value=15
+officecli set data-analysis.xlsx "/Raw Data/A8" --prop value=2025-02-10 --prop numFmt=yyyy-mm-dd
+officecli set data-analysis.xlsx "/Raw Data/B8" --prop value=East
+officecli set data-analysis.xlsx "/Raw Data/C8" --prop value=Food
+officecli set data-analysis.xlsx "/Raw Data/D8" --prop value=1800 --prop numFmt='$#,##0'
+officecli set data-analysis.xlsx "/Raw Data/E8" --prop value=90
+officecli set data-analysis.xlsx "/Raw Data/A9" --prop value=2025-02-15 --prop numFmt=yyyy-mm-dd
+officecli set data-analysis.xlsx "/Raw Data/B9" --prop value=West
+officecli set data-analysis.xlsx "/Raw Data/C9" --prop value=Clothing
+officecli set data-analysis.xlsx "/Raw Data/D9" --prop value=2100 --prop numFmt='$#,##0'
+officecli set data-analysis.xlsx "/Raw Data/E9" --prop value=35
+officecli set data-analysis.xlsx "/Raw Data/A10" --prop value=2025-02-20 --prop numFmt=yyyy-mm-dd
+officecli set data-analysis.xlsx "/Raw Data/B10" --prop value=North
+officecli set data-analysis.xlsx "/Raw Data/C10" --prop value=Food
+officecli set data-analysis.xlsx "/Raw Data/D10" --prop value=1200 --prop numFmt='$#,##0'
+officecli set data-analysis.xlsx "/Raw Data/E10" --prop value=60
+officecli set data-analysis.xlsx "/Raw Data/A11" --prop value=2025-03-01 --prop numFmt=yyyy-mm-dd
+officecli set data-analysis.xlsx "/Raw Data/B11" --prop value=South
+officecli set data-analysis.xlsx "/Raw Data/C11" --prop value=Food
+officecli set data-analysis.xlsx "/Raw Data/D11" --prop value=1600 --prop numFmt='$#,##0'
+officecli set data-analysis.xlsx "/Raw Data/E11" --prop value=70
 
-cat <<'EOF' | officecli batch data-analysis.xlsx
-[
-  {"command":"set","path":"/Raw Data/A12","props":{"value":"2025-03-05","numFmt":"yyyy-mm-dd"}},{"command":"set","path":"/Raw Data/B12","props":{"value":"East"}},{"command":"set","path":"/Raw Data/C12","props":{"value":"Clothing"}},{"command":"set","path":"/Raw Data/D12","props":{"value":"3800","numFmt":"$#,##0"}},{"command":"set","path":"/Raw Data/E12","props":{"value":"55"}},
-  {"command":"set","path":"/Raw Data/A13","props":{"value":"2025-03-10","numFmt":"yyyy-mm-dd"}},{"command":"set","path":"/Raw Data/B13","props":{"value":"West"}},{"command":"set","path":"/Raw Data/C13","props":{"value":"Electronics"}},{"command":"set","path":"/Raw Data/D13","props":{"value":"7200","numFmt":"$#,##0"}},{"command":"set","path":"/Raw Data/E13","props":{"value":"22"}},
-  {"command":"set","path":"/Raw Data/A14","props":{"value":"2025-03-15","numFmt":"yyyy-mm-dd"}},{"command":"set","path":"/Raw Data/B14","props":{"value":"North"}},{"command":"set","path":"/Raw Data/C14","props":{"value":"Electronics"}},{"command":"set","path":"/Raw Data/D14","props":{"value":"5100","numFmt":"$#,##0"}},{"command":"set","path":"/Raw Data/E14","props":{"value":"14"}},
-  {"command":"set","path":"/Raw Data/A15","props":{"value":"2025-03-20","numFmt":"yyyy-mm-dd"}},{"command":"set","path":"/Raw Data/B15","props":{"value":"South"}},{"command":"set","path":"/Raw Data/C15","props":{"value":"Clothing"}},{"command":"set","path":"/Raw Data/D15","props":{"value":"2500","numFmt":"$#,##0"}},{"command":"set","path":"/Raw Data/E15","props":{"value":"40"}},
-  {"command":"set","path":"/Raw Data/A16","props":{"value":"2025-04-01","numFmt":"yyyy-mm-dd"}},{"command":"set","path":"/Raw Data/B16","props":{"value":"East"}},{"command":"set","path":"/Raw Data/C16","props":{"value":"Electronics"}},{"command":"set","path":"/Raw Data/D16","props":{"value":"6800","numFmt":"$#,##0"}},{"command":"set","path":"/Raw Data/E16","props":{"value":"20"}},
-  {"command":"set","path":"/Raw Data/A17","props":{"value":"2025-04-05","numFmt":"yyyy-mm-dd"}},{"command":"set","path":"/Raw Data/B17","props":{"value":"West"}},{"command":"set","path":"/Raw Data/C17","props":{"value":"Food"}},{"command":"set","path":"/Raw Data/D17","props":{"value":"1400","numFmt":"$#,##0"}},{"command":"set","path":"/Raw Data/E17","props":{"value":"75"}},
-  {"command":"set","path":"/Raw Data/A18","props":{"value":"2025-04-10","numFmt":"yyyy-mm-dd"}},{"command":"set","path":"/Raw Data/B18","props":{"value":"North"}},{"command":"set","path":"/Raw Data/C18","props":{"value":"Clothing"}},{"command":"set","path":"/Raw Data/D18","props":{"value":"2900","numFmt":"$#,##0"}},{"command":"set","path":"/Raw Data/E18","props":{"value":"42"}},
-  {"command":"set","path":"/Raw Data/A19","props":{"value":"2025-04-15","numFmt":"yyyy-mm-dd"}},{"command":"set","path":"/Raw Data/B19","props":{"value":"South"}},{"command":"set","path":"/Raw Data/C19","props":{"value":"Electronics"}},{"command":"set","path":"/Raw Data/D19","props":{"value":"5500","numFmt":"$#,##0"}},{"command":"set","path":"/Raw Data/E19","props":{"value":"16"}},
-  {"command":"set","path":"/Raw Data/A20","props":{"value":"2025-04-20","numFmt":"yyyy-mm-dd"}},{"command":"set","path":"/Raw Data/B20","props":{"value":"East"}},{"command":"set","path":"/Raw Data/C20","props":{"value":"Food"}},{"command":"set","path":"/Raw Data/D20","props":{"value":"1700","numFmt":"$#,##0"}},{"command":"set","path":"/Raw Data/E20","props":{"value":"85"}},
-  {"command":"set","path":"/Raw Data/A21","props":{"value":"2025-05-01","numFmt":"yyyy-mm-dd"}},{"command":"set","path":"/Raw Data/B21","props":{"value":"West"}},{"command":"set","path":"/Raw Data/C21","props":{"value":"Clothing"}},{"command":"set","path":"/Raw Data/D21","props":{"value":"2600","numFmt":"$#,##0"}},{"command":"set","path":"/Raw Data/E21","props":{"value":"38"}}
-]
-EOF
+officecli set data-analysis.xlsx "/Raw Data/A12" --prop value=2025-03-05 --prop numFmt=yyyy-mm-dd
+officecli set data-analysis.xlsx "/Raw Data/B12" --prop value=East
+officecli set data-analysis.xlsx "/Raw Data/C12" --prop value=Clothing
+officecli set data-analysis.xlsx "/Raw Data/D12" --prop value=3800 --prop numFmt='$#,##0'
+officecli set data-analysis.xlsx "/Raw Data/E12" --prop value=55
+officecli set data-analysis.xlsx "/Raw Data/A13" --prop value=2025-03-10 --prop numFmt=yyyy-mm-dd
+officecli set data-analysis.xlsx "/Raw Data/B13" --prop value=West
+officecli set data-analysis.xlsx "/Raw Data/C13" --prop value=Electronics
+officecli set data-analysis.xlsx "/Raw Data/D13" --prop value=7200 --prop numFmt='$#,##0'
+officecli set data-analysis.xlsx "/Raw Data/E13" --prop value=22
+officecli set data-analysis.xlsx "/Raw Data/A14" --prop value=2025-03-15 --prop numFmt=yyyy-mm-dd
+officecli set data-analysis.xlsx "/Raw Data/B14" --prop value=North
+officecli set data-analysis.xlsx "/Raw Data/C14" --prop value=Electronics
+officecli set data-analysis.xlsx "/Raw Data/D14" --prop value=5100 --prop numFmt='$#,##0'
+officecli set data-analysis.xlsx "/Raw Data/E14" --prop value=14
+officecli set data-analysis.xlsx "/Raw Data/A15" --prop value=2025-03-20 --prop numFmt=yyyy-mm-dd
+officecli set data-analysis.xlsx "/Raw Data/B15" --prop value=South
+officecli set data-analysis.xlsx "/Raw Data/C15" --prop value=Clothing
+officecli set data-analysis.xlsx "/Raw Data/D15" --prop value=2500 --prop numFmt='$#,##0'
+officecli set data-analysis.xlsx "/Raw Data/E15" --prop value=40
+officecli set data-analysis.xlsx "/Raw Data/A16" --prop value=2025-04-01 --prop numFmt=yyyy-mm-dd
+officecli set data-analysis.xlsx "/Raw Data/B16" --prop value=East
+officecli set data-analysis.xlsx "/Raw Data/C16" --prop value=Electronics
+officecli set data-analysis.xlsx "/Raw Data/D16" --prop value=6800 --prop numFmt='$#,##0'
+officecli set data-analysis.xlsx "/Raw Data/E16" --prop value=20
+officecli set data-analysis.xlsx "/Raw Data/A17" --prop value=2025-04-05 --prop numFmt=yyyy-mm-dd
+officecli set data-analysis.xlsx "/Raw Data/B17" --prop value=West
+officecli set data-analysis.xlsx "/Raw Data/C17" --prop value=Food
+officecli set data-analysis.xlsx "/Raw Data/D17" --prop value=1400 --prop numFmt='$#,##0'
+officecli set data-analysis.xlsx "/Raw Data/E17" --prop value=75
+officecli set data-analysis.xlsx "/Raw Data/A18" --prop value=2025-04-10 --prop numFmt=yyyy-mm-dd
+officecli set data-analysis.xlsx "/Raw Data/B18" --prop value=North
+officecli set data-analysis.xlsx "/Raw Data/C18" --prop value=Clothing
+officecli set data-analysis.xlsx "/Raw Data/D18" --prop value=2900 --prop numFmt='$#,##0'
+officecli set data-analysis.xlsx "/Raw Data/E18" --prop value=42
+officecli set data-analysis.xlsx "/Raw Data/A19" --prop value=2025-04-15 --prop numFmt=yyyy-mm-dd
+officecli set data-analysis.xlsx "/Raw Data/B19" --prop value=South
+officecli set data-analysis.xlsx "/Raw Data/C19" --prop value=Electronics
+officecli set data-analysis.xlsx "/Raw Data/D19" --prop value=5500 --prop numFmt='$#,##0'
+officecli set data-analysis.xlsx "/Raw Data/E19" --prop value=16
+officecli set data-analysis.xlsx "/Raw Data/A20" --prop value=2025-04-20 --prop numFmt=yyyy-mm-dd
+officecli set data-analysis.xlsx "/Raw Data/B20" --prop value=East
+officecli set data-analysis.xlsx "/Raw Data/C20" --prop value=Food
+officecli set data-analysis.xlsx "/Raw Data/D20" --prop value=1700 --prop numFmt='$#,##0'
+officecli set data-analysis.xlsx "/Raw Data/E20" --prop value=85
+officecli set data-analysis.xlsx "/Raw Data/A21" --prop value=2025-05-01 --prop numFmt=yyyy-mm-dd
+officecli set data-analysis.xlsx "/Raw Data/B21" --prop value=West
+officecli set data-analysis.xlsx "/Raw Data/C21" --prop value=Clothing
+officecli set data-analysis.xlsx "/Raw Data/D21" --prop value=2600 --prop numFmt='$#,##0'
+officecli set data-analysis.xlsx "/Raw Data/E21" --prop value=38
 
-cat <<'EOF' | officecli batch data-analysis.xlsx
-[
-  {"command":"set","path":"/Raw Data/A22","props":{"value":"2025-05-05","numFmt":"yyyy-mm-dd"}},{"command":"set","path":"/Raw Data/B22","props":{"value":"North"}},{"command":"set","path":"/Raw Data/C22","props":{"value":"Food"}},{"command":"set","path":"/Raw Data/D22","props":{"value":"1300","numFmt":"$#,##0"}},{"command":"set","path":"/Raw Data/E22","props":{"value":"65"}},
-  {"command":"set","path":"/Raw Data/A23","props":{"value":"2025-05-10","numFmt":"yyyy-mm-dd"}},{"command":"set","path":"/Raw Data/B23","props":{"value":"South"}},{"command":"set","path":"/Raw Data/C23","props":{"value":"Clothing"}},{"command":"set","path":"/Raw Data/D23","props":{"value":"3100","numFmt":"$#,##0"}},{"command":"set","path":"/Raw Data/E23","props":{"value":"48"}},
-  {"command":"set","path":"/Raw Data/A24","props":{"value":"2025-05-15","numFmt":"yyyy-mm-dd"}},{"command":"set","path":"/Raw Data/B24","props":{"value":"East"}},{"command":"set","path":"/Raw Data/C24","props":{"value":"Electronics"}},{"command":"set","path":"/Raw Data/D24","props":{"value":"7500","numFmt":"$#,##0"}},{"command":"set","path":"/Raw Data/E24","props":{"value":"25"}},
-  {"command":"set","path":"/Raw Data/A25","props":{"value":"2025-05-20","numFmt":"yyyy-mm-dd"}},{"command":"set","path":"/Raw Data/B25","props":{"value":"West"}},{"command":"set","path":"/Raw Data/C25","props":{"value":"Electronics"}},{"command":"set","path":"/Raw Data/D25","props":{"value":"6400","numFmt":"$#,##0"}},{"command":"set","path":"/Raw Data/E25","props":{"value":"19"}},
-  {"command":"set","path":"/Raw Data/A26","props":{"value":"2025-06-01","numFmt":"yyyy-mm-dd"}},{"command":"set","path":"/Raw Data/B26","props":{"value":"North"}},{"command":"set","path":"/Raw Data/C26","props":{"value":"Electronics"}},{"command":"set","path":"/Raw Data/D26","props":{"value":"5600","numFmt":"$#,##0"}},{"command":"set","path":"/Raw Data/E26","props":{"value":"17"}},
-  {"command":"set","path":"/Raw Data/A27","props":{"value":"2025-06-05","numFmt":"yyyy-mm-dd"}},{"command":"set","path":"/Raw Data/B27","props":{"value":"South"}},{"command":"set","path":"/Raw Data/C27","props":{"value":"Food"}},{"command":"set","path":"/Raw Data/D27","props":{"value":"1900","numFmt":"$#,##0"}},{"command":"set","path":"/Raw Data/E27","props":{"value":"72"}},
-  {"command":"set","path":"/Raw Data/A28","props":{"value":"2025-06-10","numFmt":"yyyy-mm-dd"}},{"command":"set","path":"/Raw Data/B28","props":{"value":"East"}},{"command":"set","path":"/Raw Data/C28","props":{"value":"Clothing"}},{"command":"set","path":"/Raw Data/D28","props":{"value":"3500","numFmt":"$#,##0"}},{"command":"set","path":"/Raw Data/E28","props":{"value":"52"}},
-  {"command":"set","path":"/Raw Data/A29","props":{"value":"2025-06-15","numFmt":"yyyy-mm-dd"}},{"command":"set","path":"/Raw Data/B29","props":{"value":"West"}},{"command":"set","path":"/Raw Data/C29","props":{"value":"Food"}},{"command":"set","path":"/Raw Data/D29","props":{"value":"1100","numFmt":"$#,##0"}},{"command":"set","path":"/Raw Data/E29","props":{"value":"58"}},
-  {"command":"set","path":"/Raw Data/A30","props":{"value":"2025-06-20","numFmt":"yyyy-mm-dd"}},{"command":"set","path":"/Raw Data/B30","props":{"value":"North"}},{"command":"set","path":"/Raw Data/C30","props":{"value":"Clothing"}},{"command":"set","path":"/Raw Data/D30","props":{"value":"2700","numFmt":"$#,##0"}},{"command":"set","path":"/Raw Data/E30","props":{"value":"44"}},
-  {"command":"set","path":"/Raw Data/A31","props":{"value":"2025-07-01","numFmt":"yyyy-mm-dd"}},{"command":"set","path":"/Raw Data/B31","props":{"value":"South"}},{"command":"set","path":"/Raw Data/C31","props":{"value":"Electronics"}},{"command":"set","path":"/Raw Data/D31","props":{"value":"6100","numFmt":"$#,##0"}},{"command":"set","path":"/Raw Data/E31","props":{"value":"21"}}
-]
-EOF
+officecli set data-analysis.xlsx "/Raw Data/A22" --prop value=2025-05-05 --prop numFmt=yyyy-mm-dd
+officecli set data-analysis.xlsx "/Raw Data/B22" --prop value=North
+officecli set data-analysis.xlsx "/Raw Data/C22" --prop value=Food
+officecli set data-analysis.xlsx "/Raw Data/D22" --prop value=1300 --prop numFmt='$#,##0'
+officecli set data-analysis.xlsx "/Raw Data/E22" --prop value=65
+officecli set data-analysis.xlsx "/Raw Data/A23" --prop value=2025-05-10 --prop numFmt=yyyy-mm-dd
+officecli set data-analysis.xlsx "/Raw Data/B23" --prop value=South
+officecli set data-analysis.xlsx "/Raw Data/C23" --prop value=Clothing
+officecli set data-analysis.xlsx "/Raw Data/D23" --prop value=3100 --prop numFmt='$#,##0'
+officecli set data-analysis.xlsx "/Raw Data/E23" --prop value=48
+officecli set data-analysis.xlsx "/Raw Data/A24" --prop value=2025-05-15 --prop numFmt=yyyy-mm-dd
+officecli set data-analysis.xlsx "/Raw Data/B24" --prop value=East
+officecli set data-analysis.xlsx "/Raw Data/C24" --prop value=Electronics
+officecli set data-analysis.xlsx "/Raw Data/D24" --prop value=7500 --prop numFmt='$#,##0'
+officecli set data-analysis.xlsx "/Raw Data/E24" --prop value=25
+officecli set data-analysis.xlsx "/Raw Data/A25" --prop value=2025-05-20 --prop numFmt=yyyy-mm-dd
+officecli set data-analysis.xlsx "/Raw Data/B25" --prop value=West
+officecli set data-analysis.xlsx "/Raw Data/C25" --prop value=Electronics
+officecli set data-analysis.xlsx "/Raw Data/D25" --prop value=6400 --prop numFmt='$#,##0'
+officecli set data-analysis.xlsx "/Raw Data/E25" --prop value=19
+officecli set data-analysis.xlsx "/Raw Data/A26" --prop value=2025-06-01 --prop numFmt=yyyy-mm-dd
+officecli set data-analysis.xlsx "/Raw Data/B26" --prop value=North
+officecli set data-analysis.xlsx "/Raw Data/C26" --prop value=Electronics
+officecli set data-analysis.xlsx "/Raw Data/D26" --prop value=5600 --prop numFmt='$#,##0'
+officecli set data-analysis.xlsx "/Raw Data/E26" --prop value=17
+officecli set data-analysis.xlsx "/Raw Data/A27" --prop value=2025-06-05 --prop numFmt=yyyy-mm-dd
+officecli set data-analysis.xlsx "/Raw Data/B27" --prop value=South
+officecli set data-analysis.xlsx "/Raw Data/C27" --prop value=Food
+officecli set data-analysis.xlsx "/Raw Data/D27" --prop value=1900 --prop numFmt='$#,##0'
+officecli set data-analysis.xlsx "/Raw Data/E27" --prop value=72
+officecli set data-analysis.xlsx "/Raw Data/A28" --prop value=2025-06-10 --prop numFmt=yyyy-mm-dd
+officecli set data-analysis.xlsx "/Raw Data/B28" --prop value=East
+officecli set data-analysis.xlsx "/Raw Data/C28" --prop value=Clothing
+officecli set data-analysis.xlsx "/Raw Data/D28" --prop value=3500 --prop numFmt='$#,##0'
+officecli set data-analysis.xlsx "/Raw Data/E28" --prop value=52
+officecli set data-analysis.xlsx "/Raw Data/A29" --prop value=2025-06-15 --prop numFmt=yyyy-mm-dd
+officecli set data-analysis.xlsx "/Raw Data/B29" --prop value=West
+officecli set data-analysis.xlsx "/Raw Data/C29" --prop value=Food
+officecli set data-analysis.xlsx "/Raw Data/D29" --prop value=1100 --prop numFmt='$#,##0'
+officecli set data-analysis.xlsx "/Raw Data/E29" --prop value=58
+officecli set data-analysis.xlsx "/Raw Data/A30" --prop value=2025-06-20 --prop numFmt=yyyy-mm-dd
+officecli set data-analysis.xlsx "/Raw Data/B30" --prop value=North
+officecli set data-analysis.xlsx "/Raw Data/C30" --prop value=Clothing
+officecli set data-analysis.xlsx "/Raw Data/D30" --prop value=2700 --prop numFmt='$#,##0'
+officecli set data-analysis.xlsx "/Raw Data/E30" --prop value=44
+officecli set data-analysis.xlsx "/Raw Data/A31" --prop value=2025-07-01 --prop numFmt=yyyy-mm-dd
+officecli set data-analysis.xlsx "/Raw Data/B31" --prop value=South
+officecli set data-analysis.xlsx "/Raw Data/C31" --prop value=Electronics
+officecli set data-analysis.xlsx "/Raw Data/D31" --prop value=6100 --prop numFmt='$#,##0'
+officecli set data-analysis.xlsx "/Raw Data/E31" --prop value=21
 
-cat <<'EOF' | officecli batch data-analysis.xlsx
-[
-  {"command":"set","path":"/Raw Data/A32","props":{"value":"2025-07-05","numFmt":"yyyy-mm-dd"}},{"command":"set","path":"/Raw Data/B32","props":{"value":"East"}},{"command":"set","path":"/Raw Data/C32","props":{"value":"Food"}},{"command":"set","path":"/Raw Data/D32","props":{"value":"1500","numFmt":"$#,##0"}},{"command":"set","path":"/Raw Data/E32","props":{"value":"82"}},
-  {"command":"set","path":"/Raw Data/A33","props":{"value":"2025-07-10","numFmt":"yyyy-mm-dd"}},{"command":"set","path":"/Raw Data/B33","props":{"value":"West"}},{"command":"set","path":"/Raw Data/C33","props":{"value":"Clothing"}},{"command":"set","path":"/Raw Data/D33","props":{"value":"2400","numFmt":"$#,##0"}},{"command":"set","path":"/Raw Data/E33","props":{"value":"36"}},
-  {"command":"set","path":"/Raw Data/A34","props":{"value":"2025-07-15","numFmt":"yyyy-mm-dd"}},{"command":"set","path":"/Raw Data/B34","props":{"value":"North"}},{"command":"set","path":"/Raw Data/C34","props":{"value":"Electronics"}},{"command":"set","path":"/Raw Data/D34","props":{"value":"4800","numFmt":"$#,##0"}},{"command":"set","path":"/Raw Data/E34","props":{"value":"13"}},
-  {"command":"set","path":"/Raw Data/A35","props":{"value":"2025-07-20","numFmt":"yyyy-mm-dd"}},{"command":"set","path":"/Raw Data/B35","props":{"value":"South"}},{"command":"set","path":"/Raw Data/C35","props":{"value":"Clothing"}},{"command":"set","path":"/Raw Data/D35","props":{"value":"3300","numFmt":"$#,##0"}},{"command":"set","path":"/Raw Data/E35","props":{"value":"47"}},
-  {"command":"set","path":"/Raw Data/A36","props":{"value":"2025-08-01","numFmt":"yyyy-mm-dd"}},{"command":"set","path":"/Raw Data/B36","props":{"value":"East"}},{"command":"set","path":"/Raw Data/C36","props":{"value":"Electronics"}},{"command":"set","path":"/Raw Data/D36","props":{"value":"7100","numFmt":"$#,##0"}},{"command":"set","path":"/Raw Data/E36","props":{"value":"23"}},
-  {"command":"set","path":"/Raw Data/A37","props":{"value":"2025-08-05","numFmt":"yyyy-mm-dd"}},{"command":"set","path":"/Raw Data/B37","props":{"value":"West"}},{"command":"set","path":"/Raw Data/C37","props":{"value":"Food"}},{"command":"set","path":"/Raw Data/D37","props":{"value":"1600","numFmt":"$#,##0"}},{"command":"set","path":"/Raw Data/E37","props":{"value":"68"}},
-  {"command":"set","path":"/Raw Data/A38","props":{"value":"2025-08-10","numFmt":"yyyy-mm-dd"}},{"command":"set","path":"/Raw Data/B38","props":{"value":"North"}},{"command":"set","path":"/Raw Data/C38","props":{"value":"Food"}},{"command":"set","path":"/Raw Data/D38","props":{"value":"1400","numFmt":"$#,##0"}},{"command":"set","path":"/Raw Data/E38","props":{"value":"62"}},
-  {"command":"set","path":"/Raw Data/A39","props":{"value":"2025-08-15","numFmt":"yyyy-mm-dd"}},{"command":"set","path":"/Raw Data/B39","props":{"value":"South"}},{"command":"set","path":"/Raw Data/C39","props":{"value":"Electronics"}},{"command":"set","path":"/Raw Data/D39","props":{"value":"5900","numFmt":"$#,##0"}},{"command":"set","path":"/Raw Data/E39","props":{"value":"18"}},
-  {"command":"set","path":"/Raw Data/A40","props":{"value":"2025-08-20","numFmt":"yyyy-mm-dd"}},{"command":"set","path":"/Raw Data/B40","props":{"value":"East"}},{"command":"set","path":"/Raw Data/C40","props":{"value":"Clothing"}},{"command":"set","path":"/Raw Data/D40","props":{"value":"4100","numFmt":"$#,##0"}},{"command":"set","path":"/Raw Data/E40","props":{"value":"56"}},
-  {"command":"set","path":"/Raw Data/A41","props":{"value":"2025-09-01","numFmt":"yyyy-mm-dd"}},{"command":"set","path":"/Raw Data/B41","props":{"value":"West"}},{"command":"set","path":"/Raw Data/C41","props":{"value":"Electronics"}},{"command":"set","path":"/Raw Data/D41","props":{"value":"6600","numFmt":"$#,##0"}},{"command":"set","path":"/Raw Data/E41","props":{"value":"20"}}
-]
-EOF
+officecli set data-analysis.xlsx "/Raw Data/A32" --prop value=2025-07-05 --prop numFmt=yyyy-mm-dd
+officecli set data-analysis.xlsx "/Raw Data/B32" --prop value=East
+officecli set data-analysis.xlsx "/Raw Data/C32" --prop value=Food
+officecli set data-analysis.xlsx "/Raw Data/D32" --prop value=1500 --prop numFmt='$#,##0'
+officecli set data-analysis.xlsx "/Raw Data/E32" --prop value=82
+officecli set data-analysis.xlsx "/Raw Data/A33" --prop value=2025-07-10 --prop numFmt=yyyy-mm-dd
+officecli set data-analysis.xlsx "/Raw Data/B33" --prop value=West
+officecli set data-analysis.xlsx "/Raw Data/C33" --prop value=Clothing
+officecli set data-analysis.xlsx "/Raw Data/D33" --prop value=2400 --prop numFmt='$#,##0'
+officecli set data-analysis.xlsx "/Raw Data/E33" --prop value=36
+officecli set data-analysis.xlsx "/Raw Data/A34" --prop value=2025-07-15 --prop numFmt=yyyy-mm-dd
+officecli set data-analysis.xlsx "/Raw Data/B34" --prop value=North
+officecli set data-analysis.xlsx "/Raw Data/C34" --prop value=Electronics
+officecli set data-analysis.xlsx "/Raw Data/D34" --prop value=4800 --prop numFmt='$#,##0'
+officecli set data-analysis.xlsx "/Raw Data/E34" --prop value=13
+officecli set data-analysis.xlsx "/Raw Data/A35" --prop value=2025-07-20 --prop numFmt=yyyy-mm-dd
+officecli set data-analysis.xlsx "/Raw Data/B35" --prop value=South
+officecli set data-analysis.xlsx "/Raw Data/C35" --prop value=Clothing
+officecli set data-analysis.xlsx "/Raw Data/D35" --prop value=3300 --prop numFmt='$#,##0'
+officecli set data-analysis.xlsx "/Raw Data/E35" --prop value=47
+officecli set data-analysis.xlsx "/Raw Data/A36" --prop value=2025-08-01 --prop numFmt=yyyy-mm-dd
+officecli set data-analysis.xlsx "/Raw Data/B36" --prop value=East
+officecli set data-analysis.xlsx "/Raw Data/C36" --prop value=Electronics
+officecli set data-analysis.xlsx "/Raw Data/D36" --prop value=7100 --prop numFmt='$#,##0'
+officecli set data-analysis.xlsx "/Raw Data/E36" --prop value=23
+officecli set data-analysis.xlsx "/Raw Data/A37" --prop value=2025-08-05 --prop numFmt=yyyy-mm-dd
+officecli set data-analysis.xlsx "/Raw Data/B37" --prop value=West
+officecli set data-analysis.xlsx "/Raw Data/C37" --prop value=Food
+officecli set data-analysis.xlsx "/Raw Data/D37" --prop value=1600 --prop numFmt='$#,##0'
+officecli set data-analysis.xlsx "/Raw Data/E37" --prop value=68
+officecli set data-analysis.xlsx "/Raw Data/A38" --prop value=2025-08-10 --prop numFmt=yyyy-mm-dd
+officecli set data-analysis.xlsx "/Raw Data/B38" --prop value=North
+officecli set data-analysis.xlsx "/Raw Data/C38" --prop value=Food
+officecli set data-analysis.xlsx "/Raw Data/D38" --prop value=1400 --prop numFmt='$#,##0'
+officecli set data-analysis.xlsx "/Raw Data/E38" --prop value=62
+officecli set data-analysis.xlsx "/Raw Data/A39" --prop value=2025-08-15 --prop numFmt=yyyy-mm-dd
+officecli set data-analysis.xlsx "/Raw Data/B39" --prop value=South
+officecli set data-analysis.xlsx "/Raw Data/C39" --prop value=Electronics
+officecli set data-analysis.xlsx "/Raw Data/D39" --prop value=5900 --prop numFmt='$#,##0'
+officecli set data-analysis.xlsx "/Raw Data/E39" --prop value=18
+officecli set data-analysis.xlsx "/Raw Data/A40" --prop value=2025-08-20 --prop numFmt=yyyy-mm-dd
+officecli set data-analysis.xlsx "/Raw Data/B40" --prop value=East
+officecli set data-analysis.xlsx "/Raw Data/C40" --prop value=Clothing
+officecli set data-analysis.xlsx "/Raw Data/D40" --prop value=4100 --prop numFmt='$#,##0'
+officecli set data-analysis.xlsx "/Raw Data/E40" --prop value=56
+officecli set data-analysis.xlsx "/Raw Data/A41" --prop value=2025-09-01 --prop numFmt=yyyy-mm-dd
+officecli set data-analysis.xlsx "/Raw Data/B41" --prop value=West
+officecli set data-analysis.xlsx "/Raw Data/C41" --prop value=Electronics
+officecli set data-analysis.xlsx "/Raw Data/D41" --prop value=6600 --prop numFmt='$#,##0'
+officecli set data-analysis.xlsx "/Raw Data/E41" --prop value=20
 
-cat <<'EOF' | officecli batch data-analysis.xlsx
-[
-  {"command":"set","path":"/Raw Data/A42","props":{"value":"2025-09-05","numFmt":"yyyy-mm-dd"}},{"command":"set","path":"/Raw Data/B42","props":{"value":"North"}},{"command":"set","path":"/Raw Data/C42","props":{"value":"Clothing"}},{"command":"set","path":"/Raw Data/D42","props":{"value":"3400","numFmt":"$#,##0"}},{"command":"set","path":"/Raw Data/E42","props":{"value":"46"}},
-  {"command":"set","path":"/Raw Data/A43","props":{"value":"2025-09-10","numFmt":"yyyy-mm-dd"}},{"command":"set","path":"/Raw Data/B43","props":{"value":"South"}},{"command":"set","path":"/Raw Data/C43","props":{"value":"Food"}},{"command":"set","path":"/Raw Data/D43","props":{"value":"2000","numFmt":"$#,##0"}},{"command":"set","path":"/Raw Data/E43","props":{"value":"76"}},
-  {"command":"set","path":"/Raw Data/A44","props":{"value":"2025-09-15","numFmt":"yyyy-mm-dd"}},{"command":"set","path":"/Raw Data/B44","props":{"value":"East"}},{"command":"set","path":"/Raw Data/C44","props":{"value":"Electronics"}},{"command":"set","path":"/Raw Data/D44","props":{"value":"7800","numFmt":"$#,##0"}},{"command":"set","path":"/Raw Data/E44","props":{"value":"26"}},
-  {"command":"set","path":"/Raw Data/A45","props":{"value":"2025-09-20","numFmt":"yyyy-mm-dd"}},{"command":"set","path":"/Raw Data/B45","props":{"value":"West"}},{"command":"set","path":"/Raw Data/C45","props":{"value":"Clothing"}},{"command":"set","path":"/Raw Data/D45","props":{"value":"2300","numFmt":"$#,##0"}},{"command":"set","path":"/Raw Data/E45","props":{"value":"33"}},
-  {"command":"set","path":"/Raw Data/A46","props":{"value":"2025-10-01","numFmt":"yyyy-mm-dd"}},{"command":"set","path":"/Raw Data/B46","props":{"value":"North"}},{"command":"set","path":"/Raw Data/C46","props":{"value":"Electronics"}},{"command":"set","path":"/Raw Data/D46","props":{"value":"5300","numFmt":"$#,##0"}},{"command":"set","path":"/Raw Data/E46","props":{"value":"15"}},
-  {"command":"set","path":"/Raw Data/A47","props":{"value":"2025-10-05","numFmt":"yyyy-mm-dd"}},{"command":"set","path":"/Raw Data/B47","props":{"value":"South"}},{"command":"set","path":"/Raw Data/C47","props":{"value":"Electronics"}},{"command":"set","path":"/Raw Data/D47","props":{"value":"4700","numFmt":"$#,##0"}},{"command":"set","path":"/Raw Data/E47","props":{"value":"14"}},
-  {"command":"set","path":"/Raw Data/A48","props":{"value":"2025-10-10","numFmt":"yyyy-mm-dd"}},{"command":"set","path":"/Raw Data/B48","props":{"value":"East"}},{"command":"set","path":"/Raw Data/C48","props":{"value":"Food"}},{"command":"set","path":"/Raw Data/D48","props":{"value":"1800","numFmt":"$#,##0"}},{"command":"set","path":"/Raw Data/E48","props":{"value":"88"}},
-  {"command":"set","path":"/Raw Data/A49","props":{"value":"2025-10-15","numFmt":"yyyy-mm-dd"}},{"command":"set","path":"/Raw Data/B49","props":{"value":"West"}},{"command":"set","path":"/Raw Data/C49","props":{"value":"Food"}},{"command":"set","path":"/Raw Data/D49","props":{"value":"1200","numFmt":"$#,##0"}},{"command":"set","path":"/Raw Data/E49","props":{"value":"55"}},
-  {"command":"set","path":"/Raw Data/A50","props":{"value":"2025-10-20","numFmt":"yyyy-mm-dd"}},{"command":"set","path":"/Raw Data/B50","props":{"value":"North"}},{"command":"set","path":"/Raw Data/C50","props":{"value":"Food"}},{"command":"set","path":"/Raw Data/D50","props":{"value":"1500","numFmt":"$#,##0"}},{"command":"set","path":"/Raw Data/E50","props":{"value":"70"}},
-  {"command":"set","path":"/Raw Data/A51","props":{"value":"2025-10-25","numFmt":"yyyy-mm-dd"}},{"command":"set","path":"/Raw Data/B51","props":{"value":"South"}},{"command":"set","path":"/Raw Data/C51","props":{"value":"Clothing"}},{"command":"set","path":"/Raw Data/D51","props":{"value":"2800","numFmt":"$#,##0"}},{"command":"set","path":"/Raw Data/E51","props":{"value":"41"}}
-]
-EOF
+officecli set data-analysis.xlsx "/Raw Data/A42" --prop value=2025-09-05 --prop numFmt=yyyy-mm-dd
+officecli set data-analysis.xlsx "/Raw Data/B42" --prop value=North
+officecli set data-analysis.xlsx "/Raw Data/C42" --prop value=Clothing
+officecli set data-analysis.xlsx "/Raw Data/D42" --prop value=3400 --prop numFmt='$#,##0'
+officecli set data-analysis.xlsx "/Raw Data/E42" --prop value=46
+officecli set data-analysis.xlsx "/Raw Data/A43" --prop value=2025-09-10 --prop numFmt=yyyy-mm-dd
+officecli set data-analysis.xlsx "/Raw Data/B43" --prop value=South
+officecli set data-analysis.xlsx "/Raw Data/C43" --prop value=Food
+officecli set data-analysis.xlsx "/Raw Data/D43" --prop value=2000 --prop numFmt='$#,##0'
+officecli set data-analysis.xlsx "/Raw Data/E43" --prop value=76
+officecli set data-analysis.xlsx "/Raw Data/A44" --prop value=2025-09-15 --prop numFmt=yyyy-mm-dd
+officecli set data-analysis.xlsx "/Raw Data/B44" --prop value=East
+officecli set data-analysis.xlsx "/Raw Data/C44" --prop value=Electronics
+officecli set data-analysis.xlsx "/Raw Data/D44" --prop value=7800 --prop numFmt='$#,##0'
+officecli set data-analysis.xlsx "/Raw Data/E44" --prop value=26
+officecli set data-analysis.xlsx "/Raw Data/A45" --prop value=2025-09-20 --prop numFmt=yyyy-mm-dd
+officecli set data-analysis.xlsx "/Raw Data/B45" --prop value=West
+officecli set data-analysis.xlsx "/Raw Data/C45" --prop value=Clothing
+officecli set data-analysis.xlsx "/Raw Data/D45" --prop value=2300 --prop numFmt='$#,##0'
+officecli set data-analysis.xlsx "/Raw Data/E45" --prop value=33
+officecli set data-analysis.xlsx "/Raw Data/A46" --prop value=2025-10-01 --prop numFmt=yyyy-mm-dd
+officecli set data-analysis.xlsx "/Raw Data/B46" --prop value=North
+officecli set data-analysis.xlsx "/Raw Data/C46" --prop value=Electronics
+officecli set data-analysis.xlsx "/Raw Data/D46" --prop value=5300 --prop numFmt='$#,##0'
+officecli set data-analysis.xlsx "/Raw Data/E46" --prop value=15
+officecli set data-analysis.xlsx "/Raw Data/A47" --prop value=2025-10-05 --prop numFmt=yyyy-mm-dd
+officecli set data-analysis.xlsx "/Raw Data/B47" --prop value=South
+officecli set data-analysis.xlsx "/Raw Data/C47" --prop value=Electronics
+officecli set data-analysis.xlsx "/Raw Data/D47" --prop value=4700 --prop numFmt='$#,##0'
+officecli set data-analysis.xlsx "/Raw Data/E47" --prop value=14
+officecli set data-analysis.xlsx "/Raw Data/A48" --prop value=2025-10-10 --prop numFmt=yyyy-mm-dd
+officecli set data-analysis.xlsx "/Raw Data/B48" --prop value=East
+officecli set data-analysis.xlsx "/Raw Data/C48" --prop value=Food
+officecli set data-analysis.xlsx "/Raw Data/D48" --prop value=1800 --prop numFmt='$#,##0'
+officecli set data-analysis.xlsx "/Raw Data/E48" --prop value=88
+officecli set data-analysis.xlsx "/Raw Data/A49" --prop value=2025-10-15 --prop numFmt=yyyy-mm-dd
+officecli set data-analysis.xlsx "/Raw Data/B49" --prop value=West
+officecli set data-analysis.xlsx "/Raw Data/C49" --prop value=Food
+officecli set data-analysis.xlsx "/Raw Data/D49" --prop value=1200 --prop numFmt='$#,##0'
+officecli set data-analysis.xlsx "/Raw Data/E49" --prop value=55
+officecli set data-analysis.xlsx "/Raw Data/A50" --prop value=2025-10-20 --prop numFmt=yyyy-mm-dd
+officecli set data-analysis.xlsx "/Raw Data/B50" --prop value=North
+officecli set data-analysis.xlsx "/Raw Data/C50" --prop value=Food
+officecli set data-analysis.xlsx "/Raw Data/D50" --prop value=1500 --prop numFmt='$#,##0'
+officecli set data-analysis.xlsx "/Raw Data/E50" --prop value=70
+officecli set data-analysis.xlsx "/Raw Data/A51" --prop value=2025-10-25 --prop numFmt=yyyy-mm-dd
+officecli set data-analysis.xlsx "/Raw Data/B51" --prop value=South
+officecli set data-analysis.xlsx "/Raw Data/C51" --prop value=Clothing
+officecli set data-analysis.xlsx "/Raw Data/D51" --prop value=2800 --prop numFmt='$#,##0'
+officecli set data-analysis.xlsx "/Raw Data/E51" --prop value=41
 
 # Raw Data column widths and freeze
 officecli set data-analysis.xlsx "/Raw Data/col[A]" --prop width=12
@@ -613,37 +711,29 @@ officecli add data-analysis.xlsx /Charts --type chart --prop chartType=line --pr
 officecli add data-analysis.xlsx /Charts --type chart --prop chartType=scatter --prop title="Amount vs Quantity" --prop categories="12,45,18,80,50,15,90,35,60,70,55,22,14,40,20,75,42,16,85,38,65,48,25,19,17,72,52,58,46,76,26,33,15,14,88,55,70,41" --prop data="Amount:4500,2800,6200,1500,3200,5800,1800,2100,1200,1600,3800,7200,5100,2500,6800,1400,2900,5500,1700,2600,1300,3100,7500,6400,5600,1900,3500,1100,2700,6100,1500,2400,4800,3300,7100,1600,1400,5900" --prop colors=FF6600 --prop x=14 --prop y=0 --prop width=12 --prop height=12
 
 # ── Summary Sheet ──
-cat <<'EOF' | officecli batch data-analysis.xlsx
-[
-  {"command":"set","path":"/Summary/A1","props":{"value":"Data Analysis Summary","bold":"true","font.size":"16","font.color":"1F4E79"}},
-  {"command":"set","path":"/Summary/A1:D1","props":{"merge":"true"}},
-  {"command":"set","path":"/Summary/A3","props":{"value":"Overall Statistics","bold":"true","font.size":"13"}},
-  {"command":"set","path":"/Summary/A4","props":{"value":"Total Amount"}},
-  {"command":"set","path":"/Summary/B4","props":{"formula":"SUM('Raw Data'!D2:D51)","numFmt":"$#,##0"}},
-  {"command":"set","path":"/Summary/A5","props":{"value":"Average Amount"}},
-  {"command":"set","path":"/Summary/B5","props":{"formula":"AVERAGE('Raw Data'!D2:D51)","numFmt":"$#,##0.00"}},
-  {"command":"set","path":"/Summary/A6","props":{"value":"Min Amount"}},
-  {"command":"set","path":"/Summary/B6","props":{"formula":"MIN('Raw Data'!D2:D51)","numFmt":"$#,##0"}},
-  {"command":"set","path":"/Summary/A7","props":{"value":"Max Amount"}},
-  {"command":"set","path":"/Summary/B7","props":{"formula":"MAX('Raw Data'!D2:D51)","numFmt":"$#,##0"}},
-  {"command":"set","path":"/Summary/A8","props":{"value":"Record Count"}},
-  {"command":"set","path":"/Summary/B8","props":{"formula":"COUNTA('Raw Data'!A2:A51)"}}
-]
-EOF
+officecli set data-analysis.xlsx /Summary/A1 --prop value="Data Analysis Summary" --prop bold=true --prop font.size=16 --prop font.color=1F4E79
+officecli set data-analysis.xlsx /Summary/A1:D1 --prop merge=true
+officecli set data-analysis.xlsx /Summary/A3 --prop value="Overall Statistics" --prop bold=true --prop font.size=13
+officecli set data-analysis.xlsx /Summary/A4 --prop value="Total Amount"
+officecli set data-analysis.xlsx /Summary/B4 --prop "formula==SUM('Raw Data'!D2:D51)" --prop numFmt='$#,##0'
+officecli set data-analysis.xlsx /Summary/A5 --prop value="Average Amount"
+officecli set data-analysis.xlsx /Summary/B5 --prop "formula==AVERAGE('Raw Data'!D2:D51)" --prop numFmt='$#,##0.00'
+officecli set data-analysis.xlsx /Summary/A6 --prop value="Min Amount"
+officecli set data-analysis.xlsx /Summary/B6 --prop "formula==MIN('Raw Data'!D2:D51)" --prop numFmt='$#,##0'
+officecli set data-analysis.xlsx /Summary/A7 --prop value="Max Amount"
+officecli set data-analysis.xlsx /Summary/B7 --prop "formula==MAX('Raw Data'!D2:D51)" --prop numFmt='$#,##0'
+officecli set data-analysis.xlsx /Summary/A8 --prop value="Record Count"
+officecli set data-analysis.xlsx /Summary/B8 --prop "formula==COUNTA('Raw Data'!A2:A51)"
 
-cat <<'EOF' | officecli batch data-analysis.xlsx
-[
-  {"command":"set","path":"/Summary/A10","props":{"value":"By Region","bold":"true","font.size":"13"}},
-  {"command":"set","path":"/Summary/A11","props":{"value":"North"}},
-  {"command":"set","path":"/Summary/B11","props":{"formula":"SUMIF('Raw Data'!B2:B51,\"North\",'Raw Data'!D2:D51)","numFmt":"$#,##0"}},
-  {"command":"set","path":"/Summary/A12","props":{"value":"South"}},
-  {"command":"set","path":"/Summary/B12","props":{"formula":"SUMIF('Raw Data'!B2:B51,\"South\",'Raw Data'!D2:D51)","numFmt":"$#,##0"}},
-  {"command":"set","path":"/Summary/A13","props":{"value":"East"}},
-  {"command":"set","path":"/Summary/B13","props":{"formula":"SUMIF('Raw Data'!B2:B51,\"East\",'Raw Data'!D2:D51)","numFmt":"$#,##0"}},
-  {"command":"set","path":"/Summary/A14","props":{"value":"West"}},
-  {"command":"set","path":"/Summary/B14","props":{"formula":"SUMIF('Raw Data'!B2:B51,\"West\",'Raw Data'!D2:D51)","numFmt":"$#,##0"}}
-]
-EOF
+officecli set data-analysis.xlsx /Summary/A10 --prop value="By Region" --prop bold=true --prop font.size=13
+officecli set data-analysis.xlsx /Summary/A11 --prop value=North
+officecli set data-analysis.xlsx /Summary/B11 --prop "formula==SUMIF('Raw Data'!B2:B51,\"North\",'Raw Data'!D2:D51)" --prop numFmt='$#,##0'
+officecli set data-analysis.xlsx /Summary/A12 --prop value=South
+officecli set data-analysis.xlsx /Summary/B12 --prop "formula==SUMIF('Raw Data'!B2:B51,\"South\",'Raw Data'!D2:D51)" --prop numFmt='$#,##0'
+officecli set data-analysis.xlsx /Summary/A13 --prop value=East
+officecli set data-analysis.xlsx /Summary/B13 --prop "formula==SUMIF('Raw Data'!B2:B51,\"East\",'Raw Data'!D2:D51)" --prop numFmt='$#,##0'
+officecli set data-analysis.xlsx /Summary/A14 --prop value=West
+officecli set data-analysis.xlsx /Summary/B14 --prop "formula==SUMIF('Raw Data'!B2:B51,\"West\",'Raw Data'!D2:D51)" --prop numFmt='$#,##0'
 
 # Summary column widths
 officecli set data-analysis.xlsx "/Summary/col[A]" --prop width=20
@@ -745,9 +835,7 @@ officecli set data.xlsx "/Sheet1/D14" --prop formula="COUNT(D2:D13)"
 officecli set data.xlsx "/Summary/B2" --prop "formula==Revenue!B14"
 
 # Cross-sheet reference in batch mode (RECOMMENDED -- no quoting issues)
-cat <<'EOF' | officecli batch data.xlsx
-[{"command":"set","path":"/Summary/B2","props":{"formula":"Revenue!B14"}}]
-EOF
+officecli set data.xlsx /Summary/B2 --prop "formula==Revenue!B14"
 
 # VERIFY cross-sheet formulas after setting:
 officecli get data.xlsx "/Summary/B2"
@@ -791,6 +879,17 @@ officecli add data.xlsx /Sheet1 --type chart --prop chartType=combo --prop categ
 
 # Scatter chart
 officecli add data.xlsx /Sheet1 --type chart --prop chartType=scatter --prop title="Correlation" --prop categories="1,2,3,4,5" --prop data="Values:10,25,18,30,22"
+```
+
+**Post-chart QA (MANDATORY after every `add chart`):**
+
+```bash
+# Verify chart has data -- an empty chart is a BLOCKER
+officecli get data.xlsx '/Sheet1/chart[1]' --json
+# Check: each series MUST have non-empty "values" (inline) OR "valuesRef" (cell range).
+# NOTE: When using cell range references (series1.values="Sheet1!B2:B13"), the "values" field
+# will always be empty -- this is NORMAL. Only "valuesRef" will be populated.
+# BLOCKER: If BOTH "values" AND "valuesRef" are empty → chart has no data. Remove and re-add.
 ```
 
 Chart types: column, columnStacked, columnPercentStacked, column3d, bar, barStacked, barPercentStacked, bar3d, line, lineStacked, linePercentStacked, line3d, pie, pie3d, doughnut, area, areaStacked, areaPercentStacked, area3d, scatter, bubble, radar, stock, combo
@@ -942,57 +1041,45 @@ officecli import data.xlsx /Sheet1 --file data.csv --start-cell B5
 
 ---
 
-## Batch Recipes
+## More Recipes
 
-### Financial Model Header + Data (Batch)
+### Financial Model Header + Data
 
 ```bash
-cat <<'EOF' | officecli batch data.xlsx
-[
-  {"command":"set","path":"/Sheet1/A1","props":{"value":"Month","bold":"true","fill":"1F4E79","font.color":"FFFFFF"}},
-  {"command":"set","path":"/Sheet1/B1","props":{"value":"Revenue","bold":"true","fill":"1F4E79","font.color":"FFFFFF"}},
-  {"command":"set","path":"/Sheet1/C1","props":{"value":"Expenses","bold":"true","fill":"1F4E79","font.color":"FFFFFF"}},
-  {"command":"set","path":"/Sheet1/D1","props":{"value":"Net","bold":"true","fill":"1F4E79","font.color":"FFFFFF"}},
-  {"command":"set","path":"/Sheet1/A2","props":{"value":"Jan"}},
-  {"command":"set","path":"/Sheet1/B2","props":{"value":"42000","font.color":"0000FF","numFmt":"$#,##0"}},
-  {"command":"set","path":"/Sheet1/C2","props":{"value":"28000","font.color":"0000FF","numFmt":"$#,##0"}},
-  {"command":"set","path":"/Sheet1/D2","props":{"formula":"B2-C2","font.color":"000000","numFmt":"$#,##0"}},
-  {"command":"set","path":"/Sheet1/A3","props":{"value":"Feb"}},
-  {"command":"set","path":"/Sheet1/B3","props":{"value":"45000","font.color":"0000FF","numFmt":"$#,##0"}},
-  {"command":"set","path":"/Sheet1/C3","props":{"value":"30000","font.color":"0000FF","numFmt":"$#,##0"}},
-  {"command":"set","path":"/Sheet1/D3","props":{"formula":"B3-C3","font.color":"000000","numFmt":"$#,##0"}}
-]
-EOF
+officecli set data.xlsx /Sheet1/A1 --prop value=Month --prop bold=true --prop fill=1F4E79 --prop font.color=FFFFFF
+officecli set data.xlsx /Sheet1/B1 --prop value=Revenue --prop bold=true --prop fill=1F4E79 --prop font.color=FFFFFF
+officecli set data.xlsx /Sheet1/C1 --prop value=Expenses --prop bold=true --prop fill=1F4E79 --prop font.color=FFFFFF
+officecli set data.xlsx /Sheet1/D1 --prop value=Net --prop bold=true --prop fill=1F4E79 --prop font.color=FFFFFF
+officecli set data.xlsx /Sheet1/A2 --prop value=Jan
+officecli set data.xlsx /Sheet1/B2 --prop value=42000 --prop font.color=0000FF --prop numFmt='$#,##0'
+officecli set data.xlsx /Sheet1/C2 --prop value=28000 --prop font.color=0000FF --prop numFmt='$#,##0'
+officecli set data.xlsx /Sheet1/D2 --prop formula="B2-C2" --prop font.color=000000 --prop numFmt='$#,##0'
+officecli set data.xlsx /Sheet1/A3 --prop value=Feb
+officecli set data.xlsx /Sheet1/B3 --prop value=45000 --prop font.color=0000FF --prop numFmt='$#,##0'
+officecli set data.xlsx /Sheet1/C3 --prop value=30000 --prop font.color=0000FF --prop numFmt='$#,##0'
+officecli set data.xlsx /Sheet1/D3 --prop formula="B3-C3" --prop font.color=000000 --prop numFmt='$#,##0'
 
-cat <<'EOF' | officecli batch data.xlsx
-[
-  {"command":"set","path":"/Sheet1/A4","props":{"value":"Mar"}},
-  {"command":"set","path":"/Sheet1/B4","props":{"value":"48000","font.color":"0000FF","numFmt":"$#,##0"}},
-  {"command":"set","path":"/Sheet1/C4","props":{"value":"31000","font.color":"0000FF","numFmt":"$#,##0"}},
-  {"command":"set","path":"/Sheet1/D4","props":{"formula":"B4-C4","font.color":"000000","numFmt":"$#,##0"}},
-  {"command":"set","path":"/Sheet1/A14","props":{"value":"Total","bold":"true"}},
-  {"command":"set","path":"/Sheet1/B14","props":{"formula":"SUM(B2:B13)","font.color":"000000","bold":"true","numFmt":"$#,##0"}},
-  {"command":"set","path":"/Sheet1/C14","props":{"formula":"SUM(C2:C13)","font.color":"000000","bold":"true","numFmt":"$#,##0"}},
-  {"command":"set","path":"/Sheet1/D14","props":{"formula":"SUM(D2:D13)","font.color":"000000","bold":"true","numFmt":"$#,##0"}}
-]
-EOF
+officecli set data.xlsx /Sheet1/A4 --prop value=Mar
+officecli set data.xlsx /Sheet1/B4 --prop value=48000 --prop font.color=0000FF --prop numFmt='$#,##0'
+officecli set data.xlsx /Sheet1/C4 --prop value=31000 --prop font.color=0000FF --prop numFmt='$#,##0'
+officecli set data.xlsx /Sheet1/D4 --prop formula="B4-C4" --prop font.color=000000 --prop numFmt='$#,##0'
+officecli set data.xlsx /Sheet1/A14 --prop value=Total --prop bold=true
+officecli set data.xlsx /Sheet1/B14 --prop formula="SUM(B2:B13)" --prop font.color=000000 --prop bold=true --prop numFmt='$#,##0'
+officecli set data.xlsx /Sheet1/C14 --prop formula="SUM(C2:C13)" --prop font.color=000000 --prop bold=true --prop numFmt='$#,##0'
+officecli set data.xlsx /Sheet1/D14 --prop formula="SUM(D2:D13)" --prop font.color=000000 --prop bold=true --prop numFmt='$#,##0'
 ```
 
-### Dashboard KPIs (Batch)
+### Dashboard KPIs
 
 ```bash
-cat <<'EOF' | officecli batch data.xlsx
-[
-  {"command":"set","path":"/Dashboard/A1:C1","props":{"merge":"true"}},
-  {"command":"set","path":"/Dashboard/A1","props":{"value":"Key Performance Indicators","bold":"true","font.size":"18","font.color":"1F4E79"}},
-  {"command":"set","path":"/Dashboard/A3","props":{"value":"Total Revenue","bold":"true","font.size":"11"}},
-  {"command":"set","path":"/Dashboard/A4","props":{"formula":"Revenue!D14","font.color":"008000","font.size":"24","numFmt":"$#,##0"}},
-  {"command":"set","path":"/Dashboard/B3","props":{"value":"Net Income","bold":"true","font.size":"11"}},
-  {"command":"set","path":"/Dashboard/B4","props":{"formula":"PL!B4","font.color":"008000","font.size":"24","numFmt":"$#,##0"}},
-  {"command":"set","path":"/Dashboard/C3","props":{"value":"Margin","bold":"true","font.size":"11"}},
-  {"command":"set","path":"/Dashboard/C4","props":{"formula":"PL!C4","font.color":"008000","font.size":"24","numFmt":"0.0%"}}
-]
-EOF
+officecli set data.xlsx /Dashboard/A1:C1 --prop merge=true
+officecli set data.xlsx /Dashboard/A1 --prop value="Key Performance Indicators" --prop bold=true --prop font.size=18 --prop font.color=1F4E79
+officecli set data.xlsx /Dashboard/A3 --prop value="Total Revenue" --prop bold=true --prop font.size=11
+officecli set data.xlsx /Dashboard/A4 --prop "formula==Revenue!D14" --prop font.color=008000 --prop font.size=24 --prop numFmt='$#,##0'
+officecli set data.xlsx /Dashboard/B3 --prop value="Net Income" --prop bold=true --prop font.size=11
+officecli set data.xlsx /Dashboard/B4 --prop "formula==PL!B4" --prop font.color=008000 --prop font.size=24 --prop numFmt='$#,##0'
+officecli set data.xlsx /Dashboard/C3 --prop value=Margin --prop bold=true --prop font.size=11
+officecli set data.xlsx /Dashboard/C4 --prop "formula==PL!C4" --prop font.color=008000 --prop font.size=24 --prop numFmt=0.0%
 ```
 
 ---

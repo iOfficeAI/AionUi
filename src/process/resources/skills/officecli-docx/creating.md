@@ -8,7 +8,7 @@ Use this guide when creating a new document with no template.
 
 1. **Create** blank document
 2. **Plan** document structure (outline + element types)
-3. **Build** content (add elements, style, repeat)
+3. **Build** incrementally — run each command and check output before proceeding; use `batch` only for bulk content entry (many paragraphs or table cells at once)
 4. **QA** (content + validation) -- see [SKILL.md](SKILL.md#qa-required)
 
 ---
@@ -41,9 +41,54 @@ Values are in twips (1440 twips = 1 inch, 567 twips = 1 cm).
 
 ---
 
+## Execution Strategy: Batch vs Incremental
+
+**Use INCREMENTAL (one command at a time):**
+
+- `add /styles --type style` — define all styles before using them; verify they exist
+- `add / --type header/footer/watermark/toc` — structural; verify before building on top
+- `add /body --type table/chart` — creates the container; fill contents after confirming
+- `validate` — always run alone
+- **When in doubt** — a single command gives immediate feedback; if it fails you know exactly where. Batch errors are harder to diagnose.
+
+**Use BATCH (heredoc):**
+
+- Multiple consecutive `add /body --type paragraph/run` — body content has no structural side effects
+- Bulk list items (bullet points, numbered steps)
+- Format painting — applying the same props to multiple paragraphs or table cells
+- Filling table rows with text
+
+**Always use `officecli open`/`close`.** It keeps the file in memory so every command skips repeated file I/O — this is the smart default, not a special optimization. Batch and resident mode are independent: each works on its own, and they can be combined.
+
+```bash
+# Batch: add multiple paragraphs at once
+cat <<'EOF' | officecli batch report.docx
+[
+  {"command":"add","parent":"/body","type":"paragraph","props":{"text":"Q4 Business Report","alignment":"center","size":"28pt","bold":true,"color":"1F4E79"}},
+  {"command":"add","parent":"/body","type":"paragraph","props":{"text":"Fiscal Year 2025","alignment":"center","size":"14pt","color":"4472C4"}},
+  {"command":"add","parent":"/body","type":"paragraph","props":{"text":"Prepared by: Team Alpha","alignment":"center","color":"666666"}}
+]
+EOF
+
+# Batch: format painting — same props on multiple table header cells
+cat <<'EOF' | officecli batch report.docx
+[
+  {"command":"set","path":"/body/tbl[1]/tr[1]/tc[1]","props":{"bold":true,"shd":"1F4E79","color":"FFFFFF"}},
+  {"command":"set","path":"/body/tbl[1]/tr[1]/tc[2]","props":{"bold":true,"shd":"1F4E79","color":"FFFFFF"}},
+  {"command":"set","path":"/body/tbl[1]/tr[1]/tc[3]","props":{"bold":true,"shd":"1F4E79","color":"FFFFFF"}}
+]
+EOF
+```
+
+**Batch chunk size:** Keep batches under 15 operations. Split by section (e.g., one batch per heading + its body paragraphs).
+
+---
+
 ## Document Structure Recipes
 
-Complete recipes for common document types. Each recipe is a full, copy-pasteable sequence.
+Complete recipes for common document types. Each recipe shows the full command sequence for reference.
+
+> **Execute recipes incrementally — one command (or one `batch` block) at a time, not as a single shell script.** Read the output after each command. If a command fails, fix it before continuing. After each structural phase (styles, headers/footers, tables, charts), verify with `validate` or `get` before proceeding.
 
 ### Recipe: Business Report
 
@@ -58,25 +103,71 @@ officecli set report.docx / --prop pageWidth=12240 --prop pageHeight=15840 --pro
 officecli set report.docx / --prop defaultFont=Calibri
 
 # Define heading styles (blank documents have no built-in style formatting)
-officecli add report.docx /styles --type style --prop name="Heading 1" --prop id=Heading1 --prop type=paragraph --prop font=Calibri --prop size=16pt --prop bold=true --prop color=1F4E79 --prop spaceBefore=24pt --prop spaceAfter=12pt --prop keepNext=true
+officecli add report.docx /styles --type style --prop name="Heading 1" --prop id=Heading1 --prop type=paragraph --prop font=Calibri --prop size=20pt --prop bold=true --prop color=1F4E79 --prop spaceBefore=24pt --prop spaceAfter=12pt --prop keepNext=true
 officecli add report.docx /styles --type style --prop name="Heading 2" --prop id=Heading2 --prop type=paragraph --prop font=Calibri --prop size=13pt --prop bold=true --prop color=2E75B6 --prop spaceBefore=18pt --prop spaceAfter=6pt --prop keepNext=true
 
-# Header with company name
+# Header with company name (default — body pages only)
 officecli add report.docx / --type header --prop text="Acme Corporation" --prop type=default --prop font=Calibri --prop size=9pt --prop color=888888 --prop alignment=right
 
-# Footer with page numbers
-officecli add report.docx / --type footer --prop text="Page " --prop type=default --prop alignment=center --prop size=9pt
-officecli add report.docx "/footer[1]" --type field --prop fieldType=page --prop font=Calibri --prop size=9pt
+# Step 1: Empty footer for cover page — adding type=first auto-enables differentFirstPage
+# NOTE: Do NOT use `set / --prop differentFirstPage=true` — UNSUPPORTED on current CLI version
+officecli add report.docx / --type footer --prop type=first --prop text=""
+
+# Step 2: Default footer with static "Page " text (--prop field=page is SILENTLY IGNORED — do not use)
+officecli add report.docx / --type footer --prop text="Page " --prop type=default --prop alignment=center --prop size=9pt --prop font=Calibri
+
+# Step 3: REQUIRED — inject PAGE field via raw-set (footer[2] = default when first-page footer also exists)
+officecli raw-set report.docx "/footer[2]" \
+  --xpath "//w:p" \
+  --action append \
+  --xml '<w:r xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main"><w:rPr><w:rFonts w:ascii="Calibri" w:hAnsi="Calibri"/><w:sz w:val="18"/></w:rPr><w:fldChar w:fldCharType="begin"/></w:r><w:r xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main"><w:rPr><w:rFonts w:ascii="Calibri" w:hAnsi="Calibri"/><w:sz w:val="18"/></w:rPr><w:instrText xml:space="preserve"> PAGE </w:instrText></w:r><w:r xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main"><w:rPr><w:rFonts w:ascii="Calibri" w:hAnsi="Calibri"/><w:sz w:val="18"/></w:rPr><w:fldChar w:fldCharType="end"/></w:r>'
 
 # Watermark
 officecli add report.docx / --type watermark --prop text=DRAFT --prop color=C0C0C0 --prop opacity=0.5
 
-# Title page
-officecli add report.docx /body --type paragraph --prop text="Acme Corporation" --prop alignment=center --prop size=14pt --prop color=1F4E79 --prop spaceBefore=72pt
-officecli add report.docx /body --type paragraph --prop text="Q4 Business Report" --prop alignment=center --prop size=28pt --prop bold=true --prop color=1F4E79 --prop spaceAfter=12pt
-officecli add report.docx /body --type paragraph --prop text="Fiscal Year 2025" --prop alignment=center --prop size=14pt --prop color=4472C4 --prop spaceAfter=24pt
-officecli add report.docx /body --type paragraph --prop text="Prepared by: Team Alpha" --prop alignment=center --prop color=666666 --prop spaceAfter=6pt
-officecli add report.docx /body --type paragraph --prop text="March 2026" --prop alignment=center --prop color=666666
+# ── Cover Page ──────────────────────────────────────────────────────────────
+# REQUIRED minimum elements (content area must fill >= 60% of the page):
+#   1. Top accent bar (color block)
+#   2. Company / project name (14pt, above title)
+#   3. Main title (28-32pt, bold)
+#   4. Subtitle / document type (18-20pt)
+#   5. Author / department
+#   6. Date
+#   7. Bottom accent bar + contact / version info
+#
+# Always set alignment=center and explicit font sizes on every cover element.
+# Use shading bars to fill visual space and avoid large blank areas.
+
+# Top color accent bar
+officecli add report.docx /body --type paragraph --prop text="" --prop shd=1F3864 --prop spaceBefore=0pt --prop spaceAfter=0pt --prop size=20pt
+# Spacer
+officecli add report.docx /body --type paragraph --prop text="" --prop spaceBefore=36pt --prop spaceAfter=0pt
+
+# Company / project name (element 2)
+officecli add report.docx /body --type paragraph --prop text="Acme Corporation" --prop alignment=center --prop size=14pt --prop color=1F4E79 --prop spaceAfter=6pt
+
+# Main title (element 3) — 28-32pt
+officecli add report.docx /body --type paragraph --prop text="Q4 Business Report" --prop alignment=center --prop size=30pt --prop bold=true --prop color=1F4E79 --prop spaceAfter=12pt
+
+# Subtitle / document type (element 4) — 18-20pt
+officecli add report.docx /body --type paragraph --prop text="Fiscal Year 2025 — Annual Performance Review" --prop alignment=center --prop size=18pt --prop color=4472C4 --prop spaceAfter=36pt
+
+# Mid accent bar (visual separator)
+officecli add report.docx /body --type paragraph --prop text="" --prop shd=4472C4 --prop spaceBefore=0pt --prop spaceAfter=24pt --prop size=8pt
+
+# Author / department (element 5)
+officecli add report.docx /body --type paragraph --prop text="Prepared by: Team Alpha  |  Finance & Strategy Division" --prop alignment=center --prop size=11pt --prop color=444444 --prop spaceAfter=8pt
+
+# Date (element 6)
+officecli add report.docx /body --type paragraph --prop text="March 2026" --prop alignment=center --prop size=11pt --prop color=444444 --prop spaceAfter=8pt
+
+# Version / confidentiality notice
+officecli add report.docx /body --type paragraph --prop text="Version 1.0  |  CONFIDENTIAL" --prop alignment=center --prop size=9pt --prop color=888888 --prop spaceAfter=36pt
+
+# Bottom accent bar + contact info (element 7)
+officecli add report.docx /body --type paragraph --prop text="" --prop shd=1F3864 --prop spaceBefore=0pt --prop spaceAfter=6pt --prop size=12pt
+officecli add report.docx /body --type paragraph --prop text="contact@acmecorp.com  |  www.acmecorp.com" --prop alignment=center --prop size=9pt --prop color=888888 --prop spaceAfter=0pt
+
 officecli add report.docx /body --type pagebreak
 
 # Table of Contents
@@ -121,6 +212,81 @@ officecli add report.docx /body --type chart --prop chartType=column --prop titl
 officecli validate report.docx
 officecli close report.docx
 ```
+
+---
+
+### Cover Page Design: Content-Rich Standard
+
+> **RULE: The cover page content area must fill at least 60% of the page. Large blank areas are a deliverability defect.**
+
+#### Minimum Element Checklist by Document Type
+
+| Document Type                       | Required Cover Elements                                                                                                                                                 |
+| ----------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Business Report / Annual Report** | Top accent bar · Company name · Main title (28-32pt) · Subtitle/fiscal year (18-20pt) · Author/department · Date · Version/confidentiality · Bottom bar + contact       |
+| **Business Proposal**               | Top accent bar · Client name · Proposal title (28-32pt) · Prepared-for / prepared-by block · Date · 3-5 bullet key benefits (optional callout) · Confidentiality notice |
+| **Technical Specification**         | Top bar · Product/project name · Document title (28-32pt) · Version number + status (DRAFT/FINAL) · Author · Date · Target audience · Bottom bar                        |
+
+#### Cover Page Lower Half — Must Not Be >40% Empty
+
+A common issue is a cover page where the title block ends near the top or middle, leaving the lower half largely blank. This is a deliverability defect. After placing the title/subtitle/author/date block, check whether the lower half is filled. If not, add one or more of the following blocks before the bottom accent bar:
+
+**Option A — Abstract Excerpt Block** (for reports, technical specs):
+
+```bash
+# Abstract excerpt shaded block
+officecli add doc.docx /body --type paragraph --prop text="" --prop shd=EBF3FB --prop size=4pt --prop spaceBefore=0pt --prop spaceAfter=0pt
+officecli add doc.docx /body --type paragraph --prop text="ABSTRACT" --prop alignment=center --prop font=Calibri --prop size=9pt --prop bold=true --prop color=1F4E79 --prop spaceBefore=10pt --prop spaceAfter=6pt --prop shd=EBF3FB
+officecli add doc.docx /body --type paragraph --prop text="This document presents..." --prop alignment=center --prop font=Calibri --prop size=10pt --prop italic=true --prop color=444444 --prop spaceBefore=0pt --prop spaceAfter=10pt --prop shd=EBF3FB --prop leftIndent=720 --prop rightIndent=720
+officecli add doc.docx /body --type paragraph --prop text="" --prop shd=EBF3FB --prop size=4pt --prop spaceBefore=0pt --prop spaceAfter=24pt
+```
+
+**Option B — Document Scope Statement** (for policy, proposal, formal reports):
+
+```bash
+officecli add doc.docx /body --type paragraph --prop text="DOCUMENT SCOPE" --prop alignment=center --prop font=Calibri --prop size=9pt --prop bold=true --prop color=888888 --prop spaceBefore=36pt --prop spaceAfter=6pt
+officecli add doc.docx /body --type paragraph --prop text="This document applies to all employees of Acme Corporation and covers Q4 2025 fiscal year results." --prop alignment=center --prop font=Calibri --prop size=10pt --prop color=555555 --prop spaceAfter=8pt --prop leftIndent=720 --prop rightIndent=720
+```
+
+**Option C — Key Highlights List** (for annual reports, proposals):
+
+```bash
+officecli add doc.docx /body --type paragraph --prop text="KEY HIGHLIGHTS" --prop alignment=center --prop font=Calibri --prop size=9pt --prop bold=true --prop color=1F4E79 --prop spaceBefore=36pt --prop spaceAfter=8pt
+officecli add doc.docx /body --type paragraph --prop text="Revenue grew 25% year-over-year" --prop listStyle=bullet --prop font=Calibri --prop size=10pt --prop color=333333 --prop spaceAfter=4pt
+officecli add doc.docx /body --type paragraph --prop text="Customer retention reached 94%" --prop listStyle=bullet --prop font=Calibri --prop size=10pt --prop color=333333 --prop spaceAfter=4pt
+officecli add doc.docx /body --type paragraph --prop text="Three new markets launched" --prop listStyle=bullet --prop font=Calibri --prop size=10pt --prop color=333333 --prop spaceAfter=24pt
+```
+
+> **Rule: Cover page lower half must not be >40% empty.** If your title/author/date block ends in the upper 60% of the page, add Option A, B, or C above before the bottom accent bar.
+
+#### Filling Visual Space
+
+Use shading bars (`--prop shd=HEX`) and explicit `spaceBefore`/`spaceAfter` on every element to distribute content across the page. Even empty paragraphs with a background color create professional visual structure:
+
+```bash
+# Color accent bar (full-width colored strip)
+officecli add doc.docx /body --type paragraph --prop text="" --prop shd=1F3864 --prop size=20pt --prop spaceBefore=0pt --prop spaceAfter=0pt
+
+# Thinner accent line
+officecli add doc.docx /body --type paragraph --prop text="" --prop shd=4472C4 --prop size=8pt --prop spaceBefore=0pt --prop spaceAfter=16pt
+```
+
+#### Cover Alignment Rule
+
+Every cover page paragraph **must** use `--prop alignment=center` (or `alignment=left` for left-aligned corporate style). Never leave cover text at default paragraph alignment.
+
+#### Pitfall: `pbdr` Schema Errors on Cover Elements
+
+If you use paragraph borders (`--prop pbdr.all=...`) on cover elements and validation fails, remove the offending border:
+
+```bash
+officecli validate doc.docx
+# If a pBdr element causes schema error:
+officecli raw-set doc.docx /document --xpath "//w:body/w:p[N]/w:pPr/w:pBdr" --action remove
+# Safe alternative: use shd (background shading) alone — it never causes schema errors.
+```
+
+---
 
 ### Recipe: Formal Letter
 
@@ -175,7 +341,7 @@ officecli set paper.docx / --prop pageWidth=12240 --prop pageHeight=15840 --prop
 officecli set paper.docx / --prop defaultFont=Calibri
 
 # Define heading styles
-officecli add paper.docx /styles --type style --prop name="Heading 1" --prop id=Heading1 --prop type=paragraph --prop font=Arial --prop size=16pt --prop bold=true --prop color=000000 --prop spaceBefore=24pt --prop spaceAfter=12pt --prop keepNext=true
+officecli add paper.docx /styles --type style --prop name="Heading 1" --prop id=Heading1 --prop type=paragraph --prop font=Arial --prop size=20pt --prop bold=true --prop color=000000 --prop spaceBefore=24pt --prop spaceAfter=12pt --prop keepNext=true
 officecli add paper.docx /styles --type style --prop name="Heading 2" --prop id=Heading2 --prop type=paragraph --prop font=Arial --prop size=14pt --prop bold=true --prop color=000000 --prop spaceBefore=18pt --prop spaceAfter=6pt --prop keepNext=true
 
 # Define custom styles
@@ -192,9 +358,17 @@ officecli add paper.docx /body --type paragraph --prop text="Department of Mathe
 # Section break after title page
 officecli add paper.docx /body --type section --prop type=nextPage
 
-# Footer with page numbers
+# Step 1: Empty footer for title page — type=first auto-enables differentFirstPage (no separate set needed)
+officecli add paper.docx / --type footer --prop type=first --prop text=""
+
+# Step 2: Default footer (--prop field=page is SILENTLY IGNORED — add static text only here)
 officecli add paper.docx / --type footer --prop text="Page " --prop type=default --prop alignment=center --prop size=9pt
-officecli add paper.docx "/footer[1]" --type field --prop fieldType=page --prop size=9pt
+
+# Step 3: REQUIRED — inject PAGE field via raw-set
+officecli raw-set paper.docx "/footer[2]" \
+  --xpath "//w:p" \
+  --action append \
+  --xml '<w:r xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main"><w:rPr><w:sz w:val="18"/></w:rPr><w:fldChar w:fldCharType="begin"/></w:r><w:r xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main"><w:rPr><w:sz w:val="18"/></w:rPr><w:instrText xml:space="preserve"> PAGE </w:instrText></w:r><w:r xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main"><w:rPr><w:sz w:val="18"/></w:rPr><w:fldChar w:fldCharType="end"/></w:r>'
 
 # Table of Contents
 officecli add paper.docx /body --type toc --prop levels="1-3" --prop title="Table of Contents" --prop hyperlinks=true --prop pagenumbers=true
@@ -288,6 +462,51 @@ officecli add doc.docx /body --type paragraph --prop text="" --prop pbdr.bottom=
 ```bash
 # Page break before paragraph
 officecli add doc.docx /body --type paragraph --prop text="New Chapter" --prop style=Heading1 --prop pageBreakBefore=true
+```
+
+#### Code Blocks (Preformatted / Monospace Text)
+
+There is no dedicated `code` element type in OfficeCLI. The recommended approach is a paragraph with a monospace font, light background shading, and optional left indent — this reproduces the visual appearance of a code block in Word.
+
+```bash
+# Single-line code block (Courier New, 10pt, light gray background, indented)
+officecli add doc.docx /body --type paragraph \
+  --prop text='GET /api/users HTTP/1.1' \
+  --prop font='Courier New' --prop size=10pt \
+  --prop indent=720 \
+  --prop shd=F5F5F5 \
+  --prop spaceBefore=6pt --prop spaceAfter=6pt
+
+# Multi-line code block: add one paragraph per line with the same styling
+officecli add doc.docx /body --type paragraph \
+  --prop text='POST /api/orders HTTP/1.1' \
+  --prop font='Courier New' --prop size=10pt --prop indent=720 --prop shd=F5F5F5
+officecli add doc.docx /body --type paragraph \
+  --prop text='Content-Type: application/json' \
+  --prop font='Courier New' --prop size=10pt --prop indent=720 --prop shd=F5F5F5
+officecli add doc.docx /body --type paragraph \
+  --prop text='{"orderId": "12345"}' \
+  --prop font='Courier New' --prop size=10pt --prop indent=720 --prop shd=F5F5F5 --prop spaceAfter=6pt
+```
+
+**Tips for code blocks:**
+
+- Use `shd=F5F5F5` (light gray) or `shd=F0F0F0` for a subtle background. The `shd` property is always reliable (unlike `pbdr` borders).
+- Omit `spaceAfter` / `spaceBefore` on continuation lines so they appear as a single visual block; add spacing only on the first and last line.
+- To create a reusable style, define a `Code` custom style once via `/styles --type style` and apply `--prop style=Code` to each paragraph instead of repeating all props.
+- **Code block indentation pitfall:** Do NOT use consecutive spaces to simulate indentation inside code block text. Use the `ind.left` paragraph property instead: `--prop ind.left=720`. Spaces-as-indent produces `view issues` warnings ("first-line indent missing") and renders inconsistently across fonts. Example: `--prop ind.left=360` for one level, `--prop ind.left=720` for two levels.
+
+```bash
+# Define a reusable Code style (do this once per document)
+officecli add doc.docx /styles --type style \
+  --prop name="Code" --prop id=Code --prop type=paragraph \
+  --prop font='Courier New' --prop size=10pt \
+  --prop shd=F5F5F5 --prop indent=720 \
+  --prop spaceBefore=4pt --prop spaceAfter=4pt
+
+# Then apply it to each code paragraph
+officecli add doc.docx /body --type paragraph --prop text='npm install officecli' --prop style=Code
+officecli add doc.docx /body --type paragraph --prop text='officecli --version' --prop style=Code
 ```
 
 ### Runs (Inline Formatting)
@@ -464,6 +683,8 @@ officecli add doc.docx /body --type chart --prop chartType=scatter --prop catego
 
 **WARNING**: Chart series cannot be added after creation. Include all series in the `add` command. To change series count, delete and recreate.
 
+**WARNING — LibreOffice PDF: Do NOT use `chartType=pie` or `chartType=doughnut` when the output will be delivered as a LibreOffice PDF.** These chart types render without visible slices in LibreOffice PDF export — only labels and the legend appear; the actual slices are invisible. Use `chartType=column` or `chartType=bar` as a reliable replacement. Both pie and doughnut charts render correctly in Microsoft Word.
+
 ### Equations
 
 ```bash
@@ -548,14 +769,61 @@ officecli add doc.docx / --type header --prop text="Acme Corporation" --prop typ
 # First page header (different from default)
 officecli add doc.docx / --type header --prop text="CONFIDENTIAL" --prop type=first --prop bold=true --prop color=FF0000 --prop alignment=center
 
-# Default footer with page number
+# Default footer with page number — requires 2-step pattern:
+# Step 1: Add footer with static "Page " text (--prop field=page is SILENTLY IGNORED)
 officecli add doc.docx / --type footer --prop text="Page " --prop type=default --prop alignment=center --prop size=9pt
-
-# Add page number field to footer
-officecli add doc.docx "/footer[1]" --type field --prop fieldType=page --prop font=Calibri --prop size=9pt
+# Step 2: REQUIRED — inject PAGE field via raw-set (footer[1] when no first-page footer)
+officecli raw-set doc.docx "/footer[1]" \
+  --xpath "//w:p" \
+  --action append \
+  --xml '<w:r xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main"><w:rPr><w:sz w:val="18"/></w:rPr><w:fldChar w:fldCharType="begin"/></w:r><w:r xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main"><w:rPr><w:sz w:val="18"/></w:rPr><w:instrText xml:space="preserve"> PAGE </w:instrText></w:r><w:r xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main"><w:rPr><w:sz w:val="18"/></w:rPr><w:fldChar w:fldCharType="end"/></w:r>'
 ```
 
-**NOTE: Adding a field to an existing footer creates a new paragraph, so "Page " and the number will appear on separate lines. For single-line "Page N", create the footer and field together, or use `raw-set` to append the field run into the existing footer paragraph.**
+> **⚠️ Known CLI bug:** `--prop field=page` is **silently ignored** in `add --type footer`. You must always use the `raw-set` step to inject the `<w:fldChar>` PAGE field. Verify with `officecli get doc.docx "/footer[N]" --depth 3` — output must show `fldChar` children.
+
+#### First-Page Footer (Suppress Cover Page Number)
+
+To make the first page footer different from all other pages, add a `type=first` footer. The CLI **automatically** inserts the required `<w:titlePg/>` XML element — no separate command needed.
+
+> **⚠️ Known CLI limitation:** `set / --prop differentFirstPage=true` is **UNSUPPORTED** on current CLI version (silently returns "UNSUPPORTED props"). Do not use it. Just add the `type=first` footer directly — that is sufficient.
+
+```bash
+# Step 1: Add first-page footer (empty — suppresses page number on cover)
+officecli add doc.docx / --type footer --prop type=first --prop text=""
+
+# Step 2: Add default footer with static "Page " text (field=page is SILENTLY IGNORED)
+officecli add doc.docx / --type footer --prop text="Page " --prop type=default --prop alignment=center --prop size=9pt
+
+# Step 3: REQUIRED — inject PAGE field via raw-set (footer[2] = default when first-page footer exists)
+officecli raw-set doc.docx "/footer[2]" \
+  --xpath "//w:p" \
+  --action append \
+  --xml '<w:r xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main"><w:rPr><w:sz w:val="18"/></w:rPr><w:fldChar w:fldCharType="begin"/></w:r><w:r xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main"><w:rPr><w:sz w:val="18"/></w:rPr><w:instrText xml:space="preserve"> PAGE </w:instrText></w:r><w:r xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main"><w:rPr><w:sz w:val="18"/></w:rPr><w:fldChar w:fldCharType="end"/></w:r>'
+```
+
+#### Composite Footer (Company Name + Page Number)
+
+For corporate documents with a footer like "Acme Corporation | Confidential · Page 1", each `add / --type footer --prop type=default` call appends a new paragraph inside the same footer region. Use this to build multi-line footers, or keep everything in one command for a single-line footer.
+
+```bash
+# Single-line footer: text only (no page number)
+officecli add doc.docx / --type footer --prop type=default \
+  --prop text="Acme Corporation | Confidential" --prop alignment=left --prop size=9pt --prop font=Calibri
+
+# Two-line footer: company name on left, page number centered below
+# Line 1 — company name (left-aligned)
+officecli add doc.docx / --type footer --prop type=default \
+  --prop text="Acme Corporation | Confidential" --prop alignment=left --prop size=9pt --prop font=Calibri
+# Line 2 — add static "Page " text (field=page is SILENTLY IGNORED)
+officecli add doc.docx / --type footer --prop text="Page " \
+  --prop type=default --prop alignment=center --prop size=9pt --prop font=Calibri
+# REQUIRED: inject PAGE field into the last paragraph of footer[1]
+# Note: each add --type=default appends a paragraph to the same footer; use the correct XPath
+officecli raw-set doc.docx "/footer[1]" \
+  --xpath "(//w:p)[last()]" \
+  --action append \
+  --xml '<w:r xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main"><w:rPr><w:rFonts w:ascii="Calibri" w:hAnsi="Calibri"/><w:sz w:val="18"/></w:rPr><w:fldChar w:fldCharType="begin"/></w:r><w:r xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main"><w:rPr><w:rFonts w:ascii="Calibri" w:hAnsi="Calibri"/><w:sz w:val="18"/></w:rPr><w:instrText xml:space="preserve"> PAGE </w:instrText></w:r><w:r xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main"><w:rPr><w:rFonts w:ascii="Calibri" w:hAnsi="Calibri"/><w:sz w:val="18"/></w:rPr><w:fldChar w:fldCharType="end"/></w:r>'
+```
 
 ```bash
 # Edit header text
@@ -650,13 +918,18 @@ officecli add doc.docx "/body/p[3]/r[1]" --type comment --prop text="Is this fig
 
 ### Table of Contents
 
+> **REQUIRED: If a document has 3 or more level-1 headings, you MUST add a TOC.** This is a hard rule — do not skip it.
+
 ```bash
-# Add TOC at beginning (default levels 1-3)
+# Add TOC immediately after the cover page break, at index 0 (before all body content)
+# Use --index 0 so the TOC appears at the top of the body, not at the end
 officecli add doc.docx /body --type toc --prop levels="1-3" --prop title="Table of Contents" --prop hyperlinks=true --prop pagenumbers=true --index 0
 
-# Modify TOC
+# Modify TOC depth
 officecli set doc.docx "/toc[1]" --prop levels="1-4"
 ```
+
+**TOC display note:** After adding a TOC with OfficeCLI, the TOC shows as a field code placeholder in `view text` output — this is expected. In Microsoft Word, press **F9** to update and render the TOC with actual page numbers. The TOC entries and links are fully functional once rendered in Word.
 
 ### Content Controls (SDT)
 
@@ -821,59 +1094,144 @@ officecli add-part doc.docx /document
 
 ---
 
-## Batch Recipes
+## More Recipes
 
-### Complete Business Report (Batch)
-
-```bash
-cat <<'EOF' | officecli batch doc.docx
-[
-  {"command":"set","path":"/","props":{"title":"Q4 Business Report","author":"Team Alpha"}},
-  {"command":"add","parent":"/body","type":"paragraph","props":{"text":"Q4 Business Report","style":"Heading1"}},
-  {"command":"add","parent":"/body","type":"paragraph","props":{"text":"This report summarizes Q4 performance across all divisions.","font":"Calibri","size":"11pt","spaceAfter":"12pt"}},
-  {"command":"add","parent":"/body","type":"paragraph","props":{"text":"Revenue Overview","style":"Heading2"}},
-  {"command":"add","parent":"/body","type":"paragraph","props":{"text":"Total revenue increased 25% year-over-year.","font":"Calibri","size":"11pt"}},
-  {"command":"add","parent":"/body","type":"table","props":{"rows":"3","cols":"3","width":"100%","style":"TableGrid"}},
-  {"command":"set","path":"/body/tbl[1]/tr[1]","props":{"c1":"Division","c2":"Q3","c3":"Q4","header":"true"}},
-  {"command":"set","path":"/body/tbl[1]/tr[1]/tc[1]","props":{"bold":"true","shd":"1F4E79","color":"FFFFFF"}},
-  {"command":"set","path":"/body/tbl[1]/tr[1]/tc[2]","props":{"bold":"true","shd":"1F4E79","color":"FFFFFF"}},
-  {"command":"set","path":"/body/tbl[1]/tr[1]/tc[3]","props":{"bold":"true","shd":"1F4E79","color":"FFFFFF"}},
-  {"command":"set","path":"/body/tbl[1]/tr[2]","props":{"c1":"North America","c2":"$4.2M","c3":"$5.1M"}},
-  {"command":"set","path":"/body/tbl[1]/tr[3]","props":{"c1":"Europe","c2":"$3.1M","c3":"$3.8M"}}
-]
-EOF
-```
-
-### Table with Merged Headers (Batch)
+### Complete Business Report
 
 ```bash
-cat <<'EOF' | officecli batch doc.docx
-[
-  {"command":"add","parent":"/body","type":"table","props":{"rows":"4","cols":"4","width":"100%","style":"TableGrid"}},
-  {"command":"set","path":"/body/tbl[1]/tr[1]","props":{"c1":"Category","c2":"2024","c3":"","c4":""}},
-  {"command":"set","path":"/body/tbl[1]/tr[1]/tc[2]","props":{"gridspan":"3","bold":"true","shd":"1F4E79","color":"FFFFFF","alignment":"center"}},
-  {"command":"set","path":"/body/tbl[1]/tr[1]/tc[1]","props":{"vmerge":"restart","bold":"true","shd":"1F4E79","color":"FFFFFF","valign":"center"}},
-  {"command":"set","path":"/body/tbl[1]/tr[2]","props":{"c1":"","c2":"Q1","c3":"Q2","c4":"Q3"}},
-  {"command":"set","path":"/body/tbl[1]/tr[2]/tc[1]","props":{"vmerge":"continue"}},
-  {"command":"set","path":"/body/tbl[1]/tr[2]/tc[2]","props":{"bold":"true","shd":"4472C4","color":"FFFFFF"}},
-  {"command":"set","path":"/body/tbl[1]/tr[2]/tc[3]","props":{"bold":"true","shd":"4472C4","color":"FFFFFF"}},
-  {"command":"set","path":"/body/tbl[1]/tr[2]/tc[4]","props":{"bold":"true","shd":"4472C4","color":"FFFFFF"}},
-  {"command":"set","path":"/body/tbl[1]/tr[3]","props":{"c1":"Revenue","c2":"$4.2M","c3":"$5.1M","c4":"$5.8M"}},
-  {"command":"set","path":"/body/tbl[1]/tr[4]","props":{"c1":"Users","c2":"12K","c3":"15K","c4":"18K"}}
-]
-EOF
+officecli set doc.docx / --prop title="Q4 Business Report" --prop author="Team Alpha"
+officecli add doc.docx /body --type paragraph --prop text="Q4 Business Report" --prop style=Heading1
+officecli add doc.docx /body --type paragraph --prop text="This report summarizes Q4 performance across all divisions." --prop font=Calibri --prop size=11pt --prop spaceAfter=12pt
+officecli add doc.docx /body --type paragraph --prop text="Revenue Overview" --prop style=Heading2
+officecli add doc.docx /body --type paragraph --prop text="Total revenue increased 25% year-over-year." --prop font=Calibri --prop size=11pt
+officecli add doc.docx /body --type table --prop rows=3 --prop cols=3 --prop width=100% --prop style=TableGrid
+officecli set doc.docx "/body/tbl[1]/tr[1]" --prop c1=Division --prop c2=Q3 --prop c3=Q4 --prop header=true
+officecli set doc.docx "/body/tbl[1]/tr[1]/tc[1]" --prop bold=true --prop shd=1F4E79 --prop color=FFFFFF
+officecli set doc.docx "/body/tbl[1]/tr[1]/tc[2]" --prop bold=true --prop shd=1F4E79 --prop color=FFFFFF
+officecli set doc.docx "/body/tbl[1]/tr[1]/tc[3]" --prop bold=true --prop shd=1F4E79 --prop color=FFFFFF
+officecli set doc.docx "/body/tbl[1]/tr[2]" --prop c1="North America" --prop c2='$4.2M' --prop c3='$5.1M'
+officecli set doc.docx "/body/tbl[1]/tr[3]" --prop c1=Europe --prop c2='$3.1M' --prop c3='$3.8M'
 ```
 
-### Multi-Element Paragraph (Batch)
+### Table with Merged Headers
 
 ```bash
-cat <<'EOF' | officecli batch doc.docx
-[
-  {"command":"add","parent":"/body","type":"paragraph","props":{"text":""}},
-  {"command":"add","parent":"/body/p[1]","type":"run","props":{"text":"Important: ","bold":"true","color":"FF0000","font":"Calibri","size":"11pt"}},
-  {"command":"add","parent":"/body/p[1]","type":"run","props":{"text":"This deadline is ","font":"Calibri","size":"11pt"}},
-  {"command":"add","parent":"/body/p[1]","type":"run","props":{"text":"March 31, 2026","bold":"true","underline":"single","font":"Calibri","size":"11pt"}},
-  {"command":"add","parent":"/body/p[1]","type":"run","props":{"text":". Please submit all documents before this date.","font":"Calibri","size":"11pt"}}
-]
-EOF
+officecli add doc.docx /body --type table --prop rows=4 --prop cols=4 --prop width=100% --prop style=TableGrid
+officecli set doc.docx "/body/tbl[1]/tr[1]" --prop c1=Category --prop c2=2024 --prop c3="" --prop c4=""
+officecli set doc.docx "/body/tbl[1]/tr[1]/tc[2]" --prop gridspan=3 --prop bold=true --prop shd=1F4E79 --prop color=FFFFFF --prop alignment=center
+officecli set doc.docx "/body/tbl[1]/tr[1]/tc[1]" --prop vmerge=restart --prop bold=true --prop shd=1F4E79 --prop color=FFFFFF --prop valign=center
+officecli set doc.docx "/body/tbl[1]/tr[2]" --prop c1="" --prop c2=Q1 --prop c3=Q2 --prop c4=Q3
+officecli set doc.docx "/body/tbl[1]/tr[2]/tc[1]" --prop vmerge=continue
+officecli set doc.docx "/body/tbl[1]/tr[2]/tc[2]" --prop bold=true --prop shd=4472C4 --prop color=FFFFFF
+officecli set doc.docx "/body/tbl[1]/tr[2]/tc[3]" --prop bold=true --prop shd=4472C4 --prop color=FFFFFF
+officecli set doc.docx "/body/tbl[1]/tr[2]/tc[4]" --prop bold=true --prop shd=4472C4 --prop color=FFFFFF
+officecli set doc.docx "/body/tbl[1]/tr[3]" --prop c1=Revenue --prop c2='$4.2M' --prop c3='$5.1M' --prop c4='$5.8M'
+officecli set doc.docx "/body/tbl[1]/tr[4]" --prop c1=Users --prop c2=12K --prop c3=15K --prop c4=18K
 ```
+
+### Multi-Element Paragraph
+
+```bash
+officecli add doc.docx /body --type paragraph --prop text=""
+officecli add doc.docx /body/p[1] --type run --prop text="Important: " --prop bold=true --prop color=FF0000 --prop font=Calibri --prop size=11pt
+officecli add doc.docx /body/p[1] --type run --prop text="This deadline is " --prop font=Calibri --prop size=11pt
+officecli add doc.docx /body/p[1] --type run --prop text="March 31, 2026" --prop bold=true --prop underline=single --prop font=Calibri --prop size=11pt
+officecli add doc.docx /body/p[1] --type run --prop text=". Please submit all documents before this date." --prop font=Calibri --prop size=11pt
+```
+
+---
+
+## Document Closing (Last Page)
+
+> **RULE: The last page must have content filling at least 40% of the page. A near-empty final page signals an unfinished document.**
+
+Every professional document needs a deliberate closing section. Never end a document with a sparse final paragraph — always add one of the following closing patterns.
+
+### Closing Pattern A: Full Closing Section (Recommended for Reports & Proposals)
+
+Include Conclusion / Summary, Next Steps (if applicable), and contact information. This pattern reliably fills the closing page.
+
+```bash
+# Conclusion section heading
+officecli add doc.docx /body --type paragraph --prop text="Conclusion" --prop style=Heading1
+
+# Conclusion summary text
+officecli add doc.docx /body --type paragraph --prop text="This document has outlined the key findings and recommendations for Q4. The data demonstrates strong performance across all divisions, with particular strength in the APAC region." --prop font=Calibri --prop size=11pt --prop spaceAfter=12pt --prop lineSpacing=1.15x
+
+# Next steps (if applicable)
+officecli add doc.docx /body --type paragraph --prop text="Next Steps" --prop style=Heading2
+officecli add doc.docx /body --type paragraph --prop text="Finalize Q1 budget allocation by April 15" --prop listStyle=numbered
+officecli add doc.docx /body --type paragraph --prop text="Present findings to the board on April 20" --prop listStyle=numbered
+officecli add doc.docx /body --type paragraph --prop text="Launch APAC expansion pilot in May 2026" --prop listStyle=numbered
+
+# Contact / acknowledgements section
+officecli add doc.docx /body --type paragraph --prop text="Contact Information" --prop style=Heading2
+officecli add doc.docx /body --type paragraph --prop text="For questions or follow-up, please contact:" --prop font=Calibri --prop size=11pt --prop spaceAfter=6pt
+officecli add doc.docx /body --type paragraph --prop text="Team Alpha — Finance & Strategy" --prop font=Calibri --prop size=11pt --prop bold=true --prop spaceAfter=0pt
+officecli add doc.docx /body --type paragraph --prop text="Email: team.alpha@acmecorp.com" --prop font=Calibri --prop size=11pt --prop spaceAfter=0pt
+officecli add doc.docx /body --type paragraph --prop text="Phone: +1 (212) 555-0100" --prop font=Calibri --prop size=11pt --prop spaceAfter=24pt
+
+# Bottom accent bar + legal notice
+officecli add doc.docx /body --type paragraph --prop text="" --prop shd=1F3864 --prop size=8pt --prop spaceBefore=0pt --prop spaceAfter=8pt
+officecli add doc.docx /body --type paragraph --prop text="© 2026 Acme Corporation. All rights reserved. This document is confidential and intended solely for the named recipients." --prop font=Calibri --prop size=9pt --prop color=888888 --prop alignment=center --prop spaceAfter=0pt
+```
+
+### Closing Pattern B: Minimal Closing Page (Letters, Memos, Short Reports)
+
+When content naturally ends early, add a "Thank You" close plus contact information to reach the 40% threshold.
+
+```bash
+# Closing statement
+officecli add doc.docx /body --type paragraph --prop text="Thank You" --prop alignment=center --prop font=Calibri --prop size=24pt --prop bold=true --prop color=1F4E79 --prop spaceBefore=48pt --prop spaceAfter=16pt
+
+# Subtitle line
+officecli add doc.docx /body --type paragraph --prop text="We appreciate your time and look forward to the next steps." --prop alignment=center --prop font=Calibri --prop size=12pt --prop color=444444 --prop spaceAfter=36pt
+
+# Accent divider
+officecli add doc.docx /body --type paragraph --prop text="" --prop shd=4472C4 --prop size=6pt --prop spaceBefore=0pt --prop spaceAfter=24pt
+
+# Contact block
+officecli add doc.docx /body --type paragraph --prop text="contact@acmecorp.com  |  www.acmecorp.com  |  +1 (212) 555-0100" --prop alignment=center --prop font=Calibri --prop size=10pt --prop color=666666 --prop spaceAfter=8pt
+
+# Document version/date footer line
+officecli add doc.docx /body --type paragraph --prop text="Document Version 1.0  —  March 2026" --prop alignment=center --prop font=Calibri --prop size=9pt --prop color=AAAAAA --prop spaceAfter=0pt
+```
+
+### Closing Pattern C: Appendix + Version History (Technical Spec / Formal Reports)
+
+```bash
+# Appendix section
+officecli add doc.docx /body --type paragraph --prop text="Appendix" --prop style=Heading1
+
+officecli add doc.docx /body --type paragraph --prop text="A. Glossary" --prop style=Heading2
+officecli add doc.docx /body --type paragraph --prop text="API — Application Programming Interface" --prop leftIndent=720 --prop hangingIndent=360 --prop font=Calibri --prop size=11pt --prop spaceAfter=4pt
+officecli add doc.docx /body --type paragraph --prop text="CI/CD — Continuous Integration / Continuous Deployment" --prop leftIndent=720 --prop hangingIndent=360 --prop font=Calibri --prop size=11pt --prop spaceAfter=4pt
+
+officecli add doc.docx /body --type paragraph --prop text="B. Version History" --prop style=Heading2
+officecli add doc.docx /body --type table --prop rows=4 --prop cols=3 --prop width="100%" --prop style=TableGrid
+officecli set doc.docx "/body/tbl[last]/tr[1]" --prop c1="Version" --prop c2="Date" --prop c3="Changes" --prop header=true
+officecli set doc.docx "/body/tbl[last]/tr[1]/tc[1]" --prop bold=true --prop shd=1F4E79 --prop color=FFFFFF
+officecli set doc.docx "/body/tbl[last]/tr[1]/tc[2]" --prop bold=true --prop shd=1F4E79 --prop color=FFFFFF
+officecli set doc.docx "/body/tbl[last]/tr[1]/tc[3]" --prop bold=true --prop shd=1F4E79 --prop color=FFFFFF
+officecli set doc.docx "/body/tbl[last]/tr[2]" --prop c1="1.0" --prop c2="2026-03-01" --prop c3="Initial draft"
+officecli set doc.docx "/body/tbl[last]/tr[3]" --prop c1="1.1" --prop c2="2026-03-15" --prop c3="Review comments incorporated"
+officecli set doc.docx "/body/tbl[last]/tr[4]" --prop c1="1.2" --prop c2="2026-03-27" --prop c3="Final approved version"
+
+# Legal notice
+officecli add doc.docx /body --type paragraph --prop text="" --prop shd=1F3864 --prop size=8pt --prop spaceBefore=36pt --prop spaceAfter=8pt
+officecli add doc.docx /body --type paragraph --prop text="© 2026 Acme Corporation. Confidential. Do not distribute without written permission." --prop font=Calibri --prop size=9pt --prop color=888888 --prop alignment=center
+```
+
+### Pre-Delivery: Last-Page Density Check
+
+After completing your document, always verify the final page is not sparse:
+
+```bash
+# Check total page structure
+officecli view doc.docx outline
+
+# Read the last section of content
+officecli view doc.docx text --start -30
+```
+
+If the last page has fewer than 3-4 substantive paragraphs, add a Closing Pattern (A, B, or C above) before delivering.
