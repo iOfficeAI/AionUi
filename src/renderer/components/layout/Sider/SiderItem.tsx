@@ -10,22 +10,22 @@ import classNames from 'classnames';
 import React, { useState } from 'react';
 
 export type SiderMenuItem = {
-  key: string
-  icon: React.ReactNode
-  label: string
-  danger?: boolean
-}
+  key: string;
+  icon: React.ReactNode;
+  label: string;
+  danger?: boolean;
+};
 
 export type SiderItemProps = {
-  icon: React.ReactNode
-  name: string
-  selected?: boolean
-  pinned?: boolean
-  menuItems?: SiderMenuItem[]
-  onMenuAction?: (key: string) => void
-  onClick?: () => void
-  onContextMenu?: (e: React.MouseEvent) => void
-}
+  icon: React.ReactNode;
+  name: string;
+  selected?: boolean;
+  pinned?: boolean;
+  menuItems?: SiderMenuItem[];
+  onMenuAction?: (key: string) => void;
+  onClick?: () => void;
+  onContextMenu?: (e: React.MouseEvent) => void;
+};
 
 const SiderItem: React.FC<SiderItemProps> = ({
   icon,
@@ -80,13 +80,10 @@ const SiderItem: React.FC<SiderItemProps> = ({
         {/* Right-side actions: pin indicator + three-dot menu */}
         {hasMenu && (
           <div
-            className={classNames(
-              'absolute right-0px top-0px h-full items-center justify-end pr-8px',
-              {
-                flex: pinned || menuVisible,
-                'hidden group-hover:flex': !pinned && !menuVisible,
-              }
-            )}
+            className={classNames('absolute right-0px top-0px h-full items-center justify-end pr-8px', {
+              flex: pinned || menuVisible,
+              'hidden group-hover:flex': !pinned && !menuVisible,
+            })}
             style={{
               backgroundImage: selected
                 ? `linear-gradient(to right, transparent, var(--aou-2) 50%)`

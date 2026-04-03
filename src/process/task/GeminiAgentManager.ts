@@ -124,7 +124,12 @@ export class GeminiAgentManager extends BaseAgentManager<
   private webSearchEngine?: 'google' | 'default';
 
   /** Team MCP stdio config injected by TeamSessionService */
-  private teamMcpStdioConfig?: { name: string; command: string; args: string[]; env: Array<{ name: string; value: string }> };
+  private teamMcpStdioConfig?: {
+    name: string;
+    command: string;
+    args: string[];
+    env: Array<{ name: string; value: string }>;
+  };
 
   constructor(
     data: {
@@ -142,7 +147,12 @@ export class GeminiAgentManager extends BaseAgentManager<
       /** Persisted session mode for resume support / 持久化的会话模式，用于恢复 */
       sessionMode?: string;
       /** Team MCP server stdio config injected by TeamSessionService */
-      teamMcpStdioConfig?: { name: string; command: string; args: string[]; env: Array<{ name: string; value: string }> };
+      teamMcpStdioConfig?: {
+        name: string;
+        command: string;
+        args: string[];
+        env: Array<{ name: string; value: string }>;
+      };
       /** Builtin skill names to exclude from discovery (e.g. 'cron' for cron-spawned conversations) */
       excludeBuiltinSkills?: string[];
     },

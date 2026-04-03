@@ -154,7 +154,12 @@ Use this when:
 The new agent will be created and added to the team. You can then assign tasks and send messages to it.`,
   {
     name: z.string().describe('Name for the new teammate (e.g., "researcher", "developer", "tester")'),
-    agent_type: z.string().optional().describe('Agent type/backend (default: same as leader). Supports ACP-compatible backends: claude, codex, qwen, goose, kimi, opencode, copilot, codebuddy, etc.'),
+    agent_type: z
+      .string()
+      .optional()
+      .describe(
+        'Agent type/backend (default: same as leader). Supports ACP-compatible backends: claude, codex, qwen, goose, kimi, opencode, copilot, codebuddy, etc.'
+      ),
   },
   TEAM_MCP_PORT,
   TEAM_AGENT_SLOT_ID,

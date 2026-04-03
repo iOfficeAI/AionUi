@@ -80,7 +80,9 @@ export const TeamTabsProvider: React.FC<{
   }, []);
 
   return (
-    <TeamTabsContext.Provider value={{ agents, activeSlotId, statusMap, teamId, switchTab, renameAgent, reorderAgents }}>
+    <TeamTabsContext.Provider
+      value={{ agents, activeSlotId, statusMap, teamId, switchTab, renameAgent, reorderAgents }}
+    >
       {children}
     </TeamTabsContext.Provider>
   );
