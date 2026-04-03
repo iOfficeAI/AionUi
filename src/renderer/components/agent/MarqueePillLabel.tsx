@@ -4,7 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import React, { useCallback, useRef, useState } from 'react';
+import React, { useCallback, useRef } from 'react';
 
 /** Gap between duplicated texts in px */
 const MARQUEE_GAP = 32;
@@ -12,61 +12,86 @@ const MARQUEE_GAP = 32;
 const MARQUEE_SPEED = 30;
 
 /**
- * A pill label that shows truncated text normally,
- * and plays a seamless marquee animation on hover when text overflows.
+ * A pill label that adapts to available space:
+ * - When space is ample: shows full text (inline-block, sizes to content)
+ * - When space is tight: shrinks via flex and clips text (no ellipsis)
+ * - On hover when clipped: plays seamless marquee animation
+ *
+ * Uses direct DOM manipulation to avoid React re-render flicker.
+ * A hidden measurement span detects overflow since the visible
+ * inline-block container always has scrollWidth === clientWidth.
  */
 const MarqueePillLabel: React.FC<{
   children: string;
-  maxWidth?: number;
-}> = ({ children, maxWidth = 120 }) => {
+}> = ({ children }) => {
   const containerRef = useRef<HTMLSpanElement>(null);
-  const textRef = useRef<HTMLSpanElement>(null);
-  const [marquee, setMarquee] = useState<{ active: boolean; duration: number; scroll: number }>({
-    active: false,
-    duration: 0,
-    scroll: 0,
-  });
+  const measureRef = useRef<HTMLSpanElement>(null);
+  const staticRef = useRef<HTMLSpanElement>(null);
+  const marqueeRef = useRef<HTMLSpanElement>(null);
 
   const handleMouseEnter = useCallback(() => {
-    const text = textRef.current;
-    if (!text) return;
-    const overflow = text.scrollWidth - text.clientWidth;
-    if (overflow <= 0) return;
-    const scrollDist = text.scrollWidth + MARQUEE_GAP;
-    setMarquee({ active: true, duration: scrollDist / MARQUEE_SPEED, scroll: scrollDist });
+    const container = containerRef.current;
+    const measure = measureRef.current;
+    const staticEl = staticRef.current;
+    const marqueeEl = marqueeRef.current;
+    if (!container || !measure || !staticEl || !marqueeEl) return;
+
+    // Compare full text width vs constrained container width
+    const textWidth = measure.offsetWidth;
+    const containerWidth = container.clientWidth;
+    if (textWidth <= containerWidth) return;
+
+    const scrollDist = textWidth + MARQUEE_GAP;
+    const duration = scrollDist / MARQUEE_SPEED;
+
+    // Lock container width, swap visibility, start animation — all synchronous
+    container.style.width = `${containerWidth}px`;
+    staticEl.style.display = 'none';
+    marqueeEl.style.display = 'inline-block';
+    marqueeEl.style.setProperty('--pill-marquee-scroll', `-${scrollDist}px`);
+    marqueeEl.style.animationDuration = `${duration}s`;
+    // Force reflow so the browser sees the element before adding animation
+    void marqueeEl.offsetWidth;
+    marqueeEl.classList.add('pill-marquee-track');
   }, []);
 
   const handleMouseLeave = useCallback(() => {
-    setMarquee((prev) => (prev.active ? { ...prev, active: false } : prev));
+    const container = containerRef.current;
+    const staticEl = staticRef.current;
+    const marqueeEl = marqueeRef.current;
+    if (!container || !staticEl || !marqueeEl) return;
+
+    marqueeEl.classList.remove('pill-marquee-track');
+    marqueeEl.style.display = 'none';
+    staticEl.style.display = '';
+    container.style.width = '';
   }, []);
 
   return (
     <span
       ref={containerRef}
-      className='block overflow-hidden leading-none'
-      style={{ maxWidth }}
+      className='inline-block overflow-hidden whitespace-nowrap leading-none min-w-0'
       onMouseEnter={handleMouseEnter}
       onMouseLeave={handleMouseLeave}
     >
-      {marquee.active ? (
-        <span
-          className='inline-block whitespace-nowrap leading-none pill-marquee-track'
-          style={
-            {
-              '--pill-marquee-scroll': `-${marquee.scroll}px`,
-              animationDuration: `${marquee.duration}s`,
-            } as React.CSSProperties
-          }
-        >
-          {children}
-          <span className='inline-block' style={{ width: MARQUEE_GAP }} />
-          {children}
-        </span>
-      ) : (
-        <span ref={textRef} className='block truncate leading-none'>
-          {children}
-        </span>
-      )}
+      {/* Hidden measurement span: full text width, not clipped */}
+      <span
+        ref={measureRef}
+        className='invisible absolute whitespace-nowrap leading-none pointer-events-none'
+        aria-hidden='true'
+      >
+        {children}
+      </span>
+      {/* Static text: visible by default */}
+      <span ref={staticRef} className='leading-none'>
+        {children}
+      </span>
+      {/* Marquee track: hidden by default, shown on hover */}
+      <span ref={marqueeRef} className='whitespace-nowrap leading-none' style={{ display: 'none' }}>
+        {children}
+        <span className='inline-block' style={{ width: MARQUEE_GAP }} />
+        {children}
+      </span>
     </span>
   );
 };
