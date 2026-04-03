@@ -137,9 +137,7 @@ export type TeamMcpStdioConfig = {
  * Returns null if the config is missing or has no command — callers should
  * simply skip injection in that case.
  */
-export function buildTeamMcpServer(
-  config: TeamMcpStdioConfig | undefined | null,
-): AcpSessionMcpServerStdio | null {
+export function buildTeamMcpServer(config: TeamMcpStdioConfig | undefined | null): AcpSessionMcpServerStdio | null {
   if (!config || !config.command) return null;
   return {
     name: config.name,

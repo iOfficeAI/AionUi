@@ -17,12 +17,18 @@ export function resolveTeamAgentType(agent: AvailableAgent | undefined, fallback
 }
 
 /**
+ * Backends verified to support MCP tool injection in team mode.
+ * Only these backends are allowed in team creation and agent spawning.
+ * Other ACP backends may share the same code path but have not been
+ * verified to correctly handle mcpServers in session/new.
+ */
+export const TEAM_SUPPORTED_BACKENDS = new Set(['claude', 'codex', 'codebuddy']);
+
+/**
  * Check if an agent backend is supported in team mode.
- * Team mode requires ACP protocol for MCP tool injection (spawn, task board, messaging).
- * Any backend whose conversationType resolves to 'acp' is supported.
  */
 export function isTeamSupportedBackend(backend: string): boolean {
-  return resolveConversationType(backend) === 'acp';
+  return TEAM_SUPPORTED_BACKENDS.has(backend);
 }
 
 /** Filter agents to only those supported in team mode */

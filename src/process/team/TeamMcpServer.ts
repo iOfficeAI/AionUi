@@ -352,16 +352,12 @@ export class TeamMcpServer {
     const { teamId, getAgents, mailbox, spawnAgent, wakeAgent } = this.params;
     const name = String(args.name ?? '');
     const agentType = args.agent_type ? String(args.agent_type) : undefined;
-    // Team mode only supports agent types that resolve to ACP conversation type
-    if (agentType && !['acp', 'codex', 'claude'].includes(agentType)) {
-      // Check dynamically: gemini, nanobot, openclaw-gateway, remote, aionrs are not supported
-      const unsupportedNonAcp = new Set(['gemini', 'nanobot', 'openclaw-gateway', 'remote', 'aionrs']);
-      if (unsupportedNonAcp.has(agentType)) {
-        throw new Error(
-          `Agent type "${agentType}" is not supported in team mode. Use an ACP-compatible agent (e.g., claude, codex, qwen).`
-        );
-      }
-      // Any other unknown type — assume it's an ACP backend and let it through
+    // Team mode whitelist: only verified backends that support MCP tool injection
+    const TEAM_ALLOWED = new Set(['claude', 'codex', 'codebuddy']);
+    if (agentType && !TEAM_ALLOWED.has(agentType)) {
+      throw new Error(
+        `Agent type "${agentType}" is not supported in team mode. Supported: ${[...TEAM_ALLOWED].join(', ')}.`
+      );
     }
 
     if (!spawnAgent) {

@@ -7,6 +7,7 @@ import {
   agentKey,
   agentFromKey,
   resolveTeamAgentType,
+  TEAM_SUPPORTED_BACKENDS,
 } from '@renderer/pages/team/components/agentSelectUtils';
 import { MCP_CAPABLE_TYPES } from '@process/team/TeammateManager';
 import { buildTeamMcpServer } from '@process/agent/acp/mcpSessionConfig';
@@ -44,7 +45,7 @@ describe('resolveConversationType', () => {
     'maps unknown backend "%s" to acp (default, MCP injectable)',
     (backend) => {
       expect(resolveConversationType(backend)).toBe('acp');
-    },
+    }
   );
 });
 
@@ -52,18 +53,15 @@ describe('resolveConversationType', () => {
 // isTeamSupportedBackend — the gate that decides MCP injection eligibility
 // ---------------------------------------------------------------------------
 describe('isTeamSupportedBackend', () => {
-  it.each(['claude', 'codex', 'qwen', 'deepseek', 'grok'])(
-    'allows ACP-compatible backend "%s"',
-    (backend) => {
-      expect(isTeamSupportedBackend(backend)).toBe(true);
-    },
-  );
+  it.each(['claude', 'codex', 'codebuddy'])('allows verified backend "%s"', (backend) => {
+    expect(isTeamSupportedBackend(backend)).toBe(true);
+  });
 
-  it.each(['gemini', 'aionrs', 'openclaw-gateway', 'nanobot', 'remote'])(
-    'rejects non-ACP backend "%s"',
+  it.each(['gemini', 'aionrs', 'openclaw-gateway', 'nanobot', 'remote', 'qwen', 'copilot', 'kimi', 'goose'])(
+    'rejects unverified backend "%s"',
     (backend) => {
       expect(isTeamSupportedBackend(backend)).toBe(false);
-    },
+    }
   );
 });
 
@@ -79,15 +77,16 @@ describe('filterTeamSupportedAgents', () => {
       ...overrides,
     }) as AvailableAgent;
 
-  it('keeps ACP agents and removes non-ACP agents', () => {
+  it('keeps verified agents and removes unverified agents', () => {
     const agents = [
       makeAgent('claude'),
       makeAgent('gemini'),
+      makeAgent('codex'),
       makeAgent('qwen'),
-      makeAgent('nanobot'),
+      makeAgent('codebuddy'),
     ];
     const result = filterTeamSupportedAgents(agents);
-    expect(result.map((a: AvailableAgent) => a.backend)).toEqual(['claude', 'qwen']);
+    expect(result.map((a: AvailableAgent) => a.backend)).toEqual(['claude', 'codex', 'codebuddy']);
   });
 
   it('uses presetAgentType over backend when available', () => {
@@ -97,12 +96,12 @@ describe('filterTeamSupportedAgents', () => {
   });
 
   it('returns empty array when no agents are supported', () => {
-    const agents = [makeAgent('gemini'), makeAgent('remote')];
+    const agents = [makeAgent('gemini'), makeAgent('remote'), makeAgent('qwen')];
     expect(filterTeamSupportedAgents(agents)).toEqual([]);
   });
 
-  it('returns all agents when all are ACP-compatible', () => {
-    const agents = [makeAgent('claude'), makeAgent('codex'), makeAgent('deepseek')];
+  it('returns all agents when all are verified', () => {
+    const agents = [makeAgent('claude'), makeAgent('codex'), makeAgent('codebuddy')];
     expect(filterTeamSupportedAgents(agents)).toHaveLength(3);
   });
 });
@@ -160,37 +159,22 @@ describe('resolveTeamAgentType', () => {
 // Frontend ↔ Backend consistency: ensure MCP injection chain is aligned
 // ---------------------------------------------------------------------------
 describe('MCP injection chain consistency', () => {
-  it('every backend the frontend allows must resolve to a MCP_CAPABLE_TYPE', () => {
-    // These are the ACP backends the frontend lets into team mode
-    const frontendAllowed = ['claude', 'codex', 'qwen', 'deepseek', 'grok'];
-    for (const backend of frontendAllowed) {
+  it('every verified backend must resolve to a MCP_CAPABLE_TYPE', () => {
+    for (const backend of TEAM_SUPPORTED_BACKENDS) {
       const convType = resolveConversationType(backend);
       expect(
         MCP_CAPABLE_TYPES.has(convType),
-        `Frontend allows "${backend}" (→ "${convType}") but backend MCP_CAPABLE_TYPES does not include "${convType}"`,
+        `Verified backend "${backend}" (→ "${convType}") but backend MCP_CAPABLE_TYPES does not include "${convType}"`
       ).toBe(true);
     }
   });
 
-  it('backends the frontend rejects must NOT resolve to a MCP_CAPABLE_TYPE', () => {
-    const frontendRejected = ['gemini', 'aionrs', 'openclaw-gateway', 'nanobot', 'remote'];
-    for (const backend of frontendRejected) {
-      const convType = resolveConversationType(backend);
-      expect(
-        MCP_CAPABLE_TYPES.has(convType),
-        `Frontend rejects "${backend}" but its convType "${convType}" is in MCP_CAPABLE_TYPES — inconsistency`,
-      ).toBe(false);
-    }
+  it('TEAM_SUPPORTED_BACKENDS contains exactly claude, codex, codebuddy', () => {
+    expect([...TEAM_SUPPORTED_BACKENDS].sort()).toEqual(['claude', 'codebuddy', 'codex']);
   });
 
   it('MCP_CAPABLE_TYPES contains "acp" — the core team protocol', () => {
     expect(MCP_CAPABLE_TYPES.has('acp')).toBe(true);
-  });
-
-  it('MCP_CAPABLE_TYPES does not contain non-injectable types', () => {
-    for (const type of ['gemini', 'aionrs', 'openclaw-gateway', 'nanobot', 'remote']) {
-      expect(MCP_CAPABLE_TYPES.has(type)).toBe(false);
-    }
   });
 });
 

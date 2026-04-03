@@ -70,7 +70,7 @@ export function useTeamSession(team: TTeam) {
       team.agents.map((a) => [
         a.slotId,
         { slotId: a.slotId, status: failedSet.has(a.slotId) ? ('failed' as TeammateStatus) : a.status },
-      ]),
+      ])
     );
   });
 

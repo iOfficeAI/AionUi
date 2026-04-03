@@ -203,7 +203,7 @@ const TeamPageContent: React.FC<TeamPageContentProps> = ({ team, onAddAgent, onR
       if (leadAgent?.slotId) switchTab(leadAgent.slotId);
       if (fullscreenSlotId === slotId) setFullscreenSlotId(null);
     },
-    [team.id, leadAgent?.slotId, switchTab, fullscreenSlotId, t],
+    [team.id, leadAgent?.slotId, switchTab, fullscreenSlotId, t]
   );
   const leadConversationId = leadAgent?.conversationId ?? '';
   const isLeadAgent = activeAgent?.role === 'lead';
