@@ -46,7 +46,9 @@ describe('AcpAgent.start — pending config options from Guid page', () => {
       pendingConfigOptions: { thought_level: 'high', reasoning: 'detailed' },
     });
     conn = (agent as any).connection;
-    // Stub out session creation and other start() steps
+    // Stub out connection, auth, session creation, and other start() steps
+    vi.spyOn(conn, 'connect').mockResolvedValue(undefined);
+    vi.spyOn(agent as any, 'performAuthentication').mockResolvedValue(undefined);
     vi.spyOn(agent as any, 'createOrResumeSession').mockResolvedValue(undefined);
     vi.spyOn(agent as any, 'applySessionMode').mockResolvedValue(undefined);
     vi.spyOn(agent as any, 'emitModelInfo').mockReturnValue(undefined);
@@ -81,6 +83,8 @@ describe('AcpAgent.start — pending config options from Guid page', () => {
   it('skips setConfigOption entirely when pendingConfigOptions is undefined', async () => {
     const agentNoPending = makeAgent('codex');
     const connNoPending = (agentNoPending as any).connection;
+    vi.spyOn(connNoPending, 'connect').mockResolvedValue(undefined);
+    vi.spyOn(agentNoPending as any, 'performAuthentication').mockResolvedValue(undefined);
     vi.spyOn(agentNoPending as any, 'createOrResumeSession').mockResolvedValue(undefined);
     vi.spyOn(agentNoPending as any, 'applySessionMode').mockResolvedValue(undefined);
     vi.spyOn(agentNoPending as any, 'emitModelInfo').mockReturnValue(undefined);
@@ -95,6 +99,8 @@ describe('AcpAgent.start — pending config options from Guid page', () => {
   it('skips setConfigOption when pendingConfigOptions is empty object', async () => {
     const agentEmpty = makeAgent('codex', { pendingConfigOptions: {} });
     const connEmpty = (agentEmpty as any).connection;
+    vi.spyOn(connEmpty, 'connect').mockResolvedValue(undefined);
+    vi.spyOn(agentEmpty as any, 'performAuthentication').mockResolvedValue(undefined);
     vi.spyOn(agentEmpty as any, 'createOrResumeSession').mockResolvedValue(undefined);
     vi.spyOn(agentEmpty as any, 'applySessionMode').mockResolvedValue(undefined);
     vi.spyOn(agentEmpty as any, 'emitModelInfo').mockReturnValue(undefined);
