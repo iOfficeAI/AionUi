@@ -168,8 +168,10 @@ WORKTREE_DIR="/tmp/aionui-pr-${PR_NUMBER}"
 # Clean up any stale worktree from a previous crash
 git worktree remove "$WORKTREE_DIR" --force 2>/dev/null || true
 
-# Fetch PR head and create detached worktree
+# Fetch PR head AND base branch so the three-dot diff is accurate
 git fetch origin pull/${PR_NUMBER}/head
+BASE_REF=$(gh pr view ${PR_NUMBER} --json baseRefName --jq '.baseRefName')
+git fetch origin "$BASE_REF"
 git worktree add "$WORKTREE_DIR" FETCH_HEAD --detach
 
 # Symlink node_modules so lint/tsc/test can run in the worktree

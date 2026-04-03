@@ -12,7 +12,6 @@
     "connected": "已連線至 {{agent}}",
     "authenticated": "已通過 {{agent}} 身份驗證",
     "session_active": "{{agent}} 工作階段進行中",
-    "disconnected": "已與 {{agent}} 中斷連線",
     "error": "連線錯誤",
     "unknown": "未知狀態"
   },

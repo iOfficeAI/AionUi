@@ -2,6 +2,9 @@ import { ASSISTANT_PRESETS } from '@/common/config/presets/assistantPresets';
 import { resolveExtensionAssetUrl } from '@/renderer/utils/platform';
 import type { AssistantListItem } from './types';
 
+export type AssistantListFilter = 'all' | 'enabled' | 'disabled' | 'builtin' | 'custom' | 'extension';
+export type AssistantSource = 'builtin' | 'custom' | 'extension';
+
 /**
  * Check if a builtin assistant has skills config (defaultEnabledSkills or skillFiles).
  */
@@ -107,3 +110,61 @@ export const isExtensionAssistant = (assistant: AssistantListItem | null | undef
   if (!assistant) return false;
   return assistant._source === 'extension' || assistant.id.startsWith('ext-');
 };
+
+/**
+ * Resolve assistant source label for management UI.
+ */
+export const getAssistantSource = (assistant: AssistantListItem): AssistantSource => {
+  if (isExtensionAssistant(assistant)) return 'extension';
+  if (assistant.isBuiltin) return 'builtin';
+  return 'custom';
+};
+
+/**
+ * Apply search and management filter to assistant list.
+ */
+export const filterAssistants = (
+  assistants: AssistantListItem[],
+  query: string,
+  filter: AssistantListFilter,
+  localeKey: string
+): AssistantListItem[] => {
+  const normalizedQuery = query.trim().toLowerCase();
+
+  return assistants.filter((assistant) => {
+    if (normalizedQuery) {
+      const searchableText = [
+        assistant.nameI18n?.[localeKey] || assistant.name,
+        assistant.descriptionI18n?.[localeKey] || assistant.description || '',
+      ]
+        .join(' ')
+        .toLowerCase();
+
+      if (!searchableText.includes(normalizedQuery)) return false;
+    }
+
+    switch (filter) {
+      case 'enabled':
+        return assistant.enabled !== false;
+      case 'disabled':
+        return assistant.enabled === false;
+      case 'builtin':
+        return getAssistantSource(assistant) !== 'custom';
+      case 'custom':
+        return getAssistantSource(assistant) === 'custom';
+      case 'extension':
+        return getAssistantSource(assistant) === 'extension';
+      case 'all':
+      default:
+        return true;
+    }
+  });
+};
+
+/**
+ * Split assistants into enabled and disabled groups while preserving order.
+ */
+export const groupAssistantsByEnabled = (assistants: AssistantListItem[]) => ({
+  enabledAssistants: assistants.filter((assistant) => assistant.enabled !== false),
+  disabledAssistants: assistants.filter((assistant) => assistant.enabled === false),
+});

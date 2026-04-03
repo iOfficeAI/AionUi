@@ -126,7 +126,6 @@ export interface AcpAgentConfig {
 
 // ACP agent任务类
 export class AcpAgent {
-  private expectedDisconnectReason: 'idle_timeout' | null = null;
   private readonly id: string;
   private extra: {
     workspace?: string;
@@ -234,10 +233,6 @@ export class AcpAgent {
     this.connection.onDisconnect = (error) => {
       this.handleDisconnect(error);
     };
-  }
-
-  setExpectedDisconnectReason(reason: 'idle_timeout' | null): void {
-    this.expectedDisconnectReason = reason;
   }
 
   /**
@@ -599,7 +594,6 @@ export class AcpAgent {
    */
   async kill(): Promise<void> {
     await this.connection.disconnect();
-    this.emitStatusMessage('disconnected');
     // Clear session-scoped caches when session ends
     this.approvalStore.clear();
     this.permissionRequestMeta.clear();
@@ -1204,21 +1198,7 @@ export class AcpAgent {
    * Notify frontend and clean up internal state
    */
   private handleDisconnect(error: { code: number | null; signal: NodeJS.Signals | null }): void {
-    // 1. Emit disconnected status to frontend
-    this.emitStatusMessage('disconnected');
-
-    // 2. Emit error message with helpful information
-    const disconnectReason = this.expectedDisconnectReason;
-    this.expectedDisconnectReason = null;
-    const errorMsg =
-      disconnectReason === 'idle_timeout'
-        ? 'Session closed after 30 minutes of inactivity. Send a new message to reconnect.'
-        : `${this.extra.backend} process disconnected unexpectedly ` +
-          `(code: ${error.code}, signal: ${error.signal}). ` +
-          `Please try sending a new message to reconnect.`;
-    this.emitErrorMessage(errorMsg);
-
-    // 3. Emit finish signal to reset UI loading state
+    // Emit finish signal to reset UI loading state
     if (this.onSignalEvent) {
       this.onSignalEvent({
         type: 'finish',
@@ -1228,7 +1208,7 @@ export class AcpAgent {
       });
     }
 
-    // 4. Clear internal state
+    // Clear internal state
     this.pendingPermissions.clear();
     this.permissionRequestMeta.clear();
     this.approvalStore.clear();
@@ -1304,9 +1284,7 @@ export class AcpAgent {
     return content.slice(0, 500) + '\n... (truncated)';
   }
 
-  private emitStatusMessage(
-    status: 'connecting' | 'connected' | 'authenticated' | 'session_active' | 'disconnected' | 'error'
-  ): void {
+  private emitStatusMessage(status: 'connecting' | 'connected' | 'authenticated' | 'session_active' | 'error'): void {
     // Use fixed ID for status messages so they update instead of duplicate
     if (!this.statusMessageId) {
       this.statusMessageId = uuid();
