@@ -4,12 +4,25 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
+import fs from 'fs/promises';
+import os from 'os';
 import path from 'path';
-import { describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { isPathWithinDirectory } from '../../../src/process/extensions/sandbox/pathSafety';
 
 describe('extensions/pathSafety', () => {
-  const root = path.resolve('tmp', 'extensions', 'safe-root');
+  let tempDir = '';
+  let root = '';
+
+  beforeEach(async () => {
+    tempDir = await fs.mkdtemp(path.join(os.tmpdir(), 'aionui-path-safety-'));
+    root = path.join(tempDir, 'safe-root');
+    await fs.mkdir(root, { recursive: true });
+  });
+
+  afterEach(async () => {
+    await fs.rm(tempDir, { recursive: true, force: true });
+  });
 
   it('目标路径与基础目录一致时应返回 true', () => {
     expect(isPathWithinDirectory(root, root)).toBe(true);
@@ -28,5 +41,22 @@ describe('extensions/pathSafety', () => {
   it('目标路径跳出基础目录时应返回 false', () => {
     const escapedPath = path.resolve(root, '..', 'outside.txt');
     expect(isPathWithinDirectory(escapedPath, root)).toBe(false);
+  });
+
+  it('应拒绝通过目录符号链接逃逸基础目录的路径', async () => {
+    const outsideDir = path.join(tempDir, 'outside');
+    const outsideFile = path.join(outsideDir, 'secret.txt');
+    const symlinkDir = path.join(root, 'linked');
+
+    await fs.mkdir(outsideDir, { recursive: true });
+    await fs.writeFile(outsideFile, 'secret', 'utf-8');
+    await fs.symlink(outsideDir, symlinkDir, 'dir');
+
+    expect(isPathWithinDirectory(path.join(symlinkDir, 'secret.txt'), root)).toBe(false);
+  });
+
+  it('应允许基础目录内尚不存在的新文件路径', () => {
+    const futureFile = path.join(root, 'new-dir', 'new-file.txt');
+    expect(isPathWithinDirectory(futureFile, root)).toBe(true);
   });
 });
