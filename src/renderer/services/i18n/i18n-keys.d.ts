@@ -490,6 +490,8 @@ export type I18nKey =
   | 'cron.detail.agent'
   | 'cron.detail.backToAll'
   | 'cron.detail.description'
+  | 'cron.detail.executionModeDescriptionExisting'
+  | 'cron.detail.executionModeDescriptionNew'
   | 'cron.detail.history'
   | 'cron.detail.instructions'
   | 'cron.detail.noHistory'

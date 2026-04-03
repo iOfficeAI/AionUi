@@ -53,7 +53,9 @@
     "repeats": "繰り返し",
     "history": "実行履歴",
     "noHistory": "実行履歴はありません",
-    "notFound": "タスクが見つかりません"
+    "notFound": "タスクが見つかりません",
+    "executionModeDescriptionNew": "実行のたびに新しい会話を作成するため、前回までの文脈は引き継がれません。定期レポートや巡回チェックなど、各回を独立させたいタスクに向いています。",
+    "executionModeDescriptionExisting": "実行のたびに同じ会話で続行するため、過去の文脈や結果を引き継げます。前回の内容を踏まえて追跡したい継続タスクに向いています。"
   },
   "notification": {
     "taskComplete": "タスク完了",
@@ -63,7 +65,7 @@
   },
   "page": {
     "newTask": "新規タスク",
-    "description": "スケジュールタスクは指定された時間に自動的に実行されます。タスクはコンピュータが起動している間のみ実行されます。",
+    "description": "タスクをスケジュールで自動実行できます。どの会話でも AionUi に依頼して定期タスクを作成することもできます。",
     "awakeBanner": "スケジュールタスクはコンピュータが起動している間のみ実行されます。",
     "keepAwake": "スリープを防止",
     "keepAwakeTooltip": "有効にすると、AionUi がコンピュータのスリープを防止します",
@@ -105,8 +107,8 @@
       "executionMode": "実行モード",
       "newConversation": "新しい会話",
       "existingConversation": "同じ会話",
-      "newConversationHint": "実行ごとに新しい会話を作成します",
-      "existingConversationHint": "すべての実行が同じ会話を共有します",
+      "newConversationHint": "毎回新しい会話から始めます",
+      "existingConversationHint": "同じ会話で続きを実行します",
       "executionModeEditHint": "作成後に実行モードは変更できません。モードを切り替えるには、タスクを削除して再作成してください。"
     },
     "freq": {

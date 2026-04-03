@@ -41,7 +41,9 @@
     "repeats": "반복",
     "history": "실행 기록",
     "noHistory": "실행 기록 없음",
-    "notFound": "작업을 찾을 수 없음"
+    "notFound": "작업을 찾을 수 없음",
+    "executionModeDescriptionNew": "실행할 때마다 새 대화를 시작하므로 이전 문맥이 다음 실행으로 이어지지 않습니다. 매번 독립적으로 처리해야 하는 리포트나 점검 작업에 적합합니다.",
+    "executionModeDescriptionExisting": "실행할 때마다 같은 대화에서 이어서 작업하므로 이전 문맥과 결과가 유지됩니다. 이전 실행을 바탕으로 계속 추적해야 하는 작업에 적합합니다."
   },
   "notification": {
     "taskComplete": "작업 완료",
@@ -51,7 +53,7 @@
   },
   "page": {
     "newTask": "새 작업",
-    "description": "예약 작업은 지정된 시간에 자동으로 실행됩니다. 작업은 컴퓨터가 깨어 있는 동안에만 실행됩니다.",
+    "description": "작업을 일정에 따라 자동 실행할 수 있습니다. 어떤 대화에서든 AionUi에게 예약 작업 생성을 요청할 수도 있습니다.",
     "awakeBanner": "예약 작업은 컴퓨터가 깨어 있는 동안에만 실행됩니다.",
     "keepAwake": "절전 방지",
     "keepAwakeTooltip": "활성화하면 AionUi가 컴퓨터의 절전 모드를 방지합니다",
@@ -93,8 +95,8 @@
       "executionMode": "실행 모드",
       "newConversation": "새 대화",
       "existingConversation": "동일 대화",
-      "newConversationHint": "매 실행마다 새 대화를 생성합니다",
-      "existingConversationHint": "모든 실행이 동일한 대화를 공유합니다",
+      "newConversationHint": "매번 새 대화로 시작합니다",
+      "existingConversationHint": "같은 대화에서 계속 실행합니다",
       "executionModeEditHint": "생성 후에는 실행 모드를 변경할 수 없습니다. 모드를 전환하려면 작업을 삭제한 후 다시 만드세요."
     },
     "freq": {

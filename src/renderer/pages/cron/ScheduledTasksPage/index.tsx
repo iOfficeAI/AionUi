@@ -8,21 +8,41 @@ import classNames from 'classnames';
 import React, { useCallback, useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
-import { Button, Switch, Tag, Popconfirm, Message, Empty, Spin, Tooltip } from '@arco-design/web-react';
-import { IconSun } from '@arco-design/web-react/icon';
-import { Plus, Delete, Info } from '@icon-park/react';
+import { Button, Switch, Message, Empty, Spin, Tooltip } from '@arco-design/web-react';
+import { Plus } from '@icon-park/react';
 import { useLayoutContext } from '@renderer/hooks/context/LayoutContext';
 import { useAllCronJobs } from '@renderer/pages/cron/useCronJobs';
 import { formatSchedule, formatNextRun } from '@renderer/pages/cron/cronUtils';
 import { systemSettings, type ICronJob } from '@/common/adapter/ipcBridge';
+import { ACP_BACKENDS_ALL, type AcpBackendAll } from '@/common/types/acpTypes';
+import { getAgentLogo } from '@renderer/utils/model/agentLogo';
+import CronStatusTag from './CronStatusTag';
 import CreateTaskDialog from './CreateTaskDialog';
+
+const cardMetaRowClass = 'min-w-0 flex items-center gap-6px text-12px leading-18px text-text-3';
+const cardMetaIconWrapClass = 'flex h-16px w-16px shrink-0 items-center justify-center text-text-3';
+
+function normalizeAgentBackend(agent: string | undefined): AcpBackendAll | undefined {
+  if (!agent) return undefined;
+  return agent.replace(/^cli:/, '').replace(/^preset:/, '') as AcpBackendAll;
+}
+
+function getJobAgentMeta(job: ICronJob): { name?: string; logo?: string | null } {
+  const backend = job.metadata.agentConfig?.backend || normalizeAgentBackend(job.metadata.agentType);
+  if (!backend) return {};
+
+  return {
+    name: job.metadata.agentConfig?.name || ACP_BACKENDS_ALL[backend]?.name || backend,
+    logo: getAgentLogo(backend),
+  };
+}
 
 const ScheduledTasksPage: React.FC = () => {
   const layout = useLayoutContext();
   const isMobile = layout?.isMobile ?? false;
   const { t } = useTranslation();
   const navigate = useNavigate();
-  const { jobs, loading, pauseJob, resumeJob, deleteJob } = useAllCronJobs();
+  const { jobs, loading, pauseJob, resumeJob } = useAllCronJobs();
   const [createDialogVisible, setCreateDialogVisible] = useState(false);
   const [keepAwake, setKeepAwake] = useState(false);
 
@@ -66,43 +86,9 @@ const ScheduledTasksPage: React.FC = () => {
     [pauseJob, resumeJob, t]
   );
 
-  const handleDelete = useCallback(
-    async (jobId: string) => {
-      try {
-        await deleteJob(jobId);
-        Message.success(t('cron.deleteSuccess'));
-      } catch (err) {
-        Message.error(String(err));
-      }
-    },
-    [deleteJob, t]
-  );
-
-  const getStatusTag = (job: ICronJob) => {
-    if (!job.enabled) {
-      return (
-        <Tag size='small' color='gray' className='shrink-0'>
-          {t('cron.status.paused')}
-        </Tag>
-      );
-    }
-    if (job.state.lastStatus === 'error') {
-      return (
-        <Tag size='small' color='red' className='shrink-0'>
-          {t('cron.status.error')}
-        </Tag>
-      );
-    }
-    return (
-      <Tag size='small' color='green' className='shrink-0'>
-        {t('cron.status.active')}
-      </Tag>
-    );
-  };
-
   const pageShellClass = classNames(
     'w-full min-h-full box-border overflow-y-auto',
-    isMobile ? 'px-16px py-14px' : 'px-12px md:px-40px py-24px md:py-32px'
+    isMobile ? 'px-16px py-14px' : 'px-12px py-24px md:px-40px md:py-32px'
   );
   const contentFrameClass = classNames(
     'mx-auto flex w-full max-w-760px box-border flex-col',
@@ -110,23 +96,19 @@ const ScheduledTasksPage: React.FC = () => {
   );
   const headerSectionClass = classNames('flex w-full flex-col', isMobile ? 'gap-6px' : 'gap-8px');
   const headerTopClass = 'flex w-full items-start justify-between gap-12px sm:gap-16px max-[520px]:flex-wrap';
-  const titleRowClass = classNames('flex flex-wrap items-center', isMobile ? 'gap-6px' : 'gap-8px');
   const descriptionClass = classNames(
     'm-0 w-full text-text-3',
     isMobile ? 'text-13px leading-20px' : 'text-14px leading-22px'
   );
   const awakeBarClass =
-    'grid w-full box-border grid-cols-[minmax(0,1fr)_auto] items-center gap-x-12px gap-y-10px border border-solid border-[var(--color-border-2)] bg-base rd-12px sm:rd-14px px-14px sm:px-16px py-12px max-[520px]:grid-cols-1';
-  const headerActionClass = 'shrink-0 max-[520px]:ml-auto';
-  const keepAwakeWrapClass = 'justify-self-end';
-  const keepAwakeRowClass = 'flex items-center gap-8px text-text-3 text-12px sm:text-13px leading-18px';
+    'grid w-full box-border grid-cols-[minmax(0,1fr)_auto] items-center gap-x-12px gap-y-10px rounded-12px border border-solid border-[var(--color-border-2)] bg-fill-2 px-14px py-12px sm:rounded-14px sm:px-16px max-[520px]:grid-cols-1';
   const taskGridClass = classNames(
-    'grid w-full grid-cols-1',
-    isMobile ? 'gap-12px' : 'gap-16px sm:grid-cols-2 lg:grid-cols-3'
+    'grid w-full items-start grid-cols-1 gap-12px',
+    isMobile ? '' : 'sm:grid-cols-2 lg:grid-cols-3'
   );
   const taskCardClass = classNames(
-    'group flex box-border cursor-pointer flex-col justify-between border border-solid border-[var(--color-border-2)] bg-base transition-colors duration-200 hover:border-[var(--color-border-3)]',
-    isMobile ? 'min-h-136px rd-12px px-14px py-12px' : 'min-h-120px rd-12px px-12px py-12px'
+    'group flex cursor-pointer flex-col border border-solid border-[var(--color-border-2)] bg-fill-1 transition-colors duration-200 hover:border-[var(--color-border-3)] hover:shadow-sm',
+    isMobile ? 'rounded-12px px-16px py-16px' : 'rounded-12px px-20px py-18px'
   );
 
   return (
@@ -134,45 +116,40 @@ const ScheduledTasksPage: React.FC = () => {
       <div className={contentFrameClass}>
         <div className={headerSectionClass}>
           <div className={headerTopClass}>
-            <div className={titleRowClass}>
-              <h1
-                className={classNames(
-                  'm-0 font-bold',
-                  isMobile ? 'text-24px leading-[1.2]' : 'text-28px leading-[1.15]'
-                )}
-              >
-                {t('cron.scheduledTasks')}
-              </h1>
-            </div>
-            <div className={headerActionClass}>
-              <Button
-                type='primary'
-                shape='round'
-                className='mt-2px shrink-0'
-                icon={<Plus theme='outline' size={14} />}
-                onClick={() => setCreateDialogVisible(true)}
-              >
-                {t('cron.page.newTask')}
-              </Button>
-            </div>
+            <h1
+              className={classNames(
+                'm-0 min-w-0 flex-1 font-bold text-text-1',
+                isMobile ? 'text-24px leading-[1.2]' : 'text-28px leading-[1.15]'
+              )}
+            >
+              {t('cron.scheduledTasks')}
+            </h1>
+            <Button
+              type='primary'
+              shape='round'
+              className='shrink-0'
+              icon={<Plus theme='outline' size={14} />}
+              onClick={() => setCreateDialogVisible(true)}
+            >
+              {t('cron.page.newTask')}
+            </Button>
           </div>
           <p className={descriptionClass}>{t('cron.page.description')}</p>
         </div>
 
         <div className={awakeBarClass}>
-          <div className='min-w-0 flex items-start gap-10px'>
-            <Info theme='outline' size={14} className='shrink-0 text-text-3' />
-            <span className={classNames('text-text-2', isMobile ? 'text-12px leading-18px' : 'text-13px leading-20px')}>
-              {t('cron.page.awakeBanner')}
-            </span>
-          </div>
-          <div className={keepAwakeWrapClass}>
+          <span
+            className={classNames(
+              'min-w-0 text-text-2',
+              isMobile ? 'text-12px leading-18px' : 'text-13px leading-20px'
+            )}
+          >
+            {t('cron.page.awakeBanner')}
+          </span>
+          <div className='justify-self-end max-[520px]:justify-self-start'>
             <Tooltip content={t('cron.page.keepAwakeTooltip')}>
-              <div className={keepAwakeRowClass}>
-                <div className='flex items-center gap-8px'>
-                  <IconSun style={{ fontSize: 14 }} />
-                  <span>{t('cron.page.keepAwake')}</span>
-                </div>
+              <div className='flex items-center gap-8px text-text-3 text-12px leading-18px sm:text-13px'>
+                <span>{t('cron.page.keepAwake')}</span>
                 <Switch size='small' checked={keepAwake} onChange={handleKeepAwakeChange} />
               </div>
             </Tooltip>
@@ -180,65 +157,88 @@ const ScheduledTasksPage: React.FC = () => {
         </div>
 
         {loading ? (
-          <div className='flex min-h-220px items-center justify-center rd-16px border border-dashed border-border-2 bg-fill-1'>
+          <div className='flex min-h-220px items-center justify-center rounded-16px border border-dashed border-border-2 bg-fill-1'>
             <Spin />
           </div>
         ) : jobs.length === 0 ? (
-          <div className='flex min-h-220px items-center justify-center rd-16px border border-dashed border-border-2 bg-fill-1'>
+          <div className='flex min-h-220px items-center justify-center rounded-16px border border-dashed border-border-2 bg-fill-1'>
             <Empty description={t('cron.noTasks')} />
           </div>
         ) : (
           <div className={taskGridClass}>
-            {jobs.map((job) => (
-              <div key={job.id} className={taskCardClass} onClick={() => handleGoToDetail(job)}>
-                <div className='min-w-0 flex-1'>
-                  <div className='flex items-start justify-between gap-10px'>
+            {jobs.map((job) => {
+              const agentMeta = getJobAgentMeta(job);
+              const isManualOnly = job.schedule.kind === 'cron' && !job.schedule.expr;
+              const executionModeLabel =
+                job.target.executionMode === 'new_conversation'
+                  ? t('cron.page.form.newConversation')
+                  : t('cron.page.form.existingConversation');
+
+              return (
+                <div key={job.id} className={taskCardClass} onClick={() => handleGoToDetail(job)}>
+                  <div className='mb-12px flex items-center justify-between gap-8px'>
                     <span
                       className={classNames(
-                        'min-w-0 flex-1 font-semibold text-text-1 break-words line-clamp-2',
-                        isMobile ? 'text-14px leading-20px' : 'text-15px leading-22px'
+                        'mr-8px min-w-0 flex-1 font-medium text-text-1',
+                        isMobile ? 'truncate text-14px leading-20px' : 'truncate text-15px leading-22px'
                       )}
                     >
                       {job.name}
                     </span>
-                    {getStatusTag(job)}
+                    <CronStatusTag job={job} />
                   </div>
-                  <div className={classNames('flex flex-col', isMobile ? 'mt-8px gap-6px' : 'mt-8px gap-6px')}>
-                    <div
-                      className={classNames(
-                        'min-w-0 text-text-2 break-words line-clamp-2',
-                        isMobile ? 'text-12px leading-18px' : 'text-13px leading-20px'
-                      )}
-                      title={formatSchedule(job)}
-                    >
-                      {formatSchedule(job)}
+
+                  <div
+                    className={classNames(
+                      'min-w-0 break-words text-text-2',
+                      isMobile ? 'text-13px leading-20px' : 'text-14px leading-22px'
+                    )}
+                    title={formatSchedule(job, t)}
+                  >
+                    {formatSchedule(job, t)}
+                  </div>
+
+                  <div
+                    className={classNames(
+                      'mt-16px min-w-0 break-words text-text-2',
+                      isMobile ? 'text-13px leading-20px' : 'text-13px leading-20px'
+                    )}
+                    title={job.state.nextRunAtMs ? `${t('cron.nextRun')} ${formatNextRun(job.state.nextRunAtMs)}` : '-'}
+                  >
+                    {job.state.nextRunAtMs ? `${t('cron.nextRun')} ${formatNextRun(job.state.nextRunAtMs)}` : '-'}
+                  </div>
+
+                  <div className='mt-14px flex items-center justify-between gap-10px'>
+                    <div className={cardMetaRowClass}>
+                      {agentMeta.name ? (
+                        <Tooltip content={agentMeta.name}>
+                          <div className={cardMetaIconWrapClass}>
+                            {agentMeta.logo ? (
+                              <img
+                                src={agentMeta.logo}
+                                alt={agentMeta.name}
+                                className='h-16px w-16px shrink-0 rounded-50%'
+                              />
+                            ) : (
+                              <span className='flex h-16px w-16px items-center justify-center rounded-50% text-10px font-medium text-text-3'>
+                                {agentMeta.name.slice(0, 1)}
+                              </span>
+                            )}
+                          </div>
+                        </Tooltip>
+                      ) : null}
+                      <span className='min-w-0 truncate'>{executionModeLabel}</span>
                     </div>
-                    <div
-                      className={classNames(
-                        'min-w-0 text-text-2 break-words',
-                        isMobile ? 'text-12px leading-18px' : 'text-13px leading-20px'
+
+                    <div className='shrink-0' onClick={(e) => e.stopPropagation()}>
+                      {!isManualOnly && (
+                        <Switch size='small' checked={job.enabled} onChange={() => handleToggleEnabled(job)} />
                       )}
-                      title={
-                        job.state.nextRunAtMs ? `${t('cron.nextRun')} ${formatNextRun(job.state.nextRunAtMs)}` : '-'
-                      }
-                    >
-                      {job.state.nextRunAtMs ? `${t('cron.nextRun')} ${formatNextRun(job.state.nextRunAtMs)}` : '-'}
                     </div>
                   </div>
                 </div>
-                <div
-                  className={classNames('flex items-center justify-end', isMobile ? 'mt-8px' : 'mt-10px')}
-                  onClick={(e) => e.stopPropagation()}
-                >
-                  <div className='flex items-center gap-8px'>
-                    <Switch size='small' checked={job.enabled} onChange={() => handleToggleEnabled(job)} />
-                    <Popconfirm title={t('cron.confirmDeleteWithConversations')} onOk={() => handleDelete(job.id)}>
-                      <Button size='mini' type='text' status='danger' icon={<Delete theme='outline' size={14} />} />
-                    </Popconfirm>
-                  </div>
-                </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         )}
 
