@@ -13,6 +13,7 @@ import { Button, Dropdown, Menu, Message } from '@arco-design/web-react';
 import { Down, Robot } from '@icon-park/react';
 import React, { useCallback, useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import MarqueePillLabel from './MarqueePillLabel';
 
 export interface AgentModeSelectorProps {
   /** Agent backend type / 代理后端类型 */
@@ -253,7 +254,7 @@ const AgentModeSelector: React.FC<AgentModeSelectorProps> = ({
         <span className='flex items-center gap-6px min-w-0 leading-none'>
           {compactLeadingIcon && <span className='shrink-0 inline-flex items-center'>{compactLeadingIcon}</span>}
           {showLogoInCompact && <span className='shrink-0 inline-flex items-center'>{renderLogo()}</span>}
-          <span className='block truncate leading-none'>{compactLabel}</span>
+          <MarqueePillLabel>{compactLabel}</MarqueePillLabel>
           {canInteract && <Down size={12} className='text-t-tertiary shrink-0' />}
         </span>
       </Button>

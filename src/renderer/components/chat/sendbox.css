@@ -94,6 +94,22 @@
   }
 }
 
+/* Pill marquee animation for overflowing text */
+@keyframes pill-marquee {
+  0% {
+    transform: translateX(0);
+  }
+  100% {
+    transform: translateX(var(--pill-marquee-scroll));
+  }
+}
+
+.pill-marquee-track {
+  animation-name: pill-marquee;
+  animation-timing-function: linear;
+  animation-iteration-count: infinite;
+}
+
 /* Mobile: allow horizontal scrolling for sendbox tools (model/permission pills) */
 @media (max-width: 767px) {
   .sendbox-tools-scroll-mobile {

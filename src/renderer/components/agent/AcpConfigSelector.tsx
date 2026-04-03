@@ -11,6 +11,7 @@ import { Button, Dropdown, Menu } from '@arco-design/web-react';
 import { Down } from '@icon-park/react';
 import React, { useCallback, useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import MarqueePillLabel from './MarqueePillLabel';
 
 /**
  * Backends that currently support ACP configOptions (e.g., thought_level).
@@ -163,7 +164,7 @@ const AcpConfigSelector: React.FC<{
           >
             <Button className='sendbox-model-btn agent-mode-compact-pill' shape='round' size='small'>
               <span className='flex items-center gap-6px min-w-0 leading-none'>
-                <span className='block truncate leading-none'>{currentLabel}</span>
+                <MarqueePillLabel>{currentLabel}</MarqueePillLabel>
                 <Down size={12} className='text-t-tertiary shrink-0' />
               </span>
             </Button>
