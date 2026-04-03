@@ -16,6 +16,7 @@
   "imageLoadFailed": "Görüntü yüklenemedi",
   "scrollToBottom": "Aşağı kaydır",
   "availableCommands": "{{count}} Kullanılabilir Komut",
+  "atFile.hint": "Type to search for files",
   "slash.title": "Komutlar",
   "slash.hint": "/ yazarak komut menüsünü aç",
   "slash.empty": "Komut bulunamadı",

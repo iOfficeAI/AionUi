@@ -960,7 +960,7 @@ const SendBox: React.FC<{
               emptyText={
                 deferredAtFileQuery
                   ? t('conversation.workspace.search.empty', { defaultValue: 'No files found' })
-                  : t('messages.slash.hint', { defaultValue: 'Type to search for files' })
+                  : t('messages.atFile.hint', { defaultValue: 'Type to search for files' })
               }
               items={visibleAtFileMenuItems}
               loading={workspaceMentionLoading}

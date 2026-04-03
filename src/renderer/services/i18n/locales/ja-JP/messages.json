@@ -16,6 +16,7 @@
   "imageLoadFailed": "画像の読み込みに失敗しました",
   "scrollToBottom": "下にスクロール",
   "availableCommands": "{{count}} 個の利用可能なコマンド",
+  "atFile.hint": "Type to search for files",
   "slash.title": "コマンド",
   "slash.hint": "/ を入力してコマンドメニューを開く",
   "slash.empty": "コマンドが見つかりません",

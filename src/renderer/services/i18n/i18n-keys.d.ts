@@ -700,6 +700,7 @@ export type I18nKey =
   | 'mcp.tools'
   | 'mcp.transport'
   | 'messages.agentRequestingPermission'
+  | 'messages.atFile.hint'
   | 'messages.auto_handling_permissions'
   | 'messages.availableCommands'
   | 'messages.canceledExecution'

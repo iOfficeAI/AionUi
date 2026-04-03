@@ -16,6 +16,7 @@
   "imageLoadFailed": "이미지 로드 실패",
   "scrollToBottom": "맨 아래로 스크롤",
   "availableCommands": "{{count}}개의 사용 가능한 명령어",
+  "atFile.hint": "Type to search for files",
   "slash.title": "명령어",
   "slash.hint": "/를 입력해 명령 메뉴를 열기",
   "slash.empty": "명령어를 찾을 수 없습니다",
