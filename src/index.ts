@@ -87,6 +87,9 @@ if (!gotTheLock) {
       return;
     }
 
+    // Skip window creation if app hasn't finished initializing
+    if (!appReadyDone) return;
+
     if (app.isReady()) {
       showOrCreateMainWindow({
         mainWindow,
@@ -187,6 +190,12 @@ const isVersionMode = hasCommand('--version') || hasCommand('-v');
 
 // Flag to distinguish intentional quit from unexpected exit in WebUI mode
 let isExplicitQuit = false;
+
+// Guard against premature window creation (e.g. macOS 'activate' firing during init).
+// The activate event fires on first launch before handleAppReady finishes initializeProcess(),
+// causing the renderer to load and compete with initStorage on the serial configFile queue,
+// which blocks startup for 100-265 seconds.
+let appReadyDone = false;
 
 let mainWindow: BrowserWindow;
 
@@ -499,6 +508,7 @@ const handleAppReady = async (): Promise<void> => {
     const showMainWindowOnReady = !(wasLaunchedAtLogin() && getCloseToTrayEnabled());
 
     createWindow({ showOnReady: showMainWindowOnReady });
+    appReadyDone = true;
     mark('createWindow');
 
     // Run ACP detection in parallel with renderer loading.
@@ -641,6 +651,8 @@ app.on('window-all-closed', () => {
 app.on('activate', () => {
   // On OS X it's common to re-create a window in the app when the
   // dock icon is clicked and there are no other windows open.
+  // Skip if handleAppReady hasn't finished — it will create the window itself.
+  if (!appReadyDone) return;
   if (!isWebUIMode && app.isReady()) {
     if (mainWindow && !mainWindow.isDestroyed()) {
       // 从托盘恢复隐藏的窗口 / Restore hidden window from tray

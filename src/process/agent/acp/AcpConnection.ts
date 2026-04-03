@@ -21,7 +21,7 @@ import { ACP_METHODS, JSONRPC_VERSION } from '@/common/types/acpTypes';
 import type { ChildProcess } from 'child_process';
 import { execFile as execFileCb } from 'child_process';
 import { promisify } from 'util';
-import { buildAcpModelInfo, summarizeAcpModelInfo } from './modelInfo';
+import { buildAcpModelInfo } from './modelInfo';
 import type { AcpSessionMcpServer } from './mcpSessionConfig';
 import { mainLog } from '@process/utils/mainLogger';
 import { promises as fs } from 'fs';
@@ -970,15 +970,8 @@ export class AcpConnection {
       this.models = modelsSource as AcpSessionModels;
     }
     if (this.backend === 'codex') {
-      const unifiedModelInfo = buildAcpModelInfo(this.configOptions, this.models);
-      const modelOption = this.configOptions?.find((opt) => opt.category === 'model');
-      mainLog('[ACP codex]', 'session capabilities parsed', {
-        rawCurrentModelId: this.models?.currentModelId || null,
-        rawAvailableModelCount: this.models?.availableModels?.length || 0,
-        configOptionModelCount:
-          modelOption && modelOption.type === 'select' && modelOption.options ? modelOption.options.length : 0,
-        unified: summarizeAcpModelInfo(unifiedModelInfo),
-      });
+      // Build unified model info (no verbose logging)
+      buildAcpModelInfo(this.configOptions, this.models);
     }
   }
 
