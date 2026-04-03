@@ -264,6 +264,7 @@ describe('SendBox @ file menu', () => {
         relativePath: 'src/utils/date.ts',
       },
     ]);
+    expect(screen.queryByRole('listbox', { name: 'File mentions' })).not.toBeInTheDocument();
   });
 
   it('shows a search hint instead of dumping all files for bare @', async () => {
