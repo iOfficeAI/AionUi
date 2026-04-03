@@ -4,6 +4,7 @@ import { getAgentLogo } from '@/renderer/utils/model/agentLogo';
 import { iconColors } from '@/renderer/styles/colors';
 import type { TeammateStatus } from '@/common/types/teamTypes';
 import AddAgentModal from './AddAgentModal';
+import AgentStatusBadge from './AgentStatusBadge';
 import { useTeamTabs } from '../hooks/TeamTabsContext';
 
 const DRAG_OVER_CLASS = 'border-l-2 border-[color:var(--color-primary-6)]';
@@ -144,6 +145,7 @@ const TeamTabView: React.FC<TeamTabViewProps> = ({
           <Edit theme='outline' size='12' fill='currentColor' />
         </span>
       )}
+      <AgentStatusBadge status={status} />
     </div>
   );
 };

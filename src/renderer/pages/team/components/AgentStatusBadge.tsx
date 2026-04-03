@@ -6,11 +6,11 @@ type Props = {
 };
 
 const STATUS_CONFIG: Record<TeammateStatus, { color: string }> = {
-  pending: { color: 'bg-[var(--color-neutral-3)]' },
-  idle: { color: 'bg-[var(--color-neutral-4)]' },
-  active: { color: 'bg-[var(--color-primary-6)]' },
-  completed: { color: 'bg-[var(--color-success-6)]' },
-  failed: { color: 'bg-[var(--color-danger-6)]' },
+  pending: { color: 'bg-gray-400' },
+  idle: { color: 'bg-gray-400' },
+  active: { color: 'bg-green-500' },
+  completed: { color: 'bg-gray-400' },
+  failed: { color: 'bg-red-500' },
 };
 
 const AgentStatusBadge: React.FC<Props> = ({ status }) => {
