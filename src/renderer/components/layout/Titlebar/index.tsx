@@ -132,6 +132,27 @@ const Titlebar: React.FC<TitlebarProps> = ({ workspaceAvailable }) => {
       return;
     }
 
+    // Team mode: show team name
+    const teamMatch = location.pathname.match(/^\/team\/([^/]+)/);
+    const teamId = teamMatch?.[1];
+    if (teamId) {
+      let cancelled = false;
+      void ipcBridge.team.get
+        .invoke({ id: teamId })
+        .then((team) => {
+          if (cancelled) return;
+          setMobileCenterTitle(team?.name || appTitle);
+        })
+        .catch(() => {
+          if (cancelled) return;
+          setMobileCenterTitle(appTitle);
+        });
+      return () => {
+        cancelled = true;
+      };
+    }
+
+    // Single agent mode: show conversation name
     const match = location.pathname.match(/^\/conversation\/([^/]+)/);
     const conversationId = match?.[1];
     if (!conversationId) {
