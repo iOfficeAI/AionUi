@@ -94,6 +94,49 @@
   }
 }
 
+/* Allow sendbox tools area to shrink so the send button stays visible */
+.sendbox-tools {
+  min-width: 0;
+}
+
+/* Circle / icon-only buttons must not shrink */
+.sendbox-tools .arco-btn-shape-circle {
+  flex-shrink: 0 !important;
+}
+
+/* Only pill buttons shrink; file-attach / other fixed buttons stay rigid.
+ * flex-basis:0 makes all pills share space equally when compressed,
+ * max-width:max-content prevents short-text pills from stretching. */
+.sendbox-tools .agent-mode-compact-pill {
+  min-width: 0 !important;
+  overflow: hidden !important;
+  flex-shrink: 1 !important;
+  flex-basis: 0 !important;
+  flex-grow: 1 !important;
+  max-width: max-content !important;
+}
+
+.sendbox-tools .agent-mode-compact-pill .arco-btn-content {
+  min-width: 0 !important;
+  overflow: hidden !important;
+}
+
+/* Pill marquee animation for overflowing text */
+@keyframes pill-marquee {
+  0% {
+    transform: translateX(0);
+  }
+  100% {
+    transform: translateX(var(--pill-marquee-scroll));
+  }
+}
+
+.pill-marquee-track {
+  animation-name: pill-marquee;
+  animation-timing-function: linear;
+  animation-iteration-count: infinite;
+}
+
 /* Mobile: allow horizontal scrolling for sendbox tools (model/permission pills) */
 @media (max-width: 767px) {
   .sendbox-tools-scroll-mobile {
