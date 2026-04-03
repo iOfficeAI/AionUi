@@ -370,6 +370,32 @@ describe('SendBox @ file menu', () => {
     expect(screen.queryByText('My File.md')).not.toBeInTheDocument();
   });
 
+  it('fetches workspace mentions only once during a single open @ session', async () => {
+    render(<SendBoxHarness />);
+
+    const textarea = screen.getByRole('textbox') as HTMLTextAreaElement;
+
+    fireEvent.change(textarea, { target: { value: '@d' } });
+    textarea.selectionStart = textarea.selectionEnd = textarea.value.length;
+    fireEvent.keyUp(textarea, { key: 'd' });
+
+    expect(await screen.findByText('date.ts')).toBeInTheDocument();
+    expect(mockListWorkspaceFilesInvoke).toHaveBeenCalledTimes(1);
+
+    fireEvent.change(textarea, { target: { value: '@da' } });
+    textarea.selectionStart = textarea.selectionEnd = textarea.value.length;
+    fireEvent.keyUp(textarea, { key: 'a' });
+
+    fireEvent.change(textarea, { target: { value: '@dat' } });
+    textarea.selectionStart = textarea.selectionEnd = textarea.value.length;
+    fireEvent.keyUp(textarea, { key: 't' });
+
+    await waitFor(() => {
+      expect(screen.getByText('date.ts')).toBeInTheDocument();
+    });
+    expect(mockListWorkspaceFilesInvoke).toHaveBeenCalledTimes(1);
+  });
+
   it('escapes spaces in inserted paths', async () => {
     render(<SendBoxHarness />);
 

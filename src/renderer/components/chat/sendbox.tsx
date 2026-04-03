@@ -143,6 +143,7 @@ const SendBox: React.FC<{
   const [atFileMenuActiveIndex, setAtFileMenuActiveIndex] = useState(0);
   const [dismissedAtFileToken, setDismissedAtFileToken] = useState<string | null>(null);
   const mentionManagedSelectionKeysRef = useRef<Set<string>>(new Set());
+  const fetchedAtFileSessionKeyRef = useRef<string | null>(null);
   const highlightScrollRef = useRef<HTMLDivElement>(null);
 
   // Listen for reply events from message actions
@@ -290,6 +291,12 @@ const SendBox: React.FC<{
     }
     return `${activeAtFileQuery.start}:${activeAtFileQuery.rawQuery}`;
   }, [activeAtFileQuery]);
+  const atFileSessionKey = useMemo(() => {
+    if (!conversationContext?.workspace || !activeAtFileQuery) {
+      return null;
+    }
+    return `${conversationContext.workspace}:${activeAtFileQuery.start}`;
+  }, [activeAtFileQuery, conversationContext?.workspace]);
   const allAtFileQueries = useMemo(() => getAllAtFileQueries(input), [input]);
   const deferredAtFileQuery = useDeferredValue(activeAtFileQuery?.query ?? '');
   const inputHistory = useMemo(
@@ -501,11 +508,19 @@ const SendBox: React.FC<{
   };
 
   useEffect(() => {
-    if (!conversationContext?.workspace || !activeAtFileQuery) {
+    if (!isAtFileMenuOpen || !conversationContext?.workspace || !atFileSessionKey) {
+      fetchedAtFileSessionKeyRef.current = null;
+      setWorkspaceMentionItems([]);
+      setWorkspaceMentionLoading(false);
+      return;
+    }
+
+    if (fetchedAtFileSessionKeyRef.current === atFileSessionKey) {
       return;
     }
 
     let cancelled = false;
+    fetchedAtFileSessionKeyRef.current = atFileSessionKey;
     setWorkspaceMentionLoading(true);
 
     void ipcBridge.fs.listWorkspaceFiles
@@ -524,6 +539,7 @@ const SendBox: React.FC<{
       })
       .catch((error) => {
         if (!cancelled) {
+          fetchedAtFileSessionKeyRef.current = null;
           console.warn('[SendBox] Failed to load workspace file mentions:', error);
           setWorkspaceMentionItems([]);
         }
@@ -537,7 +553,7 @@ const SendBox: React.FC<{
     return () => {
       cancelled = true;
     };
-  }, [activeAtFileQuery, conversationContext?.workspace]);
+  }, [atFileSessionKey, conversationContext?.workspace, isAtFileMenuOpen]);
 
   useEffect(() => {
     if (!activeAtFileTokenKey) {
