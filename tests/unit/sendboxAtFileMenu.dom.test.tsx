@@ -195,7 +195,32 @@ vi.mock('@arco-design/web-react', () => ({
   Message: {
     useMessage: () => [{ warning: vi.fn() }, null],
   },
-  Tag: ({ children }: { children: React.ReactNode }) => React.createElement('div', {}, children),
+  Tag: ({
+    children,
+    closable,
+    closeIcon,
+    onClose,
+  }: {
+    children: React.ReactNode;
+    closable?: boolean;
+    closeIcon?: React.ReactNode;
+    onClose?: () => void;
+  }) =>
+    React.createElement(
+      'div',
+      {},
+      children,
+      closable
+        ? React.createElement(
+            'button',
+            {
+              onClick: onClose,
+              type: 'button',
+            },
+            closeIcon ?? 'close'
+          )
+        : null
+    ),
 }));
 
 vi.mock('@icon-park/react', () => ({
@@ -209,6 +234,28 @@ const SendBoxHarness: React.FC = () => {
   const [selectedWorkspaceItems, setSelectedWorkspaceItems] = useState<
     Array<string | { path: string; name: string; isFile: boolean; relativePath?: string }>
   >([]);
+
+  return (
+    <ConversationProvider value={{ conversationId: 'conv-1', workspace: '/workspace', type: 'gemini' }}>
+      <SendBox
+        value={value}
+        onChange={setValue}
+        onSelectedWorkspaceItemsChange={(items) => {
+          mockEmit('gemini.selected.file', items);
+          setSelectedWorkspaceItems(items);
+        }}
+        onSend={vi.fn().mockResolvedValue(undefined)}
+        selectedWorkspaceItems={selectedWorkspaceItems}
+      />
+    </ConversationProvider>
+  );
+};
+
+const SendBoxLegacyHarness: React.FC = () => {
+  const [value, setValue] = useState('');
+  const [selectedWorkspaceItems, setSelectedWorkspaceItems] = useState<Array<string | { path: string; name: string; isFile: boolean; relativePath?: string }>>([
+    '/workspace/README.md',
+  ]);
 
   return (
     <ConversationProvider value={{ conversationId: 'conv-1', workspace: '/workspace', type: 'gemini' }}>
@@ -331,6 +378,18 @@ describe('SendBox @ file menu', () => {
     fireEvent.change(textarea, { target: { value: '' } });
     textarea.selectionStart = textarea.selectionEnd = 0;
     fireEvent.keyUp(textarea, { key: 'Backspace' });
+
+    await waitFor(() => {
+      expect(mockEmit).toHaveBeenCalledWith('gemini.selected.file', []);
+    });
+  });
+
+  it('shows and removes legacy string-backed file selections when no visible mention exists', async () => {
+    render(<SendBoxLegacyHarness />);
+
+    expect(await screen.findByText('README.md')).toBeInTheDocument();
+
+    fireEvent.click(screen.getByText('CloseSmall'));
 
     await waitFor(() => {
       expect(mockEmit).toHaveBeenCalledWith('gemini.selected.file', []);

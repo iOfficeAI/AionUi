@@ -48,6 +48,20 @@ const MAX_SINGLE_LINE_CHARACTERS = 800;
 const BTW_COMMAND_RE = /^\/btw(?:\s+([\s\S]*))?$/i;
 const AT_FILE_HIGHLIGHT_COLOR = theme.Color.PrimaryColor;
 
+const getSelectedItemMatchKeys = (item: FileSelectionItem): string[] => {
+  if (typeof item === 'string') {
+    return [item];
+  }
+  return [item.relativePath, item.path].filter((value): value is string => Boolean(value));
+};
+
+const getSelectedItemDisplayLabel = (item: FileSelectionItem): string => {
+  if (typeof item === 'string') {
+    return item.split(/[\\/]/).pop() || item;
+  }
+  return item.relativePath || item.name || item.path;
+};
+
 function extractBtwQuestion(value: string): string | null {
   const match = value.trim().match(BTW_COMMAND_RE);
   return match ? match[1] || '' : null;
@@ -282,6 +296,19 @@ const SendBox: React.FC<{
     () => getConversationInputHistory(messageList, conversationContext?.conversationId),
     [conversationContext?.conversationId, messageList]
   );
+  const unmatchedSelectedWorkspaceItems = useMemo(() => {
+    if (!selectedWorkspaceItems?.length) {
+      return [];
+    }
+
+    const mentionQueries = new Set(allAtFileQueries.map((item) => item.query));
+    return selectedWorkspaceItems.filter((item) => {
+      if (typeof item !== 'string' && !item.isFile) {
+        return false;
+      }
+      return !getSelectedItemMatchKeys(item).some((key) => mentionQueries.has(key));
+    });
+  }, [allAtFileQueries, selectedWorkspaceItems]);
 
   const builtinSlashCommands = useMemo<SlashCommandItem[]>(() => {
     const commands: SlashCommandItem[] = [];
@@ -1139,6 +1166,25 @@ const SendBox: React.FC<{
                   className='text-12px bg-fill-2 b-1 b-solid b-border-2 rd-4px'
                 >
                   {snippet.tag}
+                </Tag>
+              ))}
+            </div>
+          )}
+          {unmatchedSelectedWorkspaceItems.length > 0 && onSelectedWorkspaceItemsChange && (
+            <div className='flex flex-wrap gap-6px mb-8px'>
+              {unmatchedSelectedWorkspaceItems.map((item) => (
+                <Tag
+                  key={typeof item === 'string' ? item : item.path}
+                  closable
+                  closeIcon={<CloseSmall theme='outline' size='12' />}
+                  onClose={() => {
+                    const nextItems =
+                      selectedWorkspaceItems?.filter((currentItem) => currentItem !== item) ?? selectedWorkspaceItems;
+                    onSelectedWorkspaceItemsChange(nextItems ?? []);
+                  }}
+                  className='text-12px bg-fill-2 b-1 b-solid b-border-2 rd-4px'
+                >
+                  {getSelectedItemDisplayLabel(item)}
                 </Tag>
               ))}
             </div>
