@@ -30,7 +30,7 @@ vi.mock('@/common/utils/presetAssistantResources', () => ({
   loadPresetAssistantResources,
 }));
 
-const { buildPresetAssistantParams } =
+const { buildPresetAssistantParams, buildCliAgentParams } =
   await import('../../src/renderer/pages/conversation/utils/createConversationParams');
 
 describe('createConversationParams', () => {
@@ -101,5 +101,45 @@ describe('createConversationParams', () => {
     expect(params.type).toBe('acp');
     expect(params.extra.presetContext).toBe('acp preset rules');
     expect(params.extra.backend).toBe('codebuddy');
+  });
+
+  it('falls back to gemini-placeholder when no provider configured for gemini (preset)', async () => {
+    loadPresetAssistantResources.mockResolvedValue({
+      rules: 'gemini preset rules',
+      skills: '',
+      enabledSkills: [],
+    });
+    configGet.mockResolvedValue([]); // No providers
+
+    const params = await buildPresetAssistantParams(
+      {
+        backend: 'gemini',
+        name: 'Gemini Assistant',
+        customAgentId: 'builtin-gemini',
+        isPreset: true,
+        presetAgentType: 'gemini',
+      },
+      '/tmp/workspace',
+      'en'
+    );
+
+    expect(params.model.id).toBe('gemini-placeholder');
+    expect(params.model.platform).toBe('gemini-with-google-auth');
+  });
+
+  it('falls back to gemini-placeholder when no provider configured for gemini (CLI)', async () => {
+    configGet.mockResolvedValue([]); // No providers
+
+    const params = await buildCliAgentParams(
+      {
+        backend: 'gemini',
+        name: 'Gemini CLI Agent',
+      },
+      '/tmp/workspace'
+    );
+
+    expect(params.type).toBe('gemini');
+    expect(params.model.id).toBe('gemini-placeholder');
+    expect(params.model.platform).toBe('gemini-with-google-auth');
   });
 });
