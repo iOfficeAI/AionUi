@@ -165,10 +165,12 @@ export class TeammateManager extends EventEmitter {
         }
       }
 
-      const availableAgentTypes = acpDetector.getDetectedAgents().map((a) => ({
-        type: a.backend,
-        name: a.name,
-      }));
+      // Only show team-verified backends in the leader's available agent types
+      const TEAM_ALLOWED_BACKENDS = new Set(['claude', 'codex', 'codebuddy']);
+      const availableAgentTypes = acpDetector
+        .getDetectedAgents()
+        .filter((a) => TEAM_ALLOWED_BACKENDS.has(a.backend))
+        .map((a) => ({ type: a.backend, name: a.name }));
 
       const payload = adapter.buildPayload({
         agent,
