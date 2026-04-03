@@ -127,6 +127,9 @@ describe('MarqueePillLabel', () => {
       expect(staticSpan.classList.contains('invisible')).toBe(false);
       expect(marqueeSpan.classList.contains('invisible')).toBe(true);
       expect(marqueeSpan.classList.contains('pill-marquee-track')).toBe(false);
+      // Residual inline styles should be cleaned up
+      expect(marqueeSpan.style.getPropertyValue('--pill-marquee-scroll')).toBe('');
+      expect(marqueeSpan.style.animationDuration).toBe('');
     });
   });
 
