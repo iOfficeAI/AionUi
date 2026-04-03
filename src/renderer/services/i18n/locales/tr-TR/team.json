@@ -13,7 +13,9 @@
     "deleteOk": "Sil",
     "deleteCancel": "İptal",
     "renameOk": "Kaydet",
-    "renameCancel": "İptal"
+    "renameCancel": "İptal",
+    "renameSuccess": "Takım yeniden adlandırıldı",
+    "deleteSuccess": "Takım silindi"
   },
   "addAgent": {
     "title": "Add Agent",

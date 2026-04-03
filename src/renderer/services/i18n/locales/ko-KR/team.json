@@ -13,7 +13,9 @@
     "deleteOk": "삭제",
     "deleteCancel": "취소",
     "renameOk": "저장",
-    "renameCancel": "취소"
+    "renameCancel": "취소",
+    "renameSuccess": "팀 이름이 변경되었습니다",
+    "deleteSuccess": "팀이 삭제되었습니다"
   },
   "addAgent": {
     "title": "Add Agent",

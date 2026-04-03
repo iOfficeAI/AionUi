@@ -13,7 +13,9 @@
     "deleteOk": "删除",
     "deleteCancel": "取消",
     "renameOk": "保存",
-    "renameCancel": "取消"
+    "renameCancel": "取消",
+    "renameSuccess": "团队已重命名",
+    "deleteSuccess": "团队已删除"
   },
   "addAgent": {
     "title": "添加 Agent",

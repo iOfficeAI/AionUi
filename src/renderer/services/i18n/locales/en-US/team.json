@@ -13,7 +13,9 @@
     "deleteOk": "Delete",
     "deleteCancel": "Cancel",
     "renameOk": "Save",
-    "renameCancel": "Cancel"
+    "renameCancel": "Cancel",
+    "renameSuccess": "Team renamed",
+    "deleteSuccess": "Team deleted"
   },
   "addAgent": {
     "title": "Add Agent",

@@ -13,7 +13,9 @@
     "deleteOk": "刪除",
     "deleteCancel": "取消",
     "renameOk": "儲存",
-    "renameCancel": "取消"
+    "renameCancel": "取消",
+    "renameSuccess": "團隊已重新命名",
+    "deleteSuccess": "團隊已刪除"
   },
   "addAgent": {
     "title": "新增 Agent",

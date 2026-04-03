@@ -1,5 +1,6 @@
 import { DeleteOne, EditOne, Peoples, Plus, Pushpin } from '@icon-park/react';
-import { Input, Message, Modal } from '@arco-design/web-react';
+import { Input, Message, Modal, Tooltip } from '@arco-design/web-react';
+import classNames from 'classnames';
 import React, { Suspense, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useLocation, useNavigate } from 'react-router-dom';
@@ -77,6 +78,7 @@ const Sider: React.FC<SiderProps> = ({ onSessionClick, collapsed = false }) => {
       await ipcBridge.team.renameTeam.invoke({ id: renameId, name: renameName.trim() });
       await refreshTeams();
       await globalMutate(`team/${renameId}`);
+      Message.success(t('team.sider.renameSuccess'));
       setRenameVisible(false);
       setRenameId(null);
       setRenameName('');
@@ -215,7 +217,40 @@ const Sider: React.FC<SiderProps> = ({ onSessionClick, collapsed = false }) => {
             {/* Scrollable content: team + scheduled tasks + conversation history */}
             <div className='flex-1 min-h-0 overflow-y-auto'>
               {/* Team section */}
-              {!collapsed && (
+              {collapsed ? (
+                sortedTeams.length > 0 && (
+                  <div className='shrink-0 mb-4px'>
+                    {sortedTeams.map((team) => {
+                      const isActive = pathname.startsWith(`/team/${team.id}`);
+                      return (
+                        <Tooltip key={team.id} {...siderTooltipProps} content={team.name} position='right'>
+                          <div
+                            className={classNames(
+                              'w-full py-6px flex items-center justify-center cursor-pointer transition-colors rd-8px',
+                              isActive
+                                ? 'bg-[rgba(var(--primary-6),0.12)] text-primary'
+                                : 'hover:bg-fill-3 active:bg-fill-4'
+                            )}
+                            onClick={() => {
+                              cleanupSiderTooltips();
+                              blurActiveElement();
+                              Promise.resolve(navigate(`/team/${team.id}`)).catch(console.error);
+                              if (onSessionClick) onSessionClick();
+                            }}
+                          >
+                            <Peoples
+                              theme='outline'
+                              size='20'
+                              fill={isActive ? 'rgb(var(--primary-6))' : iconColors.primary}
+                              style={{ lineHeight: 0 }}
+                            />
+                          </div>
+                        </Tooltip>
+                      );
+                    })}
+                  </div>
+                )
+              ) : (
                 <div className='shrink-0 mb-4px'>
                   <div className='flex items-center justify-between px-12px py-8px'>
                     <span className='text-13px text-t-secondary font-bold leading-20px'>
@@ -280,6 +315,7 @@ const Sider: React.FC<SiderProps> = ({ onSessionClick, collapsed = false }) => {
                                 okButtonProps: { status: 'warning' },
                                 onOk: async () => {
                                   await removeTeam(team.id);
+                                  Message.success(t('team.sider.deleteSuccess'));
                                   if (pathname.startsWith(`/team/${team.id}`)) {
                                     Promise.resolve(navigate('/')).catch(() => {});
                                   }

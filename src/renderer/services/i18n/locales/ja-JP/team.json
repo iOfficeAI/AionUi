@@ -13,7 +13,9 @@
     "deleteOk": "削除",
     "deleteCancel": "キャンセル",
     "renameOk": "保存",
-    "renameCancel": "キャンセル"
+    "renameCancel": "キャンセル",
+    "renameSuccess": "チーム名を変更しました",
+    "deleteSuccess": "チームを削除しました"
   },
   "addAgent": {
     "title": "Add Agent",
