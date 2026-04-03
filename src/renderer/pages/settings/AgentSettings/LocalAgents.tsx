@@ -4,28 +4,32 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import React, { useCallback, useState } from 'react';
 import { ipcBridge } from '@/common';
 import { ConfigStorage } from '@/common/config/storage';
 import type { AcpBackendConfig } from '@/common/types/acpTypes';
-import { Button, Dropdown, Link, Menu, Message, Typography } from '@arco-design/web-react';
 import AionModal from '@/renderer/components/base/AionModal';
-import { Plus } from '@icon-park/react';
+import { Button, Typography } from '@arco-design/web-react';
+import { Home, Plus } from '@icon-park/react';
+import React, { useCallback, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
 import useSWR from 'swr';
 import AgentCard from './AgentCard';
+import { AgentHubModal } from './AgentHubModal';
 import InlineAgentEditor from './InlineAgentEditor';
 
 const LocalAgents: React.FC = () => {
   const { t } = useTranslation();
   const navigate = useNavigate();
+  const [hubModalVisible, setHubModalVisible] = useState(false);
 
-  // Detected agents (filter out custom and remote)
+  // Detected agents (include built-in backends and extension-contributed agents, exclude user custom and remote)
   const { data: detectedAgents } = useSWR('acp.agents.available.settings', async () => {
     const result = await ipcBridge.acpConversation.getAvailableAgents.invoke();
-    if (result.success) {
-      return result.data.filter((agent) => agent.backend !== 'custom' && agent.backend !== 'remote');
+    if (result.success && result.data) {
+      return result.data.filter(
+        (agent) => agent.backend !== 'remote' && (agent.backend !== 'custom' || agent.isExtension)
+      );
     }
     return [];
   });
@@ -80,49 +84,55 @@ const LocalAgents: React.FC = () => {
   );
 
   // Aion CLI and Gemini CLI first among detected agents
-  const geminiAgent = detectedAgents?.find((a) => a.backend === 'gemini');
   const aionrsAgent = detectedAgents?.find((a) => a.backend === 'aionrs');
+  const geminiAgent = detectedAgents?.find((a) => a.backend === 'gemini');
   const otherDetected = detectedAgents?.filter((a) => a.backend !== 'gemini' && a.backend !== 'aionrs') ?? [];
+
+  const openCustomAgentEditor = useCallback(() => {
+    setEditingAgent(null);
+    setEditorVisible(true);
+  }, []);
 
   return (
     <div className='flex flex-col gap-8px py-16px'>
-      {/* Top action bar */}
-      <div className='flex items-center justify-between'>
-        <span className='text-12px text-t-secondary px-16px'>
-          {t('settings.agentManagement.localAgentsDescription')}
-          {'  '}
-          <Link href='https://github.com/iOfficeAI/AionUi/wiki/ACP-Setup' target='_blank' className='text-12px'>
-            {t('settings.agentManagement.localAgentsSetupLink')}
-          </Link>
-        </span>
-        <Dropdown
-          droplist={
-            <Menu
-              onClickMenuItem={(key) => {
-                if (key === 'market') {
-                  Message.info(t('settings.agentManagement.marketComingSoon'));
-                } else if (key === 'custom') {
-                  setEditingAgent(null);
-                  setEditorVisible(true);
-                }
-              }}
-            >
-              <Menu.Item key='market'>{t('settings.agentManagement.installFromMarket')}</Menu.Item>
-              <Menu.Item key='custom'>{t('settings.agentManagement.detectCustomAgent')}</Menu.Item>
-            </Menu>
-          }
-          position='bl'
+      <div className='px-16px text-12px text-t-secondary'>
+        <span>{t('settings.agentManagement.localAgentsDescription')} </span>
+        <Button
+          type='text'
+          size='mini'
+          className='!h-auto !p-0 !align-baseline !text-12px !font-normal !text-primary-6 hover:!text-primary-7 hover:!underline underline-offset-2'
+          onClick={openCustomAgentEditor}
         >
+          {t('settings.agentManagement.detectCustomAgent')}
+        </Button>
+      </div>
+
+      <div className='px-16px mt-8px'>
+        <div className='flex flex-col gap-14px rounded-16px border border-solid border-[rgba(var(--primary-6),0.18)] bg-[rgba(var(--primary-6),0.06)] p-16px md:flex-row md:items-center md:justify-between'>
+          <div className='flex items-center gap-12px'>
+            <div className='flex h-40px w-40px items-center justify-center leading-none rounded-12px border border-solid border-[rgba(var(--primary-6),0.12)] bg-[rgba(var(--primary-6),0.10)] text-primary-6 shadow-[inset_0_1px_0_rgba(255,255,255,0.28)]'>
+              <Home theme='outline' size='20' strokeWidth={2} className='block' />
+            </div>
+            <div className='min-w-0'>
+              <Typography.Text className='mb-4px block text-15px font-medium text-t-primary'>
+                {t('settings.agentManagement.installFromMarket')}
+              </Typography.Text>
+              <Typography.Text className='block text-12px leading-18px text-t-secondary'>
+                {t('settings.agentManagement.discoverMoreAgents')}
+              </Typography.Text>
+            </div>
+          </div>
+
           <Button
-            type='outline'
-            shape='round'
+            type='primary'
             size='small'
-            icon={<Plus size='16' />}
-            className='rd-100px border-1 border-solid border-[var(--color-border-2)] h-34px px-14px text-t-secondary hover:text-t-primary'
+            icon={<Plus size='14' />}
+            className='!rounded-10px md:!min-w-144px'
+            onClick={() => setHubModalVisible(true)}
           >
-            {t('settings.agentManagement.addAgent')}
+            {t('settings.agentManagement.installFromMarket')}
           </Button>
-        </Dropdown>
+        </div>
       </div>
 
       {/* Detected Agents section */}
@@ -131,13 +141,14 @@ const LocalAgents: React.FC = () => {
           {t('settings.agentManagement.detected')}
         </Typography.Text>
       </div>
-      <div className='flex flex-col gap-4px px-0'>
+      <div className='grid grid-cols-2 gap-10px px-16px md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5'>
         {aionrsAgent && (
           <AgentCard
             type='detected'
             agent={aionrsAgent}
             settingsDisabled={false}
             onSettings={() => navigate('/settings/aionrs')}
+            variant='grid'
           />
         )}
         {geminiAgent && (
@@ -146,23 +157,24 @@ const LocalAgents: React.FC = () => {
             agent={geminiAgent}
             settingsDisabled={false}
             onSettings={() => navigate('/settings/gemini')}
+            variant='grid'
           />
         )}
         {otherDetected.map((agent) => (
-          <AgentCard key={agent.backend} type='detected' agent={agent} />
+          <AgentCard key={agent.backend} type='detected' agent={agent} variant='grid' />
         ))}
-        {(!detectedAgents || detectedAgents.length === 0) && (
-          <Typography.Text type='secondary' className='block py-16px text-center text-12px'>
-            {t('settings.agentManagement.localAgentsEmpty')}
-          </Typography.Text>
-        )}
       </div>
+      {(!detectedAgents || detectedAgents.length === 0) && (
+        <Typography.Text type='secondary' className='block px-16px py-16px text-center text-12px'>
+          {t('settings.agentManagement.localAgentsEmpty')}
+        </Typography.Text>
+      )}
 
       {/* Custom Agents section */}
       {(editorVisible || (customAgents && customAgents.length > 0)) && (
         <div className='px-16px mt-16px'>
           <Typography.Text className='text-12px font-medium text-t-secondary mb-4px block'>
-            {t('settings.agentManagement.customAgents')}
+            {t('settings.agentManagement.customAgents', { defaultValue: 'Custom Agents' })}
           </Typography.Text>
         </div>
       )}
@@ -208,6 +220,8 @@ const LocalAgents: React.FC = () => {
           />
         ))}
       </div>
+
+      <AgentHubModal visible={hubModalVisible} onCancel={() => setHubModalVisible(false)} />
     </div>
   );
 };

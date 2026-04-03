@@ -100,6 +100,7 @@ export default defineConfig(({ mode }) => {
             acp: resolve('src/process/worker/acp.ts'),
             'openclaw-gateway': resolve('src/process/worker/openclaw-gateway.ts'),
             nanobot: resolve('src/process/worker/nanobot.ts'),
+            lifecycleRunner: resolve('src/process/extensions/lifecycle/lifecycleRunner.ts'),
             aionrs: resolve('src/process/worker/aionrs.ts'),
             // Built-in MCP server entry points
             'builtin-mcp-image-gen': resolve('src/process/resources/builtinMcp/imageGenServer.ts'),

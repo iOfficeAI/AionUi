@@ -6,13 +6,8 @@
 
 import * as fs from 'fs';
 import * as path from 'path';
-import {
-  getUserExtensionsDir,
-  getAppDataExtensionsDir,
-  getEnvExtensionsDirs,
-  EXTENSION_MANIFEST_FILE,
-} from '../constants';
-import { ExtensionRegistry } from '../ExtensionRegistry';
+import { EXTENSION_MANIFEST_FILE, getExtensionScanSources } from '@process/extensions/constants';
+import { ExtensionRegistry } from '@process/extensions/ExtensionRegistry';
 
 const DEBOUNCE_MS = 1000;
 
@@ -21,7 +16,7 @@ export class ExtensionWatcher {
   private debounceTimer: ReturnType<typeof setTimeout> | null = null;
 
   start(): void {
-    const dirs = [getUserExtensionsDir(), getAppDataExtensionsDir(), ...getEnvExtensionsDirs()];
+    const dirs = getExtensionScanSources().map((s) => s.dir);
     const uniqueDirs = [...new Set(dirs)];
 
     for (const dir of uniqueDirs) {

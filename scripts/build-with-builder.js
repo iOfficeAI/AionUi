@@ -454,6 +454,8 @@ try {
   // This only affects packaging assets; runtime integration will be added in a future PR.
   prepareBundledBun();
 
+  // 5b. Prepare hub resources (index.json + extension zips for offline fallback)
+  execSync('node scripts/prepareHubResources.js', { stdio: 'inherit', env: process.env });
   // 5b. Prepare aionrs binary (Rust CLI for agent integration)
   prepareAionrs();
 

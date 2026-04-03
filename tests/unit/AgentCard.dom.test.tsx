@@ -28,6 +28,15 @@ vi.mock('react-i18next', () => ({
 
 vi.mock('@/renderer/utils/model/agentLogo', () => ({
   getAgentLogo: vi.fn((backend: string) => (backend === 'gemini' ? '/gemini.svg' : null)),
+  resolveAgentLogo: vi.fn((opts: { icon?: string; backend?: string }) => {
+    if (opts.icon) return opts.icon;
+    if (opts.backend === 'gemini') return '/gemini.svg';
+    return null;
+  }),
+}));
+
+vi.mock('@/renderer/utils/platform', () => ({
+  resolveExtensionAssetUrl: vi.fn((url?: string) => url),
 }));
 
 vi.mock('@icon-park/react', () => ({

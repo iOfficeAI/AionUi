@@ -199,7 +199,7 @@ flowchart TD
 
 3. **无 require 拦截** — 扩展可 `require('fs')`, `require('child_process')` 等任意内置模块。
 
-4. **`createSandbox()` 未被调用** — ChannelPlugin 和 Lifecycle hooks 仍在主进程通过 `eval('require')` 裸跑，未迁移到 Sandbox。消息通道虽已修好，但整个 Sandbox 系统处于"可用但未接入"状态。
+4. **`createSandbox()` 未被调用** — ChannelPlugin 仍在主进程通过 `eval('require')` 裸跑，未迁移到 Sandbox。Lifecycle hooks 已迁移到 `child_process.fork()` 独立子进程（不经过 Sandbox，见 2.5 节）。
 
 ---
 
@@ -224,16 +224,22 @@ flowchart TD
 
 ### 2.5 生命周期钩子安全
 
-**状态: 无隔离, 主进程权限**
+**状态: 已迁移到子进程 (child_process.fork)**
 
-生命周期钩子 (`onInstall`/`onActivate`/`onDeactivate`/`onUninstall`) 通过 `eval('require')` 在主进程中加载执行, 拥有完整权限:
+> 详见 [design-fix-sandbox.md](../design-fix-sandbox.md) 问题 4 和 PR #2004。
 
-- 文件系统 (`fs`, `path`)
-- 网络 (`http`, `https`, `net`)
-- 进程派生 (`child_process`)
-- Electron 主进程 API
+生命周期钩子 (`onInstall`/`onActivate`/`onDeactivate`/`onUninstall`) 已从主进程 `eval('require')` 迁移到 `child_process.fork()` 独立子进程执行：
 
-唯一的安全检查是 `isPathWithinDirectory()` 确保脚本路径在扩展目录内, 但脚本执行后无任何约束。
+- **进程级隔离**：钩子崩溃、`process.exit()`、native crash 不影响主进程
+- **不阻塞主线程**：重操作（如 `bun add -g`）不卡 UI
+- **超时保护**：按钩子类型差异化默认超时（onInstall 120s, onActivate 30s 等），开发者可在 manifest 中覆盖
+- **非致命失败**：钩子失败不阻止扩展激活
+
+**仍存在的限制**：
+
+- 钩子代码在子进程中仍有完整 Node.js 权限（`fs`、`child_process`、`net` 等）
+- 路径检查仅限脚本路径本身（`isPathWithinDirectory()`），脚本执行后无约束
+- 不经过 Worker Thread Sandbox，无 `aion` API 可用
 
 ---
 
@@ -258,7 +264,7 @@ flowchart TD
   subgraph P0["P0 — 市场上线前必须"]
     Sign["扩展签名验证\n发布者身份 + 完整性校验"]
     SandboxEnforce["沙箱权限执行\nvm.runInNewContext\n+ require proxy / --experimental-permission"]
-    LifecycleIsolation["生命周期钩子沙箱化\n从主进程移到 Worker Thread"]
+    LifecycleIsolation["✅ 生命周期钩子隔离\n已迁移到 child_process.fork()"]
   end
 
   subgraph P1["P1 — 市场安全增强"]
@@ -280,15 +286,15 @@ flowchart TD
 
 ## 4. 安全评估总表
 
-| 层级         | 机制                                | 实现状态                 | 市场化影响                     |
-| ------------ | ----------------------------------- | ------------------------ | ------------------------------ |
-| 路径安全     | `isPathWithinDirectory()`           | 已实现                   | 可靠, 需补 symlink             |
-| 权限声明     | manifest `permissions` + Zod        | 已实现                   | UI 展示可用                    |
-| 权限分析     | `analyzePermissions()` + risk level | 已实现                   | 市场上架/安装提示可用          |
-| **权限执行** | vm / require proxy                  | **未实现 (TODO)**        | **市场化 blocker**             |
-| Worker 沙箱  | Worker Thread + 消息传递            | 消息通道已修复, 未接入   | 需迁移 ChannelPlugin/Lifecycle |
-| iframe 沙箱  | sandbox attribute                   | 已实现                   | 需加 origin 校验               |
-| 生命周期隔离 | —                                   | 无 (TODO: 迁移到 Worker) | 钩子在主进程运行, 有稳定性风险 |
-| 事件总线 ACL | —                                   | 无                       | 需按 permissions 控制          |
-| 签名验证     | —                                   | 无                       | 市场信任链的基础               |
-| 网络过滤     | `allowedDomains`                    | 仅声明                   | 需执行层配合                   |
+| 层级         | 机制                                | 实现状态               | 市场化影响                       |
+| ------------ | ----------------------------------- | ---------------------- | -------------------------------- |
+| 路径安全     | `isPathWithinDirectory()`           | 已实现                 | 可靠, 需补 symlink               |
+| 权限声明     | manifest `permissions` + Zod        | 已实现                 | UI 展示可用                      |
+| 权限分析     | `analyzePermissions()` + risk level | 已实现                 | 市场上架/安装提示可用            |
+| **权限执行** | vm / require proxy                  | **未实现 (TODO)**      | **市场化 blocker**               |
+| Worker 沙箱  | Worker Thread + 消息传递            | 消息通道已修复, 未接入 | 需迁移 ChannelPlugin             |
+| iframe 沙箱  | sandbox attribute                   | 已实现                 | 需加 origin 校验                 |
+| 生命周期隔离 | child_process.fork()                | 已迁移到子进程         | 进程级隔离, 超时保护, 非致命失败 |
+| 事件总线 ACL | —                                   | 无                     | 需按 permissions 控制            |
+| 签名验证     | —                                   | 无                     | 市场信任链的基础                 |
+| 网络过滤     | `allowedDomains`                    | 仅声明                 | 需执行层配合                     |

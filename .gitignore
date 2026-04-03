@@ -196,8 +196,10 @@ lint-results.txt
 docs/superpowers/
 resources/bundled-bun
 resources/bundled-aionrs
+resources/hub
 
 # Server build output
 dist-server/
 .omc/
 .superset/
+.claude/teams/aionui-ui-dev.json

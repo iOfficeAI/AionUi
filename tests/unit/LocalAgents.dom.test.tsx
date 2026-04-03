@@ -25,7 +25,6 @@ Object.defineProperty(window, 'matchMedia', {
 const mockNavigate = vi.hoisted(() => vi.fn());
 const mockGetAvailableAgents = vi.hoisted(() => vi.fn());
 const mockSwrMutate = vi.hoisted(() => vi.fn().mockResolvedValue(undefined));
-const mockMessageInfo = vi.hoisted(() => vi.fn());
 
 vi.mock('react-i18next', () => ({
   useTranslation: () => ({ t: (key: string) => key, i18n: { language: 'en-US' } }),
@@ -61,33 +60,6 @@ vi.mock('@arco-design/web-react', () => ({
   Button: ({ children, onClick }: { children: React.ReactNode; onClick?: () => void }) => (
     <button onClick={onClick}>{children}</button>
   ),
-  Dropdown: ({ children, droplist }: { children: React.ReactNode; droplist?: React.ReactNode }) => (
-    <div>
-      {children}
-      {droplist}
-    </div>
-  ),
-  Menu: Object.assign(
-    ({ children, onClickMenuItem }: { children: React.ReactNode; onClickMenuItem?: (key: string) => void }) => (
-      <div>
-        {React.Children.map(children, (child) => {
-          if (!React.isValidElement(child)) {
-            return child;
-          }
-          const itemKey = typeof child.key === 'string' ? child.key.replace(/^\.\$?/, '') : String(child.key);
-          return React.cloneElement(child, { onClick: () => onClickMenuItem?.(itemKey) });
-        })}
-      </div>
-    ),
-    {
-      Item: ({ children, onClick }: { children: React.ReactNode; onClick?: () => void }) => (
-        <button onClick={onClick}>{children}</button>
-      ),
-    }
-  ),
-  Message: {
-    info: mockMessageInfo,
-  },
   Switch: ({ checked, onChange }: { checked?: boolean; onChange?: (v: boolean) => void }) => (
     <button role='switch' aria-checked={checked} onClick={() => onChange?.(!checked)}>
       switch
@@ -105,13 +77,32 @@ vi.mock('@/common/config/storage', () => ({
 }));
 
 vi.mock('@icon-park/react', () => ({
+  Home: () => <span data-testid='icon-home'>HomeIcon</span>,
   Setting: () => <span data-testid='icon-setting'>SettingIcon</span>,
   Robot: () => <span data-testid='icon-robot'>RobotIcon</span>,
   Plus: () => <span data-testid='icon-plus'>PlusIcon</span>,
+  Close: () => <span data-testid='icon-close'>CloseIcon</span>,
 }));
 
 vi.mock('@/renderer/utils/model/agentLogo', () => ({
   getAgentLogo: vi.fn(() => null),
+  resolveAgentLogo: vi.fn(() => null),
+}));
+
+vi.mock('@/renderer/utils/platform', () => ({
+  resolveExtensionAssetUrl: vi.fn(() => undefined),
+}));
+
+vi.mock('@/renderer/hooks/agent/useHubAgents', () => ({
+  useHubAgents: () => ({ agents: [], loading: false, install: vi.fn(), retryInstall: vi.fn(), update: vi.fn() }),
+}));
+
+vi.mock('../../src/renderer/pages/settings/AgentSettings/AgentHubModal', () => ({
+  AgentHubModal: ({ visible }: { visible: boolean }) => (visible ? <div data-testid='hub-modal' /> : null),
+}));
+
+vi.mock('@/renderer/utils/model/availableAgents', () => ({
+  AVAILABLE_AGENTS_SWR_KEY: 'acp.agents.available',
 }));
 
 vi.mock('@/renderer/hooks/context/ThemeContext', () => ({
@@ -128,7 +119,6 @@ vi.mock('../../src/renderer/pages/settings/AgentSettings/InlineAgentEditor', () 
 
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, act } from '@testing-library/react';
-import userEvent from '@testing-library/user-event';
 import React from 'react';
 import LocalAgents from '../../src/renderer/pages/settings/AgentSettings/LocalAgents';
 
@@ -143,13 +133,13 @@ describe('LocalAgents', () => {
     mockSwrMutate.mockResolvedValue(undefined);
   });
 
-  it('renders description and setup link', async () => {
+  it('renders description and detect custom agent link', async () => {
     await act(async () => {
       render(<LocalAgents />);
     });
 
     expect(screen.getByText('settings.agentManagement.localAgentsDescription')).toBeTruthy();
-    expect(screen.getByText('settings.agentManagement.localAgentsSetupLink')).toBeTruthy();
+    expect(screen.getByText('settings.agentManagement.detectCustomAgent')).toBeTruthy();
   });
 
   it('renders detected section heading', async () => {
@@ -166,16 +156,5 @@ describe('LocalAgents', () => {
     });
 
     expect(screen.getByText('settings.agentManagement.localAgentsEmpty')).toBeTruthy();
-  });
-
-  it('shows market coming soon message when market menu item is clicked', async () => {
-    const user = userEvent.setup();
-    await act(async () => {
-      render(<LocalAgents />);
-    });
-
-    await user.click(screen.getByText('settings.agentManagement.installFromMarket'));
-
-    expect(mockMessageInfo).toHaveBeenCalledWith('settings.agentManagement.marketComingSoon');
   });
 });

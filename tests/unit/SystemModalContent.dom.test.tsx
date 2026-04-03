@@ -364,7 +364,8 @@ describe('SystemModalContent', () => {
 
   it('should toggle DevTools when button is clicked', async () => {
     mockIsDevToolsOpened.mockResolvedValue(false);
-    mockOpenDevTools.mockResolvedValue(true);
+    const openPromise = Promise.resolve(true);
+    mockOpenDevTools.mockReturnValue(openPromise);
 
     render(<SystemModalContent />);
 
@@ -374,6 +375,7 @@ describe('SystemModalContent', () => {
 
     await act(async () => {
       fireEvent.click(screen.getByText('settings.openDevTools'));
+      await openPromise;
     });
 
     expect(mockOpenDevTools).toHaveBeenCalled();

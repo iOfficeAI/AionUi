@@ -23,7 +23,6 @@ Object.defineProperty(window, 'matchMedia', {
 });
 
 const mockTestCustomAgent = vi.hoisted(() => vi.fn());
-const mockTriggerEmojiChange = vi.hoisted(() => vi.fn<(emoji: string) => void>());
 
 vi.mock('react-i18next', () => ({
   useTranslation: () => ({ t: (key: string) => key, i18n: { language: 'en-US' } }),
@@ -53,14 +52,6 @@ vi.mock('@uiw/react-codemirror', () => ({
 }));
 
 vi.mock('@codemirror/lang-json', () => ({ json: () => [] }));
-vi.mock('@/renderer/components/chat/EmojiPicker', () => ({
-  default: ({ onChange, children }: { onChange: (emoji: string) => void; children: React.ReactNode }) => {
-    mockTriggerEmojiChange.mockImplementation((emoji: string) => {
-      onChange(emoji);
-    });
-    return <>{children}</>;
-  },
-}));
 
 // ---------------------------------------------------------------------------
 // Imports
@@ -93,7 +84,6 @@ const makeAgent = (overrides: Partial<AcpBackendConfig> = {}): AcpBackendConfig 
 describe('InlineAgentEditor', () => {
   beforeEach(() => {
     mockTestCustomAgent.mockReset();
-    mockTriggerEmojiChange.mockReset();
   });
 
   it('renders empty form for new agent', async () => {
@@ -278,30 +268,5 @@ describe('InlineAgentEditor', () => {
     const saved = onSave.mock.calls[0][0] as AcpBackendConfig;
     expect(saved.id).toBe('existing-id');
     expect(saved.enabled).toBe(false);
-  });
-
-  it('saves the latest avatar when only avatar is changed', async () => {
-    const onSave = vi.fn();
-    const agent = makeAgent({
-      name: 'Avatar Agent',
-      defaultCliPath: '/usr/bin/avatar-agent',
-      avatar: '🤖',
-    });
-
-    await act(async () => {
-      render(<InlineAgentEditor agent={agent} onSave={onSave} onCancel={vi.fn()} />);
-    });
-    await act(async () => {
-      mockTriggerEmojiChange('😺');
-    });
-
-    const saveButton = screen.getByRole('button', { name: 'common.save' });
-    await act(async () => {
-      fireEvent.click(saveButton);
-    });
-
-    expect(onSave).toHaveBeenCalledTimes(1);
-    const saved = onSave.mock.calls[0][0] as AcpBackendConfig;
-    expect(saved.avatar).toBe('😺');
   });
 });

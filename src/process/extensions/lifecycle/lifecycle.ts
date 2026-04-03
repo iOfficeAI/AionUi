@@ -7,6 +7,7 @@
 import * as path from 'path';
 import * as fs from 'fs';
 import { fork, type ChildProcess } from 'child_process';
+import { getEnhancedEnv } from '@process/utils/shellEnv';
 import type { LoadedExtension } from '../types';
 import { isPathWithinDirectory } from '../sandbox/pathSafety';
 import { extensionEventBus, ExtensionSystemEvents, type ExtensionLifecyclePayload } from './ExtensionEventBus';
@@ -24,7 +25,16 @@ import { extensionEventBus, ExtensionSystemEvents, type ExtensionLifecyclePayloa
  * }
  * ```
  */
-export type LifecycleHookValue = string | { script: string; timeout?: number };
+export type LifecycleHookValue =
+  | string
+  | {
+      script?: string;
+      shell?: {
+        cliCommand?: string;
+        args?: string[];
+      };
+      timeout?: number;
+    };
 
 export interface LifecycleHooks {
   onActivate?: LifecycleHookValue;
@@ -63,28 +73,17 @@ const DEFAULT_HOOK_TIMEOUTS: Record<keyof LifecycleHooks, number> = {
 async function runLifecycleHook(
   extension: LoadedExtension,
   hookName: keyof LifecycleHooks,
-  hookValue: string | { script?: string; timeout?: number }
+  hookValue: LifecycleHookValue
 ): Promise<boolean> {
-  const script = typeof hookValue === 'string' ? hookValue : hookValue.script;
-  if (!script) return false;
   const timeout =
     typeof hookValue === 'string'
       ? DEFAULT_HOOK_TIMEOUTS[hookName]
       : (hookValue.timeout ?? DEFAULT_HOOK_TIMEOUTS[hookName]);
-  const scriptPath = path.resolve(extension.directory, script);
 
-  // Security: ensure script is within extension directory
-  if (!isPathWithinDirectory(scriptPath, extension.directory)) {
-    console.warn(
-      `[Extension Lifecycle] Path traversal detected in ${hookName} hook for "${extension.manifest.name}": ${script}`
-    );
-    return false;
-  }
+  const script = typeof hookValue === 'string' ? hookValue : hookValue.script;
+  const shell = typeof hookValue === 'object' ? hookValue.shell : undefined;
 
-  if (!fs.existsSync(scriptPath)) {
-    console.warn(`[Extension Lifecycle] Hook script not found for "${extension.manifest.name}": ${scriptPath}`);
-    return false;
-  }
+  if (!script && (!shell || !shell.cliCommand)) return false;
 
   const context: LifecycleContext = {
     extensionName: extension.manifest.name,
@@ -92,11 +91,16 @@ async function runLifecycleHook(
     version: extension.manifest.version,
   };
 
-  const runnerScript = path.join(__dirname, 'lifecycleRunner.js');
-
   return new Promise<boolean>((resolve) => {
-    let child: ChildProcess;
+    let child: ChildProcess | undefined;
     let settled = false;
+
+    const timer = setTimeout(() => {
+      if (!settled) {
+        settle(false, `timed out after ${timeout}ms`);
+        child?.kill('SIGKILL');
+      }
+    }, timeout);
 
     const settle = (success: boolean, reason?: string) => {
       if (settled) return;
@@ -113,15 +117,33 @@ async function runLifecycleHook(
       resolve(success);
     };
 
-    const timer = setTimeout(() => {
-      settle(false, `timed out after ${timeout}ms`);
-      child?.kill('SIGKILL');
-    }, timeout);
+    let scriptPath: string | undefined;
+
+    if (script) {
+      scriptPath = path.resolve(extension.directory, script);
+
+      // Security: ensure script is within extension directory
+      if (!isPathWithinDirectory(scriptPath, extension.directory)) {
+        console.warn(
+          `[Extension Lifecycle] Path traversal detected in ${hookName} hook for "${extension.manifest.name}": ${script}`
+        );
+        settle(false, `Path traversal detected in ${hookName} hook: ${script}`);
+        return;
+      }
+
+      if (!fs.existsSync(scriptPath)) {
+        console.warn(`[Extension Lifecycle] Hook script not found for "${extension.manifest.name}": ${scriptPath}`);
+        settle(false, `Hook script not found: ${scriptPath}`);
+        return;
+      }
+    }
+
+    const runnerScript = path.join(__dirname, 'lifecycleRunner.js');
 
     try {
       child = fork(runnerScript, [], {
         cwd: extension.directory,
-        env: process.env,
+        env: getEnhancedEnv(),
         silent: false, // inherit stdio so hook console.log is visible
       });
     } catch (error) {
@@ -148,7 +170,11 @@ async function runLifecycleHook(
     });
 
     // Send hook details to child process
-    child.send({ scriptPath, hookName, context });
+    if (shell && shell.cliCommand) {
+      child.send({ type: 'shell', shell, context });
+    } else if (script) {
+      child.send({ type: 'script', scriptPath, hookName, context });
+    }
   });
 }
 

@@ -88,6 +88,33 @@ export function getAgentLogo(agent: string | undefined | null): string | null {
 }
 
 /**
+ * Resolve the best available logo for an agent.
+ *
+ * Priority:
+ *   1. Explicit icon/avatar (if provided)
+ *   2. Adapter ID from customAgentId (format `ext:extensionName:adapterId`) → built-in logo map
+ *   3. Backend ID → built-in logo map
+ *   4. null (caller renders its own fallback)
+ */
+export function resolveAgentLogo(opts: {
+  icon?: string | null;
+  backend?: string | null;
+  customAgentId?: string | null;
+  isExtension?: boolean;
+}): string | null {
+  if (opts.icon) return opts.icon;
+
+  // For extension agents, extract adapter ID from customAgentId
+  if (opts.isExtension && opts.customAgentId) {
+    const adapterId = opts.customAgentId.split(':').pop();
+    const logo = getAgentLogo(adapterId);
+    if (logo) return logo;
+  }
+
+  return getAgentLogo(opts.backend);
+}
+
+/**
  * 检查 agent 是否有对应的 logo
  * Check if agent has a corresponding logo
  *

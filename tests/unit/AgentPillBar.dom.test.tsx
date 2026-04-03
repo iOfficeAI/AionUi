@@ -38,6 +38,11 @@ vi.mock('@/renderer/hooks/context/LayoutContext', () => ({
 
 vi.mock('@/renderer/utils/model/agentLogo', () => ({
   getAgentLogo: vi.fn((backend: string) => (backend === 'claude' ? '/claude.svg' : null)),
+  resolveAgentLogo: vi.fn((opts: { icon?: string; backend?: string }) => {
+    if (opts.icon) return opts.icon;
+    if (opts.backend === 'claude') return '/claude.svg';
+    return null;
+  }),
 }));
 
 vi.mock('@/renderer/utils/platform', () => ({

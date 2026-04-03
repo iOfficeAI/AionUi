@@ -1223,6 +1223,27 @@ export const channel = {
   userAuthorized: bridge.buildEmitter<IChannelUser>('channel.user-authorized'),
 };
 
+// ==================== Agent Hub API ====================
+import type { IHubAgentItem, HubExtensionStatus } from '@/common/types/hub';
+
+export const hub = {
+  // 获取 Hub 弹窗的 extension 列表 / Get extension list for Hub Modal
+  getExtensionList: bridge.buildProvider<IBridgeResponse<IHubAgentItem[]>, void>('hub.get-extension-list'),
+  // 发起安装 / Install extension
+  install: bridge.buildProvider<IBridgeResponse, { name: string }>('hub.install'),
+  // 发起卸载 / Uninstall extension (optional in P0)
+  uninstall: bridge.buildProvider<IBridgeResponse, { name: string }>('hub.uninstall'),
+  // 发起重试安装 / Retry install
+  retryInstall: bridge.buildProvider<IBridgeResponse, { name: string }>('hub.retry-install'),
+  // 检查可更新的 extension / Check updates for installed extensions
+  checkUpdates: bridge.buildProvider<IBridgeResponse<{ name: string }[]>, void>('hub.check-updates'),
+  // 发起更新 / Update extension
+  update: bridge.buildProvider<IBridgeResponse, { name: string }>('hub.update'),
+  // 安装/卸载状态变更推送 / State changed event for extension
+  onStateChanged: bridge.buildEmitter<{ name: string; status: HubExtensionStatus; error?: string }>(
+    'hub.state-changed'
+  ),
+};
 // Team Mode API
 export type ICreateTeamParams = {
   userId: string;

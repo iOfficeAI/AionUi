@@ -17,6 +17,10 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import path from 'path';
 
+vi.mock('electron', () => ({
+  app: { isPackaged: false },
+}));
+
 // -------------------------------------------------------------------
 // 1. Pure-logic tests for mergePaths (no Electron, no mocking needed)
 // -------------------------------------------------------------------

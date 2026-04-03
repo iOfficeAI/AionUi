@@ -10,6 +10,10 @@ import path from 'path';
 import { EventEmitter } from 'events';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
+vi.mock('electron', () => ({
+  app: { isPackaged: false },
+}));
+
 // Mock child_process.fork before importing lifecycle
 const mockChildProcess = {
   send: vi.fn(),
@@ -220,6 +224,7 @@ describe('extensions/lifecycle — fork-based execution', () => {
       await activateExtension(ext, false);
 
       expect(mockChildProcess.send).toHaveBeenCalledWith({
+        type: 'script',
         scriptPath: path.resolve(dir, 'scripts/activate.js'),
         hookName: 'onActivate',
         context: {
@@ -361,6 +366,30 @@ describe('extensions/lifecycle — fork-based execution', () => {
       await activateExtension(ext, false);
 
       expect(fork).not.toHaveBeenCalled();
+    });
+
+    it('should spawn process for shell format via runner', async () => {
+      const { fork } = await import('child_process');
+      const dir = createTempDir();
+      const ext = createExtension(dir, {
+        lifecycle: {
+          onActivate: { shell: { cliCommand: 'echo', args: ['hello'] } },
+        },
+      });
+
+      mockChildProcess.send.mockImplementation(() => {
+        setTimeout(() => mockChildProcess.emitter.emit('message', { success: true }), 5);
+      });
+
+      await activateExtension(ext, false);
+
+      expect(fork).toHaveBeenCalledTimes(1);
+      expect(mockChildProcess.send).toHaveBeenCalledWith(
+        expect.objectContaining({
+          type: 'shell',
+          shell: { cliCommand: 'echo', args: ['hello'] },
+        })
+      );
     });
   });
 });

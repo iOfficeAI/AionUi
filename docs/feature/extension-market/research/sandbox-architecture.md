@@ -213,65 +213,69 @@ sequenceDiagram
 
 ---
 
-## 7. 生命周期钩子 — 当前在主进程裸跑
+## 7. 生命周期钩子 — 已迁移到子进程
 
-生命周期钩子完全不经过 Worker Thread，直接在主进程执行：
+> 已通过 PR #2004 迁移到 `child_process.fork()`。详见 [design-fix-sandbox.md](../design-fix-sandbox.md) 问题 4。
+
+生命周期钩子不经过 Worker Thread Sandbox，而是 fork 独立 Node.js 子进程执行：
 
 ```mermaid
 sequenceDiagram
-  participant Sys as 扩展系统
+
   participant LC as lifecycle.ts<br/>(主进程)
-  participant Script as 钩子脚本<br/>(如 scripts/activate.js)
-
-  Note over Sys,Script: 安装并激活一个扩展
-
-  Sys->>LC: activateExtension(ext, isFirstTime=true)
-
-  LC->>LC: 检查 lifecycle.onInstall 路径<br/>isPathWithinDirectory() ✓
-
-  Note over LC,Script: ⚠️ 以下全部发生在主进程中
-
-  LC->>LC: eval('require') 获取原生 require
-  LC->>Script: nativeRequire('scripts/install.js')
-  Note over Script: 脚本被加载到主进程<br/>拥有完整权限:<br/>• fs (文件系统)<br/>• child_process (执行命令)<br/>• net/http (网络)<br/>• electron API
-
-  Script->>LC: hookFn(context) → 执行钩子
-  Script-->>LC: 返回 (或 await Promise)
-
-  LC->>LC: 检查 lifecycle.onActivate 路径
-  LC->>Script: nativeRequire('scripts/activate.js')
-  Script->>LC: hookFn(context) → 执行钩子
-
-  Note over LC: 虽有 try-catch,<br/>但以下情况无法防护:<br/>• native 模块 crash<br/>• process.exit() 调用<br/>• 无限循环阻塞主线程<br/>• 未处理的 async 异常
-```
-
-**对比：如果移到 Worker Thread**
-
-```mermaid
-sequenceDiagram
-  participant Sys as 扩展系统
-  participant LW as LifecycleWorker<br/>(临时 Worker)
+  participant Runner as lifecycleRunner.ts<br/>(子进程, fork)
   participant Script as 钩子脚本
 
-  Sys->>LW: 创建临时 Worker, 传入脚本路径
-  LW->>Script: require + 执行钩子
-  Script-->>LW: 完成
+  Note over LC,Script: 安装并激活一个扩展
+
+  LC->>LC: activateExtension(ext, isFirstTime=true)
+
+  LC->>LC: 解析 hook 值 (string 或 {script, timeout})<br/>isPathWithinDirectory() ✓
+
+  LC->>Runner: fork(lifecycleRunner.js, {cwd: extDir})
+  LC->>Runner: IPC send {scriptPath, hookName, context}
+  LC->>LC: 启动超时计时器 (onInstall=120s)
+
+  Note over Runner,Script: 以下在独立子进程中执行
+
+  Runner->>Script: require(scriptPath)
+  Runner->>Script: hookFn(context)
+  Script-->>Runner: 完成 (sync 或 await async)
 
   alt 正常完成
-    LW->>Sys: {type:'api-response', result: 'ok'}
-    Sys->>LW: terminate()
+    Runner->>LC: IPC send {success: true}
+    Runner->>Runner: process.exit(0)
+    LC->>LC: 清除超时, 记录成功
+  else 超时
+    LC->>Runner: SIGKILL 强杀
+    Note over LC: 主进程不受影响<br/>记录超时, 继续执行
+  else 钩子崩溃
+    Runner--xLC: exit event (code !== 0)
+    Note over LC: 主进程不受影响<br/>记录错误, 继续执行
   end
 
-  alt 钩子崩溃
-    LW--xSys: Worker error 事件
-    Note over Sys: 主进程不受影响<br/>记录错误, 清理 Worker
-  end
-
-  alt 超时 (10s)
-    Sys->>LW: terminate() 强制终止
-    Note over Sys: 主进程不受影响
-  end
+  LC->>LC: 继续 onActivate 钩子...
 ```
+
+**Manifest 支持两种格式（向后兼容）：**
+
+```jsonc
+{
+  "lifecycle": {
+    "onActivate": "scripts/activate.js", // 旧格式, 用默认超时
+    "onInstall": { "script": "scripts/install.js", "timeout": 180000 }, // 新格式, 自定义超时
+  },
+}
+```
+
+**默认超时：**
+
+| 钩子           | 默认超时 | 理由           |
+| -------------- | -------- | -------------- |
+| `onInstall`    | 120s     | 可能下载二进制 |
+| `onUninstall`  | 60s      | 清理操作       |
+| `onActivate`   | 30s      | 轻量初始化     |
+| `onDeactivate` | 30s      | 轻量清理       |
 
 ---
 
@@ -415,11 +419,11 @@ Host 处理方式     onUIMessage 回调                   extensionEventBus
 
 ## 10. 剩余 TODO
 
-| 项目                           | 现状                     | 说明                                                                     |
-| ------------------------------ | ------------------------ | ------------------------------------------------------------------------ |
-| ChannelPlugin 迁移到 Sandbox   | 主进程 `eval('require')` | 代码已标 TODO，待迁移到 `createSandbox()`                                |
-| Lifecycle hooks 迁移到 Sandbox | 主进程 `eval('require')` | 代码已标 TODO，需 run-once-and-exit Worker 模式                          |
-| `createSandbox()` 实际调用     | 无调用方                 | 上述两项迁移后才会有调用方                                               |
-| `ExtensionStorage` 接入        | 已实现，未接入           | 等 `createSandbox()` 有调用方后通过 `apiHandlers` 注入                   |
-| `onUIMessage` IPC 通道         | 回调机制已就位           | 需要实现从主进程到渲染进程的 IPC bridge                                  |
-| Extension 开发者 Wiki          | 未开始                   | 需编写扩展开发文档：贡献类型、manifest 规范、`aion` API 说明、发布流程等 |
+| 项目                         | 现状                              | 说明                                                                     |
+| ---------------------------- | --------------------------------- | ------------------------------------------------------------------------ |
+| ChannelPlugin 迁移到 Sandbox | 主进程 `eval('require')`          | 代码已标 TODO，待迁移到 `createSandbox()`                                |
+| ~~Lifecycle hooks 迁移~~     | ~~已迁移到 child_process.fork()~~ | ~~PR #2004, 进程级隔离 + 差异化超时 + 开发者可配置~~                     |
+| `createSandbox()` 实际调用   | 无调用方                          | ChannelPlugin 迁移后才会有调用方                                         |
+| `ExtensionStorage` 接入      | 已实现，未接入                    | 等 `createSandbox()` 有调用方后通过 `apiHandlers` 注入                   |
+| `onUIMessage` IPC 通道       | 回调机制已就位                    | 需要实现从主进程到渲染进程的 IPC bridge                                  |
+| Extension 开发者 Wiki        | 未开始                            | 需编写扩展开发文档：贡献类型、manifest 规范、`aion` API 说明、发布流程等 |

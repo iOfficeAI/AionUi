@@ -2,7 +2,11 @@ import fs from 'fs';
 import os from 'os';
 import path from 'path';
 import { afterEach, describe, expect, it } from 'vitest';
-import { loadPersistedStates, savePersistedStates } from '../../../src/process/extensions/lifecycle/statePersistence';
+import {
+  loadPersistedStates,
+  savePersistedStates,
+  markExtensionForReinstall,
+} from '../../../src/process/extensions/lifecycle/statePersistence';
 
 const originalEnv = { ...process.env };
 const tempRoots: string[] = [];
@@ -55,6 +59,42 @@ describe('extensions/statePersistence', () => {
       disabledReason: 'review-test',
       installed: true,
       lastVersion: '1.2.3',
+    });
+  });
+
+  describe('markExtensionForReinstall', () => {
+    it('should set installed to false for an existing extension', () => {
+      const sandbox = createTempDir('aionui-reinstall-');
+      const statesFile = path.join(sandbox, 'extension-states.json');
+      process.env.AIONUI_EXTENSION_STATES_FILE = statesFile;
+
+      const states = new Map([['ext-claude', { enabled: true, installed: true, lastVersion: '1.0.0' }]]);
+      savePersistedStates(states);
+
+      markExtensionForReinstall('ext-claude');
+
+      const loaded = loadPersistedStates();
+      expect(loaded.get('ext-claude')?.installed).toBe(false);
+      // Other fields should be preserved
+      expect(loaded.get('ext-claude')?.enabled).toBe(true);
+      expect(loaded.get('ext-claude')?.lastVersion).toBe('1.0.0');
+    });
+
+    it('should be a no-op for an unknown extension', () => {
+      const sandbox = createTempDir('aionui-reinstall-noop-');
+      const statesFile = path.join(sandbox, 'extension-states.json');
+      process.env.AIONUI_EXTENSION_STATES_FILE = statesFile;
+
+      const states = new Map([['ext-other', { enabled: true, installed: true }]]);
+      savePersistedStates(states);
+
+      markExtensionForReinstall('ext-nonexistent');
+
+      const loaded = loadPersistedStates();
+      // ext-other should be unchanged
+      expect(loaded.get('ext-other')?.installed).toBe(true);
+      // ext-nonexistent should not exist
+      expect(loaded.has('ext-nonexistent')).toBe(false);
     });
   });
 });

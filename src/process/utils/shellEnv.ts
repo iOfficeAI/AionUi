@@ -13,6 +13,7 @@
  * the app is launched from Finder / launchd instead of a terminal.
  */
 
+import { app } from 'electron';
 import { execFile, execFileSync, spawn } from 'child_process';
 import { accessSync, existsSync, readdirSync } from 'fs';
 import os from 'os';
@@ -20,6 +21,33 @@ import path from 'path';
 
 /** Enable ACP performance diagnostics via ACP_PERF=1 */
 const PERF_LOG = process.env.ACP_PERF === '1';
+
+// ---------------------------------------------------------------------------
+// Bundled bun runtime
+// ---------------------------------------------------------------------------
+
+/**
+ * Get the directory containing the bundled bun binary.
+ * Returns the path to `resources/bundled-bun/<platform>-<arch>/` which contains
+ * the bun executable. Returns null if the directory doesn't exist.
+ */
+export function getBundledBunDir(): string | null {
+  const resourcesPath = app.isPackaged ? process.resourcesPath : path.join(process.cwd(), 'resources');
+  const platform = process.platform === 'win32' ? 'win32' : process.platform;
+  const arch = process.arch;
+  const bunDir = path.join(resourcesPath, 'bundled-bun', `${platform}-${arch}`);
+  return existsSync(bunDir) ? bunDir : null;
+}
+
+/**
+ * Get the path to the user's bun global bin directory.
+ * This is where `bun add -g` installs binaries.
+ * - macOS/Linux: ~/.bun/bin
+ * - Windows: %USERPROFILE%\.bun\bin
+ */
+export function getBunGlobalBinDir(): string {
+  return path.join(os.homedir(), '.bun', 'bin');
+}
 
 /**
  * Environment variables to inherit from user's shell.
@@ -265,6 +293,37 @@ function getWindowsExtraToolPaths(): string[] {
     // Cygwin — alternative source for cygpath
     'C:\\cygwin64\\bin',
     'C:\\cygwin\\bin',
+    // bun global packages
+    getBunGlobalBinDir(),
+  ];
+
+  return candidates.filter((p) => existsSync(p) && !currentPath.includes(p));
+}
+
+/**
+ * Scan well-known POSIX tool installation directories and return any that exist
+ * but are not already in the current PATH.
+ *
+ * Similar to getWindowsExtraToolPaths but for macOS/Linux.
+ * Covers global bin directories for bun, cargo, go, deno, etc.
+ */
+function getPosixExtraToolPaths(): string[] {
+  if (process.platform === 'win32') return [];
+
+  const homeDir = os.homedir();
+  const currentPath = process.env.PATH || '';
+
+  const candidates = [
+    // bun global packages
+    getBunGlobalBinDir(),
+    // cargo (Rust)
+    path.join(homeDir, '.cargo', 'bin'),
+    // go
+    path.join(homeDir, 'go', 'bin'),
+    // deno
+    path.join(homeDir, '.deno', 'bin'),
+    // local bin (pip, pipx, etc.)
+    path.join(homeDir, '.local', 'bin'),
   ];
 
   return candidates.filter((p) => existsSync(p) && !currentPath.includes(p));
@@ -284,6 +343,7 @@ function getWindowsExtraToolPaths(): string[] {
  */
 export function getEnhancedEnv(customEnv?: Record<string, string>): Record<string, string> {
   const shellEnv = loadShellEnvironment();
+  const separator = process.platform === 'win32' ? ';' : ':';
 
   // Merge PATH from both sources (shell env may miss nvm/fnm paths in dev mode)
   // 合并两个来源的 PATH（开发模式下 shell 环境可能缺少 nvm/fnm 路径）
@@ -294,6 +354,19 @@ export function getEnhancedEnv(customEnv?: Record<string, string>): Record<strin
   const winExtraPaths = getWindowsExtraToolPaths();
   if (winExtraPaths.length > 0) {
     mergedPath = mergePaths(mergedPath, winExtraPaths.join(';'));
+  }
+
+  // On macOS/Linux, append well-known global bin directories (bun, cargo, go, etc.)
+  const posixExtraPaths = getPosixExtraToolPaths();
+  if (posixExtraPaths.length > 0) {
+    mergedPath = mergePaths(mergedPath, posixExtraPaths.join(':'));
+  }
+
+  // Prepend bundled bun directory (highest priority — ensures extensions always
+  // have access to bun/bunx even if the user hasn't installed it)
+  const bundledBunDir = getBundledBunDir();
+  if (bundledBunDir) {
+    mergedPath = `${bundledBunDir}${separator}${mergedPath}`;
   }
 
   return {

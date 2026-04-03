@@ -4,7 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { getAgentLogo } from '@/renderer/utils/model/agentLogo';
+import { resolveAgentLogo } from '@/renderer/utils/model/agentLogo';
 import { resolveExtensionAssetUrl } from '@/renderer/utils/platform';
 import { useLayoutContext } from '@/renderer/hooks/context/LayoutContext';
 import type { AcpBackend, AvailableAgent } from '../types';
@@ -62,7 +62,15 @@ const AgentPillBar: React.FC<AgentPillBarProps> = ({
             const extensionAvatar = resolveExtensionAssetUrl(agent.isExtension ? agent.avatar : undefined);
             // Remote agents use emoji avatars — not image URLs
             const emojiAvatar = agent.backend === 'remote' && agent.avatar ? agent.avatar : undefined;
-            const logoSrc = extensionAvatar || (!emojiAvatar ? getAgentLogo(agent.backend) : undefined);
+            const logoSrc =
+              extensionAvatar ||
+              (!emojiAvatar
+                ? resolveAgentLogo({
+                    backend: agent.backend,
+                    customAgentId: agent.customAgentId,
+                    isExtension: agent.isExtension,
+                  })
+                : undefined);
 
             return (
               <React.Fragment key={getAgentKey(agent)}>

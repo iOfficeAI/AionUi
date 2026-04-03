@@ -14,6 +14,24 @@ function validateExtensionName(name: string): boolean {
   return !RESERVED_NAME_PREFIXES.some((prefix) => name.startsWith(prefix));
 }
 
+const LifecycleHookSchema = z.union([
+  z.string(),
+  z
+    .object({
+      timeout: z.number().int().positive().optional(),
+      script: z.string().optional(),
+      shell: z
+        .object({
+          cliCommand: z.string(),
+          args: z.array(z.string()).optional(),
+        })
+        .optional(),
+    })
+    .refine((data) => data.script || data.shell, {
+      message: "Either 'script' or 'shell' must be provided",
+    }),
+]);
+
 // ============ Extension Meta Schema ============
 
 export const ExtensionMetaSchema = z
@@ -79,21 +97,13 @@ export const ExtensionMetaSchema = z
     lifecycle: z
       .object({
         /** Run when the extension is first installed or upgraded */
-        onInstall: z
-          .union([z.string(), z.object({ script: z.string(), timeout: z.number().int().positive().optional() })])
-          .optional(),
+        onInstall: LifecycleHookSchema.optional(),
         /** Run when the extension is activated (enabled) */
-        onActivate: z
-          .union([z.string(), z.object({ script: z.string(), timeout: z.number().int().positive().optional() })])
-          .optional(),
+        onActivate: LifecycleHookSchema.optional(),
         /** Run when the extension is deactivated (disabled) */
-        onDeactivate: z
-          .union([z.string(), z.object({ script: z.string(), timeout: z.number().int().positive().optional() })])
-          .optional(),
+        onDeactivate: LifecycleHookSchema.optional(),
         /** Run when the extension is uninstalled (removed) */
-        onUninstall: z
-          .union([z.string(), z.object({ script: z.string(), timeout: z.number().int().positive().optional() })])
-          .optional(),
+        onUninstall: LifecycleHookSchema.optional(),
       })
       .optional(),
     /**
@@ -527,4 +537,6 @@ export type ExtensionState = {
   installed?: boolean;
   /** Last known version — used for upgrade detection */
   lastVersion?: string;
+  /** Install error message for Agent Hub tracking */
+  installError?: string;
 };
