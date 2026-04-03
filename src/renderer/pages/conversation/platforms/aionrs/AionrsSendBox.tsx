@@ -359,8 +359,7 @@ const AionrsSendBox: React.FC<{
         }
         prefix={
           <>
-            {/* Files on top */}
-            {(uploadFile.length > 0 || atPath.some((item) => (typeof item === 'string' ? true : item.isFile))) && (
+            {uploadFile.length > 0 && (
               <HorizontalFileList>
                 {uploadFile.map((path) => (
                   <FilePreview
@@ -369,14 +368,20 @@ const AionrsSendBox: React.FC<{
                     onRemove={() => setUploadFile(uploadFile.filter((v) => v !== path))}
                   />
                 ))}
+              </HorizontalFileList>
+            )}
+            {atPath.some((item) => (typeof item === 'string' ? true : item.isFile)) && (
+              <div className='flex flex-wrap items-center gap-8px mb-8px'>
                 {atPath.map((item) => {
                   const isFile = typeof item === 'string' ? true : item.isFile;
                   const path = typeof item === 'string' ? item : item.path;
                   if (isFile) {
                     return (
                       <FilePreview
+                        displayLabel={typeof item === 'string' ? undefined : item.relativePath || item.name}
                         key={path}
                         path={path}
+                        variant='mention'
                         onRemove={() => {
                           const newAtPath = atPath.filter((v) =>
                             typeof v === 'string' ? v !== path : v.path !== path
@@ -389,9 +394,8 @@ const AionrsSendBox: React.FC<{
                   }
                   return null;
                 })}
-              </HorizontalFileList>
+              </div>
             )}
-            {/* Folder tags below */}
             {atPath.some((item) => (typeof item === 'string' ? false : !item.isFile)) && (
               <div className='flex flex-wrap items-center gap-8px mb-8px'>
                 {atPath.map((item) => {

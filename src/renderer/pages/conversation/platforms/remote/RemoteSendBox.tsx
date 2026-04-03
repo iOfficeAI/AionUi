@@ -395,32 +395,44 @@ const RemoteSendBox: React.FC<{ conversation_id: string }> = ({ conversation_id 
         tools={<FileAttachButton openFileSelector={openFileSelector} onLocalFilesAdded={handleFilesAdded} />}
         prefix={
           uploadFile.length > 0 || atPath.some((item) => (typeof item === 'string' ? true : item.isFile)) ? (
-            <HorizontalFileList>
-              {uploadFile.map((path) => (
-                <FilePreview
-                  key={path}
-                  path={path}
-                  onRemove={() => setUploadFile(uploadFile.filter((v) => v !== path))}
-                />
-              ))}
-              {atPath.map((item) => {
-                const isFile = typeof item === 'string' ? true : item.isFile;
-                const path = typeof item === 'string' ? item : item.path;
-                if (isFile) {
-                  return (
+            <>
+              {uploadFile.length > 0 && (
+                <HorizontalFileList>
+                  {uploadFile.map((path) => (
                     <FilePreview
                       key={path}
                       path={path}
-                      onRemove={() => {
-                        const newAtPath = atPath.filter((v) => (typeof v === 'string' ? v !== path : v.path !== path));
-                        setAtPath(newAtPath);
-                      }}
+                      onRemove={() => setUploadFile(uploadFile.filter((v) => v !== path))}
                     />
-                  );
-                }
-                return null;
-              })}
-            </HorizontalFileList>
+                  ))}
+                </HorizontalFileList>
+              )}
+              {atPath.some((item) => (typeof item === 'string' ? true : item.isFile)) && (
+                <div className='flex flex-wrap items-center gap-8px mb-8px'>
+                  {atPath.map((item) => {
+                    const isFile = typeof item === 'string' ? true : item.isFile;
+                    const path = typeof item === 'string' ? item : item.path;
+                    if (isFile) {
+                      return (
+                        <FilePreview
+                          displayLabel={typeof item === 'string' ? undefined : item.relativePath || item.name}
+                          key={path}
+                          path={path}
+                          variant='mention'
+                          onRemove={() => {
+                            const newAtPath = atPath.filter((v) =>
+                              typeof v === 'string' ? v !== path : v.path !== path
+                            );
+                            setAtPath(newAtPath);
+                          }}
+                        />
+                      );
+                    }
+                    return null;
+                  })}
+                </div>
+              )}
+            </>
           ) : undefined
         }
         onSend={sendRemoteMessage}

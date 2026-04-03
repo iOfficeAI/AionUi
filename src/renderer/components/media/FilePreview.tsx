@@ -4,11 +4,11 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { Close } from '@icon-park/react';
+import { Close, CloseSmall } from '@icon-park/react';
 import React, { useEffect, useState } from 'react';
 import { getFileExtension } from '@/renderer/services/FileService';
 import { ipcBridge } from '@/common';
-import { Image } from '@arco-design/web-react';
+import { Button, Image } from '@arco-design/web-react';
 import fileIcon from '@/renderer/assets/icons/file-icon.svg';
 
 const IMAGE_EXTS = new Set(['.jpg', '.jpeg', '.png', '.gif', '.bmp', '.webp', '.svg']);
@@ -37,9 +37,17 @@ interface FilePreviewProps {
   path: string;
   onRemove: () => void;
   readonly?: boolean;
+  variant?: 'card' | 'mention';
+  displayLabel?: string;
 }
 
-const FilePreview: React.FC<FilePreviewProps> = ({ path, onRemove, readonly = false }) => {
+const FilePreview: React.FC<FilePreviewProps> = ({
+  path,
+  onRemove,
+  readonly = false,
+  variant = 'card',
+  displayLabel,
+}) => {
   // Defensive check: ensure path is a string
   if (typeof path !== 'string') {
     console.error('[FilePreview] Invalid path type:', typeof path, path);
@@ -50,11 +58,17 @@ const FilePreview: React.FC<FilePreviewProps> = ({ path, onRemove, readonly = fa
   // 直接从路径中提取文件名，不清理时间戳后缀
   // Extract filename directly from path without cleaning timestamp suffix
   const fileName = path.split(/[\\/]/).pop() || '';
+  const label = displayLabel || fileName;
   const fileExt = getFileExtension(path).toUpperCase().replace('.', '');
   const [imageUrl, setImageUrl] = useState<string>('');
   const [fileSize, setFileSize] = useState<string>('');
+  const isMentionVariant = variant === 'mention';
 
   useEffect(() => {
+    if (isMentionVariant) {
+      return undefined;
+    }
+
     // 获取文件大小
     ipcBridge.fs.getFileMetadata
       .invoke({ path })
@@ -100,12 +114,43 @@ const FilePreview: React.FC<FilePreviewProps> = ({ path, onRemove, readonly = fa
     }
 
     return undefined;
-  }, [path, isImage]);
+  }, [isImage, isMentionVariant, path]);
 
   const handleRemove = (e: React.MouseEvent) => {
     e.stopPropagation();
     onRemove();
   };
+
+  const handleMentionRemove = () => {
+    onRemove();
+  };
+
+  if (isMentionVariant) {
+    return (
+      <div
+        className='inline-flex max-w-full items-center gap-4px px-10px py-6px rd-999px border border-solid'
+        style={{
+          background: 'color-mix(in srgb, rgb(var(--primary-6)) 10%, var(--color-bg-2))',
+          borderColor: 'color-mix(in srgb, rgb(var(--primary-6)) 18%, var(--color-border-2))',
+        }}
+        title={displayLabel || path}
+      >
+        <span className='max-w-240px truncate text-13px font-medium' style={{ color: 'rgb(var(--primary-6))' }}>
+          {label}
+        </span>
+        {!readonly && (
+          <Button
+            aria-label='Remove file'
+            className='min-w-0! p-0!'
+            icon={<CloseSmall theme='outline' size='12' fill='rgb(var(--primary-6))' />}
+            size='mini'
+            type='text'
+            onClick={handleMentionRemove}
+          />
+        )}
+      </div>
+    );
+  }
 
   if (isImage) {
     return (
@@ -118,7 +163,7 @@ const FilePreview: React.FC<FilePreviewProps> = ({ path, onRemove, readonly = fa
             height={60}
             className='object-cover cursor-pointer'
             style={{ display: imageUrl ? 'block' : 'none' }}
-            preview={imageUrl ? true : false}
+            preview={Boolean(imageUrl)}
           />
           {!imageUrl && <div className='w-60px h-60px bg-bg-3'></div>}
         </div>
