@@ -15,7 +15,7 @@ import { useConversationContextSafe } from '@/renderer/hooks/context/Conversatio
 import { usePreviewContext } from '@/renderer/pages/conversation/Preview';
 import { blurActiveElement, shouldBlockMobileInputFocus } from '@/renderer/utils/ui/focus';
 import { Button, Input, Message, Tag } from '@arco-design/web-react';
-import { ArrowUp, CloseSmall } from '@icon-park/react';
+import { ArrowUp, CloseSmall, Quote } from '@icon-park/react';
 import type { SlashCommandItem } from '@/common/chat/slash/types';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -32,6 +32,7 @@ import { allSupportedExts } from '@renderer/services/FileService';
 import SpeechInputButton from '@/renderer/components/chat/SpeechInputButton';
 import { appendSpeechTranscript } from '@/renderer/hooks/system/useSpeechInput';
 import { getConversationInputHistory, isCaretOnFirstLine } from '@/renderer/utils/chat/messageHistory';
+import { type ReplyQuote, useAddEventListener } from '@/renderer/utils/emitter';
 import './sendbox.css';
 
 const constVoid = (): void => undefined;
@@ -108,6 +109,11 @@ const SendBox: React.FC<{
   const messageList = useMessageList();
   const [historyNavigationIndex, setHistoryNavigationIndex] = useState<number | null>(null);
   const historyDraftRef = useRef<string | null>(null);
+  const [replyQuote, setReplyQuote] = useState<ReplyQuote | null>(null);
+
+  // Listen for reply events from message actions
+  useAddEventListener('sendbox.reply', (quote) => setReplyQuote(quote), []);
+  useAddEventListener('sendbox.reply.clear', () => setReplyQuote(null), []);
 
   // 集成预览面板的"添加到聊天"功能 / Integrate preview panel's "Add to chat" functionality
   const { setSendBoxHandler, domSnippets, removeDomSnippet, clearDomSnippets } = usePreviewContext();
@@ -602,8 +608,19 @@ const SendBox: React.FC<{
     historyDraftRef.current = null;
     setHistoryNavigationIndex(null);
 
-    // 构建消息内容：如果有 DOM 片段，附加完整 HTML / Build message: if has DOM snippets, append full HTML
+    // 构建消息内容 / Build message content
     let finalMessage = input;
+
+    // Prepend reply quote as blockquote
+    if (replyQuote) {
+      const quotedLines = replyQuote.content
+        .split('\n')
+        .map((line) => `> ${line}`)
+        .join('\n');
+      finalMessage = `${quotedLines}\n\n${finalMessage}`;
+    }
+
+    // 如果有 DOM 片段，附加完整 HTML / If has DOM snippets, append full HTML
     if (domSnippets.length > 0) {
       const snippetsHtml = domSnippets
         .map((s) => `\n\n---\nDOM Snippet (${s.tag}):\n\`\`\`html\n${s.html}\n\`\`\``)
@@ -615,6 +632,7 @@ const SendBox: React.FC<{
     // Clear input immediately to prevent async onSend completion from overwriting new user input
     setInput('');
     clearDomSnippets();
+    setReplyQuote(null);
 
     onSend(finalMessage)
       .catch(() => {})
@@ -756,6 +774,24 @@ const SendBox: React.FC<{
         <div style={{ width: '100%' }}>
           {prefix}
           {context}
+          {/* Reply quote preview */}
+          {replyQuote && (
+            <div className='flex items-start gap-10px mb-8px px-12px py-10px rd-10px bg-fill-1 b-1 b-solid b-border-2'>
+              <div className='flex-shrink-0 mt-2px' style={{ lineHeight: 0 }}>
+                <Quote theme='filled' size='16' fill='rgb(var(--primary-6))' />
+              </div>
+              <div className='flex-1 min-w-0 text-13px c-text-2 line-clamp-3 lh-20px whitespace-pre-wrap break-all'>
+                {replyQuote.content}
+              </div>
+              <div
+                className='flex-shrink-0 mt-2px p-2px rd-full cursor-pointer hover:bg-fill-3 transition-colors'
+                onClick={() => setReplyQuote(null)}
+                style={{ lineHeight: 0 }}
+              >
+                <CloseSmall theme='outline' size='14' />
+              </div>
+            </div>
+          )}
           {/* DOM 片段标签 / DOM snippet tags */}
           {domSnippets.length > 0 && (
             <div className='flex flex-wrap gap-6px mb-8px'>
