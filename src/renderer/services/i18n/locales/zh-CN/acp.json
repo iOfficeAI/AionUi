@@ -12,7 +12,6 @@
     "connected": "已连接到 {{agent}}",
     "authenticated": "已通过 {{agent}} 身份验证",
     "session_active": "{{agent}} 会话活跃中",
-    "disconnected": "已与 {{agent}} 断开连接",
     "error": "连接错误",
     "unknown": "未知状态"
   },

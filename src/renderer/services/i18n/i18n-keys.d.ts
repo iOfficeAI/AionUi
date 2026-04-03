@@ -14,7 +14,6 @@ export type I18nKey =
   | 'acp.status.authenticated'
   | 'acp.status.connected'
   | 'acp.status.connecting'
-  | 'acp.status.disconnected'
   | 'acp.status.error'
   | 'acp.status.session_active'
   | 'acp.status.unknown'

@@ -29,6 +29,9 @@ const MessageAgentStatus: React.FC<MessageAgentStatusProps> = ({ message }) => {
     ACP_BACKENDS_ALL[backend as keyof typeof ACP_BACKENDS_ALL]?.name ||
     backend.charAt(0).toUpperCase() + backend.slice(1);
 
+  // Hide disconnected status from historical messages (no longer emitted but may exist in DB)
+  if ((status as string) === 'disconnected') return null;
+
   const getStatusBadge = () => {
     switch (status) {
       case 'connecting':
@@ -39,8 +42,6 @@ const MessageAgentStatus: React.FC<MessageAgentStatusProps> = ({ message }) => {
         return <Badge status='success' text={t('acp.status.authenticated', { agent: displayName })} />;
       case 'session_active':
         return <Badge status='success' text={t('acp.status.session_active', { agent: displayName })} />;
-      case 'disconnected':
-        return <Badge status='default' text={t('acp.status.disconnected', { agent: displayName })} />;
       case 'error':
         return <Badge status='error' text={t('acp.status.error')} />;
       default:

@@ -381,7 +381,8 @@ describe('RemoteAgentCore', () => {
 
       core['handleEvent']({ type: 'event', event: 'shutdown', payload: { reason: 'bye' } });
 
-      expect(config.onStreamEvent).toHaveBeenCalledWith(expect.objectContaining({ type: 'agent_status' }));
+      // Should emit finish signal but NOT agent_status or error messages
+      expect(config.onSignalEvent).toHaveBeenCalledWith(expect.objectContaining({ type: 'finish' }));
     });
 
     it('ignores health and tick events', () => {
@@ -493,7 +494,7 @@ describe('RemoteAgentCore', () => {
   });
 
   describe('stop', () => {
-    it('stops connection, clears state, emits disconnected and finish', async () => {
+    it('stops connection, clears state, emits finish', async () => {
       const { core, config } = createConnectedCore();
       core['connection'] = mockConnection as never;
       core['pendingPermissions'].set('p1', { resolve: vi.fn(), reject: vi.fn() });
@@ -504,7 +505,11 @@ describe('RemoteAgentCore', () => {
       expect(core['connection']).toBeNull();
       expect(core['pendingPermissions'].size).toBe(0);
 
-      expect(config.onStreamEvent).toHaveBeenCalledWith(expect.objectContaining({ type: 'agent_status' }));
+      // Should NOT emit agent_status disconnected message
+      const statusCalls = (config.onStreamEvent as ReturnType<typeof vi.fn>).mock.calls.filter(
+        (c) => c[0].type === 'agent_status'
+      );
+      expect(statusCalls).toHaveLength(0);
       expect(config.onStreamEvent).toHaveBeenCalledWith(expect.objectContaining({ type: 'finish' }));
     });
   });
@@ -684,17 +689,17 @@ describe('RemoteAgentCore', () => {
   });
 
   describe('handleDisconnect', () => {
-    it('emits disconnected status, error, finish, and clears state', () => {
+    it('emits finish signal and clears state without status or error messages', () => {
       const { core, config } = createConnectedCore();
       core['connection'] = mockConnection as never;
       core['pendingPermissions'].set('p1', { resolve: vi.fn(), reject: vi.fn() });
 
       core['handleDisconnect']('server shutdown');
 
-      // Should emit agent_status (disconnected) and error
+      // Should NOT emit agent_status or error messages
       const streamCalls = (config.onStreamEvent as ReturnType<typeof vi.fn>).mock.calls;
-      expect(streamCalls.some((c) => c[0].type === 'agent_status')).toBe(true);
-      expect(streamCalls.some((c) => c[0].type === 'error')).toBe(true);
+      expect(streamCalls.some((c) => c[0].type === 'agent_status')).toBe(false);
+      expect(streamCalls.some((c) => c[0].type === 'error')).toBe(false);
 
       // Should emit finish signal
       expect(config.onSignalEvent).toHaveBeenCalledWith(expect.objectContaining({ type: 'finish' }));
@@ -724,10 +729,13 @@ describe('RemoteAgentCore', () => {
 
       core['handleClose'](1006, 'abnormal closure');
 
-      expect(config.onStreamEvent).toHaveBeenCalledWith(expect.objectContaining({ type: 'agent_status' }));
-      expect(config.onStreamEvent).toHaveBeenCalledWith(
-        expect.objectContaining({ type: 'error', data: expect.stringContaining('abnormal closure') })
-      );
+      // Should NOT emit agent_status or error messages
+      const streamCalls = (config.onStreamEvent as ReturnType<typeof vi.fn>).mock.calls;
+      expect(streamCalls.some((c) => c[0].type === 'agent_status')).toBe(false);
+      expect(streamCalls.some((c) => c[0].type === 'error')).toBe(false);
+
+      // Should emit finish signal
+      expect(config.onSignalEvent).toHaveBeenCalledWith(expect.objectContaining({ type: 'finish' }));
     });
   });
 

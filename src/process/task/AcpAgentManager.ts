@@ -1235,9 +1235,6 @@ class AcpAgentManager extends BaseAgentManager<AcpAgentManagerData, AcpPermissio
    */
   kill(reason?: AgentKillReason) {
     this.flushBufferedStreamTextMessages();
-    if (reason === 'idle_timeout') {
-      this.agent?.setExpectedDisconnectReason('idle_timeout');
-    }
 
     let killed = false;
     const GRACE_PERIOD_MS = 500; // Allow child process time to exit cleanly

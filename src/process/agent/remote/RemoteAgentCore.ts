@@ -115,8 +115,6 @@ export class RemoteAgentCore {
     this.pendingPermissions.clear();
     this.pendingNavigationTools.clear();
 
-    this.emitStatusMessage('disconnected');
-
     this.onStreamEvent({
       type: 'finish',
       conversation_id: this.id,
@@ -594,9 +592,6 @@ export class RemoteAgentCore {
   }
 
   private handleDisconnect(reason: string): void {
-    this.emitStatusMessage('disconnected');
-    this.emitErrorMessage(`Remote agent disconnected: ${reason}`, 'disconnect');
-
     if (this.onSignalEvent) {
       this.onSignalEvent({
         type: 'finish',
@@ -613,7 +608,7 @@ export class RemoteAgentCore {
 
   // ========== Message Emission ==========
 
-  private emitStatusMessage(status: 'connecting' | 'connected' | 'session_active' | 'disconnected' | 'error'): void {
+  private emitStatusMessage(status: 'connecting' | 'connected' | 'session_active' | 'error'): void {
     if (!this.statusMessageId) {
       this.statusMessageId = uuid();
     }

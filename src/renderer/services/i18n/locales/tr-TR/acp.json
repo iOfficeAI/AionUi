@@ -12,7 +12,6 @@
     "connected": "{{agent}} ajanına bağlanıldı",
     "authenticated": "{{agent}} ile kimlik doğrulandı",
     "session_active": "{{agent}} ile oturum aktif",
-    "disconnected": "{{agent}} ile bağlantı kesildi",
     "error": "Bağlantı hatası",
     "unknown": "Bilinmeyen durum"
   },
