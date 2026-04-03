@@ -431,4 +431,37 @@ describe('SendBox @ file menu', () => {
     expect(await screen.findByText('src/utils/date.ts')).toBeInTheDocument();
     expect(mockEmit).not.toHaveBeenCalledWith('gemini.selected.file', []);
   });
+
+  it('re-fetches workspace mention candidates for later @ searches in the same composer session', async () => {
+    render(<SendBoxHarness />);
+
+    const textarea = screen.getByRole('textbox') as HTMLTextAreaElement;
+
+    fireEvent.change(textarea, { target: { value: '@date' } });
+    textarea.selectionStart = textarea.selectionEnd = textarea.value.length;
+    fireEvent.keyUp(textarea, { key: 'e' });
+
+    expect(await screen.findByText('date.ts')).toBeInTheDocument();
+    expect(mockListWorkspaceFilesInvoke).toHaveBeenCalledTimes(1);
+
+    fireEvent.change(textarea, { target: { value: '' } });
+    textarea.selectionStart = textarea.selectionEnd = 0;
+    fireEvent.keyUp(textarea, { key: 'Backspace' });
+
+    mockListWorkspaceFilesInvoke.mockResolvedValueOnce([
+      {
+        name: 'NEW_GUIDE.md',
+        fullPath: '/workspace/NEW_GUIDE.md',
+        relativePath: 'NEW_GUIDE.md',
+      },
+    ]);
+
+    fireEvent.change(textarea, { target: { value: '@NEW' } });
+    textarea.selectionStart = textarea.selectionEnd = textarea.value.length;
+    fireEvent.keyUp(textarea, { key: 'W' });
+
+    expect(await screen.findByRole('listbox', { name: 'File mentions' })).toBeInTheDocument();
+    expect(screen.getAllByText('NEW_GUIDE.md').length).toBeGreaterThan(0);
+    expect(mockListWorkspaceFilesInvoke).toHaveBeenCalledTimes(2);
+  });
 });

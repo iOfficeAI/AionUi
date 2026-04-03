@@ -142,7 +142,6 @@ const SendBox: React.FC<{
   const [workspaceMentionLoading, setWorkspaceMentionLoading] = useState(false);
   const [atFileMenuActiveIndex, setAtFileMenuActiveIndex] = useState(0);
   const [dismissedAtFileToken, setDismissedAtFileToken] = useState<string | null>(null);
-  const workspaceMentionCacheRef = useRef<Map<string, FileOrFolderItem[]>>(new Map());
   const mentionManagedSelectionKeysRef = useRef<Set<string>>(new Set());
   const highlightScrollRef = useRef<HTMLDivElement>(null);
 
@@ -506,18 +505,11 @@ const SendBox: React.FC<{
       return;
     }
 
-    const workspace = conversationContext.workspace;
-    const cached = workspaceMentionCacheRef.current.get(workspace);
-    if (cached) {
-      setWorkspaceMentionItems(cached);
-      return;
-    }
-
     let cancelled = false;
     setWorkspaceMentionLoading(true);
 
     void ipcBridge.fs.listWorkspaceFiles
-      .invoke({ root: workspace })
+      .invoke({ root: conversationContext.workspace })
       .then((result) => {
         if (cancelled) {
           return;
@@ -528,7 +520,6 @@ const SendBox: React.FC<{
           isFile: true,
           relativePath: item.relativePath || undefined,
         }));
-        workspaceMentionCacheRef.current.set(workspace, files);
         setWorkspaceMentionItems(files);
       })
       .catch((error) => {
