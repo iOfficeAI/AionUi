@@ -17,7 +17,7 @@ import { usePreviewContext } from '@/renderer/pages/conversation/Preview';
 import { buildAtFileInsertion, getActiveAtFileQuery } from '@/renderer/utils/chat/atFileQuery';
 import { emitter, type ReplyQuote, useAddEventListener } from '@/renderer/utils/emitter';
 import type { FileOrFolderItem } from '@/renderer/utils/file/fileTypes';
-import { filterWorkspaceMentionItems, flattenWorkspaceMentionItems } from '@/renderer/utils/file/workspaceMentions';
+import { filterWorkspaceMentionItems } from '@/renderer/utils/file/workspaceMentions';
 import { blurActiveElement, shouldBlockMobileInputFocus } from '@/renderer/utils/ui/focus';
 import { Button, Input, Message, Tag } from '@arco-design/web-react';
 import { ArrowUp, CloseSmall, Quote } from '@icon-park/react';
@@ -466,15 +466,20 @@ const SendBox: React.FC<{
     let cancelled = false;
     setWorkspaceMentionLoading(true);
 
-    void ipcBridge.fs.getFilesByDir
-      .invoke({ dir: workspace, root: workspace })
+    void ipcBridge.fs.listWorkspaceFiles
+      .invoke({ root: workspace })
       .then((result) => {
         if (cancelled) {
           return;
         }
-        const flattened = flattenWorkspaceMentionItems(result);
-        workspaceMentionCacheRef.current.set(workspace, flattened);
-        setWorkspaceMentionItems(flattened);
+        const files = result.map((item) => ({
+          path: item.fullPath,
+          name: item.name,
+          isFile: true,
+          relativePath: item.relativePath || undefined,
+        }));
+        workspaceMentionCacheRef.current.set(workspace, files);
+        setWorkspaceMentionItems(files);
       })
       .catch((error) => {
         if (!cancelled) {

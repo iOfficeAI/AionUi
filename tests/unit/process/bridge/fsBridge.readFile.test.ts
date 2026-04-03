@@ -40,6 +40,7 @@ vi.mock('@/common', () => {
     ipcBridge: {
       fs: {
         getFilesByDir: makeProvider('getFilesByDir'),
+        listWorkspaceFiles: makeProvider('listWorkspaceFiles'),
         getImageBase64: makeProvider('getImageBase64'),
         fetchRemoteImage: makeProvider('fetchRemoteImage'),
         readFile: makeProvider('readFile'),

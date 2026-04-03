@@ -6,6 +6,7 @@
 
 import { AIONUI_TIMESTAMP_SEPARATOR } from '@/common/config/constants';
 import fs from 'fs/promises';
+import type { Dirent } from 'fs';
 import path from 'path';
 import os from 'os';
 import https from 'node:https';
@@ -14,6 +15,7 @@ import JSZip from 'jszip';
 import { ipcBridge } from '@/common';
 import { getSystemDir, getAssistantsDir, getSkillsDir, getBuiltinSkillsCopyDir } from '@process/utils/initStorage';
 import { readDirectoryRecursive } from '@process/utils';
+import type { IWorkspaceFlatFile } from '@/common/adapter/ipcBridge';
 
 // ============================================================================
 // Helper functions for builtin resource directory resolution
@@ -169,6 +171,88 @@ async function deleteAssistantResource(resourceType: ResourceType, filePattern: 
 const ruleFilePattern = (id: string, loc: string) => `${id}.${loc}.md`;
 const skillFilePattern = (id: string, loc: string) => `${id}-skills.${loc}.md`;
 
+const workspaceFileListCache = new Map<string, IWorkspaceFlatFile[]>();
+const workspaceFileListInFlight = new Map<string, Promise<IWorkspaceFlatFile[]>>();
+
+async function listWorkspaceFilesRecursive(root: string): Promise<IWorkspaceFlatFile[]> {
+  const normalizedRoot = path.resolve(root);
+  const entries: IWorkspaceFlatFile[] = [];
+
+  const walk = async (currentDir: string): Promise<void> => {
+    let dirEntries: Dirent[];
+    try {
+      dirEntries = await fs.readdir(currentDir, { withFileTypes: true });
+    } catch {
+      return;
+    }
+
+    for (const entry of dirEntries) {
+      if (entry.name === 'node_modules') {
+        continue;
+      }
+
+      const fullPath = path.join(currentDir, entry.name);
+      if (entry.isDirectory()) {
+        await walk(fullPath);
+        continue;
+      }
+
+      if (!entry.isFile()) {
+        continue;
+      }
+
+      entries.push({
+        name: entry.name,
+        fullPath,
+        relativePath: path.relative(normalizedRoot, fullPath),
+      });
+    }
+  };
+
+  await walk(normalizedRoot);
+  entries.sort((left, right) => left.relativePath.localeCompare(right.relativePath));
+  return entries;
+}
+
+async function getCachedWorkspaceFiles(root: string): Promise<IWorkspaceFlatFile[]> {
+  const normalizedRoot = path.resolve(root);
+
+  try {
+    const stats = await fs.stat(normalizedRoot);
+    if (!stats.isDirectory()) {
+      workspaceFileListCache.delete(normalizedRoot);
+      workspaceFileListInFlight.delete(normalizedRoot);
+      return [];
+    }
+  } catch {
+    workspaceFileListCache.delete(normalizedRoot);
+    workspaceFileListInFlight.delete(normalizedRoot);
+    return [];
+  }
+
+  const cached = workspaceFileListCache.get(normalizedRoot);
+  if (cached) {
+    return cached;
+  }
+
+  const inFlight = workspaceFileListInFlight.get(normalizedRoot);
+  if (inFlight) {
+    return inFlight;
+  }
+
+  const request = listWorkspaceFilesRecursive(normalizedRoot)
+    .then((files) => {
+      workspaceFileListCache.set(normalizedRoot, files);
+      return files;
+    })
+    .finally(() => {
+      workspaceFileListInFlight.delete(normalizedRoot);
+    });
+
+  workspaceFileListInFlight.set(normalizedRoot, request);
+  return request;
+}
+
 export function initFsBridge(): void {
   const canceledZipRequests = new Set<string>();
 
@@ -178,6 +262,15 @@ export function initFsBridge(): void {
       return tree ? [tree] : [];
     } catch (error) {
       console.error('[fsBridge] Failed to read directory:', dir, error);
+      return [];
+    }
+  });
+
+  ipcBridge.fs.listWorkspaceFiles.provider(async ({ root }) => {
+    try {
+      return await getCachedWorkspaceFiles(root);
+    } catch (error) {
+      console.error('[fsBridge] Failed to list workspace files:', root, error);
       return [];
     }
   });

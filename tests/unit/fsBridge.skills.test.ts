@@ -185,6 +185,7 @@ describe('fsBridge skills functionality', () => {
         ipcBridge: {
           fs: {
             getFilesByDir: createCommandMock('get-file-by-dir'),
+            listWorkspaceFiles: createCommandMock('list-workspace-files'),
             getImageBase64: createCommandMock('get-image-base64'),
             fetchRemoteImage: createCommandMock('fetch-remote-image'),
             readFile: createCommandMock('read-file'),

@@ -5,7 +5,7 @@ import React, { useState } from 'react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 const mockWarmupInvoke = vi.fn().mockResolvedValue(undefined);
-const mockGetFilesByDirInvoke = vi.fn();
+const mockListWorkspaceFilesInvoke = vi.fn();
 const mockEmit = vi.fn();
 
 vi.mock('@/common', () => ({
@@ -16,8 +16,8 @@ vi.mock('@/common', () => ({
       },
     },
     fs: {
-      getFilesByDir: {
-        invoke: (...args: unknown[]) => mockGetFilesByDirInvoke(...args),
+      listWorkspaceFiles: {
+        invoke: (...args: unknown[]) => mockListWorkspaceFilesInvoke(...args),
       },
     },
   },
@@ -221,47 +221,16 @@ describe('SendBox @ file menu', () => {
       callback(0);
       return 0;
     });
-    mockGetFilesByDirInvoke.mockResolvedValue([
+    mockListWorkspaceFilesInvoke.mockResolvedValue([
       {
-        name: 'workspace',
-        fullPath: '/workspace',
-        relativePath: '',
-        isDir: true,
-        isFile: false,
-        children: [
-          {
-            name: 'src',
-            fullPath: '/workspace/src',
-            relativePath: 'src',
-            isDir: true,
-            isFile: false,
-            children: [
-              {
-                name: 'date.ts',
-                fullPath: '/workspace/src/utils/date.ts',
-                relativePath: 'src/utils/date.ts',
-                isDir: false,
-                isFile: true,
-              },
-            ],
-          },
-          {
-            name: 'docs',
-            fullPath: '/workspace/docs',
-            relativePath: 'docs',
-            isDir: true,
-            isFile: false,
-            children: [
-              {
-                name: 'My File.md',
-                fullPath: '/workspace/docs/My File.md',
-                relativePath: 'docs/My File.md',
-                isDir: false,
-                isFile: true,
-              },
-            ],
-          },
-        ],
+        name: 'date.ts',
+        fullPath: '/workspace/src/utils/date.ts',
+        relativePath: 'src/utils/date.ts',
+      },
+      {
+        name: 'My File.md',
+        fullPath: '/workspace/docs/My File.md',
+        relativePath: 'docs/My File.md',
       },
     ]);
   });
