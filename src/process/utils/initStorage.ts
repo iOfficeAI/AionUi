@@ -164,11 +164,17 @@ const JsonFileBuilder = <S extends object = Record<string, unknown>>(filePath: s
   const persist = (): Promise<S> => {
     const data = cache ?? ({} as S);
     const encoded = encode(JSON.stringify(data));
-    // Chain writes so they never overlap
-    writeChain = writeChain
-      .then(() => WriteFile(filePath, encoded))
-      .catch((err) => console.error(`[Storage] Failed to persist ${filePath}:`, err));
-    return writeChain.then(() => data);
+    // Write once, branch the promise: writeChain stays resolved (so one
+    // failure doesn't block subsequent writes), callers get the real error.
+    const writeOp = writeChain.then(() => WriteFile(filePath, encoded));
+    writeChain = writeOp.catch(() => {});
+    return writeOp.then(
+      () => data,
+      (err) => {
+        console.error(`[Storage] Failed to persist ${filePath}:`, err);
+        throw err;
+      }
+    );
   };
 
   // -- public API (same shape as before) --
@@ -220,8 +226,15 @@ const JsonFileBuilder = <S extends object = Record<string, unknown>>(filePath: s
       }
       // Backup: copy the file then remove original
       const doCopy = () => fs.copyFile(filePath, fullName).then(() => fs.rm(filePath, { recursive: true }));
-      writeChain = writeChain.then(doCopy).catch((err) => console.error(`[Storage] Backup failed:`, err));
-      return writeChain as Promise<void>;
+      const backupOp = writeChain.then(doCopy);
+      writeChain = backupOp.catch(() => {});
+      return backupOp.then(
+        () => {},
+        (err) => {
+          console.error(`[Storage] Backup failed:`, err);
+          throw err;
+        }
+      );
     },
   };
 };
