@@ -6,7 +6,6 @@ import type { AssistantListItem, SkillInfo } from './types';
 import { hasBuiltinSkills } from './assistantUtils';
 import EmojiPicker from '@/renderer/components/chat/EmojiPicker';
 import MarkdownView from '@/renderer/components/Markdown';
-import { getAgentLogo } from '@/renderer/utils/model/agentLogo';
 import { Avatar, Button, Checkbox, Collapse, Drawer, Input, Select, Tag, Typography } from '@arco-design/web-react';
 import { Close, Delete, Plus, Robot } from '@icon-park/react';
 import React, { useEffect, useRef, useState } from 'react';
@@ -295,40 +294,18 @@ const AssistantEditDrawer: React.FC<AssistantEditDrawerProps> = ({
                 { value: 'opencode', label: 'OpenCode' },
               ]
                 .filter((opt) => availableBackends.has(opt.value))
-                .map((opt) => {
-                  const logo = getAgentLogo(opt.value);
-                  return (
-                    <Select.Option key={opt.value} value={opt.value}>
-                      <span className='flex items-center gap-6px'>
-                        {logo ? (
-                          <img
-                            src={logo}
-                            alt=''
-                            width={16}
-                            height={16}
-                            style={{ objectFit: 'contain', flexShrink: 0 }}
-                          />
-                        ) : (
-                          <Robot theme='outline' size={16} fill='currentColor' style={{ flexShrink: 0 }} />
-                        )}
-                        {opt.label}
-                      </span>
-                    </Select.Option>
-                  );
-                })}
+                .map((opt) => (
+                  <Select.Option key={opt.value} value={opt.value}>
+                    {opt.label}
+                  </Select.Option>
+                ))}
               {/* Extension-contributed ACP adapters */}
               {extensionAcpAdapters?.map((adapter) => {
                 const id = adapter.id as string;
                 const name = (adapter.name as string) || id;
-                const logo = getAgentLogo(id);
                 return (
                   <Select.Option key={id} value={id}>
                     <span className='flex items-center gap-6px'>
-                      {logo ? (
-                        <img src={logo} alt='' width={16} height={16} style={{ objectFit: 'contain', flexShrink: 0 }} />
-                      ) : (
-                        <Robot theme='outline' size={16} fill='currentColor' style={{ flexShrink: 0 }} />
-                      )}
                       {name}
                       <Tag size='small' color='arcoblue'>
                         ext

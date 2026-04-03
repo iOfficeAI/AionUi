@@ -36,7 +36,7 @@ export type GuidSendDeps = {
   selectedMode: string;
   selectedAcpModel: string | null;
   pendingConfigOptions: Record<string, string>;
-  cachedConfigOptions: unknown[];
+  cachedConfigOptions: import('@/common/types/acpTypes').AcpSessionConfigOption[];
   currentModel: TProviderWithModel | undefined;
 
   // Agent helpers
@@ -395,10 +395,9 @@ export const useGuidSend = (deps: GuidSendDeps): GuidSendResult => {
               cachedConfigOptions.length > 0
                 ? // Merge pending selections into cached options so the UI shows the user's choice immediately
                   Object.keys(pendingConfigOptions).length > 0
-                  ? cachedConfigOptions.map((opt: unknown) => {
-                      const o = opt as { id?: string; currentValue?: string; selectedValue?: string };
-                      const pending = o.id ? pendingConfigOptions[o.id] : undefined;
-                      return pending ? { ...o, currentValue: pending, selectedValue: pending } : o;
+                  ? cachedConfigOptions.map((opt) => {
+                      const pending = opt.id ? pendingConfigOptions[opt.id] : undefined;
+                      return pending ? { ...opt, currentValue: pending, selectedValue: pending } : opt;
                     })
                   : cachedConfigOptions
                 : undefined,

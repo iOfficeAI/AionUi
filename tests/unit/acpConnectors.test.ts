@@ -42,6 +42,7 @@ vi.mock('@process/utils/shellEnv', () => ({
   getWindowsShellExecutionOptions: vi.fn(() =>
     process.platform === 'win32' ? { shell: true, windowsHide: true } : {}
   ),
+  loadFullShellEnvironment: vi.fn(async () => ({ PATH: '/usr/bin' })),
   resolveNpxPath: vi.fn(() => 'npx'),
 }));
 

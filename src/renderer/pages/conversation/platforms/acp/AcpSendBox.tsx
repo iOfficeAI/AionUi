@@ -83,7 +83,7 @@ const AcpSendBox: React.FC<{
   conversation_id: string;
   backend: AcpBackend;
   sessionMode?: string;
-  cachedConfigOptions?: unknown[];
+  cachedConfigOptions?: import('@/common/types/acpTypes').AcpSessionConfigOption[];
   agentName?: string;
   teamId?: string;
   agentSlotId?: string;

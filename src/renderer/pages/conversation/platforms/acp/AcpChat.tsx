@@ -19,7 +19,7 @@ const AcpChat: React.FC<{
   workspace?: string;
   backend: AcpBackend;
   sessionMode?: string;
-  cachedConfigOptions?: unknown[];
+  cachedConfigOptions?: import('@/common/types/acpTypes').AcpSessionConfigOption[];
   agentName?: string;
   cronJobId?: string;
   hideSendBox?: boolean;

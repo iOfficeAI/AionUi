@@ -254,7 +254,7 @@ export type TChatConversation =
           /** Persisted model ID for resume support / 持久化的模型 ID，用于恢复 */
           currentModelId?: string;
           /** Cached config options from ACP backend / 缓存的 ACP 配置选项 */
-          cachedConfigOptions?: unknown[];
+          cachedConfigOptions?: import('@/common/types/acpTypes').AcpSessionConfigOption[];
           /** Pending config option selections from Guid page / Guid 页面待应用的配置选项 */
           pendingConfigOptions?: Record<string, string>;
           /** Explicit marker for temporary health-check conversations */

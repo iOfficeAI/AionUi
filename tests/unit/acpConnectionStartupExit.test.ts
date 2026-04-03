@@ -32,7 +32,7 @@ vi.mock('@process/agent/acp/acpConnectors', () => ({
   connectClaude: vi.fn(),
   connectCodebuddy: vi.fn(),
   connectCodex: vi.fn(),
-  prepareCleanEnv: vi.fn(() => ({})),
+  prepareCleanEnv: vi.fn(async () => ({})),
 }));
 
 import { AcpConnection } from '../../src/process/agent/acp/AcpConnection';
