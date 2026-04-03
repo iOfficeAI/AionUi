@@ -200,10 +200,7 @@ const ScheduledTasksPage: React.FC = () => {
                   </div>
 
                   <div
-                    className={classNames(
-                      'mt-16px min-w-0 break-words text-text-2',
-                      isMobile ? 'text-13px leading-20px' : 'text-13px leading-20px'
-                    )}
+                    className='mt-16px min-w-0 break-words text-text-2 text-13px leading-20px'
                     title={job.state.nextRunAtMs ? `${t('cron.nextRun')} ${formatNextRun(job.state.nextRunAtMs)}` : '-'}
                   >
                     {job.state.nextRunAtMs ? `${t('cron.nextRun')} ${formatNextRun(job.state.nextRunAtMs)}` : '-'}
