@@ -9,16 +9,8 @@ import { Tag } from '@arco-design/web-react';
 import { useTranslation } from 'react-i18next';
 import type { ICronJob } from '@/common/adapter/ipcBridge';
 
-const pillTagBaseClassName = '!rounded-full !px-9px !py-2px !text-12px !leading-16px !font-medium !shadow-none';
-
 type StatusColor = 'gray' | 'red' | 'green';
 type StatusTone = 'paused' | 'error' | 'active';
-
-const toneClassMap: Record<StatusTone, string> = {
-  paused: '!bg-fill-1 !border-arco-3 !text-3',
-  error: '!bg-danger-light-1 !border-danger-4 !text-danger-6',
-  active: '!bg-success-light-1 !border-success-4 !text-success-6',
-};
 
 const CronStatusTag: React.FC<{ job: ICronJob }> = ({ job }) => {
   const { t } = useTranslation();
@@ -38,7 +30,18 @@ const CronStatusTag: React.FC<{ job: ICronJob }> = ({ job }) => {
   }
 
   return (
-    <Tag size='small' bordered color={color} className={`${pillTagBaseClassName} ${toneClassMap[tone]}`}>
+    <Tag
+      size='small'
+      bordered
+      color={color}
+      className={`!rounded-full !px-9px !py-2px !text-12px !leading-16px !font-medium !shadow-none ${
+        tone === 'paused'
+          ? '!bg-fill-1 !border-arco-3 !text-3'
+          : tone === 'error'
+            ? '!bg-danger-light-1 !border-danger-4 !text-danger-6'
+            : '!bg-success-light-1 !border-success-4 !text-success-6'
+      }`}
+    >
       {label}
     </Tag>
   );

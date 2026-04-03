@@ -285,10 +285,10 @@ const CreateTaskDialog: React.FC<CreateTaskDialogProps> = ({
       confirmLoading={submitting}
       okText={t('cron.page.save')}
       cancelText={t('cron.page.cancel')}
-      style={{ width: 'min(560px, calc(100vw - 32px))', maxWidth: 560, borderRadius: 16 }}
+      className='w-[min(560px,calc(100vw-32px))] max-w-560px rd-16px'
       unmountOnExit
     >
-      <div className='overflow-y-auto px-24px pb-16px pr-18px' style={{ maxHeight: 'min(72vh, 680px)' }}>
+      <div className='overflow-y-auto px-24px pb-16px pr-18px max-h-[min(72vh,680px)]'>
         <Form form={form} layout='vertical'>
           <FormItem
             label={t('cron.page.form.name')}
@@ -326,9 +326,7 @@ const CreateTaskDialog: React.FC<CreateTaskDialogProps> = ({
                     name = agent.name;
                     const logoSrc = getAgentLogo(agent.backend);
                     if (logoSrc) {
-                      logo = (
-                        <img src={logoSrc} alt={agent.name} style={{ width: 16, height: 16, objectFit: 'contain' }} />
-                      );
+                      logo = <img src={logoSrc} alt={agent.name} className='w-16px h-16px object-contain' />;
                     }
                   }
                 } else if (type === 'preset') {
@@ -338,15 +336,9 @@ const CreateTaskDialog: React.FC<CreateTaskDialogProps> = ({
                     const avatarImage = agent.avatar ? CUSTOM_AVATAR_IMAGE_MAP[agent.avatar] : undefined;
                     const isEmoji = agent.avatar && !avatarImage && !agent.avatar.endsWith('.svg');
                     if (avatarImage) {
-                      logo = (
-                        <img
-                          src={avatarImage}
-                          alt={agent.name}
-                          style={{ width: 16, height: 16, objectFit: 'contain' }}
-                        />
-                      );
+                      logo = <img src={avatarImage} alt={agent.name} className='w-16px h-16px object-contain' />;
                     } else if (isEmoji) {
-                      logo = <span style={{ fontSize: 14, lineHeight: '16px' }}>{agent.avatar}</span>;
+                      logo = <span className='text-14px leading-16px'>{agent.avatar}</span>;
                     }
                   }
                 }
@@ -366,7 +358,7 @@ const CreateTaskDialog: React.FC<CreateTaskDialogProps> = ({
                       <Option key={`cli:${agent.backend}`} value={`cli:${agent.backend}`}>
                         <div className='flex items-center gap-8px'>
                           {logo ? (
-                            <img src={logo} alt={agent.name} style={{ width: 16, height: 16, objectFit: 'contain' }} />
+                            <img src={logo} alt={agent.name} className='w-16px h-16px object-contain' />
                           ) : (
                             <Robot size='16' />
                           )}
@@ -386,13 +378,9 @@ const CreateTaskDialog: React.FC<CreateTaskDialogProps> = ({
                       <Option key={`preset:${agent.customAgentId}`} value={`preset:${agent.customAgentId}`}>
                         <div className='flex items-center gap-8px'>
                           {avatarImage ? (
-                            <img
-                              src={avatarImage}
-                              alt={agent.name}
-                              style={{ width: 16, height: 16, objectFit: 'contain' }}
-                            />
+                            <img src={avatarImage} alt={agent.name} className='w-16px h-16px object-contain' />
                           ) : isEmoji ? (
-                            <span style={{ fontSize: 14, lineHeight: '16px' }}>{agent.avatar}</span>
+                            <span className='text-14px leading-16px'>{agent.avatar}</span>
                           ) : (
                             <Robot size='16' />
                           )}
@@ -469,7 +457,7 @@ const CreateTaskDialog: React.FC<CreateTaskDialogProps> = ({
                   }
                 }}
                 allowClear={false}
-                style={{ width: 120 }}
+                className='w-120px'
               />
             </div>
           )}

@@ -531,7 +531,7 @@ describe('TaskDetailPage', () => {
     });
   });
 
-  it('displays last run info for existing_conversation mode', async () => {
+  it('displays conversation list for existing_conversation mode', async () => {
     const existingModeJob: ICronJob = {
       ...mockJob,
       target: {
@@ -546,11 +546,12 @@ describe('TaskDetailPage', () => {
     render(<TaskDetailPage />);
 
     await waitFor(() => {
-      expect(screen.getAllByText(new Date(mockJob.state.lastRunAtMs!).toLocaleString()).length).toBeGreaterThan(0);
+      expect(screen.getByText('Conversation 1')).toBeInTheDocument();
+      expect(screen.getByText('Conversation 2')).toBeInTheDocument();
     });
   });
 
-  it('displays error message in history when job has error status', async () => {
+  it('displays no history for existing_conversation mode with no conversations', async () => {
     const errorJob: ICronJob = {
       ...mockJob,
       target: {
@@ -566,11 +567,12 @@ describe('TaskDetailPage', () => {
       },
     };
     mockGetJob.mockResolvedValue(errorJob);
+    mockListByCronJob.mockResolvedValue([]);
 
     render(<TaskDetailPage />);
 
     await waitFor(() => {
-      expect(screen.getByText('Execution failed')).toBeInTheDocument();
+      expect(screen.getByText('cron.detail.noHistory')).toBeInTheDocument();
     });
   });
 
