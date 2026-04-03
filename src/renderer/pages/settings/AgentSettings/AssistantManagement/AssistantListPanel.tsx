@@ -241,7 +241,7 @@ const AssistantListPanel: React.FC<AssistantListPanelProps> = ({
           </div>
         ) : (
           <div className='text-center text-t-secondary py-12px'>
-            {t('settings.assistantsFilterEmpty', {
+            {t('settings.assistantNoMatch', {
               defaultValue: 'No assistants match the current filters.',
             })}
           </div>
