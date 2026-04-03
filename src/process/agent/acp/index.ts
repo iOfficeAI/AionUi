@@ -114,6 +114,8 @@ export interface AcpAgentConfig {
     sessionMode?: string;
     /** Team MCP server stdio config injected by TeamSessionService */
     teamMcpStdioConfig?: { name: string; command: string; args: string[]; env: Array<{ name: string; value: string }> };
+    /** Pending config option selections from Guid page (applied after session creation) */
+    pendingConfigOptions?: Record<string, string>;
   };
   onStreamEvent: (data: IResponseMessage) => void;
   onSignalEvent?: (data: IResponseMessage) => void; // 新增：仅发送信号，不更新UI
@@ -148,6 +150,8 @@ export class AcpAgent {
     sessionMode?: string;
     /** Team MCP server stdio config injected by TeamSessionService */
     teamMcpStdioConfig?: { name: string; command: string; args: string[]; env: Array<{ name: string; value: string }> };
+    /** Pending config option selections from Guid page (applied after session creation) */
+    pendingConfigOptions?: Record<string, string>;
   };
   private connection: AcpConnection;
   private adapter: AcpAdapter;
@@ -396,6 +400,21 @@ export class AcpAgent {
             `[ACP] Failed to set model "${this.extra.currentModelId}": ${error instanceof Error ? error.message : String(error)}`
           );
         }
+      }
+
+      // Apply pending config options from Guid page selection (e.g., reasoning_effort)
+      if (this.extra.pendingConfigOptions) {
+        await Promise.all(
+          Object.entries(this.extra.pendingConfigOptions).map(async ([configId, value]) => {
+            try {
+              await this.connection.setConfigOption(configId, value);
+            } catch (error) {
+              console.warn(
+                `[ACP] Failed to apply pending config option "${configId}": ${error instanceof Error ? error.message : String(error)}`
+              );
+            }
+          })
+        );
       }
 
       // Emit initial model info after session setup completes

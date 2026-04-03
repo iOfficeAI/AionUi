@@ -83,10 +83,11 @@ const AcpSendBox: React.FC<{
   conversation_id: string;
   backend: AcpBackend;
   sessionMode?: string;
+  cachedConfigOptions?: import('@/common/types/acpTypes').AcpSessionConfigOption[];
   agentName?: string;
   teamId?: string;
   agentSlotId?: string;
-}> = ({ conversation_id, backend, sessionMode, agentName, teamId, agentSlotId }) => {
+}> = ({ conversation_id, backend, sessionMode, cachedConfigOptions, agentName, teamId, agentSlotId }) => {
   const {
     running,
     hasHydratedRunningState,
@@ -340,7 +341,11 @@ Please check your local CLI tool authentication status`,
                 onModeChanged={teamPermission?.propagateMode}
               />
             )}
-            <AcpConfigSelector conversationId={conversation_id} backend={backend} />
+            <AcpConfigSelector
+              conversationId={conversation_id}
+              backend={backend}
+              initialConfigOptions={cachedConfigOptions}
+            />
           </div>
         }
         prefix={

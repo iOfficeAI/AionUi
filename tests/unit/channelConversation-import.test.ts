@@ -11,7 +11,6 @@ import {
   getChannelEnabledSkills,
   buildChannelConversationExtra,
 } from '../../src/process/channels/utils/channelConversation';
-import type { PluginType } from '../../src/process/channels/types';
 
 describe('channelConversation real functions', () => {
   describe('getChannelEnabledSkills', () => {

@@ -65,6 +65,8 @@ interface AcpAgentManagerData {
   /** Persisted model ID for resume support / 持久化的模型 ID，用于恢复 */
   currentModelId?: string;
   sandboxMode?: CodexSandboxMode;
+  /** Pending config option selections from Guid page (applied after session creation) */
+  pendingConfigOptions?: Record<string, string>;
 }
 
 type BufferedStreamTextMessage = {
@@ -294,6 +296,7 @@ class AcpAgentManager extends BaseAgentManager<AcpAgentManagerData, AcpPermissio
           acpSessionUpdatedAt: data.acpSessionUpdatedAt,
           currentModelId: this.persistedModelId ?? undefined,
           sessionMode: this.currentMode,
+          pendingConfigOptions: data.pendingConfigOptions,
           // Forward team MCP stdio config so AcpAgent.loadBuiltinSessionMcpServers() can inject it
           teamMcpStdioConfig: (data as unknown as Record<string, unknown>).teamMcpStdioConfig as
             | { name: string; command: string; args: string[]; env: Array<{ name: string; value: string }> }
@@ -385,6 +388,14 @@ class AcpAgentManager extends BaseAgentManager<AcpAgentManagerData, AcpPermissio
               msg_id: uuid(),
               data: traceData,
             });
+          }
+
+          // Persist config options to DB so AcpConfigSelector can render from cache
+          if (message.type === 'acp_model_info') {
+            const configOptions = this.getConfigOptions();
+            if (configOptions.length > 0) {
+              void this.saveConfigOptions(configOptions);
+            }
           }
 
           // Persist context usage to conversation extra for restore on page switch
@@ -1047,7 +1058,11 @@ class AcpAgentManager extends BaseAgentManager<AcpAgentManagerData, AcpPermissio
       }
     }
     if (!this.agent) return [];
-    return await this.agent.setConfigOption(configId, value);
+    const updated = await this.agent.setConfigOption(configId, value);
+    if (updated.length > 0) {
+      void this.saveConfigOptions(updated);
+    }
+    return updated;
   }
 
   /**
@@ -1215,6 +1230,26 @@ class AcpAgentManager extends BaseAgentManager<AcpAgentManagerData, AcpPermissio
       }
     } catch (error) {
       mainError('[AcpAgentManager]', 'Failed to save session mode', error);
+    }
+  }
+
+  /**
+   * Save non-model/mode config options to database for resume support.
+   * Allows AcpConfigSelector to render immediately from cached data
+   * even when the ACP session has expired.
+   */
+  private async saveConfigOptions(configOptions: AcpSessionConfigOption[]): Promise<void> {
+    try {
+      const db = await getDatabase();
+      const result = db.getConversation(this.conversation_id);
+      if (result.success && result.data && result.data.type === 'acp') {
+        const conversation = result.data;
+        db.updateConversation(this.conversation_id, {
+          extra: { ...conversation.extra, cachedConfigOptions: configOptions },
+        } as Partial<typeof conversation>);
+      }
+    } catch (error) {
+      mainError('[AcpAgentManager]', 'Failed to save config options', error);
     }
   }
 
