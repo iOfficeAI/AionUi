@@ -151,8 +151,8 @@ export const colorMapping: Record<string, string> = {
   // Background colors
   '#FFFFFF': 'var(--color-bg-0)',
   '#ffffff': 'var(--color-bg-0)',
-  '#F7F8FA': 'var(--color-bg-1)',
-  '#f7f8fa': 'var(--color-bg-1)',
+  '#F9FAFB': 'var(--color-bg-1)',
+  '#f9fafb': 'var(--color-bg-1)',
   '#F2F3F5': 'var(--color-bg-2)',
   '#f2f3f5': 'var(--color-bg-2)',
   '#E5E6EB': 'var(--color-bg-3)',
