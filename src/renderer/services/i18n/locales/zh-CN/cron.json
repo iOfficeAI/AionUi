@@ -41,7 +41,9 @@
     "repeats": "重复执行",
     "history": "执行历史",
     "noHistory": "暂无执行记录",
-    "notFound": "未找到任务"
+    "notFound": "未找到任务",
+    "executionModeDescriptionNew": "每次触发都会新建一个会话，之前的上下文不会带到下一次执行。适合日报、巡检、定时汇总这类彼此独立的任务。",
+    "executionModeDescriptionExisting": "每次触发都会回到同一个会话继续执行，之前的上下文和结果会持续保留。适合长期跟进同一件事的连续任务。"
   },
   "notification": {
     "taskComplete": "任务完成",
@@ -51,7 +53,7 @@
   },
   "page": {
     "newTask": "新建任务",
-    "description": "定时任务会在指定时间自动执行。任务仅在电脑唤醒状态下运行。",
+    "description": "按计划自动运行任务。你也可以在任意对话中直接让 AionUi 帮你创建一个定时任务。",
     "awakeBanner": "定时任务仅在电脑唤醒状态下运行。",
     "keepAwake": "保持唤醒",
     "keepAwakeTooltip": "开启后，AionUi 将阻止电脑进入休眠状态",
@@ -92,9 +94,9 @@
       "agentPlaceholder": "选择执行任务的 Agent",
       "executionMode": "执行模式",
       "newConversation": "新建会话",
-      "existingConversation": "同一会话",
-      "newConversationHint": "每次执行都创建新的会话",
-      "existingConversationHint": "所有执行共享同一个会话",
+      "existingConversation": "持续会话",
+      "newConversationHint": "每次都从新会话开始",
+      "existingConversationHint": "在同一会话中持续执行",
       "executionModeEditHint": "创建后无法更改执行模式，如需切换请删除任务后重新创建。"
     },
     "freq": {

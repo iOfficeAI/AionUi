@@ -1,4 +1,4 @@
-import { fireEvent, render, screen, waitFor, act } from '@testing-library/react';
+import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import React from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import type { ICronJob } from '@/common/adapter/ipcBridge';
@@ -49,7 +49,10 @@ vi.mock('@icon-park/react', () => ({
   Left: () => <span data-testid='icon-left' />,
   Delete: () => <span data-testid='icon-delete' />,
   PlayOne: () => <span data-testid='icon-play' />,
-  Editor: () => <span data-testid='icon-editor' />,
+  Write: () => <span data-testid='icon-write' />,
+  Check: () => <span data-testid='icon-check' />,
+  Pause: () => <span data-testid='icon-pause' />,
+  Attention: () => <span data-testid='icon-attention' />,
 }));
 
 const mockMessageSuccess = vi.hoisted(() => vi.fn());
@@ -96,8 +99,22 @@ vi.mock('@arco-design/web-react', () => {
         {...props}
       />
     ),
-    Tag: ({ children, color }: { children: React.ReactNode; color?: string }) => (
-      <span data-testid={`tag-${color}`}>{children}</span>
+    Tag: ({
+      children,
+      color,
+      bordered,
+      size,
+      className,
+    }: {
+      children: React.ReactNode;
+      color?: string;
+      bordered?: boolean;
+      size?: string;
+      className?: string;
+    }) => (
+      <span data-testid={`tag-${color}`} data-bordered={String(bordered)} data-size={size} className={className}>
+        {children}
+      </span>
     ),
     Popconfirm: ({ children, onOk }: { children: React.ReactElement; title?: string; onOk?: () => void }) => {
       return React.cloneElement(children, {
@@ -223,7 +240,7 @@ describe('TaskDetailPage', () => {
       expect(screen.getByText('Daily Summary')).toBeInTheDocument();
     });
 
-    expect(screen.getByText('Summarize daily activities')).toBeInTheDocument();
+    expect(screen.getAllByText('Summarize daily activities')).toHaveLength(2);
     expect(screen.getByText('Every day at 9:00 AM')).toBeInTheDocument();
   });
 
@@ -277,21 +294,20 @@ describe('TaskDetailPage', () => {
     expect(agentImage.src).toContain('logo-claude');
   });
 
-  it('displays execution mode as new_conversation', async () => {
+  it('displays new conversation execution explanation', async () => {
     render(<TaskDetailPage />);
 
     await waitFor(() => {
-      expect(screen.getByText('cron.page.form.newConversation')).toBeInTheDocument();
+      expect(screen.getByText('cron.detail.executionModeDescriptionNew')).toBeInTheDocument();
+      expect(screen.getByText('cron.page.form.executionModeEditHint')).toBeInTheDocument();
     });
-
-    expect(screen.getByText('cron.page.form.newConversationHint')).toBeInTheDocument();
   });
 
-  it('displays execution mode as existing_conversation', async () => {
+  it('displays existing conversation execution explanation', async () => {
     const existingModeJob: ICronJob = {
       ...mockJob,
       target: {
-        executionMode: 'existing_conversation',
+        executionMode: 'existing',
         payload: {
           text: 'Update task',
         },
@@ -302,10 +318,9 @@ describe('TaskDetailPage', () => {
     render(<TaskDetailPage />);
 
     await waitFor(() => {
-      expect(screen.getByText('cron.page.form.existingConversation')).toBeInTheDocument();
+      expect(screen.getByText('cron.detail.executionModeDescriptionExisting')).toBeInTheDocument();
+      expect(screen.getByText('cron.page.form.executionModeEditHint')).toBeInTheDocument();
     });
-
-    expect(screen.getByText('cron.page.form.existingConversationHint')).toBeInTheDocument();
   });
 
   it('toggles enabled switch and calls updateJob', async () => {
@@ -390,10 +405,10 @@ describe('TaskDetailPage', () => {
     render(<TaskDetailPage />);
 
     await waitFor(() => {
-      expect(screen.getAllByTestId('icon-editor')).toHaveLength(1);
+      expect(screen.getAllByTestId('icon-write')).toHaveLength(1);
     });
 
-    const editButton = screen.getByTestId('icon-editor').closest('button')!;
+    const editButton = screen.getByTestId('icon-write').closest('button')!;
     fireEvent.click(editButton);
 
     await waitFor(() => {
@@ -407,10 +422,10 @@ describe('TaskDetailPage', () => {
     render(<TaskDetailPage />);
 
     await waitFor(() => {
-      expect(screen.getAllByTestId('icon-editor')).toHaveLength(1);
+      expect(screen.getAllByTestId('icon-write')).toHaveLength(1);
     });
 
-    const editButton = screen.getByTestId('icon-editor').closest('button')!;
+    const editButton = screen.getByTestId('icon-write').closest('button')!;
     fireEvent.click(editButton);
 
     await waitFor(() => {
@@ -474,7 +489,7 @@ describe('TaskDetailPage', () => {
       expect(screen.getByText('cron.detail.backToAll')).toBeInTheDocument();
     });
 
-    const backLink = screen.getAllByText('cron.detail.backToAll')[0].closest('span')!;
+    const backLink = screen.getByText('cron.detail.backToAll').closest('button')!;
     fireEvent.click(backLink);
 
     expect(mockNavigate).toHaveBeenCalledWith('/scheduled');
@@ -516,7 +531,7 @@ describe('TaskDetailPage', () => {
     });
   });
 
-  it('displays last run info for existing_conversation mode', async () => {
+  it('displays conversation list for existing_conversation mode', async () => {
     const existingModeJob: ICronJob = {
       ...mockJob,
       target: {
@@ -531,11 +546,12 @@ describe('TaskDetailPage', () => {
     render(<TaskDetailPage />);
 
     await waitFor(() => {
-      expect(screen.getByText(new Date(mockJob.state.lastRunAtMs!).toLocaleString())).toBeInTheDocument();
+      expect(screen.getByText('Conversation 1')).toBeInTheDocument();
+      expect(screen.getByText('Conversation 2')).toBeInTheDocument();
     });
   });
 
-  it('displays error message in history when job has error status', async () => {
+  it('displays no history for existing_conversation mode with no conversations', async () => {
     const errorJob: ICronJob = {
       ...mockJob,
       target: {
@@ -551,11 +567,12 @@ describe('TaskDetailPage', () => {
       },
     };
     mockGetJob.mockResolvedValue(errorJob);
+    mockListByCronJob.mockResolvedValue([]);
 
     render(<TaskDetailPage />);
 
     await waitFor(() => {
-      expect(screen.getByText('Execution failed')).toBeInTheDocument();
+      expect(screen.getByText('cron.detail.noHistory')).toBeInTheDocument();
     });
   });
 
@@ -580,7 +597,7 @@ describe('TaskDetailPage', () => {
   });
 
   it('subscribes to job updates and refreshes job state', async () => {
-    let updateHandler: (job: ICronJob) => void = () => {};
+    let updateHandler: ((job: ICronJob) => void) | null = null;
     mockOnJobUpdated.mockImplementation((handler) => {
       updateHandler = handler;
       return () => {};
@@ -594,7 +611,7 @@ describe('TaskDetailPage', () => {
 
     // Simulate job update
     const updatedJob = { ...mockJob, name: 'Updated Job' };
-    updateHandler(updatedJob);
+    updateHandler?.(updatedJob);
 
     await waitFor(() => {
       expect(screen.getByText('Updated Job')).toBeInTheDocument();
@@ -629,12 +646,7 @@ describe('TaskDetailPage', () => {
     render(<TaskDetailPage />);
 
     await waitFor(() => {
-      // Check that the next run section is rendered by looking for text that contains the key
-      expect(
-        screen.getByText((content, element) => {
-          return element?.className?.includes('text-13px') && content.includes('cron.nextRun');
-        })
-      ).toBeInTheDocument();
+      expect(screen.getByText((content) => content.includes('cron.nextRun'))).toBeInTheDocument();
     });
 
     // Verify date is displayed (look for year 2026 in the timestamp)
@@ -644,11 +656,13 @@ describe('TaskDetailPage', () => {
     expect(timestampElements.length).toBeGreaterThan(0);
   });
 
-  it('displays conversation count for new_conversation mode', async () => {
+  it('renders history section for new_conversation mode', async () => {
     render(<TaskDetailPage />);
 
     await waitFor(() => {
-      expect(screen.getByText(/\(2\)/)).toBeInTheDocument();
+      expect(screen.getByText('cron.detail.history')).toBeInTheDocument();
+      expect(screen.getByText('Conversation 1')).toBeInTheDocument();
+      expect(screen.getByText('Conversation 2')).toBeInTheDocument();
     });
   });
 });

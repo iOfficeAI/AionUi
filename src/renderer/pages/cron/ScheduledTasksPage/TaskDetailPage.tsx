@@ -7,15 +7,27 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useNavigate, useParams } from 'react-router-dom';
-import { Button, Message, Switch, Tag, Popconfirm, Spin, Empty } from '@arco-design/web-react';
-import { Left, Delete, PlayOne, Editor } from '@icon-park/react';
+import { Button, Message, Switch, Popconfirm, Spin, Empty } from '@arco-design/web-react';
+import { Left, Delete, PlayOne, Write, Attention } from '@icon-park/react';
 import { ipcBridge } from '@/common';
 import type { ICronJob } from '@/common/adapter/ipcBridge';
 import { getAgentLogo } from '@renderer/utils/model/agentLogo';
+import CronStatusTag from './CronStatusTag';
 import CreateTaskDialog from './CreateTaskDialog';
 import { formatSchedule, formatNextRun } from '@renderer/pages/cron/cronUtils';
 import { useCronJobConversations } from '@renderer/pages/cron/useCronJobs';
 import { getActivityTime } from '@/renderer/utils/chat/timeline';
+
+const getDescriptionPreview = (text: string) => {
+  const firstLine = text
+    .split('\n')
+    .map((line) => line.trim())
+    .find(Boolean);
+
+  if (!firstLine) return '-';
+  if (firstLine.length <= 72) return firstLine;
+  return `${firstLine.slice(0, 72).trimEnd()}...`;
+};
 
 const TaskDetailPage: React.FC = () => {
   const { t } = useTranslation();
@@ -28,7 +40,7 @@ const TaskDetailPage: React.FC = () => {
 
   const isNewConversationMode = job?.target.executionMode === 'new_conversation';
   const isManualOnly = job?.schedule.kind === 'cron' && !job.schedule.expr;
-  const { conversations } = useCronJobConversations(isNewConversationMode ? jobId : undefined);
+  const { conversations } = useCronJobConversations(jobId);
 
   const fetchJob = useCallback(async () => {
     if (!jobId) return;
@@ -114,183 +126,175 @@ const TaskDetailPage: React.FC = () => {
 
   if (!job) {
     return (
-      <div className='size-full flex flex-col'>
-        <div className='px-24px pt-16px'>
-          <span
-            className='inline-flex items-center gap-4px text-13px text-text-3 cursor-pointer hover:text-text-1'
+      <div className='w-full min-h-full box-border overflow-y-auto px-14px pt-28px pb-24px md:px-40px md:pt-52px md:pb-42px'>
+        <div className='mx-auto flex w-full max-w-760px flex-col gap-28px box-border'>
+          <Button
+            type='text'
+            size='small'
+            className='w-fit !px-0 !text-14px !text-text-3 md:!text-15px hover:!text-text-1'
+            icon={<Left theme='outline' size={16} className='line-height-0 shrink-0' />}
             onClick={() => navigate('/scheduled')}
           >
-            <Left theme='outline' size={14} />
             {t('cron.detail.backToAll')}
-          </span>
-        </div>
-        <div className='flex-1 flex-center'>
-          <Empty description={t('cron.detail.notFound')} />
+          </Button>
+          <div className='flex min-h-320px items-center justify-center'>
+            <Empty description={t('cron.detail.notFound')} />
+          </div>
         </div>
       </div>
     );
   }
 
-  const statusTag = !job.enabled ? (
-    <Tag color='gray'>{t('cron.status.paused')}</Tag>
-  ) : job.state.lastStatus === 'error' ? (
-    <Tag color='red'>{t('cron.status.error')}</Tag>
-  ) : (
-    <Tag color='green'>{t('cron.status.active')}</Tag>
-  );
+  const descriptionPreview = getDescriptionPreview(job.target.payload.text);
+  const currentExecutionModeLabel = isNewConversationMode
+    ? t('cron.page.form.newConversation')
+    : t('cron.page.form.existingConversation');
+  const executionModeExplanation = isNewConversationMode
+    ? t('cron.detail.executionModeDescriptionNew')
+    : t('cron.detail.executionModeDescriptionExisting');
 
   return (
-    <div className='size-full flex flex-col overflow-hidden'>
-      {/* Back link */}
-      <div className='shrink-0 px-24px pt-16px'>
-        <span
-          className='inline-flex items-center gap-4px text-13px text-text-3 cursor-pointer hover:text-text-1'
+    <div className='w-full min-h-full box-border overflow-y-auto px-14px pt-28px pb-24px md:px-40px md:pt-52px md:pb-42px'>
+      <div className='mx-auto flex w-full max-w-760px flex-col gap-28px box-border'>
+        <Button
+          type='text'
+          size='small'
+          className='w-fit !px-0 !text-14px !text-text-3 md:!text-15px hover:!text-text-1'
+          icon={<Left theme='outline' size={16} className='line-height-0 shrink-0' />}
           onClick={() => navigate('/scheduled')}
         >
-          <Left theme='outline' size={14} className='line-height-0 shrink-0' />
           {t('cron.detail.backToAll')}
-        </span>
-      </div>
+        </Button>
 
-      {/* Content */}
-      <div className='flex-1 min-h-0 overflow-y-auto px-24px pt-12px pb-24px'>
-        {/* Header row */}
-        <div className='flex items-start justify-between mb-8px'>
-          <div>
-            <h1 className='text-24px font-bold m-0 mb-8px'>{job.name}</h1>
-            <div className='flex items-center gap-12px'>
-              {statusTag}
-              {job.state.nextRunAtMs && (
-                <span className='text-13px text-text-3'>
-                  {t('cron.nextRun')} {formatNextRun(job.state.nextRunAtMs)}
-                </span>
-              )}
-            </div>
-          </div>
-          <div className='flex items-center gap-8px'>
-            <Button
-              type='text'
-              icon={<Editor theme='outline' size={16} />}
-              onClick={() => setEditDialogVisible(true)}
-            />
-            <Popconfirm title={t('cron.confirmDeleteWithConversations')} onOk={handleDelete}>
-              <Button type='text' status='danger' icon={<Delete theme='outline' size={16} />} />
-            </Popconfirm>
-            <Button
-              type='primary'
-              size='small'
-              loading={runningNow}
-              icon={<PlayOne theme='outline' size={14} />}
-              onClick={handleRunNow}
-            >
-              {t('cron.detail.runNow')}
-            </Button>
-          </div>
-        </div>
-
-        {/* Agent */}
-        {job.metadata.agentConfig && (
-          <div className='mt-24px'>
-            <h3 className='text-14px font-medium text-text-2 mb-8px'>{t('cron.detail.agent')}</h3>
-            <div className='flex items-center gap-8px'>
-              <img
-                src={getAgentLogo(job.metadata.agentConfig.backend)}
-                alt={job.metadata.agentConfig.name}
-                className='w-24px h-24px rounded-50%'
+        <div className='flex flex-col gap-20px pb-8px'>
+          <div className='flex flex-wrap items-start justify-between gap-14px'>
+            <h1 className='m-0 min-w-0 flex-1 break-words text-30px font-bold leading-38px md:text-34px md:leading-42px'>
+              {job.name}
+            </h1>
+            <div className='flex shrink-0 items-center gap-8px'>
+              <Button
+                size='mini'
+                type='text'
+                className='!h-20px !min-w-20px !w-20px !rounded-0 !border-none !bg-transparent !p-0 !text-text-3 hover:!bg-transparent hover:!text-text-2 translate-y-1px'
+                icon={<Write theme='outline' size={16} fill='currentColor' />}
+                onClick={() => setEditDialogVisible(true)}
               />
-              <span className='text-14px text-text-1'>{job.metadata.agentConfig.name}</span>
+              <Popconfirm title={t('cron.confirmDeleteWithConversations')} onOk={handleDelete}>
+                <Button
+                  size='mini'
+                  type='text'
+                  className='!h-20px !min-w-20px !w-20px !rounded-0 !border-none !bg-transparent !p-0 !text-text-3 hover:!bg-transparent hover:!text-text-2 translate-y-1px'
+                  icon={<Delete theme='outline' size={16} fill='currentColor' />}
+                />
+              </Popconfirm>
+              <Button
+                type='primary'
+                shape='round'
+                loading={runningNow}
+                icon={<PlayOne theme='outline' size={14} />}
+                onClick={handleRunNow}
+              >
+                {t('cron.detail.runNow')}
+              </Button>
             </div>
           </div>
-        )}
-
-        {/* Execution Mode */}
-        <div className='mt-24px'>
-          <h3 className='text-14px font-medium text-text-2 mb-8px'>{t('cron.page.form.executionMode')}</h3>
-          <span className='text-14px text-text-1'>
-            {isNewConversationMode ? t('cron.page.form.newConversation') : t('cron.page.form.existingConversation')}
-          </span>
-          <span className='text-12px text-text-3 ml-8px'>
-            {isNewConversationMode
-              ? t('cron.page.form.newConversationHint')
-              : t('cron.page.form.existingConversationHint')}
-          </span>
-        </div>
-
-        {/* Instructions */}
-        <div className='mt-24px'>
-          <h3 className='text-14px font-medium text-text-2 mb-8px'>{t('cron.detail.instructions')}</h3>
-          <div className='bg-fill-1 rd-8px py-12px text-14px text-text-1 whitespace-pre-wrap'>
-            {job.target.payload.text || '-'}
-          </div>
-        </div>
-
-        {/* Repeats */}
-        <div className='mt-24px'>
-          <h3 className='text-14px font-medium text-text-2 mb-8px'>{t('cron.detail.repeats')}</h3>
-          <div className='flex items-center gap-12px'>
-            {isManualOnly ? (
-              <span className='text-14px text-text-1'>{formatSchedule(job)}</span>
-            ) : (
-              <>
-                <Switch size='small' checked={job.enabled} onChange={handleToggleEnabled} />
-                <span className='text-14px text-text-1'>{formatSchedule(job)}</span>
-              </>
+          <div className='flex flex-wrap items-center gap-10px md:gap-12px'>
+            <CronStatusTag job={job} />
+            {job.state.nextRunAtMs && (
+              <span className='text-14px text-text-3'>
+                {t('cron.nextRun')} {formatNextRun(job.state.nextRunAtMs)}
+              </span>
             )}
           </div>
+          <div className='h-1px w-full bg-[var(--color-border-2)]' />
         </div>
 
-        {/* Execution History */}
-        <div className='mt-24px'>
-          <h3 className='text-14px font-medium text-text-2 mb-8px'>
-            {t('cron.detail.history')}
-            {isNewConversationMode && conversations.length > 0 && (
-              <span className='ml-4px font-normal text-text-3'>({conversations.length})</span>
-            )}
-          </h3>
+        <div className='grid w-full min-w-0 grid-cols-1 gap-28px md:grid-cols-[280px_minmax(0,1fr)] md:items-start md:gap-40px'>
+          <div className='flex min-w-0 flex-col gap-28px'>
+            <section className='flex flex-col gap-10px'>
+              <h2 className='m-0 text-13px font-medium text-text-3'>{t('cron.detail.description')}</h2>
+              <p className='m-0 text-14px leading-22px text-text-1'>{descriptionPreview}</p>
+            </section>
 
-          {isNewConversationMode ? (
-            // new_conversation mode: show child conversations as execution history
-            conversations.length > 0 ? (
-              <div className='flex flex-col gap-4px'>
-                {conversations.map((conv) => (
-                  <div
-                    key={conv.id}
-                    className='flex items-center justify-between px-12px py-8px bg-fill-1 rd-8px cursor-pointer hover:bg-fill-2 transition-colors'
-                    onClick={() => navigate(`/conversation/${conv.id}`)}
-                  >
-                    <span className='text-14px text-text-1 truncate mr-12px'>{conv.name || conv.id}</span>
-                    <span className='text-13px text-text-3 shrink-0'>{formatNextRun(getActivityTime(conv))}</span>
-                  </div>
-                ))}
+            {job.metadata.agentConfig && (
+              <section className='flex flex-col gap-10px'>
+                <h2 className='m-0 text-13px font-medium text-text-3'>{t('cron.detail.agent')}</h2>
+                <div className='flex items-center gap-10px'>
+                  <img
+                    src={getAgentLogo(job.metadata.agentConfig.backend)}
+                    alt={job.metadata.agentConfig.name}
+                    className='h-28px w-28px rounded-50%'
+                  />
+                  <span className='min-w-0 text-14px font-medium text-text-1'>{job.metadata.agentConfig.name}</span>
+                </div>
+              </section>
+            )}
+
+            <section className='flex flex-col gap-10px'>
+              <h2 className='m-0 text-13px font-medium text-text-3'>{t('cron.detail.repeats')}</h2>
+              <div className='flex flex-wrap items-center gap-10px'>
+                {!isManualOnly && <Switch size='small' checked={job.enabled} onChange={handleToggleEnabled} />}
+                <span className='text-14px text-text-1'>{formatSchedule(job, t)}</span>
               </div>
-            ) : (
-              <div className='text-14px text-text-3'>
-                <span>{t('cron.detail.noHistory')}</span>
-                {job.enabled && job.state.nextRunAtMs && (
-                  <span className='ml-4px'>
-                    · {t('cron.nextRun')} {formatNextRun(job.state.nextRunAtMs)}
-                  </span>
-                )}
+            </section>
+
+            <section className='flex flex-col gap-10px'>
+              <h2 className='m-0 text-13px font-medium text-text-3'>{t('cron.page.form.executionMode')}</h2>
+              <div className='inline-flex items-center gap-4px'>
+                <span className='text-14px leading-22px text-text-1'>{currentExecutionModeLabel}</span>
+                <Attention theme='outline' size={12} className='line-height-0 shrink-0 text-text-3' />
               </div>
-            )
-          ) : // existing mode: show last run info
-          job.state.lastRunAtMs ? (
-            <div className='text-14px text-text-3'>
-              {formatNextRun(job.state.lastRunAtMs)}
-              {job.state.lastStatus === 'error' && job.state.lastError && (
-                <span className='ml-8px text-[rgb(var(--danger-6))]'>{job.state.lastError}</span>
+              <div className='box-border rounded-12px border border-solid border-[var(--color-border-2)] bg-fill-2 px-16px py-14px'>
+                <div className='flex flex-col gap-10px'>
+                  <p className='m-0 text-13px leading-20px text-text-2'>{executionModeExplanation}</p>
+                  <div className='h-1px w-full bg-[var(--color-border-2)]' />
+                  <p className='m-0 text-12px leading-18px text-text-3'>{t('cron.page.form.executionModeEditHint')}</p>
+                </div>
+              </div>
+            </section>
+          </div>
+
+          <div className='flex min-w-0 flex-col gap-28px'>
+            <section className='flex flex-col gap-12px'>
+              <h2 className='m-0 text-13px font-medium text-text-3'>{t('cron.detail.instructions')}</h2>
+              <div className='box-border rounded-12px border border-solid border-[var(--color-border-2)] bg-fill-2 px-16px py-14px'>
+                <div className='whitespace-pre-wrap break-words text-14px leading-22px text-text-1'>
+                  {job.target.payload.text || '-'}
+                </div>
+              </div>
+            </section>
+
+            <section className='flex flex-col gap-12px'>
+              <h2 className='m-0 text-13px font-medium text-text-3'>{t('cron.detail.history')}</h2>
+
+              {conversations.length > 0 ? (
+                <div className='flex flex-col'>
+                  <div className='h-1px w-full bg-[var(--color-border-2)]' />
+                  {conversations.map((conv, index) => (
+                    <React.Fragment key={conv.id}>
+                      <div
+                        className='flex cursor-pointer items-center justify-between gap-14px py-15px transition-colors hover:text-text-1'
+                        onClick={() => navigate(`/conversation/${conv.id}`)}
+                      >
+                        <span className='min-w-0 flex-1 truncate text-14px text-text-1'>{conv.name || conv.id}</span>
+                        <span className='shrink-0 text-13px text-text-3'>{formatNextRun(getActivityTime(conv))}</span>
+                      </div>
+                      {index < conversations.length - 1 && <div className='h-1px w-full bg-[var(--color-border-2)]' />}
+                    </React.Fragment>
+                  ))}
+                </div>
+              ) : (
+                <div className='text-14px text-text-3'>
+                  <span>{t('cron.detail.noHistory')}</span>
+                  {job.enabled && job.state.nextRunAtMs && (
+                    <span className='ml-4px'>
+                      · {t('cron.nextRun')} {formatNextRun(job.state.nextRunAtMs)}
+                    </span>
+                  )}
+                </div>
               )}
-            </div>
-          ) : (
-            <div className='text-14px text-text-3'>
-              <span>{t('cron.detail.noHistory')}</span>
-              {job.enabled && job.state.nextRunAtMs && (
-                <span className='ml-4px'>
-                  · {t('cron.nextRun')} {formatNextRun(job.state.nextRunAtMs)}
-                </span>
-              )}
-            </div>
-          )}
+            </section>
+          </div>
         </div>
       </div>
 

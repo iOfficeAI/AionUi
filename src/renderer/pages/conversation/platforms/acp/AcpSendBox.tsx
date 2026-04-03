@@ -344,6 +344,7 @@ Please check your local CLI tool authentication status`,
             <AcpConfigSelector
               conversationId={conversation_id}
               backend={backend}
+              compact={!!teamId}
               initialConfigOptions={cachedConfigOptions}
             />
           </div>
@@ -413,6 +414,7 @@ Please check your local CLI tool authentication status`,
         slashCommands={slashCommands}
         onSlashBuiltinCommand={onSlashBuiltinCommand}
         allowSendWhileLoading
+        compactActions={!!teamId}
         sendButtonPrefix={
           tokenUsage ? (
             <ContextUsageIndicator

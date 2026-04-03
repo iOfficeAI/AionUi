@@ -1,7 +1,21 @@
 {
   "sider": {
     "title": "Teams",
-    "createTeam": "New Team"
+    "createTeam": "New Team",
+    "pin": "置頂",
+    "unpin": "取消置頂",
+    "rename": "重新命名",
+    "delete": "刪除",
+    "renameTitle": "重新命名團隊",
+    "renamePlaceholder": "團隊名稱",
+    "deleteConfirm": "刪除此團隊？",
+    "deleteConfirmContent": "此操作無法撤銷。",
+    "deleteOk": "刪除",
+    "deleteCancel": "取消",
+    "renameOk": "儲存",
+    "renameCancel": "取消",
+    "renameSuccess": "團隊已重新命名",
+    "deleteSuccess": "團隊已刪除"
   },
   "addAgent": {
     "title": "新增 Agent",
@@ -24,6 +38,8 @@
     "subAgentsPlaceholder": "Select sub agents",
     "workspacePlaceholder": "Workspace path (optional)",
     "confirm": "Create Team",
+    "noSupportedAgents": "未偵測到支援的 Agent",
+    "supportedAgentsHint": "目前支援 Claude、Codex、CodeBuddy，更多 Agent 適配中",
     "step": {
       "dispatch": "Dispatch Agent",
       "subAgents": "Sub Agents",

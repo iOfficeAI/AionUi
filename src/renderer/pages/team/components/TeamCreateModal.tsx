@@ -7,7 +7,14 @@ import type { TTeam, TeamAgent } from '@/common/types/teamTypes';
 import { useAuth } from '@renderer/hooks/context/AuthContext';
 import { useConversationAgents } from '@renderer/pages/conversation/hooks/useConversationAgents';
 import { isElectronDesktop } from '@renderer/utils/platform';
-import { agentKey, agentFromKey, resolveConversationType, AgentOptionLabel } from './agentSelectUtils';
+import {
+  agentKey,
+  agentFromKey,
+  resolveConversationType,
+  resolveTeamAgentType,
+  filterTeamSupportedAgents,
+  AgentOptionLabel,
+} from './agentSelectUtils';
 
 type Props = {
   visible: boolean;
@@ -24,7 +31,7 @@ const TeamCreateModal: React.FC<Props> = ({ visible, onClose, onCreated }) => {
   const [workspace, setWorkspace] = useState('');
   const [loading, setLoading] = useState(false);
 
-  const allAgents = [...cliAgents, ...presetAssistants];
+  const allAgents = filterTeamSupportedAgents([...cliAgents, ...presetAssistants]);
   const isDesktop = isElectronDesktop();
 
   const handleClose = () => {
@@ -48,15 +55,17 @@ const TeamCreateModal: React.FC<Props> = ({ visible, onClose, onCreated }) => {
       const agents: TeamAgent[] = [];
 
       const dispatchAgent = dispatchAgentKey ? agentFromKey(dispatchAgentKey, allAgents) : undefined;
+      const dispatchAgentType = resolveTeamAgentType(dispatchAgent, 'acp');
       agents.push({
         slotId: '',
         conversationId: '',
         role: 'lead',
         status: 'pending',
-        agentType: dispatchAgent?.backend ?? 'acp',
+        agentType: dispatchAgentType,
         agentName: dispatchAgent?.name ?? name,
-        conversationType: resolveConversationType(dispatchAgent?.backend ?? 'acp'),
+        conversationType: resolveConversationType(dispatchAgentType),
         cliPath: dispatchAgent?.cliPath,
+        customAgentId: dispatchAgent?.customAgentId,
       });
 
       const team = await ipcBridge.team.create.invoke({
@@ -117,30 +126,24 @@ const TeamCreateModal: React.FC<Props> = ({ visible, onClose, onCreated }) => {
             {t('team.create.step.dispatch', { defaultValue: 'Dispatch Agent' })}
           </label>
           <Select
-            placeholder={t('team.create.dispatchAgentPlaceholder', { defaultValue: 'Select dispatch agent' })}
+            placeholder={
+              allAgents.length === 0
+                ? t('team.create.noSupportedAgents', { defaultValue: 'No supported agents installed' })
+                : t('team.create.dispatchAgentPlaceholder', { defaultValue: 'Select dispatch agent' })
+            }
             value={dispatchAgentKey}
             onChange={setDispatchAgentKey}
             showSearch
             allowClear
+            disabled={allAgents.length === 0}
             renderFormat={(option) => {
               const agent = option?.value ? agentFromKey(option.value as string, allAgents) : undefined;
               return agent ? <AgentOptionLabel agent={agent} /> : <span>{option?.children}</span>;
             }}
           >
-            {cliAgents.length > 0 && (
+            {allAgents.length > 0 && (
               <Select.OptGroup label={t('conversation.dropdown.cliAgents', { defaultValue: 'CLI Agents' })}>
-                {cliAgents.map((agent) => (
-                  <Select.Option key={agentKey(agent)} value={agentKey(agent)}>
-                    <AgentOptionLabel agent={agent} />
-                  </Select.Option>
-                ))}
-              </Select.OptGroup>
-            )}
-            {presetAssistants.length > 0 && (
-              <Select.OptGroup
-                label={t('conversation.dropdown.presetAssistants', { defaultValue: 'Preset Assistants' })}
-              >
-                {presetAssistants.map((agent) => (
+                {allAgents.map((agent) => (
                   <Select.Option key={agentKey(agent)} value={agentKey(agent)}>
                     <AgentOptionLabel agent={agent} />
                   </Select.Option>
@@ -148,6 +151,11 @@ const TeamCreateModal: React.FC<Props> = ({ visible, onClose, onCreated }) => {
               </Select.OptGroup>
             )}
           </Select>
+          <span className='text-12px text-[var(--color-text-4)]'>
+            {t('team.create.supportedAgentsHint', {
+              defaultValue: 'Currently supports Claude, Codex, CodeBuddy. More agents coming soon.',
+            })}
+          </span>
         </div>
 
         {/* Workspace - optional folder picker (desktop only) or text input (webui) */}

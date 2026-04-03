@@ -892,7 +892,7 @@ const initStorage = async () => {
   EnvStorage.interceptor(envFile);
   mark('3. storage interceptors');
 
-  // Config migration only makes sense in standalone server mode (not inside Electron itself)
+  // 3.1 Config migration only makes sense in standalone server mode (not inside Electron itself)
   if (!hasElectronAppPath()) {
     // Migrate config from Electron desktop app (once, after storage is ready)
     await migrateFromElectronConfig(configFile as unknown as Parameters<typeof migrateFromElectronConfig>[0]);
@@ -907,6 +907,7 @@ const initStorage = async () => {
         configFile as unknown as Parameters<typeof importConfigFromFile>[2]
       );
     }
+    mark('3.1 configMigration');
   }
 
   // 4. 初始化 MCP 配置（为所有用户提供默认配置）
@@ -917,15 +918,15 @@ const initStorage = async () => {
     if (!existingMcpConfig || !Array.isArray(existingMcpConfig) || existingMcpConfig.length === 0) {
       const defaultServers = getDefaultMcpServers();
       await configFile.set('mcp.config', defaultServers);
-      console.log('[AionUi] Default MCP servers initialized');
     }
   } catch (error) {
     console.error('[AionUi] Failed to initialize default MCP servers:', error);
   }
+  mark('4.1 MCP defaults');
 
-  // 4.1 Ensure built-in MCP servers exist and are up-to-date
+  // 4.2 Ensure built-in MCP servers exist and are up-to-date
   await ensureBuiltinMcpServers();
-  mark('4. MCP config');
+  mark('4.2 builtinMcpServers');
 
   // 5. 初始化内置助手（Assistants）
   try {

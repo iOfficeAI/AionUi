@@ -47,11 +47,12 @@ function cacheConfigOptions(backend: string, options: AcpSessionConfigOption[]):
 const AcpConfigSelector: React.FC<{
   conversationId?: string;
   backend?: AcpBackend;
+  compact?: boolean;
   /** Cached config options for immediate render (from DB or ConfigStorage) */
   initialConfigOptions?: unknown[];
   /** Local mode callback when user selects an option (Guid page) */
   onOptionSelect?: (configId: string, value: string) => void;
-}> = ({ conversationId, backend, initialConfigOptions, onOptionSelect }) => {
+}> = ({ conversationId, backend, compact = false, initialConfigOptions, onOptionSelect }) => {
   const { t } = useTranslation();
   const [configOptions, setConfigOptions] = useState<AcpSessionConfigOption[]>(
     () => (Array.isArray(initialConfigOptions) ? initialConfigOptions : []) as AcpSessionConfigOption[]

@@ -40,7 +40,9 @@
     "repeats": "Repeats",
     "history": "History",
     "noHistory": "No runs yet",
-    "notFound": "Task not found"
+    "notFound": "Task not found",
+    "executionModeDescriptionNew": "Each run starts a fresh conversation, so previous context does not carry over. Best for recurring reports or checks that should stay independent.",
+    "executionModeDescriptionExisting": "Each run continues in the same conversation, so earlier context and results stay available. Best for follow-up tasks that build on previous runs."
   },
   "notification": {
     "taskComplete": "Task Complete",
@@ -50,7 +52,7 @@
   },
   "page": {
     "newTask": "New task",
-    "description": "Scheduled tasks run automatically at specified times. Tasks only run while your computer is awake.",
+    "description": "Run tasks on a schedule. You can also ask AionUi in any conversation to create one for you.",
     "awakeBanner": "Scheduled tasks only run while your computer is awake.",
     "keepAwake": "Keep awake",
     "keepAwakeTooltip": "When enabled, AionUi will prevent your computer from going to sleep",
@@ -91,9 +93,9 @@
       "agentPlaceholder": "Select the agent to execute this task",
       "executionMode": "Execution Mode",
       "newConversation": "New conversation",
-      "existingConversation": "Same conversation",
-      "newConversationHint": "Each execution creates a new conversation",
-      "existingConversationHint": "All executions share the same conversation",
+      "existingConversation": "Ongoing conversation",
+      "newConversationHint": "Start fresh on every run",
+      "existingConversationHint": "Keep building in one conversation",
       "executionModeEditHint": "Execution mode cannot be changed after creation. Delete and recreate the task to switch modes."
     },
     "freq": {

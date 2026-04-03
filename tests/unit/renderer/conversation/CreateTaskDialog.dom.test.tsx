@@ -12,6 +12,17 @@ vi.mock('react-i18next', () => ({
       if (key === 'cron.page.scheduleDesc.dailyAt') return `Daily at ${options?.time}`;
       if (key === 'cron.page.scheduleDesc.weekdaysAt') return `Weekdays at ${options?.time}`;
       if (key === 'cron.page.scheduleDesc.weeklyAt') return `Weekly on ${options?.day} at ${options?.time}`;
+      if (key === 'cron.page.form.newConversation') return 'New conversation';
+      if (key === 'cron.page.form.existingConversation') return 'Ongoing conversation';
+      if (key === 'cron.page.form.newConversationHint') return 'Start fresh on every run';
+      if (key === 'cron.page.form.existingConversationHint') return 'Keep building in one conversation';
+      if (key === 'cron.page.form.executionModeEditHint') return 'Execution mode cannot be changed after creation.';
+      if (key === 'cron.detail.executionModeDescriptionNew') {
+        return 'Each run starts a fresh conversation, so previous context does not carry over.';
+      }
+      if (key === 'cron.detail.executionModeDescriptionExisting') {
+        return 'Each run continues in the same conversation, so earlier context and results stay available.';
+      }
       if (key.startsWith('cron.page.weekday.')) {
         const day = key.split('.').pop();
         return day?.charAt(0).toUpperCase() + day?.slice(1);
@@ -42,7 +53,7 @@ vi.mock('@/common', () => ({
 // Mock Arco Design components
 vi.mock('@arco-design/web-react', () => ({
   Form: Object.assign(
-    ({ children, form }: { children: React.ReactNode; form?: unknown; layout?: string }) => (
+    ({ children, form: _form }: { children: React.ReactNode; form?: unknown; layout?: string }) => (
       <form data-testid='mock-form'>{children}</form>
     ),
     {
@@ -110,19 +121,33 @@ vi.mock('@arco-design/web-react', () => ({
     success: vi.fn(),
     error: vi.fn(),
   },
-  TimePicker: ({ value, onChange }: { value?: unknown; onChange?: (str: string, time: unknown) => void }) => (
+  TimePicker: ({ value: _value, onChange }: { value?: unknown; onChange?: (str: string, time: unknown) => void }) => (
     <input
       type='time'
       data-testid='mock-time-picker'
       onChange={(e) => {
-        onChange?.(e.target.value, { format: (fmt: string) => e.target.value });
+        onChange?.(e.target.value, { format: (_fmt: string) => e.target.value });
       }}
     />
   ),
   Radio: Object.assign(
-    ({ value, children }: { value: string; children: React.ReactNode }) => (
-      <label>
-        <input type='radio' value={value} />
+    ({
+      value,
+      children,
+      checked,
+      onChange,
+      className,
+      disabled,
+    }: {
+      value: string;
+      children: React.ReactNode;
+      checked?: boolean;
+      onChange?: React.ChangeEventHandler<HTMLInputElement>;
+      className?: string;
+      disabled?: boolean;
+    }) => (
+      <label className={className}>
+        <input type='radio' value={value} checked={checked} onChange={onChange} disabled={disabled} />
         {children}
       </label>
     ),
@@ -205,7 +230,7 @@ vi.mock('@/renderer/pages/guid/constants', () => ({
 
 vi.mock('dayjs', () => ({
   default: (str?: string) => ({
-    format: (fmt: string) => {
+    format: (_fmt: string) => {
       if (!str) return '09:00';
       const match = str.match(/(\d{2}):(\d{2})/);
       if (match) return `${match[1]}:${match[2]}`;
@@ -519,6 +544,39 @@ describe('CreateTaskDialog - getAgentKeyFromJob utility', () => {
 describe('CreateTaskDialog - schedule preset definitions', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+  });
+
+  it('shows the existing-conversation explanation for tasks that keep running in one thread', () => {
+    const editJob: ICronJob = {
+      id: 'job-existing-mode',
+      name: 'Existing Mode Task',
+      schedule: { kind: 'cron', expr: '0 9 * * *', description: 'Daily at 09:00' },
+      target: {
+        kind: 'conversation',
+        conversationId: 'conv-1',
+        payload: { kind: 'message', text: 'Keep following up' },
+        executionMode: 'existing',
+      },
+      metadata: {
+        agentType: 'claude',
+        createdBy: 'user',
+        createdAt: Date.now(),
+        updatedAt: Date.now(),
+        agentConfig: {
+          backend: 'claude',
+          name: 'Claude',
+          cliPath: '/usr/bin/claude',
+        },
+      },
+      state: 'active',
+      lastExecutionTime: Date.now(),
+    };
+
+    render(<CreateTaskDialog visible={true} onClose={vi.fn()} editJob={editJob} conversationId='conv-1' />);
+
+    expect(
+      screen.getByText('Each run continues in the same conversation, so earlier context and results stay available.')
+    ).toBeInTheDocument();
   });
 
   it('generates correct cron expression for manual frequency (default)', async () => {

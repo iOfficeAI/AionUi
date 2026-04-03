@@ -10,6 +10,8 @@ type UseTitleRenameParams = {
   title?: React.ReactNode;
   conversationId?: string;
   updateTabName: (id: string, name: string) => void;
+  /** When provided, replaces the default conversation.update call. Return true on success. */
+  onRename?: (newName: string) => Promise<boolean>;
 };
 
 type UseTitleRenameReturn = {
@@ -25,7 +27,12 @@ type UseTitleRenameReturn = {
 /**
  * Manages inline title editing state and submission for conversation rename.
  */
-export function useTitleRename({ title, conversationId, updateTabName }: UseTitleRenameParams): UseTitleRenameReturn {
+export function useTitleRename({
+  title,
+  conversationId,
+  updateTabName,
+  onRename,
+}: UseTitleRenameParams): UseTitleRenameReturn {
   const { t } = useTranslation();
   const [editingTitle, setEditingTitle] = useState(false);
   const [titleDraft, setTitleDraft] = useState(typeof title === 'string' ? title : '');
@@ -38,7 +45,7 @@ export function useTitleRename({ title, conversationId, updateTabName }: UseTitl
     }
   }, [title]);
 
-  const canRenameTitle = typeof title === 'string' && !!conversationId;
+  const canRenameTitle = typeof title === 'string' && (!!conversationId || !!onRename);
 
   const submitTitleRename = async () => {
     if (!canRenameTitle) return;
@@ -58,15 +65,23 @@ export function useTitleRename({ title, conversationId, updateTabName }: UseTitl
 
     setRenameLoading(true);
     try {
-      const success = await ipcBridge.conversation.update.invoke({
-        id: conversationId,
-        updates: { name: nextTitle },
-      });
+      let success: boolean;
+      if (onRename) {
+        success = await onRename(nextTitle);
+      } else {
+        const result = await ipcBridge.conversation.update.invoke({
+          id: conversationId!,
+          updates: { name: nextTitle },
+        });
+        success = Boolean(result);
+        if (success) {
+          await refreshConversationCache(conversationId!);
+          updateTabName(conversationId!, nextTitle);
+          emitter.emit('chat.history.refresh');
+        }
+      }
 
       if (success) {
-        await refreshConversationCache(conversationId);
-        updateTabName(conversationId, nextTitle);
-        emitter.emit('chat.history.refresh');
         setEditingTitle(false);
         Message.success(t('conversation.history.renameSuccess'));
       } else {

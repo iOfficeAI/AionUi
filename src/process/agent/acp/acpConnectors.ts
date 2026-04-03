@@ -197,9 +197,7 @@ export function ensureMinNodeVersion(
           timeout: 5000,
           stdio: ['pipe', 'pipe', 'pipe'],
         }).trim();
-        console.log(
-          `[ACP] Node.js ${detectedVersion} is below v${minMajor}.${minMinor}.0 — auto-corrected to ${correctedVersion} from: ${suitableBinDir}`
-        );
+        // Version auto-corrected silently
       } catch {
         console.warn(`[ACP] PATH corrected with ${suitableBinDir} but node verification failed — proceeding anyway`);
       }
@@ -385,7 +383,6 @@ async function prepareCodex(codexAcpPackage: string = CODEX_ACP_NPX_PACKAGE): Pr
     mainWarn('[ACP codex]', 'Failed to read codex login status', error);
   }
 
-  mainLog('[ACP codex]', 'Runtime diagnostics', diagnostics);
   return { cleanEnv, npxCommand: resolveNpxPath(cleanEnv) };
 }
 
@@ -581,10 +578,6 @@ export function connectCodex(workingDir: string, hooks: NpxConnectHooks): Promis
           cleanEnv as Record<string, string>
         );
         const child = spawn(config.command, config.args, config.options);
-        mainLog('[ACP codex]', 'Using cached platform binary', {
-          binaryPath: cachedBinary.binaryPath,
-          bridgePackage: cachedBinary.packageSpecifier,
-        });
         await hooks.setup({ child, isDetached: false });
         return;
       } catch (error) {

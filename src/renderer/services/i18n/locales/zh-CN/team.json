@@ -1,7 +1,21 @@
 {
   "sider": {
     "title": "团队",
-    "createTeam": "新建团队"
+    "createTeam": "新建团队",
+    "pin": "置顶",
+    "unpin": "取消置顶",
+    "rename": "重命名",
+    "delete": "删除",
+    "renameTitle": "重命名团队",
+    "renamePlaceholder": "团队名称",
+    "deleteConfirm": "删除此团队？",
+    "deleteConfirmContent": "此操作不可撤销。",
+    "deleteOk": "删除",
+    "deleteCancel": "取消",
+    "renameOk": "保存",
+    "renameCancel": "取消",
+    "renameSuccess": "团队已重命名",
+    "deleteSuccess": "团队已删除"
   },
   "addAgent": {
     "title": "添加 Agent",
@@ -24,6 +38,8 @@
     "subAgentsPlaceholder": "选择子 Agent",
     "workspacePlaceholder": "工作目录路径（可选）",
     "confirm": "创建团队",
+    "noSupportedAgents": "未检测到支持的 Agent",
+    "supportedAgentsHint": "目前支持 Claude、Codex、CodeBuddy，更多 Agent 适配中",
     "step": {
       "dispatch": "调度 Agent",
       "subAgents": "子 Agent",

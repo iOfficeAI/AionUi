@@ -1250,6 +1250,7 @@ export const team = {
   ),
   stop: bridge.buildProvider<void, { teamId: string }>('team.stop'),
   renameAgent: bridge.buildProvider<void, { teamId: string; slotId: string; newName: string }>('team.rename-agent'),
+  renameTeam: bridge.buildProvider<void, { id: string; name: string }>('team.rename'),
   messageStream: bridge.buildEmitter<import('@process/team/types').ITeamMessageEvent>('team.message.stream'),
   agentStatusChanged: bridge.buildEmitter<import('@process/team/types').ITeamAgentStatusEvent>('team.agent.status'),
   agentSpawned: bridge.buildEmitter<import('@/common/types/teamTypes').ITeamAgentSpawnedEvent>('team.agent.spawned'),

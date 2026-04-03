@@ -24,6 +24,20 @@ vi.mock('react-i18next', () => ({
       if (key === 'cron.taskCount') return `${options?.count} tasks`;
       if (key === 'cron.page.newTask') return 'New Task';
       if (key === 'cron.page.description') return 'Manage your scheduled tasks';
+      if (key === 'cron.page.form.newConversation') return 'New Conversation';
+      if (key === 'cron.page.form.existingConversation') return 'Continuous Conversation';
+      if (key === 'cron.page.scheduleDesc.manual') return 'Manual';
+      if (key === 'cron.page.scheduleDesc.hourly') return 'Every hour';
+      if (key === 'cron.page.scheduleDesc.dailyAt') return `Every day at ${options?.time}`;
+      if (key === 'cron.page.scheduleDesc.weekdaysAt') return `Weekdays at ${options?.time}`;
+      if (key === 'cron.page.scheduleDesc.weeklyAt') return `Every ${options?.day} at ${options?.time}`;
+      if (key === 'cron.page.weekday.monday') return 'Monday';
+      if (key === 'cron.page.weekday.tuesday') return 'Tuesday';
+      if (key === 'cron.page.weekday.wednesday') return 'Wednesday';
+      if (key === 'cron.page.weekday.thursday') return 'Thursday';
+      if (key === 'cron.page.weekday.friday') return 'Friday';
+      if (key === 'cron.page.weekday.saturday') return 'Saturday';
+      if (key === 'cron.page.weekday.sunday') return 'Sunday';
       if (key === 'cron.page.awakeBanner') return 'Keep computer awake';
       if (key === 'cron.page.keepAwakeTooltip') return 'Prevent sleep mode';
       if (key === 'cron.page.keepAwake') return 'Keep Awake';
@@ -48,9 +62,18 @@ vi.mock('react-router-dom', () => ({
 
 // Mock @icon-park/react
 vi.mock('@icon-park/react', () => ({
-  AlarmClock: () => <span data-testid='icon-alarm' />,
   Plus: () => <span data-testid='icon-plus' />,
-  Delete: () => <span data-testid='icon-delete' />,
+  Check: () => <span data-testid='icon-check' />,
+  Pause: () => <span data-testid='icon-pause' />,
+  Attention: () => <span data-testid='icon-attention' />,
+}));
+
+vi.mock('@renderer/hooks/context/LayoutContext', () => ({
+  useLayoutContext: () => ({ isMobile: false }),
+}));
+
+vi.mock('@renderer/utils/model/agentLogo', () => ({
+  getAgentLogo: (agent: string | undefined | null) => (agent ? `logo-${agent}` : null),
 }));
 
 // Mock @/common (for useCronJobs hook)
@@ -105,8 +128,20 @@ vi.mock('@arco-design/web-react', () => ({
     };
     return <input type='checkbox' data-testid='switch' data-size={size} checked={checked} onChange={handleChange} />;
   },
-  Tag: ({ children, color, className }: { children: React.ReactNode; color?: string; className?: string }) => (
-    <span data-testid='tag' data-color={color} className={className}>
+  Tag: ({
+    children,
+    color,
+    className,
+    bordered,
+    size,
+  }: {
+    children: React.ReactNode;
+    color?: string;
+    className?: string;
+    bordered?: boolean;
+    size?: string;
+  }) => (
+    <span data-testid='tag' data-color={color} data-bordered={String(bordered)} data-size={size} className={className}>
       {children}
     </span>
   ),
@@ -171,10 +206,14 @@ const createMockJob = (overrides: Partial<ICronJob> = {}): ICronJob => ({
   metadata: {
     conversationId: 'conv-1',
     conversationTitle: 'Test Conversation',
-    agentType: 'cli:claude',
+    agentType: 'claude',
     createdBy: 'user',
     createdAt: Date.now(),
     updatedAt: Date.now(),
+    agentConfig: {
+      backend: 'claude',
+      name: 'Claude Code',
+    },
   },
   state: {
     nextRunAtMs: Date.now() + 3600000, // 1 hour from now
@@ -215,7 +254,7 @@ describe('ScheduledTasksPage', () => {
     });
   });
 
-  it('should render job list with task count', async () => {
+  it('should render job list', async () => {
     const jobs = [createMockJob(), createMockJob({ id: 'job-2', name: 'Weekly Report', enabled: false })];
     mockListJobs.mockResolvedValue(jobs);
 
@@ -225,7 +264,85 @@ describe('ScheduledTasksPage', () => {
     await waitFor(() => {
       expect(screen.getByText('Daily Summary')).toBeInTheDocument();
       expect(screen.getByText('Weekly Report')).toBeInTheDocument();
-      expect(screen.getByText('2 tasks')).toBeInTheDocument();
+    });
+  });
+
+  it('should display agent and execution mode metadata in cards', async () => {
+    const jobs = [
+      createMockJob(),
+      createMockJob({
+        id: 'job-2',
+        name: 'Continuous Task',
+        target: {
+          payload: { kind: 'message', text: 'Generate summary' },
+          executionMode: 'existing',
+        },
+        metadata: {
+          ...createMockJob().metadata,
+          agentConfig: {
+            backend: 'gemini',
+            name: 'Gemini CLI',
+          },
+          agentType: 'gemini',
+        },
+      }),
+    ];
+    mockListJobs.mockResolvedValue(jobs);
+
+    const { default: ScheduledTasksPage } = await import('@renderer/pages/cron/ScheduledTasksPage');
+    render(<ScheduledTasksPage />);
+
+    await waitFor(() => {
+      expect(screen.getByAltText('Claude Code')).toBeInTheDocument();
+      expect(screen.getByAltText('Gemini CLI')).toBeInTheDocument();
+      expect(screen.getByText('New Conversation')).toBeInTheDocument();
+      expect(screen.getByText('Continuous Conversation')).toBeInTheDocument();
+    });
+  });
+
+  it('should hide job toggle for manual-only cards while keeping metadata row', async () => {
+    const manualJob = createMockJob({
+      name: 'Manual Task',
+      schedule: {
+        kind: 'cron',
+        expr: '',
+        description: 'Manual',
+      },
+      target: {
+        payload: { kind: 'message', text: 'Run manually' },
+        executionMode: 'existing',
+      },
+    });
+    mockListJobs.mockResolvedValue([manualJob]);
+
+    const { default: ScheduledTasksPage } = await import('@renderer/pages/cron/ScheduledTasksPage');
+    render(<ScheduledTasksPage />);
+
+    await waitFor(() => {
+      expect(screen.getByText('Manual Task')).toBeInTheDocument();
+      expect(screen.getByText('Continuous Conversation')).toBeInTheDocument();
+    });
+
+    expect(screen.getAllByTestId('switch')).toHaveLength(1);
+  });
+
+  it('should localize built-in schedule descriptions from cron expression', async () => {
+    const job = createMockJob({
+      name: 'Localized Task',
+      schedule: {
+        kind: 'cron',
+        expr: '0 * * * *',
+        description: '每小时执行',
+      },
+    });
+    mockListJobs.mockResolvedValue([job]);
+
+    const { default: ScheduledTasksPage } = await import('@renderer/pages/cron/ScheduledTasksPage');
+    render(<ScheduledTasksPage />);
+
+    await waitFor(() => {
+      expect(screen.getByText('Localized Task')).toBeInTheDocument();
+      expect(screen.getByText('Every hour')).toBeInTheDocument();
     });
   });
 
@@ -247,14 +364,12 @@ describe('ScheduledTasksPage', () => {
 
     await waitFor(() => {
       const tags = screen.getAllByTestId('tag');
-      // First tag is the task count header, skip it
-      const statusTags = tags.slice(1);
-      expect(statusTags[0]).toHaveAttribute('data-color', 'green'); // Active
-      expect(statusTags[0]).toHaveTextContent('Active');
-      expect(statusTags[1]).toHaveAttribute('data-color', 'gray'); // Paused
-      expect(statusTags[1]).toHaveTextContent('Paused');
-      expect(statusTags[2]).toHaveAttribute('data-color', 'red'); // Error
-      expect(statusTags[2]).toHaveTextContent('Error');
+      expect(tags[0]).toHaveAttribute('data-color', 'green'); // Active
+      expect(tags[0]).toHaveTextContent('Active');
+      expect(tags[1]).toHaveAttribute('data-color', 'gray'); // Paused
+      expect(tags[1]).toHaveTextContent('Paused');
+      expect(tags[2]).toHaveAttribute('data-color', 'red'); // Error
+      expect(tags[2]).toHaveTextContent('Error');
     });
   });
 
@@ -341,43 +456,6 @@ describe('ScheduledTasksPage', () => {
 
     await waitFor(() => {
       expect(mockMessageError).toHaveBeenCalledWith('Error: Network error');
-    });
-  });
-
-  it('should delete job after confirmation', async () => {
-    const job = createMockJob({ id: 'job-to-delete' });
-    mockListJobs.mockResolvedValue([job]);
-    mockRemoveJob.mockResolvedValue(undefined);
-
-    const { default: ScheduledTasksPage } = await import('@renderer/pages/cron/ScheduledTasksPage');
-    render(<ScheduledTasksPage />);
-
-    await waitFor(() => screen.getByText('Daily Summary'));
-
-    const confirmButton = screen.getByTestId('popconfirm-ok');
-    fireEvent.click(confirmButton);
-
-    await waitFor(() => {
-      expect(mockRemoveJob).toHaveBeenCalledWith({ jobId: 'job-to-delete' });
-      expect(mockMessageSuccess).toHaveBeenCalledWith('Task deleted successfully');
-    });
-  });
-
-  it('should show error message when delete fails', async () => {
-    const job = createMockJob();
-    mockListJobs.mockResolvedValue([job]);
-    mockRemoveJob.mockRejectedValue(new Error('Delete failed'));
-
-    const { default: ScheduledTasksPage } = await import('@renderer/pages/cron/ScheduledTasksPage');
-    render(<ScheduledTasksPage />);
-
-    await waitFor(() => screen.getByText('Daily Summary'));
-
-    const confirmButton = screen.getByTestId('popconfirm-ok');
-    fireEvent.click(confirmButton);
-
-    await waitFor(() => {
-      expect(mockMessageError).toHaveBeenCalledWith('Error: Delete failed');
     });
   });
 
@@ -512,7 +590,7 @@ describe('ScheduledTasksPage', () => {
     render(<ScheduledTasksPage />);
 
     await waitFor(() => {
-      expect(screen.getByText('Every day at 9:00 AM')).toBeInTheDocument();
+      expect(screen.getByText('Every day at 09:00')).toBeInTheDocument();
     });
   });
 

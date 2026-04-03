@@ -352,6 +352,13 @@ export class TeamMcpServer {
     const { teamId, getAgents, mailbox, spawnAgent, wakeAgent } = this.params;
     const name = String(args.name ?? '');
     const agentType = args.agent_type ? String(args.agent_type) : undefined;
+    // Team mode whitelist: only verified backends that support MCP tool injection
+    const TEAM_ALLOWED = new Set(['claude', 'codex', 'codebuddy']);
+    if (agentType && !TEAM_ALLOWED.has(agentType)) {
+      throw new Error(
+        `Agent type "${agentType}" is not supported in team mode. Supported: ${[...TEAM_ALLOWED].join(', ')}.`
+      );
+    }
 
     if (!spawnAgent) {
       throw new Error('Agent spawning is not available for this team.');

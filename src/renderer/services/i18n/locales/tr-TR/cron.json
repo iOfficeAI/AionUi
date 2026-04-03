@@ -53,7 +53,9 @@
     "repeats": "Tekrarlar",
     "history": "Geçmiş",
     "noHistory": "Henüz çalıştırılmadı",
-    "notFound": "Görev bulunamadı"
+    "notFound": "Görev bulunamadı",
+    "executionModeDescriptionNew": "Her çalıştırma yeni bir konuşma başlatır; önceki bağlam sonraki çalıştırmaya taşınmaz. Bağımsız kalması gereken düzenli raporlar ve kontrol görevleri için uygundur.",
+    "executionModeDescriptionExisting": "Her çalıştırma aynı konuşmada devam eder; önceki bağlam ve sonuçlar korunur. Önceki çalıştırmaların üzerine eklenen takip işleri için uygundur."
   },
   "notification": {
     "taskComplete": "Görev Tamamlandı",
@@ -63,7 +65,7 @@
   },
   "page": {
     "newTask": "Yeni görev",
-    "description": "Zamanlanmış görevler belirtilen zamanlarda otomatik olarak çalışır. Görevler yalnızca bilgisayarınız açıkken çalışır.",
+    "description": "Görevleri bir zamanlamayla çalıştırın. Ayrıca herhangi bir konuşmada AionUi'den sizin için bir görev oluşturmasını isteyebilirsiniz.",
     "awakeBanner": "Zamanlanmış görevler yalnızca bilgisayarınız açıkken çalışır.",
     "keepAwake": "Uyanık tut",
     "keepAwakeTooltip": "Etkinleştirildiğinde AionUi bilgisayarınızın uyku moduna geçmesini engeller",
@@ -105,8 +107,8 @@
       "executionMode": "Çalıştırma Modu",
       "newConversation": "Yeni konuşma",
       "existingConversation": "Aynı konuşma",
-      "newConversationHint": "Her çalıştırma yeni bir konuşma oluşturur",
-      "existingConversationHint": "Tüm çalıştırmalar aynı konuşmayı paylaşır",
+      "newConversationHint": "Her çalıştırma yeni bir başlangıç yapar",
+      "existingConversationHint": "Aynı konuşmada devam eder",
       "executionModeEditHint": "Oluşturulduktan sonra çalıştırma modu değiştirilemez. Mod değiştirmek için görevi silip yeniden oluşturun."
     },
     "freq": {

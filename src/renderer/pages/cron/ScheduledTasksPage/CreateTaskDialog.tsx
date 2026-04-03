@@ -32,6 +32,7 @@ interface CreateTaskDialogProps {
 }
 
 type FrequencyType = 'manual' | 'hourly' | 'daily' | 'weekdays' | 'weekly';
+type ExecutionMode = 'new_conversation' | 'existing';
 
 const WEEKDAYS = [
   { value: 'MON', label: 'monday' },
@@ -90,7 +91,7 @@ const CreateTaskDialog: React.FC<CreateTaskDialogProps> = ({
   visible,
   onClose,
   editJob,
-  conversationId,
+  conversationId: _conversationId,
   conversationTitle,
   agentType,
 }) => {
@@ -103,7 +104,7 @@ const CreateTaskDialog: React.FC<CreateTaskDialogProps> = ({
   const [weekday, setWeekday] = useState('MON');
 
   const isEditMode = !!editJob;
-  const [executionMode, setExecutionMode] = useState<'new_conversation' | 'existing'>('new_conversation');
+  const [executionMode, setExecutionMode] = useState<ExecutionMode>('new_conversation');
 
   // Populate form when entering edit mode
   useEffect(() => {
@@ -156,6 +157,25 @@ const CreateTaskDialog: React.FC<CreateTaskDialogProps> = ({
         return { expr: '', description: '' };
     }
   }, [frequency, time, weekday, t]);
+
+  const executionModeOptions = useMemo(
+    () => [
+      {
+        value: 'new_conversation' as const,
+        label: t('cron.page.form.newConversation'),
+        description: t('cron.detail.executionModeDescriptionNew'),
+      },
+      {
+        value: 'existing' as const,
+        label: t('cron.page.form.existingConversation'),
+        description: t('cron.detail.executionModeDescriptionExisting'),
+      },
+    ],
+    [t]
+  );
+
+  const selectedExecutionModeOption =
+    executionModeOptions.find((option) => option.value === executionMode) ?? executionModeOptions[0];
 
   const handleFrequencyChange = (value: FrequencyType) => {
     setFrequency(value);
@@ -265,188 +285,202 @@ const CreateTaskDialog: React.FC<CreateTaskDialogProps> = ({
       confirmLoading={submitting}
       okText={t('cron.page.save')}
       cancelText={t('cron.page.cancel')}
-      style={{ maxWidth: 520 }}
+      className='w-[min(560px,calc(100vw-32px))] max-w-560px rd-16px'
       unmountOnExit
     >
-      <Form form={form} layout='vertical'>
-        <FormItem
-          label={t('cron.page.form.name')}
-          field='name'
-          rules={[{ required: true, message: t('cron.page.form.nameRequired') }]}
-        >
-          <Input placeholder={t('cron.page.form.namePlaceholder')} />
-        </FormItem>
-
-        <FormItem
-          label={t('cron.page.form.description')}
-          field='description'
-          rules={[{ required: true, message: t('cron.page.form.descriptionRequired') }]}
-        >
-          <Input placeholder={t('cron.page.form.descriptionPlaceholder')} />
-        </FormItem>
-
-        <FormItem
-          label={t('cron.page.form.agent')}
-          field='agent'
-          rules={[{ required: true, message: t('cron.page.form.agentRequired') }]}
-        >
-          <Select
-            placeholder={t('cron.page.form.agentPlaceholder')}
-            renderFormat={(_option, value) => {
-              // Find selected agent to render logo + name in the trigger
-              const strVal = value as unknown as string;
-              if (!strVal) return '';
-              const [type, id] = strVal.split(':');
-              let name = id;
-              let logo: React.ReactNode = <Robot size='16' />;
-              if (type === 'cli') {
-                const agent = cliAgents.find((a) => a.backend === id);
-                if (agent) {
-                  name = agent.name;
-                  const logoSrc = getAgentLogo(agent.backend);
-                  if (logoSrc) {
-                    logo = (
-                      <img src={logoSrc} alt={agent.name} style={{ width: 16, height: 16, objectFit: 'contain' }} />
-                    );
-                  }
-                }
-              } else if (type === 'preset') {
-                const agent = presetAssistants.find((a) => a.customAgentId === id);
-                if (agent) {
-                  name = agent.name;
-                  const avatarImage = agent.avatar ? CUSTOM_AVATAR_IMAGE_MAP[agent.avatar] : undefined;
-                  const isEmoji = agent.avatar && !avatarImage && !agent.avatar.endsWith('.svg');
-                  if (avatarImage) {
-                    logo = (
-                      <img src={avatarImage} alt={agent.name} style={{ width: 16, height: 16, objectFit: 'contain' }} />
-                    );
-                  } else if (isEmoji) {
-                    logo = <span style={{ fontSize: 14, lineHeight: '16px' }}>{agent.avatar}</span>;
-                  }
-                }
-              }
-              return (
-                <div className='flex items-center gap-8px'>
-                  {logo}
-                  <span>{name}</span>
-                </div>
-              );
-            }}
+      <div className='overflow-y-auto px-24px pb-16px pr-18px max-h-[min(72vh,680px)]'>
+        <Form form={form} layout='vertical'>
+          <FormItem
+            label={t('cron.page.form.name')}
+            field='name'
+            rules={[{ required: true, message: t('cron.page.form.nameRequired') }]}
           >
-            {cliAgents.length > 0 && (
-              <OptGroup label={t('conversation.dropdown.cliAgents')}>
-                {cliAgents.map((agent) => {
-                  const logo = getAgentLogo(agent.backend);
-                  return (
-                    <Option key={`cli:${agent.backend}`} value={`cli:${agent.backend}`}>
-                      <div className='flex items-center gap-8px'>
-                        {logo ? (
-                          <img src={logo} alt={agent.name} style={{ width: 16, height: 16, objectFit: 'contain' }} />
-                        ) : (
-                          <Robot size='16' />
-                        )}
-                        <span>{agent.name}</span>
-                      </div>
-                    </Option>
-                  );
-                })}
-              </OptGroup>
-            )}
-            {presetAssistants.length > 0 && (
-              <OptGroup label={t('conversation.dropdown.presetAssistants')}>
-                {presetAssistants.map((agent) => {
-                  const avatarImage = agent.avatar ? CUSTOM_AVATAR_IMAGE_MAP[agent.avatar] : undefined;
-                  const isEmoji = agent.avatar && !avatarImage && !agent.avatar.endsWith('.svg');
-                  return (
-                    <Option key={`preset:${agent.customAgentId}`} value={`preset:${agent.customAgentId}`}>
-                      <div className='flex items-center gap-8px'>
-                        {avatarImage ? (
-                          <img
-                            src={avatarImage}
-                            alt={agent.name}
-                            style={{ width: 16, height: 16, objectFit: 'contain' }}
-                          />
-                        ) : isEmoji ? (
-                          <span style={{ fontSize: 14, lineHeight: '16px' }}>{agent.avatar}</span>
-                        ) : (
-                          <Robot size='16' />
-                        )}
-                        <span>{agent.name}</span>
-                      </div>
-                    </Option>
-                  );
-                })}
-              </OptGroup>
-            )}
-          </Select>
-        </FormItem>
+            <Input placeholder={t('cron.page.form.namePlaceholder')} />
+          </FormItem>
 
-        <FormItem label={t('cron.page.form.executionMode')}>
-          <Radio.Group value={executionMode} onChange={setExecutionMode} type='button' disabled={isEditMode}>
-            <Radio value='new_conversation'>{t('cron.page.form.newConversation')}</Radio>
-            <Radio value='existing'>{t('cron.page.form.existingConversation')}</Radio>
-          </Radio.Group>
-          <div className='text-text-3 text-12px mt-4px'>
-            {isEditMode
-              ? t('cron.page.form.executionModeEditHint')
-              : executionMode === 'new_conversation'
-                ? t('cron.page.form.newConversationHint')
-                : t('cron.page.form.existingConversationHint')}
-          </div>
-        </FormItem>
+          <FormItem
+            label={t('cron.page.form.description')}
+            field='description'
+            rules={[{ required: true, message: t('cron.page.form.descriptionRequired') }]}
+          >
+            <Input placeholder={t('cron.page.form.descriptionPlaceholder')} />
+          </FormItem>
 
-        <FormItem
-          label={t('cron.page.form.prompt')}
-          field='prompt'
-          rules={[{ required: true, message: t('cron.page.form.promptRequired') }]}
-        >
-          <TextArea placeholder={t('cron.page.form.promptPlaceholder')} autoSize={{ minRows: 4, maxRows: 10 }} />
-        </FormItem>
-
-        {/* Frequency */}
-        <FormItem label={t('cron.page.form.frequency')}>
-          <Select value={frequency} onChange={handleFrequencyChange}>
-            <Option value='manual'>{t('cron.page.freq.manual')}</Option>
-            <Option value='hourly'>{t('cron.page.freq.hourly')}</Option>
-            <Option value='daily'>{t('cron.page.freq.daily')}</Option>
-            <Option value='weekdays'>{t('cron.page.freq.weekdays')}</Option>
-            <Option value='weekly'>{t('cron.page.freq.weekly')}</Option>
-          </Select>
-        </FormItem>
-
-        {/* Time picker - shown for daily/weekdays/weekly */}
-        {showTimePicker && (
-          <div className='flex items-center gap-12px mb-16px'>
-            <TimePicker
-              format='HH:mm'
-              value={dayjs(`2000-01-01 ${time}`)}
-              onChange={(_timeStr, time) => {
-                if (time) {
-                  setTime(time.format('HH:mm'));
+          <FormItem
+            label={t('cron.page.form.agent')}
+            field='agent'
+            rules={[{ required: true, message: t('cron.page.form.agentRequired') }]}
+          >
+            <Select
+              placeholder={t('cron.page.form.agentPlaceholder')}
+              renderFormat={(_option, value) => {
+                // Find selected agent to render logo + name in the trigger
+                const strVal = value as unknown as string;
+                if (!strVal) return '';
+                const [type, id] = strVal.split(':');
+                let name = id;
+                let logo: React.ReactNode = <Robot size='16' />;
+                if (type === 'cli') {
+                  const agent = cliAgents.find((a) => a.backend === id);
+                  if (agent) {
+                    name = agent.name;
+                    const logoSrc = getAgentLogo(agent.backend);
+                    if (logoSrc) {
+                      logo = <img src={logoSrc} alt={agent.name} className='w-16px h-16px object-contain' />;
+                    }
+                  }
+                } else if (type === 'preset') {
+                  const agent = presetAssistants.find((a) => a.customAgentId === id);
+                  if (agent) {
+                    name = agent.name;
+                    const avatarImage = agent.avatar ? CUSTOM_AVATAR_IMAGE_MAP[agent.avatar] : undefined;
+                    const isEmoji = agent.avatar && !avatarImage && !agent.avatar.endsWith('.svg');
+                    if (avatarImage) {
+                      logo = <img src={avatarImage} alt={agent.name} className='w-16px h-16px object-contain' />;
+                    } else if (isEmoji) {
+                      logo = <span className='text-14px leading-16px'>{agent.avatar}</span>;
+                    }
+                  }
                 }
+                return (
+                  <div className='flex items-center gap-8px'>
+                    {logo}
+                    <span>{name}</span>
+                  </div>
+                );
               }}
-              allowClear={false}
-              style={{ width: 120 }}
-            />
-          </div>
-        )}
-
-        {/* Weekday picker - shown for weekly */}
-        {showWeekdayPicker && (
-          <div className='mb-16px'>
-            <Select value={weekday} onChange={setWeekday}>
-              {WEEKDAYS.map((d) => (
-                <Option key={d.value} value={d.value}>
-                  {t(`cron.page.weekday.${d.label}`)}
-                </Option>
-              ))}
+            >
+              {cliAgents.length > 0 && (
+                <OptGroup label={t('conversation.dropdown.cliAgents')}>
+                  {cliAgents.map((agent) => {
+                    const logo = getAgentLogo(agent.backend);
+                    return (
+                      <Option key={`cli:${agent.backend}`} value={`cli:${agent.backend}`}>
+                        <div className='flex items-center gap-8px'>
+                          {logo ? (
+                            <img src={logo} alt={agent.name} className='w-16px h-16px object-contain' />
+                          ) : (
+                            <Robot size='16' />
+                          )}
+                          <span>{agent.name}</span>
+                        </div>
+                      </Option>
+                    );
+                  })}
+                </OptGroup>
+              )}
+              {presetAssistants.length > 0 && (
+                <OptGroup label={t('conversation.dropdown.presetAssistants')}>
+                  {presetAssistants.map((agent) => {
+                    const avatarImage = agent.avatar ? CUSTOM_AVATAR_IMAGE_MAP[agent.avatar] : undefined;
+                    const isEmoji = agent.avatar && !avatarImage && !agent.avatar.endsWith('.svg');
+                    return (
+                      <Option key={`preset:${agent.customAgentId}`} value={`preset:${agent.customAgentId}`}>
+                        <div className='flex items-center gap-8px'>
+                          {avatarImage ? (
+                            <img src={avatarImage} alt={agent.name} className='w-16px h-16px object-contain' />
+                          ) : isEmoji ? (
+                            <span className='text-14px leading-16px'>{agent.avatar}</span>
+                          ) : (
+                            <Robot size='16' />
+                          )}
+                          <span>{agent.name}</span>
+                        </div>
+                      </Option>
+                    );
+                  })}
+                </OptGroup>
+              )}
             </Select>
-          </div>
-        )}
+          </FormItem>
 
-        {/* Hint text */}
-        {frequency !== 'manual' && <p className='text-text-3 text-12px mt-0 mb-16px'>{t('cron.page.scheduleHint')}</p>}
-      </Form>
+          <FormItem label={t('cron.page.form.executionMode')}>
+            <Radio.Group
+              value={executionMode}
+              onChange={(value) => setExecutionMode(value as ExecutionMode)}
+              disabled={isEditMode}
+              className='flex flex-wrap items-center gap-20px'
+            >
+              {executionModeOptions.map((option) => {
+                return (
+                  <Radio
+                    key={option.value}
+                    value={option.value}
+                    className={[
+                      'm-0 min-w-0 text-14px text-text-2',
+                      isEditMode ? 'cursor-not-allowed opacity-70' : 'cursor-pointer',
+                    ].join(' ')}
+                  >
+                    <span className='pl-4px text-14px font-medium text-text-1'>{option.label}</span>
+                  </Radio>
+                );
+              })}
+            </Radio.Group>
+            <div className='mt-10px rounded-12px border border-solid border-[var(--color-border-2)] bg-fill-2 px-14px py-12px'>
+              <p className='m-0 text-12px leading-18px text-text-2'>{selectedExecutionModeOption.description}</p>
+              {isEditMode && (
+                <p className='m-0 mt-8px text-12px leading-18px text-text-3'>
+                  {t('cron.page.form.executionModeEditHint')}
+                </p>
+              )}
+            </div>
+          </FormItem>
+
+          <FormItem
+            label={t('cron.page.form.prompt')}
+            field='prompt'
+            rules={[{ required: true, message: t('cron.page.form.promptRequired') }]}
+          >
+            <TextArea placeholder={t('cron.page.form.promptPlaceholder')} autoSize={{ minRows: 4, maxRows: 8 }} />
+          </FormItem>
+
+          {/* Frequency */}
+          <FormItem label={t('cron.page.form.frequency')}>
+            <Select value={frequency} onChange={handleFrequencyChange}>
+              <Option value='manual'>{t('cron.page.freq.manual')}</Option>
+              <Option value='hourly'>{t('cron.page.freq.hourly')}</Option>
+              <Option value='daily'>{t('cron.page.freq.daily')}</Option>
+              <Option value='weekdays'>{t('cron.page.freq.weekdays')}</Option>
+              <Option value='weekly'>{t('cron.page.freq.weekly')}</Option>
+            </Select>
+          </FormItem>
+
+          {/* Time picker - shown for daily/weekdays/weekly */}
+          {showTimePicker && (
+            <div className='flex items-center gap-12px mb-16px'>
+              <TimePicker
+                format='HH:mm'
+                value={dayjs(`2000-01-01 ${time}`)}
+                onChange={(_timeStr, pickedTime) => {
+                  if (pickedTime) {
+                    setTime(pickedTime.format('HH:mm'));
+                  }
+                }}
+                allowClear={false}
+                className='w-120px'
+              />
+            </div>
+          )}
+
+          {/* Weekday picker - shown for weekly */}
+          {showWeekdayPicker && (
+            <div className='mb-16px'>
+              <Select value={weekday} onChange={setWeekday}>
+                {WEEKDAYS.map((d) => (
+                  <Option key={d.value} value={d.value}>
+                    {t(`cron.page.weekday.${d.label}`)}
+                  </Option>
+                ))}
+              </Select>
+            </div>
+          )}
+
+          {/* Hint text */}
+          {frequency !== 'manual' && (
+            <p className='text-text-3 text-12px mt-0 mb-16px'>{t('cron.page.scheduleHint')}</p>
+          )}
+        </Form>
+      </div>
     </ModalWrapper>
   );
 };

@@ -11,6 +11,7 @@ export type TeamTabsContextValue = {
   agents: TeamAgent[];
   activeSlotId: string;
   statusMap: Map<string, AgentStatusInfo>;
+  teamId: string;
   switchTab: (slotId: string) => void;
   renameAgent?: (slotId: string, newName: string) => Promise<void>;
   reorderAgents: (fromSlotId: string, toSlotId: string) => void;
@@ -79,7 +80,9 @@ export const TeamTabsProvider: React.FC<{
   }, []);
 
   return (
-    <TeamTabsContext.Provider value={{ agents, activeSlotId, statusMap, switchTab, renameAgent, reorderAgents }}>
+    <TeamTabsContext.Provider
+      value={{ agents, activeSlotId, statusMap, teamId, switchTab, renameAgent, reorderAgents }}
+    >
       {children}
     </TeamTabsContext.Provider>
   );
