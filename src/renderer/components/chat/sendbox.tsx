@@ -143,6 +143,7 @@ const SendBox: React.FC<{
   const [atFileMenuActiveIndex, setAtFileMenuActiveIndex] = useState(0);
   const [dismissedAtFileToken, setDismissedAtFileToken] = useState<string | null>(null);
   const workspaceMentionCacheRef = useRef<Map<string, FileOrFolderItem[]>>(new Map());
+  const mentionManagedSelectionKeysRef = useRef<Set<string>>(new Set());
   const highlightScrollRef = useRef<HTMLDivElement>(null);
 
   // Listen for reply events from message actions
@@ -569,6 +570,18 @@ const SendBox: React.FC<{
     }
 
     const mentionQueries = new Set(allAtFileQueries.map((item) => item.query));
+    for (const item of selectedWorkspaceItems) {
+      if (typeof item === 'string' || !item.isFile) {
+        continue;
+      }
+
+      for (const key of getSelectedItemMatchKeys(item)) {
+        if (mentionQueries.has(key)) {
+          mentionManagedSelectionKeysRef.current.add(key);
+        }
+      }
+    }
+
     const nextItems = selectedWorkspaceItems.filter((item) => {
       if (typeof item === 'string') {
         return true;
@@ -576,7 +589,12 @@ const SendBox: React.FC<{
       if (!item.isFile) {
         return true;
       }
-      return mentionQueries.has(item.relativePath || item.path);
+      const itemKeys = getSelectedItemMatchKeys(item);
+      const isMentionManaged = itemKeys.some((key) => mentionManagedSelectionKeysRef.current.has(key));
+      if (!isMentionManaged) {
+        return true;
+      }
+      return itemKeys.some((key) => mentionQueries.has(key));
     });
 
     const changed =
@@ -584,6 +602,12 @@ const SendBox: React.FC<{
       nextItems.some((item, index) => item !== selectedWorkspaceItems[index]);
 
     if (changed) {
+      const nextMatchKeys = new Set(
+        nextItems.flatMap((item) => (typeof item === 'string' ? [] : getSelectedItemMatchKeys(item)))
+      );
+      mentionManagedSelectionKeysRef.current = new Set(
+        Array.from(mentionManagedSelectionKeysRef.current).filter((key) => nextMatchKeys.has(key))
+      );
       onSelectedWorkspaceItemsChange(nextItems);
     }
   }, [allAtFileQueries, onSelectedWorkspaceItemsChange, selectedWorkspaceItems]);
@@ -632,6 +656,9 @@ const SendBox: React.FC<{
 
       setDismissedAtFileToken(insertedTokenKey);
       setInput(nextValue);
+      for (const key of getSelectedItemMatchKeys(item)) {
+        mentionManagedSelectionKeysRef.current.add(key);
+      }
       if (selectedWorkspaceItems && onSelectedWorkspaceItemsChange) {
         onSelectedWorkspaceItemsChange(mergeFileSelectionItems(selectedWorkspaceItems, [item]));
       }

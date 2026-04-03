@@ -253,8 +253,37 @@ const SendBoxHarness: React.FC = () => {
 
 const SendBoxLegacyHarness: React.FC = () => {
   const [value, setValue] = useState('');
-  const [selectedWorkspaceItems, setSelectedWorkspaceItems] = useState<Array<string | { path: string; name: string; isFile: boolean; relativePath?: string }>>([
-    '/workspace/README.md',
+  const [selectedWorkspaceItems, setSelectedWorkspaceItems] = useState<
+    Array<string | { path: string; name: string; isFile: boolean; relativePath?: string }>
+  >(['/workspace/README.md']);
+
+  return (
+    <ConversationProvider value={{ conversationId: 'conv-1', workspace: '/workspace', type: 'gemini' }}>
+      <SendBox
+        value={value}
+        onChange={setValue}
+        onSelectedWorkspaceItemsChange={(items) => {
+          mockEmit('gemini.selected.file', items);
+          setSelectedWorkspaceItems(items);
+        }}
+        onSend={vi.fn().mockResolvedValue(undefined)}
+        selectedWorkspaceItems={selectedWorkspaceItems}
+      />
+    </ConversationProvider>
+  );
+};
+
+const SendBoxObjectSelectionHarness: React.FC = () => {
+  const [value, setValue] = useState('');
+  const [selectedWorkspaceItems, setSelectedWorkspaceItems] = useState<
+    Array<string | { path: string; name: string; isFile: boolean; relativePath?: string }>
+  >([
+    {
+      path: '/workspace/src/utils/date.ts',
+      name: 'date.ts',
+      isFile: true,
+      relativePath: 'src/utils/date.ts',
+    },
   ]);
 
   return (
@@ -394,5 +423,12 @@ describe('SendBox @ file menu', () => {
     await waitFor(() => {
       expect(mockEmit).toHaveBeenCalledWith('gemini.selected.file', []);
     });
+  });
+
+  it('keeps object-backed add-to-chat selections when there is no visible mention text', async () => {
+    render(<SendBoxObjectSelectionHarness />);
+
+    expect(await screen.findByText('src/utils/date.ts')).toBeInTheDocument();
+    expect(mockEmit).not.toHaveBeenCalledWith('gemini.selected.file', []);
   });
 });
