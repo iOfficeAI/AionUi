@@ -154,16 +154,42 @@ export class AcpAdapter {
       position: 'left' as const,
     };
 
-    if (update.content && update.content.text) {
+    const text = this.extractTextFromAgentMessageChunk(update);
+    if (text !== null) {
       return {
         ...baseMessage,
         type: 'text',
         content: {
-          content: update.content.text,
+          content: text,
         },
       } as IMessageText;
     }
 
+    return null;
+  }
+
+  /**
+   * Extract text from ACP agent_message_chunk payload.
+   * Returns null when the chunk does not contain renderable text.
+   */
+  private extractTextFromAgentMessageChunk(update: AgentMessageChunkUpdate['update']): string | null {
+    const content = update.content;
+    if (!content) {
+      console.warn('[AcpAdapter] Dropped agent_message_chunk: missing content payload');
+      return null;
+    }
+
+    if (content.type === 'text') {
+      if (typeof content.text === 'string') {
+        // Keep empty string chunks for stream consistency and observability.
+        return content.text;
+      }
+      console.warn('[AcpAdapter] Dropped text chunk: content.text is not a string');
+      return null;
+    }
+
+    // Non-text chunks (e.g. image) are currently not rendered in chat stream.
+    console.warn(`[AcpAdapter] Dropped non-text chunk: content.type=${String(content.type)}`);
     return null;
   }
 
