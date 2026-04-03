@@ -10,6 +10,12 @@ import { useEffect } from 'react';
 import type { FileOrFolderItem } from '@/renderer/utils/file/fileTypes';
 import type { PreviewContentType } from '@/common/types/preview';
 
+export type ReplyQuote = {
+  messageId: string;
+  content: string;
+  position: 'left' | 'right' | 'center' | 'pop';
+};
+
 interface EventTypes {
   'gemini.selected.file': [Array<string | FileOrFolderItem>];
   'gemini.selected.file.append': [Array<string | FileOrFolderItem>];
@@ -48,6 +54,8 @@ interface EventTypes {
   ];
   // 填充输入框事件 / Fill sendbox input event
   'sendbox.fill': [string]; // prompt text to fill
+  'sendbox.reply': [ReplyQuote]; // reply/quote a message
+  'sendbox.reply.clear': void; // clear reply quote
   'staroffice.install.request': [{ conversationId: string; text: string; detectedUrl?: string | null }];
   'staroffice.install.finished': [{ conversationId: string }];
 }

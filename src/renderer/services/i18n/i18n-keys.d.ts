@@ -198,6 +198,7 @@ export type I18nKey =
   | 'common.refresh'
   | 'common.reload'
   | 'common.remove'
+  | 'common.reply'
   | 'common.retry'
   | 'common.save'
   | 'common.saveFailed'
