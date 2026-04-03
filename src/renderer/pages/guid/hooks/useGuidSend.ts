@@ -35,6 +35,8 @@ export type GuidSendDeps = {
   isPresetAgent: boolean;
   selectedMode: string;
   selectedAcpModel: string | null;
+  pendingConfigOptions: Record<string, string>;
+  cachedConfigOptions: unknown[];
   currentModel: TProviderWithModel | undefined;
 
   // Agent helpers
@@ -89,6 +91,8 @@ export const useGuidSend = (deps: GuidSendDeps): GuidSendResult => {
     isPresetAgent,
     selectedMode,
     selectedAcpModel,
+    pendingConfigOptions,
+    cachedConfigOptions,
     currentModel,
     findAgentByKey,
     getEffectiveAgentType,
@@ -387,9 +391,20 @@ export const useGuidSend = (deps: GuidSendDeps): GuidSendResult => {
             presetAssistantId: isPreset ? agentInfo?.customAgentId || acpAgentInfo?.customAgentId : undefined,
             sessionMode: selectedMode,
             currentModelId: selectedAcpModel || undefined,
+            cachedConfigOptions:
+              cachedConfigOptions.length > 0
+                ? // Merge pending selections into cached options so the UI shows the user's choice immediately
+                  Object.keys(pendingConfigOptions).length > 0
+                  ? cachedConfigOptions.map((opt: unknown) => {
+                      const o = opt as { id?: string; currentValue?: string; selectedValue?: string };
+                      const pending = o.id ? pendingConfigOptions[o.id] : undefined;
+                      return pending ? { ...o, currentValue: pending, selectedValue: pending } : o;
+                    })
+                  : cachedConfigOptions
+                : undefined,
+            pendingConfigOptions: Object.keys(pendingConfigOptions).length > 0 ? pendingConfigOptions : undefined,
           },
         });
-
         if (!conversation || !conversation.id) {
           console.error('Failed to create ACP conversation - conversation object is null or missing id');
           return;
@@ -425,6 +440,8 @@ export const useGuidSend = (deps: GuidSendDeps): GuidSendResult => {
     isPresetAgent,
     selectedMode,
     selectedAcpModel,
+    pendingConfigOptions,
+    cachedConfigOptions,
     currentModel,
     findAgentByKey,
     getEffectiveAgentType,

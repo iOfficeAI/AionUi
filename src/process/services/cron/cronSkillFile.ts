@@ -81,12 +81,10 @@ export function parseCronSkillContent(content: string): { name: string; descript
     const promptLines = afterHeading.split('\n');
     // Find the first non-empty line after the directive lines
     let startIdx = 0;
-    let directivesPassed = 0;
     for (let i = 1; i < promptLines.length; i++) {
       const line = promptLines[i].trim();
       if (line === '') continue;
       if (line.startsWith('You are executing') || line.startsWith('Do NOT ask')) {
-        directivesPassed++;
         continue;
       }
       startIdx = i;

@@ -37,6 +37,7 @@ import MessageThinking from './components/MessageThinking';
 import type { WriteFileResult } from './types';
 import { useAutoScroll } from './useAutoScroll';
 import { useAutoPreviewOfficeFiles } from '@/renderer/hooks/file/useAutoPreviewOfficeFiles';
+import SelectionReplyButton from './components/SelectionReplyButton';
 
 type TurnDiffContent = Extract<CodexToolCallUpdate, { subtype: 'turn_diff' }>;
 
@@ -395,6 +396,8 @@ const MessageList: React.FC<{ className?: string }> = () => {
           </div>
         </>
       )}
+
+      <SelectionReplyButton messages={list} />
     </div>
   );
 };
