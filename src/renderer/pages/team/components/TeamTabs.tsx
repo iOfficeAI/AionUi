@@ -1,6 +1,5 @@
-import { CloseOne, Edit, Plus } from '@icon-park/react';
+import { Edit, Plus } from '@icon-park/react';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
-import { team as teamBridge } from '@/common/adapter/ipcBridge';
 import { getAgentLogo } from '@/renderer/utils/model/agentLogo';
 import { iconColors } from '@/renderer/styles/colors';
 import type { TeammateStatus } from '@/common/types/teamTypes';
@@ -19,7 +18,6 @@ type TeamTabViewProps = {
   isActive: boolean;
   status: TeammateStatus;
   isLead: boolean;
-  teamId: string;
   onSwitch: (slotId: string) => void;
   onRename?: (slotId: string, newName: string) => void;
   onDragStart: (slotId: string) => void;
@@ -35,7 +33,6 @@ const TeamTabView: React.FC<TeamTabViewProps> = ({
   isActive,
   status,
   isLead,
-  teamId,
   onSwitch,
   onRename,
   onDragStart,
@@ -87,22 +84,13 @@ const TeamTabView: React.FC<TeamTabViewProps> = ({
   );
 
   const isRunning = status === 'active';
-  const isFailed = status === 'failed';
-
-  const handleDeleteFailed = useCallback(
-    (e: React.MouseEvent) => {
-      e.stopPropagation();
-      void teamBridge.removeAgent.invoke({ teamId, slotId });
-    },
-    [teamId, slotId]
-  );
 
   return (
     <div
       draggable={!isLead}
       className={`relative group flex items-center gap-8px px-12px h-full max-w-240px cursor-pointer transition-all duration-200 shrink-0 border-r border-[color:var(--border-base)] ${
         isActive
-          ? 'bg-[color:var(--color-primary-1)] text-[color:var(--color-text-1)] border-t-2 border-t-[color:var(--color-primary-6)]'
+          ? 'bg-[color:var(--color-primary-1)] text-[color:var(--color-text-1)] border-t-2 border-t-solid border-t-[color:var(--color-primary-6)]'
           : 'bg-2 text-[color:var(--color-text-3)] hover:text-[color:var(--color-text-2)] hover:bg-[color:var(--fill-2)] border-b border-[color:var(--border-base)]'
       } ${isDragOver ? DRAG_OVER_CLASS : ''}`}
       style={isRunning ? { animation: 'team-tab-breathe 2s ease-in-out infinite' } : undefined}
@@ -158,14 +146,6 @@ const TeamTabView: React.FC<TeamTabViewProps> = ({
         </span>
       )}
       <AgentStatusBadge status={status} />
-      {isFailed && !isLead && (
-        <div
-          className='absolute inset-0 flex items-center justify-center bg-white/60 cursor-pointer z-10'
-          onClick={handleDeleteFailed}
-        >
-          <CloseOne theme='filled' size='16' fill='#f53f3f' />
-        </div>
-      )}
     </div>
   );
 };
@@ -201,7 +181,7 @@ type TeamTabsProps = {
  * Supports scroll overflow with fade indicators and add-agent dropdown.
  */
 const TeamTabs: React.FC<TeamTabsProps> = ({ onAddAgent, onTabClick }) => {
-  const { agents, activeSlotId, statusMap, teamId, switchTab, renameAgent, reorderAgents } = useTeamTabs();
+  const { agents, activeSlotId, statusMap, switchTab, renameAgent, reorderAgents } = useTeamTabs();
   const tabsContainerRef = useRef<HTMLDivElement>(null);
   const [showLeftFade, setShowLeftFade] = useState(false);
   const [showRightFade, setShowRightFade] = useState(false);
@@ -275,7 +255,6 @@ const TeamTabs: React.FC<TeamTabsProps> = ({ onAddAgent, onTabClick }) => {
                 isActive={agent.slotId === activeSlotId}
                 status={statusInfo?.status ?? agent.status}
                 isLead={agent.role === 'lead'}
-                teamId={teamId}
                 onSwitch={(slotId) => {
                   switchTab(slotId);
                   onTabClick?.(slotId);

@@ -41,6 +41,7 @@ import {
 import { buildAcpModelInfo, summarizeAcpModelInfo } from './modelInfo';
 import {
   buildBuiltinAcpSessionMcpServers,
+  buildTeamMcpServer,
   parseAcpMcpCapabilities,
   type AcpSessionMcpServer,
 } from './mcpSessionConfig';
@@ -1569,15 +1570,10 @@ export class AcpAgent {
       }
 
       // Inject team MCP server if this agent belongs to a team (stdio mode)
-      const teamMcpStdioConfig = this.extra.teamMcpStdioConfig;
-      if (teamMcpStdioConfig && teamMcpStdioConfig.command) {
-        servers.push({
-          name: teamMcpStdioConfig.name,
-          command: teamMcpStdioConfig.command,
-          args: teamMcpStdioConfig.args,
-          env: teamMcpStdioConfig.env,
-        });
-        mainLog(`[ACP ${this.extra.backend}]`, `Injecting team MCP server (stdio): ${teamMcpStdioConfig.name}`);
+      const teamServer = buildTeamMcpServer(this.extra.teamMcpStdioConfig);
+      if (teamServer) {
+        servers.push(teamServer);
+        mainLog(`[ACP ${this.extra.backend}]`, `Injecting team MCP server (stdio): ${teamServer.name}`);
       }
 
       if (servers.length > 0) {

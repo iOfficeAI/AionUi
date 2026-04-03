@@ -15,7 +15,7 @@ import { acpDetector } from '@process/agent/acp/AcpDetector';
 type SpawnAgentFn = (agentName: string, agentType?: string) => Promise<TeamAgent>;
 
 /** Conversation types whose AgentManager supports MCP server injection via session/new */
-const MCP_CAPABLE_TYPES = new Set(['acp']);
+export const MCP_CAPABLE_TYPES = new Set(['acp']);
 
 type TeammateManagerParams = {
   teamId: string;
