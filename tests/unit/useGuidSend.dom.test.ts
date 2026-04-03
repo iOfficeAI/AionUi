@@ -72,6 +72,8 @@ function makeDeps(overrides: Partial<GuidSendDeps> = {}): GuidSendDeps {
     isPresetAgent: false,
     selectedMode: 'default',
     selectedAcpModel: null,
+    pendingConfigOptions: {},
+    cachedConfigOptions: [],
     currentModel: undefined,
     findAgentByKey: vi.fn(),
     getEffectiveAgentType: vi.fn(() => ({ agentType: 'remote', isAvailable: true })),

@@ -19,12 +19,24 @@ const AcpChat: React.FC<{
   workspace?: string;
   backend: AcpBackend;
   sessionMode?: string;
+  cachedConfigOptions?: import('@/common/types/acpTypes').AcpSessionConfigOption[];
   agentName?: string;
   cronJobId?: string;
   hideSendBox?: boolean;
   teamId?: string;
   agentSlotId?: string;
-}> = ({ conversation_id, workspace, backend, sessionMode, agentName, cronJobId, hideSendBox, teamId, agentSlotId }) => {
+}> = ({
+  conversation_id,
+  workspace,
+  backend,
+  sessionMode,
+  cachedConfigOptions,
+  agentName,
+  cronJobId,
+  hideSendBox,
+  teamId,
+  agentSlotId,
+}) => {
   useMessageLstCache(conversation_id);
 
   return (
@@ -39,6 +51,7 @@ const AcpChat: React.FC<{
               conversation_id={conversation_id}
               backend={backend}
               sessionMode={sessionMode}
+              cachedConfigOptions={cachedConfigOptions}
               agentName={agentName}
               teamId={teamId}
               agentSlotId={agentSlotId}

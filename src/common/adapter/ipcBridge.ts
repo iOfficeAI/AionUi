@@ -922,6 +922,10 @@ export interface ICreateConversationParams {
     codexModel?: string;
     /** Pre-selected ACP model from Guid page (cached model list) */
     currentModelId?: string;
+    /** Cached config options from Guid page for immediate display in conversation */
+    cachedConfigOptions?: import('../types/acpTypes').AcpSessionConfigOption[];
+    /** Pending config option selections from Guid page (applied after session creation) */
+    pendingConfigOptions?: Record<string, string>;
     /** Runtime validation snapshot used for post-switch strong checks (OpenClaw) */
     runtimeValidation?: {
       expectedWorkspace?: string;
