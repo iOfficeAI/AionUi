@@ -173,6 +173,27 @@ const skillFilePattern = (id: string, loc: string) => `${id}-skills.${loc}.md`;
 
 const workspaceFileListCache = new Map<string, IWorkspaceFlatFile[]>();
 const workspaceFileListInFlight = new Map<string, Promise<IWorkspaceFlatFile[]>>();
+const workspaceFileListGeneration = new Map<string, number>();
+
+function isPathWithinRoot(root: string, targetPath: string): boolean {
+  const relativePath = path.relative(root, targetPath);
+  return relativePath === '' || (!relativePath.startsWith('..') && !path.isAbsolute(relativePath));
+}
+
+function invalidateWorkspaceFileListCacheByPath(changedPath: string): void {
+  const normalizedPath = path.resolve(changedPath);
+  const roots = new Set([...workspaceFileListCache.keys(), ...workspaceFileListInFlight.keys()]);
+
+  for (const root of roots) {
+    if (!isPathWithinRoot(root, normalizedPath)) {
+      continue;
+    }
+
+    workspaceFileListCache.delete(root);
+    workspaceFileListInFlight.delete(root);
+    workspaceFileListGeneration.set(root, (workspaceFileListGeneration.get(root) ?? 0) + 1);
+  }
+}
 
 async function listWorkspaceFilesRecursive(root: string): Promise<IWorkspaceFlatFile[]> {
   const normalizedRoot = path.resolve(root);
@@ -240,13 +261,18 @@ async function getCachedWorkspaceFiles(root: string): Promise<IWorkspaceFlatFile
     return inFlight;
   }
 
+  const requestGeneration = workspaceFileListGeneration.get(normalizedRoot) ?? 0;
   const request = listWorkspaceFilesRecursive(normalizedRoot)
     .then((files) => {
-      workspaceFileListCache.set(normalizedRoot, files);
+      if ((workspaceFileListGeneration.get(normalizedRoot) ?? 0) === requestGeneration) {
+        workspaceFileListCache.set(normalizedRoot, files);
+      }
       return files;
     })
     .finally(() => {
-      workspaceFileListInFlight.delete(normalizedRoot);
+      if (workspaceFileListInFlight.get(normalizedRoot) === request) {
+        workspaceFileListInFlight.delete(normalizedRoot);
+      }
     });
 
   workspaceFileListInFlight.set(normalizedRoot, request);
@@ -498,6 +524,7 @@ export function initFsBridge(): void {
           console.error('[fsBridge] ❌ Failed to emit file stream update:', emitError);
         }
 
+        invalidateWorkspaceFileListCacheByPath(filePath);
         return true;
       }
 
@@ -526,6 +553,7 @@ export function initFsBridge(): void {
       }
 
       await fs.writeFile(filePath, bufferData);
+      invalidateWorkspaceFileListCacheByPath(filePath);
       return true;
     } catch (error) {
       console.error('Failed to write file:', error);
@@ -742,6 +770,9 @@ export function initFsBridge(): void {
       // 只要存在失败文件就视作部分失败，并返回提示信息 / Mark operation as non-success if anything failed and provide hint text
       const success = failedFiles.length === 0;
       const msg = success ? undefined : 'Some files failed to copy';
+      if (copiedFiles.length > 0) {
+        invalidateWorkspaceFileListCacheByPath(workspace);
+      }
 
       return {
         success,
@@ -763,6 +794,7 @@ export function initFsBridge(): void {
       const stats = await fs.lstat(targetPath);
       if (stats.isDirectory()) {
         await fs.rm(targetPath, { recursive: true, force: true });
+        invalidateWorkspaceFileListCacheByPath(targetPath);
       } else {
         await fs.unlink(targetPath);
 
@@ -783,6 +815,8 @@ export function initFsBridge(): void {
         } catch (emitError) {
           console.error('[fsBridge] Failed to emit file stream delete:', emitError);
         }
+
+        invalidateWorkspaceFileListCacheByPath(targetPath);
       }
       return { success: true };
     } catch (error) {
@@ -816,6 +850,8 @@ export function initFsBridge(): void {
       }
 
       await fs.rename(targetPath, newPath);
+      invalidateWorkspaceFileListCacheByPath(targetPath);
+      invalidateWorkspaceFileListCacheByPath(newPath);
       return { success: true, data: { newPath } };
     } catch (error) {
       console.error('Failed to rename entry:', error);

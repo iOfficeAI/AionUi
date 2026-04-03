@@ -10,6 +10,7 @@ const makeProvider = (name: string) => ({
 
 const mockReaddir = vi.fn();
 const mockStat = vi.fn();
+const mockWriteFile = vi.fn();
 
 vi.mock('@office-ai/platform', () => ({
   bridge: {
@@ -96,7 +97,7 @@ vi.mock('fs/promises', async (importOriginal) => {
       stat: mockStat,
       readFile: vi.fn(),
       mkdir: vi.fn(),
-      writeFile: vi.fn(),
+      writeFile: mockWriteFile,
       rm: vi.fn(),
       rename: vi.fn(),
       realpath: vi.fn(),
@@ -175,5 +176,45 @@ describe('fsBridge listWorkspaceFiles', () => {
 
     expect(first).toEqual(second);
     expect(mockReaddir).toHaveBeenCalledTimes(1);
+  });
+
+  it('invalidates the cached file list after a workspace file write', async () => {
+    const listHandler = providerCallbacks.listWorkspaceFiles as (args: {
+      root: string;
+    }) => Promise<Array<{ name: string; fullPath: string; relativePath: string }>>;
+    const writeHandler = providerCallbacks.writeFile as (args: { path: string; data: string }) => Promise<boolean>;
+
+    mockStat.mockResolvedValue({ isDirectory: () => true });
+    mockWriteFile.mockResolvedValue(undefined);
+    mockReaddir.mockImplementation(async () => [dirent('README.md', 'file')]);
+
+    const first = await listHandler({ root: '/workspace' });
+    expect(first).toEqual([
+      {
+        name: 'README.md',
+        fullPath: '/workspace/README.md',
+        relativePath: 'README.md',
+      },
+    ]);
+    expect(mockReaddir).toHaveBeenCalledTimes(1);
+
+    await writeHandler({ path: '/workspace/NEW_GUIDE.md', data: '# guide' });
+
+    mockReaddir.mockImplementation(async () => [dirent('README.md', 'file'), dirent('NEW_GUIDE.md', 'file')]);
+
+    const second = await listHandler({ root: '/workspace' });
+    expect(second).toEqual([
+      {
+        name: 'NEW_GUIDE.md',
+        fullPath: '/workspace/NEW_GUIDE.md',
+        relativePath: 'NEW_GUIDE.md',
+      },
+      {
+        name: 'README.md',
+        fullPath: '/workspace/README.md',
+        relativePath: 'README.md',
+      },
+    ]);
+    expect(mockReaddir).toHaveBeenCalledTimes(2);
   });
 });
