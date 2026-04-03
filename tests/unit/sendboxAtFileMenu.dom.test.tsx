@@ -275,7 +275,7 @@ describe('SendBox @ file menu', () => {
     textarea.selectionStart = textarea.selectionEnd = textarea.value.length;
     fireEvent.keyUp(textarea, { key: '@' });
 
-    expect(await screen.findByText('Type to search files')).toBeInTheDocument();
+    expect(await screen.findByText('Type to search for files')).toBeInTheDocument();
     expect(screen.queryByText('date.ts')).not.toBeInTheDocument();
     expect(screen.queryByText('My File.md')).not.toBeInTheDocument();
   });
