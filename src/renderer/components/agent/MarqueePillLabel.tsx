@@ -21,8 +21,8 @@ const MARQUEE_SPEED = 30;
  * (e.g. Arco Dropdown hover) never reset visibility. Animation props
  * are applied via refs in useLayoutEffect to avoid flicker.
  *
- * When text overflows, adds `pill-text-overflow` to the nearest
- * `.agent-mode-compact-pill` ancestor so CSS can reduce padding.
+ * A hidden measurement span detects overflow since the visible
+ * inline-block container always has scrollWidth === clientWidth.
  */
 const MarqueePillLabel: React.FC<{
   children: string;
@@ -66,6 +66,8 @@ const MarqueePillLabel: React.FC<{
       marqueeEl.classList.add('pill-marquee-track');
     } else {
       marqueeEl.classList.remove('pill-marquee-track');
+      marqueeEl.style.removeProperty('--pill-marquee-scroll');
+      marqueeEl.style.animationDuration = '';
     }
   }, [active]);
 
