@@ -23,6 +23,7 @@ import { blurActiveElement, shouldBlockMobileInputFocus } from '@/renderer/utils
 import { Button, Input, Message, Tag } from '@arco-design/web-react';
 import { ArrowUp, CloseSmall, Quote } from '@icon-park/react';
 import type { SlashCommandItem } from '@/common/chat/slash/types';
+import { theme } from '@office-ai/platform';
 import React, { useCallback, useDeferredValue, useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useCompositionInput } from '@renderer/hooks/chat/useCompositionInput';
@@ -45,6 +46,7 @@ const constVoid = (): void => undefined;
 // Threshold: switch to multi-line mode directly when character count exceeds this value to avoid heavy layout work
 const MAX_SINGLE_LINE_CHARACTERS = 800;
 const BTW_COMMAND_RE = /^\/btw(?:\s+([\s\S]*))?$/i;
+const AT_FILE_HIGHLIGHT_COLOR = theme.Color.PrimaryColor;
 
 function extractBtwQuestion(value: string): string | null {
   const match = value.trim().match(BTW_COMMAND_RE);
@@ -998,7 +1000,11 @@ const SendBox: React.FC<{
       }
 
       segments.push(
-        <span className='sendbox-highlight-mention' key={`mention-${match.start}-${index}`}>
+        <span
+          className='sendbox-highlight-mention'
+          key={`mention-${match.start}-${index}`}
+          style={{ color: AT_FILE_HIGHLIGHT_COLOR }}
+        >
           {input.slice(match.start, match.end)}
         </span>
       );
