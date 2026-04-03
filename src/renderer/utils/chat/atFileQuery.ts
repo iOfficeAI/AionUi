@@ -82,6 +82,48 @@ export function getActiveAtFileQuery(value: string, caretPosition: number): Acti
   };
 }
 
+export function getAllAtFileQueries(value: string): ActiveAtFileQuery[] {
+  if (!value) {
+    return [];
+  }
+
+  const queries: ActiveAtFileQuery[] = [];
+
+  for (let index = 0; index < value.length; index += 1) {
+    const char = value[index];
+    if (char !== '@' || isEscaped(value, index)) {
+      continue;
+    }
+
+    const previousChar = index > 0 ? value[index - 1] : '';
+    if (previousChar && !isBoundaryChar(previousChar)) {
+      continue;
+    }
+
+    let tokenEnd = value.length;
+    for (let cursor = index + 1; cursor < value.length; cursor += 1) {
+      const nextChar = value[cursor];
+      if (isBoundaryChar(nextChar) && !isEscaped(value, cursor)) {
+        tokenEnd = cursor;
+        break;
+      }
+    }
+
+    const rawQuery = value.slice(index + 1, tokenEnd);
+    queries.push({
+      start: index,
+      end: tokenEnd,
+      query: unescapeAtFileQuery(rawQuery),
+      rawQuery,
+      token: value.slice(index, tokenEnd),
+    });
+
+    index = tokenEnd - 1;
+  }
+
+  return queries;
+}
+
 export function buildAtFileInsertion(item: FileOrFolderItem): string {
   const path = item.relativePath || item.path;
   return `@${escapeAtFilePath(path)}`;

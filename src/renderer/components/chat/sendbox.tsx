@@ -14,8 +14,9 @@ import { useSlashCommandController } from '@/renderer/hooks/chat/useSlashCommand
 import { useLayoutContext } from '@/renderer/hooks/context/LayoutContext';
 import { useConversationContextSafe } from '@/renderer/hooks/context/ConversationContext';
 import { usePreviewContext } from '@/renderer/pages/conversation/Preview';
-import { buildAtFileInsertion, getActiveAtFileQuery } from '@/renderer/utils/chat/atFileQuery';
+import { buildAtFileInsertion, getActiveAtFileQuery, getAllAtFileQueries } from '@/renderer/utils/chat/atFileQuery';
 import { emitter, type ReplyQuote, useAddEventListener } from '@/renderer/utils/emitter';
+import { mergeFileSelectionItems, type FileSelectionItem } from '@/renderer/utils/file/fileSelection';
 import type { FileOrFolderItem } from '@/renderer/utils/file/fileTypes';
 import { filterWorkspaceMentionItems } from '@/renderer/utils/file/workspaceMentions';
 import { blurActiveElement, shouldBlockMobileInputFocus } from '@/renderer/utils/ui/focus';
@@ -72,6 +73,8 @@ const SendBox: React.FC<{
   enableBtw?: boolean;
   allowSendWhileLoading?: boolean;
   compactActions?: boolean;
+  selectedWorkspaceItems?: FileSelectionItem[];
+  onSelectedWorkspaceItemsChange?: (items: FileSelectionItem[]) => void;
 }> = ({
   onSend,
   onStop,
@@ -94,6 +97,8 @@ const SendBox: React.FC<{
   enableBtw = false,
   allowSendWhileLoading = false,
   compactActions = false,
+  selectedWorkspaceItems,
+  onSelectedWorkspaceItemsChange,
 }) => {
   const layout = useLayoutContext();
   const isMobile = layout?.isMobile ?? false;
@@ -122,6 +127,7 @@ const SendBox: React.FC<{
   const [atFileMenuActiveIndex, setAtFileMenuActiveIndex] = useState(0);
   const [dismissedAtFileToken, setDismissedAtFileToken] = useState<string | null>(null);
   const workspaceMentionCacheRef = useRef<Map<string, FileOrFolderItem[]>>(new Map());
+  const highlightScrollRef = useRef<HTMLDivElement>(null);
 
   // Listen for reply events from message actions
   useAddEventListener('sendbox.reply', (quote) => setReplyQuote(quote), []);
@@ -268,6 +274,7 @@ const SendBox: React.FC<{
     }
     return `${activeAtFileQuery.start}:${activeAtFileQuery.rawQuery}`;
   }, [activeAtFileQuery]);
+  const allAtFileQueries = useMemo(() => getAllAtFileQueries(input), [input]);
   const deferredAtFileQuery = useDeferredValue(activeAtFileQuery?.query ?? '');
   const inputHistory = useMemo(
     () => getConversationInputHistory(messageList, conversationContext?.conversationId),
@@ -372,6 +379,18 @@ const SendBox: React.FC<{
     [getTextareaElement]
   );
 
+  const syncHighlightScroll = useCallback(
+    (target?: EventTarget | null) => {
+      const textarea = target instanceof HTMLTextAreaElement ? target : getTextareaElement();
+      if (!textarea || !highlightScrollRef.current) {
+        return;
+      }
+      highlightScrollRef.current.scrollTop = textarea.scrollTop;
+      highlightScrollRef.current.scrollLeft = textarea.scrollLeft;
+    },
+    [getTextareaElement]
+  );
+
   const handleTextAreaChange = (value: string) => {
     if (historyNavigationIndex !== null) {
       historyDraftRef.current = null;
@@ -383,6 +402,7 @@ const SendBox: React.FC<{
     setInput(value);
     requestAnimationFrame(() => {
       syncCaretPosition();
+      syncHighlightScroll();
     });
   };
 
@@ -514,6 +534,31 @@ const SendBox: React.FC<{
     setAtFileMenuActiveIndex((previous) => Math.min(previous, visibleAtFileMenuItems.length - 1));
   }, [visibleAtFileMenuItems]);
 
+  useEffect(() => {
+    if (!selectedWorkspaceItems || !onSelectedWorkspaceItemsChange) {
+      return;
+    }
+
+    const mentionQueries = new Set(allAtFileQueries.map((item) => item.query));
+    const nextItems = selectedWorkspaceItems.filter((item) => {
+      if (typeof item === 'string') {
+        return true;
+      }
+      if (!item.isFile) {
+        return true;
+      }
+      return mentionQueries.has(item.relativePath || item.path);
+    });
+
+    const changed =
+      nextItems.length !== selectedWorkspaceItems.length ||
+      nextItems.some((item, index) => item !== selectedWorkspaceItems[index]);
+
+    if (changed) {
+      onSelectedWorkspaceItemsChange(nextItems);
+    }
+  }, [allAtFileQueries, onSelectedWorkspaceItemsChange, selectedWorkspaceItems]);
+
   const emitSelectedFileAppend = useCallback(
     (item: FileOrFolderItem) => {
       switch (conversationContext?.type) {
@@ -558,6 +603,9 @@ const SendBox: React.FC<{
 
       setDismissedAtFileToken(insertedTokenKey);
       setInput(nextValue);
+      if (selectedWorkspaceItems && onSelectedWorkspaceItemsChange) {
+        onSelectedWorkspaceItemsChange(mergeFileSelectionItems(selectedWorkspaceItems, [item]));
+      }
       emitSelectedFileAppend(item);
 
       requestAnimationFrame(() => {
@@ -570,7 +618,15 @@ const SendBox: React.FC<{
         setCaretPosition(nextCaret);
       });
     },
-    [activeAtFileQuery, emitSelectedFileAppend, getTextareaElement, input, setInput]
+    [
+      activeAtFileQuery,
+      emitSelectedFileAppend,
+      getTextareaElement,
+      input,
+      onSelectedWorkspaceItemsChange,
+      selectedWorkspaceItems,
+      setInput,
+    ]
   );
 
   // 使用共享的输入法合成处理
@@ -924,6 +980,42 @@ const SendBox: React.FC<{
     return sendButton;
   };
 
+  const renderHighlightedInputValue = useCallback(() => {
+    if (!input) {
+      return <span className='sendbox-highlight-text'>{'\u200b'}</span>;
+    }
+
+    const segments: React.ReactNode[] = [];
+    let cursor = 0;
+
+    allAtFileQueries.forEach((match, index) => {
+      if (cursor < match.start) {
+        segments.push(
+          <span className='sendbox-highlight-text' key={`text-${cursor}`}>
+            {input.slice(cursor, match.start)}
+          </span>
+        );
+      }
+
+      segments.push(
+        <span className='sendbox-highlight-mention' key={`mention-${match.start}-${index}`}>
+          {input.slice(match.start, match.end)}
+        </span>
+      );
+      cursor = match.end;
+    });
+
+    if (cursor < input.length) {
+      segments.push(
+        <span className='sendbox-highlight-text' key={`text-${cursor}`}>
+          {input.slice(cursor)}
+        </span>
+      );
+    }
+
+    return segments;
+  }, [allAtFileQueries, input]);
+
   return (
     <div className={className}>
       <div
@@ -1055,50 +1147,73 @@ const SendBox: React.FC<{
               {tools}
             </div>
           )}
-          <Input.TextArea
-            autoFocus={!isMobile}
-            disabled={disabled}
-            value={input}
-            placeholder={placeholder}
-            className={`pl-0 pr-0 !b-none focus:shadow-none m-0 !bg-transparent !focus:bg-transparent !hover:bg-transparent lh-[20px] !resize-none text-14px ${isMobile ? 'sendbox-input--mobile' : ''}`}
+          <div
+            className={`sendbox-highlight-container ${isSingleLine ? 'sendbox-highlight-container--single' : ''}`}
             style={{
               width: isSingleLine ? 'auto' : '100%',
               flex: isSingleLine ? 1 : 'none',
               minWidth: 0,
               maxWidth: '100%',
-              marginLeft: 0,
-              marginRight: 0,
               marginBottom: isSingleLine ? 0 : '8px',
-              height: isSingleLine ? '20px' : 'auto',
               minHeight: isSingleLine ? '20px' : '80px',
-              overflowY: isSingleLine ? 'hidden' : 'auto',
-              overflowX: 'hidden',
-              whiteSpace: isSingleLine ? 'nowrap' : 'pre-wrap',
-              textOverflow: isSingleLine ? 'ellipsis' : 'clip',
-              wordBreak: isSingleLine ? 'normal' : 'break-word',
-              overflowWrap: 'break-word',
             }}
-            onChange={handleTextAreaChange}
-            onPaste={onPaste}
-            onTouchStart={markMobileFocusIntent}
-            onMouseDown={markMobileFocusIntent}
-            onClick={(event) => {
-              syncCaretPosition(event.target);
-            }}
-            onFocus={handleInputFocus}
-            onBlur={handleInputBlur}
-            onKeyUp={(event) => {
-              syncCaretPosition(event.currentTarget);
-            }}
-            onSelect={(event) => {
-              syncCaretPosition(event.currentTarget);
-            }}
-            {...compositionHandlers}
-            autoSize={isSingleLine ? false : { minRows: 1, maxRows: 10 }}
-            onKeyDown={createKeyDownHandler(sendMessageHandler, (event) => {
-              return handleAtFileMenuKeyDown(event) || handleOverlayKeyDown(event) || handleHistoryKeyDown(event);
-            })}
-          ></Input.TextArea>
+          >
+            <div
+              ref={highlightScrollRef}
+              aria-hidden='true'
+              className={`sendbox-highlight-layer text-14px ${isMobile ? 'sendbox-input--mobile' : ''} ${isSingleLine ? 'sendbox-highlight-layer--single' : ''}`}
+              data-testid='sendbox-highlight-layer'
+            >
+              {renderHighlightedInputValue()}
+            </div>
+            <Input.TextArea
+              autoFocus={!isMobile}
+              disabled={disabled}
+              value={input}
+              placeholder={placeholder}
+              className={`sendbox-highlight-textarea pl-0 pr-0 !b-none focus:shadow-none m-0 !bg-transparent !focus:bg-transparent !hover:bg-transparent lh-[20px] !resize-none text-14px ${isMobile ? 'sendbox-input--mobile' : ''}`}
+              style={{
+                width: isSingleLine ? 'auto' : '100%',
+                flex: isSingleLine ? 1 : 'none',
+                minWidth: 0,
+                maxWidth: '100%',
+                marginLeft: 0,
+                marginRight: 0,
+                marginBottom: 0,
+                height: isSingleLine ? '20px' : 'auto',
+                minHeight: isSingleLine ? '20px' : '80px',
+                overflowY: isSingleLine ? 'hidden' : 'auto',
+                overflowX: 'hidden',
+                whiteSpace: isSingleLine ? 'nowrap' : 'pre-wrap',
+                textOverflow: isSingleLine ? 'ellipsis' : 'clip',
+                wordBreak: isSingleLine ? 'normal' : 'break-word',
+                overflowWrap: 'break-word',
+              }}
+              onChange={handleTextAreaChange}
+              onPaste={onPaste}
+              onTouchStart={markMobileFocusIntent}
+              onMouseDown={markMobileFocusIntent}
+              onClick={(event) => {
+                syncCaretPosition(event.target);
+              }}
+              onFocus={handleInputFocus}
+              onBlur={handleInputBlur}
+              onKeyUp={(event) => {
+                syncCaretPosition(event.currentTarget);
+              }}
+              onSelect={(event) => {
+                syncCaretPosition(event.currentTarget);
+              }}
+              onScroll={(event) => {
+                syncHighlightScroll(event.currentTarget);
+              }}
+              {...compositionHandlers}
+              autoSize={isSingleLine ? false : { minRows: 1, maxRows: 10 }}
+              onKeyDown={createKeyDownHandler(sendMessageHandler, (event) => {
+                return handleAtFileMenuKeyDown(event) || handleOverlayKeyDown(event) || handleHistoryKeyDown(event);
+              })}
+            ></Input.TextArea>
+          </div>
           {isSingleLine && (
             <div className='flex items-center gap-2'>
               <SpeechInputButton

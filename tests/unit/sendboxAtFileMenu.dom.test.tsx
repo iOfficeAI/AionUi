@@ -206,10 +206,22 @@ vi.mock('@icon-park/react', () => ({
 
 const SendBoxHarness: React.FC = () => {
   const [value, setValue] = useState('');
+  const [selectedWorkspaceItems, setSelectedWorkspaceItems] = useState<
+    Array<string | { path: string; name: string; isFile: boolean; relativePath?: string }>
+  >([]);
 
   return (
     <ConversationProvider value={{ conversationId: 'conv-1', workspace: '/workspace', type: 'gemini' }}>
-      <SendBox value={value} onChange={setValue} onSend={vi.fn().mockResolvedValue(undefined)} />
+      <SendBox
+        value={value}
+        onChange={setValue}
+        onSelectedWorkspaceItemsChange={(items) => {
+          mockEmit('gemini.selected.file', items);
+          setSelectedWorkspaceItems(items);
+        }}
+        onSend={vi.fn().mockResolvedValue(undefined)}
+        selectedWorkspaceItems={selectedWorkspaceItems}
+      />
     </ConversationProvider>
   );
 };
@@ -256,6 +268,7 @@ describe('SendBox @ file menu', () => {
     await waitFor(() => {
       expect(textarea).toHaveValue('@src/utils/date.ts');
     });
+    expect(screen.getByTestId('sendbox-highlight-layer')).toHaveTextContent('@src/utils/date.ts');
     expect(mockEmit).toHaveBeenCalledWith('gemini.selected.file.append', [
       {
         path: '/workspace/src/utils/date.ts',
@@ -296,6 +309,31 @@ describe('SendBox @ file menu', () => {
 
     await waitFor(() => {
       expect(textarea).toHaveValue('@docs/My\\ File.md');
+    });
+  });
+
+  it('renders inline mention text and clears selected files when the mention is deleted', async () => {
+    render(<SendBoxHarness />);
+
+    const textarea = screen.getByRole('textbox') as HTMLTextAreaElement;
+
+    fireEvent.change(textarea, { target: { value: '@date' } });
+    textarea.selectionStart = textarea.selectionEnd = textarea.value.length;
+    fireEvent.keyUp(textarea, { key: 'e' });
+
+    expect(await screen.findByText('date.ts')).toBeInTheDocument();
+    fireEvent.keyDown(textarea, { key: 'Enter' });
+
+    await waitFor(() => {
+      expect(screen.getByTestId('sendbox-highlight-layer')).toHaveTextContent('@src/utils/date.ts');
+    });
+
+    fireEvent.change(textarea, { target: { value: '' } });
+    textarea.selectionStart = textarea.selectionEnd = 0;
+    fireEvent.keyUp(textarea, { key: 'Backspace' });
+
+    await waitFor(() => {
+      expect(mockEmit).toHaveBeenCalledWith('gemini.selected.file', []);
     });
   });
 });

@@ -1,4 +1,9 @@
-import { buildAtFileInsertion, escapeAtFilePath, getActiveAtFileQuery } from '@/renderer/utils/chat/atFileQuery';
+import {
+  buildAtFileInsertion,
+  escapeAtFilePath,
+  getActiveAtFileQuery,
+  getAllAtFileQueries,
+} from '@/renderer/utils/chat/atFileQuery';
 import { describe, expect, it } from 'vitest';
 
 describe('atFileQuery', () => {
@@ -30,5 +35,24 @@ describe('atFileQuery', () => {
         relativePath: 'docs/My File (1).md',
       })
     ).toBe('@docs/My\\ File\\ \\(1\\).md');
+  });
+
+  it('finds all @ file queries in a message', () => {
+    expect(getAllAtFileQueries('Use @README.md with @docs/My\\ File.md')).toEqual([
+      {
+        start: 4,
+        end: 14,
+        query: 'README.md',
+        rawQuery: 'README.md',
+        token: '@README.md',
+      },
+      {
+        start: 20,
+        end: 37,
+        query: 'docs/My File.md',
+        rawQuery: 'docs/My\\ File.md',
+        token: '@docs/My\\ File.md',
+      },
+    ]);
   });
 });

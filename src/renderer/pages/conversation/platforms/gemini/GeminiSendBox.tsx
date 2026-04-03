@@ -396,6 +396,11 @@ const GeminiSendBox: React.FC<{
       <SendBox
         value={content}
         onChange={setContent}
+        selectedWorkspaceItems={atPath}
+        onSelectedWorkspaceItemsChange={(items) => {
+          emitter.emit('gemini.selected.file', items);
+          setAtPath(items);
+        }}
         loading={isBusy}
         disabled={!currentModel?.useModel}
         placeholder={
@@ -446,32 +451,6 @@ const GeminiSendBox: React.FC<{
                   />
                 ))}
               </HorizontalFileList>
-            )}
-            {atPath.some((item) => (typeof item === 'string' ? true : item.isFile)) && (
-              <div className='flex flex-wrap items-center gap-8px mb-8px'>
-                {atPath.map((item) => {
-                  const isFile = typeof item === 'string' ? true : item.isFile;
-                  const path = typeof item === 'string' ? item : item.path;
-                  if (isFile) {
-                    return (
-                      <FilePreview
-                        displayLabel={typeof item === 'string' ? undefined : item.relativePath || item.name}
-                        key={path}
-                        path={path}
-                        variant='mention'
-                        onRemove={() => {
-                          const newAtPath = atPath.filter((v) =>
-                            typeof v === 'string' ? v !== path : v.path !== path
-                          );
-                          emitter.emit('gemini.selected.file', newAtPath);
-                          setAtPath(newAtPath);
-                        }}
-                      />
-                    );
-                  }
-                  return null;
-                })}
-              </div>
             )}
             {atPath.some((item) => (typeof item === 'string' ? false : !item.isFile)) && (
               <div className='flex flex-wrap items-center gap-8px mb-8px'>

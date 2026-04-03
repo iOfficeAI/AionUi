@@ -411,6 +411,11 @@ const NanobotSendBox: React.FC<{ conversation_id: string }> = ({ conversation_id
       <SendBox
         value={content}
         onChange={setContent}
+        selectedWorkspaceItems={atPath}
+        onSelectedWorkspaceItemsChange={(nextSelectedItems) => {
+          emitter.emit('nanobot.selected.file', nextSelectedItems);
+          setAtPath(nextSelectedItems);
+        }}
         loading={aiProcessing}
         disabled={false}
         className='z-10'
@@ -439,32 +444,6 @@ const NanobotSendBox: React.FC<{ conversation_id: string }> = ({ conversation_id
                   />
                 ))}
               </HorizontalFileList>
-            )}
-            {atPath.some((item) => (typeof item === 'string' ? true : item.isFile)) && (
-              <div className='flex flex-wrap items-center gap-8px mb-8px'>
-                {atPath.map((item) => {
-                  const isFile = typeof item === 'string' ? true : item.isFile;
-                  const path = typeof item === 'string' ? item : item.path;
-                  if (isFile) {
-                    return (
-                      <FilePreview
-                        displayLabel={typeof item === 'string' ? undefined : item.relativePath || item.name}
-                        key={path}
-                        path={path}
-                        variant='mention'
-                        onRemove={() => {
-                          const newAtPath = atPath.filter((v) =>
-                            typeof v === 'string' ? v !== path : v.path !== path
-                          );
-                          emitter.emit('nanobot.selected.file', newAtPath);
-                          setAtPath(newAtPath);
-                        }}
-                      />
-                    );
-                  }
-                  return null;
-                })}
-              </div>
             )}
             {atPath.some((item) => (typeof item === 'string' ? false : !item.isFile)) && (
               <div className='flex flex-wrap items-center gap-8px mb-8px'>
