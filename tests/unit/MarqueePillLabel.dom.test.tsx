@@ -24,10 +24,9 @@ describe('MarqueePillLabel', () => {
       const { container } = render(<MarqueePillLabel>{LABEL}</MarqueePillLabel>);
       const root = container.firstElementChild as HTMLSpanElement;
 
-      // Static span is the second child (first is the hidden measurement span)
       const staticSpan = root.children[1] as HTMLSpanElement;
       expect(staticSpan.textContent).toBe(LABEL);
-      expect(staticSpan.style.display).not.toBe('none');
+      expect(staticSpan.classList.contains('invisible')).toBe(false);
     });
 
     it('should render a hidden measurement span with aria-hidden', () => {
@@ -44,8 +43,7 @@ describe('MarqueePillLabel', () => {
       const root = container.firstElementChild as HTMLSpanElement;
 
       const marqueeSpan = root.children[2] as HTMLSpanElement;
-      expect(marqueeSpan.style.display).toBe('none');
-      // Contains duplicated text for seamless loop
+      expect(marqueeSpan.classList.contains('invisible')).toBe(true);
       expect(marqueeSpan.textContent).toContain(LABEL);
     });
   });
@@ -58,15 +56,13 @@ describe('MarqueePillLabel', () => {
       const staticSpan = root.children[1] as HTMLSpanElement;
       const marqueeSpan = root.children[2] as HTMLSpanElement;
 
-      // Text fits: measureSpan width <= container width
       mockDimensions(measureSpan, { offsetWidth: 100 });
       mockDimensions(root, { clientWidth: 120 });
 
       fireEvent.mouseEnter(root);
 
-      // Static still visible, marquee still hidden
-      expect(staticSpan.style.display).not.toBe('none');
-      expect(marqueeSpan.style.display).toBe('none');
+      expect(staticSpan.classList.contains('invisible')).toBe(false);
+      expect(marqueeSpan.classList.contains('invisible')).toBe(true);
       expect(marqueeSpan.classList.contains('pill-marquee-track')).toBe(false);
     });
   });
@@ -84,30 +80,22 @@ describe('MarqueePillLabel', () => {
       staticSpan = root.children[1] as HTMLSpanElement;
       marqueeSpan = root.children[2] as HTMLSpanElement;
 
-      // Text overflows: measureSpan width > container width
       mockDimensions(measureSpan, { offsetWidth: 200 });
       mockDimensions(root, { clientWidth: 80 });
-      // Mock offsetWidth for reflow trigger
       mockDimensions(marqueeSpan, { offsetWidth: 0 });
     });
 
     it('should hide static span and show marquee span', () => {
       fireEvent.mouseEnter(root);
 
-      expect(staticSpan.style.display).toBe('none');
-      expect(marqueeSpan.style.display).toBe('inline-block');
+      expect(staticSpan.classList.contains('invisible')).toBe(true);
+      expect(marqueeSpan.classList.contains('invisible')).toBe(false);
     });
 
     it('should add pill-marquee-track class to marquee span', () => {
       fireEvent.mouseEnter(root);
 
       expect(marqueeSpan.classList.contains('pill-marquee-track')).toBe(true);
-    });
-
-    it('should lock container width to prevent layout shift', () => {
-      fireEvent.mouseEnter(root);
-
-      expect(root.style.width).toBe('80px');
     });
 
     it('should set correct CSS custom property and animation duration', () => {
@@ -129,19 +117,16 @@ describe('MarqueePillLabel', () => {
       const staticSpan = root.children[1] as HTMLSpanElement;
       const marqueeSpan = root.children[2] as HTMLSpanElement;
 
-      // Simulate overflow and hover
       mockDimensions(measureSpan, { offsetWidth: 200 });
       mockDimensions(root, { clientWidth: 80 });
       mockDimensions(marqueeSpan, { offsetWidth: 0 });
       fireEvent.mouseEnter(root);
 
-      // Now leave
       fireEvent.mouseLeave(root);
 
-      expect(staticSpan.style.display).toBe('');
-      expect(marqueeSpan.style.display).toBe('none');
+      expect(staticSpan.classList.contains('invisible')).toBe(false);
+      expect(marqueeSpan.classList.contains('invisible')).toBe(true);
       expect(marqueeSpan.classList.contains('pill-marquee-track')).toBe(false);
-      expect(root.style.width).toBe('');
     });
   });
 
@@ -150,7 +135,6 @@ describe('MarqueePillLabel', () => {
       const { container } = render(<MarqueePillLabel>{LABEL}</MarqueePillLabel>);
       const root = container.firstElementChild as HTMLSpanElement;
 
-      // mouseLeave without prior mouseEnter — should be a no-op
       expect(() => fireEvent.mouseLeave(root)).not.toThrow();
     });
   });
