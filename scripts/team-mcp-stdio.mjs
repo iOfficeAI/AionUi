@@ -157,9 +157,7 @@ The new agent will be created and added to the team. You can then assign tasks a
     agent_type: z
       .string()
       .optional()
-      .describe(
-        'Agent type/backend (default: same as leader). Supports ACP-compatible backends: claude, codex, qwen, goose, kimi, opencode, copilot, codebuddy, etc.'
-      ),
+      .describe('Agent type/backend (default: same as leader). Currently supported: claude, codex, codebuddy.'),
   },
   TEAM_MCP_PORT,
   TEAM_AGENT_SLOT_ID,
