@@ -34,7 +34,7 @@ export interface McpOperationResult {
  */
 export interface McpConnectionTestResult {
   success: boolean;
-  tools?: Array<{ name: string; description?: string }>;
+  tools?: Array<{ name: string; description?: string; _meta?: Record<string, unknown> }>;
   error?: string;
   needsAuth?: boolean; // 是否需要 OAuth 认证
   authMethod?: 'oauth' | 'basic'; // 认证方法
@@ -245,6 +245,7 @@ export abstract class AbstractMcpAgent implements IMcpProtocol {
       const tools = result.tools.map((tool) => ({
         name: tool.name,
         description: tool.description,
+        ...(tool._meta ? { _meta: tool._meta } : {}),
       }));
 
       return { success: true, tools };
@@ -427,9 +428,9 @@ export abstract class AbstractMcpAgent implements IMcpProtocol {
     headers?: Record<string, string>;
   }): Promise<McpConnectionTestResult> {
     try {
-      // app imported statically
-
-      const initResponse = await fetch(transport.url, {
+      // Quick probe: check if the server requires authentication before
+      // handing off to the SDK (which doesn't surface 401 details).
+      const probeResponse = await fetch(transport.url, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -442,9 +443,7 @@ export abstract class AbstractMcpAgent implements IMcpProtocol {
           id: 1,
           params: {
             protocolVersion: '2024-11-05',
-            capabilities: {
-              tools: {},
-            },
+            capabilities: { tools: {} },
             clientInfo: {
               name: getPlatformServices().paths.getName(),
               version: getPlatformServices().paths.getVersion(),
@@ -453,9 +452,8 @@ export abstract class AbstractMcpAgent implements IMcpProtocol {
         }),
       });
 
-      // 检查是否需要认证
-      if (initResponse.status === 401) {
-        const wwwAuthenticate = initResponse.headers.get('WWW-Authenticate');
+      if (probeResponse.status === 401) {
+        const wwwAuthenticate = probeResponse.headers.get('WWW-Authenticate');
         if (wwwAuthenticate) {
           return {
             success: false,
@@ -465,68 +463,23 @@ export abstract class AbstractMcpAgent implements IMcpProtocol {
             error: 'Authentication required',
           };
         }
-      }
-
-      if (!initResponse.ok) {
         return {
           success: false,
-          error: `HTTP ${initResponse.status}: ${initResponse.statusText}`,
+          error: `HTTP ${probeResponse.status}: ${probeResponse.statusText}`,
         };
       }
 
-      // If server responds with SSE, delegate to StreamableHTTPClientTransport
-      const contentType = initResponse.headers.get('Content-Type') || '';
-      if (contentType.includes('text/event-stream')) {
-        return this.testStreamableHttpConnection(transport);
-      }
-
-      const initResult = await initResponse.json();
-      if (initResult.error) {
+      if (!probeResponse.ok) {
         return {
           success: false,
-          error: initResult.error.message || 'Initialize failed',
+          error: `HTTP ${probeResponse.status}: ${probeResponse.statusText}`,
         };
       }
 
-      const toolsResponse = await fetch(transport.url, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          ...transport.headers,
-        },
-        body: JSON.stringify({
-          jsonrpc: JSONRPC_VERSION,
-          method: 'tools/list',
-          id: 2,
-          params: {},
-        }),
-      });
-
-      if (!toolsResponse.ok) {
-        return {
-          success: true,
-          tools: [],
-          error: `Could not fetch tools: HTTP ${toolsResponse.status}`,
-        };
-      }
-
-      const toolsResult = await toolsResponse.json();
-      if (toolsResult.error) {
-        return {
-          success: true,
-          tools: [],
-          error: toolsResult.error.message || 'Tools list failed',
-        };
-      }
-
-      const tools = toolsResult.result?.tools || [];
-      return {
-        success: true,
-        tools: tools.map((tool: { name: string; description?: string }) => ({
-          name: tool.name,
-          description: tool.description,
-        })),
-      };
+      // Auth OK — close the probe body and delegate to StreamableHTTPClientTransport
+      // which handles session-id, SSE, and all protocol details correctly.
+      await probeResponse.body?.cancel().catch(() => {});
+      return this.testStreamableHttpConnection(transport);
     } catch (error) {
       return {
         success: false,
@@ -575,6 +528,7 @@ export abstract class AbstractMcpAgent implements IMcpProtocol {
       const tools = result.tools.map((tool) => ({
         name: tool.name,
         description: tool.description,
+        ...(tool._meta ? { _meta: tool._meta } : {}),
       }));
 
       return { success: true, tools };

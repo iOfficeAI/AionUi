@@ -557,6 +557,7 @@ export interface IMcpTool {
   name: string;
   description?: string;
   inputSchema?: unknown;
+  _meta?: Record<string, unknown>;
 }
 
 /**
