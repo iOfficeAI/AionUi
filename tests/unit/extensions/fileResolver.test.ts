@@ -69,6 +69,22 @@ describe('extensions/fileResolver', () => {
     await fs.rm(outsideFile, { force: true });
   });
 
+  it('应阻止通过符号链接读取扩展目录外的文件', async () => {
+    const outsideDir = await fs.mkdtemp(path.join(os.tmpdir(), 'aionui-ext-outside-'));
+    const outsideFile = path.join(outsideDir, 'secret.txt');
+    const symlinkDir = path.join(extensionDir, 'linked');
+
+    await fs.writeFile(outsideFile, 'secret', 'utf-8');
+    await fs.symlink(outsideDir, symlinkDir, 'dir');
+
+    const result = await resolveFileRefs('$file:linked/secret.txt', extensionDir);
+
+    expect(result).toBe('$file:linked/secret.txt');
+    expect(warnSpy).toHaveBeenCalled();
+
+    await fs.rm(outsideDir, { recursive: true, force: true });
+  });
+
   it('应在循环引用时回退为原始引用字符串', async () => {
     await fs.writeFile(path.join(extensionDir, 'a.json'), '{"next":"$file:b.json"}', 'utf-8');
     await fs.writeFile(path.join(extensionDir, 'b.json'), '{"next":"$file:a.json"}', 'utf-8');

@@ -223,7 +223,7 @@ export class AcpConnection {
       if (AcpConnection.NPX_BACKENDS.has(backend) && /notarget|no matching version/i.test(errMsg)) {
         console.warn(`[ACP] Detected stale npm cache for ${backend}, cleaning and retrying...`);
         try {
-          const cleanEnv = prepareCleanEnv();
+          const cleanEnv = await prepareCleanEnv();
           const npmPath = resolveNpxPath(cleanEnv)
             .replace(/npx$/, 'npm')
             .replace(/npx\.cmd$/, 'npm.cmd');

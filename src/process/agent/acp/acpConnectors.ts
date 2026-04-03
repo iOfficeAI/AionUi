@@ -27,6 +27,7 @@ import {
   getEnhancedEnv,
   getNpxCacheDir,
   getWindowsShellExecutionOptions,
+  loadFullShellEnvironment,
   resolveNpxPath,
 } from '@process/utils/shellEnv';
 import { mainLog, mainWarn } from '@process/utils/mainLogger';
@@ -109,27 +110,41 @@ function isCodexMetaPackageOptionalDependencyError(errorMessage: string): boolea
 
 /**
  * Prepare a clean environment for ACP backends.
- * Removes Electron-injected NODE_OPTIONS, npm lifecycle vars, and other
- * env vars that interfere with child Node.js processes.
+ *
+ * Merges the full user shell environment (including custom env vars like
+ * API keys exported in .zshrc) with the enhanced env (PATH merging,
+ * bundled tool paths). Then removes Electron-injected NODE_OPTIONS,
+ * npm lifecycle vars, and other env vars that interfere with child
+ * Node.js processes.
  */
-export function prepareCleanEnv(): Record<string, string | undefined> {
+export async function prepareCleanEnv(): Promise<Record<string, string | undefined>> {
+  const fullShellEnv = await loadFullShellEnvironment();
   const cleanEnv = getEnhancedEnv();
-  delete cleanEnv.NODE_OPTIONS;
-  delete cleanEnv.NODE_INSPECT;
-  delete cleanEnv.NODE_DEBUG;
+
+  // Merge full shell env as base, then overlay getEnhancedEnv on top
+  // so that PATH merging and bundled bun injection are preserved,
+  // while user-defined vars (e.g. SSS_API_KEY) from .zshrc are included.
+  const merged: Record<string, string | undefined> = {
+    ...fullShellEnv,
+    ...cleanEnv,
+  };
+
+  delete merged.NODE_OPTIONS;
+  delete merged.NODE_INSPECT;
+  delete merged.NODE_DEBUG;
   // Remove CLAUDECODE env var to prevent claude-agent-sdk from detecting
   // a nested session when AionUi itself is launched from Claude Code.
-  delete cleanEnv.CLAUDECODE;
+  delete merged.CLAUDECODE;
   // Strip npm lifecycle vars inherited from parent `npm start` process.
   // These (npm_config_*, npm_lifecycle_*, npm_package_*) can cause npx to
   // behave as if running inside an npm script, interfering with package
   // resolution and child process startup.
-  for (const key of Object.keys(cleanEnv)) {
+  for (const key of Object.keys(merged)) {
     if (key.startsWith('npm_')) {
-      delete cleanEnv[key];
+      delete merged[key];
     }
   }
-  return cleanEnv;
+  return merged;
 }
 
 /**
@@ -319,15 +334,15 @@ export function spawnNpxBackend(
 }
 
 /** Prepare clean env + resolve npx for Claude ACP bridge. */
-function prepareClaude(): NpxPrepareResult {
-  const cleanEnv = prepareCleanEnv();
+async function prepareClaude(): Promise<NpxPrepareResult> {
+  const cleanEnv = await prepareCleanEnv();
   ensureMinNodeVersion(cleanEnv, 20, 10, 'Claude ACP bridge');
   return { cleanEnv, npxCommand: resolveNpxPath(cleanEnv) };
 }
 
 /** Prepare clean env + resolve npx + run diagnostics for Codex ACP bridge. */
 async function prepareCodex(codexAcpPackage: string = CODEX_ACP_NPX_PACKAGE): Promise<NpxPrepareResult> {
-  const cleanEnv = prepareCleanEnv();
+  const cleanEnv = await prepareCleanEnv();
   ensureMinNodeVersion(cleanEnv, 20, 10, 'Codex ACP bridge');
 
   const codexCommand = process.platform === 'win32' ? 'codex.cmd' : 'codex';
@@ -426,7 +441,7 @@ async function resolveCachedCodexAcpBinary(): Promise<{ binaryPath: string; pack
 
 /** Prepare clean env + resolve npx + load MCP config for CodeBuddy. */
 async function prepareCodebuddy(): Promise<NpxPrepareResult> {
-  const cleanEnv = prepareCleanEnv();
+  const cleanEnv = await prepareCleanEnv();
   ensureMinNodeVersion(cleanEnv, 20, 10, 'CodeBuddy ACP');
 
   // Load user's MCP config if available (~/.codebuddy/mcp.json)
@@ -463,7 +478,7 @@ export async function spawnGenericBackend(
     // best-effort: if mkdir fails, let spawn report the actual error
   }
 
-  const cleanEnv = prepareCleanEnv();
+  const cleanEnv = await prepareCleanEnv();
   if (customEnv) {
     Object.assign(cleanEnv, customEnv);
   }

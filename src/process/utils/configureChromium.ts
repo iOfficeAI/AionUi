@@ -9,16 +9,15 @@ import http from 'http';
 import * as fs from 'fs';
 import * as path from 'path';
 import os from 'os';
+import { getDevAppName } from '@/common/platform';
 
 // ============ Environment Separation ============
-// MUST be the very first code to run: set app name before any getPath() call.
-// In development, use 'AionUi-Dev' so userData is isolated from the production install.
+// Set app name before any getPath() call so userData is isolated from production.
+// Note: getPlatformServices() auto-registration also applies this as a safety net
+// in case Rollup loads initStorage's chunk before this module runs.
 // 开发模式下设置独立 app 名称，userData 目录将与正式版隔离，允许同时运行
-// 这必须在所有其他代码之前执行，因为 getPath('userData') 会锁定当前的 app 名称
 if (!app.isPackaged) {
-  // Multi-instance support: use a separate userData directory to avoid DB lock contention
-  const isMultiInstance = process.env.AIONUI_MULTI_INSTANCE === '1';
-  const devAppName = isMultiInstance ? 'AionUi-Dev-2' : 'AionUi-Dev';
+  const devAppName = getDevAppName();
   app.setName(devAppName);
   // In Electron 28+, setName alone no longer updates userData path on macOS.
   // Explicitly override userData to the dev directory.
