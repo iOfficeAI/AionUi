@@ -30,7 +30,7 @@ const CACHED_CONFIG_OPTIONS_KEY = 'acp.cachedConfigOptions';
  */
 function cacheConfigOptions(backend: string, options: AcpSessionConfigOption[]): void {
   ConfigStorage.get(CACHED_CONFIG_OPTIONS_KEY)
-    .then((cached) => ConfigStorage.set(CACHED_CONFIG_OPTIONS_KEY, { ...(cached || {}), [backend]: options }))
+    .then((cached) => ConfigStorage.set(CACHED_CONFIG_OPTIONS_KEY, { ...cached, [backend]: options }))
     .catch(() => {});
 }
 
