@@ -117,148 +117,106 @@ const WriteFile = async (filePath: string, data: string) => {
   return fs.writeFile(filePath, data);
 };
 
-const ReadFile = (path: string) => {
-  return fs.readFile(path);
-};
+/**
+ * In-memory JSON store backed by a file on disk.
+ *
+ * Data is loaded once (synchronously on first access) and kept in memory.
+ * - `get` / `getSync` read from the in-memory cache (microseconds).
+ * - `set` / `remove` / `clear` update the cache first, then persist to disk.
+ * - Disk writes are serialized via a simple promise chain to prevent corruption.
+ *
+ * The on-disk format stays base64(encodeURIComponent(JSON)) for backward compat.
+ */
+const JsonFileBuilder = <S extends object = Record<string, unknown>>(filePath: string) => {
+  // -- encoding helpers (unchanged, keeps backward compat) --
+  const encode = (data: unknown) => btoa(encodeURIComponent(String(data)));
+  const decode = (base64: string) => decodeURIComponent(atob(base64));
 
-const RmFile = (path: string) => {
-  return fs.rm(path, { recursive: true });
-};
+  // -- in-memory cache --
+  let cache: S | null = null;
 
-const CopyFile = (src: string, dest: string) => {
-  return fs.copyFile(src, dest);
-};
-
-const FileBuilder = (file: string) => {
-  const stack: (() => Promise<unknown>)[] = [];
-  let isRunning = false;
-  const run = () => {
-    if (isRunning || !stack.length) return;
-    isRunning = true;
-    void stack
-      .shift()?.()
-      .finally(() => {
-        isRunning = false;
-        run();
-      });
-  };
-  const pushStack = <R>(fn: () => Promise<R>) => {
-    return new Promise<R>((resolve, reject) => {
-      stack.push(() => fn().then(resolve).catch(reject));
-      run();
-    });
-  };
-  return {
-    path: file,
-    write(data: string) {
-      return pushStack(() => WriteFile(file, data));
-    },
-    read() {
-      return pushStack(() =>
-        ReadFile(file).then((data) => {
-          return data.toString();
-        })
-      );
-    },
-    copy(dist: string) {
-      return pushStack(() => CopyFile(file, dist));
-    },
-    rm() {
-      return pushStack(() => RmFile(file));
-    },
-  };
-};
-
-const JsonFileBuilder = <S extends object = Record<string, unknown>>(path: string) => {
-  const file = FileBuilder(path);
-  const encode = (data: unknown) => {
-    return btoa(encodeURIComponent(String(data)));
-  };
-
-  const decode = (base64: string) => {
-    return decodeURIComponent(atob(base64));
-  };
-
-  const toJson = async (): Promise<S> => {
+  const loadSync = (): S => {
     try {
-      const result = await file.read();
-      if (!result) return {} as S;
-
-      // 验证文件内容不为空且不是损坏的base64
-      if (result.trim() === '') {
-        console.warn(`[Storage] Empty file detected: ${path}`);
-        return {} as S;
-      }
-
-      const decoded = decode(result);
-      if (!decoded || decoded.trim() === '') {
-        console.warn(`[Storage] Empty or corrupted content after decode: ${path}`);
-        return {} as S;
-      }
-
+      const raw = readFileSync(filePath).toString();
+      if (!raw || raw.trim() === '') return {} as S;
+      const decoded = decode(raw);
+      if (!decoded || decoded.trim() === '') return {} as S;
       const parsed = JSON.parse(decoded) as S;
-
-      // 额外验证：如果是聊天历史文件且解析结果为空对象，警告用户
-      if (path.includes('chat.txt') && Object.keys(parsed).length === 0) {
-        console.warn(`[Storage] Chat history file appears to be empty: ${path}`);
+      if (filePath.includes('chat.txt') && Object.keys(parsed).length === 0) {
+        console.warn(`[Storage] Chat history file appears to be empty: ${filePath}`);
       }
-
       return parsed;
-    } catch (e) {
-      // console.error(`[Storage] Error reading/parsing file ${path}:`, e);
+    } catch {
       return {} as S;
     }
   };
+
+  const ensureLoaded = (): S => {
+    if (cache === null) {
+      cache = loadSync();
+    }
+    return cache;
+  };
+
+  // -- serialized disk persistence --
+  let writeChain: Promise<unknown> = Promise.resolve();
+
+  const persist = (): Promise<S> => {
+    const data = cache ?? ({} as S);
+    const encoded = encode(JSON.stringify(data));
+    // Write once, branch the promise: writeChain stays resolved (so one
+    // failure doesn't block subsequent writes), callers get the real error.
+    const writeOp = writeChain.then(() => WriteFile(filePath, encoded));
+    writeChain = writeOp.catch(() => {});
+    return writeOp.then(
+      () => data,
+      (err) => {
+        console.error(`[Storage] Failed to persist ${filePath}:`, err);
+        throw err;
+      }
+    );
+  };
+
+  // -- public API (same shape as before) --
+  const toJson = async (): Promise<S> => ensureLoaded();
 
   const setJson = async (data: S): Promise<S> => {
-    try {
-      await file.write(encode(JSON.stringify(data)));
-      return data;
-    } catch (e) {
-      return Promise.reject(e);
-    }
+    cache = data;
+    return persist();
   };
 
-  const toJsonSync = (): S => {
-    try {
-      return JSON.parse(decode(readFileSync(path).toString())) as S;
-    } catch (e) {
-      return {} as S;
-    }
-  };
+  const toJsonSync = (): S => ensureLoaded();
 
   return {
     toJson,
     setJson,
     toJsonSync,
     async set<K extends keyof S>(key: K, value: Awaited<S>[K]): Promise<Awaited<S>[K]> {
-      const data = await toJson();
+      const data = ensureLoaded();
       data[key] = value;
-      await setJson(data);
+      await persist();
       return value;
     },
     async get<K extends keyof S>(key: K): Promise<Awaited<S>[K]> {
-      const data = await toJson();
-      return data[key] as Awaited<S>[K];
+      return ensureLoaded()[key] as Awaited<S>[K];
     },
     async remove<K extends keyof S>(key: K) {
-      const data = await toJson();
+      const data = ensureLoaded();
       delete data[key];
-      return setJson(data);
+      return persist();
     },
     clear() {
-      return setJson({} as S);
+      cache = {} as S;
+      return persist();
     },
     getSync<K extends keyof S>(key: K): S[K] {
-      const data = toJsonSync();
-      return data[key];
+      return ensureLoaded()[key];
     },
     update<K extends keyof S>(key: K, updateFn: (value: S[K], data: S) => Promise<S[K]>) {
-      return toJson().then((data) => {
-        return updateFn(data[key], data).then((value) => {
-          data[key] = value;
-          return setJson(data);
-        });
+      const data = ensureLoaded();
+      return updateFn(data[key], data).then((value) => {
+        data[key] = value;
+        return persist();
       });
     },
     backup(fullName: string) {
@@ -266,7 +224,17 @@ const JsonFileBuilder = <S extends object = Record<string, unknown>>(path: strin
       if (!existsSync(dir)) {
         mkdirSync(dir);
       }
-      return file.copy(fullName).then(() => file.rm());
+      // Backup: copy the file then remove original
+      const doCopy = () => fs.copyFile(filePath, fullName).then(() => fs.rm(filePath, { recursive: true }));
+      const backupOp = writeChain.then(doCopy);
+      writeChain = backupOp.catch(() => {});
+      return backupOp.then(
+        () => {},
+        (err) => {
+          console.error(`[Storage] Backup failed:`, err);
+          throw err;
+        }
+      );
     },
   };
 };
