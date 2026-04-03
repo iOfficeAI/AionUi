@@ -8,13 +8,14 @@ import { ipcBridge } from '@/common';
 import type { IStartOnBootStatus } from '@/common/adapter/ipcBridge';
 import { ConfigStorage } from '@/common/config/storage';
 import LanguageSwitcher from '@/renderer/components/settings/LanguageSwitcher';
+import { COMMAND_QUEUE_ENABLED_SWR_KEY } from '@/renderer/hooks/system/useCommandQueueEnabled';
 import { iconColors } from '@/renderer/styles/colors';
 import { isElectronDesktop } from '@/renderer/utils/platform';
 import { Alert, Button, Collapse, Form, InputNumber, Message, Modal, Switch, Tooltip } from '@arco-design/web-react';
 import { FolderSearch } from '@icon-park/react';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import useSWR from 'swr';
+import useSWR, { mutate as mutateSWR } from 'swr';
 import AionScrollArea from '@/renderer/components/base/AionScrollArea';
 import { useSettingsViewMode } from '../../settingsViewContext';
 import DevSettings from './DevSettings';
@@ -48,6 +49,7 @@ const SystemModalContent: React.FC = () => {
   const [cronNotificationEnabled, setCronNotificationEnabled] = useState(false);
   const [promptTimeout, setPromptTimeout] = useState<number>(300);
   const [saveUploadToWorkspace, setSaveUploadToWorkspace] = useState(false);
+  const [commandQueueEnabled, setCommandQueueEnabled] = useState(false);
 
   useEffect(() => {
     if (!isDesktop) {
@@ -97,6 +99,13 @@ const SystemModalContent: React.FC = () => {
     ipcBridge.systemSettings.getSaveUploadToWorkspace
       .invoke()
       .then((enabled) => setSaveUploadToWorkspace(enabled))
+      .catch(() => {});
+  }, []);
+
+  useEffect(() => {
+    ipcBridge.systemSettings.getCommandQueueEnabled
+      .invoke()
+      .then((enabled) => setCommandQueueEnabled(enabled))
       .catch(() => {});
   }, []);
 
@@ -158,6 +167,15 @@ const SystemModalContent: React.FC = () => {
     });
   }, []);
 
+  const handleCommandQueueEnabledChange = useCallback((checked: boolean) => {
+    setCommandQueueEnabled(checked);
+    void mutateSWR(COMMAND_QUEUE_ENABLED_SWR_KEY, checked, { revalidate: false });
+    ipcBridge.systemSettings.setCommandQueueEnabled.invoke({ enabled: checked }).catch(() => {
+      setCommandQueueEnabled(!checked);
+      void mutateSWR(COMMAND_QUEUE_ENABLED_SWR_KEY, !checked, { revalidate: false });
+    });
+  }, []);
+
   // Get system directory info
   const { data: systemInfo } = useSWR('system.dir.info', () => ipcBridge.application.systemInfo.invoke());
 
@@ -206,6 +224,12 @@ const SystemModalContent: React.FC = () => {
       key: 'saveUploadToWorkspace',
       label: t('settings.saveUploadToWorkspace'),
       component: <Switch checked={saveUploadToWorkspace} onChange={handleSaveUploadToWorkspaceChange} />,
+    },
+    {
+      key: 'commandQueueEnabled',
+      label: t('settings.commandQueueEnabled'),
+      description: t('settings.commandQueueEnabledDesc'),
+      component: <Switch checked={commandQueueEnabled} onChange={handleCommandQueueEnabledChange} />,
     },
   ];
 

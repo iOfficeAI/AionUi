@@ -23,6 +23,7 @@ const queueSpies = {
 };
 
 const mockShouldEnqueueConversationCommand = vi.fn(() => false);
+const mockUseCommandQueueEnabled = vi.fn(() => true);
 const mockUseConversationCommandQueue = vi.fn(() => ({
   items: [] as QueueItem[],
   isPaused: false,
@@ -235,6 +236,10 @@ vi.mock('@/renderer/hooks/agent/useAgentReadinessCheck', () => ({
   })),
 }));
 
+vi.mock('@/renderer/hooks/system/useCommandQueueEnabled', () => ({
+  useCommandQueueEnabled: () => mockUseCommandQueueEnabled(),
+}));
+
 vi.mock('@/renderer/pages/conversation/Messages/hooks', () => ({
   useAddOrUpdateMessage: () => mockAddOrUpdateMessage,
   useRemoveMessageByMsgId: () => mockRemoveMessageByMsgId,
@@ -366,6 +371,7 @@ describe('platform send box queue integration', () => {
     resetQueueSpies();
 
     mockShouldEnqueueConversationCommand.mockReturnValue(false);
+    mockUseCommandQueueEnabled.mockReturnValue(true);
     mockUseConversationCommandQueue.mockReturnValue({
       items: [],
       isPaused: false,
@@ -509,6 +515,40 @@ describe('platform send box queue integration', () => {
         files: [],
       });
     });
+  });
+
+  it.each([
+    ['acp', <AcpSendBox conversation_id='conv-acp' backend='claude' />, mockAcpSendInvoke],
+    [
+      'gemini',
+      <GeminiSendBox
+        conversation_id='conv-gemini'
+        modelSelection={{
+          currentModel: { useModel: 'gemini-2.5' },
+          getDisplayModelName: (modelId: string) => modelId,
+          providers: ['google'],
+          geminiModeLookup: {},
+          getAvailableModels: () => [],
+          handleSelectModel: vi.fn(),
+        }}
+      />,
+      mockGeminiSendInvoke,
+    ],
+    ['nanobot', <NanobotSendBox conversation_id='conv-nanobot' />, mockConversationSendInvoke],
+    ['openclaw', <OpenClawSendBox conversation_id='conv-openclaw' />, mockOpenClawSendInvoke],
+  ])('sends immediately for %s when queue setting is disabled', async (_name, element, sendSpy) => {
+    mockUseCommandQueueEnabled.mockReturnValue(false);
+    mockShouldEnqueueConversationCommand.mockImplementation(({ enabled }: { enabled?: boolean }) => Boolean(enabled));
+
+    render(element);
+
+    fireEvent.click(screen.getByRole('button', { name: 'trigger-send' }));
+
+    await waitFor(() => {
+      expect(sendSpy).toHaveBeenCalledTimes(1);
+    });
+
+    expect(queueSpies.enqueue).not.toHaveBeenCalled();
   });
 
   it.each([

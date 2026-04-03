@@ -1094,6 +1094,8 @@ export type I18nKey =
   | 'settings.commandHelp'
   | 'settings.commandLabel'
   | 'settings.commandPlaceholder'
+  | 'settings.commandQueueEnabled'
+  | 'settings.commandQueueEnabledDesc'
   | 'settings.configGuide'
   | 'settings.configGuideSuffix'
   | 'settings.configMode'

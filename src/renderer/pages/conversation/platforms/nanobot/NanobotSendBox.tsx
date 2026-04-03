@@ -35,6 +35,7 @@ import { useOpenFileSelector } from '@/renderer/hooks/file/useOpenFileSelector';
 import FileAttachButton from '@/renderer/components/media/FileAttachButton';
 import { useAutoTitle } from '@/renderer/hooks/chat/useAutoTitle';
 import { useSlashCommands } from '@/renderer/hooks/chat/useSlashCommands';
+import { useCommandQueueEnabled } from '@/renderer/hooks/system/useCommandQueueEnabled';
 
 interface NanobotDraftData {
   _type: 'nanobot';
@@ -58,6 +59,7 @@ const NanobotSendBox: React.FC<{ conversation_id: string }> = ({ conversation_id
   const { t } = useTranslation();
   const { checkAndUpdateTitle } = useAutoTitle();
   const slashCommands = useSlashCommands(conversation_id);
+  const isCommandQueueEnabled = useCommandQueueEnabled();
   const addOrUpdateMessage = useAddOrUpdateMessage();
   const removeMessageByMsgId = useRemoveMessageByMsgId();
   const { setSendBoxHandler } = usePreviewContext();
@@ -285,6 +287,7 @@ const NanobotSendBox: React.FC<{ conversation_id: string }> = ({ conversation_id
     resetActiveExecution,
   } = useConversationCommandQueue({
     conversationId: conversation_id,
+    enabled: isCommandQueueEnabled,
     isBusy: aiProcessing,
     isHydrated: hasHydratedRunningState,
     onExecute: executeCommand,
@@ -296,7 +299,7 @@ const NanobotSendBox: React.FC<{ conversation_id: string }> = ({ conversation_id
     setAtPath([]);
     setUploadFile([]);
 
-    if (shouldEnqueueConversationCommand({ isBusy: aiProcessing, hasPendingCommands })) {
+    if (shouldEnqueueConversationCommand({ enabled: isCommandQueueEnabled, isBusy: aiProcessing, hasPendingCommands })) {
       enqueue({ input: message, files: filePaths });
       return;
     }
