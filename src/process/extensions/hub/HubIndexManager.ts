@@ -18,7 +18,7 @@ import {
  * Data flow:
  *   1. AcpDetector completes first (external dependency)
  *   2. Load local bundled index
- *   3. Fetch remote index as supplement (local takes priority on conflict)
+ *   3. Fetch remote index (remote takes priority on name conflict)
  *   4. Resolve `bundled` flag: true only if zip exists in Resources dir
  *   5. Derive status: AcpDetector-detected agents → installed
  */
@@ -46,12 +46,11 @@ class HubIndexManagerImpl {
     // Step 2: Remote index — retry until success
     if (!this.remoteLoaded) {
       const remoteIndex = await this.fetchRemoteIndex();
+
       if (Object.keys(remoteIndex).length > 0) {
-        // Merge: existing (local) wins on name conflict
+        // Merge: remote WINS on name conflict
         for (const [name, ext] of Object.entries(remoteIndex)) {
-          if (!this.mergedIndex[name]) {
-            this.mergedIndex[name] = ext;
-          }
+          this.mergedIndex[name] = ext;
         }
         this.remoteLoaded = true;
       }
