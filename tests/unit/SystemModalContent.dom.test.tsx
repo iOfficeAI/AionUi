@@ -228,6 +228,11 @@ describe('SystemModalContent', () => {
     mockGetCronNotificationEnabled.mockResolvedValue(false);
     mockGetSaveUploadToWorkspace.mockResolvedValue(false);
     mockGetCommandQueueEnabled.mockResolvedValue(false);
+    mockSetCloseToTray.mockResolvedValue(undefined);
+    mockSetNotificationEnabled.mockResolvedValue(undefined);
+    mockSetCronNotificationEnabled.mockResolvedValue(undefined);
+    mockSetSaveUploadToWorkspace.mockResolvedValue(undefined);
+    mockSetCommandQueueEnabled.mockResolvedValue(undefined);
   });
 
   it('should render system settings with language switcher and preferences', async () => {
@@ -262,6 +267,30 @@ describe('SystemModalContent', () => {
 
     await waitFor(() => {
       expect(mockSetCommandQueueEnabled).toHaveBeenCalledWith({ enabled: true });
+    });
+  });
+
+  it('should revert command queue when the bridge rejects', async () => {
+    mockSetCommandQueueEnabled.mockRejectedValue(new Error('bridge rejected'));
+
+    render(<SystemModalContent />);
+
+    await waitFor(() => {
+      expect(screen.getByText('settings.commandQueueEnabled')).toBeInTheDocument();
+    });
+
+    const commandQueueSection = screen.getByText('settings.commandQueueEnabled').closest('.flex-1')?.parentElement;
+    const commandQueueSwitch = commandQueueSection?.querySelector('button[role="switch"]');
+
+    expect(commandQueueSwitch).toHaveAttribute('aria-checked', 'false');
+
+    await act(async () => {
+      fireEvent.click(commandQueueSwitch!);
+    });
+
+    await waitFor(() => {
+      expect(mockSetCommandQueueEnabled).toHaveBeenCalledWith({ enabled: true });
+      expect(commandQueueSwitch).toHaveAttribute('aria-checked', 'false');
     });
   });
 
