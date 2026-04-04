@@ -35,7 +35,7 @@
     "@react-navigation/drawer": "^7.9.4",
     "@react-navigation/native": "^7.1.8",
     "@shopify/flash-list": "2.0.2",
-    "axios": "^1.13.2",
+    "axios": "1.13.6",
     "expo": "~55.0.4",
     "expo-camera": "~55.0.10",
     "expo-clipboard": "~55.0.9",
