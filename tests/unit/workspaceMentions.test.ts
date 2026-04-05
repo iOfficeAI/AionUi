@@ -71,7 +71,7 @@ describe('workspaceMentions', () => {
     ]);
   });
 
-  it('returns the first sorted results when the query is empty', () => {
+  it('returns no results when the query is empty', () => {
     const items = [
       {
         path: '/workspace/b.ts',
