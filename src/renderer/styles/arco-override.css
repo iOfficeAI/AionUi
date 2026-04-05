@@ -93,6 +93,33 @@ body[arco-theme='dark'] .arco-tag-checked.arco-tag-gray {
   border-radius: 12px !important;
 }
 
+/* Fix dark mode for modal wrapper - ensure modal inherits dark theme properly */
+body[arco-theme='dark'] .arco-modal-wrapper {
+  background-color: rgba(0, 0, 0, 0.6) !important;
+}
+
+body[arco-theme='dark'] .arco-modal {
+  background-color: var(--bg-1) !important;
+}
+
+body[arco-theme='dark'] .arco-modal-header {
+  background-color: var(--bg-1) !important;
+  border-bottom-color: var(--bg-3) !important;
+}
+
+body[arco-theme='dark'] .arco-modal-title {
+  color: var(--text-t-primary) !important;
+}
+
+body[arco-theme='dark'] .arco-modal-close-icon {
+  color: var(--text-t-secondary) !important;
+}
+
+body[arco-theme='dark'] .arco-modal-close-icon:hover {
+  color: var(--text-t-primary) !important;
+  background-color: var(--fill-2) !important;
+}
+
 .aionui-modal-header {
   display: flex;
   justify-content: space-between;
