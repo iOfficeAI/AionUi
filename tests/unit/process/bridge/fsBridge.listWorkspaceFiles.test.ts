@@ -1,5 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import type { Dirent } from 'fs';
+import path from 'path';
 
 const providerCallbacks: Record<string, (...args: unknown[]) => unknown> = {};
 const makeProvider = (name: string) => ({
@@ -124,6 +125,8 @@ function dirent(name: string, kind: 'file' | 'dir'): Dirent {
 }
 
 describe('fsBridge listWorkspaceFiles', () => {
+  const workspaceRoot = path.resolve('/workspace');
+
   beforeEach(async () => {
     vi.clearAllMocks();
     vi.resetModules();
@@ -138,26 +141,26 @@ describe('fsBridge listWorkspaceFiles', () => {
 
     mockStat.mockResolvedValue({ isDirectory: () => true });
     mockReaddir.mockImplementation(async (dirPath: string) => {
-      if (dirPath === '/workspace') {
+      if (dirPath === workspaceRoot) {
         return [dirent('README.md', 'file'), dirent('references', 'dir')];
       }
-      if (dirPath === '/workspace/references') {
+      if (dirPath === path.join(workspaceRoot, 'references')) {
         return [dirent('prompt-keywords.md', 'file')];
       }
       return [];
     });
 
-    const result = await handler({ root: '/workspace' });
+    const result = await handler({ root: workspaceRoot });
 
     expect(result).toEqual([
       {
         name: 'README.md',
-        fullPath: '/workspace/README.md',
+        fullPath: path.join(workspaceRoot, 'README.md'),
         relativePath: 'README.md',
       },
       {
         name: 'prompt-keywords.md',
-        fullPath: '/workspace/references/prompt-keywords.md',
+        fullPath: path.join(workspaceRoot, 'references', 'prompt-keywords.md'),
         relativePath: 'references/prompt-keywords.md',
       },
     ]);
@@ -171,8 +174,8 @@ describe('fsBridge listWorkspaceFiles', () => {
     mockStat.mockResolvedValue({ isDirectory: () => true });
     mockReaddir.mockResolvedValue([dirent('README.md', 'file')]);
 
-    const first = await handler({ root: '/workspace' });
-    const second = await handler({ root: '/workspace' });
+    const first = await handler({ root: workspaceRoot });
+    const second = await handler({ root: workspaceRoot });
 
     expect(first).toEqual(second);
     expect(mockReaddir).toHaveBeenCalledTimes(1);
@@ -188,30 +191,30 @@ describe('fsBridge listWorkspaceFiles', () => {
     mockWriteFile.mockResolvedValue(undefined);
     mockReaddir.mockImplementation(async () => [dirent('README.md', 'file')]);
 
-    const first = await listHandler({ root: '/workspace' });
+    const first = await listHandler({ root: workspaceRoot });
     expect(first).toEqual([
       {
         name: 'README.md',
-        fullPath: '/workspace/README.md',
+        fullPath: path.join(workspaceRoot, 'README.md'),
         relativePath: 'README.md',
       },
     ]);
     expect(mockReaddir).toHaveBeenCalledTimes(1);
 
-    await writeHandler({ path: '/workspace/NEW_GUIDE.md', data: '# guide' });
+    await writeHandler({ path: path.join(workspaceRoot, 'NEW_GUIDE.md'), data: '# guide' });
 
     mockReaddir.mockImplementation(async () => [dirent('README.md', 'file'), dirent('NEW_GUIDE.md', 'file')]);
 
-    const second = await listHandler({ root: '/workspace' });
+    const second = await listHandler({ root: workspaceRoot });
     expect(second).toEqual([
       {
         name: 'NEW_GUIDE.md',
-        fullPath: '/workspace/NEW_GUIDE.md',
+        fullPath: path.join(workspaceRoot, 'NEW_GUIDE.md'),
         relativePath: 'NEW_GUIDE.md',
       },
       {
         name: 'README.md',
-        fullPath: '/workspace/README.md',
+        fullPath: path.join(workspaceRoot, 'README.md'),
         relativePath: 'README.md',
       },
     ]);
