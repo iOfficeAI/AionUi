@@ -73,6 +73,51 @@ const SHELL_INHERITED_ENV_VARS = [
 let cachedShellEnv: Record<string, string> | null = null;
 
 /**
+ * Resolve the user's login shell path.
+ * Falls back to /bin/zsh on macOS, /bin/bash on Linux, or /bin/sh as last resort.
+ * When Electron is launched from Finder/launchd, process.env.SHELL is often unset,
+ * so we query the system instead of defaulting to bash.
+ */
+function resolveLoginShell(): string {
+  // macOS: use dscl to read the user's login shell from Directory Service
+  if (process.platform === 'darwin') {
+    try {
+      const shell = execFileSync('dscl', ['.', '-read', `/Users/${os.userInfo().username}`, 'UserShell'], {
+        encoding: 'utf-8',
+        timeout: 2000,
+        stdio: ['pipe', 'pipe', 'pipe'],
+      })
+        .trim()
+        .split(/\s+/)
+        .pop();
+      if (shell && path.isAbsolute(shell)) return shell;
+    } catch {
+      /* dscl failed, fall through */
+    }
+    return '/bin/zsh'; // macOS default since Catalina
+  }
+
+  // Linux: read /etc/passwd
+  if (process.platform === 'linux') {
+    try {
+      const passwd = execFileSync('getent', ['passwd', os.userInfo().username], {
+        encoding: 'utf-8',
+        timeout: 2000,
+        stdio: ['pipe', 'pipe', 'pipe'],
+      }).trim();
+      const shell = passwd.split(':').pop();
+      if (shell && path.isAbsolute(shell)) return shell;
+    } catch {
+      /* getent failed, fall through */
+    }
+    return '/bin/bash'; // Linux default
+  }
+
+  // Windows: not used (shell env loading is skipped on Windows)
+  return process.env.SHELL || '/bin/sh';
+}
+
+/**
  * Load environment variables from user's login shell.
  * Captures variables set in .bashrc, .zshrc, .bash_profile, etc.
  *
@@ -94,9 +139,9 @@ function loadShellEnvironment(): Record<string, string> {
   }
 
   try {
-    const shell = process.env.SHELL || '/bin/bash';
+    const shell = resolveLoginShell();
     if (!path.isAbsolute(shell)) {
-      console.warn('[ShellEnv] SHELL is not an absolute path, skipping shell env loading:', shell);
+      console.warn('[ShellEnv] Resolved shell is not an absolute path, skipping shell env loading:', shell);
       return cachedShellEnv;
     }
     // Use -l (login) to load login shell configs (.bash_profile, .zprofile, etc.)
@@ -157,9 +202,9 @@ export async function loadShellEnvironmentAsync(): Promise<Record<string, string
   const startTime = Date.now();
 
   try {
-    const shell = process.env.SHELL || '/bin/bash';
+    const shell = resolveLoginShell();
     if (!path.isAbsolute(shell)) {
-      console.warn('[ShellEnv] SHELL is not an absolute path, skipping async shell env loading:', shell);
+      console.warn('[ShellEnv] Resolved shell is not an absolute path, skipping async shell env loading:', shell);
       cachedShellEnv = {};
       return cachedShellEnv;
     }
@@ -591,7 +636,7 @@ export function loadFullShellEnvironment(): Promise<Record<string, string>> {
 async function loadFullShellEnvironmentImpl(): Promise<Record<string, string>> {
   if (process.platform === 'win32') return {};
 
-  const shell = process.env.SHELL || '/bin/bash';
+  const shell = resolveLoginShell();
   if (!path.isAbsolute(shell)) return {};
 
   try {

@@ -14,7 +14,7 @@
  * 4. Shell environment is loaded and merged on macOS/Linux
  */
 
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import path from 'path';
 
 vi.mock('electron', () => ({
@@ -588,6 +588,162 @@ describe('loadFullShellEnvironment', () => {
 
     expect(first).toBe(second);
     expect(spawnMock).toHaveBeenCalledTimes(1);
+  });
+
+  it('uses dscl-resolved shell on macOS (via resolveLoginShell)', async () => {
+    Object.defineProperty(process, 'platform', { value: 'darwin' });
+
+    const execFileSync = vi.fn().mockReturnValue('UserShell: /opt/homebrew/bin/fish\n');
+    const mockStdout = {
+      on: vi.fn((event: string, cb: (chunk: Buffer) => void) => {
+        if (event === 'data') cb(Buffer.from('PATH=/usr/bin\n'));
+      }),
+    };
+    const mockStderr = { on: vi.fn() };
+    const mockChild = {
+      stdout: mockStdout,
+      stderr: mockStderr,
+      on: vi.fn((event: string, cb: (code: number) => void) => {
+        if (event === 'close') Promise.resolve().then(() => cb(0));
+      }),
+      unref: vi.fn(),
+      kill: vi.fn(),
+    };
+    const spawnMock = vi.fn().mockReturnValue(mockChild);
+
+    vi.doMock('child_process', () => ({ execFileSync, execFile: vi.fn(), spawn: spawnMock }));
+    vi.doMock('os', () => {
+      const userInfo = vi.fn().mockReturnValue({ username: 'testuser' });
+      const homedir = vi.fn().mockReturnValue('/Users/testuser');
+      return { default: { userInfo, homedir }, userInfo, homedir };
+    });
+
+    const { loadFullShellEnvironment } = await import('@process/utils/shellEnv');
+    await loadFullShellEnvironment();
+
+    expect(spawnMock).toHaveBeenCalledWith(
+      '/opt/homebrew/bin/fish',
+      ['-i', '-l', '-c', 'env'],
+      expect.objectContaining({ detached: true })
+    );
+  });
+
+  it('uses getent-resolved shell on Linux (via resolveLoginShell)', async () => {
+    Object.defineProperty(process, 'platform', { value: 'linux' });
+
+    const execFileSync = vi.fn().mockReturnValue('testuser:x:1000:1000:Test User:/home/testuser:/usr/bin/zsh\n');
+    const mockStdout = {
+      on: vi.fn((event: string, cb: (chunk: Buffer) => void) => {
+        if (event === 'data') cb(Buffer.from('PATH=/usr/bin\n'));
+      }),
+    };
+    const mockStderr = { on: vi.fn() };
+    const mockChild = {
+      stdout: mockStdout,
+      stderr: mockStderr,
+      on: vi.fn((event: string, cb: (code: number) => void) => {
+        if (event === 'close') Promise.resolve().then(() => cb(0));
+      }),
+      unref: vi.fn(),
+      kill: vi.fn(),
+    };
+    const spawnMock = vi.fn().mockReturnValue(mockChild);
+
+    vi.doMock('child_process', () => ({ execFileSync, execFile: vi.fn(), spawn: spawnMock }));
+    vi.doMock('os', () => {
+      const userInfo = vi.fn().mockReturnValue({ username: 'testuser' });
+      const homedir = vi.fn().mockReturnValue('/home/testuser');
+      return { default: { userInfo, homedir }, userInfo, homedir };
+    });
+
+    const { loadFullShellEnvironment } = await import('@process/utils/shellEnv');
+    await loadFullShellEnvironment();
+
+    expect(spawnMock).toHaveBeenCalledWith(
+      '/usr/bin/zsh',
+      ['-i', '-l', '-c', 'env'],
+      expect.objectContaining({ detached: true })
+    );
+  });
+
+  it('falls back to /bin/zsh on macOS when dscl fails', async () => {
+    Object.defineProperty(process, 'platform', { value: 'darwin' });
+
+    const execFileSync = vi.fn().mockImplementation(() => {
+      throw new Error('dscl failed');
+    });
+    const mockStdout = {
+      on: vi.fn((event: string, cb: (chunk: Buffer) => void) => {
+        if (event === 'data') cb(Buffer.from('PATH=/usr/bin\n'));
+      }),
+    };
+    const mockStderr = { on: vi.fn() };
+    const mockChild = {
+      stdout: mockStdout,
+      stderr: mockStderr,
+      on: vi.fn((event: string, cb: (code: number) => void) => {
+        if (event === 'close') Promise.resolve().then(() => cb(0));
+      }),
+      unref: vi.fn(),
+      kill: vi.fn(),
+    };
+    const spawnMock = vi.fn().mockReturnValue(mockChild);
+
+    vi.doMock('child_process', () => ({ execFileSync, execFile: vi.fn(), spawn: spawnMock }));
+    vi.doMock('os', () => {
+      const userInfo = vi.fn().mockReturnValue({ username: 'testuser' });
+      const homedir = vi.fn().mockReturnValue('/Users/testuser');
+      return { default: { userInfo, homedir }, userInfo, homedir };
+    });
+
+    const { loadFullShellEnvironment } = await import('@process/utils/shellEnv');
+    await loadFullShellEnvironment();
+
+    expect(spawnMock).toHaveBeenCalledWith(
+      '/bin/zsh',
+      ['-i', '-l', '-c', 'env'],
+      expect.objectContaining({ detached: true })
+    );
+  });
+
+  it('falls back to /bin/bash on Linux when getent fails', async () => {
+    Object.defineProperty(process, 'platform', { value: 'linux' });
+
+    const execFileSync = vi.fn().mockImplementation(() => {
+      throw new Error('getent failed');
+    });
+    const mockStdout = {
+      on: vi.fn((event: string, cb: (chunk: Buffer) => void) => {
+        if (event === 'data') cb(Buffer.from('PATH=/usr/bin\n'));
+      }),
+    };
+    const mockStderr = { on: vi.fn() };
+    const mockChild = {
+      stdout: mockStdout,
+      stderr: mockStderr,
+      on: vi.fn((event: string, cb: (code: number) => void) => {
+        if (event === 'close') Promise.resolve().then(() => cb(0));
+      }),
+      unref: vi.fn(),
+      kill: vi.fn(),
+    };
+    const spawnMock = vi.fn().mockReturnValue(mockChild);
+
+    vi.doMock('child_process', () => ({ execFileSync, execFile: vi.fn(), spawn: spawnMock }));
+    vi.doMock('os', () => {
+      const userInfo = vi.fn().mockReturnValue({ username: 'testuser' });
+      const homedir = vi.fn().mockReturnValue('/home/testuser');
+      return { default: { userInfo, homedir }, userInfo, homedir };
+    });
+
+    const { loadFullShellEnvironment } = await import('@process/utils/shellEnv');
+    await loadFullShellEnvironment();
+
+    expect(spawnMock).toHaveBeenCalledWith(
+      '/bin/bash',
+      ['-i', '-l', '-c', 'env'],
+      expect.objectContaining({ detached: true })
+    );
   });
 });
 
