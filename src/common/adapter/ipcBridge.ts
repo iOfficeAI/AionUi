@@ -978,11 +978,11 @@ export interface IFileMetadata {
   isDirectory?: boolean;
 }
 
-export interface IWorkspaceFlatFile {
+export type IWorkspaceFlatFile = {
   name: string;
   fullPath: string;
   relativePath: string;
-}
+};
 
 export interface IResponseMessage {
   type: string;

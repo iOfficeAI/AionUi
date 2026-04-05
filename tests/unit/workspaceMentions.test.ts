@@ -1,47 +1,7 @@
-import type { IDirOrFile } from '@/common/adapter/ipcBridge';
-import { filterWorkspaceMentionItems, flattenWorkspaceMentionItems } from '@/renderer/utils/file/workspaceMentions';
+import { filterWorkspaceMentionItems } from '@/renderer/utils/file/workspaceMentions';
 import { describe, expect, it } from 'vitest';
 
 describe('workspaceMentions', () => {
-  it('flattens nested workspace trees into file mention items', () => {
-    const tree: IDirOrFile[] = [
-      {
-        name: 'workspace',
-        fullPath: '/workspace',
-        relativePath: '',
-        isDir: true,
-        isFile: false,
-        children: [
-          {
-            name: 'src',
-            fullPath: '/workspace/src',
-            relativePath: 'src',
-            isDir: true,
-            isFile: false,
-            children: [
-              {
-                name: 'date.ts',
-                fullPath: '/workspace/src/date.ts',
-                relativePath: 'src/date.ts',
-                isDir: false,
-                isFile: true,
-              },
-            ],
-          },
-        ],
-      },
-    ];
-
-    expect(flattenWorkspaceMentionItems(tree)).toEqual([
-      {
-        path: '/workspace/src/date.ts',
-        name: 'date.ts',
-        isFile: true,
-        relativePath: 'src/date.ts',
-      },
-    ]);
-  });
-
   it('ranks the most relevant filename matches first', () => {
     const items = [
       {
@@ -90,33 +50,22 @@ describe('workspaceMentions', () => {
     expect(filterWorkspaceMentionItems(items, '').map((item) => item.relativePath)).toEqual([]);
   });
 
-  it('filters obvious junk files from flattened mention items', () => {
-    const tree: IDirOrFile[] = [
+  it('filters obvious junk files from mention results', () => {
+    const items = [
       {
-        name: 'workspace',
-        fullPath: '/workspace',
-        relativePath: '',
-        isDir: true,
-        isFile: false,
-        children: [
-          {
-            name: '.DS_Store',
-            fullPath: '/workspace/.DS_Store',
-            relativePath: '.DS_Store',
-            isDir: false,
-            isFile: true,
-          },
-          {
-            name: 'README.md',
-            fullPath: '/workspace/README.md',
-            relativePath: 'README.md',
-            isDir: false,
-            isFile: true,
-          },
-        ],
+        path: '/workspace/.DS_Store',
+        name: '.DS_Store',
+        isFile: true,
+        relativePath: '.DS_Store',
+      },
+      {
+        path: '/workspace/README.md',
+        name: 'README.md',
+        isFile: true,
+        relativePath: 'README.md',
       },
     ];
 
-    expect(flattenWorkspaceMentionItems(tree).map((item) => item.name)).toEqual(['README.md']);
+    expect(filterWorkspaceMentionItems(items, 'read').map((item) => item.name)).toEqual(['README.md']);
   });
 });

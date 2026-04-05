@@ -16,7 +16,7 @@
   "imageLoadFailed": "圖片載入失敗",
   "scrollToBottom": "滾動到底部",
   "availableCommands": "{{count}} 個可用指令",
-  "atFile.hint": "Type to search for files",
+  "atFile.hint": "輸入以搜尋檔案",
   "atFile.menuLabel": "檔案提及",
   "atFile.loading": "載入中...",
   "slash.title": "命令",

@@ -16,7 +16,7 @@
   "imageLoadFailed": "图片加载失败",
   "scrollToBottom": "滚动到底部",
   "availableCommands": "{{count}} 个可用命令",
-  "atFile.hint": "Type to search for files",
+  "atFile.hint": "输入以搜索文件",
   "atFile.menuLabel": "文件提及",
   "atFile.loading": "加载中...",
   "slash.title": "命令",
