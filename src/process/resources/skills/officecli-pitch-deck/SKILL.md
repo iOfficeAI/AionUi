@@ -44,24 +44,24 @@ officecli --version
 
 ## Don't Use When
 
-| User Request                                        | Correct Skill               |
-| --------------------------------------------------- | --------------------------- |
-| Morph-animated or cinematic presentations           | morph-ppt                   |
-| Edit/modify an existing .pptx                       | officecli-pptx (editing.md) |
-| Excel dashboard or data report                      | officecli-data-dashboard    |
-| Word document                                       | officecli-docx              |
-| Request is primarily about animation/motion effects | morph-ppt                   |
+| User Request | Correct Skill |
+|-------------|--------------|
+| Morph-animated or cinematic presentations | morph-ppt |
+| Edit/modify an existing .pptx | officecli-pptx (editing.md) |
+| Excel dashboard or data report | officecli-data-dashboard |
+| Word document | officecli-docx |
+| Request is primarily about animation/motion effects | morph-ppt |
 
 ### pitch-deck vs morph-ppt
 
-| Aspect             | pitch-deck (this skill)             | morph-ppt                            |
-| ------------------ | ----------------------------------- | ------------------------------------ |
-| Core mechanic      | Layout diversity + content density  | Morph transition + scene actors      |
-| Slide construction | Build each slide fresh from scratch | Clone + ghost + modify actors        |
-| Animation          | Standard transitions (fade, push)   | Morph (shape-matching across slides) |
-| Naming convention  | No special naming                   | `!!actor` + `#sN-content`            |
-| Data visualization | Charts, tables, stat callouts       | None (text + shapes only)            |
-| Helper scripts     | None needed                         | morph-helpers.sh required            |
+| Aspect | pitch-deck (this skill) | morph-ppt |
+|--------|------------------------|-----------|
+| Core mechanic | Layout diversity + content density | Morph transition + scene actors |
+| Slide construction | Build each slide fresh from scratch | Clone + ghost + modify actors |
+| Animation | Standard transitions (fade, push) | Morph (shape-matching across slides) |
+| Naming convention | No special naming | `!!actor` + `#sN-content` |
+| Data visualization | Charts, tables, stat callouts | None (text + shapes only) |
+| Helper scripts | None needed | morph-helpers.sh required |
 
 ---
 
@@ -74,7 +74,6 @@ These rules are checked by evaluators and will **FAIL** the deck if violated. No
 **ALL body text must be ≥ 16pt.** This applies to EVERY visible text element unless it falls into the explicit exceptions below.
 
 **Elements that MUST be ≥ 16pt (no exceptions):**
-
 - Card body copy / card descriptions
 - Flow diagram node description text
 - Team bio text
@@ -84,7 +83,6 @@ These rules are checked by evaluators and will **FAIL** the deck if violated. No
 - Any paragraph or supporting text block
 
 **Permitted exceptions (only these — nothing else):**
-
 - Chart axis labels / tick labels: 10pt minimum (e.g., `axisFont="10:64748B:Calibri"`)
 - Chart legend text: 10pt minimum (e.g., `legendFont="10:64748B:Calibri"`)
 - Table header/body rows: 11-12pt minimum (table cells have constrained space)
@@ -95,7 +93,6 @@ These rules are checked by evaluators and will **FAIL** the deck if violated. No
 **Font consistency (enforced across every shape):**
 
 The font pairing declared in creating.md Section A.3 (e.g., Georgia for titles, Calibri for body) applies to EVERY text shape in the entire deck without exception. This includes:
-
 - Connector labels (if any)
 - Footer shapes
 - Page number shapes
@@ -110,7 +107,6 @@ Before delivery, scan every `add` command in your script and confirm every shape
 ### H-OVERLAP: No Shape May Overlap Another Shape's Text
 
 After adding connectors and arrows, **immediately take a PNG screenshot** and verify:
-
 1. Every connector is visible (not missing)
 2. No connector or arrow overlaps any text box content
 
@@ -128,7 +124,6 @@ Use ONLY colors from your pre-defined palette (`$PRIMARY`, `$SECONDARY`, `$ACCEN
 - ❌ BANNED: Any bare hex color value that does NOT appear in your palette variable block
 
 **How to express contrast and status without new colors:**
-
 - "Bad/competitor" column or row → use your palette's darkest or most muted shade (e.g., `$DARK`, `$DARK2`)
 - "Good/your product" column or row → use your palette's primary or accent color (e.g., `$PRIMARY`, `$ACCENT1`)
 - Neutral/disabled state → use a light-opacity version of an existing palette color, not gray
@@ -255,21 +250,38 @@ Run before every delivery. See [creating.md](creating.md) Section G for the full
 
 See [creating.md](creating.md) Section H for the full list with workarounds. Key issues:
 
-| Issue                                                      | Impact                                                                                                                                                                                                                                                                   |
-| ---------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| `view issues` reports "Slide has no title" for every slide | **Expected behavior — safe to ignore.** pitch-deck uses `layout=blank` which has no built-in PowerPoint title placeholder. This is not a bug.                                                                                                                            |
-| `gap` ignored during chart `add`                           | Must apply via separate `set` command                                                                                                                                                                                                                                    |
-| Cell merge produces validation errors                      | PowerPoint renders correctly; note in delivery                                                                                                                                                                                                                           |
-| Cell-level `color` on table cells causes validation errors | Use row-level `color` instead                                                                                                                                                                                                                                            |
-| Custom gradient stops (`@`) fail on slide backgrounds      | Use 2-color or 3-color gradients only                                                                                                                                                                                                                                    |
-| Combo chart requires both `comboSplit=1` and `secondary=2` | Missing either renders incorrectly                                                                                                                                                                                                                                       |
-| Dual-axis scale mismatch makes smaller series invisible    | **HARD RULE:** If ranges differ >10x, MUST split into two separate charts. See creating.md D.4                                                                                                                                                                           |
-| Stat values wrap at 60pt in 7cm width                      | **HARD RULE:** Max 4 chars for `$X.YM` patterns (wide `$`+`.` glyphs); max 5 chars for other values. Use 44-48pt or C.2 (3-stat, 9cm) for longer                                                                                                                         |
-| Doughnut chart `colors` parameter may not apply            | CLI accepts without error but PowerPoint renders default colors. No workaround. Verify via screenshot                                                                                                                                                                    |
-| Empty table cell `c1=""` causes validation error           | Use `c1=" "` (space character) instead of empty string                                                                                                                                                                                                                   |
-| Connector arrows may not all render in batch               | Add connectors in separate batch after shapes; **immediately screenshot to verify each connector is visible** (CLI reports success even when rendering fails); if still missing, add one at a time or use `--type shape --prop preset=rightArrow` as a reliable fallback |
-| Empty series values (gaps) not supported                   | Use `0` for missing data points; produces zero-height bars                                                                                                                                                                                                               |
-| Background covers text                                     | In batch, background shapes are added before text shapes. Adding bg shapes AFTER text results in bg covering text completely (higher z-order). Always: bg → text, never text → bg                                                                                        |
+| Issue | Impact |
+|-------|--------|
+| `view issues` reports "Slide has no title" for every slide | **Expected behavior — safe to ignore.** pitch-deck uses `layout=blank` which has no built-in PowerPoint title placeholder. This is not a bug. |
+| `gap` ignored during chart `add` | Must apply via separate `set` command |
+| Cell merge produces validation errors | PowerPoint renders correctly; note in delivery |
+| Cell-level `color` on table cells causes validation errors | Use row-level `color` instead |
+| Custom gradient stops (`@`) fail on slide backgrounds | Use 2-color or 3-color gradients only |
+| Combo chart requires both `comboSplit=1` and `secondary=2` | Missing either renders incorrectly |
+| Dual-axis scale mismatch makes smaller series invisible | **HARD RULE:** If ranges differ >10x, MUST split into two separate charts. See creating.md D.4 |
+| Stat values wrap at 60pt in 7cm width | **HARD RULE:** Max 4 chars for `$X.YM` patterns (wide `$`+`.` glyphs); max 5 chars for other values. Use 44-48pt or C.2 (3-stat, 9cm) for longer |
+| Doughnut chart `colors` parameter may not apply | CLI accepts without error but PowerPoint renders default colors. No workaround. Verify via screenshot |
+| Empty table cell `c1=""` causes validation error | Use `c1=" "` (space character) instead of empty string |
+| Connector arrows may not all render in batch | Add connectors in separate batch after shapes; **immediately screenshot to verify each connector is visible** (CLI reports success even when rendering fails); if still missing, add one at a time or use `--type shape --prop preset=rightArrow` as a reliable fallback |
+| Empty series values (gaps) not supported | Use `0` for missing data points; produces zero-height bars |
+| Background covers text | In batch, background shapes are added before text shapes. Adding bg shapes AFTER text results in bg covering text completely (higher z-order). Always: bg → text, never text → bg |
+
+---
+
+## Adjustments After Creation
+
+When the user requests changes after the deck is built:
+
+| Request | Command |
+|---------|---------|
+| Swap two slides | `officecli swap deck.pptx '/slide[2]' '/slide[4]'` |
+| Move a slide after another | `officecli move deck.pptx '/slide[5]' --after '/slide[2]'` |
+| Edit shape text | `officecli set deck.pptx '/slide[N]/shape[M]' --prop text="..."` |
+| Change color / style | `officecli set deck.pptx '/slide[N]/shape[M]' --prop fill=FF0000` |
+| Remove an element | `officecli remove deck.pptx '/slide[N]/shape[M]'` |
+| Find & replace text | `officecli set deck.pptx / --prop find=OldText --prop replace=NewText` |
+
+After any `swap` or `move`, re-query the affected slide with `officecli get deck.pptx '/slide[N]' --depth 1` — shape indices shift after reordering.
 
 ---
 
