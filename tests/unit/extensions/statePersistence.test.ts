@@ -1,7 +1,7 @@
 import fs from 'fs';
 import os from 'os';
 import path from 'path';
-import { afterEach, describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import {
   loadPersistedStates,
   savePersistedStates,
@@ -66,6 +66,65 @@ describe('extensions/statePersistence', () => {
       installed: true,
       lastVersion: '1.2.3',
     });
+  });
+
+  it('loadPersistedStates returns empty map without warning when file does not exist (ENOENT)', async () => {
+    const sandbox = createTempDir('aionui-enoent-');
+    const statesFile = path.join(sandbox, 'nonexistent', 'extension-states.json');
+    process.env.AIONUI_EXTENSION_STATES_FILE = statesFile;
+
+    const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
+
+    const loaded = await loadPersistedStates();
+    expect(loaded.size).toBe(0);
+
+    // ENOENT should NOT produce a console.warn
+    expect(warnSpy).not.toHaveBeenCalled();
+
+    warnSpy.mockRestore();
+  });
+
+  it('loadPersistedStates warns for non-ENOENT errors', async () => {
+    const sandbox = createTempDir('aionui-bad-json-');
+    const statesFile = path.join(sandbox, 'extension-states.json');
+    process.env.AIONUI_EXTENSION_STATES_FILE = statesFile;
+
+    // Write invalid JSON
+    fs.writeFileSync(statesFile, '{{{invalid json', 'utf-8');
+
+    const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
+
+    const loaded = await loadPersistedStates();
+    expect(loaded.size).toBe(0);
+
+    // Should warn because it's a parse error, not ENOENT
+    expect(warnSpy).toHaveBeenCalledWith('[Extensions] Failed to load persisted states:', expect.any(String));
+
+    warnSpy.mockRestore();
+  });
+
+  it('savePersistedStates debounces rapid writes', async () => {
+    const sandbox = createTempDir('aionui-debounce-');
+    const statesFile = path.join(sandbox, 'extension-states.json');
+    process.env.AIONUI_EXTENSION_STATES_FILE = statesFile;
+
+    // Save three times rapidly
+    const states1 = new Map([['ext-a', { enabled: true }]]) as any;
+    const states2 = new Map([['ext-b', { enabled: false }]]) as any;
+    const states3 = new Map([['ext-c', { enabled: true }]]) as any;
+
+    savePersistedStates(states1);
+    savePersistedStates(states2);
+    savePersistedStates(states3);
+
+    // Wait for debounce to flush
+    await waitForFlush();
+
+    // Only the last save should persist
+    const loaded = await loadPersistedStates();
+    expect(loaded.has('ext-c')).toBe(true);
+    expect(loaded.has('ext-a')).toBe(false);
+    expect(loaded.has('ext-b')).toBe(false);
   });
 
   describe('markExtensionForReinstall', () => {
