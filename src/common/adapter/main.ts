@@ -45,7 +45,7 @@ bridge.adapter({
     // Guard: reject oversized payloads to prevent main-process blocking
     if (serialized.length > MAX_IPC_PAYLOAD_SIZE) {
       console.error(
-        `[adapter] Bridge event "${name}" too large (${(serialized.length / 1024 / 1024).toFixed(1)}MB), skipped`,
+        `[adapter] Bridge event "${name}" too large (${(serialized.length / 1024 / 1024).toFixed(1)}MB), skipped`
       );
       const errorPayload = JSON.stringify({
         name: 'bridge:error',
