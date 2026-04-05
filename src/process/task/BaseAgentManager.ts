@@ -110,6 +110,7 @@ class BaseAgentManager<Data, ConfirmationOption extends any = any>
   }
 
   stop() {
+    this.confirmations = [];
     return this.postMessagePromise('stop.stream', {});
   }
 

@@ -157,7 +157,7 @@ export class HubInstallerImpl {
       // Step 5: Reload extension registry and refresh AcpDetector
       // Clear persisted state so hotReload treats this as a fresh install
       // and re-runs onInstall (handles reinstall after CLI was uninstalled).
-      markExtensionForReinstall(name);
+      await markExtensionForReinstall(name);
 
       // hotReload re-scans all extension directories, discovers this new extension,
       // and runs the full lifecycle (onInstall for first-time + onActivate) via
@@ -202,7 +202,7 @@ export class HubInstallerImpl {
       }
 
       // Reload registry — clear persisted state to force onInstall re-run
-      markExtensionForReinstall(name);
+      await markExtensionForReinstall(name);
       await ExtensionRegistry.hotReload();
       await acpDetector.refreshAll();
 

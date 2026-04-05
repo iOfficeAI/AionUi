@@ -27,6 +27,9 @@ export { registerWebSocketBroadcaster, getBridgeEmitter };
 /**
  * @description 建立与每一个browserWindow的通信桥梁
  * */
+/** Maximum IPC payload size (50 MB). Messages exceeding this are dropped with an error notification. */
+const MAX_IPC_PAYLOAD_SIZE = 50 * 1024 * 1024;
+
 bridge.adapter({
   emit(name, data) {
     // 1. Send to all Electron BrowserWindows (skip destroyed ones)
@@ -36,6 +39,24 @@ bridge.adapter({
     } catch (error) {
       // RangeError: Invalid string length — data too large to serialize
       console.error('[adapter] Failed to serialize bridge event:', name, error);
+      return;
+    }
+
+    // Guard: reject oversized payloads to prevent main-process blocking
+    if (serialized.length > MAX_IPC_PAYLOAD_SIZE) {
+      console.error(
+        `[adapter] Bridge event "${name}" too large (${(serialized.length / 1024 / 1024).toFixed(1)}MB), skipped`,
+      );
+      const errorPayload = JSON.stringify({
+        name: 'bridge:error',
+        data: { originalEvent: name, reason: 'payload_too_large', size: serialized.length },
+      });
+      for (let i = adapterWindowList.length - 1; i >= 0; i--) {
+        const win = adapterWindowList[i];
+        if (!win.isDestroyed() && !win.webContents.isDestroyed()) {
+          win.webContents.send(ADAPTER_BRIDGE_EVENT_KEY, errorPayload);
+        }
+      }
       return;
     }
 
