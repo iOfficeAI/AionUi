@@ -24,6 +24,7 @@ officecli view template.pptx outline
 ```
 
 Output:
+
 ```
 File: template.pptx | 8 slides
 -- Slide 1: "Welcome" - 3 text box(es), 1 picture(s)
@@ -40,6 +41,7 @@ officecli view template.pptx annotated
 ```
 
 Output:
+
 ```
 [/slide[1]]
   [Title] "Welcome to Our Company" <- Georgia 44pt
@@ -72,17 +74,20 @@ officecli set template.pptx "/slide[1]/shape[3]" --prop zorder=back
 Shapes positioned within the content zone with dark/opaque colors (black, dark gray) AND large font sizes (100pt+). These WILL obscure your content. You have two options:
 
 Option 1 -- Convert to subtle watermark (preserves template design intent):
+
 ```bash
 # Change giant dark number to light gray watermark and send to back
 officecli set template.pptx "/slide[1]/shape[3]" --prop color=E8E8E8 --prop zorder=back
 ```
 
 Option 2 -- Remove entirely (if watermark effect is not desired):
+
 ```bash
 officecli remove template.pptx "/slide[1]/shape[3]"
 ```
 
 **How to classify:** After running `get --depth 1` on each slide, check each `!!`-prefixed shape:
+
 1. Is it positioned within the content zone (0cm < x < 30cm, 0cm < y < 19cm)? If no -> Category A.
 2. Is its text/fill color light (RGB values all > 200)? If yes -> Category B.
 3. Is it dark/opaque AND has large font size (>80pt)? -> Category C.
@@ -145,6 +150,7 @@ Before making changes, plan which template slides to keep, clone, or remove.
 **Use varied layouts** -- monotonous presentations are a common failure mode. Don't reuse the same layout for every slide.
 
 Match content type to layout style:
+
 - Key points -> bullet slide
 - Team info -> multi-column or icon grid
 - Testimonials -> quote/callout slide
@@ -153,6 +159,7 @@ Match content type to layout style:
 - New section -> section divider slide
 
 **Example mapping:**
+
 ```
 Source content          Template slide to use
 --------------          ---------------------
@@ -403,6 +410,7 @@ officecli remove template.pptx /slide[4]/shape[7]     # 4th member name
 ```
 
 When your content has more items than the template:
+
 - Clone the slide and split content across two slides
 - Or add new shapes to the existing slide
 
@@ -478,6 +486,7 @@ officecli add template.pptx /slide[2]/shape[1] --type paragraph --prop text="Rev
 Slides are independent elements. When editing multiple slides, use subagents for parallel execution.
 
 **Provide each subagent with:**
+
 - The file path
 - Specific slide numbers to edit
 - The content/data for those slides

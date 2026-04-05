@@ -59,15 +59,15 @@ officecli --version
 
 A single `.docx` file with:
 
-| Component | Description |
-|-----------|-------------|
-| Cover / title block | Centered title, authors, affiliations |
-| Table of Contents | Native Word TOC field (levels 1-3), updateable |
-| Structured sections | Heading1/2/3 hierarchy with consistent styling |
-| Equations | Display and inline OMML from LaTeX subset |
-| Footnotes / endnotes | Inline references at correct paragraph positions |
-| Bibliography | Hanging indent, per-citation-style formatting |
-| Headers / footers | Page numbers, optional branding |
+| Component                                                             | Description                                      |
+| --------------------------------------------------------------------- | ------------------------------------------------ |
+| Cover / title block                                                   | Centered title, authors, affiliations            |
+| Table of Contents                                                     | Native Word TOC field (levels 1-3), updateable   |
+| Structured sections                                                   | Heading1/2/3 hierarchy with consistent styling   |
+| Equations                                                             | Display and inline OMML from LaTeX subset        |
+| Footnotes / endnotes                                                  | Inline references at correct paragraph positions |
+| Bibliography                                                          | Hanging indent, per-citation-style formatting    |
+| Headers / footers                                                     | Page numbers, optional branding                  |
 | Optional: watermark, charts, custom bordered blocks, cross-references |
 
 ---
@@ -80,38 +80,38 @@ Define ALL styles before adding ANY content. Skipping style definitions causes f
 
 ### Font Size Hierarchy
 
-| Style | Size | Weight | spaceBefore | spaceAfter |
-|-------|------|--------|-------------|------------|
-| Cover title | **20pt** | bold | 72pt (≈1 inch) | 24pt |
-| Heading1 | >= 18pt (20pt preferred) | bold | 360 (18pt) | 120 (6pt) |
-| Heading2 | >= 14pt | bold | 360 (18pt) | 80 (4pt) |
-| Heading3 | >= 12pt | bold + italic | 240 (12pt) | 80 (4pt) |
-| Body (Normal) | 11-12pt | regular | per paper type | per paper type |
-| Caption | 9-10pt | italic | -- | -- |
-| FootnoteText | 9-10pt | regular | -- | -- |
+| Style         | Size                     | Weight        | spaceBefore    | spaceAfter     |
+| ------------- | ------------------------ | ------------- | -------------- | -------------- |
+| Cover title   | **20pt**                 | bold          | 72pt (≈1 inch) | 24pt           |
+| Heading1      | >= 18pt (20pt preferred) | bold          | 360 (18pt)     | 120 (6pt)      |
+| Heading2      | >= 14pt                  | bold          | 360 (18pt)     | 80 (4pt)       |
+| Heading3      | >= 12pt                  | bold + italic | 240 (12pt)     | 80 (4pt)       |
+| Body (Normal) | 11-12pt                  | regular       | per paper type | per paper type |
+| Caption       | 9-10pt                   | italic        | --             | --             |
+| FootnoteText  | 9-10pt                   | regular       | --             | --             |
 
 ### Verified LaTeX Subset
 
-| Category | LaTeX | Notes |
-|----------|-------|-------|
-| Fractions | `\frac{a}{b}` | Nested supported |
-| Sub/superscripts | `x_i`, `x^{n+1}` | Multi-char needs braces |
-| Summation | `\sum_{n=1}^{\infty}` | Limits above/below in display |
-| Integration | `\int_0^{\infty}`, `\oint` | Single, double, and contour |
-| Products | `\prod_{i=1}^{n}` | |
-| Limits | `\lim_{x \to 0}` | |
-| Square roots | `\sqrt{x}`, `\sqrt[3]{x}` | nth-root supported |
-| Greek letters | `\alpha` .. `\Omega` | Both cases |
-| Nabla / partial | `\nabla`, `\partial` | |
-| Accents | `\hat{x}`, `\bar{x}`, `\tilde{x}`, `\vec{x}`, `\dot{x}` | |
-| Bold math | `\mathbf{x}` | For vectors |
-| Aligned | `\begin{aligned}...\end{aligned}` | Multi-line systems |
-| Matrices | `\begin{pmatrix}...\end{pmatrix}` | Also bmatrix, vmatrix |
-| Angle brackets | `\langle`, `\rangle` | For bra-ket notation |
-| Simple delimiters | `\left[...\right]` | ONLY when NO sub/super inside |
-| **DO NOT USE** | `\left[...\right]` + subscript/superscript inside | Cast error crash |
-| **DO NOT USE** | `\left(...\right)` + subscript/superscript inside | Same crash |
-| **DO NOT USE** | `\mathcal{L}` | Invalid XML -- use `\mathit{L}` |
+| Category          | LaTeX                                                   | Notes                           |
+| ----------------- | ------------------------------------------------------- | ------------------------------- |
+| Fractions         | `\frac{a}{b}`                                           | Nested supported                |
+| Sub/superscripts  | `x_i`, `x^{n+1}`                                        | Multi-char needs braces         |
+| Summation         | `\sum_{n=1}^{\infty}`                                   | Limits above/below in display   |
+| Integration       | `\int_0^{\infty}`, `\oint`                              | Single, double, and contour     |
+| Products          | `\prod_{i=1}^{n}`                                       |                                 |
+| Limits            | `\lim_{x \to 0}`                                        |                                 |
+| Square roots      | `\sqrt{x}`, `\sqrt[3]{x}`                               | nth-root supported              |
+| Greek letters     | `\alpha` .. `\Omega`                                    | Both cases                      |
+| Nabla / partial   | `\nabla`, `\partial`                                    |                                 |
+| Accents           | `\hat{x}`, `\bar{x}`, `\tilde{x}`, `\vec{x}`, `\dot{x}` |                                 |
+| Bold math         | `\mathbf{x}`                                            | For vectors                     |
+| Aligned           | `\begin{aligned}...\end{aligned}`                       | Multi-line systems              |
+| Matrices          | `\begin{pmatrix}...\end{pmatrix}`                       | Also bmatrix, vmatrix           |
+| Angle brackets    | `\langle`, `\rangle`                                    | For bra-ket notation            |
+| Simple delimiters | `\left[...\right]`                                      | ONLY when NO sub/super inside   |
+| **DO NOT USE**    | `\left[...\right]` + subscript/superscript inside       | Cast error crash                |
+| **DO NOT USE**    | `\left(...\right)` + subscript/superscript inside       | Same crash                      |
+| **DO NOT USE**    | `\mathcal{L}`                                           | Invalid XML -- use `\mathit{L}` |
 
 ### Footnote Behavior
 
@@ -123,15 +123,15 @@ Footnotes are inline reference runs within the target paragraph. They do NOT cre
 
 The following rules are non-negotiable. Any violation constitutes a delivery failure.
 
-| Rule | Requirement |
-|------|-------------|
-| H1 | `officecli validate` passes — zero XML errors |
-| H2 | Cover page present with ≥7 of 10 required elements (title, authors, affiliation, submission target, date, abstract excerpt, keywords, horizontal rule, contact, subtitle) |
-| H3 | All body sections use continuous numbered headings (e.g., "1. Introduction", "2. Methods") — see Section C.3 |
-| H4 | Abstract paragraph has NO `firstLineIndent` (block style) |
-| H5 | Table of Contents (TOC) field present |
-| H6 | Dynamic PAGE field in footer (not static text) |
-| H7 | Heading hierarchy is consistent — no level skipping (H1 → H2 → H3, never H1 → H3) |
+| Rule   | Requirement                                                                                                                                                                                                                                                                       |
+| ------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| H1     | `officecli validate` passes — zero XML errors                                                                                                                                                                                                                                     |
+| H2     | Cover page present with ≥7 of 10 required elements (title, authors, affiliation, submission target, date, abstract excerpt, keywords, horizontal rule, contact, subtitle)                                                                                                         |
+| H3     | All body sections use continuous numbered headings (e.g., "1. Introduction", "2. Methods") — see Section C.3                                                                                                                                                                      |
+| H4     | Abstract paragraph has NO `firstLineIndent` (block style)                                                                                                                                                                                                                         |
+| H5     | Table of Contents (TOC) field present                                                                                                                                                                                                                                             |
+| H6     | Dynamic PAGE field in footer (not static text)                                                                                                                                                                                                                                    |
+| H7     | Heading hierarchy is consistent — no level skipping (H1 → H2 → H3, never H1 → H3)                                                                                                                                                                                                 |
 | **H8** | **References/Bibliography section REQUIRED.** Every academic paper must have a final section titled "References" or "Bibliography" containing at minimum 5 formatted citations with hanging indent. A document with inline citations and no reference list is a delivery failure. |
 
 ---
@@ -139,33 +139,37 @@ The following rules are non-negotiable. Any violation constitutes a delivery fai
 ## Workflow Overview
 
 ### Phase 1: Analyze Input
+
 Classify paper type (social science, physics/math, white paper). Look up the Feature Selection Table in creating.md Section A. Plan which sections to follow.
 
 ### Phase 2: Setup
+
 Create document, set defaults + margins, define ALL styles upfront. Plan section breaks if multi-column or landscape is needed.
 
 ### Phase 3: Build
+
 Add content in order: cover, TOC, abstract, body sections, equations, tables, footnotes, bibliography, headers/footers, watermark.
 
 ### Phase 4: QA
+
 Run verification loop: `validate`, `view outline`, `view issues`, `view text`. Fix and re-verify.
 
 ---
 
 ## Quick Reference: Key Warnings
 
-| Warning | Detail |
-|---------|--------|
-| `\left`/`\right` + sub/super | Crashes with cast error. Use plain `()`, `[]` -- OMML auto-sizes. |
-| pbdr at style level | `add /styles --prop pbdr.all=...` is silently dropped. `set /styles/X --prop pbdr.all=...` is rejected. Always set borders per-paragraph after creation. |
-| Section break +1 offset | Each section break inserts one empty paragraph into /body. Account for +1 index offset on all subsequent `p[N]` references. |
-| Shell escaping for LaTeX | Double backslashes in bash: `--prop "formula=\\frac{a}{b}"`. Use heredoc for complex formulas. |
-| Dollar sign `$` in text | Bash expands `$` as variable in double quotes. Use single quotes or `\$`. See creating.md D-10. |
-| Batch JSON values | ALL values must be strings: `"true"` not `true`, `"24"` not `24`. |
-| Batch intermittent failure | ~1-in-15 failure rate. Retry on error. Keep arrays to 10-15 max. |
+| Warning                           | Detail                                                                                                                                                                                                                                                                                                                          |
+| --------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `\left`/`\right` + sub/super      | Crashes with cast error. Use plain `()`, `[]` -- OMML auto-sizes.                                                                                                                                                                                                                                                               |
+| pbdr at style level               | `add /styles --prop pbdr.all=...` is silently dropped. `set /styles/X --prop pbdr.all=...` is rejected. Always set borders per-paragraph after creation.                                                                                                                                                                        |
+| Section break +1 offset           | Each section break inserts one empty paragraph into /body. Account for +1 index offset on all subsequent `p[N]` references.                                                                                                                                                                                                     |
+| Shell escaping for LaTeX          | Double backslashes in bash: `--prop "formula=\\frac{a}{b}"`. Use heredoc for complex formulas.                                                                                                                                                                                                                                  |
+| Dollar sign `$` in text           | Bash expands `$` as variable in double quotes. Use single quotes or `\$`. See creating.md D-10.                                                                                                                                                                                                                                 |
+| Batch JSON values                 | ALL values must be strings: `"true"` not `true`, `"24"` not `24`.                                                                                                                                                                                                                                                               |
+| Batch intermittent failure        | ~1-in-15 failure rate. Retry on error. Keep arrays to 10-15 max.                                                                                                                                                                                                                                                                |
 | TOC displays blank in LibreOffice | TOC field renders as "Update field to see table of contents" in LibreOffice/PDF — this is normal OOXML behavior. In Microsoft Word: Ctrl+A → F9 to update all fields. For LibreOffice-only recipients: add static text TOC paragraphs after the field, or include a delivery note asking the user to open in Word and press F9. |
-| `move` on oMathPara not reliable | `move` command does not reliably reposition equation paragraphs (oMathPara elements). Workaround: use `add /body --type equation` to create the equation at the target position, then `remove` the original. Do NOT use `move` on equations. |
-| `pbdr.bottom` XML order bug (P3) | `set --prop pbdr.bottom=...` may generate `<w:pBdr>` with child elements in wrong order, causing `validate` to report a pBdr schema error. **Workaround:** use `raw-set` to write the full `<w:pBdr>` XML manually (see creating.md D-4b). This is a known CLI bug — P3, CLI team owns the fix. |
+| `move` on oMathPara not reliable  | `move` command does not reliably reposition equation paragraphs (oMathPara elements). Workaround: use `add /body --type equation` to create the equation at the target position, then `remove` the original. Do NOT use `move` on equations.                                                                                    |
+| `pbdr.bottom` XML order bug (P3)  | `set --prop pbdr.bottom=...` may generate `<w:pBdr>` with child elements in wrong order, causing `validate` to report a pBdr schema error. **Workaround:** use `raw-set` to write the full `<w:pBdr>` XML manually (see creating.md D-4b). This is a known CLI bug — P3, CLI team owns the fix.                                 |
 
 ---
 
@@ -189,13 +193,13 @@ Follow [creating.md](creating.md) for the full step-by-step guide.
 
 When the user requests changes after the paper is built:
 
-| Request | Command |
-|---------|---------|
-| Move a paragraph after another | `officecli move paper.docx '/body/p[8]' --after '/body/p[2]'` |
-| Swap two paragraphs | `officecli swap paper.docx '/body/p[3]' '/body/p[7]'` |
-| Edit paragraph text | `officecli set paper.docx '/body/p[N]' --prop text="..."` |
-| Find & replace text | `officecli set paper.docx / --prop find=OldText --prop replace=NewText` |
-| Remove a paragraph | `officecli remove paper.docx '/body/p[N]'` |
+| Request                        | Command                                                                 |
+| ------------------------------ | ----------------------------------------------------------------------- |
+| Move a paragraph after another | `officecli move paper.docx '/body/p[8]' --after '/body/p[2]'`           |
+| Swap two paragraphs            | `officecli swap paper.docx '/body/p[3]' '/body/p[7]'`                   |
+| Edit paragraph text            | `officecli set paper.docx '/body/p[N]' --prop text="..."`               |
+| Find & replace text            | `officecli set paper.docx / --prop find=OldText --prop replace=NewText` |
+| Remove a paragraph             | `officecli remove paper.docx '/body/p[N]'`                              |
 
 After any `swap` or `move`, paragraph indices shift — re-query with `officecli get paper.docx /body --depth 1` before further edits.
 

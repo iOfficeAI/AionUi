@@ -282,6 +282,7 @@ Use existing style names rather than inline formatting to maintain consistency. 
 ### Pitfall: Index Shifting After Structural Changes
 
 **CRITICAL**: When you remove `/body/p[5]`, what was `p[6]` becomes `p[5]`. Always:
+
 - Remove from highest index to lowest
 - Complete all structural changes before content edits
 - Re-query with `get /body --depth 1` after structural changes

@@ -50,6 +50,7 @@ Ask only when topic is unclear, otherwise proceed directly.
 > After calling `officecli set '/slide[N]' --prop transition=morph`, paths like `/slide[N]/!!my-shape` return 'Element not found'. The CLI auto-prepends `!!` to shape names when morph is applied, which invalidates name-based lookups.
 >
 > **Workaround:** Always use shape INDEX paths instead of name paths when accessing shapes on morph slides:
+>
 > ```bash
 > # WRONG (after transition=morph set):
 > officecli get deck.pptx '/slide[3]/!!my-circle' --depth 1
@@ -58,6 +59,7 @@ Ask only when topic is unclear, otherwise proceed directly.
 > officecli get deck.pptx '/slide[3]' --depth 1  # first list all shapes to find index
 > officecli get deck.pptx '/slide[3]/shape[2]' --depth 1
 > ```
+>
 > The build.py template should use `inspect()` + index-based access throughout.
 
 ---
@@ -82,13 +84,14 @@ Ask only when topic is unclear, otherwise proceed directly.
 
 For every morph transition, plan the slide pair BEFORE writing any code. Use a table like this in `brief.md`:
 
-| Pair | Slide A (start) | Slide B (end) | Visual narrative purpose |
-|------|-----------------|---------------|--------------------------|
-| 1→2  | Ring centered, title appears | Ring shifts right, subtitle revealed | Attention → context |
-| 2→3  | Feature box large | Feature box small, metric card grows | Zoom out → detail |
-| 3→4  | Metric card exits (ghost), new actor enters | Actor repositions | Section transition |
+| Pair | Slide A (start)                             | Slide B (end)                        | Visual narrative purpose |
+| ---- | ------------------------------------------- | ------------------------------------ | ------------------------ |
+| 1→2  | Ring centered, title appears                | Ring shifts right, subtitle revealed | Attention → context      |
+| 2→3  | Feature box large                           | Feature box small, metric card grows | Zoom out → detail        |
+| 3→4  | Metric card exits (ghost), new actor enters | Actor repositions                    | Section transition       |
 
 **Rules for the planning table:**
+
 - Determine ALL `!!` shape names during planning — the same name must be used identically across the slide pair
 - For each `!!` shape, decide its role: `!!scene-{desc}` (background/decoration) or `!!actor-{desc}` (content/foreground)
 - Mark which shapes need to be ghosted at each section transition
@@ -166,6 +169,7 @@ Good: `!!scene-card-bg` and `!!actor-card-content` — unambiguous.
 > Once a `!!`-prefixed shape appears on any slide, it persists and remains visible on **every subsequent morph slide** unless explicitly moved off-screen.
 
 This means:
+
 - A `!!actor-feature-box` introduced on slide 3 will still be visible on slides 4, 5, 6, 7 ... unless you ghost it
 - Ghost accumulation builds silently — visual clutter compounds across the deck
 - The `morph_final_check` tool does NOT catch `!!` shapes that linger in the visible area; only screenshot verification can detect this
@@ -345,16 +349,17 @@ Confirm the actor's target position does **not** overlap any content shape's bou
 
 Understanding how morph animates multiple shapes helps you plan intentional motion:
 
-| Animation type | How to achieve it |
-|----------------|-------------------|
-| Simple move | Same shape on slide A and B, same size, different `x`/`y` — morph interpolates position |
+| Animation type  | How to achieve it                                                                              |
+| --------------- | ---------------------------------------------------------------------------------------------- |
+| Simple move     | Same shape on slide A and B, same size, different `x`/`y` — morph interpolates position        |
 | Scale transform | Same shape on slide A and B, different `width`/`height` — morph interpolates size and position |
-| Move + scale | Different `x`, `y`, `width`, `height` simultaneously — morph handles all dimensions at once |
-| Color shift | Same shape, different `fill` color — morph cross-fades the fill |
-| Enter (fade in) | Shape exists only on slide B (no counterpart on slide A) — morph fades it in |
-| Exit (fade out) | Shape only on slide A (no counterpart on slide B) — morph fades it out |
+| Move + scale    | Different `x`, `y`, `width`, `height` simultaneously — morph handles all dimensions at once    |
+| Color shift     | Same shape, different `fill` color — morph cross-fades the fill                                |
+| Enter (fade in) | Shape exists only on slide B (no counterpart on slide A) — morph fades it in                   |
+| Exit (fade out) | Shape only on slide A (no counterpart on slide B) — morph fades it out                         |
 
 **Multi-shape timing rule:**
+
 - All `!!` shapes in the same morph pair animate **simultaneously** — there is no way to stagger their start times within a single pair
 - If you need shape A to move before shape B, you MUST split the transition into two morph pairs (i.e., add an intermediate slide between them)
 
@@ -422,6 +427,7 @@ officecli view <file>.pptx outline
 ### 4B. 截图目视验证（必须执行）
 
 **final-check 通过不等于视觉正确。** `morph_final_check` 只验证 `#sN-` 前缀 shapes 的 ghost 状态（x=36cm 检查），它**无法检测**：
+
 - `!!` shapes 在场景切换后仍停留在可视区域（x < 33.87cm）——这类问题会通过 final-check 但产生视觉叠加
 - 相邻幻灯片间 scene actor 位置/尺寸未发生变化（动画静止）
 
@@ -437,6 +443,7 @@ libreoffice --headless --convert-to pdf deck.pptx
 ```
 
 逐 slide 检查清单：
+
 - [ ] 每张 slide 中，前一节的 `!!` content shapes 均不可见（x >= 33.87cm 已移出视野）
 - [ ] 每个场景切换的第一张 slide（新章节起始）：前一节所有 `!!` shapes 已 ghost
 - [ ] 最后一个场景的收尾 slide：整洁，无残留前场景内容
@@ -520,14 +527,14 @@ Ask user for feedback, support quick adjustments.
 
 When the user requests changes after the deck is built:
 
-| Request | Command |
-|---------|---------|
-| Swap two slides | `officecli swap deck.pptx '/slide[2]' '/slide[4]'` |
-| Move a slide after another | `officecli move deck.pptx '/slide[5]' --after '/slide[2]'` |
-| Edit shape text | `officecli set deck.pptx '/slide[N]/shape[@name=!! ShapeName]' --prop text="..."` |
-| Change color / style | `officecli set deck.pptx '/slide[N]/shape[@name=!! ShapeName]' --prop fill=FF0000` |
-| Remove an element | `officecli remove deck.pptx '/slide[N]/shape[@name=!! ShapeName]'` |
-| Find & replace text | `officecli set deck.pptx / --prop find=OldText --prop replace=NewText` |
+| Request                    | Command                                                                            |
+| -------------------------- | ---------------------------------------------------------------------------------- |
+| Swap two slides            | `officecli swap deck.pptx '/slide[2]' '/slide[4]'`                                 |
+| Move a slide after another | `officecli move deck.pptx '/slide[5]' --after '/slide[2]'`                         |
+| Edit shape text            | `officecli set deck.pptx '/slide[N]/shape[@name=!! ShapeName]' --prop text="..."`  |
+| Change color / style       | `officecli set deck.pptx '/slide[N]/shape[@name=!! ShapeName]' --prop fill=FF0000` |
+| Remove an element          | `officecli remove deck.pptx '/slide[N]/shape[@name=!! ShapeName]'`                 |
+| Find & replace text        | `officecli set deck.pptx / --prop find=OldText --prop replace=NewText`             |
 
 > **Morph caution:** Morph transitions rely on matching `!!`-prefixed shape names across consecutive slides. After swapping or moving slides, verify that morph pairs (same `!!` name on adjacent slides) are still correctly aligned. Use `officecli get deck.pptx '/slide[N]' --depth 1` to check shape names.
 
