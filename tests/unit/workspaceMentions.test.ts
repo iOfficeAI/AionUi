@@ -42,7 +42,7 @@ describe('workspaceMentions', () => {
     ]);
   });
 
-  it('prefers filename matches over path-only matches', () => {
+  it('ranks the most relevant filename matches first', () => {
     const items = [
       {
         path: '/workspace/docs/date-guide.md',
