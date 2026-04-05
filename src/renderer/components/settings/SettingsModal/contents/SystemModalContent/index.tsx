@@ -169,10 +169,14 @@ const SystemModalContent: React.FC = () => {
 
   const handleCommandQueueEnabledChange = useCallback((checked: boolean) => {
     setCommandQueueEnabled(checked);
-    void mutateSWR(COMMAND_QUEUE_ENABLED_SWR_KEY, checked, { revalidate: false });
+    void mutateSWR(COMMAND_QUEUE_ENABLED_SWR_KEY, checked, {
+      revalidate: false,
+    });
     ipcBridge.systemSettings.setCommandQueueEnabled.invoke({ enabled: checked }).catch(() => {
       setCommandQueueEnabled(!checked);
-      void mutateSWR(COMMAND_QUEUE_ENABLED_SWR_KEY, !checked, { revalidate: false });
+      void mutateSWR(COMMAND_QUEUE_ENABLED_SWR_KEY, !checked, {
+        revalidate: false,
+      });
     });
   }, []);
 

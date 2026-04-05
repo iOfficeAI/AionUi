@@ -304,7 +304,13 @@ const NanobotSendBox: React.FC<{ conversation_id: string }> = ({ conversation_id
     setAtPath([]);
     setUploadFile([]);
 
-    if (shouldEnqueueConversationCommand({ enabled: isCommandQueueEnabled, isBusy: aiProcessing, hasPendingCommands })) {
+    if (
+      shouldEnqueueConversationCommand({
+        enabled: isCommandQueueEnabled,
+        isBusy: aiProcessing,
+        hasPendingCommands,
+      })
+    ) {
       enqueue({ input: message, files: filePaths });
       return;
     }

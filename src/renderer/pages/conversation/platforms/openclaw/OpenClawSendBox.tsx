@@ -489,7 +489,13 @@ const OpenClawSendBox: React.FC<{ conversation_id: string }> = ({ conversation_i
     setAtPath([]);
     setUploadFile([]);
 
-    if (shouldEnqueueConversationCommand({ enabled: isCommandQueueEnabled, isBusy: aiProcessing, hasPendingCommands })) {
+    if (
+      shouldEnqueueConversationCommand({
+        enabled: isCommandQueueEnabled,
+        isBusy: aiProcessing,
+        hasPendingCommands,
+      })
+    ) {
       enqueue({ input: message, files: filePaths });
       return;
     }

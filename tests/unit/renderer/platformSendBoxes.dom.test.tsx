@@ -597,24 +597,23 @@ describe('platform send box queue integration', () => {
     ],
     ['nanobot', <NanobotSendBox conversation_id='conv-nanobot' />, mockConversationSendInvoke],
     ['openclaw', <OpenClawSendBox conversation_id='conv-openclaw' />, mockOpenClawSendInvoke],
-  ])('sends immediately for %s when queue setting is disabled and the conversation is idle', async (
-    _name,
-    element,
-    sendSpy
-  ) => {
-    mockUseCommandQueueEnabled.mockReturnValue(false);
-    mockShouldEnqueueConversationCommand.mockImplementation(({ enabled }: { enabled?: boolean }) => Boolean(enabled));
+  ])(
+    'sends immediately for %s when queue setting is disabled and the conversation is idle',
+    async (_name, element, sendSpy) => {
+      mockUseCommandQueueEnabled.mockReturnValue(false);
+      mockShouldEnqueueConversationCommand.mockImplementation(({ enabled }: { enabled?: boolean }) => Boolean(enabled));
 
-    render(element);
+      render(element);
 
-    fireEvent.click(screen.getByRole('button', { name: 'trigger-send' }));
+      fireEvent.click(screen.getByRole('button', { name: 'trigger-send' }));
 
-    await waitFor(() => {
-      expect(sendSpy).toHaveBeenCalledTimes(1);
-    });
+      await waitFor(() => {
+        expect(sendSpy).toHaveBeenCalledTimes(1);
+      });
 
-    expect(queueSpies.enqueue).not.toHaveBeenCalled();
-  });
+      expect(queueSpies.enqueue).not.toHaveBeenCalled();
+    }
+  );
 
   it.each([
     [

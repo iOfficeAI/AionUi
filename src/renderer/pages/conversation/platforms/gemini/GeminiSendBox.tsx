@@ -312,7 +312,13 @@ const GeminiSendBox: React.FC<{
     clearFiles();
     emitter.emit('gemini.selected.file.clear');
 
-    if (shouldEnqueueConversationCommand({ enabled: isCommandQueueEnabled, isBusy, hasPendingCommands })) {
+    if (
+      shouldEnqueueConversationCommand({
+        enabled: isCommandQueueEnabled,
+        isBusy,
+        hasPendingCommands,
+      })
+    ) {
       enqueue({ input: message, files: filesToSend });
       return;
     }

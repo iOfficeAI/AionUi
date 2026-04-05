@@ -38,7 +38,9 @@ vi.mock('@arco-design/web-react', async (importOriginal) => {
       error: vi.fn(),
       loading: vi.fn(() => vi.fn()),
     },
-    Modal: Object.assign(actual.Modal, { useModal: () => [{ confirm: vi.fn() }, <div key='modal-holder' />] }),
+    Modal: Object.assign(actual.Modal, {
+      useModal: () => [{ confirm: vi.fn() }, <div key='modal-holder' />],
+    }),
   };
 });
 
@@ -115,14 +117,26 @@ vi.mock('@/common', () => ({
     systemSettings: {
       getCloseToTray: { invoke: (...args: any[]) => mockGetCloseToTray(...args) },
       getNotificationEnabled: { invoke: (...args: any[]) => mockGetNotificationEnabled(...args) },
-      getCronNotificationEnabled: { invoke: (...args: any[]) => mockGetCronNotificationEnabled(...args) },
-      getSaveUploadToWorkspace: { invoke: (...args: any[]) => mockGetSaveUploadToWorkspace(...args) },
-      getCommandQueueEnabled: { invoke: (...args: any[]) => mockGetCommandQueueEnabled(...args) },
+      getCronNotificationEnabled: {
+        invoke: (...args: any[]) => mockGetCronNotificationEnabled(...args),
+      },
+      getSaveUploadToWorkspace: {
+        invoke: (...args: any[]) => mockGetSaveUploadToWorkspace(...args),
+      },
+      getCommandQueueEnabled: {
+        invoke: (...args: any[]) => mockGetCommandQueueEnabled(...args),
+      },
       setCloseToTray: { invoke: (...args: any[]) => mockSetCloseToTray(...args) },
       setNotificationEnabled: { invoke: (...args: any[]) => mockSetNotificationEnabled(...args) },
-      setCronNotificationEnabled: { invoke: (...args: any[]) => mockSetCronNotificationEnabled(...args) },
-      setSaveUploadToWorkspace: { invoke: (...args: any[]) => mockSetSaveUploadToWorkspace(...args) },
-      setCommandQueueEnabled: { invoke: (...args: any[]) => mockSetCommandQueueEnabled(...args) },
+      setCronNotificationEnabled: {
+        invoke: (...args: any[]) => mockSetCronNotificationEnabled(...args),
+      },
+      setSaveUploadToWorkspace: {
+        invoke: (...args: any[]) => mockSetSaveUploadToWorkspace(...args),
+      },
+      setCommandQueueEnabled: {
+        invoke: (...args: any[]) => mockSetCommandQueueEnabled(...args),
+      },
     },
     dialog: {
       showOpen: { invoke: (...args: any[]) => mockShowOpen(...args) },
