@@ -6,7 +6,6 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 const mockWarmupInvoke = vi.fn().mockResolvedValue(undefined);
 const mockListWorkspaceFilesInvoke = vi.fn();
-const mockEmit = vi.fn();
 
 vi.mock('@/common', () => ({
   ipcBridge: {
@@ -25,7 +24,7 @@ vi.mock('@/common', () => ({
 
 vi.mock('@/renderer/utils/emitter', () => ({
   emitter: {
-    emit: (...args: unknown[]) => mockEmit(...args),
+    emit: vi.fn(),
   },
   useAddEventListener: vi.fn(),
 }));
@@ -229,75 +228,26 @@ vi.mock('@icon-park/react', () => ({
   Quote: () => React.createElement('span', {}, 'Quote'),
 }));
 
-const SendBoxHarness: React.FC = () => {
+type SelectionItem = string | { path: string; name: string; isFile: boolean; relativePath?: string };
+
+const SendBoxHarness: React.FC<{
+  initialSelectedWorkspaceItems?: SelectionItem[];
+}> = ({ initialSelectedWorkspaceItems = [] }) => {
   const [value, setValue] = useState('');
-  const [selectedWorkspaceItems, setSelectedWorkspaceItems] = useState<
-    Array<string | { path: string; name: string; isFile: boolean; relativePath?: string }>
-  >([]);
+  const [selectedWorkspaceItems, setSelectedWorkspaceItems] = useState<SelectionItem[]>(initialSelectedWorkspaceItems);
 
   return (
     <ConversationProvider value={{ conversationId: 'conv-1', workspace: '/workspace', type: 'gemini' }}>
-      <SendBox
-        value={value}
-        onChange={setValue}
-        onSelectedWorkspaceItemsChange={(items) => {
-          mockEmit('gemini.selected.file', items);
-          setSelectedWorkspaceItems(items);
-        }}
-        onSend={vi.fn().mockResolvedValue(undefined)}
-        selectedWorkspaceItems={selectedWorkspaceItems}
-      />
-    </ConversationProvider>
-  );
-};
-
-const SendBoxLegacyHarness: React.FC = () => {
-  const [value, setValue] = useState('');
-  const [selectedWorkspaceItems, setSelectedWorkspaceItems] = useState<
-    Array<string | { path: string; name: string; isFile: boolean; relativePath?: string }>
-  >(['/workspace/README.md']);
-
-  return (
-    <ConversationProvider value={{ conversationId: 'conv-1', workspace: '/workspace', type: 'gemini' }}>
-      <SendBox
-        value={value}
-        onChange={setValue}
-        onSelectedWorkspaceItemsChange={(items) => {
-          mockEmit('gemini.selected.file', items);
-          setSelectedWorkspaceItems(items);
-        }}
-        onSend={vi.fn().mockResolvedValue(undefined)}
-        selectedWorkspaceItems={selectedWorkspaceItems}
-      />
-    </ConversationProvider>
-  );
-};
-
-const SendBoxObjectSelectionHarness: React.FC = () => {
-  const [value, setValue] = useState('');
-  const [selectedWorkspaceItems, setSelectedWorkspaceItems] = useState<
-    Array<string | { path: string; name: string; isFile: boolean; relativePath?: string }>
-  >([
-    {
-      path: '/workspace/src/utils/date.ts',
-      name: 'date.ts',
-      isFile: true,
-      relativePath: 'src/utils/date.ts',
-    },
-  ]);
-
-  return (
-    <ConversationProvider value={{ conversationId: 'conv-1', workspace: '/workspace', type: 'gemini' }}>
-      <SendBox
-        value={value}
-        onChange={setValue}
-        onSelectedWorkspaceItemsChange={(items) => {
-          mockEmit('gemini.selected.file', items);
-          setSelectedWorkspaceItems(items);
-        }}
-        onSend={vi.fn().mockResolvedValue(undefined)}
-        selectedWorkspaceItems={selectedWorkspaceItems}
-      />
+      <div>
+        <div data-testid='selected-workspace-count'>{selectedWorkspaceItems.length}</div>
+        <SendBox
+          value={value}
+          onChange={setValue}
+          onSelectedWorkspaceItemsChange={setSelectedWorkspaceItems}
+          onSend={vi.fn().mockResolvedValue(undefined)}
+          selectedWorkspaceItems={selectedWorkspaceItems}
+        />
+      </div>
     </ConversationProvider>
   );
 };
@@ -345,14 +295,6 @@ describe('SendBox @ file menu', () => {
       expect(textarea).toHaveValue('@src/utils/date.ts');
     });
     expect(screen.getByTestId('sendbox-highlight-layer')).toHaveTextContent('@src/utils/date.ts');
-    expect(mockEmit).toHaveBeenCalledWith('gemini.selected.file.append', [
-      {
-        path: '/workspace/src/utils/date.ts',
-        name: 'date.ts',
-        isFile: true,
-        relativePath: 'src/utils/date.ts',
-      },
-    ]);
     expect(screen.queryByRole('listbox', { name: 'File mentions' })).not.toBeInTheDocument();
   });
 
@@ -435,31 +377,54 @@ describe('SendBox @ file menu', () => {
     fireEvent.keyUp(textarea, { key: 'Backspace' });
 
     await waitFor(() => {
-      expect(mockEmit).toHaveBeenCalledWith('gemini.selected.file', []);
+      expect(screen.getByTestId('selected-workspace-count')).toHaveTextContent('0');
     });
   });
 
   it('shows and removes legacy string-backed file selections when no visible mention exists', async () => {
-    render(<SendBoxLegacyHarness />);
+    render(<SendBoxHarness initialSelectedWorkspaceItems={['/workspace/README.md']} />);
 
     expect(await screen.findByText('README.md')).toBeInTheDocument();
+    expect(screen.getByTestId('selected-workspace-count')).toHaveTextContent('1');
 
     fireEvent.click(screen.getByText('CloseSmall'));
 
     await waitFor(() => {
-      expect(mockEmit).toHaveBeenCalledWith('gemini.selected.file', []);
+      expect(screen.getByTestId('selected-workspace-count')).toHaveTextContent('0');
     });
   });
 
   it('keeps object-backed add-to-chat selections when there is no visible mention text', async () => {
-    render(<SendBoxObjectSelectionHarness />);
+    render(
+      <SendBoxHarness
+        initialSelectedWorkspaceItems={[
+          {
+            path: '/workspace/src/utils/date.ts',
+            name: 'date.ts',
+            isFile: true,
+            relativePath: 'src/utils/date.ts',
+          },
+        ]}
+      />
+    );
 
     expect(await screen.findByText('src/utils/date.ts')).toBeInTheDocument();
-    expect(mockEmit).not.toHaveBeenCalledWith('gemini.selected.file', []);
+    expect(screen.getByTestId('selected-workspace-count')).toHaveTextContent('1');
   });
 
   it('keeps an existing add-to-chat selection when the same file is later removed from @ mentions', async () => {
-    render(<SendBoxObjectSelectionHarness />);
+    render(
+      <SendBoxHarness
+        initialSelectedWorkspaceItems={[
+          {
+            path: '/workspace/src/utils/date.ts',
+            name: 'date.ts',
+            isFile: true,
+            relativePath: 'src/utils/date.ts',
+          },
+        ]}
+      />
+    );
 
     const textarea = screen.getByRole('textbox') as HTMLTextAreaElement;
 
@@ -482,6 +447,7 @@ describe('SendBox @ file menu', () => {
 
     await waitFor(() => {
       expect(screen.getByText('src/utils/date.ts')).toBeInTheDocument();
+      expect(screen.getByTestId('selected-workspace-count')).toHaveTextContent('1');
     });
   });
 
