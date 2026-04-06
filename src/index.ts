@@ -516,7 +516,7 @@ const handleAppReady = async (): Promise<void> => {
       void (async () => {
         try {
           const petEnabled = await ProcessConfig.get('pet.enabled');
-          if (petEnabled !== false) {
+          if (petEnabled === true) {
             const { createPetWindow } = await import('./process/pet/petManager');
             createPetWindow();
           }

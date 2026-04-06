@@ -11,6 +11,7 @@ import { PetStateMachine } from './petStateMachine';
 import { PetIdleTicker } from './petIdleTicker';
 import { PetEventBridge } from './petEventBridge';
 import { setPetNotifyHook } from '../../common/adapter/main';
+import { initPetConfirmManager, updateAnchorBounds, destroyPetConfirmManager } from './petConfirmManager';
 import type { PetSize, PetState } from './petTypes';
 
 // petManager is dynamically imported → rollup places it in out/main/chunks/,
@@ -101,7 +102,7 @@ export function createPetWindow(): void {
     petHitWindow.setAlwaysOnTop(true, 'pop-up-menu');
   }
 
-  petHitWindow.setIgnoreMouseEvents(false);
+  petHitWindow.setIgnoreMouseEvents(true, { forward: true });
 
   // Initialize state machine, idle ticker, and event bridge
   stateMachine = new PetStateMachine();
@@ -132,6 +133,9 @@ export function createPetWindow(): void {
   registerIpcHandlers();
   loadContent();
 
+  // Initialize confirm manager
+  initPetConfirmManager({ x, y, width: currentSize, height: currentSize });
+
   petWindow.on('closed', () => {
     destroyPetWindow();
   });
@@ -144,6 +148,9 @@ export function createPetWindow(): void {
  */
 export function destroyPetWindow(): void {
   clearDragTimer();
+
+  // Destroy confirm manager
+  destroyPetConfirmManager();
 
   if (eventBridge) {
     eventBridge.dispose();
@@ -188,6 +195,25 @@ export function hidePetWindow(): void {
 
 export function getEventBridge(): PetEventBridge | null {
   return eventBridge;
+}
+
+/**
+ * Resize pet window to specified size (called by systemSettingsBridge).
+ */
+export function resizePetWindow(size: number): void {
+  const validSizes: PetSize[] = [200, 280, 360];
+  if (!validSizes.includes(size as PetSize)) {
+    console.warn(`[Pet] Invalid size ${size}, must be one of ${validSizes.join(', ')}`);
+    return;
+  }
+  resizePet(size as PetSize);
+}
+
+/**
+ * Set Do-Not-Disturb mode (called by systemSettingsBridge).
+ */
+export function setPetDndMode(dnd: boolean): void {
+  stateMachine?.setDnd(dnd);
 }
 
 // ---------------------------------------------------------------------------
@@ -253,6 +279,11 @@ function registerIpcHandlers(): void {
     clearDragTimer();
     stateMachine?.forceState('idle');
     idleTicker?.resetIdle();
+    // Update anchor after drag so next confirm window appears at the new position
+    if (petWindow && !petWindow.isDestroyed()) {
+      const [nx, ny] = petWindow.getPosition();
+      updateAnchorBounds({ x: nx, y: ny, width: currentSize, height: currentSize });
+    }
   });
 
   ipcMain.on('pet:click', (_event, data: { side: string; count: number }) => {
@@ -315,6 +346,11 @@ function registerIpcHandlers(): void {
 
     menu.popup({ window: petHitWindow });
   });
+
+  ipcMain.on('pet:set-ignore-mouse-events', (_event, ignore: boolean, options?: { forward: boolean }) => {
+    if (!petHitWindow || petHitWindow.isDestroyed()) return;
+    petHitWindow.setIgnoreMouseEvents(ignore, options);
+  });
 }
 
 function unregisterIpcHandlers(): void {
@@ -322,6 +358,7 @@ function unregisterIpcHandlers(): void {
   ipcMain.removeAllListeners('pet:drag-end');
   ipcMain.removeAllListeners('pet:click');
   ipcMain.removeAllListeners('pet:context-menu');
+  ipcMain.removeAllListeners('pet:set-ignore-mouse-events');
 }
 
 // ---------------------------------------------------------------------------
@@ -350,6 +387,9 @@ function resizePet(size: PetSize): void {
 
   idleTicker?.setPetBounds(x, y, size, size);
 
+  // Update confirm window anchor
+  updateAnchorBounds({ x, y, width: size, height: size });
+
   if (!petWindow.isDestroyed()) {
     petWindow.webContents.send('pet:resize', size);
   }
@@ -370,4 +410,7 @@ function resetPosition(): void {
   petHitWindow.setPosition(x + hitOffset, y + hitOffset, false);
 
   idleTicker?.setPetBounds(x, y, currentSize, currentSize);
+
+  // Update confirm window anchor
+  updateAnchorBounds({ x, y, width: currentSize, height: currentSize });
 }

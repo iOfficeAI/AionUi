@@ -1,9 +1,11 @@
 <svg viewBox="-18 -18 58 58" fill="none" xmlns="http://www.w3.org/2000/svg">
   <defs><style>
     .poke-r-body { transform-origin:11px 12px; animation:poke-r-tilt .6s cubic-bezier(.34,1.56,.64,1) forwards; }
+    .poke-right-shadow { transform-origin:11px 22.5px; animation:poke-right-shadow-pulse 3.2s ease-in-out infinite; }
     @keyframes poke-r-tilt { 0%{transform:rotate(0) translateX(0)} 40%{transform:rotate(-12deg) translateX(-2px)} 100%{transform:rotate(-8deg) translateX(-1.5px)} }
+    @keyframes poke-right-shadow-pulse { 0%,100%{transform:scaleX(1);opacity:0.35} 50%{transform:scaleX(0.96);opacity:0.28} }
   </style></defs>
-  <ellipse cx="11" cy="22.5" rx="4" ry="0.6" fill="#c0c0c0" opacity="0.35"/>
+  <ellipse class="poke-right-shadow" cx="11" cy="22.5" rx="4" ry="0.6" fill="#c0c0c0"/>
   <g class="poke-r-body">
     <rect x="2" y="9" width="3" height="3" rx="0.5" fill="#8891b8" opacity="0.7" transform="rotate(45 3.5 10.5)"/>
     <rect x="17" y="9" width="3" height="3" rx="0.5" fill="#8891b8" opacity="0.7" transform="rotate(45 18.5 10.5)"/>

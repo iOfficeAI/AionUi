@@ -140,12 +140,18 @@ export function initSystemSettingsBridge(): void {
   // Desktop pet settings
   ipcBridge.systemSettings.getPetEnabled.provider(async () => {
     const value = await ProcessConfig.get('pet.enabled');
-    return value ?? true;
+    return value ?? false;
   });
 
   ipcBridge.systemSettings.setPetEnabled.provider(async ({ enabled }) => {
     await ProcessConfig.set('pet.enabled', enabled);
-    // TODO: notify petManager to create/destroy window
+    // Dynamic import to avoid circular dependency
+    const petManager = await import('@process/pet/petManager');
+    if (enabled) {
+      petManager.createPetWindow();
+    } else {
+      petManager.destroyPetWindow();
+    }
   });
 
   ipcBridge.systemSettings.getPetSize.provider(async () => {
@@ -155,7 +161,9 @@ export function initSystemSettingsBridge(): void {
 
   ipcBridge.systemSettings.setPetSize.provider(async ({ size }) => {
     await ProcessConfig.set('pet.size', size);
-    // TODO: notify petManager to resize window
+    // Dynamic import to avoid circular dependency
+    const petManager = await import('@process/pet/petManager');
+    petManager.resizePetWindow(size);
   });
 
   ipcBridge.systemSettings.getPetDnd.provider(async () => {
@@ -165,6 +173,8 @@ export function initSystemSettingsBridge(): void {
 
   ipcBridge.systemSettings.setPetDnd.provider(async ({ dnd }) => {
     await ProcessConfig.set('pet.dnd', dnd);
-    // TODO: notify petManager to toggle DND mode
+    // Dynamic import to avoid circular dependency
+    const petManager = await import('@process/pet/petManager');
+    petManager.setPetDndMode(dnd);
   });
 }

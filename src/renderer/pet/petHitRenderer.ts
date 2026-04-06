@@ -63,3 +63,24 @@ document.addEventListener('pointerup', (e: PointerEvent) => {
 });
 
 document.addEventListener('contextmenu', (e) => e.preventDefault());
+
+// Click-through: toggle ignore based on mouse position relative to pet body circle.
+// With forward: true, mouse move events are forwarded even when the window ignores clicks.
+const WIN_CENTER_X = window.innerWidth / 2;
+const WIN_CENTER_Y = window.innerHeight / 2;
+const HIT_RADIUS = window.innerWidth * 0.4;
+let isIgnoring = true;
+
+document.addEventListener('mousemove', (e: MouseEvent) => {
+  const dx = e.clientX - WIN_CENTER_X;
+  const dy = e.clientY - WIN_CENTER_Y;
+  const inCircle = dx * dx + dy * dy <= HIT_RADIUS * HIT_RADIUS;
+
+  if (inCircle && isIgnoring) {
+    isIgnoring = false;
+    window.petHitAPI.setIgnoreMouseEvents(false);
+  } else if (!inCircle && !isIgnoring) {
+    isIgnoring = true;
+    window.petHitAPI.setIgnoreMouseEvents(true, { forward: true });
+  }
+});

@@ -15,11 +15,14 @@
         background: transparent;
       }
       #hit {
-        width: 100%;
-        height: 100%;
+        position: absolute;
+        top: 10%;
+        left: 10%;
+        width: 80%;
+        height: 80%;
+        border-radius: 50%;
         cursor: grab;
-        /* Needs a non-transparent background for macOS to deliver pointer events */
-        background: rgba(255, 255, 255, 0.01);
+        background: transparent;
       }
       #hit.dragging {
         cursor: grabbing;

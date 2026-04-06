@@ -5,12 +5,20 @@
         transform-origin: 11px 15px;
         animation: sleep-breathe 4s ease-in-out infinite;
       }
+      .sleeping-shadow {
+        transform-origin: 11px 17.5px;
+        animation: sleeping-shadow-pulse 4s ease-in-out infinite;
+      }
       .sleep-z1 { animation: sleep-zzz1 5s ease-in-out infinite; animation-delay: 0s; opacity: 0; }
       .sleep-z2 { animation: sleep-zzz2 5s ease-in-out infinite; animation-delay: 1.6s; opacity: 0; }
       .sleep-z3 { animation: sleep-zzz3 5s ease-in-out infinite; animation-delay: 3.2s; opacity: 0; }
       @keyframes sleep-breathe {
         0%,100% { transform: scaleY(1) scaleX(1); }
         40%,60% { transform: scaleY(1.14) scaleX(0.94); }
+      }
+      @keyframes sleeping-shadow-pulse {
+        0%,100% { transform: scaleX(1); opacity: 0.35; }
+        40%,60% { transform: scaleX(1.08); opacity: 0.28; }
       }
       @keyframes sleep-zzz1 {
         0%   { opacity:0; transform: translate(14px,4px) scale(0.5); }
@@ -43,6 +51,9 @@
   <use href="#sleep-pz" class="sleep-z1" fill="#8891b8"/>
   <use href="#sleep-pz" class="sleep-z2" fill="#a0a8c8"/>
   <use href="#sleep-pz" class="sleep-z3" fill="#c0c8e0"/>
+
+  <!-- shadow -->
+  <ellipse class="sleeping-shadow" cx="11" cy="17.5" rx="4" ry="0.6" fill="#c0c0c0"/>
 
   <g class="sleep-body">
     <!-- 左手（大灰色，偏下） -->

@@ -5,6 +5,10 @@
         transform-origin: 11px 12px;
         animation: think-breathe 3.2s ease-in-out infinite;
       }
+      .thinking-shadow {
+        transform-origin: 14px 26.5px;
+        animation: thinking-shadow-pulse 3.2s ease-in-out infinite;
+      }
       .think-bubble { animation: think-bubble-float 3s ease-in-out infinite; }
       .tpx1 { animation: think-dot 1.8s infinite 0s; }
       .tpx2 { animation: think-dot 1.8s infinite 0.35s; }
@@ -30,6 +34,10 @@
         25%  { opacity:0.9; transform:translate(0.5px,-1px) scale(1); }
         100% { opacity:0;   transform:translate(2px,-7px)  scale(1.4); }
       }
+      @keyframes thinking-shadow-pulse {
+        0%,100% { transform: scaleX(1); opacity: 0.35; }
+        50%     { transform: scaleX(0.96); opacity: 0.28; }
+      }
     </style>
   </defs>
 
@@ -41,7 +49,7 @@
   <rect class="tgl3" x="5"  y="12" width="1.2" height="1.2" rx="0.2" fill="#94BDFF"/>
 
   <!-- shadow — 统一样式 -->
-  <ellipse cx="14" cy="26.5" rx="4" ry="0.6" fill="#c0c0c0" opacity="0.35"/>
+  <ellipse class="thinking-shadow" cx="14" cy="26.5" rx="4" ry="0.6" fill="#c0c0c0"/>
   <!-- 去掉设计稿里的 D9D9D9 阴影条 -->
 
   <g class="think-body">

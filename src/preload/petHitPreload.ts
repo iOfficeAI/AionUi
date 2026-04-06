@@ -11,4 +11,6 @@ contextBridge.exposeInMainWorld('petHitAPI', {
   dragEnd: () => ipcRenderer.send('pet:drag-end'),
   click: (data: { side: string; count: number }) => ipcRenderer.send('pet:click', data),
   contextMenu: () => ipcRenderer.send('pet:context-menu'),
+  setIgnoreMouseEvents: (ignore: boolean, options?: { forward: boolean }) =>
+    ipcRenderer.send('pet:set-ignore-mouse-events', ignore, options),
 });

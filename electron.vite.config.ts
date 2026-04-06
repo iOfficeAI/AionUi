@@ -132,6 +132,7 @@ export default defineConfig(({ mode }) => {
             index: resolve('src/preload/main.ts'),
             petPreload: resolve('src/preload/petPreload.ts'),
             petHitPreload: resolve('src/preload/petHitPreload.ts'),
+            petConfirmPreload: resolve('src/preload/petConfirmPreload.ts'),
           },
         },
       },
@@ -183,6 +184,7 @@ export default defineConfig(({ mode }) => {
             index: resolve('src/renderer/index.html'),
             pet: resolve('src/renderer/pet/pet.html'),
             'pet-hit': resolve('src/renderer/pet/pet-hit.html'),
+            'pet-confirm': resolve('src/renderer/pet/pet-confirm.html'),
           },
           external: ['node:crypto', 'crypto'],
           onwarn(warning, warn) {
