@@ -170,7 +170,7 @@ describe('MCP injection chain consistency', () => {
   });
 
   it('TEAM_SUPPORTED_BACKENDS contains exactly claude, codex, codebuddy', () => {
-    expect([...TEAM_SUPPORTED_BACKENDS].sort()).toEqual(['claude', 'codebuddy', 'codex']);
+    expect([...TEAM_SUPPORTED_BACKENDS].toSorted()).toEqual(['claude', 'codebuddy', 'codex']);
   });
 
   it('MCP_CAPABLE_TYPES contains "acp" — the core team protocol', () => {

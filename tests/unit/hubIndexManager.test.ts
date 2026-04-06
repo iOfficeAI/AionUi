@@ -69,7 +69,7 @@ describe('HubIndexManager', () => {
       expect(hubIndexManager.getExtension('ext-a')).toBeDefined();
     });
 
-    it('should merge remote index as supplement (local wins on conflict)', async () => {
+    it('should merge remote index with remote overriding local on conflict', async () => {
       const localExt = makeExt({ name: 'shared', description: 'local version' });
       const remoteExt = makeExt({ name: 'shared', description: 'remote version' });
       const remoteOnly = makeExt({ name: 'remote-only' });
@@ -91,8 +91,8 @@ describe('HubIndexManager', () => {
 
       await hubIndexManager.loadIndexes();
 
-      // Local wins on conflict
-      expect(hubIndexManager.getExtension('shared')?.description).toBe('local version');
+      // Remote wins on conflict
+      expect(hubIndexManager.getExtension('shared')?.description).toBe('remote version');
       // Remote supplement is added
       expect(hubIndexManager.getExtension('remote-only')).toBeDefined();
     });
