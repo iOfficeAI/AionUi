@@ -11,6 +11,7 @@
   "main": "./out/main/index.js",
   "scripts": {
     "start": "electron-vite dev",
+    "start:multi": "cross-env AIONUI_MULTI_INSTANCE=1 electron-vite dev",
     "cli": "electron-vite dev",
     "webui": "rm -rf out/renderer && electron-vite dev -- --webui",
     "webui:remote": "rm -rf out/renderer && electron-vite dev -- --webui --remote",
@@ -112,6 +113,7 @@
     "jsonwebtoken": "^9.0.2",
     "katex": "^0.16.22",
     "mammoth": "^1.11.0",
+    "mermaid": "^11.13.0",
     "multer": "^2.1.1",
     "officeparser": "^5.2.2",
     "openai": "^5.12.2",
@@ -133,6 +135,7 @@
     "remark-math": "^6.0.0",
     "semver": "^7.7.2",
     "sharp": "^0.34.3",
+    "smol-toml": "^1.6.1",
     "stream-browserify": "^3.0.0",
     "streamdown": "^1.5.1",
     "strip-json-comments": "^3.1.1",

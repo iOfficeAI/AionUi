@@ -76,14 +76,15 @@ export class AcpAdapter {
       }
 
       case 'agent_thought_chunk': {
+        // Reset message tracking so content after thinking gets a new msg_id,
+        // ensuring the thinking message appears above subsequent content in the UI
+        this.resetMessageTracking();
         if (update.content) {
           const message = this.convertThoughtChunk(update);
           if (message) {
             messages.push(message);
           }
         }
-        // Reset message tracking for next agent_message_chunk
-        this.resetMessageTracking();
         break;
       }
 
@@ -92,8 +93,6 @@ export class AcpAdapter {
         if (toolCallMessage) {
           messages.push(toolCallMessage);
         }
-        // Reset message tracking so next agent_message_chunk gets new msg_id
-        this.resetMessageTracking();
         break;
       }
 
@@ -102,8 +101,6 @@ export class AcpAdapter {
         if (toolCallUpdateMessage) {
           messages.push(toolCallUpdateMessage);
         }
-        // Reset message tracking so next agent_message_chunk gets new msg_id
-        this.resetMessageTracking();
         break;
       }
 
@@ -112,8 +109,6 @@ export class AcpAdapter {
         if (planMessage) {
           messages.push(planMessage);
         }
-        // Reset message tracking so next agent_message_chunk gets new msg_id
-        this.resetMessageTracking();
         break;
       }
 
@@ -128,8 +123,6 @@ export class AcpAdapter {
 
       // Disabled: available_commands messages are too noisy and distracting in the chat UI
       case 'available_commands_update':
-        // Still reset message tracking so next agent_message_chunk gets new msg_id
-        this.resetMessageTracking();
         break;
 
       // User message chunks are echoed back during session/load restore.
@@ -161,16 +154,42 @@ export class AcpAdapter {
       position: 'left' as const,
     };
 
-    if (update.content && update.content.text) {
+    const text = this.extractTextFromAgentMessageChunk(update);
+    if (text !== null) {
       return {
         ...baseMessage,
         type: 'text',
         content: {
-          content: update.content.text,
+          content: text,
         },
       } as IMessageText;
     }
 
+    return null;
+  }
+
+  /**
+   * Extract text from ACP agent_message_chunk payload.
+   * Returns null when the chunk does not contain renderable text.
+   */
+  private extractTextFromAgentMessageChunk(update: AgentMessageChunkUpdate['update']): string | null {
+    const content = update.content;
+    if (!content) {
+      console.warn('[AcpAdapter] Dropped agent_message_chunk: missing content payload');
+      return null;
+    }
+
+    if (content.type === 'text') {
+      if (typeof content.text === 'string') {
+        // Keep empty string chunks for stream consistency and observability.
+        return content.text;
+      }
+      console.warn('[AcpAdapter] Dropped text chunk: content.text is not a string');
+      return null;
+    }
+
+    // Non-text chunks (e.g. image) are currently not rendered in chat stream.
+    console.warn(`[AcpAdapter] Dropped non-text chunk: content.type=${String(content.type)}`);
     return null;
   }
 

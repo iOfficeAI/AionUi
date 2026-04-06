@@ -32,6 +32,11 @@ vi.mock('@/common', () => ({
 }));
 vi.mock('@process/utils/initStorage', () => ({
   ProcessConfig: { get: vi.fn(async () => false) },
+  getCronSkillsDir: vi.fn(() => '/mock/cronSkills'),
+}));
+vi.mock('@/process/services/cron/cronSkillFile', () => ({
+  writeCronSkillFile: vi.fn(async () => '/mock/cronSkills/job-id/SKILL.md'),
+  deleteCronSkillFile: vi.fn(async () => {}),
 }));
 
 import { CronService } from '../../src/process/services/cron/CronService';
@@ -60,6 +65,7 @@ function makeEmitter(overrides?: Partial<ICronEventEmitter>): ICronEventEmitter 
     emitJobCreated: vi.fn(),
     emitJobUpdated: vi.fn(),
     emitJobRemoved: vi.fn(),
+    emitJobExecuted: vi.fn(),
     showNotification: vi.fn(async () => {}),
     ...overrides,
   };
@@ -85,6 +91,8 @@ function makeConversationRepo(overrides?: Partial<IConversationRepository>): ICo
     insertMessage: vi.fn(),
     getUserConversations: vi.fn(() => ({ data: [], total: 0, hasMore: false })),
     listAllConversations: vi.fn(() => []),
+    searchMessages: vi.fn(async () => ({ data: [], total: 0, hasMore: false })),
+    getConversationsByCronJob: vi.fn(async () => []),
     ...overrides,
   };
 }
@@ -176,15 +184,65 @@ describe('CronService', () => {
     const job = await service.addJob({
       name: 'my-job',
       schedule: { kind: 'every', everyMs: 10000, description: 'test' },
-      message: 'hello',
+      prompt: 'hello',
       conversationId: 'conv-1',
       agentType: 'gemini',
       createdBy: 'user',
     });
 
-    expect(repo.insert).toHaveBeenCalledWith(expect.objectContaining({ name: 'my-job' }));
+    expect(repo.insert).toHaveBeenCalledWith(
+      expect.objectContaining({
+        name: 'my-job',
+        target: expect.objectContaining({ payload: { kind: 'message', text: 'hello' } }),
+      })
+    );
     expect(emitter.emitJobCreated).toHaveBeenCalledWith(expect.objectContaining({ name: 'my-job' }));
     expect(job.name).toBe('my-job');
+  });
+
+  it('addJob tags conversation with cronJobId', async () => {
+    vi.mocked(repo.listByConversation).mockReturnValue([]);
+    vi.mocked(conversationRepo.getConversation).mockReturnValue({
+      id: 'conv-1',
+      extra: {},
+    } as ReturnType<IConversationRepository['getConversation']>);
+
+    await service.addJob({
+      name: 'my-job',
+      description: 'my description',
+      schedule: { kind: 'every', everyMs: 10000, description: 'test' },
+      prompt: 'hello',
+      conversationId: 'conv-1',
+      agentType: 'gemini',
+      createdBy: 'user',
+    });
+
+    expect(conversationRepo.updateConversation).toHaveBeenCalledWith(
+      'conv-1',
+      expect.objectContaining({
+        extra: expect.objectContaining({ cronJobId: expect.any(String) }),
+      })
+    );
+  });
+
+  it('addJob stores executionMode when provided', async () => {
+    vi.mocked(repo.listByConversation).mockReturnValue([]);
+
+    await service.addJob({
+      name: 'new-conv-job',
+      schedule: { kind: 'every', everyMs: 10000, description: 'test' },
+      prompt: 'hello',
+      conversationId: 'conv-1',
+      agentType: 'gemini',
+      createdBy: 'user',
+      executionMode: 'new_conversation',
+    });
+
+    expect(repo.insert).toHaveBeenCalledWith(
+      expect.objectContaining({
+        target: expect.objectContaining({ executionMode: 'new_conversation' }),
+      })
+    );
   });
 
   it('addJob throws when conversation already has a scheduled job', async () => {
@@ -195,7 +253,7 @@ describe('CronService', () => {
       service.addJob({
         name: 'new-job',
         schedule: { kind: 'every', everyMs: 10000, description: 'test' },
-        message: 'hello',
+        prompt: 'hello',
         conversationId: 'conv-1',
         agentType: 'gemini',
         createdBy: 'user',
@@ -231,6 +289,13 @@ describe('CronService', () => {
     expect(emitter.emitJobRemoved).toHaveBeenCalledWith('job-1');
   });
 
+  it('removeJob cleans up SKILL.md file', async () => {
+    const { deleteCronSkillFile } = await import('@/process/services/cron/cronSkillFile');
+    await service.removeJob('job-1');
+
+    expect(deleteCronSkillFile).toHaveBeenCalledWith('job-1');
+  });
+
   // --- executeJob (via startTimer interval) ---
 
   it('executeJob calls executor.executeJob, updates job state, and emits completion', async () => {
@@ -248,7 +313,7 @@ describe('CronService', () => {
     // Advance exactly one interval period to fire the timer once.
     await vi.advanceTimersByTimeAsync(60000);
 
-    expect(executor.executeJob).toHaveBeenCalledWith(job, expect.any(Function));
+    expect(executor.executeJob).toHaveBeenCalledWith(job, expect.any(Function), undefined);
     expect(repo.update).toHaveBeenCalledWith(
       'j1',
       expect.objectContaining({

@@ -27,7 +27,17 @@ export interface ConversationContextValue {
    * Conversation type
    * 会话类型
    */
-  type: 'gemini' | 'acp' | 'codex' | 'openclaw-gateway' | 'nanobot' | 'remote';
+  type: 'gemini' | 'acp' | 'codex' | 'openclaw-gateway' | 'nanobot' | 'remote' | 'aionrs';
+
+  /**
+   * Cron job ID (if this conversation was created by a scheduled task)
+   */
+  cronJobId?: string;
+
+  /**
+   * When true, platform chat components should hide the SendBox (e.g. sub-agents in team mode)
+   */
+  hideSendBox?: boolean;
 }
 
 /**

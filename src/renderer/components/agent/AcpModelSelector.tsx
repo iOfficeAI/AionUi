@@ -9,14 +9,12 @@ import type { IResponseMessage } from '@/common/adapter/ipcBridge';
 import { ConfigStorage } from '@/common/config/storage';
 import type { IProvider } from '@/common/config/storage';
 import type { AcpModelInfo } from '@/common/types/acpTypes';
-import { useLayoutContext } from '@/renderer/hooks/context/LayoutContext';
-import { usePreviewContext } from '@/renderer/pages/conversation/Preview';
 import { getModelDisplayLabel } from '@/renderer/utils/model/agentLogo';
 import { Button, Dropdown, Menu, Tooltip } from '@arco-design/web-react';
-import classNames from 'classnames';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import useSWR from 'swr';
+import MarqueePillLabel from './MarqueePillLabel';
 
 /**
  * Model selector for ACP-based agents.
@@ -28,7 +26,7 @@ import useSWR from 'swr';
  *
  * When backend and initialModelId are provided, the component can show
  * cached model info before the agent manager is created (pre-first-message).
- * When preview panel is open, shows compact version (truncated label).
+ * Uses MarqueePillLabel for adaptive width with marquee on hover.
  */
 const AcpModelSelector: React.FC<{
   conversationId: string;
@@ -38,16 +36,25 @@ const AcpModelSelector: React.FC<{
   initialModelId?: string;
 }> = ({ conversationId, backend, initialModelId }) => {
   const { t } = useTranslation();
-  const { isOpen: isPreviewOpen } = usePreviewContext();
-  const layout = useLayoutContext();
   const [modelInfo, setModelInfo] = useState<AcpModelInfo | null>(null);
   const modelInfoRef = useRef(modelInfo);
   modelInfoRef.current = modelInfo;
   // Track whether user has manually switched model via dropdown
   const hasUserChangedModel = useRef(false);
+  // Track the last conversationId to detect tab switches
+  const prevConversationIdRef = useRef(conversationId);
 
   // Fetch initial model info on mount, fallback to cached models if manager not ready
   useEffect(() => {
+    // If user manually changed model and we're returning to the same conversation, skip reload
+    if (hasUserChangedModel.current && prevConversationIdRef.current === conversationId) return;
+
+    // Reset flag when switching to a different conversation
+    if (prevConversationIdRef.current !== conversationId) {
+      hasUserChangedModel.current = false;
+      prevConversationIdRef.current = conversationId;
+    }
+
     let cancelled = false;
     ipcBridge.acpConversation.getModelInfo
       .invoke({ conversationId })
@@ -62,7 +69,22 @@ const AcpModelSelector: React.FC<{
           // canSwitch=false with empty availableModels. Prefer cached data
           // in that case to keep the dropdown functional.
           if (info.availableModels?.length > 0) {
-            setModelInfo(info);
+            // If user pre-selected a model (from Guid page) and hasn't manually changed it,
+            // keep that selection instead of letting the agent's default overwrite it.
+            if (initialModelId && !hasUserChangedModel.current && info.currentModelId !== initialModelId) {
+              const match = info.availableModels.find((m) => m.id === initialModelId);
+              if (match) {
+                setModelInfo({
+                  ...info,
+                  currentModelId: initialModelId,
+                  currentModelLabel: match.label || initialModelId,
+                });
+              } else {
+                setModelInfo(info);
+              }
+            } else {
+              setModelInfo(info);
+            }
           } else if (backend) {
             void loadCachedModelInfo(backend, cancelled);
           } else {
@@ -151,6 +173,7 @@ const AcpModelSelector: React.FC<{
   const handleSelectModel = useCallback(
     (modelId: string) => {
       hasUserChangedModel.current = true;
+      setModelInfo((prev) => (prev ? { ...prev, currentModelId: modelId } : prev));
       ipcBridge.acpConversation.setModel
         .invoke({ conversationId, modelId })
         .then((result) => {
@@ -173,9 +196,6 @@ const AcpModelSelector: React.FC<{
     defaultModelLabel,
     fallbackLabel: t('conversation.welcome.useCliModel'),
   });
-  const compact = isPreviewOpen || layout?.isMobile;
-  const isMobileCompact = Boolean(layout?.isMobile);
-
   // 获取模型配置数据（包含健康状态）
   const { data: modelConfig } = useSWR<IProvider[]>('model.config', () => ipcBridge.mode.getModelConfig.invoke());
 
@@ -194,17 +214,13 @@ const AcpModelSelector: React.FC<{
     return (
       <Tooltip content={t('conversation.welcome.modelSwitchNotSupported')} position='top'>
         <Button
-          className={classNames(
-            'sendbox-model-btn header-model-btn',
-            compact && '!max-w-[120px]',
-            isMobileCompact && '!max-w-[160px]'
-          )}
+          className='sendbox-model-btn header-model-btn agent-mode-compact-pill'
           shape='round'
           size='small'
           style={{ cursor: 'default' }}
         >
-          <span className='flex items-center gap-6px min-w-0'>
-            <span className={compact ? 'block truncate' : undefined}>{t('conversation.welcome.useCliModel')}</span>
+          <span className='flex items-center gap-6px min-w-0 leading-none'>
+            <MarqueePillLabel>{t('conversation.welcome.useCliModel')}</MarqueePillLabel>
           </span>
         </Button>
       </Tooltip>
@@ -216,20 +232,16 @@ const AcpModelSelector: React.FC<{
     return (
       <Tooltip content={displayLabel} position='top'>
         <Button
-          className={classNames(
-            'sendbox-model-btn header-model-btn',
-            compact && '!max-w-[120px]',
-            isMobileCompact && '!max-w-[160px]'
-          )}
+          className='sendbox-model-btn header-model-btn agent-mode-compact-pill'
           shape='round'
           size='small'
           style={{ cursor: 'default' }}
         >
-          <span className='flex items-center gap-6px min-w-0'>
+          <span className='flex items-center gap-6px min-w-0 leading-none'>
             {currentModelHealth.status !== 'unknown' && (
               <div className={`w-6px h-6px rounded-full shrink-0 ${currentModelHealth.color}`} />
             )}
-            <span className={compact ? 'block truncate' : undefined}>{displayLabel}</span>
+            <MarqueePillLabel>{displayLabel}</MarqueePillLabel>
           </span>
         </Button>
       </Tooltip>
@@ -265,20 +277,12 @@ const AcpModelSelector: React.FC<{
         </Menu>
       }
     >
-      <Button
-        className={classNames(
-          'sendbox-model-btn header-model-btn',
-          compact && '!max-w-[120px]',
-          isMobileCompact && '!max-w-[160px]'
-        )}
-        shape='round'
-        size='small'
-      >
-        <span className='flex items-center gap-6px min-w-0'>
+      <Button className='sendbox-model-btn header-model-btn agent-mode-compact-pill' shape='round' size='small'>
+        <span className='flex items-center gap-6px min-w-0 leading-none'>
           {currentModelHealth.status !== 'unknown' && (
             <div className={`w-6px h-6px rounded-full shrink-0 ${currentModelHealth.color}`} />
           )}
-          <span className={compact ? 'block truncate' : undefined}>{displayLabel}</span>
+          <MarqueePillLabel>{displayLabel}</MarqueePillLabel>
         </span>
       </Button>
     </Dropdown>

@@ -57,6 +57,9 @@ vi.mock('@arco-design/web-react', () => ({
   Tooltip: ({ children }: { children: React.ReactNode }) => <>{children}</>,
   Avatar: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
   Space: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
+  Button: ({ children, onClick }: { children: React.ReactNode; onClick?: () => void }) => (
+    <button onClick={onClick}>{children}</button>
+  ),
   Switch: ({ checked, onChange }: { checked?: boolean; onChange?: (v: boolean) => void }) => (
     <button role='switch' aria-checked={checked} onClick={() => onChange?.(!checked)}>
       switch
@@ -64,17 +67,50 @@ vi.mock('@arco-design/web-react', () => ({
   ),
 }));
 
+vi.mock('@/renderer/components/base/AionModal', () => ({
+  default: ({ children, visible }: { children: React.ReactNode; visible: boolean }) =>
+    visible ? <div>{children}</div> : null,
+}));
+
+vi.mock('@/common/config/storage', () => ({
+  ConfigStorage: { get: vi.fn().mockResolvedValue([]), set: vi.fn().mockResolvedValue(undefined) },
+}));
+
 vi.mock('@icon-park/react', () => ({
+  Home: () => <span data-testid='icon-home'>HomeIcon</span>,
   Setting: () => <span data-testid='icon-setting'>SettingIcon</span>,
   Robot: () => <span data-testid='icon-robot'>RobotIcon</span>,
+  Plus: () => <span data-testid='icon-plus'>PlusIcon</span>,
+  Close: () => <span data-testid='icon-close'>CloseIcon</span>,
 }));
 
 vi.mock('@/renderer/utils/model/agentLogo', () => ({
   getAgentLogo: vi.fn(() => null),
+  resolveAgentLogo: vi.fn(() => null),
+}));
+
+vi.mock('@/renderer/utils/platform', () => ({
+  resolveExtensionAssetUrl: vi.fn(() => undefined),
+}));
+
+vi.mock('@/renderer/hooks/agent/useHubAgents', () => ({
+  useHubAgents: () => ({ agents: [], loading: false, install: vi.fn(), retryInstall: vi.fn(), update: vi.fn() }),
+}));
+
+vi.mock('../../src/renderer/pages/settings/AgentSettings/AgentHubModal', () => ({
+  AgentHubModal: ({ visible }: { visible: boolean }) => (visible ? <div data-testid='hub-modal' /> : null),
+}));
+
+vi.mock('@/renderer/utils/model/availableAgents', () => ({
+  AVAILABLE_AGENTS_SWR_KEY: 'acp.agents.available',
 }));
 
 vi.mock('@/renderer/hooks/context/ThemeContext', () => ({
   useThemeContext: () => ({ theme: 'light' }),
+}));
+
+vi.mock('../../src/renderer/pages/settings/AgentSettings/InlineAgentEditor', () => ({
+  default: () => <div data-testid='inline-agent-editor' />,
 }));
 
 // ---------------------------------------------------------------------------
@@ -97,13 +133,13 @@ describe('LocalAgents', () => {
     mockSwrMutate.mockResolvedValue(undefined);
   });
 
-  it('renders description and setup link', async () => {
+  it('renders description and detect custom agent link', async () => {
     await act(async () => {
       render(<LocalAgents />);
     });
 
     expect(screen.getByText('settings.agentManagement.localAgentsDescription')).toBeTruthy();
-    expect(screen.getByText('settings.agentManagement.localAgentsSetupLink')).toBeTruthy();
+    expect(screen.getByText('settings.agentManagement.detectCustomAgent')).toBeTruthy();
   });
 
   it('renders detected section heading', async () => {

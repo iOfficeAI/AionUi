@@ -5,21 +5,21 @@
  */
 
 import type { TChatConversation } from '@/common/config/storage';
-import { getActivityTime, getTimelineLabel } from '@/renderer/utils/chat/timeline';
+import { getActivityTime } from '@/renderer/utils/chat/timeline';
 import { getWorkspaceDisplayName } from '@/renderer/utils/workspace/workspace';
 import { getWorkspaceUpdateTime } from '@/renderer/utils/workspace/workspaceHistory';
 
-import type { GroupedHistoryResult, TimelineItem, TimelineSection, WorkspaceGroup } from '../types';
+import type { GroupedHistoryResult, TimelineItem, TimelineSection } from '../types';
 import { getConversationSortOrder } from './sortOrderHelpers';
-
-export const getConversationTimelineLabel = (conversation: TChatConversation, t: (key: string) => string): string => {
-  const time = getActivityTime(conversation);
-  return getTimelineLabel(time, Date.now(), t);
-};
 
 export const isConversationPinned = (conversation: TChatConversation): boolean => {
   const extra = conversation.extra as { pinned?: boolean } | undefined;
   return Boolean(extra?.pinned);
+};
+
+export const isCronJobConversation = (conversation: TChatConversation): boolean => {
+  const extra = conversation.extra as { cronJobId?: string } | undefined;
+  return Boolean(extra?.cronJobId);
 };
 
 export const getConversationPinnedAt = (conversation: TChatConversation): number => {
@@ -30,7 +30,7 @@ export const getConversationPinnedAt = (conversation: TChatConversation): number
   return 0;
 };
 
-export const groupConversationsByTimelineAndWorkspace = (
+export const groupConversationsByWorkspace = (
   conversations: TChatConversation[],
   t: (key: string) => string
 ): TimelineSection[] => {
@@ -51,85 +51,57 @@ export const groupConversationsByTimelineAndWorkspace = (
     }
   });
 
-  const workspaceGroupsByTimeline = new Map<string, WorkspaceGroup[]>();
+  const items: TimelineItem[] = [];
 
   allWorkspaceGroups.forEach((convList, workspace) => {
     const sortedConvs = [...convList].toSorted((a, b) => getActivityTime(b) - getActivityTime(a));
-    const latestConv = sortedConvs[0];
-    const timeline = getConversationTimelineLabel(latestConv, t);
-
-    if (!workspaceGroupsByTimeline.has(timeline)) {
-      workspaceGroupsByTimeline.set(timeline, []);
-    }
-
-    workspaceGroupsByTimeline.get(timeline)!.push({
-      workspace,
-      displayName: getWorkspaceDisplayName(workspace),
-      conversations: sortedConvs,
+    const updateTime = getWorkspaceUpdateTime(workspace);
+    const time = updateTime > 0 ? updateTime : getActivityTime(sortedConvs[0]);
+    items.push({
+      type: 'workspace',
+      time,
+      workspaceGroup: {
+        workspace,
+        displayName: getWorkspaceDisplayName(workspace),
+        conversations: sortedConvs,
+      },
     });
   });
-
-  const withoutWorkspaceByTimeline = new Map<string, TChatConversation[]>();
 
   withoutWorkspaceConvs.forEach((conv) => {
-    const timeline = getConversationTimelineLabel(conv, t);
-    if (!withoutWorkspaceByTimeline.has(timeline)) {
-      withoutWorkspaceByTimeline.set(timeline, []);
-    }
-    withoutWorkspaceByTimeline.get(timeline)!.push(conv);
+    items.push({
+      type: 'conversation',
+      time: getActivityTime(conv),
+      conversation: conv,
+    });
   });
 
-  const timelineOrder = [
-    'conversation.history.today',
-    'conversation.history.yesterday',
-    'conversation.history.recent7Days',
-    'conversation.history.earlier',
-  ];
-  const sections: TimelineSection[] = [];
+  items.sort((a, b) => b.time - a.time);
 
-  timelineOrder.forEach((timelineKey) => {
-    const timeline = t(timelineKey);
-    const withWorkspace = workspaceGroupsByTimeline.get(timeline) || [];
-    const withoutWorkspace = withoutWorkspaceByTimeline.get(timeline) || [];
+  if (items.length === 0) return [];
 
-    if (withWorkspace.length === 0 && withoutWorkspace.length === 0) return;
-
-    const items: TimelineItem[] = [];
-
-    withWorkspace.forEach((group) => {
-      const updateTime = getWorkspaceUpdateTime(group.workspace);
-      const time = updateTime > 0 ? updateTime : getActivityTime(group.conversations[0]);
-      items.push({
-        type: 'workspace',
-        time,
-        workspaceGroup: group,
-      });
-    });
-
-    withoutWorkspace.forEach((conv) => {
-      items.push({
-        type: 'conversation',
-        time: getActivityTime(conv),
-        conversation: conv,
-      });
-    });
-
-    items.sort((a, b) => b.time - a.time);
-
-    sections.push({
-      timeline,
+  return [
+    {
+      timeline: t('conversation.history.recents'),
       items,
-    });
-  });
+    },
+  ];
+};
 
-  return sections;
+/** Check whether a conversation belongs to a team (should be hidden from sidebar). */
+const isTeamConversation = (conversation: TChatConversation): boolean => {
+  const extra = conversation.extra as { teamId?: string } | undefined;
+  return Boolean(extra?.teamId);
 };
 
 export const buildGroupedHistory = (
   conversations: TChatConversation[],
   t: (key: string) => string
 ): GroupedHistoryResult => {
-  const pinnedConversations = conversations
+  // Filter out team-owned conversations; they are only visible via the Teams panel
+  const visibleConversations = conversations.filter((conv) => !isTeamConversation(conv));
+
+  const pinnedConversations = visibleConversations
     .filter((conversation) => isConversationPinned(conversation))
     .toSorted((a, b) => {
       const orderA = getConversationSortOrder(a);
@@ -140,10 +112,12 @@ export const buildGroupedHistory = (
       return getConversationPinnedAt(b) - getConversationPinnedAt(a);
     });
 
-  const normalConversations = conversations.filter((conversation) => !isConversationPinned(conversation));
+  const normalConversations = visibleConversations.filter(
+    (conversation) => !isConversationPinned(conversation) && !isCronJobConversation(conversation)
+  );
 
   return {
     pinnedConversations,
-    timelineSections: groupConversationsByTimelineAndWorkspace(normalConversations, t),
+    timelineSections: groupConversationsByWorkspace(normalConversations, t),
   };
 };

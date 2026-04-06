@@ -47,8 +47,14 @@ const ChatLayout: React.FC<{
   workspaceEnabled?: boolean;
   /** Conversation ID for mode switching */
   conversationId?: string;
+  /** Custom tabs slot; when provided, replaces the default ConversationTabs */
+  tabsSlot?: React.ReactNode;
+  /** Workspace path for opening in external tools */
+  workspacePath?: string;
+  /** Custom rename handler; when provided, replaces the default conversation.update rename flow */
+  onRenameTitle?: (newName: string) => Promise<boolean>;
 }> = (props) => {
-  const { conversationId } = props;
+  const { conversationId, workspacePath } = props;
   const { backend, agentName, agentLogo, agentLogoIsEmoji, workspaceEnabled = true } = props;
   const layout = useLayoutContext();
   const isMacRuntime = isMacEnvironment();
@@ -78,6 +84,7 @@ const ChatLayout: React.FC<{
       title: props.title,
       conversationId,
       updateTabName,
+      onRename: props.onRenameTitle,
     });
 
   // Fetch custom agents config as fallback when agentName is not provided
@@ -168,7 +175,6 @@ const ChatLayout: React.FC<{
 
   const headerBlock = (
     <>
-      <ConversationTabs />
       <ArcoLayout.Header
         className={classNames(
           'min-h-44px flex items-center justify-between px-16px pt-8px pb-10px gap-16px !bg-1 chat-layout-header chat-layout-header--glass overflow-hidden',
@@ -218,6 +224,7 @@ const ChatLayout: React.FC<{
           )}
         </div>
       </ArcoLayout.Header>
+      {props.tabsSlot !== undefined ? props.tabsSlot : <ConversationTabs />}
     </>
   );
 
@@ -302,6 +309,7 @@ const ChatLayout: React.FC<{
               collapsed={rightSiderCollapsed}
               onToggle={() => dispatchWorkspaceToggleEvent()}
               togglePlacement={layout?.isMobile ? 'left' : 'right'}
+              workspacePath={workspacePath}
             >
               {props.siderTitle}
             </WorkspacePanelHeader>
@@ -320,6 +328,7 @@ const ChatLayout: React.FC<{
             mobileWorkspaceHandleRight={mobileWorkspaceHandleRight}
             siderTitle={props.siderTitle}
             sider={props.sider}
+            workspacePath={workspacePath}
           />
         )}
 

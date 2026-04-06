@@ -1,0 +1,49 @@
+{
+  "sider": {
+    "title": "Teams",
+    "createTeam": "New Team",
+    "pin": "ピン留め",
+    "unpin": "ピン留め解除",
+    "rename": "名前変更",
+    "delete": "削除",
+    "renameTitle": "チーム名変更",
+    "renamePlaceholder": "チーム名",
+    "deleteConfirm": "このチームを削除しますか？",
+    "deleteConfirmContent": "この操作は元に戻せません。",
+    "deleteOk": "削除",
+    "deleteCancel": "キャンセル",
+    "renameOk": "保存",
+    "renameCancel": "キャンセル",
+    "renameSuccess": "チーム名を変更しました",
+    "deleteSuccess": "チームを削除しました"
+  },
+  "addAgent": {
+    "title": "Add Agent",
+    "name": "Agent Name",
+    "namePlaceholder": "Enter agent name",
+    "type": "Agent Type",
+    "typePlaceholder": "Select agent type",
+    "confirm": "Add"
+  },
+  "newAgent": "New Agent",
+  "noMessages": "No messages yet.",
+  "agentNotConfigured": "エージェントはまだ設定されていません。",
+  "sendBox": {
+    "placeholder": "ディスパッチエージェントにメッセージを送信..."
+  },
+  "create": {
+    "title": "Create Team",
+    "namePlaceholder": "Team name",
+    "dispatchAgentPlaceholder": "Select dispatch agent",
+    "subAgentsPlaceholder": "Select sub agents",
+    "workspacePlaceholder": "Workspace path (optional)",
+    "confirm": "Create Team",
+    "noSupportedAgents": "対応する Agent が見つかりません",
+    "supportedAgentsHint": "現在 Claude、Codex、CodeBuddy に対応しています。他の Agent は順次対応予定です。",
+    "step": {
+      "dispatch": "Dispatch Agent",
+      "subAgents": "Sub Agents",
+      "workspace": "Workspace"
+    }
+  }
+}

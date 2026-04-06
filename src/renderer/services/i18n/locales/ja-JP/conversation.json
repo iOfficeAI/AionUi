@@ -22,6 +22,7 @@
     "skillsMarketDetails": "詳細 >>"
   },
   "history": {
+    "recents": "最近",
     "today": "今日",
     "yesterday": "昨日",
     "recent7Days": "過去7日間",
@@ -180,6 +181,12 @@
       "reset": "変更を元に戻す",
       "noUnstaged": "ステージされていない変更はありません",
       "noStaged": "ステージ済みの変更はありません"
+    },
+    "openWorkspace": "ワークスペースを開く",
+    "openWith": {
+      "vscode": "VS Code",
+      "terminal": "ターミナル",
+      "explorer": "エクスプローラー"
     }
   },
   "minimap": {

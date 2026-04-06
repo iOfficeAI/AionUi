@@ -7,11 +7,11 @@
 import { acpDetector } from '@process/agent/acp/AcpDetector';
 import { AcpConnection } from '@process/agent/acp/AcpConnection';
 import { buildAcpModelInfo, summarizeAcpModelInfo } from '@process/agent/acp/modelInfo';
-import { CodexConnection } from '@process/agent/codex/connection/CodexConnection';
+import { detectAionrs } from '@process/agent/aionrs/binaryResolver';
 import type { IWorkerTaskManager } from '@process/task/IWorkerTaskManager';
 import AcpAgentManager from '@process/task/AcpAgentManager';
-import CodexAgentManager from '@process/task/CodexAgentManager';
 import { GeminiAgentManager } from '@process/task/GeminiAgentManager';
+import { AionrsManager } from '@process/task/AionrsManager';
 import { mcpService } from '@/process/services/mcpServices/McpService';
 import { mainLog, mainWarn } from '@/process/utils/mainLogger';
 import { ipcBridge } from '@/common';
@@ -53,6 +53,18 @@ export function initAcpConversationBridge(workerTaskManager: IWorkerTaskManager)
         ...agent,
         supportedTransports: mcpService.getSupportedTransportsForAgent(agent),
       }));
+
+      // Detect aionrs binary (non-ACP, uses JSON Lines protocol)
+      // Insert at front so Aion CLI appears before other agents (including Gemini)
+      const aionrs = detectAionrs();
+      if (aionrs.available) {
+        const aionrsAgent = { backend: 'aionrs' as const, name: 'Aion CLI', cliPath: aionrs.path };
+        enriched.unshift({
+          ...aionrsAgent,
+          supportedTransports: mcpService.getSupportedTransportsForAgent(aionrsAgent),
+        } as (typeof enriched)[number]);
+      }
+
       return Promise.resolve({ success: true, data: enriched });
     } catch (error) {
       return Promise.resolve({
@@ -101,61 +113,7 @@ export function initAcpConversationBridge(workerTaskManager: IWorkerTaskManager)
 
     const tempDir = os.tmpdir();
 
-    // Step 2: Handle Codex separately - it uses MCP protocol, not ACP
-    if (backend === 'codex') {
-      const codexConnection = new CodexConnection();
-      try {
-        // Start Codex MCP server
-        await codexConnection.start(agent?.cliPath || 'codex', tempDir);
-
-        // Wait for server to be ready and ping it
-        await codexConnection.waitForServerReady(15000);
-        const pingResult = await codexConnection.ping(5000);
-
-        if (!pingResult) {
-          throw new Error('Codex server not responding to ping');
-        }
-
-        const latency = Date.now() - startTime;
-        void codexConnection.stop();
-
-        return {
-          success: true,
-          data: { available: true, latency },
-        };
-      } catch (error) {
-        try {
-          void codexConnection.stop();
-        } catch {
-          // Ignore stop errors
-        }
-
-        const errorMsg = error instanceof Error ? error.message : String(error);
-        const lowerError = errorMsg.toLowerCase();
-
-        if (
-          lowerError.includes('auth') ||
-          lowerError.includes('login') ||
-          lowerError.includes('api key') ||
-          lowerError.includes('not found') ||
-          lowerError.includes('command not found')
-        ) {
-          return {
-            success: false,
-            msg: `codex not available`,
-            data: { available: false, error: errorMsg },
-          };
-        }
-
-        return {
-          success: false,
-          msg: `codex health check failed: ${errorMsg}`,
-          data: { available: false, error: errorMsg },
-        };
-      }
-    }
-
-    // Step 3: For ACP-based agents (claude, gemini, qwen, etc.)
+    // Step 2: For ACP-based agents (claude, codex, gemini, qwen, etc.)
     const connection = new AcpConnection();
 
     try {
@@ -221,7 +179,7 @@ export function initAcpConversationBridge(workerTaskManager: IWorkerTaskManager)
     const task = workerTaskManager.getTask(conversationId);
     if (
       !task ||
-      !(task instanceof AcpAgentManager || task instanceof GeminiAgentManager || task instanceof CodexAgentManager)
+      !(task instanceof AcpAgentManager || task instanceof GeminiAgentManager || task instanceof AionrsManager)
     ) {
       return Promise.resolve({
         success: true,
@@ -236,7 +194,7 @@ export function initAcpConversationBridge(workerTaskManager: IWorkerTaskManager)
   // Use getTaskById (cache-only) to avoid spawning a worker process on read-only queries
   ipcBridge.acpConversation.getModelInfo.provider(({ conversationId }) => {
     const task = workerTaskManager.getTask(conversationId);
-    if (!task || !(task instanceof AcpAgentManager || task instanceof CodexAgentManager)) {
+    if (!task || !(task instanceof AcpAgentManager)) {
       return Promise.resolve({ success: true, data: { modelInfo: null } });
     }
     return Promise.resolve({
@@ -317,9 +275,7 @@ export function initAcpConversationBridge(workerTaskManager: IWorkerTaskManager)
       if (!task) {
         return { success: false, msg: 'Conversation not found' };
       }
-      if (
-        !(task instanceof AcpAgentManager || task instanceof GeminiAgentManager || task instanceof CodexAgentManager)
-      ) {
+      if (!(task instanceof AcpAgentManager || task instanceof GeminiAgentManager || task instanceof AionrsManager)) {
         return {
           success: false,
           msg: 'Mode switching not supported for this agent type',

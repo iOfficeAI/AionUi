@@ -168,8 +168,10 @@ WORKTREE_DIR="/tmp/aionui-pr-${PR_NUMBER}"
 # Clean up any stale worktree from a previous crash
 git worktree remove "$WORKTREE_DIR" --force 2>/dev/null || true
 
-# Fetch PR head and create detached worktree
+# Fetch PR head AND base branch so the three-dot diff is accurate
 git fetch origin pull/${PR_NUMBER}/head
+BASE_REF=$(gh pr view ${PR_NUMBER} --json baseRefName --jq '.baseRefName')
+git fetch origin "$BASE_REF"
 git worktree add "$WORKTREE_DIR" FETCH_HEAD --detach
 
 # Symlink node_modules so lint/tsc/test can run in the worktree
@@ -263,11 +265,15 @@ Review dimensions:
 - **方案合理性** — 整体方案是否正确解决了问题；是否引入不必要的复杂度；是否与项目已有架构和模式一致；是否存在更简单/优雅的实现路径；方案本身是否存在已知缺陷或设计盲点。具体评估要点：方案是否真正解决了 PR 描述的问题（而不是解决了另一个问题）；是否绕过了框架/库提供的现成机制（重复造轮子）；是否与 `src/process/`、`src/renderer/`、IPC bridge 等架构边界一致；是否引入了不必要的抽象层或过度工程化；方案是否有已知的边界情况或竞态条件，在设计层面未被考虑
 - **正确性** — 逻辑是否正确，边界条件是否处理
 - **安全性** — 注入、XSS、密钥泄露、权限越界
+- **供应链安全** — 防范恶意代码注入，重点关注：(1) `eval()`、`new Function()`、`vm.runInNewContext()` 等动态代码执行；(2) base64/hex 编码的可疑字符串或 Unicode 转义序列（常见后门混淆手法）；(3) 新增的 `fetch`/`axios`/`http`/`net` 等网络请求，尤其是指向外部域名或动态拼接的 URL（数据外泄风险）；(4) 对 `process.env` 中敏感变量的非常规读取或外传；(5) 修改构建脚本、postinstall hook、或 CI 配置中植入额外命令。发现上述模式标记为 **CRITICAL**
 - **不可变性** — 是否存在对象/数组直接变异（本项目关键原则）
 - **错误处理** — 异常是否被静默吞掉，错误信息是否合理
 - **性能** — 不必要的重渲染、大循环、阻塞调用
 - **代码质量** — 函数长度、嵌套深度、命名清晰度
 - **遗留 console.log** — 生产代码中是否有调试日志残留
+- **数据库变更** — 若 PR 涉及 migration 文件或数据库 schema：(1) migration 是否正确（字段类型、约束、索引、默认值、可回滚性）；(2) 变更是否合理且与 PR 目标一致；(3) 对现有数据是否有丢失风险；(4) migration 顺序和依赖是否正确。不正确的 migration 标记为 CRITICAL。
+- **IPC bridge / preload** — 若 PR 涉及 `src/preload.ts` 或 IPC channel 定义：(1) 是否暴露了不必要的 Node.js API 给 renderer；(2) 所有暴露的 API 是否有输入校验；(3) renderer 是否能在无授权情况下触发特权操作。暴露不安全 API 标记为 CRITICAL。
+- **Electron 安全配置** — 若 PR 涉及 `electron-builder.yml`、`entitlements.plist` 或 `electron.vite.config.ts` 中的 Electron 配置：(1) sandbox/nodeIntegration/contextIsolation 设置是否被弱化；(2) entitlements 是否授权过度；(3) 签名和公证是否被破坏。安全回退标记为 CRITICAL。
 - **测试** — 对照 [testing skill](../testing/SKILL.md) 的标准评估，以下任一情况须指出：
   - 新增功能没有对应测试用例
   - 修改了逻辑但未更新已有相关测试

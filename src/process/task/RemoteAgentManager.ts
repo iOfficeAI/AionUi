@@ -14,8 +14,10 @@ import { uuid } from '@/common/utils';
 import { getDatabase } from '@process/services/database';
 import { addMessage, addOrUpdateMessage } from '@process/utils/message';
 import { cronBusyGuard } from '@process/services/cron/CronBusyGuard';
+import { skillSuggestWatcher } from '@process/services/cron/SkillSuggestWatcher';
 import BaseAgentManager from '@process/task/BaseAgentManager';
 import { IpcAgentEventEmitter } from '@process/task/IpcAgentEventEmitter';
+import { teamEventBus } from '@process/team/teamEventBus';
 
 export interface RemoteAgentManagerData {
   conversation_id: string;
@@ -89,6 +91,8 @@ class RemoteAgentManager extends BaseAgentManager<RemoteAgentManagerData> {
     }
 
     ipcBridge.conversation.responseStream.emit(msg);
+    // Also emit to main-process-local bus so TeammateManager can receive events
+    teamEventBus.emit('responseStream', msg);
     channelEventBus.emitAgentMessage(this.conversation_id, msg);
   }
 
@@ -124,9 +128,12 @@ class RemoteAgentManager extends BaseAgentManager<RemoteAgentManagerData> {
 
     if (msg.type === 'finish') {
       cronBusyGuard.setProcessing(this.conversation_id, false);
+      skillSuggestWatcher.onFinish(this.conversation_id);
     }
 
     ipcBridge.conversation.responseStream.emit(msg);
+    // Also emit to main-process-local bus so TeammateManager can receive events
+    teamEventBus.emit('responseStream', msg);
     channelEventBus.emitAgentMessage(this.conversation_id, msg);
   }
 
@@ -165,13 +172,20 @@ class RemoteAgentManager extends BaseAgentManager<RemoteAgentManagerData> {
     }
   }
 
-  async sendMessage(data: { content: string; agentContent?: string; files?: string[]; msg_id?: string }) {
+  async sendMessage(data: {
+    content: string;
+    agentContent?: string;
+    files?: string[];
+    msg_id?: string;
+    hidden?: boolean;
+    silent?: boolean;
+  }) {
     cronBusyGuard.setProcessing(this.conversation_id, true);
     this.status = 'running';
     try {
       await this.bootstrap;
 
-      if (data.msg_id && data.content) {
+      if (data.msg_id && data.content && !data.silent) {
         const userMessage: TMessage = {
           id: data.msg_id,
           msg_id: data.msg_id,
@@ -180,6 +194,7 @@ class RemoteAgentManager extends BaseAgentManager<RemoteAgentManagerData> {
           conversation_id: this.conversation_id,
           content: { content: data.content },
           createdAt: Date.now(),
+          ...(data.hidden && { hidden: true }),
         };
         addMessage(this.conversation_id, userMessage);
       }
@@ -220,6 +235,7 @@ class RemoteAgentManager extends BaseAgentManager<RemoteAgentManagerData> {
     }
 
     ipcBridge.conversation.responseStream.emit(message);
+    teamEventBus.emit('responseStream', message);
   }
 
   async ensureYoloMode(): Promise<boolean> {

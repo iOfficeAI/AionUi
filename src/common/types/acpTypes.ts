@@ -42,7 +42,8 @@ export const CODEX_ACP_NPX_PACKAGE = `@zed-industries/codex-acp@${CODEX_ACP_BRID
 export const CLAUDE_ACP_BRIDGE_VERSION = '0.21.0';
 export const CLAUDE_ACP_NPX_PACKAGE = `@zed-industries/claude-agent-acp@${CLAUDE_ACP_BRIDGE_VERSION}`;
 
-export const CODEBUDDY_ACP_NPX_PACKAGE = '@tencent-ai/codebuddy-code';
+export const CODEBUDDY_ACP_BRIDGE_VERSION = '2.70.1';
+export const CODEBUDDY_ACP_NPX_PACKAGE = `@tencent-ai/codebuddy-code@${CODEBUDDY_ACP_BRIDGE_VERSION}`;
 
 /**
  * 检查预设 Agent 类型是否需要通过 ACP 后端路由
@@ -73,6 +74,7 @@ export type AcpBackendAll =
   | 'cursor' // Cursor AI Agent CLI
   | 'kiro' // Kiro CLI (AWS)
   | 'remote' // Remote agent (WebSocket, no local CLI)
+  | 'aionrs' // Aion CLI agent (Rust binary, JSON Lines protocol)
   | 'custom'; // User-configured custom ACP agent
 
 /**
@@ -109,10 +111,10 @@ function generatePotentialAcpClis(): PotentialAcpCli[] {
   // Must be called after ACP_BACKENDS_ALL is defined, so use lazy initialization
   return Object.entries(ACP_BACKENDS_ALL)
     .filter(([id, config]) => {
-      // 排除没有 CLI 命令的后端（gemini 内置，custom 用户配置）
-      // Exclude backends without CLI command (gemini is built-in, custom is user-configured)
+      // 排除没有 CLI 命令的后端（gemini 内置，custom 用户配置，aionrs 非 ACP 类型）
+      // Exclude backends without CLI command (gemini is built-in, custom is user-configured, aionrs is not ACP type)
       if (!config.cliCommand) return false;
-      if (id === 'gemini' || id === 'custom') return false;
+      if (id === 'gemini' || id === 'custom' || id === 'aionrs') return false;
       return config.enabled;
     })
     .map(([id, config]) => ({
@@ -512,6 +514,14 @@ export const ACP_BACKENDS_ALL: Record<AcpBackendAll, AcpBackendConfig> = {
     name: 'Remote Agent',
     cliCommand: undefined, // No local CLI — connected via WebSocket URL
     authRequired: false,
+    enabled: true,
+    supportsStreaming: true,
+  },
+  aionrs: {
+    id: 'aionrs',
+    name: 'Aion CLI',
+    cliCommand: 'aionrs',
+    authRequired: false, // Auth handled via env vars from model config
     enabled: true,
     supportsStreaming: true,
   },

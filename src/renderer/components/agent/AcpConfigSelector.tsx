@@ -6,11 +6,13 @@
 
 import { ipcBridge } from '@/common';
 import type { IResponseMessage } from '@/common/adapter/ipcBridge';
+import { ConfigStorage } from '@/common/config/storage';
 import type { AcpBackend, AcpSessionConfigOption } from '@/common/types/acpTypes';
 import { Button, Dropdown, Menu } from '@arco-design/web-react';
 import { Down } from '@icon-park/react';
 import React, { useCallback, useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import MarqueePillLabel from './MarqueePillLabel';
 
 /**
  * Backends that currently support ACP configOptions (e.g., thought_level).
@@ -21,29 +23,48 @@ import { useTranslation } from 'react-i18next';
  */
 const CONFIG_OPTION_SUPPORTED_BACKENDS: Set<AcpBackend> = new Set(['codex']);
 
+/** ConfigStorage key for cached config options per backend */
+const CACHED_CONFIG_OPTIONS_KEY = 'acp.cachedConfigOptions';
+
+/**
+ * Save config options to ConfigStorage keyed by backend.
+ */
+function cacheConfigOptions(backend: string, options: AcpSessionConfigOption[]): void {
+  ConfigStorage.get(CACHED_CONFIG_OPTIONS_KEY)
+    .then((cached) => ConfigStorage.set(CACHED_CONFIG_OPTIONS_KEY, { ...cached, [backend]: options }))
+    .catch(() => {});
+}
+
 /**
  * Dynamic config option selector for ACP agents.
  *
- * Renders config options (e.g., thinking level) that the backend
- * exposes via ACP `session/new` → `configOptions`. Only shows options
- * for backends listed in CONFIG_OPTION_SUPPORTED_BACKENDS.
- *
- * ACP Agent 的動態配置選項選擇器。
- * 僅在已確認支援的後端才會顯示 configOptions。
+ * Supports two modes:
+ * - **Conversation mode** (conversationId provided): fetches live config from backend,
+ *   listens for updates via responseStream, and caches to ConfigStorage.
+ * - **Local mode** (no conversationId, e.g. Guid page): renders from initialConfigOptions
+ *   (typically loaded from ConfigStorage cache) and notifies parent via onOptionSelect.
  */
 const AcpConfigSelector: React.FC<{
-  conversationId: string;
+  conversationId?: string;
   backend?: AcpBackend;
-}> = ({ conversationId, backend }) => {
+  compact?: boolean;
+  /** Cached config options for immediate render (from DB or ConfigStorage) */
+  initialConfigOptions?: unknown[];
+  /** Local mode callback when user selects an option (Guid page) */
+  onOptionSelect?: (configId: string, value: string) => void;
+}> = ({ conversationId, backend, compact = false, initialConfigOptions, onOptionSelect }) => {
   const { t } = useTranslation();
-  const [configOptions, setConfigOptions] = useState<AcpSessionConfigOption[]>([]);
+  const [configOptions, setConfigOptions] = useState<AcpSessionConfigOption[]>(
+    () => (Array.isArray(initialConfigOptions) ? initialConfigOptions : []) as AcpSessionConfigOption[]
+  );
 
   // Skip entirely for unsupported backends
   const isSupported = backend && CONFIG_OPTION_SUPPORTED_BACKENDS.has(backend);
+  const isConversationMode = Boolean(conversationId);
 
-  // Fetch config options on mount
+  // Fetch config options on mount (conversation mode only)
   useEffect(() => {
-    if (!isSupported) return;
+    if (!isSupported || !conversationId) return;
     let cancelled = false;
     ipcBridge.acpConversation.getConfigOptions
       .invoke({ conversationId })
@@ -51,6 +72,7 @@ const AcpConfigSelector: React.FC<{
         if (cancelled) return;
         if (result.success && result.data?.configOptions?.length > 0) {
           setConfigOptions(result.data.configOptions);
+          cacheConfigOptions(backend, result.data.configOptions);
         }
       })
       .catch(() => {});
@@ -58,11 +80,11 @@ const AcpConfigSelector: React.FC<{
     return () => {
       cancelled = true;
     };
-  }, [conversationId, isSupported]);
+  }, [conversationId, isSupported, backend]);
 
-  // Listen for config_option_update events from responseStream
+  // Listen for config_option_update events from responseStream (conversation mode only)
   useEffect(() => {
-    if (!isSupported) return;
+    if (!isSupported || !conversationId) return;
     const handler = (message: IResponseMessage) => {
       if (message.conversation_id !== conversationId) return;
       if (message.type === 'acp_model_info') {
@@ -71,13 +93,21 @@ const AcpConfigSelector: React.FC<{
           .then((result) => {
             if (result.success && result.data?.configOptions?.length > 0) {
               setConfigOptions(result.data.configOptions);
+              cacheConfigOptions(backend, result.data.configOptions);
             }
           })
           .catch(() => {});
       }
     };
     return ipcBridge.acpConversation.responseStream.on(handler);
-  }, [conversationId, isSupported]);
+  }, [conversationId, isSupported, backend]);
+
+  // Sync when initialConfigOptions prop changes (e.g. agent switch on Guid page)
+  useEffect(() => {
+    if (Array.isArray(initialConfigOptions) && initialConfigOptions.length > 0) {
+      setConfigOptions(initialConfigOptions as AcpSessionConfigOption[]);
+    }
+  }, [initialConfigOptions]);
 
   const handleSelectOption = useCallback(
     (configId: string, value: string) => {
@@ -86,7 +116,13 @@ const AcpConfigSelector: React.FC<{
         prev.map((opt) => (opt.id === configId ? { ...opt, currentValue: value, selectedValue: value } : opt))
       );
 
-      // Send to ACP backend
+      // Local mode (Guid page): notify parent, no IPC needed
+      if (!conversationId) {
+        onOptionSelect?.(configId, value);
+        return;
+      }
+
+      // Conversation mode: send to ACP backend
       ipcBridge.acpConversation.setConfigOption
         .invoke({ conversationId, configId, value })
         .then((result) => {
@@ -107,7 +143,7 @@ const AcpConfigSelector: React.FC<{
             .catch(() => {});
         });
     },
-    [conversationId]
+    [conversationId, onOptionSelect]
   );
 
   // Don't render for unsupported backends
@@ -163,7 +199,7 @@ const AcpConfigSelector: React.FC<{
           >
             <Button className='sendbox-model-btn agent-mode-compact-pill' shape='round' size='small'>
               <span className='flex items-center gap-6px min-w-0 leading-none'>
-                <span className='block truncate leading-none'>{currentLabel}</span>
+                <MarqueePillLabel>{currentLabel}</MarqueePillLabel>
                 <Down size={12} className='text-t-tertiary shrink-0' />
               </span>
             </Button>

@@ -241,6 +241,8 @@ describe('CDP configuration functions', () => {
           setZoomFactor: { provider: vi.fn(), emit: vi.fn(), invoke: vi.fn() },
           getCdpStatus: { provider: vi.fn(), emit: vi.fn(), invoke: vi.fn() },
           updateCdpConfig: { provider: vi.fn(), emit: vi.fn(), invoke: vi.fn() },
+          getStartOnBootStatus: { provider: vi.fn(), emit: vi.fn(), invoke: vi.fn() },
+          setStartOnBoot: { provider: vi.fn(), emit: vi.fn(), invoke: vi.fn() },
         },
       },
     }));

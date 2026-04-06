@@ -1,0 +1,49 @@
+{
+  "sider": {
+    "title": "Teams",
+    "createTeam": "New Team",
+    "pin": "Sabitle",
+    "unpin": "Sabitlemeyi Kaldır",
+    "rename": "Yeniden Adlandır",
+    "delete": "Sil",
+    "renameTitle": "Takımı Yeniden Adlandır",
+    "renamePlaceholder": "Takım adı",
+    "deleteConfirm": "Bu takımı silmek istiyor musunuz?",
+    "deleteConfirmContent": "Bu işlem geri alınamaz.",
+    "deleteOk": "Sil",
+    "deleteCancel": "İptal",
+    "renameOk": "Kaydet",
+    "renameCancel": "İptal",
+    "renameSuccess": "Takım yeniden adlandırıldı",
+    "deleteSuccess": "Takım silindi"
+  },
+  "addAgent": {
+    "title": "Add Agent",
+    "name": "Agent Name",
+    "namePlaceholder": "Enter agent name",
+    "type": "Agent Type",
+    "typePlaceholder": "Select agent type",
+    "confirm": "Add"
+  },
+  "newAgent": "New Agent",
+  "noMessages": "No messages yet.",
+  "agentNotConfigured": "Ajan henüz yapılandırılmadı.",
+  "sendBox": {
+    "placeholder": "Dağıtım ajanına mesaj gönder..."
+  },
+  "create": {
+    "title": "Create Team",
+    "namePlaceholder": "Team name",
+    "dispatchAgentPlaceholder": "Select dispatch agent",
+    "subAgentsPlaceholder": "Select sub agents",
+    "workspacePlaceholder": "Workspace path (optional)",
+    "confirm": "Create Team",
+    "noSupportedAgents": "Desteklenen agent bulunamadı",
+    "supportedAgentsHint": "Şu anda Claude, Codex, CodeBuddy desteklenmektedir. Daha fazla agent yakında eklenecek.",
+    "step": {
+      "dispatch": "Dispatch Agent",
+      "subAgents": "Sub Agents",
+      "workspace": "Workspace"
+    }
+  }
+}

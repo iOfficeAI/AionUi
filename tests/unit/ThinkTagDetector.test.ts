@@ -11,6 +11,7 @@ import {
   extractThinkContent,
   extractAndStripThinkTags,
 } from '@process/task/ThinkTagDetector';
+import { stripThinkTags as stripRendererThinkTags } from '@/renderer/utils/chat/thinkTagFilter';
 
 describe('ThinkTagDetector', () => {
   describe('hasThinkTags', () => {
@@ -118,10 +119,10 @@ After`;
       expect(result).toContain('some text');
     });
 
-    it('should collapse multiple newlines', () => {
+    it('should leave newline-only content unchanged when no think tags are present', () => {
       const input = 'Hello\n\n\n\nworld';
-      const expected = 'Hello\n\nworld';
-      expect(stripThinkTags(input)).toBe(expected);
+      expect(stripThinkTags(input)).toBe(input);
+      expect(stripRendererThinkTags(input)).toBe(input);
     });
 
     it('should handle mixed think and thinking tags', () => {
@@ -147,6 +148,22 @@ After`;
     it('should handle content with no think tags', () => {
       const input = 'This is normal text without any tags';
       expect(stripThinkTags(input)).toBe(input);
+    });
+
+    it('should preserve markdown spacing for content without think tags', () => {
+      const input =
+        '现在这轮子进程看起来还可以。\n\n当前服务：\n- `aionui-webui.service` 已运行约 15 分钟\n- 主进程 `dist-server/server.mjs` PID `182448`';
+
+      expect(stripThinkTags(input)).toBe(input);
+      expect(stripRendererThinkTags(input)).toBe(input);
+    });
+
+    it('should preserve list-leading newlines after removing think tags', () => {
+      const input = '<think>internal</think>\n\n当前服务：\n- `aionui-webui.service` 已运行约 15 分钟';
+      const expected = '\n\n当前服务：\n- `aionui-webui.service` 已运行约 15 分钟';
+
+      expect(stripThinkTags(input)).toBe(expected);
+      expect(stripRendererThinkTags(input)).toBe(expected);
     });
   });
 
@@ -225,7 +242,14 @@ Line 2
       const input = 'internal reasoning\n</think>\nthe real answer';
       const result = extractAndStripThinkTags(input);
       expect(result.thinking).toBe('internal reasoning');
-      expect(result.content).toBe('the real answer');
+      expect(result.content).toBe('\nthe real answer');
+    });
+
+    it('should preserve markdown-leading blank lines when extracting think tags', () => {
+      const input = '<think>internal reasoning</think>\n\n当前服务：\n- `aionui-webui.service` 已运行约 15 分钟';
+      const result = extractAndStripThinkTags(input);
+      expect(result.thinking).toBe('internal reasoning');
+      expect(result.content).toBe('\n\n当前服务：\n- `aionui-webui.service` 已运行约 15 分钟');
     });
 
     it('should handle empty/null input', () => {

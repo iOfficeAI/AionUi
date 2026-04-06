@@ -10,6 +10,7 @@
  * All places that need to display agent icons should use this utility instead of maintaining separate lists
  */
 
+import AionLogo from '@/renderer/assets/logos/brand/aion.svg';
 import AuggieLogo from '@/renderer/assets/logos/brand/auggie.svg';
 import ClaudeLogo from '@/renderer/assets/logos/ai-major/claude.svg';
 import CursorLogo from '@/renderer/assets/logos/tools/coding/cursor.png';
@@ -37,6 +38,7 @@ import QwenLogo from '@/renderer/assets/logos/ai-china/qwen.svg';
  * Note: keys are lowercase, supports multiple variants (e.g., openclaw-gateway and openclaw)
  */
 const AGENT_LOGO_MAP = {
+  aionrs: AionLogo,
   claude: ClaudeLogo,
   gemini: GeminiLogo,
   qwen: QwenLogo,
@@ -83,6 +85,33 @@ export function getAgentLogo(agent: string | undefined | null): string | null {
     return isDarkTheme() ? OpenCodeLogoDark : OpenCodeLogoLight;
   }
   return AGENT_LOGO_MAP[key] || null;
+}
+
+/**
+ * Resolve the best available logo for an agent.
+ *
+ * Priority:
+ *   1. Explicit icon/avatar (if provided)
+ *   2. Adapter ID from customAgentId (format `ext:extensionName:adapterId`) → built-in logo map
+ *   3. Backend ID → built-in logo map
+ *   4. null (caller renders its own fallback)
+ */
+export function resolveAgentLogo(opts: {
+  icon?: string | null;
+  backend?: string | null;
+  customAgentId?: string | null;
+  isExtension?: boolean;
+}): string | null {
+  if (opts.icon) return opts.icon;
+
+  // For extension agents, extract adapter ID from customAgentId
+  if (opts.isExtension && opts.customAgentId) {
+    const adapterId = opts.customAgentId.split(':').pop();
+    const logo = getAgentLogo(adapterId);
+    if (logo) return logo;
+  }
+
+  return getAgentLogo(opts.backend);
 }
 
 /**

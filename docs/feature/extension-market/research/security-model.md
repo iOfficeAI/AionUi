@@ -1,7 +1,7 @@
 # Extension 系统 — 安全模型评估
 
-> 日期：2026-03-30
-> 关联：[README.md](README.md) · [architecture.md](architecture.md) · [gap-analysis.md](gap-analysis.md)
+> 日期：2026-03-30 (初版) · 2026-03-31 (更新: 沙箱 bug 修复)
+> 关联：[README.md](README.md) · [architecture.md](architecture.md) · [gap-analysis.md](gap-analysis.md) · [sandbox-architecture.md](sandbox-architecture.md)
 
 ## 1. 安全架构总览
 
@@ -138,13 +138,17 @@ flowchart LR
 
 ### 2.3 Worker Thread 沙箱
 
-**状态: 架构已建, 隔离未完成**
+**状态: 消息通道已修复, 隔离未完成, 未接入**
+
+> 消息路由修复详情见 [sandbox-architecture.md](sandbox-architecture.md) 和 PR [#1991](https://github.com/iOfficeAI/AionUi/pull/1991)。
 
 ```mermaid
 flowchart TD
   subgraph MainThread["主进程"]
     Host["SandboxHost\n管理 Worker 生命周期\n路由消息"]
     PendingCalls["pendingCalls Map\n请求-响应追踪\n超时机制"]
+    ApiHandlers["apiHandlers Map\n处理 Worker→Host RPC\n(如 storage.get/set/delete)"]
+    EventBus["extensionEventBus\n转发 ext:* 事件"]
   end
 
   subgraph WorkerThread["Worker Thread"]
@@ -156,9 +160,9 @@ flowchart TD
   Host <-- "SandboxMessage\n6 种类型" --> WorkerThread
 
   subgraph MessageTypes["消息协议"]
-    api_call["api-call: RPC 调用"]
-    api_response["api-response: RPC 响应"]
-    event["event: 事件通知"]
+    api_call["api-call: RPC 调用 (双向)"]
+    api_response["api-response: RPC 响应 (双向)"]
+    event["event: 事件通知 (双向)"]
     log["log: 日志转发"]
     ready["ready: Worker 就绪"]
     shutdown["shutdown: 关闭指令"]
@@ -169,26 +173,33 @@ flowchart TD
 
 **超时保护:**
 
-| 超时项        | 默认值 | 说明                                 |
-| ------------- | ------ | ------------------------------------ |
-| `initTimeout` | 10s    | Worker 启动到 `ready` 消息的最大等待 |
-| `callTimeout` | 30s    | 单次 RPC 调用的最大等待              |
-| 关闭超时      | 3s     | 优雅关闭等待, 超时后 force terminate |
+| 超时项              | 默认值 | 说明                                 |
+| ------------------- | ------ | ------------------------------------ |
+| `initTimeout`       | 10s    | Worker 启动到 `ready` 消息的最大等待 |
+| `callTimeout`       | 30s    | Host→Worker 单次 RPC 调用的最大等待  |
+| `CALL_MAIN_TIMEOUT` | 30s    | Worker→Host 单次 RPC 调用的最大等待  |
+| 关闭超时            | 3s     | 优雅关闭等待, 超时后 force terminate |
 
-**已知严重问题:**
+**已修复问题 (PR #1991):**
+
+1. ~~**`aion.storage` API 不可用**~~ — `handleMessage()` 已加 `case 'api-call'`，通过 `apiHandlers` map 路由到具体实现，回 `api-response`。无 handler 时回 error response 而不是静默丢弃。
+
+2. ~~**`event` 回传通道未接通**~~ — `case 'event'` 已接入：`ext:*` 前缀转发到 `extensionEventBus.emitExtensionEvent()`，`ui-message` 走 `onUIMessage` 回调。
+
+3. ~~**Worker→Host 调用无超时**~~ — `callMainThread()` 已加 30s 超时，超时后 Promise reject 并清理 pendingMainCalls。
+
+**仍存在的问题:**
 
 1. **Worker Thread 拥有完整 Node.js 权限** — `sandboxWorker.ts` 中明确标注:
 
    > _"Extension code runs with full Worker Thread privileges (Node.js built-ins accessible).
    > Declared permissions in the manifest are NOT enforced at runtime."_ (lines 17-22)
 
-2. **`aion.storage` API 不可用** — Worker 端的 `storage.get/set/delete` 通过 `callMainThread()` 发送 `api-call` 消息, 但 `SandboxHost.handleMessage()` 不处理来自 Worker 的 `api-call` 消息 (只处理 `api-response`/`log`/`event`), 导致调用永远 hang。
+2. **Console 替换可绕过** — 扩展可通过 `process.stdout.write` 或 `require('console')` 绕过日志拦截。
 
-3. **`event` 回传通道未接通** — Worker 发出的 `event` 类型消息在 `SandboxHost.handleMessage()` 中被静默丢弃 (line 241-242: `break` with no action), 未转发到 `extensionEventBus`。
+3. **无 require 拦截** — 扩展可 `require('fs')`, `require('child_process')` 等任意内置模块。
 
-4. **Console 替换可绕过** — 扩展可通过 `process.stdout.write` 或 `require('console')` 绕过日志拦截。
-
-5. **无 require 拦截** — 扩展可 `require('fs')`, `require('child_process')` 等任意内置模块。
+4. **`createSandbox()` 未被调用** — ChannelPlugin 仍在主进程通过 `eval('require')` 裸跑，未迁移到 Sandbox。Lifecycle hooks 已迁移到 `child_process.fork()` 独立子进程（不经过 Sandbox，见 2.5 节）。
 
 ---
 
@@ -213,16 +224,22 @@ flowchart TD
 
 ### 2.5 生命周期钩子安全
 
-**状态: 无隔离, 主进程权限**
+**状态: 已迁移到子进程 (child_process.fork)**
 
-生命周期钩子 (`onInstall`/`onActivate`/`onDeactivate`/`onUninstall`) 通过 `eval('require')` 在主进程中加载执行, 拥有完整权限:
+> 详见 [design-fix-sandbox.md](../design-fix-sandbox.md) 问题 4 和 PR #2004。
 
-- 文件系统 (`fs`, `path`)
-- 网络 (`http`, `https`, `net`)
-- 进程派生 (`child_process`)
-- Electron 主进程 API
+生命周期钩子 (`onInstall`/`onActivate`/`onDeactivate`/`onUninstall`) 已从主进程 `eval('require')` 迁移到 `child_process.fork()` 独立子进程执行：
 
-唯一的安全检查是 `isPathWithinDirectory()` 确保脚本路径在扩展目录内, 但脚本执行后无任何约束。
+- **进程级隔离**：钩子崩溃、`process.exit()`、native crash 不影响主进程
+- **不阻塞主线程**：重操作（如 `bun add -g`）不卡 UI
+- **超时保护**：按钩子类型差异化默认超时（onInstall 120s, onActivate 30s 等），开发者可在 manifest 中覆盖
+- **非致命失败**：钩子失败不阻止扩展激活
+
+**仍存在的限制**：
+
+- 钩子代码在子进程中仍有完整 Node.js 权限（`fs`、`child_process`、`net` 等）
+- 路径检查仅限脚本路径本身（`isPathWithinDirectory()`），脚本执行后无约束
+- 不经过 Worker Thread Sandbox，无 `aion` API 可用
 
 ---
 
@@ -247,7 +264,7 @@ flowchart TD
   subgraph P0["P0 — 市场上线前必须"]
     Sign["扩展签名验证\n发布者身份 + 完整性校验"]
     SandboxEnforce["沙箱权限执行\nvm.runInNewContext\n+ require proxy / --experimental-permission"]
-    LifecycleIsolation["生命周期钩子沙箱化\n从主进程移到 Worker Thread"]
+    LifecycleIsolation["✅ 生命周期钩子隔离\n已迁移到 child_process.fork()"]
   end
 
   subgraph P1["P1 — 市场安全增强"]
@@ -269,15 +286,15 @@ flowchart TD
 
 ## 4. 安全评估总表
 
-| 层级         | 机制                                | 实现状态          | 市场化影响                 |
-| ------------ | ----------------------------------- | ----------------- | -------------------------- |
-| 路径安全     | `isPathWithinDirectory()`           | 已实现            | 可靠, 需补 symlink         |
-| 权限声明     | manifest `permissions` + Zod        | 已实现            | UI 展示可用                |
-| 权限分析     | `analyzePermissions()` + risk level | 已实现            | 市场上架/安装提示可用      |
-| **权限执行** | vm / require proxy                  | **未实现 (TODO)** | **市场化 blocker**         |
-| Worker 沙箱  | Worker Thread + 消息传递            | 架构有, 隔离无    | 需完善后才能信任第三方代码 |
-| iframe 沙箱  | sandbox attribute                   | 已实现            | 需加 origin 校验           |
-| 生命周期隔离 | —                                   | 无                | 钩子在主进程运行, 高风险   |
-| 事件总线 ACL | —                                   | 无                | 需按 permissions 控制      |
-| 签名验证     | —                                   | 无                | 市场信任链的基础           |
-| 网络过滤     | `allowedDomains`                    | 仅声明            | 需执行层配合               |
+| 层级         | 机制                                | 实现状态               | 市场化影响                       |
+| ------------ | ----------------------------------- | ---------------------- | -------------------------------- |
+| 路径安全     | `isPathWithinDirectory()`           | 已实现                 | 可靠, 需补 symlink               |
+| 权限声明     | manifest `permissions` + Zod        | 已实现                 | UI 展示可用                      |
+| 权限分析     | `analyzePermissions()` + risk level | 已实现                 | 市场上架/安装提示可用            |
+| **权限执行** | vm / require proxy                  | **未实现 (TODO)**      | **市场化 blocker**               |
+| Worker 沙箱  | Worker Thread + 消息传递            | 消息通道已修复, 未接入 | 需迁移 ChannelPlugin             |
+| iframe 沙箱  | sandbox attribute                   | 已实现                 | 需加 origin 校验                 |
+| 生命周期隔离 | child_process.fork()                | 已迁移到子进程         | 进程级隔离, 超时保护, 非致命失败 |
+| 事件总线 ACL | —                                   | 无                     | 需按 permissions 控制            |
+| 签名验证     | —                                   | 无                     | 市场信任链的基础                 |
+| 网络过滤     | `allowedDomains`                    | 仅声明                 | 需执行层配合                     |

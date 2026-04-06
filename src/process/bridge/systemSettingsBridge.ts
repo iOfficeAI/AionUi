@@ -13,8 +13,12 @@
  */
 
 import { ipcBridge } from '@/common';
+import { getPlatformServices } from '@/common/platform';
 import { ProcessConfig } from '@process/utils/initStorage';
 import { changeLanguage } from '@process/services/i18n';
+
+// Keep-awake power blocker state
+let _keepAwakeBlockerId: number | null = null;
 
 type CloseToTrayChangeListener = (enabled: boolean) => void;
 let _changeListener: CloseToTrayChangeListener | null = null;
@@ -78,6 +82,24 @@ export function initSystemSettingsBridge(): void {
     await ProcessConfig.set('system.cronNotificationEnabled', enabled);
   });
 
+  // Get "keep awake" setting
+  ipcBridge.systemSettings.getKeepAwake.provider(async () => {
+    const value = await ProcessConfig.get('system.keepAwake');
+    return value ?? false;
+  });
+
+  // Set "keep awake" — toggle prevent-display-sleep blocker
+  ipcBridge.systemSettings.setKeepAwake.provider(async ({ enabled }) => {
+    await ProcessConfig.set('system.keepAwake', enabled);
+    const power = getPlatformServices().power;
+    if (enabled && _keepAwakeBlockerId === null) {
+      _keepAwakeBlockerId = power.preventDisplaySleep();
+    } else if (!enabled && _keepAwakeBlockerId !== null) {
+      power.allowSleep(_keepAwakeBlockerId);
+      _keepAwakeBlockerId = null;
+    }
+  });
+
   // 语言变更通知，同步主进程 i18n 并通知托盘重建
   // Language change notification, sync main process i18n and notify tray rebuild
   ipcBridge.systemSettings.changeLanguage.provider(async ({ language }) => {
@@ -90,5 +112,28 @@ export function initSystemSettingsBridge(): void {
     changeLanguage(language).catch((error) => {
       console.error('[SystemSettings] Main process changeLanguage failed:', error);
     });
+  });
+
+  // Restore keep-awake state on startup
+  ProcessConfig.get('system.keepAwake')
+    .then((enabled) => {
+      if (enabled) {
+        _keepAwakeBlockerId = getPlatformServices().power.preventDisplaySleep();
+        console.log('[SystemSettings] Keep-awake restored on startup');
+      }
+    })
+    .catch((err) => {
+      console.warn('[SystemSettings] Failed to restore keep-awake:', err);
+    });
+
+  // 获取"上传文件保存到工作区"设置 / Get "save uploads to workspace" setting
+  ipcBridge.systemSettings.getSaveUploadToWorkspace.provider(async () => {
+    const value = await ProcessConfig.get('upload.saveToWorkspace');
+    return value ?? false; // 默认关闭 / Default disabled
+  });
+
+  // 设置"上传文件保存到工作区" / Set "save uploads to workspace"
+  ipcBridge.systemSettings.setSaveUploadToWorkspace.provider(async ({ enabled }) => {
+    await ProcessConfig.set('upload.saveToWorkspace', enabled);
   });
 }

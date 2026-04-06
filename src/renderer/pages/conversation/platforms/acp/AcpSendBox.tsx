@@ -32,6 +32,7 @@ import { useOpenFileSelector } from '@/renderer/hooks/file/useOpenFileSelector';
 import ContextUsageIndicator from '@/renderer/components/agent/ContextUsageIndicator';
 import { useAutoTitle } from '@/renderer/hooks/chat/useAutoTitle';
 import AgentModeSelector from '@/renderer/components/agent/AgentModeSelector';
+import { useTeamPermission } from '@/renderer/pages/team/hooks/TeamPermissionContext';
 import { useSlashCommands } from '@/renderer/hooks/chat/useSlashCommands';
 import { useAcpMessage } from './useAcpMessage';
 import { useAcpInitialMessage } from './useAcpInitialMessage';
@@ -82,8 +83,11 @@ const AcpSendBox: React.FC<{
   conversation_id: string;
   backend: AcpBackend;
   sessionMode?: string;
+  cachedConfigOptions?: import('@/common/types/acpTypes').AcpSessionConfigOption[];
   agentName?: string;
-}> = ({ conversation_id, backend, sessionMode, agentName }) => {
+  teamId?: string;
+  agentSlotId?: string;
+}> = ({ conversation_id, backend, sessionMode, cachedConfigOptions, agentName, teamId, agentSlotId }) => {
   const {
     running,
     hasHydratedRunningState,
@@ -96,6 +100,9 @@ const AcpSendBox: React.FC<{
     hasThinkingMessage,
   } = useAcpMessage(conversation_id);
   const { t } = useTranslation();
+  const teamPermission = useTeamPermission();
+  // In team mode, only the lead agent shows the permission mode selector
+  const showModeSelector = !teamPermission || conversation_id === teamPermission.leadConversationId;
   const { checkAndUpdateTitle } = useAutoTitle();
   const slashCommands = useSlashCommands(conversation_id, { agentStatus: acpStatus });
   const { atPath, uploadFile, setAtPath, setUploadFile, content, setContent } = useSendBoxDraft(conversation_id);
@@ -153,13 +160,33 @@ const AcpSendBox: React.FC<{
 
       try {
         void checkAndUpdateTitle(conversation_id, input);
-        const result = await ipcBridge.acpConversation.sendMessage.invoke({
-          input,
-          msg_id,
-          conversation_id,
-          files,
-        });
-        assertBridgeSuccess(result, `Failed to send message to ${backend}`);
+        if (teamId) {
+          if (agentSlotId) {
+            const result = await ipcBridge.team.sendMessageToAgent.invoke({
+              teamId,
+              slotId: agentSlotId,
+              content: input,
+            });
+            const maybeError = result as unknown as { __bridgeError?: boolean; message?: string };
+            if (maybeError.__bridgeError) {
+              throw new Error(maybeError.message || 'Failed to send message to agent');
+            }
+          } else {
+            const result = await ipcBridge.team.sendMessage.invoke({ teamId, content: input });
+            const maybeError = result as unknown as { __bridgeError?: boolean; message?: string };
+            if (maybeError.__bridgeError) {
+              throw new Error(maybeError.message || 'Failed to send message to team');
+            }
+          }
+        } else {
+          const result = await ipcBridge.acpConversation.sendMessage.invoke({
+            input,
+            msg_id,
+            conversation_id,
+            files,
+          });
+          assertBridgeSuccess(result, `Failed to send message to ${backend}`);
+        }
         emitter.emit('chat.history.refresh');
       } catch (error: unknown) {
         const errorMsg = error instanceof Error ? error.message : String(error);
@@ -195,7 +222,7 @@ Please check your local CLI tool authentication status`,
         emitter.emit('acp.workspace.refresh');
       }
     },
-    [backend, checkAndUpdateTitle, conversation_id, setAiProcessing, t]
+    [agentSlotId, backend, checkAndUpdateTitle, conversation_id, setAiProcessing, t, teamId]
   );
 
   const {
@@ -301,17 +328,25 @@ Please check your local CLI tool authentication status`,
         tools={
           <div className='flex items-center gap-4px'>
             <FileAttachButton openFileSelector={openFileSelector} onLocalFilesAdded={handleFilesAdded} />
-            <AgentModeSelector
-              backend={backend}
+            {showModeSelector && (
+              <AgentModeSelector
+                backend={backend}
+                conversationId={conversation_id}
+                compact
+                initialMode={sessionMode}
+                compactLeadingIcon={<Shield theme='outline' size='14' fill={iconColors.secondary} />}
+                modeLabelFormatter={(mode) => t(`agentMode.${mode.value}`, { defaultValue: mode.label })}
+                compactLabelPrefix={t('agentMode.permission')}
+                hideCompactLabelPrefixOnMobile
+                onModeChanged={teamPermission?.propagateMode}
+              />
+            )}
+            <AcpConfigSelector
               conversationId={conversation_id}
-              compact
-              initialMode={sessionMode}
-              compactLeadingIcon={<Shield theme='outline' size='14' fill={iconColors.secondary} />}
-              modeLabelFormatter={(mode) => t(`agentMode.${mode.value}`, { defaultValue: mode.label })}
-              compactLabelPrefix={t('agentMode.permission')}
-              hideCompactLabelPrefixOnMobile
+              backend={backend}
+              compact={!!teamId}
+              initialConfigOptions={cachedConfigOptions}
             />
-            <AcpConfigSelector conversationId={conversation_id} backend={backend} />
           </div>
         }
         prefix={
@@ -379,6 +414,7 @@ Please check your local CLI tool authentication status`,
         slashCommands={slashCommands}
         onSlashBuiltinCommand={onSlashBuiltinCommand}
         allowSendWhileLoading
+        compactActions={!!teamId}
         sendButtonPrefix={
           tokenUsage ? (
             <ContextUsageIndicator

@@ -25,6 +25,7 @@ export type CronJob = {
   schedule: CronSchedule;
   target: {
     payload: { kind: 'message'; text: string };
+    executionMode?: 'existing' | 'new_conversation';
   };
   metadata: {
     conversationId: string;
@@ -33,6 +34,14 @@ export type CronJob = {
     createdBy: 'user' | 'agent';
     createdAt: number;
     updatedAt: number;
+    agentConfig?: {
+      backend: AcpBackendAll;
+      name: string;
+      cliPath?: string;
+      isPreset?: boolean;
+      customAgentId?: string;
+      presetAgentType?: string;
+    };
   };
   state: {
     nextRunAtMs?: number;
@@ -57,6 +66,8 @@ type CronJobRow = {
   schedule_tz: string | null;
   schedule_description: string;
   payload_message: string;
+  execution_mode: string | null;
+  agent_config: string | null;
   conversation_id: string;
   conversation_title: string | null;
   agent_type: string;
@@ -96,6 +107,8 @@ function jobToRow(job: CronJob): CronJobRow {
     schedule_tz: kind === 'cron' ? (job.schedule.tz ?? null) : null,
     schedule_description: job.schedule.description,
     payload_message: job.target.payload.text,
+    execution_mode: job.target.executionMode ?? 'existing',
+    agent_config: job.metadata.agentConfig ? JSON.stringify(job.metadata.agentConfig) : null,
     conversation_id: job.metadata.conversationId,
     conversation_title: job.metadata.conversationTitle ?? null,
     agent_type: job.metadata.agentType,
@@ -151,6 +164,7 @@ function rowToJob(row: CronJobRow): CronJob {
     schedule,
     target: {
       payload: { kind: 'message', text: row.payload_message },
+      executionMode: (row.execution_mode as 'existing' | 'new_conversation') ?? 'existing',
     },
     metadata: {
       conversationId: row.conversation_id,
@@ -159,6 +173,7 @@ function rowToJob(row: CronJobRow): CronJob {
       createdBy: row.created_by as 'user' | 'agent',
       createdAt: row.created_at,
       updatedAt: row.updated_at,
+      agentConfig: row.agent_config ? JSON.parse(row.agent_config) : undefined,
     },
     state: {
       nextRunAtMs: row.next_run_at ?? undefined,
@@ -183,19 +198,18 @@ class CronStore {
     const db = await getDatabase();
     const row = jobToRow(job);
 
-    // @ts-expect-error - db is private but we need direct access
-    db.db
+    db.getDriver()
       .prepare(
         `
       INSERT INTO cron_jobs (
         id, name, enabled,
         schedule_kind, schedule_value, schedule_tz, schedule_description,
-        payload_message,
+        payload_message, execution_mode, agent_config,
         conversation_id, conversation_title, agent_type, created_by,
         created_at, updated_at,
         next_run_at, last_run_at, last_status, last_error,
         run_count, retry_count, max_retries
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `
       )
       .run(
@@ -207,6 +221,8 @@ class CronStore {
         row.schedule_tz,
         row.schedule_description,
         row.payload_message,
+        row.execution_mode,
+        row.agent_config,
         row.conversation_id,
         row.conversation_title,
         row.agent_type,
@@ -254,14 +270,13 @@ class CronStore {
     const row = jobToRow(updated);
     const db = await getDatabase();
 
-    // @ts-expect-error - db is private but we need direct access
-    db.db
+    db.getDriver()
       .prepare(
         `
       UPDATE cron_jobs SET
         name = ?, enabled = ?,
         schedule_kind = ?, schedule_value = ?, schedule_tz = ?, schedule_description = ?,
-        payload_message = ?,
+        payload_message = ?, execution_mode = ?, agent_config = ?,
         conversation_id = ?, conversation_title = ?, agent_type = ?,
         updated_at = ?,
         next_run_at = ?, last_run_at = ?, last_status = ?, last_error = ?,
@@ -277,6 +292,8 @@ class CronStore {
         row.schedule_tz,
         row.schedule_description,
         row.payload_message,
+        row.execution_mode,
+        row.agent_config,
         row.conversation_id,
         row.conversation_title,
         row.agent_type,
@@ -297,8 +314,7 @@ class CronStore {
    */
   async delete(jobId: string): Promise<void> {
     const db = await getDatabase();
-    // @ts-expect-error - db is private but we need direct access
-    db.db.prepare('DELETE FROM cron_jobs WHERE id = ?').run(jobId);
+    db.getDriver().prepare('DELETE FROM cron_jobs WHERE id = ?').run(jobId);
   }
 
   /**
@@ -306,8 +322,7 @@ class CronStore {
    */
   async getById(jobId: string): Promise<CronJob | null> {
     const db = await getDatabase();
-    // @ts-expect-error - db is private but we need direct access
-    const row = db.db.prepare('SELECT * FROM cron_jobs WHERE id = ?').get(jobId) as CronJobRow | undefined;
+    const row = db.getDriver().prepare('SELECT * FROM cron_jobs WHERE id = ?').get(jobId) as CronJobRow | undefined;
     return row ? rowToJob(row) : null;
   }
 
@@ -316,8 +331,7 @@ class CronStore {
    */
   async listAll(): Promise<CronJob[]> {
     const db = await getDatabase();
-    // @ts-expect-error - db is private but we need direct access
-    const rows = db.db.prepare('SELECT * FROM cron_jobs ORDER BY created_at DESC').all() as CronJobRow[];
+    const rows = db.getDriver().prepare('SELECT * FROM cron_jobs ORDER BY created_at DESC').all() as CronJobRow[];
     return rows.map(rowToJob);
   }
 
@@ -326,8 +340,8 @@ class CronStore {
    */
   async listByConversation(conversationId: string): Promise<CronJob[]> {
     const db = await getDatabase();
-    // @ts-expect-error - db is private but we need direct access
-    const rows = db.db
+    const rows = db
+      .getDriver()
       .prepare('SELECT * FROM cron_jobs WHERE conversation_id = ? ORDER BY created_at DESC')
       .all(conversationId) as CronJobRow[];
     return rows.map(rowToJob);
@@ -338,8 +352,8 @@ class CronStore {
    */
   async listEnabled(): Promise<CronJob[]> {
     const db = await getDatabase();
-    // @ts-expect-error - db is private but we need direct access
-    const rows = db.db
+    const rows = db
+      .getDriver()
       .prepare('SELECT * FROM cron_jobs WHERE enabled = 1 ORDER BY next_run_at ASC')
       .all() as CronJobRow[];
     return rows.map(rowToJob);
@@ -351,8 +365,7 @@ class CronStore {
    */
   async deleteByConversation(conversationId: string): Promise<number> {
     const db = await getDatabase();
-    // @ts-expect-error - db is private but we need direct access
-    const result = db.db.prepare('DELETE FROM cron_jobs WHERE conversation_id = ?').run(conversationId);
+    const result = db.getDriver().prepare('DELETE FROM cron_jobs WHERE conversation_id = ?').run(conversationId);
     return result.changes;
   }
 }

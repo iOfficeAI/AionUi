@@ -1,5 +1,4 @@
 ---
-# officecli: v1.0.24
 name: officecli-financial-model
 description: "Use this skill when the user wants to build a financial model,
   3-statement model, DCF valuation, cap table, scenario analysis, or

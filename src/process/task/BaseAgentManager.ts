@@ -26,6 +26,10 @@ class BaseAgentManager<Data, ConfirmationOption extends any = any>
   conversation_id: string = '';
   protected confirmations: Array<IConfirmation<ConfirmationOption>> = [];
   status: AgentStatus | undefined;
+  protected _lastActivityAt: number = Date.now();
+  get lastActivityAt(): number {
+    return this._lastActivityAt;
+  }
 
   /**
    * Whether this agent is in yolo mode (auto-approve)
@@ -110,6 +114,7 @@ class BaseAgentManager<Data, ConfirmationOption extends any = any>
   }
 
   sendMessage(data: any) {
+    this._lastActivityAt = Date.now();
     return this.postMessagePromise('send.message', data);
   }
 

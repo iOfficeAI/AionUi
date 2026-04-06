@@ -22,10 +22,7 @@
     "skillsMarketDetails": "View More >>"
   },
   "history": {
-    "today": "Today",
-    "yesterday": "Yesterday",
-    "recent7Days": "Last 7 Days",
-    "earlier": "Earlier",
+    "recents": "Recents",
     "noHistory": "No chat history",
     "deleteTitle": "Delete",
     "deleteConfirm": "Are you sure you want to delete this chat?",
@@ -180,6 +177,12 @@
       "reset": "Revert Changes",
       "noUnstaged": "No unstaged changes",
       "noStaged": "No staged changes"
+    },
+    "openWorkspace": "Open workspace folder",
+    "openWith": {
+      "vscode": "VS Code",
+      "terminal": "Terminal",
+      "explorer": "File Explorer"
     }
   },
   "minimap": {

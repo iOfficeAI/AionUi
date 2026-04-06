@@ -22,13 +22,15 @@ import { ToolConfirmationOutcome } from '../agent/gemini/cli/tools/tools';
 import { getDatabase } from '@process/services/database';
 import { addMessage, addOrUpdateMessage, nextTickToLocalFinish } from '@process/utils/message';
 import { cronBusyGuard } from '@process/services/cron/CronBusyGuard';
+import { skillSuggestWatcher } from '@process/services/cron/SkillSuggestWatcher';
 import { handlePreviewOpenEvent } from '@process/utils/previewUtils';
 import BaseAgentManager from './BaseAgentManager';
 import { IpcAgentEventEmitter } from './IpcAgentEventEmitter';
 import { mainLog, mainWarn, mainError } from '@process/utils/mainLogger';
 import { hasCronCommands } from './CronCommandDetector';
 import { extractTextFromMessage, processCronInMessage } from './MessageMiddleware';
-import { stripThinkTags } from './ThinkTagDetector';
+import { stripThinkTags, extractAndStripThinkTags } from './ThinkTagDetector';
+import { teamEventBus } from '@process/team/teamEventBus';
 import * as fs from 'node:fs';
 
 // gemini agent管理器类
@@ -68,6 +70,7 @@ export class GeminiAgentManager extends BaseAgentManager<
   presetRules?: string;
   contextContent?: string;
   enabledSkills?: string[];
+  excludeBuiltinSkills?: string[];
   private bootstrap: Promise<void>;
 
   /** Fingerprint of MCP config used by the current worker, for change detection */
@@ -108,8 +111,25 @@ export class GeminiAgentManager extends BaseAgentManager<
   /** Current session mode for approval behavior / 当前会话模式（影响审批行为） */
   private currentMode: string = 'default';
 
+  /** Current turn's thinking message msg_id for accumulating content */
+  private thinkingMsgId: string | null = null;
+  /** Timestamp when thinking started for duration calculation */
+  private thinkingStartTime: number | null = null;
+  /** Accumulated thinking content for persistence */
+  private thinkingContent: string = '';
+  private thinkingDbFlushTimer: ReturnType<typeof setTimeout> | null = null;
+  private readonly thinkingDbFlushIntervalMs = 120;
+
   /** Stored webSearchEngine for worker re-bootstrap / 保存 webSearchEngine 用于重建 worker */
   private webSearchEngine?: 'google' | 'default';
+
+  /** Team MCP stdio config injected by TeamSessionService */
+  private teamMcpStdioConfig?: {
+    name: string;
+    command: string;
+    args: string[];
+    env: Array<{ name: string; value: string }>;
+  };
 
   constructor(
     data: {
@@ -126,6 +146,15 @@ export class GeminiAgentManager extends BaseAgentManager<
       yoloMode?: boolean;
       /** Persisted session mode for resume support / 持久化的会话模式，用于恢复 */
       sessionMode?: string;
+      /** Team MCP server stdio config injected by TeamSessionService */
+      teamMcpStdioConfig?: {
+        name: string;
+        command: string;
+        args: string[];
+        env: Array<{ name: string; value: string }>;
+      };
+      /** Builtin skill names to exclude from discovery (e.g. 'cron' for cron-spawned conversations) */
+      excludeBuiltinSkills?: string[];
     },
     model: TProviderWithModel
   ) {
@@ -136,9 +165,11 @@ export class GeminiAgentManager extends BaseAgentManager<
     this.contextFileName = data.contextFileName;
     this.presetRules = data.presetRules;
     this.enabledSkills = data.enabledSkills;
+    this.excludeBuiltinSkills = data.excludeBuiltinSkills;
     this.forceYoloMode = data.yoloMode;
     this.currentMode = data.sessionMode || 'default';
     this.webSearchEngine = data.webSearchEngine;
+    this.teamMcpStdioConfig = data.teamMcpStdioConfig;
     // 向后兼容 / Backward compatible
     this.contextContent = data.contextContent || data.presetRules;
     this.bootstrap = this.createBootstrap();
@@ -181,7 +212,11 @@ export class GeminiAgentManager extends BaseAgentManager<
         // 将内置 skill 名称合并到 enabledSkills，使 worker 的 SkillManager 能找到它们
         const skillManager = AcpSkillManager.getInstance(this.enabledSkills);
         await skillManager.discoverSkills(this.enabledSkills);
-        const builtinSkillNames = skillManager.getBuiltinSkillsIndex().map((s) => s.name);
+        const excludeSet = new Set(this.excludeBuiltinSkills ?? []);
+        const builtinSkillNames = skillManager
+          .getBuiltinSkillsIndex()
+          .map((s) => s.name)
+          .filter((name) => !excludeSet.has(name));
         const allEnabledSkills = [...new Set([...builtinSkillNames, ...(this.enabledSkills || [])])];
 
         // Determine yoloMode from legacy config (SecurityModalContent)
@@ -311,6 +346,19 @@ export class GeminiAgentManager extends BaseAgentManager<
           }
         });
 
+      // Inject team MCP server if this agent belongs to a team (stdio mode)
+      if (this.teamMcpStdioConfig && this.teamMcpStdioConfig.command) {
+        const envObj: Record<string, string> = {};
+        for (const { name, value } of this.teamMcpStdioConfig.env || []) {
+          envObj[name] = value;
+        }
+        mcpConfig[this.teamMcpStdioConfig.name] = {
+          command: this.teamMcpStdioConfig.command,
+          args: this.teamMcpStdioConfig.args || [],
+          env: envObj,
+        };
+      }
+
       return mcpConfig;
     } catch (error) {
       this.mcpFingerprint = '[]';
@@ -318,7 +366,38 @@ export class GeminiAgentManager extends BaseAgentManager<
     }
   }
 
-  async sendMessage(data: { input: string; msg_id: string; files?: string[]; cronMeta?: CronMessageMeta }) {
+  async sendMessage(data: {
+    input: string;
+    msg_id: string;
+    files?: string[];
+    cronMeta?: CronMessageMeta;
+    hidden?: boolean;
+    silent?: boolean;
+  }) {
+    if (data.silent) {
+      await this.refreshWorkerIfMcpChanged();
+      this.status = 'pending';
+      cronBusyGuard.setProcessing(this.conversation_id, true);
+      await this.bootstrap
+        .catch((e) => {
+          cronBusyGuard.setProcessing(this.conversation_id, false);
+          this.emit('gemini.message', {
+            type: 'error',
+            data: e.message || JSON.stringify(e),
+            msg_id: data.msg_id,
+          });
+          return new Promise((_, reject) => {
+            nextTickToLocalFinish(() => {
+              reject(e);
+            });
+          });
+        })
+        .then(() => super.sendMessage(data))
+        .finally(() => {
+          cronBusyGuard.setProcessing(this.conversation_id, false);
+        });
+      return;
+    }
     const message: TMessage = {
       id: data.msg_id,
       type: 'text',
@@ -328,6 +407,7 @@ export class GeminiAgentManager extends BaseAgentManager<
         content: data.input,
         ...(data.cronMeta && { cronMeta: data.cronMeta }),
       },
+      ...(data.hidden && { hidden: true }),
     };
     addMessage(this.conversation_id, message);
     // Update conversation modifyTime so history list sorts correctly.
@@ -347,6 +427,7 @@ export class GeminiAgentManager extends BaseAgentManager<
         conversation_id: this.conversation_id,
         msg_id: data.msg_id,
         data: { content: message.content.content, cronMeta: data.cronMeta },
+        ...(data.hidden && { hidden: true }),
       };
       ipcBridge.geminiConversation.responseStream.emit(userResponseMessage);
     }
@@ -616,6 +697,15 @@ export class GeminiAgentManager extends BaseAgentManager<
         // When stream finishes, check for cron commands in the accumulated message
         // Use longer delay and retry logic to ensure message is persisted
         this.checkCronWithRetry(0);
+        // Check for SKILL_SUGGEST.md updates (registered by cron executor)
+        skillSuggestWatcher.onFinish(this.conversation_id);
+        // Finalize thinking message with done status
+        if (this.thinkingMsgId) {
+          this.emitThinkingMessage('', 'done');
+          this.thinkingMsgId = null;
+          this.thinkingStartTime = null;
+          this.thinkingContent = '';
+        }
       }
       if (data.type === 'start') {
         this.status = 'running';
@@ -643,11 +733,26 @@ export class GeminiAgentManager extends BaseAgentManager<
       }
 
       data.conversation_id = this.conversation_id;
+
+      // Convert thought events to thinking messages in conversation flow
+      if (data.type === 'thought') {
+        const thoughtData = data.data as { subject?: string; description?: string } | string;
+        const content =
+          typeof thoughtData === 'string' ? thoughtData : thoughtData?.description || thoughtData?.subject || '';
+        if (content) {
+          this.emitThinkingMessage(content, 'thinking');
+        }
+      } else if (this.thinkingMsgId) {
+        // Any non-thought message means thinking phase is over
+        this.emitThinkingMessage('', 'done');
+        this.thinkingMsgId = null;
+        this.thinkingStartTime = null;
+        this.thinkingContent = '';
+      }
+
       // Transform and persist message (skip transient UI state messages)
-      // 跳过 thought, finished 等不需要持久化的消息类型
-      // Skip transient UI state messages that don't need persistence
-      // 跳过不需要持久化的临时 UI 状态消息 (thought, finished, start, finish)
-      const skipTransformTypes = ['thought', 'finished', 'start', 'finish'];
+      // Skip thought (now handled as thinking above), thinking, finished, start, finish
+      const skipTransformTypes = ['thought', 'thinking', 'finished', 'start', 'finish'];
       if (!skipTransformTypes.includes(data.type)) {
         const tMessage = transformMessage(data as IResponseMessage);
         if (tMessage) {
@@ -658,12 +763,26 @@ export class GeminiAgentManager extends BaseAgentManager<
         }
       }
 
+      // Strip inline <think> tags from content messages to prevent leaking
+      // internal reasoning to the UI (e.g. models that embed think tags in content)
+      if (data.type === 'content' && typeof data.data === 'string') {
+        const { thinking, content: stripped } = extractAndStripThinkTags(data.data);
+        if (thinking) {
+          this.emitThinkingMessage(thinking, 'thinking');
+        }
+        if (stripped !== data.data) {
+          data = { ...data, data: stripped };
+        }
+      }
+
       // Filter think tags from streaming content before emitting to UI
-      // 在发送到 UI 前过滤流式内容中的 think 标签
       const filteredData = this.filterThinkTagsFromMessage(data);
       ipcBridge.geminiConversation.responseStream.emit(filteredData);
 
-      // 发送到 Channel 全局事件总线（用于 Telegram 等外部平台）
+      // Also emit to main-process-local bus so TeammateManager (same process)
+      // can receive events — ipcBridge.emit only delivers to renderer via webContents.send()
+      teamEventBus.emit('responseStream', filteredData);
+
       // Emit to Channel global event bus (for Telegram and other external platforms)
       channelEventBus.emitAgentMessage(this.conversation_id, filteredData);
     });
@@ -881,6 +1000,70 @@ export class GeminiAgentManager extends BaseAgentManager<
   // Manually trigger context reload
   async reloadContext(): Promise<void> {
     await this.injectHistoryFromDatabase();
+  }
+
+  /**
+   * Emit a thinking message to the UI stream.
+   * Creates a new thinking msg_id on first call per turn, reuses it for subsequent calls.
+   */
+  private emitThinkingMessage(content: string, status: 'thinking' | 'done' = 'thinking'): void {
+    if (!this.thinkingMsgId) {
+      this.thinkingMsgId = uuid();
+      this.thinkingStartTime = Date.now();
+      this.thinkingContent = '';
+    }
+
+    // Accumulate content during streaming
+    if (status === 'thinking') {
+      this.thinkingContent += content;
+    }
+
+    const duration = status === 'done' && this.thinkingStartTime ? Date.now() - this.thinkingStartTime : undefined;
+
+    const thinkingMessage = {
+      type: 'thinking',
+      conversation_id: this.conversation_id,
+      msg_id: this.thinkingMsgId,
+      data: {
+        content,
+        duration,
+        status,
+      },
+    };
+
+    ipcBridge.geminiConversation.responseStream.emit(thinkingMessage);
+    channelEventBus.emitAgentMessage(this.conversation_id, thinkingMessage);
+
+    // Persist: done flushes immediately, streaming chunks use buffered timer
+    if (status === 'done') {
+      this.flushThinkingToDb(duration, 'done');
+    } else if (!this.thinkingDbFlushTimer) {
+      this.thinkingDbFlushTimer = setTimeout(() => {
+        this.flushThinkingToDb(undefined, 'thinking');
+      }, this.thinkingDbFlushIntervalMs);
+    }
+  }
+
+  private flushThinkingToDb(duration: number | undefined, status: 'thinking' | 'done'): void {
+    if (this.thinkingDbFlushTimer) {
+      clearTimeout(this.thinkingDbFlushTimer);
+      this.thinkingDbFlushTimer = null;
+    }
+    if (!this.thinkingMsgId) return;
+    const tMessage: TMessage = {
+      id: this.thinkingMsgId,
+      msg_id: this.thinkingMsgId,
+      type: 'thinking',
+      position: 'left',
+      conversation_id: this.conversation_id,
+      content: {
+        content: this.thinkingContent,
+        duration,
+        status,
+      },
+      createdAt: this.thinkingStartTime || Date.now(),
+    };
+    addOrUpdateMessage(this.conversation_id, tMessage, 'gemini');
   }
 
   /**

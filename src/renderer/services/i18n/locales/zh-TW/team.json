@@ -1,0 +1,49 @@
+{
+  "sider": {
+    "title": "Teams",
+    "createTeam": "New Team",
+    "pin": "置頂",
+    "unpin": "取消置頂",
+    "rename": "重新命名",
+    "delete": "刪除",
+    "renameTitle": "重新命名團隊",
+    "renamePlaceholder": "團隊名稱",
+    "deleteConfirm": "刪除此團隊？",
+    "deleteConfirmContent": "此操作無法撤銷。",
+    "deleteOk": "刪除",
+    "deleteCancel": "取消",
+    "renameOk": "儲存",
+    "renameCancel": "取消",
+    "renameSuccess": "團隊已重新命名",
+    "deleteSuccess": "團隊已刪除"
+  },
+  "addAgent": {
+    "title": "新增 Agent",
+    "name": "Agent 名稱",
+    "namePlaceholder": "輸入 Agent 名稱",
+    "type": "Agent 類型",
+    "typePlaceholder": "選擇 Agent 類型",
+    "confirm": "新增"
+  },
+  "newAgent": "New Agent",
+  "noMessages": "No messages yet.",
+  "agentNotConfigured": "Agent 尚未設定。",
+  "sendBox": {
+    "placeholder": "向調度 Agent 發訊息..."
+  },
+  "create": {
+    "title": "Create Team",
+    "namePlaceholder": "Team name",
+    "dispatchAgentPlaceholder": "Select dispatch agent",
+    "subAgentsPlaceholder": "Select sub agents",
+    "workspacePlaceholder": "Workspace path (optional)",
+    "confirm": "Create Team",
+    "noSupportedAgents": "未偵測到支援的 Agent",
+    "supportedAgentsHint": "目前支援 Claude、Codex、CodeBuddy，更多 Agent 適配中",
+    "step": {
+      "dispatch": "Dispatch Agent",
+      "subAgents": "Sub Agents",
+      "workspace": "Workspace"
+    }
+  }
+}

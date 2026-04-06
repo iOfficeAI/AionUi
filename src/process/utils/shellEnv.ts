@@ -13,13 +13,41 @@
  * the app is launched from Finder / launchd instead of a terminal.
  */
 
-import { execFile, execFileSync } from 'child_process';
+import { app } from 'electron';
+import { execFile, execFileSync, spawn } from 'child_process';
 import { accessSync, existsSync, readdirSync } from 'fs';
 import os from 'os';
 import path from 'path';
 
 /** Enable ACP performance diagnostics via ACP_PERF=1 */
 const PERF_LOG = process.env.ACP_PERF === '1';
+
+// ---------------------------------------------------------------------------
+// Bundled bun runtime
+// ---------------------------------------------------------------------------
+
+/**
+ * Get the directory containing the bundled bun binary.
+ * Returns the path to `resources/bundled-bun/<platform>-<arch>/` which contains
+ * the bun executable. Returns null if the directory doesn't exist.
+ */
+export function getBundledBunDir(): string | null {
+  const resourcesPath = app.isPackaged ? process.resourcesPath : path.join(process.cwd(), 'resources');
+  const platform = process.platform === 'win32' ? 'win32' : process.platform;
+  const arch = process.arch;
+  const bunDir = path.join(resourcesPath, 'bundled-bun', `${platform}-${arch}`);
+  return existsSync(bunDir) ? bunDir : null;
+}
+
+/**
+ * Get the path to the user's bun global bin directory.
+ * This is where `bun add -g` installs binaries.
+ * - macOS/Linux: ~/.bun/bin
+ * - Windows: %USERPROFILE%\.bun\bin
+ */
+export function getBunGlobalBinDir(): string {
+  return path.join(os.homedir(), '.bun', 'bin');
+}
 
 /**
  * Environment variables to inherit from user's shell.
@@ -265,6 +293,37 @@ function getWindowsExtraToolPaths(): string[] {
     // Cygwin — alternative source for cygpath
     'C:\\cygwin64\\bin',
     'C:\\cygwin\\bin',
+    // bun global packages
+    getBunGlobalBinDir(),
+  ];
+
+  return candidates.filter((p) => existsSync(p) && !currentPath.includes(p));
+}
+
+/**
+ * Scan well-known POSIX tool installation directories and return any that exist
+ * but are not already in the current PATH.
+ *
+ * Similar to getWindowsExtraToolPaths but for macOS/Linux.
+ * Covers global bin directories for bun, cargo, go, deno, etc.
+ */
+function getPosixExtraToolPaths(): string[] {
+  if (process.platform === 'win32') return [];
+
+  const homeDir = os.homedir();
+  const currentPath = process.env.PATH || '';
+
+  const candidates = [
+    // bun global packages
+    getBunGlobalBinDir(),
+    // cargo (Rust)
+    path.join(homeDir, '.cargo', 'bin'),
+    // go
+    path.join(homeDir, 'go', 'bin'),
+    // deno
+    path.join(homeDir, '.deno', 'bin'),
+    // local bin (pip, pipx, etc.)
+    path.join(homeDir, '.local', 'bin'),
   ];
 
   return candidates.filter((p) => existsSync(p) && !currentPath.includes(p));
@@ -284,6 +343,7 @@ function getWindowsExtraToolPaths(): string[] {
  */
 export function getEnhancedEnv(customEnv?: Record<string, string>): Record<string, string> {
   const shellEnv = loadShellEnvironment();
+  const separator = process.platform === 'win32' ? ';' : ':';
 
   // Merge PATH from both sources (shell env may miss nvm/fnm paths in dev mode)
   // 合并两个来源的 PATH（开发模式下 shell 环境可能缺少 nvm/fnm 路径）
@@ -294,6 +354,19 @@ export function getEnhancedEnv(customEnv?: Record<string, string>): Record<strin
   const winExtraPaths = getWindowsExtraToolPaths();
   if (winExtraPaths.length > 0) {
     mergedPath = mergePaths(mergedPath, winExtraPaths.join(';'));
+  }
+
+  // On macOS/Linux, append well-known global bin directories (bun, cargo, go, etc.)
+  const posixExtraPaths = getPosixExtraToolPaths();
+  if (posixExtraPaths.length > 0) {
+    mergedPath = mergePaths(mergedPath, posixExtraPaths.join(':'));
+  }
+
+  // Prepend bundled bun directory (highest priority — ensures extensions always
+  // have access to bun/bunx even if the user hasn't installed it)
+  const bundledBunDir = getBundledBunDir();
+  if (bundledBunDir) {
+    mergedPath = `${bundledBunDir}${separator}${mergedPath}`;
   }
 
   return {
@@ -490,40 +563,90 @@ export function resolveNpxPath(env: Record<string, string | undefined>): string 
   return npxName;
 }
 
-/** Separate cache for full (unfiltered) shell environment */
-let cachedFullShellEnv: Record<string, string> | null = null;
+/**
+ * Promise-based dedup guard so concurrent callers share one spawn.
+ * Without this, a second caller arriving before the first await resolves
+ * would see cachedFullShellEnv as {} and return an empty env.
+ */
+let fullShellEnvPromise: Promise<Record<string, string>> | null = null;
 
 /**
  * Load ALL environment variables from user's login shell (no whitelist).
  * Used by agents (e.g. Codex) that need the complete shell env.
- * Shares the same shell invocation approach as loadShellEnvironment()
- * but caches separately and does not filter.
+ *
+ * Uses `-i -l` (interactive login) so that `.zshrc` / `.bashrc` are loaded,
+ * which is where most users export custom env vars (e.g. API keys).
+ * The child is spawned with `detached: true` to create a new session
+ * (setsid), preventing zsh's `tcsetpgrp()` from hijacking the parent's
+ * terminal foreground process group — the root cause of the Ctrl+C
+ * regression fixed in 0039b295.
  */
-export function loadFullShellEnvironment(): Record<string, string> {
-  if (cachedFullShellEnv !== null) return cachedFullShellEnv;
-  cachedFullShellEnv = {};
-  if (process.platform === 'win32') return cachedFullShellEnv;
+export function loadFullShellEnvironment(): Promise<Record<string, string>> {
+  if (!fullShellEnvPromise) {
+    fullShellEnvPromise = loadFullShellEnvironmentImpl();
+  }
+  return fullShellEnvPromise;
+}
+
+async function loadFullShellEnvironmentImpl(): Promise<Record<string, string>> {
+  if (process.platform === 'win32') return {};
+
+  const shell = process.env.SHELL || '/bin/bash';
+  if (!path.isAbsolute(shell)) return {};
 
   try {
-    const shell = process.env.SHELL || '/bin/bash';
-    if (!path.isAbsolute(shell)) return cachedFullShellEnv;
+    const output = await new Promise<string>((resolve, reject) => {
+      let stdout = '';
+      let stderr = '';
+      // detached: true → child runs in a new session (setsid on POSIX).
+      // Interactive zsh calls tcsetpgrp() to grab the foreground process
+      // group, but in a detached session it has no controlling terminal,
+      // so the call is harmless and Ctrl+C in the parent is unaffected.
+      const child = spawn(shell, ['-i', '-l', '-c', 'env'], {
+        detached: true,
+        stdio: ['pipe', 'pipe', 'pipe'],
+        env: { ...process.env, HOME: os.homedir() },
+      });
+      child.unref();
 
-    const output = execFileSync(shell, ['-l', '-c', 'env'], {
-      encoding: 'utf-8',
-      timeout: 5000,
-      stdio: ['pipe', 'pipe', 'pipe'],
-      env: { ...process.env, HOME: os.homedir() },
+      child.stdout!.on('data', (chunk: Buffer) => {
+        stdout += chunk.toString();
+      });
+      child.stderr!.on('data', (chunk: Buffer) => {
+        stderr += chunk.toString();
+      });
+      child.on('error', reject);
+
+      // Safety timeout — don't hang forever if the shell stalls
+      const timer = setTimeout(() => {
+        try {
+          child.kill();
+        } catch {
+          // best-effort
+        }
+        reject(new Error('Timed out loading full shell environment'));
+      }, 5000);
+
+      child.on('close', (code) => {
+        clearTimeout(timer);
+        if (code === 0) {
+          resolve(stdout);
+        } else {
+          reject(new Error(`Shell exited with code ${code}: ${stderr.substring(0, 200)}`));
+        }
+      });
     });
 
-    cachedFullShellEnv = parseEnvOutput(output);
-    const varCount = Object.keys(cachedFullShellEnv).length;
-    const shellPath = cachedFullShellEnv.PATH || '(empty)';
+    const result = parseEnvOutput(output);
+    const varCount = Object.keys(result).length;
+    const shellPath = result.PATH || '(empty)';
     console.log(`[ShellEnv] Full shell env loaded: ${varCount} vars, shell=${shell}`);
     console.log(`[ShellEnv] Shell PATH (first 200 chars): ${shellPath.substring(0, 200)}`);
+    return result;
   } catch (error) {
     console.warn('[ShellEnv] Failed to load full shell env:', error instanceof Error ? error.message : String(error));
+    return {};
   }
-  return cachedFullShellEnv;
 }
 
 /**

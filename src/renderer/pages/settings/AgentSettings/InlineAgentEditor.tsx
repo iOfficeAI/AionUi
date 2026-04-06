@@ -6,8 +6,9 @@
 
 import type { AcpBackendConfig } from '@/common/types/acpTypes';
 import { acpConversation } from '@/common/adapter/ipcBridge';
-import { Alert, Button, Collapse, Input, Space } from '@arco-design/web-react';
+import { Alert, Avatar, Button, Collapse, Input, Typography } from '@arco-design/web-react';
 import { Plus, Delete, CheckOne, CloseOne } from '@icon-park/react';
+import EmojiPicker from '@/renderer/components/chat/EmojiPicker';
 import CodeMirror from '@uiw/react-codemirror';
 import { json } from '@codemirror/lang-json';
 import { useThemeContext } from '@/renderer/hooks/context/ThemeContext';
@@ -75,6 +76,7 @@ const InlineAgentEditor: React.FC<InlineAgentEditorProps> = ({ agent, onSave, on
   const { t } = useTranslation();
   const { theme } = useThemeContext();
 
+  const [avatar, setAvatar] = useState('🤖');
   const [name, setName] = useState('');
   const [command, setCommand] = useState('');
   const [argsString, setArgsString] = useState('');
@@ -114,11 +116,13 @@ const InlineAgentEditor: React.FC<InlineAgentEditorProps> = ({ agent, onSave, on
     setJsonError('');
     isJsonEditingRef.current = false;
     if (agent) {
+      setAvatar(agent.avatar || '🤖');
       setName(agent.name || '');
       setCommand(agent.defaultCliPath || '');
       setArgsString(agent.acpArgs?.join(' ') || '');
       setEnvVars(objectToEnvVars(agent.env));
     } else {
+      setAvatar('🤖');
       setName('');
       setCommand('');
       setArgsString('');
@@ -205,62 +209,98 @@ const InlineAgentEditor: React.FC<InlineAgentEditorProps> = ({ agent, onSave, on
     const customAgent: AcpBackendConfig = {
       id: agent?.id || uuid(),
       name: name.trim() || 'Custom Agent',
+      avatar,
       defaultCliPath: command.trim(),
       enabled: agent?.enabled !== false,
       acpArgs: parsedArgs.length > 0 ? parsedArgs : undefined,
       env: Object.keys(envObj).length > 0 ? envObj : undefined,
     };
     onSave(customAgent);
-  }, [agent, name, command, argsString, envVars, onSave]);
+  }, [agent, name, avatar, command, argsString, envVars, onSave]);
 
   const isSubmitDisabled = !name.trim() || !command.trim();
   const isTestDisabled = !command.trim() || testStatus === 'testing';
+  const fieldLabelClassName = 'mb-6px block text-13px font-medium text-t-primary';
+  const fieldHelpClassName = 'mt-4px block text-12px leading-18px text-t-tertiary';
 
   return (
-    <div className='px-16px py-12px mx-16px rd-8px bg-fill-2 space-y-12px'>
-      {/* Display Name */}
-      <div>
-        <div className='mb-4px text-sm font-medium text-t-primary'>{t('settings.agentDisplayName')}</div>
-        <Input value={name} onChange={handleNameChange} placeholder={t('settings.agentNamePlaceholder')} />
+    <div className='flex flex-col gap-16px pt-8px pb-20px'>
+      {/* Avatar + Name row */}
+      <div className='flex items-center gap-12px'>
+        <EmojiPicker onChange={(emoji) => setAvatar(emoji)}>
+          <div className='cursor-pointer shrink-0'>
+            <Avatar
+              size={48}
+              shape='square'
+              style={{ backgroundColor: 'var(--color-fill-3)', fontSize: 24, borderRadius: 12 }}
+            >
+              {avatar}
+            </Avatar>
+          </div>
+        </EmojiPicker>
+        <div className='min-w-0 flex-1'>
+          <Typography.Text className={fieldLabelClassName}>{t('settings.agentDisplayName')}</Typography.Text>
+          <Input
+            size='large'
+            value={name}
+            onChange={handleNameChange}
+            placeholder={t('settings.agentNamePlaceholder')}
+          />
+        </div>
       </div>
 
       {/* Command */}
       <div>
-        <div className='mb-4px text-sm font-medium text-t-primary'>{t('settings.commandLabel')}</div>
-        <Input value={command} onChange={handleCommandChange} placeholder={t('settings.commandPlaceholder')} />
-        <div className='mt-4px text-xs text-t-tertiary'>{t('settings.commandHelp')}</div>
+        <Typography.Text className={fieldLabelClassName}>{t('settings.commandLabel')}</Typography.Text>
+        <Input
+          size='large'
+          value={command}
+          onChange={handleCommandChange}
+          placeholder={t('settings.commandPlaceholder')}
+        />
+        <Typography.Text type='secondary' className={fieldHelpClassName}>
+          {t('settings.commandHelp')}
+        </Typography.Text>
       </div>
 
       {/* Arguments */}
       <div>
-        <div className='mb-4px text-sm font-medium text-t-primary'>{t('settings.argsLabel')}</div>
-        <Input value={argsString} onChange={handleArgsChange} placeholder={t('settings.argsPlaceholder')} />
-        <div className='mt-4px text-xs text-t-tertiary'>{t('settings.argsHelp')}</div>
+        <Typography.Text className={fieldLabelClassName}>{t('settings.argsLabel')}</Typography.Text>
+        <Input
+          size='large'
+          value={argsString}
+          onChange={handleArgsChange}
+          placeholder={t('settings.argsPlaceholder')}
+        />
+        <Typography.Text type='secondary' className={fieldHelpClassName}>
+          {t('settings.argsHelp')}
+        </Typography.Text>
       </div>
 
       {/* Environment Variables */}
       <div>
-        <div className='mb-4px text-sm font-medium text-t-primary'>{t('settings.envLabel')}</div>
-        <div className='space-y-8px'>
+        <Typography.Text className={fieldLabelClassName}>{t('settings.envLabel')}</Typography.Text>
+        <div className='flex flex-col gap-10px'>
           {envVars.map((envVar) => (
-            <div key={envVar.id} className='flex items-center gap-8px'>
+            <div key={envVar.id} className='grid grid-cols-[minmax(0,1fr)_minmax(0,1.4fr)_auto] items-center gap-8px'>
               <Input
-                className='flex-1'
+                size='large'
                 value={envVar.key}
                 onChange={(v) => updateEnvVar(envVar.id, 'key', v)}
                 placeholder={t('settings.envKeyPlaceholder')}
               />
               <Input
-                className='flex-[2]'
+                size='large'
                 value={envVar.value}
                 onChange={(v) => updateEnvVar(envVar.id, 'value', v)}
                 placeholder={t('settings.envValuePlaceholder')}
               />
               <Button
                 type='text'
+                size='small'
                 icon={<Delete theme='outline' size={16} />}
                 onClick={() => removeEnvVar(envVar.id)}
-                className='flex-shrink-0 text-t-tertiary hover:text-danger'
+                className='!h-36px !w-36px !rounded-10px !px-0 text-t-tertiary hover:text-danger'
               />
             </div>
           ))}
@@ -270,7 +310,7 @@ const InlineAgentEditor: React.FC<InlineAgentEditorProps> = ({ agent, onSave, on
           size='small'
           icon={<Plus theme='outline' size={14} />}
           onClick={addEnvVar}
-          className='mt-8px text-t-secondary'
+          className='mt-8px !px-0 text-t-secondary hover:!text-primary-6'
         >
           {t('settings.addEnvVar')}
         </Button>
@@ -278,20 +318,19 @@ const InlineAgentEditor: React.FC<InlineAgentEditorProps> = ({ agent, onSave, on
 
       {/* Test Connection */}
       <div>
-        <Space>
-          <Button
-            type='outline'
-            size='small'
-            disabled={isTestDisabled}
-            onClick={handleTestConnection}
-            loading={testStatus === 'testing'}
-          >
-            {testStatus === 'testing' ? t('settings.testConnectionTesting') : t('settings.testConnectionBtn')}
-          </Button>
-        </Space>
+        <Button
+          long
+          type='outline'
+          disabled={isTestDisabled}
+          onClick={handleTestConnection}
+          loading={testStatus === 'testing'}
+          className='!rounded-10px'
+        >
+          {testStatus === 'testing' ? t('settings.testConnectionTesting') : t('settings.testConnectionBtn')}
+        </Button>
         {testStatus === 'success' && (
           <Alert
-            className='mt-8px'
+            className='mt-10px'
             type='success'
             icon={<CheckOne theme='filled' size={16} />}
             content={t('settings.testConnectionSuccess')}
@@ -299,7 +338,7 @@ const InlineAgentEditor: React.FC<InlineAgentEditorProps> = ({ agent, onSave, on
         )}
         {testStatus === 'fail_cli' && (
           <Alert
-            className='mt-8px'
+            className='mt-10px'
             type='error'
             icon={<CloseOne theme='filled' size={16} />}
             content={t('settings.testConnectionFailCli')}
@@ -307,7 +346,7 @@ const InlineAgentEditor: React.FC<InlineAgentEditorProps> = ({ agent, onSave, on
         )}
         {testStatus === 'fail_acp' && (
           <Alert
-            className='mt-8px'
+            className='mt-10px'
             type='warning'
             icon={<CloseOne theme='filled' size={16} />}
             content={t('settings.testConnectionFailAcp')}
@@ -316,43 +355,45 @@ const InlineAgentEditor: React.FC<InlineAgentEditorProps> = ({ agent, onSave, on
       </div>
 
       {/* Advanced JSON Editor */}
-      <Collapse
-        activeKey={showAdvanced ? ['advanced'] : []}
-        onChange={(_key, keys) => setShowAdvanced(keys.includes('advanced'))}
-        bordered={false}
-        style={{ background: 'transparent' }}
-      >
-        <Collapse.Item
-          name='advanced'
-          header={<span className='text-sm text-t-secondary'>{t('settings.advancedMode')}</span>}
+      <div className='overflow-hidden rounded-12px border border-solid border-[var(--color-border-2)] bg-[var(--color-fill-1)]'>
+        <Collapse
+          activeKey={showAdvanced ? ['advanced'] : []}
+          onChange={(_key, keys) => setShowAdvanced(keys.includes('advanced'))}
+          bordered={false}
+          style={{ background: 'transparent' }}
         >
-          <div className='pt-8px'>
-            <CodeMirror
-              value={jsonInput}
-              height='200px'
-              theme={theme}
-              extensions={[json()]}
-              onChange={handleJsonChange}
-              basicSetup={{ lineNumbers: true, foldGutter: true, dropCursor: false, allowMultipleSelections: false }}
-              style={{
-                fontSize: '12px',
-                border: jsonError ? '1px solid var(--danger)' : '1px solid var(--color-border-2)',
-                borderRadius: '6px',
-                overflow: 'hidden',
-              }}
-              className='[&_.cm-editor]:rounded-[6px]'
-            />
-            {jsonError && <div className='mt-4px text-xs text-danger'>{jsonError}</div>}
-          </div>
-        </Collapse.Item>
-      </Collapse>
+          <Collapse.Item
+            name='advanced'
+            header={<span className='text-13px text-t-secondary'>{t('settings.advancedMode')}</span>}
+          >
+            <div className='pt-8px'>
+              <CodeMirror
+                value={jsonInput}
+                height='200px'
+                theme={theme}
+                extensions={[json()]}
+                onChange={handleJsonChange}
+                basicSetup={{ lineNumbers: true, foldGutter: true, dropCursor: false, allowMultipleSelections: false }}
+                style={{
+                  fontSize: '12px',
+                  border: jsonError ? '1px solid var(--danger)' : '1px solid var(--color-border-2)',
+                  borderRadius: '10px',
+                  overflow: 'hidden',
+                }}
+                className='[&_.cm-editor]:rounded-[10px]'
+              />
+              {jsonError && <div className='mt-4px text-xs text-danger'>{jsonError}</div>}
+            </div>
+          </Collapse.Item>
+        </Collapse>
+      </div>
 
       {/* Actions */}
-      <div className='flex justify-end gap-8px pt-4px'>
-        <Button size='small' onClick={onCancel}>
+      <div className='flex justify-end gap-10px pt-4px'>
+        <Button className='!rounded-10px !px-20px' onClick={onCancel}>
           {t('common.cancel') || 'Cancel'}
         </Button>
-        <Button size='small' type='primary' disabled={isSubmitDisabled} onClick={handleSubmit}>
+        <Button type='primary' disabled={isSubmitDisabled} onClick={handleSubmit} className='!rounded-10px !px-20px'>
           {t('common.save') || 'Save'}
         </Button>
       </div>

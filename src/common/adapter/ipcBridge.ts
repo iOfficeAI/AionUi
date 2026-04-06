@@ -27,6 +27,10 @@ export const shell = {
   openFile: bridge.buildProvider<void, string>('open-file'), // 使用系统默认程序打开文件
   showItemInFolder: bridge.buildProvider<void, string>('show-item-in-folder'), // 打开文件夹
   openExternal: bridge.buildProvider<void, string>('open-external'), // 使用系统默认程序打开外部链接
+  checkToolInstalled: bridge.buildProvider<boolean, { tool: string }>('shell.check-tool-installed'), // 检查工具是否安装
+  openFolderWith: bridge.buildProvider<void, { folderPath: string; tool: 'vscode' | 'terminal' | 'explorer' }>(
+    'shell.open-folder-with'
+  ), // 使用指定工具打开文件夹
 };
 
 //通用会话能力
@@ -39,7 +43,8 @@ export const conversation = {
   get: bridge.buildProvider<TChatConversation, { id: string }>('get-conversation'), // 获取对话信息
   getAssociateConversation: bridge.buildProvider<TChatConversation[], { conversation_id: string }>(
     'get-associated-conversation'
-  ), // 获取关联对话
+  ),
+  listByCronJob: bridge.buildProvider<TChatConversation[], { cronJobId: string }>('conversation.list-by-cron-job'), // 获取关联对话
   remove: bridge.buildProvider<boolean, { id: string }>('remove-conversation'), // 删除对话
   update: bridge.buildProvider<boolean, { id: string; updates: Partial<TChatConversation>; mergeExtra?: boolean }>(
     'update-conversation'
@@ -125,6 +130,18 @@ export interface ICdpConfig {
   port?: number;
 }
 
+// Start on boot status interface
+export interface IStartOnBootStatus {
+  /** Whether the current runtime can manage start-on-boot */
+  supported: boolean;
+  /** Whether AionUi is currently configured to launch at login */
+  enabled: boolean;
+  /** Whether the app is running from a packaged build */
+  isPackaged: boolean;
+  /** Current platform name */
+  platform: string;
+}
+
 export const application = {
   restart: bridge.buildProvider<void, void>('restart-app'), // 重启应用
   openDevTools: bridge.buildProvider<boolean, void>('open-dev-tools'), // 打开/关闭开发者工具，返回操作后的状态
@@ -140,6 +157,11 @@ export const application = {
   // CDP (Chrome DevTools Protocol) management
   getCdpStatus: bridge.buildProvider<IBridgeResponse<ICdpStatus>, void>('app.get-cdp-status'), // 获取 CDP 状态
   updateCdpConfig: bridge.buildProvider<IBridgeResponse<ICdpConfig>, Partial<ICdpConfig>>('app.update-cdp-config'), // 更新 CDP 配置
+  // Start on boot management
+  getStartOnBootStatus: bridge.buildProvider<IBridgeResponse<IStartOnBootStatus>, void>('app.get-start-on-boot-status'), // 获取开机启动状态
+  setStartOnBoot: bridge.buildProvider<IBridgeResponse<IStartOnBootStatus>, { enabled: boolean }>(
+    'app.set-start-on-boot'
+  ), // 设置开机启动
   // Bridge Main Process logs to Renderer F12 Console
   logStream: bridge.buildEmitter<{ level: 'log' | 'warn' | 'error'; tag: string; message: string; data?: unknown }>(
     'app.log-stream'
@@ -687,9 +709,15 @@ export const systemSettings = {
   setCronNotificationEnabled: bridge.buildProvider<void, { enabled: boolean }>(
     'system-settings:set-cron-notification-enabled'
   ),
+  getKeepAwake: bridge.buildProvider<boolean, void>('system-settings:get-keep-awake'),
+  setKeepAwake: bridge.buildProvider<void, { enabled: boolean }>('system-settings:set-keep-awake'),
   changeLanguage: bridge.buildProvider<void, { language: string }>('system-settings:change-language'),
   // Broadcast language change to all renderers (desktop + WebUI) for real-time sync
   languageChanged: bridge.buildEmitter<{ language: string }>('system-settings:language-changed'),
+  getSaveUploadToWorkspace: bridge.buildProvider<boolean, void>('system-settings:get-save-upload-to-workspace'),
+  setSaveUploadToWorkspace: bridge.buildProvider<void, { enabled: boolean }>(
+    'system-settings:set-save-upload-to-workspace'
+  ),
 };
 
 // 系统通知接口 / System notification API
@@ -770,6 +798,9 @@ export const cron = {
   addJob: bridge.buildProvider<ICronJob, ICreateCronJobParams>('cron.add-job'),
   updateJob: bridge.buildProvider<ICronJob, { jobId: string; updates: Partial<ICronJob> }>('cron.update-job'),
   removeJob: bridge.buildProvider<void, { jobId: string }>('cron.remove-job'),
+  runNow: bridge.buildProvider<{ conversationId: string }, { jobId: string }>('cron.run-now'),
+  saveSkill: bridge.buildProvider<void, { jobId: string; content: string }>('cron.save-skill'),
+  hasSkill: bridge.buildProvider<boolean, { jobId: string }>('cron.has-skill'),
   // Events
   onJobCreated: bridge.buildEmitter<ICronJob>('cron.job-created'),
   onJobUpdated: bridge.buildEmitter<ICronJob>('cron.job-updated'),
@@ -790,7 +821,10 @@ export interface ICronJob {
   name: string;
   enabled: boolean;
   schedule: ICronSchedule;
-  target: { payload: { kind: 'message'; text: string } };
+  target: {
+    payload: { kind: 'message'; text: string };
+    executionMode?: 'existing' | 'new_conversation';
+  };
   metadata: {
     conversationId: string;
     conversationTitle?: string;
@@ -798,6 +832,7 @@ export interface ICronJob {
     createdBy: 'user' | 'agent';
     createdAt: number;
     updatedAt: number;
+    agentConfig?: ICronAgentConfig;
   };
   state: {
     nextRunAtMs?: number;
@@ -810,14 +845,28 @@ export interface ICronJob {
   };
 }
 
+export interface ICronAgentConfig {
+  backend: AcpBackendAll;
+  name: string;
+  cliPath?: string;
+  isPreset?: boolean;
+  customAgentId?: string;
+  presetAgentType?: string;
+}
+
 export interface ICreateCronJobParams {
   name: string;
+  description?: string;
   schedule: ICronSchedule;
-  message: string;
+  /** New UI system uses `prompt`; old skill system uses `message` */
+  prompt?: string;
+  message?: string;
   conversationId: string;
   conversationTitle?: string;
   agentType: AcpBackendAll;
   createdBy: 'user' | 'agent';
+  executionMode?: 'existing' | 'new_conversation';
+  agentConfig?: ICronAgentConfig;
 }
 
 interface ISendMessageParams {
@@ -839,7 +888,7 @@ export interface IConfirmMessageParams {
 }
 
 export interface ICreateConversationParams {
-  type: 'gemini' | 'acp' | 'codex' | 'openclaw-gateway' | 'nanobot' | 'remote';
+  type: 'gemini' | 'acp' | 'codex' | 'openclaw-gateway' | 'nanobot' | 'remote' | 'aionrs';
   id?: string;
   name?: string;
   model: TProviderWithModel;
@@ -873,6 +922,10 @@ export interface ICreateConversationParams {
     codexModel?: string;
     /** Pre-selected ACP model from Guid page (cached model list) */
     currentModelId?: string;
+    /** Cached config options from Guid page for immediate display in conversation */
+    cachedConfigOptions?: import('../types/acpTypes').AcpSessionConfigOption[];
+    /** Pending config option selections from Guid page (applied after session creation) */
+    pendingConfigOptions?: Record<string, string>;
     /** Runtime validation snapshot used for post-switch strong checks (OpenClaw) */
     runtimeValidation?: {
       expectedWorkspace?: string;
@@ -887,6 +940,12 @@ export interface ICreateConversationParams {
     isHealthCheck?: boolean;
     /** Remote agent config ID (FK to remote_agents table) — required when type='remote' */
     remoteAgentId?: string;
+    /** Extra skill directory paths to symlink into workspace (e.g. cron job skill dirs) */
+    extraSkillPaths?: string[];
+    /** Builtin skill names to exclude from auto-injection (e.g. 'cron' for cron-spawned conversations) */
+    excludeBuiltinSkills?: string[];
+    /** Team ownership — conversations with teamId are hidden from the sidebar */
+    teamId?: string;
   };
 }
 interface IResetConversationParams {
@@ -921,6 +980,7 @@ export interface IResponseMessage {
   data: unknown;
   msg_id: string;
   conversation_id: string;
+  hidden?: boolean;
 }
 
 export interface IConversationTurnCompletedEvent {
@@ -1161,4 +1221,60 @@ export const channel = {
     'channel.plugin-status-changed'
   ),
   userAuthorized: bridge.buildEmitter<IChannelUser>('channel.user-authorized'),
+};
+
+// ==================== Agent Hub API ====================
+import type { IHubAgentItem, HubExtensionStatus } from '@/common/types/hub';
+
+export const hub = {
+  // 获取 Hub 弹窗的 extension 列表 / Get extension list for Hub Modal
+  getExtensionList: bridge.buildProvider<IBridgeResponse<IHubAgentItem[]>, void>('hub.get-extension-list'),
+  // 发起安装 / Install extension
+  install: bridge.buildProvider<IBridgeResponse, { name: string }>('hub.install'),
+  // 发起卸载 / Uninstall extension (optional in P0)
+  uninstall: bridge.buildProvider<IBridgeResponse, { name: string }>('hub.uninstall'),
+  // 发起重试安装 / Retry install
+  retryInstall: bridge.buildProvider<IBridgeResponse, { name: string }>('hub.retry-install'),
+  // 检查可更新的 extension / Check updates for installed extensions
+  checkUpdates: bridge.buildProvider<IBridgeResponse<{ name: string }[]>, void>('hub.check-updates'),
+  // 发起更新 / Update extension
+  update: bridge.buildProvider<IBridgeResponse, { name: string }>('hub.update'),
+  // 安装/卸载状态变更推送 / State changed event for extension
+  onStateChanged: bridge.buildEmitter<{ name: string; status: HubExtensionStatus; error?: string }>(
+    'hub.state-changed'
+  ),
+};
+// Team Mode API
+export type ICreateTeamParams = {
+  userId: string;
+  name: string;
+  workspace: string;
+  workspaceMode: 'shared' | 'isolated';
+  agents: import('@process/team/types').TeamAgent[];
+};
+
+export type IAddTeamAgentParams = {
+  teamId: string;
+  agent: Omit<import('@process/team/types').TeamAgent, 'slotId'>;
+};
+
+export const team = {
+  create: bridge.buildProvider<import('@process/team/types').TTeam, ICreateTeamParams>('team.create'),
+  list: bridge.buildProvider<import('@process/team/types').TTeam[], { userId: string }>('team.list'),
+  get: bridge.buildProvider<import('@process/team/types').TTeam | null, { id: string }>('team.get'),
+  remove: bridge.buildProvider<void, { id: string }>('team.remove'),
+  addAgent: bridge.buildProvider<import('@process/team/types').TeamAgent, IAddTeamAgentParams>('team.add-agent'),
+  removeAgent: bridge.buildProvider<void, { teamId: string; slotId: string }>('team.remove-agent'),
+  sendMessage: bridge.buildProvider<void, { teamId: string; content: string }>('team.send-message'),
+  sendMessageToAgent: bridge.buildProvider<void, { teamId: string; slotId: string; content: string }>(
+    'team.send-message-to-agent'
+  ),
+  stop: bridge.buildProvider<void, { teamId: string }>('team.stop'),
+  renameAgent: bridge.buildProvider<void, { teamId: string; slotId: string; newName: string }>('team.rename-agent'),
+  renameTeam: bridge.buildProvider<void, { id: string; name: string }>('team.rename'),
+  messageStream: bridge.buildEmitter<import('@process/team/types').ITeamMessageEvent>('team.message.stream'),
+  agentStatusChanged: bridge.buildEmitter<import('@process/team/types').ITeamAgentStatusEvent>('team.agent.status'),
+  agentSpawned: bridge.buildEmitter<import('@/common/types/teamTypes').ITeamAgentSpawnedEvent>('team.agent.spawned'),
+  agentRemoved: bridge.buildEmitter<import('@/common/types/teamTypes').ITeamAgentRemovedEvent>('team.agent.removed'),
+  agentRenamed: bridge.buildEmitter<import('@/common/types/teamTypes').ITeamAgentRenamedEvent>('team.agent.renamed'),
 };

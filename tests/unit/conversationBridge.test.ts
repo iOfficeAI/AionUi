@@ -42,6 +42,7 @@ vi.mock('../../src/common', () => ({
         check: makeChannel('approval.check'),
       },
       listChanged: { emit: vi.fn() },
+      listByCronJob: makeChannel('listByCronJob'),
     },
     openclawConversation: {
       getRuntime: makeChannel('openclawConversation.getRuntime'),

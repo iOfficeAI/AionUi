@@ -92,4 +92,9 @@ export class SqliteConversationRepository implements IConversationRepository {
     const db = await this.getDb();
     return db.searchConversationMessages(keyword, undefined, page, pageSize);
   }
+
+  async getConversationsByCronJob(cronJobId: string): Promise<TChatConversation[]> {
+    const db = await this.getDb();
+    return db.getConversationsByCronJobId(cronJobId);
+  }
 }

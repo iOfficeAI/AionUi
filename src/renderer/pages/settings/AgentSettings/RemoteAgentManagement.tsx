@@ -15,7 +15,6 @@ import {
   Message,
   Modal,
   Select,
-  Space,
   Spin,
   Switch,
   Tag,
@@ -33,6 +32,26 @@ const PAIRING_POLL_INTERVAL = 5_000;
 const PAIRING_TIMEOUT = 5 * 60 * 1000;
 
 type PairingState = 'idle' | 'handshaking' | 'pending' | 'timeout';
+
+const formatTimeLeft = (ms: number): string => {
+  const totalSec = Math.ceil(ms / 1000);
+  const min = Math.floor(totalSec / 60);
+  const sec = totalSec % 60;
+  return `${min}:${sec.toString().padStart(2, '0')}`;
+};
+
+const statusColor = (status?: string): string => {
+  switch (status) {
+    case 'connected':
+      return 'green';
+    case 'pending':
+      return 'orange';
+    case 'error':
+      return 'red';
+    default:
+      return 'gray';
+  }
+};
 
 const RemoteAgentFormModal: React.FC<{
   visible: boolean;
@@ -186,13 +205,6 @@ const RemoteAgentFormModal: React.FC<{
     onSaved();
     onClose();
   }, [stopPolling, onSaved, onClose]);
-
-  const formatTimeLeft = (ms: number): string => {
-    const totalSec = Math.ceil(ms / 1000);
-    const min = Math.floor(totalSec / 60);
-    const sec = totalSec % 60;
-    return `${min}:${sec.toString().padStart(2, '0')}`;
-  };
 
   // Render pairing waiting UI
   if (pairingState === 'pending' || pairingState === 'timeout') {
@@ -372,6 +384,7 @@ const RemoteAgentManagement: React.FC = () => {
   const { data: agents, mutate } = useSWR('remote-agents.list', () => ipcBridge.remoteAgent.list.invoke());
   const [modalVisible, setModalVisible] = useState(false);
   const [editAgent, setEditAgent] = useState<RemoteAgentConfig>();
+  const remoteActionButtonClassName = '!rounded-10px !px-10px';
 
   const handleAdd = useCallback(() => {
     setEditAgent(undefined);
@@ -402,19 +415,6 @@ const RemoteAgentManagement: React.FC = () => {
   const handleSaved = useCallback(async () => {
     await mutate();
   }, [mutate]);
-
-  const statusColor = (status?: string): string => {
-    switch (status) {
-      case 'connected':
-        return 'green';
-      case 'pending':
-        return 'orange';
-      case 'error':
-        return 'red';
-      default:
-        return 'gray';
-    }
-  };
 
   return (
     <div className='flex flex-col gap-16px py-16px'>
@@ -451,52 +451,67 @@ const RemoteAgentManagement: React.FC = () => {
           </Button>
         </div>
       ) : (
-        <div className='flex flex-col gap-8px'>
+        <div className='grid grid-cols-1 gap-12px px-16px md:grid-cols-2 xl:grid-cols-3'>
           {agents.map((agent) => (
             <div
               key={agent.id}
-              className='flex items-center justify-between px-16px py-12px rd-8px bg-aou-1 hover:bg-aou-2'
+              className='flex min-h-[214px] flex-col rounded-12px border border-solid border-[var(--color-border-2)] bg-[var(--color-bg-2)] p-14px transition-colors hover:border-[var(--color-border-3)]'
             >
-              <div className='flex items-center gap-12px min-w-0 flex-1'>
+              <div className='mb-12px flex justify-center'>
                 <Avatar
-                  size={40}
+                  size={48}
                   shape='square'
-                  style={{ backgroundColor: 'var(--color-fill-2)', fontSize: 20, flexShrink: 0 }}
+                  style={{ backgroundColor: 'var(--color-fill-2)', fontSize: 24, flexShrink: 0 }}
                 >
-                  {agent.avatar || <Robot theme='outline' size='16' />}
+                  {agent.avatar || <Robot theme='outline' size='18' />}
                 </Avatar>
-                <div className='flex flex-col gap-4px min-w-0 flex-1'>
-                  <div className='flex items-center gap-8px'>
-                    <Typography.Text className='font-medium text-14px truncate'>{agent.name}</Typography.Text>
-                    {agent.status && agent.status !== 'unknown' && (
-                      <Tag size='small' color={statusColor(agent.status)}>
-                        {agent.status}
-                      </Tag>
-                    )}
-                    <Tag size='small' color='arcoblue'>
-                      {agent.protocol}
-                    </Tag>
-                  </div>
-                  <Typography.Text type='secondary' className='text-12px truncate'>
-                    {agent.url}
-                  </Typography.Text>
-                </div>
               </div>
-              <Space size={4}>
+
+              <div className='mb-10px text-center'>
+                <Typography.Text className='block text-14px font-medium leading-20px line-clamp-2'>
+                  {agent.name}
+                </Typography.Text>
+              </div>
+
+              <div className='mb-10px flex min-h-[24px] flex-wrap items-center justify-center gap-6px'>
+                {agent.status && agent.status !== 'unknown' && (
+                  <Tag size='small' color={statusColor(agent.status)}>
+                    {agent.status}
+                  </Tag>
+                )}
+                <Tag size='small' color='arcoblue'>
+                  {agent.protocol}
+                </Tag>
+              </div>
+
+              <Typography.Text
+                type='secondary'
+                className='mb-14px block min-h-[36px] text-center text-12px line-clamp-2'
+              >
+                {agent.url}
+              </Typography.Text>
+
+              <div className='mt-auto grid grid-cols-2 gap-8px'>
                 <Button
-                  size='mini'
-                  type='text'
+                  size='small'
+                  type='secondary'
                   icon={<Edit theme='outline' size='14' />}
+                  className={remoteActionButtonClassName}
                   onClick={() => handleEdit(agent)}
-                />
+                >
+                  {t('common.edit', { defaultValue: 'Edit' })}
+                </Button>
                 <Button
-                  size='mini'
-                  type='text'
+                  size='small'
+                  type='secondary'
                   status='danger'
                   icon={<ReduceOne theme='outline' size='14' />}
+                  className={remoteActionButtonClassName}
                   onClick={() => void handleDelete(agent)}
-                />
-              </Space>
+                >
+                  {t('common.delete', { defaultValue: 'Delete' })}
+                </Button>
+              </div>
             </div>
           ))}
         </div>

@@ -17,6 +17,10 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import path from 'path';
 
+vi.mock('electron', () => ({
+  app: { isPackaged: false },
+}));
+
 // -------------------------------------------------------------------
 // 1. Pure-logic tests for mergePaths (no Electron, no mocking needed)
 // -------------------------------------------------------------------
@@ -467,7 +471,128 @@ describe('resolveNpxPath', () => {
 });
 
 // -------------------------------------------------------------------
-// 5. Regression test: the fix that was applied to ForkTask.ts
+// 5. loadFullShellEnvironment — async, detached, with -i flag
+// -------------------------------------------------------------------
+describe('loadFullShellEnvironment', () => {
+  const originalPlatform = process.platform;
+
+  beforeEach(() => {
+    vi.resetModules();
+  });
+
+  afterEach(() => {
+    Object.defineProperty(process, 'platform', { value: originalPlatform });
+  });
+
+  it('returns empty object on Windows', async () => {
+    Object.defineProperty(process, 'platform', { value: 'win32' });
+
+    vi.doMock('child_process', () => ({
+      execFileSync: vi.fn().mockImplementation(() => {
+        throw new Error('skip');
+      }),
+      execFile: vi.fn(),
+      spawn: vi.fn(),
+    }));
+
+    const { loadFullShellEnvironment } = await import('@process/utils/shellEnv');
+    const result = await loadFullShellEnvironment();
+    expect(result).toEqual({});
+  });
+
+  it('spawns shell with -i and -l flags in detached mode', async () => {
+    if (process.platform === 'win32') return;
+
+    const mockStdout = {
+      on: vi.fn((event: string, cb: (chunk: Buffer) => void) => {
+        if (event === 'data') {
+          cb(Buffer.from('SSS_API_KEY=secret123\nPATH=/usr/bin\nHOME=/home/user'));
+        }
+      }),
+    };
+    const mockStderr = { on: vi.fn() };
+    const mockChild = {
+      stdout: mockStdout,
+      stderr: mockStderr,
+      on: vi.fn((event: string, cb: (code: number) => void) => {
+        if (event === 'close') {
+          // Defer to allow stdout data to be processed
+          Promise.resolve().then(() => cb(0));
+        }
+      }),
+      unref: vi.fn(),
+      kill: vi.fn(),
+    };
+
+    const spawnMock = vi.fn().mockReturnValue(mockChild);
+
+    vi.doMock('child_process', () => ({
+      execFileSync: vi.fn().mockImplementation(() => {
+        throw new Error('skip');
+      }),
+      execFile: vi.fn(),
+      spawn: spawnMock,
+    }));
+
+    const { loadFullShellEnvironment } = await import('@process/utils/shellEnv');
+    const result = await loadFullShellEnvironment();
+
+    // Verify spawn was called with -i -l flags and detached: true
+    expect(spawnMock).toHaveBeenCalledWith(
+      expect.any(String),
+      ['-i', '-l', '-c', 'env'],
+      expect.objectContaining({ detached: true })
+    );
+
+    // Verify unref was called (detached child should not keep parent alive)
+    expect(mockChild.unref).toHaveBeenCalled();
+
+    // Verify env vars are parsed (no whitelist filtering)
+    expect(result.SSS_API_KEY).toBe('secret123');
+    expect(result.PATH).toBe('/usr/bin');
+    expect(result.HOME).toBe('/home/user');
+  });
+
+  it('returns cached result on second call', async () => {
+    if (process.platform === 'win32') return;
+
+    const mockStdout = {
+      on: vi.fn((event: string, cb: (chunk: Buffer) => void) => {
+        if (event === 'data') cb(Buffer.from('FOO=bar\n'));
+      }),
+    };
+    const mockStderr = { on: vi.fn() };
+    const mockChild = {
+      stdout: mockStdout,
+      stderr: mockStderr,
+      on: vi.fn((event: string, cb: (code: number) => void) => {
+        if (event === 'close') Promise.resolve().then(() => cb(0));
+      }),
+      unref: vi.fn(),
+      kill: vi.fn(),
+    };
+
+    const spawnMock = vi.fn().mockReturnValue(mockChild);
+
+    vi.doMock('child_process', () => ({
+      execFileSync: vi.fn().mockImplementation(() => {
+        throw new Error('skip');
+      }),
+      execFile: vi.fn(),
+      spawn: spawnMock,
+    }));
+
+    const { loadFullShellEnvironment } = await import('@process/utils/shellEnv');
+    const first = await loadFullShellEnvironment();
+    const second = await loadFullShellEnvironment();
+
+    expect(first).toBe(second);
+    expect(spawnMock).toHaveBeenCalledTimes(1);
+  });
+});
+
+// -------------------------------------------------------------------
+// 6. Regression test: the fix that was applied to ForkTask.ts
 //    Documents the expected behavior: getEnhancedEnv must be called
 //    so workers get the full PATH.
 // -------------------------------------------------------------------

@@ -308,25 +308,50 @@ and the testing skill — do not skip it.
 
 #### Step 2.4: Quality Checks
 
-Run quality checks with fallback commands. Some projects use `bun run` scripts,
-others need direct `npx`/`bunx` invocation. Try the script first, fall back to direct invocation.
+Run all checks in order. **Every check must pass before proceeding to Step 2.6.**
 
 ```bash
-# Lint — try script first, fall back to npx
-bun run lint:fix 2>/dev/null || npx oxlint --fix
+# 1. Lint + auto-fix
+bun run lint:fix
 
-# Format — try script first, fall back to npx
-bun run format 2>/dev/null || npx oxfmt
+# 2. Format + auto-fix
+bun run format
 
-# Type check — always works
+# 3. Type check — MUST pass
 bunx tsc --noEmit
 
-# Tests — run if available, warn if test script is missing
-bun run test 2>/dev/null || echo "Warning: no test script found, skipping tests"
+# 4. Tests — MUST pass
+bun run test
 ```
 
-**Type check must pass.** Lint and format are best-effort with fallback.
-If tests fail due to the fix, adjust the fix. If tests fail for unrelated reasons, note it in the PR.
+**i18n check** (run if any `src/renderer/`, `locales/`, or `src/common/config/i18n` files were modified):
+
+```bash
+bun run i18n:types
+node scripts/check-i18n.js
+```
+
+- `i18n:types` must run **before** `check-i18n.js`
+- If `check-i18n.js` exits with errors → fix them before proceeding
+- If `check-i18n.js` exits with warnings only → may proceed
+
+**Final CI verification** — replicate the exact CI check locally:
+
+```bash
+prek run --from-ref origin/main --to-ref HEAD
+```
+
+- If `prek` reports issues → fix them (run `bun run lint:fix` and `bun run format` again), then re-run `prek`
+- `prek` uses check-only commands (`lint`, `format:check`) — it will catch anything the auto-fix missed
+
+**Gate rules:**
+
+| Check      | Result | Action                                                              |
+| ---------- | ------ | ------------------------------------------------------------------- |
+| Type check | FAIL   | Fix type errors and re-run. Max 3 attempts, then **abandon issue**. |
+| Tests      | FAIL   | Adjust fix/test and re-run. Max 3 attempts, then **abandon issue**. |
+| i18n       | FAIL   | Fix missing keys and re-run.                                        |
+| prek       | FAIL   | Fix reported issues and re-run.                                     |
 
 #### Step 2.5: Verify Fix
 
@@ -343,7 +368,8 @@ Verification strategy depends on **which process** the error originates from:
 
 #### Step 2.6: Commit & Create PR
 
-**Delegate to existing skills** — do not manually construct commit messages or PR bodies.
+**Do NOT invoke `/commit` or `/oss-pr`** — they may prompt for confirmation, which blocks
+the daemon flow. Instead, commit and create the PR directly using the commands below.
 
 **Pre-flight duplicate check** (safety net, supplements triage-phase filtering):
 
@@ -355,18 +381,41 @@ gh issue list --repo <org>/<repo> --state open --search "<error-keyword>" --json
 If an existing OPEN PR/issue addresses the same root cause, **STOP** — do not create a duplicate.
 Instead, report to the user and suggest updating the existing PR if needed.
 
-1. **Commit**: Invoke the [commit skill](../commit/SKILL.md) (`/commit`).
-   The commit skill will analyze changes, run quality checks, format the commit message,
-   and handle all conventions (no AI signatures, no --no-verify, etc.).
-   Provide context: this is a Sentry bug fix, reference the Sentry issue IDs.
+1. **Commit** directly:
 
-2. **Create PR as Draft**: Invoke the [PR skill](../pr/SKILL.md) (`/pr`).
-   The PR skill will create a GitHub issue if needed, push the branch, and create the PR
-   with proper formatting and issue linkage.
-   **Always create as Draft** (`gh pr create --draft`) — PR starts in WIP state.
-   Provide context: include Sentry issue IDs, occurrence counts, error details,
-   **and verification results** (screenshots, console logs, pass/fail status)
-   so the PR skill can incorporate them into the issue and PR body.
+   ```bash
+   git add <changed-files>
+   git commit -m "<type>(<scope>): <subject>"
+   ```
+
+   Follow project commit conventions: `<type>(<scope>): <subject>` in English.
+   No AI signatures. Reference the Sentry issue IDs in the commit body if needed.
+
+2. **Push branch and create PR as Draft**:
+
+   ```bash
+   git push -u origin fix/sentry-<shortId>
+
+   gh pr create --draft --title "<type>(<scope>): <subject>" --body "$(cat <<'EOF'
+   ## Summary
+
+   <1-3 bullet points describing the fix>
+
+   ## Sentry Issues
+
+   - <Sentry issue ID> — <error message> (<occurrence count> occurrences)
+
+   ## Test Plan
+
+   - [x] Unit tests pass
+   - [x] Type check passes
+   - [x] Lint and format pass
+   EOF
+   )"
+   ```
+
+   PR title: under 70 characters, `<type>(<scope>): <description>` format.
+   **NEVER add AI-generated signatures, `Generated with`, or `Co-Authored-By` lines.**
 
 3. **Mark PR Ready based on verification result:**
 
@@ -384,9 +433,6 @@ Instead, report to the user and suggest updating the existing PR if needed.
    # On fail:
    gh pr edit <pr-number> --add-label "needs-manual-review"
    ```
-
-This ensures all commits and PRs follow the project's established conventions
-without duplicating rules across skills.
 
 #### Step 2.7: Return to Main
 

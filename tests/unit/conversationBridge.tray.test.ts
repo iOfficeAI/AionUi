@@ -74,6 +74,7 @@ const registerMocks = () => {
         warmup: createCommand('conversation.warmup'),
         responseStream: { emit: vi.fn() },
         listChanged: { emit: vi.fn() },
+        listByCronJob: createCommand('conversation.listByCronJob'),
         confirmation: {
           confirm: createCommand('conversation.confirmation.confirm'),
           list: createCommand('conversation.confirmation.list'),

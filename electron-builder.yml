@@ -109,6 +109,11 @@ extraResources:
     to: app.png
   - from: resources/bundled-bun
     to: bundled-bun
+  # aionrs binary (pre-compiled per platform/arch)
+  - from: resources/bundled-aionrs
+    to: bundled-aionrs
+  - from: resources/hub
+    to: hub
 
 win:
   target:

@@ -70,7 +70,7 @@ export interface IConversationRow {
   id: string;
   user_id: string;
   name: string;
-  type: 'gemini' | 'acp' | 'codex' | 'openclaw-gateway' | 'nanobot' | 'remote';
+  type: string;
   extra: string; // JSON string of extra data
   model?: string; // JSON string of TProviderWithModel (gemini type has this)
   status?: 'pending' | 'running' | 'finished';
@@ -91,6 +91,7 @@ export interface IMessageRow {
   content: string; // JSON string of message content
   position?: 'left' | 'right' | 'center' | 'pop';
   status?: 'finish' | 'pending' | 'error' | 'work';
+  hidden?: number; // 0 or 1, maps to boolean IMessage.hidden
   created_at: number;
 }
 
@@ -189,6 +190,16 @@ export function rowToConversation(row: IConversationRow): TChatConversation {
     } as TChatConversation;
   }
 
+  // Aionrs type has model field
+  if (row.type === 'aionrs' && row.model) {
+    return {
+      ...base,
+      type: 'aionrs' as const,
+      extra: JSON.parse(row.extra),
+      model: JSON.parse(row.model),
+    } as TChatConversation;
+  }
+
   // Remote type
   if (row.type === 'remote') {
     return {
@@ -214,6 +225,7 @@ export function messageToRow(message: TMessage): IMessageRow {
     content: JSON.stringify(message.content),
     position: message.position,
     status: message.status,
+    hidden: message.hidden ? 1 : 0,
     created_at: message.createdAt || Date.now(),
   };
 }
@@ -230,6 +242,7 @@ export function rowToMessage(row: IMessageRow): TMessage {
     content: JSON.parse(row.content),
     position: row.position,
     status: row.status,
+    hidden: row.hidden === 1 ? true : undefined,
     createdAt: row.created_at,
   } as TMessage;
 }

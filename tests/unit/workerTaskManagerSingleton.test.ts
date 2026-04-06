@@ -27,10 +27,6 @@ vi.mock('../../src/process/task/GeminiAgentManager', () => ({
   GeminiAgentManager: vi.fn().mockImplementation(() => ({ type: 'gemini', kill: vi.fn() })),
 }));
 
-vi.mock('../../src/process/agent/codex', () => ({
-  CodexAgentManager: vi.fn().mockImplementation(() => ({ type: 'codex', kill: vi.fn() })),
-}));
-
 vi.mock('../../src/process/task/OpenClawAgentManager', () => ({
   default: vi.fn().mockImplementation(() => ({ type: 'openclaw-gateway', kill: vi.fn() })),
 }));
@@ -79,6 +75,24 @@ describe('workerTaskManagerSingleton', () => {
       expect.objectContaining({
         conversation_id: 'conv-model-fallback',
         currentModelId: 'gemini-2.0-flash',
+      })
+    );
+  });
+
+  it('does not apply unrelated provider models to non-gemini ACP backends', async () => {
+    mockGetConversation.mockResolvedValue({
+      id: 'conv-qwen-default',
+      type: 'acp',
+      model: { useModel: 'gemini-2.0-flash' },
+      extra: { backend: 'qwen' },
+    });
+
+    await workerTaskManager.getOrBuildTask('conv-qwen-default');
+
+    expect(mockAcpManager).toHaveBeenCalledWith(
+      expect.objectContaining({
+        conversation_id: 'conv-qwen-default',
+        currentModelId: undefined,
       })
     );
   });

@@ -54,21 +54,15 @@ vi.mock('../../src/process/agent/acp/modelInfo', () => ({
   summarizeAcpModelInfo: vi.fn(() => ({})),
 }));
 
-vi.mock('../../src/agent/codex/connection/CodexConnection', () => ({
-  CodexConnection: vi.fn(() => ({
-    start: vi.fn(async () => {}),
-    waitForServerReady: vi.fn(async () => {}),
-    ping: vi.fn(async () => true),
-    stop: vi.fn(async () => {}),
-  })),
-}));
-
 vi.mock('../../src/process/task/AcpAgentManager', () => ({ default: class AcpAgentManager {} }));
-vi.mock('../../src/process/task/CodexAgentManager', () => ({ default: class CodexAgentManager {} }));
 vi.mock('../../src/process/task/GeminiAgentManager', () => ({ GeminiAgentManager: class GeminiAgentManager {} }));
 
 vi.mock('../../src/process/services/mcpServices/McpService', () => ({
   mcpService: { getSupportedTransportsForAgent: vi.fn(() => []) },
+}));
+
+vi.mock('../../src/process/agent/aionrs/binaryResolver', () => ({
+  detectAionrs: vi.fn(() => ({ available: false, path: null })),
 }));
 
 vi.mock('../../src/process/utils/mainLogger', () => ({

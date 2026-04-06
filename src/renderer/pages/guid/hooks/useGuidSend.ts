@@ -7,6 +7,7 @@
 import { ipcBridge } from '@/common';
 import type { TProviderWithModel } from '@/common/config/storage';
 import type { TChatConversation } from '@/common/config/storage';
+import { buildAgentConversationParams } from '@/common/utils/buildAgentConversationParams';
 import { emitter } from '@/renderer/utils/emitter';
 import { buildDisplayMessage } from '@/renderer/utils/file/messageFiles';
 import { updateWorkspaceTime } from '@/renderer/utils/workspace/workspaceHistory';
@@ -35,6 +36,8 @@ export type GuidSendDeps = {
   isPresetAgent: boolean;
   selectedMode: string;
   selectedAcpModel: string | null;
+  pendingConfigOptions: Record<string, string>;
+  cachedConfigOptions: import('@/common/types/acpTypes').AcpSessionConfigOption[];
   currentModel: TProviderWithModel | undefined;
 
   // Agent helpers
@@ -89,6 +92,8 @@ export const useGuidSend = (deps: GuidSendDeps): GuidSendResult => {
     isPresetAgent,
     selectedMode,
     selectedAcpModel,
+    pendingConfigOptions,
+    cachedConfigOptions,
     currentModel,
     findAgentByKey,
     getEffectiveAgentType,
@@ -148,24 +153,38 @@ export const useGuidSend = (deps: GuidSendDeps): GuidSendResult => {
       };
       try {
         const presetAssistantIdToPass = isPreset ? agentInfo?.customAgentId : undefined;
-
-        const conversation = await ipcBridge.conversation.create.invoke({
-          type: 'gemini',
+        const geminiConversationParams = buildAgentConversationParams({
+          backend: 'gemini',
           name: input,
+          agentName: agentInfo?.name,
+          workspace: finalWorkspace,
           model: placeholderModel,
+          customAgentId: agentInfo?.customAgentId,
+          customWorkspace: isCustomWorkspace,
+          isPreset,
+          presetAgentType: finalEffectiveAgentType,
+          presetResources: isPreset
+            ? {
+                rules: presetRules,
+                enabledSkills,
+              }
+            : undefined,
+          sessionMode: selectedMode,
           extra: {
             defaultFiles: files,
-            workspace: finalWorkspace,
-            customWorkspace: isCustomWorkspace,
             webSearchEngine:
               placeholderModel.platform === 'gemini-with-google-auth' ||
               placeholderModel.platform === 'gemini-vertex-ai'
                 ? 'google'
                 : 'default',
-            presetRules: isPreset ? presetRules : undefined,
-            enabledSkills: isPreset ? enabledSkills : undefined,
+          },
+        });
+
+        const conversation = await ipcBridge.conversation.create.invoke({
+          ...geminiConversationParams,
+          extra: {
+            ...geminiConversationParams.extra,
             presetAssistantId: presetAssistantIdToPass,
-            sessionMode: selectedMode,
           },
         });
 
@@ -200,31 +219,32 @@ export const useGuidSend = (deps: GuidSendDeps): GuidSendResult => {
     // OpenClaw Gateway path
     if (selectedAgent === 'openclaw-gateway') {
       const openclawAgentInfo = agentInfo || findAgentByKey(selectedAgentKey);
+      const openclawConversationParams = buildAgentConversationParams({
+        backend: openclawAgentInfo?.backend || 'openclaw-gateway',
+        name: input,
+        agentName: openclawAgentInfo?.name,
+        workspace: finalWorkspace,
+        model: currentModel!,
+        cliPath: openclawAgentInfo?.cliPath,
+        customAgentId: openclawAgentInfo?.customAgentId,
+        customWorkspace: isCustomWorkspace,
+        extra: {
+          defaultFiles: files,
+          runtimeValidation: {
+            expectedWorkspace: finalWorkspace,
+            expectedBackend: openclawAgentInfo?.backend,
+            expectedAgentName: openclawAgentInfo?.name,
+            expectedCliPath: openclawAgentInfo?.cliPath,
+            expectedModel: currentModel?.useModel,
+            switchedAt: Date.now(),
+          },
+          enabledSkills: isPreset ? enabledSkills : undefined,
+          presetAssistantId: isPreset ? openclawAgentInfo?.customAgentId : undefined,
+        },
+      });
 
       try {
-        const conversation = await ipcBridge.conversation.create.invoke({
-          type: 'openclaw-gateway',
-          name: input,
-          model: currentModel!,
-          extra: {
-            defaultFiles: files,
-            workspace: finalWorkspace,
-            customWorkspace: isCustomWorkspace,
-            backend: openclawAgentInfo?.backend,
-            cliPath: openclawAgentInfo?.cliPath,
-            agentName: openclawAgentInfo?.name,
-            runtimeValidation: {
-              expectedWorkspace: finalWorkspace,
-              expectedBackend: openclawAgentInfo?.backend,
-              expectedAgentName: openclawAgentInfo?.name,
-              expectedCliPath: openclawAgentInfo?.cliPath,
-              expectedModel: currentModel?.useModel,
-              switchedAt: Date.now(),
-            },
-            enabledSkills: isPreset ? enabledSkills : undefined,
-            presetAssistantId: isPreset ? openclawAgentInfo?.customAgentId : undefined,
-          },
-        });
+        const conversation = await ipcBridge.conversation.create.invoke(openclawConversationParams);
 
         if (!conversation || !conversation.id) {
           alert('Failed to create OpenClaw conversation. Please ensure the OpenClaw Gateway is running.');
@@ -257,20 +277,23 @@ export const useGuidSend = (deps: GuidSendDeps): GuidSendResult => {
     // Nanobot path
     if (selectedAgent === 'nanobot') {
       const nanobotAgentInfo = agentInfo || findAgentByKey(selectedAgentKey);
+      const nanobotConversationParams = buildAgentConversationParams({
+        backend: nanobotAgentInfo?.backend || 'nanobot',
+        name: input,
+        agentName: nanobotAgentInfo?.name,
+        workspace: finalWorkspace,
+        model: currentModel!,
+        customAgentId: nanobotAgentInfo?.customAgentId,
+        customWorkspace: isCustomWorkspace,
+        extra: {
+          defaultFiles: files,
+          enabledSkills: isPreset ? enabledSkills : undefined,
+          presetAssistantId: isPreset ? nanobotAgentInfo?.customAgentId : undefined,
+        },
+      });
 
       try {
-        const conversation = await ipcBridge.conversation.create.invoke({
-          type: 'nanobot',
-          name: input,
-          model: currentModel!,
-          extra: {
-            defaultFiles: files,
-            workspace: finalWorkspace,
-            customWorkspace: isCustomWorkspace,
-            enabledSkills: isPreset ? enabledSkills : undefined,
-            presetAssistantId: isPreset ? nanobotAgentInfo?.customAgentId : undefined,
-          },
-        });
+        const conversation = await ipcBridge.conversation.create.invoke(nanobotConversationParams);
 
         if (!conversation || !conversation.id) {
           alert('Failed to create Nanobot conversation. Please ensure nanobot is installed.');
@@ -300,7 +323,55 @@ export const useGuidSend = (deps: GuidSendDeps): GuidSendResult => {
       return;
     }
 
-    // ACP path (including preset with claude agent type)
+    // Aionrs path
+    if (selectedAgent === 'aionrs') {
+      const aionrsAgentInfo = agentInfo || findAgentByKey(selectedAgentKey);
+
+      try {
+        const conversation = await ipcBridge.conversation.create.invoke({
+          type: 'aionrs',
+          name: input,
+          model: currentModel!,
+          extra: {
+            defaultFiles: files,
+            workspace: finalWorkspace,
+            customWorkspace: isCustomWorkspace,
+            presetRules: isPreset ? presetRules : undefined,
+            enabledSkills: isPreset ? enabledSkills : undefined,
+            presetAssistantId: isPreset ? aionrsAgentInfo?.customAgentId : undefined,
+            sessionMode: selectedMode,
+          },
+        });
+
+        if (!conversation || !conversation.id) {
+          alert('Failed to create Aion CLI conversation. Please ensure aionrs is installed.');
+          return;
+        }
+
+        if (isCustomWorkspace) {
+          closeAllTabs();
+          updateWorkspaceTime(finalWorkspace);
+          openTab(conversation);
+        }
+
+        emitter.emit('chat.history.refresh');
+
+        const initialMessage = {
+          input,
+          files: files.length > 0 ? files : undefined,
+        };
+        sessionStorage.setItem(`aionrs_initial_message_${conversation.id}`, JSON.stringify(initialMessage));
+
+        await navigate(`/conversation/${conversation.id}`);
+      } catch (error: unknown) {
+        const errorMessage = error instanceof Error ? error.message : String(error);
+        alert(`Failed to create Aion CLI conversation: ${errorMessage}`);
+        throw error;
+      }
+      return;
+    }
+
+    // Remaining agent path (ACP/remote/custom, including preset fallbacks)
     {
       // Agent-type fallback only applies to preset assistants whose primary agent
       // was unavailable and got switched (e.g. claude → gemini).  For non-preset
@@ -320,28 +391,55 @@ export const useGuidSend = (deps: GuidSendDeps): GuidSendResult => {
       if (!acpAgentInfo && !isPreset) {
         console.warn(`${acpBackend} CLI not found, but proceeding to let conversation panel handle it.`);
       }
+      const agentBackend = acpBackend || selectedAgent;
+      const agentConversationParams = buildAgentConversationParams({
+        backend: agentBackend,
+        name: input,
+        agentName: acpAgentInfo?.name,
+        workspace: finalWorkspace,
+        model: currentModel!,
+        cliPath: acpAgentInfo?.cliPath,
+        customAgentId: acpAgentInfo?.customAgentId,
+        customWorkspace: isCustomWorkspace,
+        isPreset,
+        presetAgentType: finalEffectiveAgentType,
+        presetResources: isPreset
+          ? {
+              rules: presetRules,
+              enabledSkills,
+            }
+          : undefined,
+        sessionMode: selectedMode,
+        currentModelId: selectedAcpModel || undefined,
+        extra: {
+          defaultFiles: files,
+        },
+      });
 
       try {
-        const conversation = await ipcBridge.conversation.create.invoke({
-          type: 'acp',
-          name: input,
-          model: currentModel!,
-          extra: {
-            defaultFiles: files,
-            workspace: finalWorkspace,
-            customWorkspace: isCustomWorkspace,
-            backend: acpBackend as import('@/common/types/acpTypes').AcpBackendAll | undefined,
-            cliPath: acpAgentInfo?.cliPath,
-            agentName: acpAgentInfo?.name,
-            customAgentId: acpAgentInfo?.customAgentId,
-            presetContext: isPreset ? presetRules : undefined,
-            enabledSkills: isPreset ? enabledSkills : undefined,
-            presetAssistantId: isPreset ? agentInfo?.customAgentId || acpAgentInfo?.customAgentId : undefined,
-            sessionMode: selectedMode,
-            currentModelId: selectedAcpModel || undefined,
-          },
-        });
+        // Merge pending selections into cached options so the UI shows the user's choice immediately
+        const mergedCachedConfigOptions =
+          cachedConfigOptions.length > 0
+            ? Object.keys(pendingConfigOptions).length > 0
+              ? cachedConfigOptions.map((opt) => {
+                  const pending = opt.id ? pendingConfigOptions[opt.id] : undefined;
+                  return pending ? { ...opt, currentValue: pending, selectedValue: pending } : opt;
+                })
+              : cachedConfigOptions
+            : undefined;
 
+        // Inject cachedConfigOptions & pendingConfigOptions into the params built by utility
+        if (mergedCachedConfigOptions) {
+          agentConversationParams.extra = {
+            ...agentConversationParams.extra,
+            cachedConfigOptions: mergedCachedConfigOptions,
+          };
+        }
+        if (Object.keys(pendingConfigOptions).length > 0) {
+          agentConversationParams.extra = { ...agentConversationParams.extra, pendingConfigOptions };
+        }
+
+        const conversation = await ipcBridge.conversation.create.invoke(agentConversationParams);
         if (!conversation || !conversation.id) {
           console.error('Failed to create ACP conversation - conversation object is null or missing id');
           return;
@@ -377,6 +475,8 @@ export const useGuidSend = (deps: GuidSendDeps): GuidSendResult => {
     isPresetAgent,
     selectedMode,
     selectedAcpModel,
+    pendingConfigOptions,
+    cachedConfigOptions,
     currentModel,
     findAgentByKey,
     getEffectiveAgentType,

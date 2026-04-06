@@ -362,3 +362,129 @@ describe('AcpAgent.kill', () => {
     );
   });
 });
+
+describe('AcpAgent disconnect messaging', () => {
+  it('does not emit status or error messages on idle-timeout disconnect', () => {
+    const onStreamEvent = vi.fn();
+    const onSignalEvent = vi.fn();
+    const agent = new AcpAgent({
+      id: 'idle-agent',
+      onStreamEvent,
+      onSignalEvent,
+      extra: { backend: 'opencode' as any, workspace: '/tmp' },
+    } as any);
+
+    (agent as any).handleDisconnect({ code: null, signal: 'SIGTERM' });
+
+    // Should NOT emit disconnected status or error messages
+    const statusCalls = onStreamEvent.mock.calls.filter(
+      ([evt]: [any]) => evt.type === 'agent_status' && evt.data?.status === 'disconnected'
+    );
+    const errorCalls = onStreamEvent.mock.calls.filter(([evt]: [any]) => evt.type === 'error');
+    expect(statusCalls).toHaveLength(0);
+    expect(errorCalls).toHaveLength(0);
+
+    // Should still emit finish signal to reset UI loading state
+    expect(onSignalEvent).toHaveBeenCalledWith(
+      expect.objectContaining({
+        type: 'finish',
+        conversation_id: 'idle-agent',
+        data: null,
+      })
+    );
+  });
+
+  it('does not emit status or error messages on unexpected disconnect', () => {
+    const onStreamEvent = vi.fn();
+    const onSignalEvent = vi.fn();
+    const agent = new AcpAgent({
+      id: 'disconnect-agent',
+      onStreamEvent,
+      onSignalEvent,
+      extra: { backend: 'opencode' as any, workspace: '/tmp' },
+    } as any);
+
+    (agent as any).handleDisconnect({ code: null, signal: 'SIGTERM' });
+
+    // Should NOT emit disconnected status or error messages
+    const statusCalls = onStreamEvent.mock.calls.filter(
+      ([evt]: [any]) => evt.type === 'agent_status' && evt.data?.status === 'disconnected'
+    );
+    const errorCalls = onStreamEvent.mock.calls.filter(([evt]: [any]) => evt.type === 'error');
+    expect(statusCalls).toHaveLength(0);
+    expect(errorCalls).toHaveLength(0);
+
+    // Should still emit finish signal to reset UI loading state
+    expect(onSignalEvent).toHaveBeenCalledWith(
+      expect.objectContaining({
+        type: 'finish',
+        conversation_id: 'disconnect-agent',
+        data: null,
+      })
+    );
+  });
+
+  it('clears internal state after disconnect', () => {
+    const onStreamEvent = vi.fn();
+    const onSignalEvent = vi.fn();
+    const agent = new AcpAgent({
+      id: 'cleanup-agent',
+      onStreamEvent,
+      onSignalEvent,
+      extra: { backend: 'opencode' as any, workspace: '/tmp' },
+    } as any);
+
+    // Set up some internal state
+    (agent as any).pendingPermissions.set('perm-1', { resolve: vi.fn(), reject: vi.fn() });
+    (agent as any).statusMessageId = 'some-status-id';
+
+    (agent as any).handleDisconnect({ code: null, signal: 'SIGTERM' });
+
+    // Internal state should be cleared
+    expect((agent as any).pendingPermissions.size).toBe(0);
+    expect((agent as any).statusMessageId).toBeNull();
+  });
+});
+
+describe('AcpAgent file operation presentation', () => {
+  it('emits ACP file reads as tool-call steps instead of plain text messages', () => {
+    const onStreamEvent = vi.fn();
+    const agent = new AcpAgent({
+      id: 'file-op-agent',
+      onStreamEvent,
+      extra: { backend: 'codex' as any, workspace: '/tmp' },
+    } as any);
+
+    (agent as any).handleFileOperation({
+      method: 'fs/read_text_file',
+      path: '/tmp/example.md',
+      sessionId: 'session-1',
+    });
+
+    expect(onStreamEvent).toHaveBeenCalledWith(
+      expect.objectContaining({
+        type: 'acp_tool_call',
+        conversation_id: 'file-op-agent',
+        data: expect.objectContaining({
+          update: expect.objectContaining({
+            sessionUpdate: 'tool_call',
+            status: 'completed',
+            title: 'File Read',
+            kind: 'read',
+            rawInput: expect.objectContaining({
+              file_path: '/tmp/example.md',
+              method: 'fs/read_text_file',
+            }),
+          }),
+        }),
+      })
+    );
+
+    expect(onStreamEvent).not.toHaveBeenCalledWith(
+      expect.objectContaining({
+        type: 'content',
+        data: expect.stringContaining('File read'),
+      })
+    );
+  });
+});

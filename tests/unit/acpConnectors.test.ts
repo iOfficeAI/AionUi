@@ -42,6 +42,7 @@ vi.mock('@process/utils/shellEnv', () => ({
   getWindowsShellExecutionOptions: vi.fn(() =>
     process.platform === 'win32' ? { shell: true, windowsHide: true } : {}
   ),
+  loadFullShellEnvironment: vi.fn(async () => ({ PATH: '/usr/bin' })),
   resolveNpxPath: vi.fn(() => 'npx'),
 }));
 
@@ -52,7 +53,13 @@ vi.mock('@process/utils/mainLogger', () => ({
 
 import { execFile as execFileCb, spawn } from 'child_process';
 import { execFileSync } from 'child_process';
-import { connectCodex, createGenericSpawnConfig, spawnNpxBackend } from '../../src/process/agent/acp/acpConnectors';
+import {
+  connectClaude,
+  connectCodex,
+  createGenericSpawnConfig,
+  spawnGenericBackend,
+  spawnNpxBackend,
+} from '../../src/process/agent/acp/acpConnectors';
 
 const mockExecFile = vi.mocked(execFileCb);
 const mockExecFileSync = vi.mocked(execFileSync);
@@ -255,6 +262,116 @@ describe('connectCodex - Windows diagnostics', () => {
     );
     expect(setup).toHaveBeenCalledTimes(1);
     expect(cleanup).not.toHaveBeenCalled();
+  });
+});
+
+describe('connectClaude - detached process group', () => {
+  let originalPlatform: PropertyDescriptor | undefined;
+  const mockChild = { unref: vi.fn() };
+
+  beforeEach(() => {
+    originalPlatform = Object.getOwnPropertyDescriptor(process, 'platform');
+    mockSpawn.mockReturnValue(mockChild as unknown as ReturnType<typeof spawn>);
+  });
+
+  afterEach(() => {
+    vi.clearAllMocks();
+    if (originalPlatform) {
+      Object.defineProperty(process, 'platform', originalPlatform);
+    }
+  });
+
+  it('spawns detached on POSIX so killChild can terminate the whole Claude ACP process group', async () => {
+    Object.defineProperty(process, 'platform', { value: 'linux', configurable: true });
+
+    const setup = vi.fn().mockResolvedValue(undefined);
+    const cleanup = vi.fn().mockResolvedValue(undefined);
+
+    await connectClaude('/cwd', { setup, cleanup });
+
+    expect(mockSpawn).toHaveBeenCalledWith(
+      'npx',
+      expect.arrayContaining(['--yes']),
+      expect.objectContaining({
+        cwd: '/cwd',
+        detached: true,
+        shell: false,
+      })
+    );
+    expect(mockChild.unref).toHaveBeenCalledTimes(1);
+  });
+
+  it('does not detach on Windows', async () => {
+    Object.defineProperty(process, 'platform', { value: 'win32', configurable: true });
+
+    const setup = vi.fn().mockResolvedValue(undefined);
+    const cleanup = vi.fn().mockResolvedValue(undefined);
+
+    await connectClaude('C:\\cwd', { setup, cleanup });
+
+    expect(mockSpawn).toHaveBeenCalledWith(
+      expect.stringContaining('chcp 65001 >nul &&'),
+      expect.arrayContaining(['--yes']),
+      expect.objectContaining({
+        cwd: 'C:\\cwd',
+        detached: false,
+        shell: true,
+      })
+    );
+    expect(mockChild.unref).not.toHaveBeenCalled();
+  });
+});
+
+describe('spawnGenericBackend - detached process group', () => {
+  let originalPlatform: PropertyDescriptor | undefined;
+  const mockChild = { unref: vi.fn() };
+
+  beforeEach(() => {
+    originalPlatform = Object.getOwnPropertyDescriptor(process, 'platform');
+    mockSpawn.mockReturnValue(mockChild as unknown as ReturnType<typeof spawn>);
+  });
+
+  afterEach(() => {
+    vi.clearAllMocks();
+    if (originalPlatform) {
+      Object.defineProperty(process, 'platform', originalPlatform);
+    }
+  });
+
+  it('spawns detached on POSIX so generic ACP backends can be killed as a process group', async () => {
+    Object.defineProperty(process, 'platform', { value: 'linux', configurable: true });
+
+    const result = await spawnGenericBackend('qwen', 'qwen', '/cwd', ['--acp']);
+
+    expect(mockSpawn).toHaveBeenCalledWith(
+      'qwen',
+      ['--acp'],
+      expect.objectContaining({
+        cwd: '/cwd',
+        detached: true,
+        shell: false,
+      })
+    );
+    expect(result.isDetached).toBe(true);
+    expect(mockChild.unref).toHaveBeenCalledTimes(1);
+  });
+
+  it('does not detach generic ACP backends on Windows', async () => {
+    Object.defineProperty(process, 'platform', { value: 'win32', configurable: true });
+
+    const result = await spawnGenericBackend('qwen', 'qwen', 'C:\\cwd', ['--acp']);
+
+    expect(mockSpawn).toHaveBeenCalledWith(
+      expect.stringContaining('chcp 65001 >nul &&'),
+      ['--acp'],
+      expect.objectContaining({
+        cwd: 'C:\\cwd',
+        detached: false,
+        shell: true,
+      })
+    );
+    expect(result.isDetached).toBe(false);
+    expect(mockChild.unref).not.toHaveBeenCalled();
   });
 });
 

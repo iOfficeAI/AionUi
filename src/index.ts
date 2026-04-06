@@ -25,7 +25,8 @@ import { AION_ASSET_PROTOCOL } from '@process/extensions';
 import { initializeProcess } from './process';
 import { ProcessConfig } from './process/utils/initStorage';
 import { loadShellEnvironmentAsync, logEnvironmentDiagnostics, mergePaths } from './process/utils/shellEnv';
-import { initializeAcpDetector, registerWindowMaximizeListeners } from '@process/bridge';
+import { initializeAcpDetector, registerWindowMaximizeListeners, disposeAllTeamSessions } from '@process/bridge';
+import { wasLaunchedAtLogin } from '@process/bridge/applicationBridge';
 import { onCloseToTrayChanged, onLanguageChanged } from './process/bridge/systemSettingsBridge';
 import { setInitialLanguage } from '@process/services/i18n';
 import { workerTaskManager } from './process/task/workerTaskManagerSingleton';
@@ -66,8 +67,9 @@ import electronSquirrelStartup from 'electron-squirrel-startup';
 // When a second instance starts (e.g. from protocol URL), it sends its data
 // to the first instance via second-instance event, then quits.
 const isE2ETestMode = process.env.AIONUI_E2E_TEST === '1';
+const skipSingleInstanceLock = isE2ETestMode || process.env.AIONUI_MULTI_INSTANCE === '1';
 const deepLinkFromArgv = process.argv.find((arg) => arg.startsWith(`${PROTOCOL_SCHEME}://`));
-const gotTheLock = isE2ETestMode ? true : app.requestSingleInstanceLock({ deepLinkUrl: deepLinkFromArgv });
+const gotTheLock = skipSingleInstanceLock ? true : app.requestSingleInstanceLock({ deepLinkUrl: deepLinkFromArgv });
 if (!gotTheLock) {
   console.warn('[AionUi] Another instance is already running; current process will exit.');
   app.quit();
@@ -84,6 +86,9 @@ if (!gotTheLock) {
     if (isWebUIMode || isResetPasswordMode) {
       return;
     }
+
+    // Skip window creation if app hasn't finished initializing
+    if (!appReadyDone) return;
 
     if (app.isReady()) {
       showOrCreateMainWindow({
@@ -186,9 +191,15 @@ const isVersionMode = hasCommand('--version') || hasCommand('-v');
 // Flag to distinguish intentional quit from unexpected exit in WebUI mode
 let isExplicitQuit = false;
 
+// Guard against premature window creation (e.g. macOS 'activate' firing during init).
+// The activate event fires on first launch before handleAppReady finishes initializeProcess(),
+// causing the renderer to load and compete with initStorage on the serial configFile queue,
+// which blocks startup for 100-265 seconds.
+let appReadyDone = false;
+
 let mainWindow: BrowserWindow;
 
-const createWindow = (): void => {
+const createWindow = ({ showOnReady = true }: { showOnReady?: boolean } = {}): void => {
   console.log('[AionUi] Creating main window...');
   // Get primary display size
   const primaryDisplay = screen.getPrimaryDisplay();
@@ -241,24 +252,28 @@ const createWindow = (): void => {
   // Show window after content is ready to prevent FOUC (Flash of Unstyled Content)
   // Use 'ready-to-show' which fires when renderer has painted first frame,
   // combined with 'did-finish-load' as belt-and-suspenders approach.
-  const showWindow = () => {
-    if (!mainWindow.isDestroyed() && !mainWindow.isVisible()) {
-      console.log('[AionUi] Showing main window');
-      mainWindow.show();
-      mainWindow.focus();
-    }
-  };
-  mainWindow.once('ready-to-show', () => {
-    console.log('[AionUi] Window ready-to-show');
-    showWindow();
-  });
-  // Belt-and-suspenders: also show on did-finish-load in case ready-to-show already fired
-  mainWindow.webContents.once('did-finish-load', () => {
-    console.log('[AionUi] Renderer did-finish-load');
-    showWindow();
-  });
-  // Fallback: show window after 5s even if events don't fire (e.g. loadURL failure)
-  setTimeout(showWindow, 5000);
+  if (showOnReady) {
+    const showWindow = () => {
+      if (!mainWindow.isDestroyed() && !mainWindow.isVisible()) {
+        console.log('[AionUi] Showing main window');
+        mainWindow.show();
+        mainWindow.focus();
+      }
+    };
+    mainWindow.once('ready-to-show', () => {
+      console.log('[AionUi] Window ready-to-show');
+      showWindow();
+    });
+    // Belt-and-suspenders: also show on did-finish-load in case ready-to-show already fired
+    mainWindow.webContents.once('did-finish-load', () => {
+      console.log('[AionUi] Renderer did-finish-load');
+      showWindow();
+    });
+    // Fallback: show window after 5s even if events don't fire (e.g. loadURL failure)
+    setTimeout(showWindow, 5000);
+  } else if (process.platform === 'darwin' && app.dock) {
+    void app.dock.hide();
+  }
 
   initMainAdapterWithWindow(mainWindow);
   bindMainWindowReferences(mainWindow);
@@ -465,27 +480,6 @@ const handleAppReady = async (): Promise<void> => {
       }
     });
   } else {
-    createWindow();
-    mark('createWindow');
-
-    // Run ACP detection in parallel with renderer loading.
-    // By the time React mounts and calls getAvailableAgents (~300ms+),
-    // detection (~700ms) is usually already done.
-    initializeAcpDetector()
-      .then(() => mark('initializeAcpDetector'))
-      .catch((error) => console.error('[ACP] Detection failed:', error));
-
-    // 读取语言设置并初始化主进程 i18n，然后刷新托盘菜单
-    // Read language setting and initialize main process i18n, then refresh tray menu
-    try {
-      const savedLanguage = await ProcessConfig.get('language');
-      await setInitialLanguage(savedLanguage);
-      // After language is set, refresh tray menu if it exists
-      await refreshTrayMenu();
-    } catch (error) {
-      console.error('[index] Failed to initialize i18n language:', error);
-    }
-
     // 初始化关闭到托盘设置 / Initialize close-to-tray setting
     if (isE2ETestMode) {
       setCloseToTrayEnabled(false);
@@ -509,6 +503,30 @@ const handleAppReady = async (): Promise<void> => {
           destroyTray();
         }
       });
+    }
+
+    const showMainWindowOnReady = !(wasLaunchedAtLogin() && getCloseToTrayEnabled());
+
+    createWindow({ showOnReady: showMainWindowOnReady });
+    appReadyDone = true;
+    mark('createWindow');
+
+    // Run ACP detection in parallel with renderer loading.
+    // By the time React mounts and calls getAvailableAgents (~300ms+),
+    // detection (~700ms) is usually already done.
+    initializeAcpDetector()
+      .then(() => mark('initializeAcpDetector'))
+      .catch((error) => console.error('[ACP] Detection failed:', error));
+
+    // 读取语言设置并初始化主进程 i18n，然后刷新托盘菜单
+    // Read language setting and initialize main process i18n, then refresh tray menu
+    try {
+      const savedLanguage = await ProcessConfig.get('language');
+      await setInitialLanguage(savedLanguage);
+      // After language is set, refresh tray menu if it exists
+      await refreshTrayMenu();
+    } catch (error) {
+      console.error('[index] Failed to initialize i18n language:', error);
     }
 
     // 监听语言变更，刷新托盘菜单文案 / Listen for language changes to refresh tray menu labels
@@ -610,8 +628,9 @@ app.on('open-url', (event, url) => {
 void app
   .whenReady()
   .then(handleAppReady)
-  .catch((_error) => {
+  .catch((error) => {
     // App initialization failed
+    console.error('[AionUi] App initialization failed:', error);
     app.quit();
   });
 
@@ -632,6 +651,8 @@ app.on('window-all-closed', () => {
 app.on('activate', () => {
   // On OS X it's common to re-create a window in the app when the
   // dock icon is clicked and there are no other windows open.
+  // Skip if handleAppReady hasn't finished — it will create the window itself.
+  if (!appReadyDone) return;
   if (!isWebUIMode && app.isReady()) {
     if (mainWindow && !mainWindow.isDestroyed()) {
       // 从托盘恢复隐藏的窗口 / Restore hidden window from tray
@@ -652,6 +673,9 @@ app.on('before-quit', async () => {
   destroyTray();
   // 在应用退出前清理工作进程
   workerTaskManager.clear();
+
+  // Stop all active team sessions (TCP servers + child processes)
+  await disposeAllTeamSessions().catch((err) => console.error('[App] Failed to dispose team sessions:', err));
 
   // Shutdown Channel subsystem
   try {

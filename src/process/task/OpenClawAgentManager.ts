@@ -15,8 +15,10 @@ import type { AcpBackendAll } from '@/common/types/acpTypes';
 import { getDatabase } from '@process/services/database';
 import { addMessage, addOrUpdateMessage } from '@process/utils/message';
 import { cronBusyGuard } from '@process/services/cron/CronBusyGuard';
+import { skillSuggestWatcher } from '@process/services/cron/SkillSuggestWatcher';
 import BaseAgentManager from '@process/task/BaseAgentManager';
 import { IpcAgentEventEmitter } from '@process/task/IpcAgentEventEmitter';
+import { teamEventBus } from '@process/team/teamEventBus';
 
 export interface OpenClawAgentManagerData {
   conversation_id: string;
@@ -115,6 +117,8 @@ class OpenClawAgentManager extends BaseAgentManager<OpenClawAgentManagerData> {
     ipcBridge.openclawConversation.responseStream.emit(msg);
     // Also emit to the unified conversation stream so the generic chat UI can render OpenClaw replies.
     ipcBridge.conversation.responseStream.emit(msg);
+    // Also emit to main-process-local bus so TeammateManager can receive events
+    teamEventBus.emit('responseStream', msg);
 
     // Emit to Channel global event bus (Telegram/Lark streaming)
     channelEventBus.emitAgentMessage(this.conversation_id, msg);
@@ -155,11 +159,14 @@ class OpenClawAgentManager extends BaseAgentManager<OpenClawAgentManagerData> {
     // Handle finish event
     if (msg.type === 'finish') {
       cronBusyGuard.setProcessing(this.conversation_id, false);
+      skillSuggestWatcher.onFinish(this.conversation_id);
     }
 
     // Emit signal events to frontend
     ipcBridge.openclawConversation.responseStream.emit(msg);
     ipcBridge.conversation.responseStream.emit(msg);
+    // Also emit to main-process-local bus so TeammateManager can receive events
+    teamEventBus.emit('responseStream', msg);
 
     // Forward signals to Channel global event bus
     channelEventBus.emitAgentMessage(this.conversation_id, msg);
@@ -192,7 +199,14 @@ class OpenClawAgentManager extends BaseAgentManager<OpenClawAgentManagerData> {
     }
   }
 
-  async sendMessage(data: { content: string; agentContent?: string; files?: string[]; msg_id?: string }) {
+  async sendMessage(data: {
+    content: string;
+    agentContent?: string;
+    files?: string[];
+    msg_id?: string;
+    hidden?: boolean;
+    silent?: boolean;
+  }) {
     cronBusyGuard.setProcessing(this.conversation_id, true);
     // Set status to running when message is being processed
     this.status = 'running';
@@ -200,7 +214,7 @@ class OpenClawAgentManager extends BaseAgentManager<OpenClawAgentManagerData> {
       await this.bootstrap;
 
       // Save user message to chat history (always use original content, not injected version)
-      if (data.msg_id && data.content) {
+      if (data.msg_id && data.content && !data.silent) {
         const userMessage: TMessage = {
           id: data.msg_id,
           msg_id: data.msg_id,
@@ -209,6 +223,7 @@ class OpenClawAgentManager extends BaseAgentManager<OpenClawAgentManagerData> {
           conversation_id: this.conversation_id,
           content: { content: data.content },
           createdAt: Date.now(),
+          ...(data.hidden && { hidden: true }),
         };
         addMessage(this.conversation_id, userMessage);
       }

@@ -22,10 +22,7 @@
     "skillsMarketDetails": "详情 >>"
   },
   "history": {
-    "today": "今天",
-    "yesterday": "昨天",
-    "recent7Days": "最近7天",
-    "earlier": "更早",
+    "recents": "最近",
     "noHistory": "暂无对话历史",
     "deleteTitle": "删除",
     "deleteConfirm": "确定删除该对话吗？",
@@ -180,6 +177,12 @@
       "reset": "还原更改",
       "noUnstaged": "没有未暂存的更改",
       "noStaged": "没有已暂存的更改"
+    },
+    "openWorkspace": "打开工作区文件夹",
+    "openWith": {
+      "vscode": "VS Code",
+      "terminal": "终端",
+      "explorer": "文件资源管理器"
     }
   },
   "minimap": {
