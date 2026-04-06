@@ -199,11 +199,17 @@ function invalidateWorkspaceFileListCacheByPath(changedPath: string): void {
   }
 }
 
+const MAX_WORKSPACE_FILES = 20_000;
+
 async function listWorkspaceFilesRecursive(root: string): Promise<IWorkspaceFlatFile[]> {
   const normalizedRoot = path.resolve(root);
   const entries: IWorkspaceFlatFile[] = [];
 
   const walk = async (currentDir: string): Promise<void> => {
+    if (entries.length >= MAX_WORKSPACE_FILES) {
+      return;
+    }
+
     let dirEntries: Dirent[];
     try {
       dirEntries = await fs.readdir(currentDir, { withFileTypes: true });
@@ -212,6 +218,10 @@ async function listWorkspaceFilesRecursive(root: string): Promise<IWorkspaceFlat
     }
 
     for (const entry of dirEntries) {
+      if (entries.length >= MAX_WORKSPACE_FILES) {
+        break;
+      }
+
       if (entry.name === 'node_modules') {
         continue;
       }
@@ -223,6 +233,7 @@ async function listWorkspaceFilesRecursive(root: string): Promise<IWorkspaceFlat
       }
 
       if (!entry.isFile()) {
+        // Intentionally skip symlinks to avoid circular reference risks
         continue;
       }
 
