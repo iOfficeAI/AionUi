@@ -154,6 +154,8 @@
   "cacheClearFailed": "Failed to clear cache",
   "language": "Language",
   "saveUploadToWorkspace": "Save Uploads to Workspace",
+  "commandQueueEnabled": "Enable Command Queue",
+  "commandQueueEnabledDesc": "When enabled, messages sent while the current turn is busy will be added to the queue instead of being sent immediately.",
   "startOnBoot": "Start on Boot",
   "startOnBootDesc": "Launch AionUi automatically when you sign in to macOS or Windows.",
   "startOnBootUnsupported": "Available only in packaged macOS and Windows apps.",

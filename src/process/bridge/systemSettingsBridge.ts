@@ -136,4 +136,13 @@ export function initSystemSettingsBridge(): void {
   ipcBridge.systemSettings.setSaveUploadToWorkspace.provider(async ({ enabled }) => {
     await ProcessConfig.set('upload.saveToWorkspace', enabled);
   });
+
+  ipcBridge.systemSettings.getCommandQueueEnabled.provider(async () => {
+    const value = await ProcessConfig.get('system.commandQueueEnabled');
+    return value ?? false;
+  });
+
+  ipcBridge.systemSettings.setCommandQueueEnabled.provider(async ({ enabled }) => {
+    await ProcessConfig.set('system.commandQueueEnabled', enabled);
+  });
 }

@@ -100,6 +100,16 @@ describe('conversation command queue helpers', () => {
     ).toBe(false);
   });
 
+  it('disables queueing entirely when the feature flag is off', () => {
+    expect(
+      shouldEnqueueConversationCommand({
+        enabled: false,
+        isBusy: true,
+        hasPendingCommands: true,
+      })
+    ).toBe(false);
+  });
+
   it('clears paused state when queue becomes empty', () => {
     expect(normalizeQueueState({ items: [], isPaused: true })).toEqual({
       items: [],

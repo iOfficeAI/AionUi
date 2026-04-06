@@ -128,6 +128,44 @@ describe('useConversationCommandQueue', () => {
     expect(window.sessionStorage.getItem(storageKey)).toBeNull();
   });
 
+  it('clears persisted queue state when the feature is disabled', async () => {
+    const conversationId = createConversationId();
+    const onExecute = vi.fn().mockResolvedValue(undefined);
+    const storageKey = `conversation-command-queue/${conversationId}`;
+
+    window.sessionStorage.setItem(
+      storageKey,
+      JSON.stringify({
+        isPaused: true,
+        items: [
+          {
+            id: 'queued-1',
+            input: 'stale queued command',
+            files: [],
+            createdAt: Date.now(),
+          },
+        ],
+      })
+    );
+
+    const { result } = renderHook(() =>
+      useConversationCommandQueue({
+        conversationId,
+        enabled: false,
+        isBusy: false,
+        onExecute,
+      })
+    );
+
+    await waitFor(() => {
+      expect(result.current.items).toHaveLength(0);
+      expect(result.current.hasPendingCommands).toBe(false);
+    });
+
+    expect(onExecute).not.toHaveBeenCalled();
+    expect(window.sessionStorage.getItem(storageKey)).toBeNull();
+  });
+
   it('waits for the conversation runtime status to hydrate before auto-dequeuing restored commands', async () => {
     const conversationId = createConversationId();
     const onExecute = vi.fn().mockResolvedValue(undefined);

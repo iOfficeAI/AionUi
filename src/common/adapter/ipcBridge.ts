@@ -718,6 +718,8 @@ export const systemSettings = {
   setSaveUploadToWorkspace: bridge.buildProvider<void, { enabled: boolean }>(
     'system-settings:set-save-upload-to-workspace'
   ),
+  getCommandQueueEnabled: bridge.buildProvider<boolean, void>('system-settings:get-command-queue-enabled'),
+  setCommandQueueEnabled: bridge.buildProvider<void, { enabled: boolean }>('system-settings:set-command-queue-enabled'),
 };
 
 // 系统通知接口 / System notification API
