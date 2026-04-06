@@ -180,6 +180,10 @@ function isPathWithinRoot(root: string, targetPath: string): boolean {
   return relativePath === '' || (!relativePath.startsWith('..') && !path.isAbsolute(relativePath));
 }
 
+function normalizeWorkspaceRelativePath(root: string, fullPath: string): string {
+  return path.relative(root, fullPath).split(path.sep).join('/');
+}
+
 function invalidateWorkspaceFileListCacheByPath(changedPath: string): void {
   const normalizedPath = path.resolve(changedPath);
   const roots = new Set([...workspaceFileListCache.keys(), ...workspaceFileListInFlight.keys()]);
@@ -225,7 +229,7 @@ async function listWorkspaceFilesRecursive(root: string): Promise<IWorkspaceFlat
       entries.push({
         name: entry.name,
         fullPath,
-        relativePath: path.relative(normalizedRoot, fullPath),
+        relativePath: normalizeWorkspaceRelativePath(normalizedRoot, fullPath),
       });
     }
   };
