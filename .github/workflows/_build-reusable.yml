@@ -26,7 +26,6 @@ on:
 
 env:
   BUN_INSTALL_REGISTRY: 'https://registry.npmjs.org/'
-  AIONUI_HUB_TAG: 'dist-ebc6a2b'
   # aionrs binary version to bundle (used by scripts/prepareAionrs.js)
   AIONRS_VERSION: 'latest'
 
@@ -53,7 +52,7 @@ jobs:
           bun-version: latest
 
       - name: Install dependencies
-        run: bun install --frozen-lockfile
+        run: bun install --no-frozen-lockfile
 
       - name: Run postinstall
         run: bun run postinstall || true
@@ -137,7 +136,7 @@ jobs:
           timeout_minutes: 10
           max_attempts: 3
           retry_wait_seconds: 30
-          command: bun install --frozen-lockfile
+          command: bun install --no-frozen-lockfile
 
       - name: Run postinstall
         run: bun run postinstall || true
