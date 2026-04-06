@@ -50,12 +50,16 @@ const PetSettings: React.FC = () => {
     });
   }, []);
 
-  const handleSizeChange = useCallback((val: number) => {
-    setSize(val);
-    systemSettings.setPetSize.invoke({ size: val }).catch(() => {
-      // Revert on error
-    });
-  }, []);
+  const handleSizeChange = useCallback(
+    (val: number) => {
+      const prevSize = size;
+      setSize(val);
+      systemSettings.setPetSize.invoke({ size: val }).catch(() => {
+        setSize(prevSize);
+      });
+    },
+    [size]
+  );
 
   const handleDndChange = useCallback((checked: boolean) => {
     setDnd(checked);

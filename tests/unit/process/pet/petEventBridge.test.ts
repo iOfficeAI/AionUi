@@ -146,88 +146,10 @@ describe('PetEventBridge', () => {
     });
   });
 
-  // ── startTaskPolling ──────────────────────────────────────────────
-
-  describe('startTaskPolling', () => {
-    it('requests building when task count >= 3', () => {
-      bridge.startTaskPolling(() => 3);
-      vi.advanceTimersByTime(5000);
-      expect(sm.requestState).toHaveBeenCalledWith('building');
-    });
-
-    it('requests building for high task counts (e.g. 10)', () => {
-      bridge.startTaskPolling(() => 10);
-      vi.advanceTimersByTime(5000);
-      expect(sm.requestState).toHaveBeenCalledWith('building');
-    });
-
-    it('requests juggling when task count is exactly 2', () => {
-      bridge.startTaskPolling(() => 2);
-      vi.advanceTimersByTime(5000);
-      expect(sm.requestState).toHaveBeenCalledWith('juggling');
-    });
-
-    it('does not request state when task count < 2', () => {
-      bridge.startTaskPolling(() => 1);
-      vi.advanceTimersByTime(5000);
-      expect(sm.requestState).not.toHaveBeenCalled();
-    });
-
-    it('does not request state when task count is 0', () => {
-      bridge.startTaskPolling(() => 0);
-      vi.advanceTimersByTime(5000);
-      expect(sm.requestState).not.toHaveBeenCalled();
-    });
-
-    it('polls repeatedly on each interval tick', () => {
-      let count = 0;
-      bridge.startTaskPolling(() => {
-        count += 1;
-        return count >= 2 ? 3 : 0;
-      });
-
-      // First tick: count=1, no state change
-      vi.advanceTimersByTime(5000);
-      expect(sm.requestState).not.toHaveBeenCalled();
-
-      // Second tick: count=2, returns 3 → building
-      vi.advanceTimersByTime(5000);
-      expect(sm.requestState).toHaveBeenCalledWith('building');
-    });
-
-    it('stops polling after dispose', () => {
-      bridge.startTaskPolling(() => 5);
-      bridge.dispose();
-      vi.advanceTimersByTime(10_000);
-      expect(sm.requestState).not.toHaveBeenCalled();
-    });
-
-    it('skips callback body when disposed mid-interval', () => {
-      // Start polling, then dispose before the interval fires
-      const getCount = vi.fn(() => 5);
-      bridge.startTaskPolling(getCount);
-
-      // Dispose clears the interval, so the callback never fires
-      bridge.dispose();
-      vi.advanceTimersByTime(5000);
-      expect(getCount).not.toHaveBeenCalled();
-      expect(sm.requestState).not.toHaveBeenCalled();
-    });
-  });
-
   // ── dispose ───────────────────────────────────────────────────────
 
   describe('dispose', () => {
-    it('clears the polling interval', () => {
-      const spy = vi.spyOn(globalThis, 'clearInterval');
-      bridge.startTaskPolling(() => 0);
-      bridge.dispose();
-      expect(spy).toHaveBeenCalled();
-      spy.mockRestore();
-    });
-
     it('is safe to call multiple times', () => {
-      bridge.startTaskPolling(() => 0);
       bridge.dispose();
       bridge.dispose(); // should not throw
     });

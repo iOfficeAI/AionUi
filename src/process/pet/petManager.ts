@@ -197,21 +197,10 @@ export function getEventBridge(): PetEventBridge | null {
   return eventBridge;
 }
 
-/**
- * Resize pet window to specified size (called by systemSettingsBridge).
- */
-export function resizePetWindow(size: number): void {
-  const validSizes: PetSize[] = [200, 280, 360];
-  if (!validSizes.includes(size as PetSize)) {
-    console.warn(`[Pet] Invalid size ${size}, must be one of ${validSizes.join(', ')}`);
-    return;
-  }
-  resizePet(size as PetSize);
+export function resizePetWindow(size: PetSize): void {
+  resizePet(size);
 }
 
-/**
- * Set Do-Not-Disturb mode (called by systemSettingsBridge).
- */
 export function setPetDndMode(dnd: boolean): void {
   stateMachine?.setDnd(dnd);
 }

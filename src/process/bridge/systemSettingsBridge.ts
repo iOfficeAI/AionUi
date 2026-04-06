@@ -16,6 +16,7 @@ import { ipcBridge } from '@/common';
 import { getPlatformServices } from '@/common/platform';
 import { ProcessConfig } from '@process/utils/initStorage';
 import { changeLanguage } from '@process/services/i18n';
+import type { PetSize } from '@process/pet/petTypes';
 
 // Keep-awake power blocker state
 let _keepAwakeBlockerId: number | null = null;
@@ -145,12 +146,11 @@ export function initSystemSettingsBridge(): void {
 
   ipcBridge.systemSettings.setPetEnabled.provider(async ({ enabled }) => {
     await ProcessConfig.set('pet.enabled', enabled);
-    // Dynamic import to avoid circular dependency
-    const petManager = await import('@process/pet/petManager');
+    const { createPetWindow, destroyPetWindow } = await import('@process/pet/petManager');
     if (enabled) {
-      petManager.createPetWindow();
+      createPetWindow();
     } else {
-      petManager.destroyPetWindow();
+      destroyPetWindow();
     }
   });
 
@@ -161,9 +161,8 @@ export function initSystemSettingsBridge(): void {
 
   ipcBridge.systemSettings.setPetSize.provider(async ({ size }) => {
     await ProcessConfig.set('pet.size', size);
-    // Dynamic import to avoid circular dependency
-    const petManager = await import('@process/pet/petManager');
-    petManager.resizePetWindow(size);
+    const { resizePetWindow } = await import('@process/pet/petManager');
+    resizePetWindow(size as PetSize);
   });
 
   ipcBridge.systemSettings.getPetDnd.provider(async () => {
@@ -173,8 +172,7 @@ export function initSystemSettingsBridge(): void {
 
   ipcBridge.systemSettings.setPetDnd.provider(async ({ dnd }) => {
     await ProcessConfig.set('pet.dnd', dnd);
-    // Dynamic import to avoid circular dependency
-    const petManager = await import('@process/pet/petManager');
-    petManager.setPetDndMode(dnd);
+    const { setPetDndMode } = await import('@process/pet/petManager');
+    setPetDndMode(dnd);
   });
 }

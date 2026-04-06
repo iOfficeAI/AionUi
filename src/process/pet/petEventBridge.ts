@@ -14,7 +14,6 @@ type StreamMessage = {
 };
 
 export class PetEventBridge {
-  private taskPollInterval: ReturnType<typeof setInterval> | null = null;
   private disposed = false;
 
   constructor(
@@ -80,23 +79,7 @@ export class PetEventBridge {
     this.sm.requestState('notification');
   }
 
-  startTaskPolling(getTaskCount: () => number): void {
-    this.taskPollInterval = setInterval(() => {
-      if (this.disposed) return;
-      const count = getTaskCount();
-      if (count >= 3) {
-        this.sm.requestState('building');
-      } else if (count >= 2) {
-        this.sm.requestState('juggling');
-      }
-    }, 5000);
-  }
-
   dispose(): void {
     this.disposed = true;
-    if (this.taskPollInterval) {
-      clearInterval(this.taskPollInterval);
-      this.taskPollInterval = null;
-    }
   }
 }
