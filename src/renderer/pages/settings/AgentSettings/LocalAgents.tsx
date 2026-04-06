@@ -107,33 +107,35 @@ const LocalAgents: React.FC = () => {
         </Button>
       </div>
 
-      <div className='px-16px mt-8px'>
-        <div className='flex flex-col gap-14px rounded-16px border border-solid border-[rgba(var(--primary-6),0.18)] bg-[rgba(var(--primary-6),0.06)] p-16px md:flex-row md:items-center md:justify-between'>
-          <div className='flex items-center gap-12px'>
-            <div className='flex h-40px w-40px items-center justify-center leading-none rounded-12px border border-solid border-[rgba(var(--primary-6),0.12)] bg-[rgba(var(--primary-6),0.10)] text-primary-6 shadow-[inset_0_1px_0_rgba(255,255,255,0.28)]'>
-              <Home theme='outline' size='20' strokeWidth={2} className='block' />
+      {process.env.NODE_ENV === 'development' && (
+        <div className='px-16px mt-8px'>
+          <div className='flex flex-col gap-14px rounded-16px border border-solid border-[rgba(var(--primary-6),0.18)] bg-[rgba(var(--primary-6),0.06)] p-16px md:flex-row md:items-center md:justify-between'>
+            <div className='flex items-center gap-12px'>
+              <div className='flex h-40px w-40px items-center justify-center leading-none rounded-12px border border-solid border-[rgba(var(--primary-6),0.12)] bg-[rgba(var(--primary-6),0.10)] text-primary-6 shadow-[inset_0_1px_0_rgba(255,255,255,0.28)]'>
+                <Home theme='outline' size='20' strokeWidth={2} className='block' />
+              </div>
+              <div className='min-w-0'>
+                <Typography.Text className='mb-4px block text-15px font-medium text-t-primary'>
+                  {t('settings.agentManagement.installFromMarket')}
+                </Typography.Text>
+                <Typography.Text className='block text-12px leading-18px text-t-secondary'>
+                  {t('settings.agentManagement.discoverMoreAgents')}
+                </Typography.Text>
+              </div>
             </div>
-            <div className='min-w-0'>
-              <Typography.Text className='mb-4px block text-15px font-medium text-t-primary'>
-                {t('settings.agentManagement.installFromMarket')}
-              </Typography.Text>
-              <Typography.Text className='block text-12px leading-18px text-t-secondary'>
-                {t('settings.agentManagement.discoverMoreAgents')}
-              </Typography.Text>
-            </div>
-          </div>
 
-          <Button
-            type='primary'
-            size='small'
-            icon={<Plus size='14' />}
-            className='!rounded-10px md:!min-w-144px'
-            onClick={() => setHubModalVisible(true)}
-          >
-            {t('settings.agentManagement.installFromMarket')}
-          </Button>
+            <Button
+              type='primary'
+              size='small'
+              icon={<Plus size='14' />}
+              className='!rounded-10px md:!min-w-144px'
+              onClick={() => setHubModalVisible(true)}
+            >
+              {t('settings.agentManagement.installFromMarket')}
+            </Button>
+          </div>
         </div>
-      </div>
+      )}
 
       {/* Detected Agents section */}
       <div className='px-16px mt-8px'>
