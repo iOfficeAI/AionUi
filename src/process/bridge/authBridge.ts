@@ -13,13 +13,17 @@ import {
   Storage,
 } from '@office-ai/aioncli-core';
 import { ipcBridge } from '@/common';
-import * as fs from 'node:fs';
+import { promises as fsAsync } from 'node:fs';
 
 export function initAuthBridge(): void {
   ipcBridge.googleAuth.status.provider(async ({ proxy }) => {
     try {
       const credsPath = Storage.getOAuthCredsPath();
-      if (!fs.existsSync(credsPath)) {
+
+      // Check credential file existence without blocking the main process
+      try {
+        await fsAsync.access(credsPath);
+      } catch {
         // 凭证文件不存在时直接返回，避免触发底层 ENOENT 日志
         // Return early when credential file is missing to avoid noisy ENOENT logs
         return { success: false };
@@ -40,7 +44,7 @@ export function initAuthBridge(): void {
         // Credentials file exists but getOauthInfoWithCache failed, token may need refresh
         // 读取凭证文件检查是否有 refresh_token
         // Read credentials file to check for refresh_token
-        const credsContent = fs.readFileSync(credsPath, 'utf-8');
+        const credsContent = await fsAsync.readFile(credsPath, 'utf-8');
         const creds = JSON.parse(credsContent);
         if (creds.refresh_token) {
           // 有 refresh_token，凭证有效但可能需要在使用时刷新

@@ -19,9 +19,20 @@ class ConversationManageWithDB {
   private stack: Array<['insert' | 'accumulate', TMessage]> = [];
   private dbPromise = getDatabase();
   private timer: NodeJS.Timeout;
-  private savePromise = Promise.resolve();
+  /** Whether a flush is currently in progress (replaces unbounded promise chain) */
+  private flushing = false;
+  private initialized = false;
+
   constructor(private conversation_id: string) {
-    this.savePromise = this.dbPromise.then((db) => ensureConversationExists(db, this.conversation_id)).catch(() => {});
+    this.dbPromise
+      .then((db) => ensureConversationExists(db, this.conversation_id))
+      .then(() => {
+        this.initialized = true;
+        this.flush();
+      })
+      .catch(() => {
+        this.initialized = true;
+      });
   }
   static get(conversation_id: string) {
     if (Cache.has(conversation_id)) return Cache.get(conversation_id);
@@ -29,51 +40,55 @@ class ConversationManageWithDB {
     Cache.set(conversation_id, manage);
     return manage;
   }
+
+  /** Clear pending timer and discard queued messages so this instance can be GC'd. */
+  dispose(): void {
+    clearTimeout(this.timer);
+    this.stack = [];
+  }
   sync(type: 'insert' | 'accumulate', message: TMessage) {
     this.stack.push([type, message]);
     clearTimeout(this.timer);
     if (type === 'insert') {
-      this.save2DataBase();
+      this.flush();
       return;
     }
     this.timer = setTimeout(() => {
-      this.save2DataBase();
+      this.flush();
     }, 2000);
   }
 
-  private save2DataBase() {
-    this.savePromise = this.savePromise
-      .then(() => this.dbPromise)
-      .then((db) => {
-        const stack = this.stack.slice();
-        this.stack = [];
-        const messages = db.getConversationMessages(this.conversation_id, 0, 50, 'DESC'); //
-        let messageList = messages.data.toReversed();
-        let updateMessage = stack.shift();
-        while (updateMessage) {
-          if (updateMessage[0] === 'insert') {
-            db.insertMessage(updateMessage[1]);
-            messageList.push(updateMessage[1]);
-          } else {
-            messageList = composeMessage(updateMessage[1], messageList, (type, message) => {
-              if (type === 'insert') db.insertMessage(message);
-              if (type === 'update') {
-                db.updateMessage(message.id, message);
-              }
-            });
-          }
-          updateMessage = stack.shift();
+  private async flush(): Promise<void> {
+    if (!this.initialized || this.flushing || this.stack.length === 0) return;
+    this.flushing = true;
+    try {
+      const db = await this.dbPromise;
+      const stack = this.stack.splice(0);
+      const messages = db.getConversationMessages(this.conversation_id, 0, 50, 'DESC');
+      let messageList = messages.data.toReversed();
+      for (const [type, msg] of stack) {
+        if (type === 'insert') {
+          db.insertMessage(msg);
+          messageList.push(msg);
+        } else {
+          messageList = composeMessage(msg, messageList, (opType, message) => {
+            if (opType === 'insert') db.insertMessage(message);
+            if (opType === 'update') {
+              db.updateMessage(message.id, message);
+            }
+          });
         }
-        executePendingCallbacks();
-      })
-      .then(() => {
-        return new Promise((resolve) => {
-          const timer = setTimeout(() => {
-            resolve();
-            clearTimeout(timer);
-          }, 10);
-        });
-      });
+      }
+      executePendingCallbacks();
+    } catch (err) {
+      console.error('[Message] flush error:', err);
+    } finally {
+      this.flushing = false;
+      // If new messages arrived during flush, process them
+      if (this.stack.length > 0) {
+        this.flush();
+      }
+    }
   }
 }
 
@@ -83,6 +98,18 @@ class ConversationManageWithDB {
  */
 export const addMessage = (conversation_id: string, message: TMessage): void => {
   ConversationManageWithDB.get(conversation_id).sync('insert', message);
+};
+
+/**
+ * Remove a conversation's message queue from the in-memory cache.
+ * Call this when a conversation is deleted to prevent memory leaks.
+ */
+export const removeFromMessageCache = (conversation_id: string): void => {
+  const cached = Cache.get(conversation_id);
+  if (cached) {
+    cached.dispose();
+    Cache.delete(conversation_id);
+  }
 };
 
 /**

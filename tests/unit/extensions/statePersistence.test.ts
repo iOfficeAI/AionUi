@@ -1,7 +1,7 @@
 import fs from 'fs';
 import os from 'os';
 import path from 'path';
-import { afterEach, describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import {
   loadPersistedStates,
   savePersistedStates,
@@ -17,6 +17,11 @@ function createTempDir(prefix: string): string {
   return dir;
 }
 
+/** Wait for the debounced save to flush (500ms debounce + buffer). */
+function waitForFlush(): Promise<void> {
+  return new Promise((r) => setTimeout(r, 600));
+}
+
 afterEach(() => {
   process.env = { ...originalEnv };
 
@@ -26,7 +31,7 @@ afterEach(() => {
 });
 
 describe('extensions/statePersistence', () => {
-  it('reads and writes extension states from AIONUI_EXTENSION_STATES_FILE when provided', () => {
+  it('reads and writes extension states from AIONUI_EXTENSION_STATES_FILE when provided', async () => {
     const sandbox = createTempDir('aionui-state-');
     const statesFile = path.join(sandbox, 'isolated', 'extension-states.json');
     process.env.AIONUI_EXTENSION_STATES_FILE = statesFile;
@@ -49,10 +54,11 @@ describe('extensions/statePersistence', () => {
     ]);
 
     savePersistedStates(states);
+    await waitForFlush();
 
     expect(fs.existsSync(statesFile)).toBe(true);
 
-    const loaded = loadPersistedStates();
+    const loaded = await loadPersistedStates();
     expect(loaded.get('ext-feishu')).toEqual({
       enabled: false,
       disabledAt,
@@ -62,35 +68,98 @@ describe('extensions/statePersistence', () => {
     });
   });
 
+  it('loadPersistedStates returns empty map without warning when file does not exist (ENOENT)', async () => {
+    const sandbox = createTempDir('aionui-enoent-');
+    const statesFile = path.join(sandbox, 'nonexistent', 'extension-states.json');
+    process.env.AIONUI_EXTENSION_STATES_FILE = statesFile;
+
+    const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
+
+    const loaded = await loadPersistedStates();
+    expect(loaded.size).toBe(0);
+
+    // ENOENT should NOT produce a console.warn
+    expect(warnSpy).not.toHaveBeenCalled();
+
+    warnSpy.mockRestore();
+  });
+
+  it('loadPersistedStates warns for non-ENOENT errors', async () => {
+    const sandbox = createTempDir('aionui-bad-json-');
+    const statesFile = path.join(sandbox, 'extension-states.json');
+    process.env.AIONUI_EXTENSION_STATES_FILE = statesFile;
+
+    // Write invalid JSON
+    fs.writeFileSync(statesFile, '{{{invalid json', 'utf-8');
+
+    const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
+
+    const loaded = await loadPersistedStates();
+    expect(loaded.size).toBe(0);
+
+    // Should warn because it's a parse error, not ENOENT
+    expect(warnSpy).toHaveBeenCalledWith('[Extensions] Failed to load persisted states:', expect.any(String));
+
+    warnSpy.mockRestore();
+  });
+
+  it('savePersistedStates debounces rapid writes', async () => {
+    const sandbox = createTempDir('aionui-debounce-');
+    const statesFile = path.join(sandbox, 'extension-states.json');
+    process.env.AIONUI_EXTENSION_STATES_FILE = statesFile;
+
+    // Save three times rapidly
+    const states1 = new Map([['ext-a', { enabled: true }]]) as any;
+    const states2 = new Map([['ext-b', { enabled: false }]]) as any;
+    const states3 = new Map([['ext-c', { enabled: true }]]) as any;
+
+    savePersistedStates(states1);
+    savePersistedStates(states2);
+    savePersistedStates(states3);
+
+    // Wait for debounce to flush
+    await waitForFlush();
+
+    // Only the last save should persist
+    const loaded = await loadPersistedStates();
+    expect(loaded.has('ext-c')).toBe(true);
+    expect(loaded.has('ext-a')).toBe(false);
+    expect(loaded.has('ext-b')).toBe(false);
+  });
+
   describe('markExtensionForReinstall', () => {
-    it('should set installed to false for an existing extension', () => {
+    it('should set installed to false for an existing extension', async () => {
       const sandbox = createTempDir('aionui-reinstall-');
       const statesFile = path.join(sandbox, 'extension-states.json');
       process.env.AIONUI_EXTENSION_STATES_FILE = statesFile;
 
       const states = new Map([['ext-claude', { enabled: true, installed: true, lastVersion: '1.0.0' }]]);
       savePersistedStates(states);
+      await waitForFlush();
 
-      markExtensionForReinstall('ext-claude');
+      await markExtensionForReinstall('ext-claude');
+      await waitForFlush();
 
-      const loaded = loadPersistedStates();
+      const loaded = await loadPersistedStates();
       expect(loaded.get('ext-claude')?.installed).toBe(false);
       // Other fields should be preserved
       expect(loaded.get('ext-claude')?.enabled).toBe(true);
       expect(loaded.get('ext-claude')?.lastVersion).toBe('1.0.0');
     });
 
-    it('should be a no-op for an unknown extension', () => {
+    it('should be a no-op for an unknown extension', async () => {
       const sandbox = createTempDir('aionui-reinstall-noop-');
       const statesFile = path.join(sandbox, 'extension-states.json');
       process.env.AIONUI_EXTENSION_STATES_FILE = statesFile;
 
       const states = new Map([['ext-other', { enabled: true, installed: true }]]);
       savePersistedStates(states);
+      await waitForFlush();
 
-      markExtensionForReinstall('ext-nonexistent');
+      await markExtensionForReinstall('ext-nonexistent');
+      await waitForFlush();
 
-      const loaded = loadPersistedStates();
+      const loaded = await loadPersistedStates();
       // ext-other should be unchanged
       expect(loaded.get('ext-other')?.installed).toBe(true);
       // ext-nonexistent should not exist

@@ -4,7 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import * as fs from 'fs';
+import { promises as fsAsync } from 'fs';
 import * as path from 'path';
 import type { ExtensionState } from '../types';
 import { extensionEventBus, ExtensionSystemEvents } from './ExtensionEventBus';
@@ -48,18 +48,15 @@ interface PersistedStates {
 }
 
 /**
- * Load persisted extension states from disk.
+ * Load persisted extension states from disk (async to avoid blocking the main process).
  * Returns an empty map if the file doesn't exist or is invalid.
  */
-export function loadPersistedStates(): Map<string, ExtensionState> {
+export async function loadPersistedStates(): Promise<Map<string, ExtensionState>> {
   const result = new Map<string, ExtensionState>();
   const statesFile = resolveStatesFile();
 
   try {
-    if (!fs.existsSync(statesFile)) {
-      return result;
-    }
-    const raw = fs.readFileSync(statesFile, 'utf-8');
+    const raw = await fsAsync.readFile(statesFile, 'utf-8');
     const data = JSON.parse(raw) as PersistedStates;
 
     if (data.version !== 1) {
@@ -78,24 +75,38 @@ export function loadPersistedStates(): Map<string, ExtensionState> {
       });
     }
   } catch (error) {
-    console.warn('[Extensions] Failed to load persisted states:', error instanceof Error ? error.message : error);
+    if ((error as NodeJS.ErrnoException).code !== 'ENOENT') {
+      console.warn('[Extensions] Failed to load persisted states:', error instanceof Error ? error.message : error);
+    }
   }
 
   return result;
 }
 
 /**
- * Save extension states to disk.
+ * Save extension states to disk (async to avoid blocking the main process).
  * Creates the target directory if it doesn't exist.
+ * Writes are debounced — rapid successive calls coalesce into a single disk write.
  */
+let _pendingSaveStates: Map<string, ExtensionState> | undefined;
+let _saveTimer: ReturnType<typeof setTimeout> | undefined;
+
 export function savePersistedStates(states: Map<string, ExtensionState>): void {
+  _pendingSaveStates = states;
+  clearTimeout(_saveTimer);
+  _saveTimer = setTimeout(() => _flushPersistedStates(), 500);
+}
+
+async function _flushPersistedStates(): Promise<void> {
+  if (!_pendingSaveStates) return;
+  const states = _pendingSaveStates;
+  _pendingSaveStates = undefined;
+
   const statesFile = resolveStatesFile();
   const statesDir = path.dirname(statesFile);
 
   try {
-    if (!fs.existsSync(statesDir)) {
-      fs.mkdirSync(statesDir, { recursive: true });
-    }
+    await fsAsync.mkdir(statesDir, { recursive: true });
 
     const data: PersistedStates = {
       version: 1,
@@ -115,8 +126,8 @@ export function savePersistedStates(states: Map<string, ExtensionState>): void {
 
     // Atomic write: write to temp file then rename
     const tmpFile = statesFile + '.tmp';
-    fs.writeFileSync(tmpFile, JSON.stringify(data, null, 2), 'utf-8');
-    fs.renameSync(tmpFile, statesFile);
+    await fsAsync.writeFile(tmpFile, JSON.stringify(data, null, 2), 'utf-8');
+    await fsAsync.rename(tmpFile, statesFile);
 
     extensionEventBus.emitLifecycle(ExtensionSystemEvents.STATES_PERSISTED, {
       extensionName: '*',
@@ -156,12 +167,11 @@ export function needsInstallHook(
  * Clear the installed state for an extension so that the next hotReload
  * treats it as a fresh install and re-runs the onInstall lifecycle hook.
  */
-export function markExtensionForReinstall(extensionName: string): void {
-  const states = loadPersistedStates();
+export async function markExtensionForReinstall(extensionName: string): Promise<void> {
+  const states = await loadPersistedStates();
   const state = states.get(extensionName);
   if (state) {
-    state.installed = false;
-    states.set(extensionName, state);
+    states.set(extensionName, { ...state, installed: false });
     savePersistedStates(states);
   }
 }
