@@ -6,7 +6,6 @@
 
 import { getPlatformServices } from '@/common/platform';
 import { getDataPath } from '@process/utils';
-import { app } from 'electron';
 import * as path from 'path';
 import type { ExtensionSource } from './types';
 export const AIONUI_EXTENSIONS_PATH_ENV = 'AIONUI_EXTENSIONS_PATH';
@@ -45,7 +44,9 @@ export const HUB_INDEX_FILE = 'index.json';
 
 /** Path to the bundled hub resources directory. */
 export function getHubResourcesDir(): string {
-  const resourcesPath = app.isPackaged ? process.resourcesPath : path.join(process.cwd(), 'resources');
+  const resourcesPath = getPlatformServices().paths.isPackaged()
+    ? process.resourcesPath
+    : path.join(process.cwd(), 'resources');
   return path.join(resourcesPath, 'hub');
 }
 

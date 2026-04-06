@@ -13,7 +13,7 @@
  * the app is launched from Finder / launchd instead of a terminal.
  */
 
-import { app } from 'electron';
+import { getPlatformServices } from '@/common/platform';
 import { execFile, execFileSync, spawn } from 'child_process';
 import { accessSync, existsSync, readdirSync } from 'fs';
 import os from 'os';
@@ -32,7 +32,9 @@ const PERF_LOG = process.env.ACP_PERF === '1';
  * the bun executable. Returns null if the directory doesn't exist.
  */
 export function getBundledBunDir(): string | null {
-  const resourcesPath = app.isPackaged ? process.resourcesPath : path.join(process.cwd(), 'resources');
+  const resourcesPath = getPlatformServices().paths.isPackaged()
+    ? process.resourcesPath
+    : path.join(process.cwd(), 'resources');
   const platform = process.platform === 'win32' ? 'win32' : process.platform;
   const arch = process.arch;
   const bunDir = path.join(resourcesPath, 'bundled-bun', `${platform}-${arch}`);

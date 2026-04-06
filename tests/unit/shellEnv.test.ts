@@ -17,8 +17,16 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import path from 'path';
 
-vi.mock('electron', () => ({
-  app: { isPackaged: false },
+const mocks = vi.hoisted(() => ({
+  isPackaged: vi.fn(() => false),
+}));
+
+vi.mock('@/common/platform', () => ({
+  getPlatformServices: () => ({
+    paths: {
+      isPackaged: () => mocks.isPackaged(),
+    },
+  }),
 }));
 
 // -------------------------------------------------------------------

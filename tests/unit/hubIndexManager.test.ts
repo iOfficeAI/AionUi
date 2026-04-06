@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 // ---------------------------------------------------------------------------
 // Mocks
@@ -6,9 +6,12 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 
 const mockFetch = vi.fn();
 
-vi.mock('electron', () => ({
-  app: { isPackaged: false, getPath: vi.fn(() => '/tmp') },
-  net: { fetch: (...args: unknown[]) => mockFetch(...args) },
+vi.mock('@/common/platform', () => ({
+  getPlatformServices: () => ({
+    network: {
+      fetch: (...args: unknown[]) => mockFetch(...args),
+    },
+  }),
 }));
 
 const mockExistsSync = vi.fn(() => false);

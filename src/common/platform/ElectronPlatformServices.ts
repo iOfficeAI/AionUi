@@ -1,5 +1,5 @@
 // This is the only file in src/common/platform/ permitted to import from 'electron'.
-import { app, Notification, powerSaveBlocker, utilityProcess, type UtilityProcess } from 'electron';
+import { app, net, Notification, powerSaveBlocker, utilityProcess, type UtilityProcess } from 'electron';
 import path from 'path';
 import type { IPlatformServices, IWorkerProcess } from './IPlatformServices';
 
@@ -64,5 +64,10 @@ export class ElectronPlatformServices implements IPlatformServices {
     send: ({ title, body }: { title: string; body: string; icon?: string }): void => {
       new Notification({ title, body }).show();
     },
+  };
+
+  network = {
+    fetch: (input: string | URL | Request, init?: RequestInit): Promise<Response> =>
+      net.fetch(input instanceof URL ? input.toString() : input, init),
   };
 }
