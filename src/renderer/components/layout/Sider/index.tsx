@@ -216,120 +216,121 @@ const Sider: React.FC<SiderProps> = ({ onSessionClick, collapsed = false }) => {
             />
             {/* Scrollable content: team + scheduled tasks + conversation history */}
             <div className='flex-1 min-h-0 overflow-y-auto'>
-              {/* Team section */}
-              {collapsed ? (
-                sortedTeams.length > 0 && (
+              {/* Team section — dev only */}
+              {process.env.NODE_ENV === 'development' &&
+                (collapsed ? (
+                  sortedTeams.length > 0 && (
+                    <div className='shrink-0 mb-4px'>
+                      {sortedTeams.map((team) => {
+                        const isActive = pathname.startsWith(`/team/${team.id}`);
+                        return (
+                          <Tooltip key={team.id} {...siderTooltipProps} content={team.name} position='right'>
+                            <div
+                              className={classNames(
+                                'w-full py-6px flex items-center justify-center cursor-pointer transition-colors rd-8px',
+                                isActive
+                                  ? 'bg-[rgba(var(--primary-6),0.12)] text-primary'
+                                  : 'hover:bg-fill-3 active:bg-fill-4'
+                              )}
+                              onClick={() => {
+                                cleanupSiderTooltips();
+                                blurActiveElement();
+                                Promise.resolve(navigate(`/team/${team.id}`)).catch(console.error);
+                                if (onSessionClick) onSessionClick();
+                              }}
+                            >
+                              <Peoples
+                                theme='outline'
+                                size='20'
+                                fill={isActive ? 'rgb(var(--primary-6))' : iconColors.primary}
+                                style={{ lineHeight: 0 }}
+                              />
+                            </div>
+                          </Tooltip>
+                        );
+                      })}
+                    </div>
+                  )
+                ) : (
                   <div className='shrink-0 mb-4px'>
-                    {sortedTeams.map((team) => {
-                      const isActive = pathname.startsWith(`/team/${team.id}`);
-                      return (
-                        <Tooltip key={team.id} {...siderTooltipProps} content={team.name} position='right'>
-                          <div
-                            className={classNames(
-                              'w-full py-6px flex items-center justify-center cursor-pointer transition-colors rd-8px',
-                              isActive
-                                ? 'bg-[rgba(var(--primary-6),0.12)] text-primary'
-                                : 'hover:bg-fill-3 active:bg-fill-4'
-                            )}
+                    <div className='flex items-center justify-between px-12px py-8px'>
+                      <span className='text-13px text-t-secondary font-bold leading-20px'>{t('team.sider.title')}</span>
+                      <div
+                        className='h-20px w-20px rd-4px flex items-center justify-center cursor-pointer hover:bg-fill-3 transition-all shrink-0'
+                        onClick={() => setCreateTeamVisible(true)}
+                      >
+                        <Plus theme='outline' size='14' fill='var(--color-text-2)' />
+                      </div>
+                    </div>
+                    {sortedTeams.length > 0 &&
+                      sortedTeams.map((team) => {
+                        const isPinned = pinnedIds.includes(team.id);
+                        const menuItems: SiderMenuItem[] = [
+                          {
+                            key: 'pin',
+                            icon: <Pushpin theme='outline' size='14' />,
+                            label: isPinned ? t('team.sider.unpin') : t('team.sider.pin'),
+                          },
+                          {
+                            key: 'rename',
+                            icon: <EditOne theme='outline' size='14' />,
+                            label: t('team.sider.rename'),
+                          },
+                          {
+                            key: 'delete',
+                            icon: <DeleteOne theme='outline' size='14' />,
+                            label: t('team.sider.delete'),
+                            danger: true,
+                          },
+                        ];
+                        return (
+                          <SiderItem
+                            key={team.id}
+                            icon={
+                              <Peoples theme='outline' size='20' fill={iconColors.primary} style={{ lineHeight: 0 }} />
+                            }
+                            name={team.name}
+                            selected={pathname.startsWith(`/team/${team.id}`)}
+                            pinned={isPinned}
+                            menuItems={menuItems}
+                            onMenuAction={(key) => {
+                              if (key === 'pin') {
+                                togglePin(team.id);
+                              } else if (key === 'rename') {
+                                setRenameId(team.id);
+                                setRenameName(team.name);
+                                setRenameVisible(true);
+                              } else if (key === 'delete') {
+                                Modal.confirm({
+                                  title: t('team.sider.deleteConfirm'),
+                                  content: t('team.sider.deleteConfirmContent'),
+                                  okText: t('team.sider.deleteOk'),
+                                  cancelText: t('team.sider.deleteCancel'),
+                                  okButtonProps: { status: 'warning' },
+                                  onOk: async () => {
+                                    await removeTeam(team.id);
+                                    Message.success(t('team.sider.deleteSuccess'));
+                                    if (pathname.startsWith(`/team/${team.id}`)) {
+                                      Promise.resolve(navigate('/')).catch(() => {});
+                                    }
+                                  },
+                                  style: { borderRadius: '12px' },
+                                  alignCenter: true,
+                                  getPopupContainer: () => document.body,
+                                });
+                              }
+                            }}
                             onClick={() => {
                               cleanupSiderTooltips();
                               blurActiveElement();
                               Promise.resolve(navigate(`/team/${team.id}`)).catch(console.error);
                               if (onSessionClick) onSessionClick();
                             }}
-                          >
-                            <Peoples
-                              theme='outline'
-                              size='20'
-                              fill={isActive ? 'rgb(var(--primary-6))' : iconColors.primary}
-                              style={{ lineHeight: 0 }}
-                            />
-                          </div>
-                        </Tooltip>
-                      );
-                    })}
+                          />
+                        );
+                      })}
                   </div>
-                )
-              ) : (
-                <div className='shrink-0 mb-4px'>
-                  <div className='flex items-center justify-between px-12px py-8px'>
-                    <span className='text-13px text-t-secondary font-bold leading-20px'>{t('team.sider.title')}</span>
-                    <div
-                      className='h-20px w-20px rd-4px flex items-center justify-center cursor-pointer hover:bg-fill-3 transition-all shrink-0'
-                      onClick={() => setCreateTeamVisible(true)}
-                    >
-                      <Plus theme='outline' size='14' fill='var(--color-text-2)' />
-                    </div>
-                  </div>
-                  {sortedTeams.length > 0 &&
-                    sortedTeams.map((team) => {
-                      const isPinned = pinnedIds.includes(team.id);
-                      const menuItems: SiderMenuItem[] = [
-                        {
-                          key: 'pin',
-                          icon: <Pushpin theme='outline' size='14' />,
-                          label: isPinned ? t('team.sider.unpin') : t('team.sider.pin'),
-                        },
-                        {
-                          key: 'rename',
-                          icon: <EditOne theme='outline' size='14' />,
-                          label: t('team.sider.rename'),
-                        },
-                        {
-                          key: 'delete',
-                          icon: <DeleteOne theme='outline' size='14' />,
-                          label: t('team.sider.delete'),
-                          danger: true,
-                        },
-                      ];
-                      return (
-                        <SiderItem
-                          key={team.id}
-                          icon={
-                            <Peoples theme='outline' size='20' fill={iconColors.primary} style={{ lineHeight: 0 }} />
-                          }
-                          name={team.name}
-                          selected={pathname.startsWith(`/team/${team.id}`)}
-                          pinned={isPinned}
-                          menuItems={menuItems}
-                          onMenuAction={(key) => {
-                            if (key === 'pin') {
-                              togglePin(team.id);
-                            } else if (key === 'rename') {
-                              setRenameId(team.id);
-                              setRenameName(team.name);
-                              setRenameVisible(true);
-                            } else if (key === 'delete') {
-                              Modal.confirm({
-                                title: t('team.sider.deleteConfirm'),
-                                content: t('team.sider.deleteConfirmContent'),
-                                okText: t('team.sider.deleteOk'),
-                                cancelText: t('team.sider.deleteCancel'),
-                                okButtonProps: { status: 'warning' },
-                                onOk: async () => {
-                                  await removeTeam(team.id);
-                                  Message.success(t('team.sider.deleteSuccess'));
-                                  if (pathname.startsWith(`/team/${team.id}`)) {
-                                    Promise.resolve(navigate('/')).catch(() => {});
-                                  }
-                                },
-                                style: { borderRadius: '12px' },
-                                alignCenter: true,
-                                getPopupContainer: () => document.body,
-                              });
-                            }
-                          }}
-                          onClick={() => {
-                            cleanupSiderTooltips();
-                            blurActiveElement();
-                            Promise.resolve(navigate(`/team/${team.id}`)).catch(console.error);
-                            if (onSessionClick) onSessionClick();
-                          }}
-                        />
-                      );
-                    })}
-                </div>
-              )}
+                ))}
               {/* Scheduled section */}
               {!collapsed && (
                 <CronJobSiderSection jobs={cronJobs} pathname={pathname} onNavigate={handleCronNavigate} />
