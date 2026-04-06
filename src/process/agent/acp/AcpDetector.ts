@@ -293,8 +293,10 @@ class AcpDetector {
     this.detectedAgents = this.detectedAgents.filter((a) => a.backend === 'gemini' || a.backend === 'custom');
     const builtinAgents = await this.detectBuiltinAgents();
     const newBuiltins = builtinAgents.map((a) => a.backend);
-    // Prepend so builtin priority is preserved after deduplicate
-    this.detectedAgents = this.deduplicate([...builtinAgents, ...this.detectedAgents]);
+    // Keep Gemini first, then builtins, then the rest (same order as initialize)
+    const gemini = this.detectedAgents.find((a) => a.backend === 'gemini');
+    const rest = this.detectedAgents.filter((a) => a.backend !== 'gemini');
+    this.detectedAgents = this.deduplicate([...(gemini ? [gemini] : []), ...builtinAgents, ...rest]);
 
     const added = newBuiltins.filter((b) => !oldBuiltins.includes(b));
     const removed = oldBuiltins.filter((b) => !newBuiltins.includes(b));
