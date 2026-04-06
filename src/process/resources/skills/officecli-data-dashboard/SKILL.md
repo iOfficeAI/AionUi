@@ -1,4 +1,5 @@
 ---
+# officecli: v1.0.24
 name: officecli-data-dashboard
 description: "Use this skill when the user wants to create a data dashboard, analytics dashboard, KPI dashboard, or executive summary from CSV/tabular data in Excel format. Trigger on: 'dashboard', 'KPI report', 'analytics summary', 'data visualization', 'CSV to Excel dashboard', 'executive dashboard', 'metrics dashboard'. Output is always a single .xlsx file."
 ---
@@ -132,7 +133,21 @@ Read [creating.md](creating.md) and follow it step by step. It contains the comp
 
 ---
 
+## Adjustments After Creation
+
+When the user requests changes after the dashboard is built:
+
+| Request                    | Command                                                                     |
+| -------------------------- | --------------------------------------------------------------------------- |
+| Swap two sheets            | `officecli swap dashboard.xlsx '/Dashboard' '/Data'`                        |
+| Move a sheet after another | `officecli move dashboard.xlsx '/Summary' --after '/Dashboard'`             |
+| Edit a cell value          | `officecli set dashboard.xlsx '/Dashboard/A1' --prop value="..."`           |
+| Find & replace text        | `officecli set dashboard.xlsx / --prop find=OldText --prop replace=NewText` |
+| Update chart data          | `officecli set dashboard.xlsx '/Dashboard/chart[N]' --prop data="A1:D10"`   |
+
+---
+
 ## References
 
 - [creating.md](creating.md) -- Complete dashboard creation guide (the main skill file)
-- [xlsx SKILL.md](../xlsx/SKILL.md) -- General xlsx reading, editing, and QA reference
+- [xlsx SKILL.md](../officecli-xlsx/SKILL.md) -- General xlsx reading, editing, and QA reference
