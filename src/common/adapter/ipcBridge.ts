@@ -515,7 +515,7 @@ export const mcpService = {
   testMcpConnection: bridge.buildProvider<
     IBridgeResponse<{
       success: boolean;
-      tools?: Array<{ name: string; description?: string }>;
+      tools?: Array<{ name: string; description?: string; _meta?: Record<string, unknown> }>;
       error?: string;
       needsAuth?: boolean;
       authMethod?: 'oauth' | 'basic';
