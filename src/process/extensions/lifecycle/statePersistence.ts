@@ -171,8 +171,7 @@ export async function markExtensionForReinstall(extensionName: string): Promise<
   const states = await loadPersistedStates();
   const state = states.get(extensionName);
   if (state) {
-    state.installed = false;
-    states.set(extensionName, state);
+    states.set(extensionName, { ...state, installed: false });
     savePersistedStates(states);
   }
 }
