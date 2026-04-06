@@ -353,7 +353,7 @@ export class TeamMcpServer {
     const name = String(args.name ?? '');
     const agentType = args.agent_type ? String(args.agent_type) : undefined;
     // Team mode whitelist: only verified backends that support MCP tool injection
-    const TEAM_ALLOWED = new Set(['claude', 'codex', 'codebuddy']);
+    const TEAM_ALLOWED = new Set(['claude', 'codex']);
     if (agentType && !TEAM_ALLOWED.has(agentType)) {
       throw new Error(
         `Agent type "${agentType}" is not supported in team mode. Supported: ${[...TEAM_ALLOWED].join(', ')}.`
