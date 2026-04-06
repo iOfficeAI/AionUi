@@ -166,7 +166,7 @@ export class TeammateManager extends EventEmitter {
       }
 
       // Only show team-verified backends in the leader's available agent types
-      const TEAM_ALLOWED_BACKENDS = new Set(['claude', 'codex', 'codebuddy']);
+      const TEAM_ALLOWED_BACKENDS = new Set(['claude', 'codex']);
       const availableAgentTypes = acpDetector
         .getDetectedAgents()
         .filter((a) => TEAM_ALLOWED_BACKENDS.has(a.backend))

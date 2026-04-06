@@ -22,7 +22,7 @@ export function resolveTeamAgentType(agent: AvailableAgent | undefined, fallback
  * Other ACP backends may share the same code path but have not been
  * verified to correctly handle mcpServers in session/new.
  */
-export const TEAM_SUPPORTED_BACKENDS = new Set(['claude', 'codex', 'codebuddy']);
+export const TEAM_SUPPORTED_BACKENDS = new Set(['claude', 'codex']);
 
 /**
  * Check if an agent backend is supported in team mode.
