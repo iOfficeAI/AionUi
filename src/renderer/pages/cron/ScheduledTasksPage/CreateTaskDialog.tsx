@@ -398,7 +398,6 @@ const CreateTaskDialog: React.FC<CreateTaskDialogProps> = ({
             <Radio.Group
               value={executionMode}
               onChange={(value) => setExecutionMode(value as ExecutionMode)}
-              disabled={isEditMode}
               className='flex flex-wrap items-center gap-20px'
             >
               {executionModeOptions.map((option) => {

@@ -51,6 +51,17 @@ export class WorkerTaskManagerJobExecutor implements ICronJobExecutor {
     // - existing mode with empty conversationId: first execution creates the shared conversation
     // - existing mode with deleted conversation: recreate to avoid "not found" errors
     if (!preparedConversationId && job.metadata.agentConfig) {
+      // For existing mode with no conversationId, try to find the latest child conversation
+      // (handles "new_conversation -> existing" mode switch)
+      if (!conversationId && job.target.executionMode === 'existing') {
+        const convService = await getConversationService();
+        const childConversations = await convService.getConversationsByCronJob(job.id);
+        if (childConversations.length > 0) {
+          // Use the most recent conversation (already sorted by created_at DESC)
+          conversationId = childConversations[0].id;
+        }
+      }
+
       let needsCreate = job.target.executionMode === 'new_conversation' || !conversationId;
 
       // For existing mode, verify the conversation still exists (may have been deleted by user)
@@ -287,35 +298,51 @@ export class WorkerTaskManagerJobExecutor implements ICronJobExecutor {
 
   /**
    * Resolve a TProviderWithModel for the given backend from user's configured providers.
+   * Reads preferredModelId from user settings to match guid page behavior.
    */
   private async resolveModelForBackend(backend: string): Promise<TProviderWithModel> {
     const providers = await ProcessConfig.get('model.config');
     const providerList = (providers && Array.isArray(providers) ? providers : []) as unknown as TProviderWithModel[];
 
+    // Read preferred model ID from user config
+    let preferredModelId: string | undefined;
+    if (backend === 'gemini') {
+      const geminiConfig = await ProcessConfig.get('gemini.config');
+      preferredModelId = geminiConfig?.preferredModelId as string | undefined;
+    } else {
+      const acpConfig = await ProcessConfig.get('acp.config');
+      preferredModelId = (acpConfig?.[backend as AcpBackendAll] as Record<string, unknown>)?.preferredModelId as
+        | string
+        | undefined;
+    }
+
     // For gemini, prefer google-auth provider
     if (backend === 'gemini') {
       const googleAuth = providerList.find((p) => p.platform === 'gemini-with-google-auth' || p.platform === 'gemini');
       if (googleAuth) {
-        return { ...googleAuth, useModel: googleAuth.useModel || 'auto' } as TProviderWithModel;
+        const useModel = preferredModelId || googleAuth.useModel || 'auto';
+        return { ...googleAuth, useModel } as TProviderWithModel;
       }
     }
 
     // For other backends, find a matching provider
     const match = providerList.find((p) => p.platform === backend || p.id === backend);
     if (match) {
-      return { ...match, useModel: match.useModel || 'auto' } as TProviderWithModel;
+      const useModel = preferredModelId || match.useModel || 'auto';
+      return { ...match, useModel } as TProviderWithModel;
     }
 
     // Fallback: return first available provider
     if (providerList.length > 0) {
-      return { ...providerList[0], useModel: providerList[0].useModel || 'auto' } as TProviderWithModel;
+      const useModel = preferredModelId || providerList[0].useModel || 'auto';
+      return { ...providerList[0], useModel } as TProviderWithModel;
     }
 
     // Last resort placeholder
     return {
       id: `${backend}-fallback`,
       name: backend,
-      useModel: 'auto',
+      useModel: preferredModelId || 'auto',
       platform: backend,
       baseUrl: '',
       apiKey: '',
