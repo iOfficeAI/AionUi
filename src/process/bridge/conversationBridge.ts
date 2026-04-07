@@ -9,6 +9,7 @@ import type { TChatConversation } from '@/common/config/storage';
 import type { IAgentManager } from '@process/task/IAgentManager';
 import type { IConversationService, CreateConversationParams } from '@process/services/IConversationService';
 import type { IWorkerTaskManager } from '@process/task/IWorkerTaskManager';
+import type { TeamSessionService } from '@process/team/TeamSessionService';
 import { ipcBridge } from '@/common';
 import { removeFromMessageCache } from '@process/utils/message';
 import {
@@ -51,7 +52,8 @@ const VALID_CONVERSATION_TYPES = new Set<TChatConversation['type']>([
 
 export function initConversationBridge(
   conversationService: IConversationService,
-  workerTaskManager: IWorkerTaskManager
+  workerTaskManager: IWorkerTaskManager,
+  teamSessionService?: TeamSessionService
 ): void {
   const sideQuestionService = new ConversationSideQuestionService(conversationService);
 
@@ -316,6 +318,13 @@ export function initConversationBridge(
   // flag) to avoid triggering the sidebar loading spinner prematurely.
   ipcBridge.conversation.warmup.provider(async ({ conversation_id }) => {
     try {
+      if (teamSessionService) {
+        const conversation = await conversationService.getConversation(conversation_id);
+        const teamId = (conversation?.extra as { teamId?: string } | undefined)?.teamId;
+        if (teamId) {
+          await teamSessionService.getOrStartSession(teamId);
+        }
+      }
       const task = await workerTaskManager.getOrBuildTask(conversation_id);
       if (task && task.type === 'acp') {
         await (task as unknown as AcpAgentManager).initAgent();
