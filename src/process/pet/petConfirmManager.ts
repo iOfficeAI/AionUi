@@ -98,7 +98,8 @@ function translateConfirmation<T>(
 }
 
 /**
- * Create confirm window positioned above pet window.
+ * Create confirm window anchored to the bottom-right corner of the pet's display,
+ * or at the user's last dragged position if overridden this session.
  */
 function createConfirmWindow(): void {
   if (confirmWindow && !confirmWindow.isDestroyed()) {
@@ -117,8 +118,10 @@ function createConfirmWindow(): void {
   //   1. userPosition (if user has dragged the window this session)
   //   2. Default bottom-right corner of the display where the pet currently lives
   //
-  // Pick the work area of the display nearest to the pet's center point so that
-  // the confirm window appears on the same screen as the pet (multi-monitor safe).
+  // When restoring a user-provided position, clamp within the display nearest to
+  // that position so the window stays on the monitor where the user placed it.
+  // Otherwise, use the display nearest to the pet's center point so the default
+  // placement appears on the same screen as the pet (multi-monitor safe).
   // Falls back to the primary display when no anchor is known yet.
   const petCenter = anchorBounds
     ? {
@@ -126,16 +129,28 @@ function createConfirmWindow(): void {
         y: anchorBounds.y + Math.round(anchorBounds.height / 2),
       }
     : null;
-  const workArea = petCenter ? screen.getDisplayNearestPoint(petCenter).workArea : screen.getPrimaryDisplay().workArea;
   // margin = 0: the window itself touches the screen edge. The 6px shadow
   // padding inside the renderer keeps the visible card ~6px from the edge,
   // which matches clawd-on-desk's tight bottom-right anchoring.
   const margin = 0;
-  const defaultX = workArea.x + workArea.width - windowWidth - margin;
-  const defaultY = workArea.y + workArea.height - windowHeight - margin;
 
-  const rawX = userPosition?.x ?? defaultX;
-  const rawY = userPosition?.y ?? defaultY;
+  let workArea: Electron.Rectangle;
+  let rawX: number;
+  let rawY: number;
+
+  if (userPosition) {
+    // Clamp to the display where the user last placed the window, not the pet's display
+    rawX = userPosition.x;
+    rawY = userPosition.y;
+    workArea = screen.getDisplayNearestPoint({ x: rawX, y: rawY }).workArea;
+  } else {
+    workArea = petCenter
+      ? screen.getDisplayNearestPoint(petCenter).workArea
+      : screen.getPrimaryDisplay().workArea;
+    rawX = workArea.x + workArea.width - windowWidth - margin;
+    rawY = workArea.y + workArea.height - windowHeight - margin;
+  }
+
   const x = Math.max(workArea.x, Math.min(rawX, workArea.x + workArea.width - windowWidth));
   const y = Math.max(workArea.y, Math.min(rawY, workArea.y + workArea.height - windowHeight));
 
@@ -288,6 +303,11 @@ function registerIpcHandlers(): void {
 
   ipcMain.on('pet:confirm-drag-start', () => {
     if (!confirmWindow || confirmWindow.isDestroyed()) return;
+    // Clear any stale timer from a previous drag-start that missed its drag-end
+    if (confirmDragTimer) {
+      clearInterval(confirmDragTimer);
+      confirmDragTimer = null;
+    }
     const cursor = screen.getCursorScreenPoint();
     const [wx, wy] = confirmWindow.getPosition();
     confirmDragOffsetX = cursor.x - wx;
