@@ -363,7 +363,7 @@ export const useMessageLstCache = (key: string) => {
       .invoke({
         conversation_id: key,
         page: 0,
-        pageSize: 200, // Load recent messages first; older ones can be loaded on scroll
+        pageSize: 10000, // TODO: reduce once scroll-based load-more is implemented
       })
       .then((messages) => {
         if (messages && Array.isArray(messages)) {

@@ -41,7 +41,7 @@ export class DatabaseProxy {
       }
     });
     this.worker.on('error', (err) => {
-      // Reject all pending requests
+      this.closed = true;
       for (const [, entry] of this.pending) {
         entry.reject(err);
       }
@@ -64,25 +64,32 @@ export class DatabaseProxy {
       console.log('[DatabaseProxy] starting worker at:', workerPath, '__dirname:', __dirname);
       const worker = new Worker(workerPath, { workerData: { dbPath } });
 
+      const onExit = (code: number) => {
+        worker.off('message', onMessage);
+        worker.off('error', onError);
+        if (code !== 0) {
+          reject(new Error(`Database worker exited unexpectedly with code ${code}`));
+        }
+      };
       const onMessage = (msg: DbWorkerResponse) => {
         console.log('[DatabaseProxy] worker message:', msg.type, msg.id);
         if (msg.type === 'ready') {
           console.log('[DatabaseProxy] worker ready!');
           worker.off('message', onMessage);
           worker.off('error', onError);
+          worker.off('exit', onExit);
           resolve(new DatabaseProxy(worker));
         }
       };
       const onError = (err: Error) => {
         console.error('[DatabaseProxy] worker error:', err.message);
         worker.off('message', onMessage);
+        worker.off('exit', onExit);
         reject(err);
       };
       worker.on('message', onMessage);
       worker.on('error', onError);
-      worker.on('exit', (code) => {
-        console.log('[DatabaseProxy] worker exited with code:', code);
-      });
+      worker.on('exit', onExit);
     });
   }
 
