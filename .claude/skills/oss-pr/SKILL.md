@@ -108,20 +108,28 @@ If push fails due to remote rejection, inform user. **NEVER force-push** without
 
 ### Step 5: Create Pull Request
 
-Run `git log main..HEAD --oneline` and `git diff main...HEAD` to understand all changes, then:
+Run `git log main..HEAD --oneline` and `git diff main...HEAD` to understand all changes.
+
+**Use the repository PR template** at [`.github/pull_request_template.md`](../../../.github/pull_request_template.md) — `gh pr create` picks it up automatically when `--body` is omitted, or you can pass `--body-file .github/pull_request_template.md` and fill it in.
+
+**UI changes:** if `git diff --name-only main...HEAD` includes any file under `src/renderer/`, you must fill in the **"UI CHANGES" block** inside the PR template (Reference Components, Reuse Rationale, Screenshots, Self-check). Read [docs/conventions/ui-context.md](../../../docs/conventions/ui-context.md) first and confirm the change complies with the 7 hard rules at the top.
+
+If the renderer change is genuinely non-visual (e.g. only touches `src/renderer/i18n/types.ts` or a pure type file), replace the UI block content with a single line `> No visual changes — non-UI renderer edit` rather than fabricating evidence.
+
+If no `src/renderer/` files were changed, delete the entire UI CHANGES block from the PR body.
+
+**Workflow:** prepare the filled-in PR body in a temp file first, then create the PR with that body in one shot — do not create with the raw template and forget to fill it.
 
 ```bash
-gh pr create --title "<pr-title>" --body "$(cat <<'EOF'
-## Summary
+# 1. Copy the template into a temp file and edit it (fill in / delete UI block)
+cp .github/pull_request_template.md /tmp/pr-body.md
+# ... edit /tmp/pr-body.md to fill placeholders or delete the UI CHANGES block ...
 
-<1-3 bullet points>
-
-## Test plan
-
-- [ ] <verification steps>
-EOF
-)"
+# 2. Create the PR with the filled body
+gh pr create --title "<pr-title>" --body-file /tmp/pr-body.md
 ```
+
+**Important:** never run `gh pr create --body-file .github/pull_request_template.md` directly — that publishes a PR with unfilled `<placeholder>` text. Always edit a temp copy first.
 
 **PR title:** under 70 characters, `<type>(<scope>): <description>` format. Reuse commit message if single commit.
 
@@ -140,6 +148,8 @@ Output the PR URL when done.
 2. bunx vitest run
 3. Commit (conventional commits, no AI attribution)
 4. git push -u origin <branch>
-5. gh pr create
+5. gh pr create (uses .github/pull_request_template.md)
+   - if any src/renderer/ file changed → fill the "UI CHANGES" block in the template
+   - else → delete the UI CHANGES block from the PR body
 6. Output PR URL
 ```
