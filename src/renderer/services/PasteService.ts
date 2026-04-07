@@ -40,6 +40,48 @@ async function createTempFile(
 
 type PasteHandler = (event: React.ClipboardEvent | ClipboardEvent) => Promise<boolean>;
 
+/**
+ * Heuristic: does the pasted text look like code or a log dump?
+ * Used to decide whether to auto-wrap the paste in a Markdown code fence
+ * so the renderer doesn't mis-interpret it as Markdown formatting.
+ */
+export function looksLikeCode(text: string): boolean {
+  if (!text) return false;
+  const lines = text.split('\n');
+  // Single-line snippets are usually URLs or short messages — don't wrap.
+  if (lines.length < 3) return false;
+
+  // Strong code signals: any line containing common syntax markers.
+  const codePatterns = [
+    /^\s*(import|from|def|class|function|const|let|var|public|private|export)\b/m,
+    /^\s*(if|else|elif|for|while|switch|case|try|catch|return)\b.*[:{(]/m,
+    /[{}();]\s*$/m, // line ending in {, }, (, ), ; — common in C-family code
+    /^\s*[#/]{1,3}\s/m, // # comments (Python/shell), // comments (JS/C)
+    /^\s{2,}\S/m, // any line with 2+ leading spaces (indented code)
+    /^\s*\t/m, // any line with leading tab
+    /^>>>\s/m, // Python REPL prompt
+    /^\$\s/m, // shell prompt
+    /^[A-Z][A-Z_]+=/m, // shell env var assignment
+    /^\s*<\/?[a-zA-Z][^>]*>/m, // HTML/XML tags
+  ];
+
+  return codePatterns.some((re) => re.test(text));
+}
+
+/**
+ * Wrap text in a Markdown fenced code block, choosing a fence length that
+ * does not collide with any backtick run inside the text.
+ */
+export function wrapInCodeFence(text: string): string {
+  const matches = text.match(/`+/g) || [];
+  let longestRun = 0;
+  for (const run of matches) {
+    if (run.length > longestRun) longestRun = run.length;
+  }
+  const fence = '`'.repeat(Math.max(3, longestRun + 1));
+  return `${fence}\n${text}\n${fence}`;
+}
+
 // MIME 类型到文件扩展名的映射
 function getExtensionFromMimeType(mimeType: string): string {
   const mimeMap: Record<string, string> = {
@@ -288,7 +330,14 @@ class PasteServiceClass {
       }
       if (onTextPaste) {
         // 清理文本中多余的换行符，特别是末尾的换行符
-        const cleanedText = clipboardText.replace(/\n\s*$/, '');
+        let cleanedText = clipboardText.replace(/\n\s*$/, '');
+        // 如果粘贴内容看起来像代码/日志，自动包成 Markdown 代码块，
+        // 否则消息历史里的 ">"/"*"/"_" 会被当成 blockquote/emphasis 错误渲染。
+        // If the pasted text looks like code/log, wrap it in a fenced code block
+        // so the message history doesn't mis-render ">"/"*"/"_" as Markdown.
+        if (looksLikeCode(cleanedText)) {
+          cleanedText = wrapInCodeFence(cleanedText);
+        }
         onTextPaste(cleanedText);
         return true; // 已处理，阻止默认行为
       }
