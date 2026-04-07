@@ -274,6 +274,18 @@ Review dimensions:
 - **数据库变更** — 若 PR 涉及 migration 文件或数据库 schema：(1) migration 是否正确（字段类型、约束、索引、默认值、可回滚性）；(2) 变更是否合理且与 PR 目标一致；(3) 对现有数据是否有丢失风险；(4) migration 顺序和依赖是否正确。不正确的 migration 标记为 CRITICAL。
 - **IPC bridge / preload** — 若 PR 涉及 `src/preload.ts` 或 IPC channel 定义：(1) 是否暴露了不必要的 Node.js API 给 renderer；(2) 所有暴露的 API 是否有输入校验；(3) renderer 是否能在无授权情况下触发特权操作。暴露不安全 API 标记为 CRITICAL。
 - **Electron 安全配置** — 若 PR 涉及 `electron-builder.yml`、`entitlements.plist` 或 `electron.vite.config.ts` 中的 Electron 配置：(1) sandbox/nodeIntegration/contextIsolation 设置是否被弱化；(2) entitlements 是否授权过度；(3) 签名和公证是否被破坏。安全回退标记为 CRITICAL。
+- **UI 规范合规** — 若 PR 改动了任何 `src/renderer/` 下的文件，对照 [docs/conventions/ui-context.md](../../../docs/conventions/ui-context.md) 检查，遇到以下任意一项必须报告（默认级别 HIGH，PR body 完全未提及 UI 规范则升级为 CRITICAL）：
+  - PR body 缺少 `Reference Components`（少于 2 个现有 AionUi 文件）或 `Reuse Rationale`
+  - 缺少 desktop + mobile、light + dark 截图
+  - 代码中硬编码颜色 / 圆角 / 阴影 / 间距，而存在可用的 token 或现有模式
+  - 间距未落在 `4 / 8 / 12 / 16 / 24 / 32` 节奏内且无注释说明
+  - 只支持 light 或 dark 单一主题
+  - 缺少必要的状态处理（hover/focus/disabled/loading/error/empty）
+  - 用户可见文案硬编码字符串，未使用 i18n key
+  - 引入第二套 UI 库（shadcn/ui、MUI、Mantine 等），而 PR 中无单独的预先讨论
+  - 仅桌面端实现，未考虑移动端布局
+  - 新建了视觉模式但未在 Reuse Rationale 中说明为什么 reuse 不够用
+    纯非视觉的 renderer 改动（如仅修改 `src/renderer/i18n/types.ts` 或纯类型文件）可豁免，但必须在 review 报告中明确指出"无视觉改动，跳过 UI 维度"。
 - **测试** — 对照 [testing skill](../testing/SKILL.md) 的标准评估，以下任一情况须指出：
   - 新增功能没有对应测试用例
   - 修改了逻辑但未更新已有相关测试
