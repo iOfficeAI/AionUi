@@ -20,7 +20,7 @@ interface CronJobSiderSectionProps {
 
 const CronJobSiderSection: React.FC<CronJobSiderSectionProps> = ({ jobs, pathname, onNavigate }) => {
   const { t } = useTranslation();
-  const [expanded, setExpanded] = useState(true);
+  const [expanded, setExpanded] = useState(false);
 
   // Batch-fetch conversations for all "existing" mode jobs to avoid N+1 IPC calls
   const existingModeConvIds = useMemo(

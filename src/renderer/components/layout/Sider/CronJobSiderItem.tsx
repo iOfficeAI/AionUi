@@ -184,32 +184,34 @@ const CronJobSiderItem: React.FC<CronJobSiderItemProps> = ({
   const hasChildren = childConversations.length > 0;
 
   return (
-    <div className='min-w-0 px-8px'>
+    <div className='min-w-0'>
       {/* Header - arrow toggles expand, text navigates to detail */}
       <div
         className={classNames(
-          'flex items-center ml-2px gap-8px h-32px p-4px rd-4px transition-colors min-w-0',
+          'flex items-center gap-8px h-40px px-10px rd-8px transition-colors min-w-0',
           pathname === `/scheduled/${job.id}` ? 'bg-[rgba(var(--primary-6),0.12)]' : 'hover:bg-fill-3 active:bg-fill-4'
         )}
       >
-        {/* Expand/collapse arrow */}
-        {hasChildren && (
-          <Down
-            size={16}
-            className={classNames(
-              'line-height-0 transition-transform duration-200 flex-shrink-0 cursor-pointer',
-              expanded ? 'rotate-0' : '-rotate-90'
-            )}
-            onClick={(e) => {
-              e.stopPropagation();
-              setExpanded((prev) => !prev);
-            }}
-          />
-        )}
+        {/* Expand/collapse arrow — fixed 28px column to align with sibling rows' icons */}
+        <span className='w-28px h-28px flex items-center justify-center shrink-0'>
+          {hasChildren && (
+            <Down
+              size={16}
+              className={classNames(
+                'line-height-0 transition-transform duration-200 cursor-pointer',
+                expanded ? 'rotate-0' : '-rotate-90'
+              )}
+              onClick={(e) => {
+                e.stopPropagation();
+                setExpanded((prev) => !prev);
+              }}
+            />
+          )}
+        </span>
 
         {/* Title - click to navigate to task detail */}
         <div
-          className='flex-1 ml-6px min-w-0 overflow-hidden cursor-pointer'
+          className='flex-1 min-w-0 overflow-hidden cursor-pointer'
           onClick={() => onNavigate(`/scheduled/${job.id}`)}
         >
           <div className='flex items-center gap-8px text-14px min-w-0'>
@@ -220,8 +222,8 @@ const CronJobSiderItem: React.FC<CronJobSiderItemProps> = ({
 
       {/* Child conversations using ConversationRow */}
       {expanded && hasChildren && (
-        <div className='ml-8px'>
-          <div className='flex flex-col gap-2px min-w-0 mt-4px'>
+        <div className='pl-20px'>
+          <div className='flex flex-col gap-2px min-w-0 mt-2px'>
             {childConversations.map((conv) => (
               <ConversationRow
                 key={conv.id}

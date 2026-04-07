@@ -4,7 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { Down, FolderClose, FolderOpen } from '@icon-park/react';
+import { FolderClose, FolderOpen } from '@icon-park/react';
 import classNames from 'classnames';
 import React from 'react';
 
@@ -42,24 +42,26 @@ const WorkspaceCollapse: React.FC<WorkspaceCollapseProps> = ({
       {/* 折叠头部 - 侧栏折叠时隐藏 */}
       {!siderCollapsed && (
         <div
-          className='flex items-center ml-2px gap-8px h-32px p-4px cursor-pointer hover:bg-hover rd-4px transition-colors min-w-0'
+          className='flex items-center gap-8px h-40px px-10px cursor-pointer hover:bg-[rgba(var(--primary-6),0.14)] rd-8px transition-colors min-w-0'
           onClick={onToggle}
         >
-          {/* 展开/收起文件夹图标 */}
-          {expanded ? (
-            <FolderOpen size={16} className='line-height-0 flex-shrink-0' />
-          ) : (
-            <FolderClose size={16} className='line-height-0 flex-shrink-0' />
-          )}
+          {/* 展开/收起文件夹图标 — 28px 容器与其他 sider 行对齐 */}
+          <span className='w-28px h-28px flex items-center justify-center shrink-0'>
+            {expanded ? (
+              <FolderOpen size={20} className='line-height-0' />
+            ) : (
+              <FolderClose size={20} className='line-height-0' />
+            )}
+          </span>
 
           {/* 标题内容 */}
-          <div className='flex-1 ml-6px min-w-0 overflow-hidden'>{header}</div>
+          <div className='flex-1 min-w-0 overflow-hidden'>{header}</div>
         </div>
       )}
 
-      {/* 折叠内容 - 侧栏折叠时移除左边距 */}
+      {/* 折叠内容 - 子项缩进 20px,使子项 icon 中心落在父级文字起点附近,形成清晰的层级 */}
       {showContent && (
-        <div className={classNames('workspace-collapse-content min-w-0', { 'ml-8px': !siderCollapsed })}>
+        <div className={classNames('workspace-collapse-content min-w-0', { 'pl-20px': !siderCollapsed })}>
           {children}
         </div>
       )}

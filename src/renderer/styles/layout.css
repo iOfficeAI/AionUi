@@ -7,6 +7,27 @@
   border-right: 1px solid var(--border-base);
 }
 
+/* Arco Layout inner container needs flex layout so Header + Content + Footer
+   stack vertically and Content fills the remaining space (avoids a fixed
+   calc() that breaks when header height changes). */
+.layout-sider > .arco-layout-sider-children {
+  display: flex !important;
+  flex-direction: column !important;
+  flex: 1 !important;
+  min-height: 0 !important;
+  height: 100% !important;
+}
+
+.layout-sider-header {
+  flex-shrink: 0 !important;
+}
+
+.layout-sider-content {
+  flex: 1 !important;
+  min-height: 0 !important;
+  height: auto !important;
+}
+
 .layout-sider.collapsed .arco-layout-sider-children,
 .layout-sider.arco-layout-sider-collapsed .arco-layout-sider-children {
   overflow-x: hidden;
@@ -137,20 +158,6 @@
     box-sizing: border-box !important;
   }
 
-  /* Arco Layout inner container needs flex layout */
-  .layout-sider > .arco-layout-sider-children {
-    display: flex !important;
-    flex-direction: column !important;
-    flex: 1 !important;
-    min-height: 0 !important;
-    height: auto !important;
-  }
-
-  /* Sidebar header fixed height */
-  .layout-sider-header {
-    flex-shrink: 0 !important;
-  }
-
   .layout-sider-header--mobile {
     min-height: 72px !important;
     padding-top: 14px !important;
@@ -158,11 +165,8 @@
     gap: 14px !important;
   }
 
-  /* Sidebar content area fills remaining space */
+  /* Mobile-only: clip overflow instead of allowing scroll */
   .layout-sider-content {
-    flex: 1 !important;
-    min-height: 0 !important;
-    height: auto !important;
     overflow: hidden !important;
   }
 
