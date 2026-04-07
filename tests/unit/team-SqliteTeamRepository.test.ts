@@ -222,9 +222,7 @@ describeOrSkip('SqliteTeamRepository', () => {
     });
 
     it('throws for nonexistent task', async () => {
-      await expect(repo.removeFromBlockedBy('nonexistent', 't0')).rejects.toThrow(
-        'Task "nonexistent" not found',
-      );
+      await expect(repo.removeFromBlockedBy('nonexistent', 't0')).rejects.toThrow('Task "nonexistent" not found');
     });
   });
 });
