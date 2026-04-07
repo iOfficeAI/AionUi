@@ -463,6 +463,14 @@ export function initConversationBridge(
   // 通用 sendMessage 实现 - 统一调用 IAgentManager.sendMessage
   // Generic sendMessage - dispatches via IAgentManager.sendMessage interface
   ipcBridge.conversation.sendMessage.provider(async (params) => {
+    // Notify pet of user sending message (pre-emptive thinking)
+    try {
+      const { getEventBridge } = await import('../pet/petManager');
+      getEventBridge()?.handleUserSendMessage();
+    } catch {
+      /* pet not initialized */
+    }
+
     if (!params) {
       return { success: false, msg: 'Missing request parameters' };
     }

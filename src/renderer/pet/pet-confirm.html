@@ -1,0 +1,160 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="UTF-8" />
+    <style>
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+
+      /* Light theme (default) */
+      :root {
+        --card-bg: #ffffff;
+        /* Soft layered shadow — gentle falloff, clearly visible on white backgrounds.
+           Matches clawd-on-desk's bubble shadow intensity. */
+        --card-shadow: 0 4px 16px rgba(0, 0, 0, 0.12), 0 1px 3px rgba(0, 0, 0, 0.08);
+        --card-border: rgba(0, 0, 0, 0.08);
+        --text-primary: #1d2129;
+        --text-secondary: #86909c;
+        --border: #e5e6eb;
+        --bg-hover: #f3f4f6;
+        --shortcut-bg: rgba(229, 230, 235, 0.6);
+        --shortcut-text: #86909c;
+      }
+
+      /* Dark theme */
+      [data-theme='dark'] {
+        --card-bg: #262626;
+        --card-shadow: 0 4px 16px rgba(0, 0, 0, 0.3), 0 1px 3px rgba(0, 0, 0, 0.2);
+        --card-border: rgba(255, 255, 255, 0.08);
+        --text-primary: #e5e5e5;
+        --text-secondary: #a6a6a6;
+        --border: #333333;
+        --bg-hover: #333333;
+        --shortcut-bg: rgba(64, 64, 64, 0.6);
+        --shortcut-text: #a6a6a6;
+      }
+
+      html,
+      body {
+        width: 100%;
+        height: 100%;
+        overflow: hidden;
+        background: transparent;
+        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Helvetica Neue', Arial, sans-serif;
+        font-size: 13px;
+      }
+      #container {
+        width: 100%;
+        height: 100%;
+        /* Leave room around the card so the drop shadow can render outside the card.
+           6px matches clawd-on-desk for a tight bottom-right anchor while keeping
+           enough breathing room for the box-shadow to render. */
+        padding: 6px;
+        display: flex;
+        flex-direction: column;
+      }
+      #card {
+        background: var(--card-bg);
+        border: 1px solid var(--card-border);
+        border-radius: 16px;
+        padding: 16px;
+        box-shadow: var(--card-shadow);
+        color: var(--text-primary);
+        display: flex;
+        flex-direction: column;
+        max-height: 100%;
+      }
+      #drag-handle {
+        cursor: grab;
+        padding: 4px 0 8px;
+        display: flex;
+        justify-content: center;
+        flex-shrink: 0;
+      }
+      #drag-handle:active {
+        cursor: grabbing;
+      }
+      #drag-handle .grip {
+        width: 32px;
+        height: 4px;
+        border-radius: 2px;
+        background: var(--border);
+      }
+      #title {
+        font-size: 14px;
+        font-weight: 600;
+        color: var(--text-primary);
+        margin-bottom: 8px;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+        flex-shrink: 0;
+      }
+      #description {
+        font-size: 13px;
+        line-height: 1.5;
+        color: var(--text-secondary);
+        margin-bottom: 12px;
+        word-wrap: break-word;
+        overflow-y: auto;
+        flex-shrink: 1;
+        min-height: 0;
+      }
+      #options {
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+        flex-shrink: 0;
+      }
+      .option-btn {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        padding: 0 12px;
+        height: 30px;
+        line-height: 30px;
+        border: 1px solid var(--border);
+        border-radius: 8px;
+        background: var(--card-bg);
+        color: var(--text-primary);
+        font-size: 13px;
+        cursor: pointer;
+        transition: background 0.15s ease;
+        user-select: none;
+      }
+      .option-btn:hover {
+        background: var(--bg-hover);
+      }
+      .option-btn:active {
+        transform: scale(0.98);
+      }
+      .shortcut {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        padding: 0 4px;
+        height: 18px;
+        border-radius: 4px;
+        background: var(--shortcut-bg);
+        font-size: 11px;
+        color: var(--shortcut-text);
+        font-family: monospace;
+        flex-shrink: 0;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="container">
+      <div id="card">
+        <div id="drag-handle"><div class="grip"></div></div>
+        <div id="title"></div>
+        <div id="description"></div>
+        <div id="options"></div>
+      </div>
+    </div>
+    <script type="module" src="./petConfirmRenderer.ts"></script>
+  </body>
+</html>

@@ -24,6 +24,12 @@ const adapterWindowList: Array<BrowserWindow> = [];
 
 export { registerWebSocketBroadcaster, getBridgeEmitter };
 
+let petNotifyHook: ((name: string, data: unknown) => void) | null = null;
+
+export const setPetNotifyHook = (hook: ((name: string, data: unknown) => void) | null): void => {
+  petNotifyHook = hook;
+};
+
 /**
  * @description 建立与每一个browserWindow的通信桥梁
  * */
@@ -32,6 +38,15 @@ const MAX_IPC_PAYLOAD_SIZE = 50 * 1024 * 1024;
 
 bridge.adapter({
   emit(name, data) {
+    // Notify pet (if hook is set)
+    if (petNotifyHook) {
+      try {
+        petNotifyHook(name, data);
+      } catch {
+        /* never crash */
+      }
+    }
+
     // 1. Send to all Electron BrowserWindows (skip destroyed ones)
     let serialized: string;
     try {

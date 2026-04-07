@@ -1,0 +1,36 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="UTF-8" />
+    <style>
+      * {
+        margin: 0;
+        padding: 0;
+      }
+      html,
+      body {
+        width: 100%;
+        height: 100%;
+        overflow: hidden;
+        background: transparent;
+      }
+      #hit {
+        position: absolute;
+        top: 10%;
+        left: 10%;
+        width: 80%;
+        height: 80%;
+        border-radius: 50%;
+        cursor: grab;
+        background: transparent;
+      }
+      #hit.dragging {
+        cursor: grabbing;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="hit"></div>
+    <script type="module" src="./petHitRenderer.ts"></script>
+  </body>
+</html>
