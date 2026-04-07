@@ -41,7 +41,7 @@ const SiderScheduledEntry: React.FC<SiderScheduledEntryProps> = ({
           <AlarmClock
             theme='outline'
             size='20'
-            fill={isActive ? 'rgb(var(--primary-6))' : 'currentColor'}
+            fill='currentColor'
             className='block leading-none shrink-0'
             style={{ lineHeight: 0 }}
           />
@@ -64,7 +64,7 @@ const SiderScheduledEntry: React.FC<SiderScheduledEntryProps> = ({
           <AlarmClock
             theme='outline'
             size='20'
-            fill={isActive ? 'rgb(var(--primary-6))' : 'currentColor'}
+            fill='currentColor'
             className='block leading-none'
             style={{ lineHeight: 0 }}
           />
