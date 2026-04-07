@@ -44,6 +44,7 @@
       "dispatch": "调度 Agent",
       "subAgents": "子 Agent",
       "workspace": "工作空间"
-    }
+    },
+    "error": "创建团队失败"
   }
 }

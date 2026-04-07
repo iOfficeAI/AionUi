@@ -26,7 +26,7 @@
     "today": "Bugün",
     "yesterday": "Dün",
     "recent7Days": "Son 7 Gün",
-    "earlier": "Daha Önce",
+    "earlier": "Daha Eski",
     "noHistory": "Sohbet geçmişi yok",
     "deleteTitle": "Sil",
     "deleteConfirm": "Bu sohbeti silmek istediğinizden emin misiniz?",
@@ -291,5 +291,9 @@
   },
   "noAgentsAvailable": "No agents available",
   "noModelConfigured": "No model configured. Please configure in settings.",
-  "createFailed": "Failed to create conversation"
+  "createFailed": "Failed to create conversation",
+  "thinking": {
+    "complete": "Düşünme tamamlandı",
+    "label": "Düşünüyor..."
+  }
 }

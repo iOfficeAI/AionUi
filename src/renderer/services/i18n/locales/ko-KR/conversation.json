@@ -289,5 +289,9 @@
     "request_sent": "에이전트에게 요청이 전송되었습니다",
     "failed": "생성 실패",
     "preset_registered": "에이전트 프리셋이 성공적으로 등록되었습니다!"
+  },
+  "thinking": {
+    "complete": "사고 완료",
+    "label": "생각 중..."
   }
 }

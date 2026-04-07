@@ -117,11 +117,13 @@ export class OpenAI2AnthropicConverter implements ProtocolConverter<
       request.system = systemMessage;
     }
 
-    // Add optional parameters
-    if (params.temperature !== undefined) {
+    // Add optional parameters — Anthropic API forbids sending both temperature and top_p
+    if (params.temperature !== undefined && params.top_p !== undefined) {
+      // When both are set, prefer temperature (more commonly configured by users)
       request.temperature = params.temperature;
-    }
-    if (params.top_p !== undefined) {
+    } else if (params.temperature !== undefined) {
+      request.temperature = params.temperature;
+    } else if (params.top_p !== undefined) {
       request.top_p = params.top_p;
     }
     if (params.stop) {
