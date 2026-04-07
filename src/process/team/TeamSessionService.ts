@@ -1,4 +1,5 @@
 // src/process/team/TeamSessionService.ts
+import { ipcBridge } from '@/common';
 import { uuid } from '@/common/utils';
 import { GOOGLE_AUTH_PROVIDER_ID } from '@/common/config/constants';
 import {
@@ -539,13 +540,24 @@ export class TeamSessionService {
       team.agents.map(async (agent) => {
         if (agent.conversationId) {
           const agentStdioConfig = session.getStdioConfig(agent.slotId);
-          await this.conversationService.updateConversation(
-            agent.conversationId,
-            { extra: { teamMcpStdioConfig: agentStdioConfig } } as any,
-            true
-          );
-          // Force-rebuild cached agent task so it reads the updated extra from DB
-          await this.workerTaskManager.getOrBuildTask(agent.conversationId, { skipCache: true });
+          try {
+            await this.conversationService.updateConversation(
+              agent.conversationId,
+              { extra: { teamMcpStdioConfig: agentStdioConfig } } as any,
+              true
+            );
+            // Force-rebuild cached agent task so it reads the updated extra from DB
+            await this.workerTaskManager.getOrBuildTask(agent.conversationId, { skipCache: true });
+          } catch (err) {
+            const error = err instanceof Error ? err.message : String(err);
+            console.error(`[TeamSessionService] Failed to write MCP config for agent ${agent.slotId}:`, error);
+            ipcBridge.team.mcpStatus.emit({
+              teamId: team.id,
+              slotId: agent.slotId,
+              phase: 'config_write_failed',
+              error,
+            });
+          }
         }
       })
     );

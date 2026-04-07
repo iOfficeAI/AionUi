@@ -15,7 +15,7 @@ import { acpDetector } from '@process/agent/acp/AcpDetector';
 type SpawnAgentFn = (agentName: string, agentType?: string) => Promise<TeamAgent>;
 
 /** Conversation types whose AgentManager supports MCP server injection via session/new */
-export const MCP_CAPABLE_TYPES = new Set(['acp']);
+export const MCP_CAPABLE_TYPES = new Set(['acp', 'gemini']);
 
 type TeammateManagerParams = {
   teamId: string;
@@ -166,7 +166,7 @@ export class TeammateManager extends EventEmitter {
       }
 
       // Only show team-verified backends in the leader's available agent types
-      const TEAM_ALLOWED_BACKENDS = new Set(['claude', 'codex']);
+      const TEAM_ALLOWED_BACKENDS = new Set(['claude', 'codex', 'gemini', 'codebuddy']);
       const availableAgentTypes = acpDetector
         .getDetectedAgents()
         .filter((a) => TEAM_ALLOWED_BACKENDS.has(a.backend))

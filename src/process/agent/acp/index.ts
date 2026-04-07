@@ -1513,6 +1513,19 @@ export class AcpAgent {
     const resumeConversationId = this.extra.acpSessionConversationId;
     const mcpServers = await this.loadBuiltinSessionMcpServers();
 
+    // Set up MCP status emitter if this agent belongs to a team
+    const teamMcpName = this.extra.teamMcpStdioConfig?.name;
+    const teamId = typeof teamMcpName === 'string' && teamMcpName.startsWith('aionui-team-')
+      ? teamMcpName.slice('aionui-team-'.length)
+      : undefined;
+    const slotId = this.id;
+    type McpPhase = import('@/common/types/teamTypes').TeamMcpPhase;
+    const emitMcpStatus = teamId
+      ? (phase: McpPhase, opts?: { serverCount?: number; error?: string }) => {
+          ipcBridge.team.mcpStatus.emit({ teamId: teamId!, slotId, phase, ...opts });
+        }
+      : null;
+
     // Validate session ownership: only resume if the stored session belongs to this conversation.
     if (resumeSessionId && resumeConversationId && resumeConversationId !== this.id) {
       console.warn(
@@ -1523,11 +1536,13 @@ export class AcpAgent {
       try {
         let response: { sessionId?: string };
 
+        emitMcpStatus?.('session_injecting', { serverCount: mcpServers.length });
+
         if (this.extra.backend === 'codex') {
           // Codex ACP bridge implements session/load (load_session) which calls
           // resume_thread_from_rollout internally to restore full conversation history.
           // Codex ignores resumeSessionId in session/new, so we must use session/load.
-          response = await this.connection.loadSession(resumeSessionId, this.extra.workspace);
+          response = await this.connection.loadSession(resumeSessionId, this.extra.workspace, { mcpServers });
         } else {
           // Claude/CodeBuddy use _meta in session/new; others use generic resumeSessionId
           response = await this.connection.newSession(this.extra.workspace, {
@@ -1540,20 +1555,39 @@ export class AcpAgent {
           this.extra.acpSessionId = response.sessionId;
           this.onSessionIdUpdate?.(response.sessionId);
         }
+        if (mcpServers.length === 0) {
+          emitMcpStatus?.('degraded');
+        } else {
+          emitMcpStatus?.('session_ready', { serverCount: mcpServers.length });
+        }
         return;
       } catch (resumeError) {
+        const errMsg = resumeError instanceof Error ? resumeError.message : String(resumeError);
         console.warn(
           `[AcpAgent] Failed to resume session ${resumeSessionId}, creating fresh session:`,
-          resumeError instanceof Error ? resumeError.message : String(resumeError)
+          errMsg
         );
+        emitMcpStatus?.('session_error', { error: errMsg });
       }
     }
 
     // No stored session or resume failed — create a brand new session
-    const response = await this.connection.newSession(this.extra.workspace, { mcpServers });
-    if (response.sessionId) {
-      this.extra.acpSessionId = response.sessionId;
-      this.onSessionIdUpdate?.(response.sessionId);
+    emitMcpStatus?.('session_injecting', { serverCount: mcpServers.length });
+    try {
+      const response = await this.connection.newSession(this.extra.workspace, { mcpServers });
+      if (response.sessionId) {
+        this.extra.acpSessionId = response.sessionId;
+        this.onSessionIdUpdate?.(response.sessionId);
+      }
+      if (mcpServers.length === 0) {
+        emitMcpStatus?.('degraded');
+      } else {
+        emitMcpStatus?.('session_ready', { serverCount: mcpServers.length });
+      }
+    } catch (newSessionError) {
+      const errMsg = newSessionError instanceof Error ? newSessionError.message : String(newSessionError);
+      emitMcpStatus?.('session_error', { error: errMsg });
+      throw newSessionError;
     }
   }
 
@@ -1584,10 +1618,18 @@ export class AcpAgent {
 
       return servers;
     } catch (error) {
+      const errMsg = error instanceof Error ? error.message : String(error);
       console.warn(
         `[ACP ${this.extra.backend}] Failed to load built-in MCP config for session/new:`,
-        error instanceof Error ? error.message : String(error)
+        errMsg
       );
+      const mcpName = this.extra.teamMcpStdioConfig?.name;
+      const tId = typeof mcpName === 'string' && mcpName.startsWith('aionui-team-')
+        ? mcpName.slice('aionui-team-'.length)
+        : undefined;
+      if (tId) {
+        ipcBridge.team.mcpStatus.emit({ teamId: tId, slotId: this.id, phase: 'load_failed', error: errMsg });
+      }
       return [];
     }
   }
