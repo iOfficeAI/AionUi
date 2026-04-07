@@ -393,7 +393,6 @@ const NanobotSendBox: React.FC<{ conversation_id: string }> = ({ conversation_id
 
   return (
     <div className='max-w-800px w-full mx-auto flex flex-col mt-auto mb-16px'>
-      <ThoughtDisplay thought={thought} running={aiProcessing} onStop={handleStop} />
       <CommandQueuePanel
         items={items}
         paused={isQueuePaused}
@@ -407,6 +406,7 @@ const NanobotSendBox: React.FC<{ conversation_id: string }> = ({ conversation_id
         onRemove={remove}
         onClear={clear}
       />
+      <ThoughtDisplay thought={thought} running={aiProcessing} onStop={handleStop} />
 
       <SendBox
         value={content}

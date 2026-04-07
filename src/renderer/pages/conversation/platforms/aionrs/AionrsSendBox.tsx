@@ -304,7 +304,6 @@ const AionrsSendBox: React.FC<{
 
   return (
     <div className='max-w-800px w-full mx-auto flex flex-col mt-auto mb-16px'>
-      <ThoughtDisplay thought={thought} running={running} onStop={handleStop} />
       <CommandQueuePanel
         items={queuedCommands}
         paused={isQueuePaused}
@@ -318,6 +317,7 @@ const AionrsSendBox: React.FC<{
         onRemove={remove}
         onClear={clear}
       />
+      <ThoughtDisplay thought={thought} running={running} onStop={handleStop} />
 
       <SendBox
         value={content}
