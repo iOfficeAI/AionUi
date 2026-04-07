@@ -5,6 +5,7 @@
  */
 
 import type { TMessage } from '@/common/chat/chatLib';
+import { useThemeContext } from '@/renderer/hooks/context/ThemeContext';
 import { emitter } from '@/renderer/utils/emitter';
 import { useLayoutContext } from '@/renderer/hooks/context/LayoutContext';
 import { Quote } from '@icon-park/react';
@@ -77,6 +78,7 @@ const BUTTON_HEIGHT = 32;
 
 const SelectionReplyButton: React.FC<{ messages: TMessage[] }> = ({ messages }) => {
   const { t } = useTranslation();
+  const { theme } = useThemeContext();
   const layout = useLayoutContext();
   const isMobile = layout?.isMobile ?? false;
   const [pos, setPos] = useState<ReplyPos | null>(null);
@@ -151,6 +153,8 @@ const SelectionReplyButton: React.FC<{ messages: TMessage[] }> = ({ messages }) 
 
   if (!pos) return null;
 
+  const isDarkTheme = theme === 'dark';
+
   return (
     <div
       ref={buttonRef}
@@ -159,9 +163,10 @@ const SelectionReplyButton: React.FC<{ messages: TMessage[] }> = ({ messages }) 
         top: pos.top,
         left: pos.left,
         transform: 'translateX(-50%)',
-        background: 'rgb(var(--primary-1))',
-        border: '1px solid rgb(var(--primary-3))',
-        boxShadow: '0 2px 8px rgba(var(--primary-6), 0.15)',
+        background: isDarkTheme ? 'var(--brand-light)' : 'rgb(var(--primary-1))',
+        border: isDarkTheme ? '1px solid var(--brand-hover)' : '1px solid rgb(var(--primary-3))',
+        boxShadow: isDarkTheme ? '0 2px 8px rgba(0, 0, 0, 0.28)' : '0 2px 8px rgba(var(--primary-6), 0.15)',
+        color: isDarkTheme ? 'var(--brand)' : 'rgb(var(--primary-6))',
       }}
       onMouseDown={(e) => {
         e.preventDefault();
@@ -174,10 +179,8 @@ const SelectionReplyButton: React.FC<{ messages: TMessage[] }> = ({ messages }) 
         window.getSelection()?.removeAllRanges();
       }}
     >
-      <Quote theme='outline' size='14' fill='rgb(var(--primary-6))' />
-      <span className='text-12px font-medium whitespace-nowrap' style={{ color: 'rgb(var(--primary-6))' }}>
-        {t('common.reply', { defaultValue: 'Reply' })}
-      </span>
+      <Quote theme='outline' size='14' fill='currentColor' />
+      <span className='text-12px font-medium whitespace-nowrap'>{t('common.reply', { defaultValue: 'Reply' })}</span>
     </div>
   );
 };

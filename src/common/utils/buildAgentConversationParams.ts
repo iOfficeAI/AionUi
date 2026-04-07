@@ -18,6 +18,7 @@ export type BuildAgentConversationInput = {
   backend: string;
   name: string;
   agentName?: string;
+  presetAssistantId?: string;
   workspace: string;
   model: TProviderWithModel;
   cliPath?: string;
@@ -61,6 +62,7 @@ export function buildAgentConversationParams(input: BuildAgentConversationInput)
     backend,
     name,
     agentName,
+    presetAssistantId,
     workspace,
     model,
     cliPath,
@@ -75,6 +77,7 @@ export function buildAgentConversationParams(input: BuildAgentConversationInput)
   } = input;
 
   const effectivePresetType = presetAgentType || backend;
+  const effectivePresetAssistantId = presetAssistantId || customAgentId;
   const type = isPreset ? getConversationTypeForPreset(effectivePresetType) : getConversationTypeForBackend(backend);
   const extra: ICreateConversationParams['extra'] = {
     workspace,
@@ -84,7 +87,7 @@ export function buildAgentConversationParams(input: BuildAgentConversationInput)
 
   if (isPreset) {
     extra.enabledSkills = presetResources?.enabledSkills;
-    extra.presetAssistantId = customAgentId;
+    extra.presetAssistantId = effectivePresetAssistantId;
     if (type === 'gemini') {
       extra.presetRules = presetResources?.rules;
     } else {
