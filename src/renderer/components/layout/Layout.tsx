@@ -5,6 +5,7 @@
  */
 
 import { ipcBridge } from '@/common';
+import { TEAM_MODE_ENABLED } from '@/common/config/constants';
 import { ConfigStorage, type ICssTheme } from '@/common/config/storage';
 import PwaPullToRefresh from '@/renderer/components/layout/PwaPullToRefresh';
 import Titlebar from '@/renderer/components/layout/Titlebar';
@@ -99,7 +100,8 @@ const Layout: React.FC<{
   const navigate = useNavigate();
   useConversationShortcuts({ navigate });
   const location = useLocation();
-  const workspaceAvailable = location.pathname.startsWith('/conversation/') || location.pathname.startsWith('/team/');
+  const workspaceAvailable =
+    location.pathname.startsWith('/conversation/') || (TEAM_MODE_ENABLED && location.pathname.startsWith('/team/'));
   const collapsedRef = useRef(collapsed);
   const lastCssRef = useRef('');
   const lastUiCssUpdateAtRef = useRef(0);
