@@ -242,11 +242,9 @@ export abstract class AbstractMcpAgent implements IMcpProtocol {
       await mcpClient.connect(stdioTransport);
       const result = await mcpClient.listTools();
 
-      const tools = result.tools.map((tool) => ({
-        name: tool.name,
-        description: tool.description,
-        ...(tool._meta ? { _meta: tool._meta } : {}),
-      }));
+      const tools = result.tools.map((tool) =>
+        Object.assign({ name: tool.name, description: tool.description }, tool._meta ? { _meta: tool._meta } : {})
+      );
 
       return { success: true, tools };
     } catch (error) {
@@ -525,11 +523,9 @@ export abstract class AbstractMcpAgent implements IMcpProtocol {
       await mcpClient.connect(streamableHttpTransport);
       const result = await mcpClient.listTools();
 
-      const tools = result.tools.map((tool) => ({
-        name: tool.name,
-        description: tool.description,
-        ...(tool._meta ? { _meta: tool._meta } : {}),
-      }));
+      const tools = result.tools.map((tool) =>
+        Object.assign({ name: tool.name, description: tool.description }, tool._meta ? { _meta: tool._meta } : {})
+      );
 
       return { success: true, tools };
     } catch (error) {

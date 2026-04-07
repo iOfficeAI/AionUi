@@ -1,4 +1,4 @@
-:global(.dark) .replyButton {
+[data-theme='dark'] .replyButton {
   background: var(--brand-light) !important;
   border-color: var(--brand-hover) !important;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.28) !important;

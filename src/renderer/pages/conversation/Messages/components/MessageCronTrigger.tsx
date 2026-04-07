@@ -29,7 +29,7 @@ const MessageCronTrigger: React.FC<{ message: IMessageCronTrigger }> = ({ messag
           className='block leading-none shrink-0'
           style={{ lineHeight: 0 }}
         />
-        <span className='flex-1 text-14px truncate dark:text-t-primary'>
+        <span className='flex-1 text-14px truncate text-t-primary'>
           {t('cron.trigger.runScheduledTask', { name: cronJobName })}
         </span>
         <Right
