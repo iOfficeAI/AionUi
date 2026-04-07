@@ -130,9 +130,3 @@ Detailed rules and guidelines are organized into Skills for better modularity:
 All user-facing text must use i18n keys — never hardcode strings. Languages and modules are defined in `src/common/config/i18n-config.json`.
 
 See the `i18n` skill (`.claude/skills/i18n/SKILL.md`) for complete workflow, key naming, and validation steps.
-
-## UI Design Context
-
-Before implementing non-trivial UI changes, read [docs/conventions/ui-context.md](docs/conventions/ui-context.md) first. The top of that document contains 7 hard rules that cover the minimum bar.
-
-It defines the **AOU design token system** (colors, themes, spacing rhythm), the component baseline, reuse strategy, theme/i18n/mobile rules, PR evidence requirements, and review rejection triggers.
