@@ -28,6 +28,11 @@ let currentSize: PetSize = 280;
 let dragTimer: ReturnType<typeof setInterval> | null = null;
 let dragOffsetX = 0;
 let dragOffsetY = 0;
+let preDragState: PetState | null = null;
+
+// States that should be restored after drag ends (AI activity / notifications).
+// User-interaction states (attention/poke/happy) and idle/sleep states are NOT restored.
+const RESTORABLE_STATES: ReadonlySet<PetState> = new Set<PetState>(['thinking', 'working', 'error', 'notification']);
 
 /**
  * Create pet windows (rendering window + hit detection window).
@@ -243,6 +248,10 @@ function registerIpcHandlers(): void {
     dragOffsetX = cursor.x - windowPos[0];
     dragOffsetY = cursor.y - windowPos[1];
 
+    // Snapshot AI activity state so we can restore it after drag ends
+    const cur = stateMachine?.getCurrentState();
+    preDragState = cur && RESTORABLE_STATES.has(cur) ? cur : null;
+
     stateMachine?.forceState('dragging');
 
     dragTimer = setInterval(() => {
@@ -266,7 +275,10 @@ function registerIpcHandlers(): void {
 
   ipcMain.on('pet:drag-end', () => {
     clearDragTimer();
-    stateMachine?.forceState('idle');
+    // Restore pre-drag AI state if there was one, otherwise return to idle
+    const restoreTo: PetState = preDragState ?? 'idle';
+    preDragState = null;
+    stateMachine?.forceState(restoreTo);
     idleTicker?.resetIdle();
     // Update anchor after drag so next confirm window appears at the new position
     if (petWindow && !petWindow.isDestroyed()) {
