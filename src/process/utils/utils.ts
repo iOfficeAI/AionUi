@@ -145,7 +145,7 @@ export async function readDirectoryRecursive(
   const matchSearch = searchText ? (fullPath: string) => fullPath.includes(searchText) : (_: string) => false;
 
   const checkStatus = () => {
-    if (abortController.signal.aborted) throw new Error('readDirectoryRecursive aborted!');
+    if (abortController?.signal.aborted) throw new Error('readDirectoryRecursive aborted!');
   };
 
   try {

@@ -620,6 +620,11 @@ const OpenClawSendBox: React.FC<{ conversation_id: string }> = ({ conversation_i
       <SendBox
         value={content}
         onChange={setContent}
+        selectedWorkspaceItems={atPath}
+        onSelectedWorkspaceItemsChange={(nextSelectedItems) => {
+          emitter.emit('openclaw-gateway.selected.file', nextSelectedItems);
+          setAtPath(nextSelectedItems);
+        }}
         loading={aiProcessing}
         disabled={false}
         className='z-10'
@@ -640,7 +645,7 @@ const OpenClawSendBox: React.FC<{ conversation_id: string }> = ({ conversation_i
         tools={<FileAttachButton openFileSelector={openFileSelector} onLocalFilesAdded={handleFilesAdded} />}
         prefix={
           <>
-            {(uploadFile.length > 0 || atPath.some((item) => (typeof item === 'string' ? true : item.isFile))) && (
+            {uploadFile.length > 0 && (
               <HorizontalFileList>
                 {uploadFile.map((path) => (
                   <FilePreview
@@ -649,26 +654,6 @@ const OpenClawSendBox: React.FC<{ conversation_id: string }> = ({ conversation_i
                     onRemove={() => setUploadFile(uploadFile.filter((v) => v !== path))}
                   />
                 ))}
-                {atPath.map((item) => {
-                  const isFile = typeof item === 'string' ? true : item.isFile;
-                  const path = typeof item === 'string' ? item : item.path;
-                  if (isFile) {
-                    return (
-                      <FilePreview
-                        key={path}
-                        path={path}
-                        onRemove={() => {
-                          const newAtPath = atPath.filter((v) =>
-                            typeof v === 'string' ? v !== path : v.path !== path
-                          );
-                          emitter.emit('openclaw-gateway.selected.file', newAtPath);
-                          setAtPath(newAtPath);
-                        }}
-                      />
-                    );
-                  }
-                  return null;
-                })}
               </HorizontalFileList>
             )}
             {atPath.some((item) => (typeof item === 'string' ? false : !item.isFile)) && (

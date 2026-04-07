@@ -213,6 +213,7 @@ export const dialog = {
 };
 export const fs = {
   getFilesByDir: bridge.buildProvider<Array<IDirOrFile>, { dir: string; root: string }>('get-file-by-dir'), // 获取指定文件夹下所有文件夹和文件列表
+  listWorkspaceFiles: bridge.buildProvider<Array<IWorkspaceFlatFile>, { root: string }>('list-workspace-files'),
   getImageBase64: bridge.buildProvider<string, { path: string }>('get-image-base64'), // 获取图片base64
   fetchRemoteImage: bridge.buildProvider<string, { url: string }>('fetch-remote-image'), // 远程图片转base64
   readFile: bridge.buildProvider<string, { path: string }>('read-file'), // 读取文件内容（UTF-8）
@@ -985,6 +986,12 @@ export interface IFileMetadata {
   lastModified: number;
   isDirectory?: boolean;
 }
+
+export type IWorkspaceFlatFile = {
+  name: string;
+  fullPath: string;
+  relativePath: string;
+};
 
 export interface IResponseMessage {
   type: string;

@@ -100,7 +100,7 @@ const FilePreview: React.FC<FilePreviewProps> = ({ path, onRemove, readonly = fa
     }
 
     return undefined;
-  }, [path, isImage]);
+  }, [isImage, path]);
 
   const handleRemove = (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -118,7 +118,7 @@ const FilePreview: React.FC<FilePreviewProps> = ({ path, onRemove, readonly = fa
             height={60}
             className='object-cover cursor-pointer'
             style={{ display: imageUrl ? 'block' : 'none' }}
-            preview={imageUrl ? true : false}
+            preview={Boolean(imageUrl)}
           />
           {!imageUrl && <div className='w-60px h-60px bg-bg-3'></div>}
         </div>
