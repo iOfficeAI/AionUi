@@ -223,7 +223,7 @@ const LocalAgents: React.FC = () => {
         ))}
       </div>
 
-      <AgentHubModal visible={hubModalVisible} onCancel={() => setHubModalVisible(false)} />
+      {hubModalVisible && <AgentHubModal visible={hubModalVisible} onCancel={() => setHubModalVisible(false)} />}
     </div>
   );
 };
