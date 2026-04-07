@@ -17,6 +17,7 @@ const PetSettings: React.FC = () => {
   const [enabled, setEnabled] = useState(true);
   const [size, setSize] = useState(280);
   const [dnd, setDnd] = useState(false);
+  const [confirmEnabled, setConfirmEnabled] = useState(true);
   const { t } = useTranslation();
   const viewMode = useSettingsViewMode();
   const isPageMode = viewMode === 'page';
@@ -40,6 +41,13 @@ const PetSettings: React.FC = () => {
     systemSettings.getPetDnd
       .invoke()
       .then((val) => setDnd(val))
+      .catch(() => {});
+  }, []);
+
+  useEffect(() => {
+    systemSettings.getPetConfirmEnabled
+      .invoke()
+      .then((val) => setConfirmEnabled(val))
       .catch(() => {});
   }, []);
 
@@ -68,6 +76,13 @@ const PetSettings: React.FC = () => {
     });
   }, []);
 
+  const handleConfirmEnabledChange = useCallback((checked: boolean) => {
+    setConfirmEnabled(checked);
+    systemSettings.setPetConfirmEnabled.invoke({ enabled: checked }).catch(() => {
+      setConfirmEnabled(!checked);
+    });
+  }, []);
+
   const preferenceItems = [
     {
       key: 'enabled',
@@ -90,6 +105,12 @@ const PetSettings: React.FC = () => {
       label: t('pet.dnd'),
       description: t('pet.dndDescription'),
       component: <Switch checked={dnd} onChange={handleDndChange} disabled={!enabled} />,
+    },
+    {
+      key: 'confirmBubble',
+      label: t('pet.confirmBubble'),
+      description: t('pet.confirmBubbleDescription'),
+      component: <Switch checked={confirmEnabled} onChange={handleConfirmEnabledChange} disabled={!enabled} />,
     },
   ];
 

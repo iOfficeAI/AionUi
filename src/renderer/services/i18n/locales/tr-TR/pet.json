@@ -7,6 +7,8 @@
   "sizeLarge": "Büyük ({{px}}px)",
   "dnd": "Rahatsız Etmeyin",
   "dndDescription": "Pet boşta kalır, AI olaylarını yok sayar",
+  "confirmBubble": "Yetkilendirmeleri pet penceresinde göster",
+  "confirmBubbleDescription": "Kapalıyken, AI araç yetkilendirmeleri ana sohbet penceresinde kalır",
   "pat": "Okşa",
   "resetPosition": "Konumu Sıfırla",
   "hide": "Gizle",

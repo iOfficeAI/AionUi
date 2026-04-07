@@ -761,6 +761,8 @@ export type I18nKey =
   | 'messages.slash.hint'
   | 'messages.slash.title'
   | 'messages.unknownMessageType'
+  | 'pet.confirmBubble'
+  | 'pet.confirmBubbleDescription'
   | 'pet.desktopPet'
   | 'pet.dnd'
   | 'pet.dndDescription'

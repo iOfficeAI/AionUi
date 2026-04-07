@@ -725,6 +725,8 @@ export const systemSettings = {
   setPetSize: bridge.buildProvider<void, { size: number }>('system-settings:set-pet-size'),
   getPetDnd: bridge.buildProvider<boolean, void>('system-settings:get-pet-dnd'),
   setPetDnd: bridge.buildProvider<void, { dnd: boolean }>('system-settings:set-pet-dnd'),
+  getPetConfirmEnabled: bridge.buildProvider<boolean, void>('system-settings:get-pet-confirm-enabled'),
+  setPetConfirmEnabled: bridge.buildProvider<void, { enabled: boolean }>('system-settings:set-pet-confirm-enabled'),
 };
 
 // 系统通知接口 / System notification API
