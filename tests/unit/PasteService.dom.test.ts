@@ -184,3 +184,65 @@ describe('PasteService.handlePaste — filename deduplication', () => {
     ]);
   });
 });
+
+describe('PasteService — code-block auto-wrap', () => {
+  it('looksLikeCode returns false for short prose', async () => {
+    const { looksLikeCode } = await import('@/renderer/services/PasteService');
+    expect(looksLikeCode('Hello world')).toBe(false);
+    expect(looksLikeCode('A two\nline message')).toBe(false);
+  });
+
+  it('looksLikeCode detects Python code (def + indentation + REPL prompt)', async () => {
+    const { looksLikeCode } = await import('@/renderer/services/PasteService');
+    const py = `def hello(name):
+    print(f"Hello, {name}")
+    return name`;
+    expect(looksLikeCode(py)).toBe(true);
+  });
+
+  it('looksLikeCode detects JavaScript (import + braces)', async () => {
+    const { looksLikeCode } = await import('@/renderer/services/PasteService');
+    const js = `import { foo } from 'bar';
+const x = 42;
+console.log(x);`;
+    expect(looksLikeCode(js)).toBe(true);
+  });
+
+  it('looksLikeCode detects shell session output (>>> prompt)', async () => {
+    const { looksLikeCode } = await import('@/renderer/services/PasteService');
+    const sh = `>>> import os
+>>> os.listdir('.')
+['file1.txt', 'file2.txt']`;
+    expect(looksLikeCode(sh)).toBe(true);
+  });
+
+  it('looksLikeCode is conservative with multi-paragraph prose', async () => {
+    const { looksLikeCode } = await import('@/renderer/services/PasteService');
+    const prose = `这是一段中文。
+
+第二段也是普通文字。
+
+第三段没有任何代码符号。`;
+    expect(looksLikeCode(prose)).toBe(false);
+  });
+
+  it('wrapInCodeFence wraps text in triple backticks by default', async () => {
+    const { wrapInCodeFence } = await import('@/renderer/services/PasteService');
+    expect(wrapInCodeFence('hello')).toBe('```\nhello\n```');
+  });
+
+  it('wrapInCodeFence uses 4 backticks when text contains a triple-backtick run', async () => {
+    const { wrapInCodeFence } = await import('@/renderer/services/PasteService');
+    const text = 'Here is some markdown:\n```\ncode\n```\nend';
+    const wrapped = wrapInCodeFence(text);
+    expect(wrapped.startsWith('````\n')).toBe(true);
+    expect(wrapped.endsWith('\n````')).toBe(true);
+  });
+
+  it('wrapInCodeFence escalates beyond 4 backticks if needed', async () => {
+    const { wrapInCodeFence } = await import('@/renderer/services/PasteService');
+    const text = 'a ````````\nlong\nrun````````';
+    const wrapped = wrapInCodeFence(text);
+    expect(wrapped.startsWith('`````````\n')).toBe(true); // 9 backticks
+  });
+});
