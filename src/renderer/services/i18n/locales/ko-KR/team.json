@@ -39,7 +39,7 @@
     "workspacePlaceholder": "Workspace path (optional)",
     "confirm": "Create Team",
     "noSupportedAgents": "지원되는 에이전트가 설치되지 않았습니다",
-    "supportedAgentsHint": "현재 Claude, Codex, CodeBuddy를 지원합니다. 더 많은 에이전트가 곧 추가됩니다.",
+    "supportedAgentsHint": "현재 Claude와 Codex를 지원합니다. 더 많은 에이전트가 곧 추가됩니다.",
     "step": {
       "dispatch": "Dispatch Agent",
       "subAgents": "Sub Agents",
