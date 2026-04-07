@@ -523,6 +523,23 @@ Ask user for feedback, support quick adjustments.
 
 ---
 
+## Adjustments After Creation
+
+When the user requests changes after the deck is built:
+
+| Request                    | Command                                                                            |
+| -------------------------- | ---------------------------------------------------------------------------------- |
+| Swap two slides            | `officecli swap deck.pptx '/slide[2]' '/slide[4]'`                                 |
+| Move a slide after another | `officecli move deck.pptx '/slide[5]' --after '/slide[2]'`                         |
+| Edit shape text            | `officecli set deck.pptx '/slide[N]/shape[@name=!! ShapeName]' --prop text="..."`  |
+| Change color / style       | `officecli set deck.pptx '/slide[N]/shape[@name=!! ShapeName]' --prop fill=FF0000` |
+| Remove an element          | `officecli remove deck.pptx '/slide[N]/shape[@name=!! ShapeName]'`                 |
+| Find & replace text        | `officecli set deck.pptx / --prop find=OldText --prop replace=NewText`             |
+
+> **Morph caution:** Morph transitions rely on matching `!!`-prefixed shape names across consecutive slides. After swapping or moving slides, verify that morph pairs (same `!!` name on adjacent slides) are still correctly aligned. Use `officecli get deck.pptx '/slide[N]' --depth 1` to check shape names.
+
+---
+
 **First time?** Read "Understanding Morph" above, skim one style reference for inspiration, then generate. Always use `morph-helpers.py` workflow. You'll learn by doing.
 
 **Trust yourself.** You have vision, design sense, and the ability to iterate. These tools enable you — your creativity makes it excellent.

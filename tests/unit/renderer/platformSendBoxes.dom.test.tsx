@@ -23,6 +23,11 @@ const queueSpies = {
 };
 
 const mockShouldEnqueueConversationCommand = vi.fn(() => false);
+const mockUseCommandQueueEnabled = vi.fn(() => true);
+let mockConversationStatus: 'idle' | 'running' = 'idle';
+let mockAcpRunning = false;
+let mockGeminiRunning = false;
+let mockAionrsRunning = false;
 const mockUseConversationCommandQueue = vi.fn(() => ({
   items: [] as QueueItem[],
   isPaused: false,
@@ -235,6 +240,10 @@ vi.mock('@/renderer/hooks/agent/useAgentReadinessCheck', () => ({
   })),
 }));
 
+vi.mock('@/renderer/hooks/system/useCommandQueueEnabled', () => ({
+  useCommandQueueEnabled: () => mockUseCommandQueueEnabled(),
+}));
+
 vi.mock('@/renderer/pages/conversation/Messages/hooks', () => ({
   useAddOrUpdateMessage: () => mockAddOrUpdateMessage,
   useRemoveMessageByMsgId: () => mockRemoveMessageByMsgId,
@@ -252,13 +261,15 @@ vi.mock('@/renderer/pages/conversation/platforms/assertBridgeSuccess', () => ({
 vi.mock('@/renderer/pages/conversation/platforms/acp/useAcpMessage', () => ({
   useAcpMessage: vi.fn(() => ({
     thought: { subject: '', description: '' },
-    running: false,
+    running: mockAcpRunning,
+    hasHydratedRunningState: true,
     acpStatus: null,
     aiProcessing: false,
     setAiProcessing: vi.fn(),
     resetState: vi.fn(),
     tokenUsage: 0,
     contextLimit: 0,
+    hasThinkingMessage: false,
   })),
 }));
 
@@ -269,7 +280,21 @@ vi.mock('@/renderer/pages/conversation/platforms/acp/useAcpInitialMessage', () =
 vi.mock('@/renderer/pages/conversation/platforms/gemini/useGeminiMessage', () => ({
   useGeminiMessage: vi.fn(() => ({
     thought: { subject: '', description: '' },
-    running: false,
+    running: mockGeminiRunning,
+    hasHydratedRunningState: true,
+    tokenUsage: 0,
+    setActiveMsgId: vi.fn(),
+    setWaitingResponse: vi.fn(),
+    resetState: vi.fn(),
+    hasThinkingMessage: false,
+  })),
+}));
+
+vi.mock('@/renderer/pages/conversation/platforms/aionrs/useAionrsMessage', () => ({
+  useAionrsMessage: vi.fn(() => ({
+    thought: { subject: '', description: '' },
+    running: mockAionrsRunning,
+    hasHydratedRunningState: true,
     tokenUsage: 0,
     setActiveMsgId: vi.fn(),
     setWaitingResponse: vi.fn(),
@@ -349,6 +374,7 @@ vi.mock('react-i18next', () => ({
 }));
 
 import AcpSendBox from '@/renderer/pages/conversation/platforms/acp/AcpSendBox';
+import AionrsSendBox from '@/renderer/pages/conversation/platforms/aionrs/AionrsSendBox';
 import GeminiSendBox from '@/renderer/pages/conversation/platforms/gemini/GeminiSendBox';
 import NanobotSendBox from '@/renderer/pages/conversation/platforms/nanobot/NanobotSendBox';
 import OpenClawSendBox from '@/renderer/pages/conversation/platforms/openclaw/OpenClawSendBox';
@@ -364,8 +390,13 @@ describe('platform send box queue integration', () => {
     vi.clearAllMocks();
     uuidCounter = 0;
     resetQueueSpies();
+    mockConversationStatus = 'idle';
+    mockAcpRunning = false;
+    mockGeminiRunning = false;
+    mockAionrsRunning = false;
 
     mockShouldEnqueueConversationCommand.mockReturnValue(false);
+    mockUseCommandQueueEnabled.mockReturnValue(true);
     mockUseConversationCommandQueue.mockReturnValue({
       items: [],
       isPaused: false,
@@ -374,12 +405,12 @@ describe('platform send box queue integration', () => {
       ...queueSpies,
     });
 
-    mockConversationGetInvoke.mockResolvedValue({
-      status: 'idle',
+    mockConversationGetInvoke.mockImplementation(async () => ({
+      status: mockConversationStatus,
       extra: {
         workspace: 'C:/workspace',
       },
-    });
+    }));
     mockConversationStopInvoke.mockResolvedValue(undefined);
     mockConversationSendInvoke.mockResolvedValue({ success: true });
     mockAcpSendInvoke.mockResolvedValue({ success: true });
@@ -444,6 +475,21 @@ describe('platform send box queue integration', () => {
       },
     ],
     [
+      'aionrs',
+      <AionrsSendBox
+        conversation_id='conv-aionrs'
+        modelSelection={{
+          currentModel: { useModel: 'aionrs-1' },
+          getDisplayModelName: (modelId: string) => modelId,
+        }}
+      />,
+      mockConversationSendInvoke,
+      (payload: { input: string; conversation_id: string }) => {
+        expect(payload.input).toContain('queued command');
+        expect(payload.conversation_id).toBe('conv-aionrs');
+      },
+    ],
+    [
       'nanobot',
       <NanobotSendBox conversation_id='conv-nanobot' />,
       mockConversationSendInvoke,
@@ -494,6 +540,16 @@ describe('platform send box queue integration', () => {
         }}
       />,
     ],
+    [
+      'aionrs',
+      <AionrsSendBox
+        conversation_id='conv-aionrs'
+        modelSelection={{
+          currentModel: { useModel: 'aionrs-1' },
+          getDisplayModelName: (modelId: string) => modelId,
+        }}
+      />,
+    ],
     ['nanobot', <NanobotSendBox conversation_id='conv-nanobot' />],
     ['openclaw', <OpenClawSendBox conversation_id='conv-openclaw' />],
   ])('enqueues commands for %s when the current turn is still busy', async (_name, element) => {
@@ -510,6 +566,134 @@ describe('platform send box queue integration', () => {
       });
     });
   });
+
+  it.each([
+    ['acp', <AcpSendBox conversation_id='conv-acp' backend='claude' />, mockAcpSendInvoke],
+    [
+      'gemini',
+      <GeminiSendBox
+        conversation_id='conv-gemini'
+        modelSelection={{
+          currentModel: { useModel: 'gemini-2.5' },
+          getDisplayModelName: (modelId: string) => modelId,
+          providers: ['google'],
+          geminiModeLookup: {},
+          getAvailableModels: () => [],
+          handleSelectModel: vi.fn(),
+        }}
+      />,
+      mockGeminiSendInvoke,
+    ],
+    [
+      'aionrs',
+      <AionrsSendBox
+        conversation_id='conv-aionrs'
+        modelSelection={{
+          currentModel: { useModel: 'aionrs-1' },
+          getDisplayModelName: (modelId: string) => modelId,
+        }}
+      />,
+      mockConversationSendInvoke,
+    ],
+    ['nanobot', <NanobotSendBox conversation_id='conv-nanobot' />, mockConversationSendInvoke],
+    ['openclaw', <OpenClawSendBox conversation_id='conv-openclaw' />, mockOpenClawSendInvoke],
+  ])(
+    'sends immediately for %s when queue setting is disabled and the conversation is idle',
+    async (_name, element, sendSpy) => {
+      mockUseCommandQueueEnabled.mockReturnValue(false);
+      mockShouldEnqueueConversationCommand.mockImplementation(({ enabled }: { enabled?: boolean }) => Boolean(enabled));
+
+      render(element);
+
+      fireEvent.click(screen.getByRole('button', { name: 'trigger-send' }));
+
+      await waitFor(() => {
+        expect(sendSpy).toHaveBeenCalledTimes(1);
+      });
+
+      expect(queueSpies.enqueue).not.toHaveBeenCalled();
+    }
+  );
+
+  it.each([
+    [
+      'acp',
+      <AcpSendBox conversation_id='conv-acp' backend='claude' />,
+      mockAcpSendInvoke,
+      () => {
+        mockAcpRunning = true;
+      },
+    ],
+    [
+      'gemini',
+      <GeminiSendBox
+        conversation_id='conv-gemini'
+        modelSelection={{
+          currentModel: { useModel: 'gemini-2.5' },
+          getDisplayModelName: (modelId: string) => modelId,
+          providers: ['google'],
+          geminiModeLookup: {},
+          getAvailableModels: () => [],
+          handleSelectModel: vi.fn(),
+        }}
+      />,
+      mockGeminiSendInvoke,
+      () => {
+        mockGeminiRunning = true;
+      },
+    ],
+    [
+      'aionrs',
+      <AionrsSendBox
+        conversation_id='conv-aionrs'
+        modelSelection={{
+          currentModel: { useModel: 'aionrs-1' },
+          getDisplayModelName: (modelId: string) => modelId,
+        }}
+      />,
+      mockConversationSendInvoke,
+      () => {
+        mockAionrsRunning = true;
+      },
+    ],
+    [
+      'nanobot',
+      <NanobotSendBox conversation_id='conv-nanobot' />,
+      mockConversationSendInvoke,
+      () => {
+        mockConversationStatus = 'running';
+      },
+    ],
+    [
+      'openclaw',
+      <OpenClawSendBox conversation_id='conv-openclaw' />,
+      mockOpenClawSendInvoke,
+      () => {
+        mockConversationStatus = 'running';
+      },
+    ],
+  ])(
+    'blocks sending for %s when queue setting is disabled and the conversation is busy',
+    async (_name, element, sendSpy, setupBusyState) => {
+      mockUseCommandQueueEnabled.mockReturnValue(false);
+      setupBusyState();
+
+      render(element);
+
+      await waitFor(() => {
+        expect(screen.getByTestId('sendbox-loading')).toHaveTextContent('true');
+      });
+
+      fireEvent.click(screen.getByRole('button', { name: 'trigger-send' }));
+
+      await waitFor(() => {
+        expect(mockArcoWarning).toHaveBeenCalledWith('messages.conversationInProgress');
+      });
+
+      expect(sendSpy).not.toHaveBeenCalled();
+      expect(queueSpies.enqueue).not.toHaveBeenCalled();
+    }
+  );
 
   it.each([
     ['acp', <AcpSendBox conversation_id='conv-acp' backend='claude' />],

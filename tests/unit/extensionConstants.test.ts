@@ -1,13 +1,16 @@
 import path from 'node:path';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
-vi.mock('electron', () => ({
-  app: { isPackaged: false, getPath: vi.fn(() => '/tmp') },
+const mocks = vi.hoisted(() => ({
+  isPackaged: vi.fn(() => false),
 }));
 
 vi.mock('@/common/platform', () => ({
   getPlatformServices: () => ({
-    paths: { getDataDir: () => '/appdata' },
+    paths: {
+      getDataDir: () => '/appdata',
+      isPackaged: () => mocks.isPackaged(),
+    },
   }),
 }));
 
@@ -84,10 +87,31 @@ describe('extension constants', () => {
   });
 
   describe('getHubResourcesDir', () => {
+    const originalResourcesPath = process.resourcesPath;
+
+    afterEach(() => {
+      mocks.isPackaged.mockReturnValue(false);
+      Object.defineProperty(process, 'resourcesPath', {
+        value: originalResourcesPath,
+        configurable: true,
+        writable: true,
+      });
+    });
+
     it('should return resources/hub in dev mode', () => {
-      const dir = getHubResourcesDir();
-      expect(dir).toContain('hub');
-      expect(dir).toContain('resources');
+      mocks.isPackaged.mockReturnValue(false);
+      expect(getHubResourcesDir()).toBe(path.join(process.cwd(), 'resources', 'hub'));
+    });
+
+    it('should return process resources path in packaged mode', () => {
+      mocks.isPackaged.mockReturnValue(true);
+      Object.defineProperty(process, 'resourcesPath', {
+        value: '/opt/AionUi/resources',
+        configurable: true,
+        writable: true,
+      });
+
+      expect(getHubResourcesDir()).toBe(path.join('/opt/AionUi/resources', 'hub'));
     });
   });
 

@@ -95,10 +95,21 @@ export interface INotificationService {
   send(options: { title: string; body: string; icon?: string }): void;
 }
 
+/**
+ * Network primitives that vary by runtime.
+ *
+ * Electron should use `net.fetch()` to preserve Chromium networking behavior.
+ * Standalone server mode should use the runtime's global `fetch()`.
+ */
+export interface INetworkService {
+  fetch(input: string | URL | Request, init?: RequestInit): Promise<Response>;
+}
+
 /** Top-level aggregate injected at process startup. */
 export interface IPlatformServices {
   paths: IPlatformPaths;
   worker: IWorkerProcessFactory;
   power: IPowerManager;
   notification: INotificationService;
+  network: INetworkService;
 }

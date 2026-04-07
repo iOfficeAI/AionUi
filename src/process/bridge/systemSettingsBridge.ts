@@ -188,4 +188,13 @@ export function initSystemSettingsBridge(): void {
     const { setPetConfirmEnabled } = await import('@process/pet/petManager');
     setPetConfirmEnabled(enabled);
   });
+
+  ipcBridge.systemSettings.getCommandQueueEnabled.provider(async () => {
+    const value = await ProcessConfig.get('system.commandQueueEnabled');
+    return value ?? false;
+  });
+
+  ipcBridge.systemSettings.setCommandQueueEnabled.provider(async ({ enabled }) => {
+    await ProcessConfig.set('system.commandQueueEnabled', enabled);
+  });
 }

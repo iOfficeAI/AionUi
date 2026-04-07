@@ -154,6 +154,8 @@
   "cacheClearFailed": "Önbellek temizlenemedi",
   "language": "Dil",
   "saveUploadToWorkspace": "Yüklemeleri Çalışma Alanına Kaydet",
+  "commandQueueEnabled": "Komut Kuyruğunu Etkinleştir",
+  "commandQueueEnabledDesc": "Etkinleştirildiğinde, mevcut tur hâlâ çalışıyorsa yeni mesajlar hemen gönderilmek yerine kuyruğa eklenir.",
   "startOnBoot": "Açılışta Başlat",
   "startOnBootDesc": "macOS veya Windows oturumu açtığınızda AionUi'yi otomatik olarak başlatır.",
   "startOnBootUnsupported": "Yalnızca paketlenmiş macOS ve Windows uygulamalarında kullanılabilir.",

@@ -70,4 +70,8 @@ export class NodePlatformServices implements IPlatformServices {
   notification = {
     send: (_opts: { title: string; body: string; icon?: string }): void => {},
   };
+
+  network = {
+    fetch: (input: string | URL | Request, init?: RequestInit): Promise<Response> => fetch(input, init),
+  };
 }

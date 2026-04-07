@@ -10,6 +10,7 @@ import type { IAgentManager } from '@process/task/IAgentManager';
 import type { IConversationService, CreateConversationParams } from '@process/services/IConversationService';
 import type { IWorkerTaskManager } from '@process/task/IWorkerTaskManager';
 import { ipcBridge } from '@/common';
+import { removeFromMessageCache } from '@process/utils/message';
 import {
   getSkillsDir,
   getBuiltinSkillsCopyDir,
@@ -259,6 +260,7 @@ export function initConversationBridge(
       }
 
       await conversationService.deleteConversation(id);
+      removeFromMessageCache(id);
       if (conversation) {
         emitConversationListChanged(conversation, 'deleted');
       }

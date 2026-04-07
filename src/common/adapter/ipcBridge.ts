@@ -515,7 +515,7 @@ export const mcpService = {
   testMcpConnection: bridge.buildProvider<
     IBridgeResponse<{
       success: boolean;
-      tools?: Array<{ name: string; description?: string }>;
+      tools?: Array<{ name: string; description?: string; _meta?: Record<string, unknown> }>;
       error?: string;
       needsAuth?: boolean;
       authMethod?: 'oauth' | 'basic';
@@ -727,6 +727,8 @@ export const systemSettings = {
   setPetDnd: bridge.buildProvider<void, { dnd: boolean }>('system-settings:set-pet-dnd'),
   getPetConfirmEnabled: bridge.buildProvider<boolean, void>('system-settings:get-pet-confirm-enabled'),
   setPetConfirmEnabled: bridge.buildProvider<void, { enabled: boolean }>('system-settings:set-pet-confirm-enabled'),
+  getCommandQueueEnabled: bridge.buildProvider<boolean, void>('system-settings:get-command-queue-enabled'),
+  setCommandQueueEnabled: bridge.buildProvider<void, { enabled: boolean }>('system-settings:set-command-queue-enabled'),
 };
 
 // 系统通知接口 / System notification API

@@ -1,8 +1,8 @@
+import { getPlatformServices } from '@/common/platform';
 import { getDataPath } from '@process/utils';
 import { acpDetector } from '@process/agent/acp/AcpDetector';
 import { exec } from 'child_process';
 import * as crypto from 'crypto';
-import { net } from 'electron';
 import * as fs from 'fs';
 import * as path from 'path';
 import { promisify } from 'util';
@@ -157,7 +157,7 @@ export class HubInstallerImpl {
       // Step 5: Reload extension registry and refresh AcpDetector
       // Clear persisted state so hotReload treats this as a fresh install
       // and re-runs onInstall (handles reinstall after CLI was uninstalled).
-      markExtensionForReinstall(name);
+      await markExtensionForReinstall(name);
 
       // hotReload re-scans all extension directories, discovers this new extension,
       // and runs the full lifecycle (onInstall for first-time + onActivate) via
@@ -202,7 +202,7 @@ export class HubInstallerImpl {
       }
 
       // Reload registry — clear persisted state to force onInstall re-run
-      markExtensionForReinstall(name);
+      await markExtensionForReinstall(name);
       await ExtensionRegistry.hotReload();
       await acpDetector.refreshAll();
 
@@ -259,7 +259,7 @@ export class HubInstallerImpl {
   }
 
   private async downloadFile(url: string, dest: string): Promise<void> {
-    const response = await net.fetch(url);
+    const response = await getPlatformServices().network.fetch(url);
     if (!response.ok) {
       throw new Error(`Failed to fetch ${url}: ${response.statusText}`);
     }

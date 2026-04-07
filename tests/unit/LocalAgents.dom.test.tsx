@@ -157,4 +157,30 @@ describe('LocalAgents', () => {
 
     expect(screen.getByText('settings.agentManagement.localAgentsEmpty')).toBeTruthy();
   });
+
+  it('hides "install from market" card in non-development environment', async () => {
+    const originalEnv = process.env.NODE_ENV;
+    process.env.NODE_ENV = 'production';
+    try {
+      await act(async () => {
+        render(<LocalAgents />);
+      });
+      expect(screen.queryByText('settings.agentManagement.installFromMarket')).toBeNull();
+    } finally {
+      process.env.NODE_ENV = originalEnv;
+    }
+  });
+
+  it('shows "install from market" card in development environment', async () => {
+    const originalEnv = process.env.NODE_ENV;
+    process.env.NODE_ENV = 'development';
+    try {
+      await act(async () => {
+        render(<LocalAgents />);
+      });
+      expect(screen.getAllByText('settings.agentManagement.installFromMarket').length).toBeGreaterThan(0);
+    } finally {
+      process.env.NODE_ENV = originalEnv;
+    }
+  });
 });

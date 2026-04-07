@@ -154,6 +154,8 @@
   "cacheClearFailed": "缓存清理失败",
   "language": "语言",
   "saveUploadToWorkspace": "上传文件保存到工作区",
+  "commandQueueEnabled": "启用命令队列",
+  "commandQueueEnabledDesc": "启用后，当当前回合仍在运行时，新消息会先进入队列，而不是立即发送。",
   "startOnBoot": "开机启动",
   "startOnBootDesc": "登录 macOS 或 Windows 后自动启动 AionUi。",
   "startOnBootUnsupported": "仅在打包后的 macOS 和 Windows 客户端中可用。",

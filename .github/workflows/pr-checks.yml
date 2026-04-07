@@ -74,7 +74,7 @@ jobs:
           cache: true
 
       - name: Install dependencies
-        run: bun install --no-frozen-lockfile
+        run: bun install --frozen-lockfile
 
       - name: Run postinstall
         run: npm run postinstall || true
@@ -124,7 +124,7 @@ jobs:
           Add-MpPreference -ExclusionPath "${{ github.workspace }}"
 
       - name: Install dependencies
-        run: bun install --no-frozen-lockfile
+        run: bun install --frozen-lockfile
 
       - name: Run postinstall
         run: npm run postinstall || true
@@ -160,7 +160,7 @@ jobs:
           cache: true
 
       - name: Install dependencies
-        run: bun install --no-frozen-lockfile
+        run: bun install --frozen-lockfile
 
       - name: Run postinstall
         run: npm run postinstall || true
@@ -237,7 +237,7 @@ jobs:
           cache: true
 
       - name: Install dependencies
-        run: bun install --no-frozen-lockfile
+        run: bun install --frozen-lockfile
 
       - name: Run postinstall
         run: npm run postinstall || true
@@ -332,7 +332,7 @@ jobs:
         uses: extractions/setup-just@v2
 
       - name: Install dependencies
-        run: bun install --no-frozen-lockfile
+        run: bun install --frozen-lockfile
 
       - name: Run postinstall
         run: npm run postinstall || true

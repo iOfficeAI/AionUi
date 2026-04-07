@@ -53,16 +53,24 @@ describe('resolveConversationType', () => {
 // isTeamSupportedBackend — the gate that decides MCP injection eligibility
 // ---------------------------------------------------------------------------
 describe('isTeamSupportedBackend', () => {
-  it.each(['claude', 'codex', 'codebuddy'])('allows verified backend "%s"', (backend) => {
+  it.each(['claude', 'codex'])('allows verified backend "%s"', (backend) => {
     expect(isTeamSupportedBackend(backend)).toBe(true);
   });
 
-  it.each(['gemini', 'aionrs', 'openclaw-gateway', 'nanobot', 'remote', 'qwen', 'copilot', 'kimi', 'goose'])(
-    'rejects unverified backend "%s"',
-    (backend) => {
-      expect(isTeamSupportedBackend(backend)).toBe(false);
-    }
-  );
+  it.each([
+    'gemini',
+    'aionrs',
+    'openclaw-gateway',
+    'nanobot',
+    'remote',
+    'qwen',
+    'copilot',
+    'kimi',
+    'goose',
+    'codebuddy',
+  ])('rejects unverified backend "%s"', (backend) => {
+    expect(isTeamSupportedBackend(backend)).toBe(false);
+  });
 });
 
 // ---------------------------------------------------------------------------
@@ -86,7 +94,7 @@ describe('filterTeamSupportedAgents', () => {
       makeAgent('codebuddy'),
     ];
     const result = filterTeamSupportedAgents(agents);
-    expect(result.map((a: AvailableAgent) => a.backend)).toEqual(['claude', 'codex', 'codebuddy']);
+    expect(result.map((a: AvailableAgent) => a.backend)).toEqual(['claude', 'codex']);
   });
 
   it('uses presetAgentType over backend when available', () => {
@@ -101,8 +109,8 @@ describe('filterTeamSupportedAgents', () => {
   });
 
   it('returns all agents when all are verified', () => {
-    const agents = [makeAgent('claude'), makeAgent('codex'), makeAgent('codebuddy')];
-    expect(filterTeamSupportedAgents(agents)).toHaveLength(3);
+    const agents = [makeAgent('claude'), makeAgent('codex')];
+    expect(filterTeamSupportedAgents(agents)).toHaveLength(2);
   });
 });
 
@@ -169,8 +177,8 @@ describe('MCP injection chain consistency', () => {
     }
   });
 
-  it('TEAM_SUPPORTED_BACKENDS contains exactly claude, codex, codebuddy', () => {
-    expect([...TEAM_SUPPORTED_BACKENDS].toSorted()).toEqual(['claude', 'codebuddy', 'codex']);
+  it('TEAM_SUPPORTED_BACKENDS contains exactly claude, codex', () => {
+    expect([...TEAM_SUPPORTED_BACKENDS].toSorted()).toEqual(['claude', 'codex']);
   });
 
   it('MCP_CAPABLE_TYPES contains "acp" — the core team protocol', () => {

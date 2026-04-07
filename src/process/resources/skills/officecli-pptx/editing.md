@@ -205,6 +205,12 @@ officecli remove template.pptx /slide[3]
 ```bash
 # Move slide 5 to position index 1 (becomes second slide)
 officecli move template.pptx /slide[5] --index 1
+
+# Move slide after another slide (anchor-based)
+officecli move template.pptx /slide[5] --after /slide[2]
+
+# Swap two slides
+officecli swap template.pptx /slide[2] /slide[4]
 ```
 
 ### Add New Slides

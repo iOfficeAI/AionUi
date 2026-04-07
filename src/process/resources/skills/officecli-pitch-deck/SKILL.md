@@ -273,6 +273,23 @@ See [creating.md](creating.md) Section H for the full list with workarounds. Key
 
 ---
 
+## Adjustments After Creation
+
+When the user requests changes after the deck is built:
+
+| Request                    | Command                                                                |
+| -------------------------- | ---------------------------------------------------------------------- |
+| Swap two slides            | `officecli swap deck.pptx '/slide[2]' '/slide[4]'`                     |
+| Move a slide after another | `officecli move deck.pptx '/slide[5]' --after '/slide[2]'`             |
+| Edit shape text            | `officecli set deck.pptx '/slide[N]/shape[M]' --prop text="..."`       |
+| Change color / style       | `officecli set deck.pptx '/slide[N]/shape[M]' --prop fill=FF0000`      |
+| Remove an element          | `officecli remove deck.pptx '/slide[N]/shape[M]'`                      |
+| Find & replace text        | `officecli set deck.pptx / --prop find=OldText --prop replace=NewText` |
+
+After any `swap` or `move`, re-query the affected slide with `officecli get deck.pptx '/slide[N]' --depth 1` — shape indices shift after reordering.
+
+---
+
 ## Help System
 
 ```bash

@@ -105,7 +105,7 @@ export class ExtensionRegistry {
       this.extensions = loaded;
 
       // --- Restore persisted states & determine lifecycle actions ---
-      const persistedStates = loadPersistedStates();
+      const persistedStates = await loadPersistedStates();
 
       for (const ext of this.extensions) {
         const persisted = persistedStates.get(ext.manifest.name);

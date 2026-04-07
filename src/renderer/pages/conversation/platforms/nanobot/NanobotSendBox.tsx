@@ -22,7 +22,7 @@ import { assertBridgeSuccess } from '@/renderer/pages/conversation/platforms/ass
 import { allSupportedExts, type FileMetadata } from '@/renderer/services/FileService';
 import { emitter, useAddEventListener } from '@/renderer/utils/emitter';
 import { mergeFileSelectionItems } from '@/renderer/utils/file/fileSelection';
-import { Tag } from '@arco-design/web-react';
+import { Message, Tag } from '@arco-design/web-react';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { buildDisplayMessage } from '@/renderer/utils/file/messageFiles';
@@ -35,6 +35,7 @@ import { useOpenFileSelector } from '@/renderer/hooks/file/useOpenFileSelector';
 import FileAttachButton from '@/renderer/components/media/FileAttachButton';
 import { useAutoTitle } from '@/renderer/hooks/chat/useAutoTitle';
 import { useSlashCommands } from '@/renderer/hooks/chat/useSlashCommands';
+import { useCommandQueueEnabled } from '@/renderer/hooks/system/useCommandQueueEnabled';
 
 interface NanobotDraftData {
   _type: 'nanobot';
@@ -58,6 +59,7 @@ const NanobotSendBox: React.FC<{ conversation_id: string }> = ({ conversation_id
   const { t } = useTranslation();
   const { checkAndUpdateTitle } = useAutoTitle();
   const slashCommands = useSlashCommands(conversation_id);
+  const isCommandQueueEnabled = useCommandQueueEnabled();
   const addOrUpdateMessage = useAddOrUpdateMessage();
   const removeMessageByMsgId = useRemoveMessageByMsgId();
   const { setSendBoxHandler } = usePreviewContext();
@@ -285,18 +287,30 @@ const NanobotSendBox: React.FC<{ conversation_id: string }> = ({ conversation_id
     resetActiveExecution,
   } = useConversationCommandQueue({
     conversationId: conversation_id,
+    enabled: isCommandQueueEnabled,
     isBusy: aiProcessing,
     isHydrated: hasHydratedRunningState,
     onExecute: executeCommand,
   });
 
   const onSendHandler = async (message: string) => {
+    if (!isCommandQueueEnabled && aiProcessing) {
+      Message.warning(t('messages.conversationInProgress'));
+      return;
+    }
+
     emitter.emit('nanobot.selected.file.clear');
     const filePaths = [...uploadFile, ...atPath.map((item) => (typeof item === 'string' ? item : item.path))];
     setAtPath([]);
     setUploadFile([]);
 
-    if (shouldEnqueueConversationCommand({ isBusy: aiProcessing, hasPendingCommands })) {
+    if (
+      shouldEnqueueConversationCommand({
+        enabled: isCommandQueueEnabled,
+        isBusy: aiProcessing,
+        hasPendingCommands,
+      })
+    ) {
       enqueue({ input: message, files: filePaths });
       return;
     }
@@ -475,7 +489,7 @@ const NanobotSendBox: React.FC<{ conversation_id: string }> = ({ conversation_id
         onSend={onSendHandler}
         slashCommands={slashCommands}
         onSlashBuiltinCommand={onSlashBuiltinCommand}
-        allowSendWhileLoading
+        allowSendWhileLoading={isCommandQueueEnabled}
       ></SendBox>
     </div>
   );
