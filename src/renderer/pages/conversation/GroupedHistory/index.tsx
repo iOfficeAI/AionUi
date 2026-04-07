@@ -417,7 +417,7 @@ const WorkspaceGroupedHistory: React.FC<WorkspaceGroupedHistoryProps> = ({
                 if (item.type === 'workspace' && item.workspaceGroup) {
                   const group = item.workspaceGroup;
                   return (
-                    <div key={group.workspace} className={classNames('min-w-0', { 'px-8px': !collapsed })}>
+                    <div key={group.workspace} className='min-w-0'>
                       <WorkspaceCollapse
                         expanded={expandedWorkspaces.includes(group.workspace)}
                         onToggle={() => handleToggleWorkspace(group.workspace)}
@@ -430,7 +430,7 @@ const WorkspaceGroupedHistory: React.FC<WorkspaceGroupedHistoryProps> = ({
                           </div>
                         }
                       >
-                        <div className={classNames('flex flex-col gap-2px min-w-0', { 'mt-4px': !collapsed })}>
+                        <div className={classNames('flex flex-col gap-2px min-w-0', { 'mt-2px': !collapsed })}>
                           {group.conversations.map((conversation) => renderConversation(conversation))}
                         </div>
                       </WorkspaceCollapse>

@@ -7,8 +7,7 @@
 import React from 'react';
 import { useTranslation } from 'react-i18next';
 import { Tooltip } from '@arco-design/web-react';
-import { IconMoonFill, IconSunFill } from '@arco-design/web-react/icon';
-import { ArrowCircleLeft, SettingTwo } from '@icon-park/react';
+import { ArrowCircleLeft, Moon, SettingTwo, SunOne } from '@icon-park/react';
 import classNames from 'classnames';
 import { iconColors } from '@renderer/styles/colors';
 import type { SiderTooltipProps } from '@renderer/utils/ui/siderTooltip';
@@ -16,6 +15,7 @@ import type { SiderTooltipProps } from '@renderer/utils/ui/siderTooltip';
 interface SiderFooterProps {
   isMobile: boolean;
   isSettings: boolean;
+  collapsed?: boolean;
   theme: string;
   siderTooltipProps: SiderTooltipProps;
   onSettingsClick: () => void;
@@ -25,6 +25,7 @@ interface SiderFooterProps {
 const SiderFooter: React.FC<SiderFooterProps> = ({
   isMobile,
   isSettings,
+  collapsed = false,
   theme,
   siderTooltipProps,
   onSettingsClick,
@@ -32,56 +33,69 @@ const SiderFooter: React.FC<SiderFooterProps> = ({
 }) => {
   const { t } = useTranslation();
 
+  const settingsIcon = isSettings ? (
+    <ArrowCircleLeft
+      theme='outline'
+      size='20'
+      fill={iconColors.primary}
+      className='block leading-none'
+      style={{ lineHeight: 0 }}
+    />
+  ) : (
+    <SettingTwo
+      theme='outline'
+      size='20'
+      fill={iconColors.primary}
+      className='block leading-none'
+      style={{ lineHeight: 0 }}
+    />
+  );
+  const showThemeToggle = isSettings && !collapsed;
+  const themeTooltip = theme === 'dark' ? t('settings.lightMode') : t('settings.darkMode');
+
   return (
-    <div className='shrink-0 sider-footer mt-auto pt-8px'>
-      <div className='flex flex-col gap-8px'>
-        {isSettings && (
-          <Tooltip
-            {...siderTooltipProps}
-            content={theme === 'dark' ? t('settings.lightMode') : t('settings.darkMode')}
-            position='right'
-          >
-            <div
-              onClick={onThemeToggle}
-              className={classNames(
-                'flex items-center justify-start gap-10px px-12px py-8px rd-0.5rem cursor-pointer transition-colors hover:bg-hover active:bg-fill-2',
-                isMobile && 'sider-footer-btn-mobile'
-              )}
-              aria-label={theme === 'dark' ? t('settings.lightMode') : t('settings.darkMode')}
-            >
-              {theme === 'dark' ? (
-                <IconSunFill style={{ fontSize: 18, color: 'rgb(var(--primary-6))' }} />
-              ) : (
-                <IconMoonFill style={{ fontSize: 18, color: 'rgb(var(--primary-6))' }} />
-              )}
-              <span className='collapsed-hidden text-t-primary'>
-                {t('settings.theme')} · {theme === 'dark' ? t('settings.darkMode') : t('settings.lightMode')}
-              </span>
-            </div>
-          </Tooltip>
-        )}
+    <div className='shrink-0 sider-footer mt-auto pt-4px pb-8px'>
+      <div className={classNames('flex', collapsed ? 'flex-col gap-2px' : 'items-center gap-2px')}>
         <Tooltip {...siderTooltipProps} content={isSettings ? t('common.back') : t('common.settings')} position='right'>
           <div
             onClick={onSettingsClick}
             className={classNames(
-              'flex items-center justify-start gap-10px px-12px py-8px rd-0.5rem cursor-pointer transition-colors',
+              'h-40px flex items-center rd-0.5rem cursor-pointer transition-colors',
+              collapsed ? 'w-full justify-center' : 'flex-1 min-w-0 justify-start gap-8px px-10px',
               isMobile && 'sider-footer-btn-mobile',
               {
                 'bg-[rgba(var(--primary-6),0.12)] text-primary': isSettings,
-                'hover:bg-hover hover:shadow-sm active:bg-fill-2': !isSettings,
+                'hover:bg-[rgba(var(--primary-6),0.14)] active:bg-fill-2': !isSettings,
               }
             )}
           >
-            {isSettings ? (
-              <ArrowCircleLeft className='flex' theme='outline' size='24' fill={iconColors.primary} />
-            ) : (
-              <SettingTwo className='flex' theme='outline' size='24' fill={iconColors.primary} />
-            )}
-            <span className='collapsed-hidden text-t-primary'>
+            <span className='w-28px h-24px flex items-center justify-center shrink-0'>{settingsIcon}</span>
+            <span className='collapsed-hidden text-t-primary text-14px font-medium leading-24px truncate'>
               {isSettings ? t('common.back') : t('common.settings')}
             </span>
           </div>
         </Tooltip>
+        {/* Theme toggle — lightweight icon button, only while inside Settings page (not in collapsed mode) */}
+        {showThemeToggle && (
+          <Tooltip {...siderTooltipProps} content={themeTooltip} position='right'>
+            <div
+              onClick={onThemeToggle}
+              className={classNames(
+                'h-40px w-40px shrink-0 flex items-center justify-center cursor-pointer rd-0.5rem transition-colors text-t-secondary hover:bg-fill-2 hover:text-t-primary active:bg-fill-3',
+                isMobile && 'sider-footer-btn-mobile'
+              )}
+              aria-label={themeTooltip}
+            >
+              <span className='w-28px h-28px flex items-center justify-center shrink-0'>
+                {theme === 'dark' ? (
+                  <SunOne theme='outline' size='18' fill='currentColor' className='block leading-none' />
+                ) : (
+                  <Moon theme='outline' size='18' fill='currentColor' className='block leading-none' />
+                )}
+              </span>
+            </div>
+          </Tooltip>
+        )}
       </div>
     </div>
   );

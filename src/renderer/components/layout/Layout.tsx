@@ -436,7 +436,7 @@ const Layout: React.FC<{
           >
             <ArcoLayout.Header
               className={classNames(
-                'flex items-center justify-start py-10px px-16px pl-20px gap-12px layout-sider-header',
+                'flex items-center justify-start py-8px px-16px pl-20px gap-12px layout-sider-header',
                 isMobile && 'layout-sider-header--mobile',
                 {
                   'cursor-pointer group ': collapsed,
@@ -489,9 +489,7 @@ const Layout: React.FC<{
               )}
               {/* 侧栏折叠改由标题栏统一控制 / Sidebar folding handled by Titlebar toggle */}
             </ArcoLayout.Header>
-            <ArcoLayout.Content
-              className={classNames('p-8px layout-sider-content', !isMobile && 'h-[calc(100%-72px-16px)]')}
-            >
+            <ArcoLayout.Content className='pt-8px px-8px pb-0 layout-sider-content'>
               {React.isValidElement(sider)
                 ? React.cloneElement(sider, {
                     onSessionClick: () => {

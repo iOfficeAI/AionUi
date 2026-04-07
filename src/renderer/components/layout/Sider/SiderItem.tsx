@@ -9,6 +9,8 @@ import { Pushpin } from '@icon-park/react';
 import classNames from 'classnames';
 import React, { useState } from 'react';
 
+import styles from './Sider.module.css';
+
 export type SiderMenuItem = {
   key: string;
   icon: React.ReactNode;
@@ -53,7 +55,7 @@ const SiderItem: React.FC<SiderItemProps> = ({
     >
       <div
         className={classNames(
-          'py-8px rd-8px flex items-center px-12px cursor-pointer relative overflow-hidden shrink-0 group min-w-0 transition-colors',
+          'h-40px rd-8px flex items-center gap-8px px-10px cursor-pointer relative overflow-hidden shrink-0 group min-w-0 transition-colors',
           {
             'hover:bg-[rgba(var(--primary-6),0.14)]': true,
             '!bg-active': selected,
@@ -62,11 +64,14 @@ const SiderItem: React.FC<SiderItemProps> = ({
         onClick={onClick}
         onContextMenu={onContextMenu}
       >
-        {/* Leading icon */}
-        <span className='flex-shrink-0 line-height-0'>{icon}</span>
+        {/* Leading icon — fixed 28px column to align with other sidebar rows */}
+        <span className='w-28px h-28px flex items-center justify-center shrink-0 line-height-0'>{icon}</span>
 
-        {/* Name with truncation */}
-        <div className='h-24px min-w-0 flex-1 ml-10px pr-18px overflow-hidden'>
+        {/* Name with truncation — reserve extra room on the right when pinned
+            so the pushpin never overlaps the text in the resting state. */}
+        <div
+          className={classNames('h-24px min-w-0 flex-1 overflow-hidden', pinned ? styles.pinnedTextSlot : 'pr-18px')}
+        >
           <div
             className={classNames(
               'overflow-hidden text-ellipsis block w-full text-14px lh-24px whitespace-nowrap min-w-0 group-hover:text-1',
@@ -77,25 +82,27 @@ const SiderItem: React.FC<SiderItemProps> = ({
           </div>
         </div>
 
-        {/* Right-side actions: pin indicator + three-dot menu */}
+        {/* Resting pin indicator — sits in its own reserved slot, no gradient overlay */}
+        {hasMenu && pinned && !menuVisible && (
+          <span className='absolute right-8px top-1/2 -translate-y-1/2 flex-center text-t-secondary group-hover:hidden pointer-events-none'>
+            <Pushpin theme='outline' size='16' />
+          </span>
+        )}
+
+        {/* Hover/active actions: three-dot menu with soft gradient fade */}
         {hasMenu && (
           <div
             className={classNames('absolute right-0px top-0px h-full items-center justify-end pr-8px', {
-              flex: pinned || menuVisible,
-              'hidden group-hover:flex': !pinned && !menuVisible,
+              flex: menuVisible,
+              'hidden group-hover:flex': !menuVisible,
             })}
             style={{
               backgroundImage: selected
-                ? `linear-gradient(to right, transparent, var(--aou-2) 50%)`
-                : `linear-gradient(to right, transparent, var(--aou-1) 50%)`,
+                ? `linear-gradient(to right, transparent, var(--aou-2) 20%)`
+                : `linear-gradient(to right, transparent, var(--aou-1) 20%)`,
             }}
             onClick={(e) => e.stopPropagation()}
           >
-            {pinned && !menuVisible && (
-              <span className='flex-center text-t-secondary group-hover:hidden pr-4px'>
-                <Pushpin theme='outline' size='16' />
-              </span>
-            )}
             <Dropdown
               droplist={
                 <Menu

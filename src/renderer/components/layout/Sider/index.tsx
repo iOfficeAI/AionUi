@@ -22,6 +22,7 @@ import SiderSearchEntry from './SiderSearchEntry';
 import SiderScheduledEntry from './SiderScheduledEntry';
 import SiderFooter from './SiderFooter';
 import CronJobSiderSection from './CronJobSiderSection';
+import siderStyles from './Sider.module.css';
 
 const TEAM_PINNED_KEY = 'team-pinned-ids';
 
@@ -189,7 +190,7 @@ const Sider: React.FC<SiderProps> = ({ onSessionClick, collapsed = false }) => {
             <SettingsSider collapsed={collapsed} tooltipEnabled={tooltipEnabled} />
           </Suspense>
         ) : (
-          <div className='size-full flex flex-col'>
+          <div className='size-full flex flex-col gap-2px'>
             <SiderToolbar
               isMobile={isMobile}
               isBatchMode={isBatchMode}
@@ -214,19 +215,26 @@ const Sider: React.FC<SiderProps> = ({ onSessionClick, collapsed = false }) => {
               siderTooltipProps={siderTooltipProps}
               onClick={handleScheduledClick}
             />
+            {/* Divider between fixed top nav and scrollable content area */}
+            <div
+              className={classNames(
+                'shrink-0 mt-4px mb-4px h-1px bg-[var(--color-border-2)]',
+                collapsed ? 'mx-6px' : 'mx-10px'
+              )}
+            />
             {/* Scrollable content: team + scheduled tasks + conversation history */}
-            <div className='flex-1 min-h-0 overflow-y-auto'>
+            <div className={classNames('flex-1 min-h-0 overflow-y-auto', siderStyles.scrollArea)}>
               {/* Team section */}
               {collapsed ? (
                 sortedTeams.length > 0 && (
-                  <div className='shrink-0 mb-4px'>
+                  <div className='shrink-0 flex flex-col gap-2px'>
                     {sortedTeams.map((team) => {
                       const isActive = pathname.startsWith(`/team/${team.id}`);
                       return (
                         <Tooltip key={team.id} {...siderTooltipProps} content={team.name} position='right'>
                           <div
                             className={classNames(
-                              'w-full py-6px flex items-center justify-center cursor-pointer transition-colors rd-8px',
+                              'w-full h-40px flex items-center justify-center cursor-pointer transition-colors rd-8px',
                               isActive
                                 ? 'bg-[rgba(var(--primary-6),0.12)] text-primary'
                                 : 'hover:bg-fill-3 active:bg-fill-4'
@@ -251,7 +259,7 @@ const Sider: React.FC<SiderProps> = ({ onSessionClick, collapsed = false }) => {
                   </div>
                 )
               ) : (
-                <div className='shrink-0 mb-4px'>
+                <div className='shrink-0 flex flex-col gap-2px'>
                   <div className='flex items-center justify-between px-12px py-8px'>
                     <span className='text-13px text-t-secondary font-bold leading-20px'>{t('team.sider.title')}</span>
                     <div
@@ -345,6 +353,7 @@ const Sider: React.FC<SiderProps> = ({ onSessionClick, collapsed = false }) => {
       <SiderFooter
         isMobile={isMobile}
         isSettings={isSettings}
+        collapsed={collapsed}
         theme={theme}
         siderTooltipProps={siderTooltipProps}
         onSettingsClick={handleSettingsClick}
