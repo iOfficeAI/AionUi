@@ -26,15 +26,6 @@ const optionsEl = document.getElementById('options')!;
 let currentConfirmation: IConfirmation | null = null;
 let msgId = '';
 
-// Keyboard shortcut mapping
-const shortcutMap: Record<string, string> = {
-  Enter: '⏎',
-  Escape: 'Esc',
-  a: 'A',
-  y: 'Y',
-  n: 'N',
-};
-
 /**
  * Render confirmation UI.
  */
@@ -73,7 +64,15 @@ function renderConfirmation(confirmation: IConfirmation): void {
       shortcut = String(index + 1);
     }
 
-    btn.innerHTML = `<span class="shortcut">${shortcut}</span>` + `<span>${option.label}</span>`;
+    const shortcutSpan = document.createElement('span');
+    shortcutSpan.className = 'shortcut';
+    shortcutSpan.textContent = shortcut;
+
+    const labelSpan = document.createElement('span');
+    labelSpan.textContent = option.label;
+
+    btn.appendChild(shortcutSpan);
+    btn.appendChild(labelSpan);
 
     btn.addEventListener('click', () => {
       respond(option.value);
