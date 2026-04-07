@@ -552,6 +552,22 @@ describe('resolveNpxDirect', () => {
     expect(resolveNpxDirect({ PATH: '/tooling' })).toBeNull();
   });
 
+  it('returns null when where command throws on Windows', async () => {
+    Object.defineProperty(process, 'platform', { value: 'win32' });
+
+    const execFileSync = vi.fn().mockImplementation(() => {
+      throw new Error('where: command not found');
+    });
+
+    vi.doMock('child_process', () => ({
+      execFileSync,
+      execFile: vi.fn(),
+    }));
+
+    const { resolveNpxDirect } = await import('@process/utils/shellEnv');
+    expect(resolveNpxDirect({ PATH: '/tooling' })).toBeNull();
+  });
+
   it('returns null when npx version is too old on Windows', async () => {
     Object.defineProperty(process, 'platform', { value: 'win32' });
 

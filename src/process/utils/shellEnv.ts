@@ -646,6 +646,7 @@ export function resolveNpxDirect(
     const npxCliJs = path.join(npmBinDir, 'npx-cli.js');
     const npmPrefixJs = path.join(npmBinDir, 'npm-prefix.js');
 
+    // npx-cli.js requires npm-prefix.js at runtime — verify both exist
     if (!existsSync(npxCliJs) || !existsSync(npmPrefixJs)) return null;
 
     // Verify the npx-cli.js actually works
