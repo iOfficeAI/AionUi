@@ -447,7 +447,7 @@ const ConversationSearchPopover: React.FC<ConversationSearchPopoverProps> = ({
   const useCompactHeight = !debouncedKeyword || (!loading && !hasSearchResults);
   const triggerClassName = fullWidth
     ? 'conversation-search-trigger-full h-40px w-full p-0 bg-transparent border-none outline-none flex items-center justify-start gap-8px px-10px rd-0.5rem cursor-pointer shrink-0 transition-all group text-t-primary focus:outline-none focus-visible:outline-none'
-    : 'h-40px w-40px p-0 bg-transparent rd-0.5rem flex items-center justify-center cursor-pointer shrink-0 transition-all border border-solid border-transparent';
+    : 'h-40px w-40px p-0 bg-transparent rd-0.5rem flex items-center justify-center cursor-pointer shrink-0 transition-all border border-solid border-transparent text-t-primary';
 
   return (
     <>

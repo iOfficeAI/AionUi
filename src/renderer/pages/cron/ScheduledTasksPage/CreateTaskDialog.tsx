@@ -407,19 +407,19 @@ const CreateTaskDialog: React.FC<CreateTaskDialogProps> = ({
                     key={option.value}
                     value={option.value}
                     className={[
-                      'm-0 min-w-0 text-14px text-text-2',
+                      'm-0 min-w-0 text-14px text-t-secondary',
                       isEditMode ? 'cursor-not-allowed opacity-70' : 'cursor-pointer',
                     ].join(' ')}
                   >
-                    <span className='pl-4px text-14px font-medium text-text-1'>{option.label}</span>
+                    <span className='pl-4px text-14px font-medium text-t-primary'>{option.label}</span>
                   </Radio>
                 );
               })}
             </Radio.Group>
             <div className='mt-10px rounded-12px border border-solid border-[var(--color-border-2)] bg-fill-2 px-14px py-12px'>
-              <p className='m-0 text-12px leading-18px text-text-2'>{selectedExecutionModeOption.description}</p>
+              <p className='m-0 text-12px leading-18px text-t-primary'>{selectedExecutionModeOption.description}</p>
               {isEditMode && (
-                <p className='m-0 mt-8px text-12px leading-18px text-text-3'>
+                <p className='m-0 mt-8px text-12px leading-18px text-t-secondary'>
                   {t('cron.page.form.executionModeEditHint')}
                 </p>
               )}
@@ -477,7 +477,7 @@ const CreateTaskDialog: React.FC<CreateTaskDialogProps> = ({
 
           {/* Hint text */}
           {frequency !== 'manual' && (
-            <p className='text-text-3 text-12px mt-0 mb-16px'>{t('cron.page.scheduleHint')}</p>
+            <p className='text-t-secondary text-12px mt-0 mb-16px'>{t('cron.page.scheduleHint')}</p>
           )}
         </Form>
       </div>

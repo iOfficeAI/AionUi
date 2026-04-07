@@ -19,6 +19,14 @@ export interface PresetAssistantInfo {
   isEmoji: boolean;
 }
 
+type AssistantLike = {
+  id?: string;
+  name?: string;
+  nameI18n?: Record<string, string>;
+  avatar?: string;
+  enabledSkills?: string[];
+};
+
 /**
  * 从 conversation extra 中解析预设助手 ID
  * Resolve preset assistant ID from conversation extra
@@ -90,6 +98,69 @@ function normalizeAvatar(avatar: string | undefined): { logo: string; isEmoji: b
   return { logo: value, isEmoji: true };
 }
 
+function normalizeAssistantLabel(value: string | undefined): string {
+  return (value || '')
+    .normalize('NFKC')
+    .replace(/[*_`>#]/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim()
+    .toLowerCase();
+}
+
+function extractLegacyPresetPayload(conversation: TChatConversation): {
+  rules: string;
+  enabledSkills: string[];
+  hasPayload: boolean;
+} {
+  const extra = conversation.extra as {
+    presetContext?: unknown;
+    presetRules?: unknown;
+    enabledSkills?: unknown;
+  };
+  const presetContext = typeof extra?.presetContext === 'string' ? extra.presetContext.trim() : '';
+  const presetRules = typeof extra?.presetRules === 'string' ? extra.presetRules.trim() : '';
+  const enabledSkills = Array.isArray(extra?.enabledSkills)
+    ? extra.enabledSkills.filter((skill): skill is string => typeof skill === 'string' && skill.trim().length > 0)
+    : [];
+
+  return {
+    rules: presetContext || presetRules,
+    enabledSkills,
+    hasPayload: Boolean(presetContext || presetRules || enabledSkills.length > 0),
+  };
+}
+
+function extractAssistantNameFromRules(rules: string): string | null {
+  const trimmed = rules.trim();
+  if (!trimmed) return null;
+
+  const headingMatch = trimmed.match(/^\s*#\s+(.+?)\s*$/m);
+  if (headingMatch?.[1]) return headingMatch[1].trim();
+
+  const zhAssistantMatch = trimmed.match(/你是\s+\*\*([^*]+)\*\*/);
+  if (zhAssistantMatch?.[1]) return zhAssistantMatch[1].trim();
+
+  const enAssistantMatch = trimmed.match(/you are\s+\*\*([^*]+)\*\*/i);
+  if (enAssistantMatch?.[1]) return enAssistantMatch[1].trim();
+
+  return null;
+}
+
+function matchesAssistantName(candidate: string | null, names: Array<string | undefined>): boolean {
+  if (!candidate) return false;
+  const normalizedCandidate = normalizeAssistantLabel(candidate);
+  if (!normalizedCandidate) return false;
+  return names.some((name) => normalizeAssistantLabel(name) === normalizedCandidate);
+}
+
+function hasMatchingEnabledSkills(candidateSkills: string[] | undefined, enabledSkills: string[]): boolean {
+  if (!candidateSkills?.length || !enabledSkills.length) return false;
+  const normalizedCandidate = [...candidateSkills].map((skill) => skill.trim()).toSorted();
+  const normalizedEnabled = [...enabledSkills].map((skill) => skill.trim()).toSorted();
+  if (normalizedCandidate.length !== normalizedEnabled.length) return false;
+  return normalizedCandidate.every((skill, index) => skill === normalizedEnabled[index]);
+}
+
 /**
  * 根据 preset 构建助手信息
  * Build assistant info from preset
@@ -120,6 +191,82 @@ function buildCustomAgentInfo(
     logo: normalized.logo,
     isEmoji: normalized.isEmoji,
   };
+}
+
+function buildExtensionAssistantInfo(
+  extensionAssistant: { name?: string; nameI18n?: Record<string, string>; avatar?: string },
+  locale: string
+): PresetAssistantInfo {
+  const localeKey = locale.startsWith('zh') ? 'zh-CN' : 'en-US';
+  const normalized = normalizeAvatar(typeof extensionAssistant.avatar === 'string' ? extensionAssistant.avatar : '');
+  const name =
+    extensionAssistant.nameI18n?.[localeKey] ||
+    extensionAssistant.nameI18n?.[locale] ||
+    extensionAssistant.name ||
+    '🤖';
+
+  return {
+    name,
+    logo: normalized.logo,
+    isEmoji: normalized.isEmoji,
+  };
+}
+
+function inferLegacyAssistantInfo(
+  conversation: TChatConversation,
+  locale: string,
+  customAgents?: AssistantLike[] | null,
+  extensionAssistants?: AssistantLike[] | null
+): PresetAssistantInfo | null {
+  const { rules, enabledSkills } = extractLegacyPresetPayload(conversation);
+  const extractedName = extractAssistantNameFromRules(rules);
+
+  const builtinByName = ASSISTANT_PRESETS.find((preset) =>
+    matchesAssistantName(extractedName, [preset.id, preset.nameI18n['zh-CN'], preset.nameI18n['en-US']])
+  );
+  if (builtinByName) {
+    return buildPresetInfo(builtinByName.id, locale);
+  }
+
+  const builtinBySkills = ASSISTANT_PRESETS.filter((preset) =>
+    hasMatchingEnabledSkills(preset.defaultEnabledSkills, enabledSkills)
+  );
+  if (builtinBySkills.length === 1) {
+    return buildPresetInfo(builtinBySkills[0].id, locale);
+  }
+
+  const customByName = customAgents?.find((agent) =>
+    matchesAssistantName(extractedName, [agent.id, agent.name, agent.nameI18n?.['zh-CN'], agent.nameI18n?.['en-US']])
+  );
+  if (customByName) {
+    return buildCustomAgentInfo(customByName, locale);
+  }
+
+  const customBySkills = customAgents?.filter((agent) => hasMatchingEnabledSkills(agent.enabledSkills, enabledSkills));
+  if (customBySkills?.length === 1) {
+    return buildCustomAgentInfo(customBySkills[0], locale);
+  }
+
+  const extensionByName = extensionAssistants?.find((assistant) =>
+    matchesAssistantName(extractedName, [
+      assistant.id,
+      assistant.name,
+      assistant.nameI18n?.['zh-CN'],
+      assistant.nameI18n?.['en-US'],
+    ])
+  );
+  if (extensionByName) {
+    return buildExtensionAssistantInfo(extensionByName, locale);
+  }
+
+  const extensionBySkills = extensionAssistants?.filter((assistant) =>
+    hasMatchingEnabledSkills(assistant.enabledSkills, enabledSkills)
+  );
+  if (extensionBySkills?.length === 1) {
+    return buildExtensionAssistantInfo(extensionBySkills[0], locale);
+  }
+
+  return null;
 }
 
 /**
@@ -175,10 +322,29 @@ export function usePresetAssistantInfo(conversation: TChatConversation | undefin
     }
 
     const presetId = resolvePresetId(conversation);
-    if (!presetId) return { info: null, isLoading: false };
+    const locale = i18n.language || 'en-US';
+
+    if (!presetId) {
+      const inferredInfo = inferLegacyAssistantInfo(
+        conversation,
+        locale,
+        customAgents as AssistantLike[] | undefined,
+        extensionAssistants as AssistantLike[] | undefined
+      );
+      if (inferredInfo) {
+        return { info: inferredInfo, isLoading: false };
+      }
+
+      const { hasPayload } = extractLegacyPresetPayload(conversation);
+      if (hasPayload && (isLoadingCustomAgents || isLoadingExtAssistants)) {
+        return { info: null, isLoading: true };
+      }
+
+      return { info: null, isLoading: false };
+    }
 
     // First try to find in built-in presets (synchronous, no loading needed)
-    const builtinInfo = buildPresetInfo(presetId, i18n.language || 'en-US');
+    const builtinInfo = buildPresetInfo(presetId, locale);
     if (builtinInfo) {
       return { info: builtinInfo, isLoading: false };
     }
@@ -191,7 +357,7 @@ export function usePresetAssistantInfo(conversation: TChatConversation | undefin
     if (customAgents && Array.isArray(customAgents)) {
       const customAgent = customAgents.find((agent) => agent.id === presetId || agent.id === `builtin-${presetId}`);
       if (customAgent) {
-        return { info: buildCustomAgentInfo(customAgent, i18n.language || 'en-US'), isLoading: false };
+        return { info: buildCustomAgentInfo(customAgent, locale), isLoading: false };
       }
     }
 
@@ -199,16 +365,10 @@ export function usePresetAssistantInfo(conversation: TChatConversation | undefin
     if (extensionAssistants && Array.isArray(extensionAssistants)) {
       const extAssistant = extensionAssistants.find((a) => a.id === presetId || a.id === `ext-${presetId}`);
       if (extAssistant) {
-        const locale = i18n.language || 'en-US';
-        const localeKey = locale.startsWith('zh') ? 'zh-CN' : 'en-US';
-        const nameI18n = extAssistant.nameI18n as Record<string, string> | undefined;
-        const name =
-          nameI18n?.[localeKey] ||
-          nameI18n?.[locale] ||
-          (typeof extAssistant.name === 'string' ? extAssistant.name : String(presetId));
-        const avatar = typeof extAssistant.avatar === 'string' ? extAssistant.avatar : '';
-        const normalized = normalizeAvatar(avatar);
-        return { info: { name, logo: normalized.logo, isEmoji: normalized.isEmoji }, isLoading: false };
+        return {
+          info: buildExtensionAssistantInfo(extAssistant as AssistantLike, locale),
+          isLoading: false,
+        };
       }
     }
 
