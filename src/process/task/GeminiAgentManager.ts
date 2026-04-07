@@ -81,7 +81,7 @@ export class GeminiAgentManager extends BaseAgentManager<
 
   private async injectHistoryFromDatabase(): Promise<void> {
     try {
-      const result = (await getDatabase()).getConversationMessages(this.conversation_id, 0, 10000);
+      const result = await (await getDatabase()).getConversationMessages(this.conversation_id, 0, 10000);
       const data = (result.data || []) as TMessage[];
       const lines = data
         .filter((m): m is IMessageText => m.type === 'text')
@@ -414,7 +414,7 @@ export class GeminiAgentManager extends BaseAgentManager<
     // Without this, chat.history.refresh fires before modifyTime is updated,
     // causing stale sorting until a manual page refresh.
     try {
-      (await getDatabase()).updateConversation(this.conversation_id, {});
+      await (await getDatabase()).updateConversation(this.conversation_id, {});
     } catch {
       // Conversation might not exist in DB yet
     }
@@ -825,7 +825,7 @@ export class GeminiAgentManager extends BaseAgentManager<
     try {
       const { getDatabase } = await import('@process/services/database');
       const db = await getDatabase();
-      const result = db.getConversationMessages(this.conversation_id, 0, 20, 'DESC');
+      const result = await db.getConversationMessages(this.conversation_id, 0, 20, 'DESC');
 
       if (!result.data || result.data.length === 0) {
         return false;
@@ -945,14 +945,14 @@ export class GeminiAgentManager extends BaseAgentManager<
   private async saveSessionMode(mode: string): Promise<void> {
     try {
       const db = await getDatabase();
-      const result = db.getConversation(this.conversation_id);
+      const result = await db.getConversation(this.conversation_id);
       if (result.success && result.data && result.data.type === 'gemini') {
         const conversation = result.data;
         const updatedExtra = {
           ...conversation.extra,
           sessionMode: mode,
         };
-        db.updateConversation(this.conversation_id, {
+        await db.updateConversation(this.conversation_id, {
           extra: updatedExtra,
         } as Partial<typeof conversation>);
       }

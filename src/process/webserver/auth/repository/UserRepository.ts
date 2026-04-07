@@ -60,7 +60,7 @@ export const UserRepository = {
    */
   async hasUsers(): Promise<boolean> {
     const db = await getDatabase();
-    const result = db.hasUsers();
+    const result = await db.hasUsers();
     if (!result.success) {
       throw new Error(result.error || 'Failed to check users');
     }
@@ -71,7 +71,7 @@ export const UserRepository = {
 
   async getSystemUser(): Promise<AuthUser | null> {
     const db = await getDatabase();
-    const system = db.getSystemUser();
+    const system = await db.getSystemUser();
     if (!system) {
       return null;
     }
@@ -80,7 +80,7 @@ export const UserRepository = {
 
   async setSystemUserCredentials(username: string, passwordHash: string): Promise<void> {
     const db = await getDatabase();
-    db.setSystemUserCredentials(username, passwordHash);
+    await db.setSystemUserCredentials(username, passwordHash);
   },
 
   /**
@@ -92,7 +92,7 @@ export const UserRepository = {
    */
   async createUser(username: string, passwordHash: string): Promise<AuthUser> {
     const db = await getDatabase();
-    const result = db.createUser(username, undefined, passwordHash);
+    const result = await db.createUser(username, undefined, passwordHash);
     const user = unwrap(result, 'Failed to create user');
     return mapUser(user);
   },
@@ -105,7 +105,7 @@ export const UserRepository = {
    */
   async findByUsername(username: string): Promise<AuthUser | null> {
     const db = await getDatabase();
-    const result = db.getUserByUsername(username);
+    const result = await db.getUserByUsername(username);
     if (!result.success || !result.data) {
       return null;
     }
@@ -120,7 +120,7 @@ export const UserRepository = {
    */
   async findById(id: string): Promise<AuthUser | null> {
     const db = await getDatabase();
-    const result = db.getUser(id);
+    const result = await db.getUser(id);
     if (!result.success || !result.data) {
       return null;
     }
@@ -134,7 +134,7 @@ export const UserRepository = {
    */
   async listUsers(): Promise<AuthUser[]> {
     const db = await getDatabase();
-    const result = db.getAllUsers();
+    const result = await db.getAllUsers();
     if (!result.success || !result.data) {
       return [];
     }
@@ -148,7 +148,7 @@ export const UserRepository = {
    */
   async countUsers(): Promise<number> {
     const db = await getDatabase();
-    const result = db.getUserCount();
+    const result = await db.getUserCount();
     if (!result.success) {
       throw new Error(result.error || 'Failed to count users');
     }
@@ -163,7 +163,7 @@ export const UserRepository = {
    */
   async updatePassword(userId: string, passwordHash: string): Promise<void> {
     const db = await getDatabase();
-    const result = db.updateUserPassword(userId, passwordHash);
+    const result = await db.updateUserPassword(userId, passwordHash);
     if (!result.success) {
       throw new Error(result.error || 'Failed to update user password');
     }
@@ -171,7 +171,7 @@ export const UserRepository = {
 
   async updateUsername(userId: string, username: string): Promise<void> {
     const db = await getDatabase();
-    const result = db.updateUserUsername(userId, username);
+    const result = await db.updateUserUsername(userId, username);
     if (!result.success) {
       throw new Error(result.error || 'Failed to update username');
     }
@@ -184,7 +184,7 @@ export const UserRepository = {
    */
   async updateLastLogin(userId: string): Promise<void> {
     const db = await getDatabase();
-    const result = db.updateUserLastLogin(userId);
+    const result = await db.updateUserLastLogin(userId);
     if (!result.success) {
       throw new Error(result.error || 'Failed to update last login');
     }
@@ -198,7 +198,7 @@ export const UserRepository = {
    */
   async updateJwtSecret(userId: string, jwtSecret: string): Promise<void> {
     const db = await getDatabase();
-    const result = db.updateUserJwtSecret(userId, jwtSecret);
+    const result = await db.updateUserJwtSecret(userId, jwtSecret);
     if (!result.success) {
       throw new Error(result.error || 'Failed to update JWT secret');
     }

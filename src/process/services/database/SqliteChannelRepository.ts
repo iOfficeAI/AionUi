@@ -17,7 +17,7 @@ import type { IChannelRepository } from './IChannelRepository';
 export class SqliteChannelRepository implements IChannelRepository {
   async getChannelPlugins(): Promise<IChannelPluginConfig[]> {
     const db = await getDatabase();
-    const result = db.getChannelPlugins();
+    const result = await db.getChannelPlugins();
     if (!result.success || !Array.isArray(result.data)) {
       throw new Error(result.error ?? 'Failed to get channel plugins');
     }
@@ -26,7 +26,7 @@ export class SqliteChannelRepository implements IChannelRepository {
 
   async getPendingPairingRequests(): Promise<IChannelPairingRequest[]> {
     const db = await getDatabase();
-    const result = db.getPendingPairingRequests();
+    const result = await db.getPendingPairingRequests();
     if (!result.success || !result.data) {
       throw new Error(result.error ?? 'Failed to get pending pairing requests');
     }
@@ -35,7 +35,7 @@ export class SqliteChannelRepository implements IChannelRepository {
 
   async getChannelUsers(): Promise<IChannelUser[]> {
     const db = await getDatabase();
-    const result = db.getChannelUsers();
+    const result = await db.getChannelUsers();
     if (!result.success || !result.data) {
       throw new Error(result.error ?? 'Failed to get channel users');
     }
@@ -44,7 +44,7 @@ export class SqliteChannelRepository implements IChannelRepository {
 
   async deleteChannelUser(userId: string): Promise<void> {
     const db = await getDatabase();
-    const result = db.deleteChannelUser(userId);
+    const result = await db.deleteChannelUser(userId);
     if (!result.success) {
       throw new Error(result.error ?? `Failed to delete channel user ${userId}`);
     }
@@ -52,7 +52,7 @@ export class SqliteChannelRepository implements IChannelRepository {
 
   async getChannelSessions(): Promise<IChannelSession[]> {
     const db = await getDatabase();
-    const result = db.getChannelSessions();
+    const result = await db.getChannelSessions();
     if (!result.success || !result.data) {
       throw new Error(result.error ?? 'Failed to get channel sessions');
     }

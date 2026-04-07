@@ -47,7 +47,7 @@ class RemoteAgentManager extends BaseAgentManager<RemoteAgentManagerData> {
 
   private async initCore(data: RemoteAgentManagerData): Promise<RemoteAgentCore> {
     const db = await getDatabase();
-    const remoteConfig = db.getRemoteAgent(data.remoteAgentId);
+    const remoteConfig = await db.getRemoteAgent(data.remoteAgentId);
     if (!remoteConfig) {
       throw new Error(`Remote agent config not found: ${data.remoteAgentId}`);
     }
@@ -144,14 +144,14 @@ class RemoteAgentManager extends BaseAgentManager<RemoteAgentManagerData> {
   private async saveSessionKey(sessionKey: string): Promise<void> {
     try {
       const db = await getDatabase();
-      const result = db.getConversation(this.conversation_id);
+      const result = await db.getConversation(this.conversation_id);
       if (result.success && result.data && result.data.type === 'remote') {
         const conversation = result.data;
         const updatedExtra = {
           ...conversation.extra,
           sessionKey,
         };
-        db.updateConversation(this.conversation_id, {
+        await db.updateConversation(this.conversation_id, {
           extra: updatedExtra,
         } as Partial<typeof conversation>);
       }
@@ -163,7 +163,7 @@ class RemoteAgentManager extends BaseAgentManager<RemoteAgentManagerData> {
   private async updateRemoteAgentStatus(remoteAgentId: string, status: 'connected' | 'error'): Promise<void> {
     try {
       const db = await getDatabase();
-      db.updateRemoteAgent(remoteAgentId, {
+      await db.updateRemoteAgent(remoteAgentId, {
         status,
         ...(status === 'connected' ? { last_connected_at: Date.now() } : {}),
       });

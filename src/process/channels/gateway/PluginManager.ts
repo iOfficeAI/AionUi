@@ -149,7 +149,7 @@ export class PluginManager {
 
       // Update database status to error
       const db = await getDatabase();
-      db.updateChannelPluginStatus(id, 'error');
+      await db.updateChannelPluginStatus(id, 'error');
 
       // Emit status change event with error
       this.emitStatusChangeWithError(id, config, errorMsg);
@@ -183,7 +183,7 @@ export class PluginManager {
 
       // Update database status to error
       const db = await getDatabase();
-      db.updateChannelPluginStatus(id, 'error');
+      await db.updateChannelPluginStatus(id, 'error');
 
       // Emit status change event with error
       this.emitStatusChangeWithError(id, config, errorMsg);
@@ -196,7 +196,7 @@ export class PluginManager {
 
     // Update database status
     const db = await getDatabase();
-    db.updateChannelPluginStatus(id, 'running', Date.now());
+    await db.updateChannelPluginStatus(id, 'running', Date.now());
 
     // Emit status change event
     this.emitStatusChange(id, plugin);
@@ -219,7 +219,7 @@ export class PluginManager {
 
     // Update database status
     const db = await getDatabase();
-    db.updateChannelPluginStatus(pluginId, 'stopped');
+    await db.updateChannelPluginStatus(pluginId, 'stopped');
 
     // Emit status change event
     this.emitStatusChange(pluginId, plugin);
@@ -239,7 +239,7 @@ export class PluginManager {
    */
   async getPluginStatuses(): Promise<IChannelPluginStatus[]> {
     const db = await getDatabase();
-    const result = db.getChannelPlugins();
+    const result = await db.getChannelPlugins();
 
     if (!result.success || !result.data) {
       return [];
@@ -281,7 +281,7 @@ export class PluginManager {
    */
   private async emitStatusChange(pluginId: string, _plugin: BasePlugin): Promise<void> {
     const db = await getDatabase();
-    const configResult = db.getChannelPlugin(pluginId);
+    const configResult = await db.getChannelPlugin(pluginId);
 
     if (configResult.success && configResult.data) {
       const status = this.buildPluginStatus(configResult.data);

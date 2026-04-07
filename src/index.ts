@@ -7,11 +7,14 @@
 // configureChromium sets app name (dev isolation) and Chromium flags — must run before
 // ANY module that calls app.getPath('userData'), because Electron caches the path on first call.
 import './process/utils/configureChromium';
-import * as Sentry from '@sentry/electron/main';
-
-Sentry.init({
-  dsn: process.env.SENTRY_DSN,
-});
+let Sentry: { init: (opts: unknown) => void } | undefined;
+try {
+  // eslint-disable-next-line @typescript-eslint/no-require-imports
+  Sentry = require('@sentry/electron/main');
+  Sentry!.init({ dsn: process.env.SENTRY_DSN });
+} catch {
+  console.warn('[AionUi] Sentry init skipped (module load failed)');
+}
 
 import './process/utils/configureConsoleLog';
 import { app, BrowserWindow, nativeImage, net, powerMonitor, protocol, screen } from 'electron';

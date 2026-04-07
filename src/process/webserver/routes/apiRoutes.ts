@@ -72,7 +72,7 @@ export async function resolveUploadWorkspace(conversationId: string, requestedWo
   }
 
   const db = await getDatabase();
-  const result = db.getConversation(conversationId);
+  const result = await db.getConversation(conversationId);
   const conversationWorkspace = result.data?.extra?.workspace;
   if (!result.success || !conversationWorkspace) {
     throw new Error('Conversation workspace not found');

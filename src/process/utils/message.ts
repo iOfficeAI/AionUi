@@ -64,17 +64,17 @@ class ConversationManageWithDB {
     try {
       const db = await this.dbPromise;
       const stack = this.stack.splice(0);
-      const messages = db.getConversationMessages(this.conversation_id, 0, 50, 'DESC');
+      const messages = await db.getConversationMessages(this.conversation_id, 0, 50, 'DESC');
       let messageList = messages.data.toReversed();
       for (const [type, msg] of stack) {
         if (type === 'insert') {
-          db.insertMessage(msg);
+          await db.insertMessage(msg);
           messageList.push(msg);
         } else {
-          messageList = composeMessage(msg, messageList, (opType, message) => {
-            if (opType === 'insert') db.insertMessage(message);
+          messageList = composeMessage(msg, messageList, async (opType, message) => {
+            if (opType === 'insert') await db.insertMessage(message);
             if (opType === 'update') {
-              db.updateMessage(message.id, message);
+              await db.updateMessage(message.id, message);
             }
           });
         }
@@ -121,7 +121,7 @@ async function ensureConversationExists(
   conversation_id: string
 ): Promise<void> {
   // Check if conversation exists in database
-  const existingConv = db.getConversation(conversation_id);
+  const existingConv = await db.getConversation(conversation_id);
   if (existingConv.success && existingConv.data) {
     return; // Conversation already exists
   }
@@ -136,7 +136,7 @@ async function ensureConversationExists(
   }
 
   // Create conversation in database
-  const result = db.createConversation(conversation);
+  const result = await db.createConversation(conversation);
   if (!result.success) {
     console.error(`[Message] Failed to create conversation in database:`, result.error);
   }

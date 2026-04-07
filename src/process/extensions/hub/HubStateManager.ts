@@ -10,9 +10,13 @@ import { loadPersistedStates, savePersistedStates } from '@process/extensions/li
  * Manages transient in-memory states (installing/uninstalling), persistent
  * error tracking, and derives runtime status for hub extensions.
  */
+/** Minimum interval between refreshBuiltinAgents() calls (ms). */
+const AGENT_REFRESH_COOLDOWN_MS = 10_000;
+
 class HubStateManagerImpl {
   // Store transient statuses during active installation or uninstallation
   private transientStates = new Map<string, HubExtensionStatus>();
+  private lastAgentRefreshAt = 0;
 
   // ---------------------------------------------------------------------------
   // Transient state
@@ -81,10 +85,15 @@ class HubStateManagerImpl {
    * (install/uninstall) since last check are reflected immediately.
    */
   public async getExtensionListWithStatus(extensions: Record<string, IHubExtension>): Promise<IHubAgentItem[]> {
-    // Refresh builtin CLI detection so status reflects current PATH
-    const refreshStart = Date.now();
-    await acpDetector.refreshBuiltinAgents();
-    console.log(`[HubStateManager] refreshBuiltinAgents completed in ${Date.now() - refreshStart}ms`);
+    // Refresh builtin CLI detection so status reflects current PATH.
+    // Throttle to avoid rescanning on every page visit — CLI installs are rare.
+    const now = Date.now();
+    if (now - this.lastAgentRefreshAt > AGENT_REFRESH_COOLDOWN_MS) {
+      const refreshStart = now;
+      await acpDetector.refreshBuiltinAgents();
+      this.lastAgentRefreshAt = Date.now();
+      console.log(`[HubStateManager] refreshBuiltinAgents completed in ${Date.now() - refreshStart}ms`);
+    }
 
     const loadedByName = new Map(
       ExtensionRegistry.getInstance()

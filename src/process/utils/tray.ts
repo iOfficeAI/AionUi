@@ -57,7 +57,7 @@ const buildTrayContextMenu = async (): Promise<Electron.Menu> => {
     try {
       const { getDatabase } = await import('@process/services/database');
       const db = await getDatabase();
-      const result = db.getUserConversations(undefined, 0, 5);
+      const result = await db.getUserConversations(undefined, 0, 5);
       return (result.data || []).slice(0, 5).map((conv) => ({
         id: conv.id,
         title: conv.name || i18n.t('common.tray.untitled'),

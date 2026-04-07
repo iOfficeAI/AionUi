@@ -378,7 +378,7 @@ export class ActionExecutor {
 
       // User is authorized - look up the assistant user
       const db = await getDatabase();
-      const userResult = db.getChannelUserByPlatform(user.id, platform);
+      const userResult = await db.getChannelUserByPlatform(user.id, platform);
       const channelUser = userResult.data;
 
       if (!channelUser) {
@@ -435,7 +435,7 @@ export class ActionExecutor {
 
         // Lookup existing conversation by source + chatId + type + backend (per-chat isolation)
         const db2 = await getDatabase();
-        const latest = db2.findChannelConversation(source, chatId, convType, convBackend);
+        const latest = await db2.findChannelConversation(source, chatId, convType, convBackend);
         const existing = latest.success ? latest.data : null;
 
         let sessionConversation: TChatConversation | null = existing ?? null;

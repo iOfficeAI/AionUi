@@ -85,7 +85,7 @@ export async function resetPasswordCLI(username: string): Promise<void> {
     log.info(`Database path: ${dbPath}`);
 
     const db = await getDatabase();
-    const hasUsersResult = db.hasUsers();
+    const hasUsersResult = await db.hasUsers();
 
     if (!hasUsersResult.success) {
       throw new Error(hasUsersResult.error || 'Failed to check database users');
@@ -102,7 +102,7 @@ export async function resetPasswordCLI(username: string): Promise<void> {
       process.exit(1);
     }
 
-    const userResult = db.getUserByUsername(username);
+    const userResult = await db.getUserByUsername(username);
     if (!userResult.success) {
       throw new Error(userResult.error || `Failed to query user '${username}'`);
     }
@@ -113,7 +113,7 @@ export async function resetPasswordCLI(username: string): Promise<void> {
       log.info('');
       log.info('Available users:');
 
-      const allUsersResult = db.getAllUsers();
+      const allUsersResult = await db.getAllUsers();
       if (!allUsersResult.success) {
         throw new Error(allUsersResult.error || 'Failed to list users');
       }
@@ -133,13 +133,13 @@ export async function resetPasswordCLI(username: string): Promise<void> {
     const newPassword = generatePassword();
     const hashedPassword = await hashPassword(newPassword);
 
-    const updatePasswordResult = db.updateUserPassword(user.id, hashedPassword);
+    const updatePasswordResult = await db.updateUserPassword(user.id, hashedPassword);
     if (!updatePasswordResult.success) {
       throw new Error(updatePasswordResult.error || 'Failed to update password');
     }
 
     const newJwtSecret = crypto.randomBytes(64).toString('hex');
-    const updateJwtSecretResult = db.updateUserJwtSecret(user.id, newJwtSecret);
+    const updateJwtSecretResult = await db.updateUserJwtSecret(user.id, newJwtSecret);
     if (!updateJwtSecretResult.success) {
       throw new Error(updateJwtSecretResult.error || 'Failed to update JWT secret');
     }

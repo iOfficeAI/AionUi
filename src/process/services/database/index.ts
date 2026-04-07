@@ -1644,34 +1644,39 @@ export class AionUIDatabase {
 }
 
 // Async singleton with Promise cache
-let dbInstancePromise: Promise<AionUIDatabase> | null = null;
-// Synchronous reference to the resolved instance — used for safe close on exit
-let dbResolved: AionUIDatabase | null = null;
+// Uses a worker thread to run better-sqlite3 off the main process event loop.
+import { DatabaseProxy, createDatabaseProxy, type DatabaseInstance } from './worker/DatabaseProxy';
+
+export type { DatabaseInstance };
+
+let dbProxyPromise: Promise<DatabaseInstance> | null = null;
+let dbProxyResolved: DatabaseInstance | null = null;
 
 function resolveDbPath(): string {
   return path.join(getDataPath(), 'aionui.db');
 }
 
-export function getDatabase(): Promise<AionUIDatabase> {
-  if (!dbInstancePromise) {
-    dbInstancePromise = AionUIDatabase.create(resolveDbPath()).then((db) => {
-      dbResolved = db;
-      return db;
+export function getDatabase(): Promise<DatabaseInstance> {
+  if (!dbProxyPromise) {
+    dbProxyPromise = DatabaseProxy.create(resolveDbPath()).then((proxy) => {
+      const wrapped = createDatabaseProxy(proxy);
+      dbProxyResolved = wrapped;
+      return wrapped;
     });
   }
-  return dbInstancePromise;
+  return dbProxyPromise;
 }
 
 export function closeDatabase(): void {
   // Close synchronously via the resolved reference so this is safe to call from
   // process.on('exit') handlers (which cannot await Promises).
-  if (dbResolved) {
+  if (dbProxyResolved) {
     try {
-      dbResolved.close();
+      dbProxyResolved.closeSync();
     } catch {
       // ignore errors during shutdown
     }
-    dbResolved = null;
+    dbProxyResolved = null;
   }
-  dbInstancePromise = null;
+  dbProxyPromise = null;
 }

@@ -95,7 +95,7 @@ export class ChannelManager {
         // 查找用户
         // Find user
         const db = await getDatabase();
-        const userResult = db.getChannelUserByPlatform(userId, platform as PluginType);
+        const userResult = await db.getChannelUserByPlatform(userId, platform as PluginType);
         if (!userResult.data) {
           console.error(`[ChannelManager] User not found: ${userId}@${platform}`);
           return;
@@ -175,7 +175,7 @@ export class ChannelManager {
    */
   private async loadEnabledPlugins(): Promise<void> {
     const db = await getDatabase();
-    const result = db.getChannelPlugins();
+    const result = await db.getChannelPlugins();
 
     if (!result.success || !result.data) {
       console.warn('[ChannelManager] Failed to load plugins:', result.error);
@@ -201,7 +201,7 @@ export class ChannelManager {
           status: 'stopped',
           updatedAt: Date.now(),
         };
-        db.upsertChannelPlugin(nextConfig);
+        await db.upsertChannelPlugin(nextConfig);
         continue;
       }
 
@@ -210,7 +210,7 @@ export class ChannelManager {
       } catch (error) {
         console.error(`[ChannelManager] Failed to start plugin ${plugin.id}:`, error);
         // Update status to error
-        db.updateChannelPluginStatus(plugin.id, 'error');
+        await db.updateChannelPluginStatus(plugin.id, 'error');
       }
     }
   }
@@ -240,7 +240,7 @@ export class ChannelManager {
     const db = await getDatabase();
 
     // Get existing plugin or create new one
-    const existingResult = db.getChannelPlugin(pluginId);
+    const existingResult = await db.getChannelPlugin(pluginId);
     const existing = existingResult.data;
 
     // Resolve plugin type — always derive from pluginId so stale DB records don't cause
@@ -342,7 +342,7 @@ export class ChannelManager {
       updatedAt: Date.now(),
     };
 
-    const saveResult = db.upsertChannelPlugin(pluginConfig);
+    const saveResult = await db.upsertChannelPlugin(pluginConfig);
     if (!saveResult.success) {
       return { success: false, error: saveResult.error };
     }
@@ -366,7 +366,7 @@ export class ChannelManager {
       await this.pluginManager?.stopPlugin(pluginId);
 
       // Update database
-      const existingResult = db.getChannelPlugin(pluginId);
+      const existingResult = await db.getChannelPlugin(pluginId);
       if (existingResult.data) {
         const updated: IChannelPluginConfig = {
           ...existingResult.data,
@@ -374,7 +374,7 @@ export class ChannelManager {
           status: 'stopped',
           updatedAt: Date.now(),
         };
-        db.upsertChannelPlugin(updated);
+        await db.upsertChannelPlugin(updated);
       }
 
       return { success: true };
@@ -527,7 +527,7 @@ export class ChannelManager {
           const builtinPlatform: 'telegram' | 'lark' | 'dingtalk' | 'weixin' = platform;
           const fullModel = await getChannelDefaultModel(builtinPlatform);
           const db = await getDatabase();
-          const result = db.updateChannelConversationModel(builtinPlatform, 'gemini', fullModel);
+          const result = await db.updateChannelConversationModel(builtinPlatform, 'gemini', fullModel);
           if (result.success) {
             console.log(`[ChannelManager] Updated ${result.data} gemini conversation(s) for ${builtinPlatform}`);
           }

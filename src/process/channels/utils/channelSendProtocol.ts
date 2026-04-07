@@ -79,7 +79,7 @@ export async function resolveChannelSendProtocol(
   }
 
   const db = await getDatabase();
-  const conversation = db.getConversation(conversationId);
+  const conversation = await db.getConversation(conversationId);
   const workspace = conversation.success ? conversation.data?.extra?.workspace : undefined;
   if (!workspace || !existsSync(workspace)) {
     return { visibleText: extracted.visibleText, mediaActions: [] };

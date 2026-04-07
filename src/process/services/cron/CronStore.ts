@@ -198,9 +198,8 @@ class CronStore {
     const db = await getDatabase();
     const row = jobToRow(job);
 
-    db.getDriver()
-      .prepare(
-        `
+    await db.rawSql(
+      `
       INSERT INTO cron_jobs (
         id, name, enabled,
         schedule_kind, schedule_value, schedule_tz, schedule_description,
@@ -210,9 +209,9 @@ class CronStore {
         next_run_at, last_run_at, last_status, last_error,
         run_count, retry_count, max_retries
       ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-    `
-      )
-      .run(
+    `,
+      'run',
+      [
         row.id,
         row.name,
         row.enabled,
@@ -235,8 +234,9 @@ class CronStore {
         row.last_error,
         row.run_count,
         row.retry_count,
-        row.max_retries
-      );
+        row.max_retries,
+      ]
+    );
   }
 
   /**
@@ -270,9 +270,8 @@ class CronStore {
     const row = jobToRow(updated);
     const db = await getDatabase();
 
-    db.getDriver()
-      .prepare(
-        `
+    await db.rawSql(
+      `
       UPDATE cron_jobs SET
         name = ?, enabled = ?,
         schedule_kind = ?, schedule_value = ?, schedule_tz = ?, schedule_description = ?,
@@ -282,9 +281,9 @@ class CronStore {
         next_run_at = ?, last_run_at = ?, last_status = ?, last_error = ?,
         run_count = ?, retry_count = ?, max_retries = ?
       WHERE id = ?
-    `
-      )
-      .run(
+    `,
+      'run',
+      [
         row.name,
         row.enabled,
         row.schedule_kind,
@@ -305,8 +304,9 @@ class CronStore {
         row.run_count,
         row.retry_count,
         row.max_retries,
-        jobId
-      );
+        jobId,
+      ]
+    );
   }
 
   /**
@@ -314,7 +314,7 @@ class CronStore {
    */
   async delete(jobId: string): Promise<void> {
     const db = await getDatabase();
-    db.getDriver().prepare('DELETE FROM cron_jobs WHERE id = ?').run(jobId);
+    await db.rawSql('DELETE FROM cron_jobs WHERE id = ?', 'run', [jobId]);
   }
 
   /**
@@ -322,7 +322,7 @@ class CronStore {
    */
   async getById(jobId: string): Promise<CronJob | null> {
     const db = await getDatabase();
-    const row = db.getDriver().prepare('SELECT * FROM cron_jobs WHERE id = ?').get(jobId) as CronJobRow | undefined;
+    const row = (await db.rawSql('SELECT * FROM cron_jobs WHERE id = ?', 'get', [jobId])) as CronJobRow | undefined;
     return row ? rowToJob(row) : null;
   }
 
@@ -331,7 +331,7 @@ class CronStore {
    */
   async listAll(): Promise<CronJob[]> {
     const db = await getDatabase();
-    const rows = db.getDriver().prepare('SELECT * FROM cron_jobs ORDER BY created_at DESC').all() as CronJobRow[];
+    const rows = (await db.rawSql('SELECT * FROM cron_jobs ORDER BY created_at DESC', 'all', [])) as CronJobRow[];
     return rows.map(rowToJob);
   }
 
@@ -340,10 +340,9 @@ class CronStore {
    */
   async listByConversation(conversationId: string): Promise<CronJob[]> {
     const db = await getDatabase();
-    const rows = db
-      .getDriver()
-      .prepare('SELECT * FROM cron_jobs WHERE conversation_id = ? ORDER BY created_at DESC')
-      .all(conversationId) as CronJobRow[];
+    const rows = (await db.rawSql('SELECT * FROM cron_jobs WHERE conversation_id = ? ORDER BY created_at DESC', 'all', [
+      conversationId,
+    ])) as CronJobRow[];
     return rows.map(rowToJob);
   }
 
@@ -352,10 +351,11 @@ class CronStore {
    */
   async listEnabled(): Promise<CronJob[]> {
     const db = await getDatabase();
-    const rows = db
-      .getDriver()
-      .prepare('SELECT * FROM cron_jobs WHERE enabled = 1 ORDER BY next_run_at ASC')
-      .all() as CronJobRow[];
+    const rows = (await db.rawSql(
+      'SELECT * FROM cron_jobs WHERE enabled = 1 ORDER BY next_run_at ASC',
+      'all',
+      []
+    )) as CronJobRow[];
     return rows.map(rowToJob);
   }
 
@@ -365,7 +365,9 @@ class CronStore {
    */
   async deleteByConversation(conversationId: string): Promise<number> {
     const db = await getDatabase();
-    const result = db.getDriver().prepare('DELETE FROM cron_jobs WHERE conversation_id = ?').run(conversationId);
+    const result = (await db.rawSql('DELETE FROM cron_jobs WHERE conversation_id = ?', 'run', [conversationId])) as {
+      changes: number;
+    };
     return result.changes;
   }
 }

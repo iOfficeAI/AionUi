@@ -10,24 +10,25 @@ import type { CronJob } from '@process/services/cron/CronStore';
 // Mock electron
 vi.mock('electron', () => ({ app: { getPath: vi.fn(() => '/tmp/test') } }));
 
-// Mock database with SQLite-style prepare() API
-const mockPrepareInstance = vi.hoisted(() => ({
-  run: vi.fn(),
-  get: vi.fn(),
-  all: vi.fn(),
-}));
-
-const mockDriver = vi.hoisted(() => ({
-  prepare: vi.fn(() => mockPrepareInstance),
-}));
+// Mock database with rawSql() API (migrated from getDriver().prepare() pattern)
+const mockRawSql = vi.hoisted(() => vi.fn());
 
 const mockDb = vi.hoisted(() => ({
-  getDriver: vi.fn(() => mockDriver),
+  rawSql: mockRawSql,
 }));
 
 vi.mock('@process/services/database', () => ({
   getDatabase: vi.fn(() => Promise.resolve(mockDb)),
 }));
+
+// Helper to capture rawSql calls by SQL pattern
+function findRawSqlCall(pattern: string) {
+  return mockRawSql.mock.calls.find((call: unknown[]) => (call[0] as string).includes(pattern));
+}
+
+function getLastRawSqlCall() {
+  return mockRawSql.mock.calls[mockRawSql.mock.calls.length - 1];
+}
 
 // Import after mocks are set up
 import { cronStore } from '@process/services/cron/CronStore';
@@ -76,43 +77,43 @@ describe('CronStore', () => {
         },
       };
 
-      // Mock insert to store and retrieve
-      mockPrepareInstance.run.mockImplementation(() => ({ changes: 1 }));
+      // Mock insert (run op) then getById (get op)
+      mockRawSql.mockResolvedValueOnce({ changes: 1 });
       await cronStore.insert(job);
 
       // Verify the INSERT was called
-      expect(mockDriver.prepare).toHaveBeenCalled();
-      const insertSql = mockDriver.prepare.mock.calls[0][0];
-      expect(insertSql).toContain('INSERT INTO cron_jobs');
+      const insertCall = findRawSqlCall('INSERT INTO cron_jobs');
+      expect(insertCall).toBeDefined();
+      expect(insertCall![1]).toBe('run');
 
-      // Verify the values passed to run()
-      const runArgs = mockPrepareInstance.run.mock.calls[0];
-      expect(runArgs[0]).toBe('job-1'); // id
-      expect(runArgs[1]).toBe('Test Every Job'); // name
-      expect(runArgs[2]).toBe(1); // enabled (true -> 1)
-      expect(runArgs[3]).toBe('every'); // schedule_kind
-      expect(runArgs[4]).toBe('60000'); // schedule_value
-      expect(runArgs[5]).toBeNull(); // schedule_tz
-      expect(runArgs[6]).toBe('Every minute'); // schedule_description
-      expect(runArgs[7]).toBe('Hello'); // payload_message
-      expect(runArgs[8]).toBe('existing'); // execution_mode
-      expect(runArgs[9]).toBe(JSON.stringify(job.metadata.agentConfig)); // agent_config
-      expect(runArgs[10]).toBe('conv-1'); // conversation_id
-      expect(runArgs[11]).toBe('Test Conversation'); // conversation_title
-      expect(runArgs[12]).toBe('gemini'); // agent_type
-      expect(runArgs[13]).toBe('user'); // created_by
-      expect(runArgs[14]).toBe(1000); // created_at
-      expect(runArgs[15]).toBe(2000); // updated_at
-      expect(runArgs[16]).toBe(3000); // next_run_at
-      expect(runArgs[17]).toBe(4000); // last_run_at
-      expect(runArgs[18]).toBe('ok'); // last_status
-      expect(runArgs[19]).toBeNull(); // last_error (undefined -> null in jobToRow)
-      expect(runArgs[20]).toBe(5); // run_count
-      expect(runArgs[21]).toBe(0); // retry_count
-      expect(runArgs[22]).toBe(3); // max_retries
+      // Verify the values passed as params array (3rd argument)
+      const params = insertCall![2] as unknown[];
+      expect(params[0]).toBe('job-1'); // id
+      expect(params[1]).toBe('Test Every Job'); // name
+      expect(params[2]).toBe(1); // enabled (true -> 1)
+      expect(params[3]).toBe('every'); // schedule_kind
+      expect(params[4]).toBe('60000'); // schedule_value
+      expect(params[5]).toBeNull(); // schedule_tz
+      expect(params[6]).toBe('Every minute'); // schedule_description
+      expect(params[7]).toBe('Hello'); // payload_message
+      expect(params[8]).toBe('existing'); // execution_mode
+      expect(params[9]).toBe(JSON.stringify(job.metadata.agentConfig)); // agent_config
+      expect(params[10]).toBe('conv-1'); // conversation_id
+      expect(params[11]).toBe('Test Conversation'); // conversation_title
+      expect(params[12]).toBe('gemini'); // agent_type
+      expect(params[13]).toBe('user'); // created_by
+      expect(params[14]).toBe(1000); // created_at
+      expect(params[15]).toBe(2000); // updated_at
+      expect(params[16]).toBe(3000); // next_run_at
+      expect(params[17]).toBe(4000); // last_run_at
+      expect(params[18]).toBe('ok'); // last_status
+      expect(params[19]).toBeNull(); // last_error (undefined -> null in jobToRow)
+      expect(params[20]).toBe(5); // run_count
+      expect(params[21]).toBe(0); // retry_count
+      expect(params[22]).toBe(3); // max_retries
 
       // Now test retrieval (round-trip)
-      mockPrepareInstance.get.mockReturnValue({
+      mockRawSql.mockResolvedValueOnce({
         id: 'job-1',
         name: 'Test Every Job',
         enabled: 1,
@@ -191,19 +192,20 @@ describe('CronStore', () => {
         },
       };
 
-      mockPrepareInstance.run.mockImplementation(() => ({ changes: 1 }));
+      mockRawSql.mockResolvedValueOnce({ changes: 1 });
       await cronStore.insert(job);
 
-      const runArgs = mockPrepareInstance.run.mock.calls[0];
-      expect(runArgs[2]).toBe(0); // enabled (false -> 0)
-      expect(runArgs[3]).toBe('cron'); // schedule_kind
-      expect(runArgs[4]).toBe('0 0 * * *'); // schedule_value
-      expect(runArgs[5]).toBe('America/New_York'); // schedule_tz
-      expect(runArgs[8]).toBe('new_conversation'); // execution_mode
-      expect(runArgs[9]).toBeNull(); // agent_config (undefined)
+      const insertCall = findRawSqlCall('INSERT INTO cron_jobs');
+      const params = insertCall![2] as unknown[];
+      expect(params[2]).toBe(0); // enabled (false -> 0)
+      expect(params[3]).toBe('cron'); // schedule_kind
+      expect(params[4]).toBe('0 0 * * *'); // schedule_value
+      expect(params[5]).toBe('America/New_York'); // schedule_tz
+      expect(params[8]).toBe('new_conversation'); // execution_mode
+      expect(params[9]).toBeNull(); // agent_config (undefined)
 
       // Test retrieval
-      mockPrepareInstance.get.mockReturnValue({
+      mockRawSql.mockResolvedValueOnce({
         id: 'job-2',
         name: 'Test Cron Job',
         enabled: 0,
@@ -240,7 +242,7 @@ describe('CronStore', () => {
       });
       expect(retrieved!.metadata.agentConfig).toBeUndefined();
       expect(retrieved!.state.nextRunAtMs).toBeUndefined();
-      // Note: lastStatus is not converted from null to undefined in rowToJob (line 181)
+      // Note: lastStatus is converted from null to undefined in rowToJob via cast
       expect(retrieved!.state.lastStatus).toBeNull();
     });
 
@@ -271,17 +273,18 @@ describe('CronStore', () => {
         },
       };
 
-      mockPrepareInstance.run.mockImplementation(() => ({ changes: 1 }));
+      mockRawSql.mockResolvedValueOnce({ changes: 1 });
       await cronStore.insert(job);
 
-      const runArgs = mockPrepareInstance.run.mock.calls[0];
-      expect(runArgs[3]).toBe('at'); // schedule_kind
-      expect(runArgs[4]).toBe('1735689600000'); // schedule_value
-      expect(runArgs[5]).toBeNull(); // schedule_tz
-      expect(runArgs[8]).toBe('existing'); // execution_mode (default)
+      const insertCall = findRawSqlCall('INSERT INTO cron_jobs');
+      const params = insertCall![2] as unknown[];
+      expect(params[3]).toBe('at'); // schedule_kind
+      expect(params[4]).toBe('1735689600000'); // schedule_value
+      expect(params[5]).toBeNull(); // schedule_tz
+      expect(params[8]).toBe('existing'); // execution_mode (default)
 
       // Test retrieval
-      mockPrepareInstance.get.mockReturnValue({
+      mockRawSql.mockResolvedValueOnce({
         id: 'job-3',
         name: 'Test At Job',
         enabled: 1,
@@ -318,7 +321,7 @@ describe('CronStore', () => {
 
     it('correctly handles enabled boolean mapping', async () => {
       // Test enabled: true -> 1
-      mockPrepareInstance.get.mockReturnValue({
+      const enabledRow = {
         id: 'job-enabled',
         name: 'Enabled Job',
         enabled: 1,
@@ -342,14 +345,16 @@ describe('CronStore', () => {
         run_count: 0,
         retry_count: 0,
         max_retries: 0,
-      });
+      };
+
+      mockRawSql.mockResolvedValueOnce(enabledRow);
 
       const enabled = await cronStore.getById('job-enabled');
       expect(enabled!.enabled).toBe(true);
 
       // Test enabled: false -> 0
-      mockPrepareInstance.get.mockReturnValue({
-        ...mockPrepareInstance.get.mock.results[0].value,
+      mockRawSql.mockResolvedValueOnce({
+        ...enabledRow,
         id: 'job-disabled',
         enabled: 0,
       });
@@ -359,8 +364,7 @@ describe('CronStore', () => {
     });
 
     it('correctly parses agent_config JSON and handles null', async () => {
-      // Test with valid JSON
-      mockPrepareInstance.get.mockReturnValue({
+      const baseRow = {
         id: 'job-with-config',
         name: 'Job',
         enabled: 1,
@@ -388,7 +392,10 @@ describe('CronStore', () => {
         run_count: 0,
         retry_count: 0,
         max_retries: 0,
-      });
+      };
+
+      // Test with valid JSON
+      mockRawSql.mockResolvedValueOnce(baseRow);
 
       const withConfig = await cronStore.getById('job-with-config');
       expect(withConfig!.metadata.agentConfig).toEqual({
@@ -398,8 +405,8 @@ describe('CronStore', () => {
       });
 
       // Test with null
-      mockPrepareInstance.get.mockReturnValue({
-        ...mockPrepareInstance.get.mock.results[0].value,
+      mockRawSql.mockResolvedValueOnce({
+        ...baseRow,
         id: 'job-without-config',
         agent_config: null,
       });
@@ -427,18 +434,19 @@ describe('CronStore', () => {
         state: { runCount: 0, retryCount: 0, maxRetries: 3 },
       };
 
-      mockPrepareInstance.run.mockImplementation(() => ({ changes: 1 }));
+      mockRawSql.mockResolvedValueOnce({ changes: 1 });
       await cronStore.insert(job);
 
-      expect(mockDriver.prepare).toHaveBeenCalled();
-      expect(mockPrepareInstance.run).toHaveBeenCalled();
+      expect(mockRawSql).toHaveBeenCalled();
 
-      const sql = mockDriver.prepare.mock.calls[0][0];
-      expect(sql).toContain('INSERT INTO cron_jobs');
+      const insertCall = findRawSqlCall('INSERT INTO cron_jobs');
+      expect(insertCall).toBeDefined();
+      expect(insertCall![0]).toContain('INSERT INTO cron_jobs');
+      expect(insertCall![1]).toBe('run');
     });
 
     it('getById returns job when found', async () => {
-      mockPrepareInstance.get.mockReturnValue({
+      mockRawSql.mockResolvedValueOnce({
         id: 'found-job',
         name: 'Found Job',
         enabled: 1,
@@ -466,14 +474,16 @@ describe('CronStore', () => {
 
       const job = await cronStore.getById('found-job');
 
-      expect(mockDriver.prepare).toHaveBeenCalledWith('SELECT * FROM cron_jobs WHERE id = ?');
-      expect(mockPrepareInstance.get).toHaveBeenCalledWith('found-job');
+      const call = findRawSqlCall('SELECT * FROM cron_jobs WHERE id');
+      expect(call).toBeDefined();
+      expect(call![1]).toBe('get');
+      expect(call![2]).toEqual(['found-job']);
       expect(job).toBeDefined();
       expect(job!.id).toBe('found-job');
     });
 
     it('getById returns null when not found', async () => {
-      mockPrepareInstance.get.mockReturnValue(undefined);
+      mockRawSql.mockResolvedValueOnce(undefined);
 
       const job = await cronStore.getById('missing-job');
 
@@ -481,8 +491,8 @@ describe('CronStore', () => {
     });
 
     it('update modifies an existing job', async () => {
-      // Mock getById to return existing job
-      mockPrepareInstance.get.mockReturnValue({
+      // Mock getById (first rawSql call) to return existing job
+      mockRawSql.mockResolvedValueOnce({
         id: 'update-job',
         name: 'Old Name',
         enabled: 1,
@@ -508,32 +518,42 @@ describe('CronStore', () => {
         max_retries: 0,
       });
 
-      mockPrepareInstance.run.mockImplementation(() => ({ changes: 1 }));
+      // Mock UPDATE (second rawSql call)
+      mockRawSql.mockResolvedValueOnce({ changes: 1 });
 
       await cronStore.update('update-job', {
         name: 'New Name',
         enabled: false,
       });
 
-      expect(mockDriver.prepare).toHaveBeenCalledWith('SELECT * FROM cron_jobs WHERE id = ?');
+      // Verify getById was called first
+      const getCall = findRawSqlCall('SELECT * FROM cron_jobs WHERE id');
+      expect(getCall).toBeDefined();
 
-      const updateSql = mockDriver.prepare.mock.calls[1][0];
-      expect(updateSql).toContain('UPDATE cron_jobs SET');
+      // Verify the UPDATE call
+      const updateCall = findRawSqlCall('UPDATE cron_jobs SET');
+      expect(updateCall).toBeDefined();
 
-      const updateArgs = mockPrepareInstance.run.mock.calls[0];
-      expect(updateArgs[0]).toBe('New Name'); // name
-      expect(updateArgs[1]).toBe(0); // enabled (false -> 0)
-      expect(updateArgs[updateArgs.length - 1]).toBe('update-job'); // WHERE id = ?
+      // UPDATE params: name, enabled, schedule_kind, schedule_value, schedule_tz,
+      // schedule_description, payload_message, execution_mode, agent_config,
+      // conversation_id, conversation_title, agent_type, updated_at,
+      // next_run_at, last_run_at, last_status, last_error,
+      // run_count, retry_count, max_retries, jobId
+      const updateParams = updateCall![2] as unknown[];
+      expect(updateParams[0]).toBe('New Name'); // name
+      expect(updateParams[1]).toBe(0); // enabled (false -> 0)
+      expect(updateParams[updateParams.length - 1]).toBe('update-job'); // WHERE id = ?
     });
 
     it('update throws error when job not found', async () => {
-      mockPrepareInstance.get.mockReturnValue(undefined);
+      mockRawSql.mockResolvedValueOnce(undefined);
 
       await expect(cronStore.update('missing-job', { name: 'New' })).rejects.toThrow('Cron job not found: missing-job');
     });
 
     it('update updates schedule correctly', async () => {
-      mockPrepareInstance.get.mockReturnValue({
+      // Mock getById
+      mockRawSql.mockResolvedValueOnce({
         id: 'update-schedule',
         name: 'Job',
         enabled: 1,
@@ -559,7 +579,8 @@ describe('CronStore', () => {
         max_retries: 0,
       });
 
-      mockPrepareInstance.run.mockImplementation(() => ({ changes: 1 }));
+      // Mock UPDATE
+      mockRawSql.mockResolvedValueOnce({ changes: 1 });
 
       await cronStore.update('update-schedule', {
         schedule: {
@@ -570,24 +591,29 @@ describe('CronStore', () => {
         },
       });
 
-      const updateArgs = mockPrepareInstance.run.mock.calls[0];
-      expect(updateArgs[2]).toBe('cron'); // schedule_kind
-      expect(updateArgs[3]).toBe('0 * * * *'); // schedule_value
-      expect(updateArgs[4]).toBe('UTC'); // schedule_tz
-      expect(updateArgs[5]).toBe('Hourly'); // schedule_description
+      const updateCall = findRawSqlCall('UPDATE cron_jobs SET');
+      const updateParams = updateCall![2] as unknown[];
+      // UPDATE params order: name(0), enabled(1), schedule_kind(2), schedule_value(3),
+      // schedule_tz(4), schedule_description(5), ...
+      expect(updateParams[2]).toBe('cron'); // schedule_kind
+      expect(updateParams[3]).toBe('0 * * * *'); // schedule_value
+      expect(updateParams[4]).toBe('UTC'); // schedule_tz
+      expect(updateParams[5]).toBe('Hourly'); // schedule_description
     });
 
     it('delete removes a job', async () => {
-      mockPrepareInstance.run.mockImplementation(() => ({ changes: 1 }));
+      mockRawSql.mockResolvedValueOnce({ changes: 1 });
 
       await cronStore.delete('delete-job');
 
-      expect(mockDriver.prepare).toHaveBeenCalledWith('DELETE FROM cron_jobs WHERE id = ?');
-      expect(mockPrepareInstance.run).toHaveBeenCalledWith('delete-job');
+      const call = findRawSqlCall('DELETE FROM cron_jobs WHERE id');
+      expect(call).toBeDefined();
+      expect(call![1]).toBe('run');
+      expect(call![2]).toEqual(['delete-job']);
     });
 
     it('listAll returns all jobs ordered by creation', async () => {
-      mockPrepareInstance.all.mockReturnValue([
+      mockRawSql.mockResolvedValueOnce([
         {
           id: 'job-1',
           name: 'Job 1',
@@ -642,14 +668,17 @@ describe('CronStore', () => {
 
       const jobs = await cronStore.listAll();
 
-      expect(mockDriver.prepare).toHaveBeenCalledWith('SELECT * FROM cron_jobs ORDER BY created_at DESC');
+      const call = findRawSqlCall('SELECT * FROM cron_jobs ORDER BY created_at DESC');
+      expect(call).toBeDefined();
+      expect(call![1]).toBe('all');
+      expect(call![2]).toEqual([]);
       expect(jobs).toHaveLength(2);
       expect(jobs[0].id).toBe('job-1');
       expect(jobs[1].id).toBe('job-2');
     });
 
     it('listByConversation returns jobs for specific conversation', async () => {
-      mockPrepareInstance.all.mockReturnValue([
+      mockRawSql.mockResolvedValueOnce([
         {
           id: 'conv-job-1',
           name: 'Conv Job 1',
@@ -679,16 +708,17 @@ describe('CronStore', () => {
 
       const jobs = await cronStore.listByConversation('target-conv');
 
-      expect(mockDriver.prepare).toHaveBeenCalledWith(
-        'SELECT * FROM cron_jobs WHERE conversation_id = ? ORDER BY created_at DESC'
-      );
-      expect(mockPrepareInstance.all).toHaveBeenCalledWith('target-conv');
+      const call = findRawSqlCall('SELECT * FROM cron_jobs WHERE conversation_id');
+      expect(call).toBeDefined();
+      expect(call![0]).toContain('ORDER BY created_at DESC');
+      expect(call![1]).toBe('all');
+      expect(call![2]).toEqual(['target-conv']);
       expect(jobs).toHaveLength(1);
       expect(jobs[0].metadata.conversationId).toBe('target-conv');
     });
 
     it('listEnabled returns only enabled jobs ordered by next run', async () => {
-      mockPrepareInstance.all.mockReturnValue([
+      mockRawSql.mockResolvedValueOnce([
         {
           id: 'enabled-1',
           name: 'Enabled 1',
@@ -718,20 +748,23 @@ describe('CronStore', () => {
 
       const jobs = await cronStore.listEnabled();
 
-      expect(mockDriver.prepare).toHaveBeenCalledWith(
-        'SELECT * FROM cron_jobs WHERE enabled = 1 ORDER BY next_run_at ASC'
-      );
+      const call = findRawSqlCall('SELECT * FROM cron_jobs WHERE enabled = 1 ORDER BY next_run_at ASC');
+      expect(call).toBeDefined();
+      expect(call![1]).toBe('all');
+      expect(call![2]).toEqual([]);
       expect(jobs).toHaveLength(1);
       expect(jobs[0].enabled).toBe(true);
     });
 
     it('deleteByConversation removes all jobs for a conversation', async () => {
-      mockPrepareInstance.run.mockImplementation(() => ({ changes: 3 }));
+      mockRawSql.mockResolvedValueOnce({ changes: 3 });
 
       const deleted = await cronStore.deleteByConversation('conv-to-delete');
 
-      expect(mockDriver.prepare).toHaveBeenCalledWith('DELETE FROM cron_jobs WHERE conversation_id = ?');
-      expect(mockPrepareInstance.run).toHaveBeenCalledWith('conv-to-delete');
+      const call = findRawSqlCall('DELETE FROM cron_jobs WHERE conversation_id');
+      expect(call).toBeDefined();
+      expect(call![1]).toBe('run');
+      expect(call![2]).toEqual(['conv-to-delete']);
       expect(deleted).toBe(3);
     });
   });

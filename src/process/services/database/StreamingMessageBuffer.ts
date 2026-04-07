@@ -136,14 +136,14 @@ export class StreamingMessageBuffer {
       };
 
       // Check if message exists in database
-      const existing = db.getMessageByMsgId(buffer.conversationId, messageId, 'text');
+      const existing = await db.getMessageByMsgId(buffer.conversationId, messageId, 'text');
 
       if (existing.success && existing.data) {
         // Message exists - update it
-        db.updateMessage(existing.data.id, message);
+        await db.updateMessage(existing.data.id, message);
       } else {
         // Message doesn't exist - insert it
-        db.insertMessage(message);
+        await db.insertMessage(message);
       }
 
       // 更新最后写入时间

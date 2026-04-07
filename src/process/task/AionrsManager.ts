@@ -84,7 +84,7 @@ export class AionrsManager extends BaseAgentManager<AionrsManagerData, string> {
   override async start() {
     try {
       const db = await getDatabase();
-      const result = db.getConversationMessages(this.conversation_id, 0, 1);
+      const result = await db.getConversationMessages(this.conversation_id, 0, 1);
       const hasMessages = (result.data?.length ?? 0) > 0;
 
       const sessionArgs = hasMessages ? { resume: this.conversation_id } : { sessionId: this.conversation_id };
@@ -98,7 +98,7 @@ export class AionrsManager extends BaseAgentManager<AionrsManagerData, string> {
 
   private async injectHistoryFromDatabase(): Promise<void> {
     try {
-      const result = (await getDatabase()).getConversationMessages(this.conversation_id, 0, 10000);
+      const result = await (await getDatabase()).getConversationMessages(this.conversation_id, 0, 10000);
       const data = (result.data || []) as TMessage[];
       const lines = data
         .filter((m): m is IMessageText => m.type === 'text')
@@ -129,7 +129,7 @@ export class AionrsManager extends BaseAgentManager<AionrsManagerData, string> {
     };
     addMessage(this.conversation_id, message);
     try {
-      (await getDatabase()).updateConversation(this.conversation_id, {});
+      await (await getDatabase()).updateConversation(this.conversation_id, {});
     } catch {
       // Conversation might not exist in DB yet
     }
@@ -248,10 +248,10 @@ export class AionrsManager extends BaseAgentManager<AionrsManagerData, string> {
   private async saveSessionMode(mode: string): Promise<void> {
     try {
       const db = await getDatabase();
-      const result = db.getConversation(this.conversation_id);
+      const result = await db.getConversation(this.conversation_id);
       if (result.success && result.data && result.data.type === 'aionrs') {
         const conversation = result.data;
-        db.updateConversation(this.conversation_id, {
+        await db.updateConversation(this.conversation_id, {
           extra: { ...conversation.extra, sessionMode: mode },
         } as Partial<typeof conversation>);
       }

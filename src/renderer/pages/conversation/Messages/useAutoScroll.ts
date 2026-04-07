@@ -220,7 +220,7 @@ export function useAutoScroll({ messages, itemCount }: UseAutoScrollOptions): Us
     lastScrollTopRef.current = currentScrollTop;
   }, []);
 
-  // Force scroll when user sends a message
+  // Force scroll when user sends a message OR when messages are first loaded
   useEffect(() => {
     const currentListLength = messages.length;
     const prevLength = previousListLengthRef.current;
@@ -231,9 +231,13 @@ export function useAutoScroll({ messages, itemCount }: UseAutoScrollOptions): Us
     if (!isNewMessage) return;
 
     const lastMessage = messages[messages.length - 1];
+    // First-time load: 0 → N. Virtuoso's initialTopMostItemIndex was 0 - 1 = -1
+    // when the component mounted (because the message list was still empty),
+    // so it has no idea to start at the bottom. Force-scroll on first load.
+    const isFirstLoad = prevLength === 0 && currentListLength > 0;
 
     // User sent a message - force scroll regardless of userScrolled state
-    if (lastMessage?.position === 'right') {
+    if (lastMessage?.position === 'right' || isFirstLoad) {
       userScrolledRef.current = false;
       // Use double RAF to ensure DOM is updated before scrolling (#977)
       requestAnimationFrame(() => {

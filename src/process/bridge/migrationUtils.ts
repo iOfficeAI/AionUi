@@ -17,15 +17,15 @@ export async function migrateConversationToDatabase(conversation: TChatConversat
     const db = await getDatabase();
 
     // Check if already in database
-    const existing = db.getConversation(conversation.id);
+    const existing = await db.getConversation(conversation.id);
     if (existing.success && existing.data) {
       // Already migrated, just update modifyTime
-      db.updateConversation(conversation.id, { modifyTime: Date.now() });
+      await db.updateConversation(conversation.id, { modifyTime: Date.now() });
       return;
     }
 
     // Create conversation in database
-    const result = db.createConversation(conversation);
+    const result = await db.createConversation(conversation);
     if (!result.success) {
       console.error('[Migration] Failed to migrate conversation:', result.error);
       return;
@@ -37,7 +37,7 @@ export async function migrateConversationToDatabase(conversation: TChatConversat
       if (messages && messages.length > 0) {
         // Batch insert messages
         for (const message of messages) {
-          const insertResult = db.insertMessage(message);
+          const insertResult = await db.insertMessage(message);
           if (!insertResult.success) {
             console.error('[Migration] Failed to migrate message:', insertResult.error);
           }

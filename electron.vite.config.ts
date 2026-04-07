@@ -102,6 +102,8 @@ export default defineConfig(({ mode }) => {
             nanobot: resolve('src/process/worker/nanobot.ts'),
             lifecycleRunner: resolve('src/process/extensions/lifecycle/lifecycleRunner.ts'),
             aionrs: resolve('src/process/worker/aionrs.ts'),
+            // Database worker thread (runs better-sqlite3 off the main process event loop)
+            'db-worker': resolve('src/process/services/database/worker/dbWorkerThread.ts'),
             // Built-in MCP server entry points
             'builtin-mcp-image-gen': resolve('src/process/resources/builtinMcp/imageGenServer.ts'),
           },

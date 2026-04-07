@@ -250,7 +250,7 @@ class AcpAgentManager extends BaseAgentManager<AcpAgentManagerData, AcpPermissio
         // the user's explicit mode choice. data.yoloMode (cron jobs) always takes priority.
         yoloMode = data.yoloMode ?? this.isYoloMode(this.currentMode);
 
-        // Get acpArgs from backend config (for goose, auggie, opencode, etc.)
+        // Get acpArgs from backend config (for goose, opencode, etc.)
         const backendConfig = ACP_BACKENDS_ALL[data.backend];
         if (backendConfig?.acpArgs) {
           customArgs = backendConfig.acpArgs;
@@ -718,7 +718,7 @@ class AcpAgentManager extends BaseAgentManager<AcpAgentManagerData, AcpPermissio
         addMessage(this.conversation_id, userMessage);
         // Ensure conversation list sorting updates immediately after user sends.
         try {
-          (await getDatabase()).updateConversation(this.conversation_id, {});
+          await (await getDatabase()).updateConversation(this.conversation_id, {});
         } catch {
           // Conversation might not exist in DB yet
         }
@@ -1165,14 +1165,14 @@ class AcpAgentManager extends BaseAgentManager<AcpAgentManagerData, AcpPermissio
   private async saveModelId(modelId: string): Promise<void> {
     try {
       const db = await getDatabase();
-      const result = db.getConversation(this.conversation_id);
+      const result = await db.getConversation(this.conversation_id);
       if (result.success && result.data && result.data.type === 'acp') {
         const conversation = result.data;
         const updatedExtra = {
           ...conversation.extra,
           currentModelId: modelId,
         };
-        db.updateConversation(this.conversation_id, {
+        await db.updateConversation(this.conversation_id, {
           extra: updatedExtra,
         } as Partial<typeof conversation>);
       }
@@ -1193,7 +1193,7 @@ class AcpAgentManager extends BaseAgentManager<AcpAgentManagerData, AcpPermissio
   private async saveContextUsage(usage: { used: number; size: number }): Promise<void> {
     try {
       const db = await getDatabase();
-      const result = db.getConversation(this.conversation_id);
+      const result = await db.getConversation(this.conversation_id);
       if (result.success && result.data && result.data.type === 'acp') {
         const conversation = result.data;
         const updatedExtra = {
@@ -1201,7 +1201,7 @@ class AcpAgentManager extends BaseAgentManager<AcpAgentManagerData, AcpPermissio
           lastTokenUsage: { totalTokens: usage.used },
           lastContextLimit: usage.size,
         };
-        db.updateConversation(this.conversation_id, {
+        await db.updateConversation(this.conversation_id, {
           extra: updatedExtra,
         } as Partial<typeof conversation>);
       }
@@ -1217,14 +1217,14 @@ class AcpAgentManager extends BaseAgentManager<AcpAgentManagerData, AcpPermissio
   private async saveSessionMode(mode: string): Promise<void> {
     try {
       const db = await getDatabase();
-      const result = db.getConversation(this.conversation_id);
+      const result = await db.getConversation(this.conversation_id);
       if (result.success && result.data && result.data.type === 'acp') {
         const conversation = result.data;
         const updatedExtra = {
           ...conversation.extra,
           sessionMode: mode,
         };
-        db.updateConversation(this.conversation_id, {
+        await db.updateConversation(this.conversation_id, {
           extra: updatedExtra,
         } as Partial<typeof conversation>);
       }
@@ -1241,10 +1241,10 @@ class AcpAgentManager extends BaseAgentManager<AcpAgentManagerData, AcpPermissio
   private async saveConfigOptions(configOptions: AcpSessionConfigOption[]): Promise<void> {
     try {
       const db = await getDatabase();
-      const result = db.getConversation(this.conversation_id);
+      const result = await db.getConversation(this.conversation_id);
       if (result.success && result.data && result.data.type === 'acp') {
         const conversation = result.data;
-        db.updateConversation(this.conversation_id, {
+        await db.updateConversation(this.conversation_id, {
           extra: { ...conversation.extra, cachedConfigOptions: configOptions },
         } as Partial<typeof conversation>);
       }
@@ -1343,7 +1343,7 @@ class AcpAgentManager extends BaseAgentManager<AcpAgentManagerData, AcpPermissio
   private async saveAcpSessionId(sessionId: string): Promise<void> {
     try {
       const db = await getDatabase();
-      const result = db.getConversation(this.conversation_id);
+      const result = await db.getConversation(this.conversation_id);
       if (result.success && result.data && result.data.type === 'acp') {
         const conversation = result.data;
         const updatedExtra = {
@@ -1352,7 +1352,7 @@ class AcpAgentManager extends BaseAgentManager<AcpAgentManagerData, AcpPermissio
           acpSessionConversationId: this.conversation_id,
           acpSessionUpdatedAt: Date.now(),
         };
-        db.updateConversation(this.conversation_id, {
+        await db.updateConversation(this.conversation_id, {
           extra: updatedExtra,
         } as Partial<typeof conversation>);
         mainLog('[AcpAgentManager]', `Saved ACP session ID: ${sessionId} for conversation: ${this.conversation_id}`);

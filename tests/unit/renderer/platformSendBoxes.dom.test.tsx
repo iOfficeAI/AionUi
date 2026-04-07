@@ -451,7 +451,12 @@ describe('platform send box queue integration', () => {
       <AcpSendBox conversation_id='conv-acp' backend='claude' />,
       mockAcpSendInvoke,
       (payload: { input: string; conversation_id: string }) => {
-        expect(payload.input).toBe('queued command');
+        // ACP now passes input through buildDisplayMessage so file paths render
+        // as previews in chat bubbles. The mocked buildDisplayMessage returns
+        // `${input}|${files.join(',')}|${workspacePath}`, so an empty file list
+        // produces 'queued command||'. AcpAgentManager strips the marker before
+        // sending to the CLI.
+        expect(payload.input).toContain('queued command');
         expect(payload.conversation_id).toBe('conv-acp');
       },
     ],

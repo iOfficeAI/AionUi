@@ -17,6 +17,7 @@ import { assertBridgeSuccess } from '@/renderer/pages/conversation/platforms/ass
 import { allSupportedExts } from '@/renderer/services/FileService';
 import { emitter, useAddEventListener } from '@/renderer/utils/emitter';
 import { mergeFileSelectionItems } from '@/renderer/utils/file/fileSelection';
+import { buildDisplayMessage } from '@/renderer/utils/file/messageFiles';
 import { Message, Tag } from '@arco-design/web-react';
 import { Shield } from '@icon-park/react';
 import { iconColors } from '@/renderer/styles/colors';
@@ -160,6 +161,11 @@ const AcpSendBox: React.FC<{
 
       setAiProcessing(true);
 
+      // Embed file paths in the message content (with [[AION_FILES]] marker)
+      // so files render as previews in chat bubbles. AcpAgentManager strips
+      // the marker before sending the prompt to the CLI agent.
+      const displayInput = files && files.length > 0 ? buildDisplayMessage(input, files, '') : input;
+
       try {
         void checkAndUpdateTitle(conversation_id, input);
         if (teamId) {
@@ -167,14 +173,14 @@ const AcpSendBox: React.FC<{
             const result = await ipcBridge.team.sendMessageToAgent.invoke({
               teamId,
               slotId: agentSlotId,
-              content: input,
+              content: displayInput,
             });
             const maybeError = result as unknown as { __bridgeError?: boolean; message?: string };
             if (maybeError.__bridgeError) {
               throw new Error(maybeError.message || 'Failed to send message to agent');
             }
           } else {
-            const result = await ipcBridge.team.sendMessage.invoke({ teamId, content: input });
+            const result = await ipcBridge.team.sendMessage.invoke({ teamId, content: displayInput });
             const maybeError = result as unknown as { __bridgeError?: boolean; message?: string };
             if (maybeError.__bridgeError) {
               throw new Error(maybeError.message || 'Failed to send message to team');
@@ -182,7 +188,7 @@ const AcpSendBox: React.FC<{
           }
         } else {
           const result = await ipcBridge.acpConversation.sendMessage.invoke({
-            input,
+            input: displayInput,
             msg_id,
             conversation_id,
             files,

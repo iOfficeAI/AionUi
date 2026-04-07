@@ -812,7 +812,7 @@ const cleanupOrphanedHealthCheckConversations = async () => {
     let hasMore = true;
 
     while (hasMore) {
-      const result = db.getUserConversations(undefined, page, pageSize);
+      const result = await db.getUserConversations(undefined, page, pageSize);
       result.data.forEach((conversation) => {
         const extra = conversation.extra as { isHealthCheck?: boolean } | undefined;
         if (extra?.isHealthCheck === true) {
@@ -824,12 +824,12 @@ const cleanupOrphanedHealthCheckConversations = async () => {
     }
 
     let deletedCount = 0;
-    idsToDelete.forEach((id) => {
-      const deleted = db.deleteConversation(id);
+    for (const id of idsToDelete) {
+      const deleted = await db.deleteConversation(id);
       if (deleted.success && deleted.data) {
         deletedCount += 1;
       }
-    });
+    }
 
     if (deletedCount > 0) {
       console.log(`[AionUi] Cleaned up ${deletedCount} orphaned health-check conversation(s) on startup`);

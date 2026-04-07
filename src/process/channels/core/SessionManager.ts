@@ -38,7 +38,7 @@ export class SessionManager {
    */
   private async loadActiveSessions(): Promise<void> {
     const db = await getDatabase();
-    const result = db.getChannelSessions();
+    const result = await db.getChannelSessions();
 
     if (result.success && result.data) {
       for (const session of result.data) {
@@ -64,7 +64,7 @@ export class SessionManager {
     chatId?: string
   ): Promise<IChannelSession | null> {
     const db = await getDatabase();
-    const userResult = db.getChannelUserByPlatform(platformUserId, platformType);
+    const userResult = await db.getChannelUserByPlatform(platformUserId, platformType);
 
     if (!userResult.success || !userResult.data) {
       return null;
@@ -103,7 +103,7 @@ export class SessionManager {
     // Clear existing session if any
     const existingSession = this.activeSessions.get(key);
     if (existingSession) {
-      db.deleteChannelSession(existingSession.id);
+      await db.deleteChannelSession(existingSession.id);
     }
 
     // Create new session with the provided conversation ID
@@ -120,13 +120,13 @@ export class SessionManager {
     };
 
     // Save to database
-    db.upsertChannelSession(session);
+    await db.upsertChannelSession(session);
 
     // Update in-memory cache
     this.activeSessions.set(key, session);
 
     // Update user's session reference
-    db.getChannelUserByPlatform(user.platformUserId, user.platformType);
+    await db.getChannelUserByPlatform(user.platformUserId, user.platformType);
 
     return session;
   }
@@ -161,7 +161,7 @@ export class SessionManager {
     };
 
     // Save to database and update cache
-    db.upsertChannelSession(updated);
+    await db.upsertChannelSession(updated);
     this.activeSessions.set(foundKey, updated);
 
     return true;
@@ -180,7 +180,7 @@ export class SessionManager {
     this.activeSessions.set(key, updated);
 
     const db = await getDatabase();
-    db.upsertChannelSession(updated);
+    await db.upsertChannelSession(updated);
   }
 
   /**
@@ -194,7 +194,7 @@ export class SessionManager {
     }
 
     const db = await getDatabase();
-    db.deleteChannelSession(session.id);
+    await db.deleteChannelSession(session.id);
     this.activeSessions.delete(key);
 
     return true;
@@ -208,7 +208,7 @@ export class SessionManager {
     const db = await getDatabase();
     let cleared = 0;
     for (const [key, session] of this.activeSessions.entries()) {
-      db.deleteChannelSession(session.id);
+      await db.deleteChannelSession(session.id);
       this.activeSessions.delete(key);
       cleared++;
     }
@@ -239,7 +239,7 @@ export class SessionManager {
     }
 
     // Delete from database and cache
-    db.deleteChannelSession(foundSession.id);
+    await db.deleteChannelSession(foundSession.id);
     this.activeSessions.delete(foundKey);
 
     return foundSession;
@@ -269,7 +269,7 @@ export class SessionManager {
 
     for (const [key, session] of this.activeSessions.entries()) {
       if (now - session.lastActivity > maxAgeMs) {
-        db.deleteChannelSession(session.id);
+        await db.deleteChannelSession(session.id);
         this.activeSessions.delete(key);
         cleaned++;
       }

@@ -70,14 +70,23 @@ describe('databaseBridge', () => {
   // --- getConversationMessages ---
 
   describe('getConversationMessages', () => {
-    it('returns messages from repo', async () => {
-      const msgs: Partial<TMessage>[] = [{ id: 'm1', type: 'text' as any }];
-      vi.mocked(repo.getMessages).mockReturnValue({ data: msgs as TMessage[], total: 1, hasMore: false });
+    it('returns messages from repo (DESC order, reversed back to chronological)', async () => {
+      // Repo returns newest-first; bridge reverses to chronological for display
+      const msgs: Partial<TMessage>[] = [
+        { id: 'm2', type: 'text' as any },
+        { id: 'm1', type: 'text' as any },
+      ];
+      vi.mocked(repo.getMessages).mockReturnValue({ data: msgs as TMessage[], total: 2, hasMore: false });
 
       const result = await handlers['getConversationMessages']({ conversation_id: 'c1' });
 
-      expect(repo.getMessages).toHaveBeenCalledWith('c1', 0, 10000);
-      expect(result).toEqual(msgs);
+      // Default pageSize is 200; loaded with DESC ordering
+      expect(repo.getMessages).toHaveBeenCalledWith('c1', 0, 200, 'DESC');
+      // Result is reversed back to ASC (chronological) for the renderer
+      expect(result).toEqual([
+        { id: 'm1', type: 'text' },
+        { id: 'm2', type: 'text' },
+      ]);
     });
 
     it('returns empty array when repo throws', async () => {
@@ -98,12 +107,12 @@ describe('databaseBridge', () => {
       expect(result).toEqual([]);
     });
 
-    it('uses provided page and pageSize', async () => {
+    it('uses provided page and pageSize (still DESC ordered)', async () => {
       vi.mocked(repo.getMessages).mockReturnValue({ data: [], total: 0, hasMore: false });
 
       await handlers['getConversationMessages']({ conversation_id: 'c1', page: 2, pageSize: 50 });
 
-      expect(repo.getMessages).toHaveBeenCalledWith('c1', 2, 50);
+      expect(repo.getMessages).toHaveBeenCalledWith('c1', 2, 50, 'DESC');
     });
   });
 
@@ -165,7 +174,7 @@ describe('databaseBridge', () => {
 
       const result = await handlers['getUserConversations'](undefined);
 
-      expect(repo.getUserConversations).toHaveBeenCalledWith(undefined, 0, 10000);
+      expect(repo.getUserConversations).toHaveBeenCalledWith(undefined, 0, 500);
       expect(Array.isArray(result)).toBe(true);
     });
   });

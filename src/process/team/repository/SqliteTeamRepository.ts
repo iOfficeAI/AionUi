@@ -98,21 +98,37 @@ function rowToTask(row: TaskRow): TeamTask {
 // Repository
 // ---------------------------------------------------------------------------
 
+type RawSqlFn = (sql: string, op: 'get' | 'all' | 'run', params: unknown[]) => Promise<unknown>;
+
+/**
+ * Wrap a synchronous ISqliteDriver into a RawSqlFn for backward compatibility (tests).
+ */
+function wrapDriver(driver: ISqliteDriver): RawSqlFn {
+  return async (sql: string, op: 'get' | 'all' | 'run', params: unknown[]): Promise<unknown> => {
+    const stmt = driver.prepare(sql);
+    return stmt[op](...params);
+  };
+}
+
 export class SqliteTeamRepository implements ITeamRepository {
-  private readonly _driver: ISqliteDriver | undefined;
+  private readonly _rawSql: RawSqlFn | undefined;
 
   /**
-   * @param driver - Optional ISqliteDriver for constructor injection (e.g., tests).
+   * @param driverOrRawSql - Optional ISqliteDriver or rawSql function for constructor injection (e.g., tests).
    *   When omitted, the global database singleton is used via getDatabase().
    */
-  constructor(driver?: ISqliteDriver) {
-    this._driver = driver;
+  constructor(driverOrRawSql?: ISqliteDriver | RawSqlFn) {
+    if (typeof driverOrRawSql === 'function') {
+      this._rawSql = driverOrRawSql;
+    } else if (driverOrRawSql) {
+      this._rawSql = wrapDriver(driverOrRawSql);
+    }
   }
 
-  private async getDb(): Promise<ISqliteDriver> {
-    if (this._driver) return this._driver;
+  private async getDb(): Promise<{ rawSql: RawSqlFn }> {
+    if (this._rawSql) return { rawSql: this._rawSql };
     const aionDb = await getDatabase();
-    return aionDb.getDriver();
+    return aionDb;
   }
 
   // -------------------------------------------------------------------------
@@ -121,32 +137,36 @@ export class SqliteTeamRepository implements ITeamRepository {
 
   async create(team: TTeam): Promise<TTeam> {
     const db = await this.getDb();
-    db.prepare(
+    await db.rawSql(
       `INSERT INTO teams (id, user_id, name, workspace, workspace_mode, lead_agent_id, agents, created_at, updated_at)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`
-    ).run(
-      team.id,
-      team.userId,
-      team.name,
-      team.workspace,
-      team.workspaceMode,
-      team.leadAgentId,
-      JSON.stringify(team.agents),
-      team.createdAt,
-      team.updatedAt
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      'run',
+      [
+        team.id,
+        team.userId,
+        team.name,
+        team.workspace,
+        team.workspaceMode,
+        team.leadAgentId,
+        JSON.stringify(team.agents),
+        team.createdAt,
+        team.updatedAt,
+      ]
     );
     return team;
   }
 
   async findById(id: string): Promise<TTeam | null> {
     const db = await this.getDb();
-    const row = db.prepare('SELECT * FROM teams WHERE id = ?').get(id) as TeamRow | undefined;
+    const row = (await db.rawSql('SELECT * FROM teams WHERE id = ?', 'get', [id])) as TeamRow | undefined;
     return row ? rowToTeam(row) : null;
   }
 
   async findAll(userId: string): Promise<TTeam[]> {
     const db = await this.getDb();
-    const rows = db.prepare('SELECT * FROM teams WHERE user_id = ? ORDER BY updated_at DESC').all(userId) as TeamRow[];
+    const rows = (await db.rawSql('SELECT * FROM teams WHERE user_id = ? ORDER BY updated_at DESC', 'all', [
+      userId,
+    ])) as TeamRow[];
     return rows.map(rowToTeam);
   }
 
@@ -155,35 +175,37 @@ export class SqliteTeamRepository implements ITeamRepository {
     if (!current) throw new Error(`Team "${id}" not found`);
     const merged: TTeam = { ...current, ...updates };
     const db = await this.getDb();
-    db.prepare(
+    await db.rawSql(
       `UPDATE teams
        SET name = ?, workspace = ?, workspace_mode = ?, lead_agent_id = ?, agents = ?, updated_at = ?
-       WHERE id = ?`
-    ).run(
-      merged.name,
-      merged.workspace,
-      merged.workspaceMode,
-      merged.leadAgentId,
-      JSON.stringify(merged.agents),
-      merged.updatedAt,
-      id
+       WHERE id = ?`,
+      'run',
+      [
+        merged.name,
+        merged.workspace,
+        merged.workspaceMode,
+        merged.leadAgentId,
+        JSON.stringify(merged.agents),
+        merged.updatedAt,
+        id,
+      ]
     );
     return merged;
   }
 
   async delete(id: string): Promise<void> {
     const db = await this.getDb();
-    db.prepare('DELETE FROM teams WHERE id = ?').run(id);
+    await db.rawSql('DELETE FROM teams WHERE id = ?', 'run', [id]);
   }
 
   async deleteMailboxByTeam(teamId: string): Promise<void> {
     const db = await this.getDb();
-    db.prepare('DELETE FROM mailbox WHERE team_id = ?').run(teamId);
+    await db.rawSql('DELETE FROM mailbox WHERE team_id = ?', 'run', [teamId]);
   }
 
   async deleteTasksByTeam(teamId: string): Promise<void> {
     const db = await this.getDb();
-    db.prepare('DELETE FROM team_tasks WHERE team_id = ?').run(teamId);
+    await db.rawSql('DELETE FROM team_tasks WHERE team_id = ?', 'run', [teamId]);
   }
 
   // -------------------------------------------------------------------------
@@ -192,47 +214,49 @@ export class SqliteTeamRepository implements ITeamRepository {
 
   async writeMessage(message: MailboxMessage): Promise<MailboxMessage> {
     const db = await this.getDb();
-    db.prepare(
+    await db.rawSql(
       `INSERT INTO mailbox (id, team_id, to_agent_id, from_agent_id, type, content, summary, read, created_at)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`
-    ).run(
-      message.id,
-      message.teamId,
-      message.toAgentId,
-      message.fromAgentId,
-      message.type,
-      message.content,
-      message.summary ?? null,
-      Number(message.read),
-      message.createdAt
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      'run',
+      [
+        message.id,
+        message.teamId,
+        message.toAgentId,
+        message.fromAgentId,
+        message.type,
+        message.content,
+        message.summary ?? null,
+        Number(message.read),
+        message.createdAt,
+      ]
     );
     return message;
   }
 
   async readUnread(teamId: string, toAgentId: string): Promise<MailboxMessage[]> {
     const db = await this.getDb();
-    const rows = db
-      .prepare(
-        `SELECT * FROM mailbox WHERE team_id = ? AND to_agent_id = ? AND read = 0
-         ORDER BY created_at ASC`
-      )
-      .all(teamId, toAgentId) as MailboxRow[];
+    const rows = (await db.rawSql(
+      `SELECT * FROM mailbox WHERE team_id = ? AND to_agent_id = ? AND read = 0
+         ORDER BY created_at ASC`,
+      'all',
+      [teamId, toAgentId]
+    )) as MailboxRow[];
     return rows.map(rowToMailbox);
   }
 
   async markRead(messageId: string): Promise<void> {
     const db = await this.getDb();
-    db.prepare('UPDATE mailbox SET read = 1 WHERE id = ?').run(messageId);
+    await db.rawSql('UPDATE mailbox SET read = 1 WHERE id = ?', 'run', [messageId]);
   }
 
   async getMailboxHistory(teamId: string, toAgentId: string, limit = 50): Promise<MailboxMessage[]> {
     const db = await this.getDb();
-    const rows = db
-      .prepare(
-        `SELECT * FROM mailbox WHERE team_id = ? AND to_agent_id = ?
-         ORDER BY created_at DESC LIMIT ?`
-      )
-      .all(teamId, toAgentId, limit) as MailboxRow[];
+    const rows = (await db.rawSql(
+      `SELECT * FROM mailbox WHERE team_id = ? AND to_agent_id = ?
+         ORDER BY created_at DESC LIMIT ?`,
+      'all',
+      [teamId, toAgentId, limit]
+    )) as MailboxRow[];
     return rows.map(rowToMailbox);
   }
 
@@ -242,21 +266,23 @@ export class SqliteTeamRepository implements ITeamRepository {
 
   async createTask(task: TeamTask): Promise<TeamTask> {
     const db = await this.getDb();
-    db.prepare(
+    await db.rawSql(
       `INSERT INTO team_tasks (id, team_id, subject, description, status, owner, blocked_by, blocks, metadata, created_at, updated_at)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
-    ).run(
-      task.id,
-      task.teamId,
-      task.subject,
-      task.description ?? null,
-      task.status,
-      task.owner ?? null,
-      JSON.stringify(task.blockedBy),
-      JSON.stringify(task.blocks),
-      JSON.stringify(task.metadata),
-      task.createdAt,
-      task.updatedAt
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      'run',
+      [
+        task.id,
+        task.teamId,
+        task.subject,
+        task.description ?? null,
+        task.status,
+        task.owner ?? null,
+        JSON.stringify(task.blockedBy),
+        JSON.stringify(task.blocks),
+        JSON.stringify(task.metadata),
+        task.createdAt,
+        task.updatedAt,
+      ]
     );
     return task;
   }
@@ -264,10 +290,12 @@ export class SqliteTeamRepository implements ITeamRepository {
   async findTaskById(id: string): Promise<TeamTask | null> {
     const db = await this.getDb();
     // Exact match first
-    let row = db.prepare('SELECT * FROM team_tasks WHERE id = ?').get(id) as TaskRow | undefined;
+    let row = (await db.rawSql('SELECT * FROM team_tasks WHERE id = ?', 'get', [id])) as TaskRow | undefined;
     if (!row && id.length < 36) {
       // Support short-ID prefix match (agents receive truncated IDs)
-      row = db.prepare('SELECT * FROM team_tasks WHERE id LIKE ? LIMIT 1').get(`${id}%`) as TaskRow | undefined;
+      row = (await db.rawSql('SELECT * FROM team_tasks WHERE id LIKE ? LIMIT 1', 'get', [`${id}%`])) as
+        | TaskRow
+        | undefined;
     }
     return row ? rowToTask(row) : null;
   }
@@ -277,43 +305,47 @@ export class SqliteTeamRepository implements ITeamRepository {
     if (!current) throw new Error(`Task "${id}" not found`);
     const merged: TeamTask = { ...current, ...updates };
     const db = await this.getDb();
-    db.prepare(
+    await db.rawSql(
       `UPDATE team_tasks
        SET subject = ?, description = ?, status = ?, owner = ?,
            blocked_by = ?, blocks = ?, metadata = ?, updated_at = ?
-       WHERE id = ?`
-    ).run(
-      merged.subject,
-      merged.description ?? null,
-      merged.status,
-      merged.owner ?? null,
-      JSON.stringify(merged.blockedBy),
-      JSON.stringify(merged.blocks),
-      JSON.stringify(merged.metadata),
-      merged.updatedAt,
-      id
+       WHERE id = ?`,
+      'run',
+      [
+        merged.subject,
+        merged.description ?? null,
+        merged.status,
+        merged.owner ?? null,
+        JSON.stringify(merged.blockedBy),
+        JSON.stringify(merged.blocks),
+        JSON.stringify(merged.metadata),
+        merged.updatedAt,
+        id,
+      ]
     );
     return merged;
   }
 
   async findTasksByTeam(teamId: string): Promise<TeamTask[]> {
     const db = await this.getDb();
-    const rows = db
-      .prepare('SELECT * FROM team_tasks WHERE team_id = ? ORDER BY created_at ASC')
-      .all(teamId) as TaskRow[];
+    const rows = (await db.rawSql('SELECT * FROM team_tasks WHERE team_id = ? ORDER BY created_at ASC', 'all', [
+      teamId,
+    ])) as TaskRow[];
     return rows.map(rowToTask);
   }
 
   async findTasksByOwner(teamId: string, owner: string): Promise<TeamTask[]> {
     const db = await this.getDb();
-    const rows = db
-      .prepare(`SELECT * FROM team_tasks WHERE team_id = ? AND owner = ? ORDER BY created_at ASC`)
-      .all(teamId, owner) as TaskRow[];
+    const rows = (await db.rawSql(
+      'SELECT * FROM team_tasks WHERE team_id = ? AND owner = ? ORDER BY created_at ASC',
+      'all',
+      [teamId, owner]
+    )) as TaskRow[];
     return rows.map(rowToTask);
   }
 
   async deleteTask(id: string): Promise<void> {
     const db = await this.getDb();
-    db.prepare('DELETE FROM team_tasks WHERE id = ?').run(id);
+    await db.rawSql('DELETE FROM team_tasks WHERE id = ?', 'run', [id]);
   }
 }

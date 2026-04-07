@@ -199,7 +199,7 @@ export class ChannelMessageService {
       // 检查会话来源，如果来自 Channel 则开启 yoloMode (自动同意)
       // Check conversation source, enable yoloMode if it's from a Channel
       const db = await getDatabase();
-      const dbResult = db.getConversation(conversationId);
+      const dbResult = await db.getConversation(conversationId);
       const isFromChannel =
         dbResult.success &&
         (dbResult.data?.source === 'lark' ||

@@ -105,6 +105,39 @@ describe('useAutoScroll - scroll to bottom on message send (#977)', () => {
     );
   });
 
+  it('should scroll to bottom on first message load (0 → N transition)', async () => {
+    // Initial render: empty list (component just mounted, messages not loaded yet)
+    const { result, rerender } = renderHook(({ messages, itemCount }) => useAutoScroll({ messages, itemCount }), {
+      initialProps: { messages: [] as TMessage[], itemCount: 0 },
+    });
+
+    (result.current.virtuosoRef as any).current = mockVirtuosoHandle;
+
+    // Messages load from DB — even though the last message is position=left (AI),
+    // we still want to scroll to bottom because this is the first load.
+    const loadedMessages: TMessage[] = [
+      createMessage('right', '1'),
+      createMessage('left', '2'),
+      createMessage('right', '3'),
+      createMessage('left', '4'),
+    ];
+
+    rerender({ messages: loadedMessages, itemCount: 4 });
+
+    await act(async () => {
+      vi.runAllTimers();
+    });
+
+    // Should scroll to bottom on first load even though last message is AI (left)
+    expect(mockVirtuosoHandle.scrollToIndex).toHaveBeenCalledWith(
+      expect.objectContaining({
+        index: 'LAST',
+        behavior: 'auto',
+        align: 'end',
+      })
+    );
+  });
+
   it('should NOT scroll when AI responds (position=left)', async () => {
     const initialMessages: TMessage[] = [createMessage('right', '1')];
 

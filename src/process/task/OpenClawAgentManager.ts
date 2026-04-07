@@ -183,14 +183,14 @@ class OpenClawAgentManager extends BaseAgentManager<OpenClawAgentManagerData> {
   private async saveSessionKey(sessionKey: string): Promise<void> {
     try {
       const db = await getDatabase();
-      const result = db.getConversation(this.conversation_id);
+      const result = await db.getConversation(this.conversation_id);
       if (result.success && result.data && result.data.type === 'openclaw-gateway') {
         const conversation = result.data;
         const updatedExtra = {
           ...conversation.extra,
           sessionKey,
         };
-        db.updateConversation(this.conversation_id, {
+        await db.updateConversation(this.conversation_id, {
           extra: updatedExtra,
         } as Partial<typeof conversation>);
       }

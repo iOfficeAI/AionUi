@@ -37,12 +37,12 @@ function validateWebSocketUrl(url: string): { url: string } | { error: string } 
 export function initRemoteAgentBridge(): void {
   ipcBridge.remoteAgent.list.provider(async () => {
     const db = await getDatabase();
-    return db.getRemoteAgents();
+    return await db.getRemoteAgents();
   });
 
   ipcBridge.remoteAgent.get.provider(async ({ id }) => {
     const db = await getDatabase();
-    return db.getRemoteAgent(id);
+    return await db.getRemoteAgent(id);
   });
 
   ipcBridge.remoteAgent.create.provider(async (input) => {
@@ -65,7 +65,7 @@ export function initRemoteAgentBridge(): void {
       createdAt: now,
       updatedAt: now,
     };
-    const result = db.createRemoteAgent(config);
+    const result = await db.createRemoteAgent(config);
     if (!result.success || !result.data) {
       throw new Error(result.error ?? 'Failed to create remote agent');
     }
@@ -83,13 +83,13 @@ export function initRemoteAgentBridge(): void {
     if (updates.avatar !== undefined) dbUpdates.avatar = updates.avatar;
     if (updates.description !== undefined) dbUpdates.description = updates.description;
     if (updates.allowInsecure !== undefined) dbUpdates.allow_insecure = updates.allowInsecure ? 1 : 0;
-    const result = db.updateRemoteAgent(id, dbUpdates);
+    const result = await db.updateRemoteAgent(id, dbUpdates);
     return result.success;
   });
 
   ipcBridge.remoteAgent.delete.provider(async ({ id }) => {
     const db = await getDatabase();
-    const result = db.deleteRemoteAgent(id);
+    const result = await db.deleteRemoteAgent(id);
     return result.success;
   });
 
@@ -153,7 +153,7 @@ export function initRemoteAgentBridge(): void {
   ipcBridge.remoteAgent.handshake.provider(async ({ id }) => {
     console.log('[RemoteAgent] handshake start, agentId:', id);
     const db = await getDatabase();
-    const agent = db.getRemoteAgent(id);
+    const agent = await db.getRemoteAgent(id);
     if (!agent) {
       console.log('[RemoteAgent] handshake abort: agent not found');
       return { status: 'error' as const, error: 'Remote agent not found' };
@@ -183,17 +183,17 @@ export function initRemoteAgentBridge(): void {
             }
           : undefined,
         deviceToken: agent.deviceToken,
-        onDeviceTokenIssued: (token) => {
-          db.updateRemoteAgent(id, { device_token: token });
+        onDeviceTokenIssued: async (token) => {
+          await db.updateRemoteAgent(id, { device_token: token });
         },
-        onHelloOk: () => {
+        onHelloOk: async () => {
           clearTimeout(timeout);
           conn.stop();
           console.log('[RemoteAgent] handshake ok, device paired');
-          db.updateRemoteAgent(id, { status: 'connected', last_connected_at: Date.now() });
+          await db.updateRemoteAgent(id, { status: 'connected', last_connected_at: Date.now() });
           resolve({ status: 'ok' });
         },
-        onConnectError: (err) => {
+        onConnectError: async (err) => {
           clearTimeout(timeout);
           conn.stop();
           const details = (err as Error & { details?: { recommendedNextStep?: string } }).details;
@@ -202,11 +202,11 @@ export function initRemoteAgentBridge(): void {
             details?.recommendedNextStep === 'wait_then_retry' || /pairing.required/i.test(err.message);
           if (isPairingRequired) {
             console.log('[RemoteAgent] handshake pending approval, will poll');
-            db.updateRemoteAgent(id, { status: 'pending' });
+            await db.updateRemoteAgent(id, { status: 'pending' });
             resolve({ status: 'pending_approval' });
           } else {
             console.log('[RemoteAgent] handshake failed:', err.message);
-            db.updateRemoteAgent(id, { status: 'error' });
+            await db.updateRemoteAgent(id, { status: 'error' });
             resolve({ status: 'error', error: err.message });
           }
         },

@@ -90,7 +90,7 @@ const getConversationListSyncSnapshot = (): ConversationListSyncSnapshot => snap
 
 const refreshConversations = () => {
   void ipcBridge.database.getUserConversations
-    .invoke({ page: 0, pageSize: 10000 })
+    .invoke({ page: 0, pageSize: 500 })
     .then((data) => {
       if (data && Array.isArray(data)) {
         const filteredData = data.filter((conv) => {
