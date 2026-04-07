@@ -144,9 +144,7 @@ function createConfirmWindow(): void {
     rawY = userPosition.y;
     workArea = screen.getDisplayNearestPoint({ x: rawX, y: rawY }).workArea;
   } else {
-    workArea = petCenter
-      ? screen.getDisplayNearestPoint(petCenter).workArea
-      : screen.getPrimaryDisplay().workArea;
+    workArea = petCenter ? screen.getDisplayNearestPoint(petCenter).workArea : screen.getPrimaryDisplay().workArea;
     rawX = workArea.x + workArea.width - windowWidth - margin;
     rawY = workArea.y + workArea.height - windowHeight - margin;
   }
