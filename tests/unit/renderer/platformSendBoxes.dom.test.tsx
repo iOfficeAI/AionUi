@@ -106,7 +106,7 @@ vi.mock('@/renderer/components/chat/sendbox', () => ({
   }) =>
     React.createElement(
       'div',
-      {},
+      { 'data-testid': 'sendbox' },
       React.createElement('div', { 'data-testid': 'sendbox-loading' }, String(Boolean(loading))),
       React.createElement(
         'button',
@@ -443,6 +443,60 @@ describe('platform send box queue integration', () => {
 
   afterEach(() => {
     sessionStorage.clear();
+  });
+
+  it.each([
+    ['acp', <AcpSendBox conversation_id='conv-acp' backend='claude' />],
+    [
+      'gemini',
+      <GeminiSendBox
+        conversation_id='conv-gemini'
+        modelSelection={{
+          currentModel: { useModel: 'gemini-2.5' },
+          getDisplayModelName: (modelId: string) => modelId,
+          providers: ['google'],
+          geminiModeLookup: {},
+          getAvailableModels: () => [],
+          handleSelectModel: vi.fn(),
+        }}
+      />,
+    ],
+    [
+      'aionrs',
+      <AionrsSendBox
+        conversation_id='conv-aionrs'
+        modelSelection={{
+          currentModel: { useModel: 'aionrs-1' },
+          getDisplayModelName: (modelId: string) => modelId,
+        }}
+      />,
+    ],
+    ['nanobot', <NanobotSendBox conversation_id='conv-nanobot' />],
+    ['openclaw', <OpenClawSendBox conversation_id='conv-openclaw' />],
+  ])('renders queue panel above the processing indicator for %s', (_name, element) => {
+    mockUseConversationCommandQueue.mockReturnValue({
+      items: [
+        {
+          commandId: 'queue-1',
+          input: 'queued command',
+          files: [],
+          createdAt: Date.now(),
+        },
+      ],
+      isPaused: false,
+      isInteractionLocked: false,
+      hasPendingCommands: true,
+      ...queueSpies,
+    });
+
+    render(element);
+
+    const queuePanel = screen.getByTestId('queue-panel');
+    const thoughtDisplay = screen.getByTestId('thought-display');
+    const sendbox = screen.getByTestId('sendbox');
+
+    expect(queuePanel.compareDocumentPosition(thoughtDisplay) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    expect(thoughtDisplay.compareDocumentPosition(sendbox) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
   });
 
   it.each([

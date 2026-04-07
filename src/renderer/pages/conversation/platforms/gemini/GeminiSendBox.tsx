@@ -374,11 +374,6 @@ const GeminiSendBox: React.FC<{
         />
       )}
 
-      <ThoughtDisplay
-        thought={hasThinkingMessage ? undefined : thought}
-        running={running && !hasThinkingMessage}
-        onStop={handleStop}
-      />
       <CommandQueuePanel
         items={queuedCommands}
         paused={isQueuePaused}
@@ -391,6 +386,11 @@ const GeminiSendBox: React.FC<{
         onReorder={reorder}
         onRemove={remove}
         onClear={clear}
+      />
+      <ThoughtDisplay
+        thought={hasThinkingMessage ? undefined : thought}
+        running={running && !hasThinkingMessage}
+        onStop={handleStop}
       />
 
       <SendBox

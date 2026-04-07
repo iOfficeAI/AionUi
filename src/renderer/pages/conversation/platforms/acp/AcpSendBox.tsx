@@ -307,7 +307,6 @@ Please check your local CLI tool authentication status`,
 
   return (
     <div className='max-w-800px w-full mx-auto flex flex-col mt-auto mb-16px'>
-      <ThoughtDisplay running={aiProcessing && !hasThinkingMessage} onStop={handleStop} />
       <CommandQueuePanel
         items={queuedCommands}
         paused={isQueuePaused}
@@ -321,6 +320,7 @@ Please check your local CLI tool authentication status`,
         onRemove={remove}
         onClear={clear}
       />
+      <ThoughtDisplay running={aiProcessing && !hasThinkingMessage} onStop={handleStop} />
 
       <SendBox
         value={content}
