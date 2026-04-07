@@ -245,4 +245,62 @@ console.log(x);`;
     const wrapped = wrapInCodeFence(text);
     expect(wrapped.startsWith('`````````\n')).toBe(true); // 9 backticks
   });
+
+  it('handlePaste pads the code fence with surrounding blank lines so it lands on its own line even mid-paragraph', async () => {
+    const { PasteService } = await import('@/renderer/services/PasteService');
+    const code = `def hello(name):
+    print(f"Hello, {name}")
+    return name`;
+    const event = {
+      type: 'paste',
+      clipboardData: {
+        getData: () => code,
+        files: [],
+      },
+      stopPropagation: vi.fn(),
+      preventDefault: vi.fn(),
+    } as unknown as ClipboardEvent;
+
+    let received = '';
+    await PasteService.handlePaste(
+      event,
+      [],
+      () => {},
+      (text) => {
+        received = text;
+      }
+    );
+
+    // Padded with blank lines on both sides so the fence is always recognised
+    // as a fenced code block, regardless of where the caret was positioned.
+    expect(received.startsWith('\n\n```')).toBe(true);
+    expect(received.endsWith('```\n\n')).toBe(true);
+    expect(received).toContain('def hello(name):');
+  });
+
+  it('handlePaste leaves short prose unwrapped (no fence)', async () => {
+    const { PasteService } = await import('@/renderer/services/PasteService');
+    const event = {
+      type: 'paste',
+      clipboardData: {
+        getData: () => 'just a short message',
+        files: [],
+      },
+      stopPropagation: vi.fn(),
+      preventDefault: vi.fn(),
+    } as unknown as ClipboardEvent;
+
+    let received = '';
+    await PasteService.handlePaste(
+      event,
+      [],
+      () => {},
+      (text) => {
+        received = text;
+      }
+    );
+
+    expect(received).toBe('just a short message');
+    expect(received).not.toContain('```');
+  });
 });
