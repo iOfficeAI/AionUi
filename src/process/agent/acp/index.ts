@@ -9,6 +9,7 @@ import type { IMcpServer } from '@/common/config/storage';
 import { extractAtPaths, parseAllAtCommands, reconstructQuery } from '@/common/chat/atCommandParser';
 import type { TMessage } from '@/common/chat/chatLib';
 import type { IResponseMessage } from '@/common/adapter/ipcBridge';
+import { ipcBridge } from '@/common';
 import { NavigationInterceptor } from '@/common/chat/navigation';
 import type { SlashCommandItem } from '@/common/chat/slash/types';
 import { uuid } from '@/common/utils';

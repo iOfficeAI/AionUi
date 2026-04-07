@@ -10,6 +10,7 @@
 import * as crypto from 'node:crypto';
 import * as net from 'node:net';
 import * as path from 'node:path';
+import { team as teamIpcBridge } from '@/common/adapter/ipcBridge';
 import type { Mailbox } from './Mailbox';
 import type { TaskManager } from './TaskManager';
 import type { TeamAgent } from './types';
