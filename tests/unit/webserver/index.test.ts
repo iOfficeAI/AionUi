@@ -175,6 +175,19 @@ describe('startWebServerWithInstance default admin initialization', () => {
     expect(createUserMock).not.toHaveBeenCalled();
   });
 
+  it('falls back to the default admin username when the system username is empty', async () => {
+    getSystemUserMock.mockResolvedValue(makeUser({ username: '' }));
+    findByUsernameMock.mockResolvedValue(null);
+
+    const { startWebServerWithInstance } = await import('@process/webserver/index');
+
+    await startWebServerWithInstance(3000, false);
+
+    expect(setSystemUserCredentialsMock).toHaveBeenCalledWith('admin', 'hashed-password');
+    expect(updatePasswordMock).not.toHaveBeenCalled();
+    expect(createUserMock).not.toHaveBeenCalled();
+  });
+
   it('skips reinitialization when the custom system user already has credentials', async () => {
     getSystemUserMock.mockResolvedValue(makeUser({ username: 'alice', password_hash: 'existing-hash' }));
     findByUsernameMock.mockResolvedValue(null);
