@@ -200,7 +200,7 @@ const MessageText: React.FC<{ message: IMessageText }> = ({ message }) => {
         >
           {copyButton}
           {message.createdAt && (
-            <span className='text-12px text-t-secondary opacity-0 transition-opacity select-none group-hover:opacity-100'>
+            <span className='text-12px c-text-4 opacity-0 transition-opacity select-none group-hover:opacity-100 dark:text-t-secondary'>
               {formatMessageTime(message.createdAt)}
             </span>
           )}
