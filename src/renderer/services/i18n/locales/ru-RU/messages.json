@@ -62,5 +62,8 @@
     "yesAlwaysAllowTool": "Да, всегда разрешать инструмент \"{{toolName}}\" с сервера \"{{serverName}}\"",
     "yesAlwaysAllowServer": "Да, разрешать все инструменты с сервера \"{{serverName}}\"",
     "no": "Нет (esc)"
-  }
+  },
+  "atFile.hint": "Введите текст для поиска файлов",
+  "atFile.menuLabel": "Упоминания файлов",
+  "atFile.loading": "Загрузка..."
 }

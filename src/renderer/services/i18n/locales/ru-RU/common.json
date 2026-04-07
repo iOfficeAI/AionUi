@@ -73,5 +73,14 @@
   "fileAttach.tooLarge": "Файл превышает лимит {{max}} МБ",
   "fileAttach.failed": "Ошибка загрузки",
   "fileAttach.uploading": "Загрузка...",
-  "fileAttach.uploadSuccess": "Загружено успешно"
+  "fileAttach.uploadSuccess": "Загружено успешно",
+  "expand": "Развернуть",
+  "name": "Имя",
+  "added": "Добавлено",
+  "status": "Статус",
+  "refreshSuccess": "Обновлено",
+  "import": "Импорт",
+  "processing": "Обработка...",
+  "optional": "(необязательно)",
+  "clear": "Очистить"
 }

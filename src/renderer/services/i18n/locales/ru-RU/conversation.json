@@ -63,7 +63,11 @@
     "pinFailed": "Не удалось закрепить",
     "pinnedSection": "Закреплённые",
     "deleteSuccess": "Успешно удалено",
-    "deleteFailed": "Не удалось удалить"
+    "deleteFailed": "Не удалось удалить",
+    "today": "Сегодня",
+    "yesterday": "Вчера",
+    "recent7Days": "Последние 7 дней",
+    "earlier": "Ранее"
   },
   "historySearch": {
     "tooltip": "Поиск сообщений",
@@ -285,5 +289,9 @@
     "request_sent": "Запрос отправлен агенту",
     "failed": "Не удалось создать",
     "preset_registered": "Пресет агента успешно зарегистрирован!"
+  },
+  "thinking": {
+    "complete": "Размышление завершено",
+    "label": "Размышляет..."
   }
 }

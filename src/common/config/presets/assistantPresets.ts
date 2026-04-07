@@ -42,7 +42,8 @@ export const ASSISTANT_PRESETS: AssistantPreset[] = [
       'en-US':
         'Create, edit, and analyze professional Word documents with officecli. Reports, proposals, letters, memos, and more.',
       'zh-CN': '使用 officecli 创建、编辑和分析专业 Word 文档。报告、方案、信函、备忘录等。',
-      'ru-RU': 'Создаёт, редактирует и анализирует профессиональные документы Word с помощью officecli: отчёты, предложения, письма, служебные записки и другое.',
+      'ru-RU':
+        'Создаёт, редактирует и анализирует профессиональные документы Word с помощью officecli: отчёты, предложения, письма, служебные записки и другое.',
     },
     promptsI18n: {
       'en-US': [
@@ -76,7 +77,8 @@ export const ASSISTANT_PRESETS: AssistantPreset[] = [
       'en-US':
         'Create, edit, and analyze professional PowerPoint presentations with officecli. Bold designs, varied layouts, and visual impact.',
       'zh-CN': '使用 officecli 创建、编辑和分析专业 PPT 演示文稿。大胆设计、丰富版式、视觉冲击。',
-      'ru-RU': 'Создаёт, редактирует и анализирует профессиональные презентации PowerPoint с помощью officecli: выразительный дизайн, разнообразные макеты и сильная визуальная подача.',
+      'ru-RU':
+        'Создаёт, редактирует и анализирует профессиональные презентации PowerPoint с помощью officecli: выразительный дизайн, разнообразные макеты и сильная визуальная подача.',
     },
     promptsI18n: {
       'en-US': [
@@ -110,7 +112,8 @@ export const ASSISTANT_PRESETS: AssistantPreset[] = [
       'en-US':
         'Create, edit, and analyze professional Excel spreadsheets with officecli. Financial models, dashboards, trackers, and data analysis.',
       'zh-CN': '使用 officecli 创建、编辑和分析专业 Excel 表格。财务模型、数据看板、追踪表和数据分析。',
-      'ru-RU': 'Создаёт, редактирует и анализирует профессиональные таблицы Excel с помощью officecli: финансовые модели, дашборды, трекеры и анализ данных.',
+      'ru-RU':
+        'Создаёт, редактирует и анализирует профессиональные таблицы Excel с помощью officecli: финансовые модели, дашборды, трекеры и анализ данных.',
     },
     promptsI18n: {
       'en-US': [
@@ -144,7 +147,8 @@ export const ASSISTANT_PRESETS: AssistantPreset[] = [
       'en-US':
         'Create professional Morph-animated presentations with officecli. Supports multiple visual styles and end-to-end workflow from topic to polished slides.',
       'zh-CN': '使用 officecli 创建专业的 Morph 动画演示文稿。支持多种视觉风格，从主题到精美幻灯片的端到端工作流。',
-      'ru-RU': 'Создаёт профессиональные презентации с анимацией Morph через officecli. Поддерживает разные визуальные стили и полный цикл от идеи до готовых слайдов.',
+      'ru-RU':
+        'Создаёт профессиональные презентации с анимацией Morph через officecli. Поддерживает разные визуальные стили и полный цикл от идеи до готовых слайдов.',
     },
     promptsI18n: {
       'en-US': [
@@ -321,7 +325,8 @@ export const ASSISTANT_PRESETS: AssistantPreset[] = [
     descriptionI18n: {
       'en-US': 'Install, connect, and troubleshoot Star-Office-UI visualization for Aion preview.',
       'zh-CN': '用于在 Aion 预览中安装、连接并排查 Star-Office-UI 可视化问题。',
-      'ru-RU': 'Помогает установить, подключить и диагностировать визуализацию Star-Office-UI для предпросмотра в Aion.',
+      'ru-RU':
+        'Помогает установить, подключить и диагностировать визуализацию Star-Office-UI для предпросмотра в Aion.',
     },
     promptsI18n: {
       'en-US': [
@@ -351,7 +356,8 @@ export const ASSISTANT_PRESETS: AssistantPreset[] = [
       'en-US':
         'Expert guide for installing, deploying, configuring, and troubleshooting OpenClaw. Proactively helps with setup, diagnoses issues, and provides security best practices.',
       'zh-CN': 'OpenClaw 安装、部署、配置和故障排查专家。主动协助设置、诊断问题并提供安全最佳实践。',
-      'ru-RU': 'Эксперт по установке, развёртыванию, настройке и устранению неполадок OpenClaw. Помогает пройти настройку, диагностирует проблемы и подсказывает безопасные практики.',
+      'ru-RU':
+        'Эксперт по установке, развёртыванию, настройке и устранению неполадок OpenClaw. Помогает пройти настройку, диагностирует проблемы и подсказывает безопасные практики.',
     },
     promptsI18n: {
       'en-US': [
@@ -384,7 +390,8 @@ export const ASSISTANT_PRESETS: AssistantPreset[] = [
     descriptionI18n: {
       'en-US': 'Autonomous task execution with file operations, document processing, and multi-step workflow planning.',
       'zh-CN': '具有文件操作、文档处理和多步骤工作流规划的自主任务执行助手。',
-      'ru-RU': 'Автономный помощник для выполнения задач с работой с файлами, обработкой документов и многошаговым планированием.',
+      'ru-RU':
+        'Автономный помощник для выполнения задач с работой с файлами, обработкой документов и многошаговым планированием.',
     },
     promptsI18n: {
       'en-US': [
@@ -499,7 +506,8 @@ export const ASSISTANT_PRESETS: AssistantPreset[] = [
       'en-US':
         'Professional UI/UX design intelligence with 57 styles, 95 color palettes, 56 font pairings, and stack-specific best practices.',
       'zh-CN': '专业 UI/UX 设计智能助手，包含 57 种风格、95 个配色方案、56 个字体配对及技术栈最佳实践。',
-      'ru-RU': 'Профессиональный UI/UX-помощник с 57 стилями, 95 цветовыми палитрами, 56 сочетаниями шрифтов и лучшими практиками для разных стеков.',
+      'ru-RU':
+        'Профессиональный UI/UX-помощник с 57 стилями, 95 цветовыми палитрами, 56 сочетаниями шрифтов и лучшими практиками для разных стеков.',
     },
     promptsI18n: {
       'en-US': [
@@ -528,7 +536,8 @@ export const ASSISTANT_PRESETS: AssistantPreset[] = [
       'en-US':
         'Manus-style file-based planning for complex tasks. Uses task_plan.md, findings.md, and progress.md to maintain persistent context.',
       'zh-CN': 'Manus 风格的文件规划，用于复杂任务。使用 task_plan.md、findings.md 和 progress.md 维护持久化上下文。',
-      'ru-RU': 'Файловое планирование в стиле Manus для сложных задач. Использует task_plan.md, findings.md и progress.md для сохранения устойчивого контекста.',
+      'ru-RU':
+        'Файловое планирование в стиле Manus для сложных задач. Использует task_plan.md, findings.md и progress.md для сохранения устойчивого контекста.',
     },
     promptsI18n: {
       'en-US': [
@@ -557,7 +566,8 @@ export const ASSISTANT_PRESETS: AssistantPreset[] = [
       'en-US':
         'Personal development coach based on HUMAN 3.0 framework: 4 Quadrants (Mind/Body/Spirit/Vocation), 3 Levels, 3 Growth Phases.',
       'zh-CN': '基于 HUMAN 3.0 框架的个人发展教练：4 象限（思维/身体/精神/职业）、3 层次、3 成长阶段。',
-      'ru-RU': 'Коуч по личному развитию на основе фреймворка HUMAN 3.0: 4 квадранта (ум, тело, дух, призвание), 3 уровня и 3 фазы роста.',
+      'ru-RU':
+        'Коуч по личному развитию на основе фреймворка HUMAN 3.0: 4 квадранта (ум, тело, дух, призвание), 3 уровня и 3 фазы роста.',
     },
     promptsI18n: {
       'en-US': [
@@ -594,7 +604,8 @@ export const ASSISTANT_PRESETS: AssistantPreset[] = [
     descriptionI18n: {
       'en-US': 'Expand hiring requests into a full JD, images, and publish to social platforms via connectors.',
       'zh-CN': '扩写招聘需求为完整 JD 与图片，并通过 connector 发布到社交平台。',
-      'ru-RU': 'Разворачивает запрос на найм в полноценное описание вакансии и изображения, а затем публикует это в соцсетях через коннекторы.',
+      'ru-RU':
+        'Разворачивает запрос на найм в полноценное описание вакансии и изображения, а затем публикует это в соцсетях через коннекторы.',
     },
     promptsI18n: {
       'en-US': [
@@ -705,5 +716,3 @@ export const ASSISTANT_PRESETS: AssistantPreset[] = [
     },
   },
 ];
-
-
