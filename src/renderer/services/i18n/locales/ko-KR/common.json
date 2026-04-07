@@ -73,5 +73,14 @@
   "fileAttach.tooLarge": "파일이 {{max}}MB 제한을 초과합니다",
   "fileAttach.failed": "업로드 실패",
   "fileAttach.uploading": "업로드 중...",
-  "fileAttach.uploadSuccess": "업로드 성공"
+  "fileAttach.uploadSuccess": "업로드 성공",
+  "expand": "펼치기",
+  "name": "이름",
+  "added": "추가됨",
+  "status": "상태",
+  "refreshSuccess": "새로고침 완료",
+  "import": "가져오기",
+  "processing": "처리 중...",
+  "optional": "(선택 사항)",
+  "clear": "지우기"
 }

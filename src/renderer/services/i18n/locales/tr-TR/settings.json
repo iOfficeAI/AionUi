@@ -732,7 +732,8 @@
     "defaultModelDesc": "WeChat sohbetleri icin kullanilan model",
     "step1": "WeChat'te botunuzu bulun ve bir mesaj gonderin",
     "step2": "Bir eslesme istegi asagida gorunecektir. Kullaniciyi yetkilendirmek icin \"Onayla\"'ya tiklayin",
-    "step3": "Onaylandiktan sonra, WeChat uzerinden AI asistani ile sohbet edebilirsiniz!"
+    "step3": "Onaylandiktan sonra, WeChat uzerinden AI asistani ile sohbet edebilirsiniz!",
+    "loginRequired": "Lütfen önce WeChat QR kodu ile giriş yapın"
   },
   "extensionAssistantReadonly": "Uzantı asistanları salt okunurdur. Kopyalayıp düzenleyebilirsiniz.",
   "agentManagement": {
@@ -805,5 +806,13 @@
     "pendingTimeout": "Onay isteği süresi doldu (5 dakika). Lütfen tekrar deneyin.",
     "pendingCancel": "İptal",
     "pendingTimeRemaining": "Kalan süre: {{time}}"
+  },
+  "noExternalSources": "Harici beceri kaynağı bulunamadı",
+  "aionrs": {
+    "available": "Mevcut",
+    "notFound": "Bulunamadı",
+    "version": "Sürüm",
+    "path": "Yol",
+    "providerNote": "Sağlayıcı ve API anahtarı ayarları Modeller sayfasında yönetilir. Aion CLI destekler: Anthropic, OpenAI, AWS Bedrock."
   }
 }

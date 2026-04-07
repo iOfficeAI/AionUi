@@ -732,7 +732,8 @@
     "defaultModelDesc": "Model used for WeChat conversations",
     "step1": "Find and send a message to your bot in WeChat",
     "step2": "A pairing request will appear below. Click \"Approve\" to authorize the user.",
-    "step3": "Once approved, you can start chatting with the AI assistant through WeChat!"
+    "step3": "Once approved, you can start chatting with the AI assistant through WeChat!",
+    "loginRequired": "Please login with WeChat QR code first"
   },
   "extensionAssistantReadonly": "Extension assistants are read-only. You can duplicate it and edit the copy.",
   "agentManagement": {
@@ -805,5 +806,13 @@
     "pendingTimeout": "Approval request expired (5 minutes). Please try again.",
     "pendingCancel": "Cancel",
     "pendingTimeRemaining": "Time remaining: {{time}}"
+  },
+  "noExternalSources": "No external skill sources discovered",
+  "aionrs": {
+    "available": "Available",
+    "notFound": "Not Found",
+    "version": "Version",
+    "path": "Path",
+    "providerNote": "Provider and API key settings are managed in the Models page. Aion CLI supports: Anthropic, OpenAI, AWS Bedrock."
   }
 }

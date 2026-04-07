@@ -73,5 +73,14 @@
   "fileAttach.tooLarge": "檔案超過 {{max}}MB 限制",
   "fileAttach.failed": "上傳失敗",
   "fileAttach.uploading": "上傳中...",
-  "fileAttach.uploadSuccess": "上傳成功"
+  "fileAttach.uploadSuccess": "上傳成功",
+  "expand": "展開",
+  "name": "名稱",
+  "added": "已新增",
+  "status": "狀態",
+  "refreshSuccess": "重新整理成功",
+  "import": "匯入",
+  "processing": "處理中...",
+  "optional": "（選填）",
+  "clear": "清除"
 }

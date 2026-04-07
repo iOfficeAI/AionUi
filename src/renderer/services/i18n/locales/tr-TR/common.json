@@ -73,5 +73,14 @@
   "fileAttach.tooLarge": "Dosya {{max}}MB sınırını aşıyor",
   "fileAttach.failed": "Yükleme başarısız",
   "fileAttach.uploading": "Yükleniyor...",
-  "fileAttach.uploadSuccess": "Yükleme başarılı"
+  "fileAttach.uploadSuccess": "Yükleme başarılı",
+  "expand": "Genişlet",
+  "name": "Ad",
+  "added": "Eklendi",
+  "status": "Durum",
+  "refreshSuccess": "Yenilendi",
+  "import": "İçe Aktar",
+  "processing": "İşleniyor...",
+  "optional": "(isteğe bağlı)",
+  "clear": "Temizle"
 }
