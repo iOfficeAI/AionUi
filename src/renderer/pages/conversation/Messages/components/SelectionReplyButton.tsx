@@ -10,7 +10,6 @@ import { useLayoutContext } from '@/renderer/hooks/context/LayoutContext';
 import { Quote } from '@icon-park/react';
 import React, { useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import styles from './SelectionReplyButton.module.css';
 
 type ReplyPos = { top: number; left: number; text: string; msgId: string; msgPos: string };
 
@@ -155,15 +154,15 @@ const SelectionReplyButton: React.FC<{ messages: TMessage[] }> = ({ messages }) 
   return (
     <div
       ref={buttonRef}
-      className={`fixed z-9999 flex items-center gap-4px px-10px py-6px rd-8px cursor-pointer transition-colors select-none ${styles.replyButton}`}
+      className='fixed z-9999 flex items-center gap-4px px-10px py-6px rd-8px cursor-pointer transition-colors select-none'
       style={{
         top: pos.top,
         left: pos.left,
         transform: 'translateX(-50%)',
-        background: 'rgb(var(--primary-1))',
-        border: '1px solid rgb(var(--primary-3))',
-        boxShadow: '0 2px 8px rgba(var(--primary-6), 0.15)',
-        color: 'rgb(var(--primary-6))',
+        background: 'var(--brand-light)',
+        border: '1px solid var(--brand-hover)',
+        boxShadow: '0 2px 8px rgba(0, 0, 0, 0.12)',
+        color: 'var(--brand)',
       }}
       onMouseDown={(e) => {
         e.preventDefault();
