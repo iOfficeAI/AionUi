@@ -11,7 +11,12 @@ import { PetStateMachine } from './petStateMachine';
 import { PetIdleTicker } from './petIdleTicker';
 import { PetEventBridge } from './petEventBridge';
 import { setPetNotifyHook } from '../../common/adapter/main';
-import { initPetConfirmManager, updateAnchorBounds, destroyPetConfirmManager } from './petConfirmManager';
+import {
+  initPetConfirmManager,
+  updateAnchorBounds,
+  destroyPetConfirmManager,
+  unhookPetConfirm,
+} from './petConfirmManager';
 import type { PetSize, PetState } from './petTypes';
 
 // petManager is dynamically imported → rollup places it in out/main/chunks/,
@@ -29,6 +34,12 @@ let dragTimer: ReturnType<typeof setInterval> | null = null;
 let dragOffsetX = 0;
 let dragOffsetY = 0;
 let preDragState: PetState | null = null;
+// Whether tool-call confirmations should be routed to the pet's bubble window.
+// When false, the pet still runs normally but confirmation requests stay in the
+// main chat window. Updated at runtime via setPetConfirmEnabled() and read on
+// createPetWindow() so the initial value picked up from ProcessConfig at startup
+// (see src/index.ts) is honored even though createPetWindow itself is sync.
+let confirmBubbleEnabled = true;
 
 // States that should be restored after drag ends (AI activity / notifications).
 // User-interaction states (attention/poke/happy) and idle/sleep states are NOT restored.
@@ -138,8 +149,12 @@ export function createPetWindow(): void {
   registerIpcHandlers();
   loadContent();
 
-  // Initialize confirm manager
-  initPetConfirmManager({ x, y, width: currentSize, height: currentSize });
+  // Initialize confirm manager only if the user opted in.
+  // When disabled, AI tool-call confirmations remain in the main chat window
+  // instead of being routed to a pet bubble.
+  if (confirmBubbleEnabled) {
+    initPetConfirmManager({ x, y, width: currentSize, height: currentSize });
+  }
 
   petWindow.on('closed', () => {
     destroyPetWindow();
@@ -208,6 +223,32 @@ export function resizePetWindow(size: PetSize): void {
 
 export function setPetDndMode(dnd: boolean): void {
   stateMachine?.setDnd(dnd);
+}
+
+/**
+ * Enable or disable the pet's confirm-bubble window for AI tool-call
+ * confirmations. When disabled, future confirmations stay in the main chat
+ * window. Any confirmation already on-screen is left alone so the user can
+ * finish responding to it — only the next request takes the new setting.
+ */
+export function setPetConfirmEnabled(enabled: boolean): void {
+  confirmBubbleEnabled = enabled;
+
+  // Pet not running → just remember the value for the next createPetWindow().
+  if (!petWindow || petWindow.isDestroyed()) return;
+
+  if (enabled) {
+    // Late-enable: install the hook so future confirmations route to the bubble.
+    // Use the current pet bounds as the initial anchor.
+    const [x, y] = petWindow.getPosition();
+    initPetConfirmManager({ x, y, width: currentSize, height: currentSize });
+  }
+  // Late-disable: leave the existing confirm window (if any) alone — it will
+  // self-destroy after the user responds to the current confirmation. New
+  // confirmations will not reach it because we unhook here.
+  else {
+    unhookPetConfirm();
+  }
 }
 
 // ---------------------------------------------------------------------------

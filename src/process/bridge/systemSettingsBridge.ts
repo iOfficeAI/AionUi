@@ -175,4 +175,17 @@ export function initSystemSettingsBridge(): void {
     const { setPetDndMode } = await import('@process/pet/petManager');
     setPetDndMode(dnd);
   });
+
+  // Pet confirm-bubble toggle: when disabled, AI tool-call confirmations
+  // are not routed to the pet's bubble window. Default true.
+  ipcBridge.systemSettings.getPetConfirmEnabled.provider(async () => {
+    const value = await ProcessConfig.get('pet.confirmEnabled');
+    return value ?? true;
+  });
+
+  ipcBridge.systemSettings.setPetConfirmEnabled.provider(async ({ enabled }) => {
+    await ProcessConfig.set('pet.confirmEnabled', enabled);
+    const { setPetConfirmEnabled } = await import('@process/pet/petManager');
+    setPetConfirmEnabled(enabled);
+  });
 }

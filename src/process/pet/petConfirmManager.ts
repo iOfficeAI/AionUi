@@ -28,9 +28,12 @@ let userPosition: { x: number; y: number } | null = null;
 
 /**
  * Initialize pet confirm manager with anchor bounds (pet window position).
+ * Safe to call multiple times — handlers are unregistered first to prevent
+ * stacking listeners when the user toggles the confirm-bubble setting.
  */
 export function initPetConfirmManager(bounds: { x: number; y: number; width: number; height: number }): void {
   anchorBounds = bounds;
+  unregisterIpcHandlers();
   registerIpcHandlers();
   // Use main-process hook (buildEmitter.on() only works in renderer)
   setConfirmHook({
@@ -66,6 +69,15 @@ export function destroyPetConfirmManager(): void {
   currentConfirmations.clear();
   anchorBounds = null;
   userPosition = null;
+}
+
+/**
+ * Stop routing future confirmations to the bubble while leaving any open
+ * confirm window alive so the user can finish responding to it. Used when the
+ * "pet confirm bubble" toggle is turned off at runtime.
+ */
+export function unhookPetConfirm(): void {
+  setConfirmHook(null);
 }
 
 /**
@@ -109,7 +121,10 @@ function createConfirmWindow(): void {
   // the confirm window appears on the same screen as the pet (multi-monitor safe).
   // Falls back to the primary display when no anchor is known yet.
   const petCenter = anchorBounds
-    ? { x: anchorBounds.x + Math.round(anchorBounds.width / 2), y: anchorBounds.y + Math.round(anchorBounds.height / 2) }
+    ? {
+        x: anchorBounds.x + Math.round(anchorBounds.width / 2),
+        y: anchorBounds.y + Math.round(anchorBounds.height / 2),
+      }
     : null;
   const workArea = petCenter ? screen.getDisplayNearestPoint(petCenter).workArea : screen.getPrimaryDisplay().workArea;
   // margin = 0: the window itself touches the screen edge. The 6px shadow
