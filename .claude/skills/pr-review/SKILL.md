@@ -285,7 +285,7 @@ Review dimensions:
   - 引入第二套 UI 库（shadcn/ui、MUI、Mantine 等），而 PR 中无单独的预先讨论
   - 仅桌面端实现，未考虑移动端布局
   - 新建了视觉模式但未在 Reuse Rationale 中说明为什么 reuse 不够用
-  纯非视觉的 renderer 改动（如仅修改 `src/renderer/i18n/types.ts` 或纯类型文件）可豁免，但必须在 review 报告中明确指出"无视觉改动，跳过 UI 维度"。
+    纯非视觉的 renderer 改动（如仅修改 `src/renderer/i18n/types.ts` 或纯类型文件）可豁免，但必须在 review 报告中明确指出"无视觉改动，跳过 UI 维度"。
 - **测试** — 对照 [testing skill](../testing/SKILL.md) 的标准评估，以下任一情况须指出：
   - 新增功能没有对应测试用例
   - 修改了逻辑但未更新已有相关测试

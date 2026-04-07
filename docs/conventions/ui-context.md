@@ -101,15 +101,15 @@ This document covers AionUi-specific UI decisions:
 
 Components are organised by responsibility under `src/renderer/components/`:
 
-| Directory | What lives here |
-|---|---|
-| `base/` | All `Aion*` shared wrappers (Modal, ScrollArea, Collapse, Select, Steps, FileChangesPanel, ModalWrapper, StepsWrapper, …). Start here when you need a primitive. |
-| `layout/` | App shell: `Layout`, `Router`, `Sider/`, `Titlebar/`, `WindowControls`, `FlexFullContainer`, `AppLoader`, `PwaPullToRefresh`. |
-| `chat/` | Chat surfaces: `sendbox`, `SlashCommandMenu`, `EmojiPicker`, `SpeechInputButton`, `ThoughtDisplay`, `CommandQueuePanel`, `CollapsibleContent`, `BtwOverlay/`. |
+| Directory   | What lives here                                                                                                                                                                  |
+| ----------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `base/`     | All `Aion*` shared wrappers (Modal, ScrollArea, Collapse, Select, Steps, FileChangesPanel, ModalWrapper, StepsWrapper, …). Start here when you need a primitive.                 |
+| `layout/`   | App shell: `Layout`, `Router`, `Sider/`, `Titlebar/`, `WindowControls`, `FlexFullContainer`, `AppLoader`, `PwaPullToRefresh`.                                                    |
+| `chat/`     | Chat surfaces: `sendbox`, `SlashCommandMenu`, `EmojiPicker`, `SpeechInputButton`, `ThoughtDisplay`, `CommandQueuePanel`, `CollapsibleContent`, `BtwOverlay/`.                    |
 | `settings/` | Settings flows. Entry: [`settings/SettingsModal/index.tsx`](../../src/renderer/components/settings/SettingsModal/index.tsx) — read it before introducing any new dialog pattern. |
-| `agent/` | Agent display + selection (`AgentSetupCard`, `AgentModeSelector`, `AcpModelSelector`, `MarqueePillLabel`, `ContextUsageIndicator`, …). |
-| `media/` | File / media surfaces (`FilePreview`, `LocalImageView`, `Diff2Html`, `HorizontalFileList`, `UploadProgressBar`, `WebviewHost`). |
-| `Markdown/` | Markdown rendering. |
+| `agent/`    | Agent display + selection (`AgentSetupCard`, `AgentModeSelector`, `AcpModelSelector`, `MarqueePillLabel`, `ContextUsageIndicator`, …).                                           |
+| `media/`    | File / media surfaces (`FilePreview`, `LocalImageView`, `Diff2Html`, `HorizontalFileList`, `UploadProgressBar`, `WebviewHost`).                                                  |
+| `Markdown/` | Markdown rendering.                                                                                                                                                              |
 
 **Before creating a new component**, scan the relevant directory above (and its `index.ts` if present) — most needs are already covered. Lists are intentionally written to age gracefully; if you find a gap or stale entry, fix it in the same PR.
 
@@ -134,7 +134,7 @@ Components are organised by responsibility under `src/renderer/components/`:
 
 ## When To Wrap An Arco Primitive
 
-The selection order itself is covered by **Reuse Priority** above. Beyond reuse, the question is *when does an ad-hoc style pattern deserve to be promoted into a shared `Aion*` wrapper*. Wrap an Arco primitive into an Aion wrapper when any 2 of these are true:
+The selection order itself is covered by **Reuse Priority** above. Beyond reuse, the question is: when does an ad-hoc style pattern deserve to be promoted into a shared `Aion*` wrapper? Wrap an Arco primitive into an Aion wrapper when any 2 of these are true:
 
 - The same className combination appears in **≥3 files**
 - The same token combination appears in **≥3 files**
@@ -200,8 +200,8 @@ The PR body for any change touching `src/renderer/` must fill in the **UI CHANGE
 
 The `pr-review` skill (and human reviewers) will request changes when any of the
 following conditions is met. The rules being enforced are defined in the **TL;DR
-— 7 Hard Rules** section above; this list only describes the *trigger
-conditions*, not new rules.
+— 7 Hard Rules** section above; this list only describes the _trigger
+conditions_, not new rules.
 
 - Any of the 7 Hard Rules is violated
 - PR body is missing `Reference Components` (≥2) or `Reuse Rationale`
