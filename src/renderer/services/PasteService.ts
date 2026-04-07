@@ -333,10 +333,14 @@ class PasteServiceClass {
         let cleanedText = clipboardText.replace(/\n\s*$/, '');
         // 如果粘贴内容看起来像代码/日志，自动包成 Markdown 代码块，
         // 否则消息历史里的 ">"/"*"/"_" 会被当成 blockquote/emphasis 错误渲染。
+        // 注意：fence 前后都加空行，这样无论光标位于行首还是行中，
+        // 拼接后 ``` 总能落在新的一行——否则 Markdown 不会把它识别成 fenced code block。
         // If the pasted text looks like code/log, wrap it in a fenced code block
         // so the message history doesn't mis-render ">"/"*"/"_" as Markdown.
+        // The fence is padded with surrounding blank lines so that the opening
+        // ``` always lands on its own line regardless of where the caret was.
         if (looksLikeCode(cleanedText)) {
-          cleanedText = wrapInCodeFence(cleanedText);
+          cleanedText = `\n\n${wrapInCodeFence(cleanedText)}\n\n`;
         }
         onTextPaste(cleanedText);
         return true; // 已处理，阻止默认行为
