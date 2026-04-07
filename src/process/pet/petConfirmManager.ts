@@ -22,6 +22,9 @@ let currentConfirmations = new Map<string, IConfirmation<any> & { conversation_i
 let anchorBounds: { x: number; y: number; width: number; height: number } | null = null;
 let pendingConfirmations: Array<IConfirmation<any> & { conversation_id: string }> = [];
 let windowReady = false;
+// User-overridden confirm window position (set when user drags the window).
+// Persists for the current app session only; cleared on destroy.
+let userPosition: { x: number; y: number } | null = null;
 
 /**
  * Initialize pet confirm manager with anchor bounds (pet window position).
@@ -45,12 +48,12 @@ export function initPetConfirmManager(bounds: { x: number; y: number; width: num
 
 /**
  * Update anchor bounds when pet window moves.
+ * Note: confirm window position is independent of pet position — it stays where the
+ * user last placed it (or the default bottom-right corner). We only track anchor for
+ * potential future use, but no longer reposition the confirm window when the pet moves.
  */
 export function updateAnchorBounds(bounds: { x: number; y: number; width: number; height: number }): void {
   anchorBounds = bounds;
-  if (confirmWindow && !confirmWindow.isDestroyed() && currentConfirmations.size > 0) {
-    positionConfirmWindow();
-  }
 }
 
 /**
@@ -62,6 +65,7 @@ export function destroyPetConfirmManager(): void {
   destroyConfirmWindow();
   currentConfirmations.clear();
   anchorBounds = null;
+  userPosition = null;
 }
 
 /**
@@ -90,18 +94,29 @@ function createConfirmWindow(): void {
     return;
   }
 
-  if (!anchorBounds) return;
-
+  // Window dimensions match PR's original validated values (avoid layout regressions).
   const windowWidth = 320;
   const windowHeight = 280;
 
-  // Position above pet, right-aligned with pet window.
-  // Clamp to screen so the window is always fully visible.
-  const workArea = screen.getPrimaryDisplay().workAreaSize;
-  const rawX = anchorBounds.x + anchorBounds.width - windowWidth;
-  const rawY = anchorBounds.y - windowHeight - 8;
-  const x = Math.max(0, Math.min(rawX, workArea.width - windowWidth));
-  const y = Math.max(0, Math.min(rawY, workArea.height - windowHeight));
+  // Position priority:
+  //   1. userPosition (if user has dragged the window this session)
+  //   2. Default bottom-right corner of the display where the pet currently lives
+  //
+  // Pick the work area of the display nearest to the pet's center point so that
+  // the confirm window appears on the same screen as the pet (multi-monitor safe).
+  // Falls back to the primary display when no anchor is known yet.
+  const petCenter = anchorBounds
+    ? { x: anchorBounds.x + Math.round(anchorBounds.width / 2), y: anchorBounds.y + Math.round(anchorBounds.height / 2) }
+    : null;
+  const workArea = petCenter ? screen.getDisplayNearestPoint(petCenter).workArea : screen.getPrimaryDisplay().workArea;
+  const margin = 8;
+  const defaultX = workArea.x + workArea.width - windowWidth - margin;
+  const defaultY = workArea.y + workArea.height - windowHeight - margin;
+
+  const rawX = userPosition?.x ?? defaultX;
+  const rawY = userPosition?.y ?? defaultY;
+  const x = Math.max(workArea.x, Math.min(rawX, workArea.x + workArea.width - windowWidth));
+  const y = Math.max(workArea.y, Math.min(rawY, workArea.y + workArea.height - windowHeight));
 
   confirmWindow = new BrowserWindow({
     width: windowWidth,
@@ -172,19 +187,6 @@ function destroyConfirmWindow(): void {
   windowReady = false;
   pendingConfirmations = [];
   console.log('[PetConfirm] Confirm window destroyed');
-}
-
-/**
- * Position confirm window above pet.
- */
-function positionConfirmWindow(): void {
-  if (!confirmWindow || confirmWindow.isDestroyed() || !anchorBounds) return;
-
-  const [width, height] = confirmWindow.getSize();
-  const x = anchorBounds.x + anchorBounds.width - width;
-  const y = anchorBounds.y - height - 8;
-
-  confirmWindow.setPosition(x, y, false);
 }
 
 /**
@@ -285,6 +287,11 @@ function registerIpcHandlers(): void {
     if (confirmDragTimer) {
       clearInterval(confirmDragTimer);
       confirmDragTimer = null;
+    }
+    // Remember user-chosen position for the rest of this session
+    if (confirmWindow && !confirmWindow.isDestroyed()) {
+      const [px, py] = confirmWindow.getPosition();
+      userPosition = { x: px, y: py };
     }
   });
 
