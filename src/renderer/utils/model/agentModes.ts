@@ -45,7 +45,6 @@ export const AGENT_MODES: Record<string, AgentModeOption[]> = {
     { value: 'default', label: 'Default' },
     { value: 'acceptEdits', label: 'Accept Edits', description: 'Auto-approve file edits, prompt for commands' },
     { value: 'plan', label: 'Plan' },
-    { value: 'auto', label: 'Auto', description: 'Autonomous execution with safety classifier' },
     { value: 'bypassPermissions', label: 'YOLO' },
     { value: 'dontAsk', label: "Don't Ask", description: 'Block all actions except pre-approved rules' },
   ],
