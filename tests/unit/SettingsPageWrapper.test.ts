@@ -13,6 +13,7 @@ const t = (key: string, options?: { defaultValue?: string }) => {
     'settings.webui': 'WebUI',
     'settings.system': 'System',
     'settings.about': 'About',
+    'pet.desktopPet': 'Desktop Pet',
   };
 
   return labels[key] ?? options?.defaultValue ?? key;
