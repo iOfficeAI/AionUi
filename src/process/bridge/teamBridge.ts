@@ -99,6 +99,12 @@ export function initTeamBridge(teamSessionService: TeamSessionService): void {
       await teamSessionService.stopSession(teamId);
     })
   );
+
+  ipcBridge.team.ensureSession.provider(
+    safeProvider(async ({ teamId }) => {
+      await teamSessionService.getOrStartSession(teamId);
+    })
+  );
 }
 
 /** Stop all active team sessions (TCP servers + child processes). Call on app quit. */

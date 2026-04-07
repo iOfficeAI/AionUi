@@ -1272,6 +1272,7 @@ export const team = {
     'team.send-message-to-agent'
   ),
   stop: bridge.buildProvider<void, { teamId: string }>('team.stop'),
+  ensureSession: bridge.buildProvider<void, { teamId: string }>('team.ensure-session'),
   renameAgent: bridge.buildProvider<void, { teamId: string; slotId: string; newName: string }>('team.rename-agent'),
   renameTeam: bridge.buildProvider<void, { id: string; name: string }>('team.rename'),
   messageStream: bridge.buildEmitter<import('@process/team/types').ITeamMessageEvent>('team.message.stream'),
