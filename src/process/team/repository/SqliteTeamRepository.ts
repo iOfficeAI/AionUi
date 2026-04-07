@@ -220,6 +220,24 @@ export class SqliteTeamRepository implements ITeamRepository {
     return rows.map(rowToMailbox);
   }
 
+  async readUnreadAndMark(teamId: string, toAgentId: string): Promise<MailboxMessage[]> {
+    const db = await this.getDb();
+    const rows = db.transaction(() => {
+      const unread = db
+        .prepare(
+          `SELECT * FROM mailbox WHERE team_id = ? AND to_agent_id = ? AND read = 0
+           ORDER BY created_at ASC`
+        )
+        .all(teamId, toAgentId) as MailboxRow[];
+      if (unread.length > 0) {
+        const ids = unread.map((r) => r.id);
+        db.prepare(`UPDATE mailbox SET read = 1 WHERE id IN (${ids.map(() => '?').join(',')})`).run(...ids);
+      }
+      return unread;
+    })();
+    return rows.map(rowToMailbox);
+  }
+
   async markRead(messageId: string): Promise<void> {
     const db = await this.getDb();
     db.prepare('UPDATE mailbox SET read = 1 WHERE id = ?').run(messageId);
@@ -315,5 +333,42 @@ export class SqliteTeamRepository implements ITeamRepository {
   async deleteTask(id: string): Promise<void> {
     const db = await this.getDb();
     db.prepare('DELETE FROM team_tasks WHERE id = ?').run(id);
+  }
+
+  async appendToBlocks(taskId: string, blockId: string): Promise<void> {
+    const db = await this.getDb();
+    const now = Date.now();
+    db.transaction(() => {
+      const row = db.prepare('SELECT blocks FROM team_tasks WHERE id = ?').get(taskId) as
+        | Pick<TaskRow, 'blocks'>
+        | undefined;
+      if (!row) return;
+      const blocks = JSON.parse(row.blocks) as string[];
+      if (!blocks.includes(blockId)) {
+        blocks.push(blockId);
+      }
+      db.prepare('UPDATE team_tasks SET blocks = ?, updated_at = ? WHERE id = ?').run(
+        JSON.stringify(blocks),
+        now,
+        taskId
+      );
+    })();
+  }
+
+  async removeFromBlockedBy(taskId: string, unblockedId: string): Promise<TeamTask> {
+    const db = await this.getDb();
+    const now = Date.now();
+    const row = db.transaction(() => {
+      const current = db.prepare('SELECT * FROM team_tasks WHERE id = ?').get(taskId) as TaskRow | undefined;
+      if (!current) throw new Error(`Task "${taskId}" not found`);
+      const blockedBy = (JSON.parse(current.blocked_by) as string[]).filter((id) => id !== unblockedId);
+      db.prepare('UPDATE team_tasks SET blocked_by = ?, updated_at = ? WHERE id = ?').run(
+        JSON.stringify(blockedBy),
+        now,
+        taskId
+      );
+      return { ...current, blocked_by: JSON.stringify(blockedBy), updated_at: now };
+    })();
+    return rowToTask(row);
   }
 }
