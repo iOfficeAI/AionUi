@@ -131,7 +131,7 @@ const TaskDetailPage: React.FC = () => {
           <Button
             type='text'
             size='small'
-            className='w-fit !px-0 !text-14px !text-text-3 md:!text-15px !text-t-secondary hover:!text-t-primary'
+            className='w-fit !px-0 !text-14px md:!text-15px !text-t-secondary hover:!text-t-primary'
             icon={<Left theme='outline' size={16} className='line-height-0 shrink-0' />}
             onClick={() => navigate('/scheduled')}
           >
@@ -159,7 +159,7 @@ const TaskDetailPage: React.FC = () => {
         <Button
           type='text'
           size='small'
-          className='w-fit !px-0 !text-14px !text-text-3 md:!text-15px !text-t-secondary hover:!text-t-primary'
+          className='w-fit !px-0 !text-14px md:!text-15px !text-t-secondary hover:!text-t-primary'
           icon={<Left theme='outline' size={16} className='line-height-0 shrink-0' />}
           onClick={() => navigate('/scheduled')}
         >
