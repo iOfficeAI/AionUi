@@ -1,5 +1,10 @@
 const LOAD_TIMEOUT = 3000;
+const PET_STATES_BASE_PATH = '../pet-states';
 let currentObject: HTMLObjectElement | null = document.getElementById('pet') as HTMLObjectElement;
+
+function getStateAssetPath(state: string): string {
+  return `${PET_STATES_BASE_PATH}/${state}.svg`;
+}
 
 function setupTransitions(): void {
   if (!currentObject) return;
@@ -47,7 +52,7 @@ if (currentObject) {
 }
 
 window.petAPI.onStateChange((state: string) => {
-  loadSvg(`/pet-states/${state}.svg`);
+  loadSvg(getStateAssetPath(state));
 });
 
 window.petAPI.onEyeMove(({ eyeDx, eyeDy, bodyDx, bodyRotate }) => {
