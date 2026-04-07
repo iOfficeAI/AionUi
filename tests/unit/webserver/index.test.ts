@@ -162,6 +162,19 @@ describe('startWebServerWithInstance default admin initialization', () => {
     expect(createUserMock).not.toHaveBeenCalled();
   });
 
+  it('repairs the placeholder system user with the default admin username', async () => {
+    getSystemUserMock.mockResolvedValue(makeUser());
+    findByUsernameMock.mockResolvedValue(null);
+
+    const { startWebServerWithInstance } = await import('@process/webserver/index');
+
+    await startWebServerWithInstance(3000, false);
+
+    expect(setSystemUserCredentialsMock).toHaveBeenCalledWith('admin', 'hashed-password');
+    expect(updatePasswordMock).not.toHaveBeenCalled();
+    expect(createUserMock).not.toHaveBeenCalled();
+  });
+
   it('skips reinitialization when the custom system user already has credentials', async () => {
     getSystemUserMock.mockResolvedValue(makeUser({ username: 'alice', password_hash: 'existing-hash' }));
     findByUsernameMock.mockResolvedValue(null);
@@ -197,5 +210,24 @@ describe('startWebServerWithInstance default admin initialization', () => {
     expect(updatePasswordMock).not.toHaveBeenCalled();
     expect(createUserMock).not.toHaveBeenCalled();
     expect(initWebAdapterMock).toHaveBeenCalled();
+  });
+
+  it('repairs a legacy admin row when no system user exists', async () => {
+    getSystemUserMock.mockResolvedValue(null);
+    findByUsernameMock.mockResolvedValue(
+      makeUser({
+        id: 'legacy-admin',
+        username: 'admin',
+        password_hash: '',
+      })
+    );
+
+    const { startWebServerWithInstance } = await import('@process/webserver/index');
+
+    await startWebServerWithInstance(3000, false);
+
+    expect(setSystemUserCredentialsMock).not.toHaveBeenCalled();
+    expect(updatePasswordMock).toHaveBeenCalledWith('legacy-admin', 'hashed-password');
+    expect(createUserMock).not.toHaveBeenCalled();
   });
 });
