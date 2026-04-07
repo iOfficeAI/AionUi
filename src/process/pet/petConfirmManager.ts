@@ -94,9 +94,12 @@ function createConfirmWindow(): void {
     return;
   }
 
-  // Window dimensions match PR's original validated values (avoid layout regressions).
-  const windowWidth = 320;
-  const windowHeight = 280;
+  // Window size = content area (320×280) + 12px on each axis for shadow padding
+  // (#container uses 6px padding to match). Window itself can touch the screen
+  // edge (margin = 0 below), so the shadow padding on the outer side overflows
+  // off-screen — the card visually sits ~4px from the screen corner.
+  const windowWidth = 332;
+  const windowHeight = 292;
 
   // Position priority:
   //   1. userPosition (if user has dragged the window this session)
@@ -109,7 +112,10 @@ function createConfirmWindow(): void {
     ? { x: anchorBounds.x + Math.round(anchorBounds.width / 2), y: anchorBounds.y + Math.round(anchorBounds.height / 2) }
     : null;
   const workArea = petCenter ? screen.getDisplayNearestPoint(petCenter).workArea : screen.getPrimaryDisplay().workArea;
-  const margin = 8;
+  // margin = 0: the window itself touches the screen edge. The 6px shadow
+  // padding inside the renderer keeps the visible card ~6px from the edge,
+  // which matches clawd-on-desk's tight bottom-right anchoring.
+  const margin = 0;
   const defaultX = workArea.x + workArea.width - windowWidth - margin;
   const defaultY = workArea.y + workArea.height - windowHeight - margin;
 
