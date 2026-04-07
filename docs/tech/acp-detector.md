@@ -564,6 +564,7 @@ AcpConnection.disconnect()
 > 本节深入 bridge 包内部，追踪它如何通过 `claude-code-sdk` 发现并驱动本地 Claude CLI。
 >
 > 源码参考：
+>
 > - Adapter: https://github.com/agentclientprotocol/claude-agent-acp (Apache-2.0)
 > - Claude Agent SDK: https://github.com/anthropics/claude-agent-sdk-typescript
 > - ACP SDK: https://github.com/agentclientprotocol/typescript-sdk
@@ -594,8 +595,8 @@ AcpConnection.disconnect()
 
 ```js
 // --cli 模式: 直接运行 SDK 内嵌的 Claude CLI
-if (process.argv.includes("--cli")) {
-    await import(await claudeCliPath());
+if (process.argv.includes('--cli')) {
+  await import(await claudeCliPath());
 }
 
 // 默认模式: 作为 ACP agent 运行
@@ -606,10 +607,10 @@ runAcp();
 
 ```js
 export function runAcp() {
-    const input = nodeToWebWritable(process.stdout);
-    const output = nodeToWebReadable(process.stdin);
-    const stream = ndJsonStream(input, output);
-    new AgentSideConnection((client) => new ClaudeAcpAgent(client), stream);
+  const input = nodeToWebWritable(process.stdout);
+  const output = nodeToWebReadable(process.stdin);
+  const stream = ndJsonStream(input, output);
+  new AgentSideConnection((client) => new ClaudeAcpAgent(client), stream);
 }
 ```
 
@@ -620,21 +621,21 @@ export function runAcp() {
 从 SDK 导入三个关键函数：
 
 ```js
-import { getSessionMessages, listSessions, query } from "@anthropic-ai/claude-agent-sdk";
+import { getSessionMessages, listSessions, query } from '@anthropic-ai/claude-agent-sdk';
 ```
 
-| 函数 | 用途 |
-|---|---|
-| `query()` | 核心函数：spawn CLI 子进程创建新 session |
-| `listSessions()` | 从磁盘列出现有 session |
-| `getSessionMessages()` | 从之前的 session 检索消息用于回放 |
+| 函数                   | 用途                                     |
+| ---------------------- | ---------------------------------------- |
+| `query()`              | 核心函数：spawn CLI 子进程创建新 session |
+| `listSessions()`       | 从磁盘列出现有 session                   |
+| `getSessionMessages()` | 从之前的 session 检索消息用于回放        |
 
 创建新 ACP session 时（`createSession` 方法, line 937）：
 
 ```js
 const q = query({
-    prompt: input,    // AsyncIterable<SDKUserMessage> (Pushable)
-    options,          // session 配置
+  prompt: input, // AsyncIterable<SDKUserMessage> (Pushable)
+  options, // session 配置
 });
 ```
 
@@ -646,9 +647,9 @@ const q = query({
 // sdk.mjs 反混淆后的伪代码
 let pathToClaudeCodeExecutable = options.pathToClaudeCodeExecutable;
 if (!pathToClaudeCodeExecutable) {
-    const currentDir = fileURLToPath(import.meta.url);
-    const parentDir = path.join(currentDir, "..");
-    pathToClaudeCodeExecutable = path.join(parentDir, "cli.js");
+  const currentDir = fileURLToPath(import.meta.url);
+  const parentDir = path.join(currentDir, '..');
+  pathToClaudeCodeExecutable = path.join(parentDir, 'cli.js');
 }
 ```
 
@@ -658,20 +659,20 @@ if (!pathToClaudeCodeExecutable) {
 
 ```js
 export async function claudeCliPath() {
-    return isStaticBinary()
-        ? (await import("@anthropic-ai/claude-agent-sdk/embed")).default
-        : import.meta.resolve("@anthropic-ai/claude-agent-sdk").replace("sdk.mjs", "cli.js");
+  return isStaticBinary()
+    ? (await import('@anthropic-ai/claude-agent-sdk/embed')).default
+    : import.meta.resolve('@anthropic-ai/claude-agent-sdk').replace('sdk.mjs', 'cli.js');
 }
 ```
 
 ### Step 5: 覆盖 CLI 路径的方式
 
-| 机制 | 优先级 | 说明 |
-|---|---|---|
-| `CLAUDE_CODE_EXECUTABLE` 环境变量 | 最高 | 直接覆盖可执行文件路径 |
-| Static binary 模式 (`CLAUDE_AGENT_ACP_IS_SINGLE_FILE_BUN`) | 高 | Bun `--compile` 构建：从 `$bunfs` 提取到临时目录 |
-| `options.pathToClaudeCodeExecutable` | 中 | SDK 层 API option |
-| 默认 fallback | 最低 | `path.join(dirname(import.meta.url), "cli.js")` |
+| 机制                                                       | 优先级 | 说明                                             |
+| ---------------------------------------------------------- | ------ | ------------------------------------------------ |
+| `CLAUDE_CODE_EXECUTABLE` 环境变量                          | 最高   | 直接覆盖可执行文件路径                           |
+| Static binary 模式 (`CLAUDE_AGENT_ACP_IS_SINGLE_FILE_BUN`) | 高     | Bun `--compile` 构建：从 `$bunfs` 提取到临时目录 |
+| `options.pathToClaudeCodeExecutable`                       | 中     | SDK 层 API option                                |
+| 默认 fallback                                              | 最低   | `path.join(dirname(import.meta.url), "cli.js")`  |
 
 适配器中的环境变量检查（`acp-agent.js:1034`）：
 
@@ -691,33 +692,34 @@ SDK 内的 `ProcessTransport` 类负责启动 CLI：
 
 ```js
 // sdk.mjs 反混淆
-const isNativeBinary = !pathToClaudeCodeExecutable.endsWith('.js')
-    && !pathToClaudeCodeExecutable.endsWith('.mjs')
-    && !pathToClaudeCodeExecutable.endsWith('.tsx')
-    && !pathToClaudeCodeExecutable.endsWith('.ts')
-    && !pathToClaudeCodeExecutable.endsWith('.jsx');
+const isNativeBinary =
+  !pathToClaudeCodeExecutable.endsWith('.js') &&
+  !pathToClaudeCodeExecutable.endsWith('.mjs') &&
+  !pathToClaudeCodeExecutable.endsWith('.tsx') &&
+  !pathToClaudeCodeExecutable.endsWith('.ts') &&
+  !pathToClaudeCodeExecutable.endsWith('.jsx');
 
 const command = isNativeBinary ? pathToClaudeCodeExecutable : executable;
 // executable 默认: isBun ? "bun" : "node"
 
 this.process = spawn(command, args, {
-    cwd: cwd,
-    stdio: ["pipe", "pipe", stderrMode],
-    signal: abortSignal,
-    env: env,
-    windowsHide: true,
+  cwd: cwd,
+  stdio: ['pipe', 'pipe', stderrMode],
+  signal: abortSignal,
+  env: env,
+  windowsHide: true,
 });
 ```
 
 传递的关键 CLI 参数：
 
-| 参数 | 用途 |
-|---|---|
-| `--output-format stream-json` | CLI 输出 streaming JSON |
-| `--input-format stream-json` | CLI 接受 streaming JSON 输入 |
-| `--verbose` | 启用详细输出 |
-| `--permission-prompt-tool stdio` | 权限请求通过 stdin/stdout 回传 |
-| `--model`, `--max-turns`, `--thinking`, `--cwd` | 各种 session 配置 |
+| 参数                                            | 用途                           |
+| ----------------------------------------------- | ------------------------------ |
+| `--output-format stream-json`                   | CLI 输出 streaming JSON        |
+| `--input-format stream-json`                    | CLI 接受 streaming JSON 输入   |
+| `--verbose`                                     | 启用详细输出                   |
+| `--permission-prompt-tool stdio`                | 权限请求通过 stdin/stdout 回传 |
+| `--model`, `--max-turns`, `--thinking`, `--cwd` | 各种 session 配置              |
 
 运行时继承（`acp-agent.js:1033`）：
 
@@ -736,15 +738,15 @@ executable: isStaticBinary() ? undefined : process.execPath,
 
 CLI 输出的消息类型：
 
-| 类型 | 说明 |
-|---|---|
-| `system` | init, status, compact_boundary, session_state_changed |
-| `result` | success, error_during_execution, error_max_turns |
-| `stream_event` | content_block_start, content_block_delta, message_start |
-| `user` / `assistant` | 包含 tool_use, text, thinking blocks 的对话消息 |
-| `tool_progress` | 工具执行进度 |
-| `auth_status` | 认证状态 |
-| `rate_limit_event` | 速率限制事件 |
+| 类型                 | 说明                                                    |
+| -------------------- | ------------------------------------------------------- |
+| `system`             | init, status, compact_boundary, session_state_changed   |
+| `result`             | success, error_during_execution, error_max_turns        |
+| `stream_event`       | content_block_start, content_block_delta, message_start |
+| `user` / `assistant` | 包含 tool_use, text, thinking blocks 的对话消息         |
+| `tool_progress`      | 工具执行进度                                            |
+| `auth_status`        | 认证状态                                                |
+| `rate_limit_event`   | 速率限制事件                                            |
 
 ## 架构总览
 
@@ -801,7 +803,7 @@ AionUi 通过 npx 启动 `claude-agent-acp`（上文 Phase 3），bridge 进程�
 整条链路共有 **三层子进程嵌套**：
 
 ```
-AionUi (Electron main) 
+AionUi (Electron main)
   → npx claude-agent-acp (Node.js)
     → node cli.js (Claude Code runtime)
       → HTTPS → api.anthropic.com

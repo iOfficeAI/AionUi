@@ -12,44 +12,44 @@ Command Queue 是一个用户可控的命令缓冲机制。当 AI 正在处理�
 
 ### 1.2 核心文件
 
-| 文件 | 职责 |
-|------|------|
-| `src/renderer/pages/conversation/platforms/useConversationCommandQueue.ts` | 核心 Hook，726 行，包含全部队列逻辑 |
-| `src/renderer/components/chat/CommandQueuePanel.tsx` | 队列 UI 面板，支持编辑/拖拽/删除 |
-| `src/renderer/hooks/mcp/messageQueue.ts` | MCP toast 消息队列（独立机制，非 Command Queue） |
+| 文件                                                                       | 职责                                             |
+| -------------------------------------------------------------------------- | ------------------------------------------------ |
+| `src/renderer/pages/conversation/platforms/useConversationCommandQueue.ts` | 核心 Hook，726 行，包含全部队列逻辑              |
+| `src/renderer/components/chat/CommandQueuePanel.tsx`                       | 队列 UI 面板，支持编辑/拖拽/删除                 |
+| `src/renderer/hooks/mcp/messageQueue.ts`                                   | MCP toast 消息队列（独立机制，非 Command Queue） |
 
 ### 1.3 数据结构与约束
 
 ```typescript
 type ConversationCommandQueueItem = {
-  id: string;           // UUID
-  input: string;        // 命令文本
-  files: string[];      // 附件路径
-  createdAt: number;    // 时间戳
+  id: string; // UUID
+  input: string; // 命令文本
+  files: string[]; // 附件路径
+  createdAt: number; // 时间戳
 };
 
 type ConversationCommandQueueState = {
   items: ConversationCommandQueueItem[];
-  isPaused: boolean;    // 用户可暂停自动执行
+  isPaused: boolean; // 用户可暂停自动执行
 };
 ```
 
-| 约束 | 值 |
-|------|-----|
-| 最大队列长度 | 20 条 |
-| 单条最大字符数 | 20,000 |
-| 单条最大附件数 | 50 |
-| 队列最大存储 | 256 KB |
-| 持久化方式 | sessionStorage（per conversation） |
+| 约束           | 值                                 |
+| -------------- | ---------------------------------- |
+| 最大队列长度   | 20 条                              |
+| 单条最大字符数 | 20,000                             |
+| 单条最大附件数 | 50                                 |
+| 队列最大存储   | 256 KB                             |
+| 持久化方式     | sessionStorage（per conversation） |
 
 ### 1.4 入队条件
 
 ```typescript
-shouldEnqueueConversationCommand({ enabled, isBusy, hasPendingCommands })
-  = enabled && (isBusy || hasPendingCommands)
+shouldEnqueueConversationCommand({ enabled, isBusy, hasPendingCommands }) = enabled && (isBusy || hasPendingCommands);
 ```
 
 三个条件同时满足才入队：
+
 1. 全局开关已启用
 2. AI 正忙 **或** 队列中已有待执行命令
 
@@ -116,6 +116,7 @@ sequenceDiagram
 ### 1.7 跨平台支持
 
 Queue 机制通过 SendBox 集成，以下平台均支持：
+
 - Nanobot (`NanobotSendBox.tsx`)
 - Gemini (`GeminiSendBox.tsx`)
 - ACP (`AcpSendBox.tsx`)
@@ -128,27 +129,28 @@ Queue 机制通过 SendBox 集成，以下平台均支持：
 
 ### 2.1 核心文件
 
-| 文件 | 职责 |
-|------|------|
-| `src/process/agent/acp/AcpConnection.ts` | 核心状态机，1192 行 |
-| `src/process/agent/acp/index.ts` (AcpAgent) | 上层 Agent 封装 |
-| `src/process/agent/acp/acpConnectors.ts` | 后端特定的 spawn 逻辑 |
-| `src/common/types/acpTypes.ts` | 类型定义 |
+| 文件                                        | 职责                  |
+| ------------------------------------------- | --------------------- |
+| `src/process/agent/acp/AcpConnection.ts`    | 核心状态机，1192 行   |
+| `src/process/agent/acp/index.ts` (AcpAgent) | 上层 Agent 封装       |
+| `src/process/agent/acp/acpConnectors.ts`    | 后端特定的 spawn 逻辑 |
+| `src/common/types/acpTypes.ts`              | 类型定义              |
 
 ### 2.2 状态变量
 
 ACP 没有使用单一 enum 来表示状态，而是通过**多个独立标志的组合**隐式确定：
 
-| 变量 | 类型 | 含义 |
-|------|------|------|
-| `child` | `ChildProcess \| null` | 子进程引用 |
-| `sessionId` | `string \| null` | 活跃 session ID |
-| `isInitialized` | `boolean` | 协议握手是否完成 |
-| `isSetupComplete` | `boolean` | 启动阶段是否完成 |
-| `backend` | `AcpBackend \| null` | 后端类型 |
-| `pendingRequests` | `Map` | 进行中的 RPC 请求 |
+| 变量              | 类型                   | 含义              |
+| ----------------- | ---------------------- | ----------------- |
+| `child`           | `ChildProcess \| null` | 子进程引用        |
+| `sessionId`       | `string \| null`       | 活跃 session ID   |
+| `isInitialized`   | `boolean`              | 协议握手是否完成  |
+| `isSetupComplete` | `boolean`              | 启动阶段是否完成  |
+| `backend`         | `AcpBackend \| null`   | 后端类型          |
+| `pendingRequests` | `Map`                  | 进行中的 RPC 请求 |
 
 派生属性：
+
 ```typescript
 get isConnected(): boolean {
   return this.child !== null && !this.child.killed;
@@ -160,16 +162,16 @@ get hasActiveSession(): boolean {
 
 ### 2.3 逻辑状态
 
-| 状态 | 条件组合 | 含义 |
-|------|---------|------|
-| **DISCONNECTED** | child=null, sessionId=null, isInitialized=false | 无进程，无会话 |
-| **CONNECTING** | child≠null, isInitialized=false | 进程启动中 |
-| **INITIALIZING** | child running, 发送 initialize 请求中 | 协议握手中（60s 超时） |
-| **CONNECTED** | isConnected=true, isInitialized=true, isSetupComplete=true | 就绪，等待创建会话 |
-| **HAS_SESSION** | CONNECTED + sessionId≠null | 可以发送消息 |
-| **STREAMING** | HAS_SESSION + pendingRequests.size>0 | Turn 进行中 |
-| **ERROR_STARTUP** | child exited, isSetupComplete=false | 启动阶段崩溃 |
-| **ERROR_RUNTIME** | child exited, isSetupComplete=true | 运行时崩溃 |
+| 状态              | 条件组合                                                   | 含义                   |
+| ----------------- | ---------------------------------------------------------- | ---------------------- |
+| **DISCONNECTED**  | child=null, sessionId=null, isInitialized=false            | 无进程，无会话         |
+| **CONNECTING**    | child≠null, isInitialized=false                            | 进程启动中             |
+| **INITIALIZING**  | child running, 发送 initialize 请求中                      | 协议握手中（60s 超时） |
+| **CONNECTED**     | isConnected=true, isInitialized=true, isSetupComplete=true | 就绪，等待创建会话     |
+| **HAS_SESSION**   | CONNECTED + sessionId≠null                                 | 可以发送消息           |
+| **STREAMING**     | HAS_SESSION + pendingRequests.size>0                       | Turn 进行中            |
+| **ERROR_STARTUP** | child exited, isSetupComplete=false                        | 启动阶段崩溃           |
+| **ERROR_RUNTIME** | child exited, isSetupComplete=true                         | 运行时崩溃             |
 
 ### 2.4 状态转换图
 
@@ -202,19 +204,19 @@ stateDiagram-v2
 
 ### 2.5 关键方法与行号
 
-| 方法 | 行号 | 职责 |
-|------|------|------|
-| `connect()` | 204-265 | 发起连接 |
-| `doConnect()` | 267-336 | 按后端 dispatch spawn |
-| `setupChildProcessHandlers()` | 338-483 | 设置协议处理器 |
-| `initialize()` | 852-867 | 发送 initialize RPC |
-| `newSession()` | 885-929 | 创建新会话 |
-| `loadSession()` | 939-956 | 恢复已有会话 |
-| `sendPrompt()` | 1006-1024 | 发送用户消息 |
-| `handleMessage()` | 705-745 | 接收响应 |
-| `handleProcessExit()` | 489-513 | 进程退出清理 |
-| `disconnect()` | 1126-1139 | 用户主动断开 |
-| `cancelPrompt()` | 1031-1051 | 取消当前 turn |
+| 方法                          | 行号      | 职责                  |
+| ----------------------------- | --------- | --------------------- |
+| `connect()`                   | 204-265   | 发起连接              |
+| `doConnect()`                 | 267-336   | 按后端 dispatch spawn |
+| `setupChildProcessHandlers()` | 338-483   | 设置协议处理器        |
+| `initialize()`                | 852-867   | 发送 initialize RPC   |
+| `newSession()`                | 885-929   | 创建新会话            |
+| `loadSession()`               | 939-956   | 恢复已有会话          |
+| `sendPrompt()`                | 1006-1024 | 发送用户消息          |
+| `handleMessage()`             | 705-745   | 接收响应              |
+| `handleProcessExit()`         | 489-513   | 进程退出清理          |
+| `disconnect()`                | 1126-1139 | 用户主动断开          |
+| `cancelPrompt()`              | 1031-1051 | 取消当前 turn         |
 
 ### 2.6 稳定性问题分析
 
