@@ -1,4 +1,4 @@
-import { useRef } from 'react';
+import { useRef, useState } from 'react';
 
 /**
  * 共享的输入法合成事件处理hook
@@ -6,13 +6,16 @@ import { useRef } from 'react';
  */
 export const useCompositionInput = () => {
   const isComposing = useRef(false);
+  const [isComposingState, setIsComposingState] = useState(false);
 
   const compositionHandlers = {
     onCompositionStartCapture: () => {
       isComposing.current = true;
+      setIsComposingState(true);
     },
     onCompositionEndCapture: () => {
       isComposing.current = false;
+      setIsComposingState(false);
     },
   };
 
@@ -29,6 +32,7 @@ export const useCompositionInput = () => {
 
   return {
     isComposing,
+    isComposingState,
     compositionHandlers,
     createKeyDownHandler,
   };
