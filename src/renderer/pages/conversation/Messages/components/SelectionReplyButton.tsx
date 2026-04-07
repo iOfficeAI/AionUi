@@ -10,6 +10,7 @@ import { useLayoutContext } from '@/renderer/hooks/context/LayoutContext';
 import { Quote } from '@icon-park/react';
 import React, { useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import styles from './SelectionReplyButton.module.css';
 
 type ReplyPos = { top: number; left: number; text: string; msgId: string; msgPos: string };
 
@@ -154,7 +155,7 @@ const SelectionReplyButton: React.FC<{ messages: TMessage[] }> = ({ messages }) 
   return (
     <div
       ref={buttonRef}
-      className='fixed z-9999 flex items-center gap-4px px-10px py-6px rd-8px cursor-pointer transition-colors select-none'
+      className={`fixed z-9999 flex items-center gap-4px px-10px py-6px rd-8px cursor-pointer transition-colors select-none ${styles.replyButton}`}
       style={{
         top: pos.top,
         left: pos.left,
@@ -162,6 +163,7 @@ const SelectionReplyButton: React.FC<{ messages: TMessage[] }> = ({ messages }) 
         background: 'rgb(var(--primary-1))',
         border: '1px solid rgb(var(--primary-3))',
         boxShadow: '0 2px 8px rgba(var(--primary-6), 0.15)',
+        color: 'rgb(var(--primary-6))',
       }}
       onMouseDown={(e) => {
         e.preventDefault();
@@ -174,10 +176,8 @@ const SelectionReplyButton: React.FC<{ messages: TMessage[] }> = ({ messages }) 
         window.getSelection()?.removeAllRanges();
       }}
     >
-      <Quote theme='outline' size='14' fill='rgb(var(--primary-6))' />
-      <span className='text-12px font-medium whitespace-nowrap' style={{ color: 'rgb(var(--primary-6))' }}>
-        {t('common.reply', { defaultValue: 'Reply' })}
-      </span>
+      <Quote theme='outline' size='14' fill='currentColor' />
+      <span className='text-12px font-medium whitespace-nowrap'>{t('common.reply', { defaultValue: 'Reply' })}</span>
     </div>
   );
 };

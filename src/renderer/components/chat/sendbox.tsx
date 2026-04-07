@@ -785,7 +785,7 @@ const SendBox: React.FC<{
               <div className='flex-shrink-0 mt-2px' style={{ lineHeight: 0 }}>
                 <Quote theme='filled' size='16' fill='rgb(var(--primary-6))' />
               </div>
-              <div className='flex-1 min-w-0 text-13px c-text-2 line-clamp-3 lh-20px whitespace-pre-wrap break-all'>
+              <div className='flex-1 min-w-0 text-13px c-text-2 line-clamp-3 lh-20px whitespace-pre-wrap break-all dark:text-t-primary'>
                 {replyQuote.content}
               </div>
               <div

@@ -60,12 +60,12 @@ const SkillSuggestCard: React.FC<SkillSuggestCardProps> = ({ suggestion, cronJob
         <Lightning theme='filled' size={16} fill={iconColors.warning} />
         <span className='font-500 text-14px'>{t('cron.skill.turnIntoSkill')}</span>
       </div>
-      <div className='text-text-2 text-13px mb-4px'>{suggestion.name}</div>
-      <div className='text-text-3 text-12px mb-8px'>{suggestion.description}</div>
+      <div className='text-text-2 text-13px mb-4px dark:text-t-primary'>{suggestion.name}</div>
+      <div className='text-text-3 text-12px mb-8px dark:text-t-secondary'>{suggestion.description}</div>
 
       {/* Expandable preview */}
       <div
-        className='flex items-center gap-4px text-12px text-text-3 cursor-pointer hover:text-text-2 mb-8px select-none'
+        className='flex items-center gap-4px text-12px text-text-3 cursor-pointer hover:text-text-2 mb-8px select-none dark:text-t-secondary dark:hover:text-t-primary'
         onClick={() => setExpanded(!expanded)}
       >
         {expanded ? <Up size={12} /> : <Down size={12} />}
