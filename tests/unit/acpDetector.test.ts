@@ -198,6 +198,42 @@ describe('AcpDetector', () => {
     });
   });
 
+  describe('ensureBuiltinAgentsFresh', () => {
+    it('should initialize the detector before returning agents', async () => {
+      setAvailableClis(['claude']);
+
+      const detector = await createFreshDetector();
+      await detector.ensureBuiltinAgentsFresh();
+
+      expect(detector.getDetectedAgents()).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({ backend: 'gemini' }),
+          expect.objectContaining({ backend: 'claude', cliPath: 'claude' }),
+        ])
+      );
+    });
+
+    it('should refresh builtin agents after initialization', async () => {
+      vi.useFakeTimers();
+      try {
+        vi.setSystemTime(new Date('2025-01-01T00:00:00Z'));
+        setAvailableClis(['claude']);
+
+        const detector = await createFreshDetector();
+        await detector.initialize();
+        expect(detector.getDetectedAgents().find((a) => a.backend === 'qwen')).toBeUndefined();
+
+        setAvailableClis(['claude', 'qwen']);
+        vi.setSystemTime(new Date('2025-01-01T00:00:02Z'));
+        await detector.ensureBuiltinAgentsFresh();
+
+        expect(detector.getDetectedAgents().find((a) => a.backend === 'qwen')).toBeDefined();
+      } finally {
+        vi.useRealTimers();
+      }
+    });
+  });
+
   describe('deduplicate', () => {
     it('should deduplicate by cliPath — builtin wins over extension', async () => {
       setAvailableClis(['qwen']);

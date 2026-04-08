@@ -4,12 +4,12 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 const mocks = vi.hoisted(() => ({
   isPackaged: vi.fn(() => false),
 }));
-
 vi.mock('@/common/platform', () => ({
   getPlatformServices: () => ({
     paths: {
       getDataDir: () => '/appdata',
       isPackaged: () => mocks.isPackaged(),
+      getAppPath: () => '/repo-root',
     },
   }),
 }));
@@ -99,8 +99,8 @@ describe('extension constants', () => {
     });
 
     it('should return resources/hub in dev mode', () => {
-      mocks.isPackaged.mockReturnValue(false);
-      expect(getHubResourcesDir()).toBe(path.join(process.cwd(), 'resources', 'hub'));
+      const dir = getHubResourcesDir();
+      expect(dir).toBe(path.join('/repo-root', 'resources', 'hub'));
     });
 
     it('should return process resources path in packaged mode', () => {

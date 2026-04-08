@@ -105,16 +105,14 @@ class HubIndexManagerImpl {
   }
 
   private async fetchRemoteIndex(): Promise<Record<string, IHubExtension>> {
-    const timeoutPromise = new Promise<never>((_, reject) =>
-      setTimeout(() => reject(new Error('Fetch timeout')), 5000)
-    );
-
     for (const baseUrl of HUB_REMOTE_URLS) {
       const url = new URL(HUB_INDEX_FILE, baseUrl).toString();
       try {
         console.log(`[HubIndexManager] Attempting to fetch remote index from: ${url}`);
 
-        const response = (await Promise.race([getPlatformServices().network.fetch(url), timeoutPromise])) as Response;
+        const response = await getPlatformServices().network.fetch(url, {
+          signal: AbortSignal.timeout(5000),
+        });
         if (!response.ok) throw new Error(`Status ${response.status}`);
         const data = (await response.json()) as IHubIndex;
 

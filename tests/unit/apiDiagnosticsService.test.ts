@@ -218,6 +218,33 @@ describe('ApiDiagnosticsService', () => {
     });
   });
 
+  it('archives invalid persisted config JSON and falls back to defaults', async () => {
+    const { ApiDiagnosticsService } = await import('../../src/process/services/ApiDiagnosticsService');
+
+    const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'aionui-api-diagnostics-invalid-'));
+    const configFilePath = path.join(tempDir, 'api-diagnostics-config.json');
+    fs.writeFileSync(configFilePath, '{"enabled": tru', 'utf8');
+    const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
+
+    const service = new ApiDiagnosticsService({
+      configFilePath,
+      enabled: false,
+      outputDir: 'logs/diagnostics',
+      sampleIntervalMs: 60000,
+    });
+
+    expect(fs.existsSync(configFilePath)).toBe(false);
+    const archivedFiles = fs.readdirSync(tempDir).filter((file) => file.startsWith('api-diagnostics-config.json.corrupt-'));
+    expect(archivedFiles).toHaveLength(1);
+    expect(service.getConfig()).toEqual({
+      enabled: false,
+      outputDir: path.resolve('logs/diagnostics'),
+      sampleIntervalMs: 60000,
+    });
+
+    warnSpy.mockRestore();
+  });
+
   it('summarizes large last-message payloads in diagnostics snapshots', async () => {
     const { ApiDiagnosticsService } = await import('../../src/process/services/ApiDiagnosticsService');
 

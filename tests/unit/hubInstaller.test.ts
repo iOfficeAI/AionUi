@@ -14,7 +14,6 @@ vi.mock('@/common/platform', () => ({
     },
   }),
 }));
-
 vi.mock('fs', async () => {
   const actual = await vi.importActual<typeof import('fs')>('fs');
   return {

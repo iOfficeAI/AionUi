@@ -13,7 +13,6 @@ vi.mock('@/common/platform', () => ({
     },
   }),
 }));
-
 const mockExistsSync = vi.fn(() => false);
 const mockReadFileSync = vi.fn(() => '{}');
 vi.mock('fs', () => ({

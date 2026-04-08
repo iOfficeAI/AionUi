@@ -46,8 +46,9 @@ export function initAcpConversationBridge(workerTaskManager: IWorkerTaskManager)
 
   // 新的ACP检测接口 - 基于全局标记位
   // Enrich with MCP transport support info so the frontend can show accurate counts
-  ipcBridge.acpConversation.getAvailableAgents.provider(() => {
+  ipcBridge.acpConversation.getAvailableAgents.provider(async () => {
     try {
+      await acpDetector.ensureBuiltinAgentsFresh();
       const agents = acpDetector.getDetectedAgents();
       const enriched = agents.map((agent) => ({
         ...agent,
@@ -65,12 +66,12 @@ export function initAcpConversationBridge(workerTaskManager: IWorkerTaskManager)
         } as (typeof enriched)[number]);
       }
 
-      return Promise.resolve({ success: true, data: enriched });
+      return { success: true, data: enriched };
     } catch (error) {
-      return Promise.resolve({
+      return {
         success: false,
         msg: error instanceof Error ? error.message : 'Unknown error',
-      });
+      };
     }
   });
 

@@ -7,7 +7,7 @@
 import fs from 'fs';
 import path from 'path';
 import v8 from 'v8';
-import { app } from 'electron';
+import { getPlatformServices } from '@/common/platform';
 import WorkerManage from '@process/WorkerManage';
 import { cronBusyGuard } from '@process/services/cron/CronBusyGuard';
 import {
@@ -113,7 +113,7 @@ const normalizeSampleIntervalMs = (value: number | string | undefined): number =
 
 const resolveDefaultConfigPath = (): string => {
   try {
-    return path.join(app.getPath('userData'), 'config', DEFAULT_DIAGNOSTICS_CONFIG_FILE);
+    return path.join(getPlatformServices().paths.getDataDir(), 'config', DEFAULT_DIAGNOSTICS_CONFIG_FILE);
   } catch {
     return path.resolve(process.cwd(), '.aionui', 'diagnostics', DEFAULT_DIAGNOSTICS_CONFIG_FILE);
   }
@@ -425,8 +425,24 @@ export class ApiDiagnosticsService {
       const parsed = JSON.parse(raw) as ApiDiagnosticsPersistedConfig;
       return parsed && typeof parsed === 'object' ? parsed : {};
     } catch (error) {
+      if (error instanceof SyntaxError) {
+        this.archiveInvalidConfig();
+      }
       console.warn('[ApiDiagnostics] Failed to read persisted config:', error);
       return {};
+    }
+  }
+
+  private archiveInvalidConfig(): void {
+    try {
+      if (!fs.existsSync(this.configFilePath)) {
+        return;
+      }
+      const archivedPath = `${this.configFilePath}.corrupt-${Date.now()}`;
+      fs.renameSync(this.configFilePath, archivedPath);
+      console.warn(`[ApiDiagnostics] Archived invalid persisted config to ${archivedPath}`);
+    } catch (archiveError) {
+      console.warn('[ApiDiagnostics] Failed to archive invalid persisted config:', archiveError);
     }
   }
 

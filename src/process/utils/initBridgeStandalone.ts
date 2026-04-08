@@ -37,12 +37,13 @@ import { initApplicationBridgeCore } from '@process/bridge/applicationBridgeCore
 import { initShellBridgeStandalone } from '@process/bridge/shellBridgeStandalone';
 import { initCronBridge } from '@process/bridge/cronBridge';
 import { initFsBridge } from '@process/bridge/fsBridge';
+import { initHubBridge } from '@process/bridge/hubBridge';
 import { initMcpBridge } from '@process/bridge/mcpBridge';
 import { initNotificationBridge } from '@process/bridge/notificationBridge';
+import { initRemoteAgentBridge } from '@process/bridge/remoteAgentBridge';
 import { initSystemSettingsBridge } from '@process/bridge/systemSettingsBridge';
 import { initTaskBridge } from '@process/bridge/taskBridge';
 import { initSpeechToTextBridge } from '@process/bridge/speechToTextBridge';
-import { initHubBridge } from '@process/bridge/hubBridge';
 
 logger.config({ print: true });
 
@@ -74,12 +75,13 @@ export async function initBridgeStandalone(): Promise<void> {
   initExtensionsBridge(repo, workerTaskManager);
   initSystemSettingsBridge();
   initCronBridge();
+  initHubBridge();
   initMcpBridge();
   initNotificationBridge();
+  initRemoteAgentBridge();
   initTaskBridge(workerTaskManager);
   initStarOfficeBridge();
   initSpeechToTextBridge();
-  initHubBridge();
 
   // Initialize ACP detector to scan for installed CLI agents (claude, codex, etc.)
   // Must mirror Electron's initializeAcpDetector() call in src/index.ts

@@ -58,10 +58,17 @@ export const HUB_INDEX_FILE = 'index.json';
 
 /** Path to the bundled hub resources directory. */
 export function getHubResourcesDir(): string {
-  const resourcesPath = getPlatformServices().paths.isPackaged()
-    ? process.resourcesPath
-    : path.join(process.cwd(), 'resources');
-  return path.join(resourcesPath, 'hub');
+  try {
+    const platformPaths = getPlatformServices().paths;
+    if (platformPaths.isPackaged() && typeof process.resourcesPath === 'string' && process.resourcesPath) {
+      return path.join(process.resourcesPath, 'hub');
+    }
+
+    const appPath = platformPaths.getAppPath();
+    return path.join(appPath ?? process.cwd(), 'resources', 'hub');
+  } catch {
+    return path.join(process.cwd(), 'resources', 'hub');
+  }
 }
 
 export type ExtensionScanSource = { dir: string; source: ExtensionSource };

@@ -259,7 +259,9 @@ export class HubInstallerImpl {
   }
 
   private async downloadFile(url: string, dest: string): Promise<void> {
-    const response = await getPlatformServices().network.fetch(url);
+    const response = await getPlatformServices().network.fetch(url, {
+      signal: AbortSignal.timeout(30_000),
+    });
     if (!response.ok) {
       throw new Error(`Failed to fetch ${url}: ${response.statusText}`);
     }
