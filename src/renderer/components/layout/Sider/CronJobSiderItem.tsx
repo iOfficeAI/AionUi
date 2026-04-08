@@ -37,14 +37,16 @@ const CronJobSiderItem: React.FC<CronJobSiderItemProps> = ({
   const { id: currentConversationId } = useParams();
   const navigate = useNavigate();
   const isNewConversationMode = job.target.executionMode === 'new_conversation';
-  const { conversations } = useCronJobConversations(isNewConversationMode ? job.id : undefined);
+  // Always fetch all child conversations regardless of mode
+  const { conversations } = useCronJobConversations(job.id);
 
-  // Unified child conversation list for both modes
+  // Show all child conversations in both modes; include existingConversationProp as fallback
   const childConversations = useMemo(() => {
-    if (isNewConversationMode) return conversations;
-    if (existingConversationProp) return [existingConversationProp];
-    return [];
-  }, [isNewConversationMode, conversations, existingConversationProp]);
+    if (existingConversationProp && !conversations.some((c) => c.id === existingConversationProp.id)) {
+      return [...conversations, existingConversationProp];
+    }
+    return conversations;
+  }, [conversations, existingConversationProp]);
 
   // Auto-expand when the current route matches this job or any child conversation
   const childConversationIds = useMemo(() => new Set(childConversations.map((c) => c.id)), [childConversations]);

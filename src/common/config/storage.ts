@@ -34,6 +34,8 @@ export interface IConfigStorageRefer {
     yoloMode?: boolean;
     /** Preferred session mode for new conversations / 新会话的默认模式 */
     preferredMode?: string;
+    /** Preferred model ID for new conversations / 新会话的默认模型 */
+    preferredModelId?: string;
   };
   'codex.config'?: {
     cliPath?: string;

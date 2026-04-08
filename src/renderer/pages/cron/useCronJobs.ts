@@ -521,6 +521,18 @@ export function useCronJobConversations(jobId: string | undefined) {
     };
   }, [jobId, fetchConversations]);
 
+  // Listen to chat.history.refresh to handle conversation renames
+  useEffect(() => {
+    if (!jobId) return;
+    const handleRefresh = () => {
+      void fetchConversations();
+    };
+    emitter.on('chat.history.refresh', handleRefresh);
+    return () => {
+      emitter.off('chat.history.refresh', handleRefresh);
+    };
+  }, [jobId, fetchConversations]);
+
   return { conversations, loading };
 }
 
