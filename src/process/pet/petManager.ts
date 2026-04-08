@@ -45,6 +45,24 @@ const DRAG_TICK_MS = 16;
 // short of restarting the app). 8s is generous enough that a real human drag
 // — even one with a pause to think — completes well before then.
 const DRAG_WATCHDOG_MS = 8000;
+// Master-process safety watchdog for the hit window's ignore-mouse-events
+// state. The renderer manages this toggle to implement click-through, but if
+// the renderer crashes, hangs, or loses a critical mousemove, the hit window
+// can stay in non-ignore mode forever and swallow every click on the screen
+// (the window is `screen-saver` level and alwaysOnTop) — forcing the user to
+// force-quit the app. This watchdog polls the real cursor position against
+// the circular hit region and forces ignore=true whenever the cursor is
+// clearly outside, independent of any renderer code path.
+const HIT_WATCHDOG_INTERVAL_MS = 250;
+// Allow 20% slack beyond the renderer's hit radius so the watchdog never
+// races with the renderer on the exact circle boundary. The renderer owns
+// the fine-grained toggle; the watchdog only kicks in once the cursor is
+// clearly outside.
+const HIT_WATCHDOG_RADIUS_SLACK = 1.2;
+let hitIgnoreWatchdog: ReturnType<typeof setInterval> | null = null;
+// Last ignore state the hit window was set to (tracked via the IPC handler so
+// the watchdog can tell whether it's already safe).
+let lastHitIgnoreState = true;
 // Whether tool-call confirmations should be routed to the pet's bubble window.
 // When false, the pet still runs normally but confirmation requests stay in the
 // main chat window. Updated at runtime via setPetConfirmEnabled() and read on
@@ -158,6 +176,7 @@ export function createPetWindow(): void {
 
   idleTicker.start();
   registerIpcHandlers();
+  startHitIgnoreWatchdog();
   loadContent();
 
   // Initialize confirm manager only if the user opted in.
@@ -179,6 +198,7 @@ export function createPetWindow(): void {
  */
 export function destroyPetWindow(): void {
   clearDragTimer();
+  stopHitIgnoreWatchdog();
 
   // Destroy confirm manager
   destroyPetConfirmManager();
@@ -411,6 +431,7 @@ function registerIpcHandlers(): void {
   ipcMain.on('pet:set-ignore-mouse-events', (_event, ignore: boolean, options?: { forward: boolean }) => {
     if (!petHitWindow || petHitWindow.isDestroyed()) return;
     petHitWindow.setIgnoreMouseEvents(ignore, options);
+    lastHitIgnoreState = ignore;
   });
 }
 
@@ -492,6 +513,60 @@ function endDrag(): void {
     const [nx, ny] = petWindow.getPosition();
     updateAnchorBounds({ x: nx, y: ny, width: currentSize, height: currentSize });
   }
+}
+
+/**
+ * Main-process safety watchdog for hit-window click-through.
+ *
+ * The renderer in petHitRenderer.ts toggles setIgnoreMouseEvents based on
+ * whether the cursor is inside the pet's circular body. That works fine when
+ * the renderer is healthy, but if it ever gets stuck in non-ignore mode (lost
+ * mousemove, renderer hang, pointer-capture glitch), the hit window — which
+ * is alwaysOnTop at screen-saver level — will swallow every click on the
+ * screen until the user force-quits the app. This has happened in practice.
+ *
+ * This watchdog runs in the main process, reads the real cursor position via
+ * `screen.getCursorScreenPoint()` (no renderer involvement), and forces the
+ * hit window back to ignore=true whenever the cursor is clearly outside the
+ * pet's circular body. It is deliberately conservative: it only *enables*
+ * ignore (the safe state) and never disables it, so it cannot interfere with
+ * legitimate interactions.
+ */
+function startHitIgnoreWatchdog(): void {
+  stopHitIgnoreWatchdog();
+  hitIgnoreWatchdog = setInterval(() => {
+    if (!petHitWindow || petHitWindow.isDestroyed()) return;
+    // Skip while a drag is in progress — the drag timer owns window position
+    // and the window must stay interactive to keep receiving the drag.
+    if (dragTimer) return;
+    // Already in the safe state — nothing to recover.
+    if (lastHitIgnoreState) return;
+
+    // The hit window is currently in non-ignore mode. If the real cursor is
+    // no longer inside the pet's circular body (plus slack), force it back
+    // to ignore.
+    const cursor = screen.getCursorScreenPoint();
+    const [wx, wy] = petHitWindow.getPosition();
+    const [ww, wh] = petHitWindow.getSize();
+    const cxw = wx + ww / 2;
+    const cyw = wy + wh / 2;
+    const radius = (Math.min(ww, wh) / 2) * HIT_WATCHDOG_RADIUS_SLACK;
+    const dx = cursor.x - cxw;
+    const dy = cursor.y - cyw;
+
+    if (dx * dx + dy * dy > radius * radius) {
+      petHitWindow.setIgnoreMouseEvents(true, { forward: true });
+      lastHitIgnoreState = true;
+    }
+  }, HIT_WATCHDOG_INTERVAL_MS);
+}
+
+function stopHitIgnoreWatchdog(): void {
+  if (hitIgnoreWatchdog) {
+    clearInterval(hitIgnoreWatchdog);
+    hitIgnoreWatchdog = null;
+  }
+  lastHitIgnoreState = true;
 }
 
 function resizePet(size: PetSize): void {
