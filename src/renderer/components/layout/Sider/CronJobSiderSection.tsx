@@ -10,6 +10,7 @@ import { Down, Right } from '@icon-park/react';
 import type { ICronJob } from '@/common/adapter/ipcBridge';
 import type { TChatConversation } from '@/common/config/storage';
 import { ipcBridge } from '@/common';
+import { emitter } from '@/renderer/utils/emitter';
 import CronJobSiderItem from './CronJobSiderItem';
 
 interface CronJobSiderSectionProps {
@@ -32,7 +33,9 @@ const CronJobSiderSection: React.FC<CronJobSiderSectionProps> = ({ jobs, pathnam
   );
 
   const [existingConversations, setExistingConversations] = useState<Map<string, TChatConversation>>(new Map());
+  const [refreshTrigger, setRefreshTrigger] = useState(0);
 
+  // Fetch conversations when conv IDs change or when refresh event is triggered
   useEffect(() => {
     if (existingModeConvIds.length === 0) {
       setExistingConversations(new Map());
@@ -46,7 +49,18 @@ const CronJobSiderSection: React.FC<CronJobSiderSectionProps> = ({ jobs, pathnam
       }
       setExistingConversations(map);
     });
-  }, [existingModeConvIds]);
+  }, [existingModeConvIds, refreshTrigger]);
+
+  // Listen to chat.history.refresh to re-fetch existing mode conversations
+  useEffect(() => {
+    const handleRefresh = () => {
+      setRefreshTrigger((prev) => prev + 1);
+    };
+    emitter.on('chat.history.refresh', handleRefresh);
+    return () => {
+      emitter.off('chat.history.refresh', handleRefresh);
+    };
+  }, []);
 
   if (jobs.length === 0) return null;
 

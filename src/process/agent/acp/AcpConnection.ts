@@ -935,13 +935,17 @@ export class AcpConnection {
    * @param sessionId - The session ID to load/resume
    * @param cwd - Working directory for the session
    */
-  async loadSession(sessionId: string, cwd: string = process.cwd()): Promise<AcpResponse & { sessionId?: string }> {
+  async loadSession(
+    sessionId: string,
+    cwd: string = process.cwd(),
+    mcpServers?: AcpSessionMcpServer[]
+  ): Promise<AcpResponse & { sessionId?: string }> {
     const normalizedCwd = this.normalizeCwdForAgent(cwd);
 
     const response = await this.sendRequest<AcpResponse & { sessionId?: string }>('session/load', {
       sessionId,
       cwd: normalizedCwd,
-      mcpServers: [] as unknown[],
+      mcpServers: mcpServers ?? [],
     });
 
     // session/load returns modes/models/configOptions but not sessionId — keep the one we sent
