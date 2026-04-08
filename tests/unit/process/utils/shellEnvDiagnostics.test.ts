@@ -251,9 +251,6 @@ describe('logEnvironmentDiagnostics', () => {
     });
 
     await expect(logEnvironmentDiagnostics()).resolves.toBeUndefined();
-    expect(warnSpy).toHaveBeenCalledWith(
-      expect.stringContaining('[AionUi:env]'),
-      expect.any(Error),
-    );
+    expect(warnSpy).toHaveBeenCalledWith(expect.stringContaining('[AionUi:env]'), expect.any(Error));
   });
 });
