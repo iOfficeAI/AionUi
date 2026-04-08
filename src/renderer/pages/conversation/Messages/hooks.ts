@@ -417,22 +417,23 @@ export const useMessageLstCache = (key: string) => {
         });
         if (cancelled) return;
 
-        const initialMessages = isMobile ? [...latestPageDesc].reverse() : latestPageDesc;
+        const initialMessages = isMobile ? latestPageDesc.toReversed() : latestPageDesc;
         mergeDbMessages(initialMessages);
 
         if (!isMobile || latestPageDesc.length < PAGE_SIZE) return;
 
-        for (let page = 1; page < MAX_BACKGROUND_PAGES; page++) {
+        const loadOlderPages = async (page: number): Promise<void> => {
+          if (page >= MAX_BACKGROUND_PAGES) return;
+
           const chunkDesc = await ipcBridge.database.getConversationMessages.invoke({
             conversation_id: key,
             page,
             pageSize: PAGE_SIZE,
             order: 'DESC',
           });
-          if (cancelled) return;
-          if (!chunkDesc.length) return;
+          if (cancelled || !chunkDesc.length) return;
 
-          const chunkAsc = [...chunkDesc].reverse();
+          const chunkAsc = chunkDesc.toReversed();
           update((currentList) => {
             const sameConversation = currentList.filter((m) => m.conversation_id === key);
             const otherConversation = currentList.filter((m) => m.conversation_id !== key);
@@ -444,7 +445,10 @@ export const useMessageLstCache = (key: string) => {
           });
 
           if (chunkDesc.length < PAGE_SIZE) return;
-        }
+          await loadOlderPages(page + 1);
+        };
+
+        await loadOlderPages(1);
       } catch (error) {
         console.error('[useMessageLstCache] Failed to load messages from database:', error);
       }
