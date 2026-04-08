@@ -32,7 +32,30 @@ class PreviewHistoryService {
 
   // 确保历史目录存在（递归创建）/ Ensure history directory exists
   private async ensureDir(targetDir: string): Promise<void> {
-    await fs.mkdir(targetDir, { recursive: true });
+    try {
+      await fs.mkdir(targetDir, { recursive: true });
+    } catch (error) {
+      if ((error as NodeJS.ErrnoException).code === 'ENOTDIR') {
+        // A parent segment is a regular file blocking directory creation.
+        // Walk upward to find and remove the blocking file, then retry.
+        let current = targetDir;
+        while (current !== path.dirname(current)) {
+          try {
+            const stat = await fs.lstat(current);
+            if (stat.isFile()) {
+              await fs.unlink(current);
+              break;
+            }
+          } catch {
+            // Path doesn't exist, keep walking up
+          }
+          current = path.dirname(current);
+        }
+        await fs.mkdir(targetDir, { recursive: true });
+      } else {
+        throw error;
+      }
+    }
   }
 
   // 根据目标生成稳定的标识和摘要，作为索引/存储路径 / Build stable identity & digest for indexing
