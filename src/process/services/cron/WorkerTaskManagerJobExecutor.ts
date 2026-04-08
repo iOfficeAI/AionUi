@@ -51,9 +51,11 @@ export class WorkerTaskManagerJobExecutor implements ICronJobExecutor {
     // - existing mode with empty conversationId: first execution creates the shared conversation
     // - existing mode with deleted conversation: recreate to avoid "not found" errors
     if (!preparedConversationId && job.metadata.agentConfig) {
-      // For existing mode with no conversationId, try to find the latest child conversation
-      // (handles "new_conversation -> existing" mode switch)
-      if (!conversationId && job.target.executionMode === 'existing') {
+      // For existing mode, always resolve to the latest child conversation.
+      // This handles both "new_conversation -> existing" mode switch (where conversationId
+      // may point to the original source conversation, not the latest execution) and the
+      // case where conversationId is empty (first execution).
+      if (job.target.executionMode === 'existing') {
         const convService = await getConversationService();
         const childConversations = await convService.getConversationsByCronJob(job.id);
         if (childConversations.length > 0) {
@@ -76,6 +78,27 @@ export class WorkerTaskManagerJobExecutor implements ICronJobExecutor {
       if (needsCreate) {
         const newConv = await this.buildConversationForJob(job);
         conversationId = newConv.id;
+      }
+    }
+
+    // For existing mode, ensure the reused conversation uses the user's current
+    // preferred model, not whatever model it was originally created with (e.g. "auto").
+    if (job.target.executionMode === 'existing' && conversationId && job.metadata.agentConfig) {
+      const convService = await getConversationService();
+      const conv = await convService.getConversation(conversationId);
+      if (conv) {
+        const currentModel = await this.resolveModelForBackend(job.metadata.agentConfig.backend);
+        const convModel = 'model' in conv ? (conv as { model: TProviderWithModel }).model : undefined;
+        if (convModel?.useModel !== currentModel.useModel) {
+          await convService.updateConversation(conversationId, {
+            model: convModel ? { ...convModel, useModel: currentModel.useModel } : currentModel,
+          } as Partial<TChatConversation>);
+          // Kill stale task so getOrBuildTask picks up the new model
+          const staleTask = this.taskManager.getTask(conversationId);
+          if (staleTask) {
+            this.taskManager.kill(conversationId);
+          }
+        }
       }
     }
 
@@ -304,11 +327,17 @@ export class WorkerTaskManagerJobExecutor implements ICronJobExecutor {
     const providers = await ProcessConfig.get('model.config');
     const providerList = (providers && Array.isArray(providers) ? providers : []) as unknown as TProviderWithModel[];
 
-    // Read preferred model ID from user config
+    // Read preferred model ID from user config.
+    // Gemini stores its default model in 'gemini.defaultModel' (set by Guid page).
+    // ACP backends store in 'acp.config.<backend>.preferredModelId'.
     let preferredModelId: string | undefined;
     if (backend === 'gemini') {
-      const geminiConfig = await ProcessConfig.get('gemini.config');
-      preferredModelId = geminiConfig?.preferredModelId as string | undefined;
+      const savedModel = await ProcessConfig.get('gemini.defaultModel');
+      if (savedModel && typeof savedModel === 'object' && 'useModel' in savedModel) {
+        preferredModelId = savedModel.useModel;
+      } else if (typeof savedModel === 'string') {
+        preferredModelId = savedModel;
+      }
     } else {
       const acpConfig = await ProcessConfig.get('acp.config');
       preferredModelId = (acpConfig?.[backend as AcpBackendAll] as Record<string, unknown>)?.preferredModelId as
@@ -391,6 +420,17 @@ export class WorkerTaskManagerJobExecutor implements ICronJobExecutor {
       const conv = await this.buildConversationForJob(job);
       return conv.id;
     }
+
+    // For existing mode, resolve to the most recent child conversation
+    // (handles mode switches where metadata.conversationId may be stale).
+    if (job.target.executionMode === 'existing') {
+      const convService = await getConversationService();
+      const childConversations = await convService.getConversationsByCronJob(job.id);
+      if (childConversations.length > 0) {
+        return childConversations[0].id;
+      }
+    }
+
     return job.metadata.conversationId;
   }
 
