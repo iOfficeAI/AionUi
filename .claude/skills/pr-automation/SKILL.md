@@ -48,7 +48,6 @@ ORG=$(echo "$REPO" | cut -d'/' -f1)
 | `bot:needs-rebase`       | Merge conflict that bot cannot auto-resolve — author must rebase        | No        |
 | `bot:needs-human-review` | Blocking issues — human must intervene                                  | Yes       |
 | `bot:ready-to-merge`     | Bot done, code is clean — human just needs to confirm and merge         | Yes       |
-| `bot:done`               | Auto-merged by bot                                                      | Yes       |
 
 ## Exit Rules
 
@@ -122,14 +121,6 @@ gh pr edit <PR_NUMBER> --remove-label "bot:ready-to-fix" --add-label "bot:fixing
 ```
 
 Save this PR as `target_pr` (number, title, author.login, is_ready_to_fix).
-
-Compute trust status for merge gate decisions:
-
-```
-IS_TRUSTED = author.login in trusted_logins
-```
-
-Save `IS_TRUSTED` alongside `target_pr` — it determines whether auto-merge is allowed in Step 3b and Step 7.
 
 **If no eligible PR found after full iteration:** run the snoozed PR wake-up checks as a fallback before giving up.
 
@@ -281,91 +272,16 @@ Log: `[pr-automation:exit] action=fork_fallback pr=#<PR_NUMBER> reason="pr-fix c
 
 **EXIT.**
 
-Otherwise, **compute merge gate** (using remote refs — no checkout needed):
-
-```bash
-git fetch origin pull/${PR_NUMBER}/head
-BASE_REF=$(gh pr view <PR_NUMBER> --json baseRefName --jq '.baseRefName')
-git fetch origin "$BASE_REF"
-FILES_CHANGED=$(git diff origin/${BASE_REF}...FETCH_HEAD --name-only | wc -l | tr -d ' ')
-# CRITICAL_PATH_PATTERN: defined in Configuration section above
-HAS_CRITICAL=false
-CRITICAL_FILES=""
-if [ -n "$CRITICAL_PATH_PATTERN" ]; then
-  CRITICAL_FILES=$(git diff origin/${BASE_REF}...FETCH_HEAD --name-only | grep -E "$CRITICAL_PATH_PATTERN")
-  [ -n "$CRITICAL_FILES" ] && HAS_CRITICAL=true
-fi
-
-if [ "$FILES_CHANGED" -gt 50 ] || [ "$HAS_CRITICAL" = "true" ]; then
-  NEEDS_HUMAN_REVIEW=true
-else
-  NEEDS_HUMAN_REVIEW=false
-fi
-```
-
-**If `NEEDS_HUMAN_REVIEW=true`**:
-
-```bash
-gh pr edit <PR_NUMBER> --remove-label "bot:fixing" --add-label "bot:ready-to-merge"
-```
-
-Log: `[pr-automation] PR #<PR_NUMBER> fix complete, large PR (files=${FILES_CHANGED}) — marked bot:ready-to-merge.`
-Log: `[pr-automation:exit] action=ready_to_merge pr=#<PR_NUMBER> reason="large PR, needs human confirmation to merge"`
-
-**EXIT.**
-
-**If `NEEDS_HUMAN_REVIEW=false` AND `IS_TRUSTED=true`**:
-
-```bash
-gh pr merge <PR_NUMBER> --squash --auto
-
-# Verify merge was actually enabled or PR already merged
-# GitHub mergeStateStatus can briefly be UNKNOWN right after CI completes — retry once
-check_merge() {
-  gh pr view <PR_NUMBER> --json state,autoMergeRequest \
-    --jq '{state: .state, autoMerge: (.autoMergeRequest != null)}'
-}
-
-MERGE_CHECK=$(check_merge)
-MERGE_STATE=$(echo "$MERGE_CHECK" | jq -r '.state')
-AUTO_MERGE=$(echo "$MERGE_CHECK" | jq -r '.autoMerge')
-
-if [ "$MERGE_STATE" != "MERGED" ] && [ "$AUTO_MERGE" != "true" ]; then
-  # First check failed — wait 10s for GitHub state to stabilize, then retry once
-  sleep 10
-  gh pr merge <PR_NUMBER> --squash --auto
-  MERGE_CHECK=$(check_merge)
-  MERGE_STATE=$(echo "$MERGE_CHECK" | jq -r '.state')
-  AUTO_MERGE=$(echo "$MERGE_CHECK" | jq -r '.autoMerge')
-fi
-
-if [ "$MERGE_STATE" = "MERGED" ] || [ "$AUTO_MERGE" = "true" ]; then
-  gh pr edit <PR_NUMBER> --remove-label "bot:fixing" --add-label "bot:done"
-else
-  # Both attempts failed — fall back to human review
-  gh pr edit <PR_NUMBER> --remove-label "bot:fixing" --add-label "bot:ready-to-merge"
-  gh pr comment <PR_NUMBER> --body "<!-- pr-automation-bot -->
-⚠️ 自动合并触发失败（auto-merge 未成功启用），已标记 bot:ready-to-merge，请人工确认后合并。"
-fi
-```
-
-Log: `[pr-automation] PR #<PR_NUMBER> fix complete, auto-merge triggered.`
-Log: `[pr-automation:exit] action=fixed pr=#<PR_NUMBER> reason="fix complete, auto-merge triggered"`
-
-**EXIT.**
-
-**If `NEEDS_HUMAN_REVIEW=false` AND `IS_TRUSTED=false`** (untrusted contributor — no auto-merge):
+Otherwise, post comment and mark ready to merge:
 
 ```bash
 gh pr edit <PR_NUMBER> --remove-label "bot:fixing" --add-label "bot:ready-to-merge"
 gh pr comment <PR_NUMBER> --body "<!-- pr-automation-bot -->
-✅ 已自动修复，代码无阻塞性问题。
-
-> 🔒 **PR 作者不在 trusted-contributors 团队，需人工确认后合并。**"
+✅ 已自动修复，代码无阻塞性问题，请人工确认后合并。"
 ```
 
-Log: `[pr-automation] PR #<PR_NUMBER> fix complete, untrusted author — marked bot:ready-to-merge.`
-Log: `[pr-automation:exit] action=ready_to_merge pr=#<PR_NUMBER> reason="untrusted contributor, needs human confirmation to merge"`
+Log: `[pr-automation] PR #<PR_NUMBER> fix complete — marked bot:ready-to-merge.`
+Log: `[pr-automation:exit] action=ready_to_merge pr=#<PR_NUMBER> reason="fix complete, needs human confirmation to merge"`
 
 **EXIT.**
 
@@ -487,16 +403,15 @@ WORKTREE_DIR="/tmp/aionui-pr-${PR_NUMBER}"
 # Clean up any stale worktree
 git worktree remove "$WORKTREE_DIR" --force 2>/dev/null || true
 
-# Create worktree on the PR's head branch; fetch base branch for accurate rebase
+# Create worktree in detached HEAD mode (no local branch created)
 git fetch origin <head_branch>
 git fetch origin <base_branch>
-git worktree add "$WORKTREE_DIR" origin/<head_branch>
+git worktree add "$WORKTREE_DIR" origin/<head_branch> --detach
 
 # Symlink node_modules so tsc/lint can run in the worktree
 ln -s "$REPO_ROOT/node_modules" "$WORKTREE_DIR/node_modules"
 
 cd "$WORKTREE_DIR"
-git checkout <head_branch>
 git rebase origin/<base_branch>
 ```
 
@@ -512,7 +427,7 @@ If quality check passes:
 
 ```bash
 cd "$WORKTREE_DIR"
-git push --force-with-lease origin <head_branch>
+git push --force-with-lease origin HEAD:<head_branch>
 cd "$REPO_ROOT"
 git worktree remove "$WORKTREE_DIR" --force 2>/dev/null || true
 gh pr edit <PR_NUMBER> --remove-label "bot:reviewing"
@@ -635,19 +550,9 @@ Save `CONCLUSION`, `IS_CRITICAL_PATH`, and `CRITICAL_PATH_FILES` (override Step 
 
 If block is missing: set `CONCLUSION=REJECTED`, log the error, continue to Step 7.
 
-**Compute merge gate:**
-
-```
-NEEDS_HUMAN_REVIEW = (FILES_CHANGED > 50) OR (IS_CRITICAL_PATH = true)
-```
-
-When `NEEDS_HUMAN_REVIEW=true`, route to human review regardless of CONCLUSION (except REJECTED, which already goes to human).
-
 ### Step 7 — Execute Decision Matrix
 
 #### CONCLUSION = APPROVED
-
-**If `NEEDS_HUMAN_REVIEW=true`** (large PR or critical path):
 
 1. Post comment:
 
@@ -665,82 +570,15 @@ When `NEEDS_HUMAN_REVIEW=true`, route to human review regardless of CONCLUSION (
    fi
 
    gh pr comment <PR_NUMBER> --body "<!-- pr-automation-bot -->
-   ✅ 已自动 review，代码无阻塞性问题。
-
-   > ⚠️ **本 PR 规模较大（改动文件 ${FILES_CHANGED} 个）或涉及核心路径，请人工确认后合并。**${CRITICAL_SECTION}"
+   ✅ 已自动 review，代码无阻塞性问题，请人工确认后合并。${CRITICAL_SECTION}"
    ```
 
 2. Update labels:
    ```bash
    gh pr edit <PR_NUMBER> --remove-label "bot:reviewing" --add-label "bot:ready-to-merge"
    ```
-3. Log: `[pr-automation] PR #<PR_NUMBER> approved but large/critical (files=${FILES_CHANGED}), marked bot:ready-to-merge.`
-4. Log: `[pr-automation:exit] action=ready_to_merge pr=#<PR_NUMBER> reason="large PR or critical path, needs human confirmation"`
-5. **EXIT.**
-
-**If `NEEDS_HUMAN_REVIEW=false` AND `IS_TRUSTED=true`**:
-
-1. Post comment:
-   ```bash
-   gh pr comment <PR_NUMBER> --body "<!-- pr-automation-bot -->
-   ✅ 已自动 review，无阻塞性问题，正在触发自动合并。"
-   ```
-2. Trigger auto-merge and verify:
-
-   ```bash
-   gh pr merge <PR_NUMBER> --squash --auto
-
-   # Verify merge was actually enabled or PR already merged
-   # GitHub mergeStateStatus can briefly be UNKNOWN right after CI completes — retry once
-   check_merge() {
-     gh pr view <PR_NUMBER> --json state,autoMergeRequest \
-       --jq '{state: .state, autoMerge: (.autoMergeRequest != null)}'
-   }
-
-   MERGE_CHECK=$(check_merge)
-   MERGE_STATE=$(echo "$MERGE_CHECK" | jq -r '.state')
-   AUTO_MERGE=$(echo "$MERGE_CHECK" | jq -r '.autoMerge')
-
-   if [ "$MERGE_STATE" != "MERGED" ] && [ "$AUTO_MERGE" != "true" ]; then
-     # First check failed — wait 5s for GitHub state to stabilize, then retry once
-     sleep 10
-     gh pr merge <PR_NUMBER> --squash --auto
-     MERGE_CHECK=$(check_merge)
-     MERGE_STATE=$(echo "$MERGE_CHECK" | jq -r '.state')
-     AUTO_MERGE=$(echo "$MERGE_CHECK" | jq -r '.autoMerge')
-   fi
-
-   if [ "$MERGE_STATE" = "MERGED" ] || [ "$AUTO_MERGE" = "true" ]; then
-     gh pr edit <PR_NUMBER> --remove-label "bot:reviewing" --add-label "bot:done"
-   else
-     # Both attempts failed — fall back to human review
-     gh pr edit <PR_NUMBER> --remove-label "bot:reviewing" --add-label "bot:ready-to-merge"
-     gh pr comment <PR_NUMBER> --body "<!-- pr-automation-bot -->
-   ⚠️ 自动合并触发失败（auto-merge 未成功启用），已标记 bot:ready-to-merge，请人工确认后合并。"
-   fi
-   ```
-
-3. Log: `[pr-automation] PR #<PR_NUMBER> approved, auto-merge triggered.`
-4. Log: `[pr-automation:exit] action=approved pr=#<PR_NUMBER> reason="review passed, auto-merge triggered"`
-5. **EXIT.**
-
-**If `NEEDS_HUMAN_REVIEW=false` AND `IS_TRUSTED=false`** (untrusted contributor — no auto-merge):
-
-1. Post comment:
-
-   ```bash
-   gh pr comment <PR_NUMBER> --body "<!-- pr-automation-bot -->
-   ✅ 已自动 review，代码无阻塞性问题。
-
-   > 🔒 **PR 作者不在 trusted-contributors 团队，需人工确认后合并。**"
-   ```
-
-2. Update labels:
-   ```bash
-   gh pr edit <PR_NUMBER> --remove-label "bot:reviewing" --add-label "bot:ready-to-merge"
-   ```
-3. Log: `[pr-automation] PR #<PR_NUMBER> approved, untrusted author — marked bot:ready-to-merge.`
-4. Log: `[pr-automation:exit] action=ready_to_merge pr=#<PR_NUMBER> reason="untrusted contributor, needs human confirmation to merge"`
+3. Log: `[pr-automation] PR #<PR_NUMBER> approved, marked bot:ready-to-merge.`
+4. Log: `[pr-automation:exit] action=ready_to_merge pr=#<PR_NUMBER> reason="review passed, needs human confirmation to merge"`
 5. **EXIT.**
 
 #### CONCLUSION = CONDITIONAL
