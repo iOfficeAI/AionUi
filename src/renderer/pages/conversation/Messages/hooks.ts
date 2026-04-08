@@ -7,6 +7,7 @@
 import { ipcBridge } from '@/common';
 import type { TMessage } from '@/common/chat/chatLib';
 import { composeMessage } from '@/common/chat/chatLib';
+import { useLayoutContext } from '@/renderer/hooks/context/LayoutContext';
 import { useCallback, useEffect, useRef } from 'react';
 import { createContext } from '@renderer/utils/ui/createContext';
 
@@ -357,70 +358,104 @@ export const useRemoveMessageByMsgId = () => {
 
 export const useMessageLstCache = (key: string) => {
   const update = useUpdateMessageList();
+  const layout = useLayoutContext();
+  const isMobile = layout?.isMobile ?? false;
+
   useEffect(() => {
     if (!key) return;
-    void ipcBridge.database.getConversationMessages
-      .invoke({
-        conversation_id: key,
-        page: 0,
-        pageSize: 10000, // Load all messages (up to 10k per conversation)
-      })
-      .then((messages) => {
-        if (messages && Array.isArray(messages)) {
-          // Merge DB messages with any real-time streaming messages already in the list.
-          // This prevents a race condition where streaming messages (added via IPC before
-          // the DB load completes) could cause DB-only messages (e.g. cron user messages
-          // whose IPC event was emitted before the component mounted) to be lost.
-          // Use both msg_id and id for deduplication since DB messages and streaming
-          // messages share the same msg_id but may have different id values
-          // (streaming messages get new UUIDs from transformMessage).
-          update((currentList) => {
-            if (!currentList.length) return messages;
-            // Only keep streaming messages that belong to the current conversation
-            // to prevent messages from a previous conversation leaking into the new one
-            const sameConversation = currentList.filter((m) => m.conversation_id === key);
-            if (!sameConversation.length) return messages;
-            const dbIds = new Set(messages.map((m) => m.id));
-            const dbMsgIds = new Set(messages.map((m) => m.msg_id).filter(Boolean));
 
-            // Build a map of streaming messages by msg_id for content-length comparison.
-            // During streaming, the DB may have an older snapshot (due to 2000ms save debounce),
-            // so we keep whichever version has more content to avoid losing streamed data.
-            const streamingByMsgId = new Map<string, TMessage>();
-            for (const m of sameConversation) {
-              if (m.msg_id && m.type === 'text' && dbMsgIds.has(m.msg_id)) {
-                streamingByMsgId.set(m.msg_id, m);
-              }
-            }
+    let cancelled = false;
+    const PAGE_SIZE = isMobile ? 120 : 10000;
+    const MAX_BACKGROUND_PAGES = isMobile ? 100 : 1;
 
-            // Replace DB messages with streaming versions when streaming has more content
-            const mergedMessages = messages.map((dbMsg) => {
-              if (!dbMsg.msg_id || dbMsg.type !== 'text') return dbMsg;
-              const streamMsg = streamingByMsgId.get(dbMsg.msg_id);
-              if (!streamMsg) return dbMsg;
-              const dbContent =
-                typeof dbMsg.content === 'object' && 'content' in dbMsg.content
-                  ? String((dbMsg.content as { content: unknown }).content)
-                  : '';
-              const streamContent =
-                typeof streamMsg.content === 'object' && 'content' in streamMsg.content
-                  ? String((streamMsg.content as { content: unknown }).content)
-                  : '';
-              return streamContent.length > dbContent.length ? streamMsg : dbMsg;
-            });
+    const mergeDbMessages = (messages: TMessage[]) => {
+      update((currentList) => {
+        if (!currentList.length) return messages;
+        const sameConversation = currentList.filter((m) => m.conversation_id === key);
+        if (!sameConversation.length) return messages;
 
-            const streamingOnly = sameConversation.filter(
-              (m) => !dbIds.has(m.id) && !(m.msg_id && dbMsgIds.has(m.msg_id))
-            );
-            if (!streamingOnly.length && !streamingByMsgId.size) return messages;
-            return [...mergedMessages, ...streamingOnly];
-          });
+        const dbIds = new Set(messages.map((m) => m.id));
+        const dbMsgIds = new Set(messages.map((m) => m.msg_id).filter(Boolean));
+
+        const streamingByMsgId = new Map<string, TMessage>();
+        for (const m of sameConversation) {
+          if (m.msg_id && m.type === 'text' && dbMsgIds.has(m.msg_id)) {
+            streamingByMsgId.set(m.msg_id, m);
+          }
         }
-      })
-      .catch((error) => {
-        console.error('[useMessageLstCache] Failed to load messages from database:', error);
+
+        const mergedMessages = messages.map((dbMsg) => {
+          if (!dbMsg.msg_id || dbMsg.type !== 'text') return dbMsg;
+          const streamMsg = streamingByMsgId.get(dbMsg.msg_id);
+          if (!streamMsg) return dbMsg;
+          const dbContent =
+            typeof dbMsg.content === 'object' && 'content' in dbMsg.content
+              ? String((dbMsg.content as { content: unknown }).content)
+              : '';
+          const streamContent =
+            typeof streamMsg.content === 'object' && 'content' in streamMsg.content
+              ? String((streamMsg.content as { content: unknown }).content)
+              : '';
+          return streamContent.length > dbContent.length ? streamMsg : dbMsg;
+        });
+
+        const streamingOnly = sameConversation.filter(
+          (m) => !dbIds.has(m.id) && !(m.msg_id && dbMsgIds.has(m.msg_id))
+        );
+        if (!streamingOnly.length && !streamingByMsgId.size) return messages;
+        return [...mergedMessages, ...streamingOnly];
       });
-  }, [key]);
+    };
+
+    const loadMessages = async () => {
+      try {
+        const latestPageDesc = await ipcBridge.database.getConversationMessages.invoke({
+          conversation_id: key,
+          page: 0,
+          pageSize: PAGE_SIZE,
+          order: isMobile ? 'DESC' : 'ASC',
+        });
+        if (cancelled) return;
+
+        const initialMessages = isMobile ? [...latestPageDesc].reverse() : latestPageDesc;
+        mergeDbMessages(initialMessages);
+
+        if (!isMobile || latestPageDesc.length < PAGE_SIZE) return;
+
+        for (let page = 1; page < MAX_BACKGROUND_PAGES; page++) {
+          const chunkDesc = await ipcBridge.database.getConversationMessages.invoke({
+            conversation_id: key,
+            page,
+            pageSize: PAGE_SIZE,
+            order: 'DESC',
+          });
+          if (cancelled) return;
+          if (!chunkDesc.length) return;
+
+          const chunkAsc = [...chunkDesc].reverse();
+          update((currentList) => {
+            const sameConversation = currentList.filter((m) => m.conversation_id === key);
+            const otherConversation = currentList.filter((m) => m.conversation_id !== key);
+            const existingIds = new Set(sameConversation.map((m) => m.id));
+            const existingMsgIds = new Set(sameConversation.map((m) => m.msg_id).filter(Boolean));
+            const olderOnly = chunkAsc.filter((m) => !existingIds.has(m.id) && !(m.msg_id && existingMsgIds.has(m.msg_id)));
+            if (!olderOnly.length) return currentList;
+            return [...olderOnly, ...sameConversation, ...otherConversation];
+          });
+
+          if (chunkDesc.length < PAGE_SIZE) return;
+        }
+      } catch (error) {
+        console.error('[useMessageLstCache] Failed to load messages from database:', error);
+      }
+    };
+
+    void loadMessages();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [isMobile, key, update]);
 };
 
 export const beforeUpdateMessageList = (fn: (list: TMessage[]) => TMessage[]) => {
