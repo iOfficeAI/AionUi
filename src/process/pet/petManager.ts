@@ -31,9 +31,20 @@ let idleTicker: PetIdleTicker | null = null;
 let eventBridge: PetEventBridge | null = null;
 let currentSize: PetSize = 280;
 let dragTimer: ReturnType<typeof setInterval> | null = null;
+let dragWatchdog: ReturnType<typeof setTimeout> | null = null;
 let dragOffsetX = 0;
 let dragOffsetY = 0;
 let preDragState: PetState | null = null;
+
+// Tick interval for the drag-follow timer (~60 FPS).
+const DRAG_TICK_MS = 16;
+// Hard timeout: if drag-end never arrives within this window, the main process
+// force-ends the drag. Belt-and-braces against the renderer dropping pointerup
+// (Windows transparent + frameless windows can lose pointer capture across a
+// resize/move, leaving the pet stuck following the cursor with no way to stop
+// short of restarting the app). 8s is generous enough that a real human drag
+// — even one with a pause to think — completes well before then.
+const DRAG_WATCHDOG_MS = 8000;
 // Whether tool-call confirmations should be routed to the pet's bubble window.
 // When false, the pet still runs normally but confirmation requests stay in the
 // main chat window. Updated at runtime via setPetConfirmEnabled() and read on
@@ -284,6 +295,14 @@ function registerIpcHandlers(): void {
   ipcMain.on('pet:drag-start', () => {
     if (!petWindow || petWindow.isDestroyed() || !petHitWindow || petHitWindow.isDestroyed()) return;
 
+    // Defensive: if a previous drag never reached drag-end (e.g. dropped
+    // pointerup), the timer/watchdog could still be live. Tear it down through
+    // endDrag() — not just clearDragTimer() — so the leftover preDragState and
+    // state machine are also reset before we snapshot the new drag below.
+    if (dragTimer || dragWatchdog) {
+      endDrag();
+    }
+
     const cursor = screen.getCursorScreenPoint();
     const windowPos = petWindow.getPosition();
     dragOffsetX = cursor.x - windowPos[0];
@@ -297,7 +316,7 @@ function registerIpcHandlers(): void {
 
     dragTimer = setInterval(() => {
       if (!petWindow || petWindow.isDestroyed() || !petHitWindow || petHitWindow.isDestroyed()) {
-        clearDragTimer();
+        endDrag();
         return;
       }
 
@@ -311,21 +330,21 @@ function registerIpcHandlers(): void {
       petHitWindow.setPosition(newX + hitOffset, newY + hitOffset, false);
 
       idleTicker?.setPetBounds(newX, newY, currentSize, currentSize);
-    }, 16);
+    }, DRAG_TICK_MS);
+
+    dragWatchdog = setTimeout(() => {
+      console.warn('[Pet] drag-end not received in', DRAG_WATCHDOG_MS, 'ms — force-ending drag');
+      endDrag();
+      // The renderer almost certainly has stale drag state too (since we never
+      // got pointerup). Reset it so the user can start a fresh drag.
+      if (petHitWindow && !petHitWindow.isDestroyed()) {
+        petHitWindow.webContents.send('pet:hit-reset');
+      }
+    }, DRAG_WATCHDOG_MS);
   });
 
   ipcMain.on('pet:drag-end', () => {
-    clearDragTimer();
-    // Restore pre-drag AI state if there was one, otherwise return to idle
-    const restoreTo: PetState = preDragState ?? 'idle';
-    preDragState = null;
-    stateMachine?.forceState(restoreTo);
-    idleTicker?.resetIdle();
-    // Update anchor after drag so next confirm window appears at the new position
-    if (petWindow && !petWindow.isDestroyed()) {
-      const [nx, ny] = petWindow.getPosition();
-      updateAnchorBounds({ x: nx, y: ny, width: currentSize, height: currentSize });
-    }
+    endDrag();
   });
 
   ipcMain.on('pet:click', (_event, data: { side: string; count: number }) => {
@@ -407,25 +426,98 @@ function unregisterIpcHandlers(): void {
 // Helpers
 // ---------------------------------------------------------------------------
 
+/**
+ * Resize a transparent BrowserWindow on Windows reliably.
+ *
+ * Background: on Windows, calling setSize() / setBounds() on a window created
+ * with `transparent: true` and `frame: false` updates the window-handle bounds
+ * but does not always reflow the rendered content area. The user sees the pet
+ * staying its original size while the hit-region (and the WM's idea of the
+ * window) shrinks/grows underneath. This is the root cause of the
+ * "win11 改大小后实际显示不变" report — see electron/electron#20729.
+ *
+ * Workaround: hide → setBounds → show. Hiding releases the DWM composition
+ * cache for the window so the next show() rebuilds it at the new size. This is
+ * a one-frame flicker but it's the only reliable cross-Electron-version fix.
+ *
+ * macOS / Linux don't suffer this bug, so we keep the cheap setBounds-only
+ * path there to avoid the show/hide flicker.
+ */
+function applyTransparentResize(win: BrowserWindow, bounds: Electron.Rectangle): void {
+  if (process.platform !== 'win32') {
+    win.setBounds(bounds, false);
+    return;
+  }
+  const wasVisible = win.isVisible();
+  if (wasVisible) win.hide();
+  win.setBounds(bounds, false);
+  if (wasVisible) {
+    // showInactive() avoids stealing focus from the user's current app, which
+    // matters because the pet window has focusable: false but show() can still
+    // reorder z-stack on Windows.
+    win.showInactive();
+  }
+}
+
 function clearDragTimer(): void {
   if (dragTimer) {
     clearInterval(dragTimer);
     dragTimer = null;
+  }
+  if (dragWatchdog) {
+    clearTimeout(dragWatchdog);
+    dragWatchdog = null;
+  }
+}
+
+/**
+ * End the current drag: stop the follow timer + watchdog, restore the
+ * pre-drag AI state (or idle), reset idle tracking, and update the confirm
+ * window anchor. Single source of truth — invoked by the pet:drag-end IPC,
+ * the watchdog timeout, and resizePet's mid-drag guard.
+ *
+ * IMPORTANT: callers must guarantee a drag is actually in progress (or that
+ * the windows are about to be destroyed). This unconditionally forces the
+ * state machine to `restoreTo`, which will clobber any AI-driven state if
+ * called outside a drag — every existing call site either checks dragTimer
+ * first or only runs from a drag-related code path.
+ */
+function endDrag(): void {
+  clearDragTimer();
+  const restoreTo: PetState = preDragState ?? 'idle';
+  preDragState = null;
+  stateMachine?.forceState(restoreTo);
+  idleTicker?.resetIdle();
+  if (petWindow && !petWindow.isDestroyed()) {
+    const [nx, ny] = petWindow.getPosition();
+    updateAnchorBounds({ x: nx, y: ny, width: currentSize, height: currentSize });
   }
 }
 
 function resizePet(size: PetSize): void {
   if (!petWindow || petWindow.isDestroyed() || !petHitWindow || petHitWindow.isDestroyed()) return;
 
+  // If the user resizes mid-drag, the in-flight drag timer would keep moving the
+  // pet using the *new* hitOffset against the *old* drag origin → window jumps.
+  // Cancel the drag cleanly first; the renderer will be reset via pet:hit-reset
+  // below so subsequent pointerdown starts fresh.
+  if (dragTimer) {
+    endDrag();
+  }
+
   currentSize = size;
   const [x, y] = petWindow.getPosition();
 
-  petWindow.setSize(size, size, false);
+  applyTransparentResize(petWindow, { x, y, width: size, height: size });
 
   const hitSize = Math.round(size * 0.6);
   const hitOffset = Math.round(size * 0.2);
-  petHitWindow.setSize(hitSize, hitSize, false);
-  petHitWindow.setPosition(x + hitOffset, y + hitOffset, false);
+  applyTransparentResize(petHitWindow, {
+    x: x + hitOffset,
+    y: y + hitOffset,
+    width: hitSize,
+    height: hitSize,
+  });
 
   idleTicker?.setPetBounds(x, y, size, size);
 
@@ -434,6 +526,15 @@ function resizePet(size: PetSize): void {
 
   if (!petWindow.isDestroyed()) {
     petWindow.webContents.send('pet:resize', size);
+  }
+
+  // Notify hit window to reset transient drag state and re-evaluate the (now
+  // smaller/larger) hit circle. Without this, Windows users hit a stale-geometry
+  // bug where after shrinking the pet they could only start a drag near the
+  // *old* center, and a pointer capture lost during resize would leave the hit
+  // window stuck in `dragging` cursor mode.
+  if (!petHitWindow.isDestroyed()) {
+    petHitWindow.webContents.send('pet:hit-reset');
   }
 }
 
