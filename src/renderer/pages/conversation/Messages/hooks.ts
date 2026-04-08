@@ -366,7 +366,6 @@ export const useMessageLstCache = (key: string) => {
 
     let cancelled = false;
     const PAGE_SIZE = isMobile ? 120 : 10000;
-    const MAX_BACKGROUND_PAGES = isMobile ? 100 : 1;
 
     const mergeDbMessages = (messages: TMessage[]) => {
       update((currentList) => {
@@ -418,37 +417,10 @@ export const useMessageLstCache = (key: string) => {
         const initialMessages = isMobile ? latestPageDesc.toReversed() : latestPageDesc;
         mergeDbMessages(initialMessages);
 
-        if (!isMobile || latestPageDesc.length < PAGE_SIZE) return;
-
-        const loadOlderPages = async (page: number): Promise<void> => {
-          if (page >= MAX_BACKGROUND_PAGES) return;
-
-          const chunkDesc = await ipcBridge.database.getConversationMessages.invoke({
-            conversation_id: key,
-            page,
-            pageSize: PAGE_SIZE,
-            order: 'DESC',
-          });
-          if (cancelled || !chunkDesc.length) return;
-
-          const chunkAsc = chunkDesc.toReversed();
-          update((currentList) => {
-            const sameConversation = currentList.filter((m) => m.conversation_id === key);
-            const otherConversation = currentList.filter((m) => m.conversation_id !== key);
-            const existingIds = new Set(sameConversation.map((m) => m.id));
-            const existingMsgIds = new Set(sameConversation.map((m) => m.msg_id).filter(Boolean));
-            const olderOnly = chunkAsc.filter(
-              (m) => !existingIds.has(m.id) && !(m.msg_id && existingMsgIds.has(m.msg_id))
-            );
-            if (!olderOnly.length) return currentList;
-            return [...olderOnly, ...sameConversation, ...otherConversation];
-          });
-
-          if (chunkDesc.length < PAGE_SIZE) return;
-          await loadOlderPages(page + 1);
-        };
-
-        await loadOlderPages(1);
+        // Mobile optimization intentionally stops after the most recent page.
+        // Background prepending of older pages can trigger repeated scroll reflow
+        // in Virtuoso, which is worse than a slower full-history load.
+        return;
       } catch (error) {
         console.error('[useMessageLstCache] Failed to load messages from database:', error);
       }
