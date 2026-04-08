@@ -703,8 +703,8 @@ async function loadFullShellEnvironmentImpl(): Promise<Record<string, string>> {
 const ENV_TAG = '[AionUi:env]';
 const ENV_DIVIDER = '═'.repeat(52);
 
-/** Format bytes into a human-readable string (e.g. "16.00 GB"). */
-function formatBytes(bytes: number): string {
+/** Format bytes into a human-readable string (e.g. "16.00 GB"). @internal */
+export function formatBytes(bytes: number): string {
   const gb = bytes / 1024 ** 3;
   return gb >= 1 ? `${gb.toFixed(2)} GB` : `${(bytes / 1024 ** 2).toFixed(0)} MB`;
 }
@@ -712,8 +712,9 @@ function formatBytes(bytes: number): string {
 /**
  * Run a command asynchronously with a timeout.
  * Returns trimmed stdout on success, or `null` on any failure.
+ * @internal
  */
-function execAsync(cmd: string, args: string[], timeoutMs = 5_000): Promise<string | null> {
+export function execAsync(cmd: string, args: string[], timeoutMs = 5_000): Promise<string | null> {
   return new Promise((resolve) => {
     try {
       const child = execFile(
@@ -744,8 +745,9 @@ function execAsync(cmd: string, args: string[], timeoutMs = 5_000): Promise<stri
 /**
  * Locate a CLI tool and retrieve its version asynchronously.
  * Returns `{ path, version }` or `null` values when not found.
+ * @internal
  */
-async function resolveToolInfo(name: string): Promise<{ toolPath: string | null; version: string | null }> {
+export async function resolveToolInfo(name: string): Promise<{ toolPath: string | null; version: string | null }> {
   const whichCmd = process.platform === 'win32' ? 'where' : 'which';
   const toolPath = await execAsync(whichCmd, [name]);
   if (!toolPath) return { toolPath: null, version: null };
@@ -828,7 +830,7 @@ export async function logEnvironmentDiagnostics(): Promise<void> {
       fmt('git', gitInfo),
       `${ENV_TAG}   Memory   : ${formatBytes(totalMem)} total, ${formatBytes(freeMem)} free`,
       `${ENV_TAG}   Locale   : ${locale}`,
-      `${ENV_TAG}   Shell : ${shell}`
+      `${ENV_TAG}   Shell    : ${shell}`
     );
 
     if (userDataPath) lines.push(`${ENV_TAG}   userData : ${userDataPath}`);
