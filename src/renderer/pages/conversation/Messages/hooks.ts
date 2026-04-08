@@ -399,9 +399,7 @@ export const useMessageLstCache = (key: string) => {
           return streamContent.length > dbContent.length ? streamMsg : dbMsg;
         });
 
-        const streamingOnly = sameConversation.filter(
-          (m) => !dbIds.has(m.id) && !(m.msg_id && dbMsgIds.has(m.msg_id))
-        );
+        const streamingOnly = sameConversation.filter((m) => !dbIds.has(m.id) && !(m.msg_id && dbMsgIds.has(m.msg_id)));
         if (!streamingOnly.length && !streamingByMsgId.size) return messages;
         return [...mergedMessages, ...streamingOnly];
       });
@@ -439,7 +437,9 @@ export const useMessageLstCache = (key: string) => {
             const otherConversation = currentList.filter((m) => m.conversation_id !== key);
             const existingIds = new Set(sameConversation.map((m) => m.id));
             const existingMsgIds = new Set(sameConversation.map((m) => m.msg_id).filter(Boolean));
-            const olderOnly = chunkAsc.filter((m) => !existingIds.has(m.id) && !(m.msg_id && existingMsgIds.has(m.msg_id)));
+            const olderOnly = chunkAsc.filter(
+              (m) => !existingIds.has(m.id) && !(m.msg_id && existingMsgIds.has(m.msg_id))
+            );
             if (!olderOnly.length) return currentList;
             return [...olderOnly, ...sameConversation, ...otherConversation];
           });
