@@ -251,6 +251,23 @@ export function useAutoScroll({ messages, itemCount }: UseAutoScrollOptions): Us
     }
   }, [messages]);
 
+  // Scroll to bottom when streaming content updates existing messages.
+  // Virtuoso's followOutput only fires when totalCount changes (new items added),
+  // but during ACP/Gemini streaming the existing text message grows in-place
+  // without changing the item count. This effect detects those content updates
+  // and scrolls to bottom when the user hasn't scrolled away.
+  useEffect(() => {
+    if (userScrolledRef.current) return;
+    const el = scrollerElRef.current;
+    if (!el) return;
+
+    const gap = el.scrollHeight - el.clientHeight - el.scrollTop;
+    if (gap > 2) {
+      lastProgrammaticScrollTimeRef.current = Date.now();
+      el.scrollTop = el.scrollHeight - el.clientHeight;
+    }
+  }, [messages]);
+
   // Hide scroll button handler
   const hideScrollButton = useCallback(() => {
     userScrolledRef.current = false;
