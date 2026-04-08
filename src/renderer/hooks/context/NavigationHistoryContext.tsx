@@ -82,30 +82,24 @@ export const NavigationHistoryProvider: React.FC<React.PropsWithChildren> = ({ c
   }, [location.pathname, location.search, location.hash]);
 
   const back = useCallback(() => {
-    setCursor((prev) => {
-      if (prev <= 0) return prev;
-      const next = prev - 1;
-      const target = stack[next];
-      if (target) {
-        skipNextRef.current = true;
-        void navigate(target.path);
-      }
-      return next;
-    });
-  }, [stack, navigate]);
+    const next = cursor - 1;
+    if (next < 0) return;
+    const target = stack[next];
+    if (!target) return;
+    skipNextRef.current = true;
+    setCursor(next);
+    void navigate(target.path);
+  }, [cursor, stack, navigate]);
 
   const forward = useCallback(() => {
-    setCursor((prev) => {
-      if (prev >= stack.length - 1) return prev;
-      const next = prev + 1;
-      const target = stack[next];
-      if (target) {
-        skipNextRef.current = true;
-        void navigate(target.path);
-      }
-      return next;
-    });
-  }, [stack, navigate]);
+    const next = cursor + 1;
+    if (next >= stack.length) return;
+    const target = stack[next];
+    if (!target) return;
+    skipNextRef.current = true;
+    setCursor(next);
+    void navigate(target.path);
+  }, [cursor, stack, navigate]);
 
   const value = useMemo<NavigationHistoryContextValue>(
     () => ({

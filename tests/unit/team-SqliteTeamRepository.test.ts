@@ -129,7 +129,7 @@ describeOrSkip('SqliteTeamRepository', () => {
 
       const result = await repo.readUnreadAndMark('team-1', 'agent-a');
       expect(result).toHaveLength(2);
-      expect(result.map((m) => m.id).sort()).toEqual(['m1', 'm2']);
+      expect(result.map((m) => m.id).toSorted()).toEqual(['m1', 'm2']);
 
       // Second call should return nothing — already marked
       const second = await repo.readUnreadAndMark('team-1', 'agent-a');
