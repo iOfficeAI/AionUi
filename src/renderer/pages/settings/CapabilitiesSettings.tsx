@@ -30,19 +30,27 @@ const isCapabilitiesTab = (value: string | null): value is CapabilitiesTab => va
 const CapabilitiesSettings: React.FC = () => {
   const { t } = useTranslation();
   const [searchParams, setSearchParams] = useSearchParams();
-  const [activeTab, setActiveTab] = useState<CapabilitiesTab>('skills');
+  // Initialize from URL synchronously to avoid a flash of the default tab.
+  const [activeTab, setActiveTab] = useState<CapabilitiesTab>(() => {
+    const tabParam = searchParams.get('tab');
+    return isCapabilitiesTab(tabParam) ? tabParam : 'skills';
+  });
 
+  // Re-sync if the URL changes externally (e.g. browser back/forward).
   useEffect(() => {
     const tabParam = searchParams.get('tab');
-    if (isCapabilitiesTab(tabParam)) {
+    if (isCapabilitiesTab(tabParam) && tabParam !== activeTab) {
       setActiveTab(tabParam);
     }
-  }, [searchParams]);
+  }, [searchParams, activeTab]);
 
   const handleTabChange = (key: string) => {
     if (isCapabilitiesTab(key)) {
       setActiveTab(key);
-      setSearchParams({ tab: key });
+      // Preserve any other query params the embedded content may rely on.
+      const next = new URLSearchParams(searchParams);
+      next.set('tab', key);
+      setSearchParams(next, { replace: true });
     }
   };
 
