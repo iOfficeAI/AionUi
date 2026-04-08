@@ -106,10 +106,9 @@ document.addEventListener('contextmenu', (e) => e.preventDefault());
 //   3. Main-process watchdog in petManager.ts — the ultimate safety net:
 //      polls the real system cursor via screen.getCursorScreenPoint() and
 //      can force ignore=true even if this renderer hangs entirely.
-const WIN_CENTER_X = window.innerWidth / 2;
-const WIN_CENTER_Y = window.innerHeight / 2;
-const HIT_RADIUS = window.innerWidth * 0.4;
-const HIT_RADIUS_SQ = HIT_RADIUS * HIT_RADIUS;
+let WIN_CENTER_X = window.innerWidth / 2;
+let WIN_CENTER_Y = window.innerHeight / 2;
+let HIT_RADIUS_SQ = (window.innerWidth * 0.4) ** 2;
 let isIgnoring = true;
 
 function setIgnoring(next: boolean): void {
@@ -149,6 +148,11 @@ document.addEventListener('mouseleave', () => {
  * so the next mousemove re-evaluates the (now-different) hit circle.
  */
 function resetHitState(): void {
+  // Refresh geometry to reflect the new window dimensions after resize
+  WIN_CENTER_X = window.innerWidth / 2;
+  WIN_CENTER_Y = window.innerHeight / 2;
+  HIT_RADIUS_SQ = (window.innerWidth * 0.4) ** 2;
+
   if (clickTimer) {
     clearTimeout(clickTimer);
     clickTimer = null;
