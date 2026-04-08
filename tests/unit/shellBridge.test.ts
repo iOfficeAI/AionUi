@@ -243,5 +243,61 @@ describe('shellBridge', () => {
 
       expect(shellMock.openPath).toHaveBeenCalledWith(folderWithSpecialChars);
     });
+
+    it('uses shell:true for .cmd fallback on Windows and handles EINVAL', async () => {
+      Object.defineProperty(process, 'platform', { value: 'win32' });
+
+      // Set Windows env vars so findVSCodeExecutable builds the right paths
+      const origProgramFiles = process.env['ProgramFiles'];
+      process.env['ProgramFiles'] = 'C:\\Program Files';
+
+      // First spawn of 'code' fails with ENOENT
+      let errorCallback: ((...args: unknown[]) => void) | undefined;
+      const firstChild = {
+        on: vi.fn((event: string, cb: (...args: unknown[]) => void) => {
+          if (event === 'error') errorCallback = cb;
+        }),
+        unref: vi.fn(),
+      };
+
+      // Fallback spawn of 'code.cmd' also emits error (EINVAL)
+      let fallbackErrorCallback: ((...args: unknown[]) => void) | undefined;
+      const fallbackChild = {
+        on: vi.fn((event: string, cb: (...args: unknown[]) => void) => {
+          if (event === 'error') fallbackErrorCallback = cb;
+        }),
+        unref: vi.fn(),
+      };
+
+      spawnMock.mockReturnValueOnce(firstChild).mockReturnValueOnce(fallbackChild);
+
+      // findVSCodeExecutable finds code.cmd via ProgramFiles
+      fsMock.existsSync.mockImplementation((p: string) => p.endsWith('code.cmd') && p.includes('Program Files'));
+
+      await openFolderWithProvider.fn!({ folderPath: 'C:\\Projects\\Q&M', tool: 'vscode' });
+
+      // Trigger ENOENT on first spawn
+      expect(errorCallback).toBeDefined();
+      await errorCallback!(new Error('spawn code ENOENT'));
+
+      // Fallback spawn should use shell: true for .cmd
+      const fallbackCall = spawnMock.mock.calls[1];
+      expect(fallbackCall).toBeDefined();
+      expect(fallbackCall[0]).toContain('code.cmd');
+      expect(fallbackCall[2]).toMatchObject({ shell: true });
+
+      // Trigger EINVAL on fallback — should not throw, falls back to shell.openPath
+      expect(fallbackErrorCallback).toBeDefined();
+      shellMock.openPath.mockResolvedValue('');
+      fallbackErrorCallback!(new Error('spawn EINVAL'));
+      expect(shellMock.openPath).toHaveBeenCalledWith('C:\\Projects\\Q&M');
+
+      // Restore env
+      if (origProgramFiles === undefined) {
+        delete process.env['ProgramFiles'];
+      } else {
+        process.env['ProgramFiles'] = origProgramFiles;
+      }
+    });
   });
 });
