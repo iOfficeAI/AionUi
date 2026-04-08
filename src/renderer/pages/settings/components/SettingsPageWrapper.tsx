@@ -11,11 +11,11 @@ import {
   Earth,
   Gemini,
   Info,
+  Lightning,
   LinkCloud,
   Puzzle,
   Robot,
   System,
-  Toolkit,
 } from '@icon-park/react';
 import { useTranslation } from 'react-i18next';
 import { useLocation, useNavigate } from 'react-router-dom';
@@ -49,13 +49,12 @@ export function getBuiltinSettingsNavItems(isDesktop: boolean, t: TranslateFn): 
       icon: <Robot theme='outline' size='16' />,
       path: 'agent',
     },
-    'skills-hub': {
-      id: 'skills-hub',
-      label: t('settings.skillsHub.title', { defaultValue: 'Skills Hub' }),
-      icon: <Puzzle theme='outline' size='16' />,
-      path: 'skills-hub',
+    capabilities: {
+      id: 'capabilities',
+      label: t('settings.capabilities', { defaultValue: 'Capabilities' }),
+      icon: <Lightning theme='outline' size='16' />,
+      path: 'capabilities',
     },
-    tools: { id: 'tools', label: t('settings.tools'), icon: <Toolkit theme='outline' size='16' />, path: 'tools' },
     display: {
       id: 'display',
       label: t('settings.display'),
