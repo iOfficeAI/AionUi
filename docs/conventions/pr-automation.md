@@ -6,15 +6,15 @@
 
 ## Label 体系
 
-| Label                    | 含义                                                                                  | 终态？ |
-| ------------------------ | ------------------------------------------------------------------------------------- | ------ |
-| `bot:reviewing`          | review 进行中（防重入占位）                                                           | 否     |
-| `bot:ready-to-fix`       | CONDITIONAL review 完成，等 bot 下次执行 fix                                          | 否     |
-| `bot:fixing`             | fix 进行中（防重入占位）                                                              | 否     |
-| `bot:ci-waiting`         | CI 失败已通知，等待作者推新 commit — bot 暂停处理此 PR                                | 否     |
-| `bot:needs-rebase`       | 合并冲突且 bot 无法自动 rebase — 等待作者 push 新 commit 后自动唤醒                   | 否     |
-| `bot:needs-human-review` | 需人工介入（阻塞性问题）                                                              | ✅     |
-| `bot:ready-to-merge`     | bot 已处理完，代码无问题，等人工确认后合并                                            | ✅     |
+| Label                    | 含义                                                                | 终态？ |
+| ------------------------ | ------------------------------------------------------------------- | ------ |
+| `bot:reviewing`          | review 进行中（防重入占位）                                         | 否     |
+| `bot:ready-to-fix`       | CONDITIONAL review 完成，等 bot 下次执行 fix                        | 否     |
+| `bot:fixing`             | fix 进行中（防重入占位）                                            | 否     |
+| `bot:ci-waiting`         | CI 失败已通知，等待作者推新 commit — bot 暂停处理此 PR              | 否     |
+| `bot:needs-rebase`       | 合并冲突且 bot 无法自动 rebase — 等待作者 push 新 commit 后自动唤醒 | 否     |
+| `bot:needs-human-review` | 需人工介入（阻塞性问题）                                            | ✅     |
+| `bot:ready-to-merge`     | bot 已处理完，代码无问题，等人工确认后合并                          | ✅     |
 
 ---
 
