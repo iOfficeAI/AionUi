@@ -95,7 +95,7 @@ export class WebuiService {
    */
   static async getAdminUser() {
     await this.loadWebServerFunctions();
-    const adminUser = await UserRepository.getSystemUser();
+    const adminUser = await UserRepository.getPrimaryWebUIUser();
     if (!adminUser) {
       throw new Error('WebUI user not found');
     }
@@ -116,7 +116,7 @@ export class WebuiService {
   ): Promise<IWebUIStatus> {
     await this.loadWebServerFunctions();
 
-    const adminUser = await UserRepository.getSystemUser();
+    const adminUser = await UserRepository.getPrimaryWebUIUser();
     const running = webServerInstance !== null;
     const port = webServerInstance?.port ?? SERVER_CONFIG.DEFAULT_PORT;
     const allowRemote = webServerInstance?.allowRemote ?? false;

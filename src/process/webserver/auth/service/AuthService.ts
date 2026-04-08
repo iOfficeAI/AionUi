@@ -166,7 +166,7 @@ export class AuthService {
     try {
       // 从数据库读取 admin 用户的 jwt_secret
       // Read jwt_secret from admin user in database
-      const systemUser = await UserRepository.getSystemUser();
+      const systemUser = await UserRepository.getPrimaryWebUIUser();
       if (systemUser && systemUser.jwt_secret) {
         this.jwtSecret = systemUser.jwt_secret;
         return this.jwtSecret;
@@ -198,7 +198,7 @@ export class AuthService {
    */
   public static async invalidateAllTokens(): Promise<void> {
     try {
-      const systemUser = await UserRepository.getSystemUser();
+      const systemUser = await UserRepository.getPrimaryWebUIUser();
       if (!systemUser) {
         console.warn('[AuthService] System WebUI user not found, cannot invalidate tokens');
         return;

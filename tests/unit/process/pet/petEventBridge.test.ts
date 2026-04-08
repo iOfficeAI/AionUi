@@ -50,7 +50,10 @@ describe('PetEventBridge', () => {
         ['thought', 'thinking'],
         ['text', 'working'],
         ['content', 'working'],
-        ['finish', 'happy'],
+        // `finish` routes to `done` (bubble + check completion signal),
+        // not `happy` — `happy` is now reserved for the right-click
+        // "pat" interaction so the two carry distinct meanings.
+        ['finish', 'done'],
         ['error', 'error'],
       ])('maps msg.type "%s" → state "%s"', (msgType, expectedState) => {
         bridge.handleBridgeMessage(channel, { type: msgType });
@@ -115,10 +118,10 @@ describe('PetEventBridge', () => {
   // ── handleTurnCompleted ───────────────────────────────────────────
 
   describe('handleTurnCompleted', () => {
-    it('resets idle and requests happy state', () => {
+    it('resets idle and requests done state', () => {
       bridge.handleTurnCompleted();
       expect(ticker.resetIdle).toHaveBeenCalledOnce();
-      expect(sm.requestState).toHaveBeenCalledWith('happy');
+      expect(sm.requestState).toHaveBeenCalledWith('done');
     });
 
     it('does nothing when disposed', () => {

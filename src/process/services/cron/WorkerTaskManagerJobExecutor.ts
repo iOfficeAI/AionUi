@@ -76,6 +76,27 @@ export class WorkerTaskManagerJobExecutor implements ICronJobExecutor {
       }
     }
 
+    // For existing mode, ensure the reused conversation uses the user's current
+    // preferred model, not whatever model it was originally created with (e.g. "auto").
+    if (job.target.executionMode === 'existing' && conversationId && job.metadata.agentConfig) {
+      const convService = await getConversationService();
+      const conv = await convService.getConversation(conversationId);
+      if (conv) {
+        const currentModel = await this.resolveModelForBackend(job.metadata.agentConfig.backend);
+        const convModel = 'model' in conv ? (conv as { model: TProviderWithModel }).model : undefined;
+        if (convModel?.useModel !== currentModel.useModel) {
+          await convService.updateConversation(conversationId, {
+            model: convModel ? { ...convModel, useModel: currentModel.useModel } : currentModel,
+          } as Partial<TChatConversation>);
+          // Kill stale task so getOrBuildTask picks up the new model
+          const staleTask = this.taskManager.getTask(conversationId);
+          if (staleTask) {
+            this.taskManager.kill(conversationId);
+          }
+        }
+      }
+    }
+
     const msgId = uuid();
 
     // Reuse existing task if possible; ensure yoloMode is active for scheduled runs.

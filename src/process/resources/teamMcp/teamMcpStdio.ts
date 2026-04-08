@@ -1,5 +1,3 @@
-#!/usr/bin/env node
-
 /**
  * @license
  * Copyright 2025 AionUi (aionui.com)
@@ -37,7 +35,7 @@ if (!TEAM_MCP_TOKEN) {
 
 // ── TCP helpers ──────────────────────────────────────────────────────────────
 
-function sendTcpRequest(port, data) {
+function sendTcpRequest(port: number, data: unknown): Promise<{ result?: string; error?: string }> {
   return new Promise((resolve, reject) => {
     const socket = net.createConnection({ host: '127.0.0.1', port }, () => {
       const json = JSON.stringify(data);
@@ -49,7 +47,7 @@ function sendTcpRequest(port, data) {
 
     let buffer = Buffer.alloc(0);
 
-    socket.on('data', (chunk) => {
+    socket.on('data', (chunk: Buffer) => {
       buffer = Buffer.concat([buffer, chunk]);
     });
 
@@ -65,13 +63,13 @@ function sendTcpRequest(port, data) {
       }
       const jsonStr = buffer.subarray(4, 4 + bodyLen).toString('utf-8');
       try {
-        resolve(JSON.parse(jsonStr));
+        resolve(JSON.parse(jsonStr) as { result?: string; error?: string });
       } catch (err) {
-        reject(new Error(`Failed to parse TCP response: ${err.message}`));
+        reject(new Error(`Failed to parse TCP response: ${(err as Error).message}`));
       }
     });
 
-    socket.on('error', (err) => {
+    socket.on('error', (err: Error) => {
       reject(new Error(`TCP connection error: ${err.message}`));
     });
 
@@ -86,26 +84,36 @@ function sendTcpRequest(port, data) {
 
 // ── Tool helper ──────────────────────────────────────────────────────────────
 
-function createTeamTool(server, toolName, description, schema, tcpPort, agentSlotId, authToken) {
-  server.tool(toolName, description, schema, async (args) => {
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function createTeamTool(
+  server: McpServer,
+  toolName: string,
+  description: string,
+  schema: any,
+  tcpPort: number,
+  agentSlotId: string | undefined,
+  authToken: string | undefined
+): void {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  server.tool(toolName, description, schema, async (args: Record<string, unknown>) => {
     try {
-      const payload = { tool: toolName, args, auth_token: authToken };
+      const payload: Record<string, unknown> = { tool: toolName, args, auth_token: authToken };
       if (agentSlotId) payload.from_slot_id = agentSlotId;
       const response = await sendTcpRequest(tcpPort, payload);
 
       if (response.error) {
         return {
-          content: [{ type: 'text', text: `Error: ${response.error}` }],
+          content: [{ type: 'text' as const, text: `Error: ${response.error}` }],
           isError: true,
         };
       }
 
       return {
-        content: [{ type: 'text', text: response.result || '' }],
+        content: [{ type: 'text' as const, text: response.result || '' }],
       };
     } catch (err) {
       return {
-        content: [{ type: 'text', text: `Error: ${err.message}` }],
+        content: [{ type: 'text' as const, text: `Error: ${(err as Error).message}` }],
         isError: true,
       };
     }
@@ -267,5 +275,12 @@ You will be notified of the result either way.`,
   TEAM_MCP_TOKEN
 );
 
-const transport = new StdioServerTransport();
-await server.connect(transport);
+async function main(): Promise<void> {
+  const transport = new StdioServerTransport();
+  await server.connect(transport);
+}
+
+main().catch((err: unknown) => {
+  process.stderr.write(`[team-mcp-stdio] Fatal error: ${err}\n`);
+  process.exit(1);
+});

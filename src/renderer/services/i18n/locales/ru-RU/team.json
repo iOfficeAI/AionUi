@@ -1,0 +1,50 @@
+{
+  "sider": {
+    "title": "Команды",
+    "createTeam": "Новая команда",
+    "pin": "Закрепить",
+    "unpin": "Открепить",
+    "rename": "Переименовать",
+    "delete": "Удалить",
+    "renameTitle": "Переименовать команду",
+    "renamePlaceholder": "Название команды",
+    "deleteConfirm": "Удалить эту команду?",
+    "deleteConfirmContent": "Это действие нельзя отменить.",
+    "deleteOk": "Удалить",
+    "deleteCancel": "Отмена",
+    "renameOk": "Сохранить",
+    "renameCancel": "Отмена",
+    "renameSuccess": "Команда переименована",
+    "deleteSuccess": "Команда удалена"
+  },
+  "addAgent": {
+    "title": "Добавить агента",
+    "name": "Имя агента",
+    "namePlaceholder": "Введите имя агента",
+    "type": "Тип агента",
+    "typePlaceholder": "Выберите тип агента",
+    "confirm": "Добавить"
+  },
+  "newAgent": "Новый агент",
+  "noMessages": "Пока нет сообщений.",
+  "agentNotConfigured": "Агент ещё не настроен.",
+  "sendBox": {
+    "placeholder": "Сообщение агенту-диспетчеру..."
+  },
+  "create": {
+    "title": "Создать команду",
+    "namePlaceholder": "Название команды",
+    "dispatchAgentPlaceholder": "Выбрать агента-диспетчера",
+    "subAgentsPlaceholder": "Выбрать подагентов",
+    "workspacePlaceholder": "Путь к рабочей области (опционально)",
+    "confirm": "Создать команду",
+    "noSupportedAgents": "Поддерживаемые агенты не установлены",
+    "supportedAgentsHint": "Сейчас поддерживаются Claude, Codex, CodeBuddy. Другие агенты скоро появятся.",
+    "step": {
+      "dispatch": "Агент-диспетчер",
+      "subAgents": "Подагенты",
+      "workspace": "Рабочая область"
+    },
+    "error": "Не удалось создать команду"
+  }
+}

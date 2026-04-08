@@ -68,19 +68,27 @@ function createTcpMessageReader(onMessage: (msg: unknown) => void): (chunk: Buff
 }
 
 /**
- * Resolve the project root directory.
- * Works in both Electron main process and standalone CLI mode.
+ * Resolve the directory containing the team-mcp-stdio.js bundle.
+ * Mirrors the getBuiltinMcpBaseDir() logic in initStorage.ts so both MCP
+ * scripts use the same path strategy across dev and packaged modes.
+ *
+ * In dev:       out/main/  (next to the main bundle)
+ * In packaged:  app.asar.unpacked/out/main/  (asarUnpack makes it a real file)
  */
-function resolveProjectRoot(): string {
+function resolveTeamMcpDir(): string {
+  const mainModuleDir =
+    typeof require !== 'undefined' && require.main?.filename ? path.dirname(require.main.filename) : __dirname;
+  const baseDir = path.basename(mainModuleDir) === 'chunks' ? path.dirname(mainModuleDir) : mainModuleDir;
   try {
     // eslint-disable-next-line @typescript-eslint/no-require-imports
     const { app } = require('electron');
-    return app.isPackaged ? process.resourcesPath : app.getAppPath();
+    if (app.isPackaged) {
+      return baseDir.replace('app.asar', 'app.asar.unpacked');
+    }
   } catch {
-    // Fallback for CLI mode (no Electron): walk up from __dirname
-    // __dirname = .../src/process/team or .../dist/process/team
-    return path.resolve(__dirname, '..', '..', '..');
+    // Not in Electron (unit tests / CLI mode) — use baseDir as-is
   }
+  return baseDir;
 }
 
 /**
@@ -126,8 +134,7 @@ export class TeamMcpServer {
    *   slot ID to every TCP request so the server knows who is calling.
    */
   getStdioConfig(agentSlotId?: string): StdioMcpConfig {
-    const root = resolveProjectRoot();
-    const scriptPath = path.join(root, 'scripts', 'team-mcp-stdio.mjs');
+    const scriptPath = path.join(resolveTeamMcpDir(), 'team-mcp-stdio.js');
 
     const env: StdioMcpConfig['env'] = [
       { name: 'TEAM_MCP_PORT', value: String(this._port) },

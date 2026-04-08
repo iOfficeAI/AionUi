@@ -101,6 +101,7 @@ describe('initAgent — skill support', () => {
         'kimi',
         'vibe',
         'cursor',
+        'aionrs',
       ];
       for (const backend of supported) {
         expect(hasNativeSkillSupport(backend)).toBe(true);
@@ -191,6 +192,18 @@ describe('initAgent — skill support', () => {
       });
 
       expect(symlinkCalls[0].target).toBe('/tmp/workspace/.codebuddy/skills/morph-ppt');
+    });
+
+    it('should create symlink in .aionrs/skills for aionrs backend', async () => {
+      statResults['/mock/user/skills/officecli-docx'] = true;
+
+      await setupAssistantWorkspace('/tmp/workspace', {
+        agentType: 'aionrs',
+        enabledSkills: ['officecli-docx'],
+      });
+
+      expect(mkdirCalls).toContain('/tmp/workspace/.aionrs/skills');
+      expect(symlinkCalls[0].target).toBe('/tmp/workspace/.aionrs/skills/officecli-docx');
     });
 
     it('should create symlink in .factory/skills for droid backend', async () => {

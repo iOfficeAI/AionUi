@@ -119,6 +119,11 @@ export class TeammateManager extends EventEmitter {
     console.log(`[TeammateManager] wake(${agent.agentName}): status=${agent.status}, proceeding`);
 
     this.activeWakes.add(slotId);
+    // Clear any stale finalizedTurns entry so a re-woken agent's finish event
+    // is not silently dropped by the 5-second dedup window from a prior turn.
+    if (agent.conversationId) {
+      this.finalizedTurns.delete(agent.conversationId);
+    }
     try {
       // Transition pending -> idle on first activation
       if (agent.status === 'pending') {
@@ -446,47 +451,6 @@ export class TeammateManager extends EventEmitter {
 
   private async executeAction(action: ParsedAction, fromSlotId: string): Promise<void> {
     switch (action.type) {
-      case 'send_message': {
-        const targetSlotId = this.resolveSlotId(action.to);
-        if (!targetSlotId) break;
-        await this.mailbox.write({
-          teamId: this.teamId,
-          toAgentId: targetSlotId,
-          fromAgentId: fromSlotId,
-          content: action.content,
-          summary: action.summary,
-        });
-        // Write dispatched message into target agent's conversation
-        const targetAgent = this.agents.find((a) => a.slotId === targetSlotId);
-        if (targetAgent?.conversationId) {
-          const msgId = crypto.randomUUID();
-          const fromAgent = this.agents.find((a) => a.slotId === fromSlotId);
-          const executedMsg = {
-            id: msgId,
-            msg_id: msgId,
-            type: 'text' as const,
-            position: 'left' as const,
-            conversation_id: targetAgent.conversationId,
-            content: {
-              content: action.content,
-              teammateMessage: true,
-              senderName: fromAgent?.agentName,
-              senderAgentType: fromAgent?.agentType,
-            },
-            createdAt: Date.now(),
-          };
-          addMessage(targetAgent.conversationId, executedMsg);
-          ipcBridge.acpConversation.responseStream.emit({
-            type: 'teammate_message',
-            conversation_id: targetAgent.conversationId,
-            msg_id: msgId,
-            data: executedMsg,
-          });
-        }
-        await this.wake(targetSlotId);
-        break;
-      }
-
       case 'task_create': {
         await this.taskManager.create({
           teamId: this.teamId,

@@ -31,9 +31,38 @@ let idleTicker: PetIdleTicker | null = null;
 let eventBridge: PetEventBridge | null = null;
 let currentSize: PetSize = 280;
 let dragTimer: ReturnType<typeof setInterval> | null = null;
+let dragWatchdog: ReturnType<typeof setTimeout> | null = null;
 let dragOffsetX = 0;
 let dragOffsetY = 0;
 let preDragState: PetState | null = null;
+
+// Tick interval for the drag-follow timer (~60 FPS).
+const DRAG_TICK_MS = 16;
+// Hard timeout: if drag-end never arrives within this window, the main process
+// force-ends the drag. Belt-and-braces against the renderer dropping pointerup
+// (Windows transparent + frameless windows can lose pointer capture across a
+// resize/move, leaving the pet stuck following the cursor with no way to stop
+// short of restarting the app). 8s is generous enough that a real human drag
+// — even one with a pause to think — completes well before then.
+const DRAG_WATCHDOG_MS = 8000;
+// Master-process safety watchdog for the hit window's ignore-mouse-events
+// state. The renderer manages this toggle to implement click-through, but if
+// the renderer crashes, hangs, or loses a critical mousemove, the hit window
+// can stay in non-ignore mode forever and swallow every click on the screen
+// (the window is `screen-saver` level and alwaysOnTop) — forcing the user to
+// force-quit the app. This watchdog polls the real cursor position against
+// the circular hit region and forces ignore=true whenever the cursor is
+// clearly outside, independent of any renderer code path.
+const HIT_WATCHDOG_INTERVAL_MS = 250;
+// Allow 20% slack beyond the renderer's hit radius so the watchdog never
+// races with the renderer on the exact circle boundary. The renderer owns
+// the fine-grained toggle; the watchdog only kicks in once the cursor is
+// clearly outside.
+const HIT_WATCHDOG_RADIUS_SLACK = 1.2;
+let hitIgnoreWatchdog: ReturnType<typeof setInterval> | null = null;
+// Last ignore state the hit window was set to (tracked via the IPC handler so
+// the watchdog can tell whether it's already safe).
+let lastHitIgnoreState = true;
 // Whether tool-call confirmations should be routed to the pet's bubble window.
 // When false, the pet still runs normally but confirmation requests stay in the
 // main chat window. Updated at runtime via setPetConfirmEnabled() and read on
@@ -55,11 +84,7 @@ export function createPetWindow(): void {
     return;
   }
 
-  const primaryDisplay = screen.getPrimaryDisplay();
-  const { width: screenWidth, height: screenHeight } = primaryDisplay.workAreaSize;
-  const margin = 20;
-  const x = screenWidth - currentSize - margin;
-  const y = screenHeight - currentSize - margin;
+  const { x, y } = computeInitialPosition(currentSize);
 
   // Rendering window (transparent, always on top, ignores mouse events)
   petWindow = new BrowserWindow({
@@ -147,6 +172,7 @@ export function createPetWindow(): void {
 
   idleTicker.start();
   registerIpcHandlers();
+  startHitIgnoreWatchdog();
   loadContent();
 
   // Initialize confirm manager only if the user opted in.
@@ -168,6 +194,7 @@ export function createPetWindow(): void {
  */
 export function destroyPetWindow(): void {
   clearDragTimer();
+  stopHitIgnoreWatchdog();
 
   // Destroy confirm manager
   destroyPetConfirmManager();
@@ -251,6 +278,41 @@ export function setPetConfirmEnabled(enabled: boolean): void {
   }
 }
 
+/**
+ * Compute the pet's starting bottom-right position on the display that
+ * currently hosts the main AionUi window. Falls back to the primary display
+ * when no main window is found (e.g. tray-only scenarios). This is the only
+ * position logic at startup — after creation the user is free to drag the
+ * pet anywhere and we never overwrite it for the rest of the session.
+ */
+function computeInitialPosition(size: number): { x: number; y: number } {
+  const margin = 20;
+
+  // Prefer the display under the main window's center so multi-monitor users
+  // always see the pet appear on the same screen as the app. The first window
+  // that isn't the (not-yet-created) pet window itself is treated as main —
+  // since createPetWindow is called after the main window exists, that's a
+  // safe assumption here.
+  const candidate = BrowserWindow.getAllWindows().find(
+    (w) => w !== petWindow && w !== petHitWindow && !w.isDestroyed()
+  );
+
+  let workArea;
+  if (candidate) {
+    const [mx, my] = candidate.getPosition();
+    const [mw, mh] = candidate.getSize();
+    const center = { x: mx + Math.floor(mw / 2), y: my + Math.floor(mh / 2) };
+    workArea = screen.getDisplayNearestPoint(center).workArea;
+  } else {
+    workArea = screen.getPrimaryDisplay().workArea;
+  }
+
+  return {
+    x: workArea.x + workArea.width - size - margin,
+    y: workArea.y + workArea.height - size - margin,
+  };
+}
+
 // ---------------------------------------------------------------------------
 // Window content loading
 // ---------------------------------------------------------------------------
@@ -284,6 +346,14 @@ function registerIpcHandlers(): void {
   ipcMain.on('pet:drag-start', () => {
     if (!petWindow || petWindow.isDestroyed() || !petHitWindow || petHitWindow.isDestroyed()) return;
 
+    // Defensive: if a previous drag never reached drag-end (e.g. dropped
+    // pointerup), the timer/watchdog could still be live. Tear it down through
+    // endDrag() — not just clearDragTimer() — so the leftover preDragState and
+    // state machine are also reset before we snapshot the new drag below.
+    if (dragTimer || dragWatchdog) {
+      endDrag();
+    }
+
     const cursor = screen.getCursorScreenPoint();
     const windowPos = petWindow.getPosition();
     dragOffsetX = cursor.x - windowPos[0];
@@ -297,7 +367,7 @@ function registerIpcHandlers(): void {
 
     dragTimer = setInterval(() => {
       if (!petWindow || petWindow.isDestroyed() || !petHitWindow || petHitWindow.isDestroyed()) {
-        clearDragTimer();
+        endDrag();
         return;
       }
 
@@ -311,21 +381,21 @@ function registerIpcHandlers(): void {
       petHitWindow.setPosition(newX + hitOffset, newY + hitOffset, false);
 
       idleTicker?.setPetBounds(newX, newY, currentSize, currentSize);
-    }, 16);
+    }, DRAG_TICK_MS);
+
+    dragWatchdog = setTimeout(() => {
+      console.warn('[Pet] drag-end not received in', DRAG_WATCHDOG_MS, 'ms — force-ending drag');
+      endDrag();
+      // The renderer almost certainly has stale drag state too (since we never
+      // got pointerup). Reset it so the user can start a fresh drag.
+      if (petHitWindow && !petHitWindow.isDestroyed()) {
+        petHitWindow.webContents.send('pet:hit-reset');
+      }
+    }, DRAG_WATCHDOG_MS);
   });
 
   ipcMain.on('pet:drag-end', () => {
-    clearDragTimer();
-    // Restore pre-drag AI state if there was one, otherwise return to idle
-    const restoreTo: PetState = preDragState ?? 'idle';
-    preDragState = null;
-    stateMachine?.forceState(restoreTo);
-    idleTicker?.resetIdle();
-    // Update anchor after drag so next confirm window appears at the new position
-    if (petWindow && !petWindow.isDestroyed()) {
-      const [nx, ny] = petWindow.getPosition();
-      updateAnchorBounds({ x: nx, y: ny, width: currentSize, height: currentSize });
-    }
+    endDrag();
   });
 
   ipcMain.on('pet:click', (_event, data: { side: string; count: number }) => {
@@ -333,9 +403,16 @@ function registerIpcHandlers(): void {
 
     idleTicker.resetIdle();
 
-    if (data.count >= 3) {
-      stateMachine.requestState('error');
-    } else if (data.count === 2) {
+    // Click reactions — keep `error` reserved for genuine AI errors so the user
+    // can distinguish "I poked the pet a lot" from "the agent just failed".
+    // 1 click  → attention (small surprise)
+    // 2 clicks → poke left/right (directional wobble)
+    // 4+       → juggling (overwhelmed / flustered)
+    // 3        → still poke — nothing interesting happens but we avoid the old
+    //            error misfire; the next click bumps into the 4+ bucket.
+    if (data.count >= 4) {
+      stateMachine.requestState('juggling');
+    } else if (data.count >= 2) {
       stateMachine.requestState(data.side === 'left' ? 'poke-left' : 'poke-right');
     } else if (data.count === 1) {
       stateMachine.requestState('attention');
@@ -392,6 +469,7 @@ function registerIpcHandlers(): void {
   ipcMain.on('pet:set-ignore-mouse-events', (_event, ignore: boolean, options?: { forward: boolean }) => {
     if (!petHitWindow || petHitWindow.isDestroyed()) return;
     petHitWindow.setIgnoreMouseEvents(ignore, options);
+    lastHitIgnoreState = ignore;
   });
 }
 
@@ -407,25 +485,152 @@ function unregisterIpcHandlers(): void {
 // Helpers
 // ---------------------------------------------------------------------------
 
+/**
+ * Resize a transparent BrowserWindow on Windows reliably.
+ *
+ * Background: on Windows, calling setSize() / setBounds() on a window created
+ * with `transparent: true` and `frame: false` updates the window-handle bounds
+ * but does not always reflow the rendered content area. The user sees the pet
+ * staying its original size while the hit-region (and the WM's idea of the
+ * window) shrinks/grows underneath. This is the root cause of the
+ * "win11 改大小后实际显示不变" report — see electron/electron#20729.
+ *
+ * Workaround: hide → setBounds → show. Hiding releases the DWM composition
+ * cache for the window so the next show() rebuilds it at the new size. This is
+ * a one-frame flicker but it's the only reliable cross-Electron-version fix.
+ *
+ * macOS / Linux don't suffer this bug, so we keep the cheap setBounds-only
+ * path there to avoid the show/hide flicker.
+ */
+function applyTransparentResize(win: BrowserWindow, bounds: Electron.Rectangle): void {
+  if (process.platform !== 'win32') {
+    win.setBounds(bounds, false);
+    return;
+  }
+  const wasVisible = win.isVisible();
+  if (wasVisible) win.hide();
+  win.setBounds(bounds, false);
+  if (wasVisible) {
+    // showInactive() avoids stealing focus from the user's current app, which
+    // matters because the pet window has focusable: false but show() can still
+    // reorder z-stack on Windows.
+    win.showInactive();
+  }
+}
+
 function clearDragTimer(): void {
   if (dragTimer) {
     clearInterval(dragTimer);
     dragTimer = null;
   }
+  if (dragWatchdog) {
+    clearTimeout(dragWatchdog);
+    dragWatchdog = null;
+  }
+}
+
+/**
+ * End the current drag: stop the follow timer + watchdog, restore the
+ * pre-drag AI state (or idle), reset idle tracking, and update the confirm
+ * window anchor. Single source of truth — invoked by the pet:drag-end IPC,
+ * the watchdog timeout, and resizePet's mid-drag guard.
+ *
+ * IMPORTANT: callers must guarantee a drag is actually in progress (or that
+ * the windows are about to be destroyed). This unconditionally forces the
+ * state machine to `restoreTo`, which will clobber any AI-driven state if
+ * called outside a drag — every existing call site either checks dragTimer
+ * first or only runs from a drag-related code path.
+ */
+function endDrag(): void {
+  clearDragTimer();
+  const restoreTo: PetState = preDragState ?? 'idle';
+  preDragState = null;
+  stateMachine?.forceState(restoreTo);
+  idleTicker?.resetIdle();
+  if (petWindow && !petWindow.isDestroyed()) {
+    const [nx, ny] = petWindow.getPosition();
+    updateAnchorBounds({ x: nx, y: ny, width: currentSize, height: currentSize });
+  }
+}
+
+/**
+ * Main-process safety watchdog for hit-window click-through.
+ *
+ * The renderer in petHitRenderer.ts toggles setIgnoreMouseEvents based on
+ * whether the cursor is inside the pet's circular body. That works fine when
+ * the renderer is healthy, but if it ever gets stuck in non-ignore mode (lost
+ * mousemove, renderer hang, pointer-capture glitch), the hit window — which
+ * is alwaysOnTop at screen-saver level — will swallow every click on the
+ * screen until the user force-quits the app. This has happened in practice.
+ *
+ * This watchdog runs in the main process, reads the real cursor position via
+ * `screen.getCursorScreenPoint()` (no renderer involvement), and forces the
+ * hit window back to ignore=true whenever the cursor is clearly outside the
+ * pet's circular body. It is deliberately conservative: it only *enables*
+ * ignore (the safe state) and never disables it, so it cannot interfere with
+ * legitimate interactions.
+ */
+function startHitIgnoreWatchdog(): void {
+  stopHitIgnoreWatchdog();
+  hitIgnoreWatchdog = setInterval(() => {
+    if (!petHitWindow || petHitWindow.isDestroyed()) return;
+    // Skip while a drag is in progress — the drag timer owns window position
+    // and the window must stay interactive to keep receiving the drag.
+    if (dragTimer) return;
+    // Already in the safe state — nothing to recover.
+    if (lastHitIgnoreState) return;
+
+    // The hit window is currently in non-ignore mode. If the real cursor is
+    // no longer inside the pet's circular body (plus slack), force it back
+    // to ignore.
+    const cursor = screen.getCursorScreenPoint();
+    const [wx, wy] = petHitWindow.getPosition();
+    const [ww, wh] = petHitWindow.getSize();
+    const cxw = wx + ww / 2;
+    const cyw = wy + wh / 2;
+    const radius = (Math.min(ww, wh) / 2) * HIT_WATCHDOG_RADIUS_SLACK;
+    const dx = cursor.x - cxw;
+    const dy = cursor.y - cyw;
+
+    if (dx * dx + dy * dy > radius * radius) {
+      petHitWindow.setIgnoreMouseEvents(true, { forward: true });
+      lastHitIgnoreState = true;
+    }
+  }, HIT_WATCHDOG_INTERVAL_MS);
+}
+
+function stopHitIgnoreWatchdog(): void {
+  if (hitIgnoreWatchdog) {
+    clearInterval(hitIgnoreWatchdog);
+    hitIgnoreWatchdog = null;
+  }
+  lastHitIgnoreState = true;
 }
 
 function resizePet(size: PetSize): void {
   if (!petWindow || petWindow.isDestroyed() || !petHitWindow || petHitWindow.isDestroyed()) return;
 
+  // If the user resizes mid-drag, the in-flight drag timer would keep moving the
+  // pet using the *new* hitOffset against the *old* drag origin → window jumps.
+  // Cancel the drag cleanly first; the renderer will be reset via pet:hit-reset
+  // below so subsequent pointerdown starts fresh.
+  if (dragTimer) {
+    endDrag();
+  }
+
   currentSize = size;
   const [x, y] = petWindow.getPosition();
 
-  petWindow.setSize(size, size, false);
+  applyTransparentResize(petWindow, { x, y, width: size, height: size });
 
   const hitSize = Math.round(size * 0.6);
   const hitOffset = Math.round(size * 0.2);
-  petHitWindow.setSize(hitSize, hitSize, false);
-  petHitWindow.setPosition(x + hitOffset, y + hitOffset, false);
+  applyTransparentResize(petHitWindow, {
+    x: x + hitOffset,
+    y: y + hitOffset,
+    width: hitSize,
+    height: hitSize,
+  });
 
   idleTicker?.setPetBounds(x, y, size, size);
 
@@ -435,16 +640,24 @@ function resizePet(size: PetSize): void {
   if (!petWindow.isDestroyed()) {
     petWindow.webContents.send('pet:resize', size);
   }
+
+  // Notify hit window to reset transient drag state and re-evaluate the (now
+  // smaller/larger) hit circle. Without this, Windows users hit a stale-geometry
+  // bug where after shrinking the pet they could only start a drag near the
+  // *old* center, and a pointer capture lost during resize would leave the hit
+  // window stuck in `dragging` cursor mode.
+  if (!petHitWindow.isDestroyed()) {
+    petHitWindow.webContents.send('pet:hit-reset');
+  }
 }
 
 function resetPosition(): void {
   if (!petWindow || petWindow.isDestroyed() || !petHitWindow || petHitWindow.isDestroyed()) return;
 
-  const primaryDisplay = screen.getPrimaryDisplay();
-  const { width: screenWidth, height: screenHeight } = primaryDisplay.workAreaSize;
-  const margin = 20;
-  const x = screenWidth - currentSize - margin;
-  const y = screenHeight - currentSize - margin;
+  // Reset puts the pet back where createPetWindow would have put it for a
+  // fresh launch — the bottom-right of the display that currently hosts the
+  // main AionUi window.
+  const { x, y } = computeInitialPosition(currentSize);
 
   petWindow.setPosition(x, y, false);
 

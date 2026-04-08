@@ -127,8 +127,17 @@ export class PetIdleTicker {
     const relY = cursorY - centerY;
     const dist = Math.sqrt(relX * relX + relY * relY);
 
+    // Values are in SVG viewBox units (viewBox is 58 units wide, window is
+    // 280px, so 1 SVG unit ≈ 4.8 rendered pixels). MAX_X=3 already renders
+    // as ~14px of pupil travel — plenty visible.
+    //
+    // MAX_UP is smaller than MAX_X on purpose: the pupil sits high on the
+    // face, so a full 3-unit upward shift makes it brush the hat and feel
+    // like the eye is "popping out". 2 units keeps it safely inside the
+    // head silhouette. MAX_DOWN stays 1 — looking down too far would slide
+    // into the mouth.
     const MAX_X = 3;
-    const MAX_UP = 3;
+    const MAX_UP = 1.3;
     const MAX_DOWN = 1;
     const RANGE = 300;
 
