@@ -130,6 +130,33 @@ vi.mock('@arco-design/web-react', () => ({
       }}
     />
   ),
+  Collapse: Object.assign(
+    ({
+      children,
+      defaultActiveKey,
+    }: {
+      children: React.ReactNode;
+      defaultActiveKey?: string[];
+      className?: string;
+    }) => (
+      <div data-testid='mock-collapse' data-default-keys={defaultActiveKey?.join(',')}>
+        {children}
+      </div>
+    ),
+    {
+      Item: ({ children, header, name }: { children: React.ReactNode; header: string; name: string }) => (
+        <div data-testid={`collapse-item-${name}`}>
+          <div data-testid='collapse-header'>{header}</div>
+          <div data-testid='collapse-content'>{children}</div>
+        </div>
+      ),
+    }
+  ),
+  Button: ({ children, onClick, size }: { children: React.ReactNode; onClick?: () => void; size?: string }) => (
+    <button onClick={onClick} data-size={size} data-testid='mock-button'>
+      {children}
+    </button>
+  ),
   Radio: Object.assign(
     ({
       value,
@@ -198,6 +225,27 @@ vi.mock('@renderer/components/base/ModalWrapper', () => ({
         </button>
       </div>
     ) : null,
+}));
+
+// Mock agent components
+vi.mock('@renderer/components/agent/AgentModeSelector', () => ({
+  default: () => <div data-testid='agent-mode-selector'>AgentModeSelector</div>,
+}));
+
+vi.mock('@renderer/components/agent/AcpConfigSelector', () => ({
+  default: () => <div data-testid='acp-config-selector'>AcpConfigSelector</div>,
+}));
+
+// Mock agent utils
+vi.mock('@renderer/utils/model/agentModes', () => ({
+  supportsModeSwitch: () => false,
+}));
+
+// Mock ConfigStorage
+vi.mock('@/common/config/storage', () => ({
+  ConfigStorage: {
+    get: vi.fn().mockResolvedValue({}),
+  },
 }));
 
 // Mock hooks

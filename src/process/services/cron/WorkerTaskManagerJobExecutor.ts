@@ -72,6 +72,13 @@ export class WorkerTaskManagerJobExecutor implements ICronJobExecutor {
         const exists = await convService.getConversation(conversationId);
         if (!exists) {
           needsCreate = true;
+        } else {
+          // Workspace change detection: force new conversation if workspace differs
+          const currentWorkspace = exists.extra?.workspace as string | undefined;
+          const configWorkspace = job.metadata.agentConfig?.workspace;
+          if (currentWorkspace !== configWorkspace) {
+            needsCreate = true;
+          }
         }
       }
 
@@ -136,6 +143,34 @@ export class WorkerTaskManagerJobExecutor implements ICronJobExecutor {
     // Notify caller so it can register onceIdle callbacks while the conversation
     // is already marked busy (prevents premature idle fires).
     onAcquired?.();
+
+    // Apply mode if configured
+    if (job.metadata.agentConfig?.mode) {
+      try {
+        if ('setMode' in task && typeof (task as { setMode?: (mode: string) => void }).setMode === 'function') {
+          (task as { setMode: (mode: string) => void }).setMode(job.metadata.agentConfig.mode);
+        }
+      } catch (err) {
+        console.warn(`[CronExecutor] Failed to set mode ${job.metadata.agentConfig.mode} for job ${job.id}:`, err);
+      }
+    }
+
+    // Apply config options if configured
+    if (job.metadata.agentConfig?.configOptions) {
+      try {
+        const configOptions = job.metadata.agentConfig.configOptions;
+        for (const [configId, value] of Object.entries(configOptions)) {
+          if (
+            'setConfigOption' in task &&
+            typeof (task as { setConfigOption?: (id: string, val: string) => void }).setConfigOption === 'function'
+          ) {
+            (task as { setConfigOption: (id: string, val: string) => void }).setConfigOption(configId, value);
+          }
+        }
+      } catch (err) {
+        console.warn(`[CronExecutor] Failed to set config options for job ${job.id}:`, err);
+      }
+    }
 
     const workspace = (task as { workspace?: string }).workspace;
     const workspaceFiles = workspace ? await copyFilesToDirectory(workspace, [], false) : [];
@@ -222,6 +257,7 @@ export class WorkerTaskManagerJobExecutor implements ICronJobExecutor {
         customAgentId: config.customAgentId,
         presetAssistantId: config.isPreset ? config.customAgentId : undefined,
         cronJobId: job.id,
+        ...(config.workspace ? { workspace: config.workspace } : {}),
         ...(hasSkill
           ? { extraSkillPaths: [cronSkillDir], excludeBuiltinSkills: ['cron'] }
           : { excludeBuiltinSkills: ['cron'] }),

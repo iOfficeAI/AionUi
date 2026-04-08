@@ -78,6 +78,7 @@
   "name": "Name",
   "added": "Added",
   "status": "Status",
+  "agentMode": "Agent Mode",
   "refreshSuccess": "Refreshed",
   "import": "Import",
   "processing": "Processing...",

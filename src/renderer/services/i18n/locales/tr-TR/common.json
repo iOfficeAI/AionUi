@@ -78,6 +78,7 @@
   "name": "Ad",
   "added": "Eklendi",
   "status": "Durum",
+  "agentMode": "Agent Modu",
   "refreshSuccess": "Yenilendi",
   "import": "İçe Aktar",
   "processing": "İşleniyor...",

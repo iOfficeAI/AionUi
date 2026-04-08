@@ -18,6 +18,7 @@ import { isConversationPinned } from '@renderer/pages/conversation/GroupedHistor
 import { refreshConversationCache } from '@/renderer/pages/conversation/utils/conversationCache';
 import { useCronJobConversations } from '@renderer/pages/cron/useCronJobs';
 import ConversationRow from '@renderer/pages/conversation/GroupedHistory/ConversationRow';
+import { useConversationHistoryContext } from '@renderer/hooks/context/ConversationHistoryContext';
 
 interface CronJobSiderItemProps {
   job: ICronJob;
@@ -39,6 +40,7 @@ const CronJobSiderItem: React.FC<CronJobSiderItemProps> = ({
   const isNewConversationMode = job.target.executionMode === 'new_conversation';
   // Always fetch all child conversations regardless of mode
   const { conversations } = useCronJobConversations(job.id);
+  const { isConversationGenerating, hasCompletionUnread, clearCompletionUnread } = useConversationHistoryContext();
 
   // Show all child conversations in both modes; include existingConversationProp as fallback
   const childConversations = useMemo(() => {
@@ -71,9 +73,10 @@ const CronJobSiderItem: React.FC<CronJobSiderItemProps> = ({
   // --- ConversationRow action handlers ---
   const handleConversationClick = useCallback(
     (conv: TChatConversation) => {
+      clearCompletionUnread(conv.id);
       onNavigate(`/conversation/${conv.id}`);
     },
-    [onNavigate]
+    [clearCompletionUnread, onNavigate]
   );
 
   const handleDelete = useCallback(
@@ -230,8 +233,8 @@ const CronJobSiderItem: React.FC<CronJobSiderItemProps> = ({
               <ConversationRow
                 key={conv.id}
                 conversation={conv}
-                isGenerating={false}
-                hasCompletionUnread={false}
+                isGenerating={isConversationGenerating(conv.id)}
+                hasCompletionUnread={hasCompletionUnread(conv.id)}
                 collapsed={false}
                 tooltipEnabled={false}
                 batchMode={false}
