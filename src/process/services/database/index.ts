@@ -105,12 +105,25 @@ export class AionUIDatabase {
     ensureDirectory(dir);
 
     // Attempt normal initialization
+    let failedDriver: ISqliteDriver | null = null;
     try {
       const driver = await createDriver(dbPath);
+      failedDriver = driver;
       const instance = new AionUIDatabase(driver);
       instance.initialize();
       return instance;
     } catch (error) {
+      // Close the driver opened during the failed attempt.
+      // On Windows, leaving it open locks the file and prevents recovery (EPERM).
+      if (failedDriver) {
+        try {
+          failedDriver.close();
+        } catch {
+          // ignore close errors during recovery
+        }
+        failedDriver = null;
+      }
+
       // Distinguish driver-level errors (native module mismatch, missing .node file)
       // from actual database corruption. Driver errors must NOT trigger recovery —
       // replacing a healthy database because of a build tooling issue causes data loss.
