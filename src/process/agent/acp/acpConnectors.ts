@@ -28,6 +28,7 @@ import {
   getNpxCacheDir,
   getWindowsShellExecutionOptions,
   loadFullShellEnvironment,
+  resolveNpxDirect,
   resolveNpxPath,
 } from '@process/utils/shellEnv';
 import { mainLog, mainWarn } from '@process/utils/mainLogger';
@@ -286,6 +287,11 @@ export type SpawnResult = { child: ChildProcess; isDetached: boolean };
 export type NpxPrepareResult = {
   cleanEnv: Record<string, string | undefined>;
   npxCommand: string;
+  /**
+   * Windows-only: absolute paths for direct `node.exe npx-cli.js` invocation,
+   * bypassing `.cmd` shims whose `%~dp0` can resolve to the wrong directory.
+   */
+  directInvoke?: { nodePath: string; npxScript: string };
   extraArgs?: string[];
 };
 
@@ -303,7 +309,16 @@ export function spawnNpxBackend(
   workingDir: string,
   isWindows: boolean,
   preferOffline: boolean,
-  { extraArgs = [], detached = false }: { extraArgs?: string[]; detached?: boolean } = {}
+  {
+    extraArgs = [],
+    detached = false,
+    directInvoke,
+  }: {
+    extraArgs?: string[];
+    detached?: boolean;
+    /** Windows: bypass .cmd shims with direct node.exe + npx-cli.js invocation */
+    directInvoke?: { nodePath: string; npxScript: string };
+  } = {}
 ): SpawnResult {
   const spawnArgs = ['--yes', ...(preferOffline ? ['--prefer-offline'] : []), npxPackage, ...extraArgs];
 
@@ -312,7 +327,16 @@ export function spawnNpxBackend(
   // Required for backends (e.g. CodeBuddy) that write to /dev/tty — without it, SIGTTOU
   // would suspend the entire Electron process group and freeze the UI.
   // On Windows, prefix with chcp 65001 to switch console to UTF-8, preventing GBK garbling.
-  const effectiveCommand = isWindows ? `chcp 65001 >nul && "${npxCommand}"` : npxCommand;
+  let effectiveCommand: string;
+  if (isWindows && directInvoke) {
+    // Bypass .cmd shims: invoke node.exe with npx-cli.js directly.
+    // .cmd batch files use %~dp0 to resolve sibling paths — this can break when the
+    // working directory or Node.js version manager shims interfere with path resolution,
+    // producing "Cannot find module '<cwd>\node_modules\npm\bin\npm-cli.js'" errors.
+    effectiveCommand = `chcp 65001 >nul && "${directInvoke.nodePath}" "${directInvoke.npxScript}"`;
+  } else {
+    effectiveCommand = isWindows ? `chcp 65001 >nul && "${npxCommand}"` : npxCommand;
+  }
   const child = spawn(effectiveCommand, spawnArgs, {
     cwd: workingDir,
     stdio: ['pipe', 'pipe', 'pipe'],
@@ -335,7 +359,7 @@ export function spawnNpxBackend(
 async function prepareClaude(): Promise<NpxPrepareResult> {
   const cleanEnv = await prepareCleanEnv();
   ensureMinNodeVersion(cleanEnv, 20, 10, 'Claude ACP bridge');
-  return { cleanEnv, npxCommand: resolveNpxPath(cleanEnv) };
+  return { cleanEnv, npxCommand: resolveNpxPath(cleanEnv), directInvoke: resolveNpxDirect(cleanEnv) ?? undefined };
 }
 
 /** Prepare clean env + resolve npx + run diagnostics for Codex ACP bridge. */
@@ -383,7 +407,7 @@ async function prepareCodex(codexAcpPackage: string = CODEX_ACP_NPX_PACKAGE): Pr
     mainWarn('[ACP codex]', 'Failed to read codex login status', error);
   }
 
-  return { cleanEnv, npxCommand: resolveNpxPath(cleanEnv) };
+  return { cleanEnv, npxCommand: resolveNpxPath(cleanEnv), directInvoke: resolveNpxDirect(cleanEnv) ?? undefined };
 }
 
 async function resolveCachedCodexAcpBinary(): Promise<{ binaryPath: string; packageSpecifier: string } | null> {
@@ -453,7 +477,12 @@ async function prepareCodebuddy(): Promise<NpxPrepareResult> {
     mainWarn('[ACP]', 'No CodeBuddy MCP config found, starting without MCP servers');
   }
 
-  return { cleanEnv, npxCommand: resolveNpxPath(cleanEnv), extraArgs };
+  return {
+    cleanEnv,
+    npxCommand: resolveNpxPath(cleanEnv),
+    directInvoke: resolveNpxDirect(cleanEnv) ?? undefined,
+    extraArgs,
+  };
 }
 
 /**
@@ -524,13 +553,14 @@ async function connectNpxBackend(config: {
   const { backend, npxPackage, prepareFn, workingDir, setup, cleanup } = config;
 
   const envStart = Date.now();
-  const { cleanEnv, npxCommand, extraArgs: prepExtraArgs = [] } = await prepareFn();
+  const { cleanEnv, npxCommand, directInvoke, extraArgs: prepExtraArgs = [] } = await prepareFn();
   if (ACP_PERF_LOG) console.log(`[ACP-PERF] ${backend}: env prepared ${Date.now() - envStart}ms`);
 
   const isWindows = process.platform === 'win32';
   const opts = {
     extraArgs: [...(config.extraArgs ?? []), ...prepExtraArgs],
     detached: config.detached ?? false,
+    directInvoke,
   };
 
   // Phase 1: Try with --prefer-offline for fast startup

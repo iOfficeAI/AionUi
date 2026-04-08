@@ -611,6 +611,63 @@ export function resolveNpxPath(env: Record<string, string | undefined>): string 
 }
 
 /**
+ * Resolve node.exe and npx-cli.js paths for direct invocation on Windows.
+ *
+ * On Windows, `.cmd` shims (npm.cmd, npx.cmd) use `%~dp0` to resolve paths
+ * relative to the batch file's directory. In certain environments (e.g.,
+ * version manager shims, non-standard Node.js installations), `%~dp0` can
+ * resolve incorrectly, causing the child process to look for npm-cli.js /
+ * npx-cli.js in the wrong directory (e.g., the working directory instead of
+ * the Node.js installation).
+ *
+ * This function returns the absolute paths to node.exe and npx-cli.js so
+ * callers can bypass .cmd shims entirely by running `node.exe npx-cli.js`.
+ *
+ * @param env - Environment to use for locating node (should include shell PATH)
+ * @returns Object with nodePath and npxScript, or null on non-Windows / failure
+ */
+export function resolveNpxDirect(
+  env: Record<string, string | undefined>
+): { nodePath: string; npxScript: string } | null {
+  if (process.platform !== 'win32') return null;
+
+  try {
+    const nodePath = execFileSync('where', ['node'], {
+      env,
+      encoding: 'utf-8',
+      timeout: 5000,
+      stdio: ['pipe', 'pipe', 'pipe'],
+      ...getWindowsShellExecutionOptions(),
+    })
+      .trim()
+      .split(/\r?\n/)[0];
+
+    const npmBinDir = path.join(path.dirname(nodePath), 'node_modules', 'npm', 'bin');
+    const npxCliJs = path.join(npmBinDir, 'npx-cli.js');
+    const npmPrefixJs = path.join(npmBinDir, 'npm-prefix.js');
+
+    // npx-cli.js requires npm-prefix.js at runtime — verify both exist
+    if (!existsSync(npxCliJs) || !existsSync(npmPrefixJs)) return null;
+
+    // Verify the npx-cli.js actually works
+    const versionOutput = execFileSync(nodePath, [npxCliJs, '--version'], {
+      env,
+      encoding: 'utf-8',
+      timeout: 5000,
+      stdio: ['pipe', 'pipe', 'pipe'],
+      windowsHide: true,
+    }).trim();
+
+    const majorVersion = parseInt(versionOutput.split('.')[0], 10);
+    if (majorVersion < 7) return null;
+
+    return { nodePath, npxScript: npxCliJs };
+  } catch {
+    return null;
+  }
+}
+
+/**
  * Promise-based dedup guard so concurrent callers share one spawn.
  * Without this, a second caller arriving before the first await resolves
  * would see cachedFullShellEnv as {} and return an empty env.
