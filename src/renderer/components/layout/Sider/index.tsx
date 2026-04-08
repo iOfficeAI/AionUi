@@ -266,7 +266,7 @@ const Sider: React.FC<SiderProps> = ({ onSessionClick, collapsed = false }) => {
                       className='h-20px w-20px rd-4px flex items-center justify-center cursor-pointer hover:bg-fill-3 transition-all shrink-0'
                       onClick={() => setCreateTeamVisible(true)}
                     >
-                      <Plus theme='outline' size='14' fill='var(--color-text-2)' />
+                      <Plus theme='outline' size='14' fill='var(--color-text-2)' style={{ lineHeight: 0 }} />
                     </div>
                   </div>
                   {sortedTeams.length > 0 &&
