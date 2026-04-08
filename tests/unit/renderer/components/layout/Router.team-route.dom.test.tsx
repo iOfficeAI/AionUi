@@ -1,4 +1,4 @@
-import { render, screen } from '@testing-library/react';
+import { render, screen, waitFor } from '@testing-library/react';
 import React from 'react';
 import { Outlet } from 'react-router-dom';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
@@ -24,13 +24,16 @@ describe('PanelRoute team entry guard', () => {
     window.location.hash = '#/guid';
   });
 
-  it('does not redirect team routes when team mode is enabled', async () => {
+  it('redirects team routes back to guid when team mode is hidden', async () => {
     window.location.hash = '#/team/team-1';
 
     render(<PanelRoute layout={<LayoutShell />} />);
 
-    // Team mode is enabled: hash should stay on /team/... (no redirect to /guid)
-    expect(window.location.hash).toBe('#/team/team-1');
+    await waitFor(() => {
+      expect(window.location.hash).toBe('#/guid');
+    });
+
+    expect(await screen.findByTestId('guid-page')).toBeInTheDocument();
   });
 
   it('still renders the guid route normally', async () => {
