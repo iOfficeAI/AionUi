@@ -296,10 +296,11 @@ function registerIpcHandlers(): void {
     if (!petWindow || petWindow.isDestroyed() || !petHitWindow || petHitWindow.isDestroyed()) return;
 
     // Defensive: if a previous drag never reached drag-end (e.g. dropped
-    // pointerup), the timer/watchdog could still be live. Clean them up before
-    // starting fresh so we never stack two follow-loops.
+    // pointerup), the timer/watchdog could still be live. Tear it down through
+    // endDrag() — not just clearDragTimer() — so the leftover preDragState and
+    // state machine are also reset before we snapshot the new drag below.
     if (dragTimer || dragWatchdog) {
-      clearDragTimer();
+      endDrag();
     }
 
     const cursor = screen.getCursorScreenPoint();
@@ -470,13 +471,16 @@ function clearDragTimer(): void {
 }
 
 /**
- * End the current drag (if any): stop the follow timer, restore the pre-drag
- * AI state, reset idle, and update the confirm-window anchor. Single source of
- * truth — invoked by the normal pet:drag-end IPC, by the watchdog timeout, by
- * resizePet (mid-drag size change), and by destroyPetWindow.
+ * End the current drag: stop the follow timer + watchdog, restore the
+ * pre-drag AI state (or idle), reset idle tracking, and update the confirm
+ * window anchor. Single source of truth — invoked by the pet:drag-end IPC,
+ * the watchdog timeout, and resizePet's mid-drag guard.
  *
- * Safe to call when no drag is in progress (clearDragTimer() is a no-op then,
- * and forceState('idle') just no-ops if we're already idle).
+ * IMPORTANT: callers must guarantee a drag is actually in progress (or that
+ * the windows are about to be destroyed). This unconditionally forces the
+ * state machine to `restoreTo`, which will clobber any AI-driven state if
+ * called outside a drag — every existing call site either checks dragTimer
+ * first or only runs from a drag-related code path.
  */
 function endDrag(): void {
   clearDragTimer();

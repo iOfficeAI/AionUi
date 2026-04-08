@@ -63,15 +63,16 @@ document.addEventListener('pointerup', (e: PointerEvent) => {
 });
 
 /**
- * Backup drag-end triggers for cases where pointerup never fires:
+ * Backup drag-end trigger for cases where pointerup never fires.
+ * pointercancel is emitted when the OS or browser cancels the gesture (touch
+ * interrupted, another window steals capture, etc). It fires well before the
+ * main-process drag watchdog (8s) and lets the user recover instantly.
  *
- *   - pointercancel: emitted when the OS or browser cancels the gesture (touch
- *     interrupted, another window steals capture, etc).
- *   - window blur: when a system event takes focus mid-drag, pointerup is
- *     often delivered to the new foreground window instead of us.
- *
- * Both fire well before the main-process drag watchdog (8s) and let the user
- * recover instantly. Only emits dragEnd if a real drag was in progress.
+ * We deliberately do NOT listen for window 'blur' here: on macOS a system
+ * notification or popup can briefly steal focus mid-drag without actually
+ * cancelling the user's mouse hold, and we'd cut their drag short. The
+ * main-process watchdog covers the rare case where pointercancel is also
+ * dropped.
  */
 function abortDrag(): void {
   if (!isDragging) return;
@@ -84,7 +85,6 @@ function abortDrag(): void {
 }
 
 hitEl.addEventListener('pointercancel', abortDrag);
-window.addEventListener('blur', abortDrag);
 
 document.addEventListener('contextmenu', (e) => e.preventDefault());
 
