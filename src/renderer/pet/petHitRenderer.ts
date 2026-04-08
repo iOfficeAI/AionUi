@@ -62,6 +62,30 @@ document.addEventListener('pointerup', (e: PointerEvent) => {
   }, CLICK_WINDOW);
 });
 
+/**
+ * Backup drag-end triggers for cases where pointerup never fires:
+ *
+ *   - pointercancel: emitted when the OS or browser cancels the gesture (touch
+ *     interrupted, another window steals capture, etc).
+ *   - window blur: when a system event takes focus mid-drag, pointerup is
+ *     often delivered to the new foreground window instead of us.
+ *
+ * Both fire well before the main-process drag watchdog (8s) and let the user
+ * recover instantly. Only emits dragEnd if a real drag was in progress.
+ */
+function abortDrag(): void {
+  if (!isDragging) return;
+  isDragging = false;
+  hitEl.classList.remove('dragging');
+  if (didDrag) {
+    window.petHitAPI.dragEnd();
+  }
+  didDrag = false;
+}
+
+hitEl.addEventListener('pointercancel', abortDrag);
+window.addEventListener('blur', abortDrag);
+
 document.addEventListener('contextmenu', (e) => e.preventDefault());
 
 // Click-through: toggle ignore based on mouse position relative to pet body circle.

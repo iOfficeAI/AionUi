@@ -31,9 +31,20 @@ let idleTicker: PetIdleTicker | null = null;
 let eventBridge: PetEventBridge | null = null;
 let currentSize: PetSize = 280;
 let dragTimer: ReturnType<typeof setInterval> | null = null;
+let dragWatchdog: ReturnType<typeof setTimeout> | null = null;
 let dragOffsetX = 0;
 let dragOffsetY = 0;
 let preDragState: PetState | null = null;
+
+// Tick interval for the drag-follow timer (~60 FPS).
+const DRAG_TICK_MS = 16;
+// Hard timeout: if drag-end never arrives within this window, the main process
+// force-ends the drag. Belt-and-braces against the renderer dropping pointerup
+// (Windows transparent + frameless windows can lose pointer capture across a
+// resize/move, leaving the pet stuck following the cursor with no way to stop
+// short of restarting the app). 8s is generous enough that a real human drag
+// — even one with a pause to think — completes well before then.
+const DRAG_WATCHDOG_MS = 8000;
 // Whether tool-call confirmations should be routed to the pet's bubble window.
 // When false, the pet still runs normally but confirmation requests stay in the
 // main chat window. Updated at runtime via setPetConfirmEnabled() and read on
@@ -284,6 +295,13 @@ function registerIpcHandlers(): void {
   ipcMain.on('pet:drag-start', () => {
     if (!petWindow || petWindow.isDestroyed() || !petHitWindow || petHitWindow.isDestroyed()) return;
 
+    // Defensive: if a previous drag never reached drag-end (e.g. dropped
+    // pointerup), the timer/watchdog could still be live. Clean them up before
+    // starting fresh so we never stack two follow-loops.
+    if (dragTimer || dragWatchdog) {
+      clearDragTimer();
+    }
+
     const cursor = screen.getCursorScreenPoint();
     const windowPos = petWindow.getPosition();
     dragOffsetX = cursor.x - windowPos[0];
@@ -297,7 +315,7 @@ function registerIpcHandlers(): void {
 
     dragTimer = setInterval(() => {
       if (!petWindow || petWindow.isDestroyed() || !petHitWindow || petHitWindow.isDestroyed()) {
-        clearDragTimer();
+        endDrag();
         return;
       }
 
@@ -311,21 +329,21 @@ function registerIpcHandlers(): void {
       petHitWindow.setPosition(newX + hitOffset, newY + hitOffset, false);
 
       idleTicker?.setPetBounds(newX, newY, currentSize, currentSize);
-    }, 16);
+    }, DRAG_TICK_MS);
+
+    dragWatchdog = setTimeout(() => {
+      console.warn('[Pet] drag-end not received in', DRAG_WATCHDOG_MS, 'ms — force-ending drag');
+      endDrag();
+      // The renderer almost certainly has stale drag state too (since we never
+      // got pointerup). Reset it so the user can start a fresh drag.
+      if (petHitWindow && !petHitWindow.isDestroyed()) {
+        petHitWindow.webContents.send('pet:hit-reset');
+      }
+    }, DRAG_WATCHDOG_MS);
   });
 
   ipcMain.on('pet:drag-end', () => {
-    clearDragTimer();
-    // Restore pre-drag AI state if there was one, otherwise return to idle
-    const restoreTo: PetState = preDragState ?? 'idle';
-    preDragState = null;
-    stateMachine?.forceState(restoreTo);
-    idleTicker?.resetIdle();
-    // Update anchor after drag so next confirm window appears at the new position
-    if (petWindow && !petWindow.isDestroyed()) {
-      const [nx, ny] = petWindow.getPosition();
-      updateAnchorBounds({ x: nx, y: ny, width: currentSize, height: currentSize });
-    }
+    endDrag();
   });
 
   ipcMain.on('pet:click', (_event, data: { side: string; count: number }) => {
@@ -412,6 +430,31 @@ function clearDragTimer(): void {
     clearInterval(dragTimer);
     dragTimer = null;
   }
+  if (dragWatchdog) {
+    clearTimeout(dragWatchdog);
+    dragWatchdog = null;
+  }
+}
+
+/**
+ * End the current drag (if any): stop the follow timer, restore the pre-drag
+ * AI state, reset idle, and update the confirm-window anchor. Single source of
+ * truth — invoked by the normal pet:drag-end IPC, by the watchdog timeout, by
+ * resizePet (mid-drag size change), and by destroyPetWindow.
+ *
+ * Safe to call when no drag is in progress (clearDragTimer() is a no-op then,
+ * and forceState('idle') just no-ops if we're already idle).
+ */
+function endDrag(): void {
+  clearDragTimer();
+  const restoreTo: PetState = preDragState ?? 'idle';
+  preDragState = null;
+  stateMachine?.forceState(restoreTo);
+  idleTicker?.resetIdle();
+  if (petWindow && !petWindow.isDestroyed()) {
+    const [nx, ny] = petWindow.getPosition();
+    updateAnchorBounds({ x: nx, y: ny, width: currentSize, height: currentSize });
+  }
 }
 
 function resizePet(size: PetSize): void {
@@ -422,10 +465,7 @@ function resizePet(size: PetSize): void {
   // Cancel the drag cleanly first; the renderer will be reset via pet:hit-reset
   // below so subsequent pointerdown starts fresh.
   if (dragTimer) {
-    clearDragTimer();
-    const restoreTo: PetState = preDragState ?? 'idle';
-    preDragState = null;
-    stateMachine?.forceState(restoreTo);
+    endDrag();
   }
 
   currentSize = size;
