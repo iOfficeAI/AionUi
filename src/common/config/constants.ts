@@ -58,7 +58,8 @@ export const WEBUI_DEFAULT_PORT = (() => {
   return 25809;
 })();
 
-export const TEAM_MODE_ENABLED = true;
+/** Team mode entry points are temporarily hidden until the feature is usable again. */
+export const TEAM_MODE_ENABLED = false;
 
 // ===== AI Provider 相关常量 =====
 
