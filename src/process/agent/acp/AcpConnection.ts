@@ -384,6 +384,10 @@ export class AcpConnection {
     const processExitPromise = new Promise<never>((_resolve, reject) => {
       processExitReject = reject;
     });
+    // Eagerly attach a no-op rejection handler so that if the process fails
+    // before we reach Promise.race (e.g. ENOENT from a missing CLI binary),
+    // the rejection does not become an unhandled promise rejection.
+    processExitPromise.catch(() => {});
 
     // Exit handler for both startup and runtime phases
     child.on('exit', (code, signal) => {
@@ -471,10 +475,7 @@ export class AcpConnection {
       ]);
     } finally {
       // Neutralize processExitReject so later exits won't call a stale reject.
-      // Attach .catch only now — prevents unhandled rejection if the process exits
-      // after setup completed (or after another racer won).
       processExitReject = null;
-      processExitPromise.catch(() => {});
     }
     if (ACP_PERF_LOG) console.log(`[ACP-PERF] connect: protocol initialized ${Date.now() - initStart}ms`);
 
