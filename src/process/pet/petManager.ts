@@ -417,6 +417,17 @@ function clearDragTimer(): void {
 function resizePet(size: PetSize): void {
   if (!petWindow || petWindow.isDestroyed() || !petHitWindow || petHitWindow.isDestroyed()) return;
 
+  // If the user resizes mid-drag, the in-flight drag timer would keep moving the
+  // pet using the *new* hitOffset against the *old* drag origin → window jumps.
+  // Cancel the drag cleanly first; the renderer will be reset via pet:hit-reset
+  // below so subsequent pointerdown starts fresh.
+  if (dragTimer) {
+    clearDragTimer();
+    const restoreTo: PetState = preDragState ?? 'idle';
+    preDragState = null;
+    stateMachine?.forceState(restoreTo);
+  }
+
   currentSize = size;
   const [x, y] = petWindow.getPosition();
 
@@ -434,6 +445,15 @@ function resizePet(size: PetSize): void {
 
   if (!petWindow.isDestroyed()) {
     petWindow.webContents.send('pet:resize', size);
+  }
+
+  // Notify hit window to reset transient drag state and re-evaluate the (now
+  // smaller/larger) hit circle. Without this, Windows users hit a stale-geometry
+  // bug where after shrinking the pet they could only start a drag near the
+  // *old* center, and a pointer capture lost during resize would leave the hit
+  // window stuck in `dragging` cursor mode.
+  if (!petHitWindow.isDestroyed()) {
+    petHitWindow.webContents.send('pet:hit-reset');
   }
 }
 

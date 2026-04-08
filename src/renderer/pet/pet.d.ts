@@ -10,6 +10,7 @@ interface PetHitAPI {
   click: (data: { side: string; count: number }) => void;
   contextMenu: () => void;
   setIgnoreMouseEvents: (ignore: boolean, options?: { forward: boolean }) => void;
+  onHitReset: (cb: () => void) => void;
 }
 
 interface PetConfirmAPI {
