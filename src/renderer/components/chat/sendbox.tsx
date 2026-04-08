@@ -1451,7 +1451,7 @@ const SendBox: React.FC<{
               minWidth: 0,
               maxWidth: '100%',
               marginBottom: isSingleLine ? 0 : '8px',
-              minHeight: isSingleLine ? '20px' : '80px',
+              minHeight: isSingleLine ? '20px' : '40px',
             }}
           >
             <div
@@ -1478,7 +1478,7 @@ const SendBox: React.FC<{
                 marginRight: 0,
                 marginBottom: 0,
                 height: isSingleLine ? '20px' : 'auto',
-                minHeight: isSingleLine ? '20px' : '80px',
+                minHeight: isSingleLine ? '20px' : '40px',
                 overflowY: isSingleLine ? 'hidden' : 'auto',
                 overflowX: 'hidden',
                 whiteSpace: isSingleLine ? 'nowrap' : 'pre-wrap',
