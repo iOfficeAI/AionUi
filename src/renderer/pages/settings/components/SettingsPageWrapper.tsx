@@ -20,7 +20,7 @@ import {
 import { useTranslation } from 'react-i18next';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { useExtI18n } from '@/renderer/hooks/system/useExtI18n';
-import { BUILTIN_TAB_IDS } from './SettingsSider';
+import { BUILTIN_TAB_IDS, LEGACY_ANCHOR_REMAP } from './SettingsSider';
 import './settings.css';
 
 interface SettingsPageWrapperProps {
@@ -108,11 +108,13 @@ const SettingsPageWrapper: React.FC<SettingsPageWrapperProps> = ({ children, cla
         unanchored.push(tab);
         continue;
       }
-      const map = tab.position.placement === 'before' ? beforeMap : afterMap;
-      let list = map.get(tab.position.anchor);
+      const { anchor: rawAnchor, placement } = tab.position;
+      const anchor = LEGACY_ANCHOR_REMAP[rawAnchor] ?? rawAnchor;
+      const map = placement === 'before' ? beforeMap : afterMap;
+      let list = map.get(anchor);
       if (!list) {
         list = [];
-        map.set(tab.position.anchor, list);
+        map.set(anchor, list);
       }
       list.push(tab);
     }

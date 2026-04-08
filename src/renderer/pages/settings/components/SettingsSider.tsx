@@ -42,7 +42,7 @@ export const BUILTIN_TAB_IDS = [
  * When an extension anchors to one of these, it is redirected to the new host.
  * This keeps older extensions working without requiring them to update.
  */
-const LEGACY_ANCHOR_REMAP: Record<string, string> = {
+export const LEGACY_ANCHOR_REMAP: Record<string, string> = {
   'skills-hub': 'capabilities',
   tools: 'capabilities',
 };
