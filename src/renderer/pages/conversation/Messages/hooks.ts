@@ -417,9 +417,11 @@ export const useMessageLstCache = (key: string) => {
         const initialMessages = isMobile ? latestPageDesc.toReversed() : latestPageDesc;
         mergeDbMessages(initialMessages);
 
-        // Mobile optimization intentionally stops after the most recent page.
-        // Background prepending of older pages can trigger repeated scroll reflow
-        // in Virtuoso, which is worse than a slower full-history load.
+        // Mobile optimization: only load the most recent PAGE_SIZE messages.
+        // Background prepending of older pages triggers repeated scroll reflow
+        // in Virtuoso, which degrades the experience more than a slower full-history load.
+        // Trade-off: mobile shows only the most recent messages; a future "load more"
+        // entry point can be added to let users access older history on demand.
         return;
       } catch (error) {
         console.error('[useMessageLstCache] Failed to load messages from database:', error);
