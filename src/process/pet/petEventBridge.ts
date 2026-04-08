@@ -48,7 +48,11 @@ export class PetEventBridge {
         targetState = 'working';
         break;
       case 'finish':
-        targetState = 'happy';
+        // `done` is the functional completion signal (bubble + check).
+        // `happy` is reserved for user-initiated affection (right-click
+        // "pat") so the two animations carry distinct meanings instead
+        // of happy being both "AI finished" and "user petted me".
+        targetState = 'done';
         break;
       case 'error':
         targetState = 'error';
@@ -70,7 +74,7 @@ export class PetEventBridge {
   handleTurnCompleted(): void {
     if (this.disposed) return;
     this.ticker.resetIdle();
-    this.sm.requestState('happy');
+    this.sm.requestState('done');
   }
 
   handleConfirmationAdd(): void {

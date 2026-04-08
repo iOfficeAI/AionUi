@@ -1,0 +1,153 @@
+<svg viewBox="-18 -18 58 58" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <style>
+      /* `done` = full happy animation + a pixel bubble overlay holding
+         a green check. The happy half gives personality (jumps, waving
+         arms, ^^ eyes, blush, sparkles). The bubble half carries the
+         semantic "task completed" signal. Both loop infinitely — the
+         state machine's AUTO_RETURN handles cleanup after a few seconds,
+         same as the old `happy` wiring. */
+
+      /* === Happy body (identical timings to happy.svg) === */
+      .done-body {
+        transform-origin: 11px 18px;
+        animation: done-jump 1s ease-in-out infinite;
+      }
+      .done-shadow {
+        transform-origin: 11px 22.5px;
+        animation: done-shadow 1s ease-in-out infinite;
+      }
+      .done-arm-l {
+        transform-origin: 3.5px 10.5px;
+        animation: done-arm-l 0.5s ease-in-out infinite alternate;
+      }
+      .done-arm-r {
+        transform-origin: 18.5px 10.5px;
+        animation: done-arm-r 0.5s ease-in-out infinite alternate;
+      }
+      .done-spark { opacity: 0; }
+      .done-sp1 { animation: done-spark-flash 1.5s step-end infinite; animation-delay: 0s; }
+      .done-sp2 { animation: done-spark-flash 1.5s step-end infinite; animation-delay: 0.5s; }
+      .done-sp3 { animation: done-spark-flash 1.5s step-end infinite; animation-delay: 1s; }
+      .done-sp4 { animation: done-spark-flash 1.5s step-end infinite; animation-delay: 0.75s; }
+
+      /* === Bubble overlay — "speaking at you from the side" ===
+         Positioned fully to the right of the pet's body, at face level
+         (y≈9, same as the eyes). This keeps the bubble clear of the
+         waving right arm (x 17..20, y 9..12) and the head silhouette,
+         so nothing overlaps as the pet jumps. Pop origin at the tail
+         root so the bubble visually emerges from the face. */
+      .done-bubble {
+        transform-origin: 21px 9px;
+        transform: scale(0);
+        animation: done-bubble-pop 0.4s cubic-bezier(0.34, 1.56, 0.64, 1) 0.15s forwards;
+      }
+      /* Check mark draws in after the bubble settles, using a
+         stroke-dasharray "writing" effect so it feels hand-drawn. */
+      .done-chk {
+        stroke-dasharray: 8;
+        stroke-dashoffset: 8;
+        animation: done-chk-draw 0.25s ease-out 0.5s forwards;
+      }
+
+      @keyframes done-jump {
+        0%,100% { transform: translateY(0) scaleY(1); }
+        12%     { transform: translateY(0) scaleY(0.86); }
+        30%     { transform: translateY(-7px) scaleY(1.07); }
+        50%     { transform: translateY(-8px) scaleY(1); }
+        70%     { transform: translateY(-7px) scaleY(1.07); }
+        88%     { transform: translateY(0) scaleY(0.86); }
+      }
+      @keyframes done-shadow {
+        0%,100% { transform: scaleX(1); opacity: 0.35; }
+        30%,70% { transform: scaleX(0.4); opacity: 0.07; }
+      }
+      @keyframes done-arm-l {
+        from { transform: rotate(-55deg); }
+        to   { transform: rotate(-65deg); }
+      }
+      @keyframes done-arm-r {
+        from { transform: rotate(55deg); }
+        to   { transform: rotate(65deg); }
+      }
+      @keyframes done-spark-flash {
+        0%  { opacity: 0; }
+        10% { opacity: 1; }
+        30% { opacity: 0; }
+        100%{ opacity: 0; }
+      }
+      @keyframes done-bubble-pop {
+        0%   { transform: scale(0); }
+        60%  { transform: scale(1.2); }
+        100% { transform: scale(1); }
+      }
+      @keyframes done-chk-draw {
+        to { stroke-dashoffset: 0; }
+      }
+    </style>
+  </defs>
+
+  <!-- === Happy's sparkle layer (unchanged) === -->
+  <g class="done-spark done-sp1" fill="#FFD700">
+    <rect x="1" y="4" width="1" height="1"/>
+    <rect x="0" y="5" width="3" height="0.5"/>
+    <rect x="1" y="6" width="1" height="1"/>
+  </g>
+  <g class="done-spark done-sp2" fill="#FF9F3F">
+    <rect x="19" y="2" width="1" height="1"/>
+    <rect x="18" y="3" width="3" height="0.5"/>
+    <rect x="19" y="4" width="1" height="1"/>
+  </g>
+  <g class="done-spark done-sp3" fill="#FFF59D">
+    <rect x="20" y="11" width="1" height="1"/>
+    <rect x="19" y="12" width="3" height="0.5"/>
+    <rect x="20" y="13" width="1" height="1"/>
+  </g>
+  <g class="done-spark done-sp4" fill="#FFB3C6">
+    <rect x="-2" y="10" width="1" height="1"/>
+    <rect x="-3" y="11" width="3" height="0.5"/>
+    <rect x="-2" y="12" width="1" height="1"/>
+  </g>
+
+  <ellipse class="done-shadow" cx="11" cy="22.5" rx="4" ry="0.6" fill="#c0c0c0"/>
+
+  <!-- === Happy's body (unchanged) === -->
+  <g class="done-body">
+    <g class="done-arm-l">
+      <rect x="2" y="9" width="3" height="3" rx="0.5" fill="#8891b8" opacity="0.8" transform="rotate(45 3.5 10.5)"/>
+    </g>
+    <g class="done-arm-r">
+      <rect x="17" y="9" width="3" height="3" rx="0.5" fill="#8891b8" opacity="0.8" transform="rotate(45 18.5 10.5)"/>
+    </g>
+    <rect x="5" y="6" width="12" height="12" rx="6" fill="#97A0C5"/>
+    <polygon points="11,1 15,7 7,7" fill="#FF6B35"/>
+    <rect x="10" y="2" width="1" height="1" fill="#e8714a"/>
+    <!-- ^^ arc eyes -->
+    <path d="M9 10.5 Q10 9.2 11 10.5" stroke="#111827" stroke-width="1.1" stroke-linecap="round" fill="none"/>
+    <path d="M11 10.5 Q12 9.2 13 10.5" stroke="#111827" stroke-width="1.1" stroke-linecap="round" fill="none"/>
+    <!-- rosy blush cheeks -->
+    <ellipse cx="8" cy="12.5" rx="1.2" ry="0.7" fill="#e08090" opacity="0.5"/>
+    <ellipse cx="14" cy="12.5" rx="1.2" ry="0.7" fill="#e08090" opacity="0.5"/>
+    <!-- wide smile -->
+    <path d="M8 13 Q11 17.5 14 13" stroke="#111827" stroke-width="1.2" stroke-linecap="round" fill="none"/>
+
+    <!-- === Round bubble overlay — to the right of the face.
+         Circle center (25, 9) with r=3.8. The tail is a small triangle
+         pointing left toward the cheek at (21, 9), which is just outside
+         the body's bounding box (body ends at x=17, arm diamond extends
+         to x=20). The check mark sits centered inside the circle. === -->
+    <g class="done-bubble">
+      <circle cx="25" cy="9" r="3.8" fill="#ffffff" stroke="#d8dde8" stroke-width="0.4"/>
+      <!-- Tail: small triangle pointing left toward the pet's cheek -->
+      <path d="M21 9 L23 7.8 L23 10.2 Z" fill="#ffffff" stroke="#d8dde8" stroke-width="0.4" stroke-linejoin="round"/>
+      <!-- Seam cover where tail meets the circle -->
+      <rect x="22.8" y="8.2" width="0.6" height="1.6" fill="#ffffff"/>
+
+      <!-- Green check ✓ centered in the bubble -->
+      <path class="done-chk"
+            d="M23 9 L24.5 10.5 L27 7.5"
+            stroke="#22C55E" stroke-width="1.4"
+            stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+    </g>
+  </g>
+</svg>
