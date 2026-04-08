@@ -16,6 +16,7 @@ describe('acpTypes — skillsDirs integration', () => {
         droid: ['.factory/skills'],
         vibe: ['.vibe/skills'],
         cursor: ['.cursor/skills'],
+        aionrs: ['.aionrs/skills'],
       };
 
       for (const [backend, dirs] of Object.entries(expectedSkillsDirs)) {
@@ -54,6 +55,7 @@ describe('acpTypes — skillsDirs integration', () => {
         'kimi',
         'vibe',
         'cursor',
+        'aionrs',
       ];
       for (const backend of supported) {
         expect(hasNativeSkillSupport(backend), `${backend}`).toBe(true);
