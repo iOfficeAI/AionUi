@@ -1,0 +1,236 @@
+<!doctype html>
+<html lang="zh">
+  <head>
+    <meta charset="UTF-8" />
+    <title>AionUi Pet · States Preview</title>
+    <style>
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+      body {
+        background: #1a1b2e;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        min-height: 100vh;
+        gap: 24px;
+        padding: 32px 16px;
+        font-family:
+          system-ui,
+          -apple-system,
+          sans-serif;
+        color: #fff;
+      }
+      header {
+        max-width: 760px;
+        text-align: center;
+        opacity: 0.85;
+      }
+      h1 {
+        font-size: 14px;
+        letter-spacing: 3px;
+        text-transform: uppercase;
+        opacity: 0.5;
+        margin-bottom: 12px;
+      }
+      header p {
+        font-size: 12px;
+        line-height: 1.7;
+        opacity: 0.6;
+      }
+      header code {
+        font-family: ui-monospace, Consolas, monospace;
+        background: rgba(255, 255, 255, 0.08);
+        padding: 1px 6px;
+        border-radius: 3px;
+        font-size: 11px;
+      }
+      .controls {
+        display: flex;
+        align-items: center;
+        gap: 16px;
+        opacity: 0.75;
+        font-size: 11px;
+        letter-spacing: 1px;
+        text-transform: uppercase;
+        flex-wrap: wrap;
+        justify-content: center;
+      }
+      .controls label {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        cursor: pointer;
+      }
+      .controls input[type='range'] {
+        width: 160px;
+        accent-color: #d95226;
+      }
+      .controls input[type='checkbox'] {
+        accent-color: #605aff;
+      }
+      .grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+        gap: 24px 32px;
+        max-width: 1280px;
+        width: 100%;
+      }
+      .item {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 10px;
+        padding: 16px;
+        background: rgba(255, 255, 255, 0.02);
+        border: 1px solid rgba(255, 255, 255, 0.05);
+        border-radius: 8px;
+      }
+      .item .slot {
+        width: 200px;
+        height: 200px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        filter: drop-shadow(0 2px 8px rgba(0, 0, 0, 0.15));
+      }
+      .item .slot svg,
+      .item .slot object {
+        width: 100%;
+        height: 100%;
+        display: block;
+        pointer-events: none;
+      }
+      .item .name {
+        font-size: 11px;
+        letter-spacing: 2px;
+        text-transform: uppercase;
+        opacity: 0.55;
+      }
+      .item .err {
+        font-size: 10px;
+        color: #ff6b6b;
+        opacity: 0.8;
+      }
+    </style>
+  </head>
+  <body>
+    <header>
+      <h1>AionUi Pet · States Preview</h1>
+      <p>
+        这是一个桌面宠物美术资源预览工具。它会从当前目录加载 <code>*.svg</code> 动画状态资源并以网格形式展示。<br />
+        修改任意 <code>public/pet-states/*.svg</code> 后刷新页面即可看到最新效果，无需启动 Electron 应用。<br /><br />
+        <strong>用法</strong>：直接在浏览器里打开本文件（<code>file://</code>
+        即可）。拖动滑块调整所有宠物大小以观察不同分辨率下的表现。
+      </p>
+    </header>
+
+    <div class="controls">
+      <label>
+        <span>小</span>
+        <input type="range" min="80" max="360" value="200" step="10" id="sizeSlider" />
+        <span>大</span>
+      </label>
+      <span id="sizeLabel" style="min-width: 48px; text-align: left">200px</span>
+    </div>
+
+    <div class="grid" id="grid"></div>
+
+    <script>
+      // ---------------------------------------------------------------
+      // State list — single source of truth, must match the files in this
+      // directory and the PET_STATES array in src/process/pet/petTypes.ts.
+      // When adding a new state: add the .svg file next to this preview,
+      // then add its name to this list. No other changes needed.
+      // ---------------------------------------------------------------
+      const STATES = [
+        'idle',
+        'thinking',
+        'working',
+        // --- done variants (temporary, pick one) ---
+        // 1: top-center (original)
+        // 2: upper-right, tail down-left (comic speech bubble)
+        // 3: upper-left, tail down-right (mirror of 2)
+        // 4: side-right next to face (iOS message style)
+        // 5: slightly right of top-center (conservative tweak)
+        'done-1',
+        'done-2',
+        'done-3',
+        'done-4',
+        'done-5',
+        'happy',
+        'attention',
+        'error',
+        'notification',
+        'sleeping',
+        'waking',
+        'yawning',
+        'dozing',
+        'sweeping',
+        'building',
+        'juggling',
+        'carrying',
+        'dragging',
+        'poke-left',
+        'poke-right',
+        'random-look',
+        'random-read',
+      ];
+
+      // ---------------------------------------------------------------
+      // Load each state's SVG via <object data="x.svg">. We use <object>
+      // rather than fetch + innerHTML because file:// browsers block fetch
+      // on local files for security, and <img src> disables CSS @keyframes
+      // inside the SVG. <object> allows the animations to run and works
+      // under file:// — same mechanism the production pet renderer uses.
+      // ---------------------------------------------------------------
+      const grid = document.getElementById('grid');
+
+      function createItem(name) {
+        const item = document.createElement('div');
+        item.className = 'item';
+        const slot = document.createElement('div');
+        slot.className = 'slot';
+        slot.dataset.name = name;
+
+        // <object> keeps the SVG as its own document so @keyframes animate.
+        const obj = document.createElement('object');
+        obj.type = 'image/svg+xml';
+        obj.data = `./${name}.svg`;
+        // Accessibility text shown if the browser can't render the SVG.
+        obj.textContent = name;
+        slot.appendChild(obj);
+
+        const label = document.createElement('div');
+        label.className = 'name';
+        label.textContent = name;
+
+        item.appendChild(slot);
+        item.appendChild(label);
+        grid.appendChild(item);
+      }
+
+      for (const name of STATES) {
+        createItem(name);
+      }
+
+      // ---------------------------------------------------------------
+      // Size slider — scales all slots together so proportional issues
+      // show up at every target size (200px small, 280px default, 360px
+      // large, and a few extremes beyond).
+      // ---------------------------------------------------------------
+      const slider = document.getElementById('sizeSlider');
+      const label = document.getElementById('sizeLabel');
+      slider.addEventListener('input', () => {
+        const px = slider.value + 'px';
+        document.querySelectorAll('.slot').forEach((el) => {
+          el.style.width = px;
+          el.style.height = px;
+        });
+        label.textContent = px;
+      });
+    </script>
+  </body>
+</html>

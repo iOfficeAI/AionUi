@@ -84,11 +84,7 @@ export function createPetWindow(): void {
     return;
   }
 
-  const primaryDisplay = screen.getPrimaryDisplay();
-  const { width: screenWidth, height: screenHeight } = primaryDisplay.workAreaSize;
-  const margin = 20;
-  const x = screenWidth - currentSize - margin;
-  const y = screenHeight - currentSize - margin;
+  const { x, y } = computeInitialPosition(currentSize);
 
   // Rendering window (transparent, always on top, ignores mouse events)
   petWindow = new BrowserWindow({
@@ -282,6 +278,41 @@ export function setPetConfirmEnabled(enabled: boolean): void {
   }
 }
 
+/**
+ * Compute the pet's starting bottom-right position on the display that
+ * currently hosts the main AionUi window. Falls back to the primary display
+ * when no main window is found (e.g. tray-only scenarios). This is the only
+ * position logic at startup — after creation the user is free to drag the
+ * pet anywhere and we never overwrite it for the rest of the session.
+ */
+function computeInitialPosition(size: number): { x: number; y: number } {
+  const margin = 20;
+
+  // Prefer the display under the main window's center so multi-monitor users
+  // always see the pet appear on the same screen as the app. The first window
+  // that isn't the (not-yet-created) pet window itself is treated as main —
+  // since createPetWindow is called after the main window exists, that's a
+  // safe assumption here.
+  const candidate = BrowserWindow.getAllWindows().find(
+    (w) => w !== petWindow && w !== petHitWindow && !w.isDestroyed()
+  );
+
+  let workArea;
+  if (candidate) {
+    const [mx, my] = candidate.getPosition();
+    const [mw, mh] = candidate.getSize();
+    const center = { x: mx + Math.floor(mw / 2), y: my + Math.floor(mh / 2) };
+    workArea = screen.getDisplayNearestPoint(center).workArea;
+  } else {
+    workArea = screen.getPrimaryDisplay().workArea;
+  }
+
+  return {
+    x: workArea.x + workArea.width - size - margin,
+    y: workArea.y + workArea.height - size - margin,
+  };
+}
+
 // ---------------------------------------------------------------------------
 // Window content loading
 // ---------------------------------------------------------------------------
@@ -372,9 +403,16 @@ function registerIpcHandlers(): void {
 
     idleTicker.resetIdle();
 
-    if (data.count >= 3) {
-      stateMachine.requestState('error');
-    } else if (data.count === 2) {
+    // Click reactions — keep `error` reserved for genuine AI errors so the user
+    // can distinguish "I poked the pet a lot" from "the agent just failed".
+    // 1 click  → attention (small surprise)
+    // 2 clicks → poke left/right (directional wobble)
+    // 4+       → juggling (overwhelmed / flustered)
+    // 3        → still poke — nothing interesting happens but we avoid the old
+    //            error misfire; the next click bumps into the 4+ bucket.
+    if (data.count >= 4) {
+      stateMachine.requestState('juggling');
+    } else if (data.count >= 2) {
       stateMachine.requestState(data.side === 'left' ? 'poke-left' : 'poke-right');
     } else if (data.count === 1) {
       stateMachine.requestState('attention');
@@ -616,11 +654,10 @@ function resizePet(size: PetSize): void {
 function resetPosition(): void {
   if (!petWindow || petWindow.isDestroyed() || !petHitWindow || petHitWindow.isDestroyed()) return;
 
-  const primaryDisplay = screen.getPrimaryDisplay();
-  const { width: screenWidth, height: screenHeight } = primaryDisplay.workAreaSize;
-  const margin = 20;
-  const x = screenWidth - currentSize - margin;
-  const y = screenHeight - currentSize - margin;
+  // Reset puts the pet back where createPetWindow would have put it for a
+  // fresh launch — the bottom-right of the display that currently hosts the
+  // main AionUi window.
+  const { x, y } = computeInitialPosition(currentSize);
 
   petWindow.setPosition(x, y, false);
 
