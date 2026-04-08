@@ -290,7 +290,11 @@ class AcpDetector {
       this.detectedAgents = this.mergeDetectedAgents({ builtinAgents, extensionAgents, customAgents });
       this.isDetected = true;
       const elapsed = Date.now() - startTime;
-      console.log(`[ACP] Detection completed in ${elapsed}ms, found ${this.detectedAgents.length} agents`);
+
+      const agentSummary = this.detectedAgents.map((a) => a.name).join(', ');
+      console.log(
+        `[ACP Detector] Completed in ${elapsed}ms, found ${this.detectedAgents.length} agents: ${agentSummary}`
+      );
     });
   }
 

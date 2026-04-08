@@ -753,34 +753,170 @@ async function loadFullShellEnvironmentImpl(): Promise<Record<string, string>> {
   }
 }
 
+// ---------------------------------------------------------------------------
+// Environment diagnostics — logged once at startup
+// ---------------------------------------------------------------------------
+
+const ENV_TAG = '[AionUi:env]';
+const ENV_DIVIDER = '═'.repeat(52);
+
+/** Format bytes into a human-readable string (e.g. "16.00 GB"). @internal */
+export function formatBytes(bytes: number): string {
+  const gb = bytes / 1024 ** 3;
+  return gb >= 1 ? `${gb.toFixed(2)} GB` : `${(bytes / 1024 ** 2).toFixed(0)} MB`;
+}
+
+/**
+ * Run a command asynchronously with a timeout.
+ * Returns trimmed stdout on success, or `null` on any failure.
+ * @internal
+ */
+export function execAsync(cmd: string, args: string[], timeoutMs = 5_000): Promise<string | null> {
+  return new Promise((resolve) => {
+    try {
+      const child = execFile(
+        cmd,
+        args,
+        {
+          encoding: 'utf-8',
+          timeout: timeoutMs,
+          env: process.env,
+          windowsHide: true,
+          ...getWindowsShellExecutionOptions(),
+        },
+        (err, stdout) => {
+          if (err) {
+            resolve(null);
+            return;
+          }
+          resolve((stdout || '').trim().split(/\r?\n/)[0]);
+        }
+      );
+      child.stdin?.end();
+    } catch {
+      resolve(null);
+    }
+  });
+}
+
+/**
+ * Locate a CLI tool and retrieve its version asynchronously.
+ * Returns `{ path, version }` or `null` values when not found.
+ * @internal
+ */
+export async function resolveToolInfo(name: string): Promise<{ toolPath: string | null; version: string | null }> {
+  const whichCmd = process.platform === 'win32' ? 'where' : 'which';
+  const toolPath = await execAsync(whichCmd, [name]);
+  if (!toolPath) return { toolPath: null, version: null };
+
+  const version = await execAsync(toolPath, ['--version']);
+  return { toolPath, version };
+}
+
 /**
  * Log a one-time environment diagnostics snapshot.
- * Called once at app startup; output goes to electron-log file via console,
- * so users can share the log file for debugging (#1157).
+ *
+ * Collects OS, runtime, CLI tool paths/versions, and memory info, then
+ * prints a single consolidated block to the console.  Called as
+ * fire-and-forget (`void logEnvironmentDiagnostics()`) so it never blocks
+ * the startup path.  The entire body is wrapped in try/catch — diagnostics
+ * must never crash the app.
+ *
+ * Works in both Electron desktop and standalone server modes; Electron-only
+ * fields (Electron/Chromium version, userData, logFile) are included only
+ * when `process.versions.electron` is present.
+ *
+ * Output goes to electron-log file via console so users can share the
+ * log file for debugging (#1157).
  */
-export function logEnvironmentDiagnostics(): void {
-  const isWindows = process.platform === 'win32';
-  const tag = '[ShellEnv-Diag]';
+export async function logEnvironmentDiagnostics(): Promise<void> {
+  try {
+    const isWindows = process.platform === 'win32';
+    const isElectron = typeof process.versions.electron === 'string';
 
-  console.log(`${tag} platform=${process.platform}, arch=${process.arch}, node=${process.version}`);
-  console.log(`${tag} process.env.PATH (first 300): ${(process.env.PATH || '(empty)').substring(0, 300)}`);
+    // Electron-specific values — only available in desktop mode
+    let appVersion = '(unknown)';
+    let mode = 'standalone';
+    let userDataPath: string | undefined;
+    let logFilePath: string | undefined;
+    if (isElectron) {
+      // Safe: guarded by the runtime check above
+      // eslint-disable-next-line @typescript-eslint/no-require-imports
+      const { app } = require('electron') as typeof import('electron');
+      appVersion = app.getVersion();
+      mode = app.isPackaged ? 'production' : 'development';
+      userDataPath = app.getPath('userData');
+      logFilePath = app.getPath('logs');
+    }
 
-  if (!isWindows) return;
+    // Resolve CLI tools in parallel while collecting sync info
+    const [nodeInfo, npmInfo, npxInfo, gitInfo] = await Promise.all([
+      resolveToolInfo('node'),
+      resolveToolInfo('npm'),
+      resolveToolInfo('npx'),
+      resolveToolInfo('git'),
+    ]);
 
-  // Windows-specific diagnostics for cygpath / Git / tool discovery
-  const programFiles = process.env.ProgramFiles || 'C:\\Program Files';
-  const gitUsrBin = path.join(programFiles, 'Git', 'usr', 'bin');
-  const cygpathPath = path.join(gitUsrBin, 'cygpath.exe');
+    const totalMem = os.totalmem();
+    const freeMem = os.freemem();
+    const locale = Intl.DateTimeFormat().resolvedOptions().locale || '(unknown)';
+    const shell = process.env.SHELL || process.env.ComSpec || '(unknown)';
 
-  console.log(`${tag} APPDATA=${process.env.APPDATA || '(unset)'}`);
-  console.log(`${tag} LOCALAPPDATA=${process.env.LOCALAPPDATA || '(unset)'}`);
-  console.log(`${tag} ProgramFiles=${programFiles}`);
-  console.log(`${tag} Git usr/bin dir: ${existsSync(gitUsrBin) ? 'EXISTS' : 'MISSING'} (${gitUsrBin})`);
-  console.log(`${tag} cygpath.exe: ${existsSync(cygpathPath) ? 'EXISTS' : 'MISSING'} (${cygpathPath})`);
+    const fmt = (label: string, info: { toolPath: string | null; version: string | null }): string => {
+      if (!info.toolPath) return `${ENV_TAG}   ${label.padEnd(8)} : (not found)`;
+      return `${ENV_TAG}   ${label.padEnd(8)} : ${info.version || '?'}  (${info.toolPath})`;
+    };
 
-  // Report which extra paths will be appended
-  const enhanced = getEnhancedEnv();
-  console.log(`${tag} Enhanced PATH (first 500): ${enhanced.PATH.substring(0, 500)}`);
+    const lines: string[] = [
+      `${ENV_TAG} ${ENV_DIVIDER}`,
+      `${ENV_TAG}   AionUi v${appVersion} (${mode})`,
+      `${ENV_TAG}   OS       : ${process.platform} ${os.release()} (${process.arch})`,
+    ];
+
+    if (isElectron) {
+      lines.push(`${ENV_TAG}   Electron : ${process.versions.electron}`);
+      lines.push(`${ENV_TAG}   Chromium : ${process.versions.chrome}`);
+    }
+
+    lines.push(
+      `${ENV_TAG}   Node     : ${process.version} (built-in)`,
+      `${ENV_TAG}   execPath : ${process.execPath}`,
+      fmt('node', nodeInfo),
+      fmt('npm', npmInfo),
+      fmt('npx', npxInfo),
+      fmt('git', gitInfo),
+      `${ENV_TAG}   Memory   : ${formatBytes(totalMem)} total, ${formatBytes(freeMem)} free`,
+      `${ENV_TAG}   Locale   : ${locale}`,
+      `${ENV_TAG}   Shell    : ${shell}`
+    );
+
+    if (userDataPath) lines.push(`${ENV_TAG}   userData : ${userDataPath}`);
+    if (logFilePath) lines.push(`${ENV_TAG}   logFile  : ${logFilePath}`);
+
+    lines.push(`${ENV_TAG}   PATH     : ${(process.env.PATH || '(empty)').substring(0, 300)}`);
+
+    // Windows-specific diagnostics (cygpath / Git tool discovery)
+    if (isWindows) {
+      const programFiles = process.env.ProgramFiles || 'C:\\Program Files';
+      const gitUsrBin = path.join(programFiles, 'Git', 'usr', 'bin');
+      const cygpathPath = path.join(gitUsrBin, 'cygpath.exe');
+      const enhanced = getEnhancedEnv();
+
+      lines.push(
+        `${ENV_TAG}   APPDATA  : ${process.env.APPDATA || '(unset)'}`,
+        `${ENV_TAG}   LOCALAPP : ${process.env.LOCALAPPDATA || '(unset)'}`,
+        `${ENV_TAG}   Git/usr  : ${existsSync(gitUsrBin) ? 'OK' : 'MISSING'} (${gitUsrBin})`,
+        `${ENV_TAG}   cygpath  : ${existsSync(cygpathPath) ? 'OK' : 'MISSING'} (${cygpathPath})`,
+        `${ENV_TAG}   PATH+    : ${enhanced.PATH.substring(0, 500)}`
+      );
+    }
+
+    lines.push(`${ENV_TAG} ${ENV_DIVIDER}`);
+    console.log('\n' + lines.join('\n'));
+  } catch (error) {
+    // Diagnostics must never crash the app — log and move on.
+    console.warn('[AionUi:env] Failed to collect environment diagnostics:', error);
+  }
 }
 
 /**
