@@ -208,4 +208,5 @@ resources/hub
 dist-server/
 .omc/
 .superset/
-.claude/teams/aionui-ui-dev.json
+.claude/teams/
+iterations/

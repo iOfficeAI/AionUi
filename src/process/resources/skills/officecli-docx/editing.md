@@ -136,6 +136,9 @@ officecli add doc.docx /body --type section --prop type=nextPage --index 12
 # Move paragraph to position
 officecli move doc.docx "/body/p[8]" --index 2
 
+# Move paragraph after an anchor (target parent inferred automatically)
+officecli move doc.docx "/body/p[8]" --after "/body/p[2]"
+
 # Swap two paragraphs
 officecli swap doc.docx "/body/p[3]" "/body/p[7]"
 ```
@@ -233,17 +236,15 @@ officecli add doc.docx /body --type chart --prop chartType=column --prop categor
 ### Find/Replace
 
 ```bash
-# Global find/replace
+# Find/replace in body (default)
 officecli set doc.docx / --prop find="2024" --prop replace="2025"
 
-# Scoped find/replace
-officecli set doc.docx / --prop find="Acme Inc" --prop replace="Acme Corporation" --prop scope=all
+# Find/replace in headers/footers only
+officecli set doc.docx '/header[1]' --prop find="Company Name" --prop replace="Acme Corp"
 
-# Body only (skip headers/footers)
-officecli set doc.docx / --prop find="old term" --prop replace="new term" --prop scope=body
-
-# Headers/footers only
-officecli set doc.docx / --prop find="Company Name" --prop replace="Acme Corp" --prop scope=headers
+# Find/replace everywhere (body + headers): call twice
+officecli set doc.docx / --prop find="Acme Inc" --prop replace="Acme Corporation"
+officecli set doc.docx '/header[1]' --prop find="Acme Inc" --prop replace="Acme Corporation"
 ```
 
 **WARNING: Find/replace performs substring matching, not whole-word matching. Replacing "ACME" in "ACME Corporation" produces "New Name Corporation". After any find/replace, review with `view text` and run a second cleanup pass if needed.**

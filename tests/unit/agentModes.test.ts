@@ -11,13 +11,13 @@ import { AGENT_MODES, getAgentModes, supportsModeSwitch } from '@renderer/utils/
 describe('AGENT_MODES.claude', () => {
   const claudeModes = AGENT_MODES.claude;
 
-  it('has exactly 6 modes', () => {
-    expect(claudeModes).toHaveLength(6);
+  it('has exactly 5 modes', () => {
+    expect(claudeModes).toHaveLength(5);
   });
 
-  it('contains all 6 Claude Code permission modes', () => {
+  it('contains all 5 Claude Code permission modes', () => {
     const values = claudeModes.map((m) => m.value);
-    expect(values).toEqual(['default', 'acceptEdits', 'plan', 'auto', 'bypassPermissions', 'dontAsk']);
+    expect(values).toEqual(['default', 'acceptEdits', 'plan', 'bypassPermissions', 'dontAsk']);
   });
 
   it('each mode has a non-empty label', () => {
@@ -26,9 +26,9 @@ describe('AGENT_MODES.claude', () => {
     }
   });
 
-  it('acceptEdits, auto, dontAsk have descriptions', () => {
-    const withDesc = claudeModes.filter((m) => ['acceptEdits', 'auto', 'dontAsk'].includes(m.value));
-    expect(withDesc).toHaveLength(3);
+  it('acceptEdits, dontAsk have descriptions', () => {
+    const withDesc = claudeModes.filter((m) => ['acceptEdits', 'dontAsk'].includes(m.value));
+    expect(withDesc).toHaveLength(2);
     for (const mode of withDesc) {
       expect(mode.description).toBeTruthy();
     }
@@ -38,7 +38,7 @@ describe('AGENT_MODES.claude', () => {
 describe('getAgentModes', () => {
   it('returns claude modes for "claude" backend', () => {
     const modes = getAgentModes('claude');
-    expect(modes).toHaveLength(6);
+    expect(modes).toHaveLength(5);
     expect(modes[0].value).toBe('default');
   });
 

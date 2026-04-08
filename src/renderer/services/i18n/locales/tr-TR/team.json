@@ -39,11 +39,12 @@
     "workspacePlaceholder": "Workspace path (optional)",
     "confirm": "Create Team",
     "noSupportedAgents": "Desteklenen agent bulunamadı",
-    "supportedAgentsHint": "Şu anda Claude, Codex, CodeBuddy desteklenmektedir. Daha fazla agent yakında eklenecek.",
+    "supportedAgentsHint": "Şu anda Claude ve Codex desteklenmektedir. Daha fazla agent yakında eklenecek.",
     "step": {
       "dispatch": "Dispatch Agent",
       "subAgents": "Sub Agents",
       "workspace": "Workspace"
-    }
+    },
+    "error": "Takım oluşturulamadı"
   }
 }

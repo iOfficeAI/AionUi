@@ -3,16 +3,18 @@ import { getBuiltinSettingsNavItems } from '@/renderer/pages/settings/components
 
 const t = (key: string, options?: { defaultValue?: string }) => {
   const labels: Record<string, string> = {
+    'settings.cron': 'Scheduled Tasks',
     'settings.gemini': 'Gemini',
     'settings.model': 'Models',
     'settings.assistants': 'Assistants',
-    'settings.agents': 'Agents',
     'settings.skillsHub.title': 'Skills Hub',
     'settings.tools': 'Tools',
     'settings.display': 'Display',
     'settings.webui': 'WebUI',
+    'settings.api': 'API',
     'settings.system': 'System',
     'settings.about': 'About',
+    'pet.desktopPet': 'Desktop Pet',
   };
 
   return labels[key] ?? options?.defaultValue ?? key;
@@ -23,27 +25,31 @@ describe('getBuiltinSettingsNavItems', () => {
     const items = getBuiltinSettingsNavItems(false, t);
 
     expect(items.map((item) => item.id)).toEqual([
+      'cron',
       'gemini',
-      'agent',
       'model',
-      'assistants',
+      'agent',
       'skills-hub',
       'tools',
       'display',
       'webui',
+      'api',
+      'pet',
       'system',
       'about',
     ]);
 
     expect(items.map((item) => item.label)).toEqual([
+      'Scheduled Tasks',
       'Gemini',
-      'Agents',
       'Models',
       'Assistants',
       'Skills Hub',
       'Tools',
       'Display',
       'WebUI',
+      'API',
+      'Desktop Pet',
       'System',
       'About',
     ]);

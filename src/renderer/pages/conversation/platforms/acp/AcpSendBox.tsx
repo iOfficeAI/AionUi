@@ -17,7 +17,7 @@ import { assertBridgeSuccess } from '@/renderer/pages/conversation/platforms/ass
 import { allSupportedExts } from '@/renderer/services/FileService';
 import { emitter, useAddEventListener } from '@/renderer/utils/emitter';
 import { mergeFileSelectionItems } from '@/renderer/utils/file/fileSelection';
-import { Tag } from '@arco-design/web-react';
+import { Message, Tag } from '@arco-design/web-react';
 import { Shield } from '@icon-park/react';
 import { iconColors } from '@/renderer/styles/colors';
 import FileAttachButton from '@/renderer/components/media/FileAttachButton';
@@ -29,6 +29,7 @@ import HorizontalFileList from '@/renderer/components/media/HorizontalFileList';
 import { usePreviewContext } from '@/renderer/pages/conversation/Preview';
 import { useLatestRef } from '@/renderer/hooks/ui/useLatestRef';
 import { useOpenFileSelector } from '@/renderer/hooks/file/useOpenFileSelector';
+import { useCommandQueueEnabled } from '@/renderer/hooks/system/useCommandQueueEnabled';
 import ContextUsageIndicator from '@/renderer/components/agent/ContextUsageIndicator';
 import { useAutoTitle } from '@/renderer/hooks/chat/useAutoTitle';
 import AgentModeSelector from '@/renderer/components/agent/AgentModeSelector';
@@ -101,6 +102,7 @@ const AcpSendBox: React.FC<{
   } = useAcpMessage(conversation_id);
   const { t } = useTranslation();
   const teamPermission = useTeamPermission();
+  const isCommandQueueEnabled = useCommandQueueEnabled();
   // In team mode, only the lead agent shows the permission mode selector
   const showModeSelector = !teamPermission || conversation_id === teamPermission.leadConversationId;
   const { checkAndUpdateTitle } = useAutoTitle();
@@ -242,19 +244,31 @@ Please check your local CLI tool authentication status`,
     resetActiveExecution,
   } = useConversationCommandQueue({
     conversationId: conversation_id,
+    enabled: isCommandQueueEnabled,
     isBusy,
     isHydrated: hasHydratedRunningState,
     onExecute: executeCommand,
   });
 
   const onSendHandler = async (message: string) => {
+    if (!isCommandQueueEnabled && isBusy) {
+      Message.warning(t('messages.conversationInProgress'));
+      return;
+    }
+
     const atPathFiles = atPath.map((item) => (typeof item === 'string' ? item : item.path));
     const allFiles = [...uploadFile, ...atPathFiles];
 
     clearFiles();
     emitter.emit('acp.selected.file.clear');
 
-    if (shouldEnqueueConversationCommand({ isBusy, hasPendingCommands })) {
+    if (
+      shouldEnqueueConversationCommand({
+        enabled: isCommandQueueEnabled,
+        isBusy,
+        hasPendingCommands,
+      })
+    ) {
       enqueue({ input: message, files: allFiles });
       return;
     }
@@ -293,7 +307,6 @@ Please check your local CLI tool authentication status`,
 
   return (
     <div className='max-w-800px w-full mx-auto flex flex-col mt-auto mb-16px'>
-      <ThoughtDisplay running={aiProcessing && !hasThinkingMessage} onStop={handleStop} />
       <CommandQueuePanel
         items={queuedCommands}
         paused={isQueuePaused}
@@ -307,10 +320,16 @@ Please check your local CLI tool authentication status`,
         onRemove={remove}
         onClear={clear}
       />
+      <ThoughtDisplay running={aiProcessing && !hasThinkingMessage} onStop={handleStop} />
 
       <SendBox
         value={content}
         onChange={setContent}
+        selectedWorkspaceItems={atPath}
+        onSelectedWorkspaceItemsChange={(items) => {
+          emitter.emit('acp.selected.file', items);
+          setAtPath(items);
+        }}
         loading={isBusy}
         disabled={false}
         placeholder={t('acp.sendbox.placeholder', {
@@ -351,8 +370,7 @@ Please check your local CLI tool authentication status`,
         }
         prefix={
           <>
-            {/* Files on top */}
-            {(uploadFile.length > 0 || atPath.some((item) => (typeof item === 'string' ? true : item.isFile))) && (
+            {uploadFile.length > 0 && (
               <HorizontalFileList>
                 {uploadFile.map((path) => (
                   <FilePreview
@@ -361,29 +379,8 @@ Please check your local CLI tool authentication status`,
                     onRemove={() => setUploadFile(uploadFile.filter((v) => v !== path))}
                   />
                 ))}
-                {atPath.map((item) => {
-                  const isFile = typeof item === 'string' ? true : item.isFile;
-                  const path = typeof item === 'string' ? item : item.path;
-                  if (isFile) {
-                    return (
-                      <FilePreview
-                        key={path}
-                        path={path}
-                        onRemove={() => {
-                          const newAtPath = atPath.filter((v) =>
-                            typeof v === 'string' ? v !== path : v.path !== path
-                          );
-                          emitter.emit('acp.selected.file', newAtPath);
-                          setAtPath(newAtPath);
-                        }}
-                      />
-                    );
-                  }
-                  return null;
-                })}
               </HorizontalFileList>
             )}
-            {/* Folder tags below */}
             {atPath.some((item) => (typeof item === 'string' ? false : !item.isFile)) && (
               <div className='flex flex-wrap items-center gap-8px mb-8px'>
                 {atPath.map((item) => {
@@ -413,7 +410,7 @@ Please check your local CLI tool authentication status`,
         onSend={onSendHandler}
         slashCommands={slashCommands}
         onSlashBuiltinCommand={onSlashBuiltinCommand}
-        allowSendWhileLoading
+        allowSendWhileLoading={isCommandQueueEnabled}
         compactActions={!!teamId}
         sendButtonPrefix={
           tokenUsage ? (

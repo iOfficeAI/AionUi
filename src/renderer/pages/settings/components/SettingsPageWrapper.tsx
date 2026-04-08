@@ -22,6 +22,11 @@ interface SettingsPageWrapperProps {
 
 export const isSettingsNavItemActive = isSettingsRouteActive;
 
+type TranslateFn = (key: string, options?: { defaultValue?: string }) => string;
+
+export const getBuiltinSettingsNavItems = (isDesktop: boolean, t: TranslateFn) =>
+  buildBuiltinSettingsNavItems({ isDesktop, t: t as never });
+
 const SettingsPageWrapper: React.FC<SettingsPageWrapperProps> = ({ children, className, contentClassName }) => {
   const layout = useLayoutContext();
   const isMobile = layout?.isMobile ?? false;

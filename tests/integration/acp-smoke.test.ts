@@ -15,6 +15,7 @@
 import { describe, it, expect, afterEach } from 'vitest';
 import { spawn, execFileSync, type ChildProcess } from 'child_process';
 import path from 'path';
+import { ACP_BACKENDS_ALL } from '../../src/common/types/acpTypes';
 
 const FAKE_CLI_PATH = path.resolve(__dirname, '../fixtures/fake-acp-cli/index.js');
 const JSONRPC_VERSION = '2.0';
@@ -209,11 +210,18 @@ describe('L3 ACP Smoke Test', () => {
   // in automated environments. Run manually: ACP_SMOKE_REAL=1 bun run test acp-smoke
   const runRealTests = process.env.ACP_SMOKE_REAL === '1';
 
-  const realBackends = [
-    { name: 'claude', cmd: 'claude', args: ['--experimental-acp'] },
-    { name: 'codex', cmd: 'codex', args: ['--experimental-acp'] },
-    { name: 'goose', cmd: 'goose', args: ['acp'] },
-  ] as const;
+  const realBackends = Object.values(ACP_BACKENDS_ALL)
+    .filter((config) => {
+      if (!config.enabled || !config.cliCommand) return false;
+      if (config.defaultCliPath) return false; // npx-based backends not suitable for direct spawn
+      if (config.id === 'goose') return false; // conflicts with pressly/goose DB migration tool
+      return true;
+    })
+    .map((config) => ({
+      name: config.id,
+      cmd: config.cliCommand!,
+      args: config.acpArgs ?? ['--experimental-acp'],
+    }));
 
   for (const backend of realBackends) {
     it.skipIf(!runRealTests || !isCliAvailable(backend.cmd))(

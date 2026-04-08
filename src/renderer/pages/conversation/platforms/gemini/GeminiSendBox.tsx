@@ -33,6 +33,7 @@ import { iconColors } from '@/renderer/styles/colors';
 import AgentModeSelector from '@/renderer/components/agent/AgentModeSelector';
 import { useTeamPermission } from '@/renderer/pages/team/hooks/TeamPermissionContext';
 import ThoughtDisplay from '@/renderer/components/chat/ThoughtDisplay';
+import { useCommandQueueEnabled } from '@/renderer/hooks/system/useCommandQueueEnabled';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import type { GeminiModelSelection } from './useGeminiModelSelection';
@@ -90,6 +91,7 @@ const GeminiSendBox: React.FC<{
   const [workspacePath, setWorkspacePath] = useState('');
   const { t } = useTranslation();
   const teamPermission = useTeamPermission();
+  const isCommandQueueEnabled = useCommandQueueEnabled();
   const showModeSelector = !teamPermission || teamPermission.isLeadAgent;
   const { checkAndUpdateTitle } = useAutoTitle();
 
@@ -294,17 +296,29 @@ const GeminiSendBox: React.FC<{
     resetActiveExecution,
   } = useConversationCommandQueue({
     conversationId: conversation_id,
+    enabled: isCommandQueueEnabled,
     isBusy,
     isHydrated: hasHydratedRunningState,
     onExecute: executeCommand,
   });
 
   const onSendHandler = async (message: string) => {
+    if (!isCommandQueueEnabled && isBusy) {
+      Message.warning(t('messages.conversationInProgress'));
+      return;
+    }
+
     const filesToSend = collectSelectedFiles(uploadFile, atPath);
     clearFiles();
     emitter.emit('gemini.selected.file.clear');
 
-    if (shouldEnqueueConversationCommand({ isBusy, hasPendingCommands })) {
+    if (
+      shouldEnqueueConversationCommand({
+        enabled: isCommandQueueEnabled,
+        isBusy,
+        hasPendingCommands,
+      })
+    ) {
       enqueue({ input: message, files: filesToSend });
       return;
     }
@@ -360,11 +374,6 @@ const GeminiSendBox: React.FC<{
         />
       )}
 
-      <ThoughtDisplay
-        thought={hasThinkingMessage ? undefined : thought}
-        running={running && !hasThinkingMessage}
-        onStop={handleStop}
-      />
       <CommandQueuePanel
         items={queuedCommands}
         paused={isQueuePaused}
@@ -378,10 +387,20 @@ const GeminiSendBox: React.FC<{
         onRemove={remove}
         onClear={clear}
       />
+      <ThoughtDisplay
+        thought={hasThinkingMessage ? undefined : thought}
+        running={running && !hasThinkingMessage}
+        onStop={handleStop}
+      />
 
       <SendBox
         value={content}
         onChange={setContent}
+        selectedWorkspaceItems={atPath}
+        onSelectedWorkspaceItemsChange={(items) => {
+          emitter.emit('gemini.selected.file', items);
+          setAtPath(items);
+        }}
         loading={isBusy}
         disabled={!currentModel?.useModel}
         placeholder={
@@ -422,8 +441,7 @@ const GeminiSendBox: React.FC<{
         }
         prefix={
           <>
-            {/* Files on top */}
-            {(uploadFile.length > 0 || atPath.some((item) => (typeof item === 'string' ? true : item.isFile))) && (
+            {uploadFile.length > 0 && (
               <HorizontalFileList>
                 {uploadFile.map((path) => (
                   <FilePreview
@@ -432,29 +450,8 @@ const GeminiSendBox: React.FC<{
                     onRemove={() => setUploadFile(uploadFile.filter((v) => v !== path))}
                   />
                 ))}
-                {atPath.map((item) => {
-                  const isFile = typeof item === 'string' ? true : item.isFile;
-                  const path = typeof item === 'string' ? item : item.path;
-                  if (isFile) {
-                    return (
-                      <FilePreview
-                        key={path}
-                        path={path}
-                        onRemove={() => {
-                          const newAtPath = atPath.filter((v) =>
-                            typeof v === 'string' ? v !== path : v.path !== path
-                          );
-                          emitter.emit('gemini.selected.file', newAtPath);
-                          setAtPath(newAtPath);
-                        }}
-                      />
-                    );
-                  }
-                  return null;
-                })}
               </HorizontalFileList>
             )}
-            {/* Folder tags below */}
             {atPath.some((item) => (typeof item === 'string' ? false : !item.isFile)) && (
               <div className='flex flex-wrap items-center gap-8px mb-8px'>
                 {atPath.map((item) => {
@@ -484,7 +481,7 @@ const GeminiSendBox: React.FC<{
         onSend={onSendHandler}
         slashCommands={slashCommands}
         onSlashBuiltinCommand={onSlashBuiltinCommand}
-        allowSendWhileLoading
+        allowSendWhileLoading={isCommandQueueEnabled}
       ></SendBox>
     </div>
   );

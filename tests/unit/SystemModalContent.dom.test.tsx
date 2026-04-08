@@ -38,7 +38,9 @@ vi.mock('@arco-design/web-react', async (importOriginal) => {
       error: vi.fn(),
       loading: vi.fn(() => vi.fn()),
     },
-    Modal: Object.assign(actual.Modal, { useModal: () => [{ confirm: vi.fn() }, <div key='modal-holder' />] }),
+    Modal: Object.assign(actual.Modal, {
+      useModal: () => [{ confirm: vi.fn() }, <div key='modal-holder' />],
+    }),
   };
 });
 
@@ -79,10 +81,12 @@ const mockGetCloseToTray = vi.fn();
 const mockGetNotificationEnabled = vi.fn();
 const mockGetCronNotificationEnabled = vi.fn();
 const mockGetSaveUploadToWorkspace = vi.fn();
+const mockGetCommandQueueEnabled = vi.fn();
 const mockSetCloseToTray = vi.fn();
 const mockSetNotificationEnabled = vi.fn();
 const mockSetCronNotificationEnabled = vi.fn();
 const mockSetSaveUploadToWorkspace = vi.fn();
+const mockSetCommandQueueEnabled = vi.fn();
 const mockOpenFile = vi.fn();
 const mockShowOpen = vi.fn();
 const mockUpdateSystemInfo = vi.fn();
@@ -113,12 +117,26 @@ vi.mock('@/common', () => ({
     systemSettings: {
       getCloseToTray: { invoke: (...args: any[]) => mockGetCloseToTray(...args) },
       getNotificationEnabled: { invoke: (...args: any[]) => mockGetNotificationEnabled(...args) },
-      getCronNotificationEnabled: { invoke: (...args: any[]) => mockGetCronNotificationEnabled(...args) },
-      getSaveUploadToWorkspace: { invoke: (...args: any[]) => mockGetSaveUploadToWorkspace(...args) },
+      getCronNotificationEnabled: {
+        invoke: (...args: any[]) => mockGetCronNotificationEnabled(...args),
+      },
+      getSaveUploadToWorkspace: {
+        invoke: (...args: any[]) => mockGetSaveUploadToWorkspace(...args),
+      },
+      getCommandQueueEnabled: {
+        invoke: (...args: any[]) => mockGetCommandQueueEnabled(...args),
+      },
       setCloseToTray: { invoke: (...args: any[]) => mockSetCloseToTray(...args) },
       setNotificationEnabled: { invoke: (...args: any[]) => mockSetNotificationEnabled(...args) },
-      setCronNotificationEnabled: { invoke: (...args: any[]) => mockSetCronNotificationEnabled(...args) },
-      setSaveUploadToWorkspace: { invoke: (...args: any[]) => mockSetSaveUploadToWorkspace(...args) },
+      setCronNotificationEnabled: {
+        invoke: (...args: any[]) => mockSetCronNotificationEnabled(...args),
+      },
+      setSaveUploadToWorkspace: {
+        invoke: (...args: any[]) => mockSetSaveUploadToWorkspace(...args),
+      },
+      setCommandQueueEnabled: {
+        invoke: (...args: any[]) => mockSetCommandQueueEnabled(...args),
+      },
     },
     dialog: {
       showOpen: { invoke: (...args: any[]) => mockShowOpen(...args) },
@@ -223,6 +241,12 @@ describe('SystemModalContent', () => {
     mockGetNotificationEnabled.mockResolvedValue(true);
     mockGetCronNotificationEnabled.mockResolvedValue(false);
     mockGetSaveUploadToWorkspace.mockResolvedValue(false);
+    mockGetCommandQueueEnabled.mockResolvedValue(false);
+    mockSetCloseToTray.mockResolvedValue(undefined);
+    mockSetNotificationEnabled.mockResolvedValue(undefined);
+    mockSetCronNotificationEnabled.mockResolvedValue(undefined);
+    mockSetSaveUploadToWorkspace.mockResolvedValue(undefined);
+    mockSetCommandQueueEnabled.mockResolvedValue(undefined);
   });
 
   it('should render system settings with language switcher and preferences', async () => {
@@ -236,6 +260,52 @@ describe('SystemModalContent', () => {
     expect(screen.getByText('settings.startOnBoot')).toBeInTheDocument();
     expect(screen.getByText('settings.closeToTray')).toBeInTheDocument();
     expect(screen.getByText('settings.saveUploadToWorkspace')).toBeInTheDocument();
+    expect(screen.getByText('settings.commandQueueEnabled')).toBeInTheDocument();
+    expect(screen.getByText('settings.commandQueueEnabledDesc')).toBeInTheDocument();
+  });
+
+  it('should toggle command queue when the switch is clicked', async () => {
+    render(<SystemModalContent />);
+
+    await waitFor(() => {
+      expect(screen.getByText('settings.commandQueueEnabled')).toBeInTheDocument();
+    });
+
+    const commandQueueSection = screen.getByText('settings.commandQueueEnabled').closest('.flex-1')?.parentElement;
+    const commandQueueSwitch = commandQueueSection?.querySelector('button[role="switch"]');
+    expect(commandQueueSwitch).toBeTruthy();
+
+    await act(async () => {
+      fireEvent.click(commandQueueSwitch!);
+    });
+
+    await waitFor(() => {
+      expect(mockSetCommandQueueEnabled).toHaveBeenCalledWith({ enabled: true });
+    });
+  });
+
+  it('should revert command queue when the bridge rejects', async () => {
+    mockSetCommandQueueEnabled.mockRejectedValue(new Error('bridge rejected'));
+
+    render(<SystemModalContent />);
+
+    await waitFor(() => {
+      expect(screen.getByText('settings.commandQueueEnabled')).toBeInTheDocument();
+    });
+
+    const commandQueueSection = screen.getByText('settings.commandQueueEnabled').closest('.flex-1')?.parentElement;
+    const commandQueueSwitch = commandQueueSection?.querySelector('button[role="switch"]');
+
+    expect(commandQueueSwitch).toHaveAttribute('aria-checked', 'false');
+
+    await act(async () => {
+      fireEvent.click(commandQueueSwitch!);
+    });
+
+    await waitFor(() => {
+      expect(mockSetCommandQueueEnabled).toHaveBeenCalledWith({ enabled: true });
+      expect(commandQueueSwitch).toHaveAttribute('aria-checked', 'false');
+    });
   });
 
   it('should toggle start on boot when the switch is clicked', async () => {

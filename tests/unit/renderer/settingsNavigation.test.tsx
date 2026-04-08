@@ -14,6 +14,7 @@ describe('settings navigation registry', () => {
 
     expect(routePaths).toContain('cron');
     expect(routePaths).toContain('api');
+    expect(routePaths).toContain('pet');
     expect(routePaths).toContain('skills-hub');
   });
 

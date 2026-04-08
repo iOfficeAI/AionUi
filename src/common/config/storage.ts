@@ -109,6 +109,8 @@ export interface IConfigStorageRefer {
   'system.cronNotificationEnabled'?: boolean;
   // 阻止系统休眠以保证定时任务执行 / Prevent system sleep to ensure scheduled tasks run
   'system.keepAwake'?: boolean;
+  // Whether conversation command queue is enabled
+  'system.commandQueueEnabled'?: boolean;
   // Telegram assistant default model / Telegram 助手默认模型
   'assistant.telegram.defaultModel'?: {
     id: string;
@@ -154,6 +156,15 @@ export interface IConfigStorageRefer {
   'api.config'?: IApiConfig;
   // Skills Market: whether the aionui-skills builtin skill is enabled
   'skillsMarket.enabled'?: boolean;
+  // Desktop Pet: whether the desktop pet feature is enabled
+  'pet.enabled'?: boolean;
+  // Desktop Pet: size in pixels (200, 280, or 360)
+  'pet.size'?: number;
+  // Desktop Pet: do not disturb mode (pet stays idle, ignores AI events)
+  'pet.dnd'?: boolean;
+  // Desktop Pet: whether tool-call confirmations are routed to the pet's bubble
+  // (true) or remain in the main chat window (false). Default true.
+  'pet.confirmEnabled'?: boolean;
 }
 
 export interface IApiConfig {
@@ -578,6 +589,7 @@ export interface IMcpTool {
   name: string;
   description?: string;
   inputSchema?: unknown;
+  _meta?: Record<string, unknown>;
 }
 
 /**

@@ -1,4 +1,5 @@
 ---
+# officecli: v1.0.24
 name: officecli-financial-model
 description: "Use this skill when the user wants to build a financial model,
   3-statement model, DCF valuation, cap table, scenario analysis, or
@@ -167,6 +168,20 @@ Before delivering the `.xlsx` file, verify all items:
 | Chart title `$` stripping                 | Shell expands `$` in `--prop title`. Use heredoc batch for chart titles with `$`, or omit `$` from titles.                                                                                                                               |
 | AP formula sign error                     | AP (Accounts Payable) must be a positive number. If COGS is stored as a negative value, AP formula must negate it: `=-COGS*DPO/365`. Wrong sign causes NWC overstatement and incorrect Cash Flow direction. See creating.md C.6 WARNING. |
 | `#NAME?` not detectable by query/validate | `officecli query` and `validate` cannot detect runtime `#NAME?` errors from unquoted sheet names (e.g., `P&L!B3`). Run screenshot check (creating.md E.8 Step 10) when any sheet name contains `&`, spaces, or parentheses.              |
+
+---
+
+## Adjustments After Creation
+
+When the user requests changes after the model is built:
+
+| Request                    | Command                                                                 |
+| -------------------------- | ----------------------------------------------------------------------- |
+| Swap two sheets            | `officecli swap model.xlsx '/Sheet1' '/Sheet2'`                         |
+| Move a sheet after another | `officecli move model.xlsx '/Scenarios' --after '/Assumptions'`         |
+| Edit a cell value          | `officecli set model.xlsx '/SheetName/A1' --prop value="..."`           |
+| Find & replace text        | `officecli set model.xlsx / --prop find=OldText --prop replace=NewText` |
+| Remove a row               | `officecli remove model.xlsx '/SheetName/row[N]'`                       |
 
 ---
 

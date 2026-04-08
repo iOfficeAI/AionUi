@@ -79,6 +79,8 @@ export function useTeamSession(team: TTeam) {
   );
 
   useEffect(() => {
+    void ipcBridge.team.ensureSession.invoke({ teamId: team.id });
+
     const unsubStatus = ipcBridge.team.agentStatusChanged.on((event: ITeamAgentStatusEvent) => {
       if (event.teamId !== team.id) return;
       if (event.status === 'failed') {

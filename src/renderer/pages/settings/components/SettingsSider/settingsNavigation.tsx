@@ -3,6 +3,7 @@ import { resolveExtensionAssetUrl } from '@/renderer/utils/platform';
 import {
   AlarmClock,
   Api,
+  Cat,
   Communication,
   Computer,
   Earth,
@@ -107,6 +108,12 @@ const SETTINGS_BUILTIN_DEFINITIONS: SettingsBuiltinDefinition[] = [
     resolveIcon: () => Api,
   },
   {
+    id: 'pet',
+    path: 'pet',
+    labelKey: 'pet.desktopPet',
+    resolveIcon: () => Cat,
+  },
+  {
     id: 'system',
     path: 'system',
     labelKey: 'settings.system',
@@ -129,6 +136,7 @@ const ModeSettings = React.lazy(() => import('@renderer/pages/settings/ModeSetti
 const SystemSettings = React.lazy(() => import('@renderer/pages/settings/SystemSettings'));
 const ToolsSettings = React.lazy(() => import('@renderer/pages/settings/ToolsSettings'));
 const WebuiSettings = React.lazy(() => import('@renderer/pages/settings/WebuiSettings'));
+const PetSettings = React.lazy(() => import('@renderer/pages/settings/PetSettings'));
 const ApiSettingsPage = React.lazy(
   () => import('@renderer/components/settings/SettingsModal/contents/ApiSettingsContent/ApiSettingsPage')
 );
@@ -143,6 +151,7 @@ export const SETTINGS_ROUTE_DEFINITIONS: SettingsRouteDefinition[] = [
   { id: 'tools', path: 'tools', component: ToolsSettings },
   { id: 'webui', path: 'webui', component: WebuiSettings },
   { id: 'api', path: 'api', component: ApiSettingsPage },
+  { id: 'pet', path: 'pet', component: PetSettings },
   { id: 'system', path: 'system', component: SystemSettings },
   { id: 'about', path: 'about', component: SystemSettings },
 ];

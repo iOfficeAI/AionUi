@@ -42,6 +42,7 @@ import { initNotificationBridge } from '@process/bridge/notificationBridge';
 import { initSystemSettingsBridge } from '@process/bridge/systemSettingsBridge';
 import { initTaskBridge } from '@process/bridge/taskBridge';
 import { initSpeechToTextBridge } from '@process/bridge/speechToTextBridge';
+import { initHubBridge } from '@process/bridge/hubBridge';
 
 logger.config({ print: true });
 
@@ -78,6 +79,7 @@ export async function initBridgeStandalone(): Promise<void> {
   initTaskBridge(workerTaskManager);
   initStarOfficeBridge();
   initSpeechToTextBridge();
+  initHubBridge();
 
   // Initialize ACP detector to scan for installed CLI agents (claude, codex, etc.)
   // Must mirror Electron's initializeAcpDetector() call in src/index.ts

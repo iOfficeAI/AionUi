@@ -45,13 +45,13 @@ class HubStateManagerImpl {
   // Persistent error state
   // ---------------------------------------------------------------------------
 
-  public getPersistentInstallError(name: string): string | undefined {
-    const states = loadPersistedStates();
+  public async getPersistentInstallError(name: string): Promise<string | undefined> {
+    const states = await loadPersistedStates();
     return states.get(name)?.installError;
   }
 
-  private setPersistentInstallError(name: string, error: string) {
-    const states = loadPersistedStates();
+  private async setPersistentInstallError(name: string, error: string) {
+    const states = await loadPersistedStates();
     const extState = states.get(name) || { enabled: true };
 
     states.set(name, { ...extState, installError: error });
@@ -59,8 +59,8 @@ class HubStateManagerImpl {
     savePersistedStates(states);
   }
 
-  private clearPersistentInstallError(name: string) {
-    const states = loadPersistedStates();
+  private async clearPersistentInstallError(name: string) {
+    const states = await loadPersistedStates();
     const extState = states.get(name);
 
     if (extState?.installError) {
@@ -112,12 +112,12 @@ class HubStateManagerImpl {
     const result: IHubAgentItem[] = [];
 
     for (const ext of Object.values(extensions)) {
-      const status = this.deriveStatus(ext, loadedByName, detectedBackends);
+      const status = await this.deriveStatus(ext, loadedByName, detectedBackends);
 
       result.push({
         ...ext,
         status,
-        installError: this.getPersistentInstallError(ext.name),
+        installError: await this.getPersistentInstallError(ext.name),
       });
     }
 
@@ -134,17 +134,17 @@ class HubStateManagerImpl {
    *   4. AcpDetector already detected all contributed backends → installed
    *   5. not_installed
    */
-  private deriveStatus(
+  private async deriveStatus(
     ext: IHubExtension,
     loadedByName: Map<string, { directory: string }>,
     detectedBackends: Set<string>
-  ): HubExtensionStatus {
+  ): Promise<HubExtensionStatus> {
     // 1. Transient state (installing / uninstalling)
     const transient = this.transientStates.get(ext.name);
     if (transient) return transient;
 
     // 2. Persistent install error
-    const hasError = this.getPersistentInstallError(ext.name);
+    const hasError = await this.getPersistentInstallError(ext.name);
     if (hasError) return 'install_failed';
 
     // 3. Loaded in ExtensionRegistry — check for update

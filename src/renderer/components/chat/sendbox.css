@@ -137,6 +137,55 @@
   animation-iteration-count: infinite;
 }
 
+.sendbox-highlight-container {
+  position: relative;
+}
+
+.sendbox-highlight-layer {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  pointer-events: none;
+  padding-top: 4px;
+  padding-bottom: 4px;
+  white-space: pre-wrap;
+  word-break: break-word;
+  overflow-wrap: break-word;
+  line-height: 20px;
+}
+
+.sendbox-highlight-layer--single {
+  white-space: nowrap;
+}
+
+.sendbox-highlight-text {
+  color: var(--text-primary);
+}
+
+.sendbox-highlight-mention {
+  color: rgb(var(--primary-6));
+}
+
+.sendbox-highlight-textarea {
+  background: transparent !important;
+}
+
+.sendbox-highlight-textarea {
+  position: relative;
+  z-index: 1;
+  color: transparent !important;
+  -webkit-text-fill-color: transparent !important;
+  caret-color: var(--text-primary) !important;
+}
+
+.sendbox-highlight-textarea::selection {
+  background: rgba(var(--primary-6), 0.2);
+}
+
+.sendbox-highlight-textarea::placeholder {
+  color: #a1a2aa !important;
+}
+
 /* Mobile: allow horizontal scrolling for sendbox tools (model/permission pills) */
 @media (max-width: 767px) {
   .sendbox-tools-scroll-mobile {

@@ -189,8 +189,24 @@ Follow [creating.md](creating.md) for the full step-by-step guide.
 
 ---
 
+## Adjustments After Creation
+
+When the user requests changes after the paper is built:
+
+| Request                        | Command                                                                 |
+| ------------------------------ | ----------------------------------------------------------------------- |
+| Move a paragraph after another | `officecli move paper.docx '/body/p[8]' --after '/body/p[2]'`           |
+| Swap two paragraphs            | `officecli swap paper.docx '/body/p[3]' '/body/p[7]'`                   |
+| Edit paragraph text            | `officecli set paper.docx '/body/p[N]' --prop text="..."`               |
+| Find & replace text            | `officecli set paper.docx / --prop find=OldText --prop replace=NewText` |
+| Remove a paragraph             | `officecli remove paper.docx '/body/p[N]'`                              |
+
+After any `swap` or `move`, paragraph indices shift — re-query with `officecli get paper.docx /body --depth 1` before further edits.
+
+---
+
 ## References
 
 - [creating.md](creating.md) -- Complete academic paper creation guide
-- [docx SKILL.md](../docx/SKILL.md) -- General docx reading, editing, and QA reference
-- [docx creating.md](../docx/creating.md) -- General building blocks (paragraphs, tables, images, etc.)
+- [docx SKILL.md](../officecli-docx/SKILL.md) -- General docx reading, editing, and QA reference
+- [docx creating.md](../officecli-docx/creating.md) -- General building blocks (paragraphs, tables, images, etc.)

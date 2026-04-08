@@ -665,13 +665,13 @@ cat <<'EOF' | officecli batch slides.pptx
 EOF
 ```
 
-Batch supports: `add`, `set`, `get`, `query`, `remove`, `move`, `view`, `raw`, `raw-set`, `validate`.
+Batch supports: `add`, `set`, `get`, `query`, `remove`, `move`, `swap`, `view`, `raw`, `raw-set`, `validate`.
 
 **Batch and resident mode are independent.** Each improves performance on its own. They can be combined, but batch alone (without `open`) already handles the file I/O in one cycle per batch call.
 
-Batch fields: `command`, `path`, `parent`, `type`, `from`, `to`, `index`, `props` (dict), `selector`, `mode`, `depth`, `part`, `xpath`, `action`, `xml`.
+Batch fields: `command`, `path`, `parent`, `type`, `from`, `to`, `index`, `after`, `before`, `props` (dict), `selector`, `mode`, `depth`, `part`, `xpath`, `action`, `xml`.
 
-`parent` = container to add into (for `add`, including clone via `from` field). `path` = element to modify (for `set`, `get`, `remove`, `move`).
+`parent` = container to add into (for `add`, including clone via `from` field). `path` = element to modify (for `set`, `get`, `remove`, `move`, `swap`).
 
 ---
 

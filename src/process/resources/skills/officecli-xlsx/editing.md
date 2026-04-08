@@ -114,7 +114,11 @@ officecli remove data.xlsx "/OldSheet"
 ### Reorder Sheets
 
 ```bash
+# Swap two sheets
 officecli swap data.xlsx "/Sheet1" "/Sheet2"
+
+# Move sheet after another (anchor-based)
+officecli move data.xlsx "/Sheet3" --after "/Sheet1"
 ```
 
 ### Add/Remove Rows

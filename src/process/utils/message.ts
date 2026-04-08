@@ -24,14 +24,15 @@ type ReleaseConversationMessageCacheOptions = {
 // Aggregate multiple messages for synchronous updates, reducing database operations
 class ConversationManageWithDB {
   private stack: Array<['insert' | 'accumulate', TMessage]> = [];
-  private dbPromise = getDatabase();
+  private readonly dbPromise = getDatabase();
+  private readonly initializationPromise: Promise<void>;
   private timer?: NodeJS.Timeout;
-  private savePromise: Promise<void> = Promise.resolve();
-  private lastActivityAt = Date.now();
   private releaseTimer?: NodeJS.Timeout;
+  private activeFlushPromise?: Promise<void>;
+  private lastActivityAt = Date.now();
 
   constructor(private conversation_id: string) {
-    this.savePromise = this.dbPromise
+    this.initializationPromise = this.dbPromise
       .then((db) => ensureConversationExists(db, this.conversation_id))
       .catch((): void => {});
   }
@@ -43,86 +44,48 @@ class ConversationManageWithDB {
     return manage;
   }
 
+  /** Clear pending timer and discard queued messages so this instance can be GC'd. */
+  dispose(): void {
+    this.clearFlushTimer();
+    this.clearReleaseTimer();
+    this.stack = [];
+  }
   sync(type: 'insert' | 'accumulate', message: TMessage) {
     this.lastActivityAt = Date.now();
     this.clearReleaseTimer();
     this.stack.push([type, message]);
 
-    if (type === 'insert') {
-      void this.save2DataBase();
-      return;
-    }
-
-    if (this.stack.length >= MESSAGE_CACHE_MAX_PENDING_OPERATIONS) {
-      void this.save2DataBase();
+    if (type === 'insert' || this.stack.length >= MESSAGE_CACHE_MAX_PENDING_OPERATIONS) {
+      void this.flush();
       return;
     }
 
     this.scheduleFlush();
   }
 
-  private save2DataBase(): Promise<void> {
-    if (this.stack.length === 0) {
-      return this.savePromise;
-    }
-
-    this.clearFlushTimer();
-    this.savePromise = this.savePromise
-      .then(() => this.dbPromise)
-      .then((db) => {
-        if (this.stack.length === 0) {
-          return;
-        }
-
-        const stack = this.stack.slice();
-        this.stack = [];
-        const messages = db.getConversationMessages(this.conversation_id, 0, 50, 'DESC'); //
-        let messageList = messages.data.toReversed();
-        let updateMessage = stack.shift();
-        while (updateMessage) {
-          if (updateMessage[0] === 'insert') {
-            db.insertMessage(updateMessage[1]);
-            messageList.push(updateMessage[1]);
-          } else {
-            messageList = composeMessage(updateMessage[1], messageList, (type, message) => {
-              if (type === 'insert') db.insertMessage(message);
-              if (type === 'update') {
-                db.updateMessage(message.id, message);
-              }
-            });
-          }
-          updateMessage = stack.shift();
-        }
-        executePendingCallbacks();
-      })
-      .then(() => {
-        return new Promise<void>((resolve) => {
-          const timer = setTimeout(() => {
-            resolve();
-            clearTimeout(timer);
-          }, 10);
-        });
-      })
-      .finally(() => {
-        if (this.stack.length > 0) {
-          this.scheduleFlush();
-          return;
-        }
-
-        this.scheduleReleaseIfIdle();
-      });
-
-    return this.savePromise;
-  }
-
   flush(): Promise<void> {
     this.clearFlushTimer();
 
     if (this.stack.length === 0) {
-      return this.savePromise;
+      return this.activeFlushPromise ?? Promise.resolve();
     }
 
-    return this.save2DataBase();
+    if (this.activeFlushPromise) {
+      return this.activeFlushPromise;
+    }
+
+    this.activeFlushPromise = this.runFlushLoop().finally(() => {
+      this.activeFlushPromise = undefined;
+
+      if (this.stack.length > 0) {
+        void this.flush();
+        return;
+      }
+
+      this.scheduleReleaseIfIdle();
+    });
+
+    return this.activeFlushPromise;
   }
 
   async release(options: ReleaseConversationMessageCacheOptions = {}): Promise<void> {
@@ -132,6 +95,8 @@ class ConversationManageWithDB {
     if (options.persistPending) {
       await this.flush();
       this.clearReleaseTimer();
+    } else {
+      this.stack = [];
     }
 
     Cache.delete(this.conversation_id);
@@ -176,7 +141,7 @@ class ConversationManageWithDB {
 
     this.timer = setTimeout(() => {
       this.timer = undefined;
-      void this.save2DataBase();
+      void this.flush();
     }, MESSAGE_CACHE_STREAM_FLUSH_MS);
   }
 
@@ -193,6 +158,38 @@ class ConversationManageWithDB {
       this.releaseTimer = undefined;
     }
   }
+
+  private async runFlushLoop(): Promise<void> {
+    try {
+      await this.initializationPromise;
+      const db = await this.dbPromise;
+
+      while (this.stack.length > 0) {
+        const stack = this.stack.splice(0);
+        const messages = db.getConversationMessages(this.conversation_id, 0, 50, 'DESC');
+        let messageList = messages.data.toReversed();
+
+        for (const [type, message] of stack) {
+          if (type === 'insert') {
+            db.insertMessage(message);
+            messageList.push(message);
+            continue;
+          }
+
+          messageList = composeMessage(message, messageList, (opType, updatedMessage) => {
+            if (opType === 'insert') db.insertMessage(updatedMessage);
+            if (opType === 'update') {
+              db.updateMessage(updatedMessage.id, updatedMessage);
+            }
+          });
+        }
+
+        executePendingCallbacks();
+      }
+    } catch (err) {
+      console.error('[Message] flush error:', err);
+    }
+  }
 }
 
 /**
@@ -201,6 +198,18 @@ class ConversationManageWithDB {
  */
 export const addMessage = (conversation_id: string, message: TMessage): void => {
   ConversationManageWithDB.get(conversation_id).sync('insert', message);
+};
+
+/**
+ * Remove a conversation's message queue from the in-memory cache.
+ * Call this when a conversation is deleted to prevent memory leaks.
+ */
+export const removeFromMessageCache = (conversation_id: string): void => {
+  const cached = Cache.get(conversation_id);
+  if (cached) {
+    cached.dispose();
+    Cache.delete(conversation_id);
+  }
 };
 
 /**

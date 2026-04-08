@@ -63,6 +63,15 @@ describe('readDirectoryRecursive', () => {
     expect(result).toBeNull();
   });
 
+  it('reads directories without requiring an abort controller', async () => {
+    await fsp.writeFile(path.join(tmpDir, 'file.txt'), 'hello');
+
+    const result = await readDirectoryRecursive(tmpDir, { maxDepth: 1 });
+
+    expect(result).not.toBeNull();
+    expect(result.children.map((child) => child.name)).toContain('file.txt');
+  });
+
   it('returns null for cleaned-up temp workspace path', async () => {
     const tempWorkspace = path.join(tmpDir, 'gemini-temp-1773815225951');
     await fsp.mkdir(tempWorkspace);

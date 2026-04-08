@@ -1,6 +1,7 @@
 import React, { Suspense } from 'react';
 import { HashRouter, Navigate, Route, Routes } from 'react-router-dom';
 import AppLoader from '@renderer/components/layout/AppLoader';
+import { TEAM_MODE_ENABLED } from '@/common/config/constants';
 import { useAuth } from '@renderer/hooks/context/AuthContext';
 import {
   DEFAULT_SETTINGS_ROUTE,
@@ -54,7 +55,10 @@ const PanelRoute: React.FC<{ layout: React.ReactElement }> = ({ layout }) => {
             <Route key={route.path} path={`/settings/${route.path}`} element={withRouteFallback(route.component)} />
           ))}
           <Route path='/settings/aionrs' element={withRouteFallback(AionrsSettings)} />
-          <Route path='/team/:id' element={withRouteFallback(TeamIndex)} />
+          <Route
+            path='/team/:id'
+            element={TEAM_MODE_ENABLED ? withRouteFallback(TeamIndex) : <Navigate to='/guid' replace />}
+          />
           <Route path='/settings/assistants' element={<Navigate to='/settings/agent' replace />} />
           <Route path='/settings/ext/:tabId' element={withRouteFallback(ExtensionSettingsPage)} />
           <Route path='/settings' element={<Navigate to={`/settings/${DEFAULT_SETTINGS_ROUTE}`} replace />} />

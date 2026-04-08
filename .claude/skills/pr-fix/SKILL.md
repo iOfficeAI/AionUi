@@ -139,9 +139,8 @@ git worktree remove "$WORKTREE_DIR" --force 2>/dev/null || true
 
 ```bash
 git fetch origin <head_branch>
-git worktree add "$WORKTREE_DIR" origin/<head_branch>
+git worktree add "$WORKTREE_DIR" origin/<head_branch> --detach
 cd "$WORKTREE_DIR"
-git checkout <head_branch>
 ```
 
 **Fork PR with maintainer access (`IS_FORK=true`, `CAN_MODIFY=true`):**
@@ -158,11 +157,11 @@ gh pr checkout <PR_NUMBER>
 
 ```bash
 git fetch origin <base_branch>
-git worktree add "$WORKTREE_DIR" -b bot/fix-pr-<PR_NUMBER> origin/<base_branch>
+git worktree add "$WORKTREE_DIR" origin/<base_branch> --detach
 cd "$WORKTREE_DIR"
-# Merge PR's commits into the fix branch
+# Merge PR's commits into the detached HEAD
 gh pr checkout <PR_NUMBER> --detach
-git checkout bot/fix-pr-<PR_NUMBER>
+git checkout -  # back to the base commit
 git merge --no-ff --no-edit FETCH_HEAD
 ```
 
@@ -238,7 +237,7 @@ Review follow-up for #<PR_NUMBER>
 
 ```bash
 cd "$WORKTREE_DIR"
-git push origin <head_branch>
+git push origin HEAD:<head_branch>
 ```
 
 **Fork PR with maintainer access (`IS_FORK=true`, `CAN_MODIFY=true`):**
@@ -260,7 +259,7 @@ Push the fix branch to the main repo and open a new PR:
 
 ```bash
 cd "$WORKTREE_DIR"
-git push origin bot/fix-pr-<PR_NUMBER>
+git push origin HEAD:bot/fix-pr-<PR_NUMBER>
 ```
 
 Then open a new PR and immediately enable auto-merge:
@@ -334,7 +333,7 @@ After posting, output the same verification table in the conversation for immedi
 
 ### Step 9 — Cleanup
 
-Remove the worktree. The main repo was never touched.
+Remove the worktree. All paths use `--detach` so no local branches were created.
 
 ```bash
 cd "$REPO_ROOT"
@@ -359,14 +358,14 @@ git worktree remove "$WORKTREE_DIR" --force 2>/dev/null || true
 1. Parse summary table → ordered issue list
 2. Pre-flight: fetch PR info (state, isCrossRepository, maintainerCanModify, forkOwner)
    → ABORT: state=MERGED
-3. Create worktree at /tmp/aionui-pr-<PR_NUMBER>:
-   → same-repo:        git fetch + git worktree add + checkout <head_branch>
+3. Create worktree at /tmp/aionui-pr-<PR_NUMBER> (all paths use --detach):
+   → same-repo:        git fetch + git worktree add --detach
    → fork+canModify:   git worktree add --detach + gh pr checkout <PR_NUMBER>
-   → fork+fallback:    git worktree add -b bot/fix-pr-N + merge fork head
+   → fork+fallback:    git worktree add --detach + merge fork head
 4. Fix issues CRITICAL→HIGH→MEDIUM only (skip LOW); bunx tsc --noEmit after each file batch
 5. bun run lint:fix && bun run format && bunx tsc --noEmit && bun run test (in worktree)
 6. Commit: fix(<scope>): address review issues from PR #N
 7. Push from worktree (same-repo / fork+canModify / fork+fallback)
 8. Verify → post as gh pr comment PR_NUMBER + output in conversation
-9. Cleanup: git worktree remove /tmp/aionui-pr-<PR_NUMBER>
+9. Cleanup: git worktree remove + git branch -D (worktree and local branches)
 ```

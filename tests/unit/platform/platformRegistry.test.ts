@@ -17,6 +17,7 @@ describe('platformRegistry', () => {
       worker: {},
       power: {},
       notification: {},
+      network: {},
     } as Parameters<typeof registerPlatformServices>[0];
     registerPlatformServices(mock);
     expect(getPlatformServices()).toBe(mock);
@@ -24,10 +25,10 @@ describe('platformRegistry', () => {
 
   it('re-registering replaces the previous instance', async () => {
     const { registerPlatformServices, getPlatformServices } = await import('../../../src/common/platform/index');
-    const first = { paths: {}, worker: {}, power: {}, notification: {} } as Parameters<
+    const first = { paths: {}, worker: {}, power: {}, notification: {}, network: {} } as Parameters<
       typeof registerPlatformServices
     >[0];
-    const second = { paths: {}, worker: {}, power: {}, notification: {} } as Parameters<
+    const second = { paths: {}, worker: {}, power: {}, notification: {}, network: {} } as Parameters<
       typeof registerPlatformServices
     >[0];
     registerPlatformServices(first);

@@ -43,6 +43,7 @@ function makeRepo(overrides: Partial<ITeamRepository> = {}): ITeamRepository {
     deleteTasksByTeam: vi.fn(),
     writeMessage: vi.fn(),
     readUnread: vi.fn(),
+    readUnreadAndMark: vi.fn(),
     markRead: vi.fn(),
     getMailboxHistory: vi.fn(),
     createTask: vi.fn(),
@@ -51,6 +52,8 @@ function makeRepo(overrides: Partial<ITeamRepository> = {}): ITeamRepository {
     findTasksByTeam: vi.fn(),
     findTasksByOwner: vi.fn(),
     deleteTask: vi.fn(),
+    appendToBlocks: vi.fn(),
+    removeFromBlockedBy: vi.fn(),
     ...overrides,
   };
 }

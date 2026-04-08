@@ -73,5 +73,14 @@
   "fileAttach.tooLarge": "ファイルが{{max}}MBの制限を超えています",
   "fileAttach.failed": "アップロードに失敗しました",
   "fileAttach.uploading": "アップロード中...",
-  "fileAttach.uploadSuccess": "アップロード成功"
+  "fileAttach.uploadSuccess": "アップロード成功",
+  "expand": "展開",
+  "name": "名前",
+  "added": "追加済み",
+  "status": "ステータス",
+  "refreshSuccess": "更新しました",
+  "import": "インポート",
+  "processing": "処理中...",
+  "optional": "（任意）",
+  "clear": "クリア"
 }

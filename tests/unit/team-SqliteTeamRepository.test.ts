@@ -4,7 +4,7 @@ import { initSchema } from '@process/services/database/schema';
 import { runMigrations } from '@process/services/database/migrations';
 import { BetterSqlite3Driver } from '@process/services/database/drivers/BetterSqlite3Driver';
 import { SqliteTeamRepository } from '@process/team/repository/SqliteTeamRepository';
-import type { TTeam } from '@process/team/types';
+import type { MailboxMessage, TeamTask, TTeam } from '@process/team/types';
 
 let nativeModuleAvailable = true;
 try {
@@ -100,5 +100,129 @@ describeOrSkip('SqliteTeamRepository', () => {
   it('returns null for missing team', async () => {
     const found = await repo.findById('nonexistent');
     expect(found).toBeNull();
+  });
+
+  // ---------------------------------------------------------------------------
+  // Mailbox: readUnreadAndMark (atomic read + mark)
+  // ---------------------------------------------------------------------------
+
+  describe('readUnreadAndMark', () => {
+    const msg = (id: string, read = false): MailboxMessage => ({
+      id,
+      teamId: 'team-1',
+      toAgentId: 'agent-a',
+      fromAgentId: 'agent-b',
+      type: 'chat',
+      content: `msg-${id}`,
+      read,
+      createdAt: Date.now(),
+    });
+
+    beforeEach(async () => {
+      await repo.create(makeTeam());
+    });
+
+    it('returns unread messages and marks them read in one transaction', async () => {
+      await repo.writeMessage(msg('m1'));
+      await repo.writeMessage(msg('m2'));
+      await repo.writeMessage(msg('m3', true)); // already read
+
+      const result = await repo.readUnreadAndMark('team-1', 'agent-a');
+      expect(result).toHaveLength(2);
+      expect(result.map((m) => m.id).sort()).toEqual(['m1', 'm2']);
+
+      // Second call should return nothing — already marked
+      const second = await repo.readUnreadAndMark('team-1', 'agent-a');
+      expect(second).toHaveLength(0);
+    });
+
+    it('returns empty array when no unread messages exist', async () => {
+      const result = await repo.readUnreadAndMark('team-1', 'agent-a');
+      expect(result).toHaveLength(0);
+    });
+  });
+
+  // ---------------------------------------------------------------------------
+  // Tasks: appendToBlocks (atomic)
+  // ---------------------------------------------------------------------------
+
+  describe('appendToBlocks', () => {
+    const makeTask = (id: string, overrides: Partial<TeamTask> = {}): TeamTask => ({
+      id,
+      teamId: 'team-1',
+      subject: `Task ${id}`,
+      status: 'open',
+      blockedBy: [],
+      blocks: [],
+      metadata: {},
+      createdAt: Date.now(),
+      updatedAt: Date.now(),
+      ...overrides,
+    });
+
+    beforeEach(async () => {
+      await repo.create(makeTeam());
+    });
+
+    it('appends a block id to the task blocks array', async () => {
+      await repo.createTask(makeTask('t1'));
+      await repo.appendToBlocks('t1', 't2');
+
+      const task = await repo.findTaskById('t1');
+      expect(task!.blocks).toEqual(['t2']);
+    });
+
+    it('does not duplicate an existing block id', async () => {
+      await repo.createTask(makeTask('t1', { blocks: ['t2'] }));
+      await repo.appendToBlocks('t1', 't2');
+
+      const task = await repo.findTaskById('t1');
+      expect(task!.blocks).toEqual(['t2']);
+    });
+
+    it('is a no-op for nonexistent task', async () => {
+      await expect(repo.appendToBlocks('nonexistent', 't2')).resolves.toBeUndefined();
+    });
+  });
+
+  // ---------------------------------------------------------------------------
+  // Tasks: removeFromBlockedBy (atomic)
+  // ---------------------------------------------------------------------------
+
+  describe('removeFromBlockedBy', () => {
+    const makeTask = (id: string, overrides: Partial<TeamTask> = {}): TeamTask => ({
+      id,
+      teamId: 'team-1',
+      subject: `Task ${id}`,
+      status: 'open',
+      blockedBy: [],
+      blocks: [],
+      metadata: {},
+      createdAt: Date.now(),
+      updatedAt: Date.now(),
+      ...overrides,
+    });
+
+    beforeEach(async () => {
+      await repo.create(makeTeam());
+    });
+
+    it('removes a blocker id from blockedBy array', async () => {
+      await repo.createTask(makeTask('t1', { blockedBy: ['t0', 't2'] }));
+      const updated = await repo.removeFromBlockedBy('t1', 't0');
+
+      expect(updated.blockedBy).toEqual(['t2']);
+    });
+
+    it('returns task unchanged when blocker id is not present', async () => {
+      await repo.createTask(makeTask('t1', { blockedBy: ['t0'] }));
+      const updated = await repo.removeFromBlockedBy('t1', 'nonexistent');
+
+      expect(updated.blockedBy).toEqual(['t0']);
+    });
+
+    it('throws for nonexistent task', async () => {
+      await expect(repo.removeFromBlockedBy('nonexistent', 't0')).rejects.toThrow('Task "nonexistent" not found');
+    });
   });
 });

@@ -73,5 +73,14 @@
   "fileAttach.tooLarge": "File exceeds {{max}}MB limit",
   "fileAttach.failed": "Upload failed",
   "fileAttach.uploading": "Uploading...",
-  "fileAttach.uploadSuccess": "Upload successful"
+  "fileAttach.uploadSuccess": "Upload successful",
+  "expand": "Expand",
+  "name": "Name",
+  "added": "Added",
+  "status": "Status",
+  "refreshSuccess": "Refreshed",
+  "import": "Import",
+  "processing": "Processing...",
+  "optional": "(optional)",
+  "clear": "Clear"
 }

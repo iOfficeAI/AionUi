@@ -122,6 +122,7 @@ export const useGuidSend = (deps: GuidSendDeps): GuidSendResult => {
 
     const agentInfo = selectedAgentInfo;
     const isPreset = isPresetAgent;
+    const presetAssistantId = isPreset ? agentInfo?.customAgentId : undefined;
 
     const { agentType: effectiveAgentType } = getEffectiveAgentType(agentInfo);
 
@@ -154,11 +155,11 @@ export const useGuidSend = (deps: GuidSendDeps): GuidSendResult => {
         apiKey: '',
       };
       try {
-        const presetAssistantIdToPass = isPreset ? agentInfo?.customAgentId : undefined;
         const geminiConversationParams = buildAgentConversationParams({
           backend: 'gemini',
           name: input,
           agentName: agentInfo?.name,
+          presetAssistantId,
           workspace: finalWorkspace,
           model: placeholderModel,
           customAgentId: agentInfo?.customAgentId,
@@ -182,13 +183,7 @@ export const useGuidSend = (deps: GuidSendDeps): GuidSendResult => {
           },
         });
 
-        const conversation = await ipcBridge.conversation.create.invoke({
-          ...geminiConversationParams,
-          extra: {
-            ...geminiConversationParams.extra,
-            presetAssistantId: presetAssistantIdToPass,
-          },
-        });
+        const conversation = await ipcBridge.conversation.create.invoke(geminiConversationParams);
 
         if (!conversation || !conversation.id) {
           throw new Error('Failed to create conversation - conversation object is null or missing id');
@@ -225,6 +220,7 @@ export const useGuidSend = (deps: GuidSendDeps): GuidSendResult => {
         backend: openclawAgentInfo?.backend || 'openclaw-gateway',
         name: input,
         agentName: openclawAgentInfo?.name,
+        presetAssistantId,
         workspace: finalWorkspace,
         model: currentModel!,
         cliPath: openclawAgentInfo?.cliPath,
@@ -241,7 +237,6 @@ export const useGuidSend = (deps: GuidSendDeps): GuidSendResult => {
             switchedAt: Date.now(),
           },
           enabledSkills: isPreset ? enabledSkills : undefined,
-          presetAssistantId: isPreset ? openclawAgentInfo?.customAgentId : undefined,
         },
       });
 
@@ -283,6 +278,7 @@ export const useGuidSend = (deps: GuidSendDeps): GuidSendResult => {
         backend: nanobotAgentInfo?.backend || 'nanobot',
         name: input,
         agentName: nanobotAgentInfo?.name,
+        presetAssistantId,
         workspace: finalWorkspace,
         model: currentModel!,
         customAgentId: nanobotAgentInfo?.customAgentId,
@@ -290,7 +286,6 @@ export const useGuidSend = (deps: GuidSendDeps): GuidSendResult => {
         extra: {
           defaultFiles: files,
           enabledSkills: isPreset ? enabledSkills : undefined,
-          presetAssistantId: isPreset ? nanobotAgentInfo?.customAgentId : undefined,
         },
       });
 
@@ -327,8 +322,6 @@ export const useGuidSend = (deps: GuidSendDeps): GuidSendResult => {
 
     // Aionrs path
     if (selectedAgent === 'aionrs') {
-      const aionrsAgentInfo = agentInfo || findAgentByKey(selectedAgentKey);
-
       try {
         const conversation = await ipcBridge.conversation.create.invoke({
           type: 'aionrs',
@@ -340,7 +333,7 @@ export const useGuidSend = (deps: GuidSendDeps): GuidSendResult => {
             customWorkspace: isCustomWorkspace,
             presetRules: isPreset ? presetRules : undefined,
             enabledSkills: isPreset ? enabledSkills : undefined,
-            presetAssistantId: isPreset ? aionrsAgentInfo?.customAgentId : undefined,
+            presetAssistantId,
             sessionMode: selectedMode,
           },
         });
@@ -398,6 +391,7 @@ export const useGuidSend = (deps: GuidSendDeps): GuidSendResult => {
         backend: agentBackend,
         name: input,
         agentName: acpAgentInfo?.name,
+        presetAssistantId,
         workspace: finalWorkspace,
         model: currentModel!,
         cliPath: acpAgentInfo?.cliPath,

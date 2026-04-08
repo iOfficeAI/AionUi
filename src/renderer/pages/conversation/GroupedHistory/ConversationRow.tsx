@@ -6,6 +6,7 @@
 
 import { getAgentLogo } from '@/renderer/utils/model/agentLogo';
 import FlexFullContainer from '@/renderer/components/layout/FlexFullContainer';
+import siderStyles from '@/renderer/components/layout/Sider/Sider.module.css';
 import { usePresetAssistantInfo } from '@/renderer/hooks/agent/usePresetAssistantInfo';
 import { CronJobIndicator } from '@/renderer/pages/cron';
 import { cleanupSiderTooltips, getSiderTooltipProps } from '@/renderer/utils/ui/siderTooltip';
@@ -59,10 +60,11 @@ const ConversationRow: React.FC<ConversationRowProps> = (props) => {
 
     if (assistantInfo) {
       if (assistantInfo.isEmoji) {
-        return <span className='text-18px leading-none flex-shrink-0'>{assistantInfo.logo}</span>;
+        // Emoji glyphs render with built-in padding, so 16px text ≈ 18px line icon visual weight
+        return <span className='text-16px leading-none flex-shrink-0'>{assistantInfo.logo}</span>;
       }
       return (
-        <img src={assistantInfo.logo} alt={assistantInfo.name} className='w-20px h-20px rounded-50% flex-shrink-0' />
+        <img src={assistantInfo.logo} alt={assistantInfo.name} className='w-18px h-18px rounded-50% flex-shrink-0' />
       );
     }
 
@@ -70,7 +72,7 @@ const ConversationRow: React.FC<ConversationRowProps> = (props) => {
     const logo = getAgentLogo(backendKey);
     if (logo) {
       return (
-        <img src={logo} alt={`${backendKey || 'agent'} logo`} className='w-20px h-20px rounded-50% flex-shrink-0' />
+        <img src={logo} alt={`${backendKey || 'agent'} logo`} className='w-18px h-18px rounded-50% flex-shrink-0' />
       );
     }
 
@@ -118,8 +120,8 @@ const ConversationRow: React.FC<ConversationRowProps> = (props) => {
       <div
         id={'c-' + conversation.id}
         className={classNames(
-          'chat-history__item py-8px rd-8px flex items-center group cursor-pointer relative overflow-hidden shrink-0 conversation-item [&.conversation-item+&.conversation-item]:mt-2px min-w-0 transition-colors',
-          collapsed ? 'justify-center px-0' : 'justify-start px-12px',
+          'chat-history__item h-40px rd-8px flex items-center group cursor-pointer relative overflow-hidden shrink-0 conversation-item [&.conversation-item+&.conversation-item]:mt-2px min-w-0 transition-colors',
+          collapsed ? 'justify-center px-0' : 'justify-start gap-8px px-10px',
           {
             'hover:bg-[rgba(var(--primary-6),0.14)]': !batchMode,
             '!bg-active': selected,
@@ -140,8 +142,15 @@ const ConversationRow: React.FC<ConversationRowProps> = (props) => {
             <Checkbox checked={checked} />
           </span>
         )}
-        {isGenerating && !batchMode ? <Spin size={16} className='flex-shrink-0' /> : renderLeadingIcon()}
-        <FlexFullContainer className='h-24px min-w-0 flex-1 collapsed-hidden ml-10px pr-18px'>
+        <span className='w-28px h-28px flex items-center justify-center shrink-0'>
+          {isGenerating && !batchMode ? <Spin size={16} /> : renderLeadingIcon()}
+        </span>
+        <FlexFullContainer
+          className={classNames(
+            'h-24px min-w-0 flex-1 collapsed-hidden',
+            isPinned && !isMobile ? siderStyles.pinnedTextSlot : 'pr-18px'
+          )}
+        >
           <Tooltip
             content={conversation.name}
             disabled={!inlineNameTooltipEnabled}
@@ -163,29 +172,29 @@ const ConversationRow: React.FC<ConversationRowProps> = (props) => {
         </FlexFullContainer>
 
         {renderCompletionUnreadDot()}
+        {!batchMode && isPinned && !menuVisible && !isMobile && (
+          <span className='absolute right-8px top-1/2 -translate-y-1/2 flex-center text-t-secondary pointer-events-none !collapsed-hidden group-hover:hidden'>
+            <Pushpin theme='outline' size='16' />
+          </span>
+        )}
         {!batchMode && (
           <div
             className={classNames(
               'absolute right-0px top-0px h-full items-center justify-end !collapsed-hidden pr-8px',
               {
-                flex: isMobile || isPinned || menuVisible,
-                'hidden group-hover:flex': !isMobile && !isPinned && !menuVisible,
+                flex: isMobile || menuVisible,
+                'hidden group-hover:flex': !isMobile && !menuVisible,
               }
             )}
             style={{
               backgroundImage: selected
-                ? `linear-gradient(to right, transparent, var(--aou-2) 50%)`
-                : `linear-gradient(to right, transparent, var(--aou-1) 50%)`,
+                ? `linear-gradient(to right, transparent, var(--aou-2) 20%)`
+                : `linear-gradient(to right, transparent, var(--aou-1) 20%)`,
             }}
             onClick={(event) => {
               event.stopPropagation();
             }}
           >
-            {isPinned && !menuVisible && (
-              <span className='flex-center text-t-secondary group-hover:hidden pr-4px'>
-                <Pushpin theme='outline' size='16' />
-              </span>
-            )}
             <Dropdown
               droplist={
                 <Menu

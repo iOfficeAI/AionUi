@@ -35,6 +35,7 @@ import { useOpenFileSelector } from '@/renderer/hooks/file/useOpenFileSelector';
 import FileAttachButton from '@/renderer/components/media/FileAttachButton';
 import { useAutoTitle } from '@/renderer/hooks/chat/useAutoTitle';
 import { useSlashCommands } from '@/renderer/hooks/chat/useSlashCommands';
+import { useCommandQueueEnabled } from '@/renderer/hooks/system/useCommandQueueEnabled';
 
 const normalizeRuntimeValue = (value?: string | null): string => (value || '').trim();
 
@@ -118,6 +119,7 @@ const OpenClawSendBox: React.FC<{ conversation_id: string }> = ({ conversation_i
   const { t } = useTranslation();
   const { checkAndUpdateTitle } = useAutoTitle();
   const slashCommands = useSlashCommands(conversation_id);
+  const isCommandQueueEnabled = useCommandQueueEnabled();
   const addOrUpdateMessage = useAddOrUpdateMessage();
   const removeMessageByMsgId = useRemoveMessageByMsgId();
   const { setSendBoxHandler } = usePreviewContext();
@@ -470,18 +472,30 @@ const OpenClawSendBox: React.FC<{ conversation_id: string }> = ({ conversation_i
     resetActiveExecution,
   } = useConversationCommandQueue({
     conversationId: conversation_id,
+    enabled: isCommandQueueEnabled,
     isBusy: aiProcessing,
     isHydrated: hasHydratedRunningState,
     onExecute: executeCommand,
   });
 
   const onSendHandler = async (message: string) => {
+    if (!isCommandQueueEnabled && aiProcessing) {
+      Message.warning(t('messages.conversationInProgress'));
+      return;
+    }
+
     emitter.emit('openclaw-gateway.selected.file.clear');
     const filePaths = [...uploadFile, ...atPath.map((item) => (typeof item === 'string' ? item : item.path))];
     setAtPath([]);
     setUploadFile([]);
 
-    if (shouldEnqueueConversationCommand({ isBusy: aiProcessing, hasPendingCommands })) {
+    if (
+      shouldEnqueueConversationCommand({
+        enabled: isCommandQueueEnabled,
+        isBusy: aiProcessing,
+        hasPendingCommands,
+      })
+    ) {
       enqueue({ input: message, files: filePaths });
       return;
     }
@@ -588,7 +602,6 @@ const OpenClawSendBox: React.FC<{ conversation_id: string }> = ({ conversation_i
 
   return (
     <div className='max-w-800px w-full mx-auto flex flex-col mt-auto mb-16px'>
-      <ThoughtDisplay thought={thought} running={aiProcessing} onStop={handleStop} />
       <CommandQueuePanel
         items={items}
         paused={isQueuePaused}
@@ -602,10 +615,16 @@ const OpenClawSendBox: React.FC<{ conversation_id: string }> = ({ conversation_i
         onRemove={remove}
         onClear={clear}
       />
+      <ThoughtDisplay thought={thought} running={aiProcessing} onStop={handleStop} />
 
       <SendBox
         value={content}
         onChange={setContent}
+        selectedWorkspaceItems={atPath}
+        onSelectedWorkspaceItemsChange={(nextSelectedItems) => {
+          emitter.emit('openclaw-gateway.selected.file', nextSelectedItems);
+          setAtPath(nextSelectedItems);
+        }}
         loading={aiProcessing}
         disabled={false}
         className='z-10'
@@ -626,7 +645,7 @@ const OpenClawSendBox: React.FC<{ conversation_id: string }> = ({ conversation_i
         tools={<FileAttachButton openFileSelector={openFileSelector} onLocalFilesAdded={handleFilesAdded} />}
         prefix={
           <>
-            {(uploadFile.length > 0 || atPath.some((item) => (typeof item === 'string' ? true : item.isFile))) && (
+            {uploadFile.length > 0 && (
               <HorizontalFileList>
                 {uploadFile.map((path) => (
                   <FilePreview
@@ -635,26 +654,6 @@ const OpenClawSendBox: React.FC<{ conversation_id: string }> = ({ conversation_i
                     onRemove={() => setUploadFile(uploadFile.filter((v) => v !== path))}
                   />
                 ))}
-                {atPath.map((item) => {
-                  const isFile = typeof item === 'string' ? true : item.isFile;
-                  const path = typeof item === 'string' ? item : item.path;
-                  if (isFile) {
-                    return (
-                      <FilePreview
-                        key={path}
-                        path={path}
-                        onRemove={() => {
-                          const newAtPath = atPath.filter((v) =>
-                            typeof v === 'string' ? v !== path : v.path !== path
-                          );
-                          emitter.emit('openclaw-gateway.selected.file', newAtPath);
-                          setAtPath(newAtPath);
-                        }}
-                      />
-                    );
-                  }
-                  return null;
-                })}
               </HorizontalFileList>
             )}
             {atPath.some((item) => (typeof item === 'string' ? false : !item.isFile)) && (
@@ -686,7 +685,7 @@ const OpenClawSendBox: React.FC<{ conversation_id: string }> = ({ conversation_i
         onSend={onSendHandler}
         slashCommands={slashCommands}
         onSlashBuiltinCommand={onSlashBuiltinCommand}
-        allowSendWhileLoading
+        allowSendWhileLoading={isCommandQueueEnabled}
       ></SendBox>
     </div>
   );

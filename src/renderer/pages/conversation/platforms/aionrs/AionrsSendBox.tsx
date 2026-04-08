@@ -31,6 +31,7 @@ import { emitter, useAddEventListener } from '@/renderer/utils/emitter';
 import { mergeFileSelectionItems } from '@/renderer/utils/file/fileSelection';
 import { buildDisplayMessage, collectSelectedFiles } from '@/renderer/utils/file/messageFiles';
 import { getModelContextLimit } from '@/renderer/utils/model/modelContextLimits';
+import { useCommandQueueEnabled } from '@/renderer/hooks/system/useCommandQueueEnabled';
 import { Message, Tag } from '@arco-design/web-react';
 import { Shield } from '@icon-park/react';
 import { iconColors } from '@/renderer/styles/colors';
@@ -91,6 +92,7 @@ const AionrsSendBox: React.FC<{
   const [workspacePath, setWorkspacePath] = useState('');
   const { t } = useTranslation();
   const { checkAndUpdateTitle } = useAutoTitle();
+  const isCommandQueueEnabled = useCommandQueueEnabled();
 
   const { currentModel, getDisplayModelName } = modelSelection;
 
@@ -215,6 +217,7 @@ const AionrsSendBox: React.FC<{
     resetActiveExecution,
   } = useConversationCommandQueue({
     conversationId: conversation_id,
+    enabled: isCommandQueueEnabled,
     isBusy,
     isHydrated: hasHydratedRunningState,
     onExecute: executeCommand,
@@ -248,11 +251,22 @@ const AionrsSendBox: React.FC<{
   }, [conversation_id, executeCommand]);
 
   const onSendHandler = async (message: string) => {
+    if (!isCommandQueueEnabled && isBusy) {
+      Message.warning(t('messages.conversationInProgress'));
+      return;
+    }
+
     const filesToSend = collectSelectedFiles(uploadFile, atPath);
     clearFiles();
     emitter.emit('aionrs.selected.file.clear');
 
-    if (shouldEnqueueConversationCommand({ isBusy, hasPendingCommands })) {
+    if (
+      shouldEnqueueConversationCommand({
+        enabled: isCommandQueueEnabled,
+        isBusy,
+        hasPendingCommands,
+      })
+    ) {
       enqueue({ input: message, files: filesToSend });
       return;
     }
@@ -290,7 +304,6 @@ const AionrsSendBox: React.FC<{
 
   return (
     <div className='max-w-800px w-full mx-auto flex flex-col mt-auto mb-16px'>
-      <ThoughtDisplay thought={thought} running={running} onStop={handleStop} />
       <CommandQueuePanel
         items={queuedCommands}
         paused={isQueuePaused}
@@ -304,10 +317,16 @@ const AionrsSendBox: React.FC<{
         onRemove={remove}
         onClear={clear}
       />
+      <ThoughtDisplay thought={thought} running={running} onStop={handleStop} />
 
       <SendBox
         value={content}
         onChange={setContent}
+        selectedWorkspaceItems={atPath}
+        onSelectedWorkspaceItemsChange={(items) => {
+          emitter.emit('aionrs.selected.file', items);
+          setAtPath(items);
+        }}
         loading={isBusy}
         disabled={!currentModel?.useModel}
         placeholder={
@@ -345,8 +364,7 @@ const AionrsSendBox: React.FC<{
         }
         prefix={
           <>
-            {/* Files on top */}
-            {(uploadFile.length > 0 || atPath.some((item) => (typeof item === 'string' ? true : item.isFile))) && (
+            {uploadFile.length > 0 && (
               <HorizontalFileList>
                 {uploadFile.map((path) => (
                   <FilePreview
@@ -355,29 +373,8 @@ const AionrsSendBox: React.FC<{
                     onRemove={() => setUploadFile(uploadFile.filter((v) => v !== path))}
                   />
                 ))}
-                {atPath.map((item) => {
-                  const isFile = typeof item === 'string' ? true : item.isFile;
-                  const path = typeof item === 'string' ? item : item.path;
-                  if (isFile) {
-                    return (
-                      <FilePreview
-                        key={path}
-                        path={path}
-                        onRemove={() => {
-                          const newAtPath = atPath.filter((v) =>
-                            typeof v === 'string' ? v !== path : v.path !== path
-                          );
-                          emitter.emit('aionrs.selected.file', newAtPath);
-                          setAtPath(newAtPath);
-                        }}
-                      />
-                    );
-                  }
-                  return null;
-                })}
               </HorizontalFileList>
             )}
-            {/* Folder tags below */}
             {atPath.some((item) => (typeof item === 'string' ? false : !item.isFile)) && (
               <div className='flex flex-wrap items-center gap-8px mb-8px'>
                 {atPath.map((item) => {
@@ -407,7 +404,7 @@ const AionrsSendBox: React.FC<{
         onSend={onSendHandler}
         slashCommands={slashCommands}
         onSlashBuiltinCommand={onSlashBuiltinCommand}
-        allowSendWhileLoading
+        allowSendWhileLoading={isCommandQueueEnabled}
       />
     </div>
   );

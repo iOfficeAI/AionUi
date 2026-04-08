@@ -34,14 +34,11 @@ export class Mailbox {
   }
 
   /**
-   * Read all unread messages for an agent, automatically marking them as read.
+   * Read all unread messages for an agent, atomically marking them as read.
+   * Uses a single transaction to prevent concurrent double-reads.
    */
   async readUnread(teamId: string, agentId: string): Promise<MailboxMessage[]> {
-    const messages = await this.repo.readUnread(teamId, agentId);
-
-    await Promise.all(messages.map((msg) => this.repo.markRead(msg.id)));
-
-    return messages;
+    return this.repo.readUnreadAndMark(teamId, agentId);
   }
 
   /**

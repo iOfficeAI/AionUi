@@ -9,7 +9,9 @@ import type { TChatConversation } from '@/common/config/storage';
 import type { IAgentManager } from '@process/task/IAgentManager';
 import type { IConversationService, CreateConversationParams } from '@process/services/IConversationService';
 import type { IWorkerTaskManager } from '@process/task/IWorkerTaskManager';
+import type { TeamSessionService } from '@process/team/TeamSessionService';
 import { ipcBridge } from '@/common';
+import { removeFromMessageCache } from '@process/utils/message';
 import {
   getSkillsDir,
   getBuiltinSkillsCopyDir,
@@ -50,7 +52,8 @@ const VALID_CONVERSATION_TYPES = new Set<TChatConversation['type']>([
 
 export function initConversationBridge(
   conversationService: IConversationService,
-  workerTaskManager: IWorkerTaskManager
+  workerTaskManager: IWorkerTaskManager,
+  teamSessionService?: TeamSessionService
 ): void {
   const sideQuestionService = new ConversationSideQuestionService(conversationService);
 
@@ -259,6 +262,7 @@ export function initConversationBridge(
       }
 
       await conversationService.deleteConversation(id);
+      removeFromMessageCache(id);
       if (conversation) {
         emitConversationListChanged(conversation, 'deleted');
       }
@@ -314,6 +318,13 @@ export function initConversationBridge(
   // flag) to avoid triggering the sidebar loading spinner prematurely.
   ipcBridge.conversation.warmup.provider(async ({ conversation_id }) => {
     try {
+      if (teamSessionService) {
+        const conversation = await conversationService.getConversation(conversation_id);
+        const teamId = (conversation?.extra as { teamId?: string } | undefined)?.teamId;
+        if (teamId) {
+          await teamSessionService.getOrStartSession(teamId);
+        }
+      }
       const task = await workerTaskManager.getOrBuildTask(conversation_id);
       if (task && task.type === 'acp') {
         await (task as unknown as AcpAgentManager).initAgent();
@@ -452,6 +463,14 @@ export function initConversationBridge(
   // 通用 sendMessage 实现 - 统一调用 IAgentManager.sendMessage
   // Generic sendMessage - dispatches via IAgentManager.sendMessage interface
   ipcBridge.conversation.sendMessage.provider(async (params) => {
+    // Notify pet of user sending message (pre-emptive thinking)
+    try {
+      const { getEventBridge } = await import('../pet/petManager');
+      getEventBridge()?.handleUserSendMessage();
+    } catch {
+      /* pet not initialized */
+    }
+
     if (!params) {
       return { success: false, msg: 'Missing request parameters' };
     }
