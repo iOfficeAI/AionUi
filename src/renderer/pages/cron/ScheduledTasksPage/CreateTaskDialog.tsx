@@ -18,7 +18,11 @@ import dayjs from 'dayjs';
 import { supportsModeSwitch } from '@renderer/utils/model/agentModes';
 import AgentModeSelector from '@renderer/components/agent/AgentModeSelector';
 import AcpConfigSelector from '@renderer/components/agent/AcpConfigSelector';
+import type { TProviderWithModel } from '@/common/config/storage';
 import { ConfigStorage } from '@/common/config/storage';
+import type { AcpModelInfo } from '@/common/types/acpTypes';
+import { useModelProviderList } from '@renderer/hooks/agent/useModelProviderList';
+import GuidModelSelector from '@renderer/pages/guid/components/GuidModelSelector';
 
 const FormItem = Form.Item;
 const TextArea = Input.TextArea;
@@ -103,6 +107,7 @@ const CreateTaskDialog: React.FC<CreateTaskDialogProps> = ({
   const [form] = Form.useForm();
   const [submitting, setSubmitting] = useState(false);
   const { cliAgents, presetAssistants } = useConversationAgents();
+  const { providers, geminiModeLookup, getAvailableModels, formatModelLabel } = useModelProviderList();
   const [frequency, setFrequency] = useState<FrequencyType>('manual');
   const [time, setTime] = useState('09:00');
   const [weekday, setWeekday] = useState('MON');
@@ -112,9 +117,11 @@ const CreateTaskDialog: React.FC<CreateTaskDialogProps> = ({
 
   // Advanced settings state
   const [mode, setMode] = useState<string | undefined>(undefined);
+  const [modelId, setModelId] = useState<string | undefined>(undefined);
   const [configOptions, setConfigOptions] = useState<Record<string, string> | undefined>(undefined);
   const [workspace, setWorkspace] = useState<string | undefined>(undefined);
   const [cachedConfigOptions, setCachedConfigOptions] = useState<unknown[] | undefined>(undefined);
+  const [acpCachedModelInfo, setAcpCachedModelInfo] = useState<AcpModelInfo | null>(null);
   const [selectedAgent, setSelectedAgent] = useState<string | undefined>(undefined);
 
   // Populate form when entering edit mode
@@ -137,6 +144,7 @@ const CreateTaskDialog: React.FC<CreateTaskDialogProps> = ({
       });
       // Populate advanced settings from editJob
       setMode(editJob.metadata.agentConfig?.mode);
+      setModelId(editJob.metadata.agentConfig?.modelId);
       setConfigOptions(editJob.metadata.agentConfig?.configOptions);
       setWorkspace(editJob.metadata.agentConfig?.workspace);
     } else {
@@ -146,6 +154,7 @@ const CreateTaskDialog: React.FC<CreateTaskDialogProps> = ({
       setWeekday('MON');
       setExecutionMode('new_conversation');
       setMode(undefined);
+      setModelId(undefined);
       setConfigOptions(undefined);
       setWorkspace(undefined);
       setSelectedAgent(undefined);
@@ -188,6 +197,82 @@ const CreateTaskDialog: React.FC<CreateTaskDialogProps> = ({
       setCachedConfigOptions(undefined);
     }
   }, [resolvedBackend]);
+
+  // Build Gemini currentModel from modelId for GuidModelSelector
+  const geminiCurrentModel = useMemo<TProviderWithModel | undefined>(() => {
+    if (resolvedBackend !== 'gemini' || !modelId) return undefined;
+    for (const p of providers) {
+      if (getAvailableModels(p).includes(modelId)) {
+        return { ...p, useModel: modelId } as TProviderWithModel;
+      }
+    }
+    return undefined;
+  }, [resolvedBackend, modelId, providers, getAvailableModels]);
+
+  const isGeminiMode = resolvedBackend === 'gemini';
+
+  const handleGeminiModelSelect = useCallback(async (model: TProviderWithModel) => {
+    setModelId(model.useModel);
+  }, []);
+
+  const handleAcpModelSelect: React.Dispatch<React.SetStateAction<string | null>> = useCallback(
+    (action: React.SetStateAction<string | null>) => {
+      setModelId((prev) => {
+        const next = typeof action === 'function' ? action(prev ?? null) : action;
+        return next ?? undefined;
+      });
+    },
+    []
+  );
+
+  // Load ACP cached model info when backend changes
+  useEffect(() => {
+    if (!resolvedBackend || resolvedBackend === 'gemini') {
+      setAcpCachedModelInfo(null);
+      return;
+    }
+    ConfigStorage.get('acp.cachedModels')
+      .then((cached) => {
+        const info = cached?.[resolvedBackend];
+        setAcpCachedModelInfo(info?.availableModels?.length ? info : null);
+      })
+      .catch(() => setAcpCachedModelInfo(null));
+  }, [resolvedBackend]);
+
+  // Set default modelId from user preferences when backend changes
+  useEffect(() => {
+    if (!resolvedBackend || modelId) return;
+    if (resolvedBackend === 'gemini') {
+      ConfigStorage.get('gemini.defaultModel')
+        .then((saved) => {
+          const preferred = typeof saved === 'string' ? saved : saved?.useModel;
+          if (preferred) setModelId(preferred);
+        })
+        .catch(() => {});
+    }
+  }, [resolvedBackend, modelId]);
+
+  // Set default mode from user preferences when backend changes
+  useEffect(() => {
+    if (!resolvedBackend || mode) return;
+    if (resolvedBackend === 'gemini') {
+      ConfigStorage.get('gemini.config')
+        .then((config) => {
+          if (config?.preferredMode) setMode(config.preferredMode);
+        })
+        .catch(() => {});
+    } else {
+      ConfigStorage.get('acp.config')
+        .then((config) => {
+          const backendConfig = config?.[resolvedBackend as import('@/common/types/acpTypes').AcpBackend] as
+            | Record<string, unknown>
+            | undefined;
+          const preferred = backendConfig?.preferredMode as string | undefined;
+          if (preferred) setMode(preferred);
+        })
+        .catch(() => {});
+    }
+  }, [resolvedBackend, mode]);
 
   const showTimePicker = frequency === 'daily' || frequency === 'weekdays' || frequency === 'weekly';
   const showWeekdayPicker = frequency === 'weekly';
@@ -241,8 +326,9 @@ const CreateTaskDialog: React.FC<CreateTaskDialogProps> = ({
 
   const handleAgentChange = useCallback((value: string) => {
     setSelectedAgent(value);
-    // Reset mode and configOptions when agent changes
+    // Reset mode, model, and configOptions when agent changes
     setMode(undefined);
+    setModelId(undefined);
     setConfigOptions(undefined);
     // Workspace remains unchanged (agent-agnostic)
   }, []);
@@ -284,6 +370,7 @@ const CreateTaskDialog: React.FC<CreateTaskDialogProps> = ({
           name: agent.name,
           cliPath: agent.cliPath,
           mode,
+          modelId,
           configOptions,
           workspace,
         };
@@ -299,6 +386,7 @@ const CreateTaskDialog: React.FC<CreateTaskDialogProps> = ({
           customAgentId: agent.customAgentId,
           presetAgentType: agent.presetAgentType,
           mode,
+          modelId,
           configOptions,
           workspace,
         };
@@ -567,27 +655,52 @@ const CreateTaskDialog: React.FC<CreateTaskDialogProps> = ({
           <Collapse defaultActiveKey={[]} className='mt-16px'>
             <Collapse.Item header={t('cron.page.form.advancedSettings')} name='advanced'>
               <div className='flex flex-col gap-16px'>
-                {/* Agent Mode Selector - only when supportsModeSwitch */}
+                {/* Agent Mode Selector - reuse AgentModeSelector (same as GuidActionRow) */}
                 {resolvedBackend && supportsModeSwitch(resolvedBackend) && (
                   <div>
                     <label className='text-14px font-medium text-t-primary mb-8px block'>{t('common.agentMode')}</label>
                     <AgentModeSelector
                       backend={resolvedBackend}
-                      compact={false}
+                      modeLabelFormatter={(mode) => t(`agentMode.${mode.value}`, { defaultValue: mode.label })}
+                      compact
                       initialMode={mode}
                       onModeSelect={handleModeSelect}
                     />
                   </div>
                 )}
 
+                {/* Model Selector — reuse GuidModelSelector (same no-conversation context) */}
+                {resolvedBackend && (isGeminiMode || acpCachedModelInfo) && (
+                  <div>
+                    <label className='text-14px font-medium text-t-primary mb-8px block'>
+                      {t('cron.page.form.model')}
+                    </label>
+                    <GuidModelSelector
+                      isGeminiMode={isGeminiMode}
+                      modelList={providers}
+                      currentModel={geminiCurrentModel}
+                      setCurrentModel={handleGeminiModelSelect}
+                      geminiModeLookup={geminiModeLookup}
+                      currentAcpCachedModelInfo={acpCachedModelInfo}
+                      selectedAcpModel={modelId ?? null}
+                      setSelectedAcpModel={handleAcpModelSelect}
+                    />
+                  </div>
+                )}
+
                 {/* ACP Config Selector - only for codex backend */}
                 {resolvedBackend === 'codex' && (
-                  <AcpConfigSelector
-                    backend={resolvedBackend}
-                    compact={false}
-                    initialConfigOptions={cachedConfigOptions}
-                    onOptionSelect={handleConfigOptionSelect}
-                  />
+                  <div>
+                    <label className='text-14px font-medium text-t-primary mb-8px block'>
+                      {t('acp.config.reasoning_effort')}
+                    </label>
+                    <AcpConfigSelector
+                      backend={resolvedBackend}
+                      compact={false}
+                      initialConfigOptions={cachedConfigOptions}
+                      onOptionSelect={handleConfigOptionSelect}
+                    />
+                  </div>
                 )}
 
                 {/* Workspace directory picker */}

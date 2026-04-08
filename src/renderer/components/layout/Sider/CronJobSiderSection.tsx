@@ -23,6 +23,13 @@ const CronJobSiderSection: React.FC<CronJobSiderSectionProps> = ({ jobs, pathnam
   const { t } = useTranslation();
   const [expanded, setExpanded] = useState(false);
 
+  // Auto-expand when navigating to a scheduled task detail or a cron child conversation
+  useEffect(() => {
+    if (pathname.startsWith('/scheduled/')) {
+      setExpanded(true);
+    }
+  }, [pathname]);
+
   // Batch-fetch conversations for all "existing" mode jobs to avoid N+1 IPC calls
   const existingModeConvIds = useMemo(
     () =>

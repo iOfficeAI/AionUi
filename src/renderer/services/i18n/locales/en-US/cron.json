@@ -102,7 +102,8 @@
       "workspacePlaceholder": "Select a folder",
       "workspaceHint": "Optional: set a workspace folder for file operations",
       "selectFolder": "Select Folder",
-      "clearFolder": "Clear"
+      "clearFolder": "Clear",
+      "model": "Model"
     },
     "freq": {
       "manual": "Manual",

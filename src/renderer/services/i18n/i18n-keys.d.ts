@@ -553,6 +553,7 @@ export type I18nKey =
   | 'cron.page.form.existingConversation'
   | 'cron.page.form.existingConversationHint'
   | 'cron.page.form.frequency'
+  | 'cron.page.form.model'
   | 'cron.page.form.name'
   | 'cron.page.form.namePlaceholder'
   | 'cron.page.form.nameRequired'

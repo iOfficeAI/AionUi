@@ -103,7 +103,8 @@
       "workspacePlaceholder": "選擇資料夾",
       "workspaceHint": "選填：設定檔案操作的工作空間資料夾",
       "selectFolder": "選擇資料夾",
-      "clearFolder": "清除"
+      "clearFolder": "清除",
+      "model": "模型"
     },
     "freq": {
       "manual": "手動觸發",

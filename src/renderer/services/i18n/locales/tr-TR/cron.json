@@ -115,7 +115,8 @@
       "workspacePlaceholder": "Klasör seç",
       "workspaceHint": "İsteğe bağlı: Dosya işlemleri için çalışma alanı klasörü ayarlayın",
       "selectFolder": "Klasör Seç",
-      "clearFolder": "Temizle"
+      "clearFolder": "Temizle",
+      "model": "Model"
     },
     "freq": {
       "manual": "Manuel",

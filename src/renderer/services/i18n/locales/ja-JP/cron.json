@@ -115,7 +115,8 @@
       "workspacePlaceholder": "フォルダを選択",
       "workspaceHint": "オプション：ファイル操作のワークスペースフォルダを設定",
       "selectFolder": "フォルダを選択",
-      "clearFolder": "クリア"
+      "clearFolder": "クリア",
+      "model": "モデル"
     },
     "freq": {
       "manual": "手動",

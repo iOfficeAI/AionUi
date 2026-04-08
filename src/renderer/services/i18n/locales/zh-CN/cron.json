@@ -103,7 +103,8 @@
       "workspacePlaceholder": "选择文件夹",
       "workspaceHint": "可选：设置文件操作的工作空间文件夹",
       "selectFolder": "选择文件夹",
-      "clearFolder": "清除"
+      "clearFolder": "清除",
+      "model": "模型"
     },
     "freq": {
       "manual": "手动触发",

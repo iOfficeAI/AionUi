@@ -103,7 +103,8 @@
       "workspacePlaceholder": "폴더 선택",
       "workspaceHint": "선택 사항: 파일 작업을 위한 워크스페이스 폴더 설정",
       "selectFolder": "폴더 선택",
-      "clearFolder": "지우기"
+      "clearFolder": "지우기",
+      "model": "모델"
     },
     "freq": {
       "manual": "수동",
