@@ -184,6 +184,7 @@
 
 .sendbox-highlight-textarea::placeholder {
   color: #a1a2aa !important;
+  -webkit-text-fill-color: #a1a2aa !important;
 }
 
 /* Mobile: allow horizontal scrolling for sendbox tools (model/permission pills) */
