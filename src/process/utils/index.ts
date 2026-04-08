@@ -14,4 +14,5 @@ export {
   verifyDirectoryFiles,
   copyFilesToDirectory,
   ensureDirectory,
+  resolveCliSafePath,
 } from './utils';
