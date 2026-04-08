@@ -425,6 +425,39 @@ function unregisterIpcHandlers(): void {
 // Helpers
 // ---------------------------------------------------------------------------
 
+/**
+ * Resize a transparent BrowserWindow on Windows reliably.
+ *
+ * Background: on Windows, calling setSize() / setBounds() on a window created
+ * with `transparent: true` and `frame: false` updates the window-handle bounds
+ * but does not always reflow the rendered content area. The user sees the pet
+ * staying its original size while the hit-region (and the WM's idea of the
+ * window) shrinks/grows underneath. This is the root cause of the
+ * "win11 改大小后实际显示不变" report — see electron/electron#20729.
+ *
+ * Workaround: hide → setBounds → show. Hiding releases the DWM composition
+ * cache for the window so the next show() rebuilds it at the new size. This is
+ * a one-frame flicker but it's the only reliable cross-Electron-version fix.
+ *
+ * macOS / Linux don't suffer this bug, so we keep the cheap setBounds-only
+ * path there to avoid the show/hide flicker.
+ */
+function applyTransparentResize(win: BrowserWindow, bounds: Electron.Rectangle): void {
+  if (process.platform !== 'win32') {
+    win.setBounds(bounds, false);
+    return;
+  }
+  const wasVisible = win.isVisible();
+  if (wasVisible) win.hide();
+  win.setBounds(bounds, false);
+  if (wasVisible) {
+    // showInactive() avoids stealing focus from the user's current app, which
+    // matters because the pet window has focusable: false but show() can still
+    // reorder z-stack on Windows.
+    win.showInactive();
+  }
+}
+
 function clearDragTimer(): void {
   if (dragTimer) {
     clearInterval(dragTimer);
@@ -471,12 +504,16 @@ function resizePet(size: PetSize): void {
   currentSize = size;
   const [x, y] = petWindow.getPosition();
 
-  petWindow.setSize(size, size, false);
+  applyTransparentResize(petWindow, { x, y, width: size, height: size });
 
   const hitSize = Math.round(size * 0.6);
   const hitOffset = Math.round(size * 0.2);
-  petHitWindow.setSize(hitSize, hitSize, false);
-  petHitWindow.setPosition(x + hitOffset, y + hitOffset, false);
+  applyTransparentResize(petHitWindow, {
+    x: x + hitOffset,
+    y: y + hitOffset,
+    width: hitSize,
+    height: hitSize,
+  });
 
   idleTicker?.setPetBounds(x, y, size, size);
 
