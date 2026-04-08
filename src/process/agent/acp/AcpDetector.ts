@@ -53,6 +53,42 @@ class AcpDetector {
   private detectedAgents: DetectedAgent[] = [];
   private isDetected = false;
   private enhancedEnv: NodeJS.ProcessEnv | undefined;
+  private mutationQueue: Promise<void> = Promise.resolve();
+
+  private createGeminiAgent(): DetectedAgent {
+    return {
+      backend: 'gemini',
+      name: 'Gemini CLI',
+      cliPath: undefined,
+      acpArgs: undefined,
+    };
+  }
+
+  private mergeDetectedAgents(params: {
+    builtinAgents?: DetectedAgent[];
+    extensionAgents?: DetectedAgent[];
+    customAgents?: DetectedAgent[];
+  }): DetectedAgent[] {
+    const { builtinAgents = [], extensionAgents = [], customAgents = [] } = params;
+    return this.deduplicate([this.createGeminiAgent(), ...builtinAgents, ...extensionAgents, ...customAgents]);
+  }
+
+  private async runExclusiveMutation<T>(task: () => Promise<T>): Promise<T> {
+    const previousMutation = this.mutationQueue;
+    let releaseCurrentMutation: (() => void) | undefined;
+
+    this.mutationQueue = new Promise<void>((resolve) => {
+      releaseCurrentMutation = resolve;
+    });
+
+    await previousMutation;
+
+    try {
+      return await task();
+    } finally {
+      releaseCurrentMutation?.();
+    }
+  }
 
   /**
    * Check if a CLI command is available on the system PATH.
@@ -216,8 +252,12 @@ class AcpDetector {
   private deduplicate(agents: DetectedAgent[]): DetectedAgent[] {
     const seen = new Set<string>();
     const result: DetectedAgent[] = [];
-    // console.debug(`[AcpDetector] Deduplicating ${agents.length} agents: [ ${agents.map((a) => a.name).join(', ')} ]`);
-    // console.debug(`[AcpDetector] Deduplicating ${agents.length} agents: [ ${agents.map((a) => JSON.stringify(a)).join('\n')} ]`);
+    // console.debug(
+    //   `[AcpDetector] Deduplicating ${agents.length} agents: [ ${agents.map((a) => a.name).join(', ')} ]`
+    // );
+    // console.debug(
+    //   `[AcpDetector] Deduplicating ${agents.length} agents: [ ${agents.map((a) => JSON.stringify(a)).join('\n')} ]`
+    // );
     for (const agent of agents) {
       if (agent.cliPath) {
         if (seen.has(agent.cliPath)) continue;
@@ -234,30 +274,24 @@ class AcpDetector {
   // ---------------------------------------------------------------------------
 
   async initialize(): Promise<void> {
-    if (this.isDetected) return;
+    await this.runExclusiveMutation(async () => {
+      if (this.isDetected) return;
 
-    console.log('[ACP] Starting agent detection...');
-    const startTime = Date.now();
+      console.log('[ACP] Starting agent detection...');
+      const startTime = Date.now();
 
-    // Run all three sources in parallel
-    const [builtinAgents, extensionAgents, customAgents] = await Promise.all([
-      this.detectBuiltinAgents(),
-      this.detectExtensionAgents(),
-      this.detectCustomAgents(),
-    ]);
+      // Run all three sources in parallel
+      const [builtinAgents, extensionAgents, customAgents] = await Promise.all([
+        this.detectBuiltinAgents(),
+        this.detectExtensionAgents(),
+        this.detectCustomAgents(),
+      ]);
 
-    // Merge with priority: Gemini (always first) > builtin > extension > custom
-    const gemini: DetectedAgent = {
-      backend: 'gemini',
-      name: 'Gemini CLI',
-      cliPath: undefined,
-      acpArgs: undefined,
-    };
-
-    this.detectedAgents = this.deduplicate([gemini, ...builtinAgents, ...extensionAgents, ...customAgents]);
-    this.isDetected = true;
-    const elapsed = Date.now() - startTime;
-    console.log(`[ACP] Detection completed in ${elapsed}ms, found ${this.detectedAgents.length} agents`);
+      this.detectedAgents = this.mergeDetectedAgents({ builtinAgents, extensionAgents, customAgents });
+      this.isDetected = true;
+      const elapsed = Date.now() - startTime;
+      console.log(`[ACP] Detection completed in ${elapsed}ms, found ${this.detectedAgents.length} agents`);
+    });
   }
 
   getDetectedAgents(): DetectedAgent[] {
@@ -272,10 +306,14 @@ class AcpDetector {
    * Refresh custom agents detection only (called when config changes).
    */
   async refreshCustomAgents(): Promise<void> {
-    this.detectedAgents = this.detectedAgents.filter((agent) => !(agent.backend === 'custom' && !agent.isExtension));
-    const customAgents = await this.detectCustomAgents();
-    this.detectedAgents.push(...customAgents);
-    this.detectedAgents = this.deduplicate(this.detectedAgents);
+    await this.runExclusiveMutation(async () => {
+      const builtinAgents = this.detectedAgents.filter(
+        (agent) => agent.backend !== 'gemini' && agent.backend !== 'custom'
+      );
+      const extensionAgents = this.detectedAgents.filter((agent) => agent.backend === 'custom' && agent.isExtension);
+      const customAgents = await this.detectCustomAgents();
+      this.detectedAgents = this.mergeDetectedAgents({ builtinAgents, extensionAgents, customAgents });
+    });
   }
 
   /**
@@ -284,25 +322,24 @@ class AcpDetector {
    * Gemini is a builtin that requires no CLI — it is always kept.
    */
   async refreshBuiltinAgents(): Promise<void> {
-    this.enhancedEnv = undefined;
-    // Snapshot old builtin backends for diff logging
-    const oldBuiltins = this.detectedAgents
-      .filter((a) => a.backend !== 'gemini' && a.backend !== 'custom')
-      .map((a) => a.backend);
-    // Remove builtin CLI agents (keep Gemini, extension agents, and custom agents)
-    this.detectedAgents = this.detectedAgents.filter((a) => a.backend === 'gemini' || a.backend === 'custom');
-    const builtinAgents = await this.detectBuiltinAgents();
-    const newBuiltins = builtinAgents.map((a) => a.backend);
-    // Keep Gemini first, then builtins, then the rest (same order as initialize)
-    const gemini = this.detectedAgents.find((a) => a.backend === 'gemini');
-    const rest = this.detectedAgents.filter((a) => a.backend !== 'gemini');
-    this.detectedAgents = this.deduplicate([...(gemini ? [gemini] : []), ...builtinAgents, ...rest]);
+    await this.runExclusiveMutation(async () => {
+      this.enhancedEnv = undefined;
+      // Snapshot old builtin backends for diff logging
+      const oldBuiltins = this.detectedAgents
+        .filter((a) => a.backend !== 'gemini' && a.backend !== 'custom')
+        .map((a) => a.backend);
+      const extensionAgents = this.detectedAgents.filter((agent) => agent.backend === 'custom' && agent.isExtension);
+      const customAgents = this.detectedAgents.filter((agent) => agent.backend === 'custom' && !agent.isExtension);
+      const builtinAgents = await this.detectBuiltinAgents();
+      const newBuiltins = builtinAgents.map((a) => a.backend);
+      this.detectedAgents = this.mergeDetectedAgents({ builtinAgents, extensionAgents, customAgents });
 
-    const added = newBuiltins.filter((b) => !oldBuiltins.includes(b));
-    const removed = oldBuiltins.filter((b) => !newBuiltins.includes(b));
-    if (added.length > 0 || removed.length > 0) {
-      console.log(`[AcpDetector] Builtin agents changed: +[${added.join(', ')}] -[${removed.join(', ')}]`);
-    }
+      const added = newBuiltins.filter((b) => !oldBuiltins.includes(b));
+      const removed = oldBuiltins.filter((b) => !newBuiltins.includes(b));
+      if (added.length > 0 || removed.length > 0) {
+        console.log(`[AcpDetector] Builtin agents changed: +[${added.join(', ')}] -[${removed.join(', ')}]`);
+      }
+    });
   }
 
   /**
@@ -310,11 +347,15 @@ class AcpDetector {
    * Clears cached env so newly installed CLIs are discoverable.
    */
   async refreshExtensionAgents(): Promise<void> {
-    this.enhancedEnv = undefined;
-    this.detectedAgents = this.detectedAgents.filter((agent) => !agent.isExtension);
-    const extensionAgents = await this.detectExtensionAgents();
-    this.detectedAgents.push(...extensionAgents);
-    this.detectedAgents = this.deduplicate(this.detectedAgents);
+    await this.runExclusiveMutation(async () => {
+      this.enhancedEnv = undefined;
+      const builtinAgents = this.detectedAgents.filter(
+        (agent) => agent.backend !== 'gemini' && agent.backend !== 'custom'
+      );
+      const customAgents = this.detectedAgents.filter((agent) => agent.backend === 'custom' && !agent.isExtension);
+      const extensionAgents = await this.detectExtensionAgents();
+      this.detectedAgents = this.mergeDetectedAgents({ builtinAgents, extensionAgents, customAgents });
+    });
   }
 
   /**
@@ -323,22 +364,17 @@ class AcpDetector {
    * Clears cached env to pick up PATH changes.
    */
   async refreshAll(): Promise<void> {
-    this.enhancedEnv = undefined;
+    await this.runExclusiveMutation(async () => {
+      this.enhancedEnv = undefined;
 
-    const [builtinAgents, extensionAgents, customAgents] = await Promise.all([
-      this.detectBuiltinAgents(),
-      this.detectExtensionAgents(),
-      this.detectCustomAgents(),
-    ]);
+      const [builtinAgents, extensionAgents, customAgents] = await Promise.all([
+        this.detectBuiltinAgents(),
+        this.detectExtensionAgents(),
+        this.detectCustomAgents(),
+      ]);
 
-    const gemini: DetectedAgent = {
-      backend: 'gemini',
-      name: 'Gemini CLI',
-      cliPath: undefined,
-      acpArgs: undefined,
-    };
-
-    this.detectedAgents = this.deduplicate([gemini, ...builtinAgents, ...extensionAgents, ...customAgents]);
+      this.detectedAgents = this.mergeDetectedAgents({ builtinAgents, extensionAgents, customAgents });
+    });
   }
 }
 
