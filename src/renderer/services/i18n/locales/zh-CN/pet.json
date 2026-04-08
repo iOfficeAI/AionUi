@@ -12,5 +12,6 @@
   "pat": "摸摸",
   "resetPosition": "重置位置",
   "hide": "隐藏",
-  "showHide": "显示/隐藏"
+  "showHide": "显示/隐藏",
+  "desktopOnly": "桌面宠物仅在桌面应用中可用，无法在 WebUI 浏览器模式下使用。"
 }
