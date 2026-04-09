@@ -1,4 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { EventEmitter } from 'node:events';
+import type { IncomingMessage, ClientRequest } from 'node:http';
 
 // Capture provider callbacks so we can invoke them directly
 const providerCallbacks: Record<string, (...args: unknown[]) => unknown> = {};
@@ -6,6 +8,27 @@ const mockProvider = (name: string) =>
   vi.fn((cb: (...args: unknown[]) => unknown) => {
     providerCallbacks[name] = cb;
   });
+
+// Controllable mock for https.get — tests can override via mockHttpsGet
+let mockHttpsGet: ((...args: unknown[]) => unknown) | undefined;
+
+vi.mock('node:https', () => ({
+  default: {
+    get: (...args: unknown[]) => {
+      if (mockHttpsGet) return mockHttpsGet(...args);
+      // Default: return a request that does nothing (for tests that don't need network)
+      const req = new EventEmitter() as EventEmitter & Partial<ClientRequest>;
+      req.setTimeout = vi.fn().mockReturnThis();
+      return req as ClientRequest;
+    },
+  },
+}));
+
+vi.mock('node:http', () => ({
+  default: {
+    get: vi.fn(),
+  },
+}));
 
 vi.mock('@office-ai/platform', () => ({
   bridge: {
@@ -86,6 +109,7 @@ vi.mock('@/common', () => ({
 
 describe('downloadRemoteBuffer URL validation (ELECTRON-77)', () => {
   beforeEach(async () => {
+    mockHttpsGet = undefined;
     vi.resetModules();
     // Re-import to register providers fresh
     const mod = await import('@process/bridge/fsBridge');
@@ -114,6 +138,62 @@ describe('downloadRemoteBuffer URL validation (ELECTRON-77)', () => {
     expect(handler).toBeDefined();
 
     const result = await handler({ url: 'not-a-valid-url' });
+    expect(result).toBe('');
+  });
+});
+
+describe('downloadRemoteBuffer redirect to non-whitelisted host (ELECTRON-9N)', () => {
+  beforeEach(async () => {
+    mockHttpsGet = undefined;
+    vi.resetModules();
+    const mod = await import('@process/bridge/fsBridge');
+    mod.initFsBridge();
+  });
+
+  it('handles redirect to non-whitelisted host without uncaught exception', async () => {
+    // Simulate a 302 redirect from github.com to a non-whitelisted CDN host
+    mockHttpsGet = (_url: unknown, _opts: unknown, cb: unknown) => {
+      const response = new EventEmitter() as EventEmitter & Partial<IncomingMessage>;
+      response.statusCode = 302;
+      response.headers = { location: 'https://cdn.evil.com/image.png' };
+      (response as IncomingMessage & { resume: () => void }).resume = vi.fn();
+
+      // Call the response callback asynchronously to simulate real behavior
+      queueMicrotask(() => (cb as (res: unknown) => void)(response));
+
+      const request = new EventEmitter() as EventEmitter & Partial<ClientRequest>;
+      request.setTimeout = vi.fn().mockReturnThis();
+      return request as ClientRequest;
+    };
+
+    const handler = providerCallbacks.fetchRemoteImage;
+    expect(handler).toBeDefined();
+
+    // Before the fix, this would throw synchronously inside the response callback,
+    // causing an uncaught exception. After the fix, it returns a rejected promise
+    // that is caught by fetchRemoteImage's try/catch, returning empty string.
+    const result = await handler({ url: 'https://github.com/some/image.png' });
+    expect(result).toBe('');
+  });
+
+  it('handles redirect to invalid URL without uncaught exception', async () => {
+    mockHttpsGet = (_url: unknown, _opts: unknown, cb: unknown) => {
+      const response = new EventEmitter() as EventEmitter & Partial<IncomingMessage>;
+      response.statusCode = 302;
+      response.headers = { location: 'http://%' };
+      (response as IncomingMessage & { resume: () => void }).resume = vi.fn();
+
+      queueMicrotask(() => (cb as (res: unknown) => void)(response));
+
+      const request = new EventEmitter() as EventEmitter & Partial<ClientRequest>;
+      request.setTimeout = vi.fn().mockReturnThis();
+      return request as ClientRequest;
+    };
+
+    const handler = providerCallbacks.fetchRemoteImage;
+    expect(handler).toBeDefined();
+
+    const result = await handler({ url: 'https://github.com/some/image.png' });
     expect(result).toBe('');
   });
 });
