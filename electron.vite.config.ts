@@ -78,6 +78,18 @@ export default defineConfig(({ mode }) => {
         // externalizeDepsPlugin replaces our custom getExternalDeps() + pluginExternalizeDynamicImports.
         // 'fix-path' excluded so it gets bundled inline (only 3KB).
         externalizeDepsPlugin({ exclude: ['fix-path'] }),
+        ...(isDevelopment
+          ? [
+              {
+                name: 'dev-build-mcp-servers',
+                closeBundle() {
+                  execSync(`node "${resolve(__dirname, 'scripts/build-mcp-servers.js')}"`, {
+                    stdio: 'inherit',
+                  });
+                },
+              },
+            ]
+          : []),
         ...(!isDevelopment
           ? [
               viteStaticCopy({
