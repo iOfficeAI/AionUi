@@ -2,7 +2,11 @@ import { describe, it, expect } from 'vitest';
 import { spawn } from 'child_process';
 import { killChild, isProcessAlive } from '../../src/process/agent/acp/utils';
 
-describe('killChild', () => {
+// These tests rely on POSIX commands (sleep, bash, pgrep) unavailable on Windows.
+// Windows kill path uses taskkill which is covered by the implementation itself.
+const describeIfPosix = process.platform === 'win32' ? describe.skip : describe;
+
+describeIfPosix('killChild', () => {
   it('kills a normal child process with SIGTERM', async () => {
     const child = spawn('sleep', ['60']);
     expect(child.pid).toBeDefined();
