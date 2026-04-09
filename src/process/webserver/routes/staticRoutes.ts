@@ -14,6 +14,73 @@ import { TokenMiddleware } from '@process/webserver/auth/middleware/TokenMiddlew
 import { AUTH_CONFIG } from '../config/constants';
 import { createRateLimiter } from '../middleware/security';
 
+const LOCAL_WEBUI_HOSTNAMES = new Set(['localhost', '127.0.0.1', '::1']);
+
+export const REMOTE_VITE_CLIENT_STUB = `
+const noop = () => {};
+const hotContext = {
+  data: {},
+  accept: noop,
+  acceptExports: noop,
+  dispose: noop,
+  prune: noop,
+  decline: noop,
+  invalidate: noop,
+  on: noop,
+  off: noop,
+  send: noop,
+};
+
+const styleElements = new Map();
+
+function updateStyle(id, content) {
+  if (typeof document === 'undefined') return;
+
+  let style = styleElements.get(id);
+  if (!style) {
+    style = document.createElement('style');
+    style.setAttribute('type', 'text/css');
+    style.setAttribute('data-vite-dev-id', id);
+    document.head.appendChild(style);
+    styleElements.set(id, style);
+  }
+
+  style.textContent = content;
+}
+
+function removeStyle(id) {
+  const style = styleElements.get(id);
+  if (!style) return;
+  style.remove();
+  styleElements.delete(id);
+}
+
+function createHotContext() {
+  return hotContext;
+}
+
+function injectQuery(url, queryToInject) {
+  const [base, hash = ''] = url.split('#');
+  const separator = base.includes('?') ? '&' : '?';
+  return \`\${base}\${separator}\${queryToInject}\${hash ? \`#\${hash}\` : ''}\`;
+}
+
+class ErrorOverlay extends HTMLElement {
+  constructor(error) {
+    super();
+    if (error) console.error(error);
+  }
+
+  close() {}
+}
+
+if (typeof customElements !== 'undefined' && !customElements.get('vite-error-overlay')) {
+  customElements.define('vite-error-overlay', ErrorOverlay);
+}
+
+export { ErrorOverlay, createHotContext, injectQuery, removeStyle, updateStyle };
+`.trim();
+
 /**
  * Vite dev server port — read from ELECTRON_RENDERER_URL when available
  * (electron-vite sets it to the actual port), fallback to 5173.
@@ -68,6 +135,13 @@ function createViteDevProxy(): (req: Request, res: Response) => void {
     res.removeHeader('X-Content-Type-Options');
     res.removeHeader('X-XSS-Protection');
 
+    if (shouldServeRemoteViteClientStub(req)) {
+      res.setHeader('Content-Type', 'text/javascript');
+      res.setHeader('Cache-Control', 'no-cache');
+      res.status(200).send(REMOTE_VITE_CLIENT_STUB);
+      return;
+    }
+
     const options: http.RequestOptions = {
       hostname: 'localhost',
       port: VITE_DEV_PORT,
@@ -81,6 +155,32 @@ function createViteDevProxy(): (req: Request, res: Response) => void {
 
     const proxyReq = http.request(options, (proxyRes) => {
       const headers = proxyRes.headers;
+      const contentType = String(headers['content-type'] ?? '');
+      const shouldStripViteClient = contentType.includes('text/html') && shouldDisableViteClient(req);
+
+      if (shouldStripViteClient) {
+        const chunks: Buffer[] = [];
+        proxyRes.on('data', (chunk: Buffer) => chunks.push(chunk));
+        proxyRes.on('end', () => {
+          const html = Buffer.concat(chunks).toString('utf8');
+          const rewrittenHtml = stripViteClientScript(html);
+
+          for (const [key, value] of Object.entries(headers)) {
+            if (value !== undefined && key.toLowerCase() !== 'content-length') {
+              try {
+                res.setHeader(key, value);
+              } catch {
+                // Ignore invalid header errors
+              }
+            }
+          }
+
+          res.status(proxyRes.statusCode || 200);
+          res.send(rewrittenHtml);
+        });
+        return;
+      }
+
       for (const [key, value] of Object.entries(headers)) {
         if (value !== undefined) {
           try {
@@ -103,6 +203,18 @@ function createViteDevProxy(): (req: Request, res: Response) => void {
 
     req.pipe(proxyReq);
   };
+}
+
+export function shouldDisableViteClient(req: Pick<Request, 'hostname'>): boolean {
+  return !LOCAL_WEBUI_HOSTNAMES.has(req.hostname);
+}
+
+export function shouldServeRemoteViteClientStub(req: Pick<Request, 'hostname' | 'url'>): boolean {
+  return shouldDisableViteClient(req) && req.url.startsWith('/@vite/client');
+}
+
+export function stripViteClientScript(html: string): string {
+  return html.replace(/^\s*<script type="module" src="\/@vite\/client"><\/script>\s*$/m, '');
 }
 
 /**

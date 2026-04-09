@@ -7,6 +7,7 @@
 import { bridge, logger } from '@office-ai/platform';
 import { WEBUI_DEFAULT_PORT } from '@/common/config/constants';
 import type { ElectronBridgeAPI } from '@/common/types/electron';
+import { getLoginRedirectUrl, isLoginRoute } from './browserNavigation';
 
 interface CustomWindow extends Window {
   electronAPI?: ElectronBridgeAPI;
@@ -145,14 +146,14 @@ if (win.electronAPI) {
 
           // 已在登录页则不再重定向，防止无限刷新循环
           // Skip redirect if already on login page to prevent infinite reload loop
-          if (window.location.pathname === '/login' || window.location.hash.includes('/login')) {
+          if (isLoginRoute(window.location)) {
             return;
           }
 
           // 短暂延迟后跳转到登录页，以便显示 UI 反馈
           // Redirect to login page after a short delay to show any UI feedback
           setTimeout(() => {
-            window.location.href = '/login';
+            window.location.href = getLoginRedirectUrl(window.location);
           }, 1000);
 
           return;
@@ -185,11 +186,11 @@ if (win.electronAPI) {
         }
         // 已在登录页则不再重定向，防止无限刷新循环
         // Skip redirect if already on login page to prevent infinite reload loop
-        if (window.location.pathname === '/login' || window.location.hash.includes('/login')) {
+        if (isLoginRoute(window.location)) {
           return;
         }
         setTimeout(() => {
-          window.location.href = '/login';
+          window.location.href = getLoginRedirectUrl(window.location);
         }, 500);
         return;
       }

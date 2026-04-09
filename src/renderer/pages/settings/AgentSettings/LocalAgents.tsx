@@ -6,6 +6,7 @@
 
 import { ipcBridge } from '@/common';
 import { ConfigStorage } from '@/common/config/storage';
+import { isDevelopmentRuntime } from '@/common/config/runtimeEnv';
 import type { AcpBackendConfig } from '@/common/types/acpTypes';
 import AionModal from '@/renderer/components/base/AionModal';
 import { Button, Typography } from '@arco-design/web-react';
@@ -107,7 +108,7 @@ const LocalAgents: React.FC = () => {
         </Button>
       </div>
 
-      {process.env.NODE_ENV === 'development' && (
+      {isDevelopmentRuntime() && (
         <div className='px-16px mt-8px'>
           <div className='flex flex-col gap-14px rounded-16px border border-solid border-[rgba(var(--primary-6),0.18)] bg-[rgba(var(--primary-6),0.06)] p-16px md:flex-row md:items-center md:justify-between'>
             <div className='flex items-center gap-12px'>

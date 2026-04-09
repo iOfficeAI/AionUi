@@ -4,6 +4,8 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
+import { resolveWebUiDefaultPort } from './runtimeEnv';
+
 /**
  * AionUI应用程序共用常量
  */
@@ -52,11 +54,7 @@ export const DEFAULT_IMAGE_EXTENSION = '.png';
 // ===== WebUI 相关常量 =====
 
 /** WebUI default port: 25808 for production, 25809 for development, 25810 for multi-instance dev */
-export const WEBUI_DEFAULT_PORT = (() => {
-  if (process.env.NODE_ENV === 'production') return 25808;
-  if (process.env.AIONUI_MULTI_INSTANCE === '1') return 25810;
-  return 25809;
-})();
+export const WEBUI_DEFAULT_PORT = resolveWebUiDefaultPort();
 
 /** Team mode entry points are temporarily hidden until the feature is usable again. */
 export const TEAM_MODE_ENABLED = false;
