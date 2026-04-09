@@ -171,6 +171,17 @@ describe('shellBridge', () => {
       expect(shellMock.openExternal).not.toHaveBeenCalled();
       warnSpy.mockRestore();
     });
+
+    it('does not throw when shell.openExternal rejects (ELECTRON-HW)', async () => {
+      const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
+      shellMock.openExternal.mockRejectedValueOnce(new Error('Failed to open: 系统找不到指定的文件。 (0x2)'));
+      await expect(openExternalProvider.fn!('https://example.com/missing')).resolves.toBeUndefined();
+      expect(warnSpy).toHaveBeenCalledWith(
+        expect.stringContaining('Failed to open external URL'),
+        expect.stringContaining('系统找不到指定的文件')
+      );
+      warnSpy.mockRestore();
+    });
   });
 
   describe('checkToolInstalled', () => {

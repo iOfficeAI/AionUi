@@ -225,14 +225,18 @@ export function initShellBridge(): void {
     return Promise.resolve();
   });
 
-  ipcBridge.shell.openExternal.provider((url) => {
+  ipcBridge.shell.openExternal.provider(async (url) => {
     try {
       new URL(url);
     } catch {
       console.warn(`[shellBridge] Invalid URL passed to openExternal: ${url}`);
-      return Promise.resolve();
+      return;
     }
-    return shell.openExternal(url);
+    try {
+      await shell.openExternal(url);
+    } catch (error) {
+      console.warn(`[shellBridge] Failed to open external URL: ${url}`, (error as Error).message);
+    }
   });
 
   // Check if a tool is installed
