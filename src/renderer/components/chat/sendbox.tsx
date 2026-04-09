@@ -1243,6 +1243,8 @@ const SendBox: React.FC<{
     return sendButton;
   };
 
+  const shouldUseHighlightOverlay = !isComposingState && allAtFileQueries.length > 0;
+
   const renderHighlightedInputValue = useCallback(() => {
     if (!input) {
       return <span className='sendbox-highlight-text'>{'\u200b'}</span>;
@@ -1460,7 +1462,7 @@ const SendBox: React.FC<{
               aria-hidden='true'
               className={`sendbox-highlight-layer text-14px ${isMobile ? 'sendbox-input--mobile' : ''} ${isSingleLine ? 'sendbox-highlight-layer--single' : ''}`}
               data-testid='sendbox-highlight-layer'
-              style={isComposingState ? { visibility: 'hidden' } : undefined}
+              style={!shouldUseHighlightOverlay ? { visibility: 'hidden' } : undefined}
             >
               {renderHighlightedInputValue()}
             </div>
@@ -1469,7 +1471,7 @@ const SendBox: React.FC<{
               disabled={disabled}
               value={input}
               placeholder={placeholder}
-              className={`${isComposingState ? '' : 'sendbox-highlight-textarea '}pl-0 pr-0 !b-none focus:shadow-none m-0 !bg-transparent !focus:bg-transparent !hover:bg-transparent lh-[20px] !resize-none text-14px ${isMobile ? 'sendbox-input--mobile' : ''}`}
+              className={`${shouldUseHighlightOverlay ? 'sendbox-highlight-textarea ' : ''}pl-0 pr-0 !b-none focus:shadow-none m-0 !bg-transparent !focus:bg-transparent !hover:bg-transparent lh-[20px] !resize-none text-14px ${isMobile ? 'sendbox-input--mobile' : ''}`}
               style={{
                 width: isSingleLine ? 'auto' : '100%',
                 flex: isSingleLine ? 1 : 'none',
