@@ -145,6 +145,17 @@ describe('Task #4: TeamMcpServer agent type whitelist', () => {
     expect(spawnAgent).toHaveBeenCalledWith('gemini-agent', 'gemini');
   });
 
+  it('rejects codebuddy agents via handleSpawnAgent (codebuddy removed from whitelist)', async () => {
+    const spawnAgent = vi.fn();
+    const deps = { ...makeMockDeps(), spawnAgent };
+    const server = new TeamMcpServer(deps);
+
+    await expect(
+      (server as any).handleSpawnAgent({ name: 'codebuddy-agent', agent_type: 'codebuddy' })
+    ).rejects.toThrow(/not supported/);
+    expect(spawnAgent).not.toHaveBeenCalled();
+  });
+
   it('rejects unsupported agent types', async () => {
     const spawnAgent = vi.fn();
     const deps = { ...makeMockDeps(), spawnAgent };

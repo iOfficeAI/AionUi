@@ -32,6 +32,17 @@ async function main() {
       'import.meta.url': JSON.stringify('file:///C:/placeholder'),
     },
   });
+
+  // Bundle team-mcp-stdio.mjs as a self-contained ESM bundle so it can be
+  // executed by an external `node` process in the packaged app (no ASAR support).
+  await esbuild.build({
+    entryPoints: [path.join(ROOT, 'scripts/team-mcp-stdio.mjs')],
+    bundle: true,
+    platform: 'node',
+    format: 'esm',
+    outfile: path.join(ROOT, 'out/main/team-mcp-stdio.mjs'),
+    external: ['electron'],
+  });
 }
 
 main().catch((err) => {

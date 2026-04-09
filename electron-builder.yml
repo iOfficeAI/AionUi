@@ -114,6 +114,10 @@ extraResources:
     to: bundled-aionrs
   - from: resources/hub
     to: hub
+  # Team MCP stdio bridge: bundled self-contained ESM, placed at
+  # {resourcesPath}/scripts/team-mcp-stdio.mjs to match resolveProjectRoot() path
+  - from: out/main/team-mcp-stdio.mjs
+    to: scripts/team-mcp-stdio.mjs
 
 win:
   target:

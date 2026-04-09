@@ -170,12 +170,19 @@ export class GeminiAgentManager extends BaseAgentManager<
     this.currentMode = data.sessionMode || 'default';
     this.webSearchEngine = data.webSearchEngine;
     this.teamMcpStdioConfig = data.teamMcpStdioConfig;
+    mainLog(
+      '[GeminiAgentManager]',
+      'constructor teamMcpStdioConfig:',
+      this.teamMcpStdioConfig ? `PRESENT (command=${this.teamMcpStdioConfig.command})` : 'MISSING'
+    );
     // 向后兼容 / Backward compatible
     this.contextContent = data.contextContent || data.presetRules;
     this.bootstrap = this.createBootstrap();
     // Prevent unhandled rejection when bootstrap fails (e.g. missing OAuth credentials).
     // The error still propagates when sendMessage() awaits this.bootstrap.
-    this.bootstrap.catch(() => {});
+    this.bootstrap.catch((e) => {
+      mainLog('[GeminiAgentManager]', 'bootstrap failed:', e?.message || String(e));
+    });
   }
 
   /**
@@ -308,7 +315,7 @@ export class GeminiAgentManager extends BaseAgentManager<
         console.warn('[GeminiAgentManager] Failed to load extension MCP servers:', extError);
       }
 
-      if (allServers.length === 0) {
+      if (allServers.length === 0 && !this.teamMcpStdioConfig?.command) {
         this.mcpFingerprint = '[]';
         return {};
       }
@@ -357,6 +364,9 @@ export class GeminiAgentManager extends BaseAgentManager<
           args: this.teamMcpStdioConfig.args || [],
           env: envObj,
         };
+        mainLog('[GeminiAgentManager]', 'getMcpServers: injected team MCP server:', this.teamMcpStdioConfig.name);
+      } else {
+        mainLog('[GeminiAgentManager]', 'getMcpServers: no teamMcpStdioConfig, skipping team MCP injection');
       }
 
       return mcpConfig;
@@ -618,6 +628,15 @@ export class GeminiAgentManager extends BaseAgentManager<
       console.log(`[GeminiAgentManager] YOLO auto-approving ${type}: callId=${content.callId}`);
       void this.postMessagePromise(content.callId, ToolConfirmationOutcome.ProceedOnce);
       return true;
+    }
+    // Team MCP servers (aionui-team-*) are always auto-approved regardless of mode
+    if (type === 'mcp') {
+      const serverName = (content.confirmationDetails as { serverName?: string })?.serverName ?? '';
+      if (serverName.startsWith('aionui-team-')) {
+        console.log(`[GeminiAgentManager] Auto-approving team MCP tool: serverName=${serverName}, callId=${content.callId}`);
+        void this.postMessagePromise(content.callId, ToolConfirmationOutcome.ProceedOnce);
+        return true;
+      }
     }
     if (this.currentMode === 'autoEdit') {
       // autoEdit: auto-approve edit (write/replace) and info (read) operations

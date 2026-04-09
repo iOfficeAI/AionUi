@@ -2,6 +2,13 @@
 // Shared team types used by both main process and renderer.
 // Renderer code should import from here instead of @process/team/types.
 
+/**
+ * Agent backends verified to support MCP tool injection in team mode.
+ * This is the single source of truth — frontend UI, backend spawn validation,
+ * and the available-agent-types list passed to the leader prompt all derive from here.
+ */
+export const TEAM_SUPPORTED_BACKENDS = new Set(['claude', 'codex', 'gemini']);
+
 /** Role of a teammate within a team */
 export type TeammateRole = 'lead' | 'teammate';
 

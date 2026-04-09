@@ -110,6 +110,7 @@ When the task is completed, or the user asks to dismiss/fire/shut down teammates
 
 ## Important Rules
 - ALWAYS use the team_* tools for coordination, not plain text instructions
+- When the user says "add", "create", "spawn", "hire" a member/teammate/agent → call team_spawn_agent immediately, do NOT just reply in text
 - When the user says "dismiss", "fire", "shut down", "remove", or "下线/解雇/开除" a teammate → use team_shutdown_agent
 - When the user says "rename", "change name", "改名" → use team_rename_agent
 - When a teammate completes a task, review the result and decide next steps
