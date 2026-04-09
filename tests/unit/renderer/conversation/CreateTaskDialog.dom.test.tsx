@@ -239,6 +239,7 @@ vi.mock('@renderer/components/agent/AcpConfigSelector', () => ({
 // Mock agent utils
 vi.mock('@renderer/utils/model/agentModes', () => ({
   supportsModeSwitch: () => false,
+  getFullAutoMode: () => 'full-auto',
 }));
 
 // Mock ConfigStorage
@@ -246,6 +247,21 @@ vi.mock('@/common/config/storage', () => ({
   ConfigStorage: {
     get: vi.fn().mockResolvedValue({}),
   },
+}));
+
+// Mock useModelProviderList
+vi.mock('@renderer/hooks/agent/useModelProviderList', () => ({
+  useModelProviderList: () => ({
+    providers: [],
+    geminiModeLookup: {},
+    getAvailableModels: () => [],
+    formatModelLabel: (id: string) => id,
+  }),
+}));
+
+// Mock GuidModelSelector
+vi.mock('@renderer/pages/guid/components/GuidModelSelector', () => ({
+  default: () => <div data-testid='guid-model-selector'>GuidModelSelector</div>,
 }));
 
 // Mock hooks
