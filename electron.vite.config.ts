@@ -1,9 +1,20 @@
 import { defineConfig, externalizeDepsPlugin } from 'electron-vite';
+import { execSync } from 'child_process';
 import { resolve } from 'path';
 import { sentryVitePlugin } from '@sentry/vite-plugin';
 import UnoCSS from 'unocss/vite';
 import unoConfig from './uno.config.ts';
 import { viteStaticCopy } from 'vite-plugin-static-copy';
+
+// Build builtin MCP servers after main process bundle so they survive out/main/ cleanup.
+function buildMcpServersPlugin() {
+  return {
+    name: 'vite-plugin-build-mcp-servers',
+    closeBundle() {
+      execSync(`node "${resolve('scripts/build-mcp-servers.js')}"`, { stdio: 'inherit' });
+    },
+  };
+}
 
 // Icon Park transform plugin (replaces webpack icon-park-loader)
 function iconParkPlugin() {
@@ -85,6 +96,7 @@ export default defineConfig(({ mode }) => {
             ]
           : []),
         ...(enableSentrySourceMaps ? [sentryVitePlugin(sentryPluginOptions)] : []),
+        ...(isDevelopment ? [buildMcpServersPlugin()] : []),
       ],
       resolve: { alias: mainAliases, extensions: ['.ts', '.tsx', '.js', '.json'] },
       build: {
