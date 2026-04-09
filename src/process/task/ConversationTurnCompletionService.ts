@@ -1,4 +1,4 @@
-﻿import { ipcBridge } from '@/common';
+import { ipcBridge } from '@/common';
 import type { IConversationTurnCompletedEvent } from '@/common/adapter/ipcBridge';
 import type { TChatConversation } from '@/common/config/storage';
 import { cronBusyGuard } from '@process/services/cron/CronBusyGuard';
@@ -30,29 +30,25 @@ export class ConversationTurnCompletionService {
     return ConversationTurnCompletionService.instance;
   }
 
-  async notifyPotentialCompletion(
-    conversationId: string,
-    context: TurnCompletionContext = {}
-  ): Promise<void> {
-    if (!conversationId) {
-      return;
-    }
-
-    if (this.pendingEmits.has(conversationId)) {
+  async notifyPotentialCompletion(conversationId: string, context: TurnCompletionContext = {}): Promise<void> {
+    if (!conversationId || this.pendingEmits.has(conversationId)) {
       return;
     }
 
     const timeout = setTimeout(() => {
       this.pendingEmits.delete(conversationId);
     }, this.dedupeWindowMs);
+    timeout.unref?.();
     this.pendingEmits.set(conversationId, timeout);
 
     let conversation: TChatConversation | undefined;
     try {
       const db = await getDatabase();
-      const result = db.getConversation(conversationId);
-      if (result.success && result.data) {
-        conversation = result.data as TChatConversation;
+      if (typeof db.getConversation === 'function') {
+        const result = db.getConversation(conversationId);
+        if (result.success && result.data) {
+          conversation = result.data as TChatConversation;
+        }
       }
     } catch (error) {
       mainWarn('[ConversationTurnCompletionService]', 'Failed to load conversation metadata', error);
@@ -60,8 +56,11 @@ export class ConversationTurnCompletionService {
 
     const extra = ((conversation?.extra as Record<string, unknown>) ?? {}) as Record<string, unknown>;
     const workspace = context.workspace ?? (typeof extra.workspace === 'string' ? extra.workspace : '');
-    const persistedModelId = context.modelId ?? (typeof extra.currentModelId === 'string' ? extra.currentModelId : undefined);
+    const persistedModelId =
+      context.modelId ?? (typeof extra.currentModelId === 'string' ? extra.currentModelId : undefined);
     const status = context.status ?? (conversation?.status as AgentStatus) ?? 'finished';
+    const isProcessing =
+      typeof cronBusyGuard.isProcessing === 'function' ? cronBusyGuard.isProcessing(conversationId) : false;
 
     const event: IConversationTurnCompletedEvent = {
       sessionId: conversationId,
@@ -72,17 +71,19 @@ export class ConversationTurnCompletionService {
       runtime: {
         hasTask: Boolean(extra.cronJobId),
         taskStatus: status,
-        isProcessing: cronBusyGuard.isProcessing(conversationId),
+        isProcessing,
         pendingConfirmations: context.pendingConfirmations ?? 0,
         dbStatus: conversation?.status,
       },
       workspace,
       model: {
         platform: context.backend ?? conversation?.type ?? 'acp',
-        name: context.modelLabel ?? ((conversation as { model?: { name?: string } })?.model?.name ?? context.backend ?? 'acp'),
-        useModel:
-          persistedModelId ??
-          ((conversation as { model?: { useModel?: string } })?.model?.useModel ?? '')
+        name:
+          context.modelLabel ??
+          (conversation as { model?: { name?: string } })?.model?.name ??
+          context.backend ??
+          'acp',
+        useModel: persistedModelId ?? (conversation as { model?: { useModel?: string } })?.model?.useModel ?? '',
       },
       lastMessage: {
         id: undefined,
@@ -93,6 +94,6 @@ export class ConversationTurnCompletionService {
       },
     };
 
-    ipcBridge.conversation.turnCompleted.emit(event);
+    ipcBridge.conversation?.turnCompleted?.emit?.(event);
   }
 }

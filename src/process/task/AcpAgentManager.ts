@@ -6,6 +6,7 @@ import type { CronMessageMeta, TMessage } from '@/common/chat/chatLib';
 import { isCodexAutoApproveMode } from '@/common/types/codex/codexModes';
 import type { SlashCommandItem } from '@/common/chat/slash/types';
 import { transformMessage } from '@/common/chat/chatLib';
+import type { IConfigStorageRefer } from '@/common/config/storage';
 import { AIONUI_FILES_MARKER } from '@/common/config/constants';
 import type { IResponseMessage } from '@/common/adapter/ipcBridge';
 import { parseError, uuid } from '@/common/utils';
@@ -15,6 +16,7 @@ import type {
   AcpPermissionOption,
   AcpPermissionRequest,
   AcpResult,
+  AcpBackendConfig,
   AcpSessionConfigOption,
 } from '@/common/types/acpTypes';
 import { ACP_BACKENDS_ALL } from '@/common/types/acpTypes';
@@ -77,6 +79,8 @@ type BufferedStreamTextMessage = {
   message: Extract<TMessage, { type: 'text' }>;
   timer: ReturnType<typeof setTimeout>;
 };
+
+type CustomAgentLaunchConfig = Pick<AcpBackendConfig, 'id' | 'name' | 'defaultCliPath' | 'acpArgs' | 'env'>;
 
 class AcpAgentManager extends BaseAgentManager<AcpAgentManagerData, AcpPermissionOption> {
   workspace: string;
@@ -316,7 +320,7 @@ class AcpAgentManager extends BaseAgentManager<AcpAgentManagerData, AcpPermissio
         createdAt: Date.now(),
       };
       const collectedResponses: string[] = [];
-      await processCronInMessage(this.conversation_id, backend as any, cronMessage, (sysMsg) => {
+      await processCronInMessage(this.conversation_id, backend, cronMessage, (sysMsg) => {
         collectedResponses.push(sysMsg);
         const systemMessage: IResponseMessage = {
           type: 'system',
@@ -349,7 +353,7 @@ ${collectedResponses.join('\n')}`;
       workspace: this.workspace,
       backend: this.options.backend,
       pendingConfirmations: this.getConfirmations().length,
-      modelId: this.persistedModelId ?? this.agent?.getModelInfo()?.currentModelId ?? undefined,
+      modelId: this.persistedModelId ?? this.agent?.getModelInfo?.()?.currentModelId ?? undefined,
     });
   }
 
@@ -404,7 +408,9 @@ ${collectedResponses.join('\n')}`;
       if (data.backend === 'custom' && data.customAgentId) {
         const customAgents = await ProcessConfig.get('acp.customAgents');
         // 通过 UUID 查找对应的自定义代理配置 / Find custom agent config by UUID
-        let customAgentConfig = customAgents?.find((agent) => agent.id === data.customAgentId);
+        let customAgentConfig: CustomAgentLaunchConfig | undefined = customAgents?.find(
+          (agent) => agent.id === data.customAgentId
+        );
 
         // Fallback: extension adapter (customAgentId format: ext:{extensionName}:{adapterId})
         if (!customAgentConfig && data.customAgentId.startsWith('ext:')) {
@@ -426,7 +432,7 @@ ${collectedResponses.join('\n')}`;
                 ? adapter.acpArgs.filter((v): v is string => typeof v === 'string')
                 : undefined,
               env: typeof adapter.env === 'object' && adapter.env ? (adapter.env as Record<string, string>) : undefined,
-            } as any;
+            };
           }
         }
 
@@ -448,7 +454,7 @@ ${collectedResponses.join('\n')}`;
         }
         // yoloMode priority: data.yoloMode (from CronService) > config setting
         // yoloMode 优先级：data.yoloMode（来自 CronService）> 配置设置
-        const legacyYoloMode = data.yoloMode ?? (config?.[data.backend] as any)?.yoloMode;
+        const legacyYoloMode = data.yoloMode ?? config?.[data.backend]?.yoloMode;
 
         // Migrate legacy yoloMode config (from SecurityModalContent) to currentMode.
         // Maps to each backend's native yolo mode value for correct protocol behavior.
@@ -794,10 +800,11 @@ ${collectedResponses.join('\n')}`;
           });
 
           // Forward signals (finish/error/etc.) to Channel global event bus
-          channelEventBus.emitAgentMessage(this.conversation_id, {
-            ...(v as any),
+          const forwardedSignal = {
+            ...(v as IResponseMessage),
             conversation_id: this.conversation_id,
-          });
+          };
+          channelEventBus.emitAgentMessage(this.conversation_id, forwardedSignal);
         },
       });
       return this.agent.start().then(async () => {
@@ -1328,11 +1335,11 @@ ${collectedResponses.join('\n')}`;
     try {
       const config = await ProcessConfig.get('acp.config');
       const backendConfig = config?.[this.options.backend];
-      if ((backendConfig as any)?.yoloMode) {
+      if (backendConfig?.yoloMode) {
         await ProcessConfig.set('acp.config', {
           ...config,
           [this.options.backend]: { ...backendConfig, yoloMode: false },
-        });
+        } as IConfigStorageRefer['acp.config']);
       }
     } catch (error) {
       mainError('[AcpAgentManager]', 'Failed to clear legacy yoloMode config', error);
@@ -1449,7 +1456,7 @@ ${collectedResponses.join('\n')}`;
    * An idempotent doKill() guard prevents double super.kill() when the hard
    * timeout and graceful path race against each other.
    */
-  kill(reason?: AgentKillReason) {
+  kill(_reason?: AgentKillReason) {
     this.flushBufferedStreamTextMessages();
     this.flushThinkingToDb(undefined, 'done');
 
