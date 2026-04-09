@@ -41,6 +41,10 @@ export type CronJob = {
       isPreset?: boolean;
       customAgentId?: string;
       presetAgentType?: string;
+      mode?: string;
+      modelId?: string;
+      configOptions?: Record<string, string>;
+      workspace?: string;
     };
   };
   state: {

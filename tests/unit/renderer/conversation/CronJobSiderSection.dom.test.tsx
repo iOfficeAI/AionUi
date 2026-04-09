@@ -235,11 +235,7 @@ describe('CronJobSiderSection', () => {
     const testPathname = '/scheduled/job-1';
     render(<CronJobSiderSection jobs={mockJobs} pathname={testPathname} onNavigate={mockOnNavigate} />);
 
-    // Expand to render child items
-    const header = screen.getByText('cron.scheduledTasks').closest('div');
-    fireEvent.click(header!);
-
-    // Child items should be rendered (mocked component doesn't use these props, but they are passed)
+    // Section auto-expands when pathname starts with /scheduled/, no click needed
     expect(screen.getByTestId('cron-job-item-job-1')).toBeInTheDocument();
   });
 

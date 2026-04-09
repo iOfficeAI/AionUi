@@ -97,7 +97,14 @@
       "existingConversation": "동일 대화",
       "newConversationHint": "매번 새 대화로 시작합니다",
       "existingConversationHint": "같은 대화에서 계속 실행합니다",
-      "executionModeEditHint": "생성 후에는 실행 모드를 변경할 수 없습니다. 모드를 전환하려면 작업을 삭제한 후 다시 만드세요."
+      "executionModeEditHint": "생성 후에는 실행 모드를 변경할 수 없습니다. 모드를 전환하려면 작업을 삭제한 후 다시 만드세요.",
+      "advancedSettings": "고급 설정",
+      "workspace": "워크스페이스",
+      "workspacePlaceholder": "폴더 선택",
+      "workspaceHint": "선택 사항: 파일 작업을 위한 워크스페이스 폴더 설정",
+      "selectFolder": "폴더 선택",
+      "clearFolder": "지우기",
+      "model": "모델"
     },
     "freq": {
       "manual": "수동",

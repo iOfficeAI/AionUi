@@ -109,3 +109,27 @@ export function supportsModeSwitch(backend: string | undefined): boolean {
   if (!backend) return false;
   return backend in AGENT_MODES && AGENT_MODES[backend].length > 0;
 }
+
+/**
+ * Full-auto mode value per backend.
+ * Used by cron jobs to run without permission prompts.
+ */
+const FULL_AUTO_MODE: Record<string, string> = {
+  claude: 'bypassPermissions',
+  qwen: 'yolo',
+  opencode: 'build',
+  iflow: 'yolo',
+  gemini: 'yolo',
+  aionrs: 'yolo',
+  codex: CODEX_MODE_FULL_AUTO,
+  cursor: 'agent',
+};
+
+/**
+ * Get the full-auto mode value for a given backend.
+ * Falls back to 'yolo' for unknown backends.
+ */
+export function getFullAutoMode(backend: string | undefined): string {
+  if (!backend) return 'yolo';
+  return FULL_AUTO_MODE[backend] || 'yolo';
+}

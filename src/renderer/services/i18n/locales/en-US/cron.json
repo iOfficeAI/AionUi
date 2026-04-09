@@ -96,7 +96,14 @@
       "existingConversation": "Ongoing conversation",
       "newConversationHint": "Start fresh on every run",
       "existingConversationHint": "Keep building in one conversation",
-      "executionModeEditHint": "Execution mode cannot be changed after creation. Delete and recreate the task to switch modes."
+      "executionModeEditHint": "Execution mode cannot be changed after creation. Delete and recreate the task to switch modes.",
+      "advancedSettings": "Advanced Settings",
+      "workspace": "Workspace",
+      "workspacePlaceholder": "Select a folder",
+      "workspaceHint": "Optional: set a workspace folder for file operations",
+      "selectFolder": "Select Folder",
+      "clearFolder": "Clear",
+      "model": "Model"
     },
     "freq": {
       "manual": "Manual",

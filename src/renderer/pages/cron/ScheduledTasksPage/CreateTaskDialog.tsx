@@ -4,9 +4,9 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import React, { useState, useMemo, useEffect } from 'react';
+import React, { useState, useMemo, useEffect, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Form, Input, Select, Message, TimePicker, Radio } from '@arco-design/web-react';
+import { Form, Input, Select, Message, TimePicker, Radio, Collapse, Button } from '@arco-design/web-react';
 import ModalWrapper from '@renderer/components/base/ModalWrapper';
 import { Robot } from '@icon-park/react';
 import { ipcBridge } from '@/common';
@@ -15,6 +15,13 @@ import { useConversationAgents } from '@renderer/pages/conversation/hooks/useCon
 import { getAgentLogo } from '@renderer/utils/model/agentLogo';
 import { CUSTOM_AVATAR_IMAGE_MAP } from '@/renderer/pages/guid/constants';
 import dayjs from 'dayjs';
+import AcpConfigSelector from '@renderer/components/agent/AcpConfigSelector';
+import { getFullAutoMode } from '@renderer/utils/model/agentModes';
+import type { TProviderWithModel } from '@/common/config/storage';
+import { ConfigStorage } from '@/common/config/storage';
+import type { AcpModelInfo, AcpSessionConfigOption } from '@/common/types/acpTypes';
+import { useModelProviderList } from '@renderer/hooks/agent/useModelProviderList';
+import GuidModelSelector from '@renderer/pages/guid/components/GuidModelSelector';
 
 const FormItem = Form.Item;
 const TextArea = Input.TextArea;
@@ -82,9 +89,13 @@ function parseCronExpr(expr: string): { frequency: FrequencyType; time: string; 
  */
 function getAgentKeyFromJob(job: ICronJob): string | undefined {
   const config = job.metadata.agentConfig;
-  if (!config) return undefined;
-  if (config.isPreset && config.customAgentId) return `preset:${config.customAgentId}`;
-  return `cli:${config.backend}`;
+  if (config) {
+    if (config.isPreset && config.customAgentId) return `preset:${config.customAgentId}`;
+    return `cli:${config.backend}`;
+  }
+  // Fallback for legacy jobs without agentConfig
+  if (job.metadata.agentType) return `cli:${job.metadata.agentType}`;
+  return undefined;
 }
 
 const CreateTaskDialog: React.FC<CreateTaskDialogProps> = ({
@@ -99,12 +110,21 @@ const CreateTaskDialog: React.FC<CreateTaskDialogProps> = ({
   const [form] = Form.useForm();
   const [submitting, setSubmitting] = useState(false);
   const { cliAgents, presetAssistants } = useConversationAgents();
+  const { providers, geminiModeLookup, getAvailableModels, formatModelLabel } = useModelProviderList();
   const [frequency, setFrequency] = useState<FrequencyType>('manual');
   const [time, setTime] = useState('09:00');
   const [weekday, setWeekday] = useState('MON');
 
   const isEditMode = !!editJob;
   const [executionMode, setExecutionMode] = useState<ExecutionMode>('new_conversation');
+
+  // Advanced settings state
+  const [modelId, setModelId] = useState<string | undefined>(undefined);
+  const [configOptions, setConfigOptions] = useState<Record<string, string> | undefined>(undefined);
+  const [workspace, setWorkspace] = useState<string | undefined>(undefined);
+  const [cachedConfigOptions, setCachedConfigOptions] = useState<unknown[] | undefined>(undefined);
+  const [acpCachedModelInfo, setAcpCachedModelInfo] = useState<AcpModelInfo | null>(null);
+  const [selectedAgent, setSelectedAgent] = useState<string | undefined>(undefined);
 
   // Populate form when entering edit mode
   useEffect(() => {
@@ -116,20 +136,121 @@ const CreateTaskDialog: React.FC<CreateTaskDialogProps> = ({
       setTime(parsed.time);
       setWeekday(parsed.weekday);
       setExecutionMode(editJob.target.executionMode || 'existing');
+      const agentKey = getAgentKeyFromJob(editJob);
+      setSelectedAgent(agentKey);
       form.setFieldsValue({
         name: editJob.name,
         description: editJob.schedule.description || editJob.name,
         prompt: editJob.target.payload.text,
-        agent: getAgentKeyFromJob(editJob),
+        agent: agentKey,
       });
+      // Populate advanced settings from editJob
+      setModelId(editJob.metadata.agentConfig?.modelId);
+      setConfigOptions(editJob.metadata.agentConfig?.configOptions);
+      setWorkspace(editJob.metadata.agentConfig?.workspace);
     } else {
       form.resetFields();
       setFrequency('manual');
       setTime('09:00');
       setWeekday('MON');
       setExecutionMode('new_conversation');
+      setModelId(undefined);
+      setConfigOptions(undefined);
+      setWorkspace(undefined);
+      setSelectedAgent(undefined);
     }
   }, [visible, editJob, form]);
+
+  // Resolve backend from selectedAgent (handles both CLI and preset agents)
+  const resolvedBackend = useMemo(() => {
+    if (!selectedAgent) return undefined;
+    const colonIdx = selectedAgent.indexOf(':');
+    const agentKind = selectedAgent.substring(0, colonIdx);
+    const agentId = selectedAgent.substring(colonIdx + 1);
+
+    if (agentKind === 'preset') {
+      const agent = presetAssistants.find((a) => a.customAgentId === agentId);
+      return agent?.backend;
+    }
+    // CLI agent: agentId is the backend
+    return agentId;
+  }, [selectedAgent, presetAssistants]);
+
+  // Load cached config options when backend changes
+  useEffect(() => {
+    if (!resolvedBackend) {
+      setCachedConfigOptions(undefined);
+      return;
+    }
+
+    if (resolvedBackend === 'codex') {
+      ConfigStorage.get('acp.cachedConfigOptions')
+        .then((cached) => {
+          if (cached && cached[resolvedBackend]) {
+            setCachedConfigOptions(cached[resolvedBackend] as unknown[]);
+          } else {
+            setCachedConfigOptions(undefined);
+          }
+        })
+        .catch(() => setCachedConfigOptions(undefined));
+    } else {
+      setCachedConfigOptions(undefined);
+    }
+  }, [resolvedBackend]);
+
+  // Build Gemini currentModel from modelId for GuidModelSelector
+  const geminiCurrentModel = useMemo<TProviderWithModel | undefined>(() => {
+    if (resolvedBackend !== 'gemini' || !modelId) return undefined;
+    for (const p of providers) {
+      if (getAvailableModels(p).includes(modelId)) {
+        return { ...p, useModel: modelId } as TProviderWithModel;
+      }
+    }
+    return undefined;
+  }, [resolvedBackend, modelId, providers, getAvailableModels]);
+
+  const isGeminiMode = resolvedBackend === 'gemini';
+
+  const handleGeminiModelSelect = useCallback(async (model: TProviderWithModel) => {
+    setModelId(model.useModel);
+  }, []);
+
+  const handleAcpModelSelect: React.Dispatch<React.SetStateAction<string | null>> = useCallback(
+    (action: React.SetStateAction<string | null>) => {
+      setModelId((prev) => {
+        const next = typeof action === 'function' ? action(prev ?? null) : action;
+        return next ?? undefined;
+      });
+    },
+    []
+  );
+
+  // Load ACP cached model info when backend changes
+  useEffect(() => {
+    if (!resolvedBackend || resolvedBackend === 'gemini') {
+      setAcpCachedModelInfo(null);
+      return;
+    }
+    ConfigStorage.get('acp.cachedModels')
+      .then((cached) => {
+        const info = cached?.[resolvedBackend];
+        setAcpCachedModelInfo(info?.availableModels?.length ? info : null);
+      })
+      .catch(() => setAcpCachedModelInfo(null));
+  }, [resolvedBackend]);
+
+  // Set default modelId from user preferences when backend changes
+  useEffect(() => {
+    if (!resolvedBackend || modelId) return;
+    if (resolvedBackend === 'gemini') {
+      ConfigStorage.get('gemini.defaultModel')
+        .then((saved) => {
+          const preferred = typeof saved === 'string' ? saved : saved?.useModel;
+          if (preferred) setModelId(preferred);
+        })
+        .catch(() => {});
+    }
+  }, [resolvedBackend, modelId]);
 
   const showTimePicker = frequency === 'daily' || frequency === 'weekdays' || frequency === 'weekly';
   const showWeekdayPicker = frequency === 'weekly';
@@ -181,10 +302,44 @@ const CreateTaskDialog: React.FC<CreateTaskDialogProps> = ({
     setFrequency(value);
   };
 
+  const handleAgentChange = useCallback((value: string) => {
+    setSelectedAgent(value);
+    // Reset model and configOptions when agent changes
+    setModelId(undefined);
+    setConfigOptions(undefined);
+    // Workspace remains unchanged (agent-agnostic)
+  }, []);
+
+  const handleWorkspaceSelect = useCallback(async () => {
+    const files = await ipcBridge.dialog.showOpen.invoke({ properties: ['openDirectory'] });
+    if (files && files.length > 0) {
+      setWorkspace(files[0]);
+    }
+  }, []);
+
+  const handleWorkspaceClear = useCallback(() => {
+    setWorkspace(undefined);
+  }, []);
+
+  const handleConfigOptionSelect = useCallback((configId: string, value: string) => {
+    setConfigOptions((prev) => ({ ...prev, [configId]: value }));
+  }, []);
+
   const resolveAgentConfig = (agentValue: string) => {
     const colonIdx = agentValue.indexOf(':');
     const agentKind = agentValue.substring(0, colonIdx);
     const agentId = agentValue.substring(colonIdx + 1);
+
+    // Merge cached config option defaults with user overrides
+    const mergedConfigOptions = (() => {
+      if (!Array.isArray(cachedConfigOptions) || cachedConfigOptions.length === 0) return configOptions;
+      const defaults: Record<string, string> = {};
+      for (const opt of cachedConfigOptions as AcpSessionConfigOption[]) {
+        const val = opt.currentValue || opt.selectedValue;
+        if (opt.id && val) defaults[opt.id] = val;
+      }
+      return Object.keys(defaults).length > 0 ? { ...defaults, ...configOptions } : configOptions;
+    })();
 
     let agentConfig: ICronAgentConfig | undefined;
     let resolvedAgentType: ICreateCronJobParams['agentType'] = (agentType ||
@@ -198,6 +353,10 @@ const CreateTaskDialog: React.FC<CreateTaskDialogProps> = ({
           backend: agent.backend,
           name: agent.name,
           cliPath: agent.cliPath,
+          mode: getFullAutoMode(agent.backend),
+          modelId,
+          configOptions: mergedConfigOptions,
+          workspace,
         };
       }
     } else if (agentKind === 'preset') {
@@ -210,6 +369,10 @@ const CreateTaskDialog: React.FC<CreateTaskDialogProps> = ({
           isPreset: true,
           customAgentId: agent.customAgentId,
           presetAgentType: agent.presetAgentType,
+          mode: getFullAutoMode(agent.backend),
+          modelId,
+          configOptions: mergedConfigOptions,
+          workspace,
         };
       }
     }
@@ -313,6 +476,7 @@ const CreateTaskDialog: React.FC<CreateTaskDialogProps> = ({
           >
             <Select
               placeholder={t('cron.page.form.agentPlaceholder')}
+              onChange={handleAgentChange}
               renderFormat={(_option, value) => {
                 // Find selected agent to render logo + name in the trigger
                 const strVal = value as unknown as string;
@@ -405,10 +569,7 @@ const CreateTaskDialog: React.FC<CreateTaskDialogProps> = ({
                   <Radio
                     key={option.value}
                     value={option.value}
-                    className={[
-                      'm-0 min-w-0 text-14px text-t-secondary',
-                      isEditMode ? 'cursor-not-allowed opacity-70' : 'cursor-pointer',
-                    ].join(' ')}
+                    className='m-0 min-w-0 text-14px text-t-secondary cursor-pointer'
                   >
                     <span className='pl-4px text-14px font-medium text-t-primary'>{option.label}</span>
                   </Radio>
@@ -417,11 +578,6 @@ const CreateTaskDialog: React.FC<CreateTaskDialogProps> = ({
             </Radio.Group>
             <div className='mt-10px rounded-12px border border-solid border-[var(--color-border-2)] bg-fill-2 px-14px py-12px'>
               <p className='m-0 text-12px leading-18px text-t-primary'>{selectedExecutionModeOption.description}</p>
-              {isEditMode && (
-                <p className='m-0 mt-8px text-12px leading-18px text-t-secondary'>
-                  {t('cron.page.form.executionModeEditHint')}
-                </p>
-              )}
             </div>
           </FormItem>
 
@@ -478,6 +634,68 @@ const CreateTaskDialog: React.FC<CreateTaskDialogProps> = ({
           {frequency !== 'manual' && (
             <p className='text-t-secondary text-12px mt-0 mb-16px'>{t('cron.page.scheduleHint')}</p>
           )}
+
+          {/* Advanced Settings */}
+          <Collapse defaultActiveKey={[]} className='mt-16px'>
+            <Collapse.Item header={t('cron.page.form.advancedSettings')} name='advanced'>
+              <div className='flex flex-col gap-16px'>
+                {/* Model Selector — reuse GuidModelSelector (same no-conversation context) */}
+                {resolvedBackend && (isGeminiMode || acpCachedModelInfo) && (
+                  <div>
+                    <label className='text-14px font-medium text-t-primary mb-8px block'>
+                      {t('cron.page.form.model')}
+                    </label>
+                    <GuidModelSelector
+                      isGeminiMode={isGeminiMode}
+                      modelList={providers}
+                      currentModel={geminiCurrentModel}
+                      setCurrentModel={handleGeminiModelSelect}
+                      geminiModeLookup={geminiModeLookup}
+                      currentAcpCachedModelInfo={acpCachedModelInfo}
+                      selectedAcpModel={modelId ?? null}
+                      setSelectedAcpModel={handleAcpModelSelect}
+                    />
+                  </div>
+                )}
+
+                {/* ACP Config Selector - only for codex backend */}
+                {resolvedBackend === 'codex' && (
+                  <div>
+                    <label className='text-14px font-medium text-t-primary mb-8px block'>
+                      {t('acp.config.reasoning_effort')}
+                    </label>
+                    <AcpConfigSelector
+                      backend={resolvedBackend}
+                      compact={false}
+                      initialConfigOptions={cachedConfigOptions}
+                      onOptionSelect={handleConfigOptionSelect}
+                    />
+                  </div>
+                )}
+
+                {/* Workspace directory picker */}
+                <div>
+                  <label className='text-14px font-medium text-t-primary mb-8px block'>
+                    {t('cron.page.form.workspace')}
+                  </label>
+                  <div className='flex items-center gap-8px'>
+                    <Button onClick={handleWorkspaceSelect}>{t('cron.page.form.selectFolder')}</Button>
+                    {workspace && (
+                      <>
+                        <span className='text-14px text-t-secondary truncate flex-1' title={workspace}>
+                          {workspace}
+                        </span>
+                        <Button onClick={handleWorkspaceClear} size='small'>
+                          {t('cron.page.form.clearFolder')}
+                        </Button>
+                      </>
+                    )}
+                  </div>
+                  <p className='text-12px text-t-secondary mt-8px mb-0'>{t('cron.page.form.workspaceHint')}</p>
+                </div>
+              </div>
+            </Collapse.Item>
+          </Collapse>
         </Form>
       </div>
     </ModalWrapper>
