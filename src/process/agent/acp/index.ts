@@ -28,7 +28,6 @@ import { spawn } from 'child_process';
 import { promises as fs } from 'fs';
 import * as path from 'path';
 import { ProcessConfig } from '@process/utils/initStorage';
-import { mainLog } from '@process/utils/mainLogger';
 import { getEnhancedEnv, resolveNpxPath } from '@process/utils/shellEnv';
 import { AcpConnection } from './AcpConnection';
 import { AcpApprovalStore, createAcpApprovalKey } from './ApprovalStore';
@@ -572,9 +571,6 @@ export class AcpAgent {
   private emitModelInfo(): void {
     const modelInfo = this.getModelInfo();
     if (modelInfo) {
-      if (this.extra.backend === 'codex') {
-        mainLog('[ACP codex]', 'Emitting model info', summarizeAcpModelInfo(modelInfo));
-      }
       this.onStreamEvent({
         type: 'acp_model_info',
         conversation_id: this.id,
@@ -1571,15 +1567,6 @@ export class AcpAgent {
       const teamServer = buildTeamMcpServer(this.extra.teamMcpStdioConfig);
       if (teamServer) {
         servers.push(teamServer);
-        mainLog(`[ACP ${this.extra.backend}]`, `Injecting team MCP server (stdio): ${teamServer.name}`);
-      }
-
-      if (servers.length > 0) {
-        mainLog(
-          `[ACP ${this.extra.backend}]`,
-          `Injecting ${servers.length} MCP server(s) into session/new`,
-          servers.map((server) => `${server.name}:${'type' in server ? server.type : 'stdio'}`)
-        );
       }
 
       return servers;
@@ -1650,7 +1637,6 @@ export class AcpAgent {
       await new Promise<void>((resolve, reject) => {
         loginProcess.on('close', (code) => {
           if (code === 0) {
-            mainLog('[ACP]', `${backend} authentication refreshed`);
             resolve();
           } else {
             reject(new Error(`${backend} login failed with code ${code}`));

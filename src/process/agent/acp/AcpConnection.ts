@@ -22,7 +22,6 @@ import type { ChildProcess } from 'child_process';
 import { execFile as execFileCb } from 'child_process';
 import { promisify } from 'util';
 import type { AcpSessionMcpServer } from './mcpSessionConfig';
-import { mainLog } from '@process/utils/mainLogger';
 import { promises as fs } from 'fs';
 import os from 'os';
 import path from 'path';
@@ -894,8 +893,6 @@ export class AcpConnection {
 
     // session/load returns modes/models/configOptions but not sessionId — keep the one we sent
     this.sessionId = response.sessionId || sessionId;
-
-    mainLog(`[ACP ${this.backend}]`, 'session/load completed', { sessionId: this.sessionId });
 
     this.parseSessionCapabilities(response);
 
