@@ -22,4 +22,21 @@ describe('normalizeWsUrl', () => {
     expect(normalizeWsUrl('WS://127.0.0.1:18789')).toBe('WS://127.0.0.1:18789');
     expect(normalizeWsUrl('WSS://gateway.example.com')).toBe('WSS://gateway.example.com');
   });
+
+  it('should convert http:// to ws://', () => {
+    expect(normalizeWsUrl('http://localhost:3000')).toBe('ws://localhost:3000');
+  });
+
+  it('should convert https:// to wss://', () => {
+    expect(normalizeWsUrl('https://gateway.example.com')).toBe('wss://gateway.example.com');
+  });
+
+  it('should handle case-insensitive http/https', () => {
+    expect(normalizeWsUrl('HTTP://localhost:3000')).toBe('ws://localhost:3000');
+    expect(normalizeWsUrl('HTTPS://gateway.example.com')).toBe('wss://gateway.example.com');
+  });
+
+  it('should preserve path and query in http URLs', () => {
+    expect(normalizeWsUrl('http://localhost:3000/gateway?token=abc')).toBe('ws://localhost:3000/gateway?token=abc');
+  });
 });

@@ -527,10 +527,17 @@ export class OpenClawGatewayConnection {
 }
 
 /**
- * Prepend ws:// if the URL has no WebSocket protocol (e.g. "127.0.0.1:42617")
+ * Ensure the URL uses a WebSocket protocol scheme.
+ * - ws:// / wss:// → kept as-is
+ * - http:// → replaced with ws://
+ * - https:// → replaced with wss://
+ * - no protocol (e.g. "127.0.0.1:42617") → prepend ws://
  */
 export function normalizeWsUrl(raw: string): string {
-  return /^wss?:\/\//i.test(raw) ? raw : `ws://${raw}`;
+  if (/^wss?:\/\//i.test(raw)) return raw;
+  if (/^https:\/\//i.test(raw)) return raw.replace(/^https:\/\//i, 'wss://');
+  if (/^http:\/\//i.test(raw)) return raw.replace(/^http:\/\//i, 'ws://');
+  return `ws://${raw}`;
 }
 
 /**
