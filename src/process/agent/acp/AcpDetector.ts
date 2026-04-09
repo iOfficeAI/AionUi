@@ -248,15 +248,18 @@ class AcpDetector {
    * Deduplicate agents by cliPath. First occurrence wins (so ordering of the
    * input arrays determines priority: builtin > extension > custom).
    * Agents without cliPath (e.g. Gemini, presets) are always kept.
-   * Agents with a customAgentId use a composite key (cliPath : customAgentId)
-   * so multiple custom agents sharing the same CLI binary are not collapsed.
+   * Non-extension agents with a customAgentId use a composite key
+   * (cliPath:customAgentId) so multiple user-configured custom agents sharing
+   * the same CLI binary are not collapsed. Extension agents always deduplicate
+   * by cliPath alone so they cannot shadow builtin agents.
    */
   private deduplicate(agents: DetectedAgent[]): DetectedAgent[] {
     const seen = new Set<string>();
     const result: DetectedAgent[] = [];
     for (const agent of agents) {
       if (agent.cliPath) {
-        const key = agent.customAgentId ? `${agent.cliPath}:${agent.customAgentId}` : agent.cliPath;
+        const key =
+          agent.customAgentId && !agent.isExtension ? `${agent.cliPath}:${agent.customAgentId}` : agent.cliPath;
         if (seen.has(key)) continue;
         seen.add(key);
       }
