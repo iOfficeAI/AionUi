@@ -35,6 +35,8 @@ const mockIpc = vi.hoisted(() => ({
   handshake: vi.fn().mockResolvedValue({ status: 'ok' as const }),
 }));
 
+const mockOpenExternalUrl = vi.hoisted(() => vi.fn().mockResolvedValue(undefined));
+
 vi.mock('react-i18next', () => ({
   useTranslation: () => ({
     t: (key: string) => key,
@@ -83,6 +85,7 @@ vi.mock('../../src/renderer/components/chat/EmojiPicker', () => ({
 }));
 
 vi.mock('@icon-park/react', () => ({
+  Attention: () => <span>AttentionIcon</span>,
   Close: () => <span>CloseIcon</span>,
   Edit: () => <span>EditIcon</span>,
   Plus: () => <span>PlusIcon</span>,
@@ -92,6 +95,10 @@ vi.mock('@icon-park/react', () => ({
 }));
 
 vi.mock('../../src/process/agent/remote/types', () => ({}));
+
+vi.mock('@/renderer/utils/platform', () => ({
+  openExternalUrl: (...args: unknown[]) => mockOpenExternalUrl(...args),
+}));
 
 import RemoteAgentManagement from '../../src/renderer/pages/settings/AgentSettings/RemoteAgentManagement';
 
@@ -127,6 +134,30 @@ describe('RemoteAgentManagement', () => {
     });
 
     expect(screen.getByText('settings.remoteAgent.add')).toBeTruthy();
+  });
+
+  it('opens the setup guide from the list description', async () => {
+    await act(async () => {
+      render(<RemoteAgentManagement />);
+    });
+
+    fireEvent.click(screen.getByText('settings.remoteAgent.guideAction'));
+
+    expect(mockOpenExternalUrl).toHaveBeenCalledWith(
+      'https://github.com/iOfficeAI/AionUi/wiki/Remote-Agent-Guide-Chinese'
+    );
+  });
+
+  it('shows the guide entry inside the add modal', async () => {
+    await act(async () => {
+      render(<RemoteAgentManagement />);
+    });
+
+    fireEvent.click(screen.getByText('settings.remoteAgent.add'));
+
+    await waitFor(() => {
+      expect(screen.getAllByText('settings.remoteAgent.guideAction')).toHaveLength(2);
+    });
   });
 
   it('renders agent list when agents are available', async () => {
