@@ -426,4 +426,33 @@ describe('CronService', () => {
     // listEnabled should only be called during init, not during uninitialized handleSystemResume
     expect(repo.listEnabled).not.toHaveBeenCalled();
   });
+
+  // --- startTimer invalid cron expression ---
+
+  it('startTimer disables job and records error when cron expression is invalid', async () => {
+    const { Cron } = await import('croner');
+    vi.mocked(Cron).mockImplementationOnce(() => {
+      throw new TypeError('CronPattern: configuration entry 2 (NaN) contains illegal characters.');
+    });
+
+    const job = makeJob({
+      id: 'bad-cron',
+      schedule: { kind: 'cron', expr: 'NaN NaN * * *', description: 'invalid' },
+    });
+    vi.mocked(repo.listEnabled).mockReturnValue([job]);
+
+    await service.init();
+
+    expect(repo.update).toHaveBeenCalledWith(
+      'bad-cron',
+      expect.objectContaining({
+        enabled: false,
+        state: expect.objectContaining({
+          lastStatus: 'error',
+          lastError: 'Invalid cron expression: NaN NaN * * *',
+        }),
+      })
+    );
+    expect(emitter.emitJobUpdated).toHaveBeenCalledWith(expect.objectContaining({ id: 'bad-cron', enabled: false }));
+  });
 });
