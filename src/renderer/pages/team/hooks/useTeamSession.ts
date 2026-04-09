@@ -5,7 +5,6 @@ import type {
   ITeamAgentRenamedEvent,
   ITeamAgentSpawnedEvent,
   ITeamAgentStatusEvent,
-  ITeamMessageEvent,
   TeamAgent,
   TeammateStatus,
   TTeam,
@@ -74,10 +73,6 @@ export function useTeamSession(team: TTeam) {
     );
   });
 
-  const [messages, setMessages] = useState<Map<string, ITeamMessageEvent[]>>(
-    new Map(team.agents.map((a): [string, ITeamMessageEvent[]] => [a.slotId, []]))
-  );
-
   useEffect(() => {
     void ipcBridge.team.ensureSession.invoke({ teamId: team.id });
 
@@ -89,19 +84,6 @@ export function useTeamSession(team: TTeam) {
       setStatusMap((prev) => {
         const next = new Map(prev);
         next.set(event.slotId, { slotId: event.slotId, status: event.status, lastMessage: event.lastMessage });
-        return next;
-      });
-    });
-
-    const MESSAGE_BUFFER_LIMIT = 200;
-    const unsubMessages = ipcBridge.team.messageStream.on((event: ITeamMessageEvent) => {
-      if (event.teamId !== team.id) return;
-      setMessages((prev) => {
-        const next = new Map(prev);
-        const existing = next.get(event.slotId) ?? [];
-        const updated = [...existing, event];
-        // Keep only the most recent messages to prevent unbounded growth
-        next.set(event.slotId, updated.length > MESSAGE_BUFFER_LIMIT ? updated.slice(-MESSAGE_BUFFER_LIMIT) : updated);
         return next;
       });
     });
@@ -126,7 +108,6 @@ export function useTeamSession(team: TTeam) {
 
     return () => {
       unsubStatus();
-      unsubMessages();
       unsubSpawned();
       unsubRemoved();
       unsubRenamed();
@@ -166,5 +147,5 @@ export function useTeamSession(team: TTeam) {
     [team.id, mutateTeam]
   );
 
-  return { statusMap, messages, sendMessage, addAgent, renameAgent, removeAgent, mutateTeam };
+  return { statusMap, sendMessage, addAgent, renameAgent, removeAgent, mutateTeam };
 }
