@@ -19,6 +19,21 @@ import {
 } from './petConfirmManager';
 import type { PetSize, PetState } from './petTypes';
 
+/**
+ * Check whether the current environment can support desktop pet windows.
+ * Returns false on Linux headless (ozone-platform=headless) where creating
+ * and destroying BrowserWindows triggers fatal D-Bus / shutdown crashes.
+ */
+export function isPetSupported(): boolean {
+  if (process.platform === 'linux') {
+    const ozonePlatform = app.commandLine.getSwitchValue('ozone-platform');
+    if (ozonePlatform === 'headless') {
+      return false;
+    }
+  }
+  return true;
+}
+
 // petManager is dynamically imported → rollup places it in out/main/chunks/,
 // so __dirname is out/main/chunks/ and we need '../..' to reach out/.
 const PRELOAD_DIR = path.join(__dirname, '..', '..', 'preload');
@@ -78,6 +93,11 @@ const RESTORABLE_STATES: ReadonlySet<PetState> = new Set<PetState>(['thinking', 
  * Create pet windows (rendering window + hit detection window).
  */
 export function createPetWindow(): void {
+  if (!isPetSupported()) {
+    console.warn('[Pet] Desktop pet is not supported in headless mode');
+    return;
+  }
+
   if (petWindow && !petWindow.isDestroyed()) {
     petWindow.show();
     petWindow.focus();

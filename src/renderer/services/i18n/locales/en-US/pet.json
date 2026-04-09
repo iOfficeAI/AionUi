@@ -12,5 +12,6 @@
   "pat": "Pat",
   "resetPosition": "Reset Position",
   "hide": "Hide",
-  "showHide": "Show/Hide"
+  "showHide": "Show/Hide",
+  "desktopOnly": "Desktop Pet is only available in the desktop application. It cannot be used in WebUI browser mode."
 }
