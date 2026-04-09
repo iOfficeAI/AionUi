@@ -195,7 +195,7 @@ export function initSystemSettingsBridge(): void {
 
   ipcBridge.systemSettings.getCommandQueueEnabled.provider(async () => {
     const value = await ProcessConfig.get('system.commandQueueEnabled');
-    return value ?? false;
+    return value ?? true;
   });
 
   ipcBridge.systemSettings.setCommandQueueEnabled.provider(async ({ enabled }) => {

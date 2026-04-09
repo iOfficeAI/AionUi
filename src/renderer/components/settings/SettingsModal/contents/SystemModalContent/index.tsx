@@ -50,7 +50,7 @@ const SystemModalContent: React.FC = () => {
   const [promptTimeout, setPromptTimeout] = useState<number>(300);
   const [agentIdleTimeout, setAgentIdleTimeout] = useState<number>(5);
   const [saveUploadToWorkspace, setSaveUploadToWorkspace] = useState(false);
-  const [commandQueueEnabled, setCommandQueueEnabled] = useState(false);
+  const [commandQueueEnabled, setCommandQueueEnabled] = useState(true);
 
   useEffect(() => {
     if (!isDesktop) {
