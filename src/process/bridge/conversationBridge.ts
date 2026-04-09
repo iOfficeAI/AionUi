@@ -334,13 +334,13 @@ export function initConversationBridge(
     }
   });
 
-  ipcBridge.conversation.reset.provider(({ id }) => {
+  ipcBridge.conversation.reset.provider(async ({ id }) => {
     if (id) {
       workerTaskManager.kill(id);
     } else {
-      workerTaskManager.clear();
+      // fire-and-forget: don't block the IPC response on the 3s graceful shutdown
+      void workerTaskManager.clear();
     }
-    return Promise.resolve();
   });
 
   ipcBridge.conversation.get.provider(async ({ id }) => {

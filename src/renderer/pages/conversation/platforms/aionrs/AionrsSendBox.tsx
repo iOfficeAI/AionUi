@@ -206,7 +206,6 @@ const AionrsSendBox: React.FC<{
     isInteractionLocked: isQueueInteractionLocked,
     hasPendingCommands,
     enqueue,
-    update,
     remove,
     clear,
     reorder,
@@ -274,6 +273,17 @@ const AionrsSendBox: React.FC<{
     await executeCommand({ input: message, files: filesToSend });
   };
 
+  const handleEditQueuedCommand = useCallback(
+    (item: ConversationCommandQueueItem) => {
+      remove(item.id);
+      setContent(item.input);
+      setUploadFile(Array.from(new Set(item.files)));
+      setAtPath([]);
+      emitter.emit('aionrs.selected.file.clear');
+    },
+    [remove, setAtPath, setContent, setUploadFile]
+  );
+
   const appendSelectedFiles = useCallback(
     (files: string[]) => {
       setUploadFile((prev) => [...prev, ...files]);
@@ -312,7 +322,7 @@ const AionrsSendBox: React.FC<{
         onResume={resume}
         onInteractionLock={lockInteraction}
         onInteractionUnlock={unlockInteraction}
-        onUpdate={(commandId, input) => update(commandId, { input })}
+        onEdit={handleEditQueuedCommand}
         onReorder={reorder}
         onRemove={remove}
         onClear={clear}

@@ -130,6 +130,33 @@ vi.mock('@arco-design/web-react', () => ({
       }}
     />
   ),
+  Collapse: Object.assign(
+    ({
+      children,
+      defaultActiveKey,
+    }: {
+      children: React.ReactNode;
+      defaultActiveKey?: string[];
+      className?: string;
+    }) => (
+      <div data-testid='mock-collapse' data-default-keys={defaultActiveKey?.join(',')}>
+        {children}
+      </div>
+    ),
+    {
+      Item: ({ children, header, name }: { children: React.ReactNode; header: string; name: string }) => (
+        <div data-testid={`collapse-item-${name}`}>
+          <div data-testid='collapse-header'>{header}</div>
+          <div data-testid='collapse-content'>{children}</div>
+        </div>
+      ),
+    }
+  ),
+  Button: ({ children, onClick, size }: { children: React.ReactNode; onClick?: () => void; size?: string }) => (
+    <button onClick={onClick} data-size={size} data-testid='mock-button'>
+      {children}
+    </button>
+  ),
   Radio: Object.assign(
     ({
       value,
@@ -198,6 +225,43 @@ vi.mock('@renderer/components/base/ModalWrapper', () => ({
         </button>
       </div>
     ) : null,
+}));
+
+// Mock agent components
+vi.mock('@renderer/components/agent/AgentModeSelector', () => ({
+  default: () => <div data-testid='agent-mode-selector'>AgentModeSelector</div>,
+}));
+
+vi.mock('@renderer/components/agent/AcpConfigSelector', () => ({
+  default: () => <div data-testid='acp-config-selector'>AcpConfigSelector</div>,
+}));
+
+// Mock agent utils
+vi.mock('@renderer/utils/model/agentModes', () => ({
+  supportsModeSwitch: () => false,
+  getFullAutoMode: () => 'full-auto',
+}));
+
+// Mock ConfigStorage
+vi.mock('@/common/config/storage', () => ({
+  ConfigStorage: {
+    get: vi.fn().mockResolvedValue({}),
+  },
+}));
+
+// Mock useModelProviderList
+vi.mock('@renderer/hooks/agent/useModelProviderList', () => ({
+  useModelProviderList: () => ({
+    providers: [],
+    geminiModeLookup: {},
+    getAvailableModels: () => [],
+    formatModelLabel: (id: string) => id,
+  }),
+}));
+
+// Mock GuidModelSelector
+vi.mock('@renderer/pages/guid/components/GuidModelSelector', () => ({
+  default: () => <div data-testid='guid-model-selector'>GuidModelSelector</div>,
 }));
 
 // Mock hooks

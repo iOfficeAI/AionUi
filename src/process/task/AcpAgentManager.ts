@@ -26,7 +26,7 @@ import { ProcessConfig } from '@process/utils/initStorage';
 import { addMessage, addOrUpdateMessage, nextTickToLocalFinish } from '@process/utils/message';
 import { handlePreviewOpenEvent } from '@process/utils/previewUtils';
 import { cronBusyGuard } from '@process/services/cron/CronBusyGuard';
-import { mainLog, mainWarn, mainError } from '@process/utils/mainLogger';
+import { mainWarn, mainError } from '@process/utils/mainLogger';
 import {
   getCodexSandboxModeForSessionMode,
   type CodexSandboxMode,
@@ -224,6 +224,8 @@ class AcpAgentManager extends BaseAgentManager<AcpAgentManagerData, AcpPermissio
   }
 
   private markTrackedTurnRuntimeActivity(): void {
+    this._lastActivityAt = Date.now();
+
     if (this.activeTrackedTurnId === null) {
       return;
     }
@@ -813,7 +815,6 @@ ${collectedResponses.join('\n')}`;
         if (this.currentMode && this.currentMode !== 'default') {
           try {
             await this.agent.setMode(this.currentMode);
-            mainLog('[AcpAgentManager]', `Re-applied persisted mode: ${this.currentMode}`);
           } catch (error) {
             mainWarn('[AcpAgentManager]', `Failed to re-apply mode ${this.currentMode}`, error);
           }
@@ -1511,14 +1512,6 @@ ${collectedResponses.join('\n')}`;
         ...cached,
         [this.options.backend]: nextCachedInfo,
       });
-      if (this.options.backend === 'codex') {
-        mainLog('[AcpAgentManager]', 'Cached Codex model list', {
-          backend: this.options.backend,
-          currentModelId: nextCachedInfo.currentModelId,
-          availableModelCount: nextCachedInfo.availableModels?.length || 0,
-          sampleModelIds: (nextCachedInfo.availableModels || []).slice(0, 8).map((model) => model.id),
-        });
-      }
     } catch (error) {
       mainWarn('[AcpAgentManager]', 'Failed to cache model list', error);
     }
@@ -1543,7 +1536,6 @@ ${collectedResponses.join('\n')}`;
         db.updateConversation(this.conversation_id, {
           extra: updatedExtra,
         } as Partial<typeof conversation>);
-        mainLog('[AcpAgentManager]', `Saved ACP session ID: ${sessionId} for conversation: ${this.conversation_id}`);
       }
     } catch (error) {
       mainError('[AcpAgentManager]', 'Failed to save ACP session ID', error);

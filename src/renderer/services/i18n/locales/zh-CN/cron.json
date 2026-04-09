@@ -97,7 +97,14 @@
       "existingConversation": "持续会话",
       "newConversationHint": "每次都从新会话开始",
       "existingConversationHint": "在同一会话中持续执行",
-      "executionModeEditHint": "创建后无法更改执行模式，如需切换请删除任务后重新创建。"
+      "executionModeEditHint": "创建后无法更改执行模式，如需切换请删除任务后重新创建。",
+      "advancedSettings": "高级设置",
+      "workspace": "工作空间",
+      "workspacePlaceholder": "选择文件夹",
+      "workspaceHint": "可选：设置文件操作的工作空间文件夹",
+      "selectFolder": "选择文件夹",
+      "clearFolder": "清除",
+      "model": "模型"
     },
     "freq": {
       "manual": "手动触发",

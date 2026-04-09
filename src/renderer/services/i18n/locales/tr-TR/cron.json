@@ -109,7 +109,14 @@
       "existingConversation": "Aynı konuşma",
       "newConversationHint": "Her çalıştırma yeni bir başlangıç yapar",
       "existingConversationHint": "Aynı konuşmada devam eder",
-      "executionModeEditHint": "Oluşturulduktan sonra çalıştırma modu değiştirilemez. Mod değiştirmek için görevi silip yeniden oluşturun."
+      "executionModeEditHint": "Oluşturulduktan sonra çalıştırma modu değiştirilemez. Mod değiştirmek için görevi silip yeniden oluşturun.",
+      "advancedSettings": "Gelişmiş Ayarlar",
+      "workspace": "Çalışma Alanı",
+      "workspacePlaceholder": "Klasör seç",
+      "workspaceHint": "İsteğe bağlı: Dosya işlemleri için çalışma alanı klasörü ayarlayın",
+      "selectFolder": "Klasör Seç",
+      "clearFolder": "Temizle",
+      "model": "Model"
     },
     "freq": {
       "manual": "Manuel",

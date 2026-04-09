@@ -548,6 +548,6 @@ export const FILE_TYPES_WITH_BUILTIN_OPEN = ['pdf', 'word', 'excel', 'ppt'];
 
 ## Related Links
 
-- [Workspace Module Documentation](../workspace/README.en.md)
-- [IPC Bridge Documentation](../../../../common/ipcBridge/README.en.md)
+- [Workspace Module Documentation](../Workspace/README.en.md)
+- [IPC Bridge Source](../../../../common/adapter/ipcBridge.ts)
 - [Monaco Editor Documentation](https://microsoft.github.io/monaco-editor/)

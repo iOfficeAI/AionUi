@@ -109,7 +109,14 @@
       "existingConversation": "同じ会話",
       "newConversationHint": "毎回新しい会話から始めます",
       "existingConversationHint": "同じ会話で続きを実行します",
-      "executionModeEditHint": "作成後に実行モードは変更できません。モードを切り替えるには、タスクを削除して再作成してください。"
+      "executionModeEditHint": "作成後に実行モードは変更できません。モードを切り替えるには、タスクを削除して再作成してください。",
+      "advancedSettings": "詳細設定",
+      "workspace": "ワークスペース",
+      "workspacePlaceholder": "フォルダを選択",
+      "workspaceHint": "オプション：ファイル操作のワークスペースフォルダを設定",
+      "selectFolder": "フォルダを選択",
+      "clearFolder": "クリア",
+      "model": "モデル"
     },
     "freq": {
       "manual": "手動",

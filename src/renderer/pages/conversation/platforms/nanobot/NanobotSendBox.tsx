@@ -276,7 +276,6 @@ const NanobotSendBox: React.FC<{ conversation_id: string }> = ({ conversation_id
     isInteractionLocked: isQueueInteractionLocked,
     hasPendingCommands,
     enqueue,
-    update,
     remove,
     clear,
     reorder,
@@ -317,6 +316,17 @@ const NanobotSendBox: React.FC<{ conversation_id: string }> = ({ conversation_id
 
     await executeCommand({ input: message, files: filePaths });
   };
+
+  const handleEditQueuedCommand = useCallback(
+    (item: ConversationCommandQueueItem) => {
+      remove(item.id);
+      setContent(item.input);
+      setUploadFile(Array.from(new Set(item.files)));
+      setAtPath([]);
+      emitter.emit('nanobot.selected.file.clear');
+    },
+    [remove, setAtPath, setContent, setUploadFile]
+  );
 
   const appendSelectedFiles = useCallback(
     (files: string[]) => {
@@ -401,7 +411,7 @@ const NanobotSendBox: React.FC<{ conversation_id: string }> = ({ conversation_id
         onResume={resume}
         onInteractionLock={lockInteraction}
         onInteractionUnlock={unlockInteraction}
-        onUpdate={(commandId, input) => update(commandId, { input })}
+        onEdit={handleEditQueuedCommand}
         onReorder={reorder}
         onRemove={remove}
         onClear={clear}

@@ -34,11 +34,27 @@ export function getEnvExtensionsDirs(): string[] {
  */
 export const HUB_SUPPORTED_SCHEMA_VERSION = 1;
 
-/** Remote mirror base URLs for the AionHub repository (tried in order). */
-export const HUB_REMOTE_URLS = [
+/**
+ * Remote mirror base URLs for the AionHub repository (tried in order).
+ * Set AIONUI_HUB_URL to prepend custom URLs (comma-separated, highest priority).
+ * Example: AIONUI_HUB_URL=http://localhost:3000/,http://staging.example.com/
+ */
+const HUB_DEFAULT_URLS = [
   'https://raw.githubusercontent.com/iOfficeAI/AionHub/dist-latest/',
   'https://cdn.jsdelivr.net/gh/iOfficeAI/AionHub@dist-latest/',
 ];
+
+function resolveHubRemoteUrls(): string[] {
+  const envUrls = process.env.AIONUI_HUB_URL;
+  if (!envUrls) return HUB_DEFAULT_URLS;
+  const custom = envUrls
+    .split(',')
+    .map((u) => u.trim())
+    .filter(Boolean);
+  return [...custom, ...HUB_DEFAULT_URLS];
+}
+
+export const HUB_REMOTE_URLS = resolveHubRemoteUrls();
 
 export const HUB_INDEX_FILE = 'index.json';
 

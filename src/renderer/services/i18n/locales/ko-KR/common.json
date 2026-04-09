@@ -78,6 +78,7 @@
   "name": "이름",
   "added": "추가됨",
   "status": "상태",
+  "agentMode": "에이전트 모드",
   "refreshSuccess": "새로고침 완료",
   "import": "가져오기",
   "processing": "처리 중...",

@@ -78,6 +78,7 @@
   "name": "名前",
   "added": "追加済み",
   "status": "ステータス",
+  "agentMode": "エージェントモード",
   "refreshSuccess": "更新しました",
   "import": "インポート",
   "processing": "処理中...",
