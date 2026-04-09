@@ -95,6 +95,7 @@ describe('WorkerTaskManager', () => {
 
     const agent = {
       ...makeAgent('c1', 'acp'),
+      status: 'finished',
       lastActivityAt: Date.now() - 6 * 60 * 1000,
     };
     const mgr = new WorkerTaskManager(makeFactory(agent) as any, repo);
