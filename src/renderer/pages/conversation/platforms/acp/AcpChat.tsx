@@ -53,6 +53,7 @@ const AcpChat: React.FC<{
               sessionMode={sessionMode}
               cachedConfigOptions={cachedConfigOptions}
               agentName={agentName}
+              workspacePath={workspace}
               teamId={teamId}
               agentSlotId={agentSlotId}
             ></AcpSendBox>

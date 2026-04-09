@@ -10,26 +10,26 @@ import { buildDisplayMessage } from '@/renderer/utils/file/messageFiles';
 describe('buildDisplayMessage', () => {
   const workspace = '/tmp/aion/workspace-1';
 
-  it('preserves uploads/ subdirectory for files inside workspace', () => {
+  it('stores workspace files with workspace prefix', () => {
     const files = [`${workspace}/uploads/photo.jpg`];
     const result = buildDisplayMessage('hello', files, workspace);
     expect(result).toContain(`${workspace}/uploads/photo.jpg`);
   });
 
-  it('preserves nested subdirectories inside workspace', () => {
+  it('preserves nested subdirectories inside workspace with prefix', () => {
     const files = [`${workspace}/uploads/subdir/doc.pdf`];
     const result = buildDisplayMessage('hello', files, workspace);
     expect(result).toContain(`${workspace}/uploads/subdir/doc.pdf`);
   });
 
-  it('uses basename for absolute paths outside workspace', () => {
+  it('stores absolute paths outside workspace using workspace basename prefix', () => {
     const files = ['/other/path/external.txt'];
     const result = buildDisplayMessage('hello', files, workspace);
     expect(result).toContain(`${workspace}/external.txt`);
     expect(result).not.toContain('/other/path');
   });
 
-  it('passes relative paths through unchanged', () => {
+  it('converts relative paths into workspace-prefixed paths', () => {
     const files = ['relative/file.txt'];
     const result = buildDisplayMessage('hello', files, workspace);
     expect(result).toContain(`${workspace}/relative/file.txt`);
@@ -40,7 +40,7 @@ describe('buildDisplayMessage', () => {
     expect(result).toBe('hello');
   });
 
-  it('strips AIONUI timestamp separators from filenames', () => {
+  it('strips AIONUI timestamp separators from filenames while keeping prefix', () => {
     const files = [`${workspace}/uploads/photo_aionui_1234567890123.jpg`];
     const result = buildDisplayMessage('hello', files, workspace);
     expect(result).toContain(`${workspace}/uploads/photo.jpg`);

@@ -166,6 +166,159 @@ class AcpAgentManager extends BaseAgentManager<AcpAgentManagerData, AcpPermissio
     }
   }
 
+  private flushThinkingToDb(_msgId?: string, _status: 'thinking' | 'done' = 'done'): void {
+    // ACP does not buffer thinking content into the DB the way text streaming is buffered,
+    // so kill() only needs a no-op hook here to keep the shutdown path type-safe.
+  }
+
+  private beginTrackedTurn(): number {
+    this.clearMissingFinishFallback();
+    const turnId = this.nextTrackedTurnId + 1;
+    this.nextTrackedTurnId = turnId;
+    this.activeTrackedTurnId = turnId;
+    this.activeTrackedTurnHasRuntimeActivity = false;
+    return turnId;
+  }
+
+  private markTrackedTurnFinished(turnId: number): void {
+    if (this.activeTrackedTurnId === turnId) {
+      this.activeTrackedTurnId = null;
+    }
+    this.completedTrackedTurnIds.add(turnId);
+  }
+
+  private markActiveTurnFinished(): void {
+    if (this.activeTrackedTurnId !== null) {
+      this.markTrackedTurnFinished(this.activeTrackedTurnId);
+    }
+  }
+
+  private consumeTrackedTurnFinished(turnId: number): boolean {
+    const hasFinished = this.completedTrackedTurnIds.has(turnId);
+    if (hasFinished) {
+      if (this.activeTrackedTurnId === turnId) {
+        this.activeTrackedTurnId = null;
+      }
+      this.completedTrackedTurnIds.delete(turnId);
+    }
+    return hasFinished;
+  }
+
+  private clearTrackedTurn(turnId: number): void {
+    if (this.activeTrackedTurnId === turnId) {
+      this.activeTrackedTurnId = null;
+      this.activeTrackedTurnHasRuntimeActivity = false;
+    }
+    this.completedTrackedTurnIds.delete(turnId);
+  }
+
+  private markTrackedTurnRuntimeActivity(): void {
+    if (this.activeTrackedTurnId === null) {
+      return;
+    }
+
+    this.activeTrackedTurnHasRuntimeActivity = true;
+  }
+
+  private clearMissingFinishFallback(): void {
+    if (this.missingFinishFallbackTimer) {
+      clearTimeout(this.missingFinishFallbackTimer);
+      this.missingFinishFallbackTimer = null;
+    }
+    this.missingFinishFallbackTurnId = null;
+  }
+
+  private scheduleMissingFinishFallback(): void {
+    const turnId = this.activeTrackedTurnId;
+    if (turnId === null) {
+      return;
+    }
+
+    this.clearMissingFinishFallback();
+    this.missingFinishFallbackTurnId = turnId;
+    this.missingFinishFallbackTimer = setTimeout(() => {
+      void this.handleMissingFinishFallback(turnId);
+    }, this.missingFinishFallbackDelayMs);
+  }
+
+  private async handleMissingFinishFallback(turnId: number): Promise<void> {
+    if (this.missingFinishFallbackTurnId !== turnId) {
+      return;
+    }
+
+    this.clearMissingFinishFallback();
+    if (this.activeTrackedTurnId !== turnId || this.completedTrackedTurnIds.has(turnId)) {
+      return;
+    }
+
+    if (this.getConfirmations().length > 0) {
+      return;
+    }
+
+    this.markTrackedTurnFinished(turnId);
+    mainWarn(
+      '[AcpAgentManager]',
+      `ACP turn became idle without finish signal; synthesizing finish for ${this.conversation_id} (${this.options.backend})`
+    );
+
+    const shouldNotifyTurnCompleted = await this.handleFinishSignal(
+      {
+        type: 'finish',
+        conversation_id: this.conversation_id,
+        msg_id: uuid(),
+        data: null,
+      },
+      this.options.backend,
+      { trackActiveTurn: false }
+    );
+
+    if (shouldNotifyTurnCompleted) {
+      void ConversationTurnCompletionService.getInstance().notifyPotentialCompletion(this.conversation_id);
+    }
+  }
+
+  private async sendAgentMessageWithFinishFallback(data: {
+    content: string;
+    files?: string[];
+    msg_id?: string;
+  }): Promise<AcpResult> {
+    const turnId = this.beginTrackedTurn();
+
+    try {
+      const result = await this.agent.sendMessage(data);
+      if (this.consumeTrackedTurnFinished(turnId)) {
+        return result;
+      }
+
+      if (this.activeTrackedTurnId === turnId && this.activeTrackedTurnHasRuntimeActivity) {
+        return result;
+      }
+
+      this.clearTrackedTurn(turnId);
+      mainWarn(
+        '[AcpAgentManager]',
+        `ACP turn resolved without runtime activity or finish signal; synthesizing finish for ${this.conversation_id} (${this.options.backend})`
+      );
+      const shouldNotifyTurnCompleted = await this.handleFinishSignal(
+        {
+          type: 'finish',
+          conversation_id: this.conversation_id,
+          msg_id: data.msg_id || uuid(),
+          data: null,
+        },
+        this.options.backend,
+        { trackActiveTurn: false }
+      );
+      if (shouldNotifyTurnCompleted) {
+        void ConversationTurnCompletionService.getInstance().notifyPotentialCompletion(this.conversation_id);
+      }
+      return result;
+    } catch (error) {
+      this.clearTrackedTurn(turnId);
+      throw error;
+    }
+  }
+
   initAgent(data: AcpAgentManagerData = this.options) {
     if (this.bootstrap) return this.bootstrap;
     this.bootstrapping = true;
