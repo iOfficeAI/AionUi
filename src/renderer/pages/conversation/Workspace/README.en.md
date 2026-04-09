@@ -420,6 +420,6 @@ await ConfigStorage.set('workspace.pasteConfirm', true);
 
 ## Related Links
 
-- [Preview Module Documentation](../preview/README.en.md)
-- [IPC Bridge Documentation](../../../../common/ipcBridge/README.en.md)
-- [Configuration Storage Documentation](../../../../common/storage.ts)
+- [Preview Module Documentation](../Preview/README.en.md)
+- [IPC Bridge Source](../../../../common/adapter/ipcBridge.ts)
+- [Configuration Storage Source](../../../../common/config/storage.ts)
