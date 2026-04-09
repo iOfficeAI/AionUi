@@ -10,7 +10,6 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 
 type UseFileChangesParams = {
   workspace: string;
-  conversationId: string;
 };
 
 type UseFileChangesReturn = {
@@ -29,7 +28,7 @@ type UseFileChangesReturn = {
   resetFile: (filePath: string, operation: FileChangeInfo['operation']) => Promise<void>;
 };
 
-export function useFileChanges({ workspace, conversationId }: UseFileChangesParams): UseFileChangesReturn {
+export function useFileChanges({ workspace }: UseFileChangesParams): UseFileChangesReturn {
   const [result, setResult] = useState<CompareResult>({ staged: [], unstaged: [] });
   const [loading, setLoading] = useState(false);
   const [snapshotInfo, setSnapshotInfo] = useState<SnapshotInfo | null>(null);
@@ -63,7 +62,7 @@ export function useFileChanges({ workspace, conversationId }: UseFileChangesPara
     return () => {
       ipcBridge.fileSnapshot.dispose.invoke({ workspace }).catch(() => {});
     };
-  }, [workspace, conversationId]);
+  }, [workspace]);
 
   // Silent refresh: update data without showing loading spinner (used after git operations)
   const silentRefresh = useCallback(async () => {

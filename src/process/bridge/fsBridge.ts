@@ -347,9 +347,14 @@ export function initFsBridge(): void {
     redirectCount = 0
   ): Promise<{ buffer: Buffer; contentType?: string }> => {
     const allowedProtocols = new Set(['http:', 'https:']);
-    const parsedUrl = new URL(targetUrl);
+    let parsedUrl: URL;
+    try {
+      parsedUrl = new URL(targetUrl);
+    } catch {
+      return Promise.reject(new Error(`Invalid URL: ${targetUrl}`));
+    }
     if (!allowedProtocols.has(parsedUrl.protocol)) {
-      throw new Error('Unsupported protocol');
+      return Promise.reject(new Error('Unsupported protocol'));
     }
 
     // 仅允许白名单域名，避免随意访问 / Restrict to a whitelist of hosts for safety
@@ -358,7 +363,7 @@ export function initFsBridge(): void {
       (host) => parsedUrl.hostname === host || parsedUrl.hostname.endsWith(`.${host}`)
     );
     if (!isAllowedHost) {
-      throw new Error('URL not allowed for remote fetch');
+      return Promise.reject(new Error('URL not allowed for remote fetch'));
     }
 
     return new Promise((resolve, reject) => {
@@ -376,7 +381,13 @@ export function initFsBridge(): void {
             const { statusCode = 0, headers } = response;
 
             if (statusCode >= 300 && statusCode < 400 && headers.location && redirectCount < 5) {
-              const redirectUrl = new URL(headers.location, targetUrl).toString();
+              let redirectUrl: string;
+              try {
+                redirectUrl = new URL(headers.location, targetUrl).toString();
+              } catch {
+                reject(new Error(`Invalid redirect URL: ${headers.location}`));
+                return;
+              }
               response.resume();
               resolve(downloadRemoteBuffer(redirectUrl, redirectCount + 1));
               return;

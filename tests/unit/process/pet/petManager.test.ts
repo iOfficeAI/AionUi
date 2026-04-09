@@ -45,7 +45,10 @@ vi.mock('electron', () => {
   (BW as unknown as { getAllWindows: () => unknown[] }).getAllWindows = () => [];
 
   return {
-    app: { isPackaged: false },
+    app: {
+      isPackaged: false,
+      commandLine: { getSwitchValue: vi.fn(() => '') },
+    },
     BrowserWindow: BW,
     ipcMain: {
       on: vi.fn((channel: string, handler: (...args: unknown[]) => void) => {
@@ -86,8 +89,9 @@ import {
   showPetWindow,
   hidePetWindow,
   getEventBridge,
+  isPetSupported,
 } from '@process/pet/petManager';
-import { ipcMain, Menu, screen } from 'electron';
+import { app, ipcMain, Menu, screen } from 'electron';
 import { setPetNotifyHook } from '../../../../src/common/adapter/main';
 
 describe('petManager', () => {
@@ -219,6 +223,68 @@ describe('petManager', () => {
   describe('hidePetWindow', () => {
     it('does not throw when no windows exist', () => {
       expect(() => hidePetWindow()).not.toThrow();
+    });
+  });
+
+  // ── isPetSupported ─────────────────────────────────────────────────
+
+  describe('isPetSupported', () => {
+    let originalPlatform: PropertyDescriptor | undefined;
+
+    beforeEach(() => {
+      originalPlatform = Object.getOwnPropertyDescriptor(process, 'platform');
+    });
+
+    afterEach(() => {
+      if (originalPlatform) {
+        Object.defineProperty(process, 'platform', originalPlatform);
+      }
+      vi.mocked(app.commandLine.getSwitchValue).mockReturnValue('');
+    });
+
+    it('returns false on Linux with ozone-platform=headless', () => {
+      Object.defineProperty(process, 'platform', { value: 'linux', configurable: true });
+      vi.mocked(app.commandLine.getSwitchValue).mockReturnValue('headless');
+      expect(isPetSupported()).toBe(false);
+    });
+
+    it('returns true on Linux without headless ozone', () => {
+      Object.defineProperty(process, 'platform', { value: 'linux', configurable: true });
+      vi.mocked(app.commandLine.getSwitchValue).mockReturnValue('');
+      expect(isPetSupported()).toBe(true);
+    });
+
+    it('returns true on macOS', () => {
+      Object.defineProperty(process, 'platform', { value: 'darwin', configurable: true });
+      expect(isPetSupported()).toBe(true);
+    });
+
+    it('returns true on Windows', () => {
+      Object.defineProperty(process, 'platform', { value: 'win32', configurable: true });
+      expect(isPetSupported()).toBe(true);
+    });
+  });
+
+  describe('createPetWindow headless guard', () => {
+    let originalPlatform: PropertyDescriptor | undefined;
+
+    beforeEach(() => {
+      originalPlatform = Object.getOwnPropertyDescriptor(process, 'platform');
+    });
+
+    afterEach(() => {
+      if (originalPlatform) {
+        Object.defineProperty(process, 'platform', originalPlatform);
+      }
+      vi.mocked(app.commandLine.getSwitchValue).mockReturnValue('');
+    });
+
+    it('skips window creation when pet is not supported', () => {
+      Object.defineProperty(process, 'platform', { value: 'linux', configurable: true });
+      vi.mocked(app.commandLine.getSwitchValue).mockReturnValue('headless');
+      const countBefore = createdWindows.length;
+      createPetWindow();
+      expect(createdWindows).toHaveLength(countBefore);
     });
   });
 

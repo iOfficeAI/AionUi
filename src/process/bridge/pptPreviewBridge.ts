@@ -30,6 +30,8 @@ interface WatchSession {
 const sessions = new Map<string, WatchSession>();
 // Pending kill timers — delayed stop allows Strict Mode re-mount to reuse sessions
 const pendingKills = new Map<string, ReturnType<typeof setTimeout>>();
+// Skip further install attempts after the first failure in this session
+let installFailed = false;
 
 /**
  * Find a free TCP port by binding to port 0.
@@ -128,6 +130,7 @@ function checkForUpdate(): void {
  * Auto-install officecli if not found.
  */
 function installOfficecli(): boolean {
+  if (installFailed) return false;
   try {
     ipcBridge.pptPreview.status.emit({ state: 'installing' });
     if (process.platform === 'win32') {
@@ -145,6 +148,7 @@ function installOfficecli(): boolean {
     }
     return true;
   } catch (e) {
+    installFailed = true;
     console.error('[pptPreview] Failed to install officecli:', e);
     return false;
   }

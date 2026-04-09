@@ -1,6 +1,13 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import type { FileMetadata } from '@/renderer/services/FileService';
 
+const isElectronDesktop = vi.fn(() => true);
+const trackUpload = vi.fn(() => ({
+  id: 1,
+  onProgress: vi.fn(),
+  finish: vi.fn(),
+}));
+
 // Mock dependencies before importing PasteService
 vi.mock('@/common', () => ({
   ipcBridge: {
@@ -20,11 +27,16 @@ vi.mock('@/renderer/services/FileService', () => ({
   MAX_UPLOAD_SIZE_MB: 100,
 }));
 
+vi.mock('@/renderer/hooks/file/useUploadState', () => ({
+  trackUpload,
+}));
+
 vi.mock('@/renderer/utils/platform', () => ({
-  isElectronDesktop: () => true,
+  isElectronDesktop,
 }));
 
 const { ipcBridge } = await import('@/common');
+const { uploadFileViaHttp } = await import('@/renderer/services/FileService');
 
 function createMockClipboardEvent(files: File[]): ClipboardEvent {
   // jsdom doesn't support DataTransfer, so we create a minimal mock
@@ -53,6 +65,12 @@ describe('PasteService.handlePaste — filename deduplication', () => {
   beforeEach(async () => {
     vi.clearAllMocks();
     tempFileCounter = 0;
+    isElectronDesktop.mockReturnValue(true);
+    trackUpload.mockReturnValue({
+      id: 1,
+      onProgress: vi.fn(),
+      finish: vi.fn(),
+    });
 
     // Each createTempFile call returns a unique path based on the fileName argument
     vi.mocked(ipcBridge.fs.createTempFile.invoke).mockImplementation(async ({ fileName }) => {
@@ -118,5 +136,46 @@ describe('PasteService.handlePaste — filename deduplication', () => {
     const names = addedFiles.map((f) => f.name);
     // All names must be unique
     expect(new Set(names).size).toBe(3);
+  });
+
+  it('tracks upload progress for WebUI pasted images', async () => {
+    isElectronDesktop.mockReturnValue(false);
+    const onProgress = vi.fn();
+    const finish = vi.fn();
+    trackUpload.mockReturnValue({
+      id: 7,
+      onProgress,
+      finish,
+    });
+    vi.mocked(uploadFileViaHttp).mockResolvedValue('/tmp/pasted-image.png');
+
+    const event = createMockClipboardEvent([createImageFile('clipboard.png', 256)]);
+    const addedFiles: FileMetadata[] = [];
+
+    await PasteService.handlePaste(
+      event,
+      [],
+      (files) => {
+        addedFiles.push(...files);
+      },
+      undefined,
+      'conversation-1',
+      'sendbox'
+    );
+
+    expect(trackUpload).toHaveBeenCalledWith(256, 'sendbox');
+    expect(uploadFileViaHttp).toHaveBeenCalledTimes(1);
+    expect(vi.mocked(uploadFileViaHttp).mock.calls[0]?.[0].name).toBe('clipboard.png');
+    expect(vi.mocked(uploadFileViaHttp).mock.calls[0]?.[1]).toBe('conversation-1');
+    expect(vi.mocked(uploadFileViaHttp).mock.calls[0]?.[2]).toBe(onProgress);
+    expect(finish).toHaveBeenCalledTimes(1);
+    expect(addedFiles).toEqual([
+      expect.objectContaining({
+        name: 'clipboard.png',
+        path: '/tmp/pasted-image.png',
+        size: 256,
+        type: 'image/png',
+      }),
+    ]);
   });
 });

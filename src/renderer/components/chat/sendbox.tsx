@@ -1098,6 +1098,7 @@ const SendBox: React.FC<{
   );
 
   const sendMessageHandler = () => {
+    if (isUploading) return;
     if (enableBtw && btwQuestion !== null) {
       const normalizedQuestion = btwQuestion.trim();
       if (!normalizedQuestion) {

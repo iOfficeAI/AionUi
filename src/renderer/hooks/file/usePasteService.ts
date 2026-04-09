@@ -1,5 +1,6 @@
 import type { FileMetadata } from '@/renderer/services/FileService';
 import { MAX_UPLOAD_SIZE_MB } from '@/renderer/services/FileService';
+import type { UploadSource } from '@/renderer/hooks/file/useUploadState';
 import { PasteService } from '@/renderer/services/PasteService';
 import { useCallback, useEffect, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -12,13 +13,20 @@ interface UsePasteServiceProps {
   onTextPaste?: (text: string) => void;
   /** Conversation ID for WebUI file uploads */
   conversationId?: string;
+  source?: UploadSource;
 }
 
 /**
  * 通用的PasteService集成hook
  * 为所有组件提供统一的粘贴处理功能
  */
-export const usePasteService = ({ supportedExts, onFilesAdded, onTextPaste, conversationId }: UsePasteServiceProps) => {
+export const usePasteService = ({
+  supportedExts,
+  onFilesAdded,
+  onTextPaste,
+  conversationId,
+  source = 'sendbox',
+}: UsePasteServiceProps) => {
   const { t } = useTranslation();
   const componentId = useRef('paste-service-' + uuid(4)).current;
   // 统一的粘贴事件处理
@@ -37,7 +45,8 @@ export const usePasteService = ({ supportedExts, onFilesAdded, onTextPaste, conv
           supportedExts,
           onFilesAdded || (() => {}),
           onTextPaste,
-          conversationId
+          conversationId,
+          source
         );
         if (handled && (!files || files.length === 0)) {
           // 如果不是文件粘贴但被处理了（比如纯文本粘贴），也阻止默认行为
@@ -54,7 +63,7 @@ export const usePasteService = ({ supportedExts, onFilesAdded, onTextPaste, conv
         return false;
       }
     },
-    [conversationId, supportedExts, onFilesAdded, onTextPaste, t]
+    [conversationId, source, supportedExts, onFilesAdded, onTextPaste, t]
   );
 
   // 焦点处理

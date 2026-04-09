@@ -435,21 +435,32 @@ export class CronService {
           break;
         }
 
-        const timer = new Cron(
-          schedule.expr,
-          {
-            timezone: schedule.tz,
-            paused: false,
-          },
-          () => {
-            void this.executeJob(job);
-          }
-        );
-        this.timers.set(job.id, timer);
+        try {
+          const timer = new Cron(
+            schedule.expr,
+            {
+              timezone: schedule.tz,
+              paused: false,
+            },
+            () => {
+              void this.executeJob(job);
+            }
+          );
+          this.timers.set(job.id, timer);
 
-        // Sync nextRunAtMs with actual next run time and notify frontend
-        const nextRun = timer.nextRun();
-        job.state.nextRunAtMs = nextRun ? nextRun.getTime() : undefined;
+          // Sync nextRunAtMs with actual next run time and notify frontend
+          const nextRun = timer.nextRun();
+          job.state.nextRunAtMs = nextRun ? nextRun.getTime() : undefined;
+        } catch (error) {
+          console.error(`[CronService] Invalid cron expression "${schedule.expr}" for job "${job.name}":`, error);
+          job.state.nextRunAtMs = undefined;
+          job.state.lastStatus = 'error';
+          job.state.lastError = `Invalid cron expression: ${schedule.expr}`;
+          job.enabled = false;
+          await this.repo.update(job.id, { enabled: false, state: job.state });
+          this.emitter.emitJobUpdated(job);
+          break;
+        }
         await this.repo.update(job.id, { state: job.state });
         this.emitter.emitJobUpdated(job);
         break;
