@@ -14,10 +14,13 @@
 import { vi, describe, it, expect, beforeEach } from 'vitest';
 
 // ── Hoisted mocks ────────────────────────────────────────────────────────────
-const { mockSetProcessing } = vi.hoisted(() => ({ mockSetProcessing: vi.fn() }));
+const { mockSetProcessing, mockIsProcessing } = vi.hoisted(() => ({
+  mockSetProcessing: vi.fn(),
+  mockIsProcessing: vi.fn(() => false),
+}));
 
 vi.mock('@process/services/cron/CronBusyGuard', () => ({
-  cronBusyGuard: { setProcessing: mockSetProcessing },
+  cronBusyGuard: { setProcessing: mockSetProcessing, isProcessing: mockIsProcessing },
 }));
 vi.mock('@process/utils/mainLogger', () => ({
   mainLog: vi.fn(),
@@ -77,6 +80,9 @@ vi.mock('@process/task/BaseAgentManager', () => ({
       return false;
     }
     addConfirmation() {}
+    getConfirmations() {
+      return [];
+    }
   },
 }));
 
