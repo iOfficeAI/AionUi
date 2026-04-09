@@ -332,7 +332,7 @@ const GeminiSendBox: React.FC<{
   });
 
   const onSendHandler = async (message: string) => {
-    if (!isCommandQueueEnabled && isBusy) {
+    if (!teamId && !isCommandQueueEnabled && isBusy) {
       Message.warning(t('messages.conversationInProgress'));
       return;
     }
