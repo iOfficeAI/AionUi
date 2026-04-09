@@ -150,6 +150,7 @@ const mapSpeechInputError = (error: unknown): SpeechInputErrorCode => {
 export const useSpeechInput = ({ locale, onTranscript }: UseSpeechInputOptions) => {
   const [status, setStatus] = useState<SpeechInputStatus>('idle');
   const [errorCode, setErrorCode] = useState<SpeechInputErrorCode | null>(null);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const recorderRef = useRef<MediaRecorder | null>(null);
   const streamRef = useRef<MediaStream | null>(null);
   const chunksRef = useRef<Blob[]>([]);
@@ -169,6 +170,7 @@ export const useSpeechInput = ({ locale, onTranscript }: UseSpeechInputOptions) 
 
   const clearError = useCallback(() => {
     setErrorCode(null);
+    setErrorMessage(null);
     setStatus('idle');
   }, []);
 
@@ -177,6 +179,7 @@ export const useSpeechInput = ({ locale, onTranscript }: UseSpeechInputOptions) 
       try {
         setStatus('transcribing');
         setErrorCode(null);
+        setErrorMessage(null);
         const result = await transcribeAudioBlob(blob, recognitionLocale);
         if (result.text.trim()) {
           onTranscriptRef.current(result.text);
@@ -184,6 +187,10 @@ export const useSpeechInput = ({ locale, onTranscript }: UseSpeechInputOptions) 
         setStatus('idle');
       } catch (error) {
         setErrorCode(mapSpeechInputError(error));
+        const message = error instanceof Error ? error.message : String(error);
+        setErrorMessage(
+          message.startsWith('STT_REQUEST_FAILED:') ? message.replace('STT_REQUEST_FAILED:', '').trim() : null
+        );
         setStatus('error');
       }
     },
@@ -227,11 +234,13 @@ export const useSpeechInput = ({ locale, onTranscript }: UseSpeechInputOptions) 
       };
 
       setErrorCode(null);
+      setErrorMessage(null);
       setStatus('recording');
       recorder.start();
     } catch (error) {
       cleanupRecorder();
       setErrorCode(mapSpeechInputError(error));
+      setErrorMessage(null);
       setStatus('error');
     }
   }, [availability, cleanupRecorder, transcribeBlob]);
@@ -276,6 +285,7 @@ export const useSpeechInput = ({ locale, onTranscript }: UseSpeechInputOptions) 
     availability,
     clearError,
     errorCode,
+    errorMessage,
     startRecording,
     status,
     stopRecording,

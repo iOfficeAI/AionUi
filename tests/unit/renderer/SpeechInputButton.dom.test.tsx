@@ -9,6 +9,8 @@ const mockStartRecording = vi.fn();
 const mockStopRecording = vi.fn();
 const mockTranscribeFile = vi.fn();
 const mockMessageError = vi.fn();
+let speechInputErrorCode: string | null = null;
+let speechInputErrorMessage: string | null = null;
 
 vi.mock('@/common/config/storage', () => ({
   ConfigStorage: {
@@ -27,7 +29,8 @@ vi.mock('@/renderer/hooks/system/useSpeechInput', () => ({
   useSpeechInput: () => ({
     availability: 'record',
     clearError: mockClearError,
-    errorCode: null,
+    errorCode: speechInputErrorCode,
+    errorMessage: speechInputErrorMessage,
     startRecording: mockStartRecording,
     status: 'idle',
     stopRecording: mockStopRecording,
@@ -50,17 +53,13 @@ vi.mock('@arco-design/web-react', () => ({
   Tooltip: ({ children }: { children: React.ReactNode }) => React.createElement(React.Fragment, {}, children),
 }));
 
-vi.mock('@icon-park/react', () => ({
-  LoadingOne: () => React.createElement('span', {}, 'LoadingOne'),
-  Microphone: () => React.createElement('span', {}, 'Microphone'),
-  Record: () => React.createElement('span', {}, 'Record'),
-}));
-
 import SpeechInputButton from '@/renderer/components/chat/SpeechInputButton';
 
 describe('SpeechInputButton', () => {
   beforeEach(() => {
     speechToTextEnabled = false;
+    speechInputErrorCode = null;
+    speechInputErrorMessage = null;
     vi.clearAllMocks();
   });
 
@@ -85,7 +84,7 @@ describe('SpeechInputButton', () => {
       name: 'conversation.chat.speech.recordTooltip',
     });
     expect(button).toBeInTheDocument();
-    expect(button).toHaveTextContent('Microphone');
+    expect(button.querySelector('svg')).not.toBeNull();
   });
 
   it('refreshes visibility when the speech-to-text config changes', async () => {
@@ -106,5 +105,18 @@ describe('SpeechInputButton', () => {
         name: 'conversation.chat.speech.recordTooltip',
       })
     ).toBeInTheDocument();
+  });
+
+  it('shows the transcription detail when speech-to-text returns a concrete error', async () => {
+    speechToTextEnabled = true;
+    speechInputErrorCode = 'transcription-failed';
+    speechInputErrorMessage = 'model overloaded';
+
+    render(<SpeechInputButton onTranscript={vi.fn()} />);
+
+    await waitFor(() => {
+      expect(mockMessageError).toHaveBeenCalledWith('conversation.chat.speech.transcriptionFailed: model overloaded');
+    });
+    expect(mockClearError).toHaveBeenCalled();
   });
 });
