@@ -241,7 +241,7 @@ const createWindow = ({ showOnReady = true }: { showOnReady?: boolean } = {}): v
           titleBarStyle: 'hidden',
           // Align traffic-light vertical center with the titlebar button centers.
           // Titlebar is 45px; buttons are 36px flex-centered → button center y≈22.5.
-          // Empirically y=19 places the traffic lights on the same horizontal line
+          // Empirically y=13 places the traffic lights on the same horizontal line
           // as the sidebar / back / forward icons.
           // NOTE: requires a full app restart to take effect (BrowserWindow option).
           trafficLightPosition: { x: 10, y: 13 },

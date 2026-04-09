@@ -88,7 +88,10 @@ export const NavigationHistoryProvider: React.FC<React.PropsWithChildren> = ({ c
     if (!target) return;
     skipNextRef.current = true;
     setCursor(next);
-    void navigate(target.path);
+    // Use { replace: true } so traversing our own stack doesn't grow
+    // React Router's history unboundedly — this is meant to emulate
+    // browser back/forward, which never creates new history entries.
+    void navigate(target.path, { replace: true });
   }, [cursor, stack, navigate]);
 
   const forward = useCallback(() => {
@@ -98,7 +101,7 @@ export const NavigationHistoryProvider: React.FC<React.PropsWithChildren> = ({ c
     if (!target) return;
     skipNextRef.current = true;
     setCursor(next);
-    void navigate(target.path);
+    void navigate(target.path, { replace: true });
   }, [cursor, stack, navigate]);
 
   const value = useMemo<NavigationHistoryContextValue>(

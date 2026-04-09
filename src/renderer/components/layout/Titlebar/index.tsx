@@ -45,9 +45,10 @@ const AionLogoMark: React.FC = () => (
 // Uses a 48-unit viewBox to match @icon-park's stroke scale, so passing the same
 // `strokeWidth` value here and to @icon-park icons produces visually identical lines.
 //
-// The rect is drawn from y=12 to y=36 (height 24) so its visual height matches
-// @icon-park's ArrowLeft/ArrowRight (which span y=12 to y=36 as well). This keeps
-// the three icons at the same visual weight and centerline.
+// The rect spans y=10..38 (height 28), slightly taller than @icon-park's
+// ArrowLeft/ArrowRight (which span y=12..36) so the sidebar icon reads a
+// touch larger. The rect remains centered at y=24, matching the arrows'
+// centerline so all three icons stay on the same visual baseline.
 const SidebarIcon: React.FC<{ size?: number; strokeWidth?: number }> = ({ size = 18, strokeWidth = 4 }) => (
   <svg
     width={size}
