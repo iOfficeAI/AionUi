@@ -134,7 +134,7 @@ const SettingsSider: React.FC<{ collapsed?: boolean; tooltipEnabled?: boolean }>
     };
   }, [loadExtensionTabs]);
 
-  const menus: SiderItem[] = useMemo(() => {
+  const { menus, groupHeaderAt } = useMemo(() => {
     // Build builtin items
     const builtinMap: Record<string, SiderItem> = {
       gemini: { id: 'gemini', label: t('settings.gemini'), icon: <Gemini />, path: 'gemini' },
@@ -225,7 +225,21 @@ const SettingsSider: React.FC<{ collapsed?: boolean; tooltipEnabled?: boolean }>
       result.splice(insertIdx, 0, ...unanchored.map(toSiderItem));
     }
 
-    return result;
+    // Compute group header render positions.
+    //
+    // A header must appear before the first *visible* item of its group, which may
+    // be an extension tab anchored with placement='before' to the group's first
+    // builtin — not the builtin itself. Otherwise such an extension would render
+    // above the header and visually belong to the previous group.
+    const headerAt = new Map<number, string>();
+    for (const [builtinId, headerKey] of Object.entries(GROUP_HEADER_BEFORE)) {
+      const builtinIdx = result.findIndex((item) => item.id === builtinId);
+      if (builtinIdx < 0) continue;
+      const beforeCount = beforeMap.get(builtinId)?.length ?? 0;
+      headerAt.set(builtinIdx - beforeCount, headerKey);
+    }
+
+    return { menus: result, groupHeaderAt: headerAt };
   }, [t, isDesktop, extensionTabs, resolveExtTabName]);
 
   const siderTooltipProps = getSiderTooltipProps(tooltipEnabled);
@@ -235,9 +249,9 @@ const SettingsSider: React.FC<{ collapsed?: boolean; tooltipEnabled?: boolean }>
         'settings-sider--collapsed': collapsed,
       })}
     >
-      {menus.map((item) => {
+      {menus.map((item, index) => {
         const isSelected = pathname.includes(item.path);
-        const groupHeaderKey = GROUP_HEADER_BEFORE[item.id];
+        const groupHeaderKey = groupHeaderAt.get(index);
         const groupHeader =
           groupHeaderKey && !collapsed ? (
             <div className='settings-sider__group-header px-10px pt-12px pb-4px text-11px font-medium text-t-tertiary uppercase tracking-wider select-none'>
