@@ -971,12 +971,11 @@ describe('CommandQueuePanel', () => {
     const queueArrows = container.querySelectorAll('[data-queue-arrow="true"]');
     const dragHandles = screen.getAllByRole('button', { name: 'Drag to reorder queued command' });
 
-    expect(panel.getAttribute('style')).toContain('var(--color-bg-1)');
+    expect(panel.getAttribute('style')).toContain('var(--color-fill-1)');
     expect(panel.getAttribute('style')).toContain('var(--color-border-2)');
     expect(queueList?.getAttribute('data-drag-axis')).toBe('vertical');
     expect(queueList?.getAttribute('data-drag-bounds')).toBe('queue');
-    expect(firstItem?.getAttribute('style')).toContain('var(--color-bg-1)');
-    expect(firstItem?.getAttribute('style')).toContain('var(--color-border-2)');
+    expect(firstItem?.getAttribute('style')).toContain('var(--color-fill-1)');
     expect(queueArrows).toHaveLength(2);
     expect(queueArrows[0]?.getAttribute('style')).toContain('var(--color-text-3)');
     expect(dragHandles[0]?.getAttribute('style')).toContain('var(--color-text-3)');
@@ -1045,10 +1044,11 @@ describe('CommandQueuePanel', () => {
     expect(screen.queryByText('下一条')).not.toBeInTheDocument();
   });
 
-  it('pauses before editing from an active queue and lets users cancel safely', async () => {
+  it('routes edit to the external callback without pausing the queue or opening inline controls', async () => {
     const user = userEvent.setup();
     const onPause = vi.fn();
     const onResume = vi.fn();
+    const onEdit = vi.fn();
 
     render(
       <CommandQueuePanel
@@ -1060,6 +1060,7 @@ describe('CommandQueuePanel', () => {
         onInteractionLock={vi.fn()}
         onInteractionUnlock={vi.fn()}
         onUpdate={vi.fn(() => true)}
+        onEdit={onEdit}
         onReorder={vi.fn()}
         onRemove={vi.fn()}
         onClear={vi.fn()}
@@ -1069,220 +1070,40 @@ describe('CommandQueuePanel', () => {
     await user.click(screen.getAllByRole('button', { name: 'More actions' })[0]);
     await user.click(screen.getByRole('button', { name: 'Edit' }));
 
-    expect(onPause).toHaveBeenCalledTimes(1);
-    expect(screen.getByDisplayValue('first command')).toBeInTheDocument();
-
-    const cancelButtons = screen.getAllByRole('button', { name: 'Cancel' });
-    await user.click(cancelButtons[cancelButtons.length - 1]!);
-
-    expect(onResume).toHaveBeenCalledTimes(1);
-    expect(screen.queryByDisplayValue('first command')).not.toBeInTheDocument();
-  });
-
-  it('saves edits from the overflow menu', async () => {
-    const user = userEvent.setup();
-    const onUpdate = vi.fn(() => true);
-
-    render(
-      <CommandQueuePanel
-        items={baseItems}
-        paused={true}
-        interactionLocked={false}
-        onPause={vi.fn()}
-        onResume={vi.fn()}
-        onInteractionLock={vi.fn()}
-        onInteractionUnlock={vi.fn()}
-        onUpdate={onUpdate}
-        onReorder={vi.fn()}
-        onRemove={vi.fn()}
-        onClear={vi.fn()}
-      />
-    );
-
-    await user.click(screen.getAllByRole('button', { name: 'More actions' })[0]);
-    await user.click(screen.getByRole('button', { name: 'Edit' }));
-
-    const editor = screen.getByRole('textbox');
-    await user.clear(editor);
-    await user.type(editor, 'first command updated');
-    await user.click(screen.getByRole('button', { name: 'Save' }));
-
-    expect(onUpdate).toHaveBeenCalledWith('1', 'first command updated');
+    expect(onEdit).toHaveBeenCalledWith(baseItems[0]);
+    expect(onPause).not.toHaveBeenCalled();
+    expect(onResume).not.toHaveBeenCalled();
+    expect(screen.queryByRole('textbox')).not.toBeInTheDocument();
     expect(screen.queryByRole('button', { name: 'Save' })).not.toBeInTheDocument();
   });
 
-  it('closes edit mode without updating when the queued input was not changed', async () => {
-    const user = userEvent.setup();
-    const onUpdate = vi.fn(() => true);
-
-    render(
-      <CommandQueuePanel
-        items={baseItems}
-        paused={true}
-        interactionLocked={false}
-        onPause={vi.fn()}
-        onResume={vi.fn()}
-        onInteractionLock={vi.fn()}
-        onInteractionUnlock={vi.fn()}
-        onUpdate={onUpdate}
-        onReorder={vi.fn()}
-        onRemove={vi.fn()}
-        onClear={vi.fn()}
-      />
-    );
-
-    await user.click(screen.getAllByRole('button', { name: 'More actions' })[0]);
-    await user.click(screen.getByRole('button', { name: 'Edit' }));
-    await user.click(screen.getByRole('button', { name: 'Save' }));
-
-    expect(onUpdate).not.toHaveBeenCalled();
-    expect(screen.queryByRole('button', { name: 'Save' })).not.toBeInTheDocument();
-  });
-
-  it('keeps edit mode open when saving fails validation', async () => {
-    const user = userEvent.setup();
-    const onUpdate = vi.fn(() => false);
-
-    render(
-      <CommandQueuePanel
-        items={baseItems}
-        paused={true}
-        interactionLocked={false}
-        onPause={vi.fn()}
-        onResume={vi.fn()}
-        onInteractionLock={vi.fn()}
-        onInteractionUnlock={vi.fn()}
-        onUpdate={onUpdate}
-        onReorder={vi.fn()}
-        onRemove={vi.fn()}
-        onClear={vi.fn()}
-      />
-    );
-
-    await user.click(screen.getAllByRole('button', { name: 'More actions' })[0]);
-    await user.click(screen.getByRole('button', { name: 'Edit' }));
-    await user.clear(screen.getByRole('textbox'));
-    await user.type(screen.getByRole('textbox'), '   ');
-    await user.click(screen.getByRole('button', { name: 'Save' }));
-
-    expect(onUpdate).toHaveBeenCalledWith('1', '   ');
-    expect(screen.getByRole('button', { name: 'Save' })).toBeInTheDocument();
-  });
-
-  it('switches queue cards into neutral theme-aware edit styling while editing', async () => {
-    const user = userEvent.setup();
+  it('keeps queue cards compact and visually lighter than the active processing panel', () => {
     const { container } = render(
       <CommandQueuePanel
         items={baseItems}
-        paused={true}
+        paused={false}
         interactionLocked={false}
         onPause={vi.fn()}
         onResume={vi.fn()}
         onInteractionLock={vi.fn()}
         onInteractionUnlock={vi.fn()}
         onUpdate={vi.fn(() => true)}
+        onEdit={vi.fn()}
         onReorder={vi.fn()}
         onRemove={vi.fn()}
         onClear={vi.fn()}
       />
     );
 
-    await user.click(screen.getAllByRole('button', { name: 'More actions' })[0]);
-    await user.click(screen.getByRole('button', { name: 'Edit' }));
-
+    const panel = screen.getByLabelText('Queued Commands');
     const firstItem = container.querySelector('[data-command-id="1"]');
-    const secondItem = container.querySelector('[data-command-id="2"]');
-    const editor = screen.getByRole('textbox');
-    const cancelButtons = screen.getAllByRole('button', { name: 'Cancel' });
-    const saveButton = screen.getByRole('button', { name: 'Save' });
-    const dragHandles = screen.getAllByRole('button', { name: 'Drag to reorder queued command' });
+    const previewText = screen.getAllByText('first command')[0]?.closest('.arco-ellipsis');
 
-    expect(firstItem?.getAttribute('data-sortable')).toBe('disabled');
-    expect(secondItem?.getAttribute('data-sortable')).toBe('disabled');
-    expect(dragHandles[0]?.getAttribute('data-drag-handle')).toBe('disabled');
-    expect(firstItem?.getAttribute('style')).toContain('var(--color-border-3)');
+    expect(panel.className).toContain('rd-t-18px');
+    expect(panel.getAttribute('style')).toContain('var(--color-fill-1)');
     expect(firstItem?.getAttribute('style')).toContain('var(--color-fill-1)');
-    expect(editor.getAttribute('style')).toContain('var(--color-fill-1)');
-    expect(editor.getAttribute('style')).toContain('var(--color-border-2)');
-    expect(editor.getAttribute('style')).toContain('var(--color-text-1)');
-    expect(editor.className).toContain('rd-8px');
-    expect(cancelButtons.at(-1)?.getAttribute('style')).toContain('var(--color-text-3)');
-    expect(cancelButtons.at(-1)?.getAttribute('style')).toContain('var(--color-fill-1)');
-    expect(cancelButtons.at(-1)?.className).toContain('rd-7px');
-    expect(saveButton.getAttribute('style')).toContain('var(--color-text-1)');
-    expect(saveButton.getAttribute('style')).toContain('var(--color-fill-2)');
-    expect(saveButton.className).toContain('rd-7px');
-  });
-
-  it('exits edit mode when the edited queued command disappears from the queue', async () => {
-    const user = userEvent.setup();
-    const { rerender } = render(
-      <CommandQueuePanel
-        items={baseItems}
-        paused={true}
-        interactionLocked={false}
-        onPause={vi.fn()}
-        onResume={vi.fn()}
-        onInteractionLock={vi.fn()}
-        onInteractionUnlock={vi.fn()}
-        onUpdate={vi.fn(() => true)}
-        onReorder={vi.fn()}
-        onRemove={vi.fn()}
-        onClear={vi.fn()}
-      />
-    );
-
-    await user.click(screen.getAllByRole('button', { name: 'More actions' })[0]);
-    await user.click(screen.getByRole('button', { name: 'Edit' }));
-
-    expect(screen.getByDisplayValue('first command')).toBeInTheDocument();
-
-    rerender(
-      <CommandQueuePanel
-        items={[baseItems[1]!]}
-        paused={true}
-        interactionLocked={false}
-        onPause={vi.fn()}
-        onResume={vi.fn()}
-        onInteractionLock={vi.fn()}
-        onInteractionUnlock={vi.fn()}
-        onUpdate={vi.fn(() => true)}
-        onReorder={vi.fn()}
-        onRemove={vi.fn()}
-        onClear={vi.fn()}
-      />
-    );
-
-    await waitFor(() => {
-      expect(screen.queryByDisplayValue('first command')).not.toBeInTheDocument();
-    });
-  });
-
-  it('switches the overflow action to cancel while the item is being edited', async () => {
-    const user = userEvent.setup();
-
-    render(
-      <CommandQueuePanel
-        items={baseItems}
-        paused={true}
-        interactionLocked={false}
-        onPause={vi.fn()}
-        onResume={vi.fn()}
-        onInteractionLock={vi.fn()}
-        onInteractionUnlock={vi.fn()}
-        onUpdate={vi.fn(() => true)}
-        onReorder={vi.fn()}
-        onRemove={vi.fn()}
-        onClear={vi.fn()}
-      />
-    );
-
-    await user.click(screen.getAllByRole('button', { name: 'More actions' })[0]);
-    await user.click(screen.getByRole('button', { name: 'Edit' }));
-    await user.click(screen.getAllByRole('button', { name: 'More actions' })[0]);
-
-    expect(screen.getByRole('button', { name: 'Cancel' })).toBeInTheDocument();
-    expect(screen.queryByRole('button', { name: 'Edit' })).not.toBeInTheDocument();
+    expect(previewText?.className).toContain('text-11px');
+    expect(previewText?.className).toContain('text-t-secondary');
   });
 
   it('clears the queue from the overflow menu', async () => {
@@ -1309,35 +1130,6 @@ describe('CommandQueuePanel', () => {
     await user.click(screen.getByRole('button', { name: 'Clear queue' }));
 
     expect(onClear).toHaveBeenCalledTimes(1);
-  });
-
-  it('auto-resumes after canceling an edit that paused the queue temporarily', async () => {
-    const user = userEvent.setup();
-    const onPause = vi.fn();
-    const onResume = vi.fn();
-
-    render(
-      <CommandQueuePanel
-        items={baseItems}
-        paused={false}
-        interactionLocked={false}
-        onPause={onPause}
-        onResume={onResume}
-        onInteractionLock={vi.fn()}
-        onInteractionUnlock={vi.fn()}
-        onUpdate={vi.fn(() => true)}
-        onReorder={vi.fn()}
-        onRemove={vi.fn()}
-        onClear={vi.fn()}
-      />
-    );
-
-    await user.click(screen.getAllByRole('button', { name: 'More actions' })[1]);
-    await user.click(screen.getByRole('button', { name: 'Edit' }));
-    await user.click(screen.getAllByRole('button', { name: 'Cancel' }).at(-1)!);
-
-    expect(onPause).toHaveBeenCalledTimes(1);
-    expect(onResume).toHaveBeenCalledTimes(1);
   });
 
   it('keeps the drag handle interactive through pointer down without exposing extra chrome', () => {
