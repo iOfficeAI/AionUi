@@ -172,7 +172,7 @@ describe('AcpAdapter - streaming message grouping', () => {
     adapter = new AcpAdapter('test-conversation-id', 'codex');
   });
 
-  it('keeps one msg_id when tool updates are interleaved into a streamed reply', () => {
+  it('assigns new msg_id after tool updates are interleaved into a streamed reply', () => {
     const firstChunk = adapter.convertSessionUpdate({
       sessionId: 'test-session',
       update: {
@@ -216,10 +216,11 @@ describe('AcpAdapter - streaming message grouping', () => {
     expect(secondChunk).toHaveLength(1);
     expect(firstChunk[0].type).toBe('text');
     expect(secondChunk[0].type).toBe('text');
-    expect(firstChunk[0].msg_id).toBe(secondChunk[0].msg_id);
+    // After tool call, message tracking is reset so text gets a new msg_id
+    expect(firstChunk[0].msg_id).not.toBe(secondChunk[0].msg_id);
   });
 
-  it('keeps one msg_id when available command updates arrive mid-stream', () => {
+  it('assigns new msg_id after available command updates arrive mid-stream', () => {
     const firstChunk = adapter.convertSessionUpdate({
       sessionId: 'test-session',
       update: {
@@ -249,7 +250,8 @@ describe('AcpAdapter - streaming message grouping', () => {
     expect(secondChunk).toHaveLength(1);
     expect(firstChunk[0].type).toBe('text');
     expect(secondChunk[0].type).toBe('text');
-    expect(firstChunk[0].msg_id).toBe(secondChunk[0].msg_id);
+    // After available_commands_update, message tracking is reset
+    expect(firstChunk[0].msg_id).not.toBe(secondChunk[0].msg_id);
   });
 });
 
