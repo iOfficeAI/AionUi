@@ -5,7 +5,7 @@ import { teamEventBus } from './teamEventBus';
 import { addMessage } from '@process/utils/message';
 import type { IWorkerTaskManager } from '@process/task/IWorkerTaskManager';
 import type { IResponseMessage } from '@/common/adapter/ipcBridge';
-import type { TeamAgent, TeammateStatus, TeamTask, ParsedAction } from './types';
+import type { TeamAgent, TeammateStatus, TeamTask, ParsedAction, ITeamMessageEvent } from './types';
 import type { Mailbox } from './Mailbox';
 import type { TaskManager } from './TaskManager';
 import type { AgentResponse } from './adapters/PlatformAdapter';
@@ -252,6 +252,20 @@ export class TeammateManager extends EventEmitter {
 
     const agent = this.agents.find((a) => a.conversationId === msg.conversation_id);
     if (!agent) return;
+
+    // Forward content events to renderer (skip finish/error/null-data — renderer
+    // already receives those directly via ipcBridge.acpConversation.responseStream)
+    if (msg.data != null && msg.type !== 'finish' && msg.type !== 'error') {
+      const teamMsg: ITeamMessageEvent = {
+        teamId: this.teamId,
+        slotId: agent.slotId,
+        type: msg.type,
+        data: msg.data,
+        msg_id: msg.msg_id,
+        conversation_id: msg.conversation_id,
+      };
+      ipcBridge.team.messageStream.emit(teamMsg);
+    }
 
     // Accumulate text content for later parsing
     const text = (msg.data as { text?: string } | null)?.text;

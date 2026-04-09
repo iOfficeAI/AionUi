@@ -10,6 +10,7 @@ export type {
   TTeam,
   ITeamAgentSpawnedEvent,
   ITeamAgentStatusEvent,
+  ITeamMessageEvent,
 } from '@/common/types/teamTypes';
 
 // ---------- Process-only types (not needed by renderer) ----------

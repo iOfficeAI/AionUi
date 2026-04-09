@@ -1,4 +1,4 @@
-import React, { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
+import React, { createContext, useCallback, useContext, useEffect, useState } from 'react';
 import type { TeamAgent, TeammateStatus } from '@/common/types/teamTypes';
 
 type AgentStatusInfo = {
@@ -79,12 +79,13 @@ export const TeamTabsProvider: React.FC<{
     });
   }, []);
 
-  const contextValue = useMemo(
-    () => ({ agents, activeSlotId, statusMap, teamId, switchTab, renameAgent, reorderAgents }),
-    [agents, activeSlotId, statusMap, teamId, switchTab, renameAgent, reorderAgents]
+  return (
+    <TeamTabsContext.Provider
+      value={{ agents, activeSlotId, statusMap, teamId, switchTab, renameAgent, reorderAgents }}
+    >
+      {children}
+    </TeamTabsContext.Provider>
   );
-
-  return <TeamTabsContext.Provider value={contextValue}>{children}</TeamTabsContext.Provider>;
 };
 
 export const useTeamTabs = (): TeamTabsContextValue => {
