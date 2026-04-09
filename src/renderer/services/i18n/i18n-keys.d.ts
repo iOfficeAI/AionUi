@@ -1430,6 +1430,7 @@ export type I18nKey =
   | 'settings.remoteAgent.empty'
   | 'settings.remoteAgent.emptyAction'
   | 'settings.remoteAgent.emptyTitle'
+  | 'settings.remoteAgent.guideAction'
   | 'settings.remoteAgent.handshaking'
   | 'settings.remoteAgent.name'
   | 'settings.remoteAgent.namePlaceholder'
