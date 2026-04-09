@@ -7,6 +7,7 @@
 import { ipcBridge } from '@/common';
 import type { FileMetadata } from './FileService';
 import { getFileExtension, uploadFileViaHttp, MAX_UPLOAD_SIZE_MB } from './FileService';
+import { trackUpload, type UploadSource } from '@/renderer/hooks/file/useUploadState';
 import { isElectronDesktop } from '@/renderer/utils/platform';
 
 const MAX_UPLOAD_SIZE_BYTES = MAX_UPLOAD_SIZE_MB * 1024 * 1024;
@@ -19,7 +20,8 @@ async function createTempFile(
   fileName: string,
   data: Uint8Array,
   contentType: string,
-  conversationId?: string
+  conversationId?: string,
+  source: UploadSource = 'sendbox'
 ): Promise<string | null> {
   if (data.byteLength > MAX_UPLOAD_SIZE_BYTES) {
     throw new Error('FILE_TOO_LARGE');
@@ -35,7 +37,12 @@ async function createTempFile(
   const arrayBuf = data.buffer.slice(data.byteOffset, data.byteOffset + data.byteLength) as ArrayBuffer;
   const blob = new Blob([arrayBuf], { type: contentType });
   const file = new File([blob], fileName, { type: contentType });
-  return uploadFileViaHttp(file, conversationId || '');
+  const tracker = trackUpload(file.size, source);
+  try {
+    return await uploadFileViaHttp(file, conversationId || '', tracker.onProgress);
+  } finally {
+    tracker.finish();
+  }
 }
 
 type PasteHandler = (event: React.ClipboardEvent | ClipboardEvent) => Promise<boolean>;
@@ -133,7 +140,8 @@ class PasteServiceClass {
     supportedExts: string[],
     onFilesAdded: (files: FileMetadata[]) => void,
     onTextPaste?: (text: string) => void,
-    conversationId?: string
+    conversationId?: string,
+    source: UploadSource = 'sendbox'
   ): Promise<boolean> {
     // 立即事件冒泡,避免全局监听器重复处理
     event.stopPropagation();
@@ -183,7 +191,7 @@ class PasteServiceClass {
               usedFileNames.add(fileName);
 
               // 创建临时文件并写入数据（Electron 使用 IPC，WebUI 使用 HTTP API）
-              const tempPath = await createTempFile(fileName, uint8Array, file.type, conversationId);
+              const tempPath = await createTempFile(fileName, uint8Array, file.type, conversationId, source);
 
               if (tempPath) {
                 fileList.push({
@@ -249,7 +257,8 @@ class PasteServiceClass {
                 fileName,
                 uint8Array,
                 file.type || 'application/octet-stream',
-                conversationId
+                conversationId,
+                source
               );
               if (tempPath) {
                 fileList.push({

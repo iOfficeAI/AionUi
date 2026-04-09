@@ -262,6 +262,7 @@ export function useWorkspacePaste(options: UseWorkspacePasteOptions) {
       void handleFilesToAdd(meta);
     },
     conversationId,
+    source: 'workspace',
   });
 
   return {
