@@ -64,13 +64,3 @@ export type ITeamAgentRenamedEvent = {
   oldName: string;
   newName: string;
 };
-
-/** IPC event for streaming agent messages to renderer */
-export type ITeamMessageEvent = {
-  teamId: string;
-  slotId: string;
-  type: string;
-  data: unknown;
-  msg_id: string;
-  conversation_id: string;
-};
