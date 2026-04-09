@@ -9,12 +9,19 @@ import type { TMessage } from '@/common/chat/chatLib';
 import { transformMessage } from '@/common/chat/chatLib';
 import { uuid } from '@/common/utils';
 import SendBox from '@/renderer/components/chat/sendbox';
+import CommandQueuePanel from '@/renderer/components/chat/CommandQueuePanel';
 import { getSendBoxDraftHook, type FileOrFolderItem } from '@/renderer/hooks/chat/useSendBoxDraft';
 import { createSetUploadFile } from '@/renderer/hooks/chat/useSendBoxFiles';
-import { useAddOrUpdateMessage } from '@/renderer/pages/conversation/Messages/hooks';
+import { useAddOrUpdateMessage, useRemoveMessageByMsgId } from '@/renderer/pages/conversation/Messages/hooks';
+import {
+  shouldEnqueueConversationCommand,
+  useConversationCommandQueue,
+  type ConversationCommandQueueItem,
+} from '@/renderer/pages/conversation/platforms/useConversationCommandQueue';
 import { allSupportedExts, type FileMetadata } from '@/renderer/services/FileService';
 import { emitter, useAddEventListener } from '@/renderer/utils/emitter';
 import { mergeFileSelectionItems } from '@/renderer/utils/file/fileSelection';
+import { Message } from '@arco-design/web-react';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { buildDisplayMessage } from '@/renderer/utils/file/messageFiles';
@@ -26,6 +33,7 @@ import { useLatestRef } from '@/renderer/hooks/ui/useLatestRef';
 import { useOpenFileSelector } from '@/renderer/hooks/file/useOpenFileSelector';
 import FileAttachButton from '@/renderer/components/media/FileAttachButton';
 import { useAutoTitle } from '@/renderer/hooks/chat/useAutoTitle';
+import { useCommandQueueEnabled } from '@/renderer/hooks/system/useCommandQueueEnabled';
 
 interface RemoteDraftData {
   _type: 'remote';
@@ -47,12 +55,15 @@ const EMPTY_UPLOAD_FILES: string[] = [];
 const RemoteSendBox: React.FC<{ conversation_id: string }> = ({ conversation_id }) => {
   const [workspacePath, setWorkspacePath] = useState('');
   const { t } = useTranslation();
+  const isCommandQueueEnabled = useCommandQueueEnabled();
   const { checkAndUpdateTitle } = useAutoTitle();
   const addOrUpdateMessage = useAddOrUpdateMessage();
+  const removeMessageByMsgId = useRemoveMessageByMsgId();
   const { setSendBoxHandler } = usePreviewContext();
 
   const [agentName, setAgentName] = useState('Remote Agent');
   const [aiProcessing, setAiProcessing] = useState(false);
+  const [hasHydratedRunningState, setHasHydratedRunningState] = useState(false);
   const [thought, setThought] = useState<ThoughtData>({ description: '', subject: '' });
 
   const aiProcessingRef = useRef(aiProcessing);
@@ -131,16 +142,19 @@ const RemoteSendBox: React.FC<{ conversation_id: string }> = ({ conversation_id 
   useEffect(() => {
     setThought({ subject: '', description: '' });
     hasContentInTurnRef.current = false;
+    setHasHydratedRunningState(false);
 
     void ipcBridge.conversation.get.invoke({ id: conversation_id }).then((res) => {
       if (!res) {
         setAiProcessing(false);
         aiProcessingRef.current = false;
+        setHasHydratedRunningState(true);
         return;
       }
       const isRunning = res.status === 'running';
       setAiProcessing(isRunning);
       aiProcessingRef.current = isRunning;
+      setHasHydratedRunningState(true);
     });
   }, [conversation_id]);
 
@@ -294,20 +308,10 @@ const RemoteSendBox: React.FC<{ conversation_id: string }> = ({ conversation_id 
     }, 10);
   });
 
-  const sendRemoteMessage = useCallback(
-    async (message: string) => {
+  const executeCommand = useCallback(
+    async ({ input, files }: Pick<ConversationCommandQueueItem, 'input' | 'files'>) => {
       const msg_id = uuid();
-      emitter.emit('remote.selected.file.clear');
-      const currentAtPath = [...atPath];
-      const currentUploadFile = [...uploadFile];
-      setAtPath([]);
-      setUploadFile([]);
-
-      const filePaths = [
-        ...currentUploadFile,
-        ...currentAtPath.map((item) => (typeof item === 'string' ? item : item.path)),
-      ];
-      const displayMessage = buildDisplayMessage(message, filePaths, workspacePath);
+      const displayMessage = buildDisplayMessage(input, files, workspacePath);
 
       const userMessage: TMessage = {
         id: msg_id,
@@ -318,34 +322,105 @@ const RemoteSendBox: React.FC<{ conversation_id: string }> = ({ conversation_id 
         content: { content: displayMessage },
         createdAt: Date.now(),
       };
+
       addOrUpdateMessage(userMessage, true);
       setAiProcessing(true);
       aiProcessingRef.current = true;
+
       try {
-        void checkAndUpdateTitle(conversation_id, message);
-        const atPathStrings = currentAtPath.map((item) => (typeof item === 'string' ? item : item.path));
+        void checkAndUpdateTitle(conversation_id, input);
         await ipcBridge.conversation.sendMessage.invoke({
           input: displayMessage,
           msg_id,
           conversation_id,
-          files: [...currentUploadFile, ...atPathStrings],
+          files,
         });
         emitter.emit('chat.history.refresh');
-      } catch {
+      } catch (error) {
+        removeMessageByMsgId(msg_id);
         setAiProcessing(false);
         aiProcessingRef.current = false;
+        throw error;
       }
     },
+    [addOrUpdateMessage, checkAndUpdateTitle, conversation_id, removeMessageByMsgId, workspacePath]
+  );
+
+  const {
+    items: queuedCommands,
+    isPaused: isQueuePaused,
+    isInteractionLocked: isQueueInteractionLocked,
+    hasPendingCommands,
+    enqueue,
+    remove,
+    clear,
+    reorder,
+    pause,
+    resume,
+    lockInteraction,
+    unlockInteraction,
+    resetActiveExecution,
+  } = useConversationCommandQueue({
+    conversationId: conversation_id,
+    enabled: isCommandQueueEnabled,
+    isBusy: aiProcessing,
+    isHydrated: hasHydratedRunningState,
+    onExecute: executeCommand,
+  });
+
+  const onSendHandler = useCallback(
+    async (message: string) => {
+      if (!isCommandQueueEnabled && aiProcessing) {
+        Message.warning(t('messages.conversationInProgress'));
+        return;
+      }
+
+      emitter.emit('remote.selected.file.clear');
+      const currentAtPath = [...atPath];
+      const currentUploadFile = [...uploadFile];
+      setAtPath([]);
+      setUploadFile([]);
+      const filePaths = [
+        ...currentUploadFile,
+        ...currentAtPath.map((item) => (typeof item === 'string' ? item : item.path)),
+      ];
+
+      if (
+        shouldEnqueueConversationCommand({
+          enabled: isCommandQueueEnabled,
+          isBusy: aiProcessing,
+          hasPendingCommands,
+        })
+      ) {
+        enqueue({ input: message, files: filePaths });
+        return;
+      }
+
+      await executeCommand({ input: message, files: filePaths });
+    },
     [
-      conversation_id,
+      aiProcessing,
       atPath,
-      uploadFile,
-      workspacePath,
-      addOrUpdateMessage,
-      checkAndUpdateTitle,
+      enqueue,
+      executeCommand,
+      hasPendingCommands,
+      isCommandQueueEnabled,
       setAtPath,
       setUploadFile,
+      t,
+      uploadFile,
     ]
+  );
+
+  const handleEditQueuedCommand = useCallback(
+    (item: ConversationCommandQueueItem) => {
+      remove(item.id);
+      setContent(item.input);
+      setUploadFile(Array.from(new Set(item.files)));
+      setAtPath([]);
+      emitter.emit('remote.selected.file.clear');
+    },
+    [remove, setAtPath, setContent, setUploadFile]
   );
 
   const appendSelectedFiles = useCallback(
@@ -366,11 +441,25 @@ const RemoteSendBox: React.FC<{ conversation_id: string }> = ({ conversation_id 
       aiProcessingRef.current = false;
       setThought({ subject: '', description: '' });
       hasContentInTurnRef.current = false;
+      resetActiveExecution('stop');
     }
   };
 
   return (
     <div className='max-w-800px w-full mx-auto flex flex-col mt-auto mb-16px'>
+      <CommandQueuePanel
+        items={queuedCommands}
+        paused={isQueuePaused}
+        interactionLocked={isQueueInteractionLocked}
+        onPause={pause}
+        onResume={resume}
+        onInteractionLock={lockInteraction}
+        onInteractionUnlock={unlockInteraction}
+        onEdit={handleEditQueuedCommand}
+        onReorder={reorder}
+        onRemove={remove}
+        onClear={clear}
+      />
       <ThoughtDisplay thought={thought} running={aiProcessing} onStop={handleStop} />
 
       <SendBox
@@ -408,7 +497,8 @@ const RemoteSendBox: React.FC<{ conversation_id: string }> = ({ conversation_id 
             </HorizontalFileList>
           ) : undefined
         }
-        onSend={sendRemoteMessage}
+        onSend={onSendHandler}
+        allowSendWhileLoading={isCommandQueueEnabled}
       />
     </div>
   );

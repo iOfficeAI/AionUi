@@ -233,7 +233,6 @@ Please check your local CLI tool authentication status`,
     isInteractionLocked: isQueueInteractionLocked,
     hasPendingCommands,
     enqueue,
-    update,
     remove,
     clear,
     reorder,
@@ -276,6 +275,17 @@ Please check your local CLI tool authentication status`,
     await executeCommand({ input: message, files: allFiles });
   };
 
+  const handleEditQueuedCommand = useCallback(
+    (item: ConversationCommandQueueItem) => {
+      remove(item.id);
+      setContent(item.input);
+      setUploadFile(Array.from(new Set(item.files)));
+      setAtPath([]);
+      emitter.emit('acp.selected.file.clear');
+    },
+    [remove, setAtPath, setContent, setUploadFile]
+  );
+
   const appendSelectedFiles = useCallback(
     (files: string[]) => {
       setUploadFile((prev) => [...prev, ...files]);
@@ -315,7 +325,7 @@ Please check your local CLI tool authentication status`,
         onResume={resume}
         onInteractionLock={lockInteraction}
         onInteractionUnlock={unlockInteraction}
-        onUpdate={(commandId, input) => update(commandId, { input })}
+        onEdit={handleEditQueuedCommand}
         onReorder={reorder}
         onRemove={remove}
         onClear={clear}

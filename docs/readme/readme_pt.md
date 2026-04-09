@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="./resources/aionui-banner-1.png" alt="AionUi - Cowork with AI Agents" width="100%">
+  <img src="../../resources/aionui-banner-1.png" alt="AionUi - Cowork with AI Agents" width="100%">
 </p>
 
 <p align="center">
@@ -30,7 +30,7 @@
 </p>
 
 <p align="center">
-  <a href="../../readme.md">English</a> | <a href="./readme_ch.md">简体中文</a> | <a href="./readme_tw.md">繁體中文</a> | <a href="./readme_jp.md">日本語</a> | <a href="./readme_ko.md">한국어</a> | <a href="./readme_es.md">Español</a> | <strong>Português</strong> | <a href="./readme_tr.md">Türkçe</a> | <a href="https://www.aionui.com" target="_blank">Site oficial</a>
+  <a href="../../readme.md">English</a> | <a href="../../readme_ch.md">简体中文</a> | <a href="./readme_tw.md">繁體中文</a> | <a href="./readme_jp.md">日本語</a> | <a href="./readme_ko.md">한국어</a> | <a href="./readme_es.md">Español</a> | <strong>Português</strong> | <a href="./readme_tr.md">Türkçe</a> | <a href="https://www.aionui.com" target="_blank">Site oficial</a>
 </p>
 
 <p align="center">
@@ -66,7 +66,7 @@
 | Preço                                        | Grátis / Pago                    | **Gratuito e de código aberto**                                                                          |
 
 <p align="center">
-  <img src="./resources/offica-ai BANNER-function.png" alt="AionUi Cowork Platform" width="800">
+  <img src="../../resources/offica-ai BANNER-function.png" alt="AionUi Cowork Platform" width="800">
 </p>
 
 ---
@@ -81,7 +81,7 @@ AionUi vem com um motor de Agent AI completo. Diferente de ferramentas que exige
 - **Assistentes prontos para usar** — 11+ assistentes profissionais integrados (Cowork, Gerador PPTX, PDF para PPT, Jogo 3D, UI/UX Pro Max e mais) prontos para usar imediatamente
 
 <p align="center">
-  <img src="./resources/build-in agents.png" alt="Built-in Agents" width="800">
+  <img src="../../resources/build-in agents.png" alt="Built-in Agents" width="800">
 </p>
 
 ### **Demo de Morph PPT — Transições suaves com uma frase**
@@ -106,7 +106,7 @@ Se você já usa Claude Code, Codex ou Qwen Code, AionUi os detecta automaticame
 **Agents compatíveis:** Agent integrado (configuração zero) • Claude Code • Codex • Qwen Code • Goose AI • OpenClaw • Augment Code • iFlow CLI • CodeBuddy • Kimi CLI • OpenCode • Factory Droid • GitHub Copilot • Qoder CLI • Mistral Vibe • Nanobot e mais
 
 <p align="center">
-  <img src="./resources/multi-agent支持openclaw.gif" alt="Multi-Agent Cowork" width="800">
+  <img src="../../resources/multi-agent支持openclaw.gif" alt="Multi-Agent Cowork" width="800">
 </p>
 
 - **Detecção automática** — reconhece automaticamente as ferramentas CLI instaladas
@@ -131,7 +131,7 @@ Outros apps de AI te dão uma caixa de chat com sua chave API. **AionUi te dá u
 As mesmas capacidades do Agent — leitura/escrita de arquivos, busca na web, geração de imagens, uso de ferramentas — independentemente do modelo que o alimenta. AionUi suporta **20+ plataformas AI** incluindo serviços em nuvem e implantações locais.
 
 <p align="center">
-  <img src="./resources/llm_newapi.png" alt="Multi-Model Support" width="800">
+  <img src="../../resources/llm_newapi.png" alt="Multi-Model Support" width="800">
 </p>
 
 <details>
@@ -161,7 +161,7 @@ _Sistema de assistentes extensível com 12 assistentes profissionais integrados 
 - **Gerenciar habilidades** — Crie, habilite e desabilite habilidades para qualquer assistente para estender as capacidades AI
 
 <p align="center">
-  <img src="./resources/assistants_skills.png" alt="AI Assistants & Skills Ecosystem" width="800">
+  <img src="../../resources/assistants_skills.png" alt="AI Assistants & Skills Ecosystem" width="800">
 </p>
 
 <details>
@@ -207,7 +207,7 @@ _Seu assistente AI 24/7 — acesse AionUi de qualquer dispositivo, em qualquer l
 > **Configuração:** AionUi Settings → WebUI Settings → Channel, configure o Bot Token.
 
 <p align="center">
-  <img src="./resources/webui-remote.gif" alt="WebUI remote access demo" width="800">
+  <img src="../../resources/webui-remote.gif" alt="WebUI remote access demo" width="800">
 </p>
 
 <p align="center"><em>Controle e monitore seu agente remotamente — Claude, Gemini, Codex. Pelo navegador ou celular, como o Claude Code remote.</em></p>
@@ -225,7 +225,7 @@ _Configure uma vez, o AI Agent executa automaticamente conforme o cronograma —
 - **Casos de uso:** agregação de dados agendada, geração de relatórios, organização de arquivos, lembretes
 
 <p align="center">
-  <img src="./resources/alart-task.png" alt="Scheduled Tasks" width="800">
+  <img src="../../resources/alart-task.png" alt="Scheduled Tasks" width="800">
 </p>
 
 <details>
@@ -258,7 +258,7 @@ _10+ formatos: PDF, Word, Excel, PPT, código, Markdown, imagens, HTML, Diff —
 - **Histórico de versões** — visualize e restaure versões históricas de arquivos (baseado em Git)
 
 <p align="center">
-  <img src="./resources/preview.gif" alt="Preview Panel" width="800">
+  <img src="../../resources/preview.gif" alt="Preview Panel" width="800">
 </p>
 
 <details>
@@ -283,7 +283,7 @@ _10+ formatos: PDF, Word, Excel, PPT, código, Markdown, imagens, HTML, Diff —
 _Renomeação em lote, organização automática, classificação inteligente, mesclagem de arquivos — o Cowork Agent cuida disso para você._
 
 <p align="center">
-  <img src="./resources/aionui sort file 2.gif" alt="Smart File Management" width="800">
+  <img src="../../resources/aionui sort file 2.gif" alt="Smart File Management" width="800">
 </p>
 
 <details>
@@ -311,7 +311,7 @@ _Renomeação em lote, organização automática, classificação inteligente, m
 _Analise profundamente os dados do Excel, embeleze automaticamente os relatórios e gere insights — tudo alimentado por AI Agents._
 
 <p align="center">
-  <img src="./resources/readme-demo-generate-excel.gif" alt="Excel Processing" width="800">
+  <img src="../../resources/readme-demo-generate-excel.gif" alt="Excel Processing" width="800">
 </p>
 
 <details>
@@ -341,7 +341,7 @@ _Geração, edição e reconhecimento inteligente de imagens, alimentado por Gem
 
 <p align="center">
 
-  <img src="./resources/Image_Generation.gif" alt="AI Image Generation" width="800">
+  <img src="../../resources/Image_Generation.gif" alt="AI Image Generation" width="800">
 </p>
 
 <details>
@@ -365,7 +365,7 @@ _Geração, edição e reconhecimento inteligente de imagens, alimentado por Gem
 _Gere automaticamente documentos profissionais — apresentações, relatórios e mais — com AI Agents._
 
 <p align="center">
-  <img src="./resources/file_generation_preview.png" alt="Document Generation" width="800">
+  <img src="../../resources/file_generation_preview.png" alt="Document Generation" width="800">
 </p>
 
 <details>
@@ -392,7 +392,7 @@ _Gere automaticamente documentos profissionais — apresentações, relatórios 
 _Personalize com seu próprio código CSS, faça sua interface corresponder às suas preferências_
 
 <p align="center">
-  <img src="./resources/css with skin.gif" alt="CSS Customization" width="800">
+  <img src="../../resources/css with skin.gif" alt="CSS Customization" width="800">
 </p>
 
 - ✅ **Totalmente personalizável** — Personalize livremente cores, estilos e layout da interface através de código CSS, crie sua experiência exclusiva
@@ -404,7 +404,7 @@ _Personalize com seu próprio código CSS, faça sua interface corresponder às 
 _Abra múltiplas conversas, as tarefas não se misturam, memória independente, eficiência duplicada_
 
 <p align="center">
-  <img src="./resources/multichat-side-by-side.gif" alt="Multi-Task Parallel" width="800">
+  <img src="../../resources/multichat-side-by-side.gif" alt="Multi-Task Parallel" width="800">
 </p>
 
 - ✅ **Contexto independente** — Cada conversa mantém seu próprio contexto e histórico
@@ -556,7 +556,7 @@ brew install aionui
 
 <p align="center">
   <a href="https://x.com/AionUi" target="_blank">
-    <img src="./resources/contactus-x.png" alt="Contact Us on X" width="600">
+    <img src="../../resources/contactus-x.png" alt="Contact Us on X" width="600">
   </a>
 </p>
 

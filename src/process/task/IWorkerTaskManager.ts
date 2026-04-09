@@ -14,6 +14,6 @@ export interface IWorkerTaskManager {
   getOrBuildTask(id: string, options?: BuildConversationOptions): Promise<IAgentManager>;
   addTask(id: string, task: IAgentManager): void;
   kill(id: string, reason?: AgentKillReason): void;
-  clear(): void;
+  clear(): Promise<void>;
   listTasks(): Array<{ id: string; type: AgentType }>;
 }

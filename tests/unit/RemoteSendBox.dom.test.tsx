@@ -85,8 +85,34 @@ vi.mock('../../src/renderer/hooks/chat/useSendBoxFiles', () => ({
 }));
 
 const mockAddOrUpdateMessage = vi.fn();
+const mockRemoveMessageByMsgId = vi.fn();
 vi.mock('../../src/renderer/pages/conversation/Messages/hooks', () => ({
   useAddOrUpdateMessage: () => mockAddOrUpdateMessage,
+  useRemoveMessageByMsgId: () => mockRemoveMessageByMsgId,
+}));
+
+vi.mock('../../src/renderer/hooks/system/useCommandQueueEnabled', () => ({
+  useCommandQueueEnabled: () => true,
+}));
+
+vi.mock('../../src/renderer/pages/conversation/platforms/useConversationCommandQueue', () => ({
+  shouldEnqueueConversationCommand: () => false,
+  useConversationCommandQueue: () => ({
+    items: [],
+    isPaused: false,
+    isInteractionLocked: false,
+    hasPendingCommands: false,
+    enqueue: vi.fn(),
+    update: vi.fn(),
+    remove: vi.fn(),
+    clear: vi.fn(),
+    reorder: vi.fn(),
+    pause: vi.fn(),
+    resume: vi.fn(),
+    lockInteraction: vi.fn(),
+    unlockInteraction: vi.fn(),
+    resetActiveExecution: vi.fn(),
+  }),
 }));
 
 vi.mock('../../src/renderer/services/FileService', () => ({
@@ -154,6 +180,10 @@ vi.mock('../../src/renderer/components/chat/ThoughtDisplay', () => ({
       {thought.description && <span data-testid='thought-desc'>{thought.description}</span>}
     </div>
   ),
+}));
+
+vi.mock('../../src/renderer/components/chat/CommandQueuePanel', () => ({
+  default: () => <div data-testid='queue-panel' />,
 }));
 
 vi.mock('../../src/renderer/components/media/FilePreview', () => ({

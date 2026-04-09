@@ -30,11 +30,11 @@
 </p>
 
 <p align="center">
-  <a href="../../readme.md">English</a> | <strong>简体中文</strong> | <a href="./readme_tw.md">繁體中文</a> | <a href="./readme_jp.md">日本語</a> | <a href="./readme_ko.md">한국어</a> | <a href="./readme_es.md">Español</a> | <a href="./readme_pt.md">Português</a> | <a href="./readme_tr.md">Türkçe</a> | <a href="https://www.aionui.com" target="_blank">官方网站</a>
+  <a href="./readme.md">English</a> | <strong>简体中文</strong> | <a href="./docs/readme/readme_tw.md">繁體中文</a> | <a href="./docs/readme/readme_jp.md">日本語</a> | <a href="./docs/readme/readme_ko.md">한국어</a> | <a href="./docs/readme/readme_es.md">Español</a> | <a href="./docs/readme/readme_pt.md">Português</a> | <a href="./docs/readme/readme_tr.md">Türkçe</a> | <a href="https://www.aionui.com" target="_blank">官方网站</a>
 </p>
 
 <p align="center">
-  <strong>💬 社区：</strong> <a href="https://discord.gg/2QAwJn7Egx" target="_blank">Discord (English)</a> | <a href="../../resources/wx-6.png" target="_blank">微信 (中文群)</a> | <a href="https://twitter.com/AionUI" target="_blank">Twitter</a>
+  <strong>💬 社区：</strong> <a href="https://discord.gg/2QAwJn7Egx" target="_blank">Discord (English)</a> | <a href="./resources/wx-6.png" target="_blank">微信 (中文群)</a> | <a href="https://twitter.com/AionUI" target="_blank">Twitter</a>
 </p>
 
 ---
@@ -149,7 +149,7 @@ _AionUi 内置 Morph PPT 助手：不是静态排版，而是把内容做成可�
 - **生成即预览** — 直接查看 `.ppt` / `.pptx`，创作到检查无需切换应用
 
 <p align="center">
-  <img src="../../resources/morph-ppt-balanced.gif" alt="Morph PPT Demo" width="800">
+  <img src="./resources/morph-ppt-balanced.gif" alt="Morph PPT Demo" width="800">
 </p>
 
 ---
@@ -619,7 +619,7 @@ brew install aionui
 - [报告问题](https://github.com/iOfficeAI/AionUi/issues) — 遇到 bug 或有新功能想法？告诉我们
 - [发布更新](https://github.com/iOfficeAI/AionUi/releases) — 获取最新版本
 - [Discord 社区](https://discord.gg/2QAwJn7Egx) — 英语社区
-- [微信群](../../resources/wx-6.png) — 中文社区
+- [微信群](./resources/wx-6.png) — 中文社区
 
 ### 贡献
 
@@ -654,13 +654,21 @@ brew install aionui
   <a href="https://packycode.com" target="_blank">PackyCode</a> 是一家可靠高效的 API 中继服务提供商，为 Claude Code、Codex、Gemini 等平台提供中继服务。感谢 PackyCode 为支持 AionUi 用户低成本使用，为我们的用户提供专属 <a href="https://www.packyapi.com/register?aff=aionui" target="_blank">9折优惠</a>，付款时使用优惠码 <code>aionui</code> 可立减 10%。
 </td>
 </tr>
+<tr>
+<td width="170" align="center">
+  <a href="https://atomgit.com/iOfficeAI/AionUi" target="_blank">AtomGit</a>
+</td>
+<td>
+  <a href="https://atomgit.com/iOfficeAI/AionUi" target="_blank">AtomGit</a> — 面向全球开发者的开源社区与代码托管平台。AionUi 已在 AtomGit 上线，欢迎访问。
+</td>
+</tr>
 </table>
 
 ---
 
 ## 许可证
 
-本项目采用 [Apache-2.0](../../LICENSE) 许可证。
+本项目采用 [Apache-2.0](./LICENSE) 许可证。
 
 ---
 

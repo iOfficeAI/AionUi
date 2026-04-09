@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="./resources/aionui-banner-1.png" alt="AionUi - Cowork with AI Agents" width="100%">
+  <img src="../../resources/aionui-banner-1.png" alt="AionUi - Cowork with AI Agents" width="100%">
 </p>
 
 <p align="center">
@@ -30,7 +30,7 @@
 </p>
 
 <p align="center">
-  <a href="../../readme.md">English</a> | <a href="./readme_ch.md">简体中文</a> | <a href="./readme_tw.md">繁體中文</a> | <a href="./readme_jp.md">日本語</a> | <a href="./readme_ko.md">한국어</a> | <a href="./readme_es.md">Español</a> | <a href="./readme_pt.md">Português</a> | <strong>Türkçe</strong> | <a href="https://www.aionui.com" target="_blank">Resmi Web Sitesi</a>
+  <a href="../../readme.md">English</a> | <a href="../../readme_ch.md">简体中文</a> | <a href="./readme_tw.md">繁體中文</a> | <a href="./readme_jp.md">日本語</a> | <a href="./readme_ko.md">한국어</a> | <a href="./readme_es.md">Español</a> | <a href="./readme_pt.md">Português</a> | <strong>Türkçe</strong> | <a href="https://www.aionui.com" target="_blank">Resmi Web Sitesi</a>
 </p>
 
 <p align="center">
@@ -66,7 +66,7 @@
 | Fiyat                                  | Ücretsiz / Ücretli               | **Ücretsiz ve Açık Kaynak**                                                                         |
 
 <p align="center">
-  <img src="./resources/offica-ai BANNER-function.png" alt="AionUi Cowork Platform" width="800">
+  <img src="../../resources/offica-ai BANNER-function.png" alt="AionUi Cowork Platform" width="800">
 </p>
 
 ---
@@ -81,7 +81,7 @@ AionUi tam bir AI Agent motoru ile birlikte gelir. CLI Agent'ları ayrı olarak 
 - **Kullanıma hazır asistanlar** — 11+ yerleşik profesyonel asistan (Cowork, PPTX Oluşturucu, PDF'den PPT'ye, 3D Oyun, UI/UX Pro Max ve daha fazlası) hemen kullanıma hazır
 
 <p align="center">
-  <img src="./resources/build-in agents.png" alt="Built-in Agents" width="800">
+  <img src="../../resources/build-in agents.png" alt="Built-in Agents" width="800">
 </p>
 
 ### **Morph PPT Animasyon Demosu — Tek cümleyle akıcı geçişler**
@@ -106,7 +106,7 @@ Zaten Claude Code, Codex veya Qwen Code kullanıyorsanız, AionUi bunları otoma
 **Desteklenen Agents:** Yerleşik Agent (sıfır kurulum) • Claude Code • Codex • Qwen Code • Goose AI • OpenClaw • Augment Code • iFlow CLI • CodeBuddy • Kimi CLI • OpenCode • Factory Droid • GitHub Copilot • Qoder CLI • Mistral Vibe • Nanobot ve daha fazlası
 
 <p align="center">
-  <img src="./resources/multi-agent支持openclaw.gif" alt="Multi-Agent Cowork" width="800">
+  <img src="../../resources/multi-agent支持openclaw.gif" alt="Multi-Agent Cowork" width="800">
 </p>
 
 - **Otomatik Algılama** — kurulu CLI araçlarını otomatik olarak tanır
@@ -131,7 +131,7 @@ Diğer AI uygulamaları size API anahtarınızla bir sohbet kutusu verir. **Aion
 Aynı Agent yetenekleri — dosya okuma/yazma, web arama, görüntü oluşturma, araç kullanımı — hangi modelin güç verdiğine bakılmaksızın. AionUi bulut hizmetleri ve yerel dağıtımlar dahil **20+ AI platformunu** destekler.
 
 <p align="center">
-  <img src="./resources/llm_newapi.png" alt="Multi-Model Support" width="800">
+  <img src="../../resources/llm_newapi.png" alt="Multi-Model Support" width="800">
 </p>
 
 <details>
@@ -161,7 +161,7 @@ _12 yerleşik profesyonel asistan ve özel beceri desteği ile genişletilebilir
 - **Becerileri Yönet** — AI yeteneklerini genişletmek için herhangi bir asistan için beceriler oluşturun, etkinleştirin ve devre dışı bırakın
 
 <p align="center">
-  <img src="./resources/assistants_skills.png" alt="AI Assistants & Skills Ecosystem" width="800">
+  <img src="../../resources/assistants_skills.png" alt="AI Assistants & Skills Ecosystem" width="800">
 </p>
 
 <details>
@@ -207,7 +207,7 @@ _7/24 AI asistanınız — AionUi'ye herhangi bir cihazdan, her yerden erişin._
 > **Kurulum:** AionUi Ayarları → WebUI Ayarları → Kanal, Bot Token'ı yapılandırın.
 
 <p align="center">
-  <img src="./resources/webui-remote.gif" alt="WebUI remote access demo" width="800">
+  <img src="../../resources/webui-remote.gif" alt="WebUI remote access demo" width="800">
 </p>
 
 <p align="center"><em>Agent'ınızı uzaktan kontrol edin ve izleyin — Claude, Gemini, Codex. Tarayıcı veya telefondan, Claude Code remote gibi.</em></p>
@@ -225,7 +225,7 @@ _Bir kez ayarlayın, AI Agent zamanlamaya göre otomatik olarak çalışır — 
 - **Kullanım Senaryoları:** zamanlanmış veri toplama, rapor oluşturma, dosya organizasyonu, hatırlatıcılar
 
 <p align="center">
-  <img src="./resources/alart-task.png" alt="Scheduled Tasks" width="800">
+  <img src="../../resources/alart-task.png" alt="Scheduled Tasks" width="800">
 </p>
 
 <details>
@@ -258,7 +258,7 @@ _10+ format: PDF, Word, Excel, PPT, kod, Markdown, görüntüler, HTML, Diff —
 - **Sürüm Geçmişi** — dosyaların geçmiş sürümlerini görüntüleyin ve geri yükleyin (Git tabanlı)
 
 <p align="center">
-  <img src="./resources/preview.gif" alt="Preview Panel" width="800">
+  <img src="../../resources/preview.gif" alt="Preview Panel" width="800">
 </p>
 
 <details>
@@ -283,7 +283,7 @@ _10+ format: PDF, Word, Excel, PPT, kod, Markdown, görüntüler, HTML, Diff —
 _Toplu yeniden adlandırma, otomatik organizasyon, akıllı sınıflandırma, dosya birleştirme — Cowork Agent sizin için halleder._
 
 <p align="center">
-  <img src="./resources/aionui sort file 2.gif" alt="Smart File Management" width="800">
+  <img src="../../resources/aionui sort file 2.gif" alt="Smart File Management" width="800">
 </p>
 
 <details>
@@ -311,7 +311,7 @@ _Toplu yeniden adlandırma, otomatik organizasyon, akıllı sınıflandırma, do
 _Excel verilerini derinlemesine analiz edin, raporları otomatik olarak güzelleştirin ve içgörüler oluşturun — hepsi AI Agent'lar tarafından desteklenir._
 
 <p align="center">
-  <img src="./resources/readme-demo-generate-excel.gif" alt="Excel Processing" width="800">
+  <img src="../../resources/readme-demo-generate-excel.gif" alt="Excel Processing" width="800">
 </p>
 
 <details>
@@ -341,7 +341,7 @@ _Gemini tarafından desteklenen akıllı görüntü oluşturma, düzenleme ve ta
 
 <p align="center">
 
-  <img src="./resources/Image_Generation.gif" alt="AI Image Generation" width="800">
+  <img src="../../resources/Image_Generation.gif" alt="AI Image Generation" width="800">
 </p>
 
 <details>
@@ -365,7 +365,7 @@ _Gemini tarafından desteklenen akıllı görüntü oluşturma, düzenleme ve ta
 _AI Agent'lar ile profesyonel belgeleri otomatik olarak oluşturun — sunumlar, raporlar ve daha fazlası._
 
 <p align="center">
-  <img src="./resources/file_generation_preview.png" alt="Document Generation" width="800">
+  <img src="../../resources/file_generation_preview.png" alt="Document Generation" width="800">
 </p>
 
 <details>
@@ -392,7 +392,7 @@ _AI Agent'lar ile profesyonel belgeleri otomatik olarak oluşturun — sunumlar,
 _Kendi CSS kodunuzla özelleştirin, arayüzünüzü tercihlerinize uygun hale getirin_
 
 <p align="center">
-  <img src="./resources/css with skin.gif" alt="CSS Customization" width="800">
+  <img src="../../resources/css with skin.gif" alt="CSS Customization" width="800">
 </p>
 
 - ✅ **Tamamen Özelleştirilebilir** — CSS kodu aracılığıyla arayüz renklerini, stillerini, düzenini özgürce özelleştirin, özel deneyiminizi oluşturun
@@ -404,7 +404,7 @@ _Kendi CSS kodunuzla özelleştirin, arayüzünüzü tercihlerinize uygun hale g
 _Birden fazla konuşma açın, görevler karışmaz, bağımsız bellek, verimlilik iki katına çıkar_
 
 <p align="center">
-  <img src="./resources/multichat-side-by-side.gif" alt="Multi-Task Parallel" width="800">
+  <img src="../../resources/multichat-side-by-side.gif" alt="Multi-Task Parallel" width="800">
 </p>
 
 - ✅ **Bağımsız Bağlam** — Her konuşma kendi bağlamını ve geçmişini korur
@@ -556,7 +556,7 @@ brew install aionui
 
 <p align="center">
   <a href="https://x.com/AionUi" target="_blank">
-    <img src="./resources/contactus-x.png" alt="Contact Us on X" width="600">
+    <img src="../../resources/contactus-x.png" alt="Contact Us on X" width="600">
   </a>
 </p>
 

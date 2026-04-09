@@ -378,6 +378,7 @@ import AionrsSendBox from '@/renderer/pages/conversation/platforms/aionrs/Aionrs
 import GeminiSendBox from '@/renderer/pages/conversation/platforms/gemini/GeminiSendBox';
 import NanobotSendBox from '@/renderer/pages/conversation/platforms/nanobot/NanobotSendBox';
 import OpenClawSendBox from '@/renderer/pages/conversation/platforms/openclaw/OpenClawSendBox';
+import RemoteSendBox from '@/renderer/pages/conversation/platforms/remote/RemoteSendBox';
 
 const resetQueueSpies = () => {
   for (const spy of Object.values(queueSpies)) {
@@ -472,6 +473,7 @@ describe('platform send box queue integration', () => {
       />,
     ],
     ['nanobot', <NanobotSendBox conversation_id='conv-nanobot' />],
+    ['remote', <RemoteSendBox conversation_id='conv-remote' />],
     ['openclaw', <OpenClawSendBox conversation_id='conv-openclaw' />],
   ])('renders queue panel above the processing indicator for %s', (_name, element) => {
     mockUseConversationCommandQueue.mockReturnValue({
@@ -553,6 +555,16 @@ describe('platform send box queue integration', () => {
       },
     ],
     [
+      'remote',
+      <RemoteSendBox conversation_id='conv-remote' />,
+      mockConversationSendInvoke,
+      (payload: { input: string; conversation_id: string }) => {
+        expect(payload.input).toBe('queued command||');
+        expect(payload.conversation_id).toBe('conv-remote');
+      },
+      false,
+    ],
+    [
       'openclaw',
       <OpenClawSendBox conversation_id='conv-openclaw' />,
       mockOpenClawSendInvoke,
@@ -563,7 +575,7 @@ describe('platform send box queue integration', () => {
     ],
   ])(
     'sends commands immediately for %s when queueing is not required',
-    async (_name, element, sendSpy, assertPayload) => {
+    async (_name, element, sendSpy, assertPayload, shouldAssertBridgeSuccess = true) => {
       render(element);
 
       fireEvent.click(screen.getByRole('button', { name: 'trigger-send' }));
@@ -574,7 +586,9 @@ describe('platform send box queue integration', () => {
 
       assertPayload(sendSpy.mock.calls[0]?.[0] as { input: string; conversation_id: string });
       expect(queueSpies.enqueue).not.toHaveBeenCalled();
-      expect(mockAssertBridgeSuccess).toHaveBeenCalled();
+      if (shouldAssertBridgeSuccess) {
+        expect(mockAssertBridgeSuccess).toHaveBeenCalled();
+      }
     }
   );
 

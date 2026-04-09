@@ -31,7 +31,7 @@ import {
   resolveNpxDirect,
   resolveNpxPath,
 } from '@process/utils/shellEnv';
-import { mainLog, mainWarn } from '@process/utils/mainLogger';
+import { mainWarn } from '@process/utils/mainLogger';
 
 const execFile = promisify(execFileCb);
 
@@ -472,7 +472,6 @@ async function prepareCodebuddy(): Promise<NpxPrepareResult> {
   try {
     await fs.access(mcpConfigPath);
     extraArgs.push('--mcp-config', mcpConfigPath);
-    mainLog('[ACP]', `Loading CodeBuddy MCP config from ${mcpConfigPath}`);
   } catch {
     mainWarn('[ACP]', 'No CodeBuddy MCP config found, starting without MCP servers');
   }

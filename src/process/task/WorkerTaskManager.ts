@@ -11,11 +11,12 @@ import type { BuildConversationOptions, AgentType } from './agentTypes';
 import type { IConversationRepository } from '@process/services/database/IConversationRepository';
 import type { TChatConversation } from '@/common/config/storage';
 import { cronBusyGuard } from '@process/services/cron/CronBusyGuard';
+import { ProcessConfig } from '@process/utils/initStorage';
 
-/** CLI-backed agents (acp, codex) idle for longer than this are killed to reclaim memory. */
-const AGENT_IDLE_TIMEOUT_MS = 30 * 60 * 1000;
+/** Default idle timeout: 5 minutes. Overridden by user config 'acp.agentIdleTimeout' (in minutes). */
+const DEFAULT_IDLE_TIMEOUT_MS = 5 * 60 * 1000;
 /** How often to scan for idle CLI-backed agents. */
-const AGENT_IDLE_CHECK_INTERVAL_MS = 5 * 60 * 1000;
+const AGENT_IDLE_CHECK_INTERVAL_MS = 1 * 60 * 1000;
 
 export class WorkerTaskManager implements IWorkerTaskManager {
   private taskList: Array<{ id: string; task: IAgentManager }> = [];
@@ -28,17 +29,30 @@ export class WorkerTaskManager implements IWorkerTaskManager {
     this.idleCheckTimer = setInterval(() => this.killIdleCliAgents(), AGENT_IDLE_CHECK_INTERVAL_MS);
   }
 
-  private killIdleCliAgents(): void {
-    const now = Date.now();
-    const idleTasks = this.taskList.filter(
-      (item) =>
-        item.task.type === 'acp' &&
-        !cronBusyGuard.isProcessing(item.id) &&
-        now - item.task.lastActivityAt > AGENT_IDLE_TIMEOUT_MS
-    );
-    for (const item of idleTasks) {
-      this.kill(item.id, 'idle_timeout');
+  private async getIdleTimeoutMs(): Promise<number> {
+    try {
+      const minutes = await ProcessConfig.get('acp.agentIdleTimeout');
+      if (minutes && minutes > 0) return minutes * 60 * 1000;
+    } catch {
+      // Fallback to default
     }
+    return DEFAULT_IDLE_TIMEOUT_MS;
+  }
+
+  private killIdleCliAgents(): void {
+    void this.getIdleTimeoutMs().then((timeoutMs) => {
+      const now = Date.now();
+      const idleTasks = this.taskList.filter(
+        (item) =>
+          item.task.type === 'acp' &&
+          item.task.status === 'finished' &&
+          !cronBusyGuard.isProcessing(item.id) &&
+          now - item.task.lastActivityAt > timeoutMs
+      );
+      for (const item of idleTasks) {
+        this.kill(item.id, 'idle_timeout');
+      }
+    });
   }
 
   getTask(id: string): IAgentManager | undefined {
@@ -79,11 +93,15 @@ export class WorkerTaskManager implements IWorkerTaskManager {
     this.taskList.splice(index, 1);
   }
 
-  clear(): void {
+  async clear(): Promise<void> {
     clearInterval(this.idleCheckTimer);
     this.idleCheckTimer = undefined;
-    this.taskList.forEach((item) => item.task.kill());
+    const tasks = [...this.taskList];
     this.taskList = [];
+    // Kill all tasks and wait briefly for processes to actually exit
+    tasks.forEach((item) => item.task.kill());
+    // Allow up to 3 seconds for graceful shutdown before returning
+    await new Promise<void>((resolve) => setTimeout(resolve, 3000));
   }
 
   listTasks(): Array<{ id: string; type: AgentType }> {
