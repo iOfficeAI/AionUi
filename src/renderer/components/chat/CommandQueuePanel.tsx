@@ -358,7 +358,7 @@ const CommandQueuePanel: React.FC<CommandQueuePanelProps> = ({
   }
 
   return (
-    <div className='relative z-1 mb--14px px-8px pt-8px pb-22px'>
+    <div className='relative z-1 mb--12px px-8px pt-8px pb-12px'>
       <div
         aria-label={t('conversation.commandQueue.title', { defaultValue: 'Queued Commands' })}
         className='overflow-hidden rd-t-18px border b-solid'
