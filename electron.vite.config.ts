@@ -1,4 +1,5 @@
 import { defineConfig, externalizeDepsPlugin } from 'electron-vite';
+import { execSync } from 'child_process';
 import { resolve } from 'path';
 import { sentryVitePlugin } from '@sentry/vite-plugin';
 import UnoCSS from 'unocss/vite';
@@ -67,6 +68,18 @@ export default defineConfig(({ mode }) => {
         // externalizeDepsPlugin replaces our custom getExternalDeps() + pluginExternalizeDynamicImports.
         // 'fix-path' excluded so it gets bundled inline (only 3KB).
         externalizeDepsPlugin({ exclude: ['fix-path'] }),
+        ...(isDevelopment
+          ? [
+              {
+                name: 'dev-build-mcp-servers',
+                closeBundle() {
+                  execSync(`node "${resolve(__dirname, 'scripts/build-mcp-servers.js')}"`, {
+                    stdio: 'inherit',
+                  });
+                },
+              },
+            ]
+          : []),
         ...(!isDevelopment
           ? [
               viteStaticCopy({
