@@ -298,6 +298,74 @@ describe('SendBox @ file menu', () => {
     expect(screen.queryByRole('listbox', { name: 'File mentions' })).not.toBeInTheDocument();
   });
 
+  it('keeps the highlight overlay aligned with the textarea text metrics', async () => {
+    const originalGetComputedStyle = window.getComputedStyle.bind(window);
+    const getComputedStyleSpy = vi.spyOn(window, 'getComputedStyle').mockImplementation((element: Element) => {
+      const styles = originalGetComputedStyle(element);
+      if (!(element instanceof HTMLTextAreaElement)) {
+        return styles;
+      }
+
+      const overrides = {
+        direction: 'rtl',
+        fontFamily: '"Mock Sans"',
+        fontSize: '16px',
+        fontStyle: 'italic',
+        fontWeight: '600',
+        letterSpacing: '0.03em',
+        lineHeight: '24px',
+        paddingBottom: '6px',
+        paddingLeft: '14px',
+        paddingRight: '18px',
+        paddingTop: '8px',
+        tabSize: '6',
+        textAlign: 'center',
+        textIndent: '5px',
+        textTransform: 'uppercase',
+        wordSpacing: '0.2em',
+      } satisfies Partial<CSSStyleDeclaration>;
+
+      return new Proxy(styles, {
+        get(target, property, receiver) {
+          if (typeof property === 'string' && property in overrides) {
+            return overrides[property as keyof typeof overrides];
+          }
+          const value = Reflect.get(target, property, receiver);
+          return typeof value === 'function' ? value.bind(target) : value;
+        },
+      }) as CSSStyleDeclaration;
+    });
+
+    try {
+      render(<SendBoxHarness />);
+
+      const highlightLayer = screen.getByTestId('sendbox-highlight-layer');
+
+      await waitFor(() => {
+        expect(highlightLayer).toHaveStyle({
+          direction: 'rtl',
+          fontFamily: '"Mock Sans"',
+          fontSize: '16px',
+          fontStyle: 'italic',
+          fontWeight: '600',
+          letterSpacing: '0.03em',
+          lineHeight: '24px',
+          paddingBottom: '6px',
+          paddingLeft: '14px',
+          paddingRight: '18px',
+          paddingTop: '8px',
+          tabSize: '6',
+          textAlign: 'center',
+          textIndent: '5px',
+          textTransform: 'uppercase',
+          wordSpacing: '0.2em',
+        });
+      });
+    } finally {
+      getComputedStyleSpy.mockRestore();
+    }
+  });
+
   it('shows a search hint instead of dumping all files for bare @', async () => {
     render(<SendBoxHarness />);
 
