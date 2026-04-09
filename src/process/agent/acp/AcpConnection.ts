@@ -938,14 +938,14 @@ export class AcpConnection {
   async loadSession(
     sessionId: string,
     cwd: string = process.cwd(),
-    options?: { mcpServers?: AcpSessionMcpServer[] }
+    mcpServers?: AcpSessionMcpServer[]
   ): Promise<AcpResponse & { sessionId?: string }> {
     const normalizedCwd = this.normalizeCwdForAgent(cwd);
 
     const response = await this.sendRequest<AcpResponse & { sessionId?: string }>('session/load', {
       sessionId,
       cwd: normalizedCwd,
-      mcpServers: (options?.mcpServers ?? []) as unknown[],
+      mcpServers: (mcpServers ?? []) as unknown[],
     });
 
     // session/load returns modes/models/configOptions but not sessionId — keep the one we sent
