@@ -135,9 +135,6 @@ export class WorkerTaskManagerJobExecutor implements ICronJobExecutor {
     // Apply mode and config options if configured (must succeed before sendMessage).
     // If the task's agent is stale/disconnected, settings may fail — kill and retry
     // with a fresh task in that case.
-    console.log(
-      `[CronExecutor] Job ${job.id} agentConfig: mode=${job.metadata.agentConfig?.mode ?? 'undefined'}, configOptions=${JSON.stringify(job.metadata.agentConfig?.configOptions ?? null)}`
-    );
     if (
       job.metadata.agentConfig?.mode ||
       job.metadata.agentConfig?.configOptions ||
@@ -574,19 +571,13 @@ export class WorkerTaskManagerJobExecutor implements ICronJobExecutor {
       typeof (task as { setConfigOption?: (id: string, val: string) => Promise<unknown> }).setConfigOption ===
         'function';
 
-    console.log(
-      `[CronExecutor] applyAgentSettings: hasSetMode=${hasSetMode}, hasSetConfigOption=${hasSetConfigOption}, taskType=${task.type}`
-    );
-
     // Apply mode
     if (job.metadata.agentConfig?.mode && hasSetMode) {
       const desiredMode = job.metadata.agentConfig.mode;
       try {
-        console.log(`[CronExecutor] Calling setMode("${desiredMode}") for job ${job.id}`);
         const result = (await (task as { setMode: (mode: string) => Promise<unknown> }).setMode(
           desiredMode
         )) as SetModeResult;
-        console.log(`[CronExecutor] setMode("${desiredMode}") result:`, JSON.stringify(result));
         if (result && result.success === false) {
           console.warn(`[CronExecutor] setMode("${desiredMode}") failed for job ${job.id}: ${result.msg ?? 'unknown'}`);
           return false;

@@ -15,12 +15,11 @@ import { useConversationAgents } from '@renderer/pages/conversation/hooks/useCon
 import { getAgentLogo } from '@renderer/utils/model/agentLogo';
 import { CUSTOM_AVATAR_IMAGE_MAP } from '@/renderer/pages/guid/constants';
 import dayjs from 'dayjs';
-import { supportsModeSwitch } from '@renderer/utils/model/agentModes';
-import AgentModeSelector from '@renderer/components/agent/AgentModeSelector';
 import AcpConfigSelector from '@renderer/components/agent/AcpConfigSelector';
+import { getFullAutoMode } from '@renderer/utils/model/agentModes';
 import type { TProviderWithModel } from '@/common/config/storage';
 import { ConfigStorage } from '@/common/config/storage';
-import type { AcpModelInfo } from '@/common/types/acpTypes';
+import type { AcpModelInfo, AcpSessionConfigOption } from '@/common/types/acpTypes';
 import { useModelProviderList } from '@renderer/hooks/agent/useModelProviderList';
 import GuidModelSelector from '@renderer/pages/guid/components/GuidModelSelector';
 
@@ -120,7 +119,6 @@ const CreateTaskDialog: React.FC<CreateTaskDialogProps> = ({
   const [executionMode, setExecutionMode] = useState<ExecutionMode>('new_conversation');
 
   // Advanced settings state
-  const [mode, setMode] = useState<string | undefined>(undefined);
   const [modelId, setModelId] = useState<string | undefined>(undefined);
   const [configOptions, setConfigOptions] = useState<Record<string, string> | undefined>(undefined);
   const [workspace, setWorkspace] = useState<string | undefined>(undefined);
@@ -147,7 +145,6 @@ const CreateTaskDialog: React.FC<CreateTaskDialogProps> = ({
         agent: agentKey,
       });
       // Populate advanced settings from editJob
-      setMode(editJob.metadata.agentConfig?.mode);
       setModelId(editJob.metadata.agentConfig?.modelId);
       setConfigOptions(editJob.metadata.agentConfig?.configOptions);
       setWorkspace(editJob.metadata.agentConfig?.workspace);
@@ -157,7 +154,6 @@ const CreateTaskDialog: React.FC<CreateTaskDialogProps> = ({
       setTime('09:00');
       setWeekday('MON');
       setExecutionMode('new_conversation');
-      setMode(undefined);
       setModelId(undefined);
       setConfigOptions(undefined);
       setWorkspace(undefined);
@@ -256,28 +252,6 @@ const CreateTaskDialog: React.FC<CreateTaskDialogProps> = ({
     }
   }, [resolvedBackend, modelId]);
 
-  // Set default mode from user preferences when backend changes
-  useEffect(() => {
-    if (!resolvedBackend || mode) return;
-    if (resolvedBackend === 'gemini') {
-      ConfigStorage.get('gemini.config')
-        .then((config) => {
-          if (config?.preferredMode) setMode(config.preferredMode);
-        })
-        .catch(() => {});
-    } else {
-      ConfigStorage.get('acp.config')
-        .then((config) => {
-          const backendConfig = config?.[resolvedBackend as import('@/common/types/acpTypes').AcpBackend] as
-            | Record<string, unknown>
-            | undefined;
-          const preferred = backendConfig?.preferredMode as string | undefined;
-          if (preferred) setMode(preferred);
-        })
-        .catch(() => {});
-    }
-  }, [resolvedBackend, mode]);
-
   const showTimePicker = frequency === 'daily' || frequency === 'weekdays' || frequency === 'weekly';
   const showWeekdayPicker = frequency === 'weekly';
 
@@ -330,8 +304,7 @@ const CreateTaskDialog: React.FC<CreateTaskDialogProps> = ({
 
   const handleAgentChange = useCallback((value: string) => {
     setSelectedAgent(value);
-    // Reset mode, model, and configOptions when agent changes
-    setMode(undefined);
+    // Reset model and configOptions when agent changes
     setModelId(undefined);
     setConfigOptions(undefined);
     // Workspace remains unchanged (agent-agnostic)
@@ -348,10 +321,6 @@ const CreateTaskDialog: React.FC<CreateTaskDialogProps> = ({
     setWorkspace(undefined);
   }, []);
 
-  const handleModeSelect = useCallback((selectedMode: string) => {
-    setMode(selectedMode);
-  }, []);
-
   const handleConfigOptionSelect = useCallback((configId: string, value: string) => {
     setConfigOptions((prev) => ({ ...prev, [configId]: value }));
   }, []);
@@ -360,6 +329,17 @@ const CreateTaskDialog: React.FC<CreateTaskDialogProps> = ({
     const colonIdx = agentValue.indexOf(':');
     const agentKind = agentValue.substring(0, colonIdx);
     const agentId = agentValue.substring(colonIdx + 1);
+
+    // Merge cached config option defaults with user overrides
+    const mergedConfigOptions = (() => {
+      if (!Array.isArray(cachedConfigOptions) || cachedConfigOptions.length === 0) return configOptions;
+      const defaults: Record<string, string> = {};
+      for (const opt of cachedConfigOptions as AcpSessionConfigOption[]) {
+        const val = opt.currentValue || opt.selectedValue;
+        if (opt.id && val) defaults[opt.id] = val;
+      }
+      return Object.keys(defaults).length > 0 ? { ...defaults, ...configOptions } : configOptions;
+    })();
 
     let agentConfig: ICronAgentConfig | undefined;
     let resolvedAgentType: ICreateCronJobParams['agentType'] = (agentType ||
@@ -373,9 +353,9 @@ const CreateTaskDialog: React.FC<CreateTaskDialogProps> = ({
           backend: agent.backend,
           name: agent.name,
           cliPath: agent.cliPath,
-          mode,
+          mode: getFullAutoMode(agent.backend),
           modelId,
-          configOptions,
+          configOptions: mergedConfigOptions,
           workspace,
         };
       }
@@ -389,9 +369,9 @@ const CreateTaskDialog: React.FC<CreateTaskDialogProps> = ({
           isPreset: true,
           customAgentId: agent.customAgentId,
           presetAgentType: agent.presetAgentType,
-          mode,
+          mode: getFullAutoMode(agent.backend),
           modelId,
-          configOptions,
+          configOptions: mergedConfigOptions,
           workspace,
         };
       }
@@ -659,20 +639,6 @@ const CreateTaskDialog: React.FC<CreateTaskDialogProps> = ({
           <Collapse defaultActiveKey={[]} className='mt-16px'>
             <Collapse.Item header={t('cron.page.form.advancedSettings')} name='advanced'>
               <div className='flex flex-col gap-16px'>
-                {/* Agent Mode Selector - reuse AgentModeSelector (same as GuidActionRow) */}
-                {resolvedBackend && supportsModeSwitch(resolvedBackend) && (
-                  <div>
-                    <label className='text-14px font-medium text-t-primary mb-8px block'>{t('common.agentMode')}</label>
-                    <AgentModeSelector
-                      backend={resolvedBackend}
-                      modeLabelFormatter={(mode) => t(`agentMode.${mode.value}`, { defaultValue: mode.label })}
-                      compact
-                      initialMode={mode}
-                      onModeSelect={handleModeSelect}
-                    />
-                  </div>
-                )}
-
                 {/* Model Selector — reuse GuidModelSelector (same no-conversation context) */}
                 {resolvedBackend && (isGeminiMode || acpCachedModelInfo) && (
                   <div>

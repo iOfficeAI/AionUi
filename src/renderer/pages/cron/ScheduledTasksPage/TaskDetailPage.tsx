@@ -12,7 +12,6 @@ import { Left, Delete, PlayOne, Write, Attention } from '@icon-park/react';
 import { ipcBridge } from '@/common';
 import type { ICronJob } from '@/common/adapter/ipcBridge';
 import { getAgentLogo } from '@renderer/utils/model/agentLogo';
-import { getAgentModes } from '@renderer/utils/model/agentModes';
 import CronStatusTag from './CronStatusTag';
 import CreateTaskDialog from './CreateTaskDialog';
 import { formatSchedule, formatNextRun } from '@renderer/pages/cron/cronUtils';
@@ -256,21 +255,7 @@ const TaskDetailPage: React.FC = () => {
               </div>
             </section>
 
-            {/* Advanced config: mode, workspace, configOptions */}
-            {job.metadata.agentConfig?.mode && (
-              <section className='flex flex-col gap-10px'>
-                <h2 className='m-0 text-13px font-medium text-t-secondary'>{t('common.agentMode')}</h2>
-                <span className='text-14px text-t-primary'>
-                  {t(`agentMode.${job.metadata.agentConfig.mode}`, {
-                    defaultValue:
-                      getAgentModes(job.metadata.agentConfig.backend).find(
-                        (m) => m.value === job.metadata.agentConfig?.mode
-                      )?.label || job.metadata.agentConfig.mode,
-                  })}
-                </span>
-              </section>
-            )}
-
+            {/* Advanced config: model, workspace, configOptions */}
             {job.metadata.agentConfig?.modelId && (
               <section className='flex flex-col gap-10px'>
                 <h2 className='m-0 text-13px font-medium text-t-secondary'>{t('cron.page.form.model')}</h2>
