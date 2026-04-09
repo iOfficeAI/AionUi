@@ -63,7 +63,11 @@
     "pinFailed": "Pin operation failed",
     "pinnedSection": "Pinned",
     "deleteSuccess": "Deleted successfully",
-    "deleteFailed": "Delete failed"
+    "deleteFailed": "Delete failed",
+    "today": "Today",
+    "yesterday": "Yesterday",
+    "recent7Days": "Last 7 Days",
+    "earlier": "Earlier"
   },
   "historySearch": {
     "tooltip": "Search messages",
@@ -285,5 +289,9 @@
     "request_sent": "Request sent to agent",
     "failed": "Failed to generate",
     "preset_registered": "Agent preset registered successfully!"
+  },
+  "thinking": {
+    "complete": "Thought complete",
+    "label": "Thinking..."
   }
 }

@@ -44,6 +44,7 @@ vi.mock('@process/utils/shellEnv', () => ({
   ),
   loadFullShellEnvironment: vi.fn(async () => ({ PATH: '/usr/bin' })),
   resolveNpxPath: vi.fn(() => 'npx'),
+  resolveNpxDirect: vi.fn(() => null),
 }));
 
 vi.mock('@process/utils/mainLogger', () => ({
@@ -135,6 +136,39 @@ describe('spawnNpxBackend - Windows UTF-8 fix', () => {
     spawnNpxBackend('claude', '@pkg/cli@1.0.0', 'npx', {}, '/cwd', false, false, { detached: false });
 
     expect(mockChild.unref).not.toHaveBeenCalled();
+  });
+
+  it('uses directInvoke on Windows to bypass .cmd shims', () => {
+    spawnNpxBackend('claude', '@pkg/cli@1.0.0', 'npx.cmd', {}, 'C:\\cwd', true, false, {
+      directInvoke: {
+        nodePath: 'C:\\Program Files\\nodejs\\node.exe',
+        npxScript: 'C:\\Program Files\\nodejs\\node_modules\\npm\\bin\\npx-cli.js',
+      },
+    });
+
+    const [command] = mockSpawn.mock.calls[0];
+    expect(command).toBe(
+      'chcp 65001 >nul && "C:\\Program Files\\nodejs\\node.exe" "C:\\Program Files\\nodejs\\node_modules\\npm\\bin\\npx-cli.js"'
+    );
+  });
+
+  it('falls back to npxCommand when directInvoke is undefined on Windows', () => {
+    spawnNpxBackend('claude', '@pkg/cli@1.0.0', 'C:\\nodejs\\npx.cmd', {}, 'C:\\cwd', true, false);
+
+    const [command] = mockSpawn.mock.calls[0];
+    expect(command).toBe('chcp 65001 >nul && "C:\\nodejs\\npx.cmd"');
+  });
+
+  it('ignores directInvoke on non-Windows', () => {
+    spawnNpxBackend('claude', '@pkg/cli@1.0.0', '/usr/local/bin/npx', {}, '/cwd', false, false, {
+      directInvoke: {
+        nodePath: '/usr/local/bin/node',
+        npxScript: '/usr/local/lib/node_modules/npm/bin/npx-cli.js',
+      },
+    });
+
+    const [command] = mockSpawn.mock.calls[0];
+    expect(command).toBe('/usr/local/bin/npx');
   });
 });
 

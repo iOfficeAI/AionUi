@@ -63,7 +63,11 @@
     "pinFailed": "置顶操作失败",
     "pinnedSection": "置顶",
     "deleteSuccess": "删除成功",
-    "deleteFailed": "删除失败"
+    "deleteFailed": "删除失败",
+    "today": "今天",
+    "yesterday": "昨天",
+    "recent7Days": "最近7天",
+    "earlier": "更早"
   },
   "historySearch": {
     "tooltip": "检索会话",
@@ -285,5 +289,9 @@
     "request_sent": "生成请求已发送",
     "failed": "生成失败",
     "preset_registered": "已保存为全局预设"
+  },
+  "thinking": {
+    "complete": "思考完成",
+    "label": "思考中..."
   }
 }

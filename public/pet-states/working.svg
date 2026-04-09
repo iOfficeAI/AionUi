@@ -1,0 +1,100 @@
+<svg viewBox="-18 -18 58 58" width="500" height="500" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <style>
+      .wk-all {
+        transform-origin: 12px 15px;
+        animation: wk-bob 0.6s cubic-bezier(0.36,0.07,0.19,0.97) infinite;
+      }
+      .wk-hand-r {
+        transform-origin: 14px 22px;
+        animation: wk-tap-r 0.3s ease-in-out infinite alternate;
+      }
+      .wk-hand-l {
+        transform-origin: 7px 22px;
+        animation: wk-tap-l 0.3s ease-in-out infinite alternate;
+      }
+      .wk-shadow {
+        transform-origin: 10px 23.5px;
+        animation: wk-shadow 2.4s ease-in-out infinite;
+      }
+      .wk-hat {
+        transform-origin: 15px 8px;
+        animation: wk-hat-shake 0.3s ease-in-out infinite alternate;
+      }
+      .wk-dot1 { animation: wk-dot-flash 0.9s ease-in-out infinite; animation-delay: 0s; }
+      .wk-dot2 { animation: wk-dot-flash 0.9s ease-in-out infinite; animation-delay: 0.3s; }
+      .wk-dot3 { animation: wk-dot-flash 0.9s ease-in-out infinite; animation-delay: 0.6s; }
+      .wk-dot4 { animation: wk-dot-flash 0.9s ease-in-out infinite; animation-delay: 0.15s; }
+      @keyframes wk-bob {
+        0%,100% { transform: translateY(0) scaleY(1); }
+        30%     { transform: translateY(-2px) scaleY(1.04); }
+        60%     { transform: translateY(1px) scaleY(0.97); }
+      }
+      @keyframes wk-tap-r {
+        from { transform: translateY(0); }
+        to   { transform: translateY(-3px); }
+      }
+      @keyframes wk-tap-l {
+        from { transform: translateY(-3px); }
+        to   { transform: translateY(0); }
+      }
+      @keyframes wk-shadow {
+        0%,100% { transform: scaleX(1); opacity: 0.32; }
+        50%     { transform: scaleX(0.9); opacity: 0.2; }
+      }
+      @keyframes wk-hat-shake {
+        from { transform: rotate(-6deg) translateY(0); }
+        to   { transform: rotate(4deg) translateY(-0.5px); }
+      }
+      @keyframes wk-dot-flash {
+        0%,100% { opacity: 1; transform: scale(1); }
+        50%     { opacity: 0.1; transform: scale(0.6); }
+      }
+    </style>
+  </defs>
+
+  <!-- 阴影 -->
+  <ellipse class="wk-shadow" cx="10" cy="23.5" rx="7" ry="0.75" fill="#c0c0c0"/>
+
+  <g class="wk-all">
+    <!-- ── 绿色装饰光点（最底层，身体后面） ── -->
+    <rect class="wk-dot1" x="4"  y="9"  width="1.2" height="1.2" rx="0.3" fill="#4AFF3D"/>
+    <rect class="wk-dot2" x="21" y="4"  width="1.2" height="1.2" rx="0.3" fill="#4AFF3D"/>
+    <rect class="wk-dot3" x="21" y="11" width="1.2" height="1.2" rx="0.3" fill="#4AFF3D"/>
+    <rect class="wk-dot4" x="22" y="15" width="1.2" height="1.2" rx="0.3" fill="#4AFF3D"/>
+    <rect class="wk-dot2" x="7"  y="5"  width="1"   height="1"   rx="0.2" fill="#4AFF3D"/>
+
+    <!-- ── 角色身体（先画，笔记本后画覆盖下半身） ── -->
+    <!-- 身体 -->
+    <rect x="8" y="7" width="12" height="12" rx="6" fill="#97A0C5"/>
+    <!-- 帽子（随打字抖动） -->
+    <g class="wk-hat">
+      <path d="M16.4681 2.77162L18.7097 9.32717L11.9116 7.99068L16.4681 2.77162Z" fill="#FF6B35"/>
+          <rect x="14" y="5" width="1" height="1" fill="#e8714a"/>
+    </g>
+    <!-- 眼睛 -->
+    <rect x="12" y="11" width="2" height="2" rx="1" fill="#111827"/>
+
+    <!-- ── 笔记本覆盖在身体下半部分上层 ── -->
+    <!-- 屏幕面板 -->
+    <rect x="3.5" y="15.5" width="10" height="6" rx="0.4" fill="#D9D9D9" stroke="#E5E7F0" stroke-width="0.5"/>
+    <!-- 屏幕代码行 -->
+    <rect x="4.5" y="17"   width="4" height="0.7" rx="0.25" fill="#9098b8" opacity="0.7"/>
+    <rect x="4.5" y="18.5" width="6" height="0.7" rx="0.25" fill="#9098b8" opacity="0.5"/>
+    <rect x="4.5" y="20"   width="3" height="0.7" rx="0.25" fill="#9098b8" opacity="0.6"/>
+    <!-- 白色底条 -->
+    <rect x="10" y="21" width="8" height="1" rx="0.2" fill="white"/>
+    <!-- 键盘底座 -->
+    <rect x="3" y="22" width="15" height="1" rx="0.3" fill="#D9D9D9"/>
+    <!-- 触控板 -->
+    <rect x="8" y="22.1" width="1" height="0.7" rx="0.2" fill="#736B6B" opacity="0.7"/>
+
+    <!-- ── 两手在键盘上（笔记本上层，交替弹跳） ── -->
+    <g class="wk-hand-l">
+      <circle cx="7" cy="22" r="1.6" fill="#97A0C5" fill-opacity="0.9"/>
+    </g>
+    <g class="wk-hand-r">
+      <circle cx="14" cy="22" r="1.6" fill="#B9C3EB"/>
+    </g>
+  </g>
+</svg>

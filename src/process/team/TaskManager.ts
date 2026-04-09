@@ -48,19 +48,9 @@ export class TaskManager {
 
     const created = await this.repo.createTask(task);
 
-    // Update `blocks` on each upstream task (bidirectional link)
+    // Atomically append to `blocks` on each upstream task (bidirectional link)
     if (created.blockedBy.length > 0) {
-      await Promise.all(
-        created.blockedBy.map(async (upstreamId) => {
-          const upstream = await this.repo.findTaskById(upstreamId);
-          if (upstream) {
-            await this.repo.updateTask(upstreamId, {
-              blocks: [...upstream.blocks, created.id],
-              updatedAt: now,
-            });
-          }
-        })
-      );
+      await Promise.all(created.blockedBy.map((upstreamId) => this.repo.appendToBlocks(upstreamId, created.id)));
     }
 
     return created;
@@ -106,15 +96,11 @@ export class TaskManager {
 
     if (dependents.length === 0) return [];
 
-    const now = Date.now();
-    const updated = await Promise.all(
-      dependents.map((t) =>
-        this.repo.updateTask(t.id, {
-          blockedBy: t.blockedBy.filter((id) => id !== taskId),
-          updatedAt: now,
-        })
-      )
-    );
+    // Atomically remove taskId from each dependent's blockedBy array
+    const updated = await Promise.all(dependents.map((t) => this.repo.removeFromBlockedBy(t.id, taskId)));
+
+    // Clear the completed task's stale blocks pointer (Bug #5)
+    await this.repo.updateTask(taskId, { blocks: [], updatedAt: Date.now() });
 
     return updated.filter((t) => t.blockedBy.length === 0);
   }

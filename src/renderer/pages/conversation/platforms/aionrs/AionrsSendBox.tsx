@@ -304,7 +304,6 @@ const AionrsSendBox: React.FC<{
 
   return (
     <div className='max-w-800px w-full mx-auto flex flex-col mt-auto mb-16px'>
-      <ThoughtDisplay thought={thought} running={running} onStop={handleStop} />
       <CommandQueuePanel
         items={queuedCommands}
         paused={isQueuePaused}
@@ -318,10 +317,16 @@ const AionrsSendBox: React.FC<{
         onRemove={remove}
         onClear={clear}
       />
+      <ThoughtDisplay thought={thought} running={running} onStop={handleStop} />
 
       <SendBox
         value={content}
         onChange={setContent}
+        selectedWorkspaceItems={atPath}
+        onSelectedWorkspaceItemsChange={(items) => {
+          emitter.emit('aionrs.selected.file', items);
+          setAtPath(items);
+        }}
         loading={isBusy}
         disabled={!currentModel?.useModel}
         placeholder={
@@ -359,8 +364,7 @@ const AionrsSendBox: React.FC<{
         }
         prefix={
           <>
-            {/* Files on top */}
-            {(uploadFile.length > 0 || atPath.some((item) => (typeof item === 'string' ? true : item.isFile))) && (
+            {uploadFile.length > 0 && (
               <HorizontalFileList>
                 {uploadFile.map((path) => (
                   <FilePreview
@@ -369,29 +373,8 @@ const AionrsSendBox: React.FC<{
                     onRemove={() => setUploadFile(uploadFile.filter((v) => v !== path))}
                   />
                 ))}
-                {atPath.map((item) => {
-                  const isFile = typeof item === 'string' ? true : item.isFile;
-                  const path = typeof item === 'string' ? item : item.path;
-                  if (isFile) {
-                    return (
-                      <FilePreview
-                        key={path}
-                        path={path}
-                        onRemove={() => {
-                          const newAtPath = atPath.filter((v) =>
-                            typeof v === 'string' ? v !== path : v.path !== path
-                          );
-                          emitter.emit('aionrs.selected.file', newAtPath);
-                          setAtPath(newAtPath);
-                        }}
-                      />
-                    );
-                  }
-                  return null;
-                })}
               </HorizontalFileList>
             )}
-            {/* Folder tags below */}
             {atPath.some((item) => (typeof item === 'string' ? false : !item.isFile)) && (
               <div className='flex flex-wrap items-center gap-8px mb-8px'>
                 {atPath.map((item) => {

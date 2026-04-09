@@ -6,16 +6,15 @@
 
 ## Label 体系
 
-| Label                    | 含义                                                                                  | 终态？ |
-| ------------------------ | ------------------------------------------------------------------------------------- | ------ |
-| `bot:reviewing`          | review 进行中（防重入占位）                                                           | 否     |
-| `bot:ready-to-fix`       | CONDITIONAL review 完成，等 bot 下次执行 fix                                          | 否     |
-| `bot:fixing`             | fix 进行中（防重入占位）                                                              | 否     |
-| `bot:ci-waiting`         | CI 失败已通知，等待作者推新 commit — bot 暂停处理此 PR                                | 否     |
-| `bot:needs-rebase`       | 合并冲突且 bot 无法自动 rebase — 等待作者 push 新 commit 后自动唤醒                   | 否     |
-| `bot:needs-human-review` | 需人工介入（阻塞性问题）                                                              | ✅     |
-| `bot:ready-to-merge`     | bot 已处理完，代码无问题，等人工确认后合并（大 PR / critical path / 非 trusted 成员） | ✅     |
-| `bot:done`               | bot 已 auto-merge                                                                     | ✅     |
+| Label                    | 含义                                                                | 终态？ |
+| ------------------------ | ------------------------------------------------------------------- | ------ |
+| `bot:reviewing`          | review 进行中（防重入占位）                                         | 否     |
+| `bot:ready-to-fix`       | CONDITIONAL review 完成，等 bot 下次执行 fix                        | 否     |
+| `bot:fixing`             | fix 进行中（防重入占位）                                            | 否     |
+| `bot:ci-waiting`         | CI 失败已通知，等待作者推新 commit — bot 暂停处理此 PR              | 否     |
+| `bot:needs-rebase`       | 合并冲突且 bot 无法自动 rebase — 等待作者 push 新 commit 后自动唤醒 | 否     |
+| `bot:needs-human-review` | 需人工介入（阻塞性问题）                                            | ✅     |
+| `bot:ready-to-merge`     | bot 已处理完，代码无问题，等人工确认后合并                          | ✅     |
 
 ---
 
@@ -28,7 +27,7 @@
  │
  ├─ bot:ready-to-fix → 重新检查 CI
  │     ├─ CI 跑中/失败 → 移除标签，重入队列 → EXIT
- │     └─ CI 过 → pr-fix → push → --auto → bot:done → EXIT
+ │     └─ CI 过 → pr-fix → push → bot:ready-to-merge → EXIT
  │
  └─ 新鲜 PR → 加 bot:reviewing → 检查 CI
        ├─ 从未触发 → approve workflow → EXIT
@@ -44,17 +43,11 @@
              │           ├─ 成功 → push → EXIT
              │           └─ 失败 → 评论 + bot:needs-rebase → EXIT
              └─ MERGEABLE
-                   ├─ BEHIND → update-branch API → EXIT（GitHub 自动补 base，CI 重跑，auto-merge 触发）
+                   ├─ BEHIND → update-branch API → EXIT（GitHub 自动补 base，CI 重跑）
                    └─ 其他 → pr-review
-                         ├─ APPROVED
-                         │     ├─ 小 PR + trusted → --auto merge → bot:done → EXIT
-                         │     ├─ 小 PR + untrusted → bot:ready-to-merge（🔒） → EXIT
-                         │     └─ 大 PR / critical path → bot:ready-to-merge → EXIT
+                         ├─ APPROVED → bot:ready-to-merge → EXIT
                          ├─ CONDITIONAL → bot:ready-to-fix → EXIT
-                         │     └─ fix 完成
-                         │           ├─ 小 PR + trusted → --auto merge → bot:done → EXIT
-                         │           ├─ 小 PR + untrusted → bot:ready-to-merge（🔒） → EXIT
-                         │           └─ 大 PR / critical path → bot:ready-to-merge → EXIT
+                         │     └─ fix 完成 → bot:ready-to-merge → EXIT
                          └─ REJECTED → bot:needs-human-review → EXIT
 ```
 
@@ -62,7 +55,7 @@
 
 - PR 是 draft（`gh pr list -is:draft` 直接过滤）
 - 标题含 `WIP`（大小写不敏感）
-- 已有 `bot:needs-rebase` / `bot:needs-human-review` / `bot:ready-to-merge` / `bot:done` / `bot:reviewing` / `bot:fixing` / `bot:ci-waiting`
+- 已有 `bot:needs-rebase` / `bot:needs-human-review` / `bot:ready-to-merge` / `bot:reviewing` / `bot:fixing` / `bot:ci-waiting`
 - CI 仍在运行（QUEUED / IN_PROGRESS）
 - Mergeability 为 UNKNOWN
 - CI 失败但已评论且作者无新 commit（同时打上 `bot:ci-waiting`，每轮开始时轻量检查是否有新 commit）

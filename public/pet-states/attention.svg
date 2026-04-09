@@ -1,0 +1,26 @@
+<svg viewBox="-18 -18 58 58" width="500" height="500" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs><style>
+    .attn-body { transform-origin:11px 18px; animation:attn-nod 1.5s ease-in-out infinite; }
+    .attn-shadow { transform-origin:11px 22.5px; animation:attn-shadow 1.5s ease-in-out infinite; }
+    .attn-spark { opacity:0; }
+    .attn-sp1 { animation:attn-spark-pop 1.5s ease-out infinite; animation-delay:0s; }
+    .attn-sp2 { animation:attn-spark-pop 1.5s ease-out infinite; animation-delay:.5s; }
+    @keyframes attn-nod { 0%,100%{transform:translateY(0) scaleY(1)} 35%{transform:translateY(-2px) scaleY(1.03)} 65%{transform:translateY(0) scaleY(.98)} }
+    @keyframes attn-shadow { 0%,100%{transform:scaleX(1);opacity:.35} 35%{transform:scaleX(.9);opacity:.25} }
+    @keyframes attn-spark-pop { 0%{opacity:0;transform:scale(0)} 20%{opacity:1;transform:scale(1.2)} 60%{opacity:.8;transform:scale(1)} 100%{opacity:0;transform:scale(.5) translateY(-3px)} }
+  </style></defs>
+  <g class="attn-spark attn-sp1" fill="#e8714a"><rect x="18" y="4" width="1.5" height="1.5" rx="0.4"/></g>
+  <g class="attn-spark attn-sp2" fill="#FF9F3F"><rect x="2" y="5" width="1.2" height="1.2" rx="0.3"/></g>
+  <ellipse class="attn-shadow" cx="11" cy="22.5" rx="4" ry="0.6" fill="#c0c0c0"/>
+  <g class="attn-body">
+    <rect x="2" y="9" width="3" height="3" rx="0.5" fill="#8891b8" opacity="0.7" transform="rotate(45 3.5 10.5)"/>
+    <rect x="17" y="9" width="3" height="3" rx="0.5" fill="#8891b8" opacity="0.7" transform="rotate(45 18.5 10.5)"/>
+    <rect x="5" y="6" width="12" height="12" rx="6" fill="#97A0C5"/>
+    <polygon points="11,1 15,7 7,7" fill="#FF6B35"/>
+    <rect x="10" y="2" width="1" height="1" fill="#e8714a"/>
+    <!-- 温和弯眼 -->
+    <path d="M9.5 11 Q11 9.8 12.5 11" stroke="#111827" stroke-width="1" stroke-linecap="round" fill="none"/>
+    <!-- 温和微笑 -->
+    <path d="M9 13.5 Q11 15.5 13 13.5" stroke="#111827" stroke-width="1" stroke-linecap="round" fill="none"/>
+  </g>
+</svg>

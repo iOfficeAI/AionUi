@@ -524,6 +524,7 @@ export const ACP_BACKENDS_ALL: Record<AcpBackendAll, AcpBackendConfig> = {
     authRequired: false, // Auth handled via env vars from model config
     enabled: true,
     supportsStreaming: true,
+    skillsDirs: ['.aionrs/skills'],
   },
   custom: {
     id: 'custom',

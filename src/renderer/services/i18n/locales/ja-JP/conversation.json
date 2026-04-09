@@ -289,5 +289,9 @@
     "request_sent": "Request sent to agent",
     "failed": "Failed to generate",
     "preset_registered": "Agent preset registered successfully!"
+  },
+  "thinking": {
+    "complete": "思考完了",
+    "label": "思考中..."
   }
 }

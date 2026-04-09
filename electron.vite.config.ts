@@ -102,8 +102,8 @@ export default defineConfig(({ mode }) => {
             nanobot: resolve('src/process/worker/nanobot.ts'),
             lifecycleRunner: resolve('src/process/extensions/lifecycle/lifecycleRunner.ts'),
             aionrs: resolve('src/process/worker/aionrs.ts'),
-            // Built-in MCP server entry points
-            'builtin-mcp-image-gen': resolve('src/process/resources/builtinMcp/imageGenServer.ts'),
+            // Built-in MCP server entry points (compiled by scripts/build-mcp-servers.js via esbuild,
+            // not vite — esbuild bundles all deps for self-contained execution by external node processes)
           },
           onwarn(warning, warn) {
             if (warning.code === 'EVAL') return;
@@ -127,13 +127,21 @@ export default defineConfig(({ mode }) => {
       build: {
         sourcemap: false,
         reportCompressedSize: false,
-        rollupOptions: { input: { index: resolve('src/preload.ts') } },
+        rollupOptions: {
+          input: {
+            index: resolve('src/preload/main.ts'),
+            petPreload: resolve('src/preload/petPreload.ts'),
+            petHitPreload: resolve('src/preload/petHitPreload.ts'),
+            petConfirmPreload: resolve('src/preload/petConfirmPreload.ts'),
+          },
+        },
       },
     },
 
     renderer: {
       base: './',
       publicDir: resolve('public'),
+      appType: 'mpa',
       server: {
         // Default to 5173; when occupied (e.g. another AionUi clone is running),
         // Vite auto-increments to the next available port.
@@ -172,7 +180,12 @@ export default defineConfig(({ mode }) => {
         chunkSizeWarningLimit: 1500,
         cssCodeSplit: true,
         rollupOptions: {
-          input: { index: resolve('src/renderer/index.html') },
+          input: {
+            index: resolve('src/renderer/index.html'),
+            pet: resolve('src/renderer/pet/pet.html'),
+            'pet-hit': resolve('src/renderer/pet/pet-hit.html'),
+            'pet-confirm': resolve('src/renderer/pet/pet-confirm.html'),
+          },
           external: ['node:crypto', 'crypto'],
           onwarn(warning, warn) {
             if (warning.code === 'EVAL') return;

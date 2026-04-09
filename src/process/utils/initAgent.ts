@@ -347,6 +347,16 @@ export const createAionrsAgent = async (options: ICreateConversationParams): Pro
     extra.customWorkspace
   );
 
+  // Set up skill symlinks for native discovery by aionrs CLI
+  if (!customWorkspace) {
+    await setupAssistantWorkspace(workspace, {
+      agentType: 'aionrs',
+      enabledSkills: extra.enabledSkills,
+      extraSkillPaths: extra.extraSkillPaths,
+      excludeBuiltinSkills: extra.excludeBuiltinSkills,
+    });
+  }
+
   return {
     type: 'aionrs',
     model: options.model,

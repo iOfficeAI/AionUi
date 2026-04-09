@@ -4,6 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
+import { AUTH_CONFIG } from '@process/webserver/config/constants';
 import { getDatabase } from '@process/services/database/export';
 import type { IUser, IQueryResult } from '@process/services/database/types';
 
@@ -48,6 +49,10 @@ function mapUser(row: IUser): AuthUser {
   };
 }
 
+function hasPassword(user: AuthUser | null): boolean {
+  return !!user?.password_hash?.trim();
+}
+
 /**
  * 用户仓库 - 提供用户数据访问接口
  * User Repository - Provides user data access interface
@@ -76,6 +81,24 @@ export const UserRepository = {
       return null;
     }
     return mapUser(system);
+  },
+
+  async getPrimaryWebUIUser(): Promise<AuthUser | null> {
+    const systemUser = await this.getSystemUser();
+    if (hasPassword(systemUser)) {
+      return systemUser;
+    }
+
+    const defaultAdmin = await this.findByUsername(AUTH_CONFIG.DEFAULT_USER.USERNAME);
+    if (hasPassword(defaultAdmin)) {
+      return defaultAdmin;
+    }
+
+    if (systemUser && systemUser.username !== systemUser.id) {
+      return systemUser;
+    }
+
+    return null;
   },
 
   async setSystemUserCredentials(username: string, passwordHash: string): Promise<void> {

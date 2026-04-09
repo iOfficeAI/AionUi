@@ -121,72 +121,76 @@ describe('CronJobSiderSection', () => {
     expect(screen.getByText('cron.scheduledTasks')).toBeInTheDocument();
   });
 
-  it('renders all job items when expanded by default', () => {
+  it('does not render job items when collapsed by default', () => {
     render(<CronJobSiderSection jobs={mockJobs} pathname='/' onNavigate={mockOnNavigate} />);
 
-    expect(screen.getByTestId('cron-job-item-job-1')).toBeInTheDocument();
-    expect(screen.getByTestId('cron-job-item-job-2')).toBeInTheDocument();
-    expect(screen.getByTestId('cron-job-item-job-3')).toBeInTheDocument();
-  });
-
-  it('renders correct number of items per job', () => {
-    render(<CronJobSiderSection jobs={mockJobs} pathname='/' onNavigate={mockOnNavigate} />);
-
-    // Should render exactly 3 job items
-    const jobItems = screen.getAllByTestId(/cron-job-item-/);
-    expect(jobItems).toHaveLength(3);
-  });
-
-  it('collapses and hides child items when header is clicked', () => {
-    render(<CronJobSiderSection jobs={mockJobs} pathname='/' onNavigate={mockOnNavigate} />);
-
-    // Initially expanded, all items visible
-    expect(screen.getByTestId('cron-job-item-job-1')).toBeInTheDocument();
-    expect(screen.getByTestId('cron-job-item-job-2')).toBeInTheDocument();
-    expect(screen.getByTestId('cron-job-item-job-3')).toBeInTheDocument();
-
-    // Click header to collapse
-    const header = screen.getByText('cron.scheduledTasks').closest('div');
-    expect(header).toBeInTheDocument();
-    fireEvent.click(header!);
-
-    // Items should be hidden
     expect(screen.queryByTestId('cron-job-item-job-1')).not.toBeInTheDocument();
     expect(screen.queryByTestId('cron-job-item-job-2')).not.toBeInTheDocument();
     expect(screen.queryByTestId('cron-job-item-job-3')).not.toBeInTheDocument();
   });
 
-  it('expands and shows child items when header is clicked again', () => {
+  it('renders all job items once expanded', () => {
     render(<CronJobSiderSection jobs={mockJobs} pathname='/' onNavigate={mockOnNavigate} />);
 
+    // Default is collapsed — click to expand
     const header = screen.getByText('cron.scheduledTasks').closest('div');
-    expect(header).toBeInTheDocument();
-
-    // Collapse
     fireEvent.click(header!);
-    expect(screen.queryByTestId('cron-job-item-job-1')).not.toBeInTheDocument();
 
-    // Expand again
-    fireEvent.click(header!);
+    const jobItems = screen.getAllByTestId(/cron-job-item-/);
+    expect(jobItems).toHaveLength(3);
     expect(screen.getByTestId('cron-job-item-job-1')).toBeInTheDocument();
     expect(screen.getByTestId('cron-job-item-job-2')).toBeInTheDocument();
     expect(screen.getByTestId('cron-job-item-job-3')).toBeInTheDocument();
   });
 
-  it('shows Down icon when expanded', () => {
+  it('expands and shows child items when header is clicked', () => {
     render(<CronJobSiderSection jobs={mockJobs} pathname='/' onNavigate={mockOnNavigate} />);
-    expect(screen.getByTestId('icon-down')).toBeInTheDocument();
-    expect(screen.queryByTestId('icon-right')).not.toBeInTheDocument();
+
+    // Initially collapsed
+    expect(screen.queryByTestId('cron-job-item-job-1')).not.toBeInTheDocument();
+
+    // Click header to expand
+    const header = screen.getByText('cron.scheduledTasks').closest('div');
+    expect(header).toBeInTheDocument();
+    fireEvent.click(header!);
+
+    // Items should now be visible
+    expect(screen.getByTestId('cron-job-item-job-1')).toBeInTheDocument();
+    expect(screen.getByTestId('cron-job-item-job-2')).toBeInTheDocument();
+    expect(screen.getByTestId('cron-job-item-job-3')).toBeInTheDocument();
   });
 
-  it('shows Right icon when collapsed', () => {
+  it('collapses and hides child items when header is clicked again', () => {
+    render(<CronJobSiderSection jobs={mockJobs} pathname='/' onNavigate={mockOnNavigate} />);
+
+    const header = screen.getByText('cron.scheduledTasks').closest('div');
+    expect(header).toBeInTheDocument();
+
+    // Expand
+    fireEvent.click(header!);
+    expect(screen.getByTestId('cron-job-item-job-1')).toBeInTheDocument();
+
+    // Collapse again
+    fireEvent.click(header!);
+    expect(screen.queryByTestId('cron-job-item-job-1')).not.toBeInTheDocument();
+    expect(screen.queryByTestId('cron-job-item-job-2')).not.toBeInTheDocument();
+    expect(screen.queryByTestId('cron-job-item-job-3')).not.toBeInTheDocument();
+  });
+
+  it('shows Right icon when collapsed (default)', () => {
+    render(<CronJobSiderSection jobs={mockJobs} pathname='/' onNavigate={mockOnNavigate} />);
+    expect(screen.getByTestId('icon-right')).toBeInTheDocument();
+    expect(screen.queryByTestId('icon-down')).not.toBeInTheDocument();
+  });
+
+  it('shows Down icon when expanded', () => {
     render(<CronJobSiderSection jobs={mockJobs} pathname='/' onNavigate={mockOnNavigate} />);
 
     const header = screen.getByText('cron.scheduledTasks').closest('div');
     fireEvent.click(header!);
 
-    expect(screen.queryByTestId('icon-down')).not.toBeInTheDocument();
-    expect(screen.getByTestId('icon-right')).toBeInTheDocument();
+    expect(screen.getByTestId('icon-down')).toBeInTheDocument();
+    expect(screen.queryByTestId('icon-right')).not.toBeInTheDocument();
   });
 
   it('toggles visibility multiple times correctly', () => {
@@ -195,37 +199,45 @@ describe('CronJobSiderSection', () => {
     const header = screen.getByText('cron.scheduledTasks').closest('div');
     expect(header).toBeInTheDocument();
 
-    // Initial state: expanded
-    expect(screen.getByTestId('cron-job-item-job-1')).toBeInTheDocument();
-
-    // First collapse
-    fireEvent.click(header!);
+    // Initial state: collapsed
     expect(screen.queryByTestId('cron-job-item-job-1')).not.toBeInTheDocument();
 
     // First expand
     fireEvent.click(header!);
     expect(screen.getByTestId('cron-job-item-job-1')).toBeInTheDocument();
 
-    // Second collapse
+    // First collapse
     fireEvent.click(header!);
     expect(screen.queryByTestId('cron-job-item-job-1')).not.toBeInTheDocument();
 
     // Second expand
     fireEvent.click(header!);
     expect(screen.getByTestId('cron-job-item-job-1')).toBeInTheDocument();
+
+    // Second collapse
+    fireEvent.click(header!);
+    expect(screen.queryByTestId('cron-job-item-job-1')).not.toBeInTheDocument();
   });
 
-  it('renders single job correctly', () => {
+  it('renders single job correctly when expanded', () => {
     const singleJob = [mockJobs[0]];
     render(<CronJobSiderSection jobs={singleJob} pathname='/' onNavigate={mockOnNavigate} />);
+
+    // Expand first
+    const header = screen.getByText('cron.scheduledTasks').closest('div');
+    fireEvent.click(header!);
 
     expect(screen.getByTestId('cron-job-item-job-1')).toBeInTheDocument();
     expect(screen.queryByTestId('cron-job-item-job-2')).not.toBeInTheDocument();
   });
 
-  it('passes pathname and onNavigate props to child items', () => {
+  it('passes pathname and onNavigate props to child items when expanded', () => {
     const testPathname = '/scheduled/job-1';
     render(<CronJobSiderSection jobs={mockJobs} pathname={testPathname} onNavigate={mockOnNavigate} />);
+
+    // Expand to render child items
+    const header = screen.getByText('cron.scheduledTasks').closest('div');
+    fireEvent.click(header!);
 
     // Child items should be rendered (mocked component doesn't use these props, but they are passed)
     expect(screen.getByTestId('cron-job-item-job-1')).toBeInTheDocument();

@@ -44,6 +44,7 @@
       "dispatch": "Dispatch Agent",
       "subAgents": "Sub Agents",
       "workspace": "Workspace"
-    }
+    },
+    "error": "チームの作成に失敗しました"
   }
 }

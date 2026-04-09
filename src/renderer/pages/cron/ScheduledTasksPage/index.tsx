@@ -100,7 +100,7 @@ const ScheduledTasksPage: React.FC = () => {
           <div className='flex w-full items-start justify-between gap-12px sm:gap-16px max-[520px]:flex-wrap'>
             <h1
               className={classNames(
-                'm-0 min-w-0 flex-1 font-bold text-text-1',
+                'm-0 min-w-0 flex-1 font-bold text-t-primary',
                 isMobile ? 'text-24px leading-[1.2]' : 'text-28px leading-[1.15]'
               )}
             >
@@ -118,7 +118,7 @@ const ScheduledTasksPage: React.FC = () => {
           </div>
           <p
             className={classNames(
-              'm-0 w-full text-text-3',
+              'm-0 w-full text-t-secondary',
               isMobile ? 'text-13px leading-20px' : 'text-14px leading-22px'
             )}
           >
@@ -129,7 +129,7 @@ const ScheduledTasksPage: React.FC = () => {
         <div className='grid w-full box-border grid-cols-[minmax(0,1fr)_auto] items-center gap-x-12px gap-y-10px rounded-12px border border-solid border-[var(--color-border-2)] bg-fill-2 px-14px py-12px sm:rounded-14px sm:px-16px max-[520px]:grid-cols-1'>
           <span
             className={classNames(
-              'min-w-0 text-text-2',
+              'min-w-0 text-t-primary',
               isMobile ? 'text-12px leading-18px' : 'text-13px leading-20px'
             )}
           >
@@ -137,7 +137,7 @@ const ScheduledTasksPage: React.FC = () => {
           </span>
           <div className='justify-self-end max-[520px]:justify-self-start'>
             <Tooltip content={t('cron.page.keepAwakeTooltip')}>
-              <div className='flex items-center gap-8px text-text-3 text-12px leading-18px sm:text-13px'>
+              <div className='flex items-center gap-8px text-t-secondary text-12px leading-18px sm:text-13px'>
                 <span>{t('cron.page.keepAwake')}</span>
                 <Switch size='small' checked={keepAwake} onChange={handleKeepAwakeChange} />
               </div>
@@ -180,7 +180,7 @@ const ScheduledTasksPage: React.FC = () => {
                   <div className='mb-12px flex items-center justify-between gap-8px'>
                     <span
                       className={classNames(
-                        'mr-8px min-w-0 flex-1 font-medium text-text-1',
+                        'mr-8px min-w-0 flex-1 font-medium text-t-primary',
                         isMobile ? 'truncate text-14px leading-20px' : 'truncate text-15px leading-22px'
                       )}
                     >
@@ -191,7 +191,7 @@ const ScheduledTasksPage: React.FC = () => {
 
                   <div
                     className={classNames(
-                      'min-w-0 break-words text-text-2',
+                      'min-w-0 break-words text-t-secondary',
                       isMobile ? 'text-13px leading-20px' : 'text-14px leading-22px'
                     )}
                     title={formatSchedule(job, t)}
@@ -200,17 +200,17 @@ const ScheduledTasksPage: React.FC = () => {
                   </div>
 
                   <div
-                    className='mt-16px min-w-0 break-words text-text-2 text-13px leading-20px'
+                    className='mt-16px min-w-0 break-words text-t-secondary text-13px leading-20px'
                     title={job.state.nextRunAtMs ? `${t('cron.nextRun')} ${formatNextRun(job.state.nextRunAtMs)}` : '-'}
                   >
                     {job.state.nextRunAtMs ? `${t('cron.nextRun')} ${formatNextRun(job.state.nextRunAtMs)}` : '-'}
                   </div>
 
                   <div className='mt-14px flex items-center justify-between gap-10px'>
-                    <div className='min-w-0 flex items-center gap-6px text-12px leading-18px text-text-3'>
+                    <div className='min-w-0 flex items-center gap-6px text-12px leading-18px text-t-secondary'>
                       {agentMeta.name ? (
                         <Tooltip content={agentMeta.name}>
-                          <div className='flex h-16px w-16px shrink-0 items-center justify-center text-text-3'>
+                          <div className='flex h-16px w-16px shrink-0 items-center justify-center text-t-secondary'>
                             {agentMeta.logo ? (
                               <img
                                 src={agentMeta.logo}
@@ -218,7 +218,7 @@ const ScheduledTasksPage: React.FC = () => {
                                 className='h-16px w-16px shrink-0 rounded-50%'
                               />
                             ) : (
-                              <span className='flex h-16px w-16px items-center justify-center rounded-50% text-10px font-medium text-text-3'>
+                              <span className='flex h-16px w-16px items-center justify-center rounded-50% text-10px font-medium text-t-secondary'>
                                 {agentMeta.name.slice(0, 1)}
                               </span>
                             )}

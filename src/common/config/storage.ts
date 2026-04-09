@@ -34,6 +34,8 @@ export interface IConfigStorageRefer {
     yoloMode?: boolean;
     /** Preferred session mode for new conversations / 新会话的默认模式 */
     preferredMode?: string;
+    /** Preferred model ID for new conversations / 新会话的默认模型 */
+    preferredModelId?: string;
   };
   'codex.config'?: {
     cliPath?: string;
@@ -158,6 +160,15 @@ export interface IConfigStorageRefer {
   };
   // Skills Market: whether the aionui-skills builtin skill is enabled
   'skillsMarket.enabled'?: boolean;
+  // Desktop Pet: whether the desktop pet feature is enabled
+  'pet.enabled'?: boolean;
+  // Desktop Pet: size in pixels (200, 280, or 360)
+  'pet.size'?: number;
+  // Desktop Pet: do not disturb mode (pet stays idle, ignores AI events)
+  'pet.dnd'?: boolean;
+  // Desktop Pet: whether tool-call confirmations are routed to the pet's bubble
+  // (true) or remain in the main chat window (false). Default true.
+  'pet.confirmEnabled'?: boolean;
 }
 
 export interface IEnvStorageRefer {

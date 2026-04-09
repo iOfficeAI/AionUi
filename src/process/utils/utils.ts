@@ -7,7 +7,7 @@
 import type { IDirOrFile } from '@/common/adapter/ipcBridge';
 import { getPlatformServices } from '@/common/platform';
 import { getEnvAwareName } from '@/common/config/appEnv';
-import { existsSync, lstatSync, mkdirSync, readlinkSync, symlinkSync, unlinkSync } from 'fs';
+import { existsSync, lstatSync, mkdirSync, readlinkSync, realpathSync, symlinkSync, unlinkSync } from 'fs';
 import fs from 'fs/promises';
 import os from 'os';
 import path from 'path';
@@ -113,6 +113,29 @@ export const getConfigPath = (): string => {
   return ensureCliSafeSymlink(configPath, getEnvAwareName('.aionui-config'));
 };
 
+/**
+ * Resolve a user-chosen path back to its CLI-safe symlink when it matches
+ * the real target of a known default path.
+ * On macOS the file picker resolves symlinks, so a round-trip migration
+ * (away → back) would store the real path (with spaces) instead of the
+ * symlink path. This function detects that and returns the symlink path.
+ *
+ * 当用户选择的路径与默认路径的真实目标相同时，返回 symlink 路径。
+ * macOS 文件选择器会解析 symlink，导致来回迁移后存储的是带空格的真实路径。
+ */
+export const resolveCliSafePath = (inputPath: string, defaultPath: string): string => {
+  try {
+    const resolvedInput = realpathSync(path.resolve(inputPath));
+    const resolvedDefault = realpathSync(path.resolve(defaultPath));
+    if (resolvedInput === resolvedDefault) {
+      return defaultPath;
+    }
+  } catch {
+    // Path doesn't exist yet or can't be resolved — use as-is
+  }
+  return inputPath;
+};
+
 export const generateHashWithFullName = (fullName: string): string => {
   let hash = 0;
   for (let i = 0; i < fullName.length; i++) {
@@ -145,7 +168,7 @@ export async function readDirectoryRecursive(
   const matchSearch = searchText ? (fullPath: string) => fullPath.includes(searchText) : (_: string) => false;
 
   const checkStatus = () => {
-    if (abortController.signal.aborted) throw new Error('readDirectoryRecursive aborted!');
+    if (abortController?.signal.aborted) throw new Error('readDirectoryRecursive aborted!');
   };
 
   try {

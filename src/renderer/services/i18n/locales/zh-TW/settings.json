@@ -734,7 +734,8 @@
     "defaultModelDesc": "用於Agent對話時調用",
     "step1": "在微信中找到並給你的機器人發送任意消息",
     "step2": "配對請求會顯示在下方，點擊「批准」授權用戶",
-    "step3": "授權成功後，即可通過微信與 AI 助手對話"
+    "step3": "授權成功後，即可通過微信與 AI 助手對話",
+    "loginRequired": "請先使用微信掃碼登入"
   },
   "extensionAssistantReadonly": "擴展助手為唯讀，你可以複製它並編輯副本。",
   "agentManagement": {
@@ -807,5 +808,13 @@
     "pendingTimeout": "審批請求已過期（5 分鐘）。請重試。",
     "pendingCancel": "取消",
     "pendingTimeRemaining": "剩餘時間：{{time}}"
+  },
+  "noExternalSources": "未發現外部技能來源",
+  "aionrs": {
+    "available": "可用",
+    "notFound": "未找到",
+    "version": "版本",
+    "path": "路徑",
+    "providerNote": "服務商和 API 金鑰設定在模型頁面管理。Aion CLI 支援：Anthropic、OpenAI、AWS Bedrock。"
   }
 }

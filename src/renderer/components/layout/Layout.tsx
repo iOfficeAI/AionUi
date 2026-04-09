@@ -5,6 +5,7 @@
  */
 
 import { ipcBridge } from '@/common';
+import { TEAM_MODE_ENABLED } from '@/common/config/constants';
 import { ConfigStorage, type ICssTheme } from '@/common/config/storage';
 import PwaPullToRefresh from '@/renderer/components/layout/PwaPullToRefresh';
 import Titlebar from '@/renderer/components/layout/Titlebar';
@@ -99,7 +100,8 @@ const Layout: React.FC<{
   const navigate = useNavigate();
   useConversationShortcuts({ navigate });
   const location = useLocation();
-  const workspaceAvailable = location.pathname.startsWith('/conversation/') || location.pathname.startsWith('/team/');
+  const workspaceAvailable =
+    location.pathname.startsWith('/conversation/') || (TEAM_MODE_ENABLED && location.pathname.startsWith('/team/'));
   const collapsedRef = useRef(collapsed);
   const lastCssRef = useRef('');
   const lastUiCssUpdateAtRef = useRef(0);
@@ -436,7 +438,7 @@ const Layout: React.FC<{
           >
             <ArcoLayout.Header
               className={classNames(
-                'flex items-center justify-start py-10px px-16px pl-20px gap-12px layout-sider-header',
+                'flex items-center justify-start py-8px px-16px pl-20px gap-12px layout-sider-header',
                 isMobile && 'layout-sider-header--mobile',
                 {
                   'cursor-pointer group ': collapsed,
@@ -489,9 +491,7 @@ const Layout: React.FC<{
               )}
               {/* 侧栏折叠改由标题栏统一控制 / Sidebar folding handled by Titlebar toggle */}
             </ArcoLayout.Header>
-            <ArcoLayout.Content
-              className={classNames('p-8px layout-sider-content', !isMobile && 'h-[calc(100%-72px-16px)]')}
-            >
+            <ArcoLayout.Content className='pt-8px px-8px pb-0 layout-sider-content'>
               {React.isValidElement(sider)
                 ? React.cloneElement(sider, {
                     onSessionClick: () => {

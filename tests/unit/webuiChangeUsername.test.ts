@@ -111,6 +111,108 @@ describe('UserRepository.updateUsername', () => {
 });
 
 // ---------------------------------------------------------------------------
+// UserRepository.getPrimaryWebUIUser
+// ---------------------------------------------------------------------------
+
+describe('UserRepository.getPrimaryWebUIUser', () => {
+  beforeEach(() => {
+    vi.resetModules();
+  });
+
+  const makeDbUser = (overrides: Partial<Record<string, unknown>> = {}) => ({
+    id: 'system_default_user',
+    username: 'system_default_user',
+    password_hash: '',
+    jwt_secret: null,
+    created_at: 0,
+    updated_at: 0,
+    last_login: null,
+    ...overrides,
+  });
+
+  it('prefers the initialized system user when it already has a password', async () => {
+    const getUserByUsernameMock = vi.fn();
+
+    vi.doMock('@process/services/database/export', () => ({
+      getDatabase: vi.fn(() =>
+        Promise.resolve({
+          getSystemUser: vi.fn(() => makeDbUser({ username: 'alice', password_hash: 'hash' })),
+          getUserByUsername: getUserByUsernameMock,
+        })
+      ),
+    }));
+
+    const { UserRepository } = await import('@process/webserver/auth/repository/UserRepository');
+    const result = await UserRepository.getPrimaryWebUIUser();
+
+    expect(result?.username).toBe('alice');
+    expect(getUserByUsernameMock).not.toHaveBeenCalled();
+  });
+
+  it('falls back to the legacy admin record when the system placeholder has no password', async () => {
+    vi.doMock('@process/services/database/export', () => ({
+      getDatabase: vi.fn(() =>
+        Promise.resolve({
+          getSystemUser: vi.fn(() => makeDbUser()),
+          getUserByUsername: vi.fn(() => ({
+            success: true,
+            data: makeDbUser({
+              id: 'legacy-admin',
+              username: 'admin',
+              password_hash: 'legacy-hash',
+            }),
+          })),
+        })
+      ),
+    }));
+
+    const { UserRepository } = await import('@process/webserver/auth/repository/UserRepository');
+    const result = await UserRepository.getPrimaryWebUIUser();
+
+    expect(result?.id).toBe('legacy-admin');
+    expect(result?.username).toBe('admin');
+  });
+
+  it('returns a renamed system user when the placeholder has been customized but not initialized', async () => {
+    vi.doMock('@process/services/database/export', () => ({
+      getDatabase: vi.fn(() =>
+        Promise.resolve({
+          getSystemUser: vi.fn(() => makeDbUser({ username: 'alice' })),
+          getUserByUsername: vi.fn(() => ({
+            success: true,
+            data: null,
+          })),
+        })
+      ),
+    }));
+
+    const { UserRepository } = await import('@process/webserver/auth/repository/UserRepository');
+    const result = await UserRepository.getPrimaryWebUIUser();
+
+    expect(result?.id).toBe('system_default_user');
+    expect(result?.username).toBe('alice');
+  });
+
+  it('returns null when only an empty placeholder system user exists', async () => {
+    vi.doMock('@process/services/database/export', () => ({
+      getDatabase: vi.fn(() =>
+        Promise.resolve({
+          getSystemUser: vi.fn(() => makeDbUser()),
+          getUserByUsername: vi.fn(() => ({
+            success: true,
+            data: null,
+          })),
+        })
+      ),
+    }));
+
+    const { UserRepository } = await import('@process/webserver/auth/repository/UserRepository');
+
+    await expect(UserRepository.getPrimaryWebUIUser()).resolves.toBeNull();
+  });
+});
+
+// ---------------------------------------------------------------------------
 // WebuiService.changeUsername
 // ---------------------------------------------------------------------------
 
@@ -136,6 +238,7 @@ describe('WebuiService.changeUsername', () => {
     vi.doMock('@process/webserver/auth/repository/UserRepository', () => ({
       UserRepository: {
         getSystemUser: vi.fn(() => makeAdminUser('admin')),
+        getPrimaryWebUIUser: vi.fn(() => makeAdminUser('admin')),
         findByUsername: vi.fn(() => null),
         updateUsername: updateUsernameMock,
       },
@@ -162,6 +265,7 @@ describe('WebuiService.changeUsername', () => {
     vi.doMock('@process/webserver/auth/repository/UserRepository', () => ({
       UserRepository: {
         getSystemUser: vi.fn(() => makeAdminUser('admin')),
+        getPrimaryWebUIUser: vi.fn(() => makeAdminUser('admin')),
         findByUsername: vi.fn(() => null),
         updateUsername: vi.fn(),
       },
@@ -190,6 +294,7 @@ describe('WebuiService.changeUsername', () => {
     vi.doMock('@process/webserver/auth/repository/UserRepository', () => ({
       UserRepository: {
         getSystemUser: vi.fn(() => makeAdminUser('admin')),
+        getPrimaryWebUIUser: vi.fn(() => makeAdminUser('admin')),
         findByUsername: vi.fn(() => otherUser),
         updateUsername: vi.fn(),
       },
@@ -216,6 +321,7 @@ describe('WebuiService.changeUsername', () => {
     vi.doMock('@process/webserver/auth/repository/UserRepository', () => ({
       UserRepository: {
         getSystemUser: vi.fn(() => makeAdminUser('admin')),
+        getPrimaryWebUIUser: vi.fn(() => makeAdminUser('admin')),
         findByUsername: vi.fn(() => null),
         updateUsername: updateUsernameMock,
       },
@@ -236,5 +342,47 @@ describe('WebuiService.changeUsername', () => {
     expect(result).toBe('newname');
     expect(updateUsernameMock).toHaveBeenCalledWith('system_default_user', 'newname');
     expect(invalidateAllTokensMock).toHaveBeenCalledOnce();
+  });
+});
+
+// ---------------------------------------------------------------------------
+// WebuiService.getStatus
+// ---------------------------------------------------------------------------
+
+describe('WebuiService.getStatus', () => {
+  beforeEach(() => {
+    vi.resetModules();
+  });
+
+  it('uses the primary WebUI user for the reported admin username', async () => {
+    const primaryUser = {
+      id: 'system_default_user',
+      username: 'alice',
+      password_hash: 'hash',
+      jwt_secret: null,
+      created_at: 0,
+      updated_at: 0,
+      last_login: null,
+    };
+
+    vi.doMock('@process/webserver/auth/repository/UserRepository', () => ({
+      UserRepository: {
+        getPrimaryWebUIUser: vi.fn(async () => primaryUser),
+      },
+    }));
+    vi.doMock('@process/webserver/index', () => ({
+      getInitialAdminPassword: vi.fn(() => null),
+      clearInitialAdminPassword: vi.fn(),
+    }));
+
+    const { WebuiService } = await import('@/process/bridge/services/WebuiService');
+    const status = await WebuiService.getStatus({
+      server: {} as never,
+      wss: {} as never,
+      port: 3000,
+      allowRemote: false,
+    });
+
+    expect(status.adminUsername).toBe('alice');
   });
 });

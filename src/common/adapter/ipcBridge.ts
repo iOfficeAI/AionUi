@@ -213,6 +213,7 @@ export const dialog = {
 };
 export const fs = {
   getFilesByDir: bridge.buildProvider<Array<IDirOrFile>, { dir: string; root: string }>('get-file-by-dir'), // 获取指定文件夹下所有文件夹和文件列表
+  listWorkspaceFiles: bridge.buildProvider<Array<IWorkspaceFlatFile>, { root: string }>('list-workspace-files'),
   getImageBase64: bridge.buildProvider<string, { path: string }>('get-image-base64'), // 获取图片base64
   fetchRemoteImage: bridge.buildProvider<string, { url: string }>('fetch-remote-image'), // 远程图片转base64
   readFile: bridge.buildProvider<string, { path: string }>('read-file'), // 读取文件内容（UTF-8）
@@ -718,6 +719,15 @@ export const systemSettings = {
   setSaveUploadToWorkspace: bridge.buildProvider<void, { enabled: boolean }>(
     'system-settings:set-save-upload-to-workspace'
   ),
+  // Desktop pet settings
+  getPetEnabled: bridge.buildProvider<boolean, void>('system-settings:get-pet-enabled'),
+  setPetEnabled: bridge.buildProvider<void, { enabled: boolean }>('system-settings:set-pet-enabled'),
+  getPetSize: bridge.buildProvider<number, void>('system-settings:get-pet-size'),
+  setPetSize: bridge.buildProvider<void, { size: number }>('system-settings:set-pet-size'),
+  getPetDnd: bridge.buildProvider<boolean, void>('system-settings:get-pet-dnd'),
+  setPetDnd: bridge.buildProvider<void, { dnd: boolean }>('system-settings:set-pet-dnd'),
+  getPetConfirmEnabled: bridge.buildProvider<boolean, void>('system-settings:get-pet-confirm-enabled'),
+  setPetConfirmEnabled: bridge.buildProvider<void, { enabled: boolean }>('system-settings:set-pet-confirm-enabled'),
   getCommandQueueEnabled: bridge.buildProvider<boolean, void>('system-settings:get-command-queue-enabled'),
   setCommandQueueEnabled: bridge.buildProvider<void, { enabled: boolean }>('system-settings:set-command-queue-enabled'),
 };
@@ -976,6 +986,12 @@ export interface IFileMetadata {
   lastModified: number;
   isDirectory?: boolean;
 }
+
+export type IWorkspaceFlatFile = {
+  name: string;
+  fullPath: string;
+  relativePath: string;
+};
 
 export interface IResponseMessage {
   type: string;
@@ -1272,6 +1288,7 @@ export const team = {
     'team.send-message-to-agent'
   ),
   stop: bridge.buildProvider<void, { teamId: string }>('team.stop'),
+  ensureSession: bridge.buildProvider<void, { teamId: string }>('team.ensure-session'),
   renameAgent: bridge.buildProvider<void, { teamId: string; slotId: string; newName: string }>('team.rename-agent'),
   renameTeam: bridge.buildProvider<void, { id: string; name: string }>('team.rename'),
   messageStream: bridge.buildEmitter<import('@process/team/types').ITeamMessageEvent>('team.message.stream'),

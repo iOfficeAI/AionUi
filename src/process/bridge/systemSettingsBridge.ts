@@ -16,6 +16,7 @@ import { ipcBridge } from '@/common';
 import { getPlatformServices } from '@/common/platform';
 import { ProcessConfig } from '@process/utils/initStorage';
 import { changeLanguage } from '@process/services/i18n';
+import type { PetSize } from '@process/pet/petTypes';
 
 // Keep-awake power blocker state
 let _keepAwakeBlockerId: number | null = null;
@@ -135,6 +136,57 @@ export function initSystemSettingsBridge(): void {
   // 设置"上传文件保存到工作区" / Set "save uploads to workspace"
   ipcBridge.systemSettings.setSaveUploadToWorkspace.provider(async ({ enabled }) => {
     await ProcessConfig.set('upload.saveToWorkspace', enabled);
+  });
+
+  // Desktop pet settings
+  ipcBridge.systemSettings.getPetEnabled.provider(async () => {
+    const value = await ProcessConfig.get('pet.enabled');
+    return value ?? false;
+  });
+
+  ipcBridge.systemSettings.setPetEnabled.provider(async ({ enabled }) => {
+    await ProcessConfig.set('pet.enabled', enabled);
+    const { createPetWindow, destroyPetWindow } = await import('@process/pet/petManager');
+    if (enabled) {
+      createPetWindow();
+    } else {
+      destroyPetWindow();
+    }
+  });
+
+  ipcBridge.systemSettings.getPetSize.provider(async () => {
+    const value = await ProcessConfig.get('pet.size');
+    return value ?? 280;
+  });
+
+  ipcBridge.systemSettings.setPetSize.provider(async ({ size }) => {
+    await ProcessConfig.set('pet.size', size);
+    const { resizePetWindow } = await import('@process/pet/petManager');
+    resizePetWindow(size as PetSize);
+  });
+
+  ipcBridge.systemSettings.getPetDnd.provider(async () => {
+    const value = await ProcessConfig.get('pet.dnd');
+    return value ?? false;
+  });
+
+  ipcBridge.systemSettings.setPetDnd.provider(async ({ dnd }) => {
+    await ProcessConfig.set('pet.dnd', dnd);
+    const { setPetDndMode } = await import('@process/pet/petManager');
+    setPetDndMode(dnd);
+  });
+
+  // Pet confirm-bubble toggle: when disabled, AI tool-call confirmations
+  // are not routed to the pet's bubble window. Default true.
+  ipcBridge.systemSettings.getPetConfirmEnabled.provider(async () => {
+    const value = await ProcessConfig.get('pet.confirmEnabled');
+    return value ?? true;
+  });
+
+  ipcBridge.systemSettings.setPetConfirmEnabled.provider(async ({ enabled }) => {
+    await ProcessConfig.set('pet.confirmEnabled', enabled);
+    const { setPetConfirmEnabled } = await import('@process/pet/petManager');
+    setPetConfirmEnabled(enabled);
   });
 
   ipcBridge.systemSettings.getCommandQueueEnabled.provider(async () => {

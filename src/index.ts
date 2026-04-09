@@ -128,8 +128,9 @@ if (process.platform === 'darwin' || process.platform === 'linux') {
 }
 
 // Log environment diagnostics once at startup (persisted via electron-log).
-// Helps debug PATH / cygpath issues on Windows (#1157).
-logEnvironmentDiagnostics();
+// Phase 1 prints sync info immediately; Phase 2 resolves CLI tools in the
+// background — fire-and-forget so it never blocks the startup path (#1157).
+void logEnvironmentDiagnostics();
 
 // Handle Squirrel startup events (Windows installer)
 if (electronSquirrelStartup) {
@@ -511,6 +512,25 @@ const handleAppReady = async (): Promise<void> => {
     appReadyDone = true;
     mark('createWindow');
 
+    // Initialize desktop pet (delayed to not block main window)
+    setTimeout(() => {
+      void (async () => {
+        try {
+          const petEnabled = await ProcessConfig.get('pet.enabled');
+          if (petEnabled === true) {
+            // Read pet sub-settings before creating the pet so flags are honored
+            // on the first createPetWindow() call (which is sync).
+            const confirmEnabled = (await ProcessConfig.get('pet.confirmEnabled')) ?? true;
+            const { createPetWindow, setPetConfirmEnabled } = await import('./process/pet/petManager');
+            setPetConfirmEnabled(confirmEnabled);
+            createPetWindow();
+          }
+        } catch (error) {
+          console.error('[Pet] Failed to initialize:', error);
+        }
+      })();
+    }, 3000);
+
     // Run ACP detection in parallel with renderer loading.
     // By the time React mounts and calls getAvailableAgents (~300ms+),
     // detection (~700ms) is usually already done.
@@ -673,6 +693,14 @@ app.on('before-quit', async () => {
   destroyTray();
   // 在应用退出前清理工作进程
   workerTaskManager.clear();
+
+  // Destroy desktop pet windows
+  try {
+    const { destroyPetWindow } = await import('./process/pet/petManager');
+    destroyPetWindow();
+  } catch {
+    /* pet not initialized */
+  }
 
   // Stop all active team sessions (TCP servers + child processes)
   await disposeAllTeamSessions().catch((err) => console.error('[App] Failed to dispose team sessions:', err));

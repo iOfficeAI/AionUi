@@ -33,6 +33,7 @@ vi.mock('@/common', () => ({
   ipcBridge: {
     fs: {
       getFilesByDir: { provider: vi.fn() },
+      listWorkspaceFiles: { provider: vi.fn() },
       getImageBase64: { provider: vi.fn() },
       fetchRemoteImage: { provider: vi.fn() },
       readFile: { provider: vi.fn() },

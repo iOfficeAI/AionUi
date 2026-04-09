@@ -376,6 +376,8 @@ const RemoteSendBox: React.FC<{ conversation_id: string }> = ({ conversation_id 
       <SendBox
         value={content}
         onChange={setContent}
+        selectedWorkspaceItems={atPath}
+        onSelectedWorkspaceItemsChange={setAtPath}
         loading={aiProcessing}
         disabled={false}
         className='z-10'
@@ -394,7 +396,7 @@ const RemoteSendBox: React.FC<{ conversation_id: string }> = ({ conversation_id 
         lockMultiLine={true}
         tools={<FileAttachButton openFileSelector={openFileSelector} onLocalFilesAdded={handleFilesAdded} />}
         prefix={
-          uploadFile.length > 0 || atPath.some((item) => (typeof item === 'string' ? true : item.isFile)) ? (
+          uploadFile.length > 0 ? (
             <HorizontalFileList>
               {uploadFile.map((path) => (
                 <FilePreview
@@ -403,23 +405,6 @@ const RemoteSendBox: React.FC<{ conversation_id: string }> = ({ conversation_id 
                   onRemove={() => setUploadFile(uploadFile.filter((v) => v !== path))}
                 />
               ))}
-              {atPath.map((item) => {
-                const isFile = typeof item === 'string' ? true : item.isFile;
-                const path = typeof item === 'string' ? item : item.path;
-                if (isFile) {
-                  return (
-                    <FilePreview
-                      key={path}
-                      path={path}
-                      onRemove={() => {
-                        const newAtPath = atPath.filter((v) => (typeof v === 'string' ? v !== path : v.path !== path));
-                        setAtPath(newAtPath);
-                      }}
-                    />
-                  );
-                }
-                return null;
-              })}
             </HorizontalFileList>
           ) : undefined
         }

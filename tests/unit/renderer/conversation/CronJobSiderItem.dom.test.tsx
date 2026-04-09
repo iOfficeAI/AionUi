@@ -39,6 +39,8 @@ vi.mock('@/common', () => ({
 vi.mock('@/renderer/utils/emitter', () => ({
   emitter: {
     emit: vi.fn(),
+    on: vi.fn(() => () => {}),
+    off: vi.fn(),
   },
 }));
 

@@ -1,0 +1,138 @@
+<svg viewBox="-18 -18 58 58" width="500" height="500" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs><style>
+    /* 整体上移：从趴地位置升起 */
+    .wake-all {
+      transform-origin: 11px 17px;
+      animation: wake-lift 4s ease-in-out infinite;
+    }
+    /* 扁身体：开始可见，慢慢消失 */
+    .wake-flat { animation: wake-flat-out 4s ease-in-out infinite; }
+    /* 圆身体：开始不可见，慢慢出现 + 伸懒腰 */
+    .wake-round {
+      transform-origin: 11px 12px;
+      animation: wake-round-in 4s ease-in-out infinite;
+    }
+    .waking-shadow {
+      transform-origin: 11px 18px;
+      animation: waking-shadow-pulse 4s ease-in-out infinite;
+    }
+    .wake-eye { transform-origin:11px 11px; animation:wake-eye 4s ease-in-out infinite; }
+    .wake-arm-l { transform-origin:3.5px 13px; animation:wake-arm-l 4s ease-in-out infinite; }
+    .wake-arm-r { transform-origin:18px 13px; animation:wake-arm-r 4s ease-in-out infinite; }
+    .wake-base { animation:wake-base 4s ease-in-out infinite; }
+    .wake-z1 { animation:wake-z 4s ease-in-out infinite; animation-delay:0s; }
+    .wake-z2 { animation:wake-z 4s ease-in-out infinite; animation-delay:.3s; }
+    .wake-z3 { animation:wake-z 4s ease-in-out infinite; animation-delay:.6s; }
+    .wake-star { opacity:0; }
+    .wake-star1 { animation:wake-star-pop 4s ease-out infinite; animation-delay:2.2s; }
+    .wake-star2 { animation:wake-star-pop 4s ease-out infinite; animation-delay:2.4s; }
+    .wake-star3 { animation:wake-star-pop 4s ease-out infinite; animation-delay:2.6s; }
+
+    /* 整体从下往上升 */
+    @keyframes wake-lift {
+      0%,12%  { transform: translateY(4px); }
+      35%     { transform: translateY(0); }
+      50%     { transform: translateY(-6px); }
+      65%     { transform: translateY(1px); }
+      78%     { transform: translateY(-2px); }
+      90%,100%{ transform: translateY(0); }
+    }
+    /* 扁身体淡出 */
+    @keyframes wake-flat-out {
+      0%,15%  { opacity: 1; }
+      35%,100%{ opacity: 0; }
+    }
+    /* 圆身体淡入 + 伸懒腰拉伸 */
+    @keyframes wake-round-in {
+      0%,15%  { opacity: 0; transform: scaleY(0.7) scaleX(1.2); }
+      30%     { opacity: 1; transform: scaleY(1) scaleX(1); }
+      45%     { transform: scaleY(1.2) scaleX(0.88); }
+      60%     { transform: scaleY(0.93) scaleX(1.05); }
+      75%     { transform: scaleY(1.03) scaleX(0.98); }
+      85%,100%{ transform: scaleY(1) scaleX(1); }
+    }
+    @keyframes wake-eye {
+      0%,20%  { transform: scaleY(0.05); }
+      32%     { transform: scaleY(0.4); }
+      38%     { transform: scaleY(1.4); }
+      48%,100%{ transform: scaleY(1); }
+    }
+    @keyframes wake-arm-l {
+      0%,20%  { transform: rotate(15deg) translateY(3px); }
+      45%     { transform: rotate(-140deg) translateY(-3px); }
+      58%     { transform: rotate(-150deg) translateY(-4px); }
+      75%,100%{ transform: rotate(0); }
+    }
+    @keyframes wake-arm-r {
+      0%,20%  { transform: rotate(-15deg) translateY(3px); }
+      45%     { transform: rotate(140deg) translateY(-3px); }
+      58%     { transform: rotate(150deg) translateY(-4px); }
+      75%,100%{ transform: rotate(0); }
+    }
+    @keyframes wake-base {
+      0%,18%  { opacity: 1; }
+      38%,100%{ opacity: 0; }
+    }
+    @keyframes wake-z {
+      0%,5%   { transform:translate(14px,4px) scale(.5); opacity:.9; }
+      15%     { transform:translate(18px,-4px) scale(.9); opacity:.6; }
+      25%     { transform:translate(20px,-10px) scale(.4); opacity:0; }
+      26%,100%{ opacity:0; transform:scale(0); }
+    }
+    @keyframes wake-star-pop {
+      0%    { transform:translate(0,0) scale(0); opacity:0; }
+      15%   { transform:translate(var(--tx),var(--ty)) scale(1.2); opacity:1; }
+      40%   { transform:translate(var(--tx2),var(--ty2)) scale(.8); opacity:.7; }
+      70%,100%{ opacity:0; }
+    }
+    @keyframes waking-shadow-pulse {
+      0%,12% { transform: scaleX(1); opacity: 0.35; }
+      35% { transform: scaleX(0.88); opacity: 0.28; }
+      50% { transform: scaleX(0.92); opacity: 0.32; }
+      90%,100% { transform: scaleX(1); opacity: 0.35; }
+    }
+  </style>
+  <g id="wake-pz"><rect x="0" y="0" width="3" height="0.7"/><rect x="1.6" y="0.7" width="0.8" height="0.8"/><rect x="0.7" y="1.5" width="0.8" height="0.8"/><rect x="0" y="2.3" width="3" height="0.7"/></g>
+  </defs>
+
+  <!-- zzz 飘出 -->
+  <use href="#wake-pz" class="wake-z1" fill="#8891b8"/>
+  <use href="#wake-pz" class="wake-z2" fill="#a0a8c8"/>
+  <use href="#wake-pz" class="wake-z3" fill="#c0c8e0"/>
+
+  <!-- shadow -->
+  <ellipse class="waking-shadow" cx="11" cy="18" rx="4" ry="0.6" fill="#c0c0c0"/>
+
+  <!-- 底座（趴着时有，起来后消失） -->
+  <rect class="wake-base" x="2" y="18" width="18" height="1" rx="0.3" fill="#D9D9D9"/>
+
+  <g class="wake-all">
+    <!-- 手臂 -->
+    <g class="wake-arm-l"><rect x="1" y="12" width="3.5" height="3.5" rx="1.75" fill="#97A0C5" fill-opacity="0.7"/></g>
+    <g class="wake-arm-r"><path d="M16.34 14.35C17.08 13.6 18.28 13.6 19.03 14.34C19.77 15.08 19.77 16.28 19.03 17.03C18.29 17.77 17.09 17.77 16.35 17.03C15.6 16.29 15.6 15.09 16.34 14.35Z" fill="#B9C3EB"/></g>
+
+    <!-- 扁身体层（sleeping 造型，淡出） -->
+    <g class="wake-flat">
+      <rect x="3" y="7" width="16" height="10" rx="5" fill="#97A0C5"/>
+      <path d="M14.2041 6.85L7.7959 6.85L11 1.3L14.2041 6.85Z" fill="#FF5B24"/>
+      <path d="M8 11H11" stroke="black" stroke-linecap="round"/>
+      <path d="M7 13C8.85 15.12 12.15 15.12 14 13" stroke="black" stroke-linecap="round"/>
+    </g>
+
+    <!-- 圆身体层（idle 造型，淡入 + 伸懒腰） -->
+    <g class="wake-round">
+      <rect x="5" y="6" width="12" height="12" rx="6" fill="#97A0C5"/>
+      <path d="M14.2041 6.85L7.7959 6.85L11 1.3L14.2041 6.85Z" fill="#FF5B24"/>
+      <g class="wake-eye"><rect x="10" y="10" width="2" height="2" rx="1" fill="#111827"/></g>
+      <path d="M8 13.5 Q11 17 14 13.5" stroke="#111827" stroke-width="1.1" stroke-linecap="round" fill="none"/>
+    </g>
+  </g>
+
+  <!-- 星星 -->
+  <rect class="wake-star wake-star1" x="11" y="8" width="1.5" height="1.5" rx="0.4" fill="#e8714a"
+        style="--tx:-8px;--ty:-10px;--tx2:-10px;--ty2:-14px;"/>
+  <rect class="wake-star wake-star2" x="11" y="8" width="1.2" height="1.2" rx="0.3" fill="#FF5B24"
+        style="--tx:8px;--ty:-12px;--tx2:11px;--ty2:-16px;"/>
+  <rect class="wake-star wake-star3" x="11" y="8" width="1" height="1" rx="0.25" fill="#94BDFF"
+        style="--tx:-5px;--ty:-14px;--tx2:-7px;--ty2:-18px;"/>
+</svg>

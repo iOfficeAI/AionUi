@@ -5,6 +5,7 @@ import { useTranslation } from 'react-i18next';
 import { useLocation, useNavigate } from 'react-router-dom';
 
 import { ipcBridge } from '@/common';
+import { TEAM_MODE_ENABLED } from '@/common/config/constants';
 import WindowControls from '../WindowControls';
 import { WORKSPACE_STATE_EVENT, dispatchWorkspaceToggleEvent } from '@renderer/utils/workspace/workspaceEvents';
 import type { WorkspaceStateDetail } from '@renderer/utils/workspace/workspaceEvents';
@@ -133,23 +134,25 @@ const Titlebar: React.FC<TitlebarProps> = ({ workspaceAvailable }) => {
     }
 
     // Team mode: show team name
-    const teamMatch = location.pathname.match(/^\/team\/([^/]+)/);
-    const teamId = teamMatch?.[1];
-    if (teamId) {
-      let cancelled = false;
-      void ipcBridge.team.get
-        .invoke({ id: teamId })
-        .then((team) => {
-          if (cancelled) return;
-          setMobileCenterTitle(team?.name || appTitle);
-        })
-        .catch(() => {
-          if (cancelled) return;
-          setMobileCenterTitle(appTitle);
-        });
-      return () => {
-        cancelled = true;
-      };
+    if (TEAM_MODE_ENABLED) {
+      const teamMatch = location.pathname.match(/^\/team\/([^/]+)/);
+      const teamId = teamMatch?.[1];
+      if (teamId) {
+        let cancelled = false;
+        void ipcBridge.team.get
+          .invoke({ id: teamId })
+          .then((team) => {
+            if (cancelled) return;
+            setMobileCenterTitle(team?.name || appTitle);
+          })
+          .catch(() => {
+            if (cancelled) return;
+            setMobileCenterTitle(appTitle);
+          });
+        return () => {
+          cancelled = true;
+        };
+      }
     }
 
     // Single agent mode: show conversation name

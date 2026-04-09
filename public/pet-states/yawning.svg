@@ -1,0 +1,32 @@
+<svg viewBox="-18 -18 58 58" width="500" height="500" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs><style>
+    .yawn-body { transform-origin:11px 18px; animation:yawn-lean 3.5s ease-in-out infinite; }
+    .yawn-mouth { transform-origin:11px 14.5px; animation:yawn-open 3.5s ease-in-out infinite; }
+    .yawn-hand { transform-origin:16px 14px; animation:yawn-hand 3.5s ease-in-out infinite; }
+    .yawn-shadow { transform-origin:11px 22.5px; animation:yawn-shadow 3.5s ease-in-out infinite; }
+    @keyframes yawn-lean { 0%,100%{transform:translateY(0) rotate(0)} 35%,65%{transform:translateY(-1px) rotate(-4deg)} }
+    @keyframes yawn-open { 0%,15%{transform:scale(.4)} 30%{transform:scale(1.1)} 50%{transform:scale(1.3)} 70%{transform:scale(1)} 85%,100%{transform:scale(.4)} }
+    @keyframes yawn-hand { 0%,15%{transform:rotate(0) translateY(0)} 30%,70%{transform:rotate(-40deg) translateY(-2px)} 85%,100%{transform:rotate(0) translateY(0)} }
+    @keyframes yawn-shadow { 0%,100%{transform:scaleX(1);opacity:.3} 50%{transform:scaleX(1.03);opacity:.35} }
+  </style></defs>
+  <ellipse class="yawn-shadow" cx="11" cy="22.5" rx="4" ry="0.6" fill="#c0c0c0"/>
+  <g class="yawn-body">
+    <!-- 左手垂下 -->
+    <rect x="2" y="10" width="3" height="3" rx="0.5" fill="#8891b8" opacity="0.6" transform="rotate(45 3.5 11.5)"/>
+    <!-- 右手捂嘴（动画抬起） -->
+    <g class="yawn-hand">
+      <rect x="16" y="10" width="3.5" height="3.5" rx="1.75" fill="#8891b8" opacity="0.8"/>
+    </g>
+    <rect x="5" y="6" width="12" height="12" rx="6" fill="#97A0C5"/>
+    <polygon points="11,1 15,7 7,7" fill="#FF6B35" transform="rotate(-6 11 5)"/>
+      <rect x="10" y="2" width="1" height="1" fill="#e8714a" transform="rotate(-6 11 5)"/>
+    <!-- 半闭眼（向下弧线，困的感觉） -->
+    <path d="M8.5 11.5 Q9.5 10.5 10.5 11.5" stroke="#111827" stroke-width="1" stroke-linecap="round" fill="none"/>
+    <path d="M11.5 11.5 Q12.5 10.5 13.5 11.5" stroke="#111827" stroke-width="1" stroke-linecap="round" fill="none"/>
+    <!-- 粉色张嘴（打哈欠） -->
+    <g class="yawn-mouth">
+      <ellipse cx="11" cy="14.5" rx="1.8" ry="2.2" fill="#e8a0a0"/>
+      <ellipse cx="11" cy="14" rx="1.3" ry="1.5" fill="#d07070"/>
+    </g>
+  </g>
+</svg>

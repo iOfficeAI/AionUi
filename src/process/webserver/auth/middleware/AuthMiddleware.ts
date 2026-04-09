@@ -80,16 +80,23 @@ export class AuthMiddleware {
    * Request logging middleware
    */
   public static requestLoggingMiddleware(req: Request, res: Response, next: NextFunction): void {
+    // Only log API requests; skip Vite module / static asset requests to reduce noise
+    const url = req.url;
+    if (!url.startsWith('/api/') && !url.startsWith('/login')) {
+      next();
+      return;
+    }
+
     const start = Date.now();
     const ip = req.ip || req.connection.remoteAddress || 'unknown';
 
-    console.log(`[${new Date().toISOString()}] ${req.method} ${req.url} - ${ip}`);
+    console.log(`[${new Date().toISOString()}] ${req.method} ${url} - ${ip}`);
 
     // 记录响应时间
     // Log response time
     res.on('finish', () => {
       const duration = Date.now() - start;
-      console.log(`[${new Date().toISOString()}] ${req.method} ${req.url} - ${res.statusCode} - ${duration}ms`);
+      console.log(`[${new Date().toISOString()}] ${req.method} ${url} - ${res.statusCode} - ${duration}ms`);
     });
 
     next();

@@ -403,11 +403,6 @@ const GeminiSendBox: React.FC<{
         />
       )}
 
-      <ThoughtDisplay
-        thought={hasThinkingMessage ? undefined : thought}
-        running={running && !hasThinkingMessage}
-        onStop={handleStop}
-      />
       <CommandQueuePanel
         items={queuedCommands}
         paused={isQueuePaused}
@@ -421,10 +416,20 @@ const GeminiSendBox: React.FC<{
         onRemove={remove}
         onClear={clear}
       />
+      <ThoughtDisplay
+        thought={hasThinkingMessage ? undefined : thought}
+        running={running && !hasThinkingMessage}
+        onStop={handleStop}
+      />
 
       <SendBox
         value={content}
         onChange={setContent}
+        selectedWorkspaceItems={atPath}
+        onSelectedWorkspaceItemsChange={(items) => {
+          emitter.emit('gemini.selected.file', items);
+          setAtPath(items);
+        }}
         loading={isBusy}
         disabled={!currentModel?.useModel}
         placeholder={
@@ -465,8 +470,7 @@ const GeminiSendBox: React.FC<{
         }
         prefix={
           <>
-            {/* Files on top */}
-            {(uploadFile.length > 0 || atPath.some((item) => (typeof item === 'string' ? true : item.isFile))) && (
+            {uploadFile.length > 0 && (
               <HorizontalFileList>
                 {uploadFile.map((path) => (
                   <FilePreview
@@ -475,29 +479,8 @@ const GeminiSendBox: React.FC<{
                     onRemove={() => setUploadFile(uploadFile.filter((v) => v !== path))}
                   />
                 ))}
-                {atPath.map((item) => {
-                  const isFile = typeof item === 'string' ? true : item.isFile;
-                  const path = typeof item === 'string' ? item : item.path;
-                  if (isFile) {
-                    return (
-                      <FilePreview
-                        key={path}
-                        path={path}
-                        onRemove={() => {
-                          const newAtPath = atPath.filter((v) =>
-                            typeof v === 'string' ? v !== path : v.path !== path
-                          );
-                          emitter.emit('gemini.selected.file', newAtPath);
-                          setAtPath(newAtPath);
-                        }}
-                      />
-                    );
-                  }
-                  return null;
-                })}
               </HorizontalFileList>
             )}
-            {/* Folder tags below */}
             {atPath.some((item) => (typeof item === 'string' ? false : !item.isFile)) && (
               <div className='flex flex-wrap items-center gap-8px mb-8px'>
                 {atPath.map((item) => {

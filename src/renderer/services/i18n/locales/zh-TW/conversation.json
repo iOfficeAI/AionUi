@@ -25,7 +25,7 @@
     "recents": "最近",
     "today": "今天",
     "yesterday": "昨天",
-    "recent7Days": "近7天",
+    "recent7Days": "最近7天",
     "earlier": "更早",
     "noHistory": "暫無對話記錄",
     "deleteTitle": "刪除",
@@ -289,5 +289,9 @@
     "request_sent": "Request sent to agent",
     "failed": "Failed to generate",
     "preset_registered": "Agent preset registered successfully!"
+  },
+  "thinking": {
+    "complete": "思考完成",
+    "label": "思考中..."
   }
 }

@@ -3,6 +3,7 @@ import { isElectronDesktop, resolveExtensionAssetUrl } from '@/renderer/utils/pl
 import { extensions as extensionsIpc, type IExtensionSettingsTab } from '@/common/adapter/ipcBridge';
 import { useExtI18n } from '@/renderer/hooks/system/useExtI18n';
 import {
+  Cat,
   Communication,
   Computer,
   Earth,
@@ -33,6 +34,7 @@ export const BUILTIN_TAB_IDS = [
   'tools',
   'display',
   'webui',
+  'pet',
   'system',
   'about',
 ] as const;
@@ -144,6 +146,7 @@ const SettingsSider: React.FC<{ collapsed?: boolean; tooltipEnabled?: boolean }>
         icon: isDesktop ? <Earth /> : <Communication />,
         path: 'webui',
       },
+      pet: { id: 'pet', label: t('pet.desktopPet'), icon: <Cat />, path: 'pet' },
       system: { id: 'system', label: t('settings.system'), icon: <System />, path: 'system' },
       about: { id: 'about', label: t('settings.about'), icon: <Info />, path: 'about' },
     };
@@ -209,7 +212,7 @@ const SettingsSider: React.FC<{ collapsed?: boolean; tooltipEnabled?: boolean }>
   const siderTooltipProps = getSiderTooltipProps(tooltipEnabled);
   return (
     <div
-      className={classNames('flex-1 min-h-0 settings-sider flex flex-col gap-2px overflow-y-auto overflow-x-hidden', {
+      className={classNames('h-full settings-sider flex flex-col gap-2px overflow-y-auto overflow-x-hidden', {
         'settings-sider--collapsed': collapsed,
       })}
     >
@@ -221,9 +224,11 @@ const SettingsSider: React.FC<{ collapsed?: boolean; tooltipEnabled?: boolean }>
               data-settings-id={item.id}
               data-settings-path={item.path}
               className={classNames(
-                'settings-sider__item hover:bg-aou-1 px-12px py-8px rd-8px flex justify-start items-center group cursor-pointer relative overflow-hidden group shrink-0 conversation-item [&.conversation-item+&.conversation-item]:mt-2px',
+                'settings-sider__item h-40px rd-8px flex items-center gap-8px group cursor-pointer relative overflow-hidden shrink-0 conversation-item [&.conversation-item+&.conversation-item]:mt-2px transition-colors',
+                collapsed ? 'w-full justify-center px-0' : 'justify-start px-10px',
                 {
-                  '!bg-aou-2 ': isSelected,
+                  'hover:bg-[rgba(var(--primary-6),0.14)]': !isSelected,
+                  '!bg-active': isSelected,
                 }
               )}
               onClick={() => {
@@ -232,28 +237,34 @@ const SettingsSider: React.FC<{ collapsed?: boolean; tooltipEnabled?: boolean }>
                 });
               }}
             >
-              {item.isImageIcon ? (
-                <div className='mt-2px ml-2px mr-8px w-20px h-20px flex shrink-0 items-center justify-center'>
-                  {item.icon}
-                </div>
-              ) : (
-                React.cloneElement(
-                  item.icon as React.ReactElement<{
-                    theme?: string;
-                    size?: string | number;
-                    className?: string;
-                    strokeWidth?: number;
-                  }>,
-                  {
-                    theme: 'outline',
-                    size: '20',
-                    strokeWidth: 3,
-                    className: 'mt-2px ml-2px mr-8px flex text-t-secondary',
-                  }
-                )
-              )}
-              <FlexFullContainer className='h-24px'>
-                <div className='settings-sider__item-label text-nowrap overflow-hidden inline-block w-full text-14px lh-24px whitespace-nowrap text-t-primary'>
+              {/* Leading icon — fixed 28px column to align with main sider rows */}
+              <span className='w-28px h-28px flex items-center justify-center shrink-0'>
+                {item.isImageIcon ? (
+                  <span className='w-18px h-18px flex items-center justify-center'>{item.icon}</span>
+                ) : (
+                  React.cloneElement(
+                    item.icon as React.ReactElement<{
+                      theme?: string;
+                      size?: string | number;
+                      className?: string;
+                      strokeWidth?: number;
+                    }>,
+                    {
+                      theme: 'outline',
+                      size: '20',
+                      strokeWidth: 3,
+                      className: 'block leading-none text-t-secondary',
+                    }
+                  )
+                )}
+              </span>
+              <FlexFullContainer className='h-24px collapsed-hidden'>
+                <div
+                  className={classNames(
+                    'settings-sider__item-label text-nowrap overflow-hidden inline-block w-full text-14px lh-24px whitespace-nowrap',
+                    isSelected ? 'text-t-primary font-medium' : 'text-t-primary'
+                  )}
+                >
                   {item.label}
                 </div>
               </FlexFullContainer>
