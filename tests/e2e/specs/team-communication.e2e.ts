@@ -4,7 +4,7 @@
  * Scenario 4: Leader communication — user types in UI input and sends via UI button
  */
 import { test, expect } from '../fixtures';
-import { invokeBridge } from '../helpers';
+import { invokeBridge, navigateTo } from '../helpers';
 
 test.describe('Team Communication', () => {
   test('scenario 4: send message to leader via UI input', async ({ page }) => {
@@ -39,7 +39,7 @@ test.describe('Team Communication', () => {
     expect(teamId).toBeTruthy();
 
     // Navigate to team page by clicking sidebar entry
-    await page.locator('text=E2E Test Team').first().click();
+    await navigateTo(page, '#/team/' + teamId);
     await page.waitForURL(/\/team\//, { timeout: 10000 });
 
     // Screenshot: team page loaded

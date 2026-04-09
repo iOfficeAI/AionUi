@@ -311,6 +311,42 @@ describe('WorkspaceSnapshotService', () => {
     });
   });
 
+  describe('DEFAULT_GITIGNORE excludes common heavy directories (#2159)', () => {
+    it('creates .gitignore with build output patterns for non-git workspaces', async () => {
+      await fs.writeFile(path.join(tmpDir, 'hello.txt'), 'hello');
+      await service.init(tmpDir);
+
+      const content = await fs.readFile(path.join(tmpDir, '.gitignore'), 'utf-8');
+
+      // Core patterns that were always present
+      expect(content).toContain('node_modules/');
+      expect(content).toContain('.git/');
+      expect(content).toContain('*.lock');
+
+      // Expanded patterns to prevent huge snapshots (#2159)
+      expect(content).toContain('dist/');
+      expect(content).toContain('build/');
+      expect(content).toContain('.next/');
+      expect(content).toContain('target/');
+      expect(content).toContain('__pycache__/');
+      expect(content).toContain('.venv/');
+    });
+
+    it('excludes dist/ files from snapshot baseline', async () => {
+      // Create a workspace with build output that should be excluded
+      await fs.mkdir(path.join(tmpDir, 'dist'), { recursive: true });
+      await fs.writeFile(path.join(tmpDir, 'dist', 'bundle.js'), 'large bundle');
+      await fs.writeFile(path.join(tmpDir, 'src.txt'), 'source');
+      await service.init(tmpDir);
+
+      // Modify a file in dist — should not appear in compare since dist is gitignored
+      await fs.writeFile(path.join(tmpDir, 'dist', 'bundle.js'), 'changed bundle');
+      const { unstaged } = await service.compare(tmpDir);
+      const distChange = unstaged.find((c) => c.relativePath.startsWith('dist/'));
+      expect(distChange).toBeUndefined();
+    });
+  });
+
   describe('maxBuffer handling (ELECTRON-G4)', () => {
     it('snapshot init handles workspace with many files without maxBuffer error', async () => {
       // Create many files to exercise the git add . path with substantial output

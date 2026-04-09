@@ -12,7 +12,7 @@
  * Operations MUST go through leader chat input — invokeBridge is only for setup.
  */
 import { test, expect } from '../fixtures';
-import { invokeBridge, TEAM_SUPPORTED_BACKENDS } from '../helpers';
+import { invokeBridge, navigateTo, TEAM_SUPPORTED_BACKENDS } from '../helpers';
 
 /** Map leader type to agentType + conversationType values used in team.create */
 const AGENT_TYPE_MAP: Record<string, { agentType: string; conversationType: string }> = {
@@ -74,7 +74,7 @@ for (const { leaderType, teamName } of LEADER_CONFIGS) {
     }
 
     // [setup] Navigate to team page, wait for leader chat input
-    await page.locator(`text=${teamName}`).first().click();
+    await navigateTo(page, '#/team/' + resolvedTeamId);
     await page.waitForURL(/\/team\//);
     const chatInput = page.locator('textarea').first();
     await expect(chatInput).toBeVisible({ timeout: 10000 });
