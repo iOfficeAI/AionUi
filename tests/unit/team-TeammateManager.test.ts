@@ -10,6 +10,7 @@ const mockIpcBridge = vi.hoisted(() => ({
     agentStatusChanged: { emit: vi.fn() },
     agentRemoved: { emit: vi.fn() },
     agentRenamed: { emit: vi.fn() },
+    messageStream: { emit: vi.fn() },
   },
   acpConversation: {
     responseStream: { emit: vi.fn() },
@@ -579,8 +580,59 @@ describe('TeammateManager', () => {
         data: { text: 'hello' },
       });
 
-      // No status change should have been made for unowned conversation
-      expect(mockIpcBridge.team.agentStatusChanged.emit).not.toHaveBeenCalled();
+      // No IPC calls should have been made for unowned conversation
+      expect(mockIpcBridge.team.messageStream.emit).not.toHaveBeenCalled();
+      mgr.dispose();
+    });
+
+    it('forwards non-finish events to ipcBridge.team.messageStream', () => {
+      const agent = makeAgent({ slotId: 'slot-1', conversationId: 'conv-1' });
+      const { mgr } = makeTeammateManager([agent]);
+
+      teamEventBus.emit('responseStream', {
+        type: 'text',
+        conversation_id: 'conv-1',
+        msg_id: 'msg-1',
+        data: { text: 'hello' },
+      });
+
+      expect(mockIpcBridge.team.messageStream.emit).toHaveBeenCalledWith(
+        expect.objectContaining({
+          teamId: 'team-1',
+          slotId: 'slot-1',
+          type: 'text',
+        })
+      );
+      mgr.dispose();
+    });
+
+    it('does not forward finish events to messageStream', () => {
+      const agent = makeAgent({ slotId: 'slot-1', conversationId: 'conv-1' });
+      const { mgr } = makeTeammateManager([agent]);
+
+      teamEventBus.emit('responseStream', {
+        type: 'finish',
+        conversation_id: 'conv-1',
+        msg_id: 'msg-1',
+        data: null,
+      });
+
+      expect(mockIpcBridge.team.messageStream.emit).not.toHaveBeenCalled();
+      mgr.dispose();
+    });
+
+    it('does not forward error events to messageStream', () => {
+      const agent = makeAgent({ slotId: 'slot-1', conversationId: 'conv-1' });
+      const { mgr } = makeTeammateManager([agent]);
+
+      teamEventBus.emit('responseStream', {
+        type: 'error',
+        conversation_id: 'conv-1',
+        msg_id: 'msg-1',
+        data: { error: 'something went wrong' },
+      });
+
+      expect(mockIpcBridge.team.messageStream.emit).not.toHaveBeenCalled();
       mgr.dispose();
     });
   });
