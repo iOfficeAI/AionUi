@@ -317,6 +317,7 @@ export class AcpConnection {
       case 'vibe':
       case 'cursor':
       case 'kiro':
+      case 'hermes':
         if (!cliPath) {
           throw new Error(`CLI path is required for ${backend} backend`);
         }
