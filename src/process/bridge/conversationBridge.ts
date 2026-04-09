@@ -338,7 +338,8 @@ export function initConversationBridge(
     if (id) {
       workerTaskManager.kill(id);
     } else {
-      await workerTaskManager.clear();
+      // fire-and-forget: don't block the IPC response on the 3s graceful shutdown
+      void workerTaskManager.clear();
     }
   });
 
