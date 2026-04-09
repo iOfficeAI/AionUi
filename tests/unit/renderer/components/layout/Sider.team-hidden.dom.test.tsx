@@ -58,10 +58,27 @@ vi.mock('@/renderer/pages/conversation/GroupedHistory', () => ({
   default: () => <div data-testid='workspace-grouped-history' />,
 }));
 
+vi.mock('@/renderer/pages/team/hooks/useTeamList', () => ({
+  useTeamList: () => ({ teams: [], mutate: vi.fn(), removeTeam: vi.fn() }),
+}));
+
+vi.mock('swr', () => ({
+  default: vi.fn(() => ({ data: undefined, mutate: vi.fn() })),
+  useSWRConfig: () => ({ mutate: vi.fn() }),
+}));
+
+vi.mock('@/common', () => ({
+  ipcBridge: { team: { renameTeam: { invoke: vi.fn() } } },
+}));
+
+vi.mock('@/renderer/pages/team/components/TeamCreateModal', () => ({
+  default: () => null,
+}));
+
 import Sider from '@/renderer/components/layout/Sider';
 
 describe('Sider team entry visibility', () => {
-  it('hides the team section while keeping the rest of the sidebar visible', async () => {
+  it('shows the team section when team mode is enabled', async () => {
     render(
       <MemoryRouter initialEntries={['/guid']}>
         <Sider />
@@ -74,6 +91,6 @@ describe('Sider team entry visibility', () => {
     expect(screen.getByTestId('cron-job-section')).toBeInTheDocument();
     expect(await screen.findByTestId('workspace-grouped-history')).toBeInTheDocument();
     expect(screen.getByTestId('sider-footer')).toBeInTheDocument();
-    expect(screen.queryByText('team.sider.title')).not.toBeInTheDocument();
+    expect(screen.getByText('team.sider.title')).toBeInTheDocument();
   });
 });
