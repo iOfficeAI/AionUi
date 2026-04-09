@@ -78,6 +78,7 @@
   "name": "名称",
   "added": "已添加",
   "status": "状态",
+  "agentMode": "Agent 模式",
   "refreshSuccess": "刷新成功",
   "import": "导入",
   "processing": "处理中...",

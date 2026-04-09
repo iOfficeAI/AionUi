@@ -164,6 +164,8 @@
   "notification": "通知",
   "cronNotificationEnabled": "定時任務完成通知",
   "promptTimeout": "LLM 請求逾時時間（秒）",
+  "agentIdleTimeout": "Agent 閒置逾時（分鐘）",
+  "agentIdleTimeoutDesc": "閒置超過此時長後自動終止 Agent 程序以釋放記憶體",
   "gemini": "Gemini",
   "model": "模型",
   "system": "系統",

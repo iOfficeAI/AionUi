@@ -164,6 +164,8 @@
   "notification": "Notifications",
   "cronNotificationEnabled": "Scheduled Task Completion",
   "promptTimeout": "LLM Prompt Timeout (s)",
+  "agentIdleTimeout": "Agent Idle Timeout (min)",
+  "agentIdleTimeoutDesc": "Kill idle agent processes after this duration to free memory",
   "gemini": "Gemini CLI",
   "model": "Model",
   "system": "System",

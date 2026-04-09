@@ -346,6 +346,9 @@ class AcpAgentManager extends BaseAgentManager<AcpAgentManagerData, AcpPermissio
             return;
           }
 
+          // Any streaming event counts as activity for idle-timeout tracking
+          this._lastActivityAt = Date.now();
+
           const pipelineStart = Date.now();
 
           // Reduce status noise: show full lifecycle only for the first turn.
@@ -502,6 +505,9 @@ class AcpAgentManager extends BaseAgentManager<AcpAgentManagerData, AcpPermissio
           }
         },
         onSignalEvent: async (v) => {
+          // Signal events (permission, finish, etc.) count as activity
+          this._lastActivityAt = Date.now();
+
           // Flush buffered text chunks before handling turn-level signals
           this.flushBufferedStreamTextMessages();
 
