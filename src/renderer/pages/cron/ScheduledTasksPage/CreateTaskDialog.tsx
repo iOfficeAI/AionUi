@@ -90,9 +90,13 @@ function parseCronExpr(expr: string): { frequency: FrequencyType; time: string; 
  */
 function getAgentKeyFromJob(job: ICronJob): string | undefined {
   const config = job.metadata.agentConfig;
-  if (!config) return undefined;
-  if (config.isPreset && config.customAgentId) return `preset:${config.customAgentId}`;
-  return `cli:${config.backend}`;
+  if (config) {
+    if (config.isPreset && config.customAgentId) return `preset:${config.customAgentId}`;
+    return `cli:${config.backend}`;
+  }
+  // Fallback for legacy jobs without agentConfig
+  if (job.metadata.agentType) return `cli:${job.metadata.agentType}`;
+  return undefined;
 }
 
 const CreateTaskDialog: React.FC<CreateTaskDialogProps> = ({
