@@ -654,6 +654,14 @@ brew install aionui
   <a href="https://packycode.com" target="_blank">PackyCode</a> 是一家可靠高效的 API 中继服务提供商，为 Claude Code、Codex、Gemini 等平台提供中继服务。感谢 PackyCode 为支持 AionUi 用户低成本使用，为我们的用户提供专属 <a href="https://www.packyapi.com/register?aff=aionui" target="_blank">9折优惠</a>，付款时使用优惠码 <code>aionui</code> 可立减 10%。
 </td>
 </tr>
+<tr>
+<td width="170" align="center">
+  <a href="https://atomgit.com/iOfficeAI/AionUi" target="_blank">AtomGit</a>
+</td>
+<td>
+  <a href="https://atomgit.com/iOfficeAI/AionUi" target="_blank">AtomGit</a> — 面向全球开发者的开源社区与代码托管平台。AionUi 已在 AtomGit 上线，欢迎访问。
+</td>
+</tr>
 </table>
 
 ---
