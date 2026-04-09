@@ -49,7 +49,7 @@ const SystemModalContent: React.FC = () => {
   const [cronNotificationEnabled, setCronNotificationEnabled] = useState(false);
   const [promptTimeout, setPromptTimeout] = useState<number>(300);
   const [saveUploadToWorkspace, setSaveUploadToWorkspace] = useState(false);
-  const [commandQueueEnabled, setCommandQueueEnabled] = useState(false);
+  const [commandQueueEnabled, setCommandQueueEnabled] = useState(true);
 
   useEffect(() => {
     if (!isDesktop) {
