@@ -164,6 +164,8 @@
   "notification": "通知",
   "cronNotificationEnabled": "定期タスク完了通知",
   "promptTimeout": "LLM リクエストタイムアウト（秒）",
+  "agentIdleTimeout": "Agent アイドルタイムアウト（分）",
+  "agentIdleTimeoutDesc": "この時間アイドル状態が続くとメモリ解放のためAgentプロセスを終了します",
   "gemini": "Gemini",
   "model": "モデル",
   "system": "システム",

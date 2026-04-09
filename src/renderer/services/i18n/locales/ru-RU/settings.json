@@ -164,6 +164,8 @@
   "notification": "Уведомления",
   "cronNotificationEnabled": "Уведомление о завершении запланированных задач",
   "promptTimeout": "Таймаут запроса LLM (сек)",
+  "agentIdleTimeout": "Таймаут простоя Agent (мин)",
+  "agentIdleTimeoutDesc": "Завершить простаивающие процессы Agent после этого времени для освобождения памяти",
   "gemini": "Gemini CLI",
   "model": "Модель",
   "system": "Система",

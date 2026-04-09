@@ -164,6 +164,8 @@
   "notification": "Bildirimler",
   "cronNotificationEnabled": "Zamanlanmış Görev Tamamlanma",
   "promptTimeout": "LLM İstek Zaman Aşımı (sn)",
+  "agentIdleTimeout": "Agent Boşta Kalma Süresi (dk)",
+  "agentIdleTimeoutDesc": "Bellek boşaltmak için boşta kalan Agent süreçlerini bu süre sonunda sonlandır",
   "gemini": "Gemini",
   "model": "Model",
   "system": "Sistem",

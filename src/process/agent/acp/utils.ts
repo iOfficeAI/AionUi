@@ -39,7 +39,7 @@ export async function waitForProcessExit(pid: number, timeoutMs: number): Promis
 
 /**
  * Kill a child process with platform-specific handling.
- * Windows: taskkill tree kill. POSIX detached: process group kill. Otherwise: SIGTERM.
+ * Windows: taskkill tree kill. POSIX: collect descendants → SIGTERM → SIGKILL escalation.
  */
 export async function killChild(child: ChildProcess, isDetached: boolean): Promise<void> {
   const pid = child.pid;
@@ -49,7 +49,15 @@ export async function killChild(child: ChildProcess, isDetached: boolean): Promi
     } catch (forceError) {
       console.warn(`[ACP] taskkill /T /F failed for PID ${pid}:`, decodeWindowsError(forceError));
     }
-  } else if (isDetached && pid) {
+    return;
+  }
+
+  // POSIX: collect all descendant PIDs BEFORE killing the parent,
+  // because once the parent dies, orphans get reparented to PID 1
+  // and we can no longer discover them via ppid.
+  const descendantPids = pid ? await collectDescendantPids(pid) : [];
+
+  if (isDetached && pid) {
     try {
       process.kill(-pid, 'SIGTERM');
     } catch {
@@ -61,6 +69,69 @@ export async function killChild(child: ChildProcess, isDetached: boolean): Promi
 
   if (pid) {
     await waitForProcessExit(pid, 3000);
+
+    // Escalate to SIGKILL if the process ignored SIGTERM
+    if (isProcessAlive(pid)) {
+      console.warn(`[ACP] Process ${pid} did not exit after SIGTERM, escalating to SIGKILL`);
+      try {
+        if (isDetached) {
+          process.kill(-pid, 'SIGKILL');
+        } else {
+          process.kill(pid, 'SIGKILL');
+        }
+      } catch {
+        // Process may have exited between the check and the kill
+      }
+      await waitForProcessExit(pid, 2000);
+    }
+  }
+
+  // Force-kill any descendants that survived (escaped the process group)
+  for (const dpid of descendantPids) {
+    try {
+      if (isProcessAlive(dpid)) {
+        process.kill(dpid, 'SIGKILL');
+      }
+    } catch {
+      // Already exited
+    }
+  }
+}
+
+/**
+ * Recursively collect all descendant PIDs of a process.
+ * Uses `ps -o pid= --ppid` on Linux and `ps -o pid= -p` + manual ppid matching on macOS,
+ * falling back to a single `ps` snapshot that works on both.
+ */
+async function collectDescendantPids(rootPid: number): Promise<number[]> {
+  try {
+    // `ps -eo pid=,ppid=` works on both macOS and Linux — parse the full process table
+    const { stdout } = await execFile('ps', ['-eo', 'pid=,ppid='], { timeout: 3000 });
+    const childMap = new Map<number, number[]>();
+    for (const line of stdout.trim().split('\n')) {
+      const parts = line.trim().split(/\s+/);
+      if (parts.length < 2) continue;
+      const pid = parseInt(parts[0], 10);
+      const ppid = parseInt(parts[1], 10);
+      if (isNaN(pid) || isNaN(ppid)) continue;
+      if (!childMap.has(ppid)) childMap.set(ppid, []);
+      childMap.get(ppid)!.push(pid);
+    }
+
+    // BFS to collect all descendants
+    const result: number[] = [];
+    const queue = [rootPid];
+    while (queue.length > 0) {
+      const current = queue.shift()!;
+      const children = childMap.get(current) || [];
+      for (const child of children) {
+        result.push(child);
+        queue.push(child);
+      }
+    }
+    return result;
+  } catch {
+    return [];
   }
 }
 

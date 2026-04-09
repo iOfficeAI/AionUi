@@ -164,6 +164,8 @@
   "notification": "通知",
   "cronNotificationEnabled": "定时任务完成通知",
   "promptTimeout": "LLM 请求超时时间（秒）",
+  "agentIdleTimeout": "Agent 空闲超时（分钟）",
+  "agentIdleTimeoutDesc": "空闲超过该时长后自动终止 Agent 进程以释放内存",
   "gemini": "Gemini CLI",
   "model": "模型",
   "system": "系统",
