@@ -420,6 +420,6 @@ await ConfigStorage.set('workspace.pasteConfirm', true);
 
 ## 相关链接
 
-- [Preview 模块文档](../preview/README.md)
-- [IPC Bridge 文档](../../../../common/ipcBridge/README.md)
-- [配置存储文档](../../../../common/storage.ts)
+- [Preview 模块文档](../Preview/README.cn.md)
+- [IPC Bridge 源码](../../../../common/adapter/ipcBridge.ts)
+- [配置存储源码](../../../../common/config/storage.ts)
