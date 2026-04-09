@@ -98,13 +98,12 @@ export function initApplicationBridge(workerTaskManager: IWorkerTaskManager): vo
   // Platform-agnostic handlers: systemInfo, updateSystemInfo, getPath
   initApplicationBridgeCore();
 
-  ipcBridge.application.restart.provider(() => {
-    // 清理所有工作进程
-    workerTaskManager.clear();
+  ipcBridge.application.restart.provider(async () => {
+    // 清理所有工作进程，等待子进程退出
+    await workerTaskManager.clear();
     // 重启应用 - 使用标准的 Electron 重启方式
     app.relaunch();
     app.exit(0);
-    return Promise.resolve();
   });
 
   ipcBridge.application.isDevToolsOpened.provider(() => {

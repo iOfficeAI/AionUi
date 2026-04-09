@@ -917,6 +917,8 @@ export type I18nKey =
   | 'settings.agent'
   | 'settings.agentDisabled'
   | 'settings.agentDisplayName'
+  | 'settings.agentIdleTimeout'
+  | 'settings.agentIdleTimeoutDesc'
   | 'settings.agentManagement.addAgent'
   | 'settings.agentManagement.addCustomAgent'
   | 'settings.agentManagement.advancedConfig'

@@ -1129,6 +1129,22 @@ export class AcpConnection {
 
   async disconnect(): Promise<void> {
     this.stopPromptKeepalive();
+
+    // Try graceful session/close before killing the process.
+    // session/close is an ACP RFD (not yet required), so this is best-effort
+    // with a short timeout — if the agent supports it, it gets a chance to
+    // clean up its own child processes before we force-kill.
+    if (this.sessionId && this.child && !this.child.killed) {
+      try {
+        await Promise.race([
+          this.sendRequest('session/close', { sessionId: this.sessionId }),
+          new Promise((_, reject) => setTimeout(() => reject(new Error('session/close timeout')), 2000)),
+        ]);
+      } catch {
+        // Expected: most agents don't implement session/close yet
+      }
+    }
+
     await this.terminateChild();
 
     // Reset session-level state

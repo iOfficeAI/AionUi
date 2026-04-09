@@ -164,6 +164,8 @@
   "notification": "알림",
   "cronNotificationEnabled": "예약 작업 완료 알림",
   "promptTimeout": "LLM 요청 시간 초과 (초)",
+  "agentIdleTimeout": "Agent 유휴 시간 초과 (분)",
+  "agentIdleTimeoutDesc": "유휴 시간 초과 후 메모리 확보를 위해 Agent 프로세스를 종료합니다",
   "gemini": "Gemini",
   "model": "모델",
   "system": "시스템",
