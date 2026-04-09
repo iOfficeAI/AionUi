@@ -100,6 +100,7 @@ const MessageText: React.FC<{ message: IMessageText }> = ({ message }) => {
   const [showCopyAlert, setShowCopyAlert] = useState(false);
   const isUserMessage = message.position === 'right';
   const isTeammateMessage = message.position === 'left' && message.content.teammateMessage === true;
+  const shouldRenderPlainText = isUserMessage;
 
   // 过滤空内容，避免渲染空DOM
   if (!message.content.content || (typeof message.content.content === 'string' && !message.content.content.trim())) {
@@ -107,7 +108,7 @@ const MessageText: React.FC<{ message: IMessageText }> = ({ message }) => {
   }
 
   const handleCopy = () => {
-    const baseText = json ? JSON.stringify(data, null, 2) : text;
+    const baseText = shouldRenderPlainText ? text : json ? JSON.stringify(data, null, 2) : text;
     const fileList = files.length ? `Files:\n${files.map((path) => `- ${path}`).join('\n')}\n\n` : '';
     const textToCopy = fileList + baseText;
     copyText(textToCopy)
@@ -183,7 +184,9 @@ const MessageText: React.FC<{ message: IMessageText }> = ({ message }) => {
           }
         >
           {/* JSON 内容使用折叠组件 Use CollapsibleContent for JSON content */}
-          {json ? (
+          {shouldRenderPlainText ? (
+            <div className='whitespace-pre-wrap break-words'>{text}</div>
+          ) : json ? (
             <CollapsibleContent maxHeight={200} defaultCollapsed={true}>
               <MarkdownView
                 codeStyle={{ marginTop: 4, marginBlock: 4 }}
