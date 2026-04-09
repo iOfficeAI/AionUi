@@ -173,6 +173,11 @@ class AcpAgentManager extends BaseAgentManager<AcpAgentManagerData, AcpPermissio
     }
   }
 
+  private flushThinkingToDb(_msgId?: string, _status: 'thinking' | 'done' = 'done'): void {
+    // ACP does not buffer thinking content into the DB the way text streaming is buffered,
+    // so kill() only needs a no-op hook here to keep the shutdown path type-safe.
+  }
+
   private beginTrackedTurn(): number {
     this.clearMissingFinishFallback();
     const turnId = this.nextTrackedTurnId + 1;
