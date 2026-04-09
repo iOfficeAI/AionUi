@@ -87,8 +87,13 @@ async function openFolderWithTool(folderPath: string, tool: 'vscode' | 'terminal
       vsChild.on('error', async () => {
         const codePath = await findVSCodeExecutable();
         if (codePath) {
-          const fallback = spawn(codePath, [folderPath], { detached: true, stdio: 'ignore' });
+          // On Windows, .cmd/.bat files must be spawned with shell: true
+          const useShell = platform === 'win32' && /\.(cmd|bat)$/i.test(codePath);
+          const fallback = spawn(codePath, [folderPath], { detached: true, stdio: 'ignore', shell: useShell });
           fallback.unref();
+          fallback.on('error', () => {
+            shell.openPath(folderPath).catch(() => {});
+          });
         } else {
           await shell.openPath(folderPath);
         }
