@@ -59,7 +59,7 @@ describe('createXmlFallbackAdapter', () => {
       expect(payload.message).toContain('<idle');
     });
 
-    it('does NOT include XML fallback instructions when hasMcpTools is true', () => {
+    it('includes XML fallback instructions even when hasMcpTools is true (fallback for silent MCP failure)', () => {
       const adapter = createXmlFallbackAdapter({ hasMcpTools: true });
       const payload = adapter.buildPayload({
         agent: makeAgent(),
@@ -67,8 +67,8 @@ describe('createXmlFallbackAdapter', () => {
         tasks: [],
         teammates: [],
       });
-      expect(payload.message).not.toContain('<send_message');
-      expect(payload.message).not.toContain('## Team Coordination (XML Fallback)');
+      expect(payload.message).toContain('<send_message');
+      expect(payload.message).toContain('## Team Coordination (XML Fallback)');
     });
 
     it('includes XML fallback instructions by default (no options)', () => {
