@@ -323,8 +323,8 @@ describe('Step 7b PROOF-OF-FIX: Codex loadSession receives mcpServers (Task #1)'
     await callCreateOrResume(agent);
     expect(mockLoadSession).toHaveBeenCalledOnce();
     const args = mockLoadSession.mock.calls[0];
-    // args[2] = { mcpServers: [] } after fix
-    expect(args[2]).toMatchObject({ mcpServers: [] });
+    // args[2] = [] (direct mcpServers array) after fix
+    expect(args[2]).toEqual([]);
   });
 
   it('PROOF-OF-FIX: loadSession receives team MCP server when teamMcpStdioConfig is set', async () => {
@@ -337,11 +337,11 @@ describe('Step 7b PROOF-OF-FIX: Codex loadSession receives mcpServers (Task #1)'
     expect(mockLoadSession).toHaveBeenCalledOnce();
     const args = mockLoadSession.mock.calls[0];
     // On unfixed: args[2] is undefined → FAILS
-    // On fixed:   args[2] = { mcpServers: [{name:'aionui-team-abc',...}] } → PASSES
-    expect(args[2]).toMatchObject({
-      mcpServers: [{ name: 'aionui-team-abc', command: 'node' }],
-    });
-    expect(args[2].mcpServers[0].env).toContainEqual({ name: 'TEAM_AGENT_SLOT_ID', value: 'slot-leader' });
+    // On fixed:   args[2] = [{name:'aionui-team-abc',...}] (direct array) → PASSES
+    expect(args[2]).toEqual(
+      expect.arrayContaining([expect.objectContaining({ name: 'aionui-team-abc', command: 'node' })]),
+    );
+    expect(args[2][0].env).toContainEqual({ name: 'TEAM_AGENT_SLOT_ID', value: 'slot-leader' });
   });
 });
 
