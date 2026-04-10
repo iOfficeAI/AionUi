@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { Modal, Button, Input, Message, Tooltip } from '@arco-design/web-react';
+import { Modal, Button, Input, Message } from '@arco-design/web-react';
 import type { RefInputType } from '@arco-design/web-react/es/Input/interface';
 import { FolderOpen, Close, Robot, Folder, FolderPlus, Check, Down } from '@icon-park/react';
 import { useTranslation } from 'react-i18next';
@@ -111,6 +111,15 @@ const TeamCreateModal: React.FC<Props> = ({ visible, onClose, onCreated }) => {
   };
 
   const handleCreate = async () => {
+    if (!name.trim()) {
+      Message.warning(t('team.create.nameRequired', { defaultValue: 'Please enter a team name' }));
+      nameInputRef.current?.focus();
+      return;
+    }
+    if (!dispatchAgentKey) {
+      Message.warning(t('team.create.leaderRequired', { defaultValue: 'Please select a team leader' }));
+      return;
+    }
     const userId = user?.id ?? 'system_default_user';
     setLoading(true);
     try {
@@ -155,7 +164,6 @@ const TeamCreateModal: React.FC<Props> = ({ visible, onClose, onCreated }) => {
     }
   };
 
-  const canCreate = name.trim().length > 0 && dispatchAgentKey !== undefined;
   const folderName = workspace ? workspace.split(/[\\/]/).pop() || workspace : '';
 
   return (
@@ -337,21 +345,9 @@ const TeamCreateModal: React.FC<Props> = ({ visible, onClose, onCreated }) => {
 
         {/* Footer */}
         <div className='flex justify-end pt-4px'>
-          <Tooltip
-            disabled={canCreate}
-            content={
-              !name.trim()
-                ? t('team.create.nameRequired', { defaultValue: 'Please enter a team name' })
-                : t('team.create.leaderRequired', { defaultValue: 'Please select a team leader' })
-            }
-            position='top'
-          >
-            <span style={{ display: 'inline-block' }}>
-              <Button type='primary' loading={loading} disabled={!canCreate} onClick={handleCreate}>
-                {t('team.create.confirm', { defaultValue: 'Create Team' })}
-              </Button>
-            </span>
-          </Tooltip>
+          <Button type='primary' loading={loading} onClick={handleCreate}>
+            {t('team.create.confirm', { defaultValue: 'Create Team' })}
+          </Button>
         </div>
       </div>
     </Modal>
