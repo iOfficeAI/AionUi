@@ -142,7 +142,11 @@ async function createTeamWithAgent(
   // Open agent select dropdown and wait for options
   const agentSelect = page.locator('.arco-modal .arco-select').first();
   await agentSelect.click();
-  await page.locator('.arco-select-option').first().waitFor({ state: 'visible', timeout: 5000 }).catch(() => {});
+  await page
+    .locator('.arco-select-option')
+    .first()
+    .waitFor({ state: 'visible', timeout: 5000 })
+    .catch(() => {});
 
   await page.screenshot({ path: `tests/e2e/results/${screenshotPrefix}-dropdown.png` });
 

@@ -339,7 +339,7 @@ describe('Step 7b PROOF-OF-FIX: Codex loadSession receives mcpServers (Task #1)'
     // On unfixed: args[2] is undefined → FAILS
     // On fixed:   args[2] = [{name:'aionui-team-abc',...}] (direct array) → PASSES
     expect(args[2]).toEqual(
-      expect.arrayContaining([expect.objectContaining({ name: 'aionui-team-abc', command: 'node' })]),
+      expect.arrayContaining([expect.objectContaining({ name: 'aionui-team-abc', command: 'node' })])
     );
     expect(args[2][0].env).toContainEqual({ name: 'TEAM_AGENT_SLOT_ID', value: 'slot-leader' });
   });

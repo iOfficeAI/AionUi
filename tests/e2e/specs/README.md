@@ -12,12 +12,12 @@
 
 真实的用户操作场景：
 
-| 用户想做什么 | 用户的实际操作 |
-|------------|--------------|
+| 用户想做什么          | 用户的实际操作                                             |
+| --------------------- | ---------------------------------------------------------- |
 | 招募一个 codex 工程师 | 在 leader 聊天框输入："Add a codex type member named Dev1" |
-| 解雇某个成员 | 在 leader 聊天框输入："Fire the member named Dev1" |
-| 给成员派任务 | 在 leader 聊天框输入："Ask Dev1 to write unit tests" |
-| 团队内部通信 | leader 自行决定转发、广播或直接回复 |
+| 解雇某个成员          | 在 leader 聊天框输入："Fire the member named Dev1"         |
+| 给成员派任务          | 在 leader 聊天框输入："Ask Dev1 to write unit tests"       |
+| 团队内部通信          | leader 自行决定转发、广播或直接回复                        |
 
 **UI 上没有"添加成员"按钮，没有"解雇"按钮。用户能操作的只有 leader 的聊天输入框。**
 
@@ -45,9 +45,9 @@ invokeBridge 是测试工具，不是用户操作路径。真实用户根本不�
 
 **允许用于：**
 
-| 场景 | 示例 |
-|------|------|
-| **setup**：获取 teamId、读初始成员数 | `invokeBridge(page, 'team.list', ...)` |
+| 场景                                  | 示例                                     |
+| ------------------------------------- | ---------------------------------------- |
+| **setup**：获取 teamId、读初始成员数  | `invokeBridge(page, 'team.list', ...)`   |
 | **assertion**：验证后端状态与 UI 一致 | `invokeBridge(page, 'team.get', { id })` |
 
 **禁止用于触发任何操作**——添加成员、解雇成员、发送消息等，必须且只能通过 leader 聊天输入框。如果你用 invokeBridge 触发了操作，你测的不是 Aion Team，你测的是一个普通的 RPC 接口。
@@ -78,9 +78,9 @@ lifecycle test 会用三种不同 leader 类型的 team 各自通过自然语言
 ```ts
 // team-agent-lifecycle.e2e.ts
 const LEADER_CONFIGS = [
-  { leaderType: 'claude',  teamName: 'E2E Team (claude)' },
-  { leaderType: 'codex',   teamName: 'E2E Team (codex)' },
-  { leaderType: 'gemini',  teamName: 'E2E Team (gemini)' },
+  { leaderType: 'claude', teamName: 'E2E Team (claude)' },
+  { leaderType: 'codex', teamName: 'E2E Team (codex)' },
+  { leaderType: 'gemini', teamName: 'E2E Team (gemini)' },
 ] as const;
 
 for (const { leaderType, teamName } of LEADER_CONFIGS) {
@@ -104,12 +104,12 @@ team-gemini.e2e.ts    ❌
 
 ## 六、当前文件状态
 
-| 文件 | 职责 | 状态 |
-|------|------|------|
-| `team-create.e2e.ts` | UI 创建流程 + 按 leader 类型创建三个 team | ✅ 完成 |
+| 文件                          | 职责                                             | 状态    |
+| ----------------------------- | ------------------------------------------------ | ------- |
+| `team-create.e2e.ts`          | UI 创建流程 + 按 leader 类型创建三个 team        | ✅ 完成 |
 | `team-agent-lifecycle.e2e.ts` | 参数化完整链路（add + fire），按 leader 类型遍历 | ✅ 完成 |
-| `team-whitelist.e2e.ts` | UI 下拉框只显示白名单 agent | ✅ 完成 |
-| `team-communication.e2e.ts` | 用户消息发送链路验证 | ✅ 完成 |
+| `team-whitelist.e2e.ts`       | UI 下拉框只显示白名单 agent                      | ✅ 完成 |
+| `team-communication.e2e.ts`   | 用户消息发送链路验证                             | ✅ 完成 |
 
 已删除的错误文件（invokeBridge 触发操作 / per-type 独立文件）：
 `team-add-agent.e2e.ts`、`team-remove-agent.e2e.ts`、`team-multi-agent.e2e.ts`、`team-codebuddy.e2e.ts`
@@ -121,6 +121,7 @@ team-gemini.e2e.ts    ❌
 ### 前置条件
 
 **lifecycle test 依赖三个 team 已存在。** 必须先跑 `team-create.e2e.ts`，它负责创建：
+
 - `E2E Team (claude)`
 - `E2E Team (codex)`
 - `E2E Team (gemini)`
@@ -133,18 +134,18 @@ team-gemini.e2e.ts    ❌
 
 ```ts
 const LEADER_CONFIGS = [
-  { leaderType: 'claude',  teamName: 'E2E Team (claude)' },
-  { leaderType: 'codex',   teamName: 'E2E Team (codex)' },
-  { leaderType: 'gemini',  teamName: 'E2E Team (gemini)' },
+  { leaderType: 'claude', teamName: 'E2E Team (claude)' },
+  { leaderType: 'codex', teamName: 'E2E Team (codex)' },
+  { leaderType: 'gemini', teamName: 'E2E Team (gemini)' },
 ] as const;
 
 for (const { leaderType, teamName } of LEADER_CONFIGS) {
   test(`team lifecycle: ${leaderType} leader`, async ({ page }) => {
     // [setup] 找到对应 leader 类型的 team（invokeBridge 合法）
-    const teams = await invokeBridge<Array<{ id: string; name: string; agents: unknown[] }>>(
-      page, 'team.list', { userId: 'system_default_user' }
-    );
-    const team = teams.find(t => t.name === teamName);
+    const teams = await invokeBridge<Array<{ id: string; name: string; agents: unknown[] }>>(page, 'team.list', {
+      userId: 'system_default_user',
+    });
+    const team = teams.find((t) => t.name === teamName);
     expect(team).toBeTruthy();
     const initialCount = team!.agents.length;
 
@@ -194,13 +195,13 @@ for (const { leaderType, teamName } of LEADER_CONFIGS) {
 
 ## 八、关键 UI 选择器
 
-| 元素 | 选择器 |
-|------|--------|
-| 侧边栏 team 入口 | `page.locator('text=E2E Team (claude)').first()` 等 |
-| leader 聊天输入框 | `page.locator('textarea').first()` |
-| 发送 | `.press('Enter')` |
-| agent tab | `page.locator('text=memberName').first()` |
-| team 页面 URL | `/team/{id}` |
+| 元素              | 选择器                                              |
+| ----------------- | --------------------------------------------------- |
+| 侧边栏 team 入口  | `page.locator('text=E2E Team (claude)').first()` 等 |
+| leader 聊天输入框 | `page.locator('textarea').first()`                  |
+| 发送              | `.press('Enter')`                                   |
+| agent tab         | `page.locator('text=memberName').first()`           |
+| team 页面 URL     | `/team/{id}`                                        |
 
 ---
 
@@ -234,23 +235,23 @@ TEAM_AGENT=gemini E2E_PACKAGED=1 bun run test:e2e:team:create
 
 **环境变量说明：**
 
-| 变量 | 默认值 | 说明 |
-|------|--------|------|
-| `E2E_PACKAGED=1` | 无（本地 dev 模式） | 使用 `out/` 下的打包产物启动 app |
-| `E2E_DEV=1` | 无 | 强制使用 dev 模式（electron .） |
-| `TEAM_AGENT` | 空（三种全跑） | leader 类型过滤，支持逗号分隔（`gemini` 或 `claude,codex`）。过滤在 `helpers/teamConfig.ts` 集中处理，所有 test 文件通过 `TEAM_SUPPORTED_BACKENDS` 自动生效 |
+| 变量             | 默认值              | 说明                                                                                                                                                        |
+| ---------------- | ------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `E2E_PACKAGED=1` | 无（本地 dev 模式） | 使用 `out/` 下的打包产物启动 app                                                                                                                            |
+| `E2E_DEV=1`      | 无                  | 强制使用 dev 模式（electron .）                                                                                                                             |
+| `TEAM_AGENT`     | 空（三种全跑）      | leader 类型过滤，支持逗号分隔（`gemini` 或 `claude,codex`）。过滤在 `helpers/teamConfig.ts` 集中处理，所有 test 文件通过 `TEAM_SUPPORTED_BACKENDS` 自动生效 |
 
 packaged 模式下 app 使用用户本地已配置的 API key，**不需要任何额外配置**。
 
 **npm scripts 一览：**
 
-| 命令 | 说明 |
-|------|------|
-| `test:e2e:team` | 所有 `team-*.e2e.ts` |
-| `test:e2e:team:create` | 仅 team 创建 |
+| 命令                      | 说明                       |
+| ------------------------- | -------------------------- |
+| `test:e2e:team`           | 所有 `team-*.e2e.ts`       |
+| `test:e2e:team:create`    | 仅 team 创建               |
 | `test:e2e:team:lifecycle` | 仅 lifecycle（add + fire） |
-| `test:e2e:team:whitelist` | 仅白名单下拉框 |
-| `test:e2e:team:comm` | 仅消息发送 |
+| `test:e2e:team:whitelist` | 仅白名单下拉框             |
+| `test:e2e:team:comm`      | 仅消息发送                 |
 
 ---
 

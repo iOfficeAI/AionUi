@@ -633,7 +633,9 @@ export class GeminiAgentManager extends BaseAgentManager<
     if (type === 'mcp') {
       const serverName = (content.confirmationDetails as { serverName?: string })?.serverName ?? '';
       if (serverName.startsWith('aionui-team-')) {
-        console.log(`[GeminiAgentManager] Auto-approving team MCP tool: serverName=${serverName}, callId=${content.callId}`);
+        console.log(
+          `[GeminiAgentManager] Auto-approving team MCP tool: serverName=${serverName}, callId=${content.callId}`
+        );
         void this.postMessagePromise(content.callId, ToolConfirmationOutcome.ProceedOnce);
         return true;
       }

@@ -7,5 +7,10 @@ import { TEAM_SUPPORTED_BACKENDS as ALL_BACKENDS } from '../../../src/common/typ
 const envLeaderTypes = process.env.TEAM_AGENT;
 
 export const TEAM_SUPPORTED_BACKENDS: ReadonlySet<string> = envLeaderTypes
-  ? new Set(envLeaderTypes.split(',').map((s) => s.trim()).filter((t) => ALL_BACKENDS.has(t)))
+  ? new Set(
+      envLeaderTypes
+        .split(',')
+        .map((s) => s.trim())
+        .filter((t) => ALL_BACKENDS.has(t))
+    )
   : ALL_BACKENDS;

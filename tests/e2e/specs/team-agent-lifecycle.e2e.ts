@@ -37,11 +37,9 @@ for (const { leaderType, teamName } of LEADER_CONFIGS) {
       return;
     }
 
-    const teams = await invokeBridge<Array<{ id: string; name: string }>>(
-      page,
-      'team.list',
-      { userId: 'system_default_user' }
-    );
+    const teams = await invokeBridge<Array<{ id: string; name: string }>>(page, 'team.list', {
+      userId: 'system_default_user',
+    });
     const existing = teams.find((t) => t.name === teamName);
     let resolvedTeamId: string;
 
@@ -90,7 +88,9 @@ for (const { leaderType, teamName } of LEADER_CONFIGS) {
     await expect(tabBar.locator(`text=${memberName}`)).toBeVisible({ timeout: 120000 });
 
     // [等待] 成员初始化完成（active badge 消失）再发 fire，否则 shutdown_request 会被忽略
-    const memberActiveBadge = tabBar.locator('span').filter({ hasText: memberName })
+    const memberActiveBadge = tabBar
+      .locator('span')
+      .filter({ hasText: memberName })
       .locator('xpath=following-sibling::span[@aria-label="active"]');
     await expect(memberActiveBadge).not.toBeVisible({ timeout: 60000 });
 
@@ -103,14 +103,22 @@ for (const { leaderType, teamName } of LEADER_CONFIGS) {
     // 轮询点击，直到没有确认按钮可见（最多等 60 秒）
     const mcpConfirmDeadline = Date.now() + 60_000;
     while (Date.now() < mcpConfirmDeadline) {
-      const visible = await mcpConfirmBtn.first().isVisible().catch(() => false);
+      const visible = await mcpConfirmBtn
+        .first()
+        .isVisible()
+        .catch(() => false);
       if (!visible) break;
-      await mcpConfirmBtn.first().click().catch(() => {});
+      await mcpConfirmBtn
+        .first()
+        .click()
+        .catch(() => {});
       await page.waitForTimeout(500);
     }
 
     // [等待] leader 空闲（没有正在运行的推理）再发 fire，否则 Enter 会被 sendbox 屏蔽
-    const leaderActiveBadge = tabBar.locator('span').filter({ hasText: 'Lead' })
+    const leaderActiveBadge = tabBar
+      .locator('span')
+      .filter({ hasText: 'Lead' })
       .locator('xpath=following-sibling::span[@aria-label="active"]');
     await expect(leaderActiveBadge).not.toBeVisible({ timeout: 60000 });
 
@@ -131,9 +139,15 @@ for (const { leaderType, teamName } of LEADER_CONFIGS) {
     const mcpConfirmBtn2 = page.locator('button').filter({ hasText: /Yes.*allow always|是.*始终允许/i });
     const mcpConfirmDeadline2 = Date.now() + 60_000;
     while (Date.now() < mcpConfirmDeadline2) {
-      const visible = await mcpConfirmBtn2.first().isVisible().catch(() => false);
+      const visible = await mcpConfirmBtn2
+        .first()
+        .isVisible()
+        .catch(() => false);
       if (!visible) break;
-      await mcpConfirmBtn2.first().click().catch(() => {});
+      await mcpConfirmBtn2
+        .first()
+        .click()
+        .catch(() => {});
       await page.waitForTimeout(500);
     }
 

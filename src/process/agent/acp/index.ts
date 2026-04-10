@@ -1610,14 +1610,12 @@ export class AcpAgent {
       return servers;
     } catch (error) {
       const errMsg = error instanceof Error ? error.message : String(error);
-      console.warn(
-        `[ACP ${this.extra.backend}] Failed to load built-in MCP config for session/new:`,
-        errMsg
-      );
+      console.warn(`[ACP ${this.extra.backend}] Failed to load built-in MCP config for session/new:`, errMsg);
       const mcpName = this.extra.teamMcpStdioConfig?.name;
-      const tId = typeof mcpName === 'string' && mcpName.startsWith('aionui-team-')
-        ? mcpName.slice('aionui-team-'.length)
-        : undefined;
+      const tId =
+        typeof mcpName === 'string' && mcpName.startsWith('aionui-team-')
+          ? mcpName.slice('aionui-team-'.length)
+          : undefined;
       if (tId) {
         ipcBridge.team.mcpStatus.emit({ teamId: tId, slotId: this.id, phase: 'load_failed', error: errMsg });
       }

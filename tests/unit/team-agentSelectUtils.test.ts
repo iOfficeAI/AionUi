@@ -57,19 +57,12 @@ describe('isTeamSupportedBackend', () => {
     expect(isTeamSupportedBackend(backend)).toBe(true);
   });
 
-  it.each([
-    'codebuddy',
-    'aionrs',
-    'openclaw-gateway',
-    'nanobot',
-    'remote',
-    'qwen',
-    'copilot',
-    'kimi',
-    'goose',
-  ])('rejects unverified backend "%s"', (backend) => {
-    expect(isTeamSupportedBackend(backend)).toBe(false);
-  });
+  it.each(['codebuddy', 'aionrs', 'openclaw-gateway', 'nanobot', 'remote', 'qwen', 'copilot', 'kimi', 'goose'])(
+    'rejects unverified backend "%s"',
+    (backend) => {
+      expect(isTeamSupportedBackend(backend)).toBe(false);
+    }
+  );
 });
 
 // ---------------------------------------------------------------------------
