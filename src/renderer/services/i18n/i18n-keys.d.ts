@@ -197,6 +197,7 @@ export type I18nKey =
   | 'common.github'
   | 'common.goToSettings'
   | 'common.hide'
+  | 'common.historyBack'
   | 'common.import'
   | 'common.loading'
   | 'common.more'
