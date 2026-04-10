@@ -16,6 +16,7 @@ import { getFileTypeInfo } from '@/renderer/utils/file/fileType';
 import { useCallback, useEffect, useRef } from 'react';
 
 const OFFICE_SCAN_DEBOUNCE_MS = 1500;
+const OFFICE_OPEN_DELAY_MS = 1000;
 
 /**
  * Auto-opens a preview tab when a new .pptx/.docx/.xlsx file appears in the
@@ -33,9 +34,17 @@ export const useAutoPreviewOfficeFiles = (
   const { findPreviewTab, openPreview } = usePreviewContext();
   const knownOfficeFilesRef = useRef<Set<string>>(new Set());
   const scanTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const openTimersRef = useRef<Map<string, ReturnType<typeof setTimeout>>>(new Map());
   const scanRequestIdRef = useRef(0);
   const workspace = conversation?.workspace?.trim() ? conversation.workspace : undefined;
   const conversationId = conversation?.conversationId;
+
+  const clearPendingOpenTimers = useCallback(() => {
+    for (const timer of openTimersRef.current.values()) {
+      clearTimeout(timer);
+    }
+    openTimersRef.current.clear();
+  }, []);
 
   const syncOfficeFiles = useCallback(
     async (openNewFiles: boolean) => {
@@ -51,12 +60,22 @@ export const useAutoPreviewOfficeFiles = (
           const newFiles = findNewOfficeFiles(currentFiles, knownOfficeFilesRef.current);
 
           for (const filePath of newFiles) {
+            if (openTimersRef.current.has(filePath)) {
+              continue;
+            }
+
             const { contentType } = getFileTypeInfo(filePath);
             const fileName = filePath.split(/[\\/]/).pop() ?? filePath;
 
-            if (!findPreviewTab(contentType, '', { filePath, fileName })) {
-              openPreview('', contentType, { filePath, fileName, title: fileName, workspace, editable: false });
-            }
+            const timer = setTimeout(() => {
+              openTimersRef.current.delete(filePath);
+
+              if (!findPreviewTab(contentType, '', { filePath, fileName })) {
+                openPreview('', contentType, { filePath, fileName, title: fileName, workspace, editable: false });
+              }
+            }, OFFICE_OPEN_DELAY_MS);
+
+            openTimersRef.current.set(filePath, timer);
           }
         }
 
@@ -82,6 +101,7 @@ export const useAutoPreviewOfficeFiles = (
   useEffect(() => {
     knownOfficeFilesRef.current = new Set();
     scanRequestIdRef.current += 1;
+    clearPendingOpenTimers();
 
     if (scanTimerRef.current) {
       clearTimeout(scanTimerRef.current);
@@ -117,8 +137,9 @@ export const useAutoPreviewOfficeFiles = (
         scanTimerRef.current = null;
       }
 
+      clearPendingOpenTimers();
       knownOfficeFilesRef.current.clear();
       scanRequestIdRef.current += 1;
     };
-  }, [conversationId, enabled, scheduleOfficeScan, syncOfficeFiles, workspace]);
+  }, [clearPendingOpenTimers, conversationId, enabled, scheduleOfficeScan, syncOfficeFiles, workspace]);
 };
