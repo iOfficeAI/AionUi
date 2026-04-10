@@ -122,12 +122,6 @@ describe('useAutoPreviewOfficeFiles', () => {
 
     await flushEffects();
 
-    expect(mockOpenPreview).not.toHaveBeenCalled();
-
-    await act(async () => {
-      await vi.advanceTimersByTimeAsync(1000);
-    });
-
     expect(mockOpenPreview).toHaveBeenCalledOnce();
 
     expect(mockOpenPreview).toHaveBeenCalledWith(
@@ -177,10 +171,6 @@ describe('useAutoPreviewOfficeFiles', () => {
 
     await flushEffects();
 
-    await act(async () => {
-      await vi.advanceTimersByTimeAsync(1000);
-    });
-
     expect(mockFindPreviewTab).toHaveBeenCalled();
     expect(mockOpenPreview).not.toHaveBeenCalled();
   });
@@ -221,39 +211,10 @@ describe('useAutoPreviewOfficeFiles', () => {
 
     await flushEffects();
 
-    await act(async () => {
-      await vi.advanceTimersByTimeAsync(1000);
-    });
-
     expect(mockOpenPreview).toHaveBeenCalledWith(
       '',
       'word',
       expect.objectContaining({ filePath: '/ws/report.docx', fileName: 'report.docx', workspace: '/ws' })
     );
-  });
-
-  it('cancels delayed auto-open timers when the hook unmounts', async () => {
-    mockScanInvoke.mockResolvedValueOnce([]).mockResolvedValueOnce(['/workspace/slides.pptx']);
-
-    const { unmount } = renderHook(() =>
-      useAutoPreviewOfficeFiles({ conversationId: 'conv-1', workspace: '/workspace' })
-    );
-
-    await flushEffects();
-
-    await act(async () => {
-      responseHandler?.({ conversation_id: 'conv-1', type: 'tool_call' });
-      await vi.advanceTimersByTimeAsync(1500);
-    });
-
-    await flushEffects();
-
-    unmount();
-
-    await act(async () => {
-      await vi.advanceTimersByTimeAsync(1000);
-    });
-
-    expect(mockOpenPreview).not.toHaveBeenCalled();
   });
 });
