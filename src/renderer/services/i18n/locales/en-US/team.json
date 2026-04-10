@@ -52,5 +52,13 @@
     "recentLabel": "Recent",
     "chooseDifferentFolder": "Choose a different folder",
     "error": "Failed to create team"
+  },
+  "emptyState": {
+    "subtitle": "Describe your goal and I'll get the team working on it",
+    "suggestions": {
+      "debate": "Organize a debate with agents taking different sides",
+      "interview": "Plan an in-depth interview between agents",
+      "expert_review": "Have multiple experts analyze the same problem"
+    }
   }
 }

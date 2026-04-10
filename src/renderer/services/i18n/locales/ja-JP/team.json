@@ -52,5 +52,13 @@
     "recentLabel": "最近使用",
     "chooseDifferentFolder": "別のフォルダを選択",
     "error": "チームの作成に失敗しました"
+  },
+  "emptyState": {
+    "subtitle": "目標を教えてください。チームを調整してタスクを完了します",
+    "suggestions": {
+      "debate": "Agentが異なる立場をとるディベートを開催する",
+      "interview": "Agentによる深層インタビューを企画する",
+      "expert_review": "複数の専門家が同じ問題を分析する"
+    }
   }
 }
