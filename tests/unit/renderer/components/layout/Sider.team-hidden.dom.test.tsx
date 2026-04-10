@@ -27,7 +27,6 @@ vi.mock('@/renderer/pages/cron/useCronJobs', () => ({
 
 vi.mock('@/renderer/utils/ui/siderTooltip', () => ({
   cleanupSiderTooltips: vi.fn(),
-  getSiderPopupContainer: () => document.body,
   getSiderTooltipProps: () => ({ disabled: true }),
 }));
 
