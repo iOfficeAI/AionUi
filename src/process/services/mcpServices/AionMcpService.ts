@@ -20,6 +20,7 @@ import { ipcBridge } from '@/common';
 import type { TeamSessionService } from '@process/team/TeamSessionService';
 import type { StdioMcpConfig } from '@process/team/TeamMcpServer';
 import { TEAM_SUPPORTED_BACKENDS } from '@/common/types/teamTypes';
+import { getConversationTypeForBackend } from '@/common/utils/buildAgentConversationParams';
 
 /** Allowed route patterns that aion_navigate may redirect to */
 const ALLOWED_ROUTE_PATTERNS: RegExp[] = [/^\/team\/[a-zA-Z0-9_-]+$/, /^\/conversation\/[a-zA-Z0-9_-]+$/];
@@ -227,7 +228,7 @@ export class AionMcpService {
           role: 'lead',
           agentType,
           agentName: 'Lead',
-          conversationType: 'acp',
+          conversationType: getConversationTypeForBackend(agentType),
           status: 'pending',
         },
       ],
