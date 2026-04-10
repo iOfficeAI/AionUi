@@ -20,15 +20,14 @@ Each pull request must contain **exactly one feature or one bug fix** that canno
 
 **Acceptable (single PR):**
 
-- A bug fix with one root cause, even if it touches multiple files
-- A single coherent feature (e.g., dark mode toggle)
-- A helper function and its first caller, when the helper exists solely to serve that feature
+- A bug fix with one root cause, even if it touches multiple files (e.g., fixing toast z-index across modal and chat layers)
+- A single coherent feature (e.g., team creation modal with form validation)
 
 **Must be split into separate PRs:**
 
-- Picture indexing fix + OLE object detection fix + heading numbering fix = 3 PRs
-- Unrelated bug fixes bundled together
-- Independent technical layers (e.g., database migration + UI component + API endpoint for unrelated features)
+- Team chat scroll fix + Sentry user tracking + office preview performance optimization = 3 PRs
+- Unrelated bug fixes bundled together (e.g., titlebar navigation fix + i18n missing key + speech input UI fix)
+- Independent technical layers (e.g., IPC bridge refactor + renderer component + worker process change for unrelated features)
 
 ## Rule 2: Pass Local Checks Before Push
 
