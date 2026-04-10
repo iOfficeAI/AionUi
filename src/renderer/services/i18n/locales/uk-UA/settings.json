@@ -822,7 +822,7 @@
     "pendingCancel": "Скасувати",
     "pendingTimeRemaining": "Залишилося часу: {{time}}"
   },
-    "noExternalSources": "Зовнішні джерела навичок не знайдені",
+  "noExternalSources": "Зовнішні джерела навичок не знайдені",
   "aionrs": {
     "available": "Доступний",
     "notFound": "Не знайдений",
