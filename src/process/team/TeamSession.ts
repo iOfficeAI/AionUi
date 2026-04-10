@@ -42,6 +42,7 @@ export class TeamSession extends EventEmitter {
       taskManager: this.taskManager,
       workerTaskManager,
       spawnAgent,
+      teamWorkspace: team.workspace || undefined,
     });
 
     // Create MCP server for team coordination tools

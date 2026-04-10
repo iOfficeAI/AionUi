@@ -25,6 +25,7 @@ type TeammateManagerParams = {
   workerTaskManager: IWorkerTaskManager;
   spawnAgent?: SpawnAgentFn;
   hasMcpTools?: boolean;
+  teamWorkspace?: string;
 };
 
 /**
@@ -40,6 +41,8 @@ export class TeammateManager extends EventEmitter {
   private readonly spawnAgentFn?: SpawnAgentFn;
   /** Whether the team MCP server has been started (global flag) */
   private mcpServerStarted: boolean;
+  /** Shared team workspace path (leader's working directory) */
+  private readonly teamWorkspace: string | undefined;
 
   /** Accumulated text response per conversationId */
   private readonly responseBuffer = new Map<string, string>();
@@ -68,6 +71,7 @@ export class TeammateManager extends EventEmitter {
     this.workerTaskManager = params.workerTaskManager;
     this.spawnAgentFn = params.spawnAgent;
     this.mcpServerStarted = params.hasMcpTools ?? false;
+    this.teamWorkspace = params.teamWorkspace;
 
     for (const agent of this.agents) {
       this.ownedConversationIds.add(agent.conversationId);
@@ -184,6 +188,7 @@ export class TeammateManager extends EventEmitter {
         teammates,
         availableAgentTypes,
         renamedAgents: this.renamedAgents,
+        teamWorkspace: this.teamWorkspace,
       });
 
       // Clear previous buffer for this conversation

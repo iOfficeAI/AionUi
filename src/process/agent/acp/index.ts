@@ -37,14 +37,16 @@ import {
   IFLOW_YOLO_SESSION_MODE,
   QWEN_YOLO_SESSION_MODE,
 } from './constants';
-import { buildAcpModelInfo, summarizeAcpModelInfo } from './modelInfo';
+import { buildAcpModelInfo } from './modelInfo';
 import {
   buildBuiltinAcpSessionMcpServers,
   buildTeamMcpServer,
   parseAcpMcpCapabilities,
+  TEAM_GUIDE_ALLOWED_BACKENDS,
   type AcpSessionMcpServer,
 } from './mcpSessionConfig';
 import { getClaudeModel } from './utils';
+import { getAionMcpStdioConfig } from '@process/services/mcpServices/aionMcpServiceSingleton';
 
 /** Enable ACP performance diagnostics via ACP_PERF=1 */
 const ACP_PERF_LOG = process.env.ACP_PERF === '1';
@@ -714,6 +716,19 @@ export class AcpAgent {
           `</system-reminder>\n\n`;
         processedContent = modelNotice + processedContent;
         this.pendingModelSwitchNotice = null;
+      }
+
+      // Inject team guide reminder for whitelisted backends on every turn.
+      // The full team guide is only in the first message; this keeps it active.
+      if (TEAM_GUIDE_ALLOWED_BACKENDS.has(this.extra.backend)) {
+        processedContent =
+          `<system-reminder>\n` +
+          `If this request would benefit from a multi-agent Team (building, creating, developing, complex analysis), ` +
+          `propose a team configuration and ask the user to confirm before calling aion_create_team. ` +
+          `After aion_create_team succeeds, you MUST call aion_navigate with the returned route to take the user to the team page. ` +
+          `For simple tasks (Q&A, translation, single fixes), just answer directly — do NOT mention Team at all.\n` +
+          `</system-reminder>\n\n` +
+          processedContent;
       }
 
       // Re-read timeout config before each prompt so changes take effect immediately
@@ -1567,6 +1582,15 @@ export class AcpAgent {
       const teamServer = buildTeamMcpServer(this.extra.teamMcpStdioConfig);
       if (teamServer) {
         servers.push(teamServer);
+      }
+
+      // Inject Aion team-guide MCP server for solo agents (not in team mode already).
+      // Uses stdio bridge mode — same pattern as TeamMcpServer.
+      if (!this.extra.teamMcpStdioConfig && TEAM_GUIDE_ALLOWED_BACKENDS.has(this.extra.backend)) {
+        const aionStdioConfig = getAionMcpStdioConfig();
+        if (aionStdioConfig) {
+          servers.push(buildTeamMcpServer(aionStdioConfig)!);
+        }
       }
 
       return servers;

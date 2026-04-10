@@ -40,6 +40,7 @@ import { extractAndStripThinkTags } from './ThinkTagDetector';
 import type { AgentKillReason } from './IAgentManager';
 import { hasNativeSkillSupport } from '@/common/types/acpTypes';
 import { prepareFirstMessageWithSkillsIndex } from '@process/task/agentUtils';
+import { shouldInjectTeamGuideMcp } from '@process/resources/prompts/teamGuidePrompt';
 import { extractTextFromMessage, processCronInMessage } from './MessageMiddleware';
 
 interface AcpAgentManagerData {
@@ -757,15 +758,22 @@ class AcpAgentManager extends BaseAgentManager<AcpAgentManagerData, AcpPermissio
         if (this.isFirstMessage) {
           const useNativeSkills = hasNativeSkillSupport(this.options.backend) && !this.options.customWorkspace;
           if (useNativeSkills) {
-            // Native skill discovery via workspace symlinks — only inject preset rules
-            if (this.options.presetContext) {
-              contentToSend = `[Assistant Rules - You MUST follow these instructions]\n${this.options.presetContext}\n\n[User Request]\n${contentToSend}`;
+            // Native skill discovery via workspace symlinks — inject preset rules + team guide
+            const parts: string[] = [];
+            if (this.options.presetContext) parts.push(this.options.presetContext);
+            if (shouldInjectTeamGuideMcp(this.options.backend)) {
+              const { getTeamGuidePrompt } = await import('@process/resources/prompts/teamGuidePrompt');
+              parts.push(getTeamGuidePrompt());
+            }
+            if (parts.length > 0) {
+              contentToSend = `[Assistant Rules - You MUST follow these instructions]\n${parts.join('\n\n')}\n\n[User Request]\n${contentToSend}`;
             }
           } else {
             // Custom workspace or no native support — inject rules + skills via prompt
             contentToSend = await prepareFirstMessageWithSkillsIndex(contentToSend, {
               presetContext: this.options.presetContext,
               enabledSkills: this.options.enabledSkills,
+              enableTeamGuide: shouldInjectTeamGuideMcp(this.options.backend),
             });
           }
         }

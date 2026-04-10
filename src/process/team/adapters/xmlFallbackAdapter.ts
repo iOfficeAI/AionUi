@@ -140,6 +140,7 @@ export function createXmlFallbackAdapter(options?: { hasMcpTools?: boolean }): T
         teammates,
         availableAgentTypes: params.availableAgentTypes,
         renamedAgents: params.renamedAgents,
+        teamWorkspace: params.teamWorkspace,
       });
       sections.push(rolePrompt);
 

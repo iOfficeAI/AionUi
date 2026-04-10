@@ -124,6 +124,12 @@ export function buildBuiltinAcpSessionMcpServers(
     .filter((server): server is AcpSessionMcpServer => server !== null);
 }
 
+/**
+ * ACP backends that are allowed to receive the Aion team-guide MCP server.
+ * Only claude and codex CLIs support the required MCP capabilities.
+ */
+export const TEAM_GUIDE_ALLOWED_BACKENDS: ReadonlySet<string> = new Set(['claude', 'codex']);
+
 /** Config shape passed from TeamSessionService to AgentManagers */
 export type TeamMcpStdioConfig = {
   name: string;

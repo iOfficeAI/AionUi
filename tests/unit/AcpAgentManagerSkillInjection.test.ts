@@ -207,6 +207,7 @@ describe('AcpAgentManager — first-message skill injection', () => {
     expect(mockPrepareFirstMessage).toHaveBeenCalledWith('Hello', {
       presetContext: 'You are helpful.',
       enabledSkills: ['pptx'],
+      enableTeamGuide: true,
     });
   });
 
@@ -223,10 +224,11 @@ describe('AcpAgentManager — first-message skill injection', () => {
     expect(mockPrepareFirstMessage).toHaveBeenCalledWith('Hello', {
       presetContext: 'Some rules',
       enabledSkills: ['pdf'],
+      enableTeamGuide: false,
     });
   });
 
-  it('skips presetContext injection when presetContext is undefined (native path)', async () => {
+  it('injects team guide prompt even when presetContext is undefined (native path, whitelisted backend)', async () => {
     const manager = createManager({
       backend: 'claude',
       customWorkspace: false,
@@ -236,7 +238,24 @@ describe('AcpAgentManager — first-message skill injection', () => {
 
     expect(mockPrepareFirstMessage).not.toHaveBeenCalled();
     const sentContent = mockAgentSendMessage.mock.calls[0][0].content as string;
-    // No preset context → content should be passed through unchanged
+    // claude is whitelisted for team guide → content should include team guide prompt
+    expect(sentContent).toContain('[Assistant Rules');
+    expect(sentContent).toContain('Team Mode');
+    expect(sentContent).toContain('[User Request]');
+    expect(sentContent).toContain('Test message');
+  });
+
+  it('skips all injection when presetContext is undefined and backend is not whitelisted (native path)', async () => {
+    const manager = createManager({
+      backend: 'gemini',
+      customWorkspace: false,
+    });
+
+    await sendFirstMessage(manager, 'Test message');
+
+    expect(mockPrepareFirstMessage).not.toHaveBeenCalled();
+    const sentContent = mockAgentSendMessage.mock.calls[0][0].content as string;
+    // gemini has native skills but is NOT in team guide whitelist → content unchanged
     expect(sentContent).toBe('Test message');
   });
 });
