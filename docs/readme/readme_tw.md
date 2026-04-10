@@ -30,7 +30,7 @@
 </p>
 
 <p align="center">
-  <a href="../../readme.md">English</a> | <a href="./readme_ch.md">简体中文</a> | <strong>繁體中文</strong> | <a href="./readme_jp.md">日本語</a> | <a href="./readme_ko.md">한국어</a> | <a href="./readme_es.md">Español</a> | <a href="./readme_pt.md">Português</a> | <a href="./readme_tr.md">Türkçe</a> | <a href="https://www.aionui.com" target="_blank">官方網站</a>
+  <a href="../../readme.md">English</a> | <a href="./readme_ch.md">简体中文</a> | <strong>繁體中文</strong> | <a href="./readme_jp.md">日本語</a> | <a href="./readme_ko.md">한국어</a> | <a href="./readme_es.md">Español</a> | <a href="./readme_pt.md">Português</a> | <a href="./readme_tr.md">Türkçe</a> | <a href="./readme_uk.md">Українська</a> | <a href="https://www.aionui.com" target="_blank">官方網站</a>
 </p>
 
 <p align="center">

@@ -107,9 +107,11 @@ const MessageAcpPermission: React.FC<MessageAcpPermissionProps> = React.memo(({ 
                 options.map((option, index) => {
                   const optionName = option?.name || `${t('messages.option')} ${index + 1}`;
                   const optionId = option?.optionId || `option_${index}`;
+                  // Try to translate the option name (e.g. "Allow", "Reject", "Always Allow")
+                  const translatedName = t(`messages.confirmation.${optionName}`, { defaultValue: optionName });
                   return (
                     <Radio key={optionId} value={optionId}>
-                      {optionName}
+                      {translatedName}
                     </Radio>
                   );
                 })

@@ -84,5 +84,15 @@
   "import": "Import",
   "processing": "Processing...",
   "optional": "(optional)",
-  "clear": "Clear"
+  "clear": "Clear",
+  "unit": {
+    "minute_short": "m",
+    "second_short": "s"
+  },
+  "✅ Allow Once": "✅ Allow Once",
+  "✅ Always Allow": "✅ Always Allow",
+  "✅ Allow Execution": "✅ Allow Execution",
+  "✅ Always Allow Tool": "✅ Always Allow Tool",
+  "✅ Always Allow Server": "✅ Always Allow Server",
+  "✅ Confirm": "✅ Confirm"
 }
