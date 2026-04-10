@@ -14,16 +14,18 @@ See [docs/development.md](docs/development.md) for environment setup. You will n
 
 Each pull request must contain **exactly one feature or one bug fix** that cannot be further decomposed.
 
-**How to check:** Ask yourself (or an AI): *"Can this diff be split into multiple independently mergeable PRs?"* If yes, split it before submitting.
+**How to check:** Ask yourself (or an AI): _"Can this diff be split into multiple independently mergeable PRs?"_ If yes, split it before submitting.
 
 ### Examples
 
 **Acceptable (single PR):**
+
 - A bug fix with one root cause, even if it touches multiple files
 - A single coherent feature (e.g., dark mode toggle)
 - A helper function and its first caller, when the helper exists solely to serve that feature
 
 **Must be split into separate PRs:**
+
 - Picture indexing fix + OLE object detection fix + heading numbering fix = 3 PRs
 - Unrelated bug fixes bundled together
 - Independent technical layers (e.g., database migration + UI component + API endpoint for unrelated features)
@@ -65,13 +67,13 @@ bunx vitest run
 
 ### Common failures and fixes
 
-| Failure | Fix |
-|---------|-----|
-| Format errors | `bun run format` (auto-fixes) |
-| Lint errors | `bun run lint:fix` for auto-fixable issues; fix the rest manually |
-| Type errors | Fix the TypeScript issue, then re-run `bunx tsc --noEmit` |
-| i18n errors | Check for missing keys; run `bun run i18n:types` to regenerate types |
-| Test failures | Fix the failing test or implementation; re-run `bunx vitest run` |
+| Failure       | Fix                                                                  |
+| ------------- | -------------------------------------------------------------------- |
+| Format errors | `bun run format` (auto-fixes)                                        |
+| Lint errors   | `bun run lint:fix` for auto-fixable issues; fix the rest manually    |
+| Type errors   | Fix the TypeScript issue, then re-run `bunx tsc --noEmit`            |
+| i18n errors   | Check for missing keys; run `bun run i18n:types` to regenerate types |
+| Test failures | Fix the failing test or implementation; re-run `bunx vitest run`     |
 
 ### Claude Code shortcut
 
@@ -81,13 +83,13 @@ If you use [Claude Code](https://docs.anthropic.com/en/docs/claude-code), run `/
 
 This repository runs a PR automation bot that reviews, fixes minor issues, and prepares PRs for merge. You may see these labels on your PR:
 
-| Label | Meaning | Action needed |
-|-------|---------|---------------|
-| `bot:reviewing` | Bot is reviewing your PR | Wait |
-| `bot:ci-waiting` | CI failed; bot is waiting for your fix | Push a new commit to fix CI |
-| `bot:needs-rebase` | Merge conflict; bot cannot auto-rebase | Rebase your branch onto `main` and push |
-| `bot:needs-human-review` | Blocking issue found | A maintainer will review and comment |
-| `bot:ready-to-merge` | All checks passed | A maintainer will merge when ready |
+| Label                    | Meaning                                | Action needed                           |
+| ------------------------ | -------------------------------------- | --------------------------------------- |
+| `bot:reviewing`          | Bot is reviewing your PR               | Wait                                    |
+| `bot:ci-waiting`         | CI failed; bot is waiting for your fix | Push a new commit to fix CI             |
+| `bot:needs-rebase`       | Merge conflict; bot cannot auto-rebase | Rebase your branch onto `main` and push |
+| `bot:needs-human-review` | Blocking issue found                   | A maintainer will review and comment    |
+| `bot:ready-to-merge`     | All checks passed                      | A maintainer will merge when ready      |
 
 See [docs/conventions/pr-automation.md](docs/conventions/pr-automation.md) for the full automation workflow.
 

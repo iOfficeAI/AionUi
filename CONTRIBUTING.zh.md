@@ -14,16 +14,18 @@
 
 每个 PR 只能包含**一个不可再拆的 feature 或一个 bug fix**。
 
-**判断方法：** 问自己（或 AI）：*"这个 diff 能否拆成多个独立可合并的 PR？"* 如果能，提交前必须拆分。
+**判断方法：** 问自己（或 AI）：_"这个 diff 能否拆成多个独立可合并的 PR？"_ 如果能，提交前必须拆分。
 
 ### 示例
 
 **可接受（单个 PR）：**
+
 - 一个根因的 bug 修复，即使涉及多个文件
 - 一个完整的功能（例如暗色模式开关）
 - 一个 helper 函数及其第一个调用者，前提是该 helper 仅为这个功能服务
 
 **必须拆分成多个 PR：**
+
 - 图片索引修复 + OLE 对象检测修复 + 标题编号修复 = 3 个 PR
 - 多个不相关的 bug 修复打包在一起
 - 独立的技术层（例如数据库迁移 + UI 组件 + API 端点，分属不相关的功能）
@@ -65,13 +67,13 @@ bunx vitest run
 
 ### 常见失败及修复
 
-| 失败类型 | 修复方法 |
-|----------|----------|
-| 格式错误 | `bun run format`（自动修复） |
-| Lint 错误 | `bun run lint:fix` 修复可自动修复的部分，其余手动修复 |
-| 类型错误 | 修复 TypeScript 问题，重新运行 `bunx tsc --noEmit` |
+| 失败类型  | 修复方法                                               |
+| --------- | ------------------------------------------------------ |
+| 格式错误  | `bun run format`（自动修复）                           |
+| Lint 错误 | `bun run lint:fix` 修复可自动修复的部分，其余手动修复  |
+| 类型错误  | 修复 TypeScript 问题，重新运行 `bunx tsc --noEmit`     |
 | i18n 错误 | 检查缺失的 key，运行 `bun run i18n:types` 重新生成类型 |
-| 测试失败 | 修复失败的测试或实现，重新运行 `bunx vitest run` |
+| 测试失败  | 修复失败的测试或实现，重新运行 `bunx vitest run`       |
 
 ### Claude Code 快捷方式
 
@@ -81,13 +83,13 @@ bunx vitest run
 
 本仓库运行 PR 自动化 bot，自动 review、修复小问题、准备合并。你的 PR 上可能出现以下 label：
 
-| Label | 含义 | 需要的操作 |
-|-------|------|-----------|
-| `bot:reviewing` | Bot 正在 review 你的 PR | 等待 |
-| `bot:ci-waiting` | CI 失败，bot 等你修复 | 推送新 commit 修复 CI |
-| `bot:needs-rebase` | 有合并冲突，bot 无法自动 rebase | 将分支 rebase 到 `main` 后推送 |
-| `bot:needs-human-review` | 发现阻塞性问题 | 维护者会介入审查并评论 |
-| `bot:ready-to-merge` | 所有检查已通过 | 维护者会在准备好后合并 |
+| Label                    | 含义                            | 需要的操作                     |
+| ------------------------ | ------------------------------- | ------------------------------ |
+| `bot:reviewing`          | Bot 正在 review 你的 PR         | 等待                           |
+| `bot:ci-waiting`         | CI 失败，bot 等你修复           | 推送新 commit 修复 CI          |
+| `bot:needs-rebase`       | 有合并冲突，bot 无法自动 rebase | 将分支 rebase 到 `main` 后推送 |
+| `bot:needs-human-review` | 发现阻塞性问题                  | 维护者会介入审查并评论         |
+| `bot:ready-to-merge`     | 所有检查已通过                  | 维护者会在准备好后合并         |
 
 完整自动化流程请参考 [docs/conventions/pr-automation.md](docs/conventions/pr-automation.md)。
 
