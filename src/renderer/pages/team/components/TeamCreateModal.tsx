@@ -66,6 +66,7 @@ const TeamCreateModal: React.FC<Props> = ({ visible, onClose, onCreated }) => {
   const [workspace, setWorkspace] = useState('');
   const [loading, setLoading] = useState(false);
   const [wsDropdownVisible, setWsDropdownVisible] = useState(false);
+  const [wsDropdownPos, setWsDropdownPos] = useState({ top: 0, left: 0, width: 0 });
   const nameInputRef = useRef<RefInputType | null>(null);
   const wsTriggerRef = useRef<HTMLDivElement>(null);
 
@@ -252,8 +253,15 @@ const TeamCreateModal: React.FC<Props> = ({ visible, onClose, onCreated }) => {
             {isDesktop ? (
               <div className='relative' ref={wsTriggerRef}>
                 <div
-                  onClick={() => (recentWorkspaces.length > 0 ? setWsDropdownVisible((v) => !v) : handleBrowseWorkspace())}
-                  className={`flex items-center gap-10px px-12px py-8px rd-6px border cursor-pointer transition-all min-h-36px ${
+                  onClick={() => {
+                    if (recentWorkspaces.length === 0) { handleBrowseWorkspace(); return; }
+                    if (!wsDropdownVisible && wsTriggerRef.current) {
+                      const rect = wsTriggerRef.current.getBoundingClientRect();
+                      setWsDropdownPos({ top: rect.bottom + 4, left: rect.left, width: rect.width });
+                    }
+                    setWsDropdownVisible((v) => !v);
+                  }}
+                  className={`flex items-center gap-10px px-12px py-8px rd-6px border cursor-pointer transition-all min-h-36px bg-[var(--fill-0)] ${
                     wsDropdownVisible
                       ? 'border-[var(--color-primary-6)]'
                       : 'border-[var(--color-border-2)] hover:border-[var(--color-primary-6)]'
@@ -290,7 +298,10 @@ const TeamCreateModal: React.FC<Props> = ({ visible, onClose, onCreated }) => {
                 </div>
 
                 {wsDropdownVisible && (
-                  <div className='absolute top-full left-0 right-0 mt-4px z-50 bg-[var(--color-bg-2)] rd-8px overflow-hidden shadow-lg border border-[var(--color-border-1)] py-4px'>
+                  <div
+                    style={{ position: 'fixed', top: wsDropdownPos.top, left: wsDropdownPos.left, width: wsDropdownPos.width, zIndex: 10002 }}
+                    className='bg-[var(--color-bg-2)] rd-8px overflow-hidden shadow-lg border border-[var(--color-border-1)] py-4px'
+                  >
                     {recentWorkspaces.length > 0 && (
                       <>
                         <div className='px-12px py-6px text-12px text-[var(--color-text-3)] font-medium'>
