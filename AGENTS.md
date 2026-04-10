@@ -1,5 +1,7 @@
 # AionUi - Project Guide
 
+All contributors (human and AI) must follow [CONTRIBUTING.md](CONTRIBUTING.md) before opening a PR. ([Chinese version](CONTRIBUTING.zh.md))
+
 ## Code Conventions
 
 ### File & Directory Structure
