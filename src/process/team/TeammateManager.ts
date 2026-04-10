@@ -265,6 +265,13 @@ export class TeammateManager extends EventEmitter {
       this.responseBuffer.set(msg.conversation_id, existing + text);
     }
 
+    // Detect agent crash: AcpAgent emits error with agentCrash flag on unexpected exit
+    const msgData = msg.data as { agentCrash?: boolean; error?: string } | null;
+    if (msg.type === 'error' && msgData?.agentCrash) {
+      void this.handleAgentCrash(agent, msgData.error ?? 'Unknown error');
+      return;
+    }
+
     // Detect terminal stream messages and trigger turn completion.
     // The turnCompleted IPC event is never emitted by agent managers, so we
     // derive turn completion from the responseStream 'finish' message instead.
@@ -520,6 +527,41 @@ export class TeammateManager extends EventEmitter {
     if (allSettled) {
       void this.wake(leadSlotId);
     }
+  }
+
+  /**
+   * Handle an agent whose CLI process crashed unexpectedly.
+   * Writes a testament message to the leader's mailbox, removes the agent,
+   * and wakes the leader so it can decide whether to respawn.
+   */
+  private async handleAgentCrash(agent: TeamAgent, errorMessage: string): Promise<void> {
+    const leadAgent = this.agents.find((a) => a.role === 'lead');
+    if (!leadAgent) return;
+
+    const testament =
+      `[System] Member "${agent.agentName}" (${agent.conversationType}) crashed and has been automatically removed. ` +
+      `Error: ${errorMessage}. ` +
+      `You may recreate a member to continue the task if needed.`;
+
+    // 1. Write testament to leader's mailbox
+    await this.mailbox.write({
+      teamId: this.teamId,
+      toAgentId: leadAgent.slotId,
+      fromAgentId: agent.slotId,
+      content: testament,
+      type: 'message',
+      summary: `${agent.agentName} crashed`,
+    });
+
+    console.warn(
+      `[TeammateManager] Agent ${agent.slotId} (${agent.agentName}) crashed: ${errorMessage}. Testament sent to leader.`
+    );
+
+    // 2. Remove the crashed agent (equivalent to fire, without shutdown negotiation)
+    this.removeAgent(agent.slotId);
+
+    // 3. Wake leader to process the testament
+    void this.wake(leadAgent.slotId);
   }
 
   /** Remove an agent: cancel pending wake, clear buffers, remove from in-memory list */
