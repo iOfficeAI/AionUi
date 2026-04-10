@@ -46,21 +46,55 @@
 }
 
 .speech-input-button {
-  width: 28px;
-  min-width: 28px;
-  height: 28px;
+  width: 32px;
+  min-width: 32px;
+  height: 32px;
   padding: 0 !important;
-  border-color: var(--color-border-2) !important;
-  background: var(--color-fill-2) !important;
-  color: var(--text-secondary) !important;
+  border: none !important;
+  box-shadow: none !important;
+  background: transparent !important;
+  color: var(--color-text-3) !important;
+  border-radius: 10px !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+}
+
+.speech-input-button .arco-btn-icon {
+  margin: 0 !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  line-height: 1 !important;
+}
+
+.speech-input-button svg {
+  display: block;
+}
+
+.speech-input-button--processing .arco-btn-icon,
+.speech-input-button--processing .arco-icon {
+  width: 18px !important;
+  height: 18px !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+}
+
+.speech-input-button--processing svg {
+  width: 18px !important;
+  height: 18px !important;
+  transform-origin: center center !important;
 }
 
 .speech-input-button:hover,
 .speech-input-button:active,
 .speech-input-button:focus,
 .speech-input-button:focus-visible {
-  border-color: rgb(var(--primary-4)) !important;
-  color: var(--text-primary) !important;
+  border: none !important;
+  box-shadow: none !important;
+  background: color-mix(in srgb, var(--color-fill-2) 78%, transparent) !important;
+  color: var(--color-text-1) !important;
 }
 
 .speech-input-button--listening,
@@ -68,10 +102,11 @@
 .speech-input-button--listening:active,
 .speech-input-button--listening:focus,
 .speech-input-button--listening:focus-visible {
-  border-color: rgb(var(--danger-3)) !important;
+  border: none !important;
+  box-shadow: none !important;
   background: rgb(var(--danger-1)) !important;
   color: rgb(var(--danger-6)) !important;
-  animation: speech-input-pulse 1.2s ease-in-out infinite;
+  border-radius: 999px !important;
 }
 
 .speech-input-button--processing,
@@ -79,19 +114,10 @@
 .speech-input-button--processing:active,
 .speech-input-button--processing:focus,
 .speech-input-button--processing:focus-visible {
-  border-color: rgb(var(--warning-3)) !important;
-  background: rgb(var(--warning-1)) !important;
-  color: rgb(var(--warning-6)) !important;
-}
-
-@keyframes speech-input-pulse {
-  0%,
-  100% {
-    box-shadow: 0 0 0 0 rgba(var(--danger-6), 0.08);
-  }
-  50% {
-    box-shadow: 0 0 0 4px rgba(var(--danger-6), 0.16);
-  }
+  border: none !important;
+  box-shadow: none !important;
+  background: color-mix(in srgb, var(--color-fill-2) 86%, transparent) !important;
+  color: var(--color-text-2) !important;
 }
 
 /* Allow sendbox tools area to shrink so the send button stays visible */
