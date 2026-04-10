@@ -208,6 +208,7 @@ describe('AcpAgentManager — first-message skill injection', () => {
       presetContext: 'You are helpful.',
       enabledSkills: ['pptx'],
       enableTeamGuide: true,
+      backend: 'claude',
     });
   });
 
@@ -225,6 +226,7 @@ describe('AcpAgentManager — first-message skill injection', () => {
       presetContext: 'Some rules',
       enabledSkills: ['pdf'],
       enableTeamGuide: false,
+      backend: 'opencode',
     });
   });
 
@@ -245,7 +247,7 @@ describe('AcpAgentManager — first-message skill injection', () => {
     expect(sentContent).toContain('Test message');
   });
 
-  it('skips all injection when presetContext is undefined and backend is not whitelisted (native path)', async () => {
+  it('injects team guide for gemini backend (now in TEAM_SUPPORTED_BACKENDS)', async () => {
     const manager = createManager({
       backend: 'gemini',
       customWorkspace: false,
@@ -255,7 +257,10 @@ describe('AcpAgentManager — first-message skill injection', () => {
 
     expect(mockPrepareFirstMessage).not.toHaveBeenCalled();
     const sentContent = mockAgentSendMessage.mock.calls[0][0].content as string;
-    // gemini has native skills but is NOT in team guide whitelist → content unchanged
-    expect(sentContent).toBe('Test message');
+    // gemini is now in TEAM_SUPPORTED_BACKENDS → team guide should be injected
+    expect(sentContent).toContain('[Assistant Rules');
+    expect(sentContent).toContain('Team Mode');
+    expect(sentContent).toContain('[User Request]');
+    expect(sentContent).toContain('Test message');
   });
 });

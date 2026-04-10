@@ -312,24 +312,11 @@ describe('WorkspaceSnapshotService', () => {
   });
 
   describe('DEFAULT_GITIGNORE excludes common heavy directories (#2159)', () => {
-    it('creates .gitignore with build output patterns for non-git workspaces', async () => {
+    it('keeps snapshot ignore rules out of the workspace root', async () => {
       await fs.writeFile(path.join(tmpDir, 'hello.txt'), 'hello');
       await service.init(tmpDir);
 
-      const content = await fs.readFile(path.join(tmpDir, '.gitignore'), 'utf-8');
-
-      // Core patterns that were always present
-      expect(content).toContain('node_modules/');
-      expect(content).toContain('.git/');
-      expect(content).toContain('*.lock');
-
-      // Expanded patterns to prevent huge snapshots (#2159)
-      expect(content).toContain('dist/');
-      expect(content).toContain('build/');
-      expect(content).toContain('.next/');
-      expect(content).toContain('target/');
-      expect(content).toContain('__pycache__/');
-      expect(content).toContain('.venv/');
+      await expect(fs.access(path.join(tmpDir, '.gitignore'))).rejects.toThrow();
     });
 
     it('excludes dist/ files from snapshot baseline', async () => {

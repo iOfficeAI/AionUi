@@ -156,6 +156,8 @@
   "saveUploadToWorkspace": "업로드 파일을 작업 공간에 저장",
   "commandQueueEnabled": "명령 큐 사용",
   "commandQueueEnabledDesc": "활성화하면 현재 턴이 처리 중일 때 새 메시지를 즉시 보내지 않고 큐에 추가합니다.",
+  "autoPreviewOfficeFiles": "새 Office 파일 자동 미리보기",
+  "autoPreviewOfficeFilesDesc": "현재 작업 공간에 새로 생성된 Word, Excel, PowerPoint 파일을 자동으로 엽니다. Office 임시 잠금 파일은 무시합니다.",
   "startOnBoot": "시작 시 자동 실행",
   "startOnBootDesc": "macOS 또는 Windows 로그인 시 AionUi를 자동으로 실행합니다.",
   "startOnBootUnsupported": "패키징된 macOS 및 Windows 앱에서만 사용할 수 있습니다.",

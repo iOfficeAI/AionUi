@@ -18,8 +18,10 @@ import * as net from 'node:net';
 import { getCreateTeamToolDescription } from '@process/resources/prompts/teamGuidePrompt';
 
 const AION_MCP_TOKEN = process.env.AION_MCP_TOKEN || undefined;
+/** Backend type of the agent that owns this stdio bridge (e.g. 'claude', 'codex', 'gemini'). */
+const AION_MCP_BACKEND = process.env.AION_MCP_BACKEND || '';
 process.stderr.write(
-  `[aion-mcp-stdio] Script started. PID=${process.pid}, AION_MCP_PORT=${process.env.AION_MCP_PORT || 'unset'}\n`
+  `[aion-mcp-stdio] Script started. PID=${process.pid}, AION_MCP_PORT=${process.env.AION_MCP_PORT || 'unset'}, BACKEND=${AION_MCP_BACKEND || 'unset'}\n`
 );
 const AION_MCP_PORT = parseInt(process.env.AION_MCP_PORT || '0', 10);
 
@@ -95,7 +97,12 @@ function createAionTool(
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   server.tool(toolName, description, schema, async (args: Record<string, unknown>) => {
     try {
-      const payload: Record<string, unknown> = { tool: toolName, args, auth_token: authToken };
+      const payload: Record<string, unknown> = {
+        tool: toolName,
+        args,
+        auth_token: authToken,
+        backend: AION_MCP_BACKEND,
+      };
       const response = await sendTcpRequest(tcpPort, payload);
 
       if (response.error) {

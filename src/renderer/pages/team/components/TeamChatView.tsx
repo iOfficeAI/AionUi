@@ -19,7 +19,9 @@ type GeminiConversation = Extract<TChatConversation, { type: 'gemini' }>;
 const GeminiTeamChat: React.FC<{
   conversation: GeminiConversation;
   hideSendBox?: boolean;
-}> = ({ conversation, hideSendBox }) => {
+  teamId?: string;
+  agentSlotId?: string;
+}> = ({ conversation, hideSendBox, teamId, agentSlotId }) => {
   const onSelectModel = useCallback(
     async (_provider: IProvider, modelName: string) => {
       const selected = { ..._provider, useModel: modelName } as TProviderWithModel;
@@ -37,6 +39,8 @@ const GeminiTeamChat: React.FC<{
       workspace={conversation.extra.workspace}
       modelSelection={modelSelection}
       hideSendBox={hideSendBox}
+      teamId={teamId}
+      agentSlotId={agentSlotId}
     />
   );
 };
@@ -113,7 +117,15 @@ const TeamChatView: React.FC<TeamChatViewProps> = ({ conversation, hideSendBox, 
       case 'aionrs':
         return <AionrsTeamChat key={conversation.id} conversation={conversation as AionrsConversation} />;
       case 'gemini':
-        return <GeminiTeamChat key={conversation.id} conversation={conversation} hideSendBox={hideSendBox} />;
+        return (
+          <GeminiTeamChat
+            key={conversation.id}
+            conversation={conversation}
+            hideSendBox={hideSendBox}
+            teamId={teamId}
+            agentSlotId={agentSlotId}
+          />
+        );
       case 'openclaw-gateway':
         return (
           <OpenClawChat

@@ -79,7 +79,7 @@ system and will break team coordination. Always use the \`team_*\` versions:
 
 - **team_send_message** — Send a message to a teammate by name. This delivers
   to their mailbox and wakes them up. Use "*" to broadcast to all.
-- **team_spawn_agent** — Create a new teammate when you need more help.
+- **team_spawn_agent** — Create a new teammate. Use the \`agent_type\` parameter to pick from the "Available Agent Types for Spawning" list above.
 - **team_task_create** — Add a task to the shared task board.
 - **team_task_update** — Update task status (e.g., mark completed).
 - **team_task_list** — View all tasks and their current status.
@@ -117,6 +117,7 @@ When the task is completed, or the user asks to dismiss/fire/shut down teammates
 
 ## Important Rules
 - ALWAYS use the team_* tools for coordination, not plain text instructions
+- When the user says "add", "create", "spawn", "hire" a member/teammate/agent → call team_spawn_agent immediately, do NOT just reply in text
 - When the user says "dismiss", "fire", "shut down", "remove", or "下线/解雇/开除" a teammate → use team_shutdown_agent
 - When the user says "rename", "change name", "改名" → use team_rename_agent
 - When a teammate completes a task, review the result and decide next steps

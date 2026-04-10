@@ -4,15 +4,8 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-/**
- * Tests for useAutoPreviewOfficeFiles hook.
- *
- * The hook delegates detection to the main process via workspaceOfficeWatch IPC.
- * It starts the watcher on mount, subscribes to fileAdded events, and stops on unmount.
- */
-
-import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { renderHook, act } from '@testing-library/react';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { act, renderHook } from '@testing-library/react';
 
 // ── Mocks ───────────────────────────────────────────────────────────────────
 
@@ -31,23 +24,38 @@ vi.mock('@/renderer/utils/file/fileType', () => ({
   getFileTypeInfo: (...args: unknown[]) => mockGetFileTypeInfo(...args),
 }));
 
-// Capture the fileAdded subscriber so tests can fire it directly
-let fileAddedHandler: ((evt: { filePath: string; workspace: string }) => void) | null = null;
-const mockStartInvoke = vi.fn().mockResolvedValue({ success: true });
-const mockStopInvoke = vi.fn().mockResolvedValue({ success: true });
-const mockFileAddedUnsub = vi.fn();
+vi.mock('@/renderer/hooks/system/useAutoPreviewOfficeFilesEnabled', () => ({
+  useAutoPreviewOfficeFilesEnabled: () => true,
+  isOfficeAutoPreviewTriggerMessage: (message: { type: string }) =>
+    ['tool_group', 'tool_call', 'acp_tool_call', 'codex_tool_call'].includes(message.type),
+  findNewOfficeFiles: (currentFiles: string[], knownFiles: Set<string>) =>
+    currentFiles.filter((filePath) => !knownFiles.has(filePath)),
+}));
+
+let responseHandler: ((message: { conversation_id: string; type: string }) => void) | null = null;
+let turnCompletedHandler: ((event: { sessionId: string; status: string }) => void) | null = null;
+const mockScanInvoke = vi.fn().mockResolvedValue([]);
+const mockResponseStreamUnsub = vi.fn();
+const mockTurnCompletedUnsub = vi.fn();
 
 vi.mock('@/common', () => ({
   ipcBridge: {
-    workspaceOfficeWatch: {
-      start: { invoke: (...args: unknown[]) => mockStartInvoke(...args) },
-      stop: { invoke: (...args: unknown[]) => mockStopInvoke(...args) },
-      fileAdded: {
-        on: (handler: (evt: { filePath: string; workspace: string }) => void) => {
-          fileAddedHandler = handler;
-          return mockFileAddedUnsub;
+    conversation: {
+      responseStream: {
+        on: (handler: (message: { conversation_id: string; type: string }) => void) => {
+          responseHandler = handler;
+          return mockResponseStreamUnsub;
         },
       },
+      turnCompleted: {
+        on: (handler: (event: { sessionId: string; status: string }) => void) => {
+          turnCompletedHandler = handler;
+          return mockTurnCompletedUnsub;
+        },
+      },
+    },
+    workspaceOfficeWatch: {
+      scan: { invoke: (...args: unknown[]) => mockScanInvoke(...args) },
     },
   },
 }));
@@ -57,93 +65,164 @@ import { useAutoPreviewOfficeFiles } from '../../src/renderer/hooks/file/useAuto
 // ── Tests ────────────────────────────────────────────────────────────────────
 
 describe('useAutoPreviewOfficeFiles', () => {
+  const flushEffects = async () => {
+    await act(async () => {
+      await Promise.resolve();
+    });
+  };
+
   beforeEach(() => {
     vi.clearAllMocks();
-    fileAddedHandler = null;
+    vi.useFakeTimers();
+    responseHandler = null;
+    turnCompletedHandler = null;
     mockFindPreviewTab.mockReturnValue(null);
     mockGetFileTypeInfo.mockReturnValue({ contentType: 'ppt' });
-    mockStartInvoke.mockResolvedValue({ success: true });
-    mockStopInvoke.mockResolvedValue({ success: true });
+    mockScanInvoke.mockResolvedValue([]);
   });
 
-  it('calls start on mount and stop on unmount', () => {
-    const { unmount } = renderHook(() => useAutoPreviewOfficeFiles('/workspace'));
+  afterEach(() => {
+    vi.useRealTimers();
+  });
 
-    expect(mockStartInvoke).toHaveBeenCalledWith({ workspace: '/workspace' });
+  it('captures an initial Office-file baseline on mount and unsubscribes on unmount', async () => {
+    const { unmount } = renderHook(() =>
+      useAutoPreviewOfficeFiles({ conversationId: 'conv-1', workspace: '/workspace' })
+    );
+
+    await flushEffects();
+
+    expect(mockScanInvoke).toHaveBeenCalledWith({ workspace: '/workspace' });
 
     unmount();
 
-    expect(mockFileAddedUnsub).toHaveBeenCalled();
-    expect(mockStopInvoke).toHaveBeenCalledWith({ workspace: '/workspace' });
+    expect(mockResponseStreamUnsub).toHaveBeenCalled();
+    expect(mockTurnCompletedUnsub).toHaveBeenCalled();
   });
 
-  it('does nothing when workspace is undefined', () => {
-    renderHook(() => useAutoPreviewOfficeFiles(undefined));
+  it('does nothing when workspace is missing', () => {
+    renderHook(() => useAutoPreviewOfficeFiles({ conversationId: 'conv-1', workspace: undefined }));
 
-    expect(mockStartInvoke).not.toHaveBeenCalled();
-    expect(mockStopInvoke).not.toHaveBeenCalled();
+    expect(mockScanInvoke).not.toHaveBeenCalled();
   });
 
-  it('opens preview when fileAdded event fires for current workspace', async () => {
-    mockGetFileTypeInfo.mockReturnValue({ contentType: 'ppt' });
+  it('opens preview when a tool message causes a scan with a new Office file', async () => {
+    mockScanInvoke.mockResolvedValueOnce([]).mockResolvedValueOnce(['/workspace/slides.pptx']);
 
-    renderHook(() => useAutoPreviewOfficeFiles('/workspace'));
+    renderHook(() => useAutoPreviewOfficeFiles({ conversationId: 'conv-1', workspace: '/workspace' }));
+
+    await flushEffects();
+
+    expect(mockScanInvoke).toHaveBeenCalledTimes(1);
 
     await act(async () => {
-      fileAddedHandler?.({ filePath: '/workspace/slides.pptx', workspace: '/workspace' });
+      responseHandler?.({ conversation_id: 'conv-1', type: 'tool_call' });
+      await vi.advanceTimersByTimeAsync(1500);
+    });
+
+    await flushEffects();
+
+    expect(mockOpenPreview).not.toHaveBeenCalled();
+
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(1000);
     });
 
     expect(mockOpenPreview).toHaveBeenCalledOnce();
+
     expect(mockOpenPreview).toHaveBeenCalledWith(
       '',
       'ppt',
-      expect.objectContaining({ filePath: '/workspace/slides.pptx', fileName: 'slides.pptx' })
+      expect.objectContaining({
+        filePath: '/workspace/slides.pptx',
+        fileName: 'slides.pptx',
+        workspace: '/workspace',
+      })
     );
   });
 
-  it('ignores fileAdded events from a different workspace', async () => {
-    renderHook(() => useAutoPreviewOfficeFiles('/workspace-A'));
+  it('ignores non-matching conversations and non-trigger messages', async () => {
+    mockScanInvoke.mockResolvedValueOnce([]).mockResolvedValue(['/workspace-A/slides.pptx']);
+
+    renderHook(() => useAutoPreviewOfficeFiles({ conversationId: 'conv-1', workspace: '/workspace-A' }));
+
+    await flushEffects();
+
+    expect(mockScanInvoke).toHaveBeenCalledTimes(1);
 
     await act(async () => {
-      fileAddedHandler?.({ filePath: '/workspace-B/slides.pptx', workspace: '/workspace-B' });
+      responseHandler?.({ conversation_id: 'conv-2', type: 'tool_call' });
+      responseHandler?.({ conversation_id: 'conv-1', type: 'text' });
+      await vi.advanceTimersByTimeAsync(1500);
     });
 
     expect(mockOpenPreview).not.toHaveBeenCalled();
+    expect(mockScanInvoke).toHaveBeenCalledTimes(1);
   });
 
-  it('does NOT call openPreview when tab is already open', async () => {
+  it('does NOT call openPreview when the preview tab already exists', async () => {
     mockFindPreviewTab.mockReturnValue({ id: 'existing-tab' });
+    mockScanInvoke.mockResolvedValueOnce([]).mockResolvedValueOnce(['/workspace/report.docx']);
 
-    renderHook(() => useAutoPreviewOfficeFiles('/workspace'));
+    renderHook(() => useAutoPreviewOfficeFiles({ conversationId: 'conv-1', workspace: '/workspace' }));
+
+    await flushEffects();
+
+    expect(mockScanInvoke).toHaveBeenCalledTimes(1);
 
     await act(async () => {
-      fileAddedHandler?.({ filePath: '/workspace/report.docx', workspace: '/workspace' });
+      responseHandler?.({ conversation_id: 'conv-1', type: 'tool_group' });
+      await vi.advanceTimersByTimeAsync(1500);
+    });
+
+    await flushEffects();
+
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(1000);
     });
 
     expect(mockFindPreviewTab).toHaveBeenCalled();
     expect(mockOpenPreview).not.toHaveBeenCalled();
   });
 
-  it('restarts watcher when workspace changes', () => {
-    const { rerender } = renderHook(({ ws }: { ws: string }) => useAutoPreviewOfficeFiles(ws), {
-      initialProps: { ws: '/workspace-A' },
-    });
+  it('rescans the new workspace when the workspace changes', async () => {
+    const { rerender } = renderHook(
+      ({ ws }: { ws: string }) => useAutoPreviewOfficeFiles({ conversationId: 'conv-1', workspace: ws }),
+      {
+        initialProps: { ws: '/workspace-A' },
+      }
+    );
 
-    expect(mockStartInvoke).toHaveBeenCalledWith({ workspace: '/workspace-A' });
+    await flushEffects();
+
+    expect(mockScanInvoke).toHaveBeenCalledWith({ workspace: '/workspace-A' });
 
     rerender({ ws: '/workspace-B' });
 
-    expect(mockStopInvoke).toHaveBeenCalledWith({ workspace: '/workspace-A' });
-    expect(mockStartInvoke).toHaveBeenCalledWith({ workspace: '/workspace-B' });
+    await flushEffects();
+
+    expect(mockScanInvoke).toHaveBeenCalledWith({ workspace: '/workspace-B' });
   });
 
-  it('passes correct contentType and fileName for docx', async () => {
+  it('passes the correct content type and file metadata for docx files', async () => {
     mockGetFileTypeInfo.mockReturnValue({ contentType: 'word' });
+    mockScanInvoke.mockResolvedValueOnce([]).mockResolvedValueOnce(['/ws/report.docx']);
 
-    renderHook(() => useAutoPreviewOfficeFiles('/ws'));
+    renderHook(() => useAutoPreviewOfficeFiles({ conversationId: 'conv-1', workspace: '/ws' }));
+
+    await flushEffects();
+
+    expect(mockScanInvoke).toHaveBeenCalledTimes(1);
 
     await act(async () => {
-      fileAddedHandler?.({ filePath: '/ws/report.docx', workspace: '/ws' });
+      turnCompletedHandler?.({ sessionId: 'conv-1', status: 'finished' });
+      await vi.advanceTimersByTimeAsync(1500);
+    });
+
+    await flushEffects();
+
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(1000);
     });
 
     expect(mockOpenPreview).toHaveBeenCalledWith(
@@ -151,5 +230,30 @@ describe('useAutoPreviewOfficeFiles', () => {
       'word',
       expect.objectContaining({ filePath: '/ws/report.docx', fileName: 'report.docx', workspace: '/ws' })
     );
+  });
+
+  it('cancels delayed auto-open timers when the hook unmounts', async () => {
+    mockScanInvoke.mockResolvedValueOnce([]).mockResolvedValueOnce(['/workspace/slides.pptx']);
+
+    const { unmount } = renderHook(() =>
+      useAutoPreviewOfficeFiles({ conversationId: 'conv-1', workspace: '/workspace' })
+    );
+
+    await flushEffects();
+
+    await act(async () => {
+      responseHandler?.({ conversation_id: 'conv-1', type: 'tool_call' });
+      await vi.advanceTimersByTimeAsync(1500);
+    });
+
+    await flushEffects();
+
+    unmount();
+
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(1000);
+    });
+
+    expect(mockOpenPreview).not.toHaveBeenCalled();
   });
 });
