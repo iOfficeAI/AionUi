@@ -246,7 +246,7 @@ const TeamCreateModal: React.FC<Props> = ({ visible, onClose, onCreated }) => {
             <div className='relative' ref={wsTriggerRef}>
               {/* Trigger */}
               <div
-                onClick={() => setWsDropdownVisible((v) => !v)}
+                onClick={() => (recentWorkspaces.length > 0 ? setWsDropdownVisible((v) => !v) : handleBrowseWorkspace())}
                 className={`flex items-center gap-10px px-12px py-8px rd-6px border cursor-pointer transition-all min-h-36px ${
                   wsDropdownVisible
                     ? 'border-[var(--color-primary-6)]'
