@@ -42,6 +42,8 @@ const mockConversationSendInvoke = vi.fn();
 const mockAcpSendInvoke = vi.fn();
 const mockGeminiSendInvoke = vi.fn();
 const mockOpenClawSendInvoke = vi.fn();
+const mockTeamSendInvoke = vi.fn();
+const mockTeamSendToAgentInvoke = vi.fn();
 const mockOpenClawRuntimeInvoke = vi.fn();
 const mockDatabaseMessagesInvoke = vi.fn();
 
@@ -89,6 +91,10 @@ vi.mock('@/common', () => ({
       sendMessage: { invoke: (...args: unknown[]) => mockOpenClawSendInvoke(...args) },
       getRuntime: { invoke: (...args: unknown[]) => mockOpenClawRuntimeInvoke(...args) },
       responseStream: { on: vi.fn(() => vi.fn()) },
+    },
+    team: {
+      sendMessage: { invoke: (...args: unknown[]) => mockTeamSendInvoke(...args) },
+      sendMessageToAgent: { invoke: (...args: unknown[]) => mockTeamSendToAgentInvoke(...args) },
     },
     database: {
       getConversationMessages: { invoke: (...args: unknown[]) => mockDatabaseMessagesInvoke(...args) },
@@ -601,6 +607,41 @@ describe('platform send box queue integration', () => {
       }
     }
   );
+
+  it('does not misclassify successful team sends that resolve to void as queue execution failures', async () => {
+    mockTeamSendInvoke.mockResolvedValue(undefined);
+
+    render(<AcpSendBox conversation_id='conv-acp' backend='claude' teamId='team-1' />);
+
+    fireEvent.click(screen.getByRole('button', { name: 'trigger-send' }));
+
+    await waitFor(() => {
+      expect(mockTeamSendInvoke).toHaveBeenCalledWith({
+        teamId: 'team-1',
+        content: 'queued command',
+      });
+    });
+
+    expect(mockAcpSendInvoke).not.toHaveBeenCalled();
+    expect(mockArcoWarning).not.toHaveBeenCalledWith(
+      'The next queued command could not start. Edit, reorder, or remove it to continue.'
+    );
+  });
+
+  it('still treats explicit team bridge sentinel errors as failures', async () => {
+    mockTeamSendInvoke.mockResolvedValue({
+      __bridgeError: true,
+      message: 'team failed',
+    });
+
+    render(<AcpSendBox conversation_id='conv-acp' backend='claude' teamId='team-1' />);
+
+    fireEvent.click(screen.getByRole('button', { name: 'trigger-send' }));
+
+    await waitFor(() => {
+      expect(mockTeamSendInvoke).toHaveBeenCalledTimes(1);
+    });
+  });
 
   it.each([
     ['acp', <AcpSendBox conversation_id='conv-acp' backend='claude' />],
