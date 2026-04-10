@@ -24,7 +24,7 @@ import { Button, Input, Message, Tag } from '@arco-design/web-react';
 import { ArrowUp, CloseSmall, Quote } from '@icon-park/react';
 import type { SlashCommandItem } from '@/common/chat/slash/types';
 import { theme } from '@office-ai/platform';
-import React, { useCallback, useDeferredValue, useEffect, useMemo, useRef, useState } from 'react';
+import React, { useCallback, useDeferredValue, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useCompositionInput } from '@renderer/hooks/chat/useCompositionInput';
 import { useConversationExport } from '@renderer/hooks/file/useConversationExport';
@@ -510,6 +510,39 @@ const SendBox: React.FC<{
     },
     [getTextareaElement]
   );
+
+  const syncHighlightTextMetrics = useCallback(
+    (target?: EventTarget | null) => {
+      const textarea = target instanceof HTMLTextAreaElement ? target : getTextareaElement();
+      const highlightLayer = highlightScrollRef.current;
+      if (!textarea || !highlightLayer) {
+        return;
+      }
+
+      const textareaStyle = getComputedStyle(textarea);
+      highlightLayer.style.direction = textareaStyle.direction;
+      highlightLayer.style.fontFamily = textareaStyle.fontFamily;
+      highlightLayer.style.fontSize = textareaStyle.fontSize;
+      highlightLayer.style.fontStyle = textareaStyle.fontStyle;
+      highlightLayer.style.fontWeight = textareaStyle.fontWeight;
+      highlightLayer.style.letterSpacing = textareaStyle.letterSpacing;
+      highlightLayer.style.lineHeight = textareaStyle.lineHeight;
+      highlightLayer.style.paddingTop = textareaStyle.paddingTop;
+      highlightLayer.style.paddingRight = textareaStyle.paddingRight;
+      highlightLayer.style.paddingBottom = textareaStyle.paddingBottom;
+      highlightLayer.style.paddingLeft = textareaStyle.paddingLeft;
+      highlightLayer.style.tabSize = textareaStyle.tabSize;
+      highlightLayer.style.textAlign = textareaStyle.textAlign;
+      highlightLayer.style.textIndent = textareaStyle.textIndent;
+      highlightLayer.style.textTransform = textareaStyle.textTransform;
+      highlightLayer.style.wordSpacing = textareaStyle.wordSpacing;
+    },
+    [getTextareaElement]
+  );
+
+  useLayoutEffect(() => {
+    syncHighlightTextMetrics();
+  }, [input, isInputFocused, isMobile, isSingleLine, syncHighlightTextMetrics]);
 
   const handleTextAreaChange = (value: string) => {
     if (historyNavigationIndex !== null) {
@@ -1098,6 +1131,7 @@ const SendBox: React.FC<{
   );
 
   const sendMessageHandler = () => {
+    if (isUploading) return;
     if (enableBtw && btwQuestion !== null) {
       const normalizedQuestion = btwQuestion.trim();
       if (!normalizedQuestion) {
@@ -1241,6 +1275,8 @@ const SendBox: React.FC<{
 
     return sendButton;
   };
+
+  const shouldUseHighlightOverlay = !isComposingState && allAtFileQueries.length > 0;
 
   const renderHighlightedInputValue = useCallback(() => {
     if (!input) {
@@ -1451,7 +1487,7 @@ const SendBox: React.FC<{
               minWidth: 0,
               maxWidth: '100%',
               marginBottom: isSingleLine ? 0 : '8px',
-              minHeight: isSingleLine ? '20px' : '80px',
+              minHeight: isSingleLine ? '20px' : '40px',
             }}
           >
             <div
@@ -1459,16 +1495,17 @@ const SendBox: React.FC<{
               aria-hidden='true'
               className={`sendbox-highlight-layer text-14px ${isMobile ? 'sendbox-input--mobile' : ''} ${isSingleLine ? 'sendbox-highlight-layer--single' : ''}`}
               data-testid='sendbox-highlight-layer'
-              style={isComposingState ? { visibility: 'hidden' } : undefined}
+              style={!shouldUseHighlightOverlay ? { visibility: 'hidden' } : undefined}
             >
               {renderHighlightedInputValue()}
             </div>
             <Input.TextArea
               autoFocus={!isMobile}
               disabled={disabled}
+              spellCheck={false}
               value={input}
               placeholder={placeholder}
-              className={`${isComposingState ? '' : 'sendbox-highlight-textarea '}pl-0 pr-0 !b-none focus:shadow-none m-0 !bg-transparent !focus:bg-transparent !hover:bg-transparent lh-[20px] !resize-none text-14px ${isMobile ? 'sendbox-input--mobile' : ''}`}
+              className={`${shouldUseHighlightOverlay ? 'sendbox-highlight-textarea ' : ''}pl-0 pr-0 !b-none focus:shadow-none m-0 !bg-transparent !focus:bg-transparent !hover:bg-transparent lh-[20px] !resize-none text-14px ${isMobile ? 'sendbox-input--mobile' : ''}`}
               style={{
                 width: isSingleLine ? 'auto' : '100%',
                 flex: isSingleLine ? 1 : 'none',
@@ -1478,7 +1515,7 @@ const SendBox: React.FC<{
                 marginRight: 0,
                 marginBottom: 0,
                 height: isSingleLine ? '20px' : 'auto',
-                minHeight: isSingleLine ? '20px' : '80px',
+                minHeight: isSingleLine ? '20px' : '40px',
                 overflowY: isSingleLine ? 'hidden' : 'auto',
                 overflowX: 'hidden',
                 whiteSpace: isSingleLine ? 'nowrap' : 'pre-wrap',

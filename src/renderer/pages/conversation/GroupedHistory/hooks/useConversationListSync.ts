@@ -98,7 +98,10 @@ const refreshConversations = () => {
           return extra?.isHealthCheck !== true && !extra?.teamId;
         });
         conversationsState = filteredData;
-        conversationIdsState = new Set(filteredData.map((conversation) => conversation.id));
+        // Use ALL conversation IDs (including team/healthCheck) so the
+        // responseStream listener recognises them as known and doesn't
+        // trigger an infinite refreshConversations loop.
+        conversationIdsState = new Set(data.map((conversation) => conversation.id));
         emitStoreChange();
         return;
       }

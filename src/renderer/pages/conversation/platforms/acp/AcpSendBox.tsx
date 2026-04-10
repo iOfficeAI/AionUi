@@ -17,6 +17,7 @@ import { assertBridgeSuccess } from '@/renderer/pages/conversation/platforms/ass
 import { allSupportedExts } from '@/renderer/services/FileService';
 import { emitter, useAddEventListener } from '@/renderer/utils/emitter';
 import { mergeFileSelectionItems } from '@/renderer/utils/file/fileSelection';
+import { buildDisplayMessage } from '@/renderer/utils/file/messageFiles';
 import { Message, Tag } from '@arco-design/web-react';
 import { Shield } from '@icon-park/react';
 import { iconColors } from '@/renderer/styles/colors';
@@ -86,9 +87,19 @@ const AcpSendBox: React.FC<{
   sessionMode?: string;
   cachedConfigOptions?: import('@/common/types/acpTypes').AcpSessionConfigOption[];
   agentName?: string;
+  workspacePath?: string;
   teamId?: string;
   agentSlotId?: string;
-}> = ({ conversation_id, backend, sessionMode, cachedConfigOptions, agentName, teamId, agentSlotId }) => {
+}> = ({
+  conversation_id,
+  backend,
+  sessionMode,
+  cachedConfigOptions,
+  agentName,
+  workspacePath,
+  teamId,
+  agentSlotId,
+}) => {
   const {
     running,
     hasHydratedRunningState,
@@ -149,6 +160,7 @@ const AcpSendBox: React.FC<{
   useAcpInitialMessage({
     conversationId: conversation_id,
     backend,
+    workspacePath,
     setAiProcessing,
     checkAndUpdateTitle,
     addOrUpdateMessage: addOrUpdateMessageRef.current,
@@ -157,6 +169,7 @@ const AcpSendBox: React.FC<{
   const executeCommand = useCallback(
     async ({ input, files }: Pick<ConversationCommandQueueItem, 'input' | 'files'>) => {
       const msg_id = uuid();
+      const displayMessage = buildDisplayMessage(input, files, workspacePath || '');
 
       setAiProcessing(true);
 
@@ -182,7 +195,7 @@ const AcpSendBox: React.FC<{
           }
         } else {
           const result = await ipcBridge.acpConversation.sendMessage.invoke({
-            input,
+            input: displayMessage,
             msg_id,
             conversation_id,
             files,
@@ -224,7 +237,7 @@ Please check your local CLI tool authentication status`,
         emitter.emit('acp.workspace.refresh');
       }
     },
-    [agentSlotId, backend, checkAndUpdateTitle, conversation_id, setAiProcessing, t, teamId]
+    [agentSlotId, backend, checkAndUpdateTitle, conversation_id, setAiProcessing, t, teamId, workspacePath]
   );
 
   const {
@@ -233,7 +246,6 @@ Please check your local CLI tool authentication status`,
     isInteractionLocked: isQueueInteractionLocked,
     hasPendingCommands,
     enqueue,
-    update,
     remove,
     clear,
     reorder,
@@ -251,7 +263,7 @@ Please check your local CLI tool authentication status`,
   });
 
   const onSendHandler = async (message: string) => {
-    if (!isCommandQueueEnabled && isBusy) {
+    if (!teamId && !isCommandQueueEnabled && isBusy) {
       Message.warning(t('messages.conversationInProgress'));
       return;
     }
@@ -275,6 +287,17 @@ Please check your local CLI tool authentication status`,
 
     await executeCommand({ input: message, files: allFiles });
   };
+
+  const handleEditQueuedCommand = useCallback(
+    (item: ConversationCommandQueueItem) => {
+      remove(item.id);
+      setContent(item.input);
+      setUploadFile(Array.from(new Set(item.files)));
+      setAtPath([]);
+      emitter.emit('acp.selected.file.clear');
+    },
+    [remove, setAtPath, setContent, setUploadFile]
+  );
 
   const appendSelectedFiles = useCallback(
     (files: string[]) => {
@@ -315,7 +338,7 @@ Please check your local CLI tool authentication status`,
         onResume={resume}
         onInteractionLock={lockInteraction}
         onInteractionUnlock={unlockInteraction}
-        onUpdate={(commandId, input) => update(commandId, { input })}
+        onEdit={handleEditQueuedCommand}
         onReorder={reorder}
         onRemove={remove}
         onClear={clear}

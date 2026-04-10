@@ -59,6 +59,8 @@ export interface IConfigStorageRefer {
   };
   /** Global LLM prompt timeout in seconds (default: 300). Per-backend promptTimeout overrides this. */
   'acp.promptTimeout'?: number;
+  /** Idle timeout in minutes before an ACP agent process is killed to reclaim memory (default: 5). */
+  'acp.agentIdleTimeout'?: number;
   'acp.customAgents'?: AcpBackendConfig[];
   // Cached model lists per ACP backend for Guid page pre-selection
   'acp.cachedModels'?: Record<string, import('@/common/types/acpTypes').AcpModelInfo>;
@@ -114,6 +116,8 @@ export interface IConfigStorageRefer {
   'system.keepAwake'?: boolean;
   // Whether conversation command queue is enabled
   'system.commandQueueEnabled'?: boolean;
+  // Automatically preview newly created Office files in the current workspace
+  'system.autoPreviewOfficeFiles'?: boolean;
   // Telegram assistant default model / Telegram 助手默认模型
   'assistant.telegram.defaultModel'?: {
     id: string;

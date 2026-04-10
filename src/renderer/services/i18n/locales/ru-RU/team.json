@@ -1,0 +1,64 @@
+{
+  "sider": {
+    "title": "Команды",
+    "createTeam": "Новая команда",
+    "pin": "Закрепить",
+    "unpin": "Открепить",
+    "rename": "Переименовать",
+    "delete": "Удалить",
+    "renameTitle": "Переименовать команду",
+    "renamePlaceholder": "Название команды",
+    "deleteConfirm": "Удалить эту команду?",
+    "deleteConfirmContent": "Это действие нельзя отменить.",
+    "deleteOk": "Удалить",
+    "deleteCancel": "Отмена",
+    "renameOk": "Сохранить",
+    "renameCancel": "Отмена",
+    "renameSuccess": "Команда переименована",
+    "deleteSuccess": "Команда удалена"
+  },
+  "addAgent": {
+    "title": "Добавить агента",
+    "name": "Имя агента",
+    "namePlaceholder": "Введите имя агента",
+    "type": "Тип агента",
+    "typePlaceholder": "Выберите тип агента",
+    "confirm": "Добавить"
+  },
+  "newAgent": "Новый агент",
+  "noMessages": "Пока нет сообщений.",
+  "agentNotConfigured": "Агент ещё не настроен.",
+  "sendBox": {
+    "placeholder": "Сообщение агенту-диспетчеру..."
+  },
+  "create": {
+    "title": "Создать команду",
+    "namePlaceholder": "Название команды",
+    "dispatchAgentPlaceholder": "Выбрать лидера команды",
+    "subAgentsPlaceholder": "Выбрать подагентов",
+    "workspacePlaceholder": "Путь к рабочей области (опционально)",
+    "confirm": "Создать команду",
+    "noSupportedAgents": "Поддерживаемые агенты не установлены",
+    "supportedAgentsHint": "Сейчас поддерживаются Claude, Codex, CodeBuddy. Другие агенты скоро появятся.",
+    "leaderDesc": "Понимает ваши цели и координирует агентов для выполнения задач",
+    "step": {
+      "dispatch": "Лидер команды",
+      "subAgents": "Подагенты",
+      "workspace": "Рабочая область"
+    },
+    "nameRequired": "Введите название команды",
+    "leaderRequired": "Выберите лидера команды",
+    "selectFolder": "Выбрать папку",
+    "recentLabel": "Недавние",
+    "chooseDifferentFolder": "Выбрать другую папку",
+    "error": "Не удалось создать команду"
+  },
+  "emptyState": {
+    "subtitle": "Расскажите о своей цели — я скоординирую команду для её достижения",
+    "suggestions": {
+      "debate": "Организовать дебаты с агентами на разных позициях",
+      "interview": "Спланировать глубинное интервью между агентами",
+      "expert_review": "Несколько экспертов анализируют одну проблему"
+    }
+  }
+}

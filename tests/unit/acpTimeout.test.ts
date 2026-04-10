@@ -167,9 +167,6 @@ describe('AcpConnection timeout handling', () => {
     vi.advanceTimersByTime(59000);
     expect(cancelSpy).not.toHaveBeenCalled();
 
-    // Simulate process exit so the keepalive does not reset the timeout timer
-    (conn as any).child.killed = true;
-
     // At 61s — should have timed out
     vi.advanceTimersByTime(2000);
     expect(cancelSpy).toHaveBeenCalled();
@@ -249,7 +246,6 @@ describe('AcpConnection resume timeout after permission pause', () => {
       isPaused: false,
       startTime: Date.now(),
       timeoutDuration: 300000,
-      promptOriginTime: Date.now(),
     };
     pendingRequests.set(1, request);
 
@@ -364,7 +360,7 @@ describe('AcpAgent.kill', () => {
 });
 
 describe('AcpAgent disconnect messaging', () => {
-  it('does not emit status or error messages on idle-timeout disconnect', () => {
+  it('emits finish signal with agentCrash flag on idle-timeout disconnect', () => {
     const onStreamEvent = vi.fn();
     const onSignalEvent = vi.fn();
     const agent = new AcpAgent({
@@ -376,25 +372,23 @@ describe('AcpAgent disconnect messaging', () => {
 
     (agent as any).handleDisconnect({ code: null, signal: 'SIGTERM' });
 
-    // Should NOT emit disconnected status or error messages
+    // Should NOT emit disconnected status messages via onStreamEvent
     const statusCalls = onStreamEvent.mock.calls.filter(
       ([evt]: [any]) => evt.type === 'agent_status' && evt.data?.status === 'disconnected'
     );
-    const errorCalls = onStreamEvent.mock.calls.filter(([evt]: [any]) => evt.type === 'error');
     expect(statusCalls).toHaveLength(0);
-    expect(errorCalls).toHaveLength(0);
 
-    // Should still emit finish signal to reset UI loading state
+    // Should emit finish signal with crash details via onSignalEvent
     expect(onSignalEvent).toHaveBeenCalledWith(
       expect.objectContaining({
         type: 'finish',
         conversation_id: 'idle-agent',
-        data: null,
+        data: expect.objectContaining({ agentCrash: true }),
       })
     );
   });
 
-  it('does not emit status or error messages on unexpected disconnect', () => {
+  it('emits finish signal with agentCrash flag on unexpected disconnect', () => {
     const onStreamEvent = vi.fn();
     const onSignalEvent = vi.fn();
     const agent = new AcpAgent({
@@ -406,20 +400,18 @@ describe('AcpAgent disconnect messaging', () => {
 
     (agent as any).handleDisconnect({ code: null, signal: 'SIGTERM' });
 
-    // Should NOT emit disconnected status or error messages
+    // Should NOT emit disconnected status messages via onStreamEvent
     const statusCalls = onStreamEvent.mock.calls.filter(
       ([evt]: [any]) => evt.type === 'agent_status' && evt.data?.status === 'disconnected'
     );
-    const errorCalls = onStreamEvent.mock.calls.filter(([evt]: [any]) => evt.type === 'error');
     expect(statusCalls).toHaveLength(0);
-    expect(errorCalls).toHaveLength(0);
 
-    // Should still emit finish signal to reset UI loading state
+    // Should emit finish signal with crash details via onSignalEvent
     expect(onSignalEvent).toHaveBeenCalledWith(
       expect.objectContaining({
         type: 'finish',
         conversation_id: 'disconnect-agent',
-        data: null,
+        data: expect.objectContaining({ agentCrash: true }),
       })
     );
   });

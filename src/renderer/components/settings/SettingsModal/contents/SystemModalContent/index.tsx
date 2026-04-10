@@ -8,6 +8,7 @@ import { ipcBridge } from '@/common';
 import type { IStartOnBootStatus } from '@/common/adapter/ipcBridge';
 import { ConfigStorage } from '@/common/config/storage';
 import LanguageSwitcher from '@/renderer/components/settings/LanguageSwitcher';
+import { AUTO_PREVIEW_OFFICE_FILES_SWR_KEY } from '@/renderer/hooks/system/useAutoPreviewOfficeFilesEnabled';
 import { COMMAND_QUEUE_ENABLED_SWR_KEY } from '@/renderer/hooks/system/useCommandQueueEnabled';
 import { iconColors } from '@/renderer/styles/colors';
 import { isElectronDesktop } from '@/renderer/utils/platform';
@@ -48,8 +49,10 @@ const SystemModalContent: React.FC = () => {
   const [notificationEnabled, setNotificationEnabled] = useState(true);
   const [cronNotificationEnabled, setCronNotificationEnabled] = useState(false);
   const [promptTimeout, setPromptTimeout] = useState<number>(300);
+  const [agentIdleTimeout, setAgentIdleTimeout] = useState<number>(5);
   const [saveUploadToWorkspace, setSaveUploadToWorkspace] = useState(false);
-  const [commandQueueEnabled, setCommandQueueEnabled] = useState(false);
+  const [commandQueueEnabled, setCommandQueueEnabled] = useState(true);
+  const [autoPreviewOfficeFiles, setAutoPreviewOfficeFiles] = useState(true);
 
   useEffect(() => {
     if (!isDesktop) {
@@ -96,6 +99,14 @@ const SystemModalContent: React.FC = () => {
   }, []);
 
   useEffect(() => {
+    ConfigStorage.get('acp.agentIdleTimeout')
+      .then((val) => {
+        if (val && val > 0) setAgentIdleTimeout(val);
+      })
+      .catch(() => {});
+  }, []);
+
+  useEffect(() => {
     ipcBridge.systemSettings.getSaveUploadToWorkspace
       .invoke()
       .then((enabled) => setSaveUploadToWorkspace(enabled))
@@ -106,6 +117,13 @@ const SystemModalContent: React.FC = () => {
     ipcBridge.systemSettings.getCommandQueueEnabled
       .invoke()
       .then((enabled) => setCommandQueueEnabled(enabled))
+      .catch(() => {});
+  }, []);
+
+  useEffect(() => {
+    ipcBridge.systemSettings.getAutoPreviewOfficeFiles
+      .invoke()
+      .then((enabled) => setAutoPreviewOfficeFiles(enabled))
       .catch(() => {});
   }, []);
 
@@ -155,10 +173,24 @@ const SystemModalContent: React.FC = () => {
   }, []);
 
   const handlePromptTimeoutChange = useCallback((val: number | undefined) => {
-    const seconds = val ?? 300;
-    setPromptTimeout(seconds);
-    ConfigStorage.set('acp.promptTimeout', seconds).catch(() => {});
+    setPromptTimeout(val as number);
   }, []);
+
+  const handlePromptTimeoutBlur = useCallback(() => {
+    const clamped = Math.max(30, Math.min(3600, promptTimeout || 300));
+    setPromptTimeout(clamped);
+    ConfigStorage.set('acp.promptTimeout', clamped).catch(() => {});
+  }, [promptTimeout]);
+
+  const handleAgentIdleTimeoutChange = useCallback((val: number | undefined) => {
+    setAgentIdleTimeout(val as number);
+  }, []);
+
+  const handleAgentIdleTimeoutBlur = useCallback(() => {
+    const clamped = Math.max(1, Math.min(60, agentIdleTimeout || 5));
+    setAgentIdleTimeout(clamped);
+    ConfigStorage.set('acp.agentIdleTimeout', clamped).catch(() => {});
+  }, [agentIdleTimeout]);
 
   const handleSaveUploadToWorkspaceChange = useCallback((checked: boolean) => {
     setSaveUploadToWorkspace(checked);
@@ -175,6 +207,19 @@ const SystemModalContent: React.FC = () => {
     ipcBridge.systemSettings.setCommandQueueEnabled.invoke({ enabled: checked }).catch(() => {
       setCommandQueueEnabled(!checked);
       void mutateSWR(COMMAND_QUEUE_ENABLED_SWR_KEY, !checked, {
+        revalidate: false,
+      });
+    });
+  }, []);
+
+  const handleAutoPreviewOfficeFilesChange = useCallback((checked: boolean) => {
+    setAutoPreviewOfficeFiles(checked);
+    void mutateSWR(AUTO_PREVIEW_OFFICE_FILES_SWR_KEY, checked, {
+      revalidate: false,
+    });
+    ipcBridge.systemSettings.setAutoPreviewOfficeFiles.invoke({ enabled: checked }).catch(() => {
+      setAutoPreviewOfficeFiles(!checked);
+      void mutateSWR(AUTO_PREVIEW_OFFICE_FILES_SWR_KEY, !checked, {
         revalidate: false,
       });
     });
@@ -216,11 +261,27 @@ const SystemModalContent: React.FC = () => {
         <InputNumber
           value={promptTimeout}
           onChange={handlePromptTimeoutChange}
-          min={30}
+          onBlur={handlePromptTimeoutBlur}
           max={3600}
           step={30}
           style={{ width: 120 }}
           suffix='s'
+        />
+      ),
+    },
+    {
+      key: 'agentIdleTimeout',
+      label: t('settings.agentIdleTimeout'),
+      description: t('settings.agentIdleTimeoutDesc'),
+      component: (
+        <InputNumber
+          value={agentIdleTimeout}
+          onChange={handleAgentIdleTimeoutChange}
+          onBlur={handleAgentIdleTimeoutBlur}
+          max={60}
+          step={5}
+          style={{ width: 120 }}
+          suffix='min'
         />
       ),
     },
@@ -234,6 +295,12 @@ const SystemModalContent: React.FC = () => {
       label: t('settings.commandQueueEnabled'),
       description: t('settings.commandQueueEnabledDesc'),
       component: <Switch checked={commandQueueEnabled} onChange={handleCommandQueueEnabledChange} />,
+    },
+    {
+      key: 'autoPreviewOfficeFiles',
+      label: t('settings.autoPreviewOfficeFiles'),
+      description: t('settings.autoPreviewOfficeFilesDesc'),
+      component: <Switch checked={autoPreviewOfficeFiles} onChange={handleAutoPreviewOfficeFilesChange} />,
     },
   ];
 

@@ -35,6 +35,23 @@ enum StreamProcessingStatus {
   ConnectionLost,
 }
 
+/**
+ * Strip Gemini built-in code_execution tool-use blocks from content text.
+ * These blocks appear when the model uses its native code execution capability
+ * and look like: `code_execution {"code":"import os; print(os.getcwd())"}`.
+ * They are internal tool calls not meant for end-user display.
+ */
+const CODE_EXECUTION_LINE_RE = /^code_execution\s+\{.*\}$/gm;
+const CODE_EXECUTION_RESULT_RE = /^code_execution_result\s+\{.*\}$/gm;
+
+export function stripCodeExecutionBlocks(text: string): string {
+  return text
+    .replace(CODE_EXECUTION_LINE_RE, '')
+    .replace(CODE_EXECUTION_RESULT_RE, '')
+    .replace(/\n{3,}/g, '\n\n')
+    .trim();
+}
+
 // 流监控配置
 export interface StreamMonitorOptions {
   config?: Partial<StreamResilienceConfig>;
@@ -128,6 +145,8 @@ export const processGeminiStreamEvents = async (
             const thinkTagRegex = /<think(?:ing)?>([\s\S]*?)<\/think(?:ing)?>/gi;
             const hasThinkTags = /<\/?think(?:ing)?>/i.test(contentText);
 
+            let processedContent = contentText;
+
             if (hasThinkTags) {
               // Extract thinking content from complete blocks and emit as thought events
               // 提取完整块中的思考内容并作为 thought 事件发送
@@ -150,21 +169,27 @@ export const processGeminiStreamEvents = async (
               // 移除完整的 think 块，但保留孤立的 </think> 标签。
               // 流式模式下，前面 chunk 的思考内容（无标签）已被前端累积。
               // 保留 </think> 让前端在累积内容中检测到它，从而正确过滤所有思考内容。
-              const cleanedContent = contentText
+              processedContent = contentText
                 .replace(/<think(?:ing)?>([\s\S]*?)<\/think(?:ing)?>/gi, '')
                 // Keep orphaned </think> for frontend accumulated content filtering
                 // Also remove unclosed opening tags at the end
                 .replace(/<think(?:ing)?>[\s\S]*$/gi, '')
                 .replace(/\n{3,}/g, '\n\n')
                 .trim();
+            }
 
-              if (cleanedContent) {
-                onStreamEvent({ type: event.type, data: cleanedContent });
-              }
-            } else {
-              // No think tags, emit content as-is
-              // 没有 think 标签，直接发送内容
-              onStreamEvent({ type: event.type, data: contentValue });
+            // Strip Gemini built-in code_execution tool-use blocks from content.
+            // These appear as lines like: code_execution {"code":"import os; ..."}
+            // They are internal tool calls and should not be shown to end users,
+            // especially in channel adapters (WeChat, DingTalk, etc.).
+            // 过滤 Gemini 内置 code_execution 工具调用块，
+            // 这些是内部工具调用，不应展示给终端用户。
+            if (processedContent.includes('code_execution')) {
+              processedContent = stripCodeExecutionBlocks(processedContent);
+            }
+
+            if (processedContent) {
+              onStreamEvent({ type: event.type, data: processedContent });
             }
           }
           break;

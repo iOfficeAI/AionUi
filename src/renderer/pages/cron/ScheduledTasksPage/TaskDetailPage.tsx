@@ -254,6 +254,33 @@ const TaskDetailPage: React.FC = () => {
                 </div>
               </div>
             </section>
+
+            {/* Advanced config: model, workspace, configOptions */}
+            {job.metadata.agentConfig?.modelId && (
+              <section className='flex flex-col gap-10px'>
+                <h2 className='m-0 text-13px font-medium text-t-secondary'>{t('cron.page.form.model')}</h2>
+                <span className='text-14px text-t-primary'>{job.metadata.agentConfig.modelId}</span>
+              </section>
+            )}
+
+            {job.metadata.agentConfig?.workspace && (
+              <section className='flex flex-col gap-10px'>
+                <h2 className='m-0 text-13px font-medium text-t-secondary'>{t('cron.page.form.workspace')}</h2>
+                <span className='min-w-0 truncate text-14px text-t-primary' title={job.metadata.agentConfig.workspace}>
+                  {job.metadata.agentConfig.workspace}
+                </span>
+              </section>
+            )}
+
+            {job.metadata.agentConfig?.configOptions &&
+              Object.keys(job.metadata.agentConfig.configOptions).length > 0 && (
+                <section className='flex flex-col gap-10px'>
+                  <h2 className='m-0 text-13px font-medium text-t-secondary'>{t('acp.config.reasoning_effort')}</h2>
+                  <span className='text-14px text-t-primary'>
+                    {Object.values(job.metadata.agentConfig.configOptions).join(', ')}
+                  </span>
+                </section>
+              )}
           </div>
 
           <div className='flex min-w-0 flex-col gap-28px'>

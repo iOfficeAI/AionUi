@@ -10,14 +10,15 @@ import { buildRolePrompt } from './buildRolePrompt';
  */
 const TEAM_INSTRUCTIONS = `## Team Coordination (XML Fallback)
 
-The team_* MCP tools are NOT available in your current session.
-Use these XML tags instead to coordinate with your team:
+If the team_* MCP tools are not available in your session, use these XML tags instead:
 
 <send_message to="AgentName">message</send_message>
 <task_create subject="..." owner="..." description="..."/>
 <task_update task_id="..." status="completed"/>
 <spawn_agent name="AgentName" type="agent_type"/>
-<idle reason="available" summary="..." completed_task_id="..."/>`;
+<idle reason="available" summary="..." completed_task_id="..."/>
+
+Always prefer MCP tools (team_spawn_agent, team_send_message, etc.) when they are available.`;
 
 /** Remove matched XML tag spans from a string and return the remaining text */
 function removeXmlSpans(text: string, spans: Array<[number, number]>): string {
@@ -140,13 +141,14 @@ export function createXmlFallbackAdapter(options?: { hasMcpTools?: boolean }): T
         teammates,
         availableAgentTypes: params.availableAgentTypes,
         renamedAgents: params.renamedAgents,
+        teamWorkspace: params.teamWorkspace,
       });
       sections.push(rolePrompt);
 
-      // Only append XML fallback instructions when MCP tools are NOT available
-      if (!options?.hasMcpTools) {
-        sections.push(TEAM_INSTRUCTIONS);
-      }
+      // Always append XML fallback instructions so agents have a coordination path
+      // even when MCP tool injection silently fails. When MCP tools are available,
+      // the agent will prefer them; the XML path acts as a guaranteed fallback.
+      sections.push(TEAM_INSTRUCTIONS);
 
       return { message: sections.join('\n\n') };
     },

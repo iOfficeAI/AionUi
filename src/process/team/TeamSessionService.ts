@@ -1,4 +1,5 @@
 // src/process/team/TeamSessionService.ts
+import { ipcBridge } from '@/common';
 import { uuid } from '@/common/utils';
 import { GOOGLE_AUTH_PROVIDER_ID } from '@/common/config/constants';
 import {
@@ -339,6 +340,7 @@ export class TeamSessionService {
     workspace: string;
     workspaceMode: TTeam['workspaceMode'];
     agents: TeamAgent[];
+    sessionMode?: string;
   }): Promise<TTeam> {
     const now = Date.now();
     const teamId = uuid(36);
@@ -353,6 +355,7 @@ export class TeamSessionService {
           workspace,
           agent,
           agents: params.agents,
+          inheritedSessionMode: params.sessionMode,
         });
         const conversation = await this.conversationService.createConversation(conversationParams);
         // Ensure teamId is in extra regardless of which factory function was used
@@ -374,6 +377,7 @@ export class TeamSessionService {
       workspaceMode: params.workspaceMode,
       leadAgentId: leadAgent.slotId,
       agents: agentsWithConversations,
+      sessionMode: params.sessionMode,
       createdAt: now,
       updatedAt: now,
     };
@@ -390,11 +394,29 @@ export class TeamSessionService {
   }
 
   async deleteTeam(id: string): Promise<void> {
+    // Kill all agent processes before disposing session and deleting data.
+    // This prevents orphan processes that keep running after the team is deleted.
+    const team = await this.repo.findById(id);
+    if (team) {
+      const killResults = await Promise.allSettled(
+        team.agents
+          .filter((agent) => agent.conversationId)
+          .map((agent) => {
+            this.workerTaskManager.kill(agent.conversationId, 'team_deleted');
+            return Promise.resolve();
+          })
+      );
+      killResults.forEach((r) => {
+        if (r.status === 'rejected') {
+          console.warn(`[TeamSessionService] Failed to kill agent process:`, r.reason);
+        }
+      });
+    }
+
     await this.sessions.get(id)?.dispose();
     this.sessions.delete(id);
 
     // Delete conversations owned by this team's agents
-    const team = await this.repo.findById(id);
     if (team) {
       const results = await Promise.allSettled(
         team.agents
@@ -418,14 +440,16 @@ export class TeamSessionService {
     if (!team) throw new Error(`Team "${teamId}" not found`);
 
     const workspace = this.resolveWorkspace(team.workspace);
-    // Inherit sessionMode from lead agent so spawned agents share the same permission level
-    const leadAgent = team.agents.find((a) => a.role === 'lead');
-    let inheritedSessionMode: string | undefined;
-    if (leadAgent?.conversationId) {
-      const leadConv = await this.conversationService.getConversation(leadAgent.conversationId);
-      const leadExtra = leadConv?.extra as Record<string, unknown> | undefined;
-      if (leadExtra?.sessionMode && typeof leadExtra.sessionMode === 'string') {
-        inheritedSessionMode = leadExtra.sessionMode;
+    // Inherit sessionMode: prefer persisted team.sessionMode, fallback to lead agent's conversation extra
+    let inheritedSessionMode: string | undefined = team.sessionMode;
+    if (!inheritedSessionMode) {
+      const leadAgent = team.agents.find((a) => a.role === 'lead');
+      if (leadAgent?.conversationId) {
+        const leadConv = await this.conversationService.getConversation(leadAgent.conversationId);
+        const leadExtra = leadConv?.extra as Record<string, unknown> | undefined;
+        if (leadExtra?.sessionMode && typeof leadExtra.sessionMode === 'string') {
+          inheritedSessionMode = leadExtra.sessionMode;
+        }
       }
     }
 
@@ -489,18 +513,23 @@ export class TeamSessionService {
     await this.repo.update(id, { name: trimmed, updatedAt: Date.now() });
   }
 
+  async setSessionMode(teamId: string, sessionMode: string): Promise<void> {
+    await this.repo.update(teamId, { sessionMode, updatedAt: Date.now() });
+  }
+
   async removeAgent(teamId: string, slotId: string): Promise<void> {
     const team = await this.repo.findById(teamId);
     if (!team) throw new Error(`Team "${teamId}" not found`);
 
-    // If there's an active session, clean up in-memory state first
+    // removeAgent handles: kill process + clear in-memory state + persist via onAgentRemoved callback
     const session = this.sessions.get(teamId);
     if (session) {
       session.removeAgent(slotId);
+    } else {
+      // No active session — update DB directly
+      const updatedAgents = team.agents.filter((a) => a.slotId !== slotId);
+      await this.repo.update(teamId, { agents: updatedAgents, updatedAt: Date.now() });
     }
-
-    const updatedAgents = team.agents.filter((a) => a.slotId !== slotId);
-    await this.repo.update(teamId, { agents: updatedAgents, updatedAt: Date.now() });
   }
 
   async getOrStartSession(teamId: string): Promise<TeamSession> {
@@ -510,13 +539,16 @@ export class TeamSessionService {
     if (!team) throw new Error(`Team "${teamId}" not found`);
     let session!: TeamSession;
     const spawnAgent = async (agentName: string, agentType?: string) => {
+      // Default to the leader's agent type instead of hardcoding 'claude'
+      const leadAgent = team.agents.find((a) => a.role === 'lead');
+      const resolvedType = agentType || leadAgent?.agentType || 'claude';
       const newAgent = await this.addAgent(teamId, {
         conversationId: '',
         role: 'teammate',
-        agentType: agentType || 'claude',
+        agentType: resolvedType,
         agentName,
         status: 'pending',
-        conversationType: this.resolveConversationType(agentType || 'claude') as 'acp',
+        conversationType: this.resolveConversationType(resolvedType) as 'acp',
       });
       // Inject team MCP stdio config into the new agent's conversation (with agent identity)
       const stdioConfig = session?.getStdioConfig(newAgent.slotId);
@@ -530,25 +562,48 @@ export class TeamSessionService {
       return newAgent;
     };
     session = new TeamSession(team, this.repo, this.workerTaskManager, spawnAgent);
-    this.sessions.set(teamId, session);
+    // Do NOT add to sessions map yet — only add after MCP server is running and
+    // teamMcpStdioConfig is written to DB. If we add early and then fail, a
+    // subsequent getOrStartSession call would return a broken session (no MCP config).
 
-    // Start MCP server and inject per-agent stdio config into all agent conversations.
-    // After DB update, rebuild cached agent tasks so they pick up teamMcpStdioConfig.
-    await session.startMcpServer();
-    await Promise.all(
-      team.agents.map(async (agent) => {
-        if (agent.conversationId) {
-          const agentStdioConfig = session.getStdioConfig(agent.slotId);
-          await this.conversationService.updateConversation(
-            agent.conversationId,
-            { extra: { teamMcpStdioConfig: agentStdioConfig } } as any,
-            true
-          );
-          // Force-rebuild cached agent task so it reads the updated extra from DB
-          await this.workerTaskManager.getOrBuildTask(agent.conversationId, { skipCache: true });
-        }
-      })
-    );
+    try {
+      // Start MCP server and inject per-agent stdio config into all agent conversations.
+      // After DB update, rebuild cached agent tasks so they pick up teamMcpStdioConfig.
+      await session.startMcpServer();
+      await Promise.all(
+        team.agents.map(async (agent) => {
+          if (agent.conversationId) {
+            const agentStdioConfig = session.getStdioConfig(agent.slotId);
+            try {
+              await this.conversationService.updateConversation(
+                agent.conversationId,
+                { extra: { teamMcpStdioConfig: agentStdioConfig } } as any,
+                true
+              );
+              // Force-rebuild cached agent task so it reads the updated extra from DB
+              await this.workerTaskManager.getOrBuildTask(agent.conversationId, { skipCache: true });
+            } catch (err) {
+              const error = err instanceof Error ? err.message : String(err);
+              console.error(`[TeamSessionService] Failed to write MCP config for agent ${agent.slotId}:`, error);
+              ipcBridge.team.mcpStatus.emit({
+                teamId: team.id,
+                slotId: agent.slotId,
+                phase: 'config_write_failed',
+                error,
+              });
+            }
+          }
+        })
+      );
+    } catch (err) {
+      // MCP server failed to start — do not cache the broken session so next call can retry
+      console.error(`[TeamSessionService] Failed to start session for team ${teamId}:`, err);
+      throw err;
+    }
+
+    // Only register the session after full initialization so that getOrStartSession
+    // always returns a session with a live MCP server and injected DB config.
+    this.sessions.set(teamId, session);
 
     return session;
   }

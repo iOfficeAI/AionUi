@@ -55,6 +55,19 @@ const mockArcoSuccess = vi.fn();
 const mockAssertBridgeSuccess = vi.fn();
 const mockSetSendBoxHandler = vi.fn();
 const mockClearFiles = vi.fn();
+const mockBuildDisplayMessage = vi.fn((input: string, files: string[], workspacePath: string) =>
+  files.length > 0 ? `${input}|${files.join(',')}|${workspacePath}` : input
+);
+
+const mockDraftData: {
+  atPath: Array<string | { path: string; isFile?: boolean; name?: string }>;
+  content: string;
+  uploadFile: string[];
+} = {
+  atPath: [],
+  content: '',
+  uploadFile: [],
+};
 
 let uuidCounter = 0;
 
@@ -181,11 +194,7 @@ vi.mock('@/renderer/components/agent/AgentSetupCard', () => ({
 vi.mock('@/renderer/hooks/chat/useSendBoxDraft', () => ({
   getSendBoxDraftHook: vi.fn(() =>
     vi.fn(() => ({
-      data: {
-        atPath: [],
-        content: '',
-        uploadFile: [],
-      },
+      data: mockDraftData,
       mutate: vi.fn(),
     }))
   ),
@@ -340,9 +349,7 @@ vi.mock('@/renderer/utils/file/fileSelection', () => ({
 }));
 
 vi.mock('@/renderer/utils/file/messageFiles', () => ({
-  buildDisplayMessage: vi.fn(
-    (input: string, files: string[], workspacePath: string) => `${input}|${files.join(',')}|${workspacePath}`
-  ),
+  buildDisplayMessage: (...args: Parameters<typeof mockBuildDisplayMessage>) => mockBuildDisplayMessage(...args),
   collectSelectedFiles: vi.fn((uploadFile: string[], atPath: Array<string | { path: string }>) => [
     ...uploadFile,
     ...atPath.map((item) => (typeof item === 'string' ? item : item.path)),
@@ -378,6 +385,7 @@ import AionrsSendBox from '@/renderer/pages/conversation/platforms/aionrs/Aionrs
 import GeminiSendBox from '@/renderer/pages/conversation/platforms/gemini/GeminiSendBox';
 import NanobotSendBox from '@/renderer/pages/conversation/platforms/nanobot/NanobotSendBox';
 import OpenClawSendBox from '@/renderer/pages/conversation/platforms/openclaw/OpenClawSendBox';
+import RemoteSendBox from '@/renderer/pages/conversation/platforms/remote/RemoteSendBox';
 
 const resetQueueSpies = () => {
   for (const spy of Object.values(queueSpies)) {
@@ -439,6 +447,9 @@ describe('platform send box queue integration', () => {
       },
     });
     mockDatabaseMessagesInvoke.mockResolvedValue([]);
+    mockDraftData.atPath = [];
+    mockDraftData.content = '';
+    mockDraftData.uploadFile = [];
   });
 
   afterEach(() => {
@@ -472,6 +483,7 @@ describe('platform send box queue integration', () => {
       />,
     ],
     ['nanobot', <NanobotSendBox conversation_id='conv-nanobot' />],
+    ['remote', <RemoteSendBox conversation_id='conv-remote' />],
     ['openclaw', <OpenClawSendBox conversation_id='conv-openclaw' />],
   ])('renders queue panel above the processing indicator for %s', (_name, element) => {
     mockUseConversationCommandQueue.mockReturnValue({
@@ -553,6 +565,16 @@ describe('platform send box queue integration', () => {
       },
     ],
     [
+      'remote',
+      <RemoteSendBox conversation_id='conv-remote' />,
+      mockConversationSendInvoke,
+      (payload: { input: string; conversation_id: string }) => {
+        expect(payload.input).toBe('queued command');
+        expect(payload.conversation_id).toBe('conv-remote');
+      },
+      false,
+    ],
+    [
       'openclaw',
       <OpenClawSendBox conversation_id='conv-openclaw' />,
       mockOpenClawSendInvoke,
@@ -563,7 +585,7 @@ describe('platform send box queue integration', () => {
     ],
   ])(
     'sends commands immediately for %s when queueing is not required',
-    async (_name, element, sendSpy, assertPayload) => {
+    async (_name, element, sendSpy, assertPayload, shouldAssertBridgeSuccess = true) => {
       render(element);
 
       fireEvent.click(screen.getByRole('button', { name: 'trigger-send' }));
@@ -574,7 +596,9 @@ describe('platform send box queue integration', () => {
 
       assertPayload(sendSpy.mock.calls[0]?.[0] as { input: string; conversation_id: string });
       expect(queueSpies.enqueue).not.toHaveBeenCalled();
-      expect(mockAssertBridgeSuccess).toHaveBeenCalled();
+      if (shouldAssertBridgeSuccess) {
+        expect(mockAssertBridgeSuccess).toHaveBeenCalled();
+      }
     }
   );
 
@@ -777,6 +801,30 @@ describe('platform send box queue integration', () => {
     });
 
     expect(queueSpies.resetActiveExecution).toHaveBeenCalledWith('stop');
+  });
+
+  it('uses display message for ACP attachments so chat history can retain uploaded images', async () => {
+    mockDraftData.uploadFile = ['C:/workspace/uploads/photo.png'];
+
+    render(<AcpSendBox conversation_id='conv-acp' backend='claude' workspacePath='C:/workspace' />);
+
+    fireEvent.click(screen.getByRole('button', { name: 'trigger-send' }));
+
+    await waitFor(() => {
+      expect(mockAcpSendInvoke).toHaveBeenCalledTimes(1);
+    });
+
+    expect(mockBuildDisplayMessage).toHaveBeenCalledWith(
+      'queued command',
+      ['C:/workspace/uploads/photo.png'],
+      'C:/workspace'
+    );
+    expect(mockAcpSendInvoke).toHaveBeenCalledWith({
+      input: 'queued command|C:/workspace/uploads/photo.png|C:/workspace',
+      msg_id: 'uuid-1',
+      conversation_id: 'conv-acp',
+      files: ['C:/workspace/uploads/photo.png'],
+    });
   });
 
   it('blocks OpenClaw dispatch when runtime validation fails', async () => {

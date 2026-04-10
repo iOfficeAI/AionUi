@@ -32,6 +32,7 @@ const getResultDisplayText = (resultDisplay: IMessageToolGroup['content'][0]['re
 };
 
 const ToolGroupMapper = (m: IMessageToolGroup): ToolItem[] => {
+  if (!Array.isArray(m.content)) return [];
   return m.content.map(({ name, callId, description, confirmationDetails, status, resultDisplay }) => {
     let desc = description.slice(0, 100);
     const type = confirmationDetails?.type;
@@ -117,7 +118,7 @@ const ToolAcpMapper = (message: IMessageAcpToolCall): ToolItem | undefined => {
 
   // Output: from content items
   let output: string | undefined;
-  if (update.content?.length) {
+  if (Array.isArray(update.content) && update.content.length) {
     output = update.content
       .map((item) => {
         if (item.type === 'content' && item.content?.text) return item.content.text;
@@ -199,6 +200,7 @@ const MessageToolGroupSummary: React.FC<{ messages: Array<IMessageToolGroup | IM
   const hasRunningTools = messages.some(
     (m) =>
       (m.type === 'tool_group' &&
+        Array.isArray(m.content) &&
         m.content.some((t) => t.status !== 'Success' && t.status !== 'Error' && t.status !== 'Canceled')) ||
       (m.type === 'acp_tool_call' && m.content.update.status !== 'completed')
   );

@@ -17,6 +17,15 @@ setTimeout(() => {
   ready = true;
 }, STARTUP_DELAY);
 
+function endDrag(): void {
+  if (!isDragging) return;
+  isDragging = false;
+  hitEl.classList.remove('dragging');
+  if (didDrag) {
+    window.petHitAPI.dragEnd();
+  }
+}
+
 hitEl.addEventListener('pointerdown', (e: PointerEvent) => {
   if (!ready) return;
   if (e.button === 2) {
@@ -27,7 +36,12 @@ hitEl.addEventListener('pointerdown', (e: PointerEvent) => {
   didDrag = false;
   startX = e.clientX;
   startY = e.clientY;
-  hitEl.setPointerCapture(e.pointerId);
+  try {
+    hitEl.setPointerCapture(e.pointerId);
+  } catch {
+    // Pointer capture can fail if the window is mid-transition; drag still
+    // works via document-level pointermove fallback below.
+  }
   hitEl.classList.add('dragging');
 });
 
@@ -43,13 +57,10 @@ document.addEventListener('pointermove', (e: PointerEvent) => {
 
 document.addEventListener('pointerup', (e: PointerEvent) => {
   if (!isDragging) return;
-  isDragging = false;
-  hitEl.classList.remove('dragging');
+  const wasDrag = didDrag;
+  endDrag();
 
-  if (didDrag) {
-    window.petHitAPI.dragEnd();
-    return;
-  }
+  if (wasDrag) return;
 
   // Click detection
   clickCount++;
@@ -62,61 +73,69 @@ document.addEventListener('pointerup', (e: PointerEvent) => {
   }, CLICK_WINDOW);
 });
 
-/**
- * Backup drag-end trigger for cases where pointerup never fires.
- * pointercancel is emitted when the OS or browser cancels the gesture (touch
- * interrupted, another window steals capture, etc). It fires well before the
- * main-process drag watchdog (8s) and lets the user recover instantly.
- *
- * We deliberately do NOT listen for window 'blur' here: on macOS a system
- * notification or popup can briefly steal focus mid-drag without actually
- * cancelling the user's mouse hold, and we'd cut their drag short. The
- * main-process watchdog covers the rare case where pointercancel is also
- * dropped.
- */
-function abortDrag(): void {
-  if (!isDragging) return;
-  isDragging = false;
-  hitEl.classList.remove('dragging');
-  if (didDrag) {
-    window.petHitAPI.dragEnd();
-  }
-  didDrag = false;
-}
-
-hitEl.addEventListener('pointercancel', abortDrag);
+// Defensive: if the pointer interaction is cancelled (OS gesture, pointer
+// capture released), make sure we don't leave the window in a half-dragging
+// state where it keeps capturing the mouse.
+document.addEventListener('pointercancel', () => endDrag());
 
 document.addEventListener('contextmenu', (e) => e.preventDefault());
 
-// Click-through: toggle ignore based on mouse position relative to pet body circle.
-// With forward: true, mouse move events are forwarded even when the window ignores clicks.
+// ---------------------------------------------------------------------------
+// Click-through management
+// ---------------------------------------------------------------------------
 //
-// Geometry is read live on every mousemove (not cached at module load) because the
-// hit window can be resized at runtime via the size submenu. Caching the constants
-// once caused a Windows bug where the hit circle stayed at the original size after
-// resize: the user had to click near the *old* center to start a drag. See
-// petManager.resizePet() which sends `pet:hit-reset` to clear stale drag state too.
+// The hit window is `alwaysOnTop` at `screen-saver` level and covers a
+// circular body area. When it does NOT ignore mouse events, it swallows every
+// click in that area — including clicks meant for other apps. So we MUST
+// aggressively keep it in "ignore" mode unless the cursor is actually inside
+// the circle.
+//
+// Previously this relied on a single `mousemove` listener to toggle ignore
+// state. That was fragile: if any mousemove was lost (window transitions,
+// fast cursor exits via a screen edge, forwarded-event quirks when
+// `setIgnoreMouseEvents(true, { forward: true })` races with an in-flight
+// move), the window would stay in non-ignore mode forever and permanently
+// capture the mouse, requiring a force-quit. That is the "mouse stuck on
+// pet" bug this code is fixing.
+//
+// The fix layers multiple independent defenses:
+//   1. `mousemove` (fast path) — toggles ignore state in real time for
+//      responsive hover feedback.
+//   2. `mouseleave` on the document — forces ignore=true the moment the
+//      cursor leaves the window, catching "lost final mousemove" cases.
+//   3. Main-process watchdog in petManager.ts — the ultimate safety net:
+//      polls the real system cursor via screen.getCursorScreenPoint() and
+//      can force ignore=true even if this renderer hangs entirely.
+let WIN_CENTER_X = window.innerWidth / 2;
+let WIN_CENTER_Y = window.innerHeight / 2;
+let HIT_RADIUS_SQ = (window.innerWidth * 0.4) ** 2;
 let isIgnoring = true;
 
-function getHitRadius(): number {
-  return window.innerWidth * 0.4;
+function setIgnoring(next: boolean): void {
+  if (next === isIgnoring) return;
+  isIgnoring = next;
+  if (next) {
+    window.petHitAPI.setIgnoreMouseEvents(true, { forward: true });
+  } else {
+    window.petHitAPI.setIgnoreMouseEvents(false);
+  }
+}
+
+function isInsideCircle(clientX: number, clientY: number): boolean {
+  const dx = clientX - WIN_CENTER_X;
+  const dy = clientY - WIN_CENTER_Y;
+  return dx * dx + dy * dy <= HIT_RADIUS_SQ;
 }
 
 document.addEventListener('mousemove', (e: MouseEvent) => {
-  const cx = window.innerWidth / 2;
-  const cy = window.innerHeight / 2;
-  const r = getHitRadius();
-  const dx = e.clientX - cx;
-  const dy = e.clientY - cy;
-  const inCircle = dx * dx + dy * dy <= r * r;
+  setIgnoring(!isInsideCircle(e.clientX, e.clientY));
+});
 
-  if (inCircle && isIgnoring) {
-    isIgnoring = false;
-    window.petHitAPI.setIgnoreMouseEvents(false);
-  } else if (!inCircle && !isIgnoring) {
-    isIgnoring = true;
-    window.petHitAPI.setIgnoreMouseEvents(true, { forward: true });
-  }
+// When the cursor leaves the document entirely, force ignore=true. This
+// catches the "lost final mousemove" case where the cursor exits the circle
+// so fast that no intermediate move event fires with outside coordinates.
+document.addEventListener('mouseleave', () => {
+  if (!isDragging) setIgnoring(true);
 });
 
 /**
@@ -129,6 +148,11 @@ document.addEventListener('mousemove', (e: MouseEvent) => {
  * so the next mousemove re-evaluates the (now-different) hit circle.
  */
 function resetHitState(): void {
+  // Refresh geometry to reflect the new window dimensions after resize
+  WIN_CENTER_X = window.innerWidth / 2;
+  WIN_CENTER_Y = window.innerHeight / 2;
+  HIT_RADIUS_SQ = (window.innerWidth * 0.4) ** 2;
+
   if (clickTimer) {
     clearTimeout(clickTimer);
     clickTimer = null;

@@ -140,7 +140,7 @@ export async function verifyQRTokenDirect(
     tokenData.used = true;
 
     // 获取管理员用户 / Get admin user
-    const adminUser = await UserRepository.getSystemUser();
+    const adminUser = await UserRepository.getPrimaryWebUIUser();
     if (!adminUser) {
       return {
         success: false,

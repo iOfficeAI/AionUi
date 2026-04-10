@@ -29,7 +29,6 @@ describe('PanelRoute team entry guard', () => {
 
     render(<PanelRoute layout={<LayoutShell />} />);
 
-    // Team mode is enabled: hash should stay on /team/... (no redirect to /guid)
     expect(window.location.hash).toBe('#/team/team-1');
   });
 

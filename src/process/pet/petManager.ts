@@ -19,6 +19,21 @@ import {
 } from './petConfirmManager';
 import type { PetSize, PetState } from './petTypes';
 
+/**
+ * Check whether the current environment can support desktop pet windows.
+ * Returns false on Linux headless (ozone-platform=headless) where creating
+ * and destroying BrowserWindows triggers fatal D-Bus / shutdown crashes.
+ */
+export function isPetSupported(): boolean {
+  if (process.platform === 'linux') {
+    const ozonePlatform = app.commandLine.getSwitchValue('ozone-platform');
+    if (ozonePlatform === 'headless') {
+      return false;
+    }
+  }
+  return true;
+}
+
 // petManager is dynamically imported → rollup places it in out/main/chunks/,
 // so __dirname is out/main/chunks/ and we need '../..' to reach out/.
 const PRELOAD_DIR = path.join(__dirname, '..', '..', 'preload');
@@ -45,6 +60,24 @@ const DRAG_TICK_MS = 16;
 // short of restarting the app). 8s is generous enough that a real human drag
 // — even one with a pause to think — completes well before then.
 const DRAG_WATCHDOG_MS = 8000;
+// Master-process safety watchdog for the hit window's ignore-mouse-events
+// state. The renderer manages this toggle to implement click-through, but if
+// the renderer crashes, hangs, or loses a critical mousemove, the hit window
+// can stay in non-ignore mode forever and swallow every click on the screen
+// (the window is `screen-saver` level and alwaysOnTop) — forcing the user to
+// force-quit the app. This watchdog polls the real cursor position against
+// the circular hit region and forces ignore=true whenever the cursor is
+// clearly outside, independent of any renderer code path.
+const HIT_WATCHDOG_INTERVAL_MS = 250;
+// Allow 20% slack beyond the renderer's hit radius so the watchdog never
+// races with the renderer on the exact circle boundary. The renderer owns
+// the fine-grained toggle; the watchdog only kicks in once the cursor is
+// clearly outside.
+const HIT_WATCHDOG_RADIUS_SLACK = 1.2;
+let hitIgnoreWatchdog: ReturnType<typeof setInterval> | null = null;
+// Last ignore state the hit window was set to (tracked via the IPC handler so
+// the watchdog can tell whether it's already safe).
+let lastHitIgnoreState = true;
 // Whether tool-call confirmations should be routed to the pet's bubble window.
 // When false, the pet still runs normally but confirmation requests stay in the
 // main chat window. Updated at runtime via setPetConfirmEnabled() and read on
@@ -60,17 +93,18 @@ const RESTORABLE_STATES: ReadonlySet<PetState> = new Set<PetState>(['thinking', 
  * Create pet windows (rendering window + hit detection window).
  */
 export function createPetWindow(): void {
+  if (!isPetSupported()) {
+    console.warn('[Pet] Desktop pet is not supported in headless mode');
+    return;
+  }
+
   if (petWindow && !petWindow.isDestroyed()) {
     petWindow.show();
     petWindow.focus();
     return;
   }
 
-  const primaryDisplay = screen.getPrimaryDisplay();
-  const { width: screenWidth, height: screenHeight } = primaryDisplay.workAreaSize;
-  const margin = 20;
-  const x = screenWidth - currentSize - margin;
-  const y = screenHeight - currentSize - margin;
+  const { x, y } = computeInitialPosition(currentSize);
 
   // Rendering window (transparent, always on top, ignores mouse events)
   petWindow = new BrowserWindow({
@@ -158,6 +192,7 @@ export function createPetWindow(): void {
 
   idleTicker.start();
   registerIpcHandlers();
+  startHitIgnoreWatchdog();
   loadContent();
 
   // Initialize confirm manager only if the user opted in.
@@ -179,6 +214,7 @@ export function createPetWindow(): void {
  */
 export function destroyPetWindow(): void {
   clearDragTimer();
+  stopHitIgnoreWatchdog();
 
   // Destroy confirm manager
   destroyPetConfirmManager();
@@ -260,6 +296,41 @@ export function setPetConfirmEnabled(enabled: boolean): void {
   else {
     unhookPetConfirm();
   }
+}
+
+/**
+ * Compute the pet's starting bottom-right position on the display that
+ * currently hosts the main AionUi window. Falls back to the primary display
+ * when no main window is found (e.g. tray-only scenarios). This is the only
+ * position logic at startup — after creation the user is free to drag the
+ * pet anywhere and we never overwrite it for the rest of the session.
+ */
+function computeInitialPosition(size: number): { x: number; y: number } {
+  const margin = 20;
+
+  // Prefer the display under the main window's center so multi-monitor users
+  // always see the pet appear on the same screen as the app. The first window
+  // that isn't the (not-yet-created) pet window itself is treated as main —
+  // since createPetWindow is called after the main window exists, that's a
+  // safe assumption here.
+  const candidate = BrowserWindow.getAllWindows().find(
+    (w) => w !== petWindow && w !== petHitWindow && !w.isDestroyed()
+  );
+
+  let workArea;
+  if (candidate) {
+    const [mx, my] = candidate.getPosition();
+    const [mw, mh] = candidate.getSize();
+    const center = { x: mx + Math.floor(mw / 2), y: my + Math.floor(mh / 2) };
+    workArea = screen.getDisplayNearestPoint(center).workArea;
+  } else {
+    workArea = screen.getPrimaryDisplay().workArea;
+  }
+
+  return {
+    x: workArea.x + workArea.width - size - margin,
+    y: workArea.y + workArea.height - size - margin,
+  };
 }
 
 // ---------------------------------------------------------------------------
@@ -352,9 +423,16 @@ function registerIpcHandlers(): void {
 
     idleTicker.resetIdle();
 
-    if (data.count >= 3) {
-      stateMachine.requestState('error');
-    } else if (data.count === 2) {
+    // Click reactions — keep `error` reserved for genuine AI errors so the user
+    // can distinguish "I poked the pet a lot" from "the agent just failed".
+    // 1 click  → attention (small surprise)
+    // 2 clicks → poke left/right (directional wobble)
+    // 4+       → juggling (overwhelmed / flustered)
+    // 3        → still poke — nothing interesting happens but we avoid the old
+    //            error misfire; the next click bumps into the 4+ bucket.
+    if (data.count >= 4) {
+      stateMachine.requestState('juggling');
+    } else if (data.count >= 2) {
       stateMachine.requestState(data.side === 'left' ? 'poke-left' : 'poke-right');
     } else if (data.count === 1) {
       stateMachine.requestState('attention');
@@ -411,6 +489,7 @@ function registerIpcHandlers(): void {
   ipcMain.on('pet:set-ignore-mouse-events', (_event, ignore: boolean, options?: { forward: boolean }) => {
     if (!petHitWindow || petHitWindow.isDestroyed()) return;
     petHitWindow.setIgnoreMouseEvents(ignore, options);
+    lastHitIgnoreState = ignore;
   });
 }
 
@@ -494,6 +573,60 @@ function endDrag(): void {
   }
 }
 
+/**
+ * Main-process safety watchdog for hit-window click-through.
+ *
+ * The renderer in petHitRenderer.ts toggles setIgnoreMouseEvents based on
+ * whether the cursor is inside the pet's circular body. That works fine when
+ * the renderer is healthy, but if it ever gets stuck in non-ignore mode (lost
+ * mousemove, renderer hang, pointer-capture glitch), the hit window — which
+ * is alwaysOnTop at screen-saver level — will swallow every click on the
+ * screen until the user force-quits the app. This has happened in practice.
+ *
+ * This watchdog runs in the main process, reads the real cursor position via
+ * `screen.getCursorScreenPoint()` (no renderer involvement), and forces the
+ * hit window back to ignore=true whenever the cursor is clearly outside the
+ * pet's circular body. It is deliberately conservative: it only *enables*
+ * ignore (the safe state) and never disables it, so it cannot interfere with
+ * legitimate interactions.
+ */
+function startHitIgnoreWatchdog(): void {
+  stopHitIgnoreWatchdog();
+  hitIgnoreWatchdog = setInterval(() => {
+    if (!petHitWindow || petHitWindow.isDestroyed()) return;
+    // Skip while a drag is in progress — the drag timer owns window position
+    // and the window must stay interactive to keep receiving the drag.
+    if (dragTimer) return;
+    // Already in the safe state — nothing to recover.
+    if (lastHitIgnoreState) return;
+
+    // The hit window is currently in non-ignore mode. If the real cursor is
+    // no longer inside the pet's circular body (plus slack), force it back
+    // to ignore.
+    const cursor = screen.getCursorScreenPoint();
+    const [wx, wy] = petHitWindow.getPosition();
+    const [ww, wh] = petHitWindow.getSize();
+    const cxw = wx + ww / 2;
+    const cyw = wy + wh / 2;
+    const radius = (Math.min(ww, wh) / 2) * HIT_WATCHDOG_RADIUS_SLACK;
+    const dx = cursor.x - cxw;
+    const dy = cursor.y - cyw;
+
+    if (dx * dx + dy * dy > radius * radius) {
+      petHitWindow.setIgnoreMouseEvents(true, { forward: true });
+      lastHitIgnoreState = true;
+    }
+  }, HIT_WATCHDOG_INTERVAL_MS);
+}
+
+function stopHitIgnoreWatchdog(): void {
+  if (hitIgnoreWatchdog) {
+    clearInterval(hitIgnoreWatchdog);
+    hitIgnoreWatchdog = null;
+  }
+  lastHitIgnoreState = true;
+}
+
 function resizePet(size: PetSize): void {
   if (!petWindow || petWindow.isDestroyed() || !petHitWindow || petHitWindow.isDestroyed()) return;
 
@@ -541,11 +674,10 @@ function resizePet(size: PetSize): void {
 function resetPosition(): void {
   if (!petWindow || petWindow.isDestroyed() || !petHitWindow || petHitWindow.isDestroyed()) return;
 
-  const primaryDisplay = screen.getPrimaryDisplay();
-  const { width: screenWidth, height: screenHeight } = primaryDisplay.workAreaSize;
-  const margin = 20;
-  const x = screenWidth - currentSize - margin;
-  const y = screenHeight - currentSize - margin;
+  // Reset puts the pet back where createPetWindow would have put it for a
+  // fresh launch — the bottom-right of the display that currently hosts the
+  // main AionUi window.
+  const { x, y } = computeInitialPosition(currentSize);
 
   petWindow.setPosition(x, y, false);
 

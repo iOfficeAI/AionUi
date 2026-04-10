@@ -49,7 +49,6 @@ const Sider: React.FC<SiderProps> = ({ onSessionClick, collapsed = false }) => {
   const { teams, mutate: refreshTeams, removeTeam } = useTeamList();
   const { mutate: globalMutate } = useSWRConfig();
 
-  // Pin state
   const [pinnedIds, setPinnedIds] = useState<string[]>(() => {
     try {
       return JSON.parse(localStorage.getItem(TEAM_PINNED_KEY) ?? '[]') as string[];
@@ -66,7 +65,6 @@ const Sider: React.FC<SiderProps> = ({ onSessionClick, collapsed = false }) => {
     });
   }, []);
 
-  // Rename state
   const [renameVisible, setRenameVisible] = useState(false);
   const [renameId, setRenameId] = useState<string | null>(null);
   const [renameName, setRenameName] = useState('');
@@ -89,9 +87,8 @@ const Sider: React.FC<SiderProps> = ({ onSessionClick, collapsed = false }) => {
     } finally {
       setRenameLoading(false);
     }
-  }, [renameId, renameName, refreshTeams, t]);
+  }, [globalMutate, refreshTeams, renameId, renameName, t]);
 
-  // Sorted teams: pinned first
   const sortedTeams = useMemo(() => {
     const pinned = teams.filter((team) => pinnedIds.includes(team.id));
     const unpinned = teams.filter((team) => !pinnedIds.includes(team.id));
@@ -266,7 +263,7 @@ const Sider: React.FC<SiderProps> = ({ onSessionClick, collapsed = false }) => {
                       className='h-20px w-20px rd-4px flex items-center justify-center cursor-pointer hover:bg-fill-3 transition-all shrink-0'
                       onClick={() => setCreateTeamVisible(true)}
                     >
-                      <Plus theme='outline' size='14' fill='var(--color-text-2)' />
+                      <Plus theme='outline' size='14' fill='var(--color-text-2)' style={{ lineHeight: 0 }} />
                     </div>
                   </div>
                   {sortedTeams.length > 0 &&

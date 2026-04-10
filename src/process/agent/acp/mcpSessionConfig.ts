@@ -6,6 +6,7 @@
 
 import type { IMcpServer } from '@/common/config/storage';
 import type { AcpResponse } from '@/common/types/acpTypes';
+import { TEAM_SUPPORTED_BACKENDS } from '@/common/types/teamTypes';
 
 export interface AcpSessionMcpNameValue {
   name: string;
@@ -123,6 +124,12 @@ export function buildBuiltinAcpSessionMcpServers(
     })
     .filter((server): server is AcpSessionMcpServer => server !== null);
 }
+
+/**
+ * ACP backends that are allowed to receive the Aion team-guide MCP server.
+ * Re-exported from teamTypes — single source of truth.
+ */
+export { TEAM_SUPPORTED_BACKENDS as TEAM_GUIDE_ALLOWED_BACKENDS };
 
 /** Config shape passed from TeamSessionService to AgentManagers */
 export type TeamMcpStdioConfig = {

@@ -80,6 +80,12 @@ export function initTeamBridge(teamSessionService: TeamSessionService): void {
     })
   );
 
+  ipcBridge.team.setSessionMode.provider(
+    safeProvider(async ({ teamId, sessionMode }) => {
+      await teamSessionService.setSessionMode(teamId, sessionMode);
+    })
+  );
+
   ipcBridge.team.sendMessage.provider(
     safeProvider(async ({ teamId, content }) => {
       const session = await teamSessionService.getOrStartSession(teamId);

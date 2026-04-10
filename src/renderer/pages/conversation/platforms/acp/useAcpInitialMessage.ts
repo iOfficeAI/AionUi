@@ -8,11 +8,13 @@ import { ipcBridge } from '@/common';
 import type { TMessage } from '@/common/chat/chatLib';
 import { uuid } from '@/common/utils';
 import { emitter } from '@/renderer/utils/emitter';
+import { buildDisplayMessage } from '@/renderer/utils/file/messageFiles';
 import { useEffect } from 'react';
 
 type UseAcpInitialMessageParams = {
   conversationId: string;
   backend: string;
+  workspacePath?: string;
   setAiProcessing: (value: boolean) => void;
   checkAndUpdateTitle: (conversationId: string, input: string) => void;
   addOrUpdateMessage: (message: TMessage, prepend?: boolean) => void;
@@ -25,6 +27,7 @@ type UseAcpInitialMessageParams = {
 export const useAcpInitialMessage = ({
   conversationId,
   backend,
+  workspacePath,
   setAiProcessing,
   checkAndUpdateTitle,
   addOrUpdateMessage,
@@ -41,11 +44,9 @@ export const useAcpInitialMessage = ({
     const sendInitialMessage = async () => {
       try {
         const initialMessage = JSON.parse(storedMessage);
-        const { input, files } = initialMessage;
-
-        // ACP: don't use buildDisplayMessage, pass raw input directly
-        // File references are added by the backend ACP agent (using actual copied paths)
-        // Avoid two inconsistent sets of file references in the message
+        const input = typeof initialMessage.input === 'string' ? initialMessage.input : '';
+        const files = Array.isArray(initialMessage.files) ? initialMessage.files : [];
+        const displayMessage = buildDisplayMessage(input, files, workspacePath || '');
         const msg_id = uuid();
 
         // Start AI processing loading state (user message will be added via backend response)
@@ -54,7 +55,7 @@ export const useAcpInitialMessage = ({
         // Send the message
         void checkAndUpdateTitle(conversationId, input);
         const result = await ipcBridge.acpConversation.sendMessage.invoke({
-          input,
+          input: displayMessage,
           msg_id,
           conversation_id: conversationId,
           files,
@@ -91,5 +92,5 @@ export const useAcpInitialMessage = ({
     sendInitialMessage().catch((error) => {
       console.error('Failed to send initial message:', error);
     });
-  }, [conversationId, backend]);
+  }, [addOrUpdateMessage, backend, checkAndUpdateTitle, conversationId, setAiProcessing, workspacePath]);
 };

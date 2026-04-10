@@ -144,14 +144,10 @@ async function initializeDefaultAdmin(): Promise<{
   const systemUser = await UserRepository.getSystemUser();
   const existingAdmin = await UserRepository.findByUsername(username);
 
-  // 已存在且密码有效则视为完成初始化
-  // Treat existing admin with valid password as already initialized
   const hasValidPassword = (user: typeof existingAdmin): boolean =>
     !!user && typeof user.password_hash === 'string' && user.password_hash.trim().length > 0;
 
-  // 如果已经有有效的管理员用户，直接跳过初始化
-  // Skip initialization if a valid admin already exists
-  if (hasValidPassword(existingAdmin)) {
+  if (hasValidPassword(systemUser) || hasValidPassword(existingAdmin)) {
     return null;
   }
 
@@ -160,24 +156,20 @@ async function initializeDefaultAdmin(): Promise<{
   try {
     const hashedPassword = await AuthService.hashPassword(password);
 
+    if (systemUser) {
+      const nextUsername =
+        systemUser.username && systemUser.username !== systemUser.id ? systemUser.username : username;
+      await UserRepository.setSystemUserCredentials(nextUsername, hashedPassword);
+      initialAdminPassword = password; // 存储初始密码 / Store initial password
+      return { username: nextUsername, password };
+    }
+
     if (existingAdmin) {
-      // 情况 1：库中已有 admin 记录但密码缺失 -> 重置密码并输出凭证
-      // Case 1: admin row exists but password is blank -> refresh password and expose credentials
       await UserRepository.updatePassword(existingAdmin.id, hashedPassword);
       initialAdminPassword = password; // 存储初始密码 / Store initial password
       return { username, password };
     }
 
-    if (systemUser) {
-      // 情况 2：仅存在 system_default_user 占位行 -> 更新用户名和密码
-      // Case 2: only placeholder system user exists -> update username/password in place
-      await UserRepository.setSystemUserCredentials(username, hashedPassword);
-      initialAdminPassword = password; // 存储初始密码 / Store initial password
-      return { username, password };
-    }
-
-    // 情况 3：初次启动，无任何用户 -> 新建 admin 账户
-    // Case 3: fresh install with no users -> create admin user explicitly
     await UserRepository.createUser(username, hashedPassword);
     initialAdminPassword = password; // 存储初始密码 / Store initial password
     return { username, password };

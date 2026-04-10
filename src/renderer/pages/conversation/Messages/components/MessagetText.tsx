@@ -6,6 +6,7 @@
 
 import type { IMessageText } from '@/common/chat/chatLib';
 import { AIONUI_FILES_MARKER } from '@/common/config/constants';
+import { useConversationContextSafe } from '@/renderer/hooks/context/ConversationContext';
 import { iconColors } from '@/renderer/styles/colors';
 import { Alert, Message, Tooltip } from '@arco-design/web-react';
 import { Copy } from '@icon-park/react';
@@ -61,6 +62,19 @@ const parseFileMarker = (content: string) => {
   return { text, files };
 };
 
+const isAbsoluteMessageFilePath = (filePath: string): boolean =>
+  filePath.startsWith('/') || /^[A-Za-z]:/.test(filePath);
+
+export const resolveMessageFilePath = (filePath: string, workspace?: string): string => {
+  if (!filePath || isAbsoluteMessageFilePath(filePath) || !workspace) {
+    return filePath;
+  }
+
+  const normalizedWorkspace = workspace.replace(/[\\/]+$/, '').replace(/\\/g, '/');
+  const normalizedFilePath = filePath.replace(/^\.?[\\/]+/, '').replace(/\\/g, '/');
+  return `${normalizedWorkspace}/${normalizedFilePath}`.replace(/\/+/g, '/');
+};
+
 const useFormatContent = (content: string) => {
   return useMemo(() => {
     try {
@@ -100,6 +114,12 @@ const MessageText: React.FC<{ message: IMessageText }> = ({ message }) => {
   const [showCopyAlert, setShowCopyAlert] = useState(false);
   const isUserMessage = message.position === 'right';
   const isTeammateMessage = message.position === 'left' && message.content.teammateMessage === true;
+  const shouldRenderPlainText = isUserMessage;
+  const conversationContext = useConversationContextSafe();
+  const resolvedFiles = useMemo(
+    () => files.map((filePath) => resolveMessageFilePath(filePath, conversationContext?.workspace)),
+    [conversationContext?.workspace, files]
+  );
 
   // 过滤空内容，避免渲染空DOM
   if (!message.content.content || (typeof message.content.content === 'string' && !message.content.content.trim())) {
@@ -107,7 +127,7 @@ const MessageText: React.FC<{ message: IMessageText }> = ({ message }) => {
   }
 
   const handleCopy = () => {
-    const baseText = json ? JSON.stringify(data, null, 2) : text;
+    const baseText = shouldRenderPlainText ? text : json ? JSON.stringify(data, null, 2) : text;
     const fileList = files.length ? `Files:\n${files.map((path) => `- ${path}`).join('\n')}\n\n` : '';
     const textToCopy = fileList + baseText;
     copyText(textToCopy)
@@ -155,13 +175,13 @@ const MessageText: React.FC<{ message: IMessageText }> = ({ message }) => {
         )}
         {files.length > 0 && (
           <div className={classNames('mt-6px', { 'self-end': isUserMessage })}>
-            {files.length === 1 ? (
+            {resolvedFiles.length === 1 ? (
               <div className='flex items-center'>
-                <FilePreview path={files[0]} onRemove={() => undefined} readonly />
+                <FilePreview path={resolvedFiles[0]} onRemove={() => undefined} readonly />
               </div>
             ) : (
               <HorizontalFileList>
-                {files.map((path) => (
+                {resolvedFiles.map((path) => (
                   <FilePreview key={path} path={path} onRemove={() => undefined} readonly />
                 ))}
               </HorizontalFileList>
@@ -183,7 +203,9 @@ const MessageText: React.FC<{ message: IMessageText }> = ({ message }) => {
           }
         >
           {/* JSON 内容使用折叠组件 Use CollapsibleContent for JSON content */}
-          {json ? (
+          {shouldRenderPlainText ? (
+            <div className='whitespace-pre-wrap break-words'>{text}</div>
+          ) : json ? (
             <CollapsibleContent maxHeight={200} defaultCollapsed={true}>
               <MarkdownView
                 codeStyle={{ marginTop: 4, marginBlock: 4 }}

@@ -38,9 +38,17 @@ vi.mock('electron', () => {
     createdWindows.push(win);
     return win;
   } as unknown as typeof import('electron').BrowserWindow;
+  // computeInitialPosition walks BrowserWindow.getAllWindows() to find the
+  // main window so it can place the pet on the same display. In unit tests
+  // there's no real main window — returning [] makes the helper fall back
+  // to the primary display path.
+  (BW as unknown as { getAllWindows: () => unknown[] }).getAllWindows = () => [];
 
   return {
-    app: { isPackaged: false },
+    app: {
+      isPackaged: false,
+      commandLine: { getSwitchValue: vi.fn(() => '') },
+    },
     BrowserWindow: BW,
     ipcMain: {
       on: vi.fn((channel: string, handler: (...args: unknown[]) => void) => {
@@ -56,7 +64,14 @@ vi.mock('electron', () => {
     screen: {
       getPrimaryDisplay: vi.fn(() => ({
         workAreaSize: { width: 1920, height: 1080 },
+        workArea: { x: 0, y: 0, width: 1920, height: 1080 },
       })),
+      // computeInitialPosition resolves the pet's starting display by the
+      // main window's center point. In tests no real main window exists, so
+      // the candidate lookup returns undefined and we fall back to the
+      // primary display — getDisplayNearestPoint still needs to be mockable
+      // for the non-test multi-monitor case though.
+      getDisplayNearestPoint: vi.fn(() => ({ workArea: { x: 0, y: 0, width: 1920, height: 1080 } })),
       getCursorScreenPoint: vi.fn(() => ({ x: 150, y: 250 })),
     },
   };
@@ -74,8 +89,9 @@ import {
   showPetWindow,
   hidePetWindow,
   getEventBridge,
+  isPetSupported,
 } from '@process/pet/petManager';
-import { ipcMain, Menu, screen } from 'electron';
+import { app, ipcMain, Menu, screen } from 'electron';
 import { setPetNotifyHook } from '../../../../src/common/adapter/main';
 
 describe('petManager', () => {
@@ -210,6 +226,68 @@ describe('petManager', () => {
     });
   });
 
+  // ── isPetSupported ─────────────────────────────────────────────────
+
+  describe('isPetSupported', () => {
+    let originalPlatform: PropertyDescriptor | undefined;
+
+    beforeEach(() => {
+      originalPlatform = Object.getOwnPropertyDescriptor(process, 'platform');
+    });
+
+    afterEach(() => {
+      if (originalPlatform) {
+        Object.defineProperty(process, 'platform', originalPlatform);
+      }
+      vi.mocked(app.commandLine.getSwitchValue).mockReturnValue('');
+    });
+
+    it('returns false on Linux with ozone-platform=headless', () => {
+      Object.defineProperty(process, 'platform', { value: 'linux', configurable: true });
+      vi.mocked(app.commandLine.getSwitchValue).mockReturnValue('headless');
+      expect(isPetSupported()).toBe(false);
+    });
+
+    it('returns true on Linux without headless ozone', () => {
+      Object.defineProperty(process, 'platform', { value: 'linux', configurable: true });
+      vi.mocked(app.commandLine.getSwitchValue).mockReturnValue('');
+      expect(isPetSupported()).toBe(true);
+    });
+
+    it('returns true on macOS', () => {
+      Object.defineProperty(process, 'platform', { value: 'darwin', configurable: true });
+      expect(isPetSupported()).toBe(true);
+    });
+
+    it('returns true on Windows', () => {
+      Object.defineProperty(process, 'platform', { value: 'win32', configurable: true });
+      expect(isPetSupported()).toBe(true);
+    });
+  });
+
+  describe('createPetWindow headless guard', () => {
+    let originalPlatform: PropertyDescriptor | undefined;
+
+    beforeEach(() => {
+      originalPlatform = Object.getOwnPropertyDescriptor(process, 'platform');
+    });
+
+    afterEach(() => {
+      if (originalPlatform) {
+        Object.defineProperty(process, 'platform', originalPlatform);
+      }
+      vi.mocked(app.commandLine.getSwitchValue).mockReturnValue('');
+    });
+
+    it('skips window creation when pet is not supported', () => {
+      Object.defineProperty(process, 'platform', { value: 'linux', configurable: true });
+      vi.mocked(app.commandLine.getSwitchValue).mockReturnValue('headless');
+      const countBefore = createdWindows.length;
+      createPetWindow();
+      expect(createdWindows).toHaveLength(countBefore);
+    });
+  });
+
   // ── IPC: pet:click ─────────────────────────────────────────────────
 
   describe('IPC: pet:click', () => {
@@ -240,13 +318,27 @@ describe('petManager', () => {
       expect(stateChanges.some((c: [string, string]) => c[1] === 'poke-right')).toBe(true);
     });
 
-    it('requests error on triple click', () => {
+    // Triple click now falls through to the directional poke (same bucket
+    // as a double click) — `error` is reserved exclusively for genuine AI
+    // errors so users can tell "I poked the pet" apart from "the agent
+    // failed". Four or more rapid clicks escalate to `juggling` (flustered).
+    it('requests poke on triple click (no longer error)', () => {
       createPetWindow();
       const handler = mockIpcHandlers.get('pet:click');
       handler?.({}, { side: 'left', count: 3 });
       const sendCalls = createdWindows[0].webContents.send.mock.calls;
       const stateChanges = sendCalls.filter((c: [string, ...unknown[]]) => c[0] === 'pet:state-changed');
-      expect(stateChanges.some((c: [string, string]) => c[1] === 'error')).toBe(true);
+      expect(stateChanges.some((c: [string, string]) => c[1] === 'poke-left')).toBe(true);
+      expect(stateChanges.some((c: [string, string]) => c[1] === 'error')).toBe(false);
+    });
+
+    it('requests juggling on 4+ rapid clicks', () => {
+      createPetWindow();
+      const handler = mockIpcHandlers.get('pet:click');
+      handler?.({}, { side: 'left', count: 4 });
+      const sendCalls = createdWindows[0].webContents.send.mock.calls;
+      const stateChanges = sendCalls.filter((c: [string, ...unknown[]]) => c[0] === 'pet:state-changed');
+      expect(stateChanges.some((c: [string, string]) => c[1] === 'juggling')).toBe(true);
     });
   });
 

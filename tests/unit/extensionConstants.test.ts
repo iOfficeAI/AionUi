@@ -44,6 +44,52 @@ describe('extension constants', () => {
     });
   });
 
+  describe('HUB_REMOTE_URLS with AIONUI_HUB_URL env var', () => {
+    const originalEnv = process.env.AIONUI_HUB_URL;
+
+    afterEach(() => {
+      if (originalEnv === undefined) delete process.env.AIONUI_HUB_URL;
+      else process.env.AIONUI_HUB_URL = originalEnv;
+      vi.resetModules();
+    });
+
+    it('should return only default URLs when env var is not set', async () => {
+      delete process.env.AIONUI_HUB_URL;
+      vi.resetModules();
+      const { HUB_REMOTE_URLS: urls } = await import('../../src/process/extensions/constants');
+      expect(urls).toEqual([
+        'https://raw.githubusercontent.com/iOfficeAI/AionHub/dist-latest/',
+        'https://cdn.jsdelivr.net/gh/iOfficeAI/AionHub@dist-latest/',
+      ]);
+    });
+
+    it('should prepend custom URLs from env var', async () => {
+      process.env.AIONUI_HUB_URL = 'http://localhost:3000/';
+      vi.resetModules();
+      const { HUB_REMOTE_URLS: urls } = await import('../../src/process/extensions/constants');
+      expect(urls[0]).toBe('http://localhost:3000/');
+      expect(urls.length).toBe(3);
+    });
+
+    it('should support comma-separated URLs', async () => {
+      process.env.AIONUI_HUB_URL = 'http://a.com/,http://b.com/';
+      vi.resetModules();
+      const { HUB_REMOTE_URLS: urls } = await import('../../src/process/extensions/constants');
+      expect(urls[0]).toBe('http://a.com/');
+      expect(urls[1]).toBe('http://b.com/');
+      expect(urls.length).toBe(4);
+    });
+
+    it('should filter empty segments and trim whitespace', async () => {
+      process.env.AIONUI_HUB_URL = ' http://a.com/ , , http://b.com/ ';
+      vi.resetModules();
+      const { HUB_REMOTE_URLS: urls } = await import('../../src/process/extensions/constants');
+      expect(urls[0]).toBe('http://a.com/');
+      expect(urls[1]).toBe('http://b.com/');
+      expect(urls.length).toBe(4);
+    });
+  });
+
   describe('getUserExtensionsDir', () => {
     it('should return data path + extensions', () => {
       expect(getUserExtensionsDir()).toBe(path.join('/home/user/.aionui-dev', 'extensions'));

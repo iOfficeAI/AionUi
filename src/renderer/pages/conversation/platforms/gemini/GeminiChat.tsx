@@ -24,7 +24,9 @@ const GeminiChat: React.FC<{
   modelSelection: GeminiModelSelection;
   cronJobId?: string;
   hideSendBox?: boolean;
-}> = ({ conversation_id, workspace, modelSelection, cronJobId, hideSendBox }) => {
+  teamId?: string;
+  agentSlotId?: string;
+}> = ({ conversation_id, workspace, modelSelection, cronJobId, hideSendBox, teamId, agentSlotId }) => {
   useMessageLstCache(conversation_id);
   const updateLocalImage = LocalImageView.useUpdateLocalImage();
   useEffect(() => {
@@ -42,7 +44,12 @@ const GeminiChat: React.FC<{
         </FlexFullContainer>
         {!hideSendBox && (
           <ConversationChatConfirm conversation_id={conversation_id}>
-            <GeminiSendBox conversation_id={conversation_id} modelSelection={modelSelection}></GeminiSendBox>
+            <GeminiSendBox
+              conversation_id={conversation_id}
+              modelSelection={modelSelection}
+              teamId={teamId}
+              agentSlotId={agentSlotId}
+            ></GeminiSendBox>
           </ConversationChatConfirm>
         )}
       </div>

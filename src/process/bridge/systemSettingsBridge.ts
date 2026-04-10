@@ -138,6 +138,17 @@ export function initSystemSettingsBridge(): void {
     await ProcessConfig.set('upload.saveToWorkspace', enabled);
   });
 
+  // 获取"自动预览新建 Office 文件"设置 / Get "auto preview new Office files" setting
+  ipcBridge.systemSettings.getAutoPreviewOfficeFiles.provider(async () => {
+    const value = await ProcessConfig.get('system.autoPreviewOfficeFiles');
+    return value ?? true; // 默认开启 / Default enabled
+  });
+
+  // 设置"自动预览新建 Office 文件" / Set "auto preview new Office files"
+  ipcBridge.systemSettings.setAutoPreviewOfficeFiles.provider(async ({ enabled }) => {
+    await ProcessConfig.set('system.autoPreviewOfficeFiles', enabled);
+  });
+
   // Desktop pet settings
   ipcBridge.systemSettings.getPetEnabled.provider(async () => {
     const value = await ProcessConfig.get('pet.enabled');
@@ -145,8 +156,12 @@ export function initSystemSettingsBridge(): void {
   });
 
   ipcBridge.systemSettings.setPetEnabled.provider(async ({ enabled }) => {
+    const { createPetWindow, destroyPetWindow, isPetSupported } = await import('@process/pet/petManager');
+    if (enabled && !isPetSupported()) {
+      console.warn('[SystemSettings] Desktop pet is not supported in headless mode');
+      return;
+    }
     await ProcessConfig.set('pet.enabled', enabled);
-    const { createPetWindow, destroyPetWindow } = await import('@process/pet/petManager');
     if (enabled) {
       createPetWindow();
     } else {
@@ -191,7 +206,7 @@ export function initSystemSettingsBridge(): void {
 
   ipcBridge.systemSettings.getCommandQueueEnabled.provider(async () => {
     const value = await ProcessConfig.get('system.commandQueueEnabled');
-    return value ?? false;
+    return value ?? true;
   });
 
   ipcBridge.systemSettings.setCommandQueueEnabled.provider(async ({ enabled }) => {

@@ -5,7 +5,8 @@ import { teamEventBus } from './teamEventBus';
 import { addMessage } from '@process/utils/message';
 import type { IWorkerTaskManager } from '@process/task/IWorkerTaskManager';
 import type { IResponseMessage } from '@/common/adapter/ipcBridge';
-import type { TeamAgent, TeammateStatus, TeamTask, ParsedAction, ITeamMessageEvent } from './types';
+import type { TeamAgent, TeammateStatus, TeamTask, ParsedAction } from './types';
+import { TEAM_SUPPORTED_BACKENDS } from '@/common/types/teamTypes';
 import type { Mailbox } from './Mailbox';
 import type { TaskManager } from './TaskManager';
 import type { AgentResponse } from './adapters/PlatformAdapter';
@@ -15,7 +16,7 @@ import { acpDetector } from '@process/agent/acp/AcpDetector';
 type SpawnAgentFn = (agentName: string, agentType?: string) => Promise<TeamAgent>;
 
 /** Conversation types whose AgentManager supports MCP server injection via session/new */
-export const MCP_CAPABLE_TYPES = new Set(['acp']);
+export const MCP_CAPABLE_TYPES = new Set(['acp', 'gemini']);
 
 type TeammateManagerParams = {
   teamId: string;
@@ -25,6 +26,9 @@ type TeammateManagerParams = {
   workerTaskManager: IWorkerTaskManager;
   spawnAgent?: SpawnAgentFn;
   hasMcpTools?: boolean;
+  teamWorkspace?: string;
+  /** Called after an agent is removed from in-memory list, so the caller can persist the change (e.g. update DB) */
+  onAgentRemoved?: (teamId: string, agents: TeamAgent[]) => void;
 };
 
 /**
@@ -38,8 +42,11 @@ export class TeammateManager extends EventEmitter {
   private readonly taskManager: TaskManager;
   private readonly workerTaskManager: IWorkerTaskManager;
   private readonly spawnAgentFn?: SpawnAgentFn;
+  private readonly onAgentRemovedFn?: (teamId: string, agents: TeamAgent[]) => void;
   /** Whether the team MCP server has been started (global flag) */
   private mcpServerStarted: boolean;
+  /** Shared team workspace path (leader's working directory) */
+  private readonly teamWorkspace: string | undefined;
 
   /** Accumulated text response per conversationId */
   private readonly responseBuffer = new Map<string, string>();
@@ -67,7 +74,9 @@ export class TeammateManager extends EventEmitter {
     this.taskManager = params.taskManager;
     this.workerTaskManager = params.workerTaskManager;
     this.spawnAgentFn = params.spawnAgent;
+    this.onAgentRemovedFn = params.onAgentRemoved;
     this.mcpServerStarted = params.hasMcpTools ?? false;
+    this.teamWorkspace = params.teamWorkspace;
 
     for (const agent of this.agents) {
       this.ownedConversationIds.add(agent.conversationId);
@@ -171,10 +180,9 @@ export class TeammateManager extends EventEmitter {
       }
 
       // Only show team-verified backends in the leader's available agent types
-      const TEAM_ALLOWED_BACKENDS = new Set(['claude', 'codex']);
       const availableAgentTypes = acpDetector
         .getDetectedAgents()
-        .filter((a) => TEAM_ALLOWED_BACKENDS.has(a.backend))
+        .filter((a) => TEAM_SUPPORTED_BACKENDS.has(a.backend))
         .map((a) => ({ type: a.backend, name: a.name }));
 
       const payload = adapter.buildPayload({
@@ -184,6 +192,7 @@ export class TeammateManager extends EventEmitter {
         teammates,
         availableAgentTypes,
         renamedAgents: this.renamedAgents,
+        teamWorkspace: this.teamWorkspace,
       });
 
       // Clear previous buffer for this conversation
@@ -217,6 +226,7 @@ export class TeammateManager extends EventEmitter {
       }, TeammateManager.WAKE_TIMEOUT_MS);
       this.wakeTimeouts.set(slotId, timeoutHandle);
     } catch (error) {
+      console.error(`[TeammateManager] wake(${slotId}) failed:`, error);
       this.setStatus(slotId, 'failed');
       this.activeWakes.delete(slotId);
       throw error;
@@ -253,25 +263,27 @@ export class TeammateManager extends EventEmitter {
     const agent = this.agents.find((a) => a.conversationId === msg.conversation_id);
     if (!agent) return;
 
-    // Forward content events to renderer (skip finish/error/null-data — renderer
-    // already receives those directly via ipcBridge.acpConversation.responseStream)
-    if (msg.data != null && msg.type !== 'finish' && msg.type !== 'error') {
-      const teamMsg: ITeamMessageEvent = {
-        teamId: this.teamId,
-        slotId: agent.slotId,
-        type: msg.type,
-        data: msg.data,
-        msg_id: msg.msg_id,
-        conversation_id: msg.conversation_id,
-      };
-      ipcBridge.team.messageStream.emit(teamMsg);
-    }
-
     // Accumulate text content for later parsing
     const text = (msg.data as { text?: string } | null)?.text;
     if (typeof text === 'string') {
       const existing = this.responseBuffer.get(msg.conversation_id) ?? '';
       this.responseBuffer.set(msg.conversation_id, existing + text);
+    }
+
+    // Detect agent crash:
+    // 1. AcpAgent.handleDisconnect emits finish with agentCrash flag (wrapper process dies)
+    // 2. Inner claude dies but wrapper lives → error string contains crash keywords
+    const msgData = msg.data as { agentCrash?: boolean; error?: string } | null;
+    if (msg.type === 'finish' && msgData?.agentCrash) {
+      void this.handleAgentCrash(agent, msgData.error ?? 'Unknown error');
+      return;
+    }
+    if (msg.type === 'error') {
+      const errorText = typeof msg.data === 'string' ? msg.data : (msgData?.error ?? '');
+      if (errorText.includes('process exited unexpectedly') || errorText.includes('Session not found')) {
+        void this.handleAgentCrash(agent, errorText);
+        return;
+      }
     }
 
     // Detect terminal stream messages and trigger turn completion.
@@ -531,10 +543,50 @@ export class TeammateManager extends EventEmitter {
     }
   }
 
-  /** Remove an agent: cancel pending wake, clear buffers, remove from in-memory list */
+  /**
+   * Handle an agent whose CLI process crashed unexpectedly.
+   * Writes a testament message to the leader's mailbox, removes the agent,
+   * and wakes the leader so it can decide whether to respawn.
+   */
+  private async handleAgentCrash(agent: TeamAgent, errorMessage: string): Promise<void> {
+    const leadAgent = this.agents.find((a) => a.role === 'lead');
+    if (!leadAgent) return;
+
+    const testament =
+      `[System] Member "${agent.agentName}" (${agent.conversationType}) crashed and has been automatically removed. ` +
+      `Error: ${errorMessage}. ` +
+      `You may recreate a member to continue the task if needed.`;
+
+    // 1. Write testament to leader's mailbox
+    await this.mailbox.write({
+      teamId: this.teamId,
+      toAgentId: leadAgent.slotId,
+      fromAgentId: agent.slotId,
+      content: testament,
+      type: 'message',
+      summary: `${agent.agentName} crashed`,
+    });
+
+    console.warn(
+      `[TeammateManager] Agent ${agent.slotId} (${agent.agentName}) crashed: ${errorMessage}. Testament sent to leader.`
+    );
+
+    // 2. Remove the crashed agent (equivalent to fire, without shutdown negotiation)
+    this.removeAgent(agent.slotId);
+
+    // 3. Wake leader to process the testament
+    void this.wake(leadAgent.slotId);
+  }
+
+  /** Remove an agent: kill process, cancel pending wake, clear buffers, remove from in-memory list */
   removeAgent(slotId: string): void {
     const agent = this.agents.find((a) => a.slotId === slotId);
     if (!agent) return;
+
+    // Kill the underlying ACP process
+    if (agent.conversationId) {
+      this.workerTaskManager.kill(agent.conversationId);
+    }
 
     // Cancel any pending wake timeout
     const timeoutHandle = this.wakeTimeouts.get(slotId);
@@ -554,6 +606,9 @@ export class TeammateManager extends EventEmitter {
     this.agents = this.agents.filter((a) => a.slotId !== slotId);
     console.log(`[TeammateManager] Agent ${slotId} (${agent.agentName}) removed`);
     ipcBridge.team.agentRemoved.emit({ teamId: this.teamId, slotId });
+
+    // Notify upper layer to persist the removal (e.g. update DB)
+    this.onAgentRemovedFn?.(this.teamId, this.agents);
   }
 
   /** Rename an agent. Updates in-memory state; caller is responsible for persistence. */

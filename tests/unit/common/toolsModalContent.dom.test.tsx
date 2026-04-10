@@ -317,7 +317,9 @@ describe('ToolsModalContent image generation status refresh', () => {
     render(<ToolsModalContent />);
 
     const toggle = (await screen.findAllByRole('switch', { name: 'switch' }))[0];
-    expect(toggle).not.toBeDisabled();
+    await waitFor(() => {
+      expect(toggle).not.toBeDisabled();
+    });
 
     fireEvent.click(toggle);
 

@@ -531,10 +531,10 @@ describe('SendBox queue and interaction behaviors', () => {
     expect(getTextarea().style.height).toBe('20px');
 
     rerender(<SendBox value={'short\nline'} onChange={vi.fn()} onSend={vi.fn().mockResolvedValue(undefined)} />);
-    expect(getTextarea().style.minHeight).toBe('80px');
+    expect(getTextarea().style.minHeight).toBe('40px');
 
     rerender(<SendBox value={'x'.repeat(810)} onChange={vi.fn()} onSend={vi.fn().mockResolvedValue(undefined)} />);
-    expect(getTextarea().style.minHeight).toBe('80px');
+    expect(getTextarea().style.minHeight).toBe('40px');
   });
 
   it('blurs mobile autofocus on mount and rejects focus without explicit user intent', () => {
