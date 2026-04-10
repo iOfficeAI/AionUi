@@ -134,7 +134,7 @@ export function ChatSidebar({ navigation }: DrawerContentComponentProps) {
         }
       );
     } else {
-      Alert.alert(conversation.name || 'Untitled', undefined, [
+      Alert.alert(conversation.name || t('conversations.untitled'), undefined, [
         { text: t('common.cancel'), style: 'cancel' },
         { text: t('conversations.rename'), onPress: () => promptRenameAndroid(conversation) },
         { text: t('common.delete'), style: 'destructive', onPress: () => confirmDelete(conversation) },
@@ -184,7 +184,7 @@ export function ChatSidebar({ navigation }: DrawerContentComponentProps) {
       >
         <View style={styles.itemContent}>
           <ThemedText style={[styles.itemName, isActive && { color: tint, fontWeight: '600' }]} numberOfLines={1}>
-            {conv.name || 'Untitled'}
+            {conv.name || t('conversations.untitled')}
           </ThemedText>
           <ThemedText type='caption' numberOfLines={1}>
             {agentType}

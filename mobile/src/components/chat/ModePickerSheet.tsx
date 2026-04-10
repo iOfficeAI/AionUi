@@ -28,7 +28,7 @@ export function showModeActionSheet(
   onSelect: (value: string) => void,
 ) {
   if (Platform.OS === 'ios') {
-    const options = [...modes.map((m) => m.label), 'Cancel'];
+    const options = [...modes.map((m) => m.label), t('common.cancel')];
     const cancelButtonIndex = options.length - 1;
     ActionSheetIOS.showActionSheetWithOptions(
       { options, cancelButtonIndex },

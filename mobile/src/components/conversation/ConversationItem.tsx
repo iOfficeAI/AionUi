@@ -30,7 +30,7 @@ function formatTime(timestamp: number): string {
   const yesterday = new Date(now);
   yesterday.setDate(yesterday.getDate() - 1);
   if (date.toDateString() === yesterday.toDateString()) {
-    return 'Yesterday';
+    return t('workspace.yesterday');
   }
 
   return date.toLocaleDateString([], { month: 'short', day: 'numeric' });
@@ -87,7 +87,7 @@ export function ConversationItem({ conversation, onPress, onDelete }: Conversati
         <View style={styles.nameRow}>
           {statusDot && <View style={[styles.statusDot, { backgroundColor: statusDot }]} />}
           <ThemedText style={styles.name} numberOfLines={1}>
-            {conversation.name || 'Untitled'}
+            {conversation.name || t('conversations.untitled')}
           </ThemedText>
         </View>
         <ThemedText type='caption'>{formatTime(conversation.modifyTime)}</ThemedText>
