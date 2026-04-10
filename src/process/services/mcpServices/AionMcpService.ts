@@ -19,7 +19,7 @@ import * as path from 'node:path';
 import { ipcBridge } from '@/common';
 import type { TeamSessionService } from '@process/team/TeamSessionService';
 import type { StdioMcpConfig } from '@process/team/TeamMcpServer';
-import { TEAM_GUIDE_BACKENDS } from '@process/resources/prompts/teamGuidePrompt';
+import { TEAM_SUPPORTED_BACKENDS } from '@/common/types/teamTypes';
 
 /** Allowed route patterns that aion_navigate may redirect to */
 const ALLOWED_ROUTE_PATTERNS: RegExp[] = [/^\/team\/[a-zA-Z0-9_-]+$/, /^\/conversation\/[a-zA-Z0-9_-]+$/];
@@ -156,6 +156,8 @@ export class AionMcpService {
         tool?: string;
         args?: Record<string, unknown>;
         auth_token?: string;
+        /** Backend type of the calling agent, injected by aion-mcp-stdio via AION_MCP_BACKEND env var */
+        backend?: string;
       };
 
       if (request.auth_token !== this.authToken) {
@@ -168,7 +170,7 @@ export class AionMcpService {
       const args = request.args ?? {};
 
       try {
-        const result = await this.handleToolCall(toolName, args);
+        const result = await this.handleToolCall(toolName, args, request.backend);
         writeTcpMessage(socket, { result });
       } catch (err) {
         const errMsg = err instanceof Error ? err.message : String(err);
@@ -185,10 +187,10 @@ export class AionMcpService {
 
   // ── Tool dispatch ─────────────────────────────────────────────────────────
 
-  private async handleToolCall(toolName: string, args: Record<string, unknown>): Promise<string> {
+  private async handleToolCall(toolName: string, args: Record<string, unknown>, backend?: string): Promise<string> {
     switch (toolName) {
       case 'aion_create_team':
-        return this.handleCreateTeam(args);
+        return this.handleCreateTeam(args, backend);
       case 'aion_navigate':
         return this.handleNavigate(args);
       default:
@@ -196,18 +198,18 @@ export class AionMcpService {
     }
   }
 
-  private async handleCreateTeam(args: Record<string, unknown>): Promise<string> {
+  private async handleCreateTeam(args: Record<string, unknown>, backend?: string): Promise<string> {
     const summary = String(args.summary ?? '').trim();
     const name = args.name ? String(args.name).trim() : undefined;
     const workspace = args.workspace ? String(args.workspace).trim() : '';
-    const rawAgentType = args.agentType ? String(args.agentType).trim() : '';
 
     if (!summary) {
       throw new Error('summary is required');
     }
 
-    // Validate agentType against TEAM_GUIDE_BACKENDS whitelist; default to 'claude'
-    const agentType = rawAgentType && TEAM_GUIDE_BACKENDS.has(rawAgentType) ? rawAgentType : 'claude';
+    // Use system-injected backend (from AION_MCP_BACKEND env var) as the authoritative agent type.
+    // Falls back to 'claude' only when the backend is unknown or not in the whitelist.
+    const agentType = backend && TEAM_SUPPORTED_BACKENDS.has(backend) ? backend : 'claude';
 
     const teamName = name || summary.split(/\s+/).slice(0, 5).join(' ');
     const userId = 'system_default_user';

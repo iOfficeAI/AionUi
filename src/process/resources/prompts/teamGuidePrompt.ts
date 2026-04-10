@@ -4,19 +4,14 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-/**
- * Agent backends that support aion_create_team and aion_navigate tools.
- * Only these backends should receive the team guide prompt injection.
- * Single source of truth — mcpSessionConfig re-exports this as TEAM_GUIDE_ALLOWED_BACKENDS.
- */
-export const TEAM_GUIDE_BACKENDS: ReadonlySet<string> = new Set(['claude', 'codex']);
+import { TEAM_SUPPORTED_BACKENDS } from '@/common/types/teamTypes';
 
 /**
  * Returns true if the given agent backend should receive the team guide prompt injection.
- * Only backends that support the required MCP tools (aion_create_team, aion_navigate) are allowed.
+ * Uses TEAM_SUPPORTED_BACKENDS — all team-capable backends also support the solo-to-team guide.
  */
 export function shouldInjectTeamGuideMcp(backend: string): boolean {
-  return TEAM_GUIDE_BACKENDS.has(backend);
+  return TEAM_SUPPORTED_BACKENDS.has(backend);
 }
 
 // ── Shared decision criteria (single source of truth) ───────────────────────
@@ -62,7 +57,7 @@ ${DOUBT_RULE}
    | Developer | Implement features | ${agentType} |
    | Tester | Write and run tests | ${agentType} |
 3. **STOP and wait for the user's reply.** Do NOT call \`aion_create_team\` in this turn. You must receive explicit user confirmation (e.g. "ok", "go ahead", "确认") before proceeding.
-4. After user confirms → call \`aion_create_team\` with agentType="${agentType}". The summary MUST include both the goal and the confirmed team configuration.
+4. After user confirms → call \`aion_create_team\`. The summary MUST include both the goal and the confirmed team configuration. (The system automatically sets the correct agent type — you do NOT need to pass agentType.)
 5. After \`aion_create_team\` returns → read the response carefully and follow the next_step instructions. Tell the user the team is created → immediately call \`aion_navigate\` with the route from the response. **Both calls (create + navigate) are required.**
 6. User declines or wants changes → adjust or proceed solo. Do not mention Team again if declined.
 

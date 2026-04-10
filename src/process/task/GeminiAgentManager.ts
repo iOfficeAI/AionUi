@@ -24,6 +24,7 @@ import { addMessage, addOrUpdateMessage, nextTickToLocalFinish } from '@process/
 import { cronBusyGuard } from '@process/services/cron/CronBusyGuard';
 import { skillSuggestWatcher } from '@process/services/cron/SkillSuggestWatcher';
 import { handlePreviewOpenEvent } from '@process/utils/previewUtils';
+import { getAionMcpStdioConfig } from '@process/services/mcpServices/aionMcpServiceSingleton';
 import BaseAgentManager from './BaseAgentManager';
 import { IpcAgentEventEmitter } from './IpcAgentEventEmitter';
 import { mainLog, mainWarn, mainError } from '@process/utils/mainLogger';
@@ -367,6 +368,24 @@ export class GeminiAgentManager extends BaseAgentManager<
         mainLog('[GeminiAgentManager]', 'getMcpServers: injected team MCP server:', this.teamMcpStdioConfig.name);
       } else {
         mainLog('[GeminiAgentManager]', 'getMcpServers: no teamMcpStdioConfig, skipping team MCP injection');
+
+        // Inject Aion team-guide MCP server for solo agents (not in team mode)
+        // so Gemini can call aion_create_team / aion_navigate when guiding users to Team mode.
+        // AION_MCP_BACKEND tells the stdio bridge this is a gemini agent.
+        const aionStdioConfig = getAionMcpStdioConfig();
+        if (aionStdioConfig) {
+          const aionEnvObj: Record<string, string> = {};
+          for (const { name, value } of aionStdioConfig.env || []) {
+            aionEnvObj[name] = value;
+          }
+          aionEnvObj['AION_MCP_BACKEND'] = 'gemini';
+          mcpConfig[aionStdioConfig.name] = {
+            command: aionStdioConfig.command,
+            args: aionStdioConfig.args || [],
+            env: aionEnvObj,
+          };
+          mainLog('[GeminiAgentManager]', 'getMcpServers: injected aion team-guide MCP server');
+        }
       }
 
       return mcpConfig;

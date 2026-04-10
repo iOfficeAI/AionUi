@@ -29,15 +29,15 @@ describe('team guide MCP injection whitelist', () => {
     it('injects for codex backend', () => {
       expect(shouldInjectTeamGuideMcp('codex')).toBe(true);
     });
+
+    it('injects for gemini backend', () => {
+      expect(shouldInjectTeamGuideMcp('gemini')).toBe(true);
+    });
   });
 
   describe('blocked backends — should NOT inject team guide MCP', () => {
     it('does not inject for qwen backend', () => {
       expect(shouldInjectTeamGuideMcp('qwen')).toBe(false);
-    });
-
-    it('does not inject for gemini backend', () => {
-      expect(shouldInjectTeamGuideMcp('gemini')).toBe(false);
     });
 
     it('does not inject for opencode backend', () => {

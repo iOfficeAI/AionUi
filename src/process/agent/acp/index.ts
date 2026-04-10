@@ -1619,10 +1619,16 @@ export class AcpAgent {
 
       // Inject Aion team-guide MCP server for solo agents (not in team mode already).
       // Uses stdio bridge mode — same pattern as TeamMcpServer.
+      // AION_MCP_BACKEND env var tells the stdio bridge which backend this agent is,
+      // so aion_create_team automatically creates a team with the correct agent type.
       if (!this.extra.teamMcpStdioConfig && TEAM_GUIDE_ALLOWED_BACKENDS.has(this.extra.backend)) {
         const aionStdioConfig = getAionMcpStdioConfig();
         if (aionStdioConfig) {
-          servers.push(buildTeamMcpServer(aionStdioConfig)!);
+          const configWithBackend = {
+            ...aionStdioConfig,
+            env: [...aionStdioConfig.env, { name: 'AION_MCP_BACKEND', value: this.extra.backend }],
+          };
+          servers.push(buildTeamMcpServer(configWithBackend)!);
         }
       }
 
