@@ -21,7 +21,7 @@ import semver from 'semver';
 import { autoUpdaterService } from '../services/autoUpdaterService';
 
 /** Lazily loads i18n to avoid pulling in initStorage chain at module load time */
-let _i18nCache: ReturnType<typeof import('../services/i18n')> | null = null;
+let _i18nCache: Promise<typeof import('../services/i18n')> | null = null;
 const getI18n = async () => {
   if (!_i18nCache) {
     _i18nCache = import('../services/i18n');
@@ -205,7 +205,7 @@ const fetchWithAllowlistedRedirects = async (rawUrl: string, signal: AbortSignal
   let current = rawUrl;
 
   for (let i = 0; i <= MAX_REDIRECTS; i++) {
-    await     await assertAllowedUrl(current);
+    await assertAllowedUrl(current);
 
     const res = await fetch(current, {
       signal,
