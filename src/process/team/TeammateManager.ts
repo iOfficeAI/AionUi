@@ -26,6 +26,8 @@ type TeammateManagerParams = {
   spawnAgent?: SpawnAgentFn;
   hasMcpTools?: boolean;
   teamWorkspace?: string;
+  /** Called after an agent is removed from in-memory list, so the caller can persist the change (e.g. update DB) */
+  onAgentRemoved?: (teamId: string, agents: TeamAgent[]) => void;
 };
 
 /**
@@ -39,6 +41,7 @@ export class TeammateManager extends EventEmitter {
   private readonly taskManager: TaskManager;
   private readonly workerTaskManager: IWorkerTaskManager;
   private readonly spawnAgentFn?: SpawnAgentFn;
+  private readonly onAgentRemovedFn?: (teamId: string, agents: TeamAgent[]) => void;
   /** Whether the team MCP server has been started (global flag) */
   private mcpServerStarted: boolean;
   /** Shared team workspace path (leader's working directory) */
@@ -70,6 +73,7 @@ export class TeammateManager extends EventEmitter {
     this.taskManager = params.taskManager;
     this.workerTaskManager = params.workerTaskManager;
     this.spawnAgentFn = params.spawnAgent;
+    this.onAgentRemovedFn = params.onAgentRemoved;
     this.mcpServerStarted = params.hasMcpTools ?? false;
     this.teamWorkspace = params.teamWorkspace;
 
@@ -265,11 +269,20 @@ export class TeammateManager extends EventEmitter {
       this.responseBuffer.set(msg.conversation_id, existing + text);
     }
 
-    // Detect agent crash: AcpAgent emits error with agentCrash flag on unexpected exit
-    const msgData = msg.data as { agentCrash?: boolean; error?: string } | null;
-    if (msg.type === 'error' && msgData?.agentCrash) {
-      void this.handleAgentCrash(agent, msgData.error ?? 'Unknown error');
-      return;
+    // Detect agent crash:
+    // 1. AcpAgent.handleDisconnect emits error with agentCrash flag (wrapper process dies)
+    // 2. Inner claude dies but wrapper lives → error string contains crash keywords
+    if (msg.type === 'error') {
+      const msgData = msg.data as { agentCrash?: boolean; error?: string } | null;
+      if (msgData?.agentCrash) {
+        void this.handleAgentCrash(agent, msgData.error ?? 'Unknown error');
+        return;
+      }
+      const errorText = typeof msg.data === 'string' ? msg.data : (msgData?.error ?? '');
+      if (errorText.includes('process exited unexpectedly') || errorText.includes('Session not found')) {
+        void this.handleAgentCrash(agent, errorText);
+        return;
+      }
     }
 
     // Detect terminal stream messages and trigger turn completion.
@@ -564,10 +577,15 @@ export class TeammateManager extends EventEmitter {
     void this.wake(leadAgent.slotId);
   }
 
-  /** Remove an agent: cancel pending wake, clear buffers, remove from in-memory list */
+  /** Remove an agent: kill process, cancel pending wake, clear buffers, remove from in-memory list */
   removeAgent(slotId: string): void {
     const agent = this.agents.find((a) => a.slotId === slotId);
     if (!agent) return;
+
+    // Kill the underlying ACP process
+    if (agent.conversationId) {
+      this.workerTaskManager.kill(agent.conversationId);
+    }
 
     // Cancel any pending wake timeout
     const timeoutHandle = this.wakeTimeouts.get(slotId);
@@ -587,6 +605,9 @@ export class TeammateManager extends EventEmitter {
     this.agents = this.agents.filter((a) => a.slotId !== slotId);
     console.log(`[TeammateManager] Agent ${slotId} (${agent.agentName}) removed`);
     ipcBridge.team.agentRemoved.emit({ teamId: this.teamId, slotId });
+
+    // Notify upper layer to persist the removal (e.g. update DB)
+    this.onAgentRemovedFn?.(this.teamId, this.agents);
   }
 
   /** Rename an agent. Updates in-memory state; caller is responsible for persistence. */

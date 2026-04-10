@@ -74,6 +74,7 @@ function makeWorkerTaskManager(): IWorkerTaskManager {
   const mockSendMessage = vi.fn().mockResolvedValue(undefined);
   return {
     getOrBuildTask: vi.fn().mockResolvedValue({ sendMessage: mockSendMessage }),
+    kill: vi.fn(),
   } as unknown as IWorkerTaskManager;
 }
 
