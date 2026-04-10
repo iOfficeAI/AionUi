@@ -53,7 +53,7 @@ ${DOUBT_RULE}
 1. Explain in one sentence why Team helps this task.
 2. Present a team configuration table: role name, responsibility, and agent type for each member. Example format:
    | Role | Responsibility | Type |
-   | Lead | Coordinate and review | ${agentType} |
+   | Leader | Coordinate and review | ${agentType} |
    | Developer | Implement features | ${agentType} |
    | Tester | Write and run tests | ${agentType} |
 3. **Output the table as a normal text message and END YOUR TURN.** Do NOT call \`aion_create_team\` or any other tool (including ask_user) in this turn. Wait for the user to reply in their next message with explicit confirmation (e.g. "ok", "go ahead", "确认") before proceeding.

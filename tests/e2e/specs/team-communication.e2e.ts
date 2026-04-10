@@ -28,7 +28,7 @@ test.describe('Team Communication', () => {
             conversationId: '',
             role: 'lead',
             agentType: 'gemini',
-            agentName: 'Lead',
+            agentName: 'Leader',
             conversationType: 'gemini',
             status: 'idle',
           },

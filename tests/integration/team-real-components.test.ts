@@ -185,7 +185,7 @@ function makeAgent(overrides: Partial<TeamAgent> = {}): TeamAgent {
     conversationId: 'conv-lead',
     role: 'lead',
     agentType: 'claude',
-    agentName: 'Lead',
+    agentName: 'Leader',
     conversationType: 'acp',
     status: 'idle',
     ...overrides,
@@ -481,7 +481,7 @@ describe('Real TeammateManager with real Mailbox + TaskManager', () => {
   let mockSendMessage: ReturnType<typeof vi.fn>;
   let mgr: TeammateManager;
 
-  const leadAgent = makeAgent({ slotId: 'slot-lead', conversationId: 'conv-lead', role: 'lead', agentName: 'Lead' });
+  const leadAgent = makeAgent({ slotId: 'slot-lead', conversationId: 'conv-lead', role: 'lead', agentName: 'Leader' });
   const memberAgent = makeAgent({
     slotId: 'slot-member',
     conversationId: 'conv-member',
@@ -658,7 +658,7 @@ describe('Real TeammateManager with real Mailbox + TaskManager', () => {
       type: 'text',
       conversation_id: 'conv-member',
       msg_id: 'm1',
-      data: { text: '<send_message to="Lead">shutdown_approved</send_message>' },
+      data: { text: '<send_message to="Leader">shutdown_approved</send_message>' },
     });
     teamEventBus.emit('responseStream', {
       type: 'finish',
@@ -819,7 +819,7 @@ describe('Real TeamMcpServer — TCP transport with real stores', () => {
     mockWakeAgent = vi.fn().mockResolvedValue(undefined);
 
     agents = [
-      makeAgent({ slotId: 'slot-lead', agentName: 'Lead', role: 'lead', conversationType: 'acp', status: 'idle' }),
+      makeAgent({ slotId: 'slot-lead', agentName: 'Leader', role: 'lead', conversationType: 'acp', status: 'idle' }),
       makeAgent({
         slotId: 'slot-worker',
         agentName: 'Worker',
@@ -870,7 +870,7 @@ describe('Real TeamMcpServer — TCP transport with real stores', () => {
       args: {},
       auth_token: authToken,
     });
-    expect(response.result).toContain('Lead');
+    expect(response.result).toContain('Leader');
     expect(response.result).toContain('Worker');
   });
 
@@ -1037,7 +1037,7 @@ describe('Real TeamMcpServer — TCP transport with real stores', () => {
   it('team_shutdown_agent refuses to shut down team lead', async () => {
     const response = await tcpCall(port, {
       tool: 'team_shutdown_agent',
-      args: { agent: 'Lead' },
+      args: { agent: 'Leader' },
       auth_token: authToken,
     });
     expect(response.error).toContain('Cannot shut down the team lead');
@@ -1230,7 +1230,7 @@ describe('Cross-component event flow: teamEventBus → TeammateManager → real 
     slotId: 'lead',
     conversationId: 'conv-lead',
     role: 'lead',
-    agentName: 'Lead',
+    agentName: 'Leader',
     status: 'idle',
   });
   const m1 = makeAgent({
@@ -1396,7 +1396,7 @@ describe('TeammateManager — real agent name resolution', () => {
     mgr = new TeammateManager({
       teamId: 'team-1',
       agents: [
-        makeAgent({ slotId: 'lead', conversationId: 'conv-lead', role: 'lead', agentName: 'Lead', status: 'idle' }),
+        makeAgent({ slotId: 'lead', conversationId: 'conv-lead', role: 'lead', agentName: 'Leader', status: 'idle' }),
         makeAgent({
           slotId: 'alice',
           conversationId: 'conv-alice',
