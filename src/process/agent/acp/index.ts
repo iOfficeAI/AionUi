@@ -720,7 +720,8 @@ export class AcpAgent {
 
       // Inject team guide reminder for whitelisted backends on every turn.
       // The full team guide is only in the first message; this keeps it active.
-      if (TEAM_GUIDE_ALLOWED_BACKENDS.has(this.extra.backend)) {
+      // Only inject for solo agents — team agents lack the aion_create_team tool.
+      if (!this.extra.teamMcpStdioConfig && TEAM_GUIDE_ALLOWED_BACKENDS.has(this.extra.backend)) {
         processedContent =
           `<system-reminder>\n` +
           `If this request would benefit from a multi-agent Team (building, creating, developing, complex analysis), ` +

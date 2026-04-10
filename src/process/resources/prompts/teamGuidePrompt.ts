@@ -7,15 +7,16 @@
 /**
  * Agent backends that support aion_create_team and aion_navigate tools.
  * Only these backends should receive the team guide prompt injection.
+ * Single source of truth — mcpSessionConfig re-exports this as TEAM_GUIDE_ALLOWED_BACKENDS.
  */
-const TEAM_GUIDE_MCP_WHITELIST = new Set(['claude', 'codex']);
+export const TEAM_GUIDE_BACKENDS: ReadonlySet<string> = new Set(['claude', 'codex']);
 
 /**
  * Returns true if the given agent backend should receive the team guide prompt injection.
  * Only backends that support the required MCP tools (aion_create_team, aion_navigate) are allowed.
  */
 export function shouldInjectTeamGuideMcp(backend: string): boolean {
-  return TEAM_GUIDE_MCP_WHITELIST.has(backend);
+  return TEAM_GUIDE_BACKENDS.has(backend);
 }
 
 /**

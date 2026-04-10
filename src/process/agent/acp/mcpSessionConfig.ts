@@ -6,6 +6,7 @@
 
 import type { IMcpServer } from '@/common/config/storage';
 import type { AcpResponse } from '@/common/types/acpTypes';
+import { TEAM_GUIDE_BACKENDS } from '@process/resources/prompts/teamGuidePrompt';
 
 export interface AcpSessionMcpNameValue {
   name: string;
@@ -126,9 +127,9 @@ export function buildBuiltinAcpSessionMcpServers(
 
 /**
  * ACP backends that are allowed to receive the Aion team-guide MCP server.
- * Only claude and codex CLIs support the required MCP capabilities.
+ * Re-exported from teamGuidePrompt to keep a single source of truth.
  */
-export const TEAM_GUIDE_ALLOWED_BACKENDS: ReadonlySet<string> = new Set(['claude', 'codex']);
+export { TEAM_GUIDE_BACKENDS as TEAM_GUIDE_ALLOWED_BACKENDS };
 
 /** Config shape passed from TeamSessionService to AgentManagers */
 export type TeamMcpStdioConfig = {

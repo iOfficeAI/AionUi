@@ -756,12 +756,13 @@ class AcpAgentManager extends BaseAgentManager<AcpAgentManagerData, AcpPermissio
         // 因此自定义工作空间或不支持原生 skill 发现的 backend 都需要通过 prompt 注入 skills。
         // So custom workspaces or backends without native skill discovery need prompt injection.
         if (this.isFirstMessage) {
+          const isInTeam = Boolean((this.options as unknown as Record<string, unknown>).teamMcpStdioConfig);
           const useNativeSkills = hasNativeSkillSupport(this.options.backend) && !this.options.customWorkspace;
           if (useNativeSkills) {
             // Native skill discovery via workspace symlinks — inject preset rules + team guide
             const parts: string[] = [];
             if (this.options.presetContext) parts.push(this.options.presetContext);
-            if (shouldInjectTeamGuideMcp(this.options.backend)) {
+            if (!isInTeam && shouldInjectTeamGuideMcp(this.options.backend)) {
               const { getTeamGuidePrompt } = await import('@process/resources/prompts/teamGuidePrompt');
               parts.push(getTeamGuidePrompt());
             }
@@ -773,7 +774,7 @@ class AcpAgentManager extends BaseAgentManager<AcpAgentManagerData, AcpPermissio
             contentToSend = await prepareFirstMessageWithSkillsIndex(contentToSend, {
               presetContext: this.options.presetContext,
               enabledSkills: this.options.enabledSkills,
-              enableTeamGuide: shouldInjectTeamGuideMcp(this.options.backend),
+              enableTeamGuide: !isInTeam && shouldInjectTeamGuideMcp(this.options.backend),
             });
           }
         }
