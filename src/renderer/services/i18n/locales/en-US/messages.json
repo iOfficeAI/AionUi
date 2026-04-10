@@ -64,13 +64,6 @@
     "yesAllowAlways": "Yes, allow always",
     "yesAlwaysAllowTool": "Yes, always allow tool \"{{toolName}}\" from server \"{{serverName}}\"",
     "yesAlwaysAllowServer": "Yes, always allow all tools from server \"{{serverName}}\"",
-    "yesAllowProject": "Always allow in project: {{command}}",
-    "yesAllowUser": "Always allow for user: {{command}}",
-    "allow": "Allow",
-    "reject": "Reject",
-    "Reject": "Reject",
-    "Allow Once": "Allow Once",
-    "Always Allow": "Always Allow",
     "no": "No (esc)"
   }
 }
