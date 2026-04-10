@@ -8,15 +8,9 @@
 // ANY module that calls app.getPath('userData'), because Electron caches the path on first call.
 import './process/utils/configureChromium';
 import * as Sentry from '@sentry/electron/main';
-import { loadOrCreateDeviceIdentity } from './process/agent/openclaw/deviceIdentity';
-
-const { deviceId } = loadOrCreateDeviceIdentity();
 
 Sentry.init({
   dsn: process.env.SENTRY_DSN,
-  initialScope: {
-    user: { id: deviceId },
-  },
 });
 
 import './process/utils/configureConsoleLog';
@@ -39,6 +33,7 @@ import { workerTaskManager } from './process/task/workerTaskManagerSingleton';
 import { setupApplicationMenu } from './process/utils/appMenu';
 import { startWebServer } from './process/webserver';
 import { initializeZoomFactor, setupZoomForWindow } from './process/utils/zoom';
+import { getOrCreateAnalyticsId } from './process/utils/analyticsId';
 import {
   clearPendingDeepLinkUrl,
   getPendingDeepLinkUrl,
@@ -436,6 +431,8 @@ const handleAppReady = async (): Promise<void> => {
       // Ignore dock icon errors in development
     }
   }
+
+  Sentry.setUser({ id: getOrCreateAnalyticsId() });
 
   try {
     await initializeProcess();
