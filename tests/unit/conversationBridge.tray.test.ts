@@ -7,6 +7,7 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import type { IConversationService } from '@/process/services/IConversationService';
 import type { IWorkerTaskManager } from '@/process/task/IWorkerTaskManager';
+import { initConversationBridge } from '@process/bridge/conversationBridge';
 
 type Provider = (payload?: unknown) => Promise<unknown>;
 
@@ -138,14 +139,7 @@ vi.mock('@process/bridge/migrationUtils', () => ({
   migrateConversationToDatabase: vi.fn(),
 }));
 
-import { initConversationBridge } from '@process/bridge/conversationBridge';
-
 const getProvider = (key: string): Provider => {
-  initConversationBridge(
-    mockConversationService as unknown as IConversationService,
-    mockWorkerTaskManager as unknown as IWorkerTaskManager
-  );
-
   const provider = getHandlers()[key];
   if (!provider) {
     throw new Error(`Provider ${key} not registered`);
@@ -158,6 +152,10 @@ describe('conversationBridge tray sync', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     resetHandlers();
+    initConversationBridge(
+      mockConversationService as unknown as IConversationService,
+      mockWorkerTaskManager as unknown as IWorkerTaskManager
+    );
   });
 
   it('refreshes tray menu after removing a conversation', async () => {

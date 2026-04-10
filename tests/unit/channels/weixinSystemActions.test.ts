@@ -6,6 +6,7 @@ import fs from 'fs';
 import os from 'os';
 import path from 'path';
 import { GOOGLE_AUTH_PROVIDER_ID } from '@/common/config/constants';
+import { getChannelDefaultModel } from '@process/channels/actions/SystemActions';
 import { buildChannelConversationExtra, getChannelEnabledSkills } from '@process/channels/utils';
 
 const { mockGet, mockGetDetectedAgents } = vi.hoisted(() => ({
@@ -91,8 +92,6 @@ vi.mock('@process/channels/plugins/dingtalk/DingTalkCards', () => ({
   createTipsCard: vi.fn(),
 }));
 
-import { getChannelDefaultModel } from '@process/channels/actions/SystemActions';
-
 describe('SystemActions weixin platform handling', () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -108,19 +107,23 @@ describe('SystemActions weixin platform handling', () => {
       return Promise.resolve(undefined);
     });
 
+    const callsBefore = mockGet.mock.calls.length;
     await getChannelDefaultModel('weixin');
+    const newCalls = mockGet.mock.calls.slice(callsBefore).map(([key]) => key);
 
-    expect(mockGet).toHaveBeenCalledWith('assistant.weixin.defaultModel');
-    expect(mockGet).not.toHaveBeenCalledWith('assistant.telegram.defaultModel');
+    expect(newCalls).toContain('assistant.weixin.defaultModel');
+    expect(newCalls).not.toContain('assistant.telegram.defaultModel');
   });
 
   it('getChannelDefaultModel still reads assistant.telegram.defaultModel for telegram', async () => {
     mockGet.mockResolvedValue(undefined);
 
+    const callsBefore = mockGet.mock.calls.length;
     await getChannelDefaultModel('telegram');
+    const newCalls = mockGet.mock.calls.slice(callsBefore).map(([key]) => key);
 
-    expect(mockGet).toHaveBeenCalledWith('assistant.telegram.defaultModel');
-    expect(mockGet).not.toHaveBeenCalledWith('assistant.weixin.defaultModel');
+    expect(newCalls).toContain('assistant.telegram.defaultModel');
+    expect(newCalls).not.toContain('assistant.weixin.defaultModel');
   });
 
   it('uses local Gemini OAuth credentials when the saved weixin model is Google Auth', async () => {
