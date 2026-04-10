@@ -13,6 +13,7 @@ import HOC from '@renderer/utils/ui/HOC';
 import React from 'react';
 import ConversationChatConfirm from '../../components/ConversationChatConfirm';
 import AcpSendBox from './AcpSendBox';
+import TeamChatEmptyState from '@renderer/pages/team/components/TeamChatEmptyState';
 
 const AcpChat: React.FC<{
   conversation_id: string;
@@ -43,7 +44,18 @@ const AcpChat: React.FC<{
     <ConversationProvider value={{ conversationId: conversation_id, workspace, type: 'acp', cronJobId, hideSendBox }}>
       <div className='flex-1 flex flex-col px-20px min-h-0'>
         <FlexFullContainer>
-          <MessageList className='flex-1'></MessageList>
+          <MessageList
+            className='flex-1'
+            emptySlot={
+              teamId ? (
+                <TeamChatEmptyState
+                  conversationId={conversation_id}
+                  agentName={agentName ?? 'Leader'}
+                  agentType={backend}
+                />
+              ) : undefined
+            }
+          />
         </FlexFullContainer>
         {!hideSendBox && (
           <ConversationChatConfirm conversation_id={conversation_id}>

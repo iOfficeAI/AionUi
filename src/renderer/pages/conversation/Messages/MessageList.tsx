@@ -153,7 +153,7 @@ const MessageItem: React.FC<{ message: TMessage; highlighted?: boolean }> = Reac
     prev.highlighted === next.highlighted
 );
 
-const MessageList: React.FC<{ className?: string }> = () => {
+const MessageList: React.FC<{ className?: string; emptySlot?: React.ReactNode }> = ({ emptySlot }) => {
   const list = useMessageList();
   const conversationContext = useConversationContextSafe();
   useAutoPreviewOfficeFiles(conversationContext);
@@ -352,6 +352,10 @@ const MessageList: React.FC<{ className?: string }> = () => {
     }
     return <MessageItem message={item as TMessage} key={(item as TMessage).id} highlighted={highlighted}></MessageItem>;
   };
+
+  if (processedList.length === 0 && emptySlot) {
+    return <div className='relative flex-1 h-full flex items-center justify-center'>{emptySlot}</div>;
+  }
 
   return (
     <div className='relative flex-1 h-full'>

@@ -112,11 +112,6 @@ const AgentChatSlot: React.FC<{
             <img src={logo} alt={agent.agentType} className='w-16px h-16px object-contain rounded-2px opacity-80' />
           )}
           <span className='text-13px text-[color:var(--color-text-2)] font-medium truncate'>{agent.agentName}</span>
-          {isLead && (
-            <span className='text-10px px-4px py-1px rd-4px bg-[var(--color-primary-1)] text-[var(--color-primary-6)] shrink-0'>
-              Lead
-            </span>
-          )}
         </div>
         <div className='flex items-center gap-8px shrink-0'>
           {agent.conversationId && !isAionrs && isAcpLike && (
