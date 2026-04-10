@@ -68,12 +68,9 @@
     "yesAllowUser": "Always allow for user: {{command}}",
     "allow": "Allow",
     "reject": "Reject",
-    "Allow": "Allow",
     "Reject": "Reject",
     "Allow Once": "Allow Once",
     "Always Allow": "Always Allow",
-    "Always Allow in project: {{command}}": "Always Allow in project: {{command}}",
-    "Always Allow for user: {{command}}": "Always Allow for user: {{command}}",
     "no": "No (esc)"
   }
 }

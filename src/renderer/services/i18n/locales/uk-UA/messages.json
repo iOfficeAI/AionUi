@@ -68,12 +68,9 @@
     "yesAllowUser": "Завжди дозволяти для користувача: {{command}}",
     "allow": "Дозволити",
     "reject": "Відхилити",
-    "Allow": "Дозволити",
     "Reject": "Відхилити",
     "Allow Once": "Дозволити один раз",
     "Always Allow": "Завжди дозволяти",
-    "Always Allow in project: {{command}}": "Завжди дозволяти в проєкті: {{command}}",
-    "Always Allow for user: {{command}}": "Завжди дозволяти для користувача: {{command}}",
     "no": "Ні (esc)"
   }
 }

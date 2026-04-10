@@ -88,11 +88,5 @@
   "unit": {
     "minute_short": "хв",
     "second_short": "с"
-  },
-  "✅ Allow Once": "✅ Дозволити один раз",
-  "✅ Always Allow": "✅ Завжди дозволяти",
-  "✅ Allow Execution": "✅ Дозволити виконання",
-  "✅ Always Allow Tool": "✅ Завжди дозволяти інструмент",
-  "✅ Always Allow Server": "✅ Завжди дозволяти сервер",
-  "✅ Confirm": "✅ Підтвердити"
+  }
 }
