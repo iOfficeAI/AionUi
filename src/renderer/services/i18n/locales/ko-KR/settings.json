@@ -166,6 +166,9 @@
   "notification": "알림",
   "cronNotificationEnabled": "예약 작업 완료 알림",
   "promptTimeout": "LLM 요청 시간 초과 (초)",
+  "groupAiCore": "AI 코어",
+  "groupApp": "애플리케이션",
+  "groupAbout": "기타",
   "agentIdleTimeout": "Agent 유휴 시간 초과 (분)",
   "agentIdleTimeoutDesc": "유휴 시간 초과 후 메모리 확보를 위해 Agent 프로세스를 종료합니다",
   "gemini": "Gemini",
@@ -238,6 +241,11 @@
   "darkMode": "다크",
   "agent": "에이전트",
   "tools": "도구",
+  "capabilities": "기능 확장",
+  "capabilitiesTab": {
+    "skills": "스킬",
+    "tools": "MCP 및 음성"
+  },
   "webui": "원격 연결",
   "installed": "설치됨",
   "builtin": "내장",

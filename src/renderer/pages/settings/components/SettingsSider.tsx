@@ -15,7 +15,6 @@ import {
   Robot,
   Speed,
   System,
-  Toolkit,
 } from '@icon-park/react';
 import classNames from 'classnames';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
@@ -30,14 +29,34 @@ export const BUILTIN_TAB_IDS = [
   'agent',
   'model',
   'assistants',
-  'skills-hub',
-  'tools',
+  'capabilities',
   'display',
   'webui',
   'pet',
   'system',
   'about',
 ] as const;
+
+/**
+ * Legacy anchor IDs that have been merged into other tabs.
+ * When an extension anchors to one of these, it is redirected to the new host.
+ * This keeps older extensions working without requiring them to update.
+ */
+export const LEGACY_ANCHOR_REMAP: Record<string, string> = {
+  'skills-hub': 'capabilities',
+  tools: 'capabilities',
+};
+
+/**
+ * Group headers displayed above specific builtin tabs.
+ * The header is rendered once, immediately before the first item whose id matches.
+ * Extension tabs anchored between these builtins inherit the enclosing group visually.
+ */
+const GROUP_HEADER_BEFORE: Record<string, string> = {
+  gemini: 'settings.groupAiCore',
+  display: 'settings.groupApp',
+  about: 'settings.groupAbout',
+};
 
 type SiderItem = {
   id: string;
@@ -115,7 +134,7 @@ const SettingsSider: React.FC<{ collapsed?: boolean; tooltipEnabled?: boolean }>
     };
   }, [loadExtensionTabs]);
 
-  const menus: SiderItem[] = useMemo(() => {
+  const { menus, groupHeaderAt } = useMemo(() => {
     // Build builtin items
     const builtinMap: Record<string, SiderItem> = {
       gemini: { id: 'gemini', label: t('settings.gemini'), icon: <Gemini />, path: 'gemini' },
@@ -132,13 +151,12 @@ const SettingsSider: React.FC<{ collapsed?: boolean; tooltipEnabled?: boolean }>
         icon: <Speed />,
         path: 'agent',
       },
-      'skills-hub': {
-        id: 'skills-hub',
-        label: t('settings.skillsHub.title', { defaultValue: 'Skills Hub' }),
+      capabilities: {
+        id: 'capabilities',
+        label: t('settings.capabilities', { defaultValue: 'Capabilities' }),
         icon: <Lightning />,
-        path: 'skills-hub',
+        path: 'capabilities',
       },
-      tools: { id: 'tools', label: t('settings.tools'), icon: <Toolkit />, path: 'tools' },
       display: { id: 'display', label: t('settings.display'), icon: <Computer />, path: 'display' },
       webui: {
         id: 'webui',
@@ -164,7 +182,8 @@ const SettingsSider: React.FC<{ collapsed?: boolean; tooltipEnabled?: boolean }>
         unanchored.push(tab);
         continue;
       }
-      const { anchor, placement } = tab.position;
+      const { anchor: rawAnchor, placement } = tab.position;
+      const anchor = LEGACY_ANCHOR_REMAP[rawAnchor] ?? rawAnchor;
       const map = placement === 'before' ? beforeMap : afterMap;
       let list = map.get(anchor);
       if (!list) {
@@ -206,7 +225,21 @@ const SettingsSider: React.FC<{ collapsed?: boolean; tooltipEnabled?: boolean }>
       result.splice(insertIdx, 0, ...unanchored.map(toSiderItem));
     }
 
-    return result;
+    // Compute group header render positions.
+    //
+    // A header must appear before the first *visible* item of its group, which may
+    // be an extension tab anchored with placement='before' to the group's first
+    // builtin — not the builtin itself. Otherwise such an extension would render
+    // above the header and visually belong to the previous group.
+    const headerAt = new Map<number, string>();
+    for (const [builtinId, headerKey] of Object.entries(GROUP_HEADER_BEFORE)) {
+      const builtinIdx = result.findIndex((item) => item.id === builtinId);
+      if (builtinIdx < 0) continue;
+      const beforeCount = beforeMap.get(builtinId)?.length ?? 0;
+      headerAt.set(builtinIdx - beforeCount, headerKey);
+    }
+
+    return { menus: result, groupHeaderAt: headerAt };
   }, [t, isDesktop, extensionTabs, resolveExtTabName]);
 
   const siderTooltipProps = getSiderTooltipProps(tooltipEnabled);
@@ -216,60 +249,70 @@ const SettingsSider: React.FC<{ collapsed?: boolean; tooltipEnabled?: boolean }>
         'settings-sider--collapsed': collapsed,
       })}
     >
-      {menus.map((item) => {
+      {menus.map((item, index) => {
         const isSelected = pathname.includes(item.path);
-        return (
-          <Tooltip key={item.id} {...siderTooltipProps} content={item.label} position='right'>
-            <div
-              data-settings-id={item.id}
-              data-settings-path={item.path}
-              className={classNames(
-                'settings-sider__item h-40px rd-8px flex items-center gap-8px group cursor-pointer relative overflow-hidden shrink-0 conversation-item [&.conversation-item+&.conversation-item]:mt-2px transition-colors',
-                collapsed ? 'w-full justify-center px-0' : 'justify-start px-10px',
-                {
-                  'hover:bg-[rgba(var(--primary-6),0.14)]': !isSelected,
-                  '!bg-active': isSelected,
-                }
-              )}
-              onClick={() => {
-                Promise.resolve(navigate(`/settings/${item.path}`, { replace: true })).catch((error) => {
-                  console.error('Navigation failed:', error);
-                });
-              }}
-            >
-              {/* Leading icon — fixed 28px column to align with main sider rows */}
-              <span className='w-28px h-28px flex items-center justify-center shrink-0'>
-                {item.isImageIcon ? (
-                  <span className='w-18px h-18px flex items-center justify-center'>{item.icon}</span>
-                ) : (
-                  React.cloneElement(
-                    item.icon as React.ReactElement<{
-                      theme?: string;
-                      size?: string | number;
-                      className?: string;
-                      strokeWidth?: number;
-                    }>,
-                    {
-                      theme: 'outline',
-                      size: '20',
-                      strokeWidth: 3,
-                      className: 'block leading-none text-t-secondary',
-                    }
-                  )
-                )}
-              </span>
-              <FlexFullContainer className='h-24px collapsed-hidden'>
-                <div
-                  className={classNames(
-                    'settings-sider__item-label text-nowrap overflow-hidden inline-block w-full text-14px lh-24px whitespace-nowrap',
-                    isSelected ? 'text-t-primary font-medium' : 'text-t-primary'
-                  )}
-                >
-                  {item.label}
-                </div>
-              </FlexFullContainer>
+        const groupHeaderKey = groupHeaderAt.get(index);
+        const groupHeader =
+          groupHeaderKey && !collapsed ? (
+            <div className='settings-sider__group-header px-10px pt-12px pb-4px text-11px font-medium text-t-tertiary uppercase tracking-wider select-none'>
+              {t(groupHeaderKey)}
             </div>
-          </Tooltip>
+          ) : null;
+        return (
+          <React.Fragment key={item.id}>
+            {groupHeader}
+            <Tooltip {...siderTooltipProps} content={item.label} position='right'>
+              <div
+                data-settings-id={item.id}
+                data-settings-path={item.path}
+                className={classNames(
+                  'settings-sider__item h-40px rd-8px flex items-center gap-8px group cursor-pointer relative overflow-hidden shrink-0 conversation-item [&.conversation-item+&.conversation-item]:mt-2px transition-colors',
+                  collapsed ? 'w-full justify-center px-0' : 'justify-start px-10px',
+                  {
+                    'hover:bg-[rgba(var(--primary-6),0.14)]': !isSelected,
+                    '!bg-active': isSelected,
+                  }
+                )}
+                onClick={() => {
+                  Promise.resolve(navigate(`/settings/${item.path}`, { replace: true })).catch((error) => {
+                    console.error('Navigation failed:', error);
+                  });
+                }}
+              >
+                {/* Leading icon — fixed 28px column to align with main sider rows */}
+                <span className='w-28px h-28px flex items-center justify-center shrink-0'>
+                  {item.isImageIcon ? (
+                    <span className='w-18px h-18px flex items-center justify-center'>{item.icon}</span>
+                  ) : (
+                    React.cloneElement(
+                      item.icon as React.ReactElement<{
+                        theme?: string;
+                        size?: string | number;
+                        className?: string;
+                        strokeWidth?: number;
+                      }>,
+                      {
+                        theme: 'outline',
+                        size: '20',
+                        strokeWidth: 3,
+                        className: 'block leading-none text-t-secondary',
+                      }
+                    )
+                  )}
+                </span>
+                <FlexFullContainer className='h-24px collapsed-hidden'>
+                  <div
+                    className={classNames(
+                      'settings-sider__item-label text-nowrap overflow-hidden inline-block w-full text-14px lh-24px whitespace-nowrap',
+                      isSelected ? 'text-t-primary font-medium' : 'text-t-primary'
+                    )}
+                  >
+                    {item.label}
+                  </div>
+                </FlexFullContainer>
+              </div>
+            </Tooltip>
+          </React.Fragment>
         );
       })}
     </div>

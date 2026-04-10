@@ -166,6 +166,9 @@
   "notification": "Bildirimler",
   "cronNotificationEnabled": "Zamanlanmış Görev Tamamlanma",
   "promptTimeout": "LLM İstek Zaman Aşımı (sn)",
+  "groupAiCore": "AI Çekirdek",
+  "groupApp": "Uygulama",
+  "groupAbout": "Diğer",
   "agentIdleTimeout": "Agent Boşta Kalma Süresi (dk)",
   "agentIdleTimeoutDesc": "Bellek boşaltmak için boşta kalan Agent süreçlerini bu süre sonunda sonlandır",
   "gemini": "Gemini",
@@ -238,6 +241,11 @@
   "darkMode": "Koyu",
   "agent": "Ajan",
   "tools": "Araçlar",
+  "capabilities": "Yetenekler",
+  "capabilitiesTab": {
+    "skills": "Beceriler",
+    "tools": "MCP ve Ses"
+  },
   "webui": "Uzak Bağlantı",
   "installed": "Yüklü",
   "builtin": "Yerleşik",

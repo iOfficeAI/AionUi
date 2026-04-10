@@ -166,6 +166,9 @@
   "notification": "通知",
   "cronNotificationEnabled": "定时任务完成通知",
   "promptTimeout": "LLM 请求超时时间（秒）",
+  "groupAiCore": "AI 核心",
+  "groupApp": "应用",
+  "groupAbout": "其他",
   "agentIdleTimeout": "Agent 空闲超时（分钟）",
   "agentIdleTimeoutDesc": "空闲超过该时长后自动终止 Agent 进程以释放内存",
   "gemini": "Gemini CLI",
@@ -238,6 +241,11 @@
   "darkMode": "深色",
   "agent": "对话Agent",
   "tools": "工具",
+  "capabilities": "能力扩展",
+  "capabilitiesTab": {
+    "skills": "技能",
+    "tools": "MCP 与语音"
+  },
   "webui": "远程连接",
   "installed": "已安装",
   "builtin": "内置",

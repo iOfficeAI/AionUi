@@ -166,6 +166,9 @@
   "notification": "通知",
   "cronNotificationEnabled": "定時任務完成通知",
   "promptTimeout": "LLM 請求逾時時間（秒）",
+  "groupAiCore": "AI 核心",
+  "groupApp": "應用",
+  "groupAbout": "其他",
   "agentIdleTimeout": "Agent 閒置逾時（分鐘）",
   "agentIdleTimeoutDesc": "閒置超過此時長後自動終止 Agent 程序以釋放記憶體",
   "gemini": "Gemini",
@@ -238,6 +241,11 @@
   "darkMode": "深色",
   "agent": "代理",
   "tools": "工具",
+  "capabilities": "能力擴展",
+  "capabilitiesTab": {
+    "skills": "技能",
+    "tools": "MCP 與語音"
+  },
   "webui": "遠端連線",
   "installed": "已安裝",
   "builtin": "內建",

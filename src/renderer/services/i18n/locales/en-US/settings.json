@@ -166,6 +166,9 @@
   "notification": "Notifications",
   "cronNotificationEnabled": "Scheduled Task Completion",
   "promptTimeout": "LLM Prompt Timeout (s)",
+  "groupAiCore": "AI Core",
+  "groupApp": "Application",
+  "groupAbout": "Other",
   "agentIdleTimeout": "Agent Idle Timeout (min)",
   "agentIdleTimeoutDesc": "Kill idle agent processes after this duration to free memory",
   "gemini": "Gemini CLI",
@@ -238,6 +241,11 @@
   "darkMode": "Dark",
   "agent": "Agent",
   "tools": "Tools",
+  "capabilities": "Capabilities",
+  "capabilitiesTab": {
+    "skills": "Skills",
+    "tools": "MCP & Voice"
+  },
   "webui": "Remote",
   "installed": "Installed",
   "builtin": "Built-in",

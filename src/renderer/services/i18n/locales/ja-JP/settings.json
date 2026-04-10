@@ -166,6 +166,9 @@
   "notification": "通知",
   "cronNotificationEnabled": "定期タスク完了通知",
   "promptTimeout": "LLM リクエストタイムアウト（秒）",
+  "groupAiCore": "AI コア",
+  "groupApp": "アプリケーション",
+  "groupAbout": "その他",
   "agentIdleTimeout": "Agent アイドルタイムアウト（分）",
   "agentIdleTimeoutDesc": "この時間アイドル状態が続くとメモリ解放のためAgentプロセスを終了します",
   "gemini": "Gemini",
@@ -238,6 +241,11 @@
   "darkMode": "ダーク",
   "agent": "エージェント",
   "tools": "ツール",
+  "capabilities": "能力拡張",
+  "capabilitiesTab": {
+    "skills": "スキル",
+    "tools": "MCP と音声"
+  },
   "webui": "リモート接続",
   "installed": "インストール済み",
   "builtin": "内蔵",
