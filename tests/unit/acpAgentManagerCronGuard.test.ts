@@ -14,10 +14,13 @@
 import { vi, describe, it, expect, beforeEach } from 'vitest';
 
 // ── Hoisted mocks ────────────────────────────────────────────────────────────
-const { mockSetProcessing } = vi.hoisted(() => ({ mockSetProcessing: vi.fn() }));
+const { mockSetProcessing, mockIsProcessing } = vi.hoisted(() => ({
+  mockSetProcessing: vi.fn(),
+  mockIsProcessing: vi.fn(() => false),
+}));
 
 vi.mock('@process/services/cron/CronBusyGuard', () => ({
-  cronBusyGuard: { setProcessing: mockSetProcessing },
+  cronBusyGuard: { setProcessing: mockSetProcessing, isProcessing: mockIsProcessing },
 }));
 vi.mock('@process/utils/mainLogger', () => ({
   mainLog: vi.fn(),
@@ -77,6 +80,9 @@ vi.mock('@process/task/BaseAgentManager', () => ({
       return false;
     }
     addConfirmation() {}
+    getConfirmations() {
+      return [];
+    }
   },
 }));
 
@@ -148,14 +154,15 @@ describe('AcpAgentManager.sendMessage — real class cronBusyGuard cleanup', () 
     expect(manager.status).toBe('finished');
   });
 
-  it('does NOT call setProcessing(false) when first-path returns {success:true}', async () => {
+  it('synthesizes finish and clears cronBusyGuard when first-path returns {success:true} without runtime activity', async () => {
     const { manager, mockAgent } = makeManager('conv-3');
     mockAgent.sendMessage.mockResolvedValue({ success: true });
 
     await manager.sendMessage({ content: 'hello', msg_id: 'msg-1' });
 
     expect(mockSetProcessing).toHaveBeenCalledWith('conv-3', true);
-    expect(mockSetProcessing).not.toHaveBeenCalledWith('conv-3', false);
+    expect(mockSetProcessing).toHaveBeenCalledWith('conv-3', false);
+    expect(manager.status).toBe('finished');
   });
 
   // ── Subsequent-message path (lines 657-660 in AcpAgentManager.ts) ─────────
@@ -181,14 +188,15 @@ describe('AcpAgentManager.sendMessage — real class cronBusyGuard cleanup', () 
     expect(manager.status).toBe('finished');
   });
 
-  it('does NOT call setProcessing(false) when second-path returns {success:true}', async () => {
+  it('synthesizes finish and clears cronBusyGuard when second-path returns {success:true} without runtime activity', async () => {
     const { manager, mockAgent } = makeManager('conv-6');
     mockAgent.sendMessage.mockResolvedValue({ success: true });
 
     await manager.sendMessage({ content: 'hello' });
 
     expect(mockSetProcessing).toHaveBeenCalledWith('conv-6', true);
-    expect(mockSetProcessing).not.toHaveBeenCalledWith('conv-6', false);
+    expect(mockSetProcessing).toHaveBeenCalledWith('conv-6', false);
+    expect(manager.status).toBe('finished');
   });
 
   // ── Thrown-exception path (catch block) ───────────────────────────────────
@@ -232,5 +240,6 @@ describe('AcpAgentManager.sendMessage — real class cronBusyGuard cleanup', () 
     await manager.sendMessage({ content: 'hello again' });
 
     expect(mockSetProcessing).toHaveBeenCalledWith('conv-9', true);
+    expect(mockSetProcessing).toHaveBeenCalledWith('conv-9', false);
   });
 });

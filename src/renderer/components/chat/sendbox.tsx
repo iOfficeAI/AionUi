@@ -24,7 +24,7 @@ import { Button, Input, Message, Tag } from '@arco-design/web-react';
 import { ArrowUp, CloseSmall, Quote } from '@icon-park/react';
 import type { SlashCommandItem } from '@/common/chat/slash/types';
 import { theme } from '@office-ai/platform';
-import React, { useCallback, useDeferredValue, useEffect, useMemo, useRef, useState } from 'react';
+import React, { useCallback, useDeferredValue, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useCompositionInput } from '@renderer/hooks/chat/useCompositionInput';
 import { useConversationExport } from '@renderer/hooks/file/useConversationExport';
@@ -510,6 +510,39 @@ const SendBox: React.FC<{
     },
     [getTextareaElement]
   );
+
+  const syncHighlightTextMetrics = useCallback(
+    (target?: EventTarget | null) => {
+      const textarea = target instanceof HTMLTextAreaElement ? target : getTextareaElement();
+      const highlightLayer = highlightScrollRef.current;
+      if (!textarea || !highlightLayer) {
+        return;
+      }
+
+      const textareaStyle = getComputedStyle(textarea);
+      highlightLayer.style.direction = textareaStyle.direction;
+      highlightLayer.style.fontFamily = textareaStyle.fontFamily;
+      highlightLayer.style.fontSize = textareaStyle.fontSize;
+      highlightLayer.style.fontStyle = textareaStyle.fontStyle;
+      highlightLayer.style.fontWeight = textareaStyle.fontWeight;
+      highlightLayer.style.letterSpacing = textareaStyle.letterSpacing;
+      highlightLayer.style.lineHeight = textareaStyle.lineHeight;
+      highlightLayer.style.paddingTop = textareaStyle.paddingTop;
+      highlightLayer.style.paddingRight = textareaStyle.paddingRight;
+      highlightLayer.style.paddingBottom = textareaStyle.paddingBottom;
+      highlightLayer.style.paddingLeft = textareaStyle.paddingLeft;
+      highlightLayer.style.tabSize = textareaStyle.tabSize;
+      highlightLayer.style.textAlign = textareaStyle.textAlign;
+      highlightLayer.style.textIndent = textareaStyle.textIndent;
+      highlightLayer.style.textTransform = textareaStyle.textTransform;
+      highlightLayer.style.wordSpacing = textareaStyle.wordSpacing;
+    },
+    [getTextareaElement]
+  );
+
+  useLayoutEffect(() => {
+    syncHighlightTextMetrics();
+  }, [input, isInputFocused, isMobile, isSingleLine, syncHighlightTextMetrics]);
 
   const handleTextAreaChange = (value: string) => {
     if (historyNavigationIndex !== null) {
