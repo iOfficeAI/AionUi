@@ -1,10 +1,13 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { Modal, Button, Input, Select, Message, Tooltip } from '@arco-design/web-react';
+import { Modal, Button, Input, Message, Tooltip } from '@arco-design/web-react';
 import type { RefInputType } from '@arco-design/web-react/es/Input/interface';
-import { FolderOpen, Info, Close } from '@icon-park/react';
+import { FolderOpen, Info, Close, Robot } from '@icon-park/react';
 import { useTranslation } from 'react-i18next';
 import { ipcBridge } from '@/common';
 import type { TTeam, TeamAgent } from '@/common/types/teamTypes';
+import type { AvailableAgent } from '@renderer/utils/model/agentTypes';
+import { getAgentLogo } from '@renderer/utils/model/agentLogo';
+import { CUSTOM_AVATAR_IMAGE_MAP } from '@renderer/pages/guid/constants';
 import { useAuth } from '@renderer/hooks/context/AuthContext';
 import { useConversationAgents } from '@renderer/pages/conversation/hooks/useConversationAgents';
 import { isElectronDesktop } from '@renderer/utils/platform';
@@ -14,13 +17,23 @@ import {
   resolveConversationType,
   resolveTeamAgentType,
   filterTeamSupportedAgents,
-  AgentOptionLabel,
 } from './agentSelectUtils';
 
 type Props = {
   visible: boolean;
   onClose: () => void;
   onCreated: (team: TTeam) => void;
+};
+
+const AgentCardIcon: React.FC<{ agent: AvailableAgent }> = ({ agent }) => {
+  const logo = getAgentLogo(agent.backend);
+  const avatarImage = agent.avatar ? CUSTOM_AVATAR_IMAGE_MAP[agent.avatar] : undefined;
+  const isEmoji = agent.avatar && !avatarImage && !agent.avatar.endsWith('.svg');
+
+  if (avatarImage) return <img src={avatarImage} alt={agent.name} style={{ width: 32, height: 32, objectFit: 'contain' }} />;
+  if (isEmoji) return <span style={{ fontSize: 24, lineHeight: '32px' }}>{agent.avatar}</span>;
+  if (logo) return <img src={logo} alt={agent.name} style={{ width: 32, height: 32, objectFit: 'contain' }} />;
+  return <Robot size='32' />;
 };
 
 const TeamCreateModal: React.FC<Props> = ({ visible, onClose, onCreated }) => {
@@ -149,32 +162,37 @@ const TeamCreateModal: React.FC<Props> = ({ visible, onClose, onCreated }) => {
               defaultValue: 'Understands your goals and coordinates agents to complete tasks',
             })}
           </span>
-          <Select
-            placeholder={
-              allAgents.length === 0
-                ? t('team.create.noSupportedAgents', { defaultValue: 'No supported agents installed' })
-                : t('team.create.dispatchAgentPlaceholder', { defaultValue: 'Select team leader' })
-            }
-            value={dispatchAgentKey}
-            onChange={setDispatchAgentKey}
-            showSearch
-            allowClear
-            disabled={allAgents.length === 0}
-            renderFormat={(option) => {
-              const agent = option?.value ? agentFromKey(option.value as string, allAgents) : undefined;
-              return agent ? <AgentOptionLabel agent={agent} /> : <span>{option?.children}</span>;
-            }}
-          >
-            {allAgents.length > 0 && (
-              <Select.OptGroup label={t('conversation.dropdown.cliAgents', { defaultValue: 'CLI Agents' })}>
-                {allAgents.map((agent) => (
-                  <Select.Option key={agentKey(agent)} value={agentKey(agent)}>
-                    <AgentOptionLabel agent={agent} />
-                  </Select.Option>
-                ))}
-              </Select.OptGroup>
-            )}
-          </Select>
+          {allAgents.length === 0 ? (
+            <div className='flex items-center justify-center py-20px text-12px text-[var(--color-text-4)]'>
+              {t('team.create.noSupportedAgents', { defaultValue: 'No supported agents installed' })}
+            </div>
+          ) : (
+            <div
+              className='grid gap-8px overflow-y-auto'
+              style={{ gridTemplateColumns: 'repeat(5, 1fr)', maxHeight: 290 }}
+            >
+              {allAgents.map((agent) => {
+                const key = agentKey(agent);
+                const isSelected = dispatchAgentKey === key;
+                return (
+                  <div
+                    key={key}
+                    onClick={() => setDispatchAgentKey(isSelected ? undefined : key)}
+                    className={`flex flex-col items-center gap-6px px-8px py-10px rd-8px cursor-pointer transition-all border ${
+                      isSelected
+                        ? 'border-[var(--color-primary-6)] bg-[var(--color-primary-light-1)]'
+                        : 'border-transparent bg-fill-2 hover:bg-fill-3'
+                    }`}
+                  >
+                    <AgentCardIcon agent={agent} />
+                    <span className='text-12px text-[var(--color-text-1)] text-center leading-16px w-full truncate'>
+                      {agent.name}
+                    </span>
+                  </div>
+                );
+              })}
+            </div>
+          )}
         </div>
 
         {/* Workspace - optional folder picker (desktop only) or text input (webui) */}
