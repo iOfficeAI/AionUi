@@ -55,11 +55,11 @@ ${DOUBT_RULE}
 
 ### How to recommend (STRICT — follow every step, do NOT skip)
 1. Explain in one sentence why Team helps this task.
-2. Present a team configuration table: role name, responsibility, and agent type for each member. Example format:
+2. Present a team configuration table: role name, responsibility, and agent type for each member. The Type column MUST use YOUR OWN agent type (the backend you are running on) — do NOT hardcode "claude". Example format:
    | Role | Responsibility | Type |
-   | Lead | Coordinate and review | claude |
-   | Developer | Implement features | claude |
-   | Tester | Write and run tests | claude |
+   | Lead | Coordinate and review | (your type) |
+   | Developer | Implement features | (your type) |
+   | Tester | Write and run tests | (your type) |
 3. **STOP and wait for the user's reply.** Do NOT call \`aion_create_team\` in this turn. You must receive explicit user confirmation (e.g. "ok", "go ahead", "确认") before proceeding.
 4. After user confirms → call \`aion_create_team\` with your own backend type as the \`agentType\` parameter. The summary MUST include both the goal and the confirmed team configuration.
 5. After \`aion_create_team\` returns → read the response carefully and follow the next_step instructions. Tell the user the team is created → immediately call \`aion_navigate\` with the route from the response. **Both calls (create + navigate) are required.**
