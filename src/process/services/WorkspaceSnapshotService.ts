@@ -19,7 +19,6 @@ type SnapshotState = {
   gitdir: string;
   baselineRef: string;
   branch: string | null;
-  createdGitignore?: boolean;
 };
 
 const DEFAULT_GITIGNORE = `node_modules/
@@ -186,9 +185,6 @@ export class WorkspaceSnapshotService {
     // Only snapshot mode uses a temp gitdir that needs cleanup
     if (state.mode === 'snapshot') {
       await fs.rm(state.gitdir, { recursive: true, force: true }).catch(() => {});
-      if (state.createdGitignore) {
-        await fs.unlink(path.join(state.workspacePath, '.gitignore')).catch(() => {});
-      }
     }
 
     this.snapshots.delete(workspacePath);
@@ -270,23 +266,11 @@ export class WorkspaceSnapshotService {
   }
 
   private async initSnapshot(workspacePath: string): Promise<SnapshotInfo> {
-    const gitignorePath = path.join(workspacePath, '.gitignore');
-    let createdGitignore = false;
-    try {
-      await fs.access(gitignorePath);
-    } catch {
-      await fs.writeFile(gitignorePath, DEFAULT_GITIGNORE, 'utf-8');
-      createdGitignore = true;
-    }
-
     let gitdir: string | undefined;
     try {
       gitdir = await this.createWorkingTreeSnapshot(workspacePath);
     } catch {
       // Workspace may have been removed during snapshot creation — clean up and bail
-      if (createdGitignore) {
-        await fs.unlink(gitignorePath).catch(() => {});
-      }
       return { mode: 'snapshot', branch: null };
     }
 
@@ -302,7 +286,6 @@ export class WorkspaceSnapshotService {
       gitdir,
       baselineRef: oidOut.trim(),
       branch: null,
-      createdGitignore,
     });
 
     return { mode: 'snapshot', branch: null };
@@ -402,6 +385,7 @@ export class WorkspaceSnapshotService {
     const gitArgs = [`--git-dir=${gitdir}`, `--work-tree=${workspacePath}`];
 
     await execFileAsync('git', ['init', '--bare', gitdir]);
+    await fs.writeFile(path.join(gitdir, 'info', 'exclude'), DEFAULT_GITIGNORE, 'utf-8');
     // Use --ignore-errors so locked/permission-denied files don't abort the entire snapshot.
     // The command still exits non-zero when some files fail, so catch and verify the commit succeeds.
     try {
