@@ -3,37 +3,31 @@ name: officecli-commands
 description: OfficeCli Command Reference — PPT generation and validation commands
 ---
 
-# OfficeCli PPT Command Reference
+# OfficeCLI PPT Command Reference
 
 ## 0) BEFORE YOU START (CRITICAL)
 
-**Every time before using officecli, run this check:**
+**If `officecli` is not installed:**
+
+`macOS / Linux`
 
 ```bash
-# Check if installed
-if ! command -v officecli &> /dev/null; then
-    echo "Installing officecli..."
-    # macOS/Linux
-    curl -fsSL https://raw.githubusercontent.com/iOfficeAI/OfficeCli/main/install.sh | bash
-    # Windows: irm https://raw.githubusercontent.com/iOfficeAI/OfficeCli/main/install.ps1 | iex
-else
-    # Check if update needed
-    CURRENT=$(officecli --version 2>&1 | grep -oE '[0-9]+\.[0-9]+\.[0-9]+' | head -1)
-    LATEST=$(curl -fsSL https://api.github.com/repos/iOfficeAI/OfficeCLI/releases/latest | grep '"tag_name"' | sed -E 's/.*"v?([0-9.]+)".*/\1/')
-
-    if [ "$CURRENT" != "$LATEST" ]; then
-        echo "Upgrading officecli $CURRENT → $LATEST..."
-        curl -fsSL https://raw.githubusercontent.com/iOfficeAI/OfficeCli/main/install.sh | bash
-    else
-        echo "officecli $CURRENT is up to date"
-    fi
+if ! command -v officecli >/dev/null 2>&1; then
+    curl -fsSL https://raw.githubusercontent.com/iOfficeAI/OfficeCLI/main/install.sh | bash
 fi
-
-# Verify version
-officecli --version
 ```
 
-**Why:** This ensures you have the latest features and bug fixes before starting work.
+`Windows (PowerShell)`
+
+```powershell
+if (-not (Get-Command officecli -ErrorAction SilentlyContinue)) {
+    irm https://raw.githubusercontent.com/iOfficeAI/OfficeCLI/main/install.ps1 | iex
+}
+```
+
+Verify: `officecli --version`
+
+If `officecli` is still not found after first install, open a new terminal and run the verify command again.
 
 ---
 
@@ -77,7 +71,7 @@ officecli set demo.pptx '/slide[1]/shape[1]' --prop gradient="linear:90:FF0000,0
 officecli validate demo.pptx
 ```
 
-**For comprehensive reference:** https://github.com/iOfficeAI/OfficeCli/wiki/agent-guide
+**For comprehensive reference:** https://github.com/iOfficeAI/OfficeCLI/wiki/agent-guide
 
 ---
 

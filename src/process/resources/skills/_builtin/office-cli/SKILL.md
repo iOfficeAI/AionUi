@@ -7,23 +7,29 @@ description: Create, analyze, proofread, and modify Office documents (.docx, .xl
 
 AI-friendly CLI for .docx, .xlsx, .pptx. Single binary, no dependencies, no Office installation needed.
 
-## Install & Update
+## Install
 
-Same command for both install and upgrade:
+If `officecli` is not installed:
+
+`macOS / Linux`
 
 ```bash
-# macOS / Linux
-curl -fsSL https://raw.githubusercontent.com/iOfficeAI/OfficeCLI/main/install.sh | bash
-
-# Windows (PowerShell)
-irm https://raw.githubusercontent.com/iOfficeAI/OfficeCLI/main/install.ps1 | iex
+if ! command -v officecli >/dev/null 2>&1; then
+    curl -fsSL https://raw.githubusercontent.com/iOfficeAI/OfficeCLI/main/install.sh | bash
+fi
 ```
 
-After installation, run `source ~/.zshrc` (macOS) or `source ~/.bashrc` (Linux) to make the `officecli` command available.
+`Windows (PowerShell)`
+
+```powershell
+if (-not (Get-Command officecli -ErrorAction SilentlyContinue)) {
+    irm https://raw.githubusercontent.com/iOfficeAI/OfficeCLI/main/install.ps1 | iex
+}
+```
 
 Verify: `officecli --version`
 
-officecli auto-updates daily in the background.
+If `officecli` is still not found after first install, open a new terminal and run the verify command again.
 
 ---
 
