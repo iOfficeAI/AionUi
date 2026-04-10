@@ -237,6 +237,16 @@ export class GeminiAgentManager extends BaseAgentManager<
         }
         const effectiveYoloMode = this.forceYoloMode ?? this.currentMode === 'yolo';
 
+        // Inject team guide prompt for solo Gemini agents.
+        // ACP agents get this via AcpAgentManager; Gemini needs it appended to presetRules
+        // so it goes into GEMINI.md and the agent knows when/how to recommend Team mode.
+        let effectivePresetRules = this.presetRules;
+        if (!this.teamMcpStdioConfig) {
+          const { getTeamGuidePrompt } = await import('@process/resources/prompts/teamGuidePrompt');
+          const teamGuide = getTeamGuidePrompt('gemini');
+          effectivePresetRules = effectivePresetRules ? `${effectivePresetRules}\n\n${teamGuide}` : teamGuide;
+        }
+
         return this.start({
           ...config,
           GOOGLE_CLOUD_PROJECT: projectId,
@@ -247,7 +257,7 @@ export class GeminiAgentManager extends BaseAgentManager<
           contextFileName: this.contextFileName,
           // presetRules are no longer injected here — they are in GEMINI.md
           // Keep for backward compatibility with existing conversations
-          presetRules: this.presetRules,
+          presetRules: effectivePresetRules,
           contextContent: this.contextContent,
           skillsDir: getSkillsDir(),
           // 启用的 skills 列表（含内置 skills），用于 worker 的 SkillManager
