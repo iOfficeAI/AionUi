@@ -1065,6 +1065,8 @@ export type I18nKey =
   | 'settings.assistantsList'
   | 'settings.assistantsListDescription'
   | 'settings.authMethod'
+  | 'settings.autoPreviewOfficeFiles'
+  | 'settings.autoPreviewOfficeFilesDesc'
   | 'settings.baseUrl'
   | 'settings.baseUrlAutoFix'
   | 'settings.bedrock.accessKeyId'

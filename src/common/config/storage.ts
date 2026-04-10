@@ -116,6 +116,8 @@ export interface IConfigStorageRefer {
   'system.keepAwake'?: boolean;
   // Whether conversation command queue is enabled
   'system.commandQueueEnabled'?: boolean;
+  // Automatically preview newly created Office files in the current workspace
+  'system.autoPreviewOfficeFiles'?: boolean;
   // Telegram assistant default model / Telegram 助手默认模型
   'assistant.telegram.defaultModel'?: {
     id: string;

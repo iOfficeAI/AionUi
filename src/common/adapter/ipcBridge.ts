@@ -328,11 +328,9 @@ export const fileWatch = {
   fileChanged: bridge.buildEmitter<{ filePath: string; eventType: string }>('file-changed'), // 文件变化事件
 };
 
-// 工作空间 Office 文件监听（检测新增的 .pptx/.docx/.xlsx）/ Workspace office file watcher (detects new .pptx/.docx/.xlsx)
+// 工作空间 Office 文件扫描（检测当前存在的 .pptx/.docx/.xlsx）/ Workspace office file scan
 export const workspaceOfficeWatch = {
-  start: bridge.buildProvider<IBridgeResponse, { workspace: string }>('workspace-office-watch-start'),
-  stop: bridge.buildProvider<IBridgeResponse, { workspace: string }>('workspace-office-watch-stop'),
-  fileAdded: bridge.buildEmitter<{ filePath: string; workspace: string }>('workspace-office-file-added'),
+  scan: bridge.buildProvider<string[], { workspace: string }>('workspace-office-watch-scan'),
 };
 
 // 文件流式更新（Agent 写入文件时实时推送内容）/ File streaming updates (real-time content push when agent writes)
@@ -718,6 +716,10 @@ export const systemSettings = {
   getSaveUploadToWorkspace: bridge.buildProvider<boolean, void>('system-settings:get-save-upload-to-workspace'),
   setSaveUploadToWorkspace: bridge.buildProvider<void, { enabled: boolean }>(
     'system-settings:set-save-upload-to-workspace'
+  ),
+  getAutoPreviewOfficeFiles: bridge.buildProvider<boolean, void>('system-settings:get-auto-preview-office-files'),
+  setAutoPreviewOfficeFiles: bridge.buildProvider<void, { enabled: boolean }>(
+    'system-settings:set-auto-preview-office-files'
   ),
   // Desktop pet settings
   getPetEnabled: bridge.buildProvider<boolean, void>('system-settings:get-pet-enabled'),
