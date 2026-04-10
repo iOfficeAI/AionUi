@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { Modal, Button, Input, Message } from '@arco-design/web-react';
+import { Form, Input, Message } from '@arco-design/web-react';
 import type { RefInputType } from '@arco-design/web-react/es/Input/interface';
 import { FolderOpen, Close, Robot, Folder, FolderPlus, Check, Down } from '@icon-park/react';
 import { useTranslation } from 'react-i18next';
@@ -11,6 +11,7 @@ import { CUSTOM_AVATAR_IMAGE_MAP } from '@renderer/pages/guid/constants';
 import { useAuth } from '@renderer/hooks/context/AuthContext';
 import { useConversationAgents } from '@renderer/pages/conversation/hooks/useConversationAgents';
 import { isElectronDesktop } from '@renderer/utils/platform';
+import ModalWrapper from '@renderer/components/base/ModalWrapper';
 import {
   agentKey,
   agentFromKey,
@@ -18,6 +19,8 @@ import {
   resolveTeamAgentType,
   filterTeamSupportedAgents,
 } from './agentSelectUtils';
+
+const FormItem = Form.Item;
 
 const RECENT_WS_KEY = 'aionui:recent-workspaces';
 
@@ -167,185 +170,178 @@ const TeamCreateModal: React.FC<Props> = ({ visible, onClose, onCreated }) => {
   const folderName = workspace ? workspace.split(/[\\/]/).pop() || workspace : '';
 
   return (
-    <Modal
+    <ModalWrapper
       title={t('team.create.title', { defaultValue: 'Create Team' })}
       visible={visible}
       onCancel={handleClose}
-      footer={null}
-      style={{ width: 520 }}
-      autoFocus={false}
-      focusLock
+      onOk={handleCreate}
+      confirmLoading={loading}
+      okText={t('team.create.confirm', { defaultValue: 'Create Team' })}
+      cancelText={t('common.cancel', { defaultValue: 'Cancel' })}
+      className='w-[min(560px,calc(100vw-32px))] max-w-560px rd-16px'
       wrapStyle={{ zIndex: 10000 }}
       maskStyle={{ zIndex: 9999 }}
+      autoFocus={false}
+      unmountOnExit={false}
     >
-      <div className='flex flex-col gap-20px'>
-        {/* Team name */}
-        <div className='flex flex-col gap-6px'>
-          <label className='text-sm text-[var(--color-text-2)] font-medium'>
-            {t('team.create.namePlaceholder', { defaultValue: 'Team name' })}
-          </label>
-          <Input
-            ref={nameInputRef}
-            placeholder={t('team.create.namePlaceholder', { defaultValue: 'Team name' })}
-            value={name}
-            onChange={setName}
-          />
-        </div>
+      <div className='overflow-y-auto px-24px pb-16px pr-18px max-h-[min(72vh,680px)]'>
+        <Form layout='vertical'>
+          {/* Team name */}
+          <FormItem label={t('team.create.namePlaceholder', { defaultValue: 'Team name' })} required>
+            <Input
+              ref={nameInputRef}
+              placeholder={t('team.create.namePlaceholder', { defaultValue: 'Team name' })}
+              value={name}
+              onChange={setName}
+            />
+          </FormItem>
 
-        {/* Team Leader */}
-        <div className='flex flex-col gap-6px'>
-          <label className='text-sm text-[var(--color-text-2)] font-medium'>
-            {t('team.create.step.dispatch', { defaultValue: 'Team Leader' })}
-          </label>
-          <span className='text-12px text-[var(--color-text-3)]'>
-            {t('team.create.leaderDesc', {
-              defaultValue: 'Understands your goals and coordinates agents to complete tasks',
-            })}
-          </span>
-          {allAgents.length === 0 ? (
-            <div className='flex items-center justify-center py-20px text-12px text-[var(--color-text-4)]'>
-              {t('team.create.noSupportedAgents', { defaultValue: 'No supported agents installed' })}
-            </div>
-          ) : (
-            <>
-              <div
-                className='grid gap-8px overflow-y-auto'
-                style={{ gridTemplateColumns: 'repeat(5, 1fr)', maxHeight: 290 }}
-              >
-                {allAgents.map((agent) => {
-                  const key = agentKey(agent);
-                  const isSelected = dispatchAgentKey === key;
-                  return (
-                    <div
-                      key={key}
-                      onClick={() => setDispatchAgentKey(isSelected ? undefined : key)}
-                      className={`flex flex-col items-center gap-6px px-8px py-10px rd-8px cursor-pointer transition-all border ${
-                        isSelected
-                          ? 'border-[var(--color-primary-6)] bg-[var(--color-primary-light-1)]'
-                          : 'border-transparent bg-fill-2 hover:bg-fill-3'
-                      }`}
-                    >
-                      <AgentCardIcon agent={agent} />
-                      <span className='text-12px text-[var(--color-text-1)] text-center leading-16px w-full truncate'>
-                        {agent.name}
-                      </span>
-                    </div>
-                  );
+          {/* Team Leader */}
+          <FormItem label={t('team.create.step.dispatch', { defaultValue: 'Team Leader' })} required>
+            <div className='flex flex-col gap-8px'>
+              <span className='text-12px text-[var(--color-text-3)]'>
+                {t('team.create.leaderDesc', {
+                  defaultValue: 'Understands your goals and coordinates agents to complete tasks',
                 })}
-              </div>
-            </>
-          )}
-        </div>
-
-        {/* Workspace */}
-        <div className='flex flex-col gap-6px'>
-          <label className='text-sm text-[var(--color-text-2)] font-medium'>
-            {t('team.create.step.workspace', { defaultValue: 'Workspace' })}
-            <span className='ml-4px text-[var(--color-text-4)] font-normal text-xs'>
-              {t('common.optional', { defaultValue: '(optional)' })}
-            </span>
-          </label>
-          {isDesktop ? (
-            <div className='relative' ref={wsTriggerRef}>
-              {/* Trigger */}
-              <div
-                onClick={() => (recentWorkspaces.length > 0 ? setWsDropdownVisible((v) => !v) : handleBrowseWorkspace())}
-                className={`flex items-center gap-10px px-12px py-8px rd-6px border cursor-pointer transition-all min-h-36px ${
-                  wsDropdownVisible
-                    ? 'border-[var(--color-primary-6)]'
-                    : 'border-[var(--color-border-2)] hover:border-[var(--color-primary-6)]'
-                }`}
-              >
-                <FolderOpen theme='outline' size='16' fill='var(--color-text-3)' style={{ flexShrink: 0 }} />
-                <div className='flex-1 min-w-0'>
-                  {workspace ? (
-                    <div className='flex flex-col'>
-                      <span className='text-sm text-[var(--color-text-1)] leading-20px'>{folderName}</span>
-                      <span className='text-11px text-[var(--color-text-4)] truncate leading-16px'>{workspace}</span>
-                    </div>
-                  ) : (
-                    <span className='text-sm text-[var(--color-text-3)]'>
-                      {t('team.create.selectFolder', { defaultValue: 'Select folder' })}
-                    </span>
-                  )}
+              </span>
+              {allAgents.length === 0 ? (
+                <div className='flex items-center justify-center py-20px text-12px text-[var(--color-text-4)]'>
+                  {t('team.create.noSupportedAgents', { defaultValue: 'No supported agents installed' })}
                 </div>
-                {workspace ? (
-                  <Close
-                    theme='outline'
-                    size='14'
-                    fill='var(--color-text-3)'
-                    className='shrink-0 hover:opacity-70'
-                    onClick={(e: React.MouseEvent) => {
-                      e.stopPropagation();
-                      setWorkspace('');
-                      setWsDropdownVisible(false);
-                    }}
-                  />
-                ) : (
-                  <Down size='14' fill='var(--color-text-3)' style={{ flexShrink: 0 }} />
-                )}
-              </div>
-
-              {/* Dropdown */}
-              {wsDropdownVisible && (
-                <div className='absolute top-full left-0 right-0 mt-4px z-50 bg-[var(--color-bg-2)] rd-8px overflow-hidden shadow-lg border border-[var(--color-border-1)] py-4px'>
-                  {recentWorkspaces.length > 0 && (
-                    <>
-                      <div className='px-12px py-6px text-12px text-[var(--color-text-3)] font-medium'>
-                        {t('team.create.recentLabel', { defaultValue: 'Recent' })}
+              ) : (
+                <div
+                  className='grid gap-8px'
+                  style={{ gridTemplateColumns: 'repeat(5, 1fr)' }}
+                >
+                  {allAgents.map((agent) => {
+                    const key = agentKey(agent);
+                    const isSelected = dispatchAgentKey === key;
+                    return (
+                      <div
+                        key={key}
+                        onClick={() => setDispatchAgentKey(isSelected ? undefined : key)}
+                        className={`flex flex-col items-center gap-6px px-8px py-10px rd-8px cursor-pointer transition-all border ${
+                          isSelected
+                            ? 'border-[var(--color-primary-6)] bg-[var(--color-primary-light-1)]'
+                            : 'border-transparent bg-fill-2 hover:bg-fill-3'
+                        }`}
+                      >
+                        <AgentCardIcon agent={agent} />
+                        <span className='text-12px text-[var(--color-text-1)] text-center leading-16px w-full truncate'>
+                          {agent.name}
+                        </span>
                       </div>
-                      {recentWorkspaces.map((path) => {
-                        const name = path.split(/[\\/]/).pop() || path;
-                        const isSelected = workspace === path;
-                        return (
-                          <div
-                            key={path}
-                            onClick={() => handleSelectRecentWorkspace(path)}
-                            className='flex items-center gap-10px px-12px py-8px cursor-pointer hover:bg-fill-2 transition-all'
-                          >
-                            <Folder theme='outline' size='16' fill='var(--color-text-3)' style={{ flexShrink: 0 }} />
-                            <div className='flex-1 min-w-0'>
-                              <div className='text-sm text-[var(--color-text-1)] leading-20px'>{name}</div>
-                              <div className='text-11px text-[var(--color-text-4)] truncate leading-16px'>{path}</div>
-                            </div>
-                            {isSelected && (
-                              <Check size='14' fill='var(--color-primary-6)' style={{ flexShrink: 0 }} />
-                            )}
-                          </div>
-                        );
-                      })}
-                      <div className='mx-12px my-4px h-1px bg-[var(--color-border-2)]' />
-                    </>
-                  )}
-                  <div
-                    onClick={handleBrowseWorkspace}
-                    className='flex items-center gap-10px px-12px py-8px cursor-pointer hover:bg-fill-2 transition-all'
-                  >
-                    <FolderPlus theme='outline' size='16' fill='var(--color-text-2)' style={{ flexShrink: 0 }} />
-                    <span className='text-sm text-[var(--color-text-1)]'>
-                      {t('team.create.chooseDifferentFolder', { defaultValue: 'Choose a different folder' })}
-                    </span>
-                  </div>
+                    );
+                  })}
                 </div>
               )}
             </div>
-          ) : (
-            <Input
-              placeholder={t('team.create.workspacePlaceholder', { defaultValue: 'Workspace path (optional)' })}
-              value={workspace}
-              onChange={setWorkspace}
-            />
-          )}
-        </div>
+          </FormItem>
 
-        {/* Footer */}
-        <div className='flex justify-end pt-4px'>
-          <Button type='primary' loading={loading} onClick={handleCreate}>
-            {t('team.create.confirm', { defaultValue: 'Create Team' })}
-          </Button>
-        </div>
+          {/* Workspace */}
+          <FormItem
+            label={
+              <>
+                {t('team.create.step.workspace', { defaultValue: 'Workspace' })}
+                <span className='ml-4px text-[var(--color-text-4)] font-normal text-xs'>
+                  {t('common.optional', { defaultValue: '(optional)' })}
+                </span>
+              </>
+            }
+          >
+            {isDesktop ? (
+              <div className='relative' ref={wsTriggerRef}>
+                <div
+                  onClick={() => (recentWorkspaces.length > 0 ? setWsDropdownVisible((v) => !v) : handleBrowseWorkspace())}
+                  className={`flex items-center gap-10px px-12px py-8px rd-6px border cursor-pointer transition-all min-h-36px ${
+                    wsDropdownVisible
+                      ? 'border-[var(--color-primary-6)]'
+                      : 'border-[var(--color-border-2)] hover:border-[var(--color-primary-6)]'
+                  }`}
+                >
+                  <FolderOpen theme='outline' size='16' fill='var(--color-text-3)' style={{ flexShrink: 0 }} />
+                  <div className='flex-1 min-w-0'>
+                    {workspace ? (
+                      <div className='flex flex-col'>
+                        <span className='text-sm text-[var(--color-text-1)] leading-20px'>{folderName}</span>
+                        <span className='text-11px text-[var(--color-text-4)] truncate leading-16px'>{workspace}</span>
+                      </div>
+                    ) : (
+                      <span className='text-sm text-[var(--color-text-3)]'>
+                        {t('team.create.selectFolder', { defaultValue: 'Select folder' })}
+                      </span>
+                    )}
+                  </div>
+                  {workspace ? (
+                    <Close
+                      theme='outline'
+                      size='14'
+                      fill='var(--color-text-3)'
+                      className='shrink-0 hover:opacity-70'
+                      onClick={(e: React.MouseEvent) => {
+                        e.stopPropagation();
+                        setWorkspace('');
+                        setWsDropdownVisible(false);
+                      }}
+                    />
+                  ) : (
+                    <Down size='14' fill='var(--color-text-3)' style={{ flexShrink: 0 }} />
+                  )}
+                </div>
+
+                {wsDropdownVisible && (
+                  <div className='absolute top-full left-0 right-0 mt-4px z-50 bg-[var(--color-bg-2)] rd-8px overflow-hidden shadow-lg border border-[var(--color-border-1)] py-4px'>
+                    {recentWorkspaces.length > 0 && (
+                      <>
+                        <div className='px-12px py-6px text-12px text-[var(--color-text-3)] font-medium'>
+                          {t('team.create.recentLabel', { defaultValue: 'Recent' })}
+                        </div>
+                        {recentWorkspaces.map((path) => {
+                          const recentName = path.split(/[\\/]/).pop() || path;
+                          const isSelected = workspace === path;
+                          return (
+                            <div
+                              key={path}
+                              onClick={() => handleSelectRecentWorkspace(path)}
+                              className='flex items-center gap-10px px-12px py-8px cursor-pointer hover:bg-fill-2 transition-all'
+                            >
+                              <Folder theme='outline' size='16' fill='var(--color-text-3)' style={{ flexShrink: 0 }} />
+                              <div className='flex-1 min-w-0'>
+                                <div className='text-sm text-[var(--color-text-1)] leading-20px'>{recentName}</div>
+                                <div className='text-11px text-[var(--color-text-4)] truncate leading-16px'>{path}</div>
+                              </div>
+                              {isSelected && (
+                                <Check size='14' fill='var(--color-primary-6)' style={{ flexShrink: 0 }} />
+                              )}
+                            </div>
+                          );
+                        })}
+                        <div className='mx-12px my-4px h-1px bg-[var(--color-border-2)]' />
+                      </>
+                    )}
+                    <div
+                      onClick={handleBrowseWorkspace}
+                      className='flex items-center gap-10px px-12px py-8px cursor-pointer hover:bg-fill-2 transition-all'
+                    >
+                      <FolderPlus theme='outline' size='16' fill='var(--color-text-2)' style={{ flexShrink: 0 }} />
+                      <span className='text-sm text-[var(--color-text-1)]'>
+                        {t('team.create.chooseDifferentFolder', { defaultValue: 'Choose a different folder' })}
+                      </span>
+                    </div>
+                  </div>
+                )}
+              </div>
+            ) : (
+              <Input
+                placeholder={t('team.create.workspacePlaceholder', { defaultValue: 'Workspace path (optional)' })}
+                value={workspace}
+                onChange={setWorkspace}
+              />
+            )}
+          </FormItem>
+        </Form>
       </div>
-    </Modal>
+    </ModalWrapper>
   );
 };
 
