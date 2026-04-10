@@ -126,6 +126,7 @@
   width: 100% !important;
   padding-left: 266px;
   box-sizing: border-box;
+  z-index: 10001 !important;
 }
 
 /* Default background for select and input components */
