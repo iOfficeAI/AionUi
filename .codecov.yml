@@ -14,20 +14,20 @@ coverage:
         threshold: 5%
 
 ignore:
-  - "**/*.json"
-  - "**/*.md"
-  - "**/*.txt"
-  - "**/*.html"
-  - "**/*.css"
-  - "**/*.svg"
-  - "**/*.png"
-  - "**/*.jpg"
-  - "**/*.gif"
-  - "**/*.woff*"
-  - "**/*.ttf"
-  - "**/*.lock"
-  - "docs/"
-  - "examples/"
-  - "mobile/"
-  - "scripts/"
-  - "tests/"
+  - '**/*.json'
+  - '**/*.md'
+  - '**/*.txt'
+  - '**/*.html'
+  - '**/*.css'
+  - '**/*.svg'
+  - '**/*.png'
+  - '**/*.jpg'
+  - '**/*.gif'
+  - '**/*.woff*'
+  - '**/*.ttf'
+  - '**/*.lock'
+  - 'docs/'
+  - 'examples/'
+  - 'mobile/'
+  - 'scripts/'
+  - 'tests/'
