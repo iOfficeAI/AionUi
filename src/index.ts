@@ -33,6 +33,7 @@ import { workerTaskManager } from './process/task/workerTaskManagerSingleton';
 import { setupApplicationMenu } from './process/utils/appMenu';
 import { startWebServer } from './process/webserver';
 import { initializeZoomFactor, setupZoomForWindow } from './process/utils/zoom';
+import { getOrCreateAnalyticsId } from './process/utils/analyticsId';
 import {
   clearPendingDeepLinkUrl,
   getPendingDeepLinkUrl,
@@ -430,6 +431,8 @@ const handleAppReady = async (): Promise<void> => {
       // Ignore dock icon errors in development
     }
   }
+
+  Sentry.setUser({ id: getOrCreateAnalyticsId() });
 
   try {
     await initializeProcess();
