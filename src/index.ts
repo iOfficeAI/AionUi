@@ -8,9 +8,15 @@
 // ANY module that calls app.getPath('userData'), because Electron caches the path on first call.
 import './process/utils/configureChromium';
 import * as Sentry from '@sentry/electron/main';
+import { loadOrCreateDeviceIdentity } from './process/agent/openclaw/deviceIdentity';
+
+const { deviceId } = loadOrCreateDeviceIdentity();
 
 Sentry.init({
   dsn: process.env.SENTRY_DSN,
+  initialScope: {
+    user: { id: deviceId },
+  },
 });
 
 import './process/utils/configureConsoleLog';
