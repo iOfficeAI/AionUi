@@ -46,6 +46,9 @@
       "subAgents": "Sub Agents",
       "workspace": "Workspace"
     },
+    "selectFolder": "フォルダを選択",
+    "recentLabel": "最近使用",
+    "chooseDifferentFolder": "別のフォルダを選択",
     "error": "チームの作成に失敗しました"
   }
 }

@@ -46,6 +46,9 @@
       "subAgents": "Подагенты",
       "workspace": "Рабочая область"
     },
+    "selectFolder": "Выбрать папку",
+    "recentLabel": "Недавние",
+    "chooseDifferentFolder": "Выбрать другую папку",
     "error": "Не удалось создать команду"
   }
 }

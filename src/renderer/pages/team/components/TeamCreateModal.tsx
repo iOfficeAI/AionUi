@@ -1,7 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { Modal, Button, Input, Message } from '@arco-design/web-react';
 import type { RefInputType } from '@arco-design/web-react/es/Input/interface';
-import { FolderOpen, Close, Robot } from '@icon-park/react';
+import { FolderOpen, Close, Robot, Folder, FolderPlus, Check, Down } from '@icon-park/react';
 import { useTranslation } from 'react-i18next';
 import { ipcBridge } from '@/common';
 import type { TTeam, TeamAgent } from '@/common/types/teamTypes';
@@ -18,6 +18,24 @@ import {
   resolveTeamAgentType,
   filterTeamSupportedAgents,
 } from './agentSelectUtils';
+
+const RECENT_WS_KEY = 'aionui:recent-workspaces';
+
+const getRecentWorkspaces = (): string[] => {
+  try {
+    return JSON.parse(localStorage.getItem(RECENT_WS_KEY) ?? '[]');
+  } catch {
+    return [];
+  }
+};
+
+const addRecentWorkspace = (path: string) => {
+  try {
+    const prev = getRecentWorkspaces();
+    const next = [path, ...prev.filter((p) => p !== path)].slice(0, 5);
+    localStorage.setItem(RECENT_WS_KEY, JSON.stringify(next));
+  } catch {}
+};
 
 type Props = {
   visible: boolean;
@@ -44,10 +62,13 @@ const TeamCreateModal: React.FC<Props> = ({ visible, onClose, onCreated }) => {
   const [dispatchAgentKey, setDispatchAgentKey] = useState<string | undefined>(undefined);
   const [workspace, setWorkspace] = useState('');
   const [loading, setLoading] = useState(false);
+  const [wsDropdownVisible, setWsDropdownVisible] = useState(false);
   const nameInputRef = useRef<RefInputType | null>(null);
+  const wsTriggerRef = useRef<HTMLDivElement>(null);
 
   const allAgents = filterTeamSupportedAgents([...cliAgents]);
   const isDesktop = isElectronDesktop();
+  const recentWorkspaces = getRecentWorkspaces();
 
   useEffect(() => {
     if (visible) {
@@ -55,18 +76,38 @@ const TeamCreateModal: React.FC<Props> = ({ visible, onClose, onCreated }) => {
     }
   }, [visible]);
 
+  useEffect(() => {
+    if (!wsDropdownVisible) return;
+    const handleOutsideClick = (e: MouseEvent) => {
+      if (wsTriggerRef.current && !wsTriggerRef.current.contains(e.target as Node)) {
+        setWsDropdownVisible(false);
+      }
+    };
+    document.addEventListener('mousedown', handleOutsideClick);
+    return () => document.removeEventListener('mousedown', handleOutsideClick);
+  }, [wsDropdownVisible]);
+
   const handleClose = () => {
     setName('');
     setDispatchAgentKey(undefined);
     setWorkspace('');
+    setWsDropdownVisible(false);
     onClose();
   };
 
   const handleBrowseWorkspace = async () => {
+    setWsDropdownVisible(false);
     const files = await ipcBridge.dialog.showOpen.invoke({ properties: ['openDirectory'] });
     if (files?.[0]) {
       setWorkspace(files[0]);
+      addRecentWorkspace(files[0]);
     }
+  };
+
+  const handleSelectRecentWorkspace = (path: string) => {
+    setWorkspace(path);
+    addRecentWorkspace(path);
+    setWsDropdownVisible(false);
   };
 
   const handleCreate = async () => {
@@ -115,6 +156,7 @@ const TeamCreateModal: React.FC<Props> = ({ visible, onClose, onCreated }) => {
   };
 
   const canCreate = name.trim().length > 0 && dispatchAgentKey !== undefined;
+  const folderName = workspace ? workspace.split(/[\\/]/).pop() || workspace : '';
 
   return (
     <Modal
@@ -142,7 +184,7 @@ const TeamCreateModal: React.FC<Props> = ({ visible, onClose, onCreated }) => {
           />
         </div>
 
-        {/* Team Leader (dispatch agent) */}
+        {/* Team Leader */}
         <div className='flex flex-col gap-6px'>
           <label className='text-sm text-[var(--color-text-2)] font-medium'>
             {t('team.create.step.dispatch', { defaultValue: 'Team Leader' })}
@@ -192,7 +234,7 @@ const TeamCreateModal: React.FC<Props> = ({ visible, onClose, onCreated }) => {
           )}
         </div>
 
-        {/* Workspace - optional folder picker (desktop only) or text input (webui) */}
+        {/* Workspace */}
         <div className='flex flex-col gap-6px'>
           <label className='text-sm text-[var(--color-text-2)] font-medium'>
             {t('team.create.step.workspace', { defaultValue: 'Workspace' })}
@@ -201,27 +243,89 @@ const TeamCreateModal: React.FC<Props> = ({ visible, onClose, onCreated }) => {
             </span>
           </label>
           {isDesktop ? (
-            <Input
-              readOnly
-              value={workspace}
-              placeholder={t('team.create.workspacePlaceholder', { defaultValue: 'Workspace path (optional)' })}
-              suffix={
-                workspace ? (
+            <div className='relative' ref={wsTriggerRef}>
+              {/* Trigger */}
+              <div
+                onClick={() => setWsDropdownVisible((v) => !v)}
+                className={`flex items-center gap-10px px-12px py-8px rd-6px border cursor-pointer transition-all min-h-36px ${
+                  wsDropdownVisible
+                    ? 'border-[var(--color-primary-6)]'
+                    : 'border-[var(--color-border-2)] hover:border-[var(--color-primary-6)]'
+                }`}
+              >
+                <FolderOpen theme='outline' size='16' fill='var(--color-text-3)' style={{ flexShrink: 0 }} />
+                <div className='flex-1 min-w-0'>
+                  {workspace ? (
+                    <div className='flex flex-col'>
+                      <span className='text-sm text-[var(--color-text-1)] leading-20px'>{folderName}</span>
+                      <span className='text-11px text-[var(--color-text-4)] truncate leading-16px'>{workspace}</span>
+                    </div>
+                  ) : (
+                    <span className='text-sm text-[var(--color-text-4)]'>
+                      {t('team.create.selectFolder', { defaultValue: 'Select folder' })}
+                    </span>
+                  )}
+                </div>
+                {workspace ? (
                   <Close
                     theme='outline'
                     size='14'
                     fill='var(--color-text-3)'
-                    className='cursor-pointer hover:opacity-70'
-                    onClick={() => setWorkspace('')}
+                    className='shrink-0 hover:opacity-70'
+                    onClick={(e: React.MouseEvent) => {
+                      e.stopPropagation();
+                      setWorkspace('');
+                      setWsDropdownVisible(false);
+                    }}
                   />
-                ) : undefined
-              }
-              addAfter={
-                <Button icon={<FolderOpen size='16' />} onClick={handleBrowseWorkspace}>
-                  {t('common.browse', { defaultValue: 'Browse' })}
-                </Button>
-              }
-            />
+                ) : (
+                  <Down size='14' fill='var(--color-text-3)' style={{ flexShrink: 0 }} />
+                )}
+              </div>
+
+              {/* Dropdown */}
+              {wsDropdownVisible && (
+                <div className='absolute top-full left-0 right-0 mt-4px z-50 bg-[var(--color-bg-2)] rd-8px overflow-hidden shadow-lg border border-[var(--color-border-1)] py-4px'>
+                  {recentWorkspaces.length > 0 && (
+                    <>
+                      <div className='px-12px py-6px text-12px text-[var(--color-text-3)] font-medium'>
+                        {t('team.create.recentLabel', { defaultValue: 'Recent' })}
+                      </div>
+                      {recentWorkspaces.map((path) => {
+                        const name = path.split(/[\\/]/).pop() || path;
+                        const isSelected = workspace === path;
+                        return (
+                          <div
+                            key={path}
+                            onClick={() => handleSelectRecentWorkspace(path)}
+                            className='flex items-center gap-10px px-12px py-8px cursor-pointer hover:bg-fill-2 transition-all'
+                          >
+                            <Folder theme='outline' size='16' fill='var(--color-text-3)' style={{ flexShrink: 0 }} />
+                            <div className='flex-1 min-w-0'>
+                              <div className='text-sm text-[var(--color-text-1)] leading-20px'>{name}</div>
+                              <div className='text-11px text-[var(--color-text-4)] truncate leading-16px'>{path}</div>
+                            </div>
+                            {isSelected && (
+                              <Check size='14' fill='var(--color-primary-6)' style={{ flexShrink: 0 }} />
+                            )}
+                          </div>
+                        );
+                      })}
+                      <div className='mx-12px my-4px h-1px bg-[var(--color-border-2)]' />
+                    </>
+                  )}
+                  <div
+                    onClick={handleBrowseWorkspace}
+                    className='flex items-center gap-10px px-12px py-8px cursor-pointer hover:bg-fill-2 transition-all'
+                  >
+                    <FolderPlus theme='outline' size='16' fill='var(--color-text-2)' style={{ flexShrink: 0 }} />
+                    <span className='text-sm text-[var(--color-text-1)]'>
+                      {t('team.create.chooseDifferentFolder', { defaultValue: 'Choose a different folder' })}
+                    </span>
+                  </div>
+                </div>
+              )}
+            </div>
           ) : (
             <Input
               placeholder={t('team.create.workspacePlaceholder', { defaultValue: 'Workspace path (optional)' })}

@@ -46,6 +46,9 @@
       "subAgents": "Sub Agents",
       "workspace": "Workspace"
     },
+    "selectFolder": "폴더 선택",
+    "recentLabel": "최근 사용",
+    "chooseDifferentFolder": "다른 폴더 선택",
     "error": "팀 생성에 실패했습니다"
   }
 }

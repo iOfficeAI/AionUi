@@ -46,6 +46,9 @@
       "subAgents": "Sub Agents",
       "workspace": "Workspace"
     },
+    "selectFolder": "Klasör seç",
+    "recentLabel": "Son kullanılan",
+    "chooseDifferentFolder": "Farklı klasör seç",
     "error": "Takım oluşturulamadı"
   }
 }
