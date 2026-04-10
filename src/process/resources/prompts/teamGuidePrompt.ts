@@ -56,7 +56,7 @@ ${DOUBT_RULE}
    | Lead | Coordinate and review | ${agentType} |
    | Developer | Implement features | ${agentType} |
    | Tester | Write and run tests | ${agentType} |
-3. **STOP and wait for the user's reply.** Do NOT call \`aion_create_team\` in this turn. You must receive explicit user confirmation (e.g. "ok", "go ahead", "确认") before proceeding.
+3. **Output the table as a normal text message and END YOUR TURN.** Do NOT call \`aion_create_team\` or any other tool (including ask_user) in this turn. Wait for the user to reply in their next message with explicit confirmation (e.g. "ok", "go ahead", "确认") before proceeding.
 4. After user confirms → call \`aion_create_team\`. The summary MUST include both the goal and the confirmed team configuration. (The system automatically sets the correct agent type — you do NOT need to pass agentType.)
 5. After \`aion_create_team\` returns → read the response carefully and follow the next_step instructions. Tell the user the team is created → immediately call \`aion_navigate\` with the route from the response. **Both calls (create + navigate) are required.**
 6. User declines or wants changes → adjust or proceed solo. Do not mention Team again if declined.
@@ -75,7 +75,7 @@ export function getTeamGuideReminder(): string {
     `Recommend Team when: task spans multiple files/modules, needs multiple iterations, or benefits from role specialization (e.g. analyzing a large codebase, building a feature).\n` +
     `Do NOT recommend (just answer directly, never mention Team): single-point tasks answerable in one response (one question, one fix, one translation).\n` +
     `${DOUBT_RULE}\n` +
-    `Before calling aion_create_team you MUST present a team configuration and get explicit user confirmation.\n` +
+    `Before calling aion_create_team you MUST present a team configuration as text, end your turn, and wait for the user to confirm in their next message. Do NOT use ask_user or any tool to ask — just output text.\n` +
     `After aion_create_team succeeds, read the response and call aion_navigate with the returned route.`
   );
 }
