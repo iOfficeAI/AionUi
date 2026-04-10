@@ -73,6 +73,7 @@ export type AcpBackendAll =
   | 'nanobot' // nanobot CLI
   | 'cursor' // Cursor AI Agent CLI
   | 'kiro' // Kiro CLI (AWS)
+  | 'hermes' // Hermes Agent CLI (Nous Research)
   | 'remote' // Remote agent (WebSocket, no local CLI)
   | 'aionrs' // Aion CLI agent (Rust binary, JSON Lines protocol)
   | 'custom'; // User-configured custom ACP agent
@@ -508,6 +509,16 @@ export const ACP_BACKENDS_ALL: Record<AcpBackendAll, AcpBackendConfig> = {
     enabled: true, // ✅ Kiro CLI, launched via `kiro-cli acp`
     supportsStreaming: false,
     acpArgs: ['acp'], // Kiro uses `kiro-cli acp` subcommand
+  },
+  hermes: {
+    id: 'hermes',
+    name: 'Hermes Agent',
+    description: 'AI agent by Nous Research with 90+ tools, persistent memory, and multi-platform support',
+    cliCommand: 'hermes',
+    authRequired: true,
+    enabled: true, // ✅ Nous Research Hermes Agent，使用 `hermes acp` 启动
+    supportsStreaming: false,
+    acpArgs: ['acp'], // hermes 使用 acp 子命令
   },
   remote: {
     id: 'remote',

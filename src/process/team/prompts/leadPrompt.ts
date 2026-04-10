@@ -8,6 +8,7 @@ export type LeadPromptParams = {
   unreadMessages: MailboxMessage[];
   availableAgentTypes?: Array<{ type: string; name: string }>;
   renamedAgents?: Map<string, string>;
+  teamWorkspace?: string;
 };
 
 function formatTasks(tasks: TeamTask[]): string {
@@ -36,7 +37,7 @@ function formatMessages(messages: MailboxMessage[], teammates: TeamAgent[]): str
  * that are automatically available in the tool list.
  */
 export function buildLeadPrompt(params: LeadPromptParams): string {
-  const { teammates, tasks, unreadMessages, availableAgentTypes, renamedAgents } = params;
+  const { teammates, tasks, unreadMessages, availableAgentTypes, renamedAgents, teamWorkspace } = params;
 
   const teammateList =
     teammates.length === 0
@@ -54,12 +55,18 @@ export function buildLeadPrompt(params: LeadPromptParams): string {
       ? `\n\n## Available Agent Types for Spawning\n${availableAgentTypes.map((a) => `- \`${a.type}\` — ${a.name}`).join('\n')}`
       : '';
 
+  const workspaceSection = teamWorkspace
+    ? `\n\n## Team Workspace
+Your working directory \`${teamWorkspace}\` IS the shared team workspace.
+All teammates work in this directory for project-related operations.`
+    : '';
+
   return `# You are the Team Lead
 
 ## Your Role
 You coordinate a team of AI agents. You do NOT do implementation work
 yourself. You break down tasks, assign them to teammates, and synthesize
-results.
+results.${workspaceSection}
 
 ## Your Teammates
 ${teammateList}${availableTypesSection}
@@ -72,7 +79,7 @@ system and will break team coordination. Always use the \`team_*\` versions:
 
 - **team_send_message** — Send a message to a teammate by name. This delivers
   to their mailbox and wakes them up. Use "*" to broadcast to all.
-- **team_spawn_agent** — Create a new teammate when you need more help.
+- **team_spawn_agent** — Create a new teammate. Use the \`agent_type\` parameter to pick from the "Available Agent Types for Spawning" list above.
 - **team_task_create** — Add a task to the shared task board.
 - **team_task_update** — Update task status (e.g., mark completed).
 - **team_task_list** — View all tasks and their current status.

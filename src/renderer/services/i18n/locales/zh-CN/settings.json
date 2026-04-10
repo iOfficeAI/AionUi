@@ -402,6 +402,7 @@
   "channels.extension.selectPlaceholder": "请选择",
   "channels.extension.defaultDesc": "扩展渠道插件",
   "channels.mediaSendFailed": "发送 {{name}} 失败",
+  "channels.mediaPathNotAllowed": "无法发送 {{name}}，因为该文件不在允许发送的目录中",
   "display": "显示",
   "imageGeneration": "图像生成",
   "imageGenerationToggle": "启用图像生成工具",

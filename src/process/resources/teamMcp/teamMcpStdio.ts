@@ -165,7 +165,9 @@ The new agent will be created and added to the team. You can then assign tasks a
     agent_type: z
       .string()
       .optional()
-      .describe('Agent type/backend (default: same as leader). Currently supported: claude, codex, codebuddy.'),
+      .describe(
+        'Agent type/backend to use for the new teammate. Must be one of the types listed in "Available Agent Types for Spawning". Defaults to the leader type when omitted.'
+      ),
   },
   TEAM_MCP_PORT,
   TEAM_AGENT_SLOT_ID,

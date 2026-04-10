@@ -340,6 +340,7 @@ export class TeamSessionService {
     workspace: string;
     workspaceMode: TTeam['workspaceMode'];
     agents: TeamAgent[];
+    sessionMode?: string;
   }): Promise<TTeam> {
     const now = Date.now();
     const teamId = uuid(36);
@@ -354,6 +355,7 @@ export class TeamSessionService {
           workspace,
           agent,
           agents: params.agents,
+          inheritedSessionMode: params.sessionMode,
         });
         const conversation = await this.conversationService.createConversation(conversationParams);
         // Ensure teamId is in extra regardless of which factory function was used
@@ -375,6 +377,7 @@ export class TeamSessionService {
       workspaceMode: params.workspaceMode,
       leadAgentId: leadAgent.slotId,
       agents: agentsWithConversations,
+      sessionMode: params.sessionMode,
       createdAt: now,
       updatedAt: now,
     };
@@ -391,11 +394,29 @@ export class TeamSessionService {
   }
 
   async deleteTeam(id: string): Promise<void> {
+    // Kill all agent processes before disposing session and deleting data.
+    // This prevents orphan processes that keep running after the team is deleted.
+    const team = await this.repo.findById(id);
+    if (team) {
+      const killResults = await Promise.allSettled(
+        team.agents
+          .filter((agent) => agent.conversationId)
+          .map((agent) => {
+            this.workerTaskManager.kill(agent.conversationId, 'team_deleted');
+            return Promise.resolve();
+          })
+      );
+      killResults.forEach((r) => {
+        if (r.status === 'rejected') {
+          console.warn(`[TeamSessionService] Failed to kill agent process:`, r.reason);
+        }
+      });
+    }
+
     await this.sessions.get(id)?.dispose();
     this.sessions.delete(id);
 
     // Delete conversations owned by this team's agents
-    const team = await this.repo.findById(id);
     if (team) {
       const results = await Promise.allSettled(
         team.agents
@@ -419,14 +440,16 @@ export class TeamSessionService {
     if (!team) throw new Error(`Team "${teamId}" not found`);
 
     const workspace = this.resolveWorkspace(team.workspace);
-    // Inherit sessionMode from lead agent so spawned agents share the same permission level
-    const leadAgent = team.agents.find((a) => a.role === 'lead');
-    let inheritedSessionMode: string | undefined;
-    if (leadAgent?.conversationId) {
-      const leadConv = await this.conversationService.getConversation(leadAgent.conversationId);
-      const leadExtra = leadConv?.extra as Record<string, unknown> | undefined;
-      if (leadExtra?.sessionMode && typeof leadExtra.sessionMode === 'string') {
-        inheritedSessionMode = leadExtra.sessionMode;
+    // Inherit sessionMode: prefer persisted team.sessionMode, fallback to lead agent's conversation extra
+    let inheritedSessionMode: string | undefined = team.sessionMode;
+    if (!inheritedSessionMode) {
+      const leadAgent = team.agents.find((a) => a.role === 'lead');
+      if (leadAgent?.conversationId) {
+        const leadConv = await this.conversationService.getConversation(leadAgent.conversationId);
+        const leadExtra = leadConv?.extra as Record<string, unknown> | undefined;
+        if (leadExtra?.sessionMode && typeof leadExtra.sessionMode === 'string') {
+          inheritedSessionMode = leadExtra.sessionMode;
+        }
       }
     }
 
@@ -490,6 +513,10 @@ export class TeamSessionService {
     await this.repo.update(id, { name: trimmed, updatedAt: Date.now() });
   }
 
+  async setSessionMode(teamId: string, sessionMode: string): Promise<void> {
+    await this.repo.update(teamId, { sessionMode, updatedAt: Date.now() });
+  }
+
   async removeAgent(teamId: string, slotId: string): Promise<void> {
     const team = await this.repo.findById(teamId);
     if (!team) throw new Error(`Team "${teamId}" not found`);
@@ -511,13 +538,16 @@ export class TeamSessionService {
     if (!team) throw new Error(`Team "${teamId}" not found`);
     let session!: TeamSession;
     const spawnAgent = async (agentName: string, agentType?: string) => {
+      // Default to the leader's agent type instead of hardcoding 'claude'
+      const leadAgent = team.agents.find((a) => a.role === 'lead');
+      const resolvedType = agentType || leadAgent?.agentType || 'claude';
       const newAgent = await this.addAgent(teamId, {
         conversationId: '',
         role: 'teammate',
-        agentType: agentType || 'claude',
+        agentType: resolvedType,
         agentName,
         status: 'pending',
-        conversationType: this.resolveConversationType(agentType || 'claude') as 'acp',
+        conversationType: this.resolveConversationType(resolvedType) as 'acp',
       });
       // Inject team MCP stdio config into the new agent's conversation (with agent identity)
       const stdioConfig = session?.getStdioConfig(newAgent.slotId);

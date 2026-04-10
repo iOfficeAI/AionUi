@@ -9,6 +9,7 @@ export type TeammatePromptParams = {
   assignedTasks: TeamTask[];
   unreadMessages: MailboxMessage[];
   renamedAgents?: Map<string, string>;
+  teamWorkspace?: string;
 };
 
 function roleDescription(agentType: string): string {
@@ -49,7 +50,7 @@ function formatMessages(messages: MailboxMessage[], allAgents: TeamAgent[]): str
  * assignments via mailbox and uses MCP tools to communicate results back.
  */
 export function buildTeammatePrompt(params: TeammatePromptParams): string {
-  const { agent, lead, teammates, assignedTasks, unreadMessages, renamedAgents } = params;
+  const { agent, lead, teammates, assignedTasks, unreadMessages, renamedAgents, teamWorkspace } = params;
 
   const teammateNames =
     teammates.length === 0
@@ -61,6 +62,14 @@ export function buildTeammatePrompt(params: TeammatePromptParams): string {
           })
           .join(', ');
 
+  const workspaceSection = teamWorkspace
+    ? `\n\n## Workspaces
+- **Team workspace**: \`${teamWorkspace}\` — all project work (code, files, tests) happens here.
+- **Your working directory**: your private space for personal memory, notes, and experience logs. Not for project files.
+
+Always use the team workspace path for any project-related operations.`
+    : '';
+
   return `# You are a Team Member
 
 ## Your Identity
@@ -68,7 +77,7 @@ Name: ${agent.agentName}, Role: ${roleDescription(agent.agentType)}
 
 ## Your Team
 Lead: ${lead.agentName}
-Teammates: ${teammateNames}
+Teammates: ${teammateNames}${workspaceSection}
 
 ## Team Coordination Tools
 You MUST use the following \`team_*\` MCP tools for ALL team coordination.

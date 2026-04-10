@@ -331,6 +331,7 @@ const TeamPageContent: React.FC<TeamPageContentProps> = ({ team, onAddAgent, onR
 
   return (
     <TeamPermissionProvider
+      teamId={team.id}
       isLeadAgent={isLeadAgent}
       leadConversationId={leadConversationId}
       allConversationIds={allConversationIds}

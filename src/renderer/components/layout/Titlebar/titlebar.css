@@ -35,6 +35,23 @@
   padding-right: 12px;
 }
 
+/* Windows/Linux desktop: taller titlebar so 36px buttons have breathing room,
+   and a bit of left padding so the first button isn't glued to the window edge. */
+.app-titlebar--desktop:not(.app-titlebar--mac) {
+  height: 42px;
+  min-height: 42px;
+  padding-left: 16px;
+  /* Let the right-side toolbar stretch edge-to-edge so system window controls
+     (minimize/maximize/close) go full height like native Windows chrome. */
+  align-items: stretch;
+}
+
+/* Only the menu group stays vertically centered in the taller titlebar. */
+.app-titlebar--desktop:not(.app-titlebar--mac) .app-titlebar__menu,
+.app-titlebar--desktop:not(.app-titlebar--mac) .app-titlebar__brand {
+  align-self: center;
+}
+
 .app-titlebar__brand {
   font-weight: 600;
   font-size: 13px;
@@ -121,11 +138,38 @@
 }
 
 .app-titlebar__button:hover {
-  background-color: var(--bg-hover);
+  background-color: rgba(0, 0, 0, 0.08);
 }
 
 .app-titlebar__button:active {
-  background-color: var(--bg-active);
+  background-color: rgba(0, 0, 0, 0.14);
+}
+
+[data-theme='dark'] .app-titlebar__button:hover {
+  background-color: rgba(255, 255, 255, 0.1);
+}
+
+[data-theme='dark'] .app-titlebar__button:active {
+  background-color: rgba(255, 255, 255, 0.16);
+}
+
+.app-titlebar__button:disabled,
+.app-titlebar__button[disabled] {
+  opacity: 0.35;
+  cursor: default;
+  background-color: transparent;
+}
+
+/* Optical alignment: arrow icons have their visual weight pulled upward by
+   the V tip; nudge them down 1px to sit on the same centerline as the
+   sidebar rectangle icon (which has a solid, symmetric visual weight). */
+.app-titlebar__button--nav svg {
+  transform: translateY(1px);
+}
+
+.app-titlebar__button:disabled:hover,
+.app-titlebar__button[disabled]:hover {
+  background-color: transparent;
 }
 
 .app-titlebar__button--mobile {
@@ -142,12 +186,16 @@
 .app-window-controls {
   display: flex;
   align-items: stretch;
+  align-self: stretch;
   -webkit-app-region: no-drag;
 }
 
 .app-window-controls__button {
   width: 40px;
-  height: var(--titlebar-height);
+  /* Match the parent titlebar height so system buttons go edge-to-edge
+     like native Windows chrome. */
+  height: 100%;
+  align-self: stretch;
   border: none;
   background: transparent;
   color: var(--text-primary);

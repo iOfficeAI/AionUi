@@ -402,6 +402,7 @@
   "channels.extension.selectPlaceholder": "Lütfen seçin",
   "channels.extension.defaultDesc": "Kanal uzantısı eklentisi",
   "channels.mediaSendFailed": "{{name}} gönderilemedi",
+  "channels.mediaPathNotAllowed": "{{name}} dosyasi izin verilen gonderim dizinlerinin disinda oldugu icin gonderilemedi",
   "display": "Görünüm",
   "imageGeneration": "Görüntü Oluşturma",
   "imageGenerationToggle": "Görüntü oluşturma aracını etkinleştir",
