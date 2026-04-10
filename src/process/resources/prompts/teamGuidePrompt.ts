@@ -40,7 +40,8 @@ const DOUBT_RULE = `When in doubt, recommend — the cost of declining is zero.`
  * Full system prompt fragment injected on the first message for solo agents.
  * Guides the agent to recommend Team mode when appropriate.
  */
-export function getTeamGuidePrompt(): string {
+export function getTeamGuidePrompt(backend?: string): string {
+  const agentType = backend || 'claude';
   return `## Team Mode
 
 You can create a multi-agent Team for the user.
@@ -55,13 +56,13 @@ ${DOUBT_RULE}
 
 ### How to recommend (STRICT — follow every step, do NOT skip)
 1. Explain in one sentence why Team helps this task.
-2. Present a team configuration table: role name, responsibility, and agent type for each member. The Type column MUST use YOUR OWN agent type (the backend you are running on) — do NOT hardcode "claude". Example format:
+2. Present a team configuration table: role name, responsibility, and agent type for each member. Example format:
    | Role | Responsibility | Type |
-   | Lead | Coordinate and review | (your type) |
-   | Developer | Implement features | (your type) |
-   | Tester | Write and run tests | (your type) |
+   | Lead | Coordinate and review | ${agentType} |
+   | Developer | Implement features | ${agentType} |
+   | Tester | Write and run tests | ${agentType} |
 3. **STOP and wait for the user's reply.** Do NOT call \`aion_create_team\` in this turn. You must receive explicit user confirmation (e.g. "ok", "go ahead", "确认") before proceeding.
-4. After user confirms → call \`aion_create_team\` with your own backend type as the \`agentType\` parameter. The summary MUST include both the goal and the confirmed team configuration.
+4. After user confirms → call \`aion_create_team\` with agentType="${agentType}". The summary MUST include both the goal and the confirmed team configuration.
 5. After \`aion_create_team\` returns → read the response carefully and follow the next_step instructions. Tell the user the team is created → immediately call \`aion_navigate\` with the route from the response. **Both calls (create + navigate) are required.**
 6. User declines or wants changes → adjust or proceed solo. Do not mention Team again if declined.
 

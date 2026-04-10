@@ -208,6 +208,7 @@ describe('AcpAgentManager — first-message skill injection', () => {
       presetContext: 'You are helpful.',
       enabledSkills: ['pptx'],
       enableTeamGuide: true,
+      backend: 'claude',
     });
   });
 
@@ -225,6 +226,7 @@ describe('AcpAgentManager — first-message skill injection', () => {
       presetContext: 'Some rules',
       enabledSkills: ['pdf'],
       enableTeamGuide: false,
+      backend: 'opencode',
     });
   });
 

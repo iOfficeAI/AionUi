@@ -948,7 +948,7 @@ ${collectedResponses.join('\n')}`;
             if (this.options.presetContext) parts.push(this.options.presetContext);
             if (!isInTeam && shouldInjectTeamGuideMcp(this.options.backend)) {
               const { getTeamGuidePrompt } = await import('@process/resources/prompts/teamGuidePrompt');
-              parts.push(getTeamGuidePrompt());
+              parts.push(getTeamGuidePrompt(this.options.backend));
             }
             if (parts.length > 0) {
               contentToSend = `[Assistant Rules - You MUST follow these instructions]\n${parts.join('\n\n')}\n\n[User Request]\n${contentToSend}`;
@@ -959,6 +959,7 @@ ${collectedResponses.join('\n')}`;
               presetContext: this.options.presetContext,
               enabledSkills: this.options.enabledSkills,
               enableTeamGuide: !isInTeam && shouldInjectTeamGuideMcp(this.options.backend),
+              backend: this.options.backend,
             });
           }
         }
