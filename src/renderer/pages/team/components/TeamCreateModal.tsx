@@ -233,11 +233,6 @@ const TeamCreateModal: React.FC<Props> = ({ visible, onClose, onCreated }) => {
                   );
                 })}
               </div>
-              <span className='text-12px text-[var(--color-text-3)]'>
-                {t('team.create.supportedAgentsHint', {
-                  defaultValue: 'Currently supports Claude and Codex. More agents coming soon.',
-                })}
-              </span>
             </>
           )}
         </div>
