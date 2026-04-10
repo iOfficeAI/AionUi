@@ -1469,6 +1469,7 @@ const SendBox: React.FC<{
             <Input.TextArea
               autoFocus={!isMobile}
               disabled={disabled}
+              spellCheck={false}
               value={input}
               placeholder={placeholder}
               className={`${shouldUseHighlightOverlay ? 'sendbox-highlight-textarea ' : ''}pl-0 pr-0 !b-none focus:shadow-none m-0 !bg-transparent !focus:bg-transparent !hover:bg-transparent lh-[20px] !resize-none text-14px ${isMobile ? 'sendbox-input--mobile' : ''}`}
