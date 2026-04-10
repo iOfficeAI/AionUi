@@ -5,44 +5,120 @@
  */
 
 import { ipcBridge } from '@/common';
+import type { ConversationContextValue } from '@/renderer/hooks/context/ConversationContext';
 import { usePreviewContext } from '@/renderer/pages/conversation/Preview';
+import {
+  findNewOfficeFiles,
+  isOfficeAutoPreviewTriggerMessage,
+  useAutoPreviewOfficeFilesEnabled,
+} from '@/renderer/hooks/system/useAutoPreviewOfficeFilesEnabled';
 import { getFileTypeInfo } from '@/renderer/utils/file/fileType';
-import { useEffect } from 'react';
+import { useCallback, useEffect, useRef } from 'react';
+
+const OFFICE_SCAN_DEBOUNCE_MS = 1500;
 
 /**
  * Auto-opens a preview tab when a new .pptx/.docx/.xlsx file appears in the
- * workspace directory while this component is mounted (i.e. while the user is
- * watching the current conversation).
+ * workspace during the current conversation.
  *
- * Delegates detection to the main process via workspaceOfficeWatch IPC:
- * - On mount: starts a fs.watch on the workspace directory.
- * - Main process emits `fileAdded` only for office files that did not exist
- *   before the watcher started (new files, not pre-existing ones).
- * - On unmount (conversation switch / close): stops the watcher, so returning
- *   to an old conversation never replays past events.
+ * Instead of keeping a recursive fs watcher alive for the entire workspace,
+ * this hook performs a debounced Office-file scan only after conversation tool
+ * activity or turn completion. That avoids continuously watching large source
+ * trees such as repositories containing node_modules.
  */
-export const useAutoPreviewOfficeFiles = (workspace: string | undefined) => {
+export const useAutoPreviewOfficeFiles = (
+  conversation: Pick<ConversationContextValue, 'conversationId' | 'workspace'> | null
+) => {
+  const enabled = useAutoPreviewOfficeFilesEnabled();
   const { findPreviewTab, openPreview } = usePreviewContext();
+  const knownOfficeFilesRef = useRef<Set<string>>(new Set());
+  const scanTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const scanRequestIdRef = useRef(0);
+  const workspace = conversation?.workspace?.trim() ? conversation.workspace : undefined;
+  const conversationId = conversation?.conversationId;
+
+  const syncOfficeFiles = useCallback(
+    async (openNewFiles: boolean) => {
+      if (!enabled || !workspace || !conversationId) return;
+
+      const requestId = ++scanRequestIdRef.current;
+
+      try {
+        const currentFiles = await ipcBridge.workspaceOfficeWatch.scan.invoke({ workspace });
+        if (requestId !== scanRequestIdRef.current) return;
+
+        if (openNewFiles) {
+          const newFiles = findNewOfficeFiles(currentFiles, knownOfficeFilesRef.current);
+
+          for (const filePath of newFiles) {
+            const { contentType } = getFileTypeInfo(filePath);
+            const fileName = filePath.split(/[\\/]/).pop() ?? filePath;
+
+            if (!findPreviewTab(contentType, '', { filePath, fileName })) {
+              openPreview('', contentType, { filePath, fileName, title: fileName, workspace, editable: false });
+            }
+          }
+        }
+
+        knownOfficeFilesRef.current = new Set(currentFiles);
+      } catch {
+        // Ignore scan failures and keep current baseline unchanged.
+      }
+    },
+    [conversationId, enabled, findPreviewTab, openPreview, workspace]
+  );
+
+  const scheduleOfficeScan = useCallback(() => {
+    if (scanTimerRef.current) {
+      clearTimeout(scanTimerRef.current);
+    }
+
+    scanTimerRef.current = setTimeout(() => {
+      scanTimerRef.current = null;
+      void syncOfficeFiles(true);
+    }, OFFICE_SCAN_DEBOUNCE_MS);
+  }, [syncOfficeFiles]);
 
   useEffect(() => {
-    if (!workspace) return;
+    knownOfficeFilesRef.current = new Set();
+    scanRequestIdRef.current += 1;
 
-    ipcBridge.workspaceOfficeWatch.start.invoke({ workspace }).catch(() => {});
+    if (scanTimerRef.current) {
+      clearTimeout(scanTimerRef.current);
+      scanTimerRef.current = null;
+    }
 
-    const unsub = ipcBridge.workspaceOfficeWatch.fileAdded.on(({ filePath, workspace: ws }) => {
-      if (ws !== workspace) return;
+    if (!enabled || !workspace || !conversationId) {
+      return;
+    }
 
-      const { contentType } = getFileTypeInfo(filePath);
-      const fileName = filePath.split(/[\\/]/).pop() ?? filePath;
+    void syncOfficeFiles(false);
 
-      if (!findPreviewTab(contentType, '', { filePath, fileName })) {
-        openPreview('', contentType, { filePath, fileName, title: fileName, workspace, editable: false });
-      }
+    const unsubscribeResponse = ipcBridge.conversation.responseStream.on((message) => {
+      if (message.conversation_id !== conversationId) return;
+      if (!isOfficeAutoPreviewTriggerMessage(message)) return;
+
+      scheduleOfficeScan();
+    });
+
+    const unsubscribeTurnCompleted = ipcBridge.conversation.turnCompleted.on((event) => {
+      if (event.sessionId !== conversationId) return;
+      if (event.status !== 'finished') return;
+
+      scheduleOfficeScan();
     });
 
     return () => {
-      unsub();
-      ipcBridge.workspaceOfficeWatch.stop.invoke({ workspace }).catch(() => {});
+      unsubscribeResponse();
+      unsubscribeTurnCompleted();
+
+      if (scanTimerRef.current) {
+        clearTimeout(scanTimerRef.current);
+        scanTimerRef.current = null;
+      }
+
+      knownOfficeFilesRef.current.clear();
+      scanRequestIdRef.current += 1;
     };
-  }, [workspace, findPreviewTab, openPreview]);
+  }, [conversationId, enabled, scheduleOfficeScan, syncOfficeFiles, workspace]);
 };

@@ -82,11 +82,13 @@ const mockGetNotificationEnabled = vi.fn();
 const mockGetCronNotificationEnabled = vi.fn();
 const mockGetSaveUploadToWorkspace = vi.fn();
 const mockGetCommandQueueEnabled = vi.fn();
+const mockGetAutoPreviewOfficeFiles = vi.fn();
 const mockSetCloseToTray = vi.fn();
 const mockSetNotificationEnabled = vi.fn();
 const mockSetCronNotificationEnabled = vi.fn();
 const mockSetSaveUploadToWorkspace = vi.fn();
 const mockSetCommandQueueEnabled = vi.fn();
+const mockSetAutoPreviewOfficeFiles = vi.fn();
 const mockOpenFile = vi.fn();
 const mockShowOpen = vi.fn();
 const mockUpdateSystemInfo = vi.fn();
@@ -126,6 +128,9 @@ vi.mock('@/common', () => ({
       getCommandQueueEnabled: {
         invoke: (...args: any[]) => mockGetCommandQueueEnabled(...args),
       },
+      getAutoPreviewOfficeFiles: {
+        invoke: (...args: any[]) => mockGetAutoPreviewOfficeFiles(...args),
+      },
       setCloseToTray: { invoke: (...args: any[]) => mockSetCloseToTray(...args) },
       setNotificationEnabled: { invoke: (...args: any[]) => mockSetNotificationEnabled(...args) },
       setCronNotificationEnabled: {
@@ -136,6 +141,9 @@ vi.mock('@/common', () => ({
       },
       setCommandQueueEnabled: {
         invoke: (...args: any[]) => mockSetCommandQueueEnabled(...args),
+      },
+      setAutoPreviewOfficeFiles: {
+        invoke: (...args: any[]) => mockSetAutoPreviewOfficeFiles(...args),
       },
     },
     dialog: {
@@ -242,11 +250,13 @@ describe('SystemModalContent', () => {
     mockGetCronNotificationEnabled.mockResolvedValue(false);
     mockGetSaveUploadToWorkspace.mockResolvedValue(false);
     mockGetCommandQueueEnabled.mockResolvedValue(false);
+    mockGetAutoPreviewOfficeFiles.mockResolvedValue(true);
     mockSetCloseToTray.mockResolvedValue(undefined);
     mockSetNotificationEnabled.mockResolvedValue(undefined);
     mockSetCronNotificationEnabled.mockResolvedValue(undefined);
     mockSetSaveUploadToWorkspace.mockResolvedValue(undefined);
     mockSetCommandQueueEnabled.mockResolvedValue(undefined);
+    mockSetAutoPreviewOfficeFiles.mockResolvedValue(undefined);
   });
 
   it('should render system settings with language switcher and preferences', async () => {
@@ -262,6 +272,8 @@ describe('SystemModalContent', () => {
     expect(screen.getByText('settings.saveUploadToWorkspace')).toBeInTheDocument();
     expect(screen.getByText('settings.commandQueueEnabled')).toBeInTheDocument();
     expect(screen.getByText('settings.commandQueueEnabledDesc')).toBeInTheDocument();
+    expect(screen.getByText('settings.autoPreviewOfficeFiles')).toBeInTheDocument();
+    expect(screen.getByText('settings.autoPreviewOfficeFilesDesc')).toBeInTheDocument();
   });
 
   it('should toggle command queue when the switch is clicked', async () => {
