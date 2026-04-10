@@ -36,6 +36,21 @@ export const ARCO_COLLAPSE_HEADER = '.arco-collapse-item-header';
 export const ARCO_TABS_HEADER_TITLE = '.arco-tabs-header-title';
 export const ARCO_MESSAGE_SUCCESS = '.arco-message-success';
 
+// ── Guid page ───────────────────────────────────────────────────────────────
+
+/** Guid page chat input textarea. */
+export const GUID_INPUT = '.guid-input-card-shell textarea';
+
+// ── Conversation page ───────────────────────────────────────────────────────
+
+/** Agent status message badge (connecting / session_active / error). */
+export const AGENT_STATUS_MESSAGE = '.agent-status-message';
+
+// ── Sidebar ─────────────────────────────────────────────────────────────────
+
+/** New chat trigger button in sidebar. */
+export const NEW_CHAT_TRIGGER = 'div.newChatTrigger';
+
 // ── Agent pill bar ───────────────────────────────────────────────────────────
 
 /** Match an agent logo by its alt text (e.g. "claude logo"). */
@@ -53,6 +68,9 @@ export function agentPillByBackend(backend: string): string {
 
 /** Match currently selected agent pill. */
 export const AGENT_PILL_SELECTED = `${AGENT_PILL}[data-agent-selected="true"]`;
+
+/** Model selector button on the guid page. */
+export const MODEL_SELECTOR_BTN = 'button.sendbox-model-btn.guid-config-btn';
 
 // ── Channel list ─────────────────────────────────────────────────────────────
 

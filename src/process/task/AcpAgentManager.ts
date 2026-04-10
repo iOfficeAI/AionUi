@@ -29,9 +29,6 @@ import {
   type CodexSandboxMode,
   writeCodexSandboxMode,
 } from '@process/task/codexConfig';
-/** Enable ACP performance diagnostics via ACP_PERF=1 */
-const ACP_PERF_LOG = process.env.ACP_PERF === '1';
-
 import BaseAgentManager from './BaseAgentManager';
 import { IpcAgentEventEmitter } from './IpcAgentEventEmitter';
 import { hasCronCommands } from './CronCommandDetector';
@@ -457,10 +454,9 @@ class AcpAgentManager extends BaseAgentManager<AcpAgentManagerData, AcpPermissio
               const dbDuration = Date.now() - dbStart;
 
               if (transformDuration > 5 || dbDuration > 5) {
-                if (ACP_PERF_LOG)
-                  console.log(
-                    `[ACP-PERF] stream: transform ${transformDuration}ms, db ${dbDuration}ms type=${message.type}`
-                  );
+                console.log(
+                  `[ACP-PERF] stream: transform ${transformDuration}ms, db ${dbDuration}ms type=${message.type}`
+                );
               }
 
               // Track streaming content for cron detection when turn ends
@@ -498,10 +494,9 @@ class AcpAgentManager extends BaseAgentManager<AcpAgentManagerData, AcpPermissio
 
           const totalDuration = Date.now() - pipelineStart;
           if (totalDuration > 10) {
-            if (ACP_PERF_LOG)
-              console.log(
-                `[ACP-PERF] stream: onStreamEvent pipeline ${totalDuration}ms (emit=${emitDuration}ms) type=${message.type}`
-              );
+            console.log(
+              `[ACP-PERF] stream: onStreamEvent pipeline ${totalDuration}ms (emit=${emitDuration}ms) type=${message.type}`
+            );
           }
         },
         onSignalEvent: async (v) => {
@@ -790,10 +785,9 @@ class AcpAgentManager extends BaseAgentManager<AcpAgentManagerData, AcpPermissio
       }
       const agentSendStart = Date.now();
       const result = await this.agent.sendMessage(data);
-      if (ACP_PERF_LOG)
-        console.log(
-          `[ACP-PERF] manager: agent.sendMessage completed ${Date.now() - agentSendStart}ms (total manager.sendMessage: ${Date.now() - managerSendStart}ms)`
-        );
+      console.log(
+        `[ACP-PERF] manager: agent.sendMessage completed ${Date.now() - agentSendStart}ms (total manager.sendMessage: ${Date.now() - managerSendStart}ms)`
+      );
       if (!result.success) {
         this.clearBusyState();
       }
