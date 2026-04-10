@@ -43,6 +43,7 @@ import { extractAndStripThinkTags } from './ThinkTagDetector';
 import type { AgentKillReason } from './IAgentManager';
 import { hasNativeSkillSupport } from '@/common/types/acpTypes';
 import { prepareFirstMessageWithSkillsIndex } from '@process/task/agentUtils';
+import { shouldInjectTeamGuideMcp } from '@process/resources/prompts/teamGuidePrompt';
 import { extractTextFromMessage, processCronInMessage } from './MessageMiddleware';
 import { ConversationTurnCompletionService } from './ConversationTurnCompletionService';
 
@@ -939,17 +940,25 @@ ${collectedResponses.join('\n')}`;
         // 因此自定义工作空间或不支持原生 skill 发现的 backend 都需要通过 prompt 注入 skills。
         // So custom workspaces or backends without native skill discovery need prompt injection.
         if (this.isFirstMessage) {
+          const isInTeam = Boolean((this.options as unknown as Record<string, unknown>).teamMcpStdioConfig);
           const useNativeSkills = hasNativeSkillSupport(this.options.backend) && !this.options.customWorkspace;
           if (useNativeSkills) {
-            // Native skill discovery via workspace symlinks — only inject preset rules
-            if (this.options.presetContext) {
-              contentToSend = `[Assistant Rules - You MUST follow these instructions]\n${this.options.presetContext}\n\n[User Request]\n${contentToSend}`;
+            // Native skill discovery via workspace symlinks — inject preset rules + team guide
+            const parts: string[] = [];
+            if (this.options.presetContext) parts.push(this.options.presetContext);
+            if (!isInTeam && shouldInjectTeamGuideMcp(this.options.backend)) {
+              const { getTeamGuidePrompt } = await import('@process/resources/prompts/teamGuidePrompt');
+              parts.push(getTeamGuidePrompt());
+            }
+            if (parts.length > 0) {
+              contentToSend = `[Assistant Rules - You MUST follow these instructions]\n${parts.join('\n\n')}\n\n[User Request]\n${contentToSend}`;
             }
           } else {
             // Custom workspace or no native support — inject rules + skills via prompt
             contentToSend = await prepareFirstMessageWithSkillsIndex(contentToSend, {
               presetContext: this.options.presetContext,
               enabledSkills: this.options.enabledSkills,
+              enableTeamGuide: !isInTeam && shouldInjectTeamGuideMcp(this.options.backend),
             });
           }
         }

@@ -1,6 +1,6 @@
 // tests/unit/team-SqliteTeamRepository.test.ts
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
-import { initSchema } from '@process/services/database/schema';
+import { CURRENT_DB_VERSION, initSchema } from '@process/services/database/schema';
 import { runMigrations } from '@process/services/database/migrations';
 import { BetterSqlite3Driver } from '@process/services/database/drivers/BetterSqlite3Driver';
 import { SqliteTeamRepository } from '@process/team/repository/SqliteTeamRepository';
@@ -50,7 +50,7 @@ describeOrSkip('SqliteTeamRepository', () => {
   beforeEach(() => {
     driver = new BetterSqlite3Driver(':memory:');
     initSchema(driver);
-    runMigrations(driver, 0, 20);
+    runMigrations(driver, 0, CURRENT_DB_VERSION);
     // Insert a test user to satisfy the FOREIGN KEY constraint on teams.user_id
     driver
       .prepare(

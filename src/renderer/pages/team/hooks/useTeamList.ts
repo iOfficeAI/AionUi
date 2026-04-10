@@ -2,7 +2,7 @@
 import { ipcBridge } from '@/common';
 import { useAuth } from '@renderer/hooks/context/AuthContext';
 import type { TTeam } from '@/common/types/teamTypes';
-import { useCallback } from 'react';
+import { useCallback, useEffect } from 'react';
 import useSWR from 'swr';
 
 export function useTeamList() {
@@ -14,6 +14,13 @@ export function useTeamList() {
     () => ipcBridge.team.list.invoke({ userId }),
     { revalidateOnFocus: false }
   );
+
+  // Refresh list when backend creates/removes a team (e.g. via MCP)
+  useEffect(() => {
+    return ipcBridge.team.listChanged.on(() => {
+      void mutate();
+    });
+  }, [mutate]);
 
   const removeTeam = useCallback(
     async (id: string) => {

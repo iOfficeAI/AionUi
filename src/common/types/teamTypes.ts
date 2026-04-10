@@ -33,6 +33,8 @@ export type TTeam = {
   workspaceMode: WorkspaceMode;
   leadAgentId: string;
   agents: TeamAgent[];
+  /** Current session permission mode (e.g. 'plan', 'auto'). Persisted so newly spawned agents inherit it. */
+  sessionMode?: string;
   createdAt: number;
   updatedAt: number;
 };
@@ -63,4 +65,10 @@ export type ITeamAgentRenamedEvent = {
   slotId: string;
   oldName: string;
   newName: string;
+};
+
+/** IPC event pushed to renderer when the team list changes (created/removed) */
+export type ITeamListChangedEvent = {
+  teamId: string;
+  action: 'created' | 'removed';
 };
