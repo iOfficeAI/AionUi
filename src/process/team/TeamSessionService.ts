@@ -521,14 +521,15 @@ export class TeamSessionService {
     const team = await this.repo.findById(teamId);
     if (!team) throw new Error(`Team "${teamId}" not found`);
 
-    // If there's an active session, clean up in-memory state first
+    // removeAgent handles: kill process + clear in-memory state + persist via onAgentRemoved callback
     const session = this.sessions.get(teamId);
     if (session) {
       session.removeAgent(slotId);
+    } else {
+      // No active session — update DB directly
+      const updatedAgents = team.agents.filter((a) => a.slotId !== slotId);
+      await this.repo.update(teamId, { agents: updatedAgents, updatedAt: Date.now() });
     }
-
-    const updatedAgents = team.agents.filter((a) => a.slotId !== slotId);
-    await this.repo.update(teamId, { agents: updatedAgents, updatedAt: Date.now() });
   }
 
   async getOrStartSession(teamId: string): Promise<TeamSession> {

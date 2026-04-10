@@ -195,6 +195,7 @@ function makeAgent(overrides: Partial<TeamAgent> = {}): TeamAgent {
 function makeWorkerTaskManager(sendMessageFn = vi.fn().mockResolvedValue(undefined)): IWorkerTaskManager {
   return {
     getOrBuildTask: vi.fn().mockResolvedValue({ sendMessage: sendMessageFn }),
+    kill: vi.fn(),
   } as unknown as IWorkerTaskManager;
 }
 

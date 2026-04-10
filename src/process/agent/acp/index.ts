@@ -1224,13 +1224,17 @@ export class AcpAgent {
    * Notify frontend and clean up internal state
    */
   private handleDisconnect(error: { code: number | null; signal: NodeJS.Signals | null }): void {
-    // Emit finish signal to reset UI loading state
+    // Emit finish signal to reset UI loading state (preserving single-chat behavior).
+    // The agentCrash flag in data lets TeammateManager distinguish a crash from a normal turn end.
     if (this.onSignalEvent) {
       this.onSignalEvent({
         type: 'finish',
         conversation_id: this.id,
         msg_id: uuid(),
-        data: null,
+        data: {
+          error: `Process exited unexpectedly (code: ${error.code}, signal: ${error.signal})`,
+          agentCrash: true,
+        },
       });
     }
 

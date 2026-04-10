@@ -43,6 +43,9 @@ export class TeamSession extends EventEmitter {
       workerTaskManager,
       spawnAgent,
       teamWorkspace: team.workspace || undefined,
+      onAgentRemoved: (teamId, agents) => {
+        void this.repo.update(teamId, { agents, updatedAt: Date.now() });
+      },
     });
 
     // Create MCP server for team coordination tools
@@ -57,8 +60,8 @@ export class TeamSession extends EventEmitter {
         void this.repo.update(team.id, { agents: this.teammateManager.getAgents(), updatedAt: Date.now() });
       },
       removeAgent: (slotId: string) => {
+        // removeAgent already persists via onAgentRemoved callback
         this.teammateManager.removeAgent(slotId);
-        void this.repo.update(team.id, { agents: this.teammateManager.getAgents(), updatedAt: Date.now() });
       },
       wakeAgent: (slotId: string) => this.teammateManager.wake(slotId),
     });
