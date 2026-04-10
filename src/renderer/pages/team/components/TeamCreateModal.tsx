@@ -1,7 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { Modal, Button, Input, Message, Tooltip } from '@arco-design/web-react';
+import { Modal, Button, Input, Message } from '@arco-design/web-react';
 import type { RefInputType } from '@arco-design/web-react/es/Input/interface';
-import { FolderOpen, Info, Close, Robot } from '@icon-park/react';
+import { FolderOpen, Close, Robot } from '@icon-park/react';
 import { useTranslation } from 'react-i18next';
 import { ipcBridge } from '@/common';
 import type { TTeam, TeamAgent } from '@/common/types/teamTypes';
@@ -144,20 +144,10 @@ const TeamCreateModal: React.FC<Props> = ({ visible, onClose, onCreated }) => {
 
         {/* Team Leader (dispatch agent) */}
         <div className='flex flex-col gap-6px'>
-          <div className='flex items-center justify-between'>
-            <label className='text-sm text-[var(--color-text-2)] font-medium'>
-              {t('team.create.step.dispatch', { defaultValue: 'Team Leader' })}
-            </label>
-            <Tooltip
-              content={t('team.create.supportedAgentsHint', {
-                defaultValue: 'Currently supports Claude and Codex. More agents coming soon.',
-              })}
-              position='top'
-            >
-              <Info theme='outline' size='14' fill='var(--color-text-4)' className='cursor-default' />
-            </Tooltip>
-          </div>
-          <span className='text-12px text-[var(--color-text-4)]'>
+          <label className='text-sm text-[var(--color-text-2)] font-medium'>
+            {t('team.create.step.dispatch', { defaultValue: 'Team Leader' })}
+          </label>
+          <span className='text-12px text-[var(--color-text-3)]'>
             {t('team.create.leaderDesc', {
               defaultValue: 'Understands your goals and coordinates agents to complete tasks',
             })}
@@ -167,31 +157,38 @@ const TeamCreateModal: React.FC<Props> = ({ visible, onClose, onCreated }) => {
               {t('team.create.noSupportedAgents', { defaultValue: 'No supported agents installed' })}
             </div>
           ) : (
-            <div
-              className='grid gap-8px overflow-y-auto'
-              style={{ gridTemplateColumns: 'repeat(5, 1fr)', maxHeight: 290 }}
-            >
-              {allAgents.map((agent) => {
-                const key = agentKey(agent);
-                const isSelected = dispatchAgentKey === key;
-                return (
-                  <div
-                    key={key}
-                    onClick={() => setDispatchAgentKey(isSelected ? undefined : key)}
-                    className={`flex flex-col items-center gap-6px px-8px py-10px rd-8px cursor-pointer transition-all border ${
-                      isSelected
-                        ? 'border-[var(--color-primary-6)] bg-[var(--color-primary-light-1)]'
-                        : 'border-transparent bg-fill-2 hover:bg-fill-3'
-                    }`}
-                  >
-                    <AgentCardIcon agent={agent} />
-                    <span className='text-12px text-[var(--color-text-1)] text-center leading-16px w-full truncate'>
-                      {agent.name}
-                    </span>
-                  </div>
-                );
-              })}
-            </div>
+            <>
+              <div
+                className='grid gap-8px overflow-y-auto'
+                style={{ gridTemplateColumns: 'repeat(5, 1fr)', maxHeight: 290 }}
+              >
+                {allAgents.map((agent) => {
+                  const key = agentKey(agent);
+                  const isSelected = dispatchAgentKey === key;
+                  return (
+                    <div
+                      key={key}
+                      onClick={() => setDispatchAgentKey(isSelected ? undefined : key)}
+                      className={`flex flex-col items-center gap-6px px-8px py-10px rd-8px cursor-pointer transition-all border ${
+                        isSelected
+                          ? 'border-[var(--color-primary-6)] bg-[var(--color-primary-light-1)]'
+                          : 'border-transparent bg-fill-2 hover:bg-fill-3'
+                      }`}
+                    >
+                      <AgentCardIcon agent={agent} />
+                      <span className='text-12px text-[var(--color-text-1)] text-center leading-16px w-full truncate'>
+                        {agent.name}
+                      </span>
+                    </div>
+                  );
+                })}
+              </div>
+              <span className='text-12px text-[var(--color-text-4)]'>
+                {t('team.create.supportedAgentsHint', {
+                  defaultValue: 'Currently supports Claude and Codex. More agents coming soon.',
+                })}
+              </span>
+            </>
           )}
         </div>
 
