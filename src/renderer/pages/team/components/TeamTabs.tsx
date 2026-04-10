@@ -134,7 +134,7 @@ const TeamTabView: React.FC<TeamTabViewProps> = ({
       )}
       {isLead && (
         <span className='text-10px px-4px py-1px rd-4px bg-[var(--color-primary-1)] text-[var(--color-primary-6)] shrink-0'>
-          Leader
+          Lead
         </span>
       )}
       {!editing && onRename && (
