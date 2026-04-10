@@ -402,6 +402,7 @@
   "channels.extension.selectPlaceholder": "Please select",
   "channels.extension.defaultDesc": "Extension channel plugin",
   "channels.mediaSendFailed": "Failed to send {{name}}",
+  "channels.mediaPathNotAllowed": "Couldn't send {{name}} because the file is outside the allowed send directories",
   "display": "Display",
   "imageGeneration": "Image Generation",
   "imageGenerationToggle": "Enable image generation tool",
