@@ -46,6 +46,8 @@
       "subAgents": "Sub Agents",
       "workspace": "Workspace"
     },
+    "nameRequired": "Takım adı girin",
+    "leaderRequired": "Takım lideri seçin",
     "selectFolder": "Klasör seç",
     "recentLabel": "Son kullanılan",
     "chooseDifferentFolder": "Farklı klasör seç",

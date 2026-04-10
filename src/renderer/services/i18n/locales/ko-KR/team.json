@@ -46,6 +46,8 @@
       "subAgents": "Sub Agents",
       "workspace": "Workspace"
     },
+    "nameRequired": "팀 이름을 입력하세요",
+    "leaderRequired": "팀 리더를 선택하세요",
     "selectFolder": "폴더 선택",
     "recentLabel": "최근 사용",
     "chooseDifferentFolder": "다른 폴더 선택",

@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { Modal, Button, Input, Message } from '@arco-design/web-react';
+import { Modal, Button, Input, Message, Tooltip } from '@arco-design/web-react';
 import type { RefInputType } from '@arco-design/web-react/es/Input/interface';
 import { FolderOpen, Close, Robot, Folder, FolderPlus, Check, Down } from '@icon-park/react';
 import { useTranslation } from 'react-i18next';
@@ -225,7 +225,7 @@ const TeamCreateModal: React.FC<Props> = ({ visible, onClose, onCreated }) => {
                   );
                 })}
               </div>
-              <span className='text-12px text-[var(--color-text-4)]'>
+              <span className='text-12px text-[var(--color-text-3)]'>
                 {t('team.create.supportedAgentsHint', {
                   defaultValue: 'Currently supports Claude and Codex. More agents coming soon.',
                 })}
@@ -261,7 +261,7 @@ const TeamCreateModal: React.FC<Props> = ({ visible, onClose, onCreated }) => {
                       <span className='text-11px text-[var(--color-text-4)] truncate leading-16px'>{workspace}</span>
                     </div>
                   ) : (
-                    <span className='text-sm text-[var(--color-text-4)]'>
+                    <span className='text-sm text-[var(--color-text-3)]'>
                       {t('team.create.selectFolder', { defaultValue: 'Select folder' })}
                     </span>
                   )}
@@ -337,9 +337,21 @@ const TeamCreateModal: React.FC<Props> = ({ visible, onClose, onCreated }) => {
 
         {/* Footer */}
         <div className='flex justify-end pt-4px'>
-          <Button type='primary' loading={loading} disabled={!canCreate} onClick={handleCreate}>
-            {t('team.create.confirm', { defaultValue: 'Create Team' })}
-          </Button>
+          <Tooltip
+            disabled={canCreate}
+            content={
+              !name.trim()
+                ? t('team.create.nameRequired', { defaultValue: 'Please enter a team name' })
+                : t('team.create.leaderRequired', { defaultValue: 'Please select a team leader' })
+            }
+            position='top'
+          >
+            <span style={{ display: 'inline-block' }}>
+              <Button type='primary' loading={loading} disabled={!canCreate} onClick={handleCreate}>
+                {t('team.create.confirm', { defaultValue: 'Create Team' })}
+              </Button>
+            </span>
+          </Tooltip>
         </div>
       </div>
     </Modal>

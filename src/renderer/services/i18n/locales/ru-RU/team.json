@@ -46,6 +46,8 @@
       "subAgents": "Подагенты",
       "workspace": "Рабочая область"
     },
+    "nameRequired": "Введите название команды",
+    "leaderRequired": "Выберите лидера команды",
     "selectFolder": "Выбрать папку",
     "recentLabel": "Недавние",
     "chooseDifferentFolder": "Выбрать другую папку",

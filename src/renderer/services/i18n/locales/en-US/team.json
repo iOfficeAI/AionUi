@@ -46,6 +46,8 @@
       "subAgents": "Sub Agents",
       "workspace": "Workspace"
     },
+    "nameRequired": "Please enter a team name",
+    "leaderRequired": "Please select a team leader",
     "selectFolder": "Select folder",
     "recentLabel": "Recent",
     "chooseDifferentFolder": "Choose a different folder",

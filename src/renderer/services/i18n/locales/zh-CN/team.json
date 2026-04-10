@@ -46,6 +46,8 @@
       "subAgents": "子 Agent",
       "workspace": "工作空间"
     },
+    "nameRequired": "请输入团队名称",
+    "leaderRequired": "请选择团队 Leader",
     "selectFolder": "选择工作目录",
     "recentLabel": "最近使用",
     "chooseDifferentFolder": "选择其他目录",

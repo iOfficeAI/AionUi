@@ -46,6 +46,8 @@
       "subAgents": "Sub Agents",
       "workspace": "Workspace"
     },
+    "nameRequired": "請輸入團隊名稱",
+    "leaderRequired": "請選擇團隊 Leader",
     "selectFolder": "選擇工作目錄",
     "recentLabel": "最近使用",
     "chooseDifferentFolder": "選擇其他目錄",
