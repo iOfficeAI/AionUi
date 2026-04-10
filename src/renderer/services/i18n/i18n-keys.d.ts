@@ -1713,7 +1713,6 @@ export type I18nKey =
   | 'team.create.confirm'
   | 'team.create.dispatchAgentPlaceholder'
   | 'team.create.error'
-  | 'team.create.leaderDesc'
   | 'team.create.namePlaceholder'
   | 'team.create.noSupportedAgents'
   | 'team.create.step.dispatch'
