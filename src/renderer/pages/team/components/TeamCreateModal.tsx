@@ -51,7 +51,8 @@ const AgentCardIcon: React.FC<{ agent: AvailableAgent }> = ({ agent }) => {
   const avatarImage = agent.avatar ? CUSTOM_AVATAR_IMAGE_MAP[agent.avatar] : undefined;
   const isEmoji = agent.avatar && !avatarImage && !agent.avatar.endsWith('.svg');
 
-  if (avatarImage) return <img src={avatarImage} alt={agent.name} style={{ width: 32, height: 32, objectFit: 'contain' }} />;
+  if (avatarImage)
+    return <img src={avatarImage} alt={agent.name} style={{ width: 32, height: 32, objectFit: 'contain' }} />;
   if (isEmoji) return <span style={{ fontSize: 24, lineHeight: '32px' }}>{agent.avatar}</span>;
   if (logo) return <img src={logo} alt={agent.name} style={{ width: 32, height: 32, objectFit: 'contain' }} />;
   return <Robot size='32' />;
@@ -202,7 +203,7 @@ const TeamCreateModal: React.FC<Props> = ({ visible, onClose, onCreated }) => {
             <div className='flex flex-col gap-8px'>
               <span className='text-12px text-[var(--color-text-3)]'>
                 {t('team.create.leaderDesc', {
-                  defaultValue: 'Understands your goals and coordinates agents to complete tasks',
+                  defaultValue: 'Receives your instructions, breaks down the task, and assigns work to team agents',
                 })}
               </span>
               {allAgents.length === 0 ? (
@@ -210,10 +211,7 @@ const TeamCreateModal: React.FC<Props> = ({ visible, onClose, onCreated }) => {
                   {t('team.create.noSupportedAgents', { defaultValue: 'No supported agents installed' })}
                 </div>
               ) : (
-                <div
-                  className='grid gap-8px'
-                  style={{ gridTemplateColumns: 'repeat(5, 1fr)' }}
-                >
+                <div className='grid gap-8px' style={{ gridTemplateColumns: 'repeat(5, 1fr)' }}>
                   {allAgents.map((agent) => {
                     const key = agentKey(agent);
                     const isSelected = dispatchAgentKey === key;
@@ -244,7 +242,7 @@ const TeamCreateModal: React.FC<Props> = ({ visible, onClose, onCreated }) => {
             label={
               <>
                 {t('team.create.step.workspace', { defaultValue: 'Workspace' })}
-                <span className='ml-4px text-[var(--color-text-4)] font-normal text-xs'>
+                <span className='ml-4px text-[var(--color-text-3)] font-normal text-xs'>
                   {t('common.optional', { defaultValue: '(optional)' })}
                 </span>
               </>
@@ -254,7 +252,10 @@ const TeamCreateModal: React.FC<Props> = ({ visible, onClose, onCreated }) => {
               <div className='relative' ref={wsTriggerRef}>
                 <div
                   onClick={() => {
-                    if (recentWorkspaces.length === 0) { handleBrowseWorkspace(); return; }
+                    if (recentWorkspaces.length === 0) {
+                      handleBrowseWorkspace();
+                      return;
+                    }
                     if (!wsDropdownVisible && wsTriggerRef.current) {
                       const rect = wsTriggerRef.current.getBoundingClientRect();
                       setWsDropdownPos({ top: rect.bottom + 4, left: rect.left, width: rect.width });
@@ -299,7 +300,13 @@ const TeamCreateModal: React.FC<Props> = ({ visible, onClose, onCreated }) => {
 
                 {wsDropdownVisible && (
                   <div
-                    style={{ position: 'fixed', top: wsDropdownPos.top, left: wsDropdownPos.left, width: wsDropdownPos.width, zIndex: 10002 }}
+                    style={{
+                      position: 'fixed',
+                      top: wsDropdownPos.top,
+                      left: wsDropdownPos.left,
+                      width: wsDropdownPos.width,
+                      zIndex: 10002,
+                    }}
                     className='bg-[var(--color-bg-2)] rd-8px overflow-hidden shadow-lg border border-[var(--color-border-1)] py-4px'
                   >
                     {recentWorkspaces.length > 0 && (

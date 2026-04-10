@@ -132,11 +132,7 @@ const TeamTabView: React.FC<TeamTabViewProps> = ({
           {agentName}
         </span>
       )}
-      {isLead && (
-        <span className='text-10px px-4px py-1px rd-4px bg-[var(--color-primary-1)] text-[var(--color-primary-6)] shrink-0'>
-          Lead
-        </span>
-      )}
+      <AgentStatusBadge status={status} />
       {!editing && onRename && (
         <span
           className='opacity-0 group-hover:opacity-60 hover:!opacity-100 transition-opacity duration-150 shrink-0 flex items-center'
@@ -145,7 +141,6 @@ const TeamTabView: React.FC<TeamTabViewProps> = ({
           <Edit theme='outline' size='12' fill='currentColor' />
         </span>
       )}
-      <AgentStatusBadge status={status} />
     </div>
   );
 };
