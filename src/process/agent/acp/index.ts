@@ -722,14 +722,8 @@ export class AcpAgent {
       // The full team guide is only in the first message; this keeps it active.
       // Only inject for solo agents — team agents lack the aion_create_team tool.
       if (!this.extra.teamMcpStdioConfig && TEAM_GUIDE_ALLOWED_BACKENDS.has(this.extra.backend)) {
-        processedContent =
-          `<system-reminder>\n` +
-          `If this request would benefit from a multi-agent Team (building, creating, developing, complex analysis), ` +
-          `propose a team configuration and ask the user to confirm before calling aion_create_team. ` +
-          `After aion_create_team succeeds, you MUST call aion_navigate with the returned route to take the user to the team page. ` +
-          `For simple tasks (Q&A, translation, single fixes), just answer directly — do NOT mention Team at all.\n` +
-          `</system-reminder>\n\n` +
-          processedContent;
+        const { getTeamGuideReminder } = await import('@process/resources/prompts/teamGuidePrompt');
+        processedContent = `<system-reminder>\n${getTeamGuideReminder()}\n</system-reminder>\n\n` + processedContent;
       }
 
       // Re-read timeout config before each prompt so changes take effect immediately

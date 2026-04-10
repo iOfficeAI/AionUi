@@ -15,6 +15,7 @@ import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
 import { z } from 'zod';
 import * as net from 'node:net';
+import { getCreateTeamToolDescription } from '@process/resources/prompts/teamGuidePrompt';
 
 const AION_MCP_TOKEN = process.env.AION_MCP_TOKEN || undefined;
 process.stderr.write(
@@ -124,20 +125,7 @@ const server = new McpServer({ name: 'aionui-team-guide', version: '1.0.0' }, { 
 createAionTool(
   server,
   'aion_create_team',
-  `Create a multi-agent Team to handle complex tasks collaboratively.
-
-WHEN TO USE: Any task where a team produces better results or higher efficiency than working solo — building projects, features, tools, games, websites, or anything benefiting from parallel work and role specialization (dev + test + review). Do NOT use for simple Q&A, translation, single-point fixes, or information lookup.
-
-PRECONDITIONS (all must be true before calling — NEVER skip):
-1. You determined this task benefits from a team.
-2. You presented a team configuration (roles, responsibilities, agent types) to the user.
-3. The user explicitly confirmed in a PREVIOUS message (e.g. "ok", "go ahead", "确认").
-If ANY condition is not met, do NOT call this tool — present the configuration and wait.
-
-This is the ONLY way to create teams — do NOT use any built-in or other team/agent tools.
-The summary MUST include both the task goal and the confirmed team member roles.
-
-IMPORTANT: Read the response carefully and follow the next_step instructions.`,
+  getCreateTeamToolDescription(),
   {
     summary: z.string().min(1).describe('Task summary or initial instruction to send to the team lead agent.'),
     name: z.string().optional().describe('Optional team name. When omitted the first few words of summary are used.'),
