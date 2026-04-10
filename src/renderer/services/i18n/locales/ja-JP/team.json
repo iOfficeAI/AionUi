@@ -34,14 +34,15 @@
   "create": {
     "title": "Create Team",
     "namePlaceholder": "Team name",
-    "dispatchAgentPlaceholder": "Select dispatch agent",
+    "dispatchAgentPlaceholder": "チームリーダーを選択",
     "subAgentsPlaceholder": "Select sub agents",
     "workspacePlaceholder": "Workspace path (optional)",
     "confirm": "Create Team",
     "noSupportedAgents": "対応する Agent が見つかりません",
     "supportedAgentsHint": "現在 Claude と Codex に対応しています。他の Agent は順次対応予定です。",
+    "leaderDesc": "目標を理解し、エージェントを調整してタスクを完了します",
     "step": {
-      "dispatch": "Dispatch Agent",
+      "dispatch": "チームリーダー",
       "subAgents": "Sub Agents",
       "workspace": "Workspace"
     },

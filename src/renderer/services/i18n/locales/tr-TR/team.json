@@ -34,14 +34,15 @@
   "create": {
     "title": "Create Team",
     "namePlaceholder": "Team name",
-    "dispatchAgentPlaceholder": "Select dispatch agent",
+    "dispatchAgentPlaceholder": "Takım liderini seçin",
     "subAgentsPlaceholder": "Select sub agents",
     "workspacePlaceholder": "Workspace path (optional)",
     "confirm": "Create Team",
     "noSupportedAgents": "Desteklenen agent bulunamadı",
     "supportedAgentsHint": "Şu anda Claude ve Codex desteklenmektedir. Daha fazla agent yakında eklenecek.",
+    "leaderDesc": "Hedeflerinizi anlayarak görevleri tamamlamak için ajanları koordine eder",
     "step": {
-      "dispatch": "Dispatch Agent",
+      "dispatch": "Takım Lideri",
       "subAgents": "Sub Agents",
       "workspace": "Workspace"
     },

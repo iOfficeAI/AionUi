@@ -34,14 +34,15 @@
   "create": {
     "title": "Create Team",
     "namePlaceholder": "Team name",
-    "dispatchAgentPlaceholder": "Select dispatch agent",
+    "dispatchAgentPlaceholder": "選擇團隊 Leader",
     "subAgentsPlaceholder": "Select sub agents",
     "workspacePlaceholder": "Workspace path (optional)",
     "confirm": "Create Team",
     "noSupportedAgents": "未偵測到支援的 Agent",
     "supportedAgentsHint": "目前支援 Claude 和 Codex，更多 Agent 適配中",
+    "leaderDesc": "負責理解你的需求，協調其他 Agent 共同完成任務",
     "step": {
-      "dispatch": "Dispatch Agent",
+      "dispatch": "團隊 Leader",
       "subAgents": "Sub Agents",
       "workspace": "Workspace"
     },

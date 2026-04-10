@@ -1,6 +1,7 @@
-import React, { useState } from 'react';
-import { Modal, Button, Input, Select, Message } from '@arco-design/web-react';
-import { FolderOpen } from '@icon-park/react';
+import React, { useEffect, useRef, useState } from 'react';
+import { Modal, Button, Input, Select, Message, Tooltip } from '@arco-design/web-react';
+import type { RefInputType } from '@arco-design/web-react/es/Input/interface';
+import { FolderOpen, Info, Close } from '@icon-park/react';
 import { useTranslation } from 'react-i18next';
 import { ipcBridge } from '@/common';
 import type { TTeam, TeamAgent } from '@/common/types/teamTypes';
@@ -30,9 +31,16 @@ const TeamCreateModal: React.FC<Props> = ({ visible, onClose, onCreated }) => {
   const [dispatchAgentKey, setDispatchAgentKey] = useState<string | undefined>(undefined);
   const [workspace, setWorkspace] = useState('');
   const [loading, setLoading] = useState(false);
+  const nameInputRef = useRef<RefInputType | null>(null);
 
   const allAgents = filterTeamSupportedAgents([...cliAgents]);
   const isDesktop = isElectronDesktop();
+
+  useEffect(() => {
+    if (visible) {
+      setTimeout(() => nameInputRef.current?.focus(), 50);
+    }
+  }, [visible]);
 
   const handleClose = () => {
     setName('');
@@ -114,22 +122,38 @@ const TeamCreateModal: React.FC<Props> = ({ visible, onClose, onCreated }) => {
             {t('team.create.namePlaceholder', { defaultValue: 'Team name' })}
           </label>
           <Input
+            ref={nameInputRef}
             placeholder={t('team.create.namePlaceholder', { defaultValue: 'Team name' })}
             value={name}
             onChange={setName}
           />
         </div>
 
-        {/* Dispatch Agent - single select */}
+        {/* Team Leader (dispatch agent) */}
         <div className='flex flex-col gap-6px'>
-          <label className='text-sm text-[var(--color-text-2)] font-medium'>
-            {t('team.create.step.dispatch', { defaultValue: 'Dispatch Agent' })}
-          </label>
+          <div className='flex items-center justify-between'>
+            <label className='text-sm text-[var(--color-text-2)] font-medium'>
+              {t('team.create.step.dispatch', { defaultValue: 'Team Leader' })}
+            </label>
+            <Tooltip
+              content={t('team.create.supportedAgentsHint', {
+                defaultValue: 'Currently supports Claude and Codex. More agents coming soon.',
+              })}
+              position='top'
+            >
+              <Info theme='outline' size='14' fill='var(--color-text-4)' className='cursor-default' />
+            </Tooltip>
+          </div>
+          <span className='text-12px text-[var(--color-text-4)]'>
+            {t('team.create.leaderDesc', {
+              defaultValue: 'Understands your goals and coordinates agents to complete tasks',
+            })}
+          </span>
           <Select
             placeholder={
               allAgents.length === 0
                 ? t('team.create.noSupportedAgents', { defaultValue: 'No supported agents installed' })
-                : t('team.create.dispatchAgentPlaceholder', { defaultValue: 'Select dispatch agent' })
+                : t('team.create.dispatchAgentPlaceholder', { defaultValue: 'Select team leader' })
             }
             value={dispatchAgentKey}
             onChange={setDispatchAgentKey}
@@ -151,11 +175,6 @@ const TeamCreateModal: React.FC<Props> = ({ visible, onClose, onCreated }) => {
               </Select.OptGroup>
             )}
           </Select>
-          <span className='text-12px text-[var(--color-text-4)]'>
-            {t('team.create.supportedAgentsHint', {
-              defaultValue: 'Currently supports Claude and Codex. More agents coming soon.',
-            })}
-          </span>
         </div>
 
         {/* Workspace - optional folder picker (desktop only) or text input (webui) */}
@@ -167,19 +186,27 @@ const TeamCreateModal: React.FC<Props> = ({ visible, onClose, onCreated }) => {
             </span>
           </label>
           {isDesktop ? (
-            <div className='flex items-center gap-8px'>
-              <div className='flex-1 px-12px py-6px rounded-6px bg-[var(--fill-2)] text-sm text-[var(--color-text-3)] truncate min-h-32px flex items-center'>
-                {workspace || t('team.create.workspacePlaceholder', { defaultValue: 'Workspace path (optional)' })}
-              </div>
-              <Button icon={<FolderOpen size='16' />} onClick={handleBrowseWorkspace}>
-                {t('common.browse', { defaultValue: 'Browse' })}
-              </Button>
-              {workspace && (
-                <Button type='text' onClick={() => setWorkspace('')}>
-                  {t('common.clear', { defaultValue: 'Clear' })}
+            <Input
+              readOnly
+              value={workspace}
+              placeholder={t('team.create.workspacePlaceholder', { defaultValue: 'Workspace path (optional)' })}
+              suffix={
+                workspace ? (
+                  <Close
+                    theme='outline'
+                    size='14'
+                    fill='var(--color-text-3)'
+                    className='cursor-pointer hover:opacity-70'
+                    onClick={() => setWorkspace('')}
+                  />
+                ) : undefined
+              }
+              addAfter={
+                <Button icon={<FolderOpen size='16' />} onClick={handleBrowseWorkspace}>
+                  {t('common.browse', { defaultValue: 'Browse' })}
                 </Button>
-              )}
-            </div>
+              }
+            />
           ) : (
             <Input
               placeholder={t('team.create.workspacePlaceholder', { defaultValue: 'Workspace path (optional)' })}

@@ -34,14 +34,15 @@
   "create": {
     "title": "创建团队",
     "namePlaceholder": "团队名称",
-    "dispatchAgentPlaceholder": "选择调度 Agent",
+    "dispatchAgentPlaceholder": "选择团队 Leader",
     "subAgentsPlaceholder": "选择子 Agent",
     "workspacePlaceholder": "工作目录路径（可选）",
     "confirm": "创建团队",
     "noSupportedAgents": "未检测到支持的 Agent",
     "supportedAgentsHint": "目前支持 Claude 和 Codex，更多 Agent 适配中",
+    "leaderDesc": "负责理解你的需求，协调其他 Agent 共同完成任务",
     "step": {
-      "dispatch": "调度 Agent",
+      "dispatch": "团队 Leader",
       "subAgents": "子 Agent",
       "workspace": "工作空间"
     },

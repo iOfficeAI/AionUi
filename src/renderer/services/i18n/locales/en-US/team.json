@@ -34,14 +34,15 @@
   "create": {
     "title": "Create Team",
     "namePlaceholder": "Team name",
-    "dispatchAgentPlaceholder": "Select dispatch agent",
+    "dispatchAgentPlaceholder": "Select team leader",
     "subAgentsPlaceholder": "Select sub agents",
     "workspacePlaceholder": "Workspace path (optional)",
     "confirm": "Create Team",
     "noSupportedAgents": "No supported agents installed",
     "supportedAgentsHint": "Currently supports Claude and Codex. More agents coming soon.",
+    "leaderDesc": "Understands your goals and coordinates agents to complete tasks",
     "step": {
-      "dispatch": "Dispatch Agent",
+      "dispatch": "Team Leader",
       "subAgents": "Sub Agents",
       "workspace": "Workspace"
     },

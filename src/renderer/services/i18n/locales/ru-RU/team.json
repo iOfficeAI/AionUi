@@ -34,14 +34,15 @@
   "create": {
     "title": "Создать команду",
     "namePlaceholder": "Название команды",
-    "dispatchAgentPlaceholder": "Выбрать агента-диспетчера",
+    "dispatchAgentPlaceholder": "Выбрать лидера команды",
     "subAgentsPlaceholder": "Выбрать подагентов",
     "workspacePlaceholder": "Путь к рабочей области (опционально)",
     "confirm": "Создать команду",
     "noSupportedAgents": "Поддерживаемые агенты не установлены",
     "supportedAgentsHint": "Сейчас поддерживаются Claude, Codex, CodeBuddy. Другие агенты скоро появятся.",
+    "leaderDesc": "Понимает ваши цели и координирует агентов для выполнения задач",
     "step": {
-      "dispatch": "Агент-диспетчер",
+      "dispatch": "Лидер команды",
       "subAgents": "Подагенты",
       "workspace": "Рабочая область"
     },
