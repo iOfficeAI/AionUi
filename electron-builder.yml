@@ -114,7 +114,6 @@ extraResources:
     to: bundled-aionrs
   - from: resources/hub
     to: hub
-
 win:
   target:
     - nsis

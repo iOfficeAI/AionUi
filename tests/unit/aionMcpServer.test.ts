@@ -117,12 +117,12 @@ describe('TEAM_GUIDE_ALLOWED_BACKENDS whitelist', () => {
     expect(TEAM_GUIDE_ALLOWED_BACKENDS.has('codex')).toBe(true);
   });
 
-  it('excludes qwen', () => {
-    expect(TEAM_GUIDE_ALLOWED_BACKENDS.has('qwen')).toBe(false);
+  it('includes gemini', () => {
+    expect(TEAM_GUIDE_ALLOWED_BACKENDS.has('gemini')).toBe(true);
   });
 
-  it('excludes gemini', () => {
-    expect(TEAM_GUIDE_ALLOWED_BACKENDS.has('gemini')).toBe(false);
+  it('excludes qwen', () => {
+    expect(TEAM_GUIDE_ALLOWED_BACKENDS.has('qwen')).toBe(false);
   });
 
   it('excludes opencode', () => {
@@ -322,6 +322,50 @@ describe('aion_create_team handler', () => {
     })) as Record<string, unknown>;
 
     expect(response.error).toContain('DB write failed');
+  });
+
+  it('uses system-injected backend (from AION_MCP_BACKEND) as agent type', async () => {
+    await tcpRequest(getPort(service), {
+      tool: 'aion_create_team',
+      args: { summary: '分析代码' },
+      auth_token: getAuthToken(service),
+      backend: 'codex',
+    });
+
+    expect(mockCreateTeam).toHaveBeenCalledWith(
+      expect.objectContaining({
+        agents: expect.arrayContaining([expect.objectContaining({ agentType: 'codex' })]),
+      })
+    );
+  });
+
+  it('falls back to claude when backend is not in whitelist', async () => {
+    await tcpRequest(getPort(service), {
+      tool: 'aion_create_team',
+      args: { summary: '分析代码' },
+      auth_token: getAuthToken(service),
+      backend: 'qwen',
+    });
+
+    expect(mockCreateTeam).toHaveBeenCalledWith(
+      expect.objectContaining({
+        agents: expect.arrayContaining([expect.objectContaining({ agentType: 'claude' })]),
+      })
+    );
+  });
+
+  it('falls back to claude when backend is not provided', async () => {
+    await tcpRequest(getPort(service), {
+      tool: 'aion_create_team',
+      args: { summary: '构建网站' },
+      auth_token: getAuthToken(service),
+    });
+
+    expect(mockCreateTeam).toHaveBeenCalledWith(
+      expect.objectContaining({
+        agents: expect.arrayContaining([expect.objectContaining({ agentType: 'claude' })]),
+      })
+    );
   });
 });
 

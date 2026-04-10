@@ -4,19 +4,14 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-/**
- * Agent backends that support aion_create_team and aion_navigate tools.
- * Only these backends should receive the team guide prompt injection.
- * Single source of truth — mcpSessionConfig re-exports this as TEAM_GUIDE_ALLOWED_BACKENDS.
- */
-export const TEAM_GUIDE_BACKENDS: ReadonlySet<string> = new Set(['claude', 'codex']);
+import { TEAM_SUPPORTED_BACKENDS } from '@/common/types/teamTypes';
 
 /**
  * Returns true if the given agent backend should receive the team guide prompt injection.
- * Only backends that support the required MCP tools (aion_create_team, aion_navigate) are allowed.
+ * Uses TEAM_SUPPORTED_BACKENDS — all team-capable backends also support the solo-to-team guide.
  */
 export function shouldInjectTeamGuideMcp(backend: string): boolean {
-  return TEAM_GUIDE_BACKENDS.has(backend);
+  return TEAM_SUPPORTED_BACKENDS.has(backend);
 }
 
 // ── Shared decision criteria (single source of truth) ───────────────────────
@@ -40,7 +35,8 @@ const DOUBT_RULE = `When in doubt, recommend — the cost of declining is zero.`
  * Full system prompt fragment injected on the first message for solo agents.
  * Guides the agent to recommend Team mode when appropriate.
  */
-export function getTeamGuidePrompt(): string {
+export function getTeamGuidePrompt(backend?: string): string {
+  const agentType = backend || 'claude';
   return `## Team Mode
 
 You can create a multi-agent Team for the user.
@@ -57,11 +53,11 @@ ${DOUBT_RULE}
 1. Explain in one sentence why Team helps this task.
 2. Present a team configuration table: role name, responsibility, and agent type for each member. Example format:
    | Role | Responsibility | Type |
-   | Lead | Coordinate and review | claude |
-   | Developer | Implement features | claude |
-   | Tester | Write and run tests | claude |
-3. **STOP and wait for the user's reply.** Do NOT call \`aion_create_team\` in this turn. You must receive explicit user confirmation (e.g. "ok", "go ahead", "确认") before proceeding.
-4. After user confirms → call \`aion_create_team\`. The summary MUST include both the goal and the confirmed team configuration.
+   | Lead | Coordinate and review | ${agentType} |
+   | Developer | Implement features | ${agentType} |
+   | Tester | Write and run tests | ${agentType} |
+3. **Output the table as a normal text message and END YOUR TURN.** Do NOT call \`aion_create_team\` or any other tool (including ask_user) in this turn. Wait for the user to reply in their next message with explicit confirmation (e.g. "ok", "go ahead", "确认") before proceeding.
+4. After user confirms → call \`aion_create_team\`. The summary MUST include both the goal and the confirmed team configuration. (The system automatically sets the correct agent type — you do NOT need to pass agentType.)
 5. After \`aion_create_team\` returns → read the response carefully and follow the next_step instructions. Tell the user the team is created → immediately call \`aion_navigate\` with the route from the response. **Both calls (create + navigate) are required.**
 6. User declines or wants changes → adjust or proceed solo. Do not mention Team again if declined.
 
@@ -79,7 +75,7 @@ export function getTeamGuideReminder(): string {
     `Recommend Team when: task spans multiple files/modules, needs multiple iterations, or benefits from role specialization (e.g. analyzing a large codebase, building a feature).\n` +
     `Do NOT recommend (just answer directly, never mention Team): single-point tasks answerable in one response (one question, one fix, one translation).\n` +
     `${DOUBT_RULE}\n` +
-    `Before calling aion_create_team you MUST present a team configuration and get explicit user confirmation.\n` +
+    `Before calling aion_create_team you MUST present a team configuration as text, end your turn, and wait for the user to confirm in their next message. Do NOT use ask_user or any tool to ask — just output text.\n` +
     `After aion_create_team succeeds, read the response and call aion_navigate with the returned route.`
   );
 }

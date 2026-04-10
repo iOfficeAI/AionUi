@@ -31,6 +31,8 @@ const mockIpcBridge = vi.hoisted(() => ({
     agentStatusChanged: { emit: vi.fn() },
     agentRemoved: { emit: vi.fn() },
     agentRenamed: { emit: vi.fn() },
+    messageStream: { emit: vi.fn() },
+    mcpStatus: { emit: vi.fn() },
   },
   acpConversation: { responseStream: { emit: vi.fn() } },
   conversation: { responseStream: { emit: vi.fn() } },

@@ -114,8 +114,11 @@ describe('TeammateManager', () => {
       expect(MCP_CAPABLE_TYPES.has('acp')).toBe(true);
     });
 
+    it('contains "gemini" (MCP injection enabled for Gemini in team mode)', () => {
+      expect(MCP_CAPABLE_TYPES.has('gemini')).toBe(true);
+    });
+
     it('does not contain non-MCP types', () => {
-      expect(MCP_CAPABLE_TYPES.has('gemini')).toBe(false);
       expect(MCP_CAPABLE_TYPES.has('codex')).toBe(false);
     });
   });

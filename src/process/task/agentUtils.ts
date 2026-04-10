@@ -19,6 +19,8 @@ export interface FirstMessageConfig {
   enabledSkills?: string[];
   /** Inject Team mode guidance prompt when agent has aion_create_team capability */
   enableTeamGuide?: boolean;
+  /** Agent backend type (e.g. 'claude', 'codex') — used to populate team guide prompt */
+  backend?: string;
 }
 
 /**
@@ -46,7 +48,7 @@ export async function buildSystemInstructions(config: FirstMessageConfig): Promi
 
   // Inject Team Guide prompt when agent has team guide capability
   if (config.enableTeamGuide) {
-    instructions.push(getTeamGuidePrompt());
+    instructions.push(getTeamGuidePrompt(config.backend));
   }
 
   if (instructions.length === 0) {
@@ -142,7 +144,7 @@ For example:
 
   // 3. Inject Team Guide prompt when agent has team guide capability
   if (config.enableTeamGuide) {
-    instructions.push(getTeamGuidePrompt());
+    instructions.push(getTeamGuidePrompt(config.backend));
   }
 
   if (instructions.length === 0) {
@@ -191,7 +193,7 @@ export async function buildSystemInstructionsWithSkillsIndex(config: FirstMessag
 
   // Inject Team Guide prompt when agent has team guide capability
   if (config.enableTeamGuide) {
-    instructions.push(getTeamGuidePrompt());
+    instructions.push(getTeamGuidePrompt(config.backend));
   }
 
   if (instructions.length === 0) {

@@ -42,3 +42,4 @@ export {
   type ChannelPluginStatus,
 } from './extensions';
 export { invokeBridge } from './bridge';
+export { TEAM_SUPPORTED_BACKENDS } from './teamConfig';

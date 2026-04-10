@@ -238,7 +238,7 @@ const TeamTabs: React.FC<TeamTabsProps> = ({ onAddAgent, onTabClick }) => {
   if (agents.length === 0) return null;
 
   return (
-    <div className='relative shrink-0 bg-2 min-h-40px'>
+    <div data-testid='team-tab-bar' className='relative shrink-0 bg-2 min-h-40px'>
       <div className='relative flex items-center h-40px w-full border-t border-x border-solid border-[color:var(--border-base)]'>
         <div
           ref={tabsContainerRef}

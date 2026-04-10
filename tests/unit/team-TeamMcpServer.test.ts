@@ -442,7 +442,7 @@ describe('TeamMcpServer', () => {
     it('rejects unsupported agent types', async () => {
       const response = (await tcpRequest(server.getPort(), {
         tool: 'team_spawn_agent',
-        args: { name: 'GeminiBot', agent_type: 'gemini' },
+        args: { name: 'UnknownBot', agent_type: 'codebuddy' },
         from_slot_id: 'slot-lead',
         auth_token: authToken,
       })) as Record<string, unknown>;

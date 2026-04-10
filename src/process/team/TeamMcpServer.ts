@@ -10,9 +10,12 @@
 import * as crypto from 'node:crypto';
 import * as net from 'node:net';
 import * as path from 'node:path';
+import { ipcBridge } from '@/common';
+import { team as teamIpcBridge } from '@/common/adapter/ipcBridge';
 import type { Mailbox } from './Mailbox';
 import type { TaskManager } from './TaskManager';
 import type { TeamAgent } from './types';
+import { TEAM_SUPPORTED_BACKENDS } from '@/common/types/teamTypes';
 
 type SpawnAgentFn = (agentName: string, agentType?: string) => Promise<TeamAgent>;
 
@@ -113,18 +116,26 @@ export class TeamMcpServer {
       this.handleTcpConnection(socket);
     });
 
-    await new Promise<void>((resolve, reject) => {
-      this.tcpServer!.listen(0, '127.0.0.1', () => {
-        const addr = this.tcpServer!.address();
-        if (addr && typeof addr === 'object') {
-          this._port = addr.port;
-        }
-        resolve();
+    try {
+      await new Promise<void>((resolve, reject) => {
+        this.tcpServer!.listen(0, '127.0.0.1', () => {
+          const addr = this.tcpServer!.address();
+          if (addr && typeof addr === 'object') {
+            this._port = addr.port;
+          }
+          resolve();
+        });
+        this.tcpServer!.once('error', reject);
       });
-      this.tcpServer!.once('error', reject);
-    });
+    } catch (err) {
+      const error = err instanceof Error ? err.message : String(err);
+      console.error(`[TeamMcpServer] Team ${this.params.teamId} TCP server failed to start:`, error);
+      ipcBridge.team.mcpStatus.emit({ teamId: this.params.teamId, phase: 'tcp_error', error });
+      throw err;
+    }
 
     console.log(`[TeamMcpServer] Team ${this.params.teamId} TCP server started on port ${this._port}`);
+    ipcBridge.team.mcpStatus.emit({ teamId: this.params.teamId, phase: 'tcp_ready', port: this._port });
     return this.getStdioConfig();
   }
 
@@ -360,10 +371,9 @@ export class TeamMcpServer {
     const name = String(args.name ?? '');
     const agentType = args.agent_type ? String(args.agent_type) : undefined;
     // Team mode whitelist: only verified backends that support MCP tool injection
-    const TEAM_ALLOWED = new Set(['claude', 'codex']);
-    if (agentType && !TEAM_ALLOWED.has(agentType)) {
+    if (agentType && !TEAM_SUPPORTED_BACKENDS.has(agentType)) {
       throw new Error(
-        `Agent type "${agentType}" is not supported in team mode. Supported: ${[...TEAM_ALLOWED].join(', ')}.`
+        `Agent type "${agentType}" is not supported in team mode. Supported: ${[...TEAM_SUPPORTED_BACKENDS].join(', ')}.`
       );
     }
 

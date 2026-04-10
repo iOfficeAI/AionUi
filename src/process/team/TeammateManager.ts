@@ -6,6 +6,7 @@ import { addMessage } from '@process/utils/message';
 import type { IWorkerTaskManager } from '@process/task/IWorkerTaskManager';
 import type { IResponseMessage } from '@/common/adapter/ipcBridge';
 import type { TeamAgent, TeammateStatus, TeamTask, ParsedAction } from './types';
+import { TEAM_SUPPORTED_BACKENDS } from '@/common/types/teamTypes';
 import type { Mailbox } from './Mailbox';
 import type { TaskManager } from './TaskManager';
 import type { AgentResponse } from './adapters/PlatformAdapter';
@@ -15,7 +16,7 @@ import { acpDetector } from '@process/agent/acp/AcpDetector';
 type SpawnAgentFn = (agentName: string, agentType?: string) => Promise<TeamAgent>;
 
 /** Conversation types whose AgentManager supports MCP server injection via session/new */
-export const MCP_CAPABLE_TYPES = new Set(['acp']);
+export const MCP_CAPABLE_TYPES = new Set(['acp', 'gemini']);
 
 type TeammateManagerParams = {
   teamId: string;
@@ -175,10 +176,9 @@ export class TeammateManager extends EventEmitter {
       }
 
       // Only show team-verified backends in the leader's available agent types
-      const TEAM_ALLOWED_BACKENDS = new Set(['claude', 'codex']);
       const availableAgentTypes = acpDetector
         .getDetectedAgents()
-        .filter((a) => TEAM_ALLOWED_BACKENDS.has(a.backend))
+        .filter((a) => TEAM_SUPPORTED_BACKENDS.has(a.backend))
         .map((a) => ({ type: a.backend, name: a.name }));
 
       const payload = adapter.buildPayload({
@@ -222,6 +222,7 @@ export class TeammateManager extends EventEmitter {
       }, TeammateManager.WAKE_TIMEOUT_MS);
       this.wakeTimeouts.set(slotId, timeoutHandle);
     } catch (error) {
+      console.error(`[TeammateManager] wake(${slotId}) failed:`, error);
       this.setStatus(slotId, 'failed');
       this.activeWakes.delete(slotId);
       throw error;

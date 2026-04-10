@@ -1,4 +1,5 @@
 // src/process/team/TeamSessionService.ts
+import { ipcBridge } from '@/common';
 import { uuid } from '@/common/utils';
 import { GOOGLE_AUTH_PROVIDER_ID } from '@/common/config/constants';
 import {
@@ -537,13 +538,16 @@ export class TeamSessionService {
     if (!team) throw new Error(`Team "${teamId}" not found`);
     let session!: TeamSession;
     const spawnAgent = async (agentName: string, agentType?: string) => {
+      // Default to the leader's agent type instead of hardcoding 'claude'
+      const leadAgent = team.agents.find((a) => a.role === 'lead');
+      const resolvedType = agentType || leadAgent?.agentType || 'claude';
       const newAgent = await this.addAgent(teamId, {
         conversationId: '',
         role: 'teammate',
-        agentType: agentType || 'claude',
+        agentType: resolvedType,
         agentName,
         status: 'pending',
-        conversationType: this.resolveConversationType(agentType || 'claude') as 'acp',
+        conversationType: this.resolveConversationType(resolvedType) as 'acp',
       });
       // Inject team MCP stdio config into the new agent's conversation (with agent identity)
       const stdioConfig = session?.getStdioConfig(newAgent.slotId);
@@ -557,25 +561,48 @@ export class TeamSessionService {
       return newAgent;
     };
     session = new TeamSession(team, this.repo, this.workerTaskManager, spawnAgent);
-    this.sessions.set(teamId, session);
+    // Do NOT add to sessions map yet — only add after MCP server is running and
+    // teamMcpStdioConfig is written to DB. If we add early and then fail, a
+    // subsequent getOrStartSession call would return a broken session (no MCP config).
 
-    // Start MCP server and inject per-agent stdio config into all agent conversations.
-    // After DB update, rebuild cached agent tasks so they pick up teamMcpStdioConfig.
-    await session.startMcpServer();
-    await Promise.all(
-      team.agents.map(async (agent) => {
-        if (agent.conversationId) {
-          const agentStdioConfig = session.getStdioConfig(agent.slotId);
-          await this.conversationService.updateConversation(
-            agent.conversationId,
-            { extra: { teamMcpStdioConfig: agentStdioConfig } } as any,
-            true
-          );
-          // Force-rebuild cached agent task so it reads the updated extra from DB
-          await this.workerTaskManager.getOrBuildTask(agent.conversationId, { skipCache: true });
-        }
-      })
-    );
+    try {
+      // Start MCP server and inject per-agent stdio config into all agent conversations.
+      // After DB update, rebuild cached agent tasks so they pick up teamMcpStdioConfig.
+      await session.startMcpServer();
+      await Promise.all(
+        team.agents.map(async (agent) => {
+          if (agent.conversationId) {
+            const agentStdioConfig = session.getStdioConfig(agent.slotId);
+            try {
+              await this.conversationService.updateConversation(
+                agent.conversationId,
+                { extra: { teamMcpStdioConfig: agentStdioConfig } } as any,
+                true
+              );
+              // Force-rebuild cached agent task so it reads the updated extra from DB
+              await this.workerTaskManager.getOrBuildTask(agent.conversationId, { skipCache: true });
+            } catch (err) {
+              const error = err instanceof Error ? err.message : String(err);
+              console.error(`[TeamSessionService] Failed to write MCP config for agent ${agent.slotId}:`, error);
+              ipcBridge.team.mcpStatus.emit({
+                teamId: team.id,
+                slotId: agent.slotId,
+                phase: 'config_write_failed',
+                error,
+              });
+            }
+          }
+        })
+      );
+    } catch (err) {
+      // MCP server failed to start — do not cache the broken session so next call can retry
+      console.error(`[TeamSessionService] Failed to start session for team ${teamId}:`, err);
+      throw err;
+    }
+
+    // Only register the session after full initialization so that getOrStartSession
+    // always returns a session with a live MCP server and injected DB config.
+    this.sessions.set(teamId, session);
 
     return session;
   }
