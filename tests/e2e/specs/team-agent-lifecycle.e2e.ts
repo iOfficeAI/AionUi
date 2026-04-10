@@ -57,7 +57,7 @@ for (const { leaderType, teamName } of LEADER_CONFIGS) {
             conversationId: '',
             role: 'lead',
             agentType: agentMeta.agentType,
-            agentName: 'Lead',
+            agentName: 'Leader',
             conversationType: agentMeta.conversationType,
             status: 'idle',
           },
@@ -95,7 +95,7 @@ for (const { leaderType, teamName } of LEADER_CONFIGS) {
     await expect(memberActiveBadge).not.toBeVisible({ timeout: 60000 });
 
     // [操作] 先点 leader tab 确保 chatInput 是 leader 的
-    await tabBar.locator('span').filter({ hasText: 'Lead' }).first().click();
+    await tabBar.locator('span').filter({ hasText: 'Leader' }).first().click();
 
     // [等待] 处理所有挂起的 MCP tool confirmation dialogs（auto-approve "Yes, allow always"）
     // Gemini leader 调用 MCP 工具时会弹出确认弹窗，必须确认后 leader 才能继续/完成
@@ -118,7 +118,7 @@ for (const { leaderType, teamName } of LEADER_CONFIGS) {
     // [等待] leader 空闲（没有正在运行的推理）再发 fire，否则 Enter 会被 sendbox 屏蔽
     const leaderActiveBadge = tabBar
       .locator('span')
-      .filter({ hasText: 'Lead' })
+      .filter({ hasText: 'Leader' })
       .locator('xpath=following-sibling::span[@aria-label="active"]');
     await expect(leaderActiveBadge).not.toBeVisible({ timeout: 60000 });
 

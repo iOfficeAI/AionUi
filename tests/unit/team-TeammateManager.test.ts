@@ -602,7 +602,7 @@ describe('TeammateManager', () => {
           conversationId: 'conv-lead',
           role: 'lead',
           status: 'idle',
-          agentName: 'Lead',
+          agentName: 'Leader',
         });
         const member = makeAgent({
           slotId: 'slot-member',
@@ -670,7 +670,7 @@ describe('TeammateManager', () => {
           conversationId: 'conv-lead',
           role: 'lead',
           status: 'idle',
-          agentName: 'Lead',
+          agentName: 'Leader',
         });
         const member = makeAgent({
           slotId: 'slot-member',
@@ -737,7 +737,7 @@ describe('TeammateManager', () => {
         slotId: 'slot-lead',
         conversationId: 'conv-lead',
         role: 'lead',
-        agentName: 'Lead',
+        agentName: 'Leader',
       });
       // Non-lead agent - will send idle notification to lead
       const memberAgent = makeAgent({
@@ -818,7 +818,7 @@ describe('TeammateManager', () => {
         conversationId: 'conv-lead',
         role: 'lead',
         status: 'idle',
-        agentName: 'Lead',
+        agentName: 'Leader',
       });
       const memberAgent = makeAgent({
         slotId: 'slot-member',
@@ -834,7 +834,7 @@ describe('TeammateManager', () => {
         type: 'text',
         conversation_id: 'conv-member',
         msg_id: 'm1',
-        data: { text: '<send_message to="Lead">shutdown_approved</send_message>' },
+        data: { text: '<send_message to="Leader">shutdown_approved</send_message>' },
       });
       teamEventBus.emit('responseStream', {
         type: 'finish',
@@ -864,7 +864,7 @@ describe('TeammateManager', () => {
         conversationId: 'conv-lead',
         role: 'lead',
         status: 'idle',
-        agentName: 'Lead',
+        agentName: 'Leader',
       });
       const memberAgent = makeAgent({
         slotId: 'slot-member',
@@ -880,7 +880,7 @@ describe('TeammateManager', () => {
         type: 'text',
         conversation_id: 'conv-member',
         msg_id: 'm1',
-        data: { text: '<send_message to="Lead">shutdown_rejected: still finishing the task</send_message>' },
+        data: { text: '<send_message to="Leader">shutdown_rejected: still finishing the task</send_message>' },
       });
       teamEventBus.emit('responseStream', {
         type: 'finish',
@@ -1076,7 +1076,7 @@ describe('TeammateManager', () => {
         conversationId: 'conv-lead',
         role: 'lead',
         status: 'active',
-        agentName: 'Lead',
+        agentName: 'Leader',
       });
       const memberAgent = makeAgent({
         slotId: 'slot-member',
@@ -1124,7 +1124,7 @@ describe('TeammateManager', () => {
         conversationId: 'conv-lead',
         role: 'lead',
         status: 'active',
-        agentName: 'Lead',
+        agentName: 'Leader',
       });
       const memberAgent = makeAgent({
         slotId: 'slot-member',

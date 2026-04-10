@@ -227,7 +227,7 @@ export class AionMcpService {
           conversationId: '',
           role: 'lead',
           agentType,
-          agentName: 'Lead',
+          agentName: 'Leader',
           conversationType: getConversationTypeForBackend(agentType),
           status: 'pending',
         },
