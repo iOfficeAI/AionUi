@@ -56,8 +56,7 @@ export const DEFAULT_IMAGE_EXTENSION = '.png';
 /** WebUI default port: 25808 for production, 25809 for development, 25810 for multi-instance dev */
 export const WEBUI_DEFAULT_PORT = resolveWebUiDefaultPort();
 
-/** Team mode entry points are temporarily hidden until the feature is usable again. */
-export const TEAM_MODE_ENABLED = false;
+export const TEAM_MODE_ENABLED = true;
 
 // ===== AI Provider 相关常量 =====
 

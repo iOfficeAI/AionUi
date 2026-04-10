@@ -128,8 +128,9 @@ if (process.platform === 'darwin' || process.platform === 'linux') {
 }
 
 // Log environment diagnostics once at startup (persisted via electron-log).
-// Helps debug PATH / cygpath issues on Windows (#1157).
-logEnvironmentDiagnostics();
+// Phase 1 prints sync info immediately; Phase 2 resolves CLI tools in the
+// background — fire-and-forget so it never blocks the startup path (#1157).
+void logEnvironmentDiagnostics();
 
 // Handle Squirrel startup events (Windows installer)
 if (electronSquirrelStartup) {

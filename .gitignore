@@ -210,3 +210,5 @@ dist-server/
 .superset/
 .claude/teams/
 iterations/
+graphify-out/
+.graphify_python

@@ -18,6 +18,9 @@ import { isConversationPinned } from '@renderer/pages/conversation/GroupedHistor
 import { refreshConversationCache } from '@/renderer/pages/conversation/utils/conversationCache';
 import { useCronJobConversations } from '@renderer/pages/cron/useCronJobs';
 import ConversationRow from '@renderer/pages/conversation/GroupedHistory/ConversationRow';
+import WorkspaceCollapse from '@renderer/pages/conversation/components/WorkspaceCollapse';
+import { getWorkspaceDisplayName } from '@/renderer/utils/workspace/workspace';
+import { useConversationHistoryContext } from '@renderer/hooks/context/ConversationHistoryContext';
 
 interface CronJobSiderItemProps {
   job: ICronJob;
@@ -37,14 +40,17 @@ const CronJobSiderItem: React.FC<CronJobSiderItemProps> = ({
   const { id: currentConversationId } = useParams();
   const navigate = useNavigate();
   const isNewConversationMode = job.target.executionMode === 'new_conversation';
-  const { conversations } = useCronJobConversations(isNewConversationMode ? job.id : undefined);
+  // Always fetch all child conversations regardless of mode
+  const { conversations } = useCronJobConversations(job.id);
+  const { isConversationGenerating, hasCompletionUnread, clearCompletionUnread } = useConversationHistoryContext();
 
-  // Unified child conversation list for both modes
+  // Show all child conversations in both modes; include existingConversationProp as fallback
   const childConversations = useMemo(() => {
-    if (isNewConversationMode) return conversations;
-    if (existingConversationProp) return [existingConversationProp];
-    return [];
-  }, [isNewConversationMode, conversations, existingConversationProp]);
+    if (existingConversationProp && !conversations.some((c) => c.id === existingConversationProp.id)) {
+      return [...conversations, existingConversationProp];
+    }
+    return conversations;
+  }, [conversations, existingConversationProp]);
 
   // Auto-expand when the current route matches this job or any child conversation
   const childConversationIds = useMemo(() => new Set(childConversations.map((c) => c.id)), [childConversations]);
@@ -69,9 +75,10 @@ const CronJobSiderItem: React.FC<CronJobSiderItemProps> = ({
   // --- ConversationRow action handlers ---
   const handleConversationClick = useCallback(
     (conv: TChatConversation) => {
+      clearCompletionUnread(conv.id);
       onNavigate(`/conversation/${conv.id}`);
     },
-    [onNavigate]
+    [clearCompletionUnread, onNavigate]
   );
 
   const handleDelete = useCallback(
@@ -183,6 +190,82 @@ const CronJobSiderItem: React.FC<CronJobSiderItemProps> = ({
 
   const hasChildren = childConversations.length > 0;
 
+  // Group child conversations by workspace (matching WorkspaceGroupedHistory logic)
+  const { workspaceGroups, noWorkspaceConvs } = useMemo(() => {
+    const groups = new Map<string, TChatConversation[]>();
+    const plain: TChatConversation[] = [];
+    for (const conv of childConversations) {
+      const ws = (conv.extra as Record<string, unknown> | undefined)?.workspace as string | undefined;
+      const customWs = (conv.extra as Record<string, unknown> | undefined)?.customWorkspace;
+      if (customWs && ws) {
+        if (!groups.has(ws)) groups.set(ws, []);
+        groups.get(ws)!.push(conv);
+      } else {
+        plain.push(conv);
+      }
+    }
+    return { workspaceGroups: groups, noWorkspaceConvs: plain };
+  }, [childConversations]);
+
+  const [expandedWorkspaces, setExpandedWorkspaces] = useState<Set<string>>(() => new Set());
+
+  // Auto-expand the workspace group containing the active conversation
+  useEffect(() => {
+    if (!isActiveChild) return;
+    const activeId = pathname.split('/')[2];
+    for (const [ws, convs] of workspaceGroups) {
+      if (convs.some((c) => c.id === activeId)) {
+        setExpandedWorkspaces((prev) => (prev.has(ws) ? prev : new Set(prev).add(ws)));
+        break;
+      }
+    }
+  }, [isActiveChild, pathname, workspaceGroups]);
+  const toggleWorkspace = useCallback((ws: string) => {
+    setExpandedWorkspaces((prev) => {
+      const next = new Set(prev);
+      if (next.has(ws)) next.delete(ws);
+      else next.add(ws);
+      return next;
+    });
+  }, []);
+
+  const renderConversationRow = useCallback(
+    (conv: TChatConversation) => (
+      <ConversationRow
+        key={conv.id}
+        conversation={conv}
+        isGenerating={isConversationGenerating(conv.id)}
+        hasCompletionUnread={hasCompletionUnread(conv.id)}
+        collapsed={false}
+        tooltipEnabled={false}
+        batchMode={false}
+        checked={false}
+        selected={currentConversationId === conv.id}
+        menuVisible={dropdownVisibleId === conv.id}
+        onToggleChecked={() => {}}
+        onConversationClick={handleConversationClick}
+        onOpenMenu={handleOpenMenu}
+        onMenuVisibleChange={handleMenuVisibleChange}
+        onEditStart={handleEditStart}
+        onDelete={handleDelete}
+        onTogglePin={handleTogglePin}
+        getJobStatus={() => 'none'}
+      />
+    ),
+    [
+      isConversationGenerating,
+      hasCompletionUnread,
+      currentConversationId,
+      dropdownVisibleId,
+      handleConversationClick,
+      handleOpenMenu,
+      handleMenuVisibleChange,
+      handleEditStart,
+      handleDelete,
+      handleTogglePin,
+    ]
+  );
+
   return (
     <div className='min-w-0'>
       {/* Header - arrow toggles expand, text navigates to detail */}
@@ -220,32 +303,30 @@ const CronJobSiderItem: React.FC<CronJobSiderItemProps> = ({
         </div>
       </div>
 
-      {/* Child conversations using ConversationRow */}
+      {/* Child conversations — workspace groups + plain conversations */}
       {expanded && hasChildren && (
         <div className='pl-20px'>
           <div className='flex flex-col gap-2px min-w-0 mt-2px'>
-            {childConversations.map((conv) => (
-              <ConversationRow
-                key={conv.id}
-                conversation={conv}
-                isGenerating={false}
-                hasCompletionUnread={false}
-                collapsed={false}
-                tooltipEnabled={false}
-                batchMode={false}
-                checked={false}
-                selected={currentConversationId === conv.id}
-                menuVisible={dropdownVisibleId === conv.id}
-                onToggleChecked={() => {}}
-                onConversationClick={handleConversationClick}
-                onOpenMenu={handleOpenMenu}
-                onMenuVisibleChange={handleMenuVisibleChange}
-                onEditStart={handleEditStart}
-                onDelete={handleDelete}
-                onTogglePin={handleTogglePin}
-                getJobStatus={() => 'none'}
-              />
+            {/* Workspace-grouped conversations */}
+            {[...workspaceGroups.entries()].map(([ws, convs]) => (
+              <WorkspaceCollapse
+                key={ws}
+                expanded={expandedWorkspaces.has(ws)}
+                onToggle={() => toggleWorkspace(ws)}
+                siderCollapsed={false}
+                header={
+                  <div className='flex items-center gap-8px text-14px min-w-0'>
+                    <span className='font-medium truncate flex-1 text-t-primary min-w-0'>
+                      {getWorkspaceDisplayName(ws)}
+                    </span>
+                  </div>
+                }
+              >
+                <div className='flex flex-col gap-2px min-w-0 mt-2px'>{convs.map(renderConversationRow)}</div>
+              </WorkspaceCollapse>
             ))}
+            {/* Conversations without workspace */}
+            {noWorkspaceConvs.map(renderConversationRow)}
           </div>
         </div>
       )}

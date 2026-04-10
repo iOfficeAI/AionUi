@@ -78,6 +78,7 @@
   "name": "名稱",
   "added": "已新增",
   "status": "狀態",
+  "agentMode": "Agent 模式",
   "refreshSuccess": "重新整理成功",
   "import": "匯入",
   "processing": "處理中...",

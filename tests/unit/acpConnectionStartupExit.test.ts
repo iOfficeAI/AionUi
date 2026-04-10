@@ -72,6 +72,36 @@ function createFakeChild(
   return child;
 }
 
+/**
+ * Create a fake ChildProcess that emits an 'error' event (e.g. ENOENT)
+ * followed by an 'exit' event, simulating a missing CLI binary.
+ */
+function createFakeChildWithSpawnError(errCode: string): ChildProcess & EventEmitter {
+  const emitter = new EventEmitter();
+  const child = emitter as unknown as ChildProcess & EventEmitter;
+
+  const stdoutEmitter = new EventEmitter();
+  const stderrEmitter = new EventEmitter();
+  Object.defineProperty(child, 'stdout', { value: stdoutEmitter, writable: true });
+  Object.defineProperty(child, 'stderr', { value: stderrEmitter, writable: true });
+  Object.defineProperty(child, 'stdin', { value: null, writable: true });
+  Object.defineProperty(child, 'pid', { value: undefined, writable: true });
+  Object.defineProperty(child, 'killed', { value: false, writable: true });
+  Object.defineProperty(child, 'exitCode', { value: null, writable: true });
+  Object.defineProperty(child, 'signalCode', { value: null, writable: true });
+  child.kill = vi.fn(() => true);
+
+  // Simulate spawn failure: error fires first, then exit
+  setImmediate(() => {
+    const err = new Error(`spawn /usr/local/bin/codex ENOENT`) as NodeJS.ErrnoException;
+    err.code = errCode;
+    emitter.emit('error', err);
+    emitter.emit('exit', null, null);
+  });
+
+  return child;
+}
+
 describe('AcpConnection - startup exit error messages', () => {
   let conn: AcpConnection;
 
@@ -105,5 +135,25 @@ describe('AcpConnection - startup exit error messages', () => {
     await expect(conn.connect('qwen', '/usr/local/bin/qwen', '/tmp/workspace')).rejects.toThrow(
       /ACP process exited during startup \(code: 1, signal: null\)/
     );
+  });
+
+  it('should not cause unhandled rejection when CLI binary is missing (ENOENT)', async () => {
+    // Regression test for ELECTRON-GC: when spawn emits 'error' with ENOENT,
+    // the processExitPromise was rejected with no handler, causing an
+    // unhandled promise rejection reported to Sentry.
+    const unhandledRejections: unknown[] = [];
+    const handler = (reason: unknown) => unhandledRejections.push(reason);
+    process.on('unhandledRejection', handler);
+
+    const child = createFakeChildWithSpawnError('ENOENT');
+    mockSpawnGenericBackend.mockResolvedValue({ child, isDetached: false });
+
+    await expect(conn.connect('qwen', '/usr/local/bin/codex', '/tmp/workspace')).rejects.toThrow(/CLI not found/);
+
+    // Give microtasks time to flush — an unhandled rejection fires asynchronously
+    await new Promise((resolve) => setTimeout(resolve, 50));
+
+    process.off('unhandledRejection', handler);
+    expect(unhandledRejections).toHaveLength(0);
   });
 });

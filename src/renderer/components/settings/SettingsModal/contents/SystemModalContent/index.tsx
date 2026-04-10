@@ -48,8 +48,9 @@ const SystemModalContent: React.FC = () => {
   const [notificationEnabled, setNotificationEnabled] = useState(true);
   const [cronNotificationEnabled, setCronNotificationEnabled] = useState(false);
   const [promptTimeout, setPromptTimeout] = useState<number>(300);
+  const [agentIdleTimeout, setAgentIdleTimeout] = useState<number>(5);
   const [saveUploadToWorkspace, setSaveUploadToWorkspace] = useState(false);
-  const [commandQueueEnabled, setCommandQueueEnabled] = useState(false);
+  const [commandQueueEnabled, setCommandQueueEnabled] = useState(true);
 
   useEffect(() => {
     if (!isDesktop) {
@@ -91,6 +92,14 @@ const SystemModalContent: React.FC = () => {
     ConfigStorage.get('acp.promptTimeout')
       .then((val) => {
         if (val && val > 0) setPromptTimeout(val);
+      })
+      .catch(() => {});
+  }, []);
+
+  useEffect(() => {
+    ConfigStorage.get('acp.agentIdleTimeout')
+      .then((val) => {
+        if (val && val > 0) setAgentIdleTimeout(val);
       })
       .catch(() => {});
   }, []);
@@ -155,10 +164,24 @@ const SystemModalContent: React.FC = () => {
   }, []);
 
   const handlePromptTimeoutChange = useCallback((val: number | undefined) => {
-    const seconds = val ?? 300;
-    setPromptTimeout(seconds);
-    ConfigStorage.set('acp.promptTimeout', seconds).catch(() => {});
+    setPromptTimeout(val as number);
   }, []);
+
+  const handlePromptTimeoutBlur = useCallback(() => {
+    const clamped = Math.max(30, Math.min(3600, promptTimeout || 300));
+    setPromptTimeout(clamped);
+    ConfigStorage.set('acp.promptTimeout', clamped).catch(() => {});
+  }, [promptTimeout]);
+
+  const handleAgentIdleTimeoutChange = useCallback((val: number | undefined) => {
+    setAgentIdleTimeout(val as number);
+  }, []);
+
+  const handleAgentIdleTimeoutBlur = useCallback(() => {
+    const clamped = Math.max(1, Math.min(60, agentIdleTimeout || 5));
+    setAgentIdleTimeout(clamped);
+    ConfigStorage.set('acp.agentIdleTimeout', clamped).catch(() => {});
+  }, [agentIdleTimeout]);
 
   const handleSaveUploadToWorkspaceChange = useCallback((checked: boolean) => {
     setSaveUploadToWorkspace(checked);
@@ -216,11 +239,27 @@ const SystemModalContent: React.FC = () => {
         <InputNumber
           value={promptTimeout}
           onChange={handlePromptTimeoutChange}
-          min={30}
+          onBlur={handlePromptTimeoutBlur}
           max={3600}
           step={30}
           style={{ width: 120 }}
           suffix='s'
+        />
+      ),
+    },
+    {
+      key: 'agentIdleTimeout',
+      label: t('settings.agentIdleTimeout'),
+      description: t('settings.agentIdleTimeoutDesc'),
+      component: (
+        <InputNumber
+          value={agentIdleTimeout}
+          onChange={handleAgentIdleTimeoutChange}
+          onBlur={handleAgentIdleTimeoutBlur}
+          max={60}
+          step={5}
+          style={{ width: 120 }}
+          suffix='min'
         />
       ),
     },

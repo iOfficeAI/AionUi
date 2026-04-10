@@ -13,8 +13,10 @@ const STATUS_CONFIG: Record<TeammateStatus, { color: string }> = {
   failed: { color: 'bg-red-500' },
 };
 
+const FALLBACK_COLOR = 'bg-gray-400';
+
 const AgentStatusBadge: React.FC<Props> = ({ status }) => {
-  const { color } = STATUS_CONFIG[status];
+  const color = STATUS_CONFIG[status]?.color ?? FALLBACK_COLOR;
   return (
     <span
       className={`inline-block w-2 h-2 rounded-full ${color} ${status === 'active' ? 'animate-pulse' : ''}`}

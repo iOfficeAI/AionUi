@@ -34,6 +34,8 @@ export interface IConfigStorageRefer {
     yoloMode?: boolean;
     /** Preferred session mode for new conversations / 新会话的默认模式 */
     preferredMode?: string;
+    /** Preferred model ID for new conversations / 新会话的默认模型 */
+    preferredModelId?: string;
   };
   'codex.config'?: {
     cliPath?: string;
@@ -56,6 +58,8 @@ export interface IConfigStorageRefer {
   };
   /** Global LLM prompt timeout in seconds (default: 300). Per-backend promptTimeout overrides this. */
   'acp.promptTimeout'?: number;
+  /** Idle timeout in minutes before an ACP agent process is killed to reclaim memory (default: 5). */
+  'acp.agentIdleTimeout'?: number;
   'acp.customAgents'?: AcpBackendConfig[];
   // Cached model lists per ACP backend for Guid page pre-selection
   'acp.cachedModels'?: Record<string, import('@/common/types/acpTypes').AcpModelInfo>;

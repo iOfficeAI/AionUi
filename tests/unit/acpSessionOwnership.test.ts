@@ -118,7 +118,7 @@ describe('AcpAgent - session ownership validation', () => {
     await createOrResume();
 
     // Should have attempted resume via loadSession (codex backend)
-    expect(mockLoadSession).toHaveBeenCalledWith('old-session-abc', '/tmp');
+    expect(mockLoadSession).toHaveBeenCalledWith('old-session-abc', '/tmp', expect.anything());
     // Should NOT have fallen through to newSession
     expect(mockNewSession).not.toHaveBeenCalled();
   });
@@ -133,7 +133,7 @@ describe('AcpAgent - session ownership validation', () => {
     await createOrResume();
 
     // Should still attempt resume (backward compatibility)
-    expect(mockLoadSession).toHaveBeenCalledWith('old-session-abc', '/tmp');
+    expect(mockLoadSession).toHaveBeenCalledWith('old-session-abc', '/tmp', expect.anything());
   });
 
   it('should create fresh session when no stored session ID exists', async () => {

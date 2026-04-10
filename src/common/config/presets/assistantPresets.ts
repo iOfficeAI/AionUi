@@ -36,11 +36,14 @@ export const ASSISTANT_PRESETS: AssistantPreset[] = [
     nameI18n: {
       'en-US': 'Word Creator',
       'zh-CN': 'Word 文档助手',
+      'ru-RU': 'Помощник Word',
     },
     descriptionI18n: {
       'en-US':
         'Create, edit, and analyze professional Word documents with officecli. Reports, proposals, letters, memos, and more.',
       'zh-CN': '使用 officecli 创建、编辑和分析专业 Word 文档。报告、方案、信函、备忘录等。',
+      'ru-RU':
+        'Создаёт, редактирует и анализирует профессиональные документы Word с помощью officecli: отчёты, предложения, письма, служебные записки и другое.',
     },
     promptsI18n: {
       'en-US': [
@@ -68,11 +71,14 @@ export const ASSISTANT_PRESETS: AssistantPreset[] = [
     nameI18n: {
       'en-US': 'PPT Creator',
       'zh-CN': 'PPT 演示助手',
+      'ru-RU': 'Помощник PPT',
     },
     descriptionI18n: {
       'en-US':
         'Create, edit, and analyze professional PowerPoint presentations with officecli. Bold designs, varied layouts, and visual impact.',
       'zh-CN': '使用 officecli 创建、编辑和分析专业 PPT 演示文稿。大胆设计、丰富版式、视觉冲击。',
+      'ru-RU':
+        'Создаёт, редактирует и анализирует профессиональные презентации PowerPoint с помощью officecli: выразительный дизайн, разнообразные макеты и сильная визуальная подача.',
     },
     promptsI18n: {
       'en-US': [
@@ -100,11 +106,14 @@ export const ASSISTANT_PRESETS: AssistantPreset[] = [
     nameI18n: {
       'en-US': 'Excel Creator',
       'zh-CN': 'Excel 表格助手',
+      'ru-RU': 'Помощник Excel',
     },
     descriptionI18n: {
       'en-US':
         'Create, edit, and analyze professional Excel spreadsheets with officecli. Financial models, dashboards, trackers, and data analysis.',
       'zh-CN': '使用 officecli 创建、编辑和分析专业 Excel 表格。财务模型、数据看板、追踪表和数据分析。',
+      'ru-RU':
+        'Создаёт, редактирует и анализирует профессиональные таблицы Excel с помощью officecli: финансовые модели, дашборды, трекеры и анализ данных.',
     },
     promptsI18n: {
       'en-US': [
@@ -132,11 +141,14 @@ export const ASSISTANT_PRESETS: AssistantPreset[] = [
     nameI18n: {
       'en-US': 'Morph PPT',
       'zh-CN': 'Morph PPT',
+      'ru-RU': 'Morph PPT',
     },
     descriptionI18n: {
       'en-US':
         'Create professional Morph-animated presentations with officecli. Supports multiple visual styles and end-to-end workflow from topic to polished slides.',
       'zh-CN': '使用 officecli 创建专业的 Morph 动画演示文稿。支持多种视觉风格，从主题到精美幻灯片的端到端工作流。',
+      'ru-RU':
+        'Создаёт профессиональные презентации с анимацией Morph через officecli. Поддерживает разные визуальные стили и полный цикл от идеи до готовых слайдов.',
     },
     promptsI18n: {
       'en-US': [
@@ -164,12 +176,15 @@ export const ASSISTANT_PRESETS: AssistantPreset[] = [
     nameI18n: {
       'en-US': 'Pitch Deck Creator',
       'zh-CN': '路演 PPT 助手',
+      'ru-RU': 'Создатель питч-деков',
     },
     descriptionI18n: {
       'en-US':
         'Build investor pitch decks, product launch presentations, and enterprise sales decks with gradient designs, data charts, competitive tables, team slides, and speaker notes. Supports seed to Series A+ decks.',
       'zh-CN':
         '制作投资路演、产品发布和企业销售演示文稿，包含渐变设计、数据图表、竞品表格、团队页和演讲者备注。支持从种子轮到 A 轮及以上的路演。',
+      'ru-RU':
+        'Создаёт инвесторские питч-деки, презентации запусков и корпоративные продажи: градиентный дизайн, графики, таблицы конкурентов, слайды команды и заметки спикера. Подходит для стадий от seed до Series A и выше.',
     },
     promptsI18n: {
       'en-US': [
@@ -197,12 +212,15 @@ export const ASSISTANT_PRESETS: AssistantPreset[] = [
     nameI18n: {
       'en-US': 'Dashboard Creator',
       'zh-CN': '数据仪表盘',
+      'ru-RU': 'Создатель дашбордов',
     },
     descriptionI18n: {
       'en-US':
         'Turn CSV or tabular data into polished Excel dashboards with KPI cards, charts linked to live data, sparklines, and conditional formatting. Automatically scales complexity to dataset size — from quick summaries to full analytics panels.',
       'zh-CN':
         '将 CSV 或表格数据转化为精美的 Excel 仪表盘，包含 KPI 卡片、关联实时数据的图表、迷你图和条件格式。根据数据量自动缩放复杂度——从简洁汇总到完整分析面板。',
+      'ru-RU':
+        'Преобразует CSV и табличные данные в аккуратные Excel-дашборды: KPI-карточки, графики с привязкой к данным, спарклайны и условное форматирование. Масштабирует сложность под объём данных - от краткой сводки до полноценной аналитической панели.',
     },
     promptsI18n: {
       'en-US': [
@@ -230,12 +248,15 @@ export const ASSISTANT_PRESETS: AssistantPreset[] = [
     nameI18n: {
       'en-US': 'Academic Paper',
       'zh-CN': '学术论文助手',
+      'ru-RU': 'Помощник по академическим работам',
     },
     descriptionI18n: {
       'en-US':
         'Create formally structured academic papers, research papers, and white papers with native Word TOC, LaTeX-to-OMML equations, scholarly bibliography (APA/Physics/Chicago), footnotes, multi-column layouts, and paper-type-specific styling.',
       'zh-CN':
         '创建正式结构的学术论文、研究论文和白皮书，支持原生 Word 目录、LaTeX 转 OMML 公式、学术参考文献（APA/物理/芝加哥格式）、脚注、多栏排版和论文类型专属样式。',
+      'ru-RU':
+        'Создаёт академические статьи, научные работы и white paper со строгой структурой: нативное оглавление Word, формулы LaTeX в OMML, библиография в форматах APA/Physics/Chicago, сноски, многоколоночная вёрстка и стили под тип работы.',
     },
     promptsI18n: {
       'en-US': [
@@ -263,12 +284,15 @@ export const ASSISTANT_PRESETS: AssistantPreset[] = [
     nameI18n: {
       'en-US': 'Financial Model Creator',
       'zh-CN': '财务建模助手',
+      'ru-RU': 'Создатель финансовых моделей',
     },
     descriptionI18n: {
       'en-US':
         'Build formula-driven financial models from text prompts: 3-statement models, DCF valuations, cap tables, scenario analyses, sensitivity tables, and debt schedules. All values flow from assumptions through interconnected formula chains.',
       'zh-CN':
         '根据文本描述构建公式驱动的财务模型：三表联动、DCF 估值、股权表、情景分析、敏感性分析和债务计划。所有数值通过公式链从假设条件层层推导。',
+      'ru-RU':
+        'Строит финансовые модели на основе текстового запроса: три финансовые формы, DCF-оценка, cap table, сценарный анализ, таблицы чувствительности и долговые графики. Все значения выводятся через связные формульные цепочки от исходных предположений.',
     },
     promptsI18n: {
       'en-US': [
@@ -296,10 +320,13 @@ export const ASSISTANT_PRESETS: AssistantPreset[] = [
     nameI18n: {
       'en-US': 'Star Office Helper',
       'zh-CN': 'Star Office 助手',
+      'ru-RU': 'Помощник Star Office',
     },
     descriptionI18n: {
       'en-US': 'Install, connect, and troubleshoot Star-Office-UI visualization for Aion preview.',
       'zh-CN': '用于在 Aion 预览中安装、连接并排查 Star-Office-UI 可视化问题。',
+      'ru-RU':
+        'Помогает установить, подключить и диагностировать визуализацию Star-Office-UI для предпросмотра в Aion.',
     },
     promptsI18n: {
       'en-US': [
@@ -323,11 +350,14 @@ export const ASSISTANT_PRESETS: AssistantPreset[] = [
     nameI18n: {
       'en-US': 'OpenClaw Setup Expert',
       'zh-CN': 'OpenClaw 部署专家',
+      'ru-RU': 'Эксперт по настройке OpenClaw',
     },
     descriptionI18n: {
       'en-US':
         'Expert guide for installing, deploying, configuring, and troubleshooting OpenClaw. Proactively helps with setup, diagnoses issues, and provides security best practices.',
       'zh-CN': 'OpenClaw 安装、部署、配置和故障排查专家。主动协助设置、诊断问题并提供安全最佳实践。',
+      'ru-RU':
+        'Эксперт по установке, развёртыванию, настройке и устранению неполадок OpenClaw. Помогает пройти настройку, диагностирует проблемы и подсказывает безопасные практики.',
     },
     promptsI18n: {
       'en-US': [
@@ -355,10 +385,13 @@ export const ASSISTANT_PRESETS: AssistantPreset[] = [
     nameI18n: {
       'en-US': 'Cowork',
       'zh-CN': 'Cowork',
+      'ru-RU': 'Cowork',
     },
     descriptionI18n: {
       'en-US': 'Autonomous task execution with file operations, document processing, and multi-step workflow planning.',
       'zh-CN': '具有文件操作、文档处理和多步骤工作流规划的自主任务执行助手。',
+      'ru-RU':
+        'Автономный помощник для выполнения задач с работой с файлами, обработкой документов и многошаговым планированием.',
     },
     promptsI18n: {
       'en-US': [
@@ -439,10 +472,12 @@ export const ASSISTANT_PRESETS: AssistantPreset[] = [
     nameI18n: {
       'en-US': '3D Game',
       'zh-CN': '3D 游戏生成',
+      'ru-RU': 'Генератор 3D-игр',
     },
     descriptionI18n: {
       'en-US': 'Generate a complete 3D platform collection game in one HTML file.',
       'zh-CN': '用单个 HTML 文件生成完整的 3D 平台收集游戏。',
+      'ru-RU': 'Генерирует полноценную 3D-игру-платформер со сбором предметов в одном HTML-файле.',
     },
     promptsI18n: {
       'en-US': [
@@ -465,11 +500,14 @@ export const ASSISTANT_PRESETS: AssistantPreset[] = [
     nameI18n: {
       'en-US': 'UI/UX Pro Max',
       'zh-CN': 'UI/UX 专业设计师',
+      'ru-RU': 'UI/UX Pro Max',
     },
     descriptionI18n: {
       'en-US':
         'Professional UI/UX design intelligence with 57 styles, 95 color palettes, 56 font pairings, and stack-specific best practices.',
       'zh-CN': '专业 UI/UX 设计智能助手，包含 57 种风格、95 个配色方案、56 个字体配对及技术栈最佳实践。',
+      'ru-RU':
+        'Профессиональный UI/UX-помощник с 57 стилями, 95 цветовыми палитрами, 56 сочетаниями шрифтов и лучшими практиками для разных стеков.',
     },
     promptsI18n: {
       'en-US': [
@@ -492,11 +530,14 @@ export const ASSISTANT_PRESETS: AssistantPreset[] = [
     nameI18n: {
       'en-US': 'Planning with Files',
       'zh-CN': '文件规划助手',
+      'ru-RU': 'Планирование с файлами',
     },
     descriptionI18n: {
       'en-US':
         'Manus-style file-based planning for complex tasks. Uses task_plan.md, findings.md, and progress.md to maintain persistent context.',
       'zh-CN': 'Manus 风格的文件规划，用于复杂任务。使用 task_plan.md、findings.md 和 progress.md 维护持久化上下文。',
+      'ru-RU':
+        'Файловое планирование в стиле Manus для сложных задач. Использует task_plan.md, findings.md и progress.md для сохранения устойчивого контекста.',
     },
     promptsI18n: {
       'en-US': [
@@ -519,11 +560,14 @@ export const ASSISTANT_PRESETS: AssistantPreset[] = [
     nameI18n: {
       'en-US': 'HUMAN 3.0 Coach',
       'zh-CN': 'HUMAN 3.0 教练',
+      'ru-RU': 'Коуч HUMAN 3.0',
     },
     descriptionI18n: {
       'en-US':
         'Personal development coach based on HUMAN 3.0 framework: 4 Quadrants (Mind/Body/Spirit/Vocation), 3 Levels, 3 Growth Phases.',
       'zh-CN': '基于 HUMAN 3.0 框架的个人发展教练：4 象限（思维/身体/精神/职业）、3 层次、3 成长阶段。',
+      'ru-RU':
+        'Коуч по личному развитию на основе фреймворка HUMAN 3.0: 4 квадранта (ум, тело, дух, призвание), 3 уровня и 3 фазы роста.',
     },
     promptsI18n: {
       'en-US': [
@@ -555,10 +599,13 @@ export const ASSISTANT_PRESETS: AssistantPreset[] = [
     nameI18n: {
       'en-US': 'Social Job Publisher',
       'zh-CN': '社交招聘发布助手',
+      'ru-RU': 'Публикатор вакансий в соцсетях',
     },
     descriptionI18n: {
       'en-US': 'Expand hiring requests into a full JD, images, and publish to social platforms via connectors.',
       'zh-CN': '扩写招聘需求为完整 JD 与图片，并通过 connector 发布到社交平台。',
+      'ru-RU':
+        'Разворачивает запрос на найм в полноценное описание вакансии и изображения, а затем публикует это в соцсетях через коннекторы.',
     },
     promptsI18n: {
       'en-US': [
@@ -590,10 +637,12 @@ export const ASSISTANT_PRESETS: AssistantPreset[] = [
     nameI18n: {
       'en-US': 'moltbook',
       'zh-CN': 'moltbook',
+      'ru-RU': 'moltbook',
     },
     descriptionI18n: {
       'en-US': 'The social network for AI agents. Post, comment, upvote, and create communities.',
       'zh-CN': 'AI 代理的社交网络。发帖、评论、投票、创建社区。',
+      'ru-RU': 'Социальная сеть для AI-агентов: публикации, комментарии, голосования и создание сообществ.',
     },
     promptsI18n: {
       'en-US': [
@@ -617,11 +666,13 @@ export const ASSISTANT_PRESETS: AssistantPreset[] = [
     nameI18n: {
       'en-US': 'Beautiful Mermaid',
       'zh-CN': 'Beautiful Mermaid',
+      'ru-RU': 'Beautiful Mermaid',
     },
     descriptionI18n: {
       'en-US':
         'Create flowcharts, sequence diagrams, state diagrams, class diagrams, and ER diagrams with beautiful themes.',
       'zh-CN': '创建流程图、时序图、状态图、类图和 ER 图，支持多种精美主题。',
+      'ru-RU': 'Создаёт блок-схемы, sequence-, state-, class- и ER-диаграммы с красивыми темами оформления.',
     },
     promptsI18n: {
       'en-US': [
@@ -645,12 +696,15 @@ export const ASSISTANT_PRESETS: AssistantPreset[] = [
     nameI18n: {
       'en-US': 'Story Roleplay',
       'zh-CN': '故事角色扮演',
+      'ru-RU': 'Ролевые истории',
     },
     descriptionI18n: {
       'en-US':
         'Immersive story roleplay. Start by: 1) Natural language to create characters, 2) Paste PNG images, or 3) Open folder with character cards (PNG/JSON) and world info.',
       'zh-CN':
         '沉浸式故事角色扮演。三种开始方式：1) 自然语言直接对话创建角色，2) 直接粘贴PNG图片，3) 打开包含角色卡（PNG/JSON）和世界书的文件夹。',
+      'ru-RU':
+        'Иммерсивный сюжетный ролевой режим. Можно начать тремя способами: описать персонажей словами, вставить PNG-изображения или открыть папку с карточками персонажей и лором мира.',
     },
     promptsI18n: {
       'en-US': [

@@ -13,7 +13,7 @@ import os from 'os';
 import path from 'path';
 import { ipcBridge } from '@/common';
 import { getSystemDir, ProcessEnv } from '@process/utils/initStorage';
-import { copyDirectoryRecursively } from '@process/utils';
+import { copyDirectoryRecursively, getConfigPath, getDataPath, resolveCliSafePath } from '@process/utils';
 
 export function initApplicationBridgeCore(): void {
   ipcBridge.application.systemInfo.provider(() => {
@@ -22,11 +22,17 @@ export function initApplicationBridgeCore(): void {
 
   ipcBridge.application.updateSystemInfo.provider(async ({ cacheDir, workDir }) => {
     try {
+      // Normalize paths: if the user picked a real path that matches a CLI-safe
+      // symlink target (e.g. macOS file picker resolves symlinks), restore the
+      // symlink path to avoid storing paths with spaces.
+      const safeCacheDir = resolveCliSafePath(cacheDir, getConfigPath());
+      const safeWorkDir = resolveCliSafePath(workDir, getDataPath());
+
       const oldDir = getSystemDir();
-      if (oldDir.cacheDir !== cacheDir) {
-        await copyDirectoryRecursively(oldDir.cacheDir, cacheDir);
+      if (oldDir.cacheDir !== safeCacheDir) {
+        await copyDirectoryRecursively(oldDir.cacheDir, safeCacheDir);
       }
-      await ProcessEnv.set('aionui.dir', { cacheDir, workDir });
+      await ProcessEnv.set('aionui.dir', { cacheDir: safeCacheDir, workDir: safeWorkDir });
       return { success: true };
     } catch (e) {
       const msg = e instanceof Error ? e.message : String(e);

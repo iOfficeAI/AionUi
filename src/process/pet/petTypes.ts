@@ -2,6 +2,7 @@ export const PET_STATES = [
   'idle',
   'thinking',
   'working',
+  'done',
   'happy',
   'error',
   'dragging',
@@ -46,6 +47,7 @@ export const STATE_PRIORITY: Record<PetState, number> = {
   error: 8,
   notification: 7,
   sweeping: 6,
+  done: 5,
   happy: 5,
   attention: 5,
   carrying: 4,
@@ -65,6 +67,7 @@ export const STATE_PRIORITY: Record<PetState, number> = {
 };
 
 export const MIN_DISPLAY_MS: Partial<Record<PetState, number>> = {
+  done: 3500,
   happy: 3000,
   error: 5000,
   attention: 3000,
@@ -89,6 +92,7 @@ export type AutoReturnConfig = {
 };
 
 export const AUTO_RETURN: Partial<Record<PetState, AutoReturnConfig>> = {
+  done: { target: 'idle', delayMs: 4000 },
   happy: { target: 'idle', delayMs: 4000 },
   error: { target: 'idle', delayMs: 5000 },
   attention: { target: 'idle', delayMs: 3000 },

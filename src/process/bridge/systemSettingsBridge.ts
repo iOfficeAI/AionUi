@@ -145,8 +145,12 @@ export function initSystemSettingsBridge(): void {
   });
 
   ipcBridge.systemSettings.setPetEnabled.provider(async ({ enabled }) => {
+    const { createPetWindow, destroyPetWindow, isPetSupported } = await import('@process/pet/petManager');
+    if (enabled && !isPetSupported()) {
+      console.warn('[SystemSettings] Desktop pet is not supported in headless mode');
+      return;
+    }
     await ProcessConfig.set('pet.enabled', enabled);
-    const { createPetWindow, destroyPetWindow } = await import('@process/pet/petManager');
     if (enabled) {
       createPetWindow();
     } else {
@@ -191,7 +195,7 @@ export function initSystemSettingsBridge(): void {
 
   ipcBridge.systemSettings.getCommandQueueEnabled.provider(async () => {
     const value = await ProcessConfig.get('system.commandQueueEnabled');
-    return value ?? false;
+    return value ?? true;
   });
 
   ipcBridge.systemSettings.setCommandQueueEnabled.provider(async ({ enabled }) => {

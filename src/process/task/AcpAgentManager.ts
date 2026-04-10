@@ -5,6 +5,7 @@ import type { CronMessageMeta, TMessage } from '@/common/chat/chatLib';
 import { isCodexAutoApproveMode } from '@/common/types/codex/codexModes';
 import type { SlashCommandItem } from '@/common/chat/slash/types';
 import { transformMessage } from '@/common/chat/chatLib';
+import type { IConfigStorageRefer } from '@/common/config/storage';
 import { AIONUI_FILES_MARKER } from '@/common/config/constants';
 import type { IResponseMessage } from '@/common/adapter/ipcBridge';
 import { parseError, uuid } from '@/common/utils';
@@ -15,6 +16,7 @@ import type {
   AcpPermissionRequest,
   AcpPromptResponseUsage,
   AcpResult,
+  AcpBackendConfig,
   AcpSessionConfigOption,
 } from '@/common/types/acpTypes';
 import { ACP_BACKENDS_ALL } from '@/common/types/acpTypes';
@@ -37,6 +39,7 @@ const ACP_PERF_LOG = process.env.ACP_PERF === '1';
 
 import BaseAgentManager from './BaseAgentManager';
 import { IpcAgentEventEmitter } from './IpcAgentEventEmitter';
+import type { AgentKillReason } from './IAgentManager';
 import { hasCronCommands } from './CronCommandDetector';
 import { hasNativeSkillSupport } from '@process/utils/initAgent';
 import { extractTextFromMessage, processCronInMessage } from './MessageMiddleware';
@@ -78,6 +81,8 @@ type BufferedStreamTextMessage = {
   timer: ReturnType<typeof setTimeout>;
 };
 
+type CustomAgentLaunchConfig = Pick<AcpBackendConfig, 'id' | 'name' | 'defaultCliPath' | 'acpArgs' | 'env'>;
+
 class AcpAgentManager extends BaseAgentManager<AcpAgentManagerData, AcpPermissionOption> {
   workspace: string;
   agent: AcpAgent;
@@ -98,13 +103,13 @@ class AcpAgentManager extends BaseAgentManager<AcpAgentManagerData, AcpPermissio
   private acpAvailableSlashWaiters: Array<(commands: SlashCommandItem[]) => void> = [];
   private readonly streamDbFlushIntervalMs = 120;
   private readonly bufferedStreamTextMessages = new Map<string, BufferedStreamTextMessage>();
-  private readonly missingFinishFallbackDelayMs = 2000;
   private missingFinishFallbackTimer: ReturnType<typeof setTimeout> | null = null;
   private missingFinishFallbackTurnId: number | null = null;
   private nextTrackedTurnId: number = 0;
   private activeTrackedTurnId: number | null = null;
   private activeTrackedTurnHasRuntimeActivity: boolean = false;
   private readonly completedTrackedTurnIds = new Set<number>();
+  private readonly missingFinishFallbackDelayMs = 2000;
 
   constructor(data: AcpAgentManagerData) {
     super('acp', data, new IpcAgentEventEmitter());
@@ -177,7 +182,6 @@ class AcpAgentManager extends BaseAgentManager<AcpAgentManagerData, AcpPermissio
     // ACP does not buffer thinking content into the DB the way text streaming is buffered,
     // so kill() only needs a no-op hook here to keep the shutdown path type-safe.
   }
-
   private beginTrackedTurn(): number {
     this.clearMissingFinishFallback();
     const turnId = this.nextTrackedTurnId + 1;
@@ -190,6 +194,8 @@ class AcpAgentManager extends BaseAgentManager<AcpAgentManagerData, AcpPermissio
   private markTrackedTurnFinished(turnId: number): void {
     if (this.activeTrackedTurnId === turnId) {
       this.activeTrackedTurnId = null;
+      this.activeTrackedTurnHasRuntimeActivity = false;
+      this.clearMissingFinishFallback();
     }
     this.completedTrackedTurnIds.add(turnId);
   }
@@ -215,16 +221,19 @@ class AcpAgentManager extends BaseAgentManager<AcpAgentManagerData, AcpPermissio
     if (this.activeTrackedTurnId === turnId) {
       this.activeTrackedTurnId = null;
       this.activeTrackedTurnHasRuntimeActivity = false;
+      this.clearMissingFinishFallback();
     }
     this.completedTrackedTurnIds.delete(turnId);
   }
 
   private markTrackedTurnRuntimeActivity(): void {
+    this._lastActivityAt = Date.now();
     if (this.activeTrackedTurnId === null) {
       return;
     }
 
     this.activeTrackedTurnHasRuntimeActivity = true;
+    this.scheduleMissingFinishFallback();
   }
 
   private clearMissingFinishFallback(): void {
@@ -340,7 +349,9 @@ class AcpAgentManager extends BaseAgentManager<AcpAgentManagerData, AcpPermissio
       if (data.backend === 'custom' && data.customAgentId) {
         const customAgents = await ProcessConfig.get('acp.customAgents');
         // 通过 UUID 查找对应的自定义代理配置 / Find custom agent config by UUID
-        let customAgentConfig = customAgents?.find((agent) => agent.id === data.customAgentId);
+        let customAgentConfig: CustomAgentLaunchConfig | undefined = customAgents?.find(
+          (agent) => agent.id === data.customAgentId
+        );
 
         // Fallback: extension adapter (customAgentId format: ext:{extensionName}:{adapterId})
         if (!customAgentConfig && data.customAgentId.startsWith('ext:')) {
@@ -362,7 +373,7 @@ class AcpAgentManager extends BaseAgentManager<AcpAgentManagerData, AcpPermissio
                 ? adapter.acpArgs.filter((v): v is string => typeof v === 'string')
                 : undefined,
               env: typeof adapter.env === 'object' && adapter.env ? (adapter.env as Record<string, string>) : undefined,
-            } as any;
+            };
           }
         }
 
@@ -384,7 +395,7 @@ class AcpAgentManager extends BaseAgentManager<AcpAgentManagerData, AcpPermissio
         }
         // yoloMode priority: data.yoloMode (from CronService) > config setting
         // yoloMode 优先级：data.yoloMode（来自 CronService）> 配置设置
-        const legacyYoloMode = data.yoloMode ?? (config?.[data.backend] as any)?.yoloMode;
+        const legacyYoloMode = data.yoloMode ?? config?.[data.backend]?.yoloMode;
 
         // Migrate legacy yoloMode config (from SecurityModalContent) to currentMode.
         // Maps to each backend's native yolo mode value for correct protocol behavior.
@@ -497,6 +508,8 @@ class AcpAgentManager extends BaseAgentManager<AcpAgentManagerData, AcpPermissio
           if (this.bootstrapping) {
             return;
           }
+
+          this.markTrackedTurnRuntimeActivity();
 
           const pipelineStart = Date.now();
           cronBusyGuard.touchActivity(this.conversation_id);
@@ -644,6 +657,7 @@ class AcpAgentManager extends BaseAgentManager<AcpAgentManagerData, AcpPermissio
           this.markTrackedTurnRuntimeActivity();
           // Flush buffered text chunks before handling turn-level signals
           this.flushBufferedStreamTextMessages();
+          this.markTrackedTurnRuntimeActivity();
 
           // 仅发送信号到前端，不更新消息列表
           if (v.type === 'acp_permission') {
@@ -675,10 +689,11 @@ class AcpAgentManager extends BaseAgentManager<AcpAgentManagerData, AcpPermissio
           ipcBridge.acpConversation.responseStream.emit(v);
 
           // Forward signals (finish/error/etc.) to Channel global event bus
-          channelEventBus.emitAgentMessage(this.conversation_id, {
-            ...(v as any),
+          const forwardedSignal = {
+            ...(v as IResponseMessage),
             conversation_id: this.conversation_id,
-          });
+          };
+          channelEventBus.emitAgentMessage(this.conversation_id, forwardedSignal);
         },
       });
       return this.agent.start().then(async () => {
@@ -687,7 +702,6 @@ class AcpAgentManager extends BaseAgentManager<AcpAgentManagerData, AcpPermissio
         if (this.currentMode && this.currentMode !== 'default') {
           try {
             await this.agent.setMode(this.currentMode);
-            mainLog('[AcpAgentManager]', `Re-applied persisted mode: ${this.currentMode}`);
           } catch (error) {
             mainWarn('[AcpAgentManager]', `Failed to re-apply mode ${this.currentMode}`, error);
           }
@@ -1258,11 +1272,11 @@ class AcpAgentManager extends BaseAgentManager<AcpAgentManagerData, AcpPermissio
     try {
       const config = await ProcessConfig.get('acp.config');
       const backendConfig = config?.[this.options.backend];
-      if ((backendConfig as any)?.yoloMode) {
+      if (backendConfig?.yoloMode) {
         await ProcessConfig.set('acp.config', {
           ...config,
           [this.options.backend]: { ...backendConfig, yoloMode: false },
-        });
+        } as IConfigStorageRefer['acp.config']);
       }
     } catch (error) {
       mainError('[AcpAgentManager]', 'Failed to clear legacy yoloMode config', error);
@@ -1439,7 +1453,7 @@ class AcpAgentManager extends BaseAgentManager<AcpAgentManagerData, AcpPermissio
    * An idempotent doKill() guard prevents double super.kill() when the hard
    * timeout and graceful path race against each other.
    */
-  kill() {
+  kill(_reason?: AgentKillReason) {
     this.clearMissingFinishFallback();
     this.flushBufferedStreamTextMessages();
     this.flushThinkingToDb(undefined, 'done');
@@ -1514,14 +1528,6 @@ class AcpAgentManager extends BaseAgentManager<AcpAgentManagerData, AcpPermissio
         ...cached,
         [this.options.backend]: nextCachedInfo,
       });
-      if (this.options.backend === 'codex') {
-        mainLog('[AcpAgentManager]', 'Cached Codex model list', {
-          backend: this.options.backend,
-          currentModelId: nextCachedInfo.currentModelId,
-          availableModelCount: nextCachedInfo.availableModels?.length || 0,
-          sampleModelIds: (nextCachedInfo.availableModels || []).slice(0, 8).map((model) => model.id),
-        });
-      }
     } catch (error) {
       mainWarn('[AcpAgentManager]', 'Failed to cache model list', error);
     }
@@ -1545,7 +1551,6 @@ class AcpAgentManager extends BaseAgentManager<AcpAgentManagerData, AcpPermissio
         db.updateConversation(this.conversation_id, {
           extra: updatedExtra,
         } as Partial<typeof conversation>);
-        mainLog('[AcpAgentManager]', `Saved ACP session ID: ${sessionId} for conversation: ${this.conversation_id}`);
       }
     } catch (error) {
       mainError('[AcpAgentManager]', 'Failed to save ACP session ID', error);

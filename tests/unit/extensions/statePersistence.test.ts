@@ -17,9 +17,21 @@ function createTempDir(prefix: string): string {
   return dir;
 }
 
-/** Wait for the debounced save to flush (500ms debounce + buffer). */
-function waitForFlush(): Promise<void> {
-  return new Promise((r) => setTimeout(r, 600));
+async function waitForCondition(
+  predicate: () => boolean | Promise<boolean>,
+  timeoutMs: number = 3000,
+  intervalMs: number = 50
+): Promise<void> {
+  const deadline = Date.now() + timeoutMs;
+
+  while (Date.now() < deadline) {
+    if (await predicate()) {
+      return;
+    }
+    await new Promise((resolve) => setTimeout(resolve, intervalMs));
+  }
+
+  throw new Error('Timed out waiting for persisted extension state');
 }
 
 afterEach(() => {
@@ -54,7 +66,7 @@ describe('extensions/statePersistence', () => {
     ]);
 
     savePersistedStates(states);
-    await waitForFlush();
+    await waitForCondition(() => fs.existsSync(statesFile));
 
     expect(fs.existsSync(statesFile)).toBe(true);
 
@@ -118,7 +130,10 @@ describe('extensions/statePersistence', () => {
     savePersistedStates(states3);
 
     // Wait for debounce to flush
-    await waitForFlush();
+    await waitForCondition(async () => {
+      const loaded = await loadPersistedStates();
+      return loaded.has('ext-c');
+    });
 
     // Only the last save should persist
     const loaded = await loadPersistedStates();
@@ -135,10 +150,10 @@ describe('extensions/statePersistence', () => {
 
       const states = new Map([['ext-claude', { enabled: true, installed: true, lastVersion: '1.0.0' }]]);
       savePersistedStates(states);
-      await waitForFlush();
+      await waitForCondition(() => fs.existsSync(statesFile));
 
       await markExtensionForReinstall('ext-claude');
-      await waitForFlush();
+      await waitForCondition(async () => (await loadPersistedStates()).get('ext-claude')?.installed === false);
 
       const loaded = await loadPersistedStates();
       expect(loaded.get('ext-claude')?.installed).toBe(false);
@@ -154,10 +169,10 @@ describe('extensions/statePersistence', () => {
 
       const states = new Map([['ext-other', { enabled: true, installed: true }]]);
       savePersistedStates(states);
-      await waitForFlush();
+      await waitForCondition(() => fs.existsSync(statesFile));
 
       await markExtensionForReinstall('ext-nonexistent');
-      await waitForFlush();
+      await waitForCondition(async () => (await loadPersistedStates()).get('ext-other')?.installed === true);
 
       const loaded = await loadPersistedStates();
       // ext-other should be unchanged

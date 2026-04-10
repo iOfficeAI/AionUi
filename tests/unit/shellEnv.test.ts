@@ -478,6 +478,122 @@ describe('resolveNpxPath', () => {
   });
 });
 
+describe('resolveNpxDirect', () => {
+  const originalPlatform = process.platform;
+
+  beforeEach(() => {
+    vi.resetModules();
+  });
+
+  afterEach(() => {
+    Object.defineProperty(process, 'platform', { value: originalPlatform });
+  });
+
+  it('returns null on non-Windows', async () => {
+    Object.defineProperty(process, 'platform', { value: 'darwin' });
+
+    vi.doMock('child_process', () => ({
+      execFileSync: vi.fn(),
+      execFile: vi.fn(),
+    }));
+
+    const { resolveNpxDirect } = await import('@process/utils/shellEnv');
+    expect(resolveNpxDirect({ PATH: '/usr/bin' })).toBeNull();
+  });
+
+  it('returns nodePath and npxScript on Windows when npm is present', async () => {
+    Object.defineProperty(process, 'platform', { value: 'win32' });
+
+    const execFileSync = vi
+      .fn()
+      .mockReturnValueOnce(`${path.join('/tooling', 'node.exe')}\n`)
+      .mockReturnValueOnce('10.9.0\n');
+
+    vi.doMock('fs', async () => {
+      const actual = await vi.importActual<typeof import('fs')>('fs');
+      return {
+        ...actual,
+        existsSync: vi.fn(() => true),
+      };
+    });
+
+    vi.doMock('child_process', () => ({
+      execFileSync,
+      execFile: vi.fn(),
+    }));
+
+    const { resolveNpxDirect } = await import('@process/utils/shellEnv');
+    const result = resolveNpxDirect({ PATH: '/tooling' });
+    expect(result).toEqual({
+      nodePath: path.join('/tooling', 'node.exe'),
+      npxScript: path.join('/tooling', 'node_modules', 'npm', 'bin', 'npx-cli.js'),
+    });
+  });
+
+  it('returns null when npm scripts are missing on Windows', async () => {
+    Object.defineProperty(process, 'platform', { value: 'win32' });
+
+    const execFileSync = vi.fn().mockReturnValueOnce(`${path.join('/tooling', 'node.exe')}\n`);
+
+    vi.doMock('fs', async () => {
+      const actual = await vi.importActual<typeof import('fs')>('fs');
+      return {
+        ...actual,
+        existsSync: vi.fn(() => false),
+      };
+    });
+
+    vi.doMock('child_process', () => ({
+      execFileSync,
+      execFile: vi.fn(),
+    }));
+
+    const { resolveNpxDirect } = await import('@process/utils/shellEnv');
+    expect(resolveNpxDirect({ PATH: '/tooling' })).toBeNull();
+  });
+
+  it('returns null when where command throws on Windows', async () => {
+    Object.defineProperty(process, 'platform', { value: 'win32' });
+
+    const execFileSync = vi.fn().mockImplementation(() => {
+      throw new Error('where: command not found');
+    });
+
+    vi.doMock('child_process', () => ({
+      execFileSync,
+      execFile: vi.fn(),
+    }));
+
+    const { resolveNpxDirect } = await import('@process/utils/shellEnv');
+    expect(resolveNpxDirect({ PATH: '/tooling' })).toBeNull();
+  });
+
+  it('returns null when npx version is too old on Windows', async () => {
+    Object.defineProperty(process, 'platform', { value: 'win32' });
+
+    const execFileSync = vi
+      .fn()
+      .mockReturnValueOnce(`${path.join('/tooling', 'node.exe')}\n`)
+      .mockReturnValueOnce('6.14.0\n');
+
+    vi.doMock('fs', async () => {
+      const actual = await vi.importActual<typeof import('fs')>('fs');
+      return {
+        ...actual,
+        existsSync: vi.fn(() => true),
+      };
+    });
+
+    vi.doMock('child_process', () => ({
+      execFileSync,
+      execFile: vi.fn(),
+    }));
+
+    const { resolveNpxDirect } = await import('@process/utils/shellEnv');
+    expect(resolveNpxDirect({ PATH: '/tooling' })).toBeNull();
+  });
+});
+
 // -------------------------------------------------------------------
 // 5. loadFullShellEnvironment — async, detached, with -i flag
 // -------------------------------------------------------------------

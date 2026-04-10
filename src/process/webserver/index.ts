@@ -154,20 +154,11 @@ export async function initializeDefaultAdmin(): Promise<{ username: string; pass
 
   const systemUser = await UserRepository.getSystemUser();
   const existingAdmin = await UserRepository.findByUsername(username);
-  const bootstrapUsername = resolveBootstrapAdminUsername(systemUser);
 
-  // 已存在且密码有效则视为完成初始化
-  // Treat existing admin with valid password as already initialized
   const hasValidPassword = (user: typeof existingAdmin): boolean =>
     !!user && typeof user.password_hash === 'string' && user.password_hash.trim().length > 0;
 
-  // 如果已经有有效的管理员用户，直接跳过初始化
-  // Skip initialization if a valid admin already exists
-  if (hasValidPassword(existingAdmin)) {
-    return null;
-  }
-
-  if (hasValidPassword(systemUser)) {
+  if (hasValidPassword(systemUser) || hasValidPassword(existingAdmin)) {
     return null;
   }
 
@@ -176,9 +167,14 @@ export async function initializeDefaultAdmin(): Promise<{ username: string; pass
   try {
     const hashedPassword = await AuthService.hashPassword(password);
 
+    if (systemUser) {
+      const nextUsername = resolveBootstrapAdminUsername(systemUser);
+      await UserRepository.setSystemUserCredentials(nextUsername, hashedPassword);
+      initialAdminPassword = password; // 存储初始密码 / Store initial password
+      return { username: nextUsername, password };
+    }
+
     if (existingAdmin) {
-      // 情况 1：库中已有 admin 记录但密码缺失 -> 重置密码并输出凭证
-      // Case 1: admin row exists but password is blank -> refresh password and expose credentials
       await UserRepository.updatePassword(existingAdmin.id, hashedPassword);
       initialAdminPassword = password; // 存储初始密码 / Store initial password
       return { username, password };
@@ -187,9 +183,7 @@ export async function initializeDefaultAdmin(): Promise<{ username: string; pass
     if (systemUser) {
       // 情况 2：仅存在 system_default_user 占位行 -> 更新用户名和密码
       // Case 2: only placeholder system user exists -> update username/password in place
-      await UserRepository.setSystemUserCredentials(bootstrapUsername, hashedPassword);
       initialAdminPassword = password; // 存储初始密码 / Store initial password
-      return { username: bootstrapUsername, password };
     }
 
     // 情况 3：初次启动，无任何用户 -> 新建 admin 账户
@@ -296,13 +290,7 @@ export async function startWebServerWithInstance(port: number, allowRemote = fal
   // Listen on 0.0.0.0 (all interfaces) or 127.0.0.1 (local only) based on allowRemote
   const host = allowRemote ? SERVER_CONFIG.REMOTE_HOST : SERVER_CONFIG.DEFAULT_HOST;
   return new Promise((resolve, reject) => {
-    const cleanupListeners = () => {
-      server.off('error', handleError);
-      server.off('listening', handleListening);
-    };
-
-    const handleListening = () => {
-      cleanupListeners();
+    server.listen(port, host, () => {
       const localUrl = `http://localhost:${port}`;
       const serverIP = getServerIP();
       const displayUrl = serverIP ? `http://${serverIP}:${port}` : localUrl;
@@ -328,20 +316,15 @@ export async function startWebServerWithInstance(port: number, allowRemote = fal
         port,
         allowRemote,
       });
-    };
+    });
 
-    const handleError = (err: NodeJS.ErrnoException) => {
-      cleanupListeners();
+    server.on('error', (err: NodeJS.ErrnoException) => {
       if (err.code === 'EADDRINUSE') {
         const nextPort = port + 1;
         const maxPort = SERVER_CONFIG.DEFAULT_PORT + 10;
         if (nextPort <= maxPort) {
           console.warn(`⚠️ Port ${port} is in use, trying ${nextPort}... / 端口 ${port} 已被占用，尝试 ${nextPort}...`);
-          try {
-            server.close();
-          } catch {
-            // Ignore close errors when the socket never started listening.
-          }
+          server.close();
           resolve(startWebServerWithInstance(nextPort, allowRemote));
         } else {
           console.error(`❌ Ports ${SERVER_CONFIG.DEFAULT_PORT}-${maxPort} all in use / 端口全部被占用`);
@@ -351,11 +334,7 @@ export async function startWebServerWithInstance(port: number, allowRemote = fal
         console.error('❌ Server error / 服务器错误:', err);
         reject(err);
       }
-    };
-
-    server.once('error', handleError);
-    server.once('listening', handleListening);
-    server.listen(port, host);
+    });
   });
 }
 

@@ -39,6 +39,8 @@ vi.mock('@/common', () => ({
 vi.mock('@/renderer/utils/emitter', () => ({
   emitter: {
     emit: vi.fn(),
+    on: vi.fn(() => () => {}),
+    off: vi.fn(),
   },
 }));
 
@@ -187,6 +189,16 @@ vi.mock('@renderer/pages/conversation/GroupedHistory/ConversationRow', () => ({
 
 vi.mock('@renderer/pages/conversation/GroupedHistory/utils/groupingHelpers', () => ({
   isConversationPinned: () => false,
+}));
+
+vi.mock('@renderer/hooks/context/ConversationHistoryContext', () => ({
+  useConversationHistoryContext: () => ({
+    isConversationGenerating: () => false,
+    hasCompletionUnread: () => false,
+    clearCompletionUnread: vi.fn(),
+    conversations: [],
+    groupedHistory: { today: [], yesterday: [], lastWeek: [], lastMonth: [], older: [] },
+  }),
 }));
 
 import type { ICronJob } from '@/common/adapter/ipcBridge';

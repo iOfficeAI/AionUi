@@ -10,6 +10,7 @@ import { Down, Right } from '@icon-park/react';
 import type { ICronJob } from '@/common/adapter/ipcBridge';
 import type { TChatConversation } from '@/common/config/storage';
 import { ipcBridge } from '@/common';
+import { emitter } from '@/renderer/utils/emitter';
 import CronJobSiderItem from './CronJobSiderItem';
 
 interface CronJobSiderSectionProps {
@@ -22,6 +23,39 @@ const CronJobSiderSection: React.FC<CronJobSiderSectionProps> = ({ jobs, pathnam
   const { t } = useTranslation();
   const [expanded, setExpanded] = useState(false);
 
+  // Collect all conversation IDs that belong to cron jobs (for auto-expand detection)
+  const cronConversationIds = useMemo(() => {
+    const ids = new Set<string>();
+    for (const job of jobs) {
+      if (job.metadata.conversationId) ids.add(job.metadata.conversationId);
+    }
+    return ids;
+  }, [jobs]);
+
+  // Auto-expand when navigating to a scheduled task detail or a cron-related conversation
+  useEffect(() => {
+    if (pathname.startsWith('/scheduled/')) {
+      setExpanded(true);
+      return;
+    }
+    if (pathname.startsWith('/conversation/')) {
+      const convId = pathname.split('/')[2];
+      if (!convId) return;
+      // Expand for existing-mode conversations (direct match)
+      if (cronConversationIds.has(convId)) {
+        setExpanded(true);
+        return;
+      }
+      // Expand for new_conversation-mode child conversations (check cronJobId in extra)
+      ipcBridge.conversation.get.invoke({ id: convId }).then((conv) => {
+        const extra = conv?.extra as Record<string, unknown> | undefined;
+        if (extra?.cronJobId) {
+          setExpanded(true);
+        }
+      });
+    }
+  }, [pathname, cronConversationIds]);
+
   // Batch-fetch conversations for all "existing" mode jobs to avoid N+1 IPC calls
   const existingModeConvIds = useMemo(
     () =>
@@ -32,7 +66,9 @@ const CronJobSiderSection: React.FC<CronJobSiderSectionProps> = ({ jobs, pathnam
   );
 
   const [existingConversations, setExistingConversations] = useState<Map<string, TChatConversation>>(new Map());
+  const [refreshTrigger, setRefreshTrigger] = useState(0);
 
+  // Fetch conversations when conv IDs change or when refresh event is triggered
   useEffect(() => {
     if (existingModeConvIds.length === 0) {
       setExistingConversations(new Map());
@@ -46,7 +82,18 @@ const CronJobSiderSection: React.FC<CronJobSiderSectionProps> = ({ jobs, pathnam
       }
       setExistingConversations(map);
     });
-  }, [existingModeConvIds]);
+  }, [existingModeConvIds, refreshTrigger]);
+
+  // Listen to chat.history.refresh to re-fetch existing mode conversations
+  useEffect(() => {
+    const handleRefresh = () => {
+      setRefreshTrigger((prev) => prev + 1);
+    };
+    emitter.on('chat.history.refresh', handleRefresh);
+    return () => {
+      emitter.off('chat.history.refresh', handleRefresh);
+    };
+  }, []);
 
   if (jobs.length === 0) return null;
 

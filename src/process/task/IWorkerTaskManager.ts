@@ -15,6 +15,6 @@ export interface IWorkerTaskManager {
   addTask(id: string, task: IAgentManager): void;
   removeTask(id: string): IAgentManager | undefined;
   kill(id: string, reason?: AgentKillReason): void;
-  clear(): void;
+  clear(): Promise<void>;
   listTasks(): Array<{ id: string; type: AgentType }>;
 }

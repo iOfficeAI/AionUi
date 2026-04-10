@@ -25,6 +25,20 @@ type SnapshotState = {
 const DEFAULT_GITIGNORE = `node_modules/
 .git/
 *.lock
+dist/
+build/
+out/
+target/
+.next/
+.nuxt/
+.output/
+.cache/
+.parcel-cache/
+.tsbuildinfo
+__pycache__/
+.venv/
+venv/
+*.pyc
 `;
 
 export class WorkspaceSnapshotService {

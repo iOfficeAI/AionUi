@@ -63,7 +63,7 @@ const ChatWorkspace: React.FC<WorkspaceProps> = ({
 
   // Tab state and file changes
   const [activeTab, setActiveTab] = useState<WorkspaceTab>('files');
-  const fileChangesHook = useFileChanges({ workspace, conversationId: conversation_id });
+  const fileChangesHook = useFileChanges({ workspace });
 
   // Initialize all hooks
   const { isWorkspaceCollapsed, setIsWorkspaceCollapsed } = useWorkspaceCollapse();

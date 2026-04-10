@@ -19,8 +19,7 @@ type MockSystemUser = {
 type MockServer = {
   close: ReturnType<typeof vi.fn>;
   listen: ReturnType<typeof vi.fn>;
-  off: ReturnType<typeof vi.fn>;
-  once: ReturnType<typeof vi.fn>;
+  on: ReturnType<typeof vi.fn>;
 };
 
 const makeSystemUser = (overrides?: Partial<MockSystemUser>): MockSystemUser => ({
@@ -44,8 +43,7 @@ const mockWebServerModuleDeps = (options?: { createServerImpl?: () => MockServer
         (() => ({
           listen: vi.fn(),
           close: vi.fn(),
-          off: vi.fn(),
-          once: vi.fn(),
+          on: vi.fn(),
         }))
     ),
   }));
@@ -190,27 +188,25 @@ describe('startWebServerWithInstance', () => {
         const listeners = new Map<string, (...args: unknown[]) => void>();
         const server: MockServer = {
           close: vi.fn(),
-          off: vi.fn((event: string) => {
-            listeners.delete(event);
-          }),
-          once: vi.fn((event: string, handler: (...args: unknown[]) => void) => {
+          on: vi.fn((event: string, handler: (...args: unknown[]) => void) => {
             listeners.set(event, handler);
             return server;
           }),
-          listen: vi.fn((port: number, _host: string) => {
+          listen: vi.fn((port: number, _host: string, callback?: () => void) => {
             if (createCount === 0) {
               createCount += 1;
-              const errorHandler = listeners.get('error');
-              if (!errorHandler) {
-                throw Object.assign(new Error('listener missing'), { code: 'EADDRINUSE' });
-              }
-              errorHandler(Object.assign(new Error('address in use'), { code: 'EADDRINUSE' }));
+              queueMicrotask(() => {
+                const errorHandler = listeners.get('error');
+                if (!errorHandler) {
+                  throw Object.assign(new Error('listener missing'), { code: 'EADDRINUSE' });
+                }
+                errorHandler(Object.assign(new Error('address in use'), { code: 'EADDRINUSE' }));
+              });
               return server;
             }
 
             createCount += 1;
-            const listeningHandler = listeners.get('listening');
-            listeningHandler?.();
+            callback?.();
             return server;
           }),
         };
@@ -242,11 +238,10 @@ describe('startWebServerWithInstance', () => {
     const result = await startWebServerWithInstance(3000, true);
 
     expect(createdServers).toHaveLength(2);
-    expect(createdServers[0]?.once).toHaveBeenCalledWith('error', expect.any(Function));
-    expect(createdServers[0]?.once).toHaveBeenCalledWith('listening', expect.any(Function));
-    expect(createdServers[0]?.listen).toHaveBeenCalledWith(3000, SERVER_CONFIG.REMOTE_HOST);
+    expect(createdServers[0]?.on).toHaveBeenCalledWith('error', expect.any(Function));
+    expect(createdServers[0]?.listen).toHaveBeenCalledWith(3000, SERVER_CONFIG.REMOTE_HOST, expect.any(Function));
     expect(createdServers[0]?.close).toHaveBeenCalledTimes(1);
-    expect(createdServers[1]?.listen).toHaveBeenCalledWith(3001, SERVER_CONFIG.REMOTE_HOST);
+    expect(createdServers[1]?.listen).toHaveBeenCalledWith(3001, SERVER_CONFIG.REMOTE_HOST, expect.any(Function));
     expect(result.port).toBe(3001);
     expect(consoleWarnSpy).toHaveBeenCalledWith(
       '⚠️ Port 3000 is in use, trying 3001... / 端口 3000 已被占用，尝试 3001...'

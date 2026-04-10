@@ -24,6 +24,14 @@ const BUNDLED_SKILL_PATH = path.resolve(
   '../../src/process/resources/skills/_builtin/aionui-skills/SKILL.md'
 );
 
+// Mock Electron app and initStorage before importing AcpSkillManager
+vi.mock('electron', () => ({ app: { setName: vi.fn(), getPath: () => '/tmp/aionui-test' } }));
+vi.mock('../../src/process/utils/initStorage', () => ({
+  getSkillsDir: () => path.join('/tmp/aionui-test', 'skills'),
+  getAutoSkillsDir: () => path.join('/tmp/aionui-test', 'skills', '_builtin'),
+  getBuiltinSkillsCopyDir: () => path.join('/tmp/aionui-test', 'builtin-skills'),
+}));
+
 describe('Skills Market - Bundled SKILL.md', () => {
   it('bundled SKILL.md file exists', async () => {
     const stat = await fs.stat(BUNDLED_SKILL_PATH);
@@ -128,14 +136,6 @@ describe('Skills Market - Enable/Disable flow', () => {
 });
 
 describe('Skills Market - AcpSkillManager integration', () => {
-  // Mock Electron app and initStorage before importing AcpSkillManager
-  vi.mock('electron', () => ({ app: { setName: vi.fn(), getPath: () => '/tmp/aionui-test' } }));
-  vi.mock('../../src/process/utils/initStorage', () => ({
-    getSkillsDir: () => path.join('/tmp/aionui-test', 'skills'),
-    getAutoSkillsDir: () => path.join('/tmp/aionui-test', 'skills', '_builtin'),
-    getBuiltinSkillsCopyDir: () => path.join('/tmp/aionui-test', 'builtin-skills'),
-  }));
-
   it('resetInstance clears the singleton so new discoveries happen', async () => {
     const { AcpSkillManager } = await import('../../src/process/task/AcpSkillManager');
 

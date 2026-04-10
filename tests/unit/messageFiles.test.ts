@@ -32,7 +32,7 @@ describe('buildDisplayMessage', () => {
     expect(result).not.toContain('/other/path');
   });
 
-  it('passes relative paths through unchanged', () => {
+  it('converts relative paths into workspace-prefixed paths', () => {
     const files = ['relative/file.txt'];
     const result = buildDisplayMessage('hello', files, workspace);
     expect(result).toContain('relative/file.txt');
@@ -43,7 +43,7 @@ describe('buildDisplayMessage', () => {
     expect(result).toBe('hello');
   });
 
-  it('strips AIONUI timestamp separators from filenames', () => {
+  it('strips AIONUI timestamp separators from filenames while keeping prefix', () => {
     const files = [`${workspace}/uploads/photo_aionui_1234567890123.jpg`];
     const result = buildDisplayMessage('hello', files, workspace);
     expect(result).toContain('uploads/photo.jpg');
