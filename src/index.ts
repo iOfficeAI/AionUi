@@ -32,7 +32,7 @@ import { setInitialLanguage } from '@process/services/i18n';
 import { workerTaskManager } from './process/task/workerTaskManagerSingleton';
 import { setupApplicationMenu } from './process/utils/appMenu';
 import { startWebServer } from './process/webserver';
-import { applyZoomToWindow, initializeZoomFactor } from './process/utils/zoom';
+import { initializeZoomFactor, setupZoomForWindow } from './process/utils/zoom';
 import {
   clearPendingDeepLinkUrl,
   getPendingDeepLinkUrl,
@@ -285,7 +285,7 @@ const createWindow = ({ showOnReady = true }: { showOnReady?: boolean } = {}): v
   bindMainWindowReferences(mainWindow);
   setupApplicationMenu();
 
-  void applyZoomToWindow(mainWindow);
+  setupZoomForWindow(mainWindow);
   registerWindowMaximizeListeners(mainWindow);
 
   // Initialize auto-updater service (skip when disabled via env, e.g. E2E / CI)
