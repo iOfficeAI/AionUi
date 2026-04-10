@@ -719,14 +719,6 @@ export class AcpAgent {
         this.pendingModelSwitchNotice = null;
       }
 
-      // Inject team guide reminder for whitelisted backends on every turn.
-      // The full team guide is only in the first message; this keeps it active.
-      // Only inject for solo agents — team agents lack the aion_create_team tool.
-      if (!this.extra.teamMcpStdioConfig && TEAM_GUIDE_ALLOWED_BACKENDS.has(this.extra.backend)) {
-        const { getTeamGuideReminder } = await import('@process/resources/prompts/teamGuidePrompt');
-        processedContent = `<system-reminder>\n${getTeamGuideReminder()}\n</system-reminder>\n\n` + processedContent;
-      }
-
       // Re-read timeout config before each prompt so changes take effect immediately
       await this.applyPromptTimeoutFromConfig();
 

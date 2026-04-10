@@ -22,12 +22,13 @@ const RECOMMEND_CRITERIA = `- Task spans multiple files, modules, or domains
 - Task involves building, creating, developing, or analyzing anything substantial
 - Examples: build a project, analyze a large codebase, implement a feature across modules, refactor an architecture`;
 
-const NOT_RECOMMEND_CRITERIA = `- Task is about a single point: one question, one file, one fix, one translation
+const NOT_RECOMMEND_CRITERIA = `- Greetings, casual conversation, or general questions
+- Task is about a single point: one question, one file, one fix, one translation
 - Task can be fully answered in one response
 - User explicitly wants solo guidance
 - Examples: "what does this function do?", "fix this typo", "translate this paragraph", "explain this error"`;
 
-const DOUBT_RULE = `When in doubt, recommend — the cost of declining is zero.`;
+const DOUBT_RULE = `When in doubt, just answer the user directly — only recommend Team when the task clearly meets the criteria above.`;
 
 // ── Exported prompt builders ────────────────────────────────────────────────
 
@@ -63,21 +64,6 @@ ${DOUBT_RULE}
 
 ### Tool constraint
 Use **only** \`aion_create_team\` and \`aion_navigate\` for team operations. Do NOT use any built-in or other team/agent creation tools.`;
-}
-
-/**
- * Short reminder injected via \<system-reminder\> on every turn for solo agents.
- * Keeps the team recommendation active across the conversation.
- */
-export function getTeamGuideReminder(): string {
-  return (
-    `Evaluate whether this request warrants a multi-agent Team.\n` +
-    `Recommend Team when: task spans multiple files/modules, needs multiple iterations, or benefits from role specialization (e.g. analyzing a large codebase, building a feature).\n` +
-    `Do NOT recommend (just answer directly, never mention Team): single-point tasks answerable in one response (one question, one fix, one translation).\n` +
-    `${DOUBT_RULE}\n` +
-    `Before calling aion_create_team you MUST present a team configuration as text, end your turn, and wait for the user to confirm in their next message. Do NOT use ask_user or any tool to ask — just output text.\n` +
-    `After aion_create_team succeeds, read the response and call aion_navigate with the returned route.`
-  );
 }
 
 /**
