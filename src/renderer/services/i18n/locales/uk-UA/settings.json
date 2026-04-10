@@ -822,32 +822,12 @@
     "pendingCancel": "Скасувати",
     "pendingTimeRemaining": "Залишилося часу: {{time}}"
   },
-  "model": "Моделі",
-  "system": "Система",
-  "about": "Про програму",
-  "advancedSettings": "Додаткові налаштування",
-  "addModel": "Додати модель",
-  "editModel": "Редагувати платформу моделей",
-  "modelPlatform": "Платформа моделей",
-  "modelProvider": "Провайдер моделей",
-  "platformName": "Назва платформи",
-  "modelName": "Назва моделі",
-  "baseUrl": "base url",
-  "theme": "Тема",
-  "fontSize": "Масштаб",
-  "lightMode": "Світла",
-  "darkMode": "Темна",
-  "capabilities": "Можливості",
-  "capabilitiesTab": {
-    "skills": "Навички",
-    "tools": "MCP та Голос"
-  },
+    "noExternalSources": "Зовнішні джерела навичок не знайдені",
   "aionrs": {
     "available": "Доступний",
     "notFound": "Не знайдений",
     "version": "Версія",
     "path": "Шлях",
     "providerNote": "Налаштування провайдера та API-ключів керуються на сторінці моделей. Aion CLI підтримує: Anthropic, OpenAI, AWS Bedrock."
-  },
-  "noExternalSources": "Зовнішні джерела навичок не знайдені"
+  }
 }
