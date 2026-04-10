@@ -1172,9 +1172,9 @@ describe('TeammateManager', () => {
       });
       const { mgr, mailbox } = makeTeammateManager([leader, member]);
 
-      // Simulate crash: AcpAgent emits error with agentCrash flag
+      // Simulate crash: AcpAgent emits finish with agentCrash flag
       teamEventBus.emit('responseStream', {
-        type: 'error',
+        type: 'finish',
         conversation_id: 'conv-member',
         msg_id: 'crash-1',
         data: { error: 'Process exited unexpectedly (code: 1, signal: null)', agentCrash: true },

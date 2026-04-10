@@ -270,14 +270,14 @@ export class TeammateManager extends EventEmitter {
     }
 
     // Detect agent crash:
-    // 1. AcpAgent.handleDisconnect emits error with agentCrash flag (wrapper process dies)
+    // 1. AcpAgent.handleDisconnect emits finish with agentCrash flag (wrapper process dies)
     // 2. Inner claude dies but wrapper lives → error string contains crash keywords
+    const msgData = msg.data as { agentCrash?: boolean; error?: string } | null;
+    if (msg.type === 'finish' && msgData?.agentCrash) {
+      void this.handleAgentCrash(agent, msgData.error ?? 'Unknown error');
+      return;
+    }
     if (msg.type === 'error') {
-      const msgData = msg.data as { agentCrash?: boolean; error?: string } | null;
-      if (msgData?.agentCrash) {
-        void this.handleAgentCrash(agent, msgData.error ?? 'Unknown error');
-        return;
-      }
       const errorText = typeof msg.data === 'string' ? msg.data : (msgData?.error ?? '');
       if (errorText.includes('process exited unexpectedly') || errorText.includes('Session not found')) {
         void this.handleAgentCrash(agent, errorText);

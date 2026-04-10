@@ -360,7 +360,7 @@ describe('AcpAgent.kill', () => {
 });
 
 describe('AcpAgent disconnect messaging', () => {
-  it('emits error signal with agentCrash flag on idle-timeout disconnect', () => {
+  it('emits finish signal with agentCrash flag on idle-timeout disconnect', () => {
     const onStreamEvent = vi.fn();
     const onSignalEvent = vi.fn();
     const agent = new AcpAgent({
@@ -378,17 +378,17 @@ describe('AcpAgent disconnect messaging', () => {
     );
     expect(statusCalls).toHaveLength(0);
 
-    // Should emit error signal with crash details via onSignalEvent
+    // Should emit finish signal with crash details via onSignalEvent
     expect(onSignalEvent).toHaveBeenCalledWith(
       expect.objectContaining({
-        type: 'error',
+        type: 'finish',
         conversation_id: 'idle-agent',
         data: expect.objectContaining({ agentCrash: true }),
       })
     );
   });
 
-  it('emits error signal with agentCrash flag on unexpected disconnect', () => {
+  it('emits finish signal with agentCrash flag on unexpected disconnect', () => {
     const onStreamEvent = vi.fn();
     const onSignalEvent = vi.fn();
     const agent = new AcpAgent({
@@ -406,10 +406,10 @@ describe('AcpAgent disconnect messaging', () => {
     );
     expect(statusCalls).toHaveLength(0);
 
-    // Should emit error signal with crash details via onSignalEvent
+    // Should emit finish signal with crash details via onSignalEvent
     expect(onSignalEvent).toHaveBeenCalledWith(
       expect.objectContaining({
-        type: 'error',
+        type: 'finish',
         conversation_id: 'disconnect-agent',
         data: expect.objectContaining({ agentCrash: true }),
       })
