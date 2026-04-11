@@ -13,6 +13,7 @@ import styles from '../index.module.css';
 
 type QuickActionButtonsProps = {
   onOpenLink: (url: string) => void;
+  onOpenBugReport: () => void;
   inactiveBorderColor: string;
   activeShadow: string;
 };
@@ -25,10 +26,15 @@ let webuiStatusCache: {
   at: number;
 } | null = null;
 
-const QuickActionButtons: React.FC<QuickActionButtonsProps> = ({ onOpenLink, inactiveBorderColor, activeShadow }) => {
+const QuickActionButtons: React.FC<QuickActionButtonsProps> = ({
+  onOpenLink,
+  onOpenBugReport,
+  inactiveBorderColor,
+  activeShadow,
+}) => {
   const { t } = useTranslation();
   const navigate = useNavigate();
-  const [hoveredQuickAction, setHoveredQuickAction] = useState<'feedback' | 'repo' | 'webui' | null>(null);
+  const [hoveredQuickAction, setHoveredQuickAction] = useState<'bugReport' | 'repo' | 'webui' | null>(null);
   const [webuiQuickStatus, setWebuiQuickStatus] = useState<WebuiQuickStatus>('checking');
 
   useEffect(() => {
@@ -110,10 +116,10 @@ const QuickActionButtons: React.FC<QuickActionButtonsProps> = ({ onOpenLink, ina
       <div className='flex justify-center items-center gap-24px'>
         <div
           className='group inline-flex items-center justify-center h-36px min-w-36px max-w-36px px-0 rd-999px bg-fill-0 cursor-pointer overflow-hidden whitespace-nowrap hover:max-w-170px hover:px-14px hover:justify-start hover:gap-8px transition-[max-width,padding,border-radius,box-shadow] duration-420 ease-in-out'
-          style={quickActionStyle(hoveredQuickAction === 'feedback')}
-          onMouseEnter={() => setHoveredQuickAction('feedback')}
+          style={quickActionStyle(hoveredQuickAction === 'bugReport')}
+          onMouseEnter={() => setHoveredQuickAction('bugReport')}
           onMouseLeave={() => setHoveredQuickAction(null)}
-          onClick={() => onOpenLink('https://x.com/AionUi')}
+          onClick={onOpenBugReport}
         >
           <svg
             className='flex-shrink-0 text-[var(--color-text-3)] group-hover:text-[#2C7FFF] transition-colors duration-300'

@@ -11,26 +11,84 @@
 
 export type FeedbackModule = {
   readonly i18nKey: string;
+  readonly descriptionI18nKey: string;
   readonly tag: string;
 };
 
 export const FEEDBACK_MODULES: readonly FeedbackModule[] = [
-  { i18nKey: 'settings.bugReportModuleSkills', tag: 'skills' },
-  { i18nKey: 'settings.bugReportModuleWebui', tag: 'webui' },
-  { i18nKey: 'settings.bugReportModuleMcp', tag: 'mcp' },
-  { i18nKey: 'settings.bugReportModuleChannel', tag: 'channel' },
-  { i18nKey: 'settings.bugReportModuleChat', tag: 'chat' },
-  { i18nKey: 'settings.bugReportModuleScheduledTask', tag: 'scheduled-task' },
-  { i18nKey: 'settings.bugReportModuleLlmConfig', tag: 'llm-config' },
-  { i18nKey: 'settings.bugReportModuleAssistant', tag: 'assistant' },
-  { i18nKey: 'settings.bugReportModulePermission', tag: 'permission' },
-  { i18nKey: 'settings.bugReportModuleSession', tag: 'session' },
-  { i18nKey: 'settings.bugReportModuleWorkspace', tag: 'workspace' },
-  { i18nKey: 'settings.bugReportModulePreview', tag: 'preview' },
-  { i18nKey: 'settings.bugReportModuleSystemSettings', tag: 'system-settings' },
-  { i18nKey: 'settings.bugReportModuleDisplaySettings', tag: 'display-settings' },
-  { i18nKey: 'settings.bugReportModulePlugin', tag: 'plugin' },
-  { i18nKey: 'settings.bugReportModuleAgentTeam', tag: 'agent-team' },
-  { i18nKey: 'settings.bugReportModulePet', tag: 'pet' },
-  { i18nKey: 'settings.bugReportModuleOther', tag: 'other' },
+  {
+    i18nKey: 'settings.bugReportModulePermission',
+    descriptionI18nKey: 'settings.bugReportModulePermissionDescription',
+    tag: 'agent-detection',
+  },
+  {
+    i18nKey: 'settings.bugReportModuleAssistant',
+    descriptionI18nKey: 'settings.bugReportModuleAssistantDescription',
+    tag: 'assistant-preset',
+  },
+  {
+    i18nKey: 'settings.bugReportModuleLlmConfig',
+    descriptionI18nKey: 'settings.bugReportModuleLlmConfigDescription',
+    tag: 'model-auth',
+  },
+  {
+    i18nKey: 'settings.bugReportModuleMcp',
+    descriptionI18nKey: 'settings.bugReportModuleMcpDescription',
+    tag: 'mcp-tools',
+  },
+  {
+    i18nKey: 'settings.bugReportModuleSkills',
+    descriptionI18nKey: 'settings.bugReportModuleSkillsDescription',
+    tag: 'skills-plugin',
+  },
+  {
+    i18nKey: 'settings.bugReportModuleChannel',
+    descriptionI18nKey: 'settings.bugReportModuleChannelDescription',
+    tag: 'channel',
+  },
+  {
+    i18nKey: 'settings.bugReportModuleChat',
+    descriptionI18nKey: 'settings.bugReportModuleChatDescription',
+    tag: 'conversation-session',
+  },
+  {
+    i18nKey: 'settings.bugReportModuleSession',
+    descriptionI18nKey: 'settings.bugReportModuleSessionDescription',
+    tag: 'search-history',
+  },
+  {
+    i18nKey: 'settings.bugReportModuleWorkspace',
+    descriptionI18nKey: 'settings.bugReportModuleWorkspaceDescription',
+    tag: 'workspace-preview',
+  },
+  {
+    i18nKey: 'settings.bugReportModuleWebui',
+    descriptionI18nKey: 'settings.bugReportModuleWebuiDescription',
+    tag: 'webui-remote',
+  },
+  {
+    i18nKey: 'settings.bugReportModuleScheduledTask',
+    descriptionI18nKey: 'settings.bugReportModuleScheduledTaskDescription',
+    tag: 'scheduled-task',
+  },
+  {
+    i18nKey: 'settings.bugReportModuleAgentTeam',
+    descriptionI18nKey: 'settings.bugReportModuleAgentTeamDescription',
+    tag: 'agent-team',
+  },
+  {
+    i18nKey: 'settings.bugReportModuleDisplaySettings',
+    descriptionI18nKey: 'settings.bugReportModuleDisplaySettingsDescription',
+    tag: 'display-desktop',
+  },
+  {
+    i18nKey: 'settings.bugReportModuleSystemSettings',
+    descriptionI18nKey: 'settings.bugReportModuleSystemSettingsDescription',
+    tag: 'system-settings',
+  },
+  {
+    i18nKey: 'settings.bugReportModuleOther',
+    descriptionI18nKey: 'settings.bugReportModuleOtherDescription',
+    tag: 'other',
+  },
 ] as const;
