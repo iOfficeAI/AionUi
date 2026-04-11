@@ -746,6 +746,7 @@ export type I18nKey =
   | 'messages.copiedToClipboard'
   | 'messages.copy'
   | 'messages.copyFailed'
+  | 'messages.copyLastOutput.empty'
   | 'messages.copySuccess'
   | 'messages.downloadFailed'
   | 'messages.downloadSuccess'
