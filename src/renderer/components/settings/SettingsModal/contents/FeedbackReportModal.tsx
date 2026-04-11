@@ -80,34 +80,42 @@ const FeedbackReportModal: React.FC<FeedbackReportModalProps> = ({ visible, onCa
       }
 
       // Submit via Sentry
+      // Use hint.attachments instead of scope.addAttachment to avoid
+      // @sentry/electron's ScopeToMain normalize() corrupting Uint8Array binary data.
       const Sentry = await import('@sentry/electron/renderer');
+
+      const attachments: Array<{ filename: string; data: Uint8Array; contentType: string }> = [];
+
+      if (logData) {
+        attachments.push({
+          filename: logData.filename,
+          data: new Uint8Array(logData.data),
+          contentType: 'application/gzip',
+        });
+      }
+
+      screenshotBuffers.forEach((screenshot, index) => {
+        attachments.push({
+          filename: `screenshot-${index + 1}-${screenshot.name}`,
+          data: screenshot.data,
+          contentType: screenshot.type,
+        });
+      });
+
       Sentry.withScope((scope) => {
         scope.setTag('type', 'user-feedback');
         scope.setTag('module', module);
 
-        if (logData) {
-          scope.addAttachment({
-            filename: logData.filename,
-            data: new Uint8Array(logData.data),
-            contentType: 'application/gzip',
-          });
-        }
-
-        screenshotBuffers.forEach((screenshot, index) => {
-          scope.addAttachment({
-            filename: `screenshot-${index + 1}-${screenshot.name}`,
-            data: screenshot.data,
-            contentType: screenshot.type,
-          });
-        });
-
-        Sentry.captureEvent({
-          level: 'info',
-          message: title.trim(),
-          extra: {
-            description: description.trim(),
+        Sentry.captureEvent(
+          {
+            level: 'info',
+            message: title.trim(),
+            extra: {
+              description: description.trim(),
+            },
           },
-        });
+          { attachments }
+        );
       });
 
       Message.success(t('settings.bugReportSuccess'));
