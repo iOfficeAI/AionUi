@@ -13,6 +13,12 @@
   filter: drop-shadow(0 0 0.5px currentColor);
 }
 
+/* Dark mode: adjust send button brightness */
+[data-theme='dark'] .send-button-custom:not(:disabled) {
+  background-color: var(--aou-4) !important;
+  border-color: var(--aou-4) !important;
+}
+
 /* Input placeholder color */
 ::placeholder {
   color: #a1a2aa !important;
