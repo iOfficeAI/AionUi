@@ -74,6 +74,7 @@
     "createSuccess": "Görev başarıyla oluşturuldu",
     "updateSuccess": "Görev başarıyla güncellendi",
     "scheduleHint": "Zamanlanmış görevler sunucu performansı için birkaç dakikalık rastgele gecikme kullanır.",
+    "customCronWarning": "Bu, arayüz üzerinden düzenlenemeyen özel bir cron ifadesidir ({{expr}}). Programı değiştirmek için önceden ayarlanmış bir sıklığa geçin.",
     "weekday": {
       "monday": "Pazartesi",
       "tuesday": "Salı",

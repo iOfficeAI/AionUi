@@ -62,6 +62,7 @@
     "createSuccess": "任務建立成功",
     "updateSuccess": "任務更新成功",
     "scheduleHint": "定時任務會有幾分鐘的隨機延遲以優化伺服器效能。",
+    "customCronWarning": "這是自訂的 Cron 表達式（{{expr}}），無法透過介面修改。如需變更頻率，請切換到其他預設頻率。",
     "weekday": {
       "monday": "星期一",
       "tuesday": "星期二",

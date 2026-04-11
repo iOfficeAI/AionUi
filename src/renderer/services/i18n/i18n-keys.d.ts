@@ -537,6 +537,7 @@ export type I18nKey =
   | 'cron.page.cancel'
   | 'cron.page.createSuccess'
   | 'cron.page.createTask'
+  | 'cron.page.customCronWarning'
   | 'cron.page.description'
   | 'cron.page.editTask'
   | 'cron.page.form.advancedSettings'
