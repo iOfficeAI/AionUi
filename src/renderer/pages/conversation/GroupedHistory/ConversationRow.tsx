@@ -188,8 +188,8 @@ const ConversationRow: React.FC<ConversationRowProps> = (props) => {
             )}
             style={{
               backgroundImage: selected
-                ? `linear-gradient(to right, transparent, var(--aou-2) 20%)`
-                : `linear-gradient(to right, transparent, var(--aou-1) 20%)`,
+                ? `linear-gradient(to right, transparent, var(--aou-2) 100%)`
+                : `linear-gradient(to right, transparent, var(--aou-1) 100%)`,
             }}
             onClick={(event) => {
               event.stopPropagation();
