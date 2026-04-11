@@ -124,8 +124,15 @@ const FeedbackReportModal: React.FC<FeedbackReportModalProps> = ({ visible, onCa
 
   const handleScreenshotChange = useCallback((fileList: UploadItem[]) => {
     setError('');
-    // Mark all files as 'done' so Arco Upload hides progress/action indicators
-    setScreenshots(fileList.map((f) => (f.status === 'done' ? f : { ...f, status: 'done' as const })));
+    // Deduplicate by file name + size, then mark as 'done' to hide progress indicators
+    const seen = new Set<string>();
+    const deduped = fileList.filter((f) => {
+      const key = `${f.originFile?.name ?? f.name}_${f.originFile?.size ?? 0}`;
+      if (seen.has(key)) return false;
+      seen.add(key);
+      return true;
+    });
+    setScreenshots(deduped.map((f) => (f.status === 'done' ? f : { ...f, status: 'done' as const })));
   }, []);
 
   return (
