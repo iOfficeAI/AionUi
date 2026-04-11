@@ -201,7 +201,6 @@ resources/hub
 # Server build output
 dist-server/
 .omc/
-.omx/
 .superset/
 .claude/teams/
 iterations/
