@@ -124,7 +124,8 @@ const FeedbackReportModal: React.FC<FeedbackReportModalProps> = ({ visible, onCa
 
   const handleScreenshotChange = useCallback((fileList: UploadItem[]) => {
     setError('');
-    setScreenshots(fileList);
+    // Mark all files as 'done' so Arco Upload hides progress/action indicators
+    setScreenshots(fileList.map((f) => (f.status === 'done' ? f : { ...f, status: 'done' as const })));
   }, []);
 
   return (
@@ -204,6 +205,7 @@ const FeedbackReportModal: React.FC<FeedbackReportModalProps> = ({ visible, onCa
             onChange={handleScreenshotChange}
             limit={MAX_SCREENSHOTS}
             tip={`${t('settings.bugReportScreenshotFormats')}`}
+            showUploadList={{ startIcon: null }}
           />
         </div>
 
