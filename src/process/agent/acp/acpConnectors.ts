@@ -354,9 +354,7 @@ export function spawnNpxBackend(
     // producing "Cannot find module '<cwd>\node_modules\npm\bin\npm-cli.js'" errors.
     effectiveCommand = `chcp 65001 >nul && "${directInvoke.nodePath}" "${directInvoke.npxScript}"`;
   } else {
-    effectiveCommand = isWindows
-      ? `chcp 65001 >nul && ${formatWindowsCommandForShell(npxCommand)}`
-      : npxCommand;
+    effectiveCommand = isWindows ? `chcp 65001 >nul && ${formatWindowsCommandForShell(npxCommand)}` : npxCommand;
   }
   const child = spawn(effectiveCommand, spawnArgs, {
     cwd: workingDir,
