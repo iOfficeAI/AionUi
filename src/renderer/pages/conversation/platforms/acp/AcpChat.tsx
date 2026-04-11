@@ -52,6 +52,7 @@ const AcpChat: React.FC<{
                   conversationId={conversation_id}
                   agentName={agentName ?? 'Leader'}
                   agentType={backend}
+                  draftType='acp'
                 />
               ) : undefined
             }

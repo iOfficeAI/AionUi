@@ -237,9 +237,9 @@ export class GeminiAgentManager extends BaseAgentManager<
         }
         const effectiveYoloMode = this.forceYoloMode ?? this.currentMode === 'yolo';
 
-        // Inject team guide prompt for solo Gemini agents.
+        // Inject the solo/team decision guide for solo Gemini agents.
         // ACP agents get this via AcpAgentManager; Gemini needs it appended to presetRules
-        // so it goes into GEMINI.md and the agent knows when/how to recommend Team mode.
+        // so it goes into GEMINI.md and the agent knows when to stay solo vs discuss Team mode.
         let effectivePresetRules = this.presetRules;
         if (!this.teamMcpStdioConfig) {
           const { getTeamGuidePrompt } = await import('@process/resources/prompts/teamGuidePrompt');
@@ -380,7 +380,8 @@ export class GeminiAgentManager extends BaseAgentManager<
         mainLog('[GeminiAgentManager]', 'getMcpServers: no teamMcpStdioConfig, skipping team MCP injection');
 
         // Inject Aion team-guide MCP server for solo agents (not in team mode)
-        // so Gemini can call aion_create_team / aion_navigate when guiding users to Team mode.
+        // so Gemini can call aion_create_team / aion_navigate after the user requests a Team
+        // or explicitly approves Team for an exceptionally hard task.
         // AION_MCP_BACKEND tells the stdio bridge this is a gemini agent.
         const aionStdioConfig = getAionMcpStdioConfig();
         if (aionStdioConfig) {
