@@ -33,6 +33,11 @@ describe('channelConversation real functions', () => {
       const result = getChannelEnabledSkills('dingtalk');
       expect(result).toBeUndefined();
     });
+
+    it('returns undefined for wecom platform', () => {
+      const result = getChannelEnabledSkills('wecom');
+      expect(result).toBeUndefined();
+    });
   });
 
   describe('buildChannelConversationExtra', () => {

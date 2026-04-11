@@ -22,6 +22,7 @@ import { AIONUI_TIMESTAMP_SEPARATOR } from '@/common/config/constants';
 import directoryApi from '../directoryApi';
 import { apiRateLimiter } from '../middleware/security';
 import { registerWeixinLoginRoutes } from './weixinLoginRoutes';
+import { registerWecomChannelRoutes } from './wecomChannelRoutes';
 
 /** Max upload size in bytes (30MB per Issue #1233) */
 const MAX_UPLOAD_SIZE = 30 * 1024 * 1024;
@@ -439,6 +440,8 @@ export function registerApiRoutes(app: Express): void {
       }
     }
   );
+
+  registerWecomChannelRoutes(app);
 
   registerExtensionWebuiRoutes(app, validateApiAccess);
 

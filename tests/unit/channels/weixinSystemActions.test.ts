@@ -123,6 +123,20 @@ describe('SystemActions weixin platform handling', () => {
     expect(mockGet).not.toHaveBeenCalledWith('assistant.weixin.defaultModel');
   });
 
+  it('getChannelDefaultModel reads assistant.wecom.defaultModel for wecom platform', async () => {
+    mockGet.mockImplementation((key: string) => {
+      if (key === 'assistant.wecom.defaultModel') {
+        return Promise.resolve({ id: 'p1', useModel: 'gemini-2.0-flash' });
+      }
+      return Promise.resolve(undefined);
+    });
+
+    await getChannelDefaultModel('wecom');
+
+    expect(mockGet).toHaveBeenCalledWith('assistant.wecom.defaultModel');
+    expect(mockGet).not.toHaveBeenCalledWith('assistant.telegram.defaultModel');
+  });
+
   it('uses local Gemini OAuth credentials when the saved weixin model is Google Auth', async () => {
     mockGet.mockImplementation((key: string) => {
       if (key === 'model.config') return Promise.resolve([]);

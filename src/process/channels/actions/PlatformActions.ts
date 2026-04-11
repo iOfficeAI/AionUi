@@ -235,7 +235,14 @@ export const handlePairingCheck: ActionHandler = async (context) => {
  */
 export const handlePairingHelp: ActionHandler = async (context) => {
   const platform = context.platform;
-  const platformName = platform === 'lark' ? 'Lark/Feishu' : platform === 'dingtalk' ? 'DingTalk' : 'Telegram';
+  const platformName =
+    platform === 'lark'
+      ? 'Lark/Feishu'
+      : platform === 'dingtalk'
+        ? 'DingTalk'
+        : platform === 'wecom'
+          ? 'WeCom'
+          : 'Telegram';
 
   return createSuccessResponse({
     type: 'text',
