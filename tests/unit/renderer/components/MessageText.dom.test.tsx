@@ -87,7 +87,9 @@ describe('MessageText', () => {
     );
 
     expect(screen.queryByTestId('markdown-view')).not.toBeInTheDocument();
-    expect(screen.getByText('~tilde~ **bold** `code`')).toBeInTheDocument();
+    const userMessage = screen.getByText('~tilde~ **bold** `code`');
+    expect(userMessage).toBeInTheDocument();
+    expect(userMessage.parentElement).toHaveClass('message-bubble', 'bg-message-user', 'text-t-primary');
     expect(markdownViewMock).not.toHaveBeenCalled();
   });
 
