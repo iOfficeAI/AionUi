@@ -76,8 +76,10 @@ class NanoBotAgentManager extends BaseAgentManager<NanoBotAgentManagerData> {
 
     // Emit to frontend via unified conversation stream
     ipcBridge.conversation.responseStream.emit(msg);
-    // Also emit to main-process-local bus so TeammateManager can receive events
-    teamEventBus.emit('responseStream', msg);
+    // Only emit terminal events to team bus for agent lifecycle management
+    if (msg.type === 'finish' || msg.type === 'error') {
+      teamEventBus.emit('responseStream', msg);
+    }
   }
 
   private handleSignalEvent(message: IResponseMessage): void {
@@ -91,8 +93,10 @@ class NanoBotAgentManager extends BaseAgentManager<NanoBotAgentManagerData> {
 
     // Emit signal events to frontend
     ipcBridge.conversation.responseStream.emit(msg);
-    // Also emit to main-process-local bus so TeammateManager can receive events
-    teamEventBus.emit('responseStream', msg);
+    // Only emit terminal events to team bus for agent lifecycle management
+    if (msg.type === 'finish' || msg.type === 'error') {
+      teamEventBus.emit('responseStream', msg);
+    }
   }
 
   async sendMessage(data: { content: string; files?: string[]; msg_id?: string; hidden?: boolean; silent?: boolean }) {

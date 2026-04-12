@@ -14,8 +14,6 @@
  *  - teamEventBus         (real EventEmitter)
  *  - TeammateManager      (real state machine)
  *  - TeamMcpServer        (real TCP server)
- *  - xmlFallbackAdapter   (real XML parser)
- *  - createPlatformAdapter (real factory)
  */
 
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
@@ -58,7 +56,6 @@ import { TaskManager } from '@process/team/TaskManager';
 import { TeammateManager } from '@process/team/TeammateManager';
 import { TeamMcpServer } from '@process/team/TeamMcpServer';
 import { teamEventBus } from '@process/team/teamEventBus';
-import { createXmlFallbackAdapter } from '@process/team/adapters/xmlFallbackAdapter';
 import type { ITeamRepository } from '@process/team/repository/ITeamRepository';
 import type { TeamAgent, MailboxMessage, TeamTask, TTeam } from '@process/team/types';
 import type { IWorkerTaskManager } from '@process/task/IWorkerTaskManager';
@@ -510,101 +507,6 @@ describe('Real TeammateManager with real Mailbox + TaskManager', () => {
     mgr.dispose();
   });
 
-  it('real message flow: XML send_message action lands in target real Mailbox', async () => {
-    // Emit a text chunk with a send_message XML action from the lead
-    teamEventBus.emit('responseStream', {
-      type: 'text',
-      conversation_id: 'conv-lead',
-      msg_id: 'msg-1',
-      data: { text: '<send_message to="Worker">Please analyze the data</send_message>' },
-    });
-    // Emit finish to trigger finalizeTurn
-    teamEventBus.emit('responseStream', {
-      type: 'finish',
-      conversation_id: 'conv-lead',
-      msg_id: 'msg-2',
-      data: null,
-    });
-
-    // Wait for async finalizeTurn to complete
-    await new Promise((r) => setTimeout(r, 80));
-
-    // NOTE: wake(slot-member) was called which reads and marks messages as read.
-    // Use getHistory (returns all messages regardless of read status) to verify delivery.
-    const workerMessages = await mailbox.getHistory('team-1', 'slot-member');
-    expect(workerMessages).toHaveLength(1);
-    expect(workerMessages[0].content).toBe('Please analyze the data');
-    expect(workerMessages[0].fromAgentId).toBe('slot-lead');
-  });
-
-  it('real task creation: XML task_create action creates real task in TaskManager', async () => {
-    teamEventBus.emit('responseStream', {
-      type: 'text',
-      conversation_id: 'conv-lead',
-      msg_id: 'msg-1',
-      data: { text: '<task_create subject="Implement OAuth" owner="slot-member" description="Add OAuth2 support"/>' },
-    });
-    teamEventBus.emit('responseStream', {
-      type: 'finish',
-      conversation_id: 'conv-lead',
-      msg_id: 'msg-2',
-      data: null,
-    });
-
-    await new Promise((r) => setTimeout(r, 80));
-
-    const tasks = await taskManager.list('team-1');
-    expect(tasks).toHaveLength(1);
-    expect(tasks[0].subject).toBe('Implement OAuth');
-    expect(tasks[0].owner).toBe('slot-member');
-    expect(tasks[0].description).toBe('Add OAuth2 support');
-    expect(tasks[0].status).toBe('pending');
-  });
-
-  it('real task update: XML task_update changes task status in real TaskManager', async () => {
-    // First create a real task
-    const task = await taskManager.create({ teamId: 'team-1', subject: 'Deploy service' });
-
-    // Member updates the task to completed
-    teamEventBus.emit('responseStream', {
-      type: 'text',
-      conversation_id: 'conv-member',
-      msg_id: 'msg-1',
-      data: { text: `<task_update task_id="${task.id}" status="completed"/><idle reason="available" summary="Done"/>` },
-    });
-    teamEventBus.emit('responseStream', {
-      type: 'finish',
-      conversation_id: 'conv-member',
-      msg_id: 'msg-2',
-      data: null,
-    });
-
-    await new Promise((r) => setTimeout(r, 80));
-
-    const updated = await repo.findTaskById(task.id);
-    expect(updated?.status).toBe('completed');
-  });
-
-  it('send_message wakes target agent (workerTaskManager called for target)', async () => {
-    teamEventBus.emit('responseStream', {
-      type: 'text',
-      conversation_id: 'conv-lead',
-      msg_id: 'm1',
-      data: { text: '<send_message to="Worker">Start working</send_message>' },
-    });
-    teamEventBus.emit('responseStream', {
-      type: 'finish',
-      conversation_id: 'conv-lead',
-      msg_id: 'm2',
-      data: null,
-    });
-
-    await new Promise((r) => setTimeout(r, 100));
-
-    // workerTaskManager.getOrBuildTask should have been called for the member
-    expect(vi.mocked(workerTM.getOrBuildTask)).toHaveBeenCalledWith('conv-member');
-  });
-
   it('member finishing turn auto-sends idle_notification to real leader Mailbox', async () => {
     teamEventBus.emit('responseStream', {
       type: 'finish',
@@ -653,30 +555,6 @@ describe('Real TeammateManager with real Mailbox + TaskManager', () => {
     mgr2.dispose();
   });
 
-  it('shutdown_approved removes member and notifies lead via real Mailbox', async () => {
-    teamEventBus.emit('responseStream', {
-      type: 'text',
-      conversation_id: 'conv-member',
-      msg_id: 'm1',
-      data: { text: '<send_message to="Leader">shutdown_approved</send_message>' },
-    });
-    teamEventBus.emit('responseStream', {
-      type: 'finish',
-      conversation_id: 'conv-member',
-      msg_id: 'm2',
-      data: null,
-    });
-
-    await new Promise((r) => setTimeout(r, 80));
-
-    // Member removed from in-memory agent list
-    expect(mgr.getAgents().find((a) => a.slotId === 'slot-member')).toBeUndefined();
-
-    // Lead's real Mailbox got the shutdown notification
-    const leadMsgs = await mailbox.getHistory('team-1', 'slot-lead');
-    expect(leadMsgs.some((m) => m.content.includes('shut down and been removed'))).toBe(true);
-  });
-
   it('dedup: rapid finish events only trigger finalizeTurn once', async () => {
     teamEventBus.emit('responseStream', {
       type: 'finish',
@@ -697,56 +575,6 @@ describe('Real TeammateManager with real Mailbox + TaskManager', () => {
     const leadMsgs = await mailbox.getHistory('team-1', 'slot-lead');
     const idleNotifs = leadMsgs.filter((m) => m.type === 'idle_notification' && m.fromAgentId === 'slot-member');
     expect(idleNotifs).toHaveLength(1);
-  });
-
-  it('message accumulation: split text chunks are concatenated before parsing', async () => {
-    // XML action split across two chunks — must be reassembled before parsing
-    teamEventBus.emit('responseStream', {
-      type: 'text',
-      conversation_id: 'conv-lead',
-      msg_id: 'm1',
-      data: { text: '<task_create subject="Split' },
-    });
-    teamEventBus.emit('responseStream', {
-      type: 'text',
-      conversation_id: 'conv-lead',
-      msg_id: 'm2',
-      data: { text: ' Task" owner="slot-member"/>' },
-    });
-    teamEventBus.emit('responseStream', {
-      type: 'finish',
-      conversation_id: 'conv-lead',
-      msg_id: 'm3',
-      data: null,
-    });
-
-    await new Promise((r) => setTimeout(r, 80));
-
-    const tasks = await taskManager.list('team-1');
-    expect(tasks).toHaveLength(1);
-    expect(tasks[0].subject).toBe('Split Task');
-  });
-
-  it('send_message to unknown agent is silently ignored (no crash)', async () => {
-    teamEventBus.emit('responseStream', {
-      type: 'text',
-      conversation_id: 'conv-lead',
-      msg_id: 'm1',
-      data: { text: '<send_message to="NonExistentAgent">Hello</send_message>' },
-    });
-    teamEventBus.emit('responseStream', {
-      type: 'finish',
-      conversation_id: 'conv-lead',
-      msg_id: 'm2',
-      data: null,
-    });
-
-    await new Promise((r) => setTimeout(r, 80));
-
-    // Should not crash; no messages written
-    const allMessages = await mailbox.getHistory('team-1', 'slot-member');
-    const sentToUnknown = allMessages.filter((m) => m.toAgentId === 'NonExistentAgent');
-    expect(sentToUnknown).toHaveLength(0);
   });
 
   it('maybeWakeLeaderWhenAllIdle: leader woken only when ALL members settled', async () => {
@@ -1090,131 +918,6 @@ describe('Real TeamMcpServer — TCP transport with real stores', () => {
 });
 
 // ---------------------------------------------------------------------------
-// Suite 5: Real xmlFallbackAdapter — parser correctness
-// ---------------------------------------------------------------------------
-
-describe('Real xmlFallbackAdapter — parser correctness', () => {
-  const adapter = createXmlFallbackAdapter();
-
-  it('parses send_message with multi-line content', () => {
-    const actions = adapter.parseResponse({
-      text: '<send_message to="Alice">Line 1\nLine 2\nLine 3</send_message>',
-    });
-    // Only one action: send_message — no text outside the XML tag
-    expect(actions).toHaveLength(1);
-    const sendMsg = actions.find((a) => a.type === 'send_message');
-    expect(sendMsg).toBeDefined();
-    if (sendMsg?.type === 'send_message') {
-      expect(sendMsg.to).toBe('Alice');
-      expect(sendMsg.content).toBe('Line 1\nLine 2\nLine 3');
-    }
-  });
-
-  it('parses multiple XML actions from a single response', () => {
-    const text = [
-      'Working on it...',
-      '<task_create subject="Research OAuth" owner="Alice"/>',
-      '<send_message to="Alice">Research OAuth2 implementations</send_message>',
-      'Done for now.',
-    ].join('\n');
-
-    const actions = adapter.parseResponse({ text });
-
-    const taskCreate = actions.find((a) => a.type === 'task_create');
-    const sendMsg = actions.find((a) => a.type === 'send_message');
-    const plainResponse = actions.find((a) => a.type === 'plain_response');
-
-    expect(taskCreate).toBeDefined();
-    expect(sendMsg).toBeDefined();
-    expect(plainResponse).toBeDefined();
-
-    if (taskCreate?.type === 'task_create') {
-      expect(taskCreate.subject).toBe('Research OAuth');
-      expect(taskCreate.owner).toBe('Alice');
-    }
-  });
-
-  it('parses idle action with required reason and summary', () => {
-    const actions = adapter.parseResponse({
-      text: '<idle reason="available" summary="Finished the task" completed_task_id="task-123"/>',
-    });
-
-    const idle = actions.find((a) => a.type === 'idle_notification');
-    expect(idle).toBeDefined();
-    if (idle?.type === 'idle_notification') {
-      expect(idle.reason).toBe('available');
-      expect(idle.summary).toBe('Finished the task');
-      expect(idle.completedTaskId).toBe('task-123');
-    }
-  });
-
-  it('ignores idle tag missing required summary attribute', () => {
-    const actions = adapter.parseResponse({ text: '<idle reason="available"/>' });
-    // Missing summary → should be ignored
-    const idle = actions.find((a) => a.type === 'idle_notification');
-    expect(idle).toBeUndefined();
-  });
-
-  it('ignores task_create missing required subject', () => {
-    const actions = adapter.parseResponse({ text: '<task_create owner="Alice"/>' });
-    const taskCreate = actions.find((a) => a.type === 'task_create');
-    expect(taskCreate).toBeUndefined();
-  });
-
-  it('remaining text after XML becomes plain_response', () => {
-    const actions = adapter.parseResponse({
-      text: 'I will assign this task.\n<task_create subject="Build API"/>\nLet me know if you need changes.',
-    });
-
-    const plain = actions.find((a) => a.type === 'plain_response');
-    expect(plain).toBeDefined();
-    if (plain?.type === 'plain_response') {
-      expect(plain.content).toContain('I will assign this task');
-      expect(plain.content).toContain('Let me know');
-      // XML tag should NOT appear in plain text
-      expect(plain.content).not.toContain('<task_create');
-    }
-  });
-
-  it('handles empty text response (no XML, no plain text)', () => {
-    const actions = adapter.parseResponse({ text: '' });
-    expect(actions).toHaveLength(0);
-  });
-
-  it('handles whitespace-only text', () => {
-    const actions = adapter.parseResponse({ text: '   \n  \t  ' });
-    expect(actions).toHaveLength(0);
-  });
-
-  it('parses spawn_agent with name and type', () => {
-    const actions = adapter.parseResponse({
-      text: '<spawn_agent name="DataAnalyst" type="claude"/>',
-    });
-
-    const spawn = actions.find((a) => a.type === 'spawn_agent');
-    expect(spawn).toBeDefined();
-    if (spawn?.type === 'spawn_agent') {
-      expect(spawn.agentName).toBe('DataAnalyst');
-      expect(spawn.agentType).toBe('claude');
-    }
-  });
-
-  it('task_update parses task_id and status in any attribute order', () => {
-    // Attributes in different order than expected
-    const actions = adapter.parseResponse({
-      text: '<task_update status="completed" task_id="abc-123"/>',
-    });
-
-    const update = actions.find((a) => a.type === 'task_update');
-    expect(update).toBeDefined();
-    if (update?.type === 'task_update') {
-      expect(update.taskId).toBe('abc-123');
-      expect(update.status).toBe('completed');
-    }
-  });
-});
-
-// ---------------------------------------------------------------------------
 // Suite 6: Cross-component event flow
 // ---------------------------------------------------------------------------
 
@@ -1305,37 +1008,6 @@ describe('Cross-component event flow: teamEventBus → TeammateManager → real 
     expect(idleNotifs.length).toBeGreaterThanOrEqual(2);
   });
 
-  it('task action + message action in one response: both execute against real stores', async () => {
-    teamEventBus.emit('responseStream', {
-      type: 'text',
-      conversation_id: 'conv-lead',
-      msg_id: 't1',
-      data: {
-        text: [
-          '<task_create subject="Design DB schema" owner="m1"/>',
-          '<send_message to="M1">Please design the DB schema</send_message>',
-        ].join('\n'),
-      },
-    });
-    teamEventBus.emit('responseStream', {
-      type: 'finish',
-      conversation_id: 'conv-lead',
-      msg_id: 't2',
-      data: null,
-    });
-
-    await new Promise((r) => setTimeout(r, 100));
-
-    // Task was created in real TaskManager
-    const tasks = await taskManager.list('team-1');
-    expect(tasks.some((t) => t.subject === 'Design DB schema')).toBe(true);
-
-    // Message was written to M1's real Mailbox.
-    // wake(m1) was triggered which consumed the messages via readUnread, so use getHistory.
-    const m1Messages = await mailbox.getHistory('team-1', 'm1');
-    expect(m1Messages.some((m) => m.content.includes('DB schema'))).toBe(true);
-  });
-
   it('teamEventBus isolates events: unowned conversationId does not affect manager', async () => {
     const preAgents = mgr.getAgents().map((a) => ({ slotId: a.slotId, status: a.status }));
 
@@ -1373,133 +1045,5 @@ describe('Cross-component event flow: teamEventBus → TeammateManager → real 
     const leadMsgs = await mailbox.getHistory('team-1', 'lead');
     const idleNotifs = leadMsgs.filter((m) => m.type === 'idle_notification');
     expect(idleNotifs).toHaveLength(0);
-  });
-});
-
-// ---------------------------------------------------------------------------
-// Suite 7: TeammateManager agent resolution (name fuzzy matching)
-// ---------------------------------------------------------------------------
-
-describe('TeammateManager — real agent name resolution', () => {
-  let repo: ITeamRepository;
-  let mailbox: Mailbox;
-  let taskManager: TaskManager;
-  let workerTM: IWorkerTaskManager;
-  let mgr: TeammateManager;
-
-  beforeEach(() => {
-    vi.clearAllMocks();
-    repo = createInMemoryRepo();
-    mailbox = new Mailbox(repo);
-    taskManager = new TaskManager(repo);
-    workerTM = makeWorkerTaskManager();
-    mgr = new TeammateManager({
-      teamId: 'team-1',
-      agents: [
-        makeAgent({ slotId: 'lead', conversationId: 'conv-lead', role: 'lead', agentName: 'Leader', status: 'idle' }),
-        makeAgent({
-          slotId: 'alice',
-          conversationId: 'conv-alice',
-          role: 'teammate',
-          agentName: 'Alice',
-          status: 'idle',
-        }),
-        makeAgent({ slotId: 'bob', conversationId: 'conv-bob', role: 'teammate', agentName: 'Bob', status: 'idle' }),
-      ],
-      mailbox,
-      taskManager,
-      workerTaskManager: workerTM,
-    });
-  });
-
-  afterEach(() => {
-    mgr.dispose();
-  });
-
-  it('resolves agent by exact name (case-sensitive match)', async () => {
-    teamEventBus.emit('responseStream', {
-      type: 'text',
-      conversation_id: 'conv-lead',
-      msg_id: 'm1',
-      data: { text: '<send_message to="Alice">Task for you</send_message>' },
-    });
-    teamEventBus.emit('responseStream', {
-      type: 'finish',
-      conversation_id: 'conv-lead',
-      msg_id: 'm2',
-      data: null,
-    });
-
-    await new Promise((r) => setTimeout(r, 80));
-
-    // wake(alice) is triggered after send_message, consuming the mailbox via readUnread.
-    // Use getHistory to verify delivery (returns all messages regardless of read status).
-    const aliceMsgs = await mailbox.getHistory('team-1', 'alice');
-    expect(aliceMsgs).toHaveLength(1);
-    expect(aliceMsgs[0].content).toBe('Task for you');
-  });
-
-  it('resolves agent by case-insensitive name (ALICE → alice slot)', async () => {
-    teamEventBus.emit('responseStream', {
-      type: 'text',
-      conversation_id: 'conv-lead',
-      msg_id: 'm1',
-      data: { text: '<send_message to="ALICE">Hi there</send_message>' },
-    });
-    teamEventBus.emit('responseStream', {
-      type: 'finish',
-      conversation_id: 'conv-lead',
-      msg_id: 'm2',
-      data: null,
-    });
-
-    await new Promise((r) => setTimeout(r, 80));
-
-    const aliceMsgs = await mailbox.getHistory('team-1', 'alice');
-    expect(aliceMsgs).toHaveLength(1);
-  });
-
-  it('resolves agent by slotId directly', async () => {
-    teamEventBus.emit('responseStream', {
-      type: 'text',
-      conversation_id: 'conv-lead',
-      msg_id: 'm1',
-      data: { text: '<send_message to="bob">Hey Bob</send_message>' },
-    });
-    teamEventBus.emit('responseStream', {
-      type: 'finish',
-      conversation_id: 'conv-lead',
-      msg_id: 'm2',
-      data: null,
-    });
-
-    await new Promise((r) => setTimeout(r, 80));
-
-    // 'bob' is both the slotId AND would match name 'Bob' case-insensitively
-    const bobMsgs = await mailbox.getHistory('team-1', 'bob');
-    expect(bobMsgs).toHaveLength(1);
-  });
-
-  it('message to removed agent goes to devnull (no crash, no delivery)', async () => {
-    mgr.removeAgent('alice');
-
-    teamEventBus.emit('responseStream', {
-      type: 'text',
-      conversation_id: 'conv-lead',
-      msg_id: 'm1',
-      data: { text: '<send_message to="Alice">Where are you?</send_message>' },
-    });
-    teamEventBus.emit('responseStream', {
-      type: 'finish',
-      conversation_id: 'conv-lead',
-      msg_id: 'm2',
-      data: null,
-    });
-
-    await new Promise((r) => setTimeout(r, 80));
-
-    // Alice is gone — message should not be delivered
-    const aliceMsgs = await mailbox.getHistory('team-1', 'alice');
-    expect(aliceMsgs).toHaveLength(0);
   });
 });

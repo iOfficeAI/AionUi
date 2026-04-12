@@ -9,7 +9,6 @@ import {
   resolveTeamAgentType,
   TEAM_SUPPORTED_BACKENDS,
 } from '@renderer/pages/team/components/agentSelectUtils';
-import { MCP_CAPABLE_TYPES } from '@process/team/TeammateManager';
 import { buildTeamMcpServer } from '@process/agent/acp/mcpSessionConfig';
 import type { AvailableAgent } from '@renderer/utils/model/agentTypes';
 
@@ -159,22 +158,8 @@ describe('resolveTeamAgentType', () => {
 // Frontend ↔ Backend consistency: ensure MCP injection chain is aligned
 // ---------------------------------------------------------------------------
 describe('MCP injection chain consistency', () => {
-  it('every verified backend must resolve to a MCP_CAPABLE_TYPE', () => {
-    for (const backend of TEAM_SUPPORTED_BACKENDS) {
-      const convType = resolveConversationType(backend);
-      expect(
-        MCP_CAPABLE_TYPES.has(convType),
-        `Verified backend "${backend}" (→ "${convType}") but backend MCP_CAPABLE_TYPES does not include "${convType}"`
-      ).toBe(true);
-    }
-  });
-
   it('TEAM_SUPPORTED_BACKENDS contains exactly claude, codex, gemini', () => {
     expect([...TEAM_SUPPORTED_BACKENDS].toSorted()).toEqual(['claude', 'codex', 'gemini']);
-  });
-
-  it('MCP_CAPABLE_TYPES contains "acp" — the core team protocol', () => {
-    expect(MCP_CAPABLE_TYPES.has('acp')).toBe(true);
   });
 });
 
