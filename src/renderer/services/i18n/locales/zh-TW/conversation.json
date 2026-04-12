@@ -221,6 +221,7 @@
       "stopShort": "停止",
       "transcribingShort": "...",
       "audioCaptureError": "未偵測到可用麥克風",
+      "emptyTranscript": "未識別到語音內容",
       "fileTooLarge": "音訊檔案過大",
       "networkError": "音訊轉寫時發生網路錯誤",
       "notConfigured": "語音轉文字尚未設定",

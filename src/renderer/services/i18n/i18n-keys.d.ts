@@ -251,6 +251,7 @@ export type I18nKey =
   | 'conversation.chat.quotaSwitched'
   | 'conversation.chat.sendMessageTo'
   | 'conversation.chat.speech.audioCaptureError'
+  | 'conversation.chat.speech.emptyTranscript'
   | 'conversation.chat.speech.fileTooLarge'
   | 'conversation.chat.speech.genericError'
   | 'conversation.chat.speech.networkError'

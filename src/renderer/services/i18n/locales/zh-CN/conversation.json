@@ -221,6 +221,7 @@
       "stopShort": "停止",
       "transcribingShort": "...",
       "audioCaptureError": "未检测到可用麦克风",
+      "emptyTranscript": "未识别到语音内容",
       "fileTooLarge": "音频文件过大",
       "networkError": "音频转写时网络异常",
       "notConfigured": "语音转文字尚未配置",
