@@ -27,6 +27,8 @@
     "yesterday": "昨天",
     "recent7Days": "最近7天",
     "earlier": "更早",
+    "collapseAllFolders": "折疊所有資料夾",
+    "expandAllFolders": "展開所有資料夾",
     "noHistory": "暫無對話記錄",
     "deleteTitle": "刪除",
     "deleteConfirm": "確定要刪除此對話嗎？",

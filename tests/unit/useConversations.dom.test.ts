@@ -184,4 +184,35 @@ describe('useConversations - workspace expansion', () => {
     // Should stay collapsed, not re-expand
     expect(result.current.expandedWorkspaces).toEqual([]);
   });
+
+  it('should collapse all workspace conversations while keeping workspace groups available', async () => {
+    testState.sections = makeWorkspaceSection(['/ws/a', '/ws/b']);
+
+    const { result } = renderHook(() => useConversations());
+    await act(async () => {});
+
+    act(() => {
+      result.current.handleSetAllWorkspacesExpanded(false);
+    });
+
+    expect(result.current.expandedWorkspaces).toEqual([]);
+    expect(result.current.allWorkspaceIds).toEqual(['/ws/a', '/ws/b']);
+  });
+
+  it('should expand all workspace conversations again after collapsing all', async () => {
+    testState.sections = makeWorkspaceSection(['/ws/a', '/ws/b']);
+
+    const { result } = renderHook(() => useConversations());
+    await act(async () => {});
+
+    act(() => {
+      result.current.handleSetAllWorkspacesExpanded(false);
+    });
+
+    act(() => {
+      result.current.handleSetAllWorkspacesExpanded(true);
+    });
+
+    expect(result.current.expandedWorkspaces).toEqual(['/ws/a', '/ws/b']);
+  });
 });

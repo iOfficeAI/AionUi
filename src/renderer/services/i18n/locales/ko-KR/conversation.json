@@ -27,6 +27,8 @@
     "yesterday": "어제",
     "recent7Days": "최근 7일",
     "earlier": "이전",
+    "collapseAllFolders": "모든 폴더 접기",
+    "expandAllFolders": "모든 폴더 펼치기",
     "noHistory": "채팅 기록 없음",
     "deleteTitle": "삭제",
     "deleteConfirm": "이 채팅을 삭제하시겠습니까?",

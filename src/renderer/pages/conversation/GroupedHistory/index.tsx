@@ -28,6 +28,25 @@ import { useDragAndDrop } from './hooks/useDragAndDrop';
 import { useExport } from './hooks/useExport';
 import type { ConversationRowProps, WorkspaceGroupedHistoryProps } from './types';
 
+const CollapseWorkspaceChildrenIcon = () => (
+  <svg
+    width='14'
+    height='14'
+    viewBox='0 0 24 24'
+    fill='none'
+    stroke='currentColor'
+    strokeWidth='1.8'
+    aria-hidden='true'
+  >
+    <path d='M4 9V5h4' strokeLinecap='round' strokeLinejoin='round' />
+    <path d='M20 9V5h-4' strokeLinecap='round' strokeLinejoin='round' />
+    <path d='M4 15v4h4' strokeLinecap='round' strokeLinejoin='round' />
+    <path d='M20 15v4h-4' strokeLinecap='round' strokeLinejoin='round' />
+    <path d='M9 9l6 6' strokeLinecap='round' />
+    <path d='M15 9l-6 6' strokeLinecap='round' />
+  </svg>
+);
+
 const WorkspaceGroupedHistory: React.FC<WorkspaceGroupedHistoryProps> = ({
   onSessionClick,
   collapsed = false,
@@ -60,11 +79,15 @@ const WorkspaceGroupedHistory: React.FC<WorkspaceGroupedHistoryProps> = ({
     conversations,
     isConversationGenerating,
     hasCompletionUnread,
+    allWorkspaceIds,
     expandedWorkspaces,
     pinnedConversations,
     timelineSections,
+    handleSetAllWorkspacesExpanded,
     handleToggleWorkspace,
   } = useConversations();
+
+  const areAllWorkspaceConversationsCollapsed = allWorkspaceIds.length > 0 && expandedWorkspaces.length === 0;
 
   const {
     selectedConversationIds,
@@ -394,23 +417,54 @@ const WorkspaceGroupedHistory: React.FC<WorkspaceGroupedHistoryProps> = ({
           </DragOverlay>
         </DndContext>
 
-        {timelineSections.map((section) => (
+        {timelineSections.map((section, index) => (
           <div key={section.timeline} className='mb-8px min-w-0'>
-            {!collapsed && (
-              <div
-                className='group flex items-center px-12px py-6px cursor-pointer select-none sticky top-0 z-10 bg-fill-2'
-                onClick={() => toggleSection(section.timeline)}
-              >
-                <span className='text-12px text-t-secondary font-medium'>{section.timeline}</span>
-                <span className='ml-auto opacity-0 group-hover:opacity-100 transition-opacity text-t-secondary flex items-center'>
-                  {collapsedSections.has(section.timeline) ? (
-                    <Right theme='outline' size={12} />
-                  ) : (
-                    <Down theme='outline' size={12} />
-                  )}
-                </span>
-              </div>
-            )}
+            {!collapsed &&
+              (() => {
+                const hasWorkspaceGroups = section.items.some(
+                  (item) => item.type === 'workspace' && item.workspaceGroup
+                );
+                const showCollapseAllButton = index === 0 && hasWorkspaceGroups && allWorkspaceIds.length > 0;
+
+                return (
+                  <div
+                    className='group flex items-center px-12px py-6px cursor-pointer select-none sticky top-0 z-10 bg-fill-2'
+                    onClick={() => toggleSection(section.timeline)}
+                  >
+                    <span className='text-12px text-t-secondary font-medium'>{section.timeline}</span>
+                    {showCollapseAllButton && (
+                      <button
+                        type='button'
+                        className='ml-auto mr-6px h-24px w-24px flex items-center justify-center opacity-0 group-hover:opacity-100 text-t-secondary hover:text-t-primary transition-all border-none bg-transparent shadow-none outline-none appearance-none'
+                        aria-label={
+                          areAllWorkspaceConversationsCollapsed
+                            ? t('conversation.history.expandAllFolders')
+                            : t('conversation.history.collapseAllFolders')
+                        }
+                        onClick={(event) => {
+                          event.stopPropagation();
+                          handleSetAllWorkspacesExpanded(areAllWorkspaceConversationsCollapsed);
+                        }}
+                        style={{ border: 'none', background: 'transparent', boxShadow: 'none', outline: 'none' }}
+                      >
+                        <CollapseWorkspaceChildrenIcon />
+                      </button>
+                    )}
+                    <span
+                      className={classNames(
+                        'opacity-0 group-hover:opacity-100 transition-opacity text-t-secondary flex items-center',
+                        showCollapseAllButton ? '' : 'ml-auto'
+                      )}
+                    >
+                      {collapsedSections.has(section.timeline) ? (
+                        <Right theme='outline' size={12} />
+                      ) : (
+                        <Down theme='outline' size={12} />
+                      )}
+                    </span>
+                  </div>
+                );
+              })()}
 
             {!collapsedSections.has(section.timeline) &&
               section.items.map((item) => {

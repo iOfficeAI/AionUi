@@ -27,6 +27,8 @@
     "yesterday": "昨日",
     "recent7Days": "過去7日間",
     "earlier": "それ以前",
+    "collapseAllFolders": "すべてのフォルダを折りたたむ",
+    "expandAllFolders": "すべてのフォルダを展開する",
     "noHistory": "チャット履歴はありません",
     "deleteTitle": "削除",
     "deleteConfirm": "このチャットを削除してもよろしいですか？",

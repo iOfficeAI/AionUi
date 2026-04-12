@@ -67,7 +67,9 @@
     "today": "今天",
     "yesterday": "昨天",
     "recent7Days": "最近7天",
-    "earlier": "更早"
+    "earlier": "更早",
+    "collapseAllFolders": "折叠所有文件夹",
+    "expandAllFolders": "展开所有文件夹"
   },
   "historySearch": {
     "tooltip": "检索会话",

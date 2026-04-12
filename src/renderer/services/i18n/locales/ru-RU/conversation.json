@@ -67,7 +67,9 @@
     "today": "Сегодня",
     "yesterday": "Вчера",
     "recent7Days": "Последние 7 дней",
-    "earlier": "Ранее"
+    "earlier": "Ранее",
+    "collapseAllFolders": "Свернуть все папки",
+    "expandAllFolders": "Развернуть все папки"
   },
   "historySearch": {
     "tooltip": "Поиск сообщений",

@@ -67,7 +67,9 @@
     "today": "Today",
     "yesterday": "Yesterday",
     "recent7Days": "Last 7 Days",
-    "earlier": "Earlier"
+    "earlier": "Earlier",
+    "collapseAllFolders": "Collapse all folders",
+    "expandAllFolders": "Expand all folders"
   },
   "historySearch": {
     "tooltip": "Search messages",

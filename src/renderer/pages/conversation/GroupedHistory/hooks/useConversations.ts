@@ -4,7 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { useConversationHistoryContext } from '@/renderer/hooks/context/ConversationHistoryContext';
 import {
@@ -71,6 +71,18 @@ export const useConversations = () => {
   }, [expandedWorkspaces]);
 
   const { pinnedConversations, timelineSections } = groupedHistory;
+  const allWorkspaceIds = useMemo(() => {
+    const workspaces = new Set<string>();
+    timelineSections.forEach((section) => {
+      section.items.forEach((item) => {
+        if (item.type === 'workspace' && item.workspaceGroup) {
+          workspaces.add(item.workspaceGroup.workspace);
+        }
+      });
+    });
+
+    return Array.from(workspaces);
+  }, [timelineSections]);
 
   // Auto-expand all workspaces on first load only (#1156)
   useEffect(() => {
@@ -79,19 +91,11 @@ export const useConversations = () => {
       hasAutoExpandedRef.current = true;
       return;
     }
-    const allWorkspaces: string[] = [];
-    timelineSections.forEach((section) => {
-      section.items.forEach((item) => {
-        if (item.type === 'workspace' && item.workspaceGroup) {
-          allWorkspaces.push(item.workspaceGroup.workspace);
-        }
-      });
-    });
-    if (allWorkspaces.length > 0) {
-      setExpandedWorkspaces(allWorkspaces);
+    if (allWorkspaceIds.length > 0) {
+      setExpandedWorkspaces(allWorkspaceIds);
       hasAutoExpandedRef.current = true;
     }
-  }, [timelineSections]);
+  }, [allWorkspaceIds, timelineSections]);
 
   // Remove stale workspace entries that no longer exist in the data
   useEffect(() => {
@@ -119,13 +123,22 @@ export const useConversations = () => {
     });
   }, []);
 
+  const handleSetAllWorkspacesExpanded = useCallback(
+    (expanded: boolean) => {
+      setExpandedWorkspaces(expanded ? allWorkspaceIds : []);
+    },
+    [allWorkspaceIds]
+  );
+
   return {
     conversations,
     isConversationGenerating,
     hasCompletionUnread,
+    allWorkspaceIds,
     expandedWorkspaces,
     pinnedConversations,
     timelineSections,
+    handleSetAllWorkspacesExpanded,
     handleToggleWorkspace,
   };
 };
