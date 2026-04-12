@@ -1229,6 +1229,8 @@ const SendBox: React.FC<{
   );
   const speechLocale = i18n?.language || 'en-US';
 
+  const hasDraftToSend = input.trim().length > 0 || domSnippets.length > 0;
+
   // Calculate button disabled state
   const isButtonDisabled = disabled || isUploading || (!input.trim() && domSnippets.length === 0);
 
@@ -1250,7 +1252,7 @@ const SendBox: React.FC<{
     <Button
       shape='circle'
       type='secondary'
-      className='bg-animate'
+      className='bg-animate sendbox-stop-button'
       icon={<div className='mx-auto size-12px bg-6'></div>}
       onClick={stopHandler}
     ></Button>
@@ -1258,15 +1260,12 @@ const SendBox: React.FC<{
 
   const renderActionButtons = () => {
     if (allowSendWhileLoading && (isLoading || loading)) {
-      if (compactActions) {
+      // Keep a single action slot while processing: show stop when the draft is empty,
+      // and only switch back to send once the user has prepared a queued message.
+      if (compactActions || !hasDraftToSend || disabled || isUploading) {
         return stopButton;
       }
-      return (
-        <>
-          {stopButton}
-          {sendButton}
-        </>
-      );
+      return sendButton;
     }
 
     if (isLoading || loading) {

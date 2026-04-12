@@ -1,7 +1,9 @@
 /* Sendbox component styles */
 
 /* Send button disabled state - override Arco Design default disabled styles */
-.send-button-custom:disabled {
+.send-button-custom:disabled,
+.send-button-custom.arco-btn:disabled,
+.send-button-custom.arco-btn-primary:disabled {
   background-color: #d3d4d9 !important;
   border-color: #d3d4d9 !important;
   opacity: 1 !important;
@@ -17,6 +19,44 @@
 [data-theme='dark'] .send-button-custom:not(:disabled) {
   background-color: var(--aou-4) !important;
   border-color: var(--aou-4) !important;
+}
+
+[data-theme='dark'] .send-button-custom:disabled,
+[data-theme='dark'] .send-button-custom.arco-btn:disabled,
+[data-theme='dark'] .send-button-custom.arco-btn-primary:disabled {
+  background-color: color-mix(in srgb, var(--color-fill-4) 82%, var(--color-bg-2)) !important;
+  border-color: color-mix(in srgb, var(--color-fill-4) 88%, var(--color-bg-2)) !important;
+}
+
+.sendbox-stop-button,
+.sendbox-stop-button.arco-btn,
+.sendbox-stop-button.arco-btn-secondary {
+  border: none !important;
+  box-shadow: none !important;
+}
+
+[data-theme='dark'] .sendbox-stop-button,
+[data-theme='dark'] .sendbox-stop-button.arco-btn,
+[data-theme='dark'] .sendbox-stop-button.arco-btn-secondary {
+  border: 1px solid color-mix(in srgb, var(--color-fill-4) 94%, var(--color-bg-2)) !important;
+}
+
+[data-theme='dark'] .sendbox-stop-button.bg-animate,
+[data-theme='dark'] .sendbox-stop-button.arco-btn.bg-animate,
+[data-theme='dark'] .sendbox-stop-button.arco-btn-secondary.bg-animate {
+  animation-name: sendbox-stop-breathe-dark;
+}
+
+@keyframes sendbox-stop-breathe-dark {
+  0% {
+    background-color: color-mix(in srgb, var(--color-fill-2) 92%, var(--color-bg-2));
+    border-color: color-mix(in srgb, var(--color-fill-3) 84%, var(--color-bg-2));
+  }
+
+  100% {
+    background-color: color-mix(in srgb, var(--color-fill-4) 92%, var(--color-bg-2));
+    border-color: color-mix(in srgb, var(--color-fill-4) 100%, var(--color-bg-2));
+  }
 }
 
 /* Input placeholder color */
