@@ -167,10 +167,15 @@ Only if user explicitly says "真的随便" / "什么都行" / insists on no pre
 | Shiba Inu (柴犬) | `models/shiba.glb` | 可爱/宠物/品牌/通用演示 |
 
 ```bash
-# Find and copy built-in model to working directory
-SKILL_DIR="$(find "$HOME/Library/Application Support" -path "*/builtin-skills/morph-ppt-3d/models/shiba.glb" -print -quit 2>/dev/null)"
-if [ -n "$SKILL_DIR" ]; then
-  cp "$SKILL_DIR" ./model.glb
+# Find and copy built-in model to working directory (cross-platform)
+MODEL_FOUND=""
+for BASE in "$HOME/Library/Application Support" "$APPDATA" "$XDG_CONFIG_HOME" "$HOME/.config"; do
+  [ -z "$BASE" ] && continue
+  F="$(find "$BASE" -path "*/builtin-skills/morph-ppt-3d/models/shiba.glb" -print -quit 2>/dev/null)"
+  if [ -n "$F" ]; then MODEL_FOUND="$F"; break; fi
+done
+if [ -n "$MODEL_FOUND" ]; then
+  cp "$MODEL_FOUND" ./model.glb
 else
   # Fallback: download from Khronos
   curl -L -o model.glb "https://raw.githubusercontent.com/KhronosGroup/glTF-Sample-Assets/main/Models/Duck/glTF-Binary/Duck.glb"
@@ -525,11 +530,13 @@ After standard morph verification, additionally check:
 
 ## File Placement Rule
 
-All files must be in the same working directory:
+All files must be in the same working directory.
 
-- `.glb` model file
+**Deliverables (4 files)** — note: morph-ppt base requires 3, 3D extension adds the model file:
+
+- `.glb` model file (the 3D model used in the deck)
 - Output `.pptx`
-- Build script
+- Build script (re-runnable)
 - `brief.md`
 
 Do not scatter model files across unrelated paths.
