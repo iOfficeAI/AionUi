@@ -100,21 +100,16 @@ export function upsertStreamContent(
 ): WecomStreamRecord | null {
   const stream = getStream(streamId);
   if (!stream) return null;
-  if (typeof payload.visibleContent === 'string') {
-    stream.visibleContent = payload.visibleContent;
-  }
-  if (typeof payload.thinkingContent === 'string') {
-    stream.thinkingContent = payload.thinkingContent;
-  }
-  if (typeof payload.lastMessageId === 'string') {
-    stream.lastMessageId = payload.lastMessageId;
-  }
-  if (payload.finished === true) {
-    stream.finished = true;
-    stream.finalizedAt = now();
-  }
-  stream.updatedAt = now();
-  return stream;
+  const updated: WecomStreamRecord = {
+    ...stream,
+    ...(typeof payload.visibleContent === 'string' && { visibleContent: payload.visibleContent }),
+    ...(typeof payload.thinkingContent === 'string' && { thinkingContent: payload.thinkingContent }),
+    ...(typeof payload.lastMessageId === 'string' && { lastMessageId: payload.lastMessageId }),
+    ...(payload.finished === true && { finished: true, finalizedAt: now() }),
+    updatedAt: now(),
+  };
+  streamStore.set(streamId, updated);
+  return updated;
 }
 
 export function finishStream(streamId: string): WecomStreamRecord | null {
@@ -153,8 +148,7 @@ export function consumeResponseUrl(chatId: string): string | null {
     responseUrlStore.delete(normalizedChatId);
     return null;
   }
-  record.used = true;
-  responseUrlStore.set(normalizedChatId, record);
+  responseUrlStore.set(normalizedChatId, { ...record, used: true });
   return record.url;
 }
 

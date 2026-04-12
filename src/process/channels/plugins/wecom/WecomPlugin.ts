@@ -255,7 +255,7 @@ export class WecomPlugin extends BasePlugin {
       return `wecom-msg-${Date.now()}`;
     }
 
-    const isThinking = text.includes('Thinking') || text.includes('思考');
+    const isThinking = text.startsWith('⏳ Thinking...');
     upsertStreamContent(stream.streamId, {
       visibleContent: isThinking ? '' : text,
       thinkingContent: isThinking ? text : '',
@@ -277,7 +277,7 @@ export class WecomPlugin extends BasePlugin {
     this.metrics.updated += 1;
     this.metrics.lastEventAt = Date.now();
 
-    const isThinking = text.includes('Thinking') || text.includes('思考');
+    const isThinking = text.startsWith('⏳ Thinking...');
     upsertStreamContent(stream.streamId, {
       visibleContent: isThinking ? '' : text,
       thinkingContent: isThinking ? text : '',
