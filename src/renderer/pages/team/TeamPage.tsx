@@ -18,11 +18,11 @@ import AionrsModelSelector from '@/renderer/pages/conversation/platforms/aionrs/
 import { useAionrsModelSelection } from '@/renderer/pages/conversation/platforms/aionrs/useAionrsModelSelection';
 import TeamTabs from './components/TeamTabs';
 import TeamChatView from './components/TeamChatView';
+import TeamAgentIdentity from './components/TeamAgentIdentity';
 import { agentFromKey, resolveConversationType, resolveTeamAgentType } from './components/agentSelectUtils';
 import { TeamTabsProvider, useTeamTabs } from './hooks/TeamTabsContext';
 import { TeamPermissionProvider } from './hooks/TeamPermissionContext';
 import { useTeamSession } from './hooks/useTeamSession';
-import { getAgentLogo } from '@/renderer/utils/model/agentLogo';
 import { dispatchWorkspaceHasFilesEvent } from '@/renderer/utils/workspace/workspaceEvents';
 
 type Props = {
@@ -65,7 +65,6 @@ const AgentChatSlot: React.FC<{
   const { data: conversation } = useSWR(agent.conversationId ? ['team-conversation', agent.conversationId] : null, () =>
     ipcBridge.conversation.get.invoke({ id: agent.conversationId })
   );
-  const logo = getAgentLogo(agent.agentType);
 
   const isAionrs = conversation?.type === 'aionrs';
   const initialModelId = (conversation?.extra as { currentModelId?: string })?.currentModelId;
@@ -107,12 +106,13 @@ const AgentChatSlot: React.FC<{
             : { background: 'var(--color-bg-2)' }
         }
       >
-        <div className='flex items-center gap-8px min-w-0'>
-          {logo && (
-            <img src={logo} alt={agent.agentType} className='w-16px h-16px object-contain rounded-2px opacity-80' />
-          )}
-          <span className='text-13px text-[color:var(--color-text-2)] font-medium truncate'>{agent.agentName}</span>
-        </div>
+        <TeamAgentIdentity
+          agentName={agent.agentName}
+          agentType={agent.agentType}
+          isLead={isLead}
+          className='min-w-0'
+          nameClassName='text-13px text-[color:var(--color-text-2)] font-medium'
+        />
         <div className='flex items-center gap-8px shrink-0'>
           {agent.conversationId && !isAionrs && isAcpLike && (
             <div className='min-w-0 max-w-140px [&_button]:max-w-full [&_button_span]:truncate'>
@@ -152,6 +152,8 @@ const AgentChatSlot: React.FC<{
             conversation={conversation as TChatConversation}
             teamId={teamId}
             agentSlotId={isLead ? undefined : agent.slotId}
+            agentName={agent.agentName}
+            agentType={agent.agentType}
           />
         ) : (
           <div className='flex flex-1 items-center justify-center'>
