@@ -327,6 +327,9 @@ const CreateTaskDialog: React.FC<CreateTaskDialogProps> = ({
 
   const handleFrequencyChange = (value: FrequencyType) => {
     setFrequency(value);
+    if (value !== 'custom') {
+      setCustomCronExpr('');
+    }
   };
 
   const handleAgentChange = useCallback((value: string) => {
@@ -618,7 +621,7 @@ const CreateTaskDialog: React.FC<CreateTaskDialogProps> = ({
 
           {/* Frequency */}
           <FormItem label={t('cron.page.form.frequency')}>
-            <Select value={frequency} onChange={handleFrequencyChange} disabled={frequency === 'custom' && isEditMode}>
+            <Select value={frequency} onChange={handleFrequencyChange}>
               <Option value='manual'>{t('cron.page.freq.manual')}</Option>
               <Option value='hourly'>{t('cron.page.freq.hourly')}</Option>
               <Option value='daily'>{t('cron.page.freq.daily')}</Option>
