@@ -9,13 +9,13 @@ import DirectorySelectionModal from '@/renderer/components/settings/DirectorySel
 import { CronJobIndicator, useCronJobsMap } from '@/renderer/pages/cron';
 import { DndContext, DragOverlay, closestCenter } from '@dnd-kit/core';
 import { SortableContext, verticalListSortingStrategy } from '@dnd-kit/sortable';
-import { Button, Empty, Input, Modal } from '@arco-design/web-react';
-import { FolderOpen } from '@icon-park/react';
+import { Button, Empty, Input, Modal, Tooltip } from '@arco-design/web-react';
+import { FolderOpen, Plus } from '@icon-park/react';
 import classNames from 'classnames';
 import { Down, Right } from '@icon-park/react';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { useParams } from 'react-router-dom';
+import { useNavigate, useParams } from 'react-router-dom';
 
 import WorkspaceCollapse from '../components/WorkspaceCollapse';
 import ConversationRow from './ConversationRow';
@@ -37,6 +37,7 @@ const WorkspaceGroupedHistory: React.FC<WorkspaceGroupedHistoryProps> = ({
 }) => {
   const { id } = useParams();
   const { t } = useTranslation();
+  const navigate = useNavigate();
   const { getJobStatus, markAsRead, setActiveConversation } = useCronJobsMap();
   const [collapsedSections, setCollapsedSections] = useState<Set<string>>(() => new Set());
   const toggleSection = useCallback((key: string) => {
@@ -47,6 +48,14 @@ const WorkspaceGroupedHistory: React.FC<WorkspaceGroupedHistoryProps> = ({
       return next;
     });
   }, []);
+
+  const handleCreateConversationInWorkspace = useCallback(
+    (workspace: string) => {
+      void navigate('/guid', { state: { workspace } });
+      onSessionClick?.();
+    },
+    [navigate, onSessionClick]
+  );
 
   // Sync active conversation ref when route changes (for URL navigation)
   // This doesn't trigger state update, avoiding double render
@@ -428,6 +437,23 @@ const WorkspaceGroupedHistory: React.FC<WorkspaceGroupedHistoryProps> = ({
                               {group.displayName}
                             </span>
                           </div>
+                        }
+                        headerExtra={
+                          !batchMode ? (
+                            <Tooltip content={t('conversation.workspace.createNewConversation')} position='top'>
+                              <Button
+                                type='text'
+                                size='mini'
+                                className='!min-w-0 !h-28px !w-28px !p-0 !rounded-8px text-t-secondary opacity-0 pointer-events-none group-hover:opacity-100 group-hover:pointer-events-auto group-focus-within:opacity-100 group-focus-within:pointer-events-auto hover:!bg-fill-2 hover:!text-t-primary'
+                                icon={<Plus theme='outline' size='16' />}
+                                aria-label={t('conversation.workspace.createNewConversation')}
+                                onClick={(event) => {
+                                  event.stopPropagation();
+                                  handleCreateConversationInWorkspace(group.workspace);
+                                }}
+                              />
+                            </Tooltip>
+                          ) : null
                         }
                       >
                         <div className={classNames('flex flex-col gap-2px min-w-0', { 'mt-2px': !collapsed })}>

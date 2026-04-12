@@ -15,6 +15,8 @@ interface WorkspaceCollapseProps {
   onToggle: () => void;
   /** 折叠面板的标题 */
   header: React.ReactNode;
+  /** 标题右侧的额外操作 */
+  headerExtra?: React.ReactNode;
   /** 折叠面板的内容 */
   children: React.ReactNode;
   /** 额外的类名 */
@@ -30,6 +32,7 @@ const WorkspaceCollapse: React.FC<WorkspaceCollapseProps> = ({
   expanded,
   onToggle,
   header,
+  headerExtra,
   children,
   className,
   siderCollapsed = false,
@@ -42,7 +45,7 @@ const WorkspaceCollapse: React.FC<WorkspaceCollapseProps> = ({
       {/* 折叠头部 - 侧栏折叠时隐藏 */}
       {!siderCollapsed && (
         <div
-          className='flex items-center gap-8px h-40px px-10px cursor-pointer hover:bg-[rgba(var(--primary-6),0.14)] rd-8px transition-colors min-w-0'
+          className='group flex items-center gap-8px h-40px px-10px cursor-pointer hover:bg-[rgba(var(--primary-6),0.14)] rd-8px transition-colors min-w-0'
           onClick={onToggle}
         >
           {/* 展开/收起文件夹图标 — 28px 容器与其他 sider 行对齐 */}
@@ -56,6 +59,7 @@ const WorkspaceCollapse: React.FC<WorkspaceCollapseProps> = ({
 
           {/* 标题内容 */}
           <div className='flex-1 min-w-0 overflow-hidden'>{header}</div>
+          {headerExtra}
         </div>
       )}
 
