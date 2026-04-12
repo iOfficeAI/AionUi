@@ -81,6 +81,26 @@ describe('createXmlFallbackAdapter', () => {
       });
       expect(payload.message).toContain('## Team Coordination (XML Fallback)');
     });
+
+    it('requires confirmation before using spawn_agent in the XML fallback path', () => {
+      const adapter = createXmlFallbackAdapter();
+      const payload = adapter.buildPayload({
+        agent: makeAgent(),
+        mailboxMessages: [],
+        tasks: [],
+        teammates: [],
+      });
+
+      expect(payload.message).toContain(
+        'Only use <spawn_agent .../> after the user explicitly approves the proposed teammate lineup'
+      );
+      expect(payload.message).toContain(
+        'Do NOT emit <spawn_agent .../> in the same turn as your initial teammate proposal'
+      );
+      expect(payload.message).toContain(
+        'When you ask for approval, also tell the user they can later ask you to replace or adjust teammates'
+      );
+    });
   });
 
   describe('parseResponse - send_message', () => {
