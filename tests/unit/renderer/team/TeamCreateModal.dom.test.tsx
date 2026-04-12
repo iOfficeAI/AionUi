@@ -120,8 +120,11 @@ describe('TeamCreateModal', () => {
 
     fireEvent.click(geminiCard);
 
-    expect(geminiCard.className).toContain('bg-primary-light-1');
+    expect(geminiCard.className).toContain('relative');
+    expect(geminiCard.className).toContain('bg-fill-2');
+    expect(geminiCard.className).toContain('border-2');
     expect(geminiCard.className).toContain('border-primary-5');
+    expect(screen.getByTestId('team-create-agent-selected-badge-cli::gemini')).toBeInTheDocument();
 
     const workspaceTrigger = screen.getByTestId('team-create-workspace-trigger');
     expect(workspaceTrigger.className).toContain('bg-fill-1');
@@ -130,10 +133,12 @@ describe('TeamCreateModal', () => {
     fireEvent.click(workspaceTrigger);
 
     const workspaceMenu = screen.getByTestId('team-create-workspace-menu');
-    expect(workspaceMenu.className).toContain('bg-fill-1');
-    expect(workspaceMenu.className).toContain('border-border-2');
+    expect(workspaceMenu.className).toContain('border-border-1');
+    expect(workspaceMenu.className).toContain('shadow-[0_18px_48px_rgba(0,0,0,0.42)]');
+    expect(workspaceMenu).toHaveStyle({ backgroundColor: 'var(--bg-2)', opacity: '1' });
 
     const recentWorkspace = screen.getByText('workspace-one').parentElement?.parentElement;
-    expect(recentWorkspace?.className).toContain('hover:bg-fill-2');
+    expect(recentWorkspace?.className).toContain('border');
+    expect(recentWorkspace?.className).toContain('hover:bg-fill-1');
   });
 });

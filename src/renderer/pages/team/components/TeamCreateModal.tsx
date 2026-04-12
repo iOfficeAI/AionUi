@@ -254,10 +254,18 @@ const TeamCreateModal: React.FC<Props> = ({ visible, onClose, onCreated }) => {
                         onClick={() => setDispatchAgentKey(isSelected ? undefined : key)}
                         className={`flex flex-col items-center gap-6px px-8px py-10px rd-10px cursor-pointer transition-all border shadow-sm ${
                           isSelected
-                            ? 'border-primary-5 bg-primary-light-1'
+                            ? 'relative border-2 border-primary-5 bg-fill-2'
                             : 'border-border-2 bg-fill-1 hover:border-border-1 hover:bg-fill-2'
                         }`}
                       >
+                        {isSelected && (
+                          <span
+                            data-testid={`team-create-agent-selected-badge-${key}`}
+                            className='absolute right-6px top-6px flex h-16px w-16px items-center justify-center rounded-full bg-primary-6 text-white shadow-sm'
+                          >
+                            <Check size='10' fill='currentColor' className='shrink-0' />
+                          </span>
+                        )}
                         <AgentCardIcon agent={agent} />
                         <span className='w-full truncate text-center text-12px leading-16px text-t-primary'>
                           {agent.name}
@@ -340,9 +348,14 @@ const TeamCreateModal: React.FC<Props> = ({ visible, onClose, onCreated }) => {
                       top: wsDropdownPos.top,
                       left: wsDropdownPos.left,
                       width: wsDropdownPos.width,
-                      zIndex: 10002,
+                      zIndex: 10010,
+                      backgroundColor: 'var(--bg-2)',
+                      opacity: 1,
+                      backdropFilter: 'none',
+                      WebkitBackdropFilter: 'none',
+                      isolation: 'isolate',
                     }}
-                    className='overflow-hidden rounded-12px border border-border-2 bg-fill-1 p-6px shadow-xl'
+                    className='overflow-hidden rounded-12px border border-border-1 p-6px shadow-[0_18px_48px_rgba(0,0,0,0.42)]'
                   >
                     {recentWorkspaces.length > 0 && (
                       <>
@@ -357,7 +370,9 @@ const TeamCreateModal: React.FC<Props> = ({ visible, onClose, onCreated }) => {
                               key={path}
                               onClick={() => handleSelectRecentWorkspace(path)}
                               className={`mx-2px flex items-center gap-10px rounded-10px px-10px py-8px transition-all cursor-pointer ${
-                                isSelected ? 'bg-primary-light-1 hover:bg-primary-light-1' : 'hover:bg-fill-2'
+                                isSelected
+                                  ? 'border border-primary-5 bg-fill-2 shadow-[0_0_0_1px_rgba(var(--primary-6),0.24)] hover:bg-fill-2'
+                                  : 'border border-transparent hover:border-border-2 hover:bg-fill-1'
                               }`}
                             >
                               <Folder
@@ -368,7 +383,7 @@ const TeamCreateModal: React.FC<Props> = ({ visible, onClose, onCreated }) => {
                               />
                               <div className='flex-1 min-w-0'>
                                 <div className='text-sm leading-20px text-t-primary'>{recentName}</div>
-                                <div className='truncate text-11px leading-16px text-t-tertiary'>{path}</div>
+                                <div className='truncate text-11px leading-16px text-t-secondary'>{path}</div>
                               </div>
                               {isSelected && (
                                 <Check size='14' fill='currentColor' className='shrink-0 text-primary-6' />
@@ -381,7 +396,7 @@ const TeamCreateModal: React.FC<Props> = ({ visible, onClose, onCreated }) => {
                     )}
                     <div
                       onClick={handleBrowseWorkspace}
-                      className='mx-2px flex items-center gap-10px rounded-10px px-10px py-8px transition-all cursor-pointer hover:bg-fill-2'
+                      className='mx-2px flex items-center gap-10px rounded-10px border border-transparent px-10px py-8px transition-all cursor-pointer hover:border-border-2 hover:bg-fill-1'
                     >
                       <FolderPlus theme='outline' size='16' fill='currentColor' className='shrink-0 text-t-secondary' />
                       <span className='text-sm text-t-primary'>

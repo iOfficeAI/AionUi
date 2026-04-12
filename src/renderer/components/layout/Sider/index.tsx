@@ -230,11 +230,10 @@ const Sider: React.FC<SiderProps> = ({ onSessionClick, collapsed = false }) => {
                       return (
                         <Tooltip key={team.id} {...siderTooltipProps} content={team.name} position='right'>
                           <div
+                            data-testid={`collapsed-team-item-${team.id}`}
                             className={classNames(
                               'w-full h-40px flex items-center justify-center cursor-pointer transition-colors rd-8px',
-                              isActive
-                                ? 'bg-[rgba(var(--primary-6),0.12)] text-primary'
-                                : 'hover:bg-fill-3 active:bg-fill-4'
+                              isActive ? '!bg-active' : 'hover:bg-fill-3 active:bg-fill-4'
                             )}
                             onClick={() => {
                               cleanupSiderTooltips();
@@ -244,9 +243,11 @@ const Sider: React.FC<SiderProps> = ({ onSessionClick, collapsed = false }) => {
                             }}
                           >
                             <Peoples
+                              data-testid={`collapsed-team-icon-${team.id}`}
+                              data-icon-fill={iconColors.primary}
                               theme='outline'
                               size='20'
-                              fill={isActive ? 'rgb(var(--primary-6))' : iconColors.primary}
+                              fill={iconColors.primary}
                               style={{ lineHeight: 0 }}
                             />
                           </div>

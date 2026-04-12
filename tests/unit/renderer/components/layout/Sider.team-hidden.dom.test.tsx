@@ -2,6 +2,9 @@ import { render, screen } from '@testing-library/react';
 import React from 'react';
 import { MemoryRouter } from 'react-router-dom';
 import { describe, expect, it, vi } from 'vitest';
+import type { TTeam } from '@/common/types/teamTypes';
+
+const mockUseTeamList = vi.hoisted(() => vi.fn(() => ({ teams: [], mutate: vi.fn(), removeTeam: vi.fn() })));
 
 vi.mock('react-i18next', () => ({
   useTranslation: () => ({
@@ -59,7 +62,7 @@ vi.mock('@/renderer/pages/conversation/GroupedHistory', () => ({
 }));
 
 vi.mock('@/renderer/pages/team/hooks/useTeamList', () => ({
-  useTeamList: () => ({ teams: [], mutate: vi.fn(), removeTeam: vi.fn() }),
+  useTeamList: mockUseTeamList,
 }));
 
 vi.mock('swr', () => ({
@@ -78,7 +81,38 @@ vi.mock('@/renderer/pages/team/components/TeamCreateModal', () => ({
 import Sider from '@/renderer/components/layout/Sider';
 
 describe('Sider team entry visibility', () => {
+  it('keeps the collapsed team icon color stable while using background-only active state', async () => {
+    const teams: TTeam[] = [
+      {
+        id: 'team-1',
+        userId: 'user-1',
+        name: 'Alpha Team',
+        workspace: '',
+        workspaceMode: 'shared',
+        leadAgentId: 'lead-1',
+        agents: [],
+        createdAt: 1,
+        updatedAt: 1,
+      },
+    ];
+    mockUseTeamList.mockReturnValue({ teams, mutate: vi.fn(), removeTeam: vi.fn() });
+
+    render(
+      <MemoryRouter initialEntries={['/team/team-1']}>
+        <Sider collapsed />
+      </MemoryRouter>
+    );
+
+    const teamItem = screen.getByTestId('collapsed-team-item-team-1');
+    const teamIcon = screen.getByTestId('collapsed-team-icon-team-1');
+
+    expect(teamItem.className).toContain('!bg-active');
+    expect(teamIcon).toHaveAttribute('data-icon-fill', 'var(--text-primary)');
+  });
+
   it('shows the team section when team mode is enabled', async () => {
+    mockUseTeamList.mockReturnValue({ teams: [], mutate: vi.fn(), removeTeam: vi.fn() });
+
     render(
       <MemoryRouter initialEntries={['/guid']}>
         <Sider />
