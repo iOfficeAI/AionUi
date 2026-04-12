@@ -44,12 +44,12 @@ export const useGeminiInitialMessage = ({
 
     if (!storedMessage) return;
 
-    // If no auth, store message in input box and trigger auto-detection from this new message point
+    // If no auth, store message in input box and trigger auto-detection from this new message point.
+    // Keep sessionStorage intact so auth loading later can pick it up and send.
     if (hasNoAuth) {
       try {
         const { input } = JSON.parse(storedMessage) as { input: string };
         setContent(input);
-        sessionStorage.removeItem(storageKey);
       } catch {
         // Ignore parse errors
       }
@@ -70,6 +70,9 @@ export const useGeminiInitialMessage = ({
     const sendInitialMessage = async () => {
       try {
         const { input, files } = JSON.parse(storedMessage) as { input: string; files?: string[] };
+
+        // Clear input box content (may have been placed there during hasNoAuth phase)
+        setContent('');
 
         const msg_id = uuid();
         setActiveMsgId(msg_id);
@@ -110,5 +113,5 @@ export const useGeminiInitialMessage = ({
     };
 
     void sendInitialMessage();
-  }, [conversationId, currentModelId]);
+  }, [conversationId, currentModelId, hasNoAuth]);
 };
