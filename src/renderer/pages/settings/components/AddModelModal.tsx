@@ -50,7 +50,12 @@ const AddModelModal = ModalHOC<{ data?: IProvider; onSubmit: (model: IProvider) 
         onCancel={modalCtrl.close}
         header={{ title: t('settings.addModel'), showClose: true }}
         style={{ maxHeight: '90vh' }}
-        contentStyle={{ background: 'var(--bg-1)', borderRadius: 16, padding: '20px 24px', overflow: 'auto' }}
+        contentStyle={{
+          background: 'var(--dialog-fill-0)',
+          borderRadius: 16,
+          padding: '20px 24px',
+          overflow: 'auto',
+        }}
         onOk={handleConfirm}
         okText={t('common.confirm')}
         cancelText={t('common.cancel')}

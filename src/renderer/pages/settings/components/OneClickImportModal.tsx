@@ -280,7 +280,7 @@ const OneClickImportModal: React.FC<OneClickImportModalProps> = ({ visible, onCa
       contentStyle={{
         borderRadius: 16,
         padding: '24px',
-        background: 'var(--bg-1)',
+        background: 'var(--dialog-fill-0)',
         overflow: 'hidden',
         height: 420 - 96,
       }}

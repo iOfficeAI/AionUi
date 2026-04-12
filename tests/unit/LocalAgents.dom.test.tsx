@@ -68,8 +68,20 @@ vi.mock('@arco-design/web-react', () => ({
 }));
 
 vi.mock('@/renderer/components/base/AionModal', () => ({
-  default: ({ children, visible }: { children: React.ReactNode; visible: boolean }) =>
-    visible ? <div>{children}</div> : null,
+  default: ({
+    children,
+    visible,
+    contentStyle,
+  }: {
+    children: React.ReactNode;
+    visible: boolean;
+    contentStyle?: { background?: string };
+  }) =>
+    visible ? (
+      <div data-testid='aion-modal' data-background={contentStyle?.background ?? ''}>
+        {children}
+      </div>
+    ) : null,
 }));
 
 vi.mock('@/common/config/storage', () => ({
@@ -118,7 +130,7 @@ vi.mock('../../src/renderer/pages/settings/AgentSettings/InlineAgentEditor', () 
 // ---------------------------------------------------------------------------
 
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen, act } from '@testing-library/react';
+import { render, screen, act, fireEvent } from '@testing-library/react';
 import React from 'react';
 import LocalAgents from '../../src/renderer/pages/settings/AgentSettings/LocalAgents';
 
@@ -182,5 +194,16 @@ describe('LocalAgents', () => {
     } finally {
       process.env.NODE_ENV = originalEnv;
     }
+  });
+
+  it('uses the shared dialog surface for the custom agent editor modal', async () => {
+    await act(async () => {
+      render(<LocalAgents />);
+    });
+
+    fireEvent.click(screen.getByText('settings.agentManagement.detectCustomAgent'));
+
+    expect(screen.getByTestId('aion-modal')).toHaveAttribute('data-background', 'var(--dialog-fill-0)');
+    expect(screen.getByTestId('inline-agent-editor')).toBeTruthy();
   });
 });

@@ -388,7 +388,12 @@ const AddPlatformModal = ModalHOC<{
       onCancel={modalCtrl.close}
       header={{ title: t('settings.addModel'), showClose: true }}
       style={{ maxWidth: '92vw', borderRadius: 16 }}
-      contentStyle={{ background: 'var(--bg-1)', borderRadius: 16, padding: '20px 24px 16px', overflow: 'auto' }}
+      contentStyle={{
+        background: 'var(--dialog-fill-0)',
+        borderRadius: 16,
+        padding: '20px 24px 16px',
+        overflow: 'auto',
+      }}
       onOk={handleSubmit}
       confirmLoading={modalProps.confirmLoading}
       okText={t('common.confirm')}
