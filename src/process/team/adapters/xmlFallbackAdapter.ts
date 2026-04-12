@@ -18,6 +18,10 @@ If the team_* MCP tools are not available in your session, use these XML tags in
 <spawn_agent name="AgentName" type="agent_type"/>
 <idle reason="available" summary="..." completed_task_id="..."/>
 
+Only use <spawn_agent .../> after the user explicitly approves the proposed teammate lineup, or explicitly tells you to create a specific teammate immediately.
+Do NOT emit <spawn_agent .../> in the same turn as your initial teammate proposal.
+When you ask for approval, also tell the user they can later ask you to replace or adjust teammates if the lineup is not working well.
+
 Always prefer MCP tools (team_spawn_agent, team_send_message, etc.) when they are available.`;
 
 /** Remove matched XML tag spans from a string and return the remaining text */
