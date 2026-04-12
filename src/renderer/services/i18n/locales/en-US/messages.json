@@ -10,6 +10,7 @@
   "copy": "Copy",
   "copySuccess": "Copied successfully",
   "copyFailed": "Failed to copy",
+  "copyLastOutput.empty": "No response to copy yet",
   "copiedToClipboard": "Copied to clipboard",
   "downloadSuccess": "Download successful",
   "downloadFailed": "Failed to download",
