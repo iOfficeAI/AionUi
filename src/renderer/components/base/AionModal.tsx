@@ -55,7 +55,7 @@ export interface ModalFooterConfig {
 
 /** Modal 内容区域样式配置 */
 export interface ModalContentStyleConfig {
-  /** 背景色，默认 var(--bg-1) */
+  /** 背景色，默认 var(--dialog-fill-0) */
   background?: string;
   /** 圆角大小，默认 16px */
   borderRadius?: string | number;
@@ -179,7 +179,7 @@ const AionModal: React.FC<AionModalProps> = ({
   const { fontScale } = useThemeContext();
   const { t } = useTranslation();
   // 处理 contentStyle 配置，转换为 CSS 变量
-  const contentBg = contentStyle?.background || 'var(--bg-1)';
+  const contentBg = contentStyle?.background || 'var(--dialog-fill-0)';
   const contentBorderRadius = contentStyle?.borderRadius || '16px';
   const contentPadding = contentStyle?.padding || '0';
   const contentOverflow = contentStyle?.overflow || 'auto';
