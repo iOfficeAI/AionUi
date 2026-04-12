@@ -169,11 +169,23 @@ const kill = (id: string) => {
   taskList.splice(index, 1);
 };
 
-const clear = () => {
+const clear = async () => {
+  // Trigger kill on all tasks — kill() returns void but may start async
+  // cleanup internally (e.g. AcpAgentManager has a 1.5s hard timeout).
   taskList.forEach((item) => {
-    item.task.kill();
+    try {
+      item.task.kill();
+    } catch {
+      // Ignore errors from individual kills
+    }
   });
+  const hadTasks = taskList.length > 0;
   taskList.length = 0;
+  // Wait long enough for internal async cleanup (ACP hard timeout is 1.5s)
+  // but cap at 3s to avoid blocking app shutdown
+  if (hadTasks) {
+    await new Promise((resolve) => setTimeout(resolve, 3000));
+  }
 };
 
 const addTask = (id: string, task: AgentBaseTask<unknown>) => {
