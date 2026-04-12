@@ -367,16 +367,43 @@ app.on('activate', () => {
 });
 
 app.on('before-quit', async () => {
-  // 在应用退出前清理工作进程
-  WorkerManage.clear();
+  console.log('[AionUi] before-quit');
 
-  // Shutdown Channel subsystem
-  try {
-    const { getChannelManager } = await import('@/channels');
-    await getChannelManager().shutdown();
-  } catch (error) {
-    console.error('[App] Failed to shutdown ChannelManager:', error);
-  }
+  const cleanup = async () => {
+    // Kill all agent worker processes
+    await WorkerManage.clear();
+
+    // Shutdown Channel subsystem
+    try {
+      const { getChannelManager } = await import('@/channels');
+      await getChannelManager().shutdown();
+    } catch (error) {
+      console.error('[App] Failed to shutdown ChannelManager:', error);
+    }
+
+    // Stop Web Server (Express + WebSocket)
+    try {
+      const { getWebServerInstance, setWebServerInstance } = await import('./webserver/webuiBridge');
+      const instance = getWebServerInstance();
+      if (instance) {
+        instance.wss.clients.forEach((client) => client.close(1000, 'App shutting down'));
+        await new Promise((resolve) => instance.server.close(() => resolve()));
+        setWebServerInstance(null);
+      }
+    } catch {
+      /* server not started */
+    }
+  };
+
+  // Master timeout: force quit if cleanup hangs
+  const timeout = new Promise((resolve) => {
+    setTimeout(() => {
+      console.warn('[AionUi] Cleanup timed out after 8s, forcing quit');
+      resolve();
+    }, 8000);
+  });
+
+  await Promise.race([cleanup(), timeout]);
 });
 
 // In this file you can include the rest of your app's specific main process
