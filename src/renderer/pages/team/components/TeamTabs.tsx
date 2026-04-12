@@ -1,10 +1,10 @@
 import { Edit, Plus } from '@icon-park/react';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
-import { getAgentLogo } from '@/renderer/utils/model/agentLogo';
 import { iconColors } from '@/renderer/styles/colors';
 import type { TeammateStatus } from '@/common/types/teamTypes';
 import AddAgentModal from './AddAgentModal';
 import AgentStatusBadge from './AgentStatusBadge';
+import TeamAgentIdentity from './TeamAgentIdentity';
 import { useTeamTabs } from '../hooks/TeamTabsContext';
 
 const DRAG_OVER_CLASS = 'border-l-2 border-[color:var(--color-primary-6)]';
@@ -40,7 +40,6 @@ const TeamTabView: React.FC<TeamTabViewProps> = ({
   onDrop,
   isDragOver,
 }) => {
-  const logo = getAgentLogo(agentType);
   const [editing, setEditing] = useState(false);
   const [editValue, setEditValue] = useState(agentName);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -111,13 +110,6 @@ const TeamTabView: React.FC<TeamTabViewProps> = ({
       }}
       onDragEnd={() => onDrop()}
     >
-      {logo && (
-        <img
-          src={logo}
-          alt={agentType}
-          className={`w-14px h-14px object-contain rounded-2px ${isActive ? 'opacity-100' : 'opacity-70'}`}
-        />
-      )}
       {editing ? (
         <input
           ref={inputRef}
@@ -128,15 +120,16 @@ const TeamTabView: React.FC<TeamTabViewProps> = ({
           onKeyDown={handleKeyDown}
         />
       ) : (
-        <span className='text-15px whitespace-nowrap overflow-hidden text-ellipsis select-none flex-1'>
-          {agentName}
-        </span>
+        <TeamAgentIdentity
+          agentName={agentName}
+          agentType={agentType}
+          isLead={isLead}
+          className='min-w-0 flex-1'
+          logoClassName={`w-14px h-14px object-contain rounded-2px ${isActive ? 'opacity-100' : 'opacity-70'}`}
+          nameClassName='text-15px whitespace-nowrap overflow-hidden text-ellipsis select-none'
+        />
       )}
-      {isLead && (
-        <span className='text-10px px-4px py-1px rd-4px bg-[var(--color-primary-1)] text-[var(--color-primary-6)] shrink-0'>
-          Lead
-        </span>
-      )}
+      <AgentStatusBadge status={status} />
       {!editing && onRename && (
         <span
           className='opacity-0 group-hover:opacity-60 hover:!opacity-100 transition-opacity duration-150 shrink-0 flex items-center'
@@ -145,7 +138,6 @@ const TeamTabView: React.FC<TeamTabViewProps> = ({
           <Edit theme='outline' size='12' fill='currentColor' />
         </span>
       )}
-      <AgentStatusBadge status={status} />
     </div>
   );
 };
@@ -238,7 +230,7 @@ const TeamTabs: React.FC<TeamTabsProps> = ({ onAddAgent, onTabClick }) => {
   if (agents.length === 0) return null;
 
   return (
-    <div className='relative shrink-0 bg-2 min-h-40px'>
+    <div data-testid='team-tab-bar' className='relative shrink-0 bg-2 min-h-40px'>
       <div className='relative flex items-center h-40px w-full border-t border-x border-solid border-[color:var(--border-base)]'>
         <div
           ref={tabsContainerRef}

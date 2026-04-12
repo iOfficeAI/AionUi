@@ -7,6 +7,7 @@ import {
   DEFAULT_SETTINGS_ROUTE,
   SETTINGS_ROUTE_DEFINITIONS,
 } from '@renderer/pages/settings/components/SettingsSider/settingsNavigation';
+
 const Conversation = React.lazy(() => import('@renderer/pages/conversation'));
 const Guid = React.lazy(() => import('@renderer/pages/guid'));
 const AionrsSettings = React.lazy(() => import('@renderer/pages/settings/AionrsSettings'));
@@ -59,7 +60,8 @@ const PanelRoute: React.FC<{ layout: React.ReactElement }> = ({ layout }) => {
             path='/team/:id'
             element={TEAM_MODE_ENABLED ? withRouteFallback(TeamIndex) : <Navigate to='/guid' replace />}
           />
-          <Route path='/settings/assistants' element={<Navigate to='/settings/agent' replace />} />
+          <Route path='/settings/skills-hub' element={<Navigate to='/settings/capabilities?tab=skills' replace />} />
+          <Route path='/settings/tools' element={<Navigate to='/settings/capabilities?tab=tools' replace />} />
           <Route path='/settings/ext/:tabId' element={withRouteFallback(ExtensionSettingsPage)} />
           <Route path='/settings' element={<Navigate to={`/settings/${DEFAULT_SETTINGS_ROUTE}`} replace />} />
           <Route path='/test/components' element={withRouteFallback(ComponentsShowcase)} />

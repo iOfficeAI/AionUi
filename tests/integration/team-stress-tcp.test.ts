@@ -125,7 +125,7 @@ function makeAgent(overrides: Partial<TeamAgent> = {}): TeamAgent {
     conversationId: 'conv-lead',
     role: 'lead',
     agentType: 'claude',
-    agentName: 'Lead',
+    agentName: 'Leader',
     conversationType: 'acp',
     status: 'idle',
     ...overrides,
@@ -186,7 +186,7 @@ describe('Stress — TCP large payload handling', () => {
   it('1KB message payload: framing and reassembly correct', async () => {
     const message = 'A'.repeat(1024);
     const result = (await callTool(port, authToken, 'team_send_message', {
-      to: 'Lead',
+      to: 'Leader',
       message,
     })) as { result?: string; error?: string };
 
@@ -197,7 +197,7 @@ describe('Stress — TCP large payload handling', () => {
   it('10KB message payload: framing and reassembly correct', async () => {
     const message = 'B'.repeat(10 * 1024);
     const result = (await callTool(port, authToken, 'team_send_message', {
-      to: 'Lead',
+      to: 'Leader',
       message,
     })) as { result?: string; error?: string };
 
@@ -269,7 +269,7 @@ describe('Stress — 20 parallel TCP tool calls', () => {
 
   beforeEach(async () => {
     const agents = [
-      makeAgent({ slotId: 'slot-lead', agentName: 'Lead', role: 'lead' }),
+      makeAgent({ slotId: 'slot-lead', agentName: 'Leader', role: 'lead' }),
       makeAgent({ slotId: 'slot-worker', agentName: 'Worker', role: 'teammate' }),
     ];
     const built = buildServer(agents);
@@ -300,7 +300,7 @@ describe('Stress — 20 parallel TCP tool calls', () => {
     )) as Array<{ result?: string }>;
 
     for (const r of results) {
-      expect(r.result).toContain('Lead');
+      expect(r.result).toContain('Leader');
       expect(r.result).toContain('Worker');
     }
   });

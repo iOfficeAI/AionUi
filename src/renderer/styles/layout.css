@@ -126,13 +126,29 @@
   width: 100% !important;
   padding-left: 266px;
   box-sizing: border-box;
+  z-index: 10001 !important;
 }
 
 /* Default background for select and input components */
 .arco-select-view,
+.arco-select-addbefore,
 .arco-input,
-.arco-input-inner-wrapper {
+.arco-input-inner-wrapper,
+.arco-input-group-addafter,
+.arco-input-group-addbefore {
   background-color: var(--fill-0) !important;
+}
+
+/* Grouped inputs should share one surface across the field and its add-ons. */
+.arco-input-inner-wrapper > .arco-input,
+.arco-input-group-addafter .arco-input,
+.arco-input-group-addbefore .arco-input,
+.arco-input-inner-wrapper .arco-input-group-prefix,
+.arco-input-inner-wrapper .arco-input-group-suffix,
+.arco-select-suffix,
+.arco-input-group-addafter .arco-select .arco-select-view,
+.arco-input-group-addbefore .arco-select .arco-select-view {
+  background-color: transparent !important;
 }
 
 /* Mobile sidebar positioning */

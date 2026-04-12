@@ -2,6 +2,13 @@
 // Shared team types used by both main process and renderer.
 // Renderer code should import from here instead of @process/team/types.
 
+/**
+ * Agent backends verified to support MCP tool injection in team mode.
+ * This is the single source of truth — frontend UI, backend spawn validation,
+ * and the available-agent-types list passed to the leader prompt all derive from here.
+ */
+export const TEAM_SUPPORTED_BACKENDS = new Set(['claude', 'codex', 'gemini']);
+
 /** Role of a teammate within a team */
 export type TeammateRole = 'lead' | 'teammate';
 
@@ -33,6 +40,8 @@ export type TTeam = {
   workspaceMode: WorkspaceMode;
   leadAgentId: string;
   agents: TeamAgent[];
+  /** Current session permission mode (e.g. 'plan', 'auto'). Persisted so newly spawned agents inherit it. */
+  sessionMode?: string;
   createdAt: number;
   updatedAt: number;
 };
@@ -65,6 +74,12 @@ export type ITeamAgentRenamedEvent = {
   newName: string;
 };
 
+/** IPC event pushed to renderer when the team list changes (created/removed) */
+export type ITeamListChangedEvent = {
+  teamId: string;
+  action: 'created' | 'removed';
+};
+
 /** IPC event for streaming agent messages to renderer */
 export type ITeamMessageEvent = {
   teamId: string;
@@ -73,4 +88,25 @@ export type ITeamMessageEvent = {
   data: unknown;
   msg_id: string;
   conversation_id: string;
+};
+
+/** Phase of the MCP injection pipeline */
+export type TeamMcpPhase =
+  | 'tcp_ready'
+  | 'tcp_error'
+  | 'session_injecting'
+  | 'session_ready'
+  | 'session_error'
+  | 'load_failed'
+  | 'degraded'
+  | 'config_write_failed';
+
+/** IPC event for MCP injection pipeline status */
+export type ITeamMcpStatusEvent = {
+  teamId: string;
+  slotId?: string;
+  phase: TeamMcpPhase;
+  serverCount?: number;
+  port?: number;
+  error?: string;
 };

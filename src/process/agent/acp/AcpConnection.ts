@@ -327,6 +327,7 @@ export class AcpConnection {
       case 'vibe':
       case 'cursor':
       case 'kiro':
+      case 'hermes':
         if (!cliPath) {
           throw new Error(`CLI path is required for ${backend} backend`);
         }
@@ -1171,14 +1172,17 @@ export class AcpConnection {
   async loadSession(
     sessionId: string,
     cwd: string = process.cwd(),
-    options?: { mcpServers?: AcpSessionMcpServer[] }
+    optionsOrMcpServers?: { mcpServers?: AcpSessionMcpServer[] } | AcpSessionMcpServer[]
   ): Promise<AcpResponse & { sessionId?: string }> {
     const normalizedCwd = this.normalizeCwdForAgent(cwd);
+    const mcpServers = Array.isArray(optionsOrMcpServers)
+      ? optionsOrMcpServers
+      : optionsOrMcpServers?.mcpServers ?? [];
 
     const response = await this.sendRequest<AcpResponse & { sessionId?: string }>('session/load', {
       sessionId,
       cwd: normalizedCwd,
-      mcpServers: options?.mcpServers ?? [],
+      mcpServers: (mcpServers ?? []) as unknown[],
     });
 
     // session/load returns modes/models/configOptions but not sessionId — keep the one we sent

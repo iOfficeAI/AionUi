@@ -49,6 +49,10 @@ export type SettingsRouteDefinition = {
 
 export const DEFAULT_SETTINGS_ROUTE = 'gemini';
 export const EMBEDDED_SETTINGS_EXTENSION_NAMES = new Set(['api-diagnostics-devtools']);
+export const LEGACY_SETTINGS_ANCHOR_REMAP: Record<string, string> = {
+  'skills-hub': 'capabilities',
+  tools: 'capabilities',
+};
 
 const SETTINGS_BUILTIN_DEFINITIONS: SettingsBuiltinDefinition[] = [
   {
@@ -70,24 +74,25 @@ const SETTINGS_BUILTIN_DEFINITIONS: SettingsBuiltinDefinition[] = [
     resolveIcon: () => LinkCloud,
   },
   {
-    id: 'agent',
-    path: 'agent',
+    id: 'assistants',
+    path: 'assistants',
     labelKey: 'settings.assistants',
     defaultValue: 'Assistants',
     resolveIcon: () => Robot,
   },
   {
-    id: 'skills-hub',
-    path: 'skills-hub',
-    labelKey: 'settings.skillsHub.title',
-    defaultValue: 'Skills Hub',
-    resolveIcon: () => Lightning,
+    id: 'agent',
+    path: 'agent',
+    labelKey: 'settings.agents',
+    defaultValue: 'Agents',
+    resolveIcon: () => Toolkit,
   },
   {
-    id: 'tools',
-    path: 'tools',
-    labelKey: 'settings.tools',
-    resolveIcon: () => Toolkit,
+    id: 'capabilities',
+    path: 'capabilities',
+    labelKey: 'settings.capabilities',
+    defaultValue: 'Capabilities',
+    resolveIcon: () => Lightning,
   },
   {
     id: 'display',
@@ -129,12 +134,12 @@ const SETTINGS_BUILTIN_DEFINITIONS: SettingsBuiltinDefinition[] = [
 
 const CronSettingsPage = React.lazy(() => import('@renderer/pages/cron/CronSettingsPage'));
 const AgentSettings = React.lazy(() => import('@renderer/pages/settings/AgentSettings'));
-const SkillsHubSettings = React.lazy(() => import('@renderer/pages/settings/SkillsHubSettings'));
+const AssistantSettings = React.lazy(() => import('@renderer/pages/settings/AssistantSettings'));
+const CapabilitiesSettings = React.lazy(() => import('@renderer/pages/settings/CapabilitiesSettings'));
 const DisplaySettings = React.lazy(() => import('@renderer/pages/settings/DisplaySettings'));
 const GeminiSettings = React.lazy(() => import('@renderer/pages/settings/GeminiSettings'));
 const ModeSettings = React.lazy(() => import('@renderer/pages/settings/ModeSettings'));
 const SystemSettings = React.lazy(() => import('@renderer/pages/settings/SystemSettings'));
-const ToolsSettings = React.lazy(() => import('@renderer/pages/settings/ToolsSettings'));
 const WebuiSettings = React.lazy(() => import('@renderer/pages/settings/WebuiSettings'));
 const PetSettings = React.lazy(() => import('@renderer/pages/settings/PetSettings'));
 const ApiSettingsPage = React.lazy(
@@ -145,10 +150,10 @@ export const SETTINGS_ROUTE_DEFINITIONS: SettingsRouteDefinition[] = [
   { id: 'cron', path: 'cron', component: CronSettingsPage },
   { id: 'gemini', path: 'gemini', component: GeminiSettings },
   { id: 'model', path: 'model', component: ModeSettings },
+  { id: 'assistants', path: 'assistants', component: AssistantSettings },
   { id: 'agent', path: 'agent', component: AgentSettings },
-  { id: 'skills-hub', path: 'skills-hub', component: SkillsHubSettings },
+  { id: 'capabilities', path: 'capabilities', component: CapabilitiesSettings },
   { id: 'display', path: 'display', component: DisplaySettings },
-  { id: 'tools', path: 'tools', component: ToolsSettings },
   { id: 'webui', path: 'webui', component: WebuiSettings },
   { id: 'api', path: 'api', component: ApiSettingsPage },
   { id: 'pet', path: 'pet', component: PetSettings },
@@ -207,11 +212,12 @@ export const buildSettingsNavItems = ({
       continue;
     }
 
+    const anchor = LEGACY_SETTINGS_ANCHOR_REMAP[tab.position.anchor] ?? tab.position.anchor;
     const map = tab.position.placement === 'before' ? beforeMap : afterMap;
-    let list = map.get(tab.position.anchor);
+    let list = map.get(anchor);
     if (!list) {
       list = [];
-      map.set(tab.position.anchor, list);
+      map.set(anchor, list);
     }
     list.push(tab);
   }

@@ -7,7 +7,7 @@
 import { bridge, logger } from '@office-ai/platform';
 import { WEBUI_DEFAULT_PORT } from '@/common/config/constants';
 import type { ElectronBridgeAPI } from '@/common/types/electron';
-import { getLoginRedirectUrl, isLoginRoute } from './browserNavigation';
+import { isLoginRoute } from './browserNavigation';
 
 interface CustomWindow extends Window {
   electronAPI?: ElectronBridgeAPI;
@@ -152,8 +152,10 @@ if (win.electronAPI) {
 
           // 短暂延迟后跳转到登录页，以便显示 UI 反馈
           // Redirect to login page after a short delay to show any UI feedback
+          // Use hash navigation to stay within the SPA (HashRouter), avoiding a full
+          // page reload that would land on an empty hash and cause a blank screen.
           setTimeout(() => {
-            window.location.href = getLoginRedirectUrl(window.location);
+            window.location.hash = '/login';
           }, 1000);
 
           return;
@@ -189,8 +191,9 @@ if (win.electronAPI) {
         if (isLoginRoute(window.location)) {
           return;
         }
+        // Use hash navigation to stay within the SPA (HashRouter)
         setTimeout(() => {
-          window.location.href = getLoginRedirectUrl(window.location);
+          window.location.hash = '/login';
         }, 500);
         return;
       }

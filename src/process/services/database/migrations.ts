@@ -1380,6 +1380,27 @@ const migration_v27: IMigration = {
 };
 
 /**
+ * Migration v27 -> v28: Add session_mode column to teams table
+ * Persists the team-level session permission mode so newly spawned agents
+ * inherit the correct mode without falling back to the lead agent's extra.
+ */
+const migration_v28: IMigration = {
+  version: 28,
+  name: 'Add session_mode to teams table',
+  up: (db) => {
+    const columns = new Set((db.pragma('table_info(teams)') as Array<{ name: string }>).map((c) => c.name));
+    if (!columns.has('session_mode')) {
+      db.exec('ALTER TABLE teams ADD COLUMN session_mode TEXT');
+    }
+    console.log('[Migration v28] Added session_mode column to teams table');
+  },
+  down: (_db) => {
+    // SQLite does not support DROP COLUMN before 3.35.0; skip rollback to prevent data loss.
+    console.warn('[Migration v28] Rollback skipped: cannot drop columns safely.');
+  },
+};
+
+/**
  * All migrations in order
  */
 // prettier-ignore
@@ -1388,7 +1409,7 @@ export const ALL_MIGRATIONS: IMigration[] = [
   migration_v7, migration_v8, migration_v9, migration_v10, migration_v11, migration_v12,
   migration_v13, migration_v14, migration_v15, migration_v16, migration_v17, migration_v18, migration_v19,
   migration_v20, migration_v21, migration_v22, migration_v23, migration_v24, migration_v25, migration_v26,
-  migration_v27,
+  migration_v27, migration_v28,
 ];
 
 /**

@@ -15,7 +15,9 @@ describe('settings navigation registry', () => {
     expect(routePaths).toContain('cron');
     expect(routePaths).toContain('api');
     expect(routePaths).toContain('pet');
-    expect(routePaths).toContain('skills-hub');
+    expect(routePaths).toContain('assistants');
+    expect(routePaths).toContain('agent');
+    expect(routePaths).toContain('capabilities');
   });
 
   it('keeps embedded extension tabs out of page navigation while preserving regular extension tabs', () => {

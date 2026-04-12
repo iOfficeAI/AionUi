@@ -1,6 +1,15 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import classNames from 'classnames';
-import { ArrowCircleLeft, ExpandLeft, ExpandRight, MenuFold, MenuUnfold, Plus } from '@icon-park/react';
+import {
+  ArrowCircleLeft,
+  ArrowLeft,
+  ArrowRight,
+  ExpandLeft,
+  ExpandRight,
+  MenuFold,
+  MenuUnfold,
+  Plus,
+} from '@icon-park/react';
 import { useTranslation } from 'react-i18next';
 import { useLocation, useNavigate } from 'react-router-dom';
 
@@ -10,6 +19,7 @@ import WindowControls from '../WindowControls';
 import { WORKSPACE_STATE_EVENT, dispatchWorkspaceToggleEvent } from '@renderer/utils/workspace/workspaceEvents';
 import type { WorkspaceStateDetail } from '@renderer/utils/workspace/workspaceEvents';
 import { useLayoutContext } from '@/renderer/hooks/context/LayoutContext';
+import { useNavigationHistory } from '@/renderer/hooks/context/NavigationHistoryContext';
 import { isElectronDesktop, isMacOS } from '@/renderer/utils/platform';
 import './titlebar.css';
 
@@ -28,6 +38,35 @@ const AionLogoMark: React.FC = () => (
   </svg>
 );
 
+// Claude-desktop-style sidebar toggle icon: a rounded rectangle with a vertical divider
+// near the left edge, indicating a collapsible side panel. Rendered as inline SVG since
+// @icon-park doesn't ship this exact shape.
+//
+// Uses a 48-unit viewBox to match @icon-park's stroke scale, so passing the same
+// `strokeWidth` value here and to @icon-park icons produces visually identical lines.
+//
+// The rect spans y=10..38 (height 28), slightly taller than @icon-park's
+// ArrowLeft/ArrowRight (which span y=12..36) so the sidebar icon reads a
+// touch larger. The rect remains centered at y=24, matching the arrows'
+// centerline so all three icons stay on the same visual baseline.
+const SidebarIcon: React.FC<{ size?: number; strokeWidth?: number }> = ({ size = 18, strokeWidth = 4 }) => (
+  <svg
+    width={size}
+    height={size}
+    viewBox='0 0 48 48'
+    fill='none'
+    stroke='currentColor'
+    strokeWidth={strokeWidth}
+    strokeLinecap='round'
+    strokeLinejoin='round'
+    aria-hidden='true'
+    focusable='false'
+  >
+    <rect x='6' y='10' width='36' height='28' rx='5' />
+    <line x1='18' y1='10' x2='18' y2='38' />
+  </svg>
+);
+
 const Titlebar: React.FC<TitlebarProps> = ({ workspaceAvailable }) => {
   const { t } = useTranslation();
   const appTitle = useMemo(() => 'AionUi', []);
@@ -35,6 +74,7 @@ const Titlebar: React.FC<TitlebarProps> = ({ workspaceAvailable }) => {
   const [mobileCenterTitle, setMobileCenterTitle] = useState(appTitle);
   const [mobileCenterOffset, setMobileCenterOffset] = useState(0);
   const layout = useLayoutContext();
+  const navigationHistory = useNavigationHistory();
   const location = useLocation();
   const navigate = useNavigate();
   const containerRef = useRef<HTMLDivElement | null>(null);
@@ -73,6 +113,9 @@ const Titlebar: React.FC<TitlebarProps> = ({ workspaceAvailable }) => {
   const backToChatTooltip = t('common.back', { defaultValue: 'Back to Chat' });
   const isSettingsRoute = location.pathname.startsWith('/settings');
   const iconSize = layout?.isMobile ? 24 : 18;
+  // Desktop uses slimmer strokes to match macOS-native chrome aesthetics;
+  // mobile keeps the default weight so icons stay legible at larger sizes.
+  const desktopIconStroke = layout?.isMobile ? undefined : 2.5;
   // 统一在标题栏左侧展示主侧栏开关 / Always expose sidebar toggle on titlebar left side
   const showSiderToggle = Boolean(layout?.setSiderCollapsed) && !(layout?.isMobile && isSettingsRoute);
   const showBackToChatButton = Boolean(layout?.isMobile && isSettingsRoute);
@@ -80,6 +123,11 @@ const Titlebar: React.FC<TitlebarProps> = ({ workspaceAvailable }) => {
   const siderTooltip = layout?.siderCollapsed
     ? t('common.expandMore', { defaultValue: 'Expand sidebar' })
     : t('common.collapse', { defaultValue: 'Collapse sidebar' });
+  // 前进/后退仅在桌面端显示（移动端空间有限，保留原有的返回到聊天按钮）
+  // Show back/forward on desktop only; mobile keeps the existing back-to-chat button.
+  const showHistoryNav = Boolean(navigationHistory) && !layout?.isMobile;
+  const historyBackTooltip = t('common.historyBack', { defaultValue: 'Back' });
+  const historyForwardTooltip = t('common.forward', { defaultValue: 'Forward' });
 
   const handleSiderToggle = () => {
     if (!showSiderToggle || !layout?.setSiderCollapsed) return;
@@ -215,13 +263,13 @@ const Titlebar: React.FC<TitlebarProps> = ({ workspaceAvailable }) => {
 
   const menuStyle: React.CSSProperties = useMemo(() => {
     if (!isMacRuntime || !showSiderToggle) return {};
-
-    const marginLeft = layout?.isMobile ? '0px' : layout?.siderCollapsed ? '60px' : '210px';
+    // macOS: sit the menu buttons right next to the traffic lights (which occupy ~70px).
+    // Mobile keeps its own layout (no traffic lights).
+    const marginLeft = layout?.isMobile ? '0px' : '76px';
     return {
       marginLeft,
-      transition: 'margin-left 0.28s cubic-bezier(0.4, 0, 0.2, 1)',
     };
-  }, [isMacRuntime, showSiderToggle, layout?.isMobile, layout?.siderCollapsed]);
+  }, [isMacRuntime, showSiderToggle, layout?.isMobile]);
 
   return (
     <div
@@ -252,12 +300,40 @@ const Titlebar: React.FC<TitlebarProps> = ({ workspaceAvailable }) => {
             onClick={handleSiderToggle}
             aria-label={siderTooltip}
           >
-            {layout?.siderCollapsed ? (
-              <MenuUnfold theme='outline' size={iconSize} fill='currentColor' />
+            {layout?.isMobile ? (
+              layout?.siderCollapsed ? (
+                <MenuUnfold theme='outline' size={iconSize} fill='currentColor' />
+              ) : (
+                <MenuFold theme='outline' size={iconSize} fill='currentColor' />
+              )
             ) : (
-              <MenuFold theme='outline' size={iconSize} fill='currentColor' />
+              <SidebarIcon size={iconSize} strokeWidth={desktopIconStroke} />
             )}
           </button>
+        )}
+        {showHistoryNav && (
+          <>
+            <button
+              type='button'
+              className='app-titlebar__button app-titlebar__button--nav'
+              onClick={() => navigationHistory?.back()}
+              disabled={!navigationHistory?.canBack}
+              aria-label={historyBackTooltip}
+              title={historyBackTooltip}
+            >
+              <ArrowLeft theme='outline' size={iconSize} fill='currentColor' strokeWidth={desktopIconStroke} />
+            </button>
+            <button
+              type='button'
+              className='app-titlebar__button app-titlebar__button--nav'
+              onClick={() => navigationHistory?.forward()}
+              disabled={!navigationHistory?.canForward}
+              aria-label={historyForwardTooltip}
+              title={historyForwardTooltip}
+            >
+              <ArrowRight theme='outline' size={iconSize} fill='currentColor' strokeWidth={desktopIconStroke} />
+            </button>
+          </>
         )}
       </div>
       <div

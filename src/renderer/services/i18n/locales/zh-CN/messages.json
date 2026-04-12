@@ -10,6 +10,7 @@
   "copy": "复制",
   "copySuccess": "复制成功",
   "copyFailed": "复制失败",
+  "copyLastOutput.empty": "暂无可复制的回复",
   "copiedToClipboard": "已复制到剪贴板",
   "downloadSuccess": "下载成功",
   "downloadFailed": "下载失败",

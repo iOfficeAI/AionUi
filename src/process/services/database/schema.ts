@@ -128,6 +128,7 @@ export function initSchema(db: ISqliteDriver): void {
     name TEXT NOT NULL,
     workspace TEXT NOT NULL,
     workspace_mode TEXT NOT NULL DEFAULT 'shared',
+    session_mode TEXT,
     lead_agent_id TEXT NOT NULL DEFAULT '',
     agents TEXT NOT NULL DEFAULT '[]',
     created_at INTEGER NOT NULL,
@@ -197,4 +198,4 @@ export function setDatabaseVersion(db: ISqliteDriver, version: number): void {
  * Current database schema version
  * Update this when adding new migrations in migrations.ts
  */
-export const CURRENT_DB_VERSION = 27;
+export const CURRENT_DB_VERSION = 28;

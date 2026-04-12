@@ -26,12 +26,15 @@ import { initializeProcess } from './process';
 import { ProcessConfig } from './process/utils/initStorage';
 import { loadShellEnvironmentAsync, logEnvironmentDiagnostics, mergePaths } from './process/utils/shellEnv';
 import { initializeAcpDetector, registerWindowMaximizeListeners, disposeAllTeamSessions } from '@process/bridge';
+import './process/bridge/feedbackBridge';
 import { wasLaunchedAtLogin } from '@process/bridge/applicationBridge';
 import { onCloseToTrayChanged, onLanguageChanged } from './process/bridge/systemSettingsBridge';
 import { setInitialLanguage } from '@process/services/i18n';
 import { workerTaskManager } from './process/task/workerTaskManagerSingleton';
 import { setupApplicationMenu } from './process/utils/appMenu';
-import { applyZoomToWindow, initializeZoomFactor } from './process/utils/zoom';
+import { startWebServer } from './process/webserver';
+import { initializeZoomFactor, setupZoomForWindow } from './process/utils/zoom';
+import { getOrCreateAnalyticsId } from './process/utils/analyticsId';
 import {
   clearPendingDeepLinkUrl,
   getPendingDeepLinkUrl,
@@ -48,7 +51,6 @@ import {
   resolveRemoteAccess,
   resolveWebUIPort,
   restoreDesktopWebUIFromPreferences,
-  startCliWebUI,
 } from './process/utils/webuiConfig';
 import {
   createOrUpdateTray,
@@ -240,7 +242,12 @@ const createWindow = ({ showOnReady = true }: { showOnReady?: boolean } = {}): v
     ...(process.platform === 'darwin'
       ? {
           titleBarStyle: 'hidden',
-          trafficLightPosition: { x: 10, y: 10 },
+          // Align traffic-light vertical center with the titlebar button centers.
+          // Titlebar is 45px; buttons are 36px flex-centered → button center y≈22.5.
+          // Empirically y=13 places the traffic lights on the same horizontal line
+          // as the sidebar / back / forward icons.
+          // NOTE: requires a full app restart to take effect (BrowserWindow option).
+          trafficLightPosition: { x: 10, y: 13 },
         }
       : { frame: false }),
     webPreferences: {
@@ -280,7 +287,7 @@ const createWindow = ({ showOnReady = true }: { showOnReady?: boolean } = {}): v
   bindMainWindowReferences(mainWindow);
   setupApplicationMenu();
 
-  void applyZoomToWindow(mainWindow);
+  setupZoomForWindow(mainWindow);
   registerWindowMaximizeListeners(mainWindow);
 
   // Initialize auto-updater service (skip when disabled via env, e.g. E2E / CI)
@@ -426,6 +433,8 @@ const handleAppReady = async (): Promise<void> => {
     }
   }
 
+  Sentry.setUser({ id: getOrCreateAnalyticsId() });
+
   try {
     await initializeProcess();
     mark('initializeProcess');
@@ -463,7 +472,7 @@ const handleAppReady = async (): Promise<void> => {
     const resolvedPort = resolveWebUIPort(userConfigInfo.config, getSwitchValue);
     const allowRemote = resolveRemoteAccess(userConfigInfo.config, isRemoteMode);
     try {
-      await startCliWebUI(resolvedPort, allowRemote);
+      await startWebServer(resolvedPort, allowRemote);
     } catch (err) {
       console.error(`[WebUI] Failed to start server on port ${resolvedPort}:`, err);
       app.exit(1);

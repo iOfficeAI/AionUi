@@ -9,6 +9,7 @@ import type { IMcpServer } from '@/common/config/storage';
 import { extractAtPaths, parseAllAtCommands, reconstructQuery } from '@/common/chat/atCommandParser';
 import type { TMessage } from '@/common/chat/chatLib';
 import type { IResponseMessage } from '@/common/adapter/ipcBridge';
+import { ipcBridge } from '@/common';
 import { NavigationInterceptor } from '@/common/chat/navigation';
 import type { SlashCommandItem } from '@/common/chat/slash/types';
 import { uuid } from '@/common/utils';
@@ -37,14 +38,16 @@ import {
   IFLOW_YOLO_SESSION_MODE,
   QWEN_YOLO_SESSION_MODE,
 } from './constants';
-import { buildAcpModelInfo, summarizeAcpModelInfo } from './modelInfo';
+import { buildAcpModelInfo } from './modelInfo';
 import {
   buildBuiltinAcpSessionMcpServers,
   buildTeamMcpServer,
   parseAcpMcpCapabilities,
+  TEAM_GUIDE_ALLOWED_BACKENDS,
   type AcpSessionMcpServer,
 } from './mcpSessionConfig';
 import { getClaudeModel } from './utils';
+import { getAionMcpStdioConfig } from '@process/services/mcpServices/aionMcpServiceSingleton';
 
 /** Enable ACP performance diagnostics via ACP_PERF=1 */
 const ACP_PERF_LOG = process.env.ACP_PERF === '1';
@@ -118,7 +121,6 @@ export interface AcpAgentConfig {
     pendingConfigOptions?: Record<string, string>;
   };
   onStreamEvent: (data: IResponseMessage) => void;
-  onPromptUsage?: (usage: AcpPromptResponseUsage) => void;
   onSignalEvent?: (data: IResponseMessage) => void; // 新增：仅发送信号，不更新UI
   /** Callback when ACP session ID is updated / 当 ACP session ID 更新时的回调 */
   onSessionIdUpdate?: (sessionId: string) => void;
@@ -162,7 +164,6 @@ export class AcpAgent {
   >();
   private statusMessageId: string | null = null;
   private readonly onStreamEvent: (data: IResponseMessage) => void;
-  private readonly onPromptUsage?: (usage: AcpPromptResponseUsage) => void;
   private readonly onSignalEvent?: (data: IResponseMessage) => void;
   private readonly onSessionIdUpdate?: (sessionId: string) => void;
   private readonly onAvailableCommandsUpdate?: (commands: AcpAvailableCommand[]) => void;
@@ -200,7 +201,6 @@ export class AcpAgent {
   constructor(config: AcpAgentConfig) {
     this.id = config.id;
     this.onStreamEvent = config.onStreamEvent;
-    this.onPromptUsage = config.onPromptUsage;
     this.onSignalEvent = config.onSignalEvent;
     this.onSessionIdUpdate = config.onSessionIdUpdate;
     this.onAvailableCommandsUpdate = config.onAvailableCommandsUpdate;
@@ -231,7 +231,6 @@ export class AcpAgent {
       this.handleEndTurn();
     };
     this.connection.onPromptUsage = (usage: AcpPromptResponseUsage) => {
-      this.onPromptUsage?.(usage);
       this.handlePromptUsage(usage);
     };
     this.connection.onFileOperation = (operation) => {
@@ -278,9 +277,6 @@ export class AcpAgent {
 
   private getConnectTimeoutMs(): number {
     if (this.extra.backend === 'codex') {
-      // Codex ACP may need to try both prefer-offline and fresh-registry paths,
-      // and on Linux/Windows it can also switch between direct platform and meta packages.
-      // Give a single connect attempt enough time to complete that internal retry chain.
       return 150000;
     }
 
@@ -1220,13 +1216,17 @@ export class AcpAgent {
    * Notify frontend and clean up internal state
    */
   private handleDisconnect(error: { code: number | null; signal: NodeJS.Signals | null }): void {
-    // Emit finish signal to reset UI loading state
+    // Emit finish signal to reset UI loading state (preserving single-chat behavior).
+    // The agentCrash flag in data lets TeammateManager distinguish a crash from a normal turn end.
     if (this.onSignalEvent) {
       this.onSignalEvent({
         type: 'finish',
         conversation_id: this.id,
         msg_id: uuid(),
-        data: null,
+        data: {
+          error: `Process exited unexpectedly (code: ${error.code}, signal: ${error.signal})`,
+          agentCrash: true,
+        },
       });
     }
 
@@ -1515,47 +1515,85 @@ export class AcpAgent {
     const resumeConversationId = this.extra.acpSessionConversationId;
     const mcpServers = await this.loadBuiltinSessionMcpServers();
 
-    // Validate session ownership: only resume if the stored session belongs to this conversation.
-    if (resumeSessionId && resumeConversationId && resumeConversationId !== this.id) {
-      console.warn(
-        `[AcpAgent] Session ${resumeSessionId} belongs to conversation ${resumeConversationId}, ` +
-          `but current conversation is ${this.id}. Discarding stale session and starting fresh.`
-      );
-    } else if (resumeSessionId) {
-      try {
-        let response: { sessionId?: string };
+    // Derive teamId from injected team MCP server name (format: aionui-team-<teamId>)
+    // Only emit MCP status events when running inside a team session.
+    const teamMcpName = this.extra.teamMcpStdioConfig?.name;
+    const teamId = teamMcpName?.startsWith('aionui-team-') ? teamMcpName.slice('aionui-team-'.length) : undefined;
+    const slotId = this.id;
 
-        if (this.extra.backend === 'codex') {
-          // Codex ACP bridge implements session/load (load_session) which calls
-          // resume_thread_from_rollout internally to restore full conversation history.
-          // Codex ignores resumeSessionId in session/new, so we must use session/load.
-          response = await this.connection.loadSession(resumeSessionId, this.extra.workspace, { mcpServers });
-        } else {
-          // Claude/CodeBuddy use _meta in session/new; others use generic resumeSessionId
-          response = await this.connection.newSession(this.extra.workspace, {
-            resumeSessionId,
-            forkSession: false,
-            mcpServers,
-          });
+    const emitMcpStatus = teamId
+      ? (phase: import('@/common/types/teamTypes').TeamMcpPhase, extra?: { serverCount?: number; error?: string }) => {
+          ipcBridge.team.mcpStatus.emit({ teamId: teamId!, slotId, phase, ...extra });
         }
-        if (response.sessionId && response.sessionId !== resumeSessionId) {
-          this.extra.acpSessionId = response.sessionId;
-          this.onSessionIdUpdate?.(response.sessionId);
-        }
-        return;
-      } catch (resumeError) {
+      : null;
+
+    const doSession = async (): Promise<void> => {
+      // Validate session ownership: only resume if the stored session belongs to this conversation.
+      if (resumeSessionId && resumeConversationId && resumeConversationId !== this.id) {
         console.warn(
-          `[AcpAgent] Failed to resume session ${resumeSessionId}, creating fresh session:`,
-          resumeError instanceof Error ? resumeError.message : String(resumeError)
+          `[AcpAgent] Session ${resumeSessionId} belongs to conversation ${resumeConversationId}, ` +
+            `but current conversation is ${this.id}. Discarding stale session and starting fresh.`
         );
-      }
-    }
+      } else if (resumeSessionId) {
+        try {
+          let response: { sessionId?: string };
 
-    // No stored session or resume failed — create a brand new session
-    const response = await this.connection.newSession(this.extra.workspace, { mcpServers });
-    if (response.sessionId) {
-      this.extra.acpSessionId = response.sessionId;
-      this.onSessionIdUpdate?.(response.sessionId);
+          emitMcpStatus?.('session_injecting', { serverCount: mcpServers.length });
+
+          if (this.extra.backend === 'codex') {
+            // Codex ACP bridge implements session/load (load_session) which calls
+            // resume_thread_from_rollout internally to restore full conversation history.
+            // Codex ignores resumeSessionId in session/new, so we must use session/load.
+            response = await this.connection.loadSession(resumeSessionId, this.extra.workspace, mcpServers);
+          } else {
+            // Claude/CodeBuddy use _meta in session/new; others use generic resumeSessionId
+            response = await this.connection.newSession(this.extra.workspace, {
+              resumeSessionId,
+              forkSession: false,
+              mcpServers,
+            });
+          }
+
+          if (mcpServers.length === 0) {
+            emitMcpStatus?.('degraded');
+          } else {
+            emitMcpStatus?.('session_ready', { serverCount: mcpServers.length });
+          }
+
+          if (response.sessionId && response.sessionId !== resumeSessionId) {
+            this.extra.acpSessionId = response.sessionId;
+            this.onSessionIdUpdate?.(response.sessionId);
+          }
+          return;
+        } catch (resumeError) {
+          const error = resumeError instanceof Error ? resumeError.message : String(resumeError);
+          console.warn(`[AcpAgent] Failed to resume session ${resumeSessionId}, creating fresh session:`, error);
+          emitMcpStatus?.('session_error', { error });
+        }
+      }
+
+      // No stored session or resume failed — create a brand new session
+      emitMcpStatus?.('session_injecting', { serverCount: mcpServers.length });
+      const response = await this.connection.newSession(this.extra.workspace, { mcpServers });
+
+      if (mcpServers.length === 0) {
+        emitMcpStatus?.('degraded');
+      } else {
+        emitMcpStatus?.('session_ready', { serverCount: mcpServers.length });
+      }
+
+      if (response.sessionId) {
+        this.extra.acpSessionId = response.sessionId;
+        this.onSessionIdUpdate?.(response.sessionId);
+      }
+    };
+
+    try {
+      await doSession();
+    } catch (err) {
+      const error = err instanceof Error ? err.message : String(err);
+      emitMcpStatus?.('session_error', { error });
+      throw err;
     }
   }
 
@@ -1575,12 +1613,33 @@ export class AcpAgent {
         servers.push(teamServer);
       }
 
+      // Inject Aion team-guide MCP server for solo agents (not in team mode already).
+      // Uses stdio bridge mode — same pattern as TeamMcpServer.
+      // AION_MCP_BACKEND env var tells the stdio bridge which backend this agent is,
+      // so aion_create_team automatically creates a team with the correct agent type.
+      if (!this.extra.teamMcpStdioConfig && TEAM_GUIDE_ALLOWED_BACKENDS.has(this.extra.backend)) {
+        const aionStdioConfig = getAionMcpStdioConfig();
+        if (aionStdioConfig) {
+          const configWithBackend = {
+            ...aionStdioConfig,
+            env: [...aionStdioConfig.env, { name: 'AION_MCP_BACKEND', value: this.extra.backend }],
+          };
+          servers.push(buildTeamMcpServer(configWithBackend)!);
+        }
+      }
+
       return servers;
     } catch (error) {
-      console.warn(
-        `[ACP ${this.extra.backend}] Failed to load built-in MCP config for session/new:`,
-        error instanceof Error ? error.message : String(error)
-      );
+      const errMsg = error instanceof Error ? error.message : String(error);
+      console.warn(`[ACP ${this.extra.backend}] Failed to load built-in MCP config for session/new:`, errMsg);
+      const mcpName = this.extra.teamMcpStdioConfig?.name;
+      const tId =
+        typeof mcpName === 'string' && mcpName.startsWith('aionui-team-')
+          ? mcpName.slice('aionui-team-'.length)
+          : undefined;
+      if (tId) {
+        ipcBridge.team.mcpStatus.emit({ teamId: tId, slotId: this.id, phase: 'load_failed', error: errMsg });
+      }
       return [];
     }
   }

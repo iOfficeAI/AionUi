@@ -69,6 +69,14 @@ vi.mock('@process/services/cron/CronBusyGuard', () => ({
   cronBusyGuard: { setProcessing: vi.fn() },
 }));
 
+vi.mock('@process/services/ConversationTurnCompletionService', () => ({
+  ConversationTurnCompletionService: {
+    getInstance: vi.fn(() => ({
+      notifyPotentialCompletion: vi.fn(),
+    })),
+  },
+}));
+
 vi.mock('@process/utils/mainLogger', () => ({
   mainLog: vi.fn(),
   mainWarn: vi.fn(),
@@ -113,6 +121,7 @@ vi.mock('@process/agent/acp', () => {
     capturedCallbacks.onAvailableCommandsUpdate =
       config.onAvailableCommandsUpdate as typeof capturedCallbacks.onAvailableCommandsUpdate;
     this.sendMessage = vi.fn(async () => ({ success: true }));
+    this.getConfigOptions = vi.fn(() => []);
     this.getModelInfo = vi.fn(() => null);
     this.getSessionState = vi.fn(() => null);
     this.start = vi.fn(async () => {});

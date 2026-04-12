@@ -1,5 +1,6 @@
 import { AcpAgent } from '@process/agent/acp';
 import { channelEventBus } from '@process/channels/agent/ChannelEventBus';
+import { teamEventBus } from '@process/team/teamEventBus';
 import { ipcBridge } from '@/common';
 import type { CronMessageMeta, TMessage } from '@/common/chat/chatLib';
 import { isCodexAutoApproveMode } from '@/common/types/codex/codexModes';
@@ -27,6 +28,7 @@ import { addMessage, addOrUpdateMessage, nextTickToLocalFinish } from '@process/
 import { handlePreviewOpenEvent } from '@process/utils/previewUtils';
 import { cronBusyGuard } from '@process/services/cron/CronBusyGuard';
 import { ConversationTurnCompletionService } from '@process/services/ConversationTurnCompletionService';
+import { skillSuggestWatcher } from '@process/services/cron/SkillSuggestWatcher';
 import {
   getCodexSandboxModeForSessionMode,
   writeCodexSandboxMode,
@@ -34,6 +36,7 @@ import {
 } from '@process/utils/codexConfig';
 import { mainLog, mainWarn, mainError } from '@process/utils/mainLogger';
 import { prepareFirstMessageWithSkillsIndex } from './agentUtils';
+import { shouldInjectTeamGuideMcp } from '@process/resources/prompts/teamGuidePrompt';
 /** Enable ACP performance diagnostics via ACP_PERF=1 */
 const ACP_PERF_LOG = process.env.ACP_PERF === '1';
 
@@ -122,6 +125,33 @@ class AcpAgentManager extends BaseAgentManager<AcpAgentManagerData, AcpPermissio
     this.status = 'pending';
     // Sync yoloMode from sessionMode so addConfirmation auto-approves when Full Auto is selected
     this.yoloMode = this.yoloMode || this.isYoloMode(this.currentMode);
+  }
+
+  private resolveNativeSkillSupport(): boolean {
+    if (hasNativeSkillSupport(this.options.backend)) {
+      return true;
+    }
+
+    if (this.options.backend === 'custom' && this.options.customAgentId?.startsWith('ext:')) {
+      try {
+        const [, extensionName, ...idParts] = this.options.customAgentId.split(':');
+        const adapterId = idParts.join(':');
+        const adapter = ExtensionRegistry.getInstance()
+          .getAcpAdapters()
+          .find((item) => {
+            const record = item as Record<string, unknown>;
+            return record._extensionName === extensionName && record.id === adapterId;
+          }) as Record<string, unknown> | undefined;
+
+        if (adapter && Array.isArray(adapter.skillsDirs) && adapter.skillsDirs.length > 0) {
+          return true;
+        }
+      } catch {
+        // Ignore extension lookup failures and fall back to prompt injection.
+      }
+    }
+
+    return false;
   }
 
   private makeStreamBufferKey(message: Extract<TMessage, { type: 'text' }>): string {
@@ -473,9 +503,6 @@ class AcpAgentManager extends BaseAgentManager<AcpAgentManagerData, AcpPermissio
             | { name: string; command: string; args: string[]; env: Array<{ name: string; value: string }> }
             | undefined,
         },
-        onPromptUsage: (usage) => {
-          this.pendingPromptUsage = usage;
-        },
         onSessionIdUpdate: (sessionId: string) => {
           // Save ACP session ID to database for resume support
           // 保存 ACP session ID 到数据库以支持会话恢复
@@ -497,6 +524,12 @@ class AcpAgentManager extends BaseAgentManager<AcpAgentManagerData, AcpPermissio
             });
           }
           this.acpAvailableSlashCommands = nextCommands;
+          ipcBridge.acpConversation.responseStream.emit({
+            type: 'slash_commands_updated',
+            conversation_id: this.conversation_id,
+            msg_id: '',
+            data: null,
+          });
           const waiters = this.acpAvailableSlashWaiters.splice(0, this.acpAvailableSlashWaiters.length);
           for (const resolve of waiters) {
             resolve(this.getAcpSlashCommands());
@@ -627,6 +660,10 @@ class AcpAgentManager extends BaseAgentManager<AcpAgentManagerData, AcpPermissio
 
           const emitStart = Date.now();
           ipcBridge.acpConversation.responseStream.emit(filteredMessage);
+          teamEventBus.emit('responseStream', {
+            ...filteredMessage,
+            conversation_id: this.conversation_id,
+          });
           const emitDuration = Date.now() - emitStart;
 
           // Also emit to Channel global event bus (Telegram/Lark streaming)
@@ -687,6 +724,10 @@ class AcpAgentManager extends BaseAgentManager<AcpAgentManagerData, AcpPermissio
           }
 
           ipcBridge.acpConversation.responseStream.emit(v);
+          teamEventBus.emit('responseStream', {
+            ...v,
+            conversation_id: this.conversation_id,
+          });
 
           // Forward signals (finish/error/etc.) to Channel global event bus
           const forwardedSignal = {
@@ -696,6 +737,20 @@ class AcpAgentManager extends BaseAgentManager<AcpAgentManagerData, AcpPermissio
           channelEventBus.emitAgentMessage(this.conversation_id, forwardedSignal);
         },
       });
+      const agentConnection = (
+        this.agent as unknown as {
+          connection?: {
+            onPromptUsage?: (usage: AcpPromptResponseUsage) => void;
+          };
+        }
+      ).connection;
+      if (agentConnection?.onPromptUsage) {
+        const previousOnPromptUsage = agentConnection.onPromptUsage;
+        agentConnection.onPromptUsage = (usage: AcpPromptResponseUsage) => {
+          this.pendingPromptUsage = usage;
+          previousOnPromptUsage(usage);
+        };
+      }
       return this.agent.start().then(async () => {
         // Re-apply persisted mode after session start/resume
         // 在会话启动/恢复后重新应用持久化的模式
@@ -848,17 +903,28 @@ class AcpAgentManager extends BaseAgentManager<AcpAgentManagerData, AcpPermissio
         // 因此自定义工作空间或不支持原生 skill 发现的 backend 都需要通过 prompt 注入 skills。
         // So custom workspaces or backends without native skill discovery need prompt injection.
         if (this.isFirstMessage) {
-          const useNativeSkills = hasNativeSkillSupport(this.options.backend) && !this.options.customWorkspace;
+          const isInTeam = Boolean((this.options as unknown as Record<string, unknown>).teamMcpStdioConfig);
+          const useNativeSkills = this.resolveNativeSkillSupport() && !this.options.customWorkspace;
           if (useNativeSkills) {
             // Native skill discovery via workspace symlinks — only inject preset rules
+            const parts: string[] = [];
             if (this.options.presetContext) {
-              contentToSend = `[Assistant Rules - You MUST follow these instructions]\n${this.options.presetContext}\n\n[User Request]\n${contentToSend}`;
+              parts.push(this.options.presetContext);
+            }
+            if (!isInTeam && shouldInjectTeamGuideMcp(this.options.backend)) {
+              const { getTeamGuidePrompt } = await import('@process/resources/prompts/teamGuidePrompt');
+              parts.push(getTeamGuidePrompt(this.options.backend));
+            }
+            if (parts.length > 0) {
+              contentToSend = `[Assistant Rules - You MUST follow these instructions]\n${parts.join('\n\n')}\n\n[User Request]\n${contentToSend}`;
             }
           } else {
             // Custom workspace or no native support — inject rules + skills via prompt
             contentToSend = await prepareFirstMessageWithSkillsIndex(contentToSend, {
               presetContext: this.options.presetContext,
               enabledSkills: this.options.enabledSkills,
+              enableTeamGuide: !isInTeam && shouldInjectTeamGuideMcp(this.options.backend),
+              backend: this.options.backend,
             });
           }
         }
@@ -1025,6 +1091,7 @@ class AcpAgentManager extends BaseAgentManager<AcpAgentManagerData, AcpPermissio
     this.status = 'finished';
     this.persistCurrentTurnTokenUsage();
     cronBusyGuard.setProcessing(this.conversation_id, false);
+    skillSuggestWatcher.onFinish(this.conversation_id);
 
     // ACP streams content in chunks, so we check the accumulated content here
     if (this.currentMsgContent && hasCronCommands(this.currentMsgContent)) {
@@ -1059,6 +1126,10 @@ class AcpAgentManager extends BaseAgentManager<AcpAgentManagerData, AcpPermissio
     }
 
     ipcBridge.acpConversation.responseStream.emit(signal);
+    teamEventBus.emit('responseStream', {
+      ...(signal as IResponseMessage),
+      conversation_id: this.conversation_id,
+    });
 
     channelEventBus.emitAgentMessage(this.conversation_id, {
       ...(signal as any),

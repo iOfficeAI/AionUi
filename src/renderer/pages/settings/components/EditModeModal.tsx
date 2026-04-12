@@ -144,7 +144,12 @@ const EditModeModal = ModalHOC<{ data?: IProvider; onChange(data: IProvider): vo
         onCancel={modalCtrl.close}
         header={{ title: t('settings.editModel'), showClose: true }}
         style={{ minHeight: '400px', maxHeight: '90vh', borderRadius: 16 }}
-        contentStyle={{ background: 'var(--bg-1)', borderRadius: 16, padding: '20px 24px 16px', overflow: 'auto' }}
+        contentStyle={{
+          background: 'var(--dialog-fill-0)',
+          borderRadius: 16,
+          padding: '20px 24px 16px',
+          overflow: 'auto',
+        }}
         onOk={async () => {
           try {
             const values = await form.validate();

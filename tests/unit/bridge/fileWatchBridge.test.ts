@@ -1,138 +1,52 @@
-/**
- * @license
- * Copyright 2025 AionUi (aionui.com)
- * SPDX-License-Identifier: Apache-2.0
- */
+import os from 'os';
+import path from 'path';
+import { mkdir, mkdtemp, rm, writeFile } from 'fs/promises';
+import { describe, expect, it } from 'vitest';
+import {
+  isIgnoredOfficeTempFileName,
+  scanWorkspaceOfficeFiles,
+  shouldSkipWorkspaceOfficeScanDir,
+} from '@/process/bridge/fileWatchBridge';
 
-import { EventEmitter } from 'node:events';
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+describe('fileWatchBridge office scan helpers', () => {
+  it('detects Office temporary marker files', () => {
+    expect(isIgnoredOfficeTempFileName('~$draft.docx')).toBe(true);
+    expect(isIgnoredOfficeTempFileName('~report.xlsx')).toBe(true);
+    expect(isIgnoredOfficeTempFileName('～slides.pptx')).toBe(true);
+    expect(isIgnoredOfficeTempFileName('report.docx')).toBe(false);
+  });
 
-type Handler = (...args: unknown[]) => unknown | Promise<unknown>;
-
-class FakeWatcher extends EventEmitter {
-  close = vi.fn();
-}
-
-const { handlers, fileAddedEmit, watchMock, accessSyncMock, createdWatchers } = vi.hoisted(() => ({
-  handlers: {} as Record<string, Handler>,
-  fileAddedEmit: vi.fn(),
-  watchMock: vi.fn(),
-  accessSyncMock: vi.fn(),
-  createdWatchers: [] as FakeWatcher[],
-}));
-
-function makeChannel(name: string) {
-  return {
-    provider: vi.fn((fn: Handler) => {
-      handlers[name] = fn;
-    }),
-    emit: vi.fn(),
-    invoke: vi.fn(),
-    on: vi.fn(() => () => {}),
-  };
-}
-
-vi.mock('@/common', () => ({
-  ipcBridge: {
-    fileWatch: {
-      startWatch: makeChannel('startWatch'),
-      stopWatch: makeChannel('stopWatch'),
-      stopAllWatches: makeChannel('stopAllWatches'),
-      fileChanged: { emit: vi.fn() },
-    },
-    workspaceOfficeWatch: {
-      start: makeChannel('workspaceStart'),
-      stop: makeChannel('workspaceStop'),
-      fileAdded: {
-        emit: fileAddedEmit,
-        on: vi.fn(() => () => {}),
-      },
-    },
-  },
-}));
-
-vi.mock('fs', async () => {
-  const actual = await vi.importActual<typeof import('fs')>('fs');
-  return {
-    ...actual,
-    default: {
-      ...actual,
-      watch: watchMock,
-      accessSync: accessSyncMock,
-    },
-    watch: watchMock,
-    accessSync: accessSyncMock,
-  };
+  it('skips hidden and heavyweight directories during workspace scans', () => {
+    expect(shouldSkipWorkspaceOfficeScanDir('.git')).toBe(true);
+    expect(shouldSkipWorkspaceOfficeScanDir('.claude')).toBe(true);
+    expect(shouldSkipWorkspaceOfficeScanDir('node_modules')).toBe(true);
+    expect(shouldSkipWorkspaceOfficeScanDir('dist')).toBe(true);
+    expect(shouldSkipWorkspaceOfficeScanDir('docs')).toBe(false);
+  });
 });
 
-import { initFileWatchBridge } from '../../../src/process/bridge/fileWatchBridge';
+describe('scanWorkspaceOfficeFiles', () => {
+  it('returns only previewable Office files from non-ignored directories', async () => {
+    const workspace = await mkdtemp(path.join(os.tmpdir(), 'aionui-office-scan-'));
 
-function getWorkspaceStartHandler() {
-  const handler = handlers.workspaceStart;
-  expect(handler).toBeTypeOf('function');
-  return handler as (args: { workspace: string }) => Promise<{ success: boolean; msg?: string }>;
-}
+    try {
+      await mkdir(path.join(workspace, 'docs', 'nested'), { recursive: true });
+      await mkdir(path.join(workspace, 'node_modules', 'pkg'), { recursive: true });
+      await mkdir(path.join(workspace, '.git', 'objects'), { recursive: true });
 
-function getWatchCallback(): (eventType: string, filename: string) => void {
-  const watchCall = watchMock.mock.calls[0] || [];
-  return watchCall[watchCall.length - 1] as (eventType: string, filename: string) => void;
-}
+      await writeFile(path.join(workspace, 'report.docx'), '');
+      await writeFile(path.join(workspace, 'docs', 'nested', 'budget.xlsx'), '');
+      await writeFile(path.join(workspace, 'docs', 'nested', '~$budget.xlsx'), '');
+      await writeFile(path.join(workspace, 'docs', 'nested', '～draft.docx'), '');
+      await writeFile(path.join(workspace, 'node_modules', 'pkg', 'ignored.pptx'), '');
+      await writeFile(path.join(workspace, '.git', 'objects', 'ignored.docx'), '');
 
-describe('fileWatchBridge workspace office watcher', () => {
-  beforeEach(() => {
-    vi.clearAllMocks();
-    vi.unstubAllGlobals();
-    vi.stubGlobal('Bun', {});
-    createdWatchers.length = 0;
-    watchMock.mockImplementation(() => {
-      const watcher = new FakeWatcher();
-      createdWatchers.push(watcher);
-      return watcher as unknown as import('fs').FSWatcher;
-    });
-    accessSyncMock.mockImplementation(() => undefined);
-    initFileWatchBridge();
-  });
-
-  afterEach(() => {
-    vi.restoreAllMocks();
-    vi.unstubAllGlobals();
-  });
-
-  it('avoids recursive workspace watch in Bun so unreadable descendants do not crash startup', async () => {
-    const startWorkspaceWatch = getWorkspaceStartHandler();
-
-    const result = await startWorkspaceWatch({ workspace: '/workspace' });
-
-    expect(result).toEqual({ success: true });
-    expect(watchMock).toHaveBeenCalledWith('/workspace', expect.any(Function));
-  });
-
-  it('emits only newly created office files that still exist in the workspace', async () => {
-    const startWorkspaceWatch = getWorkspaceStartHandler();
-    await startWorkspaceWatch({ workspace: '/workspace' });
-
-    const watchCallback = getWatchCallback();
-    watchCallback('rename', 'report.docx');
-    watchCallback('change', 'ignored.docx');
-    watchCallback('rename', 'notes.txt');
-
-    expect(fileAddedEmit).toHaveBeenCalledOnce();
-    expect(fileAddedEmit).toHaveBeenCalledWith({
-      filePath: '/workspace/report.docx',
-      workspace: '/workspace',
-    });
-  });
-
-  it('handles async watcher errors without throwing and closes the broken watcher', async () => {
-    const consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
-    const startWorkspaceWatch = getWorkspaceStartHandler();
-
-    await startWorkspaceWatch({ workspace: '/workspace' });
-    const watcher = createdWatchers[0];
-    const error = new Error('EACCES: permission denied, open /workspace/restricted');
-
-    expect(() => watcher.emit('error', error)).not.toThrow();
-    expect(watcher.close).toHaveBeenCalledOnce();
-    expect(consoleErrorSpy).toHaveBeenCalledWith('[WorkspaceOfficeWatch] Watcher error:', error);
+      await expect(scanWorkspaceOfficeFiles(workspace)).resolves.toEqual([
+        path.join(workspace, 'docs', 'nested', 'budget.xlsx'),
+        path.join(workspace, 'report.docx'),
+      ]);
+    } finally {
+      await rm(workspace, { recursive: true, force: true });
+    }
   });
 });

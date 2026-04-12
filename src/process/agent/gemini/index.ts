@@ -374,6 +374,17 @@ export class GeminiAgent {
     });
     await this.config.initialize();
 
+    // aioncli-core skips awaiting MCP server connections when interactive=true
+    // (Config._initialize fires startConfiguredMcpServers without await).
+    // For team mode we MUST have MCP tools ready before the first message,
+    // so explicitly await MCP discovery here when team MCP servers are configured.
+    if (Object.keys(this.mcpServers).length > 0) {
+      const mcpMgr = this.config.getMcpClientManager?.();
+      if (mcpMgr) {
+        await mcpMgr.startConfiguredMcpServers();
+      }
+    }
+
     // aioncli-core 的 SkillManager.discoverSkills() 会重新从用户 skills 目录加载所有 skills
     // 覆盖了 loadCliConfig 中的过滤，需要在这里重新应用 enabledSkills 过滤
     // aioncli-core's SkillManager.discoverSkills() reloads all skills from user directory,

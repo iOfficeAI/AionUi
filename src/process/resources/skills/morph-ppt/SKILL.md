@@ -108,9 +108,9 @@ For every morph transition, plan the slide pair BEFORE writing any code. Use a t
 - Do **not** click "Open with system app" during generation, to avoid file lock / write conflicts.
 - Use clear, direct language and make this a concrete warning, not an optional suggestion.
 
-**FIRST: Ensure latest officecli version**
+**FIRST: Install `officecli` if needed**
 
-Follow the installation check in `reference/officecli-pptx-min.md` section 0 (checks version and upgrades only if needed).
+Follow the install section in `reference/officecli-pptx-min.md` section 0.
 
 **IMPORTANT: Use morph-helpers for reliable workflow**
 

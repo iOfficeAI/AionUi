@@ -59,7 +59,7 @@ describe('createXmlFallbackAdapter', () => {
       expect(payload.message).toContain('<idle');
     });
 
-    it('does NOT include XML fallback instructions when hasMcpTools is true', () => {
+    it('includes XML fallback instructions even when hasMcpTools is true (fallback for silent MCP failure)', () => {
       const adapter = createXmlFallbackAdapter({ hasMcpTools: true });
       const payload = adapter.buildPayload({
         agent: makeAgent(),
@@ -67,8 +67,8 @@ describe('createXmlFallbackAdapter', () => {
         tasks: [],
         teammates: [],
       });
-      expect(payload.message).not.toContain('<send_message');
-      expect(payload.message).not.toContain('## Team Coordination (XML Fallback)');
+      expect(payload.message).toContain('<send_message');
+      expect(payload.message).toContain('## Team Coordination (XML Fallback)');
     });
 
     it('includes XML fallback instructions by default (no options)', () => {
@@ -80,6 +80,26 @@ describe('createXmlFallbackAdapter', () => {
         teammates: [],
       });
       expect(payload.message).toContain('## Team Coordination (XML Fallback)');
+    });
+
+    it('requires confirmation before using spawn_agent in the XML fallback path', () => {
+      const adapter = createXmlFallbackAdapter();
+      const payload = adapter.buildPayload({
+        agent: makeAgent(),
+        mailboxMessages: [],
+        tasks: [],
+        teammates: [],
+      });
+
+      expect(payload.message).toContain(
+        'Only use <spawn_agent .../> after the user explicitly approves the proposed teammate lineup'
+      );
+      expect(payload.message).toContain(
+        'Do NOT emit <spawn_agent .../> in the same turn as your initial teammate proposal'
+      );
+      expect(payload.message).toContain(
+        'When you ask for approval, also tell the user they can later ask you to replace or adjust teammates'
+      );
     });
   });
 

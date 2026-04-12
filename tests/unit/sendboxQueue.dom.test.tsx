@@ -234,11 +234,20 @@ vi.mock('@arco-design/web-react', () => ({
     TextArea: ({
       children,
       autoSize: _autoSize,
+      onChange,
       ...props
     }: React.TextareaHTMLAttributes<HTMLTextAreaElement> & {
       autoSize?: boolean | { minRows?: number; maxRows?: number };
       children?: React.ReactNode;
-    }) => React.createElement('textarea', props, children),
+    }) =>
+      React.createElement(
+        'textarea',
+        {
+          ...props,
+          onChange: (event: React.ChangeEvent<HTMLTextAreaElement>) => onChange?.(event.target.value),
+        },
+        children
+      ),
   },
   Message: {
     useMessage: () => [{ warning: mockWarning }, React.createElement('div', { 'data-testid': 'message-context' })],
@@ -396,29 +405,42 @@ describe('SendBox queue and interaction behaviors', () => {
     expect(onSend).not.toHaveBeenCalled();
   });
 
-  it('shows send and stop controls together when sending is allowed during loading', async () => {
+  it('uses the stop control in the shared action slot while loading without a queued draft', async () => {
+    const onStop = vi.fn().mockResolvedValue(undefined);
+    renderControlledSendBox({
+      loading: true,
+      allowSendWhileLoading: true,
+      onStop,
+    });
+
+    expect(screen.getByRole('button', { name: 'stop' })).toHaveClass('sendbox-stop-button');
+    expect(screen.queryByRole('button', { name: 'send' })).not.toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole('button', { name: 'stop' }));
+    await waitFor(() => {
+      expect(onStop).toHaveBeenCalledTimes(1);
+    });
+  });
+
+  it('switches the shared action slot back to send when queueing a new message during loading', async () => {
     const onSend = vi.fn().mockResolvedValue(undefined);
     const onStop = vi.fn().mockResolvedValue(undefined);
     renderControlledSendBox({
-      initialValue: 'continue anyway',
       loading: true,
       allowSendWhileLoading: true,
       onSend,
       onStop,
     });
 
-    expect(screen.getByRole('button', { name: 'send' })).toBeEnabled();
-    expect(screen.getByRole('button', { name: 'stop' })).toBeInTheDocument();
+    fireEvent.change(getTextarea(), {
+      target: { value: 'continue anyway' },
+    });
 
     fireEvent.click(screen.getByRole('button', { name: 'send' }));
     await waitFor(() => {
       expect(onSend).toHaveBeenCalledWith('continue anyway');
     });
-
-    fireEvent.click(screen.getByRole('button', { name: 'stop' }));
-    await waitFor(() => {
-      expect(onStop).toHaveBeenCalledTimes(1);
-    });
+    expect(onStop).not.toHaveBeenCalled();
   });
 
   it('disables sending while uploads are still in progress', () => {
@@ -429,6 +451,7 @@ describe('SendBox queue and interaction behaviors', () => {
     });
 
     expect(screen.getByRole('button', { name: 'send' })).toBeDisabled();
+    expect(screen.getByRole('button', { name: 'send' })).toHaveClass('send-button-custom');
   });
 
   it('renders slash commands, forwards selection, and exposes merged builtin commands', async () => {
@@ -459,7 +482,7 @@ describe('SendBox queue and interaction behaviors', () => {
     fireEvent.click(screen.getByText('/plan'));
     expect(slashControllerState.onSelectByIndex).toHaveBeenCalledWith(1);
 
-    expect(slashControllerArgs?.commands.map((command) => command.name)).toEqual(['open', 'export', 'plan']);
+    expect(slashControllerArgs?.commands.map((command) => command.name)).toEqual(['open', 'copy', 'export', 'plan']);
   });
 
   it('executes builtin slash actions and template selection through the controller callbacks', async () => {

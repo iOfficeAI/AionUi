@@ -15,6 +15,7 @@ import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
 import { z } from 'zod';
 import * as net from 'node:net';
+import { TEAM_SPAWN_AGENT_DESCRIPTION } from './toolDescriptions';
 
 const TEAM_AGENT_SLOT_ID = process.env.TEAM_AGENT_SLOT_ID || undefined;
 const TEAM_MCP_TOKEN = process.env.TEAM_MCP_TOKEN || undefined;
@@ -152,20 +153,15 @@ Use "*" to broadcast to all teammates.`,
 createTeamTool(
   server,
   'team_spawn_agent',
-  `Create a new teammate agent to join the team.
-
-Use this when:
-- You need specialized expertise (e.g., a researcher, tester, developer)
-- The task requires parallel work by multiple agents
-- You need to delegate a sub-task to a dedicated agent
-
-The new agent will be created and added to the team. You can then assign tasks and send messages to it.`,
+  TEAM_SPAWN_AGENT_DESCRIPTION,
   {
     name: z.string().describe('Name for the new teammate (e.g., "researcher", "developer", "tester")'),
     agent_type: z
       .string()
       .optional()
-      .describe('Agent type/backend (default: same as leader). Currently supported: claude, codex, codebuddy.'),
+      .describe(
+        'Agent type/backend to use for the new teammate. Must be one of the types listed in "Available Agent Types for Spawning". Defaults to the leader type when omitted.'
+      ),
   },
   TEAM_MCP_PORT,
   TEAM_AGENT_SLOT_ID,
