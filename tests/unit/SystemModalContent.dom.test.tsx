@@ -80,13 +80,11 @@ const mockDevToolsStateChangedOn = vi.fn(() => vi.fn());
 const mockGetCloseToTray = vi.fn();
 const mockGetNotificationEnabled = vi.fn();
 const mockGetCronNotificationEnabled = vi.fn();
-const mockGetSaveUploadToWorkspace = vi.fn();
 const mockGetCommandQueueEnabled = vi.fn();
 const mockGetAutoPreviewOfficeFiles = vi.fn();
 const mockSetCloseToTray = vi.fn();
 const mockSetNotificationEnabled = vi.fn();
 const mockSetCronNotificationEnabled = vi.fn();
-const mockSetSaveUploadToWorkspace = vi.fn();
 const mockSetCommandQueueEnabled = vi.fn();
 const mockSetAutoPreviewOfficeFiles = vi.fn();
 const mockOpenFile = vi.fn();
@@ -122,9 +120,6 @@ vi.mock('@/common', () => ({
       getCronNotificationEnabled: {
         invoke: (...args: any[]) => mockGetCronNotificationEnabled(...args),
       },
-      getSaveUploadToWorkspace: {
-        invoke: (...args: any[]) => mockGetSaveUploadToWorkspace(...args),
-      },
       getCommandQueueEnabled: {
         invoke: (...args: any[]) => mockGetCommandQueueEnabled(...args),
       },
@@ -135,9 +130,6 @@ vi.mock('@/common', () => ({
       setNotificationEnabled: { invoke: (...args: any[]) => mockSetNotificationEnabled(...args) },
       setCronNotificationEnabled: {
         invoke: (...args: any[]) => mockSetCronNotificationEnabled(...args),
-      },
-      setSaveUploadToWorkspace: {
-        invoke: (...args: any[]) => mockSetSaveUploadToWorkspace(...args),
       },
       setCommandQueueEnabled: {
         invoke: (...args: any[]) => mockSetCommandQueueEnabled(...args),
@@ -248,13 +240,11 @@ describe('SystemModalContent', () => {
     mockGetCloseToTray.mockResolvedValue(false);
     mockGetNotificationEnabled.mockResolvedValue(true);
     mockGetCronNotificationEnabled.mockResolvedValue(false);
-    mockGetSaveUploadToWorkspace.mockResolvedValue(false);
     mockGetCommandQueueEnabled.mockResolvedValue(false);
     mockGetAutoPreviewOfficeFiles.mockResolvedValue(true);
     mockSetCloseToTray.mockResolvedValue(undefined);
     mockSetNotificationEnabled.mockResolvedValue(undefined);
     mockSetCronNotificationEnabled.mockResolvedValue(undefined);
-    mockSetSaveUploadToWorkspace.mockResolvedValue(undefined);
     mockSetCommandQueueEnabled.mockResolvedValue(undefined);
     mockSetAutoPreviewOfficeFiles.mockResolvedValue(undefined);
   });
@@ -269,7 +259,6 @@ describe('SystemModalContent', () => {
     expect(screen.getByText('settings.language')).toBeInTheDocument();
     expect(screen.getByText('settings.startOnBoot')).toBeInTheDocument();
     expect(screen.getByText('settings.closeToTray')).toBeInTheDocument();
-    expect(screen.getByText('settings.saveUploadToWorkspace')).toBeInTheDocument();
     expect(screen.getByText('settings.commandQueueEnabled')).toBeInTheDocument();
     expect(screen.getByText('settings.commandQueueEnabledDesc')).toBeInTheDocument();
     expect(screen.getByText('settings.autoPreviewOfficeFiles')).toBeInTheDocument();

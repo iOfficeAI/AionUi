@@ -37,7 +37,7 @@ import { Shield } from '@icon-park/react';
 import { iconColors } from '@/renderer/styles/colors';
 import AgentModeSelector from '@/renderer/components/agent/AgentModeSelector';
 import ThoughtDisplay from '@/renderer/components/chat/ThoughtDisplay';
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import type { AionrsModelSelection } from './useAionrsModelSelection';
 import { useAionrsMessage } from './useAionrsMessage';
@@ -89,7 +89,6 @@ const AionrsSendBox: React.FC<{
   conversation_id: string;
   modelSelection: AionrsModelSelection;
 }> = ({ conversation_id, modelSelection }) => {
-  const [workspacePath, setWorkspacePath] = useState('');
   const { t } = useTranslation();
   const { checkAndUpdateTitle } = useAutoTitle();
   const isCommandQueueEnabled = useCommandQueueEnabled();
@@ -101,13 +100,6 @@ const AionrsSendBox: React.FC<{
 
   const { atPath, uploadFile, setAtPath, setUploadFile, content, setContent } = useSendBoxDraft(conversation_id);
 
-  useEffect(() => {
-    void ipcBridge.conversation.get.invoke({ id: conversation_id }).then((res) => {
-      if (!res?.extra?.workspace) return;
-      setWorkspacePath(res.extra.workspace);
-    });
-  }, [conversation_id]);
-
   const slashCommands = useSlashCommands(conversation_id);
 
   const addOrUpdateMessage = useAddOrUpdateMessage();
@@ -117,6 +109,26 @@ const AionrsSendBox: React.FC<{
 
   const setContentRef = useLatestRef(setContent);
   const atPathRef = useLatestRef(atPath);
+
+  const syncOptimisticMessage = useCallback(
+    (msgId: string, displayMessage?: string) => {
+      if (!displayMessage) {
+        return;
+      }
+      addOrUpdateMessage(
+        {
+          id: msgId,
+          msg_id: msgId,
+          conversation_id,
+          type: 'text',
+          position: 'right',
+          content: { content: displayMessage },
+        },
+        false
+      );
+    },
+    [addOrUpdateMessage, conversation_id]
+  );
 
   // Register handler for adding text from preview panel to sendbox
   useEffect(() => {
@@ -155,10 +167,11 @@ const AionrsSendBox: React.FC<{
       setActiveMsgId(msg_id);
       setWaitingResponse(true);
 
-      const displayMessage = buildDisplayMessage(input, files, workspacePath);
+      const displayMessage = buildDisplayMessage(input, files, '');
       addOrUpdateMessage(
         {
           id: msg_id,
+          msg_id,
           type: 'text',
           position: 'right',
           conversation_id,
@@ -178,7 +191,8 @@ const AionrsSendBox: React.FC<{
           conversation_id,
           files,
         });
-        assertBridgeSuccess(result, 'Failed to send message to Aion CLI');
+        const bridgeResult = assertBridgeSuccess(result, 'Failed to send message to Aion CLI');
+        syncOptimisticMessage(msg_id, bridgeResult.data?.displayMessage);
         emitter.emit('chat.history.refresh');
         if (files.length > 0) {
           emitter.emit('aionrs.workspace.refresh');
@@ -196,7 +210,7 @@ const AionrsSendBox: React.FC<{
       setActiveMsgId,
       removeMessageByMsgId,
       setWaitingResponse,
-      workspacePath,
+      syncOptimisticMessage,
     ]
   );
 

@@ -153,7 +153,6 @@
   "cacheClearSuccess": "Кэш успешно очищен",
   "cacheClearFailed": "Не удалось очистить кэш",
   "language": "Язык",
-  "saveUploadToWorkspace": "Сохранять загрузки в рабочую область",
   "commandQueueEnabled": "Включить очередь команд",
   "commandQueueEnabledDesc": "Если включено, сообщения, отправленные во время выполнения текущей задачи, будут добавлены в очередь вместо немедленной отправки.",
   "autoPreviewOfficeFiles": "Автопросмотр новых файлов Office",

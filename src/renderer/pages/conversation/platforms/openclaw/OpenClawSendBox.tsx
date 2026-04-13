@@ -115,7 +115,6 @@ const validateRuntimeMismatch = async (conversationId: string): Promise<boolean>
 const EMPTY_AT_PATH: Array<string | FileOrFolderItem> = [];
 const EMPTY_UPLOAD_FILES: string[] = [];
 const OpenClawSendBox: React.FC<{ conversation_id: string }> = ({ conversation_id }) => {
-  const [workspacePath, setWorkspacePath] = useState('');
   const { t } = useTranslation();
   const { checkAndUpdateTitle } = useAutoTitle();
   const slashCommands = useSlashCommands(conversation_id);
@@ -213,6 +212,26 @@ const OpenClawSendBox: React.FC<{ conversation_id: string }> = ({ conversation_i
 
   const setContentRef = useLatestRef(setContent);
   const atPathRef = useLatestRef(atPath);
+
+  const syncOptimisticMessage = useCallback(
+    (msgId: string, displayMessage?: string) => {
+      if (!displayMessage) {
+        return;
+      }
+      addOrUpdateMessage(
+        {
+          id: msgId,
+          msg_id: msgId,
+          conversation_id,
+          type: 'text',
+          position: 'right',
+          content: { content: displayMessage },
+        },
+        false
+      );
+    },
+    [addOrUpdateMessage, conversation_id]
+  );
   const immediateSendRef = useRef<((text: string) => Promise<void>) | null>(null);
   // Reset state when conversation changes and restore actual running status
   useEffect(() => {
@@ -348,13 +367,6 @@ const OpenClawSendBox: React.FC<{ conversation_id: string }> = ({ conversation_i
     });
   }, [conversation_id, addOrUpdateMessage]);
 
-  useEffect(() => {
-    void ipcBridge.conversation.get.invoke({ id: conversation_id }).then((res) => {
-      if (!res?.extra?.workspace) return;
-      setWorkspacePath(res.extra.workspace);
-    });
-  }, [conversation_id]);
-
   useAddEventListener(
     'staroffice.install.request',
     ({ conversationId, text }) => {
@@ -421,7 +433,7 @@ const OpenClawSendBox: React.FC<{ conversation_id: string }> = ({ conversation_i
       }
 
       const msg_id = uuid();
-      const displayMessage = buildDisplayMessage(input, files, workspacePath);
+      const displayMessage = buildDisplayMessage(input, files, '');
 
       const userMessage: TMessage = {
         id: msg_id,
@@ -443,7 +455,8 @@ const OpenClawSendBox: React.FC<{ conversation_id: string }> = ({ conversation_i
           conversation_id,
           files,
         });
-        assertBridgeSuccess(result, 'Failed to send message to OpenClaw');
+        const bridgeResult = assertBridgeSuccess(result, 'Failed to send message to OpenClaw');
+        syncOptimisticMessage(msg_id, bridgeResult.data?.displayMessage);
         emitter.emit('chat.history.refresh');
       } catch (error) {
         removeMessageByMsgId(msg_id);
@@ -452,7 +465,7 @@ const OpenClawSendBox: React.FC<{ conversation_id: string }> = ({ conversation_i
         throw error;
       }
     },
-    [addOrUpdateMessage, checkAndUpdateTitle, conversation_id, removeMessageByMsgId, workspacePath]
+    [addOrUpdateMessage, checkAndUpdateTitle, conversation_id, removeMessageByMsgId, syncOptimisticMessage]
   );
 
   const {
@@ -553,7 +566,7 @@ const OpenClawSendBox: React.FC<{ conversation_id: string }> = ({ conversation_i
         const { input, files = [] } = JSON.parse(stored) as { input: string; files?: string[] };
         const msg_id = `initial_${conversation_id}_${Date.now()}`;
         const loading_id = uuid();
-        const initialDisplayMessage = buildDisplayMessage(input, files, workspacePath);
+        const initialDisplayMessage = buildDisplayMessage(input, files, '');
 
         const userMessage: TMessage = {
           id: msg_id,
@@ -576,7 +589,8 @@ const OpenClawSendBox: React.FC<{ conversation_id: string }> = ({ conversation_i
           files,
           loading_id,
         });
-        assertBridgeSuccess(result, 'Failed to send initial message to OpenClaw');
+        const bridgeResult = assertBridgeSuccess(result, 'Failed to send initial message to OpenClaw');
+        syncOptimisticMessage(msg_id, bridgeResult.data?.displayMessage);
         emitter.emit('chat.history.refresh');
         sessionStorage.removeItem(storageKey);
       } catch {
@@ -596,7 +610,7 @@ const OpenClawSendBox: React.FC<{ conversation_id: string }> = ({ conversation_i
     return () => {
       clearTimeout(timer);
     };
-  }, [conversation_id, openclawStatus, addOrUpdateMessage]);
+  }, [conversation_id, openclawStatus, addOrUpdateMessage, syncOptimisticMessage]);
 
   const handleStop = async (): Promise<void> => {
     try {
