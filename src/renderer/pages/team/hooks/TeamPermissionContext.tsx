@@ -1,12 +1,5 @@
 import { ipcBridge } from '@/common';
-import { getBackendModes, getModeLevel, getPermissionMap } from '@/common/types/agentPermissionLevel';
 import React, { createContext, useCallback, useContext, useMemo } from 'react';
-
-type AgentEntry = {
-  conversationId: string;
-  /** Backend type of the agent, e.g. 'claude', 'gemini', 'qwen' */
-  agentType: string;
-};
 
 type TeamPermissionContextValue = {
   /** Whether we are in team mode */
@@ -29,53 +22,15 @@ export const TeamPermissionProvider: React.FC<{
   isLeadAgent: boolean;
   leadConversationId: string;
   allConversationIds: string[];
-  /** Full agent list with backend types for permission mapping */
-  agents: AgentEntry[];
-}> = ({ children, teamId, isLeadAgent, leadConversationId, allConversationIds, agents }) => {
+}> = ({ children, teamId, isLeadAgent, leadConversationId, allConversationIds }) => {
   const propagateMode = useCallback(
     (mode: string) => {
       // Persist sessionMode on the team record so newly spawned agents inherit it
       void ipcBridge.team.setSessionMode.invoke({ teamId, sessionMode: mode }).catch(() => {
         // Best-effort: if this fails, agents still get mode via per-conversation setMode below
       });
-
-      const leaderLevel = getModeLevel(mode);
-
-      for (const agent of agents) {
-        // Leader's own mode was already set by AgentModeSelector — skip
-        if (agent.conversationId === leadConversationId) continue;
-
-        // Map leader's mode to the closest equivalent for this member's backend
-        const memberBackend = agent.agentType;
-        const memberModes = getBackendModes(memberBackend);
-        const mappedMode = memberModes.length > 0 ? getPermissionMap(mode, memberModes) : mode;
-
-        // null means L3 target but member has no L3 mode → use 'default' as placeholder
-        // Manager-layer teamLeaderLevel handles the actual auto-approval
-        const finalMode = mappedMode ?? 'default';
-
-        void ipcBridge.acpConversation.setMode
-          .invoke({ conversationId: agent.conversationId, mode: finalMode })
-          .catch(() => {
-            // Silently ignore failures for non-ACP agents (e.g. gemini, codex) that don't support setMode
-          });
-
-        // Write teamLeaderLevel + mapped sessionMode to conversation extra for Manager-layer fallback.
-        // Cast needed: extra type is a discriminated union across conversation types;
-        // teamLeaderLevel is a cross-cutting team field present on acp/gemini variants.
-        void ipcBridge.conversation.update
-          .invoke({
-            id: agent.conversationId,
-            updates: {
-              extra: { sessionMode: finalMode, teamLeaderLevel: leaderLevel } as Record<string, unknown>,
-            },
-          })
-          .catch(() => {
-            // Best-effort
-          });
-      }
     },
-    [teamId, agents, leadConversationId]
+    [teamId]
   );
 
   const value = useMemo<TeamPermissionContextValue>(
@@ -99,5 +54,3 @@ export const TeamPermissionProvider: React.FC<{
 export const useTeamPermission = (): TeamPermissionContextValue | null => {
   return useContext(TeamPermissionContext);
 };
-
-export type { AgentEntry };

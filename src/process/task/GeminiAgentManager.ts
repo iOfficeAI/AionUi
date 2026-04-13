@@ -32,7 +32,6 @@ import { hasCronCommands } from './CronCommandDetector';
 import { extractTextFromMessage, processCronInMessage } from './MessageMiddleware';
 import { stripThinkTags, extractAndStripThinkTags } from './ThinkTagDetector';
 import { teamEventBus } from '@process/team/teamEventBus';
-import { PermissionLevel } from '@/common/types/agentPermissionLevel';
 import * as fs from 'node:fs';
 
 // gemini agent管理器类
@@ -112,8 +111,6 @@ export class GeminiAgentManager extends BaseAgentManager<
 
   /** Current session mode for approval behavior / 当前会话模式（影响审批行为） */
   private currentMode: string = 'default';
-  /** Team leader permission level — enables Manager-layer fallback when member lacks L3 mode */
-  private teamLeaderLevel?: number;
 
   /** Current turn's thinking message msg_id for accumulating content */
   private thinkingMsgId: string | null = null;
@@ -159,8 +156,6 @@ export class GeminiAgentManager extends BaseAgentManager<
       };
       /** Builtin skill names to exclude from discovery (e.g. 'cron' for cron-spawned conversations) */
       excludeBuiltinSkills?: string[];
-      /** Team leader permission level for Manager-layer fallback auto-approve */
-      teamLeaderLevel?: number;
     },
     model: TProviderWithModel
   ) {
@@ -174,7 +169,6 @@ export class GeminiAgentManager extends BaseAgentManager<
     this.excludeBuiltinSkills = data.excludeBuiltinSkills;
     this.forceYoloMode = data.yoloMode;
     this.currentMode = data.sessionMode || 'default';
-    this.teamLeaderLevel = data.teamLeaderLevel;
     this.webSearchEngine = data.webSearchEngine;
     this.teamMcpStdioConfig = data.teamMcpStdioConfig;
     mainLog(
@@ -663,13 +657,6 @@ export class GeminiAgentManager extends BaseAgentManager<
     if (this.currentMode === 'yolo') {
       // yolo: auto-approve ALL operations
       console.log(`[GeminiAgentManager] YOLO auto-approving ${type}: callId=${content.callId}`);
-      void this.postMessagePromise(content.callId, ToolConfirmationOutcome.ProceedOnce);
-      return true;
-    }
-    // Manager-layer fallback: when team leader is L3 (FullAuto) but this Gemini
-    // member has no matching L3 mode, auto-approve based on persisted teamLeaderLevel.
-    if (this.teamLeaderLevel !== undefined && this.teamLeaderLevel >= PermissionLevel.L3_FULL_AUTO) {
-      console.log(`[GeminiAgentManager] Team leader L3 fallback auto-approving ${type}: callId=${content.callId}`);
       void this.postMessagePromise(content.callId, ToolConfirmationOutcome.ProceedOnce);
       return true;
     }

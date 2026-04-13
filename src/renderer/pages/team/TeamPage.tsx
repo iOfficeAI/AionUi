@@ -231,13 +231,6 @@ const TeamPageContent: React.FC<TeamPageContentProps> = ({ team, onAddAgent, onR
   const leadConversationId = leadAgent?.conversationId ?? '';
   const isLeadAgent = activeAgent?.role === 'lead';
   const allConversationIds = useMemo(() => agents.map((a) => a.conversationId).filter(Boolean), [agents]);
-  const agentEntries = useMemo(
-    () =>
-      agents
-        .filter((a) => Boolean(a.conversationId))
-        .map((a) => ({ conversationId: a.conversationId, agentType: a.agentType })),
-    [agents]
-  );
 
   // Fetch lead agent's conversation for the workspace sider
   const { data: dispatchConversation } = useSWR(
@@ -379,7 +372,6 @@ const TeamPageContent: React.FC<TeamPageContentProps> = ({ team, onAddAgent, onR
       isLeadAgent={isLeadAgent}
       leadConversationId={leadConversationId}
       allConversationIds={allConversationIds}
-      agents={agentEntries}
     >
       {messageContext}
       <ChatLayout
