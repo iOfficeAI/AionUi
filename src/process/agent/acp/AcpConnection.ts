@@ -102,6 +102,15 @@ interface PendingRequest<T = unknown> {
   timeoutDuration: number;
 }
 
+type AcpInitializeAgentCapabilities = {
+  loadSession?: boolean;
+  _meta?: {
+    claudeCode?: unknown;
+    [key: string]: unknown;
+  };
+  [key: string]: unknown;
+};
+
 export class AcpConnection {
   private child: ChildProcess | null = null;
   private pendingRequests = new Map<number, PendingRequest<unknown>>();
@@ -834,9 +843,10 @@ export class AcpConnection {
     // Sending the absolute path again makes some CLIs treat it as a nested relative path.
     const normalizedCwd = this.normalizeCwdForAgent(cwd);
 
-    // Build _meta for Claude/CodeBuddy ACP resume support
-    // claude-agent-acp and codebuddy use _meta.claudeCode.options.resume for session resume
-    const useMetaResume = (this.backend === 'claude' || this.backend === 'codebuddy') && options?.resumeSessionId;
+    // Build _meta resume payload only when backend/capabilities indicate Claude-style resume.
+    const capabilities = this.getInitializeAgentCapabilities();
+    const useClaudeMetaResume = this.backend === 'claude' || !!capabilities?._meta?.claudeCode;
+    const useMetaResume = useClaudeMetaResume && options?.resumeSessionId;
     const meta = useMetaResume
       ? {
           claudeCode: {
@@ -850,12 +860,10 @@ export class AcpConnection {
     const response = await this.sendRequest<AcpResponse & { sessionId?: string }>('session/new', {
       cwd: normalizedCwd,
       mcpServers: options?.mcpServers ?? [],
-      // Claude/CodeBuddy ACP uses _meta for resume
+      // Claude-style ACP uses _meta for resume
       ...(meta && { _meta: meta }),
       // Generic resume parameters for other ACP backends
-      ...(this.backend !== 'claude' &&
-        this.backend !== 'codebuddy' &&
-        options?.resumeSessionId && { resumeSessionId: options.resumeSessionId }),
+      ...(!meta && options?.resumeSessionId && { resumeSessionId: options.resumeSessionId }),
       ...(options?.forkSession && { forkSession: options.forkSession }),
     });
 
@@ -869,6 +877,44 @@ export class AcpConnection {
     }
 
     return response;
+  }
+
+  private getInitializeAgentCapabilities(): AcpInitializeAgentCapabilities | undefined {
+    const result = this.initializeResponse?.result;
+    if (!result || typeof result !== 'object') {
+      return undefined;
+    }
+    const capabilities = (result as Record<string, unknown>).agentCapabilities;
+    if (!capabilities || typeof capabilities !== 'object') {
+      return undefined;
+    }
+    return capabilities as AcpInitializeAgentCapabilities;
+  }
+
+  async resumeSession(
+    sessionId: string,
+    cwd: string = process.cwd(),
+    options?: { forkSession?: boolean; mcpServers?: AcpSessionMcpServer[] }
+  ): Promise<AcpResponse & { sessionId?: string }> {
+    const capabilities = this.getInitializeAgentCapabilities();
+    const useClaudeMetaResume = this.backend === 'claude' || !!capabilities?._meta?.claudeCode;
+    const supportsLoadSession = capabilities?.loadSession === true;
+    const shouldTryLoadSession = !useClaudeMetaResume && supportsLoadSession;
+
+    if (shouldTryLoadSession) {
+      try {
+        return await this.loadSession(sessionId, cwd, options?.mcpServers);
+      } catch (loadError) {
+        const loadErrorMsg = loadError instanceof Error ? loadError.message : String(loadError);
+        console.warn(`[ACP ${this.backend}] session/load failed, falling back to session/new resume:`, loadErrorMsg);
+      }
+    }
+
+    return await this.newSession(cwd, {
+      resumeSessionId: sessionId,
+      forkSession: options?.forkSession,
+      mcpServers: options?.mcpServers,
+    });
   }
 
   /**

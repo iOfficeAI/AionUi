@@ -1505,10 +1505,8 @@ export class AcpAgent {
    * Create a new session or resume an existing one, and notify upper layer if session ID changed.
    * 创建新会话或恢复现有会话，如果 session ID 变化则通知上层。
    *
-   * Resume strategy per backend:
-   * - Codex:           uses dedicated ACP `session/load` method
-   * - Claude/CodeBuddy: uses `session/new` with `_meta.claudeCode.options.resume`
-   * - Others:          uses `session/new` with generic `resumeSessionId` param
+   * Resume strategy is delegated to AcpConnection.resumeSession()
+   * (capability-driven with Claude-compatible resume path).
    */
   private async createOrResumeSession(): Promise<void> {
     const resumeSessionId = this.extra.acpSessionId;
@@ -1539,20 +1537,10 @@ export class AcpAgent {
           let response: { sessionId?: string };
 
           emitMcpStatus?.('session_injecting', { serverCount: mcpServers.length });
-
-          if (this.extra.backend === 'codex') {
-            // Codex ACP bridge implements session/load (load_session) which calls
-            // resume_thread_from_rollout internally to restore full conversation history.
-            // Codex ignores resumeSessionId in session/new, so we must use session/load.
-            response = await this.connection.loadSession(resumeSessionId, this.extra.workspace, mcpServers);
-          } else {
-            // Claude/CodeBuddy use _meta in session/new; others use generic resumeSessionId
-            response = await this.connection.newSession(this.extra.workspace, {
-              resumeSessionId,
-              forkSession: false,
-              mcpServers,
-            });
-          }
+          response = await this.connection.resumeSession(resumeSessionId, this.extra.workspace, {
+            forkSession: false,
+            mcpServers,
+          });
 
           if (mcpServers.length === 0) {
             emitMcpStatus?.('degraded');
