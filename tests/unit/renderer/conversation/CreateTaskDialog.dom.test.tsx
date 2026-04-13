@@ -495,6 +495,42 @@ describe('CreateTaskDialog - parseCronExpr utility', () => {
     // Should default to manual frequency
     expect(screen.getByTestId('modal-wrapper')).toBeInTheDocument();
   });
+
+  it('handles custom cron expressions (e.g., every 4 hours)', () => {
+    const editJob: ICronJob = {
+      id: 'job-6',
+      name: 'Every 4 Hours Task',
+      schedule: { kind: 'cron', expr: '0 */4 * * *', description: 'Every 4 hours' },
+      target: {
+        kind: 'conversation',
+        conversationId: 'conv-1',
+        payload: { kind: 'message', text: 'Every 4 hours check' },
+        executionMode: 'existing',
+      },
+      metadata: {
+        agentType: 'claude',
+        createdBy: 'user',
+        createdAt: Date.now(),
+        updatedAt: Date.now(),
+        agentConfig: {
+          backend: 'claude',
+          name: 'Claude',
+          cliPath: '/usr/bin/claude',
+        },
+      },
+      state: 'active',
+      lastExecutionTime: Date.now(),
+    };
+
+    const { rerender } = render(
+      <CreateTaskDialog visible={false} onClose={vi.fn()} editJob={editJob} conversationId='conv-1' />
+    );
+
+    rerender(<CreateTaskDialog visible={true} onClose={vi.fn()} editJob={editJob} conversationId='conv-1' />);
+
+    // Should render without errors and recognize it as a custom schedule
+    expect(screen.getByTestId('modal-wrapper')).toBeInTheDocument();
+  });
 });
 
 describe('CreateTaskDialog - getAgentKeyFromJob utility', () => {
@@ -834,6 +870,50 @@ describe('CreateTaskDialog - schedule preset definitions', () => {
 
     const callArgs = mockUpdateJob.mock.calls[0][0];
     expect(callArgs.updates.schedule.expr).toBe('0 10 * * WED');
+  });
+
+  it('preserves custom cron expression when editing a task with unsupported schedule', async () => {
+    const editJob: ICronJob = {
+      id: 'job-custom',
+      name: 'Every 4 Hours Task',
+      schedule: { kind: 'cron', expr: '0 */4 * * *', description: 'Every 4 hours' },
+      target: {
+        kind: 'conversation',
+        conversationId: 'conv-1',
+        payload: { kind: 'message', text: 'Every 4 hours check' },
+        executionMode: 'existing',
+      },
+      metadata: {
+        agentType: 'claude',
+        createdBy: 'user',
+        createdAt: Date.now(),
+        updatedAt: Date.now(),
+        agentConfig: {
+          backend: 'claude',
+          name: 'Claude',
+          cliPath: '/usr/bin/claude',
+        },
+      },
+      state: 'active',
+      lastExecutionTime: Date.now(),
+    };
+
+    mockUpdateJob.mockResolvedValue(undefined);
+
+    const { rerender } = render(
+      <CreateTaskDialog visible={false} onClose={vi.fn()} editJob={editJob} conversationId='conv-1' />
+    );
+    rerender(<CreateTaskDialog visible={true} onClose={vi.fn()} editJob={editJob} conversationId='conv-1' />);
+
+    fireEvent.click(screen.getByTestId('modal-ok'));
+
+    await waitFor(() => {
+      expect(mockUpdateJob).toHaveBeenCalled();
+    });
+
+    const callArgs = mockUpdateJob.mock.calls[0][0];
+    // The custom cron expression should be preserved
+    expect(callArgs.updates.schedule.expr).toBe('0 */4 * * *');
   });
 });
 

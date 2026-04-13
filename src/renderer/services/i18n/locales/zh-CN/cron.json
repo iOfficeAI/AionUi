@@ -62,6 +62,7 @@
     "createSuccess": "任务创建成功",
     "updateSuccess": "任务更新成功",
     "scheduleHint": "定时任务会有几分钟的随机延迟以优化服务器性能。",
+    "customCronWarning": "这是一个自定义的 Cron 表达式（{{expr}}），无法通过界面修改。如需更改频率，请切换到其他预设频率。",
     "weekday": {
       "monday": "星期一",
       "tuesday": "星期二",
