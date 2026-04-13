@@ -638,6 +638,8 @@ export class TeamSessionService {
     const updatedAgents = [...team.agents, newAgent];
     await this.repo.update(teamId, { agents: updatedAgents, updatedAt: Date.now() });
     this.sessions.get(teamId)?.addAgent(newAgent);
+    // Notify renderer so SWR caches (useTeamList, useSiderTeamBadges) revalidate
+    ipcBridge.team.listChanged.emit({ teamId, action: 'agent_added' });
     return newAgent;
   }
 
@@ -694,6 +696,8 @@ export class TeamSessionService {
       const updatedAgents = team.agents.filter((a) => a.slotId !== slotId);
       await this.repo.update(teamId, { agents: updatedAgents, updatedAt: Date.now() });
     }
+    // Notify renderer so SWR caches (useTeamList, useSiderTeamBadges) revalidate
+    ipcBridge.team.listChanged.emit({ teamId, action: 'agent_removed' });
   }
 
   async getOrStartSession(teamId: string): Promise<TeamSession> {

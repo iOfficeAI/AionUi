@@ -74,10 +74,10 @@ export type ITeamAgentRenamedEvent = {
   newName: string;
 };
 
-/** IPC event pushed to renderer when the team list changes (created/removed) */
+/** IPC event pushed to renderer when the team list changes (created/removed/agent changes) */
 export type ITeamListChangedEvent = {
   teamId: string;
-  action: 'created' | 'removed';
+  action: 'created' | 'removed' | 'agent_added' | 'agent_removed';
 };
 
 /** IPC event for streaming agent messages to renderer */

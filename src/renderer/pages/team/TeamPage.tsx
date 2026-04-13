@@ -9,7 +9,7 @@ import type { TeamAgent, TTeam } from '@/common/types/teamTypes';
 import type { IProvider, TChatConversation, TProviderWithModel } from '@/common/config/storage';
 import ChatLayout from '@/renderer/pages/conversation/components/ChatLayout';
 import ChatSider from '@/renderer/pages/conversation/components/ChatSider';
-import TeamConfirmOverlay from './components/TeamConfirmOverlay';
+import { useTeamPendingPermissions } from './hooks/useTeamPendingPermissions';
 import { useConversationAgents } from '@/renderer/pages/conversation/hooks/useConversationAgents';
 import AcpModelSelector from '@/renderer/components/agent/AcpModelSelector';
 import GeminiModelSelector from '@/renderer/pages/conversation/platforms/gemini/GeminiModelSelector';
@@ -347,9 +347,23 @@ const TeamPageContent: React.FC<TeamPageContentProps> = ({ team, onAddAgent, onR
     }
   }, []); // empty deps = only on mount
 
+  // Track pending permission confirmation counts per agent (requirements 5, 6, 7, 8)
+  const { pendingCounts } = useTeamPendingPermissions(team.id, allConversationIds);
+
+  // Build slotId → pendingCount map for tab badge display
+  const slotPendingCounts = useMemo(() => {
+    const map = new Map<string, number>();
+    for (const agent of agents) {
+      if (agent.conversationId) {
+        map.set(agent.slotId, pendingCounts[agent.conversationId] ?? 0);
+      }
+    }
+    return map;
+  }, [agents, pendingCounts]);
+
   const tabsSlot = useMemo(
-    () => <TeamTabs onAddAgent={onAddAgent} onTabClick={handleTabClick} />,
-    [onAddAgent, handleTabClick]
+    () => <TeamTabs onAddAgent={onAddAgent} onTabClick={handleTabClick} pendingCounts={slotPendingCounts} />,
+    [onAddAgent, handleTabClick, slotPendingCounts]
   );
 
   return (
@@ -360,7 +374,6 @@ const TeamPageContent: React.FC<TeamPageContentProps> = ({ team, onAddAgent, onR
       allConversationIds={allConversationIds}
     >
       {messageContext}
-      {leadConversationId && <TeamConfirmOverlay allConversationIds={allConversationIds} />}
       <ChatLayout
         title={team.name}
         siderTitle={siderTitle}
