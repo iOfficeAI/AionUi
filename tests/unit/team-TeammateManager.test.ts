@@ -239,26 +239,38 @@ describe('TeammateManager', () => {
   // -------------------------------------------------------------------------
 
   describe('removeAgent', () => {
-    it('removes agent from agents list', () => {
+    it('removes teammate from agents list', () => {
+      const agents = [makeAgent({ slotId: 'slot-1' }), makeAgent({ slotId: 'slot-2', role: 'teammate' })];
+      const { mgr } = makeTeammateManager(agents);
+
+      mgr.removeAgent('slot-2');
+
+      expect(mgr.getAgents()).toHaveLength(1);
+      expect(mgr.getAgents()[0].slotId).toBe('slot-1');
+      mgr.dispose();
+    });
+
+    it('emits ipcBridge agentRemoved event', () => {
+      const agents = [makeAgent({ slotId: 'slot-1' }), makeAgent({ slotId: 'slot-2', role: 'teammate' })];
+      const { mgr } = makeTeammateManager(agents);
+
+      mgr.removeAgent('slot-2');
+
+      expect(mockIpcBridge.team.agentRemoved.emit).toHaveBeenCalledWith({
+        teamId: 'team-1',
+        slotId: 'slot-2',
+      });
+      mgr.dispose();
+    });
+
+    it('blocks removal of leader', () => {
       const agents = [makeAgent({ slotId: 'slot-1' }), makeAgent({ slotId: 'slot-2', role: 'teammate' })];
       const { mgr } = makeTeammateManager(agents);
 
       mgr.removeAgent('slot-1');
 
-      expect(mgr.getAgents()).toHaveLength(1);
-      expect(mgr.getAgents()[0].slotId).toBe('slot-2');
-      mgr.dispose();
-    });
-
-    it('emits ipcBridge agentRemoved event', () => {
-      const { mgr } = makeTeammateManager([makeAgent({ slotId: 'slot-1' })]);
-
-      mgr.removeAgent('slot-1');
-
-      expect(mockIpcBridge.team.agentRemoved.emit).toHaveBeenCalledWith({
-        teamId: 'team-1',
-        slotId: 'slot-1',
-      });
+      expect(mgr.getAgents()).toHaveLength(2);
+      expect(mockIpcBridge.team.agentRemoved.emit).not.toHaveBeenCalled();
       mgr.dispose();
     });
 
@@ -271,19 +283,19 @@ describe('TeammateManager', () => {
     });
 
     it('clears any active wake timeout for the removed agent', async () => {
-      const agent = makeAgent({ slotId: 'slot-1', status: 'idle' });
+      const agent = makeAgent({ slotId: 'slot-2', role: 'teammate', status: 'idle', conversationId: 'conv-2' });
       const mockSendMessage = vi.fn().mockResolvedValue(undefined);
-      const { mgr, workerTaskManager } = makeTeammateManager([agent]);
+      const { mgr, workerTaskManager } = makeTeammateManager([makeAgent({ slotId: 'slot-1' }), agent]);
       vi.mocked(workerTaskManager.getOrBuildTask).mockResolvedValue({
         sendMessage: mockSendMessage,
       } as never);
 
       // Start a wake (which creates a timeout) then immediately remove
-      const wakePromise = mgr.wake('slot-1');
+      const wakePromise = mgr.wake('slot-2');
       await wakePromise;
 
-      // Should not throw when removing agent with active timeout
-      expect(() => mgr.removeAgent('slot-1')).not.toThrow();
+      // Should not throw when removing teammate with active timeout
+      expect(() => mgr.removeAgent('slot-2')).not.toThrow();
       mgr.dispose();
     });
   });
@@ -894,7 +906,7 @@ describe('TeammateManager', () => {
   // Agent crash testament
   // -------------------------------------------------------------------------
   describe('agent crash testament', () => {
-    it('writes testament to leader mailbox, removes agent, and wakes leader on crash', async () => {
+    it('writes testament to leader mailbox, marks member as failed (tab stays), and wakes leader on crash', async () => {
       const leader = makeAgent({ slotId: 'slot-lead', conversationId: 'conv-lead', role: 'lead' });
       const member = makeAgent({
         slotId: 'slot-member',
@@ -903,7 +915,11 @@ describe('TeammateManager', () => {
         agentName: 'Worker',
         conversationType: 'acp',
       });
-      const { mgr, mailbox } = makeTeammateManager([leader, member]);
+      const mockSendMessage = vi.fn().mockResolvedValue(undefined);
+      const { mgr, mailbox, workerTaskManager } = makeTeammateManager([leader, member]);
+      vi.mocked(workerTaskManager.getOrBuildTask).mockResolvedValue({
+        sendMessage: mockSendMessage,
+      } as never);
 
       // Simulate crash: AcpAgent emits finish with agentCrash flag
       teamEventBus.emit('responseStream', {
@@ -930,16 +946,21 @@ describe('TeammateManager', () => {
         })
       );
 
-      // Agent removed
-      expect(mgr.getAgents().find((a) => a.slotId === 'slot-member')).toBeUndefined();
-      expect(mockIpcBridge.team.agentRemoved.emit).toHaveBeenCalledWith(
-        expect.objectContaining({ teamId: 'team-1', slotId: 'slot-member' })
-      );
+      // Agent slot is preserved (not removed) — only the process is killed
+      expect(mgr.getAgents().find((a) => a.slotId === 'slot-member')).toBeDefined();
+      expect(mockIpcBridge.team.agentRemoved.emit).not.toHaveBeenCalled();
+
+      // Agent is marked as failed so the frontend shows the error status
+      const crashedAgent = mgr.getAgents().find((a) => a.slotId === 'slot-member');
+      expect(crashedAgent?.status).toBe('failed');
+
+      // Process is killed
+      expect(workerTaskManager.kill).toHaveBeenCalledWith('conv-member');
 
       mgr.dispose();
     });
 
-    it('does not send testament when leader itself crashes, removes leader instead', async () => {
+    it('does not send testament when leader itself crashes, marks leader as failed instead', async () => {
       const leader = makeAgent({ slotId: 'slot-lead', conversationId: 'conv-lead', role: 'lead', agentName: 'Leader' });
       const member = makeAgent({
         slotId: 'slot-member',
@@ -963,11 +984,10 @@ describe('TeammateManager', () => {
       // No testament written — leader has no recipient for its own crash
       expect(mailbox.write).not.toHaveBeenCalled();
 
-      // Leader removed
-      expect(mgr.getAgents().find((a) => a.slotId === 'slot-lead')).toBeUndefined();
-      expect(mockIpcBridge.team.agentRemoved.emit).toHaveBeenCalledWith(
-        expect.objectContaining({ teamId: 'team-1', slotId: 'slot-lead' })
-      );
+      // Leader NOT removed — marked as failed instead
+      expect(mgr.getAgents().find((a) => a.slotId === 'slot-lead')).toBeDefined();
+      expect(mgr.getAgents().find((a) => a.slotId === 'slot-lead')?.status).toBe('failed');
+      expect(mockIpcBridge.team.agentRemoved.emit).not.toHaveBeenCalled();
 
       // Process killed
       expect(workerTaskManager.kill).toHaveBeenCalledWith('conv-lead');
@@ -1119,6 +1139,207 @@ describe('TeammateManager', () => {
 
       // Agent still exists
       expect(mgr.getAgents().find((a) => a.slotId === 'slot-member')).toBeDefined();
+
+      mgr.dispose();
+    });
+
+    // -----------------------------------------------------------------------
+    // Granular crash behavior cases (new behavior: no removeAgent on member crash)
+    // NOTE: Cases 1-4 are EXPECTED TO FAIL until handleAgentCrash() is updated
+    //       to stop calling removeAgent() for members.
+    // -----------------------------------------------------------------------
+
+    it('[case-1] member crash: agent NOT removed from getAgents() list', async () => {
+      // EXPECTED FAIL — source still calls removeAgent() for members.
+      // After fix: agents list length stays at 2; crashed member slotId still present.
+      const leader = makeAgent({ slotId: 'slot-lead', conversationId: 'conv-lead', role: 'lead' });
+      const member = makeAgent({
+        slotId: 'slot-member',
+        conversationId: 'conv-member',
+        role: 'teammate',
+        agentName: 'Worker',
+        conversationType: 'acp',
+      });
+      const { mgr } = makeTeammateManager([leader, member]);
+
+      teamEventBus.emit('responseStream', {
+        type: 'finish',
+        conversation_id: 'conv-member',
+        msg_id: 'crash-c1',
+        data: { error: 'Process exited unexpectedly', agentCrash: true },
+      });
+
+      await new Promise((r) => setTimeout(r, 100));
+
+      expect(mgr.getAgents()).toHaveLength(2);
+      expect(mgr.getAgents().find((a) => a.slotId === 'slot-member')).toBeDefined();
+      expect(mockIpcBridge.team.agentRemoved.emit).not.toHaveBeenCalled();
+
+      mgr.dispose();
+    });
+
+    it('[case-2] member crash: agentStatusChanged emitted with status=failed', async () => {
+      // EXPECTED FAIL — source calls removeAgent() before setStatus(failed).
+      // After fix: setStatus('failed') is called; in-memory agent.status === 'failed'.
+      const leader = makeAgent({ slotId: 'slot-lead', conversationId: 'conv-lead', role: 'lead' });
+      const member = makeAgent({
+        slotId: 'slot-member',
+        conversationId: 'conv-member',
+        role: 'teammate',
+        agentName: 'Worker',
+        conversationType: 'acp',
+      });
+      const { mgr } = makeTeammateManager([leader, member]);
+
+      teamEventBus.emit('responseStream', {
+        type: 'finish',
+        conversation_id: 'conv-member',
+        msg_id: 'crash-c2',
+        data: { error: 'Process exited unexpectedly', agentCrash: true },
+      });
+
+      await new Promise((r) => setTimeout(r, 100));
+
+      expect(mockIpcBridge.team.agentStatusChanged.emit).toHaveBeenCalledWith(
+        expect.objectContaining({ teamId: 'team-1', slotId: 'slot-member', status: 'failed' })
+      );
+      const agent = mgr.getAgents().find((a) => a.slotId === 'slot-member');
+      expect(agent?.status).toBe('failed');
+
+      mgr.dispose();
+    });
+
+    it('[case-3] member crash: workerTaskManager.kill called with crashed member conversationId', async () => {
+      // EXPECTED FAIL — currently kill() is called inside removeAgent(), which is being removed.
+      // After fix: kill(conversationId) must be called directly in handleAgentCrash().
+      const leader = makeAgent({ slotId: 'slot-lead', conversationId: 'conv-lead', role: 'lead' });
+      const member = makeAgent({
+        slotId: 'slot-member',
+        conversationId: 'conv-member',
+        role: 'teammate',
+        agentName: 'Worker',
+        conversationType: 'acp',
+      });
+      const { mgr, workerTaskManager } = makeTeammateManager([leader, member]);
+
+      teamEventBus.emit('responseStream', {
+        type: 'finish',
+        conversation_id: 'conv-member',
+        msg_id: 'crash-c3',
+        data: { error: 'Process exited unexpectedly', agentCrash: true },
+      });
+
+      await new Promise((r) => setTimeout(r, 100));
+
+      expect(workerTaskManager.kill).toHaveBeenCalledWith('conv-member');
+
+      mgr.dispose();
+    });
+
+    it('[case-4] member crash: activeWake lock cleared so re-wake is not skipped', async () => {
+      // EXPECTED FAIL — handleAgentCrash does not yet clear activeWakes before the fix.
+      // Setup: manually inject a wake lock, fire crash, then call wake() again.
+      // After fix: activeWakes.delete(slotId) in handleAgentCrash → wake() proceeds.
+      const leader = makeAgent({ slotId: 'slot-lead', conversationId: 'conv-lead', role: 'lead' });
+      const member = makeAgent({
+        slotId: 'slot-member',
+        conversationId: 'conv-member',
+        role: 'teammate',
+        agentName: 'Worker',
+        status: 'idle',
+        conversationType: 'acp',
+      });
+      const mockSendMessage = vi.fn().mockResolvedValue(undefined);
+      const { mgr, workerTaskManager } = makeTeammateManager([leader, member]);
+      vi.mocked(workerTaskManager.getOrBuildTask).mockResolvedValue({
+        sendMessage: mockSendMessage,
+      } as never);
+
+      // Simulate a stale wake lock left over from a previous wake that never resolved
+      (mgr as unknown as { activeWakes: Set<string> }).activeWakes.add('slot-member');
+
+      // Crash fires — must clear the stale lock
+      teamEventBus.emit('responseStream', {
+        type: 'finish',
+        conversation_id: 'conv-member',
+        msg_id: 'crash-c4',
+        data: { error: 'Process exited unexpectedly', agentCrash: true },
+      });
+
+      await new Promise((r) => setTimeout(r, 100));
+
+      // Now wake again — should NOT be skipped
+      vi.mocked(workerTaskManager.getOrBuildTask).mockClear();
+      await mgr.wake('slot-member');
+      expect(workerTaskManager.getOrBuildTask).toHaveBeenCalledWith('conv-member');
+
+      mgr.dispose();
+    });
+
+    it('[case-5] member crash: testament written to leader mailbox (toAgentId = leader slotId)', async () => {
+      // This case passes regardless of whether removeAgent() is called — testament is written first.
+      const leader = makeAgent({ slotId: 'slot-lead', conversationId: 'conv-lead', role: 'lead' });
+      const member = makeAgent({
+        slotId: 'slot-member',
+        conversationId: 'conv-member',
+        role: 'teammate',
+        agentName: 'CrashedWorker',
+        conversationType: 'acp',
+      });
+      const { mgr, mailbox } = makeTeammateManager([leader, member]);
+
+      teamEventBus.emit('responseStream', {
+        type: 'finish',
+        conversation_id: 'conv-member',
+        msg_id: 'crash-c5',
+        data: { error: 'Process exited (code: 1)', agentCrash: true },
+      });
+
+      await new Promise((r) => setTimeout(r, 100));
+
+      expect(mailbox.write).toHaveBeenCalledWith(
+        expect.objectContaining({
+          teamId: 'team-1',
+          toAgentId: 'slot-lead',
+          fromAgentId: 'slot-member',
+        })
+      );
+
+      mgr.dispose();
+    });
+
+    it('[case-6] member crash: leader is woken after testament is written', async () => {
+      // This case passes regardless of whether removeAgent() is called — wake(leadSlotId) fires last.
+      const leader = makeAgent({
+        slotId: 'slot-lead',
+        conversationId: 'conv-lead',
+        role: 'lead',
+        status: 'idle',
+      });
+      const member = makeAgent({
+        slotId: 'slot-member',
+        conversationId: 'conv-member',
+        role: 'teammate',
+        agentName: 'Worker',
+        conversationType: 'acp',
+      });
+      const mockSendMessage = vi.fn().mockResolvedValue(undefined);
+      const { mgr, workerTaskManager } = makeTeammateManager([leader, member]);
+      vi.mocked(workerTaskManager.getOrBuildTask).mockResolvedValue({
+        sendMessage: mockSendMessage,
+      } as never);
+
+      teamEventBus.emit('responseStream', {
+        type: 'finish',
+        conversation_id: 'conv-member',
+        msg_id: 'crash-c6',
+        data: { error: 'Process exited unexpectedly', agentCrash: true },
+      });
+
+      await new Promise((r) => setTimeout(r, 100));
+
+      // Leader's wake was triggered — getOrBuildTask called with leader's conversationId
+      expect(workerTaskManager.getOrBuildTask).toHaveBeenCalledWith('conv-lead');
 
       mgr.dispose();
     });

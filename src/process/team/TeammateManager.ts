@@ -337,28 +337,60 @@ export class TeammateManager extends EventEmitter {
 
   /**
    * Handle an agent whose CLI process crashed unexpectedly.
-   * Writes a testament message to the leader's mailbox, removes the agent,
-   * and wakes the leader so it can decide whether to respawn.
+   * For **members**: kills the process, clears wake locks, marks as failed (tab stays),
+   * writes a testament to the leader's mailbox, and wakes the leader.
+   * Local data and the agent slot are preserved so the agent can be recovered.
+   * For **leader**: only marks it as failed — leader must never be auto-removed.
    */
   private async handleAgentCrash(agent: TeamAgent, errorMessage: string): Promise<void> {
-    // If the leader itself crashed, there's no recipient for the testament.
-    // Just remove the agent and let the renderer handle the leaderless state
-    // via the agentRemoved event.
+    // Leader crash: mark as failed so the frontend shows the error, but never auto-remove.
     if (agent.role === 'lead') {
       console.warn(
-        `[TeammateManager] Leader ${agent.slotId} (${agent.agentName}) crashed: ${errorMessage}. Team is now leaderless.`
+        `[TeammateManager] Leader ${agent.slotId} (${agent.agentName}) crashed: ${errorMessage}. Marked as failed (not removed).`
       );
-      this.removeAgent(agent.slotId);
+
+      // Kill the crashed process (clean up residual child process)
+      if (agent.conversationId) {
+        this.workerTaskManager.kill(agent.conversationId);
+      }
+
+      // Clear wake locks to prevent future wake() calls from being permanently skipped
+      const timeoutHandle = this.wakeTimeouts.get(agent.slotId);
+      if (timeoutHandle) {
+        clearTimeout(timeoutHandle);
+        this.wakeTimeouts.delete(agent.slotId);
+      }
+      this.activeWakes.delete(agent.slotId);
+
+      this.setStatus(agent.slotId, 'failed', errorMessage.slice(0, 200));
       return;
     }
 
     const leadAgent = this.agents.find((a) => a.role === 'lead');
-    if (!leadAgent) return;
+    if (!leadAgent) {
+      // No leader to notify — kill process and mark failed, keep the slot
+      // 1. Kill the crashed process
+      if (agent.conversationId) {
+        this.workerTaskManager.kill(agent.conversationId);
+      }
+
+      // 2. Clear wake locks to prevent deadlock on next wake
+      const timeoutHandle = this.wakeTimeouts.get(agent.slotId);
+      if (timeoutHandle) {
+        clearTimeout(timeoutHandle);
+        this.wakeTimeouts.delete(agent.slotId);
+      }
+      this.activeWakes.delete(agent.slotId);
+
+      // 3. Mark as failed (frontend shows error status, tab stays)
+      this.setStatus(agent.slotId, 'failed', errorMessage.slice(0, 200));
+      return;
+    }
 
     const testament =
-      `[System] Member "${agent.agentName}" (${agent.conversationType}) crashed and has been automatically removed. ` +
+      `[System] Member "${agent.agentName}" (${agent.conversationType}) crashed. ` +
       `Error: ${errorMessage}. ` +
-      `You may recreate a member to continue the task if needed.`;
+      `The member slot is preserved and can be recovered if needed.`;
 
     // 1. Write testament to leader's mailbox
     await this.mailbox.write({
@@ -374,17 +406,36 @@ export class TeammateManager extends EventEmitter {
       `[TeammateManager] Agent ${agent.slotId} (${agent.agentName}) crashed: ${errorMessage}. Testament sent to leader.`
     );
 
-    // 2. Remove the crashed agent (equivalent to fire, without shutdown negotiation)
-    this.removeAgent(agent.slotId);
+    // 2. Kill the crashed process (clean up residual child process + remove from taskList cache)
+    if (agent.conversationId) {
+      this.workerTaskManager.kill(agent.conversationId);
+    }
 
-    // 3. Wake leader to process the testament
+    // 3. Clear wake locks to prevent deadlock on next wake
+    const timeoutHandle = this.wakeTimeouts.get(agent.slotId);
+    if (timeoutHandle) {
+      clearTimeout(timeoutHandle);
+      this.wakeTimeouts.delete(agent.slotId);
+    }
+    this.activeWakes.delete(agent.slotId);
+
+    // 4. Mark as failed (frontend shows error status, tab stays)
+    this.setStatus(agent.slotId, 'failed', errorMessage.slice(0, 200));
+
+    // 5. Wake leader to process the testament
     void this.wake(leadAgent.slotId);
   }
 
-  /** Remove an agent: kill process, cancel pending wake, clear buffers, remove from in-memory list */
+  /** Remove an agent: kill process, cancel pending wake, clear buffers, remove from in-memory list.
+   *  Leader cannot be removed — callers must not pass leader's slotId. */
   removeAgent(slotId: string): void {
     const agent = this.agents.find((a) => a.slotId === slotId);
     if (!agent) return;
+
+    if (agent.role === 'lead') {
+      console.warn(`[TeammateManager] Attempted to remove leader ${slotId} — blocked.`);
+      return;
+    }
 
     // Kill the underlying ACP process
     if (agent.conversationId) {
