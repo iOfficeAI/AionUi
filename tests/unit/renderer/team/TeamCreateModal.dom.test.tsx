@@ -129,6 +129,7 @@ describe('TeamCreateModal', () => {
     const workspaceTrigger = screen.getByTestId('team-create-workspace-trigger');
     expect(workspaceTrigger.className).toContain('bg-fill-1');
     expect(workspaceTrigger.className).toContain('border-border-2');
+    expect(workspaceTrigger.className).toContain('py-0');
 
     fireEvent.click(workspaceTrigger);
 
