@@ -1531,6 +1531,7 @@ export type I18nKey =
   | 'settings.rule_content'
   | 'settings.saveAssistant'
   | 'settings.saveModelConfigFailed'
+  | 'settings.saveUploadToWorkspace'
   | 'settings.searchAssistants'
   | 'settings.selectCli'
   | 'settings.selectModel'

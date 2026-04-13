@@ -127,6 +127,17 @@ export function initSystemSettingsBridge(): void {
       console.warn('[SystemSettings] Failed to restore keep-awake:', err);
     });
 
+  // 获取"上传文件保存到工作区"设置 / Get "save uploads to workspace" setting
+  ipcBridge.systemSettings.getSaveUploadToWorkspace.provider(async () => {
+    const value = await ProcessConfig.get('upload.saveToWorkspace');
+    return value ?? false; // 默认关闭 / Default disabled
+  });
+
+  // 设置"上传文件保存到工作区" / Set "save uploads to workspace"
+  ipcBridge.systemSettings.setSaveUploadToWorkspace.provider(async ({ enabled }) => {
+    await ProcessConfig.set('upload.saveToWorkspace', enabled);
+  });
+
   // 获取"自动预览新建 Office 文件"设置 / Get "auto preview new Office files" setting
   ipcBridge.systemSettings.getAutoPreviewOfficeFiles.provider(async () => {
     const value = await ProcessConfig.get('system.autoPreviewOfficeFiles');

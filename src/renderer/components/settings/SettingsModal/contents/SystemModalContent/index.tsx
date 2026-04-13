@@ -50,6 +50,7 @@ const SystemModalContent: React.FC = () => {
   const [cronNotificationEnabled, setCronNotificationEnabled] = useState(false);
   const [promptTimeout, setPromptTimeout] = useState<number>(300);
   const [agentIdleTimeout, setAgentIdleTimeout] = useState<number>(5);
+  const [saveUploadToWorkspace, setSaveUploadToWorkspace] = useState(false);
   const [commandQueueEnabled, setCommandQueueEnabled] = useState(true);
   const [autoPreviewOfficeFiles, setAutoPreviewOfficeFiles] = useState(true);
 
@@ -102,6 +103,13 @@ const SystemModalContent: React.FC = () => {
       .then((val) => {
         if (val && val > 0) setAgentIdleTimeout(val);
       })
+      .catch(() => {});
+  }, []);
+
+  useEffect(() => {
+    ipcBridge.systemSettings.getSaveUploadToWorkspace
+      .invoke()
+      .then((enabled) => setSaveUploadToWorkspace(enabled))
       .catch(() => {});
   }, []);
 
@@ -183,6 +191,13 @@ const SystemModalContent: React.FC = () => {
     setAgentIdleTimeout(clamped);
     ConfigStorage.set('acp.agentIdleTimeout', clamped).catch(() => {});
   }, [agentIdleTimeout]);
+
+  const handleSaveUploadToWorkspaceChange = useCallback((checked: boolean) => {
+    setSaveUploadToWorkspace(checked);
+    ipcBridge.systemSettings.setSaveUploadToWorkspace.invoke({ enabled: checked }).catch(() => {
+      setSaveUploadToWorkspace(!checked);
+    });
+  }, []);
 
   const handleCommandQueueEnabledChange = useCallback((checked: boolean) => {
     setCommandQueueEnabled(checked);
@@ -269,6 +284,11 @@ const SystemModalContent: React.FC = () => {
           suffix='min'
         />
       ),
+    },
+    {
+      key: 'saveUploadToWorkspace',
+      label: t('settings.saveUploadToWorkspace'),
+      component: <Switch checked={saveUploadToWorkspace} onChange={handleSaveUploadToWorkspaceChange} />,
     },
     {
       key: 'commandQueueEnabled',

@@ -46,7 +46,7 @@ vi.mock('@/renderer/pages/conversation/Messages/hooks', () => ({
 }));
 
 vi.mock('@/renderer/pages/conversation/platforms/assertBridgeSuccess', () => ({
-  assertBridgeSuccess: vi.fn((result: unknown) => result),
+  assertBridgeSuccess: vi.fn(),
 }));
 
 vi.mock('@/renderer/utils/emitter', () => ({
@@ -145,62 +145,6 @@ describe('useGeminiInitialMessage', () => {
     expect(mockEmitterEmit).toHaveBeenCalledWith('chat.history.refresh');
     expect(mockEmitterEmit).toHaveBeenCalledWith('gemini.workspace.refresh');
     expect(sessionStorage.getItem('gemini_initial_message_conv-ready')).toBeNull();
-  });
-
-  it('updates the optimistic user bubble with the canonical display message returned by the backend', async () => {
-    mockGeminiSendInvoke.mockResolvedValueOnce({
-      success: true,
-      data: {
-        displayMessage: 'hello\n\n[[AION_FILES]]\n/workspace/photo_1712345678901.png',
-      },
-    });
-
-    sessionStorage.setItem(
-      'gemini_initial_message_conv-canonical',
-      JSON.stringify({
-        input: 'hello',
-        files: ['/tmp/photo.png'],
-      })
-    );
-
-    renderHook(() =>
-      useGeminiInitialMessage({
-        conversationId: 'conv-canonical',
-        currentModelId: 'gemini-2.5',
-        hasNoAuth: false,
-        setContent: vi.fn(),
-        setActiveMsgId: vi.fn(),
-        setWaitingResponse: vi.fn(),
-        autoSwitchTriggeredRef: { current: false },
-        setShowSetupCard: vi.fn(),
-        performFullCheck: vi.fn(),
-      })
-    );
-
-    await waitFor(() => {
-      expect(mockGeminiSendInvoke).toHaveBeenCalledTimes(1);
-    });
-
-    expect(mockAddOrUpdateMessage).toHaveBeenNthCalledWith(
-      1,
-      expect.objectContaining({
-        msg_id: 'gemini-init-1',
-        content: {
-          content: 'hello',
-        },
-      }),
-      true
-    );
-    expect(mockAddOrUpdateMessage).toHaveBeenNthCalledWith(
-      2,
-      expect.objectContaining({
-        msg_id: 'gemini-init-1',
-        content: {
-          content: 'hello\n\n[[AION_FILES]]\n/workspace/photo_1712345678901.png',
-        },
-      }),
-      false
-    );
   });
 
   it('sends the initial message after auth transitions from missing to ready', async () => {

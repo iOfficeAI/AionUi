@@ -153,6 +153,7 @@
   "cacheClearSuccess": "캐시가 성공적으로 정리되었습니다",
   "cacheClearFailed": "캐시 정리 실패",
   "language": "언어",
+  "saveUploadToWorkspace": "업로드 파일을 작업 공간에 저장",
   "commandQueueEnabled": "명령 큐 사용",
   "commandQueueEnabledDesc": "활성화하면 현재 턴이 처리 중일 때 새 메시지를 즉시 보내지 않고 큐에 추가합니다.",
   "autoPreviewOfficeFiles": "새 Office 파일 자동 미리보기",

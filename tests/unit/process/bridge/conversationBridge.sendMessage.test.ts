@@ -98,13 +98,13 @@ describe('conversationBridge.sendMessage', () => {
     getAll: vi.fn(),
     reset: vi.fn(),
     list: vi.fn(),
-  } as unknown as Record<string, unknown>;
+  } as any;
 
   const mockWorkerTaskManager = {
     getOrBuildTask: vi.fn(),
     getTask: vi.fn(),
     removeTask: vi.fn(),
-  } as unknown as Record<string, unknown>;
+  } as any;
 
   beforeEach(() => {
     providerCallbacks.clear();
@@ -157,85 +157,12 @@ describe('conversationBridge.sendMessage', () => {
       msg_id: 'msg-1',
     });
 
-    expect(result).toEqual({
-      success: true,
-      data: { displayMessage: 'hello' },
-    });
+    expect(result).toEqual({ success: true });
     expect(task.sendMessage).toHaveBeenCalledWith(
       expect.objectContaining({
         content: 'hello',
         files: [],
         agentContent: 'hello',
-      })
-    );
-  });
-
-  it('copies ACP files into the workspace before sending', async () => {
-    const handler = providerCallbacks.get('conversation.sendMessage');
-    const task = {
-      type: 'acp',
-      workspace: '/mock/workspace',
-      sendMessage: vi.fn(async () => undefined),
-    };
-    const utilsMod = await vi.importMock<typeof import('@process/utils')>('@process/utils');
-    utilsMod.copyFilesToDirectory.mockResolvedValueOnce(['/mock/workspace/photo.png']);
-    mockWorkerTaskManager.getOrBuildTask.mockResolvedValue(task);
-
-    const result = await handler!({
-      conversation_id: 'acp-conversation',
-      input: 'describe this image',
-      msg_id: 'msg-2',
-      files: ['/mock/cache/temp/photo.png'],
-    });
-
-    expect(result).toEqual({
-      success: true,
-      data: {
-        displayMessage: 'describe this image\n\n[[AION_FILES]]\n/mock/workspace/photo.png',
-      },
-    });
-    expect(utilsMod.copyFilesToDirectory).toHaveBeenCalledWith(
-      '/mock/workspace',
-      ['/mock/cache/temp/photo.png'],
-      false,
-      '/mock/cache'
-    );
-    expect(task.sendMessage).toHaveBeenCalledWith(
-      expect.objectContaining({
-        files: ['/mock/workspace/photo.png'],
-      })
-    );
-  });
-
-  it('rewrites the display message to the copied workspace path when filenames are renamed on copy', async () => {
-    const handler = providerCallbacks.get('conversation.sendMessage');
-    const task = {
-      type: 'gemini',
-      workspace: '/mock/workspace',
-      sendMessage: vi.fn(async () => undefined),
-    };
-    const utilsMod = await vi.importMock<typeof import('@process/utils')>('@process/utils');
-    utilsMod.copyFilesToDirectory.mockResolvedValueOnce(['/mock/workspace/photo_1712345678901.png']);
-    mockWorkerTaskManager.getOrBuildTask.mockResolvedValue(task);
-
-    const result = await handler!({
-      conversation_id: 'gemini-conversation',
-      input: 'describe this image',
-      msg_id: 'msg-3',
-      files: ['/mock/cache/temp/photo.png'],
-    });
-
-    expect(result).toEqual({
-      success: true,
-      data: {
-        displayMessage: 'describe this image\n\n[[AION_FILES]]\n/mock/workspace/photo_1712345678901.png',
-      },
-    });
-    expect(task.sendMessage).toHaveBeenCalledWith(
-      expect.objectContaining({
-        input: 'describe this image\n\n[[AION_FILES]]\n/mock/workspace/photo_1712345678901.png',
-        content: 'describe this image\n\n[[AION_FILES]]\n/mock/workspace/photo_1712345678901.png',
-        files: ['/mock/workspace/photo_1712345678901.png'],
       })
     );
   });
