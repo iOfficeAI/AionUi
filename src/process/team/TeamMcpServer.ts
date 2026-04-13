@@ -16,6 +16,7 @@ import type { Mailbox } from './Mailbox';
 import type { TaskManager } from './TaskManager';
 import type { TeamAgent } from './types';
 import { TEAM_SUPPORTED_BACKENDS } from '@/common/types/teamTypes';
+import { notifyMcpReady } from './mcpReadiness';
 
 type SpawnAgentFn = (agentName: string, agentType?: string) => Promise<TeamAgent>;
 
@@ -207,14 +208,28 @@ export class TeamMcpServer {
     const reader = createTcpMessageReader(async (msg) => {
       const request = msg as {
         tool?: string;
+        type?: string;
         args?: Record<string, unknown>;
         from_slot_id?: string;
+        slot_id?: string;
         auth_token?: string;
       };
 
       // Reject requests that do not carry the correct auth token
       if (request.auth_token !== this.authToken) {
         writeTcpMessage(socket, { error: 'Unauthorized' });
+        socket.end();
+        return;
+      }
+
+      // Handle MCP readiness notification from stdio script (not a tool call)
+      if (request.type === 'mcp_ready' && !request.tool) {
+        const readySlotId = request.from_slot_id ?? request.slot_id;
+        if (readySlotId) {
+          console.log(`[TeamMcpServer] MCP ready from slot ${readySlotId}`);
+          notifyMcpReady(readySlotId);
+        }
+        writeTcpMessage(socket, { result: 'ok' });
         socket.end();
         return;
       }

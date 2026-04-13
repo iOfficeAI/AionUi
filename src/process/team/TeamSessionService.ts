@@ -487,7 +487,11 @@ export class TeamSessionService {
         if (agent.conversationId) {
           const existing = await this.conversationService.getConversation(agent.conversationId);
           if (existing) {
-            await this.conversationService.updateConversation(agent.conversationId, { extra: { teamId } } as any, true);
+            await this.conversationService.updateConversation(
+              agent.conversationId,
+              { extra: { teamId, workspace } } as any,
+              true
+            );
             return { ...agent, slotId, conversationId: agent.conversationId };
           }
           // Fall through to create new if conversation was not found

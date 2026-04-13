@@ -859,6 +859,8 @@ export class AcpConnection {
       ...(options?.forkSession && { forkSession: options.forkSession }),
     });
 
+    console.log('session/new===>', JSON.stringify(options));
+
     this.sessionId = response.sessionId;
 
     this.parseSessionCapabilities(response);
@@ -1079,13 +1081,20 @@ export class AcpConnection {
       }
     }
 
+    // Mark setup as incomplete BEFORE killing the child process.
+    // killChild() waits for the process to exit, and the exit event fires
+    // during that wait. If isSetupComplete is still true at that point,
+    // the exit handler calls handleProcessExit → onDisconnect → emits
+    // agentCrash:true, causing TeammateManager to treat a controlled
+    // shutdown as an unexpected crash (and remove the agent from the team).
+    this.isSetupComplete = false;
+
     await this.terminateChild();
 
     // Reset session-level state
     this.pendingRequests.clear();
     this.sessionId = null;
     this.isInitialized = false;
-    this.isSetupComplete = false;
     this.backend = null;
     this.initializeResponse = null;
     this.configOptions = null;

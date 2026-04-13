@@ -341,6 +341,17 @@ export class TeammateManager extends EventEmitter {
    * and wakes the leader so it can decide whether to respawn.
    */
   private async handleAgentCrash(agent: TeamAgent, errorMessage: string): Promise<void> {
+    // If the leader itself crashed, there's no recipient for the testament.
+    // Just remove the agent and let the renderer handle the leaderless state
+    // via the agentRemoved event.
+    if (agent.role === 'lead') {
+      console.warn(
+        `[TeammateManager] Leader ${agent.slotId} (${agent.agentName}) crashed: ${errorMessage}. Team is now leaderless.`
+      );
+      this.removeAgent(agent.slotId);
+      return;
+    }
+
     const leadAgent = this.agents.find((a) => a.role === 'lead');
     if (!leadAgent) return;
 
