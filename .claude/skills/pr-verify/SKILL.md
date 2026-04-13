@@ -177,9 +177,15 @@ gh pr view $PR_NUMBER \
 | ------------- | ------ |
 | `MERGEABLE`   | Continue to Step 3 |
 | `UNKNOWN`     | Skip this PR (return to list), log: `mergeability unknown, will retry` |
-| `CONFLICTING` | Attempt auto-rebase (see below) |
+| `CONFLICTING` | Attempt auto-merge (see below) |
 
-**Auto-rebase attempt on conflict:**
+**Auto-merge attempt on conflict:**
+
+> **Why merge instead of rebase?** Since we squash-merge all PRs, the intermediate commit
+> history is irrelevant. `git merge` produces exactly the conflicts GitHub shows (one pass
+> over the final diff), while `git rebase` replays each commit individually, often creating
+> extra conflicts in files that GitHub reports as clean. Always use merge for conflict
+> resolution in this workflow.
 
 ```bash
 REPO_ROOT=$(git rev-parse --show-toplevel)
@@ -188,31 +194,56 @@ WORKTREE_DIR="/tmp/aionui-verify-${PR_NUMBER}"
 # Clean up any stale worktree
 git worktree remove "$WORKTREE_DIR" --force 2>/dev/null || true
 
-# Create worktree for rebase
-git fetch origin <head_branch>
-git fetch origin <base_branch>
-git worktree add "$WORKTREE_DIR" origin/<head_branch> --detach
+# Detect fork vs same-repo PR
+HEAD_OWNER=$(gh pr view $PR_NUMBER --json headRepositoryOwner --jq '.headRepositoryOwner.login')
+REPO_OWNER=$(gh repo view --json owner --jq '.owner.login')
+IS_FORK=$( [ "$HEAD_OWNER" != "$REPO_OWNER" ] && echo true || echo false )
 
-ln -s "$REPO_ROOT/node_modules" "$WORKTREE_DIR/node_modules"
+# Fetch PR head into a named ref (avoids FETCH_HEAD overwrite)
+git fetch origin pull/${PR_NUMBER}/head:refs/pr/${PR_NUMBER}
+git worktree add "$WORKTREE_DIR" refs/pr/${PR_NUMBER} --detach
+
+ln -sf "$REPO_ROOT/node_modules" "$WORKTREE_DIR/node_modules"
 
 cd "$WORKTREE_DIR"
-git rebase origin/<base_branch>
+git fetch origin <base_branch>
+git merge origin/<base_branch> --no-edit
 ```
 
-If rebase **succeeds**:
+If merge **succeeds** (no conflicts):
 
 ```bash
-cd "$WORKTREE_DIR"
-git push --force-with-lease origin HEAD:<head_branch>
+# Determine push target
+if [ "$IS_FORK" = "true" ]; then
+  FORK_URL="https://github.com/${HEAD_OWNER}/$(gh repo view --json name --jq '.name').git"
+  git remote add fork-target "$FORK_URL" 2>/dev/null || true
+  git fetch fork-target <head_branch>
+  git push fork-target HEAD:refs/heads/<head_branch> --force-with-lease
+else
+  git push origin HEAD:refs/heads/<head_branch> --force-with-lease
+fi
+
 cd "$REPO_ROOT"
 git worktree remove "$WORKTREE_DIR" --force 2>/dev/null || true
 
 gh pr merge $PR_NUMBER --squash --auto
 ```
 
-Display `已自动 rebase 并推送，PR 已设置 auto-merge，等待 CI 通过后自动合并。` and skip to next PR (return to Step 1).
+Display `已自动解决冲突并推送，PR 已设置 auto-merge，等待 CI 通过后自动合并。` and skip to next PR (return to Step 1).
 
-If rebase **fails**:
+If merge **has conflicts**, attempt manual resolution:
+
+Read each conflicting file and resolve the conflicts by understanding both sides of the change. After resolving all conflicts:
+
+```bash
+cd "$WORKTREE_DIR"
+git add <resolved_files>
+git commit --no-edit
+```
+
+If resolution succeeds → push (same fork-aware logic as above) and set `--squash --auto`.
+
+If resolution fails or conflicts are too complex:
 
 ```bash
 cd "$REPO_ROOT"
@@ -221,7 +252,7 @@ git worktree remove "$WORKTREE_DIR" --force 2>/dev/null || true
 
 Prompt:
 
-> ❌ 自动 rebase 失败，存在合并冲突。请选择：
+> ❌ 合并冲突无法自动解决。请选择：
 > m - 提示作者手动解决冲突
 > s - 跳过此 PR
 > r - 标记为 bot:needs-human-review
@@ -232,13 +263,13 @@ Prompt:
   
   ## 合并冲突（无法自动解决）
   
-  本 PR 与目标分支存在冲突，自动 rebase 未能干净解决。请手动 rebase 后重新 push：
+  本 PR 与目标分支存在冲突，无法自动解决。请手动 merge 或 rebase 后重新 push：
   
   \`\`\`bash
   git fetch origin
-  git rebase origin/<base_branch>
+  git merge origin/<base_branch>
   # 解决冲突后
-  git push --force-with-lease
+  git push
   \`\`\`"
   ```
   Then add label:
@@ -251,7 +282,7 @@ Prompt:
   ```bash
   gh pr edit $PR_NUMBER --remove-label "bot:ready-to-merge" --add-label "bot:needs-rebase"
   gh pr comment $PR_NUMBER --body "<!-- pr-verify-bot -->
-  PR 存在合并冲突，自动 rebase 失败。请作者手动 rebase 后重新 push。"
+  PR 存在合并冲突，无法自动解决。请作者手动解决后重新 push。"
   ```
 - `r` → add label and return to list:
   ```bash
@@ -349,11 +380,10 @@ WORKTREE_DIR="/tmp/aionui-verify-${PR_NUMBER}"
 
 # Reuse existing worktree if present, otherwise create
 if [ ! -d "$WORKTREE_DIR" ]; then
-  git fetch origin pull/${PR_NUMBER}/head
-  BASE_REF=$(gh pr view $PR_NUMBER --json baseRefName --jq '.baseRefName')
-  git fetch origin "$BASE_REF"
-  git worktree add "$WORKTREE_DIR" FETCH_HEAD --detach
-  ln -s "$REPO_ROOT/node_modules" "$WORKTREE_DIR/node_modules"
+  # Use a named ref to avoid FETCH_HEAD being overwritten by subsequent fetches
+  git fetch origin pull/${PR_NUMBER}/head:refs/pr/${PR_NUMBER}
+  git worktree add "$WORKTREE_DIR" refs/pr/${PR_NUMBER} --detach
+  ln -sf "$REPO_ROOT/node_modules" "$WORKTREE_DIR/node_modules"
 fi
 ```
 
@@ -545,11 +575,23 @@ git commit -m "test(${SCOPE}): add supplemental tests for PR #${PR_NUMBER}"
 
 > **Important:** commit message must NOT contain `Co-Authored-By` or any AI signature.
 
-Push to the PR head branch:
+Push to the PR head branch (fork-aware):
 
 ```bash
 cd "$WORKTREE_DIR"
-git push origin HEAD:${HEAD_BRANCH}
+
+# Detect fork vs same-repo PR
+HEAD_OWNER=$(gh pr view $PR_NUMBER --json headRepositoryOwner --jq '.headRepositoryOwner.login')
+REPO_OWNER=$(gh repo view --json owner --jq '.owner.login')
+
+if [ "$HEAD_OWNER" != "$REPO_OWNER" ]; then
+  FORK_URL="https://github.com/${HEAD_OWNER}/$(gh repo view --json name --jq '.name').git"
+  git remote add fork-target "$FORK_URL" 2>/dev/null || true
+  git fetch fork-target "$HEAD_BRANCH"
+  git push fork-target HEAD:refs/heads/${HEAD_BRANCH} --force-with-lease
+else
+  git push origin HEAD:refs/heads/${HEAD_BRANCH} --force-with-lease
+fi
 ```
 
 Then enable auto-merge (CI will re-run with the new test commit):
@@ -677,8 +719,13 @@ done
 - **Comment marker** — use `<!-- pr-verify-bot -->` (distinct from `<!-- pr-review-bot -->` and `<!-- pr-automation-bot -->`)
 - **REPO detection** — `REPO=$(gh repo view --json nameWithOwner --jq '.nameWithOwner')` — never hardcode
 - **Test push only on mt** — supplemental tests are written to worktree only; never pushed unless user chooses `mt`
-- **Worktree reuse** — if Step 2 auto-rebase already created a worktree, reuse it in Step 4 instead of recreating
+- **Worktree reuse** — if Step 2 auto-merge already created a worktree, reuse it in Step 4 instead of recreating
 - **Label atomicity** — when swapping labels, do both in a single `gh pr edit` call
+- **Named refs over FETCH_HEAD** — never rely on `FETCH_HEAD` (it is overwritten by every `git fetch`); always use `refs/pr/<PR_NUMBER>` or explicit branch names
+- **Merge over rebase for conflicts** — use `git merge` (not `git rebase`) to resolve conflicts; rebase replays commits individually and creates spurious conflicts that GitHub does not show
+- **Fork-aware push** — always detect fork PRs (`headRepositoryOwner != repo owner`) and push to the fork remote; never push fork branches to `origin`
+- **Fetch before force-with-lease** — always `git fetch <remote> <branch>` before `--force-with-lease` to avoid "stale info" errors on new remotes
+- **Full refspec for push** — always use `HEAD:refs/heads/<branch>` (not `HEAD:<branch>`) to avoid "not a full refname" errors on detached HEAD worktrees
 
 ---
 
@@ -689,7 +736,7 @@ done
  2. Pre-flight (3 checks):
     a. New commits since ready-to-merge? → ask re-review or continue
     b. CI status? → all pass / running (ask wait/continue) / failed (ask skip/continue)
-    c. Mergeable? → MERGEABLE (continue) / UNKNOWN (skip) / CONFLICTING (auto-rebase or prompt)
+    c. Mergeable? → MERGEABLE (continue) / UNKNOWN (skip) / CONFLICTING (auto-merge or prompt)
  3. Review summary → parse pr-review-bot comment, show concise summary, d for full report
  4. Impact analysis + test supplementation:
     a. Create worktree at /tmp/aionui-verify-<PR> (reuse if from Step 2)
