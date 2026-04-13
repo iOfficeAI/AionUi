@@ -9,7 +9,7 @@ import { Plus } from '@icon-park/react';
 import { useConversationContextSafe } from '@/renderer/hooks/context/ConversationContext';
 import { iconColors } from '@/renderer/styles/colors';
 import { isElectronDesktop } from '@/renderer/utils/platform';
-import { FileService, MAX_UPLOAD_SIZE_MB } from '@/renderer/services/FileService';
+import { FileService } from '@/renderer/services/FileService';
 import type { FileMetadata } from '@/renderer/services/FileService';
 import React, { useCallback, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -45,12 +45,7 @@ const FileAttachButton: React.FC<FileAttachButtonProps> = ({ openFileSelector, o
           onLocalFilesAdded(processed);
         }
       } catch (err) {
-        const msg = err instanceof Error ? err.message : '';
-        if (msg === 'FILE_TOO_LARGE') {
-          Message.error(t('common.fileAttach.tooLarge', { max: MAX_UPLOAD_SIZE_MB }));
-        } else {
-          Message.error(t('common.fileAttach.failed'));
-        }
+        Message.error(t('common.fileAttach.failed'));
       } finally {
         setUploading(false);
       }

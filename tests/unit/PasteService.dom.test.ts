@@ -24,7 +24,6 @@ vi.mock('@/renderer/services/FileService', () => ({
     return idx > 0 ? name.slice(idx) : '';
   },
   uploadFileViaHttp: vi.fn(),
-  MAX_UPLOAD_SIZE_MB: 100,
 }));
 
 vi.mock('@/renderer/hooks/file/useUploadState', () => ({

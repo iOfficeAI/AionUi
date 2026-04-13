@@ -8,7 +8,7 @@ import { ipcBridge } from '@/common';
 import type { IDirOrFile } from '@/common/adapter/ipcBridge';
 import { ConfigStorage } from '@/common/config/storage';
 import { usePasteService } from '@/renderer/hooks/file/usePasteService';
-import { uploadFileViaHttp, MAX_UPLOAD_SIZE_MB } from '@/renderer/services/FileService';
+import { uploadFileViaHttp } from '@/renderer/services/FileService';
 import { trackUpload } from '@/renderer/hooks/file/useUploadState';
 import { isElectronDesktop } from '@/renderer/utils/platform';
 import { useCallback, useEffect, useRef, useState } from 'react';
@@ -120,11 +120,7 @@ export function useWorkspacePaste(options: UseWorkspacePasteOptions) {
               await uploadFileViaHttp(fileList[i], conversationId, tracker.onProgress);
               successCount++;
             } catch (error) {
-              if (error instanceof Error && error.message === 'FILE_TOO_LARGE') {
-                messageApi.error(t('common.fileAttach.tooLarge', { max: MAX_UPLOAD_SIZE_MB }) || 'File too large');
-              } else {
-                messageApi.error(t('common.unknownError') || 'Upload failed');
-              }
+              messageApi.error(t('common.unknownError') || 'Upload failed');
             } finally {
               tracker.finish();
             }
