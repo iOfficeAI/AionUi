@@ -25,6 +25,7 @@ export class TeamSession extends EventEmitter {
   private readonly mailbox: Mailbox;
   private readonly taskManager: TaskManager;
   private readonly teammateManager: TeammateManager;
+  private readonly workerTaskManager: IWorkerTaskManager;
   private readonly mcpServer: TeamMcpServer;
   private mcpStdioConfig: StdioMcpConfig | null = null;
 
@@ -33,6 +34,7 @@ export class TeamSession extends EventEmitter {
     this.team = team;
     this.teamId = team.id;
     this.repo = repo;
+    this.workerTaskManager = workerTaskManager;
     this.mailbox = new Mailbox(repo);
     this.taskManager = new TaskManager(repo);
     this.teammateManager = new TeammateManager({
@@ -201,11 +203,20 @@ export class TeamSession extends EventEmitter {
     return this.teammateManager.getAgents();
   }
 
-  /** Clean up all IPC listeners, MCP server, and EventEmitter handlers */
+  /** Clean up all IPC listeners, MCP server, kill agent processes, and EventEmitter handlers */
   async dispose(): Promise<void> {
+    // Kill all agent processes before clearing listeners
+    for (const agent of this.teammateManager.getAgents()) {
+      if (agent.conversationId) {
+        this.workerTaskManager.kill(agent.conversationId);
+      }
+    }
     this.teammateManager.dispose();
-    await this.mcpServer.stop();
-    this.mcpStdioConfig = null;
-    this.removeAllListeners();
+    try {
+      await this.mcpServer.stop();
+    } finally {
+      this.mcpStdioConfig = null;
+      this.removeAllListeners();
+    }
   }
 }

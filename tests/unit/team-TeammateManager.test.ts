@@ -950,12 +950,12 @@ describe('TeammateManager', () => {
       });
       const { mgr, mailbox } = makeTeammateManager([leader, member]);
 
-      // Normal error (not a crash)
+      // Normal error (not a crash, not a quota error)
       teamEventBus.emit('responseStream', {
         type: 'error',
         conversation_id: 'conv-member',
         msg_id: 'err-1',
-        data: { error: 'API rate limit exceeded' },
+        data: { error: 'Something went wrong' },
       });
 
       await new Promise((r) => setTimeout(r, 100));
@@ -969,6 +969,90 @@ describe('TeammateManager', () => {
 
       // Agent still exists
       expect(mgr.getAgents().find((a) => a.slotId === 'slot-member')).toBeDefined();
+
+      mgr.dispose();
+    });
+
+    it('sets status to failed on 429 quota error', async () => {
+      const leader = makeAgent({ slotId: 'slot-lead', conversationId: 'conv-lead', role: 'lead' });
+      const member = makeAgent({
+        slotId: 'slot-member',
+        conversationId: 'conv-member',
+        role: 'teammate',
+        agentName: 'Worker',
+        conversationType: 'acp',
+      });
+      const { mgr } = makeTeammateManager([leader, member]);
+
+      teamEventBus.emit('responseStream', {
+        type: 'error',
+        conversation_id: 'conv-member',
+        msg_id: 'err-429',
+        data: { error: '429 Too Many Requests' },
+      });
+
+      await new Promise((r) => setTimeout(r, 50));
+
+      const agent = mgr.getAgents().find((a) => a.slotId === 'slot-member');
+      expect(agent).toBeDefined();
+      expect(agent!.status).toBe('failed');
+
+      // Verify status change was emitted
+      expect(mockIpcBridge.team.agentStatusChanged.emit).toHaveBeenCalledWith(
+        expect.objectContaining({ slotId: 'slot-member', status: 'failed' })
+      );
+
+      mgr.dispose();
+    });
+
+    it('sets status to failed on rate limit error', async () => {
+      const leader = makeAgent({ slotId: 'slot-lead', conversationId: 'conv-lead', role: 'lead' });
+      const member = makeAgent({
+        slotId: 'slot-member',
+        conversationId: 'conv-member',
+        role: 'teammate',
+        agentName: 'Worker',
+        conversationType: 'acp',
+      });
+      const { mgr } = makeTeammateManager([leader, member]);
+
+      teamEventBus.emit('responseStream', {
+        type: 'error',
+        conversation_id: 'conv-member',
+        msg_id: 'err-rate',
+        data: 'API rate limit exceeded',
+      });
+
+      await new Promise((r) => setTimeout(r, 50));
+
+      const agent = mgr.getAgents().find((a) => a.slotId === 'slot-member');
+      expect(agent!.status).toBe('failed');
+
+      mgr.dispose();
+    });
+
+    it('sets status to failed on quota exceeded error', async () => {
+      const leader = makeAgent({ slotId: 'slot-lead', conversationId: 'conv-lead', role: 'lead' });
+      const member = makeAgent({
+        slotId: 'slot-member',
+        conversationId: 'conv-member',
+        role: 'teammate',
+        agentName: 'Worker',
+        conversationType: 'acp',
+      });
+      const { mgr } = makeTeammateManager([leader, member]);
+
+      teamEventBus.emit('responseStream', {
+        type: 'error',
+        conversation_id: 'conv-member',
+        msg_id: 'err-quota',
+        data: { error: 'Quota exceeded for this model' },
+      });
+
+      await new Promise((r) => setTimeout(r, 50));
+
+      const agent = mgr.getAgents().find((a) => a.slotId === 'slot-member');
+      expect(agent!.status).toBe('failed');
 
       mgr.dispose();
     });

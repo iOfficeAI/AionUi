@@ -53,6 +53,10 @@
     "chooseDifferentFolder": "別のフォルダを選択",
     "error": "チームの作成に失敗しました"
   },
+  "removeAgent": {
+    "confirmTitle": "チームメンバーを削除",
+    "confirmContent": "このメンバーは現在稼働中です。強制的に削除しますか？"
+  },
   "emptyState": {
     "subtitle": "目標を教えてください。チームを調整してタスクを完了します",
     "suggestions": {

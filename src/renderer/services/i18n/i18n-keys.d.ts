@@ -1788,6 +1788,8 @@ export type I18nKey =
   | 'team.emptyState.suggestions.interview'
   | 'team.newAgent'
   | 'team.noMessages'
+  | 'team.removeAgent.confirmContent'
+  | 'team.removeAgent.confirmTitle'
   | 'team.sendBox.placeholder'
   | 'team.sider.createTeam'
   | 'team.sider.delete'

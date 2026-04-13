@@ -416,7 +416,7 @@ export class TeamSessionService {
     const conversations = await this.conversationService.listAllConversations();
     const linkedConversations = conversations
       .filter((conversation) => (conversation.extra as { teamId?: string } | undefined)?.teamId === team.id)
-      .sort((left, right) => (right.modifyTime ?? 0) - (left.modifyTime ?? 0));
+      .toSorted((left, right) => (right.modifyTime ?? 0) - (left.modifyTime ?? 0));
 
     if (linkedConversations.length === 0) return team;
 
@@ -439,7 +439,7 @@ export class TeamSessionService {
       }));
     }
 
-    repairedAgents = repairedAgents.sort((left, right) => {
+    repairedAgents = repairedAgents.toSorted((left, right) => {
       if (left.role === right.role) return left.agentName.localeCompare(right.agentName);
       return left.role === 'lead' ? -1 : 1;
     });
