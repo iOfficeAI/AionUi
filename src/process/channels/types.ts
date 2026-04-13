@@ -9,7 +9,7 @@
 /**
  * Built-in platform types for channel plugins.
  */
-export type BuiltinPluginType = 'telegram' | 'slack' | 'discord' | 'lark' | 'dingtalk' | 'weixin';
+export type BuiltinPluginType = 'telegram' | 'slack' | 'discord' | 'lark' | 'dingtalk' | 'weixin' | 'wecom';
 
 /**
  * Supported platform types for plugins.
@@ -46,6 +46,8 @@ export interface IPluginCredentials {
   // DingTalk
   clientId?: string;
   clientSecret?: string;
+  // WeCom (Enterprise WeChat AI Bot callback)
+  encodingAesKey?: string;
   // Extension plugins: arbitrary credential fields
   [key: string]: string | number | boolean | undefined;
 }
@@ -61,6 +63,10 @@ export function hasPluginCredentials(type: PluginType, credentials?: IPluginCred
   if (type === 'dingtalk') return !!(credentials.clientId && credentials.clientSecret);
   if (type === 'telegram') return !!credentials.token;
   if (type === 'weixin') return !!(credentials.accountId && credentials.botToken);
+  if (type === 'wecom') {
+    const key = credentials.encodingAesKey;
+    return !!(credentials.token && key && key.length === 43);
+  }
   // Extension or unknown plugins: check if any credential value is non-empty
   return Object.values(credentials).some((v) => v !== undefined && v !== null && v !== '');
 }
@@ -527,14 +533,16 @@ export function pairingRequestToRow(request: IChannelPairingRequest): IChannelPa
  * Channel platform type for model configuration.
  * Includes built-in platforms and extension-contributed platforms (string).
  */
-export type ChannelPlatform = 'telegram' | 'lark' | 'dingtalk' | 'weixin' | (string & {});
+export type ChannelPlatform = 'telegram' | 'lark' | 'dingtalk' | 'weixin' | 'wecom' | (string & {});
 
 /**
  * Type guard to check if a string is a known built-in ChannelPlatform.
  * Extension platform types are valid but not matched here.
  */
-export function isBuiltinChannelPlatform(value: string): value is 'telegram' | 'lark' | 'dingtalk' | 'weixin' {
-  return value === 'telegram' || value === 'lark' || value === 'dingtalk' || value === 'weixin';
+export function isBuiltinChannelPlatform(
+  value: string
+): value is 'telegram' | 'lark' | 'dingtalk' | 'weixin' | 'wecom' {
+  return value === 'telegram' || value === 'lark' || value === 'dingtalk' || value === 'weixin' || value === 'wecom';
 }
 
 /**
@@ -577,6 +585,7 @@ export function getChannelConversationName(
     telegram: 'tg',
     dingtalk: 'ding',
     weixin: 'wx',
+    wecom: 'wecom',
   };
   const parts: string[] = [shortPlatform[platform] ?? platform];
   if (type) parts.push(type);

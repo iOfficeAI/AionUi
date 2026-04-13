@@ -112,7 +112,7 @@ function formatTextForPlatform(text: string, platform: PluginType): string {
   if (platform === 'telegram') {
     return markdownToTelegramHtml(text);
   }
-  if (platform === 'weixin') {
+  if (platform === 'weixin' || platform === 'wecom') {
     return stripHtml(text);
   }
   return escapeHtml(text);
@@ -243,7 +243,7 @@ function convertTMessageToOutgoing(
       if (confirmingTool && confirmingTool.confirmationDetails) {
         // WeChat (weixin) uses yoloMode — tool confirmations are auto-approved in the background.
         // Showing "Continue?" without interactive buttons is confusing, so just show tool progress.
-        if (platform === 'weixin') {
+        if (platform === 'weixin' || platform === 'wecom') {
           return {
             type: 'text',
             text: toolLines.join('\n') || '⏳ 正在执行工具...',

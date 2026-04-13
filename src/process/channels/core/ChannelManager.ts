@@ -15,6 +15,7 @@ import { DingTalkPlugin } from '../plugins/dingtalk/DingTalkPlugin';
 import { LarkPlugin } from '../plugins/lark/LarkPlugin';
 import { TelegramPlugin } from '../plugins/telegram/TelegramPlugin';
 import { WeixinPlugin } from '../plugins/weixin/WeixinPlugin';
+import { WecomPlugin } from '../plugins/wecom/WecomPlugin';
 import { isBuiltinChannelPlatform, resolveChannelConvType } from '../types';
 import type { ChannelPlatform, IChannelPluginConfig, PluginType } from '../types';
 import { SessionManager } from './SessionManager';
@@ -52,6 +53,7 @@ export class ChannelManager {
     registerPlugin('lark', LarkPlugin);
     registerPlugin('dingtalk', DingTalkPlugin);
     registerPlugin('weixin', WeixinPlugin);
+    registerPlugin('wecom', WecomPlugin);
   }
 
   /**
@@ -183,7 +185,7 @@ export class ChannelManager {
     }
 
     const enabledPlugins = result.data.filter((p) => p.enabled);
-    const builtinStartableTypes = new Set<PluginType>(['telegram', 'lark', 'dingtalk', 'weixin']);
+    const builtinStartableTypes = new Set<PluginType>(['telegram', 'lark', 'dingtalk', 'weixin', 'wecom']);
     const extensionRegistry = ExtensionRegistry.getInstance();
 
     for (const plugin of enabledPlugins) {
@@ -274,6 +276,12 @@ export class ChannelManager {
       const botToken = config.botToken as string | undefined;
       if (accountId && botToken) {
         credentials = { accountId, botToken };
+      }
+    } else if (pluginType === 'wecom') {
+      const token = config.token as string | undefined;
+      const encodingAesKey = config.encodingAesKey as string | undefined;
+      if (token && encodingAesKey) {
+        credentials = { token: token.trim(), encodingAesKey: encodingAesKey.trim() };
       }
     } else {
       // Extension or unknown plugin type:
@@ -453,6 +461,7 @@ export class ChannelManager {
     if (pluginId.startsWith('lark')) return 'lark';
     if (pluginId.startsWith('dingtalk')) return 'dingtalk';
     if (pluginId.startsWith('weixin')) return 'weixin';
+    if (pluginId.startsWith('wecom')) return 'wecom';
     // Extension plugins: use pluginId as type (e.g., 'ext-feishu')
     return pluginId;
   }
@@ -473,6 +482,9 @@ export class ChannelManager {
       // Registry may not be initialized, fall through
     }
     const type = this.getPluginTypeFromId(pluginId);
+    if (type === 'wecom') {
+      return 'WeCom';
+    }
     return type.charAt(0).toUpperCase() + type.slice(1) + ' Bot';
   }
 
@@ -524,7 +536,7 @@ export class ChannelManager {
       // For gemini + model info: update existing conversations' model field
       if (newType === 'gemini' && model?.id && model?.useModel) {
         if (isBuiltinChannelPlatform(platform)) {
-          const builtinPlatform: 'telegram' | 'lark' | 'dingtalk' | 'weixin' = platform;
+          const builtinPlatform: 'telegram' | 'lark' | 'dingtalk' | 'weixin' | 'wecom' = platform;
           const fullModel = await getChannelDefaultModel(builtinPlatform);
           const db = await getDatabase();
           const result = db.updateChannelConversationModel(builtinPlatform, 'gemini', fullModel);
