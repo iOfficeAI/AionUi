@@ -247,7 +247,6 @@ const fetchGitHubReleases = async (repo: string): Promise<GitHubReleaseApi[]> =>
     });
 
     if (!res.ok) {
-      const body = await res.text().catch(() => '');
       throw new Error((await getI18n()).t('update.errors.githubApiFailed', { status: res.status }));
     }
 
@@ -359,7 +358,6 @@ const startDownloadInBackground = async (
     const res = await fetchWithAllowlistedRedirects(url, abortController.signal);
 
     if (!res.ok) {
-      const body = await res.text().catch(() => '');
       throw new Error((await getI18n()).t('update.errors.downloadFailed', { status: res.status }));
     }
 
