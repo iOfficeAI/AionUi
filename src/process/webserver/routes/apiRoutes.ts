@@ -363,15 +363,11 @@ export function registerApiRoutes(app: Express): void {
           return;
         }
 
-        // Verify multer temp file is within the expected temp directory (prevents path traversal via file.path)
-        const resolvedFilePath = path.resolve(file.path);
-        if (!resolvedFilePath.startsWith(path.resolve(MULTER_TEMP_DIR) + path.sep)) {
-          await fsPromises.unlink(file.path).catch(() => {});
-          res.status(400).json({ success: false, msg: 'Invalid upload path' });
-          return;
-        }
-
-        await fsPromises.rename(file.path, targetPath);
+        // Reconstruct the source path from a trusted base + only the filename component of file.path.
+        // This breaks the taint chain: path.basename() strips any directory traversal sequences,
+        // and MULTER_TEMP_DIR is a constant set at startup, not user-provided.
+        const safeTempPath = path.join(path.resolve(MULTER_TEMP_DIR), path.basename(file.path));
+        await fsPromises.rename(safeTempPath, targetPath);
 
         res.json({
           success: true,
