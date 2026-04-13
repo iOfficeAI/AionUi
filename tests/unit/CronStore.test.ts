@@ -49,6 +49,7 @@ describe('CronStore', () => {
           description: 'Every minute',
         },
         target: {
+          kind: 'conversation',
           payload: { kind: 'message', text: 'Hello' },
           executionMode: 'existing',
         },
@@ -87,6 +88,7 @@ describe('CronStore', () => {
 
       // Verify the values passed to run()
       const runArgs = mockPrepareInstance.run.mock.calls[0];
+      expect(insertSql.match(/\?/g) ?? []).toHaveLength(runArgs.length);
       expect(runArgs[0]).toBe('job-1'); // id
       expect(runArgs[1]).toBe('Test Every Job'); // name
       expect(runArgs[2]).toBe(1); // enabled (true -> 1)
@@ -94,22 +96,24 @@ describe('CronStore', () => {
       expect(runArgs[4]).toBe('60000'); // schedule_value
       expect(runArgs[5]).toBeNull(); // schedule_tz
       expect(runArgs[6]).toBe('Every minute'); // schedule_description
-      expect(runArgs[7]).toBe('Hello'); // payload_message
-      expect(runArgs[8]).toBe('existing'); // execution_mode
-      expect(runArgs[9]).toBe(JSON.stringify(job.metadata.agentConfig)); // agent_config
-      expect(runArgs[10]).toBe('conv-1'); // conversation_id
-      expect(runArgs[11]).toBe('Test Conversation'); // conversation_title
-      expect(runArgs[12]).toBe('gemini'); // agent_type
-      expect(runArgs[13]).toBe('user'); // created_by
-      expect(runArgs[14]).toBe(1000); // created_at
-      expect(runArgs[15]).toBe(2000); // updated_at
-      expect(runArgs[16]).toBe(3000); // next_run_at
-      expect(runArgs[17]).toBe(4000); // last_run_at
-      expect(runArgs[18]).toBe('ok'); // last_status
-      expect(runArgs[19]).toBeNull(); // last_error (undefined -> null in jobToRow)
-      expect(runArgs[20]).toBe(5); // run_count
-      expect(runArgs[21]).toBe(0); // retry_count
-      expect(runArgs[22]).toBe(3); // max_retries
+      expect(runArgs[7]).toBe('conversation'); // target_kind (NEW)
+      expect(runArgs[8]).toBe('Hello'); // payload_message
+      expect(runArgs[9]).toBe('existing'); // execution_mode
+      expect(runArgs[10]).toBe(JSON.stringify(job.metadata.agentConfig)); // agent_config
+      expect(runArgs[11]).toBe('conv-1'); // conversation_id
+      expect(runArgs[12]).toBe('Test Conversation'); // conversation_title
+      expect(runArgs[13]).toBeNull(); // team_id (NEW)
+      expect(runArgs[14]).toBe('gemini'); // agent_type
+      expect(runArgs[15]).toBe('user'); // created_by
+      expect(runArgs[16]).toBe(1000); // created_at
+      expect(runArgs[17]).toBe(2000); // updated_at
+      expect(runArgs[18]).toBe(3000); // next_run_at
+      expect(runArgs[19]).toBe(4000); // last_run_at
+      expect(runArgs[20]).toBe('ok'); // last_status
+      expect(runArgs[21]).toBeNull(); // last_error (undefined -> null in jobToRow)
+      expect(runArgs[22]).toBe(5); // run_count
+      expect(runArgs[23]).toBe(0); // retry_count
+      expect(runArgs[24]).toBe(3); // max_retries
 
       // Now test retrieval (round-trip)
       mockPrepareInstance.get.mockReturnValue({
@@ -120,6 +124,7 @@ describe('CronStore', () => {
         schedule_value: '60000',
         schedule_tz: null,
         schedule_description: 'Every minute',
+        target_kind: 'conversation',
         payload_message: 'Hello',
         execution_mode: 'existing',
         agent_config: JSON.stringify({
@@ -129,6 +134,7 @@ describe('CronStore', () => {
         }),
         conversation_id: 'conv-1',
         conversation_title: 'Test Conversation',
+        team_id: null,
         agent_type: 'gemini',
         created_by: 'user',
         created_at: 1000,
@@ -174,6 +180,7 @@ describe('CronStore', () => {
           description: 'Daily at midnight EST',
         },
         target: {
+          kind: 'conversation',
           payload: { kind: 'message', text: 'Daily report' },
           executionMode: 'new_conversation',
         },
@@ -199,8 +206,10 @@ describe('CronStore', () => {
       expect(runArgs[3]).toBe('cron'); // schedule_kind
       expect(runArgs[4]).toBe('0 0 * * *'); // schedule_value
       expect(runArgs[5]).toBe('America/New_York'); // schedule_tz
-      expect(runArgs[8]).toBe('new_conversation'); // execution_mode
-      expect(runArgs[9]).toBeNull(); // agent_config (undefined)
+      expect(runArgs[7]).toBe('conversation'); // target_kind (NEW)
+      expect(runArgs[8]).toBe('Daily report'); // payload_message
+      expect(runArgs[9]).toBe('new_conversation'); // execution_mode
+      expect(runArgs[10]).toBeNull(); // agent_config (undefined)
 
       // Test retrieval
       mockPrepareInstance.get.mockReturnValue({
@@ -211,11 +220,13 @@ describe('CronStore', () => {
         schedule_value: '0 0 * * *',
         schedule_tz: 'America/New_York',
         schedule_description: 'Daily at midnight EST',
+        target_kind: 'conversation',
         payload_message: 'Daily report',
         execution_mode: 'new_conversation',
         agent_config: null,
         conversation_id: 'conv-2',
         conversation_title: null,
+        team_id: null,
         agent_type: 'claude',
         created_by: 'agent',
         created_at: 5000,
@@ -255,7 +266,9 @@ describe('CronStore', () => {
           description: 'Once on Jan 1, 2025',
         },
         target: {
+          kind: 'conversation',
           payload: { kind: 'message', text: 'New year message' },
+          executionMode: 'existing',
         },
         metadata: {
           conversationId: 'conv-3',
@@ -278,7 +291,9 @@ describe('CronStore', () => {
       expect(runArgs[3]).toBe('at'); // schedule_kind
       expect(runArgs[4]).toBe('1735689600000'); // schedule_value
       expect(runArgs[5]).toBeNull(); // schedule_tz
-      expect(runArgs[8]).toBe('existing'); // execution_mode (default)
+      expect(runArgs[7]).toBe('conversation'); // target_kind (NEW)
+      expect(runArgs[8]).toBe('New year message'); // payload_message
+      expect(runArgs[9]).toBe('existing'); // execution_mode
 
       // Test retrieval
       mockPrepareInstance.get.mockReturnValue({
@@ -289,11 +304,13 @@ describe('CronStore', () => {
         schedule_value: '1735689600000',
         schedule_tz: null,
         schedule_description: 'Once on Jan 1, 2025',
+        target_kind: 'conversation',
         payload_message: 'New year message',
         execution_mode: 'existing',
         agent_config: null,
         conversation_id: 'conv-3',
         conversation_title: null,
+        team_id: null,
         agent_type: 'gemini',
         created_by: 'user',
         created_at: 7000,
@@ -416,7 +433,7 @@ describe('CronStore', () => {
         name: 'New Job',
         enabled: true,
         schedule: { kind: 'every', everyMs: 5000, description: 'Every 5s' },
-        target: { payload: { kind: 'message', text: 'Test' } },
+        target: { kind: 'conversation', payload: { kind: 'message', text: 'Test' }, executionMode: 'existing' },
         metadata: {
           conversationId: 'conv-1',
           agentType: 'gemini',
@@ -658,11 +675,13 @@ describe('CronStore', () => {
           schedule_value: '1000',
           schedule_tz: null,
           schedule_description: 'Test',
+          target_kind: 'conversation',
           payload_message: 'Test',
           execution_mode: 'existing',
           agent_config: null,
           conversation_id: 'target-conv',
           conversation_title: null,
+          team_id: null,
           agent_type: 'gemini',
           created_by: 'user',
           created_at: 1000,

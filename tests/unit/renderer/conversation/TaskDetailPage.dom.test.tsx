@@ -170,8 +170,10 @@ describe('TaskDetailPage', () => {
       description: 'Every day at 9:00 AM',
     },
     target: {
+      kind: 'conversation',
       executionMode: 'new_conversation',
       payload: {
+        kind: 'message',
         text: 'Summarize daily activities',
       },
     },
@@ -307,8 +309,10 @@ describe('TaskDetailPage', () => {
     const existingModeJob: ICronJob = {
       ...mockJob,
       target: {
+        kind: 'conversation',
         executionMode: 'existing',
         payload: {
+          kind: 'message',
           text: 'Update task',
         },
       },
@@ -535,8 +539,10 @@ describe('TaskDetailPage', () => {
     const existingModeJob: ICronJob = {
       ...mockJob,
       target: {
+        kind: 'conversation',
         executionMode: 'existing_conversation',
         payload: {
+          kind: 'message',
           text: 'Update task',
         },
       },
@@ -555,8 +561,10 @@ describe('TaskDetailPage', () => {
     const errorJob: ICronJob = {
       ...mockJob,
       target: {
+        kind: 'conversation',
         executionMode: 'existing_conversation',
         payload: {
+          kind: 'message',
           text: 'Update task',
         },
       },

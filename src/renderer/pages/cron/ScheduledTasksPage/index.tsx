@@ -164,9 +164,13 @@ const ScheduledTasksPage: React.FC = () => {
               const agentMeta = getJobAgentMeta(job);
               const isManualOnly = job.schedule.kind === 'cron' && !job.schedule.expr;
               const executionModeLabel =
-                job.target.executionMode === 'new_conversation'
-                  ? t('cron.page.form.newConversation')
-                  : t('cron.page.form.existingConversation');
+                job.target.kind === 'team'
+                  ? t('cron.page.form.targetTeam')
+                  : job.target.kind === 'conversation'
+                    ? job.target.executionMode === 'new_conversation'
+                      ? t('cron.page.form.newConversation')
+                      : t('cron.page.form.existingConversation')
+                    : '';
 
               return (
                 <div

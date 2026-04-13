@@ -23,13 +23,20 @@ export type CronJob = {
   name: string;
   enabled: boolean;
   schedule: CronSchedule;
-  target: {
-    payload: { kind: 'message'; text: string };
-    executionMode?: 'existing' | 'new_conversation';
-  };
+  target:
+    | {
+        kind: 'conversation';
+        payload: { kind: 'message'; text: string };
+        executionMode?: 'existing' | 'new_conversation';
+      }
+    | {
+        kind: 'team';
+        payload: { kind: 'message'; text: string };
+      };
   metadata: {
-    conversationId: string;
+    conversationId?: string;
     conversationTitle?: string;
+    teamId?: string;
     agentType: AcpBackendAll;
     createdBy: 'user' | 'agent';
     createdAt: number;
@@ -69,11 +76,13 @@ type CronJobRow = {
   schedule_value: string;
   schedule_tz: string | null;
   schedule_description: string;
+  target_kind: string;
   payload_message: string;
   execution_mode: string | null;
   agent_config: string | null;
-  conversation_id: string;
+  conversation_id: string | null;
   conversation_title: string | null;
+  team_id: string | null;
   agent_type: string;
   created_by: string;
   created_at: number;
@@ -110,11 +119,13 @@ function jobToRow(job: CronJob): CronJobRow {
     schedule_value: scheduleValue,
     schedule_tz: kind === 'cron' ? (job.schedule.tz ?? null) : null,
     schedule_description: job.schedule.description,
+    target_kind: job.target.kind,
     payload_message: job.target.payload.text,
-    execution_mode: job.target.executionMode ?? 'existing',
+    execution_mode: job.target.kind === 'conversation' ? (job.target.executionMode ?? 'existing') : null,
     agent_config: job.metadata.agentConfig ? JSON.stringify(job.metadata.agentConfig) : null,
-    conversation_id: job.metadata.conversationId,
+    conversation_id: job.target.kind === 'conversation' ? (job.metadata.conversationId ?? null) : null,
     conversation_title: job.metadata.conversationTitle ?? null,
+    team_id: job.target.kind === 'team' ? (job.metadata.teamId ?? null) : null,
     agent_type: job.metadata.agentType,
     created_by: job.metadata.createdBy,
     created_at: job.metadata.createdAt,
@@ -166,13 +177,21 @@ function rowToJob(row: CronJobRow): CronJob {
     name: row.name,
     enabled: row.enabled === 1,
     schedule,
-    target: {
-      payload: { kind: 'message', text: row.payload_message },
-      executionMode: (row.execution_mode as 'existing' | 'new_conversation') ?? 'existing',
-    },
+    target:
+      row.target_kind === 'team'
+        ? {
+            kind: 'team',
+            payload: { kind: 'message', text: row.payload_message },
+          }
+        : {
+            kind: 'conversation',
+            payload: { kind: 'message', text: row.payload_message },
+            executionMode: (row.execution_mode as 'existing' | 'new_conversation') ?? 'existing',
+          },
     metadata: {
-      conversationId: row.conversation_id,
+      conversationId: row.target_kind === 'conversation' ? (row.conversation_id ?? undefined) : undefined,
       conversationTitle: row.conversation_title ?? undefined,
+      teamId: row.target_kind === 'team' ? (row.team_id ?? undefined) : undefined,
       agentType: row.agent_type as AcpBackendAll,
       createdBy: row.created_by as 'user' | 'agent',
       createdAt: row.created_at,
@@ -208,12 +227,12 @@ class CronStore {
       INSERT INTO cron_jobs (
         id, name, enabled,
         schedule_kind, schedule_value, schedule_tz, schedule_description,
-        payload_message, execution_mode, agent_config,
-        conversation_id, conversation_title, agent_type, created_by,
+        target_kind, payload_message, execution_mode, agent_config,
+        conversation_id, conversation_title, team_id, agent_type, created_by,
         created_at, updated_at,
         next_run_at, last_run_at, last_status, last_error,
         run_count, retry_count, max_retries
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `
       )
       .run(
@@ -224,11 +243,13 @@ class CronStore {
         row.schedule_value,
         row.schedule_tz,
         row.schedule_description,
+        row.target_kind,
         row.payload_message,
         row.execution_mode,
         row.agent_config,
         row.conversation_id,
         row.conversation_title,
+        row.team_id,
         row.agent_type,
         row.created_by,
         row.created_at,
@@ -280,8 +301,8 @@ class CronStore {
       UPDATE cron_jobs SET
         name = ?, enabled = ?,
         schedule_kind = ?, schedule_value = ?, schedule_tz = ?, schedule_description = ?,
-        payload_message = ?, execution_mode = ?, agent_config = ?,
-        conversation_id = ?, conversation_title = ?, agent_type = ?,
+        target_kind = ?, payload_message = ?, execution_mode = ?, agent_config = ?,
+        conversation_id = ?, conversation_title = ?, team_id = ?, agent_type = ?,
         updated_at = ?,
         next_run_at = ?, last_run_at = ?, last_status = ?, last_error = ?,
         run_count = ?, retry_count = ?, max_retries = ?
@@ -295,11 +316,13 @@ class CronStore {
         row.schedule_value,
         row.schedule_tz,
         row.schedule_description,
+        row.target_kind,
         row.payload_message,
         row.execution_mode,
         row.agent_config,
         row.conversation_id,
         row.conversation_title,
+        row.team_id,
         row.agent_type,
         row.updated_at,
         row.next_run_at,

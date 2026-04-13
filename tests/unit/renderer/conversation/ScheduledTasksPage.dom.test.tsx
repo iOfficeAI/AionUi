@@ -200,6 +200,7 @@ const createMockJob = (overrides: Partial<ICronJob> = {}): ICronJob => ({
     description: 'Every day at 9:00 AM',
   },
   target: {
+    kind: 'conversation',
     payload: { kind: 'message', text: 'Generate summary' },
     executionMode: 'new_conversation',
   },
@@ -274,6 +275,7 @@ describe('ScheduledTasksPage', () => {
         id: 'job-2',
         name: 'Continuous Task',
         target: {
+          kind: 'conversation',
           payload: { kind: 'message', text: 'Generate summary' },
           executionMode: 'existing',
         },
@@ -309,6 +311,7 @@ describe('ScheduledTasksPage', () => {
         description: 'Manual',
       },
       target: {
+        kind: 'conversation',
         payload: { kind: 'message', text: 'Run manually' },
         executionMode: 'existing',
       },

@@ -1138,6 +1138,33 @@ const migration_v23: IMigration = {
 };
 
 /**
+ * Migration v23 -> v24: Add team support to cron_jobs table
+ */
+const migration_v24: IMigration = {
+  version: 24,
+  name: 'Add team support to cron_jobs',
+  up: (db) => {
+    const columns = new Set((db.pragma('table_info(cron_jobs)') as Array<{ name: string }>).map((c) => c.name));
+
+    if (!columns.has('target_kind')) {
+      db.exec(`ALTER TABLE cron_jobs ADD COLUMN target_kind TEXT DEFAULT 'conversation'`);
+    }
+    if (!columns.has('team_id')) {
+      db.exec(`ALTER TABLE cron_jobs ADD COLUMN team_id TEXT`);
+    }
+
+    // Index for querying jobs by team
+    db.exec('CREATE INDEX IF NOT EXISTS idx_cron_jobs_team ON cron_jobs(team_id) WHERE team_id IS NOT NULL');
+
+    console.log('[Migration v24] Added team support to cron_jobs table');
+  },
+  down: (_db) => {
+    // SQLite does not support DROP COLUMN before 3.35.0; skip rollback to prevent data loss.
+    console.warn('[Migration v24] Rollback skipped: cannot drop columns safely.');
+  },
+};
+
+/**
  * All migrations in order
  */
 // prettier-ignore
@@ -1145,7 +1172,7 @@ export const ALL_MIGRATIONS: IMigration[] = [
   migration_v1, migration_v2, migration_v3, migration_v4, migration_v5, migration_v6,
   migration_v7, migration_v8, migration_v9, migration_v10, migration_v11, migration_v12,
   migration_v13, migration_v14, migration_v15, migration_v16, migration_v17, migration_v18,
-  migration_v19, migration_v20, migration_v21, migration_v22, migration_v23,
+  migration_v19, migration_v20, migration_v21, migration_v22, migration_v23, migration_v24,
 ];
 
 /**

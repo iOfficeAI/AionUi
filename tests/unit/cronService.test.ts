@@ -75,6 +75,7 @@ function makeExecutor(overrides?: Partial<ICronJobExecutor>): ICronJobExecutor {
   return {
     isConversationBusy: vi.fn(() => false),
     executeJob: vi.fn(async () => {}),
+    prepareConversation: vi.fn(async (job: CronJob) => job.metadata.conversationId ?? 'prepared-conv'),
     onceIdle: vi.fn(),
     setProcessing: vi.fn(),
     ...overrides,
@@ -420,6 +421,37 @@ describe('CronService', () => {
     expect(addMessage).toHaveBeenCalledWith('conv-1', expect.objectContaining({ type: 'tips' }));
   });
 
+  it('handleSystemResume skips missed-job messages for team jobs', async () => {
+    vi.mocked(repo.listEnabled).mockReturnValue([]);
+    await service.init();
+
+    const pastTime = Date.now() - 1000;
+    const job = makeJob({
+      id: 'team-job',
+      target: { kind: 'team', payload: { kind: 'message', text: 'hello team' } },
+      metadata: {
+        teamId: 'team-1',
+        agentType: 'gemini',
+        createdBy: 'user',
+        createdAt: 1000,
+        updatedAt: 1000,
+      },
+      state: {
+        runCount: 0,
+        retryCount: 0,
+        maxRetries: 3,
+        nextRunAtMs: pastTime,
+      },
+    });
+    vi.mocked(repo.listEnabled).mockReturnValue([job]);
+    vi.mocked(repo.getById).mockReturnValue(job);
+
+    await service.handleSystemResume();
+
+    const { addMessage } = await import('@process/utils/message');
+    expect(addMessage).not.toHaveBeenCalled();
+  });
+
   it('handleSystemResume does nothing when service is not yet initialized', async () => {
     await service.handleSystemResume();
 
@@ -454,5 +486,43 @@ describe('CronService', () => {
       })
     );
     expect(emitter.emitJobUpdated).toHaveBeenCalledWith(expect.objectContaining({ id: 'bad-cron', enabled: false }));
+  });
+
+  it('runNow prepares a conversation for conversation jobs and returns its id', async () => {
+    const job = makeJob({
+      id: 'conv-job',
+      target: {
+        kind: 'conversation',
+        payload: { kind: 'message', text: 'hello' },
+        executionMode: 'existing',
+      },
+    });
+    vi.mocked(repo.getById).mockReturnValue(job);
+    vi.mocked(executor.prepareConversation).mockResolvedValue('prepared-conv');
+
+    await expect(service.runNow('conv-job')).resolves.toBe('prepared-conv');
+
+    expect(executor.prepareConversation).toHaveBeenCalledWith(job);
+    expect(executor.executeJob).toHaveBeenCalledWith(job, expect.any(Function), 'prepared-conv');
+  });
+
+  it('runNow executes team jobs without preparing a conversation', async () => {
+    const job = makeJob({
+      id: 'team-job',
+      target: { kind: 'team', payload: { kind: 'message', text: 'hello team' } },
+      metadata: {
+        teamId: 'team-1',
+        agentType: 'gemini',
+        createdBy: 'user',
+        createdAt: 1000,
+        updatedAt: 1000,
+      },
+    });
+    vi.mocked(repo.getById).mockReturnValue(job);
+
+    await expect(service.runNow('team-job')).resolves.toBe('');
+
+    expect(executor.prepareConversation).not.toHaveBeenCalled();
+    expect(executor.executeJob).toHaveBeenCalledWith(job, expect.any(Function), undefined);
   });
 });

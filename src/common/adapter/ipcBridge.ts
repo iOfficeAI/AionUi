@@ -835,13 +835,17 @@ export interface ICronJob {
   name: string;
   enabled: boolean;
   schedule: ICronSchedule;
-  target: {
-    payload: { kind: 'message'; text: string };
-    executionMode?: 'existing' | 'new_conversation';
-  };
+  target:
+    | {
+        kind: 'conversation';
+        payload: { kind: 'message'; text: string };
+        executionMode?: 'existing' | 'new_conversation';
+      }
+    | { kind: 'team'; payload: { kind: 'message'; text: string } };
   metadata: {
-    conversationId: string;
+    conversationId?: string;
     conversationTitle?: string;
+    teamId?: string;
     agentType: AcpBackendAll;
     createdBy: 'user' | 'agent';
     createdAt: number;
@@ -879,8 +883,10 @@ export interface ICreateCronJobParams {
   /** New UI system uses `prompt`; old skill system uses `message` */
   prompt?: string;
   message?: string;
-  conversationId: string;
+  conversationId?: string;
   conversationTitle?: string;
+  teamId?: string;
+  targetKind?: 'conversation' | 'team';
   agentType: AcpBackendAll;
   createdBy: 'user' | 'agent';
   executionMode?: 'existing' | 'new_conversation';

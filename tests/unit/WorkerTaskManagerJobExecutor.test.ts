@@ -55,7 +55,11 @@ function makeJob(conversationId = 'conv-1'): CronJob {
     name: 'Test Job',
     enabled: true,
     schedule: { kind: 'every', everyMs: 60000, description: 'every minute' },
-    target: { payload: { kind: 'message', text: 'hello' } },
+    target: {
+      kind: 'conversation',
+      executionMode: 'existing',
+      payload: { kind: 'message', text: 'hello' },
+    },
     metadata: {
       conversationId,
       agentType: 'acp',

@@ -38,7 +38,7 @@ const TaskDetailPage: React.FC = () => {
   const [editDialogVisible, setEditDialogVisible] = useState(false);
   const [runningNow, setRunningNow] = useState(false);
 
-  const isNewConversationMode = job?.target.executionMode === 'new_conversation';
+  const isNewConversationMode = job?.target.kind === 'conversation' && job.target.executionMode === 'new_conversation';
   const isManualOnly = job?.schedule.kind === 'cron' && !job.schedule.expr;
   const { conversations } = useCronJobConversations(jobId);
 

@@ -32,6 +32,16 @@ async function getConversationService() {
   return mod.conversationServiceSingleton;
 }
 
+/** Lazy-import to break circular dependency: cronServiceSingleton ↔ teamSessionServiceSingleton */
+async function getTeamSessionService() {
+  const mod = await import('@process/team/TeamSessionServiceSingleton');
+  const service = mod.teamSessionServiceSingleton;
+  if (!service) {
+    throw new Error('TeamSessionService singleton not initialized. Call setTeamSessionServiceSingleton first.');
+  }
+  return service;
+}
+
 /** Executes cron jobs by delegating to WorkerTaskManager and tracking busy state via CronBusyGuard. */
 export class WorkerTaskManagerJobExecutor implements ICronJobExecutor {
   constructor(
@@ -44,6 +54,11 @@ export class WorkerTaskManagerJobExecutor implements ICronJobExecutor {
   }
 
   async executeJob(job: CronJob, onAcquired?: () => void, preparedConversationId?: string): Promise<string | void> {
+    // Handle team jobs differently
+    if (job.target.kind === 'team') {
+      return this.executeTeamJob(job);
+    }
+
     let conversationId = preparedConversationId ?? job.metadata.conversationId;
 
     // Create a conversation when needed (skip if already prepared by runNow):
@@ -54,7 +69,13 @@ export class WorkerTaskManagerJobExecutor implements ICronJobExecutor {
     // For existing mode, ensure the reused conversation uses the correct model.
     // If the job specifies a modelId, use that; otherwise fall back to the user's
     // preferred model so it doesn't stay on whatever it was originally created with.
-    if (job.target.executionMode === 'existing' && conversationId && job.metadata.agentConfig) {
+    // Skip for team jobs (not bound to conversations)
+    if (
+      job.target.kind === 'conversation' &&
+      job.target.executionMode === 'existing' &&
+      conversationId &&
+      job.metadata.agentConfig
+    ) {
       const convService = await getConversationService();
       const conv = await convService.getConversation(conversationId);
       if (conv) {
@@ -132,7 +153,8 @@ export class WorkerTaskManagerJobExecutor implements ICronJobExecutor {
     const workspaceFiles = workspace ? await copyFilesToDirectory(workspace, [], false) : [];
 
     const hasSkill = await hasCronSkillFile(job.id);
-    const needsSkillSuggest = job.target.executionMode === 'new_conversation' && !!workspace && !hasSkill;
+    const needsSkillSuggest =
+      job.target.kind === 'conversation' && job.target.executionMode === 'new_conversation' && !!workspace && !hasSkill;
     const isGemini = job.metadata.agentConfig?.backend === 'gemini';
 
     // Gemini: inline SKILL_SUGGEST instructions in the task prompt (single-turn).
@@ -417,7 +439,25 @@ export class WorkerTaskManagerJobExecutor implements ICronJobExecutor {
   private buildMessageText(job: CronJob, hasSkill: boolean, inlineSkillSuggest: boolean): string {
     const rawText = job.target.payload.text;
 
-    if (job.target.executionMode !== 'new_conversation') {
+    // Team jobs use a different message format
+    if (job.target.kind === 'team') {
+      return `[Scheduled Task Context]
+Task: ${job.name}
+Schedule: ${job.schedule.description}
+
+This is a scheduled task triggered automatically.
+The instruction below is a TASK INSTRUCTION that you must execute, not a conversation from the user.
+
+Rules:
+1. Treat the instruction as a command to perform, not as a chat message to respond to.
+2. Execute it directly — do NOT ask clarifying questions.
+3. If the task requires external data (news, weather, etc.), search for the latest information.
+
+Task instruction:
+${rawText}`;
+    }
+
+    if (job.target.kind === 'conversation' && job.target.executionMode !== 'new_conversation') {
       return buildExistingConvPrompt(job.name, job.schedule.description, rawText);
     }
 
@@ -441,6 +481,7 @@ export class WorkerTaskManagerJobExecutor implements ICronJobExecutor {
 
   /**
    * Resolve the conversation ID for a job execution.
+   * - team mode: team jobs don't use conversations, this should not be called
    * - new_conversation mode: always create a fresh conversation
    * - existing mode: reuse the latest child conversation, unless agent or workspace changed
    *
@@ -448,6 +489,11 @@ export class WorkerTaskManagerJobExecutor implements ICronJobExecutor {
    * Mode and configOptions changes do NOT require a new conversation.
    */
   private async resolveConversationForJob(job: CronJob): Promise<string> {
+    // Team jobs don't use conversations - this should not be called for team jobs
+    if (job.target.kind === 'team') {
+      throw new Error(`Team job ${job.id} should not call resolveConversationForJob`);
+    }
+
     // new_conversation mode: always create
     if (job.target.executionMode === 'new_conversation') {
       const conv = await this.buildConversationForJob(job);
@@ -459,7 +505,7 @@ export class WorkerTaskManagerJobExecutor implements ICronJobExecutor {
       const convService = await getConversationService();
       const childConversations = await convService.getConversationsByCronJob(job.id);
       console.log(
-        `[CronExecutor] resolveConversation existing mode: childCount=${childConversations.length}, executionMode=${job.target.executionMode}`
+        `[CronExecutor] resolveConversation existing mode: childCount=${childConversations.length}, executionMode=existing`
       );
 
       if (childConversations.length > 0) {
@@ -756,6 +802,40 @@ export class WorkerTaskManagerJobExecutor implements ICronJobExecutor {
 
   onceIdle(conversationId: string, callback: () => Promise<void>): void {
     this.busyGuard.onceIdle(conversationId, callback);
+  }
+
+  /**
+   * Execute a team job by sending a message to the team
+   */
+  private async executeTeamJob(job: CronJob): Promise<void> {
+    const { teamId } = job.metadata;
+    if (!teamId) {
+      throw new Error(`Team job ${job.id} has no teamId`);
+    }
+
+    const teamService = await getTeamSessionService();
+    const messageText = `[Scheduled Task Context]
+Task: ${job.name}
+Schedule: ${job.schedule.description}
+
+This is a scheduled task triggered automatically.
+The instruction below is a TASK INSTRUCTION that you must execute, not a conversation from the user.
+
+Rules:
+1. Treat the instruction as a command to perform, not as a chat message to respond to.
+2. Execute it directly — do NOT ask clarifying questions.
+3. If the task requires external data (news, weather, etc.), search for the latest information.
+
+Task instruction:
+${job.target.payload.text}`;
+
+    try {
+      const session = await teamService.getOrStartSession(teamId);
+      await session.sendMessage(messageText);
+    } catch (error) {
+      console.error(`[CronExecutor] Failed to send message to team ${teamId}:`, error);
+      throw error;
+    }
   }
 
   setProcessing(conversationId: string, busy: boolean): void {

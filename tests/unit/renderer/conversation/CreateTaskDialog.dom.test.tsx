@@ -35,17 +35,25 @@ vi.mock('react-i18next', () => ({
 // Mock @icon-park/react
 vi.mock('@icon-park/react', () => ({
   Robot: () => <span data-testid='icon-robot' />,
+  Peoples: () => <span data-testid='icon-peoples' />,
 }));
 
 // Mock ipcBridge
 const mockAddJob = vi.fn();
 const mockUpdateJob = vi.fn();
+const mockListTeams = vi.fn().mockResolvedValue([]);
+const mockValidate = vi.fn();
+const mockSetFieldsValue = vi.fn();
+const mockResetFields = vi.fn();
 
 vi.mock('@/common', () => ({
   ipcBridge: {
     cron: {
       addJob: { invoke: (...args: unknown[]) => mockAddJob(...args) },
       updateJob: { invoke: (...args: unknown[]) => mockUpdateJob(...args) },
+    },
+    team: {
+      list: { invoke: (...args: unknown[]) => mockListTeams(...args) },
     },
   },
 }));
@@ -65,14 +73,9 @@ vi.mock('@arco-design/web-react', () => ({
       ),
       useForm: () => [
         {
-          setFieldsValue: vi.fn(),
-          resetFields: vi.fn(),
-          validate: vi.fn().mockResolvedValue({
-            name: 'Test Task',
-            description: 'Test Description',
-            prompt: 'Test Prompt',
-            agent: 'cli:claude',
-          }),
+          setFieldsValue: mockSetFieldsValue,
+          resetFields: mockResetFields,
+          validate: mockValidate,
         },
       ],
     }
@@ -283,6 +286,12 @@ vi.mock('@renderer/pages/conversation/hooks/useConversationAgents', () => ({
   }),
 }));
 
+vi.mock('@renderer/hooks/context/AuthContext', () => ({
+  useAuth: () => ({
+    user: { id: 'test-user-id' },
+  }),
+}));
+
 // Mock utils
 vi.mock('@renderer/utils/model/agentLogo', () => ({
   getAgentLogo: (backend: string) => (backend === 'claude' ? '/logo/claude.png' : null),
@@ -304,6 +313,23 @@ vi.mock('dayjs', () => ({
 }));
 
 import CreateTaskDialog from '@/renderer/pages/cron/ScheduledTasksPage/CreateTaskDialog';
+
+beforeEach(() => {
+  vi.clearAllMocks();
+  mockAddJob.mockReset();
+  mockUpdateJob.mockReset();
+  mockListTeams.mockReset();
+  mockValidate.mockReset();
+  mockSetFieldsValue.mockReset();
+  mockResetFields.mockReset();
+  mockListTeams.mockResolvedValue([]);
+  mockValidate.mockResolvedValue({
+    name: 'Test Task',
+    description: 'Test Description',
+    prompt: 'Test Prompt',
+    agent: 'cli:claude',
+  });
+});
 
 describe('CreateTaskDialog - parseCronExpr utility', () => {
   // Test parseCronExpr indirectly by checking if edit mode populates the form correctly
@@ -838,10 +864,6 @@ describe('CreateTaskDialog - schedule preset definitions', () => {
 });
 
 describe('CreateTaskDialog - component behavior', () => {
-  beforeEach(() => {
-    vi.clearAllMocks();
-  });
-
   it('renders in create mode when no editJob is provided', () => {
     render(<CreateTaskDialog visible={true} onClose={vi.fn()} conversationId='conv-1' />);
 
@@ -948,5 +970,54 @@ describe('CreateTaskDialog - component behavior', () => {
     });
 
     expect(onClose).toHaveBeenCalled();
+  });
+
+  it('submits validated form teamId when editing a team task', async () => {
+    const onClose = vi.fn();
+    mockUpdateJob.mockResolvedValue(undefined);
+    mockListTeams.mockResolvedValue([{ id: 'team-1', name: 'Alpha Team' }]);
+    mockValidate.mockResolvedValueOnce({
+      name: 'Updated Team Task',
+      description: 'Updated desc',
+      prompt: 'Updated prompt',
+      agent: 'cli:claude',
+      team: 'team-2',
+    });
+
+    const editJob: ICronJob = {
+      id: 'job-team-1',
+      name: 'Existing Team Task',
+      schedule: { kind: 'cron', expr: '0 9 * * *', description: 'Daily at 09:00' },
+      target: {
+        kind: 'team',
+        payload: { kind: 'message', text: 'Existing prompt' },
+      },
+      metadata: {
+        teamId: 'team-1',
+        agentType: 'claude',
+        createdBy: 'user',
+        createdAt: Date.now(),
+        updatedAt: Date.now(),
+        agentConfig: {
+          backend: 'claude',
+          name: 'Claude',
+          cliPath: '/usr/bin/claude',
+        },
+      },
+      state: 'active',
+      lastExecutionTime: Date.now(),
+    };
+
+    render(<CreateTaskDialog visible={true} onClose={onClose} editJob={editJob} conversationId='conv-1' />);
+
+    fireEvent.click(screen.getByTestId('modal-ok'));
+
+    await waitFor(() => {
+      expect(mockUpdateJob).toHaveBeenCalled();
+    });
+
+    const callArgs = mockUpdateJob.mock.calls[0][0];
+    expect(callArgs.jobId).toBe('job-team-1');
+    expect(callArgs.updates.metadata.teamId).toBe('team-2');
   });
 });

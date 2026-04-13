@@ -39,7 +39,6 @@ const CronJobSiderItem: React.FC<CronJobSiderItemProps> = ({
   const { t } = useTranslation();
   const { id: currentConversationId } = useParams();
   const navigate = useNavigate();
-  const isNewConversationMode = job.target.executionMode === 'new_conversation';
   // Always fetch all child conversations regardless of mode
   const { conversations } = useCronJobConversations(job.id);
   const { isConversationGenerating, hasCompletionUnread, clearCompletionUnread } = useConversationHistoryContext();

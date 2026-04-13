@@ -8,12 +8,14 @@ import React, { useState, useMemo, useEffect, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Form, Input, Select, Message, TimePicker, Radio, Collapse, Button } from '@arco-design/web-react';
 import ModalWrapper from '@renderer/components/base/ModalWrapper';
-import { Robot } from '@icon-park/react';
+import { Robot, Peoples } from '@icon-park/react';
 import { ipcBridge } from '@/common';
 import type { ICreateCronJobParams, ICronAgentConfig, ICronJob } from '@/common/adapter/ipcBridge';
 import { useConversationAgents } from '@renderer/pages/conversation/hooks/useConversationAgents';
 import { getAgentLogo } from '@renderer/utils/model/agentLogo';
 import { CUSTOM_AVATAR_IMAGE_MAP } from '@/renderer/pages/guid/constants';
+import type { TTeam } from '@/common/types/teamTypes';
+import { useAuth } from '@renderer/hooks/context/AuthContext';
 import dayjs from 'dayjs';
 import AcpConfigSelector from '@renderer/components/agent/AcpConfigSelector';
 import { getFullAutoMode } from '@renderer/utils/model/agentModes';
@@ -40,6 +42,7 @@ interface CreateTaskDialogProps {
 
 type FrequencyType = 'manual' | 'hourly' | 'daily' | 'weekdays' | 'weekly';
 type ExecutionMode = 'new_conversation' | 'existing';
+type TargetKind = 'conversation' | 'team';
 
 const WEEKDAYS = [
   { value: 'MON', label: 'monday' },
@@ -107,16 +110,21 @@ const CreateTaskDialog: React.FC<CreateTaskDialogProps> = ({
   agentType,
 }) => {
   const { t } = useTranslation();
+  const { user } = useAuth();
   const [form] = Form.useForm();
   const [submitting, setSubmitting] = useState(false);
   const { cliAgents, presetAssistants } = useConversationAgents();
-  const { providers, geminiModeLookup, getAvailableModels, formatModelLabel } = useModelProviderList();
+  const { providers, geminiModeLookup, getAvailableModels } = useModelProviderList();
   const [frequency, setFrequency] = useState<FrequencyType>('manual');
   const [time, setTime] = useState('09:00');
   const [weekday, setWeekday] = useState('MON');
 
   const isEditMode = !!editJob;
   const [executionMode, setExecutionMode] = useState<ExecutionMode>('new_conversation');
+  const [targetKind, setTargetKind] = useState<TargetKind>('conversation');
+  const [teams, setTeams] = useState<TTeam[]>([]);
+
+  const userId = user?.id ?? 'system_default_user';
 
   // Advanced settings state
   const [modelId, setModelId] = useState<string | undefined>(undefined);
@@ -125,6 +133,22 @@ const CreateTaskDialog: React.FC<CreateTaskDialogProps> = ({
   const [cachedConfigOptions, setCachedConfigOptions] = useState<unknown[] | undefined>(undefined);
   const [acpCachedModelInfo, setAcpCachedModelInfo] = useState<AcpModelInfo | null>(null);
   const [selectedAgent, setSelectedAgent] = useState<string | undefined>(undefined);
+
+  // Load teams when dialog opens or userId changes
+  useEffect(() => {
+    if (!visible || !userId) {
+      setTeams([]);
+      return;
+    }
+    ipcBridge.team.list
+      .invoke({ userId })
+      .then((teamList) => {
+        setTeams(teamList);
+      })
+      .catch(() => {
+        setTeams([]);
+      });
+  }, [visible, userId]);
 
   // Populate form when entering edit mode
   useEffect(() => {
@@ -135,7 +159,11 @@ const CreateTaskDialog: React.FC<CreateTaskDialogProps> = ({
       setFrequency(parsed.frequency);
       setTime(parsed.time);
       setWeekday(parsed.weekday);
-      setExecutionMode(editJob.target.executionMode || 'existing');
+      const isTeamTarget = editJob.target.kind === 'team';
+      setTargetKind(isTeamTarget ? 'team' : 'conversation');
+      if (editJob.target.kind === 'conversation') {
+        setExecutionMode(editJob.target.executionMode || 'existing');
+      }
       const agentKey = getAgentKeyFromJob(editJob);
       setSelectedAgent(agentKey);
       form.setFieldsValue({
@@ -143,6 +171,7 @@ const CreateTaskDialog: React.FC<CreateTaskDialogProps> = ({
         description: editJob.schedule.description || editJob.name,
         prompt: editJob.target.payload.text,
         agent: agentKey,
+        team: isTeamTarget ? editJob.metadata.teamId : undefined,
       });
       // Populate advanced settings from editJob
       setModelId(editJob.metadata.agentConfig?.modelId);
@@ -154,6 +183,7 @@ const CreateTaskDialog: React.FC<CreateTaskDialogProps> = ({
       setTime('09:00');
       setWeekday('MON');
       setExecutionMode('new_conversation');
+      setTargetKind('conversation');
       setModelId(undefined);
       setConfigOptions(undefined);
       setWorkspace(undefined);
@@ -397,13 +427,17 @@ const CreateTaskDialog: React.FC<CreateTaskDialogProps> = ({
           updates: {
             name: values.name,
             schedule: { kind: 'cron', expr: scheduleExpr, description: scheduleDesc },
-            target: {
-              ...editJob!.target,
-              payload: { kind: 'message', text: values.prompt },
-              executionMode,
-            },
+            target:
+              targetKind === 'team'
+                ? { kind: 'team', payload: { kind: 'message', text: values.prompt } }
+                : {
+                    kind: 'conversation',
+                    payload: { kind: 'message', text: values.prompt },
+                    executionMode,
+                  },
             metadata: {
               ...editJob!.metadata,
+              teamId: targetKind === 'team' ? (values.team as string | undefined) : undefined,
               agentType: resolvedAgentType,
               agentConfig,
               updatedAt: Date.now(),
@@ -418,11 +452,13 @@ const CreateTaskDialog: React.FC<CreateTaskDialogProps> = ({
           description: values.description,
           schedule: { kind: 'cron', expr: scheduleExpr, description: scheduleDesc },
           prompt: values.prompt,
-          conversationId: '',
+          conversationId: targetKind === 'conversation' ? _conversationId || '' : undefined,
           conversationTitle,
+          teamId: targetKind === 'team' ? (values.team as string | undefined) : undefined,
+          targetKind,
           agentType: resolvedAgentType,
           createdBy: 'user',
-          executionMode,
+          executionMode: targetKind === 'conversation' ? executionMode : undefined,
           agentConfig,
         };
         await ipcBridge.cron.addJob.invoke(params);
@@ -468,6 +504,42 @@ const CreateTaskDialog: React.FC<CreateTaskDialogProps> = ({
           >
             <Input placeholder={t('cron.page.form.descriptionPlaceholder')} />
           </FormItem>
+
+          <FormItem label={t('cron.page.form.targetKind')}>
+            <Radio.Group
+              value={targetKind}
+              onChange={(value) => setTargetKind(value as TargetKind)}
+              className='flex flex-wrap items-center gap-20px'
+            >
+              <Radio value='conversation' className='m-0 min-w-0 text-14px text-t-secondary cursor-pointer'>
+                <span className='pl-4px text-14px font-medium text-t-primary'>
+                  {t('cron.page.form.targetConversation')}
+                </span>
+              </Radio>
+              <Radio value='team' className='m-0 min-w-0 text-14px text-t-secondary cursor-pointer'>
+                <span className='pl-4px text-14px font-medium text-t-primary'>{t('cron.page.form.targetTeam')}</span>
+              </Radio>
+            </Radio.Group>
+          </FormItem>
+
+          {targetKind === 'team' && (
+            <FormItem
+              label={t('cron.page.form.team')}
+              field='team'
+              rules={[{ required: true, message: t('cron.page.form.teamRequired') }]}
+            >
+              <Select placeholder={t('cron.page.form.teamPlaceholder')}>
+                {teams.map((team) => (
+                  <Option key={team.id} value={team.id}>
+                    <div className='flex items-center gap-8px'>
+                      <Peoples size='16' />
+                      <span>{team.name}</span>
+                    </div>
+                  </Option>
+                ))}
+              </Select>
+            </FormItem>
+          )}
 
           <FormItem
             label={t('cron.page.form.agent')}
@@ -558,28 +630,30 @@ const CreateTaskDialog: React.FC<CreateTaskDialogProps> = ({
             </Select>
           </FormItem>
 
-          <FormItem label={t('cron.page.form.executionMode')}>
-            <Radio.Group
-              value={executionMode}
-              onChange={(value) => setExecutionMode(value as ExecutionMode)}
-              className='flex flex-wrap items-center gap-20px'
-            >
-              {executionModeOptions.map((option) => {
-                return (
-                  <Radio
-                    key={option.value}
-                    value={option.value}
-                    className='m-0 min-w-0 text-14px text-t-secondary cursor-pointer'
-                  >
-                    <span className='pl-4px text-14px font-medium text-t-primary'>{option.label}</span>
-                  </Radio>
-                );
-              })}
-            </Radio.Group>
-            <div className='mt-10px rounded-12px border border-solid border-[var(--color-border-2)] bg-fill-2 px-14px py-12px'>
-              <p className='m-0 text-12px leading-18px text-t-primary'>{selectedExecutionModeOption.description}</p>
-            </div>
-          </FormItem>
+          {targetKind === 'conversation' && (
+            <FormItem label={t('cron.page.form.executionMode')}>
+              <Radio.Group
+                value={executionMode}
+                onChange={(value) => setExecutionMode(value as ExecutionMode)}
+                className='flex flex-wrap items-center gap-20px'
+              >
+                {executionModeOptions.map((option) => {
+                  return (
+                    <Radio
+                      key={option.value}
+                      value={option.value}
+                      className='m-0 min-w-0 text-14px text-t-secondary cursor-pointer'
+                    >
+                      <span className='pl-4px text-14px font-medium text-t-primary'>{option.label}</span>
+                    </Radio>
+                  );
+                })}
+              </Radio.Group>
+              <div className='mt-10px rounded-12px border border-solid border-[var(--color-border-2)] bg-fill-2 px-14px py-12px'>
+                <p className='m-0 text-12px leading-18px text-t-primary'>{selectedExecutionModeOption.description}</p>
+              </div>
+            </FormItem>
+          )}
 
           <FormItem
             label={t('cron.page.form.prompt')}

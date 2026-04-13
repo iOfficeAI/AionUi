@@ -13,3 +13,4 @@ export type {
 export { TeamSession } from './TeamSession';
 export { TeamSessionService } from './TeamSessionService';
 export { SqliteTeamRepository } from './repository/SqliteTeamRepository';
+export { setTeamSessionServiceSingleton } from './TeamSessionServiceSingleton';

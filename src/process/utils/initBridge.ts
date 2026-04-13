@@ -12,6 +12,7 @@ import { ConversationServiceImpl } from '@process/services/ConversationServiceIm
 import { cronService } from '@process/services/cron/cronServiceSingleton';
 import { workerTaskManager } from '@process/task/workerTaskManagerSingleton';
 import { TeamSessionService, SqliteTeamRepository } from '@process/team';
+import { setTeamSessionServiceSingleton } from '@process/team/TeamSessionServiceSingleton';
 import { initAionMcpService } from '@process/services/mcpServices/aionMcpServiceSingleton';
 
 logger.config({ print: true });
@@ -21,6 +22,9 @@ const conversationServiceImpl = new ConversationServiceImpl(repo);
 const channelRepo = new SqliteChannelRepository();
 const teamRepo = new SqliteTeamRepository();
 const teamSessionService = new TeamSessionService(teamRepo, workerTaskManager, conversationServiceImpl);
+
+// Set the singleton instance for lazy imports
+setTeamSessionServiceSingleton(teamSessionService);
 
 // 初始化所有IPC桥接
 initAllBridges({
