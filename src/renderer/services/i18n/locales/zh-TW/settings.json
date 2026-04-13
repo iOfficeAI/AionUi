@@ -157,6 +157,8 @@
   "commandQueueEnabled": "啟用命令佇列",
   "commandQueueEnabledDesc": "啟用後，當目前回合仍在執行時，新訊息會先加入佇列，而不是立即送出。",
   "autoPreviewOfficeFiles": "自動預覽新建 Office 文件",
+  "proxy": "全局代理設置",
+  "proxyDesc": "所有網絡請求使用的 HTTP/HTTPS 代理。適用於所有 Agent（Gemini、Aionrs 等）。",
   "autoPreviewOfficeFilesDesc": "自動打開目前工作區中新建立的 Word、Excel 與 PowerPoint 文件，並忽略 Office 臨時鎖定文件。",
   "startOnBoot": "開機啟動",
   "startOnBootDesc": "登入 macOS 或 Windows 後自動啟動 AionUi。",

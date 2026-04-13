@@ -13,6 +13,7 @@ vi.mock('@/common', () => ({
   ipcBridge: {
     fs: {
       createTempFile: { invoke: vi.fn() },
+      createUploadFile: { invoke: vi.fn() },
       writeFile: { invoke: vi.fn() },
     },
   },
@@ -76,6 +77,11 @@ describe('PasteService.handlePaste — filename deduplication', () => {
     vi.mocked(ipcBridge.fs.createTempFile.invoke).mockImplementation(async ({ fileName }) => {
       tempFileCounter++;
       return `/tmp/temp-${tempFileCounter}/${fileName}`;
+    });
+    // Each createUploadFile call returns a unique path based on the fileName argument
+    vi.mocked(ipcBridge.fs.createUploadFile.invoke).mockImplementation(async ({ fileName }) => {
+      tempFileCounter++;
+      return `/tmp/upload-${tempFileCounter}/${fileName}`;
     });
     vi.mocked(ipcBridge.fs.writeFile.invoke).mockResolvedValue(undefined as never);
 

@@ -157,6 +157,8 @@
   "commandQueueEnabled": "コマンドキューを有効化",
   "commandQueueEnabledDesc": "有効にすると、現在のターンが処理中のときは新しいメッセージをすぐ送信せず、キューに追加します。",
   "autoPreviewOfficeFiles": "新しい Office ファイルを自動プレビュー",
+  "proxy": "グローバルプロキシ",
+  "proxyDesc": "すべてのネットワークリクエストに使用する HTTP/HTTPS プロキシです。すべての Agent（Gemini、Aionrs など）に適用されます。",
   "autoPreviewOfficeFilesDesc": "現在のワークスペースで新規作成された Word、Excel、PowerPoint ファイルを自動で開きます。Office の一時ロックファイルは無視します。",
   "startOnBoot": "起動時に自動起動",
   "startOnBootDesc": "macOS または Windows にサインインしたときに AionUi を自動起動します。",

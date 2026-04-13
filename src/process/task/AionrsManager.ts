@@ -14,6 +14,7 @@ import { ToolConfirmationOutcome } from '../agent/gemini/cli/tools/tools';
 import { getDatabase } from '@process/services/database';
 import { addMessage, addOrUpdateMessage } from '@process/utils/message';
 import { uuid } from '@/common/utils';
+import { ProcessConfig } from '@process/utils/initStorage';
 import BaseAgentManager from './BaseAgentManager';
 import { IpcAgentEventEmitter } from './IpcAgentEventEmitter';
 import { mainError } from '@process/utils/mainLogger';
@@ -66,7 +67,14 @@ export class AionrsManager extends BaseAgentManager<AionrsManagerData, string> {
   private currentMode: string = 'default';
 
   constructor(data: AionrsManagerData, model: TProviderWithModel) {
-    super('aionrs', { ...data, model }, new IpcAgentEventEmitter());
+    // Read global proxy setting and merge with provided data (global takes precedence)
+    const globalProxy = ProcessConfig.getSync('network.proxy') as string | undefined;
+    const dataWithProxy = {
+      ...data,
+      proxy: globalProxy || data.proxy,
+    };
+
+    super('aionrs', { ...dataWithProxy, model }, new IpcAgentEventEmitter());
     this.workspace = data.workspace;
     this.conversation_id = data.conversation_id;
     this.model = model;

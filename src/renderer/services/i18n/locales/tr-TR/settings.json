@@ -157,6 +157,8 @@
   "commandQueueEnabled": "Komut Kuyruğunu Etkinleştir",
   "commandQueueEnabledDesc": "Etkinleştirildiğinde, mevcut tur hâlâ çalışıyorsa yeni mesajlar hemen gönderilmek yerine kuyruğa eklenir.",
   "autoPreviewOfficeFiles": "Yeni Office Dosyalarını Otomatik Önizle",
+  "proxy": "Genel Proxy",
+  "proxyDesc": "Tüm ağ istekleri için HTTP/HTTPS proxy'si. Tüm Agent'lar (Gemini, Aionrs vb.) tarafından kullanılır.",
   "autoPreviewOfficeFilesDesc": "Geçerli çalışma alanında yeni oluşturulan Word, Excel ve PowerPoint dosyalarını otomatik olarak açar. Office geçici kilit dosyaları yok sayılır.",
   "startOnBoot": "Açılışta Başlat",
   "startOnBootDesc": "macOS veya Windows oturumu açtığınızda AionUi'yi otomatik olarak başlatır.",

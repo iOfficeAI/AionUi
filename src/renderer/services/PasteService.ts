@@ -27,7 +27,7 @@ async function createTempFile(
     throw new Error('FILE_TOO_LARGE');
   }
   if (isElectronDesktop()) {
-    const tempPath = await ipcBridge.fs.createTempFile.invoke({ fileName });
+    const tempPath = await ipcBridge.fs.createUploadFile.invoke({ fileName, conversationId });
     if (tempPath) {
       await ipcBridge.fs.writeFile.invoke({ path: tempPath, data });
     }

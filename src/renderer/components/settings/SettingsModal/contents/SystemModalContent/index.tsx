@@ -12,7 +12,18 @@ import { AUTO_PREVIEW_OFFICE_FILES_SWR_KEY } from '@/renderer/hooks/system/useAu
 import { COMMAND_QUEUE_ENABLED_SWR_KEY } from '@/renderer/hooks/system/useCommandQueueEnabled';
 import { iconColors } from '@/renderer/styles/colors';
 import { isElectronDesktop } from '@/renderer/utils/platform';
-import { Alert, Button, Collapse, Form, InputNumber, Message, Modal, Switch, Tooltip } from '@arco-design/web-react';
+import {
+  Alert,
+  Button,
+  Collapse,
+  Form,
+  Input,
+  InputNumber,
+  Message,
+  Modal,
+  Switch,
+  Tooltip,
+} from '@arco-design/web-react';
 import { FolderSearch } from '@icon-park/react';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -53,6 +64,7 @@ const SystemModalContent: React.FC = () => {
   const [saveUploadToWorkspace, setSaveUploadToWorkspace] = useState(false);
   const [commandQueueEnabled, setCommandQueueEnabled] = useState(true);
   const [autoPreviewOfficeFiles, setAutoPreviewOfficeFiles] = useState(true);
+  const [proxy, setProxy] = useState('');
 
   useEffect(() => {
     if (!isDesktop) {
@@ -124,6 +136,13 @@ const SystemModalContent: React.FC = () => {
     ipcBridge.systemSettings.getAutoPreviewOfficeFiles
       .invoke()
       .then((enabled) => setAutoPreviewOfficeFiles(enabled))
+      .catch(() => {});
+  }, []);
+
+  useEffect(() => {
+    ipcBridge.systemSettings.getProxy
+      .invoke()
+      .then((proxyUrl) => setProxy(proxyUrl))
       .catch(() => {});
   }, []);
 
@@ -225,6 +244,17 @@ const SystemModalContent: React.FC = () => {
     });
   }, []);
 
+  const handleProxyChange = useCallback((value: string) => {
+    setProxy(value);
+  }, []);
+
+  const handleProxyBlur = useCallback(() => {
+    if (proxy && !proxy.match(/^https?:\/\/.+/)) {
+      Message.warning(t('settings.proxyHttpOnly'));
+    }
+    ipcBridge.systemSettings.setProxy.invoke({ proxy }).catch(() => {});
+  }, [proxy, t]);
+
   // Get system directory info
   const { data: systemInfo } = useSWR('system.dir.info', () => ipcBridge.application.systemInfo.invoke());
 
@@ -301,6 +331,20 @@ const SystemModalContent: React.FC = () => {
       label: t('settings.autoPreviewOfficeFiles'),
       description: t('settings.autoPreviewOfficeFilesDesc'),
       component: <Switch checked={autoPreviewOfficeFiles} onChange={handleAutoPreviewOfficeFilesChange} />,
+    },
+    {
+      key: 'proxy',
+      label: t('settings.proxy'),
+      description: t('settings.proxyDesc'),
+      component: (
+        <Input
+          value={proxy}
+          onChange={handleProxyChange}
+          onBlur={handleProxyBlur}
+          placeholder='http://proxy.example.com:8080'
+          style={{ width: 280 }}
+        />
+      ),
     },
   ];
 

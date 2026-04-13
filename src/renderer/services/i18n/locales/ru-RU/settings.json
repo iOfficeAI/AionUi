@@ -157,6 +157,8 @@
   "commandQueueEnabled": "Включить очередь команд",
   "commandQueueEnabledDesc": "Если включено, сообщения, отправленные во время выполнения текущей задачи, будут добавлены в очередь вместо немедленной отправки.",
   "autoPreviewOfficeFiles": "Автопросмотр новых файлов Office",
+  "proxy": "Глобальный прокси",
+  "proxyDesc": "HTTP/HTTPS-прокси для всех сетевых запросов. Используется всеми Agent (Gemini, Aionrs и т. д.).",
   "autoPreviewOfficeFilesDesc": "Автоматически открывает новые файлы Word, Excel и PowerPoint в текущей рабочей области. Временные файлы блокировки Office игнорируются.",
   "startOnBoot": "Запуск при старте системы",
   "startOnBootDesc": "Автоматически запускать AionUi при входе в macOS или Windows.",

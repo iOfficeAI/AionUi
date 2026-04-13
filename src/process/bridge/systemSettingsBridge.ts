@@ -212,4 +212,15 @@ export function initSystemSettingsBridge(): void {
   ipcBridge.systemSettings.setCommandQueueEnabled.provider(async ({ enabled }) => {
     await ProcessConfig.set('system.commandQueueEnabled', enabled);
   });
+
+  // 获取全局代理设置 / Get global proxy setting
+  ipcBridge.systemSettings.getProxy.provider(async () => {
+    const value = await ProcessConfig.get('network.proxy');
+    return value ?? '';
+  });
+
+  // 设置全局代理 / Set global proxy
+  ipcBridge.systemSettings.setProxy.provider(async ({ proxy }) => {
+    await ProcessConfig.set('network.proxy', proxy);
+  });
 }

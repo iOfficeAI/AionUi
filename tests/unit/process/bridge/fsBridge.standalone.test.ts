@@ -39,6 +39,7 @@ vi.mock('@/common', () => ({
       readFile: { provider: vi.fn() },
       readFileBuffer: { provider: vi.fn() },
       createTempFile: { provider: vi.fn() },
+      createUploadFile: { provider: vi.fn() },
       writeFile: { provider: vi.fn() },
       createZip: { provider: vi.fn() },
       cancelZip: { provider: vi.fn() },

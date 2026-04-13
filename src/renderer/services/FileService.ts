@@ -285,13 +285,13 @@ class FileServiceClass {
               tracker.finish();
             }
           } else {
-            // Electron: use IPC to create temp file
+            // Electron: use IPC to create upload file (respects saveToWorkspace setting)
             const arrayBuffer = await file.arrayBuffer();
             const uint8Array = new Uint8Array(arrayBuffer);
-            const tempPath = await ipcBridge.fs.createTempFile.invoke({ fileName: file.name });
-            if (tempPath) {
-              await ipcBridge.fs.writeFile.invoke({ path: tempPath, data: uint8Array });
-              filePath = tempPath;
+            const uploadPath = await ipcBridge.fs.createUploadFile.invoke({ fileName: file.name, conversationId });
+            if (uploadPath) {
+              await ipcBridge.fs.writeFile.invoke({ path: uploadPath, data: uint8Array });
+              filePath = uploadPath;
             }
           }
         } catch (error) {

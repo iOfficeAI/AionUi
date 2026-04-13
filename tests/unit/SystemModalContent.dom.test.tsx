@@ -83,12 +83,14 @@ const mockGetCronNotificationEnabled = vi.fn();
 const mockGetSaveUploadToWorkspace = vi.fn();
 const mockGetCommandQueueEnabled = vi.fn();
 const mockGetAutoPreviewOfficeFiles = vi.fn();
+const mockGetProxy = vi.fn();
 const mockSetCloseToTray = vi.fn();
 const mockSetNotificationEnabled = vi.fn();
 const mockSetCronNotificationEnabled = vi.fn();
 const mockSetSaveUploadToWorkspace = vi.fn();
 const mockSetCommandQueueEnabled = vi.fn();
 const mockSetAutoPreviewOfficeFiles = vi.fn();
+const mockSetProxy = vi.fn();
 const mockOpenFile = vi.fn();
 const mockShowOpen = vi.fn();
 const mockUpdateSystemInfo = vi.fn();
@@ -131,6 +133,7 @@ vi.mock('@/common', () => ({
       getAutoPreviewOfficeFiles: {
         invoke: (...args: any[]) => mockGetAutoPreviewOfficeFiles(...args),
       },
+      getProxy: { invoke: (...args: any[]) => mockGetProxy(...args) },
       setCloseToTray: { invoke: (...args: any[]) => mockSetCloseToTray(...args) },
       setNotificationEnabled: { invoke: (...args: any[]) => mockSetNotificationEnabled(...args) },
       setCronNotificationEnabled: {
@@ -145,6 +148,7 @@ vi.mock('@/common', () => ({
       setAutoPreviewOfficeFiles: {
         invoke: (...args: any[]) => mockSetAutoPreviewOfficeFiles(...args),
       },
+      setProxy: { invoke: (...args: any[]) => mockSetProxy(...args) },
     },
     dialog: {
       showOpen: { invoke: (...args: any[]) => mockShowOpen(...args) },
@@ -251,12 +255,14 @@ describe('SystemModalContent', () => {
     mockGetSaveUploadToWorkspace.mockResolvedValue(false);
     mockGetCommandQueueEnabled.mockResolvedValue(false);
     mockGetAutoPreviewOfficeFiles.mockResolvedValue(true);
+    mockGetProxy.mockResolvedValue('');
     mockSetCloseToTray.mockResolvedValue(undefined);
     mockSetNotificationEnabled.mockResolvedValue(undefined);
     mockSetCronNotificationEnabled.mockResolvedValue(undefined);
     mockSetSaveUploadToWorkspace.mockResolvedValue(undefined);
     mockSetCommandQueueEnabled.mockResolvedValue(undefined);
     mockSetAutoPreviewOfficeFiles.mockResolvedValue(undefined);
+    mockSetProxy.mockResolvedValue(undefined);
   });
 
   it('should render system settings with language switcher and preferences', async () => {

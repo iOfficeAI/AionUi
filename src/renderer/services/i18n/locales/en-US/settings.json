@@ -157,6 +157,8 @@
   "commandQueueEnabled": "Enable Command Queue",
   "commandQueueEnabledDesc": "When enabled, messages sent while the current turn is busy will be added to the queue instead of being sent immediately.",
   "autoPreviewOfficeFiles": "Auto Preview New Office Files",
+  "proxy": "Global Proxy",
+  "proxyDesc": "HTTP/HTTPS proxy for all network requests. Used by all agents (Gemini, Aionrs, etc.).",
   "autoPreviewOfficeFilesDesc": "Automatically open newly created Word, Excel, and PowerPoint files in the current workspace. Office temporary lock files are ignored.",
   "startOnBoot": "Start on Boot",
   "startOnBootDesc": "Launch AionUi automatically when you sign in to macOS or Windows.",
