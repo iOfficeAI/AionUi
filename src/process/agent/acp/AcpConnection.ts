@@ -884,7 +884,7 @@ export class AcpConnection {
     if (!result || typeof result !== 'object') {
       return undefined;
     }
-    const capabilities = (result as Record<string, unknown>).agentCapabilities;
+    const capabilities = (result as unknown as Record<string, unknown>).agentCapabilities;
     if (!capabilities || typeof capabilities !== 'object') {
       return undefined;
     }
