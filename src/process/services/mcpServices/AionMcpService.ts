@@ -159,6 +159,8 @@ export class AionMcpService {
         auth_token?: string;
         /** Backend type of the calling agent, injected by aion-mcp-stdio via AION_MCP_BACKEND env var */
         backend?: string;
+        /** Conversation ID of the calling agent, used to reuse conversation as team leader */
+        conversation_id?: string;
       };
 
       if (request.auth_token !== this.authToken) {
@@ -171,7 +173,7 @@ export class AionMcpService {
       const args = request.args ?? {};
 
       try {
-        const result = await this.handleToolCall(toolName, args, request.backend);
+        const result = await this.handleToolCall(toolName, args, request.backend, request.conversation_id);
         writeTcpMessage(socket, { result });
       } catch (err) {
         const errMsg = err instanceof Error ? err.message : String(err);
@@ -188,10 +190,15 @@ export class AionMcpService {
 
   // ── Tool dispatch ─────────────────────────────────────────────────────────
 
-  private async handleToolCall(toolName: string, args: Record<string, unknown>, backend?: string): Promise<string> {
+  private async handleToolCall(
+    toolName: string,
+    args: Record<string, unknown>,
+    backend?: string,
+    callerConversationId?: string
+  ): Promise<string> {
     switch (toolName) {
       case 'aion_create_team':
-        return this.handleCreateTeam(args, backend);
+        return this.handleCreateTeam(args, backend, callerConversationId);
       case 'aion_navigate':
         return this.handleNavigate(args);
       default:
@@ -199,7 +206,11 @@ export class AionMcpService {
     }
   }
 
-  private async handleCreateTeam(args: Record<string, unknown>, backend?: string): Promise<string> {
+  private async handleCreateTeam(
+    args: Record<string, unknown>,
+    backend?: string,
+    callerConversationId?: string
+  ): Promise<string> {
     const summary = String(args.summary ?? '').trim();
     const name = args.name ? String(args.name).trim() : undefined;
     const workspace = args.workspace ? String(args.workspace).trim() : '';
@@ -224,7 +235,7 @@ export class AionMcpService {
       agents: [
         {
           slotId: '',
-          conversationId: '',
+          conversationId: callerConversationId || '',
           role: 'lead',
           agentType,
           agentName: 'Leader',
@@ -237,15 +248,35 @@ export class AionMcpService {
     const leadAgent = team.agents.find((a) => a.role === 'lead');
     const route = `/team/${team.id}`;
 
+    // Notify sidebar: the reused conversation now belongs to a team → filter it out.
+    // TeamSessionService.createTeam calls conversationService.updateConversation directly
+    // (bypassing the IPC bridge), so conversation.listChanged is never emitted automatically.
+    if (callerConversationId) {
+      ipcBridge.conversation.listChanged.emit({
+        conversationId: callerConversationId,
+        action: 'updated',
+        source: 'aionui',
+      });
+    }
+
     // Notify frontend to refresh team list
     ipcBridge.team.listChanged.emit({ teamId: team.id, action: 'created' });
 
-    // Fire-and-forget: start session and send message in background
+    // Navigate to team page immediately — no need for the agent to call aion_navigate.
+    // This eliminates one LLM inference round-trip between team creation and navigation.
+    ipcBridge.deepLink.received.emit({ action: 'navigate', params: { route } });
+
+    // Fire-and-forget: start session in background.
+    // getOrStartSession rebuilds the leader's agent task with team MCP tools (skipCache).
+    // Always send the summary to the leader so it can propose/spawn teammates.
+    const leaderIsReused = Boolean(callerConversationId && leadAgent?.conversationId === callerConversationId);
     void (async () => {
       try {
         const session = await this.teamSessionService.getOrStartSession(team.id);
         if (leadAgent) {
-          await session.sendMessageToAgent(leadAgent.slotId, summary);
+          // When the leader is reused, skip the UI bubble — the conversation already
+          // shows the full user context. The summary still reaches the agent via mailbox.
+          await session.sendMessageToAgent(leadAgent.slotId, summary, { silent: leaderIsReused });
         }
       } catch (err) {
         console.error('[AionMcpService] async session/message failed:', err);
@@ -258,7 +289,8 @@ export class AionMcpService {
       route,
       leadAgent: leadAgent ? { slotId: leadAgent.slotId, conversationId: leadAgent.conversationId } : null,
       status: 'team_created',
-      next_step: `Tell the user the team has been created, then call aion_navigate with route "${route}" to take them to the team page.`,
+      next_step:
+        'The team page has been opened automatically. Do NOT call aion_navigate. End your turn now — do not add extra commentary.',
     });
   }
 

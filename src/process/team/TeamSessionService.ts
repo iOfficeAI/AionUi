@@ -477,9 +477,26 @@ export class TeamSessionService {
     const teamId = uuid(36);
     const workspace = this.resolveWorkspace(params.workspace);
 
-    // Create a real conversation for each agent
+    // Create a real conversation for each agent (or reuse an existing one for the leader)
     const agentsWithConversations = await Promise.all(
       params.agents.map(async (agent) => {
+        const slotId = agent.slotId || `slot-${uuid(8)}`;
+
+        // If the agent already has a conversationId (e.g., leader reusing caller's conversation),
+        // verify it exists and adopt it into the team instead of creating a new conversation.
+        if (agent.conversationId) {
+          const existing = await this.conversationService.getConversation(agent.conversationId);
+          if (existing) {
+            await this.conversationService.updateConversation(
+              agent.conversationId,
+              { extra: { teamId, workspace } } as any,
+              true
+            );
+            return { ...agent, slotId, conversationId: agent.conversationId };
+          }
+          // Fall through to create new if conversation was not found
+        }
+
         const conversationParams = await this.buildConversationParams({
           teamId,
           teamName: params.name,
@@ -492,7 +509,6 @@ export class TeamSessionService {
         // Ensure teamId is in extra regardless of which factory function was used
         // (some factories like createCodexAgent/createGeminiAgent drop unknown extra fields)
         await this.conversationService.updateConversation(conversation.id, { extra: { teamId } } as any, true);
-        const slotId = agent.slotId || `slot-${uuid(8)}`;
         return { ...agent, slotId, conversationId: conversation.id };
       })
     );

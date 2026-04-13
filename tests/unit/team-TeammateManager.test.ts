@@ -939,6 +939,45 @@ describe('TeammateManager', () => {
       mgr.dispose();
     });
 
+    it('does not send testament when leader itself crashes, removes leader instead', async () => {
+      const leader = makeAgent({ slotId: 'slot-lead', conversationId: 'conv-lead', role: 'lead', agentName: 'Leader' });
+      const member = makeAgent({
+        slotId: 'slot-member',
+        conversationId: 'conv-member',
+        role: 'teammate',
+        agentName: 'Worker',
+        conversationType: 'acp',
+      });
+      const { mgr, mailbox, workerTaskManager } = makeTeammateManager([leader, member]);
+
+      // Simulate leader crash
+      teamEventBus.emit('responseStream', {
+        type: 'finish',
+        conversation_id: 'conv-lead',
+        msg_id: 'crash-lead',
+        data: { error: 'Process exited unexpectedly (code: null, signal: SIGTERM)', agentCrash: true },
+      });
+
+      await new Promise((r) => setTimeout(r, 100));
+
+      // No testament written — leader has no recipient for its own crash
+      expect(mailbox.write).not.toHaveBeenCalled();
+
+      // Leader removed
+      expect(mgr.getAgents().find((a) => a.slotId === 'slot-lead')).toBeUndefined();
+      expect(mockIpcBridge.team.agentRemoved.emit).toHaveBeenCalledWith(
+        expect.objectContaining({ teamId: 'team-1', slotId: 'slot-lead' })
+      );
+
+      // Process killed
+      expect(workerTaskManager.kill).toHaveBeenCalledWith('conv-lead');
+
+      // Member still exists
+      expect(mgr.getAgents().find((a) => a.slotId === 'slot-member')).toBeDefined();
+
+      mgr.dispose();
+    });
+
     it('does not trigger crash flow for normal error events without agentCrash flag', async () => {
       const leader = makeAgent({ slotId: 'slot-lead', conversationId: 'conv-lead', role: 'lead' });
       const member = makeAgent({

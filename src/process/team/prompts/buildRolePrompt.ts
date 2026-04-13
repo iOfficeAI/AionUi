@@ -1,8 +1,6 @@
-// src/process/team/adapters/buildRolePrompt.ts
-
 import type { TeamAgent, MailboxMessage, TeamTask } from '../types';
-import { buildLeadPrompt } from '../prompts/leadPrompt';
-import { buildTeammatePrompt } from '../prompts/teammatePrompt';
+import { buildLeadPrompt } from './leadPrompt';
+import { buildTeammatePrompt } from './teammatePrompt';
 
 type BuildRolePromptParams = {
   agent: TeamAgent;

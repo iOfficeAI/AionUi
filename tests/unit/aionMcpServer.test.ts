@@ -297,7 +297,7 @@ describe('aion_create_team handler', () => {
 
     // Session start + message send are fire-and-forget; wait for microtasks to settle
     await vi.waitFor(() => {
-      expect(mockSendMessageToAgent).toHaveBeenCalledWith('slot-lead', '构建电商网站');
+      expect(mockSendMessageToAgent).toHaveBeenCalledWith('slot-lead', '构建电商网站', { silent: false });
     });
   });
 

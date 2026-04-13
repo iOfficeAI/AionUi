@@ -390,6 +390,7 @@ export class GeminiAgentManager extends BaseAgentManager<
             aionEnvObj[name] = value;
           }
           aionEnvObj['AION_MCP_BACKEND'] = 'gemini';
+          aionEnvObj['AION_MCP_CONVERSATION_ID'] = this.conversation_id;
           mcpConfig[aionStdioConfig.name] = {
             command: aionStdioConfig.command,
             args: aionStdioConfig.args || [],
