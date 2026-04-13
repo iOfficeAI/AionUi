@@ -16,7 +16,7 @@ import type { IWorkerTaskManager } from '@process/task/IWorkerTaskManager';
 import type { IConversationService } from '@process/services/IConversationService';
 import type { AgentType } from '@process/task/agentTypes';
 import { ACP_ROUTED_PRESET_TYPES, type AcpBackendAll } from '@/common/types/acpTypes';
-import type { TProviderWithModel } from '@/common/config/storage';
+import type { TChatConversation, TProviderWithModel } from '@/common/config/storage';
 import { ProcessConfig } from '@process/utils/initStorage';
 import { getAssistantsDir } from '@process/utils/initStorage';
 import { TeamSession } from './TeamSession';
@@ -334,6 +334,137 @@ export class TeamSessionService {
     };
   }
 
+  private extractRecoveredSlotId(
+    extra: { teamMcpStdioConfig?: { env?: Array<{ name?: string; value?: string }> } } | undefined
+  ): string | undefined {
+    return extra?.teamMcpStdioConfig?.env?.find((entry) => entry.name === 'TEAM_AGENT_SLOT_ID')?.value;
+  }
+
+  private resolveRecoveredAgentType(conversation: TChatConversation): string | undefined {
+    switch (conversation.type) {
+      case 'gemini':
+        return 'gemini';
+      case 'aionrs':
+        return 'aionrs';
+      case 'remote':
+        return 'remote';
+      case 'nanobot':
+        return 'nanobot';
+      case 'openclaw-gateway':
+        return (conversation.extra as { backend?: string } | undefined)?.backend || 'openclaw-gateway';
+      case 'acp':
+        return (conversation.extra as { backend?: string } | undefined)?.backend;
+      default:
+        return undefined;
+    }
+  }
+
+  private resolveRecoveredAgentName(team: TTeam, conversation: TChatConversation, isLead: boolean): string {
+    const extra = conversation.extra as { agentName?: string } | undefined;
+    const explicitName = extra?.agentName?.trim();
+    if (explicitName) return explicitName;
+
+    const prefix = `${team.name} - `;
+    if (conversation.name.startsWith(prefix)) {
+      const derivedName = conversation.name.slice(prefix.length).trim();
+      if (derivedName) return derivedName;
+    }
+
+    return isLead ? 'Leader' : 'Teammate';
+  }
+
+  private mapRecoveredStatus(status: TChatConversation['status']): TeamAgent['status'] {
+    switch (status) {
+      case 'running':
+        return 'active';
+      case 'finished':
+        return 'idle';
+      default:
+        return 'pending';
+    }
+  }
+
+  private buildRecoveredAgent(team: TTeam, conversation: TChatConversation): TeamAgent | null {
+    const extra = conversation.extra as {
+      cliPath?: string;
+      customAgentId?: string;
+      presetAssistantId?: string;
+      gateway?: { cliPath?: string };
+      teamMcpStdioConfig?: { env?: Array<{ name?: string; value?: string }> };
+    };
+    const slotId = this.extractRecoveredSlotId(extra);
+    const agentType = this.resolveRecoveredAgentType(conversation);
+    if (!slotId || !agentType) return null;
+
+    const isLead = slotId === team.leadAgentId;
+    return {
+      slotId,
+      conversationId: conversation.id,
+      role: isLead ? 'lead' : 'teammate',
+      agentType,
+      agentName: this.resolveRecoveredAgentName(team, conversation, isLead),
+      conversationType: conversation.type,
+      status: this.mapRecoveredStatus(conversation.status),
+      cliPath: extra.cliPath || extra.gateway?.cliPath,
+      customAgentId: extra.customAgentId || extra.presetAssistantId,
+    };
+  }
+
+  private async repairTeamAgentsIfMissing(team: TTeam): Promise<TTeam> {
+    if (team.agents.length > 0) return team;
+
+    const conversations = await this.conversationService.listAllConversations();
+    const linkedConversations = conversations
+      .filter((conversation) => (conversation.extra as { teamId?: string } | undefined)?.teamId === team.id)
+      .sort((left, right) => (right.modifyTime ?? 0) - (left.modifyTime ?? 0));
+
+    if (linkedConversations.length === 0) return team;
+
+    const recoveredBySlot = new Map<string, TeamAgent>();
+    for (const conversation of linkedConversations) {
+      const recovered = this.buildRecoveredAgent(team, conversation);
+      if (recovered && !recoveredBySlot.has(recovered.slotId)) {
+        recoveredBySlot.set(recovered.slotId, recovered);
+      }
+    }
+
+    const recoveredAgents = [...recoveredBySlot.values()];
+    if (recoveredAgents.length === 0) return team;
+
+    let repairedAgents = recoveredAgents;
+    if (!repairedAgents.some((agent) => agent.role === 'lead')) {
+      repairedAgents = repairedAgents.map((agent, index) => ({
+        ...agent,
+        role: index === 0 ? 'lead' : 'teammate',
+      }));
+    }
+
+    repairedAgents = repairedAgents.sort((left, right) => {
+      if (left.role === right.role) return left.agentName.localeCompare(right.agentName);
+      return left.role === 'lead' ? -1 : 1;
+    });
+
+    const repairedLead = repairedAgents.find((agent) => agent.role === 'lead') ?? repairedAgents[0];
+    const repairedTeam: TTeam = {
+      ...team,
+      leadAgentId: repairedLead.slotId,
+      agents: repairedAgents,
+      updatedAt: Date.now(),
+    };
+
+    try {
+      await this.repo.update(team.id, {
+        agents: repairedTeam.agents,
+        leadAgentId: repairedTeam.leadAgentId,
+        updatedAt: repairedTeam.updatedAt,
+      });
+    } catch (error) {
+      console.warn(`[TeamSessionService] Failed to persist repaired agents for team ${team.id}:`, error);
+    }
+
+    return repairedTeam;
+  }
+
   async createTeam(params: {
     userId: string;
     name: string;
@@ -386,7 +517,9 @@ export class TeamSessionService {
   }
 
   async getTeam(id: string): Promise<TTeam | null> {
-    return this.repo.findById(id);
+    const team = await this.repo.findById(id);
+    if (!team) return null;
+    return this.repairTeamAgentsIfMissing(team);
   }
 
   async listTeams(userId: string): Promise<TTeam[]> {
@@ -535,7 +668,7 @@ export class TeamSessionService {
   async getOrStartSession(teamId: string): Promise<TeamSession> {
     const existing = this.sessions.get(teamId);
     if (existing) return existing;
-    const team = await this.repo.findById(teamId);
+    const team = await this.getTeam(teamId);
     if (!team) throw new Error(`Team "${teamId}" not found`);
     let session!: TeamSession;
     const spawnAgent = async (agentName: string, agentType?: string) => {

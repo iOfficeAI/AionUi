@@ -89,30 +89,118 @@ body[arco-theme='dark'] .arco-tag-checked.arco-tag-gray {
 
 /* AionUi Modal wrapper styles */
 .aionui-modal .arco-modal-content {
-  background: var(--bg-1) !important;
-  border-radius: 12px !important;
+  background: var(--dialog-fill-0) !important;
+  border: 1px solid var(--border-base) !important;
+  border-radius: 16px !important;
+}
+
+body[arco-theme='dark'] .arco-modal-content {
+  background-color: var(--dialog-fill-0) !important;
+  border: 1px solid var(--border-base) !important;
 }
 
 body[arco-theme='dark'] .arco-modal {
-  background-color: var(--bg-1) !important;
+  background-color: var(--dialog-fill-0) !important;
 }
 
 body[arco-theme='dark'] .arco-modal-header {
-  background-color: var(--bg-1) !important;
-  border-bottom-color: var(--bg-3) !important;
+  background-color: var(--dialog-fill-0) !important;
+  border-bottom-color: var(--border-base) !important;
+}
+
+body[arco-theme='dark'] .arco-modal-body,
+body[arco-theme='dark'] .arco-modal-footer {
+  background-color: var(--dialog-fill-0) !important;
+}
+
+body[arco-theme='dark'] .arco-modal-footer {
+  border-top-color: var(--border-base) !important;
 }
 
 body[arco-theme='dark'] .arco-modal-title {
-  color: var(--text-t-primary) !important;
+  color: var(--text-primary) !important;
+}
+
+body[arco-theme='dark'] .arco-modal-body,
+body[arco-theme='dark'] .arco-modal-confirm-title,
+body[arco-theme='dark'] .arco-modal-confirm-content {
+  color: var(--text-primary) !important;
 }
 
 body[arco-theme='dark'] .arco-modal-close-icon {
-  color: var(--text-t-secondary) !important;
+  color: var(--text-secondary) !important;
 }
 
 body[arco-theme='dark'] .arco-modal-close-icon:hover {
-  color: var(--text-t-primary) !important;
-  background-color: var(--fill-2) !important;
+  color: var(--text-primary) !important;
+  background-color: var(--color-fill-1) !important;
+}
+
+body[arco-theme='dark'] .arco-modal-confirm-icon {
+  color: var(--warning) !important;
+}
+
+/* Modal form controls need visible idle outlines so fields don't disappear into the dialog surface. */
+.arco-modal
+  .arco-input:not(.arco-input-disabled):not(.arco-input-error):not(.arco-input-warning):not(.arco-input-focus):not(
+    :focus
+  ),
+.arco-modal
+  .arco-input-inner-wrapper:not(.arco-input-inner-wrapper-disabled):not(.arco-input-inner-wrapper-error):not(
+    .arco-input-inner-wrapper-warning
+  ):not(.arco-input-inner-wrapper-focus),
+.arco-modal
+  .arco-textarea:not(.arco-textarea-disabled):not(.arco-textarea-error):not(.arco-textarea-warning):not(
+    .arco-textarea-focus
+  ):not(:focus),
+.arco-modal
+  .arco-select:not(.arco-select-disabled):not(.arco-select-error):not(.arco-select-warning):not(.arco-select-focused)
+  .arco-select-view,
+.arco-modal
+  .arco-cascader:not(.arco-cascader-disabled):not(.arco-cascader-error):not(.arco-cascader-warning):not(
+    .arco-cascader-focused
+  )
+  .arco-cascader-view,
+.arco-modal
+  .arco-tree-select:not(.arco-tree-select-disabled):not(.arco-tree-select-error):not(.arco-tree-select-warning):not(
+    .arco-tree-select-focused
+  )
+  .arco-tree-select-view,
+.arco-modal
+  .arco-picker:not(.arco-picker-disabled):not(.arco-picker-error):not(.arco-picker-warning):not(.arco-picker-focused) {
+  border-color: var(--border-base) !important;
+}
+
+.arco-modal
+  .arco-input:not(.arco-input-disabled):not(.arco-input-error):not(.arco-input-warning):not(.arco-input-focus):hover,
+.arco-modal
+  .arco-input-inner-wrapper:not(.arco-input-inner-wrapper-disabled):not(.arco-input-inner-wrapper-error):not(
+    .arco-input-inner-wrapper-warning
+  ):not(.arco-input-inner-wrapper-focus):hover,
+.arco-modal
+  .arco-textarea:not(.arco-textarea-disabled):not(.arco-textarea-error):not(.arco-textarea-warning):not(
+    .arco-textarea-focus
+  ):hover,
+.arco-modal
+  .arco-select:not(.arco-select-disabled):not(.arco-select-error):not(.arco-select-warning):not(
+    .arco-select-focused
+  ):hover
+  .arco-select-view,
+.arco-modal
+  .arco-cascader:not(.arco-cascader-disabled):not(.arco-cascader-error):not(.arco-cascader-warning):not(
+    .arco-cascader-focused
+  ):hover
+  .arco-cascader-view,
+.arco-modal
+  .arco-tree-select:not(.arco-tree-select-disabled):not(.arco-tree-select-error):not(.arco-tree-select-warning):not(
+    .arco-tree-select-focused
+  ):hover
+  .arco-tree-select-view,
+.arco-modal
+  .arco-picker:not(.arco-picker-disabled):not(.arco-picker-error):not(.arco-picker-warning):not(
+    .arco-picker-focused
+  ):hover {
+  border-color: var(--bg-4) !important;
 }
 
 .aionui-modal-header {
@@ -125,7 +213,7 @@ body[arco-theme='dark'] .arco-modal-close-icon:hover {
 .aionui-modal-title {
   font-size: 18px;
   font-weight: 500;
-  color: var(--text-t-primary);
+  color: var(--text-primary);
   margin: 0;
 }
 
@@ -144,7 +232,7 @@ body[arco-theme='dark'] .arco-modal-close-icon:hover {
 }
 
 .aionui-modal-close-btn:hover {
-  background: var(--fill-2);
+  background: var(--color-fill-1);
 }
 
 /* Arco Message custom styles */

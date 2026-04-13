@@ -38,6 +38,25 @@ const execFile = promisify(execFileCb);
 /** Enable ACP performance diagnostics via ACP_PERF=1 */
 export const ACP_PERF_LOG = process.env.ACP_PERF === '1';
 
+function normalizeWindowsCommand(command: string): string {
+  const trimmed = command.trim();
+  if (trimmed.startsWith('"') && trimmed.endsWith('"')) {
+    return trimmed.slice(1, -1);
+  }
+  return trimmed;
+}
+
+function formatWindowsCommandForShell(command: string): string {
+  const normalized = normalizeWindowsCommand(command);
+  const isPathLike =
+    /^[a-zA-Z]:[\\/]/.test(normalized) ||
+    normalized.startsWith('.\\') ||
+    normalized.startsWith('..\\') ||
+    normalized.includes('\\') ||
+    normalized.includes('/');
+  return isPathLike ? `"${normalized}"` : normalized;
+}
+
 function resolveCodexAcpPlatformPackage(): string | null {
   if (process.platform === 'win32') {
     if (process.arch === 'x64') {
@@ -335,7 +354,7 @@ export function spawnNpxBackend(
     // producing "Cannot find module '<cwd>\node_modules\npm\bin\npm-cli.js'" errors.
     effectiveCommand = `chcp 65001 >nul && "${directInvoke.nodePath}" "${directInvoke.npxScript}"`;
   } else {
-    effectiveCommand = isWindows ? `chcp 65001 >nul && "${npxCommand}"` : npxCommand;
+    effectiveCommand = isWindows ? `chcp 65001 >nul && ${formatWindowsCommandForShell(npxCommand)}` : npxCommand;
   }
   const child = spawn(effectiveCommand, spawnArgs, {
     cwd: workingDir,

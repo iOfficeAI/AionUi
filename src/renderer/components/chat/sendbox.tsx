@@ -15,10 +15,12 @@ import { useLayoutContext } from '@/renderer/hooks/context/LayoutContext';
 import { useConversationContextSafe } from '@/renderer/hooks/context/ConversationContext';
 import { usePreviewContext } from '@/renderer/pages/conversation/Preview';
 import { buildAtFileInsertion, getActiveAtFileQuery, getAllAtFileQueries } from '@/renderer/utils/chat/atFileQuery';
+import { getLastAssistantText } from '@/renderer/utils/chat/getLastAssistantText';
 import { emitter, type ReplyQuote, useAddEventListener } from '@/renderer/utils/emitter';
 import { mergeFileSelectionItems, type FileSelectionItem } from '@/renderer/utils/file/fileSelection';
 import type { FileOrFolderItem } from '@/renderer/utils/file/fileTypes';
 import { filterWorkspaceMentionItems } from '@/renderer/utils/file/workspaceMentions';
+import { copyText } from '@/renderer/utils/ui/clipboard';
 import { blurActiveElement, shouldBlockMobileInputFocus } from '@/renderer/utils/ui/focus';
 import { Button, Input, Message, Tag } from '@arco-design/web-react';
 import { ArrowUp, CloseSmall, Quote } from '@icon-park/react';
@@ -422,6 +424,12 @@ const SendBox: React.FC<{
     }
     if (conversationContext?.conversationId) {
       commands.push({
+        name: 'copy',
+        description: t('messages.copy', { defaultValue: 'Copy' }),
+        kind: 'builtin',
+        source: 'builtin',
+      });
+      commands.push({
         name: 'export',
         description: t('messages.export.commandDescription'),
         kind: 'builtin',
@@ -448,7 +456,20 @@ const SendBox: React.FC<{
     input,
     commands: mergedSlashCommands,
     onExecuteBuiltin: (name) => {
-      if (name === 'export') {
+      if (name === 'copy') {
+        const lastAssistantText = getLastAssistantText(messageList, Boolean(loading));
+        if (!lastAssistantText) {
+          Message.warning(t('messages.copyLastOutput.empty'));
+        } else {
+          void copyText(lastAssistantText)
+            .then(() => {
+              Message.success(t('messages.copySuccess'));
+            })
+            .catch(() => {
+              Message.error(t('messages.copyFailed'));
+            });
+        }
+      } else if (name === 'export') {
         void conversationExport.openExportFlow();
       } else {
         onSlashBuiltinCommand?.(name);
@@ -1229,6 +1250,8 @@ const SendBox: React.FC<{
   );
   const speechLocale = i18n?.language || 'en-US';
 
+  const hasDraftToSend = input.trim().length > 0 || domSnippets.length > 0;
+
   // Calculate button disabled state
   const isButtonDisabled = disabled || isUploading || (!input.trim() && domSnippets.length === 0);
 
@@ -1250,7 +1273,7 @@ const SendBox: React.FC<{
     <Button
       shape='circle'
       type='secondary'
-      className='bg-animate'
+      className='bg-animate sendbox-stop-button'
       icon={<div className='mx-auto size-12px bg-6'></div>}
       onClick={stopHandler}
     ></Button>
@@ -1258,15 +1281,12 @@ const SendBox: React.FC<{
 
   const renderActionButtons = () => {
     if (allowSendWhileLoading && (isLoading || loading)) {
-      if (compactActions) {
+      // Keep a single action slot while processing: show stop when the draft is empty,
+      // and only switch back to send once the user has prepared a queued message.
+      if (compactActions || !hasDraftToSend || disabled || isUploading) {
         return stopButton;
       }
-      return (
-        <>
-          {stopButton}
-          {sendButton}
-        </>
-      );
+      return sendButton;
     }
 
     if (isLoading || loading) {

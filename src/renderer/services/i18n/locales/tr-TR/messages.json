@@ -10,6 +10,7 @@
   "copy": "Kopyala",
   "copySuccess": "Başarıyla kopyalandı",
   "copyFailed": "Kopyalama başarısız",
+  "copyLastOutput.empty": "Henüz kopyalanacak bir yanıt yok",
   "copiedToClipboard": "Panoya kopyalandı",
   "downloadSuccess": "İndirme başarılı",
   "downloadFailed": "İndirme başarısız",
