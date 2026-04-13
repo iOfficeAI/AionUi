@@ -71,7 +71,6 @@
   "tray.untitled": "無題",
   "fileAttach.hostFiles": "ホストマシンファイル",
   "fileAttach.myDevice": "マイデバイス",
-  "fileAttach.tooLarge": "ファイルが{{max}}MBの制限を超えています",
   "fileAttach.failed": "アップロードに失敗しました",
   "fileAttach.uploading": "アップロード中...",
   "fileAttach.uploadSuccess": "アップロード成功",

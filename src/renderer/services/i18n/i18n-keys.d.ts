@@ -189,7 +189,6 @@ export type I18nKey =
   | 'common.fileAttach.failed'
   | 'common.fileAttach.hostFiles'
   | 'common.fileAttach.myDevice'
-  | 'common.fileAttach.tooLarge'
   | 'common.fileAttach.uploadSuccess'
   | 'common.fileAttach.uploading'
   | 'common.folder'

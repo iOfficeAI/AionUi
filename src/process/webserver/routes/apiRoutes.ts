@@ -24,13 +24,14 @@ import { apiRateLimiter } from '../middleware/security';
 import { registerWeixinLoginRoutes } from './weixinLoginRoutes';
 import { registerWecomChannelRoutes } from './wecomChannelRoutes';
 
-/** Max upload size in bytes (30MB per Issue #1233) */
-const MAX_UPLOAD_SIZE = 30 * 1024 * 1024;
+/** File upload: disk storage so large files are streamed rather than buffered in memory */
+const uploadDisk = multer({ storage: multer.diskStorage({}) });
 
-/** Multer instance with memory storage and size limit */
-const upload = multer({
+/** STT upload: memory storage so the audio buffer is available directly for transcription */
+const MAX_AUDIO_SIZE = 30 * 1024 * 1024;
+const uploadAudio = multer({
   storage: multer.memoryStorage(),
-  limits: { fileSize: MAX_UPLOAD_SIZE },
+  limits: { fileSize: MAX_AUDIO_SIZE },
 });
 
 /**
@@ -289,14 +290,7 @@ export function registerApiRoutes(app: Express): void {
     apiRateLimiter,
     validateApiAccess,
     (req: Request, res: Response, next: NextFunction) => {
-      upload.single('file')(req, res, (err: unknown) => {
-        if (err && typeof err === 'object' && 'code' in err && (err as { code: string }).code === 'LIMIT_FILE_SIZE') {
-          res.status(413).json({
-            success: false,
-            msg: `File too large (max ${MAX_UPLOAD_SIZE / 1024 / 1024}MB)`,
-          });
-          return;
-        }
+      uploadDisk.single('file')(req, res, (err: unknown) => {
         if (err) {
           next(err);
           return;
@@ -365,7 +359,7 @@ export function registerApiRoutes(app: Express): void {
           return;
         }
 
-        await fsPromises.writeFile(targetPath, file.buffer);
+        await fsPromises.rename(file.path, targetPath);
 
         res.json({
           success: true,
@@ -391,11 +385,11 @@ export function registerApiRoutes(app: Express): void {
     apiRateLimiter,
     validateApiAccess,
     (req: Request, res: Response, next: NextFunction) => {
-      upload.single('audio')(req, res, (err: unknown) => {
+      uploadAudio.single('audio')(req, res, (err: unknown) => {
         if (err && typeof err === 'object' && 'code' in err && (err as { code: string }).code === 'LIMIT_FILE_SIZE') {
           res.status(413).json({
             success: false,
-            msg: `File too large (max ${MAX_UPLOAD_SIZE / 1024 / 1024}MB)`,
+            msg: `Audio file too large (max ${MAX_AUDIO_SIZE / 1024 / 1024}MB)`,
           });
           return;
         }
