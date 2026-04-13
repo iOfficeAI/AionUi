@@ -228,11 +228,7 @@ describe('AcpConnection.resumeSession capability routing', () => {
 
   it('prefers loadSession for load-capable non-claude backends', async () => {
     const conn = makeConnection('opencode');
-    (conn as any).initializeResponse = {
-      jsonrpc: '2.0',
-      id: 1,
-      result: { agentCapabilities: { loadSession: true } },
-    };
+    (conn as any).initializeResponse = { agentCapabilities: { loadSession: true } };
 
     const loadSession = vi.spyOn(conn, 'loadSession').mockResolvedValue({ sessionId: 's1' } as any);
     const newSession = vi.spyOn(conn, 'newSession').mockResolvedValue({ sessionId: 'fresh' } as any);
@@ -246,11 +242,7 @@ describe('AcpConnection.resumeSession capability routing', () => {
 
   it('uses newSession for claude backend even when loadSession is declared', async () => {
     const conn = makeConnection('claude');
-    (conn as any).initializeResponse = {
-      jsonrpc: '2.0',
-      id: 1,
-      result: { agentCapabilities: { loadSession: true } },
-    };
+    (conn as any).initializeResponse = { agentCapabilities: { loadSession: true } };
 
     const loadSession = vi.spyOn(conn, 'loadSession').mockResolvedValue({ sessionId: 's1' } as any);
     const newSession = vi.spyOn(conn, 'newSession').mockResolvedValue({ sessionId: 's1' } as any);
@@ -270,9 +262,7 @@ describe('AcpConnection.resumeSession capability routing', () => {
   it('uses newSession for _meta.claudeCode capability', async () => {
     const conn = makeConnection('codebuddy');
     (conn as any).initializeResponse = {
-      jsonrpc: '2.0',
-      id: 1,
-      result: { agentCapabilities: { loadSession: true, _meta: { claudeCode: { promptQueueing: true } } } },
+      agentCapabilities: { loadSession: true, _meta: { claudeCode: { promptQueueing: true } } },
     };
 
     const loadSession = vi.spyOn(conn, 'loadSession').mockResolvedValue({ sessionId: 's1' } as any);
@@ -286,11 +276,7 @@ describe('AcpConnection.resumeSession capability routing', () => {
 
   it('falls back to newSession when loadSession fails', async () => {
     const conn = makeConnection('qwen');
-    (conn as any).initializeResponse = {
-      jsonrpc: '2.0',
-      id: 1,
-      result: { agentCapabilities: { loadSession: true } },
-    };
+    (conn as any).initializeResponse = { agentCapabilities: { loadSession: true } };
 
     vi.spyOn(conn, 'loadSession').mockRejectedValue(new Error('load failed'));
     const newSession = vi.spyOn(conn, 'newSession').mockResolvedValue({ sessionId: 'fresh' } as any);

@@ -55,7 +55,7 @@ function toNameValueEntries(source?: Record<string, string>): AcpSessionMcpNameV
 }
 
 export function parseAcpMcpCapabilities(response: AcpResponse | null): AcpMcpCapabilities {
-  const result = isRecord(response?.result) ? response.result : null;
+  const result = isRecord(response) ? response : null;
   const agentCapabilities = result && isRecord(result.agentCapabilities) ? result.agentCapabilities : null;
   const mcpCapabilities =
     agentCapabilities && isRecord(agentCapabilities.mcpCapabilities) ? agentCapabilities.mcpCapabilities : null;

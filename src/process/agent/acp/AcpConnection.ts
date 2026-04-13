@@ -880,7 +880,7 @@ export class AcpConnection {
   }
 
   private getInitializeAgentCapabilities(): AcpInitializeAgentCapabilities | undefined {
-    const result = this.initializeResponse?.result;
+    const result = this.initializeResponse;
     if (!result || typeof result !== 'object') {
       return undefined;
     }
