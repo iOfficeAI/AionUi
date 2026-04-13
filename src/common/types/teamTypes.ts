@@ -99,7 +99,9 @@ export type TeamMcpPhase =
   | 'session_error'
   | 'load_failed'
   | 'degraded'
-  | 'config_write_failed';
+  | 'config_write_failed'
+  | 'mcp_tools_waiting'
+  | 'mcp_tools_ready';
 
 /** IPC event for MCP injection pipeline status */
 export type ITeamMcpStatusEvent = {

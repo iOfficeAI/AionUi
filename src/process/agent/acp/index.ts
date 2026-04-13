@@ -48,6 +48,7 @@ import {
 } from './mcpSessionConfig';
 import { getClaudeModel } from './utils';
 import { getAionMcpStdioConfig } from '@process/services/mcpServices/aionMcpServiceSingleton';
+import { waitForMcpReady } from '@process/team/mcpReadiness';
 
 /**
  * Initialize response result interface
@@ -1580,6 +1581,18 @@ export class AcpAgent {
       emitMcpStatus?.('session_error', { error });
       throw err;
     }
+
+    // Wait for MCP tools to be registered in the backend before allowing
+    // message dispatch. The team-mcp-stdio.js script sends a TCP mcp_ready
+    // notification after server.connect() completes. Without this wait,
+    // the first conversationTurn/start may arrive before the backend has
+    // finished the MCP handshake (initialize → tools/list), causing the
+    // agent to process the message without team tools.
+    if (this.extra.teamMcpStdioConfig && teamId) {
+      emitMcpStatus?.('mcp_tools_waiting');
+      await waitForMcpReady(slotId, 30_000);
+      emitMcpStatus?.('mcp_tools_ready');
+    }
   }
 
   private async loadBuiltinSessionMcpServers(): Promise<AcpSessionMcpServer[]> {
@@ -1607,7 +1620,11 @@ export class AcpAgent {
         if (aionStdioConfig) {
           const configWithBackend = {
             ...aionStdioConfig,
-            env: [...aionStdioConfig.env, { name: 'AION_MCP_BACKEND', value: this.extra.backend }],
+            env: [
+              ...aionStdioConfig.env,
+              { name: 'AION_MCP_BACKEND', value: this.extra.backend },
+              { name: 'AION_MCP_CONVERSATION_ID', value: this.id },
+            ],
           };
           servers.push(buildTeamMcpServer(configWithBackend)!);
         }

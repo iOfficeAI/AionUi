@@ -127,6 +127,11 @@ vi.mock('../../src/process/agent/acp/utils', () => ({
   getClaudeModel: vi.fn(),
 }));
 
+vi.mock('../../src/process/team/mcpReadiness', () => ({
+  waitForMcpReady: vi.fn().mockResolvedValue(undefined),
+  notifyMcpReady: vi.fn(),
+}));
+
 // ─── imports ─────────────────────────────────────────────────────────────────
 
 import { AcpAgent } from '../../src/process/agent/acp';

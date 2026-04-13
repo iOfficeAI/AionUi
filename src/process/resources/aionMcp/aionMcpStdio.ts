@@ -20,6 +20,8 @@ import { getCreateTeamToolDescription } from '@process/resources/prompts/teamGui
 const AION_MCP_TOKEN = process.env.AION_MCP_TOKEN || undefined;
 /** Backend type of the agent that owns this stdio bridge (e.g. 'claude', 'codex', 'gemini'). */
 const AION_MCP_BACKEND = process.env.AION_MCP_BACKEND || '';
+/** Conversation ID of the calling agent, used to reuse the conversation as team leader. */
+const AION_MCP_CONVERSATION_ID = process.env.AION_MCP_CONVERSATION_ID || '';
 process.stderr.write(
   `[aion-mcp-stdio] Script started. PID=${process.pid}, AION_MCP_PORT=${process.env.AION_MCP_PORT || 'unset'}, BACKEND=${AION_MCP_BACKEND || 'unset'}\n`
 );
@@ -102,6 +104,7 @@ function createAionTool(
         args,
         auth_token: authToken,
         backend: AION_MCP_BACKEND,
+        conversation_id: AION_MCP_CONVERSATION_ID,
       };
       const response = await sendTcpRequest(tcpPort, payload);
 

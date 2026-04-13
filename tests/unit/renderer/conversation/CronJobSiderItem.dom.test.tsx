@@ -203,7 +203,7 @@ vi.mock('@renderer/hooks/context/ConversationHistoryContext', () => ({
 
 import type { ICronJob } from '@/common/adapter/ipcBridge';
 import type { TChatConversation } from '@/common/config/storage';
-import CronJobSiderItem from '@/renderer/components/layout/Sider/CronJobSiderItem';
+import CronJobSiderItem from '@/renderer/components/layout/Sider/CronJobSiderSection/CronJobSiderItem';
 
 describe('CronJobSiderItem', () => {
   const mockOnNavigate = vi.fn();

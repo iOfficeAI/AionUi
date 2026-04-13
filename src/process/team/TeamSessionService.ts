@@ -288,13 +288,15 @@ export class TeamSessionService {
     agent: Omit<TeamAgent, 'slotId'> | TeamAgent;
     agents: TeamAgent[];
     inheritedSessionMode?: string;
+    /** When true, workspace was inherited (not user-specified) — setupAssistantWorkspace should still run */
+    isInheritedWorkspace?: boolean;
   }): Promise<{
     type: AgentType;
     name: string;
     model: TProviderWithModel;
     extra: Record<string, unknown>;
   }> {
-    const { teamId, teamName, workspace, agent, agents, inheritedSessionMode } = params;
+    const { teamId, teamName, workspace, agent, agents, inheritedSessionMode, isInheritedWorkspace } = params;
     const backend = this.resolveBackend(agent.agentType, agents) as AcpBackendAll;
     const isPreset = Boolean(
       agent.customAgentId && (backend === 'gemini' || (ACP_ROUTED_PRESET_TYPES as readonly string[]).includes(backend))
@@ -314,7 +316,7 @@ export class TeamSessionService {
       name: `${teamName} - ${agent.agentName}`,
       agentName: agent.agentName,
       workspace,
-      customWorkspace: Boolean(workspace),
+      customWorkspace: Boolean(workspace) && !isInheritedWorkspace,
       model,
       cliPath: agent.cliPath,
       customAgentId: agent.customAgentId,
@@ -475,11 +477,28 @@ export class TeamSessionService {
   }): Promise<TTeam> {
     const now = Date.now();
     const teamId = uuid(36);
-    const workspace = this.resolveWorkspace(params.workspace);
+    let workspace = this.resolveWorkspace(params.workspace);
 
-    // Create a real conversation for each agent
+    // Create a real conversation for each agent (or reuse an existing one for the leader)
     const agentsWithConversations = await Promise.all(
       params.agents.map(async (agent) => {
+        const slotId = agent.slotId || `slot-${uuid(8)}`;
+
+        // If the agent already has a conversationId (e.g., leader reusing caller's conversation),
+        // verify it exists and adopt it into the team instead of creating a new conversation.
+        if (agent.conversationId) {
+          const existing = await this.conversationService.getConversation(agent.conversationId);
+          if (existing) {
+            await this.conversationService.updateConversation(
+              agent.conversationId,
+              { extra: { teamId, workspace } } as any,
+              true
+            );
+            return { ...agent, slotId, conversationId: agent.conversationId };
+          }
+          // Fall through to create new if conversation was not found
+        }
+
         const conversationParams = await this.buildConversationParams({
           teamId,
           teamName: params.name,
@@ -487,17 +506,28 @@ export class TeamSessionService {
           agent,
           agents: params.agents,
           inheritedSessionMode: params.sessionMode,
+          isInheritedWorkspace: !params.workspace,
         });
         const conversation = await this.conversationService.createConversation(conversationParams);
         // Ensure teamId is in extra regardless of which factory function was used
         // (some factories like createCodexAgent/createGeminiAgent drop unknown extra fields)
         await this.conversationService.updateConversation(conversation.id, { extra: { teamId } } as any, true);
-        const slotId = agent.slotId || `slot-${uuid(8)}`;
         return { ...agent, slotId, conversationId: conversation.id };
       })
     );
 
     const leadAgent = agentsWithConversations.find((a) => a.role === 'lead');
+
+    // If workspace was not specified, back-fill from the lead agent's actual conversation workspace.
+    // The conversation factory may auto-assign a workspace (stored in extra.workspace), and we need
+    // TTeam.workspace to reflect that so all subsequent addAgent calls share the same directory.
+    if (!workspace && leadAgent?.conversationId) {
+      const leadConv = await this.conversationService.getConversation(leadAgent.conversationId);
+      const leadExtra = leadConv?.extra as Record<string, unknown> | undefined;
+      if (leadExtra?.workspace && typeof leadExtra.workspace === 'string') {
+        workspace = leadExtra.workspace;
+      }
+    }
     if (!leadAgent) throw new Error('Team must have at least one lead agent');
 
     const team: TTeam = {
@@ -593,6 +623,7 @@ export class TeamSessionService {
       agent,
       agents: team.agents,
       inheritedSessionMode,
+      isInheritedWorkspace: true,
     });
     const conversation = await this.conversationService.createConversation(conversationParams);
     // Ensure teamId is in extra regardless of which factory function was used

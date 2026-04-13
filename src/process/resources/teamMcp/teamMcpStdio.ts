@@ -274,6 +274,19 @@ You will be notified of the result either way.`,
 async function main(): Promise<void> {
   const transport = new StdioServerTransport();
   await server.connect(transport);
+
+  // Notify main process that MCP server is ready to handle tool calls.
+  // Fire-and-forget: if the notification fails, the main process falls back
+  // to its timeout in waitForMcpReady().
+  if (TEAM_MCP_PORT && TEAM_MCP_TOKEN) {
+    sendTcpRequest(TEAM_MCP_PORT, {
+      type: 'mcp_ready',
+      slot_id: TEAM_AGENT_SLOT_ID,
+      auth_token: TEAM_MCP_TOKEN,
+    }).catch((err: unknown) => {
+      process.stderr.write(`[team-mcp-stdio] Failed to send mcp_ready: ${err}\n`);
+    });
+  }
 }
 
 main().catch((err: unknown) => {

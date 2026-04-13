@@ -148,7 +148,7 @@ export class TeamSession extends EventEmitter {
    * Send a user message directly to a specific agent (by slotId), bypassing the lead.
    * Ensures MCP server is running, writes to agent's mailbox, persists user bubble, then wakes the agent.
    */
-  async sendMessageToAgent(slotId: string, content: string): Promise<void> {
+  async sendMessageToAgent(slotId: string, content: string, options?: { silent?: boolean }): Promise<void> {
     await this.startMcpServer();
 
     await this.mailbox.write({
@@ -158,8 +158,11 @@ export class TeamSession extends EventEmitter {
       content,
     });
 
+    // When silent, skip the user bubble — the content still reaches the agent
+    // via mailbox → buildRolePrompt "Unread Messages". Used when the leader's
+    // conversation is reused and already contains the full user context.
     const agent = this.teammateManager.getAgents().find((a) => a.slotId === slotId);
-    if (agent?.conversationId) {
+    if (agent?.conversationId && !options?.silent) {
       const msgId = crypto.randomUUID();
       const userMessage: TMessage = {
         id: msgId,
