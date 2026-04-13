@@ -17,7 +17,7 @@ vi.mock('@icon-park/react', () => ({
   AlarmClock: () => <span data-testid='alarm-clock-icon' />,
 }));
 
-import SiderScheduledEntry from '@/renderer/components/layout/Sider/SiderScheduledEntry';
+import SiderScheduledEntry from '@/renderer/components/layout/Sider/SiderNav/SiderScheduledEntry';
 
 const siderTooltipProps: SiderTooltipProps = {
   disabled: true,
