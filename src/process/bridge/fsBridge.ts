@@ -13,8 +13,15 @@ import https from 'node:https';
 import http from 'node:http';
 import JSZip from 'jszip';
 import { ipcBridge } from '@/common';
-import { getSystemDir, getAssistantsDir, getSkillsDir, getBuiltinSkillsCopyDir } from '@process/utils/initStorage';
+import {
+  getSystemDir,
+  getAssistantsDir,
+  getSkillsDir,
+  getBuiltinSkillsCopyDir,
+  ProcessConfig,
+} from '@process/utils/initStorage';
 import { readDirectoryRecursive } from '@process/utils';
+import { getDatabase } from '@process/services/database';
 import type { IWorkspaceFlatFile } from '@/common/adapter/ipcBridge';
 
 // ============================================================================
@@ -478,6 +485,81 @@ export function initFsBridge(): void {
       return tempFilePath;
     } catch (error) {
       console.error('Failed to create temp file:', error);
+      throw error;
+    }
+  });
+
+  // 创建上传文件 / Create upload file based on user preference
+  // 根据"上传文件保存到工作区"设置决定文件保存位置
+  ipcBridge.fs.createUploadFile.provider(async ({ fileName, conversationId }) => {
+    try {
+      // 检查用户偏好：保存到工作区还是缓存目录
+      // Check user preference: save to workspace or cache directory
+      const saveToWorkspace = await ProcessConfig.get('upload.saveToWorkspace').catch(() => false);
+
+      let uploadDir: string;
+      if (conversationId && saveToWorkspace) {
+        // 保存到工作区 / Save to workspace
+        try {
+          const db = await getDatabase();
+          const result = db.getConversation(conversationId);
+          const conversationWorkspace = result.data?.extra?.workspace;
+
+          if (!result.success || !conversationWorkspace) {
+            throw new Error('Conversation workspace not found');
+          }
+
+          const resolvedWorkspace = path.resolve(conversationWorkspace);
+          uploadDir = path.join(resolvedWorkspace, 'uploads');
+          await fs.mkdir(uploadDir, { recursive: true });
+        } catch (error) {
+          // 如果无法获取工作区，回退到缓存目录
+          // Fallback to cache directory if workspace cannot be resolved
+          console.warn('[fsBridge] Failed to resolve workspace, using cache directory:', error);
+          const { cacheDir } = getSystemDir();
+          const tempDir = path.join(cacheDir, 'temp');
+          await fs.mkdir(tempDir, { recursive: true });
+          uploadDir = tempDir;
+        }
+      } else {
+        // 保存到缓存目录 / Save to cache directory
+        const { cacheDir } = getSystemDir();
+        const tempDir = path.join(cacheDir, 'temp');
+        await fs.mkdir(tempDir, { recursive: true });
+        uploadDir = tempDir;
+      }
+
+      // 使用原文件名，必要时清理非法字符 / Keep original name but sanitize illegal characters
+      const safeFileName = fileName.replace(/[<>:"/\\|?*]/g, '_');
+      let filePath = path.join(uploadDir, safeFileName);
+
+      // 如果冲突则追加时间戳后缀 / Append timestamp when duplicate exists
+      const fileExists = await fs
+        .access(filePath)
+        .then(() => true)
+        .catch(() => false);
+
+      if (fileExists) {
+        const timestamp = Date.now();
+        const ext = path.extname(safeFileName);
+        const name = path.basename(safeFileName, ext);
+        const newFileName = `${name}${AIONUI_TIMESTAMP_SEPARATOR}${timestamp}${ext}`;
+        filePath = path.join(uploadDir, newFileName);
+      }
+
+      // Defense in depth: ensure path stays within uploadDir
+      const resolvedFilePath = path.resolve(filePath);
+      const resolvedUploadDir = path.resolve(uploadDir);
+      if (!resolvedFilePath.startsWith(resolvedUploadDir + path.sep)) {
+        throw new Error('Invalid file name');
+      }
+
+      // 创建空文件作为占位 / Create empty placeholder file
+      await fs.writeFile(filePath, Buffer.alloc(0));
+
+      return filePath;
+    } catch (error) {
+      console.error('Failed to create upload file:', error);
       throw error;
     }
   });
