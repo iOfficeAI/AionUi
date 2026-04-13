@@ -4,7 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { render, screen, act } from '@testing-library/react';
+import { render, screen, waitFor, act } from '@testing-library/react';
 import React from 'react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -17,20 +17,16 @@ vi.mock('../../src/common', () => ({
   ipcBridge: {
     fs: {
       getImageBase64: {
-        invoke: (...args: unknown[]) => getImageBase64Mock(...args),
+        invoke: (...args: any[]) => getImageBase64Mock(...args),
       },
       getFileMetadata: {
-        invoke: (...args: unknown[]) => getFileMetadataMock(...args),
+        invoke: (...args: any[]) => getFileMetadataMock(...args),
       },
     },
   },
 }));
 
 vi.mock('../../src/renderer/services/FileService', () => ({
-  getCleanFileName: (filePath: string) => {
-    const fileName = filePath.split(/[\\/]/).pop() || '';
-    return fileName.replace(/_aionui_\d{13}(\.\w+)?$/, '$1');
-  },
   getFileExtension: (name: string) => {
     const dot = name.lastIndexOf('.');
     return dot >= 0 ? name.slice(dot) : '';
@@ -38,7 +34,7 @@ vi.mock('../../src/renderer/services/FileService', () => ({
 }));
 
 vi.mock('@arco-design/web-react', () => ({
-  Image: ({ src, alt, style, ...rest }: React.ImgHTMLAttributes<HTMLImageElement>) => (
+  Image: ({ src, alt, style, ...rest }: any) => (
     <img data-testid='arco-image' src={src} alt={alt} style={style} {...rest} />
   ),
 }));
@@ -57,18 +53,6 @@ import FilePreview from '../../src/renderer/components/media/FilePreview';
 
 // Helper: flush microtasks (promise callbacks)
 const flushMicrotasks = () => act(() => new Promise<void>((resolve) => setTimeout(resolve, 0)));
-
-const exhaustPlaceholderRetries = async (remainingAttempts: number): Promise<void> => {
-  await flushMicrotasks();
-  if (remainingAttempts <= 1) {
-    return;
-  }
-
-  await act(async () => {
-    vi.advanceTimersByTime(900);
-  });
-  await exhaustPlaceholderRetries(remainingAttempts - 1);
-};
 
 describe('FilePreview', () => {
   beforeEach(() => {
@@ -92,19 +76,6 @@ describe('FilePreview', () => {
     const img = screen.getByTestId('arco-image');
     expect(img).toHaveAttribute('src', REAL_IMAGE_B64);
     expect(getImageBase64Mock).toHaveBeenCalledTimes(1);
-  });
-
-  it('loads images from the real path while displaying a cleaned filename', async () => {
-    getImageBase64Mock.mockResolvedValue(REAL_IMAGE_B64);
-
-    render(<FilePreview path='/workspace/image_aionui_1234567890123.png' onRemove={vi.fn()} />);
-
-    await flushMicrotasks();
-
-    const img = screen.getByTestId('arco-image');
-    expect(img).toHaveAttribute('src', REAL_IMAGE_B64);
-    expect(img).toHaveAttribute('alt', 'image.png');
-    expect(getImageBase64Mock).toHaveBeenCalledWith({ path: '/workspace/image_aionui_1234567890123.png' });
   });
 
   it('retries when getImageBase64 returns placeholder then succeeds', async () => {
@@ -134,7 +105,14 @@ describe('FilePreview', () => {
     render(<FilePreview path='/workspace/missing.png' onRemove={vi.fn()} />);
 
     // Flush initial + 5 retries
-    await exhaustPlaceholderRetries(6);
+    for (let i = 0; i < 6; i++) {
+      await flushMicrotasks();
+      if (i < 5) {
+        await act(async () => {
+          vi.advanceTimersByTime(900);
+        });
+      }
+    }
 
     // 1 initial + 5 retries = 6 calls total
     expect(getImageBase64Mock).toHaveBeenCalledTimes(6);
