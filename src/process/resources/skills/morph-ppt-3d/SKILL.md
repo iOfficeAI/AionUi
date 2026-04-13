@@ -447,6 +447,7 @@ Slide 7: C (centered closing, L)     ← push in
 **Text boxes must never overlap each other or the model frame.**
 
 Rules:
+
 1. **Title and body must not collide.** If a title wraps to 2 lines, the body `y` must account for the title's actual height, not the planned height. Safe formula: `body_y = title_y + title_height + 0.5cm`
 2. **Fixed-height text boxes are dangerous.** If text content is longer than expected, it will overflow invisibly. Use generous heights: title `3-4cm`, body `6-8cm`, bullets `8-10cm`.
 3. **Model frame and text boxes: gap >= 1cm.** Calculate: if model is at `x=15cm`, text `x + width` must be <= `14cm`.
@@ -460,11 +461,13 @@ Rules:
 ### Model Bleed Guidelines
 
 **Not every model looks good when cropped.** Bleed (Pattern E/F) works best for:
+
 - ✅ Symmetric objects (spheres, helmets, bottles) — any crop looks intentional
 - ✅ Large flat surfaces (cars, buildings) — partial view implies scale
 - ✅ When cropping non-critical parts (background, base, stand)
 
 Bleed does NOT work for:
+
 - ❌ Character/animal models — cropping ears, tails, or limbs looks broken
 - ❌ Small detailed models — cropping loses the detail you want to show
 - ❌ When the cropped part is the most recognizable feature
