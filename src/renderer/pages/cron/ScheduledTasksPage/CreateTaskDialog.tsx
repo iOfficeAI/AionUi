@@ -107,6 +107,12 @@ function parseCronExpr(expr: string): { frequency: FrequencyType; time: string; 
   return { frequency: 'custom', time: '09:00', weekday: 'MON' };
 }
 
+function getDescriptionInitialValue(job: ICronJob): string {
+  const storedDescription = job.description?.trim();
+  if (storedDescription) return storedDescription;
+  return '';
+}
+
 /**
  * Infer the agent selection key from an ICronJob's agentConfig.
  */
@@ -174,7 +180,7 @@ const CreateTaskDialog: React.FC<CreateTaskDialogProps> = ({
       setSelectedAgent(agentKey);
       form.setFieldsValue({
         name: editJob.name,
-        description: editJob.schedule.description || editJob.name,
+        description: getDescriptionInitialValue(editJob),
         prompt: editJob.target.payload.text,
         agent: agentKey,
       });
@@ -433,6 +439,7 @@ const CreateTaskDialog: React.FC<CreateTaskDialogProps> = ({
           jobId: editJob!.id,
           updates: {
             name: values.name,
+            description: values.description,
             schedule: { kind: 'cron', expr: scheduleExpr, description: scheduleDesc },
             target: {
               ...editJob!.target,

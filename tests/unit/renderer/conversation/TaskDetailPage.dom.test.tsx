@@ -1,4 +1,4 @@
-import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import React from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import type { ICronJob } from '@/common/adapter/ipcBridge';
@@ -163,6 +163,7 @@ describe('TaskDetailPage', () => {
   const mockJob: ICronJob = {
     id: 'job-123',
     name: 'Daily Summary',
+    description: 'Daily summary description',
     enabled: true,
     schedule: {
       kind: 'cron',
@@ -240,8 +241,44 @@ describe('TaskDetailPage', () => {
       expect(screen.getByText('Daily Summary')).toBeInTheDocument();
     });
 
-    expect(screen.getAllByText('Summarize daily activities')).toHaveLength(2);
+    expect(screen.getByText('Summarize daily activities')).toBeInTheDocument();
+    expect(screen.getByTestId('task-detail-summary')).toHaveTextContent('Daily summary description');
+    expect(screen.queryByText('cron.detail.description')).not.toBeInTheDocument();
     expect(screen.getByText('Every day at 9:00 AM')).toBeInTheDocument();
+  });
+
+  it('hides the summary when a legacy job has no stored description', async () => {
+    mockGetJob.mockResolvedValue({ ...mockJob, description: undefined });
+
+    render(<TaskDetailPage />);
+
+    await waitFor(() => {
+      expect(screen.getByText('Daily Summary')).toBeInTheDocument();
+    });
+
+    expect(screen.queryByTestId('task-detail-summary')).not.toBeInTheDocument();
+  });
+
+  it('renders history as the main column and task details in the sidebar', async () => {
+    render(<TaskDetailPage />);
+
+    await waitFor(() => {
+      expect(screen.getByTestId('task-detail-history-column')).toBeInTheDocument();
+      expect(screen.getByTestId('task-detail-sidebar-column')).toBeInTheDocument();
+    });
+
+    const historyColumn = screen.getByTestId('task-detail-history-column');
+    const sidebarColumn = screen.getByTestId('task-detail-sidebar-column');
+
+    expect(within(historyColumn).getByText('cron.detail.history')).toBeInTheDocument();
+    await waitFor(() => {
+      expect(within(historyColumn).getByText('Conversation 1')).toBeInTheDocument();
+    });
+
+    expect(within(sidebarColumn).getByText('cron.detail.instructions')).toBeInTheDocument();
+    expect(within(sidebarColumn).getByText('cron.detail.agent')).toBeInTheDocument();
+    expect(within(sidebarColumn).getByText('cron.detail.repeats')).toBeInTheDocument();
+    expect(within(sidebarColumn).getByText('cron.page.form.executionMode')).toBeInTheDocument();
   });
 
   it('renders active status tag when job is enabled and has no errors', async () => {

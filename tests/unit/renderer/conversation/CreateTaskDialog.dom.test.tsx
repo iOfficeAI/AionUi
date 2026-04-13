@@ -5,16 +5,6 @@ import type { ICronJob } from '@/common/adapter/ipcBridge';
 
 const mockShowOpen = vi.hoisted(() => vi.fn().mockResolvedValue([]));
 const mockIsElectronDesktop = vi.hoisted(() => vi.fn(() => true));
-const mockForm = vi.hoisted(() => ({
-  setFieldsValue: vi.fn(),
-  resetFields: vi.fn(),
-  validate: vi.fn().mockResolvedValue({
-    name: 'Test Task',
-    description: 'Test Description',
-    prompt: 'Test Prompt',
-    agent: 'cli:claude',
-  }),
-}));
 
 // Mock react-i18next
 vi.mock('react-i18next', () => ({
@@ -74,6 +64,21 @@ vi.mock('@icon-park/react', () => ({
 // Mock ipcBridge
 const mockAddJob = vi.fn();
 const mockUpdateJob = vi.fn();
+const mockFormSetFieldsValue = vi.hoisted(() => vi.fn());
+const mockFormResetFields = vi.hoisted(() => vi.fn());
+const mockFormValidate = vi.hoisted(() =>
+  vi.fn().mockResolvedValue({
+    name: 'Test Task',
+    description: 'Test Description',
+    prompt: 'Test Prompt',
+    agent: 'cli:claude',
+  })
+);
+const mockForm = {
+  setFieldsValue: mockFormSetFieldsValue,
+  resetFields: mockFormResetFields,
+  validate: mockFormValidate,
+};
 
 vi.mock('@/common', () => ({
   ipcBridge: {
@@ -1067,6 +1072,7 @@ describe('CreateTaskDialog - component behavior', () => {
     const editJob: ICronJob = {
       id: 'job-1',
       name: 'Existing Task',
+      description: 'Stored description',
       schedule: { kind: 'cron', expr: '0 9 * * *', description: 'Daily at 09:00' },
       target: {
         kind: 'conversation',
@@ -1092,6 +1098,84 @@ describe('CreateTaskDialog - component behavior', () => {
     render(<CreateTaskDialog visible={true} onClose={vi.fn()} editJob={editJob} conversationId='conv-1' />);
 
     expect(screen.getByTestId('modal-wrapper')).toBeInTheDocument();
+  });
+
+  it('prefills the description field from the stored task description in edit mode', async () => {
+    const editJob: ICronJob = {
+      id: 'job-description',
+      name: 'Existing Task',
+      description: 'Stored description',
+      schedule: { kind: 'cron', expr: '0 9 * * *', description: 'Daily at 09:00' },
+      target: {
+        kind: 'conversation',
+        conversationId: 'conv-1',
+        payload: { kind: 'message', text: 'Existing prompt' },
+        executionMode: 'existing',
+      },
+      metadata: {
+        agentType: 'claude',
+        createdBy: 'user',
+        createdAt: Date.now(),
+        updatedAt: Date.now(),
+        agentConfig: {
+          backend: 'claude',
+          name: 'Claude',
+          cliPath: '/usr/bin/claude',
+        },
+      },
+      state: 'active',
+      lastExecutionTime: Date.now(),
+    };
+
+    render(<CreateTaskDialog visible={true} onClose={vi.fn()} editJob={editJob} conversationId='conv-1' />);
+
+    await waitFor(() => {
+      expect(mockFormSetFieldsValue).toHaveBeenCalledWith(
+        expect.objectContaining({
+          description: 'Stored description',
+          prompt: 'Existing prompt',
+        })
+      );
+    });
+  });
+
+  it('leaves the description field empty for legacy tasks without a stored description', async () => {
+    const editJob: ICronJob = {
+      id: 'job-legacy-description',
+      name: 'Existing Task',
+      description: undefined,
+      schedule: { kind: 'cron', expr: '0 9 * * *', description: 'Daily at 09:00' },
+      target: {
+        kind: 'conversation',
+        conversationId: 'conv-1',
+        payload: { kind: 'message', text: 'Existing prompt' },
+        executionMode: 'existing',
+      },
+      metadata: {
+        agentType: 'claude',
+        createdBy: 'user',
+        createdAt: Date.now(),
+        updatedAt: Date.now(),
+        agentConfig: {
+          backend: 'claude',
+          name: 'Claude',
+          cliPath: '/usr/bin/claude',
+        },
+      },
+      state: 'active',
+      lastExecutionTime: Date.now(),
+    };
+
+    render(<CreateTaskDialog visible={true} onClose={vi.fn()} editJob={editJob} conversationId='conv-1' />);
+
+    await waitFor(() => {
+      expect(mockFormSetFieldsValue).toHaveBeenCalledWith(
+        expect.objectContaining({
+          description: '',
+          prompt: 'Existing prompt',
+        })
+      );
+    });
   });
 
   it('does not render when visible is false', () => {
@@ -1121,6 +1205,7 @@ describe('CreateTaskDialog - component behavior', () => {
       expect(mockAddJob).toHaveBeenCalled();
     });
 
+    expect(mockAddJob).toHaveBeenCalledWith(expect.objectContaining({ description: 'Test Description' }));
     expect(onClose).toHaveBeenCalled();
   });
 
@@ -1161,6 +1246,11 @@ describe('CreateTaskDialog - component behavior', () => {
       expect(mockUpdateJob).toHaveBeenCalled();
     });
 
+    expect(mockUpdateJob).toHaveBeenCalledWith(
+      expect.objectContaining({
+        updates: expect.objectContaining({ description: 'Test Description' }),
+      })
+    );
     expect(onClose).toHaveBeenCalled();
   });
 });
@@ -1219,16 +1309,16 @@ describe('CreateTaskDialog - advanced settings panel', () => {
     render(<CreateTaskDialog visible onClose={vi.fn()} editJob={editJob} conversationId='conv-1' />);
 
     // Advanced open because workspace was set in agentConfig
-    expect(screen.getByTestId('cron-workspace-trigger')).toBeInTheDocument();
+    const workspaceTrigger = screen.getByTestId('cron-workspace-trigger');
+    expect(workspaceTrigger).toBeInTheDocument();
     // Clear icon present because workspace has a value
-    expect(screen.getByTestId('icon-close')).toBeInTheDocument();
+    expect(workspaceTrigger.querySelector('[data-testid="icon-close"]')).not.toBeNull();
 
-    fireEvent.click(screen.getByTestId('icon-close'));
+    fireEvent.click(workspaceTrigger.querySelector('[data-testid="icon-close"]') as Element);
 
-    // After clearing, the Close icon is replaced by the Down icon in the trigger
-    expect(screen.queryByTestId('icon-close')).not.toBeInTheDocument();
-    // Multiple Down icons now exist: one in the toggle button, one in the cleared trigger
-    expect(screen.getAllByTestId('icon-down').length).toBeGreaterThan(0);
+    // After clearing, the trigger swaps back to the empty state affordance.
+    expect(workspaceTrigger.querySelector('[data-testid="icon-close"]')).toBeNull();
+    expect(workspaceTrigger.querySelector('[data-testid="icon-down"]')).not.toBeNull();
   });
 
   it('opens advanced panel pre-expanded when editJob has a workspace', () => {
