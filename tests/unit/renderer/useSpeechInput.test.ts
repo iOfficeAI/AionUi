@@ -100,6 +100,7 @@ describe('pickRecordingMimeType', () => {
   afterEach(() => {
     mockTranscribeAudioBlob.mockReset();
     vi.unstubAllGlobals();
+    vi.useRealTimers();
   });
 
   it('returns the first supported recording mime type', () => {
@@ -118,6 +119,10 @@ describe('pickRecordingMimeType', () => {
 });
 
 describe('useSpeechInput', () => {
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
   it('starts in file mode when live recording APIs are unavailable', () => {
     const { result } = renderHook(() =>
       useSpeechInput({
@@ -148,6 +153,25 @@ describe('useSpeechInput', () => {
     expect(onTranscript).toHaveBeenCalledWith('hello from speech');
     expect(result.current.status).toBe('idle');
     expect(result.current.errorCode).toBeNull();
+    expect(result.current.errorMessage).toBeNull();
+  });
+
+  it('surfaces an empty transcript as a recoverable warning state', async () => {
+    mockTranscribeAudioBlob.mockResolvedValueOnce({ text: '   ' });
+
+    const { result } = renderHook(() =>
+      useSpeechInput({
+        locale: 'en-US',
+        onTranscript: vi.fn(),
+      })
+    );
+
+    await act(async () => {
+      await result.current.transcribeFile(new Blob(['audio'], { type: 'audio/webm' }));
+    });
+
+    expect(result.current.status).toBe('error');
+    expect(result.current.errorCode).toBe('empty-transcript');
     expect(result.current.errorMessage).toBeNull();
   });
 
@@ -217,6 +241,7 @@ describe('useSpeechInput', () => {
   });
 
   it('records audio and transcribes it when live recording is available', async () => {
+    vi.useFakeTimers();
     const stopTrack = vi.fn();
     const onTranscript = vi.fn();
     mockTranscribeAudioBlob.mockResolvedValueOnce({ text: 'recorded result' });
@@ -239,14 +264,20 @@ describe('useSpeechInput', () => {
 
     expect(result.current.availability).toBe('record');
     expect(result.current.status).toBe('recording');
+    act(() => {
+      vi.advanceTimersByTime(320);
+    });
+    expect(result.current.recordingDurationMs).toBeGreaterThan(0);
+    expect(result.current.recordingLevels).toHaveLength(40);
 
     await act(async () => {
       result.current.stopRecording();
     });
 
-    await waitFor(() => {
-      expect(onTranscript).toHaveBeenCalledWith('recorded result');
+    await act(async () => {
+      await Promise.resolve();
     });
+    expect(onTranscript).toHaveBeenCalledWith('recorded result');
     expect(result.current.status).toBe('idle');
     expect(result.current.errorMessage).toBeNull();
     expect(stopTrack).toHaveBeenCalled();

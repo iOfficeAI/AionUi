@@ -216,6 +216,7 @@
       "stopShort": "Dur",
       "transcribingShort": "...",
       "audioCaptureError": "Kullanılabilir mikrofon bulunamadı",
+      "emptyTranscript": "Konuşma algılanamadı",
       "fileTooLarge": "Ses dosyası çok büyük",
       "networkError": "Ses dönüştürme sırasında ağ hatası oluştu",
       "notConfigured": "Konuşmadan yazıya dönüştürme henüz yapılandırılmadı",

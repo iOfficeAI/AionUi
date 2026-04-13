@@ -5,6 +5,8 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 let speechToTextEnabled = false;
 let speechInputAvailability: 'record' | 'file' | 'unsupported' = 'record';
 let speechInputStatus: 'idle' | 'recording' | 'transcribing' | 'error' = 'idle';
+let speechInputRecordingDurationMs = 0;
+let speechInputRecordingLevels = [0.12, 0.18, 0.24, 0.16];
 
 const mockClearError = vi.fn();
 const mockStartRecording = vi.fn();
@@ -34,6 +36,8 @@ vi.mock('@/renderer/hooks/system/useSpeechInput', () => ({
     clearError: mockClearError,
     errorCode: speechInputErrorCode,
     errorMessage: speechInputErrorMessage,
+    recordingDurationMs: speechInputRecordingDurationMs,
+    recordingLevels: speechInputRecordingLevels,
     startRecording: mockStartRecording,
     status: speechInputStatus,
     stopRecording: mockStopRecording,
@@ -64,6 +68,8 @@ describe('SpeechInputButton', () => {
     speechToTextEnabled = false;
     speechInputAvailability = 'record';
     speechInputStatus = 'idle';
+    speechInputRecordingDurationMs = 0;
+    speechInputRecordingLevels = [0.12, 0.18, 0.24, 0.16];
     speechInputErrorCode = null;
     speechInputErrorMessage = null;
     vi.clearAllMocks();
@@ -138,6 +144,18 @@ describe('SpeechInputButton', () => {
     expect(mockClearError).toHaveBeenCalled();
   });
 
+  it('shows a warning when recording ends without a detectable transcript', async () => {
+    speechToTextEnabled = true;
+    speechInputErrorCode = 'empty-transcript';
+
+    render(<SpeechInputButton onTranscript={vi.fn()} />);
+
+    await waitFor(() => {
+      expect(mockMessageWarning).toHaveBeenCalledWith('conversation.chat.speech.emptyTranscript');
+    });
+    expect(mockClearError).toHaveBeenCalled();
+  });
+
   it('starts recording when the speech input button is clicked in record mode', async () => {
     speechToTextEnabled = true;
 
@@ -155,6 +173,7 @@ describe('SpeechInputButton', () => {
   it('stops recording when clicked while a recording is in progress', async () => {
     speechToTextEnabled = true;
     speechInputStatus = 'recording';
+    speechInputRecordingDurationMs = 42_000;
 
     render(<SpeechInputButton onTranscript={vi.fn()} />);
 
@@ -165,11 +184,13 @@ describe('SpeechInputButton', () => {
 
     expect(mockStopRecording).toHaveBeenCalledTimes(1);
     expect(mockStartRecording).not.toHaveBeenCalled();
+    expect(screen.getByText('0:42')).toBeInTheDocument();
   });
 
   it('shows a processing label and disables the button while transcribing', async () => {
     speechToTextEnabled = true;
     speechInputStatus = 'transcribing';
+    speechInputRecordingLevels = [0.2, 0.28, 0.12, 0.18];
 
     render(<SpeechInputButton onTranscript={vi.fn()} />);
 
@@ -177,6 +198,7 @@ describe('SpeechInputButton', () => {
       name: 'conversation.chat.speech.processing',
     });
     expect(button).toBeDisabled();
+    expect(screen.getByText('conversation.chat.speech.transcribingShort')).toBeInTheDocument();
   });
 
   it('opens the file picker when only file upload is available', async () => {
