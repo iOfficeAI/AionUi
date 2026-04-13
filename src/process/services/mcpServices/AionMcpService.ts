@@ -248,17 +248,32 @@ export class AionMcpService {
     const leadAgent = team.agents.find((a) => a.role === 'lead');
     const route = `/team/${team.id}`;
 
+    // Notify sidebar: the reused conversation now belongs to a team → filter it out.
+    // TeamSessionService.createTeam calls conversationService.updateConversation directly
+    // (bypassing the IPC bridge), so conversation.listChanged is never emitted automatically.
+    if (callerConversationId) {
+      ipcBridge.conversation.listChanged.emit({
+        conversationId: callerConversationId,
+        action: 'updated',
+        source: 'aionui',
+      });
+    }
+
     // Notify frontend to refresh team list
     ipcBridge.team.listChanged.emit({ teamId: team.id, action: 'created' });
 
+    // Navigate to team page immediately — no need for the agent to call aion_navigate.
+    // This eliminates one LLM inference round-trip between team creation and navigation.
+    ipcBridge.deepLink.received.emit({ action: 'navigate', params: { route } });
+
     // Fire-and-forget: start session in background.
-    // Skip sendMessageToAgent when the leader reuses the caller's conversation —
-    // the calling agent already has the full user context and will finish its current turn.
+    // getOrStartSession rebuilds the leader's agent task with team MCP tools (skipCache).
+    // Always send the summary to the leader so it can propose/spawn teammates.
     const leaderIsReused = Boolean(callerConversationId && leadAgent?.conversationId === callerConversationId);
     void (async () => {
       try {
         const session = await this.teamSessionService.getOrStartSession(team.id);
-        if (leadAgent && !leaderIsReused) {
+        if (leadAgent) {
           await session.sendMessageToAgent(leadAgent.slotId, summary);
         }
       } catch (err) {
@@ -272,7 +287,8 @@ export class AionMcpService {
       route,
       leadAgent: leadAgent ? { slotId: leadAgent.slotId, conversationId: leadAgent.conversationId } : null,
       status: 'team_created',
-      next_step: `Tell the user the team has been created, then call aion_navigate with route "${route}" to take them to the team page.`,
+      next_step:
+        'The team page has been opened automatically. Do NOT call aion_navigate. End your turn now — do not add extra commentary.',
     });
   }
 
