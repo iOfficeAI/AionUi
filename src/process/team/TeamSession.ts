@@ -88,6 +88,20 @@ export class TeamSession extends EventEmitter {
   }
 
   /**
+   * Best-effort wake after a message has already been durably accepted into the
+   * team mailbox. Wake failures must not be reported as send failures to the
+   * renderer, otherwise the queue may re-enqueue an already-delivered message.
+   */
+  private async wakeAfterAcceptedDelivery(slotId: string, context: 'team' | 'agent'): Promise<void> {
+    try {
+      await this.teammateManager.wake(slotId);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      console.error(`[TeamSession] Accepted ${context} message but failed to wake ${slotId}:`, message);
+    }
+  }
+
+  /**
    * Send a user message to the team.
    * Ensures MCP server is started, then writes to the lead agent's mailbox and wakes the lead.
    */
@@ -126,7 +140,7 @@ export class TeamSession extends EventEmitter {
       });
     }
 
-    await this.teammateManager.wake(leadSlotId);
+    await this.wakeAfterAcceptedDelivery(leadSlotId, 'team');
   }
 
   /**
@@ -164,7 +178,7 @@ export class TeamSession extends EventEmitter {
       });
     }
 
-    await this.teammateManager.wake(slotId);
+    await this.wakeAfterAcceptedDelivery(slotId, 'agent');
   }
 
   /** Rename an agent and persist to DB */

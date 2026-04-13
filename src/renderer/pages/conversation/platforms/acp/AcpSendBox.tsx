@@ -49,6 +49,15 @@ const useAcpSendBoxDraft = getSendBoxDraftHook('acp', {
 const EMPTY_AT_PATH: Array<string | FileOrFolderItem> = [];
 const EMPTY_UPLOAD_FILES: string[] = [];
 
+const assertTeamBridgeSuccess = (
+  result: void | { __bridgeError?: boolean; message?: string },
+  fallbackMessage: string
+): void => {
+  if (result && typeof result === 'object' && '__bridgeError' in result && result.__bridgeError) {
+    throw new Error(result.message || fallbackMessage);
+  }
+};
+
 const useSendBoxDraft = (conversation_id: string) => {
   const { data, mutate } = useAcpSendBoxDraft(conversation_id);
   const atPath = data?.atPath ?? EMPTY_AT_PATH;
@@ -182,16 +191,10 @@ const AcpSendBox: React.FC<{
               slotId: agentSlotId,
               content: input,
             });
-            const maybeError = result as unknown as { __bridgeError?: boolean; message?: string };
-            if (maybeError.__bridgeError) {
-              throw new Error(maybeError.message || 'Failed to send message to agent');
-            }
+            assertTeamBridgeSuccess(result, 'Failed to send message to agent');
           } else {
             const result = await ipcBridge.team.sendMessage.invoke({ teamId, content: input });
-            const maybeError = result as unknown as { __bridgeError?: boolean; message?: string };
-            if (maybeError.__bridgeError) {
-              throw new Error(maybeError.message || 'Failed to send message to team');
-            }
+            assertTeamBridgeSuccess(result, 'Failed to send message to team');
           }
         } else {
           const result = await ipcBridge.acpConversation.sendMessage.invoke({
