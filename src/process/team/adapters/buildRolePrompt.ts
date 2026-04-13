@@ -16,7 +16,7 @@ type BuildRolePromptParams = {
 
 /**
  * Select the correct role prompt (lead vs teammate) based on the agent's role.
- * Used by xmlFallbackAdapter to prepend identity context.
+ * Used by TeammateManager.wake() to build the message payload for each agent.
  */
 export function buildRolePrompt(params: BuildRolePromptParams): string {
   const { agent, mailboxMessages, tasks, teammates, availableAgentTypes, renamedAgents, teamWorkspace } = params;

@@ -739,10 +739,13 @@ ${collectedResponses.join('\n')}`;
 
     const emitStart = Date.now();
     ipcBridge.acpConversation.responseStream.emit(processedMessage);
-    teamEventBus.emit('responseStream', {
-      ...processedMessage,
-      conversation_id: this.conversation_id,
-    });
+    // Only emit terminal events to team bus for agent lifecycle management
+    if (processedMessage.type === 'finish' || processedMessage.type === 'error') {
+      teamEventBus.emit('responseStream', {
+        ...processedMessage,
+        conversation_id: this.conversation_id,
+      });
+    }
     const emitDuration = Date.now() - emitStart;
 
     channelEventBus.emitAgentMessage(this.conversation_id, {
@@ -817,10 +820,6 @@ ${collectedResponses.join('\n')}`;
     }
 
     ipcBridge.acpConversation.responseStream.emit(v);
-    teamEventBus.emit('responseStream', {
-      ...v,
-      conversation_id: this.conversation_id,
-    });
 
     channelEventBus.emitAgentMessage(this.conversation_id, {
       ...v,

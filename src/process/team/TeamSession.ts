@@ -74,7 +74,6 @@ export class TeamSession extends EventEmitter {
   async startMcpServer(): Promise<StdioMcpConfig> {
     if (!this.mcpStdioConfig) {
       this.mcpStdioConfig = await this.mcpServer.start();
-      this.teammateManager.setHasMcpTools(true);
     }
     return this.mcpStdioConfig;
   }
@@ -204,7 +203,6 @@ export class TeamSession extends EventEmitter {
 
   /** Clean up all IPC listeners, MCP server, and EventEmitter handlers */
   async dispose(): Promise<void> {
-    this.teammateManager.setHasMcpTools(false);
     this.teammateManager.dispose();
     await this.mcpServer.stop();
     this.mcpStdioConfig = null;

@@ -4,10 +4,8 @@
  * Verifies: UI create modal dropdown only shows whitelisted agent types.
  *
  * Whitelist locations:
- * - agentSelectUtils.tsx:25 (TEAM_SUPPORTED_BACKENDS)
- * - TeammateManager.ts:169 (MCP_CAPABLE_TYPES)
- * - TeamMcpServer.ts:366 (spawn whitelist)
- * - TeammateManager.ts:18 (MCP_CAPABLE_TYPES export)
+ * - agentSelectUtils.tsx (TEAM_SUPPORTED_BACKENDS)
+ * - TeamMcpServer.ts (spawn whitelist)
  */
 import { test, expect } from '../fixtures';
 import { TEAM_SUPPORTED_BACKENDS } from '../helpers';

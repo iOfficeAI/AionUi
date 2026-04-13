@@ -62,7 +62,7 @@ export async function scanWorkspaceOfficeFiles(workspace: string): Promise<strin
     }
   }
 
-  return [...discovered].sort();
+  return [...discovered].toSorted();
 }
 
 // 初始化文件监听桥接，负责 start/stop 所有 watcher / Initialize file watch bridge to manage start/stop of watchers
