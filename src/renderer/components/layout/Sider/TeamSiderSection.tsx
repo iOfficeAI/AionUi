@@ -15,6 +15,7 @@ import { iconColors } from '@renderer/styles/colors';
 import { cleanupSiderTooltips } from '@renderer/utils/ui/siderTooltip';
 import { blurActiveElement } from '@renderer/utils/ui/focus';
 import { useTeamList } from '@renderer/pages/team/hooks/useTeamList';
+import { useSiderTeamBadges } from '@renderer/pages/team/hooks/useSiderTeamBadges';
 import TeamCreateModal from '@renderer/pages/team/components/TeamCreateModal';
 import { ipcBridge } from '@/common';
 import SiderItem from './SiderItem';
@@ -40,6 +41,7 @@ const TeamSiderSection: React.FC<TeamSiderSectionProps> = ({
   const { t } = useTranslation();
   const navigate = useNavigate();
   const { teams, mutate: refreshTeams, removeTeam } = useTeamList();
+  const teamBadgeCounts = useSiderTeamBadges(teams);
   const { mutate: globalMutate } = useSWRConfig();
 
   const [createTeamVisible, setCreateTeamVisible] = useState(false);
@@ -112,7 +114,7 @@ const TeamSiderSection: React.FC<TeamSiderSectionProps> = ({
                   <div
                     data-testid={`collapsed-team-item-${team.id}`}
                     className={classNames(
-                      'w-full h-40px flex items-center justify-center cursor-pointer transition-colors rd-8px',
+                      'relative w-full h-40px flex items-center justify-center cursor-pointer transition-colors rd-8px',
                       isActive ? '!bg-active' : 'hover:bg-fill-3 active:bg-fill-4'
                     )}
                     onClick={() => handleTeamClick(team.id)}
@@ -125,6 +127,14 @@ const TeamSiderSection: React.FC<TeamSiderSectionProps> = ({
                       fill={iconColors.primary}
                       style={{ lineHeight: 0 }}
                     />
+                    {(teamBadgeCounts.get(team.id) ?? 0) > 0 && (
+                      <span
+                        className='absolute top-4px right-4px w-18px h-18px rounded-full text-10px font-bold flex items-center justify-center leading-none'
+                        style={{ backgroundColor: '#F53F3F', color: '#fff', lineHeight: 1 }}
+                      >
+                        {(teamBadgeCounts.get(team.id) ?? 0) > 99 ? '99+' : teamBadgeCounts.get(team.id)}
+                      </span>
+                    )}
                   </div>
                 </Tooltip>
               );
@@ -163,43 +173,53 @@ const TeamSiderSection: React.FC<TeamSiderSectionProps> = ({
                   danger: true,
                 },
               ];
+              const teamBadge = teamBadgeCounts.get(team.id) ?? 0;
               return (
-                <SiderItem
-                  key={team.id}
-                  icon={<Peoples theme='outline' size='20' fill={iconColors.primary} style={{ lineHeight: 0 }} />}
-                  name={team.name}
-                  selected={pathname.startsWith(`/team/${team.id}`)}
-                  pinned={isPinned}
-                  menuItems={menuItems}
-                  onMenuAction={(key) => {
-                    if (key === 'pin') {
-                      togglePin(team.id);
-                    } else if (key === 'rename') {
-                      setRenameId(team.id);
-                      setRenameName(team.name);
-                      setRenameVisible(true);
-                    } else if (key === 'delete') {
-                      Modal.confirm({
-                        title: t('team.sider.deleteConfirm'),
-                        content: t('team.sider.deleteConfirmContent'),
-                        okText: t('team.sider.deleteOk'),
-                        cancelText: t('team.sider.deleteCancel'),
-                        okButtonProps: { status: 'warning' },
-                        onOk: async () => {
-                          await removeTeam(team.id);
-                          Message.success(t('team.sider.deleteSuccess'));
-                          if (pathname.startsWith(`/team/${team.id}`)) {
-                            Promise.resolve(navigate('/')).catch(() => {});
-                          }
-                        },
-                        style: { borderRadius: '12px' },
-                        alignCenter: true,
-                        getPopupContainer: () => document.body,
-                      });
-                    }
-                  }}
-                  onClick={() => handleTeamClick(team.id)}
-                />
+                <div key={team.id} className='relative group'>
+                  <SiderItem
+                    icon={<Peoples theme='outline' size='20' fill={iconColors.primary} style={{ lineHeight: 0 }} />}
+                    name={team.name}
+                    selected={pathname.startsWith(`/team/${team.id}`)}
+                    pinned={isPinned}
+                    menuItems={menuItems}
+                    onMenuAction={(key) => {
+                      if (key === 'pin') {
+                        togglePin(team.id);
+                      } else if (key === 'rename') {
+                        setRenameId(team.id);
+                        setRenameName(team.name);
+                        setRenameVisible(true);
+                      } else if (key === 'delete') {
+                        Modal.confirm({
+                          title: t('team.sider.deleteConfirm'),
+                          content: t('team.sider.deleteConfirmContent'),
+                          okText: t('team.sider.deleteOk'),
+                          cancelText: t('team.sider.deleteCancel'),
+                          okButtonProps: { status: 'warning' },
+                          onOk: async () => {
+                            await removeTeam(team.id);
+                            Message.success(t('team.sider.deleteSuccess'));
+                            if (pathname.startsWith(`/team/${team.id}`)) {
+                              Promise.resolve(navigate('/')).catch(() => {});
+                            }
+                          },
+                          style: { borderRadius: '12px' },
+                          alignCenter: true,
+                          getPopupContainer: () => document.body,
+                        });
+                      }
+                    }}
+                    onClick={() => handleTeamClick(team.id)}
+                  />
+                  {teamBadge > 0 && (
+                    <span
+                      className='absolute right-11px top-1/2 -translate-y-1/2 w-18px h-18px rounded-full text-10px font-bold flex items-center justify-center pointer-events-none z-10 group-hover:hidden'
+                      style={{ backgroundColor: '#F53F3F', color: '#fff', lineHeight: 1 }}
+                    >
+                      {teamBadge > 99 ? '99+' : teamBadge}
+                    </span>
+                  )}
+                </div>
               );
             })}
         </div>

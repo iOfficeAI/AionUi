@@ -43,6 +43,7 @@ import { prepareFirstMessageWithSkillsIndex } from '@process/task/agentUtils';
 import { shouldInjectTeamGuideMcp } from '@process/resources/prompts/teamGuidePrompt';
 import { extractTextFromMessage, processCronInMessage } from './MessageMiddleware';
 import { ConversationTurnCompletionService } from './ConversationTurnCompletionService';
+import { PermissionLevel } from '@/common/types/agentPermissionLevel';
 
 interface AcpAgentManagerData {
   workspace?: string;
@@ -66,6 +67,8 @@ interface AcpAgentManagerData {
   sessionMode?: string;
   /** Persisted model ID for resume support / 持久化的模型 ID，用于恢复 */
   currentModelId?: string;
+  /** Team leader permission level for Manager-layer fallback auto-approve */
+  teamLeaderLevel?: number;
   sandboxMode?: CodexSandboxMode;
   /** Pending config option selections from Guid page (applied after session creation) */
   pendingConfigOptions?: Record<string, string>;
@@ -89,6 +92,8 @@ class AcpAgentManager extends BaseAgentManager<AcpAgentManagerData, AcpPermissio
   options: AcpAgentManagerData;
   private currentMode: string = 'default';
   private persistedModelId: string | null = null;
+  /** Team leader permission level — enables Manager-layer fallback when member lacks L3 mode */
+  private teamLeaderLevel?: number;
   // Track current message for cron detection (accumulated from streaming chunks)
   private currentMsgId: string | null = null;
   private currentMsgContent: string = '';
@@ -118,6 +123,7 @@ class AcpAgentManager extends BaseAgentManager<AcpAgentManagerData, AcpPermissio
     this.options = data;
     this.currentMode = data.sessionMode || 'default';
     this.persistedModelId = data.currentModelId || null;
+    this.teamLeaderLevel = data.teamLeaderLevel;
     this.status = 'pending';
     // Sync yoloMode from sessionMode so addConfirmation auto-approves when Full Auto is selected
     this.yoloMode = this.yoloMode || this.isYoloMode(this.currentMode);
@@ -771,6 +777,20 @@ ${collectedResponses.join('\n')}`;
 
       // Auto-approve ALL tools when in yolo/bypassPermissions mode.
       if (this.isYoloMode(this.currentMode) && options.length > 0) {
+        const autoOption = options[0];
+        setTimeout(() => {
+          void this.confirm(v.msg_id, toolCall.toolCallId || v.msg_id, autoOption);
+        }, 50);
+        return;
+      }
+
+      // Manager-layer fallback: when team leader is L3 (FullAuto) but this ACP
+      // member has no matching L3 mode, auto-approve based on persisted teamLeaderLevel.
+      if (
+        this.teamLeaderLevel !== undefined &&
+        this.teamLeaderLevel >= PermissionLevel.L3_FULL_AUTO &&
+        options.length > 0
+      ) {
         const autoOption = options[0];
         setTimeout(() => {
           void this.confirm(v.msg_id, toolCall.toolCallId || v.msg_id, autoOption);

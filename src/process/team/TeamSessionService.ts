@@ -25,6 +25,7 @@ import os from 'os';
 import fs from 'fs/promises';
 import path from 'path';
 import { resolveLocaleKey } from '@/common/utils';
+import { getBackendModes, getModeLevel, getPermissionMap } from '@/common/types/agentPermissionLevel';
 
 export class TeamSessionService {
   private readonly sessions: Map<string, TeamSession> = new Map();
@@ -616,18 +617,40 @@ export class TeamSessionService {
       }
     }
 
+    // Convert leader's raw mode to the new member's backend-appropriate mode
+    const resolvedBackend = this.resolveBackend(agent.agentType, team.agents);
+    let convertedSessionMode = inheritedSessionMode;
+    let teamLeaderLevel: number | undefined;
+    if (inheritedSessionMode) {
+      // Always compute leader level so Manager-layer fallback works even for unknown backends
+      teamLeaderLevel = getModeLevel(inheritedSessionMode);
+      const memberModes = getBackendModes(resolvedBackend);
+      if (memberModes.length > 0) {
+        const mapped = getPermissionMap(inheritedSessionMode, memberModes);
+        convertedSessionMode = mapped ?? 'default';
+      }
+    }
+
     const conversationParams = await this.buildConversationParams({
       teamId,
       teamName: team.name,
       workspace,
       agent,
       agents: team.agents,
-      inheritedSessionMode,
+      inheritedSessionMode: convertedSessionMode,
       isInheritedWorkspace: true,
     });
     const conversation = await this.conversationService.createConversation(conversationParams);
-    // Ensure teamId is in extra regardless of which factory function was used
-    await this.conversationService.updateConversation(conversation.id, { extra: { teamId } } as any, true);
+    // Ensure teamId and teamLeaderLevel are in extra regardless of which factory function was used
+    const extraUpdates: Record<string, unknown> = { teamId };
+    if (teamLeaderLevel !== undefined) {
+      extraUpdates.teamLeaderLevel = teamLeaderLevel;
+    }
+    await this.conversationService.updateConversation(
+      conversation.id,
+      { extra: extraUpdates } as Record<string, unknown>,
+      true
+    );
 
     const newAgent: TeamAgent = {
       ...agent,
@@ -638,6 +661,8 @@ export class TeamSessionService {
     const updatedAgents = [...team.agents, newAgent];
     await this.repo.update(teamId, { agents: updatedAgents, updatedAt: Date.now() });
     this.sessions.get(teamId)?.addAgent(newAgent);
+    // Notify renderer so SWR caches (useTeamList, useSiderTeamBadges) revalidate
+    ipcBridge.team.listChanged.emit({ teamId, action: 'agent_added' });
     return newAgent;
   }
 
@@ -694,6 +719,8 @@ export class TeamSessionService {
       const updatedAgents = team.agents.filter((a) => a.slotId !== slotId);
       await this.repo.update(teamId, { agents: updatedAgents, updatedAt: Date.now() });
     }
+    // Notify renderer so SWR caches (useTeamList, useSiderTeamBadges) revalidate
+    ipcBridge.team.listChanged.emit({ teamId, action: 'agent_removed' });
   }
 
   async getOrStartSession(teamId: string): Promise<TeamSession> {

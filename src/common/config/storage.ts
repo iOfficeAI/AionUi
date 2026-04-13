@@ -242,6 +242,8 @@ export type TChatConversation =
         pinnedAt?: number;
         /** Persisted session mode for resume support / 持久化的会话模式，用于恢复 */
         sessionMode?: string;
+        /** Team leader permission level for Manager-layer fallback auto-approve */
+        teamLeaderLevel?: number;
         /** Explicit marker for temporary health-check conversations */
         isHealthCheck?: boolean;
         /** Cron job ID that spawned this conversation */
@@ -285,6 +287,8 @@ export type TChatConversation =
           cachedConfigOptions?: import('@/common/types/acpTypes').AcpSessionConfigOption[];
           /** Pending config option selections from Guid page / Guid 页面待应用的配置选项 */
           pendingConfigOptions?: Record<string, string>;
+          /** Team leader permission level for Manager-layer fallback auto-approve */
+          teamLeaderLevel?: number;
           /** Explicit marker for temporary health-check conversations */
           isHealthCheck?: boolean;
           /** Cron job ID that spawned this conversation */
