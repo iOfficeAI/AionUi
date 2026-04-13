@@ -315,10 +315,13 @@ async function selectModel(page: Page, modelLabel: string, slow: boolean): Promi
   await pause(500);
   await btn.click();
 
+  // Escape user-provided model label before embedding in RegExp
+  const escapedModelLabel = modelLabel.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+
   // Wait for dropdown menu to render, then find the matching item by exact label text
   const menuItem = page
     .locator(`.arco-dropdown-menu-item span`)
-    .filter({ hasText: new RegExp(`^${modelLabel}$`, 'i') })
+    .filter({ hasText: new RegExp(`^${escapedModelLabel}$`, 'i') })
     .first();
   try {
     await menuItem.waitFor({ state: 'visible', timeout: 5_000 });
