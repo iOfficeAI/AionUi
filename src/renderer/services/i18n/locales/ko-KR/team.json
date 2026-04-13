@@ -53,6 +53,10 @@
     "chooseDifferentFolder": "다른 폴더 선택",
     "error": "팀 생성에 실패했습니다"
   },
+  "removeAgent": {
+    "confirmTitle": "팀 멤버 제거",
+    "confirmContent": "이 멤버는 현재 활성 상태입니다. 강제 제거하시겠습니까?"
+  },
   "emptyState": {
     "subtitle": "목표를 알려주세요. 팀을 조율해서 완료하겠습니다",
     "suggestions": {

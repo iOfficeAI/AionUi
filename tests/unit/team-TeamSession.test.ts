@@ -1,11 +1,44 @@
-import { describe, expect, it, vi, beforeEach, afterEach } from 'vitest';
-import { TeamSession } from '../../src/process/team/TeamSession';
-import type { ITeamRepository } from '../../src/process/team/repository/ITeamRepository';
-import type { TTeam } from '../../src/common/types/teamTypes';
-import type { IWorkerTaskManager } from '../../src/process/task/IWorkerTaskManager';
+// tests/unit/team-TeamSession.test.ts
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 
-const makeRepo = (): ITeamRepository =>
-  ({
+// ---------------------------------------------------------------------------
+// Hoist mocks before any imports
+// ---------------------------------------------------------------------------
+const mockIpcBridge = vi.hoisted(() => ({
+  team: {
+    agentSpawned: { emit: vi.fn() },
+    agentStatusChanged: { emit: vi.fn() },
+    agentRemoved: { emit: vi.fn() },
+    agentRenamed: { emit: vi.fn() },
+  },
+  acpConversation: {
+    responseStream: { emit: vi.fn() },
+  },
+  conversation: {
+    responseStream: { emit: vi.fn() },
+  },
+}));
+
+const mockAddMessage = vi.hoisted(() => vi.fn());
+
+vi.mock('@/common', () => ({ ipcBridge: mockIpcBridge }));
+vi.mock('electron', () => ({ app: { getPath: vi.fn(() => '/tmp') } }));
+vi.mock('@process/utils/message', () => ({ addMessage: mockAddMessage }));
+vi.mock('@process/agent/acp/AcpDetector', () => ({
+  acpDetector: { getDetectedAgents: vi.fn(() => []) },
+}));
+
+import { TeamSession } from '@process/team/TeamSession';
+import type { ITeamRepository } from '@process/team/repository/ITeamRepository';
+import type { TTeam } from '@process/team/types';
+import type { IWorkerTaskManager } from '@process/task/IWorkerTaskManager';
+
+// ---------------------------------------------------------------------------
+// Helpers
+// ---------------------------------------------------------------------------
+
+function makeRepo(): ITeamRepository {
+  return {
     create: vi.fn(),
     findById: vi.fn(),
     findAll: vi.fn(),
@@ -26,115 +59,181 @@ const makeRepo = (): ITeamRepository =>
     deleteTask: vi.fn(),
     appendToBlocks: vi.fn(),
     removeFromBlockedBy: vi.fn(),
-  }) as unknown as ITeamRepository;
+  } as unknown as ITeamRepository;
+}
 
-const makeWorkerTaskManager = (): IWorkerTaskManager =>
-  ({
+function makeWorkerTaskManager(): IWorkerTaskManager {
+  return {
     getOrBuildTask: vi.fn(),
-    buildTask: vi.fn(),
-    removeTask: vi.fn(),
-    stopTask: vi.fn(),
-    updateStatus: vi.fn(),
-    getTaskStatus: vi.fn(),
-    listTaskStatuses: vi.fn(),
-    getTaskConversationId: vi.fn(),
-    stopAndRemoveTask: vi.fn(),
-    stopAllTasks: vi.fn(),
-    updateTaskFilePath: vi.fn(),
-  }) as unknown as IWorkerTaskManager;
+    kill: vi.fn(),
+  } as unknown as IWorkerTaskManager;
+}
 
-const makeTeam = (): TTeam => ({
-  id: 'team-1',
-  userId: 'user-1',
-  name: 'Test Team',
-  workspace: '/workspace',
-  workspaceMode: 'shared',
-  leadAgentId: 'slot-lead',
-  createdAt: 1,
-  updatedAt: 1,
-  agents: [
-    {
-      slotId: 'slot-lead',
-      conversationId: 'conv-lead',
-      role: 'lead',
-      agentType: 'codex',
-      agentName: 'Lead',
-      conversationType: 'acp',
-      status: 'idle',
-    },
-    {
-      slotId: 'slot-member',
-      conversationId: 'conv-member',
-      role: 'teammate',
-      agentType: 'codex',
-      agentName: 'Member',
-      conversationType: 'acp',
-      status: 'idle',
-    },
-  ],
-});
+function makeTeam(overrides: Partial<TTeam> = {}): TTeam {
+  return {
+    id: 'team-1',
+    name: 'Test Team',
+    leadAgentId: 'slot-lead',
+    agents: [
+      {
+        slotId: 'slot-lead',
+        conversationId: 'conv-lead',
+        role: 'lead',
+        agentType: 'acp',
+        agentName: 'Leader',
+        conversationType: 'acp',
+        status: 'idle',
+      },
+      {
+        slotId: 'slot-member',
+        conversationId: 'conv-member',
+        role: 'teammate',
+        agentType: 'acp',
+        agentName: 'Worker',
+        conversationType: 'acp',
+        status: 'idle',
+      },
+    ],
+    createdAt: Date.now(),
+    updatedAt: Date.now(),
+    ...overrides,
+  } as TTeam;
+}
 
-describe('TeamSession delivery semantics', () => {
+// ---------------------------------------------------------------------------
+// Tests
+// ---------------------------------------------------------------------------
+
+describe('TeamSession', () => {
   beforeEach(() => {
-    vi.restoreAllMocks();
+    vi.clearAllMocks();
   });
 
   afterEach(() => {
     vi.restoreAllMocks();
   });
 
-  it('sendMessage resolves after mailbox acceptance even when wake fails', async () => {
-    const repo = makeRepo();
-    const session = new TeamSession(makeTeam(), repo, makeWorkerTaskManager());
-    vi.spyOn(session, 'startMcpServer').mockResolvedValue({ command: 'noop', args: [], env: [] });
+  describe('dispose()', () => {
+    it('kills all agent processes during dispose', async () => {
+      const workerTaskManager = makeWorkerTaskManager();
+      const session = new TeamSession(makeTeam(), makeRepo(), workerTaskManager);
 
-    const wakeSpy = vi
-      .spyOn(
-        (session as unknown as { teammateManager: { wake: (slotId: string) => Promise<void> } }).teammateManager,
-        'wake'
-      )
-      .mockRejectedValue(new Error('Task unavailable'));
-    const errorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+      await session.dispose();
 
-    await expect(session.sendMessage('hello team')).resolves.toBeUndefined();
+      // Both agents should have their processes killed
+      expect(workerTaskManager.kill).toHaveBeenCalledWith('conv-lead');
+      expect(workerTaskManager.kill).toHaveBeenCalledWith('conv-member');
+      expect(workerTaskManager.kill).toHaveBeenCalledTimes(2);
+    });
 
-    expect(repo.writeMessage).toHaveBeenCalledTimes(1);
-    expect(wakeSpy).toHaveBeenCalledWith('slot-lead');
-    expect(errorSpy).toHaveBeenCalledWith(
-      '[TeamSession] Accepted team message but failed to wake slot-lead:',
-      'Task unavailable'
-    );
+    it('cleans up listeners even if mcpServer.stop() throws', async () => {
+      const workerTaskManager = makeWorkerTaskManager();
+      const session = new TeamSession(makeTeam(), makeRepo(), workerTaskManager);
+
+      // Access private mcpServer and make stop() throw
+      const mcpServer = (session as unknown as { mcpServer: { stop: () => Promise<void> } }).mcpServer;
+      mcpServer.stop = vi.fn().mockRejectedValue(new Error('MCP stop failed'));
+
+      // Listen for removeAllListeners being called
+      const removeListenersSpy = vi.spyOn(session, 'removeAllListeners');
+
+      // dispose should reject (error propagates through try/finally)
+      await expect(session.dispose()).rejects.toThrow('MCP stop failed');
+
+      // removeAllListeners should still be called (try/finally ensures cleanup)
+      expect(removeListenersSpy).toHaveBeenCalled();
+
+      removeListenersSpy.mockRestore();
+    });
+
+    it('skips kill for agents without conversationId', async () => {
+      const workerTaskManager = makeWorkerTaskManager();
+      const team = makeTeam({
+        agents: [
+          {
+            slotId: 'slot-lead',
+            conversationId: 'conv-lead',
+            role: 'lead' as const,
+            agentType: 'acp',
+            agentName: 'Leader',
+            conversationType: 'acp',
+            status: 'idle' as const,
+          },
+          {
+            slotId: 'slot-pending',
+            conversationId: '',
+            role: 'teammate' as const,
+            agentType: 'acp',
+            agentName: 'Pending',
+            conversationType: 'acp',
+            status: 'pending' as const,
+          },
+        ],
+      });
+      const session = new TeamSession(team, makeRepo(), workerTaskManager);
+
+      await session.dispose();
+
+      // Only the agent with conversationId should be killed
+      expect(workerTaskManager.kill).toHaveBeenCalledWith('conv-lead');
+      expect(workerTaskManager.kill).toHaveBeenCalledTimes(1);
+    });
   });
 
-  it('sendMessageToAgent resolves after mailbox acceptance even when wake fails', async () => {
-    const repo = makeRepo();
-    const session = new TeamSession(makeTeam(), repo, makeWorkerTaskManager());
-    vi.spyOn(session, 'startMcpServer').mockResolvedValue({ command: 'noop', args: [], env: [] });
+  describe('delivery semantics', () => {
+    it('sendMessage resolves after mailbox acceptance even when wake fails', async () => {
+      const repo = makeRepo();
+      const session = new TeamSession(makeTeam(), repo, makeWorkerTaskManager());
+      vi.spyOn(session, 'startMcpServer').mockResolvedValue({ command: 'noop', args: [], env: [] });
 
-    const wakeSpy = vi
-      .spyOn(
-        (session as unknown as { teammateManager: { wake: (slotId: string) => Promise<void> } }).teammateManager,
-        'wake'
-      )
-      .mockRejectedValue(new Error('Task unavailable'));
-    const errorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+      const wakeSpy = vi
+        .spyOn(
+          (session as unknown as { teammateManager: { wake: (slotId: string) => Promise<void> } }).teammateManager,
+          'wake'
+        )
+        .mockRejectedValue(new Error('Task unavailable'));
+      const errorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
 
-    await expect(session.sendMessageToAgent('slot-member', 'hello member')).resolves.toBeUndefined();
+      await expect(session.sendMessage('hello team')).resolves.toBeUndefined();
 
-    expect(repo.writeMessage).toHaveBeenCalledTimes(1);
-    expect(wakeSpy).toHaveBeenCalledWith('slot-member');
-    expect(errorSpy).toHaveBeenCalledWith(
-      '[TeamSession] Accepted agent message but failed to wake slot-member:',
-      'Task unavailable'
-    );
-  });
+      expect(repo.writeMessage).toHaveBeenCalledTimes(1);
+      expect(wakeSpy).toHaveBeenCalledWith('slot-lead');
+      expect(errorSpy).toHaveBeenCalledWith(
+        '[TeamSession] Accepted team message but failed to wake slot-lead:',
+        'Task unavailable'
+      );
+    });
 
-  it('still rejects when acceptance fails before mailbox delivery', async () => {
-    const repo = makeRepo();
-    const session = new TeamSession(makeTeam(), repo, makeWorkerTaskManager());
-    vi.spyOn(session, 'startMcpServer').mockRejectedValue(new Error('mcp failed'));
+    it('sendMessageToAgent resolves after mailbox acceptance even when wake fails', async () => {
+      const repo = makeRepo();
+      const session = new TeamSession(makeTeam(), repo, makeWorkerTaskManager());
+      vi.spyOn(session, 'startMcpServer').mockResolvedValue({ command: 'noop', args: [], env: [] });
 
-    await expect(session.sendMessage('hello team')).rejects.toThrow('mcp failed');
-    expect(repo.writeMessage).not.toHaveBeenCalled();
+      const wakeSpy = vi
+        .spyOn(
+          (session as unknown as { teammateManager: { wake: (slotId: string) => Promise<void> } }).teammateManager,
+          'wake'
+        )
+        .mockRejectedValue(new Error('Task unavailable'));
+      const errorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+
+      await expect(session.sendMessageToAgent('slot-member', 'hello member')).resolves.toBeUndefined();
+
+      expect(repo.writeMessage).toHaveBeenCalledTimes(1);
+      expect(wakeSpy).toHaveBeenCalledWith('slot-member');
+      expect(errorSpy).toHaveBeenCalledWith(
+        '[TeamSession] Accepted agent message but failed to wake slot-member:',
+        'Task unavailable'
+      );
+    });
+
+    it('still rejects when acceptance fails before mailbox delivery', async () => {
+      const repo = makeRepo();
+      const session = new TeamSession(makeTeam(), repo, makeWorkerTaskManager());
+      vi.spyOn(session, 'startMcpServer').mockRejectedValue(new Error('mcp failed'));
+
+      await expect(session.sendMessage('hello team')).rejects.toThrow('mcp failed');
+      expect(repo.writeMessage).not.toHaveBeenCalled();
+    });
   });
 });

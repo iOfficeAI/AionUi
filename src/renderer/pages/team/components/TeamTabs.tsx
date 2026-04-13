@@ -1,4 +1,4 @@
-import { Edit, Plus } from '@icon-park/react';
+import { CloseSmall, Edit, Plus } from '@icon-park/react';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { iconColors } from '@/renderer/styles/colors';
 import type { TeammateStatus } from '@/common/types/teamTypes';
@@ -20,6 +20,7 @@ type TeamTabViewProps = {
   isLead: boolean;
   onSwitch: (slotId: string) => void;
   onRename?: (slotId: string, newName: string) => void;
+  onRemove?: (slotId: string) => void;
   onDragStart: (slotId: string) => void;
   onDragOver: (slotId: string) => void;
   onDrop: () => void;
@@ -35,6 +36,7 @@ const TeamTabView: React.FC<TeamTabViewProps> = ({
   isLead,
   onSwitch,
   onRename,
+  onRemove,
   onDragStart,
   onDragOver,
   onDrop,
@@ -138,6 +140,17 @@ const TeamTabView: React.FC<TeamTabViewProps> = ({
           <Edit theme='outline' size='12' fill='currentColor' />
         </span>
       )}
+      {!editing && !isLead && onRemove && (
+        <span
+          className='opacity-0 group-hover:opacity-60 hover:!opacity-100 transition-opacity duration-150 shrink-0 flex items-center text-[color:var(--color-text-3)] hover:text-[color:var(--color-danger-6)]'
+          onClick={(e) => {
+            e.stopPropagation();
+            onRemove(slotId);
+          }}
+        >
+          <CloseSmall theme='outline' size='14' fill='currentColor' />
+        </span>
+      )}
     </div>
   );
 };
@@ -173,7 +186,7 @@ type TeamTabsProps = {
  * Supports scroll overflow with fade indicators and add-agent dropdown.
  */
 const TeamTabs: React.FC<TeamTabsProps> = ({ onAddAgent, onTabClick }) => {
-  const { agents, activeSlotId, statusMap, switchTab, renameAgent, reorderAgents } = useTeamTabs();
+  const { agents, activeSlotId, statusMap, switchTab, renameAgent, removeAgent, reorderAgents } = useTeamTabs();
   const tabsContainerRef = useRef<HTMLDivElement>(null);
   const [showLeftFade, setShowLeftFade] = useState(false);
   const [showRightFade, setShowRightFade] = useState(false);
@@ -252,6 +265,7 @@ const TeamTabs: React.FC<TeamTabsProps> = ({ onAddAgent, onTabClick }) => {
                   onTabClick?.(slotId);
                 }}
                 onRename={renameAgent ? (sid, name) => void renameAgent(sid, name) : undefined}
+                onRemove={removeAgent ? (sid) => void removeAgent(sid) : undefined}
                 onDragStart={handleDragStart}
                 onDragOver={handleDragOver}
                 onDrop={handleDrop}

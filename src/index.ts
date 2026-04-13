@@ -700,31 +700,73 @@ app.on('before-quit', async () => {
   setIsQuitting(true);
   isExplicitQuit = true;
   destroyTray();
-  // 在应用退出前清理工作进程
-  workerTaskManager.clear();
 
-  // Destroy desktop pet windows
-  try {
-    const { destroyPetWindow } = await import('./process/pet/petManager');
-    destroyPetWindow();
-  } catch {
-    /* pet not initialized */
-  }
+  const cleanup = async () => {
+    // Kill all agent worker processes
+    await workerTaskManager.clear();
 
-  // Stop all active team sessions (TCP servers + child processes)
-  await disposeAllTeamSessions().catch((err) => console.error('[App] Failed to dispose team sessions:', err));
+    // Destroy desktop pet windows
+    try {
+      const { destroyPetWindow } = await import('./process/pet/petManager');
+      destroyPetWindow();
+    } catch {
+      /* pet not initialized */
+    }
 
-  // Shutdown Channel subsystem
-  try {
-    const { getChannelManager } = await import('@process/channels');
-    await getChannelManager().shutdown();
-  } catch (error) {
-    console.error('[App] Failed to shutdown ChannelManager:', error);
-  }
+    // Stop all active team sessions (TCP servers + child processes)
+    await disposeAllTeamSessions().catch((err) => console.error('[App] Failed to dispose team sessions:', err));
+
+    // Shutdown Channel subsystem
+    try {
+      const { getChannelManager } = await import('@process/channels');
+      await getChannelManager().shutdown();
+    } catch (error) {
+      console.error('[App] Failed to shutdown ChannelManager:', error);
+    }
+
+    // Stop Web Server (Express + WebSocket)
+    try {
+      const { getWebServerInstance, setWebServerInstance } = await import('@process/bridge/webuiBridge');
+      const { cleanupWebAdapter } = await import('@process/webserver/adapter');
+      const instance = getWebServerInstance();
+      if (instance) {
+        instance.wss.clients.forEach((client) => client.close(1000, 'App shutting down'));
+        await new Promise<void>((resolve) => instance.server.close(() => resolve()));
+        cleanupWebAdapter();
+        setWebServerInstance(null);
+      }
+    } catch {
+      /* server not started */
+    }
+
+    // Stop Office Watch processes (Word / Excel / PPT preview)
+    try {
+      const { stopAllOfficeWatchSessions } = await import('@process/bridge/officeWatchBridge');
+      stopAllOfficeWatchSessions();
+    } catch {
+      /* not initialized */
+    }
+    try {
+      const { stopAllWatchSessions } = await import('@process/bridge/pptPreviewBridge');
+      stopAllWatchSessions();
+    } catch {
+      /* not initialized */
+    }
+  };
+
+  // Master timeout: force quit if cleanup hangs
+  const timeout = new Promise<void>((resolve) => {
+    setTimeout(() => {
+      console.warn('[AionUi] Cleanup timed out after 10s, forcing quit');
+      resolve();
+    }, 10000);
+  });
+
+  await Promise.race([cleanup(), timeout]);
 });
 
 app.on('will-quit', () => {
-  console.log('[AionUi] will-quit');
+  console.log('[AionUi] will-quit — all cleanup should be complete');
 });
 
 app.on('quit', (_event, exitCode) => {

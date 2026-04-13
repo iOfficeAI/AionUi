@@ -255,6 +255,11 @@ export class TeammateManager extends EventEmitter {
         void this.handleAgentCrash(agent, errorText);
         return;
       }
+      // Detect quota/rate-limit errors (429) and mark agent as failed
+      if (/429|rate.?limit|quota|too many requests/i.test(errorText)) {
+        this.setStatus(agent.slotId, 'failed', errorText.slice(0, 200));
+        return;
+      }
     }
 
     // Detect terminal stream messages and trigger turn completion.
