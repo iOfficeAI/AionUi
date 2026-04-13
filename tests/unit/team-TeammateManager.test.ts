@@ -239,26 +239,38 @@ describe('TeammateManager', () => {
   // -------------------------------------------------------------------------
 
   describe('removeAgent', () => {
-    it('removes agent from agents list', () => {
+    it('removes teammate from agents list', () => {
+      const agents = [makeAgent({ slotId: 'slot-1' }), makeAgent({ slotId: 'slot-2', role: 'teammate' })];
+      const { mgr } = makeTeammateManager(agents);
+
+      mgr.removeAgent('slot-2');
+
+      expect(mgr.getAgents()).toHaveLength(1);
+      expect(mgr.getAgents()[0].slotId).toBe('slot-1');
+      mgr.dispose();
+    });
+
+    it('emits ipcBridge agentRemoved event', () => {
+      const agents = [makeAgent({ slotId: 'slot-1' }), makeAgent({ slotId: 'slot-2', role: 'teammate' })];
+      const { mgr } = makeTeammateManager(agents);
+
+      mgr.removeAgent('slot-2');
+
+      expect(mockIpcBridge.team.agentRemoved.emit).toHaveBeenCalledWith({
+        teamId: 'team-1',
+        slotId: 'slot-2',
+      });
+      mgr.dispose();
+    });
+
+    it('blocks removal of leader', () => {
       const agents = [makeAgent({ slotId: 'slot-1' }), makeAgent({ slotId: 'slot-2', role: 'teammate' })];
       const { mgr } = makeTeammateManager(agents);
 
       mgr.removeAgent('slot-1');
 
-      expect(mgr.getAgents()).toHaveLength(1);
-      expect(mgr.getAgents()[0].slotId).toBe('slot-2');
-      mgr.dispose();
-    });
-
-    it('emits ipcBridge agentRemoved event', () => {
-      const { mgr } = makeTeammateManager([makeAgent({ slotId: 'slot-1' })]);
-
-      mgr.removeAgent('slot-1');
-
-      expect(mockIpcBridge.team.agentRemoved.emit).toHaveBeenCalledWith({
-        teamId: 'team-1',
-        slotId: 'slot-1',
-      });
+      expect(mgr.getAgents()).toHaveLength(2);
+      expect(mockIpcBridge.team.agentRemoved.emit).not.toHaveBeenCalled();
       mgr.dispose();
     });
 
@@ -271,19 +283,19 @@ describe('TeammateManager', () => {
     });
 
     it('clears any active wake timeout for the removed agent', async () => {
-      const agent = makeAgent({ slotId: 'slot-1', status: 'idle' });
+      const agent = makeAgent({ slotId: 'slot-2', role: 'teammate', status: 'idle', conversationId: 'conv-2' });
       const mockSendMessage = vi.fn().mockResolvedValue(undefined);
-      const { mgr, workerTaskManager } = makeTeammateManager([agent]);
+      const { mgr, workerTaskManager } = makeTeammateManager([makeAgent({ slotId: 'slot-1' }), agent]);
       vi.mocked(workerTaskManager.getOrBuildTask).mockResolvedValue({
         sendMessage: mockSendMessage,
       } as never);
 
       // Start a wake (which creates a timeout) then immediately remove
-      const wakePromise = mgr.wake('slot-1');
+      const wakePromise = mgr.wake('slot-2');
       await wakePromise;
 
-      // Should not throw when removing agent with active timeout
-      expect(() => mgr.removeAgent('slot-1')).not.toThrow();
+      // Should not throw when removing teammate with active timeout
+      expect(() => mgr.removeAgent('slot-2')).not.toThrow();
       mgr.dispose();
     });
   });

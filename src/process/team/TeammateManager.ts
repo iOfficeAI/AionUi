@@ -337,23 +337,25 @@ export class TeammateManager extends EventEmitter {
 
   /**
    * Handle an agent whose CLI process crashed unexpectedly.
-   * Writes a testament message to the leader's mailbox, removes the agent,
-   * and wakes the leader so it can decide whether to respawn.
+   * For **members**: writes a testament to the leader's mailbox, removes the agent, and wakes the leader.
+   * For **leader**: only marks it as failed — leader must never be auto-removed.
    */
   private async handleAgentCrash(agent: TeamAgent, errorMessage: string): Promise<void> {
-    // If the leader itself crashed, there's no recipient for the testament.
-    // Just remove the agent and let the renderer handle the leaderless state
-    // via the agentRemoved event.
+    // Leader crash: mark as failed so the frontend shows the error, but never auto-remove.
     if (agent.role === 'lead') {
       console.warn(
-        `[TeammateManager] Leader ${agent.slotId} (${agent.agentName}) crashed: ${errorMessage}. Team is now leaderless.`
+        `[TeammateManager] Leader ${agent.slotId} (${agent.agentName}) crashed: ${errorMessage}. Marked as failed (not removed).`
       );
-      this.removeAgent(agent.slotId);
+      this.setStatus(agent.slotId, 'failed', errorMessage.slice(0, 200));
       return;
     }
 
     const leadAgent = this.agents.find((a) => a.role === 'lead');
-    if (!leadAgent) return;
+    if (!leadAgent) {
+      // No leader to notify — still remove the dead member to avoid zombie state
+      this.removeAgent(agent.slotId);
+      return;
+    }
 
     const testament =
       `[System] Member "${agent.agentName}" (${agent.conversationType}) crashed and has been automatically removed. ` +
@@ -381,10 +383,16 @@ export class TeammateManager extends EventEmitter {
     void this.wake(leadAgent.slotId);
   }
 
-  /** Remove an agent: kill process, cancel pending wake, clear buffers, remove from in-memory list */
+  /** Remove an agent: kill process, cancel pending wake, clear buffers, remove from in-memory list.
+   *  Leader cannot be removed — callers must not pass leader's slotId. */
   removeAgent(slotId: string): void {
     const agent = this.agents.find((a) => a.slotId === slotId);
     if (!agent) return;
+
+    if (agent.role === 'lead') {
+      console.warn(`[TeammateManager] Attempted to remove leader ${slotId} — blocked.`);
+      return;
+    }
 
     // Kill the underlying ACP process
     if (agent.conversationId) {
