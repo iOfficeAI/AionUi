@@ -8,6 +8,8 @@ import { ipcBridge } from '@/common';
 import type { IMessageToolGroup, TMessage, IMessageText } from '@/common/chat/chatLib';
 import { transformMessage } from '@/common/chat/chatLib';
 import type { IResponseMessage } from '@/common/adapter/ipcBridge';
+import { channelEventBus } from '@process/channels/agent/ChannelEventBus';
+import { teamEventBus } from '@process/team/teamEventBus';
 import type { TProviderWithModel } from '@/common/config/storage';
 import { BaseApprovalStore, type IApprovalKey } from '@/common/chat/approval';
 import { ToolConfirmationOutcome } from '../agent/gemini/cli/tools/tools';
@@ -209,6 +211,23 @@ export class AionrsManager extends BaseAgentManager<AionrsManagerData, string> {
     }
   }
 
+  /**
+   * Emit to teamEventBus (terminal events only) and channelEventBus (all events).
+   * Mirrors the multi-bus emission pattern in AcpAgentManager.
+   */
+  private emitToEventBuses(message: IResponseMessage): void {
+    if (message.type === 'finish' || message.type === 'error') {
+      teamEventBus.emit('responseStream', {
+        ...message,
+        conversation_id: this.conversation_id,
+      });
+    }
+    channelEventBus.emitAgentMessage(this.conversation_id, {
+      ...message,
+      conversation_id: this.conversation_id,
+    });
+  }
+
   private emitThinkingMessage(content: string, status: 'thinking' | 'done' = 'thinking'): void {
     if (!this.thinkingMsgId) {
       this.thinkingMsgId = uuid();
@@ -299,12 +318,14 @@ export class AionrsManager extends BaseAgentManager<AionrsManagerData, string> {
     this.status = 'finished';
     void this.handleTurnEnd();
 
-    ipcBridge.conversation.responseStream.emit({
+    const fallbackFinish: IResponseMessage = {
       type: 'finish',
       conversation_id: this.conversation_id,
       msg_id: uuid(),
       data: null,
-    });
+    };
+    ipcBridge.conversation.responseStream.emit(fallbackFinish);
+    this.emitToEventBuses(fallbackFinish);
   }
 
   init() {
@@ -402,6 +423,7 @@ export class AionrsManager extends BaseAgentManager<AionrsManagerData, string> {
       }
 
       ipcBridge.conversation.responseStream.emit(processedData);
+      this.emitToEventBuses(processedData as IResponseMessage);
     });
   }
 
