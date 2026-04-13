@@ -26,14 +26,7 @@ import { promises as fs } from 'fs';
 import os from 'os';
 import path from 'path';
 import { getNpxCacheDir, getWindowsShellExecutionOptions, resolveNpxPath } from '@process/utils/shellEnv';
-import {
-  ACP_PERF_LOG,
-  connectClaude,
-  connectCodebuddy,
-  connectCodex,
-  prepareCleanEnv,
-  spawnGenericBackend,
-} from './acpConnectors';
+import { connectClaude, connectCodebuddy, connectCodex, prepareCleanEnv, spawnGenericBackend } from './acpConnectors';
 import type { SpawnResult } from './acpConnectors';
 import { killChild, readTextFile, writeJsonRpcMessage, writeTextFile } from './utils';
 
@@ -198,7 +191,7 @@ export class AcpConnection {
     customEnv?: Record<string, string>
   ): Promise<void> {
     const connectStart = Date.now();
-    if (ACP_PERF_LOG) console.log(`[ACP-PERF] connect: start backend=${backend}`);
+    console.log(`[ACP-PERF] connect: start backend=${backend}`);
 
     try {
       await this.doConnect(backend, cliPath, workingDir, acpArgs, customEnv);
@@ -250,7 +243,7 @@ export class AcpConnection {
       }
     }
 
-    if (ACP_PERF_LOG) console.log(`[ACP-PERF] connect: total ${Date.now() - connectStart}ms`);
+    console.log(`[ACP-PERF] connect: total ${Date.now() - connectStart}ms`);
   }
 
   private async doConnect(
@@ -433,16 +426,14 @@ export class AcpConnection {
       for (const line of lines) {
         if (line.trim()) {
           try {
-            const handleStart = ACP_PERF_LOG ? Date.now() : 0;
+            const handleStart = Date.now();
             const message = JSON.parse(line) as AcpMessage;
             this.handleMessage(message);
-            if (ACP_PERF_LOG) {
-              const handleDuration = Date.now() - handleStart;
-              if (handleDuration > 5) {
-                console.log(
-                  `[ACP-PERF] stream: handleMessage ${handleDuration}ms method=${'method' in message ? (message as AcpIncomingMessage).method : 'response'}`
-                );
-              }
+            const handleDuration = Date.now() - handleStart;
+            if (handleDuration > 5) {
+              console.log(
+                `[ACP-PERF] stream: handleMessage ${handleDuration}ms method=${'method' in message ? (message as AcpIncomingMessage).method : 'response'}`
+              );
             }
           } catch (error) {
             // Ignore parsing errors for non-JSON messages
@@ -467,7 +458,7 @@ export class AcpConnection {
       // Neutralize processExitReject so later exits won't call a stale reject.
       processExitReject = null;
     }
-    if (ACP_PERF_LOG) console.log(`[ACP-PERF] connect: protocol initialized ${Date.now() - initStart}ms`);
+    console.log(`[ACP-PERF] connect: protocol initialized ${Date.now() - initStart}ms`);
 
     // Mark setup as complete - future exits will be handled as runtime disconnects
     this.isSetupComplete = true;
@@ -697,10 +688,9 @@ export class AcpConnection {
           // Track first chunk latency since prompt was sent
           if (!this.firstChunkReceived && this.lastPromptSentAt > 0) {
             this.firstChunkReceived = true;
-            if (ACP_PERF_LOG)
-              console.log(
-                `[ACP-PERF] stream: first chunk received ${Date.now() - this.lastPromptSentAt}ms (since prompt sent)`
-              );
+            console.log(
+              `[ACP-PERF] stream: first chunk received ${Date.now() - this.lastPromptSentAt}ms (since prompt sent)`
+            );
           }
           // Reset timeout on streaming updates - LLM is still processing
           this.resetSessionPromptTimeouts();
@@ -863,10 +853,7 @@ export class AcpConnection {
 
     this.parseSessionCapabilities(response);
 
-    // Debug: log full session/new response only when ACP_PERF=1
-    if (ACP_PERF_LOG) {
-      console.log(`[ACP ${this.backend}] session/new response:`, JSON.stringify(response, null, 2));
-    }
+    console.log(`[ACP ${this.backend}] session/new response:`, JSON.stringify(response, null, 2));
 
     return response;
   }
@@ -955,7 +942,7 @@ export class AcpConnection {
 
     this.lastPromptSentAt = Date.now();
     this.firstChunkReceived = false;
-    if (ACP_PERF_LOG) console.log(`[ACP-PERF] send: prompt sent to ${this.backend}`);
+    console.log(`[ACP-PERF] send: prompt sent to ${this.backend}`);
 
     return await this.sendRequest('session/prompt', {
       sessionId: this.sessionId,

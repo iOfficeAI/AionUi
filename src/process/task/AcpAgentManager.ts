@@ -32,9 +32,6 @@ import {
   type CodexSandboxMode,
   writeCodexSandboxMode,
 } from '@process/task/codexConfig';
-/** Enable ACP performance diagnostics via ACP_PERF=1 */
-const ACP_PERF_LOG = process.env.ACP_PERF === '1';
-
 import BaseAgentManager from './BaseAgentManager';
 import { IpcAgentEventEmitter } from './IpcAgentEventEmitter';
 import { hasCronCommands } from './CronCommandDetector';
@@ -718,10 +715,9 @@ ${collectedResponses.join('\n')}`;
         const dbDuration = Date.now() - dbStart;
 
         if (transformDuration > 5 || dbDuration > 5) {
-          if (ACP_PERF_LOG)
-            console.log(
-              `[ACP-PERF] stream: transform ${transformDuration}ms, db ${dbDuration}ms type=${processedMessage.type}`
-            );
+          console.log(
+            `[ACP-PERF] stream: transform ${transformDuration}ms, db ${dbDuration}ms type=${processedMessage.type}`
+          );
         }
 
         // Track streaming content for cron detection when turn ends
@@ -755,10 +751,9 @@ ${collectedResponses.join('\n')}`;
 
     const totalDuration = Date.now() - pipelineStart;
     if (totalDuration > 10) {
-      if (ACP_PERF_LOG)
-        console.log(
-          `[ACP-PERF] stream: onStreamEvent pipeline ${totalDuration}ms (emit=${emitDuration}ms) type=${processedMessage.type}`
-        );
+      console.log(
+        `[ACP-PERF] stream: onStreamEvent pipeline ${totalDuration}ms (emit=${emitDuration}ms) type=${processedMessage.type}`
+      );
     }
   }
 
@@ -1050,10 +1045,9 @@ ${collectedResponses.join('\n')}`;
       }
       const agentSendStart = Date.now();
       const result = await this.sendAgentMessageWithFinishFallback(data);
-      if (ACP_PERF_LOG)
-        console.log(
-          `[ACP-PERF] manager: agent.sendMessage completed ${Date.now() - agentSendStart}ms (total manager.sendMessage: ${Date.now() - managerSendStart}ms)`
-        );
+      console.log(
+        `[ACP-PERF] manager: agent.sendMessage completed ${Date.now() - agentSendStart}ms (total manager.sendMessage: ${Date.now() - managerSendStart}ms)`
+      );
       if (!result.success) {
         this.clearBusyState();
       }
