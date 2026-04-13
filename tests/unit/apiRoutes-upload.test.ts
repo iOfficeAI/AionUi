@@ -5,6 +5,8 @@
  */
 
 import { describe, expect, it } from 'vitest';
+import path from 'path';
+import os from 'os';
 
 /**
  * Pure function tests for apiRoutes upload logic
@@ -86,5 +88,35 @@ describe('apiRoutes upload saveToWorkspace logic', () => {
       const effectiveValue = preference ?? false;
       expect(effectiveValue).toBe(false);
     });
+  });
+});
+
+describe('apiRoutes disk upload — safeTempPath construction', () => {
+  const MULTER_TEMP_DIR = os.tmpdir();
+
+  // Mirrors the safeTempPath logic in apiRoutes.ts
+  function buildSafeTempPath(filePath: string): string {
+    return path.join(path.resolve(MULTER_TEMP_DIR), path.basename(filePath));
+  }
+
+  it('produces a path inside the temp directory', () => {
+    const result = buildSafeTempPath('/tmp/multer-abc123');
+    expect(result.startsWith(path.resolve(MULTER_TEMP_DIR))).toBe(true);
+  });
+
+  it('strips directory traversal sequences from file.path', () => {
+    const result = buildSafeTempPath('/tmp/../../etc/passwd');
+    expect(result).toBe(path.join(path.resolve(MULTER_TEMP_DIR), 'passwd'));
+    expect(result).not.toContain('..');
+  });
+
+  it('preserves the filename portion', () => {
+    const result = buildSafeTempPath('/some/random/dir/upload-xyz.bin');
+    expect(result).toBe(path.join(path.resolve(MULTER_TEMP_DIR), 'upload-xyz.bin'));
+  });
+
+  it('handles filename-only input (no directory)', () => {
+    const result = buildSafeTempPath('upload-only.tmp');
+    expect(result).toBe(path.join(path.resolve(MULTER_TEMP_DIR), 'upload-only.tmp'));
   });
 });
