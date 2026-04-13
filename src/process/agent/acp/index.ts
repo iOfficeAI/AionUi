@@ -1532,6 +1532,7 @@ export class AcpAgent {
           `[AcpAgent] Session ${resumeSessionId} belongs to conversation ${resumeConversationId}, ` +
             `but current conversation is ${this.id}. Discarding stale session and starting fresh.`
         );
+        // Skip resume, fall through to create new session
       } else if (resumeSessionId) {
         try {
           let response: { sessionId?: string };

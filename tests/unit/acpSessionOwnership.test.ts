@@ -33,16 +33,43 @@ vi.mock('fs', () => ({
 // Mock AcpConnection
 const mockLoadSession = vi.fn();
 const mockNewSession = vi.fn();
-const mockInitialize = vi.fn().mockResolvedValue({ agentInfo: {} });
+const mockInitialize = vi.fn().mockResolvedValue({ agentInfo: { capabilities: { loadSession: true } } });
+const mockGetInitializeResponse = vi.fn().mockReturnValue({ agentInfo: { capabilities: { loadSession: true } } });
 const mockOn = vi.fn();
 const mockDestroy = vi.fn();
 
 vi.mock('@process/agent/acp/AcpConnection', () => {
   return {
     AcpConnection: class MockAcpConnection {
+      backend = 'codex';
       loadSession = mockLoadSession;
       newSession = mockNewSession;
       initialize = mockInitialize;
+      getInitializeResponse = mockGetInitializeResponse;
+      getInitializeAgentCapabilities() {
+        return { loadSession: true };
+      }
+      async resumeSession(sessionId: string, cwd: string, options?: any) {
+        // Simulate the real resumeSession logic for Codex
+        const capabilities = this.getInitializeAgentCapabilities();
+        const useClaudeMetaResume = this.backend === 'claude' || !!capabilities?._meta?.claudeCode;
+        const supportsLoadSession = capabilities?.loadSession === true;
+        const shouldTryLoadSession = !useClaudeMetaResume && supportsLoadSession;
+
+        if (shouldTryLoadSession) {
+          try {
+            return await this.loadSession(sessionId, cwd, options?.mcpServers);
+          } catch (loadError) {
+            console.warn(`[ACP ${this.backend}] session/load failed, falling back to session/new resume:`, loadError);
+          }
+        }
+
+        return await this.newSession(cwd, {
+          resumeSessionId: sessionId,
+          forkSession: options?.forkSession,
+          mcpServers: options?.mcpServers,
+        });
+      }
       on = mockOn;
       destroy = mockDestroy;
       sessionId = null;
