@@ -16,7 +16,7 @@ import { addMessage, addOrUpdateMessage } from '@process/utils/message';
 import { uuid } from '@/common/utils';
 import BaseAgentManager from './BaseAgentManager';
 import { IpcAgentEventEmitter } from './IpcAgentEventEmitter';
-import { mainError } from '@process/utils/mainLogger';
+import { mainError, mainWarn } from '@process/utils/mainLogger';
 import { hasCronCommands } from './CronCommandDetector';
 import { processCronInMessage } from './MessageMiddleware';
 import { extractAndStripThinkTags } from './ThinkTagDetector';
@@ -69,6 +69,10 @@ export class AionrsManager extends BaseAgentManager<AionrsManagerData, string> {
   private currentMode: string = 'default';
   private currentMsgId: string | null = null;
   private currentMsgContent: string = '';
+
+  // Finish fallback state
+  private missingFinishFallbackTimer: ReturnType<typeof setTimeout> | null = null;
+  private readonly missingFinishFallbackDelayMs = 15000;
 
   // Thinking state
   private thinkingMsgId: string | null = null;
@@ -126,6 +130,7 @@ export class AionrsManager extends BaseAgentManager<AionrsManagerData, string> {
   }
 
   async stop() {
+    this.clearMissingFinishFallback();
     // Inject history BEFORE stopping so the command reaches the running process
     await this.injectHistoryFromDatabase();
     await super.stop();
@@ -265,9 +270,51 @@ export class AionrsManager extends BaseAgentManager<AionrsManagerData, string> {
     this.thinkingContent = '';
   }
 
+  private scheduleMissingFinishFallback(): void {
+    this.clearMissingFinishFallback();
+    this.missingFinishFallbackTimer = setTimeout(() => {
+      this.handleMissingFinishFallback();
+    }, this.missingFinishFallbackDelayMs);
+  }
+
+  private clearMissingFinishFallback(): void {
+    if (this.missingFinishFallbackTimer) {
+      clearTimeout(this.missingFinishFallbackTimer);
+      this.missingFinishFallbackTimer = null;
+    }
+  }
+
+  private handleMissingFinishFallback(): void {
+    this.clearMissingFinishFallback();
+
+    if (this.getConfirmations().length > 0) {
+      return;
+    }
+
+    mainWarn(
+      '[AionrsManager]',
+      `Turn became idle without finish signal; synthesizing finish for ${this.conversation_id}`
+    );
+
+    this.status = 'finished';
+    void this.handleTurnEnd();
+
+    ipcBridge.conversation.responseStream.emit({
+      type: 'finish',
+      conversation_id: this.conversation_id,
+      msg_id: uuid(),
+      data: null,
+    });
+  }
+
   init() {
     super.init();
     this.on('aionrs.message', (data) => {
+      // Restart fallback timer on every non-finish event (activity heartbeat)
+      if (data.type !== 'finish') {
+        this.scheduleMissingFinishFallback();
+      }
+
       const contentTypes = ['content', 'tool_group'];
       if (contentTypes.includes(data.type)) {
         this.status = 'finished';
@@ -334,8 +381,9 @@ export class AionrsManager extends BaseAgentManager<AionrsManagerData, string> {
         this.currentMsgId = processedData.msg_id ?? this.currentMsgId;
       }
 
-      // On turn end, check for cron commands
+      // On turn end, clear fallback timer and check for cron commands
       if (processedData.type === 'finish') {
+        this.clearMissingFinishFallback();
         void this.handleTurnEnd();
       }
 
