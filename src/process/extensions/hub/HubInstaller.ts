@@ -118,8 +118,7 @@ export class HubInstallerImpl {
       const zipPath = await this.resolveZipPath(name, extInfo.dist.tarball, extInfo.bundled);
 
       // Step 2: Verify Integrity (SHA-512 SRI)
-      // TODO: 各平台校验有差异，先放在一边，后续完善
-      // await this.verifyIntegrity(zipPath, extInfo.dist.integrity);
+      await this.verifyIntegrity(zipPath, extInfo.dist.integrity);
 
       // Step 3: Extract (.zip)
       fs.mkdirSync(tempDir, { recursive: true });
@@ -270,19 +269,31 @@ export class HubInstallerImpl {
   }
 
   private async verifyIntegrity(filePath: string, expectedSri: string): Promise<void> {
-    if (!expectedSri.startsWith('sha512-')) {
-      console.warn(`[HubInstaller] Unsupported integrity algorithm in ${expectedSri}, skipping check.`);
-      return;
+    const normalizedSri = expectedSri?.trim();
+    if (!normalizedSri) {
+      throw new Error('Integrity metadata missing or empty.');
     }
 
-    const expectedHashBase64 = expectedSri.substring('sha512-'.length);
-    const expectedHashHex = Buffer.from(expectedHashBase64, 'base64').toString('hex');
+    const sriMatch = /^([a-z0-9]+)-([A-Za-z0-9+/]+={0,2})$/i.exec(normalizedSri);
+    if (!sriMatch) {
+      throw new Error('Integrity metadata malformed.');
+    }
+
+    const [, algorithm, expectedHashBase64] = sriMatch;
+    if (algorithm.toLowerCase() !== 'sha512') {
+      throw new Error(`Unsupported integrity algorithm: ${algorithm}.`);
+    }
+
+    const normalizedExpectedHashBase64 = Buffer.from(expectedHashBase64, 'base64').toString('base64');
+    if (normalizedExpectedHashBase64 !== expectedHashBase64) {
+      throw new Error('Integrity metadata contains invalid base64.');
+    }
 
     const fileBuffer = fs.readFileSync(filePath);
-    const actualHashHex = crypto.createHash('sha512').update(fileBuffer).digest('hex');
+    const actualHashBase64 = crypto.createHash('sha512').update(fileBuffer).digest('base64');
 
-    if (actualHashHex !== expectedHashHex) {
-      throw new Error('Integrity verification failed! The file may be corrupted.');
+    if (actualHashBase64 !== expectedHashBase64) {
+      throw new Error('Integrity verification failed. The archive may be corrupted or tampered with.');
     }
   }
 }

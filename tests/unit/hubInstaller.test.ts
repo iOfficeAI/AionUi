@@ -1,4 +1,5 @@
 import path from 'node:path';
+import crypto from 'node:crypto';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 // ---------------------------------------------------------------------------
@@ -81,9 +82,17 @@ vi.mock('@process/agent/acp/AcpDetector', () => ({
 }));
 
 import * as fs from 'fs';
+import { exec } from 'child_process';
 import { hubInstaller } from '../../src/process/extensions/hub/HubInstaller';
 
 const mockedExistsSync = vi.mocked(fs.existsSync);
+const mockedReadFileSync = vi.mocked(fs.readFileSync);
+const mockedExec = vi.mocked(exec);
+
+function makeSri(content: string | Buffer): string {
+  const fileBuffer = typeof content === 'string' ? Buffer.from(content) : content;
+  return `sha512-${crypto.createHash('sha512').update(fileBuffer).digest('base64')}`;
+}
 
 function makeExtInfo(name: string, bundled = false) {
   return {
@@ -91,7 +100,7 @@ function makeExtInfo(name: string, bundled = false) {
     displayName: name,
     description: 'test',
     author: 'test',
-    dist: { tarball: `extensions/${name}.zip`, integrity: 'sha512-abc', unpackedSize: 100 },
+    dist: { tarball: `extensions/${name}.zip`, integrity: makeSri(`${name}-archive`), unpackedSize: 100 },
     engines: { aionui: '>=1.0.0' },
     hubs: ['acpAdapters'],
     bundled,
@@ -102,6 +111,7 @@ describe('HubInstaller', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mockedExistsSync.mockReturnValue(false);
+    mockedReadFileSync.mockImplementation(() => Buffer.from('default-archive'));
     mockFetch.mockRejectedValue(new Error('no network'));
     mocks.getExtensionResult = undefined;
     mocks.setTransientCalls = [];
@@ -119,6 +129,7 @@ describe('HubInstaller', () => {
 
     it('should use bundled zip when available', async () => {
       mocks.getExtensionResult = makeExtInfo('bundled-ext', true);
+      mockedReadFileSync.mockReturnValue(Buffer.from('bundled-ext-archive'));
       mockedExistsSync.mockImplementation((p) => {
         const s = String(p);
         if (s.includes('bundled-ext.zip') && s.includes('resources')) return true;
@@ -134,6 +145,7 @@ describe('HubInstaller', () => {
 
     it('should download from remote when not bundled', async () => {
       mocks.getExtensionResult = makeExtInfo('remote-ext', false);
+      mockedReadFileSync.mockReturnValue(Buffer.from('remote-ext-archive'));
       mockedExistsSync.mockImplementation((p) => String(p).includes('aion-extension.json'));
 
       mockFetch.mockResolvedValueOnce({
@@ -149,6 +161,7 @@ describe('HubInstaller', () => {
 
     it('should fall back to second mirror when first fails', async () => {
       mocks.getExtensionResult = makeExtInfo('mirror-ext', false);
+      mockedReadFileSync.mockReturnValue(Buffer.from('mirror-ext-archive'));
       mockedExistsSync.mockImplementation((p) => String(p).includes('aion-extension.json'));
 
       mockFetch.mockRejectedValueOnce(new Error('mirror1 down')).mockResolvedValueOnce({
@@ -171,6 +184,7 @@ describe('HubInstaller', () => {
 
     it('should fail when manifest is missing after extraction', async () => {
       mocks.getExtensionResult = makeExtInfo('bad-pkg', false);
+      mockedReadFileSync.mockReturnValue(Buffer.from('bad-pkg-archive'));
       mockFetch.mockResolvedValueOnce({
         ok: true,
         arrayBuffer: async () => new ArrayBuffer(10),
@@ -179,11 +193,111 @@ describe('HubInstaller', () => {
 
       await expect(hubInstaller.install('bad-pkg')).rejects.toThrow('aion-extension.json missing');
     });
+
+    it('should fail when integrity hash mismatches before extraction', async () => {
+      mocks.getExtensionResult = {
+        ...makeExtInfo('mismatch-ext', true),
+        dist: {
+          ...makeExtInfo('mismatch-ext', true).dist,
+          integrity: makeSri('expected-content'),
+        },
+      };
+      mockedReadFileSync.mockReturnValue(Buffer.from('actual-content'));
+      mockedExistsSync.mockImplementation((p) => {
+        const s = String(p);
+        if (s.includes('mismatch-ext.zip') && s.includes('resources')) return true;
+        return false;
+      });
+
+      await expect(hubInstaller.install('mismatch-ext')).rejects.toThrow('Integrity verification failed');
+      expect(mockedExec).not.toHaveBeenCalled();
+      expect(mocks.setTransientCalls.at(-1)?.[1]).toBe('install_failed');
+    });
+
+    it('should fail cleanly when integrity is missing', async () => {
+      const extInfo = makeExtInfo('missing-integrity-ext', true);
+      mocks.getExtensionResult = {
+        ...extInfo,
+        dist: {
+          ...extInfo.dist,
+          integrity: undefined,
+        },
+      };
+      mockedReadFileSync.mockReturnValue(Buffer.from('missing-integrity-ext-archive'));
+      mockedExistsSync.mockImplementation(
+        (p) => String(p).includes('missing-integrity-ext.zip') && String(p).includes('resources')
+      );
+
+      await expect(hubInstaller.install('missing-integrity-ext')).rejects.toThrow(
+        'Integrity metadata missing or empty'
+      );
+      expect(mockedExec).not.toHaveBeenCalled();
+      expect(mocks.setTransientCalls.at(-1)?.[1]).toBe('install_failed');
+    });
+
+    it('should fail cleanly when integrity is whitespace only', async () => {
+      const extInfo = makeExtInfo('blank-integrity-ext', true);
+      mocks.getExtensionResult = {
+        ...extInfo,
+        dist: {
+          ...extInfo.dist,
+          integrity: '   ',
+        },
+      };
+      mockedReadFileSync.mockReturnValue(Buffer.from('blank-integrity-ext-archive'));
+      mockedExistsSync.mockImplementation(
+        (p) => String(p).includes('blank-integrity-ext.zip') && String(p).includes('resources')
+      );
+
+      await expect(hubInstaller.install('blank-integrity-ext')).rejects.toThrow('Integrity metadata missing or empty');
+      expect(mockedExec).not.toHaveBeenCalled();
+    });
+
+    it('should fail cleanly when integrity algorithm is unsupported', async () => {
+      const extInfo = makeExtInfo('unsupported-integrity-ext', true);
+      mocks.getExtensionResult = {
+        ...extInfo,
+        dist: {
+          ...extInfo.dist,
+          integrity: 'sha256-abc123==',
+        },
+      };
+      mockedReadFileSync.mockReturnValue(Buffer.from('unsupported-integrity-ext-archive'));
+      mockedExistsSync.mockImplementation(
+        (p) => String(p).includes('unsupported-integrity-ext.zip') && String(p).includes('resources')
+      );
+
+      await expect(hubInstaller.install('unsupported-integrity-ext')).rejects.toThrow(
+        'Unsupported integrity algorithm'
+      );
+      expect(mockedExec).not.toHaveBeenCalled();
+    });
+
+    it('should fail cleanly when integrity base64 is invalid', async () => {
+      const extInfo = makeExtInfo('invalid-base64-ext', true);
+      mocks.getExtensionResult = {
+        ...extInfo,
+        dist: {
+          ...extInfo.dist,
+          integrity: ' sha512-abc ',
+        },
+      };
+      mockedReadFileSync.mockReturnValue(Buffer.from('invalid-base64-ext-archive'));
+      mockedExistsSync.mockImplementation(
+        (p) => String(p).includes('invalid-base64-ext.zip') && String(p).includes('resources')
+      );
+
+      await expect(hubInstaller.install('invalid-base64-ext')).rejects.toThrow(
+        'Integrity metadata contains invalid base64'
+      );
+      expect(mockedExec).not.toHaveBeenCalled();
+    });
   });
 
   describe('retryInstall', () => {
     it('should call full install when target dir does not exist', async () => {
       mocks.getExtensionResult = makeExtInfo('retry-ext', true);
+      mockedReadFileSync.mockReturnValue(Buffer.from('retry-ext-archive'));
       mockedExistsSync.mockImplementation((p) => {
         const s = String(p);
         if (s.includes('retry-ext.zip') && s.includes('resources')) return true;
@@ -207,6 +321,7 @@ describe('HubInstaller', () => {
   describe('markExtensionForReinstall', () => {
     it('should call markExtensionForReinstall before hotReload during install', async () => {
       mocks.getExtensionResult = makeExtInfo('reinstall-ext', true);
+      mockedReadFileSync.mockReturnValue(Buffer.from('reinstall-ext-archive'));
       mockedExistsSync.mockImplementation((p) => {
         const s = String(p);
         if (s.includes('reinstall-ext.zip') && s.includes('resources')) return true;
@@ -241,6 +356,7 @@ describe('HubInstaller', () => {
         ...makeExtInfo('acp-ext', true),
         contributes: { acpAdapters: ['myagent'] },
       };
+      mockedReadFileSync.mockReturnValue(Buffer.from('acp-ext-archive'));
       mocks.detectedAgents = []; // CLI not detected
       mockedExistsSync.mockImplementation((p) => {
         const s = String(p);
@@ -258,6 +374,7 @@ describe('HubInstaller', () => {
         ...makeExtInfo('acp-ok-ext', true),
         contributes: { acpAdapters: ['claude'] },
       };
+      mockedReadFileSync.mockReturnValue(Buffer.from('acp-ok-ext-archive'));
       mocks.detectedAgents = [{ backend: 'claude', name: 'Claude Code' }];
       mockedExistsSync.mockImplementation((p) => {
         const s = String(p);
@@ -272,6 +389,7 @@ describe('HubInstaller', () => {
 
     it('should pass verification when extension has no contributes', async () => {
       mocks.getExtensionResult = makeExtInfo('no-contrib-ext', true);
+      mockedReadFileSync.mockReturnValue(Buffer.from('no-contrib-ext-archive'));
       mocks.detectedAgents = [];
       mockedExistsSync.mockImplementation((p) => {
         const s = String(p);
@@ -289,6 +407,7 @@ describe('HubInstaller', () => {
         ...makeExtInfo('partial-ext', true),
         contributes: { acpAdapters: ['claude', 'missing-agent'] },
       };
+      mockedReadFileSync.mockReturnValue(Buffer.from('partial-ext-archive'));
       mocks.detectedAgents = [{ backend: 'claude', name: 'Claude Code' }];
       mockedExistsSync.mockImplementation((p) => {
         const s = String(p);
@@ -304,6 +423,7 @@ describe('HubInstaller', () => {
         ...makeExtInfo('custom-acp-ext', true),
         contributes: { acpAdapters: ['my-custom-agent'] },
       };
+      mockedReadFileSync.mockReturnValue(Buffer.from('custom-acp-ext-archive'));
       // Extension agent with backend 'custom' but adapter ID in customAgentId
       mocks.detectedAgents = [
         {
