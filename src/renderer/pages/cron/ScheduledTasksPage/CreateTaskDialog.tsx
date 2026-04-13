@@ -741,9 +741,6 @@ const CreateTaskDialog: React.FC<CreateTaskDialogProps> = ({
                     menuTestId='cron-workspace-menu'
                     menuZIndex={10020}
                   />
-                  <p className='mt-8px mb-0 text-12px leading-18px text-t-secondary'>
-                    {t('cron.page.form.workspaceHint')}
-                  </p>
                 </div>
               </div>
             )}

@@ -999,6 +999,7 @@ describe('CreateTaskDialog - advanced settings workspace picker', () => {
     expect(workspaceTrigger.className).toContain('bg-fill-1');
     expect(workspaceTrigger.className).toContain('border-border-2');
     expect(workspaceTrigger.className).toContain('py-0');
+    expect(screen.queryByText('Optional workspace')).not.toBeInTheDocument();
 
     fireEvent.click(workspaceTrigger);
 
