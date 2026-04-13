@@ -17,6 +17,8 @@ import { uuid } from '@/common/utils';
 import BaseAgentManager from './BaseAgentManager';
 import { IpcAgentEventEmitter } from './IpcAgentEventEmitter';
 import { mainError } from '@process/utils/mainLogger';
+import { hasCronCommands } from './CronCommandDetector';
+import { processCronInMessage } from './MessageMiddleware';
 
 // Aionrs-specific approval key — reuses same pattern as GeminiApprovalStore
 type AionrsApprovalKey = IApprovalKey & {
@@ -64,6 +66,8 @@ export class AionrsManager extends BaseAgentManager<AionrsManagerData, string> {
   model: TProviderWithModel;
   readonly approvalStore = new AionrsApprovalStore();
   private currentMode: string = 'default';
+  private currentMsgId: string | null = null;
+  private currentMsgContent: string = '';
 
   constructor(data: AionrsManagerData, model: TProviderWithModel) {
     super('aionrs', { ...data, model }, new IpcAgentEventEmitter());
@@ -202,6 +206,8 @@ export class AionrsManager extends BaseAgentManager<AionrsManagerData, string> {
 
       if (data.type === 'start') {
         this.status = 'running';
+        this.currentMsgId = data.msg_id ?? null;
+        this.currentMsgContent = '';
         ipcBridge.conversation.responseStream.emit({
           type: 'request_trace',
           conversation_id: this.conversation_id,
@@ -215,6 +221,17 @@ export class AionrsManager extends BaseAgentManager<AionrsManagerData, string> {
             timestamp: Date.now(),
           },
         });
+      }
+
+      // Accumulate text content from incremental deltas
+      if (data.type === 'content' && typeof data.data === 'string') {
+        this.currentMsgContent += data.data;
+        this.currentMsgId = data.msg_id ?? this.currentMsgId;
+      }
+
+      // On turn end, check for cron commands
+      if (data.type === 'finish') {
+        void this.handleTurnEnd();
       }
 
       data.conversation_id = this.conversation_id;
@@ -233,6 +250,53 @@ export class AionrsManager extends BaseAgentManager<AionrsManagerData, string> {
 
       ipcBridge.conversation.responseStream.emit(data);
     });
+  }
+
+  private async handleTurnEnd(): Promise<void> {
+    const content = this.currentMsgContent;
+    const msgId = this.currentMsgId;
+
+    // Reset state immediately to prevent carry-over
+    this.currentMsgId = null;
+    this.currentMsgContent = '';
+
+    if (!content || !hasCronCommands(content)) {
+      return;
+    }
+
+    try {
+      const cronMessage: TMessage = {
+        id: msgId || uuid(),
+        msg_id: msgId || uuid(),
+        type: 'text',
+        position: 'left',
+        conversation_id: this.conversation_id,
+        content: { content },
+        status: 'finish',
+        createdAt: Date.now(),
+      };
+
+      const collectedResponses: string[] = [];
+      await processCronInMessage(this.conversation_id, 'aionrs', cronMessage, (sysMsg) => {
+        collectedResponses.push(sysMsg);
+        ipcBridge.conversation.responseStream.emit({
+          type: 'system',
+          conversation_id: this.conversation_id,
+          msg_id: uuid(),
+          data: sysMsg,
+        });
+      });
+
+      if (collectedResponses.length > 0) {
+        const feedbackMessage = `[System Response]\n${collectedResponses.join('\n')}`;
+        await this.sendMessage({
+          input: feedbackMessage,
+          msg_id: uuid(),
+        });
+      }
+    } catch (error) {
+      mainError('[AionrsManager]', 'Cron command processing failed', error);
+    }
   }
 
   getMode(): { mode: string; initialized: boolean } {
