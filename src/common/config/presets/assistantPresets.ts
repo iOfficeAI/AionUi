@@ -164,6 +164,39 @@ export const ASSISTANT_PRESETS: AssistantPreset[] = [
     },
   },
   {
+    id: 'morph-ppt-3d',
+    avatar: '🎬',
+    presetAgentType: 'gemini',
+    resourceDir: 'src/process/resources/assistant/morph-ppt-3d',
+    ruleFiles: {
+      'en-US': 'morph-ppt-3d.md',
+      'zh-CN': 'morph-ppt-3d.zh-CN.md',
+    },
+    defaultEnabledSkills: ['morph-ppt-3d', 'morph-ppt'],
+    nameI18n: {
+      'en-US': '3D Morph PPT',
+      'zh-CN': '3D Morph PPT',
+    },
+    descriptionI18n: {
+      'en-US':
+        "Turn a GLB 3D model into a cinematic Morph presentation. The model is the visual hero — close-up for details, bird's eye for structure, low angle for drama, with smooth Morph transitions between every shot. Note: 3D models and Morph transitions require Microsoft PowerPoint to display correctly.",
+      'zh-CN':
+        '把 GLB 3D 模型变成电影感 Morph 演示文稿。模型是视觉主角——特写看细节、俯视看结构、仰拍看气势，每页之间用 Morph 转场做流畅的镜头运动。注意：3D 模型和 Morph 转场效果需要在微软 PowerPoint 中打开才能正常显示。',
+    },
+    promptsI18n: {
+      'en-US': [
+        "Use this GLB model to create a product showcase. Content should revolve around the model — what it is, its features, its story. Each slide shows a different angle that matches the topic: close-up for details, bird's eye for structure, dramatic low angle for the climax.",
+        'Here is my GLB model. Study it carefully, then create a cinematic presentation where the model is the hero of every frame. I want varied camera work: push in for detail shots, pull back for overview, bleed the model off the edge for dramatic transitions.',
+        "Build a presentation around this 3D model that feels like a movie trailer. Big dramatic moments, intimate close-ups, sweeping overview shots. The story should match what the model actually is — don't just add generic text.",
+      ],
+      'zh-CN': [
+        '用这个 GLB 模型做一份产品展示 PPT。内容要围绕模型展开——它是什么、有什么特点、背后的故事。每页用不同视角配合主题：讲细节就特写、讲结构就俯视、讲气势就仰拍，画面要丰富有层次。',
+        '这是我的 GLB 模型，仔细观察它，然后做一份电影感演示，模型是每一帧的主角。镜头要多变：推近看细节、拉远看全貌、模型出血到画面边缘做冲击转场。内容必须贴合模型本身。',
+        '围绕这个 3D 模型做一份像电影预告片一样的演示。要有大气的高潮时刻、细腻的特写镜头、开阔的全景俯瞰。故事要契合模型本身的特征——不要用跟模型无关的通用文案。',
+      ],
+    },
+  },
+  {
     id: 'pitch-deck-creator',
     avatar: '🎯',
     presetAgentType: 'gemini',
