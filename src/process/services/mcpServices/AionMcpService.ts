@@ -159,6 +159,8 @@ export class AionMcpService {
         auth_token?: string;
         /** Backend type of the calling agent, injected by aion-mcp-stdio via AION_MCP_BACKEND env var */
         backend?: string;
+        /** Conversation ID of the calling agent, used to reuse conversation as team leader */
+        conversation_id?: string;
       };
 
       if (request.auth_token !== this.authToken) {
@@ -171,7 +173,7 @@ export class AionMcpService {
       const args = request.args ?? {};
 
       try {
-        const result = await this.handleToolCall(toolName, args, request.backend);
+        const result = await this.handleToolCall(toolName, args, request.backend, request.conversation_id);
         writeTcpMessage(socket, { result });
       } catch (err) {
         const errMsg = err instanceof Error ? err.message : String(err);
@@ -188,10 +190,15 @@ export class AionMcpService {
 
   // ── Tool dispatch ─────────────────────────────────────────────────────────
 
-  private async handleToolCall(toolName: string, args: Record<string, unknown>, backend?: string): Promise<string> {
+  private async handleToolCall(
+    toolName: string,
+    args: Record<string, unknown>,
+    backend?: string,
+    callerConversationId?: string
+  ): Promise<string> {
     switch (toolName) {
       case 'aion_create_team':
-        return this.handleCreateTeam(args, backend);
+        return this.handleCreateTeam(args, backend, callerConversationId);
       case 'aion_navigate':
         return this.handleNavigate(args);
       default:
@@ -199,7 +206,11 @@ export class AionMcpService {
     }
   }
 
-  private async handleCreateTeam(args: Record<string, unknown>, backend?: string): Promise<string> {
+  private async handleCreateTeam(
+    args: Record<string, unknown>,
+    backend?: string,
+    callerConversationId?: string
+  ): Promise<string> {
     const summary = String(args.summary ?? '').trim();
     const name = args.name ? String(args.name).trim() : undefined;
     const workspace = args.workspace ? String(args.workspace).trim() : '';
@@ -224,7 +235,7 @@ export class AionMcpService {
       agents: [
         {
           slotId: '',
-          conversationId: '',
+          conversationId: callerConversationId || '',
           role: 'lead',
           agentType,
           agentName: 'Leader',
@@ -240,11 +251,14 @@ export class AionMcpService {
     // Notify frontend to refresh team list
     ipcBridge.team.listChanged.emit({ teamId: team.id, action: 'created' });
 
-    // Fire-and-forget: start session and send message in background
+    // Fire-and-forget: start session in background.
+    // Skip sendMessageToAgent when the leader reuses the caller's conversation —
+    // the calling agent already has the full user context and will finish its current turn.
+    const leaderIsReused = Boolean(callerConversationId && leadAgent?.conversationId === callerConversationId);
     void (async () => {
       try {
         const session = await this.teamSessionService.getOrStartSession(team.id);
-        if (leadAgent) {
+        if (leadAgent && !leaderIsReused) {
           await session.sendMessageToAgent(leadAgent.slotId, summary);
         }
       } catch (err) {

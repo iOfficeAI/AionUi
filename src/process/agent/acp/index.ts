@@ -1622,7 +1622,11 @@ export class AcpAgent {
         if (aionStdioConfig) {
           const configWithBackend = {
             ...aionStdioConfig,
-            env: [...aionStdioConfig.env, { name: 'AION_MCP_BACKEND', value: this.extra.backend }],
+            env: [
+              ...aionStdioConfig.env,
+              { name: 'AION_MCP_BACKEND', value: this.extra.backend },
+              { name: 'AION_MCP_CONVERSATION_ID', value: this.id },
+            ],
           };
           servers.push(buildTeamMcpServer(configWithBackend)!);
         }

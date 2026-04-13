@@ -9,7 +9,7 @@ import type { TeamAgent, TeammateStatus } from './types';
 import { TEAM_SUPPORTED_BACKENDS } from '@/common/types/teamTypes';
 import type { Mailbox } from './Mailbox';
 import type { TaskManager } from './TaskManager';
-import { buildRolePrompt } from './adapters/buildRolePrompt';
+import { buildRolePrompt } from './prompts/buildRolePrompt';
 import { acpDetector } from '@process/agent/acp/AcpDetector';
 
 type SpawnAgentFn = (agentName: string, agentType?: string) => Promise<TeamAgent>;
