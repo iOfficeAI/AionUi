@@ -67,7 +67,10 @@ describe('WorkspaceFolderSelect', () => {
   });
 
   it('opens upward and becomes scrollable when space below is limited', () => {
-    localStorage.setItem('aionui:recent-workspaces', JSON.stringify(['/tmp/a', '/tmp/b', '/tmp/c', '/tmp/d', '/tmp/e']));
+    localStorage.setItem(
+      'aionui:recent-workspaces',
+      JSON.stringify(['/tmp/a', '/tmp/b', '/tmp/c', '/tmp/d', '/tmp/e'])
+    );
 
     render(
       <WorkspaceFolderSelect

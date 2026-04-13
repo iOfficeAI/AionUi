@@ -165,9 +165,9 @@ const CreateTaskDialog: React.FC<CreateTaskDialogProps> = ({
       setAdvancedOpen(
         Boolean(
           editJob.metadata.agentConfig?.modelId ||
-            editJob.metadata.agentConfig?.workspace ||
-            (editJob.metadata.agentConfig?.configOptions &&
-              Object.keys(editJob.metadata.agentConfig.configOptions).length > 0)
+          editJob.metadata.agentConfig?.workspace ||
+          (editJob.metadata.agentConfig?.configOptions &&
+            Object.keys(editJob.metadata.agentConfig.configOptions).length > 0)
         )
       );
       const agentKey = getAgentKeyFromJob(editJob);

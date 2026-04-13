@@ -1043,7 +1043,9 @@ describe('CreateTaskDialog - custom schedule hint', () => {
 
     expect(hint.className).toContain('text-t-secondary');
     expect(hint.className).not.toContain('text-[var(--color-warning-6)]');
-    expect(screen.queryByText('Scheduled tasks use a randomized delay of several minutes for server performance.')).not.toBeInTheDocument();
+    expect(
+      screen.queryByText('Scheduled tasks use a randomized delay of several minutes for server performance.')
+    ).not.toBeInTheDocument();
   });
 });
 
