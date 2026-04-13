@@ -106,16 +106,17 @@ For pull request creation, see the `oss-pr` skill (`.claude/skills/oss-pr/SKILL.
 
 Detailed rules and guidelines are organized into Skills for better modularity:
 
-| Skill             | Purpose                                                                              | Triggers                                                                  |
-| ----------------- | ------------------------------------------------------------------------------------ | ------------------------------------------------------------------------- |
-| **architecture**  | File & directory structure conventions for all process types                         | Creating files, adding modules, architectural decisions                   |
-| **i18n**          | Internationalization workflow and standards                                          | Adding user-facing text, modifying `locales/` or `src/common/config/i18n` |
-| **testing**       | Testing workflow and quality standards                                               | Writing tests, adding features, before claiming completion                |
-| **oss-pr**        | Full commit + PR workflow: branch management, quality checks, issue linking, PR      | Creating pull requests, after committing, `/oss-pr`                       |
-| **bump-version**  | Version bump workflow: update package.json, checks, branch, PR, tag release          | Bumping version, `/bump-version`                                          |
-| **pr-review**     | Local PR code review with full project context, no truncation limits                 | Reviewing a PR, user says "review PR", `/pr-review`                       |
-| **pr-fix**        | Fix all issues from a pr-review report, create a follow-up PR, and verify each fix   | After pr-review, user says "fix all issues", `/pr-fix`                    |
-| **pr-automation** | PR automation orchestrator: poll PRs, review, fix, and merge via label state machine | Invoked by daemon script (`pr-automation.sh`), `/pr-automation`           |
+| Skill             | Purpose                                                                               | Triggers                                                                  |
+| ----------------- | ------------------------------------------------------------------------------------- | ------------------------------------------------------------------------- |
+| **architecture**  | File & directory structure conventions for all process types                          | Creating files, adding modules, architectural decisions                   |
+| **i18n**          | Internationalization workflow and standards                                           | Adding user-facing text, modifying `locales/` or `src/common/config/i18n` |
+| **testing**       | Testing workflow and quality standards                                                | Writing tests, adding features, before claiming completion                |
+| **oss-pr**        | Full commit + PR workflow: branch management, quality checks, issue linking, PR       | Creating pull requests, after committing, `/oss-pr`                       |
+| **bump-version**  | Version bump workflow: update package.json, checks, branch, PR, tag release           | Bumping version, `/bump-version`                                          |
+| **pr-review**     | Local PR code review with full project context, no truncation limits                  | Reviewing a PR, user says "review PR", `/pr-review`                       |
+| **pr-fix**        | Fix all issues from a pr-review report, create a follow-up PR, and verify each fix    | After pr-review, user says "fix all issues", `/pr-fix`                    |
+| **pr-verify**     | Verify and merge bot:ready-to-merge PRs with impact analysis and test supplementation | Verifying PRs, merging ready PRs, `/pr-verify`                            |
+| **pr-automation** | PR automation orchestrator: poll PRs, review, fix, and merge via label state machine  | Invoked by daemon script (`pr-automation.sh`), `/pr-automation`           |
 
 > Skills are located in `.claude/skills/` and contain project conventions that apply to **all** agents and contributors. Every agent working in this repository must read and follow the relevant skill files when the task matches their scope.
 
