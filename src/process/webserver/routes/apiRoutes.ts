@@ -8,6 +8,7 @@ import { type Express, type NextFunction, type Request, type RequestHandler, typ
 import fs from 'fs';
 import fsPromises from 'fs/promises';
 import http from 'node:http';
+import os from 'os';
 import path from 'path';
 import multer from 'multer';
 import { getDatabase } from '@process/services/database';
@@ -24,8 +25,11 @@ import { apiRateLimiter } from '../middleware/security';
 import { registerWeixinLoginRoutes } from './weixinLoginRoutes';
 import { registerWecomChannelRoutes } from './wecomChannelRoutes';
 
+/** Temp directory used by multer disk storage — validated at runtime to prevent path traversal */
+const MULTER_TEMP_DIR = os.tmpdir();
+
 /** File upload: disk storage so large files are streamed rather than buffered in memory */
-const uploadDisk = multer({ storage: multer.diskStorage({}) });
+const uploadDisk = multer({ storage: multer.diskStorage({ destination: MULTER_TEMP_DIR }) });
 
 /** STT upload: memory storage so the audio buffer is available directly for transcription */
 const MAX_AUDIO_SIZE = 30 * 1024 * 1024;
@@ -356,6 +360,14 @@ export function registerApiRoutes(app: Express): void {
         const resolvedUploadDir = path.resolve(uploadDir);
         if (!resolvedTarget.startsWith(resolvedUploadDir + path.sep) && resolvedTarget !== resolvedUploadDir) {
           res.status(400).json({ success: false, msg: 'Invalid file name' });
+          return;
+        }
+
+        // Verify multer temp file is within the expected temp directory (prevents path traversal via file.path)
+        const resolvedFilePath = path.resolve(file.path);
+        if (!resolvedFilePath.startsWith(path.resolve(MULTER_TEMP_DIR) + path.sep)) {
+          await fsPromises.unlink(file.path).catch(() => {});
+          res.status(400).json({ success: false, msg: 'Invalid upload path' });
           return;
         }
 
