@@ -34,17 +34,35 @@
   "create": {
     "title": "Create Team",
     "namePlaceholder": "Team name",
-    "dispatchAgentPlaceholder": "Select dispatch agent",
+    "dispatchAgentPlaceholder": "Select team leader",
     "subAgentsPlaceholder": "Select sub agents",
     "workspacePlaceholder": "Workspace path (optional)",
     "confirm": "Create Team",
     "noSupportedAgents": "No supported agents installed",
     "supportedAgentsHint": "Currently supports Claude and Codex. More agents coming soon.",
+    "leaderDesc": "Understands your goals and coordinates agents to complete tasks",
     "step": {
-      "dispatch": "Dispatch Agent",
+      "dispatch": "Team Leader",
       "subAgents": "Sub Agents",
       "workspace": "Workspace"
     },
+    "nameRequired": "Please enter a team name",
+    "leaderRequired": "Please select a team leader",
+    "selectFolder": "Select folder",
+    "recentLabel": "Recent",
+    "chooseDifferentFolder": "Choose a different folder",
     "error": "Failed to create team"
+  },
+  "removeAgent": {
+    "confirmTitle": "Remove Team Member",
+    "confirmContent": "This member is currently active. Force remove?"
+  },
+  "emptyState": {
+    "subtitle": "Describe your goal and I'll get the team working on it",
+    "suggestions": {
+      "debate": "Organize a debate with agents taking different sides",
+      "interview": "Plan an in-depth interview between agents",
+      "expert_review": "Have multiple experts analyze the same problem"
+    }
   }
 }

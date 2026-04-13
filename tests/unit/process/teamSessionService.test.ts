@@ -5,6 +5,7 @@
  */
 
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+import type { TChatConversation } from '../../../src/common/config/storage';
 import type { IConversationService } from '../../../src/process/services/IConversationService';
 import type { ITeamRepository } from '../../../src/process/team/repository/ITeamRepository';
 import type { TTeam, TeamAgent } from '../../../src/common/types/teamTypes';
@@ -418,6 +419,77 @@ describe('TeamSessionService', () => {
           sessionMode: 'yolo',
           currentModelId: 'qwen3-coder-next',
         }),
+      })
+    );
+  });
+
+  it('repairs legacy teams whose agents array was lost but conversations still exist', async () => {
+    const legacyTeam: TTeam = {
+      id: 'team-legacy',
+      userId: 'user-1',
+      name: 'Legacy Team',
+      workspace: '',
+      workspaceMode: 'shared',
+      leadAgentId: 'slot-lead',
+      agents: [],
+      createdAt: 1,
+      updatedAt: 1,
+    };
+    const legacyConversation: TChatConversation = {
+      id: 'conv-legacy',
+      name: 'Legacy Team - Leader',
+      type: 'acp',
+      status: 'pending',
+      createTime: 1,
+      modifyTime: 2,
+      extra: {
+        backend: 'codex',
+        cliPath: 'codex',
+        agentName: 'Leader',
+        teamId: 'team-legacy',
+        teamMcpStdioConfig: {
+          env: [{ name: 'TEAM_AGENT_SLOT_ID', value: 'slot-lead' }],
+        },
+      },
+    };
+
+    const repo = makeRepo({
+      findById: vi.fn().mockResolvedValue(legacyTeam),
+    });
+    const conversationService = makeConversationService({
+      listAllConversations: vi.fn().mockResolvedValue([legacyConversation]),
+    });
+    const service = new TeamSessionService(repo, makeWorkerTaskManager() as any, conversationService);
+
+    const repairedTeam = await service.getTeam('team-legacy');
+
+    expect(repairedTeam).toEqual(
+      expect.objectContaining({
+        leadAgentId: 'slot-lead',
+        agents: [
+          expect.objectContaining({
+            slotId: 'slot-lead',
+            conversationId: 'conv-legacy',
+            role: 'lead',
+            agentType: 'codex',
+            agentName: 'Leader',
+            conversationType: 'acp',
+            cliPath: 'codex',
+          }),
+        ],
+      })
+    );
+    expect(repo.update).toHaveBeenCalledWith(
+      'team-legacy',
+      expect.objectContaining({
+        leadAgentId: 'slot-lead',
+        agents: [
+          expect.objectContaining({
+            slotId: 'slot-lead',
+            conversationId: 'conv-legacy',
+          }),
+        ],
+        updatedAt: expect.any(Number),
       })
     );
   });

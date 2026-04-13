@@ -100,7 +100,7 @@ describe('TeamMcpServer', () => {
   beforeEach(async () => {
     vi.clearAllMocks();
     agents = [
-      makeAgent({ slotId: 'slot-lead', agentName: 'Lead', role: 'lead' }),
+      makeAgent({ slotId: 'slot-lead', agentName: 'Leader', role: 'lead' }),
       makeAgent({ slotId: 'slot-member', agentName: 'Alice', role: 'teammate' }),
     ];
     mailbox = makeMailbox();
@@ -201,7 +201,7 @@ describe('TeamMcpServer', () => {
         args: {},
         auth_token: authToken,
       })) as Record<string, unknown>;
-      expect(response.result).toContain('Lead');
+      expect(response.result).toContain('Leader');
       expect(response.result).toContain('Alice');
       expect(response.result).toContain('lead');
       expect(response.result).toContain('teammate');
@@ -383,7 +383,7 @@ describe('TeamMcpServer', () => {
     it('handles shutdown_approved by removing the sender agent', async () => {
       const response = (await tcpRequest(server.getPort(), {
         tool: 'team_send_message',
-        args: { to: 'Lead', message: 'shutdown_approved' },
+        args: { to: 'Leader', message: 'shutdown_approved' },
         from_slot_id: 'slot-member',
         auth_token: authToken,
       })) as Record<string, unknown>;
@@ -395,7 +395,7 @@ describe('TeamMcpServer', () => {
     it('handles shutdown_rejected by notifying lead', async () => {
       const response = (await tcpRequest(server.getPort(), {
         tool: 'team_send_message',
-        args: { to: 'Lead', message: 'shutdown_rejected: I need to finish my task' },
+        args: { to: 'Leader', message: 'shutdown_rejected: I need to finish my task' },
         from_slot_id: 'slot-member',
         auth_token: authToken,
       })) as Record<string, unknown>;
@@ -442,7 +442,7 @@ describe('TeamMcpServer', () => {
     it('rejects unsupported agent types', async () => {
       const response = (await tcpRequest(server.getPort(), {
         tool: 'team_spawn_agent',
-        args: { name: 'GeminiBot', agent_type: 'gemini' },
+        args: { name: 'UnknownBot', agent_type: 'codebuddy' },
         from_slot_id: 'slot-lead',
         auth_token: authToken,
       })) as Record<string, unknown>;
@@ -477,7 +477,7 @@ describe('TeamMcpServer', () => {
     it('rejects shutdown of the lead', async () => {
       const response = (await tcpRequest(server.getPort(), {
         tool: 'team_shutdown_agent',
-        args: { agent: 'Lead' },
+        args: { agent: 'Leader' },
         from_slot_id: 'slot-lead',
         auth_token: authToken,
       })) as Record<string, unknown>;
@@ -597,7 +597,7 @@ describe('TeamMcpServer', () => {
         setTimeout(() => reject(new Error('Timeout')), 3000);
       });
 
-      expect((response as Record<string, unknown>).result).toContain('Lead');
+      expect((response as Record<string, unknown>).result).toContain('Leader');
     });
   });
 });

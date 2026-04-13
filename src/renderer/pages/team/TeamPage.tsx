@@ -1,5 +1,5 @@
-import { Message, Spin } from '@arco-design/web-react';
-import { CloseOne, FullScreen, Left, OffScreen, Right } from '@icon-park/react';
+import { Button, Message, Modal, Spin } from '@arco-design/web-react';
+import { CloseOne, CloseSmall, FullScreen, Left, OffScreen, Right } from '@icon-park/react';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import useSWR, { useSWRConfig } from 'swr';
@@ -18,11 +18,11 @@ import AionrsModelSelector from '@/renderer/pages/conversation/platforms/aionrs/
 import { useAionrsModelSelection } from '@/renderer/pages/conversation/platforms/aionrs/useAionrsModelSelection';
 import TeamTabs from './components/TeamTabs';
 import TeamChatView from './components/TeamChatView';
+import TeamAgentIdentity from './components/TeamAgentIdentity';
 import { agentFromKey, resolveConversationType, resolveTeamAgentType } from './components/agentSelectUtils';
 import { TeamTabsProvider, useTeamTabs } from './hooks/TeamTabsContext';
 import { TeamPermissionProvider } from './hooks/TeamPermissionContext';
 import { useTeamSession } from './hooks/useTeamSession';
-import { getAgentLogo } from '@/renderer/utils/model/agentLogo';
 import { dispatchWorkspaceHasFilesEvent } from '@/renderer/utils/workspace/workspaceEvents';
 
 type Props = {
@@ -65,7 +65,6 @@ const AgentChatSlot: React.FC<{
   const { data: conversation } = useSWR(agent.conversationId ? ['team-conversation', agent.conversationId] : null, () =>
     ipcBridge.conversation.get.invoke({ id: agent.conversationId })
   );
-  const logo = getAgentLogo(agent.agentType);
 
   const isAionrs = conversation?.type === 'aionrs';
   const initialModelId = (conversation?.extra as { currentModelId?: string })?.currentModelId;
@@ -107,17 +106,13 @@ const AgentChatSlot: React.FC<{
             : { background: 'var(--color-bg-2)' }
         }
       >
-        <div className='flex items-center gap-8px min-w-0'>
-          {logo && (
-            <img src={logo} alt={agent.agentType} className='w-16px h-16px object-contain rounded-2px opacity-80' />
-          )}
-          <span className='text-13px text-[color:var(--color-text-2)] font-medium truncate'>{agent.agentName}</span>
-          {isLead && (
-            <span className='text-10px px-4px py-1px rd-4px bg-[var(--color-primary-1)] text-[var(--color-primary-6)] shrink-0'>
-              Lead
-            </span>
-          )}
-        </div>
+        <TeamAgentIdentity
+          agentName={agent.agentName}
+          agentType={agent.agentType}
+          isLead={isLead}
+          className='min-w-0'
+          nameClassName='text-13px text-[color:var(--color-text-2)] font-medium'
+        />
         <div className='flex items-center gap-8px shrink-0'>
           {agent.conversationId && !isAionrs && isAcpLike && (
             <div className='min-w-0 max-w-140px [&_button]:max-w-full [&_button_span]:truncate'>
@@ -143,6 +138,14 @@ const AgentChatSlot: React.FC<{
               />
             </div>
           )}
+          {!isLead && onRemove && (
+            <div
+              className='shrink-0 cursor-pointer hover:bg-[var(--fill-3)] p-4px rd-4px text-[color:var(--color-text-3)] hover:text-[color:var(--color-danger-6)] transition-colors'
+              onClick={onRemove}
+            >
+              <CloseSmall size='16' fill='currentColor' />
+            </div>
+          )}
           <div
             className='shrink-0 cursor-pointer hover:bg-[var(--fill-3)] p-4px rd-4px text-[color:var(--color-text-3)] hover:text-[color:var(--color-text-1)] transition-colors'
             onClick={() => onToggleFullscreen?.()}
@@ -157,6 +160,8 @@ const AgentChatSlot: React.FC<{
             conversation={conversation as TChatConversation}
             teamId={teamId}
             agentSlotId={isLead ? undefined : agent.slotId}
+            agentName={agent.agentName}
+            agentType={agent.agentType}
           />
         ) : (
           <div className='flex flex-1 items-center justify-center'>
@@ -165,14 +170,11 @@ const AgentChatSlot: React.FC<{
         )}
         {(runtimeStatus ?? agent.status) === 'failed' && !isLead && onRemove && (
           <div className='absolute inset-0 z-10 flex flex-col items-center justify-center gap-12px bg-[color:var(--color-bg-1)]/80'>
-            <CloseOne theme='filled' size='32' fill='#f53f3f' />
+            <CloseOne theme='filled' size='32' fill='var(--color-danger-6)' />
             <span className='text-14px text-[color:var(--color-text-2)]'>Agent failed to start</span>
-            <button
-              className='px-16px py-6px rd-8px bg-[#f53f3f] text-white text-13px cursor-pointer hover:opacity-80 transition-opacity border-none'
-              onClick={onRemove}
-            >
+            <Button type='primary' status='danger' size='small' onClick={onRemove}>
               Remove
-            </button>
+            </Button>
           </div>
         )}
       </div>
@@ -195,15 +197,36 @@ const TeamPageContent: React.FC<TeamPageContentProps> = ({ team, onAddAgent, onR
   const activeAgent = agents.find((a) => a.slotId === activeSlotId);
   const leadAgent = agents.find((a) => a.role === 'lead');
 
-  const handleRemoveAgent = useCallback(
+  const doRemoveAgent = useCallback(
     async (slotId: string) => {
-      await ipcBridge.team.removeAgent.invoke({ teamId: team.id, slotId });
-      Message.success(t('common.deleteSuccess'));
-      // Switch to lead tab after removal
-      if (leadAgent?.slotId) switchTab(leadAgent.slotId);
-      if (fullscreenSlotId === slotId) setFullscreenSlotId(null);
+      try {
+        await ipcBridge.team.removeAgent.invoke({ teamId: team.id, slotId });
+        Message.success(t('common.deleteSuccess'));
+        // Only switch tab when removing the currently active tab
+        if (slotId === activeSlotId && leadAgent?.slotId) switchTab(leadAgent.slotId);
+        if (fullscreenSlotId === slotId) setFullscreenSlotId(null);
+      } catch (error) {
+        console.error('Failed to remove agent:', error);
+        Message.error(String(error));
+      }
     },
-    [team.id, leadAgent?.slotId, switchTab, fullscreenSlotId, t]
+    [team.id, activeSlotId, leadAgent?.slotId, switchTab, fullscreenSlotId, t]
+  );
+
+  const handleRemoveAgent = useCallback(
+    (slotId: string) => {
+      const status = statusMap.get(slotId)?.status;
+      if (status === 'active') {
+        Modal.confirm({
+          title: t('team.removeAgent.confirmTitle'),
+          content: t('team.removeAgent.confirmContent'),
+          onOk: () => doRemoveAgent(slotId),
+        });
+      } else {
+        void doRemoveAgent(slotId);
+      }
+    },
+    [statusMap, doRemoveAgent, t]
   );
   const leadConversationId = leadAgent?.conversationId ?? '';
   const isLeadAgent = activeAgent?.role === 'lead';
@@ -331,6 +354,7 @@ const TeamPageContent: React.FC<TeamPageContentProps> = ({ team, onAddAgent, onR
 
   return (
     <TeamPermissionProvider
+      teamId={team.id}
       isLeadAgent={isLeadAgent}
       leadConversationId={leadConversationId}
       allConversationIds={allConversationIds}
@@ -442,11 +466,36 @@ const TeamPageContent: React.FC<TeamPageContentProps> = ({ team, onAddAgent, onR
 };
 
 const TeamPage: React.FC<Props> = ({ team }) => {
-  const { statusMap, addAgent, renameAgent, mutateTeam } = useTeamSession(team);
+  const { t } = useTranslation();
+  const { statusMap, addAgent, renameAgent, removeAgent, mutateTeam } = useTeamSession(team);
   const { user } = useAuth();
   const { mutate: globalMutate } = useSWRConfig();
   const { cliAgents, presetAssistants } = useConversationAgents();
   const defaultSlotId = team.agents[0]?.slotId ?? '';
+
+  const handleRemoveAgentWithConfirm = useCallback(
+    (slotId: string) => {
+      const doRemove = async () => {
+        try {
+          await removeAgent(slotId);
+          Message.success(t('common.deleteSuccess'));
+        } catch (error) {
+          Message.error(String(error));
+        }
+      };
+      const status = statusMap.get(slotId)?.status;
+      if (status === 'active') {
+        Modal.confirm({
+          title: t('team.removeAgent.confirmTitle'),
+          content: t('team.removeAgent.confirmContent'),
+          onOk: doRemove,
+        });
+      } else {
+        void doRemove();
+      }
+    },
+    [statusMap, removeAgent, t]
+  );
 
   const handleAddAgent = useCallback(
     async (data: { agentName: string; agentKey: string }) => {
@@ -489,6 +538,7 @@ const TeamPage: React.FC<Props> = ({ team }) => {
       defaultActiveSlotId={defaultSlotId}
       teamId={team.id}
       renameAgent={renameAgent}
+      removeAgent={handleRemoveAgentWithConfirm}
     >
       <TeamPageContent team={team} onAddAgent={handleAddAgent} onRenameTeam={handleRenameTeam} />
     </TeamTabsProvider>

@@ -34,17 +34,35 @@
   "create": {
     "title": "Создать команду",
     "namePlaceholder": "Название команды",
-    "dispatchAgentPlaceholder": "Выбрать агента-диспетчера",
+    "dispatchAgentPlaceholder": "Выбрать лидера команды",
     "subAgentsPlaceholder": "Выбрать подагентов",
     "workspacePlaceholder": "Путь к рабочей области (опционально)",
     "confirm": "Создать команду",
     "noSupportedAgents": "Поддерживаемые агенты не установлены",
     "supportedAgentsHint": "Сейчас поддерживаются Claude, Codex, CodeBuddy. Другие агенты скоро появятся.",
+    "leaderDesc": "Понимает ваши цели и координирует агентов для выполнения задач",
     "step": {
-      "dispatch": "Агент-диспетчер",
+      "dispatch": "Лидер команды",
       "subAgents": "Подагенты",
       "workspace": "Рабочая область"
     },
+    "nameRequired": "Введите название команды",
+    "leaderRequired": "Выберите лидера команды",
+    "selectFolder": "Выбрать папку",
+    "recentLabel": "Недавние",
+    "chooseDifferentFolder": "Выбрать другую папку",
     "error": "Не удалось создать команду"
+  },
+  "removeAgent": {
+    "confirmTitle": "Удалить участника команды",
+    "confirmContent": "Этот участник сейчас активен. Принудительно удалить?"
+  },
+  "emptyState": {
+    "subtitle": "Расскажите о своей цели — я скоординирую команду для её достижения",
+    "suggestions": {
+      "debate": "Организовать дебаты с агентами на разных позициях",
+      "interview": "Спланировать глубинное интервью между агентами",
+      "expert_review": "Несколько экспертов анализируют одну проблему"
+    }
   }
 }

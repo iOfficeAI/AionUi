@@ -138,6 +138,17 @@ export function initSystemSettingsBridge(): void {
     await ProcessConfig.set('upload.saveToWorkspace', enabled);
   });
 
+  // 获取"自动预览新建 Office 文件"设置 / Get "auto preview new Office files" setting
+  ipcBridge.systemSettings.getAutoPreviewOfficeFiles.provider(async () => {
+    const value = await ProcessConfig.get('system.autoPreviewOfficeFiles');
+    return value ?? true; // 默认开启 / Default enabled
+  });
+
+  // 设置"自动预览新建 Office 文件" / Set "auto preview new Office files"
+  ipcBridge.systemSettings.setAutoPreviewOfficeFiles.provider(async ({ enabled }) => {
+    await ProcessConfig.set('system.autoPreviewOfficeFiles', enabled);
+  });
+
   // Desktop pet settings
   ipcBridge.systemSettings.getPetEnabled.provider(async () => {
     const value = await ProcessConfig.get('pet.enabled');

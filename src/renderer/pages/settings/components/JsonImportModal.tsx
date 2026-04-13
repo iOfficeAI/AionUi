@@ -249,7 +249,7 @@ const JsonImportModal: React.FC<JsonImportModalProps> = ({ visible, server, onCa
       contentStyle={{
         borderRadius: 16,
         padding: '24px',
-        background: 'var(--bg-1)',
+        background: 'var(--dialog-fill-0)',
         overflow: 'auto',
         height: 420 - 80,
       }} // 与“添加模型”弹窗保持统一尺寸 / Keep same size as Add Model modal

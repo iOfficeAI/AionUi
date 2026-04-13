@@ -26,13 +26,15 @@ import { initializeProcess } from './process';
 import { ProcessConfig } from './process/utils/initStorage';
 import { loadShellEnvironmentAsync, logEnvironmentDiagnostics, mergePaths } from './process/utils/shellEnv';
 import { initializeAcpDetector, registerWindowMaximizeListeners, disposeAllTeamSessions } from '@process/bridge';
+import './process/bridge/feedbackBridge';
 import { wasLaunchedAtLogin } from '@process/bridge/applicationBridge';
 import { onCloseToTrayChanged, onLanguageChanged } from './process/bridge/systemSettingsBridge';
 import { setInitialLanguage } from '@process/services/i18n';
 import { workerTaskManager } from './process/task/workerTaskManagerSingleton';
 import { setupApplicationMenu } from './process/utils/appMenu';
 import { startWebServer } from './process/webserver';
-import { applyZoomToWindow, initializeZoomFactor } from './process/utils/zoom';
+import { initializeZoomFactor, setupZoomForWindow } from './process/utils/zoom';
+import { getOrCreateAnalyticsId } from './process/utils/analyticsId';
 import {
   clearPendingDeepLinkUrl,
   getPendingDeepLinkUrl,
@@ -240,7 +242,12 @@ const createWindow = ({ showOnReady = true }: { showOnReady?: boolean } = {}): v
     ...(process.platform === 'darwin'
       ? {
           titleBarStyle: 'hidden',
-          trafficLightPosition: { x: 10, y: 10 },
+          // Align traffic-light vertical center with the titlebar button centers.
+          // Titlebar is 45px; buttons are 36px flex-centered → button center y≈22.5.
+          // Empirically y=13 places the traffic lights on the same horizontal line
+          // as the sidebar / back / forward icons.
+          // NOTE: requires a full app restart to take effect (BrowserWindow option).
+          trafficLightPosition: { x: 10, y: 13 },
         }
       : { frame: false }),
     webPreferences: {
@@ -280,7 +287,7 @@ const createWindow = ({ showOnReady = true }: { showOnReady?: boolean } = {}): v
   bindMainWindowReferences(mainWindow);
   setupApplicationMenu();
 
-  void applyZoomToWindow(mainWindow);
+  setupZoomForWindow(mainWindow);
   registerWindowMaximizeListeners(mainWindow);
 
   // Initialize auto-updater service (skip when disabled via env, e.g. E2E / CI)
@@ -425,6 +432,8 @@ const handleAppReady = async (): Promise<void> => {
       // Ignore dock icon errors in development
     }
   }
+
+  Sentry.setUser({ id: getOrCreateAnalyticsId() });
 
   try {
     await initializeProcess();
@@ -691,31 +700,73 @@ app.on('before-quit', async () => {
   setIsQuitting(true);
   isExplicitQuit = true;
   destroyTray();
-  // 在应用退出前清理工作进程
-  workerTaskManager.clear();
 
-  // Destroy desktop pet windows
-  try {
-    const { destroyPetWindow } = await import('./process/pet/petManager');
-    destroyPetWindow();
-  } catch {
-    /* pet not initialized */
-  }
+  const cleanup = async () => {
+    // Kill all agent worker processes
+    await workerTaskManager.clear();
 
-  // Stop all active team sessions (TCP servers + child processes)
-  await disposeAllTeamSessions().catch((err) => console.error('[App] Failed to dispose team sessions:', err));
+    // Destroy desktop pet windows
+    try {
+      const { destroyPetWindow } = await import('./process/pet/petManager');
+      destroyPetWindow();
+    } catch {
+      /* pet not initialized */
+    }
 
-  // Shutdown Channel subsystem
-  try {
-    const { getChannelManager } = await import('@process/channels');
-    await getChannelManager().shutdown();
-  } catch (error) {
-    console.error('[App] Failed to shutdown ChannelManager:', error);
-  }
+    // Stop all active team sessions (TCP servers + child processes)
+    await disposeAllTeamSessions().catch((err) => console.error('[App] Failed to dispose team sessions:', err));
+
+    // Shutdown Channel subsystem
+    try {
+      const { getChannelManager } = await import('@process/channels');
+      await getChannelManager().shutdown();
+    } catch (error) {
+      console.error('[App] Failed to shutdown ChannelManager:', error);
+    }
+
+    // Stop Web Server (Express + WebSocket)
+    try {
+      const { getWebServerInstance, setWebServerInstance } = await import('@process/bridge/webuiBridge');
+      const { cleanupWebAdapter } = await import('@process/webserver/adapter');
+      const instance = getWebServerInstance();
+      if (instance) {
+        instance.wss.clients.forEach((client) => client.close(1000, 'App shutting down'));
+        await new Promise<void>((resolve) => instance.server.close(() => resolve()));
+        cleanupWebAdapter();
+        setWebServerInstance(null);
+      }
+    } catch {
+      /* server not started */
+    }
+
+    // Stop Office Watch processes (Word / Excel / PPT preview)
+    try {
+      const { stopAllOfficeWatchSessions } = await import('@process/bridge/officeWatchBridge');
+      stopAllOfficeWatchSessions();
+    } catch {
+      /* not initialized */
+    }
+    try {
+      const { stopAllWatchSessions } = await import('@process/bridge/pptPreviewBridge');
+      stopAllWatchSessions();
+    } catch {
+      /* not initialized */
+    }
+  };
+
+  // Master timeout: force quit if cleanup hangs
+  const timeout = new Promise<void>((resolve) => {
+    setTimeout(() => {
+      console.warn('[AionUi] Cleanup timed out after 10s, forcing quit');
+      resolve();
+    }, 10000);
+  });
+
+  await Promise.race([cleanup(), timeout]);
 });
 
 app.on('will-quit', () => {
-  console.log('[AionUi] will-quit');
+  console.log('[AionUi] will-quit — all cleanup should be complete');
 });
 
 app.on('quit', (_event, exitCode) => {

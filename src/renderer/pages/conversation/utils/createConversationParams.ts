@@ -90,6 +90,25 @@ export async function getDefaultGeminiModel(): Promise<TProviderWithModel> {
 }
 
 /**
+ * Resolve the Gemini model to use, falling back to a placeholder for Google Auth if needed.
+ */
+async function resolveGeminiModel(): Promise<TProviderWithModel> {
+  try {
+    return await getDefaultGeminiModel();
+  } catch (e) {
+    // Fallback to placeholder if no model configured (supports Google Auth users)
+    return {
+      id: 'gemini-placeholder',
+      name: 'Gemini',
+      useModel: 'default',
+      platform: 'gemini-with-google-auth' as TProviderWithModel['platform'],
+      baseUrl: '',
+      apiKey: '',
+    };
+  }
+}
+
+/**
  * Build ICreateConversationParams for a CLI agent.
  * The backend will automatically fill in derived fields (gateway.cliPath, runtimeValidation, etc.).
  * [BUG-3 fix]: callers must invoke this inside a try block because getDefaultGeminiModel may throw.
@@ -100,19 +119,9 @@ export async function buildCliAgentParams(
 ): Promise<ICreateConversationParams> {
   const type = getConversationTypeForBackend(agent.backend);
 
-  // Gemini type uses a placeholder model (matching Guid page behavior in useGuidSend).
-  // The Guid page uses currentModel || placeholderModel, so Gemini does NOT require
-  // a configured model provider - it works with Google auth instead.
   let model: TProviderWithModel;
   if (type === 'gemini') {
-    model = {
-      id: 'gemini-placeholder',
-      name: 'Gemini',
-      useModel: 'default',
-      platform: 'gemini-with-google-auth' as TProviderWithModel['platform'],
-      baseUrl: '',
-      apiKey: '',
-    };
+    model = await resolveGeminiModel();
   } else if (type === 'aionrs') {
     // Aionrs needs a real model from configured providers (anthropic, openai, ali-intl, aws)
     model = await getDefaultAionrsModel();
@@ -153,7 +162,7 @@ export async function buildPresetAssistantParams(
   });
 
   const type = getConversationTypeForPreset(presetAgentType);
-  const model = type === 'gemini' ? await getDefaultGeminiModel() : ({} as TProviderWithModel);
+  const model = type === 'gemini' ? await resolveGeminiModel() : ({} as TProviderWithModel);
 
   return buildAgentConversationParams({
     backend: agent.backend,

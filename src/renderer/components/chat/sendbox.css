@@ -1,7 +1,9 @@
 /* Sendbox component styles */
 
 /* Send button disabled state - override Arco Design default disabled styles */
-.send-button-custom:disabled {
+.send-button-custom:disabled,
+.send-button-custom.arco-btn:disabled,
+.send-button-custom.arco-btn-primary:disabled {
   background-color: #d3d4d9 !important;
   border-color: #d3d4d9 !important;
   opacity: 1 !important;
@@ -11,6 +13,50 @@
 .send-button-custom .arco-icon > svg {
   stroke-width: 5 !important;
   filter: drop-shadow(0 0 0.5px currentColor);
+}
+
+/* Dark mode: adjust send button brightness */
+[data-theme='dark'] .send-button-custom:not(:disabled) {
+  background-color: var(--aou-4) !important;
+  border-color: var(--aou-4) !important;
+}
+
+[data-theme='dark'] .send-button-custom:disabled,
+[data-theme='dark'] .send-button-custom.arco-btn:disabled,
+[data-theme='dark'] .send-button-custom.arco-btn-primary:disabled {
+  background-color: color-mix(in srgb, var(--color-fill-4) 82%, var(--color-bg-2)) !important;
+  border-color: color-mix(in srgb, var(--color-fill-4) 88%, var(--color-bg-2)) !important;
+}
+
+.sendbox-stop-button,
+.sendbox-stop-button.arco-btn,
+.sendbox-stop-button.arco-btn-secondary {
+  border: none !important;
+  box-shadow: none !important;
+}
+
+[data-theme='dark'] .sendbox-stop-button,
+[data-theme='dark'] .sendbox-stop-button.arco-btn,
+[data-theme='dark'] .sendbox-stop-button.arco-btn-secondary {
+  border: 1px solid color-mix(in srgb, var(--color-fill-4) 94%, var(--color-bg-2)) !important;
+}
+
+[data-theme='dark'] .sendbox-stop-button.bg-animate,
+[data-theme='dark'] .sendbox-stop-button.arco-btn.bg-animate,
+[data-theme='dark'] .sendbox-stop-button.arco-btn-secondary.bg-animate {
+  animation-name: sendbox-stop-breathe-dark;
+}
+
+@keyframes sendbox-stop-breathe-dark {
+  0% {
+    background-color: color-mix(in srgb, var(--color-fill-2) 92%, var(--color-bg-2));
+    border-color: color-mix(in srgb, var(--color-fill-3) 84%, var(--color-bg-2));
+  }
+
+  100% {
+    background-color: color-mix(in srgb, var(--color-fill-4) 92%, var(--color-bg-2));
+    border-color: color-mix(in srgb, var(--color-fill-4) 100%, var(--color-bg-2));
+  }
 }
 
 /* Input placeholder color */
@@ -45,22 +91,139 @@
   color: var(--text-primary) !important;
 }
 
+.speech-input-control {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+  flex-shrink: 0;
+}
+
+.speech-input-feedback {
+  height: 32px;
+  display: grid;
+  grid-template-columns: clamp(72px, 16vw, 136px) auto;
+  align-items: center;
+  gap: 10px;
+  color: var(--color-text-2);
+  min-width: 0;
+  background: transparent;
+  border: none;
+  padding: 0;
+}
+
+.speech-input-feedback--processing {
+  color: var(--color-text-3);
+}
+
+.speech-input-feedback__waveform {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 2px;
+  min-width: 0;
+  width: 100%;
+  height: 16px;
+  overflow: hidden;
+}
+
+.speech-input-feedback__bar {
+  width: 2px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--color-text-2) 72%, transparent);
+  flex: 0 0 auto;
+  transition:
+    height 120ms ease,
+    background-color 120ms ease;
+}
+
+.speech-input-feedback--processing .speech-input-feedback__bar {
+  animation: speech-processing-pulse 1.2s ease-in-out infinite;
+  background: color-mix(in srgb, var(--color-text-3) 72%, transparent);
+}
+
+.speech-input-feedback__label {
+  flex: 0 0 auto;
+  font-size: 12px;
+  line-height: 16px;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+  color: var(--color-text-2);
+  text-align: right;
+  min-width: 34px;
+  padding-left: 2px;
+}
+
 .speech-input-button {
-  width: 28px;
-  min-width: 28px;
-  height: 28px;
+  width: 32px;
+  min-width: 32px;
+  height: 32px;
   padding: 0 !important;
-  border-color: var(--color-border-2) !important;
-  background: var(--color-fill-2) !important;
-  color: var(--text-secondary) !important;
+  border: none !important;
+  box-shadow: none !important;
+  background: transparent !important;
+  color: var(--color-text-3) !important;
+  border-radius: 999px !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+}
+
+.speech-input-button .arco-btn-icon,
+.speech-input-button .arco-icon {
+  margin: 0 !important;
+  width: 18px !important;
+  height: 18px !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  line-height: 1 !important;
+}
+
+.speech-input-button svg {
+  display: block;
+}
+
+.speech-loader-spinner {
+  width: 16px;
+  height: 16px;
+  border-radius: 999px;
+  border: 1.75px solid color-mix(in srgb, currentColor 22%, transparent);
+  border-top-color: currentColor;
+  display: block;
+  box-sizing: border-box;
+  animation: speech-loader-spin 0.9s linear infinite;
+}
+
+.speech-input-button:disabled,
+.speech-input-button:disabled:hover,
+.speech-input-button:disabled:active,
+.speech-input-button:disabled:focus,
+.speech-input-button:disabled:focus-visible {
+  opacity: 1 !important;
+  background: transparent !important;
+  color: var(--color-text-3) !important;
+  cursor: not-allowed !important;
+}
+
+.speech-input-button--processing svg {
+  width: 18px !important;
+  height: 18px !important;
+  transform-origin: center center !important;
+}
+
+.speech-input-button--processing .speech-loader-spinner {
+  margin: 0 auto;
 }
 
 .speech-input-button:hover,
 .speech-input-button:active,
 .speech-input-button:focus,
 .speech-input-button:focus-visible {
-  border-color: rgb(var(--primary-4)) !important;
-  color: var(--text-primary) !important;
+  border: none !important;
+  box-shadow: none !important;
+  background: color-mix(in srgb, var(--color-fill-2) 78%, transparent) !important;
+  color: var(--color-text-1) !important;
 }
 
 .speech-input-button--listening,
@@ -68,10 +231,9 @@
 .speech-input-button--listening:active,
 .speech-input-button--listening:focus,
 .speech-input-button--listening:focus-visible {
-  border-color: rgb(var(--danger-3)) !important;
-  background: rgb(var(--danger-1)) !important;
+  background: color-mix(in srgb, rgb(var(--danger-1)) 70%, transparent) !important;
   color: rgb(var(--danger-6)) !important;
-  animation: speech-input-pulse 1.2s ease-in-out infinite;
+  border-radius: 999px !important;
 }
 
 .speech-input-button--processing,
@@ -79,18 +241,29 @@
 .speech-input-button--processing:active,
 .speech-input-button--processing:focus,
 .speech-input-button--processing:focus-visible {
-  border-color: rgb(var(--warning-3)) !important;
-  background: rgb(var(--warning-1)) !important;
-  color: rgb(var(--warning-6)) !important;
+  border: none !important;
+  box-shadow: none !important;
+  background: color-mix(in srgb, var(--color-fill-2) 86%, transparent) !important;
+  color: var(--color-text-2) !important;
 }
 
-@keyframes speech-input-pulse {
+@keyframes speech-processing-pulse {
   0%,
   100% {
-    box-shadow: 0 0 0 0 rgba(var(--danger-6), 0.08);
+    opacity: 0.4;
   }
   50% {
-    box-shadow: 0 0 0 4px rgba(var(--danger-6), 0.16);
+    opacity: 1;
+  }
+}
+
+@keyframes speech-loader-spin {
+  from {
+    transform: rotate(0deg);
+  }
+
+  to {
+    transform: rotate(360deg);
   }
 }
 
@@ -211,5 +384,22 @@
   .sendbox-input--mobile {
     font-size: 16px !important;
     line-height: 24px !important;
+  }
+
+  .speech-input-feedback {
+    grid-template-columns: clamp(56px, 20vw, 92px) auto;
+    gap: 8px;
+  }
+
+  .speech-input-feedback__waveform {
+    gap: 2px;
+  }
+
+  .speech-input-feedback__bar {
+    width: 1.5px;
+  }
+
+  .speech-input-feedback__label {
+    min-width: 28px;
   }
 }

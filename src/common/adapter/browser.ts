@@ -151,8 +151,10 @@ if (win.electronAPI) {
 
           // 短暂延迟后跳转到登录页，以便显示 UI 反馈
           // Redirect to login page after a short delay to show any UI feedback
+          // Use hash navigation to stay within the SPA (HashRouter), avoiding a full
+          // page reload that would land on an empty hash and cause a blank screen.
           setTimeout(() => {
-            window.location.href = '/login';
+            window.location.hash = '/login';
           }, 1000);
 
           return;
@@ -188,8 +190,9 @@ if (win.electronAPI) {
         if (window.location.pathname === '/login' || window.location.hash.includes('/login')) {
           return;
         }
+        // Use hash navigation to stay within the SPA (HashRouter)
         setTimeout(() => {
-          window.location.href = '/login';
+          window.location.hash = '/login';
         }, 500);
         return;
       }

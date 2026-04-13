@@ -38,7 +38,7 @@ interface CreateTaskDialogProps {
   agentType?: string;
 }
 
-type FrequencyType = 'manual' | 'hourly' | 'daily' | 'weekdays' | 'weekly';
+type FrequencyType = 'manual' | 'hourly' | 'daily' | 'weekdays' | 'weekly' | 'custom';
 type ExecutionMode = 'new_conversation' | 'existing';
 
 const WEEKDAYS = [
@@ -53,6 +53,7 @@ const WEEKDAYS = [
 
 /**
  * Infer frequency type and time/weekday from a cron expression for edit mode.
+ * Returns 'custom' for expressions that don't match our preset formats.
  */
 function parseCronExpr(expr: string): { frequency: FrequencyType; time: string; weekday: string } {
   if (!expr) return { frequency: 'manual', time: '09:00', weekday: 'MON' };
@@ -60,28 +61,49 @@ function parseCronExpr(expr: string): { frequency: FrequencyType; time: string; 
   const parts = expr.trim().split(/\s+/);
   if (parts.length < 5) return { frequency: 'daily', time: '09:00', weekday: 'MON' };
 
-  const [min, hour, , , dow] = parts;
+  const [min, hour, day, month, dow] = parts;
 
   // Hourly: 0 * * * *
-  if (hour === '*') return { frequency: 'hourly', time: '09:00', weekday: 'MON' };
-
-  const hh = String(hour).padStart(2, '0');
-  const mm = String(min).padStart(2, '0');
-  const time = `${hh}:${mm}`;
-
-  // Weekdays: min hour * * MON-FRI
-  if (dow === 'MON-FRI') return { frequency: 'weekdays', time, weekday: 'MON' };
-
-  // Weekly: min hour * * DAY
-  if (dow !== '*') {
-    const dayUpper = dow.toUpperCase();
-    const matched = WEEKDAYS.find((d) => d.value === dayUpper);
-    if (matched) return { frequency: 'weekly', time, weekday: dayUpper };
-    return { frequency: 'daily', time, weekday: 'MON' };
+  if (hour === '*' && min === '0' && day === '*' && month === '*' && dow === '*') {
+    return { frequency: 'hourly', time: '09:00', weekday: 'MON' };
   }
 
-  // Daily: min hour * * *
-  return { frequency: 'daily', time, weekday: 'MON' };
+  // Weekdays: min hour * * MON-FRI
+  if (dow === 'MON-FRI' && day === '*' && month === '*') {
+    const hh = String(hour).padStart(2, '0');
+    const mm = String(min).padStart(2, '0');
+    const time = `${hh}:${mm}`;
+    return { frequency: 'weekdays', time, weekday: 'MON' };
+  }
+
+  // Weekly: min hour * * DAY
+  if (dow !== '*' && day === '*' && month === '*') {
+    const dayUpper = dow.toUpperCase();
+    const matched = WEEKDAYS.find((d) => d.value === dayUpper);
+    if (matched) {
+      const hh = String(hour).padStart(2, '0');
+      const mm = String(min).padStart(2, '0');
+      const time = `${hh}:${mm}`;
+      return { frequency: 'weekly', time, weekday: dayUpper };
+    }
+    return { frequency: 'daily', time: '09:00', weekday: 'MON' };
+  }
+
+  // Daily: min hour * * * - only if all parts match the expected pattern
+  if (day === '*' && month === '*' && dow === '*') {
+    // Check if hour and minute are simple numbers (not expressions like */4)
+    const hourNum = Number(hour);
+    const minNum = Number(min);
+    if (!isNaN(hourNum) && !isNaN(minNum) && hourNum >= 0 && hourNum <= 23 && minNum >= 0 && minNum <= 59) {
+      const hh = String(hourNum).padStart(2, '0');
+      const mm = String(minNum).padStart(2, '0');
+      const time = `${hh}:${mm}`;
+      return { frequency: 'daily', time, weekday: 'MON' };
+    }
+  }
+
+  // Custom: any expression that doesn't match our presets
+  return { frequency: 'custom', time: '09:00', weekday: 'MON' };
 }
 
 /**
@@ -114,6 +136,7 @@ const CreateTaskDialog: React.FC<CreateTaskDialogProps> = ({
   const [frequency, setFrequency] = useState<FrequencyType>('manual');
   const [time, setTime] = useState('09:00');
   const [weekday, setWeekday] = useState('MON');
+  const [customCronExpr, setCustomCronExpr] = useState<string>('');
 
   const isEditMode = !!editJob;
   const [executionMode, setExecutionMode] = useState<ExecutionMode>('new_conversation');
@@ -135,6 +158,7 @@ const CreateTaskDialog: React.FC<CreateTaskDialogProps> = ({
       setFrequency(parsed.frequency);
       setTime(parsed.time);
       setWeekday(parsed.weekday);
+      setCustomCronExpr(parsed.frequency === 'custom' ? cronExpr : '');
       setExecutionMode(editJob.target.executionMode || 'existing');
       const agentKey = getAgentKeyFromJob(editJob);
       setSelectedAgent(agentKey);
@@ -153,6 +177,7 @@ const CreateTaskDialog: React.FC<CreateTaskDialogProps> = ({
       setFrequency('manual');
       setTime('09:00');
       setWeekday('MON');
+      setCustomCronExpr('');
       setExecutionMode('new_conversation');
       setModelId(undefined);
       setConfigOptions(undefined);
@@ -274,10 +299,12 @@ const CreateTaskDialog: React.FC<CreateTaskDialogProps> = ({
           description: t('cron.page.scheduleDesc.weeklyAt', { day: t(`cron.page.weekday.${dayLabel}`), time }),
         };
       }
+      case 'custom':
+        return { expr: customCronExpr, description: editJob?.schedule.description || customCronExpr };
       default:
         return { expr: '', description: '' };
     }
-  }, [frequency, time, weekday, t]);
+  }, [frequency, time, weekday, t, customCronExpr, editJob]);
 
   const executionModeOptions = useMemo(
     () => [
@@ -300,6 +327,9 @@ const CreateTaskDialog: React.FC<CreateTaskDialogProps> = ({
 
   const handleFrequencyChange = (value: FrequencyType) => {
     setFrequency(value);
+    if (value !== 'custom') {
+      setCustomCronExpr('');
+    }
   };
 
   const handleAgentChange = useCallback((value: string) => {
@@ -597,8 +627,18 @@ const CreateTaskDialog: React.FC<CreateTaskDialogProps> = ({
               <Option value='daily'>{t('cron.page.freq.daily')}</Option>
               <Option value='weekdays'>{t('cron.page.freq.weekdays')}</Option>
               <Option value='weekly'>{t('cron.page.freq.weekly')}</Option>
+              {frequency === 'custom' && <Option value='custom'>{t('cron.page.freq.custom')}</Option>}
             </Select>
           </FormItem>
+
+          {/* Custom cron expression warning */}
+          {frequency === 'custom' && (
+            <div className='mb-16px rounded-8px bg-[var(--color-warning-light-1)] border border-solid border-[var(--color-warning-light-3)] px-12px py-10px'>
+              <p className='m-0 text-12px leading-18px text-[var(--color-warning-6)]'>
+                {t('cron.page.customCronWarning', { expr: customCronExpr })}
+              </p>
+            </div>
+          )}
 
           {/* Time picker - shown for daily/weekdays/weekly */}
           {showTimePicker && (

@@ -34,17 +34,35 @@
   "create": {
     "title": "Create Team",
     "namePlaceholder": "Team name",
-    "dispatchAgentPlaceholder": "Select dispatch agent",
+    "dispatchAgentPlaceholder": "選擇團隊 Leader",
     "subAgentsPlaceholder": "Select sub agents",
     "workspacePlaceholder": "Workspace path (optional)",
     "confirm": "Create Team",
     "noSupportedAgents": "未偵測到支援的 Agent",
     "supportedAgentsHint": "目前支援 Claude 和 Codex，更多 Agent 適配中",
+    "leaderDesc": "接收你的指令，拆解任務並分配給團隊中的 Agent",
     "step": {
-      "dispatch": "Dispatch Agent",
+      "dispatch": "團隊 Leader",
       "subAgents": "Sub Agents",
       "workspace": "Workspace"
     },
+    "nameRequired": "請輸入團隊名稱",
+    "leaderRequired": "請選擇團隊 Leader",
+    "selectFolder": "選擇工作目錄",
+    "recentLabel": "最近使用",
+    "chooseDifferentFolder": "選擇其他目錄",
     "error": "建立團隊失敗"
+  },
+  "removeAgent": {
+    "confirmTitle": "移除團隊成員",
+    "confirmContent": "該成員正在工作中，確定要強制移除嗎？"
+  },
+  "emptyState": {
+    "subtitle": "描述你的目標，我來協調團隊搞定它",
+    "suggestions": {
+      "debate": "組織一場辯論賽，讓 Agent 各持立場",
+      "interview": "策劃一場深度訪談",
+      "expert_review": "多位專家會診同一個問題"
+    }
   }
 }

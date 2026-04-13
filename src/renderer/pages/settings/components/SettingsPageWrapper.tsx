@@ -11,16 +11,16 @@ import {
   Earth,
   Gemini,
   Info,
+  Lightning,
   LinkCloud,
   Puzzle,
   Robot,
   System,
-  Toolkit,
 } from '@icon-park/react';
 import { useTranslation } from 'react-i18next';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { useExtI18n } from '@/renderer/hooks/system/useExtI18n';
-import { BUILTIN_TAB_IDS } from './SettingsSider';
+import { BUILTIN_TAB_IDS, LEGACY_ANCHOR_REMAP } from './SettingsSider';
 import './settings.css';
 
 interface SettingsPageWrapperProps {
@@ -49,13 +49,12 @@ export function getBuiltinSettingsNavItems(isDesktop: boolean, t: TranslateFn): 
       icon: <Robot theme='outline' size='16' />,
       path: 'agent',
     },
-    'skills-hub': {
-      id: 'skills-hub',
-      label: t('settings.skillsHub.title', { defaultValue: 'Skills Hub' }),
-      icon: <Puzzle theme='outline' size='16' />,
-      path: 'skills-hub',
+    capabilities: {
+      id: 'capabilities',
+      label: t('settings.capabilities', { defaultValue: 'Capabilities' }),
+      icon: <Lightning theme='outline' size='16' />,
+      path: 'capabilities',
     },
-    tools: { id: 'tools', label: t('settings.tools'), icon: <Toolkit theme='outline' size='16' />, path: 'tools' },
     display: {
       id: 'display',
       label: t('settings.display'),
@@ -109,11 +108,13 @@ const SettingsPageWrapper: React.FC<SettingsPageWrapperProps> = ({ children, cla
         unanchored.push(tab);
         continue;
       }
-      const map = tab.position.placement === 'before' ? beforeMap : afterMap;
-      let list = map.get(tab.position.anchor);
+      const { anchor: rawAnchor, placement } = tab.position;
+      const anchor = LEGACY_ANCHOR_REMAP[rawAnchor] ?? rawAnchor;
+      const map = placement === 'before' ? beforeMap : afterMap;
+      let list = map.get(anchor);
       if (!list) {
         list = [];
-        map.set(tab.position.anchor, list);
+        map.set(anchor, list);
       }
       list.push(tab);
     }

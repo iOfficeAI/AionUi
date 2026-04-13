@@ -12,6 +12,11 @@ import classNames from 'classnames';
 import { useSettingsViewMode } from '../settingsViewContext';
 import { isElectronDesktop, openExternalUrl } from '@/renderer/utils/platform';
 import packageJson from '../../../../../../package.json';
+import FeedbackReportModal from './FeedbackReportModal';
+
+type LinkItem =
+  | { title: string; url: string; icon: React.ReactNode; onClick?: never }
+  | { title: string; onClick: () => void; icon: React.ReactNode; url?: never };
 
 const AboutModalContent: React.FC = () => {
   const { t } = useTranslation();
@@ -20,6 +25,7 @@ const AboutModalContent: React.FC = () => {
   const isElectron = isElectronDesktop();
 
   const [includePrerelease, setIncludePrerelease] = useState(false);
+  const [showFeedbackModal, setShowFeedbackModal] = useState(false);
 
   useEffect(() => {
     const saved = localStorage.getItem('update.includePrerelease');
@@ -45,7 +51,7 @@ const AboutModalContent: React.FC = () => {
     window.dispatchEvent(new CustomEvent('aionui-open-update-modal', { detail: { source: 'about' } }));
   };
 
-  const linkItems = [
+  const linkItems: LinkItem[] = [
     {
       title: t('settings.helpDocumentation'),
       url: 'https://github.com/iOfficeAI/AionUi/wiki',
@@ -59,6 +65,11 @@ const AboutModalContent: React.FC = () => {
     {
       title: t('settings.feedback'),
       url: 'https://github.com/iOfficeAI/AionUi/issues',
+      icon: <Right theme='outline' size='16' />,
+    },
+    {
+      title: t('settings.bugReport'),
+      onClick: () => setShowFeedbackModal(true),
       icon: <Right theme='outline' size='16' />,
     },
     {
@@ -135,7 +146,11 @@ const AboutModalContent: React.FC = () => {
                 onClick={(e) => {
                   e.preventDefault();
                   e.stopPropagation();
-                  openLink(item.url).catch((error) => console.error('Failed to open link:', error));
+                  if ('url' in item) {
+                    openLink(item.url).catch((error) => console.error('Failed to open link:', error));
+                  } else {
+                    item.onClick();
+                  }
                 }}
               >
                 <Typography.Text className='text-14px text-t-primary'>{item.title}</Typography.Text>
@@ -145,6 +160,7 @@ const AboutModalContent: React.FC = () => {
           </div>
         </div>
       </div>
+      <FeedbackReportModal visible={showFeedbackModal} onCancel={() => setShowFeedbackModal(false)} />
     </div>
   );
 };

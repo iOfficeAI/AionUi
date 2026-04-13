@@ -24,6 +24,7 @@ import { addMessage, addOrUpdateMessage, nextTickToLocalFinish } from '@process/
 import { cronBusyGuard } from '@process/services/cron/CronBusyGuard';
 import { skillSuggestWatcher } from '@process/services/cron/SkillSuggestWatcher';
 import { handlePreviewOpenEvent } from '@process/utils/previewUtils';
+import { getAionMcpStdioConfig } from '@process/services/mcpServices/aionMcpServiceSingleton';
 import BaseAgentManager from './BaseAgentManager';
 import { IpcAgentEventEmitter } from './IpcAgentEventEmitter';
 import { mainLog, mainWarn, mainError } from '@process/utils/mainLogger';
@@ -170,12 +171,19 @@ export class GeminiAgentManager extends BaseAgentManager<
     this.currentMode = data.sessionMode || 'default';
     this.webSearchEngine = data.webSearchEngine;
     this.teamMcpStdioConfig = data.teamMcpStdioConfig;
+    mainLog(
+      '[GeminiAgentManager]',
+      'constructor teamMcpStdioConfig:',
+      this.teamMcpStdioConfig ? `PRESENT (command=${this.teamMcpStdioConfig.command})` : 'MISSING'
+    );
     // 向后兼容 / Backward compatible
     this.contextContent = data.contextContent || data.presetRules;
     this.bootstrap = this.createBootstrap();
     // Prevent unhandled rejection when bootstrap fails (e.g. missing OAuth credentials).
     // The error still propagates when sendMessage() awaits this.bootstrap.
-    this.bootstrap.catch(() => {});
+    this.bootstrap.catch((e) => {
+      mainLog('[GeminiAgentManager]', 'bootstrap failed:', e?.message || String(e));
+    });
   }
 
   /**
@@ -229,6 +237,16 @@ export class GeminiAgentManager extends BaseAgentManager<
         }
         const effectiveYoloMode = this.forceYoloMode ?? this.currentMode === 'yolo';
 
+        // Inject the solo/team decision guide for solo Gemini agents.
+        // ACP agents get this via AcpAgentManager; Gemini needs it appended to presetRules
+        // so it goes into GEMINI.md and the agent knows when to stay solo vs discuss Team mode.
+        let effectivePresetRules = this.presetRules;
+        if (!this.teamMcpStdioConfig) {
+          const { getTeamGuidePrompt } = await import('@process/resources/prompts/teamGuidePrompt');
+          const teamGuide = getTeamGuidePrompt('gemini');
+          effectivePresetRules = effectivePresetRules ? `${effectivePresetRules}\n\n${teamGuide}` : teamGuide;
+        }
+
         return this.start({
           ...config,
           GOOGLE_CLOUD_PROJECT: projectId,
@@ -239,7 +257,7 @@ export class GeminiAgentManager extends BaseAgentManager<
           contextFileName: this.contextFileName,
           // presetRules are no longer injected here — they are in GEMINI.md
           // Keep for backward compatibility with existing conversations
-          presetRules: this.presetRules,
+          presetRules: effectivePresetRules,
           contextContent: this.contextContent,
           skillsDir: getSkillsDir(),
           // 启用的 skills 列表（含内置 skills），用于 worker 的 SkillManager
@@ -308,7 +326,7 @@ export class GeminiAgentManager extends BaseAgentManager<
         console.warn('[GeminiAgentManager] Failed to load extension MCP servers:', extError);
       }
 
-      if (allServers.length === 0) {
+      if (allServers.length === 0 && !this.teamMcpStdioConfig?.command) {
         this.mcpFingerprint = '[]';
         return {};
       }
@@ -357,6 +375,28 @@ export class GeminiAgentManager extends BaseAgentManager<
           args: this.teamMcpStdioConfig.args || [],
           env: envObj,
         };
+        mainLog('[GeminiAgentManager]', 'getMcpServers: injected team MCP server:', this.teamMcpStdioConfig.name);
+      } else {
+        mainLog('[GeminiAgentManager]', 'getMcpServers: no teamMcpStdioConfig, skipping team MCP injection');
+
+        // Inject Aion team-guide MCP server for solo agents (not in team mode)
+        // so Gemini can call aion_create_team / aion_navigate after the user requests a Team
+        // or explicitly approves Team for an exceptionally hard task.
+        // AION_MCP_BACKEND tells the stdio bridge this is a gemini agent.
+        const aionStdioConfig = getAionMcpStdioConfig();
+        if (aionStdioConfig) {
+          const aionEnvObj: Record<string, string> = {};
+          for (const { name, value } of aionStdioConfig.env || []) {
+            aionEnvObj[name] = value;
+          }
+          aionEnvObj['AION_MCP_BACKEND'] = 'gemini';
+          mcpConfig[aionStdioConfig.name] = {
+            command: aionStdioConfig.command,
+            args: aionStdioConfig.args || [],
+            env: aionEnvObj,
+          };
+          mainLog('[GeminiAgentManager]', 'getMcpServers: injected aion team-guide MCP server');
+        }
       }
 
       return mcpConfig;
@@ -619,6 +659,17 @@ export class GeminiAgentManager extends BaseAgentManager<
       void this.postMessagePromise(content.callId, ToolConfirmationOutcome.ProceedOnce);
       return true;
     }
+    // Team MCP servers (aionui-team-*) are always auto-approved regardless of mode
+    if (type === 'mcp') {
+      const serverName = (content.confirmationDetails as { serverName?: string })?.serverName ?? '';
+      if (serverName.startsWith('aionui-team-')) {
+        console.log(
+          `[GeminiAgentManager] Auto-approving team MCP tool: serverName=${serverName}, callId=${content.callId}`
+        );
+        void this.postMessagePromise(content.callId, ToolConfirmationOutcome.ProceedOnce);
+        return true;
+      }
+    }
     if (this.currentMode === 'autoEdit') {
       // autoEdit: auto-approve edit (write/replace) and info (read) operations
       // Only exec and mcp still require manual confirmation
@@ -779,9 +830,11 @@ export class GeminiAgentManager extends BaseAgentManager<
       const filteredData = this.filterThinkTagsFromMessage(data);
       ipcBridge.geminiConversation.responseStream.emit(filteredData);
 
-      // Also emit to main-process-local bus so TeammateManager (same process)
-      // can receive events — ipcBridge.emit only delivers to renderer via webContents.send()
-      teamEventBus.emit('responseStream', filteredData);
+      // Emit terminal events to main-process-local bus so TeammateManager can
+      // manage agent lifecycle — ipcBridge.emit only delivers to renderer via webContents.send()
+      if (filteredData.type === 'finish' || filteredData.type === 'error') {
+        teamEventBus.emit('responseStream', filteredData);
+      }
 
       // Emit to Channel global event bus (for Telegram and other external platforms)
       channelEventBus.emitAgentMessage(this.conversation_id, filteredData);

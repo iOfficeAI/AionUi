@@ -55,8 +55,9 @@ export const groupConversationsByWorkspace = (
 
   allWorkspaceGroups.forEach((convList, workspace) => {
     const sortedConvs = [...convList].toSorted((a, b) => getActivityTime(b) - getActivityTime(a));
+    const latestConversationTime = getActivityTime(sortedConvs[0]);
     const updateTime = getWorkspaceUpdateTime(workspace);
-    const time = updateTime > 0 ? updateTime : getActivityTime(sortedConvs[0]);
+    const time = Math.max(updateTime, latestConversationTime);
     items.push({
       type: 'workspace',
       time,

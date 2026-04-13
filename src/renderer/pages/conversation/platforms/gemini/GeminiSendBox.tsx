@@ -87,7 +87,9 @@ const useSendBoxDraft = (conversation_id: string) => {
 const GeminiSendBox: React.FC<{
   conversation_id: string;
   modelSelection: GeminiModelSelection;
-}> = ({ conversation_id, modelSelection }) => {
+  teamId?: string;
+  agentSlotId?: string;
+}> = ({ conversation_id, modelSelection, teamId, agentSlotId }) => {
   const [workspacePath, setWorkspacePath] = useState('');
   const { t } = useTranslation();
   const teamPermission = useTeamPermission();
@@ -235,29 +237,54 @@ const GeminiSendBox: React.FC<{
       setWaitingResponse(true);
 
       const displayMessage = buildDisplayMessage(input, files, workspacePath);
-      addOrUpdateMessage(
-        {
-          id: msg_id,
-          type: 'text',
-          position: 'right',
-          conversation_id,
-          content: {
-            content: displayMessage,
+
+      // In team mode, the backend writes the user message via IPC stream.
+      // Adding it here too would produce a duplicate bubble.
+      if (!teamId) {
+        addOrUpdateMessage(
+          {
+            id: msg_id,
+            type: 'text',
+            position: 'right',
+            conversation_id,
+            content: {
+              content: displayMessage,
+            },
+            createdAt: Date.now(),
           },
-          createdAt: Date.now(),
-        },
-        true
-      );
+          true
+        );
+      }
 
       try {
         void checkAndUpdateTitle(conversation_id, input);
-        const result = await ipcBridge.geminiConversation.sendMessage.invoke({
-          input: displayMessage,
-          msg_id,
-          conversation_id,
-          files,
-        });
-        assertBridgeSuccess(result, 'Failed to send message to Gemini');
+        if (teamId) {
+          if (agentSlotId) {
+            const result = await ipcBridge.team.sendMessageToAgent.invoke({
+              teamId,
+              slotId: agentSlotId,
+              content: displayMessage,
+            });
+            const maybeError = result as unknown as { __bridgeError?: boolean; message?: string };
+            if (maybeError.__bridgeError) {
+              throw new Error(maybeError.message || 'Failed to send message to agent');
+            }
+          } else {
+            const result = await ipcBridge.team.sendMessage.invoke({ teamId, content: displayMessage });
+            const maybeError = result as unknown as { __bridgeError?: boolean; message?: string };
+            if (maybeError.__bridgeError) {
+              throw new Error(maybeError.message || 'Failed to send message to team');
+            }
+          }
+        } else {
+          const result = await ipcBridge.geminiConversation.sendMessage.invoke({
+            input: displayMessage,
+            msg_id,
+            conversation_id,
+            files,
+          });
+          assertBridgeSuccess(result, 'Failed to send message to Gemini');
+        }
         emitter.emit('chat.history.refresh');
         if (files.length > 0) {
           emitter.emit('gemini.workspace.refresh');
@@ -269,12 +296,14 @@ const GeminiSendBox: React.FC<{
     },
     [
       addOrUpdateMessage,
+      agentSlotId,
       checkAndUpdateTitle,
       conversation_id,
       currentModel?.useModel,
       setActiveMsgId,
       removeMessageByMsgId,
       setWaitingResponse,
+      teamId,
       workspacePath,
     ]
   );
@@ -302,7 +331,7 @@ const GeminiSendBox: React.FC<{
   });
 
   const onSendHandler = async (message: string) => {
-    if (!isCommandQueueEnabled && isBusy) {
+    if (!teamId && !isCommandQueueEnabled && isBusy) {
       Message.warning(t('messages.conversationInProgress'));
       return;
     }

@@ -8,6 +8,7 @@ import { ipcBridge } from '@/common';
 import type { IStartOnBootStatus } from '@/common/adapter/ipcBridge';
 import { ConfigStorage } from '@/common/config/storage';
 import LanguageSwitcher from '@/renderer/components/settings/LanguageSwitcher';
+import { AUTO_PREVIEW_OFFICE_FILES_SWR_KEY } from '@/renderer/hooks/system/useAutoPreviewOfficeFilesEnabled';
 import { COMMAND_QUEUE_ENABLED_SWR_KEY } from '@/renderer/hooks/system/useCommandQueueEnabled';
 import { iconColors } from '@/renderer/styles/colors';
 import { isElectronDesktop } from '@/renderer/utils/platform';
@@ -51,6 +52,7 @@ const SystemModalContent: React.FC = () => {
   const [agentIdleTimeout, setAgentIdleTimeout] = useState<number>(5);
   const [saveUploadToWorkspace, setSaveUploadToWorkspace] = useState(false);
   const [commandQueueEnabled, setCommandQueueEnabled] = useState(true);
+  const [autoPreviewOfficeFiles, setAutoPreviewOfficeFiles] = useState(true);
 
   useEffect(() => {
     if (!isDesktop) {
@@ -115,6 +117,13 @@ const SystemModalContent: React.FC = () => {
     ipcBridge.systemSettings.getCommandQueueEnabled
       .invoke()
       .then((enabled) => setCommandQueueEnabled(enabled))
+      .catch(() => {});
+  }, []);
+
+  useEffect(() => {
+    ipcBridge.systemSettings.getAutoPreviewOfficeFiles
+      .invoke()
+      .then((enabled) => setAutoPreviewOfficeFiles(enabled))
       .catch(() => {});
   }, []);
 
@@ -203,6 +212,19 @@ const SystemModalContent: React.FC = () => {
     });
   }, []);
 
+  const handleAutoPreviewOfficeFilesChange = useCallback((checked: boolean) => {
+    setAutoPreviewOfficeFiles(checked);
+    void mutateSWR(AUTO_PREVIEW_OFFICE_FILES_SWR_KEY, checked, {
+      revalidate: false,
+    });
+    ipcBridge.systemSettings.setAutoPreviewOfficeFiles.invoke({ enabled: checked }).catch(() => {
+      setAutoPreviewOfficeFiles(!checked);
+      void mutateSWR(AUTO_PREVIEW_OFFICE_FILES_SWR_KEY, !checked, {
+        revalidate: false,
+      });
+    });
+  }, []);
+
   // Get system directory info
   const { data: systemInfo } = useSWR('system.dir.info', () => ipcBridge.application.systemInfo.invoke());
 
@@ -273,6 +295,12 @@ const SystemModalContent: React.FC = () => {
       label: t('settings.commandQueueEnabled'),
       description: t('settings.commandQueueEnabledDesc'),
       component: <Switch checked={commandQueueEnabled} onChange={handleCommandQueueEnabledChange} />,
+    },
+    {
+      key: 'autoPreviewOfficeFiles',
+      label: t('settings.autoPreviewOfficeFiles'),
+      description: t('settings.autoPreviewOfficeFilesDesc'),
+      component: <Switch checked={autoPreviewOfficeFiles} onChange={handleAutoPreviewOfficeFilesChange} />,
     },
   ];
 

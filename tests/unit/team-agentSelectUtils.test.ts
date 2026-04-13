@@ -9,7 +9,6 @@ import {
   resolveTeamAgentType,
   TEAM_SUPPORTED_BACKENDS,
 } from '@renderer/pages/team/components/agentSelectUtils';
-import { MCP_CAPABLE_TYPES } from '@process/team/TeammateManager';
 import { buildTeamMcpServer } from '@process/agent/acp/mcpSessionConfig';
 import type { AvailableAgent } from '@renderer/utils/model/agentTypes';
 
@@ -53,24 +52,16 @@ describe('resolveConversationType', () => {
 // isTeamSupportedBackend — the gate that decides MCP injection eligibility
 // ---------------------------------------------------------------------------
 describe('isTeamSupportedBackend', () => {
-  it.each(['claude', 'codex'])('allows verified backend "%s"', (backend) => {
+  it.each(['claude', 'codex', 'gemini'])('allows verified backend "%s"', (backend) => {
     expect(isTeamSupportedBackend(backend)).toBe(true);
   });
 
-  it.each([
-    'gemini',
-    'aionrs',
-    'openclaw-gateway',
-    'nanobot',
-    'remote',
-    'qwen',
-    'copilot',
-    'kimi',
-    'goose',
-    'codebuddy',
-  ])('rejects unverified backend "%s"', (backend) => {
-    expect(isTeamSupportedBackend(backend)).toBe(false);
-  });
+  it.each(['codebuddy', 'aionrs', 'openclaw-gateway', 'nanobot', 'remote', 'qwen', 'copilot', 'kimi', 'goose'])(
+    'rejects unverified backend "%s"',
+    (backend) => {
+      expect(isTeamSupportedBackend(backend)).toBe(false);
+    }
+  );
 });
 
 // ---------------------------------------------------------------------------
@@ -94,17 +85,17 @@ describe('filterTeamSupportedAgents', () => {
       makeAgent('codebuddy'),
     ];
     const result = filterTeamSupportedAgents(agents);
-    expect(result.map((a: AvailableAgent) => a.backend)).toEqual(['claude', 'codex']);
+    expect(result.map((a: AvailableAgent) => a.backend)).toEqual(['claude', 'gemini', 'codex']);
   });
 
   it('uses presetAgentType over backend when available', () => {
-    const agent = makeAgent('claude', { presetAgentType: 'gemini' });
+    const agent = makeAgent('claude', { presetAgentType: 'qwen' });
     const result = filterTeamSupportedAgents([agent]);
     expect(result).toHaveLength(0);
   });
 
   it('returns empty array when no agents are supported', () => {
-    const agents = [makeAgent('gemini'), makeAgent('remote'), makeAgent('qwen')];
+    const agents = [makeAgent('codebuddy'), makeAgent('remote'), makeAgent('qwen')];
     expect(filterTeamSupportedAgents(agents)).toEqual([]);
   });
 
@@ -167,22 +158,8 @@ describe('resolveTeamAgentType', () => {
 // Frontend ↔ Backend consistency: ensure MCP injection chain is aligned
 // ---------------------------------------------------------------------------
 describe('MCP injection chain consistency', () => {
-  it('every verified backend must resolve to a MCP_CAPABLE_TYPE', () => {
-    for (const backend of TEAM_SUPPORTED_BACKENDS) {
-      const convType = resolveConversationType(backend);
-      expect(
-        MCP_CAPABLE_TYPES.has(convType),
-        `Verified backend "${backend}" (→ "${convType}") but backend MCP_CAPABLE_TYPES does not include "${convType}"`
-      ).toBe(true);
-    }
-  });
-
-  it('TEAM_SUPPORTED_BACKENDS contains exactly claude, codex', () => {
-    expect([...TEAM_SUPPORTED_BACKENDS].toSorted()).toEqual(['claude', 'codex']);
-  });
-
-  it('MCP_CAPABLE_TYPES contains "acp" — the core team protocol', () => {
-    expect(MCP_CAPABLE_TYPES.has('acp')).toBe(true);
+  it('TEAM_SUPPORTED_BACKENDS contains exactly claude, codex, gemini', () => {
+    expect([...TEAM_SUPPORTED_BACKENDS].toSorted()).toEqual(['claude', 'codex', 'gemini']);
   });
 });
 

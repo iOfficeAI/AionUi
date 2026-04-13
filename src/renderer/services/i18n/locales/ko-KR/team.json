@@ -34,17 +34,35 @@
   "create": {
     "title": "Create Team",
     "namePlaceholder": "Team name",
-    "dispatchAgentPlaceholder": "Select dispatch agent",
+    "dispatchAgentPlaceholder": "팀 리더 선택",
     "subAgentsPlaceholder": "Select sub agents",
     "workspacePlaceholder": "Workspace path (optional)",
     "confirm": "Create Team",
     "noSupportedAgents": "지원되는 에이전트가 설치되지 않았습니다",
     "supportedAgentsHint": "현재 Claude와 Codex를 지원합니다. 더 많은 에이전트가 곧 추가됩니다.",
+    "leaderDesc": "목표를 이해하고 에이전트를 조율하여 작업을 완료합니다",
     "step": {
-      "dispatch": "Dispatch Agent",
+      "dispatch": "팀 리더",
       "subAgents": "Sub Agents",
       "workspace": "Workspace"
     },
+    "nameRequired": "팀 이름을 입력하세요",
+    "leaderRequired": "팀 리더를 선택하세요",
+    "selectFolder": "폴더 선택",
+    "recentLabel": "최근 사용",
+    "chooseDifferentFolder": "다른 폴더 선택",
     "error": "팀 생성에 실패했습니다"
+  },
+  "removeAgent": {
+    "confirmTitle": "팀 멤버 제거",
+    "confirmContent": "이 멤버는 현재 활성 상태입니다. 강제 제거하시겠습니까?"
+  },
+  "emptyState": {
+    "subtitle": "목표를 알려주세요. 팀을 조율해서 완료하겠습니다",
+    "suggestions": {
+      "debate": "Agent들이 서로 다른 입장을 취하는 토론 개최",
+      "interview": "Agent 간 심층 인터뷰 기획",
+      "expert_review": "여러 전문가가 같은 문제를 분석"
+    }
   }
 }

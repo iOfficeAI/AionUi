@@ -10,6 +10,7 @@
   "copy": "Копировать",
   "copySuccess": "Успешно скопировано",
   "copyFailed": "Не удалось скопировать",
+  "copyLastOutput.empty": "Пока нет ответа для копирования",
   "copiedToClipboard": "Скопировано в буфер обмена",
   "downloadSuccess": "Скачивание успешно",
   "downloadFailed": "Не удалось скачать",

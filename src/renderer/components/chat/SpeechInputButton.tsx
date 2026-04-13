@@ -6,8 +6,7 @@
 
 import { ConfigStorage } from '@/common/config/storage';
 import { Message, Button, Tooltip } from '@arco-design/web-react';
-import { LoadingOne, Microphone, Record } from '@icon-park/react';
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
   useSpeechInput,
@@ -20,6 +19,22 @@ type SpeechInputButtonProps = {
   locale?: string;
   onTranscript: (transcript: string) => void;
 };
+
+const SpeechMicIcon = () => (
+  <svg width='18' height='18' viewBox='0 0 24 24' fill='none' stroke='currentColor' strokeWidth='2' aria-hidden='true'>
+    <path d='M12 3a3 3 0 0 1 3 3v6a3 3 0 1 1-6 0V6a3 3 0 0 1 3-3Z' />
+    <path d='M19 10v2a7 7 0 0 1-14 0v-2' />
+    <path d='M12 19v3' />
+  </svg>
+);
+
+const SpeechStopIcon = () => (
+  <svg width='18' height='18' viewBox='0 0 24 24' fill='currentColor' aria-hidden='true'>
+    <rect x='6' y='6' width='12' height='12' rx='2.5' />
+  </svg>
+);
+
+const SpeechLoaderIcon = () => <span className='speech-loader-spinner' aria-hidden='true' />;
 
 const SPEECH_TO_TEXT_CONFIG_CHANGED_EVENT = 'aionui:speech-to-text-config-changed';
 
@@ -38,6 +53,8 @@ const getErrorMessageKey = (errorCode: SpeechInputErrorCode) => {
   switch (errorCode) {
     case 'audio-capture':
       return 'conversation.chat.speech.audioCaptureError';
+    case 'empty-transcript':
+      return 'conversation.chat.speech.emptyTranscript';
     case 'file-too-large':
       return 'conversation.chat.speech.fileTooLarge';
     case 'network':
@@ -55,6 +72,14 @@ const getErrorMessageKey = (errorCode: SpeechInputErrorCode) => {
     default:
       return 'conversation.chat.speech.genericError';
   }
+};
+
+const formatSpeechDuration = (durationMs: number): string => {
+  const totalSeconds = Math.max(0, Math.floor(durationMs / 1000));
+  const minutes = Math.floor(totalSeconds / 60);
+  const seconds = totalSeconds % 60;
+
+  return `${minutes}:${String(seconds).padStart(2, '0')}`;
 };
 
 const getTooltipKey = (availability: SpeechInputAvailability, isListening: boolean, isProcessing: boolean) => {
@@ -75,15 +100,31 @@ const SpeechInputButton: React.FC<SpeechInputButtonProps> = ({ disabled, locale,
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const [isSpeechToTextEnabled, setIsSpeechToTextEnabled] = useState(false);
   const [isConfigLoaded, setIsConfigLoaded] = useState(false);
-  const { availability, clearError, errorCode, startRecording, status, stopRecording, transcribeFile } = useSpeechInput(
-    {
-      locale,
-      onTranscript,
-    }
-  );
+  const {
+    availability,
+    clearError,
+    errorCode,
+    errorMessage,
+    recordingDurationMs,
+    recordingLevels,
+    startRecording,
+    status,
+    stopRecording,
+    transcribeFile,
+  } = useSpeechInput({
+    locale,
+    onTranscript,
+  });
 
   const isRecording = status === 'recording';
   const isProcessing = status === 'transcribing';
+  const showSpeechFeedback = isRecording || isProcessing;
+  const displayedWaveformLevels = useMemo(() => {
+    if (recordingLevels.length > 0) {
+      return recordingLevels;
+    }
+    return [0.08, 0.12, 0.1, 0.16, 0.09, 0.14];
+  }, [recordingLevels]);
 
   useEffect(() => {
     let cancelled = false;
@@ -125,9 +166,16 @@ const SpeechInputButton: React.FC<SpeechInputButtonProps> = ({ disabled, locale,
       return;
     }
 
-    Message.error(t(getErrorMessageKey(errorCode)));
+    const baseMessage = t(getErrorMessageKey(errorCode));
+    const detail = errorMessage?.trim();
+    if (errorCode === 'empty-transcript') {
+      Message.warning(baseMessage);
+      clearError();
+      return;
+    }
+    Message.error(detail ? `${baseMessage}: ${detail}` : baseMessage);
     clearError();
-  }, [clearError, errorCode, t]);
+  }, [clearError, errorCode, errorMessage, t]);
 
   const handleClick = () => {
     if (disabled) {
@@ -167,13 +215,7 @@ const SpeechInputButton: React.FC<SpeechInputButtonProps> = ({ disabled, locale,
 
   const tooltipKey = getTooltipKey(availability, isRecording, isProcessing);
   const ariaLabel = t(tooltipKey);
-  const icon = isRecording ? (
-    <Record theme='filled' size='16' />
-  ) : isProcessing ? (
-    <LoadingOne theme='outline' size='16' />
-  ) : (
-    <Microphone theme='outline' size='16' />
-  );
+  const icon = isRecording ? <SpeechStopIcon /> : isProcessing ? <SpeechLoaderIcon /> : <SpeechMicIcon />;
 
   return (
     <>
@@ -185,18 +227,45 @@ const SpeechInputButton: React.FC<SpeechInputButtonProps> = ({ disabled, locale,
         className='hidden'
         onChange={handleFileChange}
       />
-      <Tooltip content={ariaLabel} mini>
-        <Button
-          type='secondary'
-          size='small'
-          shape='circle'
-          className={`speech-input-button ${isRecording ? 'speech-input-button--listening' : ''} ${isProcessing ? 'speech-input-button--processing' : ''}`}
-          disabled={disabled || isProcessing}
-          onClick={handleClick}
-          aria-label={ariaLabel}
-          icon={icon}
-        />
-      </Tooltip>
+      <div className={`speech-input-control ${showSpeechFeedback ? 'speech-input-control--active' : ''}`}>
+        {showSpeechFeedback && (
+          <div
+            className={`speech-input-feedback ${isProcessing ? 'speech-input-feedback--processing' : ''}`}
+            role='status'
+            aria-live='polite'
+          >
+            <div className='speech-input-feedback__waveform' aria-hidden='true'>
+              {displayedWaveformLevels.map((level, index) => (
+                <span
+                  key={`speech-wave-${index}`}
+                  className='speech-input-feedback__bar'
+                  style={{
+                    height: `${Math.max(1.5, 1 + level * 18)}px`,
+                    animationDelay: `${index * 40}ms`,
+                  }}
+                />
+              ))}
+            </div>
+            <span className='speech-input-feedback__label'>
+              {isProcessing
+                ? t('conversation.chat.speech.transcribingShort')
+                : formatSpeechDuration(recordingDurationMs)}
+            </span>
+          </div>
+        )}
+        <Tooltip content={ariaLabel} mini>
+          <Button
+            type='text'
+            size='small'
+            shape='circle'
+            className={`speech-input-button ${isRecording ? 'speech-input-button--listening' : ''} ${isProcessing ? 'speech-input-button--processing' : ''}`}
+            disabled={disabled || isProcessing}
+            onClick={handleClick}
+            aria-label={ariaLabel}
+            icon={icon}
+          />
+        </Tooltip>
+      </div>
     </>
   );
 };

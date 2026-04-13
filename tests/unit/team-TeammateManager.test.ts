@@ -28,7 +28,7 @@ vi.mock('@process/agent/acp/AcpDetector', () => ({
   acpDetector: { getDetectedAgents: vi.fn(() => []) },
 }));
 
-import { TeammateManager, MCP_CAPABLE_TYPES } from '@process/team/TeammateManager';
+import { TeammateManager } from '@process/team/TeammateManager';
 import { teamEventBus } from '@process/team/teamEventBus';
 import type { TeamAgent } from '@process/team/types';
 import type { Mailbox } from '@process/team/Mailbox';
@@ -74,6 +74,7 @@ function makeWorkerTaskManager(): IWorkerTaskManager {
   const mockSendMessage = vi.fn().mockResolvedValue(undefined);
   return {
     getOrBuildTask: vi.fn().mockResolvedValue({ sendMessage: mockSendMessage }),
+    kill: vi.fn(),
   } as unknown as IWorkerTaskManager;
 }
 
@@ -103,21 +104,6 @@ describe('TeammateManager', () => {
 
   afterEach(() => {
     // No cleanup needed - managers are disposed in individual tests
-  });
-
-  // -------------------------------------------------------------------------
-  // Static / Constants
-  // -------------------------------------------------------------------------
-
-  describe('MCP_CAPABLE_TYPES', () => {
-    it('contains "acp"', () => {
-      expect(MCP_CAPABLE_TYPES.has('acp')).toBe(true);
-    });
-
-    it('does not contain non-MCP types', () => {
-      expect(MCP_CAPABLE_TYPES.has('gemini')).toBe(false);
-      expect(MCP_CAPABLE_TYPES.has('codex')).toBe(false);
-    });
   });
 
   // -------------------------------------------------------------------------
@@ -159,20 +145,6 @@ describe('TeammateManager', () => {
       // Verify it's a copy (mutation does not affect internal state)
       result.push(makeAgent({ slotId: 'extra' }));
       expect(mgr.getAgents()).toHaveLength(1);
-      mgr.dispose();
-    });
-  });
-
-  // -------------------------------------------------------------------------
-  // setHasMcpTools
-  // -------------------------------------------------------------------------
-
-  describe('setHasMcpTools', () => {
-    it('enables MCP tools for capable conversation types', () => {
-      const agent = makeAgent({ conversationType: 'acp' });
-      const { mgr } = makeTeammateManager([agent]);
-      mgr.setHasMcpTools(true);
-      // No error indicates the internal flag was set
       mgr.dispose();
     });
   });
@@ -598,7 +570,7 @@ describe('TeammateManager', () => {
           conversationId: 'conv-lead',
           role: 'lead',
           status: 'idle',
-          agentName: 'Lead',
+          agentName: 'Leader',
         });
         const member = makeAgent({
           slotId: 'slot-member',
@@ -641,16 +613,9 @@ describe('TeammateManager', () => {
 
         // The second finish MUST be processed: member should NOT remain active.
         // REGRESSION: without fix, finalizedTurns still holds conv-member → second finalizeTurn
-        //             silently dropped → all XML actions in the second response (task_create,
-        //             send_message, spawn_agent, etc.) are permanently lost with no error or log.
-        //             Status clears correctly via synchronous setStatus in wake(), but actions are gone.
-        // NOTE: this test only verifies status. The action-execution path (XML actions from second
-        //       response) is a remaining test gap — requires a test with a mocked XML action payload.
+        //             is silently dropped → status transition and idle notification are lost.
         const statusAfterSecond = mgr.getAgents().find((a) => a.slotId === 'slot-member')?.status;
-        expect(
-          statusAfterSecond,
-          'Second finish event was dropped by the 5s dedup window — XML actions from second response silently lost'
-        ).not.toBe('active');
+        expect(statusAfterSecond, 'Second finish event was dropped by the 5s dedup window').not.toBe('active');
 
         mgr.dispose();
       } finally {
@@ -666,7 +631,7 @@ describe('TeammateManager', () => {
           conversationId: 'conv-lead',
           role: 'lead',
           status: 'idle',
-          agentName: 'Lead',
+          agentName: 'Leader',
         });
         const member = makeAgent({
           slotId: 'slot-member',
@@ -707,14 +672,8 @@ describe('TeammateManager', () => {
         await new Promise((r) => process.nextTick(r));
 
         // REGRESSION: second finalizeTurn should NOT be dropped by the dedup guard.
-        // If dropped: XML actions (task_create, send_message, spawn_agent, etc.) from the second
-        // response are silently lost. Status resolves via synchronous setStatus in wake(), but
-        // any meaningful work in the second turn is permanently discarded.
         const statusAfterSecond = mgr.getAgents().find((a) => a.slotId === 'slot-member')?.status;
-        expect(
-          statusAfterSecond,
-          'Second finish was dropped by 5s dedup window — XML actions from second response silently lost'
-        ).not.toBe('active');
+        expect(statusAfterSecond, 'Second finish was dropped by 5s dedup window').not.toBe('active');
 
         mgr.dispose();
       } finally {
@@ -733,7 +692,7 @@ describe('TeammateManager', () => {
         slotId: 'slot-lead',
         conversationId: 'conv-lead',
         role: 'lead',
-        agentName: 'Lead',
+        agentName: 'Leader',
       });
       // Non-lead agent - will send idle notification to lead
       const memberAgent = makeAgent({
@@ -805,136 +764,6 @@ describe('TeammateManager', () => {
         .mocked(mbox.write)
         .mock.calls.filter((args) => args[0].type === 'idle_notification' && args[0].toAgentId === 'slot-lead');
       expect(idleCalls).toHaveLength(1);
-      mgr.dispose();
-    });
-
-    it('shutdown_approved via send_message XML removes the sender agent', async () => {
-      const leadAgent = makeAgent({
-        slotId: 'slot-lead',
-        conversationId: 'conv-lead',
-        role: 'lead',
-        status: 'idle',
-        agentName: 'Lead',
-      });
-      const memberAgent = makeAgent({
-        slotId: 'slot-member',
-        conversationId: 'conv-member',
-        role: 'teammate',
-        status: 'active',
-        agentName: 'Member',
-      });
-      const { mgr, mailbox: mbox } = makeTeammateManager([leadAgent, memberAgent]);
-
-      // Member responds with shutdown_approved to lead
-      teamEventBus.emit('responseStream', {
-        type: 'text',
-        conversation_id: 'conv-member',
-        msg_id: 'm1',
-        data: { text: '<send_message to="Lead">shutdown_approved</send_message>' },
-      });
-      teamEventBus.emit('responseStream', {
-        type: 'finish',
-        conversation_id: 'conv-member',
-        msg_id: 'm2',
-        data: null,
-      });
-
-      await new Promise((r) => setTimeout(r, 80));
-
-      // Member should be removed from the team
-      expect(mgr.getAgents().find((a) => a.slotId === 'slot-member')).toBeUndefined();
-      // Lead should be notified about the removal
-      expect(mbox.write).toHaveBeenCalledWith(
-        expect.objectContaining({
-          toAgentId: 'slot-lead',
-          fromAgentId: 'slot-member',
-          content: expect.stringContaining('shut down and been removed'),
-        })
-      );
-      mgr.dispose();
-    });
-
-    it('shutdown_rejected via send_message XML notifies lead with reason', async () => {
-      const leadAgent = makeAgent({
-        slotId: 'slot-lead',
-        conversationId: 'conv-lead',
-        role: 'lead',
-        status: 'idle',
-        agentName: 'Lead',
-      });
-      const memberAgent = makeAgent({
-        slotId: 'slot-member',
-        conversationId: 'conv-member',
-        role: 'teammate',
-        status: 'active',
-        agentName: 'Member',
-      });
-      const { mgr, mailbox: mbox } = makeTeammateManager([leadAgent, memberAgent]);
-
-      // Member refuses shutdown with a reason
-      teamEventBus.emit('responseStream', {
-        type: 'text',
-        conversation_id: 'conv-member',
-        msg_id: 'm1',
-        data: { text: '<send_message to="Lead">shutdown_rejected: still finishing the task</send_message>' },
-      });
-      teamEventBus.emit('responseStream', {
-        type: 'finish',
-        conversation_id: 'conv-member',
-        msg_id: 'm2',
-        data: null,
-      });
-
-      await new Promise((r) => setTimeout(r, 80));
-
-      // Member should still be on the team
-      expect(mgr.getAgents().find((a) => a.slotId === 'slot-member')).toBeDefined();
-      // Lead should receive the rejection notice
-      expect(mbox.write).toHaveBeenCalledWith(
-        expect.objectContaining({
-          toAgentId: 'slot-lead',
-          fromAgentId: 'slot-member',
-          content: expect.stringContaining('refused to shut down'),
-        })
-      );
-      mgr.dispose();
-    });
-
-    it('parses XML actions from accumulated text', async () => {
-      const leadAgent = makeAgent({
-        slotId: 'slot-lead',
-        conversationId: 'conv-lead',
-        role: 'lead',
-        status: 'active',
-      });
-      const memberAgent = makeAgent({
-        slotId: 'slot-member',
-        conversationId: 'conv-member',
-        role: 'teammate',
-        status: 'idle',
-        agentName: 'Member',
-      });
-      const { mgr, taskManager } = makeTeammateManager([leadAgent, memberAgent]);
-
-      // Simulate text arriving with a task_create action, then finish
-      teamEventBus.emit('responseStream', {
-        type: 'text',
-        conversation_id: 'conv-lead',
-        msg_id: 'msg-1',
-        data: { text: '<task_create subject="New task" owner="slot-member"/>' },
-      });
-      teamEventBus.emit('responseStream', {
-        type: 'finish',
-        conversation_id: 'conv-lead',
-        msg_id: 'msg-2',
-        data: null,
-      });
-
-      await new Promise((r) => setTimeout(r, 50));
-
-      expect(taskManager.create).toHaveBeenCalledWith(
-        expect.objectContaining({ subject: 'New task', owner: 'slot-member' })
-      );
       mgr.dispose();
     });
   });
@@ -1062,96 +891,196 @@ describe('TeammateManager', () => {
   });
 
   // -------------------------------------------------------------------------
-  // resolveSlotId (tested indirectly via wake and finalizeTurn)
+  // Agent crash testament
   // -------------------------------------------------------------------------
-
-  describe('resolveSlotId (name resolution)', () => {
-    it('resolves agent by exact agentName via send_message action', async () => {
-      const leadAgent = makeAgent({
-        slotId: 'slot-lead',
-        conversationId: 'conv-lead',
-        role: 'lead',
-        status: 'active',
-        agentName: 'Lead',
-      });
-      const memberAgent = makeAgent({
+  describe('agent crash testament', () => {
+    it('writes testament to leader mailbox, removes agent, and wakes leader on crash', async () => {
+      const leader = makeAgent({ slotId: 'slot-lead', conversationId: 'conv-lead', role: 'lead' });
+      const member = makeAgent({
         slotId: 'slot-member',
         conversationId: 'conv-member',
         role: 'teammate',
-        status: 'idle',
-        agentName: 'Alice',
+        agentName: 'Worker',
+        conversationType: 'acp',
       });
-      const mockSendMessage = vi.fn().mockResolvedValue(undefined);
-      const { mgr, mailbox, workerTaskManager } = makeTeammateManager([leadAgent, memberAgent]);
-      vi.mocked(workerTaskManager.getOrBuildTask).mockResolvedValue({
-        sendMessage: mockSendMessage,
-      } as never);
+      const { mgr, mailbox } = makeTeammateManager([leader, member]);
 
-      // Lead sends a message to Alice by name
-      teamEventBus.emit('responseStream', {
-        type: 'text',
-        conversation_id: 'conv-lead',
-        msg_id: 'm1',
-        data: { text: '<send_message to="Alice">Do the task</send_message>' },
-      });
+      // Simulate crash: AcpAgent emits finish with agentCrash flag
       teamEventBus.emit('responseStream', {
         type: 'finish',
-        conversation_id: 'conv-lead',
-        msg_id: 'm2',
-        data: null,
+        conversation_id: 'conv-member',
+        msg_id: 'crash-1',
+        data: { error: 'Process exited unexpectedly (code: 1, signal: null)', agentCrash: true },
       });
 
       await new Promise((r) => setTimeout(r, 100));
 
-      // Should have written to Alice's mailbox
+      // Testament written to leader
       expect(mailbox.write).toHaveBeenCalledWith(
         expect.objectContaining({
-          toAgentId: 'slot-member',
-          fromAgentId: 'slot-lead',
-          content: 'Do the task',
+          teamId: 'team-1',
+          toAgentId: 'slot-lead',
+          fromAgentId: 'slot-member',
+          content: expect.stringContaining('Worker'),
         })
       );
+      expect(mailbox.write).toHaveBeenCalledWith(
+        expect.objectContaining({
+          content: expect.stringContaining('Process exited unexpectedly'),
+        })
+      );
+
+      // Agent removed
+      expect(mgr.getAgents().find((a) => a.slotId === 'slot-member')).toBeUndefined();
+      expect(mockIpcBridge.team.agentRemoved.emit).toHaveBeenCalledWith(
+        expect.objectContaining({ teamId: 'team-1', slotId: 'slot-member' })
+      );
+
       mgr.dispose();
     });
 
-    it('handles fuzzy name matching (case-insensitive, quote-stripped)', async () => {
-      const leadAgent = makeAgent({
-        slotId: 'slot-lead',
-        conversationId: 'conv-lead',
-        role: 'lead',
-        status: 'active',
-        agentName: 'Lead',
-      });
-      const memberAgent = makeAgent({
+    it('does not trigger crash flow for normal error events without agentCrash flag', async () => {
+      const leader = makeAgent({ slotId: 'slot-lead', conversationId: 'conv-lead', role: 'lead' });
+      const member = makeAgent({
         slotId: 'slot-member',
         conversationId: 'conv-member',
         role: 'teammate',
-        status: 'idle',
-        agentName: 'Alice',
+        agentName: 'Worker',
+        conversationType: 'acp',
       });
-      const mockSendMessage = vi.fn().mockResolvedValue(undefined);
-      const { mgr, mailbox, workerTaskManager } = makeTeammateManager([leadAgent, memberAgent]);
-      vi.mocked(workerTaskManager.getOrBuildTask).mockResolvedValue({
-        sendMessage: mockSendMessage,
-      } as never);
+      const { mgr, mailbox } = makeTeammateManager([leader, member]);
 
-      // Use "ALICE" (uppercase) — should still resolve
+      // Normal error (not a crash, not a quota error)
       teamEventBus.emit('responseStream', {
-        type: 'text',
-        conversation_id: 'conv-lead',
-        msg_id: 'm1',
-        data: { text: '<send_message to="ALICE">Hi</send_message>' },
+        type: 'error',
+        conversation_id: 'conv-member',
+        msg_id: 'err-1',
+        data: { error: 'Something went wrong' },
       });
+
+      await new Promise((r) => setTimeout(r, 100));
+
+      // No testament written — normal error goes through finalizeTurn
+      const testamentCalls = (mailbox.write as ReturnType<typeof vi.fn>).mock.calls.filter((args: unknown[]) => {
+        const arg = args[0] as { content?: string };
+        return typeof arg?.content === 'string' && arg.content.includes('crashed');
+      });
+      expect(testamentCalls).toHaveLength(0);
+
+      // Agent still exists
+      expect(mgr.getAgents().find((a) => a.slotId === 'slot-member')).toBeDefined();
+
+      mgr.dispose();
+    });
+
+    it('sets status to failed on 429 quota error', async () => {
+      const leader = makeAgent({ slotId: 'slot-lead', conversationId: 'conv-lead', role: 'lead' });
+      const member = makeAgent({
+        slotId: 'slot-member',
+        conversationId: 'conv-member',
+        role: 'teammate',
+        agentName: 'Worker',
+        conversationType: 'acp',
+      });
+      const { mgr } = makeTeammateManager([leader, member]);
+
+      teamEventBus.emit('responseStream', {
+        type: 'error',
+        conversation_id: 'conv-member',
+        msg_id: 'err-429',
+        data: { error: '429 Too Many Requests' },
+      });
+
+      await new Promise((r) => setTimeout(r, 50));
+
+      const agent = mgr.getAgents().find((a) => a.slotId === 'slot-member');
+      expect(agent).toBeDefined();
+      expect(agent!.status).toBe('failed');
+
+      // Verify status change was emitted
+      expect(mockIpcBridge.team.agentStatusChanged.emit).toHaveBeenCalledWith(
+        expect.objectContaining({ slotId: 'slot-member', status: 'failed' })
+      );
+
+      mgr.dispose();
+    });
+
+    it('sets status to failed on rate limit error', async () => {
+      const leader = makeAgent({ slotId: 'slot-lead', conversationId: 'conv-lead', role: 'lead' });
+      const member = makeAgent({
+        slotId: 'slot-member',
+        conversationId: 'conv-member',
+        role: 'teammate',
+        agentName: 'Worker',
+        conversationType: 'acp',
+      });
+      const { mgr } = makeTeammateManager([leader, member]);
+
+      teamEventBus.emit('responseStream', {
+        type: 'error',
+        conversation_id: 'conv-member',
+        msg_id: 'err-rate',
+        data: 'API rate limit exceeded',
+      });
+
+      await new Promise((r) => setTimeout(r, 50));
+
+      const agent = mgr.getAgents().find((a) => a.slotId === 'slot-member');
+      expect(agent!.status).toBe('failed');
+
+      mgr.dispose();
+    });
+
+    it('sets status to failed on quota exceeded error', async () => {
+      const leader = makeAgent({ slotId: 'slot-lead', conversationId: 'conv-lead', role: 'lead' });
+      const member = makeAgent({
+        slotId: 'slot-member',
+        conversationId: 'conv-member',
+        role: 'teammate',
+        agentName: 'Worker',
+        conversationType: 'acp',
+      });
+      const { mgr } = makeTeammateManager([leader, member]);
+
+      teamEventBus.emit('responseStream', {
+        type: 'error',
+        conversation_id: 'conv-member',
+        msg_id: 'err-quota',
+        data: { error: 'Quota exceeded for this model' },
+      });
+
+      await new Promise((r) => setTimeout(r, 50));
+
+      const agent = mgr.getAgents().find((a) => a.slotId === 'slot-member');
+      expect(agent!.status).toBe('failed');
+
+      mgr.dispose();
+    });
+
+    it('does not trigger crash flow for finish events', async () => {
+      const leader = makeAgent({ slotId: 'slot-lead', conversationId: 'conv-lead', role: 'lead' });
+      const member = makeAgent({
+        slotId: 'slot-member',
+        conversationId: 'conv-member',
+        role: 'teammate',
+        agentName: 'Worker',
+        conversationType: 'acp',
+      });
+      const { mgr } = makeTeammateManager([leader, member]);
+
+      // Normal finish
       teamEventBus.emit('responseStream', {
         type: 'finish',
-        conversation_id: 'conv-lead',
-        msg_id: 'm2',
+        conversation_id: 'conv-member',
+        msg_id: 'fin-1',
         data: null,
       });
 
       await new Promise((r) => setTimeout(r, 100));
 
-      expect(mailbox.write).toHaveBeenCalledWith(expect.objectContaining({ toAgentId: 'slot-member' }));
+      // Agent still exists
+      expect(mgr.getAgents().find((a) => a.slotId === 'slot-member')).toBeDefined();
+
       mgr.dispose();
     });
   });

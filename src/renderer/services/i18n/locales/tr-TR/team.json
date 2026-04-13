@@ -34,17 +34,36 @@
   "create": {
     "title": "Create Team",
     "namePlaceholder": "Team name",
-    "dispatchAgentPlaceholder": "Select dispatch agent",
+    "dispatchAgentPlaceholder": "Takım liderini seçin",
     "subAgentsPlaceholder": "Select sub agents",
     "workspacePlaceholder": "Workspace path (optional)",
     "confirm": "Create Team",
     "noSupportedAgents": "Desteklenen agent bulunamadı",
     "supportedAgentsHint": "Şu anda Claude ve Codex desteklenmektedir. Daha fazla agent yakında eklenecek.",
+    "leaderDesc": "Hedeflerinizi anlayarak görevleri tamamlamak için ajanları koordine eder",
     "step": {
-      "dispatch": "Dispatch Agent",
+      "dispatch": "Takım Lideri",
       "subAgents": "Sub Agents",
       "workspace": "Workspace"
     },
+    "nameRequired": "Takım adı girin",
+    "leaderRequired": "Takım lideri seçin",
+    "selectFolder": "Klasör seç",
+    "recentLabel": "Son kullanılan",
+    "chooseDifferentFolder": "Farklı klasör seç",
     "error": "Takım oluşturulamadı"
+  },
+  "removeAgent": {
+    "confirmTitle": "Takım Üyesini Kaldır",
+    "confirmContent": "Bu üye şu anda aktif. Zorla kaldırılsın mı?"
+  },
+  "emptyState": {
+    "subtitle": "Hedefini söyle, ekibi koordine ederek tamamlayayım",
+    "suggestions": {
+      "help_build": "Sıfırdan yeni bir özellik oluşturmama yardım et",
+      "analyze_code": "Bu kod tabanını analiz et ve iyileştirmeler öner",
+      "write_report": "Bir konuyu araştır ve ayrıntılı rapor yaz",
+      "fix_bug": "Projemizdeki hataları bul ve düzelt"
+    }
   }
 }

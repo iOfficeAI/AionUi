@@ -34,17 +34,35 @@
   "create": {
     "title": "Create Team",
     "namePlaceholder": "Team name",
-    "dispatchAgentPlaceholder": "Select dispatch agent",
+    "dispatchAgentPlaceholder": "チームリーダーを選択",
     "subAgentsPlaceholder": "Select sub agents",
     "workspacePlaceholder": "Workspace path (optional)",
     "confirm": "Create Team",
     "noSupportedAgents": "対応する Agent が見つかりません",
     "supportedAgentsHint": "現在 Claude と Codex に対応しています。他の Agent は順次対応予定です。",
+    "leaderDesc": "目標を理解し、エージェントを調整してタスクを完了します",
     "step": {
-      "dispatch": "Dispatch Agent",
+      "dispatch": "チームリーダー",
       "subAgents": "Sub Agents",
       "workspace": "Workspace"
     },
+    "nameRequired": "チーム名を入力してください",
+    "leaderRequired": "チームリーダーを選択してください",
+    "selectFolder": "フォルダを選択",
+    "recentLabel": "最近使用",
+    "chooseDifferentFolder": "別のフォルダを選択",
     "error": "チームの作成に失敗しました"
+  },
+  "removeAgent": {
+    "confirmTitle": "チームメンバーを削除",
+    "confirmContent": "このメンバーは現在稼働中です。強制的に削除しますか？"
+  },
+  "emptyState": {
+    "subtitle": "目標を教えてください。チームを調整してタスクを完了します",
+    "suggestions": {
+      "debate": "Agentが異なる立場をとるディベートを開催する",
+      "interview": "Agentによる深層インタビューを企画する",
+      "expert_review": "複数の専門家が同じ問題を分析する"
+    }
   }
 }

@@ -221,6 +221,7 @@
       "stopShort": "Стоп",
       "transcribingShort": "...",
       "audioCaptureError": "Микрофон не обнаружен",
+      "emptyTranscript": "Речь не распознана",
       "fileTooLarge": "Аудиофайл слишком большой",
       "networkError": "Сетевая ошибка при транскрибировании аудио",
       "notConfigured": "Преобразование речи в текст не настроено",

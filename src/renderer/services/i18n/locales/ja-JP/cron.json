@@ -74,6 +74,7 @@
     "createSuccess": "タスクが正常に作成されました",
     "updateSuccess": "タスクが正常に更新されました",
     "scheduleHint": "スケジュールタスクはサーバーパフォーマンスのため、数分のランダムな遅延があります。",
+    "customCronWarning": "これはカスタムのCron式（{{expr}}）で、UIから編集できません。スケジュールを変更するには、プリセットの頻度に切り替えてください。",
     "weekday": {
       "monday": "月曜日",
       "tuesday": "火曜日",

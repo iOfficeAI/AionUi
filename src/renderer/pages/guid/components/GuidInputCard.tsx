@@ -32,7 +32,7 @@ type GuidInputCardProps = {
   activeBorderColor: string;
   inactiveBorderColor: string;
   activeShadow: string;
-  dragHandlers: Record<string, any>;
+  dragHandlers: React.HTMLAttributes<HTMLDivElement>;
 
   // Mention state
   mentionOpen: boolean;
@@ -112,6 +112,7 @@ const GuidInputCard: React.FC<GuidInputCardProps> = ({
       <Input.TextArea
         autoSize={textareaAutoSize}
         placeholder={placeholder}
+        spellCheck={false}
         className={`text-16px focus:b-none rounded-xl !bg-transparent !b-none !resize-none !p-0 ${styles.lightPlaceholder}`}
         value={input}
         onChange={onInputChange}

@@ -4,6 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
+import path from 'path';
 import type { TMessage } from '@/common/chat/chatLib';
 import type { TChatConversation } from '@/common/config/storage';
 import { getDatabase } from '@process/services/database';
@@ -33,6 +34,7 @@ import { stripHtml } from '../plugins/weixin/WeixinAdapter';
 import type { ChannelAgentType, IUnifiedIncomingMessage, IUnifiedOutgoingMessage, PluginType } from '../types';
 import type { PluginManager } from './PluginManager';
 import { buildChannelConversationExtra, resolveChannelSendProtocol } from '../utils';
+import i18n from '@process/services/i18n';
 
 // ==================== Platform-specific Helpers ====================
 
@@ -110,10 +112,22 @@ function formatTextForPlatform(text: string, platform: PluginType): string {
   if (platform === 'telegram') {
     return markdownToTelegramHtml(text);
   }
-  if (platform === 'weixin') {
+  if (platform === 'weixin' || platform === 'wecom') {
     return stripHtml(text);
   }
   return escapeHtml(text);
+}
+
+function buildRejectedChannelSendNotices(
+  rejectedActions: Array<{ path: string; fileName?: string; reason: string }>
+): string[] {
+  return rejectedActions.map((action) => {
+    const name = action.fileName || path.basename(action.path);
+    if (action.reason === 'outside_allowed') {
+      return i18n.t('settings.channels.mediaPathNotAllowed', { name });
+    }
+    return i18n.t('settings.channels.mediaSendFailed', { name });
+  });
 }
 
 /**
@@ -229,7 +243,7 @@ function convertTMessageToOutgoing(
       if (confirmingTool && confirmingTool.confirmationDetails) {
         // WeChat (weixin) uses yoloMode — tool confirmations are auto-approved in the background.
         // Showing "Continue?" without interactive buttons is confusing, so just show tool progress.
-        if (platform === 'weixin') {
+        if (platform === 'weixin' || platform === 'wecom') {
           return {
             type: 'text',
             text: toolLines.join('\n') || '⏳ 正在执行工具...',
@@ -743,19 +757,21 @@ export class ActionExecutor {
           context.platform === 'weixin' && context.conversationId && lastMessageContent?.text !== undefined
             ? await resolveChannelSendProtocol(lastMessageContent.text, context.conversationId)
             : null;
+        const finalVisibleText = finalizedMessage
+          ? [finalizedMessage.visibleText, ...buildRejectedChannelSendNotices(finalizedMessage.rejectedActions)]
+              .filter(Boolean)
+              .join('\n\n')
+          : lastMessageContent?.text;
 
         // 使用最后一条消息的实际内容，添加操作按钮（根据平台）
         // Use actual content of last message, add action buttons (based on platform)
-        const responseMarkup = getResponseActionsMarkup(
-          context.platform as PluginType,
-          finalizedMessage?.visibleText ?? lastMessageContent?.text
-        );
+        const responseMarkup = getResponseActionsMarkup(context.platform as PluginType, finalVisibleText);
         const finalMessage: IUnifiedOutgoingMessage = lastMessageContent
           ? {
               ...lastMessageContent,
               ...(finalizedMessage
                 ? {
-                    text: finalizedMessage.visibleText,
+                    text: finalVisibleText,
                     mediaActions: finalizedMessage.mediaActions,
                   }
                 : {}),

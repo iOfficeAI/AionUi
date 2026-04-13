@@ -6,6 +6,7 @@
 
 import type { IMessageText } from '@/common/chat/chatLib';
 import { AIONUI_FILES_MARKER } from '@/common/config/constants';
+import { useConversationContextSafe } from '@/renderer/hooks/context/ConversationContext';
 import { iconColors } from '@/renderer/styles/colors';
 import { Alert, Message, Tooltip } from '@arco-design/web-react';
 import { Copy } from '@icon-park/react';
@@ -61,6 +62,19 @@ const parseFileMarker = (content: string) => {
   return { text, files };
 };
 
+const isAbsoluteMessageFilePath = (filePath: string): boolean =>
+  filePath.startsWith('/') || /^[A-Za-z]:/.test(filePath);
+
+export const resolveMessageFilePath = (filePath: string, workspace?: string): string => {
+  if (!filePath || isAbsoluteMessageFilePath(filePath) || !workspace) {
+    return filePath;
+  }
+
+  const normalizedWorkspace = workspace.replace(/[\\/]+$/, '').replace(/\\/g, '/');
+  const normalizedFilePath = filePath.replace(/^\.?[\\/]+/, '').replace(/\\/g, '/');
+  return `${normalizedWorkspace}/${normalizedFilePath}`.replace(/\/+/g, '/');
+};
+
 const useFormatContent = (content: string) => {
   return useMemo(() => {
     try {
@@ -101,6 +115,11 @@ const MessageText: React.FC<{ message: IMessageText }> = ({ message }) => {
   const isUserMessage = message.position === 'right';
   const isTeammateMessage = message.position === 'left' && message.content.teammateMessage === true;
   const shouldRenderPlainText = isUserMessage;
+  const conversationContext = useConversationContextSafe();
+  const resolvedFiles = useMemo(
+    () => files.map((filePath) => resolveMessageFilePath(filePath, conversationContext?.workspace)),
+    [conversationContext?.workspace, files]
+  );
 
   // 过滤空内容，避免渲染空DOM
   if (!message.content.content || (typeof message.content.content === 'string' && !message.content.content.trim())) {
@@ -156,13 +175,13 @@ const MessageText: React.FC<{ message: IMessageText }> = ({ message }) => {
         )}
         {files.length > 0 && (
           <div className={classNames('mt-6px', { 'self-end': isUserMessage })}>
-            {files.length === 1 ? (
+            {resolvedFiles.length === 1 ? (
               <div className='flex items-center'>
-                <FilePreview path={files[0]} onRemove={() => undefined} readonly />
+                <FilePreview path={resolvedFiles[0]} onRemove={() => undefined} readonly />
               </div>
             ) : (
               <HorizontalFileList>
-                {files.map((path) => (
+                {resolvedFiles.map((path) => (
                   <FilePreview key={path} path={path} onRemove={() => undefined} readonly />
                 ))}
               </HorizontalFileList>
@@ -175,13 +194,13 @@ const MessageText: React.FC<{ message: IMessageText }> = ({ message }) => {
             'bg-3 p-8px': isTeammateMessage,
             'w-full': !(isUserMessage || cronMeta || isTeammateMessage),
           })}
-          style={
-            isUserMessage || cronMeta
-              ? { borderRadius: '8px 0 8px 8px' }
+          style={{
+            ...(isUserMessage || cronMeta
+              ? { borderRadius: '8px 0 8px 8px', color: 'var(--text-primary)' }
               : isTeammateMessage
                 ? { borderRadius: '0 8px 8px 8px' }
-                : undefined
-          }
+                : undefined),
+          }}
         >
           {/* JSON 内容使用折叠组件 Use CollapsibleContent for JSON content */}
           {shouldRenderPlainText ? (

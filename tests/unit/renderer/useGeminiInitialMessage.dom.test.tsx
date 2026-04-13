@@ -94,7 +94,8 @@ describe('useGeminiInitialMessage', () => {
       expect(setContent).toHaveBeenCalledWith('draft from guide');
     });
 
-    expect(sessionStorage.getItem('gemini_initial_message_conv-no-auth')).toBeNull();
+    // sessionStorage is kept so auth loading later can pick it up
+    expect(sessionStorage.getItem('gemini_initial_message_conv-no-auth')).not.toBeNull();
     expect(autoSwitchTriggeredRef.current).toBe(true);
     expect(setShowSetupCard).toHaveBeenCalledWith(true);
     expect(performFullCheck).toHaveBeenCalledTimes(1);
@@ -144,5 +145,55 @@ describe('useGeminiInitialMessage', () => {
     expect(mockEmitterEmit).toHaveBeenCalledWith('chat.history.refresh');
     expect(mockEmitterEmit).toHaveBeenCalledWith('gemini.workspace.refresh');
     expect(sessionStorage.getItem('gemini_initial_message_conv-ready')).toBeNull();
+  });
+
+  it('sends the initial message after auth transitions from missing to ready', async () => {
+    const setContent = vi.fn();
+    const setActiveMsgId = vi.fn();
+    const setWaitingResponse = vi.fn();
+    const setShowSetupCard = vi.fn();
+    const performFullCheck = vi.fn().mockResolvedValue(undefined);
+    const autoSwitchTriggeredRef = { current: false };
+
+    sessionStorage.setItem(
+      'gemini_initial_message_conv-transition',
+      JSON.stringify({ input: 'hello from guide', files: [] })
+    );
+
+    // Phase 1: no auth — message placed in input box, kept in sessionStorage
+    const { rerender } = renderHook(
+      ({ hasNoAuth, currentModelId }) =>
+        useGeminiInitialMessage({
+          conversationId: 'conv-transition',
+          currentModelId,
+          hasNoAuth,
+          setContent,
+          setActiveMsgId,
+          setWaitingResponse,
+          autoSwitchTriggeredRef,
+          setShowSetupCard,
+          performFullCheck,
+        }),
+      { initialProps: { hasNoAuth: true, currentModelId: undefined as string | undefined } }
+    );
+
+    await waitFor(() => {
+      expect(setContent).toHaveBeenCalledWith('hello from guide');
+    });
+    expect(mockGeminiSendInvoke).not.toHaveBeenCalled();
+    expect(sessionStorage.getItem('gemini_initial_message_conv-transition')).not.toBeNull();
+
+    // Phase 2: auth loads — effect re-runs and sends the message
+    rerender({ hasNoAuth: false, currentModelId: 'gemini-2.5' });
+
+    await waitFor(() => {
+      expect(mockGeminiSendInvoke).toHaveBeenCalledTimes(1);
+    });
+
+    // Input box should be cleared
+    expect(setContent).toHaveBeenCalledWith('');
+    expect(setActiveMsgId).toHaveBeenCalled();
+    expect(setWaitingResponse).toHaveBeenCalledWith(true);
+    expect(sessionStorage.getItem('gemini_initial_message_conv-transition')).toBeNull();
   });
 });

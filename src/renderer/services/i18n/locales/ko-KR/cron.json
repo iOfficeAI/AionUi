@@ -62,6 +62,7 @@
     "createSuccess": "작업이 성공적으로 생성되었습니다",
     "updateSuccess": "작업이 성공적으로 업데이트되었습니다",
     "scheduleHint": "예약 작업은 서버 성능을 위해 몇 분의 무작위 지연이 있습니다.",
+    "customCronWarning": "이것은 UI에서 편집할 수 없는 사용자 정의 Cron 표현식({{expr}})입니다. 스케줄을 변경하려면 프리셋 빈도로 전환하세요.",
     "weekday": {
       "monday": "월요일",
       "tuesday": "화요일",

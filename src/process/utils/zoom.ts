@@ -5,12 +5,16 @@
  */
 
 import { BrowserWindow } from 'electron';
+import type { Input } from 'electron';
 
 const UI_SCALE_DEFAULT = 1;
 const UI_SCALE_MIN = 0.8;
 const UI_SCALE_MAX = 1.3;
+export const UI_SCALE_STEP = 0.05;
 
 let currentZoomFactor = UI_SCALE_DEFAULT;
+
+export type ZoomShortcutAction = 'zoomIn' | 'zoomOut' | 'resetZoom';
 
 // 将输入的缩放因子限制在允许范围，避免异常值 / Clamp zoom factor into safe range
 const clampZoomFactor = (value: number): number => {
@@ -52,4 +56,81 @@ export const setZoomFactor = (factor: number): number => {
 // 在当前值基础上增量调整缩放 / Adjust zoom by delta relative to current factor
 export const adjustZoomFactor = (delta: number): number => {
   return setZoomFactor(currentZoomFactor + delta);
+};
+
+export const attachZoomShortcutsToWindow = (
+  win: BrowserWindow,
+  persistZoomFactor?: (factor: number) => void | Promise<void>
+): void => {
+  win.webContents.on('before-input-event', (event, input) => {
+    const action = getZoomShortcutAction(input);
+    if (!action) {
+      return;
+    }
+
+    event.preventDefault();
+
+    const updatedFactor =
+      action === 'zoomIn'
+        ? adjustZoomFactor(UI_SCALE_STEP)
+        : action === 'zoomOut'
+          ? adjustZoomFactor(-UI_SCALE_STEP)
+          : setZoomFactor(UI_SCALE_DEFAULT);
+
+    void persistZoomFactor?.(updatedFactor);
+  });
+};
+
+export const setupZoomForWindow = (win: BrowserWindow): void => {
+  applyZoomToWindow(win);
+  attachZoomShortcutsToWindow(win, async (factor) => {
+    try {
+      const { ProcessConfig } = await import('./initStorage');
+      await ProcessConfig.set('ui.zoomFactor', factor);
+    } catch (error) {
+      console.error('[AionUi] Failed to persist zoom factor from keyboard shortcut:', error);
+    }
+  });
+};
+
+/**
+ * Normalize platform-specific keyboard input into a zoom intent.
+ * Prefer produced keys for layout safety; only rely on numpad codes as fallback.
+ */
+export const getZoomShortcutAction = (
+  input: Pick<Input, 'type' | 'key' | 'code' | 'isComposing' | 'control' | 'meta' | 'alt'>,
+  platform: NodeJS.Platform = process.platform
+): ZoomShortcutAction | null => {
+  if (input.type !== 'keyDown' || input.isComposing || input.alt) {
+    return null;
+  }
+
+  const hasPrimaryModifier = platform === 'darwin' ? input.meta : input.control;
+  if (!hasPrimaryModifier) {
+    return null;
+  }
+
+  switch (input.key) {
+    case '+':
+    case '=':
+      return 'zoomIn';
+    case '-':
+    case '_':
+      return 'zoomOut';
+    case '0':
+      return 'resetZoom';
+    default:
+      break;
+  }
+
+  switch (input.code) {
+    case 'NumpadAdd':
+      return 'zoomIn';
+    case 'NumpadSubtract':
+      return 'zoomOut';
+    case 'Numpad0':
+      return input.key === 'Insert' ? null : 'resetZoom';
+    default:
+      return null;
+  }
 };

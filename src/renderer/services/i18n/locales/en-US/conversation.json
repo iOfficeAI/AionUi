@@ -221,6 +221,7 @@
       "stopShort": "Stop",
       "transcribingShort": "...",
       "audioCaptureError": "No microphone was detected",
+      "emptyTranscript": "No speech was detected",
       "fileTooLarge": "Audio file is too large",
       "networkError": "Network error while transcribing audio",
       "notConfigured": "Speech-to-text is not configured yet",

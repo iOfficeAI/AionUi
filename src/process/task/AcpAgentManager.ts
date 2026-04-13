@@ -6,6 +6,7 @@ import type { CronMessageMeta, TMessage } from '@/common/chat/chatLib';
 import { isCodexAutoApproveMode } from '@/common/types/codex/codexModes';
 import type { SlashCommandItem } from '@/common/chat/slash/types';
 import { transformMessage } from '@/common/chat/chatLib';
+import type { IConfigStorageRefer } from '@/common/config/storage';
 import { AIONUI_FILES_MARKER } from '@/common/config/constants';
 import type { IResponseMessage } from '@/common/adapter/ipcBridge';
 import { parseError, uuid } from '@/common/utils';
@@ -14,6 +15,8 @@ import type {
   AcpModelInfo,
   AcpPermissionOption,
   AcpPermissionRequest,
+  AcpResult,
+  AcpBackendConfig,
   AcpSessionConfigOption,
 } from '@/common/types/acpTypes';
 import { ACP_BACKENDS_ALL } from '@/common/types/acpTypes';
@@ -37,7 +40,9 @@ import { extractAndStripThinkTags } from './ThinkTagDetector';
 import type { AgentKillReason } from './IAgentManager';
 import { hasNativeSkillSupport } from '@/common/types/acpTypes';
 import { prepareFirstMessageWithSkillsIndex } from '@process/task/agentUtils';
+import { shouldInjectTeamGuideMcp } from '@process/resources/prompts/teamGuidePrompt';
 import { extractTextFromMessage, processCronInMessage } from './MessageMiddleware';
+import { ConversationTurnCompletionService } from './ConversationTurnCompletionService';
 
 interface AcpAgentManagerData {
   workspace?: string;
@@ -73,6 +78,8 @@ type BufferedStreamTextMessage = {
   timer: ReturnType<typeof setTimeout>;
 };
 
+type CustomAgentLaunchConfig = Pick<AcpBackendConfig, 'id' | 'name' | 'defaultCliPath' | 'acpArgs' | 'env'>;
+
 class AcpAgentManager extends BaseAgentManager<AcpAgentManagerData, AcpPermissionOption> {
   workspace: string;
   agent: AcpAgent;
@@ -96,6 +103,13 @@ class AcpAgentManager extends BaseAgentManager<AcpAgentManagerData, AcpPermissio
   private acpAvailableSlashWaiters: Array<(commands: SlashCommandItem[]) => void> = [];
   private readonly streamDbFlushIntervalMs = 120;
   private readonly bufferedStreamTextMessages = new Map<string, BufferedStreamTextMessage>();
+  private nextTrackedTurnId: number = 0;
+  private activeTrackedTurnId: number | null = null;
+  private activeTrackedTurnHasRuntimeActivity: boolean = false;
+  private readonly completedTrackedTurnIds = new Set<number>();
+  private missingFinishFallbackTimer: ReturnType<typeof setTimeout> | null = null;
+  private missingFinishFallbackTurnId: number | null = null;
+  private readonly missingFinishFallbackDelayMs = 15000;
 
   constructor(data: AcpAgentManagerData) {
     super('acp', data, new IpcAgentEventEmitter());
@@ -163,115 +177,705 @@ class AcpAgentManager extends BaseAgentManager<AcpAgentManagerData, AcpPermissio
     }
   }
 
-  initAgent(data: AcpAgentManagerData = this.options) {
-    if (this.bootstrap) return this.bootstrap;
-    this.bootstrapping = true;
-    this.bootstrap = (async () => {
-      let cliPath = data.cliPath;
-      let customArgs: string[] | undefined;
-      let customEnv: Record<string, string> | undefined;
-      let yoloMode: boolean | undefined;
+  private beginTrackedTurn(): number {
+    this.clearMissingFinishFallback();
+    const turnId = this.nextTrackedTurnId + 1;
+    this.nextTrackedTurnId = turnId;
+    this.activeTrackedTurnId = turnId;
+    this.activeTrackedTurnHasRuntimeActivity = false;
+    return turnId;
+  }
 
-      // 处理自定义后端：优先读 acp.customAgents；若未命中则尝试扩展贡献的 adapter
-      // Handle custom backend: prefer acp.customAgents; fallback to extension-contributed adapters
-      if (data.backend === 'custom' && data.customAgentId) {
-        const customAgents = await ProcessConfig.get('acp.customAgents');
-        // 通过 UUID 查找对应的自定义代理配置 / Find custom agent config by UUID
-        let customAgentConfig = customAgents?.find((agent) => agent.id === data.customAgentId);
+  private markTrackedTurnFinished(turnId: number): void {
+    if (this.activeTrackedTurnId === turnId) {
+      this.activeTrackedTurnId = null;
+      this.activeTrackedTurnHasRuntimeActivity = false;
+      this.clearMissingFinishFallback();
+    }
+    this.completedTrackedTurnIds.add(turnId);
+  }
 
-        // Fallback: extension adapter (customAgentId format: ext:{extensionName}:{adapterId})
-        if (!customAgentConfig && data.customAgentId.startsWith('ext:')) {
-          const [, extensionName, ...idParts] = data.customAgentId.split(':');
-          const adapterId = idParts.join(':');
-          const adapter = ExtensionRegistry.getInstance()
-            .getAcpAdapters()
-            .find((item) => {
-              const record = item as Record<string, unknown>;
-              return record._extensionName === extensionName && record.id === adapterId;
-            }) as Record<string, unknown> | undefined;
+  private markActiveTurnFinished(): void {
+    if (this.activeTrackedTurnId !== null) {
+      this.markTrackedTurnFinished(this.activeTrackedTurnId);
+    }
+  }
 
-          if (adapter) {
-            customAgentConfig = {
-              id: data.customAgentId,
-              name: typeof adapter.name === 'string' ? adapter.name : data.customAgentId,
-              defaultCliPath: typeof adapter.defaultCliPath === 'string' ? adapter.defaultCliPath : undefined,
-              acpArgs: Array.isArray(adapter.acpArgs)
-                ? adapter.acpArgs.filter((v): v is string => typeof v === 'string')
-                : undefined,
-              env: typeof adapter.env === 'object' && adapter.env ? (adapter.env as Record<string, string>) : undefined,
-            } as any;
+  private consumeTrackedTurnFinished(turnId: number): boolean {
+    const hasFinished = this.completedTrackedTurnIds.has(turnId);
+    if (hasFinished) {
+      if (this.activeTrackedTurnId === turnId) {
+        this.activeTrackedTurnId = null;
+      }
+      this.completedTrackedTurnIds.delete(turnId);
+    }
+    return hasFinished;
+  }
+
+  private clearTrackedTurn(turnId: number): void {
+    if (this.activeTrackedTurnId === turnId) {
+      this.activeTrackedTurnId = null;
+      this.activeTrackedTurnHasRuntimeActivity = false;
+      this.clearMissingFinishFallback();
+    }
+    this.completedTrackedTurnIds.delete(turnId);
+  }
+
+  private markTrackedTurnRuntimeActivity(): void {
+    this._lastActivityAt = Date.now();
+
+    if (this.activeTrackedTurnId === null) {
+      return;
+    }
+
+    this.activeTrackedTurnHasRuntimeActivity = true;
+    this.scheduleMissingFinishFallback();
+  }
+
+  private clearMissingFinishFallback(): void {
+    if (this.missingFinishFallbackTimer) {
+      clearTimeout(this.missingFinishFallbackTimer);
+      this.missingFinishFallbackTimer = null;
+    }
+    this.missingFinishFallbackTurnId = null;
+  }
+
+  private scheduleMissingFinishFallback(): void {
+    const turnId = this.activeTrackedTurnId;
+    if (turnId === null) {
+      return;
+    }
+
+    this.clearMissingFinishFallback();
+    this.missingFinishFallbackTurnId = turnId;
+    this.missingFinishFallbackTimer = setTimeout(() => {
+      void this.handleMissingFinishFallback(turnId);
+    }, this.missingFinishFallbackDelayMs);
+  }
+
+  private async handleMissingFinishFallback(turnId: number): Promise<void> {
+    if (this.missingFinishFallbackTurnId !== turnId) {
+      return;
+    }
+
+    this.clearMissingFinishFallback();
+    if (this.activeTrackedTurnId !== turnId || this.completedTrackedTurnIds.has(turnId)) {
+      return;
+    }
+
+    if (this.getConfirmations().length > 0) {
+      return;
+    }
+
+    this.markTrackedTurnFinished(turnId);
+    mainWarn(
+      '[AcpAgentManager]',
+      `ACP turn became idle without finish signal; synthesizing finish for ${this.conversation_id} (${this.options.backend})`
+    );
+
+    await this.handleFinishSignal(
+      {
+        type: 'finish',
+        conversation_id: this.conversation_id,
+        msg_id: uuid(),
+        data: null,
+      },
+      this.options.backend,
+      { trackActiveTurn: false }
+    );
+  }
+
+  private async handleFinishSignal(
+    message: IResponseMessage,
+    backend: AcpBackend,
+    options: { trackActiveTurn?: boolean } = {}
+  ): Promise<void> {
+    if (options.trackActiveTurn !== false) {
+      this.markActiveTurnFinished();
+    }
+    this.clearMissingFinishFallback();
+    this.flushBufferedStreamTextMessages();
+
+    cronBusyGuard.setProcessing(this.conversation_id, false);
+    this.status = 'finished';
+
+    if (this.thinkingMsgId) {
+      this.emitThinkingMessage('', 'done');
+      this.thinkingMsgId = null;
+      this.thinkingStartTime = null;
+      this.thinkingContent = '';
+    }
+
+    skillSuggestWatcher.onFinish(this.conversation_id);
+
+    if (this.currentMsgContent && hasCronCommands(this.currentMsgContent)) {
+      const cronMessage: TMessage = {
+        id: this.currentMsgId || uuid(),
+        msg_id: this.currentMsgId || uuid(),
+        type: 'text',
+        position: 'left',
+        conversation_id: this.conversation_id,
+        content: { content: this.currentMsgContent },
+        status: 'finish',
+        createdAt: Date.now(),
+      };
+      const collectedResponses: string[] = [];
+      await processCronInMessage(this.conversation_id, backend, cronMessage, (sysMsg) => {
+        collectedResponses.push(sysMsg);
+        const systemMessage: IResponseMessage = {
+          type: 'system',
+          conversation_id: this.conversation_id,
+          msg_id: uuid(),
+          data: sysMsg,
+        };
+        ipcBridge.acpConversation.responseStream.emit(systemMessage);
+      });
+      if (collectedResponses.length > 0 && this.agent) {
+        const feedbackMessage = `[System Response]
+${collectedResponses.join('\n')}`;
+        await this.agent.sendMessage({ content: feedbackMessage });
+      }
+    }
+
+    this.currentMsgId = null;
+    this.currentMsgContent = '';
+
+    const finishMessage: IResponseMessage = {
+      ...(message as IResponseMessage),
+      conversation_id: this.conversation_id,
+    };
+    ipcBridge.acpConversation.responseStream.emit(finishMessage);
+    teamEventBus.emit('responseStream', finishMessage);
+    channelEventBus.emitAgentMessage(this.conversation_id, finishMessage);
+
+    void ConversationTurnCompletionService.getInstance().notifyPotentialCompletion(this.conversation_id, {
+      status: this.status ?? 'finished',
+      workspace: this.workspace,
+      backend: this.options.backend,
+      pendingConfirmations: this.getConfirmations().length,
+      modelId: this.persistedModelId ?? this.agent?.getModelInfo?.()?.currentModelId ?? undefined,
+    });
+  }
+
+  private async sendAgentMessageWithFinishFallback(
+    data: Parameters<AcpAgent['sendMessage']>[0] & Record<string, unknown>
+  ): Promise<AcpResult> {
+    const turnId = this.beginTrackedTurn();
+
+    try {
+      const result = await this.agent.sendMessage(data);
+      if (this.consumeTrackedTurnFinished(turnId)) {
+        return result;
+      }
+
+      if (this.activeTrackedTurnId === turnId && this.activeTrackedTurnHasRuntimeActivity) {
+        return result;
+      }
+
+      this.clearTrackedTurn(turnId);
+      mainWarn(
+        '[AcpAgentManager]',
+        `ACP turn resolved without runtime activity or finish signal; synthesizing finish for ${this.conversation_id} (${this.options.backend})`
+      );
+      await this.handleFinishSignal(
+        {
+          type: 'finish',
+          conversation_id: this.conversation_id,
+          msg_id: (data as { msg_id?: string }).msg_id || uuid(),
+          data: null,
+        },
+        this.options.backend,
+        { trackActiveTurn: false }
+      );
+      return result;
+    } catch (error) {
+      this.clearTrackedTurn(turnId);
+      throw error;
+    }
+  }
+
+  /**
+   * Check native skill support: for builtin backends, consult ACP_BACKENDS_ALL;
+   * for extension agents, check the adapter's skillsDirs from the manifest.
+   */
+  private resolveNativeSkillSupport(): boolean {
+    if (hasNativeSkillSupport(this.options.backend)) return true;
+
+    // For extension agents (backend: 'custom'), check the adapter's skillsDirs
+    if (this.options.backend === 'custom' && this.options.customAgentId?.startsWith('ext:')) {
+      try {
+        const [, extensionName, ...idParts] = this.options.customAgentId.split(':');
+        const adapterId = idParts.join(':');
+        const adapter = ExtensionRegistry.getInstance()
+          .getAcpAdapters()
+          .find((item) => {
+            const r = item as Record<string, unknown>;
+            return r._extensionName === extensionName && r.id === adapterId;
+          }) as Record<string, unknown> | undefined;
+        if (adapter && Array.isArray(adapter.skillsDirs) && adapter.skillsDirs.length > 0) {
+          return true;
+        }
+      } catch {
+        // ExtensionRegistry not available
+      }
+    }
+
+    return false;
+  }
+
+  // ── Config resolution helpers for initAgent ──────────────────────────
+
+  /**
+   * Resolve agent CLI configuration based on backend type.
+   * Dispatches to custom or built-in resolution.
+   */
+  private async resolveAgentCliConfig(data: AcpAgentManagerData): Promise<{
+    cliPath?: string;
+    customArgs?: string[];
+    customEnv?: Record<string, string>;
+    yoloMode?: boolean;
+  }> {
+    if (data.backend === 'custom' && data.customAgentId) {
+      return this.resolveCustomAgentCliConfig(data);
+    }
+    if (data.backend !== 'custom') {
+      return this.resolveBuiltinBackendConfig(data);
+    }
+    // backend === 'custom' but no customAgentId - invalid state
+    mainWarn('[AcpAgentManager]', 'Custom backend specified but customAgentId is missing');
+    return { cliPath: data.cliPath };
+  }
+
+  /**
+   * Resolve CLI config for a custom agent backend.
+   * Looks up acp.customAgents by UUID, falling back to extension-contributed adapters.
+   */
+  private async resolveCustomAgentCliConfig(data: AcpAgentManagerData): Promise<{
+    cliPath?: string;
+    customArgs?: string[];
+    customEnv?: Record<string, string>;
+  }> {
+    const customAgents = await ProcessConfig.get('acp.customAgents');
+    let customAgentConfig: CustomAgentLaunchConfig | undefined = customAgents?.find(
+      (agent) => agent.id === data.customAgentId
+    );
+
+    // Fallback: extension adapter (customAgentId format: ext:{extensionName}:{adapterId})
+    if (!customAgentConfig && data.customAgentId!.startsWith('ext:')) {
+      const [, extensionName, ...idParts] = data.customAgentId!.split(':');
+      const adapterId = idParts.join(':');
+      const adapter = ExtensionRegistry.getInstance()
+        .getAcpAdapters()
+        .find((item) => {
+          const record = item as Record<string, unknown>;
+          return record._extensionName === extensionName && record.id === adapterId;
+        }) as Record<string, unknown> | undefined;
+
+      if (adapter) {
+        customAgentConfig = {
+          id: data.customAgentId,
+          name: typeof adapter.name === 'string' ? adapter.name : data.customAgentId,
+          defaultCliPath: typeof adapter.defaultCliPath === 'string' ? adapter.defaultCliPath : undefined,
+          acpArgs: Array.isArray(adapter.acpArgs)
+            ? adapter.acpArgs.filter((v): v is string => typeof v === 'string')
+            : undefined,
+          env: typeof adapter.env === 'object' && adapter.env ? (adapter.env as Record<string, string>) : undefined,
+        };
+      }
+    }
+
+    if (!customAgentConfig?.defaultCliPath) {
+      return { cliPath: data.cliPath };
+    }
+
+    return {
+      cliPath: customAgentConfig.defaultCliPath.trim(),
+      customArgs: customAgentConfig.acpArgs,
+      customEnv: customAgentConfig.env,
+    };
+  }
+
+  /**
+   * Resolve CLI config for a built-in backend (claude, qwen, codex, etc.).
+   * Also handles yoloMode migration and codex sandbox mode.
+   */
+  private async resolveBuiltinBackendConfig(data: AcpAgentManagerData): Promise<{
+    cliPath?: string;
+    customArgs?: string[];
+    yoloMode?: boolean;
+  }> {
+    const config = await ProcessConfig.get('acp.config');
+    const codexConfig = data.backend === 'codex' ? await ProcessConfig.get('codex.config') : undefined;
+
+    let cliPath = data.cliPath;
+    if (!cliPath && config?.[data.backend]?.cliPath) {
+      cliPath = config[data.backend].cliPath;
+    }
+
+    // yoloMode priority: data.yoloMode (from CronService) > config setting
+    const legacyYoloMode = data.yoloMode ?? config?.[data.backend]?.yoloMode;
+
+    // Migrate legacy yoloMode config (from SecurityModalContent) to currentMode.
+    // Maps to each backend's native yolo mode value for correct protocol behavior.
+    // Skip when sessionMode was explicitly provided (user made a choice on Guid page).
+    if (legacyYoloMode && this.currentMode === 'default' && !data.sessionMode) {
+      const yoloModeValues: Record<string, string> = {
+        claude: 'bypassPermissions',
+        qwen: 'yolo',
+        iflow: 'yolo',
+        codex: 'yolo',
+      };
+      this.currentMode = yoloModeValues[data.backend] || 'yolo';
+      this.yoloMode = true;
+    }
+
+    // When legacy config has yoloMode=true but user explicitly chose a non-yolo mode
+    // on the Guid page, clear the legacy config so it won't re-activate next time.
+    if (legacyYoloMode && data.sessionMode && !this.isYoloMode(data.sessionMode)) {
+      void this.clearLegacyYoloConfig();
+    }
+
+    // Derive effective yoloMode from currentMode so that the agent respects
+    // the user's explicit mode choice. data.yoloMode (cron jobs) always takes priority.
+    const yoloMode = data.yoloMode ?? this.isYoloMode(this.currentMode);
+
+    // Get acpArgs from backend config (for goose, auggie, opencode, etc.)
+    const backendConfig = ACP_BACKENDS_ALL[data.backend];
+    let customArgs: string[] | undefined;
+    if (backendConfig?.acpArgs) {
+      customArgs = backendConfig.acpArgs;
+    }
+
+    // If cliPath is not configured, fallback to default cliCommand from ACP_BACKENDS_ALL
+    if (!cliPath && backendConfig?.cliCommand) {
+      cliPath = backendConfig.cliCommand;
+    }
+
+    if (data.backend === 'codex') {
+      const sandboxMode = getCodexSandboxModeForSessionMode(
+        data.sessionMode || this.currentMode,
+        data.sandboxMode || codexConfig?.sandboxMode || 'workspace-write'
+      ) as CodexSandboxMode;
+      await writeCodexSandboxMode(sandboxMode);
+      data.sandboxMode = sandboxMode;
+    }
+
+    return { cliPath, customArgs, yoloMode };
+  }
+
+  // ── initAgent callback handlers ──────────────────────────────────────
+
+  /**
+   * Handle ACP agent's available slash commands update.
+   * Deduplicates commands, caches them, and notifies the frontend.
+   */
+  private handleAvailableCommandsUpdate(commands: Array<{ name: string; description?: string; hint?: string }>): void {
+    const nextCommands: SlashCommandItem[] = [];
+    const seen = new Set<string>();
+    for (const command of commands) {
+      const name = command.name.trim();
+      if (!name || seen.has(name)) continue;
+      seen.add(name);
+      nextCommands.push({
+        name,
+        description: command.description || name,
+        hint: command.hint,
+        kind: 'template',
+        source: 'acp',
+      });
+    }
+    this.acpAvailableSlashCommands = nextCommands;
+    const waiters = this.acpAvailableSlashWaiters.splice(0, this.acpAvailableSlashWaiters.length);
+    for (const resolve of waiters) {
+      resolve(this.getAcpSlashCommands());
+    }
+
+    // Notify frontend that slash commands are now available.
+    // During bootstrap, agent_status events are suppressed, so the
+    // frontend acpStatus never updates and useSlashCommands never
+    // re-fetches. This dedicated event bypasses the bootstrap filter.
+    ipcBridge.acpConversation.responseStream.emit({
+      type: 'slash_commands_updated',
+      conversation_id: this.conversation_id,
+      msg_id: '',
+      data: null,
+    });
+  }
+
+  /**
+   * Handle stream events from the ACP agent.
+   * Processes thinking, content, status, and tool call messages through the
+   * full pipeline: filter → transform → persist → emit to all buses.
+   */
+  private handleStreamEvent(message: IResponseMessage, backend: AcpBackend): void {
+    // During bootstrap (warmup), suppress UI stream events to avoid
+    // triggering sidebar loading spinner before user sends a message.
+    if (this.bootstrapping) return;
+
+    this.markTrackedTurnRuntimeActivity();
+
+    const pipelineStart = Date.now();
+
+    // Reduce status noise: show full lifecycle only for the first turn.
+    // After first turn, only keep failure statuses to avoid reconnect chatter.
+    if (message.type === 'agent_status') {
+      const status = (message.data as { status?: string } | null)?.status;
+      const shouldDisplayStatus = this.isFirstMessage || status === 'error' || status === 'disconnected';
+      if (!shouldDisplayStatus) return;
+    }
+
+    // Handle preview_open event (chrome-devtools navigation interception)
+    if (handlePreviewOpenEvent(message)) return;
+
+    // Mark as finished when content is output (visible to user)
+    const contentTypes = ['content', 'agent_status', 'acp_tool_call', 'plan'];
+    if (contentTypes.includes(message.type)) {
+      this.status = 'finished';
+    }
+
+    // Emit request trace on each model generation start
+    if (message.type === 'start') {
+      const modelInfo = this.agent?.getModelInfo();
+      ipcBridge.acpConversation.responseStream.emit({
+        type: 'request_trace',
+        conversation_id: this.conversation_id,
+        msg_id: uuid(),
+        data: {
+          agentType: 'acp' as const,
+          backend,
+          modelId: modelInfo?.currentModelId || this.persistedModelId || 'unknown',
+          cliPath: this.options?.cliPath,
+          sessionMode: this.currentMode,
+          timestamp: Date.now(),
+        },
+      });
+    }
+
+    // Persist config options to DB so AcpConfigSelector can render from cache
+    if (message.type === 'acp_model_info') {
+      const configOptions = this.getConfigOptions();
+      if (configOptions.length > 0) {
+        void this.saveConfigOptions(configOptions);
+      }
+    }
+
+    // Persist context usage to conversation extra for restore on page switch
+    if (message.type === 'acp_context_usage') {
+      this.saveContextUsage(message.data as { used: number; size: number });
+    }
+
+    // Convert thought events to thinking messages in conversation flow
+    if (message.type === 'thought') {
+      const thoughtData = message.data as { subject?: string; description?: string };
+      const content = thoughtData?.description || thoughtData?.subject || '';
+      if (content) {
+        this.emitThinkingMessage(content, 'thinking');
+      }
+    } else if (this.thinkingMsgId) {
+      // Any non-thought message means thinking phase is over
+      this.emitThinkingMessage('', 'done');
+      this.thinkingMsgId = null;
+      this.thinkingStartTime = null;
+      this.thinkingContent = '';
+    }
+
+    // Strip inline <think> tags from content messages BEFORE transform/DB/emit
+    // so thinking appears before main content and DB stores clean text
+    // (e.g. MiniMax models embed think tags in content)
+    let processedMessage = message;
+    if (message.type === 'content' && typeof message.data === 'string') {
+      const { thinking, content: stripped } = extractAndStripThinkTags(message.data);
+      if (thinking) {
+        this.emitThinkingMessage(thinking, 'thinking');
+      }
+      if (stripped !== message.data) {
+        processedMessage = { ...message, data: stripped };
+      }
+    }
+
+    if (
+      processedMessage.type !== 'thought' &&
+      processedMessage.type !== 'thinking' &&
+      processedMessage.type !== 'acp_model_info' &&
+      processedMessage.type !== 'acp_context_usage'
+    ) {
+      const transformStart = Date.now();
+      const tMessage = transformMessage(processedMessage);
+      const transformDuration = Date.now() - transformStart;
+
+      if (tMessage) {
+        const dbStart = Date.now();
+        const isStreamTextChunk = tMessage.type === 'text' && processedMessage.type === 'content';
+        if (isStreamTextChunk) {
+          this.queueBufferedStreamTextMessage(tMessage, backend);
+        } else {
+          this.flushBufferedStreamTextMessages();
+          addOrUpdateMessage(processedMessage.conversation_id, tMessage, backend);
+        }
+        const dbDuration = Date.now() - dbStart;
+
+        if (transformDuration > 5 || dbDuration > 5) {
+          console.log(
+            `[ACP-PERF] stream: transform ${transformDuration}ms, db ${dbDuration}ms type=${processedMessage.type}`
+          );
+        }
+
+        // Track streaming content for cron detection when turn ends
+        if (isStreamTextChunk) {
+          const textContent = extractTextFromMessage(tMessage);
+          if (tMessage.msg_id !== this.currentMsgId) {
+            this.currentMsgId = tMessage.msg_id || null;
+            this.currentMsgContent = textContent;
+          } else {
+            this.currentMsgContent += textContent;
           }
         }
-
-        if (customAgentConfig?.defaultCliPath) {
-          // Pass the full defaultCliPath to createGenericSpawnConfig which handles
-          // command parsing (npx detection, Windows shell quoting, etc.).
-          // Previously we split here which broke paths with spaces on Windows
-          // and lost npx package arguments when acpArgs was also set.
-          cliPath = customAgentConfig.defaultCliPath.trim();
-          customArgs = customAgentConfig.acpArgs;
-          customEnv = customAgentConfig.env;
-        }
-      } else if (data.backend !== 'custom') {
-        // Handle built-in backends: read from acp.config
-        const config = await ProcessConfig.get('acp.config');
-        const codexConfig = data.backend === 'codex' ? await ProcessConfig.get('codex.config') : undefined;
-        if (!cliPath && config?.[data.backend]?.cliPath) {
-          cliPath = config[data.backend].cliPath;
-        }
-        // yoloMode priority: data.yoloMode (from CronService) > config setting
-        // yoloMode 优先级：data.yoloMode（来自 CronService）> 配置设置
-        const legacyYoloMode = data.yoloMode ?? (config?.[data.backend] as any)?.yoloMode;
-
-        // Migrate legacy yoloMode config (from SecurityModalContent) to currentMode.
-        // Maps to each backend's native yolo mode value for correct protocol behavior.
-        // Skip when sessionMode was explicitly provided (user made a choice on Guid page).
-        if (legacyYoloMode && this.currentMode === 'default' && !data.sessionMode) {
-          const yoloModeValues: Record<string, string> = {
-            claude: 'bypassPermissions',
-            qwen: 'yolo',
-            iflow: 'yolo',
-            codex: 'yolo',
-          };
-          this.currentMode = yoloModeValues[data.backend] || 'yolo';
-          this.yoloMode = true;
-        }
-
-        // When legacy config has yoloMode=true but user explicitly chose a non-yolo mode
-        // on the Guid page, clear the legacy config so it won't re-activate next time.
-        if (legacyYoloMode && data.sessionMode && !this.isYoloMode(data.sessionMode)) {
-          void this.clearLegacyYoloConfig();
-        }
-
-        // Derive effective yoloMode from currentMode so that the agent respects
-        // the user's explicit mode choice. data.yoloMode (cron jobs) always takes priority.
-        yoloMode = data.yoloMode ?? this.isYoloMode(this.currentMode);
-
-        // Get acpArgs from backend config (for goose, auggie, opencode, etc.)
-        const backendConfig = ACP_BACKENDS_ALL[data.backend];
-        if (backendConfig?.acpArgs) {
-          customArgs = backendConfig.acpArgs;
-        }
-
-        // 如果没有配置 cliPath，使用 ACP_BACKENDS_ALL 中的默认 cliCommand
-        // If cliPath is not configured, fallback to default cliCommand from ACP_BACKENDS_ALL
-        if (!cliPath && backendConfig?.cliCommand) {
-          cliPath = backendConfig.cliCommand;
-        }
-
-        if (data.backend === 'codex') {
-          const sandboxMode = getCodexSandboxModeForSessionMode(
-            data.sessionMode || this.currentMode,
-            data.sandboxMode || codexConfig?.sandboxMode || 'workspace-write'
-          ) as CodexSandboxMode;
-          await writeCodexSandboxMode(sandboxMode);
-          data.sandboxMode = sandboxMode;
-        }
-      } else {
-        // backend === 'custom' but no customAgentId - this is an invalid state
-        // 自定义后端但缺少 customAgentId - 这是无效状态
-        mainWarn('[AcpAgentManager]', 'Custom backend specified but customAgentId is missing');
       }
+    }
+
+    const emitStart = Date.now();
+    ipcBridge.acpConversation.responseStream.emit(processedMessage);
+    // Only emit terminal events to team bus for agent lifecycle management
+    if (processedMessage.type === 'finish' || processedMessage.type === 'error') {
+      teamEventBus.emit('responseStream', {
+        ...processedMessage,
+        conversation_id: this.conversation_id,
+      });
+    }
+    const emitDuration = Date.now() - emitStart;
+
+    channelEventBus.emitAgentMessage(this.conversation_id, {
+      ...processedMessage,
+      conversation_id: this.conversation_id,
+    });
+
+    const totalDuration = Date.now() - pipelineStart;
+    if (totalDuration > 10) {
+      console.log(
+        `[ACP-PERF] stream: onStreamEvent pipeline ${totalDuration}ms (emit=${emitDuration}ms) type=${processedMessage.type}`
+      );
+    }
+  }
+
+  /**
+   * Handle signal events (permission requests, finish, errors) from the ACP agent.
+   * Auto-approves permissions in yolo mode and for team MCP tools,
+   * delegates finish handling to handleFinishSignal.
+   */
+  private async handleSignalEvent(v: IResponseMessage, backend: AcpBackend): Promise<void> {
+    this.flushBufferedStreamTextMessages();
+    this.markTrackedTurnRuntimeActivity();
+
+    if (v.type === 'acp_permission') {
+      const { toolCall, options } = v.data as AcpPermissionRequest;
+
+      // Auto-approve ALL tools when in yolo/bypassPermissions mode.
+      if (this.isYoloMode(this.currentMode) && options.length > 0) {
+        const autoOption = options[0];
+        setTimeout(() => {
+          void this.confirm(v.msg_id, toolCall.toolCallId || v.msg_id, autoOption);
+        }, 50);
+        return;
+      }
+
+      // Auto-approve team MCP tools — internal tools provided by AionUi.
+      const toolTitle = toolCall.title || '';
+      if (toolTitle.includes('aionui-team') && options.length > 0) {
+        const autoOption = options[0];
+        setTimeout(() => {
+          void this.confirm(v.msg_id, toolCall.toolCallId || v.msg_id, autoOption);
+        }, 50);
+        return;
+      }
+
+      this.addConfirmation({
+        title: toolCall.title || 'messages.permissionRequest',
+        action: 'messages.command',
+        id: v.msg_id,
+        description: toolCall.rawInput?.description || 'messages.agentRequestingPermission',
+        callId: toolCall.toolCallId || v.msg_id,
+        options: options.map((option) => ({
+          label: option.name,
+          value: option,
+        })),
+      });
+
+      channelEventBus.emitAgentMessage(this.conversation_id, {
+        type: 'error',
+        conversation_id: this.conversation_id,
+        msg_id: v.msg_id,
+        data: 'Permission required. Please open AionUi and confirm the pending request in the conversation panel.',
+      });
+      return;
+    }
+
+    if (v.type === 'finish') {
+      await this.handleFinishSignal(v, backend);
+      return;
+    }
+
+    ipcBridge.acpConversation.responseStream.emit(v);
+
+    channelEventBus.emitAgentMessage(this.conversation_id, {
+      ...v,
+      conversation_id: this.conversation_id,
+    });
+  }
+
+  /**
+   * Re-apply persisted mode and model after agent session starts/resumes.
+   * Also caches the model list for Guid page pre-selection.
+   */
+  private async restorePersistedState(): Promise<void> {
+    if (this.currentMode && this.currentMode !== 'default') {
+      try {
+        await this.agent.setMode(this.currentMode);
+      } catch (error) {
+        mainWarn('[AcpAgentManager]', `Failed to re-apply mode ${this.currentMode}`, error);
+      }
+    }
+
+    if (this.persistedModelId) {
+      const currentInfo = this.agent.getModelInfo();
+      const isModelAvailable = currentInfo?.availableModels?.some((m) => m.id === this.persistedModelId);
+      if (!isModelAvailable) {
+        mainWarn('[AcpAgentManager]', `Persisted model ${this.persistedModelId} is not in available models, clearing`);
+        this.persistedModelId = null;
+      } else if (currentInfo?.currentModelId !== this.persistedModelId) {
+        try {
+          await this.agent.setModelByConfigOption(this.persistedModelId);
+        } catch (error) {
+          const errMsg = error instanceof Error ? error.message : String(error);
+          mainWarn('[AcpAgentManager]', `Failed to re-apply model ${this.persistedModelId}`, error);
+          if (errMsg.includes('model_not_found') || errMsg.includes('无可用渠道')) {
+            ipcBridge.acpConversation.responseStream.emit({
+              type: 'error',
+              conversation_id: this.conversation_id,
+              msg_id: `model_error_${Date.now()}`,
+              data:
+                `Model "${this.persistedModelId}" is not available on your API relay service. ` +
+                `Please add this model to your relay's channel configuration. Falling back to the default model.`,
+            });
+          }
+          this.persistedModelId = null;
+        }
+      }
+    }
+
+    const modelInfo = this.agent.getModelInfo();
+    if (modelInfo && modelInfo.availableModels?.length > 0) {
+      void this.cacheModelList(modelInfo);
+    }
+  }
+
+  // ── initAgent ────────────────────────────────────────────────────────
+
+  initAgent(data: AcpAgentManagerData = this.options) {
+    if (this.bootstrap) return this.bootstrap;
+
+    this.bootstrapping = true;
+    this.bootstrap = (async () => {
+      const { cliPath, customArgs, customEnv, yoloMode } = await this.resolveAgentCliConfig(data);
 
       this.agent = new AcpAgent({
         id: data.conversation_id,
@@ -304,371 +908,18 @@ class AcpAgentManager extends BaseAgentManager<AcpAgentManagerData, AcpPermissio
           // 保存 ACP session ID 到数据库以支持会话恢复
           this.saveAcpSessionId(sessionId);
         },
-        onAvailableCommandsUpdate: (commands) => {
-          const nextCommands: SlashCommandItem[] = [];
-          const seen = new Set<string>();
-          for (const command of commands) {
-            const name = command.name.trim();
-            if (!name || seen.has(name)) continue;
-            seen.add(name);
-            nextCommands.push({
-              name,
-              description: command.description || name,
-              hint: command.hint,
-              kind: 'template',
-              source: 'acp',
-            });
-          }
-          this.acpAvailableSlashCommands = nextCommands;
-          const waiters = this.acpAvailableSlashWaiters.splice(0, this.acpAvailableSlashWaiters.length);
-          for (const resolve of waiters) {
-            resolve(this.getAcpSlashCommands());
-          }
-
-          // Notify frontend that slash commands are now available.
-          // During bootstrap, agent_status events are suppressed, so the
-          // frontend acpStatus never updates and useSlashCommands never
-          // re-fetches. This dedicated event bypasses the bootstrap filter.
-          ipcBridge.acpConversation.responseStream.emit({
-            type: 'slash_commands_updated',
-            conversation_id: this.conversation_id,
-            msg_id: '',
-            data: null,
-          });
+        onAvailableCommandsUpdate: (commands: Array<{ name: string; description?: string; hint?: string }>) => {
+          this.handleAvailableCommandsUpdate(commands);
         },
         onStreamEvent: (message) => {
-          // During bootstrap (warmup), suppress UI stream events to avoid
-          // triggering sidebar loading spinner before user sends a message.
-          if (this.bootstrapping) {
-            return;
-          }
-
-          // Any streaming event counts as activity for idle-timeout tracking
-          this._lastActivityAt = Date.now();
-
-          const pipelineStart = Date.now();
-
-          // Reduce status noise: show full lifecycle only for the first turn.
-          // After first turn, only keep failure statuses to avoid reconnect chatter.
-          if (message.type === 'agent_status') {
-            const status = (message.data as { status?: string } | null)?.status;
-            const shouldDisplayStatus = this.isFirstMessage || status === 'error' || status === 'disconnected';
-            if (!shouldDisplayStatus) {
-              return;
-            }
-          }
-
-          // Handle preview_open event (chrome-devtools navigation interception)
-          // 处理 preview_open 事件（chrome-devtools 导航拦截）
-          if (handlePreviewOpenEvent(message)) {
-            return; // Don't process further / 不需要继续处理
-          }
-
-          // Mark as finished when content is output (visible to user)
-          // ACP uses: content, agent_status, acp_tool_call, plan
-          const contentTypes = ['content', 'agent_status', 'acp_tool_call', 'plan'];
-          if (contentTypes.includes(message.type)) {
-            this.status = 'finished';
-          }
-
-          // Emit request trace on each model generation start
-          if (message.type === 'start') {
-            const modelInfo = this.agent?.getModelInfo();
-            const traceData = {
-              agentType: 'acp' as const,
-              backend: data.backend,
-              modelId: modelInfo?.currentModelId || this.persistedModelId || 'unknown',
-              cliPath: this.options?.cliPath,
-              sessionMode: this.currentMode,
-              timestamp: Date.now(),
-            };
-            ipcBridge.acpConversation.responseStream.emit({
-              type: 'request_trace',
-              conversation_id: this.conversation_id,
-              msg_id: uuid(),
-              data: traceData,
-            });
-          }
-
-          // Persist config options to DB so AcpConfigSelector can render from cache
-          if (message.type === 'acp_model_info') {
-            const configOptions = this.getConfigOptions();
-            if (configOptions.length > 0) {
-              void this.saveConfigOptions(configOptions);
-            }
-          }
-
-          // Persist context usage to conversation extra for restore on page switch
-          if (message.type === 'acp_context_usage') {
-            const usageData = message.data as { used: number; size: number };
-            this.saveContextUsage(usageData);
-          }
-
-          // Convert thought events to thinking messages in conversation flow
-          if (message.type === 'thought') {
-            const thoughtData = message.data as { subject?: string; description?: string };
-            const content = thoughtData?.description || thoughtData?.subject || '';
-            if (content) {
-              this.emitThinkingMessage(content, 'thinking');
-            }
-          } else if (this.thinkingMsgId) {
-            // Any non-thought message means thinking phase is over
-            this.emitThinkingMessage('', 'done');
-            this.thinkingMsgId = null;
-            this.thinkingStartTime = null;
-            this.thinkingContent = '';
-          }
-
-          // Strip inline <think> tags from content messages BEFORE transform/DB/emit
-          // so thinking appears before main content and DB stores clean text
-          // (e.g. MiniMax models embed think tags in content)
-          if (message.type === 'content' && typeof message.data === 'string') {
-            const { thinking, content: stripped } = extractAndStripThinkTags(message.data);
-            if (thinking) {
-              this.emitThinkingMessage(thinking, 'thinking');
-            }
-            if (stripped !== message.data) {
-              message = { ...message, data: stripped };
-            }
-          }
-
-          if (
-            message.type !== 'thought' &&
-            message.type !== 'thinking' &&
-            message.type !== 'acp_model_info' &&
-            message.type !== 'acp_context_usage'
-          ) {
-            const transformStart = Date.now();
-            const tMessage = transformMessage(message as IResponseMessage);
-            const transformDuration = Date.now() - transformStart;
-
-            if (tMessage) {
-              const dbStart = Date.now();
-              const isStreamTextChunk = tMessage.type === 'text' && message.type === 'content';
-              if (isStreamTextChunk) {
-                this.queueBufferedStreamTextMessage(tMessage, data.backend);
-              } else {
-                this.flushBufferedStreamTextMessages();
-                addOrUpdateMessage(message.conversation_id, tMessage, data.backend);
-              }
-              const dbDuration = Date.now() - dbStart;
-
-              if (transformDuration > 5 || dbDuration > 5) {
-                console.log(
-                  `[ACP-PERF] stream: transform ${transformDuration}ms, db ${dbDuration}ms type=${message.type}`
-                );
-              }
-
-              // Track streaming content for cron detection when turn ends
-              // ACP sends content in chunks, we accumulate here for later detection
-              if (isStreamTextChunk) {
-                const textContent = extractTextFromMessage(tMessage);
-                if (tMessage.msg_id !== this.currentMsgId) {
-                  // New message, reset accumulator
-                  this.currentMsgId = tMessage.msg_id || null;
-                  this.currentMsgContent = textContent;
-                } else {
-                  // Same message, accumulate content
-                  this.currentMsgContent += textContent;
-                }
-              }
-            }
-          }
-
-          const emitStart = Date.now();
-          ipcBridge.acpConversation.responseStream.emit(message as IResponseMessage);
-          // Also emit to main-process-local bus so TeammateManager (same process)
-          // can receive events — ipcBridge.emit only delivers to renderer via webContents.send()
-          teamEventBus.emit('responseStream', {
-            ...(message as IResponseMessage),
-            conversation_id: this.conversation_id,
-          });
-          const emitDuration = Date.now() - emitStart;
-
-          // Also emit to Channel global event bus (Telegram/Lark streaming)
-          // 同时发送到 Channel 全局事件总线（用于 Telegram/Lark 等外部平台）
-          channelEventBus.emitAgentMessage(this.conversation_id, {
-            ...(message as IResponseMessage),
-            conversation_id: this.conversation_id,
-          });
-
-          const totalDuration = Date.now() - pipelineStart;
-          if (totalDuration > 10) {
-            console.log(
-              `[ACP-PERF] stream: onStreamEvent pipeline ${totalDuration}ms (emit=${emitDuration}ms) type=${message.type}`
-            );
-          }
+          this.handleStreamEvent(message as IResponseMessage, data.backend);
         },
         onSignalEvent: async (v) => {
-          // Signal events (permission, finish, etc.) count as activity
-          this._lastActivityAt = Date.now();
-
-          // Flush buffered text chunks before handling turn-level signals
-          this.flushBufferedStreamTextMessages();
-
-          // 仅发送信号到前端，不更新消息列表
-          if (v.type === 'acp_permission') {
-            const { toolCall, options } = v.data as AcpPermissionRequest;
-
-            // Auto-approve ALL tools when in yolo/bypassPermissions mode.
-            // Fallback for cases where this.yoloMode wasn't set correctly
-            // (e.g., setMode IPC failed silently for spawned agents).
-            if (this.isYoloMode(this.currentMode) && options.length > 0) {
-              const autoOption = options[0];
-              setTimeout(() => {
-                void this.confirm(v.msg_id, toolCall.toolCallId || v.msg_id, autoOption);
-              }, 50);
-              return;
-            }
-
-            // Auto-approve team MCP tools — they are internal tools provided by AionUi,
-            // not external MCP servers, so they should never require user confirmation.
-            const toolTitle = toolCall.title || '';
-            if (toolTitle.includes('aionui-team') && options.length > 0) {
-              const autoOption = options[0];
-              setTimeout(() => {
-                void this.confirm(v.msg_id, toolCall.toolCallId || v.msg_id, autoOption);
-              }, 50);
-              return;
-            }
-
-            this.addConfirmation({
-              title: toolCall.title || 'messages.permissionRequest',
-              action: 'messages.command',
-              id: v.msg_id,
-              description: toolCall.rawInput?.description || 'messages.agentRequestingPermission',
-              callId: toolCall.toolCallId || v.msg_id,
-              options: options.map((option) => ({
-                label: option.name,
-                value: option,
-              })),
-            });
-
-            // Channels (Telegram/Lark) currently don't have interactive permission UX.
-            // Emit a readable error to avoid "silent hang" in external platforms.
-            channelEventBus.emitAgentMessage(this.conversation_id, {
-              type: 'error',
-              conversation_id: this.conversation_id,
-              msg_id: v.msg_id,
-              data: 'Permission required. Please open AionUi and confirm the pending request in the conversation panel.',
-            });
-            return;
-          }
-
-          // Clear busy guard and finalize thinking message when turn ends
-          if (v.type === 'finish') {
-            cronBusyGuard.setProcessing(this.conversation_id, false);
-            this.status = 'finished';
-            // Finalize thinking message with done status
-            if (this.thinkingMsgId) {
-              this.emitThinkingMessage('', 'done');
-              this.thinkingMsgId = null;
-              this.thinkingStartTime = null;
-              this.thinkingContent = '';
-            }
-            // Check for SKILL_SUGGEST.md updates (registered by cron executor)
-            skillSuggestWatcher.onFinish(this.conversation_id);
-          }
-
-          // Process cron commands when turn ends (finish signal)
-          // ACP streams content in chunks, so we check the accumulated content here
-          if (v.type === 'finish' && this.currentMsgContent && hasCronCommands(this.currentMsgContent)) {
-            const message: TMessage = {
-              id: this.currentMsgId || uuid(),
-              msg_id: this.currentMsgId || uuid(),
-              type: 'text',
-              position: 'left',
-              conversation_id: this.conversation_id,
-              content: { content: this.currentMsgContent },
-              status: 'finish',
-              createdAt: Date.now(),
-            };
-            // Process cron commands and send results back to AI
-            const collectedResponses: string[] = [];
-            await processCronInMessage(this.conversation_id, data.backend as any, message, (sysMsg) => {
-              collectedResponses.push(sysMsg);
-              // Also emit to frontend for display
-              const systemMessage: IResponseMessage = {
-                type: 'system',
-                conversation_id: this.conversation_id,
-                msg_id: uuid(),
-                data: sysMsg,
-              };
-              ipcBridge.acpConversation.responseStream.emit(systemMessage);
-            });
-            // Send collected responses back to AI agent so it can continue
-            if (collectedResponses.length > 0 && this.agent) {
-              const feedbackMessage = `[System Response]\n${collectedResponses.join('\n')}`;
-              await this.agent.sendMessage({ content: feedbackMessage });
-            }
-            // Reset after processing
-            this.currentMsgId = null;
-            this.currentMsgContent = '';
-          }
-
-          ipcBridge.acpConversation.responseStream.emit(v);
-          // Also emit to main-process-local bus (same reason as onStreamEvent above)
-          teamEventBus.emit('responseStream', {
-            ...(v as IResponseMessage),
-            conversation_id: this.conversation_id,
-          });
-
-          // Forward signals (finish/error/etc.) to Channel global event bus
-          channelEventBus.emitAgentMessage(this.conversation_id, {
-            ...(v as any),
-            conversation_id: this.conversation_id,
-          });
+          await this.handleSignalEvent(v as IResponseMessage, data.backend);
         },
       });
       return this.agent.start().then(async () => {
-        // Re-apply persisted mode after session start/resume
-        // 在会话启动/恢复后重新应用持久化的模式
-        if (this.currentMode && this.currentMode !== 'default') {
-          try {
-            await this.agent.setMode(this.currentMode);
-          } catch (error) {
-            mainWarn('[AcpAgentManager]', `Failed to re-apply mode ${this.currentMode}`, error);
-          }
-        }
-        // Re-apply persisted model if current model differs from persisted one
-        // 如果当前模型与持久化模型不同，重新应用持久化的模型
-        if (this.persistedModelId) {
-          const currentInfo = this.agent.getModelInfo();
-          // Validate persisted model exists in current available models before re-applying.
-          // Stale cache may reference models that no longer exist (e.g., gpt-5.3-codex).
-          const isModelAvailable = currentInfo?.availableModels?.some((m) => m.id === this.persistedModelId);
-          if (!isModelAvailable) {
-            mainWarn(
-              '[AcpAgentManager]',
-              `Persisted model ${this.persistedModelId} is not in available models, clearing`
-            );
-            this.persistedModelId = null;
-          } else if (currentInfo?.currentModelId !== this.persistedModelId) {
-            try {
-              await this.agent.setModelByConfigOption(this.persistedModelId);
-            } catch (error) {
-              const errMsg = error instanceof Error ? error.message : String(error);
-              mainWarn('[AcpAgentManager]', `Failed to re-apply model ${this.persistedModelId}`, error);
-              // Emit visible error for relay/proxy compatibility issues
-              if (errMsg.includes('model_not_found') || errMsg.includes('无可用渠道')) {
-                ipcBridge.acpConversation.responseStream.emit({
-                  type: 'error',
-                  conversation_id: this.conversation_id,
-                  msg_id: `model_error_${Date.now()}`,
-                  data:
-                    `Model "${this.persistedModelId}" is not available on your API relay service. ` +
-                    `Please add this model to your relay's channel configuration. Falling back to the default model.`,
-                });
-              }
-              this.persistedModelId = null;
-            }
-          }
-        }
-        // Cache model list for Guid page pre-selection after agent starts
-        const modelInfo = this.agent.getModelInfo();
-        if (modelInfo && modelInfo.availableModels?.length > 0) {
-          void this.cacheModelList(modelInfo);
-        }
+        await this.restorePersistedState();
         this.bootstrapping = false;
         return this.agent;
       });
@@ -750,22 +1001,31 @@ class AcpAgentManager extends BaseAgentManager<AcpAgentManagerData, AcpPermissio
         // 因此自定义工作空间或不支持原生 skill 发现的 backend 都需要通过 prompt 注入 skills。
         // So custom workspaces or backends without native skill discovery need prompt injection.
         if (this.isFirstMessage) {
-          const useNativeSkills = hasNativeSkillSupport(this.options.backend) && !this.options.customWorkspace;
+          const isInTeam = Boolean((this.options as unknown as Record<string, unknown>).teamMcpStdioConfig);
+          const useNativeSkills = this.resolveNativeSkillSupport() && !this.options.customWorkspace;
           if (useNativeSkills) {
-            // Native skill discovery via workspace symlinks — only inject preset rules
-            if (this.options.presetContext) {
-              contentToSend = `[Assistant Rules - You MUST follow these instructions]\n${this.options.presetContext}\n\n[User Request]\n${contentToSend}`;
+            // Native skill discovery via workspace symlinks — inject preset rules + team guide
+            const parts: string[] = [];
+            if (this.options.presetContext) parts.push(this.options.presetContext);
+            if (!isInTeam && shouldInjectTeamGuideMcp(this.options.backend)) {
+              const { getTeamGuidePrompt } = await import('@process/resources/prompts/teamGuidePrompt');
+              parts.push(getTeamGuidePrompt(this.options.backend));
+            }
+            if (parts.length > 0) {
+              contentToSend = `[Assistant Rules - You MUST follow these instructions]\n${parts.join('\n\n')}\n\n[User Request]\n${contentToSend}`;
             }
           } else {
             // Custom workspace or no native support — inject rules + skills via prompt
             contentToSend = await prepareFirstMessageWithSkillsIndex(contentToSend, {
               presetContext: this.options.presetContext,
               enabledSkills: this.options.enabledSkills,
+              enableTeamGuide: !isInTeam && shouldInjectTeamGuideMcp(this.options.backend),
+              backend: this.options.backend,
             });
           }
         }
 
-        const result = await this.agent.sendMessage({
+        const result = await this.sendAgentMessageWithFinishFallback({
           ...data,
           content: contentToSend,
         });
@@ -784,7 +1044,7 @@ class AcpAgentManager extends BaseAgentManager<AcpAgentManagerData, AcpPermissio
         return result;
       }
       const agentSendStart = Date.now();
-      const result = await this.agent.sendMessage(data);
+      const result = await this.sendAgentMessageWithFinishFallback(data);
       console.log(
         `[ACP-PERF] manager: agent.sendMessage completed ${Date.now() - agentSendStart}ms (total manager.sendMessage: ${Date.now() - managerSendStart}ms)`
       );
@@ -1146,11 +1406,11 @@ class AcpAgentManager extends BaseAgentManager<AcpAgentManagerData, AcpPermissio
     try {
       const config = await ProcessConfig.get('acp.config');
       const backendConfig = config?.[this.options.backend];
-      if ((backendConfig as any)?.yoloMode) {
+      if (backendConfig?.yoloMode) {
         await ProcessConfig.set('acp.config', {
           ...config,
           [this.options.backend]: { ...backendConfig, yoloMode: false },
-        });
+        } as IConfigStorageRefer['acp.config']);
       }
     } catch (error) {
       mainError('[AcpAgentManager]', 'Failed to clear legacy yoloMode config', error);
@@ -1267,7 +1527,7 @@ class AcpAgentManager extends BaseAgentManager<AcpAgentManagerData, AcpPermissio
    * An idempotent doKill() guard prevents double super.kill() when the hard
    * timeout and graceful path race against each other.
    */
-  kill(reason?: AgentKillReason) {
+  kill(_reason?: AgentKillReason) {
     this.flushBufferedStreamTextMessages();
     this.flushThinkingToDb(undefined, 'done');
 

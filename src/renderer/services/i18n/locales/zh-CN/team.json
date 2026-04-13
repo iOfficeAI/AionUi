@@ -34,17 +34,35 @@
   "create": {
     "title": "创建团队",
     "namePlaceholder": "团队名称",
-    "dispatchAgentPlaceholder": "选择调度 Agent",
+    "dispatchAgentPlaceholder": "选择团队 Leader",
     "subAgentsPlaceholder": "选择子 Agent",
     "workspacePlaceholder": "工作目录路径（可选）",
     "confirm": "创建团队",
     "noSupportedAgents": "未检测到支持的 Agent",
     "supportedAgentsHint": "目前支持 Claude 和 Codex，更多 Agent 适配中",
+    "leaderDesc": "接收你的指令，拆解任务并分配给团队中的 Agent",
     "step": {
-      "dispatch": "调度 Agent",
+      "dispatch": "团队 Leader",
       "subAgents": "子 Agent",
       "workspace": "工作空间"
     },
+    "nameRequired": "请输入团队名称",
+    "leaderRequired": "请选择团队 Leader",
+    "selectFolder": "选择工作目录",
+    "recentLabel": "最近使用",
+    "chooseDifferentFolder": "选择其他目录",
     "error": "创建团队失败"
+  },
+  "removeAgent": {
+    "confirmTitle": "移除团队成员",
+    "confirmContent": "该成员正在工作中，确定要强制移除吗？"
+  },
+  "emptyState": {
+    "subtitle": "描述你的目标，我来协调团队搞定它",
+    "suggestions": {
+      "debate": "组织一场辩论赛，让 Agent 各持立场",
+      "interview": "策划一场深度访谈",
+      "expert_review": "多位专家会诊同一个问题"
+    }
   }
 }

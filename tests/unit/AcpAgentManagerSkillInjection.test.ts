@@ -207,6 +207,8 @@ describe('AcpAgentManager — first-message skill injection', () => {
     expect(mockPrepareFirstMessage).toHaveBeenCalledWith('Hello', {
       presetContext: 'You are helpful.',
       enabledSkills: ['pptx'],
+      enableTeamGuide: true,
+      backend: 'claude',
     });
   });
 
@@ -223,10 +225,12 @@ describe('AcpAgentManager — first-message skill injection', () => {
     expect(mockPrepareFirstMessage).toHaveBeenCalledWith('Hello', {
       presetContext: 'Some rules',
       enabledSkills: ['pdf'],
+      enableTeamGuide: false,
+      backend: 'opencode',
     });
   });
 
-  it('skips presetContext injection when presetContext is undefined (native path)', async () => {
+  it('injects team guide prompt even when presetContext is undefined (native path, whitelisted backend)', async () => {
     const manager = createManager({
       backend: 'claude',
       customWorkspace: false,
@@ -236,7 +240,27 @@ describe('AcpAgentManager — first-message skill injection', () => {
 
     expect(mockPrepareFirstMessage).not.toHaveBeenCalled();
     const sentContent = mockAgentSendMessage.mock.calls[0][0].content as string;
-    // No preset context → content should be passed through unchanged
-    expect(sentContent).toBe('Test message');
+    // claude is whitelisted for team guide → content should include team guide prompt
+    expect(sentContent).toContain('[Assistant Rules');
+    expect(sentContent).toContain('Team Mode');
+    expect(sentContent).toContain('[User Request]');
+    expect(sentContent).toContain('Test message');
+  });
+
+  it('injects team guide for gemini backend (now in TEAM_SUPPORTED_BACKENDS)', async () => {
+    const manager = createManager({
+      backend: 'gemini',
+      customWorkspace: false,
+    });
+
+    await sendFirstMessage(manager, 'Test message');
+
+    expect(mockPrepareFirstMessage).not.toHaveBeenCalled();
+    const sentContent = mockAgentSendMessage.mock.calls[0][0].content as string;
+    // gemini is now in TEAM_SUPPORTED_BACKENDS → team guide should be injected
+    expect(sentContent).toContain('[Assistant Rules');
+    expect(sentContent).toContain('Team Mode');
+    expect(sentContent).toContain('[User Request]');
+    expect(sentContent).toContain('Test message');
   });
 });

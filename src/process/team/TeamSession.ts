@@ -25,6 +25,7 @@ export class TeamSession extends EventEmitter {
   private readonly mailbox: Mailbox;
   private readonly taskManager: TaskManager;
   private readonly teammateManager: TeammateManager;
+  private readonly workerTaskManager: IWorkerTaskManager;
   private readonly mcpServer: TeamMcpServer;
   private mcpStdioConfig: StdioMcpConfig | null = null;
 
@@ -33,6 +34,7 @@ export class TeamSession extends EventEmitter {
     this.team = team;
     this.teamId = team.id;
     this.repo = repo;
+    this.workerTaskManager = workerTaskManager;
     this.mailbox = new Mailbox(repo);
     this.taskManager = new TaskManager(repo);
     this.teammateManager = new TeammateManager({
@@ -42,6 +44,10 @@ export class TeamSession extends EventEmitter {
       taskManager: this.taskManager,
       workerTaskManager,
       spawnAgent,
+      teamWorkspace: team.workspace || undefined,
+      onAgentRemoved: (teamId, agents) => {
+        void this.repo.update(teamId, { agents, updatedAt: Date.now() });
+      },
     });
 
     // Create MCP server for team coordination tools
@@ -56,8 +62,8 @@ export class TeamSession extends EventEmitter {
         void this.repo.update(team.id, { agents: this.teammateManager.getAgents(), updatedAt: Date.now() });
       },
       removeAgent: (slotId: string) => {
+        // removeAgent already persists via onAgentRemoved callback
         this.teammateManager.removeAgent(slotId);
-        void this.repo.update(team.id, { agents: this.teammateManager.getAgents(), updatedAt: Date.now() });
       },
       wakeAgent: (slotId: string) => this.teammateManager.wake(slotId),
     });
@@ -70,7 +76,6 @@ export class TeamSession extends EventEmitter {
   async startMcpServer(): Promise<StdioMcpConfig> {
     if (!this.mcpStdioConfig) {
       this.mcpStdioConfig = await this.mcpServer.start();
-      this.teammateManager.setHasMcpTools(true);
     }
     return this.mcpStdioConfig;
   }
@@ -81,6 +86,20 @@ export class TeamSession extends EventEmitter {
     if (!agentSlotId) return this.mcpStdioConfig;
     // Return a copy with the agent's slotId in env
     return this.mcpServer.getStdioConfig(agentSlotId);
+  }
+
+  /**
+   * Best-effort wake after a message has already been durably accepted into the
+   * team mailbox. Wake failures must not be reported as send failures to the
+   * renderer, otherwise the queue may re-enqueue an already-delivered message.
+   */
+  private async wakeAfterAcceptedDelivery(slotId: string, context: 'team' | 'agent'): Promise<void> {
+    try {
+      await this.teammateManager.wake(slotId);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      console.error(`[TeamSession] Accepted ${context} message but failed to wake ${slotId}:`, message);
+    }
   }
 
   /**
@@ -122,7 +141,7 @@ export class TeamSession extends EventEmitter {
       });
     }
 
-    await this.teammateManager.wake(leadSlotId);
+    await this.wakeAfterAcceptedDelivery(leadSlotId, 'team');
   }
 
   /**
@@ -160,7 +179,7 @@ export class TeamSession extends EventEmitter {
       });
     }
 
-    await this.teammateManager.wake(slotId);
+    await this.wakeAfterAcceptedDelivery(slotId, 'agent');
   }
 
   /** Rename an agent and persist to DB */
@@ -184,12 +203,20 @@ export class TeamSession extends EventEmitter {
     return this.teammateManager.getAgents();
   }
 
-  /** Clean up all IPC listeners, MCP server, and EventEmitter handlers */
+  /** Clean up all IPC listeners, MCP server, kill agent processes, and EventEmitter handlers */
   async dispose(): Promise<void> {
-    this.teammateManager.setHasMcpTools(false);
+    // Kill all agent processes before clearing listeners
+    for (const agent of this.teammateManager.getAgents()) {
+      if (agent.conversationId) {
+        this.workerTaskManager.kill(agent.conversationId);
+      }
+    }
     this.teammateManager.dispose();
-    await this.mcpServer.stop();
-    this.mcpStdioConfig = null;
-    this.removeAllListeners();
+    try {
+      await this.mcpServer.stop();
+    } finally {
+      this.mcpStdioConfig = null;
+      this.removeAllListeners();
+    }
   }
 }

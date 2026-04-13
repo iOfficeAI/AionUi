@@ -37,8 +37,15 @@ export const consumePendingDeepLink = (): DeepLinkAddProviderDetail | null => {
 };
 
 /**
+ * Allowed route patterns for the navigate deep link action.
+ * Only routes matching these patterns are permitted.
+ */
+const ALLOWED_NAVIGATE_PATTERNS = [/^\/team\/[^/]+$/, /^\/conversation\/[^/]+$/];
+
+/**
  * Hook to listen for aionui:// deep link events from main process.
  * Routes 'add-provider' action to the model settings page.
+ * Routes 'navigate' action to the specified route (whitelist-validated).
  * The pre-fill data is stored in a module-level variable and consumed
  * by ModelModalContent on mount via consumePendingDeepLink().
  */
@@ -58,6 +65,23 @@ export const useDeepLink = () => {
 
         // Navigate to model settings page; ModelModalContent will pick up the pending data
         void navigate('/settings/model');
+        return;
+      }
+
+      if (payload.action === 'navigate') {
+        const route = payload.params.route;
+        if (!route) {
+          console.warn('[DeepLink] navigate action missing route param');
+          return;
+        }
+
+        const isAllowed = ALLOWED_NAVIGATE_PATTERNS.some((pattern) => pattern.test(route));
+        if (!isAllowed) {
+          console.warn(`[DeepLink] navigate blocked: route "${route}" not in whitelist`);
+          return;
+        }
+
+        void navigate(route);
       }
     },
     [navigate]

@@ -299,6 +299,7 @@ export class AcpConnection {
       case 'vibe':
       case 'cursor':
       case 'kiro':
+      case 'hermes':
         if (!cliPath) {
           throw new Error(`CLI path is required for ${backend} backend`);
         }
@@ -875,7 +876,7 @@ export class AcpConnection {
     const response = await this.sendRequest<AcpResponse & { sessionId?: string }>('session/load', {
       sessionId,
       cwd: normalizedCwd,
-      mcpServers: mcpServers ?? [],
+      mcpServers: (mcpServers ?? []) as unknown[],
     });
 
     // session/load returns modes/models/configOptions but not sessionId — keep the one we sent

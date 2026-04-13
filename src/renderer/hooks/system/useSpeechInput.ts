@@ -14,6 +14,7 @@ export type SpeechInputStatus = 'idle' | 'recording' | 'transcribing' | 'error';
 export type SpeechInputErrorCode =
   | 'aborted'
   | 'audio-capture'
+  | 'empty-transcript'
   | 'file-too-large'
   | 'network'
   | 'not-configured'
@@ -38,6 +39,21 @@ type UseSpeechInputOptions = {
 
 const LOCAL_HOSTNAMES = new Set(['localhost', '127.0.0.1', '::1']);
 const RECORDING_MIME_TYPES = ['audio/webm;codecs=opus', 'audio/webm', 'audio/mp4', 'audio/ogg;codecs=opus'];
+const SPEECH_WAVEFORM_SAMPLE_COUNT = 40;
+const SPEECH_WAVEFORM_MIN_LEVEL = 0.015;
+const SPEECH_WAVEFORM_MAX_LEVEL = 1;
+const SPEECH_VISUALIZER_INTERVAL_MS = 80;
+
+const createInitialWaveformLevels = (): number[] =>
+  Array.from({ length: SPEECH_WAVEFORM_SAMPLE_COUNT }, (_, index) => ((index + 1) % 6 === 0 ? 0.04 : 0.015));
+
+const clampWaveformLevel = (value: number): number =>
+  Math.max(SPEECH_WAVEFORM_MIN_LEVEL, Math.min(SPEECH_WAVEFORM_MAX_LEVEL, value));
+
+const createNextWaveformLevels = (previous: number[], nextLevel: number): number[] => [
+  ...previous.slice(1),
+  clampWaveformLevel(nextLevel),
+];
 
 export const appendSpeechTranscript = (base: string, transcript: string): string => {
   const normalizedTranscript = transcript.trim();
@@ -150,44 +166,172 @@ const mapSpeechInputError = (error: unknown): SpeechInputErrorCode => {
 export const useSpeechInput = ({ locale, onTranscript }: UseSpeechInputOptions) => {
   const [status, setStatus] = useState<SpeechInputStatus>('idle');
   const [errorCode, setErrorCode] = useState<SpeechInputErrorCode | null>(null);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [recordingDurationMs, setRecordingDurationMs] = useState(0);
+  const [recordingLevels, setRecordingLevels] = useState<number[]>(() => createInitialWaveformLevels());
   const recorderRef = useRef<MediaRecorder | null>(null);
   const streamRef = useRef<MediaStream | null>(null);
   const chunksRef = useRef<Blob[]>([]);
+  const recordingStartedAtRef = useRef<number | null>(null);
+  const visualizerIntervalRef = useRef<number | null>(null);
+  const audioContextRef = useRef<AudioContext | null>(null);
+  const analyserRef = useRef<AnalyserNode | null>(null);
+  const mediaSourceRef = useRef<MediaStreamAudioSourceNode | null>(null);
+  const analyserDataRef = useRef<Uint8Array<ArrayBuffer> | null>(null);
   const onTranscriptRef = useLatestRef(onTranscript);
   const availability = useMemo(() => getSpeechInputAvailability(), []);
 
   const recognitionLocale = locale?.trim() || 'en-US';
 
+  const pauseSpeechVisualizer = useCallback(() => {
+    if (visualizerIntervalRef.current !== null) {
+      window.clearInterval(visualizerIntervalRef.current);
+      visualizerIntervalRef.current = null;
+    }
+  }, []);
+
+  const resetSpeechVisualizer = useCallback(() => {
+    pauseSpeechVisualizer();
+    recordingStartedAtRef.current = null;
+    setRecordingDurationMs(0);
+    setRecordingLevels(createInitialWaveformLevels());
+  }, [pauseSpeechVisualizer]);
+
+  const cleanupAudioAnalysis = useCallback(async () => {
+    if (mediaSourceRef.current) {
+      try {
+        mediaSourceRef.current.disconnect();
+      } catch {
+        // Ignore disconnect failures during teardown.
+      }
+      mediaSourceRef.current = null;
+    }
+
+    if (analyserRef.current) {
+      try {
+        analyserRef.current.disconnect();
+      } catch {
+        // Ignore disconnect failures during teardown.
+      }
+      analyserRef.current = null;
+    }
+
+    analyserDataRef.current = null;
+
+    if (audioContextRef.current) {
+      try {
+        await audioContextRef.current.close();
+      } catch {
+        // Ignore close failures during teardown.
+      }
+      audioContextRef.current = null;
+    }
+  }, []);
+
+  const startSpeechVisualizer = useCallback(
+    async (stream: MediaStream) => {
+      resetSpeechVisualizer();
+      recordingStartedAtRef.current = Date.now();
+
+      const AudioContextCtor =
+        typeof AudioContext !== 'undefined'
+          ? AudioContext
+          : typeof window !== 'undefined'
+            ? (window as Window & { webkitAudioContext?: typeof AudioContext }).webkitAudioContext
+            : undefined;
+
+      if (AudioContextCtor) {
+        try {
+          const audioContext = new AudioContextCtor();
+          const analyser = audioContext.createAnalyser();
+          analyser.fftSize = 128;
+          analyser.smoothingTimeConstant = 0.82;
+          const source = audioContext.createMediaStreamSource(stream);
+          source.connect(analyser);
+          audioContextRef.current = audioContext;
+          analyserRef.current = analyser;
+          mediaSourceRef.current = source;
+          analyserDataRef.current = new Uint8Array(analyser.fftSize);
+        } catch {
+          void cleanupAudioAnalysis();
+        }
+      }
+
+      visualizerIntervalRef.current = window.setInterval(() => {
+        const startedAt = recordingStartedAtRef.current;
+        if (startedAt) {
+          setRecordingDurationMs(Date.now() - startedAt);
+        }
+
+        const analyser = analyserRef.current;
+        const analyserData = analyserDataRef.current;
+        if (!analyser || !analyserData) {
+          setRecordingLevels((previous) => createNextWaveformLevels(previous, SPEECH_WAVEFORM_MIN_LEVEL));
+          return;
+        }
+
+        analyser.getByteTimeDomainData(analyserData);
+        let sum = 0;
+        for (const sample of analyserData) {
+          const normalized = (sample - 128) / 128;
+          sum += normalized * normalized;
+        }
+
+        const rms = Math.sqrt(sum / analyserData.length);
+        const scaledLevel = clampWaveformLevel(rms * 5.6);
+        setRecordingLevels((previous) => createNextWaveformLevels(previous, scaledLevel));
+      }, SPEECH_VISUALIZER_INTERVAL_MS);
+    },
+    [cleanupAudioAnalysis, resetSpeechVisualizer]
+  );
+
   const cleanupRecorder = useCallback(() => {
+    pauseSpeechVisualizer();
     if (streamRef.current) {
       streamRef.current.getTracks().forEach((track) => track.stop());
       streamRef.current = null;
     }
     recorderRef.current = null;
     chunksRef.current = [];
-  }, []);
+    void cleanupAudioAnalysis();
+  }, [cleanupAudioAnalysis, pauseSpeechVisualizer]);
 
   const clearError = useCallback(() => {
     setErrorCode(null);
+    setErrorMessage(null);
     setStatus('idle');
-  }, []);
+    resetSpeechVisualizer();
+  }, [resetSpeechVisualizer]);
 
   const transcribeBlob = useCallback(
     async (blob: Blob) => {
       try {
         setStatus('transcribing');
         setErrorCode(null);
+        setErrorMessage(null);
         const result = await transcribeAudioBlob(blob, recognitionLocale);
-        if (result.text.trim()) {
-          onTranscriptRef.current(result.text);
+        const transcript = result.text.trim();
+        if (!transcript) {
+          setErrorCode('empty-transcript');
+          setErrorMessage(null);
+          setStatus('error');
+          resetSpeechVisualizer();
+          return;
         }
+        onTranscriptRef.current(transcript);
         setStatus('idle');
+        resetSpeechVisualizer();
       } catch (error) {
         setErrorCode(mapSpeechInputError(error));
+        const message = error instanceof Error ? error.message : String(error);
+        setErrorMessage(
+          message.startsWith('STT_REQUEST_FAILED:') ? message.replace('STT_REQUEST_FAILED:', '').trim() : null
+        );
         setStatus('error');
+        resetSpeechVisualizer();
       }
     },
-    [onTranscriptRef, recognitionLocale]
+    [onTranscriptRef, recognitionLocale, resetSpeechVisualizer]
   );
 
   const startRecording = useCallback(async () => {
@@ -205,6 +349,7 @@ export const useSpeechInput = ({ locale, onTranscript }: UseSpeechInputOptions) 
       streamRef.current = stream;
       recorderRef.current = recorder;
       chunksRef.current = [];
+      await startSpeechVisualizer(stream);
 
       recorder.ondataavailable = (event) => {
         if (event.data.size > 0) {
@@ -227,14 +372,17 @@ export const useSpeechInput = ({ locale, onTranscript }: UseSpeechInputOptions) 
       };
 
       setErrorCode(null);
+      setErrorMessage(null);
       setStatus('recording');
       recorder.start();
     } catch (error) {
       cleanupRecorder();
       setErrorCode(mapSpeechInputError(error));
+      setErrorMessage(null);
       setStatus('error');
+      resetSpeechVisualizer();
     }
-  }, [availability, cleanupRecorder, transcribeBlob]);
+  }, [availability, cleanupRecorder, resetSpeechVisualizer, startSpeechVisualizer, transcribeBlob]);
 
   const stopRecording = useCallback(() => {
     const recorder = recorderRef.current;
@@ -276,6 +424,9 @@ export const useSpeechInput = ({ locale, onTranscript }: UseSpeechInputOptions) 
     availability,
     clearError,
     errorCode,
+    errorMessage,
+    recordingDurationMs,
+    recordingLevels,
     startRecording,
     status,
     stopRecording,

@@ -42,7 +42,7 @@ export const CODEX_ACP_NPX_PACKAGE = `@zed-industries/codex-acp@${CODEX_ACP_BRID
 export const CLAUDE_ACP_BRIDGE_VERSION = '0.21.0';
 export const CLAUDE_ACP_NPX_PACKAGE = `@zed-industries/claude-agent-acp@${CLAUDE_ACP_BRIDGE_VERSION}`;
 
-export const CODEBUDDY_ACP_BRIDGE_VERSION = '2.70.1';
+export const CODEBUDDY_ACP_BRIDGE_VERSION = '2.73.0';
 export const CODEBUDDY_ACP_NPX_PACKAGE = `@tencent-ai/codebuddy-code@${CODEBUDDY_ACP_BRIDGE_VERSION}`;
 
 /**
@@ -73,6 +73,8 @@ export type AcpBackendAll =
   | 'nanobot' // nanobot CLI
   | 'cursor' // Cursor AI Agent CLI
   | 'kiro' // Kiro CLI (AWS)
+  | 'hermes' // Hermes Agent CLI (Nous Research)
+  | 'snow' // Snow AI CLI
   | 'remote' // Remote agent (WebSocket, no local CLI)
   | 'aionrs' // Aion CLI agent (Rust binary, JSON Lines protocol)
   | 'custom'; // User-configured custom ACP agent
@@ -508,6 +510,25 @@ export const ACP_BACKENDS_ALL: Record<AcpBackendAll, AcpBackendConfig> = {
     enabled: true, // ✅ Kiro CLI, launched via `kiro-cli acp`
     supportsStreaming: false,
     acpArgs: ['acp'], // Kiro uses `kiro-cli acp` subcommand
+  },
+  hermes: {
+    id: 'hermes',
+    name: 'Hermes Agent',
+    description: 'AI agent by Nous Research with 90+ tools, persistent memory, and multi-platform support',
+    cliCommand: 'hermes',
+    authRequired: true,
+    enabled: true, // ✅ Nous Research Hermes Agent，使用 `hermes acp` 启动
+    supportsStreaming: false,
+    acpArgs: ['acp'], // hermes 使用 acp 子命令
+  },
+  snow: {
+    id: 'snow',
+    name: 'Snow AI',
+    cliCommand: 'snow',
+    authRequired: false,
+    enabled: true,
+    supportsStreaming: false,
+    acpArgs: ['--acp'],
   },
   remote: {
     id: 'remote',

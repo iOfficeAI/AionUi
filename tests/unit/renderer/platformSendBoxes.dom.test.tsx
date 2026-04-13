@@ -42,6 +42,8 @@ const mockConversationSendInvoke = vi.fn();
 const mockAcpSendInvoke = vi.fn();
 const mockGeminiSendInvoke = vi.fn();
 const mockOpenClawSendInvoke = vi.fn();
+const mockTeamSendInvoke = vi.fn();
+const mockTeamSendToAgentInvoke = vi.fn();
 const mockOpenClawRuntimeInvoke = vi.fn();
 const mockDatabaseMessagesInvoke = vi.fn();
 
@@ -55,6 +57,19 @@ const mockArcoSuccess = vi.fn();
 const mockAssertBridgeSuccess = vi.fn();
 const mockSetSendBoxHandler = vi.fn();
 const mockClearFiles = vi.fn();
+const mockBuildDisplayMessage = vi.fn((input: string, files: string[], workspacePath: string) =>
+  files.length > 0 ? `${input}|${files.join(',')}|${workspacePath}` : input
+);
+
+const mockDraftData: {
+  atPath: Array<string | { path: string; isFile?: boolean; name?: string }>;
+  content: string;
+  uploadFile: string[];
+} = {
+  atPath: [],
+  content: '',
+  uploadFile: [],
+};
 
 let uuidCounter = 0;
 
@@ -76,6 +91,10 @@ vi.mock('@/common', () => ({
       sendMessage: { invoke: (...args: unknown[]) => mockOpenClawSendInvoke(...args) },
       getRuntime: { invoke: (...args: unknown[]) => mockOpenClawRuntimeInvoke(...args) },
       responseStream: { on: vi.fn(() => vi.fn()) },
+    },
+    team: {
+      sendMessage: { invoke: (...args: unknown[]) => mockTeamSendInvoke(...args) },
+      sendMessageToAgent: { invoke: (...args: unknown[]) => mockTeamSendToAgentInvoke(...args) },
     },
     database: {
       getConversationMessages: { invoke: (...args: unknown[]) => mockDatabaseMessagesInvoke(...args) },
@@ -181,11 +200,7 @@ vi.mock('@/renderer/components/agent/AgentSetupCard', () => ({
 vi.mock('@/renderer/hooks/chat/useSendBoxDraft', () => ({
   getSendBoxDraftHook: vi.fn(() =>
     vi.fn(() => ({
-      data: {
-        atPath: [],
-        content: '',
-        uploadFile: [],
-      },
+      data: mockDraftData,
       mutate: vi.fn(),
     }))
   ),
@@ -340,9 +355,7 @@ vi.mock('@/renderer/utils/file/fileSelection', () => ({
 }));
 
 vi.mock('@/renderer/utils/file/messageFiles', () => ({
-  buildDisplayMessage: vi.fn(
-    (input: string, files: string[], workspacePath: string) => `${input}|${files.join(',')}|${workspacePath}`
-  ),
+  buildDisplayMessage: (...args: Parameters<typeof mockBuildDisplayMessage>) => mockBuildDisplayMessage(...args),
   collectSelectedFiles: vi.fn((uploadFile: string[], atPath: Array<string | { path: string }>) => [
     ...uploadFile,
     ...atPath.map((item) => (typeof item === 'string' ? item : item.path)),
@@ -440,6 +453,9 @@ describe('platform send box queue integration', () => {
       },
     });
     mockDatabaseMessagesInvoke.mockResolvedValue([]);
+    mockDraftData.atPath = [];
+    mockDraftData.content = '';
+    mockDraftData.uploadFile = [];
   });
 
   afterEach(() => {
@@ -559,7 +575,7 @@ describe('platform send box queue integration', () => {
       <RemoteSendBox conversation_id='conv-remote' />,
       mockConversationSendInvoke,
       (payload: { input: string; conversation_id: string }) => {
-        expect(payload.input).toBe('queued command||');
+        expect(payload.input).toBe('queued command');
         expect(payload.conversation_id).toBe('conv-remote');
       },
       false,
@@ -591,6 +607,41 @@ describe('platform send box queue integration', () => {
       }
     }
   );
+
+  it('does not misclassify successful team sends that resolve to void as queue execution failures', async () => {
+    mockTeamSendInvoke.mockResolvedValue(undefined);
+
+    render(<AcpSendBox conversation_id='conv-acp' backend='claude' teamId='team-1' />);
+
+    fireEvent.click(screen.getByRole('button', { name: 'trigger-send' }));
+
+    await waitFor(() => {
+      expect(mockTeamSendInvoke).toHaveBeenCalledWith({
+        teamId: 'team-1',
+        content: 'queued command',
+      });
+    });
+
+    expect(mockAcpSendInvoke).not.toHaveBeenCalled();
+    expect(mockArcoWarning).not.toHaveBeenCalledWith(
+      'The next queued command could not start. Edit, reorder, or remove it to continue.'
+    );
+  });
+
+  it('still treats explicit team bridge sentinel errors as failures', async () => {
+    mockTeamSendInvoke.mockResolvedValue({
+      __bridgeError: true,
+      message: 'team failed',
+    });
+
+    render(<AcpSendBox conversation_id='conv-acp' backend='claude' teamId='team-1' />);
+
+    fireEvent.click(screen.getByRole('button', { name: 'trigger-send' }));
+
+    await waitFor(() => {
+      expect(mockTeamSendInvoke).toHaveBeenCalledTimes(1);
+    });
+  });
 
   it.each([
     ['acp', <AcpSendBox conversation_id='conv-acp' backend='claude' />],
@@ -791,6 +842,30 @@ describe('platform send box queue integration', () => {
     });
 
     expect(queueSpies.resetActiveExecution).toHaveBeenCalledWith('stop');
+  });
+
+  it('uses display message for ACP attachments so chat history can retain uploaded images', async () => {
+    mockDraftData.uploadFile = ['C:/workspace/uploads/photo.png'];
+
+    render(<AcpSendBox conversation_id='conv-acp' backend='claude' workspacePath='C:/workspace' />);
+
+    fireEvent.click(screen.getByRole('button', { name: 'trigger-send' }));
+
+    await waitFor(() => {
+      expect(mockAcpSendInvoke).toHaveBeenCalledTimes(1);
+    });
+
+    expect(mockBuildDisplayMessage).toHaveBeenCalledWith(
+      'queued command',
+      ['C:/workspace/uploads/photo.png'],
+      'C:/workspace'
+    );
+    expect(mockAcpSendInvoke).toHaveBeenCalledWith({
+      input: 'queued command|C:/workspace/uploads/photo.png|C:/workspace',
+      msg_id: 'uuid-1',
+      conversation_id: 'conv-acp',
+      files: ['C:/workspace/uploads/photo.png'],
+    });
   });
 
   it('blocks OpenClaw dispatch when runtime validation fails', async () => {
