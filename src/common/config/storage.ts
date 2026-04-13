@@ -182,6 +182,8 @@ export interface IConfigStorageRefer {
   // Desktop Pet: whether tool-call confirmations are routed to the pet's bubble
   // (true) or remain in the main chat window (false). Default true.
   'pet.confirmEnabled'?: boolean;
+  // Whether uploaded files are saved to the conversation workspace (true) or temp cache (false)
+  'upload.saveToWorkspace'?: boolean;
 }
 
 export interface IEnvStorageRefer {
