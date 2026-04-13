@@ -274,7 +274,9 @@ export class AionMcpService {
       try {
         const session = await this.teamSessionService.getOrStartSession(team.id);
         if (leadAgent) {
-          await session.sendMessageToAgent(leadAgent.slotId, summary);
+          // When the leader is reused, skip the UI bubble — the conversation already
+          // shows the full user context. The summary still reaches the agent via mailbox.
+          await session.sendMessageToAgent(leadAgent.slotId, summary, { silent: leaderIsReused });
         }
       } catch (err) {
         console.error('[AionMcpService] async session/message failed:', err);
