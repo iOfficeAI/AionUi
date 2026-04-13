@@ -75,16 +75,23 @@ export function useSiderTeamBadges(teams: TTeam[]): Map<string, number> {
           }
         })
       );
-      // For teams where ALL cid queries failed, keep the localStorage fallback
+      // When backend returns 0 but localStorage has a nonzero value, keep the
+      // cached count. This handles two cases:
+      // 1. All queries failed (session not running) — teamFailed has the teamId
+      // 2. Queries returned [] because agent tasks haven't loaded yet after restart
+      // In both cases the localStorage value is more trustworthy than a premature 0.
+      // Real-time IPC events (add/remove) will correct the count once agents are live.
       setCounts((prev) => {
         const next = new Map<string, number>();
         for (const [teamId, fetched] of teamCounts) {
-          if (fetched === 0 && teamFailed.has(teamId)) {
-            // All queries for this team failed — keep previous (localStorage-seeded) value
-            next.set(teamId, prev.get(teamId) ?? readFromStorage(teamId));
-          } else {
-            next.set(teamId, fetched);
+          if (fetched === 0) {
+            const cached = prev.get(teamId) ?? readFromStorage(teamId);
+            if (cached > 0) {
+              next.set(teamId, cached);
+              continue;
+            }
           }
+          next.set(teamId, fetched);
         }
         return next;
       });
