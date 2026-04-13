@@ -18,17 +18,6 @@ import { formatSchedule, formatNextRun } from '@renderer/pages/cron/cronUtils';
 import { useCronJobConversations } from '@renderer/pages/cron/useCronJobs';
 import { getActivityTime } from '@/renderer/utils/chat/timeline';
 
-const getDescriptionPreview = (text: string) => {
-  const firstLine = text
-    .split('\n')
-    .map((line) => line.trim())
-    .find(Boolean);
-
-  if (!firstLine) return '-';
-  if (firstLine.length <= 110) return firstLine;
-  return `${firstLine.slice(0, 110).trimEnd()}...`;
-};
-
 const TaskDetailPage: React.FC = () => {
   const { t } = useTranslation();
   const navigate = useNavigate();
@@ -145,7 +134,7 @@ const TaskDetailPage: React.FC = () => {
     );
   }
 
-  const descriptionPreview = getDescriptionPreview(job.target.payload.text);
+  const descriptionPreview = job.description?.trim() || '';
   const currentExecutionModeLabel = isNewConversationMode
     ? t('cron.page.form.newConversation')
     : t('cron.page.form.existingConversation');
@@ -199,7 +188,7 @@ const TaskDetailPage: React.FC = () => {
                 </Button>
               </div>
             </div>
-            {descriptionPreview !== '-' && (
+            {descriptionPreview && (
               <p data-testid='task-detail-summary' className='m-0 w-full text-15px leading-24px text-t-secondary'>
                 {descriptionPreview}
               </p>

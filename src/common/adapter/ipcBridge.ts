@@ -832,6 +832,7 @@ export type ICronSchedule =
 export interface ICronJob {
   id: string;
   name: string;
+  description?: string;
   enabled: boolean;
   schedule: ICronSchedule;
   target: {

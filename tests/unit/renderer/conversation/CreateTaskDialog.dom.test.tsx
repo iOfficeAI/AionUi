@@ -40,6 +40,16 @@ vi.mock('@icon-park/react', () => ({
 // Mock ipcBridge
 const mockAddJob = vi.fn();
 const mockUpdateJob = vi.fn();
+const mockFormSetFieldsValue = vi.hoisted(() => vi.fn());
+const mockFormResetFields = vi.hoisted(() => vi.fn());
+const mockFormValidate = vi.hoisted(() =>
+  vi.fn().mockResolvedValue({
+    name: 'Test Task',
+    description: 'Test Description',
+    prompt: 'Test Prompt',
+    agent: 'cli:claude',
+  })
+);
 
 vi.mock('@/common', () => ({
   ipcBridge: {
@@ -65,14 +75,9 @@ vi.mock('@arco-design/web-react', () => ({
       ),
       useForm: () => [
         {
-          setFieldsValue: vi.fn(),
-          resetFields: vi.fn(),
-          validate: vi.fn().mockResolvedValue({
-            name: 'Test Task',
-            description: 'Test Description',
-            prompt: 'Test Prompt',
-            agent: 'cli:claude',
-          }),
+          setFieldsValue: mockFormSetFieldsValue,
+          resetFields: mockFormResetFields,
+          validate: mockFormValidate,
         },
       ],
     }
@@ -933,6 +938,7 @@ describe('CreateTaskDialog - component behavior', () => {
     const editJob: ICronJob = {
       id: 'job-1',
       name: 'Existing Task',
+      description: 'Stored description',
       schedule: { kind: 'cron', expr: '0 9 * * *', description: 'Daily at 09:00' },
       target: {
         kind: 'conversation',
@@ -958,6 +964,84 @@ describe('CreateTaskDialog - component behavior', () => {
     render(<CreateTaskDialog visible={true} onClose={vi.fn()} editJob={editJob} conversationId='conv-1' />);
 
     expect(screen.getByTestId('modal-wrapper')).toBeInTheDocument();
+  });
+
+  it('prefills the description field from the stored task description in edit mode', async () => {
+    const editJob: ICronJob = {
+      id: 'job-description',
+      name: 'Existing Task',
+      description: 'Stored description',
+      schedule: { kind: 'cron', expr: '0 9 * * *', description: 'Daily at 09:00' },
+      target: {
+        kind: 'conversation',
+        conversationId: 'conv-1',
+        payload: { kind: 'message', text: 'Existing prompt' },
+        executionMode: 'existing',
+      },
+      metadata: {
+        agentType: 'claude',
+        createdBy: 'user',
+        createdAt: Date.now(),
+        updatedAt: Date.now(),
+        agentConfig: {
+          backend: 'claude',
+          name: 'Claude',
+          cliPath: '/usr/bin/claude',
+        },
+      },
+      state: 'active',
+      lastExecutionTime: Date.now(),
+    };
+
+    render(<CreateTaskDialog visible={true} onClose={vi.fn()} editJob={editJob} conversationId='conv-1' />);
+
+    await waitFor(() => {
+      expect(mockFormSetFieldsValue).toHaveBeenCalledWith(
+        expect.objectContaining({
+          description: 'Stored description',
+          prompt: 'Existing prompt',
+        })
+      );
+    });
+  });
+
+  it('leaves the description field empty for legacy tasks without a stored description', async () => {
+    const editJob: ICronJob = {
+      id: 'job-legacy-description',
+      name: 'Existing Task',
+      description: undefined,
+      schedule: { kind: 'cron', expr: '0 9 * * *', description: 'Daily at 09:00' },
+      target: {
+        kind: 'conversation',
+        conversationId: 'conv-1',
+        payload: { kind: 'message', text: 'Existing prompt' },
+        executionMode: 'existing',
+      },
+      metadata: {
+        agentType: 'claude',
+        createdBy: 'user',
+        createdAt: Date.now(),
+        updatedAt: Date.now(),
+        agentConfig: {
+          backend: 'claude',
+          name: 'Claude',
+          cliPath: '/usr/bin/claude',
+        },
+      },
+      state: 'active',
+      lastExecutionTime: Date.now(),
+    };
+
+    render(<CreateTaskDialog visible={true} onClose={vi.fn()} editJob={editJob} conversationId='conv-1' />);
+
+    await waitFor(() => {
+      expect(mockFormSetFieldsValue).toHaveBeenCalledWith(
+        expect.objectContaining({
+          description: '',
+          prompt: 'Existing prompt',
+        })
+      );
+    });
   });
 
   it('does not render when visible is false', () => {
@@ -987,6 +1071,7 @@ describe('CreateTaskDialog - component behavior', () => {
       expect(mockAddJob).toHaveBeenCalled();
     });
 
+    expect(mockAddJob).toHaveBeenCalledWith(expect.objectContaining({ description: 'Test Description' }));
     expect(onClose).toHaveBeenCalled();
   });
 
@@ -1027,6 +1112,11 @@ describe('CreateTaskDialog - component behavior', () => {
       expect(mockUpdateJob).toHaveBeenCalled();
     });
 
+    expect(mockUpdateJob).toHaveBeenCalledWith(
+      expect.objectContaining({
+        updates: expect.objectContaining({ description: 'Test Description' }),
+      })
+    );
     expect(onClose).toHaveBeenCalled();
   });
 });
