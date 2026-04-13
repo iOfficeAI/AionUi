@@ -5,6 +5,7 @@
  */
 
 import { GeminiAgent, GeminiApprovalStore } from '@process/agent/gemini';
+import { AIONUI_FILES_MARKER } from '@/common/config/constants';
 import type { TChatConversation } from '@/common/config/storage';
 import type { IAgentManager } from '@process/task/IAgentManager';
 import type { IConversationService, CreateConversationParams } from '@process/services/IConversationService';
@@ -12,13 +13,7 @@ import type { IWorkerTaskManager } from '@process/task/IWorkerTaskManager';
 import type { TeamSessionService } from '@process/team/TeamSessionService';
 import { ipcBridge } from '@/common';
 import { removeFromMessageCache } from '@process/utils/message';
-import {
-  getSkillsDir,
-  getBuiltinSkillsCopyDir,
-  getSystemDir,
-  ProcessChat,
-  ProcessConfig,
-} from '@process/utils/initStorage';
+import { getSkillsDir, getBuiltinSkillsCopyDir, getSystemDir, ProcessChat } from '@process/utils/initStorage';
 import type AcpAgentManager from '../task/AcpAgentManager';
 import type { GeminiAgentManager } from '../task/GeminiAgentManager';
 import { AionrsApprovalStore, type AionrsManager } from '../task/AionrsManager';
@@ -27,8 +22,6 @@ import { prepareFirstMessage } from '../task/agentUtils';
 import { refreshTrayMenu } from '@process/utils/tray';
 import { copyFilesToDirectory, readDirectoryRecursive } from '@process/utils';
 import { computeOpenClawIdentityHash } from '@process/utils/openclawUtils';
-import fs from 'fs';
-import path from 'path';
 import { migrateConversationToDatabase } from './migrationUtils';
 import { ConversationSideQuestionService } from './services/ConversationSideQuestionService';
 
@@ -49,6 +42,15 @@ const VALID_CONVERSATION_TYPES = new Set<TChatConversation['type']>([
   'remote',
   'aionrs',
 ]);
+
+const buildCanonicalDisplayMessage = (input: string, files: string[]): string => {
+  const markerIndex = input.indexOf(AIONUI_FILES_MARKER);
+  const text = markerIndex === -1 ? input : input.slice(0, markerIndex).trimEnd();
+  if (!files.length) {
+    return text;
+  }
+  return `${text}\n\n${AIONUI_FILES_MARKER}\n${files.join('\n')}`;
+};
 
 export function initConversationBridge(
   conversationService: IConversationService,
@@ -490,32 +492,25 @@ export function initConversationBridge(
       return { success: false, msg: 'conversation not found' };
     }
 
-    // Handle file paths based on agent type
-    // Gemini requires files in workspace; other agents can use cache directory directly
+    // Copy files to workspace (unified for all agents)
+    // Wrap in try-catch to prevent unhandled rejection when workspace directory is missing
+    // (bridge library does not attach .catch to provider promises)
     let workspaceFiles: string[];
-    const isGeminiAgent = task.type === 'gemini';
-
-    if (isGeminiAgent) {
-      // Gemini: Copy files to workspace (required for gemini CLI)
-      // Wrap in try-catch to prevent unhandled rejection when workspace directory is missing
-      try {
-        workspaceFiles = await copyFilesToDirectory(task.workspace, files, false, getSystemDir().cacheDir);
-      } catch (error) {
-        console.error('[conversationBridge] sendMessage: failed to copy files to workspace:', error);
-        workspaceFiles = [];
-      }
-    } else {
-      // Non-Gemini agents (ACP, Codex, NanoBot, OpenClaw, Remote): Use cache directory paths directly
-      // Filter to only include absolute paths that exist
-      workspaceFiles = (files ?? []).filter((f) => path.isAbsolute(f));
+    try {
+      workspaceFiles = await copyFilesToDirectory(task.workspace, files, false, getSystemDir().cacheDir);
+    } catch (error) {
+      console.error('[conversationBridge] sendMessage: failed to copy files to workspace:', error);
+      workspaceFiles = [];
     }
+
+    const displayMessage = buildCanonicalDisplayMessage(other.input, workspaceFiles);
 
     // Precompute agent content with optional skill injection.
     // OpenClaw uses full-content mode: inject full skill text rather than index paths,
     // because the CLI may not proactively read SKILL.md files the way ACP agents do.
-    let agentContent = other.input;
+    let agentContent = displayMessage;
     if (other.injectSkills?.length) {
-      agentContent = await prepareFirstMessage(other.input, {
+      agentContent = await prepareFirstMessage(displayMessage, {
         enabledSkills: other.injectSkills,
       });
       // Provide absolute skills directory so agent can resolve relative script paths
@@ -534,38 +529,16 @@ export function initConversationBridge(
       // `agentContent` carries the skill-injected text for OpenClaw (equals `input` when no skills).
       await task.sendMessage({
         ...other,
-        content: other.input,
+        input: displayMessage,
+        content: displayMessage,
         files: workspaceFiles,
         agentContent,
       });
 
-      // Defer cleanup until after Gemini worker finishes processing the files.
-      // sendMessage() resolves when the worker acknowledges receipt, but the worker
-      // continues reading files asynchronously during streaming. Deleting immediately
-      // after sendMessage() causes a race condition where Gemini CLI reads deleted files.
-      if (isGeminiAgent && workspaceFiles.length > 0) {
-        const saveToWorkspace = await ProcessConfig.get('upload.saveToWorkspace').catch(() => false);
-        if (!saveToWorkspace) {
-          const geminiTask = task as unknown as GeminiAgentManager;
-          const filesToCleanup = [...workspaceFiles];
-          const resolvedWorkspace = path.resolve(task.workspace);
-          const handleMessage = (data: { type: string }) => {
-            if (data.type !== 'finish') return;
-            geminiTask.off('gemini.message', handleMessage);
-            for (const filePath of filesToCleanup) {
-              const resolvedFile = path.resolve(filePath);
-              if (resolvedFile.startsWith(resolvedWorkspace + path.sep)) {
-                fs.promises.unlink(filePath).catch((cleanupError) => {
-                  console.warn('[conversationBridge] Failed to cleanup file:', filePath, cleanupError);
-                });
-              }
-            }
-          };
-          geminiTask.on('gemini.message', handleMessage);
-        }
-      }
-
-      return { success: true };
+      return {
+        success: true,
+        data: { displayMessage },
+      };
     } catch (err: unknown) {
       return {
         success: false,

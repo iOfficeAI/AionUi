@@ -86,6 +86,7 @@ vi.mock('../../src/renderer/hooks/chat/useSendBoxFiles', () => ({
 
 const mockAddOrUpdateMessage = vi.fn();
 const mockRemoveMessageByMsgId = vi.fn();
+const mockBuildDisplayMessage = vi.fn((input: string) => input);
 vi.mock('../../src/renderer/pages/conversation/Messages/hooks', () => ({
   useAddOrUpdateMessage: () => mockAddOrUpdateMessage,
   useRemoveMessageByMsgId: () => mockRemoveMessageByMsgId,
@@ -129,7 +130,7 @@ vi.mock('../../src/renderer/utils/file/fileSelection', () => ({
 }));
 
 vi.mock('../../src/renderer/utils/file/messageFiles', () => ({
-  buildDisplayMessage: vi.fn((input: string) => input),
+  buildDisplayMessage: (...args: unknown[]) => mockBuildDisplayMessage(...args),
 }));
 
 vi.mock('../../src/renderer/pages/conversation/Preview', () => ({
@@ -209,6 +210,7 @@ describe('RemoteSendBox', () => {
     vi.clearAllMocks();
     capturedResponseHandler = null;
     sessionStorage.clear();
+    mockBuildDisplayMessage.mockImplementation((input: string) => input);
   });
 
   it('renders the sendbox component', async () => {
@@ -384,6 +386,36 @@ describe('RemoteSendBox', () => {
       expect.objectContaining({ conversation_id: 'conv-1', input: 'hello' })
     );
     expect(mockAddOrUpdateMessage).toHaveBeenCalled();
+  });
+
+  it('updates the optimistic initial message with the canonical display message from the backend', async () => {
+    mockSendMessage.mockResolvedValueOnce({
+      success: true,
+      data: {
+        displayMessage: 'canonical message',
+      },
+    });
+    sessionStorage.setItem(
+      'remote_initial_message_conv-1',
+      JSON.stringify({ input: 'hello', files: ['/tmp/photo.png'] })
+    );
+
+    await act(async () => {
+      render(<RemoteSendBox conversation_id='conv-1' />);
+    });
+
+    await act(async () => {
+      await new Promise((r) => setTimeout(r, 400));
+    });
+
+    expect(mockBuildDisplayMessage).toHaveBeenCalledWith('hello', ['/tmp/photo.png'], '');
+    expect(mockAddOrUpdateMessage).toHaveBeenCalledWith(
+      expect.objectContaining({
+        msg_id: expect.stringContaining('initial_conv-1_'),
+        content: { content: 'canonical message' },
+      }),
+      false
+    );
   });
 
   it('does not process initial message if already processed', async () => {

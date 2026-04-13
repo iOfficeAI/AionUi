@@ -82,6 +82,7 @@ export const useGeminiInitialMessage = ({
         addOrUpdateMessage(
           {
             id: msg_id,
+            msg_id,
             type: 'text',
             position: 'right',
             conversation_id: conversationId,
@@ -101,7 +102,22 @@ export const useGeminiInitialMessage = ({
           conversation_id: conversationId,
           files: files || [],
         });
-        assertBridgeSuccess(result, 'Failed to send initial message to Gemini');
+        const bridgeResult = assertBridgeSuccess(result, 'Failed to send initial message to Gemini');
+        if (bridgeResult.data?.displayMessage) {
+          addOrUpdateMessage(
+            {
+              id: msg_id,
+              msg_id,
+              type: 'text',
+              position: 'right',
+              conversation_id: conversationId,
+              content: {
+                content: bridgeResult.data.displayMessage,
+              },
+            },
+            false
+          );
+        }
 
         emitter.emit('chat.history.refresh');
         if (files && files.length > 0) {

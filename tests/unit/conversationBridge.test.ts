@@ -52,6 +52,8 @@ vi.mock('../../src/common', () => ({
 
 vi.mock('../../src/process/utils/initStorage', () => ({
   ProcessChat: { get: vi.fn(async () => []) },
+  getBuiltinSkillsCopyDir: vi.fn(() => '/builtin-skills'),
+  getSystemDir: vi.fn(() => ({ cacheDir: '/tmp/cache' })),
   getSkillsDir: vi.fn(() => '/skills'),
   ProcessConfig: { get: vi.fn(async () => []) },
 }));
@@ -274,7 +276,10 @@ describe('conversationBridge', () => {
         files: ['/some/file.txt'],
       });
 
-      expect(result).toEqual({ success: true });
+      expect(result).toEqual({
+        success: true,
+        data: { displayMessage: 'hello' },
+      });
       // sendMessage should still be called with empty files array
       expect(mockTask.sendMessage).toHaveBeenCalled();
     });

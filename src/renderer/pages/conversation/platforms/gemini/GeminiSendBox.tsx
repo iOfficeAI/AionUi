@@ -195,6 +195,26 @@ const GeminiSendBox: React.FC<{
   const { setSendBoxHandler } = usePreviewContext();
   const isBusy = running;
 
+  const syncOptimisticMessage = useCallback(
+    (msgId: string, displayMessage?: string) => {
+      if (!displayMessage) {
+        return;
+      }
+      addOrUpdateMessage(
+        {
+          id: msgId,
+          msg_id: msgId,
+          conversation_id,
+          type: 'text',
+          position: 'right',
+          content: { content: displayMessage },
+        },
+        false
+      );
+    },
+    [addOrUpdateMessage, conversation_id]
+  );
+
   // Use useLatestRef to keep latest setters to avoid re-registering handler
   const setContentRef = useLatestRef(setContent);
   const atPathRef = useLatestRef(atPath);
@@ -236,7 +256,8 @@ const GeminiSendBox: React.FC<{
       setActiveMsgId(msg_id);
       setWaitingResponse(true);
 
-      const displayMessage = buildDisplayMessage(input, files, workspacePath);
+      const optimisticDisplayMessage = buildDisplayMessage(input, files, '');
+      const teamDisplayMessage = buildDisplayMessage(input, files, workspacePath);
 
       // In team mode, the backend writes the user message via IPC stream.
       // Adding it here too would produce a duplicate bubble.
@@ -244,11 +265,12 @@ const GeminiSendBox: React.FC<{
         addOrUpdateMessage(
           {
             id: msg_id,
+            msg_id,
             type: 'text',
             position: 'right',
             conversation_id,
             content: {
-              content: displayMessage,
+              content: optimisticDisplayMessage,
             },
             createdAt: Date.now(),
           },
@@ -263,14 +285,14 @@ const GeminiSendBox: React.FC<{
             const result = await ipcBridge.team.sendMessageToAgent.invoke({
               teamId,
               slotId: agentSlotId,
-              content: displayMessage,
+              content: teamDisplayMessage,
             });
             const maybeError = result as unknown as { __bridgeError?: boolean; message?: string };
             if (maybeError.__bridgeError) {
               throw new Error(maybeError.message || 'Failed to send message to agent');
             }
           } else {
-            const result = await ipcBridge.team.sendMessage.invoke({ teamId, content: displayMessage });
+            const result = await ipcBridge.team.sendMessage.invoke({ teamId, content: teamDisplayMessage });
             const maybeError = result as unknown as { __bridgeError?: boolean; message?: string };
             if (maybeError.__bridgeError) {
               throw new Error(maybeError.message || 'Failed to send message to team');
@@ -278,12 +300,13 @@ const GeminiSendBox: React.FC<{
           }
         } else {
           const result = await ipcBridge.geminiConversation.sendMessage.invoke({
-            input: displayMessage,
+            input: optimisticDisplayMessage,
             msg_id,
             conversation_id,
             files,
           });
-          assertBridgeSuccess(result, 'Failed to send message to Gemini');
+          const bridgeResult = assertBridgeSuccess(result, 'Failed to send message to Gemini');
+          syncOptimisticMessage(msg_id, bridgeResult.data?.displayMessage);
         }
         emitter.emit('chat.history.refresh');
         if (files.length > 0) {
@@ -304,6 +327,7 @@ const GeminiSendBox: React.FC<{
       removeMessageByMsgId,
       setWaitingResponse,
       teamId,
+      syncOptimisticMessage,
       workspacePath,
     ]
   );

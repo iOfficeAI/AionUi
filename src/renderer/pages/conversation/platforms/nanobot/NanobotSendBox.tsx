@@ -55,7 +55,6 @@ const EMPTY_AT_PATH: Array<string | FileOrFolderItem> = [];
 const EMPTY_UPLOAD_FILES: string[] = [];
 
 const NanobotSendBox: React.FC<{ conversation_id: string }> = ({ conversation_id }) => {
-  const [workspacePath, setWorkspacePath] = useState('');
   const { t } = useTranslation();
   const { checkAndUpdateTitle } = useAutoTitle();
   const slashCommands = useSlashCommands(conversation_id);
@@ -141,6 +140,26 @@ const NanobotSendBox: React.FC<{ conversation_id: string }> = ({ conversation_id
 
   const setContentRef = useLatestRef(setContent);
   const atPathRef = useLatestRef(atPath);
+
+  const syncOptimisticMessage = useCallback(
+    (msgId: string, displayMessage?: string) => {
+      if (!displayMessage) {
+        return;
+      }
+      addOrUpdateMessage(
+        {
+          id: msgId,
+          msg_id: msgId,
+          conversation_id,
+          type: 'text',
+          position: 'right',
+          content: { content: displayMessage },
+        },
+        false
+      );
+    },
+    [addOrUpdateMessage, conversation_id]
+  );
 
   useEffect(() => {
     let cancelled = false;
@@ -238,7 +257,7 @@ const NanobotSendBox: React.FC<{ conversation_id: string }> = ({ conversation_id
   const executeCommand = useCallback(
     async ({ input, files }: Pick<ConversationCommandQueueItem, 'input' | 'files'>) => {
       const msg_id = uuid();
-      const displayMessage = buildDisplayMessage(input, files, workspacePath);
+      const displayMessage = buildDisplayMessage(input, files, '');
 
       const userMessage: TMessage = {
         id: msg_id,
@@ -259,7 +278,8 @@ const NanobotSendBox: React.FC<{ conversation_id: string }> = ({ conversation_id
           conversation_id,
           files,
         });
-        assertBridgeSuccess(result, 'Failed to send message to Nanobot');
+        const bridgeResult = assertBridgeSuccess(result, 'Failed to send message to Nanobot');
+        syncOptimisticMessage(msg_id, bridgeResult.data?.displayMessage);
         emitter.emit('chat.history.refresh');
       } catch (error) {
         removeMessageByMsgId(msg_id);
@@ -267,7 +287,7 @@ const NanobotSendBox: React.FC<{ conversation_id: string }> = ({ conversation_id
         throw error;
       }
     },
-    [addOrUpdateMessage, checkAndUpdateTitle, conversation_id, removeMessageByMsgId, workspacePath]
+    [addOrUpdateMessage, checkAndUpdateTitle, conversation_id, removeMessageByMsgId, syncOptimisticMessage]
   );
 
   const {
@@ -354,11 +374,8 @@ const NanobotSendBox: React.FC<{ conversation_id: string }> = ({ conversation_id
       try {
         setAiProcessing(true);
         const { input, files = [] } = JSON.parse(stored) as { input: string; files?: string[] };
-        const res = await ipcBridge.conversation.get.invoke({ id: conversation_id });
-        const resolvedWorkspace = res?.extra?.workspace ?? '';
-        setWorkspacePath(resolvedWorkspace);
         const msg_id = `initial_${conversation_id}_${Date.now()}`;
-        const initialDisplayMessage = buildDisplayMessage(input, files, resolvedWorkspace);
+        const initialDisplayMessage = buildDisplayMessage(input, files, '');
 
         const userMessage: TMessage = {
           id: msg_id,
@@ -380,7 +397,8 @@ const NanobotSendBox: React.FC<{ conversation_id: string }> = ({ conversation_id
           conversation_id,
           files,
         });
-        assertBridgeSuccess(result, 'Failed to send initial message to Nanobot');
+        const bridgeResult = assertBridgeSuccess(result, 'Failed to send initial message to Nanobot');
+        syncOptimisticMessage(msg_id, bridgeResult.data?.displayMessage);
         emitter.emit('chat.history.refresh');
         sessionStorage.removeItem(storageKey);
       } catch {
@@ -389,7 +407,7 @@ const NanobotSendBox: React.FC<{ conversation_id: string }> = ({ conversation_id
       }
     };
     processInitialMessage().catch(console.error);
-  }, [conversation_id, addOrUpdateMessage]);
+  }, [conversation_id, addOrUpdateMessage, syncOptimisticMessage]);
 
   const handleStop = async (): Promise<void> => {
     try {

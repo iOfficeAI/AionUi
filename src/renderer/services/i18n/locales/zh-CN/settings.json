@@ -153,7 +153,6 @@
   "cacheClearSuccess": "缓存清理成功",
   "cacheClearFailed": "缓存清理失败",
   "language": "语言",
-  "saveUploadToWorkspace": "上传文件保存到工作区",
   "commandQueueEnabled": "启用命令队列",
   "commandQueueEnabledDesc": "启用后，当当前回合仍在运行时，新消息会先进入队列，而不是立即发送。",
   "autoPreviewOfficeFiles": "自动预览新建 Office 文件",

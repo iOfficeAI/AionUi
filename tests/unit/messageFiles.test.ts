@@ -40,9 +40,15 @@ describe('buildDisplayMessage', () => {
     expect(result).toBe('hello');
   });
 
-  it('strips AIONUI timestamp separators from filenames while keeping prefix', () => {
+  it('preserves AIONUI timestamp suffixes for files already inside the workspace', () => {
     const files = [`${workspace}/uploads/photo_aionui_1234567890123.jpg`];
     const result = buildDisplayMessage('hello', files, workspace);
-    expect(result).toContain(`${workspace}/uploads/photo.jpg`);
+    expect(result).toContain(`${workspace}/uploads/photo_aionui_1234567890123.jpg`);
+  });
+
+  it('preserves AIONUI timestamp suffixes when rebasing external files into the workspace marker', () => {
+    const files = ['/tmp/photo_aionui_1234567890123.jpg'];
+    const result = buildDisplayMessage('hello', files, workspace);
+    expect(result).toContain(`${workspace}/photo_aionui_1234567890123.jpg`);
   });
 });
