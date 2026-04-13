@@ -65,16 +65,16 @@ If the result is empty: display `没有找到 bot:ready-to-merge 的 PR。` and 
 
 For each PR, infer the type from the first commit message prefix:
 
-| Prefix pattern | Type    |
-| -------------- | ------- |
-| `fix(`         | bugfix  |
-| `feat(`        | feature |
-| `refactor(`    | refactor|
-| `chore(`       | chore   |
-| `docs(`        | docs    |
-| `perf(`        | perf    |
-| `test(`        | test    |
-| other          | misc    |
+| Prefix pattern | Type     |
+| -------------- | -------- |
+| `fix(`         | bugfix   |
+| `feat(`        | feature  |
+| `refactor(`    | refactor |
+| `chore(`       | chore    |
+| `docs(`        | docs     |
+| `perf(`        | perf     |
+| `test(`        | test     |
+| other          | misc     |
 
 Display as a numbered table:
 
@@ -136,11 +136,11 @@ Required jobs: `Code Quality`, `Unit Tests (ubuntu-latest)`, `Unit Tests (macos-
 
 Informational exclusions: `codecov/patch` and `codecov/project` are informational — exclude them from all failure checks.
 
-| Condition | Action |
-| --------- | ------ |
+| Condition                                                | Action              |
+| -------------------------------------------------------- | ------------------- |
 | All required jobs SUCCESS, no non-informational failures | Continue to Check 3 |
-| Any required job QUEUED or IN_PROGRESS | Prompt (see below) |
-| Any non-informational job FAILURE or CANCELLED | Prompt (see below) |
+| Any required job QUEUED or IN_PROGRESS                   | Prompt (see below)  |
+| Any non-informational job FAILURE or CANCELLED           | Prompt (see below)  |
 
 **CI still running prompt:**
 
@@ -173,11 +173,11 @@ gh pr view $PR_NUMBER \
   --jq '{mergeable, mergeStateStatus, head: .headRefName, base: .baseRefName}'
 ```
 
-| `mergeable`   | Action |
-| ------------- | ------ |
-| `MERGEABLE`   | Continue to Step 3 |
+| `mergeable`   | Action                                                                 |
+| ------------- | ---------------------------------------------------------------------- |
+| `MERGEABLE`   | Continue to Step 3                                                     |
 | `UNKNOWN`     | Skip this PR (return to list), log: `mergeability unknown, will retry` |
-| `CONFLICTING` | Attempt auto-merge (see below) |
+| `CONFLICTING` | Attempt auto-merge (see below)                                         |
 
 **Auto-merge attempt on conflict:**
 
@@ -258,13 +258,14 @@ Prompt:
 > r - 标记为 bot:needs-human-review
 
 - `m` → post comment to PR:
+
   ```bash
   gh pr comment $PR_NUMBER --body "<!-- pr-verify-bot -->
-  
+
   ## 合并冲突（无法自动解决）
-  
+
   本 PR 与目标分支存在冲突，无法自动解决。请手动 merge 或 rebase 后重新 push：
-  
+
   \`\`\`bash
   git fetch origin
   git merge origin/<base_branch>
@@ -272,10 +273,13 @@ Prompt:
   git push
   \`\`\`"
   ```
+
   Then add label:
+
   ```bash
   gh pr edit $PR_NUMBER --remove-label "bot:ready-to-merge" --add-label "bot:needs-rebase"
   ```
+
   Return to list (Step 1).
 
 - `s` → add `bot:needs-rebase` label and comment, return to list (Step 1):
@@ -303,6 +307,7 @@ gh pr view $PR_NUMBER --json comments \
 ```
 
 Parse from the review comment:
+
 - **结论** (APPROVED / CONDITIONAL / review conclusion line)
 - **问题数量** per severity level (CRITICAL / HIGH / MEDIUM / LOW)
 - If a `<!-- pr-fix-verification -->` comment exists, also parse fix results
@@ -355,7 +360,7 @@ Review 结论: ✅ 批准合并 / ⚠️ 有条件批准 / ❌ 需要修改
 
 Then prompt:
 
-> d - 查看完整 review 报告  |  回车继续影响分析
+> d - 查看完整 review 报告 | 回车继续影响分析
 
 - `d` → display full review comment text, then re-show this prompt
 - Enter → continue to Step 4
@@ -450,20 +455,20 @@ For changed files with coverage gaps, write supplemental tests in the worktree. 
 Example supplemental test structure:
 
 ```typescript
-import { describe, it, expect, vi } from 'vitest'
-import { functionUnderTest } from '../token'
+import { describe, it, expect, vi } from 'vitest';
+import { functionUnderTest } from '../token';
 
 describe('token (supplemental verify)', () => {
   // [commit] fills coverage gap: expiry edge case not tested
   it('returns null when token is expired', () => {
     // ...
-  })
+  });
 
   // [skip] integration path requires running process — verify only
   it.skipIf(!process.env.INTEGRATION_TEST)('round-trips through IPC', () => {
     // ...
-  })
-})
+  });
+});
 ```
 
 #### 4d — Run Test Suite
@@ -481,11 +486,11 @@ Capture test results: total, passed, failed, skipped. If tests fail, note which 
 
 Calculate confidence level based on impact analysis and test results:
 
-| Condition | Confidence |
-| --------- | ---------- |
-| Local changes only, all tests pass, no UI impact | 🟢 HIGH |
-| Coverage gaps supplemented and all supplemental tests pass; OR UI rendering impact detected | 🟡 MEDIUM |
-| Core shared logic (touches `src/common/` or `src/process/`), large impact spread (L2 > 5 files), or any test failures | 🔴 LOW |
+| Condition                                                                                                             | Confidence |
+| --------------------------------------------------------------------------------------------------------------------- | ---------- |
+| Local changes only, all tests pass, no UI impact                                                                      | 🟢 HIGH    |
+| Coverage gaps supplemented and all supplemental tests pass; OR UI rendering impact detected                           | 🟡 MEDIUM  |
+| Core shared logic (touches `src/common/` or `src/process/`), large impact spread (L2 > 5 files), or any test failures | 🔴 LOW     |
 
 Display the full verification report:
 
