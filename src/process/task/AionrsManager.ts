@@ -19,6 +19,7 @@ import { IpcAgentEventEmitter } from './IpcAgentEventEmitter';
 import { mainError } from '@process/utils/mainLogger';
 import { hasCronCommands } from './CronCommandDetector';
 import { processCronInMessage } from './MessageMiddleware';
+import { extractAndStripThinkTags } from './ThinkTagDetector';
 
 // Aionrs-specific approval key — reuses same pattern as GeminiApprovalStore
 type AionrsApprovalKey = IApprovalKey & {
@@ -68,6 +69,13 @@ export class AionrsManager extends BaseAgentManager<AionrsManagerData, string> {
   private currentMode: string = 'default';
   private currentMsgId: string | null = null;
   private currentMsgContent: string = '';
+
+  // Thinking state
+  private thinkingMsgId: string | null = null;
+  private thinkingStartTime: number | null = null;
+  private thinkingContent: string = '';
+  private thinkingDbFlushTimer: ReturnType<typeof setTimeout> | null = null;
+  private readonly streamDbFlushIntervalMs: number = 120;
 
   constructor(data: AionrsManagerData, model: TProviderWithModel) {
     super('aionrs', { ...data, model }, new IpcAgentEventEmitter());
@@ -196,6 +204,67 @@ export class AionrsManager extends BaseAgentManager<AionrsManagerData, string> {
     }
   }
 
+  private emitThinkingMessage(content: string, status: 'thinking' | 'done' = 'thinking'): void {
+    if (!this.thinkingMsgId) {
+      this.thinkingMsgId = uuid();
+      this.thinkingStartTime = Date.now();
+      this.thinkingContent = '';
+    }
+
+    if (status === 'thinking') {
+      this.thinkingContent += content;
+    }
+
+    const duration = status === 'done' && this.thinkingStartTime ? Date.now() - this.thinkingStartTime : undefined;
+
+    ipcBridge.conversation.responseStream.emit({
+      type: 'thinking',
+      conversation_id: this.conversation_id,
+      msg_id: this.thinkingMsgId,
+      data: {
+        content,
+        duration,
+        status,
+      },
+    });
+
+    if (status === 'done') {
+      this.flushThinkingToDb(duration, 'done');
+    } else if (!this.thinkingDbFlushTimer) {
+      this.thinkingDbFlushTimer = setTimeout(() => {
+        this.flushThinkingToDb(undefined, 'thinking');
+      }, this.streamDbFlushIntervalMs);
+    }
+  }
+
+  private flushThinkingToDb(duration: number | undefined, status: 'thinking' | 'done'): void {
+    if (this.thinkingDbFlushTimer) {
+      clearTimeout(this.thinkingDbFlushTimer);
+      this.thinkingDbFlushTimer = null;
+    }
+    if (!this.thinkingMsgId) return;
+    const tMessage: TMessage = {
+      id: this.thinkingMsgId,
+      msg_id: this.thinkingMsgId,
+      type: 'thinking',
+      position: 'left',
+      conversation_id: this.conversation_id,
+      content: {
+        content: this.thinkingContent,
+        duration,
+        status,
+      },
+      createdAt: this.thinkingStartTime || Date.now(),
+    };
+    addOrUpdateMessage(this.conversation_id, tMessage, 'aionrs');
+  }
+
+  private clearThinkingState(): void {
+    this.thinkingMsgId = null;
+    this.thinkingStartTime = null;
+    this.thinkingContent = '';
+  }
+
   init() {
     super.init();
     this.on('aionrs.message', (data) => {
@@ -208,6 +277,13 @@ export class AionrsManager extends BaseAgentManager<AionrsManagerData, string> {
         this.status = 'running';
         this.currentMsgId = data.msg_id ?? null;
         this.currentMsgContent = '';
+
+        // Reset thinking state on new turn
+        if (this.thinkingMsgId) {
+          this.emitThinkingMessage('', 'done');
+          this.clearThinkingState();
+        }
+
         ipcBridge.conversation.responseStream.emit({
           type: 'request_trace',
           conversation_id: this.conversation_id,
@@ -221,25 +297,54 @@ export class AionrsManager extends BaseAgentManager<AionrsManagerData, string> {
             timestamp: Date.now(),
           },
         });
+        return;
+      }
+
+      // Handle thought events — convert to thinking messages
+      if (data.type === 'thought') {
+        data.conversation_id = this.conversation_id;
+        const content = typeof data.data === 'string' ? data.data : '';
+        if (content) {
+          this.emitThinkingMessage(content, 'thinking');
+        }
+        return;
+      }
+
+      // Non-thought event while thinking → end thinking phase
+      if (this.thinkingMsgId) {
+        this.emitThinkingMessage('', 'done');
+        this.clearThinkingState();
+      }
+
+      // Extract inline <think> tags from content before main pipeline
+      let processedData = data;
+      if (data.type === 'content' && typeof data.data === 'string') {
+        const { thinking, content: stripped } = extractAndStripThinkTags(data.data);
+        if (thinking) {
+          this.emitThinkingMessage(thinking, 'thinking');
+        }
+        if (stripped !== data.data) {
+          processedData = { ...data, data: stripped };
+        }
       }
 
       // Accumulate text content from incremental deltas
-      if (data.type === 'content' && typeof data.data === 'string') {
-        this.currentMsgContent += data.data;
-        this.currentMsgId = data.msg_id ?? this.currentMsgId;
+      if (processedData.type === 'content' && typeof processedData.data === 'string') {
+        this.currentMsgContent += processedData.data;
+        this.currentMsgId = processedData.msg_id ?? this.currentMsgId;
       }
 
       // On turn end, check for cron commands
-      if (data.type === 'finish') {
+      if (processedData.type === 'finish') {
         void this.handleTurnEnd();
       }
 
-      data.conversation_id = this.conversation_id;
+      processedData.conversation_id = this.conversation_id;
 
       // Transform and persist message (skip transient UI state)
-      const skipTransformTypes = ['thought', 'finished', 'start', 'finish'];
-      if (!skipTransformTypes.includes(data.type)) {
-        const tMessage = transformMessage(data as IResponseMessage);
+      const skipTransformTypes = ['finished', 'start', 'finish'];
+      if (!skipTransformTypes.includes(processedData.type)) {
+        const tMessage = transformMessage(processedData as IResponseMessage);
         if (tMessage) {
           addOrUpdateMessage(this.conversation_id, tMessage, 'aionrs');
           if (tMessage.type === 'tool_group') {
@@ -248,11 +353,17 @@ export class AionrsManager extends BaseAgentManager<AionrsManagerData, string> {
         }
       }
 
-      ipcBridge.conversation.responseStream.emit(data);
+      ipcBridge.conversation.responseStream.emit(processedData);
     });
   }
 
   private async handleTurnEnd(): Promise<void> {
+    // Finalize thinking if still active
+    if (this.thinkingMsgId) {
+      this.emitThinkingMessage('', 'done');
+      this.clearThinkingState();
+    }
+
     const content = this.currentMsgContent;
     const msgId = this.currentMsgId;
 
