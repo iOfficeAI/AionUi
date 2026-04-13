@@ -6,9 +6,9 @@
 
 import React, { useState, useMemo, useEffect, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Form, Input, Select, Message, TimePicker, Radio, Collapse, Button } from '@arco-design/web-react';
+import { Form, Input, Select, Message, TimePicker, Radio, Button } from '@arco-design/web-react';
 import ModalWrapper from '@renderer/components/base/ModalWrapper';
-import { Robot } from '@icon-park/react';
+import { Down, Robot } from '@icon-park/react';
 import { ipcBridge } from '@/common';
 import type { ICreateCronJobParams, ICronAgentConfig, ICronJob } from '@/common/adapter/ipcBridge';
 import { useConversationAgents } from '@renderer/pages/conversation/hooks/useConversationAgents';
@@ -22,6 +22,7 @@ import { ConfigStorage } from '@/common/config/storage';
 import type { AcpModelInfo, AcpSessionConfigOption } from '@/common/types/acpTypes';
 import { useModelProviderList } from '@renderer/hooks/agent/useModelProviderList';
 import GuidModelSelector from '@renderer/pages/guid/components/GuidModelSelector';
+import { WorkspaceFolderSelect } from '@renderer/components/workspace';
 
 const FormItem = Form.Item;
 const TextArea = Input.TextArea;
@@ -140,6 +141,7 @@ const CreateTaskDialog: React.FC<CreateTaskDialogProps> = ({
 
   const isEditMode = !!editJob;
   const [executionMode, setExecutionMode] = useState<ExecutionMode>('new_conversation');
+  const [advancedOpen, setAdvancedOpen] = useState(false);
 
   // Advanced settings state
   const [modelId, setModelId] = useState<string | undefined>(undefined);
@@ -160,6 +162,14 @@ const CreateTaskDialog: React.FC<CreateTaskDialogProps> = ({
       setWeekday(parsed.weekday);
       setCustomCronExpr(parsed.frequency === 'custom' ? cronExpr : '');
       setExecutionMode(editJob.target.executionMode || 'existing');
+      setAdvancedOpen(
+        Boolean(
+          editJob.metadata.agentConfig?.modelId ||
+          editJob.metadata.agentConfig?.workspace ||
+          (editJob.metadata.agentConfig?.configOptions &&
+            Object.keys(editJob.metadata.agentConfig.configOptions).length > 0)
+        )
+      );
       const agentKey = getAgentKeyFromJob(editJob);
       setSelectedAgent(agentKey);
       form.setFieldsValue({
@@ -179,6 +189,7 @@ const CreateTaskDialog: React.FC<CreateTaskDialogProps> = ({
       setWeekday('MON');
       setCustomCronExpr('');
       setExecutionMode('new_conversation');
+      setAdvancedOpen(false);
       setModelId(undefined);
       setConfigOptions(undefined);
       setWorkspace(undefined);
@@ -324,6 +335,9 @@ const CreateTaskDialog: React.FC<CreateTaskDialogProps> = ({
 
   const selectedExecutionModeOption =
     executionModeOptions.find((option) => option.value === executionMode) ?? executionModeOptions[0];
+  const showModelSelector = Boolean(resolvedBackend && (isGeminiMode || acpCachedModelInfo));
+  const showConfigSelector = resolvedBackend === 'codex';
+  const advancedFieldCount = Number(showModelSelector) + Number(showConfigSelector) + 1;
 
   const handleFrequencyChange = (value: FrequencyType) => {
     setFrequency(value);
@@ -338,13 +352,6 @@ const CreateTaskDialog: React.FC<CreateTaskDialogProps> = ({
     setModelId(undefined);
     setConfigOptions(undefined);
     // Workspace remains unchanged (agent-agnostic)
-  }, []);
-
-  const handleWorkspaceSelect = useCallback(async () => {
-    const files = await ipcBridge.dialog.showOpen.invoke({ properties: ['openDirectory'] });
-    if (files && files.length > 0) {
-      setWorkspace(files[0]);
-    }
   }, []);
 
   const handleWorkspaceClear = useCallback(() => {
@@ -481,7 +488,7 @@ const CreateTaskDialog: React.FC<CreateTaskDialogProps> = ({
       className='w-[min(560px,calc(100vw-32px))] max-w-560px rd-16px'
       unmountOnExit
     >
-      <div className='overflow-y-auto px-24px pb-16px pr-18px max-h-[min(72vh,680px)]'>
+      <div className='overflow-y-auto px-24px pb-16px pr-18px max-h-[min(68vh,640px)]'>
         <Form form={form} layout='vertical'>
           <FormItem
             label={t('cron.page.form.name')}
@@ -616,7 +623,7 @@ const CreateTaskDialog: React.FC<CreateTaskDialogProps> = ({
             field='prompt'
             rules={[{ required: true, message: t('cron.page.form.promptRequired') }]}
           >
-            <TextArea placeholder={t('cron.page.form.promptPlaceholder')} autoSize={{ minRows: 4, maxRows: 8 }} />
+            <TextArea placeholder={t('cron.page.form.promptPlaceholder')} autoSize={{ minRows: 3, maxRows: 8 }} />
           </FormItem>
 
           {/* Frequency */}
@@ -629,16 +636,12 @@ const CreateTaskDialog: React.FC<CreateTaskDialogProps> = ({
               <Option value='weekly'>{t('cron.page.freq.weekly')}</Option>
               {frequency === 'custom' && <Option value='custom'>{t('cron.page.freq.custom')}</Option>}
             </Select>
-          </FormItem>
-
-          {/* Custom cron expression warning */}
-          {frequency === 'custom' && (
-            <div className='mb-16px rounded-8px bg-[var(--color-warning-light-1)] border border-solid border-[var(--color-warning-light-3)] px-12px py-10px'>
-              <p className='m-0 text-12px leading-18px text-[var(--color-warning-6)]'>
+            {frequency === 'custom' && (
+              <p className='mb-0 mt-8px text-12px leading-18px text-t-secondary'>
                 {t('cron.page.customCronWarning', { expr: customCronExpr })}
               </p>
-            </div>
-          )}
+            )}
+          </FormItem>
 
           {/* Time picker - shown for daily/weekdays/weekly */}
           {showTimePicker && (
@@ -670,19 +673,27 @@ const CreateTaskDialog: React.FC<CreateTaskDialogProps> = ({
             </div>
           )}
 
-          {/* Hint text */}
-          {frequency !== 'manual' && (
-            <p className='text-t-secondary text-12px mt-0 mb-16px'>{t('cron.page.scheduleHint')}</p>
-          )}
+          <div className='mt-16px'>
+            <Button
+              type='text'
+              onClick={() => setAdvancedOpen((open) => !open)}
+              className='!h-auto !p-0 hover:!bg-transparent'
+            >
+              <span className='flex items-center gap-6px text-14px font-medium text-t-primary'>
+                <Down
+                  size='14'
+                  fill='currentColor'
+                  className={`shrink-0 transition-transform ${advancedOpen ? 'rotate-180' : ''}`}
+                />
+                <span>{t('cron.page.form.advancedSettings')}</span>
+              </span>
+            </Button>
 
-          {/* Advanced Settings */}
-          <Collapse defaultActiveKey={[]} className='mt-16px'>
-            <Collapse.Item header={t('cron.page.form.advancedSettings')} name='advanced'>
-              <div className='flex flex-col gap-16px'>
-                {/* Model Selector — reuse GuidModelSelector (same no-conversation context) */}
-                {resolvedBackend && (isGeminiMode || acpCachedModelInfo) && (
-                  <div>
-                    <label className='text-14px font-medium text-t-primary mb-8px block'>
+            {advancedOpen && (
+              <div className='mt-12px grid gap-x-16px gap-y-16px md:grid-cols-2'>
+                {showModelSelector && (
+                  <div className='min-w-0'>
+                    <label className='mb-8px block text-14px font-medium text-t-primary'>
                       {t('cron.page.form.model')}
                     </label>
                     <GuidModelSelector
@@ -698,10 +709,9 @@ const CreateTaskDialog: React.FC<CreateTaskDialogProps> = ({
                   </div>
                 )}
 
-                {/* ACP Config Selector - only for codex backend */}
-                {resolvedBackend === 'codex' && (
-                  <div>
-                    <label className='text-14px font-medium text-t-primary mb-8px block'>
+                {showConfigSelector && (
+                  <div className='min-w-0'>
+                    <label className='mb-8px block text-14px font-medium text-t-primary'>
                       {t('acp.config.reasoning_effort')}
                     </label>
                     <AcpConfigSelector
@@ -713,29 +723,28 @@ const CreateTaskDialog: React.FC<CreateTaskDialogProps> = ({
                   </div>
                 )}
 
-                {/* Workspace directory picker */}
-                <div>
-                  <label className='text-14px font-medium text-t-primary mb-8px block'>
+                <div className={advancedFieldCount === 1 ? 'md:col-span-2' : ''}>
+                  <label className='mb-8px block text-14px font-medium text-t-primary'>
                     {t('cron.page.form.workspace')}
                   </label>
-                  <div className='flex items-center gap-8px'>
-                    <Button onClick={handleWorkspaceSelect}>{t('cron.page.form.selectFolder')}</Button>
-                    {workspace && (
-                      <>
-                        <span className='text-14px text-t-secondary truncate flex-1' title={workspace}>
-                          {workspace}
-                        </span>
-                        <Button onClick={handleWorkspaceClear} size='small'>
-                          {t('cron.page.form.clearFolder')}
-                        </Button>
-                      </>
-                    )}
-                  </div>
-                  <p className='text-12px text-t-secondary mt-8px mb-0'>{t('cron.page.form.workspaceHint')}</p>
+                  <WorkspaceFolderSelect
+                    value={workspace}
+                    onChange={(next) => setWorkspace(next || undefined)}
+                    onClear={handleWorkspaceClear}
+                    placeholder={t('cron.page.form.selectFolder')}
+                    inputPlaceholder={t('cron.page.form.workspacePlaceholder')}
+                    recentLabel={t('team.create.recentLabel', { defaultValue: 'Recent' })}
+                    chooseDifferentLabel={t('team.create.chooseDifferentFolder', {
+                      defaultValue: 'Choose a different folder',
+                    })}
+                    triggerTestId='cron-workspace-trigger'
+                    menuTestId='cron-workspace-menu'
+                    menuZIndex={10020}
+                  />
                 </div>
               </div>
-            </Collapse.Item>
-          </Collapse>
+            )}
+          </div>
         </Form>
       </div>
     </ModalWrapper>

@@ -54,7 +54,7 @@ const SiderScheduledEntry: React.FC<SiderScheduledEntryProps> = ({
     <Tooltip {...siderTooltipProps} content={t('cron.scheduledTasks')} position='right'>
       <div
         className={classNames(
-          'h-40px w-full flex items-center justify-start gap-8px px-10px rd-0.5rem cursor-pointer shrink-0 transition-all text-t-primary',
+          'box-border h-40px w-full flex items-center justify-start gap-8px px-10px rd-0.5rem cursor-pointer shrink-0 transition-all text-t-primary',
           isMobile && 'sider-action-btn-mobile',
           isActive ? 'bg-[rgba(var(--primary-6),0.12)] text-primary' : 'hover:bg-fill-3 active:bg-fill-4'
         )}

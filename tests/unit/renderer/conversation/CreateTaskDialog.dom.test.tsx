@@ -3,6 +3,19 @@ import React from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import type { ICronJob } from '@/common/adapter/ipcBridge';
 
+const mockShowOpen = vi.hoisted(() => vi.fn().mockResolvedValue([]));
+const mockIsElectronDesktop = vi.hoisted(() => vi.fn(() => true));
+const mockForm = vi.hoisted(() => ({
+  setFieldsValue: vi.fn(),
+  resetFields: vi.fn(),
+  validate: vi.fn().mockResolvedValue({
+    name: 'Test Task',
+    description: 'Test Description',
+    prompt: 'Test Prompt',
+    agent: 'cli:claude',
+  }),
+}));
+
 // Mock react-i18next
 vi.mock('react-i18next', () => ({
   useTranslation: () => ({
@@ -23,6 +36,19 @@ vi.mock('react-i18next', () => ({
       if (key === 'cron.detail.executionModeDescriptionExisting') {
         return 'Each run continues in the same conversation, so earlier context and results stay available.';
       }
+      if (key === 'cron.page.form.advancedSettings') return 'Advanced settings';
+      if (key === 'cron.page.form.workspace') return 'Workspace';
+      if (key === 'cron.page.form.workspaceHint') return 'Optional workspace';
+      if (key === 'cron.page.form.workspacePlaceholder') return 'Workspace path';
+      if (key === 'cron.page.form.selectFolder') return 'Select folder';
+      if (key === 'cron.page.customCronWarning') {
+        return "This task has a custom schedule that can't be edited here. Changing the frequency will replace it.";
+      }
+      if (key === 'cron.page.scheduleHint') {
+        return 'Scheduled tasks use a randomized delay of several minutes for server performance.';
+      }
+      if (key === 'team.create.recentLabel') return 'Recent';
+      if (key === 'team.create.chooseDifferentFolder') return 'Choose a different folder';
       if (key.startsWith('cron.page.weekday.')) {
         const day = key.split('.').pop();
         return day?.charAt(0).toUpperCase() + day?.slice(1);
@@ -35,6 +61,14 @@ vi.mock('react-i18next', () => ({
 // Mock @icon-park/react
 vi.mock('@icon-park/react', () => ({
   Robot: () => <span data-testid='icon-robot' />,
+  Down: () => <span data-testid='icon-down' />,
+  Check: () => <span data-testid='icon-check' />,
+  Close: ({ onClick }: { onClick?: (e: React.MouseEvent) => void }) => (
+    <span data-testid='icon-close' onClick={onClick} />
+  ),
+  Folder: () => <span data-testid='icon-folder' />,
+  FolderOpen: () => <span data-testid='icon-folder-open' />,
+  FolderPlus: () => <span data-testid='icon-folder-plus' />,
 }));
 
 // Mock ipcBridge
@@ -43,11 +77,18 @@ const mockUpdateJob = vi.fn();
 
 vi.mock('@/common', () => ({
   ipcBridge: {
+    dialog: {
+      showOpen: { invoke: (...args: unknown[]) => mockShowOpen(...args) },
+    },
     cron: {
       addJob: { invoke: (...args: unknown[]) => mockAddJob(...args) },
       updateJob: { invoke: (...args: unknown[]) => mockUpdateJob(...args) },
     },
   },
+}));
+
+vi.mock('@renderer/utils/platform', () => ({
+  isElectronDesktop: mockIsElectronDesktop,
 }));
 
 // Mock Arco Design components
@@ -63,18 +104,7 @@ vi.mock('@arco-design/web-react', () => ({
           {children}
         </div>
       ),
-      useForm: () => [
-        {
-          setFieldsValue: vi.fn(),
-          resetFields: vi.fn(),
-          validate: vi.fn().mockResolvedValue({
-            name: 'Test Task',
-            description: 'Test Description',
-            prompt: 'Test Prompt',
-            agent: 'cli:claude',
-          }),
-        },
-      ],
+      useForm: () => [mockForm],
     }
   ),
   Input: Object.assign(
@@ -152,8 +182,18 @@ vi.mock('@arco-design/web-react', () => ({
       ),
     }
   ),
-  Button: ({ children, onClick, size }: { children: React.ReactNode; onClick?: () => void; size?: string }) => (
-    <button onClick={onClick} data-size={size} data-testid='mock-button'>
+  Button: ({
+    children,
+    onClick,
+    size,
+    htmlType = 'button',
+  }: {
+    children: React.ReactNode;
+    onClick?: () => void;
+    size?: string;
+    htmlType?: 'button' | 'submit' | 'reset';
+  }) => (
+    <button type={htmlType} onClick={onClick} data-size={size} data-testid='mock-button'>
       {children}
     </button>
   ),
@@ -304,6 +344,13 @@ vi.mock('dayjs', () => ({
 }));
 
 import CreateTaskDialog from '@/renderer/pages/cron/ScheduledTasksPage/CreateTaskDialog';
+
+beforeEach(() => {
+  vi.clearAllMocks();
+  localStorage.clear();
+  mockIsElectronDesktop.mockReturnValue(true);
+  mockShowOpen.mockResolvedValue([]);
+});
 
 describe('CreateTaskDialog - parseCronExpr utility', () => {
   // Test parseCronExpr indirectly by checking if edit mode populates the form correctly
@@ -917,6 +964,93 @@ describe('CreateTaskDialog - schedule preset definitions', () => {
   });
 });
 
+describe('CreateTaskDialog - advanced settings workspace picker', () => {
+  it('reuses the shared workspace picker styling inside advanced settings', () => {
+    localStorage.setItem('aionui:recent-workspaces', JSON.stringify(['/tmp/scheduled-workspace']));
+
+    const editJob: ICronJob = {
+      id: 'job-workspace',
+      name: 'Workspace Task',
+      schedule: { kind: 'cron', expr: '0 9 * * *', description: 'Daily at 09:00' },
+      target: {
+        kind: 'conversation',
+        conversationId: 'conv-1',
+        payload: { kind: 'message', text: 'Test prompt' },
+        executionMode: 'existing',
+      },
+      metadata: {
+        agentType: 'claude',
+        createdBy: 'user',
+        createdAt: Date.now(),
+        updatedAt: Date.now(),
+        agentConfig: {
+          backend: 'claude',
+          name: 'Claude',
+          cliPath: '/usr/bin/claude',
+          workspace: '/tmp/scheduled-workspace',
+        },
+      },
+      state: 'active',
+      lastExecutionTime: Date.now(),
+    };
+
+    render(<CreateTaskDialog visible onClose={vi.fn()} editJob={editJob} conversationId='conv-1' />);
+
+    const workspaceTrigger = screen.getByTestId('cron-workspace-trigger');
+    expect(workspaceTrigger.className).toContain('bg-fill-1');
+    expect(workspaceTrigger.className).toContain('border-border-2');
+    expect(workspaceTrigger.className).toContain('py-0');
+    expect(screen.queryByText('Optional workspace')).not.toBeInTheDocument();
+
+    fireEvent.click(workspaceTrigger);
+
+    const workspaceMenu = screen.getByTestId('cron-workspace-menu');
+    expect(workspaceMenu.className).toContain('border-border-1');
+    expect(screen.getAllByText('scheduled-workspace')).toHaveLength(2);
+  });
+});
+
+describe('CreateTaskDialog - custom schedule hint', () => {
+  it('shows the custom schedule note as lightweight hint text and removes the delay hint', () => {
+    const editJob: ICronJob = {
+      id: 'job-custom-hint',
+      name: 'Custom Task',
+      schedule: { kind: 'cron', expr: '0 */4 * * *', description: 'Every 4 hours' },
+      target: {
+        kind: 'conversation',
+        conversationId: 'conv-1',
+        payload: { kind: 'message', text: 'Test prompt' },
+        executionMode: 'existing',
+      },
+      metadata: {
+        agentType: 'claude',
+        createdBy: 'user',
+        createdAt: Date.now(),
+        updatedAt: Date.now(),
+        agentConfig: {
+          backend: 'claude',
+          name: 'Claude',
+          cliPath: '/usr/bin/claude',
+        },
+      },
+      state: 'active',
+      lastExecutionTime: Date.now(),
+    };
+
+    render(<CreateTaskDialog visible onClose={vi.fn()} editJob={editJob} conversationId='conv-1' />);
+
+    const hint = screen.getByText(
+      "This task has a custom schedule that can't be edited here. Changing the frequency will replace it."
+    );
+
+    expect(hint.className).toContain('text-t-secondary');
+    expect(hint.className).not.toContain('text-[var(--color-warning-6)]');
+    expect(
+      screen.queryByText('Scheduled tasks use a randomized delay of several minutes for server performance.')
+    ).not.toBeInTheDocument();
+  });
+});
+
 describe('CreateTaskDialog - component behavior', () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -1028,5 +1162,104 @@ describe('CreateTaskDialog - component behavior', () => {
     });
 
     expect(onClose).toHaveBeenCalled();
+  });
+});
+
+describe('CreateTaskDialog - advanced settings panel', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    localStorage.clear();
+    mockIsElectronDesktop.mockReturnValue(true);
+  });
+
+  it('toggles the advanced settings panel open and closed', () => {
+    render(<CreateTaskDialog visible={true} onClose={vi.fn()} conversationId='conv-1' />);
+
+    // Workspace picker is hidden initially
+    expect(screen.queryByTestId('cron-workspace-trigger')).not.toBeInTheDocument();
+
+    // Open panel
+    fireEvent.click(screen.getByTestId('mock-button'));
+    expect(screen.getByTestId('cron-workspace-trigger')).toBeInTheDocument();
+
+    // Close panel again
+    fireEvent.click(screen.getByTestId('mock-button'));
+    expect(screen.queryByTestId('cron-workspace-trigger')).not.toBeInTheDocument();
+  });
+
+  it('clears the workspace via the close icon inside the picker', () => {
+    localStorage.setItem('aionui:recent-workspaces', JSON.stringify(['/tmp/ws']));
+
+    const editJob: ICronJob = {
+      id: 'job-clear',
+      name: 'Task',
+      schedule: { kind: 'cron', expr: '0 9 * * *', description: 'Daily' },
+      target: {
+        kind: 'conversation',
+        conversationId: 'conv-1',
+        payload: { kind: 'message', text: 'prompt' },
+        executionMode: 'existing',
+      },
+      metadata: {
+        agentType: 'claude',
+        createdBy: 'user',
+        createdAt: Date.now(),
+        updatedAt: Date.now(),
+        agentConfig: {
+          backend: 'claude',
+          name: 'Claude',
+          cliPath: '/usr/bin/claude',
+          workspace: '/tmp/ws',
+        },
+      },
+      state: 'active',
+      lastExecutionTime: Date.now(),
+    };
+
+    render(<CreateTaskDialog visible onClose={vi.fn()} editJob={editJob} conversationId='conv-1' />);
+
+    // Advanced open because workspace was set in agentConfig
+    expect(screen.getByTestId('cron-workspace-trigger')).toBeInTheDocument();
+    // Clear icon present because workspace has a value
+    expect(screen.getByTestId('icon-close')).toBeInTheDocument();
+
+    fireEvent.click(screen.getByTestId('icon-close'));
+
+    // After clearing, the Close icon is replaced by the Down icon in the trigger
+    expect(screen.queryByTestId('icon-close')).not.toBeInTheDocument();
+    // Multiple Down icons now exist: one in the toggle button, one in the cleared trigger
+    expect(screen.getAllByTestId('icon-down').length).toBeGreaterThan(0);
+  });
+
+  it('opens advanced panel pre-expanded when editJob has a workspace', () => {
+    const editJob: ICronJob = {
+      id: 'job-pre-open',
+      name: 'Task',
+      schedule: { kind: 'cron', expr: '0 9 * * *', description: 'Daily' },
+      target: {
+        kind: 'conversation',
+        conversationId: 'conv-1',
+        payload: { kind: 'message', text: 'prompt' },
+        executionMode: 'new_conversation',
+      },
+      metadata: {
+        agentType: 'claude',
+        createdBy: 'user',
+        createdAt: Date.now(),
+        updatedAt: Date.now(),
+        agentConfig: {
+          backend: 'claude',
+          name: 'Claude',
+          cliPath: '/usr/bin/claude',
+          workspace: '/projects/my-app',
+        },
+      },
+      state: 'active',
+      lastExecutionTime: Date.now(),
+    };
+
+    render(<CreateTaskDialog visible onClose={vi.fn()} editJob={editJob} conversationId='conv-1' />);
+
+    expect(screen.getByTestId('cron-workspace-trigger')).toBeInTheDocument();
   });
 });

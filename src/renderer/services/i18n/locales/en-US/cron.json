@@ -61,7 +61,7 @@
     "createSuccess": "Task created successfully",
     "updateSuccess": "Task updated successfully",
     "scheduleHint": "Scheduled tasks use a randomized delay of several minutes for server performance.",
-    "customCronWarning": "This is a custom cron expression ({{expr}}) that cannot be edited through the UI. Switch to a preset frequency to change the schedule.",
+    "customCronWarning": "This task has a custom schedule that can't be edited here. Changing the frequency will replace it.",
     "weekday": {
       "monday": "Monday",
       "tuesday": "Tuesday",
@@ -112,7 +112,7 @@
       "daily": "Daily",
       "weekdays": "Weekdays",
       "weekly": "Weekly",
-      "custom": "Custom cron..."
+      "custom": "Custom"
     },
     "scheduleDesc": {
       "manual": "Manual",
