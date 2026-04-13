@@ -51,7 +51,7 @@ vi.mock('@/common/utils', () => ({
 
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { TeamSessionService } from '@process/team/TeamSessionService';
-import { buildRolePrompt } from '@process/team/adapters/buildRolePrompt';
+import { buildRolePrompt } from '@process/team/prompts/buildRolePrompt';
 import { TeamSession } from '@process/team/TeamSession';
 import type { ITeamRepository } from '@process/team/repository/ITeamRepository';
 import type { IWorkerTaskManager } from '@process/task/IWorkerTaskManager';
