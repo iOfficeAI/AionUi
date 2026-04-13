@@ -316,6 +316,18 @@ Text-only slides are only allowed for: quotes, code examples, pure tables.
 `morph_clone_slide` copies the model as frozen XML. The cloned model cannot Morph.
 Each slide must call `add --type 3dmodel` independently with the **same `name`** prop.
 
+**⚠️ CRITICAL: If you clone a slide that already has a 3D model, the old model XML is copied too. This creates TWO model3d elements with the same name on the new slide. PowerPoint cannot handle this conflict and will delete the model content during repair.**
+
+If you must clone a slide for scene actors, **immediately remove the cloned model before adding a new one:**
+
+```bash
+# After cloning slide 1 to slide 2:
+officecli remove deck.pptx '/slide[2]/model3d[1]'  # remove the frozen clone
+officecli add deck.pptx '/slide[2]' --type 3dmodel ...  # add fresh model
+```
+
+**Recommended approach: Do NOT clone slides with 3D models at all.** Create all slides empty first, then add models fresh on each.
+
 ```bash
 # Slide 1
 officecli add deck.pptx '/slide[1]' --type 3dmodel \
@@ -430,6 +442,35 @@ Slide 6: B (model left, M)           ← grow
 Slide 7: C (centered closing, L)     ← push in
 ```
 
+### Text Layout Safety (MANDATORY)
+
+**Text boxes must never overlap each other or the model frame.**
+
+Rules:
+1. **Title and body must not collide.** If a title wraps to 2 lines, the body `y` must account for the title's actual height, not the planned height. Safe formula: `body_y = title_y + title_height + 0.5cm`
+2. **Fixed-height text boxes are dangerous.** If text content is longer than expected, it will overflow invisibly. Use generous heights: title `3-4cm`, body `6-8cm`, bullets `8-10cm`.
+3. **Model frame and text boxes: gap >= 1cm.** Calculate: if model is at `x=15cm`, text `x + width` must be <= `14cm`.
+4. **On Pattern C (centered model + text overlay):** text goes at slide top (`y=0.5-2cm`) or bottom (`y=14-17cm`), NOT in the vertical middle where the model lives (`y=3-13cm`).
+5. **After building each slide, verify coordinates:**
+   ```bash
+   officecli get deck.pptx '/slide[N]' --depth 1
+   # Check: no two shapes share overlapping x/y/width/height ranges
+   ```
+
+### Model Bleed Guidelines
+
+**Not every model looks good when cropped.** Bleed (Pattern E/F) works best for:
+- ✅ Symmetric objects (spheres, helmets, bottles) — any crop looks intentional
+- ✅ Large flat surfaces (cars, buildings) — partial view implies scale
+- ✅ When cropping non-critical parts (background, base, stand)
+
+Bleed does NOT work for:
+- ❌ Character/animal models — cropping ears, tails, or limbs looks broken
+- ❌ Small detailed models — cropping loses the detail you want to show
+- ❌ When the cropped part is the most recognizable feature
+
+**For character/animal models (like shiba, fox, duck):** keep the full model visible on all slides. Use size changes (L→M→S) for rhythm instead of bleed cropping. Use `rotx` for angle variety instead.
+
 ---
 
 ## Camera Language
@@ -532,11 +573,13 @@ After standard morph verification, additionally check:
 
 All files must be in the same working directory.
 
-**Deliverables (4 files)** — note: morph-ppt base requires 3, 3D extension adds the model file:
+**Deliverables (exactly 4 files, no more):**
 
 - `.glb` model file (the 3D model used in the deck)
 - Output `.pptx`
 - Build script (re-runnable)
 - `brief.md`
+
+**Do NOT create additional files** such as outline.md, quality-report.md, test-report.md, etc. All planning goes in `brief.md`, all verification output goes to stdout. Extra files confuse users.
 
 Do not scatter model files across unrelated paths.
