@@ -57,7 +57,7 @@ gh pr list \
   --state open \
   --label "bot:ready-to-merge" \
   --search "created:>=$(date -v-${DAYS}d '+%Y-%m-%d' 2>/dev/null || date -d "${DAYS} days ago" '+%Y-%m-%d') -is:draft" \
-  --json number,title,additions,deletions,commits \
+  --json number,title,labels,changedFiles,additions,deletions,headRefName,baseRefName,commits,createdAt,author \
   --limit 50
 ```
 
@@ -159,7 +159,10 @@ Informational exclusions: `codecov/patch` and `codecov/project` are informationa
 > s - 跳过此 PR
 > c - 忽略失败，继续验证
 
-- `s` → skip this PR, return to list (Step 1)
+- `s` → remove `bot:ready-to-merge` label (let pr-automation re-process next round), return to list (Step 1):
+  ```bash
+  gh pr edit $PR_NUMBER --remove-label "bot:ready-to-merge"
+  ```
 - `c` → continue to Check 3
 
 #### Check 3 — Merge Conflicts
@@ -244,7 +247,12 @@ Prompt:
   ```
   Return to list (Step 1).
 
-- `s` → return to list (Step 1), no label change.
+- `s` → add `bot:needs-rebase` label and comment, return to list (Step 1):
+  ```bash
+  gh pr edit $PR_NUMBER --remove-label "bot:ready-to-merge" --add-label "bot:needs-rebase"
+  gh pr comment $PR_NUMBER --body "<!-- pr-verify-bot -->
+  PR 存在合并冲突，自动 rebase 失败。请作者手动 rebase 后重新 push。"
+  ```
 - `r` → add label and return to list:
   ```bash
   gh pr edit $PR_NUMBER --remove-label "bot:ready-to-merge" --add-label "bot:needs-human-review"
