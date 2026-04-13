@@ -5,6 +5,16 @@ import type { ICronJob } from '@/common/adapter/ipcBridge';
 
 const mockShowOpen = vi.hoisted(() => vi.fn().mockResolvedValue([]));
 const mockIsElectronDesktop = vi.hoisted(() => vi.fn(() => true));
+const mockForm = vi.hoisted(() => ({
+  setFieldsValue: vi.fn(),
+  resetFields: vi.fn(),
+  validate: vi.fn().mockResolvedValue({
+    name: 'Test Task',
+    description: 'Test Description',
+    prompt: 'Test Prompt',
+    agent: 'cli:claude',
+  }),
+}));
 
 // Mock react-i18next
 vi.mock('react-i18next', () => ({
@@ -53,7 +63,9 @@ vi.mock('@icon-park/react', () => ({
   Robot: () => <span data-testid='icon-robot' />,
   Down: () => <span data-testid='icon-down' />,
   Check: () => <span data-testid='icon-check' />,
-  Close: () => <span data-testid='icon-close' />,
+  Close: ({ onClick }: { onClick?: (e: React.MouseEvent) => void }) => (
+    <span data-testid='icon-close' onClick={onClick} />
+  ),
   Folder: () => <span data-testid='icon-folder' />,
   FolderOpen: () => <span data-testid='icon-folder-open' />,
   FolderPlus: () => <span data-testid='icon-folder-plus' />,
@@ -92,18 +104,7 @@ vi.mock('@arco-design/web-react', () => ({
           {children}
         </div>
       ),
-      useForm: () => [
-        {
-          setFieldsValue: vi.fn(),
-          resetFields: vi.fn(),
-          validate: vi.fn().mockResolvedValue({
-            name: 'Test Task',
-            description: 'Test Description',
-            prompt: 'Test Prompt',
-            agent: 'cli:claude',
-          }),
-        },
-      ],
+      useForm: () => [mockForm],
     }
   ),
   Input: Object.assign(
@@ -1161,5 +1162,104 @@ describe('CreateTaskDialog - component behavior', () => {
     });
 
     expect(onClose).toHaveBeenCalled();
+  });
+});
+
+describe('CreateTaskDialog - advanced settings panel', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    localStorage.clear();
+    mockIsElectronDesktop.mockReturnValue(true);
+  });
+
+  it('toggles the advanced settings panel open and closed', () => {
+    render(<CreateTaskDialog visible={true} onClose={vi.fn()} conversationId='conv-1' />);
+
+    // Workspace picker is hidden initially
+    expect(screen.queryByTestId('cron-workspace-trigger')).not.toBeInTheDocument();
+
+    // Open panel
+    fireEvent.click(screen.getByTestId('mock-button'));
+    expect(screen.getByTestId('cron-workspace-trigger')).toBeInTheDocument();
+
+    // Close panel again
+    fireEvent.click(screen.getByTestId('mock-button'));
+    expect(screen.queryByTestId('cron-workspace-trigger')).not.toBeInTheDocument();
+  });
+
+  it('clears the workspace via the close icon inside the picker', () => {
+    localStorage.setItem('aionui:recent-workspaces', JSON.stringify(['/tmp/ws']));
+
+    const editJob: ICronJob = {
+      id: 'job-clear',
+      name: 'Task',
+      schedule: { kind: 'cron', expr: '0 9 * * *', description: 'Daily' },
+      target: {
+        kind: 'conversation',
+        conversationId: 'conv-1',
+        payload: { kind: 'message', text: 'prompt' },
+        executionMode: 'existing',
+      },
+      metadata: {
+        agentType: 'claude',
+        createdBy: 'user',
+        createdAt: Date.now(),
+        updatedAt: Date.now(),
+        agentConfig: {
+          backend: 'claude',
+          name: 'Claude',
+          cliPath: '/usr/bin/claude',
+          workspace: '/tmp/ws',
+        },
+      },
+      state: 'active',
+      lastExecutionTime: Date.now(),
+    };
+
+    render(<CreateTaskDialog visible onClose={vi.fn()} editJob={editJob} conversationId='conv-1' />);
+
+    // Advanced open because workspace was set in agentConfig
+    expect(screen.getByTestId('cron-workspace-trigger')).toBeInTheDocument();
+    // Clear icon present because workspace has a value
+    expect(screen.getByTestId('icon-close')).toBeInTheDocument();
+
+    fireEvent.click(screen.getByTestId('icon-close'));
+
+    // After clearing, the Close icon is replaced by the Down icon in the trigger
+    expect(screen.queryByTestId('icon-close')).not.toBeInTheDocument();
+    // Multiple Down icons now exist: one in the toggle button, one in the cleared trigger
+    expect(screen.getAllByTestId('icon-down').length).toBeGreaterThan(0);
+  });
+
+  it('opens advanced panel pre-expanded when editJob has a workspace', () => {
+    const editJob: ICronJob = {
+      id: 'job-pre-open',
+      name: 'Task',
+      schedule: { kind: 'cron', expr: '0 9 * * *', description: 'Daily' },
+      target: {
+        kind: 'conversation',
+        conversationId: 'conv-1',
+        payload: { kind: 'message', text: 'prompt' },
+        executionMode: 'new_conversation',
+      },
+      metadata: {
+        agentType: 'claude',
+        createdBy: 'user',
+        createdAt: Date.now(),
+        updatedAt: Date.now(),
+        agentConfig: {
+          backend: 'claude',
+          name: 'Claude',
+          cliPath: '/usr/bin/claude',
+          workspace: '/projects/my-app',
+        },
+      },
+      state: 'active',
+      lastExecutionTime: Date.now(),
+    };
+
+    render(<CreateTaskDialog visible onClose={vi.fn()} editJob={editJob} conversationId='conv-1' />);
+
+    expect(screen.getByTestId('cron-workspace-trigger')).toBeInTheDocument();
   });
 });
