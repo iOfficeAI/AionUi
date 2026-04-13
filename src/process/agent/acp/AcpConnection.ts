@@ -859,8 +859,6 @@ export class AcpConnection {
       ...(options?.forkSession && { forkSession: options.forkSession }),
     });
 
-    console.log('session/new===>', JSON.stringify(options));
-
     this.sessionId = response.sessionId;
 
     this.parseSessionCapabilities(response);
