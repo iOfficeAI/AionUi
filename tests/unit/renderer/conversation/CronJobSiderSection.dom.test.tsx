@@ -18,7 +18,7 @@ vi.mock('@icon-park/react', () => ({
 }));
 
 // Mock CronJobSiderItem component to isolate section behavior
-vi.mock('@/renderer/components/layout/Sider/CronJobSiderItem', () => ({
+vi.mock('@/renderer/components/layout/Sider/CronJobSiderSection/CronJobSiderItem', () => ({
   default: ({ job }: { job: { id: string; name: string } }) => (
     <div data-testid={`cron-job-item-${job.id}`}>{job.name}</div>
   ),

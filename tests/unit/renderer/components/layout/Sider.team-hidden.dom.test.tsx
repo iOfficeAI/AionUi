@@ -37,15 +37,15 @@ vi.mock('@/renderer/utils/ui/focus', () => ({
   blurActiveElement: vi.fn(),
 }));
 
-vi.mock('@/renderer/components/layout/Sider/SiderToolbar', () => ({
+vi.mock('@/renderer/components/layout/Sider/SiderNav/SiderToolbar', () => ({
   default: () => <div data-testid='sider-toolbar' />,
 }));
 
-vi.mock('@/renderer/components/layout/Sider/SiderSearchEntry', () => ({
+vi.mock('@/renderer/components/layout/Sider/SiderNav/SiderSearchEntry', () => ({
   default: () => <div data-testid='sider-search-entry' />,
 }));
 
-vi.mock('@/renderer/components/layout/Sider/SiderScheduledEntry', () => ({
+vi.mock('@/renderer/components/layout/Sider/SiderNav/SiderScheduledEntry', () => ({
   default: () => <div data-testid='sider-scheduled-entry' />,
 }));
 
