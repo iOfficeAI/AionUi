@@ -9,7 +9,7 @@ import type { TTeam, TeamAgent } from './types';
 import { Mailbox } from './Mailbox';
 import { TaskManager } from './TaskManager';
 import { TeammateManager } from './TeammateManager';
-import { TeamMcpServer, type StdioMcpConfig } from './TeamMcpServer';
+import { TeamMcpServer, type StdioMcpConfig } from './mcp/team/TeamMcpServer';
 
 type SpawnAgentFn = (agentName: string, agentType?: string) => Promise<TeamAgent>;
 

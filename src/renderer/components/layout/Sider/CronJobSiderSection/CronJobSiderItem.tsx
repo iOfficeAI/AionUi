@@ -7,6 +7,8 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useNavigate, useParams } from 'react-router-dom';
+import { DndContext } from '@dnd-kit/core';
+import { SortableContext, verticalListSortingStrategy } from '@dnd-kit/sortable';
 import classNames from 'classnames';
 import { Down } from '@icon-park/react';
 import { Input, Message, Modal } from '@arco-design/web-react';
@@ -21,6 +23,11 @@ import ConversationRow from '@renderer/pages/conversation/GroupedHistory/Convers
 import WorkspaceCollapse from '@renderer/pages/conversation/components/WorkspaceCollapse';
 import { getWorkspaceDisplayName } from '@/renderer/utils/workspace/workspace';
 import { useConversationHistoryContext } from '@renderer/hooks/context/ConversationHistoryContext';
+import { useLayoutContext } from '@renderer/hooks/context/LayoutContext';
+import SortableSiderEntry from '../SortableSiderEntry';
+import { useStoredSiderOrder } from '../useStoredSiderOrder';
+
+const buildCronConversationOrderKey = (jobId: string): string => `cron-job-conversation-order-${jobId}`;
 
 interface CronJobSiderItemProps {
   job: ICronJob;
@@ -39,7 +46,8 @@ const CronJobSiderItem: React.FC<CronJobSiderItemProps> = ({
   const { t } = useTranslation();
   const { id: currentConversationId } = useParams();
   const navigate = useNavigate();
-  const isNewConversationMode = job.target.executionMode === 'new_conversation';
+  const layout = useLayoutContext();
+  const isMobile = layout?.isMobile ?? false;
   // Always fetch all child conversations regardless of mode
   const { conversations } = useCronJobConversations(job.id);
   const { isConversationGenerating, hasCompletionUnread, clearCompletionUnread } = useConversationHistoryContext();
@@ -189,12 +197,29 @@ const CronJobSiderItem: React.FC<CronJobSiderItemProps> = ({
   }, []);
 
   const hasChildren = childConversations.length > 0;
+  const getConversationId = useCallback((conversation: TChatConversation) => conversation.id, []);
+  const getConversationGroupKey = useCallback((conv: TChatConversation) => {
+    const ws = (conv.extra as Record<string, unknown> | undefined)?.workspace as string | undefined;
+    const customWs = (conv.extra as Record<string, unknown> | undefined)?.customWorkspace;
+    return customWs && ws ? `workspace:${ws}` : 'plain';
+  }, []);
+  const {
+    orderedItems: orderedChildConversations,
+    sensors,
+    handleDragEnd,
+  } = useStoredSiderOrder({
+    items: childConversations,
+    storageKey: buildCronConversationOrderKey(job.id),
+    getId: getConversationId,
+    getGroupKey: getConversationGroupKey,
+    enabled: !isMobile,
+  });
 
   // Group child conversations by workspace (matching WorkspaceGroupedHistory logic)
   const { workspaceGroups, noWorkspaceConvs } = useMemo(() => {
     const groups = new Map<string, TChatConversation[]>();
     const plain: TChatConversation[] = [];
-    for (const conv of childConversations) {
+    for (const conv of orderedChildConversations) {
       const ws = (conv.extra as Record<string, unknown> | undefined)?.workspace as string | undefined;
       const customWs = (conv.extra as Record<string, unknown> | undefined)?.customWorkspace;
       if (customWs && ws) {
@@ -205,7 +230,7 @@ const CronJobSiderItem: React.FC<CronJobSiderItemProps> = ({
       }
     }
     return { workspaceGroups: groups, noWorkspaceConvs: plain };
-  }, [childConversations]);
+  }, [orderedChildConversations]);
 
   const [expandedWorkspaces, setExpandedWorkspaces] = useState<Set<string>>(() => new Set());
 
@@ -231,28 +256,30 @@ const CronJobSiderItem: React.FC<CronJobSiderItemProps> = ({
 
   const renderConversationRow = useCallback(
     (conv: TChatConversation) => (
-      <ConversationRow
-        key={conv.id}
-        conversation={conv}
-        isGenerating={isConversationGenerating(conv.id)}
-        hasCompletionUnread={hasCompletionUnread(conv.id)}
-        collapsed={false}
-        tooltipEnabled={false}
-        batchMode={false}
-        checked={false}
-        selected={currentConversationId === conv.id}
-        menuVisible={dropdownVisibleId === conv.id}
-        onToggleChecked={() => {}}
-        onConversationClick={handleConversationClick}
-        onOpenMenu={handleOpenMenu}
-        onMenuVisibleChange={handleMenuVisibleChange}
-        onEditStart={handleEditStart}
-        onDelete={handleDelete}
-        onTogglePin={handleTogglePin}
-        getJobStatus={() => 'none'}
-      />
+      <SortableSiderEntry key={conv.id} id={conv.id} disabled={isMobile} testId={`cron-child-sortable-${conv.id}`}>
+        <ConversationRow
+          conversation={conv}
+          isGenerating={isConversationGenerating(conv.id)}
+          hasCompletionUnread={hasCompletionUnread(conv.id)}
+          collapsed={false}
+          tooltipEnabled={false}
+          batchMode={false}
+          checked={false}
+          selected={currentConversationId === conv.id}
+          menuVisible={dropdownVisibleId === conv.id}
+          onToggleChecked={() => {}}
+          onConversationClick={handleConversationClick}
+          onOpenMenu={handleOpenMenu}
+          onMenuVisibleChange={handleMenuVisibleChange}
+          onEditStart={handleEditStart}
+          onDelete={handleDelete}
+          onTogglePin={handleTogglePin}
+          getJobStatus={() => 'none'}
+        />
+      </SortableSiderEntry>
     ),
     [
+      isMobile,
       isConversationGenerating,
       hasCompletionUnread,
       currentConversationId,
@@ -305,30 +332,41 @@ const CronJobSiderItem: React.FC<CronJobSiderItemProps> = ({
 
       {/* Child conversations — workspace groups + plain conversations */}
       {expanded && hasChildren && (
-        <div className='pl-20px'>
-          <div className='flex flex-col gap-2px min-w-0 mt-2px'>
-            {/* Workspace-grouped conversations */}
-            {[...workspaceGroups.entries()].map(([ws, convs]) => (
-              <WorkspaceCollapse
-                key={ws}
-                expanded={expandedWorkspaces.has(ws)}
-                onToggle={() => toggleWorkspace(ws)}
-                siderCollapsed={false}
-                header={
-                  <div className='flex items-center gap-8px text-14px min-w-0'>
-                    <span className='font-medium truncate flex-1 text-t-primary min-w-0'>
-                      {getWorkspaceDisplayName(ws)}
-                    </span>
-                  </div>
-                }
-              >
-                <div className='flex flex-col gap-2px min-w-0 mt-2px'>{convs.map(renderConversationRow)}</div>
-              </WorkspaceCollapse>
-            ))}
-            {/* Conversations without workspace */}
-            {noWorkspaceConvs.map(renderConversationRow)}
+        <DndContext sensors={sensors} onDragEnd={handleDragEnd}>
+          <div className='pl-20px'>
+            <div className='flex flex-col gap-2px min-w-0 mt-2px'>
+              {/* Workspace-grouped conversations */}
+              {[...workspaceGroups.entries()].map(([ws, convs]) => (
+                <WorkspaceCollapse
+                  key={ws}
+                  expanded={expandedWorkspaces.has(ws)}
+                  onToggle={() => toggleWorkspace(ws)}
+                  siderCollapsed={false}
+                  header={
+                    <div className='flex items-center gap-8px text-14px min-w-0'>
+                      <span className='font-medium truncate flex-1 text-t-primary min-w-0'>
+                        {getWorkspaceDisplayName(ws)}
+                      </span>
+                    </div>
+                  }
+                >
+                  <SortableContext items={convs.map((conv) => conv.id)} strategy={verticalListSortingStrategy}>
+                    <div className='flex flex-col gap-2px min-w-0 mt-2px'>{convs.map(renderConversationRow)}</div>
+                  </SortableContext>
+                </WorkspaceCollapse>
+              ))}
+              {/* Conversations without workspace */}
+              {noWorkspaceConvs.length > 0 && (
+                <SortableContext
+                  items={noWorkspaceConvs.map((conversation) => conversation.id)}
+                  strategy={verticalListSortingStrategy}
+                >
+                  <div className='flex flex-col gap-2px min-w-0'>{noWorkspaceConvs.map(renderConversationRow)}</div>
+                </SortableContext>
+              )}
+            </div>
           </div>
-        </div>
+        </DndContext>
       )}
 
       {/* Rename Modal */}

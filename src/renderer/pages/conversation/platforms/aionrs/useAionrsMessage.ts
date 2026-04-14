@@ -17,7 +17,16 @@ type TokenUsage = {
   output_tokens?: number;
 };
 
-export const useAionrsMessage = (conversation_id: string, onError?: (message: IResponseMessage) => void) => {
+export const useAionrsMessage = (
+  conversation_id: string,
+  options?: {
+    onError?: (message: IResponseMessage) => void;
+    onConfigChanged?: (capabilities: Record<string, unknown>) => void;
+  }
+) => {
+  const onError = options?.onError;
+  const onConfigChanged = options?.onConfigChanged;
+  const onConfigChangedRef = useRef(onConfigChanged);
   const addOrUpdateMessage = useAddOrUpdateMessage();
   const [streamRunning, setStreamRunning] = useState(false);
   const [hasActiveTools, setHasActiveTools] = useState(false);
@@ -40,6 +49,9 @@ export const useAionrsMessage = (conversation_id: string, onError?: (message: IR
   // Only reset waitingResponse when finish arrives after content (not after tool calls)
   const hasContentInTurnRef = useRef(false);
 
+  useEffect(() => {
+    onConfigChangedRef.current = onConfigChanged;
+  }, [onConfigChanged]);
   useEffect(() => {
     hasActiveToolsRef.current = hasActiveTools;
   }, [hasActiveTools]);
@@ -204,6 +216,9 @@ export const useAionrsMessage = (conversation_id: string, onError?: (message: IR
             // Continue passing message to message list update
             addOrUpdateMessage(transformMessage(message));
           }
+          break;
+        case 'config_changed':
+          onConfigChangedRef.current?.(message.data as Record<string, unknown>);
           break;
         default: {
           if (message.type === 'error') {

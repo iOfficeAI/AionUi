@@ -194,12 +194,9 @@ const AionrsConversationPanel: React.FC<{ conversation: AionrsConversation; slid
   const onSelectModel = useCallback(
     async (_provider: IProvider, modelName: string) => {
       const selected = { ..._provider, useModel: modelName } as TProviderWithModel;
-      // Kill worker on model switch — will be rebuilt on next message
+      // Kill running agent on model switch — will be rebuilt with new model on next message
       await ipcBridge.conversation.stop.invoke({ conversation_id: conversation.id });
-      const ok = await ipcBridge.conversation.update.invoke({
-        id: conversation.id,
-        updates: { model: selected },
-      });
+      const ok = await ipcBridge.conversation.update.invoke({ id: conversation.id, updates: { model: selected } });
       return Boolean(ok);
     },
     [conversation.id]

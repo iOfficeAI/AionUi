@@ -5,8 +5,10 @@
  */
 
 import type {
+  AcpAgentCapabilities,
   AcpBackend,
   AcpIncomingMessage,
+  AcpInitializeResult,
   AcpMessage,
   AcpNotification,
   AcpPermissionRequest,
@@ -17,7 +19,7 @@ import type {
   AcpSessionModels,
   AcpSessionUpdate,
 } from '@/common/types/acpTypes';
-import { ACP_METHODS, JSONRPC_VERSION } from '@/common/types/acpTypes';
+import { ACP_METHODS, JSONRPC_VERSION, parseInitializeResult } from '@/common/types/acpTypes';
 import type { ChildProcess } from 'child_process';
 import { execFile as execFileCb } from 'child_process';
 import { promisify } from 'util';
@@ -95,15 +97,6 @@ interface PendingRequest<T = unknown> {
   timeoutDuration: number;
 }
 
-type AcpInitializeAgentCapabilities = {
-  loadSession?: boolean;
-  _meta?: {
-    claudeCode?: unknown;
-    [key: string]: unknown;
-  };
-  [key: string]: unknown;
-};
-
 export class AcpConnection {
   private child: ChildProcess | null = null;
   private pendingRequests = new Map<number, PendingRequest<unknown>>();
@@ -111,7 +104,7 @@ export class AcpConnection {
   private sessionId: string | null = null;
   private isInitialized = false;
   private backend: AcpBackend | null = null;
-  private initializeResponse: AcpResponse | null = null;
+  private initializeResult: AcpInitializeResult | null = null;
   private workingDir: string = process.cwd();
 
   // Cached model information from session/new response
@@ -493,7 +486,7 @@ export class AcpConnection {
     this.isSetupComplete = false;
     this.isDetached = false;
     this.backend = null;
-    this.initializeResponse = null;
+    this.initializeResult = null;
     this.configOptions = null;
     this.models = null;
     this.child = null;
@@ -804,7 +797,7 @@ export class AcpConnection {
 
     const response = await this.sendRequest<AcpResponse>('initialize', initializeParams);
     this.isInitialized = true;
-    this.initializeResponse = response;
+    this.initializeResult = parseInitializeResult(response);
     return response;
   }
 
@@ -834,8 +827,8 @@ export class AcpConnection {
     const normalizedCwd = this.normalizeCwdForAgent(cwd);
 
     // Build _meta resume payload only when backend/capabilities indicate Claude-style resume.
-    const capabilities = this.getInitializeAgentCapabilities();
-    const useClaudeMetaResume = this.backend === 'claude' || !!capabilities?._meta?.claudeCode;
+    const caps = this.initializeResult?.capabilities;
+    const useClaudeMetaResume = this.backend === 'claude' || !!caps?._meta?.claudeCode;
     const useMetaResume = useClaudeMetaResume && options?.resumeSessionId;
     const meta = useMetaResume
       ? {
@@ -866,16 +859,20 @@ export class AcpConnection {
     return response;
   }
 
-  private getInitializeAgentCapabilities(): AcpInitializeAgentCapabilities | undefined {
-    const result = this.initializeResponse;
-    if (!result || typeof result !== 'object') {
-      return undefined;
-    }
-    const capabilities = (result as unknown as Record<string, unknown>).agentCapabilities;
-    if (!capabilities || typeof capabilities !== 'object') {
-      return undefined;
-    }
-    return capabilities as AcpInitializeAgentCapabilities;
+  /**
+   * Get the fully parsed initialize result.
+   * Returns null before initialize() completes.
+   */
+  getInitializeResult(): AcpInitializeResult | null {
+    return this.initializeResult;
+  }
+
+  /**
+   * Get parsed agent capabilities from the initialize response.
+   * Returns null before initialize() completes.
+   */
+  getAgentCapabilities(): AcpAgentCapabilities | null {
+    return this.initializeResult?.capabilities ?? null;
   }
 
   async resumeSession(
@@ -883,9 +880,9 @@ export class AcpConnection {
     cwd: string = process.cwd(),
     options?: { forkSession?: boolean; mcpServers?: AcpSessionMcpServer[] }
   ): Promise<AcpResponse & { sessionId?: string }> {
-    const capabilities = this.getInitializeAgentCapabilities();
-    const useClaudeMetaResume = this.backend === 'claude' || !!capabilities?._meta?.claudeCode;
-    const supportsLoadSession = capabilities?.loadSession === true;
+    const caps = this.initializeResult?.capabilities;
+    const useClaudeMetaResume = this.backend === 'claude' || !!caps?._meta?.claudeCode;
+    const supportsLoadSession = caps?.loadSession === true;
     const shouldTryLoadSession = !useClaudeMetaResume && supportsLoadSession;
 
     if (shouldTryLoadSession) {
@@ -1097,18 +1094,22 @@ export class AcpConnection {
   }
 
   async disconnect(): Promise<void> {
-    // Try graceful session/close before killing the process.
-    // session/close is an ACP RFD (not yet required), so this is best-effort
-    // with a short timeout — if the agent supports it, it gets a chance to
-    // clean up its own child processes before we force-kill.
-    if (this.sessionId && this.child && !this.child.killed) {
+    // Try graceful session/close only when the agent declared support.
+    // session/close is an ACP RFD — sending it to unsupported agents wastes
+    // time and may trigger "method not found" errors in their logs.
+    if (
+      this.sessionId &&
+      this.child &&
+      !this.child.killed &&
+      this.initializeResult?.capabilities.sessionCapabilities.close
+    ) {
       try {
         await Promise.race([
           this.sendRequest('session/close', { sessionId: this.sessionId }),
           new Promise((_, reject) => setTimeout(() => reject(new Error('session/close timeout')), 2000)),
         ]);
       } catch {
-        // Expected: most agents don't implement session/close yet
+        // Best-effort: agent may not respond in time
       }
     }
 
@@ -1127,7 +1128,7 @@ export class AcpConnection {
     this.sessionId = null;
     this.isInitialized = false;
     this.backend = null;
-    this.initializeResponse = null;
+    this.initializeResult = null;
     this.configOptions = null;
     this.models = null;
   }
@@ -1154,8 +1155,13 @@ export class AcpConnection {
     return this.backend;
   }
 
+  /**
+   * @deprecated Use getInitializeResult() or getAgentCapabilities() instead.
+   * Returns the raw initialize response for backward compatibility.
+   */
   getInitializeResponse(): AcpResponse | null {
-    return this.initializeResponse;
+    // Return null — callers should migrate to getInitializeResult()
+    return null;
   }
 
   // Normalize read operations to the conversation workspace before touching the filesystem

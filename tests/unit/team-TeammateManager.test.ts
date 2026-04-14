@@ -27,6 +27,9 @@ vi.mock('@process/utils/message', () => ({ addMessage: mockAddMessage }));
 vi.mock('@process/agent/acp/AcpDetector', () => ({
   acpDetector: { getDetectedAgents: vi.fn(() => []) },
 }));
+vi.mock('@process/utils/initStorage', () => ({
+  ProcessConfig: { get: vi.fn(async () => null) },
+}));
 
 import { TeammateManager } from '@process/team/TeammateManager';
 import { teamEventBus } from '@process/team/teamEventBus';

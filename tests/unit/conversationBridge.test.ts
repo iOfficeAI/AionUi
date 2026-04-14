@@ -27,6 +27,7 @@ vi.mock('../../src/common', () => ({
       update: makeChannel('update'),
       reset: makeChannel('reset'),
       stop: makeChannel('stop'),
+      setConfig: makeChannel('setConfig'),
       sendMessage: makeChannel('sendMessage'),
       getSlashCommands: makeChannel('getSlashCommands'),
       askSideQuestion: makeChannel('askSideQuestion'),

@@ -46,7 +46,7 @@ const Sider: React.FC<SiderProps> = ({ onSessionClick, collapsed = false }) => {
     blurActiveElement();
     closePreview();
     setIsBatchMode(false);
-    Promise.resolve(navigate('/guid')).catch((error) => {
+    Promise.resolve(navigate('/guid', { state: { resetAssistant: true } })).catch((error) => {
       console.error('Navigation failed:', error);
     });
     if (onSessionClick) {

@@ -6,14 +6,12 @@
 
 import { acpDetector } from '@process/agent/acp/AcpDetector';
 import { AcpConnection } from '@process/agent/acp/AcpConnection';
-import { buildAcpModelInfo, summarizeAcpModelInfo } from '@process/agent/acp/modelInfo';
 import { detectAionrs } from '@process/agent/aionrs/binaryResolver';
 import type { IWorkerTaskManager } from '@process/task/IWorkerTaskManager';
 import AcpAgentManager from '@process/task/AcpAgentManager';
 import { GeminiAgentManager } from '@process/task/GeminiAgentManager';
 import { AionrsManager } from '@process/task/AionrsManager';
 import { mcpService } from '@/process/services/mcpServices/McpService';
-import { mainLog, mainWarn } from '@/process/utils/mainLogger';
 import { ipcBridge } from '@/common';
 import * as os from 'os';
 
@@ -172,8 +170,9 @@ export function initAcpConversationBridge(workerTaskManager: IWorkerTaskManager)
     }
   });
 
-  // Get current session mode for ACP/Gemini agents
-  // 获取 ACP/Gemini 代理的当前会话模式
+  // Get current session mode for ACP, Gemini, and AionRS agents.
+  // Note: AionRS uses its own JSON Lines protocol (not ACP), but shares these IPC
+  // channels to avoid duplicating the mode switching UI pipeline.
   // Use getTaskById (cache-only) to avoid spawning a worker process on read-only queries
   ipcBridge.acpConversation.getMode.provider(({ conversationId }) => {
     const task = workerTaskManager.getTask(conversationId);
@@ -203,49 +202,6 @@ export function initAcpConversationBridge(workerTaskManager: IWorkerTaskManager)
     });
   });
 
-  ipcBridge.acpConversation.probeModelInfo.provider(async ({ backend }) => {
-    const agents = acpDetector.getDetectedAgents();
-    const agent = agents.find((item) => item.backend === backend);
-
-    if (!agent?.cliPath && backend !== 'claude' && backend !== 'codebuddy' && backend !== 'codex') {
-      return {
-        success: false,
-        msg: `${backend} CLI not found`,
-      };
-    }
-
-    const connection = new AcpConnection();
-    const tempDir = os.tmpdir();
-
-    try {
-      await connection.connect(backend, agent?.cliPath, tempDir, agent?.acpArgs);
-      await connection.newSession(tempDir);
-
-      const modelInfo = buildAcpModelInfo(connection.getConfigOptions(), connection.getModels());
-      if (backend === 'codex') {
-        const initializeResult = connection.getInitializeResponse() as unknown as Record<string, unknown> | null;
-        mainLog('[ACP codex]', 'probeModelInfo completed', {
-          initializeAgentInfo: initializeResult?.agentInfo || null,
-          modelInfo: summarizeAcpModelInfo(modelInfo),
-        });
-      }
-
-      return { success: true, data: { modelInfo } };
-    } catch (error) {
-      const errorMsg = error instanceof Error ? error.message : String(error);
-      if (backend === 'codex') {
-        mainWarn('[ACP codex]', 'probeModelInfo failed', errorMsg);
-      }
-      return { success: false, msg: errorMsg };
-    } finally {
-      try {
-        await connection.disconnect();
-      } catch {
-        // Ignore cleanup failures for best-effort probes
-      }
-    }
-  });
-
   // Set model for ACP agents
   // 设置 ACP 代理的模型
   ipcBridge.acpConversation.setModel.provider(async ({ conversationId, modelId }) => {
@@ -267,8 +223,9 @@ export function initAcpConversationBridge(workerTaskManager: IWorkerTaskManager)
     }
   });
 
-  // Set session mode for ACP/Gemini agents (claude, qwen, gemini, etc.)
-  // 设置 ACP/Gemini 代理的会话模式（claude、qwen、gemini 等）
+  // Set session mode for ACP, Gemini, and AionRS agents.
+  // Note: AionRS uses its own JSON Lines protocol (not ACP), but shares these IPC
+  // channels to avoid duplicating the mode switching UI pipeline.
   ipcBridge.acpConversation.setMode.provider(async ({ conversationId, mode }) => {
     try {
       const task = await workerTaskManager.getOrBuildTask(conversationId);

@@ -4,6 +4,8 @@ import type { RefInputType } from '@arco-design/web-react/es/Input/interface';
 import { Close, Robot, Check } from '@icon-park/react';
 import { useTranslation } from 'react-i18next';
 import { ipcBridge } from '@/common';
+import { ConfigStorage } from '@/common/config/storage';
+import type { AcpInitializeResult } from '@/common/types/acpTypes';
 import type { TTeam, TeamAgent } from '@/common/types/teamTypes';
 import type { AvailableAgent } from '@renderer/utils/model/agentTypes';
 import { getAgentLogo } from '@renderer/utils/model/agentLogo';
@@ -49,8 +51,22 @@ const TeamCreateModal: React.FC<Props> = ({ visible, onClose, onCreated }) => {
   const [workspace, setWorkspace] = useState('');
   const [loading, setLoading] = useState(false);
   const nameInputRef = useRef<RefInputType | null>(null);
+  const [cachedInitResults, setCachedInitResults] = useState<Record<string, AcpInitializeResult> | null>(null);
 
-  const allAgents = filterTeamSupportedAgents([...cliAgents]);
+  useEffect(() => {
+    if (!visible) return;
+    let active = true;
+    ConfigStorage.get('acp.cachedInitializeResult')
+      .then((data) => {
+        if (active) setCachedInitResults(data ?? null);
+      })
+      .catch(() => {});
+    return () => {
+      active = false;
+    };
+  }, [visible]);
+
+  const allAgents = filterTeamSupportedAgents([...cliAgents], cachedInitResults);
 
   useEffect(() => {
     if (visible) {

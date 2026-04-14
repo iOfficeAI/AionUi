@@ -15,7 +15,7 @@ import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
 import { z } from 'zod';
 import * as net from 'node:net';
-import { TEAM_SPAWN_AGENT_DESCRIPTION } from './toolDescriptions';
+import { TEAM_SPAWN_AGENT_DESCRIPTION } from '../../prompts/toolDescriptions';
 
 const TEAM_AGENT_SLOT_ID = process.env.TEAM_AGENT_SLOT_ID || undefined;
 const TEAM_MCP_TOKEN = process.env.TEAM_MCP_TOKEN || undefined;
@@ -258,8 +258,7 @@ createTeamTool(
   `Request a teammate to shut down gracefully. The teammate can accept or reject the request.
 
 Use this when:
-- A task is completed and the teammate is no longer needed
-- The user asks to dismiss, fire, or shut down a teammate
+- The user explicitly asks to dismiss, fire, or shut down a teammate
 
 The teammate will receive a shutdown request and respond with approval or rejection.
 You will be notified of the result either way.`,

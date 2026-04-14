@@ -100,6 +100,39 @@ export function getAgentModes(backend: string | undefined): AgentModeOption[] {
 }
 
 /**
+ * Convert a snake_case mode value to a title-cased label.
+ * e.g. 'auto_edit' -> 'Auto Edit', 'plan' -> 'Plan'
+ */
+function toTitleCase(value: string): string {
+  return value
+    .split('_')
+    .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
+    .join(' ');
+}
+
+/**
+ * Merge static mode definitions with dynamic capabilities from the agent.
+ * - If capabilityModes is null/empty, return static modes (fallback).
+ * - Otherwise, return only modes reported by capabilities, preserving
+ *   static labels when available and title-casing unknown modes.
+ *
+ * @param backend - Agent backend type
+ * @param capabilityModes - Dynamic modes from capabilities.modes (null = not available)
+ */
+export function mergeWithCapabilities(
+  backend: string | undefined,
+  capabilityModes: string[] | null
+): AgentModeOption[] {
+  const staticModes = getAgentModes(backend);
+  if (!capabilityModes || capabilityModes.length === 0) {
+    return staticModes;
+  }
+
+  const staticMap = new Map(staticModes.map((m) => [m.value, m]));
+  return capabilityModes.map((value) => staticMap.get(value) ?? { value, label: toTitleCase(value) });
+}
+
+/**
  * Check if a backend supports mode switching during session
  *
  * @param backend - Agent backend type
