@@ -1,9 +1,10 @@
-// Re-export team constants from source so E2E tests share the same whitelist.
-// Relative path required: Playwright uses its own esbuild and does not resolve @/* aliases.
-import { TEAM_SUPPORTED_BACKENDS as ALL_BACKENDS } from '../../../src/common/types/teamTypes';
+// E2E test infrastructure — hardcoded list of backends to test in team mode.
+// This is intentionally static (not dynamic from ACP init results) because
+// E2E tests need a predictable set of backends to validate.
+const ALL_BACKENDS = new Set(['claude', 'codex', 'gemini']);
 
 // Support TEAM_AGENT=claude or TEAM_AGENT=claude,codex to run only specific leader types.
-// Values are validated against the full whitelist; unknown types are silently dropped.
+// Values are validated against the full list; unknown types are silently dropped.
 const envLeaderTypes = process.env.TEAM_AGENT;
 
 export const TEAM_SUPPORTED_BACKENDS: ReadonlySet<string> = envLeaderTypes

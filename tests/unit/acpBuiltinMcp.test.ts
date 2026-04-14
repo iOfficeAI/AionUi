@@ -127,7 +127,7 @@ describe('ACP built-in MCP session config', () => {
 
     const caps2 = parseAgentCapabilities(null);
     expect(caps2.mcpCapabilities).toEqual({
-      stdio: true, // always true per spec
+      stdio: false, // mcpCapabilities absent = agent does not support MCP
       http: false, // omitted = false
       sse: false, // omitted = false
     });

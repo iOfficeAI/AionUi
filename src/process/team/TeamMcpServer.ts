@@ -15,7 +15,9 @@ import { team as teamIpcBridge } from '@/common/adapter/ipcBridge';
 import type { Mailbox } from './Mailbox';
 import type { TaskManager } from './TaskManager';
 import type { TeamAgent } from './types';
-import { TEAM_SUPPORTED_BACKENDS } from '@/common/types/teamTypes';
+import { isTeamCapableBackend, getTeamCapableBackends } from '@/common/types/teamTypes';
+import { ProcessConfig } from '@process/utils/initStorage';
+import { acpDetector } from '@process/agent/acp/AcpDetector';
 import { notifyMcpReady } from './mcpReadiness';
 
 type SpawnAgentFn = (agentName: string, agentType?: string) => Promise<TeamAgent>;
@@ -385,11 +387,16 @@ export class TeamMcpServer {
     const { teamId, getAgents, mailbox, spawnAgent, wakeAgent } = this.params;
     const name = String(args.name ?? '');
     const agentType = args.agent_type ? String(args.agent_type) : undefined;
-    // Team mode whitelist: only verified backends that support MCP tool injection
-    if (agentType && !TEAM_SUPPORTED_BACKENDS.has(agentType)) {
-      throw new Error(
-        `Agent type "${agentType}" is not supported in team mode. Supported: ${[...TEAM_SUPPORTED_BACKENDS].join(', ')}.`
-      );
+    // Team mode validation: only backends with confirmed ACP MCP stdio support
+    if (agentType) {
+      const cachedInitResults = await ProcessConfig.get('acp.cachedInitializeResult');
+      if (!isTeamCapableBackend(agentType, cachedInitResults)) {
+        const capable = getTeamCapableBackends(
+          acpDetector.getDetectedAgents().map((a) => a.backend),
+          cachedInitResults
+        );
+        throw new Error(`Agent type "${agentType}" is not supported in team mode. Supported: ${capable.join(', ')}.`);
+      }
     }
 
     if (!spawnAgent) {

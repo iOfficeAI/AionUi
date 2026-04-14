@@ -2,15 +2,35 @@
 import { describe, it, expect } from 'vitest';
 import {
   resolveConversationType,
-  isTeamSupportedBackend,
   filterTeamSupportedAgents,
   agentKey,
   agentFromKey,
   resolveTeamAgentType,
-  TEAM_SUPPORTED_BACKENDS,
 } from '@renderer/pages/team/components/agentSelectUtils';
+import { isTeamCapableBackend, getTeamCapableBackends } from '@/common/types/teamTypes';
 import { buildTeamMcpServer } from '@process/agent/acp/mcpSessionConfig';
 import type { AvailableAgent } from '@renderer/utils/model/agentTypes';
+import type { AcpInitializeResult } from '@/common/types/acpTypes';
+
+// Helper to build a minimal cached AcpInitializeResult with mcpCapabilities.stdio = true
+function makeCachedInit(backends: string[]): Record<string, AcpInitializeResult> {
+  const result: Record<string, AcpInitializeResult> = {};
+  for (const b of backends) {
+    result[b] = {
+      protocolVersion: 1,
+      capabilities: {
+        loadSession: false,
+        promptCapabilities: { image: false, audio: false, embeddedContext: false },
+        mcpCapabilities: { stdio: true, http: false, sse: false },
+        sessionCapabilities: { fork: null, resume: null, list: null, close: null },
+        _meta: {},
+      },
+      agentInfo: null,
+      authMethods: [],
+    };
+  }
+  return result;
+}
 
 // ---------------------------------------------------------------------------
 // resolveConversationType
@@ -49,19 +69,51 @@ describe('resolveConversationType', () => {
 });
 
 // ---------------------------------------------------------------------------
-// isTeamSupportedBackend — the gate that decides MCP injection eligibility
+// isTeamCapableBackend — dynamic capability check
 // ---------------------------------------------------------------------------
-describe('isTeamSupportedBackend', () => {
-  it.each(['claude', 'codex', 'gemini'])('allows verified backend "%s"', (backend) => {
-    expect(isTeamSupportedBackend(backend)).toBe(true);
+describe('isTeamCapableBackend', () => {
+  const cached = makeCachedInit(['claude', 'codex']);
+
+  it('returns true for gemini regardless of cached data', () => {
+    expect(isTeamCapableBackend('gemini', null)).toBe(true);
+    expect(isTeamCapableBackend('gemini', undefined)).toBe(true);
+    expect(isTeamCapableBackend('gemini', {})).toBe(true);
   });
 
-  it.each(['codebuddy', 'aionrs', 'openclaw-gateway', 'nanobot', 'remote', 'qwen', 'copilot', 'kimi', 'goose'])(
-    'rejects unverified backend "%s"',
-    (backend) => {
-      expect(isTeamSupportedBackend(backend)).toBe(false);
-    }
-  );
+  it('returns true for ACP backend with cached init result', () => {
+    expect(isTeamCapableBackend('claude', cached)).toBe(true);
+    expect(isTeamCapableBackend('codex', cached)).toBe(true);
+  });
+
+  it('returns false for ACP backend without cached init result', () => {
+    expect(isTeamCapableBackend('qwen', cached)).toBe(false);
+    expect(isTeamCapableBackend('codebuddy', cached)).toBe(false);
+  });
+
+  it('returns false when cached data is null', () => {
+    expect(isTeamCapableBackend('claude', null)).toBe(false);
+  });
+
+  it('returns false when cached data is undefined', () => {
+    expect(isTeamCapableBackend('claude', undefined)).toBe(false);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// getTeamCapableBackends
+// ---------------------------------------------------------------------------
+describe('getTeamCapableBackends', () => {
+  const cached = makeCachedInit(['claude', 'codex']);
+
+  it('returns only backends with cached init + gemini', () => {
+    const result = getTeamCapableBackends(['claude', 'codex', 'gemini', 'qwen'], cached);
+    expect(result).toEqual(['claude', 'codex', 'gemini']);
+  });
+
+  it('returns only gemini when no cached data', () => {
+    const result = getTeamCapableBackends(['claude', 'codex', 'gemini', 'qwen'], null);
+    expect(result).toEqual(['gemini']);
+  });
 });
 
 // ---------------------------------------------------------------------------
@@ -76,7 +128,9 @@ describe('filterTeamSupportedAgents', () => {
       ...overrides,
     }) as AvailableAgent;
 
-  it('keeps verified agents and removes unverified agents', () => {
+  const cached = makeCachedInit(['claude', 'codex']);
+
+  it('keeps agents with cached init results and gemini', () => {
     const agents = [
       makeAgent('claude'),
       makeAgent('gemini'),
@@ -84,24 +138,26 @@ describe('filterTeamSupportedAgents', () => {
       makeAgent('qwen'),
       makeAgent('codebuddy'),
     ];
-    const result = filterTeamSupportedAgents(agents);
+    const result = filterTeamSupportedAgents(agents, cached);
     expect(result.map((a: AvailableAgent) => a.backend)).toEqual(['claude', 'gemini', 'codex']);
   });
 
   it('uses presetAgentType over backend when available', () => {
     const agent = makeAgent('claude', { presetAgentType: 'qwen' });
-    const result = filterTeamSupportedAgents([agent]);
+    const result = filterTeamSupportedAgents([agent], cached);
+    // qwen has no cached init → filtered out
     expect(result).toHaveLength(0);
   });
 
-  it('returns empty array when no agents are supported', () => {
-    const agents = [makeAgent('codebuddy'), makeAgent('remote'), makeAgent('qwen')];
-    expect(filterTeamSupportedAgents(agents)).toEqual([]);
+  it('returns only gemini when no cached data', () => {
+    const agents = [makeAgent('claude'), makeAgent('gemini'), makeAgent('codex')];
+    const result = filterTeamSupportedAgents(agents, null);
+    expect(result.map((a: AvailableAgent) => a.backend)).toEqual(['gemini']);
   });
 
-  it('returns all agents when all are verified', () => {
+  it('returns all agents when all have cached init results', () => {
     const agents = [makeAgent('claude'), makeAgent('codex')];
-    expect(filterTeamSupportedAgents(agents)).toHaveLength(2);
+    expect(filterTeamSupportedAgents(agents, cached)).toHaveLength(2);
   });
 });
 
@@ -151,15 +207,6 @@ describe('resolveTeamAgentType', () => {
 
   it('returns fallback when agent is undefined', () => {
     expect(resolveTeamAgentType(undefined, 'fallback')).toBe('fallback');
-  });
-});
-
-// ---------------------------------------------------------------------------
-// Frontend ↔ Backend consistency: ensure MCP injection chain is aligned
-// ---------------------------------------------------------------------------
-describe('MCP injection chain consistency', () => {
-  it('TEAM_SUPPORTED_BACKENDS contains exactly claude, codex, gemini', () => {
-    expect([...TEAM_SUPPORTED_BACKENDS].toSorted()).toEqual(['claude', 'codex', 'gemini']);
   });
 });
 

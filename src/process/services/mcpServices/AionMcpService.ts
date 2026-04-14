@@ -19,7 +19,8 @@ import * as path from 'node:path';
 import { ipcBridge } from '@/common';
 import type { TeamSessionService } from '@process/team/TeamSessionService';
 import type { StdioMcpConfig } from '@process/team/TeamMcpServer';
-import { TEAM_SUPPORTED_BACKENDS } from '@/common/types/teamTypes';
+import { isTeamCapableBackend } from '@/common/types/teamTypes';
+import { ProcessConfig } from '@process/utils/initStorage';
 import { getConversationTypeForBackend } from '@/common/utils/buildAgentConversationParams';
 
 /** Allowed route patterns that aion_navigate may redirect to */
@@ -221,7 +222,8 @@ export class AionMcpService {
 
     // Use system-injected backend (from AION_MCP_BACKEND env var) as the authoritative agent type.
     // Falls back to 'claude' only when the backend is unknown or not in the whitelist.
-    const agentType = backend && TEAM_SUPPORTED_BACKENDS.has(backend) ? backend : 'claude';
+    const cachedInitResults = await ProcessConfig.get('acp.cachedInitializeResult');
+    const agentType = backend && isTeamCapableBackend(backend, cachedInitResults) ? backend : 'claude';
 
     const teamName = name || summary.split(/\s+/).slice(0, 5).join(' ');
     const userId = 'system_default_user';

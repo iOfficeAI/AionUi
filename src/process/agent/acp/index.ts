@@ -40,14 +40,10 @@ import {
   QWEN_YOLO_SESSION_MODE,
 } from './constants';
 import { buildAcpModelInfo } from './modelInfo';
-import {
-  buildBuiltinAcpSessionMcpServers,
-  buildTeamMcpServer,
-  TEAM_GUIDE_ALLOWED_BACKENDS,
-  type AcpSessionMcpServer,
-} from './mcpSessionConfig';
+import { buildBuiltinAcpSessionMcpServers, buildTeamMcpServer, type AcpSessionMcpServer } from './mcpSessionConfig';
 import { getClaudeModel } from './utils';
 import { getAionMcpStdioConfig } from '@process/services/mcpServices/aionMcpServiceSingleton';
+import { shouldInjectTeamGuideMcp } from '@process/resources/prompts/teamGuidePrompt';
 import { waitForMcpReady } from '@process/team/mcpReadiness';
 
 // InitializeResult removed — replaced by AcpInitializeResult from acpTypes.ts
@@ -1613,7 +1609,7 @@ export class AcpAgent {
       // Uses stdio bridge mode — same pattern as TeamMcpServer.
       // AION_MCP_BACKEND env var tells the stdio bridge which backend this agent is,
       // so aion_create_team automatically creates a team with the correct agent type.
-      if (!this.extra.teamMcpStdioConfig && TEAM_GUIDE_ALLOWED_BACKENDS.has(this.extra.backend)) {
+      if (!this.extra.teamMcpStdioConfig && (await shouldInjectTeamGuideMcp(this.extra.backend))) {
         const aionStdioConfig = getAionMcpStdioConfig();
         if (aionStdioConfig) {
           const configWithBackend = {

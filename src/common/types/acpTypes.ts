@@ -693,7 +693,8 @@ export type AcpPromptCapabilities = {
 
 /**
  * MCP transport types the agent supports.
- * stdio is mandatory (always true); http/sse default to false when not declared.
+ * stdio is mandatory per ACP spec IF the agent declares mcpCapabilities at all.
+ * If mcpCapabilities is absent from the initialize response, all transports are false.
  */
 export type AcpMcpCapabilities = {
   stdio: boolean;
@@ -782,7 +783,9 @@ function parseAgentCapabilitiesObject(raw: unknown): AcpAgentCapabilities {
       embeddedContext: toBool(prompt?.embeddedContext),
     },
     mcpCapabilities: {
-      stdio: true, // mandatory per ACP spec
+      // stdio is mandatory per ACP spec — but only if the agent declares mcpCapabilities at all.
+      // If mcpCapabilities is entirely absent, the agent does not support MCP.
+      stdio: mcp !== null,
       http: toBool(mcp?.http),
       sse: toBool(mcp?.sse),
     },

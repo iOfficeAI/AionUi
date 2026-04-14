@@ -6,7 +6,7 @@
  * Tests for AionMcpService tool handler logic (TCP architecture):
  *   - aion_create_team: input validation, TeamSessionService wiring, return shape
  *   - aion_navigate: route whitelist enforcement, IPC emit
- *   - TEAM_GUIDE_ALLOWED_BACKENDS: whitelist set (Task #4)
+ *   - shouldInjectTeamGuideMcp: dynamic capability check (uses cached ACP init results)
  */
 
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
@@ -36,6 +36,30 @@ vi.mock('electron', () => ({
   app: { isPackaged: false, getAppPath: () => '/app' },
 }));
 
+// Mock ProcessConfig for dynamic team capability checks
+vi.mock('../../src/process/utils/initStorage', () => ({
+  ProcessConfig: {
+    get: vi.fn(async (key: string) => {
+      if (key === 'acp.cachedInitializeResult') {
+        const makeEntry = () => ({
+          protocolVersion: 1,
+          capabilities: {
+            loadSession: false,
+            promptCapabilities: { image: false, audio: false, embeddedContext: false },
+            mcpCapabilities: { stdio: true, http: false, sse: false },
+            sessionCapabilities: { fork: null, resume: null, list: null, close: null },
+            _meta: {},
+          },
+          agentInfo: null,
+          authMethods: [],
+        });
+        return { claude: makeEntry(), codex: makeEntry() };
+      }
+      return null;
+    }),
+  },
+}));
+
 // ------------------------------------------------------------------
 // Mock TeamSessionService
 // ------------------------------------------------------------------
@@ -56,7 +80,6 @@ function makeTeamSessionService() {
 // ------------------------------------------------------------------
 
 import { AionMcpService } from '../../src/process/services/mcpServices/AionMcpService';
-import { TEAM_GUIDE_ALLOWED_BACKENDS } from '../../src/process/agent/acp/mcpSessionConfig';
 
 // ------------------------------------------------------------------
 // Helpers
@@ -105,38 +128,10 @@ async function tcpRequest(port: number, data: unknown): Promise<unknown> {
 }
 
 // ------------------------------------------------------------------
-// TEAM_GUIDE_ALLOWED_BACKENDS (Task #4 whitelist)
+// shouldInjectTeamGuideMcp (dynamic capability check)
 // ------------------------------------------------------------------
-
-describe('TEAM_GUIDE_ALLOWED_BACKENDS whitelist', () => {
-  it('includes claude', () => {
-    expect(TEAM_GUIDE_ALLOWED_BACKENDS.has('claude')).toBe(true);
-  });
-
-  it('includes codex', () => {
-    expect(TEAM_GUIDE_ALLOWED_BACKENDS.has('codex')).toBe(true);
-  });
-
-  it('includes gemini', () => {
-    expect(TEAM_GUIDE_ALLOWED_BACKENDS.has('gemini')).toBe(true);
-  });
-
-  it('excludes qwen', () => {
-    expect(TEAM_GUIDE_ALLOWED_BACKENDS.has('qwen')).toBe(false);
-  });
-
-  it('excludes opencode', () => {
-    expect(TEAM_GUIDE_ALLOWED_BACKENDS.has('opencode')).toBe(false);
-  });
-
-  it('excludes iflow', () => {
-    expect(TEAM_GUIDE_ALLOWED_BACKENDS.has('iflow')).toBe(false);
-  });
-
-  it('excludes cursor', () => {
-    expect(TEAM_GUIDE_ALLOWED_BACKENDS.has('cursor')).toBe(false);
-  });
-});
+// Tested in team-agentSelectUtils.test.ts via isTeamCapableBackend.
+// The function itself is a thin wrapper around ProcessConfig + isTeamCapableBackend.
 
 // ------------------------------------------------------------------
 // AionMcpService lifecycle
