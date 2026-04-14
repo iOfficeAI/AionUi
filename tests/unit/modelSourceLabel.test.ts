@@ -20,7 +20,21 @@ describe('modelSourceLabel', () => {
     expect(getAcpModelSourceLabel({ source: 'models' })).toBe('ACP models');
   });
 
+  it('maps persisted and codex stream sources', () => {
+    expect(getAcpModelSourceLabel({ source: 'models', sourceDetail: 'persisted-model' })).toBe('saved model');
+    expect(getAcpModelSourceLabel({ source: 'models', sourceDetail: 'codex-stream' })).toBe('Codex stream');
+  });
+
+  it('falls back to ACP config when only the coarse config source exists', () => {
+    expect(getAcpModelSourceLabel({ source: 'configOption' })).toBe('ACP config');
+  });
+
   it('formats the final button label with model and source', () => {
     expect(formatAcpModelDisplayLabel('Claude Opus 4.6', 'cc-switch')).toBe('Claude Opus 4.6 · cc-switch');
+  });
+
+  it('keeps whichever side of the display label is present', () => {
+    expect(formatAcpModelDisplayLabel('', 'cc-switch')).toBe('cc-switch');
+    expect(formatAcpModelDisplayLabel('Claude Opus 4.6', '')).toBe('Claude Opus 4.6');
   });
 });

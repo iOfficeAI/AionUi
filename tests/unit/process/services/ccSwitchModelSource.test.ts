@@ -70,6 +70,34 @@ describeOrSkip('ccSwitchModelSource', () => {
     });
   });
 
+  it('returns null when the settings config is empty', () => {
+    expect(buildClaudeModelInfoFromCcSwitchConfig(null)).toBeNull();
+    expect(buildClaudeModelInfoFromCcSwitchConfig({ env: {} })).toBeNull();
+  });
+
+  it('uses fallback model and removes duplicates when env models overlap', () => {
+    const modelInfo = buildClaudeModelInfoFromCcSwitchConfig({
+      model: 'claude-sonnet-4-5-20250514',
+      env: {
+        ANTHROPIC_MODEL: 'claude-sonnet-4-5-20250514',
+        ANTHROPIC_DEFAULT_SONNET_MODEL: 'claude-sonnet-4-5-20250514',
+        ANTHROPIC_DEFAULT_OPUS_MODEL: 'claude-opus-4-6-20260301',
+      },
+    });
+
+    expect(modelInfo).toEqual({
+      currentModelId: 'claude-sonnet-4-5-20250514',
+      currentModelLabel: 'claude-sonnet-4-5-20250514',
+      availableModels: [
+        { id: 'claude-sonnet-4-5-20250514', label: 'claude-sonnet-4-5-20250514' },
+        { id: 'claude-opus-4-6-20260301', label: 'claude-opus-4-6-20260301' },
+      ],
+      canSwitch: false,
+      source: 'models',
+      sourceDetail: 'cc-switch',
+    });
+  });
+
   it('reads the current Claude provider from cc-switch files', () => {
     const tempDir = mkdtempSync(path.join(os.tmpdir(), 'aionui-cc-switch-'));
     tempDirs.push(tempDir);
@@ -149,5 +177,17 @@ describeOrSkip('ccSwitchModelSource', () => {
     driver.close();
 
     expect(readClaudeModelInfoFromCcSwitch({ settingsPath, databasePath })).toBeNull();
+  });
+
+  it('returns null when the settings file does not exist', () => {
+    const tempDir = mkdtempSync(path.join(os.tmpdir(), 'aionui-cc-switch-'));
+    tempDirs.push(tempDir);
+
+    expect(
+      readClaudeModelInfoFromCcSwitch({
+        settingsPath: path.join(tempDir, 'missing-settings.json'),
+        databasePath: path.join(tempDir, 'missing.db'),
+      })
+    ).toBeNull();
   });
 });

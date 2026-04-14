@@ -14,6 +14,8 @@ const ipcMock = vi.hoisted(() => ({
   getModelConfig: vi.fn().mockResolvedValue([]),
 }));
 
+let responseHandler: ((message: any) => void) | null = null;
+
 vi.mock('@/common', () => ({
   ipcBridge: {
     acpConversation: {
@@ -47,7 +49,11 @@ import AcpModelSelector from '../../src/renderer/components/agent/AcpModelSelect
 describe('AcpModelSelector', () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    ipcMock.onResponseStream.mockReturnValue(() => {});
+    responseHandler = null;
+    ipcMock.onResponseStream.mockImplementation((handler: (message: any) => void) => {
+      responseHandler = handler;
+      return () => {};
+    });
     ipcMock.getModelConfig.mockResolvedValue([]);
   });
 
@@ -70,6 +76,25 @@ describe('AcpModelSelector', () => {
 
     await waitFor(() => {
       expect(screen.getAllByText('Claude Opus 4.6 · cc-switch').length).toBeGreaterThan(0);
+    });
+  });
+
+  it('shows codex stream as the model source when stream events arrive', async () => {
+    ipcMock.getModelInfo.mockResolvedValue({
+      success: true,
+      data: { modelInfo: null },
+    });
+
+    render(<AcpModelSelector conversationId='conv-1' backend='codex' />);
+
+    responseHandler?.({
+      conversation_id: 'conv-1',
+      type: 'codex_model_info',
+      data: { model: 'gpt-5.4/high' },
+    });
+
+    await waitFor(() => {
+      expect(screen.getAllByText('gpt-5.4/high · Codex stream').length).toBeGreaterThan(0);
     });
   });
 });

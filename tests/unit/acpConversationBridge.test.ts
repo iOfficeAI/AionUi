@@ -38,15 +38,17 @@ vi.mock('../../src/process/agent/acp/AcpDetector', () => ({
 }));
 
 vi.mock('../../src/process/agent/acp/AcpConnection', () => ({
-  AcpConnection: vi.fn(() => ({
-    connect: vi.fn(async () => {}),
-    newSession: vi.fn(async () => {}),
-    sendPrompt: vi.fn(async () => {}),
-    disconnect: vi.fn(async () => {}),
-    getConfigOptions: vi.fn(() => []),
-    getModels: vi.fn(() => []),
-    getInitializeResponse: vi.fn(() => null),
-  })),
+  AcpConnection: vi.fn(function () {
+    return {
+      connect: vi.fn(async () => {}),
+      newSession: vi.fn(async () => {}),
+      sendPrompt: vi.fn(async () => {}),
+      disconnect: vi.fn(async () => {}),
+      getConfigOptions: vi.fn(() => []),
+      getModels: vi.fn(() => []),
+      getInitializeResponse: vi.fn(() => null),
+    };
+  }),
 }));
 
 vi.mock('../../src/process/agent/acp/modelInfo', () => ({
@@ -93,9 +95,11 @@ function makeTaskManager(overrides?: Partial<IWorkerTaskManager>): IWorkerTaskMa
 describe('acpConversationBridge', () => {
   let taskManager: IWorkerTaskManager;
 
-  beforeEach(() => {
+  beforeEach(async () => {
     vi.clearAllMocks();
     taskManager = makeTaskManager();
+    const { acpDetector } = await import('../../src/process/agent/acp/AcpDetector');
+    vi.mocked(acpDetector.getDetectedAgents).mockReturnValue([]);
     initAcpConversationBridge(taskManager);
   });
 
@@ -178,5 +182,74 @@ describe('acpConversationBridge', () => {
 
     expect(result).toEqual({ success: true, data: { modelInfo } });
     expect(AcpConnection).not.toHaveBeenCalled();
+  });
+
+  it('probeModelInfo returns cli-not-found for non-implicit backends without a detected CLI', async () => {
+    const result = await handlers['probeModelInfo']({ backend: 'qwen' });
+
+    expect(result).toEqual({ success: false, msg: 'qwen CLI not found' });
+  });
+
+  it('probeModelInfo logs codex model probing on success', async () => {
+    const { acpDetector } = await import('../../src/process/agent/acp/AcpDetector');
+    vi.mocked(acpDetector.getDetectedAgents).mockReturnValue([{ backend: 'codex', cliPath: '/usr/bin/codex' }] as any);
+
+    const modelInfo = {
+      currentModelId: 'gpt-5',
+      currentModelLabel: 'gpt-5',
+      availableModels: [{ id: 'gpt-5', label: 'gpt-5' }],
+      canSwitch: true,
+      source: 'models' as const,
+    };
+    const summary = { source: 'models', sourceDetail: 'acp-models', currentModelId: 'gpt-5' };
+    const { buildAcpModelInfo, summarizeAcpModelInfo } = await import('../../src/process/agent/acp/modelInfo');
+    vi.mocked(buildAcpModelInfo).mockReturnValue(modelInfo as any);
+    vi.mocked(summarizeAcpModelInfo).mockReturnValue(summary as any);
+
+    const { mainLog } = await import('../../src/process/utils/mainLogger');
+    const { AcpConnection } = await import('../../src/process/agent/acp/AcpConnection');
+
+    const result = await handlers['probeModelInfo']({ backend: 'codex' });
+
+    expect(result).toEqual({ success: true, data: { modelInfo } });
+    expect(mainLog).toHaveBeenCalledWith('[ACP codex]', 'probeModelInfo completed', {
+      initializeAgentInfo: null,
+      modelInfo: summary,
+    });
+    const connection = vi.mocked(AcpConnection).mock.results.at(-1)?.value as any;
+    expect(connection.disconnect).toHaveBeenCalled();
+  });
+
+  it('probeModelInfo logs codex probing failures and still disconnects', async () => {
+    const { acpDetector } = await import('../../src/process/agent/acp/AcpDetector');
+    vi.mocked(acpDetector.getDetectedAgents).mockReturnValue([{ backend: 'codex', cliPath: '/usr/bin/codex' }] as any);
+
+    const { AcpConnection } = await import('../../src/process/agent/acp/AcpConnection');
+    vi.mocked(AcpConnection).mockImplementationOnce(
+      function () {
+        return (
+        ({
+          connect: vi.fn(async () => {
+            throw new Error('boom');
+          }),
+          newSession: vi.fn(async () => {}),
+          sendPrompt: vi.fn(async () => {}),
+          disconnect: vi.fn(async () => {}),
+          getConfigOptions: vi.fn(() => []),
+          getModels: vi.fn(() => []),
+          getInitializeResponse: vi.fn(() => null),
+        }) as any
+        );
+      } as any
+    );
+
+    const { mainWarn } = await import('../../src/process/utils/mainLogger');
+
+    const result = await handlers['probeModelInfo']({ backend: 'codex' });
+
+    expect(result).toEqual({ success: false, msg: 'boom' });
+    expect(mainWarn).toHaveBeenCalledWith('[ACP codex]', 'probeModelInfo failed', 'boom');
+    const connection = vi.mocked(AcpConnection).mock.results.at(-1)?.value as any;
+    expect(connection.disconnect).toHaveBeenCalled();
   });
 });
