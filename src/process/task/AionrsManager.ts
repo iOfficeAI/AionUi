@@ -303,6 +303,28 @@ export class AionrsManager extends BaseAgentManager<AionrsManagerData, string> {
     });
   }
 
+  private saveContextUsage(data: unknown): void {
+    if (!data || typeof data !== 'object' || !('input_tokens' in data)) return;
+    const usage = data as { input_tokens: number; output_tokens: number };
+    const totalTokens = (usage.input_tokens || 0) + (usage.output_tokens || 0);
+    if (totalTokens <= 0) return;
+
+    void (async () => {
+      try {
+        const db = await getDatabase();
+        const result = db.getConversation(this.conversation_id);
+        if (result.success && result.data && result.data.type === 'aionrs') {
+          const conversation = result.data;
+          db.updateConversation(this.conversation_id, {
+            extra: { ...conversation.extra, lastTokenUsage: { totalTokens } },
+          } as Partial<typeof conversation>);
+        }
+      } catch {
+        // Non-critical metadata, silently ignore errors
+      }
+    })();
+  }
+
   private scheduleMissingFinishFallback(): void {
     this.clearMissingFinishFallback();
     this.missingFinishFallbackTimer = setTimeout(() => {
@@ -416,9 +438,10 @@ export class AionrsManager extends BaseAgentManager<AionrsManagerData, string> {
         this.currentMsgId = processedData.msg_id ?? this.currentMsgId;
       }
 
-      // On turn end, clear fallback timer and check for cron commands
+      // On turn end, clear fallback timer, persist usage, and check for cron commands
       if (processedData.type === 'finish') {
         this.clearMissingFinishFallback();
+        this.saveContextUsage(processedData.data);
         void this.handleTurnEnd();
       }
 
