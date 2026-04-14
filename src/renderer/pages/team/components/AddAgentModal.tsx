@@ -21,6 +21,7 @@ const AddAgentModal: React.FC<Props> = ({ visible, onClose, onConfirm }) => {
   const [cachedInitResults, setCachedInitResults] = useState<Record<string, AcpInitializeResult> | null>(null);
 
   useEffect(() => {
+    if (!visible) return;
     let active = true;
     ConfigStorage.get('acp.cachedInitializeResult')
       .then((data) => {
@@ -30,7 +31,7 @@ const AddAgentModal: React.FC<Props> = ({ visible, onClose, onConfirm }) => {
     return () => {
       active = false;
     };
-  }, []);
+  }, [visible]);
 
   const allAgents = filterTeamSupportedAgents([...cliAgents], cachedInitResults);
 
