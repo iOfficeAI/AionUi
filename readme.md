@@ -645,3 +645,5 @@ This project is licensed under [Apache-2.0](LICENSE).
 [Report Bug](https://github.com/iOfficeAI/AionUi/issues) · [Request Feature](https://github.com/iOfficeAI/AionUi/issues)
 
 </div>
+
+<sub><a href="https://linux.do/">LINUX DO - A New Ideal Community</a></sub>
