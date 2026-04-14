@@ -5,15 +5,26 @@
 import type { AcpInitializeResult } from './acpTypes';
 
 /**
- * Check if an agent backend is team-capable based on its cached ACP initialize result.
- * Gemini is always team-capable (non-ACP, uses its own protocol).
- * ACP agents are team-capable when their initialize response includes mcpCapabilities.stdio.
+ * Backends known to support team mode without needing a cached initialize result.
+ * These are hardcoded so that team creation works even before the first conversation
+ * populates cachedInitializeResult (e.g. right after an upgrade).
+ *
+ * TODO: temporary workaround — remove once cachedInitializeResult is populated
+ * eagerly (e.g. at app startup or first backend detection) instead of lazily
+ * after the first user conversation.
+ */
+const KNOWN_TEAM_CAPABLE_BACKENDS = new Set(['gemini', 'claude', 'codex']);
+
+/**
+ * Check if an agent backend is team-capable.
+ * Known backends (gemini, claude, codex) are always team-capable.
+ * Other ACP agents are team-capable when their cached initialize response includes mcpCapabilities.stdio.
  */
 export function isTeamCapableBackend(
   backend: string,
   cachedInitResults: Record<string, AcpInitializeResult> | null | undefined
 ): boolean {
-  if (backend === 'gemini') return true;
+  if (KNOWN_TEAM_CAPABLE_BACKENDS.has(backend)) return true;
   const initResult = cachedInitResults?.[backend];
   return initResult?.capabilities.mcpCapabilities.stdio === true;
 }
