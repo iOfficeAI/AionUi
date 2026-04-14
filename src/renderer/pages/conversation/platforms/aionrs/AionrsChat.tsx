@@ -10,12 +10,12 @@ import FlexFullContainer from '@renderer/components/layout/FlexFullContainer';
 import MessageList from '@renderer/pages/conversation/Messages/MessageList';
 import { MessageListProvider, useMessageLstCache } from '@renderer/pages/conversation/Messages/hooks';
 import HOC from '@renderer/utils/ui/HOC';
-import React, { useEffect, useMemo } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import LocalImageView from '@renderer/components/media/LocalImageView';
 import ConversationChatConfirm from '../../components/ConversationChatConfirm';
 import AionrsSendBox from './AionrsSendBox';
 import type { AionrsModelSelection } from './useAionrsModelSelection';
-import { useAionrsMessage } from './useAionrsMessage';
+import { useAddEventListener } from '@/renderer/utils/emitter';
 
 const AionrsChat: React.FC<{
   conversation_id: string;
@@ -24,7 +24,21 @@ const AionrsChat: React.FC<{
 }> = ({ conversation_id, workspace, modelSelection }) => {
   useMessageLstCache(conversation_id);
   const updateLocalImage = LocalImageView.useUpdateLocalImage();
-  const messageState = useAionrsMessage(conversation_id);
+  const [isStreamingContent, setIsStreamingContent] = useState(false);
+
+  useEffect(() => {
+    setIsStreamingContent(false);
+  }, [conversation_id]);
+  useAddEventListener(
+    'conversation.streaming',
+    ({ conversationId, isStreaming }) => {
+      if (conversationId === conversation_id) {
+        setIsStreamingContent(isStreaming);
+      }
+    },
+    [conversation_id]
+  );
+
   useEffect(() => {
     updateLocalImage({ root: workspace });
   }, [workspace]);
@@ -33,9 +47,9 @@ const AionrsChat: React.FC<{
       conversationId: conversation_id,
       workspace,
       type: 'aionrs',
-      isStreamingContent: messageState.hasStreamingContent,
+      isStreamingContent,
     };
-  }, [conversation_id, workspace, messageState.hasStreamingContent]);
+  }, [conversation_id, isStreamingContent, workspace]);
 
   return (
     <ConversationProvider value={conversationValue}>
@@ -44,7 +58,7 @@ const AionrsChat: React.FC<{
           <MessageList className='flex-1' />
         </FlexFullContainer>
         <ConversationChatConfirm conversation_id={conversation_id}>
-          <AionrsSendBox conversation_id={conversation_id} modelSelection={modelSelection} messageState={messageState} />
+          <AionrsSendBox conversation_id={conversation_id} modelSelection={modelSelection} />
         </ConversationChatConfirm>
       </div>
     </ConversationProvider>

@@ -10,14 +10,13 @@ import FlexFullContainer from '@renderer/components/layout/FlexFullContainer';
 import MessageList from '@renderer/pages/conversation/Messages/MessageList';
 import { MessageListProvider, useMessageLstCache } from '@renderer/pages/conversation/Messages/hooks';
 import HOC from '@renderer/utils/ui/HOC';
-import React, { useEffect, useMemo } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import LocalImageView from '@renderer/components/media/LocalImageView';
 import ConversationChatConfirm from '../../components/ConversationChatConfirm';
 import GeminiSendBox from './GeminiSendBox';
 import type { GeminiModelSelection } from './useGeminiModelSelection';
-import { useGeminiMessage } from './useGeminiMessage';
-import { useGeminiQuotaFallback } from './useGeminiQuotaFallback';
 import TeamChatEmptyState from '@renderer/pages/team/components/TeamChatEmptyState';
+import { useAddEventListener } from '@/renderer/utils/emitter';
 
 // GeminiChat 接收共享的模型选择状态，避免组件内重复管理
 // GeminiChat consumes shared model selection state to avoid duplicate logic
@@ -44,15 +43,21 @@ const GeminiChat: React.FC<{
 }) => {
   useMessageLstCache(conversation_id);
   const updateLocalImage = LocalImageView.useUpdateLocalImage();
-  const { currentModel, providers, geminiModeLookup, getAvailableModels, handleSelectModel } = modelSelection;
-  const { handleGeminiError } = useGeminiQuotaFallback({
-    currentModel,
-    providers,
-    geminiModeLookup,
-    getAvailableModels,
-    handleSelectModel,
-  });
-  const messageState = useGeminiMessage(conversation_id, handleGeminiError);
+  const [isStreamingContent, setIsStreamingContent] = useState(false);
+
+  useEffect(() => {
+    setIsStreamingContent(false);
+  }, [conversation_id]);
+  useAddEventListener(
+    'conversation.streaming',
+    ({ conversationId, isStreaming }) => {
+      if (conversationId === conversation_id) {
+        setIsStreamingContent(isStreaming);
+      }
+    },
+    [conversation_id]
+  );
+
   useEffect(() => {
     updateLocalImage({ root: workspace });
   }, [workspace]);
@@ -63,9 +68,9 @@ const GeminiChat: React.FC<{
       type: 'gemini',
       cronJobId,
       hideSendBox,
-      isStreamingContent: messageState.hasStreamingContent,
+      isStreamingContent,
     };
-  }, [conversation_id, workspace, cronJobId, hideSendBox, messageState.hasStreamingContent]);
+  }, [conversation_id, workspace, cronJobId, hideSendBox, isStreamingContent]);
 
   return (
     <ConversationProvider value={conversationValue}>
@@ -92,7 +97,6 @@ const GeminiChat: React.FC<{
               modelSelection={modelSelection}
               teamId={teamId}
               agentSlotId={agentSlotId}
-              messageState={messageState}
             ></GeminiSendBox>
           </ConversationChatConfirm>
         )}

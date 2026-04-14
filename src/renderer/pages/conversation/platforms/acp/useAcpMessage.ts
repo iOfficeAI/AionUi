@@ -10,6 +10,7 @@ import { transformMessage } from '@/common/chat/chatLib';
 import type { TokenUsageData } from '@/common/config/storage';
 import type { ThoughtData } from '@/renderer/components/chat/ThoughtDisplay';
 import { useAddOrUpdateMessage } from '@/renderer/pages/conversation/Messages/hooks';
+import { emitter } from '@/renderer/utils/emitter';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
 export type UseAcpMessageReturn = {
@@ -42,12 +43,14 @@ export const useAcpMessage = (conversation_id: string): UseAcpMessageReturn => {
   const [tokenUsage, setTokenUsage] = useState<TokenUsageData | null>(null);
   const [contextLimit, setContextLimit] = useState<number>(0);
   const [hasStreamingContent, setHasStreamingContent] = useState(false);
+  const hasStreamingContentRef = useRef(false);
 
   const runningRef = useRef(running);
   const aiProcessingRef = useRef(aiProcessing);
   const hasContentInTurnRef = useRef(false);
   const turnFinishedRef = useRef(false);
   const hasThinkingMessageRef = useRef(false);
+  const aiProcessingClearFrameRef = useRef<number | null>(null);
   const [hasThinkingMessage, setHasThinkingMessage] = useState(false);
 
   const requestTraceRef = useRef<{
@@ -95,13 +98,54 @@ export const useAcpMessage = (conversation_id: string): UseAcpMessageReturn => {
     };
   }, []);
 
+  const setStreamingContent = useCallback(
+    (nextValue: boolean) => {
+      if (hasStreamingContentRef.current === nextValue) {
+        return;
+      }
+      hasStreamingContentRef.current = nextValue;
+      setHasStreamingContent(nextValue);
+      emitter.emit('conversation.streaming', {
+        conversationId: conversation_id,
+        isStreaming: nextValue,
+      });
+    },
+    [conversation_id]
+  );
+
+  const cancelAiProcessingClear = useCallback(() => {
+    if (typeof window !== 'undefined' && aiProcessingClearFrameRef.current !== null) {
+      window.cancelAnimationFrame(aiProcessingClearFrameRef.current);
+    }
+    aiProcessingClearFrameRef.current = null;
+  }, []);
+
+  const clearAiProcessingAfterPaint = useCallback(() => {
+    cancelAiProcessingClear();
+
+    if (typeof window === 'undefined' || typeof window.requestAnimationFrame !== 'function') {
+      setAiProcessing(false);
+      aiProcessingRef.current = false;
+      return;
+    }
+
+    aiProcessingClearFrameRef.current = window.requestAnimationFrame(() => {
+      aiProcessingClearFrameRef.current = window.requestAnimationFrame(() => {
+        aiProcessingClearFrameRef.current = null;
+        setAiProcessing(false);
+        aiProcessingRef.current = false;
+      });
+    });
+  }, [cancelAiProcessingClear]);
+
   useEffect(() => {
     return () => {
       if (thoughtThrottleRef.current.timer) {
         clearTimeout(thoughtThrottleRef.current.timer);
       }
+      cancelAiProcessingClear();
     };
-  }, []);
+  }, [cancelAiProcessingClear]);
 
   const handleResponseMessage = useCallback(
     (message: IResponseMessage) => {
@@ -129,13 +173,15 @@ export const useAcpMessage = (conversation_id: string): UseAcpMessageReturn => {
           break;
         }
         case 'start':
+          cancelAiProcessingClear();
           turnFinishedRef.current = false;
           hasContentInTurnRef.current = false;
-          setHasStreamingContent(false);
+          setStreamingContent(false);
           setRunning(true);
           runningRef.current = true;
           break;
         case 'finish': {
+          cancelAiProcessingClear();
           turnFinishedRef.current = true;
           setRunning(false);
           runningRef.current = false;
@@ -143,7 +189,7 @@ export const useAcpMessage = (conversation_id: string): UseAcpMessageReturn => {
           aiProcessingRef.current = false;
           setThought({ subject: '', description: '' });
           hasContentInTurnRef.current = false;
-          setHasStreamingContent(false);
+          setStreamingContent(false);
           hasThinkingMessageRef.current = false;
           setHasThinkingMessage(false);
           if (requestTraceRef.current) {
@@ -158,18 +204,20 @@ export const useAcpMessage = (conversation_id: string): UseAcpMessageReturn => {
           break;
         }
         case 'content': {
-          if (!hasContentInTurnRef.current) {
+          const isFirstContentChunk = !hasContentInTurnRef.current;
+          if (isFirstContentChunk) {
             hasContentInTurnRef.current = true;
-            setAiProcessing(false);
-            aiProcessingRef.current = false;
           }
-          setHasStreamingContent(true);
+          setStreamingContent(true);
           if (!runningRef.current && !turnFinishedRef.current) {
             setRunning(true);
             runningRef.current = true;
           }
           setThought({ subject: '', description: '' });
           addOrUpdateMessage(transformedMessage);
+          if (isFirstContentChunk) {
+            clearAiProcessingAfterPaint();
+          }
           break;
         }
         case 'agent_status': {
@@ -188,11 +236,12 @@ export const useAcpMessage = (conversation_id: string): UseAcpMessageReturn => {
               runningRef.current = false;
             }
             if (['error', 'disconnected'].includes(agentData.status)) {
+              cancelAiProcessingClear();
               setRunning(false);
               runningRef.current = false;
               setAiProcessing(false);
               aiProcessingRef.current = false;
-              setHasStreamingContent(false);
+              setStreamingContent(false);
             }
           }
           addOrUpdateMessage(transformedMessage);
@@ -247,12 +296,13 @@ export const useAcpMessage = (conversation_id: string): UseAcpMessageReturn => {
           break;
         }
         case 'error':
+          cancelAiProcessingClear();
           turnFinishedRef.current = true;
           setRunning(false);
           runningRef.current = false;
           setAiProcessing(false);
           aiProcessingRef.current = false;
-          setHasStreamingContent(false);
+          setStreamingContent(false);
           addOrUpdateMessage(transformedMessage);
           if (requestTraceRef.current) {
             const duration = Date.now() - requestTraceRef.current.startTime;
@@ -274,7 +324,14 @@ export const useAcpMessage = (conversation_id: string): UseAcpMessageReturn => {
           break;
       }
     },
-    [conversation_id, addOrUpdateMessage, throttledSetThought]
+    [
+      addOrUpdateMessage,
+      cancelAiProcessingClear,
+      clearAiProcessingAfterPaint,
+      conversation_id,
+      setStreamingContent,
+      throttledSetThought,
+    ]
   );
 
   useEffect(() => {
@@ -289,8 +346,9 @@ export const useAcpMessage = (conversation_id: string): UseAcpMessageReturn => {
     setTokenUsage(null);
     setContextLimit(0);
     hasContentInTurnRef.current = false;
-    setHasStreamingContent(false);
+    setStreamingContent(false);
     setHasHydratedRunningState(false);
+    cancelAiProcessingClear();
 
     void ipcBridge.conversation.get.invoke({ id: conversation_id }).then((res) => {
       if (cancelled) {
@@ -302,7 +360,7 @@ export const useAcpMessage = (conversation_id: string): UseAcpMessageReturn => {
         runningRef.current = false;
         setAiProcessing(false);
         aiProcessingRef.current = false;
-        setHasStreamingContent(false);
+        setStreamingContent(false);
         setHasHydratedRunningState(true);
         return;
       }
@@ -312,7 +370,7 @@ export const useAcpMessage = (conversation_id: string): UseAcpMessageReturn => {
       runningRef.current = isRunning;
       setAiProcessing(isRunning);
       aiProcessingRef.current = isRunning;
-      setHasStreamingContent(false);
+      setStreamingContent(false);
       setHasHydratedRunningState(true);
 
       if (res.type === 'acp' && res.extra?.lastTokenUsage) {
@@ -328,8 +386,12 @@ export const useAcpMessage = (conversation_id: string): UseAcpMessageReturn => {
 
     return () => {
       cancelled = true;
+      emitter.emit('conversation.streaming', {
+        conversationId: conversation_id,
+        isStreaming: false,
+      });
     };
-  }, [conversation_id]);
+  }, [cancelAiProcessingClear, conversation_id, setStreamingContent]);
 
   const resetState = useCallback(() => {
     turnFinishedRef.current = true;
@@ -339,10 +401,11 @@ export const useAcpMessage = (conversation_id: string): UseAcpMessageReturn => {
     aiProcessingRef.current = false;
     setThought({ subject: '', description: '' });
     hasContentInTurnRef.current = false;
-    setHasStreamingContent(false);
+    setStreamingContent(false);
     hasThinkingMessageRef.current = false;
     setHasThinkingMessage(false);
-  }, []);
+    cancelAiProcessingClear();
+  }, [cancelAiProcessingClear, setStreamingContent]);
 
   return {
     thought,

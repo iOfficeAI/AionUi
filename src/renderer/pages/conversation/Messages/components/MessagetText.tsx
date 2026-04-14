@@ -18,7 +18,6 @@ import CollapsibleContent from '@renderer/components/chat/CollapsibleContent';
 import FilePreview from '@renderer/components/media/FilePreview';
 import HorizontalFileList from '@renderer/components/media/HorizontalFileList';
 import MarkdownView from '@renderer/components/Markdown';
-import StreamingMarkdownView from '@renderer/components/Markdown/StreamingMarkdownView';
 import { stripThinkTags, hasThinkTags } from '@renderer/utils/chat/thinkTagFilter';
 import { stripSkillSuggest, hasSkillSuggest } from '@renderer/utils/chat/skillSuggestParser';
 
@@ -116,7 +115,7 @@ const MessageText: React.FC<{ message: IMessageText; isStreaming?: boolean }> = 
   const isUserMessage = message.position === 'right';
   const isTeammateMessage = message.position === 'left' && message.content.teammateMessage === true;
   const shouldRenderPlainText = isUserMessage;
-  const shouldRenderStreamingMarkdown = isStreaming && !isUserMessage && !isTeammateMessage;
+  const shouldRenderStreamingText = isStreaming && !isUserMessage && !isTeammateMessage;
   const conversationContext = useConversationContextSafe();
   const resolvedFiles = useMemo(
     () => files.map((filePath) => resolveMessageFilePath(filePath, conversationContext?.workspace)),
@@ -207,8 +206,8 @@ const MessageText: React.FC<{ message: IMessageText; isStreaming?: boolean }> = 
           {/* JSON 内容使用折叠组件 Use CollapsibleContent for JSON content */}
           {shouldRenderPlainText ? (
             <div className='whitespace-pre-wrap break-words'>{text}</div>
-          ) : shouldRenderStreamingMarkdown ? (
-            <StreamingMarkdownView>{text}</StreamingMarkdownView>
+          ) : shouldRenderStreamingText ? (
+            <div className='whitespace-pre-wrap break-words'>{text}</div>
           ) : json ? (
             <CollapsibleContent maxHeight={200} defaultCollapsed={true}>
               <MarkdownView

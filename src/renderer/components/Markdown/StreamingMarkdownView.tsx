@@ -10,11 +10,11 @@ import { convertLatexDelimiters } from '@renderer/utils/chat/latexDelimiters';
 import classNames from 'classnames';
 import rehypeKatex from 'rehype-katex';
 import React, { useCallback, useMemo } from 'react';
+import ReactMarkdown from 'react-markdown';
 import { useTranslation } from 'react-i18next';
 import remarkBreaks from 'remark-breaks';
 import remarkGfm from 'remark-gfm';
 import remarkMath from 'remark-math';
-import { Streamdown } from 'streamdown';
 import ShadowView from './ShadowView';
 
 import 'katex/dist/katex.min.css';
@@ -206,14 +206,13 @@ const StreamingMarkdownView: React.FC<StreamingMarkdownViewProps> = ({ children:
     <div className={classNames('relative w-full', className)} data-testid='streaming-markdown-view'>
       <ShadowView>
         <div ref={onRef} className='markdown-shadow-body'>
-          <Streamdown
-            parseIncompleteMarkdown
+          <ReactMarkdown
             remarkPlugins={[remarkGfm, remarkMath, remarkBreaks]}
             rehypePlugins={[rehypeKatex]}
             components={components}
           >
             {normalizedChildren}
-          </Streamdown>
+          </ReactMarkdown>
         </div>
       </ShadowView>
     </div>

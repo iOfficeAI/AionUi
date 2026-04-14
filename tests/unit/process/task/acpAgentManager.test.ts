@@ -15,9 +15,22 @@ const mainWarn = vi.fn();
 const processCronInMessage = vi.fn(async () => {});
 const hasCronCommands = vi.fn(() => false);
 const recordConversationTokenUsage = vi.fn(() => ({ success: true }));
+const acpAgentStart = vi.fn(async () => {});
+const acpAgentSetMode = vi.fn(async () => ({ success: true }));
+const acpAgentGetModelInfo = vi.fn(() => null);
+const acpAgentSetModelByConfigOption = vi.fn(async () => null);
+const acpAgentGetConfigOptions = vi.fn(() => []);
 
 vi.mock('@process/agent/acp', () => ({
-  AcpAgent: class MockAcpAgent {},
+  AcpAgent: class MockAcpAgent {
+    connection?: { onPromptUsage?: (usage: unknown) => void };
+
+    start = acpAgentStart;
+    setMode = acpAgentSetMode;
+    getModelInfo = acpAgentGetModelInfo;
+    setModelByConfigOption = acpAgentSetModelByConfigOption;
+    getConfigOptions = acpAgentGetConfigOptions;
+  },
 }));
 
 vi.mock('@process/channels/agent/ChannelEventBus', () => ({
@@ -180,18 +193,48 @@ describe('AcpAgentManager turn completion fallback', () => {
     hasCronCommands.mockReturnValue(false);
     recordConversationTokenUsage.mockReset();
     recordConversationTokenUsage.mockReturnValue({ success: true });
+    acpAgentStart.mockReset();
+    acpAgentStart.mockResolvedValue(undefined);
+    acpAgentSetMode.mockReset();
+    acpAgentSetMode.mockResolvedValue({ success: true });
+    acpAgentGetModelInfo.mockReset();
+    acpAgentGetModelInfo.mockReturnValue(null);
+    acpAgentSetModelByConfigOption.mockReset();
+    acpAgentSetModelByConfigOption.mockResolvedValue(null);
+    acpAgentGetConfigOptions.mockReset();
+    acpAgentGetConfigOptions.mockReturnValue([]);
     vi.resetModules();
   });
 
-  const createManager = async () => {
+  const createManager = async (overrides: Record<string, unknown> = {}) => {
     const { default: AcpAgentManager } = await import('../../../../src/process/task/AcpAgentManager');
     return new AcpAgentManager({
       conversation_id: 'session-1',
       backend: 'qwen',
       workspace: 'E:/workspace',
       configOptionValues: {},
+      ...overrides,
     } as any) as any;
   };
+
+  it('re-applies persisted mode for non-codex ACP backends after session start', async () => {
+    const manager = await createManager({ backend: 'qwen', sessionMode: 'yolo' });
+
+    await manager.initAgent();
+
+    expect(acpAgentStart).toHaveBeenCalledTimes(1);
+    expect(acpAgentSetMode).toHaveBeenCalledTimes(1);
+    expect(acpAgentSetMode).toHaveBeenCalledWith('yolo');
+  });
+
+  it('does not call session/set_mode for codex when restoring session mode', async () => {
+    const manager = await createManager({ backend: 'codex', sessionMode: 'yolo' });
+
+    await manager.initAgent();
+
+    expect(acpAgentStart).toHaveBeenCalledTimes(1);
+    expect(acpAgentSetMode).not.toHaveBeenCalled();
+  });
 
   it('keeps ACP runtime active when prompt dispatch resolves before finish arrives', async () => {
     const manager = await createManager();

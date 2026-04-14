@@ -38,7 +38,6 @@ import type { WriteFileResult } from './types';
 import { useAutoScroll } from './useAutoScroll';
 import { useAutoPreviewOfficeFiles } from '@/renderer/hooks/file/useAutoPreviewOfficeFiles';
 import SelectionReplyButton from './components/SelectionReplyButton';
-import { getStreamingAssistantTextMessageId } from './streamingMessage';
 
 type TurnDiffContent = Extract<CodexToolCallUpdate, { subtype: 'turn_diff' }>;
 
@@ -86,6 +85,36 @@ const highlightStyle: React.CSSProperties = {
 };
 
 const getUnhandledMessageType = (_message: never): string => 'unknown';
+
+const isStreamingAssistantTextMessage = (message: TMessage): boolean => {
+  if (message.hidden || message.type !== 'text' || message.position !== 'left') {
+    return false;
+  }
+
+  if (message.content.teammateMessage) {
+    return false;
+  }
+
+  return typeof message.content.content === 'string' && message.content.content.trim().length > 0;
+};
+
+const getStreamingAssistantTextMessageId = (
+  messages: TMessage[],
+  isStreamingContent: boolean | undefined
+): string | undefined => {
+  if (!isStreamingContent) {
+    return undefined;
+  }
+
+  for (let index = messages.length - 1; index >= 0; index--) {
+    const message = messages[index];
+    if (isStreamingAssistantTextMessage(message)) {
+      return message.id;
+    }
+  }
+
+  return undefined;
+};
 
 // Image preview context
 export const ImagePreviewContext = createContext<{ inPreviewGroup: boolean }>({ inPreviewGroup: false });

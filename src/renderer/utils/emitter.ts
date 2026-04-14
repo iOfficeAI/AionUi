@@ -17,6 +17,7 @@ export type ReplyQuote = {
 };
 
 interface EventTypes {
+  'conversation.streaming': [{ conversationId: string; isStreaming: boolean }];
   'gemini.selected.file': [Array<string | FileOrFolderItem>];
   'gemini.selected.file.append': [Array<string | FileOrFolderItem>];
   'gemini.selected.file.clear': void;

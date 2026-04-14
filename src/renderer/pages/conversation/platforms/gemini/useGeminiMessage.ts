@@ -4,6 +4,7 @@ import { transformMessage } from '@/common/chat/chatLib';
 import type { TChatConversation, TokenUsageData } from '@/common/config/storage';
 import type { ThoughtData } from '@/renderer/components/chat/ThoughtDisplay';
 import { useAddOrUpdateMessage } from '@/renderer/pages/conversation/Messages/hooks';
+import { emitter } from '@/renderer/utils/emitter';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
 export type UseGeminiMessageReturn = {
@@ -34,6 +35,7 @@ export const useGeminiMessage = (
   });
   const [tokenUsage, setTokenUsage] = useState<TokenUsageData | null>(null);
   const [hasStreamingContent, setHasStreamingContent] = useState(false);
+  const hasStreamingContentRef = useRef(false);
 
   const activeMsgIdRef = useRef<string | null>(null);
   const hasActiveToolsRef = useRef(hasActiveTools);
@@ -41,6 +43,7 @@ export const useGeminiMessage = (
   const waitingResponseRef = useRef(waitingResponse);
   const hasContentInTurnRef = useRef(false);
   const hasThinkingMessageRef = useRef(false);
+  const waitingResponseClearFrameRef = useRef<number | null>(null);
   const [hasThinkingMessage, setHasThinkingMessage] = useState(false);
 
   const requestTraceRef = useRef<{
@@ -56,6 +59,46 @@ export const useGeminiMessage = (
   useEffect(() => {
     streamRunningRef.current = streamRunning;
   }, [streamRunning]);
+
+  const setStreamingContent = useCallback(
+    (nextValue: boolean) => {
+      if (hasStreamingContentRef.current === nextValue) {
+        return;
+      }
+      hasStreamingContentRef.current = nextValue;
+      setHasStreamingContent(nextValue);
+      emitter.emit('conversation.streaming', {
+        conversationId: conversation_id,
+        isStreaming: nextValue,
+      });
+    },
+    [conversation_id]
+  );
+
+  const cancelWaitingResponseClear = useCallback(() => {
+    if (typeof window !== 'undefined' && waitingResponseClearFrameRef.current !== null) {
+      window.cancelAnimationFrame(waitingResponseClearFrameRef.current);
+    }
+    waitingResponseClearFrameRef.current = null;
+  }, []);
+
+  const clearWaitingResponseAfterPaint = useCallback(() => {
+    cancelWaitingResponseClear();
+
+    if (typeof window === 'undefined' || typeof window.requestAnimationFrame !== 'function') {
+      setWaitingResponse(false);
+      waitingResponseRef.current = false;
+      return;
+    }
+
+    waitingResponseClearFrameRef.current = window.requestAnimationFrame(() => {
+      waitingResponseClearFrameRef.current = window.requestAnimationFrame(() => {
+        waitingResponseClearFrameRef.current = null;
+        setWaitingResponse(false);
+        waitingResponseRef.current = false;
+      });
+    });
+  }, [cancelWaitingResponseClear]);
 
   const thoughtThrottleRef = useRef<{
     lastUpdate: number;
@@ -101,8 +144,9 @@ export const useGeminiMessage = (
       if (thoughtThrottleRef.current.timer) {
         clearTimeout(thoughtThrottleRef.current.timer);
       }
+      cancelWaitingResponseClear();
     };
-  }, []);
+  }, [cancelWaitingResponseClear]);
 
   const running = waitingResponse || streamRunning || hasActiveTools;
 
@@ -142,19 +186,21 @@ export const useGeminiMessage = (
           break;
         }
         case 'start':
+          cancelWaitingResponseClear();
           hasContentInTurnRef.current = false;
-          setHasStreamingContent(false);
+          setStreamingContent(false);
           setStreamRunning(true);
           streamRunningRef.current = true;
           break;
         case 'finish': {
+          cancelWaitingResponseClear();
           setStreamRunning(false);
           streamRunningRef.current = false;
           setWaitingResponse(false);
           waitingResponseRef.current = false;
           setThought({ subject: '', description: '' });
           hasContentInTurnRef.current = false;
-          setHasStreamingContent(false);
+          setStreamingContent(false);
           hasThinkingMessageRef.current = false;
           setHasThinkingMessage(false);
           if (requestTraceRef.current) {
@@ -253,10 +299,12 @@ export const useGeminiMessage = (
           break;
         }
         default: {
+          const transformedMessage = transformMessage(message);
           if (message.type === 'error') {
+            cancelWaitingResponseClear();
             setWaitingResponse(false);
             waitingResponseRef.current = false;
-            setHasStreamingContent(false);
+            setStreamingContent(false);
             onError?.(message as IResponseMessage);
             if (requestTraceRef.current) {
               const duration = Date.now() - requestTraceRef.current.startTime;
@@ -270,22 +318,32 @@ export const useGeminiMessage = (
             }
           } else {
             if (message.type === 'content') {
+              const isFirstContentChunk = !hasContentInTurnRef.current;
               hasContentInTurnRef.current = true;
-              setHasStreamingContent(true);
-              setWaitingResponse(false);
-              waitingResponseRef.current = false;
+              setStreamingContent(true);
+              if (isFirstContentChunk) {
+                clearWaitingResponseAfterPaint();
+              }
             }
             if (!streamRunningRef.current) {
               setStreamRunning(true);
               streamRunningRef.current = true;
             }
           }
-          addOrUpdateMessage(transformMessage(message));
+          addOrUpdateMessage(transformedMessage);
           break;
         }
       }
     });
-  }, [conversation_id, addOrUpdateMessage, onError, throttledSetThought]);
+  }, [
+    addOrUpdateMessage,
+    cancelWaitingResponseClear,
+    clearWaitingResponseAfterPaint,
+    conversation_id,
+    onError,
+    setStreamingContent,
+    throttledSetThought,
+  ]);
 
   useEffect(() => {
     let cancelled = false;
@@ -293,10 +351,11 @@ export const useGeminiMessage = (
     setThought({ subject: '', description: '' });
     setTokenUsage(null);
     hasContentInTurnRef.current = false;
-    setHasStreamingContent(false);
+    setStreamingContent(false);
     hasThinkingMessageRef.current = false;
     setHasThinkingMessage(false);
     setHasHydratedRunningState(false);
+    cancelWaitingResponseClear();
 
     void ipcBridge.conversation.get.invoke({ id: conversation_id }).then((res) => {
       if (cancelled) {
@@ -310,7 +369,7 @@ export const useGeminiMessage = (
         hasActiveToolsRef.current = false;
         setWaitingResponse(false);
         waitingResponseRef.current = false;
-        setHasStreamingContent(false);
+        setStreamingContent(false);
         setHasHydratedRunningState(true);
         return;
       }
@@ -322,7 +381,7 @@ export const useGeminiMessage = (
       hasActiveToolsRef.current = false;
       setWaitingResponse(isRunning);
       waitingResponseRef.current = isRunning;
-      setHasStreamingContent(false);
+      setStreamingContent(false);
 
       if (res.type === 'gemini' && res.extra?.lastTokenUsage) {
         const { lastTokenUsage } = res.extra;
@@ -335,8 +394,12 @@ export const useGeminiMessage = (
 
     return () => {
       cancelled = true;
+      emitter.emit('conversation.streaming', {
+        conversationId: conversation_id,
+        isStreaming: false,
+      });
     };
-  }, [conversation_id]);
+  }, [conversation_id, setStreamingContent]);
 
   const resetState = useCallback(() => {
     setWaitingResponse(false);
@@ -347,11 +410,12 @@ export const useGeminiMessage = (
     hasActiveToolsRef.current = false;
     setThought({ subject: '', description: '' });
     hasContentInTurnRef.current = false;
-    setHasStreamingContent(false);
+    setStreamingContent(false);
     hasThinkingMessageRef.current = false;
     setHasThinkingMessage(false);
     activeMsgIdRef.current = null;
-  }, []);
+    cancelWaitingResponseClear();
+  }, [cancelWaitingResponseClear, setStreamingContent]);
 
   return {
     thought,

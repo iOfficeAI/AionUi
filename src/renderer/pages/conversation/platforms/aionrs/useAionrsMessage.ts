@@ -10,6 +10,7 @@ import { transformMessage } from '@/common/chat/chatLib';
 import type { TChatConversation, TokenUsageData } from '@/common/config/storage';
 import type { ThoughtData } from '@/renderer/components/chat/ThoughtDisplay';
 import { useAddOrUpdateMessage } from '@/renderer/pages/conversation/Messages/hooks';
+import { emitter } from '@/renderer/utils/emitter';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
 type TokenUsage = {
@@ -44,12 +45,14 @@ export const useAionrsMessage = (
   });
   const [tokenUsage, setTokenUsage] = useState<TokenUsageData | null>(null);
   const [hasStreamingContent, setHasStreamingContent] = useState(false);
+  const hasStreamingContentRef = useRef(false);
 
   const activeMsgIdRef = useRef<string | null>(null);
   const hasActiveToolsRef = useRef(hasActiveTools);
   const streamRunningRef = useRef(streamRunning);
   const waitingResponseRef = useRef(waitingResponse);
   const hasContentInTurnRef = useRef(false);
+  const waitingResponseClearFrameRef = useRef<number | null>(null);
 
   useEffect(() => {
     hasActiveToolsRef.current = hasActiveTools;
@@ -58,6 +61,46 @@ export const useAionrsMessage = (
   useEffect(() => {
     streamRunningRef.current = streamRunning;
   }, [streamRunning]);
+
+  const setStreamingContent = useCallback(
+    (nextValue: boolean) => {
+      if (hasStreamingContentRef.current === nextValue) {
+        return;
+      }
+      hasStreamingContentRef.current = nextValue;
+      setHasStreamingContent(nextValue);
+      emitter.emit('conversation.streaming', {
+        conversationId: conversation_id,
+        isStreaming: nextValue,
+      });
+    },
+    [conversation_id]
+  );
+
+  const cancelWaitingResponseClear = useCallback(() => {
+    if (typeof window !== 'undefined' && waitingResponseClearFrameRef.current !== null) {
+      window.cancelAnimationFrame(waitingResponseClearFrameRef.current);
+    }
+    waitingResponseClearFrameRef.current = null;
+  }, []);
+
+  const clearWaitingResponseAfterPaint = useCallback(() => {
+    cancelWaitingResponseClear();
+
+    if (typeof window === 'undefined' || typeof window.requestAnimationFrame !== 'function') {
+      setWaitingResponse(false);
+      waitingResponseRef.current = false;
+      return;
+    }
+
+    waitingResponseClearFrameRef.current = window.requestAnimationFrame(() => {
+      waitingResponseClearFrameRef.current = window.requestAnimationFrame(() => {
+        waitingResponseClearFrameRef.current = null;
+        setWaitingResponse(false);
+        waitingResponseRef.current = false;
+      });
+    });
+  }, [cancelWaitingResponseClear]);
 
   const thoughtThrottleRef = useRef<{
     lastUpdate: number;
@@ -103,8 +146,9 @@ export const useAionrsMessage = (
       if (thoughtThrottleRef.current.timer) {
         clearTimeout(thoughtThrottleRef.current.timer);
       }
+      cancelWaitingResponseClear();
     };
-  }, []);
+  }, [cancelWaitingResponseClear]);
 
   const running = waitingResponse || streamRunning || hasActiveTools;
 
@@ -133,12 +177,14 @@ export const useAionrsMessage = (
           throttledSetThought(message.data as ThoughtData);
           break;
         case 'start':
+          cancelWaitingResponseClear();
           hasContentInTurnRef.current = false;
-          setHasStreamingContent(false);
+          setStreamingContent(false);
           setStreamRunning(true);
           streamRunningRef.current = true;
           break;
         case 'finish': {
+          cancelWaitingResponseClear();
           const usageData = message.data as TokenUsage | undefined;
           if (usageData && typeof usageData === 'object' && 'input_tokens' in usageData) {
             const newTokenUsage: TokenUsageData = {
@@ -159,7 +205,7 @@ export const useAionrsMessage = (
           waitingResponseRef.current = false;
           setThought({ subject: '', description: '' });
           hasContentInTurnRef.current = false;
-          setHasStreamingContent(false);
+          setStreamingContent(false);
           break;
         }
         case 'tool_group': {
@@ -205,29 +251,41 @@ export const useAionrsMessage = (
           break;
         }
         default: {
+          const transformedMessage = transformMessage(message);
           if (message.type === 'error') {
+            cancelWaitingResponseClear();
             setWaitingResponse(false);
             waitingResponseRef.current = false;
-            setHasStreamingContent(false);
+            setStreamingContent(false);
             onError?.(message as IResponseMessage);
           } else {
             if (message.type === 'content') {
+              const isFirstContentChunk = !hasContentInTurnRef.current;
               hasContentInTurnRef.current = true;
-              setHasStreamingContent(true);
-              setWaitingResponse(false);
-              waitingResponseRef.current = false;
+              setStreamingContent(true);
+              if (isFirstContentChunk) {
+                clearWaitingResponseAfterPaint();
+              }
             }
             if (!streamRunningRef.current) {
               setStreamRunning(true);
               streamRunningRef.current = true;
             }
           }
-          addOrUpdateMessage(transformMessage(message));
+          addOrUpdateMessage(transformedMessage);
           break;
         }
       }
     });
-  }, [conversation_id, addOrUpdateMessage, onError, throttledSetThought]);
+  }, [
+    addOrUpdateMessage,
+    cancelWaitingResponseClear,
+    clearWaitingResponseAfterPaint,
+    conversation_id,
+    onError,
+    setStreamingContent,
+    throttledSetThought,
+  ]);
 
   useEffect(() => {
     let cancelled = false;
@@ -235,8 +293,9 @@ export const useAionrsMessage = (
     setThought({ subject: '', description: '' });
     setTokenUsage(null);
     hasContentInTurnRef.current = false;
-    setHasStreamingContent(false);
+    setStreamingContent(false);
     setHasHydratedRunningState(false);
+    cancelWaitingResponseClear();
 
     void ipcBridge.conversation.get.invoke({ id: conversation_id }).then((res) => {
       if (cancelled) {
@@ -250,7 +309,7 @@ export const useAionrsMessage = (
         hasActiveToolsRef.current = false;
         setWaitingResponse(false);
         waitingResponseRef.current = false;
-        setHasStreamingContent(false);
+        setStreamingContent(false);
         setHasHydratedRunningState(true);
         return;
       }
@@ -262,7 +321,7 @@ export const useAionrsMessage = (
       hasActiveToolsRef.current = false;
       setWaitingResponse(isRunning);
       waitingResponseRef.current = isRunning;
-      setHasStreamingContent(false);
+      setStreamingContent(false);
 
       if (res.type === 'aionrs' && res.extra?.lastTokenUsage) {
         const { lastTokenUsage } = res.extra;
@@ -275,8 +334,12 @@ export const useAionrsMessage = (
 
     return () => {
       cancelled = true;
+      emitter.emit('conversation.streaming', {
+        conversationId: conversation_id,
+        isStreaming: false,
+      });
     };
-  }, [conversation_id]);
+  }, [conversation_id, setStreamingContent]);
 
   const resetState = useCallback(() => {
     setWaitingResponse(false);
@@ -287,9 +350,10 @@ export const useAionrsMessage = (
     hasActiveToolsRef.current = false;
     setThought({ subject: '', description: '' });
     hasContentInTurnRef.current = false;
-    setHasStreamingContent(false);
+    setStreamingContent(false);
     activeMsgIdRef.current = null;
-  }, []);
+    cancelWaitingResponseClear();
+  }, [cancelWaitingResponseClear, setStreamingContent]);
 
   return {
     thought,

@@ -754,7 +754,9 @@ class AcpAgentManager extends BaseAgentManager<AcpAgentManagerData, AcpPermissio
       return this.agent.start().then(async () => {
         // Re-apply persisted mode after session start/resume
         // 在会话启动/恢复后重新应用持久化的模式
-        if (this.currentMode && this.currentMode !== 'default') {
+        // Codex bridge does not implement ACP session/set_mode.
+        // Its approval behavior is applied locally before session start.
+        if (this.options.backend !== 'codex' && this.currentMode && this.currentMode !== 'default') {
           try {
             await this.agent.setMode(this.currentMode);
           } catch (error) {

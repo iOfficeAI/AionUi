@@ -11,8 +11,7 @@
  */
 
 import type { ChildProcess, SpawnOptions } from 'child_process';
-import { execFile as execFileCb, execFileSync, spawn } from 'child_process';
-import { promisify } from 'util';
+import { execFileSync, spawn } from 'child_process';
 import { promises as fs } from 'fs';
 import os from 'os';
 import path from 'path';
@@ -31,44 +30,10 @@ import {
   resolveNpxDirect,
   resolveNpxPath,
 } from '@process/utils/shellEnv';
-import { mainLog, mainWarn } from '@process/utils/mainLogger';
-
-const execFile = promisify(execFileCb);
+import { mainWarn } from '@process/utils/mainLogger';
 
 /** Enable ACP performance diagnostics via ACP_PERF=1 */
 export const ACP_PERF_LOG = process.env.ACP_PERF === '1';
-
-function quoteWindowsCmdArg(arg: string): string {
-  if (arg.length === 0) {
-    return '""';
-  }
-
-  return /[\s"&|<>^()]/.test(arg) ? `"${arg.replace(/"/g, '""')}"` : arg;
-}
-
-async function execDiagnosticCommand(
-  command: string,
-  args: string[],
-  env: Record<string, string | undefined>
-): Promise<string> {
-  if (process.platform === 'win32' && /\.(cmd|bat)$/i.test(command)) {
-    const shellCommand = env.COMSPEC || env.ComSpec || process.env.COMSPEC || process.env.ComSpec || 'cmd.exe';
-    const commandLine = [command, ...args].map((arg) => quoteWindowsCmdArg(arg)).join(' ');
-    const { stdout } = await execFile(shellCommand, ['/d', '/s', '/c', commandLine], {
-      env,
-      timeout: 5000,
-      windowsHide: true,
-    });
-    return stdout.trim();
-  }
-
-  const { stdout } = await execFile(command, args, {
-    env,
-    timeout: 5000,
-    windowsHide: true,
-  });
-  return stdout.trim();
-}
 
 function normalizeWindowsCommand(command: string): string {
   const trimmed = command.trim();
@@ -135,10 +100,6 @@ function shouldPreferDirectCodexAcpPackage(): boolean {
   return process.platform === 'win32' || process.platform === 'linux';
 }
 
-function extractPackageVersion(npmPackage: string): string {
-  const versionSeparatorIndex = npmPackage.lastIndexOf('@');
-  return versionSeparatorIndex > 0 ? npmPackage.slice(versionSeparatorIndex + 1) : 'latest';
-}
 function extractCodexPlatformPackageFromError(errorMessage: string): string | null {
   const packageMatch = errorMessage.match(/Cannot find package '(@zed-industries\/codex-acp-[^']+)'/i);
   if (packageMatch) {
@@ -417,46 +378,10 @@ async function prepareClaude(): Promise<NpxPrepareResult> {
   return { cleanEnv, npxCommand: resolveNpxPath(cleanEnv), directInvoke: resolveNpxDirect(cleanEnv) ?? undefined };
 }
 
-/** Prepare clean env + resolve npx + run diagnostics for Codex ACP bridge. */
-async function prepareCodex(codexAcpPackage: string = CODEX_ACP_NPX_PACKAGE): Promise<NpxPrepareResult> {
+/** Prepare clean env + resolve npx for Codex ACP bridge. */
+async function prepareCodex(): Promise<NpxPrepareResult> {
   const cleanEnv = await prepareCleanEnv();
   ensureMinNodeVersion(cleanEnv, 20, 10, 'Codex ACP bridge');
-
-  const codexCommand = process.platform === 'win32' ? 'codex.cmd' : 'codex';
-  const diagnostics: {
-    bridgeVersion: string;
-    bridgePackage: string;
-    codexCliVersion: string;
-    loginStatus: string;
-    hasCodexApiKey: boolean;
-    hasOpenAiApiKey: boolean;
-    hasChatGptSession: boolean;
-  } = {
-    bridgeVersion: extractPackageVersion(codexAcpPackage),
-    bridgePackage: codexAcpPackage,
-    codexCliVersion: 'unknown',
-    loginStatus: 'unknown',
-    hasCodexApiKey: Boolean(cleanEnv.CODEX_API_KEY),
-    hasOpenAiApiKey: Boolean(cleanEnv.OPENAI_API_KEY),
-    hasChatGptSession: false,
-  };
-
-  try {
-    diagnostics.codexCliVersion =
-      (await execDiagnosticCommand(codexCommand, ['--version'], cleanEnv)) || diagnostics.codexCliVersion;
-  } catch (error) {
-    mainWarn('[ACP codex]', 'Failed to read codex CLI version', error);
-  }
-
-  try {
-    diagnostics.loginStatus =
-      (await execDiagnosticCommand(codexCommand, ['login', 'status'], cleanEnv)) || diagnostics.loginStatus;
-    diagnostics.hasChatGptSession = /chatgpt/i.test(diagnostics.loginStatus);
-  } catch (error) {
-    mainWarn('[ACP codex]', 'Failed to read codex login status', error);
-  }
-
-  mainLog('[ACP codex]', 'Runtime diagnostics', diagnostics);
   return {
     cleanEnv,
     npxCommand: resolveNpxPath(cleanEnv),
@@ -653,7 +578,7 @@ export function connectCodex(workingDir: string, hooks: NpxConnectHooks): Promis
     const cachedBinary = await resolveCachedCodexAcpBinary();
     if (cachedBinary) {
       try {
-        const { cleanEnv } = await prepareCodex(cachedBinary.packageSpecifier);
+        const { cleanEnv } = await prepareCodex();
         const config = createGenericSpawnConfig(
           cachedBinary.binaryPath,
           workingDir,
@@ -687,7 +612,7 @@ export function connectCodex(workingDir: string, hooks: NpxConnectHooks): Promis
         await connectNpxBackend({
           backend: 'codex',
           npxPackage,
-          prepareFn: () => prepareCodex(npxPackage),
+          prepareFn: prepareCodex,
           workingDir,
           ...hooks,
         });

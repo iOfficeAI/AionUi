@@ -12,9 +12,12 @@ import type { IConversationRepository } from '@process/services/database/IConver
 import type { TChatConversation } from '@/common/config/storage';
 import { cronBusyGuard } from '@process/services/cron/CronBusyGuard';
 import { ProcessConfig } from '@process/utils/initStorage';
+import { app } from 'electron';
 
 /** Default idle timeout: 5 minutes. Overridden by user config 'acp.agentIdleTimeout' (in minutes). */
 const DEFAULT_IDLE_TIMEOUT_MS = 5 * 60 * 1000;
+/** Development idle timeout: keep CLI agents alive longer to avoid frequent cold starts while debugging. */
+const DEV_IDLE_TIMEOUT_MS = 30 * 60 * 1000;
 /** How often to scan for idle CLI-backed agents. */
 const AGENT_IDLE_CHECK_INTERVAL_MS = 1 * 60 * 1000;
 
@@ -36,7 +39,7 @@ export class WorkerTaskManager implements IWorkerTaskManager {
     } catch {
       // Fallback to default
     }
-    return DEFAULT_IDLE_TIMEOUT_MS;
+    return app.isPackaged ? DEFAULT_IDLE_TIMEOUT_MS : DEV_IDLE_TIMEOUT_MS;
   }
 
   private killIdleCliAgents(): void {
