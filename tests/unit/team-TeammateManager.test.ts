@@ -547,6 +547,130 @@ describe('TeammateManager', () => {
       expect(mailbox.readUnread).toHaveBeenCalledWith('team-1', 'slot-1');
       mgr.dispose();
     });
+
+    it('forwards files from user mailbox messages to agentTask.sendMessage', async () => {
+      const agent = makeAgent({ slotId: 'slot-1', status: 'idle', conversationType: 'acp' });
+      const mockSendMessage = vi.fn().mockResolvedValue(undefined);
+      const { mgr, mailbox, workerTaskManager } = makeTeammateManager([agent]);
+      vi.mocked(workerTaskManager.getOrBuildTask).mockResolvedValue({
+        sendMessage: mockSendMessage,
+      } as never);
+      vi.mocked(mailbox.readUnread).mockResolvedValue([
+        {
+          id: 'msg-1',
+          teamId: 'team-1',
+          toAgentId: 'slot-1',
+          fromAgentId: 'user',
+          type: 'message',
+          content: 'Check these files',
+          files: ['/tmp/image.png', '/tmp/doc.pdf'],
+          read: false,
+          createdAt: 1000,
+        },
+      ]);
+
+      await mgr.wake('slot-1');
+
+      const callArg = mockSendMessage.mock.calls[0][0];
+      expect(callArg.files).toEqual(['/tmp/image.png', '/tmp/doc.pdf']);
+      mgr.dispose();
+    });
+
+    it('does not include files when no user messages have files', async () => {
+      const agent = makeAgent({ slotId: 'slot-1', status: 'idle', conversationType: 'acp' });
+      const mockSendMessage = vi.fn().mockResolvedValue(undefined);
+      const { mgr, mailbox, workerTaskManager } = makeTeammateManager([agent]);
+      vi.mocked(workerTaskManager.getOrBuildTask).mockResolvedValue({
+        sendMessage: mockSendMessage,
+      } as never);
+      vi.mocked(mailbox.readUnread).mockResolvedValue([
+        {
+          id: 'msg-1',
+          teamId: 'team-1',
+          toAgentId: 'slot-1',
+          fromAgentId: 'user',
+          type: 'message',
+          content: 'No attachments',
+          read: false,
+          createdAt: 1000,
+        },
+      ]);
+
+      await mgr.wake('slot-1');
+
+      const callArg = mockSendMessage.mock.calls[0][0];
+      expect(callArg.files).toBeUndefined();
+      mgr.dispose();
+    });
+
+    it('ignores files from non-user (agent-to-agent) messages', async () => {
+      const agent = makeAgent({ slotId: 'slot-1', status: 'idle', conversationType: 'acp' });
+      const mockSendMessage = vi.fn().mockResolvedValue(undefined);
+      const { mgr, mailbox, workerTaskManager } = makeTeammateManager([agent]);
+      vi.mocked(workerTaskManager.getOrBuildTask).mockResolvedValue({
+        sendMessage: mockSendMessage,
+      } as never);
+      vi.mocked(mailbox.readUnread).mockResolvedValue([
+        {
+          id: 'msg-1',
+          teamId: 'team-1',
+          toAgentId: 'slot-1',
+          fromAgentId: 'slot-2',
+          type: 'message',
+          content: 'Agent message with files',
+          files: ['/tmp/should-be-ignored.txt'],
+          read: false,
+          createdAt: 1000,
+        },
+      ]);
+
+      await mgr.wake('slot-1');
+
+      const callArg = mockSendMessage.mock.calls[0][0];
+      expect(callArg.files).toBeUndefined();
+      mgr.dispose();
+    });
+
+    it('merges files from multiple user messages', async () => {
+      const agent = makeAgent({ slotId: 'slot-1', status: 'idle', conversationType: 'gemini' });
+      const mockSendMessage = vi.fn().mockResolvedValue(undefined);
+      const { mgr, mailbox, workerTaskManager } = makeTeammateManager([agent]);
+      vi.mocked(workerTaskManager.getOrBuildTask).mockResolvedValue({
+        sendMessage: mockSendMessage,
+      } as never);
+      vi.mocked(mailbox.readUnread).mockResolvedValue([
+        {
+          id: 'msg-1',
+          teamId: 'team-1',
+          toAgentId: 'slot-1',
+          fromAgentId: 'user',
+          type: 'message',
+          content: 'First batch',
+          files: ['/tmp/a.png'],
+          read: false,
+          createdAt: 1000,
+        },
+        {
+          id: 'msg-2',
+          teamId: 'team-1',
+          toAgentId: 'slot-1',
+          fromAgentId: 'user',
+          type: 'message',
+          content: 'Second batch',
+          files: ['/tmp/b.pdf', '/tmp/c.txt'],
+          read: false,
+          createdAt: 2000,
+        },
+      ]);
+
+      await mgr.wake('slot-1');
+
+      const callArg = mockSendMessage.mock.calls[0][0];
+      expect(callArg.files).toEqual(['/tmp/a.png', '/tmp/b.pdf', '/tmp/c.txt']);
+      // Gemini uses 'input' key
+      expect(callArg).toHaveProperty('input');
+      mgr.dispose();
+    });
   });
 
   // -------------------------------------------------------------------------

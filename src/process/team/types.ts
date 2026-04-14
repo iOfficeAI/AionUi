@@ -26,6 +26,7 @@ export type MailboxMessage = {
   type: 'message' | 'idle_notification' | 'shutdown_request';
   content: string;
   summary?: string;
+  files?: string[];
   read: boolean;
   createdAt: number;
 };

@@ -106,7 +106,7 @@ export class TeamSession extends EventEmitter {
    * Send a user message to the team.
    * Ensures MCP server is started, then writes to the lead agent's mailbox and wakes the lead.
    */
-  async sendMessage(content: string): Promise<void> {
+  async sendMessage(content: string, files?: string[]): Promise<void> {
     // Ensure MCP server is running before waking agents
     await this.startMcpServer();
 
@@ -118,6 +118,7 @@ export class TeamSession extends EventEmitter {
       toAgentId: leadSlotId,
       fromAgentId: 'user',
       content,
+      files,
     });
 
     // Persist user message in lead's conversation so it appears as a user bubble in the chat UI
@@ -148,7 +149,11 @@ export class TeamSession extends EventEmitter {
    * Send a user message directly to a specific agent (by slotId), bypassing the lead.
    * Ensures MCP server is running, writes to agent's mailbox, persists user bubble, then wakes the agent.
    */
-  async sendMessageToAgent(slotId: string, content: string, options?: { silent?: boolean }): Promise<void> {
+  async sendMessageToAgent(
+    slotId: string,
+    content: string,
+    options?: { silent?: boolean; files?: string[] }
+  ): Promise<void> {
     await this.startMcpServer();
 
     await this.mailbox.write({
@@ -156,6 +161,7 @@ export class TeamSession extends EventEmitter {
       toAgentId: slotId,
       fromAgentId: 'user',
       content,
+      files: options?.files,
     });
 
     // When silent, skip the user bubble — the content still reaches the agent

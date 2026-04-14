@@ -181,12 +181,17 @@ export class TeammateManager extends EventEmitter {
       const agentTask = await this.workerTaskManager.getOrBuildTask(agent.conversationId);
       const msgId = crypto.randomUUID();
 
+      // Extract files from user messages in this batch
+      const userFiles = mailboxMessages
+        .filter((m) => m.fromAgentId === 'user' && m.files?.length)
+        .flatMap((m) => m.files!);
+
       // Each AgentManager implementation expects a specific object shape.
       // Gemini uses { input, msg_id }, all others use { content, msg_id }.
       const messageData =
         agent.conversationType === 'gemini'
-          ? { input: message, msg_id: msgId, silent: true }
-          : { content: message, msg_id: msgId, silent: true };
+          ? { input: message, msg_id: msgId, silent: true, ...(userFiles.length > 0 ? { files: userFiles } : {}) }
+          : { content: message, msg_id: msgId, silent: true, ...(userFiles.length > 0 ? { files: userFiles } : {}) };
 
       await agentTask.sendMessage(messageData);
 
