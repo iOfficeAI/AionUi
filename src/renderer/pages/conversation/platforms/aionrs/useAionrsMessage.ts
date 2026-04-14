@@ -26,6 +26,7 @@ export const useAionrsMessage = (
 ) => {
   const onError = options?.onError;
   const onConfigChanged = options?.onConfigChanged;
+  const onConfigChangedRef = useRef(onConfigChanged);
   const addOrUpdateMessage = useAddOrUpdateMessage();
   const [streamRunning, setStreamRunning] = useState(false);
   const [hasActiveTools, setHasActiveTools] = useState(false);
@@ -48,6 +49,9 @@ export const useAionrsMessage = (
   // Only reset waitingResponse when finish arrives after content (not after tool calls)
   const hasContentInTurnRef = useRef(false);
 
+  useEffect(() => {
+    onConfigChangedRef.current = onConfigChanged;
+  }, [onConfigChanged]);
   useEffect(() => {
     hasActiveToolsRef.current = hasActiveTools;
   }, [hasActiveTools]);
@@ -214,7 +218,7 @@ export const useAionrsMessage = (
           }
           break;
         case 'config_changed':
-          onConfigChanged?.(message.data as Record<string, unknown>);
+          onConfigChangedRef.current?.(message.data as Record<string, unknown>);
           break;
         default: {
           if (message.type === 'error') {
@@ -241,7 +245,7 @@ export const useAionrsMessage = (
       }
     });
     // Note: hasActiveTools and streamRunning are accessed via refs to avoid re-subscription
-  }, [conversation_id, addOrUpdateMessage, onError, onConfigChanged]);
+  }, [conversation_id, addOrUpdateMessage, onError]);
 
   useEffect(() => {
     let cancelled = false;

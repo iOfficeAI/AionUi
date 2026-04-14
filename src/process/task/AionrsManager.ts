@@ -586,8 +586,9 @@ export class AionrsManager extends BaseAgentManager<AionrsManagerData, string> {
           const dbDuration = Date.now() - dbStart;
 
           if (transformDuration > 5 || dbDuration > 5) {
-            console.log(
-              `[AIONRS-PERF] stream: transform ${transformDuration}ms, db ${dbDuration}ms type=${processedData.type}`
+            mainLog(
+              '[AionrsManager]',
+              `stream: transform ${transformDuration}ms, db ${dbDuration}ms type=${processedData.type}`
             );
           }
 
@@ -604,8 +605,9 @@ export class AionrsManager extends BaseAgentManager<AionrsManagerData, string> {
 
       const totalDuration = Date.now() - pipelineStart;
       if (totalDuration > 10) {
-        console.log(
-          `[AIONRS-PERF] stream: pipeline ${totalDuration}ms (emit=${emitDuration}ms) type=${processedData.type}`
+        mainLog(
+          '[AionrsManager]',
+          `stream: pipeline ${totalDuration}ms (emit=${emitDuration}ms) type=${processedData.type}`
         );
       }
     });

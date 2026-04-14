@@ -115,9 +115,13 @@ vi.mock('@/renderer/utils/common', () => {
   return { uuid: vi.fn(() => `pipe-${++counter}`) };
 });
 
+const { mockMainLog: _mockMainLog } = vi.hoisted(() => ({
+  mockMainLog: vi.fn(),
+}));
+
 vi.mock('@process/utils/mainLogger', () => ({
   mainError: vi.fn(),
-  mainLog: vi.fn(),
+  mainLog: _mockMainLog,
   mainWarn: vi.fn(),
 }));
 
@@ -192,16 +196,15 @@ function emitEvent(manager: AionrsManager, event: Record<string, unknown>) {
 }
 
 function perfLogs(): string[] {
-  return (console.log as ReturnType<typeof vi.fn>).mock.calls
+  return _mockMainLog.mock.calls
     .flat()
-    .filter((arg: unknown) => typeof arg === 'string' && arg.includes('[AIONRS-PERF]'));
+    .filter((arg: unknown) => typeof arg === 'string' && (arg.includes('stream:') || arg.includes('pipeline')));
 }
 
 // ── Tests ──────────────────────────────────────────────────────────
 
 describe('GAP-10: AionrsManager Performance Monitoring', () => {
   let manager: AionrsManager;
-  let consoleSpy: ReturnType<typeof vi.spyOn>;
 
   beforeEach(() => {
     vi.clearAllMocks();
@@ -209,7 +212,6 @@ describe('GAP-10: AionrsManager Performance Monitoring', () => {
 
     now = 1000;
     vi.spyOn(Date, 'now').mockImplementation(() => now);
-    consoleSpy = vi.spyOn(console, 'log').mockImplementation(() => {});
 
     // Default: transformMessage returns null (no persist)
     mockTransformMessage.mockReturnValue(null);
@@ -220,7 +222,6 @@ describe('GAP-10: AionrsManager Performance Monitoring', () => {
   });
 
   afterEach(() => {
-    consoleSpy.mockRestore();
     vi.useRealTimers();
     vi.restoreAllMocks();
   });
