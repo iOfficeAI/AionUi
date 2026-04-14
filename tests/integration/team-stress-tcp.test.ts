@@ -15,7 +15,7 @@
 
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import * as net from 'node:net';
-import { TeamMcpServer } from '@process/team/TeamMcpServer';
+import { TeamMcpServer } from '@process/team/mcp/team/TeamMcpServer';
 import type { TeamAgent } from '@/common/types/teamTypes';
 import type { Mailbox } from '@process/team/Mailbox';
 import type { TaskManager } from '@process/team/TaskManager';

@@ -42,8 +42,8 @@ import {
 import { buildAcpModelInfo } from './modelInfo';
 import { buildBuiltinAcpSessionMcpServers, buildTeamMcpServer, type AcpSessionMcpServer } from './mcpSessionConfig';
 import { getClaudeModel } from './utils';
-import { getAionMcpStdioConfig } from '@process/services/mcpServices/aionMcpServiceSingleton';
-import { shouldInjectTeamGuideMcp } from '@process/resources/prompts/teamGuideCapability';
+import { getTeamGuideStdioConfig } from '@process/team/mcp/guide/teamGuideSingleton';
+import { shouldInjectTeamGuideMcp } from '@process/team/prompts/teamGuideCapability.ts';
 import { waitForMcpReady } from '@process/team/mcpReadiness';
 
 // InitializeResult removed — replaced by AcpInitializeResult from acpTypes.ts
@@ -1610,7 +1610,7 @@ export class AcpAgent {
       // AION_MCP_BACKEND env var tells the stdio bridge which backend this agent is,
       // so aion_create_team automatically creates a team with the correct agent type.
       if (!this.extra.teamMcpStdioConfig && (await shouldInjectTeamGuideMcp(this.extra.backend))) {
-        const aionStdioConfig = getAionMcpStdioConfig();
+        const aionStdioConfig = getTeamGuideStdioConfig();
         if (aionStdioConfig) {
           const configWithBackend = {
             ...aionStdioConfig,

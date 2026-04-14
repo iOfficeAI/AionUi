@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { TEAM_SPAWN_AGENT_DESCRIPTION } from '@process/resources/teamMcp/toolDescriptions';
+import { TEAM_SPAWN_AGENT_DESCRIPTION } from '@process/team/prompts/toolDescriptions';
 
 describe('TEAM_SPAWN_AGENT_DESCRIPTION', () => {
   it('requires explicit user approval before normal teammate creation', () => {

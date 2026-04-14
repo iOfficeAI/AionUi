@@ -1,6 +1,6 @@
 // src/process/team/mcp/tcpHelpers.ts
 //
-// Shared TCP message helpers for MCP servers (TeamMcpServer and AionMcpService).
+// Shared TCP message helpers for MCP servers (TeamMcpServer and TeamGuideMcpServer).
 // Provides length-prefixed JSON message framing over TCP sockets.
 
 import type * as net from 'node:net';
@@ -46,7 +46,7 @@ export function createTcpMessageReader(onMessage: (msg: unknown) => void): (chun
 }
 
 /**
- * Resolve the directory containing MCP stdio scripts (team-mcp-stdio.js / aion-mcp-stdio.js).
+ * Resolve the directory containing MCP stdio scripts (team-mcp-stdio.js / team-guide-mcp-stdio.js).
  * Mirrors the getBuiltinMcpBaseDir() logic in initStorage.ts so both MCP
  * scripts use the same path strategy across dev and packaged modes.
  *

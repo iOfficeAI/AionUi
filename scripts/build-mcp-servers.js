@@ -39,13 +39,13 @@ async function main() {
     }),
     esbuild.build({
       ...SHARED_OPTIONS,
-      entryPoints: [path.join(ROOT, 'src/process/resources/teamMcp/teamMcpStdio.ts')],
+      entryPoints: [path.join(ROOT, 'src/process/team/mcp/team/teamMcpStdio.ts')],
       outfile: path.join(ROOT, 'out/main/team-mcp-stdio.js'),
     }),
     esbuild.build({
       ...SHARED_OPTIONS,
-      entryPoints: [path.join(ROOT, 'src/process/resources/aionMcp/aionMcpStdio.ts')],
-      outfile: path.join(ROOT, 'out/main/aion-mcp-stdio.js'),
+      entryPoints: [path.join(ROOT, 'src/process/team/mcp/guide/teamGuideMcpStdio.ts')],
+      outfile: path.join(ROOT, 'out/main/team-guide-mcp-stdio.js'),
     }),
   ]);
 }

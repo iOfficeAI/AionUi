@@ -40,7 +40,7 @@ import { extractAndStripThinkTags } from './ThinkTagDetector';
 import type { AgentKillReason } from './IAgentManager';
 import { hasNativeSkillSupport } from '@/common/types/acpTypes';
 import { prepareFirstMessageWithSkillsIndex } from '@process/task/agentUtils';
-import { shouldInjectTeamGuideMcp } from '@process/resources/prompts/teamGuideCapability';
+import { shouldInjectTeamGuideMcp } from '@process/team/prompts/teamGuideCapability.ts';
 import { extractTextFromMessage, processCronInMessage } from './MessageMiddleware';
 import { ConversationTurnCompletionService } from './ConversationTurnCompletionService';
 
@@ -1008,7 +1008,7 @@ ${collectedResponses.join('\n')}`;
             const parts: string[] = [];
             if (this.options.presetContext) parts.push(this.options.presetContext);
             if (!isInTeam && shouldInjectTeamGuideMcp(this.options.backend)) {
-              const { getTeamGuidePrompt } = await import('@process/resources/prompts/teamGuidePrompt');
+              const { getTeamGuidePrompt } = await import('@process/team/prompts/teamGuidePrompt.ts');
               parts.push(getTeamGuidePrompt(this.options.backend));
             }
             if (parts.length > 0) {

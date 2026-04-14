@@ -102,7 +102,7 @@ vi.mock('../../src/process/agent/acp/AcpDetector', () => ({
 
 // ─── imports ─────────────────────────────────────────────────────────────────
 
-import { TeamMcpServer } from '../../src/process/team/TeamMcpServer';
+import { TeamMcpServer } from '../../src/process/team/mcp/team/TeamMcpServer';
 
 // ─── helpers ─────────────────────────────────────────────────────────────────
 

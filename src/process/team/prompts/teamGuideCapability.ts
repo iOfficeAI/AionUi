@@ -4,8 +4,8 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { isTeamCapableBackend } from '@/common/types/teamTypes';
-import { ProcessConfig } from '@process/utils/initStorage';
+import { isTeamCapableBackend } from '@/common/types/teamTypes.ts';
+import { ProcessConfig } from '@process/utils/initStorage.ts';
 
 /**
  * Returns true if the given agent backend should receive the team guide prompt injection.

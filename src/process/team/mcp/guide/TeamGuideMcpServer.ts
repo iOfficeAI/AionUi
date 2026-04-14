@@ -5,11 +5,11 @@
  */
 
 /**
- * AionMcpService — in-process MCP server that exposes team management tools
+ * TeamGuideMcpServer — in-process MCP server that exposes team management tools
  * to solo ACP agents (claude / codex).
  *
  * Runs a TCP server inside the Electron main process. A standalone stdio script
- * (out/main/aion-mcp-stdio.js) bridges Claude CLI <-> TCP, matching the same
+ * (out/main/team-guide-mcp-stdio.js) bridges Claude CLI <-> TCP, matching the same
  * pattern used by TeamMcpServer.
  */
 
@@ -18,25 +18,18 @@ import * as net from 'node:net';
 import * as path from 'node:path';
 import { ipcBridge } from '@/common';
 import type { TeamSessionService } from '@process/team/TeamSessionService';
-import type { StdioMcpConfig } from '@process/team/TeamMcpServer';
+import type { StdioMcpConfig } from '../team/TeamMcpServer';
 import { isTeamCapableBackend } from '@/common/types/teamTypes';
 import { ProcessConfig } from '@process/utils/initStorage';
 import { getConversationTypeForBackend } from '@/common/utils/buildAgentConversationParams';
-import { writeTcpMessage, createTcpMessageReader, resolveMcpScriptDir } from '@process/team/mcp/tcpHelpers';
-
-/** Allowed route patterns that aion_navigate may redirect to */
-const ALLOWED_ROUTE_PATTERNS: RegExp[] = [/^\/team\/[a-zA-Z0-9_-]+$/, /^\/conversation\/[a-zA-Z0-9_-]+$/];
-
-function isAllowedRoute(route: string): boolean {
-  return ALLOWED_ROUTE_PATTERNS.some((pattern) => pattern.test(route));
-}
+import { writeTcpMessage, createTcpMessageReader, resolveMcpScriptDir } from '../tcpHelpers';
 
 /**
  * Singleton in-process MCP server for Aion team management tools.
  * Uses TCP transport + a stdio bridge script, same as TeamMcpServer.
  * Call `start()` once on app boot; `stop()` on app quit.
  */
-export class AionMcpService {
+export class TeamGuideMcpServer {
   private tcpServer: net.Server | null = null;
   private _port = 0;
   private readonly authToken = crypto.randomUUID();
@@ -63,7 +56,7 @@ export class AionMcpService {
       this.tcpServer!.once('error', reject);
     });
 
-    console.log(`[AionMcpService] TCP server started on port ${this._port}`);
+    console.log(`[TeamGuideMcpServer] TCP server started on port ${this._port}`);
     return this.getStdioConfig();
   }
 
@@ -72,7 +65,7 @@ export class AionMcpService {
     if (this.tcpServer) {
       await new Promise<void>((resolve) => {
         this.tcpServer!.close(() => {
-          console.log('[AionMcpService] TCP server stopped');
+          console.log('[TeamGuideMcpServer] TCP server stopped');
           this.tcpServer = null;
           resolve();
         });
@@ -83,7 +76,7 @@ export class AionMcpService {
 
   /** Build the stdio MCP config to inject into session/new. */
   getStdioConfig(): StdioMcpConfig {
-    const scriptPath = path.join(resolveMcpScriptDir(), 'aion-mcp-stdio.js');
+    const scriptPath = path.join(resolveMcpScriptDir(), 'team-guide-mcp-stdio.js');
     return {
       name: 'aionui-team-guide',
       command: 'node',
@@ -103,7 +96,7 @@ export class AionMcpService {
         tool?: string;
         args?: Record<string, unknown>;
         auth_token?: string;
-        /** Backend type of the calling agent, injected by aion-mcp-stdio via AION_MCP_BACKEND env var */
+        /** Backend type of the calling agent, injected by team-guide-mcp-stdio via AION_MCP_BACKEND env var */
         backend?: string;
         /** Conversation ID of the calling agent, used to reuse conversation as team leader */
         conversation_id?: string;
@@ -145,8 +138,6 @@ export class AionMcpService {
     switch (toolName) {
       case 'aion_create_team':
         return this.handleCreateTeam(args, backend, callerConversationId);
-      case 'aion_navigate':
-        return this.handleNavigate(args);
       default:
         throw new Error(`Unknown tool: ${toolName}`);
     }
@@ -209,8 +200,7 @@ export class AionMcpService {
     // Notify frontend to refresh team list
     ipcBridge.team.listChanged.emit({ teamId: team.id, action: 'created' });
 
-    // Navigate to team page immediately — no need for the agent to call aion_navigate.
-    // This eliminates one LLM inference round-trip between team creation and navigation.
+    // Navigate to team page immediately after creation.
     ipcBridge.deepLink.received.emit({ action: 'navigate', params: { route } });
 
     // Fire-and-forget: start session in background.
@@ -226,7 +216,7 @@ export class AionMcpService {
           await session.sendMessageToAgent(leadAgent.slotId, summary, { silent: leaderIsReused });
         }
       } catch (err) {
-        console.error('[AionMcpService] async session/message failed:', err);
+        console.error('[TeamGuideMcpServer] async session/message failed:', err);
       }
     })();
 
@@ -236,19 +226,8 @@ export class AionMcpService {
       route,
       leadAgent: leadAgent ? { slotId: leadAgent.slotId, conversationId: leadAgent.conversationId } : null,
       status: 'team_created',
-      next_step:
-        'The team page has been opened automatically. Do NOT call aion_navigate. End your turn now — do not add extra commentary.',
+      next_step: 'The team page has been opened automatically. End your turn now — do not add extra commentary.',
     });
   }
 
-  private handleNavigate(args: Record<string, unknown>): string {
-    const route = String(args.route ?? '').trim();
-
-    if (!isAllowedRoute(route)) {
-      throw new Error(`route "${route}" is not allowed. Permitted patterns: /team/:id, /conversation/:id`);
-    }
-
-    ipcBridge.deepLink.received.emit({ action: 'navigate', params: { route } });
-    return JSON.stringify({ success: true });
-  }
 }

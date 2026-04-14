@@ -11,15 +11,15 @@ import * as crypto from 'node:crypto';
 import * as net from 'node:net';
 import * as path from 'node:path';
 import { ipcBridge } from '@/common';
-import { team as teamIpcBridge } from '@/common/adapter/ipcBridge';
-import type { Mailbox } from './Mailbox';
-import type { TaskManager } from './TaskManager';
-import type { TeamAgent } from './types';
-import { isTeamCapableBackend, getTeamCapableBackends } from '@/common/types/teamTypes';
-import { ProcessConfig } from '@process/utils/initStorage';
-import { acpDetector } from '@process/agent/acp/AcpDetector';
-import { notifyMcpReady } from './mcpReadiness';
-import { writeTcpMessage, createTcpMessageReader, resolveMcpScriptDir } from './mcp/tcpHelpers';
+import { team as teamIpcBridge } from '@/common/adapter/ipcBridge.ts';
+import type { Mailbox } from '../../Mailbox.ts';
+import type { TaskManager } from '../../TaskManager.ts';
+import type { TeamAgent } from '../../types.ts';
+import { isTeamCapableBackend, getTeamCapableBackends } from '@/common/types/teamTypes.ts';
+import { ProcessConfig } from '@process/utils/initStorage.ts';
+import { acpDetector } from '@process/agent/acp/AcpDetector.ts';
+import { notifyMcpReady } from '../../mcpReadiness.ts';
+import { writeTcpMessage, createTcpMessageReader, resolveMcpScriptDir } from '../tcpHelpers.ts';
 
 type SpawnAgentFn = (agentName: string, agentType?: string) => Promise<TeamAgent>;
 

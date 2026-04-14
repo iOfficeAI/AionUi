@@ -8,7 +8,7 @@
  * cached ACP initialize results, which are excluded, and the solo-vs-team
  * guardrails in the prompt.
  *
- * Target module: src/process/resources/prompts/teamGuidePrompt.ts
+ * Target module: src/process/team/prompts/teamGuidePrompt.ts
  */
 
 import { describe, it, expect, vi } from 'vitest';
@@ -37,8 +37,8 @@ vi.mock('@process/utils/initStorage', () => ({
   },
 }));
 
-import { getCreateTeamToolDescription, getTeamGuidePrompt } from '../../src/process/resources/prompts/teamGuidePrompt';
-import { shouldInjectTeamGuideMcp } from '../../src/process/resources/prompts/teamGuideCapability';
+import { getCreateTeamToolDescription, getTeamGuidePrompt } from '../../src/process/team/prompts/teamGuidePrompt';
+import { shouldInjectTeamGuideMcp } from '../../src/process/team/prompts/teamGuideCapability';
 
 describe('team guide MCP injection capability check', () => {
   describe('allowed backends — should inject team guide MCP', () => {
