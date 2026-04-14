@@ -74,6 +74,7 @@
     "createSuccess": "Görev başarıyla oluşturuldu",
     "updateSuccess": "Görev başarıyla güncellendi",
     "scheduleHint": "Zamanlanmış görevler sunucu performansı için birkaç dakikalık rastgele gecikme kullanır.",
+    "customCronWarning": "Bu görev burada düzenlenemeyen özel bir zamanlama kullanıyor. Sıklığı değiştirmek mevcut zamanlamayı değiştirir.",
     "weekday": {
       "monday": "Pazartesi",
       "tuesday": "Salı",
@@ -124,7 +125,7 @@
       "daily": "Günlük",
       "weekdays": "Hafta içi",
       "weekly": "Haftalık",
-      "custom": "Özel Cron..."
+      "custom": "Özel"
     },
     "scheduleDesc": {
       "manual": "Manuel",

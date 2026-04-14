@@ -6,9 +6,9 @@
 
 import React, { useState, useMemo, useEffect, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Form, Input, Select, Message, TimePicker, Radio, Collapse, Button } from '@arco-design/web-react';
+import { Form, Input, Select, Message, TimePicker, Radio, Button } from '@arco-design/web-react';
 import ModalWrapper from '@renderer/components/base/ModalWrapper';
-import { Robot } from '@icon-park/react';
+import { Down, Robot } from '@icon-park/react';
 import { ipcBridge } from '@/common';
 import type { ICreateCronJobParams, ICronAgentConfig, ICronJob } from '@/common/adapter/ipcBridge';
 import { useConversationAgents } from '@renderer/pages/conversation/hooks/useConversationAgents';
@@ -22,6 +22,7 @@ import { ConfigStorage } from '@/common/config/storage';
 import type { AcpModelInfo, AcpSessionConfigOption } from '@/common/types/acpTypes';
 import { useModelProviderList } from '@renderer/hooks/agent/useModelProviderList';
 import GuidModelSelector from '@renderer/pages/guid/components/GuidModelSelector';
+import { WorkspaceFolderSelect } from '@renderer/components/workspace';
 
 const FormItem = Form.Item;
 const TextArea = Input.TextArea;
@@ -38,7 +39,7 @@ interface CreateTaskDialogProps {
   agentType?: string;
 }
 
-type FrequencyType = 'manual' | 'hourly' | 'daily' | 'weekdays' | 'weekly';
+type FrequencyType = 'manual' | 'hourly' | 'daily' | 'weekdays' | 'weekly' | 'custom';
 type ExecutionMode = 'new_conversation' | 'existing';
 
 const WEEKDAYS = [
@@ -53,6 +54,7 @@ const WEEKDAYS = [
 
 /**
  * Infer frequency type and time/weekday from a cron expression for edit mode.
+ * Returns 'custom' for expressions that don't match our preset formats.
  */
 function parseCronExpr(expr: string): { frequency: FrequencyType; time: string; weekday: string } {
   if (!expr) return { frequency: 'manual', time: '09:00', weekday: 'MON' };
@@ -60,28 +62,55 @@ function parseCronExpr(expr: string): { frequency: FrequencyType; time: string; 
   const parts = expr.trim().split(/\s+/);
   if (parts.length < 5) return { frequency: 'daily', time: '09:00', weekday: 'MON' };
 
-  const [min, hour, , , dow] = parts;
+  const [min, hour, day, month, dow] = parts;
 
   // Hourly: 0 * * * *
-  if (hour === '*') return { frequency: 'hourly', time: '09:00', weekday: 'MON' };
-
-  const hh = String(hour).padStart(2, '0');
-  const mm = String(min).padStart(2, '0');
-  const time = `${hh}:${mm}`;
-
-  // Weekdays: min hour * * MON-FRI
-  if (dow === 'MON-FRI') return { frequency: 'weekdays', time, weekday: 'MON' };
-
-  // Weekly: min hour * * DAY
-  if (dow !== '*') {
-    const dayUpper = dow.toUpperCase();
-    const matched = WEEKDAYS.find((d) => d.value === dayUpper);
-    if (matched) return { frequency: 'weekly', time, weekday: dayUpper };
-    return { frequency: 'daily', time, weekday: 'MON' };
+  if (hour === '*' && min === '0' && day === '*' && month === '*' && dow === '*') {
+    return { frequency: 'hourly', time: '09:00', weekday: 'MON' };
   }
 
-  // Daily: min hour * * *
-  return { frequency: 'daily', time, weekday: 'MON' };
+  // Weekdays: min hour * * MON-FRI
+  if (dow === 'MON-FRI' && day === '*' && month === '*') {
+    const hh = String(hour).padStart(2, '0');
+    const mm = String(min).padStart(2, '0');
+    const time = `${hh}:${mm}`;
+    return { frequency: 'weekdays', time, weekday: 'MON' };
+  }
+
+  // Weekly: min hour * * DAY
+  if (dow !== '*' && day === '*' && month === '*') {
+    const dayUpper = dow.toUpperCase();
+    const matched = WEEKDAYS.find((d) => d.value === dayUpper);
+    if (matched) {
+      const hh = String(hour).padStart(2, '0');
+      const mm = String(min).padStart(2, '0');
+      const time = `${hh}:${mm}`;
+      return { frequency: 'weekly', time, weekday: dayUpper };
+    }
+    return { frequency: 'daily', time: '09:00', weekday: 'MON' };
+  }
+
+  // Daily: min hour * * * - only if all parts match the expected pattern
+  if (day === '*' && month === '*' && dow === '*') {
+    // Check if hour and minute are simple numbers (not expressions like */4)
+    const hourNum = Number(hour);
+    const minNum = Number(min);
+    if (!isNaN(hourNum) && !isNaN(minNum) && hourNum >= 0 && hourNum <= 23 && minNum >= 0 && minNum <= 59) {
+      const hh = String(hourNum).padStart(2, '0');
+      const mm = String(minNum).padStart(2, '0');
+      const time = `${hh}:${mm}`;
+      return { frequency: 'daily', time, weekday: 'MON' };
+    }
+  }
+
+  // Custom: any expression that doesn't match our presets
+  return { frequency: 'custom', time: '09:00', weekday: 'MON' };
+}
+
+function getDescriptionInitialValue(job: ICronJob): string {
+  const storedDescription = job.description?.trim();
+  if (storedDescription) return storedDescription;
+  return '';
 }
 
 /**
@@ -114,9 +143,11 @@ const CreateTaskDialog: React.FC<CreateTaskDialogProps> = ({
   const [frequency, setFrequency] = useState<FrequencyType>('manual');
   const [time, setTime] = useState('09:00');
   const [weekday, setWeekday] = useState('MON');
+  const [customCronExpr, setCustomCronExpr] = useState<string>('');
 
   const isEditMode = !!editJob;
   const [executionMode, setExecutionMode] = useState<ExecutionMode>('new_conversation');
+  const [advancedOpen, setAdvancedOpen] = useState(false);
 
   // Advanced settings state
   const [modelId, setModelId] = useState<string | undefined>(undefined);
@@ -135,12 +166,21 @@ const CreateTaskDialog: React.FC<CreateTaskDialogProps> = ({
       setFrequency(parsed.frequency);
       setTime(parsed.time);
       setWeekday(parsed.weekday);
+      setCustomCronExpr(parsed.frequency === 'custom' ? cronExpr : '');
       setExecutionMode(editJob.target.executionMode || 'existing');
+      setAdvancedOpen(
+        Boolean(
+          editJob.metadata.agentConfig?.modelId ||
+          editJob.metadata.agentConfig?.workspace ||
+          (editJob.metadata.agentConfig?.configOptions &&
+            Object.keys(editJob.metadata.agentConfig.configOptions).length > 0)
+        )
+      );
       const agentKey = getAgentKeyFromJob(editJob);
       setSelectedAgent(agentKey);
       form.setFieldsValue({
         name: editJob.name,
-        description: editJob.schedule.description || editJob.name,
+        description: getDescriptionInitialValue(editJob),
         prompt: editJob.target.payload.text,
         agent: agentKey,
       });
@@ -153,7 +193,9 @@ const CreateTaskDialog: React.FC<CreateTaskDialogProps> = ({
       setFrequency('manual');
       setTime('09:00');
       setWeekday('MON');
+      setCustomCronExpr('');
       setExecutionMode('new_conversation');
+      setAdvancedOpen(false);
       setModelId(undefined);
       setConfigOptions(undefined);
       setWorkspace(undefined);
@@ -274,10 +316,12 @@ const CreateTaskDialog: React.FC<CreateTaskDialogProps> = ({
           description: t('cron.page.scheduleDesc.weeklyAt', { day: t(`cron.page.weekday.${dayLabel}`), time }),
         };
       }
+      case 'custom':
+        return { expr: customCronExpr, description: editJob?.schedule.description || customCronExpr };
       default:
         return { expr: '', description: '' };
     }
-  }, [frequency, time, weekday, t]);
+  }, [frequency, time, weekday, t, customCronExpr, editJob]);
 
   const executionModeOptions = useMemo(
     () => [
@@ -297,9 +341,15 @@ const CreateTaskDialog: React.FC<CreateTaskDialogProps> = ({
 
   const selectedExecutionModeOption =
     executionModeOptions.find((option) => option.value === executionMode) ?? executionModeOptions[0];
+  const showModelSelector = Boolean(resolvedBackend && (isGeminiMode || acpCachedModelInfo));
+  const showConfigSelector = resolvedBackend === 'codex';
+  const advancedFieldCount = Number(showModelSelector) + Number(showConfigSelector) + 1;
 
   const handleFrequencyChange = (value: FrequencyType) => {
     setFrequency(value);
+    if (value !== 'custom') {
+      setCustomCronExpr('');
+    }
   };
 
   const handleAgentChange = useCallback((value: string) => {
@@ -308,13 +358,6 @@ const CreateTaskDialog: React.FC<CreateTaskDialogProps> = ({
     setModelId(undefined);
     setConfigOptions(undefined);
     // Workspace remains unchanged (agent-agnostic)
-  }, []);
-
-  const handleWorkspaceSelect = useCallback(async () => {
-    const files = await ipcBridge.dialog.showOpen.invoke({ properties: ['openDirectory'] });
-    if (files && files.length > 0) {
-      setWorkspace(files[0]);
-    }
   }, []);
 
   const handleWorkspaceClear = useCallback(() => {
@@ -396,6 +439,7 @@ const CreateTaskDialog: React.FC<CreateTaskDialogProps> = ({
           jobId: editJob!.id,
           updates: {
             name: values.name,
+            description: values.description,
             schedule: { kind: 'cron', expr: scheduleExpr, description: scheduleDesc },
             target: {
               ...editJob!.target,
@@ -451,7 +495,7 @@ const CreateTaskDialog: React.FC<CreateTaskDialogProps> = ({
       className='w-[min(560px,calc(100vw-32px))] max-w-560px rd-16px'
       unmountOnExit
     >
-      <div className='overflow-y-auto px-24px pb-16px pr-18px max-h-[min(72vh,680px)]'>
+      <div className='overflow-y-auto px-24px pb-16px pr-18px max-h-[min(68vh,640px)]'>
         <Form form={form} layout='vertical'>
           <FormItem
             label={t('cron.page.form.name')}
@@ -586,7 +630,7 @@ const CreateTaskDialog: React.FC<CreateTaskDialogProps> = ({
             field='prompt'
             rules={[{ required: true, message: t('cron.page.form.promptRequired') }]}
           >
-            <TextArea placeholder={t('cron.page.form.promptPlaceholder')} autoSize={{ minRows: 4, maxRows: 8 }} />
+            <TextArea placeholder={t('cron.page.form.promptPlaceholder')} autoSize={{ minRows: 3, maxRows: 8 }} />
           </FormItem>
 
           {/* Frequency */}
@@ -597,7 +641,13 @@ const CreateTaskDialog: React.FC<CreateTaskDialogProps> = ({
               <Option value='daily'>{t('cron.page.freq.daily')}</Option>
               <Option value='weekdays'>{t('cron.page.freq.weekdays')}</Option>
               <Option value='weekly'>{t('cron.page.freq.weekly')}</Option>
+              {frequency === 'custom' && <Option value='custom'>{t('cron.page.freq.custom')}</Option>}
             </Select>
+            {frequency === 'custom' && (
+              <p className='mb-0 mt-8px text-12px leading-18px text-t-secondary'>
+                {t('cron.page.customCronWarning', { expr: customCronExpr })}
+              </p>
+            )}
           </FormItem>
 
           {/* Time picker - shown for daily/weekdays/weekly */}
@@ -630,19 +680,27 @@ const CreateTaskDialog: React.FC<CreateTaskDialogProps> = ({
             </div>
           )}
 
-          {/* Hint text */}
-          {frequency !== 'manual' && (
-            <p className='text-t-secondary text-12px mt-0 mb-16px'>{t('cron.page.scheduleHint')}</p>
-          )}
+          <div className='mt-16px'>
+            <Button
+              type='text'
+              onClick={() => setAdvancedOpen((open) => !open)}
+              className='!h-auto !p-0 hover:!bg-transparent'
+            >
+              <span className='flex items-center gap-6px text-14px font-medium text-t-primary'>
+                <Down
+                  size='14'
+                  fill='currentColor'
+                  className={`shrink-0 transition-transform ${advancedOpen ? 'rotate-180' : ''}`}
+                />
+                <span>{t('cron.page.form.advancedSettings')}</span>
+              </span>
+            </Button>
 
-          {/* Advanced Settings */}
-          <Collapse defaultActiveKey={[]} className='mt-16px'>
-            <Collapse.Item header={t('cron.page.form.advancedSettings')} name='advanced'>
-              <div className='flex flex-col gap-16px'>
-                {/* Model Selector — reuse GuidModelSelector (same no-conversation context) */}
-                {resolvedBackend && (isGeminiMode || acpCachedModelInfo) && (
-                  <div>
-                    <label className='text-14px font-medium text-t-primary mb-8px block'>
+            {advancedOpen && (
+              <div className='mt-12px grid gap-x-16px gap-y-16px md:grid-cols-2'>
+                {showModelSelector && (
+                  <div className='min-w-0'>
+                    <label className='mb-8px block text-14px font-medium text-t-primary'>
                       {t('cron.page.form.model')}
                     </label>
                     <GuidModelSelector
@@ -658,10 +716,9 @@ const CreateTaskDialog: React.FC<CreateTaskDialogProps> = ({
                   </div>
                 )}
 
-                {/* ACP Config Selector - only for codex backend */}
-                {resolvedBackend === 'codex' && (
-                  <div>
-                    <label className='text-14px font-medium text-t-primary mb-8px block'>
+                {showConfigSelector && (
+                  <div className='min-w-0'>
+                    <label className='mb-8px block text-14px font-medium text-t-primary'>
                       {t('acp.config.reasoning_effort')}
                     </label>
                     <AcpConfigSelector
@@ -673,29 +730,28 @@ const CreateTaskDialog: React.FC<CreateTaskDialogProps> = ({
                   </div>
                 )}
 
-                {/* Workspace directory picker */}
-                <div>
-                  <label className='text-14px font-medium text-t-primary mb-8px block'>
+                <div className={advancedFieldCount === 1 ? 'md:col-span-2' : ''}>
+                  <label className='mb-8px block text-14px font-medium text-t-primary'>
                     {t('cron.page.form.workspace')}
                   </label>
-                  <div className='flex items-center gap-8px'>
-                    <Button onClick={handleWorkspaceSelect}>{t('cron.page.form.selectFolder')}</Button>
-                    {workspace && (
-                      <>
-                        <span className='text-14px text-t-secondary truncate flex-1' title={workspace}>
-                          {workspace}
-                        </span>
-                        <Button onClick={handleWorkspaceClear} size='small'>
-                          {t('cron.page.form.clearFolder')}
-                        </Button>
-                      </>
-                    )}
-                  </div>
-                  <p className='text-12px text-t-secondary mt-8px mb-0'>{t('cron.page.form.workspaceHint')}</p>
+                  <WorkspaceFolderSelect
+                    value={workspace}
+                    onChange={(next) => setWorkspace(next || undefined)}
+                    onClear={handleWorkspaceClear}
+                    placeholder={t('cron.page.form.selectFolder')}
+                    inputPlaceholder={t('cron.page.form.workspacePlaceholder')}
+                    recentLabel={t('team.create.recentLabel', { defaultValue: 'Recent' })}
+                    chooseDifferentLabel={t('team.create.chooseDifferentFolder', {
+                      defaultValue: 'Choose a different folder',
+                    })}
+                    triggerTestId='cron-workspace-trigger'
+                    menuTestId='cron-workspace-menu'
+                    menuZIndex={10020}
+                  />
                 </div>
               </div>
-            </Collapse.Item>
-          </Collapse>
+            )}
+          </div>
         </Form>
       </div>
     </ModalWrapper>

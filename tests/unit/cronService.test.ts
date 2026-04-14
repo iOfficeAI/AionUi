@@ -183,6 +183,7 @@ describe('CronService', () => {
 
     const job = await service.addJob({
       name: 'my-job',
+      description: 'my description',
       schedule: { kind: 'every', everyMs: 10000, description: 'test' },
       prompt: 'hello',
       conversationId: 'conv-1',
@@ -193,11 +194,13 @@ describe('CronService', () => {
     expect(repo.insert).toHaveBeenCalledWith(
       expect.objectContaining({
         name: 'my-job',
+        description: 'my description',
         target: expect.objectContaining({ payload: { kind: 'message', text: 'hello' } }),
       })
     );
     expect(emitter.emitJobCreated).toHaveBeenCalledWith(expect.objectContaining({ name: 'my-job' }));
     expect(job.name).toBe('my-job');
+    expect(job.description).toBe('my description');
   });
 
   it('addJob tags conversation with cronJobId', async () => {
@@ -243,6 +246,18 @@ describe('CronService', () => {
         target: expect.objectContaining({ executionMode: 'new_conversation' }),
       })
     );
+  });
+
+  it('updateJob preserves edited description', async () => {
+    const existing = makeJob({ description: 'Old description' });
+    const updated = makeJob({ description: 'New description' });
+    vi.mocked(repo.getById).mockReturnValueOnce(existing).mockReturnValueOnce(updated);
+
+    const result = await service.updateJob(existing.id, { description: 'New description' });
+
+    expect(repo.update).toHaveBeenCalledWith(existing.id, expect.objectContaining({ description: 'New description' }));
+    expect(emitter.emitJobUpdated).toHaveBeenCalledWith(expect.objectContaining({ description: 'New description' }));
+    expect(result.description).toBe('New description');
   });
 
   it('addJob throws when conversation already has a scheduled job', async () => {

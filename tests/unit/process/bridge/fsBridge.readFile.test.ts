@@ -46,6 +46,7 @@ vi.mock('@/common', () => {
         readFile: makeProvider('readFile'),
         readFileBuffer: makeProvider('readFileBuffer'),
         createTempFile: makeProvider('createTempFile'),
+        createUploadFile: makeProvider('createUploadFile'),
         writeFile: makeProvider('writeFile'),
         createZip: makeProvider('createZip'),
         cancelZip: makeProvider('cancelZip'),

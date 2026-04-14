@@ -9,11 +9,20 @@ const useAcpDraft = getSendBoxDraftHook('acp', {
   content: '',
   uploadFile: [],
 });
+const useGeminiDraft = getSendBoxDraftHook('gemini', {
+  _type: 'gemini',
+  atPath: [],
+  content: '',
+  uploadFile: [],
+});
+
+type DraftType = 'acp' | 'gemini';
 
 type Props = {
   conversationId: string;
   agentName: string;
   agentType: string;
+  draftType?: DraftType;
 };
 
 const SUGGESTIONS = [
@@ -28,16 +37,22 @@ const SUGGESTION_DEFAULTS: Record<string, string> = {
   expert_review: 'Have multiple experts analyze the same problem',
 };
 
-const TeamChatEmptyState: React.FC<Props> = ({ conversationId, agentName, agentType }) => {
+const TeamChatEmptyState: React.FC<Props> = ({ conversationId, agentName, agentType, draftType = 'acp' }) => {
   const { t } = useTranslation();
-  const { mutate } = useAcpDraft(conversationId);
+  const acpDraft = useAcpDraft(conversationId);
+  const geminiDraft = useGeminiDraft(conversationId);
   const logo = getAgentLogo(agentType);
 
   const fillDraft = useCallback(
     (text: string) => {
-      mutate((prev) => ({ ...prev, content: text }));
+      if (draftType === 'gemini') {
+        geminiDraft.mutate((prev) => ({ ...prev, content: text }));
+        return;
+      }
+
+      acpDraft.mutate((prev) => ({ ...prev, content: text }));
     },
-    [mutate]
+    [acpDraft, draftType, geminiDraft]
   );
 
   return (

@@ -73,6 +73,13 @@ export const conversation = {
     'conversation.response.search.workspace'
   ),
   reloadContext: bridge.buildProvider<IBridgeResponse, { conversation_id: string }>('conversation.reload-context'),
+  setConfig: bridge.buildProvider<
+    IBridgeResponse,
+    {
+      conversation_id: string;
+      config: { model?: string; thinking?: string; thinking_budget?: number; effort?: string };
+    }
+  >('conversation.set-config'),
   confirmation: {
     add: bridge.buildEmitter<IConfirmation<any> & { conversation_id: string }>('confirmation.add'),
     update: bridge.buildEmitter<IConfirmation<any> & { conversation_id: string }>('confirmation.update'),
@@ -219,6 +226,7 @@ export const fs = {
   readFile: bridge.buildProvider<string, { path: string }>('read-file'), // 读取文件内容（UTF-8）
   readFileBuffer: bridge.buildProvider<ArrayBuffer, { path: string }>('read-file-buffer'), // 读取二进制文件为 ArrayBuffer
   createTempFile: bridge.buildProvider<string, { fileName: string }>('create-temp-file'), // 创建临时文件
+  createUploadFile: bridge.buildProvider<string, { fileName: string; conversationId?: string }>('create-upload-file'), // 创建上传文件（根据设置决定保存位置）
   writeFile: bridge.buildProvider<boolean, { path: string; data: Uint8Array | string }>('write-file'), // 写入文件
   createZip: bridge.buildProvider<
     boolean,
@@ -479,11 +487,6 @@ export const acpConversation = {
   // 获取 ACP 代理的模型信息（模型名称和可用模型）
   getModelInfo: bridge.buildProvider<IBridgeResponse<{ modelInfo: AcpModelInfo | null }>, { conversationId: string }>(
     'acp.get-model-info'
-  ),
-  // Probe model info for an ACP backend without creating a visible conversation
-  // 预探测 ACP 后端的模型信息，不创建可见会话
-  probeModelInfo: bridge.buildProvider<IBridgeResponse<{ modelInfo: AcpModelInfo | null }>, { backend: AcpBackend }>(
-    'acp.probe-model-info'
   ),
   // Set model for ACP agents
   // 设置 ACP 代理的模型
@@ -833,6 +836,7 @@ export type ICronSchedule =
 export interface ICronJob {
   id: string;
   name: string;
+  description?: string;
   enabled: boolean;
   schedule: ICronSchedule;
   target: {

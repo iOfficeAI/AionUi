@@ -11,7 +11,7 @@ import { createInterface } from 'node:readline';
 import type { TProviderWithModel } from '@/common/config/storage';
 import { resolveAionrsBinary } from './binaryResolver';
 import { buildSpawnConfig } from './envBuilder';
-import type { AionrsEvent, AionrsCommand } from './protocol';
+import type { AionrsEvent, AionrsCommand, AionrsCapabilities } from './protocol';
 
 const AIONRS_PROJECT_CONFIG = '.aionrs.toml';
 
@@ -41,6 +41,7 @@ export class AionrsAgent {
   private activeMsgId: string | null = null;
   private configBackup: { path: string; content: string | null } | null = null;
   public sessionId?: string;
+  public capabilities?: AionrsCapabilities;
 
   constructor(options: AionrsAgentOptions) {
     this.options = options;
@@ -142,6 +143,7 @@ export class AionrsAgent {
       case 'ready':
         this.ready = true;
         this.sessionId = event.session_id;
+        this.capabilities = event.capabilities;
         this.readyResolve();
         break;
 
@@ -247,6 +249,15 @@ export class AionrsAgent {
           msg_id: event.msg_id,
         });
         break;
+
+      case 'config_changed':
+        this.capabilities = event.capabilities;
+        this.onStreamEvent({
+          type: 'config_changed',
+          data: event.capabilities,
+          msg_id: '',
+        });
+        break;
     }
   }
 
@@ -319,6 +330,14 @@ export class AionrsAgent {
 
   denyTool(callId: string, reason = ''): void {
     this.sendCommand({ type: 'tool_deny', call_id: callId, reason });
+  }
+
+  setConfig(config: { model?: string; thinking?: string; thinking_budget?: number; effort?: string }): void {
+    this.sendCommand({ type: 'set_config', ...config });
+  }
+
+  setMode(mode: 'default' | 'auto_edit' | 'yolo'): void {
+    this.sendCommand({ type: 'set_mode', mode });
   }
 
   kill(): void {

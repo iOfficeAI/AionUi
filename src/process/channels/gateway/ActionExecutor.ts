@@ -112,7 +112,7 @@ function formatTextForPlatform(text: string, platform: PluginType): string {
   if (platform === 'telegram') {
     return markdownToTelegramHtml(text);
   }
-  if (platform === 'weixin') {
+  if (platform === 'weixin' || platform === 'wecom') {
     return stripHtml(text);
   }
   return escapeHtml(text);
@@ -243,7 +243,7 @@ function convertTMessageToOutgoing(
       if (confirmingTool && confirmingTool.confirmationDetails) {
         // WeChat (weixin) uses yoloMode — tool confirmations are auto-approved in the background.
         // Showing "Continue?" without interactive buttons is confusing, so just show tool progress.
-        if (platform === 'weixin') {
+        if (platform === 'weixin' || platform === 'wecom') {
           return {
             type: 'text',
             text: toolLines.join('\n') || '⏳ 正在执行工具...',
@@ -766,6 +766,8 @@ export class ActionExecutor {
         // 使用最后一条消息的实际内容，添加操作按钮（根据平台）
         // Use actual content of last message, add action buttons (based on platform)
         const responseMarkup = getResponseActionsMarkup(context.platform as PluginType, finalVisibleText);
+        const finalReplyMarkup =
+          responseMarkup ?? (context.platform === 'wecom' ? ({ __aionuiFinal: true } as unknown) : undefined);
         const finalMessage: IUnifiedOutgoingMessage = lastMessageContent
           ? {
               ...lastMessageContent,
@@ -775,13 +777,13 @@ export class ActionExecutor {
                     mediaActions: finalizedMessage.mediaActions,
                   }
                 : {}),
-              replyMarkup: responseMarkup,
+              replyMarkup: finalReplyMarkup,
             }
           : {
               type: 'text',
               text: '✅ Done',
               parseMode: 'HTML',
-              replyMarkup: responseMarkup,
+              replyMarkup: finalReplyMarkup,
             };
         await context.editMessage(lastMsgId, finalMessage);
       } catch {

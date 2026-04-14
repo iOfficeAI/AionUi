@@ -553,11 +553,12 @@ export function getWindowsShellExecutionOptions(): {
  * "ERROR: You must supply a command."
  *
  * @param env - Environment to use for locating node/npx (should include shell PATH)
- * @returns Absolute path to a modern npx, or bare `npx`/`npx.cmd` as fallback
+ * @returns Absolute path to a modern npx, or bare `npx` as fallback
  */
 export function resolveNpxPath(env: Record<string, string | undefined>): string {
   const isWindows = process.platform === 'win32';
-  const npxName = isWindows ? 'npx.cmd' : 'npx';
+  const npxCandidateName = isWindows ? 'npx.cmd' : 'npx';
+  const npxFallback = 'npx';
   try {
     const whichCmd = isWindows ? 'where' : 'which';
     const nodePath = execFileSync(whichCmd, ['node'], {
@@ -569,7 +570,7 @@ export function resolveNpxPath(env: Record<string, string | undefined>): string 
     })
       .trim()
       .split(/\r?\n/)[0]; // `where` on Windows may return multiple lines
-    const npxCandidate = path.join(path.dirname(nodePath), npxName);
+    const npxCandidate = path.join(path.dirname(nodePath), npxCandidateName);
 
     let versionOutput = '';
     if (isWindows) {
@@ -607,7 +608,7 @@ export function resolveNpxPath(env: Record<string, string | undefined>): string 
   } catch {
     // which/node/npx resolution failed
   }
-  return npxName;
+  return npxFallback;
 }
 
 /**

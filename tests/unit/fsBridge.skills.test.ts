@@ -191,6 +191,7 @@ describe('fsBridge skills functionality', () => {
             readFile: createCommandMock('read-file'),
             readFileBuffer: createCommandMock('read-file-buffer'),
             createTempFile: createCommandMock('create-temp-file'),
+            createUploadFile: createCommandMock('create-upload-file'),
             writeFile: createCommandMock('write-file'),
             createZip: createCommandMock('create-zip-file'),
             cancelZip: createCommandMock('cancel-zip-file'),

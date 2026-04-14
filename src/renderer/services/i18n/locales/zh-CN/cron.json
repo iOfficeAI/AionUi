@@ -62,6 +62,7 @@
     "createSuccess": "任务创建成功",
     "updateSuccess": "任务更新成功",
     "scheduleHint": "定时任务会有几分钟的随机延迟以优化服务器性能。",
+    "customCronWarning": "这个任务使用了无法在这里编辑的自定义计划。修改频率会替换当前计划。",
     "weekday": {
       "monday": "星期一",
       "tuesday": "星期二",
@@ -112,7 +113,7 @@
       "daily": "每天",
       "weekdays": "工作日",
       "weekly": "每周",
-      "custom": "自定义 Cron..."
+      "custom": "自定义"
     },
     "scheduleDesc": {
       "manual": "手动触发",

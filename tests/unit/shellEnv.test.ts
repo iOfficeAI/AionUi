@@ -474,7 +474,7 @@ describe('resolveNpxPath', () => {
 
     const { resolveNpxPath } = await import('@process/utils/shellEnv');
 
-    expect(resolveNpxPath({ PATH: '/tooling' })).toBe('npx.cmd');
+    expect(resolveNpxPath({ PATH: '/tooling' })).toBe('npx');
   });
 });
 

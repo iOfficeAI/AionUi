@@ -16,7 +16,7 @@ import type { IWorkerTaskManager } from '@process/task/IWorkerTaskManager';
 import type { IConversationService } from '@process/services/IConversationService';
 import type { AgentType } from '@process/task/agentTypes';
 import { ACP_ROUTED_PRESET_TYPES, type AcpBackendAll } from '@/common/types/acpTypes';
-import type { TProviderWithModel } from '@/common/config/storage';
+import type { TChatConversation, TProviderWithModel } from '@/common/config/storage';
 import { ProcessConfig } from '@process/utils/initStorage';
 import { getAssistantsDir } from '@process/utils/initStorage';
 import { TeamSession } from './TeamSession';
@@ -28,6 +28,8 @@ import { resolveLocaleKey } from '@/common/utils';
 
 export class TeamSessionService {
   private readonly sessions: Map<string, TeamSession> = new Map();
+  /** Per-team mutex to serialize addAgent calls, preventing read-modify-write race conditions */
+  private readonly addAgentLocks: Map<string, Promise<unknown>> = new Map();
 
   constructor(
     private readonly repo: ITeamRepository,
@@ -288,13 +290,15 @@ export class TeamSessionService {
     agent: Omit<TeamAgent, 'slotId'> | TeamAgent;
     agents: TeamAgent[];
     inheritedSessionMode?: string;
+    /** When true, workspace was inherited (not user-specified) — setupAssistantWorkspace should still run */
+    isInheritedWorkspace?: boolean;
   }): Promise<{
     type: AgentType;
     name: string;
     model: TProviderWithModel;
     extra: Record<string, unknown>;
   }> {
-    const { teamId, teamName, workspace, agent, agents, inheritedSessionMode } = params;
+    const { teamId, teamName, workspace, agent, agents, inheritedSessionMode, isInheritedWorkspace } = params;
     const backend = this.resolveBackend(agent.agentType, agents) as AcpBackendAll;
     const isPreset = Boolean(
       agent.customAgentId && (backend === 'gemini' || (ACP_ROUTED_PRESET_TYPES as readonly string[]).includes(backend))
@@ -314,7 +318,7 @@ export class TeamSessionService {
       name: `${teamName} - ${agent.agentName}`,
       agentName: agent.agentName,
       workspace,
-      customWorkspace: Boolean(workspace),
+      customWorkspace: Boolean(workspace) && !isInheritedWorkspace,
       model,
       cliPath: agent.cliPath,
       customAgentId: agent.customAgentId,
@@ -334,6 +338,137 @@ export class TeamSessionService {
     };
   }
 
+  private extractRecoveredSlotId(
+    extra: { teamMcpStdioConfig?: { env?: Array<{ name?: string; value?: string }> } } | undefined
+  ): string | undefined {
+    return extra?.teamMcpStdioConfig?.env?.find((entry) => entry.name === 'TEAM_AGENT_SLOT_ID')?.value;
+  }
+
+  private resolveRecoveredAgentType(conversation: TChatConversation): string | undefined {
+    switch (conversation.type) {
+      case 'gemini':
+        return 'gemini';
+      case 'aionrs':
+        return 'aionrs';
+      case 'remote':
+        return 'remote';
+      case 'nanobot':
+        return 'nanobot';
+      case 'openclaw-gateway':
+        return (conversation.extra as { backend?: string } | undefined)?.backend || 'openclaw-gateway';
+      case 'acp':
+        return (conversation.extra as { backend?: string } | undefined)?.backend;
+      default:
+        return undefined;
+    }
+  }
+
+  private resolveRecoveredAgentName(team: TTeam, conversation: TChatConversation, isLead: boolean): string {
+    const extra = conversation.extra as { agentName?: string } | undefined;
+    const explicitName = extra?.agentName?.trim();
+    if (explicitName) return explicitName;
+
+    const prefix = `${team.name} - `;
+    if (conversation.name.startsWith(prefix)) {
+      const derivedName = conversation.name.slice(prefix.length).trim();
+      if (derivedName) return derivedName;
+    }
+
+    return isLead ? 'Leader' : 'Teammate';
+  }
+
+  private mapRecoveredStatus(status: TChatConversation['status']): TeamAgent['status'] {
+    switch (status) {
+      case 'running':
+        return 'active';
+      case 'finished':
+        return 'idle';
+      default:
+        return 'pending';
+    }
+  }
+
+  private buildRecoveredAgent(team: TTeam, conversation: TChatConversation): TeamAgent | null {
+    const extra = conversation.extra as {
+      cliPath?: string;
+      customAgentId?: string;
+      presetAssistantId?: string;
+      gateway?: { cliPath?: string };
+      teamMcpStdioConfig?: { env?: Array<{ name?: string; value?: string }> };
+    };
+    const slotId = this.extractRecoveredSlotId(extra);
+    const agentType = this.resolveRecoveredAgentType(conversation);
+    if (!slotId || !agentType) return null;
+
+    const isLead = slotId === team.leadAgentId;
+    return {
+      slotId,
+      conversationId: conversation.id,
+      role: isLead ? 'lead' : 'teammate',
+      agentType,
+      agentName: this.resolveRecoveredAgentName(team, conversation, isLead),
+      conversationType: conversation.type,
+      status: this.mapRecoveredStatus(conversation.status),
+      cliPath: extra.cliPath || extra.gateway?.cliPath,
+      customAgentId: extra.customAgentId || extra.presetAssistantId,
+    };
+  }
+
+  private async repairTeamAgentsIfMissing(team: TTeam): Promise<TTeam> {
+    if (team.agents.length > 0) return team;
+
+    const conversations = await this.conversationService.listAllConversations();
+    const linkedConversations = conversations
+      .filter((conversation) => (conversation.extra as { teamId?: string } | undefined)?.teamId === team.id)
+      .toSorted((left, right) => (right.modifyTime ?? 0) - (left.modifyTime ?? 0));
+
+    if (linkedConversations.length === 0) return team;
+
+    const recoveredBySlot = new Map<string, TeamAgent>();
+    for (const conversation of linkedConversations) {
+      const recovered = this.buildRecoveredAgent(team, conversation);
+      if (recovered && !recoveredBySlot.has(recovered.slotId)) {
+        recoveredBySlot.set(recovered.slotId, recovered);
+      }
+    }
+
+    const recoveredAgents = [...recoveredBySlot.values()];
+    if (recoveredAgents.length === 0) return team;
+
+    let repairedAgents = recoveredAgents;
+    if (!repairedAgents.some((agent) => agent.role === 'lead')) {
+      repairedAgents = repairedAgents.map((agent, index) => ({
+        ...agent,
+        role: index === 0 ? 'lead' : 'teammate',
+      }));
+    }
+
+    repairedAgents = repairedAgents.toSorted((left, right) => {
+      if (left.role === right.role) return left.agentName.localeCompare(right.agentName);
+      return left.role === 'lead' ? -1 : 1;
+    });
+
+    const repairedLead = repairedAgents.find((agent) => agent.role === 'lead') ?? repairedAgents[0];
+    const repairedTeam: TTeam = {
+      ...team,
+      leadAgentId: repairedLead.slotId,
+      agents: repairedAgents,
+      updatedAt: Date.now(),
+    };
+
+    try {
+      await this.repo.update(team.id, {
+        agents: repairedTeam.agents,
+        leadAgentId: repairedTeam.leadAgentId,
+        updatedAt: repairedTeam.updatedAt,
+      });
+    } catch (error) {
+      console.warn(`[TeamSessionService] Failed to persist repaired agents for team ${team.id}:`, error);
+    }
+
+    return repairedTeam;
+  }
+
   async createTeam(params: {
     userId: string;
     name: string;
@@ -344,11 +479,35 @@ export class TeamSessionService {
   }): Promise<TTeam> {
     const now = Date.now();
     const teamId = uuid(36);
-    const workspace = this.resolveWorkspace(params.workspace);
+    let workspace = this.resolveWorkspace(params.workspace);
 
-    // Create a real conversation for each agent
+    // Create a real conversation for each agent (or reuse an existing one for the leader)
     const agentsWithConversations = await Promise.all(
       params.agents.map(async (agent) => {
+        const slotId = agent.slotId || `slot-${uuid(8)}`;
+
+        // If the agent already has a conversationId (e.g., leader reusing caller's conversation),
+        // verify it exists and adopt it into the team instead of creating a new conversation.
+        if (agent.conversationId) {
+          const existing = await this.conversationService.getConversation(agent.conversationId);
+          if (existing) {
+            // Only include workspace in the update when it has a real value.
+            // An empty string would overwrite the conversation's existing workspace
+            // (e.g. the temp dir created during solo-chat init), causing mkdir('') failures.
+            const extraUpdate: Record<string, unknown> = { teamId };
+            if (workspace) {
+              extraUpdate.workspace = workspace;
+            }
+            await this.conversationService.updateConversation(
+              agent.conversationId,
+              { extra: extraUpdate } as any,
+              true
+            );
+            return { ...agent, slotId, conversationId: agent.conversationId };
+          }
+          // Fall through to create new if conversation was not found
+        }
+
         const conversationParams = await this.buildConversationParams({
           teamId,
           teamName: params.name,
@@ -356,17 +515,28 @@ export class TeamSessionService {
           agent,
           agents: params.agents,
           inheritedSessionMode: params.sessionMode,
+          isInheritedWorkspace: !params.workspace,
         });
         const conversation = await this.conversationService.createConversation(conversationParams);
         // Ensure teamId is in extra regardless of which factory function was used
         // (some factories like createCodexAgent/createGeminiAgent drop unknown extra fields)
         await this.conversationService.updateConversation(conversation.id, { extra: { teamId } } as any, true);
-        const slotId = agent.slotId || `slot-${uuid(8)}`;
         return { ...agent, slotId, conversationId: conversation.id };
       })
     );
 
     const leadAgent = agentsWithConversations.find((a) => a.role === 'lead');
+
+    // If workspace was not specified, back-fill from the lead agent's actual conversation workspace.
+    // The conversation factory may auto-assign a workspace (stored in extra.workspace), and we need
+    // TTeam.workspace to reflect that so all subsequent addAgent calls share the same directory.
+    if (!workspace && leadAgent?.conversationId) {
+      const leadConv = await this.conversationService.getConversation(leadAgent.conversationId);
+      const leadExtra = leadConv?.extra as Record<string, unknown> | undefined;
+      if (leadExtra?.workspace && typeof leadExtra.workspace === 'string') {
+        workspace = leadExtra.workspace;
+      }
+    }
     if (!leadAgent) throw new Error('Team must have at least one lead agent');
 
     const team: TTeam = {
@@ -386,7 +556,9 @@ export class TeamSessionService {
   }
 
   async getTeam(id: string): Promise<TTeam | null> {
-    return this.repo.findById(id);
+    const team = await this.repo.findById(id);
+    if (!team) return null;
+    return this.repairTeamAgentsIfMissing(team);
   }
 
   async listTeams(userId: string): Promise<TTeam[]> {
@@ -436,6 +608,28 @@ export class TeamSessionService {
   }
 
   async addAgent(teamId: string, agent: Omit<TeamAgent, 'slotId'>): Promise<TeamAgent> {
+    // Serialize per-team to prevent concurrent read-modify-write races on the agents array.
+    // Without this lock, parallel team_spawn_agent calls read the same stale agents list,
+    // and the last writer wins — silently dropping agents added by concurrent calls.
+    const prev = this.addAgentLocks.get(teamId) ?? Promise.resolve();
+    let resolve!: () => void;
+    const lock = new Promise<void>((r) => {
+      resolve = r;
+    });
+    this.addAgentLocks.set(teamId, lock);
+    try {
+      await prev;
+      return await this.addAgentUnsafe(teamId, agent);
+    } finally {
+      resolve();
+      // Clean up the lock entry when it's the last in the chain
+      if (this.addAgentLocks.get(teamId) === lock) {
+        this.addAgentLocks.delete(teamId);
+      }
+    }
+  }
+
+  private async addAgentUnsafe(teamId: string, agent: Omit<TeamAgent, 'slotId'>): Promise<TeamAgent> {
     const team = await this.repo.findById(teamId);
     if (!team) throw new Error(`Team "${teamId}" not found`);
 
@@ -460,6 +654,7 @@ export class TeamSessionService {
       agent,
       agents: team.agents,
       inheritedSessionMode,
+      isInheritedWorkspace: true,
     });
     const conversation = await this.conversationService.createConversation(conversationParams);
     // Ensure teamId is in extra regardless of which factory function was used
@@ -474,6 +669,8 @@ export class TeamSessionService {
     const updatedAgents = [...team.agents, newAgent];
     await this.repo.update(teamId, { agents: updatedAgents, updatedAt: Date.now() });
     this.sessions.get(teamId)?.addAgent(newAgent);
+    // Notify renderer so SWR caches (useTeamList, useSiderTeamBadges) revalidate
+    ipcBridge.team.listChanged.emit({ teamId, action: 'agent_added' });
     return newAgent;
   }
 
@@ -530,12 +727,14 @@ export class TeamSessionService {
       const updatedAgents = team.agents.filter((a) => a.slotId !== slotId);
       await this.repo.update(teamId, { agents: updatedAgents, updatedAt: Date.now() });
     }
+    // Notify renderer so SWR caches (useTeamList, useSiderTeamBadges) revalidate
+    ipcBridge.team.listChanged.emit({ teamId, action: 'agent_removed' });
   }
 
   async getOrStartSession(teamId: string): Promise<TeamSession> {
     const existing = this.sessions.get(teamId);
     if (existing) return existing;
-    const team = await this.repo.findById(teamId);
+    const team = await this.getTeam(teamId);
     if (!team) throw new Error(`Team "${teamId}" not found`);
     let session!: TeamSession;
     const spawnAgent = async (agentName: string, agentType?: string) => {

@@ -15,6 +15,7 @@ import type { SlashCommandItem } from '@/common/chat/slash/types';
 import { uuid } from '@/common/utils';
 import type {
   AcpBackend,
+  AcpInitializeResult,
   AcpModelInfo,
   AcpPermissionRequest,
   AcpPromptResponseUsage,
@@ -39,30 +40,13 @@ import {
   QWEN_YOLO_SESSION_MODE,
 } from './constants';
 import { buildAcpModelInfo } from './modelInfo';
-import {
-  buildBuiltinAcpSessionMcpServers,
-  buildTeamMcpServer,
-  parseAcpMcpCapabilities,
-  TEAM_GUIDE_ALLOWED_BACKENDS,
-  type AcpSessionMcpServer,
-} from './mcpSessionConfig';
+import { buildBuiltinAcpSessionMcpServers, buildTeamMcpServer, type AcpSessionMcpServer } from './mcpSessionConfig';
 import { getClaudeModel } from './utils';
-import { getAionMcpStdioConfig } from '@process/services/mcpServices/aionMcpServiceSingleton';
+import { getTeamGuideStdioConfig } from '@process/team/mcp/guide/teamGuideSingleton';
+import { shouldInjectTeamGuideMcp } from '@process/team/prompts/teamGuideCapability.ts';
+import { waitForMcpReady } from '@process/team/mcpReadiness';
 
-/** Enable ACP performance diagnostics via ACP_PERF=1 */
-const ACP_PERF_LOG = process.env.ACP_PERF === '1';
-
-/**
- * Initialize response result interface
- * ACP 初始化响应结果接口
- */
-interface InitializeResult {
-  authMethods?: Array<{
-    type: string;
-    [key: string]: unknown;
-  }>;
-  [key: string]: unknown;
-}
+// InitializeResult removed — replaced by AcpInitializeResult from acpTypes.ts
 
 /**
  * ACP available command type - subset of SlashCommandItem for ACP protocol layer
@@ -331,20 +315,25 @@ export class AcpAgent {
         await new Promise((resolve) => setTimeout(resolve, 300));
         await tryConnect();
       }
-      if (ACP_PERF_LOG) console.log(`[ACP-PERF] start: connection.connect() completed ${Date.now() - connectStart}ms`);
+      console.log(`[ACP-PERF] start: connection.connect() completed ${Date.now() - connectStart}ms`);
+
+      // Persist initialize result to disk so capabilities are available before next session
+      this.cacheInitializeResult().catch((err) => {
+        console.warn('[ACP] Failed to cache initialize result:', err instanceof Error ? err.message : String(err));
+      });
 
       this.emitStatusMessage('connected');
 
       const authStart = Date.now();
       await this.performAuthentication();
-      if (ACP_PERF_LOG) console.log(`[ACP-PERF] start: authentication completed ${Date.now() - authStart}ms`);
+      console.log(`[ACP-PERF] start: authentication completed ${Date.now() - authStart}ms`);
 
       // 避免重复创建会话：仅当尚无活动会话时再创建
       // Create new session or resume existing one (if ACP backend supports it)
       if (!this.connection.hasActiveSession) {
         const sessionStart = Date.now();
         await this.createOrResumeSession();
-        if (ACP_PERF_LOG) console.log(`[ACP-PERF] start: session created ${Date.now() - sessionStart}ms`);
+        console.log(`[ACP-PERF] start: session created ${Date.now() - sessionStart}ms`);
       }
 
       // YOLO mode: bypass all permission checks for supported backends
@@ -375,7 +364,7 @@ export class AcpAgent {
           try {
             const modelStart = Date.now();
             await this.connection.setModel(configuredModel);
-            if (ACP_PERF_LOG) console.log(`[ACP-PERF] start: model set ${Date.now() - modelStart}ms`);
+            console.log(`[ACP-PERF] start: model set ${Date.now() - modelStart}ms`);
           } catch (error) {
             const errMsg = error instanceof Error ? error.message : String(error);
             console.warn(`[ACP] Failed to set model from settings: ${errMsg}`);
@@ -424,9 +413,9 @@ export class AcpAgent {
       this.emitModelInfo();
 
       this.emitStatusMessage('session_active');
-      if (ACP_PERF_LOG) console.log(`[ACP-PERF] start: total ${Date.now() - startTotal}ms`);
+      console.log(`[ACP-PERF] start: total ${Date.now() - startTotal}ms`);
     } catch (error) {
-      if (ACP_PERF_LOG) console.log(`[ACP-PERF] start: failed after ${Date.now() - startTotal}ms`);
+      console.log(`[ACP-PERF] start: failed after ${Date.now() - startTotal}ms`);
       this.emitStatusMessage('error');
       throw error;
     }
@@ -442,7 +431,7 @@ export class AcpAgent {
     try {
       const modeStart = Date.now();
       await this.connection.setSessionMode(mode);
-      if (ACP_PERF_LOG) console.log(`[ACP-PERF] start: session mode set ${Date.now() - modeStart}ms`);
+      console.log(`[ACP-PERF] start: session mode set ${Date.now() - modeStart}ms`);
     } catch (error) {
       const msg = error instanceof Error ? error.message : String(error);
       if (fatal) {
@@ -636,9 +625,9 @@ export class AcpAgent {
         const reconnectStart = Date.now();
         try {
           await this.start();
-          if (ACP_PERF_LOG) console.log(`[ACP-PERF] send: auto-reconnect completed ${Date.now() - reconnectStart}ms`);
+          console.log(`[ACP-PERF] send: auto-reconnect completed ${Date.now() - reconnectStart}ms`);
         } catch (reconnectError) {
-          if (ACP_PERF_LOG) console.log(`[ACP-PERF] send: auto-reconnect failed ${Date.now() - reconnectStart}ms`);
+          console.log(`[ACP-PERF] send: auto-reconnect failed ${Date.now() - reconnectStart}ms`);
           const errorMsg = reconnectError instanceof Error ? reconnectError.message : String(reconnectError);
           return {
             success: false,
@@ -684,7 +673,7 @@ export class AcpAgent {
       processedContent = await this.processAtFileReferences(processedContent, data.files);
       const atFileDuration = Date.now() - atFileStart;
       if (atFileDuration > 10) {
-        if (ACP_PERF_LOG) console.log(`[ACP-PERF] send: @file references processed ${atFileDuration}ms`);
+        console.log(`[ACP-PERF] send: @file references processed ${atFileDuration}ms`);
       }
 
       // Re-assert model override before sending prompt.
@@ -724,10 +713,9 @@ export class AcpAgent {
 
       const promptStart = Date.now();
       await this.connection.sendPrompt(processedContent);
-      if (ACP_PERF_LOG)
-        console.log(
-          `[ACP-PERF] send: sendPrompt completed ${Date.now() - promptStart}ms (total send: ${Date.now() - sendStart}ms)`
-        );
+      console.log(
+        `[ACP-PERF] send: sendPrompt completed ${Date.now() - promptStart}ms (total send: ${Date.now() - sendStart}ms)`
+      );
 
       this.statusMessageId = null;
       return { success: true, data: null };
@@ -1505,10 +1493,8 @@ export class AcpAgent {
    * Create a new session or resume an existing one, and notify upper layer if session ID changed.
    * 创建新会话或恢复现有会话，如果 session ID 变化则通知上层。
    *
-   * Resume strategy per backend:
-   * - Codex:           uses dedicated ACP `session/load` method
-   * - Claude/CodeBuddy: uses `session/new` with `_meta.claudeCode.options.resume`
-   * - Others:          uses `session/new` with generic `resumeSessionId` param
+   * Resume strategy is delegated to AcpConnection.resumeSession()
+   * (capability-driven with Claude-compatible resume path).
    */
   private async createOrResumeSession(): Promise<void> {
     const resumeSessionId = this.extra.acpSessionId;
@@ -1534,25 +1520,16 @@ export class AcpAgent {
           `[AcpAgent] Session ${resumeSessionId} belongs to conversation ${resumeConversationId}, ` +
             `but current conversation is ${this.id}. Discarding stale session and starting fresh.`
         );
+        // Skip resume, fall through to create new session
       } else if (resumeSessionId) {
         try {
           let response: { sessionId?: string };
 
           emitMcpStatus?.('session_injecting', { serverCount: mcpServers.length });
-
-          if (this.extra.backend === 'codex') {
-            // Codex ACP bridge implements session/load (load_session) which calls
-            // resume_thread_from_rollout internally to restore full conversation history.
-            // Codex ignores resumeSessionId in session/new, so we must use session/load.
-            response = await this.connection.loadSession(resumeSessionId, this.extra.workspace, mcpServers);
-          } else {
-            // Claude/CodeBuddy use _meta in session/new; others use generic resumeSessionId
-            response = await this.connection.newSession(this.extra.workspace, {
-              resumeSessionId,
-              forkSession: false,
-              mcpServers,
-            });
-          }
+          response = await this.connection.resumeSession(resumeSessionId, this.extra.workspace, {
+            forkSession: false,
+            mcpServers,
+          });
 
           if (mcpServers.length === 0) {
             emitMcpStatus?.('degraded');
@@ -1595,6 +1572,18 @@ export class AcpAgent {
       emitMcpStatus?.('session_error', { error });
       throw err;
     }
+
+    // Wait for MCP tools to be registered in the backend before allowing
+    // message dispatch. The team-mcp-stdio.js script sends a TCP mcp_ready
+    // notification after server.connect() completes. Without this wait,
+    // the first conversationTurn/start may arrive before the backend has
+    // finished the MCP handshake (initialize → tools/list), causing the
+    // agent to process the message without team tools.
+    if (this.extra.teamMcpStdioConfig && teamId) {
+      emitMcpStatus?.('mcp_tools_waiting');
+      await waitForMcpReady(slotId, 30_000);
+      emitMcpStatus?.('mcp_tools_ready');
+    }
   }
 
   private async loadBuiltinSessionMcpServers(): Promise<AcpSessionMcpServer[]> {
@@ -1603,8 +1592,10 @@ export class AcpAgent {
       const servers: AcpSessionMcpServer[] = [];
 
       if (Array.isArray(mcpConfig) && mcpConfig.length > 0) {
-        const capabilities = parseAcpMcpCapabilities(this.connection.getInitializeResponse());
-        servers.push(...buildBuiltinAcpSessionMcpServers(mcpConfig as IMcpServer[], capabilities));
+        const mcpCaps = this.connection.getAgentCapabilities()?.mcpCapabilities;
+        if (mcpCaps) {
+          servers.push(...buildBuiltinAcpSessionMcpServers(mcpConfig as IMcpServer[], mcpCaps));
+        }
       }
 
       // Inject team MCP server if this agent belongs to a team (stdio mode)
@@ -1617,12 +1608,16 @@ export class AcpAgent {
       // Uses stdio bridge mode — same pattern as TeamMcpServer.
       // AION_MCP_BACKEND env var tells the stdio bridge which backend this agent is,
       // so aion_create_team automatically creates a team with the correct agent type.
-      if (!this.extra.teamMcpStdioConfig && TEAM_GUIDE_ALLOWED_BACKENDS.has(this.extra.backend)) {
-        const aionStdioConfig = getAionMcpStdioConfig();
+      if (!this.extra.teamMcpStdioConfig && (await shouldInjectTeamGuideMcp(this.extra.backend))) {
+        const aionStdioConfig = getTeamGuideStdioConfig();
         if (aionStdioConfig) {
           const configWithBackend = {
             ...aionStdioConfig,
-            env: [...aionStdioConfig.env, { name: 'AION_MCP_BACKEND', value: this.extra.backend }],
+            env: [
+              ...aionStdioConfig.env,
+              { name: 'AION_MCP_BACKEND', value: this.extra.backend },
+              { name: 'AION_MCP_CONVERSATION_ID', value: this.id },
+            ],
           };
           servers.push(buildTeamMcpServer(configWithBackend)!);
         }
@@ -1728,9 +1723,8 @@ export class AcpAgent {
 
   private async performAuthentication(): Promise<void> {
     try {
-      const initResponse = this.connection.getInitializeResponse();
-      const result = initResponse?.result as InitializeResult | undefined;
-      if (!initResponse || !result?.authMethods?.length) {
+      const initResult = this.connection.getInitializeResult();
+      if (!initResult || initResult.authMethods.length === 0) {
         // No auth methods available - CLI should handle authentication itself
         this.emitStatusMessage('authenticated');
         return;
@@ -1768,5 +1762,24 @@ export class AcpAgent {
     } catch (error) {
       this.emitStatusMessage('error');
     }
+  }
+
+  private async cacheInitializeResult(): Promise<void> {
+    const result = this.connection.getInitializeResult();
+    if (!result) return;
+    const cached = (await ProcessConfig.get('acp.cachedInitializeResult')) || {};
+    await ProcessConfig.set('acp.cachedInitializeResult', {
+      ...cached,
+      [this.extra.backend]: result,
+    });
+  }
+
+  /**
+   * Read the cached initialize result for a backend from disk.
+   * Available before any session is created (persisted from previous runs).
+   */
+  static async getCachedInitializeResult(backend: string): Promise<AcpInitializeResult | null> {
+    const cached = await ProcessConfig.get('acp.cachedInitializeResult');
+    return cached?.[backend] ?? null;
   }
 }

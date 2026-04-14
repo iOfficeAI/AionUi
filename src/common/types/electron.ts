@@ -65,6 +65,8 @@ export interface ElectronBridgeAPI {
   weixinLoginOnQR?: (callback: (data: { qrcodeUrl: string }) => void) => () => void;
   weixinLoginOnScanned?: (callback: () => void) => () => void;
   weixinLoginOnDone?: (callback: (data: { accountId: string }) => void) => () => void;
+  // Feedback log collection / 收集反馈日志
+  collectFeedbackLogs?: () => Promise<{ filename: string; data: number[] } | null>;
 }
 
 declare global {

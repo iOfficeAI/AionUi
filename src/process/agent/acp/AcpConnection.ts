@@ -5,8 +5,10 @@
  */
 
 import type {
+  AcpAgentCapabilities,
   AcpBackend,
   AcpIncomingMessage,
+  AcpInitializeResult,
   AcpMessage,
   AcpNotification,
   AcpPermissionRequest,
@@ -17,7 +19,7 @@ import type {
   AcpSessionModels,
   AcpSessionUpdate,
 } from '@/common/types/acpTypes';
-import { ACP_METHODS, JSONRPC_VERSION } from '@/common/types/acpTypes';
+import { ACP_METHODS, JSONRPC_VERSION, parseInitializeResult } from '@/common/types/acpTypes';
 import type { ChildProcess } from 'child_process';
 import { execFile as execFileCb } from 'child_process';
 import { promisify } from 'util';
@@ -26,14 +28,7 @@ import { promises as fs } from 'fs';
 import os from 'os';
 import path from 'path';
 import { getNpxCacheDir, getWindowsShellExecutionOptions, resolveNpxPath } from '@process/utils/shellEnv';
-import {
-  ACP_PERF_LOG,
-  connectClaude,
-  connectCodebuddy,
-  connectCodex,
-  prepareCleanEnv,
-  spawnGenericBackend,
-} from './acpConnectors';
+import { connectClaude, connectCodebuddy, connectCodex, prepareCleanEnv, spawnGenericBackend } from './acpConnectors';
 import type { SpawnResult } from './acpConnectors';
 import { killChild, readTextFile, writeJsonRpcMessage, writeTextFile } from './utils';
 
@@ -109,7 +104,7 @@ export class AcpConnection {
   private sessionId: string | null = null;
   private isInitialized = false;
   private backend: AcpBackend | null = null;
-  private initializeResponse: AcpResponse | null = null;
+  private initializeResult: AcpInitializeResult | null = null;
   private workingDir: string = process.cwd();
 
   // Cached model information from session/new response
@@ -198,7 +193,7 @@ export class AcpConnection {
     customEnv?: Record<string, string>
   ): Promise<void> {
     const connectStart = Date.now();
-    if (ACP_PERF_LOG) console.log(`[ACP-PERF] connect: start backend=${backend}`);
+    console.log(`[ACP-PERF] connect: start backend=${backend}`);
 
     try {
       await this.doConnect(backend, cliPath, workingDir, acpArgs, customEnv);
@@ -250,7 +245,7 @@ export class AcpConnection {
       }
     }
 
-    if (ACP_PERF_LOG) console.log(`[ACP-PERF] connect: total ${Date.now() - connectStart}ms`);
+    console.log(`[ACP-PERF] connect: total ${Date.now() - connectStart}ms`);
   }
 
   private async doConnect(
@@ -433,16 +428,14 @@ export class AcpConnection {
       for (const line of lines) {
         if (line.trim()) {
           try {
-            const handleStart = ACP_PERF_LOG ? Date.now() : 0;
+            const handleStart = Date.now();
             const message = JSON.parse(line) as AcpMessage;
             this.handleMessage(message);
-            if (ACP_PERF_LOG) {
-              const handleDuration = Date.now() - handleStart;
-              if (handleDuration > 5) {
-                console.log(
-                  `[ACP-PERF] stream: handleMessage ${handleDuration}ms method=${'method' in message ? (message as AcpIncomingMessage).method : 'response'}`
-                );
-              }
+            const handleDuration = Date.now() - handleStart;
+            if (handleDuration > 5) {
+              console.log(
+                `[ACP-PERF] stream: handleMessage ${handleDuration}ms method=${'method' in message ? (message as AcpIncomingMessage).method : 'response'}`
+              );
             }
           } catch (error) {
             // Ignore parsing errors for non-JSON messages
@@ -467,7 +460,7 @@ export class AcpConnection {
       // Neutralize processExitReject so later exits won't call a stale reject.
       processExitReject = null;
     }
-    if (ACP_PERF_LOG) console.log(`[ACP-PERF] connect: protocol initialized ${Date.now() - initStart}ms`);
+    console.log(`[ACP-PERF] connect: protocol initialized ${Date.now() - initStart}ms`);
 
     // Mark setup as complete - future exits will be handled as runtime disconnects
     this.isSetupComplete = true;
@@ -493,7 +486,7 @@ export class AcpConnection {
     this.isSetupComplete = false;
     this.isDetached = false;
     this.backend = null;
-    this.initializeResponse = null;
+    this.initializeResult = null;
     this.configOptions = null;
     this.models = null;
     this.child = null;
@@ -697,10 +690,9 @@ export class AcpConnection {
           // Track first chunk latency since prompt was sent
           if (!this.firstChunkReceived && this.lastPromptSentAt > 0) {
             this.firstChunkReceived = true;
-            if (ACP_PERF_LOG)
-              console.log(
-                `[ACP-PERF] stream: first chunk received ${Date.now() - this.lastPromptSentAt}ms (since prompt sent)`
-              );
+            console.log(
+              `[ACP-PERF] stream: first chunk received ${Date.now() - this.lastPromptSentAt}ms (since prompt sent)`
+            );
           }
           // Reset timeout on streaming updates - LLM is still processing
           this.resetSessionPromptTimeouts();
@@ -805,7 +797,7 @@ export class AcpConnection {
 
     const response = await this.sendRequest<AcpResponse>('initialize', initializeParams);
     this.isInitialized = true;
-    this.initializeResponse = response;
+    this.initializeResult = parseInitializeResult(response);
     return response;
   }
 
@@ -834,9 +826,10 @@ export class AcpConnection {
     // Sending the absolute path again makes some CLIs treat it as a nested relative path.
     const normalizedCwd = this.normalizeCwdForAgent(cwd);
 
-    // Build _meta for Claude/CodeBuddy ACP resume support
-    // claude-agent-acp and codebuddy use _meta.claudeCode.options.resume for session resume
-    const useMetaResume = (this.backend === 'claude' || this.backend === 'codebuddy') && options?.resumeSessionId;
+    // Build _meta resume payload only when backend/capabilities indicate Claude-style resume.
+    const caps = this.initializeResult?.capabilities;
+    const useClaudeMetaResume = this.backend === 'claude' || !!caps?._meta?.claudeCode;
+    const useMetaResume = useClaudeMetaResume && options?.resumeSessionId;
     const meta = useMetaResume
       ? {
           claudeCode: {
@@ -850,12 +843,10 @@ export class AcpConnection {
     const response = await this.sendRequest<AcpResponse & { sessionId?: string }>('session/new', {
       cwd: normalizedCwd,
       mcpServers: options?.mcpServers ?? [],
-      // Claude/CodeBuddy ACP uses _meta for resume
+      // Claude-style ACP uses _meta for resume
       ...(meta && { _meta: meta }),
       // Generic resume parameters for other ACP backends
-      ...(this.backend !== 'claude' &&
-        this.backend !== 'codebuddy' &&
-        options?.resumeSessionId && { resumeSessionId: options.resumeSessionId }),
+      ...(!meta && options?.resumeSessionId && { resumeSessionId: options.resumeSessionId }),
       ...(options?.forkSession && { forkSession: options.forkSession }),
     });
 
@@ -863,12 +854,51 @@ export class AcpConnection {
 
     this.parseSessionCapabilities(response);
 
-    // Debug: log full session/new response only when ACP_PERF=1
-    if (ACP_PERF_LOG) {
-      console.log(`[ACP ${this.backend}] session/new response:`, JSON.stringify(response, null, 2));
-    }
+    console.log(`[ACP ${this.backend}] session/new response:`, JSON.stringify(response, null, 2));
 
     return response;
+  }
+
+  /**
+   * Get the fully parsed initialize result.
+   * Returns null before initialize() completes.
+   */
+  getInitializeResult(): AcpInitializeResult | null {
+    return this.initializeResult;
+  }
+
+  /**
+   * Get parsed agent capabilities from the initialize response.
+   * Returns null before initialize() completes.
+   */
+  getAgentCapabilities(): AcpAgentCapabilities | null {
+    return this.initializeResult?.capabilities ?? null;
+  }
+
+  async resumeSession(
+    sessionId: string,
+    cwd: string = process.cwd(),
+    options?: { forkSession?: boolean; mcpServers?: AcpSessionMcpServer[] }
+  ): Promise<AcpResponse & { sessionId?: string }> {
+    const caps = this.initializeResult?.capabilities;
+    const useClaudeMetaResume = this.backend === 'claude' || !!caps?._meta?.claudeCode;
+    const supportsLoadSession = caps?.loadSession === true;
+    const shouldTryLoadSession = !useClaudeMetaResume && supportsLoadSession;
+
+    if (shouldTryLoadSession) {
+      try {
+        return await this.loadSession(sessionId, cwd, options?.mcpServers);
+      } catch (loadError) {
+        const loadErrorMsg = loadError instanceof Error ? loadError.message : String(loadError);
+        console.warn(`[ACP ${this.backend}] session/load failed, falling back to session/new resume:`, loadErrorMsg);
+      }
+    }
+
+    return await this.newSession(cwd, {
+      resumeSessionId: sessionId,
+      forkSession: options?.forkSession,
+      mcpServers: options?.mcpServers,
+    });
   }
 
   /**
@@ -955,7 +985,7 @@ export class AcpConnection {
 
     this.lastPromptSentAt = Date.now();
     this.firstChunkReceived = false;
-    if (ACP_PERF_LOG) console.log(`[ACP-PERF] send: prompt sent to ${this.backend}`);
+    console.log(`[ACP-PERF] send: prompt sent to ${this.backend}`);
 
     return await this.sendRequest('session/prompt', {
       sessionId: this.sessionId,
@@ -1064,20 +1094,32 @@ export class AcpConnection {
   }
 
   async disconnect(): Promise<void> {
-    // Try graceful session/close before killing the process.
-    // session/close is an ACP RFD (not yet required), so this is best-effort
-    // with a short timeout — if the agent supports it, it gets a chance to
-    // clean up its own child processes before we force-kill.
-    if (this.sessionId && this.child && !this.child.killed) {
+    // Try graceful session/close only when the agent declared support.
+    // session/close is an ACP RFD — sending it to unsupported agents wastes
+    // time and may trigger "method not found" errors in their logs.
+    if (
+      this.sessionId &&
+      this.child &&
+      !this.child.killed &&
+      this.initializeResult?.capabilities.sessionCapabilities.close
+    ) {
       try {
         await Promise.race([
           this.sendRequest('session/close', { sessionId: this.sessionId }),
           new Promise((_, reject) => setTimeout(() => reject(new Error('session/close timeout')), 2000)),
         ]);
       } catch {
-        // Expected: most agents don't implement session/close yet
+        // Best-effort: agent may not respond in time
       }
     }
+
+    // Mark setup as incomplete BEFORE killing the child process.
+    // killChild() waits for the process to exit, and the exit event fires
+    // during that wait. If isSetupComplete is still true at that point,
+    // the exit handler calls handleProcessExit → onDisconnect → emits
+    // agentCrash:true, causing TeammateManager to treat a controlled
+    // shutdown as an unexpected crash (and remove the agent from the team).
+    this.isSetupComplete = false;
 
     await this.terminateChild();
 
@@ -1085,9 +1127,8 @@ export class AcpConnection {
     this.pendingRequests.clear();
     this.sessionId = null;
     this.isInitialized = false;
-    this.isSetupComplete = false;
     this.backend = null;
-    this.initializeResponse = null;
+    this.initializeResult = null;
     this.configOptions = null;
     this.models = null;
   }
@@ -1114,8 +1155,13 @@ export class AcpConnection {
     return this.backend;
   }
 
+  /**
+   * @deprecated Use getInitializeResult() or getAgentCapabilities() instead.
+   * Returns the raw initialize response for backward compatibility.
+   */
   getInitializeResponse(): AcpResponse | null {
-    return this.initializeResponse;
+    // Return null — callers should migrate to getInitializeResult()
+    return null;
   }
 
   // Normalize read operations to the conversation workspace before touching the filesystem

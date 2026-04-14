@@ -218,6 +218,7 @@ export class CronService {
     const job: CronJob = {
       id: jobId,
       name: params.name,
+      description: params.description?.trim() || undefined,
       enabled: true,
       schedule: params.schedule,
       target: {

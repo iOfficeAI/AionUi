@@ -221,6 +221,7 @@
       "stopShort": "중지",
       "transcribingShort": "...",
       "audioCaptureError": "사용 가능한 마이크를 찾지 못했습니다",
+      "emptyTranscript": "음성 내용을 인식하지 못했습니다",
       "fileTooLarge": "오디오 파일이 너무 큽니다",
       "networkError": "오디오 전사 중 네트워크 오류가 발생했습니다",
       "notConfigured": "음성 전사 설정이 아직 완료되지 않았습니다",

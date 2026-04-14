@@ -33,7 +33,7 @@ export function initChannelBridge(channelRepo: IChannelRepository): void {
    */
   channel.getPluginStatus.provider(async () => {
     try {
-      const BUILTIN_TYPES = new Set(['telegram', 'lark', 'dingtalk', 'slack', 'discord', 'weixin']);
+      const BUILTIN_TYPES = new Set(['telegram', 'lark', 'dingtalk', 'slack', 'discord', 'weixin', 'wecom']);
 
       let dbPlugins: import('@process/channels/types').IChannelPluginConfig[] = [];
       try {

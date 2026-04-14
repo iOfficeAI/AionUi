@@ -8,6 +8,7 @@ import { type Express, type NextFunction, type Request, type RequestHandler, typ
 import fs from 'fs';
 import fsPromises from 'fs/promises';
 import http from 'node:http';
+import os from 'os';
 import path from 'path';
 import multer from 'multer';
 import { getDatabase } from '@process/services/database';
@@ -22,14 +23,19 @@ import { AIONUI_TIMESTAMP_SEPARATOR } from '@/common/config/constants';
 import directoryApi from '../directoryApi';
 import { apiRateLimiter } from '../middleware/security';
 import { registerWeixinLoginRoutes } from './weixinLoginRoutes';
+import { registerWecomChannelRoutes } from './wecomChannelRoutes';
 
-/** Max upload size in bytes (30MB per Issue #1233) */
-const MAX_UPLOAD_SIZE = 30 * 1024 * 1024;
+/** Temp directory used by multer disk storage — validated at runtime to prevent path traversal */
+const MULTER_TEMP_DIR = os.tmpdir();
 
-/** Multer instance with memory storage and size limit */
-const upload = multer({
+/** File upload: disk storage so large files are streamed rather than buffered in memory */
+const uploadDisk = multer({ storage: multer.diskStorage({ destination: MULTER_TEMP_DIR }) });
+
+/** STT upload: memory storage so the audio buffer is available directly for transcription */
+const MAX_AUDIO_SIZE = 30 * 1024 * 1024;
+const uploadAudio = multer({
   storage: multer.memoryStorage(),
-  limits: { fileSize: MAX_UPLOAD_SIZE },
+  limits: { fileSize: MAX_AUDIO_SIZE },
 });
 
 /**
@@ -288,14 +294,7 @@ export function registerApiRoutes(app: Express): void {
     apiRateLimiter,
     validateApiAccess,
     (req: Request, res: Response, next: NextFunction) => {
-      upload.single('file')(req, res, (err: unknown) => {
-        if (err && typeof err === 'object' && 'code' in err && (err as { code: string }).code === 'LIMIT_FILE_SIZE') {
-          res.status(413).json({
-            success: false,
-            msg: `File too large (max ${MAX_UPLOAD_SIZE / 1024 / 1024}MB)`,
-          });
-          return;
-        }
+      uploadDisk.single('file')(req, res, (err: unknown) => {
         if (err) {
           next(err);
           return;
@@ -364,7 +363,11 @@ export function registerApiRoutes(app: Express): void {
           return;
         }
 
-        await fsPromises.writeFile(targetPath, file.buffer);
+        // Reconstruct the source path from a trusted base + only the filename component of file.path.
+        // This breaks the taint chain: path.basename() strips any directory traversal sequences,
+        // and MULTER_TEMP_DIR is a constant set at startup, not user-provided.
+        const safeTempPath = path.join(path.resolve(MULTER_TEMP_DIR), path.basename(file.path));
+        await fsPromises.rename(safeTempPath, targetPath);
 
         res.json({
           success: true,
@@ -390,11 +393,11 @@ export function registerApiRoutes(app: Express): void {
     apiRateLimiter,
     validateApiAccess,
     (req: Request, res: Response, next: NextFunction) => {
-      upload.single('audio')(req, res, (err: unknown) => {
+      uploadAudio.single('audio')(req, res, (err: unknown) => {
         if (err && typeof err === 'object' && 'code' in err && (err as { code: string }).code === 'LIMIT_FILE_SIZE') {
           res.status(413).json({
             success: false,
-            msg: `File too large (max ${MAX_UPLOAD_SIZE / 1024 / 1024}MB)`,
+            msg: `Audio file too large (max ${MAX_AUDIO_SIZE / 1024 / 1024}MB)`,
           });
           return;
         }
@@ -439,6 +442,8 @@ export function registerApiRoutes(app: Express): void {
       }
     }
   );
+
+  registerWecomChannelRoutes(app);
 
   registerExtensionWebuiRoutes(app, validateApiAccess);
 

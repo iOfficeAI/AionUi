@@ -32,9 +32,6 @@ import {
   type CodexSandboxMode,
   writeCodexSandboxMode,
 } from '@process/task/codexConfig';
-/** Enable ACP performance diagnostics via ACP_PERF=1 */
-const ACP_PERF_LOG = process.env.ACP_PERF === '1';
-
 import BaseAgentManager from './BaseAgentManager';
 import { IpcAgentEventEmitter } from './IpcAgentEventEmitter';
 import { hasCronCommands } from './CronCommandDetector';
@@ -43,7 +40,7 @@ import { extractAndStripThinkTags } from './ThinkTagDetector';
 import type { AgentKillReason } from './IAgentManager';
 import { hasNativeSkillSupport } from '@/common/types/acpTypes';
 import { prepareFirstMessageWithSkillsIndex } from '@process/task/agentUtils';
-import { shouldInjectTeamGuideMcp } from '@process/resources/prompts/teamGuidePrompt';
+import { shouldInjectTeamGuideMcp } from '@process/team/prompts/teamGuideCapability.ts';
 import { extractTextFromMessage, processCronInMessage } from './MessageMiddleware';
 import { ConversationTurnCompletionService } from './ConversationTurnCompletionService';
 
@@ -115,7 +112,7 @@ class AcpAgentManager extends BaseAgentManager<AcpAgentManagerData, AcpPermissio
   private readonly missingFinishFallbackDelayMs = 15000;
 
   constructor(data: AcpAgentManagerData) {
-    super('acp', data, new IpcAgentEventEmitter());
+    super('acp', data, new IpcAgentEventEmitter(), false);
     this.conversation_id = data.conversation_id;
     this.workspace = data.workspace;
     this.options = data;
@@ -718,10 +715,9 @@ ${collectedResponses.join('\n')}`;
         const dbDuration = Date.now() - dbStart;
 
         if (transformDuration > 5 || dbDuration > 5) {
-          if (ACP_PERF_LOG)
-            console.log(
-              `[ACP-PERF] stream: transform ${transformDuration}ms, db ${dbDuration}ms type=${processedMessage.type}`
-            );
+          console.log(
+            `[ACP-PERF] stream: transform ${transformDuration}ms, db ${dbDuration}ms type=${processedMessage.type}`
+          );
         }
 
         // Track streaming content for cron detection when turn ends
@@ -739,10 +735,13 @@ ${collectedResponses.join('\n')}`;
 
     const emitStart = Date.now();
     ipcBridge.acpConversation.responseStream.emit(processedMessage);
-    teamEventBus.emit('responseStream', {
-      ...processedMessage,
-      conversation_id: this.conversation_id,
-    });
+    // Only emit terminal events to team bus for agent lifecycle management
+    if (processedMessage.type === 'finish' || processedMessage.type === 'error') {
+      teamEventBus.emit('responseStream', {
+        ...processedMessage,
+        conversation_id: this.conversation_id,
+      });
+    }
     const emitDuration = Date.now() - emitStart;
 
     channelEventBus.emitAgentMessage(this.conversation_id, {
@@ -752,10 +751,9 @@ ${collectedResponses.join('\n')}`;
 
     const totalDuration = Date.now() - pipelineStart;
     if (totalDuration > 10) {
-      if (ACP_PERF_LOG)
-        console.log(
-          `[ACP-PERF] stream: onStreamEvent pipeline ${totalDuration}ms (emit=${emitDuration}ms) type=${processedMessage.type}`
-        );
+      console.log(
+        `[ACP-PERF] stream: onStreamEvent pipeline ${totalDuration}ms (emit=${emitDuration}ms) type=${processedMessage.type}`
+      );
     }
   }
 
@@ -817,10 +815,6 @@ ${collectedResponses.join('\n')}`;
     }
 
     ipcBridge.acpConversation.responseStream.emit(v);
-    teamEventBus.emit('responseStream', {
-      ...v,
-      conversation_id: this.conversation_id,
-    });
 
     channelEventBus.emitAgentMessage(this.conversation_id, {
       ...v,
@@ -1013,8 +1007,8 @@ ${collectedResponses.join('\n')}`;
             // Native skill discovery via workspace symlinks — inject preset rules + team guide
             const parts: string[] = [];
             if (this.options.presetContext) parts.push(this.options.presetContext);
-            if (!isInTeam && shouldInjectTeamGuideMcp(this.options.backend)) {
-              const { getTeamGuidePrompt } = await import('@process/resources/prompts/teamGuidePrompt');
+            if (!isInTeam && (await shouldInjectTeamGuideMcp(this.options.backend))) {
+              const { getTeamGuidePrompt } = await import('@process/team/prompts/teamGuidePrompt.ts');
               parts.push(getTeamGuidePrompt(this.options.backend));
             }
             if (parts.length > 0) {
@@ -1025,7 +1019,7 @@ ${collectedResponses.join('\n')}`;
             contentToSend = await prepareFirstMessageWithSkillsIndex(contentToSend, {
               presetContext: this.options.presetContext,
               enabledSkills: this.options.enabledSkills,
-              enableTeamGuide: !isInTeam && shouldInjectTeamGuideMcp(this.options.backend),
+              enableTeamGuide: !isInTeam && (await shouldInjectTeamGuideMcp(this.options.backend)),
               backend: this.options.backend,
             });
           }
@@ -1051,10 +1045,9 @@ ${collectedResponses.join('\n')}`;
       }
       const agentSendStart = Date.now();
       const result = await this.sendAgentMessageWithFinishFallback(data);
-      if (ACP_PERF_LOG)
-        console.log(
-          `[ACP-PERF] manager: agent.sendMessage completed ${Date.now() - agentSendStart}ms (total manager.sendMessage: ${Date.now() - managerSendStart}ms)`
-        );
+      console.log(
+        `[ACP-PERF] manager: agent.sendMessage completed ${Date.now() - agentSendStart}ms (total manager.sendMessage: ${Date.now() - managerSendStart}ms)`
+      );
       if (!result.success) {
         this.clearBusyState();
       }

@@ -74,6 +74,7 @@
     "createSuccess": "タスクが正常に作成されました",
     "updateSuccess": "タスクが正常に更新されました",
     "scheduleHint": "スケジュールタスクはサーバーパフォーマンスのため、数分のランダムな遅延があります。",
+    "customCronWarning": "このタスクには、ここでは編集できないカスタムスケジュールが設定されています。頻度を変更すると現在のスケジュールに置き換わります。",
     "weekday": {
       "monday": "月曜日",
       "tuesday": "火曜日",
@@ -124,7 +125,7 @@
       "daily": "毎日",
       "weekdays": "平日",
       "weekly": "毎週",
-      "custom": "カスタム Cron..."
+      "custom": "カスタム"
     },
     "scheduleDesc": {
       "manual": "手動",

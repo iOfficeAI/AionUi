@@ -21,7 +21,9 @@ const GeminiTeamChat: React.FC<{
   hideSendBox?: boolean;
   teamId?: string;
   agentSlotId?: string;
-}> = ({ conversation, hideSendBox, teamId, agentSlotId }) => {
+  agentName?: string;
+  agentType?: string;
+}> = ({ conversation, hideSendBox, teamId, agentSlotId, agentName, agentType }) => {
   const onSelectModel = useCallback(
     async (_provider: IProvider, modelName: string) => {
       const selected = { ..._provider, useModel: modelName } as TProviderWithModel;
@@ -41,6 +43,8 @@ const GeminiTeamChat: React.FC<{
       hideSendBox={hideSendBox}
       teamId={teamId}
       agentSlotId={agentSlotId}
+      agentName={agentName}
+      agentType={agentType}
     />
   );
 };
@@ -79,13 +83,22 @@ type TeamChatViewProps = {
   teamId?: string;
   /** When set alongside teamId, routes messages to a specific agent via team.sendMessageToAgent */
   agentSlotId?: string;
+  agentName?: string;
+  agentType?: string;
 };
 
 /**
  * Routes to the correct platform chat component based on conversation type.
  * Does NOT wrap in ChatLayout — that is done by the parent TeamPage.
  */
-const TeamChatView: React.FC<TeamChatViewProps> = ({ conversation, hideSendBox, teamId, agentSlotId }) => {
+const TeamChatView: React.FC<TeamChatViewProps> = ({
+  conversation,
+  hideSendBox,
+  teamId,
+  agentSlotId,
+  agentName,
+  agentType,
+}) => {
   const content = (() => {
     switch (conversation.type) {
       case 'acp':
@@ -96,7 +109,7 @@ const TeamChatView: React.FC<TeamChatViewProps> = ({ conversation, hideSendBox, 
             workspace={conversation.extra?.workspace}
             backend={conversation.extra?.backend || 'claude'}
             sessionMode={conversation.extra?.sessionMode}
-            agentName={(conversation.extra as { agentName?: string })?.agentName}
+            agentName={agentName ?? (conversation.extra as { agentName?: string })?.agentName}
             hideSendBox={hideSendBox}
             teamId={teamId}
             agentSlotId={agentSlotId}
@@ -109,6 +122,7 @@ const TeamChatView: React.FC<TeamChatViewProps> = ({ conversation, hideSendBox, 
             conversation_id={conversation.id}
             workspace={conversation.extra?.workspace}
             backend='codex'
+            agentName={agentName ?? (conversation.extra as { agentName?: string })?.agentName}
             hideSendBox={hideSendBox}
             teamId={teamId}
             agentSlotId={agentSlotId}
@@ -124,6 +138,8 @@ const TeamChatView: React.FC<TeamChatViewProps> = ({ conversation, hideSendBox, 
             hideSendBox={hideSendBox}
             teamId={teamId}
             agentSlotId={agentSlotId}
+            agentName={agentName}
+            agentType={agentType}
           />
         );
       case 'openclaw-gateway':

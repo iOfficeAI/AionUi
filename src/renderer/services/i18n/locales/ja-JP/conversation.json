@@ -221,6 +221,7 @@
       "stopShort": "停止",
       "transcribingShort": "...",
       "audioCaptureError": "利用可能なマイクが見つかりません",
+      "emptyTranscript": "音声内容を認識できませんでした",
       "fileTooLarge": "音声ファイルが大きすぎます",
       "networkError": "音声の文字起こし中にネットワークエラーが発生しました",
       "notConfigured": "音声文字起こしがまだ設定されていません",

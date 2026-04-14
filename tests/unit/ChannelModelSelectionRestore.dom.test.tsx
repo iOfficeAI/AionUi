@@ -72,15 +72,19 @@ vi.mock('@/renderer/pages/conversation/platforms/gemini/useGeminiModelSelection'
   }),
 }));
 
-vi.mock('@/common/adapter/ipcBridge', () => ({
-  channel: {
-    getPluginStatus: { invoke: vi.fn().mockResolvedValue({ success: true, data: [] }) },
-    pluginStatusChanged: { on: vi.fn().mockReturnValue(() => {}) },
-  },
-  webui: {
-    getStatus: { invoke: vi.fn().mockResolvedValue({ success: false }) },
-  },
-}));
+vi.mock('@/common/adapter/ipcBridge', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('@/common/adapter/ipcBridge')>();
+  return {
+    ...actual,
+    channel: {
+      getPluginStatus: { invoke: vi.fn().mockResolvedValue({ success: true, data: [] }) },
+      pluginStatusChanged: { on: vi.fn().mockReturnValue(() => {}) },
+    },
+    webui: {
+      getStatus: { invoke: vi.fn().mockResolvedValue({ success: false }) },
+    },
+  };
+});
 
 vi.mock('@/renderer/components/base/AionScrollArea', () => ({
   default: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
@@ -108,6 +112,9 @@ vi.mock('../../src/renderer/components/settings/SettingsModal/contents/channels/
 vi.mock('../../src/renderer/components/settings/SettingsModal/contents/channels/WeixinConfigForm', () => ({
   default: () => <div>WeixinForm</div>,
 }));
+vi.mock('../../src/renderer/components/settings/SettingsModal/contents/channels/WecomConfigForm', () => ({
+  default: () => <div>WecomForm</div>,
+}));
 
 describe('useChannelModelSelection restore retry limit', () => {
   beforeEach(() => {
@@ -129,7 +136,7 @@ describe('useChannelModelSelection restore retry limit', () => {
       render(<ChannelModalContent />);
     });
 
-    // The hook runs for 4 channels (telegram, lark, dingtalk, weixin).
+    // The hook runs for 5 channels (telegram, lark, dingtalk, weixin, wecom).
     // Initial render triggers the first attempt for each channel.
     // The saved provider 'deleted-provider' won't be found in mockProviders.
     const initialCallCount = mockConfigStorageGet.mock.calls.length;
@@ -148,10 +155,10 @@ describe('useChannelModelSelection restore retry limit', () => {
     }
 
     // After MAX_RESTORE_RETRIES (5), the effect should stop calling ConfigStorage.get.
-    // With 4 channels × at most 5 retries each = at most 20 calls.
-    // Without the fix, this would be 4 × 10+ = 40+ calls.
+    // With 5 channels × at most 5 retries each = at most 25 calls.
+    // Without the fix, this would be 5 × 10+ = 50+ calls.
     const totalCalls = mockConfigStorageGet.mock.calls.length;
-    expect(totalCalls).toBeLessThanOrEqual(4 * 5);
+    expect(totalCalls).toBeLessThanOrEqual(5 * 5);
   });
 
   it('should restore successfully when provider exists', async () => {
@@ -166,8 +173,8 @@ describe('useChannelModelSelection restore retry limit', () => {
       render(<ChannelModalContent />);
     });
 
-    // Each of the 4 channels should call ConfigStorage.get exactly once
+    // Each of the 5 channels should call ConfigStorage.get exactly once
     // (restored=true after finding the provider, so no retries)
-    expect(mockConfigStorageGet).toHaveBeenCalledTimes(4);
+    expect(mockConfigStorageGet).toHaveBeenCalledTimes(5);
   });
 });

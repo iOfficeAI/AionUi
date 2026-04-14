@@ -92,7 +92,7 @@ describe('spawnNpxBackend - Windows UTF-8 fix', () => {
     spawnNpxBackend('claude', '@pkg/cli@1.0.0', 'npx.cmd', {}, '/cwd', true, false);
 
     const [command, , options] = mockSpawn.mock.calls[0];
-    expect(command).toMatch(/^chcp 65001 >nul && /);
+    expect(command).toBe('chcp 65001 >nul && npx.cmd');
     expect(options).toMatchObject({ shell: true });
   });
 

@@ -35,8 +35,24 @@ import { mainWarn } from '@process/utils/mainLogger';
 
 const execFile = promisify(execFileCb);
 
-/** Enable ACP performance diagnostics via ACP_PERF=1 */
-export const ACP_PERF_LOG = process.env.ACP_PERF === '1';
+function normalizeWindowsCommand(command: string): string {
+  const trimmed = command.trim();
+  if (trimmed.startsWith('"') && trimmed.endsWith('"')) {
+    return trimmed.slice(1, -1);
+  }
+  return trimmed;
+}
+
+function formatWindowsCommandForShell(command: string): string {
+  const normalized = normalizeWindowsCommand(command);
+  const isPathLike =
+    /^[a-zA-Z]:[\\/]/.test(normalized) ||
+    normalized.startsWith('.\\') ||
+    normalized.startsWith('..\\') ||
+    normalized.includes('\\') ||
+    normalized.includes('/');
+  return isPathLike ? `"${normalized}"` : normalized;
+}
 
 function resolveCodexAcpPlatformPackage(): string | null {
   if (process.platform === 'win32') {
@@ -119,7 +135,9 @@ function isCodexMetaPackageOptionalDependencyError(errorMessage: string): boolea
  * Node.js processes.
  */
 export async function prepareCleanEnv(): Promise<Record<string, string | undefined>> {
+  const shellEnvStart = Date.now();
   const fullShellEnv = await loadFullShellEnvironment();
+  console.log(`[ACP-PERF] connect: shell env loaded ${Date.now() - shellEnvStart}ms`);
   const cleanEnv = getEnhancedEnv();
 
   // Merge full shell env as base, then overlay getEnhancedEnv on top
@@ -335,7 +353,7 @@ export function spawnNpxBackend(
     // producing "Cannot find module '<cwd>\node_modules\npm\bin\npm-cli.js'" errors.
     effectiveCommand = `chcp 65001 >nul && "${directInvoke.nodePath}" "${directInvoke.npxScript}"`;
   } else {
-    effectiveCommand = isWindows ? `chcp 65001 >nul && "${npxCommand}"` : npxCommand;
+    effectiveCommand = isWindows ? `chcp 65001 >nul && ${formatWindowsCommandForShell(npxCommand)}` : npxCommand;
   }
   const child = spawn(effectiveCommand, spawnArgs, {
     cwd: workingDir,
@@ -348,9 +366,7 @@ export function spawnNpxBackend(
   if (detached) {
     child.unref();
   }
-  if (ACP_PERF_LOG) {
-    console.log(`[ACP-PERF] ${backend}: process spawned ${Date.now() - spawnStart}ms (preferOffline=${preferOffline})`);
-  }
+  console.log(`[ACP-PERF] ${backend}: process spawned ${Date.now() - spawnStart}ms (preferOffline=${preferOffline})`);
 
   return { child, isDetached: detached };
 }
@@ -367,6 +383,7 @@ async function prepareCodex(codexAcpPackage: string = CODEX_ACP_NPX_PACKAGE): Pr
   const cleanEnv = await prepareCleanEnv();
   ensureMinNodeVersion(cleanEnv, 20, 10, 'Codex ACP bridge');
 
+  const diagStart = Date.now();
   const codexCommand = process.platform === 'win32' ? 'codex.cmd' : 'codex';
   const codexExecOptions = {
     env: cleanEnv,
@@ -406,6 +423,8 @@ async function prepareCodex(codexAcpPackage: string = CODEX_ACP_NPX_PACKAGE): Pr
   } catch (error) {
     mainWarn('[ACP codex]', 'Failed to read codex login status', error);
   }
+
+  console.log(`[ACP-PERF] connect: codex diagnostics ${Date.now() - diagStart}ms`);
 
   return { cleanEnv, npxCommand: resolveNpxPath(cleanEnv), directInvoke: resolveNpxDirect(cleanEnv) ?? undefined };
 }
@@ -519,7 +538,7 @@ export async function spawnGenericBackend(
   if (detached) {
     child.unref();
   }
-  if (ACP_PERF_LOG) console.log(`[ACP-PERF] connect: ${backend} process spawned ${Date.now() - spawnStart}ms`);
+  console.log(`[ACP-PERF] connect: ${backend} process spawned ${Date.now() - spawnStart}ms`);
 
   return { child, isDetached: detached };
 }
@@ -553,7 +572,7 @@ async function connectNpxBackend(config: {
 
   const envStart = Date.now();
   const { cleanEnv, npxCommand, directInvoke, extraArgs: prepExtraArgs = [] } = await prepareFn();
-  if (ACP_PERF_LOG) console.log(`[ACP-PERF] ${backend}: env prepared ${Date.now() - envStart}ms`);
+  console.log(`[ACP-PERF] ${backend}: env prepared ${Date.now() - envStart}ms`);
 
   const isWindows = process.platform === 'win32';
   const opts = {
@@ -595,7 +614,12 @@ export function connectClaude(workingDir: string, hooks: NpxConnectHooks): Promi
 /** Connect to Codex ACP bridge via npx. */
 export function connectCodex(workingDir: string, hooks: NpxConnectHooks): Promise<void> {
   return (async () => {
+    const cacheStart = Date.now();
     const cachedBinary = await resolveCachedCodexAcpBinary();
+    console.log(
+      `[ACP-PERF] connect: codex cached binary lookup ${Date.now() - cacheStart}ms` +
+        ` (${cachedBinary ? 'hit' : 'miss'})`
+    );
     if (cachedBinary) {
       try {
         const { cleanEnv } = await prepareCodex(cachedBinary.packageSpecifier);
@@ -606,7 +630,9 @@ export function connectCodex(workingDir: string, hooks: NpxConnectHooks): Promis
           undefined,
           cleanEnv as Record<string, string>
         );
+        const spawnStart = Date.now();
         const child = spawn(config.command, config.args, config.options);
+        console.log(`[ACP-PERF] codex: process spawned ${Date.now() - spawnStart}ms (cached binary)`);
         await hooks.setup({ child, isDetached: false });
         return;
       } catch (error) {

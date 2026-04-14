@@ -29,13 +29,8 @@ export const TeamPermissionProvider: React.FC<{
       void ipcBridge.team.setSessionMode.invoke({ teamId, sessionMode: mode }).catch(() => {
         // Best-effort: if this fails, agents still get mode via per-conversation setMode below
       });
-      for (const conversationId of allConversationIds) {
-        void ipcBridge.acpConversation.setMode.invoke({ conversationId, mode }).catch(() => {
-          // Silently ignore failures for non-ACP agents (e.g. gemini, codex) that don't support setMode
-        });
-      }
     },
-    [teamId, allConversationIds]
+    [teamId]
   );
 
   const value = useMemo<TeamPermissionContextValue>(

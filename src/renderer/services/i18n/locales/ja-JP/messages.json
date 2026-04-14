@@ -10,6 +10,7 @@
   "copy": "コピー",
   "copySuccess": "コピーしました",
   "copyFailed": "コピーに失敗しました",
+  "copyLastOutput.empty": "まだコピーできる応答がありません",
   "copiedToClipboard": "クリップボードにコピーしました",
   "downloadSuccess": "ダウンロードしました",
   "downloadFailed": "ダウンロードに失敗しました",

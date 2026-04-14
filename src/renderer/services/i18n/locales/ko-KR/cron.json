@@ -62,6 +62,7 @@
     "createSuccess": "작업이 성공적으로 생성되었습니다",
     "updateSuccess": "작업이 성공적으로 업데이트되었습니다",
     "scheduleHint": "예약 작업은 서버 성능을 위해 몇 분의 무작위 지연이 있습니다.",
+    "customCronWarning": "이 작업에는 여기서 편집할 수 없는 사용자 지정 일정이 있습니다. 빈도를 변경하면 현재 일정이 대체됩니다.",
     "weekday": {
       "monday": "월요일",
       "tuesday": "화요일",
@@ -112,7 +113,7 @@
       "daily": "매일",
       "weekdays": "평일",
       "weekly": "매주",
-      "custom": "사용자 정의 Cron..."
+      "custom": "사용자 지정"
     },
     "scheduleDesc": {
       "manual": "수동",

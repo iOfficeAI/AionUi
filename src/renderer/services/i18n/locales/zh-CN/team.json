@@ -53,6 +53,10 @@
     "chooseDifferentFolder": "选择其他目录",
     "error": "创建团队失败"
   },
+  "removeAgent": {
+    "confirmTitle": "移除团队成员",
+    "confirmContent": "该成员正在工作中，确定要强制移除吗？"
+  },
   "emptyState": {
     "subtitle": "描述你的目标，我来协调团队搞定它",
     "suggestions": {

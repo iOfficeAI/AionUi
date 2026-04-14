@@ -28,6 +28,7 @@ export type { PluginMessageHandler } from './plugins/BasePlugin';
 export { TelegramPlugin } from './plugins/telegram/TelegramPlugin';
 export { DingTalkPlugin } from './plugins/dingtalk/DingTalkPlugin';
 export { WeixinPlugin } from './plugins/weixin/WeixinPlugin';
+export { WecomPlugin } from './plugins/wecom/WecomPlugin';
 
 // Pairing exports
 export { getPairingService, PairingService } from './pairing/PairingService';

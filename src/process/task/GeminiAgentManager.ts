@@ -24,7 +24,7 @@ import { addMessage, addOrUpdateMessage, nextTickToLocalFinish } from '@process/
 import { cronBusyGuard } from '@process/services/cron/CronBusyGuard';
 import { skillSuggestWatcher } from '@process/services/cron/SkillSuggestWatcher';
 import { handlePreviewOpenEvent } from '@process/utils/previewUtils';
-import { getAionMcpStdioConfig } from '@process/services/mcpServices/aionMcpServiceSingleton';
+import { getTeamGuideStdioConfig } from '@process/team/mcp/guide/teamGuideSingleton';
 import BaseAgentManager from './BaseAgentManager';
 import { IpcAgentEventEmitter } from './IpcAgentEventEmitter';
 import { mainLog, mainWarn, mainError } from '@process/utils/mainLogger';
@@ -237,12 +237,12 @@ export class GeminiAgentManager extends BaseAgentManager<
         }
         const effectiveYoloMode = this.forceYoloMode ?? this.currentMode === 'yolo';
 
-        // Inject team guide prompt for solo Gemini agents.
+        // Inject the solo/team decision guide for solo Gemini agents.
         // ACP agents get this via AcpAgentManager; Gemini needs it appended to presetRules
-        // so it goes into GEMINI.md and the agent knows when/how to recommend Team mode.
+        // so it goes into GEMINI.md and the agent knows when to stay solo vs discuss Team mode.
         let effectivePresetRules = this.presetRules;
         if (!this.teamMcpStdioConfig) {
-          const { getTeamGuidePrompt } = await import('@process/resources/prompts/teamGuidePrompt');
+          const { getTeamGuidePrompt } = await import('@process/team/prompts/teamGuidePrompt.ts');
           const teamGuide = getTeamGuidePrompt('gemini');
           effectivePresetRules = effectivePresetRules ? `${effectivePresetRules}\n\n${teamGuide}` : teamGuide;
         }
@@ -380,15 +380,17 @@ export class GeminiAgentManager extends BaseAgentManager<
         mainLog('[GeminiAgentManager]', 'getMcpServers: no teamMcpStdioConfig, skipping team MCP injection');
 
         // Inject Aion team-guide MCP server for solo agents (not in team mode)
-        // so Gemini can call aion_create_team / aion_navigate when guiding users to Team mode.
+        // so Gemini can call aion_create_team after the user requests a Team
+        // or explicitly approves Team for an exceptionally hard task.
         // AION_MCP_BACKEND tells the stdio bridge this is a gemini agent.
-        const aionStdioConfig = getAionMcpStdioConfig();
+        const aionStdioConfig = getTeamGuideStdioConfig();
         if (aionStdioConfig) {
           const aionEnvObj: Record<string, string> = {};
           for (const { name, value } of aionStdioConfig.env || []) {
             aionEnvObj[name] = value;
           }
           aionEnvObj['AION_MCP_BACKEND'] = 'gemini';
+          aionEnvObj['AION_MCP_CONVERSATION_ID'] = this.conversation_id;
           mcpConfig[aionStdioConfig.name] = {
             command: aionStdioConfig.command,
             args: aionStdioConfig.args || [],
@@ -829,9 +831,11 @@ export class GeminiAgentManager extends BaseAgentManager<
       const filteredData = this.filterThinkTagsFromMessage(data);
       ipcBridge.geminiConversation.responseStream.emit(filteredData);
 
-      // Also emit to main-process-local bus so TeammateManager (same process)
-      // can receive events — ipcBridge.emit only delivers to renderer via webContents.send()
-      teamEventBus.emit('responseStream', filteredData);
+      // Emit terminal events to main-process-local bus so TeammateManager can
+      // manage agent lifecycle — ipcBridge.emit only delivers to renderer via webContents.send()
+      if (filteredData.type === 'finish' || filteredData.type === 'error') {
+        teamEventBus.emit('responseStream', filteredData);
+      }
 
       // Emit to Channel global event bus (for Telegram and other external platforms)
       channelEventBus.emitAgentMessage(this.conversation_id, filteredData);
