@@ -6,7 +6,8 @@ import { addMessage } from '@process/utils/message';
 import type { IWorkerTaskManager } from '@process/task/IWorkerTaskManager';
 import type { IResponseMessage } from '@/common/adapter/ipcBridge';
 import type { TeamAgent, TeammateStatus } from './types';
-import { TEAM_SUPPORTED_BACKENDS } from '@/common/types/teamTypes';
+import { isTeamCapableBackend } from '@/common/types/teamTypes';
+import { ProcessConfig } from '@process/utils/initStorage';
 import type { Mailbox } from './Mailbox';
 import type { TaskManager } from './TaskManager';
 import { buildRolePrompt } from './prompts/buildRolePrompt';
@@ -160,10 +161,11 @@ export class TeammateManager extends EventEmitter {
         }
       }
 
-      // Only show team-verified backends in the leader's available agent types
+      // Only show team-capable backends (with cached ACP initialize results) in the leader's available agent types
+      const cachedInitResults = await ProcessConfig.get('acp.cachedInitializeResult');
       const availableAgentTypes = acpDetector
         .getDetectedAgents()
-        .filter((a) => TEAM_SUPPORTED_BACKENDS.has(a.backend))
+        .filter((a) => isTeamCapableBackend(a.backend, cachedInitResults))
         .map((a) => ({ type: a.backend, name: a.name }));
 
       const message = buildRolePrompt({

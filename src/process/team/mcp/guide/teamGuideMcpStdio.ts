@@ -15,7 +15,7 @@ import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
 import { z } from 'zod';
 import * as net from 'node:net';
-import { getCreateTeamToolDescription } from '@process/resources/prompts/teamGuidePrompt';
+import { getCreateTeamToolDescription } from '@process/team/prompts/teamGuidePrompt.ts';
 
 const AION_MCP_TOKEN = process.env.AION_MCP_TOKEN || undefined;
 /** Backend type of the agent that owns this stdio bridge (e.g. 'claude', 'codex', 'gemini'). */
@@ -23,7 +23,7 @@ const AION_MCP_BACKEND = process.env.AION_MCP_BACKEND || '';
 /** Conversation ID of the calling agent, used to reuse the conversation as team leader. */
 const AION_MCP_CONVERSATION_ID = process.env.AION_MCP_CONVERSATION_ID || '';
 process.stderr.write(
-  `[aion-mcp-stdio] Script started. PID=${process.pid}, AION_MCP_PORT=${process.env.AION_MCP_PORT || 'unset'}, BACKEND=${AION_MCP_BACKEND || 'unset'}\n`
+  `[team-guide-mcp-stdio] Script started. PID=${process.pid}, AION_MCP_PORT=${process.env.AION_MCP_PORT || 'unset'}, BACKEND=${AION_MCP_BACKEND || 'unset'}\n`
 );
 const AION_MCP_PORT = parseInt(process.env.AION_MCP_PORT || '0', 10);
 
@@ -150,28 +150,12 @@ createAionTool(
   AION_MCP_TOKEN
 );
 
-// ---- aion_navigate ----
-createAionTool(
-  server,
-  'aion_navigate',
-  `Navigate the Aion UI to a specific route.
-
-Use this tool after creating a team (or opening a conversation) to switch the
-application view so the user can see the result. Only whitelisted route patterns
-are accepted (/team/:id, /conversation/:id).`,
-  {
-    route: z.string().min(1).describe('Target route, e.g. "/team/abc123" or "/conversation/xyz456".'),
-  },
-  AION_MCP_PORT,
-  AION_MCP_TOKEN
-);
-
 async function main(): Promise<void> {
   const transport = new StdioServerTransport();
   await server.connect(transport);
 }
 
 main().catch((err: unknown) => {
-  process.stderr.write(`[aion-mcp-stdio] Fatal error: ${err}\n`);
+  process.stderr.write(`[team-guide-mcp-stdio] Fatal error: ${err}\n`);
   process.exit(1);
 });

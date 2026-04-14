@@ -6,7 +6,7 @@
 
 import { getSkillsDir, getBuiltinSkillsCopyDir, loadSkillsContent } from '@process/utils/initStorage';
 import { AcpSkillManager, buildSkillsIndexText } from './AcpSkillManager';
-import { getTeamGuidePrompt } from '@process/resources/prompts/teamGuidePrompt';
+import { getTeamGuidePrompt } from '@process/team/prompts/teamGuidePrompt.ts';
 
 /**
  * 首次消息处理配置

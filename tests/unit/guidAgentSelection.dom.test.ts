@@ -20,7 +20,6 @@ const configStorageMock = vi.hoisted(() => ({
 
 const ipcMock = vi.hoisted(() => ({
   getAvailableAgents: vi.fn(),
-  probeModelInfo: vi.fn(),
   refreshCustomAgents: vi.fn().mockResolvedValue(undefined),
   getCustomAgents: vi.fn(),
   getAssistants: vi.fn(),
@@ -35,7 +34,6 @@ vi.mock('../../src/common', () => ({
   ipcBridge: {
     acpConversation: {
       getAvailableAgents: { invoke: ipcMock.getAvailableAgents },
-      probeModelInfo: { invoke: ipcMock.probeModelInfo },
       refreshCustomAgents: { invoke: ipcMock.refreshCustomAgents },
     },
     extensions: {
@@ -156,7 +154,6 @@ function setupMocks(overrides?: {
   const geminiConfig = overrides?.geminiConfig ?? {};
 
   ipcMock.getAvailableAgents.mockResolvedValue({ success: true, data: AVAILABLE_AGENTS });
-  ipcMock.probeModelInfo.mockResolvedValue({ success: false });
   ipcMock.getAssistants.mockResolvedValue([]);
 
   configStorageMock.get.mockImplementation(async (key: string) => {

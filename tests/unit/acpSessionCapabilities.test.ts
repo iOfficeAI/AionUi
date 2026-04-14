@@ -7,6 +7,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { AcpConnection } from '../../src/process/agent/acp/AcpConnection';
 import { AcpAgent } from '../../src/process/agent/acp/index';
+import { parseInitializeResult } from '../../src/common/types/acpTypes';
 import type { AcpSessionConfigOption, AcpSessionModels } from '../../src/types/acpTypes';
 
 vi.mock('@process/utils/initStorage', async (importOriginal) => {
@@ -220,6 +221,11 @@ describe('AcpAgent.createOrResumeSession — Codex routing', () => {
 });
 
 describe('AcpConnection.resumeSession capability routing', () => {
+  /** Set parsed initializeResult on a connection (mirrors what initialize() does). */
+  function setInitializeResponse(conn: AcpConnection, response: Record<string, unknown>): void {
+    (conn as any).initializeResult = parseInitializeResult(response);
+  }
+
   const makeConnection = (backend: AcpBackend): AcpConnection => {
     const conn = new AcpConnection();
     (conn as any).backend = backend;
@@ -228,7 +234,7 @@ describe('AcpConnection.resumeSession capability routing', () => {
 
   it('prefers loadSession for load-capable non-claude backends', async () => {
     const conn = makeConnection('opencode');
-    (conn as any).initializeResponse = { agentCapabilities: { loadSession: true } };
+    setInitializeResponse(conn, { agentCapabilities: { loadSession: true } });
 
     const loadSession = vi.spyOn(conn, 'loadSession').mockResolvedValue({ sessionId: 's1' } as any);
     const newSession = vi.spyOn(conn, 'newSession').mockResolvedValue({ sessionId: 'fresh' } as any);
@@ -242,7 +248,7 @@ describe('AcpConnection.resumeSession capability routing', () => {
 
   it('uses newSession for claude backend even when loadSession is declared', async () => {
     const conn = makeConnection('claude');
-    (conn as any).initializeResponse = { agentCapabilities: { loadSession: true } };
+    setInitializeResponse(conn, { agentCapabilities: { loadSession: true } });
 
     const loadSession = vi.spyOn(conn, 'loadSession').mockResolvedValue({ sessionId: 's1' } as any);
     const newSession = vi.spyOn(conn, 'newSession').mockResolvedValue({ sessionId: 's1' } as any);
@@ -261,9 +267,9 @@ describe('AcpConnection.resumeSession capability routing', () => {
 
   it('uses newSession for _meta.claudeCode capability', async () => {
     const conn = makeConnection('codebuddy');
-    (conn as any).initializeResponse = {
+    setInitializeResponse(conn, {
       agentCapabilities: { loadSession: true, _meta: { claudeCode: { promptQueueing: true } } },
-    };
+    });
 
     const loadSession = vi.spyOn(conn, 'loadSession').mockResolvedValue({ sessionId: 's1' } as any);
     const newSession = vi.spyOn(conn, 'newSession').mockResolvedValue({ sessionId: 's1' } as any);
@@ -276,7 +282,7 @@ describe('AcpConnection.resumeSession capability routing', () => {
 
   it('falls back to newSession when loadSession fails', async () => {
     const conn = makeConnection('qwen');
-    (conn as any).initializeResponse = { agentCapabilities: { loadSession: true } };
+    setInitializeResponse(conn, { agentCapabilities: { loadSession: true } });
 
     vi.spyOn(conn, 'loadSession').mockRejectedValue(new Error('load failed'));
     const newSession = vi.spyOn(conn, 'newSession').mockResolvedValue({ sessionId: 'fresh' } as any);

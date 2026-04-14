@@ -48,6 +48,9 @@ export interface IPluginCredentials {
   clientSecret?: string;
   // WeCom (Enterprise WeChat AI Bot callback)
   encodingAesKey?: string;
+  // WeCom (Enterprise WeChat AI Bot websocket)
+  botId?: string;
+  secret?: string;
   // Extension plugins: arbitrary credential fields
   [key: string]: string | number | boolean | undefined;
 }
@@ -65,7 +68,9 @@ export function hasPluginCredentials(type: PluginType, credentials?: IPluginCred
   if (type === 'weixin') return !!(credentials.accountId && credentials.botToken);
   if (type === 'wecom') {
     const key = credentials.encodingAesKey;
-    return !!(credentials.token && key && key.length === 43);
+    const hasWebhook = !!(credentials.token && key && key.length === 43);
+    const hasWebsocket = !!(credentials.botId && credentials.secret);
+    return hasWebhook || hasWebsocket;
   }
   // Extension or unknown plugins: check if any credential value is non-empty
   return Object.values(credentials).some((v) => v !== undefined && v !== null && v !== '');
