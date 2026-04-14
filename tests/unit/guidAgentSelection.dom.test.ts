@@ -348,6 +348,63 @@ describe('useGuidAgentSelection – preset agent config resolution', () => {
     expect(cachedModelsCall?.[1]).toEqual({ claude: probedClaudeModel });
   });
 
+  it('refreshes Claude model info when the window regains focus', async () => {
+    setupMocks({ cachedModels: {}, acpConfig: {} });
+    const initialClaudeModel: AcpModelInfo = {
+      source: 'models',
+      sourceDetail: 'cc-switch',
+      currentModelId: 'claude-opus-4-6-20260301',
+      currentModelLabel: 'Claude Opus 4.6',
+      availableModels: [
+        { id: 'claude-opus-4-6-20260301', label: 'Claude Opus 4.6' },
+        { id: 'claude-sonnet-4-5-20250514', label: 'Claude Sonnet 4.5' },
+      ],
+      canSwitch: true,
+    };
+    const refreshedClaudeModel: AcpModelInfo = {
+      source: 'models',
+      sourceDetail: 'cc-switch',
+      currentModelId: 'claude-sonnet-4-5-20250514',
+      currentModelLabel: 'Claude Sonnet 4.5',
+      availableModels: [
+        { id: 'claude-sonnet-4-5-20250514', label: 'Claude Sonnet 4.5' },
+        { id: 'claude-opus-4-6-20260301', label: 'Claude Opus 4.6' },
+      ],
+      canSwitch: true,
+    };
+    ipcMock.probeModelInfo
+      .mockResolvedValueOnce({
+        success: true,
+        data: { modelInfo: initialClaudeModel },
+      })
+      .mockResolvedValueOnce({
+        success: true,
+        data: { modelInfo: refreshedClaudeModel },
+      });
+
+    const { result } = renderHook(() => useGuidAgentSelection(hookOptions));
+
+    await waitFor(() => {
+      expect(result.current.availableAgents).toBeDefined();
+    });
+
+    act(() => {
+      result.current.setSelectedAgentKey('claude');
+    });
+
+    await waitFor(() => {
+      expect(result.current.currentAcpCachedModelInfo?.currentModelId).toBe('claude-opus-4-6-20260301');
+    });
+
+    act(() => {
+      window.dispatchEvent(new Event('focus'));
+    });
+
+    await waitFor(() => {
+      expect(result.current.currentAcpCachedModelInfo?.currentModelId).toBe('claude-sonnet-4-5-20250514');
+    });
+  });
+
   it('setSelectedMode saves mode under effective backend for preset agent', async () => {
     const { result } = renderHook(() => useGuidAgentSelection(hookOptions));
 

@@ -6,10 +6,11 @@
 
 import React from 'react';
 import { describe, expect, it, vi, beforeEach } from 'vitest';
-import { render, screen, waitFor } from '@testing-library/react';
+import { act, fireEvent, render, screen, waitFor } from '@testing-library/react';
 
 const ipcMock = vi.hoisted(() => ({
   getModelInfo: vi.fn(),
+  setModel: vi.fn(),
   onResponseStream: vi.fn(() => () => {}),
   getModelConfig: vi.fn().mockResolvedValue([]),
 }));
@@ -20,6 +21,7 @@ vi.mock('@/common', () => ({
   ipcBridge: {
     acpConversation: {
       getModelInfo: { invoke: ipcMock.getModelInfo },
+      setModel: { invoke: ipcMock.setModel },
       responseStream: { on: ipcMock.onResponseStream },
     },
     mode: {
@@ -55,6 +57,10 @@ describe('AcpModelSelector', () => {
       return () => {};
     });
     ipcMock.getModelConfig.mockResolvedValue([]);
+    ipcMock.setModel.mockResolvedValue({
+      success: true,
+      data: { modelInfo: null },
+    });
   });
 
   it('shows the model source in the compact button label', async () => {
@@ -95,6 +101,109 @@ describe('AcpModelSelector', () => {
 
     await waitFor(() => {
       expect(screen.getAllByText('gpt-5.4/high · Codex stream').length).toBeGreaterThan(0);
+    });
+  });
+
+  it('refreshes Claude model info when the window regains focus', async () => {
+    ipcMock.getModelInfo
+      .mockResolvedValueOnce({
+        success: true,
+        data: {
+          modelInfo: {
+            currentModelId: 'claude-opus-4-6',
+            currentModelLabel: 'Claude Opus 4.6',
+            availableModels: [
+              { id: 'claude-opus-4-6', label: 'Claude Opus 4.6' },
+              { id: 'claude-sonnet-4-5', label: 'Claude Sonnet 4.5' },
+            ],
+            canSwitch: true,
+            source: 'models',
+            sourceDetail: 'cc-switch',
+          },
+        },
+      })
+      .mockResolvedValueOnce({
+        success: true,
+        data: {
+          modelInfo: {
+            currentModelId: 'claude-sonnet-4-5',
+            currentModelLabel: 'Claude Sonnet 4.5',
+            availableModels: [
+              { id: 'claude-sonnet-4-5', label: 'Claude Sonnet 4.5' },
+              { id: 'claude-opus-4-6', label: 'Claude Opus 4.6' },
+            ],
+            canSwitch: true,
+            source: 'models',
+            sourceDetail: 'cc-switch',
+          },
+        },
+      });
+
+    render(<AcpModelSelector conversationId='conv-1' backend='claude' />);
+
+    await waitFor(() => {
+      expect(screen.getAllByText('Claude Opus 4.6 · cc-switch').length).toBeGreaterThan(0);
+    });
+
+    act(() => {
+      window.dispatchEvent(new Event('focus'));
+    });
+
+    await waitFor(() => {
+      expect(screen.getAllByText('Claude Sonnet 4.5 · cc-switch').length).toBeGreaterThan(0);
+    });
+  });
+
+  it('updates the visible model label immediately after selecting a different model', async () => {
+    ipcMock.getModelInfo.mockResolvedValue({
+      success: true,
+      data: {
+        modelInfo: {
+          currentModelId: 'claude-opus-4-6',
+          currentModelLabel: 'Claude Opus 4.6',
+          availableModels: [
+            { id: 'claude-opus-4-6', label: 'Claude Opus 4.6' },
+            { id: 'glm-5.1x', label: 'GLM 5.1x' },
+          ],
+          canSwitch: true,
+          source: 'models',
+          sourceDetail: 'cc-switch',
+        },
+      },
+    });
+    ipcMock.setModel.mockResolvedValue({
+      success: true,
+      data: {
+        modelInfo: {
+          currentModelId: 'glm-5.1x',
+          currentModelLabel: 'GLM 5.1x',
+          availableModels: [
+            { id: 'claude-opus-4-6', label: 'Claude Opus 4.6' },
+            { id: 'glm-5.1x', label: 'GLM 5.1x' },
+          ],
+          canSwitch: true,
+          source: 'models',
+          sourceDetail: 'cc-switch',
+        },
+      },
+    });
+
+    render(<AcpModelSelector conversationId='conv-1' backend='claude' />);
+
+    await waitFor(() => {
+      expect(screen.getAllByText('Claude Opus 4.6 · cc-switch').length).toBeGreaterThan(0);
+    });
+
+    fireEvent.click(screen.getByRole('button'));
+
+    await waitFor(() => {
+      expect(screen.getByText('GLM 5.1x')).toBeTruthy();
+    });
+
+    fireEvent.click(screen.getByText('GLM 5.1x'));
+
+    await waitFor(() => {
+      expect(screen.getAllByText('GLM 5.1x · cc-switch').length).toBeGreaterThan(0);
     });
   });
 });

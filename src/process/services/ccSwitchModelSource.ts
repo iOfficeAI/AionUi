@@ -14,6 +14,7 @@ import * as path from 'path';
 type CcSwitchPaths = {
   settingsPath: string;
   databasePath: string;
+  claudeSettingsPath: string;
 };
 
 type CcSwitchSettings = {
@@ -25,6 +26,10 @@ type ClaudeProviderSettingsConfig = {
   env?: Record<string, unknown>;
 };
 
+type ClaudeSettings = {
+  model?: string;
+};
+
 type CcSwitchProviderRow = {
   settings_config?: string | null;
 };
@@ -34,12 +39,11 @@ type CcSwitchModelPricingRow = {
   display_name?: string | null;
 };
 
-const CLAUDE_MODEL_ENV_KEYS = [
-  'ANTHROPIC_MODEL',
-  'ANTHROPIC_DEFAULT_SONNET_MODEL',
-  'ANTHROPIC_DEFAULT_OPUS_MODEL',
-  'ANTHROPIC_DEFAULT_HAIKU_MODEL',
-] as const;
+export type ClaudeProviderEnv = Record<string, string>;
+
+const CLAUDE_MODEL_SLOT_IDS = ['default', 'opus', 'haiku'] as const;
+
+type ClaudeModelSlotId = (typeof CLAUDE_MODEL_SLOT_IDS)[number];
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null;
@@ -76,36 +80,59 @@ export function getCcSwitchPaths(homeDir = os.homedir()): CcSwitchPaths {
   return {
     settingsPath: path.join(baseDir, 'settings.json'),
     databasePath: path.join(baseDir, 'cc-switch.db'),
+    claudeSettingsPath: path.join(homeDir, '.claude', 'settings.json'),
   };
+}
+
+function normalizeClaudeModelSlot(value: unknown): ClaudeModelSlotId | null {
+  if (!isNonEmptyString(value)) return null;
+  const normalized = value.trim().toLowerCase();
+  if (normalized === 'sonnet') return 'default';
+  return (CLAUDE_MODEL_SLOT_IDS as readonly string[]).includes(normalized) ? (normalized as ClaudeModelSlotId) : null;
+}
+
+function readClaudeSelectedModelSlot(claudeSettingsPath: string): ClaudeModelSlotId | null {
+  if (!fs.existsSync(claudeSettingsPath)) return null;
+  const settings = parseJsonObject<ClaudeSettings>(fs.readFileSync(claudeSettingsPath, 'utf-8'));
+  return normalizeClaudeModelSlot(settings?.model);
 }
 
 export function buildClaudeModelInfoFromCcSwitchConfig(
   settingsConfig: ClaudeProviderSettingsConfig | null | undefined,
-  modelLabels: ReadonlyMap<string, string> = new Map()
+  modelLabels: ReadonlyMap<string, string> = new Map(),
+  activeSlot?: string | null
 ): AcpModelInfo | null {
   if (!settingsConfig) return null;
 
   const env = isRecord(settingsConfig.env) ? settingsConfig.env : {};
-  const configuredModel = isNonEmptyString(env.ANTHROPIC_MODEL) ? env.ANTHROPIC_MODEL : null;
-  const fallbackModel = isNonEmptyString(settingsConfig.model) ? settingsConfig.model : null;
+  const defaultModelId =
+    (isNonEmptyString(env.ANTHROPIC_DEFAULT_SONNET_MODEL) ? env.ANTHROPIC_DEFAULT_SONNET_MODEL : null) ||
+    (isNonEmptyString(env.ANTHROPIC_MODEL) ? env.ANTHROPIC_MODEL : null);
+  const opusModelId = isNonEmptyString(env.ANTHROPIC_DEFAULT_OPUS_MODEL) ? env.ANTHROPIC_DEFAULT_OPUS_MODEL : null;
+  const haikuModelId = isNonEmptyString(env.ANTHROPIC_DEFAULT_HAIKU_MODEL) ? env.ANTHROPIC_DEFAULT_HAIKU_MODEL : null;
 
-  const orderedModelIds = uniqueModelIds([
-    configuredModel,
-    fallbackModel,
-    ...CLAUDE_MODEL_ENV_KEYS.map((key) => (isNonEmptyString(env[key]) ? env[key] : null)),
-  ]);
+  const availableModels = uniqueModelIds([defaultModelId, opusModelId, haikuModelId]).flatMap((modelId) => {
+    const slotId =
+      modelId === defaultModelId ? 'default' : modelId === opusModelId ? 'opus' : modelId === haikuModelId ? 'haiku' : null;
+    if (!slotId) return [];
+    return [
+      {
+        id: slotId,
+        label: modelLabels.get(modelId) || modelId,
+      },
+    ];
+  });
 
-  if (orderedModelIds.length === 0) return null;
+  if (availableModels.length === 0) return null;
 
-  const currentModelId = orderedModelIds[0];
+  const preferredSlot = normalizeClaudeModelSlot(activeSlot) ?? normalizeClaudeModelSlot(settingsConfig.model);
+  const currentModelId = availableModels.find((model) => model.id === preferredSlot)?.id || availableModels[0].id;
+  const currentModelLabel = availableModels.find((model) => model.id === currentModelId)?.label || currentModelId;
   return {
     currentModelId,
-    currentModelLabel: modelLabels.get(currentModelId) || currentModelId,
-    availableModels: orderedModelIds.map((modelId) => ({
-      id: modelId,
-      label: modelLabels.get(modelId) || modelId,
-    })),
-    canSwitch: false,
+    currentModelLabel,
+    availableModels,
+    canSwitch: availableModels.length > 1,
     source: 'models',
     sourceDetail: 'cc-switch',
   };
@@ -114,6 +141,14 @@ export function buildClaudeModelInfoFromCcSwitchConfig(
 function readCcSwitchSettings(settingsPath: string): CcSwitchSettings | null {
   if (!fs.existsSync(settingsPath)) return null;
   return parseJsonObject<CcSwitchSettings>(fs.readFileSync(settingsPath, 'utf-8'));
+}
+
+function normalizeProviderEnv(env: unknown): ClaudeProviderEnv {
+  if (!isRecord(env)) return {};
+
+  return Object.fromEntries(
+    Object.entries(env).flatMap(([key, value]) => (isNonEmptyString(value) ? [[key, value]] : []))
+  );
 }
 
 function readModelLabels(db: Database.Database): Map<string, string> {
@@ -152,9 +187,45 @@ export function readClaudeModelInfoFromCcSwitch(paths?: Partial<CcSwitchPaths>):
     }
 
     const settingsConfig = parseJsonObject<ClaudeProviderSettingsConfig>(provider.settings_config);
-    return buildClaudeModelInfoFromCcSwitchConfig(settingsConfig, readModelLabels(db));
+    return buildClaudeModelInfoFromCcSwitchConfig(
+      settingsConfig,
+      readModelLabels(db),
+      readClaudeSelectedModelSlot(resolvedPaths.claudeSettingsPath)
+    );
   } catch {
     return null;
+  } finally {
+    db?.close();
+  }
+}
+
+export function readClaudeProviderEnvFromCcSwitch(paths?: Partial<CcSwitchPaths>): ClaudeProviderEnv {
+  const resolvedPaths = {
+    ...getCcSwitchPaths(),
+    ...paths,
+  };
+  const settings = readCcSwitchSettings(resolvedPaths.settingsPath);
+  const currentProviderId = settings?.currentProviderClaude;
+
+  if (!isNonEmptyString(currentProviderId) || !fs.existsSync(resolvedPaths.databasePath)) {
+    return {};
+  }
+
+  let db: Database.Database | null = null;
+  try {
+    db = new BetterSqlite3(resolvedPaths.databasePath, { readonly: true, fileMustExist: true });
+    const provider = db.prepare('SELECT settings_config FROM providers WHERE id = ? LIMIT 1').get(currentProviderId) as
+      | CcSwitchProviderRow
+      | undefined;
+
+    if (!isNonEmptyString(provider?.settings_config)) {
+      return {};
+    }
+
+    const settingsConfig = parseJsonObject<ClaudeProviderSettingsConfig>(provider.settings_config);
+    return normalizeProviderEnv(settingsConfig?.env);
+  } catch {
+    return {};
   } finally {
     db?.close();
   }

@@ -11,6 +11,7 @@ import path from 'node:path';
 import { BetterSqlite3Driver } from '../../../../src/process/services/database/drivers/BetterSqlite3Driver';
 import {
   buildClaudeModelInfoFromCcSwitchConfig,
+  readClaudeProviderEnvFromCcSwitch,
   readClaudeModelInfoFromCcSwitch,
 } from '../../../../src/process/services/ccSwitchModelSource';
 
@@ -38,12 +39,12 @@ describeOrSkip('ccSwitchModelSource', () => {
     }
   });
 
-  it('builds a read-only Claude model info from cc-switch settings config', () => {
+  it('builds a switchable Claude model info from cc-switch settings config', () => {
     const modelInfo = buildClaudeModelInfoFromCcSwitchConfig(
       {
-        model: 'claude-sonnet-4-5-20250514',
+        model: 'haiku',
         env: {
-          ANTHROPIC_MODEL: 'claude-opus-4-6-20260301',
+          ANTHROPIC_MODEL: 'claude-sonnet-4-5-20250514',
           ANTHROPIC_DEFAULT_SONNET_MODEL: 'claude-sonnet-4-5-20250514',
           ANTHROPIC_DEFAULT_OPUS_MODEL: 'claude-opus-4-6-20260301',
           ANTHROPIC_DEFAULT_HAIKU_MODEL: 'claude-haiku-4-5-20250514',
@@ -53,18 +54,19 @@ describeOrSkip('ccSwitchModelSource', () => {
         ['claude-opus-4-6-20260301', 'Claude Opus 4.6'],
         ['claude-sonnet-4-5-20250514', 'Claude Sonnet 4.5'],
         ['claude-haiku-4-5-20250514', 'Claude Haiku 4.5'],
-      ])
+      ]),
+      'haiku'
     );
 
     expect(modelInfo).toEqual({
-      currentModelId: 'claude-opus-4-6-20260301',
-      currentModelLabel: 'Claude Opus 4.6',
+      currentModelId: 'haiku',
+      currentModelLabel: 'Claude Haiku 4.5',
       availableModels: [
-        { id: 'claude-opus-4-6-20260301', label: 'Claude Opus 4.6' },
-        { id: 'claude-sonnet-4-5-20250514', label: 'Claude Sonnet 4.5' },
-        { id: 'claude-haiku-4-5-20250514', label: 'Claude Haiku 4.5' },
+        { id: 'default', label: 'Claude Sonnet 4.5' },
+        { id: 'opus', label: 'Claude Opus 4.6' },
+        { id: 'haiku', label: 'Claude Haiku 4.5' },
       ],
-      canSwitch: false,
+      canSwitch: true,
       source: 'models',
       sourceDetail: 'cc-switch',
     });
@@ -76,22 +78,50 @@ describeOrSkip('ccSwitchModelSource', () => {
   });
 
   it('uses fallback model and removes duplicates when env models overlap', () => {
-    const modelInfo = buildClaudeModelInfoFromCcSwitchConfig({
-      model: 'claude-sonnet-4-5-20250514',
-      env: {
-        ANTHROPIC_MODEL: 'claude-sonnet-4-5-20250514',
-        ANTHROPIC_DEFAULT_SONNET_MODEL: 'claude-sonnet-4-5-20250514',
-        ANTHROPIC_DEFAULT_OPUS_MODEL: 'claude-opus-4-6-20260301',
+    const modelInfo = buildClaudeModelInfoFromCcSwitchConfig(
+      {
+        model: 'default',
+        env: {
+          ANTHROPIC_MODEL: 'claude-sonnet-4-5-20250514',
+          ANTHROPIC_DEFAULT_SONNET_MODEL: 'claude-sonnet-4-5-20250514',
+          ANTHROPIC_DEFAULT_OPUS_MODEL: 'claude-opus-4-6-20260301',
+        },
       },
-    });
+      new Map([
+        ['claude-sonnet-4-5-20250514', 'Claude Sonnet 4.5'],
+        ['claude-opus-4-6-20260301', 'Claude Opus 4.6'],
+      ]),
+      'default'
+    );
 
     expect(modelInfo).toEqual({
-      currentModelId: 'claude-sonnet-4-5-20250514',
-      currentModelLabel: 'claude-sonnet-4-5-20250514',
+      currentModelId: 'default',
+      currentModelLabel: 'Claude Sonnet 4.5',
       availableModels: [
-        { id: 'claude-sonnet-4-5-20250514', label: 'claude-sonnet-4-5-20250514' },
-        { id: 'claude-opus-4-6-20260301', label: 'claude-opus-4-6-20260301' },
+        { id: 'default', label: 'Claude Sonnet 4.5' },
+        { id: 'opus', label: 'Claude Opus 4.6' },
       ],
+      canSwitch: true,
+      source: 'models',
+      sourceDetail: 'cc-switch',
+    });
+  });
+
+  it('keeps cc-switch model info read-only when only one model is configured', () => {
+    const modelInfo = buildClaudeModelInfoFromCcSwitchConfig(
+      {
+        env: {
+          ANTHROPIC_MODEL: 'claude-sonnet-4-5-20250514',
+        },
+      },
+      new Map([['claude-sonnet-4-5-20250514', 'Claude Sonnet 4.5']]),
+      'default'
+    );
+
+    expect(modelInfo).toEqual({
+      currentModelId: 'default',
+      currentModelLabel: 'Claude Sonnet 4.5',
+      availableModels: [{ id: 'default', label: 'Claude Sonnet 4.5' }],
       canSwitch: false,
       source: 'models',
       sourceDetail: 'cc-switch',
@@ -104,8 +134,10 @@ describeOrSkip('ccSwitchModelSource', () => {
 
     const settingsPath = path.join(tempDir, 'settings.json');
     const databasePath = path.join(tempDir, 'cc-switch.db');
+    const claudeSettingsPath = path.join(tempDir, 'claude-settings.json');
 
     writeFileSync(settingsPath, JSON.stringify({ currentProviderClaude: 'provider-1' }), 'utf-8');
+    writeFileSync(claudeSettingsPath, JSON.stringify({ model: 'default' }), 'utf-8');
 
     const driver = new BetterSqlite3Driver(databasePath);
     driver.exec(`
@@ -132,16 +164,16 @@ describeOrSkip('ccSwitchModelSource', () => {
       .run('claude-opus-4-6-20260301', 'Claude Opus 4.6', 'claude-sonnet-4-5-20250514', 'Claude Sonnet 4.5');
     driver.close();
 
-    const modelInfo = readClaudeModelInfoFromCcSwitch({ settingsPath, databasePath });
+    const modelInfo = readClaudeModelInfoFromCcSwitch({ settingsPath, databasePath, claudeSettingsPath });
 
     expect(modelInfo).toEqual({
-      currentModelId: 'claude-opus-4-6-20260301',
-      currentModelLabel: 'Claude Opus 4.6',
+      currentModelId: 'default',
+      currentModelLabel: 'Claude Sonnet 4.5',
       availableModels: [
-        { id: 'claude-opus-4-6-20260301', label: 'Claude Opus 4.6' },
-        { id: 'claude-sonnet-4-5-20250514', label: 'Claude Sonnet 4.5' },
+        { id: 'default', label: 'Claude Sonnet 4.5' },
+        { id: 'opus', label: 'Claude Opus 4.6' },
       ],
-      canSwitch: false,
+      canSwitch: true,
       source: 'models',
       sourceDetail: 'cc-switch',
     });
@@ -182,5 +214,41 @@ describeOrSkip('ccSwitchModelSource', () => {
         databasePath: path.join(tempDir, 'missing.db'),
       })
     ).toBeNull();
+  });
+
+  it('reads the current Claude provider env from cc-switch files', () => {
+    const tempDir = mkdtempSync(path.join(os.tmpdir(), 'aionui-cc-switch-'));
+    tempDirs.push(tempDir);
+
+    const settingsPath = path.join(tempDir, 'settings.json');
+    const databasePath = path.join(tempDir, 'cc-switch.db');
+
+    writeFileSync(settingsPath, JSON.stringify({ currentProviderClaude: 'provider-1' }), 'utf-8');
+
+    const driver = new BetterSqlite3Driver(databasePath);
+    driver.exec(`
+      CREATE TABLE providers (
+        id TEXT PRIMARY KEY,
+        settings_config TEXT
+      );
+    `);
+    driver.prepare('INSERT INTO providers (id, settings_config) VALUES (?, ?)').run(
+      'provider-1',
+      JSON.stringify({
+        env: {
+          ANTHROPIC_BASE_URL: 'http://localhost:4000',
+          ANTHROPIC_AUTH_TOKEN: 'sk-test-token',
+          ANTHROPIC_MODEL: 'claude-opus-4-6',
+          EMPTY_VALUE: '',
+        },
+      })
+    );
+    driver.close();
+
+    expect(readClaudeProviderEnvFromCcSwitch({ settingsPath, databasePath })).toEqual({
+      ANTHROPIC_BASE_URL: 'http://localhost:4000',
+      ANTHROPIC_AUTH_TOKEN: 'sk-test-token',
+      ANTHROPIC_MODEL: 'claude-opus-4-6',
+    });
   });
 });
