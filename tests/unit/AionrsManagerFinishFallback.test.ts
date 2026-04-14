@@ -331,10 +331,7 @@ describe('GAP-3: AionrsManager Finish Fallback Mechanism', () => {
 
       vi.advanceTimersByTime(FALLBACK_DELAY_MS);
 
-      expect(mockMainWarn).toHaveBeenCalledWith(
-        '[AionrsManager]',
-        expect.stringContaining('conv-fb-1')
-      );
+      expect(mockMainWarn).toHaveBeenCalledWith('[AionrsManager]', expect.stringContaining('conv-fb-1'));
     });
   });
 

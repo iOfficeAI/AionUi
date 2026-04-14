@@ -24,6 +24,7 @@ import { processCronInMessage } from './MessageMiddleware';
 import { extractAndStripThinkTags } from './ThinkTagDetector';
 import { ConversationTurnCompletionService } from './ConversationTurnCompletionService';
 import { cronBusyGuard } from '@process/services/cron/CronBusyGuard';
+import { skillSuggestWatcher } from '@process/services/cron/SkillSuggestWatcher';
 
 // Aionrs-specific approval key — reuses same pattern as GeminiApprovalStore
 type AionrsApprovalKey = IApprovalKey & {
@@ -539,6 +540,9 @@ export class AionrsManager extends BaseAgentManager<AionrsManagerData, string> {
 
     // Notify external services (e.g. cron scheduler) that the turn completed
     this.notifyTurnCompletion();
+
+    // Check for SKILL_SUGGEST.md updates (registered by cron executor)
+    skillSuggestWatcher.onFinish(this.conversation_id);
 
     if (!content || !hasCronCommands(content)) {
       return;
