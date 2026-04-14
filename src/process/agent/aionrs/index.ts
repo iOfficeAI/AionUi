@@ -336,6 +336,10 @@ export class AionrsAgent {
     this.sendCommand({ type: 'set_config', ...config });
   }
 
+  setMode(mode: 'default' | 'auto_edit' | 'yolo'): void {
+    this.sendCommand({ type: 'set_mode', mode });
+  }
+
   kill(): void {
     this.restoreProjectConfig();
     if (this.childProcess) {

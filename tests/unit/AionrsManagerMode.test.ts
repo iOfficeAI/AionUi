@@ -17,6 +17,7 @@ const {
   mockDb,
   mockCronService,
   mockApproveTool,
+  mockSetMode,
 } = vi.hoisted(() => ({
   emitResponseStream: vi.fn(),
   emitConfirmationAdd: vi.fn(),
@@ -36,6 +37,7 @@ const {
     listJobsByConversation: vi.fn(async () => []),
   },
   mockApproveTool: vi.fn(),
+  mockSetMode: vi.fn(),
 }));
 
 // ── Mocks ──────────────────────────────────────────────────────────
@@ -120,6 +122,7 @@ vi.mock('@process/agent/aionrs', () => ({
     approveTool: mockApproveTool,
     denyTool: vi.fn(),
     setConfig: vi.fn(),
+    setMode: mockSetMode,
     sendCommand: vi.fn(),
     injectConversationHistory: vi.fn().mockResolvedValue(undefined),
     get bootstrap() {
@@ -253,6 +256,59 @@ describe('AionrsManager.tryAutoApprove', () => {
         expect(result).toBe(false);
         expect(mockApproveTool).not.toHaveBeenCalled();
       }
+    });
+  });
+});
+
+// ── setMode notification tests ────────────────────────────────────
+
+describe('AionrsManager.setMode', () => {
+  afterEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it('should send set_mode command to aionrs agent', async () => {
+    const manager = createManager('default');
+    (manager as any).agent = {
+      approveTool: mockApproveTool,
+      setMode: mockSetMode,
+      start: vi.fn(),
+      stop: vi.fn(),
+      kill: vi.fn(),
+      send: vi.fn(),
+      denyTool: vi.fn(),
+    };
+
+    await manager.setMode('auto_edit');
+
+    expect(mockSetMode).toHaveBeenCalledWith('auto_edit');
+  });
+
+  it('should save mode locally and to DB', async () => {
+    const manager = createManager('default');
+    (manager as any).agent = {
+      approveTool: mockApproveTool,
+      setMode: mockSetMode,
+      start: vi.fn(),
+      stop: vi.fn(),
+      kill: vi.fn(),
+      send: vi.fn(),
+      denyTool: vi.fn(),
+    };
+
+    const result = await manager.setMode('yolo');
+
+    expect((manager as any).currentMode).toBe('yolo');
+    expect(result).toEqual({ success: true, data: { mode: 'yolo' } });
+  });
+
+  it('should not throw if agent is null', async () => {
+    const manager = createManager('default');
+    (manager as any).agent = null;
+
+    await expect(manager.setMode('yolo')).resolves.toEqual({
+      success: true,
+      data: { mode: 'yolo' },
     });
   });
 });

@@ -668,6 +668,9 @@ export class AionrsManager extends BaseAgentManager<AionrsManagerData, string> {
   async setMode(mode: string): Promise<{ success: boolean; data?: { mode: string } }> {
     this.currentMode = mode;
     this.saveSessionMode(mode);
+    if (this.agent) {
+      this.agent.setMode(mode as 'default' | 'auto_edit' | 'yolo');
+    }
     return { success: true, data: { mode: this.currentMode } };
   }
 
