@@ -419,11 +419,11 @@ export function initConversationBridge(
     if (!task) {
       return { success: false, msg: 'No active task' };
     }
-    // Only AionrsManager supports runtime config changes
-    if (!('setModelViaConfig' in task)) {
+    // Only AionrsManager supports runtime config changes (thinking, effort)
+    if (!('setRuntimeConfig' in task) || typeof (task as any).setRuntimeConfig !== 'function') {
       return { success: false, msg: 'Config changes not supported for this agent type' };
     }
-    const sent = (task as AionrsManager).setModelViaConfig(config.model ?? '');
+    const sent = (task as any).setRuntimeConfig(config) as boolean;
     return sent ? { success: true } : { success: false, msg: 'Agent not initialized' };
   });
 
