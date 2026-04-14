@@ -149,10 +149,10 @@ describe('systemSettingsBridge', () => {
   });
 
   describe('getSaveUploadToWorkspace', () => {
-    it('should return false as default', async () => {
+    it('should return true as default', async () => {
       mockProcessConfig.get.mockResolvedValue(undefined);
       const handler = providerMap.get('systemSettings.getSaveUploadToWorkspace');
-      expect(await handler!()).toBe(false);
+      expect(await handler!()).toBe(true);
     });
   });
 });
