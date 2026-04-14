@@ -11,6 +11,7 @@ import type { TaskManager } from './TaskManager';
 import type { AgentResponse } from './adapters/PlatformAdapter';
 import { createPlatformAdapter } from './adapters/PlatformAdapter';
 import { acpDetector } from '@process/agent/acp/AcpDetector';
+import type { TeamAgentCrashEvent } from './teamEventBus';
 
 type SpawnAgentFn = (agentName: string, agentType?: string) => Promise<TeamAgent>;
 
@@ -57,6 +58,11 @@ export class TeammateManager extends EventEmitter {
   /** Maximum time (ms) to wait for a turnCompleted event before force-releasing a wake */
   private static readonly WAKE_TIMEOUT_MS = 60 * 1000;
 
+  /** Debounce delay (ms) before waking leader after a crash, to let cascading crashes settle */
+  private static readonly CRASH_DEBOUNCE_MS = 3000;
+  /** Pending debounced leader wake timer (crash recovery) */
+  private crashWakeLeaderTimer: ReturnType<typeof setTimeout> | null = null;
+
   private readonly unsubResponseStream: () => void;
 
   constructor(params: TeammateManagerParams) {
@@ -77,7 +83,20 @@ export class TeammateManager extends EventEmitter {
     // webContents.send() and never triggers same-process .on() listeners.
     const boundHandler = (msg: IResponseMessage) => this.handleResponseStream(msg);
     teamEventBus.on('responseStream', boundHandler);
-    this.unsubResponseStream = () => teamEventBus.removeListener('responseStream', boundHandler);
+
+    // Listen for agent crashes so we can finalize their turn immediately
+    // instead of waiting for the 60s wake timeout.
+    const boundCrashHandler = (event: TeamAgentCrashEvent) => {
+      if (this.ownedConversationIds.has(event.conversationId)) {
+        this.handleAgentCrash(event.conversationId, event);
+      }
+    };
+    teamEventBus.on('agentCrash', boundCrashHandler);
+
+    this.unsubResponseStream = () => {
+      teamEventBus.removeListener('responseStream', boundHandler);
+      teamEventBus.removeListener('agentCrash', boundCrashHandler);
+    };
   }
 
   /** Get the current agents list */
@@ -234,6 +253,10 @@ export class TeammateManager extends EventEmitter {
     }
     this.wakeTimeouts.clear();
     this.activeWakes.clear();
+    if (this.crashWakeLeaderTimer) {
+      clearTimeout(this.crashWakeLeaderTimer);
+      this.crashWakeLeaderTimer = null;
+    }
     this.removeAllListeners();
   }
 
@@ -282,7 +305,26 @@ export class TeammateManager extends EventEmitter {
    * detection and the turnCompleted IPC event (if it ever fires).
    * Uses finalizedTurns set to prevent double processing.
    */
-  private async finalizeTurn(conversationId: string): Promise<void> {
+  /**
+   * Handle a crashed agent: finalize its turn with partial results, notify the
+   * leader, and set the agent to 'failed'. Called when we detect a process exit
+   * (code !== 0) for a team member. Uses debounced leader wake to prevent
+   * cascade crashes from firing multiple leader turns.
+   */
+  handleAgentCrash(conversationId: string, error: { code: number | null; signal: NodeJS.Signals | null }): void {
+    const agent = this.agents.find((a) => a.conversationId === conversationId);
+    if (!agent) return;
+
+    console.warn(
+      `[TeammateManager] Agent ${agent.slotId} (${agent.agentName}) crashed: ` +
+        `Process exited unexpectedly (code: ${error.code}, signal: ${error.signal}). Testament sent to leader.`
+    );
+
+    // Finalize the turn (extracts whatever partial results were accumulated)
+    void this.finalizeTurn(conversationId, true);
+  }
+
+  private async finalizeTurn(conversationId: string, isCrash = false): Promise<void> {
     // Dedup: skip if this turn was already finalized
     if (this.finalizedTurns.has(conversationId)) return;
     this.finalizedTurns.add(conversationId);
@@ -310,6 +352,12 @@ export class TeammateManager extends EventEmitter {
     try {
       actions = adapter.parseResponse(agentResponse);
     } catch {
+      // Parse failed (e.g. incomplete XML from a crashed agent).
+      // Forward whatever raw text we have to the leader as a crash report
+      // instead of silently dropping it.
+      if (isCrash && agent.role !== 'lead') {
+        await this.notifyLeaderOfCrash(agent, accumulatedText);
+      }
       this.setStatus(agent.slotId, 'failed');
       return;
     }
@@ -413,6 +461,15 @@ export class TeammateManager extends EventEmitter {
       }
     }
 
+    // Handle crash: notify leader and set failed status instead of idle
+    if (isCrash) {
+      this.setStatus(agent.slotId, 'failed');
+      if (agent.role !== 'lead') {
+        await this.notifyLeaderOfCrash(agent, accumulatedText);
+      }
+      return;
+    }
+
     // Only set idle if executeAction did not already change status (e.g. idle_notification)
     const currentAgent = this.agents.find((a) => a.slotId === agent.slotId);
     if (currentAgent?.status === 'active') {
@@ -438,6 +495,38 @@ export class TeammateManager extends EventEmitter {
         this.maybeWakeLeaderWhenAllIdle(leadAgent.slotId);
       }
     }
+  }
+
+  /**
+   * Notify the leader that a teammate crashed, forwarding any partial results
+   * the agent produced before dying. Uses a debounced wake to prevent cascade
+   * crashes from triggering multiple rapid leader turns.
+   */
+  private async notifyLeaderOfCrash(crashedAgent: TeamAgent, partialText: string): Promise<void> {
+    const leadAgent = this.agents.find((a) => a.role === 'lead');
+    if (!leadAgent) return;
+
+    const partialSnippet = partialText.trim().slice(0, 500);
+    const crashReport = partialSnippet
+      ? `[CRASH] ${crashedAgent.agentName} (${crashedAgent.agentType}) exited unexpectedly. Partial output:\n${partialSnippet}`
+      : `[CRASH] ${crashedAgent.agentName} (${crashedAgent.agentType}) exited unexpectedly with no output.`;
+
+    await this.mailbox.write({
+      teamId: this.teamId,
+      toAgentId: leadAgent.slotId,
+      fromAgentId: crashedAgent.slotId,
+      content: crashReport,
+    });
+
+    // Debounced wake: wait for cascading crashes to settle before waking leader.
+    // If multiple agents crash within CRASH_DEBOUNCE_MS, leader is woken only once.
+    if (this.crashWakeLeaderTimer) {
+      clearTimeout(this.crashWakeLeaderTimer);
+    }
+    this.crashWakeLeaderTimer = setTimeout(() => {
+      this.crashWakeLeaderTimer = null;
+      this.maybeWakeLeaderWhenAllIdle(leadAgent.slotId);
+    }, TeammateManager.CRASH_DEBOUNCE_MS);
   }
 
   // ---------------------------------------------------------------------------

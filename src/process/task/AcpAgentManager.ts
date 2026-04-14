@@ -569,54 +569,56 @@ class AcpAgentManager extends BaseAgentManager<AcpAgentManagerData, AcpPermissio
             skillSuggestWatcher.onFinish(this.conversation_id);
           }
 
-          // Process cron commands when turn ends (finish signal)
-          // ACP streams content in chunks, so we check the accumulated content here
-          if (v.type === 'finish' && this.currentMsgContent && hasCronCommands(this.currentMsgContent)) {
-            const message: TMessage = {
-              id: this.currentMsgId || uuid(),
-              msg_id: this.currentMsgId || uuid(),
-              type: 'text',
-              position: 'left',
-              conversation_id: this.conversation_id,
-              content: { content: this.currentMsgContent },
-              status: 'finish',
-              createdAt: Date.now(),
-            };
-            // Process cron commands and send results back to AI
-            const collectedResponses: string[] = [];
-            await processCronInMessage(this.conversation_id, data.backend as any, message, (sysMsg) => {
-              collectedResponses.push(sysMsg);
-              // Also emit to frontend for display
-              const systemMessage: IResponseMessage = {
-                type: 'system',
-                conversation_id: this.conversation_id,
-                msg_id: uuid(),
-                data: sysMsg,
-              };
-              ipcBridge.acpConversation.responseStream.emit(systemMessage);
-            });
-            // Send collected responses back to AI agent so it can continue
-            if (collectedResponses.length > 0 && this.agent) {
-              const feedbackMessage = `[System Response]\n${collectedResponses.join('\n')}`;
-              await this.agent.sendMessage({ content: feedbackMessage });
-            }
-            // Reset after processing
-            this.currentMsgId = null;
-            this.currentMsgContent = '';
-          }
-
+          // Emit to all buses FIRST, before any async work that might throw
+          // (e.g. cron processing or sendMessage to a dead agent).
+          // This guarantees TeammateManager receives the finish/error signal
+          // even when the agent process has already crashed.
           ipcBridge.acpConversation.responseStream.emit(v);
-          // Also emit to main-process-local bus (same reason as onStreamEvent above)
           teamEventBus.emit('responseStream', {
             ...(v as IResponseMessage),
             conversation_id: this.conversation_id,
           });
-
-          // Forward signals (finish/error/etc.) to Channel global event bus
           channelEventBus.emitAgentMessage(this.conversation_id, {
             ...(v as any),
             conversation_id: this.conversation_id,
           });
+
+          // Process cron commands when turn ends (finish signal)
+          // ACP streams content in chunks, so we check the accumulated content here
+          // Wrapped in try/catch: agent may have crashed, making sendMessage fail.
+          if (v.type === 'finish' && this.currentMsgContent && hasCronCommands(this.currentMsgContent)) {
+            try {
+              const message: TMessage = {
+                id: this.currentMsgId || uuid(),
+                msg_id: this.currentMsgId || uuid(),
+                type: 'text',
+                position: 'left',
+                conversation_id: this.conversation_id,
+                content: { content: this.currentMsgContent },
+                status: 'finish',
+                createdAt: Date.now(),
+              };
+              const collectedResponses: string[] = [];
+              await processCronInMessage(this.conversation_id, data.backend as any, message, (sysMsg) => {
+                collectedResponses.push(sysMsg);
+                const systemMessage: IResponseMessage = {
+                  type: 'system',
+                  conversation_id: this.conversation_id,
+                  msg_id: uuid(),
+                  data: sysMsg,
+                };
+                ipcBridge.acpConversation.responseStream.emit(systemMessage);
+              });
+              if (collectedResponses.length > 0 && this.agent) {
+                const feedbackMessage = `[System Response]\n${collectedResponses.join('\n')}`;
+                await this.agent.sendMessage({ content: feedbackMessage });
+              }
+            } catch (cronErr) {
+              mainWarn('[AcpAgentManager]', `Cron processing failed (agent may have crashed):`, cronErr);
+            }
+            this.currentMsgId = null;
+            this.currentMsgContent = '';
+          }
         },
       });
       return this.agent.start().then(async () => {

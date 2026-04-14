@@ -114,6 +114,11 @@ extraResources:
     to: bundled-aionrs
   - from: resources/hub
     to: hub
+  # Team MCP stdio bridge script — spawned by Claude CLI to expose team_* tools.
+  # Path resolved at runtime via process.resourcesPath + 'scripts/team-mcp-stdio.mjs'
+  # in TeamMcpServer.getStdioConfig(). Without this, Claude can't see team_* tools.
+  - from: scripts/team-mcp-stdio.mjs
+    to: scripts/team-mcp-stdio.mjs
 
 win:
   target:

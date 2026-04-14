@@ -5,6 +5,7 @@
  */
 
 import { AcpAdapter } from '@process/agent/acp/AcpAdapter';
+import { teamEventBus } from '@process/team/teamEventBus';
 import type { IMcpServer } from '@/common/config/storage';
 import { extractAtPaths, parseAllAtCommands, reconstructQuery } from '@/common/chat/atCommandParser';
 import type { TMessage } from '@/common/chat/chatLib';
@@ -1214,9 +1215,17 @@ export class AcpAgent {
 
   /**
    * Handle unexpected disconnect from ACP backend
-   * Notify frontend and clean up internal state
+   * Notify frontend, emit crash event for team mode, and clean up internal state
    */
   private handleDisconnect(error: { code: number | null; signal: NodeJS.Signals | null }): void {
+    // Emit crash event FIRST so TeammateManager can finalize the turn immediately
+    // (before the finish signal triggers dedup).
+    teamEventBus.emit('agentCrash', {
+      conversationId: this.id,
+      code: error.code,
+      signal: error.signal,
+    });
+
     // Emit finish signal to reset UI loading state
     if (this.onSignalEvent) {
       this.onSignalEvent({
