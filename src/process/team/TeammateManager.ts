@@ -14,15 +14,12 @@ import { buildRolePrompt } from './prompts/buildRolePrompt';
 import { formatMessages } from './prompts/formatHelpers';
 import { acpDetector } from '@process/agent/acp/AcpDetector';
 
-type SpawnAgentFn = (agentName: string, agentType?: string) => Promise<TeamAgent>;
-
 type TeammateManagerParams = {
   teamId: string;
   agents: TeamAgent[];
   mailbox: Mailbox;
   taskManager: TaskManager;
   workerTaskManager: IWorkerTaskManager;
-  spawnAgent?: SpawnAgentFn;
   hasMcpTools?: boolean;
   teamWorkspace?: string;
   /** Called after an agent is removed from in-memory list, so the caller can persist the change (e.g. update DB) */
@@ -39,7 +36,6 @@ export class TeammateManager extends EventEmitter {
   private readonly mailbox: Mailbox;
   private readonly taskManager: TaskManager;
   private readonly workerTaskManager: IWorkerTaskManager;
-  private readonly spawnAgentFn?: SpawnAgentFn;
   private readonly onAgentRemovedFn?: (teamId: string, agents: TeamAgent[]) => void;
   /** Shared team workspace path (leader's working directory) */
   private readonly teamWorkspace: string | undefined;
@@ -67,7 +63,6 @@ export class TeammateManager extends EventEmitter {
     this.mailbox = params.mailbox;
     this.taskManager = params.taskManager;
     this.workerTaskManager = params.workerTaskManager;
-    this.spawnAgentFn = params.spawnAgent;
     this.onAgentRemovedFn = params.onAgentRemoved;
     this.teamWorkspace = params.teamWorkspace;
 

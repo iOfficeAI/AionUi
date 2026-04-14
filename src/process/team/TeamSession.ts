@@ -43,7 +43,6 @@ export class TeamSession extends EventEmitter {
       mailbox: this.mailbox,
       taskManager: this.taskManager,
       workerTaskManager,
-      spawnAgent,
       teamWorkspace: team.workspace || undefined,
       onAgentRemoved: (teamId, agents) => {
         void this.repo.update(teamId, { agents, updatedAt: Date.now() });
