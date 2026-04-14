@@ -31,7 +31,7 @@ class NanoBotAgentManager extends BaseAgentManager<NanoBotAgentManagerData> {
   bootstrap: Promise<NanobotAgent>;
 
   constructor(data: NanoBotAgentManagerData) {
-    super('nanobot', data, new IpcAgentEventEmitter());
+    super('nanobot', data, new IpcAgentEventEmitter(), false);
     this.conversation_id = data.conversation_id;
     this.workspace = data.workspace ?? '';
 

@@ -121,11 +121,7 @@ export default defineConfig(({ mode }) => {
             // BaseAgentManager.resolveWorkerDir() handles the case where code
             // splitting places it in a chunks/ subdirectory.
             gemini: resolve('src/process/worker/gemini.ts'),
-            acp: resolve('src/process/worker/acp.ts'),
-            'openclaw-gateway': resolve('src/process/worker/openclaw-gateway.ts'),
-            nanobot: resolve('src/process/worker/nanobot.ts'),
             lifecycleRunner: resolve('src/process/extensions/lifecycle/lifecycleRunner.ts'),
-            aionrs: resolve('src/process/worker/aionrs.ts'),
             // Built-in MCP server entry points (compiled by scripts/build-mcp-servers.js via esbuild,
             // not vite — esbuild bundles all deps for self-contained execution by external node processes)
           },
