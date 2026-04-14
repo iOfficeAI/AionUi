@@ -88,6 +88,7 @@ vi.mock('@/common', () => ({
       getWorkspace: createCommand('conversation.getWorkspace'),
       responseSearchWorkSpace: { invoke: vi.fn() },
       stop: createCommand('conversation.stop'),
+      setConfig: createCommand('conversation.setConfig'),
       getSlashCommands: createCommand('conversation.getSlashCommands'),
       askSideQuestion: createCommand('conversation.askSideQuestion'),
       sendMessage: createCommand('conversation.sendMessage'),
