@@ -13,6 +13,7 @@ import { teamEventBus } from '@process/team/teamEventBus';
 import type { TProviderWithModel } from '@/common/config/storage';
 import { BaseApprovalStore, type IApprovalKey } from '@/common/chat/approval';
 import { ToolConfirmationOutcome } from '../agent/gemini/cli/tools/tools';
+import { AionrsAgent } from '@process/agent/aionrs';
 import { getDatabase } from '@process/services/database';
 import { addMessage, addOrUpdateMessage } from '@process/utils/message';
 import { uuid } from '@/common/utils';
@@ -71,6 +72,7 @@ export class AionrsManager extends BaseAgentManager<AionrsManagerData, string> {
   workspace: string;
   model: TProviderWithModel;
   readonly approvalStore = new AionrsApprovalStore();
+  private agent: AionrsAgent | null = null;
   private currentMode: string = 'default';
   private currentMsgId: string | null = null;
   private currentMsgContent: string = '';
@@ -93,37 +95,57 @@ export class AionrsManager extends BaseAgentManager<AionrsManagerData, string> {
   >();
 
   constructor(data: AionrsManagerData, model: TProviderWithModel) {
-    super('aionrs', { ...data, model }, new IpcAgentEventEmitter());
+    super('aionrs', { ...data, model }, new IpcAgentEventEmitter(), false);
     this.workspace = data.workspace;
     this.conversation_id = data.conversation_id;
     this.model = model;
     this.currentMode = data.sessionMode || 'default';
 
-    // Start the worker bootstrap
+    // enableFork=false skips auto-init in ForkTask, so init manually
+    this.init();
+
+    // Start the agent bootstrap
     void this.start().catch(() => {});
   }
 
   /**
-   * Determine new vs resume session, then start the worker.
+   * Determine new vs resume session, then create the AionrsAgent in-process.
    * If the conversation already has messages in the DB, pass --resume;
    * otherwise pass --session-id for a new session.
    */
   override async start() {
+    let sessionArgs: { resume?: string; sessionId?: string };
     try {
       const db = await getDatabase();
       const result = db.getConversationMessages(this.conversation_id, 0, 1);
       const hasMessages = (result.data?.length ?? 0) > 0;
-
-      const sessionArgs = hasMessages ? { resume: this.conversation_id } : { sessionId: this.conversation_id };
-
-      return super.start({ ...this.data.data, ...sessionArgs } as AionrsManagerData);
+      sessionArgs = hasMessages ? { resume: this.conversation_id } : { sessionId: this.conversation_id };
     } catch {
       // Fallback: start as new session if DB check fails
-      return super.start({ ...this.data.data, sessionId: this.conversation_id } as AionrsManagerData);
+      sessionArgs = { sessionId: this.conversation_id };
     }
+
+    const mergedData = { ...this.data.data, ...sessionArgs };
+
+    const agent = new AionrsAgent({
+      workspace: mergedData.workspace,
+      model: mergedData.model,
+      proxy: mergedData.proxy,
+      yoloMode: mergedData.yoloMode,
+      presetRules: mergedData.presetRules,
+      maxTokens: mergedData.maxTokens,
+      maxTurns: mergedData.maxTurns,
+      sessionId: mergedData.sessionId,
+      resume: mergedData.resume,
+      onStreamEvent: (event) => this.emit('aionrs.message', event),
+    });
+
+    await agent.start();
+    this.agent = agent;
   }
 
   private async injectHistoryFromDatabase(): Promise<void> {
+    if (!this.agent) return;
     try {
       const result = (await getDatabase()).getConversationMessages(this.conversation_id, 0, 10000);
       const data = (result.data || []) as TMessage[];
@@ -133,7 +155,7 @@ export class AionrsManager extends BaseAgentManager<AionrsManagerData, string> {
         .map((m) => `${m.position === 'right' ? 'User' : 'Assistant'}: ${m.content.content || ''}`);
       const text = lines.join('\n').slice(-4000);
       if (text) {
-        await this.postMessagePromise('init.history', { text });
+        await this.agent.injectConversationHistory(text);
       }
     } catch {
       // ignore history injection errors
@@ -146,7 +168,10 @@ export class AionrsManager extends BaseAgentManager<AionrsManagerData, string> {
     cronBusyGuard.setProcessing(this.conversation_id, false);
     // Inject history BEFORE stopping so the command reaches the running process
     await this.injectHistoryFromDatabase();
-    await super.stop();
+    this.confirmations = [];
+    if (this.agent) {
+      this.agent.stop();
+    }
   }
 
   async sendMessage(data: { input: string; msg_id: string; files?: string[] }) {
@@ -165,7 +190,10 @@ export class AionrsManager extends BaseAgentManager<AionrsManagerData, string> {
     }
     cronBusyGuard.setProcessing(this.conversation_id, true);
     this.status = 'pending';
-    return super.sendMessage(data);
+    this._lastActivityAt = Date.now();
+    if (this.agent) {
+      await this.agent.send(data.input, data.msg_id, data.files);
+    }
   }
 
   /**
@@ -175,12 +203,12 @@ export class AionrsManager extends BaseAgentManager<AionrsManagerData, string> {
     const type = content.confirmationDetails?.type;
 
     if (this.currentMode === 'yolo') {
-      void this.postMessagePromise(content.callId, ToolConfirmationOutcome.ProceedOnce);
+      this.agent?.approveTool(content.callId, 'once');
       return true;
     }
     if (this.currentMode === 'autoEdit') {
       if (type === 'edit' || type === 'info') {
-        void this.postMessagePromise(content.callId, ToolConfirmationOutcome.ProceedOnce);
+        this.agent?.approveTool(content.callId, 'once');
         return true;
       }
     }
@@ -200,7 +228,7 @@ export class AionrsManager extends BaseAgentManager<AionrsManagerData, string> {
         action === 'exec' ? (content.confirmationDetails as { rootCommand?: string })?.rootCommand : undefined;
       const keys = AionrsApprovalStore.createKeysFromConfirmation(action, commandType);
       if (keys.length > 0 && this.approvalStore.allApproved(keys)) {
-        void this.postMessagePromise(content.callId, ToolConfirmationOutcome.ProceedOnce);
+        this.agent?.approveTool(content.callId, 'once');
         continue;
       }
 
@@ -416,7 +444,6 @@ export class AionrsManager extends BaseAgentManager<AionrsManagerData, string> {
   }
 
   init() {
-    super.init();
     this.on('aionrs.message', (data) => {
       // Restart fallback timer on every non-finish event (activity heartbeat)
       if (data.type !== 'finish') {
@@ -642,6 +669,21 @@ export class AionrsManager extends BaseAgentManager<AionrsManagerData, string> {
     }
 
     super.confirm(id, callId, data);
-    return this.postMessagePromise(callId, data);
+
+    if (this.agent) {
+      if (data === ToolConfirmationOutcome.Cancel) {
+        this.agent.denyTool(callId, 'User cancelled');
+      } else {
+        const scope = data === ToolConfirmationOutcome.ProceedAlways ? 'always' : 'once';
+        this.agent.approveTool(callId, scope);
+      }
+    }
+  }
+
+  override kill() {
+    if (this.agent) {
+      this.agent.kill();
+    }
+    super.kill();
   }
 }
