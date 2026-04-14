@@ -4,6 +4,7 @@
  */
 import type { AssistantListItem, SkillInfo } from './types';
 import { hasBuiltinSkills } from './assistantUtils';
+import { BUILTIN_AGENT_OPTIONS } from '@/renderer/pages/guid/constants';
 import EmojiPicker from '@/renderer/components/chat/EmojiPicker';
 import MarkdownView from '@/renderer/components/Markdown';
 import { Avatar, Button, Checkbox, Collapse, Drawer, Input, Select, Tag, Typography } from '@arco-design/web-react';
@@ -285,20 +286,11 @@ const AssistantEditDrawer: React.FC<AssistantEditDrawerProps> = ({
               onChange={(value) => setEditAgent(value as string)}
               disabled={isReadonlyAssistant}
             >
-              {[
-                { value: 'gemini', label: 'Gemini CLI' },
-                { value: 'claude', label: 'Claude Code' },
-                { value: 'qwen', label: 'Qwen Code' },
-                { value: 'codex', label: 'Codex' },
-                { value: 'codebuddy', label: 'CodeBuddy' },
-                { value: 'opencode', label: 'OpenCode' },
-              ]
-                .filter((opt) => availableBackends.has(opt.value))
-                .map((opt) => (
-                  <Select.Option key={opt.value} value={opt.value}>
-                    {opt.label}
-                  </Select.Option>
-                ))}
+              {BUILTIN_AGENT_OPTIONS.filter((opt) => availableBackends.has(opt.value)).map((opt) => (
+                <Select.Option key={opt.value} value={opt.value}>
+                  {opt.label}
+                </Select.Option>
+              ))}
               {/* Extension-contributed ACP adapters */}
               {extensionAcpAdapters?.map((adapter) => {
                 const id = adapter.id as string;

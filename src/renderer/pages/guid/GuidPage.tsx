@@ -9,7 +9,7 @@ import { useAssistantBackends } from '@/renderer/hooks/assistant';
 import { useInputFocusRing } from '@/renderer/hooks/chat/useInputFocusRing';
 import { openExternalUrl, resolveExtensionAssetUrl } from '@/renderer/utils/platform';
 import { useConversationTabs } from '@/renderer/pages/conversation/hooks/ConversationTabsContext';
-import { CUSTOM_AVATAR_IMAGE_MAP } from './constants';
+import { BUILTIN_AGENT_OPTIONS, CUSTOM_AVATAR_IMAGE_MAP } from './constants';
 import AgentPillBar from './components/AgentPillBar';
 import AssistantSelectionArea from './components/AssistantSelectionArea';
 import { AgentPillBarSkeleton } from './components/GuidSkeleton';
@@ -36,16 +36,6 @@ import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next';
 import { useLocation, useNavigate } from 'react-router-dom';
 import styles from './index.module.css';
-
-// Agent switcher options — same list as AssistantEditDrawer
-const BUILTIN_AGENT_OPTIONS: { value: string; label: string }[] = [
-  { value: 'gemini', label: 'Gemini CLI' },
-  { value: 'claude', label: 'Claude Code' },
-  { value: 'qwen', label: 'Qwen Code' },
-  { value: 'codex', label: 'Codex' },
-  { value: 'codebuddy', label: 'CodeBuddy' },
-  { value: 'opencode', label: 'OpenCode' },
-];
 
 const GuidPage: React.FC = () => {
   const { t, i18n } = useTranslation();
@@ -441,14 +431,16 @@ const GuidPage: React.FC = () => {
     [agentSelection, currentPresetAgentType, t]
   );
 
-  // Determine if model selector should use provider-based mode (Gemini & Aion CLI)
-  // Both gemini and aionrs use configured model providers, not ACP probe-based models
+  // Resolve the effective agent type once — covers both direct selection and preset assistants
+  const effectiveAgentType = agentSelection.isPresetAgent
+    ? agentSelection.currentEffectiveAgentInfo.agentType
+    : agentSelection.selectedAgent;
+
+  // Agents that use configured model providers instead of ACP probe-based models
   const PROVIDER_BASED_AGENTS = new Set(['gemini', 'aionrs']);
   const isGeminiMode =
-    (PROVIDER_BASED_AGENTS.has(agentSelection.selectedAgent) && !agentSelection.isPresetAgent) ||
-    (agentSelection.isPresetAgent &&
-      agentSelection.currentEffectiveAgentInfo.agentType === 'gemini' &&
-      agentSelection.currentEffectiveAgentInfo.isAvailable);
+    PROVIDER_BASED_AGENTS.has(effectiveAgentType) &&
+    (!agentSelection.isPresetAgent || agentSelection.currentEffectiveAgentInfo.isAvailable);
 
   // Build the mention dropdown node
   const mentionDropdownNode = (
@@ -460,8 +452,8 @@ const GuidPage: React.FC = () => {
     />
   );
 
-  // AionCLI does not support Google Auth — filter it out when aionrs is selected
-  const isAionrs = agentSelection.selectedAgent === 'aionrs';
+  // AionCLI does not support Google Auth — filter it out
+  const isAionrs = effectiveAgentType === 'aionrs';
   const filteredModelList = useMemo(
     () =>
       isAionrs
