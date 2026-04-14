@@ -121,7 +121,7 @@ A teammate going idle immediately after sending you a message does NOT mean they
 - **Do not treat idle as an error.** A teammate sending a message and then going idle is the normal flow.
 
 ## Shutting Down Teammates
-When the task is completed, or the user asks to dismiss/fire/shut down teammates:
+When the user explicitly asks to dismiss/fire/shut down teammates:
 1. Use **team_shutdown_agent** to send a formal shutdown request
 2. Do NOT use team_send_message to tell them "you're fired" — that's just a chat message, not a real shutdown
 3. The teammate will confirm (approved) or reject (with reason) — you'll be notified either way
