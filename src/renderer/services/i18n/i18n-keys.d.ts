@@ -232,6 +232,8 @@ export type I18nKey =
   | 'common.tray.showWindow'
   | 'common.tray.untitled'
   | 'common.troubleshooting'
+  | 'common.unit.minute_short'
+  | 'common.unit.second_short'
   | 'common.unknownError'
   | 'common.upload'
   | 'common.version'
