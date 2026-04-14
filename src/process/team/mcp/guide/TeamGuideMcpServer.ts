@@ -32,7 +32,6 @@ function isAllowedRoute(route: string): boolean {
   return ALLOWED_ROUTE_PATTERNS.some((pattern) => pattern.test(route));
 }
 
-
 /**
  * Singleton in-process MCP server for Aion team management tools.
  * Uses TCP transport + a stdio bridge script, same as TeamMcpServer.
