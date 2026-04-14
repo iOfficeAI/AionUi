@@ -423,10 +423,17 @@ export class WecomPlugin extends BasePlugin {
     }
 
     // Non-blocking like other plugins
-    void this.messageHandler(unified).catch((error) => console.error('[WecomPlugin][WS] messageHandler failed:', error));
+    void this.messageHandler(unified).catch((error) =>
+      console.error('[WecomPlugin][WS] messageHandler failed:', error)
+    );
   }
 
-  private async wsUpsertStream(chatId: string, text: string, finish: boolean, streamIdOverride?: string): Promise<void> {
+  private async wsUpsertStream(
+    chatId: string,
+    text: string,
+    finish: boolean,
+    streamIdOverride?: string
+  ): Promise<void> {
     const ctx = this.wsContexts.get(chatId);
     if (!ctx || !this.wsClient) return;
     const streamId = streamIdOverride || ctx.streamId;
