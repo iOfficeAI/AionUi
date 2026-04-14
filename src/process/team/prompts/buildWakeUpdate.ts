@@ -32,7 +32,7 @@ function buildLeadWakeUpdate(
   messages: MailboxMessage[],
   tasks: TeamTask[],
   teammates: TeamAgent[],
-  renamedAgents?: Map<string, string>,
+  renamedAgents?: Map<string, string>
 ): string {
   return `## Team Status Update
 
@@ -49,7 +49,7 @@ ${formatMessages(messages, teammates)}`;
 function buildTeammateWakeUpdate(
   messages: MailboxMessage[],
   assignedTasks: TeamTask[],
-  allAgents: TeamAgent[],
+  allAgents: TeamAgent[]
 ): string {
   return `## Status Update
 

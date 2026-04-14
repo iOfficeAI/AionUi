@@ -35,7 +35,14 @@ describe('buildWakeUpdate — lead', () => {
       { id: 'task-001-xxxx', teamId: 't1', subject: 'Implement auth', status: 'completed', owner: 'Researcher' },
     ] as TeamTask[];
     const messages: MailboxMessage[] = [
-      { id: 'm1', teamId: 't1', toAgentId: 'lead-slot', fromAgentId: 'member-slot', content: 'Auth done.', type: 'message' },
+      {
+        id: 'm1',
+        teamId: 't1',
+        toAgentId: 'lead-slot',
+        fromAgentId: 'member-slot',
+        content: 'Auth done.',
+        type: 'message',
+      },
     ];
 
     const result = buildWakeUpdate({
