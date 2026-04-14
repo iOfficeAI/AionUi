@@ -43,10 +43,10 @@ describe('buildDisplayMessage', () => {
     expect(result).toBe('hello');
   });
 
-  it('strips AIONUI timestamp separators from filenames while keeping prefix', () => {
+  it('preserves duplicate-upload suffixes so previews keep pointing to the uploaded file', () => {
     const files = [`${workspace}/uploads/photo_aionui_1234567890123.jpg`];
     const result = buildDisplayMessage('hello', files, workspace);
-    expect(result).toContain('uploads/photo.jpg');
-    expect(result).not.toContain(`${workspace}/uploads/photo.jpg`);
+    expect(result).toContain('uploads/photo_aionui_1234567890123.jpg');
+    expect(result).not.toContain(`${workspace}/uploads/photo_aionui_1234567890123.jpg`);
   });
 });
