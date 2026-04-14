@@ -154,6 +154,12 @@ vi.mock('@/renderer/utils/ui/siderTooltip', () => ({
   cleanupSiderTooltips: vi.fn(),
 }));
 
+vi.mock('@/renderer/components/layout/Sider/SortableSiderEntry', () => ({
+  default: ({ children, testId }: { children: React.ReactNode; testId?: string }) => (
+    <div data-testid={testId}>{children}</div>
+  ),
+}));
+
 // Mock ConversationRow component
 vi.mock('@renderer/pages/conversation/GroupedHistory/ConversationRow', () => ({
   default: ({
@@ -267,6 +273,7 @@ describe('CronJobSiderItem', () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
+    localStorage.clear();
     mockConversationListByCronJob.mockResolvedValue(mockConversations);
     mockConversationGet.mockResolvedValue(mockConversations[0]);
     mockConversationUpdate.mockResolvedValue(true);
@@ -413,6 +420,24 @@ describe('CronJobSiderItem', () => {
 
     await waitFor(() => {
       expect(screen.getByTestId('conversation-row-existing-conv')).toBeInTheDocument();
+    });
+  });
+
+  it('uses the stored order for child conversations inside the cron section', async () => {
+    localStorage.setItem('cron-job-conversation-order-job-1', JSON.stringify(['conv-2', 'conv-1']));
+
+    render(<CronJobSiderItem job={mockJobNewConversation} pathname='/' onNavigate={mockOnNavigate} />);
+
+    await waitFor(() => {
+      const arrow = screen.getByTestId('icon-down');
+      fireEvent.click(arrow);
+    });
+
+    await waitFor(() => {
+      expect(screen.getAllByTestId('conversation-name').map((element) => element.textContent)).toEqual([
+        'Conversation 2',
+        'Conversation 1',
+      ]);
     });
   });
 

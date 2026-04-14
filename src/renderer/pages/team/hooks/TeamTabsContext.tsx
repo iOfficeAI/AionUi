@@ -1,5 +1,10 @@
 import React, { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
 import type { TeamAgent, TeammateStatus } from '@/common/types/teamTypes';
+import {
+  readStoredSiderOrder,
+  sortSiderItemsByStoredOrder,
+  writeStoredSiderOrder,
+} from '@renderer/components/layout/Sider/siderOrder';
 
 type AgentStatusInfo = {
   slotId: string;
@@ -19,6 +24,22 @@ export type TeamTabsContextValue = {
 };
 
 const TeamTabsContext = createContext<TeamTabsContextValue | null>(null);
+const TEAM_AGENT_ORDER_STORAGE_PREFIX = 'team-agent-order-';
+
+const getTeamAgentOrderStorageKey = (teamId: string): string => `${TEAM_AGENT_ORDER_STORAGE_PREFIX}${teamId}`;
+
+const sortTeamAgents = (agents: TeamAgent[], teamId: string, fallbackOrder?: string[]): TeamAgent[] => {
+  const leadAgent = agents.find((agent) => agent.role === 'lead');
+  const teammateAgents = agents.filter((agent) => agent.role !== 'lead');
+  const storedOrder = fallbackOrder ?? readStoredSiderOrder(getTeamAgentOrderStorageKey(teamId));
+  const orderedTeammates = sortSiderItemsByStoredOrder({
+    items: teammateAgents,
+    storedOrder,
+    getId: (agent) => agent.slotId,
+  });
+
+  return leadAgent ? [leadAgent, ...orderedTeammates] : orderedTeammates;
+};
 
 export const TeamTabsProvider: React.FC<{
   children: React.ReactNode;
@@ -34,12 +55,24 @@ export const TeamTabsProvider: React.FC<{
   const initialSlotId =
     savedSlotId && externalAgents.some((a) => a.slotId === savedSlotId) ? savedSlotId : defaultActiveSlotId;
   const [activeSlotId, setActiveSlotId] = useState(initialSlotId);
-  const [localAgents, setLocalAgents] = useState<TeamAgent[]>(externalAgents);
+  const [localAgents, setLocalAgents] = useState<TeamAgent[]>(() => sortTeamAgents(externalAgents, teamId));
 
   // Sync external agent list changes (e.g., new agent added)
   useEffect(() => {
-    setLocalAgents(externalAgents);
-  }, [externalAgents]);
+    setLocalAgents((previousAgents) => {
+      const previousTeammateOrder = previousAgents
+        .filter((agent) => agent.role !== 'lead')
+        .map((agent) => agent.slotId);
+      return sortTeamAgents(externalAgents, teamId, previousTeammateOrder);
+    });
+  }, [externalAgents, teamId]);
+
+  useEffect(() => {
+    writeStoredSiderOrder(
+      getTeamAgentOrderStorageKey(teamId),
+      localAgents.filter((agent) => agent.role !== 'lead').map((agent) => agent.slotId)
+    );
+  }, [localAgents, teamId]);
 
   const agents = localAgents;
 
@@ -64,20 +97,19 @@ export const TeamTabsProvider: React.FC<{
 
   const reorderAgents = useCallback((fromSlotId: string, toSlotId: string) => {
     if (fromSlotId === toSlotId) return;
+
     setLocalAgents((prev) => {
-      const fromIndex = prev.findIndex((a) => a.slotId === fromSlotId);
-      const toIndex = prev.findIndex((a) => a.slotId === toSlotId);
+      const leadAgent = prev.find((agent) => agent.role === 'lead');
+      const teammates = prev.filter((agent) => agent.role !== 'lead');
+      const fromIndex = teammates.findIndex((agent) => agent.slotId === fromSlotId);
+      const toIndex = teammates.findIndex((agent) => agent.slotId === toSlotId);
       if (fromIndex === -1 || toIndex === -1) return prev;
-      const next = [...prev];
-      const [removed] = next.splice(fromIndex, 1);
-      next.splice(toIndex, 0, removed);
-      // Ensure leader always stays at index 0
-      const leadIdx = next.findIndex((a) => a.role === 'lead');
-      if (leadIdx > 0) {
-        const [lead] = next.splice(leadIdx, 1);
-        next.unshift(lead);
-      }
-      return next;
+
+      const nextTeammates = [...teammates];
+      const [removed] = nextTeammates.splice(fromIndex, 1);
+      nextTeammates.splice(toIndex, 0, removed);
+
+      return leadAgent ? [leadAgent, ...nextTeammates] : nextTeammates;
     });
   }, []);
 
