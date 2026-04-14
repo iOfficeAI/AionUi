@@ -28,6 +28,8 @@ import { resolveLocaleKey } from '@/common/utils';
 
 export class TeamSessionService {
   private readonly sessions: Map<string, TeamSession> = new Map();
+  /** Per-team mutex to serialize addAgent calls, preventing read-modify-write race conditions */
+  private readonly addAgentLocks: Map<string, Promise<unknown>> = new Map();
 
   constructor(
     private readonly repo: ITeamRepository,
@@ -606,6 +608,28 @@ export class TeamSessionService {
   }
 
   async addAgent(teamId: string, agent: Omit<TeamAgent, 'slotId'>): Promise<TeamAgent> {
+    // Serialize per-team to prevent concurrent read-modify-write races on the agents array.
+    // Without this lock, parallel team_spawn_agent calls read the same stale agents list,
+    // and the last writer wins — silently dropping agents added by concurrent calls.
+    const prev = this.addAgentLocks.get(teamId) ?? Promise.resolve();
+    let resolve!: () => void;
+    const lock = new Promise<void>((r) => {
+      resolve = r;
+    });
+    this.addAgentLocks.set(teamId, lock);
+    try {
+      await prev;
+      return await this.addAgentUnsafe(teamId, agent);
+    } finally {
+      resolve();
+      // Clean up the lock entry when it's the last in the chain
+      if (this.addAgentLocks.get(teamId) === lock) {
+        this.addAgentLocks.delete(teamId);
+      }
+    }
+  }
+
+  private async addAgentUnsafe(teamId: string, agent: Omit<TeamAgent, 'slotId'>): Promise<TeamAgent> {
     const team = await this.repo.findById(teamId);
     if (!team) throw new Error(`Team "${teamId}" not found`);
 

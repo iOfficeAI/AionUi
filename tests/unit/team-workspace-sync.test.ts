@@ -507,3 +507,66 @@ describe('Case 3: buildRolePrompt — teamWorkspace injects workspace section', 
     expect(tm.teamWorkspace).toBeUndefined();
   });
 });
+
+// ---------------------------------------------------------------------------
+// Case 4: Concurrent addAgent — per-team mutex prevents agent loss
+// ---------------------------------------------------------------------------
+
+describe('Case 4: Concurrent addAgent — mutex serializes writes', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
+  it('parallel addAgent calls do not lose agents', async () => {
+    const WORKSPACE = '/projects/shared';
+    const { service, repo } = makeService({ autoWorkspace: WORKSPACE });
+
+    // Create a team with one leader
+    const team = await service.createTeam({
+      userId: 'user-1',
+      name: 'Race Test',
+      workspace: WORKSPACE,
+      workspaceMode: 'shared',
+      agents: [makeLeadAgent() as TeamAgent],
+    });
+
+    // Make repo.findById return live team data (simulates reading latest from DB)
+    let latestAgents = [...team.agents];
+    (repo.findById as ReturnType<typeof vi.fn>).mockImplementation(async () => ({
+      ...team,
+      agents: latestAgents,
+    }));
+    (repo.update as ReturnType<typeof vi.fn>).mockImplementation(async (_id: string, updates: Partial<TTeam>) => {
+      if (updates.agents) latestAgents = updates.agents;
+      return updates;
+    });
+
+    // Spawn 4 agents concurrently (simulates leader calling team_spawn_agent 4 times)
+    const names = ['正方辩手', '反方辩手', '评委', '主持人'];
+    const results = await Promise.all(
+      names.map((name) =>
+        service.addAgent(team.id, {
+          conversationId: '',
+          role: 'teammate',
+          agentType: 'claude',
+          agentName: name,
+          conversationType: 'acp',
+          status: 'pending',
+        })
+      )
+    );
+
+    // All 4 agents should be created
+    expect(results).toHaveLength(4);
+    // The final agents list should have Leader + 4 teammates = 5
+    expect(latestAgents).toHaveLength(5);
+    const agentNames = latestAgents.map((a) => a.agentName);
+    expect(agentNames).toContain('Leader');
+    for (const name of names) {
+      expect(agentNames).toContain(name);
+    }
+  });
+});

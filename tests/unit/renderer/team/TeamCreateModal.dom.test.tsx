@@ -63,6 +63,31 @@ vi.mock('@renderer/utils/platform', () => ({
   isElectronDesktop: mockIsElectronDesktop,
 }));
 
+vi.mock('@/common/config/storage', () => ({
+  ConfigStorage: {
+    get: vi.fn(async (key: string) => {
+      if (key === 'acp.cachedInitializeResult') {
+        return {
+          claude: {
+            protocolVersion: 1,
+            capabilities: {
+              loadSession: false,
+              promptCapabilities: { image: false, audio: false, embeddedContext: false },
+              mcpCapabilities: { stdio: true, http: false, sse: false },
+              sessionCapabilities: { fork: null, resume: null, list: null, close: null },
+              _meta: {},
+            },
+            agentInfo: null,
+            authMethods: [],
+          },
+        };
+      }
+      return null;
+    }),
+    set: vi.fn(async () => {}),
+  },
+}));
+
 vi.mock('@/renderer/components/base/AionModal', () => ({
   default: ({
     children,

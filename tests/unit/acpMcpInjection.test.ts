@@ -71,7 +71,7 @@ vi.mock('../../src/common/adapter/ipcBridge', () => ({
 const mockLoadSession = vi.fn();
 const mockNewSession = vi.fn();
 const mockInitialize = vi.fn().mockResolvedValue({ agentInfo: {} });
-const mockGetInitializeResponse = vi.fn().mockReturnValue(null);
+const mockGetAgentCapabilities = vi.fn().mockReturnValue(null);
 const mockOn = vi.fn();
 const mockDestroy = vi.fn();
 
@@ -81,7 +81,8 @@ vi.mock('../../src/process/agent/acp/AcpConnection', () => ({
     loadSession = mockLoadSession;
     newSession = mockNewSession;
     initialize = mockInitialize;
-    getInitializeResponse = mockGetInitializeResponse;
+    getAgentCapabilities = mockGetAgentCapabilities;
+    getInitializeResponse = vi.fn().mockReturnValue(null);
     on = mockOn;
     destroy = mockDestroy;
     sessionId = null;
@@ -90,15 +91,11 @@ vi.mock('../../src/process/agent/acp/AcpConnection', () => ({
       this.backend = backend;
     }
 
-    getInitializeAgentCapabilities() {
-      const response = this.getInitializeResponse();
-      return response?.agentInfo?.capabilities;
-    }
     async resumeSession(sessionId: string, cwd: string, options?: any) {
-      // Simulate the real resumeSession logic
-      const capabilities = this.getInitializeAgentCapabilities();
-      const useClaudeMetaResume = this.backend === 'claude' || !!capabilities?._meta?.claudeCode;
-      const supportsLoadSession = capabilities?.loadSession === true;
+      // Simulate the real resumeSession logic using agentCapabilities
+      const caps = this.getAgentCapabilities();
+      const useClaudeMetaResume = this.backend === 'claude' || !!caps?._meta?.claudeCode;
+      const supportsLoadSession = caps?.loadSession === true;
       const shouldTryLoadSession = !useClaudeMetaResume && supportsLoadSession;
 
       if (shouldTryLoadSession) {
@@ -286,16 +283,24 @@ describe('Step 7a: createOrResumeSession — Codex vs non-Codex routing', () => 
     vi.clearAllMocks();
     mockLoadSession.mockResolvedValue({ sessionId: 'session-abc' });
     mockNewSession.mockResolvedValue({ sessionId: 'new-session-123' });
-    mockGetInitializeResponse.mockReturnValue({
-      agentInfo: { capabilities: { loadSession: true } },
+    mockGetAgentCapabilities.mockReturnValue({
+      loadSession: true,
+      promptCapabilities: { image: false, audio: false, embeddedContext: false },
+      mcpCapabilities: { stdio: true, http: false, sse: false },
+      sessionCapabilities: { fork: null, resume: null, list: null, close: null },
+      _meta: {},
     });
     vi.mocked(ProcessConfig.get).mockResolvedValue(null);
   });
 
   it('Codex resume calls loadSession, never newSession', async () => {
     // Set up capabilities to support loadSession
-    mockGetInitializeResponse.mockReturnValue({
-      agentInfo: { capabilities: { loadSession: true } },
+    mockGetAgentCapabilities.mockReturnValue({
+      loadSession: true,
+      promptCapabilities: { image: false, audio: false, embeddedContext: false },
+      mcpCapabilities: { stdio: true, http: false, sse: false },
+      sessionCapabilities: { fork: null, resume: null, list: null, close: null },
+      _meta: {},
     });
 
     const agent = createCodexAgent({
@@ -340,8 +345,12 @@ describe('Step 7a: createOrResumeSession — Codex vs non-Codex routing', () => 
 
   it('resume fallback to newSession when loadSession throws', async () => {
     // Set up capabilities to support loadSession
-    mockGetInitializeResponse.mockReturnValue({
-      agentInfo: { capabilities: { loadSession: true } },
+    mockGetAgentCapabilities.mockReturnValue({
+      loadSession: true,
+      promptCapabilities: { image: false, audio: false, embeddedContext: false },
+      mcpCapabilities: { stdio: true, http: false, sse: false },
+      sessionCapabilities: { fork: null, resume: null, list: null, close: null },
+      _meta: {},
     });
     mockLoadSession.mockRejectedValue(new Error('session expired'));
     const agent = createCodexAgent({
@@ -365,8 +374,12 @@ describe('Step 7b PROOF-OF-FIX: Codex loadSession receives mcpServers (Task #1)'
   beforeEach(() => {
     vi.clearAllMocks();
     // Set up capabilities to support loadSession
-    mockGetInitializeResponse.mockReturnValue({
-      agentInfo: { capabilities: { loadSession: true } },
+    mockGetAgentCapabilities.mockReturnValue({
+      loadSession: true,
+      promptCapabilities: { image: false, audio: false, embeddedContext: false },
+      mcpCapabilities: { stdio: true, http: false, sse: false },
+      sessionCapabilities: { fork: null, resume: null, list: null, close: null },
+      _meta: {},
     });
     mockLoadSession.mockResolvedValue({ sessionId: 'session-abc' });
     mockNewSession.mockResolvedValue({ sessionId: 'new-session-123' });

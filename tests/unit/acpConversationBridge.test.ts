@@ -24,7 +24,6 @@ vi.mock('../../src/common', () => ({
       checkAgentHealth: makeChannel('checkAgentHealth'),
       getMode: makeChannel('getMode'),
       getModelInfo: makeChannel('getModelInfo'),
-      probeModelInfo: makeChannel('probeModelInfo'),
       setModel: makeChannel('setModel'),
       setMode: makeChannel('setMode'),
       getConfigOptions: makeChannel('getConfigOptions'),
@@ -47,11 +46,6 @@ vi.mock('../../src/process/agent/acp/AcpConnection', () => ({
     getModels: vi.fn(() => []),
     getInitializeResponse: vi.fn(() => null),
   })),
-}));
-
-vi.mock('../../src/process/agent/acp/modelInfo', () => ({
-  buildAcpModelInfo: vi.fn(() => ({})),
-  summarizeAcpModelInfo: vi.fn(() => ({})),
 }));
 
 vi.mock('../../src/process/task/AcpAgentManager', () => ({ default: class AcpAgentManager {} }));

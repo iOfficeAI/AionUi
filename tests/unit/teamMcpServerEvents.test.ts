@@ -53,9 +53,56 @@ vi.mock('electron', () => ({
   },
 }));
 
+// Mock ProcessConfig for dynamic team capability checks
+vi.mock('../../src/process/utils/initStorage', () => ({
+  ProcessConfig: {
+    get: vi.fn(async (key: string) => {
+      if (key === 'acp.cachedInitializeResult') {
+        return {
+          claude: {
+            protocolVersion: 1,
+            capabilities: {
+              loadSession: false,
+              promptCapabilities: { image: false, audio: false, embeddedContext: false },
+              mcpCapabilities: { stdio: true, http: false, sse: false },
+              sessionCapabilities: { fork: null, resume: null, list: null, close: null },
+              _meta: {},
+            },
+            agentInfo: null,
+            authMethods: [],
+          },
+          codex: {
+            protocolVersion: 1,
+            capabilities: {
+              loadSession: false,
+              promptCapabilities: { image: false, audio: false, embeddedContext: false },
+              mcpCapabilities: { stdio: true, http: false, sse: false },
+              sessionCapabilities: { fork: null, resume: null, list: null, close: null },
+              _meta: {},
+            },
+            agentInfo: null,
+            authMethods: [],
+          },
+        };
+      }
+      return null;
+    }),
+  },
+}));
+
+// Mock acpDetector for getTeamCapableBackends error message
+vi.mock('../../src/process/agent/acp/AcpDetector', () => ({
+  acpDetector: {
+    getDetectedAgents: vi.fn(() => [
+      { backend: 'claude', name: 'Claude' },
+      { backend: 'codex', name: 'Codex' },
+    ]),
+  },
+}));
+
 // ─── imports ─────────────────────────────────────────────────────────────────
 
-import { TeamMcpServer } from '../../src/process/team/TeamMcpServer';
+import { TeamMcpServer } from '../../src/process/team/mcp/team/TeamMcpServer';
 
 // ─── helpers ─────────────────────────────────────────────────────────────────
 
@@ -129,11 +176,11 @@ describe('Task #4: TeamMcpServer IPC events', () => {
 });
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Task #4 Verification #3: TEAM_ALLOWED gemini whitelist
+// TeamMcpServer agent type capability check
 // ─────────────────────────────────────────────────────────────────────────────
 
-describe('Task #4: TeamMcpServer agent type whitelist', () => {
-  it('allows gemini agents via handleSpawnAgent (TEAM_ALLOWED includes gemini)', async () => {
+describe('TeamMcpServer agent type capability check', () => {
+  it('allows gemini agents via handleSpawnAgent (gemini is always team-capable)', async () => {
     const spawnAgent = vi.fn().mockResolvedValue({ slotId: 'new-slot', conversationId: 'c1' });
     const deps = { ...makeMockDeps(), spawnAgent };
     const server = new TeamMcpServer(deps);
@@ -145,7 +192,7 @@ describe('Task #4: TeamMcpServer agent type whitelist', () => {
     expect(spawnAgent).toHaveBeenCalledWith('gemini-agent', 'gemini');
   });
 
-  it('rejects codebuddy agents via handleSpawnAgent (codebuddy removed from whitelist)', async () => {
+  it('rejects codebuddy agents via handleSpawnAgent (no cached init result)', async () => {
     const spawnAgent = vi.fn();
     const deps = { ...makeMockDeps(), spawnAgent };
     const server = new TeamMcpServer(deps);

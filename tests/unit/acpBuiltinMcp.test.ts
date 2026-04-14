@@ -6,10 +6,8 @@
 
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import type { IMcpServer } from '../../src/common/config/storage';
-import {
-  buildBuiltinAcpSessionMcpServers,
-  parseAcpMcpCapabilities,
-} from '../../src/process/agent/acp/mcpSessionConfig';
+import { buildBuiltinAcpSessionMcpServers } from '../../src/process/agent/acp/mcpSessionConfig';
+import { parseAgentCapabilities } from '../../src/common/types/acpTypes';
 
 describe('ACP built-in MCP session config', () => {
   it('injects only enabled built-in MCP servers and converts transport shape for session/new', () => {
@@ -113,26 +111,25 @@ describe('ACP built-in MCP session config', () => {
     ]);
   });
 
-  it('parses MCP capabilities from initialize response and defaults missing fields to true', () => {
-    expect(
-      parseAcpMcpCapabilities({
-        agentCapabilities: {
-          mcpCapabilities: {
-            stdio: true,
-            http: false,
-          },
+  it('parses MCP capabilities from initialize response (omitted = false per ACP spec)', () => {
+    const caps1 = parseAgentCapabilities({
+      agentCapabilities: {
+        mcpCapabilities: {
+          http: true,
         },
-      } as any)
-    ).toEqual({
-      stdio: true,
-      http: false,
-      sse: true,
+      },
+    } as any);
+    expect(caps1.mcpCapabilities).toEqual({
+      stdio: true, // always true per spec
+      http: true,
+      sse: false, // omitted = false
     });
 
-    expect(parseAcpMcpCapabilities(null)).toEqual({
-      stdio: true,
-      http: true,
-      sse: true,
+    const caps2 = parseAgentCapabilities(null);
+    expect(caps2.mcpCapabilities).toEqual({
+      stdio: false, // mcpCapabilities absent = agent does not support MCP
+      http: false, // omitted = false
+      sse: false, // omitted = false
     });
   });
 });

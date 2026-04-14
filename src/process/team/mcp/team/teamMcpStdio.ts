@@ -15,7 +15,7 @@ import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
 import { z } from 'zod';
 import * as net from 'node:net';
-import { TEAM_SPAWN_AGENT_DESCRIPTION } from './toolDescriptions';
+import { TEAM_SPAWN_AGENT_DESCRIPTION } from '../../prompts/toolDescriptions';
 
 const TEAM_AGENT_SLOT_ID = process.env.TEAM_AGENT_SLOT_ID || undefined;
 const TEAM_MCP_TOKEN = process.env.TEAM_MCP_TOKEN || undefined;

@@ -3,10 +3,9 @@
  * Copyright 2025 AionUi (aionui.com)
  * SPDX-License-Identifier: Apache-2.0
  *
- * Tests for AionMcpService tool handler logic (TCP architecture):
+ * Tests for TeamGuideMcpServer tool handler logic (TCP architecture):
  *   - aion_create_team: input validation, TeamSessionService wiring, return shape
- *   - aion_navigate: route whitelist enforcement, IPC emit
- *   - TEAM_GUIDE_ALLOWED_BACKENDS: whitelist set (Task #4)
+ *   - shouldInjectTeamGuideMcp: dynamic capability check (uses cached ACP init results)
  */
 
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
@@ -36,6 +35,30 @@ vi.mock('electron', () => ({
   app: { isPackaged: false, getAppPath: () => '/app' },
 }));
 
+// Mock ProcessConfig for dynamic team capability checks
+vi.mock('../../src/process/utils/initStorage', () => ({
+  ProcessConfig: {
+    get: vi.fn(async (key: string) => {
+      if (key === 'acp.cachedInitializeResult') {
+        const makeEntry = () => ({
+          protocolVersion: 1,
+          capabilities: {
+            loadSession: false,
+            promptCapabilities: { image: false, audio: false, embeddedContext: false },
+            mcpCapabilities: { stdio: true, http: false, sse: false },
+            sessionCapabilities: { fork: null, resume: null, list: null, close: null },
+            _meta: {},
+          },
+          agentInfo: null,
+          authMethods: [],
+        });
+        return { claude: makeEntry(), codex: makeEntry() };
+      }
+      return null;
+    }),
+  },
+}));
+
 // ------------------------------------------------------------------
 // Mock TeamSessionService
 // ------------------------------------------------------------------
@@ -55,19 +78,18 @@ function makeTeamSessionService() {
 // Import units under test
 // ------------------------------------------------------------------
 
-import { AionMcpService } from '../../src/process/services/mcpServices/AionMcpService';
-import { TEAM_GUIDE_ALLOWED_BACKENDS } from '../../src/process/agent/acp/mcpSessionConfig';
+import { TeamGuideMcpServer } from '../../src/process/team/mcp/guide/TeamGuideMcpServer';
 
 // ------------------------------------------------------------------
 // Helpers
 // ------------------------------------------------------------------
 
-function getPort(service: AionMcpService): number {
+function getPort(service: TeamGuideMcpServer): number {
   const entry = service.getStdioConfig().env.find((e) => e.name === 'AION_MCP_PORT');
   return Number(entry?.value ?? 0);
 }
 
-function getAuthToken(service: AionMcpService): string {
+function getAuthToken(service: TeamGuideMcpServer): string {
   return service.getStdioConfig().env.find((e) => e.name === 'AION_MCP_TOKEN')?.value ?? '';
 }
 
@@ -105,49 +127,21 @@ async function tcpRequest(port: number, data: unknown): Promise<unknown> {
 }
 
 // ------------------------------------------------------------------
-// TEAM_GUIDE_ALLOWED_BACKENDS (Task #4 whitelist)
+// shouldInjectTeamGuideMcp (dynamic capability check)
 // ------------------------------------------------------------------
-
-describe('TEAM_GUIDE_ALLOWED_BACKENDS whitelist', () => {
-  it('includes claude', () => {
-    expect(TEAM_GUIDE_ALLOWED_BACKENDS.has('claude')).toBe(true);
-  });
-
-  it('includes codex', () => {
-    expect(TEAM_GUIDE_ALLOWED_BACKENDS.has('codex')).toBe(true);
-  });
-
-  it('includes gemini', () => {
-    expect(TEAM_GUIDE_ALLOWED_BACKENDS.has('gemini')).toBe(true);
-  });
-
-  it('excludes qwen', () => {
-    expect(TEAM_GUIDE_ALLOWED_BACKENDS.has('qwen')).toBe(false);
-  });
-
-  it('excludes opencode', () => {
-    expect(TEAM_GUIDE_ALLOWED_BACKENDS.has('opencode')).toBe(false);
-  });
-
-  it('excludes iflow', () => {
-    expect(TEAM_GUIDE_ALLOWED_BACKENDS.has('iflow')).toBe(false);
-  });
-
-  it('excludes cursor', () => {
-    expect(TEAM_GUIDE_ALLOWED_BACKENDS.has('cursor')).toBe(false);
-  });
-});
+// Tested in team-agentSelectUtils.test.ts via isTeamCapableBackend.
+// The function itself is a thin wrapper around ProcessConfig + isTeamCapableBackend.
 
 // ------------------------------------------------------------------
-// AionMcpService lifecycle
+// TeamGuideMcpServer lifecycle
 // ------------------------------------------------------------------
 
-describe('AionMcpService lifecycle', () => {
-  let service: AionMcpService;
+describe('TeamGuideMcpServer lifecycle', () => {
+  let service: TeamGuideMcpServer;
 
   beforeEach(async () => {
     vi.clearAllMocks();
-    service = new AionMcpService(makeTeamSessionService());
+    service = new TeamGuideMcpServer(makeTeamSessionService());
     await service.start();
   });
 
@@ -169,7 +163,7 @@ describe('AionMcpService lifecycle', () => {
   });
 
   it('start() returns the same StdioMcpConfig as getStdioConfig()', async () => {
-    const service2 = new AionMcpService(makeTeamSessionService());
+    const service2 = new TeamGuideMcpServer(makeTeamSessionService());
     const returned = await service2.start();
     const getter = service2.getStdioConfig();
     expect(returned).toEqual(getter);
@@ -187,12 +181,12 @@ describe('AionMcpService lifecycle', () => {
 // Auth token validation
 // ------------------------------------------------------------------
 
-describe('AionMcpService auth token', () => {
-  let service: AionMcpService;
+describe('TeamGuideMcpServer auth token', () => {
+  let service: TeamGuideMcpServer;
 
   beforeEach(async () => {
     vi.clearAllMocks();
-    service = new AionMcpService(makeTeamSessionService());
+    service = new TeamGuideMcpServer(makeTeamSessionService());
     await service.start();
   });
 
@@ -202,22 +196,11 @@ describe('AionMcpService auth token', () => {
 
   it('rejects requests with wrong auth token', async () => {
     const response = (await tcpRequest(getPort(service), {
-      tool: 'aion_navigate',
-      args: { route: '/team/abc' },
+      tool: 'aion_create_team',
+      args: { summary: 'test' },
       auth_token: 'wrong-token',
     })) as Record<string, unknown>;
     expect(response.error).toBe('Unauthorized');
-  });
-
-  it('accepts requests with correct auth token', async () => {
-    mockDeepLinkEmit.mockReturnValue(undefined);
-    const response = (await tcpRequest(getPort(service), {
-      tool: 'aion_navigate',
-      args: { route: '/team/abc-123' },
-      auth_token: getAuthToken(service),
-    })) as Record<string, unknown>;
-    expect(response.error).toBeUndefined();
-    expect(typeof response.result).toBe('string');
   });
 });
 
@@ -226,11 +209,11 @@ describe('AionMcpService auth token', () => {
 // ------------------------------------------------------------------
 
 describe('aion_create_team handler', () => {
-  let service: AionMcpService;
+  let service: TeamGuideMcpServer;
 
   beforeEach(async () => {
     vi.clearAllMocks();
-    service = new AionMcpService(makeTeamSessionService());
+    service = new TeamGuideMcpServer(makeTeamSessionService());
     await service.start();
 
     mockCreateTeam.mockResolvedValue({
@@ -370,95 +353,15 @@ describe('aion_create_team handler', () => {
 });
 
 // ------------------------------------------------------------------
-// aion_navigate handler
-// ------------------------------------------------------------------
-
-describe('aion_navigate handler', () => {
-  let service: AionMcpService;
-
-  beforeEach(async () => {
-    vi.clearAllMocks();
-    service = new AionMcpService(makeTeamSessionService());
-    await service.start();
-  });
-
-  afterEach(async () => {
-    await service.stop();
-  });
-
-  it('emits deepLink IPC and returns success for /team/:id route', async () => {
-    const response = (await tcpRequest(getPort(service), {
-      tool: 'aion_navigate',
-      args: { route: '/team/abc-123' },
-      auth_token: getAuthToken(service),
-    })) as Record<string, unknown>;
-
-    expect(mockDeepLinkEmit).toHaveBeenCalledWith({
-      action: 'navigate',
-      params: { route: '/team/abc-123' },
-    });
-
-    const data = JSON.parse(response.result as string) as Record<string, unknown>;
-    expect(data.success).toBe(true);
-  });
-
-  it('emits deepLink IPC for /conversation/:id route', async () => {
-    await tcpRequest(getPort(service), {
-      tool: 'aion_navigate',
-      args: { route: '/conversation/xyz-456' },
-      auth_token: getAuthToken(service),
-    });
-
-    expect(mockDeepLinkEmit).toHaveBeenCalledWith({
-      action: 'navigate',
-      params: { route: '/conversation/xyz-456' },
-    });
-  });
-
-  it('returns error and does NOT emit IPC for blocked routes', async () => {
-    const response = (await tcpRequest(getPort(service), {
-      tool: 'aion_navigate',
-      args: { route: '/evil/path' },
-      auth_token: getAuthToken(service),
-    })) as Record<string, unknown>;
-
-    expect(response.error).toContain('not allowed');
-    expect(mockDeepLinkEmit).not.toHaveBeenCalled();
-  });
-
-  it('returns error for /team/ without id segment', async () => {
-    const response = (await tcpRequest(getPort(service), {
-      tool: 'aion_navigate',
-      args: { route: '/team/' },
-      auth_token: getAuthToken(service),
-    })) as Record<string, unknown>;
-
-    expect(response.error).toBeTruthy();
-    expect(mockDeepLinkEmit).not.toHaveBeenCalled();
-  });
-
-  it('returns error for /settings/model', async () => {
-    const response = (await tcpRequest(getPort(service), {
-      tool: 'aion_navigate',
-      args: { route: '/settings/model' },
-      auth_token: getAuthToken(service),
-    })) as Record<string, unknown>;
-
-    expect(response.error).toBeTruthy();
-    expect(mockDeepLinkEmit).not.toHaveBeenCalled();
-  });
-});
-
-// ------------------------------------------------------------------
 // Unknown tool
 // ------------------------------------------------------------------
 
 describe('unknown tool', () => {
-  let service: AionMcpService;
+  let service: TeamGuideMcpServer;
 
   beforeEach(async () => {
     vi.clearAllMocks();
-    service = new AionMcpService(makeTeamSessionService());
+    service = new TeamGuideMcpServer(makeTeamSessionService());
     await service.start();
   });
 

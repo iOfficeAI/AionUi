@@ -40,7 +40,7 @@ import { extractAndStripThinkTags } from './ThinkTagDetector';
 import type { AgentKillReason } from './IAgentManager';
 import { hasNativeSkillSupport } from '@/common/types/acpTypes';
 import { prepareFirstMessageWithSkillsIndex } from '@process/task/agentUtils';
-import { shouldInjectTeamGuideMcp } from '@process/resources/prompts/teamGuidePrompt';
+import { shouldInjectTeamGuideMcp } from '@process/team/prompts/teamGuideCapability.ts';
 import { extractTextFromMessage, processCronInMessage } from './MessageMiddleware';
 import { ConversationTurnCompletionService } from './ConversationTurnCompletionService';
 
@@ -1007,8 +1007,8 @@ ${collectedResponses.join('\n')}`;
             // Native skill discovery via workspace symlinks — inject preset rules + team guide
             const parts: string[] = [];
             if (this.options.presetContext) parts.push(this.options.presetContext);
-            if (!isInTeam && shouldInjectTeamGuideMcp(this.options.backend)) {
-              const { getTeamGuidePrompt } = await import('@process/resources/prompts/teamGuidePrompt');
+            if (!isInTeam && (await shouldInjectTeamGuideMcp(this.options.backend))) {
+              const { getTeamGuidePrompt } = await import('@process/team/prompts/teamGuidePrompt.ts');
               parts.push(getTeamGuidePrompt(this.options.backend));
             }
             if (parts.length > 0) {
@@ -1019,7 +1019,7 @@ ${collectedResponses.join('\n')}`;
             contentToSend = await prepareFirstMessageWithSkillsIndex(contentToSend, {
               presetContext: this.options.presetContext,
               enabledSkills: this.options.enabledSkills,
-              enableTeamGuide: !isInTeam && shouldInjectTeamGuideMcp(this.options.backend),
+              enableTeamGuide: !isInTeam && (await shouldInjectTeamGuideMcp(this.options.backend)),
               backend: this.options.backend,
             });
           }

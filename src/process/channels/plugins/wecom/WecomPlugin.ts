@@ -16,6 +16,7 @@ import {
 } from './WecomStreamState';
 import type { WecomStreamRecord } from './WecomStreamState';
 import type { IChannelPluginConfig, IUnifiedIncomingMessage, IUnifiedOutgoingMessage, PluginType } from '../../types';
+import AiBot from '@wecom/aibot-node-sdk';
 
 const WECOM_CALLBACK_PATH = '/channels/wecom/webhook';
 
@@ -57,8 +58,16 @@ async function postResponseUrlMessage(url: string, text: string): Promise<void> 
 export class WecomPlugin extends BasePlugin {
   readonly type: PluginType = 'wecom';
 
+  private mode: 'webhook' | 'websocket' = 'webhook';
   private token = '';
   private encodingAesKey = '';
+
+  private botId = '';
+  private secret = '';
+  private wsClient: unknown | null = null;
+  private readonly wsActiveUsers = new Set<string>();
+  private readonly wsContexts = new Map<string, { frameHeaders: { headers: { req_id: string } }; streamId: string }>();
+
   private readonly activeUsers = new Set<string>();
   private readonly pendingFinalizeTimers = new Map<string, ReturnType<typeof setTimeout>>();
 
@@ -81,8 +90,19 @@ export class WecomPlugin extends BasePlugin {
   }
 
   protected async onInitialize(config: IChannelPluginConfig): Promise<void> {
+    const botId = config.credentials?.botId?.trim();
+    const secret = config.credentials?.secret?.trim();
     const token = config.credentials?.token?.trim();
     const encodingAesKey = config.credentials?.encodingAesKey?.trim();
+
+    if (botId && secret) {
+      this.mode = 'websocket';
+      this.botId = botId;
+      this.secret = secret;
+      return;
+    }
+
+    this.mode = 'webhook';
     if (!token) {
       throw new Error('WeCom: callback Token is required');
     }
@@ -94,10 +114,18 @@ export class WecomPlugin extends BasePlugin {
   }
 
   protected async onStart(): Promise<void> {
+    if (this.mode === 'websocket') {
+      await this.startWebsocket();
+      return;
+    }
     setActiveWecomPlugin(this);
   }
 
   protected async onStop(): Promise<void> {
+    if (this.mode === 'websocket') {
+      this.stopWebsocket();
+      return;
+    }
     setActiveWecomPlugin(null);
     for (const timer of this.pendingFinalizeTimers.values()) {
       clearTimeout(timer);
@@ -242,6 +270,12 @@ export class WecomPlugin extends BasePlugin {
   }
 
   async sendMessage(chatId: string, message: IUnifiedOutgoingMessage): Promise<string> {
+    if (this.mode === 'websocket') {
+      await this.wsUpsertStream(chatId, extractOutgoingText(message), !!message.replyMarkup);
+      const ctx = this.wsContexts.get(chatId);
+      return ctx?.streamId || `wecomws-msg-${Date.now()}`;
+    }
+
     const stream = getLatestStreamByChatId(chatId);
     const text = extractOutgoingText(message);
     this.metrics.sent += 1;
@@ -271,6 +305,11 @@ export class WecomPlugin extends BasePlugin {
   }
 
   async editMessage(chatId: string, messageId: string, message: IUnifiedOutgoingMessage): Promise<void> {
+    if (this.mode === 'websocket') {
+      await this.wsUpsertStream(chatId, extractOutgoingText(message), !!message.replyMarkup, messageId);
+      return;
+    }
+
     const stream = messageId ? getStream(messageId) : getLatestStreamByChatId(chatId);
     if (!stream) return;
     const text = extractOutgoingText(message);
@@ -291,10 +330,122 @@ export class WecomPlugin extends BasePlugin {
   }
 
   getActiveUserCount(): number {
-    return this.activeUsers.size;
+    return this.mode === 'websocket' ? this.wsActiveUsers.size : this.activeUsers.size;
   }
 
   getBotInfo(): { username?: string; displayName: string } | null {
-    return { displayName: 'WeCom' };
+    return { displayName: this.mode === 'websocket' ? 'WeCom (WS)' : 'WeCom' };
+  }
+
+  private async startWebsocket(): Promise<void> {
+    const WSClientCtor = (AiBot as unknown as { WSClient?: new (opts: Record<string, unknown>) => unknown }).WSClient;
+    if (!WSClientCtor) {
+      throw new Error('WeCom: WSClient not found in SDK');
+    }
+    const client = new WSClientCtor({ botId: this.botId, secret: this.secret });
+
+    const emitter = client as unknown as {
+      on?: (event: string, handler: (...args: unknown[]) => void) => void;
+      connect?: () => unknown;
+      disconnect?: () => unknown;
+    };
+    if (!emitter.on || !emitter.connect) {
+      throw new Error('WeCom: SDK client missing on/connect methods');
+    }
+
+    emitter.on('authenticated', () => {
+      this.metrics.lastEventAt = Date.now();
+    });
+    emitter.on('error', (err: unknown) => {
+      const msg = err instanceof Error ? err.message : String(err);
+      this.setError(msg);
+      console.error('[WecomPlugin][WS] error:', err);
+    });
+
+    const handleMsg = (frame: unknown) => {
+      void this.handleWsMessageFrame(frame).catch((error) => {
+        console.error('[WecomPlugin][WS] handle message frame failed:', error);
+      });
+    };
+
+    emitter.on('message.text', handleMsg);
+    emitter.on('message.voice', handleMsg);
+    emitter.on('message.mixed', handleMsg);
+    emitter.on('message.image', handleMsg);
+    emitter.on('message.file', handleMsg);
+    emitter.on('message.video', handleMsg);
+
+    // (Optional) welcome message. Keep minimal: no auto-welcome to avoid extra behavior.
+
+    emitter.connect();
+    this.wsClient = client;
+  }
+
+  private stopWebsocket(): void {
+    this.wsContexts.clear();
+    this.wsActiveUsers.clear();
+    const client = this.wsClient as unknown as { disconnect?: () => unknown };
+    client?.disconnect?.();
+    this.wsClient = null;
+  }
+
+  private getWsReqId(frame: unknown): string | null {
+    if (!frame || typeof frame !== 'object') return null;
+    const headers = (frame as { headers?: unknown }).headers;
+    const reqId = headers && typeof headers === 'object' ? (headers as { req_id?: unknown }).req_id : undefined;
+    return typeof reqId === 'string' && reqId.trim() ? reqId : null;
+  }
+
+  private getWsFrameHeaders(frame: unknown): { headers: { req_id: string } } | null {
+    const reqId = this.getWsReqId(frame);
+    return reqId ? { headers: { req_id: reqId } } : null;
+  }
+
+  private getWsBody(frame: unknown): Record<string, unknown> {
+    if (!frame || typeof frame !== 'object') return {};
+    const body = (frame as { body?: unknown }).body;
+    return body && typeof body === 'object' && !Array.isArray(body) ? (body as Record<string, unknown>) : {};
+  }
+
+  private async handleWsMessageFrame(frame: unknown): Promise<void> {
+    if (!this.messageHandler) return;
+    const frameHeaders = this.getWsFrameHeaders(frame);
+    const payload = this.getWsBody(frame);
+    const unified = this.toUnifiedIncomingMessage(payload);
+
+    this.wsActiveUsers.add(unified.user.id);
+    this.metrics.received += 1;
+    this.metrics.lastEventAt = Date.now();
+
+    if (frameHeaders) {
+      const streamId = `wecomws-stream-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+      this.wsContexts.set(unified.chatId, { frameHeaders, streamId });
+    }
+
+    // Non-blocking like other plugins
+    void this.messageHandler(unified).catch((error) =>
+      console.error('[WecomPlugin][WS] messageHandler failed:', error)
+    );
+  }
+
+  private async wsUpsertStream(
+    chatId: string,
+    text: string,
+    finish: boolean,
+    streamIdOverride?: string
+  ): Promise<void> {
+    const ctx = this.wsContexts.get(chatId);
+    if (!ctx || !this.wsClient) return;
+    const streamId = streamIdOverride || ctx.streamId;
+    const client = this.wsClient as unknown as {
+      replyStream?: (
+        frame: { headers: { req_id: string } },
+        streamId: string,
+        content: string,
+        finish?: boolean
+      ) => Promise<unknown>;
+    };
+    if (!client.replyStream) return;
+    await client.replyStream(ctx.frameHeaders, streamId, text || '', finish);
   }
 }

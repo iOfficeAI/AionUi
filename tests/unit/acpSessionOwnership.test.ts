@@ -46,14 +46,20 @@ vi.mock('@process/agent/acp/AcpConnection', () => {
       newSession = mockNewSession;
       initialize = mockInitialize;
       getInitializeResponse = mockGetInitializeResponse;
-      getInitializeAgentCapabilities() {
-        return { loadSession: true };
+      getAgentCapabilities() {
+        return {
+          loadSession: true,
+          promptCapabilities: { image: false, audio: false, embeddedContext: false },
+          mcpCapabilities: { stdio: true, http: false, sse: false },
+          sessionCapabilities: { fork: null, resume: null, list: null, close: null },
+          _meta: {},
+        };
       }
       async resumeSession(sessionId: string, cwd: string, options?: any) {
-        // Simulate the real resumeSession logic for Codex
-        const capabilities = this.getInitializeAgentCapabilities();
-        const useClaudeMetaResume = this.backend === 'claude' || !!capabilities?._meta?.claudeCode;
-        const supportsLoadSession = capabilities?.loadSession === true;
+        // Simulate the real resumeSession logic using agentCapabilities
+        const caps = this.getAgentCapabilities();
+        const useClaudeMetaResume = this.backend === 'claude' || !!caps?._meta?.claudeCode;
+        const supportsLoadSession = caps?.loadSession === true;
         const shouldTryLoadSession = !useClaudeMetaResume && supportsLoadSession;
 
         if (shouldTryLoadSession) {
@@ -79,7 +85,6 @@ vi.mock('@process/agent/acp/AcpConnection', () => {
 
 vi.mock('@process/agent/acp/mcpSessionConfig', () => ({
   buildBuiltinAcpSessionMcpServers: vi.fn().mockResolvedValue([]),
-  parseAcpMcpCapabilities: vi.fn(),
 }));
 
 vi.mock('@process/agent/acp/modelInfo', () => ({
