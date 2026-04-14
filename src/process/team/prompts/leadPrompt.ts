@@ -22,9 +22,10 @@ function formatMessages(messages: MailboxMessage[], teammates: TeamAgent[]): str
   if (messages.length === 0) return 'No unread messages.';
   return messages
     .map((m) => {
-      if (m.fromAgentId === 'user') return `[From User] ${m.content}`;
+      const filesNote = m.files?.length ? `\nFiles: ${m.files.join(', ')}` : '';
+      if (m.fromAgentId === 'user') return `[From User] ${m.content}${filesNote}`;
       const sender = teammates.find((t) => t.slotId === m.fromAgentId);
-      return `[From ${sender?.agentName ?? m.fromAgentId}] ${m.content}`;
+      return `[From ${sender?.agentName ?? m.fromAgentId}] ${m.content}${filesNote}`;
     })
     .join('\n');
 }
