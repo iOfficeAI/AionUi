@@ -117,6 +117,11 @@ export class TeammateManager extends EventEmitter {
       this.finalizedTurns.delete(agent.conversationId);
     }
     try {
+      // Determine if this is the first activation or a crash recovery —
+      // these need the full role prompt with static instructions.
+      // Subsequent wakes only need a lightweight status update.
+      const needsFullPrompt = agent.status === 'pending' || agent.status === 'failed';
+
       // Transition pending -> idle on first activation
       if (agent.status === 'pending') {
         this.setStatus(slotId, 'idle');
@@ -161,12 +166,16 @@ export class TeammateManager extends EventEmitter {
         }
       }
 
-      // Only show team-capable backends (with cached ACP initialize results) in the leader's available agent types
-      const cachedInitResults = await ProcessConfig.get('acp.cachedInitializeResult');
-      const availableAgentTypes = acpDetector
-        .getDetectedAgents()
-        .filter((a) => isTeamCapableBackend(a.backend, cachedInitResults))
-        .map((a) => ({ type: a.backend, name: a.name }));
+      // Only compute availableAgentTypes for lead's full prompt — it's not needed
+      // for teammate prompts or incremental wake updates.
+      let availableAgentTypes: Array<{ type: string; name: string }> | undefined;
+      if (needsFullPrompt && agent.role === 'lead') {
+        const cachedInitResults = await ProcessConfig.get('acp.cachedInitializeResult');
+        availableAgentTypes = acpDetector
+          .getDetectedAgents()
+          .filter((a) => isTeamCapableBackend(a.backend, cachedInitResults))
+          .map((a) => ({ type: a.backend, name: a.name }));
+      }
 
       const message = buildRolePrompt({
         agent,
@@ -176,6 +185,7 @@ export class TeammateManager extends EventEmitter {
         availableAgentTypes,
         renamedAgents: this.renamedAgents,
         teamWorkspace: this.teamWorkspace,
+        needsFullPrompt,
       });
 
       const agentTask = await this.workerTaskManager.getOrBuildTask(agent.conversationId);
