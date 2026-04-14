@@ -91,6 +91,29 @@ describe('AcpConnection.loadSession', () => {
 
     expect(result).toBe(mockResponse);
   });
+
+  it('passes resumed MCP servers through session/load when provided', async () => {
+    const sendRequest = vi.spyOn(conn as any, 'sendRequest').mockResolvedValue({ sessionId: 's1' });
+    const mcpServers = [
+      {
+        type: 'stdio',
+        name: 'team-mcp',
+        command: 'node',
+        args: ['team-mcp.js'],
+        env: [{ name: 'TEAM_ID', value: 'team-1' }],
+      },
+    ];
+
+    await conn.loadSession('s1', '/tmp', { mcpServers });
+
+    expect(sendRequest).toHaveBeenCalledWith(
+      'session/load',
+      expect.objectContaining({
+        sessionId: 's1',
+        mcpServers,
+      })
+    );
+  });
 });
 
 // ─── parseSessionCapabilities (via loadSession) ──────────────────────────────
@@ -209,5 +232,36 @@ describe('AcpAgent.createOrResumeSession — Codex routing', () => {
 
     expect((agent as any).extra.acpSessionId).toBe('rotated-session');
     expect(onSessionIdUpdate).toHaveBeenCalledWith('rotated-session');
+  });
+
+  it('passes the team MCP server when Codex resumes a team session', async () => {
+    const agent = makeAgent('codex', 'team-session-1');
+    const conn: AcpConnection = (agent as any).connection;
+    (agent as any).extra.teamMcpStdioConfig = {
+      name: 'aionui-team-team-1',
+      command: 'node',
+      args: ['team-mcp-stdio.mjs'],
+      env: [
+        { name: 'TEAM_MCP_PORT', value: '31111' },
+        { name: 'TEAM_MCP_TOKEN', value: 'secret' },
+      ],
+    };
+
+    const loadSession = vi.spyOn(conn, 'loadSession').mockResolvedValue({ sessionId: 'team-session-1' } as any);
+
+    await (agent as any).createOrResumeSession();
+
+    expect(loadSession).toHaveBeenCalledWith(
+      'team-session-1',
+      expect.any(String),
+      expect.objectContaining({
+        mcpServers: [
+          expect.objectContaining({
+            name: 'aionui-team-team-1',
+            command: 'node',
+          }),
+        ],
+      })
+    );
   });
 });

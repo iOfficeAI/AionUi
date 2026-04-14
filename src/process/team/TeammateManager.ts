@@ -60,8 +60,14 @@ export class TeammateManager extends EventEmitter {
 
   /** Debounce delay (ms) before waking leader after a crash, to let cascading crashes settle */
   private static readonly CRASH_DEBOUNCE_MS = 3000;
+  /** Short debounce to batch leader wake requests from multiple teammates into one turn */
+  private static readonly LEADER_WAKE_DEBOUNCE_MS = 400;
   /** Pending debounced leader wake timer (crash recovery) */
   private crashWakeLeaderTimer: ReturnType<typeof setTimeout> | null = null;
+  /** Pending debounced leader wake timer used for normal team coordination */
+  private leaderWakeTimer: ReturnType<typeof setTimeout> | null = null;
+  /** Buffered leader wake request; merged while the leader is still busy */
+  private pendingLeaderWake: { slotId: string; requireAllSettled: boolean } | null = null;
 
   private readonly unsubResponseStream: () => void;
 
@@ -220,13 +226,13 @@ export class TeammateManager extends EventEmitter {
       // deadlock when finish events are lost or finalizeTurn never fires.
       this.activeWakes.delete(slotId);
 
-      // Fallback timeout: if turnCompleted never fires, set idle so the agent
-      // can be woken again. 60s is enough for any reasonable response time.
+      // Fallback timeout: if turn completion never arrives, treat the turn as a
+      // failure so the lead gets notified instead of leaving the team stalled.
       const timeoutHandle = setTimeout(() => {
         this.wakeTimeouts.delete(slotId);
         const currentAgent = this.agents.find((a) => a.slotId === slotId);
         if (currentAgent?.status === 'active') {
-          this.setStatus(slotId, 'idle', 'Wake timed out');
+          this.handleAgentTimeout(currentAgent.conversationId);
         }
       }, TeammateManager.WAKE_TIMEOUT_MS);
       this.wakeTimeouts.set(slotId, timeoutHandle);
@@ -243,6 +249,9 @@ export class TeammateManager extends EventEmitter {
     this.agents = this.agents.map((a) => (a.slotId === slotId ? { ...a, status } : a));
     ipcBridge.team.agentStatusChanged.emit({ teamId: this.teamId, slotId, status, lastMessage });
     this.emit('agentStatusChanged', { teamId: this.teamId, slotId, status, lastMessage });
+    if (this.pendingLeaderWake && status !== 'active') {
+      this.scheduleLeaderWake();
+    }
   }
 
   /** Clean up all IPC listeners, timers, and EventEmitter handlers */
@@ -257,6 +266,11 @@ export class TeammateManager extends EventEmitter {
       clearTimeout(this.crashWakeLeaderTimer);
       this.crashWakeLeaderTimer = null;
     }
+    if (this.leaderWakeTimer) {
+      clearTimeout(this.leaderWakeTimer);
+      this.leaderWakeTimer = null;
+    }
+    this.pendingLeaderWake = null;
     this.removeAllListeners();
   }
 
@@ -321,10 +335,23 @@ export class TeammateManager extends EventEmitter {
     );
 
     // Finalize the turn (extracts whatever partial results were accumulated)
-    void this.finalizeTurn(conversationId, true);
+    void this.finalizeTurn(conversationId, `exited unexpectedly (code: ${error.code}, signal: ${error.signal})`);
   }
 
-  private async finalizeTurn(conversationId: string, isCrash = false): Promise<void> {
+  private handleAgentTimeout(conversationId: string): void {
+    const agent = this.agents.find((a) => a.conversationId === conversationId);
+    if (!agent) return;
+
+    const timeoutSeconds = Math.floor(TeammateManager.WAKE_TIMEOUT_MS / 1000);
+    console.warn(
+      `[TeammateManager] Agent ${agent.slotId} (${agent.agentName}) timed out after ${timeoutSeconds}s. ` +
+        `Partial results will be reported to the lead.`
+    );
+
+    void this.finalizeTurn(conversationId, `stopped responding after ${timeoutSeconds}s`);
+  }
+
+  private async finalizeTurn(conversationId: string, failureReason?: string): Promise<void> {
     // Dedup: skip if this turn was already finalized
     if (this.finalizedTurns.has(conversationId)) return;
     this.finalizedTurns.add(conversationId);
@@ -355,10 +382,10 @@ export class TeammateManager extends EventEmitter {
       // Parse failed (e.g. incomplete XML from a crashed agent).
       // Forward whatever raw text we have to the leader as a crash report
       // instead of silently dropping it.
-      if (isCrash && agent.role !== 'lead') {
-        await this.notifyLeaderOfCrash(agent, accumulatedText);
+      if (failureReason && agent.role !== 'lead') {
+        await this.notifyLeaderOfFailure(agent, accumulatedText, failureReason);
       }
-      this.setStatus(agent.slotId, 'failed');
+      this.setStatus(agent.slotId, 'failed', failureReason);
       return;
     }
 
@@ -375,8 +402,10 @@ export class TeammateManager extends EventEmitter {
     }
 
     // send_message: write in order (preserve message ordering), then wake all targets in parallel
+    let reportedDirectlyToLead = false;
     if (sendMessageActions.length > 0) {
-      const wakeTargets = new Set<string>();
+      const immediateWakeTargets = new Set<string>();
+      const leadAgent = this.agents.find((a) => a.role === 'lead');
       for (const action of sendMessageActions) {
         if (action.type !== 'send_message') continue;
         const targetSlotId = this.resolveSlotId(action.to);
@@ -400,7 +429,8 @@ export class TeammateManager extends EventEmitter {
                   fromAgentId: agent.slotId,
                   content: `${memberName} has shut down and been removed from the team.`,
                 });
-                wakeTargets.add(leadAgent.slotId);
+                reportedDirectlyToLead = true;
+                this.requestLeaderWake(leadAgent.slotId);
               }
             } else {
               const reason = trimmedContent.replace(/^shutdown_rejected[:\s]*/i, '').trim() || 'No reason given.';
@@ -411,7 +441,8 @@ export class TeammateManager extends EventEmitter {
                   fromAgentId: agent.slotId,
                   content: `${memberName} refused to shut down. Reason: ${reason}`,
                 });
-                wakeTargets.add(leadAgent.slotId);
+                reportedDirectlyToLead = true;
+                this.requestLeaderWake(leadAgent.slotId);
               }
             }
             continue;
@@ -451,21 +482,26 @@ export class TeammateManager extends EventEmitter {
               data: dispatchedMsg,
             });
           }
-          wakeTargets.add(targetSlotId);
+          if (leadAgent && targetSlotId === leadAgent.slotId) {
+            reportedDirectlyToLead = true;
+            this.requestLeaderWake(leadAgent.slotId);
+          } else {
+            immediateWakeTargets.add(targetSlotId);
+          }
         } catch {
           // continue
         }
       }
-      if (wakeTargets.size > 0) {
-        await Promise.allSettled([...wakeTargets].map((slotId) => this.wake(slotId)));
+      if (immediateWakeTargets.size > 0) {
+        await Promise.allSettled([...immediateWakeTargets].map((slotId) => this.wake(slotId)));
       }
     }
 
-    // Handle crash: notify leader and set failed status instead of idle
-    if (isCrash) {
-      this.setStatus(agent.slotId, 'failed');
+    // Handle failures (crash/timeout): notify leader and mark failed instead of idle
+    if (failureReason) {
+      this.setStatus(agent.slotId, 'failed', failureReason);
       if (agent.role !== 'lead') {
-        await this.notifyLeaderOfCrash(agent, accumulatedText);
+        await this.notifyLeaderOfFailure(agent, accumulatedText, failureReason);
       }
       return;
     }
@@ -479,7 +515,7 @@ export class TeammateManager extends EventEmitter {
     // Auto-send idle notification to leader if agent didn't explicitly output one.
     // Must run AFTER setStatus(idle) so maybeWakeLeaderWhenAllIdle sees the updated state.
     const hasExplicitIdle = actions.some((a) => a.type === 'idle_notification');
-    if (!hasExplicitIdle && agent.role !== 'lead') {
+    if (!hasExplicitIdle && !reportedDirectlyToLead && agent.role !== 'lead') {
       const leadAgent = this.agents.find((a) => a.role === 'lead');
       if (leadAgent && leadAgent.slotId !== agent.slotId) {
         const summary = accumulatedText.slice(0, 200).trim() || 'Turn completed';
@@ -498,24 +534,28 @@ export class TeammateManager extends EventEmitter {
   }
 
   /**
-   * Notify the leader that a teammate crashed, forwarding any partial results
-   * the agent produced before dying. Uses a debounced wake to prevent cascade
-   * crashes from triggering multiple rapid leader turns.
+   * Notify the leader that a teammate failed, forwarding any partial results
+   * the agent produced before the failure. Uses a debounced wake to prevent
+   * repeated failure notifications from triggering multiple rapid leader turns.
    */
-  private async notifyLeaderOfCrash(crashedAgent: TeamAgent, partialText: string): Promise<void> {
+  private async notifyLeaderOfFailure(
+    failedAgent: TeamAgent,
+    partialText: string,
+    failureReason: string
+  ): Promise<void> {
     const leadAgent = this.agents.find((a) => a.role === 'lead');
     if (!leadAgent) return;
 
     const partialSnippet = partialText.trim().slice(0, 500);
-    const crashReport = partialSnippet
-      ? `[CRASH] ${crashedAgent.agentName} (${crashedAgent.agentType}) exited unexpectedly. Partial output:\n${partialSnippet}`
-      : `[CRASH] ${crashedAgent.agentName} (${crashedAgent.agentType}) exited unexpectedly with no output.`;
+    const failureReport = partialSnippet
+      ? `[FAILURE] ${failedAgent.agentName} (${failedAgent.agentType}) ${failureReason}. Partial output:\n${partialSnippet}`
+      : `[FAILURE] ${failedAgent.agentName} (${failedAgent.agentType}) ${failureReason}.`;
 
     await this.mailbox.write({
       teamId: this.teamId,
       toAgentId: leadAgent.slotId,
-      fromAgentId: crashedAgent.slotId,
-      content: crashReport,
+      fromAgentId: failedAgent.slotId,
+      content: failureReport,
     });
 
     // Debounced wake: wait for cascading crashes to settle before waking leader.
@@ -572,7 +612,11 @@ export class TeammateManager extends EventEmitter {
             data: executedMsg,
           });
         }
-        await this.wake(targetSlotId);
+        if (targetAgent?.role === 'lead') {
+          this.requestLeaderWake(targetSlotId);
+        } else {
+          await this.wake(targetSlotId);
+        }
         break;
       }
 
@@ -639,21 +683,74 @@ export class TeammateManager extends EventEmitter {
 
   /**
    * Wake the leader only when ALL non-lead teammates are settled (idle/completed/failed/pending).
-   * Prevents death loops where each individual idle notification triggers a new leader turn
-   * before other teammates have finished, causing the leader to re-dispatch work repeatedly.
+   * Instead of waking immediately, buffer the request so multiple teammate updates collapse into
+   * a single leader turn after the team has gone quiet.
    */
   private maybeWakeLeaderWhenAllIdle(leadSlotId: string): void {
     const nonLeadAgents = this.agents.filter((a) => a.role !== 'lead');
     if (nonLeadAgents.length === 0) return;
-    const allSettled = nonLeadAgents.every(
-      (a) => a.status === 'idle' || a.status === 'completed' || a.status === 'failed' || a.status === 'pending'
-    );
+    const allSettled = this.areAllNonLeadAgentsSettled();
     console.log(
       `[TeammateManager] maybeWakeLeaderWhenAllIdle: ${nonLeadAgents.map((a) => `${a.agentName}:${a.status}`).join(', ')} → ${allSettled ? 'WAKE' : 'SKIP'}`
     );
-    if (allSettled) {
-      void this.wake(leadSlotId);
+    this.requestLeaderWake(leadSlotId, { requireAllSettled: true });
+  }
+
+  private areAllNonLeadAgentsSettled(): boolean {
+    const nonLeadAgents = this.agents.filter((a) => a.role !== 'lead');
+    if (nonLeadAgents.length === 0) return false;
+
+    return nonLeadAgents.every(
+      (a) => a.status === 'idle' || a.status === 'completed' || a.status === 'failed' || a.status === 'pending'
+    );
+  }
+
+  private requestLeaderWake(leadSlotId: string, options: { requireAllSettled?: boolean } = {}): void {
+    const requireAllSettled = options.requireAllSettled ?? false;
+    this.pendingLeaderWake =
+      this.pendingLeaderWake?.slotId === leadSlotId
+        ? {
+            slotId: leadSlotId,
+            requireAllSettled: this.pendingLeaderWake.requireAllSettled && requireAllSettled,
+          }
+        : { slotId: leadSlotId, requireAllSettled };
+
+    this.scheduleLeaderWake();
+  }
+
+  private scheduleLeaderWake(): void {
+    if (!this.pendingLeaderWake) return;
+
+    if (this.leaderWakeTimer) {
+      clearTimeout(this.leaderWakeTimer);
     }
+
+    this.leaderWakeTimer = setTimeout(() => {
+      this.leaderWakeTimer = null;
+      this.flushLeaderWake();
+    }, TeammateManager.LEADER_WAKE_DEBOUNCE_MS);
+  }
+
+  private flushLeaderWake(): void {
+    const pendingWake = this.pendingLeaderWake;
+    if (!pendingWake) return;
+
+    const leadAgent = this.agents.find((a) => a.slotId === pendingWake.slotId);
+    if (!leadAgent) {
+      this.pendingLeaderWake = null;
+      return;
+    }
+
+    if (leadAgent.status === 'active') {
+      return;
+    }
+
+    if (pendingWake.requireAllSettled && !this.areAllNonLeadAgentsSettled()) {
+      return;
+    }
+
+    this.pendingLeaderWake = null;
+    void this.wake(pendingWake.slotId);
   }
 
   /** Remove an agent: cancel pending wake, clear buffers, remove from in-memory list */

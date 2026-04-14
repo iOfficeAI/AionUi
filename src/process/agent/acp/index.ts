@@ -1535,7 +1535,13 @@ export class AcpAgent {
           // Codex ACP bridge implements session/load (load_session) which calls
           // resume_thread_from_rollout internally to restore full conversation history.
           // Codex ignores resumeSessionId in session/new, so we must use session/load.
-          response = await this.connection.loadSession(resumeSessionId, this.extra.workspace);
+          // Preserve team/built-in MCP servers across resume so team coordination
+          // tools do not disappear after a session restore.
+          if (mcpServers.length > 0) {
+            response = await this.connection.loadSession(resumeSessionId, this.extra.workspace, { mcpServers });
+          } else {
+            response = await this.connection.loadSession(resumeSessionId, this.extra.workspace);
+          }
         } else {
           // Claude/CodeBuddy use _meta in session/new; others use generic resumeSessionId
           response = await this.connection.newSession(this.extra.workspace, {
