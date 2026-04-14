@@ -43,6 +43,7 @@ async wake(slotId: string, reason?: WakeReason): Promise<void>
 ```
 
 Only two call sites pass a reason:
+
 - `maybeWakeLeaderWhenAllIdle()` → `this.wake(leadSlotId, 'all_settled')`
 - `handleAgentCrash()` → `this.wake(leadAgent.slotId, 'agent_crashed')`
 
@@ -51,6 +52,7 @@ All other call sites (MCP tools, TeamSession user messages) omit the reason and 
 **Prompt templates by reason:**
 
 `all_settled` (lead only):
+
 ```
 ## All Teammates Settled
 
@@ -69,6 +71,7 @@ or report results to the user.
 ```
 
 `agent_crashed` (lead only):
+
 ```
 ## Teammate Crashed
 
@@ -84,6 +87,7 @@ adjust the plan.
 ```
 
 Default (no reason) — unchanged from current `buildWakeUpdate`:
+
 ```
 ## Team Status Update  /  ## Status Update
 
@@ -127,6 +131,7 @@ Status: {status}."
 #### NOT adding notification: `team_task_create`
 
 `team_task_create` with an owner does NOT auto-notify. Rationale:
+
 - Leader almost always follows up with `team_send_message` containing detailed instructions
 - The leader's message is more useful context than a generic "you've been assigned task X"
 - The task appears in the agent's `Your Assigned Tasks` section on next wake regardless
@@ -134,18 +139,18 @@ Status: {status}."
 
 ### Files Changed
 
-| Action | Path | What |
-|--------|------|------|
-| Done | `src/process/team/prompts/formatHelpers.ts` | Shared formatting helpers |
-| Done | `src/process/team/prompts/buildWakeUpdate.ts` | Delta wake update builder |
-| Done | `src/process/team/prompts/buildRolePrompt.ts` | Full/delta dispatch with needsFullPrompt |
-| Done | `src/process/team/TeammateManager.ts` | needsFullPrompt logic, conditional availableAgentTypes |
-| Modify | `src/process/team/TeammateManager.ts` | Add `reason?: WakeReason` to wake(), pass from call sites |
-| Modify | `src/process/team/prompts/buildWakeUpdate.ts` | Add reason-specific templates (all_settled, agent_crashed) |
-| Modify | `src/process/team/mcp/team/TeamMcpServer.ts` | handleRenameAgent: add notification + wake |
-| Modify | `src/process/team/mcp/team/TeamMcpServer.ts` | handleTaskUpdate: detect owner change, notify + wake |
-| Create | `tests/unit/process/team/buildWakeUpdate.test.ts` | Tests for event-specific templates |
-| Modify | `tests/unit/process/team/buildWakeUpdate.test.ts` | Add tests for all_settled and agent_crashed prompts |
+| Action | Path                                              | What                                                       |
+| ------ | ------------------------------------------------- | ---------------------------------------------------------- |
+| Done   | `src/process/team/prompts/formatHelpers.ts`       | Shared formatting helpers                                  |
+| Done   | `src/process/team/prompts/buildWakeUpdate.ts`     | Delta wake update builder                                  |
+| Done   | `src/process/team/prompts/buildRolePrompt.ts`     | Full/delta dispatch with needsFullPrompt                   |
+| Done   | `src/process/team/TeammateManager.ts`             | needsFullPrompt logic, conditional availableAgentTypes     |
+| Modify | `src/process/team/TeammateManager.ts`             | Add `reason?: WakeReason` to wake(), pass from call sites  |
+| Modify | `src/process/team/prompts/buildWakeUpdate.ts`     | Add reason-specific templates (all_settled, agent_crashed) |
+| Modify | `src/process/team/mcp/team/TeamMcpServer.ts`      | handleRenameAgent: add notification + wake                 |
+| Modify | `src/process/team/mcp/team/TeamMcpServer.ts`      | handleTaskUpdate: detect owner change, notify + wake       |
+| Create | `tests/unit/process/team/buildWakeUpdate.test.ts` | Tests for event-specific templates                         |
+| Modify | `tests/unit/process/team/buildWakeUpdate.test.ts` | Add tests for all_settled and agent_crashed prompts        |
 
 ### Testing
 

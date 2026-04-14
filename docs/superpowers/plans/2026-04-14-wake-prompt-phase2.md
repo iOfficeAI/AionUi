@@ -12,21 +12,22 @@
 
 ## File Structure
 
-| Action | Path | Responsibility |
-|--------|------|----------------|
-| Modify | `src/process/team/prompts/buildWakeUpdate.ts` | Add `reason` param, event-specific templates for `all_settled` / `agent_crashed` |
-| Modify | `src/process/team/prompts/buildRolePrompt.ts` | Pass `reason` through to `buildWakeUpdate` |
-| Modify | `src/process/team/TeammateManager.ts` | Add `reason?: WakeReason` to `wake()`, pass from `maybeWakeLeaderWhenAllIdle` and `handleAgentCrash` |
-| Modify | `src/process/team/TaskManager.ts` | Add `getById()` method |
-| Modify | `src/process/team/mcp/team/TeamMcpServer.ts` | `handleRenameAgent`: add notification + wake; `handleTaskUpdate`: detect owner change, notify + wake |
-| Modify | `tests/unit/process/team/buildWakeUpdate.test.ts` | Add tests for `all_settled` and `agent_crashed` reason templates |
-| Create | `tests/unit/process/team/mcpNotifications.test.ts` | Tests for rename and task-update notifications |
+| Action | Path                                               | Responsibility                                                                                       |
+| ------ | -------------------------------------------------- | ---------------------------------------------------------------------------------------------------- |
+| Modify | `src/process/team/prompts/buildWakeUpdate.ts`      | Add `reason` param, event-specific templates for `all_settled` / `agent_crashed`                     |
+| Modify | `src/process/team/prompts/buildRolePrompt.ts`      | Pass `reason` through to `buildWakeUpdate`                                                           |
+| Modify | `src/process/team/TeammateManager.ts`              | Add `reason?: WakeReason` to `wake()`, pass from `maybeWakeLeaderWhenAllIdle` and `handleAgentCrash` |
+| Modify | `src/process/team/TaskManager.ts`                  | Add `getById()` method                                                                               |
+| Modify | `src/process/team/mcp/team/TeamMcpServer.ts`       | `handleRenameAgent`: add notification + wake; `handleTaskUpdate`: detect owner change, notify + wake |
+| Modify | `tests/unit/process/team/buildWakeUpdate.test.ts`  | Add tests for `all_settled` and `agent_crashed` reason templates                                     |
+| Create | `tests/unit/process/team/mcpNotifications.test.ts` | Tests for rename and task-update notifications                                                       |
 
 ---
 
 ### Task 1: Add `WakeReason` and event-specific templates to `buildWakeUpdate`
 
 **Files:**
+
 - Modify: `src/process/team/prompts/buildWakeUpdate.ts`
 - Modify: `tests/unit/process/team/buildWakeUpdate.test.ts`
 
@@ -42,7 +43,14 @@ describe('buildWakeUpdate — all_settled reason', () => {
       { id: 'task-001-xxxx', teamId: 't1', subject: 'Implement auth', status: 'completed', owner: 'Researcher' },
     ] as TeamTask[];
     const messages: MailboxMessage[] = [
-      { id: 'm1', teamId: 't1', toAgentId: 'lead-slot', fromAgentId: 'member-slot', content: 'Turn completed', type: 'idle_notification' },
+      {
+        id: 'm1',
+        teamId: 't1',
+        toAgentId: 'lead-slot',
+        fromAgentId: 'member-slot',
+        content: 'Turn completed',
+        type: 'idle_notification',
+      },
     ];
 
     const result = buildWakeUpdate({
@@ -233,6 +241,7 @@ git commit -m "feat(team): add WakeReason event-specific templates to buildWakeU
 ### Task 2: Propagate `reason` through `buildRolePrompt` and `TeammateManager.wake()`
 
 **Files:**
+
 - Modify: `src/process/team/prompts/buildRolePrompt.ts`
 - Modify: `src/process/team/TeammateManager.ts`
 
@@ -255,16 +264,16 @@ Add to `BuildRolePromptParams`:
 In the `if (!needsFullPrompt)` block, pass `reason` through:
 
 ```ts
-  if (!needsFullPrompt) {
-    return buildWakeUpdate({
-      agent,
-      mailboxMessages,
-      tasks,
-      teammates,
-      renamedAgents,
-      reason,
-    });
-  }
+if (!needsFullPrompt) {
+  return buildWakeUpdate({
+    agent,
+    mailboxMessages,
+    tasks,
+    teammates,
+    renamedAgents,
+    reason,
+  });
+}
 ```
 
 - [ ] **Step 2: Add `reason` param to `wake()` and pass from call sites**
@@ -292,17 +301,17 @@ async wake(slotId: string, reason?: WakeReason): Promise<void> {
 Pass `reason` to `buildRolePrompt` — change the existing call:
 
 ```ts
-      const message = buildRolePrompt({
-        agent,
-        mailboxMessages,
-        tasks,
-        teammates,
-        availableAgentTypes,
-        renamedAgents: this.renamedAgents,
-        teamWorkspace: this.teamWorkspace,
-        needsFullPrompt,
-        reason,
-      });
+const message = buildRolePrompt({
+  agent,
+  mailboxMessages,
+  tasks,
+  teammates,
+  availableAgentTypes,
+  renamedAgents: this.renamedAgents,
+  teamWorkspace: this.teamWorkspace,
+  needsFullPrompt,
+  reason,
+});
 ```
 
 - [ ] **Step 3: Pass reason from `maybeWakeLeaderWhenAllIdle`**
@@ -310,13 +319,13 @@ Pass `reason` to `buildRolePrompt` — change the existing call:
 In `src/process/team/TeammateManager.ts`, change line 346 from:
 
 ```ts
-      void this.wake(leadSlotId);
+void this.wake(leadSlotId);
 ```
 
 to:
 
 ```ts
-      void this.wake(leadSlotId, 'all_settled');
+void this.wake(leadSlotId, 'all_settled');
 ```
 
 - [ ] **Step 4: Pass reason from `handleAgentCrash`**
@@ -324,13 +333,13 @@ to:
 In `src/process/team/TeammateManager.ts`, change line 438 from:
 
 ```ts
-    void this.wake(leadAgent.slotId);
+void this.wake(leadAgent.slotId);
 ```
 
 to:
 
 ```ts
-    void this.wake(leadAgent.slotId, 'agent_crashed');
+void this.wake(leadAgent.slotId, 'agent_crashed');
 ```
 
 - [ ] **Step 5: Run type check**
@@ -355,6 +364,7 @@ git commit -m "feat(team): propagate WakeReason through wake() → buildRoleProm
 ### Task 3: Add `TaskManager.getById()` method
 
 **Files:**
+
 - Modify: `src/process/team/TaskManager.ts`
 
 This is needed by Task 4 to detect owner changes in `handleTaskUpdate`.
@@ -389,6 +399,7 @@ git commit -m "feat(team): add TaskManager.getById() for pre-update reads"
 ### Task 4: Add MCP handler notifications for rename and task-update
 
 **Files:**
+
 - Modify: `src/process/team/mcp/team/TeamMcpServer.ts`
 - Create: `tests/unit/process/team/mcpNotifications.test.ts`
 
@@ -466,10 +477,14 @@ describe('TeamMcpServer — rename notification', () => {
 
   it('notifies the renamed agent via mailbox and wakes them', async () => {
     // Access private method via TCP simulation
-    const result = await (server as any).handleToolCall('team_rename_agent', {
-      agent: 'OldName',
-      new_name: 'NewName',
-    }, 'lead-slot');
+    const result = await (server as any).handleToolCall(
+      'team_rename_agent',
+      {
+        agent: 'OldName',
+        new_name: 'NewName',
+      },
+      'lead-slot'
+    );
 
     expect(result).toContain('OldName');
     expect(result).toContain('NewName');
@@ -534,10 +549,14 @@ describe('TeamMcpServer — task-update owner-change notification', () => {
   });
 
   it('notifies new owner when task is reassigned', async () => {
-    const result = await (server as any).handleToolCall('team_task_update', {
-      task_id: 'task-abc12345',
-      owner: 'QA',
-    }, 'lead-slot');
+    const result = await (server as any).handleToolCall(
+      'team_task_update',
+      {
+        task_id: 'task-abc12345',
+        owner: 'QA',
+      },
+      'lead-slot'
+    );
 
     expect(result).toContain('updated');
 
@@ -552,10 +571,14 @@ describe('TeamMcpServer — task-update owner-change notification', () => {
   });
 
   it('does NOT notify when owner is unchanged', async () => {
-    const result = await (server as any).handleToolCall('team_task_update', {
-      task_id: 'task-abc12345',
-      status: 'in_progress',
-    }, 'lead-slot');
+    const result = await (server as any).handleToolCall(
+      'team_task_update',
+      {
+        task_id: 'task-abc12345',
+        status: 'in_progress',
+      },
+      'lead-slot'
+    );
 
     expect(result).toContain('updated');
     expect(mailboxWrites).toHaveLength(0);
@@ -563,10 +586,14 @@ describe('TeamMcpServer — task-update owner-change notification', () => {
   });
 
   it('does NOT notify when owner is set to the same value', async () => {
-    await (server as any).handleToolCall('team_task_update', {
-      task_id: 'task-abc12345',
-      owner: 'Dev',
-    }, 'lead-slot');
+    await (server as any).handleToolCall(
+      'team_task_update',
+      {
+        task_id: 'task-abc12345',
+        owner: 'Dev',
+      },
+      'lead-slot'
+    );
 
     expect(mailboxWrites).toHaveLength(0);
     expect(wokenSlots).toHaveLength(0);
@@ -672,22 +699,28 @@ In `src/process/team/mcp/team/TeamMcpServer.ts`, replace `handleTaskUpdate` (lin
 In `src/process/team/mcp/team/TeamMcpServer.ts`, change the switch cases in `handleToolCall` (lines 227-228):
 
 From:
+
 ```ts
       case 'team_rename_agent':
         return this.handleRenameAgent(args);
 ```
+
 To:
+
 ```ts
       case 'team_rename_agent':
         return this.handleRenameAgent(args, fromSlotId);
 ```
 
 From:
+
 ```ts
       case 'team_task_update':
         return this.handleTaskUpdate(args);
 ```
+
 To:
+
 ```ts
       case 'team_task_update':
         return this.handleTaskUpdate(args, fromSlotId);
@@ -715,6 +748,7 @@ git commit -m "feat(team): add mailbox notifications for rename and task reassig
 ### Task 5: Lint, format, type check, and final verification
 
 **Files:**
+
 - All files modified in Tasks 1-4
 
 - [ ] **Step 1: Run lint fix**
