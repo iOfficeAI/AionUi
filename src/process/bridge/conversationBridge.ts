@@ -414,17 +414,10 @@ export function initConversationBridge(
     return { success: true };
   });
 
-  ipcBridge.conversation.setConfig.provider(async ({ conversation_id, config }) => {
-    const task = workerTaskManager.getTask(conversation_id);
-    if (!task) {
-      return { success: false, msg: 'No active task' };
-    }
-    // Only AionrsManager supports runtime config changes (thinking, effort)
-    if (!('setRuntimeConfig' in task) || typeof (task as any).setRuntimeConfig !== 'function') {
-      return { success: false, msg: 'Config changes not supported for this agent type' };
-    }
-    const sent = (task as any).setRuntimeConfig(config) as boolean;
-    return sent ? { success: true } : { success: false, msg: 'Agent not initialized' };
+  // Placeholder: runtime config hot-swap is not yet supported.
+  // Model switching always uses kill-restart; thinking/effort may be added later.
+  ipcBridge.conversation.setConfig.provider(async () => {
+    return { success: false, msg: 'Runtime config changes not yet supported' };
   });
 
   ipcBridge.conversation.getSlashCommands.provider(async ({ conversation_id }) => {

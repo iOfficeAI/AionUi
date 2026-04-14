@@ -683,17 +683,6 @@ export class AionrsManager extends BaseAgentManager<AionrsManagerData, string> {
     }
   }
 
-  /**
-   * Send runtime config changes (thinking, effort) to the running aionrs process.
-   * Model switching is NOT supported here — use kill-restart instead.
-   */
-  setRuntimeConfig(config: { thinking?: string; thinking_budget?: number; effort?: string }): boolean {
-    if (!this.agent) return false;
-    this._configSentAt = Date.now();
-    mainLog('[AionrsManager]', `set_config sent: ${JSON.stringify(config)}`);
-    this.agent.setConfig(config);
-    return true;
-  }
 
   getMode(): { mode: string; initialized: boolean } {
     return { mode: this.currentMode, initialized: true };
