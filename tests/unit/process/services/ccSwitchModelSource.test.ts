@@ -97,8 +97,11 @@ describeOrSkip('ccSwitchModelSource', () => {
     expect(modelInfo).toEqual({
       currentModelId: 'default',
       currentModelLabel: 'Claude Sonnet 4.5',
-      availableModels: [{ id: 'default', label: 'Claude Sonnet 4.5' }],
-      canSwitch: false,
+      availableModels: [
+        { id: 'default', label: 'Claude Sonnet 4.5' },
+        { id: 'opus', label: 'Claude Opus 4.6' },
+      ],
+      canSwitch: true,
       source: 'models',
       sourceDetail: 'cc-switch',
     });
@@ -166,11 +169,8 @@ describeOrSkip('ccSwitchModelSource', () => {
     expect(modelInfo).toEqual({
       currentModelId: 'default',
       currentModelLabel: 'Claude Sonnet 4.5',
-      availableModels: [
-        { id: 'default', label: 'Claude Sonnet 4.5' },
-        { id: 'opus', label: 'Claude Opus 4.6' },
-      ],
-      canSwitch: true,
+      availableModels: [{ id: 'default', label: 'Claude Sonnet 4.5' }],
+      canSwitch: false,
       source: 'models',
       sourceDetail: 'cc-switch',
     });
