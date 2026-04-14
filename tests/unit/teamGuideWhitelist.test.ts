@@ -42,15 +42,15 @@ import { shouldInjectTeamGuideMcp } from '../../src/process/team/prompts/teamGui
 
 describe('team guide MCP injection capability check', () => {
   describe('allowed backends — should inject team guide MCP', () => {
-    it('injects for claude backend (cached init result exists)', async () => {
+    it('injects for claude backend (known team-capable)', async () => {
       expect(await shouldInjectTeamGuideMcp('claude')).toBe(true);
     });
 
-    it('injects for codex backend (cached init result exists)', async () => {
+    it('injects for codex backend (known team-capable)', async () => {
       expect(await shouldInjectTeamGuideMcp('codex')).toBe(true);
     });
 
-    it('injects for gemini backend (always team-capable)', async () => {
+    it('injects for gemini backend (known team-capable)', async () => {
       expect(await shouldInjectTeamGuideMcp('gemini')).toBe(true);
     });
   });

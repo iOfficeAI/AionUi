@@ -74,15 +74,13 @@ describe('resolveConversationType', () => {
 describe('isTeamCapableBackend', () => {
   const cached = makeCachedInit(['claude', 'codex']);
 
-  it('returns true for gemini regardless of cached data', () => {
-    expect(isTeamCapableBackend('gemini', null)).toBe(true);
-    expect(isTeamCapableBackend('gemini', undefined)).toBe(true);
-    expect(isTeamCapableBackend('gemini', {})).toBe(true);
-  });
-
-  it('returns true for ACP backend with cached init result', () => {
-    expect(isTeamCapableBackend('claude', cached)).toBe(true);
-    expect(isTeamCapableBackend('codex', cached)).toBe(true);
+  it('returns true for known team-capable backends regardless of cached data', () => {
+    for (const backend of ['gemini', 'claude', 'codex']) {
+      expect(isTeamCapableBackend(backend, null)).toBe(true);
+      expect(isTeamCapableBackend(backend, undefined)).toBe(true);
+      expect(isTeamCapableBackend(backend, {})).toBe(true);
+      expect(isTeamCapableBackend(backend, cached)).toBe(true);
+    }
   });
 
   it('returns false for ACP backend without cached init result', () => {
@@ -90,12 +88,12 @@ describe('isTeamCapableBackend', () => {
     expect(isTeamCapableBackend('codebuddy', cached)).toBe(false);
   });
 
-  it('returns false when cached data is null', () => {
-    expect(isTeamCapableBackend('claude', null)).toBe(false);
+  it('returns false for unknown backend when cached data is null', () => {
+    expect(isTeamCapableBackend('qwen', null)).toBe(false);
   });
 
-  it('returns false when cached data is undefined', () => {
-    expect(isTeamCapableBackend('claude', undefined)).toBe(false);
+  it('returns false for unknown backend when cached data is undefined', () => {
+    expect(isTeamCapableBackend('qwen', undefined)).toBe(false);
   });
 });
 
@@ -110,9 +108,9 @@ describe('getTeamCapableBackends', () => {
     expect(result).toEqual(['claude', 'codex', 'gemini']);
   });
 
-  it('returns only gemini when no cached data', () => {
+  it('returns known team-capable backends even without cached data', () => {
     const result = getTeamCapableBackends(['claude', 'codex', 'gemini', 'qwen'], null);
-    expect(result).toEqual(['gemini']);
+    expect(result).toEqual(['claude', 'codex', 'gemini']);
   });
 });
 
@@ -149,10 +147,10 @@ describe('filterTeamSupportedAgents', () => {
     expect(result).toHaveLength(0);
   });
 
-  it('returns only gemini when no cached data', () => {
-    const agents = [makeAgent('claude'), makeAgent('gemini'), makeAgent('codex')];
+  it('returns known team-capable agents even without cached data', () => {
+    const agents = [makeAgent('claude'), makeAgent('gemini'), makeAgent('codex'), makeAgent('qwen')];
     const result = filterTeamSupportedAgents(agents, null);
-    expect(result.map((a: AvailableAgent) => a.backend)).toEqual(['gemini']);
+    expect(result.map((a: AvailableAgent) => a.backend)).toEqual(['claude', 'gemini', 'codex']);
   });
 
   it('returns all agents when all have cached init results', () => {
