@@ -473,6 +473,10 @@ export class AionrsManager extends BaseAgentManager<AionrsManagerData, string> {
         mainLog('[AionrsManager]', `info: ${data.data}${elapsed}`);
       }
 
+      // System-level events (empty msg_id) are not part of a conversation turn.
+      // Skip stream processing to avoid false-positive running state and fallback timer.
+      if (!data.msg_id) return;
+
       // Restart fallback timer on every non-finish event (activity heartbeat)
       if (data.type !== 'finish') {
         this.scheduleMissingFinishFallback();
