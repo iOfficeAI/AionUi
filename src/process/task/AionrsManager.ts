@@ -22,6 +22,7 @@ import { mainError, mainWarn } from '@process/utils/mainLogger';
 import { hasCronCommands } from './CronCommandDetector';
 import { processCronInMessage } from './MessageMiddleware';
 import { extractAndStripThinkTags } from './ThinkTagDetector';
+import { ConversationTurnCompletionService } from './ConversationTurnCompletionService';
 
 // Aionrs-specific approval key — reuses same pattern as GeminiApprovalStore
 type AionrsApprovalKey = IApprovalKey & {
@@ -289,6 +290,16 @@ export class AionrsManager extends BaseAgentManager<AionrsManagerData, string> {
     this.thinkingContent = '';
   }
 
+  private notifyTurnCompletion(): void {
+    void ConversationTurnCompletionService.getInstance().notifyPotentialCompletion(this.conversation_id, {
+      status: this.status ?? 'finished',
+      workspace: this.workspace,
+      backend: 'aionrs',
+      pendingConfirmations: this.getConfirmations().length,
+      modelId: this.model.useModel,
+    });
+  }
+
   private scheduleMissingFinishFallback(): void {
     this.clearMissingFinishFallback();
     this.missingFinishFallbackTimer = setTimeout(() => {
@@ -440,6 +451,9 @@ export class AionrsManager extends BaseAgentManager<AionrsManagerData, string> {
     // Reset state immediately to prevent carry-over
     this.currentMsgId = null;
     this.currentMsgContent = '';
+
+    // Notify external services (e.g. cron scheduler) that the turn completed
+    this.notifyTurnCompletion();
 
     if (!content || !hasCronCommands(content)) {
       return;
