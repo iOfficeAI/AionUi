@@ -212,7 +212,7 @@ export class AionrsManager extends BaseAgentManager<AionrsManagerData, string> {
       this.agent?.approveTool(content.callId, 'once');
       return true;
     }
-    if (this.currentMode === 'autoEdit') {
+    if (this.currentMode === 'auto_edit') {
       if (type === 'edit' || type === 'info') {
         this.agent?.approveTool(content.callId, 'once');
         return true;
