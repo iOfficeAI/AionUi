@@ -78,6 +78,7 @@ export class AionrsManager extends BaseAgentManager<AionrsManagerData, string> {
   private currentMode: string = 'default';
   private _capabilities: AionrsCapabilities | null = null;
   private _configSentAt: number | null = null;
+  private _messageSentAt: number | null = null;
   private currentMsgId: string | null = null;
   private currentMsgContent: string = '';
 
@@ -198,6 +199,8 @@ export class AionrsManager extends BaseAgentManager<AionrsManagerData, string> {
     this._lastActivityAt = Date.now();
     // Wait for agent bootstrap to complete before sending
     await this.agentReady;
+    this._messageSentAt = Date.now();
+    mainLog('[AionrsManager]', `message sent: msg_id=${data.msg_id}`);
     if (this.agent) {
       await this.agent.send(data.input, data.msg_id, data.files);
     }
@@ -488,6 +491,8 @@ export class AionrsManager extends BaseAgentManager<AionrsManagerData, string> {
       }
 
       if (data.type === 'start') {
+        const ttft = this._messageSentAt ? `${Date.now() - this._messageSentAt}ms` : 'n/a';
+        mainLog('[AionrsManager]', `stream_start: msg_id=${data.msg_id}, TTFT=${ttft}`);
         this.status = 'running';
         this.currentMsgId = data.msg_id ?? null;
         this.currentMsgContent = '';
@@ -550,6 +555,9 @@ export class AionrsManager extends BaseAgentManager<AionrsManagerData, string> {
 
       // On turn end, clear fallback timer, persist usage, and check for cron commands
       if (processedData.type === 'finish') {
+        const total = this._messageSentAt ? `${Date.now() - this._messageSentAt}ms` : 'n/a';
+        mainLog('[AionrsManager]', `stream_end: msg_id=${processedData.msg_id}, total=${total}`, processedData.data);
+        this._messageSentAt = null;
         this.clearMissingFinishFallback();
         this.saveContextUsage(processedData.data);
         void this.handleTurnEnd();
