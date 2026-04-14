@@ -229,5 +229,4 @@ export class TeamGuideMcpServer {
       next_step: 'The team page has been opened automatically. End your turn now — do not add extra commentary.',
     });
   }
-
 }
