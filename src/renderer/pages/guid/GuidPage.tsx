@@ -316,6 +316,28 @@ const GuidPage: React.FC = () => {
     setIsDescriptionExpanded(false);
   }, [location.key]);
 
+  // When sidebar "新对话" navigates with resetAssistant, exit any preset assistant
+  // and return to the default (non-preset) homepage view.
+  const resetAssistantRequested = (location.state as { resetAssistant?: boolean } | null)?.resetAssistant === true;
+  useEffect(() => {
+    if (!resetAssistantRequested) return;
+    if (!agentSelection.availableAgents || agentSelection.availableAgents.length === 0) return;
+    if (agentSelection.isPresetAgent) {
+      agentSelection.setSelectedAgentKey(agentSelection.defaultAgentKey);
+    }
+    // Clear via history API so we don't bump location.key and re-trigger other effects.
+    window.history.replaceState(null, '', `${location.pathname}${location.search}${location.hash}`);
+  }, [
+    resetAssistantRequested,
+    agentSelection.availableAgents,
+    agentSelection.isPresetAgent,
+    agentSelection.defaultAgentKey,
+    agentSelection.setSelectedAgentKey,
+    location.pathname,
+    location.search,
+    location.hash,
+  ]);
+
   useEffect(() => {
     const node = descriptionTextRef.current;
     if (!node || !agentSelection.isPresetAgent || !selectedAssistantDescription) {
