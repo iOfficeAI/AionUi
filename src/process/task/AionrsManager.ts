@@ -661,6 +661,17 @@ export class AionrsManager extends BaseAgentManager<AionrsManagerData, string> {
     }
   }
 
+  /**
+   * Attempt to switch model at runtime via set_config command.
+   * Returns true if the agent was alive and the command was sent.
+   * Returns false if no agent is running (caller should fall back to kill-restart).
+   */
+  setModelViaConfig(modelId: string): boolean {
+    if (!this.agent) return false;
+    this.agent.setConfig({ model: modelId });
+    return true;
+  }
+
   getMode(): { mode: string; initialized: boolean } {
     return { mode: this.currentMode, initialized: true };
   }

@@ -194,8 +194,17 @@ const AionrsConversationPanel: React.FC<{ conversation: AionrsConversation; slid
   const onSelectModel = useCallback(
     async (_provider: IProvider, modelName: string) => {
       const selected = { ..._provider, useModel: modelName } as TProviderWithModel;
-      // Kill worker on model switch — will be rebuilt on next message
-      await ipcBridge.conversation.stop.invoke({ conversation_id: conversation.id });
+
+      // Try hot-swap via set_config first (avoids killing the process)
+      const hotSwapResult = await ipcBridge.conversation.setConfig
+        .invoke({ conversation_id: conversation.id, config: { model: modelName } })
+        .catch((): null => null);
+
+      if (!hotSwapResult?.success) {
+        // Fall back to kill-restart
+        await ipcBridge.conversation.stop.invoke({ conversation_id: conversation.id });
+      }
+
       const ok = await ipcBridge.conversation.update.invoke({
         id: conversation.id,
         updates: { model: selected },

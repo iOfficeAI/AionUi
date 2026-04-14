@@ -414,6 +414,19 @@ export function initConversationBridge(
     return { success: true };
   });
 
+  ipcBridge.conversation.setConfig.provider(async ({ conversation_id, config }) => {
+    const task = workerTaskManager.getTask(conversation_id);
+    if (!task) {
+      return { success: false, msg: 'No active task' };
+    }
+    // Only AionrsManager supports runtime config changes
+    if (!('setModelViaConfig' in task)) {
+      return { success: false, msg: 'Config changes not supported for this agent type' };
+    }
+    const sent = (task as AionrsManager).setModelViaConfig(config.model ?? '');
+    return sent ? { success: true } : { success: false, msg: 'Agent not initialized' };
+  });
+
   ipcBridge.conversation.getSlashCommands.provider(async ({ conversation_id }) => {
     try {
       const conversation = await conversationService.getConversation(conversation_id);
