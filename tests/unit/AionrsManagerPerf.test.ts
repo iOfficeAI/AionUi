@@ -152,6 +152,21 @@ vi.mock('@/common/chat/chatLib', () => ({
   transformMessage: mockTransformMessage,
 }));
 
+vi.mock('@process/agent/aionrs', () => ({
+  AionrsAgent: vi.fn().mockImplementation(() => ({
+    start: vi.fn().mockResolvedValue(undefined),
+    stop: vi.fn(),
+    kill: vi.fn(),
+    send: vi.fn().mockResolvedValue(undefined),
+    approveTool: vi.fn(),
+    denyTool: vi.fn(),
+    injectConversationHistory: vi.fn().mockResolvedValue(undefined),
+    get bootstrap() {
+      return Promise.resolve();
+    },
+  })),
+}));
+
 // ── Import under test ──────────────────────────────────────────────
 
 import { AionrsManager } from '@/process/task/AionrsManager';
