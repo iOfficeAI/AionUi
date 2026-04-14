@@ -1,7 +1,6 @@
 import type { IExtensionSettingsTab } from '@/common/adapter/ipcBridge';
 import { resolveExtensionAssetUrl } from '@/renderer/utils/platform';
 import {
-  AlarmClock,
   Api,
   Cat,
   Communication,
@@ -55,12 +54,6 @@ export const LEGACY_SETTINGS_ANCHOR_REMAP: Record<string, string> = {
 };
 
 const SETTINGS_BUILTIN_DEFINITIONS: SettingsBuiltinDefinition[] = [
-  {
-    id: 'cron',
-    path: 'cron',
-    labelKey: 'settings.cron',
-    resolveIcon: () => AlarmClock,
-  },
   {
     id: 'gemini',
     path: 'gemini',
@@ -132,7 +125,6 @@ const SETTINGS_BUILTIN_DEFINITIONS: SettingsBuiltinDefinition[] = [
   },
 ];
 
-const CronSettingsPage = React.lazy(() => import('@renderer/pages/cron/CronSettingsPage'));
 const AgentSettings = React.lazy(() => import('@renderer/pages/settings/AgentSettings'));
 const AssistantSettings = React.lazy(() => import('@renderer/pages/settings/AssistantSettings'));
 const CapabilitiesSettings = React.lazy(() => import('@renderer/pages/settings/CapabilitiesSettings'));
@@ -147,7 +139,6 @@ const ApiSettingsPage = React.lazy(
 );
 
 export const SETTINGS_ROUTE_DEFINITIONS: SettingsRouteDefinition[] = [
-  { id: 'cron', path: 'cron', component: CronSettingsPage },
   { id: 'gemini', path: 'gemini', component: GeminiSettings },
   { id: 'model', path: 'model', component: ModeSettings },
   { id: 'assistants', path: 'assistants', component: AssistantSettings },

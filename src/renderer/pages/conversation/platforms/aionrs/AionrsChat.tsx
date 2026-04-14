@@ -15,6 +15,7 @@ import LocalImageView from '@renderer/components/media/LocalImageView';
 import ConversationChatConfirm from '../../components/ConversationChatConfirm';
 import AionrsSendBox from './AionrsSendBox';
 import type { AionrsModelSelection } from './useAionrsModelSelection';
+import { useAionrsMessage } from './useAionrsMessage';
 
 const AionrsChat: React.FC<{
   conversation_id: string;
@@ -23,12 +24,18 @@ const AionrsChat: React.FC<{
 }> = ({ conversation_id, workspace, modelSelection }) => {
   useMessageLstCache(conversation_id);
   const updateLocalImage = LocalImageView.useUpdateLocalImage();
+  const messageState = useAionrsMessage(conversation_id);
   useEffect(() => {
     updateLocalImage({ root: workspace });
   }, [workspace]);
   const conversationValue = useMemo<ConversationContextValue>(() => {
-    return { conversationId: conversation_id, workspace, type: 'aionrs' };
-  }, [conversation_id, workspace]);
+    return {
+      conversationId: conversation_id,
+      workspace,
+      type: 'aionrs',
+      isStreamingContent: messageState.hasStreamingContent,
+    };
+  }, [conversation_id, workspace, messageState.hasStreamingContent]);
 
   return (
     <ConversationProvider value={conversationValue}>
@@ -37,7 +44,7 @@ const AionrsChat: React.FC<{
           <MessageList className='flex-1' />
         </FlexFullContainer>
         <ConversationChatConfirm conversation_id={conversation_id}>
-          <AionrsSendBox conversation_id={conversation_id} modelSelection={modelSelection} />
+          <AionrsSendBox conversation_id={conversation_id} modelSelection={modelSelection} messageState={messageState} />
         </ConversationChatConfirm>
       </div>
     </ConversationProvider>

@@ -13,6 +13,7 @@ import HOC from '@renderer/utils/ui/HOC';
 import React from 'react';
 import ConversationChatConfirm from '../../components/ConversationChatConfirm';
 import AcpSendBox from './AcpSendBox';
+import { useAcpMessage } from './useAcpMessage';
 import TeamChatEmptyState from '@renderer/pages/team/components/TeamChatEmptyState';
 
 const AcpChat: React.FC<{
@@ -39,9 +40,19 @@ const AcpChat: React.FC<{
   agentSlotId,
 }) => {
   useMessageLstCache(conversation_id);
+  const messageState = useAcpMessage(conversation_id);
 
   return (
-    <ConversationProvider value={{ conversationId: conversation_id, workspace, type: 'acp', cronJobId, hideSendBox }}>
+    <ConversationProvider
+      value={{
+        conversationId: conversation_id,
+        workspace,
+        type: 'acp',
+        cronJobId,
+        hideSendBox,
+        isStreamingContent: messageState.hasStreamingContent,
+      }}
+    >
       <div className='flex-1 flex flex-col px-20px min-h-0'>
         <FlexFullContainer>
           <MessageList
@@ -69,6 +80,7 @@ const AcpChat: React.FC<{
               workspacePath={workspace}
               teamId={teamId}
               agentSlotId={agentSlotId}
+              messageState={messageState}
             ></AcpSendBox>
           </ConversationChatConfirm>
         )}

@@ -24,7 +24,7 @@ const CronJobManager: React.FC<CronJobManagerProps> = ({ conversationId, cronJob
   const { t } = useTranslation();
   const navigate = useNavigate();
   const openControlPanel = useCallback(() => {
-    void navigate('/settings/cron');
+    void navigate('/scheduled');
   }, [navigate]);
 
   const [directJob, setDirectJob] = useState<ICronJob | null>(null);

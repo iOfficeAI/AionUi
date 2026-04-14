@@ -18,6 +18,7 @@ import CollapsibleContent from '@renderer/components/chat/CollapsibleContent';
 import FilePreview from '@renderer/components/media/FilePreview';
 import HorizontalFileList from '@renderer/components/media/HorizontalFileList';
 import MarkdownView from '@renderer/components/Markdown';
+import StreamingMarkdownView from '@renderer/components/Markdown/StreamingMarkdownView';
 import { stripThinkTags, hasThinkTags } from '@renderer/utils/chat/thinkTagFilter';
 import { stripSkillSuggest, hasSkillSuggest } from '@renderer/utils/chat/skillSuggestParser';
 
@@ -90,7 +91,7 @@ const useFormatContent = (content: string) => {
   }, [content]);
 };
 
-const MessageText: React.FC<{ message: IMessageText }> = ({ message }) => {
+const MessageText: React.FC<{ message: IMessageText; isStreaming?: boolean }> = ({ message, isStreaming = false }) => {
   // Filter think tags from content before rendering
   // 在渲染前过滤 think 标签
   const contentToRender = useMemo(() => {
@@ -115,6 +116,7 @@ const MessageText: React.FC<{ message: IMessageText }> = ({ message }) => {
   const isUserMessage = message.position === 'right';
   const isTeammateMessage = message.position === 'left' && message.content.teammateMessage === true;
   const shouldRenderPlainText = isUserMessage;
+  const shouldRenderStreamingMarkdown = isStreaming && !isUserMessage && !isTeammateMessage;
   const conversationContext = useConversationContextSafe();
   const resolvedFiles = useMemo(
     () => files.map((filePath) => resolveMessageFilePath(filePath, conversationContext?.workspace)),
@@ -205,6 +207,8 @@ const MessageText: React.FC<{ message: IMessageText }> = ({ message }) => {
           {/* JSON 内容使用折叠组件 Use CollapsibleContent for JSON content */}
           {shouldRenderPlainText ? (
             <div className='whitespace-pre-wrap break-words'>{text}</div>
+          ) : shouldRenderStreamingMarkdown ? (
+            <StreamingMarkdownView>{text}</StreamingMarkdownView>
           ) : json ? (
             <CollapsibleContent maxHeight={200} defaultCollapsed={true}>
               <MarkdownView

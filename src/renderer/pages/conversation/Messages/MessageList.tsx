@@ -38,6 +38,7 @@ import type { WriteFileResult } from './types';
 import { useAutoScroll } from './useAutoScroll';
 import { useAutoPreviewOfficeFiles } from '@/renderer/hooks/file/useAutoPreviewOfficeFiles';
 import SelectionReplyButton from './components/SelectionReplyButton';
+import { getStreamingAssistantTextMessageId } from './streamingMessage';
 
 type TurnDiffContent = Extract<CodexToolCallUpdate, { subtype: 'turn_diff' }>;
 
@@ -89,7 +90,7 @@ const getUnhandledMessageType = (_message: never): string => 'unknown';
 // Image preview context
 export const ImagePreviewContext = createContext<{ inPreviewGroup: boolean }>({ inPreviewGroup: false });
 
-const MessageItem: React.FC<{ message: TMessage; highlighted?: boolean }> = React.memo(
+const MessageItem: React.FC<{ message: TMessage; highlighted?: boolean; isStreaming?: boolean }> = React.memo(
   HOC((props) => {
     const { message, highlighted } = props as { message: TMessage; highlighted?: boolean };
     return (
@@ -109,11 +110,11 @@ const MessageItem: React.FC<{ message: TMessage; highlighted?: boolean }> = Reac
         {props.children}
       </div>
     );
-  })(({ message }) => {
+  })(({ message, isStreaming }) => {
     const { t } = useTranslation();
     switch (message.type) {
       case 'text':
-        return <MessageText message={message}></MessageText>;
+        return <MessageText message={message} isStreaming={isStreaming}></MessageText>;
       case 'tips':
         return <MessageTips message={message}></MessageTips>;
       case 'tool_call':
@@ -150,7 +151,8 @@ const MessageItem: React.FC<{ message: TMessage; highlighted?: boolean }> = Reac
     prev.message.content === next.message.content &&
     prev.message.position === next.message.position &&
     prev.message.type === next.message.type &&
-    prev.highlighted === next.highlighted
+    prev.highlighted === next.highlighted &&
+    prev.isStreaming === next.isStreaming
 );
 
 const MessageList: React.FC<{ className?: string; emptySlot?: React.ReactNode }> = ({ emptySlot }) => {
@@ -163,6 +165,10 @@ const MessageList: React.FC<{ className?: string; emptySlot?: React.ReactNode }>
   const targetMessageId = locationState.targetMessageId;
   const [highlightedMessageId, setHighlightedMessageId] = useState<string | undefined>();
   const handledTargetKeyRef = useRef<string>('');
+  const streamingMessageId = useMemo(
+    () => getStreamingAssistantTextMessageId(list, conversationContext?.isStreamingContent),
+    [conversationContext?.isStreamingContent, list]
+  );
 
   // Pre-process message list to group Codex turn_diff messages
   const processedList = useMemo(() => {
@@ -350,7 +356,14 @@ const MessageList: React.FC<{ className?: string; emptySlot?: React.ReactNode }>
         </div>
       );
     }
-    return <MessageItem message={item as TMessage} key={(item as TMessage).id} highlighted={highlighted}></MessageItem>;
+    return (
+      <MessageItem
+        message={item as TMessage}
+        key={(item as TMessage).id}
+        highlighted={highlighted}
+        isStreaming={(item as TMessage).id === streamingMessageId}
+      ></MessageItem>
+    );
   };
 
   if (processedList.length === 0 && emptySlot) {

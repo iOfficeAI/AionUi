@@ -3,7 +3,6 @@ import { getBuiltinSettingsNavItems } from '@/renderer/pages/settings/components
 
 const t = (key: string, options?: { defaultValue?: string }) => {
   const labels: Record<string, string> = {
-    'settings.cron': 'Scheduled Tasks',
     'settings.gemini': 'Gemini',
     'settings.model': 'Models',
     'settings.assistants': 'Assistants',
@@ -25,7 +24,6 @@ describe('getBuiltinSettingsNavItems', () => {
     const items = getBuiltinSettingsNavItems(false, t);
 
     expect(items.map((item) => item.id)).toEqual([
-      'cron',
       'gemini',
       'model',
       'assistants',
@@ -40,7 +38,6 @@ describe('getBuiltinSettingsNavItems', () => {
     ]);
 
     expect(items.map((item) => item.label)).toEqual([
-      'Scheduled Tasks',
       'Gemini',
       'Models',
       'Assistants',

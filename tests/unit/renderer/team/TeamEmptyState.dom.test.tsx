@@ -24,6 +24,27 @@ vi.mock('@renderer/pages/conversation/Messages/hooks', () => ({
   useMessageLstCache: vi.fn(),
 }));
 
+vi.mock('@/renderer/pages/conversation/platforms/gemini/useGeminiMessage', () => ({
+  useGeminiMessage: vi.fn(() => ({
+    thought: { subject: '', description: '' },
+    setThought: vi.fn(),
+    running: false,
+    hasHydratedRunningState: true,
+    tokenUsage: null,
+    hasStreamingContent: false,
+    setActiveMsgId: vi.fn(),
+    setWaitingResponse: vi.fn(),
+    resetState: vi.fn(),
+    hasThinkingMessage: false,
+  })),
+}));
+
+vi.mock('@/renderer/pages/conversation/platforms/gemini/useGeminiQuotaFallback', () => ({
+  useGeminiQuotaFallback: vi.fn(() => ({
+    handleGeminiError: vi.fn(),
+  })),
+}));
+
 vi.mock('@renderer/utils/ui/HOC', () => ({
   __esModule: true,
   default: {

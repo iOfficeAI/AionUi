@@ -1,4 +1,5 @@
 import type { TMessage } from '@/common/chat/chatLib';
+import { getStreamingAssistantTextMessageId } from '@/renderer/pages/conversation/Messages/streamingMessage';
 import { getLastAssistantText } from '@/renderer/utils/chat/getLastAssistantText';
 import { describe, expect, it } from 'vitest';
 
@@ -78,5 +79,24 @@ describe('getLastAssistantText', () => {
     ];
 
     expect(getLastAssistantText(messages, false)).toBe('  indented line\ntrailing space  ');
+  });
+});
+
+describe('getStreamingAssistantTextMessageId', () => {
+  it('returns undefined when no assistant content is actively streaming', () => {
+    const messages = [createTextMessage({ content: { content: 'assistant reply' } })];
+
+    expect(getStreamingAssistantTextMessageId(messages, false)).toBeUndefined();
+  });
+
+  it('returns the last visible non-teammate assistant text message while streaming', () => {
+    const messages = [
+      createTextMessage({ id: 'first', content: { content: 'first reply' } }),
+      createTextMessage({ id: 'teammate', content: { content: 'teammate reply', teammateMessage: true } }),
+      createTextMessage({ id: 'empty', content: { content: '   ' } }),
+      createTextMessage({ id: 'latest', content: { content: 'latest reply' } }),
+    ];
+
+    expect(getStreamingAssistantTextMessageId(messages, true)).toBe('latest');
   });
 });

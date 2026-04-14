@@ -9,15 +9,24 @@ import {
 const t = ((key: string, options?: { defaultValue?: string }) => options?.defaultValue || key) as never;
 
 describe('settings navigation registry', () => {
-  it('includes fork-specific settings routes in the central route registry', () => {
+  it('keeps settings navigation focused on actual settings pages', () => {
     const routePaths = SETTINGS_ROUTE_DEFINITIONS.map((item) => item.path);
 
-    expect(routePaths).toContain('cron');
+    expect(routePaths).not.toContain('cron');
     expect(routePaths).toContain('api');
     expect(routePaths).toContain('pet');
     expect(routePaths).toContain('assistants');
     expect(routePaths).toContain('agent');
     expect(routePaths).toContain('capabilities');
+  });
+
+  it('does not expose scheduled tasks in builtin settings navigation', () => {
+    const builtinItems = buildBuiltinSettingsNavItems({
+      isDesktop: true,
+      t,
+    });
+
+    expect(builtinItems.some((item) => item.id === 'cron')).toBe(false);
   });
 
   it('keeps embedded extension tabs out of page navigation while preserving regular extension tabs', () => {

@@ -1,43 +1,43 @@
-import { ipcBridge } from '@/common';
-import type { AcpBackend } from '@/common/types/acpTypes';
 import { isSideQuestionSupported } from '@/common/chat/sideQuestion';
+import type { AcpBackend } from '@/common/types/acpTypes';
 import { uuid } from '@/common/utils';
+import AcpConfigSelector from '@/renderer/components/agent/AcpConfigSelector';
+import AgentModeSelector from '@/renderer/components/agent/AgentModeSelector';
+import ContextUsageIndicator from '@/renderer/components/agent/ContextUsageIndicator';
+import CommandQueuePanel from '@/renderer/components/chat/CommandQueuePanel';
 import SendBox from '@/renderer/components/chat/sendbox';
 import ThoughtDisplay from '@/renderer/components/chat/ThoughtDisplay';
-import CommandQueuePanel from '@/renderer/components/chat/CommandQueuePanel';
-import { getSendBoxDraftHook, type FileOrFolderItem } from '@/renderer/hooks/chat/useSendBoxDraft';
+import FileAttachButton from '@/renderer/components/media/FileAttachButton';
+import FilePreview from '@/renderer/components/media/FilePreview';
+import HorizontalFileList from '@/renderer/components/media/HorizontalFileList';
+import { useAutoTitle } from '@/renderer/hooks/chat/useAutoTitle';
 import { createSetUploadFile, useSendBoxFiles } from '@/renderer/hooks/chat/useSendBoxFiles';
+import { getSendBoxDraftHook, type FileOrFolderItem } from '@/renderer/hooks/chat/useSendBoxDraft';
+import { useSlashCommands } from '@/renderer/hooks/chat/useSlashCommands';
+import { useOpenFileSelector } from '@/renderer/hooks/file/useOpenFileSelector';
+import { useCommandQueueEnabled } from '@/renderer/hooks/system/useCommandQueueEnabled';
+import { useLatestRef } from '@/renderer/hooks/ui/useLatestRef';
 import { useAddOrUpdateMessage } from '@/renderer/pages/conversation/Messages/hooks';
+import { usePreviewContext } from '@/renderer/pages/conversation/Preview';
+import { assertBridgeSuccess } from '@/renderer/pages/conversation/platforms/assertBridgeSuccess';
 import {
   shouldEnqueueConversationCommand,
   useConversationCommandQueue,
   type ConversationCommandQueueItem,
 } from '@/renderer/pages/conversation/platforms/useConversationCommandQueue';
-import { assertBridgeSuccess } from '@/renderer/pages/conversation/platforms/assertBridgeSuccess';
+import { useTeamPermission } from '@/renderer/pages/team/hooks/TeamPermissionContext';
 import { allSupportedExts } from '@/renderer/services/FileService';
+import { iconColors } from '@/renderer/styles/colors';
 import { emitter, useAddEventListener } from '@/renderer/utils/emitter';
 import { mergeFileSelectionItems } from '@/renderer/utils/file/fileSelection';
 import { buildDisplayMessage } from '@/renderer/utils/file/messageFiles';
 import { Message, Tag } from '@arco-design/web-react';
 import { Shield } from '@icon-park/react';
-import { iconColors } from '@/renderer/styles/colors';
-import FileAttachButton from '@/renderer/components/media/FileAttachButton';
-import AcpConfigSelector from '@/renderer/components/agent/AcpConfigSelector';
 import React, { useCallback, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
-import FilePreview from '@/renderer/components/media/FilePreview';
-import HorizontalFileList from '@/renderer/components/media/HorizontalFileList';
-import { usePreviewContext } from '@/renderer/pages/conversation/Preview';
-import { useLatestRef } from '@/renderer/hooks/ui/useLatestRef';
-import { useOpenFileSelector } from '@/renderer/hooks/file/useOpenFileSelector';
-import { useCommandQueueEnabled } from '@/renderer/hooks/system/useCommandQueueEnabled';
-import ContextUsageIndicator from '@/renderer/components/agent/ContextUsageIndicator';
-import { useAutoTitle } from '@/renderer/hooks/chat/useAutoTitle';
-import AgentModeSelector from '@/renderer/components/agent/AgentModeSelector';
-import { useTeamPermission } from '@/renderer/pages/team/hooks/TeamPermissionContext';
-import { useSlashCommands } from '@/renderer/hooks/chat/useSlashCommands';
-import { useAcpMessage } from './useAcpMessage';
+import { ipcBridge } from '@/common';
 import { useAcpInitialMessage } from './useAcpInitialMessage';
+import { useAcpMessage, type UseAcpMessageReturn } from './useAcpMessage';
 
 const useAcpSendBoxDraft = getSendBoxDraftHook('acp', {
   _type: 'acp',
@@ -81,7 +81,7 @@ const useSendBoxDraft = (conversation_id: string) => {
   };
 };
 
-const AcpSendBox: React.FC<{
+type AcpSendBoxBaseProps = {
   conversation_id: string;
   backend: AcpBackend;
   sessionMode?: string;
@@ -90,7 +90,13 @@ const AcpSendBox: React.FC<{
   workspacePath?: string;
   teamId?: string;
   agentSlotId?: string;
-}> = ({
+};
+
+type AcpSendBoxProps = AcpSendBoxBaseProps & {
+  messageState?: UseAcpMessageReturn;
+};
+
+const AcpSendBoxInner: React.FC<AcpSendBoxBaseProps & { messageState: UseAcpMessageReturn }> = ({
   conversation_id,
   backend,
   sessionMode,
@@ -99,6 +105,7 @@ const AcpSendBox: React.FC<{
   workspacePath,
   teamId,
   agentSlotId,
+  messageState,
 }) => {
   const {
     running,
@@ -110,25 +117,22 @@ const AcpSendBox: React.FC<{
     tokenUsage,
     contextLimit,
     hasThinkingMessage,
-  } = useAcpMessage(conversation_id);
+  } = messageState;
   const { t } = useTranslation();
   const teamPermission = useTeamPermission();
   const isCommandQueueEnabled = useCommandQueueEnabled();
-  // In team mode, only the lead agent shows the permission mode selector
   const showModeSelector = !teamPermission || conversation_id === teamPermission.leadConversationId;
   const { checkAndUpdateTitle } = useAutoTitle();
   const slashCommands = useSlashCommands(conversation_id, { agentStatus: acpStatus });
   const { atPath, uploadFile, setAtPath, setUploadFile, content, setContent } = useSendBoxDraft(conversation_id);
   const { setSendBoxHandler } = usePreviewContext();
 
-  // Use useLatestRef to keep latest setters to avoid re-registering handler
   const setContentRef = useLatestRef(setContent);
   const atPathRef = useLatestRef(atPath);
 
-  const addOrUpdateMessage = useAddOrUpdateMessage(); // Move this here so it's available in useEffect
+  const addOrUpdateMessage = useAddOrUpdateMessage();
   const addOrUpdateMessageRef = useLatestRef(addOrUpdateMessage);
 
-  // Shared file handling logic
   const { handleFilesAdded, clearFiles } = useSendBoxFiles({
     atPath,
     uploadFile,
@@ -137,17 +141,14 @@ const AcpSendBox: React.FC<{
   });
   const isBusy = running || aiProcessing;
 
-  // Register handler for adding text from preview panel to sendbox
   useEffect(() => {
     const handler = (text: string) => {
-      // If there's existing content, add newline and new text; otherwise just set the text
       const newContent = content ? `${content}\n${text}` : text;
       setContentRef.current(newContent);
     };
     setSendBoxHandler(handler);
-  }, [setSendBoxHandler, content]);
+  }, [content, setContentRef, setSendBoxHandler]);
 
-  // Listen for sendbox.fill event to populate input from external sources
   useAddEventListener(
     'sendbox.fill',
     (text: string) => {
@@ -156,7 +157,6 @@ const AcpSendBox: React.FC<{
     []
   );
 
-  // Check for and send initial message from guid page
   useAcpInitialMessage({
     conversationId: conversation_id,
     backend,
@@ -208,7 +208,7 @@ const AcpSendBox: React.FC<{
         const isAuthError =
           errorMsg.includes('[ACP-AUTH-') ||
           errorMsg.includes('authentication failed') ||
-          errorMsg.includes('认证失败');
+          errorMsg.includes('璁よ瘉澶辫触');
         if (isAuthError) {
           const errorMessage = {
             id: uuid(),
@@ -305,6 +305,7 @@ Please check your local CLI tool authentication status`,
     },
     [setUploadFile]
   );
+
   const { openFileSelector, onSlashBuiltinCommand } = useOpenFileSelector({
     onFilesSelected: appendSelectedFiles,
   });
@@ -317,9 +318,7 @@ Please check your local CLI tool authentication status`,
     }
   });
 
-  // Stop conversation handler
   const handleStop = async (): Promise<void> => {
-    // Use finally to ensure UI state is reset even if backend stop fails
     try {
       await ipcBridge.conversation.stop.invoke({ conversation_id });
     } finally {
@@ -447,6 +446,20 @@ Please check your local CLI tool authentication status`,
       ></SendBox>
     </div>
   );
+};
+
+const AcpSendBoxWithHook: React.FC<AcpSendBoxBaseProps> = (props) => {
+  const messageState = useAcpMessage(props.conversation_id);
+
+  return <AcpSendBoxInner {...props} messageState={messageState} />;
+};
+
+const AcpSendBox: React.FC<AcpSendBoxProps> = ({ messageState, ...props }) => {
+  if (messageState) {
+    return <AcpSendBoxInner {...props} messageState={messageState} />;
+  }
+
+  return <AcpSendBoxWithHook {...props} />;
 };
 
 export default AcpSendBox;

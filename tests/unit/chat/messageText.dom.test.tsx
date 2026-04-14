@@ -1,11 +1,15 @@
 import React from 'react';
 import { render, screen } from '@testing-library/react';
-import { describe, expect, it, vi } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import type { IMessageText } from '@/common/chat/chatLib';
 import { ConversationProvider } from '@/renderer/hooks/context/ConversationContext';
 import MessageText from '@/renderer/pages/conversation/Messages/components/MessagetText';
 
 const mockFilePreview = vi.fn(({ path }: { path: string }) => <div data-testid='file-preview'>{path}</div>);
+const mockMarkdownView = vi.fn(({ children }: { children?: React.ReactNode }) => <div data-testid='markdown-view'>{children}</div>);
+const mockStreamingMarkdownView = vi.fn(({ children }: { children?: React.ReactNode }) => (
+  <div data-testid='streaming-markdown-view'>{children}</div>
+));
 
 vi.mock('@/renderer/components/chat/CollapsibleContent', () => ({
   __esModule: true,
@@ -24,7 +28,12 @@ vi.mock('@/renderer/components/media/HorizontalFileList', () => ({
 
 vi.mock('@/renderer/components/Markdown', () => ({
   __esModule: true,
-  default: ({ children }: { children?: React.ReactNode }) => <div>{children}</div>,
+  default: (props: { children?: React.ReactNode }) => mockMarkdownView(props),
+}));
+
+vi.mock('@/renderer/components/Markdown/StreamingMarkdownView', () => ({
+  __esModule: true,
+  default: (props: { children?: React.ReactNode }) => mockStreamingMarkdownView(props),
 }));
 
 vi.mock('@/renderer/utils/chat/skillSuggestParser', () => ({
@@ -64,6 +73,10 @@ vi.mock('react-i18next', () => ({
 }));
 
 describe('MessageText attachment paths', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
   it('resolves relative attachment paths against the current workspace before previewing', () => {
     const message: IMessageText = {
       id: 'msg-1',
@@ -84,5 +97,54 @@ describe('MessageText attachment paths', () => {
     );
 
     expect(screen.getByTestId('file-preview')).toHaveTextContent('/workspace/demo/uploads/photo.png');
+  });
+
+  it('renders assistant streaming content with the lightweight streaming markdown view', () => {
+    const message: IMessageText = {
+      id: 'msg-2',
+      msg_id: 'msg-2',
+      conversation_id: 'conv-1',
+      type: 'text',
+      position: 'left',
+      createdAt: Date.now(),
+      content: {
+        content: 'streaming **answer**',
+      },
+    };
+
+    render(
+      <ConversationProvider value={{ conversationId: 'conv-1', workspace: '/workspace/demo', type: 'gemini' }}>
+        <MessageText message={message} isStreaming />
+      </ConversationProvider>
+    );
+
+    expect(screen.getByTestId('streaming-markdown-view')).toHaveTextContent('streaming **answer**');
+    expect(mockStreamingMarkdownView).toHaveBeenCalledTimes(1);
+    expect(mockMarkdownView).not.toHaveBeenCalled();
+  });
+
+  it('keeps user messages as plain text even when a streaming flag is passed', () => {
+    const message: IMessageText = {
+      id: 'msg-3',
+      msg_id: 'msg-3',
+      conversation_id: 'conv-1',
+      type: 'text',
+      position: 'right',
+      createdAt: Date.now(),
+      content: {
+        content: 'user should stay plain',
+      },
+    };
+
+    render(
+      <ConversationProvider value={{ conversationId: 'conv-1', workspace: '/workspace/demo', type: 'gemini' }}>
+        <MessageText message={message} isStreaming />
+      </ConversationProvider>
+    );
+
+    expect(screen.getByText('user should stay plain')).toBeInTheDocument();
+    expect(screen.queryByTestId('streaming-markdown-view')).not.toBeInTheDocument();
+    expect(mockStreamingMarkdownView).not.toHaveBeenCalled();
+    expect(mockMarkdownView).not.toHaveBeenCalled();
   });
 });

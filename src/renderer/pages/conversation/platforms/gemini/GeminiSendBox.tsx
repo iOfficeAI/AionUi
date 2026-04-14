@@ -37,7 +37,7 @@ import { useCommandQueueEnabled } from '@/renderer/hooks/system/useCommandQueueE
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import type { GeminiModelSelection } from './useGeminiModelSelection';
-import { useGeminiMessage } from './useGeminiMessage';
+import { useGeminiMessage, type UseGeminiMessageReturn } from './useGeminiMessage';
 import { useGeminiQuotaFallback } from './useGeminiQuotaFallback';
 import { useGeminiInitialMessage } from './useGeminiInitialMessage';
 
@@ -84,12 +84,24 @@ const useSendBoxDraft = (conversation_id: string) => {
   };
 };
 
-const GeminiSendBox: React.FC<{
+type GeminiSendBoxBaseProps = {
   conversation_id: string;
   modelSelection: GeminiModelSelection;
   teamId?: string;
   agentSlotId?: string;
-}> = ({ conversation_id, modelSelection, teamId, agentSlotId }) => {
+};
+
+type GeminiSendBoxProps = GeminiSendBoxBaseProps & {
+  messageState?: UseGeminiMessageReturn;
+};
+
+const GeminiSendBoxInner: React.FC<GeminiSendBoxBaseProps & { messageState: UseGeminiMessageReturn }> = ({
+  conversation_id,
+  modelSelection,
+  teamId,
+  agentSlotId,
+  messageState,
+}) => {
   const [workspacePath, setWorkspacePath] = useState('');
   const { t } = useTranslation();
   const teamPermission = useTeamPermission();
@@ -102,8 +114,7 @@ const GeminiSendBox: React.FC<{
   const [isNewConversation, setIsNewConversation] = useState(true);
   const autoSwitchTriggeredRef = useRef(false);
 
-  const { currentModel, getDisplayModelName, providers, geminiModeLookup, getAvailableModels, handleSelectModel } =
-    modelSelection;
+  const { currentModel, getDisplayModelName, providers } = modelSelection;
 
   // Check if no auth (no Google login AND no API key configured)
   const hasNoAuth = providers.length === 0;
@@ -123,14 +134,6 @@ const GeminiSendBox: React.FC<{
     autoCheck: false,
   });
 
-  const { handleGeminiError } = useGeminiQuotaFallback({
-    currentModel,
-    providers,
-    geminiModeLookup,
-    getAvailableModels,
-    handleSelectModel,
-  });
-
   const {
     thought,
     running,
@@ -140,7 +143,7 @@ const GeminiSendBox: React.FC<{
     setWaitingResponse,
     resetState,
     hasThinkingMessage,
-  } = useGeminiMessage(conversation_id, handleGeminiError);
+  } = messageState;
 
   const { atPath, uploadFile, setAtPath, setUploadFile, content, setContent } = useSendBoxDraft(conversation_id);
 
@@ -524,6 +527,28 @@ const GeminiSendBox: React.FC<{
       ></SendBox>
     </div>
   );
+};
+
+const GeminiSendBoxWithHook: React.FC<GeminiSendBoxBaseProps> = (props) => {
+  const { currentModel, providers, geminiModeLookup, getAvailableModels, handleSelectModel } = props.modelSelection;
+  const { handleGeminiError } = useGeminiQuotaFallback({
+    currentModel,
+    providers,
+    geminiModeLookup,
+    getAvailableModels,
+    handleSelectModel,
+  });
+  const messageState = useGeminiMessage(props.conversation_id, handleGeminiError);
+
+  return <GeminiSendBoxInner {...props} messageState={messageState} />;
+};
+
+const GeminiSendBox: React.FC<GeminiSendBoxProps> = ({ messageState, ...props }) => {
+  if (messageState) {
+    return <GeminiSendBoxInner {...props} messageState={messageState} />;
+  }
+
+  return <GeminiSendBoxWithHook {...props} />;
 };
 
 export default GeminiSendBox;
