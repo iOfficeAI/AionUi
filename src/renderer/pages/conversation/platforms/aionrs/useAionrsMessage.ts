@@ -17,7 +17,15 @@ type TokenUsage = {
   output_tokens?: number;
 };
 
-export const useAionrsMessage = (conversation_id: string, onError?: (message: IResponseMessage) => void) => {
+export const useAionrsMessage = (
+  conversation_id: string,
+  options?: {
+    onError?: (message: IResponseMessage) => void;
+    onConfigChanged?: (capabilities: Record<string, unknown>) => void;
+  },
+) => {
+  const onError = options?.onError;
+  const onConfigChanged = options?.onConfigChanged;
   const addOrUpdateMessage = useAddOrUpdateMessage();
   const [streamRunning, setStreamRunning] = useState(false);
   const [hasActiveTools, setHasActiveTools] = useState(false);
@@ -205,6 +213,9 @@ export const useAionrsMessage = (conversation_id: string, onError?: (message: IR
             addOrUpdateMessage(transformMessage(message));
           }
           break;
+        case 'config_changed':
+          onConfigChanged?.(message.data as Record<string, unknown>);
+          break;
         default: {
           if (message.type === 'error') {
             setWaitingResponse(false);
@@ -230,7 +241,7 @@ export const useAionrsMessage = (conversation_id: string, onError?: (message: IR
       }
     });
     // Note: hasActiveTools and streamRunning are accessed via refs to avoid re-subscription
-  }, [conversation_id, addOrUpdateMessage, onError]);
+  }, [conversation_id, addOrUpdateMessage, onError, onConfigChanged]);
 
   useEffect(() => {
     let cancelled = false;
