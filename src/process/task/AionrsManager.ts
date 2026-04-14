@@ -14,6 +14,7 @@ import type { TProviderWithModel } from '@/common/config/storage';
 import { BaseApprovalStore, type IApprovalKey } from '@/common/chat/approval';
 import { ToolConfirmationOutcome } from '../agent/gemini/cli/tools/tools';
 import { AionrsAgent } from '@process/agent/aionrs';
+import type { AionrsCapabilities } from '@process/agent/aionrs/protocol';
 import { getDatabase } from '@process/services/database';
 import { addMessage, addOrUpdateMessage } from '@process/utils/message';
 import { uuid } from '@/common/utils';
@@ -73,7 +74,9 @@ export class AionrsManager extends BaseAgentManager<AionrsManagerData, string> {
   model: TProviderWithModel;
   readonly approvalStore = new AionrsApprovalStore();
   private agent: AionrsAgent | null = null;
+  private agentReady: Promise<void>;
   private currentMode: string = 'default';
+  private _capabilities: AionrsCapabilities | null = null;
   private currentMsgId: string | null = null;
   private currentMsgContent: string = '';
 
@@ -104,8 +107,8 @@ export class AionrsManager extends BaseAgentManager<AionrsManagerData, string> {
     // enableFork=false skips auto-init in ForkTask, so init manually
     this.init();
 
-    // Start the agent bootstrap
-    void this.start().catch(() => {});
+    // Start the agent bootstrap — store promise so sendMessage can await it
+    this.agentReady = this.start().catch(() => {});
   }
 
   /**
@@ -142,6 +145,7 @@ export class AionrsManager extends BaseAgentManager<AionrsManagerData, string> {
 
     await agent.start();
     this.agent = agent;
+    this._capabilities = agent.capabilities ?? null;
   }
 
   private async injectHistoryFromDatabase(): Promise<void> {
@@ -191,6 +195,8 @@ export class AionrsManager extends BaseAgentManager<AionrsManagerData, string> {
     cronBusyGuard.setProcessing(this.conversation_id, true);
     this.status = 'pending';
     this._lastActivityAt = Date.now();
+    // Wait for agent bootstrap to complete before sending
+    await this.agentReady;
     if (this.agent) {
       await this.agent.send(data.input, data.msg_id, data.files);
     }
@@ -445,6 +451,18 @@ export class AionrsManager extends BaseAgentManager<AionrsManagerData, string> {
 
   init() {
     this.on('aionrs.message', (data) => {
+      // Store capabilities from config_changed events
+      if (data.type === 'config_changed') {
+        this._capabilities = data.data as AionrsCapabilities;
+        ipcBridge.conversation.responseStream.emit({
+          type: 'config_changed',
+          conversation_id: this.conversation_id,
+          msg_id: '',
+          data: data.data,
+        });
+        return;
+      }
+
       // Restart fallback timer on every non-finish event (activity heartbeat)
       if (data.type !== 'finish') {
         this.scheduleMissingFinishFallback();
@@ -630,6 +648,16 @@ export class AionrsManager extends BaseAgentManager<AionrsManagerData, string> {
       }
     } catch (error) {
       mainError('[AionrsManager]', 'Cron command processing failed', error);
+    }
+  }
+
+  getCapabilities(): AionrsCapabilities | null {
+    return this._capabilities;
+  }
+
+  setConfig(config: { model?: string; thinking?: string; thinking_budget?: number; effort?: string }): void {
+    if (this.agent) {
+      this.agent.setConfig(config);
     }
   }
 
