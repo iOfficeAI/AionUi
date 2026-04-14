@@ -113,7 +113,13 @@ export function buildClaudeModelInfoFromCcSwitchConfig(
 
   const availableModels = uniqueModelIds([defaultModelId, opusModelId, haikuModelId]).flatMap((modelId) => {
     const slotId =
-      modelId === defaultModelId ? 'default' : modelId === opusModelId ? 'opus' : modelId === haikuModelId ? 'haiku' : null;
+      modelId === defaultModelId
+        ? 'default'
+        : modelId === opusModelId
+          ? 'opus'
+          : modelId === haikuModelId
+            ? 'haiku'
+            : null;
     if (!slotId) return [];
     return [
       {
