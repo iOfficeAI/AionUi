@@ -29,6 +29,7 @@ type MailboxRow = {
   type: string;
   content: string;
   summary: string | null;
+  files: string | null;
   read: number;
   created_at: number;
 };
@@ -75,6 +76,7 @@ function rowToMailbox(row: MailboxRow): MailboxMessage {
     type: row.type as MailboxMessage['type'],
     content: row.content,
     summary: row.summary ?? undefined,
+    files: row.files ? (JSON.parse(row.files) as string[]) : undefined,
     read: Boolean(row.read),
     createdAt: row.created_at,
   };
@@ -197,8 +199,8 @@ export class SqliteTeamRepository implements ITeamRepository {
   async writeMessage(message: MailboxMessage): Promise<MailboxMessage> {
     const db = await this.getDb();
     db.prepare(
-      `INSERT INTO mailbox (id, team_id, to_agent_id, from_agent_id, type, content, summary, read, created_at)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`
+      `INSERT INTO mailbox (id, team_id, to_agent_id, from_agent_id, type, content, summary, files, read, created_at)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
     ).run(
       message.id,
       message.teamId,
@@ -207,6 +209,7 @@ export class SqliteTeamRepository implements ITeamRepository {
       message.type,
       message.content,
       message.summary ?? null,
+      message.files ? JSON.stringify(message.files) : null,
       Number(message.read),
       message.createdAt
     );

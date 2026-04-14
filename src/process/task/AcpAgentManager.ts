@@ -112,7 +112,7 @@ class AcpAgentManager extends BaseAgentManager<AcpAgentManagerData, AcpPermissio
   private readonly missingFinishFallbackDelayMs = 15000;
 
   constructor(data: AcpAgentManagerData) {
-    super('acp', data, new IpcAgentEventEmitter());
+    super('acp', data, new IpcAgentEventEmitter(), false);
     this.conversation_id = data.conversation_id;
     this.workspace = data.workspace;
     this.options = data;
@@ -1007,7 +1007,7 @@ ${collectedResponses.join('\n')}`;
             // Native skill discovery via workspace symlinks — inject preset rules + team guide
             const parts: string[] = [];
             if (this.options.presetContext) parts.push(this.options.presetContext);
-            if (!isInTeam && shouldInjectTeamGuideMcp(this.options.backend)) {
+            if (!isInTeam && (await shouldInjectTeamGuideMcp(this.options.backend))) {
               const { getTeamGuidePrompt } = await import('@process/team/prompts/teamGuidePrompt.ts');
               parts.push(getTeamGuidePrompt(this.options.backend));
             }

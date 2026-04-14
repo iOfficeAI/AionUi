@@ -11,7 +11,6 @@ import * as crypto from 'node:crypto';
 import * as net from 'node:net';
 import * as path from 'node:path';
 import { ipcBridge } from '@/common';
-import { team as teamIpcBridge } from '@/common/adapter/ipcBridge.ts';
 import type { Mailbox } from '../../Mailbox.ts';
 import type { TaskManager } from '../../TaskManager.ts';
 import type { TeamAgent } from '../../types.ts';

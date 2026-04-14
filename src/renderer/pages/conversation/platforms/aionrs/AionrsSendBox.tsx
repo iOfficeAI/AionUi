@@ -36,6 +36,7 @@ import { Message, Tag } from '@arco-design/web-react';
 import { Shield } from '@icon-park/react';
 import { iconColors } from '@/renderer/styles/colors';
 import AgentModeSelector from '@/renderer/components/agent/AgentModeSelector';
+import { mergeWithCapabilities, type AgentModeOption } from '@/renderer/utils/model/agentModes';
 import ThoughtDisplay from '@/renderer/components/chat/ThoughtDisplay';
 import React, { useCallback, useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -90,6 +91,7 @@ const AionrsSendBox: React.FC<{
   modelSelection: AionrsModelSelection;
 }> = ({ conversation_id, modelSelection }) => {
   const [workspacePath, setWorkspacePath] = useState('');
+  const [dynamicModes, setDynamicModes] = useState<AgentModeOption[]>([]);
   const { t } = useTranslation();
   const { checkAndUpdateTitle } = useAutoTitle();
   const isCommandQueueEnabled = useCommandQueueEnabled();
@@ -97,7 +99,14 @@ const AionrsSendBox: React.FC<{
   const { currentModel, getDisplayModelName } = modelSelection;
 
   const { thought, running, hasHydratedRunningState, tokenUsage, setActiveMsgId, setWaitingResponse, resetState } =
-    useAionrsMessage(conversation_id);
+    useAionrsMessage(conversation_id, {
+      onConfigChanged: (capabilities) => {
+        const modes = (capabilities as { modes?: string[] })?.modes;
+        if (modes && modes.length > 0) {
+          setDynamicModes(mergeWithCapabilities('aionrs', modes));
+        }
+      },
+    });
 
   const { atPath, uploadFile, setAtPath, setUploadFile, content, setContent } = useSendBoxDraft(conversation_id);
 
@@ -358,6 +367,7 @@ const AionrsSendBox: React.FC<{
               backend='aionrs'
               conversationId={conversation_id}
               compact
+              dynamicModes={dynamicModes}
               compactLeadingIcon={<Shield theme='outline' size='14' fill={iconColors.secondary} />}
               modeLabelFormatter={(mode) => t(`agentMode.${mode.value}`, { defaultValue: mode.label })}
               compactLabelPrefix={t('agentMode.permission')}

@@ -619,6 +619,7 @@ describe('platform send box queue integration', () => {
       expect(mockTeamSendInvoke).toHaveBeenCalledWith({
         teamId: 'team-1',
         content: 'queued command',
+        files: [],
       });
     });
 

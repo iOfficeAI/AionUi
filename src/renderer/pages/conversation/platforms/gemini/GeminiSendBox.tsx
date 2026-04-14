@@ -266,13 +266,14 @@ const GeminiSendBox: React.FC<{
               teamId,
               slotId: agentSlotId,
               content: displayMessage,
+              files,
             });
             const maybeError = result as unknown as { __bridgeError?: boolean; message?: string };
             if (maybeError.__bridgeError) {
               throw new Error(maybeError.message || 'Failed to send message to agent');
             }
           } else {
-            const result = await ipcBridge.team.sendMessage.invoke({ teamId, content: displayMessage });
+            const result = await ipcBridge.team.sendMessage.invoke({ teamId, content: displayMessage, files });
             const maybeError = result as unknown as { __bridgeError?: boolean; message?: string };
             if (maybeError.__bridgeError) {
               throw new Error(maybeError.message || 'Failed to send message to team');

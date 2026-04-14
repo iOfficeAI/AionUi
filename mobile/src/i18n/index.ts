@@ -5,17 +5,20 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 
 import enUS from './locales/en-US.json';
 import zhCN from './locales/zh-CN.json';
+import ruRU from './locales/ru-RU.json';
 
 const LANGUAGE_KEY = 'aionui_language';
 
 const resources = {
   'en-US': { translation: enUS },
   'zh-CN': { translation: zhCN },
+  'ru-RU': { translation: ruRU },
 };
 
 const detectDeviceLanguage = (): string => {
   const deviceLocale = Localization.getLocales()[0]?.languageTag || 'en';
   if (deviceLocale.startsWith('zh')) return 'zh-CN';
+  if (deviceLocale.startsWith('ru')) return 'ru-RU';
   return 'en-US';
 };
 

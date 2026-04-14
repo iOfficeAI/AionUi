@@ -1,0 +1,64 @@
+{
+  "sider": {
+    "title": "Команди",
+    "createTeam": "Нова команда",
+    "pin": "Закріпити",
+    "unpin": "Відкріпити",
+    "rename": "Перейменувати",
+    "delete": "Видалити",
+    "renameTitle": "Перейменувати команду",
+    "renamePlaceholder": "Назва команди",
+    "deleteConfirm": "Видалити цю команду?",
+    "deleteConfirmContent": "Цю дію неможливо скасувати.",
+    "deleteOk": "Видалити",
+    "deleteCancel": "Скасувати",
+    "renameOk": "Зберегти",
+    "renameCancel": "Скасувати",
+    "renameSuccess": "Команду перейменовано",
+    "deleteSuccess": "Команду видалено"
+  },
+  "addAgent": {
+    "title": "Додати агента",
+    "name": "Ім'я агента",
+    "namePlaceholder": "Введіть ім'я агента",
+    "type": "Тип агента",
+    "typePlaceholder": "Виберіть тип агента",
+    "confirm": "Додати"
+  },
+  "newAgent": "Новий агент",
+  "noMessages": "Повідомлень ще немає.",
+  "agentNotConfigured": "Агента ще не налаштовано.",
+  "sendBox": {
+    "placeholder": "Повідомлення для диспетчера..."
+  },
+  "create": {
+    "title": "Створити команду",
+    "namePlaceholder": "Назва команди",
+    "dispatchAgentPlaceholder": "Виберіть лідера команди",
+    "subAgentsPlaceholder": "Виберіть субагентів",
+    "workspacePlaceholder": "Шлях до робочої області (опціонально)",
+    "confirm": "Створити команду",
+    "noSupportedAgents": "Не встановлено жодного підтримуваного агента",
+    "supportedAgentsHint": "Наразі підтримуються Claude та Codex. Інші агенти з'являться незабаром.",
+    "leaderDesc": "Розуміє ваші цілі та координує агентів для виконання завдань",
+    "step": {
+      "dispatch": "Лідер команди",
+      "subAgents": "Субагенти",
+      "workspace": "Робоча область"
+    },
+    "nameRequired": "Будь ласка, введіть назву команди",
+    "leaderRequired": "Будь ласка, виберіть лідера команди",
+    "selectFolder": "Вибрати папку",
+    "recentLabel": "Недавні",
+    "chooseDifferentFolder": "Виберіть іншу папку",
+    "error": "Не вдалося створити команду"
+  },
+  "emptyState": {
+    "subtitle": "Опишіть вашу ціль, і я залучу команду до її виконання",
+    "suggestions": {
+      "debate": "Організувати дебати між агентами з різними точками зору",
+      "interview": "Спланувати глибоке інтерв'ю між агентами",
+      "expert_review": "Залучити кількох експертів до аналізу однієї проблеми"
+    }
+  }
+}

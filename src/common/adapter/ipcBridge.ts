@@ -73,6 +73,13 @@ export const conversation = {
     'conversation.response.search.workspace'
   ),
   reloadContext: bridge.buildProvider<IBridgeResponse, { conversation_id: string }>('conversation.reload-context'),
+  setConfig: bridge.buildProvider<
+    IBridgeResponse,
+    {
+      conversation_id: string;
+      config: { model?: string; thinking?: string; thinking_budget?: number; effort?: string };
+    }
+  >('conversation.set-config'),
   confirmation: {
     add: bridge.buildEmitter<IConfirmation<any> & { conversation_id: string }>('confirmation.add'),
     update: bridge.buildEmitter<IConfirmation<any> & { conversation_id: string }>('confirmation.update'),
@@ -1286,8 +1293,8 @@ export const team = {
   remove: bridge.buildProvider<void, { id: string }>('team.remove'),
   addAgent: bridge.buildProvider<import('@process/team/types').TeamAgent, IAddTeamAgentParams>('team.add-agent'),
   removeAgent: bridge.buildProvider<void, { teamId: string; slotId: string }>('team.remove-agent'),
-  sendMessage: bridge.buildProvider<void, { teamId: string; content: string }>('team.send-message'),
-  sendMessageToAgent: bridge.buildProvider<void, { teamId: string; slotId: string; content: string }>(
+  sendMessage: bridge.buildProvider<void, { teamId: string; content: string; files?: string[] }>('team.send-message'),
+  sendMessageToAgent: bridge.buildProvider<void, { teamId: string; slotId: string; content: string; files?: string[] }>(
     'team.send-message-to-agent'
   ),
   stop: bridge.buildProvider<void, { teamId: string }>('team.stop'),

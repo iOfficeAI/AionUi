@@ -232,7 +232,7 @@ function parseDiffStats(unifiedDiff: string): { fileName: string; insertions: nu
     fileName = parts[parts.length - 1];
   }
 
-  return { fileName: fileName || 'file', insertions, deletions };
+  return { fileName: fileName || t('files.defaultFile'), insertions, deletions };
 }
 
 export function DiffBlock({ content }: { content: any }) {
@@ -315,7 +315,7 @@ export function ToolItem({
       >
         <Ionicons name={info.icon} size={18} color={info.color} />
         <ThemedText style={styles.toolName} numberOfLines={1}>
-          {tool.description || tool.name || 'Tool'}
+          {tool.description || tool.name || t('chat.toolCall')}
         </ThemedText>
         <Ionicons name={expanded ? 'chevron-up' : 'chevron-down'} size={16} color={iconColor} />
       </TouchableOpacity>

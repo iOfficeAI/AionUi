@@ -58,9 +58,7 @@ interface WecomConfigFormProps {
   webuiStatus: IWebUIStatus | null;
 }
 
-const WECOM_CALLBACK_PATH = '/channels/wecom/webhook';
-
-const WECOM_DEV_DOCS_URL = 'https://developer.work.weixin.qq.com/document/path/97712';
+const WECOM_DEV_DOCS_URL = 'https://developer.work.weixin.qq.com/document/path/101463';
 
 const WecomConfigForm: React.FC<WecomConfigFormProps> = ({
   pluginStatus,
@@ -70,11 +68,11 @@ const WecomConfigForm: React.FC<WecomConfigFormProps> = ({
 }) => {
   const { t } = useTranslation();
 
-  const [token, setToken] = useState('');
-  const [encodingAesKey, setEncodingAesKey] = useState('');
+  const [botId, setBotId] = useState('');
+  const [secret, setSecret] = useState('');
 
   const [saveLoading, setSaveLoading] = useState(false);
-  const [touched, setTouched] = useState({ token: false, encodingAesKey: false });
+  const [touched, setTouched] = useState({ botId: false, secret: false });
   const [pairingLoading, setPairingLoading] = useState(false);
   const [usersLoading, setUsersLoading] = useState(false);
   const [pendingPairings, setPendingPairings] = useState<IChannelPairingRequest[]>([]);
@@ -204,15 +202,11 @@ const WecomConfigForm: React.FC<WecomConfigFormProps> = ({
   }, []);
 
   const handleSaveAndEnable = async () => {
-    setTouched({ token: true, encodingAesKey: true });
-    const tkn = token.trim();
-    const aes = encodingAesKey.trim();
-    if (!tkn || !aes) {
-      Message.warning(t('settings.wecom.credentialsRequired', 'Please enter Token and EncodingAESKey'));
-      return;
-    }
-    if (aes.length !== 43) {
-      Message.warning(t('settings.wecom.encodingAesKeyLength', 'EncodingAESKey must be exactly 43 characters'));
+    setTouched({ botId: true, secret: true });
+    const id = botId.trim();
+    const sec = secret.trim();
+    if (!id || !sec) {
+      Message.warning(t('settings.wecom.credentialsRequired', 'Please enter Bot ID and Secret'));
       return;
     }
 
@@ -221,8 +215,8 @@ const WecomConfigForm: React.FC<WecomConfigFormProps> = ({
       const result = await channel.enablePlugin.invoke({
         pluginId: 'wecom_default',
         config: {
-          token: tkn,
-          encodingAesKey: aes,
+          botId: id,
+          secret: sec,
         },
       });
 
@@ -318,27 +312,16 @@ const WecomConfigForm: React.FC<WecomConfigFormProps> = ({
   const agentOptions: Array<{ backend: AcpBackendAll; name: string; customAgentId?: string; isExtension?: boolean }> =
     availableAgents.length > 0 ? availableAgents : [{ backend: 'gemini', name: 'Gemini CLI' }];
 
-  const localCallbackUrl = webuiStatus?.localUrl
-    ? `${webuiStatus.localUrl}${WECOM_CALLBACK_PATH}`
-    : `http://localhost:25808${WECOM_CALLBACK_PATH}`;
-  const lanCallbackUrl = webuiStatus?.networkUrl ? `${webuiStatus.networkUrl}${WECOM_CALLBACK_PATH}` : null;
-
   return (
     <div className='flex flex-col gap-24px'>
       <div className='text-12px leading-relaxed p-10px rd-8px bg-[rgba(var(--orange-6),0.08)] border border-[rgba(var(--orange-6),0.3)] text-t-secondary'>
-        <div className='font-500 text-t-primary mb-6px'>{t('settings.wecom.callbackTitle', 'WeCom callback URL')}</div>
-        <div>
-          {t('settings.wecom.callbackLocal', 'Local')}: {localCallbackUrl}
+        <div className='font-500 text-t-primary mb-6px'>
+          {t('settings.wecom.wsTitle', 'WeCom WebSocket connection')}
         </div>
-        {lanCallbackUrl ? (
-          <div>
-            {t('settings.wecom.callbackLan', 'LAN')}: {lanCallbackUrl}
-          </div>
-        ) : null}
         <div className='mt-6px'>
           {t(
-            'settings.wecom.callbackHint',
-            'Production requires a public HTTPS URL reachable by WeCom. Start WebUI first.'
+            'settings.wecom.wsHint',
+            'Use the WeCom Intelligent Bot “Long Connection (WebSocket)” mode. No callback URL / domain / public IP required.'
           )}
         </div>
         <div className='mt-4px'>
@@ -356,8 +339,8 @@ const WecomConfigForm: React.FC<WecomConfigFormProps> = ({
       </div>
 
       <PreferenceRow
-        label={t('settings.wecom.token', 'Callback Token')}
-        description={t('settings.wecom.tokenDesc', 'Must match the Token in the WeCom bot callback configuration')}
+        label={t('settings.wecom.botId', 'Bot ID')}
+        description={t('settings.wecom.botIdDesc', 'Bot ID from WeCom Intelligent Bot (Long Connection mode)')}
         required
       >
         {hasExistingUsers ? (
@@ -369,41 +352,38 @@ const WecomConfigForm: React.FC<WecomConfigFormProps> = ({
           >
             <span>
               <Input
-                value={token}
+                value={botId}
                 onChange={(value) => {
-                  setToken(value);
+                  setBotId(value);
                   handleCredentialsChange();
                 }}
-                onBlur={() => setTouched((prev) => ({ ...prev, token: true }))}
+                onBlur={() => setTouched((prev) => ({ ...prev, botId: true }))}
                 placeholder={hasExistingUsers || pluginStatus?.hasToken ? '••••••••••••••••' : ''}
                 style={{ width: 260 }}
-                status={touched.token && !token.trim() && !pluginStatus?.hasToken ? 'error' : undefined}
+                status={touched.botId && !botId.trim() && !pluginStatus?.hasToken ? 'error' : undefined}
                 disabled={hasExistingUsers}
               />
             </span>
           </Tooltip>
         ) : (
           <Input
-            value={token}
+            value={botId}
             onChange={(value) => {
-              setToken(value);
+              setBotId(value);
               handleCredentialsChange();
             }}
-            onBlur={() => setTouched((prev) => ({ ...prev, token: true }))}
+            onBlur={() => setTouched((prev) => ({ ...prev, botId: true }))}
             placeholder={hasExistingUsers || pluginStatus?.hasToken ? '••••••••••••••••' : ''}
             style={{ width: 260 }}
-            status={touched.token && !token.trim() && !pluginStatus?.hasToken ? 'error' : undefined}
+            status={touched.botId && !botId.trim() && !pluginStatus?.hasToken ? 'error' : undefined}
             disabled={hasExistingUsers}
           />
         )}
       </PreferenceRow>
 
       <PreferenceRow
-        label={t('settings.wecom.encodingAesKey', 'EncodingAESKey')}
-        description={t(
-          'settings.wecom.encodingAesKeyDesc',
-          '43-character key from WeCom (AES encryption for callbacks)'
-        )}
+        label={t('settings.wecom.secret', 'Secret')}
+        description={t('settings.wecom.secretDesc', 'Secret from WeCom Intelligent Bot (Long Connection mode)')}
         required
       >
         {hasExistingUsers ? (
@@ -415,19 +395,15 @@ const WecomConfigForm: React.FC<WecomConfigFormProps> = ({
           >
             <span>
               <Input.Password
-                value={encodingAesKey}
+                value={secret}
                 onChange={(value) => {
-                  setEncodingAesKey(value);
+                  setSecret(value);
                   handleCredentialsChange();
                 }}
-                onBlur={() => setTouched((prev) => ({ ...prev, encodingAesKey: true }))}
+                onBlur={() => setTouched((prev) => ({ ...prev, secret: true }))}
                 placeholder={hasExistingUsers || pluginStatus?.hasToken ? '••••••••••••••••' : ''}
                 style={{ width: 260 }}
-                status={
-                  touched.encodingAesKey && encodingAesKey.trim().length !== 43 && !pluginStatus?.hasToken
-                    ? 'error'
-                    : undefined
-                }
+                status={touched.secret && !secret.trim() && !pluginStatus?.hasToken ? 'error' : undefined}
                 visibilityToggle
                 disabled={hasExistingUsers}
               />
@@ -435,19 +411,15 @@ const WecomConfigForm: React.FC<WecomConfigFormProps> = ({
           </Tooltip>
         ) : (
           <Input.Password
-            value={encodingAesKey}
+            value={secret}
             onChange={(value) => {
-              setEncodingAesKey(value);
+              setSecret(value);
               handleCredentialsChange();
             }}
-            onBlur={() => setTouched((prev) => ({ ...prev, encodingAesKey: true }))}
+            onBlur={() => setTouched((prev) => ({ ...prev, secret: true }))}
             placeholder={hasExistingUsers || pluginStatus?.hasToken ? '••••••••••••••••' : ''}
             style={{ width: 260 }}
-            status={
-              touched.encodingAesKey && encodingAesKey.trim().length !== 43 && !pluginStatus?.hasToken
-                ? 'error'
-                : undefined
-            }
+            status={touched.secret && !secret.trim() && !pluginStatus?.hasToken ? 'error' : undefined}
             visibilityToggle
             disabled={hasExistingUsers}
           />
@@ -456,7 +428,7 @@ const WecomConfigForm: React.FC<WecomConfigFormProps> = ({
 
       {!hasExistingUsers && (
         <div className='flex justify-end'>
-          {pluginStatus?.hasToken && !token.trim() && !encodingAesKey.trim() ? (
+          {pluginStatus?.hasToken && !botId.trim() && !secret.trim() ? (
             <span className='text-12px text-t-tertiary mr-12px self-center'>
               {t('settings.wecom.credentialsSaved', 'Credentials already configured. Enter new values to update.')}
             </span>
@@ -465,7 +437,7 @@ const WecomConfigForm: React.FC<WecomConfigFormProps> = ({
             type='primary'
             loading={saveLoading}
             onClick={() => void handleSaveAndEnable()}
-            disabled={pluginStatus?.hasToken && !token.trim() && !encodingAesKey.trim()}
+            disabled={pluginStatus?.hasToken && !botId.trim() && !secret.trim()}
           >
             {t('settings.wecom.saveAndEnable', 'Save & Enable')}
           </Button>

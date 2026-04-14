@@ -190,11 +190,12 @@ const AcpSendBox: React.FC<{
             const result = await ipcBridge.team.sendMessageToAgent.invoke({
               teamId,
               slotId: agentSlotId,
-              content: input,
+              content: displayMessage,
+              files,
             });
             assertTeamBridgeSuccess(result, 'Failed to send message to agent');
           } else {
-            const result = await ipcBridge.team.sendMessage.invoke({ teamId, content: input });
+            const result = await ipcBridge.team.sendMessage.invoke({ teamId, content: displayMessage, files });
             assertTeamBridgeSuccess(result, 'Failed to send message to team');
           }
         } else {

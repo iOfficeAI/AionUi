@@ -48,6 +48,8 @@ export interface AgentModeSelectorProps {
   hideCompactLabelPrefixOnMobile?: boolean;
   /** Callback fired after a successful mode change (for team-mode propagation) */
   onModeChanged?: (mode: string) => void;
+  /** Dynamic modes from capabilities (overrides static list when non-empty) */
+  dynamicModes?: AgentModeOption[];
 }
 
 /**
@@ -74,11 +76,12 @@ const AgentModeSelector: React.FC<AgentModeSelectorProps> = ({
   compactLabelPrefix,
   hideCompactLabelPrefixOnMobile = false,
   onModeChanged,
+  dynamicModes,
 }) => {
   const { t } = useTranslation();
   const layout = useLayoutContext();
   const isMobile = Boolean(layout?.isMobile);
-  const modes = getAgentModes(backend);
+  const modes = dynamicModes && dynamicModes.length > 0 ? dynamicModes : getAgentModes(backend);
   const defaultMode = modes[0]?.value ?? 'default';
   // Validate initialMode against available modes; fall back to backend's default
   // when the provided value doesn't match (e.g. opencode has 'build'/'plan', not 'default')

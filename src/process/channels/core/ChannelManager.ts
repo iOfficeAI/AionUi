@@ -278,10 +278,17 @@ export class ChannelManager {
         credentials = { accountId, botToken };
       }
     } else if (pluginType === 'wecom') {
+      const botId = config.botId as string | undefined;
+      const secret = config.secret as string | undefined;
       const token = config.token as string | undefined;
       const encodingAesKey = config.encodingAesKey as string | undefined;
-      if (token && encodingAesKey) {
+
+      if (botId && secret) {
+        credentials = { botId: botId.trim(), secret: secret.trim() };
+        pluginRuntimeConfig = { ...pluginRuntimeConfig, mode: 'websocket' };
+      } else if (token && encodingAesKey) {
         credentials = { token: token.trim(), encodingAesKey: encodingAesKey.trim() };
+        pluginRuntimeConfig = { ...pluginRuntimeConfig, mode: 'webhook' };
       }
     } else {
       // Extension or unknown plugin type:

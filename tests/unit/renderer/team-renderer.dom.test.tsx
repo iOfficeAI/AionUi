@@ -6,7 +6,7 @@
 //   - TeamPage.tsx         (doRemoveAgent / handleRemoveAgent)
 
 import React from 'react';
-import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { act, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 // ---------------------------------------------------------------------------
@@ -300,6 +300,86 @@ describe('TeamTabsContext', () => {
 
     expect(contextValue).not.toBeNull();
     expect(contextValue!.removeAgent).toBeUndefined();
+  });
+
+  it('restores teammate tab order from localStorage while keeping the leader first', async () => {
+    localStorage.setItem('team-agent-order-team-1', JSON.stringify(['slot-member-2', 'slot-member']));
+
+    const agents: TeamAgent[] = [
+      ...makeAgents(),
+      {
+        slotId: 'slot-member-2',
+        conversationId: 'conv-member-2',
+        role: 'teammate',
+        agentType: 'acp',
+        agentName: 'Worker 2',
+        conversationType: 'acp',
+        status: 'idle',
+      },
+    ];
+
+    const TeamTabs = (await import('@renderer/pages/team/components/TeamTabs')).default;
+
+    render(
+      React.createElement(
+        TeamTabsProvider,
+        {
+          agents,
+          statusMap: new Map(),
+          defaultActiveSlotId: 'slot-lead',
+          teamId: 'team-1',
+        },
+        React.createElement(TeamTabs, { onAddAgent: vi.fn() })
+      )
+    );
+
+    expect(screen.getAllByTestId('agent-identity').map((element) => element.textContent)).toEqual([
+      'Leader',
+      'Worker 2',
+      'Worker',
+    ]);
+  });
+
+  it('persists reordered teammate tabs to localStorage', () => {
+    let contextValue: ReturnType<typeof useTeamTabs> | null = null;
+
+    const Consumer = () => {
+      contextValue = useTeamTabs();
+      return null;
+    };
+
+    render(
+      React.createElement(
+        TeamTabsProvider,
+        {
+          agents: [
+            ...makeAgents(),
+            {
+              slotId: 'slot-member-2',
+              conversationId: 'conv-member-2',
+              role: 'teammate',
+              agentType: 'acp',
+              agentName: 'Worker 2',
+              conversationType: 'acp',
+              status: 'idle',
+            },
+          ],
+          statusMap: new Map(),
+          defaultActiveSlotId: 'slot-lead',
+          teamId: 'team-1',
+        },
+        React.createElement(Consumer)
+      )
+    );
+
+    act(() => {
+      contextValue!.reorderAgents('slot-member-2', 'slot-member');
+    });
+
+    expect(JSON.parse(localStorage.getItem('team-agent-order-team-1') ?? '[]')).toEqual([
+      'slot-member-2',
+      'slot-member',
+    ]);
   });
 });
 

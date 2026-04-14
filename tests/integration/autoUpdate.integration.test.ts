@@ -25,6 +25,14 @@ vi.mock('@office-ai/platform', () => ({
       on: vi.fn(),
     })),
   },
+  storage: {
+    buildStorage: () => ({
+      getSync: () => undefined,
+      setSync: () => {},
+      get: () => Promise.resolve(undefined),
+      set: () => Promise.resolve(),
+    }),
+  },
 }));
 
 // Mock electron modules

@@ -130,7 +130,7 @@ export function initSystemSettingsBridge(): void {
   // 获取"上传文件保存到工作区"设置 / Get "save uploads to workspace" setting
   ipcBridge.systemSettings.getSaveUploadToWorkspace.provider(async () => {
     const value = await ProcessConfig.get('upload.saveToWorkspace');
-    return value ?? false; // 默认关闭 / Default disabled
+    return value ?? true; // 默认开启 / Default enabled
   });
 
   // 设置"上传文件保存到工作区" / Set "save uploads to workspace"
