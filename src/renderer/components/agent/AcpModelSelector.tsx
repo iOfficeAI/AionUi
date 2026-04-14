@@ -10,6 +10,7 @@ import { ConfigStorage } from '@/common/config/storage';
 import type { IProvider } from '@/common/config/storage';
 import type { AcpModelInfo } from '@/common/types/acpTypes';
 import { getModelDisplayLabel } from '@/renderer/utils/model/agentLogo';
+import { formatAcpModelDisplayLabel, getAcpModelSourceLabel } from '@/renderer/utils/model/modelSource';
 import { Button, Dropdown, Menu, Tooltip } from '@arco-design/web-react';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -159,6 +160,7 @@ const AcpModelSelector: React.FC<{
         if (data.model) {
           setModelInfo({
             source: 'models',
+            sourceDetail: 'codex-stream',
             currentModelId: data.model,
             currentModelLabel: data.model,
             canSwitch: false,
@@ -196,6 +198,10 @@ const AcpModelSelector: React.FC<{
     defaultModelLabel,
     fallbackLabel: t('conversation.welcome.useCliModel'),
   });
+  const modelSourceLabel = getAcpModelSourceLabel(modelInfo);
+  const buttonLabel = formatAcpModelDisplayLabel(displayLabel, modelSourceLabel);
+  const tooltipContent =
+    modelSourceLabel && displayLabel ? `${displayLabel}\nSource: ${modelSourceLabel}` : displayLabel || modelSourceLabel;
   // 获取模型配置数据（包含健康状态）
   const { data: modelConfig } = useSWR<IProvider[]>('model.config', () => ipcBridge.mode.getModelConfig.invoke());
 
@@ -230,7 +236,7 @@ const AcpModelSelector: React.FC<{
   // State 2: Has model info but cannot switch — read-only display
   if (!modelInfo.canSwitch) {
     return (
-      <Tooltip content={displayLabel} position='top'>
+      <Tooltip content={tooltipContent} position='top'>
         <Button
           className='sendbox-model-btn header-model-btn agent-mode-compact-pill'
           shape='round'
@@ -241,7 +247,7 @@ const AcpModelSelector: React.FC<{
             {currentModelHealth.status !== 'unknown' && (
               <div className={`w-6px h-6px rounded-full shrink-0 ${currentModelHealth.color}`} />
             )}
-            <MarqueePillLabel>{displayLabel}</MarqueePillLabel>
+            <MarqueePillLabel>{buttonLabel}</MarqueePillLabel>
           </span>
         </Button>
       </Tooltip>
@@ -282,7 +288,7 @@ const AcpModelSelector: React.FC<{
           {currentModelHealth.status !== 'unknown' && (
             <div className={`w-6px h-6px rounded-full shrink-0 ${currentModelHealth.color}`} />
           )}
-          <MarqueePillLabel>{displayLabel}</MarqueePillLabel>
+          <MarqueePillLabel>{buttonLabel}</MarqueePillLabel>
         </span>
       </Button>
     </Dropdown>

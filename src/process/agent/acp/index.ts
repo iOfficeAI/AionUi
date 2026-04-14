@@ -31,6 +31,7 @@ import { promises as fs } from 'fs';
 import * as path from 'path';
 import { ProcessConfig } from '@process/utils/initStorage';
 import { getEnhancedEnv, resolveNpxPath } from '@process/utils/shellEnv';
+import { readClaudeModelInfoFromCcSwitch } from '@process/services/ccSwitchModelSource';
 import { AcpConnection } from './AcpConnection';
 import { AcpApprovalStore, createAcpApprovalKey } from './ApprovalStore';
 import {
@@ -489,7 +490,8 @@ export class AcpAgent {
    * Prefers stable configOptions API, falls back to unstable models API.
    */
   getModelInfo(): AcpModelInfo | null {
-    return buildAcpModelInfo(this.connection.getConfigOptions(), this.connection.getModels());
+    const preferredModelInfo = this.extra.backend === 'claude' ? readClaudeModelInfoFromCcSwitch() : null;
+    return buildAcpModelInfo(this.connection.getConfigOptions(), this.connection.getModels(), preferredModelInfo);
   }
 
   /**

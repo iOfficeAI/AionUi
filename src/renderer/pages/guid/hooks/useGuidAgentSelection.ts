@@ -75,6 +75,7 @@ export const useGuidAgentSelection = ({
   const [selectedMode, _setSelectedMode] = useState<string>('default');
   // Track whether mode was loaded from preferences to avoid overwriting during initial load
   const selectedAgentRef = useRef<string | null>(null);
+  const probedModelBackendsRef = useRef(new Set<string>());
   const [acpCachedModels, setAcpCachedModels] = useState<Record<string, AcpModelInfo>>({});
   const [selectedAcpModel, _setSelectedAcpModel] = useState<string | null>(null);
   const [cachedConfigOptions, setCachedConfigOptions] = useState<AcpSessionConfigOption[]>([]);
@@ -275,6 +276,64 @@ export const useGuidAgentSelection = ({
     }
     return getEffectiveAgentType(selectedAgentInfo);
   }, [isPresetAgent, selectedAgent, selectedAgentInfo, getEffectiveAgentType, isMainAgentAvailable]);
+
+  const probeBackend = useMemo(() => {
+    const effectiveBackend = isPresetAgent
+      ? currentEffectiveAgentInfo.agentType
+      : selectedAgentKey.startsWith('custom:') || selectedAgentKey.startsWith('remote:')
+        ? null
+        : selectedAgentKey;
+
+    return effectiveBackend === 'codex' || effectiveBackend === 'claude' ? effectiveBackend : null;
+  }, [currentEffectiveAgentInfo.agentType, isPresetAgent, selectedAgentKey]);
+
+  // Probe account-scoped model info on first selection so the Guid page can
+  // show the local default before the first conversation starts.
+  useEffect(() => {
+    if (!probeBackend) return;
+    if (probedModelBackendsRef.current.has(probeBackend)) return;
+
+    let cancelled = false;
+    probedModelBackendsRef.current.add(probeBackend);
+
+    ipcBridge.acpConversation.probeModelInfo
+      .invoke({ backend: probeBackend })
+      .then(async (result) => {
+        if (cancelled) return;
+        const modelInfo = result.success ? result.data?.modelInfo : null;
+        if (!modelInfo?.availableModels?.length) {
+          probedModelBackendsRef.current.delete(probeBackend);
+          return;
+        }
+
+        console.log(`[Guid][${probeBackend}] Probed model info:`, modelInfo);
+
+        const cached = (await ConfigStorage.get('acp.cachedModels').catch(() => ({}))) || {};
+        if (cancelled) return;
+
+        const nextCachedModels = {
+          ...cached,
+          [probeBackend]: modelInfo,
+        };
+
+        setAcpCachedModels((prev) => ({
+          ...prev,
+          [probeBackend]: modelInfo,
+        }));
+
+        await ConfigStorage.set('acp.cachedModels', nextCachedModels).catch((error) => {
+          console.error('Failed to save probed ACP model info:', error);
+        });
+      })
+      .catch((error) => {
+        probedModelBackendsRef.current.delete(probeBackend);
+        console.warn(`[Guid][${probeBackend}] Failed to probe model info:`, error);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [probeBackend]);
 
   // Load cached ACP config options per backend
   useEffect(() => {

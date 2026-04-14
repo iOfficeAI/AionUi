@@ -1046,6 +1046,13 @@ export interface AcpSessionModels {
 // ===== Unified model info for UI =====
 
 /** Unified model info that abstracts over both stable and unstable APIs */
+export type AcpModelInfoSourceDetail =
+  | 'cc-switch'
+  | 'acp-config-option'
+  | 'acp-models'
+  | 'persisted-model'
+  | 'codex-stream';
+
 export interface AcpModelInfo {
   /** Currently active model ID */
   currentModelId: string | null;
@@ -1057,6 +1064,8 @@ export interface AcpModelInfo {
   canSwitch: boolean;
   /** Source of the model info: 'configOption' (stable) or 'models' (unstable) */
   source: 'configOption' | 'models';
+  /** More specific source detail for UI diagnostics */
+  sourceDetail?: AcpModelInfoSourceDetail;
   /** Config option ID (only when source is 'configOption') */
   configOptionId?: string;
 }

@@ -20,6 +20,7 @@ const configStorageMock = vi.hoisted(() => ({
 
 const ipcMock = vi.hoisted(() => ({
   getAvailableAgents: vi.fn(),
+  probeModelInfo: vi.fn(),
   refreshCustomAgents: vi.fn().mockResolvedValue(undefined),
   getCustomAgents: vi.fn(),
   getAssistants: vi.fn(),
@@ -34,6 +35,7 @@ vi.mock('../../src/common', () => ({
   ipcBridge: {
     acpConversation: {
       getAvailableAgents: { invoke: ipcMock.getAvailableAgents },
+      probeModelInfo: { invoke: ipcMock.probeModelInfo },
       refreshCustomAgents: { invoke: ipcMock.refreshCustomAgents },
     },
     extensions: {
@@ -154,6 +156,7 @@ function setupMocks(overrides?: {
   const geminiConfig = overrides?.geminiConfig ?? {};
 
   ipcMock.getAvailableAgents.mockResolvedValue({ success: true, data: AVAILABLE_AGENTS });
+  ipcMock.probeModelInfo.mockResolvedValue({ success: false });
   ipcMock.getAssistants.mockResolvedValue([]);
 
   configStorageMock.get.mockImplementation(async (key: string) => {
@@ -303,6 +306,43 @@ describe('useGuidAgentSelection – preset agent config resolution', () => {
     // Should look up acpCachedModels['claude']
     expect(result.current.currentAcpCachedModelInfo).not.toBeNull();
     expect(result.current.currentAcpCachedModelInfo?.currentModelId).toBe('claude-sonnet-4-5-20250514');
+  });
+
+  it('probes Claude model info for preset Claude agents when cache is empty', async () => {
+    setupMocks({ cachedModels: {}, acpConfig: {} });
+    const probedClaudeModel: AcpModelInfo = {
+      source: 'models',
+      currentModelId: 'claude-opus-4-6-20260301',
+      currentModelLabel: 'Claude Opus 4.6',
+      availableModels: [
+        { id: 'claude-opus-4-6-20260301', label: 'Claude Opus 4.6' },
+        { id: 'claude-sonnet-4-5-20250514', label: 'Claude Sonnet 4.5' },
+      ],
+      canSwitch: false,
+    };
+    ipcMock.probeModelInfo.mockResolvedValue({
+      success: true,
+      data: { modelInfo: probedClaudeModel },
+    });
+
+    const { result } = renderHook(() => useGuidAgentSelection(hookOptions));
+
+    await waitFor(() => {
+      expect(result.current.availableAgents).toBeDefined();
+    });
+
+    act(() => {
+      result.current.setSelectedAgentKey(`custom:${PRESET_AGENT_ID}`);
+    });
+
+    await waitFor(() => {
+      expect(ipcMock.probeModelInfo).toHaveBeenCalledWith({ backend: 'claude' });
+      expect(result.current.currentAcpCachedModelInfo?.currentModelId).toBe('claude-opus-4-6-20260301');
+    });
+
+    const cachedModelsCall = configStorageMock.set.mock.calls.find(([key]) => key === 'acp.cachedModels');
+    expect(cachedModelsCall).toBeDefined();
+    expect(cachedModelsCall?.[1]).toEqual({ claude: probedClaudeModel });
   });
 
   it('setSelectedMode saves mode under effective backend for preset agent', async () => {

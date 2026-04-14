@@ -24,6 +24,7 @@ vi.mock('../../src/common', () => ({
       checkAgentHealth: makeChannel('checkAgentHealth'),
       getMode: makeChannel('getMode'),
       getModelInfo: makeChannel('getModelInfo'),
+      probeModelInfo: makeChannel('probeModelInfo'),
       setModel: makeChannel('setModel'),
       setMode: makeChannel('setMode'),
       getConfigOptions: makeChannel('getConfigOptions'),
@@ -48,6 +49,14 @@ vi.mock('../../src/process/agent/acp/AcpConnection', () => ({
   })),
 }));
 
+vi.mock('../../src/process/agent/acp/modelInfo', () => ({
+  buildAcpModelInfo: vi.fn(() => ({})),
+  summarizeAcpModelInfo: vi.fn(() => ({})),
+}));
+
+vi.mock('../../src/process/services/ccSwitchModelSource', () => ({
+  readClaudeModelInfoFromCcSwitch: vi.fn(() => null),
+}));
 vi.mock('../../src/process/task/AcpAgentManager', () => ({ default: class AcpAgentManager {} }));
 vi.mock('../../src/process/task/GeminiAgentManager', () => ({ GeminiAgentManager: class GeminiAgentManager {} }));
 
@@ -151,5 +160,23 @@ describe('acpConversationBridge', () => {
 
     const result = await handlers['getAvailableAgents']();
     expect(result).toEqual({ success: false, msg: 'detection failed' });
+  });
+
+  it('probeModelInfo returns cc-switch Claude models before ACP probing', async () => {
+    const modelInfo = {
+      currentModelId: 'claude-opus-4-6',
+      currentModelLabel: 'Claude Opus 4.6',
+      availableModels: [{ id: 'claude-opus-4-6', label: 'Claude Opus 4.6' }],
+      canSwitch: false,
+      source: 'models' as const,
+    };
+    const { readClaudeModelInfoFromCcSwitch } = await import('../../src/process/services/ccSwitchModelSource');
+    vi.mocked(readClaudeModelInfoFromCcSwitch).mockReturnValue(modelInfo);
+    const { AcpConnection } = await import('../../src/process/agent/acp/AcpConnection');
+
+    const result = await handlers['probeModelInfo']({ backend: 'claude' });
+
+    expect(result).toEqual({ success: true, data: { modelInfo } });
+    expect(AcpConnection).not.toHaveBeenCalled();
   });
 });
