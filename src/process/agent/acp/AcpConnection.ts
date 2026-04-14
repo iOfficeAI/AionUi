@@ -302,6 +302,7 @@ export class AcpConnection {
       case 'cursor':
       case 'kiro':
       case 'hermes':
+      case 'snow':
         if (!cliPath) {
           throw new Error(`CLI path is required for ${backend} backend`);
         }
@@ -434,7 +435,9 @@ export class AcpConnection {
             const handleDuration = Date.now() - handleStart;
             if (handleDuration > 5) {
               console.log(
-                `[ACP-PERF] stream: handleMessage ${handleDuration}ms method=${'method' in message ? (message as AcpIncomingMessage).method : 'response'}`
+                `[ACP-PERF] stream: handleMessage ${handleDuration}ms method=${
+                  'method' in message ? (message as AcpIncomingMessage).method : 'response'
+                }`
               );
             }
           } catch (error) {
