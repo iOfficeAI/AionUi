@@ -105,7 +105,7 @@ Two MCP handlers need notification fixes:
 **Fix:** After rename, write a mailbox message to the renamed agent and wake them.
 
 ```
-Mailbox message: "You have been renamed from "{oldName}" to "{newName}". 
+Mailbox message: "You have been renamed from "{oldName}" to "{newName}".
 Use your new name when identifying yourself."
 ```
 
@@ -118,7 +118,7 @@ Use your new name when identifying yourself."
 **Fix:** When the `owner` field is set and differs from the previous owner, write a mailbox message to the new owner and wake them.
 
 ```
-Mailbox message: "Task [{taskId}] "{subject}" has been reassigned to you. 
+Mailbox message: "Task [{taskId}] "{subject}" has been reassigned to you.
 Status: {status}."
 ```
 
