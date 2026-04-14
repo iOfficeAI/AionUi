@@ -179,14 +179,14 @@ type StepItem = { name: string; status: 'executing' | 'success' | 'error' | 'pen
 function getStepItems(msg: TMessage): StepItem[] {
   if (msg.type === 'tool_group' && Array.isArray(msg.content)) {
     return msg.content.map((t: any) => ({
-      name: t.description || t.name || 'Tool',
+      name: t.description || t.name || t('chat.toolCall'),
       status: normalizeStatus(t.status),
     }));
   }
   if (msg.type === 'tool_call') {
     return [
       {
-        name: msg.content?.name || 'Tool',
+        name: msg.content?.name || t('chat.toolCall'),
         status: normalizeStatus(msg.content?.status),
       },
     ];
@@ -195,7 +195,7 @@ function getStepItems(msg: TMessage): StepItem[] {
     const update = msg.content?.update;
     return [
       {
-        name: update?.title || update?.kind || 'Tool',
+        name: update?.title || update?.kind || t('chat.toolCall'),
         status: normalizeAcpStatus(update?.status),
       },
     ];
@@ -203,12 +203,12 @@ function getStepItems(msg: TMessage): StepItem[] {
   if (msg.type === 'codex_tool_call') {
     return [
       {
-        name: msg.content?.title || msg.content?.description || msg.content?.kind || 'Tool',
+        name: msg.content?.title || msg.content?.description || msg.content?.kind || t('chat.toolCall'),
         status: normalizeStatus(msg.content?.status),
       },
     ];
   }
-  return [{ name: 'Tool', status: 'pending' }];
+  return [{ name: t('chat.toolCall'), status: 'pending' }];
 }
 
 function normalizeStatus(s: string | undefined): StepItem['status'] {

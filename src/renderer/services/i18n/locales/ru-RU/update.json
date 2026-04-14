@@ -21,5 +21,19 @@
   "autoUpdateMode": "Режим автообновления",
   "showInFolder": "Показать в папке",
   "openFile": "Открыть файл",
-  "errorTitle": "Ошибка обновления"
+  "errorTitle": "Ошибка обновления",
+  "errors": {
+    "invalidUrl": "Неверный URL загрузки",
+    "httpsOnly": "Разрешены только HTTPS URL",
+    "hostNotAllowed": "Хост загрузки не разрешён: {{host}}",
+    "redirectNoLocation": "Перенаправление без заголовка Location",
+    "tooManyRedirects": "Слишком много перенаправлений при загрузке",
+    "githubApiFailed": "Запрос к GitHub API не удался ({{status}})",
+    "githubApiNotArray": "Ответ GitHub API не является массивом",
+    "githubApiTimeout": "Превышено время ожидания GitHub API (30с)",
+    "downloadFailed": "Загрузка не удалась ({{status}})",
+    "downloadNoBody": "Ответ загрузки не содержит данные",
+    "missingUrl": "Отсутствует URL",
+    "checkReturnedNull": "Проверка обновлений не вернула результат (режим разработки)"
+  }
 }

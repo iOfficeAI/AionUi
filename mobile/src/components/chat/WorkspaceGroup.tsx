@@ -65,7 +65,7 @@ export function WorkspaceGroup({
             >
               <View style={styles.itemContent}>
                 <ThemedText style={[styles.itemName, isActive && { color: tint, fontWeight: '600' }]} numberOfLines={1}>
-                  {conv.name || 'Untitled'}
+                  {conv.name || t('conversations.untitled')}
                 </ThemedText>
                 <ThemedText type='caption' numberOfLines={1}>
                   {agentType}

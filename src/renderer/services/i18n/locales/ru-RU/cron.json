@@ -97,7 +97,14 @@
       "existingConversation": "Продолжающийся диалог",
       "newConversationHint": "Начинать заново при каждом запуске",
       "existingConversationHint": "Продолжать в одном диалоге",
-      "executionModeEditHint": "Режим выполнения нельзя изменить после создания. Удалите и создайте задачу заново для смены режима."
+      "executionModeEditHint": "Режим выполнения нельзя изменить после создания. Удалите и создайте задачу заново для смены режима.",
+      "advancedSettings": "Расширенные настройки",
+      "workspace": "Рабочая область",
+      "workspacePlaceholder": "Выберите рабочую область",
+      "workspaceHint": "[Optional: set a workspace folder for file operations]",
+      "selectFolder": "[Select Folder]",
+      "clearFolder": "[Clear]",
+      "model": "[Model]"
     },
     "freq": {
       "manual": "Вручную",
