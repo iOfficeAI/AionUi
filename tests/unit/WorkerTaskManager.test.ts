@@ -69,13 +69,14 @@ describe('WorkerTaskManager', () => {
     expect(mgr.getTask('c1')).toBe(agent);
   });
 
-  it('addTask replaces existing task with same id', () => {
+  it('addTask replaces existing task with same id and kills the old one', () => {
     const mgr = new WorkerTaskManager(makeFactory() as any, repo);
     const agent1 = makeAgent('c1', 'gemini');
     const agent2 = makeAgent('c1', 'acp');
     mgr.addTask('c1', agent1 as any);
     mgr.addTask('c1', agent2 as any);
     expect(mgr.getTask('c1')).toBe(agent2);
+    expect(agent1.kill).toHaveBeenCalledOnce();
   });
 
   // --- kill ---

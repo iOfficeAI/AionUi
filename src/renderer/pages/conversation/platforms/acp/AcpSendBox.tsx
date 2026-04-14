@@ -123,8 +123,9 @@ const AcpSendBox: React.FC<{
   const { t } = useTranslation();
   const teamPermission = useTeamPermission();
   const isCommandQueueEnabled = useCommandQueueEnabled();
-  // In team mode, only the lead agent shows the permission mode selector
-  const showModeSelector = !teamPermission || conversation_id === teamPermission.leadConversationId;
+  // In team mode, all agents show the permission mode selector (members don't propagate)
+  const showModeSelector = true;
+  const isLeadInTeam = teamPermission && conversation_id === teamPermission.leadConversationId;
   const { checkAndUpdateTitle } = useAutoTitle();
   const slashCommands = useSlashCommands(conversation_id, { agentStatus: acpStatus });
   const { atPath, uploadFile, setAtPath, setUploadFile, content, setContent } = useSendBoxDraft(conversation_id);
@@ -383,7 +384,7 @@ Please check your local CLI tool authentication status`,
                 modeLabelFormatter={(mode) => t(`agentMode.${mode.value}`, { defaultValue: mode.label })}
                 compactLabelPrefix={t('agentMode.permission')}
                 hideCompactLabelPrefixOnMobile
-                onModeChanged={teamPermission?.propagateMode}
+                onModeChanged={isLeadInTeam ? teamPermission?.propagateMode : undefined}
               />
             )}
             <AcpConfigSelector

@@ -8,7 +8,7 @@ import { useCallback, useRef, useState } from 'react';
 import type { DragEvent } from 'react';
 import type { TFunction } from 'i18next';
 import { ipcBridge } from '@/common';
-import { FileService, MAX_UPLOAD_SIZE_MB } from '@/renderer/services/FileService';
+import { FileService } from '@/renderer/services/FileService';
 import type { MessageApi } from '../types';
 
 interface UseWorkspaceDragImportOptions {
@@ -176,13 +176,7 @@ export function useWorkspaceDragImport({
         try {
           tempItems = await createTempItemsFromFiles(filesWithoutPath);
         } catch (error) {
-          if (error instanceof Error && error.message === 'FILE_TOO_LARGE') {
-            messageApi.error(
-              t('common.fileAttach.tooLarge', { max: MAX_UPLOAD_SIZE_MB, defaultValue: 'File exceeds {{max}}MB limit' })
-            );
-          } else {
-            console.error('[WorkspaceDragImport] Failed to create temp files:', error);
-          }
+          console.error('[WorkspaceDragImport] Failed to create temp files:', error);
         }
       }
 

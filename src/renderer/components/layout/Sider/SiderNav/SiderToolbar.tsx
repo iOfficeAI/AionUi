@@ -10,7 +10,7 @@ import { Tooltip } from '@arco-design/web-react';
 import { ListCheckbox, Plus } from '@icon-park/react';
 import classNames from 'classnames';
 import type { SiderTooltipProps } from '@renderer/utils/ui/siderTooltip';
-import styles from './Sider.module.css';
+import styles from '../Sider.module.css';
 
 interface SiderToolbarProps {
   isMobile: boolean;

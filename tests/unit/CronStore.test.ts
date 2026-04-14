@@ -42,6 +42,7 @@ describe('CronStore', () => {
       const job: CronJob = {
         id: 'job-1',
         name: 'Test Every Job',
+        description: 'Summary for every job',
         enabled: true,
         schedule: {
           kind: 'every',
@@ -89,32 +90,34 @@ describe('CronStore', () => {
       const runArgs = mockPrepareInstance.run.mock.calls[0];
       expect(runArgs[0]).toBe('job-1'); // id
       expect(runArgs[1]).toBe('Test Every Job'); // name
-      expect(runArgs[2]).toBe(1); // enabled (true -> 1)
-      expect(runArgs[3]).toBe('every'); // schedule_kind
-      expect(runArgs[4]).toBe('60000'); // schedule_value
-      expect(runArgs[5]).toBeNull(); // schedule_tz
-      expect(runArgs[6]).toBe('Every minute'); // schedule_description
-      expect(runArgs[7]).toBe('Hello'); // payload_message
-      expect(runArgs[8]).toBe('existing'); // execution_mode
-      expect(runArgs[9]).toBe(JSON.stringify(job.metadata.agentConfig)); // agent_config
-      expect(runArgs[10]).toBe('conv-1'); // conversation_id
-      expect(runArgs[11]).toBe('Test Conversation'); // conversation_title
-      expect(runArgs[12]).toBe('gemini'); // agent_type
-      expect(runArgs[13]).toBe('user'); // created_by
-      expect(runArgs[14]).toBe(1000); // created_at
-      expect(runArgs[15]).toBe(2000); // updated_at
-      expect(runArgs[16]).toBe(3000); // next_run_at
-      expect(runArgs[17]).toBe(4000); // last_run_at
-      expect(runArgs[18]).toBe('ok'); // last_status
-      expect(runArgs[19]).toBeNull(); // last_error (undefined -> null in jobToRow)
-      expect(runArgs[20]).toBe(5); // run_count
-      expect(runArgs[21]).toBe(0); // retry_count
-      expect(runArgs[22]).toBe(3); // max_retries
+      expect(runArgs[2]).toBe('Summary for every job'); // description
+      expect(runArgs[3]).toBe(1); // enabled (true -> 1)
+      expect(runArgs[4]).toBe('every'); // schedule_kind
+      expect(runArgs[5]).toBe('60000'); // schedule_value
+      expect(runArgs[6]).toBeNull(); // schedule_tz
+      expect(runArgs[7]).toBe('Every minute'); // schedule_description
+      expect(runArgs[8]).toBe('Hello'); // payload_message
+      expect(runArgs[9]).toBe('existing'); // execution_mode
+      expect(runArgs[10]).toBe(JSON.stringify(job.metadata.agentConfig)); // agent_config
+      expect(runArgs[11]).toBe('conv-1'); // conversation_id
+      expect(runArgs[12]).toBe('Test Conversation'); // conversation_title
+      expect(runArgs[13]).toBe('gemini'); // agent_type
+      expect(runArgs[14]).toBe('user'); // created_by
+      expect(runArgs[15]).toBe(1000); // created_at
+      expect(runArgs[16]).toBe(2000); // updated_at
+      expect(runArgs[17]).toBe(3000); // next_run_at
+      expect(runArgs[18]).toBe(4000); // last_run_at
+      expect(runArgs[19]).toBe('ok'); // last_status
+      expect(runArgs[20]).toBeNull(); // last_error (undefined -> null in jobToRow)
+      expect(runArgs[21]).toBe(5); // run_count
+      expect(runArgs[22]).toBe(0); // retry_count
+      expect(runArgs[23]).toBe(3); // max_retries
 
       // Now test retrieval (round-trip)
       mockPrepareInstance.get.mockReturnValue({
         id: 'job-1',
         name: 'Test Every Job',
+        description: 'Summary for every job',
         enabled: 1,
         schedule_kind: 'every',
         schedule_value: '60000',
@@ -146,6 +149,7 @@ describe('CronStore', () => {
       expect(retrieved).toBeDefined();
       expect(retrieved!.id).toBe('job-1');
       expect(retrieved!.name).toBe('Test Every Job');
+      expect(retrieved!.description).toBe('Summary for every job');
       expect(retrieved!.enabled).toBe(true);
       expect(retrieved!.schedule).toEqual({
         kind: 'every',
@@ -166,6 +170,7 @@ describe('CronStore', () => {
       const job: CronJob = {
         id: 'job-2',
         name: 'Test Cron Job',
+        description: 'Summary for cron job',
         enabled: false,
         schedule: {
           kind: 'cron',
@@ -195,17 +200,19 @@ describe('CronStore', () => {
       await cronStore.insert(job);
 
       const runArgs = mockPrepareInstance.run.mock.calls[0];
-      expect(runArgs[2]).toBe(0); // enabled (false -> 0)
-      expect(runArgs[3]).toBe('cron'); // schedule_kind
-      expect(runArgs[4]).toBe('0 0 * * *'); // schedule_value
-      expect(runArgs[5]).toBe('America/New_York'); // schedule_tz
-      expect(runArgs[8]).toBe('new_conversation'); // execution_mode
-      expect(runArgs[9]).toBeNull(); // agent_config (undefined)
+      expect(runArgs[2]).toBe('Summary for cron job'); // description
+      expect(runArgs[3]).toBe(0); // enabled (false -> 0)
+      expect(runArgs[4]).toBe('cron'); // schedule_kind
+      expect(runArgs[5]).toBe('0 0 * * *'); // schedule_value
+      expect(runArgs[6]).toBe('America/New_York'); // schedule_tz
+      expect(runArgs[9]).toBe('new_conversation'); // execution_mode
+      expect(runArgs[10]).toBeNull(); // agent_config (undefined)
 
       // Test retrieval
       mockPrepareInstance.get.mockReturnValue({
         id: 'job-2',
         name: 'Test Cron Job',
+        description: 'Summary for cron job',
         enabled: 0,
         schedule_kind: 'cron',
         schedule_value: '0 0 * * *',
@@ -231,6 +238,7 @@ describe('CronStore', () => {
 
       const retrieved = await cronStore.getById('job-2');
       expect(retrieved).toBeDefined();
+      expect(retrieved!.description).toBe('Summary for cron job');
       expect(retrieved!.enabled).toBe(false); // 0 -> false
       expect(retrieved!.schedule).toEqual({
         kind: 'cron',
@@ -248,6 +256,7 @@ describe('CronStore', () => {
       const job: CronJob = {
         id: 'job-3',
         name: 'Test At Job',
+        description: 'Summary for one-time job',
         enabled: true,
         schedule: {
           kind: 'at',
@@ -275,15 +284,17 @@ describe('CronStore', () => {
       await cronStore.insert(job);
 
       const runArgs = mockPrepareInstance.run.mock.calls[0];
-      expect(runArgs[3]).toBe('at'); // schedule_kind
-      expect(runArgs[4]).toBe('1735689600000'); // schedule_value
-      expect(runArgs[5]).toBeNull(); // schedule_tz
-      expect(runArgs[8]).toBe('existing'); // execution_mode (default)
+      expect(runArgs[2]).toBe('Summary for one-time job'); // description
+      expect(runArgs[4]).toBe('at'); // schedule_kind
+      expect(runArgs[5]).toBe('1735689600000'); // schedule_value
+      expect(runArgs[6]).toBeNull(); // schedule_tz
+      expect(runArgs[9]).toBe('existing'); // execution_mode (default)
 
       // Test retrieval
       mockPrepareInstance.get.mockReturnValue({
         id: 'job-3',
         name: 'Test At Job',
+        description: 'Summary for one-time job',
         enabled: 1,
         schedule_kind: 'at',
         schedule_value: '1735689600000',
@@ -309,6 +320,7 @@ describe('CronStore', () => {
 
       const retrieved = await cronStore.getById('job-3');
       expect(retrieved).toBeDefined();
+      expect(retrieved!.description).toBe('Summary for one-time job');
       expect(retrieved!.schedule).toEqual({
         kind: 'at',
         atMs: 1735689600000,
@@ -321,6 +333,7 @@ describe('CronStore', () => {
       mockPrepareInstance.get.mockReturnValue({
         id: 'job-enabled',
         name: 'Enabled Job',
+        description: null,
         enabled: 1,
         schedule_kind: 'every',
         schedule_value: '1000',
@@ -363,6 +376,7 @@ describe('CronStore', () => {
       mockPrepareInstance.get.mockReturnValue({
         id: 'job-with-config',
         name: 'Job',
+        description: null,
         enabled: 1,
         schedule_kind: 'every',
         schedule_value: '1000',
@@ -414,6 +428,7 @@ describe('CronStore', () => {
       const job: CronJob = {
         id: 'new-job',
         name: 'New Job',
+        description: 'New job summary',
         enabled: true,
         schedule: { kind: 'every', everyMs: 5000, description: 'Every 5s' },
         target: { payload: { kind: 'message', text: 'Test' } },
@@ -441,6 +456,7 @@ describe('CronStore', () => {
       mockPrepareInstance.get.mockReturnValue({
         id: 'found-job',
         name: 'Found Job',
+        description: null,
         enabled: 1,
         schedule_kind: 'every',
         schedule_value: '1000',
@@ -485,6 +501,7 @@ describe('CronStore', () => {
       mockPrepareInstance.get.mockReturnValue({
         id: 'update-job',
         name: 'Old Name',
+        description: 'Old summary',
         enabled: 1,
         schedule_kind: 'every',
         schedule_value: '1000',
@@ -522,7 +539,8 @@ describe('CronStore', () => {
 
       const updateArgs = mockPrepareInstance.run.mock.calls[0];
       expect(updateArgs[0]).toBe('New Name'); // name
-      expect(updateArgs[1]).toBe(0); // enabled (false -> 0)
+      expect(updateArgs[1]).toBe('Old summary'); // description preserved
+      expect(updateArgs[2]).toBe(0); // enabled (false -> 0)
       expect(updateArgs[updateArgs.length - 1]).toBe('update-job'); // WHERE id = ?
     });
 
@@ -536,6 +554,7 @@ describe('CronStore', () => {
       mockPrepareInstance.get.mockReturnValue({
         id: 'update-schedule',
         name: 'Job',
+        description: null,
         enabled: 1,
         schedule_kind: 'every',
         schedule_value: '1000',
@@ -571,10 +590,10 @@ describe('CronStore', () => {
       });
 
       const updateArgs = mockPrepareInstance.run.mock.calls[0];
-      expect(updateArgs[2]).toBe('cron'); // schedule_kind
-      expect(updateArgs[3]).toBe('0 * * * *'); // schedule_value
-      expect(updateArgs[4]).toBe('UTC'); // schedule_tz
-      expect(updateArgs[5]).toBe('Hourly'); // schedule_description
+      expect(updateArgs[3]).toBe('cron'); // schedule_kind
+      expect(updateArgs[4]).toBe('0 * * * *'); // schedule_value
+      expect(updateArgs[5]).toBe('UTC'); // schedule_tz
+      expect(updateArgs[6]).toBe('Hourly'); // schedule_description
     });
 
     it('delete removes a job', async () => {
@@ -591,6 +610,7 @@ describe('CronStore', () => {
         {
           id: 'job-1',
           name: 'Job 1',
+          description: null,
           enabled: 1,
           schedule_kind: 'every',
           schedule_value: '1000',
@@ -616,6 +636,7 @@ describe('CronStore', () => {
         {
           id: 'job-2',
           name: 'Job 2',
+          description: null,
           enabled: 0,
           schedule_kind: 'cron',
           schedule_value: '0 0 * * *',
@@ -653,6 +674,7 @@ describe('CronStore', () => {
         {
           id: 'conv-job-1',
           name: 'Conv Job 1',
+          description: null,
           enabled: 1,
           schedule_kind: 'every',
           schedule_value: '1000',
@@ -692,6 +714,7 @@ describe('CronStore', () => {
         {
           id: 'enabled-1',
           name: 'Enabled 1',
+          description: null,
           enabled: 1,
           schedule_kind: 'every',
           schedule_value: '1000',

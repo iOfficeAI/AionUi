@@ -71,7 +71,6 @@
   "tray.untitled": "Adsız",
   "fileAttach.hostFiles": "Ana Makine Dosyaları",
   "fileAttach.myDevice": "Cihazım",
-  "fileAttach.tooLarge": "Dosya {{max}}MB sınırını aşıyor",
   "fileAttach.failed": "Yükleme başarısız",
   "fileAttach.uploading": "Yükleniyor...",
   "fileAttach.uploadSuccess": "Yükleme başarılı",

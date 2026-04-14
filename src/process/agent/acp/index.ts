@@ -48,6 +48,7 @@ import {
 } from './mcpSessionConfig';
 import { getClaudeModel } from './utils';
 import { getAionMcpStdioConfig } from '@process/services/mcpServices/aionMcpServiceSingleton';
+import { waitForMcpReady } from '@process/team/mcpReadiness';
 
 /**
  * Initialize response result interface
@@ -1501,10 +1502,8 @@ export class AcpAgent {
    * Create a new session or resume an existing one, and notify upper layer if session ID changed.
    * 创建新会话或恢复现有会话，如果 session ID 变化则通知上层。
    *
-   * Resume strategy per backend:
-   * - Codex:           uses dedicated ACP `session/load` method
-   * - Claude/CodeBuddy: uses `session/new` with `_meta.claudeCode.options.resume`
-   * - Others:          uses `session/new` with generic `resumeSessionId` param
+   * Resume strategy is delegated to AcpConnection.resumeSession()
+   * (capability-driven with Claude-compatible resume path).
    */
   private async createOrResumeSession(): Promise<void> {
     const resumeSessionId = this.extra.acpSessionId;
@@ -1530,25 +1529,16 @@ export class AcpAgent {
           `[AcpAgent] Session ${resumeSessionId} belongs to conversation ${resumeConversationId}, ` +
             `but current conversation is ${this.id}. Discarding stale session and starting fresh.`
         );
+        // Skip resume, fall through to create new session
       } else if (resumeSessionId) {
         try {
           let response: { sessionId?: string };
 
           emitMcpStatus?.('session_injecting', { serverCount: mcpServers.length });
-
-          if (this.extra.backend === 'codex') {
-            // Codex ACP bridge implements session/load (load_session) which calls
-            // resume_thread_from_rollout internally to restore full conversation history.
-            // Codex ignores resumeSessionId in session/new, so we must use session/load.
-            response = await this.connection.loadSession(resumeSessionId, this.extra.workspace, mcpServers);
-          } else {
-            // Claude/CodeBuddy use _meta in session/new; others use generic resumeSessionId
-            response = await this.connection.newSession(this.extra.workspace, {
-              resumeSessionId,
-              forkSession: false,
-              mcpServers,
-            });
-          }
+          response = await this.connection.resumeSession(resumeSessionId, this.extra.workspace, {
+            forkSession: false,
+            mcpServers,
+          });
 
           if (mcpServers.length === 0) {
             emitMcpStatus?.('degraded');
@@ -1591,6 +1581,18 @@ export class AcpAgent {
       emitMcpStatus?.('session_error', { error });
       throw err;
     }
+
+    // Wait for MCP tools to be registered in the backend before allowing
+    // message dispatch. The team-mcp-stdio.js script sends a TCP mcp_ready
+    // notification after server.connect() completes. Without this wait,
+    // the first conversationTurn/start may arrive before the backend has
+    // finished the MCP handshake (initialize → tools/list), causing the
+    // agent to process the message without team tools.
+    if (this.extra.teamMcpStdioConfig && teamId) {
+      emitMcpStatus?.('mcp_tools_waiting');
+      await waitForMcpReady(slotId, 30_000);
+      emitMcpStatus?.('mcp_tools_ready');
+    }
   }
 
   private async loadBuiltinSessionMcpServers(): Promise<AcpSessionMcpServer[]> {
@@ -1618,7 +1620,11 @@ export class AcpAgent {
         if (aionStdioConfig) {
           const configWithBackend = {
             ...aionStdioConfig,
-            env: [...aionStdioConfig.env, { name: 'AION_MCP_BACKEND', value: this.extra.backend }],
+            env: [
+              ...aionStdioConfig.env,
+              { name: 'AION_MCP_BACKEND', value: this.extra.backend },
+              { name: 'AION_MCP_CONVERSATION_ID', value: this.id },
+            ],
           };
           servers.push(buildTeamMcpServer(configWithBackend)!);
         }

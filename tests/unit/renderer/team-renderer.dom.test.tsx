@@ -33,6 +33,13 @@ vi.mock('@/common', () => ({
       update: { invoke: (...args: unknown[]) => mockConversationUpdateInvoke(...args) },
       stop: { invoke: vi.fn() },
       responseStream: { on: vi.fn(() => vi.fn()), emit: vi.fn() },
+      confirmation: {
+        list: { invoke: vi.fn().mockResolvedValue([]) },
+        add: { on: vi.fn(() => vi.fn()) },
+        remove: { on: vi.fn(() => vi.fn()) },
+        update: { on: vi.fn(() => vi.fn()) },
+        confirm: { invoke: vi.fn() },
+      },
     },
     acpConversation: {
       responseStream: { on: vi.fn(() => vi.fn()), emit: vi.fn() },

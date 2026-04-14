@@ -219,6 +219,7 @@ export const fs = {
   readFile: bridge.buildProvider<string, { path: string }>('read-file'), // 读取文件内容（UTF-8）
   readFileBuffer: bridge.buildProvider<ArrayBuffer, { path: string }>('read-file-buffer'), // 读取二进制文件为 ArrayBuffer
   createTempFile: bridge.buildProvider<string, { fileName: string }>('create-temp-file'), // 创建临时文件
+  createUploadFile: bridge.buildProvider<string, { fileName: string; conversationId?: string }>('create-upload-file'), // 创建上传文件（根据设置决定保存位置）
   writeFile: bridge.buildProvider<boolean, { path: string; data: Uint8Array | string }>('write-file'), // 写入文件
   createZip: bridge.buildProvider<
     boolean,
@@ -833,6 +834,7 @@ export type ICronSchedule =
 export interface ICronJob {
   id: string;
   name: string;
+  description?: string;
   enabled: boolean;
   schedule: ICronSchedule;
   target: {

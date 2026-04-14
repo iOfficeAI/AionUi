@@ -6,11 +6,9 @@
 
 import { ipcBridge } from '@/common';
 import type { FileMetadata } from './FileService';
-import { getFileExtension, uploadFileViaHttp, MAX_UPLOAD_SIZE_MB } from './FileService';
+import { getFileExtension, uploadFileViaHttp } from './FileService';
 import { trackUpload, type UploadSource } from '@/renderer/hooks/file/useUploadState';
 import { isElectronDesktop } from '@/renderer/utils/platform';
-
-const MAX_UPLOAD_SIZE_BYTES = MAX_UPLOAD_SIZE_MB * 1024 * 1024;
 
 /**
  * Create a temporary file in a platform-aware way.
@@ -23,11 +21,8 @@ async function createTempFile(
   conversationId?: string,
   source: UploadSource = 'sendbox'
 ): Promise<string | null> {
-  if (data.byteLength > MAX_UPLOAD_SIZE_BYTES) {
-    throw new Error('FILE_TOO_LARGE');
-  }
   if (isElectronDesktop()) {
-    const tempPath = await ipcBridge.fs.createTempFile.invoke({ fileName });
+    const tempPath = await ipcBridge.fs.createUploadFile.invoke({ fileName, conversationId });
     if (tempPath) {
       await ipcBridge.fs.writeFile.invoke({ path: tempPath, data });
     }

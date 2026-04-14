@@ -116,17 +116,13 @@ describe('ACP built-in MCP session config', () => {
   it('parses MCP capabilities from initialize response and defaults missing fields to true', () => {
     expect(
       parseAcpMcpCapabilities({
-        jsonrpc: '2.0',
-        id: 1,
-        result: {
-          agentCapabilities: {
-            mcpCapabilities: {
-              stdio: true,
-              http: false,
-            },
+        agentCapabilities: {
+          mcpCapabilities: {
+            stdio: true,
+            http: false,
           },
         },
-      })
+      } as any)
     ).toEqual({
       stdio: true,
       http: false,

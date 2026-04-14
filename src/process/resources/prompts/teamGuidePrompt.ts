@@ -66,11 +66,11 @@ If case 2 applies, ask at most once whether the user wants to bring in a Team. K
    | Tester | Write and run tests | ${agentType} |
 3. **Output the table as a normal text message and END YOUR TURN.** Do NOT call \`aion_create_team\` or any other tool (including ask_user) in this turn. Wait for the user to reply in their next message with explicit confirmation (e.g. "ok", "go ahead", "确认") before proceeding.
 4. After user confirms → call \`aion_create_team\`. The summary MUST include both the goal and the confirmed team configuration. (The system automatically sets the correct agent type — you do NOT need to pass agentType.)
-5. After \`aion_create_team\` returns → read the response carefully and follow the next_step instructions. Tell the user the team is created → immediately call \`aion_navigate\` with the route from the response. **Both calls (create + navigate) are required.**
+5. After \`aion_create_team\` returns → the system navigates to the team page **automatically**. Read the \`next_step\` in the response and follow it. **Do NOT call \`aion_navigate\` — navigation is already handled. End your turn immediately.**
 6. User declines or wants changes → adjust or proceed solo. Do not mention Team again unless the user asks.
 
 ### Tool constraint
-Use **only** \`aion_create_team\` and \`aion_navigate\` for team operations. Do NOT use any built-in or other team/agent creation tools.`;
+Use **only** \`aion_create_team\` for team operations. Navigation is handled automatically — do NOT call \`aion_navigate\` after creating a team. Do NOT use any built-in or other team/agent creation tools.`;
 }
 
 /**
@@ -94,6 +94,6 @@ export function getCreateTeamToolDescription(): string {
     `This is the ONLY way to create teams — do NOT use any built-in or other team/agent tools.\n` +
     `The summary MUST include both the task goal and the confirmed team member roles.\n` +
     `\n` +
-    `IMPORTANT: Read the response carefully and follow the next_step instructions.`
+    `IMPORTANT: The system navigates to the team page automatically after creation. Do NOT call aion_navigate. Read the response and follow the next_step instructions.`
   );
 }

@@ -92,7 +92,7 @@ const ScheduledTasksPage: React.FC = () => {
     >
       <div
         className={classNames(
-          'mx-auto flex w-full max-w-760px box-border flex-col',
+          'mx-auto flex w-full max-w-800px box-border flex-col',
           isMobile ? 'gap-14px' : 'gap-16px'
         )}
       >
