@@ -20,7 +20,7 @@ import { addMessage, addOrUpdateMessage } from '@process/utils/message';
 import { uuid } from '@/common/utils';
 import BaseAgentManager from './BaseAgentManager';
 import { IpcAgentEventEmitter } from './IpcAgentEventEmitter';
-import { mainError, mainWarn } from '@process/utils/mainLogger';
+import { mainError, mainLog, mainWarn } from '@process/utils/mainLogger';
 import { hasCronCommands } from './CronCommandDetector';
 import { processCronInMessage } from './MessageMiddleware';
 import { extractAndStripThinkTags } from './ThinkTagDetector';
@@ -77,6 +77,7 @@ export class AionrsManager extends BaseAgentManager<AionrsManagerData, string> {
   private agentReady: Promise<void>;
   private currentMode: string = 'default';
   private _capabilities: AionrsCapabilities | null = null;
+  private _configSentAt: number | null = null;
   private currentMsgId: string | null = null;
   private currentMsgContent: string = '';
 
@@ -453,6 +454,9 @@ export class AionrsManager extends BaseAgentManager<AionrsManagerData, string> {
     this.on('aionrs.message', (data) => {
       // Store capabilities from config_changed events
       if (data.type === 'config_changed') {
+        const elapsed = this._configSentAt ? `${Date.now() - this._configSentAt}ms` : 'n/a';
+        mainLog('[AionrsManager]', `config_changed received (${elapsed})`, data.data);
+        this._configSentAt = null;
         this._capabilities = data.data as AionrsCapabilities;
         ipcBridge.conversation.responseStream.emit({
           type: 'config_changed',
@@ -461,6 +465,12 @@ export class AionrsManager extends BaseAgentManager<AionrsManagerData, string> {
           data: data.data,
         });
         return;
+      }
+
+      // Log info events from aionrs (includes set_config/set_mode acknowledgments)
+      if (data.type === 'info') {
+        const elapsed = this._configSentAt ? ` (${Date.now() - this._configSentAt}ms since command)` : '';
+        mainLog('[AionrsManager]', `info: ${data.data}${elapsed}`);
       }
 
       // Restart fallback timer on every non-finish event (activity heartbeat)
@@ -668,6 +678,8 @@ export class AionrsManager extends BaseAgentManager<AionrsManagerData, string> {
    */
   setModelViaConfig(modelId: string): boolean {
     if (!this.agent) return false;
+    this._configSentAt = Date.now();
+    mainLog('[AionrsManager]', `set_config sent: model=${modelId}`);
     this.agent.setConfig({ model: modelId });
     return true;
   }
@@ -680,6 +692,8 @@ export class AionrsManager extends BaseAgentManager<AionrsManagerData, string> {
     this.currentMode = mode;
     this.saveSessionMode(mode);
     if (this.agent) {
+      this._configSentAt = Date.now();
+      mainLog('[AionrsManager]', `set_mode sent: mode=${mode}`);
       this.agent.setMode(mode as 'default' | 'auto_edit' | 'yolo');
     }
     return { success: true, data: { mode: this.currentMode } };
