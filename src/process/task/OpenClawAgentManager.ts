@@ -47,7 +47,7 @@ class OpenClawAgentManager extends BaseAgentManager<OpenClawAgentManagerData> {
   private options: OpenClawAgentManagerData;
 
   constructor(data: OpenClawAgentManagerData) {
-    super('openclaw-gateway', data, new IpcAgentEventEmitter());
+    super('openclaw-gateway', data, new IpcAgentEventEmitter(), false);
     this.conversation_id = data.conversation_id;
     this.workspace = data.workspace ?? '';
     this.options = data;

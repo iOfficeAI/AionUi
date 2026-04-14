@@ -119,7 +119,6 @@ await build({
   ...sharedConfig,
   entryPoints: [
     'src/process/worker/gemini.ts',
-    'src/process/worker/openclaw-gateway.ts',
   ],
   outdir: 'dist-server',
   plugins: [wasmRuntimePlugin],
