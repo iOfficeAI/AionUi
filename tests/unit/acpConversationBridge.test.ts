@@ -53,11 +53,6 @@ vi.mock('../../src/process/agent/acp/AcpConnection', () => ({
   })),
 }));
 
-vi.mock('../../src/process/agent/acp/modelInfo', () => ({
-  buildAcpModelInfo: vi.fn(() => ({})),
-  summarizeAcpModelInfo: vi.fn(() => ({})),
-}));
-
 vi.mock('../../src/process/task/AcpAgentManager', () => ({ default: class AcpAgentManager {} }));
 vi.mock('../../src/process/task/GeminiAgentManager', () => ({ GeminiAgentManager: class GeminiAgentManager {} }));
 

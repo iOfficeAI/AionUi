@@ -2,12 +2,44 @@
 // Shared team types used by both main process and renderer.
 // Renderer code should import from here instead of @process/team/types.
 
+import type { AcpInitializeResult } from './acpTypes';
+
 /**
- * Agent backends verified to support MCP tool injection in team mode.
- * This is the single source of truth — frontend UI, backend spawn validation,
- * and the available-agent-types list passed to the leader prompt all derive from here.
+ * Backends known to support team mode without needing a cached initialize result.
+ * These are hardcoded so that team creation works even before the first conversation
+ * populates cachedInitializeResult (e.g. right after an upgrade).
+ *
+ * TODO: temporary workaround — remove once cachedInitializeResult is populated
+ * eagerly (e.g. at app startup or first backend detection) instead of lazily
+ * after the first user conversation.
  */
-export const TEAM_SUPPORTED_BACKENDS = new Set(['claude', 'codex', 'gemini']);
+export const TEAM_SUPPORTED_BACKENDS: ReadonlySet<string> = new Set(['gemini', 'claude', 'codex']);
+
+/**
+ * Check if an agent backend is team-capable.
+ * Known backends (gemini, claude, codex) are always team-capable.
+ * Other ACP agents are team-capable when their cached initialize response includes mcpCapabilities.stdio.
+ */
+export function isTeamCapableBackend(
+  backend: string,
+  cachedInitResults: Record<string, AcpInitializeResult> | null | undefined
+): boolean {
+  if (TEAM_SUPPORTED_BACKENDS.has(backend)) return true;
+  const initResult = cachedInitResults?.[backend];
+  return initResult?.capabilities.mcpCapabilities.stdio === true;
+}
+
+/**
+ * Get all team-capable backends from cached initialize results.
+ * Always includes 'gemini'. ACP backends included if their cached
+ * initialize result shows mcpCapabilities.stdio === true.
+ */
+export function getTeamCapableBackends(
+  detectedBackends: string[],
+  cachedInitResults: Record<string, AcpInitializeResult> | null | undefined
+): string[] {
+  return detectedBackends.filter((b) => isTeamCapableBackend(b, cachedInitResults));
+}
 
 /** Role of a teammate within a team */
 export type TeammateRole = 'lead' | 'teammate';
@@ -74,10 +106,10 @@ export type ITeamAgentRenamedEvent = {
   newName: string;
 };
 
-/** IPC event pushed to renderer when the team list changes (created/removed) */
+/** IPC event pushed to renderer when the team list changes (created/removed/agent changes) */
 export type ITeamListChangedEvent = {
   teamId: string;
-  action: 'created' | 'removed';
+  action: 'created' | 'removed' | 'agent_added' | 'agent_removed';
 };
 
 /** IPC event for streaming agent messages to renderer */
@@ -99,7 +131,9 @@ export type TeamMcpPhase =
   | 'session_error'
   | 'load_failed'
   | 'degraded'
-  | 'config_write_failed';
+  | 'config_write_failed'
+  | 'mcp_tools_waiting'
+  | 'mcp_tools_ready';
 
 /** IPC event for MCP injection pipeline status */
 export type ITeamMcpStatusEvent = {

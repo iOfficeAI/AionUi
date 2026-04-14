@@ -34,6 +34,7 @@ import { iconColors } from '@/renderer/styles/colors';
 import { emitter, useAddEventListener } from '@/renderer/utils/emitter';
 import { mergeFileSelectionItems } from '@/renderer/utils/file/fileSelection';
 import { buildDisplayMessage, collectSelectedFiles } from '@/renderer/utils/file/messageFiles';
+import { mergeWithCapabilities, type AgentModeOption } from '@/renderer/utils/model/agentModes';
 import { getModelContextLimit } from '@/renderer/utils/model/modelContextLimits';
 import { Message, Tag } from '@arco-design/web-react';
 import { Shield } from '@icon-park/react';
@@ -94,10 +95,16 @@ type AionrsSendBoxProps = AionrsSendBoxBaseProps & {
   messageState?: UseAionrsMessageReturn;
 };
 
-const AionrsSendBoxInner: React.FC<AionrsSendBoxBaseProps & { messageState: UseAionrsMessageReturn }> = ({
+type AionrsSendBoxInnerProps = AionrsSendBoxBaseProps & {
+  messageState: UseAionrsMessageReturn;
+  dynamicModes?: AgentModeOption[];
+};
+
+const AionrsSendBoxInner: React.FC<AionrsSendBoxInnerProps> = ({
   conversation_id,
   modelSelection,
   messageState,
+  dynamicModes = [],
 }) => {
   const [workspacePath, setWorkspacePath] = useState('');
   const { t } = useTranslation();
@@ -363,6 +370,7 @@ const AionrsSendBoxInner: React.FC<AionrsSendBoxBaseProps & { messageState: UseA
               backend='aionrs'
               conversationId={conversation_id}
               compact
+              dynamicModes={dynamicModes}
               compactLeadingIcon={<Shield theme='outline' size='14' fill={iconColors.secondary} />}
               modeLabelFormatter={(mode) => t(`agentMode.${mode.value}`, { defaultValue: mode.label })}
               compactLabelPrefix={t('agentMode.permission')}
@@ -426,9 +434,17 @@ const AionrsSendBoxInner: React.FC<AionrsSendBoxBaseProps & { messageState: UseA
 };
 
 const AionrsSendBoxWithHook: React.FC<AionrsSendBoxBaseProps> = (props) => {
-  const messageState = useAionrsMessage(props.conversation_id);
+  const [dynamicModes, setDynamicModes] = useState<AgentModeOption[]>([]);
+  const messageState = useAionrsMessage(props.conversation_id, {
+    onConfigChanged: (capabilities) => {
+      const modes = (capabilities as { modes?: string[] })?.modes;
+      if (modes && modes.length > 0) {
+        setDynamicModes(mergeWithCapabilities('aionrs', modes));
+      }
+    },
+  });
 
-  return <AionrsSendBoxInner {...props} messageState={messageState} />;
+  return <AionrsSendBoxInner {...props} messageState={messageState} dynamicModes={dynamicModes} />;
 };
 
 const AionrsSendBox: React.FC<AionrsSendBoxProps> = ({ messageState, ...props }) => {

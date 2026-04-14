@@ -1,7 +1,6 @@
 import { ipcBridge } from '@/common';
 import type { IConfirmation } from '@/common/chat/chatLib';
 import { useConversationContextSafe } from '@/renderer/hooks/context/ConversationContext';
-import { useTeamPermission } from '@/renderer/pages/team/hooks/TeamPermissionContext';
 import { Divider, Typography } from '@arco-design/web-react';
 import type { PropsWithChildren } from 'react';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
@@ -20,16 +19,13 @@ const ConversationChatConfirm: React.FC<PropsWithChildren<{ conversation_id: str
   const { t } = useTranslation();
   const conversationContext = useConversationContextSafe();
   const agentType = conversationContext?.type || 'unknown';
-  const teamPermission = useTeamPermission();
 
-  // In team mode: confirmation UI is handled by TeamConfirmOverlay at the page level.
-  // Each slot's ConversationChatConfirm only passes through children without showing any dialog.
-  // In standalone mode: only this conversation.
+  // Each agent's ConversationChatConfirm handles only its own conversation_id.
+  // In team mode this gives per-agent in-slot confirmation dialogs (TeamConfirmOverlay removed).
+  // In standalone mode: same behavior, single conversation.
   const listenConversationIds = useMemo(() => {
-    if (!teamPermission) return [conversation_id];
-    // Team mode: no local confirmation listening — TeamConfirmOverlay handles it
-    return [];
-  }, [teamPermission, conversation_id]);
+    return [conversation_id];
+  }, [conversation_id]);
 
   // Check if confirmation should be auto-confirmed via backend approval store
   // 通过后端 approval store 检查是否应该自动确认

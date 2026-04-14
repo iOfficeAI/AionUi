@@ -6,7 +6,12 @@
 
 import { describe, expect, it } from 'vitest';
 
-import { AGENT_MODES, getAgentModes, supportsModeSwitch } from '@renderer/utils/model/agentModes';
+import {
+  AGENT_MODES,
+  getAgentModes,
+  mergeWithCapabilities,
+  supportsModeSwitch,
+} from '@renderer/utils/model/agentModes';
 
 describe('AGENT_MODES.claude', () => {
   const claudeModes = AGENT_MODES.claude;
@@ -58,5 +63,51 @@ describe('supportsModeSwitch', () => {
 
   it('returns false for undefined', () => {
     expect(supportsModeSwitch(undefined)).toBe(false);
+  });
+});
+
+describe('mergeWithCapabilities', () => {
+  it('should return static modes when capabilityModes is null', () => {
+    const result = mergeWithCapabilities('aionrs', null);
+    expect(result).toEqual(getAgentModes('aionrs'));
+  });
+
+  it('should return static modes when capabilityModes is empty', () => {
+    const result = mergeWithCapabilities('aionrs', []);
+    expect(result).toEqual(getAgentModes('aionrs'));
+  });
+
+  it('should use static labels for known modes', () => {
+    const result = mergeWithCapabilities('aionrs', ['default', 'auto_edit', 'yolo']);
+    expect(result).toEqual([
+      { value: 'default', label: 'Default' },
+      { value: 'auto_edit', label: 'Auto-Accept Edits' },
+      { value: 'yolo', label: 'YOLO' },
+    ]);
+  });
+
+  it('should include unknown modes from capabilities with title-cased label', () => {
+    const result = mergeWithCapabilities('aionrs', ['default', 'auto_edit', 'plan']);
+    expect(result).toEqual([
+      { value: 'default', label: 'Default' },
+      { value: 'auto_edit', label: 'Auto-Accept Edits' },
+      { value: 'plan', label: 'Plan' },
+    ]);
+  });
+
+  it('should exclude static modes not in capabilities', () => {
+    const result = mergeWithCapabilities('aionrs', ['default', 'yolo']);
+    expect(result).toEqual([
+      { value: 'default', label: 'Default' },
+      { value: 'yolo', label: 'YOLO' },
+    ]);
+  });
+
+  it('should return title-cased modes for unknown backend', () => {
+    const result = mergeWithCapabilities('unknown-backend', ['default', 'plan']);
+    expect(result).toEqual([
+      { value: 'default', label: 'Default' },
+      { value: 'plan', label: 'Plan' },
+    ]);
   });
 });

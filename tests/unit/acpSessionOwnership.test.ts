@@ -33,16 +33,49 @@ vi.mock('fs', () => ({
 // Mock AcpConnection
 const mockLoadSession = vi.fn();
 const mockNewSession = vi.fn();
-const mockInitialize = vi.fn().mockResolvedValue({ agentInfo: {} });
+const mockInitialize = vi.fn().mockResolvedValue({ agentInfo: { capabilities: { loadSession: true } } });
+const mockGetInitializeResponse = vi.fn().mockReturnValue({ agentInfo: { capabilities: { loadSession: true } } });
 const mockOn = vi.fn();
 const mockDestroy = vi.fn();
 
 vi.mock('@process/agent/acp/AcpConnection', () => {
   return {
     AcpConnection: class MockAcpConnection {
+      backend = 'codex';
       loadSession = mockLoadSession;
       newSession = mockNewSession;
       initialize = mockInitialize;
+      getInitializeResponse = mockGetInitializeResponse;
+      getAgentCapabilities() {
+        return {
+          loadSession: true,
+          promptCapabilities: { image: false, audio: false, embeddedContext: false },
+          mcpCapabilities: { stdio: true, http: false, sse: false },
+          sessionCapabilities: { fork: null, resume: null, list: null, close: null },
+          _meta: {},
+        };
+      }
+      async resumeSession(sessionId: string, cwd: string, options?: any) {
+        // Simulate the real resumeSession logic using agentCapabilities
+        const caps = this.getAgentCapabilities();
+        const useClaudeMetaResume = this.backend === 'claude' || !!caps?._meta?.claudeCode;
+        const supportsLoadSession = caps?.loadSession === true;
+        const shouldTryLoadSession = !useClaudeMetaResume && supportsLoadSession;
+
+        if (shouldTryLoadSession) {
+          try {
+            return await this.loadSession(sessionId, cwd, options?.mcpServers);
+          } catch (loadError) {
+            console.warn(`[ACP ${this.backend}] session/load failed, falling back to session/new resume:`, loadError);
+          }
+        }
+
+        return await this.newSession(cwd, {
+          resumeSessionId: sessionId,
+          forkSession: options?.forkSession,
+          mcpServers: options?.mcpServers,
+        });
+      }
       on = mockOn;
       destroy = mockDestroy;
       sessionId = null;
@@ -52,7 +85,6 @@ vi.mock('@process/agent/acp/AcpConnection', () => {
 
 vi.mock('@process/agent/acp/mcpSessionConfig', () => ({
   buildBuiltinAcpSessionMcpServers: vi.fn().mockResolvedValue([]),
-  parseAcpMcpCapabilities: vi.fn(),
 }));
 
 vi.mock('@process/agent/acp/modelInfo', () => ({

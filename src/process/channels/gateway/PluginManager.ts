@@ -252,7 +252,7 @@ export class PluginManager {
    * Build plugin status object
    */
   private buildPluginStatus(config: IChannelPluginConfig): IChannelPluginStatus {
-    const BUILTIN_TYPES = new Set(['telegram', 'lark', 'dingtalk', 'slack', 'discord']);
+    const BUILTIN_TYPES = new Set(['telegram', 'lark', 'dingtalk', 'weixin', 'wecom', 'slack', 'discord']);
     const plugin = this.plugins.get(config.id);
     const botInfo = plugin?.getBotInfo();
 

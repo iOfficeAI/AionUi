@@ -71,7 +71,6 @@
   "tray.untitled": "Untitled",
   "fileAttach.hostFiles": "Host Machine Files",
   "fileAttach.myDevice": "My Device",
-  "fileAttach.tooLarge": "File exceeds {{max}}MB limit",
   "fileAttach.failed": "Upload failed",
   "fileAttach.uploading": "Uploading...",
   "fileAttach.uploadSuccess": "Upload successful",
@@ -84,5 +83,9 @@
   "import": "Import",
   "processing": "Processing...",
   "optional": "(optional)",
-  "clear": "Clear"
+  "clear": "Clear",
+  "unit": {
+    "minute_short": "m",
+    "second_short": "s"
+  }
 }

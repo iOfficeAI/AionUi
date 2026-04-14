@@ -25,16 +25,6 @@ interface ThoughtDisplayProps {
 const GRADIENT_DARK = 'linear-gradient(135deg, #464767 0%, #323232 100%)';
 const GRADIENT_LIGHT = 'linear-gradient(90deg, #F0F3FF 0%, #F2F2F2 100%)';
 
-// Format elapsed time
-const formatElapsedTime = (seconds: number): string => {
-  if (seconds < 60) {
-    return `${seconds}s`;
-  }
-  const minutes = Math.floor(seconds / 60);
-  const remainingSeconds = seconds % 60;
-  return `${minutes}m ${remainingSeconds}s`;
-};
-
 const ThoughtDisplay: React.FC<ThoughtDisplayProps> = ({
   thought,
   style = 'default',
@@ -43,6 +33,20 @@ const ThoughtDisplay: React.FC<ThoughtDisplayProps> = ({
 }) => {
   const { theme } = useThemeContext();
   const { t } = useTranslation();
+
+  // Format elapsed time with localized units
+  const formatElapsedTime = (seconds: number): string => {
+    const sUnit = t('common.unit.second_short', { defaultValue: 's' });
+    const mUnit = t('common.unit.minute_short', { defaultValue: 'm' });
+
+    if (seconds < 60) {
+      return `${seconds}${sUnit}`;
+    }
+    const minutes = Math.floor(seconds / 60);
+    const remainingSeconds = seconds % 60;
+    return `${minutes}${mUnit} ${remainingSeconds}${sUnit}`;
+  };
+
   const [elapsedTime, setElapsedTime] = useState(0);
   const startTimeRef = useRef<number>(Date.now());
 

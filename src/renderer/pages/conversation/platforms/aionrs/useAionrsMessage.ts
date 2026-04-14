@@ -32,8 +32,13 @@ export type UseAionrsMessageReturn = {
 
 export const useAionrsMessage = (
   conversation_id: string,
-  onError?: (message: IResponseMessage) => void
+  options?: {
+    onError?: (message: IResponseMessage) => void;
+    onConfigChanged?: (capabilities: Record<string, unknown>) => void;
+  }
 ): UseAionrsMessageReturn => {
+  const onError = options?.onError;
+  const onConfigChangedRef = useRef(options?.onConfigChanged);
   const addOrUpdateMessage = useAddOrUpdateMessage();
   const [streamRunning, setStreamRunning] = useState(false);
   const [hasActiveTools, setHasActiveTools] = useState(false);
@@ -53,6 +58,10 @@ export const useAionrsMessage = (
   const waitingResponseRef = useRef(waitingResponse);
   const hasContentInTurnRef = useRef(false);
   const waitingResponseClearFrameRef = useRef<number | null>(null);
+
+  useEffect(() => {
+    onConfigChangedRef.current = options?.onConfigChanged;
+  }, [options?.onConfigChanged]);
 
   useEffect(() => {
     hasActiveToolsRef.current = hasActiveTools;
@@ -250,6 +259,9 @@ export const useAionrsMessage = (
           addOrUpdateMessage(transformMessage(message));
           break;
         }
+        case 'config_changed':
+          onConfigChangedRef.current?.(message.data as Record<string, unknown>);
+          break;
         default: {
           const transformedMessage = transformMessage(message);
           if (message.type === 'error') {

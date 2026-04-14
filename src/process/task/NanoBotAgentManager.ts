@@ -13,6 +13,7 @@ import { uuid } from '@/common/utils';
 import { addMessage, addOrUpdateMessage } from '@process/utils/message';
 import { cronBusyGuard } from '@process/services/cron/CronBusyGuard';
 import { ConversationTurnCompletionService } from '@process/services/ConversationTurnCompletionService';
+import { teamEventBus } from '@process/team/teamEventBus';
 import BaseAgentManager from '@process/task/BaseAgentManager';
 import { IpcAgentEventEmitter } from '@process/task/IpcAgentEventEmitter';
 
@@ -30,7 +31,7 @@ class NanoBotAgentManager extends BaseAgentManager<NanoBotAgentManagerData> {
   bootstrap: Promise<NanobotAgent>;
 
   constructor(data: NanoBotAgentManagerData) {
-    super('nanobot', data, new IpcAgentEventEmitter());
+    super('nanobot', data, new IpcAgentEventEmitter(), false);
     this.conversation_id = data.conversation_id;
     this.workspace = data.workspace ?? '';
 
@@ -72,6 +73,10 @@ class NanoBotAgentManager extends BaseAgentManager<NanoBotAgentManagerData> {
 
     // Emit to frontend via unified conversation stream
     ipcBridge.conversation.responseStream.emit(msg);
+    // Only emit terminal events to team bus for agent lifecycle management
+    if (msg.type === 'finish' || msg.type === 'error') {
+      teamEventBus.emit('responseStream', msg);
+    }
   }
 
   private handleSignalEvent(message: IResponseMessage): void {
@@ -84,6 +89,11 @@ class NanoBotAgentManager extends BaseAgentManager<NanoBotAgentManagerData> {
 
     // Emit signal events to frontend
     ipcBridge.conversation.responseStream.emit(msg);
+
+    // Only emit terminal events to team bus for agent lifecycle management
+    if (msg.type === 'finish' || msg.type === 'error') {
+      teamEventBus.emit('responseStream', msg);
+    }
 
     if (msg.type === 'finish') {
       void ConversationTurnCompletionService.getInstance().notifyPotentialCompletion(this.conversation_id);

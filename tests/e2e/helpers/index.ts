@@ -12,6 +12,9 @@ export {
 } from './navigation';
 export {
   CHAT_INPUT,
+  GUID_INPUT,
+  AGENT_STATUS_MESSAGE,
+  NEW_CHAT_TRIGGER,
   SETTINGS_SIDER,
   SETTINGS_SIDER_ITEM,
   SETTINGS_SIDER_ITEM_LABEL,
@@ -26,6 +29,7 @@ export {
   AGENT_PILL,
   AGENT_PILL_SELECTED,
   agentPillByBackend,
+  MODEL_SELECTOR_BTN,
   settingsSiderItemById,
   CHANNEL_IDS,
   channelItemById,
@@ -42,4 +46,13 @@ export {
   type ChannelPluginStatus,
 } from './extensions';
 export { invokeBridge } from './bridge';
+export {
+  selectAgent,
+  selectModel,
+  sendMessageFromGuid,
+  waitForSessionActive,
+  deleteConversation,
+  goToNewChat,
+  runConversationCycle,
+} from './conversation';
 export { TEAM_SUPPORTED_BACKENDS } from './teamConfig';

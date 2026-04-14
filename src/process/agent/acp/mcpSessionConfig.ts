@@ -5,7 +5,7 @@
  */
 
 import type { IMcpServer } from '@/common/config/storage';
-import type { AcpResponse } from '@/common/types/acpTypes';
+import type { AcpMcpCapabilities } from '@/common/types/acpTypes';
 import { TEAM_SUPPORTED_BACKENDS } from '@/common/types/teamTypes';
 import {
   BUILTIN_IMAGE_GEN_ID,
@@ -35,41 +35,12 @@ export interface AcpSessionMcpServerHttpLike {
 
 export type AcpSessionMcpServer = AcpSessionMcpServerStdio | AcpSessionMcpServerHttpLike;
 
-export interface AcpMcpCapabilities {
-  stdio: boolean;
-  http: boolean;
-  sse: boolean;
-}
-
-const DEFAULT_ACP_MCP_CAPABILITIES: AcpMcpCapabilities = {
-  stdio: true,
-  http: true,
-  sse: true,
-};
-
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return value !== null && typeof value === 'object' && !Array.isArray(value);
-}
-
 function toNameValueEntries(source?: Record<string, string>): AcpSessionMcpNameValue[] | undefined {
   if (!source) return undefined;
   const entries = Object.entries(source)
     .filter(([name, value]) => typeof name === 'string' && typeof value === 'string')
     .map(([name, value]) => ({ name, value }));
   return entries.length > 0 ? entries : undefined;
-}
-
-export function parseAcpMcpCapabilities(response: AcpResponse | null): AcpMcpCapabilities {
-  const result = isRecord(response?.result) ? response.result : null;
-  const agentCapabilities = result && isRecord(result.agentCapabilities) ? result.agentCapabilities : null;
-  const mcpCapabilities =
-    agentCapabilities && isRecord(agentCapabilities.mcpCapabilities) ? agentCapabilities.mcpCapabilities : null;
-
-  return {
-    stdio: typeof mcpCapabilities?.stdio === 'boolean' ? mcpCapabilities.stdio : DEFAULT_ACP_MCP_CAPABILITIES.stdio,
-    http: typeof mcpCapabilities?.http === 'boolean' ? mcpCapabilities.http : DEFAULT_ACP_MCP_CAPABILITIES.http,
-    sse: typeof mcpCapabilities?.sse === 'boolean' ? mcpCapabilities.sse : DEFAULT_ACP_MCP_CAPABILITIES.sse,
-  };
 }
 
 function shouldInjectBuiltinServer(server: IMcpServer): boolean {
@@ -90,23 +61,18 @@ function shouldInjectBuiltinServer(server: IMcpServer): boolean {
 
 export function buildBuiltinAcpSessionMcpServers(
   mcpServers: IMcpServer[] | undefined | null,
-  capabilities: Partial<AcpMcpCapabilities> = DEFAULT_ACP_MCP_CAPABILITIES
+  capabilities: AcpMcpCapabilities
 ): AcpSessionMcpServer[] {
   if (!Array.isArray(mcpServers) || mcpServers.length === 0) {
     return [];
   }
-
-  const effectiveCapabilities: AcpMcpCapabilities = {
-    ...DEFAULT_ACP_MCP_CAPABILITIES,
-    ...capabilities,
-  };
 
   return mcpServers
     .filter(shouldInjectBuiltinServer)
     .map((server): AcpSessionMcpServer | null => {
       switch (server.transport.type) {
         case 'stdio':
-          if (!effectiveCapabilities.stdio) return null;
+          if (!capabilities.stdio) return null;
           return {
             type: 'stdio',
             name: server.name,
@@ -116,7 +82,7 @@ export function buildBuiltinAcpSessionMcpServers(
           };
         case 'http':
         case 'streamable_http':
-          if (!effectiveCapabilities.http) return null;
+          if (!capabilities.http) return null;
           return {
             type: 'http',
             name: server.name,
@@ -124,7 +90,7 @@ export function buildBuiltinAcpSessionMcpServers(
             headers: toNameValueEntries(server.transport.headers),
           };
         case 'sse':
-          if (!effectiveCapabilities.sse) return null;
+          if (!capabilities.sse) return null;
           return {
             type: 'sse',
             name: server.name,
@@ -143,7 +109,6 @@ export function buildBuiltinAcpSessionMcpServers(
  * Re-exported from teamTypes as the single source of truth.
  */
 export { TEAM_SUPPORTED_BACKENDS as TEAM_GUIDE_ALLOWED_BACKENDS };
-
 /** Config shape passed from TeamSessionService to AgentManagers */
 export type TeamMcpStdioConfig = {
   name: string;

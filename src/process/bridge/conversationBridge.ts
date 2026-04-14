@@ -414,6 +414,12 @@ export function initConversationBridge(
     return { success: true };
   });
 
+  // Placeholder: runtime config hot-swap is not yet supported.
+  // Model switching always uses kill-restart; thinking/effort may be added later.
+  ipcBridge.conversation.setConfig.provider(async () => {
+    return { success: false, msg: 'Runtime config changes not yet supported' };
+  });
+
   ipcBridge.conversation.getSlashCommands.provider(async ({ conversation_id }) => {
     try {
       const conversation = await conversationService.getConversation(conversation_id);

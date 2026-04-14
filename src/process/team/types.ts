@@ -26,6 +26,7 @@ export type MailboxMessage = {
   type: 'message' | 'idle_notification' | 'shutdown_request';
   content: string;
   summary?: string;
+  files?: string[];
   read: boolean;
   createdAt: number;
 };
@@ -56,21 +57,3 @@ export type IdleNotification = {
   completedTaskId?: string;
   failureReason?: string;
 };
-
-/** Platform capability flags used by the adapter layer */
-export type PlatformCapability = {
-  supportsToolUse: boolean;
-  supportsStreaming: boolean;
-};
-
-/**
- * Discriminated union of all structured actions an agent can emit.
- * Replaces the old `AssignTask` type.
- */
-export type ParsedAction =
-  | { type: 'send_message'; to: string; content: string; summary?: string }
-  | { type: 'task_create'; subject: string; description?: string; owner?: string }
-  | { type: 'task_update'; taskId: string; status?: string; owner?: string }
-  | { type: 'spawn_agent'; agentName: string; agentType?: string; role?: string }
-  | { type: 'idle_notification'; reason: string; summary: string; completedTaskId?: string }
-  | { type: 'plain_response'; content: string };

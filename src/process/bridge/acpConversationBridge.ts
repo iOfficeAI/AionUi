@@ -173,8 +173,9 @@ export function initAcpConversationBridge(workerTaskManager: IWorkerTaskManager)
     }
   });
 
-  // Get current session mode for ACP/Gemini agents
-  // 获取 ACP/Gemini 代理的当前会话模式
+  // Get current session mode for ACP, Gemini, and AionRS agents.
+  // Note: AionRS uses its own JSON Lines protocol (not ACP), but shares these IPC
+  // channels to avoid duplicating the mode switching UI pipeline.
   // Use getTaskById (cache-only) to avoid spawning a worker process on read-only queries
   ipcBridge.acpConversation.getMode.provider(({ conversationId }) => {
     const task = workerTaskManager.getTask(conversationId);
@@ -255,7 +256,6 @@ export function initAcpConversationBridge(workerTaskManager: IWorkerTaskManager)
       }
     }
   });
-
   // Set model for ACP agents
   // 设置 ACP 代理的模型
   ipcBridge.acpConversation.setModel.provider(async ({ conversationId, modelId }) => {
@@ -277,8 +277,9 @@ export function initAcpConversationBridge(workerTaskManager: IWorkerTaskManager)
     }
   });
 
-  // Set session mode for ACP/Gemini agents (claude, qwen, gemini, etc.)
-  // 设置 ACP/Gemini 代理的会话模式（claude、qwen、gemini 等）
+  // Set session mode for ACP, Gemini, and AionRS agents.
+  // Note: AionRS uses its own JSON Lines protocol (not ACP), but shares these IPC
+  // channels to avoid duplicating the mode switching UI pipeline.
   ipcBridge.acpConversation.setMode.provider(async ({ conversationId, mode }) => {
     try {
       const task = await workerTaskManager.getOrBuildTask(conversationId);

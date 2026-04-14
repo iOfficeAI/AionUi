@@ -20,6 +20,16 @@ import * as path from 'path';
 import semver from 'semver';
 import { autoUpdaterService } from '../services/autoUpdaterService';
 
+/** Lazily loads i18n to avoid pulling in initStorage chain at module load time */
+let _i18nCache: Promise<typeof import('../services/i18n')> | null = null;
+const getI18n = async () => {
+  if (!_i18nCache) {
+    _i18nCache = import('../services/i18n');
+  }
+  const m = await _i18nCache;
+  return m.default;
+};
+
 type GitHubReleaseApiAsset = {
   name: string;
   browser_download_url: string;
@@ -175,19 +185,19 @@ const resolveRepo = (requestRepo?: string): string => {
   return repo || DEFAULT_REPO;
 };
 
-const assertAllowedUrl = (rawUrl: string) => {
+const assertAllowedUrl = async (rawUrl: string) => {
   let parsed: URL;
   try {
     parsed = new URL(rawUrl);
   } catch {
-    throw new Error('Invalid download URL');
+    throw new Error((await getI18n()).t('update.errors.invalidUrl'));
   }
 
   if (parsed.protocol !== 'https:') {
-    throw new Error('Only https download URLs are allowed');
+    throw new Error((await getI18n()).t('update.errors.httpsOnly'));
   }
   if (!ALLOWED_DOWNLOAD_HOSTS.has(parsed.hostname)) {
-    throw new Error(`Download host not allowed: ${parsed.hostname}`);
+    throw new Error((await getI18n()).t('update.errors.hostNotAllowed', { host: parsed.hostname }));
   }
 };
 
@@ -195,7 +205,7 @@ const fetchWithAllowlistedRedirects = async (rawUrl: string, signal: AbortSignal
   let current = rawUrl;
 
   for (let i = 0; i <= MAX_REDIRECTS; i++) {
-    assertAllowedUrl(current);
+    await assertAllowedUrl(current);
 
     const res = await fetch(current, {
       signal,
@@ -208,7 +218,7 @@ const fetchWithAllowlistedRedirects = async (rawUrl: string, signal: AbortSignal
     if (res.status >= 300 && res.status < 400) {
       const location = res.headers.get('location');
       if (!location) {
-        throw new Error(`Redirect (${res.status}) missing location header`);
+        throw new Error((await getI18n()).t('update.errors.redirectNoLocation'));
       }
       current = new URL(location, current).toString();
       continue;
@@ -217,7 +227,7 @@ const fetchWithAllowlistedRedirects = async (rawUrl: string, signal: AbortSignal
     return res;
   }
 
-  throw new Error('Too many redirects while downloading');
+  throw new Error((await getI18n()).t('update.errors.tooManyRedirects'));
 };
 
 const fetchGitHubReleases = async (repo: string): Promise<GitHubReleaseApi[]> => {
@@ -237,18 +247,17 @@ const fetchGitHubReleases = async (repo: string): Promise<GitHubReleaseApi[]> =>
     });
 
     if (!res.ok) {
-      const body = await res.text().catch(() => '');
-      throw new Error(`GitHub releases request failed (${res.status}): ${body || res.statusText}`);
+      throw new Error((await getI18n()).t('update.errors.githubApiFailed', { status: res.status }));
     }
 
     const json = (await res.json()) as unknown;
     if (!Array.isArray(json)) {
-      throw new Error('GitHub releases response is not an array');
+      throw new Error((await getI18n()).t('update.errors.githubApiNotArray'));
     }
     return json as GitHubReleaseApi[];
   } catch (err: unknown) {
     if (err instanceof Error && err.name === 'AbortError') {
-      throw new Error('GitHub API request timed out (30s)', { cause: err });
+      throw new Error((await getI18n()).t('update.errors.githubApiTimeout'), { cause: err });
     }
     throw err;
   } finally {
@@ -349,8 +358,7 @@ const startDownloadInBackground = async (
     const res = await fetchWithAllowlistedRedirects(url, abortController.signal);
 
     if (!res.ok) {
-      const body = await res.text().catch(() => '');
-      throw new Error(`Download failed (${res.status}): ${body || res.statusText}`);
+      throw new Error((await getI18n()).t('update.errors.downloadFailed', { status: res.status }));
     }
 
     const contentLengthHeader = res.headers.get('content-length');
@@ -362,7 +370,7 @@ const startDownloadInBackground = async (
     }
 
     if (!res.body) {
-      throw new Error('Download response has no body');
+      throw new Error((await getI18n()).t('update.errors.downloadNoBody'));
     }
 
     stream = fs.createWriteStream(filePath);
@@ -495,16 +503,16 @@ export function initUpdateBridge(): void {
   );
 
   ipcBridge.update.download.provider(
-    (params: UpdateDownloadRequest): Promise<{ success: boolean; data?: UpdateDownloadResult; msg?: string }> => {
+    async (params: UpdateDownloadRequest): Promise<{ success: boolean; data?: UpdateDownloadResult; msg?: string }> => {
       try {
         if (!params?.url) {
-          return Promise.resolve({ success: false, msg: 'missing url' });
+          return { success: false, msg: (await getI18n()).t('update.errors.missingUrl') };
         }
 
         // Defense-in-depth: do not allow arbitrary downloads from renderer.
         // EN: We only allow GitHub release hosts (and follow redirects manually with per-hop allowlist checks).
         // 中文：仅允许 GitHub 相关下载域名，并手动处理重定向（每一跳都校验白名单）。
-        assertAllowedUrl(params.url);
+        await assertAllowedUrl(params.url);
 
         const downloadId = uuid();
         const abortController = new AbortController();

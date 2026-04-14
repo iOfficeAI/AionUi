@@ -70,7 +70,6 @@
   "tray.untitled": "Без названия",
   "fileAttach.hostFiles": "Файлы хоста",
   "fileAttach.myDevice": "Моё устройство",
-  "fileAttach.tooLarge": "Файл превышает лимит {{max}} МБ",
   "fileAttach.failed": "Ошибка загрузки",
   "fileAttach.uploading": "Загрузка...",
   "fileAttach.uploadSuccess": "Загружено успешно",
@@ -82,5 +81,7 @@
   "import": "Импорт",
   "processing": "Обработка...",
   "optional": "(необязательно)",
-  "clear": "Очистить"
+  "clear": "Очистить",
+  "historyBack": "Назад",
+  "agentMode": "Режим агента"
 }

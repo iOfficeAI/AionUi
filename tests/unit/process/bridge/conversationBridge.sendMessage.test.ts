@@ -30,6 +30,7 @@ vi.mock('@/common', () => ({
       get: mockProvider('conversation.get'),
       getWorkspace: mockProvider('conversation.getWorkspace'),
       stop: mockProvider('conversation.stop'),
+      setConfig: mockProvider('conversation.setConfig'),
       getSlashCommands: mockProvider('conversation.getSlashCommands'),
       askSideQuestion: mockProvider('conversation.askSideQuestion'),
       sendMessage: mockProvider('conversation.sendMessage'),

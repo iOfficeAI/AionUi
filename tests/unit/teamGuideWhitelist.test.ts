@@ -3,71 +3,87 @@
  * Copyright 2025 AionUi (aionui.com)
  * SPDX-License-Identifier: Apache-2.0
  *
- * Tests for the team guide MCP injection whitelist filter and prompt wording.
- * Covers: which agent backends get the Aion team guide MCP injected,
- * which are excluded, and the solo-vs-team guardrails in the prompt.
+ * Tests for the team guide MCP injection capability check and prompt wording.
+ * Covers: which agent backends get the Aion team guide MCP injected based on
+ * cached ACP initialize results, which are excluded, and the solo-vs-team
+ * guardrails in the prompt.
  *
- * Target module: src/process/resources/prompts/teamGuidePrompt.ts
- * (or wherever shouldInjectTeamGuideMcp / TEAM_GUIDE_MCP_WHITELIST is exported from)
+ * Target module: src/process/team/prompts/teamGuidePrompt.ts
  */
 
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, vi } from 'vitest';
 
-// ------------------------------------------------------------------
-// Import the whitelist predicate once the module exists.
-// The function signature expected by these tests:
-//   shouldInjectTeamGuideMcp(backend: string): boolean
-// ------------------------------------------------------------------
-import {
-  getCreateTeamToolDescription,
-  getTeamGuidePrompt,
-  shouldInjectTeamGuideMcp,
-} from '../../src/process/resources/prompts/teamGuidePrompt';
+// Mock ProcessConfig to return cached init results for claude, codex (gemini is always team-capable)
+vi.mock('@process/utils/initStorage', () => ({
+  ProcessConfig: {
+    get: vi.fn(async (key: string) => {
+      if (key === 'acp.cachedInitializeResult') {
+        const makeEntry = () => ({
+          protocolVersion: 1,
+          capabilities: {
+            loadSession: false,
+            promptCapabilities: { image: false, audio: false, embeddedContext: false },
+            mcpCapabilities: { stdio: true, http: false, sse: false },
+            sessionCapabilities: { fork: null, resume: null, list: null, close: null },
+            _meta: {},
+          },
+          agentInfo: null,
+          authMethods: [],
+        });
+        return { claude: makeEntry(), codex: makeEntry() };
+      }
+      return null;
+    }),
+  },
+}));
 
-describe('team guide MCP injection whitelist', () => {
+import { getCreateTeamToolDescription, getTeamGuidePrompt } from '../../src/process/team/prompts/teamGuidePrompt';
+import { shouldInjectTeamGuideMcp } from '../../src/process/team/prompts/teamGuideCapability';
+
+describe('team guide MCP injection capability check', () => {
   describe('allowed backends — should inject team guide MCP', () => {
-    it('injects for claude backend', () => {
-      expect(shouldInjectTeamGuideMcp('claude')).toBe(true);
+    it('injects for claude backend (known team-capable)', async () => {
+      expect(await shouldInjectTeamGuideMcp('claude')).toBe(true);
     });
 
-    it('injects for codex backend', () => {
-      expect(shouldInjectTeamGuideMcp('codex')).toBe(true);
+    it('injects for codex backend (known team-capable)', async () => {
+      expect(await shouldInjectTeamGuideMcp('codex')).toBe(true);
     });
 
-    it('injects for gemini backend', () => {
-      expect(shouldInjectTeamGuideMcp('gemini')).toBe(true);
+    it('injects for gemini backend (known team-capable)', async () => {
+      expect(await shouldInjectTeamGuideMcp('gemini')).toBe(true);
     });
   });
 
   describe('blocked backends — should NOT inject team guide MCP', () => {
-    it('does not inject for qwen backend', () => {
-      expect(shouldInjectTeamGuideMcp('qwen')).toBe(false);
+    it('does not inject for qwen backend (no cached init result)', async () => {
+      expect(await shouldInjectTeamGuideMcp('qwen')).toBe(false);
     });
 
-    it('does not inject for opencode backend', () => {
-      expect(shouldInjectTeamGuideMcp('opencode')).toBe(false);
+    it('does not inject for opencode backend (no cached init result)', async () => {
+      expect(await shouldInjectTeamGuideMcp('opencode')).toBe(false);
     });
 
-    it('does not inject for iflow backend', () => {
-      expect(shouldInjectTeamGuideMcp('iflow')).toBe(false);
+    it('does not inject for iflow backend (no cached init result)', async () => {
+      expect(await shouldInjectTeamGuideMcp('iflow')).toBe(false);
     });
 
-    it('does not inject for aionrs backend', () => {
-      expect(shouldInjectTeamGuideMcp('aionrs')).toBe(false);
+    it('does not inject for aionrs backend (no cached init result)', async () => {
+      expect(await shouldInjectTeamGuideMcp('aionrs')).toBe(false);
     });
 
-    it('does not inject for cursor backend', () => {
-      expect(shouldInjectTeamGuideMcp('cursor')).toBe(false);
+    it('does not inject for cursor backend (no cached init result)', async () => {
+      expect(await shouldInjectTeamGuideMcp('cursor')).toBe(false);
     });
   });
 
   describe('edge cases', () => {
-    it('does not inject for unknown backend', () => {
-      expect(shouldInjectTeamGuideMcp('unknown-backend')).toBe(false);
+    it('does not inject for unknown backend', async () => {
+      expect(await shouldInjectTeamGuideMcp('unknown-backend')).toBe(false);
     });
 
-    it('does not inject for empty string', () => {
-      expect(shouldInjectTeamGuideMcp('')).toBe(false);
+    it('does not inject for empty string', async () => {
+      expect(await shouldInjectTeamGuideMcp('')).toBe(false);
     });
   });
 

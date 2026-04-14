@@ -71,7 +71,6 @@
   "tray.untitled": "未命名",
   "fileAttach.hostFiles": "服务器文件",
   "fileAttach.myDevice": "我的设备",
-  "fileAttach.tooLarge": "文件超过 {{max}}MB 限制",
   "fileAttach.failed": "上传失败",
   "fileAttach.uploading": "上传中...",
   "fileAttach.uploadSuccess": "上传成功",

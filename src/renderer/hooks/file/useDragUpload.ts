@@ -8,7 +8,7 @@ import { useCallback, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Message } from '@arco-design/web-react';
 import type { FileMetadata } from '@renderer/services/FileService';
-import { isSupportedFile, FileService, MAX_UPLOAD_SIZE_MB } from '@renderer/services/FileService';
+import { isSupportedFile, FileService } from '@renderer/services/FileService';
 
 export interface UseDragUploadOptions {
   supportedExts?: string[];
@@ -96,12 +96,8 @@ export const useDragUpload = ({ supportedExts = [], onFilesAdded, conversationId
           }
         }
       } catch (err) {
-        if (err instanceof Error && err.message === 'FILE_TOO_LARGE') {
-          Message.error(t('common.fileAttach.tooLarge', { max: MAX_UPLOAD_SIZE_MB }));
-        } else {
-          console.error('Failed to process dropped files:', err);
-          Message.error(t('conversation.workspace.dragFailed', 'Failed to process dropped files'));
-        }
+        console.error('Failed to process dropped files:', err);
+        Message.error(t('conversation.workspace.dragFailed', 'Failed to process dropped files'));
       }
     },
     [conversationId, onFilesAdded, supportedExts, t]

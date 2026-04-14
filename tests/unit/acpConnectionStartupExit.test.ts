@@ -27,7 +27,6 @@ vi.mock('@process/utils/shellEnv', () => ({
 
 const mockSpawnGenericBackend = vi.fn();
 vi.mock('@process/agent/acp/acpConnectors', () => ({
-  ACP_PERF_LOG: false,
   spawnGenericBackend: (...args: unknown[]) => mockSpawnGenericBackend(...args),
   connectClaude: vi.fn(),
   connectCodebuddy: vi.fn(),

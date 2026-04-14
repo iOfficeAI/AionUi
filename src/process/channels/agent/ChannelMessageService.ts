@@ -205,7 +205,8 @@ export class ChannelMessageService {
         (dbResult.data?.source === 'lark' ||
           dbResult.data?.source === 'telegram' ||
           dbResult.data?.source === 'dingtalk' ||
-          dbResult.data?.source === 'weixin');
+          dbResult.data?.source === 'weixin' ||
+          dbResult.data?.source === 'wecom');
 
       task = await workerTaskManager.getOrBuildTask(conversationId, {
         yoloMode: isFromChannel,

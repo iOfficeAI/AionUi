@@ -74,6 +74,7 @@ export type AcpBackendAll =
   | 'cursor' // Cursor AI Agent CLI
   | 'kiro' // Kiro CLI (AWS)
   | 'hermes' // Hermes Agent CLI (Nous Research)
+  | 'snow' // Snow AI CLI
   | 'remote' // Remote agent (WebSocket, no local CLI)
   | 'aionrs' // Aion CLI agent (Rust binary, JSON Lines protocol)
   | 'custom'; // User-configured custom ACP agent
@@ -520,6 +521,15 @@ export const ACP_BACKENDS_ALL: Record<AcpBackendAll, AcpBackendConfig> = {
     supportsStreaming: false,
     acpArgs: ['acp'], // hermes 使用 acp 子命令
   },
+  snow: {
+    id: 'snow',
+    name: 'Snow AI',
+    cliCommand: 'snow',
+    authRequired: false,
+    enabled: true,
+    supportsStreaming: false,
+    acpArgs: ['--acp'],
+  },
   remote: {
     id: 'remote',
     name: 'Remote Agent',
@@ -667,6 +677,171 @@ export interface AcpNotification {
   jsonrpc: typeof JSONRPC_VERSION;
   method: string;
   params?: Record<string, unknown> | unknown[];
+}
+
+// ── Initialize response types (from ACP spec) ──────────────────────────
+
+/**
+ * Prompt content types the agent can accept.
+ * Per ACP spec, omitted fields default to false.
+ */
+export type AcpPromptCapabilities = {
+  image: boolean;
+  audio: boolean;
+  embeddedContext: boolean;
+};
+
+/**
+ * MCP transport types the agent supports.
+ * stdio is mandatory per ACP spec IF the agent declares mcpCapabilities at all.
+ * If mcpCapabilities is absent from the initialize response, all transports are false.
+ */
+export type AcpMcpCapabilities = {
+  stdio: boolean;
+  http: boolean;
+  sse: boolean;
+};
+
+/**
+ * Session operations the agent supports.
+ * Per ACP spec, key presence (e.g. `{ fork: {} }`) indicates support;
+ * values are `{}` reserved for future extension.
+ * null = unsupported (key was omitted in the response).
+ */
+export type AcpSessionCapabilities = {
+  fork: Record<string, unknown> | null;
+  resume: Record<string, unknown> | null;
+  list: Record<string, unknown> | null;
+  close: Record<string, unknown> | null;
+};
+
+/**
+ * Parsed agent capabilities from the initialize response.
+ * Field names match the ACP protocol wire format to avoid confusion.
+ * All fields have safe defaults — no undefined checks needed by callers.
+ */
+export type AcpAgentCapabilities = {
+  loadSession: boolean;
+  promptCapabilities: AcpPromptCapabilities;
+  mcpCapabilities: AcpMcpCapabilities;
+  sessionCapabilities: AcpSessionCapabilities;
+  /** Backend-specific metadata (_meta from agentCapabilities) */
+  _meta: Record<string, unknown>;
+};
+
+/** Agent identity info from initialize response. */
+export type AcpAgentInfo = {
+  name: string;
+  version: string;
+  title?: string;
+};
+
+/**
+ * Authentication method descriptor from initialize response.
+ * Backends may extend this with extra fields (e.g. `type`, `vars`).
+ */
+export type AcpAuthMethod = {
+  id: string;
+  name: string;
+  description?: string;
+  /** Extended fields — e.g. Codex uses `type: "env_var"` and `vars` */
+  [key: string]: unknown;
+};
+
+/**
+ * Fully parsed initialize response (the `result` from JSON-RPC).
+ * Consolidates all top-level fields per ACP initialization spec.
+ */
+export type AcpInitializeResult = {
+  protocolVersion: number;
+  capabilities: AcpAgentCapabilities;
+  agentInfo: AcpAgentInfo | null;
+  authMethods: AcpAuthMethod[];
+};
+
+function isRecord(v: unknown): v is Record<string, unknown> {
+  return v !== null && typeof v === 'object' && !Array.isArray(v);
+}
+
+function toBool(v: unknown): boolean {
+  return v === true;
+}
+
+function parseAgentCapabilitiesObject(raw: unknown): AcpAgentCapabilities {
+  const caps = isRecord(raw) ? raw : null;
+
+  const prompt = caps && isRecord(caps.promptCapabilities) ? caps.promptCapabilities : null;
+  const mcp = caps && isRecord(caps.mcpCapabilities) ? caps.mcpCapabilities : null;
+  const session = caps && isRecord(caps.sessionCapabilities) ? caps.sessionCapabilities : null;
+  const meta = caps && isRecord(caps._meta) ? (caps._meta as Record<string, unknown>) : {};
+
+  return {
+    loadSession: toBool(caps?.loadSession),
+    promptCapabilities: {
+      image: toBool(prompt?.image),
+      audio: toBool(prompt?.audio),
+      embeddedContext: toBool(prompt?.embeddedContext),
+    },
+    mcpCapabilities: {
+      // stdio is mandatory per ACP spec — but only if the agent declares mcpCapabilities at all.
+      // If mcpCapabilities is entirely absent, the agent does not support MCP.
+      stdio: mcp !== null,
+      http: toBool(mcp?.http),
+      sse: toBool(mcp?.sse),
+    },
+    sessionCapabilities: {
+      fork: isRecord(session?.fork) ? (session.fork as Record<string, unknown>) : null,
+      resume: isRecord(session?.resume) ? (session.resume as Record<string, unknown>) : null,
+      list: isRecord(session?.list) ? (session.list as Record<string, unknown>) : null,
+      close: isRecord(session?.close) ? (session.close as Record<string, unknown>) : null,
+    },
+    _meta: meta,
+  };
+}
+
+function parseAgentInfo(raw: unknown): AcpAgentInfo | null {
+  if (!isRecord(raw)) return null;
+  const name = typeof raw.name === 'string' ? raw.name : '';
+  const version = typeof raw.version === 'string' ? raw.version : '';
+  if (!name && !version) return null;
+  return {
+    name,
+    version,
+    ...(typeof raw.title === 'string' && { title: raw.title }),
+  };
+}
+
+function parseAuthMethods(raw: unknown): AcpAuthMethod[] {
+  if (!Array.isArray(raw)) return [];
+  return raw.filter(
+    (item): item is AcpAuthMethod => isRecord(item) && typeof item.id === 'string' && typeof item.name === 'string'
+  );
+}
+
+/**
+ * Parse the raw initialize result (unwrapped from JSON-RPC `result` field)
+ * into a fully structured AcpInitializeResult.
+ *
+ * Follows ACP spec: omitted capabilities are treated as unsupported (false).
+ */
+export function parseInitializeResult(raw: unknown): AcpInitializeResult {
+  const result = isRecord(raw) ? raw : null;
+
+  return {
+    protocolVersion: typeof result?.protocolVersion === 'number' ? result.protocolVersion : 0,
+    capabilities: parseAgentCapabilitiesObject(result?.agentCapabilities),
+    agentInfo: parseAgentInfo(result?.agentInfo),
+    authMethods: parseAuthMethods(result?.authMethods),
+  };
+}
+
+/**
+ * Parse raw initialize result into structured AcpAgentCapabilities only.
+ * Convenience wrapper — use parseInitializeResult() for full response.
+ */
+export function parseAgentCapabilities(raw: unknown): AcpAgentCapabilities {
+  const result = isRecord(raw) ? raw : null;
+  return parseAgentCapabilitiesObject(result?.agentCapabilities);
 }
 
 // 所有会话更新的基础接口 / Base interface for all session updates

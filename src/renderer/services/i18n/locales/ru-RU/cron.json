@@ -61,6 +61,7 @@
     "createSuccess": "Задача успешно создана",
     "updateSuccess": "Задача успешно обновлена",
     "scheduleHint": "Запланированные задачи используют случайную задержку в несколько минут для производительности сервера.",
+    "customCronWarning": "У этой задачи есть пользовательское расписание, которое нельзя изменить здесь. При изменении частоты текущее расписание будет заменено.",
     "weekday": {
       "monday": "Понедельник",
       "tuesday": "Вторник",
@@ -96,7 +97,14 @@
       "existingConversation": "Продолжающийся диалог",
       "newConversationHint": "Начинать заново при каждом запуске",
       "existingConversationHint": "Продолжать в одном диалоге",
-      "executionModeEditHint": "Режим выполнения нельзя изменить после создания. Удалите и создайте задачу заново для смены режима."
+      "executionModeEditHint": "Режим выполнения нельзя изменить после создания. Удалите и создайте задачу заново для смены режима.",
+      "advancedSettings": "Расширенные настройки",
+      "workspace": "Рабочая область",
+      "workspacePlaceholder": "Выберите рабочую область",
+      "workspaceHint": "[Optional: set a workspace folder for file operations]",
+      "selectFolder": "[Select Folder]",
+      "clearFolder": "[Clear]",
+      "model": "[Model]"
     },
     "freq": {
       "manual": "Вручную",
@@ -104,7 +112,7 @@
       "daily": "Ежедневно",
       "weekdays": "По будням",
       "weekly": "Еженедельно",
-      "custom": "Пользовательский cron..."
+      "custom": "Пользовательский"
     },
     "scheduleDesc": {
       "manual": "Вручную",

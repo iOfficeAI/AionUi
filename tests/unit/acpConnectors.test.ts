@@ -262,7 +262,7 @@ describe('connectCodex - Windows diagnostics', () => {
     }
   });
 
-  it('uses shell execution for codex.cmd probes on Windows', async () => {
+  it('spawns Codex via shell execution on Windows', async () => {
     Object.defineProperty(process, 'platform', { value: 'win32', configurable: true });
 
     const setup = vi.fn().mockResolvedValue(undefined);
@@ -270,27 +270,14 @@ describe('connectCodex - Windows diagnostics', () => {
 
     await connectCodex('C:\\cwd', { setup, cleanup });
 
-    expect(mockExecFile).toHaveBeenNthCalledWith(
-      1,
-      expect.stringMatching(/cmd\.exe$/i),
-      ['/d', '/s', '/c', 'codex.cmd --version'],
+    expect(mockSpawn).toHaveBeenCalledWith(
+      'chcp 65001 >nul && npx',
+      expect.arrayContaining(['--yes', '--prefer-offline', '@zed-industries/codex-acp-win32-x64@0.9.5']),
       expect.objectContaining({
+        cwd: 'C:\\cwd',
         env: { PATH: '/usr/bin' },
-        timeout: 5000,
-        windowsHide: true,
-      }),
-      expect.any(Function)
-    );
-    expect(mockExecFile).toHaveBeenNthCalledWith(
-      2,
-      expect.stringMatching(/cmd\.exe$/i),
-      ['/d', '/s', '/c', 'codex.cmd login status'],
-      expect.objectContaining({
-        env: { PATH: '/usr/bin' },
-        timeout: 5000,
-        windowsHide: true,
-      }),
-      expect.any(Function)
+        shell: true,
+      })
     );
     expect(setup).toHaveBeenCalledTimes(1);
     expect(cleanup).not.toHaveBeenCalled();

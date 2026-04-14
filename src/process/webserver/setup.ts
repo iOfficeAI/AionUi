@@ -92,7 +92,7 @@ export function setupBasicMiddleware(app: Express): void {
   const csrfProtection = csrf(
     CSRF_SECRET,
     ['POST', 'PUT', 'DELETE', 'PATCH'], // Protected methods
-    ['/login', '/api/auth/qr-login', '/api/upload'], // Excluded: login form, QR login, and file upload (uses API token auth)
+    ['/login', '/api/auth/qr-login', '/api/upload', '/channels/wecom/webhook'], // Excluded: login form, QR login, file upload (API token), WeCom server callback (signed by WeCom)
     [] // No service worker URLs
   );
   app.use((req, res, next) => {

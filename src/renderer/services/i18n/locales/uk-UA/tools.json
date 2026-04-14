@@ -1,0 +1,69 @@
+{
+  "unknownFile": "Невідомий файл",
+  "newFile": "Новий файл",
+  "deletedFile": "Видалений файл",
+  "modified": "Змінено",
+  "fileChanges": "Зміни у файлах",
+  "shell": {
+    "displayName": "Команда Shell",
+    "description": "Виконання команд оболонки"
+  },
+  "fileOps": {
+    "displayName": "Операції з файлами",
+    "description": "Читання, запис та модифікація файлів"
+  },
+  "webSearch": {
+    "displayName": "Пошук у веб",
+    "description": "Пошук вебконтенту"
+  },
+  "mcp": {
+    "generic": {
+      "displayName": "Інструмент MCP: {{toolName}}",
+      "description": "Виклик інструменту MCP: {{toolName}}"
+    }
+  },
+  "unknown": {
+    "displayName": "Невідомий інструмент",
+    "description": "Невідомий тип інструменту"
+  },
+  "status": {
+    "pending": "Очікує",
+    "executing": "Виконується",
+    "success": "Успішно",
+    "error": "Помилка",
+    "canceled": "Скасовано"
+  },
+  "titles": {
+    "web_search_started": "Пошук у веб розпочато",
+    "web_search_completed": "Пошук у веб завершено",
+    "web_search": "Пошук у веб",
+    "applying_patch": "Застосування патчу",
+    "patch_applied": "Патч застосовано",
+    "file_patch": "Патч файлу",
+    "mcp_tool_starting": "Інструмент MCP: {{toolName}} (запуск)",
+    "mcp_tool": "Інструмент MCP: {{toolName}}",
+    "execute_command": "Виконати: {{command}}",
+    "command_output": "Вивід команди",
+    "command_completed": "Команду завершено",
+    "shell_command": "Команда Shell"
+  },
+  "labels": {
+    "search_query": "Пошуковий запит:",
+    "file_changes": "Зміни у файлах:",
+    "tool_details": "Деталі інструменту:",
+    "tool": "Інструмент",
+    "arguments": "Аргументи:",
+    "result": "Результат:",
+    "command": "Команда:",
+    "working_directory": "Робоча директорія:",
+    "exit_code": "Вихід: {{code}}",
+    "duration": "Тривалість: {{seconds}} с",
+    "auto_approved": "Схвалено автоматично",
+    "manual_approval": "Ручне схвалення"
+  },
+  "actions": {
+    "create": "створити",
+    "modify": "змінити",
+    "delete": "видалити"
+  }
+}

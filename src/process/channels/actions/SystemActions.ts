@@ -75,7 +75,9 @@ export async function getChannelDefaultModel(platform: PluginType): Promise<TPro
           ? await ProcessConfig.get('assistant.dingtalk.defaultModel')
           : platform === 'weixin'
             ? await ProcessConfig.get('assistant.weixin.defaultModel')
-            : await ProcessConfig.get('assistant.telegram.defaultModel');
+            : platform === 'wecom'
+              ? await ProcessConfig.get('assistant.wecom.defaultModel')
+              : await ProcessConfig.get('assistant.telegram.defaultModel');
     if (savedModel?.id && savedModel?.useModel) {
       if (savedModel.id === GOOGLE_AUTH_PROVIDER_ID) {
         // Google OAuth credentials are stored locally by Gemini CLI (~/.gemini/oauth_creds.json).
@@ -229,7 +231,15 @@ export const handleSessionNew: ActionHandler = async (context) => {
 
   const platform = context.platform;
   const source =
-    platform === 'lark' ? 'lark' : platform === 'dingtalk' ? 'dingtalk' : platform === 'weixin' ? 'weixin' : 'telegram';
+    platform === 'lark'
+      ? 'lark'
+      : platform === 'dingtalk'
+        ? 'dingtalk'
+        : platform === 'weixin'
+          ? 'weixin'
+          : platform === 'wecom'
+            ? 'wecom'
+            : 'telegram';
 
   // Selected agent (defaults to Gemini)
   let savedAgent: unknown = undefined;
@@ -240,7 +250,9 @@ export const handleSessionNew: ActionHandler = async (context) => {
         ? ProcessConfig.get('assistant.dingtalk.agent')
         : platform === 'weixin'
           ? ProcessConfig.get('assistant.weixin.agent')
-          : ProcessConfig.get('assistant.telegram.agent'));
+          : platform === 'wecom'
+            ? ProcessConfig.get('assistant.wecom.agent')
+            : ProcessConfig.get('assistant.telegram.agent'));
   } catch {
     // ignore
   }

@@ -334,6 +334,10 @@ export class GeminiAgent {
   private async initialize(): Promise<void> {
     const path = this.workspace;
 
+    if (!path) {
+      throw new Error('GeminiAgent workspace is empty — cannot initialize without a valid workspace path');
+    }
+
     // Ensure workspace directory exists before loading config.
     // The temp directory created by buildWorkspaceWidthFiles may have been removed
     // by OS cleanup or antivirus before the worker process starts initialization.

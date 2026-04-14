@@ -372,7 +372,6 @@ export const useGuidAgentSelection = ({
       cancelled = true;
     };
   }, [selectedAgentKey]);
-
   const currentEffectiveAgentInfo = useMemo(() => {
     if (!isPresetAgent) {
       const isAvailable = isMainAgentAvailable(selectedAgent as string);
