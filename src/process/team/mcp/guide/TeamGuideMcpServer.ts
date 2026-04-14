@@ -25,13 +25,6 @@ import { getConversationTypeForBackend } from '@/common/utils/buildAgentConversa
 import { getDatabase } from '@process/services/database';
 import { writeTcpMessage, createTcpMessageReader, resolveMcpScriptDir } from '../tcpHelpers';
 
-/** Allowed route patterns that aion_navigate may redirect to */
-const ALLOWED_ROUTE_PATTERNS: RegExp[] = [/^\/team\/[a-zA-Z0-9_-]+$/, /^\/conversation\/[a-zA-Z0-9_-]+$/];
-
-function isAllowedRoute(route: string): boolean {
-  return ALLOWED_ROUTE_PATTERNS.some((pattern) => pattern.test(route));
-}
-
 /**
  * Singleton in-process MCP server for Aion team management tools.
  * Uses TCP transport + a stdio bridge script, same as TeamMcpServer.
