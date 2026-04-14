@@ -199,7 +199,7 @@ export class TeammateManager extends EventEmitter {
       }
 
       console.log(
-        `[TeammateManager] wake(${agent.agentName}): sendPrompt type=${needsFullPrompt ? 'full' : 'messages-only'}, length=${message.length}, preview=${JSON.stringify(message.slice(0, 200))}`,
+        `[TeammateManager] wake(${agent.agentName}): sendPrompt type=${needsFullPrompt ? 'full' : 'messages-only'}, length=${message.length}, preview=${JSON.stringify(message.slice(0, 200))}`
       );
 
       const agentTask = await this.workerTaskManager.getOrBuildTask(agent.conversationId);
