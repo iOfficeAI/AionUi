@@ -316,77 +316,74 @@ export const useGuidAgentSelection = ({
     return effectiveBackend === 'codex' || effectiveBackend === 'claude' ? effectiveBackend : null;
   }, [currentEffectiveAgentInfo.agentType, isPresetAgent, selectedAgentKey]);
 
-  const refreshProbeModelInfo = useCallback(
-    async (backend: 'claude' | 'codex', options?: { force?: boolean }) => {
-      const force = options?.force ?? false;
-      const shouldReuseCachedProbe = backend !== 'claude' && !force;
+  const refreshProbeModelInfo = useCallback(async (backend: 'claude' | 'codex', options?: { force?: boolean }) => {
+    const force = options?.force ?? false;
+    const shouldReuseCachedProbe = backend !== 'claude' && !force;
 
-      if (shouldReuseCachedProbe && probedModelBackendsRef.current.has(backend)) {
-        return;
-      }
-      if (probingModelBackendsRef.current.has(backend)) {
-        return;
-      }
+    if (shouldReuseCachedProbe && probedModelBackendsRef.current.has(backend)) {
+      return;
+    }
+    if (probingModelBackendsRef.current.has(backend)) {
+      return;
+    }
 
-      probingModelBackendsRef.current.add(backend);
-      if (shouldReuseCachedProbe) {
-        probedModelBackendsRef.current.add(backend);
-      }
+    probingModelBackendsRef.current.add(backend);
+    if (shouldReuseCachedProbe) {
+      probedModelBackendsRef.current.add(backend);
+    }
 
-      try {
-        const result = await ipcBridge.acpConversation.probeModelInfo.invoke({ backend });
-        if (!isMountedRef.current) return;
+    try {
+      const result = await ipcBridge.acpConversation.probeModelInfo.invoke({ backend });
+      if (!isMountedRef.current) return;
 
-        const modelInfo = result.success ? result.data?.modelInfo : null;
-        if (!modelInfo?.availableModels?.length) {
-          if (shouldReuseCachedProbe) {
-            probedModelBackendsRef.current.delete(backend);
-          }
-          return;
-        }
-
-        console.log(`[Guid][${backend}] Probed model info:`, modelInfo);
-
-        let hasChanged = false;
-        setAcpCachedModels((prev) => {
-          if (isSameModelInfo(prev[backend], modelInfo)) {
-            return prev;
-          }
-          hasChanged = true;
-          return {
-            ...prev,
-            [backend]: modelInfo,
-          };
-        });
-
-        if (!hasChanged) {
-          return;
-        }
-
-        const cached =
-          ((await ConfigStorage.get('acp.cachedModels').catch(() => ({}))) as Record<string, AcpModelInfo>) || {};
-        if (!isMountedRef.current) return;
-        if (isSameModelInfo(cached?.[backend], modelInfo)) {
-          return;
-        }
-
-        await ConfigStorage.set('acp.cachedModels', {
-          ...cached,
-          [backend]: modelInfo,
-        }).catch((error) => {
-          console.error('Failed to save probed ACP model info:', error);
-        });
-      } catch (error) {
+      const modelInfo = result.success ? result.data?.modelInfo : null;
+      if (!modelInfo?.availableModels?.length) {
         if (shouldReuseCachedProbe) {
           probedModelBackendsRef.current.delete(backend);
         }
-        console.warn(`[Guid][${backend}] Failed to probe model info:`, error);
-      } finally {
-        probingModelBackendsRef.current.delete(backend);
+        return;
       }
-    },
-    []
-  );
+
+      console.log(`[Guid][${backend}] Probed model info:`, modelInfo);
+
+      let hasChanged = false;
+      setAcpCachedModels((prev) => {
+        if (isSameModelInfo(prev[backend], modelInfo)) {
+          return prev;
+        }
+        hasChanged = true;
+        return {
+          ...prev,
+          [backend]: modelInfo,
+        };
+      });
+
+      if (!hasChanged) {
+        return;
+      }
+
+      const cached =
+        ((await ConfigStorage.get('acp.cachedModels').catch(() => ({}))) as Record<string, AcpModelInfo>) || {};
+      if (!isMountedRef.current) return;
+      if (isSameModelInfo(cached?.[backend], modelInfo)) {
+        return;
+      }
+
+      await ConfigStorage.set('acp.cachedModels', {
+        ...cached,
+        [backend]: modelInfo,
+      }).catch((error) => {
+        console.error('Failed to save probed ACP model info:', error);
+      });
+    } catch (error) {
+      if (shouldReuseCachedProbe) {
+        probedModelBackendsRef.current.delete(backend);
+      }
+      console.warn(`[Guid][${backend}] Failed to probe model info:`, error);
+    } finally {
+      probingModelBackendsRef.current.delete(backend);
+    }
+  }, []);
 
   // Probe account-scoped model info on first selection so the Guid page can
   // show the local default before the first conversation starts.
