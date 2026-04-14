@@ -85,6 +85,12 @@ export class AionrsManager extends BaseAgentManager<AionrsManagerData, string> {
   private thinkingDbFlushTimer: ReturnType<typeof setTimeout> | null = null;
   private readonly streamDbFlushIntervalMs: number = 120;
 
+  // Stream text DB write buffer
+  private readonly bufferedStreamTexts = new Map<
+    string,
+    { message: Extract<TMessage, { type: 'text' }>; timer: ReturnType<typeof setTimeout> }
+  >();
+
   constructor(data: AionrsManagerData, model: TProviderWithModel) {
     super('aionrs', { ...data, model }, new IpcAgentEventEmitter());
     this.workspace = data.workspace;
@@ -135,6 +141,7 @@ export class AionrsManager extends BaseAgentManager<AionrsManagerData, string> {
 
   async stop() {
     this.clearMissingFinishFallback();
+    this.flushAllBufferedStreamTexts();
     cronBusyGuard.setProcessing(this.conversation_id, false);
     // Inject history BEFORE stopping so the command reaches the running process
     await this.injectHistoryFromDatabase();
@@ -291,6 +298,49 @@ export class AionrsManager extends BaseAgentManager<AionrsManagerData, string> {
     this.thinkingMsgId = null;
     this.thinkingStartTime = null;
     this.thinkingContent = '';
+  }
+
+  private queueBufferedStreamText(message: Extract<TMessage, { type: 'text' }>): void {
+    const key = `${message.conversation_id}:${message.msg_id || message.id}`;
+    const existing = this.bufferedStreamTexts.get(key);
+    if (existing) {
+      this.bufferedStreamTexts.set(key, {
+        ...existing,
+        message: {
+          ...existing.message,
+          content: {
+            ...existing.message.content,
+            content: existing.message.content.content + message.content.content,
+          },
+        },
+      });
+      return;
+    }
+
+    const timer = setTimeout(() => {
+      this.flushBufferedStreamText(key);
+    }, this.streamDbFlushIntervalMs);
+
+    this.bufferedStreamTexts.set(key, {
+      message: { ...message, content: { ...message.content } },
+      timer,
+    });
+  }
+
+  private flushBufferedStreamText(key: string): void {
+    const buffered = this.bufferedStreamTexts.get(key);
+    if (!buffered) return;
+    clearTimeout(buffered.timer);
+    this.bufferedStreamTexts.delete(key);
+    addOrUpdateMessage(this.conversation_id, buffered.message, 'aionrs');
+  }
+
+  private flushAllBufferedStreamTexts(): void {
+    if (this.bufferedStreamTexts.size === 0) return;
+    const keys = Array.from(this.bufferedStreamTexts.keys());
+    for (const key of keys) {
+      this.flushBufferedStreamText(key);
+    }
   }
 
   private notifyTurnCompletion(): void {
@@ -452,7 +502,13 @@ export class AionrsManager extends BaseAgentManager<AionrsManagerData, string> {
       if (!skipTransformTypes.includes(processedData.type)) {
         const tMessage = transformMessage(processedData as IResponseMessage);
         if (tMessage) {
-          addOrUpdateMessage(this.conversation_id, tMessage, 'aionrs');
+          const isStreamTextChunk = tMessage.type === 'text' && processedData.type === 'content';
+          if (isStreamTextChunk) {
+            this.queueBufferedStreamText(tMessage as Extract<TMessage, { type: 'text' }>);
+          } else {
+            this.flushAllBufferedStreamTexts();
+            addOrUpdateMessage(this.conversation_id, tMessage, 'aionrs');
+          }
           if (tMessage.type === 'tool_group') {
             this.handleConformationMessage(tMessage);
           }
@@ -466,6 +522,7 @@ export class AionrsManager extends BaseAgentManager<AionrsManagerData, string> {
 
   private async handleTurnEnd(): Promise<void> {
     cronBusyGuard.setProcessing(this.conversation_id, false);
+    this.flushAllBufferedStreamTexts();
 
     // Finalize thinking if still active
     if (this.thinkingMsgId) {
