@@ -22,68 +22,13 @@ import type { StdioMcpConfig } from '@process/team/TeamMcpServer';
 import { isTeamCapableBackend } from '@/common/types/teamTypes';
 import { ProcessConfig } from '@process/utils/initStorage';
 import { getConversationTypeForBackend } from '@/common/utils/buildAgentConversationParams';
+import { writeTcpMessage, createTcpMessageReader, resolveMcpScriptDir } from '@process/team/mcp/tcpHelpers';
 
 /** Allowed route patterns that aion_navigate may redirect to */
 const ALLOWED_ROUTE_PATTERNS: RegExp[] = [/^\/team\/[a-zA-Z0-9_-]+$/, /^\/conversation\/[a-zA-Z0-9_-]+$/];
 
 function isAllowedRoute(route: string): boolean {
   return ALLOWED_ROUTE_PATTERNS.some((pattern) => pattern.test(route));
-}
-
-// ── TCP message helpers ───────────────────────────────────────────────────────
-
-function writeTcpMessage(socket: net.Socket, data: unknown): void {
-  const json = JSON.stringify(data);
-  const body = Buffer.from(json, 'utf-8');
-  const header = Buffer.alloc(4);
-  header.writeUInt32BE(body.length, 0);
-  socket.write(Buffer.concat([header, body]));
-}
-
-function createTcpMessageReader(onMessage: (msg: unknown) => void): (chunk: Buffer) => void {
-  let buffer = Buffer.alloc(0);
-
-  return (chunk: Buffer) => {
-    buffer = Buffer.concat([buffer, chunk]);
-
-    while (buffer.length >= 4) {
-      const bodyLen = buffer.readUInt32BE(0);
-      if (buffer.length < 4 + bodyLen) break;
-
-      const jsonStr = buffer.subarray(4, 4 + bodyLen).toString('utf-8');
-      buffer = buffer.subarray(4 + bodyLen);
-
-      try {
-        const msg = JSON.parse(jsonStr);
-        onMessage(msg);
-      } catch {
-        // Malformed JSON — skip
-      }
-    }
-  };
-}
-
-/**
- * Resolve the directory containing the aion-mcp-stdio.js bundle.
- * Mirrors resolveTeamMcpDir() in TeamMcpServer.ts.
- *
- * In dev:       out/main/
- * In packaged:  app.asar.unpacked/out/main/
- */
-function resolveAionMcpDir(): string {
-  const mainModuleDir =
-    typeof require !== 'undefined' && require.main?.filename ? path.dirname(require.main.filename) : __dirname;
-  const baseDir = path.basename(mainModuleDir) === 'chunks' ? path.dirname(mainModuleDir) : mainModuleDir;
-  try {
-    // eslint-disable-next-line @typescript-eslint/no-require-imports
-    const { app } = require('electron');
-    if (app.isPackaged) {
-      return baseDir.replace('app.asar', 'app.asar.unpacked');
-    }
-  } catch {
-    // Not in Electron (unit tests / CLI mode) — use baseDir as-is
-  }
-  return baseDir;
 }
 
 /**
@@ -138,7 +83,7 @@ export class AionMcpService {
 
   /** Build the stdio MCP config to inject into session/new. */
   getStdioConfig(): StdioMcpConfig {
-    const scriptPath = path.join(resolveAionMcpDir(), 'aion-mcp-stdio.js');
+    const scriptPath = path.join(resolveMcpScriptDir(), 'aion-mcp-stdio.js');
     return {
       name: 'aionui-team-guide',
       command: 'node',
