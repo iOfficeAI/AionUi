@@ -11,6 +11,7 @@ import { ProcessConfig } from '@process/utils/initStorage';
 import type { Mailbox } from './Mailbox';
 import type { TaskManager } from './TaskManager';
 import { buildRolePrompt } from './prompts/buildRolePrompt';
+import { formatMessages } from './prompts/formatHelpers';
 import { acpDetector } from '@process/agent/acp/AcpDetector';
 
 type SpawnAgentFn = (agentName: string, agentType?: string) => Promise<TeamAgent>;
@@ -129,15 +130,12 @@ export class TeammateManager extends EventEmitter {
 
       this.setStatus(slotId, 'active');
 
-      const [mailboxMessages, tasks] = await Promise.all([
-        this.mailbox.readUnread(this.teamId, slotId),
-        this.taskManager.list(this.teamId),
-      ]);
+      const mailboxMessages = await this.mailbox.readUnread(this.teamId, slotId);
       const teammates = this.agents.filter((a) => a.slotId !== slotId);
 
       // Write each mailbox message into agent's conversation as user bubble
       // so the UI shows what triggered this agent's response.
-      // Skip for leader: context is already in buildRolePrompt; bubbles would clutter the lead tab.
+      // Skip for leader: messages are included in the prompt sent to the agent.
       if (agent.conversationId && mailboxMessages.length > 0 && agent.role !== 'lead') {
         for (const msg of mailboxMessages) {
           // Skip user messages — already written by TeamSession.sendMessage()
@@ -166,27 +164,44 @@ export class TeammateManager extends EventEmitter {
         }
       }
 
-      // Only compute availableAgentTypes for lead's full prompt — it's not needed
-      // for teammate prompts or incremental wake updates.
-      let availableAgentTypes: Array<{ type: string; name: string }> | undefined;
-      if (needsFullPrompt && agent.role === 'lead') {
-        const cachedInitResults = await ProcessConfig.get('acp.cachedInitializeResult');
-        availableAgentTypes = acpDetector
-          .getDetectedAgents()
-          .filter((a) => isTeamCapableBackend(a.backend, cachedInitResults))
-          .map((a) => ({ type: a.backend, name: a.name }));
-      }
+      // Build the message to send to the agent:
+      // - First wake (pending/failed): static role prompt + any mailbox messages
+      // - Subsequent wakes: just the mailbox messages
+      // Agents pull tasks and teammates on demand via team_task_list / team_members MCP tools.
+      let message: string;
+      if (needsFullPrompt) {
+        // Compute availableAgentTypes only for lead's first prompt
+        let availableAgentTypes: Array<{ type: string; name: string }> | undefined;
+        if (agent.role === 'lead') {
+          const cachedInitResults = await ProcessConfig.get('acp.cachedInitializeResult');
+          availableAgentTypes = acpDetector
+            .getDetectedAgents()
+            .filter((a) => isTeamCapableBackend(a.backend, cachedInitResults))
+            .map((a) => ({ type: a.backend, name: a.name }));
+        }
 
-      const message = buildRolePrompt({
-        agent,
-        mailboxMessages,
-        tasks,
-        teammates,
-        availableAgentTypes,
-        renamedAgents: this.renamedAgents,
-        teamWorkspace: this.teamWorkspace,
-        needsFullPrompt,
-      });
+        const staticPrompt = buildRolePrompt({
+          agent,
+          teammates,
+          availableAgentTypes,
+          renamedAgents: this.renamedAgents,
+          teamWorkspace: this.teamWorkspace,
+        });
+
+        message =
+          mailboxMessages.length > 0
+            ? `${staticPrompt}\n\n## Unread Messages\n${formatMessages(mailboxMessages, this.agents)}`
+            : staticPrompt;
+      } else {
+        // Subsequent wakes: just forward the mailbox messages
+        if (mailboxMessages.length === 0) {
+          // Nothing to send — restore idle status and release wake
+          this.setStatus(slotId, 'idle');
+          this.activeWakes.delete(slotId);
+          return;
+        }
+        message = formatMessages(mailboxMessages, this.agents);
+      }
 
       const agentTask = await this.workerTaskManager.getOrBuildTask(agent.conversationId);
       const msgId = crypto.randomUUID();

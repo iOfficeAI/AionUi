@@ -1,14 +1,11 @@
 // src/process/team/prompts/teammatePrompt.ts
 
-import type { MailboxMessage, TeamAgent, TeamTask } from '../types';
-import { formatTasks, formatMessages } from './formatHelpers';
+import type { TeamAgent } from '../types';
 
 export type TeammatePromptParams = {
   agent: TeamAgent;
   lead: TeamAgent;
   teammates: TeamAgent[];
-  assignedTasks: TeamTask[];
-  unreadMessages: MailboxMessage[];
   renamedAgents?: Map<string, string>;
   teamWorkspace?: string;
 };
@@ -35,7 +32,7 @@ function roleDescription(agentType: string): string {
  * assignments via mailbox and uses MCP tools to communicate results back.
  */
 export function buildTeammatePrompt(params: TeammatePromptParams): string {
-  const { agent, lead, teammates, assignedTasks, unreadMessages, renamedAgents, teamWorkspace } = params;
+  const { agent, lead, teammates, renamedAgents, teamWorkspace } = params;
 
   const teammateNames =
     teammates.length === 0
@@ -70,17 +67,12 @@ Lead: ${lead.agentName}
 Teammates: ${teammateNames}${workspaceSection}
 
 ## Team Coordination Tools
-You MUST use the following \`team_*\` MCP tools for ALL team coordination.
+You MUST use the \`team_*\` MCP tools for ALL team coordination.
 Your platform may provide similarly named built-in tools (e.g. SendMessage,
 TaskCreate, TaskUpdate). Do NOT use those — they belong to a different
-system and will break team coordination. Always use the \`team_*\` versions:
+system and will break team coordination. Always use the \`team_*\` versions.
 
-- **team_send_message** — Send a message to a teammate or the lead.
-  Always report results back to the lead when you finish a task.
-- **team_task_update** — Update task status when you start or complete work.
-- **team_task_list** — Check what tasks are available.
-- **team_members** — See who else is on the team.
-- **team_rename_agent** — Rename yourself or request the lead to rename you.
+Use \`team_task_list\` and \`team_members\` to check current team state.
 
 ## How to Work
 1. Read your unread messages to understand your assignment
@@ -105,11 +97,5 @@ If you receive a message with type \`shutdown_request\`, the lead is asking you 
 - Report back to the lead when you finish, including a summary of what you did
 - If you get stuck, send a message to the lead asking for guidance
 - You can communicate with other teammates directly if needed
-- Use your native tools (Read, Write, Bash, etc.) for implementation work
-
-## Your Assigned Tasks
-${formatTasks(assignedTasks, 'No assigned tasks.')}
-
-## Unread Messages
-${formatMessages(unreadMessages, [lead, ...teammates])}`;
+- Use your native tools (Read, Write, Bash, etc.) for implementation work`;
 }
