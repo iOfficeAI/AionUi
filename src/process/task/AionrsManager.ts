@@ -498,11 +498,17 @@ export class AionrsManager extends BaseAgentManager<AionrsManagerData, string> {
 
       processedData.conversation_id = this.conversation_id;
 
+      const pipelineStart = Date.now();
+
       // Transform and persist message (skip transient UI state)
       const skipTransformTypes = ['finished', 'start', 'finish'];
       if (!skipTransformTypes.includes(processedData.type)) {
+        const transformStart = Date.now();
         const tMessage = transformMessage(processedData as IResponseMessage);
+        const transformDuration = Date.now() - transformStart;
+
         if (tMessage) {
+          const dbStart = Date.now();
           const isStreamTextChunk = tMessage.type === 'text' && processedData.type === 'content';
           if (isStreamTextChunk) {
             this.queueBufferedStreamText(tMessage as Extract<TMessage, { type: 'text' }>);
@@ -510,14 +516,31 @@ export class AionrsManager extends BaseAgentManager<AionrsManagerData, string> {
             this.flushAllBufferedStreamTexts();
             addOrUpdateMessage(this.conversation_id, tMessage, 'aionrs');
           }
+          const dbDuration = Date.now() - dbStart;
+
+          if (transformDuration > 5 || dbDuration > 5) {
+            console.log(
+              `[AIONRS-PERF] stream: transform ${transformDuration}ms, db ${dbDuration}ms type=${processedData.type}`
+            );
+          }
+
           if (tMessage.type === 'tool_group') {
             this.handleConformationMessage(tMessage);
           }
         }
       }
 
+      const emitStart = Date.now();
       ipcBridge.conversation.responseStream.emit(processedData);
       this.emitToEventBuses(processedData as IResponseMessage);
+      const emitDuration = Date.now() - emitStart;
+
+      const totalDuration = Date.now() - pipelineStart;
+      if (totalDuration > 10) {
+        console.log(
+          `[AIONRS-PERF] stream: pipeline ${totalDuration}ms (emit=${emitDuration}ms) type=${processedData.type}`
+        );
+      }
     });
   }
 
