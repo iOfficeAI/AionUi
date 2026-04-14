@@ -23,6 +23,7 @@ import { hasCronCommands } from './CronCommandDetector';
 import { processCronInMessage } from './MessageMiddleware';
 import { extractAndStripThinkTags } from './ThinkTagDetector';
 import { ConversationTurnCompletionService } from './ConversationTurnCompletionService';
+import { cronBusyGuard } from '@process/services/cron/CronBusyGuard';
 
 // Aionrs-specific approval key — reuses same pattern as GeminiApprovalStore
 type AionrsApprovalKey = IApprovalKey & {
@@ -134,6 +135,7 @@ export class AionrsManager extends BaseAgentManager<AionrsManagerData, string> {
 
   async stop() {
     this.clearMissingFinishFallback();
+    cronBusyGuard.setProcessing(this.conversation_id, false);
     // Inject history BEFORE stopping so the command reaches the running process
     await this.injectHistoryFromDatabase();
     await super.stop();
@@ -153,6 +155,7 @@ export class AionrsManager extends BaseAgentManager<AionrsManagerData, string> {
     } catch {
       // Conversation might not exist in DB yet
     }
+    cronBusyGuard.setProcessing(this.conversation_id, true);
     this.status = 'pending';
     return super.sendMessage(data);
   }
@@ -439,6 +442,8 @@ export class AionrsManager extends BaseAgentManager<AionrsManagerData, string> {
   }
 
   private async handleTurnEnd(): Promise<void> {
+    cronBusyGuard.setProcessing(this.conversation_id, false);
+
     // Finalize thinking if still active
     if (this.thinkingMsgId) {
       this.emitThinkingMessage('', 'done');
