@@ -17,6 +17,7 @@ export class Mailbox {
     content: string;
     type?: MailboxMessage['type'];
     summary?: string;
+    files?: string[];
   }): Promise<MailboxMessage> {
     const message: MailboxMessage = {
       id: crypto.randomUUID(),
@@ -26,6 +27,7 @@ export class Mailbox {
       type: params.type ?? 'message',
       content: params.content,
       summary: params.summary,
+      files: params.files,
       read: false,
       createdAt: Date.now(),
     };

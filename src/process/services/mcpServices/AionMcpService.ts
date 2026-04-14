@@ -21,6 +21,7 @@ import type { TeamSessionService } from '@process/team/TeamSessionService';
 import type { StdioMcpConfig } from '@process/team/TeamMcpServer';
 import { TEAM_SUPPORTED_BACKENDS } from '@/common/types/teamTypes';
 import { getConversationTypeForBackend } from '@/common/utils/buildAgentConversationParams';
+import { getDatabase } from '@process/services/database';
 
 /** Allowed route patterns that aion_navigate may redirect to */
 const ALLOWED_ROUTE_PATTERNS: RegExp[] = [/^\/team\/[a-zA-Z0-9_-]+$/, /^\/conversation\/[a-zA-Z0-9_-]+$/];
@@ -213,10 +214,21 @@ export class AionMcpService {
   ): Promise<string> {
     const summary = String(args.summary ?? '').trim();
     const name = args.name ? String(args.name).trim() : undefined;
-    const workspace = args.workspace ? String(args.workspace).trim() : '';
+    let workspace = args.workspace ? String(args.workspace).trim() : '';
 
     if (!summary) {
       throw new Error('summary is required');
+    }
+
+    // When no workspace is provided but a caller conversation exists (single-chat → team),
+    // inherit the workspace from the caller's conversation to avoid overwriting it with ''.
+    if (!workspace && callerConversationId) {
+      const db = await getDatabase();
+      const row = db.getConversation(callerConversationId);
+      const callerWorkspace = (row?.data?.extra as Record<string, unknown> | undefined)?.workspace;
+      if (callerWorkspace && typeof callerWorkspace === 'string') {
+        workspace = callerWorkspace;
+      }
     }
 
     // Use system-injected backend (from AION_MCP_BACKEND env var) as the authoritative agent type.
