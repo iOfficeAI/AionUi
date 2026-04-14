@@ -83,5 +83,7 @@
   "import": "匯入",
   "processing": "處理中...",
   "optional": "（選填）",
-  "clear": "清除"
+  "clear": "清除",
+  "logout": "登出",
+  "logoutShortcut": "登出（Ctrl/Cmd+L）"
 }

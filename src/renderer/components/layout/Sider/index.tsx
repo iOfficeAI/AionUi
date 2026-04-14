@@ -6,6 +6,7 @@ import { cleanupSiderTooltips, getSiderTooltipProps } from '@renderer/utils/ui/s
 import { useLayoutContext } from '@renderer/hooks/context/LayoutContext';
 import { blurActiveElement } from '@renderer/utils/ui/focus';
 import { useThemeContext } from '@renderer/hooks/context/ThemeContext';
+import { useAuth } from '@renderer/hooks/context/AuthContext';
 import { useAllCronJobs } from '@renderer/pages/cron/useCronJobs';
 import { SiderToolbar, SiderSearchEntry, SiderScheduledEntry } from './SiderNav';
 import SiderFooter from './SiderFooter';
@@ -30,10 +31,13 @@ const Sider: React.FC<SiderProps> = ({ onSessionClick, collapsed = false }) => {
   const navigate = useNavigate();
   const { closePreview } = usePreviewContext();
   const { theme, setTheme } = useThemeContext();
+  const { logout, status } = useAuth();
   const [isBatchMode, setIsBatchMode] = useState(false);
   const { jobs: cronJobs } = useAllCronJobs();
   const isSettings = pathname.startsWith('/settings');
   const lastNonSettingsPathRef = useRef('/guid');
+  const isDesktopRuntime = typeof window !== 'undefined' && Boolean(window.electronAPI);
+  const showLogout = !isDesktopRuntime && status === 'authenticated';
 
   useEffect(() => {
     if (!pathname.startsWith('/settings')) {
@@ -96,6 +100,17 @@ const Sider: React.FC<SiderProps> = ({ onSessionClick, collapsed = false }) => {
     void setTheme(theme === 'dark' ? 'light' : 'dark');
   };
 
+  const handleLogoutClick = () => {
+    cleanupSiderTooltips();
+    blurActiveElement();
+    closePreview();
+    setIsBatchMode(false);
+    void logout();
+    if (onSessionClick) {
+      onSessionClick();
+    }
+  };
+
   const handleCronNavigate = (path: string) => {
     cleanupSiderTooltips();
     blurActiveElement();
@@ -103,6 +118,33 @@ const Sider: React.FC<SiderProps> = ({ onSessionClick, collapsed = false }) => {
     Promise.resolve(navigate(path)).catch(console.error);
     if (onSessionClick) onSessionClick();
   };
+
+  useEffect(() => {
+    if (!showLogout) return;
+
+    const handler = (event: KeyboardEvent) => {
+      if (!(event.metaKey || event.ctrlKey) || event.altKey) return;
+      if (event.key.toLowerCase() !== 'l') return;
+
+      const target = event.target;
+      const element = target instanceof HTMLElement ? target : null;
+      const tagName = element?.tagName?.toLowerCase();
+      const isEditable =
+        tagName === 'input' ||
+        tagName === 'textarea' ||
+        element?.isContentEditable ||
+        element?.getAttribute('role') === 'textbox';
+      if (isEditable) return;
+
+      event.preventDefault();
+      handleLogoutClick();
+    };
+
+    document.addEventListener('keydown', handler, true);
+    return () => {
+      document.removeEventListener('keydown', handler, true);
+    };
+  }, [showLogout, handleLogoutClick]);
 
   const tooltipEnabled = collapsed && !isMobile;
   const siderTooltipProps = getSiderTooltipProps(tooltipEnabled);
@@ -185,6 +227,8 @@ const Sider: React.FC<SiderProps> = ({ onSessionClick, collapsed = false }) => {
         siderTooltipProps={siderTooltipProps}
         onSettingsClick={handleSettingsClick}
         onThemeToggle={handleQuickThemeToggle}
+        showLogout={showLogout}
+        onLogoutClick={handleLogoutClick}
       />
     </div>
   );

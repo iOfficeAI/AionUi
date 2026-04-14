@@ -43,6 +43,9 @@ interface AuthContextValue {
 const AuthContext = createContext<AuthContextValue | undefined>(undefined);
 
 const AUTH_USER_ENDPOINT = '/api/auth/user';
+const REMEMBER_ME_KEY = 'rememberMe';
+const REMEMBERED_USERNAME_KEY = 'rememberedUsername';
+const REMEMBERED_PASSWORD_KEY = 'rememberedPassword';
 
 const isDesktopRuntime = typeof window !== 'undefined' && Boolean(window.electronAPI);
 
@@ -67,6 +70,18 @@ function clearAuthCache(): void {
     keysToRemove.forEach((key) => localStorage.removeItem(key));
   } catch (error) {
     console.error('Failed to clear auth cache:', error);
+  }
+}
+
+function clearRememberedLogin(): void {
+  if (typeof window === 'undefined') return;
+
+  try {
+    localStorage.removeItem(REMEMBER_ME_KEY);
+    localStorage.removeItem(REMEMBERED_USERNAME_KEY);
+    localStorage.removeItem(REMEMBERED_PASSWORD_KEY);
+  } catch (error) {
+    console.error('Failed to clear remembered login:', error);
   }
 }
 
@@ -263,6 +278,7 @@ export const AuthProvider: React.FC<React.PropsWithChildren> = ({ children }) =>
       setStatus('unauthenticated');
       // Clear cache on logout for security
       clearAuthCache();
+      clearRememberedLogin();
     }
   }, []);
 

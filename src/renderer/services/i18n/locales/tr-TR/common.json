@@ -83,5 +83,7 @@
   "import": "İçe Aktar",
   "processing": "İşleniyor...",
   "optional": "(isteğe bağlı)",
-  "clear": "Temizle"
+  "clear": "Temizle",
+  "logout": "Çıkış Yap",
+  "logoutShortcut": "Çıkış Yap (Ctrl/Cmd+L)"
 }

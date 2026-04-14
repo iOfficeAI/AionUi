@@ -83,5 +83,7 @@
   "import": "가져오기",
   "processing": "처리 중...",
   "optional": "(선택 사항)",
-  "clear": "지우기"
+  "clear": "지우기",
+  "logout": "로그아웃",
+  "logoutShortcut": "로그아웃 (Ctrl/Cmd+L)"
 }

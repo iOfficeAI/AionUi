@@ -83,5 +83,7 @@
   "import": "インポート",
   "processing": "処理中...",
   "optional": "（任意）",
-  "clear": "クリア"
+  "clear": "クリア",
+  "logout": "ログアウト",
+  "logoutShortcut": "ログアウト（Ctrl/Cmd+L）"
 }

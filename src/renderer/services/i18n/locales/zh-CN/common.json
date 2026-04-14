@@ -83,5 +83,7 @@
   "import": "导入",
   "processing": "处理中...",
   "optional": "（可选）",
-  "clear": "清除"
+  "clear": "清除",
+  "logout": "退出登录",
+  "logoutShortcut": "退出登录（Ctrl/Cmd+L）"
 }

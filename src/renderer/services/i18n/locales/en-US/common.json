@@ -83,5 +83,7 @@
   "import": "Import",
   "processing": "Processing...",
   "optional": "(optional)",
-  "clear": "Clear"
+  "clear": "Clear",
+  "logout": "Log Out",
+  "logoutShortcut": "Log Out (Ctrl/Cmd+L)"
 }
