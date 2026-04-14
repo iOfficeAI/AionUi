@@ -117,9 +117,7 @@ await build({
 // Workers use the runtime WASM plugin so tree-sitter shell parsing works.
 await build({
   ...sharedConfig,
-  entryPoints: [
-    'src/process/worker/gemini.ts',
-  ],
+  entryPoints: ['src/process/worker/gemini.ts'],
   outdir: 'dist-server',
   plugins: [wasmRuntimePlugin],
   banner: { js: cjsBanner },

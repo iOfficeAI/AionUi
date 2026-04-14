@@ -6,7 +6,12 @@
 
 import { describe, expect, it } from 'vitest';
 
-import { AGENT_MODES, getAgentModes, mergeWithCapabilities, supportsModeSwitch } from '@renderer/utils/model/agentModes';
+import {
+  AGENT_MODES,
+  getAgentModes,
+  mergeWithCapabilities,
+  supportsModeSwitch,
+} from '@renderer/utils/model/agentModes';
 
 describe('AGENT_MODES.claude', () => {
   const claudeModes = AGENT_MODES.claude;

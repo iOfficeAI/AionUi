@@ -683,7 +683,6 @@ export class AionrsManager extends BaseAgentManager<AionrsManagerData, string> {
     }
   }
 
-
   getMode(): { mode: string; initialized: boolean } {
     return { mode: this.currentMode, initialized: true };
   }

@@ -121,7 +121,7 @@ function toTitleCase(value: string): string {
  */
 export function mergeWithCapabilities(
   backend: string | undefined,
-  capabilityModes: string[] | null,
+  capabilityModes: string[] | null
 ): AgentModeOption[] {
   const staticModes = getAgentModes(backend);
   if (!capabilityModes || capabilityModes.length === 0) {

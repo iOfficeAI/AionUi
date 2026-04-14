@@ -75,7 +75,10 @@ export const conversation = {
   reloadContext: bridge.buildProvider<IBridgeResponse, { conversation_id: string }>('conversation.reload-context'),
   setConfig: bridge.buildProvider<
     IBridgeResponse,
-    { conversation_id: string; config: { model?: string; thinking?: string; thinking_budget?: number; effort?: string } }
+    {
+      conversation_id: string;
+      config: { model?: string; thinking?: string; thinking_budget?: number; effort?: string };
+    }
   >('conversation.set-config'),
   confirmation: {
     add: bridge.buildEmitter<IConfirmation<any> & { conversation_id: string }>('confirmation.add'),

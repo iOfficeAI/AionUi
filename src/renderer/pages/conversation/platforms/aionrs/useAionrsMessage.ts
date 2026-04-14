@@ -22,7 +22,7 @@ export const useAionrsMessage = (
   options?: {
     onError?: (message: IResponseMessage) => void;
     onConfigChanged?: (capabilities: Record<string, unknown>) => void;
-  },
+  }
 ) => {
   const onError = options?.onError;
   const onConfigChanged = options?.onConfigChanged;
