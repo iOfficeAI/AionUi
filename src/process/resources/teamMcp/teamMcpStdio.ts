@@ -258,8 +258,7 @@ createTeamTool(
   `Request a teammate to shut down gracefully. The teammate can accept or reject the request.
 
 Use this when:
-- A task is completed and the teammate is no longer needed
-- The user asks to dismiss, fire, or shut down a teammate
+- The user explicitly asks to dismiss, fire, or shut down a teammate
 
 The teammate will receive a shutdown request and respond with approval or rejection.
 You will be notified of the result either way.`,
