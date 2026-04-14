@@ -97,7 +97,7 @@ export class TeammateManager extends EventEmitter {
    */
   async wake(slotId: string): Promise<void> {
     if (this.activeWakes.has(slotId)) {
-      console.log(`[TeammateManager] wake(${slotId}): SKIPPED (activeWakes)`);
+      console.debug(`[TeammateManager] wake(${slotId}): SKIPPED (activeWakes)`);
       return;
     }
 
@@ -197,6 +197,10 @@ export class TeammateManager extends EventEmitter {
         }
         message = formatMessages(mailboxMessages, this.agents);
       }
+
+      console.log(
+        `[TeammateManager] wake(${agent.agentName}): sendPrompt type=${needsFullPrompt ? 'full' : 'messages-only'}, length=${message.length}, preview=${JSON.stringify(message.slice(0, 200))}`,
+      );
 
       const agentTask = await this.workerTaskManager.getOrBuildTask(agent.conversationId);
       const msgId = crypto.randomUUID();

@@ -651,12 +651,12 @@ export class GeminiAgentManager extends BaseAgentManager<
    */
   private tryAutoApprove(content: IMessageToolGroup['content'][number]): boolean {
     const type = content.confirmationDetails?.type;
-    console.log(
+    console.debug(
       `[GeminiAgentManager] tryAutoApprove: currentMode=${this.currentMode}, confirmationType=${type}, callId=${content.callId}`
     );
     if (this.currentMode === 'yolo') {
       // yolo: auto-approve ALL operations
-      console.log(`[GeminiAgentManager] YOLO auto-approving ${type}: callId=${content.callId}`);
+      console.debug(`[GeminiAgentManager] YOLO auto-approving ${type}: callId=${content.callId}`);
       void this.postMessagePromise(content.callId, ToolConfirmationOutcome.ProceedOnce);
       return true;
     }
