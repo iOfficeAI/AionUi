@@ -241,6 +241,32 @@ describe('Case 1: createTeam — empty workspace back-fills from leader conversa
     expect(createdTeam.workspace).toBe('/projects/auto-assigned');
     expect(team.workspace).toBe('/projects/auto-assigned');
   });
+
+  it('does NOT overwrite leader existing workspace when reusing conversationId with empty workspace', async () => {
+    const LEADER_WORKSPACE = '/projects/existing-solo-workspace';
+    const { service, conversationService } = makeService({ autoWorkspace: LEADER_WORKSPACE });
+
+    // Pre-create the leader's conversation (simulates existing solo chat)
+    const existingConv = await conversationService.createConversation({
+      name: 'Solo Chat',
+      extra: { workspace: LEADER_WORKSPACE },
+    } as any);
+
+    // Create team with empty workspace and leader reusing the existing conversation
+    const team = await service.createTeam({
+      userId: 'user-1',
+      name: 'Test Team',
+      workspace: '', // <-- empty, should NOT overwrite leader's workspace
+      workspaceMode: 'shared',
+      agents: [makeLeadAgent({ conversationId: existingConv.id }) as TeamAgent],
+    });
+
+    // Leader's conversation workspace must remain intact (not overwritten with '')
+    const leaderConv = await conversationService.getConversation(existingConv.id);
+    expect(leaderConv?.extra?.workspace).toBe(LEADER_WORKSPACE);
+    // Team workspace should be back-filled from leader
+    expect(team.workspace).toBe(LEADER_WORKSPACE);
+  });
 });
 
 // ---------------------------------------------------------------------------
@@ -479,5 +505,68 @@ describe('Case 3: buildRolePrompt — teamWorkspace injects workspace section', 
     const tm = (session as unknown as { teammateManager: { teamWorkspace: string | undefined } }).teammateManager;
     // team.workspace || undefined → undefined when empty
     expect(tm.teamWorkspace).toBeUndefined();
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Case 4: Concurrent addAgent — per-team mutex prevents agent loss
+// ---------------------------------------------------------------------------
+
+describe('Case 4: Concurrent addAgent — mutex serializes writes', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
+  it('parallel addAgent calls do not lose agents', async () => {
+    const WORKSPACE = '/projects/shared';
+    const { service, repo } = makeService({ autoWorkspace: WORKSPACE });
+
+    // Create a team with one leader
+    const team = await service.createTeam({
+      userId: 'user-1',
+      name: 'Race Test',
+      workspace: WORKSPACE,
+      workspaceMode: 'shared',
+      agents: [makeLeadAgent() as TeamAgent],
+    });
+
+    // Make repo.findById return live team data (simulates reading latest from DB)
+    let latestAgents = [...team.agents];
+    (repo.findById as ReturnType<typeof vi.fn>).mockImplementation(async () => ({
+      ...team,
+      agents: latestAgents,
+    }));
+    (repo.update as ReturnType<typeof vi.fn>).mockImplementation(async (_id: string, updates: Partial<TTeam>) => {
+      if (updates.agents) latestAgents = updates.agents;
+      return updates;
+    });
+
+    // Spawn 4 agents concurrently (simulates leader calling team_spawn_agent 4 times)
+    const names = ['正方辩手', '反方辩手', '评委', '主持人'];
+    const results = await Promise.all(
+      names.map((name) =>
+        service.addAgent(team.id, {
+          conversationId: '',
+          role: 'teammate',
+          agentType: 'claude',
+          agentName: name,
+          conversationType: 'acp',
+          status: 'pending',
+        })
+      )
+    );
+
+    // All 4 agents should be created
+    expect(results).toHaveLength(4);
+    // The final agents list should have Leader + 4 teammates = 5
+    expect(latestAgents).toHaveLength(5);
+    const agentNames = latestAgents.map((a) => a.agentName);
+    expect(agentNames).toContain('Leader');
+    for (const name of names) {
+      expect(agentNames).toContain(name);
+    }
   });
 });
