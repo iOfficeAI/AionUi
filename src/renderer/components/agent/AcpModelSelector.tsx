@@ -201,7 +201,9 @@ const AcpModelSelector: React.FC<{
   const modelSourceLabel = getAcpModelSourceLabel(modelInfo);
   const buttonLabel = formatAcpModelDisplayLabel(displayLabel, modelSourceLabel);
   const tooltipContent =
-    modelSourceLabel && displayLabel ? `${displayLabel}\nSource: ${modelSourceLabel}` : displayLabel || modelSourceLabel;
+    modelSourceLabel && displayLabel
+      ? `${displayLabel}\nSource: ${modelSourceLabel}`
+      : displayLabel || modelSourceLabel;
   // 获取模型配置数据（包含健康状态）
   const { data: modelConfig } = useSWR<IProvider[]>('model.config', () => ipcBridge.mode.getModelConfig.invoke());
 

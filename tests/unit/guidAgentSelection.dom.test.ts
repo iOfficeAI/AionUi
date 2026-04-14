@@ -385,10 +385,7 @@ describe('useGuidAgentSelection – preset agent config resolution', () => {
   });
 
   it('uses default codex models when codex has no cached list', async () => {
-    defaultCodexModels.push(
-      { id: 'gpt-5', label: 'GPT-5' },
-      { id: 'gpt-5-mini', label: 'GPT-5 Mini' }
-    );
+    defaultCodexModels.push({ id: 'gpt-5', label: 'GPT-5' }, { id: 'gpt-5-mini', label: 'GPT-5 Mini' });
     setupMocks({ cachedModels: {}, acpConfig: {} });
 
     const { result } = renderHook(() => useGuidAgentSelection(hookOptions));

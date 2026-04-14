@@ -117,9 +117,7 @@ function readCcSwitchSettings(settingsPath: string): CcSwitchSettings | null {
 }
 
 function readModelLabels(db: Database.Database): Map<string, string> {
-  const rows = db
-    .prepare('SELECT model_id, display_name FROM model_pricing')
-    .all() as CcSwitchModelPricingRow[];
+  const rows = db.prepare('SELECT model_id, display_name FROM model_pricing').all() as CcSwitchModelPricingRow[];
   const labels = new Map<string, string>();
 
   for (const row of rows) {
@@ -145,9 +143,9 @@ export function readClaudeModelInfoFromCcSwitch(paths?: Partial<CcSwitchPaths>):
   let db: Database.Database | null = null;
   try {
     db = new BetterSqlite3(resolvedPaths.databasePath, { readonly: true, fileMustExist: true });
-    const provider = db
-      .prepare('SELECT settings_config FROM providers WHERE id = ? LIMIT 1')
-      .get(currentProviderId) as CcSwitchProviderRow | undefined;
+    const provider = db.prepare('SELECT settings_config FROM providers WHERE id = ? LIMIT 1').get(currentProviderId) as
+      | CcSwitchProviderRow
+      | undefined;
 
     if (!isNonEmptyString(provider?.settings_config)) {
       return null;

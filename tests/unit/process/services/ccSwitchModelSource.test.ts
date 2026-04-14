@@ -118,25 +118,18 @@ describeOrSkip('ccSwitchModelSource', () => {
         display_name TEXT
       );
     `);
-    driver
-      .prepare('INSERT INTO providers (id, settings_config) VALUES (?, ?)')
-      .run(
-        'provider-1',
-        JSON.stringify({
-          env: {
-            ANTHROPIC_MODEL: 'claude-opus-4-6-20260301',
-            ANTHROPIC_DEFAULT_SONNET_MODEL: 'claude-sonnet-4-5-20250514',
-          },
-        })
-      );
+    driver.prepare('INSERT INTO providers (id, settings_config) VALUES (?, ?)').run(
+      'provider-1',
+      JSON.stringify({
+        env: {
+          ANTHROPIC_MODEL: 'claude-opus-4-6-20260301',
+          ANTHROPIC_DEFAULT_SONNET_MODEL: 'claude-sonnet-4-5-20250514',
+        },
+      })
+    );
     driver
       .prepare('INSERT INTO model_pricing (model_id, display_name) VALUES (?, ?), (?, ?)')
-      .run(
-        'claude-opus-4-6-20260301',
-        'Claude Opus 4.6',
-        'claude-sonnet-4-5-20250514',
-        'Claude Sonnet 4.5'
-      );
+      .run('claude-opus-4-6-20260301', 'Claude Opus 4.6', 'claude-sonnet-4-5-20250514', 'Claude Sonnet 4.5');
     driver.close();
 
     const modelInfo = readClaudeModelInfoFromCcSwitch({ settingsPath, databasePath });

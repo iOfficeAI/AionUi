@@ -225,23 +225,19 @@ describe('acpConversationBridge', () => {
     vi.mocked(acpDetector.getDetectedAgents).mockReturnValue([{ backend: 'codex', cliPath: '/usr/bin/codex' }] as any);
 
     const { AcpConnection } = await import('../../src/process/agent/acp/AcpConnection');
-    vi.mocked(AcpConnection).mockImplementationOnce(
-      function () {
-        return (
-        ({
-          connect: vi.fn(async () => {
-            throw new Error('boom');
-          }),
-          newSession: vi.fn(async () => {}),
-          sendPrompt: vi.fn(async () => {}),
-          disconnect: vi.fn(async () => {}),
-          getConfigOptions: vi.fn(() => []),
-          getModels: vi.fn(() => []),
-          getInitializeResponse: vi.fn(() => null),
-        }) as any
-        );
-      } as any
-    );
+    vi.mocked(AcpConnection).mockImplementationOnce(function () {
+      return {
+        connect: vi.fn(async () => {
+          throw new Error('boom');
+        }),
+        newSession: vi.fn(async () => {}),
+        sendPrompt: vi.fn(async () => {}),
+        disconnect: vi.fn(async () => {}),
+        getConfigOptions: vi.fn(() => []),
+        getModels: vi.fn(() => []),
+        getInitializeResponse: vi.fn(() => null),
+      } as any;
+    } as any);
 
     const { mainWarn } = await import('../../src/process/utils/mainLogger');
 
