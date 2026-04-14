@@ -43,7 +43,7 @@ import { buildAcpModelInfo } from './modelInfo';
 import { buildBuiltinAcpSessionMcpServers, buildTeamMcpServer, type AcpSessionMcpServer } from './mcpSessionConfig';
 import { getClaudeModel } from './utils';
 import { getAionMcpStdioConfig } from '@process/services/mcpServices/aionMcpServiceSingleton';
-import { shouldInjectTeamGuideMcp } from '@process/resources/prompts/teamGuidePrompt';
+import { shouldInjectTeamGuideMcp } from '@process/resources/prompts/teamGuideCapability';
 import { waitForMcpReady } from '@process/team/mcpReadiness';
 
 // InitializeResult removed — replaced by AcpInitializeResult from acpTypes.ts

@@ -37,11 +37,8 @@ vi.mock('@process/utils/initStorage', () => ({
   },
 }));
 
-import {
-  getCreateTeamToolDescription,
-  getTeamGuidePrompt,
-  shouldInjectTeamGuideMcp,
-} from '../../src/process/resources/prompts/teamGuidePrompt';
+import { getCreateTeamToolDescription, getTeamGuidePrompt } from '../../src/process/resources/prompts/teamGuidePrompt';
+import { shouldInjectTeamGuideMcp } from '../../src/process/resources/prompts/teamGuideCapability';
 
 describe('team guide MCP injection capability check', () => {
   describe('allowed backends — should inject team guide MCP', () => {

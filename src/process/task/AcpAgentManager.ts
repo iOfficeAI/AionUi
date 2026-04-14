@@ -40,7 +40,7 @@ import { extractAndStripThinkTags } from './ThinkTagDetector';
 import type { AgentKillReason } from './IAgentManager';
 import { hasNativeSkillSupport } from '@/common/types/acpTypes';
 import { prepareFirstMessageWithSkillsIndex } from '@process/task/agentUtils';
-import { shouldInjectTeamGuideMcp } from '@process/resources/prompts/teamGuidePrompt';
+import { shouldInjectTeamGuideMcp } from '@process/resources/prompts/teamGuideCapability';
 import { extractTextFromMessage, processCronInMessage } from './MessageMiddleware';
 import { ConversationTurnCompletionService } from './ConversationTurnCompletionService';
 

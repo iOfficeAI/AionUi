@@ -4,19 +4,6 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { isTeamCapableBackend } from '@/common/types/teamTypes';
-
-/**
- * Returns true if the given agent backend should receive the team guide prompt injection.
- * Checks cached ACP initialize results — agents with mcpCapabilities.stdio are team-capable.
- * Gemini is always team-capable (non-ACP protocol).
- */
-export async function shouldInjectTeamGuideMcp(backend: string): Promise<boolean> {
-  const { ProcessConfig } = await import('@process/utils/initStorage');
-  const cachedInitResults = await ProcessConfig.get('acp.cachedInitializeResult');
-  return isTeamCapableBackend(backend, cachedInitResults);
-}
-
 // ── Shared decision criteria (single source of truth) ───────────────────────
 
 const EXPLICIT_TEAM_REQUEST_CRITERIA = `- The user explicitly asks to create a Team
