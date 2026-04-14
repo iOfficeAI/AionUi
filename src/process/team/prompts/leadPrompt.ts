@@ -1,6 +1,7 @@
 // src/process/team/prompts/leadPrompt.ts
 
 import type { MailboxMessage, TeamAgent, TeamTask } from '../types';
+import { formatTasks, formatMessages } from './formatHelpers';
 
 export type LeadPromptParams = {
   teammates: TeamAgent[];
@@ -10,24 +11,6 @@ export type LeadPromptParams = {
   renamedAgents?: Map<string, string>;
   teamWorkspace?: string;
 };
-
-function formatTasks(tasks: TeamTask[]): string {
-  if (tasks.length === 0) return 'No tasks yet.';
-  return tasks
-    .map((t) => `- [${t.id.slice(0, 8)}] ${t.subject} (${t.status}${t.owner ? `, owner: ${t.owner}` : ''})`)
-    .join('\n');
-}
-
-function formatMessages(messages: MailboxMessage[], teammates: TeamAgent[]): string {
-  if (messages.length === 0) return 'No unread messages.';
-  return messages
-    .map((m) => {
-      if (m.fromAgentId === 'user') return `[From User] ${m.content}`;
-      const sender = teammates.find((t) => t.slotId === m.fromAgentId);
-      return `[From ${sender?.agentName ?? m.fromAgentId}] ${m.content}`;
-    })
-    .join('\n');
-}
 
 /**
  * Build system prompt for the lead agent.

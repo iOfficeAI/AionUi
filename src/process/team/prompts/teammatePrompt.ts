@@ -1,6 +1,7 @@
 // src/process/team/prompts/teammatePrompt.ts
 
 import type { MailboxMessage, TeamAgent, TeamTask } from '../types';
+import { formatTasks, formatMessages } from './formatHelpers';
 
 export type TeammatePromptParams = {
   agent: TeamAgent;
@@ -25,22 +26,6 @@ function roleDescription(agentType: string): string {
     default:
       return `${agentType} AI assistant`;
   }
-}
-
-function formatTasks(tasks: TeamTask[]): string {
-  if (tasks.length === 0) return 'No assigned tasks.';
-  return tasks.map((t) => `- [${t.id.slice(0, 8)}] ${t.subject} (${t.status})`).join('\n');
-}
-
-function formatMessages(messages: MailboxMessage[], allAgents: TeamAgent[]): string {
-  if (messages.length === 0) return 'No unread messages.';
-  return messages
-    .map((m) => {
-      if (m.fromAgentId === 'user') return `[From User] ${m.content}`;
-      const sender = allAgents.find((t) => t.slotId === m.fromAgentId);
-      return `[From ${sender?.agentName ?? m.fromAgentId}] ${m.content}`;
-    })
-    .join('\n');
 }
 
 /**
@@ -123,7 +108,7 @@ If you receive a message with type \`shutdown_request\`, the lead is asking you 
 - Use your native tools (Read, Write, Bash, etc.) for implementation work
 
 ## Your Assigned Tasks
-${formatTasks(assignedTasks)}
+${formatTasks(assignedTasks, 'No assigned tasks.')}
 
 ## Unread Messages
 ${formatMessages(unreadMessages, [lead, ...teammates])}`;
