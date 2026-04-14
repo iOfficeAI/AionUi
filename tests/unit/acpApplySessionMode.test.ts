@@ -63,7 +63,6 @@ vi.mock('../../src/process/agent/acp/modelInfo', () => ({
 
 vi.mock('../../src/process/agent/acp/mcpSessionConfig', () => ({
   buildBuiltinAcpSessionMcpServers: vi.fn().mockResolvedValue([]),
-  parseAcpMcpCapabilities: vi.fn().mockReturnValue([]),
 }));
 
 vi.mock('../../src/process/utils/mainLogger', () => ({

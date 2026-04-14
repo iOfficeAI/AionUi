@@ -15,6 +15,7 @@ import type { SlashCommandItem } from '@/common/chat/slash/types';
 import { uuid } from '@/common/utils';
 import type {
   AcpBackend,
+  AcpInitializeResult,
   AcpModelInfo,
   AcpPermissionRequest,
   AcpPromptResponseUsage,
@@ -42,7 +43,6 @@ import { buildAcpModelInfo } from './modelInfo';
 import {
   buildBuiltinAcpSessionMcpServers,
   buildTeamMcpServer,
-  parseAcpMcpCapabilities,
   TEAM_GUIDE_ALLOWED_BACKENDS,
   type AcpSessionMcpServer,
 } from './mcpSessionConfig';
@@ -50,17 +50,7 @@ import { getClaudeModel } from './utils';
 import { getAionMcpStdioConfig } from '@process/services/mcpServices/aionMcpServiceSingleton';
 import { waitForMcpReady } from '@process/team/mcpReadiness';
 
-/**
- * Initialize response result interface
- * ACP 初始化响应结果接口
- */
-interface InitializeResult {
-  authMethods?: Array<{
-    type: string;
-    [key: string]: unknown;
-  }>;
-  [key: string]: unknown;
-}
+// InitializeResult removed — replaced by AcpInitializeResult from acpTypes.ts
 
 /**
  * ACP available command type - subset of SlashCommandItem for ACP protocol layer
@@ -331,6 +321,11 @@ export class AcpAgent {
       }
       console.log(`[ACP-PERF] start: connection.connect() completed ${Date.now() - connectStart}ms`);
 
+      // Persist initialize result to disk so capabilities are available before next session
+      this.cacheInitializeResult().catch((err) => {
+        console.warn('[ACP] Failed to cache initialize result:', err instanceof Error ? err.message : String(err));
+      });
+
       this.emitStatusMessage('connected');
 
       const authStart = Date.now();
@@ -426,6 +421,7 @@ export class AcpAgent {
     } catch (error) {
       console.log(`[ACP-PERF] start: failed after ${Date.now() - startTotal}ms`);
       this.emitStatusMessage('error');
+      console.log('error===>', error);
       throw error;
     }
   }
@@ -1601,8 +1597,10 @@ export class AcpAgent {
       const servers: AcpSessionMcpServer[] = [];
 
       if (Array.isArray(mcpConfig) && mcpConfig.length > 0) {
-        const capabilities = parseAcpMcpCapabilities(this.connection.getInitializeResponse());
-        servers.push(...buildBuiltinAcpSessionMcpServers(mcpConfig as IMcpServer[], capabilities));
+        const mcpCaps = this.connection.getAgentCapabilities()?.mcpCapabilities;
+        if (mcpCaps) {
+          servers.push(...buildBuiltinAcpSessionMcpServers(mcpConfig as IMcpServer[], mcpCaps));
+        }
       }
 
       // Inject team MCP server if this agent belongs to a team (stdio mode)
@@ -1730,9 +1728,8 @@ export class AcpAgent {
 
   private async performAuthentication(): Promise<void> {
     try {
-      const initResponse = this.connection.getInitializeResponse();
-      const result = initResponse?.result as InitializeResult | undefined;
-      if (!initResponse || !result?.authMethods?.length) {
+      const initResult = this.connection.getInitializeResult();
+      if (!initResult || initResult.authMethods.length === 0) {
         // No auth methods available - CLI should handle authentication itself
         this.emitStatusMessage('authenticated');
         return;
@@ -1770,5 +1767,24 @@ export class AcpAgent {
     } catch (error) {
       this.emitStatusMessage('error');
     }
+  }
+
+  private async cacheInitializeResult(): Promise<void> {
+    const result = this.connection.getInitializeResult();
+    if (!result) return;
+    const cached = (await ProcessConfig.get('acp.cachedInitializeResult')) || {};
+    await ProcessConfig.set('acp.cachedInitializeResult', {
+      ...cached,
+      [this.extra.backend]: result,
+    });
+  }
+
+  /**
+   * Read the cached initialize result for a backend from disk.
+   * Available before any session is created (persisted from previous runs).
+   */
+  static async getCachedInitializeResult(backend: string): Promise<AcpInitializeResult | null> {
+    const cached = await ProcessConfig.get('acp.cachedInitializeResult');
+    return cached?.[backend] ?? null;
   }
 }
