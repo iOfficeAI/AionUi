@@ -241,6 +241,32 @@ describe('Case 1: createTeam — empty workspace back-fills from leader conversa
     expect(createdTeam.workspace).toBe('/projects/auto-assigned');
     expect(team.workspace).toBe('/projects/auto-assigned');
   });
+
+  it('does NOT overwrite leader existing workspace when reusing conversationId with empty workspace', async () => {
+    const LEADER_WORKSPACE = '/projects/existing-solo-workspace';
+    const { service, conversationService } = makeService({ autoWorkspace: LEADER_WORKSPACE });
+
+    // Pre-create the leader's conversation (simulates existing solo chat)
+    const existingConv = await conversationService.createConversation({
+      name: 'Solo Chat',
+      extra: { workspace: LEADER_WORKSPACE },
+    } as any);
+
+    // Create team with empty workspace and leader reusing the existing conversation
+    const team = await service.createTeam({
+      userId: 'user-1',
+      name: 'Test Team',
+      workspace: '', // <-- empty, should NOT overwrite leader's workspace
+      workspaceMode: 'shared',
+      agents: [makeLeadAgent({ conversationId: existingConv.id }) as TeamAgent],
+    });
+
+    // Leader's conversation workspace must remain intact (not overwritten with '')
+    const leaderConv = await conversationService.getConversation(existingConv.id);
+    expect(leaderConv?.extra?.workspace).toBe(LEADER_WORKSPACE);
+    // Team workspace should be back-filled from leader
+    expect(team.workspace).toBe(LEADER_WORKSPACE);
+  });
 });
 
 // ---------------------------------------------------------------------------

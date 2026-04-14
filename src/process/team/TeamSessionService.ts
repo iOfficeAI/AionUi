@@ -489,9 +489,16 @@ export class TeamSessionService {
         if (agent.conversationId) {
           const existing = await this.conversationService.getConversation(agent.conversationId);
           if (existing) {
+            // Only include workspace in the update when it has a real value.
+            // An empty string would overwrite the conversation's existing workspace
+            // (e.g. the temp dir created during solo-chat init), causing mkdir('') failures.
+            const extraUpdate: Record<string, unknown> = { teamId };
+            if (workspace) {
+              extraUpdate.workspace = workspace;
+            }
             await this.conversationService.updateConversation(
               agent.conversationId,
-              { extra: { teamId, workspace } } as any,
+              { extra: extraUpdate } as any,
               true
             );
             return { ...agent, slotId, conversationId: agent.conversationId };
