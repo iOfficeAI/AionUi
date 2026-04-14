@@ -11,12 +11,14 @@ import * as crypto from 'node:crypto';
 import * as net from 'node:net';
 import * as path from 'node:path';
 import { ipcBridge } from '@/common';
-import { team as teamIpcBridge } from '@/common/adapter/ipcBridge';
-import type { Mailbox } from './Mailbox';
-import type { TaskManager } from './TaskManager';
-import type { TeamAgent } from './types';
-import { TEAM_SUPPORTED_BACKENDS } from '@/common/types/teamTypes';
-import { notifyMcpReady } from './mcpReadiness';
+import type { Mailbox } from '../../Mailbox.ts';
+import type { TaskManager } from '../../TaskManager.ts';
+import type { TeamAgent } from '../../types.ts';
+import { isTeamCapableBackend, getTeamCapableBackends } from '@/common/types/teamTypes.ts';
+import { ProcessConfig } from '@process/utils/initStorage.ts';
+import { acpDetector } from '@process/agent/acp/AcpDetector.ts';
+import { notifyMcpReady } from '../../mcpReadiness.ts';
+import { writeTcpMessage, createTcpMessageReader, resolveMcpScriptDir } from '../tcpHelpers.ts';
 
 type SpawnAgentFn = (agentName: string, agentType?: string) => Promise<TeamAgent>;
 
@@ -37,63 +39,6 @@ export type StdioMcpConfig = {
   args: string[];
   env: Array<{ name: string; value: string }>;
 };
-
-// ── TCP message helpers ───────────────────────────────────────────────────────
-
-function writeTcpMessage(socket: net.Socket, data: unknown): void {
-  const json = JSON.stringify(data);
-  const body = Buffer.from(json, 'utf-8');
-  const header = Buffer.alloc(4);
-  header.writeUInt32BE(body.length, 0);
-  socket.write(Buffer.concat([header, body]));
-}
-
-function createTcpMessageReader(onMessage: (msg: unknown) => void): (chunk: Buffer) => void {
-  let buffer = Buffer.alloc(0);
-
-  return (chunk: Buffer) => {
-    buffer = Buffer.concat([buffer, chunk]);
-
-    while (buffer.length >= 4) {
-      const bodyLen = buffer.readUInt32BE(0);
-      if (buffer.length < 4 + bodyLen) break;
-
-      const jsonStr = buffer.subarray(4, 4 + bodyLen).toString('utf-8');
-      buffer = buffer.subarray(4 + bodyLen);
-
-      try {
-        const msg = JSON.parse(jsonStr);
-        onMessage(msg);
-      } catch {
-        // Malformed JSON — skip
-      }
-    }
-  };
-}
-
-/**
- * Resolve the directory containing the team-mcp-stdio.js bundle.
- * Mirrors the getBuiltinMcpBaseDir() logic in initStorage.ts so both MCP
- * scripts use the same path strategy across dev and packaged modes.
- *
- * In dev:       out/main/  (next to the main bundle)
- * In packaged:  app.asar.unpacked/out/main/  (asarUnpack makes it a real file)
- */
-function resolveTeamMcpDir(): string {
-  const mainModuleDir =
-    typeof require !== 'undefined' && require.main?.filename ? path.dirname(require.main.filename) : __dirname;
-  const baseDir = path.basename(mainModuleDir) === 'chunks' ? path.dirname(mainModuleDir) : mainModuleDir;
-  try {
-    // eslint-disable-next-line @typescript-eslint/no-require-imports
-    const { app } = require('electron');
-    if (app.isPackaged) {
-      return baseDir.replace('app.asar', 'app.asar.unpacked');
-    }
-  } catch {
-    // Not in Electron (unit tests / CLI mode) — use baseDir as-is
-  }
-  return baseDir;
-}
 
 /**
  * MCP server that provides team coordination tools to ACP agents.
@@ -146,7 +91,7 @@ export class TeamMcpServer {
    *   slot ID to every TCP request so the server knows who is calling.
    */
   getStdioConfig(agentSlotId?: string): StdioMcpConfig {
-    const scriptPath = path.join(resolveTeamMcpDir(), 'team-mcp-stdio.js');
+    const scriptPath = path.join(resolveMcpScriptDir(), 'team-mcp-stdio.js');
 
     const env: StdioMcpConfig['env'] = [
       { name: 'TEAM_MCP_PORT', value: String(this._port) },
@@ -385,11 +330,16 @@ export class TeamMcpServer {
     const { teamId, getAgents, mailbox, spawnAgent, wakeAgent } = this.params;
     const name = String(args.name ?? '');
     const agentType = args.agent_type ? String(args.agent_type) : undefined;
-    // Team mode whitelist: only verified backends that support MCP tool injection
-    if (agentType && !TEAM_SUPPORTED_BACKENDS.has(agentType)) {
-      throw new Error(
-        `Agent type "${agentType}" is not supported in team mode. Supported: ${[...TEAM_SUPPORTED_BACKENDS].join(', ')}.`
-      );
+    // Team mode validation: only backends with confirmed ACP MCP stdio support
+    if (agentType) {
+      const cachedInitResults = await ProcessConfig.get('acp.cachedInitializeResult');
+      if (!isTeamCapableBackend(agentType, cachedInitResults)) {
+        const capable = getTeamCapableBackends(
+          acpDetector.getDetectedAgents().map((a) => a.backend),
+          cachedInitResults
+        );
+        throw new Error(`Agent type "${agentType}" is not supported in team mode. Supported: ${capable.join(', ')}.`);
+      }
     }
 
     if (!spawnAgent) {

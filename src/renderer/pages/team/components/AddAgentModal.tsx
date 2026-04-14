@@ -1,6 +1,8 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Button, Input, Select } from '@arco-design/web-react';
 import { useTranslation } from 'react-i18next';
+import { ConfigStorage } from '@/common/config/storage';
+import type { AcpInitializeResult } from '@/common/types/acpTypes';
 import AionModal from '@renderer/components/base/AionModal';
 import { useConversationAgents } from '@renderer/pages/conversation/hooks/useConversationAgents';
 import { agentKey, filterTeamSupportedAgents, AgentOptionLabel } from './agentSelectUtils';
@@ -16,8 +18,22 @@ const AddAgentModal: React.FC<Props> = ({ visible, onClose, onConfirm }) => {
   const { cliAgents } = useConversationAgents();
   const [agentName, setAgentName] = useState('');
   const [selectedKey, setSelectedKey] = useState<string | undefined>(undefined);
+  const [cachedInitResults, setCachedInitResults] = useState<Record<string, AcpInitializeResult> | null>(null);
 
-  const allAgents = filterTeamSupportedAgents([...cliAgents]);
+  useEffect(() => {
+    if (!visible) return;
+    let active = true;
+    ConfigStorage.get('acp.cachedInitializeResult')
+      .then((data) => {
+        if (active) setCachedInitResults(data ?? null);
+      })
+      .catch(() => {});
+    return () => {
+      active = false;
+    };
+  }, [visible]);
+
+  const allAgents = filterTeamSupportedAgents([...cliAgents], cachedInitResults);
 
   const handleClose = () => {
     setAgentName('');

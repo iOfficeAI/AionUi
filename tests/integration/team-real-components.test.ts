@@ -54,7 +54,7 @@ vi.mock('@process/agent/acp/AcpDetector', () => ({
 import { Mailbox } from '@process/team/Mailbox';
 import { TaskManager } from '@process/team/TaskManager';
 import { TeammateManager } from '@process/team/TeammateManager';
-import { TeamMcpServer } from '@process/team/TeamMcpServer';
+import { TeamMcpServer } from '@process/team/mcp/team/TeamMcpServer';
 import { teamEventBus } from '@process/team/teamEventBus';
 import type { ITeamRepository } from '@process/team/repository/ITeamRepository';
 import type { TeamAgent, MailboxMessage, TeamTask, TTeam } from '@process/team/types';

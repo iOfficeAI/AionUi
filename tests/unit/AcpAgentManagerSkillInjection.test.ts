@@ -48,7 +48,29 @@ vi.mock('@process/services/database', () => ({
 }));
 
 vi.mock('@process/utils/initStorage', () => ({
-  ProcessConfig: { get: vi.fn(async () => null), set: vi.fn(async () => {}) },
+  ProcessConfig: {
+    get: vi.fn(async (key: string) => {
+      if (key === 'acp.cachedInitializeResult') {
+        // Provide cached init results so shouldInjectTeamGuideMcp returns true for claude/gemini
+        return {
+          claude: {
+            protocolVersion: 1,
+            capabilities: {
+              loadSession: false,
+              promptCapabilities: { image: false, audio: false, embeddedContext: false },
+              mcpCapabilities: { stdio: true, http: false, sse: false },
+              sessionCapabilities: { fork: null, resume: null, list: null, close: null },
+              _meta: {},
+            },
+            agentInfo: null,
+            authMethods: [],
+          },
+        };
+      }
+      return null;
+    }),
+    set: vi.fn(async () => {}),
+  },
 }));
 
 vi.mock('@process/utils/message', () => ({
@@ -247,7 +269,7 @@ describe('AcpAgentManager — first-message skill injection', () => {
     expect(sentContent).toContain('Test message');
   });
 
-  it('injects team guide for gemini backend (now in TEAM_SUPPORTED_BACKENDS)', async () => {
+  it('injects team guide for gemini backend (always team-capable)', async () => {
     const manager = createManager({
       backend: 'gemini',
       customWorkspace: false,
@@ -257,7 +279,7 @@ describe('AcpAgentManager — first-message skill injection', () => {
 
     expect(mockPrepareFirstMessage).not.toHaveBeenCalled();
     const sentContent = mockAgentSendMessage.mock.calls[0][0].content as string;
-    // gemini is now in TEAM_SUPPORTED_BACKENDS → team guide should be injected
+    // gemini is always team-capable (non-ACP) → team guide should be injected
     expect(sentContent).toContain('[Assistant Rules');
     expect(sentContent).toContain('Team Mode');
     expect(sentContent).toContain('[User Request]');

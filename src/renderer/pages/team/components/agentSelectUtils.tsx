@@ -3,9 +3,8 @@ import { Robot } from '@icon-park/react';
 import { getAgentLogo } from '@renderer/utils/model/agentLogo';
 import { CUSTOM_AVATAR_IMAGE_MAP } from '@renderer/pages/guid/constants';
 import type { AvailableAgent } from '@renderer/utils/model/agentTypes';
-import { TEAM_SUPPORTED_BACKENDS } from '@/common/types/teamTypes';
-
-export { TEAM_SUPPORTED_BACKENDS };
+import type { AcpInitializeResult } from '@/common/types/acpTypes';
+import { isTeamCapableBackend } from '@/common/types/teamTypes';
 
 export function agentKey(agent: AvailableAgent): string {
   return agent.customAgentId ? `preset::${agent.customAgentId}` : `cli::${agent.backend}`;
@@ -19,18 +18,14 @@ export function resolveTeamAgentType(agent: AvailableAgent | undefined, fallback
   return agent?.presetAgentType || agent?.backend || fallback;
 }
 
-/**
- * Check if an agent backend is supported in team mode.
- */
-export function isTeamSupportedBackend(backend: string): boolean {
-  return TEAM_SUPPORTED_BACKENDS.has(backend);
-}
-
 /** Filter agents to only those supported in team mode */
-export function filterTeamSupportedAgents(agents: AvailableAgent[]): AvailableAgent[] {
+export function filterTeamSupportedAgents(
+  agents: AvailableAgent[],
+  cachedInitResults: Record<string, AcpInitializeResult> | null | undefined
+): AvailableAgent[] {
   return agents.filter((a) => {
     const backend = a.presetAgentType || a.backend;
-    return isTeamSupportedBackend(backend);
+    return isTeamCapableBackend(backend, cachedInitResults);
   });
 }
 

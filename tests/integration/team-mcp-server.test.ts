@@ -9,9 +9,44 @@
  * under test. All MCP tool behavior is exercised exclusively through TCP.
  */
 
-import { describe, it, expect, beforeEach, afterEach } from 'vitest';
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import * as net from 'node:net';
-import { TeamMcpServer } from '../../src/process/team/TeamMcpServer';
+
+// Mock ProcessConfig for dynamic team capability checks
+vi.mock('@process/utils/initStorage', () => ({
+  ProcessConfig: {
+    get: vi.fn(async (key: string) => {
+      if (key === 'acp.cachedInitializeResult') {
+        const makeEntry = () => ({
+          protocolVersion: 1,
+          capabilities: {
+            loadSession: false,
+            promptCapabilities: { image: false, audio: false, embeddedContext: false },
+            mcpCapabilities: { stdio: true, http: false, sse: false },
+            sessionCapabilities: { fork: null, resume: null, list: null, close: null },
+            _meta: {},
+          },
+          agentInfo: null,
+          authMethods: [],
+        });
+        return { claude: makeEntry(), codex: makeEntry() };
+      }
+      return null;
+    }),
+  },
+}));
+
+// Mock acpDetector for getTeamCapableBackends error message
+vi.mock('@process/agent/acp/AcpDetector', () => ({
+  acpDetector: {
+    getDetectedAgents: vi.fn(() => [
+      { backend: 'claude', name: 'Claude' },
+      { backend: 'codex', name: 'Codex' },
+    ]),
+  },
+}));
+
+import { TeamMcpServer } from '../../src/process/team/mcp/team/TeamMcpServer';
 import type { TeamAgent } from '@/common/types/teamTypes';
 import type { Mailbox } from '../../src/process/team/Mailbox';
 import type { TaskManager } from '../../src/process/team/TaskManager';
@@ -101,8 +136,6 @@ type MockTaskManager = {
   list: ReturnType<typeof vi.fn>;
   checkUnblocks: ReturnType<typeof vi.fn>;
 };
-
-import { vi } from 'vitest';
 
 function makeMockMailbox(): MockMailbox {
   return {

@@ -2,12 +2,33 @@
 // Shared team types used by both main process and renderer.
 // Renderer code should import from here instead of @process/team/types.
 
+import type { AcpInitializeResult } from './acpTypes';
+
 /**
- * Agent backends verified to support MCP tool injection in team mode.
- * This is the single source of truth — frontend UI, backend spawn validation,
- * and the available-agent-types list passed to the leader prompt all derive from here.
+ * Check if an agent backend is team-capable based on its cached ACP initialize result.
+ * Gemini is always team-capable (non-ACP, uses its own protocol).
+ * ACP agents are team-capable when their initialize response includes mcpCapabilities.stdio.
  */
-export const TEAM_SUPPORTED_BACKENDS = new Set(['claude', 'codex', 'gemini']);
+export function isTeamCapableBackend(
+  backend: string,
+  cachedInitResults: Record<string, AcpInitializeResult> | null | undefined
+): boolean {
+  if (backend === 'gemini') return true;
+  const initResult = cachedInitResults?.[backend];
+  return initResult?.capabilities.mcpCapabilities.stdio === true;
+}
+
+/**
+ * Get all team-capable backends from cached initialize results.
+ * Always includes 'gemini'. ACP backends included if their cached
+ * initialize result shows mcpCapabilities.stdio === true.
+ */
+export function getTeamCapableBackends(
+  detectedBackends: string[],
+  cachedInitResults: Record<string, AcpInitializeResult> | null | undefined
+): string[] {
+  return detectedBackends.filter((b) => isTeamCapableBackend(b, cachedInitResults));
+}
 
 /** Role of a teammate within a team */
 export type TeammateRole = 'lead' | 'teammate';
