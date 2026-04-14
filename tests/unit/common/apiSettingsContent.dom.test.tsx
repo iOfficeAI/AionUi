@@ -2,6 +2,19 @@ import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import React from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
+type MockInputProps = {
+  value?: string;
+  onChange?: (value: string) => void;
+  placeholder?: string;
+  readOnly?: boolean;
+};
+
+type MockSelectProps = {
+  value?: string;
+  onChange?: (value: string) => void;
+  options?: Array<{ label: string; value: string }>;
+};
+
 const testState = vi.hoisted(() => {
   const translations: Record<string, string> = {
     'common.copy': 'Copy',
@@ -132,66 +145,29 @@ vi.mock('@icon-park/react', () => ({
   Refresh: () => <span data-testid='icon-refresh' />,
 }));
 
-vi.mock('@arco-design/web-react', () => {
-  const Button = ({
-    children,
-    disabled,
-    onClick,
-  }: React.PropsWithChildren<{ disabled?: boolean; onClick?: () => void }>) => (
+const arcoMockComponents = vi.hoisted(() => ({
+  Button: ({ children, disabled, onClick }: React.PropsWithChildren<{ disabled?: boolean; onClick?: () => void }>) => (
     <button disabled={disabled} onClick={onClick} type='button'>
       {children}
     </button>
-  );
-
-  const InputComponent = ({
-    value,
-    onChange,
-    placeholder,
-    readOnly,
-  }: {
-    value?: string;
-    onChange?: (value: string) => void;
-    placeholder?: string;
-    readOnly?: boolean;
-  }) => (
+  ),
+  InputComponent: ({ value, onChange, placeholder, readOnly }: MockInputProps) => (
     <input
       placeholder={placeholder}
       readOnly={readOnly}
       value={value || ''}
       onChange={(event) => onChange?.(event.target.value)}
     />
-  );
-
-  const TextArea = ({
-    value,
-    onChange,
-    placeholder,
-    readOnly,
-  }: {
-    value?: string;
-    onChange?: (value: string) => void;
-    placeholder?: string;
-    readOnly?: boolean;
-  }) => (
+  ),
+  TextArea: ({ value, onChange, placeholder, readOnly }: MockInputProps) => (
     <textarea
       placeholder={placeholder}
       readOnly={readOnly}
       value={value || ''}
       onChange={(event) => onChange?.(event.target.value)}
     />
-  );
-
-  const Input = Object.assign(InputComponent, { TextArea });
-
-  const Select = ({
-    value,
-    onChange,
-    options,
-  }: {
-    value?: string;
-    onChange?: (value: string) => void;
-    options?: Array<{ label: string; value: string }>;
-  }) => (
+  ),
+  Select: ({ value, onChange, options }: MockSelectProps) => (
     <select value={value} onChange={(event) => onChange?.(event.target.value)}>
       {(options || []).map((option) => (
         <option key={option.value} value={option.value}>
@@ -199,13 +175,11 @@ vi.mock('@arco-design/web-react', () => {
         </option>
       ))}
     </select>
-  );
-
-  const Switch = ({ checked, onChange }: { checked?: boolean; onChange?: (checked: boolean) => void }) => (
+  ),
+  Switch: ({ checked, onChange }: { checked?: boolean; onChange?: (checked: boolean) => void }) => (
     <input checked={checked} onChange={(event) => onChange?.(event.target.checked)} role='switch' type='checkbox' />
-  );
-
-  const Tabs = ({
+  ),
+  Tabs: ({
     children,
     activeTab,
     onChange,
@@ -229,20 +203,25 @@ vi.mock('@arco-design/web-react', () => {
         })}
       </div>
     );
-  };
+  },
+}));
 
-  Tabs.TabPane = ({ children }: React.PropsWithChildren) => <>{children}</>;
+vi.mock('@arco-design/web-react', () => {
+  const Input = Object.assign(arcoMockComponents.InputComponent, { TextArea: arcoMockComponents.TextArea });
+  const Tabs = Object.assign(arcoMockComponents.Tabs, {
+    TabPane: ({ children }: React.PropsWithChildren) => <>{children}</>,
+  });
 
   return {
-    Button,
+    Button: arcoMockComponents.Button,
     Input,
     Message: {
       success: testState.messageSuccess,
       error: testState.messageError,
       warning: testState.messageWarning,
     },
-    Select,
-    Switch,
+    Select: arcoMockComponents.Select,
+    Switch: arcoMockComponents.Switch,
     Tabs,
   };
 });
@@ -349,7 +328,7 @@ describe('ApiSettingsContent', () => {
       expect(testState.getApiConfig).toHaveBeenCalledOnce();
     });
 
-    fireEvent.click(screen.getByText('Conversation Callback'));
+    fireEvent.click(await screen.findByText('Conversation Callback'));
 
     const callbackSwitch = screen.getByRole('switch');
     fireEvent.click(callbackSwitch);
@@ -357,10 +336,10 @@ describe('ApiSettingsContent', () => {
     const callbackInput = await screen.findByPlaceholderText('https://your-server.com/webhook');
     fireEvent.change(callbackInput, { target: { value: 'https://callback.example.com/hook' } });
 
-    fireEvent.click(screen.getByText('Parameter Generator'));
+    fireEvent.click(await screen.findByText('Parameter Generator'));
     expect(screen.getByText('/api/v1/conversation/create Parameter Generator')).toBeInTheDocument();
 
-    fireEvent.click(screen.getByText('Conversation Callback'));
+    fireEvent.click(await screen.findByText('Conversation Callback'));
 
     expect(screen.getByDisplayValue('https://callback.example.com/hook')).toBeInTheDocument();
   });

@@ -8,6 +8,12 @@ import { describe, expect, it, vi, beforeEach } from 'vitest';
 
 // Store registered providers so we can test them
 const registeredProviders: Record<string, Function> = {};
+const shellBridgeNewMocks = vi.hoisted(() => ({
+  createSpawnChild: () => ({
+    on: vi.fn(),
+    unref: vi.fn(),
+  }),
+}));
 
 // Mock electron
 vi.mock('electron', () => ({
@@ -21,10 +27,7 @@ vi.mock('electron', () => ({
 // Mock child_process
 vi.mock('child_process', () => ({
   exec: vi.fn(),
-  spawn: vi.fn().mockReturnValue({
-    on: vi.fn(),
-    unref: vi.fn(),
-  }),
+  spawn: vi.fn().mockReturnValue(shellBridgeNewMocks.createSpawnChild()),
 }));
 
 // Mock fs
@@ -36,6 +39,11 @@ vi.mock('fs', () => ({
 vi.mock('@/common', () => ({
   ipcBridge: {
     shell: {
+      openWorkspaceInEditor: {
+        provider: vi.fn((fn: Function) => {
+          registeredProviders['openWorkspaceInEditor'] = fn;
+        }),
+      },
       openFile: {
         provider: vi.fn((fn: Function) => {
           registeredProviders['openFile'] = fn;
@@ -78,6 +86,10 @@ describe('shellBridge with actual providers', () => {
     Object.keys(registeredProviders).forEach((key) => delete registeredProviders[key]);
     // Re-initialize to register providers
     initShellBridge();
+  });
+
+  it('registers the workspace editor provider', () => {
+    expect(registeredProviders['openWorkspaceInEditor']).toBeTypeOf('function');
   });
 
   describe('openFile provider', () => {
@@ -188,7 +200,7 @@ describe('shellBridge with actual providers', () => {
       vi.mocked(fs.existsSync).mockReturnValue(false);
       vi.mocked(exec).mockImplementation((cmd: string, callback: Function) => {
         callback(new Error('not found'), { stdout: '', stderr: '' });
-        return undefined as any;
+        return undefined as never;
       });
 
       const result = await registeredProviders['checkToolInstalled']({ tool: 'vscode' });
@@ -261,7 +273,7 @@ describe('shellBridge with actual providers', () => {
         } else {
           callback(new Error('not found'), { stdout: '', stderr: '' });
         }
-        return undefined as any;
+        return undefined as never;
       });
 
       await registeredProviders['openFolderWith']({ folderPath: '/project', tool: 'terminal' });
@@ -277,7 +289,7 @@ describe('shellBridge with actual providers', () => {
       // Mock commandExists to not find any terminal
       vi.mocked(exec).mockImplementation((cmd: string, callback: Function) => {
         callback(new Error('not found'), { stdout: '', stderr: '' });
-        return undefined as any;
+        return undefined as never;
       });
 
       await registeredProviders['openFolderWith']({ folderPath: '/project', tool: 'terminal' });
@@ -295,8 +307,8 @@ describe('shellBridge with actual providers', () => {
             if (event === 'error') cb(new Error('spawn ENOENT'));
           }),
           unref: vi.fn(),
-        } as any)
-        .mockReturnValue({ on: vi.fn(), unref: vi.fn() } as any);
+        } as ReturnType<typeof shellBridgeNewMocks.createSpawnChild>)
+        .mockReturnValue(shellBridgeNewMocks.createSpawnChild());
       // Mock fs.existsSync to find VS Code in macOS path
       vi.mocked(fs.existsSync).mockImplementation((filepath: string) => {
         return filepath === '/Applications/Visual Studio Code.app/Contents/Resources/app/bin/code';
@@ -322,8 +334,8 @@ describe('shellBridge with actual providers', () => {
             if (event === 'error') cb(new Error('spawn ENOENT'));
           }),
           unref: vi.fn(),
-        } as any)
-        .mockReturnValue({ on: vi.fn(), unref: vi.fn() } as any);
+        } as ReturnType<typeof shellBridgeNewMocks.createSpawnChild>)
+        .mockReturnValue(shellBridgeNewMocks.createSpawnChild());
       // Mock fs.existsSync to find VS Code in Linux path
       vi.mocked(fs.existsSync).mockImplementation((filepath: string) => {
         return filepath === '/usr/bin/code';

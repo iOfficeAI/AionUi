@@ -53,13 +53,13 @@ export class ConversationLiveStateService {
   }
 
   private constructor() {
-    ipcBridge.conversation.responseStream.on((message) => {
+    ipcBridge.conversation?.responseStream?.on?.((message) => {
       this.handleResponseStream(message);
     });
-    ipcBridge.conversation.turnCompleted.on((event) => {
+    ipcBridge.conversation?.turnCompleted?.on?.((event) => {
       this.handleTurnCompleted(event);
     });
-    ipcBridge.conversation.listChanged.on((event) => {
+    ipcBridge.conversation?.listChanged?.on?.((event) => {
       this.handleConversationListChanged(event);
     });
   }

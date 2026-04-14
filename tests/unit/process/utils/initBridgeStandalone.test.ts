@@ -27,11 +27,18 @@ const mocks = vi.hoisted(() => ({
   initStarOfficeBridge: vi.fn(),
   initSpeechToTextBridge: vi.fn(),
   initHubBridge: vi.fn(),
+  initRemoteAgentBridge: vi.fn(),
   initializeDetector: vi.fn(async () => {}),
   loggerConfig: vi.fn(),
+  bridgeBuildProvider: vi.fn(() => ({ provider: vi.fn(), invoke: vi.fn() })),
+  bridgeBuildEmitter: vi.fn(() => ({ on: vi.fn(), emit: vi.fn() })),
 }));
 
 vi.mock('@office-ai/platform', () => ({
+  bridge: {
+    buildProvider: (...args: unknown[]) => mocks.bridgeBuildProvider(...args),
+    buildEmitter: (...args: unknown[]) => mocks.bridgeBuildEmitter(...args),
+  },
   logger: {
     config: (...args: unknown[]) => mocks.loggerConfig(...args),
   },
@@ -44,15 +51,15 @@ vi.mock('@process/agent/acp/AcpDetector', () => ({
 }));
 
 vi.mock('@process/services/database/SqliteChannelRepository', () => ({
-  SqliteChannelRepository: class {},
+  SqliteChannelRepository: vi.fn(function SqliteChannelRepository() {}),
 }));
 
 vi.mock('@process/services/database/SqliteConversationRepository', () => ({
-  SqliteConversationRepository: class {},
+  SqliteConversationRepository: vi.fn(function SqliteConversationRepository() {}),
 }));
 
 vi.mock('@process/services/ConversationServiceImpl', () => ({
-  ConversationServiceImpl: class {},
+  ConversationServiceImpl: vi.fn(function ConversationServiceImpl() {}),
 }));
 
 vi.mock('@process/task/workerTaskManagerSingleton', () => ({
@@ -137,6 +144,9 @@ vi.mock('@process/bridge/speechToTextBridge', () => ({
 vi.mock('@process/bridge/hubBridge', () => ({
   initHubBridge: (...args: unknown[]) => mocks.initHubBridge(...args),
 }));
+vi.mock('@process/bridge/remoteAgentBridge', () => ({
+  initRemoteAgentBridge: (...args: unknown[]) => mocks.initRemoteAgentBridge(...args),
+}));
 
 describe('initBridgeStandalone', () => {
   beforeEach(() => {
@@ -149,6 +159,7 @@ describe('initBridgeStandalone', () => {
     await mod.initBridgeStandalone();
 
     expect(mocks.initHubBridge).toHaveBeenCalledTimes(1);
+    expect(mocks.initRemoteAgentBridge).toHaveBeenCalledTimes(1);
     expect(mocks.initializeDetector).toHaveBeenCalledTimes(1);
   });
 });

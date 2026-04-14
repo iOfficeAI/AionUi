@@ -8,7 +8,10 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 // --- Mocks (vi.hoisted so factories can reference them) ---
 
+type ProviderFn = (...args: unknown[]) => unknown;
+
 const {
+  openWorkspaceInEditorProvider,
   openFileProvider,
   showItemInFolderProvider,
   openExternalProvider,
@@ -19,11 +22,12 @@ const {
   spawnMock,
   fsMock,
 } = vi.hoisted(() => ({
-  openFileProvider: { fn: undefined as ((...args: any[]) => any) | undefined },
-  showItemInFolderProvider: { fn: undefined as ((...args: any[]) => any) | undefined },
-  openExternalProvider: { fn: undefined as ((...args: any[]) => any) | undefined },
-  checkToolInstalledProvider: { fn: undefined as ((...args: any[]) => any) | undefined },
-  openFolderWithProvider: { fn: undefined as ((...args: any[]) => any) | undefined },
+  openWorkspaceInEditorProvider: { fn: undefined as ProviderFn | undefined },
+  openFileProvider: { fn: undefined as ProviderFn | undefined },
+  showItemInFolderProvider: { fn: undefined as ProviderFn | undefined },
+  openExternalProvider: { fn: undefined as ProviderFn | undefined },
+  checkToolInstalledProvider: { fn: undefined as ProviderFn | undefined },
+  openFolderWithProvider: { fn: undefined as ProviderFn | undefined },
   shellMock: {
     openPath: vi.fn().mockResolvedValue(''),
     showItemInFolder: vi.fn(),
@@ -42,28 +46,33 @@ const {
 vi.mock('@/common', () => ({
   ipcBridge: {
     shell: {
+      openWorkspaceInEditor: {
+        provider: vi.fn((fn: ProviderFn) => {
+          openWorkspaceInEditorProvider.fn = fn;
+        }),
+      },
       openFile: {
-        provider: vi.fn((fn: (...args: any[]) => any) => {
+        provider: vi.fn((fn: ProviderFn) => {
           openFileProvider.fn = fn;
         }),
       },
       showItemInFolder: {
-        provider: vi.fn((fn: (...args: any[]) => any) => {
+        provider: vi.fn((fn: ProviderFn) => {
           showItemInFolderProvider.fn = fn;
         }),
       },
       openExternal: {
-        provider: vi.fn((fn: (...args: any[]) => any) => {
+        provider: vi.fn((fn: ProviderFn) => {
           openExternalProvider.fn = fn;
         }),
       },
       checkToolInstalled: {
-        provider: vi.fn((fn: (...args: any[]) => any) => {
+        provider: vi.fn((fn: ProviderFn) => {
           checkToolInstalledProvider.fn = fn;
         }),
       },
       openFolderWith: {
-        provider: vi.fn((fn: (...args: any[]) => any) => {
+        provider: vi.fn((fn: ProviderFn) => {
           openFolderWithProvider.fn = fn;
         }),
       },
@@ -91,6 +100,7 @@ let initShellBridge: typeof import('../../src/process/bridge/shellBridge').initS
 beforeEach(async () => {
   vi.resetModules();
   vi.clearAllMocks();
+  openWorkspaceInEditorProvider.fn = undefined;
   openFileProvider.fn = undefined;
   showItemInFolderProvider.fn = undefined;
   openExternalProvider.fn = undefined;
@@ -106,8 +116,9 @@ beforeEach(async () => {
 
 describe('shellBridge', () => {
   describe('initShellBridge', () => {
-    it('registers all five shell providers', () => {
+    it('registers all shell providers', () => {
       initShellBridge();
+      expect(openWorkspaceInEditorProvider.fn).toBeDefined();
       expect(openFileProvider.fn).toBeDefined();
       expect(showItemInFolderProvider.fn).toBeDefined();
       expect(openExternalProvider.fn).toBeDefined();
@@ -213,7 +224,7 @@ describe('shellBridge', () => {
     });
 
     it('returns false for unknown tool', async () => {
-      const result = await checkToolInstalledProvider.fn!({ tool: 'unknown-tool' as any });
+      const result = await checkToolInstalledProvider.fn!({ tool: 'unknown-tool' });
       expect(result).toBe(false);
     });
   });

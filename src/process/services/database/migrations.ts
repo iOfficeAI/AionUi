@@ -1366,7 +1366,9 @@ const migration_v27: IMigration = {
       db.exec(`ALTER TABLE messages ADD COLUMN hidden INTEGER DEFAULT 0`);
     }
 
-    const cronScheduleColumns = new Set((db.pragma('table_info(cron_jobs)') as Array<{ name: string }>).map((c) => c.name));
+    const cronScheduleColumns = new Set(
+      (db.pragma('table_info(cron_jobs)') as Array<{ name: string }>).map((c) => c.name)
+    );
     if (!cronScheduleColumns.has('schedule_start_at')) {
       db.exec(`ALTER TABLE cron_jobs ADD COLUMN schedule_start_at INTEGER`);
     }

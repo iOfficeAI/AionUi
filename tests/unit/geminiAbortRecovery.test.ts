@@ -45,7 +45,7 @@ describe('Gemini abort recovery', () => {
     refreshServerHierarchicalMemoryMock.mockResolvedValue({ memoryContent: 'Persisted memory' });
   });
 
-  it('reloads persisted history after stop()', async () => {
+  it('stop() only forwards the stop request without reloading history', async () => {
     const postMessagePromise = vi.fn().mockResolvedValue(undefined);
     const injectHistoryFromDatabase = vi.fn().mockResolvedValue(undefined);
 
@@ -55,6 +55,16 @@ describe('Gemini abort recovery', () => {
     } as unknown as GeminiAgentManager);
 
     expect(postMessagePromise).toHaveBeenCalledWith('stop.stream', {});
+    expect(injectHistoryFromDatabase).not.toHaveBeenCalled();
+  });
+
+  it('reloadContext() reinjects persisted history after abort recovery', async () => {
+    const injectHistoryFromDatabase = vi.fn().mockResolvedValue(undefined);
+
+    await GeminiAgentManager.prototype.reloadContext.call({
+      injectHistoryFromDatabase,
+    } as unknown as GeminiAgentManager);
+
     expect(injectHistoryFromDatabase).toHaveBeenCalledTimes(1);
   });
 

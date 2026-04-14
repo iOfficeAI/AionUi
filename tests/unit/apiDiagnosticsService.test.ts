@@ -234,7 +234,9 @@ describe('ApiDiagnosticsService', () => {
     });
 
     expect(fs.existsSync(configFilePath)).toBe(false);
-    const archivedFiles = fs.readdirSync(tempDir).filter((file) => file.startsWith('api-diagnostics-config.json.corrupt-'));
+    const archivedFiles = fs
+      .readdirSync(tempDir)
+      .filter((file) => file.startsWith('api-diagnostics-config.json.corrupt-'));
     expect(archivedFiles).toHaveLength(1);
     expect(service.getConfig()).toEqual({
       enabled: false,

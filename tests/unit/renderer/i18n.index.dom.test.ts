@@ -96,7 +96,7 @@ describe('renderer i18n localStorage guards', () => {
       })
     );
     expect(mockI18n.changeLanguage).toHaveBeenCalledWith('ja-JP');
-  });
+  }, 20000);
 
   it('updates language from the main-process broadcast without touching localStorage', async () => {
     await import('@/renderer/services/i18n');

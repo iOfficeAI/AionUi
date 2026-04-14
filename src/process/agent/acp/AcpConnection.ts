@@ -1213,7 +1213,7 @@ export class AcpConnection {
     const normalizedCwd = this.normalizeCwdForAgent(cwd);
     const mcpServers = Array.isArray(optionsOrMcpServers)
       ? optionsOrMcpServers
-      : optionsOrMcpServers?.mcpServers ?? [];
+      : (optionsOrMcpServers?.mcpServers ?? []);
 
     const response = await this.sendRequest<AcpResponse & { sessionId?: string }>('session/load', {
       sessionId,

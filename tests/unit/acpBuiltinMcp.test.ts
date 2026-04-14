@@ -6,9 +6,7 @@
 
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import type { IMcpServer } from '../../src/common/config/storage';
-import {
-  buildBuiltinAcpSessionMcpServers,
-} from '../../src/process/agent/acp/mcpSessionConfig';
+import { buildBuiltinAcpSessionMcpServers } from '../../src/process/agent/acp/mcpSessionConfig';
 import { buildGeminiAddArgs } from '../../src/process/services/mcpServices/agents/GeminiMcpAgent';
 import { parseAgentCapabilities } from '../../src/common/types/acpTypes';
 

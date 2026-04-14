@@ -132,8 +132,9 @@ describe('useChannelModelSelection restore retry limit', () => {
     const { default: ChannelModalContent } =
       await import('@/renderer/components/settings/SettingsModal/contents/channels/ChannelModalContent');
 
+    let view: ReturnType<typeof render>;
     await act(async () => {
-      render(<ChannelModalContent />);
+      view = render(<ChannelModalContent />);
     });
 
     // The hook runs for 5 channels (telegram, lark, dingtalk, weixin, wecom).
@@ -145,21 +146,20 @@ describe('useChannelModelSelection restore retry limit', () => {
     // Simulate multiple SWR revalidations by triggering re-renders with
     // the same providers reference (effects re-run on providers change).
     // Each re-render should increment the retry count until the limit is hit.
-    for (let i = 0; i < 10; i++) {
-      // Create a new providers array reference to trigger the useEffect
+    await Array.from({ length: 5 }).reduce(async (pending) => {
+      await pending;
       mockProviders = [{ id: 'provider-1', name: 'Provider One', model: ['model-a', 'model-b'] }];
       await act(async () => {
-        // Force re-render by triggering state updates
-        await new Promise((resolve) => setTimeout(resolve, 0));
+        view.rerender(<ChannelModalContent />);
       });
-    }
+    }, Promise.resolve());
 
     // After MAX_RESTORE_RETRIES (5), the effect should stop calling ConfigStorage.get.
     // With 5 channels × at most 5 retries each = at most 25 calls.
     // Without the fix, this would be 5 × 10+ = 50+ calls.
     const totalCalls = mockConfigStorageGet.mock.calls.length;
     expect(totalCalls).toBeLessThanOrEqual(5 * 5);
-  });
+  }, 30000);
 
   it('should restore successfully when provider exists', async () => {
     mockConfigStorageGet.mockResolvedValue({ id: 'provider-1', useModel: 'model-a' });

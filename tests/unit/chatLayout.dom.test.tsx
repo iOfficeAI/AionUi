@@ -164,6 +164,6 @@ describe('ChatLayout', () => {
       </ChatLayout>
     );
 
-    expect(screen.getByLabelText('Search conversation')).toBeInTheDocument();
+    expect(screen.getAllByLabelText('Search conversation')).toHaveLength(2);
   });
 });

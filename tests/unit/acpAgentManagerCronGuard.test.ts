@@ -35,10 +35,15 @@ vi.mock('@/common', () => ({
 }));
 vi.mock('@process/services/database', () => ({
   getDatabase: vi.fn(() => Promise.resolve({ updateConversation: vi.fn() })),
+  getDatabaseSync: vi.fn(() => ({
+    getConversation: vi.fn(() => ({ success: false })),
+    getConversationMessages: vi.fn(() => ({ data: [] })),
+  })),
 }));
 vi.mock('@process/utils/message', () => ({
   addMessage: vi.fn(),
   addOrUpdateMessage: vi.fn(),
+  flushConversationMessages: vi.fn().mockResolvedValue(undefined),
   nextTickToLocalFinish: vi.fn((cb: () => void) => cb()),
 }));
 vi.mock('@process/channels/agent/ChannelEventBus', () => ({

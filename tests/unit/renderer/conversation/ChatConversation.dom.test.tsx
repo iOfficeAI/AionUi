@@ -14,27 +14,25 @@ const chatConversationMocks = vi.hoisted(() => ({
   openWorkspaceInEditor: vi.fn().mockResolvedValue(undefined),
 }));
 
-const arcoMockComponents = vi.hoisted(() => {
-  const Button = ({ children, icon, ...props }: React.ComponentProps<'button'> & { icon?: React.ReactNode }) => (
+type MockButtonProps = React.ComponentProps<'button'> & { icon?: React.ReactNode };
+type MockChildrenProps = { children: React.ReactNode };
+type MockMenuComponent = React.FC<MockChildrenProps> & {
+  Item: React.FC<MockChildrenProps>;
+};
+
+const arcoMockComponents = vi.hoisted(() => ({
+  Button: ({ children, icon, ...props }: MockButtonProps) => (
     <button type='button' {...props}>
       {icon}
       {children}
     </button>
-  );
-
-  const Dropdown = ({ children }: { children: React.ReactNode }) => <div>{children}</div>;
-  const Menu = ({ children }: { children: React.ReactNode }) => <div>{children}</div>;
-  const Ellipsis = ({ children }: { children: React.ReactNode }) => <span>{children}</span>;
-
-  Menu.Item = ({ children }: { children: React.ReactNode }) => <div>{children}</div>;
-
-  return {
-    Button,
-    Dropdown,
-    Menu,
-    Ellipsis,
-  };
-});
+  ),
+  Dropdown: ({ children }: MockChildrenProps) => <div>{children}</div>,
+  Menu: Object.assign(({ children }: MockChildrenProps) => <div>{children}</div>, {
+    Item: ({ children }: MockChildrenProps) => <div>{children}</div>,
+  }) as MockMenuComponent,
+  Ellipsis: ({ children }: MockChildrenProps) => <span>{children}</span>,
+}));
 
 vi.mock('@/common', () => ({
   ipcBridge: {
@@ -154,6 +152,8 @@ vi.mock('swr', () => ({
 }));
 
 vi.mock('@icon-park/react', () => ({
+  Attention: () => <span data-testid='attention-icon' />,
+  CheckOne: () => <span data-testid='check-one-icon' />,
   Down: () => <span data-testid='down-icon' />,
   FolderOpen: () => <span data-testid='folder-open-icon' />,
   History: () => <span data-testid='history-icon' />,
