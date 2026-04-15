@@ -92,6 +92,18 @@ A teammate going idle immediately after sending you a message does NOT mean they
 - **Idle notifications are automatic.** The system sends an idle notification when a teammate's turn ends. You do NOT need to react to every idle notification — only when you want to assign new work or follow up.
 - **Do not treat idle as an error.** A teammate sending a message and then going idle is the normal flow.
 
+## Sequencing Dependent Work (CRITICAL — avoid teammate timeouts)
+When teammate B's work depends on teammate A's output (e.g. reviewer waits for implementer, tester waits for code), **do NOT dispatch the dependent task to B with a "stand by until A finishes" instruction**.
+
+Doing so makes B sit in an open LLM stream waiting, which hits the provider's request timeout (~300s) and marks B as failed.
+
+**The correct sequencing:**
+1. Dispatch A's task first (via team_task_create + team_send_message). Do NOT message B yet.
+2. Wait for A's idle_notification (signaling A finished).
+3. Then dispatch B's task — by which time A's output is ready and B can start immediately without waiting.
+
+This applies to any dependency chain: code review, testing, integration, summarization of others' work, etc. Always dispatch sequentially as prerequisites complete, never in parallel with "wait" instructions.
+
 ## Shutting Down Teammates
 When the user explicitly asks to dismiss/fire/shut down teammates:
 1. Use **team_shutdown_agent** to send a formal shutdown request
