@@ -318,8 +318,8 @@ export const useGuidSend = (deps: GuidSendDeps): GuidSendResult => {
       return;
     }
 
-    // Aionrs path
-    if (selectedAgent === 'aionrs') {
+    // Aionrs path (direct selection or preset assistant with aionrs as main agent)
+    if (selectedAgent === 'aionrs' || (isPreset && finalEffectiveAgentType === 'aionrs')) {
       try {
         const conversation = await ipcBridge.conversation.create.invoke({
           type: 'aionrs',
