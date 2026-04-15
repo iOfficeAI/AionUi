@@ -6,7 +6,7 @@
 
 // configureChromium sets app name (dev isolation) and Chromium flags — must run before
 // ANY module that calls app.getPath('userData'), because Electron caches the path on first call.
-import './process/utils/configureChromium';
+import { cdpPort, verifyCdpReady } from './process/utils/configureChromium';
 import * as Sentry from '@sentry/electron/main';
 
 Sentry.init({
@@ -23,16 +23,23 @@ import { initMainAdapterWithWindow } from './common/adapter/main';
 import { ipcBridge } from './common';
 import { AION_ASSET_PROTOCOL } from '@process/extensions';
 import { initializeProcess } from './process';
+import { createAutoUpdateStatusBroadcast } from './process/bridge/updateBridge';
 import { ProcessConfig } from './process/utils/initStorage';
 import { loadShellEnvironmentAsync, logEnvironmentDiagnostics, mergePaths } from './process/utils/shellEnv';
 import { initializeAcpDetector, registerWindowMaximizeListeners, disposeAllTeamSessions } from '@process/bridge';
 import './process/bridge/feedbackBridge';
 import { wasLaunchedAtLogin } from '@process/bridge/applicationBridge';
+import { stopAllOfficeWatchSessions } from '@process/bridge/officeWatchBridge';
+import { stopAllWatchSessions } from '@process/bridge/pptPreviewBridge';
 import { onCloseToTrayChanged, onLanguageChanged } from './process/bridge/systemSettingsBridge';
+import { getWebServerInstance, setWebServerInstance } from '@process/bridge/webuiBridge';
+import { autoUpdaterService } from '@process/services/autoUpdaterService';
+import { getCronService } from '@process/services/cron/cronServiceAccess';
 import { setInitialLanguage } from '@process/services/i18n';
 import { workerTaskManager } from './process/task/workerTaskManagerSingleton';
 import { setupApplicationMenu } from './process/utils/appMenu';
 import { startWebServer } from './process/webserver';
+import { cleanupWebAdapter } from './process/webserver/adapter';
 import { initializeZoomFactor, setupZoomForWindow } from './process/utils/zoom';
 import { getOrCreateAnalyticsId } from './process/utils/analyticsId';
 import {
@@ -296,20 +303,18 @@ const createWindow = ({ showOnReady = true }: { showOnReady?: boolean } = {}): v
   const disableAutoUpdater =
     process.env.AIONUI_DISABLE_AUTO_UPDATE === '1' || process.env.AIONUI_E2E_TEST === '1' || isCiRuntime;
   if (!disableAutoUpdater) {
-    Promise.all([import('./process/services/autoUpdaterService'), import('./process/bridge/updateBridge')])
-      .then(([{ autoUpdaterService }, { createAutoUpdateStatusBroadcast }]) => {
-        // Create status broadcast callback that emits via ipcBridge (pure emitter, no window binding)
-        const statusBroadcast = createAutoUpdateStatusBroadcast();
-        autoUpdaterService.initialize(statusBroadcast);
-        // Check for updates after 3 seconds delay
-        // 3秒后检查更新
-        setTimeout(() => {
-          void autoUpdaterService.checkForUpdatesAndNotify();
-        }, 3000);
-      })
-      .catch((error) => {
-        console.error('[App] Failed to initialize autoUpdaterService:', error);
-      });
+    try {
+      // Create status broadcast callback that emits via ipcBridge (pure emitter, no window binding)
+      const statusBroadcast = createAutoUpdateStatusBroadcast();
+      autoUpdaterService.initialize(statusBroadcast);
+      // Check for updates after 3 seconds delay
+      // 3秒后检查更新
+      setTimeout(() => {
+        void autoUpdaterService.checkForUpdatesAndNotify();
+      }, 3000);
+    } catch (error) {
+      console.error('[App] Failed to initialize autoUpdaterService:', error);
+    }
   } else {
     console.log('[AionUi] Auto-updater disabled via env/CI guard');
   }
@@ -603,7 +608,6 @@ const handleAppReady = async (): Promise<void> => {
   }
 
   // Verify CDP is ready and log status
-  const { cdpPort, verifyCdpReady } = await import('./process/utils/configureChromium');
   if (cdpPort) {
     const cdpReady = await verifyCdpReady(cdpPort);
     if (cdpReady) {
@@ -623,13 +627,13 @@ const handleAppReady = async (): Promise<void> => {
     } catch {
       // Console write may fail with EIO when PTY is broken after sleep
     }
-    import('@process/services/cron/cronServiceSingleton')
-      .then(({ cronService }) => {
-        void cronService.handleSystemResume();
-      })
-      .catch(() => {
-        // Cron recovery is best-effort after system resume
-      });
+    const cronService = getCronService();
+    if (!cronService) {
+      return;
+    }
+    void cronService.handleSystemResume().catch(() => {
+      // Cron recovery is best-effort after system resume
+    });
   });
 };
 
@@ -726,8 +730,6 @@ app.on('before-quit', async () => {
 
     // Stop Web Server (Express + WebSocket)
     try {
-      const { getWebServerInstance, setWebServerInstance } = await import('@process/bridge/webuiBridge');
-      const { cleanupWebAdapter } = await import('@process/webserver/adapter');
       const instance = getWebServerInstance();
       if (instance) {
         instance.wss.clients.forEach((client) => client.close(1000, 'App shutting down'));
@@ -741,13 +743,11 @@ app.on('before-quit', async () => {
 
     // Stop Office Watch processes (Word / Excel / PPT preview)
     try {
-      const { stopAllOfficeWatchSessions } = await import('@process/bridge/officeWatchBridge');
       stopAllOfficeWatchSessions();
     } catch {
       /* not initialized */
     }
     try {
-      const { stopAllWatchSessions } = await import('@process/bridge/pptPreviewBridge');
       stopAllWatchSessions();
     } catch {
       /* not initialized */

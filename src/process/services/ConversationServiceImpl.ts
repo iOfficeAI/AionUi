@@ -8,7 +8,7 @@ import type { IConversationService, CreateConversationParams, MigrateConversatio
 import type { IConversationRepository } from '@process/services/database/IConversationRepository';
 import type { TChatConversation } from '@/common/config/storage';
 import { uuid } from '@/common/utils';
-import { cronService } from './cron/cronServiceSingleton';
+import { getCronService } from './cron/cronServiceAccess';
 import {
   createGeminiAgent,
   createAcpAgent,
@@ -85,6 +85,10 @@ export class ConversationServiceImpl implements IConversationService {
 
       // Migrate or delete cron jobs associated with source conversation
       try {
+        const cronService = getCronService();
+        if (!cronService) {
+          throw new Error('CronService is not initialized');
+        }
         const jobs = await cronService.listJobsByConversation(sourceConversationId);
         if (migrateCron) {
           for (const job of jobs) {

@@ -3,6 +3,30 @@ import fs from 'fs/promises';
 import path from 'path';
 import os from 'os';
 
+async function buildAionCliCoreMock(overrides: Record<string, unknown>): Promise<Record<string, unknown>> {
+  const actual = await vi.importActual<typeof import('@office-ai/aioncli-core')>('@office-ai/aioncli-core');
+
+  return {
+    ApprovalMode: actual.ApprovalMode,
+    Config: actual.Config,
+    DEFAULT_GEMINI_EMBEDDING_MODEL: actual.DEFAULT_GEMINI_EMBEDDING_MODEL,
+    DEFAULT_GEMINI_MODEL: actual.DEFAULT_GEMINI_MODEL,
+    DEFAULT_MEMORY_FILE_FILTERING_OPTIONS: actual.DEFAULT_MEMORY_FILE_FILTERING_OPTIONS,
+    FileDiscoveryService: actual.FileDiscoveryService,
+    getCurrentGeminiMdFilename: () => 'GEMINI.md',
+    getErrorMessage: (error: unknown) => (error instanceof Error ? error.message : String(error)),
+    isNodeError: (error: unknown): error is NodeJS.ErrnoException =>
+      typeof error === 'object' && error !== null && 'code' in error,
+    loadServerHierarchicalMemory: actual.loadServerHierarchicalMemory,
+    loadSkillsFromDir: actual.loadSkillsFromDir,
+    PREVIEW_GEMINI_MODEL_AUTO: actual.PREVIEW_GEMINI_MODEL_AUTO,
+    setGeminiMdFilename: vi.fn(),
+    SimpleExtensionLoader: actual.SimpleExtensionLoader,
+    unescapePath: (value: string) => value.replace(/\\ /g, ' '),
+    ...overrides,
+  };
+}
+
 afterEach(() => {
   vi.restoreAllMocks();
   vi.resetModules();
@@ -113,14 +137,12 @@ describe('gemini cli config memory discovery fallback', () => {
     }
 
     vi.doMock('@office-ai/aioncli-core', async () => {
-      const actual = await vi.importActual<typeof import('@office-ai/aioncli-core')>('@office-ai/aioncli-core');
-      return {
-        ...actual,
+      return buildAionCliCoreMock({
         Config: ConfigMock,
         FileDiscoveryService: FileDiscoveryServiceMock,
         SimpleExtensionLoader: SimpleExtensionLoaderMock,
         loadServerHierarchicalMemory: loadServerHierarchicalMemoryMock,
-      };
+      });
     });
     vi.doMock('../../src/process/agent/gemini/index', () => ({
       getCurrentGeminiAgent: () => null,
@@ -173,14 +195,12 @@ describe('gemini cli config memory discovery fallback', () => {
     }
 
     vi.doMock('@office-ai/aioncli-core', async () => {
-      const actual = await vi.importActual<typeof import('@office-ai/aioncli-core')>('@office-ai/aioncli-core');
-      return {
-        ...actual,
+      return buildAionCliCoreMock({
         Config: ConfigMock,
         FileDiscoveryService: FileDiscoveryServiceMock,
         SimpleExtensionLoader: SimpleExtensionLoaderMock,
         loadServerHierarchicalMemory: loadServerHierarchicalMemoryMock,
-      };
+      });
     });
     vi.doMock('../../src/process/agent/gemini/index', () => ({
       getCurrentGeminiAgent: () => null,
@@ -204,6 +224,9 @@ describe('gemini cli config memory discovery fallback', () => {
 
 describe('gemini @directory handling', () => {
   it('does not expand directory references into recursive globs before read_many_files', async () => {
+    vi.resetModules();
+    vi.doUnmock('@office-ai/aioncli-core');
+
     const workspaceRoot = await fs.mkdtemp(path.join(os.tmpdir(), 'gemini-dir-ref-'));
     const repoDir = path.join(workspaceRoot, 'repo');
     await fs.mkdir(path.join(repoDir, 'docker', 'volumes', 'postgres'), { recursive: true });

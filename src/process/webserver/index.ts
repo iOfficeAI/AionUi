@@ -9,6 +9,11 @@ import { createServer } from 'http';
 import { WebSocketServer } from 'ws';
 import { execSync } from 'child_process';
 import { networkInterfaces } from 'os';
+import {
+  clearInitialAdminPassword,
+  getInitialAdminPassword,
+  setInitialAdminPassword,
+} from '@process/webserver/auth/bootstrapAdminState';
 import { AuthService } from '@process/webserver/auth/service/AuthService';
 import { UserRepository } from '@process/webserver/auth/repository/UserRepository';
 import { AUTH_CONFIG, SERVER_CONFIG } from './config/constants';
@@ -25,9 +30,6 @@ import { generateQRLoginUrlDirect } from '@process/bridge/webuiQR';
 const DEFAULT_ADMIN_USERNAME = AUTH_CONFIG.DEFAULT_USER.USERNAME;
 const SYSTEM_USER_PLACEHOLDER_USERNAME = 'system_default_user';
 
-// 存储初始密码（内存中，用于首次显示）/ Store initial password (in memory, for first-time display)
-let initialAdminPassword: string | null = null;
-
 type QRCodeTerminal = {
   generate: (text: string, options?: { small?: boolean }, cb?: (qr: string) => void) => void;
 };
@@ -40,22 +42,6 @@ function loadQRCodeTerminal(): QRCodeTerminal | null {
   } catch {
     return null;
   }
-}
-
-/**
- * 获取初始管理员密码（仅用于首次显示）
- * Get initial admin password (only for first-time display)
- */
-export function getInitialAdminPassword(): string | null {
-  return initialAdminPassword;
-}
-
-/**
- * 清除初始管理员密码（用户修改密码后调用）
- * Clear initial admin password (called after user changes password)
- */
-export function clearInitialAdminPassword(): void {
-  initialAdminPassword = null;
 }
 
 /**
@@ -170,26 +156,26 @@ export async function initializeDefaultAdmin(): Promise<{ username: string; pass
     if (systemUser) {
       const nextUsername = resolveBootstrapAdminUsername(systemUser);
       await UserRepository.setSystemUserCredentials(nextUsername, hashedPassword);
-      initialAdminPassword = password; // 存储初始密码 / Store initial password
+      setInitialAdminPassword(password);
       return { username: nextUsername, password };
     }
 
     if (existingAdmin) {
       await UserRepository.updatePassword(existingAdmin.id, hashedPassword);
-      initialAdminPassword = password; // 存储初始密码 / Store initial password
+      setInitialAdminPassword(password);
       return { username, password };
     }
 
     if (systemUser) {
       // 情况 2：仅存在 system_default_user 占位行 -> 更新用户名和密码
       // Case 2: only placeholder system user exists -> update username/password in place
-      initialAdminPassword = password; // 存储初始密码 / Store initial password
+      setInitialAdminPassword(password);
     }
 
     // 情况 3：初次启动，无任何用户 -> 新建 admin 账户
     // Case 3: fresh install with no users -> create admin user explicitly
     await UserRepository.createUser(username, hashedPassword);
-    initialAdminPassword = password; // 存储初始密码 / Store initial password
+    setInitialAdminPassword(password);
     return { username, password };
   } catch (error) {
     console.error('❌ Failed to initialize default admin account:', error);

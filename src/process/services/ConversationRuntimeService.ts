@@ -5,7 +5,10 @@
  */
 
 import { cronBusyGuard } from '@process/services/cron/CronBusyGuard';
+import { conversationLiveStateService } from '@process/services/ConversationLiveStateService';
+import { ConversationTurnCompletionService } from '@process/services/ConversationTurnCompletionService';
 import { workerTaskManager } from '@process/task/workerTaskManagerSingleton';
+import { releaseConversationMessageCache } from '@process/utils/message';
 
 type ConversationRuntimeTaskStatus = 'pending' | 'running' | 'finished';
 
@@ -84,7 +87,6 @@ export const stopConversationRuntime = async (
 
 const forgetConversationTurnCompletionSession = async (sessionId: string): Promise<void> => {
   try {
-    const { ConversationTurnCompletionService } = await import('@process/services/ConversationTurnCompletionService');
     ConversationTurnCompletionService.getInstance().forgetSession(sessionId);
   } catch (error) {
     console.warn('[ConversationRuntimeService] Failed to forget turn completion state:', error, { sessionId });
@@ -93,7 +95,6 @@ const forgetConversationTurnCompletionSession = async (sessionId: string): Promi
 
 const forgetConversationLiveStateSession = async (sessionId: string): Promise<void> => {
   try {
-    const { conversationLiveStateService } = await import('@process/services/ConversationLiveStateService');
     conversationLiveStateService.forgetSession(sessionId);
   } catch (error) {
     console.warn('[ConversationRuntimeService] Failed to forget live conversation state:', error, { sessionId });
@@ -106,7 +107,6 @@ const cleanupWorkerOnlyRuntimeArtifacts = async (sessionId: string): Promise<voi
   await forgetConversationLiveStateSession(sessionId);
 
   try {
-    const { releaseConversationMessageCache } = await import('@process/utils/message');
     await releaseConversationMessageCache(sessionId, {
       persistPending: true,
     });

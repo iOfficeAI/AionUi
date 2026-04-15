@@ -18,17 +18,8 @@ import { app } from 'electron';
 import * as fs from 'fs';
 import * as path from 'path';
 import semver from 'semver';
+import i18n from '../services/i18n';
 import { autoUpdaterService } from '../services/autoUpdaterService';
-
-/** Lazily loads i18n to avoid pulling in initStorage chain at module load time */
-let _i18nCache: Promise<typeof import('../services/i18n')> | null = null;
-const getI18n = async () => {
-  if (!_i18nCache) {
-    _i18nCache = import('../services/i18n');
-  }
-  const m = await _i18nCache;
-  return m.default;
-};
 
 type GitHubReleaseApiAsset = {
   name: string;
@@ -190,14 +181,14 @@ const assertAllowedUrl = async (rawUrl: string) => {
   try {
     parsed = new URL(rawUrl);
   } catch {
-    throw new Error((await getI18n()).t('update.errors.invalidUrl'));
+    throw new Error(i18n.t('update.errors.invalidUrl'));
   }
 
   if (parsed.protocol !== 'https:') {
-    throw new Error((await getI18n()).t('update.errors.httpsOnly'));
+    throw new Error(i18n.t('update.errors.httpsOnly'));
   }
   if (!ALLOWED_DOWNLOAD_HOSTS.has(parsed.hostname)) {
-    throw new Error((await getI18n()).t('update.errors.hostNotAllowed', { host: parsed.hostname }));
+    throw new Error(i18n.t('update.errors.hostNotAllowed', { host: parsed.hostname }));
   }
 };
 
@@ -218,7 +209,7 @@ const fetchWithAllowlistedRedirects = async (rawUrl: string, signal: AbortSignal
     if (res.status >= 300 && res.status < 400) {
       const location = res.headers.get('location');
       if (!location) {
-        throw new Error((await getI18n()).t('update.errors.redirectNoLocation'));
+        throw new Error(i18n.t('update.errors.redirectNoLocation'));
       }
       current = new URL(location, current).toString();
       continue;
@@ -227,7 +218,7 @@ const fetchWithAllowlistedRedirects = async (rawUrl: string, signal: AbortSignal
     return res;
   }
 
-  throw new Error((await getI18n()).t('update.errors.tooManyRedirects'));
+  throw new Error(i18n.t('update.errors.tooManyRedirects'));
 };
 
 const fetchGitHubReleases = async (repo: string): Promise<GitHubReleaseApi[]> => {
@@ -247,17 +238,17 @@ const fetchGitHubReleases = async (repo: string): Promise<GitHubReleaseApi[]> =>
     });
 
     if (!res.ok) {
-      throw new Error((await getI18n()).t('update.errors.githubApiFailed', { status: res.status }));
+      throw new Error(i18n.t('update.errors.githubApiFailed', { status: res.status }));
     }
 
     const json = (await res.json()) as unknown;
     if (!Array.isArray(json)) {
-      throw new Error((await getI18n()).t('update.errors.githubApiNotArray'));
+      throw new Error(i18n.t('update.errors.githubApiNotArray'));
     }
     return json as GitHubReleaseApi[];
   } catch (err: unknown) {
     if (err instanceof Error && err.name === 'AbortError') {
-      throw new Error((await getI18n()).t('update.errors.githubApiTimeout'), { cause: err });
+      throw new Error(i18n.t('update.errors.githubApiTimeout'), { cause: err });
     }
     throw err;
   } finally {
@@ -358,7 +349,7 @@ const startDownloadInBackground = async (
     const res = await fetchWithAllowlistedRedirects(url, abortController.signal);
 
     if (!res.ok) {
-      throw new Error((await getI18n()).t('update.errors.downloadFailed', { status: res.status }));
+      throw new Error(i18n.t('update.errors.downloadFailed', { status: res.status }));
     }
 
     const contentLengthHeader = res.headers.get('content-length');
@@ -370,7 +361,7 @@ const startDownloadInBackground = async (
     }
 
     if (!res.body) {
-      throw new Error((await getI18n()).t('update.errors.downloadNoBody'));
+      throw new Error(i18n.t('update.errors.downloadNoBody'));
     }
 
     stream = fs.createWriteStream(filePath);
@@ -506,7 +497,7 @@ export function initUpdateBridge(): void {
     async (params: UpdateDownloadRequest): Promise<{ success: boolean; data?: UpdateDownloadResult; msg?: string }> => {
       try {
         if (!params?.url) {
-          return { success: false, msg: (await getI18n()).t('update.errors.missingUrl') };
+          return { success: false, msg: i18n.t('update.errors.missingUrl') };
         }
 
         // Defense-in-depth: do not allow arbitrary downloads from renderer.

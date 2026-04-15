@@ -19,6 +19,9 @@ const mockCronService = vi.hoisted(() => ({
 vi.mock('../../src/process/services/cron/cronServiceSingleton', () => ({
   cronService: mockCronService,
 }));
+vi.mock('../../src/process/services/cron/cronServiceAccess', () => ({
+  getCronService: vi.fn(() => mockCronService),
+}));
 vi.mock('../../src/process/utils/initAgent', () => ({
   createGeminiAgent: vi.fn(async () => ({ id: 'gen-id', type: 'gemini', name: 'test', extra: {} })),
   createAcpAgent: vi.fn(async () => ({ id: 'acp-id', type: 'acp', name: 'test', extra: {} })),

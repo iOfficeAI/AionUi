@@ -40,7 +40,7 @@ describe('MessageMiddleware', () => {
     }));
   });
 
-  it('defers cron singleton loading until a cron command must be handled', async () => {
+  it('loads the cron singleton once and only executes it for cron commands', async () => {
     addJob.mockResolvedValue({ id: 'job-1', name: 'Daily Summary' });
 
     vi.doMock('@process/services/cron/cronServiceSingleton', () => {
@@ -56,11 +56,11 @@ describe('MessageMiddleware', () => {
 
     const { processAgentResponse } = await import('../../../src/process/task/MessageMiddleware');
 
-    expect(cronSingletonLoaded).not.toHaveBeenCalled();
+    expect(cronSingletonLoaded).toHaveBeenCalledTimes(1);
 
     await processAgentResponse('session-1', 'acp', createFinishedTextMessage('plain response'));
 
-    expect(cronSingletonLoaded).not.toHaveBeenCalled();
+    expect(cronSingletonLoaded).toHaveBeenCalledTimes(1);
 
     const result = await processAgentResponse(
       'session-1',

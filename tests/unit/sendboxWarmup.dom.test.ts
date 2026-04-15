@@ -4,7 +4,7 @@
  */
 
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { render, fireEvent } from '@testing-library/react';
+import { render, fireEvent, act } from '@testing-library/react';
 import React from 'react';
 
 // --- Mocks ---
@@ -141,6 +141,11 @@ import SendBox from '@/renderer/components/chat/sendbox';
 // --- Tests ---
 
 describe('SendBox warmup debounce logic', () => {
+  const focusWithUserIntent = (textarea: HTMLTextAreaElement) => {
+    fireEvent.mouseDown(textarea);
+    fireEvent.focus(textarea);
+  };
+
   beforeEach(() => {
     vi.useFakeTimers();
     vi.clearAllMocks();
@@ -153,7 +158,7 @@ describe('SendBox warmup debounce logic', () => {
     vi.useRealTimers();
   });
 
-  it('triggers warmup after 1s focus', () => {
+  it('triggers warmup after 1s when focus follows explicit user intent', () => {
     const { container } = render(
       React.createElement(SendBox, {
         onSend: vi.fn().mockResolvedValue(undefined),
@@ -163,14 +168,16 @@ describe('SendBox warmup debounce logic', () => {
     const textarea = container.querySelector('textarea');
     expect(textarea).toBeTruthy();
 
-    // Focus the textarea
-    fireEvent.focus(textarea!);
+    // Focus the textarea after explicit user interaction
+    focusWithUserIntent(textarea!);
 
     // Verify warmup not called immediately
     expect(mockWarmupInvoke).not.toHaveBeenCalled();
 
     // Advance timers by 1000ms
-    vi.advanceTimersByTime(1000);
+    act(() => {
+      vi.advanceTimersByTime(1000);
+    });
 
     // Verify warmup was called with correct conversation_id
     expect(mockWarmupInvoke).toHaveBeenCalledTimes(1);
@@ -188,22 +195,26 @@ describe('SendBox warmup debounce logic', () => {
     expect(textarea).toBeTruthy();
 
     // Focus the textarea
-    fireEvent.focus(textarea!);
+    focusWithUserIntent(textarea!);
 
     // Advance 500ms
-    vi.advanceTimersByTime(500);
+    act(() => {
+      vi.advanceTimersByTime(500);
+    });
 
     // Blur before 1s
     fireEvent.blur(textarea!);
 
     // Advance 1000ms more
-    vi.advanceTimersByTime(1000);
+    act(() => {
+      vi.advanceTimersByTime(1000);
+    });
 
     // Verify warmup was NOT called
     expect(mockWarmupInvoke).not.toHaveBeenCalled();
   });
 
-  it('does not re-trigger warmup for same conversation', () => {
+  it('does not re-trigger warmup for same conversation after repeated user focus', () => {
     const { container, unmount } = render(
       React.createElement(SendBox, {
         onSend: vi.fn().mockResolvedValue(undefined),
@@ -214,8 +225,10 @@ describe('SendBox warmup debounce logic', () => {
     expect(textarea).toBeTruthy();
 
     // First focus
-    fireEvent.focus(textarea!);
-    vi.advanceTimersByTime(1000);
+    focusWithUserIntent(textarea!);
+    act(() => {
+      vi.advanceTimersByTime(1000);
+    });
 
     // Verify warmup called once
     expect(mockWarmupInvoke).toHaveBeenCalledTimes(1);
@@ -225,8 +238,10 @@ describe('SendBox warmup debounce logic', () => {
     fireEvent.blur(textarea!);
 
     // Focus again with same conversation
-    fireEvent.focus(textarea!);
-    vi.advanceTimersByTime(1000);
+    focusWithUserIntent(textarea!);
+    act(() => {
+      vi.advanceTimersByTime(1000);
+    });
 
     // Verify warmup NOT called again (same conversation)
     expect(mockWarmupInvoke).toHaveBeenCalledTimes(1);
@@ -234,7 +249,7 @@ describe('SendBox warmup debounce logic', () => {
     unmount();
   });
 
-  it('triggers warmup for different conversation', () => {
+  it('triggers warmup again after explicit focus in a different conversation', () => {
     // First render with conv-1
     mockUseConversationContextSafe.mockReturnValue({ conversationId: 'test-conv-1' });
     const { container, unmount } = render(
@@ -247,8 +262,10 @@ describe('SendBox warmup debounce logic', () => {
     expect(textarea1).toBeTruthy();
 
     // Focus and trigger warmup for conv-1
-    fireEvent.focus(textarea1!);
-    vi.advanceTimersByTime(1000);
+    focusWithUserIntent(textarea1!);
+    act(() => {
+      vi.advanceTimersByTime(1000);
+    });
 
     expect(mockWarmupInvoke).toHaveBeenCalledTimes(1);
     expect(mockWarmupInvoke).toHaveBeenCalledWith({ conversation_id: 'test-conv-1' });
@@ -267,8 +284,10 @@ describe('SendBox warmup debounce logic', () => {
     expect(textarea2).toBeTruthy();
 
     // Focus and trigger warmup for conv-2
-    fireEvent.focus(textarea2!);
-    vi.advanceTimersByTime(1000);
+    focusWithUserIntent(textarea2!);
+    act(() => {
+      vi.advanceTimersByTime(1000);
+    });
 
     // Verify warmup called twice with different conversation IDs
     expect(mockWarmupInvoke).toHaveBeenCalledTimes(2);

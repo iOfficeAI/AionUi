@@ -12,6 +12,7 @@ import type { IWorkerTaskManager } from '@process/task/IWorkerTaskManager';
 import type { TeamSessionService } from '@process/team/TeamSessionService';
 import { ipcBridge } from '@/common';
 import { removeFromMessageCache } from '@process/utils/message';
+import { getChannelManager } from '@process/channels/core/ChannelManager';
 import {
   getSkillsDir,
   getBuiltinSkillsCopyDir,
@@ -249,8 +250,6 @@ export function initConversationBridge(
       // 如果来源不是 aionui（如 telegram），需要清理 channel 相关资源
       if (source && source !== 'aionui') {
         try {
-          // Dynamic import to avoid circular dependency
-          const { getChannelManager } = await import('@process/channels/core/ChannelManager');
           const channelManager = getChannelManager();
           if (channelManager.isInitialized()) {
             await channelManager.cleanupConversation(id);

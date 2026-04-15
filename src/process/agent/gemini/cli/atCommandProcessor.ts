@@ -16,6 +16,14 @@ import { ToolCallStatus } from './types';
 const DEFAULT_MAX_LINES_TEXT_FILE = 2000;
 const MAX_LINE_LENGTH_TEXT_FILE = 2000;
 
+const unescapeAtPath = (rawAtPath: string): string => {
+  if (typeof unescapePath === 'function') {
+    return unescapePath(rawAtPath);
+  }
+
+  return rawAtPath.replace(/\\ /g, ' ');
+};
+
 /**
  * Truncates file content to prevent token overflow.
  * Synced from aioncli-core/src/utils/fileUtils.ts
@@ -128,7 +136,7 @@ function parseAllAtCommands(query: string): AtCommandPart[] {
     }
     const rawAtPath = query.substring(atIndex, pathEndIndex);
     // unescapePath expects the @ symbol to be present, and will handle it.
-    const atPath = unescapePath(rawAtPath);
+    const atPath = unescapeAtPath(rawAtPath);
     parts.push({ type: 'atPath', content: atPath });
     currentIndex = pathEndIndex;
   }

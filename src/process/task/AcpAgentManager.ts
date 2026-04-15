@@ -33,6 +33,7 @@ import { handlePreviewOpenEvent } from '@process/utils/previewUtils';
 import { cronBusyGuard } from '@process/services/cron/CronBusyGuard';
 import { ConversationTurnCompletionService } from '@process/services/ConversationTurnCompletionService';
 import { skillSuggestWatcher } from '@process/services/cron/SkillSuggestWatcher';
+import { getTeamGuidePrompt } from '@process/team/prompts/teamGuidePrompt.ts';
 import {
   getCodexSandboxModeForSessionMode,
   writeCodexSandboxMode,
@@ -988,7 +989,6 @@ class AcpAgentManager extends BaseAgentManager<AcpAgentManagerData, AcpPermissio
               parts.push(this.options.presetContext);
             }
             if (!isInTeam && (await shouldInjectTeamGuideMcp(this.options.backend))) {
-              const { getTeamGuidePrompt } = await import('@process/team/prompts/teamGuidePrompt.ts');
               parts.push(getTeamGuidePrompt(this.options.backend));
             }
             if (parts.length > 0) {

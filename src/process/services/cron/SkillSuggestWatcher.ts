@@ -10,7 +10,7 @@ import path from 'path';
 import { ipcBridge } from '@/common';
 import type { IResponseMessage } from '@/common/adapter/ipcBridge';
 import { uuid } from '@/common/utils';
-import { hasCronSkillFile } from './cronSkillFile';
+import { hasCronSkillFile, validateSkillContent } from './cronSkillFile';
 
 const SKILL_SUGGEST_FILENAME = 'SKILL_SUGGEST.md';
 
@@ -129,7 +129,6 @@ class SkillSuggestWatcher {
       if (entry.lastHash === hash) return true; // File exists but unchanged
 
       // Validate
-      const { validateSkillContent } = await import('./cronSkillFile');
       const validated = validateSkillContent(content);
       if (!validated) {
         console.warn(`[SkillSuggestWatcher] ${SKILL_SUGGEST_FILENAME} validation failed for job ${jobId}`);

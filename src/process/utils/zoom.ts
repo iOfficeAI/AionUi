@@ -6,6 +6,7 @@
 
 import { BrowserWindow } from 'electron';
 import type { Input } from 'electron';
+import { ConfigStorage } from '@/common/config/storage';
 
 const UI_SCALE_DEFAULT = 1;
 const UI_SCALE_MIN = 0.8;
@@ -85,8 +86,7 @@ export const setupZoomForWindow = (win: BrowserWindow): void => {
   applyZoomToWindow(win);
   attachZoomShortcutsToWindow(win, async (factor) => {
     try {
-      const { ProcessConfig } = await import('./initStorage');
-      await ProcessConfig.set('ui.zoomFactor', factor);
+      await ConfigStorage.set('ui.zoomFactor', factor);
     } catch (error) {
       console.error('[AionUi] Failed to persist zoom factor from keyboard shortcut:', error);
     }

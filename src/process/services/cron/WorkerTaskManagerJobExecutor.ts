@@ -17,20 +17,15 @@ import type BaseAgentManager from '@process/task/BaseAgentManager';
 import type { IWorkerTaskManager } from '@process/task/IWorkerTaskManager';
 import { copyFilesToDirectory } from '@process/utils';
 import type { CreateConversationParams } from '@process/services/IConversationService';
+import { conversationServiceSingleton } from '@process/services/conversationServiceSingleton';
 import type { AgentType } from '@process/task/agentTypes';
 import { ProcessConfig } from '@process/utils/initStorage';
 import type { CronBusyGuard } from './CronBusyGuard';
 import type { CronJob } from './CronStore';
 import type { ICronJobExecutor } from './ICronJobExecutor';
 import { addMessage } from '@process/utils/message';
-import { getCronSkillDir, hasCronSkillFile } from './cronSkillFile';
+import { getCronSkillDir, hasCronSkillFile, validateSkillContent } from './cronSkillFile';
 import { skillSuggestWatcher } from './SkillSuggestWatcher';
-
-/** Lazy-import to break circular dependency: cronServiceSingleton ↔ conversationServiceSingleton */
-async function getConversationService() {
-  const mod = await import('@process/services/conversationServiceSingleton');
-  return mod.conversationServiceSingleton;
-}
 
 /** Executes cron jobs by delegating to WorkerTaskManager and tracking busy state via CronBusyGuard. */
 export class WorkerTaskManagerJobExecutor implements ICronJobExecutor {
@@ -55,7 +50,7 @@ export class WorkerTaskManagerJobExecutor implements ICronJobExecutor {
     // If the job specifies a modelId, use that; otherwise fall back to the user's
     // preferred model so it doesn't stay on whatever it was originally created with.
     if (job.target.executionMode === 'existing' && conversationId && job.metadata.agentConfig) {
-      const convService = await getConversationService();
+      const convService = conversationServiceSingleton;
       const conv = await convService.getConversation(conversationId);
       if (conv) {
         const baseModel = await this.resolveModelForBackend(job.metadata.agentConfig.backend);
@@ -229,7 +224,7 @@ export class WorkerTaskManagerJobExecutor implements ICronJobExecutor {
       },
     };
 
-    const service = await getConversationService();
+    const service = conversationServiceSingleton;
     const conversation = await service.createConversation(params);
 
     // Notify frontend so sider updates immediately
@@ -456,7 +451,7 @@ export class WorkerTaskManagerJobExecutor implements ICronJobExecutor {
 
     // existing mode: try to reuse latest child conversation
     if (job.target.executionMode === 'existing') {
-      const convService = await getConversationService();
+      const convService = conversationServiceSingleton;
       const childConversations = await convService.getConversationsByCronJob(job.id);
       console.log(
         `[CronExecutor] resolveConversation existing mode: childCount=${childConversations.length}, executionMode=${job.target.executionMode}`
@@ -690,7 +685,6 @@ export class WorkerTaskManagerJobExecutor implements ICronJobExecutor {
       return;
     }
 
-    const { validateSkillContent } = await import('./cronSkillFile');
     const validated = validateSkillContent(content);
     if (!validated) {
       console.warn(`[CronExecutor] ${SKILL_SUGGEST_FILENAME} validation failed for job ${jobId}`);
