@@ -70,13 +70,23 @@ const GuidPage: React.FC = () => {
   }, []);
 
   // --- Hooks ---
-  const modelSelection = useGuidModelSelection();
+  // Track which provider-based agent is selected so model selection persists per agent type
+  const [providerAgentKey, setProviderAgentKey] = useState<'gemini' | 'aionrs'>('aionrs');
+  const modelSelection = useGuidModelSelection(providerAgentKey);
 
   const agentSelection = useGuidAgentSelection({
     modelList: modelSelection.modelList,
     isGoogleAuth: modelSelection.isGoogleAuth,
     localeKey,
   });
+
+  // Sync providerAgentKey when selected agent changes
+  useEffect(() => {
+    const agent = agentSelection.selectedAgent;
+    if (agent === 'gemini' || agent === 'aionrs') {
+      setProviderAgentKey(agent);
+    }
+  }, [agentSelection.selectedAgent]);
 
   const guidInput = useGuidInput({
     locationState: location.state as { workspace?: string } | null,

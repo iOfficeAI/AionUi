@@ -3,6 +3,7 @@
   "default": "기본값",
   "acceptEdits": "편집을 자동 수락",
   "autoEdit": "자동 편집",
+  "auto_edit": "자동 편집",
   "yolo": "전체 자동",
   "yoloNoSandbox": "전체 자동(샌드박스 없음)",
   "auto": "자동",

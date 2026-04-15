@@ -133,11 +133,12 @@ export class WorkerTaskManagerJobExecutor implements ICronJobExecutor {
 
     const hasSkill = await hasCronSkillFile(job.id);
     const needsSkillSuggest = job.target.executionMode === 'new_conversation' && !!workspace && !hasSkill;
-    const isGemini = job.metadata.agentConfig?.backend === 'gemini';
+    const isGeminiLike =
+      job.metadata.agentConfig?.backend === 'gemini' || job.metadata.agentConfig?.backend === 'aionrs';
 
-    // Gemini: inline SKILL_SUGGEST instructions in the task prompt (single-turn).
+    // Gemini/Aionrs: inline SKILL_SUGGEST instructions in the task prompt (single-turn).
     // Other agents: separate follow-up message via onFirstFinish (multi-turn).
-    const messageText = this.buildMessageText(job, hasSkill, needsSkillSuggest && isGemini);
+    const messageText = this.buildMessageText(job, hasSkill, needsSkillSuggest && isGeminiLike);
 
     const triggeredAt = Date.now();
     const cronMeta: CronMessageMeta = {
@@ -168,8 +169,8 @@ export class WorkerTaskManagerJobExecutor implements ICronJobExecutor {
       // Defensively unregister first in case a previous execution left a stale entry
       skillSuggestWatcher.unregister(conversationId);
 
-      if (isGemini) {
-        // Gemini: SKILL_SUGGEST instructions are already in the prompt.
+      if (isGeminiLike) {
+        // Gemini/Aionrs: SKILL_SUGGEST instructions are already in the prompt.
         // Just register the watcher (no onFirstFinish) and start polling.
         skillSuggestWatcher.register(conversationId, job.id, workspace!);
         void this.detectSkillSuggestWithRetry(job.id, workspace!, conversationId, 0);
@@ -270,6 +271,8 @@ export class WorkerTaskManagerJobExecutor implements ICronJobExecutor {
     switch (backend) {
       case 'gemini':
         return 'gemini';
+      case 'aionrs':
+        return 'aionrs';
       case 'openclaw-gateway':
       case 'openclaw' as AcpBackendAll:
         return 'openclaw-gateway';
@@ -360,6 +363,9 @@ export class WorkerTaskManagerJobExecutor implements ICronJobExecutor {
       } else if (typeof savedModel === 'string') {
         preferredModelId = savedModel;
       }
+    } else if (backend === 'aionrs') {
+      const savedModel = await ProcessConfig.get('aionrs.defaultModel');
+      preferredModelId = savedModel?.useModel;
     } else {
       const acpConfig = await ProcessConfig.get('acp.config');
       preferredModelId = (acpConfig?.[backend as AcpBackendAll] as Record<string, unknown>)?.preferredModelId as

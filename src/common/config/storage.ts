@@ -86,6 +86,11 @@ export interface IConfigStorageRefer {
   'css.themes': ICssTheme[]; // 自定义 CSS 主题列表 / Custom CSS themes list
   'css.activeThemeId': string; // 当前激活的主题 ID / Currently active theme ID
   'gemini.defaultModel': string | { id: string; useModel: string };
+  'aionrs.config'?: {
+    /** Preferred session mode for new conversations / 新会话的默认模式 */
+    preferredMode?: string;
+  };
+  'aionrs.defaultModel'?: { id: string; useModel: string };
   'tools.imageGenerationModel': TProviderWithModel & {
     /** @deprecated Image generation is now controlled via built-in MCP server toggle */
     switch?: boolean;
