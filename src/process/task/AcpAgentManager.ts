@@ -862,10 +862,8 @@ ${collectedResponses.join('\n')}`;
       }
     }
 
-    const modelInfo = this.agent.getModelInfo();
-    if (modelInfo && modelInfo.availableModels?.length > 0) {
-      void this.cacheModelList(modelInfo);
-    }
+    // Note: model list caching is now handled by AcpAgent.cacheSessionCapabilities()
+    // during start(), so we don't need to call cacheModelList() here.
   }
 
   // ── initAgent ────────────────────────────────────────────────────────

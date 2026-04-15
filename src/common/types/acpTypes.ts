@@ -1043,6 +1043,19 @@ export interface AcpSessionModels {
   availableModels?: AcpAvailableModel[];
 }
 
+/** Mode entry in the top-level `modes` object of session/new response */
+export interface AcpAvailableMode {
+  id: string;
+  name?: string;
+  description?: string;
+}
+
+/** Modes info returned by session/new (used by qoder, opencode, etc.) */
+export interface AcpSessionModes {
+  currentModeId?: string;
+  availableModes?: AcpAvailableMode[];
+}
+
 // ===== Unified model info for UI =====
 
 /** Unified model info that abstracts over both stable and unstable APIs */
