@@ -95,9 +95,9 @@ describe('AcpSession lifecycle', () => {
   });
 
   it('start() transitions idle → starting → active (T1, T2)', async () => {
-    const session = new AcpSession(baseConfig, connectorFactory, callbacks, options);
     const statusChanges: SessionStatus[] = [];
     callbacks.onStatusChange = vi.fn((s) => statusChanges.push(s));
+    const session = new AcpSession(baseConfig, connectorFactory, callbacks, options);
 
     session.start();
     await vi.waitFor(() => expect(session.status).toBe('active'));

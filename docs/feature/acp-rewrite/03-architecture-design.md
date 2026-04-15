@@ -1086,6 +1086,30 @@ type AcpErrorCode =
 | `loadSession()` 失败                     | 降级 `createSession()` + 通知 UI "session_expired"                                                                |
 | resume 重试超限                          | status -> error                                                                                                   |
 
+#### 跨层错误流转规则
+
+错误从边缘向 AcpSession（状态机）汇聚，AcpSession 是唯一的决策者。不同边界使用不同的错误传递机制：
+
+```
+Infrastructure ──throws──▶ AcpSession ◀──should not throw── Callback 实现(Runtime)
+  (AcpProtocol)              (状态机)                        (AcpRuntime / compat)
+  (Connector)                 在这里                          (IPC / DB / renderer)
+                              决策
+                               │
+                               ▼ 通过 callback 通知外界
+                          onSignal({type:'error'})
+                          onStatusChange('error')
+```
+
+| 边界                                      | 方向           | 机制                                | 谁负责 catch                                     |
+| ----------------------------------------- | -------------- | ----------------------------------- | ------------------------------------------------ |
+| Infrastructure → Session                  | 向内（正常）   | throw `AcpError`（结构化错误码）    | AcpSession 编排方法（doStart, executePrompt 等） |
+| 内部组件 → Session                        | 向内（bug）    | throw = 实现 bug，非运行时错误      | AcpSession 编排方法兜底 catch                    |
+| Session → 外界（Runtime / renderer）      | 向外（正常）   | callback 通知，永不 throw           | N/A — 用 `onSignal` / `onStatusChange`           |
+| Callback 实现 → Session（不该发生的反向） | 反向（防御性） | `wrapCallbacks` 统一 try/catch 兜底 | AcpSession 构造时包装                            |
+
+**Callback 防御性包装**：SessionCallbacks 的实现在 AcpSession 外部（由 AcpRuntime 或 compat 层提供），AcpSession 无法控制其质量。为防止 callback 实现的 bug 影响状态机，AcpSession 在构造时通过 `wrapCallbacks()` 统一包装所有 callback，确保任何 callback 抛错只会被记录，不会中断 session 内部流程。
+
 ### 6.2 AcpMetrics（Phase 1: 接口 + no-op）
 
 ```typescript

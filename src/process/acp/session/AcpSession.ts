@@ -1,3 +1,13 @@
+import type {
+  AuthMethod,
+  LoadSessionResponse,
+  McpServer,
+  NewSessionResponse,
+  RequestPermissionRequest,
+  RequestPermissionResponse,
+  SessionNotification,
+  UsageUpdate,
+} from '@agentclientprotocol/sdk';
 import { AcpError } from '@process/acp/errors/AcpError';
 import { normalizeError } from '@process/acp/errors/errorNormalize';
 import type { AcpProtocol, ProtocolFactory } from '@process/acp/infra/AcpProtocol';
@@ -12,16 +22,7 @@ import { MessageTranslator } from '@process/acp/session/MessageTranslator';
 import { PermissionResolver } from '@process/acp/session/PermissionResolver';
 import { PromptQueue } from '@process/acp/session/PromptQueue';
 import { PromptTimer } from '@process/acp/session/PromptTimer';
-import type {
-  AgentConfig,
-  McpServerConfig,
-  ProtocolHandlers,
-  RequestPermissionRequest,
-  RequestPermissionResponse,
-  SessionCallbacks,
-  SessionNotification,
-  SessionStatus,
-} from '@process/acp/types';
+import type { AgentConfig, ProtocolHandlers, SessionCallbacks, SessionStatus } from '@process/acp/types';
 import * as fs from 'node:fs';
 
 export type SessionOptions = {
@@ -70,17 +71,46 @@ const VALID_TRANSITIONS: Record<SessionStatus, SessionStatus[]> = {
   ],
 };
 
+/**
+ * Wrap all SessionCallbacks methods with try/catch to prevent callback
+ * implementation bugs from disrupting AcpSession's internal state machine.
+ * Callback errors are logged but never propagated.
+ */
+function wrapCallbacks(raw: SessionCallbacks): SessionCallbacks {
+  const wrapped = {} as Record<string, unknown>;
+  for (const key of Object.keys(raw)) {
+    const fn = raw[key as keyof SessionCallbacks];
+    if (typeof fn !== 'function') {
+      wrapped[key] = fn;
+      continue;
+    }
+    wrapped[key] = (...args: unknown[]) => {
+      try {
+        return (fn as (...a: unknown[]) => unknown)(...args);
+      } catch (err) {
+        console.error(`[AcpSession:callback] ${key} threw:`, err);
+      }
+    };
+  }
+  return wrapped as SessionCallbacks;
+}
+
 export class AcpSession {
-  private protocol: AcpProtocol | null = null;
-  private connectorHandle: ConnectorHandle | null = null;
   private _status: SessionStatus = 'idle';
   private _sessionId: string | null = null;
-  private startRetryCount = 0;
-  private resumeRetryCount = 0;
   private draining = false;
   private queuePaused = false;
   private authPending = false;
+  private cachedAuthMethods: AuthMethod[] | null = null;
 
+  // retry properties
+  private startRetryCount: number = 0;
+  private resumeRetryCount: number = 0;
+  private readonly maxStartRetries: number;
+  private readonly maxResumeRetries: number;
+  private readonly promptTimeoutMs: number;
+
+  // components
   private readonly configTracker: ConfigTracker;
   private readonly permissionResolver: PermissionResolver;
   private readonly promptQueue: PromptQueue;
@@ -90,14 +120,15 @@ export class AcpSession {
   private readonly authNegotiator: AuthNegotiator;
   private readonly metrics: AcpMetrics;
   private readonly protocolFactory: ProtocolFactory;
-  private readonly maxStartRetries: number;
-  private readonly maxResumeRetries: number;
-  private readonly promptTimeoutMs: number;
+  private readonly callbacks: SessionCallbacks;
+  // dependencies
+  private protocol: AcpProtocol | null = null;
+  private connectorHandle: ConnectorHandle | null = null;
 
   constructor(
     private readonly agentConfig: AgentConfig,
     private readonly connectorFactory: ConnectorFactory,
-    private readonly callbacks: SessionCallbacks,
+    callbacks: SessionCallbacks,
     options?: SessionOptions
   ) {
     this.maxStartRetries = options?.maxStartRetries ?? 3;
@@ -105,10 +136,11 @@ export class AcpSession {
     this.promptTimeoutMs = options?.promptTimeoutMs ?? 300_000;
     this.protocolFactory = options?.protocolFactory ?? defaultProtocolFactory;
     this.metrics = options?.metrics ?? noopMetrics;
+    this.callbacks = wrapCallbacks(callbacks);
 
     this.configTracker = new ConfigTracker();
     this.promptQueue = new PromptQueue(options?.promptQueueMaxSize);
-    this.messageTranslator = new MessageTranslator();
+    this.messageTranslator = new MessageTranslator(agentConfig.agentId);
     this.inputPreprocessor = new InputPreprocessor((path) => fs.readFileSync(path, 'utf-8'));
     this.promptTimer = new PromptTimer(this.promptTimeoutMs, () => this.handlePromptTimeout());
     this.authNegotiator = new AuthNegotiator(agentConfig.agentBackend);
@@ -142,6 +174,7 @@ export class AcpSession {
       this.startRetryCount = 0;
     }
     if (this._status !== 'idle' && this._status !== 'error') return;
+    console.log(`[AcpSession] Starting session with backend ${this.agentConfig.agentBackend}`);
     this.doStart();
   }
 
@@ -161,21 +194,11 @@ export class AcpSession {
       const initResult = await this.protocol.initialize();
       this.metrics.recordInitLatency(this.agentConfig.agentBackend, Date.now() - t1);
 
+      // Cache authMethods for UI — don't call authenticate here.
+      // Credentials are already in the child process env (set during spawn).
+      // If the agent requires auth, session creation will fail and we notify the UI.
       if (initResult.authMethods && initResult.authMethods.length > 0) {
-        try {
-          await this.authNegotiator.authenticate(this.protocol, initResult.authMethods);
-        } catch (err) {
-          if (err instanceof AcpError && err.code === 'AUTH_REQUIRED') {
-            this.authPending = true;
-            await this.teardownConnection();
-            this.callbacks.onSignal({
-              type: 'auth_required',
-              auth: this.authNegotiator.buildAuthRequiredData(initResult.authMethods),
-            });
-            return;
-          }
-          throw err;
-        }
+        this.cachedAuthMethods = initResult.authMethods;
       }
 
       const mcpServers = McpConfig.merge({
@@ -184,33 +207,53 @@ export class AcpSession {
         teamServer: this.agentConfig.teamMcpConfig,
       });
 
-      const sessionResult = this._sessionId
-        ? await this.tryLoadOrCreate(mcpServers)
-        : await this.protocol.createSession({
-            cwd: this.agentConfig.cwd,
-            mcpServers,
-            additionalDirectories: this.agentConfig.additionalDirectories,
+      let sessionResult: NewSessionResponse | LoadSessionResponse;
+      try {
+        sessionResult = this._sessionId
+          ? await this.tryLoadOrCreate(mcpServers)
+          : await this.protocol.createSession({
+              cwd: this.agentConfig.cwd,
+              mcpServers: mcpServers,
+              additionalDirectories: this.agentConfig.additionalDirectories,
+            });
+      } catch (err) {
+        const normalized = normalizeError(err);
+        if (normalized.code === 'AUTH_REQUIRED' && this.cachedAuthMethods) {
+          this.authPending = true;
+          await this.teardownConnection();
+          this.callbacks.onSignal({
+            type: 'auth_required',
+            auth: this.authNegotiator.buildAuthRequiredData(this.cachedAuthMethods),
           });
+          return;
+        }
+        throw err;
+      }
 
-      const result = sessionResult as Record<string, unknown>;
-      this._sessionId = (result.sessionId as string) ?? this._sessionId;
+      if ('sessionId' in sessionResult && typeof sessionResult.sessionId === 'string') {
+        this._sessionId = sessionResult.sessionId;
+      }
       this.callbacks.onSessionId(this._sessionId!);
 
       this.configTracker.syncFromSessionResult({
-        currentModelId: result.currentModelId as string | undefined,
-        availableModels: result.availableModels as
-          | Array<{ modelId: string; name: string; description?: string }>
-          | undefined,
-        currentModeId: result.currentModeId as string | undefined,
-        availableModes: result.availableModes as Array<{ id: string; name: string; description?: string }> | undefined,
-        configOptions: result.configOptions as
-          | Array<{
-              id: string;
-              name: string;
-              type: 'select' | 'boolean';
-              currentValue: string | boolean;
-            }>
-          | undefined,
+        currentModelId: sessionResult.models?.currentModelId ?? undefined,
+        availableModels: sessionResult.models?.availableModels?.map((m) => ({
+          modelId: m.modelId,
+          name: m.name,
+          description: m.description ?? undefined,
+        })),
+        currentModeId: sessionResult.modes?.currentModeId ?? undefined,
+        availableModes: sessionResult.modes?.availableModes?.map((m) => ({
+          id: m.id,
+          name: m.name,
+          description: m.description ?? undefined,
+        })),
+        configOptions: sessionResult.configOptions?.map((opt) => ({
+          id: opt.id,
+          name: opt.name,
+          type: opt.type,
+          currentValue: opt.currentValue,
+        })),
         cwd: this.agentConfig.cwd,
         additionalDirectories: this.agentConfig.additionalDirectories,
       });
@@ -231,6 +274,7 @@ export class AcpSession {
 
   private async handleStartError(err: unknown): Promise<void> {
     const acpErr = normalizeError(err);
+    console.error(`[AcpSession:infra] start failed (${acpErr.code}, retryable=${acpErr.retryable}):`, acpErr.message);
     if (acpErr.retryable && this.startRetryCount < this.maxStartRetries) {
       this.startRetryCount++;
       await this.teardownConnection();
@@ -438,8 +482,10 @@ export class AcpSession {
 
       const acpErr = normalizeError(err);
       if (acpErr.code === 'PROCESS_CRASHED') {
+        // handleDisconnect will handle this
         return;
       }
+      console.error(`[AcpSession:infra] prompt failed (${acpErr.code}):`, acpErr.message);
       this.metrics.recordError(this.agentConfig.agentBackend, acpErr.code);
 
       if (acpErr.retryable) {
@@ -452,59 +498,55 @@ export class AcpSession {
 
   private buildProtocolHandlers(): ProtocolHandlers {
     return {
-      onSessionUpdate: (notification) => this.handleSessionUpdate(notification),
+      onSessionUpdate: (notification) => this.handleMessage(notification),
       onRequestPermission: (request) => this.handlePermissionRequest(request),
       onReadTextFile: async (req) => {
-        const { path } = req as { path: string };
         try {
-          const content = fs.readFileSync(path, 'utf-8');
+          const content = fs.readFileSync(req.path, 'utf-8');
           return { content };
         } catch {
-          return { error: 'File not found' };
+          throw new Error(`File not found: ${req.path}`);
         }
       },
       onWriteTextFile: async (req) => {
-        const { path, content } = req as { path: string; content: string };
         try {
-          fs.writeFileSync(path, content, 'utf-8');
-          return { success: true };
+          fs.writeFileSync(req.path, req.content, 'utf-8');
+          return {};
         } catch {
-          return { error: 'Write failed' };
+          throw new Error(`Write failed: ${req.path}`);
         }
       },
     };
   }
 
-  private handleSessionUpdate(notification: SessionNotification): void {
+  private handleMessage(notification: SessionNotification): void {
     const update = notification.update;
 
-    if (update.sessionUpdate === 'current_mode_update') {
-      this.configTracker.setCurrentMode(update.modeId);
-      this.callbacks.onModeUpdate(this.configTracker.modeSnapshot());
-      return;
-    }
-    if (update.sessionUpdate === 'config_option_update') {
-      this.callbacks.onConfigUpdate(this.configTracker.configSnapshot());
-      return;
-    }
-    if (update.sessionUpdate === 'usage_update') {
-      const u = update as Record<string, unknown>;
-      this.callbacks.onContextUsage({
-        used: (u.inputTokens as number) ?? 0,
-        total: (u.contextWindow as number) ?? 0,
-        percentage: 0,
-      });
-      return;
+    switch (update.sessionUpdate) {
+      case 'current_mode_update':
+        this.configTracker.setCurrentMode(update.currentModeId);
+        this.callbacks.onModeUpdate(this.configTracker.modeSnapshot());
+        return;
+
+      case 'config_option_update':
+        this.callbacks.onConfigUpdate(this.configTracker.configSnapshot());
+        return;
+
+      case 'usage_update': {
+        const u = update as UsageUpdate & { sessionUpdate: 'usage_update' };
+        this.callbacks.onContextUsage({
+          used: u.used ?? 0,
+          total: u.size ?? 0,
+          percentage: u.size > 0 ? Math.round((u.used / u.size) * 100) : 0,
+        });
+        return;
+      }
     }
 
     this.promptTimer.reset();
     const messages = this.messageTranslator.translate(notification);
     for (const msg of messages) {
-      try {
-        this.callbacks.onMessage(msg);
-      } catch {
-        // onMessage error must not affect session update processing
-      }
+      this.callbacks.onMessage(msg);
     }
   }
 
@@ -576,7 +618,7 @@ export class AcpSession {
     }
   }
 
-  private async tryLoadOrCreate(mcpServers: McpServerConfig[]): Promise<unknown> {
+  private async tryLoadOrCreate(mcpServers: McpServer[]): Promise<NewSessionResponse | LoadSessionResponse> {
     if (this._sessionId && this.protocol) {
       try {
         return await this.protocol.loadSession({
