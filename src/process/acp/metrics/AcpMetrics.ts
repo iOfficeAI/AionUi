@@ -1,6 +1,6 @@
 // src/process/acp/metrics/AcpMetrics.ts
 
-import type { AcpErrorCode } from '../errors/AcpError';
+import type { AcpErrorCode } from '@process/acp/errors/AcpError';
 
 export type MetricsSnapshot = {
   entries: Array<{

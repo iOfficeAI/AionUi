@@ -1,6 +1,6 @@
 // src/process/acp/runtime/IdleReclaimer.ts
 
-import type { SessionEntry } from '../types';
+import type { SessionEntry } from '@process/acp/types';
 
 export class IdleReclaimer {
   private intervalId: ReturnType<typeof setInterval> | null = null;

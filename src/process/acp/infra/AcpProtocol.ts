@@ -1,16 +1,53 @@
 // src/process/acp/infra/AcpProtocol.ts
 
 import { ClientSideConnection, type Stream } from '@agentclientprotocol/sdk';
-import type {
-  CreateSessionParams,
-  InitializeResponse,
-  LoadSessionParams,
-  PromptContent,
-  PromptResponse,
-  ProtocolHandlers,
-  RequestPermissionRequest,
-  SessionNotification,
-} from '@process/acp/types';
+import type { McpServerConfig, PromptContent, ProtocolHandlers, RequestPermissionRequest, SessionNotification } from '@process/acp/types';
+
+// ─── Protocol-layer Types ──────────────────────────────────────
+
+export type CreateSessionParams = {
+  cwd: string;
+  mcpServers?: McpServerConfig[];
+  additionalDirectories?: string[];
+};
+
+export type LoadSessionParams = {
+  sessionId: string;
+  cwd: string;
+  mcpServers?: McpServerConfig[];
+  additionalDirectories?: string[];
+};
+
+export type PromptResponse = {
+  stopReason: 'end_turn' | 'max_tokens' | 'max_turn_requests' | 'refusal' | 'cancelled';
+  usage?: {
+    inputTokens?: number;
+    outputTokens?: number;
+    cacheReadTokens?: number;
+    cacheWriteTokens?: number;
+  };
+};
+
+export type InitializeResponse = {
+  protocolVersion: string;
+  capabilities: Record<string, unknown>;
+  authMethods?: RawAuthMethod[];
+};
+
+export type RawAuthMethod = {
+  id: string;
+  type: 'env_var' | 'terminal' | 'agent';
+  name: string;
+  description?: string;
+  fields?: Array<{ key: string; label: string; secret: boolean }>;
+  command?: string;
+  args?: string[];
+  env?: Record<string, string>;
+};
+
+export type ProtocolFactory = (stream: Stream, handlers: ProtocolHandlers) => AcpProtocol;
+
+// ─── AcpProtocol Class ─────────────────────────────────────────
 
 export class AcpProtocol {
   private readonly sdk: ClientSideConnection;
@@ -122,5 +159,4 @@ export class AcpProtocol {
 }
 
 /** Default factory for production use. */
-export const defaultProtocolFactory = (stream: Stream, handlers: ProtocolHandlers): AcpProtocol =>
-  new AcpProtocol(stream, handlers);
+export const defaultProtocolFactory: ProtocolFactory = (stream, handlers) => new AcpProtocol(stream, handlers);

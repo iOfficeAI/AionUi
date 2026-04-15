@@ -15,8 +15,8 @@ describe('splitCommandLine', () => {
   it('handles escaped spaces', () => {
     expect(splitCommandLine('path/to/my\\ file')).toEqual(['path/to/my file']);
   });
-  it('returns empty array for empty string', () => {
-    expect(splitCommandLine('')).toEqual([]);
+  it('throws for empty string', () => {
+    expect(() => splitCommandLine('')).toThrow('splitCommandLine: empty command');
   });
   it('handles mixed quotes and args', () => {
     expect(splitCommandLine('cmd --flag "a b" --other')).toEqual(['cmd', '--flag', 'a b', '--other']);

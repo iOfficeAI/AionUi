@@ -2,60 +2,86 @@
 import { type ChildProcess } from 'node:child_process';
 
 export function splitCommandLine(cmd: string): string[] {
-  const args: string[] = [];
+  const parts: string[] = [];
   let current = '';
-  let inSingle = false;
-  let inDouble = false;
-  let escape = false;
+  let quote: "'" | '"' | null = null;
+  let escaping = false;
 
   for (const char of cmd) {
-    if (escape) {
+    if (escaping) {
       current += char;
-      escape = false;
+      escaping = false;
       continue;
     }
-    if (char === '\\' && !inSingle) {
-      escape = true;
+    if (char === '\\' && quote !== "'") {
+      escaping = true;
       continue;
     }
-    if (char === "'" && !inDouble) {
-      inSingle = !inSingle;
+    if (quote) {
+      if (char === quote) {
+        quote = null;
+      } else {
+        current += char;
+      }
       continue;
     }
-    if (char === '"' && !inSingle) {
-      inDouble = !inDouble;
+    if (char === "'" || char === '"') {
+      quote = char;
       continue;
     }
-    if (char === ' ' && !inSingle && !inDouble) {
+    if (/\s/.test(char)) {
       if (current.length > 0) {
-        args.push(current);
+        parts.push(current);
         current = '';
       }
       continue;
     }
     current += char;
   }
-  if (current.length > 0) args.push(current);
-  return args;
+
+  if (escaping) current += '\\';
+  if (quote) throw new Error('splitCommandLine: unterminated quote');
+  if (current.length > 0) parts.push(current);
+  if (parts.length === 0) throw new Error('splitCommandLine: empty command');
+  return parts;
 }
 
 export function waitForSpawn(child: ChildProcess): Promise<void> {
   return new Promise((resolve, reject) => {
-    child.once('spawn', () => resolve());
-    child.once('error', (err) => reject(err));
+    const onSpawn = () => {
+      child.off('error', onError);
+      resolve();
+    };
+    const onError = (err: Error) => {
+      child.off('spawn', onSpawn);
+      reject(err);
+    };
+    child.once('spawn', onSpawn);
+    child.once('error', onError);
   });
 }
 
 export function waitForExit(child: ChildProcess, timeoutMs: number): Promise<number | null> {
+  if (child.exitCode !== null) return Promise.resolve(child.exitCode);
+
   return new Promise((resolve) => {
-    const timer = setTimeout(() => {
-      child.removeAllListeners('exit');
-      resolve(null);
-    }, timeoutMs);
-    child.once('exit', (code) => {
+    let settled = false;
+
+    const finish = (value: number | null) => {
+      if (settled) return;
+      settled = true;
+      child.off('exit', onExit);
+      child.off('close', onExit);
       clearTimeout(timer);
-      resolve(code);
-    });
+      resolve(value);
+    };
+
+    const onExit = (code: number | null) => finish(code);
+
+    const timer = setTimeout(() => finish(null), timeoutMs);
+
+    child.once('exit', onExit);
+    child.once('close', onExit);
   });
 }
 

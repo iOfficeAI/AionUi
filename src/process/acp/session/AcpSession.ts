@@ -1,29 +1,38 @@
-import { ConfigTracker } from '@/process/acp/session/ConfigTracker';
-import { InputPreprocessor } from '@/process/acp/session/InputPreprocessor';
-import { MessageTranslator } from '@/process/acp/session/MessageTranslator';
-import { PermissionResolver } from '@/process/acp/session/PermissionResolver';
-import { PromptQueue } from '@/process/acp/session/PromptQueue';
-import { PromptTimer } from '@/process/acp/session/PromptTimer';
 import { AcpError } from '@process/acp/errors/AcpError';
 import { normalizeError } from '@process/acp/errors/errorNormalize';
-import type { AcpProtocol } from '@process/acp/infra/AcpProtocol';
+import type { AcpProtocol, ProtocolFactory } from '@process/acp/infra/AcpProtocol';
 import { defaultProtocolFactory } from '@process/acp/infra/AcpProtocol';
-import type { ConnectorFactory, ConnectorHandle } from '@process/acp/infra/AgentConnector';
+import type { ConnectorFactory, ConnectorHandle } from '@process/acp/infra/IAgentConnector';
 import { noopMetrics, type AcpMetrics } from '@process/acp/metrics/AcpMetrics';
 import { AuthNegotiator } from '@process/acp/session/AuthNegotiator';
+import { ConfigTracker } from '@process/acp/session/ConfigTracker';
+import { InputPreprocessor } from '@process/acp/session/InputPreprocessor';
 import { McpConfig } from '@process/acp/session/McpConfig';
+import { MessageTranslator } from '@process/acp/session/MessageTranslator';
+import { PermissionResolver } from '@process/acp/session/PermissionResolver';
+import { PromptQueue } from '@process/acp/session/PromptQueue';
+import { PromptTimer } from '@process/acp/session/PromptTimer';
 import type {
   AgentConfig,
-  ProtocolFactory,
+  McpServerConfig,
   ProtocolHandlers,
   RequestPermissionRequest,
   RequestPermissionResponse,
   SessionCallbacks,
   SessionNotification,
-  SessionOptions,
   SessionStatus,
 } from '@process/acp/types';
 import * as fs from 'node:fs';
+
+export type SessionOptions = {
+  promptTimeoutMs?: number;
+  maxStartRetries?: number;
+  maxResumeRetries?: number;
+  protocolFactory?: ProtocolFactory;
+  metrics?: AcpMetrics;
+  promptQueueMaxSize?: number;
+  approvalCacheMaxSize?: number;
+};
 
 const VALID_TRANSITIONS: Record<SessionStatus, SessionStatus[]> = {
   idle: [
@@ -567,7 +576,7 @@ export class AcpSession {
     }
   }
 
-  private async tryLoadOrCreate(mcpServers: import('../types').McpServerConfig[]): Promise<unknown> {
+  private async tryLoadOrCreate(mcpServers: McpServerConfig[]): Promise<unknown> {
     if (this._sessionId && this.protocol) {
       try {
         return await this.protocol.loadSession({

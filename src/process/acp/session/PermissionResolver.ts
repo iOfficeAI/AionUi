@@ -1,12 +1,14 @@
 // src/process/acp/session/PermissionResolver.ts
 
-import { ApprovalCache } from '@/process/acp/session/ApprovalCache';
-import type {
-  PendingPermission,
-  PermissionUIData,
-  RequestPermissionRequest,
-  RequestPermissionResponse,
-} from '@process/acp/types';
+import { ApprovalCache } from '@process/acp/session/ApprovalCache';
+import type { PermissionUIData, RequestPermissionRequest, RequestPermissionResponse } from '@process/acp/types';
+
+type PendingPermission = {
+  callId: string;
+  resolve: (response: RequestPermissionResponse) => void;
+  reject: (error: Error) => void;
+  createdAt: number;
+};
 
 type PermissionResolverConfig = {
   autoApproveAll: boolean;

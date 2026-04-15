@@ -1,8 +1,8 @@
 // src/process/acp/infra/WebSocketConnector.ts
 
+import type { ConnectorHandle } from '@process/acp/infra/IAgentConnector';
 import type { Stream } from '@agentclientprotocol/sdk';
 import { AcpError } from '@process/acp/errors/AcpError';
-import type { ConnectorHandle, RemoteConfig } from '@process/acp/infra/AgentConnector';
 import { NdjsonTransport } from '@process/acp/infra/NdjsonTransport';
 
 function waitForOpen(ws: WebSocket): Promise<void> {
@@ -13,10 +13,15 @@ function waitForOpen(ws: WebSocket): Promise<void> {
   });
 }
 
+export type WebSocketConnectorConfig = {
+  url: string;
+  headers?: Record<string, string>;
+};
+
 export class WebSocketConnector {
   private ws: WebSocket | null = null;
 
-  constructor(private readonly config: RemoteConfig) {}
+  constructor(private readonly config: WebSocketConnectorConfig) {}
 
   async connect(): Promise<ConnectorHandle> {
     try {

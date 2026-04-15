@@ -1,15 +1,23 @@
 // src/process/acp/infra/IPCConnector.ts
+import type { ConnectorHandle } from '@process/acp/infra/IAgentConnector';
 import type { Stream } from '@agentclientprotocol/sdk';
 import { AcpError } from '@process/acp/errors/AcpError';
-import type { ConnectorHandle, LocalProcessConfig } from '@process/acp/infra/AgentConnector';
 import { NdjsonTransport } from '@process/acp/infra/NdjsonTransport';
 import { gracefulShutdown, isProcessAlive, prepareCleanEnv, waitForSpawn } from '@process/acp/infra/processUtils';
 import { spawn, type ChildProcess } from 'node:child_process';
 
+export type IPCConnectorConfig = {
+  command: string;
+  args: string[];
+  cwd: string;
+  env?: Record<string, string>;
+  gracePeriodMs?: number;
+};
+
 export class IPCConnector {
   private child: ChildProcess | null = null;
 
-  constructor(private readonly config: LocalProcessConfig) {}
+  constructor(private readonly config: IPCConnectorConfig) {}
 
   async connect(): Promise<ConnectorHandle> {
     try {

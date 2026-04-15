@@ -53,15 +53,17 @@ export class NdjsonTransport {
       new CountQueuingStrategy({ highWaterMark: HIGH_WATER_MARK })
     );
 
+    const writer = rawWritable.getWriter();
     const writable = new WritableStream<AnyMessage>({
       async write(message) {
-        const raw = rawWritable.getWriter();
-        try {
-          const line = JSON.stringify(message) + '\n';
-          await raw.write(encoder.encode(line));
-        } finally {
-          raw.releaseLock();
-        }
+        const line = JSON.stringify(message) + '\n';
+        await writer.write(encoder.encode(line));
+      },
+      close() {
+        return writer.close();
+      },
+      abort(reason) {
+        return writer.abort(reason);
       },
     });
 
