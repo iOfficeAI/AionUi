@@ -62,26 +62,6 @@ type UseGuidAgentSelectionOptions = {
   localeKey: string;
 };
 
-function isSameModelInfo(a: AcpModelInfo | null | undefined, b: AcpModelInfo | null | undefined): boolean {
-  if (a === b) return true;
-  if (!a || !b) return false;
-  if (
-    a.currentModelId !== b.currentModelId ||
-    a.currentModelLabel !== b.currentModelLabel ||
-    a.canSwitch !== b.canSwitch ||
-    a.source !== b.source ||
-    a.sourceDetail !== b.sourceDetail ||
-    a.availableModels.length !== b.availableModels.length
-  ) {
-    return false;
-  }
-
-  return a.availableModels.every((model, index) => {
-    const other = b.availableModels[index];
-    return other && other.id === model.id && other.label === model.label;
-  });
-}
-
 /**
  * Hook that manages agent selection, availability, and preset assistant logic.
  */
@@ -95,9 +75,6 @@ export const useGuidAgentSelection = ({
   const [selectedMode, _setSelectedMode] = useState<string>('default');
   // Track whether mode was loaded from preferences to avoid overwriting during initial load
   const selectedAgentRef = useRef<string | null>(null);
-  const probedModelBackendsRef = useRef(new Set<string>());
-  const probingModelBackendsRef = useRef(new Set<string>());
-  const isMountedRef = useRef(true);
   const [acpCachedModels, setAcpCachedModels] = useState<Record<string, AcpModelInfo>>({});
   const [selectedAcpModel, _setSelectedAcpModel] = useState<string | null>(null);
   const [cachedConfigOptions, setCachedConfigOptions] = useState<AcpSessionConfigOption[]>([]);
@@ -138,13 +115,6 @@ export const useGuidAgentSelection = ({
       }
       return newModelId;
     });
-  }, []);
-
-  useEffect(() => {
-    isMountedRef.current = true;
-    return () => {
-      isMountedRef.current = false;
-    };
   }, []);
 
   const availableCustomAgentIds = useMemo(() => {
@@ -305,116 +275,6 @@ export const useGuidAgentSelection = ({
     }
     return getEffectiveAgentType(selectedAgentInfo);
   }, [isPresetAgent, selectedAgent, selectedAgentInfo, getEffectiveAgentType, isMainAgentAvailable]);
-
-  const probeBackend = useMemo(() => {
-    const effectiveBackend = isPresetAgent
-      ? currentEffectiveAgentInfo.agentType
-      : selectedAgentKey.startsWith('custom:') || selectedAgentKey.startsWith('remote:')
-        ? null
-        : selectedAgentKey;
-
-    return effectiveBackend === 'codex' || effectiveBackend === 'claude' ? effectiveBackend : null;
-  }, [currentEffectiveAgentInfo.agentType, isPresetAgent, selectedAgentKey]);
-
-  const refreshProbeModelInfo = useCallback(async (backend: 'claude' | 'codex', options?: { force?: boolean }) => {
-    const force = options?.force ?? false;
-    const shouldReuseCachedProbe = backend !== 'claude' && !force;
-
-    if (shouldReuseCachedProbe && probedModelBackendsRef.current.has(backend)) {
-      return;
-    }
-    if (probingModelBackendsRef.current.has(backend)) {
-      return;
-    }
-
-    probingModelBackendsRef.current.add(backend);
-    if (shouldReuseCachedProbe) {
-      probedModelBackendsRef.current.add(backend);
-    }
-
-    try {
-      const result = await ipcBridge.acpConversation.probeModelInfo.invoke({ backend });
-      if (!isMountedRef.current) return;
-
-      const modelInfo = result.success ? result.data?.modelInfo : null;
-      if (!modelInfo?.availableModels?.length) {
-        if (shouldReuseCachedProbe) {
-          probedModelBackendsRef.current.delete(backend);
-        }
-        return;
-      }
-
-      console.log(`[Guid][${backend}] Probed model info:`, modelInfo);
-
-      let hasChanged = false;
-      setAcpCachedModels((prev) => {
-        if (isSameModelInfo(prev[backend], modelInfo)) {
-          return prev;
-        }
-        hasChanged = true;
-        return {
-          ...prev,
-          [backend]: modelInfo,
-        };
-      });
-
-      if (!hasChanged) {
-        return;
-      }
-
-      const cached =
-        ((await ConfigStorage.get('acp.cachedModels').catch(() => ({}))) as Record<string, AcpModelInfo>) || {};
-      if (!isMountedRef.current) return;
-      if (isSameModelInfo(cached?.[backend], modelInfo)) {
-        return;
-      }
-
-      await ConfigStorage.set('acp.cachedModels', {
-        ...cached,
-        [backend]: modelInfo,
-      }).catch((error) => {
-        console.error('Failed to save probed ACP model info:', error);
-      });
-    } catch (error) {
-      if (shouldReuseCachedProbe) {
-        probedModelBackendsRef.current.delete(backend);
-      }
-      console.warn(`[Guid][${backend}] Failed to probe model info:`, error);
-    } finally {
-      probingModelBackendsRef.current.delete(backend);
-    }
-  }, []);
-
-  // Probe account-scoped model info on first selection so the Guid page can
-  // show the local default before the first conversation starts.
-  useEffect(() => {
-    if (!probeBackend) return;
-    void refreshProbeModelInfo(probeBackend, { force: probeBackend === 'claude' });
-  }, [probeBackend, refreshProbeModelInfo]);
-
-  useEffect(() => {
-    if (probeBackend !== 'claude') return;
-
-    const refresh = () => {
-      void refreshProbeModelInfo('claude', { force: true });
-    };
-
-    const handleVisibilityChange = () => {
-      if (document.visibilityState === 'visible') {
-        refresh();
-      }
-    };
-
-    window.addEventListener('focus', refresh);
-    document.addEventListener('visibilitychange', handleVisibilityChange);
-    const intervalId = window.setInterval(refresh, 1500);
-
-    return () => {
-      window.removeEventListener('focus', refresh);
-      document.removeEventListener('visibilitychange', handleVisibilityChange);
-      window.clearInterval(intervalId);
-    };
-  }, [probeBackend, refreshProbeModelInfo]);
 
   // Load cached ACP config options per backend
   useEffect(() => {
