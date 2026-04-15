@@ -149,9 +149,10 @@
   const readFiltersFromInputs = () => {
     state.filters = {
       category: elements.category && elements.category.value ? elements.category.value : 'all',
-      workspaceKeyword: elements.workspaceKeyword && typeof elements.workspaceKeyword.value === 'string'
-        ? elements.workspaceKeyword.value
-        : '',
+      workspaceKeyword:
+        elements.workspaceKeyword && typeof elements.workspaceKeyword.value === 'string'
+          ? elements.workspaceKeyword.value
+          : '',
       keyword: elements.keyword && typeof elements.keyword.value === 'string' ? elements.keyword.value : '',
     };
   };
@@ -484,11 +485,9 @@
       if (state.page > 0 && successCount === state.items.length) {
         state.page -= 1;
       }
-      setStatus(
-        successCount === ids.length ? 'messages.deleteSuccess' : 'messages.deletePartialSuccess',
-        'success',
-        { count: successCount }
-      );
+      setStatus(successCount === ids.length ? 'messages.deleteSuccess' : 'messages.deletePartialSuccess', 'success', {
+        count: successCount,
+      });
       await search();
     } catch (error) {
       console.error('[session-management extension] Failed to delete conversations:', error);

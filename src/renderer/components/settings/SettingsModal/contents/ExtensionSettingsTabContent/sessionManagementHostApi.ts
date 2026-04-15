@@ -25,9 +25,7 @@ const getConversationIds = (payload: SessionManagementPayload | null | undefined
   return ids.filter((id) => typeof id === 'string' && id.trim().length > 0);
 };
 
-const getConversation = (
-  payload: SessionManagementPayload | null | undefined
-): TChatConversation | null => {
+const getConversation = (payload: SessionManagementPayload | null | undefined): TChatConversation | null => {
   if (!payload || !('conversation' in payload)) {
     return null;
   }
