@@ -5,7 +5,7 @@
  */
 
 import { ipcBridge } from '@/common';
-import type { IMessageToolGroup, TMessage, IMessageText } from '@/common/chat/chatLib';
+import type { IMessageToolGroup, TMessage } from '@/common/chat/chatLib';
 import { transformMessage } from '@/common/chat/chatLib';
 import type { IResponseMessage } from '@/common/adapter/ipcBridge';
 import { channelEventBus } from '@process/channels/agent/ChannelEventBus';
@@ -150,30 +150,10 @@ export class AionrsManager extends BaseAgentManager<AionrsManagerData, string> {
     this._capabilities = agent.capabilities ?? null;
   }
 
-  private async injectHistoryFromDatabase(): Promise<void> {
-    if (!this.agent) return;
-    try {
-      const result = (await getDatabase()).getConversationMessages(this.conversation_id, 0, 10000);
-      const data = (result.data || []) as TMessage[];
-      const lines = data
-        .filter((m): m is IMessageText => m.type === 'text')
-        .slice(-20)
-        .map((m) => `${m.position === 'right' ? 'User' : 'Assistant'}: ${m.content.content || ''}`);
-      const text = lines.join('\n').slice(-4000);
-      if (text) {
-        await this.agent.injectConversationHistory(text);
-      }
-    } catch {
-      // ignore history injection errors
-    }
-  }
-
   async stop() {
     this.clearMissingFinishFallback();
     this.flushAllBufferedStreamTexts();
     cronBusyGuard.setProcessing(this.conversation_id, false);
-    // Inject history BEFORE stopping so the command reaches the running process
-    await this.injectHistoryFromDatabase();
     this.confirmations = [];
     if (this.agent) {
       this.agent.stop();
