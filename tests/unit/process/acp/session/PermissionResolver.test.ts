@@ -2,18 +2,20 @@
 
 import { describe, it, expect, vi } from 'vitest';
 import { PermissionResolver } from '@process/acp/session/PermissionResolver';
+import type { RequestPermissionRequest } from '@agentclientprotocol/sdk';
 
-function makeRequest(toolName = 'read_file', callId = 'call-1') {
+function makeRequest(toolName = 'read_file', callId = 'call-1'): RequestPermissionRequest {
   return {
     sessionId: 'sess-1',
-    toolCall: { id: callId, name: toolName },
+    toolCall: {
+      toolCallId: callId,
+      title: toolName,
+    },
     options: [
-      { optionId: 'allow', name: 'Allow', kind: 'allow_once' as const },
-      { optionId: 'deny', name: 'Deny', kind: 'reject_once' as const },
-      { optionId: 'always', name: 'Always', kind: 'allow_always' as const },
+      { optionId: 'allow', name: 'Allow', kind: 'allow_once' },
+      { optionId: 'deny', name: 'Deny', kind: 'reject_once' },
+      { optionId: 'always', name: 'Always', kind: 'allow_always' },
     ],
-    title: 'Read file',
-    description: '/foo/bar.ts',
   };
 }
 
@@ -21,7 +23,7 @@ describe('PermissionResolver', () => {
   it('auto-approves in YOLO mode', async () => {
     const resolver = new PermissionResolver({ autoApproveAll: true });
     const result = await resolver.evaluate(makeRequest(), vi.fn());
-    expect(result.optionId).toBe('allow');
+    expect(result.outcome).toEqual({ outcome: 'selected', optionId: 'allow' });
   });
 
   it('returns cached approval on second call', async () => {
@@ -37,7 +39,7 @@ describe('PermissionResolver', () => {
     const uiCallback2 = vi.fn();
     const result = await resolver.evaluate(makeRequest('read_file', 'c2'), uiCallback2);
     expect(uiCallback2).not.toHaveBeenCalled();
-    expect(result.optionId).toBe('always');
+    expect(result.outcome).toEqual({ outcome: 'selected', optionId: 'always' });
   });
 
   it('delegates to UI when no cache hit', async () => {
@@ -47,7 +49,7 @@ describe('PermissionResolver', () => {
     expect(uiCallback).toHaveBeenCalledOnce();
     resolver.resolve('c1', 'allow');
     const result = await promise;
-    expect(result.optionId).toBe('allow');
+    expect(result.outcome).toEqual({ outcome: 'selected', optionId: 'allow' });
   });
 
   it('hasPending is true during unresolved request (INV-S-10)', () => {

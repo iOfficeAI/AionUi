@@ -1,8 +1,8 @@
 // src/process/acp/session/AuthNegotiator.ts
 
+import type { AuthMethod } from '@agentclientprotocol/sdk';
 import { AcpError } from '@process/acp/errors/AcpError';
-import type { RawAuthMethod } from '@process/acp/infra/AcpProtocol';
-import type { AuthMethod, AuthRequiredData } from '@process/acp/types';
+import type { AuthRequiredData } from '@process/acp/types';
 
 export class AuthNegotiator {
   private credentials: Record<string, string> | null = null;
@@ -22,17 +22,32 @@ export class AuthNegotiator {
   }
 
   /**
-   * Attempt authentication via protocol.
-   * Throws AcpError('AUTH_REQUIRED') on failure with AuthRequiredData.
+   * Select the best auth method and authenticate via protocol.
+   *
+   * Follows the ACP protocol: credentials are in the child process env (set
+   * during spawn), so authenticate() only sends the selected methodId.
+   * If no matching credentials are found, skip authenticate entirely —
+   * the agent may handle auth internally.
    */
   async authenticate(
-    protocol: { authenticate(creds?: Record<string, string>): Promise<unknown> },
-    authMethods?: RawAuthMethod[]
+    protocol: { authenticate(methodId: string): Promise<unknown> },
+    authMethods?: AuthMethod[]
   ): Promise<void> {
+    const methods = authMethods ?? [];
+    if (methods.length === 0) return;
+
+    const selected = this.selectAuthMethod(methods);
+    if (!selected) {
+      console.log(
+        `[AuthNegotiator] No matching credentials for methods [${methods.map((m) => m.id).join(', ')}] — skipping`
+      );
+      return;
+    }
+
     try {
-      await protocol.authenticate(this.credentials ?? undefined);
+      await protocol.authenticate(selected.id);
+      console.log(`[AuthNegotiator] Authenticated with method ${selected.id}`);
     } catch (err) {
-      const data = this.buildAuthRequiredData(authMethods);
       throw new AcpError('AUTH_REQUIRED', 'Authentication required', {
         cause: err,
         retryable: true,
@@ -40,44 +55,25 @@ export class AuthNegotiator {
     }
   }
 
-  buildAuthRequiredData(authMethods?: RawAuthMethod[]): AuthRequiredData {
-    return {
-      agentBackend: this.agentBackend,
-      methods: this.buildAuthMethods(authMethods ?? []),
-    };
+  /**
+   * Select the first env_var auth method whose required vars are all
+   * present in the stored credentials.
+   */
+  private selectAuthMethod(methods: AuthMethod[]): AuthMethod | null {
+    for (const method of methods) {
+      if (!('type' in method) || method.type !== 'env_var') continue;
+      if (!method.vars || method.vars.length === 0) continue;
+
+      const allPresent = method.vars.every((v) => this.credentials?.[v.name]);
+      if (allPresent) return method;
+    }
+    return null;
   }
 
-  buildAuthMethods(raw: RawAuthMethod[]): AuthMethod[] {
-    return raw.map((m) => {
-      switch (m.type) {
-        case 'env_var':
-          return {
-            type: 'env_var' as const,
-            id: m.id,
-            name: m.name,
-            description: m.description,
-            fields: m.fields ?? [],
-          };
-        case 'terminal':
-          return {
-            type: 'terminal' as const,
-            id: m.id,
-            name: m.name,
-            description: m.description,
-            command: m.command ?? '',
-            args: m.args,
-            env: m.env,
-          };
-        case 'agent':
-          return {
-            type: 'agent' as const,
-            id: m.id,
-            name: m.name,
-            description: m.description,
-          };
-        default:
-          return { type: 'agent' as const, id: m.id, name: m.name };
-      }
-    });
+  buildAuthRequiredData(authMethods?: AuthMethod[]): AuthRequiredData {
+    return {
+      agentBackend: this.agentBackend,
+      methods: authMethods ?? [],
+    };
   }
 }

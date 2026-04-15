@@ -1,13 +1,13 @@
 // src/process/acp/session/InputPreprocessor.ts
-import type { PromptContent, PromptContentItem } from '@process/acp/types';
-
+import type { PromptContent } from '@process/acp/types';
+import type { ContentBlock } from '@agentclientprotocol/sdk';
 const AT_FILE_REGEX = /@([\w/.~-]+\.\w+)/g;
 
 export class InputPreprocessor {
   constructor(private readonly readFile: (path: string) => string) {}
 
   process(text: string, files?: string[]): PromptContent {
-    const items: PromptContentItem[] = [{ type: 'text', text }];
+    const items: ContentBlock[] = [{ type: 'text', text }];
     if (files) {
       for (const path of files) {
         const item = this.tryReadFile(path);
@@ -23,10 +23,10 @@ export class InputPreprocessor {
     return items;
   }
 
-  private tryReadFile(path: string): PromptContentItem | null {
+  private tryReadFile(path: string): ContentBlock | null {
     try {
       const content = this.readFile(path);
-      return { type: 'file', path, content };
+      return { type: 'text', text: `[File: ${path}]\n${content}` };
     } catch {
       return null;
     }

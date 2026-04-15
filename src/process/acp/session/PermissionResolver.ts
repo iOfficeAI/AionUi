@@ -1,7 +1,8 @@
 // src/process/acp/session/PermissionResolver.ts
 
+import type { RequestPermissionRequest, RequestPermissionResponse } from '@agentclientprotocol/sdk';
 import { ApprovalCache } from '@process/acp/session/ApprovalCache';
-import type { PermissionUIData, RequestPermissionRequest, RequestPermissionResponse } from '@process/acp/types';
+import type { PermissionUIData } from '@process/acp/types';
 
 type PendingPermission = {
   callId: string;
@@ -40,24 +41,25 @@ export class PermissionResolver {
     // Level 1: YOLO mode
     if (this.autoApproveAll) {
       const allowOption = request.options.find((o) => o.kind.startsWith('allow_'));
-      return { optionId: allowOption?.optionId ?? request.options[0].optionId };
+      const optionId = allowOption?.optionId ?? request.options[0].optionId;
+      return { outcome: { outcome: 'selected', optionId } };
     }
 
     // Level 2: Cache hit
     const cacheKey = this.buildCacheKey(request);
     const cached = this.cache.get(cacheKey);
     if (cached) {
-      return { optionId: cached };
+      return { outcome: { outcome: 'selected', optionId: cached } };
     }
 
     // Level 3: UI delegation
-    const callId = request.toolCall.id;
+    const callId = request.toolCall.toolCallId;
     return new Promise<RequestPermissionResponse>((resolve, reject) => {
       this.pending.set(callId, { callId, resolve, reject, createdAt: Date.now(), cacheKey });
       uiCallback({
         callId,
-        title: request.title ?? '',
-        description: request.description ?? '',
+        title: request.toolCall.title ?? '',
+        description: '',
         options: request.options.map((o) => ({
           optionId: o.optionId,
           label: o.name,
@@ -77,7 +79,7 @@ export class PermissionResolver {
       this.cache.set(entry.cacheKey, optionId);
     }
 
-    entry.resolve({ optionId });
+    entry.resolve({ outcome: { outcome: 'selected', optionId } });
   }
 
   rejectAll(error: Error): void {
@@ -88,6 +90,7 @@ export class PermissionResolver {
   }
 
   private buildCacheKey(request: RequestPermissionRequest): string {
-    return `${request.toolCall.name ?? 'unknown'}:${request.description ?? ''}`;
+    const toolName = request.toolCall.title ?? 'unknown';
+    return `${toolName}`;
   }
 }
