@@ -1,0 +1,58 @@
+<!doctype html>
+<html lang="en-US">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Session Management</title>
+    <link rel="stylesheet" href="./session-management.css" />
+  </head>
+  <body>
+    <main class="shell">
+      <section class="hero">
+        <div>
+          <p class="eyebrow" data-i18n="page.eyebrow">Conversation Control</p>
+          <h1 data-i18n="page.title">Session Management</h1>
+          <p class="lede" data-i18n="page.description">
+            Search and manage conversations by category, workspace path, and title.
+          </p>
+        </div>
+        <div id="status" class="status">Waiting for host bridge...</div>
+      </section>
+
+      <section class="panel filters">
+        <label class="field">
+          <span data-i18n="filters.category">Category</span>
+          <select id="category"></select>
+        </label>
+        <label class="field">
+          <span data-i18n="filters.workspaceKeyword">Workspace keyword</span>
+          <input id="workspace-keyword" type="text" />
+        </label>
+        <label class="field">
+          <span data-i18n="filters.keyword">Session keyword</span>
+          <input id="keyword" type="text" />
+        </label>
+        <div class="actions">
+          <button id="search-button" class="button button-primary" type="button" data-i18n="filters.search">
+            Search
+          </button>
+          <button id="reset-button" class="button" type="button" data-i18n="filters.reset">Reset</button>
+        </div>
+      </section>
+
+      <section class="panel">
+        <div class="toolbar">
+          <div class="toolbar-copy">
+            <button id="toggle-selection" class="button" type="button"></button>
+            <span id="selection-count" class="selection-count"></span>
+            <span id="page-scope" class="badge hidden"></span>
+          </div>
+          <button id="delete-selected" class="button button-danger" type="button"></button>
+        </div>
+        <div id="results" class="results"></div>
+        <div id="pagination" class="pagination"></div>
+      </section>
+    </main>
+    <script src="./session-management.js"></script>
+  </body>
+</html>

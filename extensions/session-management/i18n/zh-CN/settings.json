@@ -1,0 +1,63 @@
+{
+  "page": {
+    "eyebrow": "会话控制台",
+    "title": "会话管理",
+    "description": "按分类、工作区路径和会话标题检索会话，并支持分页管理。"
+  },
+  "filters": {
+    "category": "分类",
+    "workspaceKeyword": "工作区关键词",
+    "workspacePlaceholder": "按工作区路径搜索",
+    "keyword": "会话关键词",
+    "keywordPlaceholder": "按会话标题搜索",
+    "search": "搜索",
+    "reset": "重置"
+  },
+  "categories": {
+    "all": "全部",
+    "gemini": "Gemini",
+    "acp": "ACP",
+    "codex": "Codex",
+    "openclaw-gateway": "OpenClaw Gateway",
+    "nanobot": "Nanobot",
+    "remote": "Remote",
+    "aionrs": "AionRS"
+  },
+  "selection": {
+    "selectAll": "全选当前页",
+    "clear": "清空选择",
+    "selectedCount": "已选择 {count} 项",
+    "pageScoped": "当前只会选择本页结果。"
+  },
+  "actions": {
+    "deleteSelected": "删除所选",
+    "delete": "删除",
+    "open": "打开",
+    "previous": "上一页",
+    "next": "下一页",
+    "page": "第 {current} / {total} 页"
+  },
+  "list": {
+    "empty": "没有找到会话"
+  },
+  "fields": {
+    "workspace": "工作区",
+    "updatedAt": "更新时间",
+    "category": "分类"
+  },
+  "messages": {
+    "waitingForBridge": "正在等待宿主桥接...",
+    "loading": "正在加载会话...",
+    "ready": "会话管理已就绪。",
+    "searchLoaded": "共找到 {count} 个会话。",
+    "searchFailed": "加载会话失败。",
+    "noSelection": "尚未选择任何会话。",
+    "deleteSuccess": "已删除 {count} 个会话。",
+    "deletePartialSuccess": "已删除 {count} 个会话。",
+    "deleteFailed": "删除会话失败。",
+    "openFailed": "打开会话失败。"
+  },
+  "confirm": {
+    "delete": "确定删除已选择的 {count} 个会话吗？"
+  }
+}

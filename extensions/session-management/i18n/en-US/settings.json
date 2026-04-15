@@ -1,0 +1,63 @@
+{
+  "page": {
+    "eyebrow": "Conversation Control",
+    "title": "Session Management",
+    "description": "Search and manage conversations by category, workspace path, and title."
+  },
+  "filters": {
+    "category": "Category",
+    "workspaceKeyword": "Workspace keyword",
+    "workspacePlaceholder": "Search workspace path",
+    "keyword": "Session keyword",
+    "keywordPlaceholder": "Search conversation title",
+    "search": "Search",
+    "reset": "Reset"
+  },
+  "categories": {
+    "all": "All",
+    "gemini": "Gemini",
+    "acp": "ACP",
+    "codex": "Codex",
+    "openclaw-gateway": "OpenClaw Gateway",
+    "nanobot": "Nanobot",
+    "remote": "Remote",
+    "aionrs": "AionRS"
+  },
+  "selection": {
+    "selectAll": "Select All",
+    "clear": "Clear Selection",
+    "selectedCount": "Selected {count}",
+    "pageScoped": "Current-page selection only."
+  },
+  "actions": {
+    "deleteSelected": "Delete Selected",
+    "delete": "Delete",
+    "open": "Open",
+    "previous": "Previous",
+    "next": "Next",
+    "page": "Page {current} of {total}"
+  },
+  "list": {
+    "empty": "No sessions found"
+  },
+  "fields": {
+    "workspace": "Workspace",
+    "updatedAt": "Updated",
+    "category": "Category"
+  },
+  "messages": {
+    "waitingForBridge": "Waiting for host bridge...",
+    "loading": "Loading sessions...",
+    "ready": "Session management is ready.",
+    "searchLoaded": "{count} sessions available.",
+    "searchFailed": "Failed to load sessions.",
+    "noSelection": "No sessions selected.",
+    "deleteSuccess": "Deleted {count} session(s).",
+    "deletePartialSuccess": "Deleted {count} session(s).",
+    "deleteFailed": "Failed to delete sessions.",
+    "openFailed": "Failed to open the selected session."
+  },
+  "confirm": {
+    "delete": "Delete {count} selected session(s)?"
+  }
+}

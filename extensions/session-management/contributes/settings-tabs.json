@@ -1,0 +1,9 @@
+[
+  {
+    "id": "session-management",
+    "name": "Session Management",
+    "entryPoint": "settings/session-management.html",
+    "position": { "anchor": "api", "placement": "after" },
+    "order": 30
+  }
+]

@@ -1,0 +1,15 @@
+{
+  "$schema": "../../schemas/aion-extension-v1.json",
+  "name": "session-management",
+  "displayName": "Session Management",
+  "version": "0.1.0",
+  "description": "Manage conversations from a bundled settings extension without changing core settings i18n.",
+  "author": "AionUI Contributors",
+  "i18n": {
+    "localesDir": "i18n",
+    "defaultLocale": "en-US"
+  },
+  "contributes": {
+    "settingsTabs": "$file:contributes/settings-tabs.json"
+  }
+}
