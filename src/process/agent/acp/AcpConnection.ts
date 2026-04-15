@@ -16,6 +16,7 @@ import type {
   AcpRequest,
   AcpResponse,
   AcpSessionConfigOption,
+  AcpSessionModes,
   AcpSessionModels,
   AcpSessionUpdate,
 } from '@/common/types/acpTypes';
@@ -107,9 +108,10 @@ export class AcpConnection {
   private initializeResult: AcpInitializeResult | null = null;
   private workingDir: string = process.cwd();
 
-  // Cached model information from session/new response
+  // Cached session capabilities from session/new response
   private configOptions: AcpSessionConfigOption[] | null = null;
   private models: AcpSessionModels | null = null;
+  private modes: AcpSessionModes | null = null;
 
   // Configurable prompt timeout in milliseconds (default: 300000 = 5 minutes)
   private promptTimeoutMs: number = 300000;
@@ -489,6 +491,7 @@ export class AcpConnection {
     this.initializeResult = null;
     this.configOptions = null;
     this.models = null;
+    this.modes = null;
     this.child = null;
 
     // 3. Notify AcpAgent about disconnect
@@ -931,14 +934,20 @@ export class AcpConnection {
   }
 
   /**
-   * Parse configOptions and models from a session response (session/new or session/load).
-   * Logs model info for Codex backend.
+   * Parse configOptions, models, and modes from a session response (session/new or session/load).
    */
   private parseSessionCapabilities(response: unknown): void {
     const result = response as Record<string, unknown>;
     if (Array.isArray(result.configOptions)) {
       this.configOptions = result.configOptions as AcpSessionConfigOption[];
     }
+
+    // Parse top-level modes (used by qoder, opencode, etc.)
+    const modesField = result.modes as AcpSessionModes | undefined;
+    if (modesField?.availableModes && modesField.availableModes.length > 0) {
+      this.modes = modesField;
+    }
+
     // Check top-level models first, then fall back to _meta.models (used by iFlow)
     const modelsSource = result.models || (result._meta as Record<string, unknown> | undefined)?.models;
     if (modelsSource && typeof modelsSource === 'object') {
@@ -1025,10 +1034,17 @@ export class AcpConnection {
       throw new Error('No active ACP session');
     }
 
-    return await this.sendRequest('session/set_mode', {
+    const response = await this.sendRequest<AcpResponse>('session/set_mode', {
       sessionId: this.sessionId,
       modeId,
     });
+
+    // Optimistically update the cached modes state
+    if (this.modes) {
+      this.modes = { ...this.modes, currentModeId: modeId };
+    }
+
+    return response;
   }
 
   async setModel(modelId: string): Promise<AcpResponse> {
@@ -1093,6 +1109,10 @@ export class AcpConnection {
     return this.models;
   }
 
+  getModes(): AcpSessionModes | null {
+    return this.modes;
+  }
+
   async disconnect(): Promise<void> {
     // Try graceful session/close only when the agent declared support.
     // session/close is an ACP RFD — sending it to unsupported agents wastes
@@ -1131,6 +1151,7 @@ export class AcpConnection {
     this.initializeResult = null;
     this.configOptions = null;
     this.models = null;
+    this.modes = null;
   }
 
   get isConnected(): boolean {

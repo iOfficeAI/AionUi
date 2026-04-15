@@ -225,19 +225,19 @@ const CreateTaskDialog: React.FC<CreateTaskDialogProps> = ({
       return;
     }
 
-    if (resolvedBackend === 'codex') {
-      ConfigStorage.get('acp.cachedConfigOptions')
-        .then((cached) => {
-          if (cached && cached[resolvedBackend]) {
-            setCachedConfigOptions(cached[resolvedBackend] as unknown[]);
-          } else {
-            setCachedConfigOptions(undefined);
-          }
-        })
-        .catch(() => setCachedConfigOptions(undefined));
-    } else {
-      setCachedConfigOptions(undefined);
-    }
+    ConfigStorage.get('acp.cachedConfigOptions')
+      .then((cached) => {
+        if (cached && cached[resolvedBackend]) {
+          // Filter out model/mode categories — those are handled by dedicated selectors
+          const filtered = (cached[resolvedBackend] as Array<{ category?: string }>).filter(
+            (opt) => opt.category !== 'model' && opt.category !== 'mode'
+          );
+          setCachedConfigOptions(filtered as unknown[]);
+        } else {
+          setCachedConfigOptions(undefined);
+        }
+      })
+      .catch(() => setCachedConfigOptions(undefined));
   }, [resolvedBackend]);
 
   // Build Gemini currentModel from modelId for GuidModelSelector
