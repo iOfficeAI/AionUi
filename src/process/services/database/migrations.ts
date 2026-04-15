@@ -1179,6 +1179,37 @@ const migration_v25: IMigration = {
 };
 
 /**
+ * Migration v25 -> v26: Add acp_session table for ACP session persistence
+ * Stores session state for suspend/resume across app restarts.
+ */
+const migration_v26: IMigration = {
+  version: 26,
+  name: 'Add acp_session table',
+  up: (db) => {
+    db.exec(`CREATE TABLE IF NOT EXISTS acp_session (
+      conversation_id TEXT PRIMARY KEY,
+      agent_backend TEXT NOT NULL,
+      agent_source TEXT NOT NULL,
+      agent_id TEXT NOT NULL,
+      session_id TEXT,
+      session_status TEXT NOT NULL DEFAULT 'idle' CHECK(session_status IN ('idle', 'active', 'suspended', 'error')),
+      session_config TEXT NOT NULL DEFAULT '{}',
+      last_active_at INTEGER,
+      suspended_at INTEGER
+    )`);
+    db.exec('CREATE INDEX IF NOT EXISTS idx_acp_session_status ON acp_session(session_status)');
+    db.exec('CREATE INDEX IF NOT EXISTS idx_acp_session_suspended ON acp_session(session_status, suspended_at) WHERE session_status = \'suspended\'');
+    console.log('[Migration v26] Added acp_session table');
+  },
+  down: (db) => {
+    db.exec('DROP INDEX IF EXISTS idx_acp_session_suspended');
+    db.exec('DROP INDEX IF EXISTS idx_acp_session_status');
+    db.exec('DROP TABLE IF EXISTS acp_session');
+    console.log('[Migration v26] Rolled back: Removed acp_session table');
+  },
+};
+
+/**
  * All migrations in order
  */
 // prettier-ignore
@@ -1187,7 +1218,7 @@ export const ALL_MIGRATIONS: IMigration[] = [
   migration_v7, migration_v8, migration_v9, migration_v10, migration_v11, migration_v12,
   migration_v13, migration_v14, migration_v15, migration_v16, migration_v17, migration_v18,
   migration_v19, migration_v20, migration_v21, migration_v22, migration_v23, migration_v24,
-  migration_v25,
+  migration_v25, migration_v26,
 ];
 
 /**
