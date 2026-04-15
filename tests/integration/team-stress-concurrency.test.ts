@@ -753,9 +753,12 @@ describe('Stress — rapid state transitions in TeammateManager', () => {
     expect(teamEventBus.listenerCount('responseStream')).toBe(initialListeners);
   });
 
-  it('wake timeout cleanup: 60s timeout fires and resets idle for stuck agents', async () => {
+  it('wake timeout cleanup: 60s inactivity watchdog escalates stuck agents to failed', async () => {
     vi.useFakeTimers();
     try {
+      // Sole agent = lead: the watchdog still fires, but there is nobody to notify.
+      // Behavior changed from dropping silently to 'idle' (hiding the stall) to
+      // marking the agent 'failed' so the team surface reflects the problem.
       const agent = makeAgent({ slotId: 'slot-timeout', status: 'idle', conversationId: 'conv-timeout' });
       const { mgr, mailbox, workerTaskManager } = makeRealStack([agent]);
       vi.mocked(workerTaskManager.getOrBuildTask).mockResolvedValue({
@@ -780,7 +783,7 @@ describe('Stress — rapid state transitions in TeammateManager', () => {
       await vi.runAllTimersAsync();
 
       const statusAfterTimeout = mgr.getAgents().find((a) => a.slotId === 'slot-timeout')?.status;
-      expect(statusAfterTimeout).toBe('idle');
+      expect(statusAfterTimeout).toBe('failed');
       mgr.dispose();
     } finally {
       vi.useRealTimers();
