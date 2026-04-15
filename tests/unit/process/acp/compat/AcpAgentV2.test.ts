@@ -45,11 +45,19 @@ vi.mock('@process/acp/session/AcpSession', () => ({
   },
 }));
 
-vi.mock('@process/acp/runtime/ConnectorFactory', () => ({
-  DefaultConnectorFactory: class {
+vi.mock('@process/acp/compat/LegacyConnectorFactory', () => ({
+  LegacyConnectorFactory: class {
     constructor() {}
   },
 }));
+
+vi.mock('@process/acp/compat/typeBridge', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('@process/acp/compat/typeBridge')>();
+  return {
+    ...actual,
+    loadAuthCredentials: vi.fn().mockResolvedValue(undefined),
+  };
+});
 
 describe('AcpAgentV2 - Lifecycle Methods', () => {
   beforeEach(() => {
@@ -67,17 +75,30 @@ describe('AcpAgentV2 - Lifecycle Methods', () => {
   });
 
   afterEach(() => {
+    vi.useRealTimers();
     vi.clearAllTimers();
   });
 
-  function createAgent(): AcpAgentV2 {
+  function createAgent(overrides?: Partial<OldAcpAgentConfig>): AcpAgentV2 {
     const config: OldAcpAgentConfig = {
       id: 'test-conv-1',
       backend: 'claude',
       workingDir: '/workspace/test',
       onStreamEvent: vi.fn(),
+      ...overrides,
     };
     return new AcpAgentV2(config);
+  }
+
+  /** Create agent and drive it to 'active' so this.session is populated. */
+  async function createStartedAgent(overrides?: Partial<OldAcpAgentConfig>): Promise<AcpAgentV2> {
+    const agent = createAgent(overrides);
+    mockSessionMethods.start.mockImplementation(() => {
+      setTimeout(() => capturedCallbacks.onStatusChange('active'), 0);
+    });
+    await agent.start();
+    mockSessionMethods.start.mockReset();
+    return agent;
   }
 
   describe('start()', () => {
@@ -116,12 +137,14 @@ describe('AcpAgentV2 - Lifecycle Methods', () => {
         // Do nothing - simulate hanging start
       });
 
-      const promise = agent.start();
+      const promise = agent.start().catch((e: unknown) => e);
 
-      // Fast-forward past 2-minute timeout
-      vi.advanceTimersByTime(120_000);
+      // Fast-forward past 2-minute timeout (async to allow ensureSession microtask to settle)
+      await vi.advanceTimersByTimeAsync(120_000);
 
-      await expect(promise).rejects.toThrow('Session start timed out');
+      const result = await promise;
+      expect(result).toBeInstanceOf(Error);
+      expect((result as Error).message).toBe('Session start timed out');
       expect(mockSessionMethods.start).toHaveBeenCalledOnce();
 
       vi.useRealTimers();
@@ -190,7 +213,7 @@ describe('AcpAgentV2 - Lifecycle Methods', () => {
 
   describe('kill()', () => {
     it('should call session.stop() and wait for completion', async () => {
-      const agent = createAgent();
+      const agent = await createStartedAgent();
 
       await agent.kill();
 
@@ -198,7 +221,7 @@ describe('AcpAgentV2 - Lifecycle Methods', () => {
     });
 
     it('should propagate errors from session.stop()', async () => {
-      const agent = createAgent();
+      const agent = await createStartedAgent();
       const testError = new Error('Stop failed');
       mockSessionMethods.stop.mockRejectedValue(testError);
 
@@ -207,7 +230,7 @@ describe('AcpAgentV2 - Lifecycle Methods', () => {
     });
 
     it('should be callable multiple times', async () => {
-      const agent = createAgent();
+      const agent = await createStartedAgent();
 
       await agent.kill();
       await agent.kill();
@@ -217,16 +240,16 @@ describe('AcpAgentV2 - Lifecycle Methods', () => {
   });
 
   describe('cancelPrompt()', () => {
-    it('should delegate to session.cancelPrompt()', () => {
-      const agent = createAgent();
+    it('should delegate to session.cancelPrompt()', async () => {
+      const agent = await createStartedAgent();
 
       agent.cancelPrompt();
 
       expect(mockSessionMethods.cancelPrompt).toHaveBeenCalledOnce();
     });
 
-    it('should be callable multiple times', () => {
-      const agent = createAgent();
+    it('should be callable multiple times', async () => {
+      const agent = await createStartedAgent();
 
       agent.cancelPrompt();
       agent.cancelPrompt();
@@ -235,11 +258,10 @@ describe('AcpAgentV2 - Lifecycle Methods', () => {
       expect(mockSessionMethods.cancelPrompt).toHaveBeenCalledTimes(3);
     });
 
-    it('should not throw if called before start', () => {
+    it('should throw if called before start (session is null)', () => {
       const agent = createAgent();
 
-      expect(() => agent.cancelPrompt()).not.toThrow();
-      expect(mockSessionMethods.cancelPrompt).toHaveBeenCalledOnce();
+      expect(() => agent.cancelPrompt()).toThrow();
     });
   });
 
@@ -250,56 +272,56 @@ describe('AcpAgentV2 - Lifecycle Methods', () => {
       expect(agent.isConnected).toBe(false);
     });
 
-    it('should return true after status becomes starting', () => {
-      const agent = createAgent();
+    it('should return true after status becomes starting', async () => {
+      const agent = await createStartedAgent();
 
       capturedCallbacks.onStatusChange('starting');
 
       expect(agent.isConnected).toBe(true);
     });
 
-    it('should return true when status is active', () => {
-      const agent = createAgent();
+    it('should return true when status is active', async () => {
+      const agent = await createStartedAgent();
 
       capturedCallbacks.onStatusChange('active');
 
       expect(agent.isConnected).toBe(true);
     });
 
-    it('should return true when status is prompting', () => {
-      const agent = createAgent();
+    it('should return true when status is prompting', async () => {
+      const agent = await createStartedAgent();
 
       capturedCallbacks.onStatusChange('prompting');
 
       expect(agent.isConnected).toBe(true);
     });
 
-    it('should return true when status is suspended', () => {
-      const agent = createAgent();
+    it('should return true when status is suspended', async () => {
+      const agent = await createStartedAgent();
 
       capturedCallbacks.onStatusChange('suspended');
 
       expect(agent.isConnected).toBe(true);
     });
 
-    it('should return true when status is resuming', () => {
-      const agent = createAgent();
+    it('should return true when status is resuming', async () => {
+      const agent = await createStartedAgent();
 
       capturedCallbacks.onStatusChange('resuming');
 
       expect(agent.isConnected).toBe(true);
     });
 
-    it('should return false when status is error', () => {
-      const agent = createAgent();
+    it('should return false when status is error', async () => {
+      const agent = await createStartedAgent();
 
       capturedCallbacks.onStatusChange('error');
 
       expect(agent.isConnected).toBe(false);
     });
 
-    it('should return false when status returns to idle', () => {
-      const agent = createAgent();
+    it('should return false when status returns to idle', async () => {
+      const agent = await createStartedAgent();
 
       capturedCallbacks.onStatusChange('active');
       expect(agent.isConnected).toBe(true);
@@ -316,56 +338,56 @@ describe('AcpAgentV2 - Lifecycle Methods', () => {
       expect(agent.hasActiveSession).toBe(false);
     });
 
-    it('should return false when status is starting', () => {
-      const agent = createAgent();
+    it('should return false when status is starting', async () => {
+      const agent = await createStartedAgent();
 
       capturedCallbacks.onStatusChange('starting');
 
       expect(agent.hasActiveSession).toBe(false);
     });
 
-    it('should return true when status is active', () => {
-      const agent = createAgent();
+    it('should return true when status is active', async () => {
+      const agent = await createStartedAgent();
 
       capturedCallbacks.onStatusChange('active');
 
       expect(agent.hasActiveSession).toBe(true);
     });
 
-    it('should return true when status is prompting', () => {
-      const agent = createAgent();
+    it('should return true when status is prompting', async () => {
+      const agent = await createStartedAgent();
 
       capturedCallbacks.onStatusChange('prompting');
 
       expect(agent.hasActiveSession).toBe(true);
     });
 
-    it('should return false when status is suspended', () => {
-      const agent = createAgent();
+    it('should return false when status is suspended', async () => {
+      const agent = await createStartedAgent();
 
       capturedCallbacks.onStatusChange('suspended');
 
       expect(agent.hasActiveSession).toBe(false);
     });
 
-    it('should return false when status is resuming', () => {
-      const agent = createAgent();
+    it('should return false when status is resuming', async () => {
+      const agent = await createStartedAgent();
 
       capturedCallbacks.onStatusChange('resuming');
 
       expect(agent.hasActiveSession).toBe(false);
     });
 
-    it('should return false when status is error', () => {
-      const agent = createAgent();
+    it('should return false when status is error', async () => {
+      const agent = await createStartedAgent();
 
       capturedCallbacks.onStatusChange('error');
 
       expect(agent.hasActiveSession).toBe(false);
     });
 
-    it('should return false when status is idle', () => {
-      const agent = createAgent();
+    it('should return false when status is idle', async () => {
+      const agent = await createStartedAgent();
 
       capturedCallbacks.onStatusChange('idle');
 
@@ -403,8 +425,8 @@ describe('AcpAgentV2 - Lifecycle Methods', () => {
       expect(agent.hasActiveSession).toBe(false);
     });
 
-    it('should handle cancelPrompt during active session', () => {
-      const agent = createAgent();
+    it('should handle cancelPrompt during active session', async () => {
+      const agent = await createStartedAgent();
 
       capturedCallbacks.onStatusChange('prompting');
 
@@ -431,6 +453,7 @@ describe('AcpAgentV2 - Messaging + Permission Methods', () => {
   });
 
   afterEach(() => {
+    vi.useRealTimers();
     vi.clearAllTimers();
   });
 
@@ -448,9 +471,20 @@ describe('AcpAgentV2 - Messaging + Permission Methods', () => {
     return { agent, onStreamEvent, onSignalEvent };
   }
 
+  /** Create agent with signal capture and drive it to 'active' so this.session is populated. */
+  async function createStartedAgentWithSignalCapture() {
+    const result = createAgentWithSignalCapture();
+    mockSessionMethods.start.mockImplementation(() => {
+      setTimeout(() => capturedCallbacks.onStatusChange('active'), 0);
+    });
+    await result.agent.start();
+    mockSessionMethods.start.mockReset();
+    return result;
+  }
+
   describe('sendMessage()', () => {
     it('should delegate to session.sendMessage and return success', async () => {
-      const { agent } = createAgentWithSignalCapture();
+      const { agent } = await createStartedAgentWithSignalCapture();
 
       const result = await agent.sendMessage({ content: 'Hello', files: ['/test/file.txt'] });
 
@@ -460,7 +494,7 @@ describe('AcpAgentV2 - Messaging + Permission Methods', () => {
     });
 
     it('should emit start signal via onSignalEvent before sending', async () => {
-      const { agent, onSignalEvent } = createAgentWithSignalCapture();
+      const { agent, onSignalEvent } = await createStartedAgentWithSignalCapture();
 
       await agent.sendMessage({ content: 'Test message', msg_id: 'msg123' });
 
@@ -474,7 +508,7 @@ describe('AcpAgentV2 - Messaging + Permission Methods', () => {
     });
 
     it('should generate msg_id if not provided', async () => {
-      const { agent, onSignalEvent } = createAgentWithSignalCapture();
+      const { agent, onSignalEvent } = await createStartedAgentWithSignalCapture();
 
       await agent.sendMessage({ content: 'Test' });
 
@@ -488,7 +522,7 @@ describe('AcpAgentV2 - Messaging + Permission Methods', () => {
     });
 
     it('should return error result when session.sendMessage throws', async () => {
-      const { agent } = createAgentWithSignalCapture();
+      const { agent } = await createStartedAgentWithSignalCapture();
       const testError = new Error('Send failed');
       mockSessionMethods.sendMessage.mockImplementation(() => {
         throw testError;
@@ -513,6 +547,11 @@ describe('AcpAgentV2 - Messaging + Permission Methods', () => {
         // No onSignalEvent
       };
       const agent = new AcpAgentV2(config);
+      mockSessionMethods.start.mockImplementation(() => {
+        setTimeout(() => capturedCallbacks.onStatusChange('active'), 0);
+      });
+      await agent.start();
+      mockSessionMethods.start.mockReset();
 
       const result = await agent.sendMessage({ content: 'Test' });
 
@@ -523,7 +562,7 @@ describe('AcpAgentV2 - Messaging + Permission Methods', () => {
 
   describe('confirmMessage()', () => {
     it('should delegate to session.confirmPermission', async () => {
-      const { agent } = createAgentWithSignalCapture();
+      const { agent } = await createStartedAgentWithSignalCapture();
 
       const result = await agent.confirmMessage({ confirmKey: 'allow_once', callId: 'call123' });
 
@@ -533,7 +572,7 @@ describe('AcpAgentV2 - Messaging + Permission Methods', () => {
     });
 
     it('should return success result', async () => {
-      const { agent } = createAgentWithSignalCapture();
+      const { agent } = await createStartedAgentWithSignalCapture();
 
       const result = await agent.confirmMessage({ confirmKey: 'reject_once', callId: 'call456' });
 
@@ -541,7 +580,7 @@ describe('AcpAgentV2 - Messaging + Permission Methods', () => {
     });
 
     it('should return error result when session.confirmPermission throws', async () => {
-      const { agent } = createAgentWithSignalCapture();
+      const { agent } = await createStartedAgentWithSignalCapture();
       const testError = new Error('Confirm failed');
       mockSessionMethods.confirmPermission.mockImplementation(() => {
         throw testError;
@@ -575,17 +614,30 @@ describe('AcpAgentV2 - Config/Model/Mode Methods', () => {
   });
 
   afterEach(() => {
+    vi.useRealTimers();
     vi.clearAllTimers();
   });
 
-  function createAgent(): AcpAgentV2 {
+  function createAgent(overrides?: Partial<OldAcpAgentConfig>): AcpAgentV2 {
     const config: OldAcpAgentConfig = {
       id: 'test-conv-1',
       backend: 'claude',
       workingDir: '/workspace/test',
       onStreamEvent: vi.fn(),
+      ...overrides,
     };
     return new AcpAgentV2(config);
+  }
+
+  /** Create agent and drive it to 'active' so this.session is populated. */
+  async function createStartedAgent(overrides?: Partial<OldAcpAgentConfig>): Promise<AcpAgentV2> {
+    const agent = createAgent(overrides);
+    mockSessionMethods.start.mockImplementation(() => {
+      setTimeout(() => capturedCallbacks.onStatusChange('active'), 0);
+    });
+    await agent.start();
+    mockSessionMethods.start.mockReset();
+    return agent;
   }
 
   describe('getModelInfo()', () => {
@@ -595,8 +647,8 @@ describe('AcpAgentV2 - Config/Model/Mode Methods', () => {
       expect(agent.getModelInfo()).toBe(null);
     });
 
-    it('should return cached model info after onModelUpdate callback', () => {
-      const agent = createAgent();
+    it('should return cached model info after onModelUpdate callback', async () => {
+      const agent = await createStartedAgent();
 
       capturedCallbacks.onModelUpdate({
         currentModelId: 'claude-4',
@@ -619,8 +671,8 @@ describe('AcpAgentV2 - Config/Model/Mode Methods', () => {
       });
     });
 
-    it('should update cached value on subsequent onModelUpdate calls', () => {
-      const agent = createAgent();
+    it('should update cached value on subsequent onModelUpdate calls', async () => {
+      const agent = await createStartedAgent();
 
       capturedCallbacks.onModelUpdate({
         currentModelId: 'claude-3',
@@ -645,28 +697,62 @@ describe('AcpAgentV2 - Config/Model/Mode Methods', () => {
       expect(agent.getConfigOptions()).toEqual([]);
     });
 
-    it('should return cached config options after onConfigUpdate callback', () => {
-      const agent = createAgent();
+    it('should return cached config options after onConfigUpdate callback', async () => {
+      const agent = await createStartedAgent();
 
       capturedCallbacks.onConfigUpdate({
         configOptions: [
-          { id: 'opt1', name: 'Option 1', category: 'general', description: 'First option', type: 'select', currentValue: 'val1', options: [] },
-          { id: 'opt2', name: 'Option 2', category: 'general', description: 'Second option', type: 'boolean', currentValue: true, options: [] },
+          {
+            id: 'opt1',
+            name: 'Option 1',
+            category: 'general',
+            description: 'First option',
+            type: 'select',
+            currentValue: 'val1',
+            options: [],
+          },
+          {
+            id: 'opt2',
+            name: 'Option 2',
+            category: 'general',
+            description: 'Second option',
+            type: 'boolean',
+            currentValue: true,
+            options: [],
+          },
         ],
         availableCommands: [],
       });
 
       const options = agent.getConfigOptions();
       expect(options).toEqual([
-        { id: 'opt1', name: 'Option 1', label: 'Option 1', type: 'select', category: 'general', description: 'First option', currentValue: 'val1', selectedValue: 'val1' },
-        { id: 'opt2', name: 'Option 2', label: 'Option 2', type: 'boolean', category: 'general', description: 'Second option', currentValue: 'true', selectedValue: 'true' },
+        {
+          id: 'opt1',
+          name: 'Option 1',
+          label: 'Option 1',
+          type: 'select',
+          category: 'general',
+          description: 'First option',
+          currentValue: 'val1',
+          selectedValue: 'val1',
+        },
+        {
+          id: 'opt2',
+          name: 'Option 2',
+          label: 'Option 2',
+          type: 'boolean',
+          category: 'general',
+          description: 'Second option',
+          currentValue: 'true',
+          selectedValue: 'true',
+        },
       ]);
     });
   });
 
   describe('setModelByConfigOption()', () => {
     it('should call session.setModel and resolve when onModelUpdate fires', async () => {
-      const agent = createAgent();
+      const agent = await createStartedAgent();
 
       // Mock setModel to trigger onModelUpdate after a tick
       mockSessionMethods.setModel.mockImplementation(() => {
@@ -691,8 +777,8 @@ describe('AcpAgentV2 - Config/Model/Mode Methods', () => {
     });
 
     it('should resolve with cached info on timeout', async () => {
+      const agent = await createStartedAgent();
       vi.useFakeTimers();
-      const agent = createAgent();
 
       // Set initial cached value
       capturedCallbacks.onModelUpdate({
@@ -724,8 +810,8 @@ describe('AcpAgentV2 - Config/Model/Mode Methods', () => {
     });
 
     it('should clear timeout when callback fires', async () => {
+      const agent = await createStartedAgent();
       vi.useFakeTimers();
-      const agent = createAgent();
 
       mockSessionMethods.setModel.mockImplementation(() => {
         setTimeout(() => {
@@ -757,7 +843,7 @@ describe('AcpAgentV2 - Config/Model/Mode Methods', () => {
 
   describe('setMode()', () => {
     it('should call session.setMode and resolve when onModeUpdate fires', async () => {
-      const agent = createAgent();
+      const agent = await createStartedAgent();
 
       // Mock setMode to trigger onModeUpdate after a tick
       mockSessionMethods.setMode.mockImplementation(() => {
@@ -773,8 +859,8 @@ describe('AcpAgentV2 - Config/Model/Mode Methods', () => {
     });
 
     it('should resolve with success on timeout', async () => {
+      const agent = await createStartedAgent();
       vi.useFakeTimers();
-      const agent = createAgent();
 
       // Mock setMode that never triggers callback
       mockSessionMethods.setMode.mockImplementation(() => {
@@ -794,8 +880,8 @@ describe('AcpAgentV2 - Config/Model/Mode Methods', () => {
     });
 
     it('should clear timeout when callback fires', async () => {
+      const agent = await createStartedAgent();
       vi.useFakeTimers();
-      const agent = createAgent();
 
       mockSessionMethods.setMode.mockImplementation(() => {
         setTimeout(() => {
@@ -818,14 +904,22 @@ describe('AcpAgentV2 - Config/Model/Mode Methods', () => {
 
   describe('setConfigOption()', () => {
     it('should call session.setConfigOption and resolve when onConfigUpdate fires', async () => {
-      const agent = createAgent();
+      const agent = await createStartedAgent();
 
       // Mock setConfigOption to trigger onConfigUpdate after a tick
       mockSessionMethods.setConfigOption.mockImplementation(() => {
         setTimeout(() => {
           capturedCallbacks.onConfigUpdate({
             configOptions: [
-              { id: 'opt1', name: 'Option 1', category: 'general', description: 'First option', type: 'select', currentValue: 'new-value', options: [] },
+              {
+                id: 'opt1',
+                name: 'Option 1',
+                category: 'general',
+                description: 'First option',
+                type: 'select',
+                currentValue: 'new-value',
+                options: [],
+              },
             ],
             availableCommands: [],
           });
@@ -835,19 +929,36 @@ describe('AcpAgentV2 - Config/Model/Mode Methods', () => {
       const promise = agent.setConfigOption('opt1', 'new-value');
 
       await expect(promise).resolves.toEqual([
-        { id: 'opt1', name: 'Option 1', label: 'Option 1', type: 'select', category: 'general', description: 'First option', currentValue: 'new-value', selectedValue: 'new-value' },
+        {
+          id: 'opt1',
+          name: 'Option 1',
+          label: 'Option 1',
+          type: 'select',
+          category: 'general',
+          description: 'First option',
+          currentValue: 'new-value',
+          selectedValue: 'new-value',
+        },
       ]);
       expect(mockSessionMethods.setConfigOption).toHaveBeenCalledWith('opt1', 'new-value');
     });
 
     it('should resolve with cached options on timeout', async () => {
+      const agent = await createStartedAgent();
       vi.useFakeTimers();
-      const agent = createAgent();
 
       // Set initial cached value
       capturedCallbacks.onConfigUpdate({
         configOptions: [
-          { id: 'opt1', name: 'Option 1', category: 'general', description: 'First option', type: 'select', currentValue: 'old-value', options: [] },
+          {
+            id: 'opt1',
+            name: 'Option 1',
+            category: 'general',
+            description: 'First option',
+            type: 'select',
+            currentValue: 'old-value',
+            options: [],
+          },
         ],
         availableCommands: [],
       });
@@ -864,7 +975,16 @@ describe('AcpAgentV2 - Config/Model/Mode Methods', () => {
 
       const result = await promise;
       expect(result).toEqual([
-        { id: 'opt1', name: 'Option 1', label: 'Option 1', type: 'select', category: 'general', description: 'First option', currentValue: 'old-value', selectedValue: 'old-value' },
+        {
+          id: 'opt1',
+          name: 'Option 1',
+          label: 'Option 1',
+          type: 'select',
+          category: 'general',
+          description: 'First option',
+          currentValue: 'old-value',
+          selectedValue: 'old-value',
+        },
       ]);
       expect(mockSessionMethods.setConfigOption).toHaveBeenCalledWith('opt1', 'new-value');
 
@@ -872,14 +992,22 @@ describe('AcpAgentV2 - Config/Model/Mode Methods', () => {
     });
 
     it('should clear timeout when callback fires', async () => {
+      const agent = await createStartedAgent();
       vi.useFakeTimers();
-      const agent = createAgent();
 
       mockSessionMethods.setConfigOption.mockImplementation(() => {
         setTimeout(() => {
           capturedCallbacks.onConfigUpdate({
             configOptions: [
-              { id: 'opt1', name: 'Option 1', category: 'general', description: 'First option', type: 'select', currentValue: 'updated', options: [] },
+              {
+                id: 'opt1',
+                name: 'Option 1',
+                category: 'general',
+                description: 'First option',
+                type: 'select',
+                currentValue: 'updated',
+                options: [],
+              },
             ],
             availableCommands: [],
           });
@@ -891,7 +1019,16 @@ describe('AcpAgentV2 - Config/Model/Mode Methods', () => {
       await vi.advanceTimersByTimeAsync(100);
 
       await expect(promise).resolves.toEqual([
-        { id: 'opt1', name: 'Option 1', label: 'Option 1', type: 'select', category: 'general', description: 'First option', currentValue: 'updated', selectedValue: 'updated' },
+        {
+          id: 'opt1',
+          name: 'Option 1',
+          label: 'Option 1',
+          type: 'select',
+          category: 'general',
+          description: 'First option',
+          currentValue: 'updated',
+          selectedValue: 'updated',
+        },
       ]);
 
       // Verify timeout was cleared by advancing past it
@@ -903,7 +1040,7 @@ describe('AcpAgentV2 - Config/Model/Mode Methods', () => {
 
   describe('enableYoloMode()', () => {
     it('should delegate to setMode with bypassPermissions', async () => {
-      const agent = createAgent();
+      const agent = await createStartedAgent();
 
       // Mock setMode to trigger onModeUpdate after a tick
       mockSessionMethods.setMode.mockImplementation(() => {
@@ -918,7 +1055,7 @@ describe('AcpAgentV2 - Config/Model/Mode Methods', () => {
     });
 
     it('should propagate result from setMode', async () => {
-      const agent = createAgent();
+      const agent = await createStartedAgent();
 
       mockSessionMethods.setMode.mockImplementation(() => {
         setTimeout(() => {

@@ -1,17 +1,82 @@
 // src/process/acp/session/MessageTranslator.ts
-import type { TMessage } from '@/common/chat/chatLib';
-import type { SessionNotification } from '@process/acp/types';
+import type {
+  IMessageAcpToolCall,
+  IMessageAvailableCommands,
+  IMessagePlan,
+  IMessageText,
+  IMessageThinking,
+  TMessage,
+} from '@/common/chat/chatLib';
+import type { ToolCallContentItem, ToolCallLocationItem } from '@/common/types/acpTypes';
+import type {
+  ContentChunk,
+  SessionNotification,
+  SessionUpdate,
+  ToolCall,
+  ToolCallContent,
+  ToolCallLocation,
+  ToolCallUpdate,
+  ToolKind,
+} from '@agentclientprotocol/sdk';
 
-const CONFIG_UPDATES = new Set(['current_mode_update', 'config_option_update', 'session_info_update', 'usage_update']);
+const CONFIG_UPDATES = new Set<SessionUpdate['sessionUpdate']>([
+  'current_mode_update',
+  'config_option_update',
+  'session_info_update',
+  'usage_update',
+]);
 
-type MessageEntry = {
-  messageId: string;
-  accumulatedText: string;
-  type: string;
+// ─── SDK → Old type mappers ─────────────────────────────────────
+
+const TOOL_KIND_MAP: Record<string, 'read' | 'edit' | 'execute'> = {
+  read: 'read',
+  search: 'read',
+  edit: 'edit',
+  delete: 'edit',
+  move: 'edit',
+  execute: 'execute',
+  think: 'execute',
+  fetch: 'execute',
+  switch_mode: 'execute',
+  other: 'execute',
 };
 
+export function mapToolKind(kind: ToolKind | null | undefined): 'read' | 'edit' | 'execute' {
+  if (!kind) return 'execute';
+  return TOOL_KIND_MAP[kind] ?? 'execute';
+}
+
+export function mapToolContent(content: ToolCallContent[] | null | undefined): ToolCallContentItem[] | undefined {
+  if (!content || content.length === 0) return undefined;
+  return content.map((item): ToolCallContentItem => {
+    if (item.type === 'diff') {
+      const diff = item as { type: 'diff'; path?: string; oldText?: string; newText?: string };
+      return { type: 'diff', path: diff.path, oldText: diff.oldText, newText: diff.newText };
+    }
+    // 'content' and 'terminal' both map to 'content' type
+    const contentItem = item as { type: string; content?: { type: string; text?: string } };
+    return { type: 'content', content: contentItem.content as { type: 'text'; text: string } | undefined };
+  });
+}
+
+export function mapToolLocations(locations: ToolCallLocation[] | null | undefined): ToolCallLocationItem[] | undefined {
+  if (!locations || locations.length === 0) return undefined;
+  return locations.map((loc): ToolCallLocationItem => ({ path: loc.path ?? '' }));
+}
+
+// ─── MessageTranslator ─────────────────────────────────────────
+
+/**
+ * Stateless translator: SDK SessionNotification → TMessage.
+ * Only maintains messageMap to assign stable per-turn msg_ids
+ * (so chunks within a turn merge, but different turns don't).
+ * No merge logic — compat layer (AcpAgentV2) handles tool call merging.
+ */
 export class MessageTranslator {
-  private messageMap = new Map<string, MessageEntry>();
+  /** SDK messageId → generated UUID (scoped to current turn, cleared on onTurnEnd) */
+  private messageMap = new Map<string, string>();
+
+  constructor(private readonly conversationId: string) {}
 
   get activeEntryCount(): number {
     return this.messageMap.size;
@@ -51,112 +116,177 @@ export class MessageTranslator {
     this.messageMap.clear();
   }
 
-  private handleAgentMessageChunk(update: Record<string, unknown>): TMessage[] {
-    const messageId = (update.messageId as string) ?? 'default';
-    const text = (update.text as string) ?? '';
-
-    let entry = this.messageMap.get(messageId);
-    if (!entry) {
-      entry = { messageId, accumulatedText: '', type: 'text' };
-      this.messageMap.set(messageId, entry);
+  /** Get or create a stable UUID for a SDK messageId within the current turn. */
+  private resolveMsgId(sdkMessageId: string): string {
+    let msgId = this.messageMap.get(sdkMessageId);
+    if (!msgId) {
+      msgId = crypto.randomUUID();
+      this.messageMap.set(sdkMessageId, msgId);
     }
-    entry.accumulatedText += text;
+    return msgId;
+  }
+
+  private handleAgentMessageChunk(update: ContentChunk): IMessageText[] {
+    const messageId = update.messageId ?? 'default';
+    const text = update.content.type === 'text' ? update.content.text : '';
+    if (!text) return [];
+
+    const msgId = this.resolveMsgId(messageId);
 
     return [
       {
-        id: messageId,
-        msg_id: messageId,
+        id: msgId,
+        msg_id: msgId,
+        conversation_id: this.conversationId,
         type: 'text',
-        content: { text: entry.accumulatedText },
+        content: { content: text },
         position: 'left',
         status: 'work',
-      } as unknown as TMessage,
+      },
     ];
   }
 
-  private handleThoughtChunk(update: Record<string, unknown>): TMessage[] {
-    const messageId = `thought-${(update.messageId as string) ?? 'default'}`;
-    const text = (update.text as string) ?? '';
+  private handleThoughtChunk(update: ContentChunk): IMessageThinking[] {
+    const messageId = `thought-${update.messageId ?? 'default'}`;
+    const text = update.content.type === 'text' ? update.content.text : '';
+    if (!text) return [];
 
-    let entry = this.messageMap.get(messageId);
-    if (!entry) {
-      entry = { messageId, accumulatedText: '', type: 'thinking' };
-      this.messageMap.set(messageId, entry);
-    }
-    entry.accumulatedText += text;
+    const msgId = this.resolveMsgId(messageId);
 
     return [
       {
-        id: messageId,
-        msg_id: messageId,
+        id: msgId,
+        msg_id: msgId,
+        conversation_id: this.conversationId,
         type: 'thinking',
-        content: { text: entry.accumulatedText },
+        content: { content: text, status: 'thinking' },
         position: 'left',
         status: 'work',
-      } as unknown as TMessage,
+      },
     ];
   }
 
-  private handleToolCall(update: Record<string, unknown>): TMessage[] {
-    const toolCallId = (update.toolCallId as string) ?? crypto.randomUUID();
+  private handleToolCall(update: ToolCall): IMessageAcpToolCall[] {
+    // Tool call interrupts the current text stream — clear text msg_id mappings
+    // so subsequent text chunks start a new message (matching old AcpAdapter behavior).
+    this.messageMap.clear();
+
+    const toolCallId = update.toolCallId ?? crypto.randomUUID();
+
     return [
       {
         id: toolCallId,
         msg_id: toolCallId,
-        type: 'acpToolCall',
+        conversation_id: this.conversationId,
+        type: 'acp_tool_call',
         content: {
-          toolCallId,
-          name: update.name ?? 'unknown',
-          input: update.input,
+          sessionId: '',
+          update: {
+            sessionUpdate: 'tool_call',
+            toolCallId,
+            status: update.status ?? 'pending',
+            title: update.title ?? 'unknown',
+            kind: mapToolKind(update.kind),
+            rawInput: update.rawInput as Record<string, unknown> | undefined,
+            content: mapToolContent(update.content),
+            locations: mapToolLocations(update.locations),
+          },
         },
         position: 'left',
         status: 'work',
-      } as unknown as TMessage,
+      },
     ];
   }
 
-  private handleToolCallUpdate(update: Record<string, unknown>): TMessage[] {
-    const toolCallId = (update.toolCallId as string) ?? '';
+  private handleToolCallUpdate(update: ToolCallUpdate): IMessageAcpToolCall[] {
+    const toolCallId = update.toolCallId ?? '';
+
+    // NOTE: This outputs the raw translated update WITHOUT merging with the original tool_call.
+    // Missing fields (title, kind) get fallback values ("unknown", "execute").
+    //
+    // Currently AcpAgentV2 (compat layer) merges updates before emitting to the renderer.
+    // When AcpAgentV2 is removed, the renderer's composeMessageWithIndex should be updated
+    // to do field-level merge for acp_tool_call (deep merge on content.update) instead of
+    // the current shallow content spread. See hooks.ts acp_tool_call section.
+
     return [
       {
         id: toolCallId,
         msg_id: toolCallId,
-        type: 'acpToolCall',
+        conversation_id: this.conversationId,
+        type: 'acp_tool_call',
         content: {
-          toolCallId,
-          name: update.name ?? 'unknown',
-          output: update.output,
-          status: update.status,
+          sessionId: '',
+          update: {
+            sessionUpdate: 'tool_call',
+            toolCallId,
+            status: update.status ?? 'completed',
+            title: update.title ?? 'unknown',
+            kind: mapToolKind(update.kind),
+            rawInput: update.rawInput as Record<string, unknown> | undefined,
+            content: mapToolContent(update.content),
+          },
         },
         position: 'left',
-        status: (update.status as string) === 'completed' ? 'finish' : 'work',
-      } as unknown as TMessage,
+        status: update.status === 'completed' || update.status === 'failed' ? 'finish' : 'work',
+      },
     ];
   }
 
-  private handlePlan(update: Record<string, unknown>): TMessage[] {
+  private handlePlan(update: SessionUpdate): IMessagePlan[] {
+    // Plan is a standalone UI block — clear text msg_id mappings
+    // so surrounding text chunks don't merge across the plan.
+    this.messageMap.clear();
+
+    // SDK Plan type has entries at top level: { entries: PlanEntry[] }
+    const plan = update as unknown as {
+      entries?: Array<{ content: string; status: string; priority?: string }>;
+    };
+    if (!plan.entries || plan.entries.length === 0) return [];
+
+    const planMsgId = crypto.randomUUID();
+
     return [
       {
-        id: crypto.randomUUID(),
-        msg_id: crypto.randomUUID(),
+        id: planMsgId,
+        msg_id: planMsgId,
+        conversation_id: this.conversationId,
         type: 'plan',
-        content: update,
+        content: {
+          sessionId: '',
+          entries: plan.entries.map((e) => ({
+            content: e.content,
+            status: e.status as 'pending' | 'in_progress' | 'completed',
+            priority: e.priority as 'low' | 'medium' | 'high' | undefined,
+          })),
+        },
         position: 'left',
         status: 'finish',
-      } as unknown as TMessage,
+      },
     ];
   }
 
-  private handleAvailableCommands(update: Record<string, unknown>): TMessage[] {
+  private handleAvailableCommands(update: SessionUpdate): IMessageAvailableCommands[] {
+    // SDK AvailableCommandsUpdate: { availableCommands: Array<{ name, description, input? }> }
+    const data = update as unknown as {
+      availableCommands?: Array<{ name: string; description: string; input?: { hint?: string } | null }>;
+    };
+    const commands = (data.availableCommands ?? []).map((cmd) => ({
+      name: cmd.name,
+      description: cmd.description,
+      hint: cmd.input?.hint,
+    }));
+
     return [
       {
         id: crypto.randomUUID(),
         msg_id: crypto.randomUUID(),
-        type: 'availableCommands',
-        content: update,
+        conversation_id: this.conversationId,
+        type: 'available_commands',
+        content: { commands },
         position: 'left',
         status: 'finish',
-      } as unknown as TMessage,
+      },
     ];
   }
 }

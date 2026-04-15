@@ -1,10 +1,11 @@
 // src/process/acp/compat/typeBridge.ts
 
-import type { AgentConfig, ModelSnapshot, ConfigOption, McpServerConfig } from '@process/acp/types';
-import type { AcpModelInfo, AcpSessionConfigOption } from '@/common/types/acpTypes';
 import type { IResponseMessage } from '@/common/adapter/ipcBridge';
 import type { TMessage } from '@/common/chat/chatLib';
-import type { AcpBackend } from '@/common/types/acpTypes';
+import type { AcpBackend, AcpModelInfo, AcpSessionConfigOption } from '@/common/types/acpTypes';
+import type { McpServer } from '@agentclientprotocol/sdk';
+import type { AgentConfig, ConfigOption, ModelSnapshot } from '@process/acp/types';
+import { getEnhancedEnv, loadFullShellEnvironment } from '@process/utils/shellEnv';
 
 /**
  * Old ACP agent config type from AcpAgent/AcpAgentManager
@@ -49,44 +50,47 @@ export type OldAcpAgentConfig = {
  * Convert old-style ACP agent config to new-style AgentConfig
  */
 export function toAgentConfig(old: OldAcpAgentConfig): AgentConfig {
-  const extra = old.extra;
+  // const extra = old.extra;
 
   // Determine agentSource: 'custom' if extra.cliPath is set, else 'builtin'
-  const agentSource: 'builtin' | 'custom' = extra?.cliPath ? 'custom' : 'builtin';
+  const agentSource: 'builtin' | 'custom' = old.extra?.cliPath ? 'custom' : 'builtin';
 
-  // Convert teamMcpStdioConfig env array to Record
-  let teamMcpConfig: McpServerConfig | undefined;
-  if (extra?.teamMcpStdioConfig) {
-    const envRecord: Record<string, string> = {};
-    for (const item of extra.teamMcpStdioConfig.env) {
-      envRecord[item.name] = item.value;
-    }
+  // Convert teamMcpStdioConfig to McpServerConfig (SDK McpServerStdio)
+  let teamMcpConfig: McpServer | undefined;
+  if (old.extra?.teamMcpStdioConfig) {
     teamMcpConfig = {
-      name: extra.teamMcpStdioConfig.name,
-      command: extra.teamMcpStdioConfig.command,
-      args: extra.teamMcpStdioConfig.args,
-      env: envRecord,
+      name: old.extra.teamMcpStdioConfig.name,
+      command: old.extra.teamMcpStdioConfig.command,
+      args: old.extra.teamMcpStdioConfig.args,
+      env: old.extra.teamMcpStdioConfig.env,
     };
   }
 
   // Build resumeConfig from pendingConfigOptions
   let resumeConfig: Record<string, unknown> | undefined;
-  if (extra?.pendingConfigOptions && Object.keys(extra.pendingConfigOptions).length > 0) {
-    resumeConfig = { pendingConfigOptions: extra.pendingConfigOptions };
+  if (old.extra?.pendingConfigOptions && Object.keys(old.extra.pendingConfigOptions).length > 0) {
+    resumeConfig = { pendingConfigOptions: old.extra.pendingConfigOptions };
   }
+
+  // Build resumeConfig from pendingConfigOptions (already done above)
 
   return {
     agentBackend: old.backend,
-    agentSource,
+    agentSource: agentSource,
     agentId: old.id,
-    command: extra?.cliPath ?? old.cliPath,
-    args: extra?.customArgs ?? old.customArgs,
-    env: extra?.customEnv ?? old.customEnv,
+
+    command: old.extra?.cliPath ?? old.cliPath,
+    args: old.extra?.customArgs ?? old.customArgs,
+    env: old.extra?.customEnv ?? old.customEnv,
     cwd: old.workingDir,
-    teamMcpConfig,
-    autoApproveAll: extra?.yoloMode,
-    resumeSessionId: extra?.acpSessionId,
-    resumeConfig,
+
+    teamMcpConfig: teamMcpConfig,
+    // authCredentials populated async by AcpAgentV2.start() via loadAuthCredentials()
+
+    resumeSessionId: old.extra?.acpSessionId,
+    resumeConfig: resumeConfig,
+
+    autoApproveAll: old.extra?.yoloMode,
   };
 }
 
@@ -220,4 +224,56 @@ export function toResponseMessage(msg: TMessage, conversationId: string): IRespo
   }
 
   return base;
+}
+
+// ─── Auth helpers ──────────────────────────────────────────────────
+
+/** Well-known API key env vars per backend. */
+const BACKEND_AUTH_KEYS: Record<string, string[]> = {
+  codex: ['OPENAI_API_KEY', 'CODEX_API_KEY'],
+  claude: ['ANTHROPIC_API_KEY'],
+  codebuddy: ['CODEBUDDY_API_KEY'],
+  qwen: ['DASHSCOPE_API_KEY'],
+  gemini: ['GOOGLE_API_KEY', 'GEMINI_API_KEY'],
+};
+
+/**
+ * Async: load the full user shell environment (survives Gemini's
+ * `delete process.env.OPENAI_API_KEY`) and collect auth credentials.
+ *
+ * 1. loadFullShellEnvironment() re-reads .zshrc / .bash_profile etc.
+ * 2. Overlay getEnhancedEnv() for PATH merging.
+ * 3. Overlay customEnv (user-configured).
+ * 4. Pick well-known API key vars for the specific backend.
+ * 5. Pick any *_KEY / *_TOKEN / *_SECRET vars from customEnv.
+ */
+export async function loadAuthCredentials(
+  backend: string,
+  customEnv?: Record<string, string>
+): Promise<Record<string, string> | undefined> {
+  const shellEnv = await loadFullShellEnvironment();
+  const enhanced = getEnhancedEnv();
+  const merged: Record<string, string | undefined> = { ...shellEnv, ...enhanced };
+
+  const creds: Record<string, string> = {};
+
+  // Backend-specific well-known keys
+  const keys = BACKEND_AUTH_KEYS[backend];
+  if (keys) {
+    for (const key of keys) {
+      const val = merged[key];
+      if (val) creds[key] = val;
+    }
+  }
+
+  // Forward auth-like vars from customEnv
+  if (customEnv) {
+    for (const [key, val] of Object.entries(customEnv)) {
+      if (val && /(_KEY|_TOKEN|_SECRET)$/i.test(key)) {
+        creds[key] = val;
+      }
+    }
+  }
+
+  return Object.keys(creds).length > 0 ? creds : undefined;
 }

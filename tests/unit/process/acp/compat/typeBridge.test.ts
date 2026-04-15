@@ -131,7 +131,10 @@ describe('typeBridge', () => {
         name: 'team-server',
         command: 'node',
         args: ['server.js'],
-        env: { PORT: '3000', HOST: 'localhost' },
+        env: [
+          { name: 'PORT', value: '3000' },
+          { name: 'HOST', value: 'localhost' },
+        ],
       });
     });
 
@@ -157,6 +160,19 @@ describe('typeBridge', () => {
       expect(result.command).toBe('/extra/path');
       expect(result.args).toEqual(['--extra']);
       expect(result.env).toEqual({ EXTRA: 'true' });
+    });
+
+    // Note: authCredentials are loaded async by loadAuthCredentials() in AcpAgentV2,
+    // not by toAgentConfig(). toAgentConfig leaves authCredentials undefined.
+    it('should leave authCredentials undefined (loaded async by AcpAgentV2)', () => {
+      const oldConfig: OldAcpAgentConfig = {
+        id: 'test',
+        backend: 'codex',
+        workingDir: '/workspace',
+        onStreamEvent: () => {},
+      };
+      const result = toAgentConfig(oldConfig);
+      expect(result.authCredentials).toBeUndefined();
     });
   });
 

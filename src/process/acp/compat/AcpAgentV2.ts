@@ -1,28 +1,29 @@
 // src/process/acp/compat/AcpAgentV2.ts
 
-import { AcpSession, type SessionOptions } from '@process/acp/session/AcpSession';
-import { DefaultConnectorFactory } from '@process/acp/runtime/ConnectorFactory';
-import type {
-  AgentConfig,
-  SessionCallbacks,
-  SessionStatus,
-  ModelSnapshot,
-  ModeSnapshot,
-  ConfigSnapshot,
-  ContextUsage,
-  QueueSnapshot,
-} from '@process/acp/types';
-import type { TMessage } from '@/common/chat/chatLib';
-import type { AcpModelInfo, AcpSessionConfigOption, AcpResult } from '@/common/types/acpTypes';
-import { AcpErrorType } from '@/common/types/acpTypes';
 import type { IResponseMessage } from '@/common/adapter/ipcBridge';
+import type { IMessageAcpToolCall, TMessage } from '@/common/chat/chatLib';
+import type { AcpModelInfo, AcpResult, AcpSessionConfigOption } from '@/common/types/acpTypes';
+import { AcpErrorType } from '@/common/types/acpTypes';
+import { LegacyConnectorFactory } from '@process/acp/compat/LegacyConnectorFactory';
 import {
+  loadAuthCredentials,
+  toAcpConfigOptions,
+  toAcpModelInfo,
   toAgentConfig,
   toResponseMessage,
-  toAcpModelInfo,
-  toAcpConfigOptions,
   type OldAcpAgentConfig,
 } from '@process/acp/compat/typeBridge';
+import { AcpSession, type SessionOptions } from '@process/acp/session/AcpSession';
+import type {
+  AgentConfig,
+  ConfigSnapshot,
+  ContextUsage,
+  ModelSnapshot,
+  ModeSnapshot,
+  QueueSnapshot,
+  SessionCallbacks,
+  SessionStatus,
+} from '@process/acp/types';
 
 type PendingOp<T> = {
   resolve: (value: T) => void;
@@ -41,7 +42,8 @@ type PendingOp<T> = {
  * - Bridges async old API ↔ void new API via pending promises
  */
 export class AcpAgentV2 {
-  private session: AcpSession;
+  private session: AcpSession | null = null;
+  private readonly agentConfig: AgentConfig;
   private conversationId: string;
   private onStreamEvent: (data: IResponseMessage) => void;
   private onSignalEvent?: (data: IResponseMessage) => void;
@@ -60,24 +62,41 @@ export class AcpAgentV2 {
   private modeOp: PendingOp<{ success: boolean; error?: string }> | null = null;
   private configOp: PendingOp<AcpSessionConfigOption[]> | null = null;
 
+  // Tool call merge state (compat concern — MessageTranslator is stateless)
+  private activeToolCalls = new Map<string, IMessageAcpToolCall>();
+
   constructor(config: OldAcpAgentConfig) {
     this.conversationId = config.id;
     this.onStreamEvent = config.onStreamEvent as (data: IResponseMessage) => void;
     this.onSignalEvent = config.onSignalEvent as ((data: IResponseMessage) => void) | undefined;
     this.onSessionIdUpdate = config.onSessionIdUpdate;
     this.onAvailableCommandsUpdate = config.onAvailableCommandsUpdate;
+    this.agentConfig = toAgentConfig(config);
+  }
 
-    const agentConfig: AgentConfig = toAgentConfig(config);
+  /**
+   * Create AcpSession (deferred from constructor so authCredentials
+   * can be loaded asynchronously from the full shell environment).
+   */
+  private async ensureSession(): Promise<AcpSession> {
+    if (this.session) return this.session;
+
+    // Load credentials from full shell env (survives Gemini's delete process.env.*)
+    const creds = await loadAuthCredentials(this.agentConfig.agentBackend, this.agentConfig.env);
+    if (creds) {
+      (this.agentConfig as { authCredentials?: Record<string, string> }).authCredentials = creds;
+    }
+
     const callbacks: SessionCallbacks = this.buildCallbacks();
-    const connectorFactory = new DefaultConnectorFactory();
-
+    const connectorFactory = new LegacyConnectorFactory();
     const sessionOptions: SessionOptions = {
       promptTimeoutMs: 300_000,
       maxStartRetries: 3,
       maxResumeRetries: 2,
     };
 
-    this.session = new AcpSession(agentConfig, connectorFactory, callbacks, sessionOptions);
+    this.session = new AcpSession(this.agentConfig, connectorFactory, callbacks, sessionOptions);
+    return this.session;
   }
 
   /**
@@ -86,7 +105,11 @@ export class AcpAgentV2 {
   private buildCallbacks(): SessionCallbacks {
     return {
       onMessage: (message: TMessage) => {
-        const oldMsg = toResponseMessage(message, this.conversationId);
+        // Merge tool call updates with their original tool_call before emitting
+        const resolved =
+          message.type === 'acp_tool_call' ? this.mergeToolCall(message as IMessageAcpToolCall) : message;
+
+        const oldMsg = toResponseMessage(resolved, this.conversationId);
         // Skip empty messages (e.g., filtered available_commands)
         if (oldMsg.type) {
           this.onStreamEvent(oldMsg);
@@ -118,7 +141,7 @@ export class AcpAgentV2 {
           type: 'agent_status',
           conversation_id: this.conversationId,
           msg_id: `status_${Date.now()}`,
-          data: { status: oldStatusName },
+          data: { status: oldStatusName, backend: this.agentConfig.agentBackend },
         });
       },
 
@@ -256,6 +279,52 @@ export class AcpAgentV2 {
   }
 
   /**
+   * Merge tool_call_update into existing tool_call to produce a complete message.
+   * The renderer does full replacement by toolCallId, so we must preserve fields
+   * (title, kind, etc.) that partial updates don't include.
+   */
+  private mergeToolCall(message: IMessageAcpToolCall): IMessageAcpToolCall {
+    const toolCallId = message.content?.update?.toolCallId;
+    if (!toolCallId) return message;
+
+    const existing = this.activeToolCalls.get(toolCallId);
+    if (!existing) {
+      // First time seeing this toolCallId — store and pass through
+      this.activeToolCalls.set(toolCallId, message);
+      return message;
+    }
+
+    // Merge: new fields override, missing fields preserved from existing
+    const merged: IMessageAcpToolCall = {
+      ...existing,
+      msg_id: toolCallId,
+      status: message.status,
+      content: {
+        ...existing.content,
+        update: {
+          ...existing.content.update,
+          ...message.content.update,
+          // Only override non-fallback values
+          title:
+            message.content.update.title !== 'unknown' ? message.content.update.title : existing.content.update.title,
+          kind: message.content.update.kind !== 'execute' ? message.content.update.kind : existing.content.update.kind,
+          content: message.content.update.content ?? existing.content.update.content,
+          rawInput: message.content.update.rawInput ?? existing.content.update.rawInput,
+        },
+      },
+    };
+
+    this.activeToolCalls.set(toolCallId, merged);
+
+    // Clean up completed/failed tool calls after a delay
+    if (message.content.update.status === 'completed' || message.content.update.status === 'failed') {
+      setTimeout(() => this.activeToolCalls.delete(toolCallId), 60_000);
+    }
+
+    return merged;
+  }
+
+  /**
    * Map new 7-state FSM to old status names
    */
   private mapStatusToOldName(status: SessionStatus): string {
@@ -296,22 +365,23 @@ export class AcpAgentV2 {
   // ─── Lifecycle Methods (Task 4) ────────────────────────────────
 
   async start(): Promise<void> {
+    const session = await this.ensureSession();
     return new Promise<void>((resolve, reject) => {
       const timer = setTimeout(() => {
         this.startOp = null;
         reject(new Error('Session start timed out'));
       }, 120_000); // 2-minute timeout
       this.startOp = { resolve, reject, timer };
-      this.session.start();
+      session.start();
     });
   }
 
   async kill(): Promise<void> {
-    await this.session.stop();
+    await this.session!.stop();
   }
 
   cancelPrompt(): void {
-    this.session.cancelPrompt();
+    this.session!.cancelPrompt();
   }
 
   // ─── Messaging + Permission Methods (Task 5) ───────────
@@ -328,7 +398,7 @@ export class AcpAgentV2 {
         });
       }
 
-      this.session.sendMessage(data.content, data.files);
+      this.session!.sendMessage(data.content, data.files);
       return { success: true, data: null };
     } catch (err) {
       return {
@@ -345,7 +415,7 @@ export class AcpAgentV2 {
 
   async confirmMessage(data: { confirmKey: string; callId: string }): Promise<AcpResult> {
     try {
-      this.session.confirmPermission(data.callId, data.confirmKey);
+      this.session!.confirmPermission(data.callId, data.confirmKey);
       return { success: true, data: null };
     } catch (err) {
       return {
@@ -378,7 +448,7 @@ export class AcpAgentV2 {
         resolve(this.cachedModelInfo);
       }, 10_000);
       this.modelOp = { resolve, reject, timer };
-      this.session.setModel(modelId);
+      this.session!.setModel(modelId);
     });
   }
 
@@ -389,7 +459,7 @@ export class AcpAgentV2 {
         resolve({ success: true }); // Optimistic timeout
       }, 10_000);
       this.modeOp = { resolve, reject, timer };
-      this.session.setMode(mode);
+      this.session!.setMode(mode);
     });
   }
 
@@ -400,7 +470,7 @@ export class AcpAgentV2 {
         resolve(this.cachedConfigOptions); // Fallback to cached
       }, 10_000);
       this.configOp = { resolve, reject, timer };
-      this.session.setConfigOption(configId, value);
+      this.session!.setConfigOption(configId, value);
     });
   }
 
