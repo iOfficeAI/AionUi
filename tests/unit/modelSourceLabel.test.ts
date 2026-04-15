@@ -12,21 +12,15 @@ describe('modelSourceLabel', () => {
     expect(getAcpModelSourceLabel({ source: 'models', sourceDetail: 'cc-switch' })).toBe('cc-switch');
   });
 
-  it('maps ACP config option model info to a readable source label', () => {
-    expect(getAcpModelSourceLabel({ source: 'configOption', sourceDetail: 'acp-config-option' })).toBe('ACP config');
+  it('returns empty for non-cc-switch source details', () => {
+    expect(getAcpModelSourceLabel({ source: 'configOption', sourceDetail: 'acp-config-option' })).toBe('');
+    expect(getAcpModelSourceLabel({ source: 'models', sourceDetail: 'persisted-model' })).toBe('');
+    expect(getAcpModelSourceLabel({ source: 'models', sourceDetail: 'codex-stream' })).toBe('');
   });
 
-  it('falls back to the coarse source when no detail exists', () => {
-    expect(getAcpModelSourceLabel({ source: 'models' })).toBe('ACP models');
-  });
-
-  it('maps persisted and codex stream sources', () => {
-    expect(getAcpModelSourceLabel({ source: 'models', sourceDetail: 'persisted-model' })).toBe('saved model');
-    expect(getAcpModelSourceLabel({ source: 'models', sourceDetail: 'codex-stream' })).toBe('Codex stream');
-  });
-
-  it('falls back to ACP config when only the coarse config source exists', () => {
-    expect(getAcpModelSourceLabel({ source: 'configOption' })).toBe('ACP config');
+  it('returns empty for coarse source without cc-switch detail', () => {
+    expect(getAcpModelSourceLabel({ source: 'models' })).toBe('');
+    expect(getAcpModelSourceLabel({ source: 'configOption' })).toBe('');
   });
 
   it('formats the final button label with model and source', () => {

@@ -100,7 +100,7 @@ describe('AcpModelSelector', () => {
     });
 
     await waitFor(() => {
-      expect(screen.getAllByText('gpt-5.4/high · Codex stream').length).toBeGreaterThan(0);
+      expect(screen.getAllByText('gpt-5.4/high').length).toBeGreaterThan(0);
     });
   });
 
