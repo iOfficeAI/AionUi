@@ -238,40 +238,11 @@ describe('useAssistantBackends', () => {
     getAvailableAgentsInvoke.mockResolvedValue({ success: true, data: [] });
   });
 
-  it('initializes with gemini in availableBackends', () => {
+  it('initializes with empty availableBackends before SWR resolves', () => {
     const { result } = renderHook(() => useAssistantBackends());
 
-    expect(result.current.availableBackends.has('gemini')).toBe(true);
-    expect(result.current.availableBackends.size).toBe(1);
-  });
-
-  it('populates availableBackends from ipcBridge detection', async () => {
-    getAvailableAgentsInvoke.mockResolvedValue({
-      success: true,
-      data: [{ backend: 'gemini' }, { backend: 'claude' }, { backend: 'qwen' }],
-    });
-
-    const { result } = renderHook(() => useAssistantBackends());
-
-    await waitFor(() => {
-      expect(result.current.availableBackends.size).toBe(3);
-    });
-
-    expect(result.current.availableBackends.has('gemini')).toBe(true);
-    expect(result.current.availableBackends.has('claude')).toBe(true);
-    expect(result.current.availableBackends.has('qwen')).toBe(true);
-  });
-
-  it('falls back to default when getAvailableAgents fails', async () => {
-    getAvailableAgentsInvoke.mockRejectedValue(new Error('network error'));
-
-    const { result } = renderHook(() => useAssistantBackends());
-
-    // Should still have the default gemini
-    await waitFor(() => {
-      expect(result.current.availableBackends.has('gemini')).toBe(true);
-    });
-    expect(result.current.availableBackends.size).toBe(1);
+    // SWR mock returns data: undefined, so the default empty array is used
+    expect(result.current.availableBackends).toEqual([]);
   });
 
   it('refreshAgentDetection calls refreshCustomAgents', async () => {
@@ -293,6 +264,33 @@ describe('useAssistantBackends', () => {
     await act(async () => {
       await result.current.refreshAgentDetection();
     });
+  });
+
+  it('SWR fetcher builds structured backends from getAvailableAgents', async () => {
+    getAvailableAgentsInvoke.mockResolvedValue({
+      success: true,
+      data: [
+        { backend: 'gemini', name: 'Gemini' },
+        { backend: 'claude', name: 'Claude' },
+        { backend: 'auggie', name: 'Auggie', isExtension: true },
+        { backend: 'custom', name: 'Custom' },
+        { backend: 'remote', name: 'Remote' },
+      ],
+    });
+
+    renderHook(() => useAssistantBackends());
+
+    // Retrieve the fetcher SWR received and call it directly
+    const fetcher = swrFetchers.get('assistant.availableBackends');
+    expect(fetcher).toBeDefined();
+
+    const result = await fetcher!();
+    // custom and remote should be filtered out
+    expect(result).toEqual([
+      { id: 'gemini', name: 'Gemini', isExtension: undefined },
+      { id: 'claude', name: 'Claude', isExtension: undefined },
+      { id: 'auggie', name: 'Auggie', isExtension: true },
+    ]);
   });
 });
 

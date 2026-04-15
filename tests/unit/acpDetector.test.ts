@@ -75,10 +75,10 @@ describe('AgentRegistry', () => {
       await registry.initialize();
       const agents = registry.getDetectedAgents();
 
-      // Gemini always first, Aionrs always second, then ACP agents
+      // Aionrs always first, Gemini always second, then ACP agents
       expect(agents).toHaveLength(4);
-      expect(agents[0].backend).toBe('gemini');
-      expect(agents[1].backend).toBe('aionrs');
+      expect(agents[0].backend).toBe('aionrs');
+      expect(agents[1].backend).toBe('gemini');
       expect(agents[2]).toMatchObject({ backend: 'claude', cliPath: 'claude' });
       expect(agents[3]).toMatchObject({ backend: 'qwen', cliPath: 'qwen' });
     });
@@ -97,14 +97,14 @@ describe('AgentRegistry', () => {
       expect(agents.find((a) => a.backend === 'auggie')).toBeUndefined();
     });
 
-    it('should always include Gemini as first agent', async () => {
+    it('should always include Aionrs first and Gemini second', async () => {
       const registry = await createFreshRegistry();
       await registry.initialize();
       const agents = registry.getDetectedAgents();
 
-      expect(agents).toHaveLength(2); // gemini + aionrs
-      expect(agents[0]).toMatchObject({ backend: 'gemini', name: 'Gemini CLI' });
-      expect(agents[1]).toMatchObject({ backend: 'aionrs', name: 'Aion CLI' });
+      expect(agents).toHaveLength(2); // aionrs + gemini
+      expect(agents[0]).toMatchObject({ backend: 'aionrs', name: 'Aion CLI' });
+      expect(agents[1]).toMatchObject({ backend: 'gemini', name: 'Gemini CLI' });
     });
 
     it('should detect extension-contributed agents when CLI is available', async () => {
@@ -204,15 +204,15 @@ describe('AgentRegistry', () => {
       expect(agent!.isExtension).toBe(true);
     });
 
-    it('should keep agents without cliPath (gemini, aionrs)', async () => {
+    it('should keep agents without cliPath (aionrs, gemini)', async () => {
       const registry = await createFreshRegistry();
       await registry.initialize();
       const agents = registry.getDetectedAgents();
 
-      // Gemini and Aionrs have no cliPath — always kept
+      // Aionrs and Gemini have no cliPath — always kept
       expect(agents).toHaveLength(2);
-      expect(agents[0].backend).toBe('gemini');
-      expect(agents[1].backend).toBe('aionrs');
+      expect(agents[0].backend).toBe('aionrs');
+      expect(agents[1].backend).toBe('gemini');
     });
   });
 
@@ -298,7 +298,7 @@ describe('AgentRegistry', () => {
   });
 
   describe('refreshBuiltinAgents', () => {
-    it('should keep Gemini ahead of builtin agents after refresh', async () => {
+    it('should keep Aionrs and Gemini ahead of builtin agents after refresh', async () => {
       mockDetectBuiltinAgents.mockResolvedValue([
         makeAcpAgent({ id: 'claude', name: 'Claude Code', backend: 'claude', cliPath: 'claude' }),
         makeAcpAgent({ id: 'qwen', name: 'Qwen Code', backend: 'qwen', cliPath: 'qwen' }),
@@ -310,8 +310,8 @@ describe('AgentRegistry', () => {
       await registry.refreshBuiltinAgents();
       const agents = registry.getDetectedAgents();
 
-      expect(agents[0].backend).toBe('gemini');
-      expect(agents[1].backend).toBe('aionrs');
+      expect(agents[0].backend).toBe('aionrs');
+      expect(agents[1].backend).toBe('gemini');
       expect(agents.slice(2).map((agent) => agent.backend)).toEqual(['claude', 'qwen']);
     });
 

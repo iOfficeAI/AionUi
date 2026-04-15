@@ -143,7 +143,10 @@ class AgentRegistry {
     return result;
   }
 
+  // prettier-ignore
   private merge(): void {
+    // Order matters: determines deduplication priority and display order.
+    // Aionrs first, Gemini second, then builtin CLI > other > remote > extension.
     this.detectedAgents = this.deduplicate([
       this.createAionrsAgent(),
       this.createGeminiAgent(),

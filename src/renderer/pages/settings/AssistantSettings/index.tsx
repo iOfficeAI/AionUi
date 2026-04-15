@@ -76,7 +76,7 @@ const AssistantSettings: React.FC = () => {
     localeKey,
   } = useAssistantList();
 
-  const { availableBackends, extensionAcpAdapters, refreshAgentDetection } = useAssistantBackends();
+  const { availableBackends, refreshAgentDetection } = useAssistantBackends();
 
   const editor = useAssistantEditor({
     localeKey,
@@ -190,7 +190,6 @@ const AssistantSettings: React.FC = () => {
             isReadonlyAssistant={isReadonlyAssistant}
             isExtensionAssistant={isExtensionAssistant}
             availableBackends={availableBackends}
-            extensionAcpAdapters={extensionAcpAdapters}
             handleSave={editor.handleSave}
             handleDeleteClick={editor.handleDeleteClick}
           />

@@ -3,6 +3,7 @@
  * Contains name/avatar fields, agent selector, rules editor, and skills section.
  */
 import type { AssistantListItem, BuiltinAutoSkill, SkillInfo } from './types';
+import type { AvailableBackend } from '@/renderer/hooks/assistant/useAssistantBackends';
 import { hasBuiltinSkills } from './assistantUtils';
 import EmojiPicker from '@/renderer/components/chat/EmojiPicker';
 import MarkdownView from '@/renderer/components/Markdown';
@@ -56,8 +57,7 @@ type AssistantEditDrawerProps = {
   isExtensionAssistant: (assistant: AssistantListItem | null | undefined) => boolean;
 
   // Agent backend options
-  availableBackends: Set<string>;
-  extensionAcpAdapters: Record<string, unknown>[] | undefined;
+  availableBackends: AvailableBackend[];
 
   // Handlers
   handleSave: () => void;
@@ -97,7 +97,6 @@ const AssistantEditDrawer: React.FC<AssistantEditDrawerProps> = ({
   isReadonlyAssistant,
   isExtensionAssistant,
   availableBackends,
-  extensionAcpAdapters,
   handleSave,
   handleDeleteClick,
 }) => {
@@ -135,6 +134,8 @@ const AssistantEditDrawer: React.FC<AssistantEditDrawerProps> = ({
     isCreating ||
     (activeAssistantId !== null && hasBuiltinSkills(activeAssistantId)) ||
     (activeAssistant !== null && !activeAssistant.isBuiltin && !isExtensionAssistant(activeAssistant));
+
+  const agentOptions = availableBackends;
 
   const customSkillItems = availableSkills.filter((skill) => skill.isCustom);
   const builtinSkillItems = availableSkills.filter((skill) => !skill.isCustom);
@@ -300,35 +301,18 @@ const AssistantEditDrawer: React.FC<AssistantEditDrawerProps> = ({
               onChange={(value) => setEditAgent(value as string)}
               disabled={isReadonlyAssistant}
             >
-              {[
-                { value: 'gemini', label: 'Gemini CLI' },
-                { value: 'claude', label: 'Claude Code' },
-                { value: 'qwen', label: 'Qwen Code' },
-                { value: 'codex', label: 'Codex' },
-                { value: 'codebuddy', label: 'CodeBuddy' },
-                { value: 'opencode', label: 'OpenCode' },
-              ]
-                .filter((opt) => availableBackends.has(opt.value))
-                .map((opt) => (
-                  <Select.Option key={opt.value} value={opt.value}>
-                    {opt.label}
-                  </Select.Option>
-                ))}
-              {/* Extension-contributed ACP adapters */}
-              {extensionAcpAdapters?.map((adapter) => {
-                const id = adapter.id as string;
-                const name = (adapter.name as string) || id;
-                return (
-                  <Select.Option key={id} value={id}>
-                    <span className='flex items-center gap-6px'>
-                      {name}
+              {agentOptions.map((opt) => (
+                <Select.Option key={opt.id} value={opt.id}>
+                  <span className='flex items-center gap-6px'>
+                    {opt.name}
+                    {opt.isExtension && (
                       <Tag size='small' color='arcoblue'>
                         ext
                       </Tag>
-                    </span>
-                  </Select.Option>
-                );
-              })}
+                    )}
+                  </span>
+                </Select.Option>
+              ))}
             </Select>
           </div>
 

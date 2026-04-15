@@ -1,37 +1,42 @@
 import { ipcBridge } from '@/common';
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback } from 'react';
 import useSWR, { mutate } from 'swr';
 
+export type AvailableBackend = {
+  id: string;
+  name: string;
+  isExtension?: boolean;
+};
+
 /**
- * Manages available agent backends detection and
- * extension-contributed ACP adapters.
+ * Manages available agent backends detection.
+ * Builds a structured list from getAvailableAgents IPC,
+ * so both builtin and extension agents come from a single source.
  */
 export const useAssistantBackends = () => {
-  const [availableBackends, setAvailableBackends] = useState<Set<string>>(new Set(['gemini']));
-
-  // Load extension-contributed ACP adapters so they appear in the main agent dropdown
-  const { data: extensionAcpAdapters } = useSWR('extensions.acpAdapters', () =>
-    ipcBridge.extensions.getAcpAdapters.invoke().catch(() => [] as Record<string, unknown>[])
-  );
-
-  // Load available agent backends from ACP detector
-  useEffect(() => {
-    void (async () => {
-      try {
-        const resp = await ipcBridge.acpConversation.getAvailableAgents.invoke();
-        if (resp.success && resp.data) {
-          setAvailableBackends(new Set(resp.data.map((a) => a.backend)));
-        }
-      } catch {
-        // fallback to default
+  const { data: availableBackends = [] } = useSWR<AvailableBackend[]>('assistant.availableBackends', async () => {
+    try {
+      const resp = await ipcBridge.acpConversation.getAvailableAgents.invoke();
+      if (resp.success && resp.data) {
+        return resp.data
+          .filter((a) => a.backend !== 'custom' && a.backend !== 'remote')
+          .map((a) => ({
+            id: a.backend,
+            name: a.name,
+            isExtension: a.isExtension,
+          }));
       }
-    })();
-  }, []);
+    } catch {
+      // fallback to empty
+    }
+    return [];
+  });
 
   const refreshAgentDetection = useCallback(async () => {
     try {
       await ipcBridge.acpConversation.refreshCustomAgents.invoke();
       await mutate('acp.agents.available');
+      await mutate('assistant.availableBackends');
     } catch {
       // ignore
     }
@@ -39,7 +44,6 @@ export const useAssistantBackends = () => {
 
   return {
     availableBackends,
-    extensionAcpAdapters,
     refreshAgentDetection,
   };
 };
