@@ -1068,7 +1068,33 @@ export interface IResponseMessage {
   msg_id: string;
   conversation_id: string;
   hidden?: boolean;
+  turnPhase?: ConversationTurnPhase;
+  completionSource?: ConversationCompletionSource;
+  turnTimings?: ConversationTurnTimings;
 }
+
+export type ConversationTurnPhase = 'generating' | 'finalizing' | 'delivered';
+
+export type ConversationCompletionSource =
+  | 'end_turn'
+  | 'finish_signal'
+  | 'synthetic'
+  | 'error'
+  | 'cancel'
+  | 'disconnect'
+  | 'unknown';
+
+export type ConversationTurnTimings = Partial<{
+  startedAt: number;
+  firstChunkAt: number;
+  promptResolvedAt: number;
+  endTurnAt: number;
+  finishEmittedAt: number;
+  syntheticFinishAt: number;
+  deliveredAt: number;
+  callbackSentAt: number;
+  callbackSuccessAt: number;
+}>;
 
 export interface IConversationTurnCompletedEvent {
   sessionId: string;
@@ -1096,6 +1122,9 @@ export interface IConversationTurnCompletedEvent {
     name: string;
     useModel: string;
   };
+  turnPhase?: ConversationTurnPhase;
+  completionSource?: ConversationCompletionSource;
+  turnTimings?: ConversationTurnTimings;
   lastMessage: {
     id?: string;
     type?: string;

@@ -6,17 +6,28 @@
 
 import { ipcBridge } from '@/common';
 import type {
+  ConversationCompletionSource,
   IConversationListChangedEvent,
   IConversationTurnCompletedEvent,
   IResponseMessage,
+  ConversationTurnPhase,
+  ConversationTurnTimings,
 } from '@/common/adapter/ipcBridge';
 
-type ConversationLiveStateReason = 'stream_activity' | 'stream_terminal' | 'turn_completed' | 'conversation_deleted';
+type ConversationLiveStateReason =
+  | 'stream_activity'
+  | 'stream_finalizing'
+  | 'stream_terminal'
+  | 'turn_completed'
+  | 'conversation_deleted';
 
 export type ConversationLiveStateSnapshot = {
   isGeneratingLikeUi: boolean;
   updatedAt: number;
   reason: ConversationLiveStateReason;
+  turnPhase: ConversationTurnPhase;
+  completionSource?: ConversationCompletionSource;
+  turnTimings?: ConversationTurnTimings;
 };
 
 const shouldIgnoreStreamMessage = (type: string): boolean => {
@@ -89,7 +100,24 @@ export class ConversationLiveStateService {
     }
 
     if (isTerminalStreamMessage(message)) {
-      this.setSessionState(sessionId, false, 'stream_terminal');
+      if (message.turnPhase === 'finalizing') {
+        this.setSessionState(sessionId, {
+          isGeneratingLikeUi: false,
+          reason: 'stream_finalizing',
+          turnPhase: 'finalizing',
+          completionSource: message.completionSource,
+          turnTimings: message.turnTimings,
+        });
+        return;
+      }
+
+      this.setSessionState(sessionId, {
+        isGeneratingLikeUi: false,
+        reason: 'stream_terminal',
+        turnPhase: message.turnPhase ?? 'delivered',
+        completionSource: message.completionSource,
+        turnTimings: message.turnTimings,
+      });
       return;
     }
 
@@ -97,11 +125,21 @@ export class ConversationLiveStateService {
       return;
     }
 
-    this.setSessionState(sessionId, true, 'stream_activity');
+    this.setSessionState(sessionId, {
+      isGeneratingLikeUi: true,
+      reason: 'stream_activity',
+      turnPhase: 'generating',
+    });
   }
 
   private handleTurnCompleted(event: IConversationTurnCompletedEvent): void {
-    this.setSessionState(event.sessionId, false, 'turn_completed');
+    this.setSessionState(event.sessionId, {
+      isGeneratingLikeUi: false,
+      reason: 'turn_completed',
+      turnPhase: event.turnPhase ?? 'delivered',
+      completionSource: event.completionSource,
+      turnTimings: event.turnTimings,
+    });
   }
 
   private handleConversationListChanged(event: IConversationListChangedEvent): void {
@@ -112,11 +150,23 @@ export class ConversationLiveStateService {
     this.sessions.delete(event.conversationId);
   }
 
-  private setSessionState(sessionId: string, isGeneratingLikeUi: boolean, reason: ConversationLiveStateReason): void {
+  private setSessionState(
+    sessionId: string,
+    nextState: {
+      isGeneratingLikeUi: boolean;
+      reason: ConversationLiveStateReason;
+      turnPhase: ConversationTurnPhase;
+      completionSource?: ConversationCompletionSource;
+      turnTimings?: ConversationTurnTimings;
+    }
+  ): void {
     this.sessions.set(sessionId, {
-      isGeneratingLikeUi,
+      isGeneratingLikeUi: nextState.isGeneratingLikeUi,
       updatedAt: Date.now(),
-      reason,
+      reason: nextState.reason,
+      turnPhase: nextState.turnPhase,
+      completionSource: nextState.completionSource,
+      turnTimings: nextState.turnTimings ? { ...nextState.turnTimings } : undefined,
     });
   }
 }

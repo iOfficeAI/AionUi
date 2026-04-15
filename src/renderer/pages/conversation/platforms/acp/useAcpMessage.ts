@@ -5,7 +5,7 @@
  */
 
 import { ipcBridge } from '@/common';
-import type { IResponseMessage } from '@/common/adapter/ipcBridge';
+import type { IConversationTurnCompletedEvent, IResponseMessage } from '@/common/adapter/ipcBridge';
 import { transformMessage } from '@/common/chat/chatLib';
 import type { TokenUsageData } from '@/common/config/storage';
 import type { ThoughtData } from '@/renderer/components/chat/ThoughtDisplay';
@@ -138,6 +138,22 @@ export const useAcpMessage = (conversation_id: string): UseAcpMessageReturn => {
     });
   }, [cancelAiProcessingClear]);
 
+  const resetTurnUi = useCallback(
+    (nextRunning: boolean) => {
+      cancelAiProcessingClear();
+      setRunning(nextRunning);
+      runningRef.current = nextRunning;
+      setAiProcessing(false);
+      aiProcessingRef.current = false;
+      setThought({ subject: '', description: '' });
+      hasContentInTurnRef.current = false;
+      setStreamingContent(false);
+      hasThinkingMessageRef.current = false;
+      setHasThinkingMessage(false);
+    },
+    [cancelAiProcessingClear, setStreamingContent]
+  );
+
   useEffect(() => {
     return () => {
       if (thoughtThrottleRef.current.timer) {
@@ -171,6 +187,7 @@ export const useAcpMessage = (conversation_id: string): UseAcpMessageReturn => {
             setRunning(true);
             runningRef.current = true;
           }
+          throttledSetThought(message.data as ThoughtData);
           break;
         case 'thinking': {
           const thinkingData = message.data as { status?: string };
@@ -192,17 +209,9 @@ export const useAcpMessage = (conversation_id: string): UseAcpMessageReturn => {
           runningRef.current = true;
           break;
         case 'finish': {
-          cancelAiProcessingClear();
-          turnFinishedRef.current = true;
-          setRunning(false);
-          runningRef.current = false;
-          setAiProcessing(false);
-          aiProcessingRef.current = false;
-          setThought({ subject: '', description: '' });
-          hasContentInTurnRef.current = false;
-          setStreamingContent(false);
-          hasThinkingMessageRef.current = false;
-          setHasThinkingMessage(false);
+          const isFinalizing = message.turnPhase === 'finalizing';
+          turnFinishedRef.current = !isFinalizing;
+          resetTurnUi(isFinalizing);
           if (requestTraceRef.current) {
             const duration = Date.now() - requestTraceRef.current.startTime;
             console.log(
@@ -307,13 +316,8 @@ export const useAcpMessage = (conversation_id: string): UseAcpMessageReturn => {
           break;
         }
         case 'error':
-          cancelAiProcessingClear();
           turnFinishedRef.current = true;
-          setRunning(false);
-          runningRef.current = false;
-          setAiProcessing(false);
-          aiProcessingRef.current = false;
-          setStreamingContent(false);
+          resetTurnUi(false);
           addTransformedMessage();
           if (requestTraceRef.current) {
             const duration = Date.now() - requestTraceRef.current.startTime;
@@ -340,6 +344,7 @@ export const useAcpMessage = (conversation_id: string): UseAcpMessageReturn => {
       cancelAiProcessingClear,
       clearAiProcessingAfterPaint,
       conversation_id,
+      resetTurnUi,
       setStreamingContent,
       throttledSetThought,
     ]
@@ -348,6 +353,19 @@ export const useAcpMessage = (conversation_id: string): UseAcpMessageReturn => {
   useEffect(() => {
     return ipcBridge.acpConversation.responseStream.on(handleResponseMessage);
   }, [handleResponseMessage]);
+
+  useEffect(() => {
+    const handleTurnCompleted = (event: IConversationTurnCompletedEvent) => {
+      if (event.sessionId !== conversation_id) {
+        return;
+      }
+
+      turnFinishedRef.current = true;
+      resetTurnUi(false);
+    };
+
+    return ipcBridge.conversation.turnCompleted.on(handleTurnCompleted);
+  }, [conversation_id, resetTurnUi]);
 
   useEffect(() => {
     let cancelled = false;
@@ -381,6 +399,7 @@ export const useAcpMessage = (conversation_id: string): UseAcpMessageReturn => {
       runningRef.current = isRunning;
       setAiProcessing(isRunning);
       aiProcessingRef.current = isRunning;
+      turnFinishedRef.current = !isRunning;
       setStreamingContent(false);
       setHasHydratedRunningState(true);
 
@@ -406,17 +425,8 @@ export const useAcpMessage = (conversation_id: string): UseAcpMessageReturn => {
 
   const resetState = useCallback(() => {
     turnFinishedRef.current = true;
-    setRunning(false);
-    runningRef.current = false;
-    setAiProcessing(false);
-    aiProcessingRef.current = false;
-    setThought({ subject: '', description: '' });
-    hasContentInTurnRef.current = false;
-    setStreamingContent(false);
-    hasThinkingMessageRef.current = false;
-    setHasThinkingMessage(false);
-    cancelAiProcessingClear();
-  }, [cancelAiProcessingClear, setStreamingContent]);
+    resetTurnUi(false);
+  }, [resetTurnUi]);
 
   return {
     thought,

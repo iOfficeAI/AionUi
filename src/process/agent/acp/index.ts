@@ -591,6 +591,7 @@ export class AcpAgent {
         conversation_id: this.id,
         msg_id: uuid(),
         data: null,
+        completionSource: 'cancel',
       });
     }
   }
@@ -610,6 +611,7 @@ export class AcpAgent {
       conversation_id: this.id,
       msg_id: uuid(),
       data: null,
+      completionSource: 'disconnect',
     });
   }
 
@@ -764,6 +766,7 @@ export class AcpAgent {
           conversation_id: this.id,
           msg_id: uuid(),
           data: null,
+          completionSource: 'error',
         });
       }
 
@@ -1171,6 +1174,7 @@ export class AcpAgent {
         conversation_id: this.id,
         msg_id: uuid(),
         data: null,
+        completionSource: 'end_turn',
       });
     }
   }
@@ -1215,6 +1219,7 @@ export class AcpAgent {
           error: `Process exited unexpectedly (code: ${error.code}, signal: ${error.signal})`,
           agentCrash: true,
         },
+        completionSource: 'disconnect',
       });
     }
 

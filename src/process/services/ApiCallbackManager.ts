@@ -80,9 +80,26 @@ export class ApiCallbackManager {
       detail: event.detail,
       canSendMessage: event.canSendMessage,
       runtime: event.runtime,
+      turnPhase: event.turnPhase,
+      completionSource: event.completionSource,
+      turnTimings: event.turnTimings,
     };
 
-    void CallbackService.sendCallback(callbackConfig, variables);
+    const callbackSentAt = Date.now();
+    const callbackResult = await CallbackService.sendCallback(callbackConfig, variables);
+
+    if (callbackResult.success) {
+      const callbackSuccessAt = Date.now();
+      console.log(
+        `[ApiCallbackManager] Callback completed for ${event.sessionId} (sentAt=${callbackSentAt}, successAt=${callbackSuccessAt})`
+      );
+      return;
+    }
+
+    console.error(
+      `[ApiCallbackManager] Callback failed for ${event.sessionId} after send attempt at ${callbackSentAt}:`,
+      callbackResult.error
+    );
   }
 
   destroy(): void {

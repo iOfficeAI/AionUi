@@ -123,6 +123,10 @@ describe('ConversationTurnCompletionService', () => {
       expect.objectContaining({
         sessionId: 'session-1',
         state: 'ai_waiting_input',
+        turnPhase: 'delivered',
+        turnTimings: expect.objectContaining({
+          deliveredAt: expect.any(Number),
+        }),
       })
     );
     expect(listener).toHaveBeenCalledWith(

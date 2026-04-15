@@ -425,6 +425,9 @@ export class ConversationTurnCompletionService {
       throw new Error('Conversation turn completion event requires lastMessage');
     }
 
+    const liveState = conversationLiveStateService.getSessionState(snapshot.sessionId);
+    const deliveredAt = Date.now();
+
     return {
       sessionId: snapshot.sessionId,
       status: snapshot.status,
@@ -434,6 +437,12 @@ export class ConversationTurnCompletionService {
       runtime: snapshot.runtime,
       workspace: extractWorkspaceFromConversation(snapshot.conversation),
       model: extractModelInfoFromConversation(snapshot.conversation),
+      turnPhase: 'delivered',
+      completionSource: liveState?.completionSource,
+      turnTimings: {
+        ...liveState?.turnTimings,
+        deliveredAt,
+      },
       lastMessage: formattedLastMessage,
     };
   }

@@ -189,6 +189,10 @@ const initializeConversationListSyncStore = () => {
     }
 
     if (isTerminalStreamMessage(message)) {
+      if (message.turnPhase === 'finalizing') {
+        return;
+      }
+
       const wasGenerating = generatingConversationIdsState.has(conversationId);
       if (wasGenerating && activeConversationIdState !== conversationId) {
         markCompletionUnread(conversationId);

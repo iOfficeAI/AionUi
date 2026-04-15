@@ -267,6 +267,7 @@ describe('AcpAgentManager turn completion fallback', () => {
     expect(notifyPotentialCompletion).not.toHaveBeenCalled();
     expect(manager.persistCurrentTurnTokenUsage).not.toHaveBeenCalled();
     expect(manager.status).toBe('running');
+    expect(manager.missingFinishFallbackTimer).not.toBeNull();
   });
 
   it('does not synthesize a second finish when the backend already emitted one', async () => {
@@ -294,9 +295,22 @@ describe('AcpAgentManager turn completion fallback', () => {
 
     expect(mainWarn).not.toHaveBeenCalled();
     expect(responseStreamEmit).toHaveBeenCalledTimes(1);
-    expect(responseStreamEmit).toHaveBeenCalledWith(realFinishSignal);
+    expect(responseStreamEmit).toHaveBeenCalledWith(
+      expect.objectContaining({
+        ...realFinishSignal,
+        completionSource: 'finish_signal',
+        turnPhase: 'finalizing',
+      })
+    );
     expect(channelEmitAgentMessage).toHaveBeenCalledTimes(1);
-    expect(channelEmitAgentMessage).toHaveBeenCalledWith('session-1', realFinishSignal);
+    expect(channelEmitAgentMessage).toHaveBeenCalledWith(
+      'session-1',
+      expect.objectContaining({
+        ...realFinishSignal,
+        completionSource: 'finish_signal',
+        turnPhase: 'finalizing',
+      })
+    );
     expect(notifyPotentialCompletion).toHaveBeenCalledTimes(1);
     expect(cronBusyGuardSetProcessing).toHaveBeenNthCalledWith(1, 'session-1', true);
     expect(cronBusyGuardSetProcessing).toHaveBeenNthCalledWith(2, 'session-1', false);
@@ -352,23 +366,30 @@ describe('AcpAgentManager turn completion fallback', () => {
     expect(finishSignals).toHaveLength(2);
   });
 
-  it('synthesizes finish after stream output goes idle even if prompt never resolves', async () => {
+  it('synthesizes finish after prompt resolves without a terminal signal', async () => {
     vi.useFakeTimers();
     try {
       const manager = await createManager();
       manager.persistCurrentTurnTokenUsage = vi.fn();
-      manager.beginTrackedTurn();
+      const turnId = manager.beginTrackedTurn();
+      manager.activeTrackedTurnHasRuntimeActivity = true;
+      manager.markTrackedTurnPromptResolved(turnId);
       manager.currentMsgId = 'assistant-1';
       manager.currentMsgContent = '你好！有什么我可以帮助你的吗？';
 
       manager.scheduleMissingFinishFallback();
       await vi.advanceTimersByTimeAsync(2000);
 
-      expect(mainWarn).toHaveBeenCalledWith('[AcpAgentManager]', expect.stringContaining('idle without finish signal'));
+      expect(mainWarn).toHaveBeenCalledWith(
+        '[AcpAgentManager]',
+        expect.stringContaining('prompt resolved without finish signal')
+      );
       expect(responseStreamEmit).toHaveBeenCalledWith(
         expect.objectContaining({
           type: 'finish',
           conversation_id: 'session-1',
+          completionSource: 'synthetic',
+          turnPhase: 'finalizing',
         })
       );
       expect(channelEmitAgentMessage).toHaveBeenCalledWith(
@@ -376,6 +397,8 @@ describe('AcpAgentManager turn completion fallback', () => {
         expect.objectContaining({
           type: 'finish',
           conversation_id: 'session-1',
+          completionSource: 'synthetic',
+          turnPhase: 'finalizing',
         })
       );
       expect(notifyPotentialCompletion).toHaveBeenCalledWith('session-1');
