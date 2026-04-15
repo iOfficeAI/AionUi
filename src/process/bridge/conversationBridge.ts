@@ -5,6 +5,7 @@
  */
 
 import { GeminiAgent, GeminiApprovalStore } from '@process/agent/gemini';
+import { AIONUI_FILES_MARKER } from '@/common/config/constants';
 import type { TChatConversation } from '@/common/config/storage';
 import type { IAgentManager } from '@process/task/IAgentManager';
 import type { IConversationService, CreateConversationParams } from '@process/services/IConversationService';
@@ -49,6 +50,27 @@ const VALID_CONVERSATION_TYPES = new Set<TChatConversation['type']>([
   'remote',
   'aionrs',
 ]);
+
+/**
+ * Replace the `[[AION_FILES]]` marker in a frontend-built display message with a canonical
+ * marker that references the actual file paths the backend will pass to the agent.
+ *
+ * The renderer's `buildDisplayMessage` writes an OPTIMISTIC marker before the bridge has a
+ * chance to copy/stage files. For Gemini we then copy uploads into the workspace and the
+ * resulting paths may differ from what the renderer guessed (e.g. a `_aionui_<ts>` collision
+ * suffix appears only on the workspace copy). Rewriting the marker here keeps the persisted
+ * chat bubble's preview path in sync with the real file on disk so FilePreview can resolve
+ * it on replay. Ported from PR #2361 (commit 7049d5fc) which was reverted in #2370 for
+ * reasons unrelated to the marker-rewrite logic (the revert targeted settings-toggle removal).
+ */
+const buildCanonicalDisplayMessage = (input: string, files: string[]): string => {
+  const markerIndex = input.indexOf(AIONUI_FILES_MARKER);
+  const text = markerIndex === -1 ? input : input.slice(0, markerIndex).trimEnd();
+  if (!files.length) {
+    return text;
+  }
+  return `${text}\n\n${AIONUI_FILES_MARKER}\n${files.join('\n')}`;
+};
 
 export function initConversationBridge(
   conversationService: IConversationService,
@@ -516,12 +538,18 @@ export function initConversationBridge(
       workspaceFiles = (files ?? []).filter((f) => path.isAbsolute(f));
     }
 
+    // Rewrite the marker embedded in the frontend's optimistic `input` so that the
+    // [[AION_FILES]] block references the actual on-disk paths (post-copy for Gemini,
+    // as-uploaded for non-Gemini). This keeps the persisted chat bubble's file preview
+    // path aligned with the file that really exists.
+    const displayMessage = buildCanonicalDisplayMessage(other.input, workspaceFiles);
+
     // Precompute agent content with optional skill injection.
     // OpenClaw uses full-content mode: inject full skill text rather than index paths,
     // because the CLI may not proactively read SKILL.md files the way ACP agents do.
-    let agentContent = other.input;
+    let agentContent = displayMessage;
     if (other.injectSkills?.length) {
-      agentContent = await prepareFirstMessage(other.input, {
+      agentContent = await prepareFirstMessage(displayMessage, {
         enabledSkills: other.injectSkills,
       });
       // Provide absolute skills directory so agent can resolve relative script paths
@@ -540,7 +568,8 @@ export function initConversationBridge(
       // `agentContent` carries the skill-injected text for OpenClaw (equals `input` when no skills).
       await task.sendMessage({
         ...other,
-        content: other.input,
+        input: displayMessage,
+        content: displayMessage,
         files: workspaceFiles,
         agentContent,
       });

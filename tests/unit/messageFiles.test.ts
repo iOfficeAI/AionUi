@@ -22,11 +22,12 @@ describe('buildDisplayMessage', () => {
     expect(result).toContain(`${workspace}/uploads/subdir/doc.pdf`);
   });
 
-  it('stores absolute paths outside workspace using workspace basename prefix', () => {
+  it('keeps absolute paths outside workspace verbatim (e.g. cache-dir uploads)', () => {
     const files = ['/other/path/external.txt'];
     const result = buildDisplayMessage('hello', files, workspace);
-    expect(result).toContain(`${workspace}/external.txt`);
-    expect(result).not.toContain('/other/path');
+    // The marker must point at the real on-disk file. The conversationBridge
+    // rewrites this with canonical workspace paths after any copy step.
+    expect(result).toContain('/other/path/external.txt');
   });
 
   it('converts relative paths into workspace-prefixed paths', () => {
@@ -40,9 +41,14 @@ describe('buildDisplayMessage', () => {
     expect(result).toBe('hello');
   });
 
-  it('strips AIONUI timestamp separators from filenames while keeping prefix', () => {
+  it('preserves AIONUI timestamp collision suffix in marker paths so FilePreview can resolve the real file', () => {
     const files = [`${workspace}/uploads/photo_aionui_1234567890123.jpg`];
     const result = buildDisplayMessage('hello', files, workspace);
-    expect(result).toContain(`${workspace}/uploads/photo.jpg`);
+    // Regression guard for PR #2370 revert: previously the suffix was stripped here,
+    // causing chat-history image previews to show "Image not found" because the marker
+    // path no longer matched the real file on disk. See FilePreview.tsx for the
+    // display-only cleanup via getCleanFileName().
+    expect(result).toContain(`${workspace}/uploads/photo_aionui_1234567890123.jpg`);
+    expect(result).not.toContain(`${workspace}/uploads/photo.jpg`);
   });
 });
