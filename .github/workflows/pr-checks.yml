@@ -400,6 +400,7 @@ jobs:
           GYP_MSVS_VERSION: 2022
           WindowsTargetPlatformVersion: 10.0.19041.0
           CI: true
+          GH_TOKEN: ${{ github.token }}
 
       - name: Build test (Windows arm64)
         if: matrix.platform == 'windows-arm64'
@@ -416,6 +417,7 @@ jobs:
           GYP_MSVS_VERSION: 2022
           WindowsTargetPlatformVersion: 10.0.19041.0
           CI: true
+          GH_TOKEN: ${{ github.token }}
 
       - name: Build test (non-Windows)
         if: "!startsWith(matrix.platform, 'windows')"
@@ -434,6 +436,7 @@ jobs:
           npm_config_target: ${{ steps.electron-version.outputs.version }}
           npm_config_disturl: https://electronjs.org/headers
           CI: true
+          GH_TOKEN: ${{ github.token }}
 
       - name: Verify packaged bundled bun assets
         run: bun run test:packaged:bun

@@ -60,23 +60,55 @@ function getVersion() {
 // ---------------------------------------------------------------------------
 
 /**
- * 1. Download from GitHub releases
+ * Resolve the actual version tag when "latest" is requested.
+ * Uses GitHub API via `gh` CLI (needs GH_TOKEN in CI) or falls back to
+ * `curl` with an optional Authorization header (GITHUB_TOKEN / GH_TOKEN).
  */
-function getAssetName(platform, arch) {
+function resolveLatestTag() {
+  const token = process.env.GH_TOKEN || process.env.GITHUB_TOKEN || '';
+
+  // 1. Try gh CLI (honours GH_TOKEN automatically)
+  try {
+    const out = execSync(`gh api repos/${GITHUB_OWNER}/${GITHUB_REPO}/releases/latest --jq .tag_name`, {
+      encoding: 'utf-8',
+      timeout: 15000,
+    }).trim();
+    if (out) return out;
+  } catch {
+    // gh CLI not available or no token — fall back to curl
+  }
+
+  // 2. Curl with optional token to avoid rate-limit 403
+  try {
+    const authArgs = token ? ['-H', `Authorization: token ${token}`] : [];
+    const args = ['-fsSL', ...authArgs, `https://api.github.com/repos/${GITHUB_OWNER}/${GITHUB_REPO}/releases/latest`];
+    const out = execFileSync('curl', args, { encoding: 'utf-8', timeout: 15000 });
+    const tag = JSON.parse(out).tag_name;
+    if (tag) return tag;
+  } catch {
+    // network issue or rate-limited
+  }
+
+  return null;
+}
+
+/**
+ * 1. Download from GitHub releases
+ *
+ * aionrs release assets include the version tag in the filename:
+ *   aionrs-v0.1.9-aarch64-apple-darwin.tar.gz
+ */
+function getAssetName(platform, arch, tag) {
   const archMap = { x64: 'x86_64', arm64: 'aarch64' };
   const platformMap = { darwin: 'apple-darwin', linux: 'unknown-linux-gnu', win32: 'pc-windows-msvc' };
   const normalizedArch = archMap[arch];
   const normalizedPlatform = platformMap[platform];
   if (!normalizedArch || !normalizedPlatform) return null;
   const ext = platform === 'win32' ? '.zip' : '.tar.gz';
-  return `aionrs-${normalizedArch}-${normalizedPlatform}${ext}`;
+  return `aionrs-${tag}-${normalizedArch}-${normalizedPlatform}${ext}`;
 }
 
-function getDownloadUrl(assetName, version) {
-  if (version === 'latest') {
-    return `https://github.com/${GITHUB_OWNER}/${GITHUB_REPO}/releases/latest/download/${assetName}`;
-  }
-  const tag = version.startsWith('v') ? version : `v${version}`;
+function getDownloadUrl(assetName, tag) {
   return `https://github.com/${GITHUB_OWNER}/${GITHUB_REPO}/releases/download/${tag}/${assetName}`;
 }
 
@@ -122,14 +154,14 @@ function findBinaryInDir(dir, binaryName) {
   return null;
 }
 
-function downloadAndExtract(platform, arch, version) {
-  const assetName = getAssetName(platform, arch);
+function downloadAndExtract(platform, arch, tag) {
+  const assetName = getAssetName(platform, arch, tag);
   if (!assetName) {
     throw new Error(`Unsupported aionrs target: ${platform}-${arch}`);
   }
 
-  const url = getDownloadUrl(assetName, version);
-  const tempDir = path.join(os.tmpdir(), 'aionui-aionrs', version, `${platform}-${arch}`);
+  const url = getDownloadUrl(assetName, tag);
+  const tempDir = path.join(os.tmpdir(), 'aionui-aionrs', tag, `${platform}-${arch}`);
   const archivePath = path.join(tempDir, assetName);
   const extractDir = path.join(tempDir, 'extracted');
 
@@ -145,7 +177,7 @@ function downloadAndExtract(platform, arch, version) {
     throw new Error(`Binary ${binaryName} not found in downloaded archive`);
   }
 
-  return { binaryPath, tempDir };
+  return { binaryPath, tempDir, url };
 }
 
 // ---------------------------------------------------------------------------
@@ -160,11 +192,24 @@ function prepareAionrs() {
   const runtimeKey = `${platform}-${arch}`;
   const version = getVersion();
 
+  // Resolve the actual version tag — asset filenames include the tag
+  let tag;
+  if (version === 'latest') {
+    const resolved = resolveLatestTag();
+    if (!resolved) {
+      throw new Error('Failed to resolve latest aionrs release tag from GitHub API');
+    }
+    tag = resolved;
+    console.log(`Resolved aionrs "latest" → ${tag}`);
+  } else {
+    tag = version.startsWith('v') ? version : `v${version}`;
+  }
+
   const targetDir = path.join(projectRoot, 'resources', 'bundled-aionrs', runtimeKey);
   const binaryName = getBinaryName(platform);
   const targetBinaryPath = path.join(targetDir, binaryName);
 
-  console.log(`Preparing aionrs for ${runtimeKey} (version: ${version})`);
+  console.log(`Preparing aionrs for ${runtimeKey} (version: ${tag})`);
 
   removeDirectorySafe(targetDir);
   ensureDirectory(targetDir);
@@ -177,11 +222,11 @@ function prepareAionrs() {
   // 1. Download from GitHub releases
   if (!sourcePath) {
     try {
-      const result = downloadAndExtract(platform, arch, version);
+      const result = downloadAndExtract(platform, arch, tag);
       sourcePath = result.binaryPath;
       tempDir = result.tempDir;
       sourceType = 'download';
-      sourceDetail = { url: getDownloadUrl(getAssetName(platform, arch), version) };
+      sourceDetail = { url: result.url };
       console.log(`  Downloaded from GitHub releases`);
     } catch (error) {
       console.warn(`  Download failed: ${error.message}`);
@@ -194,7 +239,7 @@ function prepareAionrs() {
     ensureExecutableMode(targetBinaryPath);
 
     // Get version info from binary
-    let binaryVersion = version;
+    let binaryVersion = tag;
     try {
       binaryVersion = execSync(`"${targetBinaryPath}" --version`, { encoding: 'utf-8', timeout: 5000 }).trim();
     } catch {}
@@ -223,7 +268,7 @@ function prepareAionrs() {
   const manifest = {
     platform,
     arch,
-    version,
+    version: tag,
     generatedAt: new Date().toISOString(),
     sourceType: 'none',
     source: {},
