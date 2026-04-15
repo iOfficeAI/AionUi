@@ -712,6 +712,7 @@ const CreateTaskDialog: React.FC<CreateTaskDialogProps> = ({
                       currentAcpCachedModelInfo={acpCachedModelInfo}
                       selectedAcpModel={modelId ?? null}
                       setSelectedAcpModel={handleAcpModelSelect}
+                      acpBackend={resolvedBackend}
                     />
                   </div>
                 )}

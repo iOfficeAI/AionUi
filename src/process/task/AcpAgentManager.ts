@@ -10,6 +10,13 @@ import type { IConfigStorageRefer } from '@/common/config/storage';
 import { AIONUI_FILES_MARKER } from '@/common/config/constants';
 import type { IResponseMessage } from '@/common/adapter/ipcBridge';
 import { parseError, uuid } from '@/common/utils';
+import {
+  buildAionUiCurrentModelInfo,
+  buildAionUiModelEnv,
+  getAionUiModelDisplayLabel,
+  isAionUiModelRef,
+  resolveAionUiModelSelection,
+} from '@/common/utils/acpAionUiModel';
 import type {
   AcpBackend,
   AcpModelInfo,
@@ -89,6 +96,7 @@ class AcpAgentManager extends BaseAgentManager<AcpAgentManagerData, AcpPermissio
   options: AcpAgentManagerData;
   private currentMode: string = 'default';
   private persistedModelId: string | null = null;
+  private customModelInfoFallback: AcpModelInfo | null = null;
   // Track current message for cron detection (accumulated from streaming chunks)
   private currentMsgId: string | null = null;
   private currentMsgContent: string = '';
@@ -484,14 +492,34 @@ ${collectedResponses.join('\n')}`;
       }
     }
 
+    const providers = await ProcessConfig.get('model.config');
+    const aionUiModel = resolveAionUiModelSelection(providers, this.persistedModelId || data.currentModelId || null);
+    const sharedModelEnv = aionUiModel ? buildAionUiModelEnv(aionUiModel) : undefined;
+
+    if (aionUiModel) {
+      this.customModelInfoFallback = buildAionUiCurrentModelInfo(aionUiModel.label, aionUiModel.modelRef);
+      if (this.persistedModelId !== aionUiModel.modelRef) {
+        this.persistedModelId = aionUiModel.modelRef;
+        void this.saveModelId(aionUiModel.modelRef);
+      }
+    } else {
+      this.customModelInfoFallback = null;
+    }
+
     if (!customAgentConfig?.defaultCliPath) {
-      return { cliPath: data.cliPath };
+      return {
+        cliPath: data.cliPath,
+        customEnv: sharedModelEnv,
+      };
     }
 
     return {
       cliPath: customAgentConfig.defaultCliPath.trim(),
       customArgs: customAgentConfig.acpArgs,
-      customEnv: customAgentConfig.env,
+      customEnv: {
+        ...(sharedModelEnv || {}),
+        ...(customAgentConfig.env || {}),
+      },
     };
   }
 
@@ -1255,19 +1283,22 @@ ${collectedResponses.join('\n')}`;
    */
   getModelInfo(): AcpModelInfo | null {
     if (!this.agent) {
-      // Return persisted model info when agent is not yet initialized
       if (this.persistedModelId) {
+        const label = isAionUiModelRef(this.persistedModelId)
+          ? getAionUiModelDisplayLabel(this.persistedModelId)
+          : this.persistedModelId;
         return {
           source: 'models',
           currentModelId: this.persistedModelId,
-          currentModelLabel: this.persistedModelId,
+          currentModelLabel: label,
           canSwitch: false,
           availableModels: [],
         };
       }
-      return null;
+      return this.customModelInfoFallback;
     }
-    return this.agent.getModelInfo();
+
+    return this.agent.getModelInfo() || this.customModelInfoFallback;
   }
 
   /**

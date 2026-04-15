@@ -9,6 +9,7 @@ import type { IProvider, TProviderWithModel } from '@/common/config/storage';
 import { iconColors } from '@/renderer/styles/colors';
 import { getModelDisplayLabel } from '@/renderer/utils/model/agentLogo';
 import type { AcpModelInfo } from '../types';
+import { buildAionUiAcpModelInfo, decodeAionUiModelRef } from '@/common/utils/acpAionUiModel';
 import { getAvailableModels } from '../utils/modelUtils';
 import { Button, Dropdown, Menu, Tooltip } from '@arco-design/web-react';
 import { Brain, Down, Plus } from '@icon-park/react';
@@ -29,6 +30,7 @@ type GuidModelSelectorProps = {
   currentAcpCachedModelInfo: AcpModelInfo | null;
   selectedAcpModel: string | null;
   setSelectedAcpModel: React.Dispatch<React.SetStateAction<string | null>>;
+  acpBackend?: string;
 };
 
 const GuidModelSelector: React.FC<GuidModelSelectorProps> = ({
@@ -40,6 +42,7 @@ const GuidModelSelector: React.FC<GuidModelSelectorProps> = ({
   currentAcpCachedModelInfo,
   selectedAcpModel,
   setSelectedAcpModel,
+  acpBackend,
 }) => {
   const { t } = useTranslation();
   const navigate = useNavigate();
@@ -71,28 +74,34 @@ const GuidModelSelector: React.FC<GuidModelSelectorProps> = ({
     });
   }, [currentModel?.useModel, defaultModelLabel, geminiSelectedLabel]);
 
+  const effectiveAcpModelInfo = React.useMemo(() => {
+    if (currentAcpCachedModelInfo) return currentAcpCachedModelInfo;
+    if (acpBackend !== 'custom') return null;
+    return buildAionUiAcpModelInfo(modelConfig || [], selectedAcpModel || undefined);
+  }, [acpBackend, currentAcpCachedModelInfo, modelConfig, selectedAcpModel]);
+
   const acpSelectedLabel = React.useMemo(() => {
     return (
-      currentAcpCachedModelInfo?.availableModels?.find((m) => m.id === selectedAcpModel)?.label ||
-      currentAcpCachedModelInfo?.currentModelLabel ||
-      currentAcpCachedModelInfo?.currentModelId ||
+      effectiveAcpModelInfo?.availableModels?.find((m) => m.id === selectedAcpModel)?.label ||
+      effectiveAcpModelInfo?.currentModelLabel ||
+      effectiveAcpModelInfo?.currentModelId ||
       ''
     );
   }, [
-    currentAcpCachedModelInfo?.availableModels,
-    currentAcpCachedModelInfo?.currentModelId,
-    currentAcpCachedModelInfo?.currentModelLabel,
+    effectiveAcpModelInfo?.availableModels,
+    effectiveAcpModelInfo?.currentModelId,
+    effectiveAcpModelInfo?.currentModelLabel,
     selectedAcpModel,
   ]);
 
   const acpButtonLabel = React.useMemo(() => {
     return getModelDisplayLabel({
-      selectedValue: selectedAcpModel || currentAcpCachedModelInfo?.currentModelId,
+      selectedValue: selectedAcpModel || effectiveAcpModelInfo?.currentModelId,
       selectedLabel: acpSelectedLabel,
       defaultModelLabel,
       fallbackLabel: defaultModelLabel,
     });
-  }, [acpSelectedLabel, currentAcpCachedModelInfo?.currentModelId, defaultModelLabel, selectedAcpModel]);
+  }, [acpSelectedLabel, effectiveAcpModelInfo?.currentModelId, defaultModelLabel, selectedAcpModel]);
 
   if (isGeminiMode) {
     return (
@@ -249,18 +258,21 @@ const GuidModelSelector: React.FC<GuidModelSelectorProps> = ({
   }
 
   // ACP cached model selector
-  if (currentAcpCachedModelInfo && currentAcpCachedModelInfo.availableModels?.length > 0) {
-    if (currentAcpCachedModelInfo.canSwitch) {
+  if (effectiveAcpModelInfo && effectiveAcpModelInfo.availableModels?.length > 0) {
+    if (effectiveAcpModelInfo.canSwitch) {
       return (
         <Dropdown
           trigger='click'
           droplist={
             <Menu selectedKeys={selectedAcpModel ? [selectedAcpModel] : []}>
-              {currentAcpCachedModelInfo.availableModels.map((model) => {
+              {effectiveAcpModelInfo.availableModels.map((model) => {
                 // 获取模型健康状态
-                const backend = currentAcpCachedModelInfo.source;
-                const providerConfig = modelConfig?.find((p) => p.platform?.includes(backend || ''));
-                const healthStatus = providerConfig?.modelHealth?.[model.id]?.status || 'unknown';
+                const decoded = decodeAionUiModelRef(model.id);
+                const providerConfig = decoded
+                  ? modelConfig?.find((p) => p.id === decoded.providerId)
+                  : modelConfig?.find((p) => p.platform?.includes(effectiveAcpModelInfo.source || ''));
+                const healthModelId = decoded?.modelId || model.id;
+                const healthStatus = providerConfig?.modelHealth?.[healthModelId]?.status || 'unknown';
                 const healthColor =
                   healthStatus === 'healthy'
                     ? 'bg-green-500'
@@ -271,7 +283,7 @@ const GuidModelSelector: React.FC<GuidModelSelectorProps> = ({
                 return (
                   <Menu.Item
                     key={model.id}
-                    className={model.id === selectedAcpModel ? '!bg-2' : ''}
+                    className={model.id === (selectedAcpModel || effectiveAcpModelInfo.currentModelId) ? '!bg-2' : ''}
                     onClick={() => setSelectedAcpModel(model.id)}
                   >
                     <div className='flex items-center gap-8px w-full'>
