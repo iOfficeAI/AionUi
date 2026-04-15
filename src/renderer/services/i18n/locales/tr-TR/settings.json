@@ -201,7 +201,7 @@
   "deleteInvalidKeys": "Geçersiz Anahtarları Sil",
   "testAllKeys": "Tüm Anahtarları Test Et",
   "addModelPlaceholder": "Model ID seçin veya girin",
-  "customModelSupportNote": "Not: şu anda yalnızca Gemini CLI Agent özel modelleri destekliyor.",
+  "customModelSupportNote": "Not: Aion CLI ve Gemini CLI Agent şu anda özel modelleri destekliyor.",
   "addModelHint": "Bir model ID seçin veya yazın, bu sağlayıcıya eklenecektir.",
   "addModelSelectedHint": "Model eklemeye hazır: {{model}}",
   "currentModelsLabel": "Mevcut Modeller",

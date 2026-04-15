@@ -201,7 +201,7 @@
   "deleteInvalidKeys": "無効なキーを削除",
   "testAllKeys": "すべてのキーをテスト",
   "addModelPlaceholder": "モデルIDを選択または入力してください",
-  "customModelSupportNote": "注: 現在カスタムモデルをサポートしているのは Gemini CLI Agent のみです。",
+  "customModelSupportNote": "注: 現在 Aion CLI と Gemini CLI Agent がカスタムモデルをサポートしています。",
   "addModelHint": "モデル ID を選択または入力すると、このプロバイダーの設定に追加されます。",
   "addModelSelectedHint": "追加予定のモデル: {{model}}",
   "currentModelsLabel": "現在のモデル",

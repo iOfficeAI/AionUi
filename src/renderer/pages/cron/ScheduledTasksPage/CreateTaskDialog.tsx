@@ -240,18 +240,27 @@ const CreateTaskDialog: React.FC<CreateTaskDialogProps> = ({
       .catch(() => setCachedConfigOptions(undefined));
   }, [resolvedBackend]);
 
+  const isGeminiMode = resolvedBackend === 'gemini' || resolvedBackend === 'aionrs';
+
+  // AionCLI does not support Google Auth — filter it out (mirrors GuidPage.tsx logic)
+  const filteredProviders = useMemo(
+    () =>
+      resolvedBackend === 'aionrs'
+        ? providers.filter((p) => !p.platform?.toLowerCase().includes('gemini-with-google-auth'))
+        : providers,
+    [resolvedBackend, providers]
+  );
+
   // Build Gemini currentModel from modelId for GuidModelSelector
   const geminiCurrentModel = useMemo<TProviderWithModel | undefined>(() => {
     if ((resolvedBackend !== 'gemini' && resolvedBackend !== 'aionrs') || !modelId) return undefined;
-    for (const p of providers) {
+    for (const p of filteredProviders) {
       if (getAvailableModels(p).includes(modelId)) {
         return { ...p, useModel: modelId } as TProviderWithModel;
       }
     }
     return undefined;
-  }, [resolvedBackend, modelId, providers, getAvailableModels]);
-
-  const isGeminiMode = resolvedBackend === 'gemini' || resolvedBackend === 'aionrs';
+  }, [resolvedBackend, modelId, filteredProviders, getAvailableModels]);
 
   const handleGeminiModelSelect = useCallback(async (model: TProviderWithModel) => {
     setModelId(model.useModel);
@@ -711,7 +720,7 @@ const CreateTaskDialog: React.FC<CreateTaskDialogProps> = ({
                     </label>
                     <GuidModelSelector
                       isGeminiMode={isGeminiMode}
-                      modelList={providers}
+                      modelList={filteredProviders}
                       currentModel={geminiCurrentModel}
                       setCurrentModel={handleGeminiModelSelect}
                       geminiModeLookup={geminiModeLookup}
