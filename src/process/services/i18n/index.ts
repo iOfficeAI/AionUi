@@ -5,7 +5,7 @@
  */
 
 import i18n from 'i18next';
-import { ProcessConfig } from '@process/utils/initStorage';
+import { ConfigStorage } from '@/common/config/storage';
 import {
   DEFAULT_LANGUAGE,
   normalizeLanguageCode,
@@ -58,7 +58,7 @@ export const i18nReady = (async (): Promise<void> => {
     interpolation: { escapeValue: false },
   });
 
-  const language = await ProcessConfig.get('language');
+  const language = await ConfigStorage.get('language');
   if (language) {
     await ensureAndSwitch(i18n, language, getLocaleModules);
   }

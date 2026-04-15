@@ -309,7 +309,6 @@ const Layout: React.FC<{
 
     // Handle pause all tasks request from tray / 托盘请求暂停所有任务
     const handlePauseAllTasks = async () => {
-      const { ipcBridge } = await import('@/common');
       const result = await ipcBridge.task.stopAll.invoke();
       if (result?.success) {
         // Navigate to settings page to show task status

@@ -64,11 +64,16 @@ export default defineConfig({
     sourcemap: false,
     minify: true,
     reportCompressedSize: false,
-    chunkSizeWarningLimit: 1500,
+    chunkSizeWarningLimit: 2000,
     cssCodeSplit: true,
     rollupOptions: {
       input: { index: resolve('src/renderer/index.html') },
       external: ['node:crypto', 'crypto'],
+      onwarn(warning, warn) {
+        if (warning.code === 'EVAL') return;
+        if (warning.code === 'MODULE_LEVEL_DIRECTIVE') return;
+        warn(warning);
+      },
       output: {
         manualChunks(id: string) {
           if (!id.includes('node_modules')) return undefined;

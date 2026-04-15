@@ -9,6 +9,7 @@ import type { ProgressInfo, UpdateInfo } from 'electron-updater';
 import { app } from 'electron';
 import log from 'electron-log';
 import { EventEmitter } from 'events';
+import i18n from './i18n';
 
 /**
  * Returns the appropriate update channel name based on the current platform and architecture.
@@ -263,7 +264,6 @@ class AutoUpdaterService extends EventEmitter {
 
       const result = await autoUpdater.checkForUpdates();
       if (!result) {
-        const { default: i18n } = await import('./i18n');
         return { success: false, error: i18n.t('update.errors.checkReturnedNull') };
       }
       // Only report updateInfo when electron-updater internally confirms the update is available.

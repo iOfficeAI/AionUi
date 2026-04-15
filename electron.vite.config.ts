@@ -127,6 +127,7 @@ export default defineConfig(({ mode }) => {
           },
           onwarn(warning, warn) {
             if (warning.code === 'EVAL') return;
+            if (warning.code === 'MODULE_LEVEL_DIRECTIVE') return;
             warn(warning);
           },
         },
@@ -197,7 +198,7 @@ export default defineConfig(({ mode }) => {
         sourcemap: enableSentrySourceMaps ? 'hidden' : isDevelopment,
         minify: !isDevelopment,
         reportCompressedSize: false,
-        chunkSizeWarningLimit: 1500,
+        chunkSizeWarningLimit: 2000,
         cssCodeSplit: true,
         rollupOptions: {
           input: {
@@ -209,6 +210,7 @@ export default defineConfig(({ mode }) => {
           external: ['node:crypto', 'crypto'],
           onwarn(warning, warn) {
             if (warning.code === 'EVAL') return;
+            if (warning.code === 'MODULE_LEVEL_DIRECTIVE') return;
             warn(warning);
           },
           output: {

@@ -41,6 +41,19 @@ const EMPTY_HIERARCHICAL_MEMORY: Required<HierarchicalMemory> = {
   project: '',
 };
 
+const getCurrentGeminiMdFilenameSafe = (): string => {
+  if (typeof getCurrentGeminiMdFilename === 'function') {
+    return getCurrentGeminiMdFilename();
+  }
+  return 'GEMINI.md';
+};
+
+const setServerGeminiMdFilenameSafe = (filename: string): void => {
+  if (typeof setServerGeminiMdFilename === 'function') {
+    setServerGeminiMdFilename(filename);
+  }
+};
+
 function shouldIgnoreHierarchicalMemoryError(error: unknown): boolean {
   if (isNodeError(error)) {
     return error.code === 'EACCES' || error.code === 'EPERM';
@@ -190,11 +203,15 @@ export async function loadCliConfig({
   // TODO(b/343434939): This is a bit of a hack. The contextFileName should ideally be passed
   // directly to the Config constructor in core, and have core handle setGeminiMdFilename.
   // However, loadHierarchicalGeminiMemory is called *before* createServerConfig.
-  if (settings.contextFileName) {
-    setServerGeminiMdFilename(settings.contextFileName);
+  const contextFileName = Array.isArray(settings.contextFileName)
+    ? settings.contextFileName[0]
+    : settings.contextFileName;
+
+  if (contextFileName) {
+    setServerGeminiMdFilenameSafe(contextFileName);
   } else {
     // Reset to default if not provided in settings.
-    setServerGeminiMdFilename(getCurrentGeminiMdFilename());
+    setServerGeminiMdFilenameSafe(getCurrentGeminiMdFilenameSafe());
   }
 
   const fileService = new FileDiscoveryService(workspace);

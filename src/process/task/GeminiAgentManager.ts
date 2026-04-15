@@ -30,6 +30,7 @@ import { cronBusyGuard } from '@process/services/cron/CronBusyGuard';
 import { ConversationTurnCompletionService } from '@process/services/ConversationTurnCompletionService';
 import { handlePreviewOpenEvent } from '@process/utils/previewUtils';
 import { getTeamGuideStdioConfig } from '@process/team/mcp/guide/teamGuideSingleton';
+import { getTeamGuidePrompt } from '@process/team/prompts/teamGuidePrompt.ts';
 import BaseAgentManager from './BaseAgentManager';
 import { IpcAgentEventEmitter } from './IpcAgentEventEmitter';
 import { mainLog, mainWarn, mainError } from '@process/utils/mainLogger';
@@ -230,7 +231,6 @@ export class GeminiAgentManager extends BaseAgentManager<
         // so it goes into GEMINI.md and the agent knows when to stay solo vs discuss Team mode.
         let effectivePresetRules = this.presetRules;
         if (!this.teamMcpStdioConfig) {
-          const { getTeamGuidePrompt } = await import('@process/team/prompts/teamGuidePrompt.ts');
           const teamGuide = getTeamGuidePrompt('gemini');
           effectivePresetRules = effectivePresetRules ? `${effectivePresetRules}\n\n${teamGuide}` : teamGuide;
         }

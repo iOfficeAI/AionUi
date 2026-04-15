@@ -16,12 +16,14 @@ import { ipcBridge } from '@/common';
 import {
   getSystemDir,
   getAssistantsDir,
+  getAutoSkillsDir,
   getSkillsDir,
   getBuiltinSkillsCopyDir,
   ProcessConfig,
 } from '@process/utils/initStorage';
 import { readDirectoryRecursive } from '@process/utils';
 import { getDatabase } from '@process/services/database';
+import { AcpSkillManager } from '@process/task/AcpSkillManager';
 import type { IWorkspaceFlatFile } from '@/common/adapter/ipcBridge';
 
 // ============================================================================
@@ -1730,7 +1732,6 @@ export function initFsBridge(): void {
   // Skills Market: inject the aionui-skills builtin skill
   ipcBridge.fs.enableSkillsMarket.provider(async () => {
     try {
-      const { getAutoSkillsDir } = await import('@process/utils/initStorage');
       const skillDir = path.join(getAutoSkillsDir(), 'aionui-skills');
       await fs.mkdir(skillDir, { recursive: true });
 
@@ -1740,7 +1741,6 @@ export function initFsBridge(): void {
       await fs.writeFile(path.join(skillDir, 'SKILL.md'), content, 'utf-8');
 
       // Reset AcpSkillManager singleton so it re-discovers builtin skills
-      const { AcpSkillManager } = await import('@process/task/AcpSkillManager');
       AcpSkillManager.resetInstance();
 
       return { success: true, msg: 'Skills Market skill enabled' };
@@ -1756,12 +1756,10 @@ export function initFsBridge(): void {
   // Skills Market: remove the aionui-skills builtin skill
   ipcBridge.fs.disableSkillsMarket.provider(async () => {
     try {
-      const { getAutoSkillsDir } = await import('@process/utils/initStorage');
       const skillDir = path.join(getAutoSkillsDir(), 'aionui-skills');
       await fs.rm(skillDir, { recursive: true, force: true });
 
       // Reset AcpSkillManager singleton so it re-discovers builtin skills
-      const { AcpSkillManager } = await import('@process/task/AcpSkillManager');
       AcpSkillManager.resetInstance();
 
       return { success: true, msg: 'Skills Market skill disabled' };

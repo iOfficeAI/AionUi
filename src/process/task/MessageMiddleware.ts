@@ -7,6 +7,7 @@
 import type { TMessage } from '@/common/chat/chatLib';
 import { ipcBridge } from '@/common';
 import type { AcpBackendAll } from '@/common/types/acpTypes';
+import { cronService } from '@process/services/cron/cronServiceSingleton';
 import { detectCronCommands, stripCronCommands, type CronCommand } from './CronCommandDetector';
 import { hasThinkTags, stripThinkTags } from './ThinkTagDetector';
 
@@ -193,10 +194,6 @@ async function handleCronCommands(
   commands: CronCommand[]
 ): Promise<string[]> {
   const responses: string[] = [];
-  // Lazily resolve the singleton to avoid the startup cycle:
-  // workerTaskManagerSingleton -> AgentManager -> MessageMiddleware
-  // -> cronServiceSingleton -> workerTaskManagerSingleton
-  const { cronService } = await import('@process/services/cron/cronServiceSingleton');
 
   for (const cmd of commands) {
     try {

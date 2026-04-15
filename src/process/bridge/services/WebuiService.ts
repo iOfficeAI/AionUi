@@ -6,6 +6,7 @@
 
 import { networkInterfaces } from 'os';
 import type { IWebUIStatus } from '@/common/adapter/ipcBridge';
+import { clearInitialAdminPassword, getInitialAdminPassword } from '@process/webserver/auth/bootstrapAdminState';
 import { AuthService } from '@process/webserver/auth/service/AuthService';
 import { UserRepository } from '@process/webserver/auth/repository/UserRepository';
 import { AUTH_CONFIG, SERVER_CONFIG } from '@process/webserver/config/constants';
@@ -15,39 +16,6 @@ import { AUTH_CONFIG, SERVER_CONFIG } from '@process/webserver/config/constants'
  * WebUI Service Layer - Encapsulates all WebUI-related business logic
  */
 export class WebuiService {
-  private static webServerFunctionsLoaded = false;
-  private static _getInitialAdminPassword: (() => string | null) | null = null;
-  private static _clearInitialAdminPassword: (() => void) | null = null;
-
-  /**
-   * 加载 webserver 函数（避免循环依赖）
-   * Load webserver functions (avoid circular dependency)
-   */
-  private static async loadWebServerFunctions(): Promise<void> {
-    if (this.webServerFunctionsLoaded) return;
-
-    const webServer = await import('@process/webserver/index');
-    this._getInitialAdminPassword = webServer.getInitialAdminPassword;
-    this._clearInitialAdminPassword = webServer.clearInitialAdminPassword;
-    this.webServerFunctionsLoaded = true;
-  }
-
-  /**
-   * 获取初始管理员密码
-   * Get initial admin password
-   */
-  private static getInitialAdminPassword(): string | null {
-    return this._getInitialAdminPassword?.() ?? null;
-  }
-
-  /**
-   * 清除初始管理员密码
-   * Clear initial admin password
-   */
-  private static clearInitialAdminPassword(): void {
-    this._clearInitialAdminPassword?.();
-  }
-
   /**
    * 获取局域网 IP 地址
    * Get LAN IP address
@@ -94,7 +62,6 @@ export class WebuiService {
    * Get admin user (with auto-loading)
    */
   static async getAdminUser() {
-    await this.loadWebServerFunctions();
     const adminUser = await UserRepository.getPrimaryWebUIUser();
     if (!adminUser) {
       throw new Error('WebUI user not found');
@@ -114,8 +81,6 @@ export class WebuiService {
       allowRemote: boolean;
     } | null
   ): Promise<IWebUIStatus> {
-    await this.loadWebServerFunctions();
-
     const adminUser = await UserRepository.getPrimaryWebUIUser();
     const running = webServerInstance !== null;
     const port = webServerInstance?.port ?? SERVER_CONFIG.DEFAULT_PORT;
@@ -133,7 +98,7 @@ export class WebuiService {
       networkUrl,
       lanIP: lanIP ?? undefined,
       adminUsername: adminUser?.username ?? AUTH_CONFIG.DEFAULT_USER.USERNAME,
-      initialPassword: this.getInitialAdminPassword() ?? undefined,
+      initialPassword: getInitialAdminPassword() ?? undefined,
     };
   }
 
@@ -158,7 +123,7 @@ export class WebuiService {
     await AuthService.invalidateAllTokens();
 
     // 清除初始密码（用户已修改密码）/ Clear initial password (user has changed password)
-    this.clearInitialAdminPassword();
+    clearInitialAdminPassword();
   }
 
   static async changeUsername(newUsername: string): Promise<string> {
@@ -203,7 +168,7 @@ export class WebuiService {
     await AuthService.invalidateAllTokens();
 
     // 清除旧的初始密码 / Clear old initial password
-    this.clearInitialAdminPassword();
+    clearInitialAdminPassword();
 
     return newPassword;
   }
