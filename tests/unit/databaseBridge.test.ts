@@ -38,6 +38,7 @@ vi.mock('@/common', () => ({
       updateApiEnabled: makeChannel('updateApiEnabled'),
       saveApiConfig: makeChannel('saveApiConfig'),
       searchConversationMessages: makeChannel('searchConversationMessages'),
+      searchManagedConversations: makeChannel('searchManagedConversations'),
     },
   },
 }));
@@ -71,6 +72,7 @@ function makeRepo(overrides?: Partial<IConversationRepository>): IConversationRe
     getUserConversations: vi.fn(() => ({ data: [], total: 0, hasMore: false })),
     listAllConversations: vi.fn(() => []),
     searchMessages: vi.fn(() => ({ items: [], total: 0, page: 0, pageSize: 20, hasMore: false })),
+    searchConversationsForManagement: vi.fn(() => ({ items: [], total: 0, page: 0, pageSize: 20, hasMore: false })),
     ...overrides,
   };
 }
@@ -218,6 +220,69 @@ describe('databaseBridge', () => {
 
       const result = await handlers['searchConversationMessages'](undefined);
 
+      expect(result).toEqual({ items: [], total: 0, page: 0, pageSize: 20, hasMore: false });
+    });
+  });
+
+  describe('searchManagedConversations', () => {
+    it('returns paginated session management results from repo', async () => {
+      const searchResult = {
+        items: [{ id: 'c1', name: 'Workspace Audit', type: 'codex', extra: { workspace: '/tmp/project' } }],
+        total: 1,
+        page: 0,
+        pageSize: 20,
+        hasMore: false,
+      };
+      vi.mocked(repo.searchConversationsForManagement).mockReturnValue(searchResult as never);
+
+      const result = await handlers['searchManagedConversations']({
+        category: 'codex',
+        workspaceKeyword: 'project',
+        keyword: 'audit',
+      });
+
+      expect(repo.searchConversationsForManagement).toHaveBeenCalledWith({
+        category: 'codex',
+        workspaceKeyword: 'project',
+        keyword: 'audit',
+        page: 0,
+        pageSize: 20,
+      });
+      expect(result).toEqual(searchResult);
+    });
+
+    it('returns empty result when repo throws', async () => {
+      vi.mocked(repo.searchConversationsForManagement).mockImplementation(() => {
+        throw new Error('management search error');
+      });
+
+      const result = await handlers['searchManagedConversations']({
+        category: 'all',
+        page: 1,
+        pageSize: 10,
+      });
+
+      expect(result).toEqual({ items: [], total: 0, page: 1, pageSize: 10, hasMore: false });
+    });
+
+    it('does not throw when called with undefined params', async () => {
+      vi.mocked(repo.searchConversationsForManagement).mockReturnValue({
+        items: [],
+        total: 0,
+        page: 0,
+        pageSize: 20,
+        hasMore: false,
+      });
+
+      const result = await handlers['searchManagedConversations'](undefined);
+
+      expect(repo.searchConversationsForManagement).toHaveBeenCalledWith({
+        category: 'all',
+        workspaceKeyword: '',
+        keyword: '',
+        page: 0,
+        pageSize: 20,
+      });
       expect(result).toEqual({ items: [], total: 0, page: 0, pageSize: 20, hasMore: false });
     });
   });

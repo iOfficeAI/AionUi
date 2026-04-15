@@ -678,6 +678,10 @@ export const database = {
     import('../types/database').IMessageSearchResponse,
     { keyword: string; page?: number; pageSize?: number }
   >('database.search-conversation-messages'),
+  searchManagedConversations: bridge.buildProvider<
+    import('../types/database').IManagedConversationSearchResponse,
+    import('../types/database').IManagedConversationSearchParams
+  >('database.search-managed-conversations'),
 };
 
 export const previewHistory = {

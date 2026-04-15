@@ -10,7 +10,11 @@
 
 import type { TChatConversation } from '@/common/config/storage';
 import type { TMessage } from '@/common/chat/chatLib';
-import type { IMessageSearchResponse } from '@/common/types/database';
+import type {
+  IMessageSearchResponse,
+  IManagedConversationSearchParams,
+  IManagedConversationSearchResponse,
+} from '@/common/types/database';
 
 export type PaginatedResult<T> = {
   data: T[];
@@ -34,6 +38,10 @@ export interface IConversationRepository {
   listAllConversations(): Promise<TChatConversation[]>;
   /** Full-text search across conversation messages. */
   searchMessages(keyword: string, page: number, pageSize: number): Promise<IMessageSearchResponse>;
+  /** Search conversations for the settings session management page. */
+  searchConversationsForManagement(
+    params: IManagedConversationSearchParams
+  ): Promise<IManagedConversationSearchResponse>;
   /** List conversations spawned by a specific cron job. */
   getConversationsByCronJob(cronJobId: string): Promise<TChatConversation[]>;
 }

@@ -16,6 +16,7 @@ const mockDb = {
   getConversationMessages: vi.fn(),
   insertMessage: vi.fn(),
   getUserConversations: vi.fn(),
+  searchConversationsForManagement: vi.fn(),
 };
 vi.mock('@process/services/database', () => ({
   getDatabase: vi.fn(() => Promise.resolve(mockDb)),
@@ -96,5 +97,32 @@ describe('SqliteConversationRepository', () => {
     await repo.getUserConversations(undefined, 2, 20);
     // offset=2, limit=20 → page = Math.floor(2/20) = 0, pageSize = 20
     expect(mockDb.getUserConversations).toHaveBeenCalledWith(undefined, 0, 20);
+  });
+
+  it('searchConversationsForManagement delegates to database search method', async () => {
+    mockDb.searchConversationsForManagement.mockReturnValue({
+      items: [{ id: 'c1', type: 'codex' }],
+      total: 1,
+      page: 0,
+      pageSize: 20,
+      hasMore: false,
+    });
+    const repo = new SqliteConversationRepository();
+    const result = await repo.searchConversationsForManagement({
+      category: 'codex',
+      workspaceKeyword: 'workspace',
+      keyword: 'hello',
+      page: 0,
+      pageSize: 20,
+    });
+
+    expect(mockDb.searchConversationsForManagement).toHaveBeenCalledWith({
+      category: 'codex',
+      workspaceKeyword: 'workspace',
+      keyword: 'hello',
+      page: 0,
+      pageSize: 20,
+    });
+    expect(result.total).toBe(1);
   });
 });

@@ -127,4 +127,26 @@ export function initDatabaseBridge(repo: IConversationRepository): void {
       };
     }
   });
+
+  ipcBridge.database.searchManagedConversations.provider(async (_params) => {
+    const { category = 'all', workspaceKeyword = '', keyword = '', page = 0, pageSize = 20 } = _params ?? {};
+    try {
+      return await repo.searchConversationsForManagement({
+        category,
+        workspaceKeyword,
+        keyword,
+        page,
+        pageSize,
+      });
+    } catch (error) {
+      console.error('[DatabaseBridge] Error searching managed conversations:', error);
+      return {
+        items: [],
+        total: 0,
+        page,
+        pageSize,
+        hasMore: false,
+      };
+    }
+  });
 }

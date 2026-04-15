@@ -8,7 +8,11 @@ import { getDatabase } from '@process/services/database';
 import type { IConversationRepository, PaginatedResult } from './IConversationRepository';
 import type { TChatConversation } from '@/common/config/storage';
 import type { TMessage } from '@/common/chat/chatLib';
-import type { IMessageSearchResponse } from '@/common/types/database';
+import type {
+  IMessageSearchResponse,
+  IManagedConversationSearchParams,
+  IManagedConversationSearchResponse,
+} from '@/common/types/database';
 
 /**
  * SQLite-backed implementation of IConversationRepository.
@@ -91,6 +95,13 @@ export class SqliteConversationRepository implements IConversationRepository {
   async searchMessages(keyword: string, page: number, pageSize: number): Promise<IMessageSearchResponse> {
     const db = await this.getDb();
     return db.searchConversationMessages(keyword, undefined, page, pageSize);
+  }
+
+  async searchConversationsForManagement(
+    params: IManagedConversationSearchParams
+  ): Promise<IManagedConversationSearchResponse> {
+    const db = await this.getDb();
+    return db.searchConversationsForManagement(params);
   }
 
   async getConversationsByCronJob(cronJobId: string): Promise<TChatConversation[]> {

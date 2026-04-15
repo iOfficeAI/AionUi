@@ -13,7 +13,12 @@ import type {
   ConversationTokenUsageRecordInput,
   ConversationTokenUsageSummary,
 } from '@/common/tokenUsage';
-import type { IMessageSearchItem, IMessageSearchResponse } from '@/common/types/database';
+import type {
+  IMessageSearchItem,
+  IMessageSearchResponse,
+  IManagedConversationSearchParams,
+  IManagedConversationSearchResponse,
+} from '@/common/types/database';
 import type { ISqliteDriver } from './drivers/ISqliteDriver';
 import { createDriver } from './drivers/createDriver';
 import fs from 'fs';
@@ -979,6 +984,71 @@ export class AionUIDatabase {
       };
     } catch (error: any) {
       console.error('[Database] Search messages error:', error);
+      return {
+        items: [],
+        total: 0,
+        page,
+        pageSize,
+        hasMore: false,
+      };
+    }
+  }
+
+  searchConversationsForManagement(
+    params: IManagedConversationSearchParams,
+    userId?: string
+  ): IManagedConversationSearchResponse {
+    const { category = 'all', workspaceKeyword = '', keyword = '', page = 0, pageSize = 20 } = params;
+
+    try {
+      const finalUserId = userId || this.defaultUserId;
+      const filters: string[] = ['user_id = ?'];
+      const values: Array<string | number> = [finalUserId];
+
+      if (category !== 'all') {
+        filters.push('type = ?');
+        values.push(category);
+      }
+
+      const trimmedWorkspaceKeyword = workspaceKeyword.trim();
+      if (trimmedWorkspaceKeyword) {
+        filters.push(`COALESCE(json_extract(extra, '$.workspace'), '') LIKE ? ESCAPE '\\'`);
+        values.push(`%${escapeLikePattern(trimmedWorkspaceKeyword)}%`);
+      }
+
+      const trimmedKeyword = keyword.trim();
+      if (trimmedKeyword) {
+        filters.push(`name LIKE ? ESCAPE '\\'`);
+        values.push(`%${escapeLikePattern(trimmedKeyword)}%`);
+      }
+
+      const whereClause = filters.join(' AND ');
+      const countResult = this.db
+        .prepare(`SELECT COUNT(*) as count FROM conversations WHERE ${whereClause}`)
+        .get(...values) as { count: number };
+
+      const rows = this.db
+        .prepare(
+          `
+            SELECT *
+            FROM conversations
+            WHERE ${whereClause}
+            ORDER BY updated_at DESC
+            LIMIT ?
+            OFFSET ?
+          `
+        )
+        .all(...values, pageSize, page * pageSize) as IConversationRow[];
+
+      return {
+        items: rows.map(rowToConversation),
+        total: countResult.count,
+        page,
+        pageSize,
+        hasMore: (page + 1) * pageSize < countResult.count,
+      };
+    } catch (error: any) {
+      console.error('[Database] Search managed conversations error:', error);
       return {
         items: [],
         total: 0,
