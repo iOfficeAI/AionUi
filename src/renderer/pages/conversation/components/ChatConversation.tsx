@@ -214,7 +214,12 @@ const AionrsConversationPanel: React.FC<{ conversation: AionrsConversation; slid
     siderTitle: sliderTitle,
     sider: <ChatSider conversation={conversation} />,
     headerLeft: <AionrsModelSelector selection={modelSelection} />,
-    headerExtra: <CronJobManager conversationId={conversation.id} />,
+    headerExtra: (
+      <CronJobManager
+        conversationId={conversation.id}
+        cronJobId={conversation.extra?.cronJobId as string | undefined}
+      />
+    ),
     workspaceEnabled,
     backend: 'aionrs' as const,
     agentName: presetAssistantInfo?.name,

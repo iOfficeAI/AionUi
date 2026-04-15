@@ -198,7 +198,7 @@
   "deleteInvalidKeys": "Удалить недействительные ключи",
   "testAllKeys": "Тестировать все ключи",
   "addModelPlaceholder": "Выберите или введите ID модели",
-  "customModelSupportNote": "Примечание: пока только Gemini CLI Agent поддерживает пользовательские модели.",
+  "customModelSupportNote": "Примечание: Aion CLI и Gemini CLI Agent поддерживают пользовательские модели.",
   "addModelHint": "Выберите или введите ID модели, и он будет добавлен к этому провайдеру.",
   "addModelSelectedHint": "Готово к добавлению модели: {{model}}",
   "currentModelsLabel": "Текущие модели",

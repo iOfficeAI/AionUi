@@ -201,7 +201,7 @@
   "deleteInvalidKeys": "Delete Invalid Keys",
   "testAllKeys": "Test All Keys",
   "addModelPlaceholder": "Select or enter model ID",
-  "customModelSupportNote": "Note: only Gemini CLI Agent currently supports custom models.",
+  "customModelSupportNote": "Note: Aion CLI and Gemini CLI Agent currently support custom models.",
   "addModelHint": "Pick or type a model ID and it will be appended to this provider.",
   "addModelSelectedHint": "Ready to add model: {{model}}",
   "currentModelsLabel": "Current Models",
