@@ -1,7 +1,7 @@
 // src/process/acp/infra/AgentConnector.ts
 
 import type { Stream } from '@agentclientprotocol/sdk';
-import { AgentConfig } from '@process/acp/types';
+import type { AgentConfig } from '@process/acp/types';
 
 export interface AgentConnector {
   connect(): Promise<ConnectorHandle>;

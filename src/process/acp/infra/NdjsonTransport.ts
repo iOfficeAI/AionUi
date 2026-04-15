@@ -1,8 +1,9 @@
-import type { ChildProcess } from 'node:child_process';
 import type { Stream } from '@agentclientprotocol/sdk';
+import { ndJsonStream } from '@agentclientprotocol/sdk';
 import { Readable, Writable } from 'node:stream';
+import type { ChildProcess } from 'node:child_process';
 
-const HIGH_WATER_MARK = 64; // D6 decision
+const HIGH_WATER_MARK = 64;
 
 type AnyMessage = Record<string, unknown>;
 
@@ -15,69 +16,30 @@ function safeJsonParse(line: string): AnyMessage | null {
 }
 
 export class NdjsonTransport {
+  /**
+   * Create Stream from raw byte streams.
+   * Delegates to SDK's ndJsonStream.
+   */
   static fromByteStreams(rawWritable: WritableStream<Uint8Array>, rawReadable: ReadableStream<Uint8Array>): Stream {
-    const encoder = new TextEncoder();
-    const decoder = new TextDecoder();
-
-    const readable = new ReadableStream<AnyMessage>(
-      {
-        async start(controller) {
-          const reader = rawReadable.getReader();
-          let buffer = '';
-          try {
-            while (true) {
-              const { done, value } = await reader.read();
-              if (done) break;
-              buffer += decoder.decode(value, { stream: true });
-              const lines = buffer.split('\n');
-              buffer = lines.pop()!;
-              for (const line of lines) {
-                const trimmed = line.trim();
-                if (trimmed.length === 0) continue;
-                const msg = safeJsonParse(trimmed);
-                if (msg) controller.enqueue(msg);
-              }
-            }
-            if (buffer.trim().length > 0) {
-              const msg = safeJsonParse(buffer.trim());
-              if (msg) controller.enqueue(msg);
-            }
-            controller.close();
-          } catch (err) {
-            controller.error(err);
-          } finally {
-            reader.releaseLock();
-          }
-        },
-      },
-      new CountQueuingStrategy({ highWaterMark: HIGH_WATER_MARK })
-    );
-
-    const writer = rawWritable.getWriter();
-    const writable = new WritableStream<AnyMessage>({
-      async write(message) {
-        const line = JSON.stringify(message) + '\n';
-        await writer.write(encoder.encode(line));
-      },
-      close() {
-        return writer.close();
-      },
-      abort(reason) {
-        return writer.abort(reason);
-      },
-    });
-
-    return { readable, writable } as Stream;
+    return ndJsonStream(rawWritable, rawReadable);
   }
 
+  /**
+   * Create Stream from a child process's stdio.
+   * Delegates to SDK's ndJsonStream.
+   */
   static fromChildProcess(child: ChildProcess): Stream {
     const stdout = child.stdout!;
     const stdin = child.stdin!;
     const rawReadable = Readable.toWeb(stdout) as ReadableStream<Uint8Array>;
     const rawWritable = Writable.toWeb(stdin) as WritableStream<Uint8Array>;
-    return NdjsonTransport.fromByteStreams(rawWritable, rawReadable);
+    return ndJsonStream(rawWritable, rawReadable);
   }
 
+  /**
+   * Create Stream from a WebSocket connection.
+   * SDK does not provide a WebSocket adapter, so this remains custom.
+   */
   static fromWebSocket(ws: WebSocket): Stream {
     const readable = new ReadableStream<AnyMessage>(
       {

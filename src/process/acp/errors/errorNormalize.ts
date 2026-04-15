@@ -1,19 +1,21 @@
 // src/process/acp/errors/errorNormalize.ts
 
+import { RequestError } from '@agentclientprotocol/sdk';
 import { AcpError, type AcpErrorCode } from '@process/acp/errors/AcpError';
 import { extractAcpError, formatUnknownError } from '@process/acp/errors/errorExtract';
 
-/** ACP JSON-RPC error code → AcpErrorCode + retryable mapping */
+/** SDK JSON-RPC error code → AcpErrorCode + retryable mapping */
 const ACP_CODE_MAP: Record<number, { code: AcpErrorCode; retryable: boolean }> = {
   [-32700]: { code: 'PROTOCOL_ERROR', retryable: true }, // Parse error
   [-32600]: { code: 'PROTOCOL_ERROR', retryable: false }, // Invalid request
   [-32601]: { code: 'AGENT_ERROR', retryable: false }, // Method not found
   [-32602]: { code: 'AGENT_ERROR', retryable: false }, // Invalid params
   [-32603]: { code: 'AGENT_ERROR', retryable: true }, // Internal error
-  [-32001]: { code: 'SESSION_EXPIRED', retryable: false }, // Session not found
-  [-32002]: { code: 'SESSION_EXPIRED', retryable: false }, // Resource not found
-  [-32070]: { code: 'PROMPT_TIMEOUT', retryable: false }, // Timeout
-  [-32071]: { code: 'PERMISSION_CANCELLED', retryable: false }, // Permission denied
+  [-32800]: { code: 'AUTH_REQUIRED', retryable: true }, // Auth required
+  [-32000]: { code: 'SESSION_EXPIRED', retryable: false }, // Resource not found (SDK)
+  [-32001]: { code: 'SESSION_EXPIRED', retryable: false }, // Session not found (legacy)
+  [-32002]: { code: 'SESSION_EXPIRED', retryable: false }, // Resource not found (SDK)
+  [-32042]: { code: 'PERMISSION_CANCELLED', retryable: false }, // Cancelled
 };
 
 const RETRYABLE_ERRNO = new Set(['ECONNREFUSED', 'ECONNRESET', 'EPIPE', 'ETIMEDOUT']);
@@ -36,10 +38,21 @@ export function normalizeError(error: unknown): AcpError {
     }
   }
 
-  // Check for ACP JSON-RPC error payload
+  // Prefer SDK's RequestError — it carries a typed .code
+  if (error instanceof RequestError) {
+    const mapped = ACP_CODE_MAP[error.code];
+    if (mapped) {
+      return new AcpError(mapped.code, error.message, {
+        cause: error,
+        retryable: mapped.retryable,
+      });
+    }
+    return new AcpError('AGENT_ERROR', error.message, { cause: error });
+  }
+
+  // Fallback: legacy recursive extraction for non-SDK errors
   const acpPayload = extractAcpError(error);
   if (acpPayload) {
-    // Special case: auth_required message
     if (
       acpPayload.message.toLowerCase().includes('auth_required') ||
       acpPayload.message.toLowerCase().includes('authentication required')

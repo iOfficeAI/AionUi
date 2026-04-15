@@ -1,48 +1,32 @@
 // src/process/acp/infra/AcpProtocol.ts
 
-import { ClientSideConnection, type Stream } from '@agentclientprotocol/sdk';
-import type { McpServerConfig, PromptContent, ProtocolHandlers, RequestPermissionRequest, SessionNotification } from '@process/acp/types';
+import type {
+  AuthMethod,
+  Client,
+  InitializeResponse,
+  LoadSessionResponse,
+  NewSessionResponse,
+  PromptResponse,
+  SetSessionConfigOptionRequest,
+  Stream,
+  McpServer,
+} from '@agentclientprotocol/sdk';
+import { ClientSideConnection, PROTOCOL_VERSION } from '@agentclientprotocol/sdk';
+import type { PromptContent, ProtocolHandlers } from '@process/acp/types';
 
-// ─── Protocol-layer Types ──────────────────────────────────────
+// ─── Protocol-layer Params ────────────────────────────────────
 
 export type CreateSessionParams = {
   cwd: string;
-  mcpServers?: McpServerConfig[];
+  mcpServers?: McpServer[];
   additionalDirectories?: string[];
 };
 
 export type LoadSessionParams = {
   sessionId: string;
   cwd: string;
-  mcpServers?: McpServerConfig[];
+  mcpServers?: McpServer[];
   additionalDirectories?: string[];
-};
-
-export type PromptResponse = {
-  stopReason: 'end_turn' | 'max_tokens' | 'max_turn_requests' | 'refusal' | 'cancelled';
-  usage?: {
-    inputTokens?: number;
-    outputTokens?: number;
-    cacheReadTokens?: number;
-    cacheWriteTokens?: number;
-  };
-};
-
-export type InitializeResponse = {
-  protocolVersion: string;
-  capabilities: Record<string, unknown>;
-  authMethods?: RawAuthMethod[];
-};
-
-export type RawAuthMethod = {
-  id: string;
-  type: 'env_var' | 'terminal' | 'agent';
-  name: string;
-  description?: string;
-  fields?: Array<{ key: string; label: string; secret: boolean }>;
-  command?: string;
-  args?: string[];
-  env?: Record<string, string>;
 };
 
 export type ProtocolFactory = (stream: Stream, handlers: ProtocolHandlers) => AcpProtocol;
@@ -54,14 +38,11 @@ export class AcpProtocol {
 
   constructor(stream: Stream, handlers: ProtocolHandlers) {
     this.sdk = new ClientSideConnection(
-      (_agent) => ({
-        sessionUpdate: async (params: any) => {
-          handlers.onSessionUpdate(params as SessionNotification);
-        },
-        requestPermission: async (params: any) =>
-          handlers.onRequestPermission(params as RequestPermissionRequest) as any,
-        readTextFile: async (params: any) => handlers.onReadTextFile(params) as any,
-        writeTextFile: async (params: any) => handlers.onWriteTextFile(params) as any,
+      (_agent): Client => ({
+        sessionUpdate: async (params) => handlers.onSessionUpdate(params),
+        requestPermission: async (params) => handlers.onRequestPermission(params),
+        readTextFile: async (params) => handlers.onReadTextFile(params),
+        writeTextFile: async (params) => handlers.onWriteTextFile(params),
       }),
       stream
     );
@@ -70,7 +51,7 @@ export class AcpProtocol {
   async initialize(): Promise<InitializeResponse> {
     const result = await this.sdk.initialize({
       clientInfo: { name: 'AionUi', version: '2.0.0' },
-      protocolVersion: 0.1,
+      protocolVersion: PROTOCOL_VERSION,
       clientCapabilities: {
         fs: {
           readTextFile: true,
@@ -78,71 +59,58 @@ export class AcpProtocol {
         },
       },
     });
-    return result as unknown as InitializeResponse;
+    console.log(`[AcpProtocol] Initialized: \n<- ${JSON.stringify(result)}`);
+    return result;
   }
 
-  async authenticate(credentials?: Record<string, string>): Promise<unknown> {
-    return this.sdk.authenticate({
-      method: 'credentials',
-      ...(credentials ? { credentials } : {}),
-    } as any);
+  async authenticate(methodId: string): Promise<unknown> {
+    return this.sdk.authenticate({ methodId });
   }
 
-  async createSession(params: CreateSessionParams): Promise<unknown> {
+  async createSession(params: CreateSessionParams): Promise<NewSessionResponse> {
     return this.sdk.newSession({
       cwd: params.cwd,
-      mcpServers: params.mcpServers?.map((s) => ({
-        name: s.name,
-        transportType: 'stdio',
-        command: s.command,
-        args: s.args,
-        env: s.env,
-      })) as any,
+      mcpServers: params.mcpServers ?? [],
       additionalDirectories: params.additionalDirectories,
-    } as any);
+    });
   }
 
-  async loadSession(params: LoadSessionParams): Promise<unknown> {
+  async loadSession(params: LoadSessionParams): Promise<LoadSessionResponse> {
     return this.sdk.loadSession({
       sessionId: params.sessionId,
       cwd: params.cwd,
-      mcpServers: params.mcpServers?.map((s) => ({
-        name: s.name,
-        transportType: 'stdio',
-        command: s.command,
-        args: s.args,
-        env: s.env,
-      })) as any,
+      mcpServers: params.mcpServers ?? [],
       additionalDirectories: params.additionalDirectories,
-    } as any);
+    });
   }
 
   async prompt(sessionId: string, content: PromptContent): Promise<PromptResponse> {
-    const result = await this.sdk.prompt({
+    return this.sdk.prompt({
       sessionId,
-      content: content as any,
-    } as any);
-    return result as unknown as PromptResponse;
+      prompt: content,
+    });
   }
 
   async cancel(sessionId: string): Promise<void> {
-    await this.sdk.cancel({ sessionId } as any);
+    await this.sdk.cancel({ sessionId });
   }
 
   async setModel(sessionId: string, modelId: string): Promise<void> {
-    await this.sdk.unstable_setSessionModel({ sessionId, modelId } as any);
+    await this.sdk.unstable_setSessionModel({ sessionId, modelId });
   }
 
   async setMode(sessionId: string, modeId: string): Promise<void> {
-    await this.sdk.setSessionMode({ sessionId, modeId } as any);
+    await this.sdk.setSessionMode({ sessionId, modeId });
   }
 
-  async setConfigOption(sessionId: string, id: string, value: string | boolean): Promise<void> {
-    await this.sdk.setSessionConfigOption({ sessionId, id, value } as any);
+  async setConfigOption(sessionId: string, configId: string, value: string | boolean): Promise<void> {
+    const params: SetSessionConfigOptionRequest =
+      typeof value === 'boolean' ? { sessionId, configId, type: 'boolean', value } : { sessionId, configId, value };
+    await this.sdk.setSessionConfigOption(params);
   }
 
   async closeSession(sessionId: string): Promise<void> {
-    await this.sdk.unstable_closeSession({ sessionId } as any);
+    await this.sdk.unstable_closeSession({ sessionId });
   }
 
   async extMethod(method: string, params: Record<string, unknown>): Promise<unknown> {
@@ -160,3 +128,6 @@ export class AcpProtocol {
 
 /** Default factory for production use. */
 export const defaultProtocolFactory: ProtocolFactory = (stream, handlers) => new AcpProtocol(stream, handlers);
+
+// Re-export SDK types used by downstream modules
+export type { AuthMethod, InitializeResponse, LoadSessionResponse, NewSessionResponse, PromptResponse };
