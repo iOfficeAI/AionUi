@@ -83,5 +83,9 @@
   "import": "Import",
   "processing": "Processing...",
   "optional": "(optional)",
-  "clear": "Clear"
+  "clear": "Clear",
+  "unit": {
+    "minute_short": "m",
+    "second_short": "s"
+  }
 }

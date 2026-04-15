@@ -5,15 +5,31 @@
  */
 
 import { ipcBridge } from '@/common';
+import { ConfigStorage } from '@/common/config/storage';
+import type { AcpSessionConfigOption } from '@/common/types/acpTypes';
 import { getAgentModes, supportsModeSwitch, type AgentModeOption } from '@/renderer/utils/model/agentModes';
 import { useLayoutContext } from '@/renderer/hooks/context/LayoutContext';
 import { iconColors } from '@/renderer/styles/colors';
 import { getAgentLogo } from '@/renderer/utils/model/agentLogo';
 import { Button, Dropdown, Menu, Message } from '@arco-design/web-react';
 import { Down, Robot } from '@icon-park/react';
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import MarqueePillLabel from './MarqueePillLabel';
+
+/**
+ * Extract mode options from cached ACP configOptions.
+ * Looks for a select-type option with category === 'mode' and converts
+ * its choices to AgentModeOption[] format.
+ */
+function extractModesFromConfigOptions(configOptions: AcpSessionConfigOption[]): AgentModeOption[] {
+  const modeOption = configOptions.find((opt) => opt.category === 'mode' && opt.type === 'select' && opt.options);
+  if (!modeOption?.options || modeOption.options.length === 0) return [];
+  return modeOption.options.map((opt) => ({
+    value: opt.value,
+    label: opt.name || opt.label || opt.value,
+  }));
+}
 
 export interface AgentModeSelectorProps {
   /** Agent backend type / 代理后端类型 */
@@ -81,7 +97,53 @@ const AgentModeSelector: React.FC<AgentModeSelectorProps> = ({
   const { t } = useTranslation();
   const layout = useLayoutContext();
   const isMobile = Boolean(layout?.isMobile);
-  const modes = dynamicModes && dynamicModes.length > 0 ? dynamicModes : getAgentModes(backend);
+  const [cachedModes, setCachedModes] = useState<AgentModeOption[]>([]);
+
+  // Load modes from cache: try top-level `acp.cachedModes` first (qoder, opencode),
+  // then fall back to `acp.cachedConfigOptions` category=mode (codex)
+  useEffect(() => {
+    if (!backend) return;
+    let cancelled = false;
+
+    // Try top-level modes cache first
+    ConfigStorage.get('acp.cachedModes')
+      .then((cachedModes) => {
+        if (cancelled) return;
+        const sessionModes = cachedModes?.[backend];
+        if (sessionModes?.availableModes && sessionModes.availableModes.length > 0) {
+          setCachedModes(
+            sessionModes.availableModes.map((m) => ({
+              value: m.id,
+              label: m.name ?? m.id,
+            }))
+          );
+          return;
+        }
+        // Fall back to configOptions with category === 'mode'
+        return ConfigStorage.get('acp.cachedConfigOptions').then((cached) => {
+          if (cancelled) return;
+          const options = cached?.[backend];
+          if (Array.isArray(options)) {
+            const modes = extractModesFromConfigOptions(options as AcpSessionConfigOption[]);
+            if (modes.length > 0) {
+              setCachedModes(modes);
+            }
+          }
+        });
+      })
+      .catch(() => {});
+
+    return () => {
+      cancelled = true;
+    };
+  }, [backend]);
+
+  // Priority: dynamicModes (runtime) > cachedModes (from cache) > getAgentModes (static fallback)
+  const modes = useMemo(() => {
+    if (dynamicModes && dynamicModes.length > 0) return dynamicModes;
+    if (cachedModes.length > 0) return cachedModes;
+    return getAgentModes(backend);
+  }, [dynamicModes, cachedModes, backend]);
   const defaultMode = modes[0]?.value ?? 'default';
   // Validate initialMode against available modes; fall back to backend's default
   // when the provided value doesn't match (e.g. opencode has 'build'/'plan', not 'default')
@@ -94,7 +156,7 @@ const AgentModeSelector: React.FC<AgentModeSelectorProps> = ({
     [modeLabelFormatter]
   );
 
-  const canSwitchMode = supportsModeSwitch(backend) && (conversationId || onModeSelect);
+  const canSwitchMode = (supportsModeSwitch(backend) || modes.length > 0) && (conversationId || onModeSelect);
   // Mobile conversation header agent pill is display-only by design.
   const canInteract = canSwitchMode && !(compact && compactLabelType === 'agent');
 

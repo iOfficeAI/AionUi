@@ -172,6 +172,10 @@ function setupMocks(overrides?: {
         return geminiConfig;
       case 'gemini.defaultModel':
         return null;
+      case 'aionrs.config':
+        return null;
+      case 'aionrs.defaultModel':
+        return null;
       default:
         return null;
     }

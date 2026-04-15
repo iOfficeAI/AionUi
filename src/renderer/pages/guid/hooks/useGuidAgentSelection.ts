@@ -289,7 +289,13 @@ export const useGuidAgentSelection = ({
       .then((cached) => {
         if (!isActive) return;
         const options = cached?.[backend];
-        setCachedConfigOptions(Array.isArray(options) ? options : []);
+        // Filter out model/mode categories — those are handled by AcpModelSelector / AgentModeSelector
+        const filtered = Array.isArray(options)
+          ? (options as Array<{ category?: string }>).filter(
+              (opt) => opt.category !== 'model' && opt.category !== 'mode'
+            )
+          : [];
+        setCachedConfigOptions(filtered as AcpSessionConfigOption[]);
         setPendingConfigOptions({});
       })
       .catch(() => {
@@ -357,6 +363,9 @@ export const useGuidAgentSelection = ({
           const config = await ConfigStorage.get('gemini.config');
           preferred = config?.preferredMode;
           yoloMode = config?.yoloMode ?? false;
+        } else if (configKey === 'aionrs') {
+          const config = await ConfigStorage.get('aionrs.config');
+          preferred = config?.preferredMode;
         } else {
           const config = await ConfigStorage.get('acp.config');
           const backendConfig = config?.[configKey as AcpBackend] as Record<string, unknown> | undefined;

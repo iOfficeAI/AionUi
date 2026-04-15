@@ -37,6 +37,8 @@ export function normalizeLanguageCode(language: string): SupportedLanguage {
       return 'tr-TR';
     case 'ru':
       return 'ru-RU';
+    case 'uk':
+      return 'uk-UA';
     default:
       return DEFAULT_LANGUAGE;
   }

@@ -1293,8 +1293,8 @@ export const team = {
   remove: bridge.buildProvider<void, { id: string }>('team.remove'),
   addAgent: bridge.buildProvider<import('@process/team/types').TeamAgent, IAddTeamAgentParams>('team.add-agent'),
   removeAgent: bridge.buildProvider<void, { teamId: string; slotId: string }>('team.remove-agent'),
-  sendMessage: bridge.buildProvider<void, { teamId: string; content: string }>('team.send-message'),
-  sendMessageToAgent: bridge.buildProvider<void, { teamId: string; slotId: string; content: string }>(
+  sendMessage: bridge.buildProvider<void, { teamId: string; content: string; files?: string[] }>('team.send-message'),
+  sendMessageToAgent: bridge.buildProvider<void, { teamId: string; slotId: string; content: string; files?: string[] }>(
     'team.send-message-to-agent'
   ),
   stop: bridge.buildProvider<void, { teamId: string }>('team.stop'),

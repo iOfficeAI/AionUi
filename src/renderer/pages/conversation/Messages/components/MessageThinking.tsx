@@ -10,21 +10,6 @@ import React, { useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import styles from './MessageThinking.module.css';
 
-const formatDuration = (ms: number): string => {
-  const seconds = Math.floor(ms / 1000);
-  if (seconds < 60) return `${seconds}s`;
-  const minutes = Math.floor(seconds / 60);
-  const remaining = seconds % 60;
-  return `${minutes}m ${remaining}s`;
-};
-
-const formatElapsedTime = (seconds: number): string => {
-  if (seconds < 60) return `${seconds}s`;
-  const minutes = Math.floor(seconds / 60);
-  const remaining = seconds % 60;
-  return `${minutes}m ${remaining}s`;
-};
-
 const getFirstLine = (content: string): string => {
   const firstLine = content.split('\n')[0] || '';
   return firstLine.length > 80 ? firstLine.slice(0, 80) + '...' : firstLine;
@@ -32,6 +17,28 @@ const getFirstLine = (content: string): string => {
 
 const MessageThinking: React.FC<{ message: IMessageThinking }> = ({ message }) => {
   const { t } = useTranslation();
+
+  const formatDuration = (ms: number): string => {
+    const seconds = Math.floor(ms / 1000);
+    const sUnit = t('common.unit.second_short', { defaultValue: 's' });
+    const mUnit = t('common.unit.minute_short', { defaultValue: 'm' });
+
+    if (seconds < 60) return `${seconds}${sUnit}`;
+    const minutes = Math.floor(seconds / 60);
+    const remaining = seconds % 60;
+    return `${minutes}${mUnit} ${remaining}${sUnit}`;
+  };
+
+  const formatElapsedTime = (seconds: number): string => {
+    const sUnit = t('common.unit.second_short', { defaultValue: 's' });
+    const mUnit = t('common.unit.minute_short', { defaultValue: 'm' });
+
+    if (seconds < 60) return `${seconds}${sUnit}`;
+    const minutes = Math.floor(seconds / 60);
+    const remaining = seconds % 60;
+    return `${minutes}${mUnit} ${remaining}${sUnit}`;
+  };
+
   const { content: text, status, duration, subject } = message.content;
   const isDone = status === 'done';
   const [expanded, setExpanded] = useState(!isDone);

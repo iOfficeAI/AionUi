@@ -110,6 +110,36 @@ describe('Mailbox', () => {
       expect(arg.summary).toBe('brief summary');
     });
 
+    it('passes through optional files array', async () => {
+      const persisted = makeMessage({ files: ['/tmp/a.png', '/tmp/b.txt'] });
+      vi.mocked(repo.writeMessage).mockResolvedValue(persisted);
+
+      await mailbox.write({
+        teamId: 'team-1',
+        toAgentId: 'slot-2',
+        fromAgentId: 'slot-1',
+        content: 'With files',
+        files: ['/tmp/a.png', '/tmp/b.txt'],
+      });
+
+      const arg = vi.mocked(repo.writeMessage).mock.calls[0][0];
+      expect(arg.files).toEqual(['/tmp/a.png', '/tmp/b.txt']);
+    });
+
+    it('leaves files undefined when not provided', async () => {
+      vi.mocked(repo.writeMessage).mockResolvedValue(makeMessage());
+
+      await mailbox.write({
+        teamId: 'team-1',
+        toAgentId: 'slot-2',
+        fromAgentId: 'slot-1',
+        content: 'No files',
+      });
+
+      const arg = vi.mocked(repo.writeMessage).mock.calls[0][0];
+      expect(arg.files).toBeUndefined();
+    });
+
     it('assigns unique IDs to each message', async () => {
       const ids: string[] = [];
       vi.mocked(repo.writeMessage).mockImplementation(async (msg) => {

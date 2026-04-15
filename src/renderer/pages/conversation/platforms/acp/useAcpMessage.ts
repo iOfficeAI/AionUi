@@ -319,10 +319,20 @@ export const useAcpMessage = (conversation_id: string): UseAcpMessageReturn => {
     setTokenUsage(null);
     setContextLimit(0);
     hasContentInTurnRef.current = false;
+    turnFinishedRef.current = false;
+    hasThinkingMessageRef.current = false;
+    setHasThinkingMessage(false);
     setHasHydratedRunningState(false);
 
-    // Check actual conversation status from backend before resetting running/aiProcessing
-    // to avoid flicker when switching to a running conversation
+    // Clear running/processing immediately for the new conversation. Hydration only
+    // turns these back on when the backend reports status === 'running'. Otherwise
+    // conversation.get's idle branch raced with useAcpInitialMessage's
+    // setAiProcessing(true) and hid ThoughtDisplay until the first stream event.
+    setRunning(false);
+    runningRef.current = false;
+    setAiProcessing(false);
+    aiProcessingRef.current = false;
+
     void ipcBridge.conversation.get.invoke({ id: conversation_id }).then((res) => {
       if (cancelled) {
         return;
@@ -339,8 +349,10 @@ export const useAcpMessage = (conversation_id: string): UseAcpMessageReturn => {
       const isRunning = res.status === 'running';
       setRunning(isRunning);
       runningRef.current = isRunning;
-      setAiProcessing(isRunning);
-      aiProcessingRef.current = isRunning;
+      if (isRunning) {
+        setAiProcessing(true);
+        aiProcessingRef.current = true;
+      }
       setHasHydratedRunningState(true);
 
       // Restore persisted context usage data

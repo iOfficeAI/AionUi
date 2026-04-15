@@ -570,11 +570,14 @@ describe('Stress — rapid state transitions in TeammateManager', () => {
 
   it('activeWakes dedup: 10 concurrent wake() calls only executes once', async () => {
     const agent = makeAgent({ slotId: 'slot-1', status: 'idle' });
-    const { mgr, workerTaskManager } = makeRealStack([agent]);
+    const { mgr, mailbox, workerTaskManager } = makeRealStack([agent]);
     const mockSendMessage = vi.fn().mockResolvedValue(undefined);
     vi.mocked(workerTaskManager.getOrBuildTask).mockResolvedValue({
       sendMessage: mockSendMessage,
     } as never);
+
+    // Write a message so wake() has something to deliver
+    await mailbox.write({ teamId: 'team-stress', toAgentId: 'slot-1', fromAgentId: 'system', content: 'trigger' });
 
     // Fire 10 concurrent wakes
     await Promise.all(Array.from({ length: 10 }, () => mgr.wake('slot-1')));
@@ -595,11 +598,14 @@ describe('Stress — rapid state transitions in TeammateManager', () => {
    */
   it('second wake after activeWakes cleared: second finalizeTurn processes correctly (regression for finalizedTurns dedup fix)', async () => {
     const agent = makeAgent({ slotId: 'slot-1', conversationId: 'conv-1', status: 'idle', role: 'lead' });
-    const { mgr, workerTaskManager } = makeRealStack([agent]);
+    const { mgr, mailbox, workerTaskManager } = makeRealStack([agent]);
     const mockSendMessage = vi.fn().mockResolvedValue(undefined);
     vi.mocked(workerTaskManager.getOrBuildTask).mockResolvedValue({
       sendMessage: mockSendMessage,
     } as never);
+
+    // Write messages so wake() has something to deliver
+    await mailbox.write({ teamId: 'team-stress', toAgentId: 'slot-1', fromAgentId: 'system', content: 'trigger-1' });
 
     // First wake — sends message, clears activeWakes
     await mgr.wake('slot-1');
@@ -616,6 +622,7 @@ describe('Stress — rapid state transitions in TeammateManager', () => {
 
     // activeWakes was cleared by wake(), so second wake() proceeds.
     // The fix: wake() also clears finalizedTurns for conv-1.
+    await mailbox.write({ teamId: 'team-stress', toAgentId: 'slot-1', fromAgentId: 'system', content: 'trigger-2' });
     await mgr.wake('slot-1');
     expect(mockSendMessage).toHaveBeenCalledTimes(2); // Second message sent
 
@@ -750,11 +757,18 @@ describe('Stress — rapid state transitions in TeammateManager', () => {
     vi.useFakeTimers();
     try {
       const agent = makeAgent({ slotId: 'slot-timeout', status: 'idle', conversationId: 'conv-timeout' });
-      const { mgr, workerTaskManager } = makeRealStack([agent]);
+      const { mgr, mailbox, workerTaskManager } = makeRealStack([agent]);
       vi.mocked(workerTaskManager.getOrBuildTask).mockResolvedValue({
         sendMessage: vi.fn().mockResolvedValue(undefined),
       } as never);
 
+      // Write a message so wake() has something to deliver
+      await mailbox.write({
+        teamId: 'team-stress',
+        toAgentId: 'slot-timeout',
+        fromAgentId: 'system',
+        content: 'trigger',
+      });
       await mgr.wake('slot-timeout');
 
       // Agent is active; no finish event ever arrives

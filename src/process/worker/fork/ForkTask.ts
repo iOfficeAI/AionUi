@@ -23,6 +23,7 @@ export class ForkTask<Data> extends Pipe {
   protected fcp: IWorkerProcess | undefined;
   private killFn: () => void;
   private enableFork: boolean;
+  private childExitExpected = false;
   constructor(path: string, data: Data, enableFork = true) {
     super(true);
     this.path = path;
@@ -36,6 +37,7 @@ export class ForkTask<Data> extends Pipe {
   }
   kill() {
     if (this.fcp) {
+      this.childExitExpected = true;
       this.fcp.kill();
     }
     process.off('exit', this.killFn);
@@ -54,13 +56,16 @@ export class ForkTask<Data> extends Pipe {
       cwd: workerCwd,
       env: workerEnv,
     });
+    this.childExitExpected = false;
     // 接受子进程发送的消息
     fcp.on('message', (...args: unknown[]) => {
       const e = args[0] as IForkData;
       if (e.type === 'complete') {
+        this.childExitExpected = true;
         fcp.kill();
         this.emit('complete', e.data);
       } else if (e.type === 'error') {
+        this.childExitExpected = true;
         fcp.kill();
         this.emit('error', e.data);
       } else {
@@ -78,6 +83,17 @@ export class ForkTask<Data> extends Pipe {
     });
     fcp.on('error', (...args: unknown[]) => {
       this.emit('error', args[0] as Error);
+    });
+    fcp.on('exit', (code: number | null, signal: NodeJS.Signals | null) => {
+      const expected = this.childExitExpected;
+      this.childExitExpected = false;
+      if (this.fcp === fcp) {
+        this.fcp = undefined;
+      }
+
+      if (!expected) {
+        this.emit('exit', { code, signal });
+      }
     });
     this.fcp = fcp;
   }

@@ -36,6 +36,7 @@ const LanguageSwitcher: React.FC = () => {
         <AionSelect.Option value='ko-KR'>한국어</AionSelect.Option>
         <AionSelect.Option value='tr-TR'>Türkçe</AionSelect.Option>
         <AionSelect.Option value='ru-RU'>Русский</AionSelect.Option>
+        <AionSelect.Option value='uk-UA'>Українська</AionSelect.Option>
         <AionSelect.Option value='en-US'>English</AionSelect.Option>
       </AionSelect>
     </div>

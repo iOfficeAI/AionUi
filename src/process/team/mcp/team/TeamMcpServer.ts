@@ -58,7 +58,7 @@ export class TeamMcpServer {
   /** Start the TCP server and return the stdio config for injection into ACP sessions */
   async start(): Promise<StdioMcpConfig> {
     this.tcpServer = net.createServer((socket) => {
-      console.log(`[TeamMcpServer] TCP connection received from ${socket.remoteAddress}:${socket.remotePort}`);
+      console.debug(`[TeamMcpServer] TCP connection received from ${socket.remoteAddress}:${socket.remotePort}`);
       this.handleTcpConnection(socket);
     });
 

@@ -23,6 +23,7 @@ vi.mock('../../src/process/agent/acp/AcpConnection', () => ({
     getInitializeResponse = mockGetInitializeResponse;
     getConfigOptions = vi.fn().mockReturnValue(null);
     getModels = vi.fn().mockReturnValue(null);
+    getModes = vi.fn().mockReturnValue(null);
     setPromptTimeout = vi.fn();
     onSessionUpdate: unknown = undefined;
     onPermissionRequest: unknown = undefined;

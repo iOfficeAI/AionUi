@@ -1,0 +1,19 @@
+{
+  "plan": "Режим планування",
+  "default": "За замовчуванням",
+  "acceptEdits": "Приймати правки",
+  "autoEdit": "Авторедагування",
+  "auto_edit": "Авторедагування",
+  "yolo": "YOLO",
+  "yoloNoSandbox": "Повний автопілот (без пісочниці)",
+  "auto": "Авто",
+  "dontAsk": "Не запитувати",
+  "bypass": "Обхід (YOLO)",
+  "bypassPermissions": "YOLO",
+  "smart": "Розумний",
+  "build": "Режим збірки",
+  "permission": "Дозвіл",
+  "switchMode": "Змінити режим",
+  "switchSuccess": "Режим успішно змінено",
+  "switchFailed": "Не вдалося змінити режим"
+}

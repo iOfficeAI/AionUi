@@ -862,10 +862,8 @@ ${collectedResponses.join('\n')}`;
       }
     }
 
-    const modelInfo = this.agent.getModelInfo();
-    if (modelInfo && modelInfo.availableModels?.length > 0) {
-      void this.cacheModelList(modelInfo);
-    }
+    // Note: model list caching is now handled by AcpAgent.cacheSessionCapabilities()
+    // during start(), so we don't need to call cacheModelList() here.
   }
 
   // ── initAgent ────────────────────────────────────────────────────────
@@ -1012,7 +1010,9 @@ ${collectedResponses.join('\n')}`;
               parts.push(getTeamGuidePrompt(this.options.backend));
             }
             if (parts.length > 0) {
-              contentToSend = `[Assistant Rules - You MUST follow these instructions]\n${parts.join('\n\n')}\n\n[User Request]\n${contentToSend}`;
+              contentToSend = `[Assistant Rules - You MUST follow these instructions]\n${parts.join(
+                '\n\n'
+              )}\n\n[User Request]\n${contentToSend}`;
             }
           } else {
             // Custom workspace or no native support — inject rules + skills via prompt
@@ -1046,7 +1046,9 @@ ${collectedResponses.join('\n')}`;
       const agentSendStart = Date.now();
       const result = await this.sendAgentMessageWithFinishFallback(data);
       console.log(
-        `[ACP-PERF] manager: agent.sendMessage completed ${Date.now() - agentSendStart}ms (total manager.sendMessage: ${Date.now() - managerSendStart}ms)`
+        `[ACP-PERF] manager: agent.sendMessage completed ${Date.now() - agentSendStart}ms (total manager.sendMessage: ${
+          Date.now() - managerSendStart
+        }ms)`
       );
       if (!result.success) {
         this.clearBusyState();
@@ -1346,6 +1348,20 @@ ${collectedResponses.join('\n')}`;
       const sandboxMode = getCodexSandboxModeForSessionMode(mode, this.options.sandboxMode);
       this.options.sandboxMode = sandboxMode;
       await writeCodexSandboxMode(sandboxMode);
+      this.saveSessionMode(mode);
+
+      if (this.isYoloMode(prev) && !this.isYoloMode(mode)) {
+        void this.clearLegacyYoloConfig();
+      }
+      return { success: true, data: { mode: this.currentMode } };
+    }
+
+    // Snow CLI does not support ACP session/set_mode — it returns "Method not found".
+    // Like Codex, manage mode at the Manager layer only.
+    if (this.options.backend === 'snow') {
+      const prev = this.currentMode;
+      this.currentMode = mode;
+      this.yoloMode = this.isYoloMode(mode);
       this.saveSessionMode(mode);
 
       if (this.isYoloMode(prev) && !this.isYoloMode(mode)) {
