@@ -14,28 +14,6 @@
  * When adding a new backend, simply add it here.
  */
 
-/**
- * 预设助手的主 Agent 类型，用于决定创建哪种类型的对话
- * The primary agent type for preset assistants, used to determine which conversation type to create.
- */
-export type PresetAgentType = 'gemini' | 'claude' | 'codex' | 'codebuddy' | 'opencode' | 'qwen' | 'kiro';
-
-/**
- * 使用 ACP 协议的预设 Agent 类型（需要通过 ACP 后端路由）
- * Preset agent types that use ACP protocol (need to be routed through ACP backend)
- *
- * 这些类型会在创建对话时使用对应的 ACP 后端，而不是 Gemini 原生对话
- * These types will use corresponding ACP backend when creating conversation, instead of native Gemini
- */
-export const ACP_ROUTED_PRESET_TYPES: readonly PresetAgentType[] = [
-  'claude',
-  'codebuddy',
-  'opencode',
-  'codex',
-  'qwen',
-  'kiro',
-] as const;
-
 export const CODEX_ACP_BRIDGE_VERSION = '0.9.5';
 export const CODEX_ACP_NPX_PACKAGE = `@zed-industries/codex-acp@${CODEX_ACP_BRIDGE_VERSION}`;
 
@@ -45,18 +23,11 @@ export const CLAUDE_ACP_NPX_PACKAGE = `@zed-industries/claude-agent-acp@${CLAUDE
 export const CODEBUDDY_ACP_BRIDGE_VERSION = '2.73.0';
 export const CODEBUDDY_ACP_NPX_PACKAGE = `@tencent-ai/codebuddy-code@${CODEBUDDY_ACP_BRIDGE_VERSION}`;
 
-/**
- * 检查预设 Agent 类型是否需要通过 ACP 后端路由
- * Check if preset agent type should be routed through ACP backend
- */
-export function isAcpRoutedPresetType(type: PresetAgentType | undefined): boolean {
-  return type !== undefined && ACP_ROUTED_PRESET_TYPES.includes(type);
-}
-
-// 全部后端类型定义 - 包括暂时不支持的 / All backend types - including temporarily unsupported ones
+// ACP 后端类型定义 — 仅包含 ACP 协议相关的后端
+// ACP backend types — only ACP protocol backends
 export type AcpBackendAll =
   | 'claude' // Claude ACP
-  | 'gemini' // Google Gemini ACP
+  // | 'gemini' // Google Gemini — not an ACP agent, handled by AgentRegistry directly
   | 'qwen' // Qwen Code ACP
   | 'iflow' // iFlow CLI ACP
   | 'codex' // OpenAI Codex ACP (via codex-acp bridge)
@@ -68,16 +39,15 @@ export type AcpBackendAll =
   | 'opencode' // OpenCode CLI
   | 'copilot' // GitHub Copilot CLI
   | 'qoder' // Qoder CLI
-  | 'openclaw-gateway' // OpenClaw Gateway WebSocket
   | 'vibe' // Mistral Vibe CLI
-  | 'nanobot' // nanobot CLI
   | 'cursor' // Cursor AI Agent CLI
   | 'kiro' // Kiro CLI (AWS)
   | 'hermes' // Hermes Agent CLI (Nous Research)
   | 'snow' // Snow AI CLI
-  | 'remote' // Remote agent (WebSocket, no local CLI)
-  | 'aionrs' // Aion CLI agent (Rust binary, JSON Lines protocol)
-  | 'custom'; // User-configured custom ACP agent
+  | 'custom'; // User-configured custom ACP agent (extension adapters)
+
+// Superset type covering all execution engine backends (ACP + non-ACP).
+export type AgentBackend = AcpBackendAll | 'gemini' | 'remote' | 'aionrs' | 'nanobot' | 'openclaw-gateway';
 
 /**
  * 潜在的 ACP CLI 工具列表
@@ -104,19 +74,18 @@ const DEFAULT_ACP_ARGS = ['--experimental-acp'];
 
 /**
  * 从 ACP_BACKENDS_ALL 生成可检测的 CLI 列表
- * 仅包含有 cliCommand 且已启用的后端（排除 gemini 和 custom）
+ * 仅包含有 cliCommand 且已启用的后端（排除 custom）
  * Generate detectable CLI list from ACP_BACKENDS_ALL
- * Only includes enabled backends with cliCommand (excludes gemini and custom)
+ * Only includes enabled backends with cliCommand (excludes custom)
  */
 function generatePotentialAcpClis(): PotentialAcpCli[] {
   // 需要在 ACP_BACKENDS_ALL 定义之后调用，所以使用延迟初始化
   // Must be called after ACP_BACKENDS_ALL is defined, so use lazy initialization
   return Object.entries(ACP_BACKENDS_ALL)
     .filter(([id, config]) => {
-      // 排除没有 CLI 命令的后端（gemini 内置，custom 用户配置，aionrs 非 ACP 类型）
-      // Exclude backends without CLI command (gemini is built-in, custom is user-configured, aionrs is not ACP type)
+      // Exclude backends without CLI command (custom is user-configured)
       if (!config.cliCommand) return false;
-      if (id === 'gemini' || id === 'custom' || id === 'aionrs') return false;
+      if (id === 'custom') return false;
       return config.enabled;
     })
     .map(([id, config]) => ({
@@ -301,7 +270,7 @@ export interface AcpBackendConfig {
    * - any string: Extension-contributed ACP adapter ID (e.g. 'ext-buddy')
    * Defaults to 'gemini' for backward compatibility.
    */
-  presetAgentType?: PresetAgentType | string;
+  presetAgentType?: string;
 
   /**
    * 此助手可用的模型列表（仅 isPreset=true 时生效）
@@ -354,15 +323,16 @@ export const ACP_BACKENDS_ALL: Record<AcpBackendAll, AcpBackendConfig> = {
     supportsStreaming: false,
     skillsDirs: ['.claude/skills'],
   },
-  gemini: {
-    id: 'gemini',
-    name: 'Google CLI',
-    cliCommand: 'gemini',
-    authRequired: true,
-    enabled: false,
-    supportsStreaming: true,
-    skillsDirs: ['.gemini/skills'],
-  },
+  // gemini: not an ACP agent — handled by AgentRegistry as a dedicated DetectedAgentKind
+  // gemini: {
+  //   id: 'gemini',
+  //   name: 'Google CLI',
+  //   cliCommand: 'gemini',
+  //   authRequired: true,
+  //   enabled: false,
+  //   supportsStreaming: true,
+  //   skillsDirs: ['.gemini/skills'],
+  // },
   qwen: {
     id: 'qwen',
     name: 'Qwen Code',
@@ -482,23 +452,6 @@ export const ACP_BACKENDS_ALL: Record<AcpBackendAll, AcpBackendConfig> = {
     acpArgs: [],
     skillsDirs: ['.vibe/skills'],
   },
-  'openclaw-gateway': {
-    id: 'openclaw-gateway',
-    name: 'OpenClaw',
-    cliCommand: 'openclaw',
-    authRequired: false,
-    enabled: true, // ✅ OpenClaw Gateway WebSocket mode
-    supportsStreaming: true,
-    acpArgs: ['gateway'], // openclaw gateway command (for detection)
-  },
-  nanobot: {
-    id: 'nanobot',
-    name: 'Nano Bot',
-    cliCommand: 'nanobot',
-    authRequired: false,
-    enabled: true,
-    supportsStreaming: false,
-  },
   cursor: {
     id: 'cursor',
     name: 'Cursor Agent',
@@ -539,23 +492,6 @@ export const ACP_BACKENDS_ALL: Record<AcpBackendAll, AcpBackendConfig> = {
     supportsStreaming: false,
     acpArgs: ['--acp'],
   },
-  remote: {
-    id: 'remote',
-    name: 'Remote Agent',
-    cliCommand: undefined, // No local CLI — connected via WebSocket URL
-    authRequired: false,
-    enabled: true,
-    supportsStreaming: true,
-  },
-  aionrs: {
-    id: 'aionrs',
-    name: 'Aion CLI',
-    cliCommand: 'aionrs',
-    authRequired: false, // Auth handled via env vars from model config
-    enabled: true,
-    supportsStreaming: true,
-    skillsDirs: ['.aionrs/skills'],
-  },
   custom: {
     id: 'custom',
     name: 'Custom Agent',
@@ -573,32 +509,6 @@ export const ACP_ENABLED_BACKENDS: Record<string, AcpBackendConfig> = Object.fro
 
 // 当前启用的后端类型 / Currently enabled backend types
 export type AcpBackend = keyof typeof ACP_BACKENDS_ALL;
-export type AcpBackendId = AcpBackend; // 向后兼容 / Backward compatibility
-
-// 工具函数 / Utility functions
-export function isValidAcpBackend(backend: string): backend is AcpBackend {
-  return backend in ACP_ENABLED_BACKENDS;
-}
-
-export function getAcpBackendConfig(backend: AcpBackend): AcpBackendConfig {
-  return ACP_ENABLED_BACKENDS[backend];
-}
-
-// 获取所有启用的后端配置 / Get all enabled backend configurations
-export function getEnabledAcpBackends(): AcpBackendConfig[] {
-  return Object.values(ACP_ENABLED_BACKENDS);
-}
-
-// 获取所有后端配置（包括禁用的）/ Get all backend configurations (including disabled ones)
-export function getAllAcpBackends(): AcpBackendConfig[] {
-  return Object.values(ACP_BACKENDS_ALL);
-}
-
-// 检查后端是否启用 / Check if a backend is enabled
-export function isAcpBackendEnabled(backend: AcpBackendAll): boolean {
-  return ACP_BACKENDS_ALL[backend]?.enabled ?? false;
-}
-
 /**
  * 检查给定 agent 类型/backend 是否支持原生 skill 发现
  * Check if a given agent type/backend supports native skill discovery.
