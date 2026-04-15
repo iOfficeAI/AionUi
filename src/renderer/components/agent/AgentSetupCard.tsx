@@ -31,6 +31,7 @@ import DroidLogo from '@/renderer/assets/logos/brand/droid.svg';
 import GooseLogo from '@/renderer/assets/logos/tools/goose.svg';
 import AuggieLogo from '@/renderer/assets/logos/brand/auggie.svg';
 import KimiLogo from '@/renderer/assets/logos/ai-china/kimi.svg';
+import SnowLogo from '@/renderer/assets/logos/tools/coding/snow.png';
 import { applyDefaultConversationName } from '@/renderer/pages/conversation/utils/newConversationName';
 
 const AGENT_LOGOS: Partial<Record<AcpBackendAll, string>> = {
@@ -45,6 +46,7 @@ const AGENT_LOGOS: Partial<Record<AcpBackendAll, string>> = {
   goose: GooseLogo,
   auggie: AuggieLogo,
   kimi: KimiLogo,
+  snow: SnowLogo,
 };
 
 type AgentSetupCardProps = {

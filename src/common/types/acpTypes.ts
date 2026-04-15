@@ -74,7 +74,7 @@ export type AcpBackendAll =
   | 'cursor' // Cursor AI Agent CLI
   | 'kiro' // Kiro CLI (AWS)
   | 'hermes' // Hermes Agent CLI (Nous Research)
-  | 'snow' // Snow AI CLI
+  | 'snow' // Snow CLI
   | 'remote' // Remote agent (WebSocket, no local CLI)
   | 'aionrs' // Aion CLI agent (Rust binary, JSON Lines protocol)
   | 'custom'; // User-configured custom ACP agent
@@ -523,7 +523,7 @@ export const ACP_BACKENDS_ALL: Record<AcpBackendAll, AcpBackendConfig> = {
   },
   snow: {
     id: 'snow',
-    name: 'Snow AI',
+    name: 'Snow CLI',
     cliCommand: 'snow',
     authRequired: false,
     enabled: true,

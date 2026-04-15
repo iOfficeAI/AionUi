@@ -85,6 +85,10 @@ export const AGENT_MODES: Record<string, AgentModeOption[]> = {
     { value: 'plan', label: 'Plan', description: 'Read-only mode for planning and designing before implementation' },
     { value: 'ask', label: 'Ask', description: 'Q&A mode - no edits or command execution' },
   ],
+  snow: [
+    { value: 'default', label: 'Agent', description: 'Full agent mode with tool access' },
+    { value: 'yolo', label: 'YOLO', description: 'Auto-approve all operations without prompting' },
+  ],
 };
 
 /**
@@ -156,6 +160,7 @@ const FULL_AUTO_MODE: Record<string, string> = {
   aionrs: 'yolo',
   codex: CODEX_MODE_FULL_AUTO,
   cursor: 'agent',
+  snow: 'yolo',
 };
 
 /**
