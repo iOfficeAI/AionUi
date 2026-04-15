@@ -284,18 +284,25 @@ export class AcpAgentV2 {
     return this.lastSessionId;
   }
 
-  // ─── Lifecycle Methods (Task 4 — stubs) ────────────────────────
+  // ─── Lifecycle Methods (Task 4) ────────────────────────────────
 
   async start(): Promise<void> {
-    throw new Error('Not implemented — see Task 4');
+    return new Promise<void>((resolve, reject) => {
+      const timer = setTimeout(() => {
+        this.startOp = null;
+        reject(new Error('Session start timed out'));
+      }, 120_000); // 2-minute timeout
+      this.startOp = { resolve, reject, timer };
+      this.session.start();
+    });
   }
 
   async kill(): Promise<void> {
-    throw new Error('Not implemented — see Task 4');
+    await this.session.stop();
   }
 
   cancelPrompt(): void {
-    throw new Error('Not implemented — see Task 4');
+    this.session.cancelPrompt();
   }
 
   // ─── Messaging + Permission Methods (Task 5 — stubs) ───────────
