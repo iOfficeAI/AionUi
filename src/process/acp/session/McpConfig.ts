@@ -1,5 +1,5 @@
 // src/process/acp/session/McpConfig.ts
-import type { McpServerConfig } from '../types';
+import type { McpServerConfig } from '@process/acp/types';
 
 type MergeParams = {
   userServers?: McpServerConfig[];

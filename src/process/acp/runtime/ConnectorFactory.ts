@@ -1,9 +1,8 @@
 // src/process/acp/runtime/ConnectorFactory.ts
-
-import type { AgentConfig, ConnectorFactory } from '../types';
-import type { AgentConnector } from '../infra/AgentConnector';
-import { IPCConnector } from '../infra/IPCConnector';
-import { WebSocketConnector } from '../infra/WebSocketConnector';
+import type { AgentConnector, ConnectorFactory } from '@process/acp/infra/AgentConnector';
+import { IPCConnector } from '@process/acp/infra/IPCConnector';
+import { WebSocketConnector } from '@process/acp/infra/WebSocketConnector';
+import type { AgentConfig } from '@process/acp/types';
 
 export class DefaultConnectorFactory implements ConnectorFactory {
   create(config: AgentConfig): AgentConnector {

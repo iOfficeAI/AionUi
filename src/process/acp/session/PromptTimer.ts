@@ -10,7 +10,7 @@ export class PromptTimer {
 
   constructor(
     private readonly timeoutMs: number,
-    private readonly onTimeout: () => void,
+    private readonly onTimeout: () => void
   ) {
     this.remaining = timeoutMs;
   }

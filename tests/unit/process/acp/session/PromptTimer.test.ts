@@ -4,8 +4,12 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { PromptTimer } from '@process/acp/session/PromptTimer';
 
 describe('PromptTimer', () => {
-  beforeEach(() => { vi.useFakeTimers(); });
-  afterEach(() => { vi.useRealTimers(); });
+  beforeEach(() => {
+    vi.useFakeTimers();
+  });
+  afterEach(() => {
+    vi.useRealTimers();
+  });
 
   it('starts in idle state', () => {
     const timer = new PromptTimer(5000, vi.fn());

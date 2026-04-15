@@ -1,6 +1,6 @@
 // src/process/acp/session/PromptQueue.ts
 
-import type { QueuedPrompt, QueueSnapshot } from '../types';
+import type { QueuedPrompt, QueueSnapshot } from '@process/acp/types';
 
 export class PromptQueue {
   private items: QueuedPrompt[] = [];

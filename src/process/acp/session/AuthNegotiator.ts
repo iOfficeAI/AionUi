@@ -1,7 +1,7 @@
 // src/process/acp/session/AuthNegotiator.ts
 
-import type { AuthMethod, AuthRequiredData, RawAuthMethod } from '../types';
-import { AcpError } from '../errors/AcpError';
+import { AcpError } from '@process/acp/errors/AcpError';
+import type { AuthMethod, AuthRequiredData, RawAuthMethod } from '@process/acp/types';
 
 export class AuthNegotiator {
   private credentials: Record<string, string> | null = null;

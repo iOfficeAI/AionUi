@@ -1,13 +1,19 @@
-import * as fs from 'node:fs';
-import { AcpError } from '../errors/AcpError';
-import { normalizeError } from '../errors/errorNormalize';
-import type { AcpProtocol } from '../infra/AcpProtocol';
-import { defaultProtocolFactory } from '../infra/AcpProtocol';
-import type { ConnectorHandle } from '../infra/AgentConnector';
-import { noopMetrics, type AcpMetrics } from '../metrics/AcpMetrics';
+import { ConfigTracker } from '@/process/acp/session/ConfigTracker';
+import { InputPreprocessor } from '@/process/acp/session/InputPreprocessor';
+import { MessageTranslator } from '@/process/acp/session/MessageTranslator';
+import { PermissionResolver } from '@/process/acp/session/PermissionResolver';
+import { PromptQueue } from '@/process/acp/session/PromptQueue';
+import { PromptTimer } from '@/process/acp/session/PromptTimer';
+import { AcpError } from '@process/acp/errors/AcpError';
+import { normalizeError } from '@process/acp/errors/errorNormalize';
+import type { AcpProtocol } from '@process/acp/infra/AcpProtocol';
+import { defaultProtocolFactory } from '@process/acp/infra/AcpProtocol';
+import type { ConnectorFactory, ConnectorHandle } from '@process/acp/infra/AgentConnector';
+import { noopMetrics, type AcpMetrics } from '@process/acp/metrics/AcpMetrics';
+import { AuthNegotiator } from '@process/acp/session/AuthNegotiator';
+import { McpConfig } from '@process/acp/session/McpConfig';
 import type {
   AgentConfig,
-  ConnectorFactory,
   ProtocolFactory,
   ProtocolHandlers,
   RequestPermissionRequest,
@@ -16,24 +22,43 @@ import type {
   SessionNotification,
   SessionOptions,
   SessionStatus,
-} from '../types';
-import { AuthNegotiator } from './AuthNegotiator';
-import { ConfigTracker } from './ConfigTracker';
-import { MessageTranslator } from './MessageTranslator';
-import { PermissionResolver } from './PermissionResolver';
-import { PromptQueue } from './PromptQueue';
-import { PromptTimer } from './PromptTimer';
-import { InputPreprocessor } from './InputPreprocessor';
-import { McpConfig } from './McpConfig';
+} from '@process/acp/types';
+import * as fs from 'node:fs';
 
 const VALID_TRANSITIONS: Record<SessionStatus, SessionStatus[]> = {
-  idle: ['starting'],
-  starting: ['active', 'starting', 'error'],
-  active: ['prompting', 'suspended', 'idle'],
-  prompting: ['active', 'prompting', 'resuming', 'error', 'idle'],
-  suspended: ['resuming', 'idle'],
-  resuming: ['active', 'resuming', 'error'],
-  error: ['starting', 'idle'],
+  idle: [
+    'starting', // start()
+  ],
+  starting: [
+    'active', // handshake completed
+    'starting', // handshake failed, retriable error
+    'error', // handshake failed, non-retriable error
+  ],
+  active: [
+    'prompting', // drainLoop PromptQueue
+    'suspended', // suspend() or PromptQueue is empty
+    'idle', // stop()
+  ],
+  prompting: [
+    'active', // prompt completed, and PromptQueue is empty
+    'prompting', // prompt completed, but PromptQueue is not empty
+    'resuming', // process crashed with retriable error
+    'error', // prompt crashed with non-retriable error
+    'idle', // stop()
+  ],
+  suspended: [
+    'resuming', // sendMessage() / resume()
+    'idle', // stop()
+  ],
+  resuming: [
+    'active', // handshake completed
+    'resuming', // handshake failed, retriable error
+    'error', // handshake failed, non-retriable error
+  ],
+  error: [
+    'starting', // start() after error
+    'idle', // stop() after error
+  ],
 };
 
 export class AcpSession {

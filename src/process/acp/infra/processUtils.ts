@@ -9,12 +9,28 @@ export function splitCommandLine(cmd: string): string[] {
   let escape = false;
 
   for (const char of cmd) {
-    if (escape) { current += char; escape = false; continue; }
-    if (char === '\\' && !inSingle) { escape = true; continue; }
-    if (char === "'" && !inDouble) { inSingle = !inSingle; continue; }
-    if (char === '"' && !inSingle) { inDouble = !inDouble; continue; }
+    if (escape) {
+      current += char;
+      escape = false;
+      continue;
+    }
+    if (char === '\\' && !inSingle) {
+      escape = true;
+      continue;
+    }
+    if (char === "'" && !inDouble) {
+      inSingle = !inSingle;
+      continue;
+    }
+    if (char === '"' && !inSingle) {
+      inDouble = !inDouble;
+      continue;
+    }
     if (char === ' ' && !inSingle && !inDouble) {
-      if (current.length > 0) { args.push(current); current = ''; }
+      if (current.length > 0) {
+        args.push(current);
+        current = '';
+      }
       continue;
     }
     current += char;
@@ -52,28 +68,33 @@ export function isProcessAlive(pid: number): boolean {
   }
 }
 
-export async function gracefulShutdown(
-  child: ChildProcess,
-  gracePeriodMs = 100,
-): Promise<void> {
+export async function gracefulShutdown(child: ChildProcess, gracePeriodMs = 100): Promise<void> {
   if (child.stdin && !child.stdin.destroyed) {
     child.stdin.end();
   }
   const code1 = await waitForExit(child, gracePeriodMs);
   if (code1 !== null) return;
 
-  try { child.kill('SIGTERM'); } catch { /* already dead */ }
+  try {
+    child.kill('SIGTERM');
+  } catch {
+    /* already dead */
+  }
   const code2 = await waitForExit(child, 1500);
   if (code2 !== null) return;
 
-  try { child.kill('SIGKILL'); } catch { /* already dead */ }
+  try {
+    child.kill('SIGKILL');
+  } catch {
+    /* already dead */
+  }
   await waitForExit(child, 1000);
   child.unref();
 }
 
 export function prepareCleanEnv(
   customEnv?: Record<string, string>,
-  baseEnv: Record<string, string | undefined> = process.env as Record<string, string | undefined>,
+  baseEnv: Record<string, string | undefined> = process.env as Record<string, string | undefined>
 ): Record<string, string> {
   const clean: Record<string, string> = {};
   for (const [key, value] of Object.entries(baseEnv)) {

@@ -1198,7 +1198,9 @@ const migration_v26: IMigration = {
       suspended_at INTEGER
     )`);
     db.exec('CREATE INDEX IF NOT EXISTS idx_acp_session_status ON acp_session(session_status)');
-    db.exec('CREATE INDEX IF NOT EXISTS idx_acp_session_suspended ON acp_session(session_status, suspended_at) WHERE session_status = \'suspended\'');
+    db.exec(
+      "CREATE INDEX IF NOT EXISTS idx_acp_session_suspended ON acp_session(session_status, suspended_at) WHERE session_status = 'suspended'"
+    );
     console.log('[Migration v26] Added acp_session table');
   },
   down: (db) => {

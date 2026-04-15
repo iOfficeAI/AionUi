@@ -2,27 +2,27 @@
 
 export type {
   AgentConfig,
-  McpServerConfig,
-  SessionStatus,
-  SessionCallbacks,
-  SignalEvent,
-  QueueSnapshot,
+  AuthMethod,
+  AuthRequiredData,
   ConfigSnapshot,
+  ContextUsage,
+  McpServerConfig,
   ModelSnapshot,
   ModeSnapshot,
-  ContextUsage,
   PermissionUIData,
-  AuthRequiredData,
-  AuthMethod,
-  SessionSignal,
-  RuntimeOptions,
   PromptContent,
+  QueueSnapshot,
+  RuntimeOptions,
+  SessionCallbacks,
+  SessionSignal,
+  SessionStatus,
+  SignalEvent,
 } from './types';
 
+export type { AcpSessionRow, IAcpSessionRepository } from '../services/database/IAcpSessionRepository';
 export { AcpError, type AcpErrorCode } from './errors/AcpError';
 export { normalizeError } from './errors/errorNormalize';
 export { noopMetrics, type AcpMetrics } from './metrics/AcpMetrics';
-export { AcpSession } from './session/AcpSession';
 export { AcpRuntime } from './runtime/AcpRuntime';
 export { DefaultConnectorFactory } from './runtime/ConnectorFactory';
-export type { IAcpSessionRepository, AcpSessionRow } from './runtime/IAcpSessionRepository';
+export { AcpSession } from './session/AcpSession';

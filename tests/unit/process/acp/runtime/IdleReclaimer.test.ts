@@ -4,8 +4,12 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { IdleReclaimer } from '@process/acp/runtime/IdleReclaimer';
 
 describe('IdleReclaimer', () => {
-  beforeEach(() => { vi.useFakeTimers(); });
-  afterEach(() => { vi.useRealTimers(); });
+  beforeEach(() => {
+    vi.useFakeTimers();
+  });
+  afterEach(() => {
+    vi.useRealTimers();
+  });
 
   function makeEntry(status: string, lastActiveAt: number, queueEmpty = true) {
     return {

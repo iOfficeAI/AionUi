@@ -20,7 +20,7 @@ export class AcpError extends Error {
   constructor(
     public readonly code: AcpErrorCode,
     message: string,
-    options?: { cause?: unknown; retryable?: boolean },
+    options?: { cause?: unknown; retryable?: boolean }
   ) {
     super(message, { cause: options?.cause });
     this.name = 'AcpError';

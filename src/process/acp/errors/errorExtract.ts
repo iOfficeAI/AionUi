@@ -39,7 +39,11 @@ export function extractAcpError(error: unknown, depth = 0): AcpErrorPayload | nu
 export function formatUnknownError(error: unknown): string {
   if (error == null) return 'Unknown error';
   if (error instanceof Error) return error.message;
-  if (typeof error === 'object' && 'message' in error && typeof (error as Record<string, unknown>).message === 'string') {
+  if (
+    typeof error === 'object' &&
+    'message' in error &&
+    typeof (error as Record<string, unknown>).message === 'string'
+  ) {
     return (error as Record<string, unknown>).message as string;
   }
   if (typeof error === 'string') return error;

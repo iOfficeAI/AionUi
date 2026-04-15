@@ -1,6 +1,6 @@
 // src/process/acp/session/ConfigTracker.ts
 
-import type { ConfigSnapshot, ModelSnapshot, ModeSnapshot, ConfigOption } from '../types';
+import type { ConfigOption, ConfigSnapshot, ModelSnapshot, ModeSnapshot } from '@process/acp/types';
 
 type SyncResult = {
   currentModelId?: string;

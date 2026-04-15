@@ -23,7 +23,7 @@ export function buildJsonRpcError(
   id: string | number | null,
   code: keyof typeof ERROR_CODES | number,
   message: string,
-  data?: unknown,
+  data?: unknown
 ): JsonRpcErrorResponse {
   const numericCode = typeof code === 'number' ? code : (ERROR_CODES[code] ?? -32603);
   return {

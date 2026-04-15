@@ -1,10 +1,6 @@
 // tests/unit/process/acp/infra/processUtils.test.ts
 import { describe, it, expect } from 'vitest';
-import {
-  splitCommandLine,
-  prepareCleanEnv,
-  isProcessAlive,
-} from '@process/acp/infra/processUtils';
+import { splitCommandLine, prepareCleanEnv, isProcessAlive } from '@process/acp/infra/processUtils';
 
 describe('splitCommandLine', () => {
   it('splits simple command', () => {

@@ -1,10 +1,10 @@
 // src/process/acp/infra/IPCConnector.ts
-import { spawn, type ChildProcess } from 'node:child_process';
 import type { Stream } from '@agentclientprotocol/sdk';
-import type { ConnectorHandle, LocalProcessConfig } from './AgentConnector';
-import { NdjsonTransport } from './NdjsonTransport';
-import { waitForSpawn, gracefulShutdown, prepareCleanEnv, isProcessAlive } from './processUtils';
-import { AcpError } from '../errors/AcpError';
+import { AcpError } from '@process/acp/errors/AcpError';
+import type { ConnectorHandle, LocalProcessConfig } from '@process/acp/infra/AgentConnector';
+import { NdjsonTransport } from '@process/acp/infra/NdjsonTransport';
+import { gracefulShutdown, isProcessAlive, prepareCleanEnv, waitForSpawn } from '@process/acp/infra/processUtils';
+import { spawn, type ChildProcess } from 'node:child_process';
 
 export class IPCConnector {
   private child: ChildProcess | null = null;

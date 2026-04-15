@@ -1,9 +1,9 @@
 // src/process/acp/infra/WebSocketConnector.ts
 
 import type { Stream } from '@agentclientprotocol/sdk';
-import type { ConnectorHandle, RemoteConfig } from './AgentConnector';
-import { NdjsonTransport } from './NdjsonTransport';
-import { AcpError } from '../errors/AcpError';
+import { AcpError } from '@process/acp/errors/AcpError';
+import type { ConnectorHandle, RemoteConfig } from '@process/acp/infra/AgentConnector';
+import { NdjsonTransport } from '@process/acp/infra/NdjsonTransport';
 
 function waitForOpen(ws: WebSocket): Promise<void> {
   return new Promise((resolve, reject) => {
@@ -32,13 +32,16 @@ export class WebSocketConnector {
             ws.addEventListener('close', () => resolve(), { once: true });
             ws.close();
             setTimeout(resolve, 3000);
-          }).then(() => { this.ws = null; });
+          }).then(() => {
+            this.ws = null;
+          });
         },
       };
     } catch (err) {
       this.ws = null;
       throw new AcpError('CONNECTION_FAILED', `WebSocket failed: ${(err as Error).message}`, {
-        cause: err, retryable: true,
+        cause: err,
+        retryable: true,
       });
     }
   }

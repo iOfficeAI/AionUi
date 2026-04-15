@@ -23,7 +23,7 @@ export type IAcpSessionRepository = {
   updateStatus(
     conversationId: string,
     status: 'idle' | 'active' | 'suspended' | 'error',
-    suspendedAt?: number | null,
+    suspendedAt?: number | null
   ): void;
   updateSessionConfig(conversationId: string, config: string): void;
   touchLastActive(conversationId: string): void;

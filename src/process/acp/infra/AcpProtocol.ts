@@ -2,16 +2,15 @@
 
 import { ClientSideConnection, type Stream } from '@agentclientprotocol/sdk';
 import type {
-  ProtocolHandlers,
-  SessionNotification,
-  RequestPermissionRequest,
-  RequestPermissionResponse,
-  InitializeResponse,
-  PromptResponse,
   CreateSessionParams,
+  InitializeResponse,
   LoadSessionParams,
   PromptContent,
-} from '../types';
+  PromptResponse,
+  ProtocolHandlers,
+  RequestPermissionRequest,
+  SessionNotification,
+} from '@process/acp/types';
 
 export class AcpProtocol {
   private readonly sdk: ClientSideConnection;

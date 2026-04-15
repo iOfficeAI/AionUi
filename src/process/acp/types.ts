@@ -235,10 +235,7 @@ export type ProtocolHandlers = {
   onWriteTextFile: (request: unknown) => Promise<unknown>;
 };
 
-export type ProtocolFactory = (
-  stream: Stream,
-  handlers: ProtocolHandlers,
-) => import('./infra/AcpProtocol').AcpProtocol;
+export type ProtocolFactory = (stream: Stream, handlers: ProtocolHandlers) => import('./infra/AcpProtocol').AcpProtocol;
 
 // ─── SDK Pass-through Types ────────────────────────────────────
 

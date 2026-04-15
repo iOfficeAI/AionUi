@@ -1,11 +1,19 @@
 // src/process/acp/runtime/AcpRuntime.ts
 
 import type { TMessage } from '@/common/chat/chatLib';
-import type { AgentConfig, SessionCallbacks, SessionStatus, SignalEvent, ConfigOption, RuntimeOptions } from '../types';
-import type { SessionEntry, ConnectorFactory } from '../types';
-import type { IAcpSessionRepository } from './IAcpSessionRepository';
-import { AcpSession } from '../session/AcpSession';
-import { IdleReclaimer } from './IdleReclaimer';
+import { IdleReclaimer } from '@process/acp/runtime/IdleReclaimer';
+import { AcpSession } from '@process/acp/session/AcpSession';
+import type {
+  AgentConfig,
+  ConfigOption,
+  RuntimeOptions,
+  SessionCallbacks,
+  SessionEntry,
+  SessionStatus,
+  SignalEvent,
+} from '@process/acp/types';
+import type { ConnectorFactory } from '@process/acp/infra/AgentConnector';
+import type { IAcpSessionRepository } from '@process/services/database/IAcpSessionRepository';
 
 const DEFAULT_IDLE_TIMEOUT_MS = 300_000; // 5 minutes
 const DEFAULT_CHECK_INTERVAL_MS = 30_000; // 30 seconds
