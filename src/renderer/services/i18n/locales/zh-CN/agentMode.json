@@ -3,6 +3,7 @@
   "default": "默认",
   "acceptEdits": "自动接受编辑",
   "autoEdit": "自动编辑",
+  "auto_edit": "自动编辑",
   "yolo": "全自动",
   "yoloNoSandbox": "全自动（无沙盒）",
   "auto": "自动",

@@ -34,7 +34,7 @@ const getResultDisplayText = (resultDisplay: IMessageToolGroup['content'][0]['re
 const ToolGroupMapper = (m: IMessageToolGroup): ToolItem[] => {
   if (!Array.isArray(m.content)) return [];
   return m.content.map(({ name, callId, description, confirmationDetails, status, resultDisplay }) => {
-    let desc = description.slice(0, 100);
+    let desc = typeof description === 'string' ? description.slice(0, 100) : '';
     const type = confirmationDetails?.type;
     if (type === 'edit') desc = confirmationDetails.fileName;
     if (type === 'exec') desc = confirmationDetails.command;
@@ -110,7 +110,7 @@ const buildParamSummary = (kind: string, rawInput?: Record<string, unknown>): st
 };
 
 const ToolAcpMapper = (message: IMessageAcpToolCall): ToolItem | undefined => {
-  const update = message.content.update;
+  const update = message.content?.update;
   if (!update) return;
 
   // Input: from rawInput
@@ -202,7 +202,10 @@ const MessageToolGroupSummary: React.FC<{ messages: Array<IMessageToolGroup | IM
       (m.type === 'tool_group' &&
         Array.isArray(m.content) &&
         m.content.some((t) => t.status !== 'Success' && t.status !== 'Error' && t.status !== 'Canceled')) ||
-      (m.type === 'acp_tool_call' && m.content.update.status !== 'completed')
+      (m.type === 'acp_tool_call' &&
+        !!m.content?.update &&
+        m.content.update.status !== 'completed' &&
+        m.content.update.status !== 'failed')
   );
   const [showMore, setShowMore] = useState(hasRunningTools);
 
@@ -211,10 +214,12 @@ const MessageToolGroupSummary: React.FC<{ messages: Array<IMessageToolGroup | IM
     if (hasRunningTools) setShowMore(true);
   }, [hasRunningTools]);
   const tools = useMemo(() => {
-    return messages.flatMap((m) => {
-      if (m.type === 'tool_group') return ToolGroupMapper(m);
-      return ToolAcpMapper(m);
-    });
+    return messages
+      .flatMap((m) => {
+        if (m.type === 'tool_group') return ToolGroupMapper(m);
+        return ToolAcpMapper(m);
+      })
+      .filter((item): item is ToolItem => item !== undefined);
   }, [messages]);
 
   return (

@@ -29,6 +29,7 @@ vi.mock('@arco-design/web-react', () => ({
 
 vi.mock('@icon-park/react', () => ({
   ArrowUp: () => <span>ArrowUp</span>,
+  Brain: () => <span>Brain</span>,
   FolderOpen: () => <span>FolderOpen</span>,
   Plus: () => <span>Plus</span>,
   Shield: () => <span>Shield</span>,

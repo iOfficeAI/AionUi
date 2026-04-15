@@ -201,7 +201,7 @@
   "deleteInvalidKeys": "刪除無效金鑰",
   "testAllKeys": "測試所有金鑰",
   "addModelPlaceholder": "請選擇或輸入模型ID",
-  "customModelSupportNote": "說明：目前僅 Gemini CLI Agent 支援使用自訂模型。",
+  "customModelSupportNote": "說明：目前 Aion CLI 和 Gemini CLI Agent 支援使用自訂模型。",
   "addModelHint": "選擇或輸入模型 ID，會追加到當前平台配置。",
   "addModelSelectedHint": "即將新增模型：{{model}}",
   "currentModelsLabel": "目前模型",

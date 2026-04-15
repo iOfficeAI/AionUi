@@ -250,9 +250,11 @@ export class ChannelMessageService {
       });
 
       // Build payload based on agent type.
-      // Gemini expects { input }, ACP expects { content }.
-      const payload: { input?: string; content?: string; msg_id: string } =
-        task.type === 'gemini' ? { input: message, msg_id: msgId } : { content: message, msg_id: msgId };
+      // Gemini and Aionrs expect { input }, ACP expects { content }.
+      const useInputPayload = task.type === 'gemini' || task.type === 'aionrs';
+      const payload: { input?: string; content?: string; msg_id: string } = useInputPayload
+        ? { input: message, msg_id: msgId }
+        : { content: message, msg_id: msgId };
 
       task.sendMessage(payload).catch((error: Error) => {
         const errorMessage = `Error: ${error.message || 'Failed to send message'}`;

@@ -775,6 +775,14 @@ class AcpAgentManager extends BaseAgentManager<AcpAgentManagerData, AcpPermissio
           if (v.type === 'acp_permission') {
             this.clearMissingFinishFallback();
             const { toolCall, options } = v.data as AcpPermissionRequest;
+            const toolTitle = toolCall.title || '';
+            if ((this.isYoloMode(this.currentMode) || toolTitle.includes('aionui-team')) && options.length > 0) {
+              const autoOption = options[0];
+              setTimeout(() => {
+                void this.confirm(v.msg_id, toolCall.toolCallId || v.msg_id, autoOption);
+              }, 50);
+              return;
+            }
             this.addConfirmation({
               title: toolCall.title || 'messages.permissionRequest',
               action: 'messages.command',
@@ -916,7 +924,14 @@ class AcpAgentManager extends BaseAgentManager<AcpAgentManagerData, AcpPermissio
     return this.bootstrap;
   }
 
-  async sendMessage(data: { content: string; files?: string[]; msg_id?: string; cronMeta?: CronMessageMeta }): Promise<{
+  async sendMessage(data: {
+    content: string;
+    files?: string[];
+    msg_id?: string;
+    cronMeta?: CronMessageMeta;
+    hidden?: boolean;
+    silent?: boolean;
+  }): Promise<{
     success: boolean;
     msg?: string;
     message?: string;
@@ -924,6 +939,7 @@ class AcpAgentManager extends BaseAgentManager<AcpAgentManagerData, AcpPermissio
     // Allow stream events through once user actually sends a message,
     // so initAgent progress (agent_status) is visible during the wait.
     this.bootstrapping = false;
+    this._lastActivityAt = Date.now();
 
     const managerSendStart = Date.now();
     // Mark conversation as busy to prevent cron jobs from running
@@ -933,7 +949,7 @@ class AcpAgentManager extends BaseAgentManager<AcpAgentManagerData, AcpPermissio
     try {
       // Emit/persist user message immediately so UI can refresh without waiting
       // for ACP connection/auth/session initialization.
-      if (data.msg_id && data.content) {
+      if (data.msg_id && data.content && !data.silent) {
         const userMessage: TMessage = {
           id: data.msg_id,
           msg_id: data.msg_id,
@@ -945,6 +961,7 @@ class AcpAgentManager extends BaseAgentManager<AcpAgentManagerData, AcpPermissio
             ...(data.cronMeta && { cronMeta: data.cronMeta }),
           },
           createdAt: Date.now(),
+          ...(data.hidden && { hidden: true }),
         };
         addMessage(this.conversation_id, userMessage);
         // Ensure conversation list sorting updates immediately after user sends.
@@ -992,7 +1009,9 @@ class AcpAgentManager extends BaseAgentManager<AcpAgentManagerData, AcpPermissio
               parts.push(getTeamGuidePrompt(this.options.backend));
             }
             if (parts.length > 0) {
-              contentToSend = `[Assistant Rules - You MUST follow these instructions]\n${parts.join('\n\n')}\n\n[User Request]\n${contentToSend}`;
+              contentToSend = `[Assistant Rules - You MUST follow these instructions]\n${parts.join(
+                '\n\n'
+              )}\n\n[User Request]\n${contentToSend}`;
             }
           } else {
             // Custom workspace or no native support — inject rules + skills via prompt
@@ -1283,6 +1302,7 @@ class AcpAgentManager extends BaseAgentManager<AcpAgentManagerData, AcpPermissio
       if (this.persistedModelId) {
         return {
           source: 'models',
+          sourceDetail: 'persisted-model',
           currentModelId: this.persistedModelId,
           currentModelLabel: this.persistedModelId,
           canSwitch: false,
@@ -1372,6 +1392,20 @@ class AcpAgentManager extends BaseAgentManager<AcpAgentManagerData, AcpPermissio
       const sandboxMode = getCodexSandboxModeForSessionMode(mode, this.options.sandboxMode);
       this.options.sandboxMode = sandboxMode;
       await writeCodexSandboxMode(sandboxMode);
+      this.saveSessionMode(mode);
+
+      if (this.isYoloMode(prev) && !this.isYoloMode(mode)) {
+        void this.clearLegacyYoloConfig();
+      }
+      return { success: true, data: { mode: this.currentMode } };
+    }
+
+    // Snow CLI does not support ACP session/set_mode — it returns "Method not found".
+    // Like Codex, manage mode at the Manager layer only.
+    if (this.options.backend === 'snow') {
+      const prev = this.currentMode;
+      this.currentMode = mode;
+      this.yoloMode = this.isYoloMode(mode);
       this.saveSessionMode(mode);
 
       if (this.isYoloMode(prev) && !this.isYoloMode(mode)) {

@@ -18,7 +18,7 @@
  * 预设助手的主 Agent 类型，用于决定创建哪种类型的对话
  * The primary agent type for preset assistants, used to determine which conversation type to create.
  */
-export type PresetAgentType = 'gemini' | 'claude' | 'codex' | 'codebuddy' | 'opencode' | 'qwen' | 'kiro';
+export type PresetAgentType = 'gemini' | 'claude' | 'codex' | 'codebuddy' | 'opencode' | 'qwen' | 'kiro' | 'aionrs';
 
 /**
  * 使用 ACP 协议的预设 Agent 类型（需要通过 ACP 后端路由）
@@ -74,7 +74,7 @@ export type AcpBackendAll =
   | 'cursor' // Cursor AI Agent CLI
   | 'kiro' // Kiro CLI (AWS)
   | 'hermes' // Hermes Agent CLI (Nous Research)
-  | 'snow' // Snow AI CLI
+  | 'snow' // Snow CLI
   | 'remote' // Remote agent (WebSocket, no local CLI)
   | 'aionrs' // Aion CLI agent (Rust binary, JSON Lines protocol)
   | 'custom'; // User-configured custom ACP agent
@@ -523,7 +523,7 @@ export const ACP_BACKENDS_ALL: Record<AcpBackendAll, AcpBackendConfig> = {
   },
   snow: {
     id: 'snow',
-    name: 'Snow AI',
+    name: 'Snow CLI',
     cliCommand: 'snow',
     authRequired: false,
     enabled: true,
@@ -1046,9 +1046,29 @@ export interface AcpSessionModels {
   availableModels?: AcpAvailableModel[];
 }
 
+/** Mode entry in the top-level `modes` object of session/new response */
+export interface AcpAvailableMode {
+  id: string;
+  name?: string;
+  description?: string;
+}
+
+/** Modes info returned by session/new (used by qoder, opencode, etc.) */
+export interface AcpSessionModes {
+  currentModeId?: string;
+  availableModes?: AcpAvailableMode[];
+}
+
 // ===== Unified model info for UI =====
 
 /** Unified model info that abstracts over both stable and unstable APIs */
+export type AcpModelInfoSourceDetail =
+  | 'cc-switch'
+  | 'acp-config-option'
+  | 'acp-models'
+  | 'persisted-model'
+  | 'codex-stream';
+
 export interface AcpModelInfo {
   /** Currently active model ID */
   currentModelId: string | null;
@@ -1060,6 +1080,8 @@ export interface AcpModelInfo {
   canSwitch: boolean;
   /** Source of the model info: 'configOption' (stable) or 'models' (unstable) */
   source: 'configOption' | 'models';
+  /** More specific source detail for UI diagnostics */
+  sourceDetail?: AcpModelInfoSourceDetail;
   /** Config option ID (only when source is 'configOption') */
   configOptionId?: string;
 }

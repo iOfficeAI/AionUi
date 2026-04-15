@@ -26,7 +26,10 @@ vi.mock('@modelcontextprotocol/sdk/client/streamableHttp.js', () => ({
 vi.mock('@process/utils/shellEnv', () => ({
   getEnhancedEnv: vi.fn().mockResolvedValue({}),
   getNpxCacheDir: vi.fn().mockReturnValue('/tmp/npx-cache'),
-  resolveNpxPath: vi.fn().mockResolvedValue('/usr/local/bin/npx'),
+  normalizeNpxArgsForBundledBun: vi.fn((args: string[]) =>
+    args.filter((arg) => arg !== '-y' && arg !== '--yes' && arg !== '--prefer-offline')
+  ),
+  resolveNpxPath: vi.fn().mockReturnValue('/usr/local/bin/bun'),
 }));
 vi.mock('fs', () => ({ promises: { access: vi.fn() } }));
 vi.mock('@process/utils/safeExec', () => ({
@@ -193,6 +196,36 @@ describe('AbstractMcpAgent', () => {
       expect(result.success).toBe(false);
 
       vi.unstubAllGlobals();
+    });
+
+    it('should translate npx stdio transports to bundled bun', async () => {
+      const { Client } = await import('@modelcontextprotocol/sdk/client/index.js');
+      const { StdioClientTransport } = await import('@modelcontextprotocol/sdk/client/stdio.js');
+
+      vi.mocked(Client).mockImplementation(function MockClient() {
+        return {
+          connect: vi.fn().mockResolvedValue(undefined),
+          listTools: vi.fn().mockResolvedValue({ tools: [] }),
+          close: vi.fn().mockResolvedValue(undefined),
+        } as any;
+      } as any);
+      vi.mocked(StdioClientTransport).mockImplementation(function MockTransport(config: unknown) {
+        return config as any;
+      } as any);
+
+      const result = await testAgent.testMcpConnection({
+        type: 'stdio',
+        command: 'npx',
+        args: ['-y', '@modelcontextprotocol/server-filesystem', '/tmp/workspace'],
+      });
+
+      expect(result.success).toBe(true);
+      expect(StdioClientTransport).toHaveBeenCalledWith(
+        expect.objectContaining({
+          command: '/usr/local/bin/bun',
+          args: ['x', '--bun', '@modelcontextprotocol/server-filesystem', '/tmp/workspace'],
+        })
+      );
     });
   });
 });

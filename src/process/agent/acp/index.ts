@@ -21,6 +21,7 @@ import type {
   AcpPromptResponseUsage,
   AcpResult,
   AcpSessionConfigOption,
+  AcpSessionModes,
   AcpSessionUpdate,
   AvailableCommandsUpdate,
   ToolCallUpdate,
@@ -30,7 +31,8 @@ import { spawn } from 'child_process';
 import { promises as fs } from 'fs';
 import * as path from 'path';
 import { ProcessConfig } from '@process/utils/initStorage';
-import { getEnhancedEnv, resolveNpxPath } from '@process/utils/shellEnv';
+import { getEnhancedEnv, normalizeNpxArgsForBundledBun, resolveNpxPath } from '@process/utils/shellEnv';
+import { readClaudeModelInfoFromCcSwitch } from '@process/services/ccSwitchModelSource';
 import { AcpConnection } from './AcpConnection';
 import { AcpApprovalStore, createAcpApprovalKey } from './ApprovalStore';
 import {
@@ -41,7 +43,7 @@ import {
 } from './constants';
 import { buildAcpModelInfo } from './modelInfo';
 import { buildBuiltinAcpSessionMcpServers, buildTeamMcpServer, type AcpSessionMcpServer } from './mcpSessionConfig';
-import { getClaudeModel } from './utils';
+import { getClaudeModelSlot } from './utils';
 import { getTeamGuideStdioConfig } from '@process/team/mcp/guide/teamGuideSingleton';
 import { shouldInjectTeamGuideMcp } from '@process/team/prompts/teamGuideCapability.ts';
 import { waitForMcpReady } from '@process/team/mcpReadiness';
@@ -354,12 +356,12 @@ export class AcpAgent {
         await this.applySessionMode(this.extra.sessionMode, false, `session mode`);
       }
 
-      // Apply model from ~/.claude/settings.json for Claude backend.
-      // claude-agent-acp may default to a region-mismatched Bedrock model;
-      // explicitly setting the model from settings ensures correctness.
-      // Uses session/set_model (direct CLI control) for consistency with runtime switching.
+      // For Claude backend, keep runtime model selection aligned with the
+      // local Claude slot model (`default` / `opus` / `haiku`).
+      // Do not send the relay's underlying model name (for example glm-5.1x)
+      // to ACP, because claude-agent-acp only accepts slot ids.
       if (this.extra.backend === 'claude') {
-        const configuredModel = getClaudeModel();
+        const configuredModel = readClaudeModelInfoFromCcSwitch()?.currentModelId ?? getClaudeModelSlot();
         if (configuredModel) {
           try {
             const modelStart = Date.now();
@@ -367,17 +369,15 @@ export class AcpAgent {
             console.log(`[ACP-PERF] start: model set ${Date.now() - modelStart}ms`);
           } catch (error) {
             const errMsg = error instanceof Error ? error.message : String(error);
-            console.warn(`[ACP] Failed to set model from settings: ${errMsg}`);
+            console.warn(`[ACP] Failed to set Claude slot model "${configuredModel}": ${errMsg}`);
             // Detect third-party relay/proxy errors (e.g., NewAPI/OneAPI "model_not_found").
-            // These services route by model name and may not have channels configured for
-            // specific model IDs like "claude-sonnet-4-6". Emit a visible warning so the
-            // user knows to update their relay's model configuration.
+            // These services route by the underlying model mapped to the selected slot.
+            // Emit a visible warning so the user knows to update the relay-side mapping.
             if (errMsg.includes('model_not_found') || errMsg.includes('无可用渠道')) {
               this.emitErrorMessage(
-                `Model "${configuredModel}" is not available on your API relay service. ` +
-                  `Please add this model to your relay's channel configuration, ` +
-                  `or update ANTHROPIC_MODEL in ~/.claude/settings.json to a supported model name. ` +
-                  `Falling back to the relay's default model.`
+                `Claude slot "${configuredModel}" could not be activated on your API relay service. ` +
+                  `Please check the model mapping in cc-switch or ~/.claude/settings.json. ` +
+                  `Falling back to the relay's default Claude slot.`
               );
             }
           }
@@ -412,11 +412,24 @@ export class AcpAgent {
       // Emit initial model info after session setup completes
       this.emitModelInfo();
 
+      // Snapshot session capabilities NOW, before streaming updates can modify them.
+      // cacheSessionCapabilities() is queued and may execute later, by which time
+      // config_option_update notifications could have altered the connection state.
+      const capabilitiesSnapshot = {
+        modelInfo: this.getModelInfo(),
+        configOptions: this.connection.getConfigOptions(),
+        modes: this.connection.getModes(),
+      };
+      this.cacheSessionCapabilities(capabilitiesSnapshot).catch((err) => {
+        console.warn('[ACP] Failed to cache session capabilities:', err instanceof Error ? err.message : String(err));
+      });
+
       this.emitStatusMessage('session_active');
       console.log(`[ACP-PERF] start: total ${Date.now() - startTotal}ms`);
     } catch (error) {
       console.log(`[ACP-PERF] start: failed after ${Date.now() - startTotal}ms`);
       this.emitStatusMessage('error');
+      console.log('error===>', error);
       throw error;
     }
   }
@@ -489,7 +502,18 @@ export class AcpAgent {
    * Prefers stable configOptions API, falls back to unstable models API.
    */
   getModelInfo(): AcpModelInfo | null {
-    return buildAcpModelInfo(this.connection.getConfigOptions(), this.connection.getModels());
+    const preferredModelInfo = this.extra.backend === 'claude' ? readClaudeModelInfoFromCcSwitch() : null;
+    if (this.extra.backend === 'claude' && this.userModelOverride && preferredModelInfo?.availableModels?.length) {
+      const selectedModel = preferredModelInfo.availableModels.find((model) => model.id === this.userModelOverride);
+      if (selectedModel) {
+        return {
+          ...preferredModelInfo,
+          currentModelId: selectedModel.id,
+          currentModelLabel: selectedModel.label,
+        };
+      }
+    }
+    return buildAcpModelInfo(this.connection.getConfigOptions(), this.connection.getModels(), preferredModelInfo);
   }
 
   /**
@@ -729,7 +753,7 @@ export class AcpAgent {
           const enhancedMsg =
             `Qwen ACP Internal Error: This usually means authentication failed or ` +
             `the Qwen CLI has compatibility issues. Please try: 1) Restart the application ` +
-            `2) Use 'npx @qwen-code/qwen-code' instead of global qwen 3) Check if you have valid Qwen credentials.`;
+            `2) Use the packaged bun launcher instead of a global qwen install 3) Check if you have valid Qwen credentials.`;
           this.emitErrorMessage(enhancedMsg);
           return {
             success: false,
@@ -1683,10 +1707,10 @@ export class AcpAgent {
       let args: string[];
 
       if (this.extra.cliPath.startsWith('npx ')) {
-        // For "npx @qwen-code/qwen-code" or "npx @anthropic-ai/claude-code"
+        // Route legacy npx launchers through bundled bun.
         const parts = this.extra.cliPath.split(' ');
         command = resolveNpxPath(cleanEnv);
-        args = [...parts.slice(1), loginArg];
+        args = ['x', '--bun', ...normalizeNpxArgsForBundledBun(parts.slice(1)), loginArg];
       } else {
         // For regular paths like '/usr/local/bin/qwen' or '/usr/local/bin/claude'
         command = this.extra.cliPath;
@@ -1786,5 +1810,82 @@ export class AcpAgent {
   static async getCachedInitializeResult(backend: string): Promise<AcpInitializeResult | null> {
     const cached = await ProcessConfig.get('acp.cachedInitializeResult');
     return cached?.[backend] ?? null;
+  }
+
+  // Serialize concurrent cache writes to prevent read-modify-write races
+  // when multiple backends start simultaneously.
+  private static cacheQueue: Promise<void> = Promise.resolve();
+
+  /**
+   * Cache session-level capabilities (models, configOptions, modes) to disk.
+   * Same pattern as cacheInitializeResult — persisted across sessions so
+   * Guid page / AgentModeSelector / AcpConfigSelector can render from cache
+   * before an active session exists.
+   *
+   * Accepts a pre-captured snapshot to avoid reading stale connection state —
+   * streaming notifications (config_option_update) can modify the connection's
+   * configOptions between when the snapshot is taken and when this runs.
+   *
+   * Uses a static queue to serialize writes — multiple backends starting
+   * concurrently would otherwise overwrite each other's cache entries.
+   */
+  private cacheSessionCapabilities(snapshot: {
+    modelInfo: AcpModelInfo | null;
+    configOptions: AcpSessionConfigOption[] | null;
+    modes: AcpSessionModes | null;
+  }): Promise<void> {
+    const job = AcpAgent.cacheQueue.then(() => this.doCacheSessionCapabilities(snapshot));
+    AcpAgent.cacheQueue = job.catch(() => {});
+    return job;
+  }
+
+  private async doCacheSessionCapabilities(snapshot: {
+    modelInfo: AcpModelInfo | null;
+    configOptions: AcpSessionConfigOption[] | null;
+    modes: AcpSessionModes | null;
+  }): Promise<void> {
+    // Cache model info
+    if (snapshot.modelInfo && snapshot.modelInfo.availableModels?.length > 0) {
+      const cachedModels = (await ProcessConfig.get('acp.cachedModels')) || {};
+      // Preserve the original default model from the first session, not from user switches
+      const existing = cachedModels[this.extra.backend];
+      const nextModelInfo = {
+        ...snapshot.modelInfo,
+        currentModelId: existing?.currentModelId ?? snapshot.modelInfo.currentModelId,
+        currentModelLabel: existing?.currentModelLabel ?? snapshot.modelInfo.currentModelLabel,
+      };
+      await ProcessConfig.set('acp.cachedModels', {
+        ...cachedModels,
+        [this.extra.backend]: nextModelInfo,
+      });
+    }
+
+    // Cache configOptions (for backends that provide them, e.g. codex)
+    if (Array.isArray(snapshot.configOptions) && snapshot.configOptions.length > 0) {
+      const cachedOptions = (await ProcessConfig.get('acp.cachedConfigOptions')) || {};
+      await ProcessConfig.set('acp.cachedConfigOptions', {
+        ...cachedOptions,
+        [this.extra.backend]: snapshot.configOptions,
+      });
+    }
+
+    // Cache top-level modes (for backends that use modes object, e.g. qoder, opencode)
+    if (snapshot.modes?.availableModes && snapshot.modes.availableModes.length > 0) {
+      const cachedModes = (await ProcessConfig.get('acp.cachedModes')) || {};
+      await ProcessConfig.set('acp.cachedModes', {
+        ...cachedModes,
+        [this.extra.backend]: snapshot.modes,
+      });
+    }
+  }
+
+  /**
+   * Read the cached config options for a backend from disk.
+   * Available before any session is created (persisted from previous runs).
+   */
+  static async getCachedConfigOptions(backend: string): Promise<AcpSessionConfigOption[] | null> {
+    const cached = await ProcessConfig.get('acp.cachedConfigOptions');
+    const options = cached?.[backend];
+    return Array.isArray(options) ? options : null;
   }
 }

@@ -136,10 +136,6 @@ vi.mock('@/renderer/pages/conversation/components/ChatSider', () => ({
   default: () => React.createElement('div', { 'data-testid': 'chat-sider' }),
 }));
 
-vi.mock('@/renderer/pages/team/components/TeamConfirmOverlay', () => ({
-  default: () => null,
-}));
-
 vi.mock('@/renderer/pages/team/components/TeamChatView', () => ({
   default: () => React.createElement('div', { 'data-testid': 'team-chat-view' }),
 }));

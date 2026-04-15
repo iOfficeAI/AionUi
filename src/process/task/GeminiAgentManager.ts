@@ -603,12 +603,12 @@ export class GeminiAgentManager extends BaseAgentManager<
    */
   private tryAutoApprove(content: IMessageToolGroup['content'][number]): boolean {
     const type = content.confirmationDetails?.type;
-    console.log(
+    console.debug(
       `[GeminiAgentManager] tryAutoApprove: currentMode=${this.currentMode}, confirmationType=${type}, callId=${content.callId}`
     );
     if (this.currentMode === 'yolo') {
       // yolo: auto-approve ALL operations
-      console.log(`[GeminiAgentManager] YOLO auto-approving ${type}: callId=${content.callId}`);
+      console.debug(`[GeminiAgentManager] YOLO auto-approving ${type}: callId=${content.callId}`);
       void this.postMessagePromise(content.callId, ToolConfirmationOutcome.ProceedOnce);
       return true;
     }
@@ -688,6 +688,21 @@ export class GeminiAgentManager extends BaseAgentManager<
 
   init() {
     super.init();
+    this.on('exit', (data: { code: number | null; signal: NodeJS.Signals | null }) => {
+      const crashMessage = {
+        conversation_id: this.conversation_id,
+        msg_id: uuid(),
+        type: 'finish',
+        data: {
+          error: `Process exited unexpectedly (code: ${data.code === null ? 'null' : data.code}, signal: ${data.signal ?? 'null'})`,
+          agentCrash: true,
+        },
+      } satisfies IResponseMessage;
+
+      ipcBridge.geminiConversation.responseStream.emit(crashMessage);
+      teamEventBus.emit('responseStream', crashMessage);
+    });
+
     // 接受来子进程的对话消息
     this.on('gemini.message', (data) => {
       if (data.type !== 'finish') {

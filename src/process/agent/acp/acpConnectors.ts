@@ -11,7 +11,8 @@
  */
 
 import type { ChildProcess, SpawnOptions } from 'child_process';
-import { execFileSync, spawn } from 'child_process';
+import { execFile as execFileCb, execFileSync, spawn } from 'child_process';
+import { promisify } from 'util';
 import { promises as fs } from 'fs';
 import os from 'os';
 import path from 'path';
@@ -27,13 +28,17 @@ import {
   getNpxCacheDir,
   getWindowsShellExecutionOptions,
   loadFullShellEnvironment,
+  normalizeNpxArgsForBundledBun,
   resolveNpxDirect,
   resolveNpxPath,
 } from '@process/utils/shellEnv';
+import { readClaudeProviderEnvFromCcSwitch } from '@process/services/ccSwitchModelSource';
 import { mainWarn } from '@process/utils/mainLogger';
 
 /** Enable ACP performance diagnostics via ACP_PERF=1 */
 export const ACP_PERF_LOG = process.env.ACP_PERF === '1';
+
+const execFile = promisify(execFileCb);
 
 function normalizeWindowsCommand(command: string): string {
   const trimmed = command.trim();
@@ -261,10 +266,10 @@ export function createGenericSpawnConfig(
   let spawnArgs: string[];
 
   if (cliPath.startsWith('npx ')) {
-    // For "npx @package/name [extra-args]", split into command and arguments
+    // Route legacy npx package launchers through the bundled bun runtime.
     const parts = cliPath.split(' ').filter(Boolean);
     spawnCommand = resolveNpxPath(env);
-    spawnArgs = [...parts.slice(1), ...effectiveAcpArgs];
+    spawnArgs = ['x', '--bun', ...normalizeNpxArgsForBundledBun(parts.slice(1)), ...effectiveAcpArgs];
   } else if (isWindows) {
     // On Windows with shell: true, let cmd.exe handle the full command string.
     // This correctly supports paths with spaces (e.g., "C:\Program Files\agent.exe")
@@ -310,6 +315,8 @@ export type NpxPrepareResult = {
    * bypassing `.cmd` shims whose `%~dp0` can resolve to the wrong directory.
    */
   directInvoke?: { nodePath: string; npxScript: string };
+  launcher?: 'bun' | 'npx';
+  preferOffline?: boolean;
   extraArgs?: string[];
 };
 
@@ -331,14 +338,19 @@ export function spawnNpxBackend(
     extraArgs = [],
     detached = false,
     directInvoke,
+    launcher = 'bun',
   }: {
     extraArgs?: string[];
     detached?: boolean;
     /** Windows: bypass .cmd shims with direct node.exe + npx-cli.js invocation */
     directInvoke?: { nodePath: string; npxScript: string };
+    launcher?: 'bun' | 'npx';
   } = {}
 ): SpawnResult {
-  const spawnArgs = ['--yes', ...(preferOffline ? ['--prefer-offline'] : []), npxPackage, ...extraArgs];
+  const useLegacyNpxLauncher = launcher === 'npx';
+  const spawnArgs = useLegacyNpxLauncher
+    ? ['--yes', ...(preferOffline ? ['--prefer-offline'] : []), npxPackage, ...extraArgs]
+    : ['x', '--bun', npxPackage, ...normalizeNpxArgsForBundledBun(extraArgs)];
 
   const spawnStart = Date.now();
   // detached: true creates a new session (setsid) so the child has no controlling terminal.
@@ -346,11 +358,7 @@ export function spawnNpxBackend(
   // would suspend the entire Electron process group and freeze the UI.
   // On Windows, prefix with chcp 65001 to switch console to UTF-8, preventing GBK garbling.
   let effectiveCommand: string;
-  if (isWindows && directInvoke) {
-    // Bypass .cmd shims: invoke node.exe with npx-cli.js directly.
-    // .cmd batch files use %~dp0 to resolve sibling paths — this can break when the
-    // working directory or Node.js version manager shims interfere with path resolution,
-    // producing "Cannot find module '<cwd>\node_modules\npm\bin\npm-cli.js'" errors.
+  if (isWindows && useLegacyNpxLauncher && directInvoke) {
     effectiveCommand = `chcp 65001 >nul && "${directInvoke.nodePath}" "${directInvoke.npxScript}"`;
   } else {
     effectiveCommand = isWindows ? `chcp 65001 >nul && ${formatWindowsCommandForShell(npxCommand)}` : npxCommand;
@@ -366,7 +374,8 @@ export function spawnNpxBackend(
   if (detached) {
     child.unref();
   }
-  console.log(`[ACP-PERF] ${backend}: process spawned ${Date.now() - spawnStart}ms (preferOffline=${preferOffline})`);
+  const launchMode = useLegacyNpxLauncher ? `preferOffline=${preferOffline}` : 'bundled bun';
+  console.log(`[ACP-PERF] ${backend}: process spawned ${Date.now() - spawnStart}ms (${launchMode})`);
 
   return { child, isDetached: detached };
 }
@@ -374,14 +383,63 @@ export function spawnNpxBackend(
 /** Prepare clean env + resolve npx for Claude ACP bridge. */
 async function prepareClaude(): Promise<NpxPrepareResult> {
   const cleanEnv = await prepareCleanEnv();
+  Object.assign(cleanEnv, readClaudeProviderEnvFromCcSwitch());
   ensureMinNodeVersion(cleanEnv, 20, 10, 'Claude ACP bridge');
-  return { cleanEnv, npxCommand: resolveNpxPath(cleanEnv), directInvoke: resolveNpxDirect(cleanEnv) ?? undefined };
+  return {
+    cleanEnv,
+    npxCommand: resolveNpxPath(cleanEnv),
+    directInvoke: resolveNpxDirect(cleanEnv) ?? undefined,
+  };
 }
 
-/** Prepare clean env + resolve npx for Codex ACP bridge. */
-async function prepareCodex(): Promise<NpxPrepareResult> {
+/** Prepare clean env + resolve npx + run diagnostics for Codex ACP bridge. */
+async function prepareCodex(codexAcpPackage: string = CODEX_ACP_NPX_PACKAGE): Promise<NpxPrepareResult> {
   const cleanEnv = await prepareCleanEnv();
   ensureMinNodeVersion(cleanEnv, 20, 10, 'Codex ACP bridge');
+
+  const diagStart = Date.now();
+  const codexCommand = process.platform === 'win32' ? 'codex.cmd' : 'codex';
+  const codexExecOptions = {
+    env: cleanEnv,
+    timeout: 5000,
+    windowsHide: true,
+    ...getWindowsShellExecutionOptions(),
+  };
+  const diagnostics: {
+    bridgeVersion: string;
+    bridgePackage: string;
+    codexCliVersion: string;
+    loginStatus: string;
+    hasCodexApiKey: boolean;
+    hasOpenAiApiKey: boolean;
+    hasChatGptSession: boolean;
+  } = {
+    bridgeVersion: CODEX_ACP_BRIDGE_VERSION,
+    bridgePackage: codexAcpPackage,
+    codexCliVersion: 'unknown',
+    loginStatus: 'unknown',
+    hasCodexApiKey: Boolean(cleanEnv.CODEX_API_KEY),
+    hasOpenAiApiKey: Boolean(cleanEnv.OPENAI_API_KEY),
+    hasChatGptSession: false,
+  };
+
+  try {
+    const { stdout } = await execFile(codexCommand, ['--version'], codexExecOptions);
+    diagnostics.codexCliVersion = stdout.trim() || diagnostics.codexCliVersion;
+  } catch (error) {
+    mainWarn('[ACP codex]', 'Failed to read codex CLI version', error);
+  }
+
+  try {
+    const { stdout } = await execFile(codexCommand, ['login', 'status'], codexExecOptions);
+    diagnostics.loginStatus = stdout.trim() || diagnostics.loginStatus;
+    diagnostics.hasChatGptSession = /chatgpt/i.test(diagnostics.loginStatus);
+  } catch (error) {
+    mainWarn('[ACP codex]', 'Failed to read codex login status', error);
+  }
+
+  console.log(`[ACP-PERF] connect: codex diagnostics ${Date.now() - diagStart}ms`);
+
   return {
     cleanEnv,
     npxCommand: resolveNpxPath(cleanEnv),
@@ -532,7 +590,14 @@ async function connectNpxBackend(config: {
   const { backend, npxPackage, prepareFn, workingDir, setup, cleanup } = config;
 
   const envStart = Date.now();
-  const { cleanEnv, npxCommand, directInvoke, extraArgs: prepExtraArgs = [] } = await prepareFn();
+  const {
+    cleanEnv,
+    npxCommand,
+    directInvoke,
+    launcher = 'bun',
+    preferOffline = false,
+    extraArgs: prepExtraArgs = [],
+  } = await prepareFn();
   console.log(`[ACP-PERF] ${backend}: env prepared ${Date.now() - envStart}ms`);
 
   const isWindows = process.platform === 'win32';
@@ -540,21 +605,14 @@ async function connectNpxBackend(config: {
     extraArgs: [...(config.extraArgs ?? []), ...prepExtraArgs],
     detached: config.detached ?? false,
     directInvoke,
+    launcher,
   };
 
-  // Phase 1: Try with --prefer-offline for fast startup
   try {
-    await setup(spawnNpxBackend(backend, npxPackage, npxCommand, cleanEnv, workingDir, isWindows, true, opts));
-  } catch (firstError) {
-    // Phase 2: Retry without --prefer-offline to refresh stale cache
-    console.warn(
-      `[ACP] ${backend} --prefer-offline failed, retrying with fresh registry lookup:`,
-      firstError instanceof Error ? firstError.message : String(firstError)
-    );
-
+    await setup(spawnNpxBackend(backend, npxPackage, npxCommand, cleanEnv, workingDir, isWindows, preferOffline, opts));
+  } catch (error) {
     await cleanup();
-
-    await setup(spawnNpxBackend(backend, npxPackage, npxCommand, cleanEnv, workingDir, isWindows, false, opts));
+    throw error;
   }
 }
 
@@ -605,7 +663,6 @@ export function connectCodex(workingDir: string, hooks: NpxConnectHooks): Promis
         );
       }
     }
-
     const codexPlatformPackage = resolvePreferredCodexAcpPlatformPackage();
     const preferDirectPackage = codexPlatformPackage !== null && shouldPreferDirectCodexAcpPackage();
     const codexPackageCandidates = preferDirectPackage
@@ -619,7 +676,7 @@ export function connectCodex(workingDir: string, hooks: NpxConnectHooks): Promis
         await connectNpxBackend({
           backend: 'codex',
           npxPackage,
-          prepareFn: prepareCodex,
+          prepareFn: () => prepareCodex(npxPackage),
           workingDir,
           ...hooks,
         });

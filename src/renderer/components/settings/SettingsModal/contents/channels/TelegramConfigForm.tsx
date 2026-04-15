@@ -321,7 +321,7 @@ const TelegramConfigForm: React.FC<TelegramConfigFormProps> = ({
     return `${remaining} min`;
   };
 
-  const isGeminiAgent = selectedAgent.backend === 'gemini';
+  const isGeminiAgent = selectedAgent.backend === 'gemini' || selectedAgent.backend === 'aionrs';
   const agentOptions: Array<{ backend: AcpBackendAll; name: string; customAgentId?: string; isExtension?: boolean }> =
     availableAgents.length > 0 ? availableAgents : [{ backend: 'gemini', name: 'Gemini CLI' }];
 

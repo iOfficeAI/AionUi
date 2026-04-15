@@ -209,7 +209,6 @@ export function initAcpConversationBridge(workerTaskManager: IWorkerTaskManager)
       data: { modelInfo: task.getModelInfo() },
     });
   });
-
   ipcBridge.acpConversation.probeModelInfo.provider(async ({ backend }) => {
     const agents = acpDetector.getDetectedAgents();
     const agent = agents.find((item) => item.backend === backend);

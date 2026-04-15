@@ -25,6 +25,7 @@ vi.mock('../../src/process/agent/acp/AcpConnection', () => ({
     getInitializeResponse = mockGetInitializeResponse;
     getConfigOptions = vi.fn().mockReturnValue(null);
     getModels = vi.fn().mockReturnValue(null);
+    getModes = vi.fn().mockReturnValue(null);
     setPromptTimeout = vi.fn();
     onSessionUpdate: unknown = undefined;
     onPermissionRequest: unknown = undefined;
@@ -50,10 +51,15 @@ vi.mock('../../src/process/agent/acp/ApprovalStore', () => ({
 
 vi.mock('../../src/process/agent/acp/utils', () => ({
   getClaudeModel: vi.fn().mockReturnValue(null),
+  getClaudeModelSlot: vi.fn().mockReturnValue(null),
   killChild: vi.fn(),
   readTextFile: vi.fn(),
   writeJsonRpcMessage: vi.fn(),
   writeTextFile: vi.fn(),
+}));
+
+vi.mock('../../src/process/services/ccSwitchModelSource', () => ({
+  readClaudeModelInfoFromCcSwitch: vi.fn().mockReturnValue(null),
 }));
 
 vi.mock('../../src/process/agent/acp/modelInfo', () => ({

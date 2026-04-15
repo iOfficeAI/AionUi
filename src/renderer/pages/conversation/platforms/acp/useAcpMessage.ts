@@ -364,7 +364,7 @@ export const useAcpMessage = (conversation_id: string): UseAcpMessageReturn => {
       resetTurnUi(false);
     };
 
-    return ipcBridge.conversation.turnCompleted.on(handleTurnCompleted);
+    return ipcBridge.conversation.turnCompleted?.on?.(handleTurnCompleted) || (() => {});
   }, [conversation_id, resetTurnUi]);
 
   useEffect(() => {
@@ -375,10 +375,16 @@ export const useAcpMessage = (conversation_id: string): UseAcpMessageReturn => {
     setTokenUsage(null);
     setContextLimit(0);
     hasContentInTurnRef.current = false;
+    turnFinishedRef.current = false;
+    hasThinkingMessageRef.current = false;
+    setHasThinkingMessage(false);
     setStreamingContent(false);
     setHasHydratedRunningState(false);
     cancelAiProcessingClear();
-
+    setRunning(false);
+    runningRef.current = false;
+    setAiProcessing(false);
+    aiProcessingRef.current = false;
     void ipcBridge.conversation.get.invoke({ id: conversation_id }).then((res) => {
       if (cancelled) {
         return;
@@ -397,8 +403,10 @@ export const useAcpMessage = (conversation_id: string): UseAcpMessageReturn => {
       const isRunning = res.status === 'running';
       setRunning(isRunning);
       runningRef.current = isRunning;
-      setAiProcessing(isRunning);
-      aiProcessingRef.current = isRunning;
+      if (isRunning) {
+        setAiProcessing(true);
+        aiProcessingRef.current = true;
+      }
       turnFinishedRef.current = !isRunning;
       setStreamingContent(false);
       setHasHydratedRunningState(true);

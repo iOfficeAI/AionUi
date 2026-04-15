@@ -44,6 +44,7 @@ export type I18nKey =
   | 'agentMode.acceptEdits'
   | 'agentMode.auto'
   | 'agentMode.autoEdit'
+  | 'agentMode.auto_edit'
   | 'agentMode.build'
   | 'agentMode.bypass'
   | 'agentMode.bypassPermissions'

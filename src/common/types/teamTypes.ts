@@ -13,11 +13,11 @@ import type { AcpInitializeResult } from './acpTypes';
  * eagerly (e.g. at app startup or first backend detection) instead of lazily
  * after the first user conversation.
  */
-export const TEAM_SUPPORTED_BACKENDS: ReadonlySet<string> = new Set(['gemini', 'claude', 'codex']);
+export const TEAM_SUPPORTED_BACKENDS: ReadonlySet<string> = new Set(['gemini', 'claude', 'codex', 'snow']);
 
 /**
  * Check if an agent backend is team-capable.
- * Known backends (gemini, claude, codex) are always team-capable.
+ * Known backends (gemini, claude, codex, snow) are always team-capable.
  * Other ACP agents are team-capable when their cached initialize response includes mcpCapabilities.stdio.
  */
 export function isTeamCapableBackend(

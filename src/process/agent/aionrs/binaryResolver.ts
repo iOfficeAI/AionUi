@@ -19,9 +19,6 @@ function getBinaryName(): string {
  *  2. System PATH
  */
 export function resolveAionrsBinary(): string | null {
-  // Only enable aionrs in development — the binary is not stable enough for production
-  if (process.env.NODE_ENV !== 'development') return null;
-
   // 1. Bundled binary (production) — same layout as bundled-bun
   const resourcesPath = (process as NodeJS.Process & { resourcesPath?: string }).resourcesPath;
   if (resourcesPath) {

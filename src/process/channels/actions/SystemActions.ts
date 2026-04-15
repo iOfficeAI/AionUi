@@ -8,7 +8,7 @@ import fs from 'fs';
 import os from 'os';
 import path from 'path';
 import { acpDetector } from '@process/agent/acp/AcpDetector';
-import type { TChatConversation, TProviderWithModel } from '@/common/config/storage';
+import type { IProvider, TChatConversation, TProviderWithModel } from '@/common/config/storage';
 import { ProcessConfig } from '@process/utils/initStorage';
 import { conversationServiceSingleton } from '@/process/services/conversationServiceSingleton';
 import { workerTaskManager } from '@process/task/workerTaskManagerSingleton';
@@ -58,10 +58,22 @@ export async function getChannelDefaultModel(platform: PluginType): Promise<TPro
     const providers = await ProcessConfig.get('model.config');
     const providerList = providers && Array.isArray(providers) ? providers : [];
 
-    // Helper: find a provider with a valid API key
+    // Helper: check whether a provider has valid authentication credentials
+    const hasProviderAuth = (provider: IProvider): boolean => {
+      if (provider.apiKey) return true;
+      // Bedrock uses bedrockConfig (access key or profile) instead of apiKey
+      if (provider.bedrockConfig) {
+        const bc = provider.bedrockConfig;
+        if (bc.authMethod === 'accessKey') return !!(bc.accessKeyId && bc.secretAccessKey && bc.region);
+        if (bc.authMethod === 'profile') return !!(bc.profile && bc.region);
+      }
+      return false;
+    };
+
+    // Helper: find a provider with valid credentials and the specified model
     const findProviderWithApiKey = (providerId: string, modelName: string): TProviderWithModel | null => {
       const provider = providerList.find((p) => p.id === providerId);
-      if (provider?.apiKey && provider.model?.includes(modelName)) {
+      if (provider && hasProviderAuth(provider) && provider.model?.includes(modelName)) {
         return { ...provider, useModel: modelName } as TProviderWithModel;
       }
       return null;
@@ -115,7 +127,7 @@ export async function getChannelDefaultModel(platform: PluginType): Promise<TPro
           `[SystemActions] Google Auth oauth_creds.json missing or empty for channel mode (${platform}), falling back to API key provider`
         );
         const fallback = providerList.find(
-          (p) => p.platform === 'gemini' && p.apiKey && p.model?.includes(savedModel.useModel)
+          (p) => p.platform === 'gemini' && hasProviderAuth(p) && p.model?.includes(savedModel.useModel)
         );
         if (fallback) {
           return {
@@ -131,8 +143,8 @@ export async function getChannelDefaultModel(platform: PluginType): Promise<TPro
       }
     }
 
-    // Fallback: try to get any Gemini provider with a valid API key
-    const geminiProvider = providerList.find((p) => p.platform === 'gemini' && p.apiKey && p.model?.length);
+    // Fallback: try to get any Gemini provider with valid credentials
+    const geminiProvider = providerList.find((p) => p.platform === 'gemini' && hasProviderAuth(p) && p.model?.length);
     if (geminiProvider) {
       return {
         ...geminiProvider,
@@ -140,8 +152,8 @@ export async function getChannelDefaultModel(platform: PluginType): Promise<TPro
       } as TProviderWithModel;
     }
 
-    // Last resort: any provider with a valid API key
-    const anyProvider = providerList.find((p) => p.apiKey && p.model?.length);
+    // Last resort: any provider with valid credentials
+    const anyProvider = providerList.find((p) => hasProviderAuth(p) && p.model?.length);
     if (anyProvider) {
       console.warn(`[SystemActions] No Gemini provider with API key, using ${anyProvider.platform} provider`);
       return {
@@ -287,6 +299,15 @@ export const handleSessionNew: ActionHandler = async (context) => {
     if (backend === 'gemini') {
       newConversation = await conversationServiceSingleton.createConversation({
         type: 'gemini',
+        model,
+        source,
+        name,
+        channelChatId,
+        extra: conversationExtra,
+      });
+    } else if (backend === 'aionrs') {
+      newConversation = await conversationServiceSingleton.createConversation({
+        type: 'aionrs',
         model,
         source,
         name,

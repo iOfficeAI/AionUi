@@ -21,6 +21,7 @@ import GeminiLogo from '@/renderer/assets/logos/ai-major/gemini.svg';
 import GitHubLogo from '@/renderer/assets/logos/tools/github.svg';
 import GooseLogo from '@/renderer/assets/logos/tools/goose.svg';
 import HermesLogo from '@/renderer/assets/logos/brand/hermes.svg';
+import SnowLogo from '@/renderer/assets/logos/tools/coding/snow.png';
 import IflowLogo from '@/renderer/assets/logos/tools/iflow.svg';
 import KimiLogo from '@/renderer/assets/logos/ai-china/kimi.svg';
 import MistralLogo from '@/renderer/assets/logos/ai-major/mistral.svg';
@@ -49,6 +50,7 @@ const AGENT_LOGO_MAP = {
   droid: DroidLogo,
   goose: GooseLogo,
   hermes: HermesLogo,
+  snow: SnowLogo,
   auggie: AuggieLogo,
   kimi: KimiLogo,
   opencode: OpenCodeLogoLight,
