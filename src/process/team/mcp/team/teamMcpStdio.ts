@@ -14,7 +14,7 @@
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
 import { z } from 'zod';
-import * as net from 'node:net';
+import { sendTcpRequest } from '../tcpHelpers';
 import { TEAM_SPAWN_AGENT_DESCRIPTION } from '../../prompts/toolDescriptions';
 
 const TEAM_AGENT_SLOT_ID = process.env.TEAM_AGENT_SLOT_ID || undefined;
@@ -32,55 +32,6 @@ if (!TEAM_MCP_PORT) {
 if (!TEAM_MCP_TOKEN) {
   process.stderr.write('TEAM_MCP_TOKEN environment variable is required\n');
   process.exit(1);
-}
-
-// ── TCP helpers ──────────────────────────────────────────────────────────────
-
-function sendTcpRequest(port: number, data: unknown): Promise<{ result?: string; error?: string }> {
-  return new Promise((resolve, reject) => {
-    const socket = net.createConnection({ host: '127.0.0.1', port }, () => {
-      const json = JSON.stringify(data);
-      const body = Buffer.from(json, 'utf-8');
-      const header = Buffer.alloc(4);
-      header.writeUInt32BE(body.length, 0);
-      socket.write(Buffer.concat([header, body]));
-    });
-
-    let buffer = Buffer.alloc(0);
-
-    socket.on('data', (chunk: Buffer) => {
-      buffer = Buffer.concat([buffer, chunk]);
-    });
-
-    socket.on('end', () => {
-      if (buffer.length < 4) {
-        reject(new Error('Incomplete TCP response'));
-        return;
-      }
-      const bodyLen = buffer.readUInt32BE(0);
-      if (buffer.length < 4 + bodyLen) {
-        reject(new Error('Incomplete TCP response body'));
-        return;
-      }
-      const jsonStr = buffer.subarray(4, 4 + bodyLen).toString('utf-8');
-      try {
-        resolve(JSON.parse(jsonStr) as { result?: string; error?: string });
-      } catch (err) {
-        reject(new Error(`Failed to parse TCP response: ${(err as Error).message}`));
-      }
-    });
-
-    socket.on('error', (err: Error) => {
-      reject(new Error(`TCP connection error: ${err.message}`));
-    });
-
-    // Timeout after 5 minutes (team tool calls can take a while)
-    socket.setTimeout(300_000);
-    socket.on('timeout', () => {
-      socket.destroy();
-      reject(new Error('TCP request timeout'));
-    });
-  });
 }
 
 // ── Tool helper ──────────────────────────────────────────────────────────────

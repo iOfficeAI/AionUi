@@ -6,6 +6,8 @@
 
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import * as fsModule from 'fs';
+import * as path from 'path';
+import { ClientFactory } from '../../src/common/api/ClientFactory';
 import {
   safeJsonParse,
   isImageFile,
@@ -207,5 +209,57 @@ describe('executeImageGeneration — aborted signal', () => {
     expect(result.success).toBe(false);
     expect(result.error).toBe('cancelled');
     expect(result.text).toContain('cancelled');
+  });
+});
+
+describe('executeImageGeneration — inline base64 cleanup', () => {
+  beforeEach(() => {
+    vi.spyOn(Date, 'now').mockReturnValue(1_700_000_000_000);
+    vi.spyOn(fsModule.promises, 'writeFile').mockResolvedValue(undefined);
+  });
+
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
+  it('strips inline base64 markdown from returned text after extracting and saving the image', async () => {
+    const dataUrl = 'data:image/png;base64,ZmFrZS1pbWFnZQ==';
+    const responseText = `Image generated successfully.\n\n![generated image](${dataUrl})`;
+    const createChatCompletion = vi.fn().mockResolvedValue({
+      id: 'resp-1',
+      object: 'chat.completion',
+      created: 1,
+      model: 'model',
+      choices: [
+        {
+          index: 0,
+          message: {
+            role: 'assistant',
+            content: responseText,
+          },
+          finish_reason: 'stop',
+        },
+      ],
+    });
+
+    vi.spyOn(ClientFactory, 'createRotatingClient').mockResolvedValue({
+      createChatCompletion,
+    } as unknown as Awaited<ReturnType<typeof ClientFactory.createRotatingClient>>);
+
+    const result = await executeImageGeneration(
+      { prompt: 'generate a cat' },
+      { id: 'test', name: 'test', platform: 'openai', baseUrl: '', apiKey: 'k', useModel: 'model' },
+      '/workspace'
+    );
+
+    const expectedImagePath = path.join('/workspace', 'img-1700000000000.png');
+    expect(result).toEqual({
+      success: true,
+      text: `Image generated successfully.\n\n[embedded image extracted]\n\nGenerated image saved to: ${expectedImagePath}`,
+      imagePath: expectedImagePath,
+      relativeImagePath: 'img-1700000000000.png',
+    });
+    expect(result.text).not.toContain(dataUrl);
+    expect(fsModule.promises.writeFile).toHaveBeenCalledWith(expectedImagePath, Buffer.from('fake-image', 'utf-8'));
   });
 });
