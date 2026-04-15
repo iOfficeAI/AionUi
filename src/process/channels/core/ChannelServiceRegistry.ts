@@ -109,7 +109,7 @@ export class ChannelServiceRegistry {
 
     const requesterOwner = options?.requesterOwner;
 
-    const sorted = [...entries].sort((a, b) => {
+    const sorted = [...entries].toSorted((a, b) => {
       const aRank = scopeRank.get(a.scope) ?? Number.MAX_SAFE_INTEGER;
       const bRank = scopeRank.get(b.scope) ?? Number.MAX_SAFE_INTEGER;
       if (aRank !== bRank) {

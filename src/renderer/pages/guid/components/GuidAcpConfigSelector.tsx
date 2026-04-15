@@ -10,7 +10,7 @@ import { Down } from '@icon-park/react';
 import React from 'react';
 import { useTranslation } from 'react-i18next';
 
-const CONFIG_OPTION_SUPPORTED_BACKENDS: AcpBackend[] = ['codex'];
+const CONFIG_OPTION_SUPPORTED_BACKENDS: Set<AcpBackend> = new Set<AcpBackend>(['codex']);
 
 type GuidAcpConfigSelectorProps = {
   backend?: AcpBackend;
@@ -27,7 +27,7 @@ const GuidAcpConfigSelector: React.FC<GuidAcpConfigSelectorProps> = ({
 }) => {
   const { t } = useTranslation();
 
-  if (!backend || !CONFIG_OPTION_SUPPORTED_BACKENDS.includes(backend)) {
+  if (!backend || !CONFIG_OPTION_SUPPORTED_BACKENDS.has(backend)) {
     return null;
   }
 

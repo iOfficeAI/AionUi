@@ -361,7 +361,7 @@ const pruneIdleTasks = (now: number = Date.now()) => {
   const removableIndexes = taskList
     .map((entry, index) => ({ entry, index }))
     .filter(({ entry }) => !shouldKeepTask(entry, now))
-    .sort((left, right) => right.index - left.index)
+    .toSorted((left, right) => right.index - left.index)
     .map(({ index }) => index);
 
   removableIndexes.forEach((index) => {
@@ -378,12 +378,12 @@ const pruneIdleTasks = (now: number = Date.now()) => {
   const overflowCandidates = taskList
     .map((entry, index) => ({ entry, index }))
     .filter(({ entry }) => entry.task.status === 'finished' && isPrunableConversation(entry.id))
-    .sort((left, right) => left.entry.lastUsedAt - right.entry.lastUsedAt);
+    .toSorted((left, right) => left.entry.lastUsedAt - right.entry.lastUsedAt);
 
   const overflowCount = taskList.length - MAX_CACHED_TASKS;
   overflowCandidates
     .slice(0, overflowCount)
-    .sort((left, right) => right.index - left.index)
+    .toSorted((left, right) => right.index - left.index)
     .forEach(({ index }) => {
       const [removed] = taskList.splice(index, 1);
       if (removed) {

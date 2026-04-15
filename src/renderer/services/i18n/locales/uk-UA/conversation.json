@@ -187,7 +187,9 @@
       "vscode": "VS Code",
       "terminal": "Термінал",
       "explorer": "Провідник"
-    }
+    },
+    "openInEditor": "Open in editor",
+    "openInEditorFailed": "Failed to open in {{editor}}"
   },
   "minimap": {
     "searchAria": "Пошук по діалогу",
@@ -227,7 +229,8 @@
       "permissionDenied": "Доступ до мікрофона відхилено",
       "recordingUnsupported": "Запис у реальному часі не підтримується. Будь ласка, завантажте аудіофайл",
       "transcriptionFailed": "Не вдалося транскрибувати аудіо",
-      "genericError": "Помилка голосового введення. Спробуйте ще раз"
+      "genericError": "Помилка голосового введення. Спробуйте ще раз",
+      "emptyTranscript": "No speech was detected"
     }
   },
   "sideQuestion": {

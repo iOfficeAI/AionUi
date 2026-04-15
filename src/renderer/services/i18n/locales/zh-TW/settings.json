@@ -829,7 +829,13 @@
     "step4": "授權成功後，即可透過企業微信與 AI 助手對話",
     "waitingConnection": "請確保 WebUI 已執行，以便企微能存取回調位址",
     "agent": "對話 Agent",
-    "agentDesc": "用於企業微信對話"
+    "agentDesc": "用於企業微信對話",
+    "wsTitle": "WeCom Long Connection",
+    "wsHint": "Use WeCom Intelligent Bot Long Connection mode for WebSocket callbacks.",
+    "botId": "Bot ID",
+    "botIdDesc": "Bot ID from WeCom Intelligent Bot (Long Connection mode)",
+    "secret": "Secret",
+    "secretDesc": "Secret from WeCom Intelligent Bot (Long Connection mode)"
   },
   "extensionAssistantReadonly": "擴展助手為唯讀，你可以複製它並編輯副本。",
   "agentManagement": {
@@ -911,5 +917,90 @@
     "version": "版本",
     "path": "路徑",
     "providerNote": "服務商和 API 金鑰設定在模型頁面管理。Aion CLI 支援：Anthropic、OpenAI、AWS Bedrock。"
+  },
+  "api": "API",
+  "apiPage": {
+    "title": "API Settings",
+    "description": "Configure API authentication, callback settings, and conversation payload generator.",
+    "docs": {
+      "title": "API Documentation",
+      "description": "Use the current API documentation to build and validate requests.",
+      "statusReady": "Ready",
+      "statusUnavailable": "Unavailable",
+      "open": "Open Documentation",
+      "copySuccess": "Documentation URL copied",
+      "unavailableWarning": "The API docs are unavailable in browser mode. Open in desktop mode first."
+    },
+    "tabs": {
+      "auth": "Auth",
+      "callback": "Callback",
+      "generator": "Generator"
+    },
+    "messages": {
+      "loadFailed": "Failed to load API configuration",
+      "saveSuccess": "API settings saved",
+      "saveFailed": "Failed to save API settings",
+      "enabled": "API enabled",
+      "disabled": "API disabled",
+      "toggleFailed": "Failed to update API status",
+      "generateTokenSuccess": "Token generated"
+    },
+    "auth": {
+      "enableLabel": "Enable API",
+      "enableDescription": "Enable or disable API authentication and token-based access.",
+      "tokenTitle": "API Token",
+      "tokenDescription": "The token used by clients to access API endpoints.",
+      "tokenPlaceholder": "Enter API token",
+      "generateToken": "Generate",
+      "tokenHint": "Keep tokens secret and rotate them when necessary.",
+      "copySuccess": "Token copied"
+    },
+    "callback": {
+      "title": "Callback",
+      "description": "Forward events to an external callback endpoint.",
+      "enableLabel": "Enable Callback",
+      "enableDescription": "Enable or disable callback delivery.",
+      "urlLabel": "Callback URL",
+      "methodLabel": "HTTP Method",
+      "headersTitle": "Callback Headers",
+      "headersDescription": "Optional headers sent with callback requests.",
+      "emptyHeaders": "No headers configured",
+      "headerKeyPlaceholder": "Header Key",
+      "headerValuePlaceholder": "Header Value",
+      "bodyLabel": "Callback Body",
+      "bodyVariables": "Template variables",
+      "jsFilterLabel": "JavaScript Filter",
+      "jsFilterDescription": "Run a JS script before callbacks are sent.",
+      "jsFilterScriptLabel": "Filter Script",
+      "jsFilterHint": "Use this script to transform or block callback payloads.",
+      "restoreExample": "Restore default script",
+      "disabledState": "Callback is disabled."
+    },
+    "generator": {
+      "title": "Conversation Payload Generator",
+      "description": "Generate payload JSON for creating conversations.",
+      "cliLabel": "Conversation Source",
+      "cliPlaceholder": "Select a source",
+      "cliModelLabel": "Model",
+      "cliModelPlaceholder": "Select a model",
+      "noCachedModels": "No cached models",
+      "modelLabel": "Model",
+      "modelPlaceholder": "Select model",
+      "modelFallbackPlaceholder": "No models available, using default",
+      "modelNotRequired": "Model not required for this source",
+      "modeLabel": "Mode",
+      "configOptionsLabel": "Config Options",
+      "noExtraOptions": "No additional options available",
+      "configOptionsHint": "No config options for the selected source",
+      "workspaceLabel": "Workspace",
+      "workspacePlaceholder": "Optional workspace",
+      "messageLabel": "Message",
+      "messagePlaceholder": "Input message",
+      "resultTitle": "Generated Payload",
+      "resultDescription": "The JSON payload that will be sent to the API.",
+      "copyJson": "Copy JSON",
+      "refreshFailed": "Failed to refresh sources",
+      "copySuccess": "Payload copied"
+    }
   }
 }

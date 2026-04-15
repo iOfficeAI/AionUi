@@ -187,7 +187,9 @@
       "vscode": "VS Code",
       "terminal": "Терминал",
       "explorer": "Проводник"
-    }
+    },
+    "openInEditor": "Open in editor",
+    "openInEditorFailed": "Failed to open in {{editor}}"
   },
   "minimap": {
     "searchAria": "Поиск по диалогу",

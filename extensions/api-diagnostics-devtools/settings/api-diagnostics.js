@@ -462,7 +462,7 @@
 
     summaries
       .slice()
-      .reverse()
+      .toReversed()
       .forEach((item) => {
         const entry = document.createElement('article');
         entry.className = 'timeline-item';

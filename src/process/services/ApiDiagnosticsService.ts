@@ -278,10 +278,9 @@ export class ApiDiagnosticsService {
     const db = getDatabaseSync();
     const conversationCount = db.getUserConversations(undefined, 0, 1).total;
     const messageCache = getConversationMessageCacheStats();
-    const busyStates = Array.from(cronBusyGuard.getAllStates().entries()).map(([conversationId, state]) => ({
-      conversationId,
-      ...state,
-    }));
+    const busyStates = Array.from(cronBusyGuard.getAllStates().entries()).map(([conversationId, state]) =>
+      Object.assign({ conversationId }, state)
+    );
     const turnCompletionState = ConversationTurnCompletionService.getInstance().getDebugState();
     const activeSessions = this.collectActiveSessions({
       sessionId: input.sessionId,
@@ -528,7 +527,7 @@ export class ApiDiagnosticsService {
         runtime: snapshot.runtime,
         lastMessage: formatDiagnosticLastMessage(snapshot.lastMessage),
       }))
-      .sort((left, right) => {
+      .toSorted((left, right) => {
         const rank = (value: string): number => {
           if (value === 'running') return 0;
           if (value === 'pending') return 1;

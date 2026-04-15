@@ -1,4 +1,4 @@
-﻿import { AcpAgent } from '@process/agent/acp';
+import { AcpAgent } from '@process/agent/acp';
 import { channelEventBus } from '@process/channels/agent/ChannelEventBus';
 import { teamEventBus } from '@process/team/teamEventBus';
 import { ipcBridge } from '@/common';
@@ -34,7 +34,7 @@ import {
   writeCodexSandboxMode,
   type CodexSandboxMode,
 } from '@process/utils/codexConfig';
-import { mainLog, mainWarn, mainError } from '@process/utils/mainLogger';
+import { mainWarn, mainError } from '@process/utils/mainLogger';
 import { prepareFirstMessageWithSkillsIndex } from './agentUtils';
 import { shouldInjectTeamGuideMcp } from '@process/team/prompts/teamGuideCapability.ts';
 /** Enable ACP performance diagnostics via ACP_PERF=1 */
@@ -1114,7 +1114,7 @@ class AcpAgentManager extends BaseAgentManager<AcpAgentManagerData, AcpPermissio
         createdAt: Date.now(),
       };
       const collectedResponses: string[] = [];
-      await processCronInMessage(this.conversation_id, backend as any, message, (sysMsg) => {
+      await processCronInMessage(this.conversation_id, backend, message, (sysMsg) => {
         collectedResponses.push(sysMsg);
         const systemMessage: IResponseMessage = {
           type: 'system',
@@ -1140,7 +1140,7 @@ class AcpAgentManager extends BaseAgentManager<AcpAgentManagerData, AcpPermissio
     });
 
     channelEventBus.emitAgentMessage(this.conversation_id, {
-      ...(signal as any),
+      ...signal,
       conversation_id: this.conversation_id,
     });
 

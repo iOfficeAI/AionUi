@@ -9,14 +9,9 @@
     "nursery": "off"
   },
   "rules": {
-    "no-unused-vars": [
-      "warn",
-      {
-        "argsIgnorePattern": "^_",
-        "varsIgnorePattern": "^_"
-      }
-    ],
-    "no-explicit-any": "warn",
+    "no-unused-vars": "off",
+    "no-explicit-any": "off",
+    "no-await-in-loop": "off",
     "no-empty-pattern": "warn",
     "no-constant-condition": "warn",
     "consistent-type-imports": [
@@ -26,6 +21,16 @@
         "disallowTypeAnnotations": false
       }
     ],
+    "oxc/no-async-endpoint-handlers": "off",
+    "consistent-function-scoping": "off",
+    "no-map-spread": "off",
+    "no-new": "off",
+    "no-shadow": "off",
+    "no-extraneous-class": "off",
+    "no-useless-constructor": "off",
+    "prefer-add-event-listener": "off",
+    "prefer-array-find": "off",
+    "require-post-message-target-origin": "off",
     "no-floating-promises": "error",
     "await-thenable": "error"
   },

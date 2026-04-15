@@ -61,8 +61,8 @@ describe('message cache', () => {
     getConversationMessages.mockReset();
     getConversationMessages.mockImplementation(
       (_conversationId: string, page: number, pageSize: number, sort: 'ASC' | 'DESC' = 'DESC') => {
-        const ordered = [...storedMessages].sort((left, right) => left.createdAt - right.createdAt);
-        const sorted = sort === 'DESC' ? ordered.reverse() : ordered;
+        const ordered = [...storedMessages].toSorted((left, right) => left.createdAt - right.createdAt);
+        const sorted = sort === 'DESC' ? ordered.toReversed() : ordered;
         const start = page * pageSize;
         return {
           data: sorted.slice(start, start + pageSize),

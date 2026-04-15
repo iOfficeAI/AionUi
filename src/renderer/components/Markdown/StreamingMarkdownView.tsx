@@ -191,7 +191,7 @@ const StreamingMarkdownView: React.FC<StreamingMarkdownViewProps> = ({ children:
           <img
             {...imgProps}
             style={{
-              ...(imgProps.style || {}),
+              ...imgProps.style,
               maxWidth: '100%',
               height: 'auto',
             }}
