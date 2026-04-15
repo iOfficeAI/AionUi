@@ -57,6 +57,12 @@ const mockArcoSuccess = vi.fn();
 const mockAssertBridgeSuccess = vi.fn();
 const mockSetSendBoxHandler = vi.fn();
 const mockClearFiles = vi.fn();
+const mockAgentModeSelector = vi.fn(({ backend, initialMode }: { backend?: string; initialMode?: string }) =>
+  React.createElement('div', {
+    'data-testid': `agent-mode-selector-${backend || 'unknown'}`,
+    'data-initial-mode': initialMode || '',
+  })
+);
 const mockBuildDisplayMessage = vi.fn((input: string, files: string[], workspacePath: string) =>
   files.length > 0 ? `${input}|${files.join(',')}|${workspacePath}` : input
 );
@@ -117,16 +123,19 @@ vi.mock('@/renderer/components/chat/sendbox', () => ({
     loading,
     onSend,
     onStop,
+    tools,
   }: {
     disabled?: boolean;
     loading?: boolean;
     onSend: (message: string) => Promise<void> | void;
     onStop?: () => Promise<void> | void;
+    tools?: React.ReactNode;
   }) =>
     React.createElement(
       'div',
       { 'data-testid': 'sendbox' },
       React.createElement('div', { 'data-testid': 'sendbox-loading' }, String(Boolean(loading))),
+      React.createElement('div', { 'data-testid': 'sendbox-tools' }, tools),
       React.createElement(
         'button',
         {
@@ -179,7 +188,7 @@ vi.mock('@/renderer/components/media/FileAttachButton', () => ({
 
 vi.mock('@/renderer/components/agent/AgentModeSelector', () => ({
   __esModule: true,
-  default: () => React.createElement('div'),
+  default: (props: { backend?: string; initialMode?: string }) => mockAgentModeSelector(props),
 }));
 
 vi.mock('@/renderer/components/agent/AcpConfigSelector', () => ({
@@ -456,6 +465,7 @@ describe('platform send box queue integration', () => {
     mockDraftData.atPath = [];
     mockDraftData.content = '';
     mockDraftData.uploadFile = [];
+    mockAgentModeSelector.mockClear();
   });
 
   afterEach(() => {
@@ -902,5 +912,49 @@ describe('platform send box queue integration', () => {
     });
 
     expect(mockOpenClawSendInvoke).not.toHaveBeenCalled();
+  });
+
+  it('hydrates the persisted Gemini mode into the selector before the first message', () => {
+    render(
+      <GeminiSendBox
+        conversation_id='conv-gemini'
+        sessionMode='yolo'
+        modelSelection={{
+          currentModel: { useModel: 'gemini-2.5' },
+          getDisplayModelName: (modelId: string) => modelId,
+          providers: ['google'],
+          geminiModeLookup: {},
+          getAvailableModels: () => [],
+          handleSelectModel: vi.fn(),
+        }}
+      />
+    );
+
+    expect(mockAgentModeSelector).toHaveBeenCalledWith(
+      expect.objectContaining({
+        backend: 'gemini',
+        initialMode: 'yolo',
+      })
+    );
+  });
+
+  it('hydrates the persisted Aion CLI mode into the selector before the first message', () => {
+    render(
+      <AionrsSendBox
+        conversation_id='conv-aionrs'
+        sessionMode='auto_edit'
+        modelSelection={{
+          currentModel: { useModel: 'aionrs-1' },
+          getDisplayModelName: (modelId: string) => modelId,
+        }}
+      />
+    );
+
+    expect(mockAgentModeSelector).toHaveBeenCalledWith(
+      expect.objectContaining({
+        backend: 'aionrs',
+        initialMode: 'auto_edit',
+      })
+    );
   });
 });

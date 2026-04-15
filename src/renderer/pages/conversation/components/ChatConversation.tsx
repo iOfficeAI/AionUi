@@ -254,6 +254,7 @@ const GeminiConversationPanel: React.FC<{
         conversation_id={conversation.id}
         workspace={conversation.extra.workspace}
         modelSelection={modelSelection}
+        sessionMode={conversation.extra?.sessionMode}
         cronJobId={conversation.extra?.cronJobId as string | undefined}
         hideSendBox={hideSendBox}
       />
@@ -304,6 +305,7 @@ const AionrsConversationPanel: React.FC<{ conversation: AionrsConversation; slid
         conversation_id={conversation.id}
         workspace={conversation.extra.workspace}
         modelSelection={modelSelection}
+        sessionMode={conversation.extra?.sessionMode}
       />
     </ChatLayout>
   );
@@ -353,6 +355,7 @@ const ChatConversation: React.FC<{
             conversation_id={conversation.id}
             workspace={conversation.extra?.workspace}
             backend='codex'
+            sessionMode={conversation.extra?.sessionMode}
             agentName={assistantDisplayName}
             cachedConfigOptions={
               (

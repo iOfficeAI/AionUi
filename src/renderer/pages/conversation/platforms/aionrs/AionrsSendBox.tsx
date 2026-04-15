@@ -89,6 +89,7 @@ const useSendBoxDraft = (conversation_id: string) => {
 type AionrsSendBoxBaseProps = {
   conversation_id: string;
   modelSelection: AionrsModelSelection;
+  sessionMode?: string;
 };
 
 type AionrsSendBoxProps = AionrsSendBoxBaseProps & {
@@ -103,6 +104,7 @@ type AionrsSendBoxInnerProps = AionrsSendBoxBaseProps & {
 const AionrsSendBoxInner: React.FC<AionrsSendBoxInnerProps> = ({
   conversation_id,
   modelSelection,
+  sessionMode,
   messageState,
   dynamicModes = [],
 }) => {
@@ -370,6 +372,7 @@ const AionrsSendBoxInner: React.FC<AionrsSendBoxInnerProps> = ({
               backend='aionrs'
               conversationId={conversation_id}
               compact
+              initialMode={sessionMode}
               dynamicModes={dynamicModes}
               compactLeadingIcon={<Shield theme='outline' size='14' fill={iconColors.secondary} />}
               modeLabelFormatter={(mode) => t(`agentMode.${mode.value}`, { defaultValue: mode.label })}

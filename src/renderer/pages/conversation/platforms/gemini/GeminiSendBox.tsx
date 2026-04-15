@@ -87,6 +87,7 @@ const useSendBoxDraft = (conversation_id: string) => {
 type GeminiSendBoxBaseProps = {
   conversation_id: string;
   modelSelection: GeminiModelSelection;
+  sessionMode?: string;
   teamId?: string;
   agentSlotId?: string;
 };
@@ -98,6 +99,7 @@ type GeminiSendBoxProps = GeminiSendBoxBaseProps & {
 const GeminiSendBoxInner: React.FC<GeminiSendBoxBaseProps & { messageState: UseGeminiMessageReturn }> = ({
   conversation_id,
   modelSelection,
+  sessionMode,
   teamId,
   agentSlotId,
   messageState,
@@ -468,6 +470,7 @@ const GeminiSendBoxInner: React.FC<GeminiSendBoxBaseProps & { messageState: UseG
                 backend='gemini'
                 conversationId={conversation_id}
                 compact
+                initialMode={sessionMode}
                 compactLeadingIcon={<Shield theme='outline' size='14' fill={iconColors.secondary} />}
                 modeLabelFormatter={(mode) => t(`agentMode.${mode.value}`, { defaultValue: mode.label })}
                 compactLabelPrefix={t('agentMode.permission')}

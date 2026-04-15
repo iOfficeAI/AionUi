@@ -24,6 +24,7 @@ const GeminiChat: React.FC<{
   conversation_id: string;
   workspace: string;
   modelSelection: GeminiModelSelection;
+  sessionMode?: string;
   cronJobId?: string;
   hideSendBox?: boolean;
   teamId?: string;
@@ -34,6 +35,7 @@ const GeminiChat: React.FC<{
   conversation_id,
   workspace,
   modelSelection,
+  sessionMode,
   cronJobId,
   hideSendBox,
   teamId,
@@ -95,6 +97,7 @@ const GeminiChat: React.FC<{
             <GeminiSendBox
               conversation_id={conversation_id}
               modelSelection={modelSelection}
+              sessionMode={sessionMode}
               teamId={teamId}
               agentSlotId={agentSlotId}
             ></GeminiSendBox>

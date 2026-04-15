@@ -12,6 +12,11 @@ import ChatConversation from '@/renderer/pages/conversation/components/ChatConve
 
 const chatConversationMocks = vi.hoisted(() => ({
   openWorkspaceInEditor: vi.fn().mockResolvedValue(undefined),
+  acpChat: vi.fn(() => null),
+  geminiChat: vi.fn(() => null),
+  aionrsChat: vi.fn(() => null),
+  useGeminiModelSelection: vi.fn(() => ({})),
+  useAionrsModelSelection: vi.fn(() => ({})),
 }));
 
 type MockButtonProps = React.ComponentProps<'button'> & { icon?: React.ReactNode };
@@ -88,7 +93,7 @@ vi.mock('@/renderer/pages/conversation/components/ChatSider', () => ({
 }));
 
 vi.mock('@/renderer/pages/conversation/platforms/acp/AcpChat', () => ({
-  default: () => <div>acp-chat</div>,
+  default: chatConversationMocks.acpChat,
 }));
 
 vi.mock('@/renderer/pages/conversation/platforms/codex/CodexChat', () => ({
@@ -104,7 +109,7 @@ vi.mock('@/renderer/pages/conversation/platforms/openclaw/OpenClawChat', () => (
 }));
 
 vi.mock('@/renderer/pages/conversation/platforms/gemini/GeminiChat', () => ({
-  default: () => <div>gemini-chat</div>,
+  default: chatConversationMocks.geminiChat,
 }));
 
 vi.mock('@/renderer/components/agent/AcpModelSelector', () => ({
@@ -116,7 +121,19 @@ vi.mock('@/renderer/pages/conversation/platforms/gemini/GeminiModelSelector', ()
 }));
 
 vi.mock('@/renderer/pages/conversation/platforms/gemini/useGeminiModelSelection', () => ({
-  useGeminiModelSelection: () => ({}),
+  useGeminiModelSelection: chatConversationMocks.useGeminiModelSelection,
+}));
+
+vi.mock('@/renderer/pages/conversation/platforms/aionrs/AionrsChat', () => ({
+  default: chatConversationMocks.aionrsChat,
+}));
+
+vi.mock('@/renderer/pages/conversation/platforms/aionrs/AionrsModelSelector', () => ({
+  default: () => <div>aionrs-model-selector</div>,
+}));
+
+vi.mock('@/renderer/pages/conversation/platforms/aionrs/useAionrsModelSelection', () => ({
+  useAionrsModelSelection: chatConversationMocks.useAionrsModelSelection,
 }));
 
 vi.mock('@/renderer/pages/conversation/Preview', () => ({
@@ -186,9 +203,53 @@ const createConversation = (customWorkspace: boolean): TChatConversation =>
     },
   }) as TChatConversation;
 
+const createGeminiConversation = (sessionMode: string): TChatConversation =>
+  ({
+    id: 'conv-gemini',
+    name: 'Gemini Chat',
+    type: 'gemini',
+    model: {
+      id: 'provider-1',
+      useModel: 'gemini-2.5-pro',
+    },
+    extra: {
+      workspace: 'E:/code/demo',
+      sessionMode,
+    },
+  }) as TChatConversation;
+
+const createAionrsConversation = (sessionMode: string): TChatConversation =>
+  ({
+    id: 'conv-aionrs',
+    name: 'Aion CLI Chat',
+    type: 'aionrs',
+    model: {
+      id: 'provider-1',
+      useModel: 'gpt-4.1',
+    },
+    extra: {
+      workspace: 'E:/code/demo',
+      sessionMode,
+    },
+  }) as TChatConversation;
+
+const createCodexConversation = (sessionMode: string): TChatConversation =>
+  ({
+    id: 'conv-codex',
+    name: 'Codex Chat',
+    type: 'codex',
+    extra: {
+      workspace: 'E:/code/demo',
+      sessionMode,
+    },
+  }) as TChatConversation;
+
 describe('ChatConversation workspace launcher', () => {
   beforeEach(() => {
     chatConversationMocks.openWorkspaceInEditor.mockClear();
+    chatConversationMocks.acpChat.mockClear();
+    chatConversationMocks.geminiChat.mockClear();
+    chatConversationMocks.aionrsChat.mockClear();
   });
 
   it('renders the quick-open launcher for custom workspace conversations', () => {
@@ -201,5 +262,42 @@ describe('ChatConversation workspace launcher', () => {
     render(<ChatConversation conversation={createConversation(false)} />);
 
     expect(screen.queryByTitle('conversation.workspace.openInEditor')).not.toBeInTheDocument();
+  });
+
+  it('passes the persisted Gemini session mode into the chat view', () => {
+    render(<ChatConversation conversation={createGeminiConversation('yolo')} />);
+
+    expect(chatConversationMocks.geminiChat).toHaveBeenCalledWith(
+      expect.objectContaining({
+        conversation_id: 'conv-gemini',
+        sessionMode: 'yolo',
+      }),
+      undefined
+    );
+  });
+
+  it('passes the persisted Aion CLI session mode into the chat view', () => {
+    render(<ChatConversation conversation={createAionrsConversation('auto_edit')} />);
+
+    expect(chatConversationMocks.aionrsChat).toHaveBeenCalledWith(
+      expect.objectContaining({
+        conversation_id: 'conv-aionrs',
+        sessionMode: 'auto_edit',
+      }),
+      undefined
+    );
+  });
+
+  it('passes the persisted Codex session mode into the ACP chat view', () => {
+    render(<ChatConversation conversation={createCodexConversation('yolo')} />);
+
+    expect(chatConversationMocks.acpChat).toHaveBeenCalledWith(
+      expect.objectContaining({
+        conversation_id: 'conv-codex',
+        backend: 'codex',
+        sessionMode: 'yolo',
+      }),
+      undefined
+    );
   });
 });
