@@ -20,17 +20,20 @@ AionUi ACP 层全面重构的设计文档，供实现阶段的开发者和新加
 新 ACP 模块通过 `AcpAgentV2` 兼容适配器接入。新旧代码路径共存。
 
 **启用新路径：**
+
 ```bash
 AION_ACP_V2=1 bun run start
 ```
 
 **回滚到旧路径：**
+
 ```bash
 # 不设置环境变量即使用旧路径（默认）
 bun run start
 ```
 
 **相关文件：**
+
 - `src/process/acp/compat/` — 适配器层（新增）
 - `src/process/task/AcpAgentManager.ts` — `initAgent()` 中的 feature flag 分支
 - `src/process/agent/acp/` — 旧模块（未修改，仍为默认路径）

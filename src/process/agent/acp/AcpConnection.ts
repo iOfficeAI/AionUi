@@ -808,7 +808,7 @@ export class AcpConnection {
 
     this.parseSessionCapabilities(response);
 
-    console.log(`[ACP ${this.backend}] session/new response:`, JSON.stringify(response, null, 2));
+    // console.log(`[ACP ${this.backend}] session/new response:`, JSON.stringify(response, null, 2));
 
     return response;
   }

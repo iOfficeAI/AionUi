@@ -187,22 +187,30 @@ export class AcpRuntime {
         this.onSignalEvent(convId, { type: 'permission_request', data });
       },
       onSignal: (signal) => {
-        if (signal.type === 'auth_required') {
-          this.onSignalEvent(convId, { type: 'auth_required', auth: signal.auth });
-        } else if (signal.type === 'queue_paused') {
-          this.onSignalEvent(convId, { type: 'queue_paused', reason: signal.reason });
-        } else if (signal.type === 'error') {
-          this.onSignalEvent(convId, {
-            type: 'error',
-            message: signal.message,
-            recoverable: signal.recoverable,
-          });
-        } else if (signal.type === 'session_expired') {
-          this.onSignalEvent(convId, {
-            type: 'error',
-            message: 'Session expired',
-            recoverable: true,
-          });
+        switch (signal.type) {
+          case 'auth_required':
+            this.onSignalEvent(convId, { type: 'auth_required', auth: signal.auth });
+            break;
+
+          case 'queue_paused':
+            this.onSignalEvent(convId, { type: 'queue_paused', reason: signal.reason });
+            break;
+
+          case 'error':
+            this.onSignalEvent(convId, {
+              type: 'error',
+              message: signal.message,
+              recoverable: signal.recoverable,
+            });
+            break;
+
+          case 'session_expired':
+            this.onSignalEvent(convId, {
+              type: 'error',
+              message: 'Session expired',
+              recoverable: true,
+            });
+            break;
         }
       },
     };
