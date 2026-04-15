@@ -61,9 +61,13 @@ function getVersion() {
 
 /**
  * Resolve the actual version tag when "latest" is requested.
- * Uses GitHub API via `gh` CLI (available in CI) or falls back to `curl`.
+ * Uses GitHub API via `gh` CLI (needs GH_TOKEN in CI) or falls back to
+ * `curl` with an optional Authorization header (GITHUB_TOKEN / GH_TOKEN).
  */
 function resolveLatestTag() {
+  const token = process.env.GH_TOKEN || process.env.GITHUB_TOKEN || '';
+
+  // 1. Try gh CLI (honours GH_TOKEN automatically)
   try {
     const out = execSync(`gh api repos/${GITHUB_OWNER}/${GITHUB_REPO}/releases/latest --jq .tag_name`, {
       encoding: 'utf-8',
@@ -71,18 +75,18 @@ function resolveLatestTag() {
     }).trim();
     if (out) return out;
   } catch {
-    // gh CLI not available — fall back to curl
+    // gh CLI not available or no token — fall back to curl
   }
 
+  // 2. Curl with optional token to avoid rate-limit 403
   try {
-    const out = execSync(`curl -fsSL https://api.github.com/repos/${GITHUB_OWNER}/${GITHUB_REPO}/releases/latest`, {
-      encoding: 'utf-8',
-      timeout: 15000,
-    });
+    const authArgs = token ? ['-H', `Authorization: token ${token}`] : [];
+    const args = ['-fsSL', ...authArgs, `https://api.github.com/repos/${GITHUB_OWNER}/${GITHUB_REPO}/releases/latest`];
+    const out = execFileSync('curl', args, { encoding: 'utf-8', timeout: 15000 });
     const tag = JSON.parse(out).tag_name;
     if (tag) return tag;
   } catch {
-    // network issue
+    // network issue or rate-limited
   }
 
   return null;
