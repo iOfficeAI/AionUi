@@ -127,7 +127,7 @@ export interface IConfigStorageRefer {
   };
   // Telegram assistant agent selection / Telegram 助手所使用的 Agent
   'assistant.telegram.agent'?: {
-    backend: AcpBackendAll;
+    backend: string;
     customAgentId?: string;
     name?: string;
   };
@@ -138,7 +138,7 @@ export interface IConfigStorageRefer {
   };
   // Lark assistant agent selection / Lark 助手所使用的 Agent
   'assistant.lark.agent'?: {
-    backend: AcpBackendAll;
+    backend: string;
     customAgentId?: string;
     name?: string;
   };
@@ -149,7 +149,7 @@ export interface IConfigStorageRefer {
   };
   // DingTalk assistant agent selection / DingTalk 助手所使用的 Agent
   'assistant.dingtalk.agent'?: {
-    backend: AcpBackendAll;
+    backend: string;
     customAgentId?: string;
     name?: string;
   };
@@ -160,7 +160,7 @@ export interface IConfigStorageRefer {
   };
   // WeChat assistant agent selection / WeChat 助手所使用的 Agent
   'assistant.weixin.agent'?: {
-    backend: AcpBackendAll;
+    backend: string;
     customAgentId?: string;
     name?: string;
   };
@@ -171,7 +171,7 @@ export interface IConfigStorageRefer {
   };
   // WeCom assistant agent selection / 企业微信助手所使用的 Agent
   'assistant.wecom.agent'?: {
-    backend: AcpBackendAll;
+    backend: string;
     customAgentId?: string;
     name?: string;
   };

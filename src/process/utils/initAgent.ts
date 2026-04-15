@@ -6,7 +6,7 @@
 
 import type { ICreateConversationParams } from '@/common/adapter/ipcBridge';
 import type { TChatConversation, TProviderWithModel } from '@/common/config/storage';
-import type { PresetAgentType } from '@/common/types/acpTypes';
+import type { AcpBackend, AcpBackendAll } from '@/common/types/acpTypes';
 import { getSkillsDirsForBackend, hasNativeSkillSupport } from '@/common/types/acpTypes';
 import { uuid } from '@/common/utils';
 
@@ -34,7 +34,7 @@ import { computeOpenClawIdentityHash } from './openclawUtils';
 export async function setupAssistantWorkspace(
   workspace: string,
   options: {
-    agentType?: PresetAgentType | string;
+    agentType?: string;
     backend?: string;
     enabledSkills?: string[];
     /** Builtin skill names to exclude from auto-injection (e.g. 'cron' for cron-spawned conversations) */
@@ -245,7 +245,7 @@ export const createAcpAgent = async (options: ICreateConversationParams): Promis
     extra: {
       workspace: workspace,
       customWorkspace,
-      backend: extra.backend,
+      backend: extra.backend as AcpBackend,
       cliPath: extra.cliPath,
       agentName: extra.agentName,
       customAgentId: extra.customAgentId, // 同时用于标识预设助手 / Also used to identify preset assistant
@@ -401,7 +401,7 @@ export const createOpenClawAgent = async (options: ICreateConversationParams): P
     type: 'openclaw-gateway',
     extra: {
       workspace: workspace,
-      backend: extra.backend,
+      backend: extra.backend as AcpBackendAll,
       agentName: extra.agentName,
       customWorkspace,
       gateway: {

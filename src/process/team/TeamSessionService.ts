@@ -5,7 +5,6 @@ import { GOOGLE_AUTH_PROVIDER_ID } from '@/common/config/constants';
 import {
   buildAgentConversationParams,
   getConversationTypeForBackend,
-  getConversationTypeForPreset,
 } from '@/common/utils/buildAgentConversationParams';
 import {
   loadPresetAssistantResources,
@@ -15,7 +14,7 @@ import type { ITeamRepository } from './repository/ITeamRepository';
 import type { IWorkerTaskManager } from '@process/task/IWorkerTaskManager';
 import type { IConversationService } from '@process/services/IConversationService';
 import type { AgentType } from '@process/task/agentTypes';
-import { ACP_ROUTED_PRESET_TYPES, type AcpBackendAll } from '@/common/types/acpTypes';
+import type { AgentBackend } from '@/common/types/acpTypes';
 import type { TChatConversation, TProviderWithModel } from '@/common/config/storage';
 import { ProcessConfig } from '@process/utils/initStorage';
 import { getAssistantsDir } from '@process/utils/initStorage';
@@ -169,9 +168,7 @@ export class TeamSessionService {
     presetAgentType?: string;
   }): Promise<TProviderWithModel> {
     const { backend, isPreset, presetAgentType } = params;
-    const type = isPreset
-      ? getConversationTypeForPreset(presetAgentType || backend)
-      : getConversationTypeForBackend(backend);
+    const type = getConversationTypeForBackend(isPreset ? presetAgentType || backend : backend);
 
     if (type === 'gemini') {
       try {
@@ -306,10 +303,9 @@ export class TeamSessionService {
     extra: Record<string, unknown>;
   }> {
     const { teamId, teamName, workspace, agent, agents, inheritedSessionMode, isInheritedWorkspace } = params;
-    const backend = this.resolveBackend(agent.agentType, agents) as AcpBackendAll;
-    const isPreset = Boolean(
-      agent.customAgentId && (backend === 'gemini' || (ACP_ROUTED_PRESET_TYPES as readonly string[]).includes(backend))
-    );
+    const backend = this.resolveBackend(agent.agentType, agents) as AgentBackend;
+    // remote agents use customAgentId as remoteAgentId, not as a preset indicator
+    const isPreset = Boolean(agent.customAgentId) && backend !== 'remote';
     const preferredModelId =
       getConversationTypeForBackend(backend) === 'acp' ? await this.resolvePreferredAcpModelId(backend) : undefined;
     const presetResources =

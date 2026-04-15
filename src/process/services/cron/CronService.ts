@@ -32,7 +32,7 @@ export type CreateCronJobParams = {
   message?: string;
   conversationId: string;
   conversationTitle?: string;
-  agentType: import('@/common/types/acpTypes').AcpBackendAll;
+  agentType: import('@/common/types/acpTypes').AgentBackend;
   createdBy: 'user' | 'agent';
   executionMode?: 'existing' | 'new_conversation';
   agentConfig?: import('./CronStore').CronJob['metadata']['agentConfig'];

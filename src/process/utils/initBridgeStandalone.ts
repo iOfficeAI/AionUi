@@ -12,7 +12,7 @@
  * Note: shellBridge is replaced by shellBridgeStandalone (child_process-based).
  */
 import { logger } from '@office-ai/platform';
-import { acpDetector } from '@process/agent/acp/AcpDetector';
+import { agentRegistry } from '@process/agent/AgentRegistry';
 import { SqliteChannelRepository } from '@process/services/database/SqliteChannelRepository';
 import { SqliteConversationRepository } from '@process/services/database/SqliteConversationRepository';
 import { ConversationServiceImpl } from '@process/services/ConversationServiceImpl';
@@ -84,7 +84,7 @@ export async function initBridgeStandalone(): Promise<void> {
   // Initialize ACP detector to scan for installed CLI agents (claude, codex, etc.)
   // Must mirror Electron's initializeAcpDetector() call in src/index.ts
   try {
-    await acpDetector.initialize();
+    await agentRegistry.initialize();
   } catch (error) {
     console.error('[ACP] Failed to initialize detector in standalone mode:', error);
   }

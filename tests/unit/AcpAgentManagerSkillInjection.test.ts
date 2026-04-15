@@ -272,21 +272,4 @@ describe('AcpAgentManager — first-message skill injection', () => {
     expect(sentContent).toContain('[User Request]');
     expect(sentContent).toContain('Test message');
   });
-
-  it('injects team guide for gemini backend (always team-capable)', async () => {
-    const manager = createManager({
-      backend: 'gemini',
-      customWorkspace: false,
-    });
-
-    await sendFirstMessage(manager, 'Test message');
-
-    expect(mockPrepareFirstMessage).not.toHaveBeenCalled();
-    const sentContent = mockAgentSendMessage.mock.calls[0][0].content as string;
-    // gemini is always team-capable (non-ACP) → team guide should be injected
-    expect(sentContent).toContain('[Assistant Rules');
-    expect(sentContent).toContain('Team Mode');
-    expect(sentContent).toContain('[User Request]');
-    expect(sentContent).toContain('Test message');
-  });
 });

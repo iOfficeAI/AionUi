@@ -11,7 +11,7 @@ import { ipcBridge } from '@/common';
 import type { CronMessageMeta, TMessage } from '@/common/chat/chatLib';
 import type { IResponseMessage } from '@/common/adapter/ipcBridge';
 import type { TChatConversation, TProviderWithModel } from '@/common/config/storage';
-import type { AcpBackendAll } from '@/common/types/acpTypes';
+import type { AcpBackendAll, AgentBackend } from '@/common/types/acpTypes';
 import { uuid } from '@/common/utils';
 import type BaseAgentManager from '@process/task/BaseAgentManager';
 import type { IWorkerTaskManager } from '@process/task/IWorkerTaskManager';
@@ -283,12 +283,12 @@ export class WorkerTaskManagerJobExecutor implements ICronJobExecutor {
   /**
    * Map backend identifier to the AgentType used by createConversation.
    */
-  private getAgentType(backend: AcpBackendAll): AgentType {
+  private getAgentType(backend: AgentBackend): AgentType {
     switch (backend) {
       case 'gemini':
         return 'gemini';
       case 'openclaw-gateway':
-      case 'openclaw' as AcpBackendAll:
+      case 'openclaw' as AgentBackend:
         return 'openclaw-gateway';
       case 'nanobot':
         return 'nanobot';

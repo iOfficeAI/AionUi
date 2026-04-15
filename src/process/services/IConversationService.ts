@@ -7,7 +7,7 @@
 // src/process/services/IConversationService.ts
 
 import type { TChatConversation, TProviderWithModel, ConversationSource } from '@/common/config/storage';
-import type { AcpBackendAll } from '@/common/types/acpTypes';
+import type { AgentBackend } from '@/common/types/acpTypes';
 import type { AgentType } from '@process/task/agentTypes';
 
 export interface CreateConversationParams {
@@ -21,7 +21,7 @@ export interface CreateConversationParams {
     workspace?: string;
     customWorkspace?: boolean;
     defaultFiles?: string[];
-    backend?: AcpBackendAll;
+    backend?: AgentBackend;
     cliPath?: string;
     webSearchEngine?: 'google' | 'default';
     agentName?: string;

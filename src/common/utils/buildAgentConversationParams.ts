@@ -7,7 +7,6 @@
 import type { ICreateConversationParams } from '@/common/adapter/ipcBridge';
 import type { TProviderWithModel } from '@/common/config/storage';
 import type { AcpBackend, AcpBackendAll } from '@/common/types/acpTypes';
-import { ACP_ROUTED_PRESET_TYPES } from '@/common/types/acpTypes';
 
 export type BuildAgentConversationPresetResources = {
   rules?: string;
@@ -51,13 +50,6 @@ export function getConversationTypeForBackend(backend: string): ICreateConversat
   }
 }
 
-export function getConversationTypeForPreset(presetAgentType: string): ICreateConversationParams['type'] {
-  if (ACP_ROUTED_PRESET_TYPES.includes(presetAgentType as (typeof ACP_ROUTED_PRESET_TYPES)[number])) {
-    return 'acp';
-  }
-  return 'gemini';
-}
-
 export function buildAgentConversationParams(input: BuildAgentConversationInput): ICreateConversationParams {
   const {
     backend,
@@ -79,7 +71,7 @@ export function buildAgentConversationParams(input: BuildAgentConversationInput)
 
   const effectivePresetType = presetAgentType || backend;
   const effectivePresetAssistantId = presetAssistantId || customAgentId;
-  const type = isPreset ? getConversationTypeForPreset(effectivePresetType) : getConversationTypeForBackend(backend);
+  const type = getConversationTypeForBackend(isPreset ? effectivePresetType : backend);
   const extra: ICreateConversationParams['extra'] = {
     workspace,
     customWorkspace,

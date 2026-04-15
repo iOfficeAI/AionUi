@@ -19,7 +19,7 @@ import { getEnhancedEnv, getNpxCacheDir, resolveNpxPath } from '@/process/utils/
 /**
  * MCP源类型 - 包括所有ACP后端和AionUi内置
  */
-export type McpSource = AcpBackendAll | 'aionui';
+export type McpSource = AcpBackendAll | 'gemini' | 'aionui' | 'aionrs';
 
 /**
  * MCP操作结果接口
