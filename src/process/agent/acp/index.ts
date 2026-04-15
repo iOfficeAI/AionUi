@@ -417,6 +417,7 @@ export class AcpAgent {
     } catch (error) {
       console.log(`[ACP-PERF] start: failed after ${Date.now() - startTotal}ms`);
       this.emitStatusMessage('error');
+      console.log('error===>', error);
       throw error;
     }
   }

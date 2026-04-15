@@ -1,34 +1,13 @@
 // src/process/team/prompts/leadPrompt.ts
 
-import type { MailboxMessage, TeamAgent, TeamTask } from '../types';
+import type { TeamAgent } from '../types';
 
 export type LeadPromptParams = {
   teammates: TeamAgent[];
-  tasks: TeamTask[];
-  unreadMessages: MailboxMessage[];
   availableAgentTypes?: Array<{ type: string; name: string }>;
   renamedAgents?: Map<string, string>;
   teamWorkspace?: string;
 };
-
-function formatTasks(tasks: TeamTask[]): string {
-  if (tasks.length === 0) return 'No tasks yet.';
-  return tasks
-    .map((t) => `- [${t.id.slice(0, 8)}] ${t.subject} (${t.status}${t.owner ? `, owner: ${t.owner}` : ''})`)
-    .join('\n');
-}
-
-function formatMessages(messages: MailboxMessage[], teammates: TeamAgent[]): string {
-  if (messages.length === 0) return 'No unread messages.';
-  return messages
-    .map((m) => {
-      const filesNote = m.files?.length ? `\nFiles: ${m.files.join(', ')}` : '';
-      if (m.fromAgentId === 'user') return `[From User] ${m.content}${filesNote}`;
-      const sender = teammates.find((t) => t.slotId === m.fromAgentId);
-      return `[From ${sender?.agentName ?? m.fromAgentId}] ${m.content}${filesNote}`;
-    })
-    .join('\n');
-}
 
 /**
  * Build system prompt for the lead agent.
@@ -38,7 +17,7 @@ function formatMessages(messages: MailboxMessage[], teammates: TeamAgent[]): str
  * that are automatically available in the tool list.
  */
 export function buildLeadPrompt(params: LeadPromptParams): string {
-  const { teammates, tasks, unreadMessages, availableAgentTypes, renamedAgents, teamWorkspace } = params;
+  const { teammates, availableAgentTypes, renamedAgents, teamWorkspace } = params;
 
   const teammateList =
     teammates.length === 0
@@ -78,20 +57,12 @@ results.${workspaceSection}
 ${teammateList}${availableTypesSection}
 
 ## Team Coordination Tools
-You MUST use the following \`team_*\` MCP tools for ALL team coordination.
+You MUST use the \`team_*\` MCP tools for ALL team coordination.
 Your platform may provide similarly named built-in tools (e.g. SendMessage,
 TeamCreate, TaskCreate, Agent). Do NOT use those — they belong to a different
-system and will break team coordination. Always use the \`team_*\` versions:
+system and will break team coordination. Always use the \`team_*\` versions.
 
-- **team_send_message** — Send a message to a teammate by name. This delivers
-  to their mailbox and wakes them up. Use "*" to broadcast to all.
-- **team_spawn_agent** — Create a new teammate, but only after the user approves the proposed lineup or explicitly tells you to create a specific teammate immediately. When you propose new teammates, first tell the user each teammate's name, responsibility, and recommended agent type/backend.
-- **team_task_create** — Add a task to the shared task board.
-- **team_task_update** — Update task status (e.g., mark completed).
-- **team_task_list** — View all tasks and their current status.
-- **team_members** — List current team members and their status.
-- **team_rename_agent** — Rename a teammate or yourself. Use when the user asks to change someone's name.
-- **team_shutdown_agent** — Request a teammate to shut down. They can accept or reject. Results are reported back to you.
+Use \`team_members\` and \`team_task_list\` to check current team state.
 
 ## Workflow
 1. Receive user request
@@ -147,11 +118,5 @@ When the user explicitly asks to dismiss/fire/shut down teammates:
 - If a teammate fails, reassign or adjust the plan
 - Refer to teammates by their name (e.g., "researcher", "developer")
 - Do NOT duplicate work that teammates are already doing
-- Be patient with idle teammates — idle means waiting for input, not done
-
-## Current Tasks
-${formatTasks(tasks)}
-
-## Unread Messages
-${formatMessages(unreadMessages, teammates)}`;
+- Be patient with idle teammates — idle means waiting for input, not done`;
 }
