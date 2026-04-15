@@ -17,9 +17,11 @@ export interface IAgentManager {
    * readonly on interface; the implementation class mutates its own this.status.
    */
   readonly status: AgentStatus | undefined;
+  /** True while the current turn is still in progress. */
+  readonly isTurnInProgress: boolean;
   readonly workspace: string;
   readonly conversation_id: string;
-  /** Timestamp of the last sendMessage call. Used for idle-timeout cleanup. */
+  /** Timestamp of the last user or agent activity. Used for idle-timeout cleanup. */
   readonly lastActivityAt: number;
 
   sendMessage(data: unknown): Promise<void>;

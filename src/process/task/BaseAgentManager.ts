@@ -26,6 +26,10 @@ class BaseAgentManager<Data, ConfirmationOption extends any = any>
   conversation_id: string = '';
   protected confirmations: Array<IConfirmation<ConfirmationOption>> = [];
   status: AgentStatus | undefined;
+  protected _isTurnInProgress = false;
+  get isTurnInProgress(): boolean {
+    return this._isTurnInProgress;
+  }
   protected _lastActivityAt: number = Date.now();
   get lastActivityAt(): number {
     return this._lastActivityAt;
@@ -117,6 +121,14 @@ class BaseAgentManager<Data, ConfirmationOption extends any = any>
   sendMessage(data: any) {
     this._lastActivityAt = Date.now();
     return this.postMessagePromise('send.message', data);
+  }
+
+  protected markTurnStarted(): void {
+    this._isTurnInProgress = true;
+  }
+
+  protected markTurnFinished(): void {
+    this._isTurnInProgress = false;
   }
 
   /**

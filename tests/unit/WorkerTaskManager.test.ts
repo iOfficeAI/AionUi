@@ -1,8 +1,15 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 
 vi.mock('electron', () => ({ app: { isPackaged: false, getPath: vi.fn(() => '/tmp') } }));
+vi.mock('../../src/process/utils/initStorage', () => ({
+  ProcessConfig: { getSync: vi.fn(() => undefined) },
+}));
+vi.mock('../../src/process/utils/mainLogger', () => ({
+  mainLog: vi.fn(),
+}));
 
 import { WorkerTaskManager } from '../../src/process/task/WorkerTaskManager';
+import { ProcessConfig } from '../../src/process/utils/initStorage';
 import type { IConversationRepository } from '../../src/process/services/database/IConversationRepository';
 import type { AgentType } from '../../src/process/task/agentTypes';
 
@@ -29,8 +36,10 @@ function makeAgent(id = 'c1', type: AgentType = 'gemini') {
   return {
     type,
     status: undefined,
+    isTurnInProgress: false,
     workspace: '/ws',
     conversation_id: id,
+    lastActivityAt: Date.now(),
     kill: vi.fn(),
     sendMessage: vi.fn(),
     stop: vi.fn(),
@@ -96,18 +105,61 @@ describe('WorkerTaskManager', () => {
 
     const agent = {
       ...makeAgent('c1', 'acp'),
-      status: 'finished',
+      isTurnInProgress: false,
       lastActivityAt: Date.now() - 6 * 60 * 1000,
     };
     const mgr = new WorkerTaskManager(makeFactory(agent) as any, repo);
     mgr.addTask('c1', agent as any);
 
     vi.advanceTimersByTime(1 * 60 * 1000 + 1);
-    // killIdleCliAgents reads config asynchronously — flush the microtask queue
-    await vi.advanceTimersByTimeAsync(0);
 
     expect(agent.kill).toHaveBeenCalledWith('idle_timeout');
     expect(mgr.getTask('c1')).toBeUndefined();
+  });
+
+  it('does not kill an acp agent that has isTurnInProgress=true', () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date('2026-04-02T10:00:00Z'));
+
+    const agent = {
+      ...makeAgent('c1', 'acp'),
+      isTurnInProgress: true,
+      lastActivityAt: Date.now() - 6 * 60 * 1000,
+    };
+    const mgr = new WorkerTaskManager(makeFactory(agent) as any, repo);
+    mgr.addTask('c1', agent as any);
+
+    vi.advanceTimersByTime(1 * 60 * 1000 + 1);
+
+    expect(agent.kill).not.toHaveBeenCalled();
+    expect(mgr.getTask('c1')).toBe(agent);
+  });
+
+  it('clamps configured idle timeout to MIN_IDLE_TIMEOUT_MS floor', () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date('2026-04-02T10:00:00Z'));
+
+    // 0.1 minutes = 6s raw, but floor clamps to 60s
+    vi.mocked(ProcessConfig.getSync).mockReturnValue(0.1);
+
+    const agent = {
+      ...makeAgent('c1', 'acp'),
+      isTurnInProgress: false,
+      lastActivityAt: Date.now(), // T=0
+    };
+    const mgr = new WorkerTaskManager(makeFactory(agent) as any, repo);
+    mgr.addTask('c1', agent as any);
+
+    // Simulate agent activity at T+31s so that when the check fires at T+61s
+    // the agent has only been idle 30s — above the raw 6s threshold but below the 60s floor.
+    vi.advanceTimersByTime(31_000);
+    agent.lastActivityAt = Date.now(); // T+31s
+
+    vi.advanceTimersByTime(30_001); // now T+61s, check fires; idle = 30s < 60s floor
+
+    expect(agent.kill).not.toHaveBeenCalled();
+
+    vi.mocked(ProcessConfig.getSync).mockReturnValue(undefined);
   });
 
   it('kill is a no-op for unknown id', () => {
