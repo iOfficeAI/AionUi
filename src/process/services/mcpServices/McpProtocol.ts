@@ -5,8 +5,6 @@
  */
 
 import { getPlatformServices } from '@/common/platform';
-import { promises as fs } from 'fs';
-import { safeExec } from '@process/utils/safeExec';
 import type { AcpBackendAll } from '@/common/types/acpTypes';
 import { JSONRPC_VERSION } from '@/common/types/acpTypes';
 import type { IMcpServer } from '@/common/config/storage';
@@ -14,7 +12,7 @@ import { Client } from '@modelcontextprotocol/sdk/client/index.js';
 import { SSEClientTransport } from '@modelcontextprotocol/sdk/client/sse.js';
 import { StdioClientTransport } from '@modelcontextprotocol/sdk/client/stdio.js';
 import { StreamableHTTPClientTransport } from '@modelcontextprotocol/sdk/client/streamableHttp.js';
-import { getEnhancedEnv, getNpxCacheDir, resolveNpxPath } from '@/process/utils/shellEnv';
+import { getEnhancedEnv, normalizeNpxArgsForBundledBun, resolveNpxPath } from '@/process/utils/shellEnv';
 
 /**
  * MCP源类型 - 包括所有ACP后端和AionUi内置
@@ -211,12 +209,15 @@ export abstract class AbstractMcpAgent implements IMcpProtocol {
         TERM: 'dumb',
         NO_COLOR: '1',
       };
-      // Resolve bare 'npx' to a modern npx to avoid old standalone npx (pre npm 7)
       const command = transport.command === 'npx' ? resolveNpxPath(enhancedEnv) : transport.command;
+      const args =
+        transport.command === 'npx'
+          ? ['x', '--bun', ...normalizeNpxArgsForBundledBun(transport.args || [])]
+          : (transport.args ?? []);
 
       const stdioTransport = new StdioClientTransport({
         command,
-        args: transport.args || [],
+        args,
         env: enhancedEnv,
         // Prevent child process stderr from inheriting parent's TTY.
         // Default 'inherit' causes `zsh: suspended (tty output)` when the
@@ -264,7 +265,8 @@ export abstract class AbstractMcpAgent implements IMcpProtocol {
         if (isNpx) {
           return {
             success: false,
-            error: `npx command not found. Please install Node.js (v18+) from https://nodejs.org and restart the app.`,
+            error:
+              'Bundled bun runtime is unavailable. Please reinstall AionUi or use a direct stdio command instead of npx.',
           };
         }
         return {
@@ -278,26 +280,8 @@ export abstract class AbstractMcpAgent implements IMcpProtocol {
       if (errorCode === 'EACCES' || errorMessage.includes('EACCES') || errorMessage.includes('permission denied')) {
         return {
           success: false,
-          error: `Permission denied when running "${transport.command}". Please check file permissions or try reinstalling Node.js.`,
+          error: `Permission denied when running "${transport.command}". Please check file permissions or reinstall AionUi.`,
         };
-      }
-
-      // 检测 npm 缓存问题并自动修复
-      if (errorMessage.includes('ENOTEMPTY') && retryCount < 1) {
-        try {
-          // 清理 npm 缓存并重试
-          await Promise.race([
-            safeExec('npm cache clean --force').then(() => fs.rm(getNpxCacheDir(), { recursive: true, force: true })),
-            new Promise((_, reject) => setTimeout(() => reject(new Error('Cleanup timeout')), 10000)),
-          ]);
-
-          return await this.testStdioConnection(transport, retryCount + 1);
-        } catch (cleanupError) {
-          return {
-            success: false,
-            error: `npm cache corruption detected. Auto-cleanup failed, please manually run: npm cache clean --force`,
-          };
-        }
       }
 
       // Detect timeout errors

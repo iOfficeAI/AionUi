@@ -416,65 +416,34 @@ describe('resolveNpxPath', () => {
     Object.defineProperty(process, 'platform', { value: originalPlatform });
   });
 
-  it('verifies Windows npx via the bundled npm entrypoint JS', async () => {
+  it('prefers the bundled bun binary on Windows', async () => {
     Object.defineProperty(process, 'platform', { value: 'win32' });
-
-    const execFileSync = vi
-      .fn()
-      .mockReturnValueOnce(`${path.join('/tooling', 'node.exe')}\n`)
-      .mockReturnValueOnce('10.9.0\n');
-
-    vi.doMock('fs', async () => {
-      const actual = await vi.importActual<typeof import('fs')>('fs');
-      return {
-        ...actual,
-        existsSync: vi.fn(() => true),
-      };
-    });
-
-    vi.doMock('child_process', () => ({
-      execFileSync,
-      execFile: vi.fn(),
-    }));
 
     const { resolveNpxPath } = await import('@process/utils/shellEnv');
     const result = resolveNpxPath({ PATH: '/tooling' });
-    const npxCandidate = path.join('/tooling', 'npx.cmd');
-    const npxCliJs = path.join('/tooling', 'node_modules', 'npm', 'bin', 'npx-cli.js');
 
-    expect(result).toBe(npxCandidate);
-    expect(execFileSync).toHaveBeenNthCalledWith(
-      2,
-      path.join('/tooling', 'node.exe'),
-      [npxCliJs, '--version'],
-      expect.objectContaining({
-        env: { PATH: '/tooling' },
-        windowsHide: true,
-      })
-    );
+    expect(result.endsWith('bun.exe')).toBe(true);
   });
 
-  it('falls back to PATH lookup when bundled npm scripts are missing on Windows', async () => {
+  it('falls back to bun.exe when bundled bun is unavailable on Windows', async () => {
     Object.defineProperty(process, 'platform', { value: 'win32' });
-
-    const execFileSync = vi.fn().mockReturnValueOnce(`${path.join('/tooling', 'node.exe')}\n`);
 
     vi.doMock('fs', async () => {
       const actual = await vi.importActual<typeof import('fs')>('fs');
       return {
         ...actual,
-        existsSync: vi.fn((target: string) => target === path.join('/tooling', 'npx.cmd')),
+        existsSync: vi.fn(() => false),
       };
     });
 
     vi.doMock('child_process', () => ({
-      execFileSync,
+      execFileSync: vi.fn(),
       execFile: vi.fn(),
     }));
 
     const { resolveNpxPath } = await import('@process/utils/shellEnv');
 
-    expect(resolveNpxPath({ PATH: '/tooling' })).toBe('npx');
+    expect(resolveNpxPath({ PATH: '/tooling' })).toBe('bun.exe');
   });
 });
 

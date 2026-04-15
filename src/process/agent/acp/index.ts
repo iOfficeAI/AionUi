@@ -31,7 +31,7 @@ import { spawn } from 'child_process';
 import { promises as fs } from 'fs';
 import * as path from 'path';
 import { ProcessConfig } from '@process/utils/initStorage';
-import { getEnhancedEnv, resolveNpxPath } from '@process/utils/shellEnv';
+import { getEnhancedEnv, normalizeNpxArgsForBundledBun, resolveNpxPath } from '@process/utils/shellEnv';
 import { AcpConnection } from './AcpConnection';
 import { AcpApprovalStore, createAcpApprovalKey } from './ApprovalStore';
 import {
@@ -741,7 +741,7 @@ export class AcpAgent {
           const enhancedMsg =
             `Qwen ACP Internal Error: This usually means authentication failed or ` +
             `the Qwen CLI has compatibility issues. Please try: 1) Restart the application ` +
-            `2) Use 'npx @qwen-code/qwen-code' instead of global qwen 3) Check if you have valid Qwen credentials.`;
+            `2) Use the packaged bun launcher instead of a global qwen install 3) Check if you have valid Qwen credentials.`;
           this.emitErrorMessage(enhancedMsg);
           return {
             success: false,
@@ -1692,10 +1692,10 @@ export class AcpAgent {
       let args: string[];
 
       if (this.extra.cliPath.startsWith('npx ')) {
-        // For "npx @qwen-code/qwen-code" or "npx @anthropic-ai/claude-code"
+        // Route legacy npx launchers through bundled bun.
         const parts = this.extra.cliPath.split(' ');
         command = resolveNpxPath(cleanEnv);
-        args = [...parts.slice(1), loginArg];
+        args = ['x', '--bun', ...normalizeNpxArgsForBundledBun(parts.slice(1)), loginArg];
       } else {
         // For regular paths like '/usr/local/bin/qwen' or '/usr/local/bin/claude'
         command = this.extra.cliPath;

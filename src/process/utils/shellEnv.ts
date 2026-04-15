@@ -555,60 +555,17 @@ export function getWindowsShellExecutionOptions(): {
  * @param env - Environment to use for locating node/npx (should include shell PATH)
  * @returns Absolute path to a modern npx, or bare `npx` as fallback
  */
-export function resolveNpxPath(env: Record<string, string | undefined>): string {
-  const isWindows = process.platform === 'win32';
-  const npxCandidateName = isWindows ? 'npx.cmd' : 'npx';
-  const npxFallback = 'npx';
-  try {
-    const whichCmd = isWindows ? 'where' : 'which';
-    const nodePath = execFileSync(whichCmd, ['node'], {
-      env,
-      encoding: 'utf-8',
-      timeout: 5000,
-      stdio: ['pipe', 'pipe', 'pipe'],
-      ...getWindowsShellExecutionOptions(),
-    })
-      .trim()
-      .split(/\r?\n/)[0]; // `where` on Windows may return multiple lines
-    const npxCandidate = path.join(path.dirname(nodePath), npxCandidateName);
+export function normalizeNpxArgsForBundledBun(args: string[]): string[] {
+  return args.filter((arg) => arg !== '-y' && arg !== '--yes' && arg !== '--prefer-offline');
+}
 
-    let versionOutput = '';
-    if (isWindows) {
-      // Packaged Windows builds may resolve a bundled node.exe whose sibling
-      // npx.cmd exists, but its bundled npm JS files are missing. Probe the
-      // npm entrypoint JS directly so we only trust a complete Node+npm install.
-      const npmBinDir = path.join(path.dirname(nodePath), 'node_modules', 'npm', 'bin');
-      const npmPrefixJs = path.join(npmBinDir, 'npm-prefix.js');
-      const npxCliJs = path.join(npmBinDir, 'npx-cli.js');
-      if (!existsSync(npxCandidate) || !existsSync(npmPrefixJs) || !existsSync(npxCliJs)) {
-        throw new Error('Node-adjacent npx.cmd or bundled npm scripts are missing');
-      }
-      versionOutput = execFileSync(nodePath, [npxCliJs, '--version'], {
-        env,
-        encoding: 'utf-8',
-        timeout: 5000,
-        stdio: ['pipe', 'pipe', 'pipe'],
-        windowsHide: true,
-      }).trim();
-    } else {
-      // Verify the candidate exists AND is modern (npm >= 7 bundles npx >= 7)
-      versionOutput = execFileSync(npxCandidate, ['--version'], {
-        env,
-        encoding: 'utf-8',
-        timeout: 5000,
-        stdio: ['pipe', 'pipe', 'pipe'],
-      }).trim();
-    }
-
-    const majorVersion = parseInt(versionOutput.split('.')[0], 10);
-    if (majorVersion >= 7) {
-      return npxCandidate;
-    }
-    console.warn(`[ShellEnv] npx at ${npxCandidate} is v${versionOutput} (too old), falling back to PATH lookup`);
-  } catch {
-    // which/node/npx resolution failed
+export function resolveNpxPath(_env: Record<string, string | undefined>): string {
+  const bundledBunDir = getBundledBunDir();
+  if (bundledBunDir) {
+    return path.join(bundledBunDir, process.platform === 'win32' ? 'bun.exe' : 'bun');
   }
-  return npxFallback;
+
+  return process.platform === 'win32' ? 'bun.exe' : 'bun';
 }
 
 /**
