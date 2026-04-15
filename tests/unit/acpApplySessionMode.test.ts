@@ -51,10 +51,15 @@ vi.mock('../../src/process/agent/acp/ApprovalStore', () => ({
 
 vi.mock('../../src/process/agent/acp/utils', () => ({
   getClaudeModel: vi.fn().mockReturnValue(null),
+  getClaudeModelSlot: vi.fn().mockReturnValue(null),
   killChild: vi.fn(),
   readTextFile: vi.fn(),
   writeJsonRpcMessage: vi.fn(),
   writeTextFile: vi.fn(),
+}));
+
+vi.mock('../../src/process/services/ccSwitchModelSource', () => ({
+  readClaudeModelInfoFromCcSwitch: vi.fn().mockReturnValue(null),
 }));
 
 vi.mock('../../src/process/agent/acp/modelInfo', () => ({

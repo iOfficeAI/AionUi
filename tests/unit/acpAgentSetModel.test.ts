@@ -49,14 +49,21 @@ vi.mock('../../src/process/agent/acp/ApprovalStore', () => ({
 
 vi.mock('../../src/process/agent/acp/utils', () => ({
   getClaudeModel: vi.fn().mockReturnValue(null),
+  getClaudeModelSlot: vi.fn().mockReturnValue(null),
   killChild: vi.fn(),
   readTextFile: vi.fn(),
   writeJsonRpcMessage: vi.fn(),
   writeTextFile: vi.fn(),
 }));
 
+const mockReadClaudeModelInfoFromCcSwitch = vi.hoisted(() => vi.fn().mockReturnValue(null));
+
+vi.mock('../../src/process/services/ccSwitchModelSource', () => ({
+  readClaudeModelInfoFromCcSwitch: mockReadClaudeModelInfoFromCcSwitch,
+}));
+
 vi.mock('../../src/process/agent/acp/modelInfo', () => ({
-  buildAcpModelInfo: vi.fn().mockReturnValue(null),
+  buildAcpModelInfo: vi.fn((_, __, preferredModelInfo) => preferredModelInfo ?? null),
   summarizeAcpModelInfo: vi.fn(),
 }));
 
@@ -142,6 +149,79 @@ describe('AcpAgent.start() — setModel for non-claude backends', () => {
     await agent.start();
 
     expect(mockSetModel).not.toHaveBeenCalled();
+  });
+});
+
+describe('AcpAgent.start() — setModel for claude backend', () => {
+  const baseConfig = {
+    id: 'test-agent',
+    backend: 'claude' as const,
+    workingDir: '/tmp',
+    onStreamEvent: vi.fn(),
+  };
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    mockConnect.mockResolvedValue(undefined);
+    mockSetModel.mockResolvedValue(undefined);
+    mockGetInitializeResponse.mockReturnValue(null);
+    mockReadClaudeModelInfoFromCcSwitch.mockReturnValue(null);
+  });
+
+  it('uses the cc-switch slot id when Claude model info is available', async () => {
+    mockReadClaudeModelInfoFromCcSwitch.mockReturnValue({
+      currentModelId: 'haiku',
+      currentModelLabel: 'GLM 5.1x',
+      availableModels: [
+        { id: 'default', label: 'Gemini 3.1 Pro' },
+        { id: 'opus', label: 'Claude Opus 4.6 CC' },
+        { id: 'haiku', label: 'GLM 5.1x' },
+      ],
+      canSwitch: true,
+      source: 'models',
+      sourceDetail: 'cc-switch',
+    });
+
+    const agent = new AcpAgent({
+      ...baseConfig,
+      extra: {
+        backend: 'claude',
+      },
+    });
+
+    await agent.start();
+
+    expect(mockSetModel).toHaveBeenCalledOnce();
+    expect(mockSetModel).toHaveBeenCalledWith('haiku');
+  });
+
+  it('keeps the user-selected Claude slot in model info after switching', async () => {
+    mockReadClaudeModelInfoFromCcSwitch.mockReturnValue({
+      currentModelId: 'haiku',
+      currentModelLabel: 'GLM 5.1x',
+      availableModels: [
+        { id: 'default', label: 'Gemini 3.1 Pro' },
+        { id: 'opus', label: 'Claude Opus 4.6 CC' },
+        { id: 'haiku', label: 'GLM 5.1x' },
+      ],
+      canSwitch: true,
+      source: 'models',
+      sourceDetail: 'cc-switch',
+    });
+
+    const agent = new AcpAgent({
+      ...baseConfig,
+      extra: {
+        backend: 'claude',
+      },
+    });
+
+    await agent.start();
+    const modelInfo = await agent.setModelByConfigOption('opus');
+
+    expect(mockSetModel).toHaveBeenCalledWith('opus');
+    expect(modelInfo?.currentModelId).toBe('opus');
+    expect(modelInfo?.currentModelLabel).toBe('Claude Opus 4.6 CC');
   });
 });
 

@@ -222,6 +222,7 @@ export interface ClaudeSettings {
     ANTHROPIC_MODEL?: string;
     [key: string]: string | undefined;
   };
+  model?: string;
 }
 
 /**
@@ -255,6 +256,13 @@ export function readClaudeSettings(): ClaudeSettings | null {
 export function getClaudeModel(): string | null {
   const settings = readClaudeSettings();
   return settings?.env?.ANTHROPIC_MODEL ?? null;
+}
+
+export function getClaudeModelSlot(): 'default' | 'opus' | 'haiku' | null {
+  const settings = readClaudeSettings();
+  const model = settings?.model?.trim().toLowerCase();
+  if (model === 'sonnet') return 'default';
+  return model === 'default' || model === 'opus' || model === 'haiku' ? model : null;
 }
 
 // --- CodeBuddy settings support ---

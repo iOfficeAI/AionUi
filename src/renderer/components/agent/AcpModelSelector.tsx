@@ -10,11 +10,32 @@ import { ConfigStorage } from '@/common/config/storage';
 import type { IProvider } from '@/common/config/storage';
 import type { AcpModelInfo } from '@/common/types/acpTypes';
 import { getModelDisplayLabel } from '@/renderer/utils/model/agentLogo';
+import { formatAcpModelDisplayLabel, getAcpModelSourceLabel } from '@/renderer/utils/model/modelSource';
 import { Button, Dropdown, Menu, Tooltip } from '@arco-design/web-react';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import useSWR from 'swr';
 import MarqueePillLabel from './MarqueePillLabel';
+
+function isSameModelInfo(a: AcpModelInfo | null | undefined, b: AcpModelInfo | null | undefined): boolean {
+  if (a === b) return true;
+  if (!a || !b) return false;
+  if (
+    a.currentModelId !== b.currentModelId ||
+    a.currentModelLabel !== b.currentModelLabel ||
+    a.canSwitch !== b.canSwitch ||
+    a.source !== b.source ||
+    a.sourceDetail !== b.sourceDetail ||
+    a.availableModels.length !== b.availableModels.length
+  ) {
+    return false;
+  }
+
+  return a.availableModels.every((model, index) => {
+    const other = b.availableModels[index];
+    return other && other.id === model.id && other.label === model.label;
+  });
+}
 
 /**
  * Model selector for ACP-based agents.
@@ -37,12 +58,80 @@ const AcpModelSelector: React.FC<{
 }> = ({ conversationId, backend, initialModelId }) => {
   const { t } = useTranslation();
   const [modelInfo, setModelInfo] = useState<AcpModelInfo | null>(null);
-  const modelInfoRef = useRef(modelInfo);
-  modelInfoRef.current = modelInfo;
   // Track whether user has manually switched model via dropdown
   const hasUserChangedModel = useRef(false);
   // Track the last conversationId to detect tab switches
   const prevConversationIdRef = useRef(conversationId);
+
+  const updateModelInfo = useCallback((nextModelInfo: AcpModelInfo) => {
+    setModelInfo((prev) => (isSameModelInfo(prev, nextModelInfo) ? prev : nextModelInfo));
+  }, []);
+
+  const loadCachedModelInfo = useCallback(
+    async (backendKey: string, options?: { preserveInitialModel?: boolean }) => {
+      try {
+        const cached = await ConfigStorage.get('acp.cachedModels');
+        const cachedInfo = cached?.[backendKey];
+        if (!cachedInfo?.availableModels?.length) return;
+
+        if (backendKey === 'codex') {
+          console.log('[AcpModelSelector][codex] Loaded cached model info:', cachedInfo);
+        }
+
+        const effectiveModelId =
+          options?.preserveInitialModel && initialModelId ? initialModelId : (cachedInfo.currentModelId ?? null);
+
+        updateModelInfo({
+          ...cachedInfo,
+          currentModelId: effectiveModelId,
+          currentModelLabel:
+            (effectiveModelId && cachedInfo.availableModels.find((m) => m.id === effectiveModelId)?.label) ||
+            effectiveModelId,
+        });
+      } catch {
+        // Silently ignore
+      }
+    },
+    [initialModelId, updateModelInfo]
+  );
+
+  const reloadModelInfo = useCallback(
+    async (options?: { preserveInitialModel?: boolean }) => {
+      const result = await ipcBridge.acpConversation.getModelInfo.invoke({ conversationId });
+
+      if (result.success && result.data?.modelInfo) {
+        const info = result.data.modelInfo;
+        if (backend === 'codex') {
+          console.log('[AcpModelSelector][codex] Initial model info:', info);
+        }
+        if (info.availableModels?.length > 0) {
+          if (
+            options?.preserveInitialModel &&
+            initialModelId &&
+            !hasUserChangedModel.current &&
+            info.currentModelId !== initialModelId
+          ) {
+            const match = info.availableModels.find((m) => m.id === initialModelId);
+            if (match) {
+              updateModelInfo({
+                ...info,
+                currentModelId: initialModelId,
+                currentModelLabel: match.label || initialModelId,
+              });
+              return;
+            }
+          }
+          updateModelInfo(info);
+          return;
+        }
+      }
+
+      if (backend) {
+        await loadCachedModelInfo(backend, options);
+      }
+    },
+    [backend, conversationId, initialModelId, loadCachedModelInfo, updateModelInfo]
+  );
 
   // Fetch initial model info on mount, fallback to cached models if manager not ready
   useEffect(() => {
@@ -55,79 +144,35 @@ const AcpModelSelector: React.FC<{
       prevConversationIdRef.current = conversationId;
     }
 
-    let cancelled = false;
-    ipcBridge.acpConversation.getModelInfo
-      .invoke({ conversationId })
-      .then((result) => {
-        if (cancelled) return;
-        if (result.success && result.data?.modelInfo) {
-          const info = result.data.modelInfo;
-          if (backend === 'codex') {
-            console.log('[AcpModelSelector][codex] Initial model info:', info);
-          }
-          // When agent is not fully initialized, getModelInfo returns
-          // canSwitch=false with empty availableModels. Prefer cached data
-          // in that case to keep the dropdown functional.
-          if (info.availableModels?.length > 0) {
-            // If user pre-selected a model (from Guid page) and hasn't manually changed it,
-            // keep that selection instead of letting the agent's default overwrite it.
-            if (initialModelId && !hasUserChangedModel.current && info.currentModelId !== initialModelId) {
-              const match = info.availableModels.find((m) => m.id === initialModelId);
-              if (match) {
-                setModelInfo({
-                  ...info,
-                  currentModelId: initialModelId,
-                  currentModelLabel: match.label || initialModelId,
-                });
-              } else {
-                setModelInfo(info);
-              }
-            } else {
-              setModelInfo(info);
-            }
-          } else if (backend) {
-            void loadCachedModelInfo(backend, cancelled);
-          } else {
-            setModelInfo(info);
-          }
-        } else if (backend) {
-          // Manager not yet created — load cached model list from storage
-          void loadCachedModelInfo(backend, cancelled);
-        }
-      })
-      .catch(() => {
-        if (!cancelled && backend) {
-          void loadCachedModelInfo(backend, cancelled);
-        }
-      });
+    void reloadModelInfo({ preserveInitialModel: true }).catch(() => {
+      // loadCachedModelInfo is already handled inside reloadModelInfo
+    });
+  }, [conversationId, backend, initialModelId, reloadModelInfo]);
 
-    return () => {
-      cancelled = true;
+  useEffect(() => {
+    if (backend !== 'claude') return;
+
+    const refresh = () => {
+      void reloadModelInfo().catch(() => {
+        // loadCachedModelInfo is already handled inside reloadModelInfo
+      });
+    };
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible') {
+        refresh();
+      }
     };
 
-    async function loadCachedModelInfo(backendKey: string, isCancelled: boolean) {
-      try {
-        const cached = await ConfigStorage.get('acp.cachedModels');
-        if (isCancelled) return;
-        const cachedInfo = cached?.[backendKey];
-        if (cachedInfo?.availableModels?.length > 0) {
-          if (backendKey === 'codex') {
-            console.log('[AcpModelSelector][codex] Loaded cached model info:', cachedInfo);
-          }
-          const effectiveModelId = initialModelId || cachedInfo.currentModelId || null;
-          setModelInfo({
-            ...cachedInfo,
-            currentModelId: effectiveModelId,
-            currentModelLabel:
-              (effectiveModelId && cachedInfo.availableModels.find((m) => m.id === effectiveModelId)?.label) ||
-              effectiveModelId,
-          });
-        }
-      } catch {
-        // Silently ignore
-      }
-    }
-  }, [conversationId, backend, initialModelId]);
+    window.addEventListener('focus', refresh);
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    const intervalId = window.setInterval(refresh, 1500);
+
+    return () => {
+      window.removeEventListener('focus', refresh);
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+      window.clearInterval(intervalId);
+    };
+  }, [backend, reloadModelInfo]);
 
   // Listen for acp_model_info / codex_model_info events from responseStream
   useEffect(() => {
@@ -144,7 +189,7 @@ const AcpModelSelector: React.FC<{
         if (initialModelId && !hasUserChangedModel.current && incoming.availableModels?.length > 0) {
           const match = incoming.availableModels.find((m) => m.id === initialModelId);
           if (match && incoming.currentModelId !== initialModelId) {
-            setModelInfo({
+            updateModelInfo({
               ...incoming,
               currentModelId: initialModelId,
               currentModelLabel: match.label || initialModelId,
@@ -152,13 +197,14 @@ const AcpModelSelector: React.FC<{
             return;
           }
         }
-        setModelInfo(incoming);
+        updateModelInfo(incoming);
       } else if (message.type === 'codex_model_info' && message.data) {
         // Codex model info: always read-only display
         const data = message.data as { model: string };
         if (data.model) {
-          setModelInfo({
+          updateModelInfo({
             source: 'models',
+            sourceDetail: 'codex-stream',
             currentModelId: data.model,
             currentModelLabel: data.model,
             canSwitch: false,
@@ -168,24 +214,32 @@ const AcpModelSelector: React.FC<{
       }
     };
     return ipcBridge.acpConversation.responseStream.on(handler);
-  }, [conversationId, initialModelId]);
+  }, [conversationId, initialModelId, updateModelInfo]);
 
   const handleSelectModel = useCallback(
     (modelId: string) => {
       hasUserChangedModel.current = true;
-      setModelInfo((prev) => (prev ? { ...prev, currentModelId: modelId } : prev));
+      setModelInfo((prev) => {
+        if (!prev) return prev;
+        const selectedModel = prev.availableModels.find((model) => model.id === modelId);
+        return {
+          ...prev,
+          currentModelId: modelId,
+          currentModelLabel: selectedModel?.label || modelId,
+        };
+      });
       ipcBridge.acpConversation.setModel
         .invoke({ conversationId, modelId })
         .then((result) => {
           if (result.success && result.data?.modelInfo) {
-            setModelInfo(result.data.modelInfo);
+            updateModelInfo(result.data.modelInfo);
           }
         })
         .catch((error) => {
           console.error('[AcpModelSelector] Failed to set model:', error);
         });
     },
-    [conversationId]
+    [conversationId, updateModelInfo]
   );
 
   const defaultModelLabel = t('common.defaultModel');
@@ -196,6 +250,12 @@ const AcpModelSelector: React.FC<{
     defaultModelLabel,
     fallbackLabel: t('conversation.welcome.useCliModel'),
   });
+  const modelSourceLabel = getAcpModelSourceLabel(modelInfo);
+  const buttonLabel = formatAcpModelDisplayLabel(displayLabel, modelSourceLabel);
+  const tooltipContent =
+    modelSourceLabel && displayLabel
+      ? `${displayLabel}\nSource: ${modelSourceLabel}`
+      : displayLabel || modelSourceLabel;
   // 获取模型配置数据（包含健康状态）
   const { data: modelConfig } = useSWR<IProvider[]>('model.config', () => ipcBridge.mode.getModelConfig.invoke());
 
@@ -230,7 +290,7 @@ const AcpModelSelector: React.FC<{
   // State 2: Has model info but cannot switch — read-only display
   if (!modelInfo.canSwitch) {
     return (
-      <Tooltip content={displayLabel} position='top'>
+      <Tooltip content={tooltipContent} position='top'>
         <Button
           className='sendbox-model-btn header-model-btn agent-mode-compact-pill'
           shape='round'
@@ -241,7 +301,7 @@ const AcpModelSelector: React.FC<{
             {currentModelHealth.status !== 'unknown' && (
               <div className={`w-6px h-6px rounded-full shrink-0 ${currentModelHealth.color}`} />
             )}
-            <MarqueePillLabel>{displayLabel}</MarqueePillLabel>
+            <MarqueePillLabel>{buttonLabel}</MarqueePillLabel>
           </span>
         </Button>
       </Tooltip>
@@ -282,7 +342,7 @@ const AcpModelSelector: React.FC<{
           {currentModelHealth.status !== 'unknown' && (
             <div className={`w-6px h-6px rounded-full shrink-0 ${currentModelHealth.color}`} />
           )}
-          <MarqueePillLabel>{displayLabel}</MarqueePillLabel>
+          <MarqueePillLabel>{buttonLabel}</MarqueePillLabel>
         </span>
       </Button>
     </Dropdown>

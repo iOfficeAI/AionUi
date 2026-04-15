@@ -1261,6 +1261,7 @@ ${collectedResponses.join('\n')}`;
       if (this.persistedModelId) {
         return {
           source: 'models',
+          sourceDetail: 'persisted-model',
           currentModelId: this.persistedModelId,
           currentModelLabel: this.persistedModelId,
           canSwitch: false,

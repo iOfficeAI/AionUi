@@ -32,6 +32,7 @@ import { promises as fs } from 'fs';
 import * as path from 'path';
 import { ProcessConfig } from '@process/utils/initStorage';
 import { getEnhancedEnv, normalizeNpxArgsForBundledBun, resolveNpxPath } from '@process/utils/shellEnv';
+import { readClaudeModelInfoFromCcSwitch } from '@process/services/ccSwitchModelSource';
 import { AcpConnection } from './AcpConnection';
 import { AcpApprovalStore, createAcpApprovalKey } from './ApprovalStore';
 import {
@@ -42,7 +43,7 @@ import {
 } from './constants';
 import { buildAcpModelInfo } from './modelInfo';
 import { buildBuiltinAcpSessionMcpServers, buildTeamMcpServer, type AcpSessionMcpServer } from './mcpSessionConfig';
-import { getClaudeModel } from './utils';
+import { getClaudeModelSlot } from './utils';
 import { getTeamGuideStdioConfig } from '@process/team/mcp/guide/teamGuideSingleton';
 import { shouldInjectTeamGuideMcp } from '@process/team/prompts/teamGuideCapability.ts';
 import { waitForMcpReady } from '@process/team/mcpReadiness';
@@ -355,12 +356,12 @@ export class AcpAgent {
         await this.applySessionMode(this.extra.sessionMode, false, `session mode`);
       }
 
-      // Apply model from ~/.claude/settings.json for Claude backend.
-      // claude-agent-acp may default to a region-mismatched Bedrock model;
-      // explicitly setting the model from settings ensures correctness.
-      // Uses session/set_model (direct CLI control) for consistency with runtime switching.
+      // For Claude backend, keep runtime model selection aligned with the
+      // local Claude slot model (`default` / `opus` / `haiku`).
+      // Do not send the relay's underlying model name (for example glm-5.1x)
+      // to ACP, because claude-agent-acp only accepts slot ids.
       if (this.extra.backend === 'claude') {
-        const configuredModel = getClaudeModel();
+        const configuredModel = readClaudeModelInfoFromCcSwitch()?.currentModelId ?? getClaudeModelSlot();
         if (configuredModel) {
           try {
             const modelStart = Date.now();
@@ -368,17 +369,15 @@ export class AcpAgent {
             console.log(`[ACP-PERF] start: model set ${Date.now() - modelStart}ms`);
           } catch (error) {
             const errMsg = error instanceof Error ? error.message : String(error);
-            console.warn(`[ACP] Failed to set model from settings: ${errMsg}`);
+            console.warn(`[ACP] Failed to set Claude slot model "${configuredModel}": ${errMsg}`);
             // Detect third-party relay/proxy errors (e.g., NewAPI/OneAPI "model_not_found").
-            // These services route by model name and may not have channels configured for
-            // specific model IDs like "claude-sonnet-4-6". Emit a visible warning so the
-            // user knows to update their relay's model configuration.
+            // These services route by the underlying model mapped to the selected slot.
+            // Emit a visible warning so the user knows to update the relay-side mapping.
             if (errMsg.includes('model_not_found') || errMsg.includes('无可用渠道')) {
               this.emitErrorMessage(
-                `Model "${configuredModel}" is not available on your API relay service. ` +
-                  `Please add this model to your relay's channel configuration, ` +
-                  `or update ANTHROPIC_MODEL in ~/.claude/settings.json to a supported model name. ` +
-                  `Falling back to the relay's default model.`
+                `Claude slot "${configuredModel}" could not be activated on your API relay service. ` +
+                  `Please check the model mapping in cc-switch or ~/.claude/settings.json. ` +
+                  `Falling back to the relay's default Claude slot.`
               );
             }
           }
@@ -503,7 +502,18 @@ export class AcpAgent {
    * Prefers stable configOptions API, falls back to unstable models API.
    */
   getModelInfo(): AcpModelInfo | null {
-    return buildAcpModelInfo(this.connection.getConfigOptions(), this.connection.getModels());
+    const preferredModelInfo = this.extra.backend === 'claude' ? readClaudeModelInfoFromCcSwitch() : null;
+    if (this.extra.backend === 'claude' && this.userModelOverride && preferredModelInfo?.availableModels?.length) {
+      const selectedModel = preferredModelInfo.availableModels.find((model) => model.id === this.userModelOverride);
+      if (selectedModel) {
+        return {
+          ...preferredModelInfo,
+          currentModelId: selectedModel.id,
+          currentModelLabel: selectedModel.label,
+        };
+      }
+    }
+    return buildAcpModelInfo(this.connection.getConfigOptions(), this.connection.getModels(), preferredModelInfo);
   }
 
   /**

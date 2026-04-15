@@ -30,6 +30,7 @@ import {
   normalizeNpxArgsForBundledBun,
   resolveNpxPath,
 } from '@process/utils/shellEnv';
+import { readClaudeProviderEnvFromCcSwitch } from '@process/services/ccSwitchModelSource';
 import { mainWarn } from '@process/utils/mainLogger';
 
 const execFile = promisify(execFileCb);
@@ -356,6 +357,7 @@ export function spawnNpxBackend(
 /** Prepare clean env + resolve npx for Claude ACP bridge. */
 async function prepareClaude(): Promise<NpxPrepareResult> {
   const cleanEnv = await prepareCleanEnv();
+  Object.assign(cleanEnv, readClaudeProviderEnvFromCcSwitch());
   ensureMinNodeVersion(cleanEnv, 20, 10, 'Claude ACP bridge');
   return { cleanEnv, npxCommand: resolveNpxPath(cleanEnv) };
 }

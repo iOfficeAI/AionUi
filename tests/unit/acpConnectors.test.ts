@@ -55,6 +55,12 @@ vi.mock('@process/utils/mainLogger', () => ({
   mainWarn: vi.fn(),
 }));
 
+const ccSwitchMock = vi.hoisted(() => ({
+  readClaudeProviderEnvFromCcSwitch: vi.fn(() => ({})),
+}));
+
+vi.mock('@process/services/ccSwitchModelSource', () => ccSwitchMock);
+
 import { execFile as execFileCb, spawn } from 'child_process';
 import { execFileSync } from 'child_process';
 import {
@@ -327,6 +333,31 @@ describe('connectClaude - detached process group', () => {
       })
     );
     expect(mockChild.unref).toHaveBeenCalledTimes(1);
+  });
+
+  it('injects Claude env from cc-switch into the spawned process env', async () => {
+    Object.defineProperty(process, 'platform', { value: 'linux', configurable: true });
+    ccSwitchMock.readClaudeProviderEnvFromCcSwitch.mockReturnValue({
+      ANTHROPIC_BASE_URL: 'http://localhost:4000',
+      ANTHROPIC_AUTH_TOKEN: 'sk-test-token',
+    });
+
+    const setup = vi.fn().mockResolvedValue(undefined);
+    const cleanup = vi.fn().mockResolvedValue(undefined);
+
+    await connectClaude('/cwd', { setup, cleanup });
+
+    expect(mockSpawn).toHaveBeenCalledWith(
+      '/bundled/bun',
+      expect.arrayContaining(['x', '--bun', '@zed-industries/claude-agent-acp@0.21.0']),
+      expect.objectContaining({
+        env: expect.objectContaining({
+          PATH: '/usr/bin',
+          ANTHROPIC_BASE_URL: 'http://localhost:4000',
+          ANTHROPIC_AUTH_TOKEN: 'sk-test-token',
+        }),
+      })
+    );
   });
 
   it('does not detach on Windows', async () => {
