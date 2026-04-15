@@ -6,7 +6,7 @@
 
 import { ipcBridge } from '@/common';
 import { resolveLocaleKey } from '@/common/utils';
-import { useAssistantBackends } from '@/renderer/hooks/assistant';
+
 import { useInputFocusRing } from '@/renderer/hooks/chat/useInputFocusRing';
 import { openExternalUrl, resolveExtensionAssetUrl } from '@/renderer/utils/platform';
 import { useConversationTabs } from '@/renderer/pages/conversation/hooks/ConversationTabsContext';
@@ -28,7 +28,7 @@ import { useGuidModelSelection } from './hooks/useGuidModelSelection';
 import { useGuidSend } from './hooks/useGuidSend';
 import { useTypewriterPlaceholder } from './hooks/useTypewriterPlaceholder';
 import { ConfigStorage } from '@/common/config/storage';
-import { ACP_BACKENDS_ALL, type PresetAgentType } from '@/common/types/acpTypes';
+import { ACP_BACKENDS_ALL } from '@/common/types/acpTypes';
 import { getAgentLogo } from '@/renderer/utils/model/agentLogo';
 import type { AcpBackendConfig } from './types';
 import { Button, ConfigProvider, Dropdown, Menu, Message } from '@arco-design/web-react';
@@ -37,16 +37,6 @@ import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next';
 import { useLocation, useNavigate } from 'react-router-dom';
 import styles from './index.module.css';
-
-// Agent switcher options — same list as AssistantEditDrawer
-const BUILTIN_AGENT_OPTIONS: { value: string; label: string }[] = [
-  { value: 'gemini', label: 'Gemini CLI' },
-  { value: 'claude', label: 'Claude Code' },
-  { value: 'qwen', label: 'Qwen Code' },
-  { value: 'codex', label: 'Codex' },
-  { value: 'codebuddy', label: 'CodeBuddy' },
-  { value: 'opencode', label: 'OpenCode' },
-];
 
 const GuidPage: React.FC = () => {
   const { t, i18n } = useTranslation();
@@ -57,7 +47,7 @@ const GuidPage: React.FC = () => {
   const descriptionTextRef = useRef<HTMLDivElement>(null);
   const { closeAllTabs, openTab } = useConversationTabs();
   const { activeBorderColor, inactiveBorderColor, activeShadow } = useInputFocusRing();
-  const { availableBackends, extensionAcpAdapters } = useAssistantBackends();
+
   const localeKey = resolveLocaleKey(i18n.language);
   const [showFeedbackModal, setShowFeedbackModal] = useState(false);
 
@@ -139,8 +129,6 @@ const GuidPage: React.FC = () => {
     resolveEnabledSkills: agentSelection.resolveEnabledSkills,
     resolveDisabledBuiltinSkills: agentSelection.resolveDisabledBuiltinSkills,
     guidDisabledBuiltinSkills,
-    isMainAgentAvailable: agentSelection.isMainAgentAvailable,
-    getAvailableFallbackAgent: agentSelection.getAvailableFallbackAgent,
     currentEffectiveAgentInfo: agentSelection.currentEffectiveAgentInfo,
     isGoogleAuth: modelSelection.isGoogleAuth,
 
@@ -349,10 +337,19 @@ const GuidPage: React.FC = () => {
 
   // When sidebar "新对话" navigates with resetAssistant, exit any preset assistant
   // and return to the default (non-preset) homepage view.
+  // Uses a ref to ensure the reset only fires once per navigation — without it,
+  // dependency changes (e.g. isPresetAgent toggling) would re-trigger the effect
+  // because window.history.replaceState does not update React Router's location.state.
   const resetAssistantRequested = (location.state as { resetAssistant?: boolean } | null)?.resetAssistant === true;
+  const resetHandledRef = useRef(false);
   useEffect(() => {
-    if (!resetAssistantRequested) return;
+    if (!resetAssistantRequested) {
+      resetHandledRef.current = false;
+      return;
+    }
+    if (resetHandledRef.current) return;
     if (!agentSelection.availableAgents || agentSelection.availableAgents.length === 0) return;
+    resetHandledRef.current = true;
     if (agentSelection.isPresetAgent) {
       agentSelection.setSelectedAgentKey(agentSelection.defaultAgentKey);
     }
@@ -418,21 +415,19 @@ const GuidPage: React.FC = () => {
     return () => observer.disconnect();
   }, [agentSelection.isPresetAgent, selectedAssistantDescription]);
 
-  const currentPresetAgentType = (selectedAssistantRecord?.presetAgentType as PresetAgentType | undefined) || 'gemini';
+  const currentPresetAgentType = selectedAssistantRecord?.presetAgentType || 'gemini';
   const agentSwitcherItems = useMemo(() => {
-    const builtinItems = BUILTIN_AGENT_OPTIONS.filter((opt) => availableBackends.has(opt.value)).map((opt) => ({
-      key: opt.value,
-      label: opt.label,
-      isCurrent: opt.value === currentPresetAgentType,
-    }));
-    const extensionItems = (extensionAcpAdapters || []).map((adapter) => ({
-      key: adapter.id as string,
-      label: (adapter.name as string) || (adapter.id as string),
-      isCurrent: (adapter.id as string) === currentPresetAgentType,
-      isExtension: true,
-    }));
-    return [...builtinItems, ...extensionItems];
-  }, [availableBackends, extensionAcpAdapters, currentPresetAgentType]);
+    if (!agentSelection.availableAgents) return [];
+    // Build from detected execution engines, excluding preset assistants and remote agents
+    return agentSelection.availableAgents
+      .filter((a) => a.backend !== 'custom' && a.backend !== 'remote')
+      .map((a) => ({
+        key: a.backend,
+        label: a.name,
+        isCurrent: a.backend === currentPresetAgentType,
+        isExtension: a.isExtension,
+      }));
+  }, [agentSelection.availableAgents, currentPresetAgentType]);
   const effectiveAgentLogo = useMemo(
     () => getAgentLogo(agentSelection.currentEffectiveAgentInfo.agentType),
     [agentSelection.currentEffectiveAgentInfo.agentType]
@@ -449,10 +444,10 @@ const GuidPage: React.FC = () => {
           return;
         }
         const updated = [...agents];
-        updated[idx] = { ...updated[idx], presetAgentType: nextType as PresetAgentType };
+        updated[idx] = { ...updated[idx], presetAgentType: nextType };
         await ConfigStorage.set('acp.customAgents', updated);
         await agentSelection.refreshCustomAgents();
-        const agentName = ACP_BACKENDS_ALL[nextType as PresetAgentType]?.name || nextType;
+        const agentName = ACP_BACKENDS_ALL[nextType as keyof typeof ACP_BACKENDS_ALL]?.name || nextType;
         Message.success(t('guid.switchedToAgent', { agent: agentName }));
       } catch (error) {
         console.error('[GuidPage] Failed to switch preset agent type:', error);
@@ -526,9 +521,7 @@ const GuidPage: React.FC = () => {
       onAgentSwitch={(key) => {
         handlePresetAgentTypeSwitch(key).catch((err) => console.error('Failed to switch agent type:', err));
       }}
-      configOptionsBackend={
-        agentSelection.currentEffectiveAgentInfo.agentType as import('@/common/types/acpTypes').AcpBackend
-      }
+      configOptionsBackend={agentSelection.currentEffectiveAgentInfo.agentType}
       cachedConfigOptions={agentSelection.cachedConfigOptions}
       onConfigOptionSelect={agentSelection.setPendingConfigOption}
       builtinAutoSkills={builtinAutoSkills}

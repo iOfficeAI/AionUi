@@ -621,9 +621,7 @@ const SkillsHubSettings: React.FC<SkillsHubSettingsProps> = ({ withWrapper = tru
                       </span>
                     </div>
                     {skill.description && (
-                      <p className='text-13px text-t-secondary leading-relaxed line-clamp-2 m-0'>
-                        {skill.description}
-                      </p>
+                      <p className='text-13px text-t-secondary leading-relaxed line-clamp-2 m-0'>{skill.description}</p>
                     )}
                   </div>
                 </div>

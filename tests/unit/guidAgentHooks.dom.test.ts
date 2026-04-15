@@ -137,49 +137,6 @@ describe('useAgentAvailability', () => {
     expect(result.current.isMainAgentAvailable('gemini')).toBe(false);
   });
 
-  // -- getAvailableFallbackAgent -----------------------------------------------
-
-  it('getAvailableFallbackAgent returns first available agent in fallback order', () => {
-    // Only claude is available -> gemini is first in fallback but not available
-    const { result } = renderHook(() =>
-      useAgentAvailability({
-        modelList: [],
-        isGoogleAuth: false,
-        availableAgents: [{ backend: 'claude', name: 'Claude' }],
-        resolvePresetAgentType: stubResolvePresetAgentType,
-      })
-    );
-
-    expect(result.current.getAvailableFallbackAgent()).toBe('claude');
-  });
-
-  it('getAvailableFallbackAgent returns gemini first when googleAuth is true', () => {
-    const { result } = renderHook(() =>
-      useAgentAvailability({
-        modelList: [],
-        isGoogleAuth: true,
-        availableAgents: [{ backend: 'claude', name: 'Claude' }],
-        resolvePresetAgentType: stubResolvePresetAgentType,
-      })
-    );
-
-    // gemini comes first in fallback order
-    expect(result.current.getAvailableFallbackAgent()).toBe('gemini');
-  });
-
-  it('getAvailableFallbackAgent returns null when nothing is available', () => {
-    const { result } = renderHook(() =>
-      useAgentAvailability({
-        modelList: [],
-        isGoogleAuth: false,
-        availableAgents: [],
-        resolvePresetAgentType: stubResolvePresetAgentType,
-      })
-    );
-
-    expect(result.current.getAvailableFallbackAgent()).toBeNull();
-  });
-
   // -- getEffectiveAgentType ---------------------------------------------------
 
   it('getEffectiveAgentType returns resolved agent type with availability info', () => {

@@ -36,10 +36,6 @@ vi.mock('../../src/renderer/utils/workspace/workspaceHistory', () => ({
   updateWorkspaceTime: vi.fn(),
 }));
 
-vi.mock('../../src/common/types/acpTypes', () => ({
-  isAcpRoutedPresetType: vi.fn(() => false),
-}));
-
 vi.mock('@arco-design/web-react', () => ({
   Message: { info: vi.fn(), error: vi.fn() },
 }));

@@ -113,7 +113,8 @@ vi.mock('../../src/renderer/pages/settings/AgentSettings/AgentHubModal', () => (
   AgentHubModal: ({ visible }: { visible: boolean }) => (visible ? <div data-testid='hub-modal' /> : null),
 }));
 
-vi.mock('@/renderer/utils/model/availableAgents', () => ({
+vi.mock('@/renderer/utils/model/agentTypes', async (importOriginal) => ({
+  ...(await importOriginal()),
   AVAILABLE_AGENTS_SWR_KEY: 'acp.agents.available',
 }));
 

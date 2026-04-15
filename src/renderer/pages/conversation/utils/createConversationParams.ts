@@ -12,7 +12,6 @@ import { loadPresetAssistantResources } from '@/common/utils/presetAssistantReso
 import {
   buildAgentConversationParams,
   getConversationTypeForBackend,
-  getConversationTypeForPreset,
 } from '@/common/utils/buildAgentConversationParams';
 import type { AvailableAgent } from '@/renderer/utils/model/agentTypes';
 
@@ -165,7 +164,7 @@ export async function buildPresetAssistantParams(
     localeKey,
   });
 
-  const type = getConversationTypeForPreset(presetAgentType);
+  const type = getConversationTypeForBackend(presetAgentType);
   const model = type === 'gemini' ? await resolveGeminiModel() : ({} as TProviderWithModel);
 
   return buildAgentConversationParams({

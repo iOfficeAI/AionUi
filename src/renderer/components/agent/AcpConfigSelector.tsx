@@ -7,7 +7,7 @@
 import { ipcBridge } from '@/common';
 import type { IResponseMessage } from '@/common/adapter/ipcBridge';
 import { ConfigStorage } from '@/common/config/storage';
-import type { AcpBackend, AcpSessionConfigOption } from '@/common/types/acpTypes';
+import type { AcpSessionConfigOption } from '@/common/types/acpTypes';
 import { Button, Dropdown, Menu } from '@arco-design/web-react';
 import { Down } from '@icon-park/react';
 import React, { useCallback, useEffect, useState } from 'react';
@@ -21,7 +21,7 @@ import MarqueePillLabel from './MarqueePillLabel';
  * 目前支援 ACP configOptions 的後端列表。
  * 其他後端（如 Claude Code、OpenCode）待上游支援後再加入。
  */
-const CONFIG_OPTION_SUPPORTED_BACKENDS: Set<AcpBackend> = new Set(['codex']);
+const CONFIG_OPTION_SUPPORTED_BACKENDS: Set<string> = new Set(['codex']);
 
 /** ConfigStorage key for cached config options per backend */
 const CACHED_CONFIG_OPTIONS_KEY = 'acp.cachedConfigOptions';
@@ -46,7 +46,7 @@ function cacheConfigOptions(backend: string, options: AcpSessionConfigOption[]):
  */
 const AcpConfigSelector: React.FC<{
   conversationId?: string;
-  backend?: AcpBackend;
+  backend?: string;
   compact?: boolean;
   /** Cached config options for immediate render (from DB or ConfigStorage) */
   initialConfigOptions?: unknown[];

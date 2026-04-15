@@ -48,7 +48,7 @@ export const useAssistantEditor = ({
   const [editDescription, setEditDescription] = useState('');
   const [editContext, setEditContext] = useState('');
   const [editAvatar, setEditAvatar] = useState('');
-  // editAgent holds either a built-in PresetAgentType or an extension adapter ID (e.g. "ext-buddy")
+  // editAgent holds a backend ID (e.g. "claude", "goose") or an extension adapter ID (e.g. "ext-buddy")
   const [editAgent, setEditAgent] = useState<string>('gemini');
   const [editSkills, setEditSkills] = useState('');
   const [isCreating, setIsCreating] = useState(false);
