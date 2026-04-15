@@ -29,6 +29,36 @@ describe('settings navigation registry', () => {
     expect(builtinItems.some((item) => item.id === 'cron')).toBe(false);
   });
 
+  it('inserts the session-management extension tab after api', () => {
+    const builtinItems = buildBuiltinSettingsNavItems({
+      isDesktop: true,
+      t,
+    });
+    const extensionTabs = [
+      {
+        id: 'ext-session-management-session-management',
+        name: 'Session Management',
+        entryUrl: 'aion-asset://asset/E:/ext/session-management/settings/session-management.html',
+        _extensionName: 'session-management',
+        order: 30,
+        position: { anchor: 'api', placement: 'after' },
+      },
+    ] as IExtensionSettingsTab[];
+
+    const navItems = buildSettingsNavItems({
+      builtinItems,
+      extensionTabs,
+      resolveExtTabName: (tab) => tab.name,
+    });
+
+    expect(builtinItems.some((item) => item.id === 'session-management')).toBe(false);
+    const apiIndex = navItems.findIndex((item) => item.id === 'api');
+    const extensionIndex = navItems.findIndex((item) => item.id === 'ext-session-management-session-management');
+
+    expect(apiIndex).toBeGreaterThan(-1);
+    expect(extensionIndex).toBe(apiIndex + 1);
+  });
+
   it('keeps embedded extension tabs out of page navigation while preserving regular extension tabs', () => {
     const builtinItems = buildBuiltinSettingsNavItems({
       isDesktop: true,
