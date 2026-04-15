@@ -9,7 +9,7 @@ import type { IResponseMessage } from '@/common/adapter/ipcBridge';
 import type { AcpBackend, AcpSessionConfigOption } from '@/common/types/acpTypes';
 import { Button, Dropdown, Menu } from '@arco-design/web-react';
 import { Down } from '@icon-park/react';
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { type ReactNode, useCallback, useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import MarqueePillLabel from './MarqueePillLabel';
 
@@ -26,11 +26,21 @@ const AcpConfigSelector: React.FC<{
   conversationId?: string;
   backend?: AcpBackend;
   compact?: boolean;
+  buttonClassName?: string;
+  leadingIcon?: ReactNode;
   /** Cached config options for immediate render (from DB or ConfigStorage) */
   initialConfigOptions?: unknown[];
   /** Local mode callback when user selects an option (Guid page) */
   onOptionSelect?: (configId: string, value: string) => void;
-}> = ({ conversationId, backend, compact = false, initialConfigOptions, onOptionSelect }) => {
+}> = ({
+  conversationId,
+  backend,
+  compact: _compact = false,
+  buttonClassName,
+  leadingIcon,
+  initialConfigOptions,
+  onOptionSelect,
+}) => {
   const { t } = useTranslation();
   const [configOptions, setConfigOptions] = useState<AcpSessionConfigOption[]>(
     () => (Array.isArray(initialConfigOptions) ? initialConfigOptions : []) as AcpSessionConfigOption[]
@@ -169,8 +179,13 @@ const AcpConfigSelector: React.FC<{
               </Menu>
             }
           >
-            <Button className='sendbox-model-btn agent-mode-compact-pill' shape='round' size='small'>
+            <Button
+              className={`sendbox-model-btn agent-mode-compact-pill${buttonClassName ? ` ${buttonClassName}` : ''}`}
+              shape='round'
+              size='small'
+            >
               <span className='flex items-center gap-6px min-w-0 leading-none'>
+                {leadingIcon && <span className='shrink-0 inline-flex items-center'>{leadingIcon}</span>}
                 <MarqueePillLabel>{currentLabel}</MarqueePillLabel>
                 <Down size={12} className='text-t-tertiary shrink-0' />
               </span>
