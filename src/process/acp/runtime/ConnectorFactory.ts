@@ -4,12 +4,12 @@ import type { AgentConfig } from '../types';
 import type { AgentConnector } from '../infra/AgentConnector';
 import type { ConnectorFactory } from '../session/types';
 import { IPCConnector } from '../infra/IPCConnector';
+import { WebSocketConnector } from '../infra/WebSocketConnector';
 
 export class DefaultConnectorFactory implements ConnectorFactory {
   create(config: AgentConfig): AgentConnector {
     if (config.remoteUrl) {
-      // WebSocketConnector added in Task 16
-      throw new Error(`WebSocket connector not yet implemented for ${config.remoteUrl}`);
+      return new WebSocketConnector({ url: config.remoteUrl, headers: config.remoteHeaders });
     }
     return new IPCConnector({
       command: config.command!,
