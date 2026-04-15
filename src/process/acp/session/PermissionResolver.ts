@@ -1,7 +1,6 @@
 // src/process/acp/session/PermissionResolver.ts
 
-import type { PermissionUIData } from '../types';
-import type { RequestPermissionRequest, RequestPermissionResponse, PendingPermission } from './types';
+import type { PermissionUIData, RequestPermissionRequest, RequestPermissionResponse, PendingPermission } from '../types';
 import { ApprovalCache } from './ApprovalCache';
 
 type PermissionResolverConfig = {
@@ -29,7 +28,7 @@ export class PermissionResolver {
 
   async evaluate(
     request: RequestPermissionRequest,
-    uiCallback: (data: PermissionUIData) => void,
+    uiCallback: (data: PermissionUIData) => void
   ): Promise<RequestPermissionResponse> {
     // Level 1: YOLO mode
     if (this.autoApproveAll) {

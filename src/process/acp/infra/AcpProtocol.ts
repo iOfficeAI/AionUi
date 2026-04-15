@@ -8,21 +8,27 @@ import type {
   RequestPermissionResponse,
   InitializeResponse,
   PromptResponse,
-} from '../session/types';
-import type { CreateSessionParams, LoadSessionParams, PromptContent } from '../types';
+  CreateSessionParams,
+  LoadSessionParams,
+  PromptContent,
+} from '../types';
 
 export class AcpProtocol {
   private readonly sdk: ClientSideConnection;
 
   constructor(stream: Stream, handlers: ProtocolHandlers) {
-    this.sdk = new ClientSideConnection((_agent) => ({
-      sessionUpdate: async (params: any) => {
-        handlers.onSessionUpdate(params as SessionNotification);
-      },
-      requestPermission: async (params: any) => handlers.onRequestPermission(params as RequestPermissionRequest) as any,
-      readTextFile: async (params: any) => handlers.onReadTextFile(params) as any,
-      writeTextFile: async (params: any) => handlers.onWriteTextFile(params) as any,
-    }), stream);
+    this.sdk = new ClientSideConnection(
+      (_agent) => ({
+        sessionUpdate: async (params: any) => {
+          handlers.onSessionUpdate(params as SessionNotification);
+        },
+        requestPermission: async (params: any) =>
+          handlers.onRequestPermission(params as RequestPermissionRequest) as any,
+        readTextFile: async (params: any) => handlers.onReadTextFile(params) as any,
+        writeTextFile: async (params: any) => handlers.onWriteTextFile(params) as any,
+      }),
+      stream
+    );
   }
 
   async initialize(): Promise<InitializeResponse> {

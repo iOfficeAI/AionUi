@@ -1,7 +1,7 @@
 // tests/unit/process/acp/session/MessageTranslator.test.ts
 import { describe, it, expect } from 'vitest';
 import { MessageTranslator } from '@process/acp/session/MessageTranslator';
-import type { SessionNotification } from '@process/acp/session/types';
+import type { SessionNotification } from '@process/acp/types';
 
 describe('MessageTranslator', () => {
   it('translates agent_message_chunk to TMessage', () => {

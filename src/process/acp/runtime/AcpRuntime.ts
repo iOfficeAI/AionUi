@@ -2,9 +2,8 @@
 
 import type { TMessage } from '@/common/chat/chatLib';
 import type { AgentConfig, SessionCallbacks, SessionStatus, SignalEvent, ConfigOption, RuntimeOptions } from '../types';
-import type { SessionEntry } from '../session/types';
+import type { SessionEntry, ConnectorFactory } from '../types';
 import type { IAcpSessionRepository } from './IAcpSessionRepository';
-import type { ConnectorFactory } from '../session/types';
 import { AcpSession } from '../session/AcpSession';
 import { IdleReclaimer } from './IdleReclaimer';
 

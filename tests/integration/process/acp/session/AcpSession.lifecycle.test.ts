@@ -1,7 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { AcpSession } from '@process/acp/session/AcpSession';
-import type { AgentConfig, SessionCallbacks, SessionStatus } from '@process/acp/types';
-import type { ConnectorFactory, SessionOptions } from '@process/acp/session/types';
+import type { AgentConfig, SessionCallbacks, SessionStatus, ConnectorFactory, SessionOptions } from '@process/acp/types';
 
 function createMockCallbacks(): SessionCallbacks {
   return {
@@ -151,12 +150,25 @@ describe('AcpSession lifecycle', () => {
 
   it('only emits valid state transitions (INV-S-09)', async () => {
     const VALID_TRANSITIONS = new Set([
-      'idle→starting', 'starting→active', 'starting→starting', 'starting→error',
-      'active→prompting', 'active→suspended', 'active→idle',
-      'prompting→active', 'prompting→prompting', 'prompting→resuming', 'prompting→error', 'prompting→idle',
-      'suspended→resuming', 'suspended→idle',
-      'resuming→active', 'resuming→resuming', 'resuming→error',
-      'error→starting', 'error→idle',
+      'idle→starting',
+      'starting→active',
+      'starting→starting',
+      'starting→error',
+      'active→prompting',
+      'active→suspended',
+      'active→idle',
+      'prompting→active',
+      'prompting→prompting',
+      'prompting→resuming',
+      'prompting→error',
+      'prompting→idle',
+      'suspended→resuming',
+      'suspended→idle',
+      'resuming→active',
+      'resuming→resuming',
+      'resuming→error',
+      'error→starting',
+      'error→idle',
     ]);
 
     const transitions: string[] = [];

@@ -1,7 +1,6 @@
 // src/process/acp/session/AuthNegotiator.ts
 
-import type { AuthMethod, AuthRequiredData } from '../types';
-import type { RawAuthMethod } from './types';
+import type { AuthMethod, AuthRequiredData, RawAuthMethod } from '../types';
 import { AcpError } from '../errors/AcpError';
 
 export class AuthNegotiator {
@@ -27,7 +26,7 @@ export class AuthNegotiator {
    */
   async authenticate(
     protocol: { authenticate(creds?: Record<string, string>): Promise<unknown> },
-    authMethods?: RawAuthMethod[],
+    authMethods?: RawAuthMethod[]
   ): Promise<void> {
     try {
       await protocol.authenticate(this.credentials ?? undefined);

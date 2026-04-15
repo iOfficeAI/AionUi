@@ -1,6 +1,8 @@
 // src/process/acp/types.ts
 
 import type { TMessage } from '@/common/chat/chatLib';
+import type { Stream } from '@agentclientprotocol/sdk';
+import type { AcpMetrics } from './metrics/AcpMetrics';
 
 // ─── Agent Identity & Config ────────────────────────────────────
 
@@ -36,14 +38,7 @@ export type McpServerConfig = {
 
 // ─── Session Status (7-state FSM, D1) ──────────────────────────
 
-export type SessionStatus =
-  | 'idle'
-  | 'starting'
-  | 'active'
-  | 'prompting'
-  | 'suspended'
-  | 'resuming'
-  | 'error';
+export type SessionStatus = 'idle' | 'starting' | 'active' | 'prompting' | 'suspended' | 'resuming' | 'error';
 
 // ─── Prompt ─────────────────────────────────────────────────────
 
@@ -119,9 +114,16 @@ export type ConfigOption = {
 // ─── Permission ─────────────────────────────────────────────────
 
 export type ToolKind =
-  | 'read' | 'edit' | 'delete' | 'move'
-  | 'search' | 'execute' | 'think' | 'fetch'
-  | 'switch_mode' | 'other';
+  | 'read'
+  | 'edit'
+  | 'delete'
+  | 'move'
+  | 'search'
+  | 'execute'
+  | 'think'
+  | 'fetch'
+  | 'switch_mode'
+  | 'other';
 
 export type PermissionUIData = {
   callId: string;
@@ -146,7 +148,15 @@ export type AuthRequiredData = {
 
 export type AuthMethod =
   | { type: 'env_var'; id: string; name: string; description?: string; fields: AuthInputField[] }
-  | { type: 'terminal'; id: string; name: string; description?: string; command: string; args?: string[]; env?: Record<string, string> }
+  | {
+      type: 'terminal';
+      id: string;
+      name: string;
+      description?: string;
+      command: string;
+      args?: string[];
+      env?: Record<string, string>;
+    }
   | { type: 'agent'; id: string; name: string; description?: string };
 
 export type AuthInputField = {
@@ -196,4 +206,111 @@ export type SignalEvent =
 export type RuntimeOptions = {
   idleTimeoutMs?: number;
   checkIntervalMs?: number;
+};
+
+// ─── Protocol Handlers ──────────────────────────────────────────
+
+export type SessionNotification = {
+  sessionId: string;
+  update: SessionUpdate;
+};
+
+export type SessionUpdate =
+  | { sessionUpdate: 'user_message_chunk'; [key: string]: unknown }
+  | { sessionUpdate: 'agent_message_chunk'; [key: string]: unknown }
+  | { sessionUpdate: 'agent_thought_chunk'; [key: string]: unknown }
+  | { sessionUpdate: 'tool_call'; [key: string]: unknown }
+  | { sessionUpdate: 'tool_call_update'; [key: string]: unknown }
+  | { sessionUpdate: 'plan'; [key: string]: unknown }
+  | { sessionUpdate: 'available_commands_update'; [key: string]: unknown }
+  | { sessionUpdate: 'current_mode_update'; modeId: string; [key: string]: unknown }
+  | { sessionUpdate: 'config_option_update'; id: string; [key: string]: unknown }
+  | { sessionUpdate: 'session_info_update'; sessionId?: string; [key: string]: unknown }
+  | { sessionUpdate: 'usage_update'; [key: string]: unknown };
+
+export type ProtocolHandlers = {
+  onSessionUpdate: (notification: SessionNotification) => void;
+  onRequestPermission: (request: RequestPermissionRequest) => Promise<RequestPermissionResponse>;
+  onReadTextFile: (request: unknown) => Promise<unknown>;
+  onWriteTextFile: (request: unknown) => Promise<unknown>;
+};
+
+export type ProtocolFactory = (
+  stream: Stream,
+  handlers: ProtocolHandlers,
+) => import('./infra/AcpProtocol').AcpProtocol;
+
+// ─── SDK Pass-through Types ────────────────────────────────────
+
+export type RequestPermissionRequest = {
+  sessionId: string;
+  options: Array<{
+    optionId: string;
+    name: string;
+    kind: 'allow_once' | 'allow_always' | 'reject_once' | 'reject_always';
+  }>;
+  toolCall: { id: string; name?: string; [key: string]: unknown };
+  title?: string;
+  description?: string;
+};
+
+export type RequestPermissionResponse = {
+  optionId: string;
+};
+
+export type PromptResponse = {
+  stopReason: 'end_turn' | 'max_tokens' | 'max_turn_requests' | 'refusal' | 'cancelled';
+  usage?: {
+    inputTokens?: number;
+    outputTokens?: number;
+    cacheReadTokens?: number;
+    cacheWriteTokens?: number;
+  };
+};
+
+export type InitializeResponse = {
+  protocolVersion: string;
+  capabilities: Record<string, unknown>;
+  authMethods?: RawAuthMethod[];
+};
+
+export type RawAuthMethod = {
+  id: string;
+  type: 'env_var' | 'terminal' | 'agent';
+  name: string;
+  description?: string;
+  fields?: Array<{ key: string; label: string; secret: boolean }>;
+  command?: string;
+  args?: string[];
+  env?: Record<string, string>;
+};
+
+// ─── Session Internals ─────────────────────────────────────────
+
+export type PendingPermission = {
+  callId: string;
+  resolve: (response: RequestPermissionResponse) => void;
+  reject: (error: Error) => void;
+  createdAt: number;
+};
+
+export type SessionOptions = {
+  promptTimeoutMs?: number;
+  maxStartRetries?: number;
+  maxResumeRetries?: number;
+  protocolFactory?: ProtocolFactory;
+  metrics?: AcpMetrics;
+  promptQueueMaxSize?: number;
+  approvalCacheMaxSize?: number;
+};
+
+// ─── Application-layer Types ───────────────────────────────────
+
+export type SessionEntry = {
+  session: unknown; // Will be AcpSession — forward ref avoids circular import
+  lastActiveAt: number;
+};
+
+export type ConnectorFactory = {
+  create(config: AgentConfig): import('./infra/AgentConnector').AgentConnector;
 };

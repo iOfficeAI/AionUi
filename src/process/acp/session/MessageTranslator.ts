@@ -1,13 +1,8 @@
 // src/process/acp/session/MessageTranslator.ts
 import type { TMessage } from '@/common/chat/chatLib';
-import type { SessionNotification } from './types';
+import type { SessionNotification } from '../types';
 
-const CONFIG_UPDATES = new Set([
-  'current_mode_update',
-  'config_option_update',
-  'session_info_update',
-  'usage_update',
-]);
+const CONFIG_UPDATES = new Set(['current_mode_update', 'config_option_update', 'session_info_update', 'usage_update']);
 
 type MessageEntry = {
   messageId: string;

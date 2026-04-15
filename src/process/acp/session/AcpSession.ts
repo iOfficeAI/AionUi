@@ -1,7 +1,8 @@
-import type { AgentConfig, SessionCallbacks, SessionStatus, PromptContent } from '../types';
-import type { ConnectorHandle } from '../infra/AgentConnector';
-import type { AcpProtocol } from '../infra/AcpProtocol';
 import type {
+  AgentConfig,
+  SessionCallbacks,
+  SessionStatus,
+  PromptContent,
   ConnectorFactory,
   ProtocolFactory,
   SessionOptions,
@@ -9,7 +10,9 @@ import type {
   RequestPermissionRequest,
   RequestPermissionResponse,
   ProtocolHandlers,
-} from './types';
+} from '../types';
+import type { ConnectorHandle } from '../infra/AgentConnector';
+import type { AcpProtocol } from '../infra/AcpProtocol';
 import { AcpError } from '../errors/AcpError';
 import { normalizeError } from '../errors/errorNormalize';
 import { noopMetrics, type AcpMetrics } from '../metrics/AcpMetrics';
@@ -62,7 +65,7 @@ export class AcpSession {
     private readonly agentConfig: AgentConfig,
     private readonly connectorFactory: ConnectorFactory,
     private readonly callbacks: SessionCallbacks,
-    options?: SessionOptions,
+    options?: SessionOptions
   ) {
     this.maxStartRetries = options?.maxStartRetries ?? 3;
     this.maxResumeRetries = options?.maxResumeRetries ?? 2;
@@ -166,9 +169,7 @@ export class AcpSession {
           | Array<{ modelId: string; name: string; description?: string }>
           | undefined,
         currentModeId: result.currentModeId as string | undefined,
-        availableModes: result.availableModes as
-          | Array<{ id: string; name: string; description?: string }>
-          | undefined,
+        availableModes: result.availableModes as Array<{ id: string; name: string; description?: string }> | undefined,
         configOptions: result.configOptions as
           | Array<{
               id: string;
@@ -474,9 +475,7 @@ export class AcpSession {
     }
   }
 
-  private async handlePermissionRequest(
-    request: RequestPermissionRequest,
-  ): Promise<RequestPermissionResponse> {
+  private async handlePermissionRequest(request: RequestPermissionRequest): Promise<RequestPermissionResponse> {
     this.promptTimer.pause();
     try {
       const result = await this.permissionResolver.evaluate(request, (data) => {

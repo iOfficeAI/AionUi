@@ -2,15 +2,20 @@
 
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { AcpSession } from '@process/acp/session/AcpSession';
-import type { AgentConfig, SessionCallbacks, SessionStatus } from '@process/acp/types';
-import type { ConnectorFactory, SessionOptions } from '@process/acp/session/types';
+import type { AgentConfig, SessionCallbacks, SessionStatus, ConnectorFactory, SessionOptions } from '@process/acp/types';
 
 function createMockCallbacks(): SessionCallbacks {
   return {
-    onMessage: vi.fn(), onSessionId: vi.fn(), onStatusChange: vi.fn(),
-    onConfigUpdate: vi.fn(), onModelUpdate: vi.fn(), onModeUpdate: vi.fn(),
-    onContextUsage: vi.fn(), onQueueUpdate: vi.fn(),
-    onPermissionRequest: vi.fn(), onSignal: vi.fn(),
+    onMessage: vi.fn(),
+    onSessionId: vi.fn(),
+    onStatusChange: vi.fn(),
+    onConfigUpdate: vi.fn(),
+    onModelUpdate: vi.fn(),
+    onModeUpdate: vi.fn(),
+    onContextUsage: vi.fn(),
+    onQueueUpdate: vi.fn(),
+    onPermissionRequest: vi.fn(),
+    onSignal: vi.fn(),
   };
 }
 
@@ -19,8 +24,12 @@ function createMockProtocol() {
     initialize: vi.fn().mockResolvedValue({ protocolVersion: '0.1', capabilities: {} }),
     authenticate: vi.fn().mockResolvedValue({}),
     createSession: vi.fn().mockResolvedValue({
-      sessionId: 'sess-1', currentModelId: 'claude-3', availableModels: [],
-      currentModeId: 'code', availableModes: [], configOptions: [],
+      sessionId: 'sess-1',
+      currentModelId: 'claude-3',
+      availableModels: [],
+      currentModeId: 'code',
+      availableModes: [],
+      configOptions: [],
     }),
     loadSession: vi.fn().mockResolvedValue({ sessionId: 'sess-1' }),
     prompt: vi.fn().mockResolvedValue({ stopReason: 'end_turn' }),
@@ -36,8 +45,12 @@ function createMockProtocol() {
 }
 
 const baseConfig: AgentConfig = {
-  agentBackend: 'test', agentSource: 'builtin', agentId: 'builtin:test',
-  cwd: '/tmp', command: '/usr/bin/test-agent', args: ['--stdio'],
+  agentBackend: 'test',
+  agentSource: 'builtin',
+  agentId: 'builtin:test',
+  cwd: '/tmp',
+  command: '/usr/bin/test-agent',
+  args: ['--stdio'],
 };
 
 describe('AcpSession prompt flow', () => {
@@ -99,9 +112,7 @@ describe('AcpSession prompt flow', () => {
     await session.suspend();
     expect(session.status).toBe('suspended');
     session.sendMessage('after suspend');
-    await vi.waitFor(() =>
-      expect(['resuming', 'active', 'prompting'].includes(session.status)).toBe(true),
-    );
+    await vi.waitFor(() => expect(['resuming', 'active', 'prompting'].includes(session.status)).toBe(true));
   });
 
   it('onQueueUpdate pushes complete snapshot (INV-X-02)', async () => {
