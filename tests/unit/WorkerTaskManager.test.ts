@@ -2,6 +2,14 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 
 vi.mock('electron', () => ({ app: { isPackaged: false, getPath: vi.fn(() => '/tmp') } }));
 
+vi.mock('../../src/process/task/SessionPreheatPool', () => ({
+  SessionPreheatPool: {
+    getInstance: vi.fn().mockReturnValue({
+      isPooled: vi.fn().mockReturnValue(false),
+    }),
+  },
+}));
+
 import { WorkerTaskManager } from '../../src/process/task/WorkerTaskManager';
 import type { IConversationRepository } from '../../src/process/services/database/IConversationRepository';
 import type { AgentType } from '../../src/process/task/agentTypes';

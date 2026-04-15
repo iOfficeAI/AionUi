@@ -10,7 +10,7 @@ import type { IResponseMessage } from '@/common/adapter/ipcBridge';
 import type { TokenUsageData } from '@/common/config/storage';
 import { useAddOrUpdateMessage } from '@/renderer/pages/conversation/Messages/hooks';
 import type { ThoughtData } from '@/renderer/components/chat/ThoughtDisplay';
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 
 type UseAcpMessageReturn = {
   thought: ThoughtData;
@@ -19,7 +19,7 @@ type UseAcpMessageReturn = {
   hasHydratedRunningState: boolean;
   acpStatus: 'connecting' | 'connected' | 'authenticated' | 'session_active' | 'disconnected' | 'error' | null;
   aiProcessing: boolean;
-  setAiProcessing: React.Dispatch<React.SetStateAction<boolean>>;
+  setAiProcessing: (value: boolean | ((prev: boolean) => boolean)) => void;
   resetState: () => void;
   tokenUsage: TokenUsageData | null;
   contextLimit: number;
@@ -37,13 +37,26 @@ export const useAcpMessage = (conversation_id: string): UseAcpMessageReturn => {
   const [acpStatus, setAcpStatus] = useState<
     'connecting' | 'connected' | 'authenticated' | 'session_active' | 'disconnected' | 'error' | null
   >(null);
-  const [aiProcessing, setAiProcessing] = useState(false); // New loading state for AI response
+  const [aiProcessing, setAiProcessingRaw] = useState(false); // New loading state for AI response
   const [tokenUsage, setTokenUsage] = useState<TokenUsageData | null>(null);
   const [contextLimit, setContextLimit] = useState<number>(0);
 
   // Use refs to sync state for immediate access in event handlers
   const runningRef = useRef(running);
   const aiProcessingRef = useRef(aiProcessing);
+
+  // Wrapper that keeps the ref in sync with the state setter.
+  // Any caller (internal event handlers or external hooks like useAcpInitialMessage)
+  // must use this so that aiProcessingRef always reflects the latest intent —
+  // preventing the conversation-status restore effect from overwriting a pending
+  // setAiProcessing(true) that arrived before the async DB read resolved.
+  const setAiProcessing = useCallback((value: boolean | ((prev: boolean) => boolean)) => {
+    setAiProcessingRaw((prev) => {
+      const next = typeof value === 'function' ? value(prev) : value;
+      aiProcessingRef.current = next;
+      return next;
+    });
+  }, []);
 
   // Track whether current turn has content output
   const hasContentInTurnRef = useRef(false);
@@ -70,38 +83,6 @@ export const useAcpMessage = (conversation_id: string): UseAcpMessageReturn => {
     pending: ThoughtData | null;
     timer: ReturnType<typeof setTimeout> | null;
   }>({ lastUpdate: 0, pending: null, timer: null });
-
-  const throttledSetThought = useMemo(() => {
-    const THROTTLE_MS = 50;
-    return (data: ThoughtData) => {
-      const now = Date.now();
-      const ref = thoughtThrottleRef.current;
-      if (now - ref.lastUpdate >= THROTTLE_MS) {
-        ref.lastUpdate = now;
-        ref.pending = null;
-        if (ref.timer) {
-          clearTimeout(ref.timer);
-          ref.timer = null;
-        }
-        setThought(data);
-      } else {
-        ref.pending = data;
-        if (!ref.timer) {
-          ref.timer = setTimeout(
-            () => {
-              ref.lastUpdate = Date.now();
-              ref.timer = null;
-              if (ref.pending) {
-                setThought(ref.pending);
-                ref.pending = null;
-              }
-            },
-            THROTTLE_MS - (now - ref.lastUpdate)
-          );
-        }
-      }
-    };
-  }, []);
 
   // Clean up throttle timer
   useEffect(() => {
@@ -156,7 +137,6 @@ export const useAcpMessage = (conversation_id: string): UseAcpMessageReturn => {
             setRunning(false);
             runningRef.current = false;
             setAiProcessing(false);
-            aiProcessingRef.current = false;
             setThought({ subject: '', description: '' });
             hasContentInTurnRef.current = false;
             hasThinkingMessageRef.current = false;
@@ -178,7 +158,6 @@ export const useAcpMessage = (conversation_id: string): UseAcpMessageReturn => {
           if (!hasContentInTurnRef.current) {
             hasContentInTurnRef.current = true;
             setAiProcessing(false);
-            aiProcessingRef.current = false;
           }
           // Auto-recover running state only if turn hasn't finished
           if (!runningRef.current && !turnFinishedRef.current) {
@@ -213,7 +192,6 @@ export const useAcpMessage = (conversation_id: string): UseAcpMessageReturn => {
               setRunning(false);
               runningRef.current = false;
               setAiProcessing(false);
-              aiProcessingRef.current = false;
             }
           }
           addOrUpdateMessage(transformedMessage);
@@ -279,7 +257,6 @@ export const useAcpMessage = (conversation_id: string): UseAcpMessageReturn => {
           setRunning(false);
           runningRef.current = false;
           setAiProcessing(false);
-          aiProcessingRef.current = false;
           addOrUpdateMessage(transformedMessage);
           // Log request error
           if (requestTraceRef.current) {
@@ -303,7 +280,7 @@ export const useAcpMessage = (conversation_id: string): UseAcpMessageReturn => {
           break;
       }
     },
-    [conversation_id, addOrUpdateMessage, throttledSetThought, setThought, setRunning, setAiProcessing, setAcpStatus]
+    [conversation_id, addOrUpdateMessage, setThought, setRunning, setAiProcessing, setAcpStatus]
   );
 
   useEffect(() => {
@@ -331,16 +308,22 @@ export const useAcpMessage = (conversation_id: string): UseAcpMessageReturn => {
       if (!res) {
         setRunning(false);
         runningRef.current = false;
-        setAiProcessing(false);
-        aiProcessingRef.current = false;
+        // Don't override aiProcessing when it was already set to true by useAcpInitialMessage
+        // — the backend status may lag behind the frontend's send intent.
+        if (!aiProcessingRef.current) {
+          setAiProcessing(false);
+        }
         setHasHydratedRunningState(true);
         return;
       }
       const isRunning = res.status === 'running';
       setRunning(isRunning);
       runningRef.current = isRunning;
-      setAiProcessing(isRunning);
-      aiProcessingRef.current = isRunning;
+      // Don't override aiProcessing when it was already set to true by useAcpInitialMessage
+      // — the backend status may lag behind the frontend's send intent.
+      if (isRunning || !aiProcessingRef.current) {
+        setAiProcessing(isRunning);
+      }
       setHasHydratedRunningState(true);
 
       // Restore persisted context usage data
@@ -365,12 +348,11 @@ export const useAcpMessage = (conversation_id: string): UseAcpMessageReturn => {
     setRunning(false);
     runningRef.current = false;
     setAiProcessing(false);
-    aiProcessingRef.current = false;
     setThought({ subject: '', description: '' });
     hasContentInTurnRef.current = false;
     hasThinkingMessageRef.current = false;
     setHasThinkingMessage(false);
-  }, []);
+  }, [setAiProcessing]);
 
   return {
     thought,

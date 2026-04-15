@@ -123,6 +123,19 @@ class AcpAgentManager extends BaseAgentManager<AcpAgentManagerData, AcpPermissio
     this.yoloMode = this.yoloMode || this.isYoloMode(this.currentMode);
   }
 
+  /**
+   * Rebind this manager to a different conversation after being claimed from the preheat pool.
+   * Updates conversation_id, options, and the inner AcpAgent's event routing.
+   */
+  rebindToConversation(newConversationId: string, extra?: Partial<AcpAgentManagerData>): void {
+    this.conversation_id = newConversationId;
+    this.options = { ...this.options, conversation_id: newConversationId, ...extra };
+    if (extra?.workspace !== undefined) this.workspace = extra.workspace;
+    if (this.agent) {
+      this.agent.rebindConversationId(newConversationId);
+    }
+  }
+
   private makeStreamBufferKey(message: Extract<TMessage, { type: 'text' }>): string {
     return `${message.conversation_id}:${message.msg_id || message.id}`;
   }

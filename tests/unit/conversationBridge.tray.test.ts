@@ -93,6 +93,8 @@ vi.mock('@/common', () => ({
       askSideQuestion: createCommand('conversation.askSideQuestion'),
       sendMessage: createCommand('conversation.sendMessage'),
       warmup: createCommand('conversation.warmup'),
+      poolAcquire: createCommand('conversation.poolAcquire'),
+      poolRelease: createCommand('conversation.poolRelease'),
       responseStream: { emit: vi.fn() },
       listChanged: { emit: vi.fn() },
       listByCronJob: createCommand('conversation.listByCronJob'),

@@ -31,6 +31,7 @@ import fs from 'fs';
 import path from 'path';
 import { migrateConversationToDatabase } from './migrationUtils';
 import { ConversationSideQuestionService } from './services/ConversationSideQuestionService';
+import { SessionPreheatPool } from '../task/SessionPreheatPool';
 
 const refreshTrayMenuSafely = async (): Promise<void> => {
   try {
@@ -134,6 +135,42 @@ export function initConversationBridge(
         params.type === 'codex'
           ? { ...params, type: 'acp' as const, extra: { ...params.extra, backend: 'codex' as const } }
           : params;
+
+      // Attempt to claim a preheated session from the pool
+      if (createParams.type === 'acp') {
+        const backend = (createParams.extra as Record<string, unknown>)?.backend as string | undefined;
+        if (backend) {
+          const pool = SessionPreheatPool.getInstance();
+          const pooled = pool.claim(backend);
+          if (pooled) {
+            // Create the real conversation in DB
+            const conversation = await conversationService.createConversation({
+              ...createParams,
+              source: 'aionui',
+            } as CreateConversationParams);
+            // Rebind the preheated manager to the real conversation
+            const extra = (conversation.extra ?? {}) as Record<string, unknown>;
+            pooled.manager.rebindToConversation(conversation.id, {
+              workspace: (extra.workspace as string) || '',
+              customWorkspace: extra.customWorkspace as boolean | undefined,
+              currentModelId: extra.currentModelId as string | undefined,
+              sessionMode: extra.sessionMode as string | undefined,
+              pendingConfigOptions: extra.pendingConfigOptions as Record<string, string> | undefined,
+              presetContext: extra.presetContext as string | undefined,
+              enabledSkills: extra.enabledSkills as string[] | undefined,
+            });
+            // Register in WorkerTaskManager so the rest of the system finds it
+            workerTaskManager.addTask(
+              conversation.id,
+              pooled.manager as unknown as import('../task/IAgentManager').IAgentManager
+            );
+            emitConversationListChanged(conversation, 'created');
+            await refreshTrayMenuSafely();
+            return conversation;
+          }
+        }
+      }
+
       const conversation = await conversationService.createConversation({
         ...createParams,
         source: 'aionui',
@@ -332,6 +369,16 @@ export function initConversationBridge(
     } catch {
       // Ignore errors — warmup is best-effort
     }
+  });
+
+  // Pool acquire: increment refcount, start preheating if needed
+  ipcBridge.conversation.poolAcquire.provider(async ({ backend }) => {
+    SessionPreheatPool.getInstance().acquire(backend);
+  });
+
+  // Pool release: decrement refcount, start idle timer if zero
+  ipcBridge.conversation.poolRelease.provider(async ({ backend }) => {
+    SessionPreheatPool.getInstance().release(backend);
   });
 
   ipcBridge.conversation.reset.provider(async ({ id }) => {

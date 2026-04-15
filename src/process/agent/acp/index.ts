@@ -204,6 +204,16 @@ export class AcpAgent {
     this.setupConnectionHandlers();
   }
 
+  /**
+   * Rebind this agent to a different conversation ID after being claimed from the preheat pool.
+   * Updates the internal id and recreates the adapter for correct event routing.
+   */
+  rebindConversationId(newId: string): void {
+    (this as unknown as { id: string }).id = newId;
+    // Also update the adapter's conversation ID for correct event routing
+    this.adapter = new AcpAdapter(newId, this.extra.backend);
+  }
+
   private setupConnectionHandlers(): void {
     this.connection.onSessionUpdate = (data: AcpSessionUpdate) => {
       this.handleSessionUpdate(data);

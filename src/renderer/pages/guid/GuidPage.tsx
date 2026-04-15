@@ -5,6 +5,7 @@
  */
 
 import { resolveLocaleKey } from '@/common/utils';
+import { ipcBridge } from '@/common';
 import { useAssistantBackends } from '@/renderer/hooks/assistant';
 import { useInputFocusRing } from '@/renderer/hooks/chat/useInputFocusRing';
 import { openExternalUrl, resolveExtensionAssetUrl } from '@/renderer/utils/platform';
@@ -36,6 +37,9 @@ import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next';
 import { useLocation, useNavigate } from 'react-router-dom';
 import styles from './index.module.css';
+
+// Backends with dedicated non-ACP send paths that should not be preheated
+const NON_ACP_BACKENDS = new Set(['gemini', 'aionrs', 'openclaw-gateway', 'nanobot']);
 
 // Agent switcher options — same list as AssistantEditDrawer
 const BUILTIN_AGENT_OPTIONS: { value: string; label: string }[] = [
@@ -237,6 +241,17 @@ const GuidPage: React.FC = () => {
     },
     [mention, guidInput.input, send.sendMessageHandler]
   );
+
+  // Acquire/release pool session when backend selection changes
+  useEffect(() => {
+    const backend = agentSelection.selectedAgent as string;
+    if (NON_ACP_BACKENDS.has(backend)) return;
+    if (backend.startsWith('custom:') || backend.startsWith('remote:')) return;
+    ipcBridge.conversation.poolAcquire.invoke({ backend }).catch(() => {});
+    return () => {
+      ipcBridge.conversation.poolRelease.invoke({ backend }).catch(() => {});
+    };
+  }, [agentSelection.selectedAgent]);
 
   const handleSelectAgentFromPillBar = useCallback(
     (key: string) => {

@@ -438,7 +438,6 @@ export const useGuidSend = (deps: GuidSendDeps): GuidSendResult => {
           console.error('Failed to create ACP conversation - conversation object is null or missing id');
           return;
         }
-
         if (isCustomWorkspace) {
           closeAllTabs();
           updateWorkspaceTime(finalWorkspace);

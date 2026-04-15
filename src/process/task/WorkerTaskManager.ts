@@ -12,6 +12,7 @@ import type { IConversationRepository } from '@process/services/database/IConver
 import type { TChatConversation } from '@/common/config/storage';
 import { cronBusyGuard } from '@process/services/cron/CronBusyGuard';
 import { ProcessConfig } from '@process/utils/initStorage';
+import { SessionPreheatPool } from './SessionPreheatPool';
 
 /** Default idle timeout: 5 minutes. Overridden by user config 'acp.agentIdleTimeout' (in minutes). */
 const DEFAULT_IDLE_TIMEOUT_MS = 5 * 60 * 1000;
@@ -47,6 +48,7 @@ export class WorkerTaskManager implements IWorkerTaskManager {
           (item.task.type === 'acp' || item.task.type === 'aionrs') &&
           item.task.status === 'finished' &&
           !cronBusyGuard.isProcessing(item.id) &&
+          !SessionPreheatPool.getInstance().isPooled(item.id) &&
           now - item.task.lastActivityAt > timeoutMs
       );
       for (const item of idleTasks) {

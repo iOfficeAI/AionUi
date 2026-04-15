@@ -27,6 +27,8 @@ vi.mock('@/common', () => ({
       update: mockProvider('conversation.update'),
       reset: mockProvider('conversation.reset'),
       warmup: mockProvider('conversation.warmup'),
+      poolAcquire: mockProvider('conversation.poolAcquire'),
+      poolRelease: mockProvider('conversation.poolRelease'),
       get: mockProvider('conversation.get'),
       getWorkspace: mockProvider('conversation.getWorkspace'),
       stop: mockProvider('conversation.stop'),
