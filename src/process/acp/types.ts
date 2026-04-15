@@ -1,37 +1,61 @@
 // src/process/acp/types.ts
 
 import type { TMessage } from '@/common/chat/chatLib';
-
+import type {
+  AuthMethod,
+  ContentBlock,
+  McpServer,
+  ReadTextFileRequest,
+  ReadTextFileResponse,
+  RequestPermissionRequest,
+  RequestPermissionResponse,
+  SessionNotification,
+  ToolKind,
+  WriteTextFileRequest,
+  WriteTextFileResponse,
+} from '@agentclientprotocol/sdk';
 // ─── Agent Identity & Config ────────────────────────────────────
 
 export type AgentConfig = {
+  // Agent 身份
   agentBackend: string;
   agentSource: 'builtin' | 'extension' | 'custom' | 'remote';
   agentId: string;
-  command?: string;
-  args?: string[];
+
+  // 连接信息（决定使用哪种 Connector）
+  command?: string; // 由 AcpDetector 解析后的完整命令
+  args?: string[]; // 由 AcpDetector 解析后的完整参数
   env?: Record<string, string>;
   remoteUrl?: string;
   remoteHeaders?: Record<string, string>;
-  processOptions?: { gracePeriodMs?: number };
+
+  // 进程选项
+  processOptions?: {
+    gracePeriodMs?: number; // 三阶段关闭 Phase 1 等待时间，默认 100ms
+  };
+
+  // 会话配置
   cwd: string;
-  mcpServers?: McpServerConfig[];
+  mcpServers?: McpServer[];
   additionalDirectories?: string[];
+
+  // 可选预设（来自 relate_type = 'assistant'）
   presetPrompts?: string[];
   presetSkills?: string[];
-  presetMcpServers?: McpServerConfig[];
-  teamMcpConfig?: McpServerConfig;
+  presetMcpServers?: McpServer[];
+
+  // Team MCP（D9 团队模式预留）
+  teamMcpConfig?: McpServer;
+
+  // 认证
   authCredentials?: Record<string, string>;
-  autoApproveAll?: boolean;
+
+  // 恢复信息（从 DB 重建时使用）
   resumeSessionId?: string;
   resumeConfig?: Record<string, unknown>;
-};
 
-export type McpServerConfig = {
-  name: string;
-  command: string;
-  args?: string[];
-  env?: Record<string, string>;
+  // 其他
+  autoApproveAll?: boolean;
 };
 
 // ─── Session Status (7-state FSM, D1) ──────────────────────────
@@ -40,11 +64,7 @@ export type SessionStatus = 'idle' | 'starting' | 'active' | 'prompting' | 'susp
 
 // ─── Prompt ─────────────────────────────────────────────────────
 
-export type PromptContent = PromptContentItem[];
-
-export type PromptContentItem =
-  | { type: 'text'; text: string }
-  | { type: 'file'; path: string; content: string; mimeType?: string };
+export type PromptContent = ContentBlock[];
 
 // ─── Queue ──────────────────────────────────────────────────────
 
@@ -91,18 +111,6 @@ export type ConfigOption = {
 
 // ─── Permission ─────────────────────────────────────────────────
 
-export type ToolKind =
-  | 'read'
-  | 'edit'
-  | 'delete'
-  | 'move'
-  | 'search'
-  | 'execute'
-  | 'think'
-  | 'fetch'
-  | 'switch_mode'
-  | 'other';
-
 export type PermissionUIData = {
   callId: string;
   title: string;
@@ -122,25 +130,6 @@ export type PermissionUIData = {
 export type AuthRequiredData = {
   agentBackend: string;
   methods: AuthMethod[];
-};
-
-export type AuthMethod =
-  | { type: 'env_var'; id: string; name: string; description?: string; fields: AuthInputField[] }
-  | {
-      type: 'terminal';
-      id: string;
-      name: string;
-      description?: string;
-      command: string;
-      args?: string[];
-      env?: Record<string, string>;
-    }
-  | { type: 'agent'; id: string; name: string; description?: string };
-
-export type AuthInputField = {
-  key: string;
-  label: string;
-  secret: boolean;
 };
 
 // ─── Signals ────────────────────────────────────────────────────
@@ -188,47 +177,11 @@ export type RuntimeOptions = {
 
 // ─── Protocol Handlers ──────────────────────────────────────────
 
-export type SessionNotification = {
-  sessionId: string;
-  update: SessionUpdate;
-};
-
-export type SessionUpdate =
-  | { sessionUpdate: 'user_message_chunk'; [key: string]: unknown }
-  | { sessionUpdate: 'agent_message_chunk'; [key: string]: unknown }
-  | { sessionUpdate: 'agent_thought_chunk'; [key: string]: unknown }
-  | { sessionUpdate: 'tool_call'; [key: string]: unknown }
-  | { sessionUpdate: 'tool_call_update'; [key: string]: unknown }
-  | { sessionUpdate: 'plan'; [key: string]: unknown }
-  | { sessionUpdate: 'available_commands_update'; [key: string]: unknown }
-  | { sessionUpdate: 'current_mode_update'; modeId: string; [key: string]: unknown }
-  | { sessionUpdate: 'config_option_update'; id: string; [key: string]: unknown }
-  | { sessionUpdate: 'session_info_update'; sessionId?: string; [key: string]: unknown }
-  | { sessionUpdate: 'usage_update'; [key: string]: unknown };
-
 export type ProtocolHandlers = {
   onSessionUpdate: (notification: SessionNotification) => void;
   onRequestPermission: (request: RequestPermissionRequest) => Promise<RequestPermissionResponse>;
-  onReadTextFile: (request: unknown) => Promise<unknown>;
-  onWriteTextFile: (request: unknown) => Promise<unknown>;
-};
-
-// ─── SDK Pass-through Types ────────────────────────────────────
-
-export type RequestPermissionRequest = {
-  sessionId: string;
-  options: Array<{
-    optionId: string;
-    name: string;
-    kind: 'allow_once' | 'allow_always' | 'reject_once' | 'reject_always';
-  }>;
-  toolCall: { id: string; name?: string; [key: string]: unknown };
-  title?: string;
-  description?: string;
-};
-
-export type RequestPermissionResponse = {
-  optionId: string;
+  onReadTextFile: (request: ReadTextFileRequest) => Promise<ReadTextFileResponse>;
+  onWriteTextFile: (request: WriteTextFileRequest) => Promise<WriteTextFileResponse>;
 };
 
 // ─── Application-layer Types ───────────────────────────────────
