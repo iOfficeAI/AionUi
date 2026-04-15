@@ -116,6 +116,10 @@ vi.mock('@process/services/cron/cronServiceSingleton', () => ({
   cronService: mockCronService,
 }));
 
+vi.mock('@process/services/cron/cronServiceAccess', () => ({
+  getCronService: vi.fn(() => mockCronService),
+}));
+
 vi.mock('@process/agent/aionrs', () => ({
   AionrsAgent: vi.fn().mockImplementation(() => ({
     start: vi.fn().mockResolvedValue(undefined),

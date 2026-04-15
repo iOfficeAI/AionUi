@@ -27,6 +27,7 @@ import { useGuidMention } from './hooks/useGuidMention';
 import { useGuidModelSelection } from './hooks/useGuidModelSelection';
 import { useGuidSend } from './hooks/useGuidSend';
 import { useTypewriterPlaceholder } from './hooks/useTypewriterPlaceholder';
+import { clearHistoryStatePreservingUrl } from './utils/historyState';
 import { ConfigStorage } from '@/common/config/storage';
 import { ACP_BACKENDS_ALL, type PresetAgentType } from '@/common/types/acpTypes';
 import { getAgentLogo } from '@/renderer/utils/model/agentLogo';
@@ -328,16 +329,13 @@ const GuidPage: React.FC = () => {
       agentSelection.setSelectedAgentKey(agentSelection.defaultAgentKey);
     }
     // Clear via history API so we don't bump location.key and re-trigger other effects.
-    window.history.replaceState(null, '', `${location.pathname}${location.search}${location.hash}`);
+    clearHistoryStatePreservingUrl();
   }, [
     resetAssistantRequested,
     agentSelection.availableAgents,
     agentSelection.isPresetAgent,
     agentSelection.defaultAgentKey,
     agentSelection.setSelectedAgentKey,
-    location.pathname,
-    location.search,
-    location.hash,
   ]);
 
   useEffect(() => {

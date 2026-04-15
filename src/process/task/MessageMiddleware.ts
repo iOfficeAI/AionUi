@@ -7,7 +7,7 @@
 import type { TMessage } from '@/common/chat/chatLib';
 import { ipcBridge } from '@/common';
 import type { AcpBackendAll } from '@/common/types/acpTypes';
-import { cronService } from '@process/services/cron/cronServiceSingleton';
+import { getCronService } from '@process/services/cron/cronServiceAccess';
 import { detectCronCommands, stripCronCommands, type CronCommand } from './CronCommandDetector';
 import { hasThinkTags, stripThinkTags } from './ThinkTagDetector';
 
@@ -185,6 +185,16 @@ export async function processCronInMessage(
   }
 }
 
+function requireCronService() {
+  // Resolve lazily so task manager modules can import this middleware without
+  // triggering the cron singleton during startup module evaluation.
+  const cronService = getCronService();
+  if (!cronService) {
+    throw new Error('CronService is not initialized');
+  }
+  return cronService;
+}
+
 /**
  * Handle detected cron commands
  */
@@ -193,6 +203,7 @@ async function handleCronCommands(
   agentType: AcpBackendAll,
   commands: CronCommand[]
 ): Promise<string[]> {
+  const cronService = requireCronService();
   const responses: string[] = [];
 
   for (const cmd of commands) {

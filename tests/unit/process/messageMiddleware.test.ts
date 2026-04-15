@@ -2,6 +2,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import type { TMessage } from '../../../src/common/chat/chatLib';
 
 const cronSingletonLoaded = vi.fn();
+const getCronService = vi.fn();
 const addJob = vi.fn();
 const listJobsByConversation = vi.fn();
 const removeJob = vi.fn();
@@ -24,6 +25,7 @@ describe('MessageMiddleware', () => {
   beforeEach(() => {
     vi.resetModules();
     cronSingletonLoaded.mockReset();
+    getCronService.mockReset();
     addJob.mockReset();
     listJobsByConversation.mockReset();
     removeJob.mockReset();
@@ -38,10 +40,19 @@ describe('MessageMiddleware', () => {
         },
       },
     }));
+
+    vi.doMock('@process/services/cron/cronServiceAccess', () => ({
+      getCronService,
+    }));
   });
 
-  it('loads the cron singleton once and only executes it for cron commands', async () => {
+  it('does not load cronServiceSingleton during module evaluation and only resolves cron service for cron commands', async () => {
     addJob.mockResolvedValue({ id: 'job-1', name: 'Daily Summary' });
+    getCronService.mockReturnValue({
+      addJob,
+      listJobsByConversation,
+      removeJob,
+    });
 
     vi.doMock('@process/services/cron/cronServiceSingleton', () => {
       cronSingletonLoaded();
@@ -56,11 +67,13 @@ describe('MessageMiddleware', () => {
 
     const { processAgentResponse } = await import('../../../src/process/task/MessageMiddleware');
 
-    expect(cronSingletonLoaded).toHaveBeenCalledTimes(1);
+    expect(cronSingletonLoaded).not.toHaveBeenCalled();
+    expect(getCronService).not.toHaveBeenCalled();
 
     await processAgentResponse('session-1', 'acp', createFinishedTextMessage('plain response'));
 
-    expect(cronSingletonLoaded).toHaveBeenCalledTimes(1);
+    expect(cronSingletonLoaded).not.toHaveBeenCalled();
+    expect(getCronService).not.toHaveBeenCalled();
 
     const result = await processAgentResponse(
       'session-1',
@@ -73,7 +86,8 @@ message: Send the daily summary
 [/CRON_CREATE]`)
     );
 
-    expect(cronSingletonLoaded).toHaveBeenCalledTimes(1);
+    expect(cronSingletonLoaded).not.toHaveBeenCalled();
+    expect(getCronService).toHaveBeenCalledTimes(1);
     expect(addJob).toHaveBeenCalledWith({
       name: 'Daily Summary',
       schedule: {
@@ -92,6 +106,11 @@ message: Send the daily summary
 
   it('returns a system error response when cron execution fails', async () => {
     addJob.mockRejectedValue(new Error('db unavailable'));
+    getCronService.mockReturnValue({
+      addJob,
+      listJobsByConversation,
+      removeJob,
+    });
 
     vi.doMock('@process/services/cron/cronServiceSingleton', () => {
       cronSingletonLoaded();
@@ -117,7 +136,8 @@ message: Retry later
 [/CRON_CREATE]`)
     );
 
-    expect(cronSingletonLoaded).toHaveBeenCalledTimes(1);
+    expect(cronSingletonLoaded).not.toHaveBeenCalled();
+    expect(getCronService).toHaveBeenCalledTimes(1);
     expect(result.systemResponses).toEqual(['❌ Error: db unavailable']);
     expect(onJobCreatedEmit).not.toHaveBeenCalled();
   });
