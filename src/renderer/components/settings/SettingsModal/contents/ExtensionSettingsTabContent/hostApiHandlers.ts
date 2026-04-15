@@ -1,11 +1,18 @@
 import { ipcBridge } from '@/common';
+import type { SessionManagementHostContext } from './sessionManagementHostApi';
+import { getSessionManagementHostApiHandlers } from './sessionManagementHostApi';
 
 export type ExtensionHostApiHandler = () => Promise<unknown>;
 
 export const getExtensionHostApiHandlers = (
   extensionName: string,
-  payload: unknown
+  payload: unknown,
+  context?: SessionManagementHostContext
 ): Record<string, ExtensionHostApiHandler> | undefined => {
+  if (extensionName === 'session-management' && context) {
+    return getSessionManagementHostApiHandlers(payload as never, context) as Record<string, ExtensionHostApiHandler>;
+  }
+
   if (extensionName !== 'api-diagnostics-devtools') {
     return undefined;
   }

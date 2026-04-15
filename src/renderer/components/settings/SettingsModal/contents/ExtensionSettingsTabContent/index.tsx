@@ -4,11 +4,13 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import React, { useCallback, useEffect, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { extensions as extensionsIpc } from '@/common/adapter/ipcBridge';
 import WebviewHost from '@/renderer/components/media/WebviewHost';
+import { useConversationTabs } from '@/renderer/pages/conversation/hooks/ConversationTabsContext';
 import { isElectronDesktop, resolveExtensionAssetUrl } from '@/renderer/utils/platform';
+import { useNavigate } from 'react-router-dom';
 import { getExtensionHostApiHandlers } from './hostApiHandlers';
 
 const isExternalSettingsUrl = (url?: string): boolean => /^https?:\/\//i.test(url || '');
@@ -238,6 +240,8 @@ const ExtensionSettingsTabContent: React.FC<ExtensionSettingsTabContentProps> = 
   minHeight = 200,
 }) => {
   const { i18n } = useTranslation();
+  const navigate = useNavigate();
+  const { activeTab, closeAllTabs, openTab } = useConversationTabs();
   const iframeRef = useRef<HTMLIFrameElement>(null);
   const [loading, setLoading] = useState(true);
   const [embeddedHtml, setEmbeddedHtml] = useState<string | null>(null);
@@ -247,6 +251,15 @@ const ExtensionSettingsTabContent: React.FC<ExtensionSettingsTabContentProps> = 
   const resolvedMinHeight = typeof minHeight === 'number' ? `${minHeight}px` : minHeight;
   const localEntryFileUrl = getLocalEntryFileUrl(entryUrl);
   const shouldUseEmbeddedHtml = !isElectronDesktop() && !isExternalTab && /\.html?$/i.test(localEntryFileUrl || '');
+  const hostContext = useMemo(
+    () => ({
+      activeWorkspace: activeTab?.workspace ?? null,
+      closeAllTabs,
+      openTab,
+      navigateToConversation: (conversationId: string) => Promise.resolve(navigate(`/conversation/${conversationId}`)),
+    }),
+    [activeTab?.workspace, closeAllTabs, navigate, openTab]
+  );
 
   useEffect(() => {
     setLoading(true);
@@ -334,7 +347,7 @@ const ExtensionSettingsTabContent: React.FC<ExtensionSettingsTabContentProps> = 
         const requestId = data.requestId || data.reqId;
         const action = data.data?.action;
         const payload = data.data?.payload;
-        const hostApiHandlers = getExtensionHostApiHandlers(extensionName, payload);
+        const hostApiHandlers = getExtensionHostApiHandlers(extensionName, payload, hostContext);
         const handler = action ? hostApiHandlers?.[action] : undefined;
 
         if (!requestId || !handler) {
@@ -395,7 +408,7 @@ const ExtensionSettingsTabContent: React.FC<ExtensionSettingsTabContentProps> = 
 
     window.addEventListener('message', onMessage);
     return () => window.removeEventListener('message', onMessage);
-  }, [extensionName, isExternalTab, postLocaleInit]);
+  }, [extensionName, hostContext, isExternalTab, postLocaleInit]);
 
   useEffect(() => {
     if (!loading) {
