@@ -736,6 +736,21 @@ export class GeminiAgentManager extends BaseAgentManager<
 
   init() {
     super.init();
+    this.on('exit', (data: { code: number | null; signal: NodeJS.Signals | null }) => {
+      const crashMessage = {
+        conversation_id: this.conversation_id,
+        msg_id: uuid(),
+        type: 'finish',
+        data: {
+          error: `Process exited unexpectedly (code: ${data.code === null ? 'null' : data.code}, signal: ${data.signal ?? 'null'})`,
+          agentCrash: true,
+        },
+      } satisfies IResponseMessage;
+
+      ipcBridge.geminiConversation.responseStream.emit(crashMessage);
+      teamEventBus.emit('responseStream', crashMessage);
+    });
+
     // 接受来子进程的对话消息
     this.on('gemini.message', (data) => {
       // Mark as finished when content is output (visible to user)
