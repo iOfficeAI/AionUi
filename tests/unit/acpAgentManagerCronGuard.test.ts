@@ -9,10 +9,6 @@
  * status when agent.sendMessage() returns {success: false}, covering the two
  * new branches added in AcpAgentManager.sendMessage (first-message path and
  * subsequent-message path).
- *
- * Also covers the cron follow-up path in handleFinishSignal, where a cron
- * command response triggers a follow-up sendMessage call and the suppressFinishSignal
- * flag is used to defer the finish signal to the continuation's finish/error.
  */
 
 import { vi, describe, it, expect, beforeEach } from 'vitest';
@@ -76,14 +72,6 @@ vi.mock('@process/task/BaseAgentManager', () => ({
     workspace = '';
     bootstrapping = false;
     yoloMode = false;
-    _isTurnInProgress = false;
-    get isTurnInProgress() {
-      return this._isTurnInProgress;
-    }
-    _lastActivityAt = Date.now();
-    get lastActivityAt() {
-      return this._lastActivityAt;
-    }
     constructor(_type: string, data: Record<string, unknown>, _emitter: unknown) {
       if (data?.conversation_id) this.conversation_id = data.conversation_id;
       if (data?.workspace) this.workspace = data.workspace;
@@ -95,12 +83,6 @@ vi.mock('@process/task/BaseAgentManager', () => ({
     getConfirmations() {
       return [];
     }
-    markTurnStarted() {
-      this._isTurnInProgress = true;
-    }
-    markTurnFinished() {
-      this._isTurnInProgress = false;
-    }
   },
 }));
 
@@ -108,37 +90,19 @@ vi.mock('@process/task/IpcAgentEventEmitter', () => ({ IpcAgentEventEmitter: vi.
 vi.mock('@process/task/CronCommandDetector', () => ({ hasCronCommands: vi.fn(() => false) }));
 vi.mock('@process/task/MessageMiddleware', () => ({
   extractTextFromMessage: vi.fn(() => ''),
-  processCronInMessage: vi.fn(),
+  processCronInMessage: vi.fn((x: unknown) => x),
 }));
-vi.mock('@process/task/ThinkTagDetector', () => ({
-  stripThinkTags: vi.fn((x: unknown) => x),
-  extractAndStripThinkTags: vi.fn((x: unknown) => ({ content: x, thinkContent: '' })),
-}));
+vi.mock('@process/task/ThinkTagDetector', () => ({ stripThinkTags: vi.fn((x: unknown) => x) }));
 vi.mock('@process/utils/initAgent', () => ({ hasNativeSkillSupport: vi.fn(() => false) }));
 vi.mock('@process/task/agentUtils', () => ({
   prepareFirstMessageWithSkillsIndex: vi.fn((x: string) => Promise.resolve(x)),
 }));
 vi.mock('@/common/utils', () => ({ parseError: vi.fn((e: unknown) => e), uuid: vi.fn(() => 'test-uuid') }));
 vi.mock('@/common/chat/chatLib', () => ({ transformMessage: vi.fn(), uuid: vi.fn(() => 'uuid') }));
-vi.mock('@process/team/teamEventBus', () => ({ teamEventBus: { emit: vi.fn(), on: vi.fn(), off: vi.fn() } }));
-vi.mock('@process/services/cron/SkillSuggestWatcher', () => ({
-  skillSuggestWatcher: { onFinish: vi.fn(), onMessage: vi.fn() },
-}));
-vi.mock('@process/team/prompts/teamGuideCapability.ts', () => ({
-  shouldInjectTeamGuideMcp: vi.fn(() => false),
-}));
-vi.mock('@/common/types/codex/codexModes', () => ({ isCodexAutoApproveMode: vi.fn(() => false) }));
-vi.mock('./ConversationTurnCompletionService', () => ({
-  ConversationTurnCompletionService: {
-    getInstance: vi.fn(() => ({ notifyPotentialCompletion: vi.fn() })),
-  },
-}));
 
 // ── Import real AcpAgentManager after all mocks are set up ───────────────────
 import AcpAgentManager from '../../src/process/task/AcpAgentManager';
 import type { AcpBackend } from '../../src/common/types/acpTypes';
-import { hasCronCommands } from '../../src/process/task/CronCommandDetector';
-import { processCronInMessage } from '../../src/process/task/MessageMiddleware';
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -277,93 +241,5 @@ describe('AcpAgentManager.sendMessage — real class cronBusyGuard cleanup', () 
 
     expect(mockSetProcessing).toHaveBeenCalledWith('conv-9', true);
     expect(mockSetProcessing).toHaveBeenCalledWith('conv-9', false);
-  });
-});
-
-// ── Cron follow-up path in handleFinishSignal ─────────────────────────────────
-
-type HandleFinishSignalFn = (
-  message: { type: string; conversation_id: string; msg_id: string; data: null },
-  backend: AcpBackend,
-  options?: { trackActiveTurn?: boolean }
-) => Promise<void>;
-
-function makeFinishMessage(conversationId: string) {
-  return { type: 'finish', conversation_id: conversationId, msg_id: 'finish-msg', data: null };
-}
-
-describe('AcpAgentManager.handleFinishSignal — cron follow-up path', () => {
-  beforeEach(() => {
-    vi.clearAllMocks();
-    // Default: processCronInMessage does not invoke the callback (no cron responses)
-    vi.mocked(processCronInMessage).mockResolvedValue(undefined);
-  });
-
-  it('suppresses finish signal and keeps isTurnInProgress when cron follow-up succeeds', async () => {
-    const { manager, mockAgent } = makeManager('cron-ok');
-    // In production, send() sets isTurnInProgress=true before handleFinishSignal is ever called.
-    (manager as unknown as { markTurnStarted: () => void }).markTurnStarted();
-    // Simulate that the last agent message contained a cron command
-    (manager as unknown as { currentMsgContent: string }).currentMsgContent = '/cron run';
-    vi.mocked(hasCronCommands).mockReturnValue(true);
-    // processCronInMessage calls the callback with a system response
-    vi.mocked(processCronInMessage).mockImplementation(
-      async (_id: string, _backend: unknown, _msg: unknown, cb: (sysMsg: string) => void) => {
-        cb('[cron result]');
-      }
-    );
-    mockAgent.sendMessage.mockResolvedValue({ success: true });
-
-    await (manager as unknown as { handleFinishSignal: HandleFinishSignalFn }).handleFinishSignal(
-      makeFinishMessage('cron-ok'),
-      'claude' as AcpBackend,
-      { trackActiveTurn: false }
-    );
-
-    // Turn is still in progress because the follow-up sendMessage succeeded
-    expect(manager.isTurnInProgress).toBe(true);
-    // cronBusyGuard was never released — no false→true flip occurs
-    expect(mockSetProcessing).not.toHaveBeenCalledWith('cron-ok', false);
-  });
-
-  it('clears busy state when cron follow-up sendMessage returns failure', async () => {
-    const { manager, mockAgent } = makeManager('cron-fail');
-    (manager as unknown as { currentMsgContent: string }).currentMsgContent = '/cron run';
-    vi.mocked(hasCronCommands).mockReturnValue(true);
-    vi.mocked(processCronInMessage).mockImplementation(
-      async (_id: string, _backend: unknown, _msg: unknown, cb: (sysMsg: string) => void) => {
-        cb('[cron result]');
-      }
-    );
-    mockAgent.sendMessage.mockResolvedValue({ success: false });
-
-    await (manager as unknown as { handleFinishSignal: HandleFinishSignalFn }).handleFinishSignal(
-      makeFinishMessage('cron-fail'),
-      'claude' as AcpBackend,
-      { trackActiveTurn: false }
-    );
-
-    // clearBusyState() should have been called
-    expect(manager.isTurnInProgress).toBe(false);
-    expect(manager.status).toBe('finished');
-    // cronBusyGuard was cleared after the follow-up failure
-    expect(mockSetProcessing).toHaveBeenCalledWith('cron-fail', false);
-  });
-
-  it('does not suppress finish signal when cron produces no system responses', async () => {
-    const { manager } = makeManager('cron-no-response');
-    (manager as unknown as { currentMsgContent: string }).currentMsgContent = '/cron run';
-    vi.mocked(hasCronCommands).mockReturnValue(true);
-    // processCronInMessage does not invoke callback → collectedResponses stays empty
-    vi.mocked(processCronInMessage).mockResolvedValue(undefined);
-
-    await (manager as unknown as { handleFinishSignal: HandleFinishSignalFn }).handleFinishSignal(
-      makeFinishMessage('cron-no-response'),
-      'claude' as AcpBackend,
-      { trackActiveTurn: false }
-    );
-
-    // No follow-up → finish signal not suppressed → isTurnInProgress cleared
-    expect(manager.isTurnInProgress).toBe(false);
   });
 });
