@@ -1,6 +1,6 @@
-// tests/unit/process/acp/session/adapters/McpConfig.test.ts
+// tests/unit/process/acp/session/McpConfig.test.ts
 import { describe, it, expect } from 'vitest';
-import { McpConfig } from '@process/acp/session/adapters/McpConfig';
+import { McpConfig } from '@process/acp/session/McpConfig';
 import type { McpServerConfig } from '@process/acp/types';
 
 describe('McpConfig', () => {

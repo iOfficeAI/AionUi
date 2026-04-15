@@ -1,6 +1,6 @@
-// tests/unit/process/acp/session/adapters/InputPreprocessor.test.ts
+// tests/unit/process/acp/session/InputPreprocessor.test.ts
 import { describe, it, expect, vi } from 'vitest';
-import { InputPreprocessor } from '@process/acp/session/adapters/InputPreprocessor';
+import { InputPreprocessor } from '@process/acp/session/InputPreprocessor';
 
 describe('InputPreprocessor', () => {
   it('returns text-only content when no files', () => {

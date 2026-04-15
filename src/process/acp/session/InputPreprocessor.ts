@@ -1,5 +1,5 @@
-// src/process/acp/session/adapters/InputPreprocessor.ts
-import type { PromptContent, PromptContentItem } from '../../types';
+// src/process/acp/session/InputPreprocessor.ts
+import type { PromptContent, PromptContentItem } from '../types';
 
 const AT_FILE_REGEX = /@([\w/.~-]+\.\w+)/g;
 

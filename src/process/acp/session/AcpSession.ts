@@ -1,31 +1,30 @@
-import type {
-  AgentConfig,
-  SessionCallbacks,
-  SessionStatus,
-  PromptContent,
-  ConnectorFactory,
-  ProtocolFactory,
-  SessionOptions,
-  SessionNotification,
-  RequestPermissionRequest,
-  RequestPermissionResponse,
-  ProtocolHandlers,
-} from '../types';
-import type { ConnectorHandle } from '../infra/AgentConnector';
-import type { AcpProtocol } from '../infra/AcpProtocol';
+import * as fs from 'node:fs';
 import { AcpError } from '../errors/AcpError';
 import { normalizeError } from '../errors/errorNormalize';
-import { noopMetrics, type AcpMetrics } from '../metrics/AcpMetrics';
+import type { AcpProtocol } from '../infra/AcpProtocol';
 import { defaultProtocolFactory } from '../infra/AcpProtocol';
-import { PromptQueue } from './PromptQueue';
-import { ConfigTracker } from './ConfigTracker';
-import { PermissionResolver } from './PermissionResolver';
-import { PromptTimer } from './PromptTimer';
-import { MessageTranslator } from './MessageTranslator';
+import type { ConnectorHandle } from '../infra/AgentConnector';
+import { noopMetrics, type AcpMetrics } from '../metrics/AcpMetrics';
+import type {
+  AgentConfig,
+  ConnectorFactory,
+  ProtocolFactory,
+  ProtocolHandlers,
+  RequestPermissionRequest,
+  RequestPermissionResponse,
+  SessionCallbacks,
+  SessionNotification,
+  SessionOptions,
+  SessionStatus,
+} from '../types';
 import { AuthNegotiator } from './AuthNegotiator';
-import { McpConfig } from './adapters/McpConfig';
-import { InputPreprocessor } from './adapters/InputPreprocessor';
-import * as fs from 'node:fs';
+import { ConfigTracker } from './ConfigTracker';
+import { MessageTranslator } from './MessageTranslator';
+import { PermissionResolver } from './PermissionResolver';
+import { PromptQueue } from './PromptQueue';
+import { PromptTimer } from './PromptTimer';
+import { InputPreprocessor } from './InputPreprocessor';
+import { McpConfig } from './McpConfig';
 
 const VALID_TRANSITIONS: Record<SessionStatus, SessionStatus[]> = {
   idle: ['starting'],
@@ -51,7 +50,7 @@ export class AcpSession {
   private readonly configTracker: ConfigTracker;
   private readonly permissionResolver: PermissionResolver;
   private readonly promptQueue: PromptQueue;
-  private readonly adapter: MessageTranslator;
+  private readonly messageTranslator: MessageTranslator;
   private readonly inputPreprocessor: InputPreprocessor;
   private readonly promptTimer: PromptTimer;
   private readonly authNegotiator: AuthNegotiator;
@@ -74,15 +73,15 @@ export class AcpSession {
     this.metrics = options?.metrics ?? noopMetrics;
 
     this.configTracker = new ConfigTracker();
+    this.promptQueue = new PromptQueue(options?.promptQueueMaxSize);
+    this.messageTranslator = new MessageTranslator();
+    this.inputPreprocessor = new InputPreprocessor((path) => fs.readFileSync(path, 'utf-8'));
+    this.promptTimer = new PromptTimer(this.promptTimeoutMs, () => this.handlePromptTimeout());
+    this.authNegotiator = new AuthNegotiator(agentConfig.agentBackend);
     this.permissionResolver = new PermissionResolver({
       autoApproveAll: agentConfig.autoApproveAll ?? false,
       cacheMaxSize: options?.approvalCacheMaxSize,
     });
-    this.promptQueue = new PromptQueue(options?.promptQueueMaxSize);
-    this.adapter = new MessageTranslator();
-    this.inputPreprocessor = new InputPreprocessor((path) => fs.readFileSync(path, 'utf-8'));
-    this.promptTimer = new PromptTimer(this.promptTimeoutMs, () => this.handlePromptTimeout());
-    this.authNegotiator = new AuthNegotiator(agentConfig.agentBackend);
 
     if (agentConfig.authCredentials) {
       this.authNegotiator.mergeCredentials(agentConfig.authCredentials);
@@ -188,7 +187,7 @@ export class AcpSession {
 
       await this.reassertConfig();
 
-      this.adapter.reset();
+      this.messageTranslator.reset();
       this.setStatus('active');
       this.scheduleDrain();
     } catch (err) {
@@ -397,11 +396,11 @@ export class AcpSession {
       this.promptTimer.start();
       await this.protocol.prompt(this._sessionId, content);
       this.promptTimer.stop();
-      this.adapter.onTurnEnd();
+      this.messageTranslator.onTurnEnd();
       this.setStatus('active');
     } catch (err) {
       this.promptTimer.stop();
-      this.adapter.onTurnEnd();
+      this.messageTranslator.onTurnEnd();
 
       const acpErr = normalizeError(err);
       if (acpErr.code === 'PROCESS_CRASHED') {
@@ -465,7 +464,7 @@ export class AcpSession {
     }
 
     this.promptTimer.reset();
-    const messages = this.adapter.translate(notification);
+    const messages = this.messageTranslator.translate(notification);
     for (const msg of messages) {
       try {
         this.callbacks.onMessage(msg);
