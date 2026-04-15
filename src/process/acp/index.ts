@@ -27,3 +27,6 @@ export { noopMetrics, type AcpMetrics } from './metrics/AcpMetrics';
 export { AcpRuntime } from './runtime/AcpRuntime';
 export { DefaultConnectorFactory } from './runtime/ConnectorFactory';
 export { AcpSession, type SessionOptions } from './session/AcpSession';
+
+// Compatibility adapter (Phase 1 migration)
+export { AcpAgentV2, isAcpV2Enabled } from './compat';
