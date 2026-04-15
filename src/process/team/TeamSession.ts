@@ -41,7 +41,6 @@ export class TeamSession extends EventEmitter {
       teamId: team.id,
       agents: team.agents,
       mailbox: this.mailbox,
-      taskManager: this.taskManager,
       workerTaskManager,
       teamWorkspace: team.workspace || undefined,
       onAgentRemoved: (teamId, agents) => {

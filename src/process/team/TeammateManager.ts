@@ -9,7 +9,6 @@ import type { TeamAgent, TeammateStatus } from './types';
 import { isTeamCapableBackend } from '@/common/types/teamTypes';
 import { ProcessConfig } from '@process/utils/initStorage';
 import type { Mailbox } from './Mailbox';
-import type { TaskManager } from './TaskManager';
 import { buildRolePrompt } from './prompts/buildRolePrompt';
 import { formatMessages } from './prompts/formatHelpers';
 import { acpDetector } from '@process/agent/acp/AcpDetector';
@@ -18,7 +17,6 @@ type TeammateManagerParams = {
   teamId: string;
   agents: TeamAgent[];
   mailbox: Mailbox;
-  taskManager: TaskManager;
   workerTaskManager: IWorkerTaskManager;
   hasMcpTools?: boolean;
   teamWorkspace?: string;
@@ -34,7 +32,6 @@ export class TeammateManager extends EventEmitter {
   private readonly teamId: string;
   private agents: TeamAgent[];
   private readonly mailbox: Mailbox;
-  private readonly taskManager: TaskManager;
   private readonly workerTaskManager: IWorkerTaskManager;
   private readonly onAgentRemovedFn?: (teamId: string, agents: TeamAgent[]) => void;
   /** Shared team workspace path (leader's working directory) */
@@ -61,7 +58,6 @@ export class TeammateManager extends EventEmitter {
     this.teamId = params.teamId;
     this.agents = [...params.agents];
     this.mailbox = params.mailbox;
-    this.taskManager = params.taskManager;
     this.workerTaskManager = params.workerTaskManager;
     this.onAgentRemovedFn = params.onAgentRemoved;
     this.teamWorkspace = params.teamWorkspace;
