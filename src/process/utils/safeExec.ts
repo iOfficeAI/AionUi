@@ -20,6 +20,27 @@ import { spawn, execFile } from 'child_process';
 type ExecResult = { stdout: string; stderr: string };
 
 /**
+ * Decode child-process output with a Windows GBK fallback when UTF-8 looks garbled.
+ * Some Windows CLIs still emit localized text in the active ANSI code page.
+ */
+function decodeProcessChunk(chunk: Buffer | string): string {
+  if (typeof chunk === 'string') {
+    return chunk;
+  }
+
+  const utf8Text = chunk.toString('utf-8');
+  if (process.platform !== 'win32' || !utf8Text.includes('\ufffd')) {
+    return utf8Text;
+  }
+
+  try {
+    return new TextDecoder('gbk').decode(chunk);
+  } catch {
+    return utf8Text;
+  }
+}
+
+/**
  * Kill a child process and its descendants.
  * On Windows, `detached` is false so negative-PID process group kill is not
  * available; use `taskkill /T /F` to terminate the entire tree instead.
@@ -67,10 +88,10 @@ export function safeExec(command: string, options: SafeExecOptions = {}): Promis
     let settled = false;
 
     child.stdout.on('data', (chunk: Buffer) => {
-      stdout += chunk.toString();
+      stdout += decodeProcessChunk(chunk);
     });
     child.stderr.on('data', (chunk: Buffer) => {
-      stderr += chunk.toString();
+      stderr += decodeProcessChunk(chunk);
     });
 
     const timer = options.timeout
@@ -130,10 +151,10 @@ export function safeExecFile(file: string, args: string[], options: SafeExecOpti
     let settled = false;
 
     child.stdout.on('data', (chunk: Buffer) => {
-      stdout += chunk.toString();
+      stdout += decodeProcessChunk(chunk);
     });
     child.stderr.on('data', (chunk: Buffer) => {
-      stderr += chunk.toString();
+      stderr += decodeProcessChunk(chunk);
     });
 
     const timer = options.timeout

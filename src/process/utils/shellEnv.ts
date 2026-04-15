@@ -767,6 +767,26 @@ export function formatBytes(bytes: number): string {
   return gb >= 1 ? `${gb.toFixed(2)} GB` : `${(bytes / 1024 ** 2).toFixed(0)} MB`;
 }
 
+function decodeCommandOutput(output: Buffer | string | null | undefined): string {
+  if (typeof output === 'string') {
+    return output;
+  }
+  if (!output) {
+    return '';
+  }
+
+  const utf8Text = output.toString('utf-8');
+  if (process.platform !== 'win32' || !utf8Text.includes('\ufffd')) {
+    return utf8Text;
+  }
+
+  try {
+    return new TextDecoder('gbk').decode(output);
+  } catch {
+    return utf8Text;
+  }
+}
+
 /**
  * Run a command asynchronously with a timeout.
  * Returns trimmed stdout on success, or `null` on any failure.
@@ -775,22 +795,22 @@ export function formatBytes(bytes: number): string {
 export function execAsync(cmd: string, args: string[], timeoutMs = 5_000): Promise<string | null> {
   return new Promise((resolve) => {
     try {
+      const useWindowsShell = process.platform === 'win32' && /\.(cmd|bat)$/i.test(cmd);
       const child = execFile(
         cmd,
         args,
         {
-          encoding: 'utf-8',
           timeout: timeoutMs,
           env: process.env,
           windowsHide: true,
-          ...getWindowsShellExecutionOptions(),
+          ...(useWindowsShell ? getWindowsShellExecutionOptions() : {}),
         },
         (err, stdout) => {
           if (err) {
             resolve(null);
             return;
           }
-          resolve((stdout || '').trim().split(/\r?\n/)[0]);
+          resolve(decodeCommandOutput(stdout).trim().split(/\r?\n/)[0]);
         }
       );
       child.stdin?.end();

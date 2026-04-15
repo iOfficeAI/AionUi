@@ -48,8 +48,13 @@ export function initAcpConversationBridge(workerTaskManager: IWorkerTaskManager)
   // Enrich with MCP transport support info so the frontend can show accurate counts
   ipcBridge.acpConversation.getAvailableAgents.provider(async () => {
     try {
-      await acpDetector.ensureBuiltinAgentsFresh();
-      const agents = acpDetector.getDetectedAgents();
+      let agents = acpDetector.getDetectedAgents();
+      if (agents.length === 0) {
+        // First load still waits for detection so the UI has something usable.
+        await acpDetector.ensureBuiltinAgentsFresh();
+        agents = acpDetector.getDetectedAgents();
+      }
+
       const enriched = agents.map((agent) => ({
         ...agent,
         supportedTransports: mcpService.getSupportedTransportsForAgent(agent),

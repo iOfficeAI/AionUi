@@ -6,7 +6,7 @@
 
 import { existsSync } from 'node:fs';
 import { join } from 'node:path';
-import { execSync } from 'node:child_process';
+import { execFileSync } from 'node:child_process';
 
 function getBinaryName(): string {
   return process.platform === 'win32' ? 'aionrs.exe' : 'aionrs';
@@ -32,8 +32,17 @@ export function resolveAionrsBinary(): string | null {
 
   // 2. System PATH
   try {
-    const cmd = process.platform === 'win32' ? 'where aionrs' : 'which aionrs';
-    const result = execSync(cmd, { encoding: 'utf-8', timeout: 5000 }).trim();
+    const isWindows = process.platform === 'win32';
+    const command = isWindows ? 'where.exe' : 'which';
+    const args = ['aionrs'];
+    const result = execFileSync(command, args, {
+      encoding: 'utf-8',
+      timeout: 5000,
+      stdio: ['ignore', 'pipe', 'ignore'],
+      ...(isWindows ? { windowsHide: true } : {}),
+    })
+      .trim()
+      .split(/\r?\n/)[0];
     if (result && existsSync(result)) return result;
   } catch {
     // not found in PATH
@@ -58,9 +67,11 @@ export function detectAionrs(): {
   if (!binaryPath) return { available: false };
 
   try {
-    const version = execSync(`"${binaryPath}" --version`, {
+    const version = execFileSync(binaryPath, ['--version'], {
       encoding: 'utf-8',
       timeout: 5000,
+      stdio: ['ignore', 'pipe', 'ignore'],
+      ...(process.platform === 'win32' ? { windowsHide: true } : {}),
     }).trim();
     return { available: true, version, path: binaryPath };
   } catch {

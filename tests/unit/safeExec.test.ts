@@ -23,9 +23,16 @@ import { EventEmitter } from 'events';
 // Helpers: fake ChildProcess created lazily inside spawn mock
 // ---------------------------------------------------------------------------
 
-function createFakeChild(exitCode: number = 0) {
+function createFakeChild(
+  exitCode: number = 0,
+  options: {
+    stdoutChunks?: Array<Buffer | string>;
+    stderrChunks?: Array<Buffer | string>;
+  } = {}
+) {
   const stdout = new EventEmitter();
   const stderr = new EventEmitter();
+  const { stdoutChunks = [], stderrChunks = [] } = options;
 
   const child = new EventEmitter() as EventEmitter & {
     pid: number;
@@ -46,6 +53,12 @@ function createFakeChild(exitCode: number = 0) {
   // after the current tick completes, which means after spawn's caller
   // has set up .on('close', ...) handlers).
   setImmediate(() => {
+    for (const chunk of stdoutChunks) {
+      stdout.emit('data', chunk);
+    }
+    for (const chunk of stderrChunks) {
+      stderr.emit('data', chunk);
+    }
     child.emit('close', exitCode);
   });
 
@@ -55,10 +68,16 @@ function createFakeChild(exitCode: number = 0) {
 /**
  * Create a mockSpawn that captures the call args and returns a fake child.
  */
-function createMockSpawn(exitCode = 0) {
+function createMockSpawn(
+  exitCode = 0,
+  options: {
+    stdoutChunks?: Array<Buffer | string>;
+    stderrChunks?: Array<Buffer | string>;
+  } = {}
+) {
   const fakeChild = { ref: null as ReturnType<typeof createFakeChild> | null };
   const mockSpawn = vi.fn().mockImplementation(() => {
-    fakeChild.ref = createFakeChild(exitCode);
+    fakeChild.ref = createFakeChild(exitCode, options);
     return fakeChild.ref;
   });
   return { mockSpawn, getFakeChild: () => fakeChild.ref! };
@@ -130,6 +149,26 @@ describe('safeExec', () => {
     const { safeExec } = await import('@process/utils/safeExec');
     await expect(safeExec('failing-cmd')).rejects.toThrow('Command failed with exit code 1');
   });
+
+  it('decodes Windows GBK stdout and stderr before resolving', async () => {
+    Object.defineProperty(process, 'platform', { value: 'win32' });
+
+    const { mockSpawn } = createMockSpawn(0, {
+      stdoutChunks: [Buffer.from([0xd0, 0xc5, 0xcf, 0xa2])],
+      stderrChunks: [Buffer.from([0xb3, 0xc9, 0xb9, 0xa6])],
+    });
+
+    vi.doMock('child_process', () => ({
+      spawn: mockSpawn,
+      execFile: vi.fn(),
+    }));
+
+    const { safeExec } = await import('@process/utils/safeExec');
+    await expect(safeExec('echo hello')).resolves.toEqual({
+      stdout: '信息',
+      stderr: '成功',
+    });
+  });
 });
 
 // ---------------------------------------------------------------------------
@@ -185,5 +224,25 @@ describe('safeExecFile', () => {
 
     expect(mockSpawn).toHaveBeenCalledWith('node', ['--version'], expect.objectContaining({ detached: true }));
     expect(getFakeChild().unref).toHaveBeenCalled();
+  });
+
+  it('decodes Windows GBK output for direct executable invocations', async () => {
+    Object.defineProperty(process, 'platform', { value: 'win32' });
+
+    const { mockSpawn } = createMockSpawn(0, {
+      stdoutChunks: [Buffer.from([0xd0, 0xc5, 0xcf, 0xa2])],
+      stderrChunks: [Buffer.from([0xb3, 0xc9, 0xb9, 0xa6])],
+    });
+
+    vi.doMock('child_process', () => ({
+      spawn: mockSpawn,
+      execFile: vi.fn(),
+    }));
+
+    const { safeExecFile } = await import('@process/utils/safeExec');
+    await expect(safeExecFile('node', ['--version'])).resolves.toEqual({
+      stdout: '信息',
+      stderr: '成功',
+    });
   });
 });

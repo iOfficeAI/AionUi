@@ -153,7 +153,18 @@ export const useAcpMessage = (conversation_id: string): UseAcpMessageReturn => {
         return;
       }
 
-      const transformedMessage = transformMessage(message);
+      let hasTransformedMessage = false;
+      let transformedMessage: ReturnType<typeof transformMessage>;
+      const addTransformedMessage = () => {
+        if (!hasTransformedMessage) {
+          transformedMessage = transformMessage(message);
+          hasTransformedMessage = true;
+        }
+        if (transformedMessage) {
+          addOrUpdateMessage(transformedMessage);
+        }
+      };
+
       switch (message.type) {
         case 'thought':
           if (!runningRef.current && !turnFinishedRef.current) {
@@ -169,7 +180,7 @@ export const useAcpMessage = (conversation_id: string): UseAcpMessageReturn => {
           }
           hasThinkingMessageRef.current = true;
           setHasThinkingMessage(true);
-          addOrUpdateMessage(transformedMessage);
+          addTransformedMessage();
           break;
         }
         case 'start':
@@ -214,7 +225,7 @@ export const useAcpMessage = (conversation_id: string): UseAcpMessageReturn => {
             runningRef.current = true;
           }
           setThought({ subject: '', description: '' });
-          addOrUpdateMessage(transformedMessage);
+          addTransformedMessage();
           if (isFirstContentChunk) {
             clearAiProcessingAfterPaint();
           }
@@ -244,11 +255,11 @@ export const useAcpMessage = (conversation_id: string): UseAcpMessageReturn => {
               setStreamingContent(false);
             }
           }
-          addOrUpdateMessage(transformedMessage);
+          addTransformedMessage();
           break;
         }
         case 'user_content':
-          addOrUpdateMessage(transformedMessage);
+          addTransformedMessage();
           break;
         case 'teammate_message': {
           const tmMsg = message.data as import('@/common/chat/chatLib').TMessage;
@@ -262,7 +273,7 @@ export const useAcpMessage = (conversation_id: string): UseAcpMessageReturn => {
             setRunning(true);
             runningRef.current = true;
           }
-          addOrUpdateMessage(transformedMessage);
+          addTransformedMessage();
           break;
         case 'acp_model_info':
           break;
@@ -303,7 +314,7 @@ export const useAcpMessage = (conversation_id: string): UseAcpMessageReturn => {
           setAiProcessing(false);
           aiProcessingRef.current = false;
           setStreamingContent(false);
-          addOrUpdateMessage(transformedMessage);
+          addTransformedMessage();
           if (requestTraceRef.current) {
             const duration = Date.now() - requestTraceRef.current.startTime;
             console.log(
@@ -320,7 +331,7 @@ export const useAcpMessage = (conversation_id: string): UseAcpMessageReturn => {
             setRunning(true);
             runningRef.current = true;
           }
-          addOrUpdateMessage(transformedMessage);
+          addTransformedMessage();
           break;
       }
     },

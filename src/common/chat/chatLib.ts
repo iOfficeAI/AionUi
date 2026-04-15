@@ -568,6 +568,8 @@ export const transformMessage = (message: IResponseMessage): TMessage => {
     case 'codex_model_info': // Codex model info updates, handled by AcpModelSelector
     case 'acp_context_usage': // Context usage updates, handled by AcpSendBox
     case 'request_trace': // Request trace events, logged to F12 console (not persisted)
+    case 'slash_commands_updated': // Slash command cache refreshes, handled outside the chat timeline
+    case 'teammate_message': // Team messages are already normalized before insertion
       break;
     default: {
       console.warn(

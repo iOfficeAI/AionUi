@@ -135,7 +135,6 @@ describe('acpConversationBridge', () => {
 
   it('getAvailableAgents returns enriched agent list', async () => {
     const { acpDetector } = await import('../../src/process/agent/acp/AcpDetector');
-    vi.mocked(acpDetector.ensureBuiltinAgentsFresh).mockResolvedValue(undefined as any);
     vi.mocked(acpDetector.getDetectedAgents).mockReturnValue([
       { backend: 'claude', name: 'Claude', cliPath: '/usr/bin/claude' },
     ] as any);
@@ -147,11 +146,25 @@ describe('acpConversationBridge', () => {
     expect(result.success).toBe(true);
     expect(result.data).toHaveLength(1);
     expect(result.data[0].supportedTransports).toEqual(['stdio']);
+    expect(acpDetector.ensureBuiltinAgentsFresh).not.toHaveBeenCalled();
+  });
+
+  it('getAvailableAgents waits for detection when cached agents are empty', async () => {
+    const { acpDetector } = await import('../../src/process/agent/acp/AcpDetector');
+    vi.mocked(acpDetector.getDetectedAgents)
+      .mockReturnValueOnce([] as any)
+      .mockReturnValueOnce([{ backend: 'claude', name: 'Claude', cliPath: '/usr/bin/claude' }] as any);
+    vi.mocked(acpDetector.ensureBuiltinAgentsFresh).mockResolvedValue(undefined as any);
+
+    const result = await handlers['getAvailableAgents']();
+    expect(result.success).toBe(true);
+    expect(result.data).toHaveLength(1);
     expect(acpDetector.ensureBuiltinAgentsFresh).toHaveBeenCalledTimes(1);
   });
 
-  it('getAvailableAgents returns error when detector throws', async () => {
+  it('getAvailableAgents returns error when initial detection throws', async () => {
     const { acpDetector } = await import('../../src/process/agent/acp/AcpDetector');
+    vi.mocked(acpDetector.getDetectedAgents).mockReturnValue([] as any);
     vi.mocked(acpDetector.ensureBuiltinAgentsFresh).mockRejectedValue(new Error('detection failed'));
 
     const result = await handlers['getAvailableAgents']();
@@ -160,7 +173,6 @@ describe('acpConversationBridge', () => {
 
   it('getAvailableAgents returns error when agent read throws', async () => {
     const { acpDetector } = await import('../../src/process/agent/acp/AcpDetector');
-    vi.mocked(acpDetector.ensureBuiltinAgentsFresh).mockResolvedValue(undefined as any);
     vi.mocked(acpDetector.getDetectedAgents).mockImplementation(() => {
       throw new Error('detection failed');
     });

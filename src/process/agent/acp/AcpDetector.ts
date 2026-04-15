@@ -9,7 +9,7 @@ import { POTENTIAL_ACP_CLIS } from '@/common/types/acpTypes';
 import { ExtensionRegistry } from '@process/extensions';
 import { ProcessConfig } from '@process/utils/initStorage';
 import { getEnhancedEnv } from '@process/utils/shellEnv';
-import { execSync } from 'child_process';
+import { execFileSync } from 'child_process';
 
 interface DetectedAgent {
   backend: AcpBackendAll;
@@ -97,43 +97,40 @@ class AcpDetector {
    * Check if a CLI command is available on the system PATH.
    */
   private isCliAvailable(cliCommand: string): boolean {
-    const isWindows = process.platform === 'win32';
-    const whichCommand = isWindows ? 'where' : 'which';
-
     if (!this.enhancedEnv) {
       this.enhancedEnv = getEnhancedEnv();
     }
 
+    const execOptions = {
+      encoding: 'utf-8' as const,
+      env: this.enhancedEnv,
+      stdio: ['ignore', 'pipe', 'ignore'] as ('ignore' | 'pipe')[],
+      timeout: 1000,
+      windowsHide: true,
+    };
+
     try {
-      execSync(`${whichCommand} ${cliCommand}`, {
-        encoding: 'utf-8',
-        stdio: 'pipe',
-        timeout: 1000,
-        env: this.enhancedEnv,
-      });
+      execFileSync(process.platform === 'win32' ? 'where.exe' : 'which', [cliCommand], execOptions);
       return true;
     } catch {
-      if (!isWindows) return false;
+      if (process.platform !== 'win32') return false;
     }
 
-    if (isWindows) {
-      try {
-        execSync(
-          `powershell -NoProfile -NonInteractive -Command "Get-Command -All ${cliCommand} | Select-Object -First 1 | Out-Null"`,
-          {
-            encoding: 'utf-8',
-            stdio: 'pipe',
-            timeout: 1000,
-            env: this.enhancedEnv,
-          }
-        );
-        return true;
-      } catch {
-        return false;
-      }
+    try {
+      execFileSync(
+        'powershell',
+        [
+          '-NoProfile',
+          '-NonInteractive',
+          '-Command',
+          `Get-Command -All '${cliCommand.replaceAll("'", "''")}' | Select-Object -First 1 | Out-Null`,
+        ],
+        execOptions
+      );
+      return true;
+    } catch {
+      return false;
     }
-
-    return false;
   }
 
   // ---------------------------------------------------------------------------

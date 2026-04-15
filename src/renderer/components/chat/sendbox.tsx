@@ -211,6 +211,7 @@ const SendBox: React.FC<{
   const singleLineWidthRef = useRef<number>(0);
   const measurementCanvasRef = useRef<HTMLCanvasElement | null>(null);
   const mobileUserFocusIntentUntilRef = useRef(0);
+  const warmupOnNextFocusRef = useRef(false);
   const warmedConversationRef = useRef<string | undefined>(undefined);
   const warmupTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const latestInputRef = useLatestRef(input);
@@ -574,6 +575,9 @@ const SendBox: React.FC<{
       conversationExport.closeExportFlow();
     }
     setInput(value);
+    if (value) {
+      queueConversationWarmup(0);
+    }
     requestAnimationFrame(() => {
       syncCaretPosition();
       syncHighlightScroll();
@@ -968,8 +972,38 @@ const SendBox: React.FC<{
       }
     },
   });
-  const markMobileFocusIntent = useCallback(() => {
-    if (!isMobile) return;
+  const queueConversationWarmup = useCallback(
+    (delayMs = 1000) => {
+      const cid = conversationContext?.conversationId;
+      if (!cid || warmedConversationRef.current === cid) {
+        return;
+      }
+
+      if (warmupTimerRef.current) {
+        clearTimeout(warmupTimerRef.current);
+      }
+
+      const warmup = () => {
+        warmupTimerRef.current = null;
+        warmedConversationRef.current = cid;
+        ipcBridge.conversation.warmup.invoke({ conversation_id: cid }).catch(() => {});
+      };
+
+      if (delayMs <= 0) {
+        warmup();
+        return;
+      }
+
+      warmupTimerRef.current = setTimeout(warmup, delayMs);
+    },
+    [conversationContext?.conversationId]
+  );
+
+  const markInputFocusIntent = useCallback(() => {
+    warmupOnNextFocusRef.current = true;
+    if (!isMobile) {
+      return;
+    }
     mobileUserFocusIntentUntilRef.current = Date.now() + 1500;
   }, [isMobile]);
 
@@ -986,23 +1020,29 @@ const SendBox: React.FC<{
     handlePasteFocus();
     setIsInputFocused(true);
 
-    // Pre-warm worker bootstrap after focus stays for 1s (debounce).
-    // Avoids triggering warmup for every conversation during rapid switching.
-    const cid = conversationContext?.conversationId;
-    if (cid && warmedConversationRef.current !== cid) {
-      if (warmupTimerRef.current) clearTimeout(warmupTimerRef.current);
-      warmupTimerRef.current = setTimeout(() => {
-        warmedConversationRef.current = cid;
-        ipcBridge.conversation.warmup.invoke({ conversation_id: cid }).catch(() => {});
-      }, 1000);
+    // Auto-focus on conversation switch should not bootstrap the agent.
+    // Only pre-warm after an explicit user interaction focuses the input.
+    if (warmupOnNextFocusRef.current) {
+      warmupOnNextFocusRef.current = false;
+      queueConversationWarmup();
     }
-  }, [handlePasteFocus, isMobile, conversationContext?.conversationId]);
+  }, [handlePasteFocus, isMobile, queueConversationWarmup]);
   const handleInputBlur = useCallback(() => {
     if (warmupTimerRef.current) {
       clearTimeout(warmupTimerRef.current);
       warmupTimerRef.current = null;
     }
+    warmupOnNextFocusRef.current = false;
     setIsInputFocused(false);
+  }, []);
+
+  useEffect(() => {
+    return () => {
+      if (warmupTimerRef.current) {
+        clearTimeout(warmupTimerRef.current);
+        warmupTimerRef.current = null;
+      }
+    };
   }, []);
 
   useEffect(() => {
@@ -1545,8 +1585,8 @@ const SendBox: React.FC<{
               }}
               onChange={handleTextAreaChange}
               onPaste={onPaste}
-              onTouchStart={markMobileFocusIntent}
-              onMouseDown={markMobileFocusIntent}
+              onTouchStart={markInputFocusIntent}
+              onMouseDown={markInputFocusIntent}
               onClick={(event) => {
                 syncCaretPosition(event.target);
               }}

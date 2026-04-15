@@ -44,7 +44,7 @@ import {
   spawnGenericBackend,
 } from './acpConnectors';
 import type { SpawnResult } from './acpConnectors';
-import { killChild, readTextFile, writeJsonRpcMessage, writeTextFile } from './utils';
+import { decodeChildProcessOutput, killChild, readTextFile, writeJsonRpcMessage, writeTextFile } from './utils';
 
 const execFile = promisify(execFileCb);
 
@@ -634,8 +634,7 @@ export class AcpConnection {
     let stderrHead = '';
     let stderrTail = '';
     child.stderr?.on('data', (data: Buffer) => {
-      const chunk = data.toString();
-      console.error(`[ACP ${backend} STDERR]:`, chunk);
+      const chunk = decodeChildProcessOutput(data);
       if (stderrHead.length < STDERR_HEAD_MAX) {
         stderrHead += chunk;
         if (stderrHead.length > STDERR_HEAD_MAX) {
@@ -716,7 +715,7 @@ export class AcpConnection {
     // Handle messages from ACP server
     let buffer = '';
     child.stdout?.on('data', (data: Buffer) => {
-      const dataStr = data.toString();
+      const dataStr = decodeChildProcessOutput(data);
       buffer += dataStr;
       const lines = buffer.split('\n');
       buffer = lines.pop() || '';

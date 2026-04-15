@@ -5,7 +5,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 // ---------------------------------------------------------------------------
 
 vi.mock('child_process', () => ({
-  execSync: vi.fn(),
+  execFileSync: vi.fn(),
 }));
 
 vi.mock('@/common/types/acpTypes', () => ({
@@ -35,10 +35,10 @@ vi.mock('@process/utils/shellEnv', () => ({
   getEnhancedEnv: vi.fn(() => ({ ...process.env })),
 }));
 
-import { execSync } from 'child_process';
+import { execFileSync } from 'child_process';
 import { ProcessConfig } from '@process/utils/initStorage';
 
-const mockedExecSync = vi.mocked(execSync);
+const mockedExecFileSync = vi.mocked(execFileSync);
 
 function createDeferred<T>() {
   let resolve!: (value: T | PromiseLike<T>) => void;
@@ -55,10 +55,10 @@ async function createFreshDetector() {
   return mod.acpDetector;
 }
 
-// Helper: make execSync succeed for given commands, throw for others
+// Helper: make execFileSync succeed for given commands, throw for others
 function setAvailableClis(clis: string[]): void {
-  mockedExecSync.mockImplementation((cmd: string) => {
-    const command = typeof cmd === 'string' ? cmd : '';
+  mockedExecFileSync.mockImplementation((file: string, args?: readonly string[] | null) => {
+    const command = [file, ...(args || [])].join(' ');
     for (const cli of clis) {
       if (command.includes(cli)) return Buffer.from('');
     }
@@ -201,10 +201,10 @@ describe('AcpDetector', () => {
       await detector.initialize();
       await detector.initialize(); // second call — should be no-op
 
-      // execSync called only during first init
-      const callCount = mockedExecSync.mock.calls.length;
+      // execFileSync called only during first init
+      const callCount = mockedExecFileSync.mock.calls.length;
       await detector.initialize();
-      expect(mockedExecSync.mock.calls.length).toBe(callCount);
+      expect(mockedExecFileSync.mock.calls.length).toBe(callCount);
     });
   });
 

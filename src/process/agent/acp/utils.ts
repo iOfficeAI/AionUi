@@ -138,6 +138,26 @@ async function collectDescendantPids(rootPid: number): Promise<number[]> {
 }
 
 /**
+ * Decode child-process output with a Windows GBK fallback when UTF-8 looks garbled.
+ */
+export function decodeChildProcessOutput(output: Buffer | string): string {
+  if (typeof output === 'string') {
+    return output;
+  }
+
+  const utf8Text = output.toString('utf-8');
+  if (process.platform !== 'win32' || !utf8Text.includes('\ufffd')) {
+    return utf8Text;
+  }
+
+  try {
+    return new TextDecoder('gbk').decode(output);
+  } catch {
+    return utf8Text;
+  }
+}
+
+/**
  * Decode a Windows command error for readable logging.
  * Windows commands like `taskkill` output in the system's native encoding (e.g. GBK for Chinese),
  * which gets garbled when Node.js interprets it as UTF-8. This re-decodes stderr as GBK if available.
@@ -145,14 +165,7 @@ async function collectDescendantPids(rootPid: number): Promise<number[]> {
 export function decodeWindowsError(error: unknown): string {
   const err = error as { stderr?: string | Buffer; code?: number; message?: string };
   if (err?.stderr) {
-    const stderr = err.stderr;
-    if (Buffer.isBuffer(stderr)) {
-      try {
-        return new TextDecoder('gbk').decode(stderr);
-      } catch {
-        return stderr.toString('utf-8');
-      }
-    }
+    const stderr = decodeChildProcessOutput(err.stderr);
     // stderr is a string — check if it looks garbled (contains replacement chars)
     if (typeof stderr === 'string' && stderr.includes('\ufffd')) {
       // Already garbled, fall back to exit code

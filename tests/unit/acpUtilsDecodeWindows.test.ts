@@ -12,7 +12,7 @@
  */
 
 import { describe, it, expect } from 'vitest';
-import { decodeWindowsError } from '@process/agent/acp/utils';
+import { decodeChildProcessOutput, decodeWindowsError } from '@process/agent/acp/utils';
 
 describe('decodeWindowsError', () => {
   it('returns stderr string when it is readable', () => {
@@ -45,5 +45,30 @@ describe('decodeWindowsError', () => {
   it('returns exit code unknown when stderr is garbled and no code', () => {
     const error = { stderr: '\ufffd\ufffd\ufffd' };
     expect(decodeWindowsError(error)).toBe('exit code unknown');
+  });
+});
+
+describe('decodeChildProcessOutput', () => {
+  it('decodes GBK buffers on Windows when UTF-8 contains replacement characters', () => {
+    const originalPlatform = process.platform;
+    Object.defineProperty(process, 'platform', { value: 'win32' });
+
+    try {
+      const gbkBuffer = Buffer.from([0xd0, 0xc5, 0xcf, 0xa2]);
+      expect(decodeChildProcessOutput(gbkBuffer)).toBe('信息');
+    } finally {
+      Object.defineProperty(process, 'platform', { value: originalPlatform });
+    }
+  });
+
+  it('keeps UTF-8 output unchanged on non-Windows platforms', () => {
+    const originalPlatform = process.platform;
+    Object.defineProperty(process, 'platform', { value: 'darwin' });
+
+    try {
+      expect(decodeChildProcessOutput(Buffer.from('plain text', 'utf-8'))).toBe('plain text');
+    } finally {
+      Object.defineProperty(process, 'platform', { value: originalPlatform });
+    }
   });
 });

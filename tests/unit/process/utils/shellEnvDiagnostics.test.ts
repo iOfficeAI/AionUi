@@ -74,12 +74,15 @@ describe('formatBytes', () => {
 // ---------------------------------------------------------------------------
 
 describe('execAsync', () => {
+  const originalPlatform = process.platform;
+
   beforeEach(() => {
     execFileMock.mockReset();
   });
 
   afterEach(() => {
     vi.restoreAllMocks();
+    Object.defineProperty(process, 'platform', { value: originalPlatform });
   });
 
   it('should return trimmed first line of stdout on success', async () => {
@@ -129,6 +132,36 @@ describe('execAsync', () => {
     });
 
     await execAsync('test', ['arg'], 2000);
+  });
+
+  it('decodes Windows GBK output for non-batch commands without enabling shell mode', async () => {
+    Object.defineProperty(process, 'platform', { value: 'win32' });
+
+    execFileMock.mockImplementation(
+      (_cmd: string, _args: string[], opts: { shell?: boolean }, cb: (err: Error | null, stdout: Buffer) => void) => {
+        expect(opts.shell).toBeUndefined();
+        cb(null, Buffer.from([0xd0, 0xc5, 0xcf, 0xa2]));
+        return { stdin: { end: vi.fn() } };
+      }
+    );
+
+    const result = await execAsync('where.exe', ['git']);
+    expect(result).toBe('信息');
+  });
+
+  it('keeps shell mode for Windows batch commands', async () => {
+    Object.defineProperty(process, 'platform', { value: 'win32' });
+
+    execFileMock.mockImplementation(
+      (_cmd: string, _args: string[], opts: { shell?: boolean }, cb: (err: Error | null, stdout: string) => void) => {
+        expect(opts.shell).toBe(true);
+        cb(null, '10.0.0');
+        return { stdin: { end: vi.fn() } };
+      }
+    );
+
+    const result = await execAsync('C:\\Program Files\\nodejs\\npm.cmd', ['--version']);
+    expect(result).toBe('10.0.0');
   });
 });
 
