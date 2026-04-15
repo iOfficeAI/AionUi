@@ -242,7 +242,7 @@ const CreateTaskDialog: React.FC<CreateTaskDialogProps> = ({
 
   // Build Gemini currentModel from modelId for GuidModelSelector
   const geminiCurrentModel = useMemo<TProviderWithModel | undefined>(() => {
-    if (resolvedBackend !== 'gemini' || !modelId) return undefined;
+    if ((resolvedBackend !== 'gemini' && resolvedBackend !== 'aionrs') || !modelId) return undefined;
     for (const p of providers) {
       if (getAvailableModels(p).includes(modelId)) {
         return { ...p, useModel: modelId } as TProviderWithModel;
@@ -251,7 +251,7 @@ const CreateTaskDialog: React.FC<CreateTaskDialogProps> = ({
     return undefined;
   }, [resolvedBackend, modelId, providers, getAvailableModels]);
 
-  const isGeminiMode = resolvedBackend === 'gemini';
+  const isGeminiMode = resolvedBackend === 'gemini' || resolvedBackend === 'aionrs';
 
   const handleGeminiModelSelect = useCallback(async (model: TProviderWithModel) => {
     setModelId(model.useModel);
@@ -269,7 +269,7 @@ const CreateTaskDialog: React.FC<CreateTaskDialogProps> = ({
 
   // Load ACP cached model info when backend changes
   useEffect(() => {
-    if (!resolvedBackend || resolvedBackend === 'gemini') {
+    if (!resolvedBackend || resolvedBackend === 'gemini' || resolvedBackend === 'aionrs') {
       setAcpCachedModelInfo(null);
       return;
     }
@@ -289,6 +289,12 @@ const CreateTaskDialog: React.FC<CreateTaskDialogProps> = ({
         .then((saved) => {
           const preferred = typeof saved === 'string' ? saved : saved?.useModel;
           if (preferred) setModelId(preferred);
+        })
+        .catch(() => {});
+    } else if (resolvedBackend === 'aionrs') {
+      ConfigStorage.get('aionrs.defaultModel')
+        .then((saved) => {
+          if (saved?.useModel) setModelId(saved.useModel);
         })
         .catch(() => {});
     }

@@ -64,6 +64,17 @@ describe('savePreferredMode', () => {
     });
   });
 
+  it('saves preferred mode for aionrs under aionrs.config', async () => {
+    configStorageMocks.get.mockResolvedValue({});
+
+    await savePreferredMode('aionrs', 'yolo');
+
+    expect(configStorageMocks.get).toHaveBeenCalledWith('aionrs.config');
+    expect(configStorageMocks.set).toHaveBeenCalledWith('aionrs.config', {
+      preferredMode: 'yolo',
+    });
+  });
+
   it('saves preferred mode for ACP backend under acp.config', async () => {
     configStorageMocks.get.mockResolvedValue({});
 

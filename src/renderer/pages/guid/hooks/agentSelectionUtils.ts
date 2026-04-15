@@ -13,6 +13,9 @@ export async function savePreferredMode(agentKey: string, mode: string): Promise
     if (agentKey === 'gemini') {
       const config = await ConfigStorage.get('gemini.config');
       await ConfigStorage.set('gemini.config', { ...config, preferredMode: mode });
+    } else if (agentKey === 'aionrs') {
+      const config = await ConfigStorage.get('aionrs.config');
+      await ConfigStorage.set('aionrs.config', { ...config, preferredMode: mode });
     } else if (agentKey !== 'custom') {
       const config = await ConfigStorage.get('acp.config');
       const backendConfig = config?.[agentKey as AcpBackend] || {};

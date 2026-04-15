@@ -3,6 +3,7 @@
   "default": "Default",
   "acceptEdits": "Accept Edits",
   "autoEdit": "Auto Edit",
+  "auto_edit": "Auto Edit",
   "yolo": "YOLO",
   "yoloNoSandbox": "Tam Otomatik (Sandbox Yok)",
   "auto": "Otomatik",

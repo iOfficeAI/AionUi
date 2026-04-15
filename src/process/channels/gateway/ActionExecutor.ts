@@ -464,6 +464,15 @@ export class ActionExecutor {
                 channelChatId: chatId,
                 extra: conversationExtra,
               });
+            } else if (backend === 'aionrs') {
+              sessionConversation = await conversationServiceSingleton.createConversation({
+                type: 'aionrs',
+                model,
+                name: conversationName,
+                source,
+                channelChatId: chatId,
+                extra: conversationExtra,
+              });
             } else if (backend === 'codex') {
               sessionConversation = await conversationServiceSingleton.createConversation({
                 type: 'acp',

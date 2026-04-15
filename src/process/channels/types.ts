@@ -568,6 +568,7 @@ export function resolveChannelConvType(backend: string): {
 } {
   if (backend === 'codex') return { convType: 'codex' };
   if (backend === 'gemini') return { convType: 'gemini' };
+  if (backend === 'aionrs') return { convType: 'aionrs' };
   if (backend === 'openclaw-gateway') return { convType: 'openclaw-gateway' };
   return { convType: 'acp', convBackend: backend };
 }
