@@ -558,3 +558,377 @@ describe('AcpAgentV2 - Messaging + Permission Methods', () => {
     });
   });
 });
+
+describe('AcpAgentV2 - Config/Model/Mode Methods', () => {
+  beforeEach(() => {
+    mockSessionMethods = {
+      start: vi.fn(),
+      stop: vi.fn().mockResolvedValue(undefined),
+      cancelPrompt: vi.fn(),
+      sendMessage: vi.fn(),
+      confirmPermission: vi.fn(),
+      setModel: vi.fn(),
+      setMode: vi.fn(),
+      setConfigOption: vi.fn(),
+      getConfigOptions: vi.fn().mockReturnValue([]),
+    };
+  });
+
+  afterEach(() => {
+    vi.clearAllTimers();
+  });
+
+  function createAgent(): AcpAgentV2 {
+    const config: OldAcpAgentConfig = {
+      id: 'test-conv-1',
+      backend: 'claude',
+      workingDir: '/workspace/test',
+      onStreamEvent: vi.fn(),
+    };
+    return new AcpAgentV2(config);
+  }
+
+  describe('getModelInfo()', () => {
+    it('should return null initially', () => {
+      const agent = createAgent();
+
+      expect(agent.getModelInfo()).toBe(null);
+    });
+
+    it('should return cached model info after onModelUpdate callback', () => {
+      const agent = createAgent();
+
+      capturedCallbacks.onModelUpdate({
+        currentModelId: 'claude-4',
+        availableModels: [
+          { modelId: 'claude-4', name: 'Claude 4', tier: 'premium' },
+          { modelId: 'claude-3', name: 'Claude 3', tier: 'standard' },
+        ],
+      });
+
+      const info = agent.getModelInfo();
+      expect(info).toEqual({
+        currentModelId: 'claude-4',
+        currentModelLabel: 'Claude 4',
+        availableModels: [
+          { id: 'claude-4', label: 'Claude 4' },
+          { id: 'claude-3', label: 'Claude 3' },
+        ],
+        canSwitch: true,
+        source: 'models',
+      });
+    });
+
+    it('should update cached value on subsequent onModelUpdate calls', () => {
+      const agent = createAgent();
+
+      capturedCallbacks.onModelUpdate({
+        currentModelId: 'claude-3',
+        availableModels: [{ modelId: 'claude-3', name: 'Claude 3', tier: 'standard' }],
+      });
+
+      expect(agent.getModelInfo()?.currentModelId).toBe('claude-3');
+
+      capturedCallbacks.onModelUpdate({
+        currentModelId: 'claude-4',
+        availableModels: [{ modelId: 'claude-4', name: 'Claude 4', tier: 'premium' }],
+      });
+
+      expect(agent.getModelInfo()?.currentModelId).toBe('claude-4');
+    });
+  });
+
+  describe('getConfigOptions()', () => {
+    it('should return empty array initially', () => {
+      const agent = createAgent();
+
+      expect(agent.getConfigOptions()).toEqual([]);
+    });
+
+    it('should return cached config options after onConfigUpdate callback', () => {
+      const agent = createAgent();
+
+      capturedCallbacks.onConfigUpdate({
+        configOptions: [
+          { id: 'opt1', name: 'Option 1', category: 'general', description: 'First option', type: 'select', currentValue: 'val1', options: [] },
+          { id: 'opt2', name: 'Option 2', category: 'general', description: 'Second option', type: 'boolean', currentValue: true, options: [] },
+        ],
+        availableCommands: [],
+      });
+
+      const options = agent.getConfigOptions();
+      expect(options).toEqual([
+        { id: 'opt1', name: 'Option 1', label: 'Option 1', type: 'select', category: 'general', description: 'First option', currentValue: 'val1', selectedValue: 'val1' },
+        { id: 'opt2', name: 'Option 2', label: 'Option 2', type: 'boolean', category: 'general', description: 'Second option', currentValue: 'true', selectedValue: 'true' },
+      ]);
+    });
+  });
+
+  describe('setModelByConfigOption()', () => {
+    it('should call session.setModel and resolve when onModelUpdate fires', async () => {
+      const agent = createAgent();
+
+      // Mock setModel to trigger onModelUpdate after a tick
+      mockSessionMethods.setModel.mockImplementation(() => {
+        setTimeout(() => {
+          capturedCallbacks.onModelUpdate({
+            currentModelId: 'claude-4',
+            availableModels: [{ modelId: 'claude-4', name: 'Claude 4', tier: 'premium' }],
+          });
+        }, 0);
+      });
+
+      const promise = agent.setModelByConfigOption('claude-4');
+
+      await expect(promise).resolves.toEqual({
+        currentModelId: 'claude-4',
+        currentModelLabel: 'Claude 4',
+        availableModels: [{ id: 'claude-4', label: 'Claude 4' }],
+        canSwitch: true,
+        source: 'models',
+      });
+      expect(mockSessionMethods.setModel).toHaveBeenCalledWith('claude-4');
+    });
+
+    it('should resolve with cached info on timeout', async () => {
+      vi.useFakeTimers();
+      const agent = createAgent();
+
+      // Set initial cached value
+      capturedCallbacks.onModelUpdate({
+        currentModelId: 'claude-3',
+        availableModels: [{ modelId: 'claude-3', name: 'Claude 3', tier: 'standard' }],
+      });
+
+      // Mock setModel that never triggers callback
+      mockSessionMethods.setModel.mockImplementation(() => {
+        // Do nothing - simulate hanging
+      });
+
+      const promise = agent.setModelByConfigOption('claude-4');
+
+      // Fast-forward past 10-second timeout
+      await vi.advanceTimersByTimeAsync(10_000);
+
+      const result = await promise;
+      expect(result).toEqual({
+        currentModelId: 'claude-3',
+        currentModelLabel: 'Claude 3',
+        availableModels: [{ id: 'claude-3', label: 'Claude 3' }],
+        canSwitch: true,
+        source: 'models',
+      });
+      expect(mockSessionMethods.setModel).toHaveBeenCalledWith('claude-4');
+
+      vi.useRealTimers();
+    });
+
+    it('should clear timeout when callback fires', async () => {
+      vi.useFakeTimers();
+      const agent = createAgent();
+
+      mockSessionMethods.setModel.mockImplementation(() => {
+        setTimeout(() => {
+          capturedCallbacks.onModelUpdate({
+            currentModelId: 'claude-4',
+            availableModels: [{ modelId: 'claude-4', name: 'Claude 4', tier: 'premium' }],
+          });
+        }, 100);
+      });
+
+      const promise = agent.setModelByConfigOption('claude-4');
+
+      await vi.advanceTimersByTimeAsync(100);
+
+      await expect(promise).resolves.toEqual({
+        currentModelId: 'claude-4',
+        currentModelLabel: 'Claude 4',
+        availableModels: [{ id: 'claude-4', label: 'Claude 4' }],
+        canSwitch: true,
+        source: 'models',
+      });
+
+      // Verify timeout was cleared by advancing past it
+      await vi.advanceTimersByTimeAsync(10_000);
+
+      vi.useRealTimers();
+    });
+  });
+
+  describe('setMode()', () => {
+    it('should call session.setMode and resolve when onModeUpdate fires', async () => {
+      const agent = createAgent();
+
+      // Mock setMode to trigger onModeUpdate after a tick
+      mockSessionMethods.setMode.mockImplementation(() => {
+        setTimeout(() => {
+          capturedCallbacks.onModeUpdate({ currentMode: 'bypassPermissions' });
+        }, 0);
+      });
+
+      const promise = agent.setMode('bypassPermissions');
+
+      await expect(promise).resolves.toEqual({ success: true });
+      expect(mockSessionMethods.setMode).toHaveBeenCalledWith('bypassPermissions');
+    });
+
+    it('should resolve with success on timeout', async () => {
+      vi.useFakeTimers();
+      const agent = createAgent();
+
+      // Mock setMode that never triggers callback
+      mockSessionMethods.setMode.mockImplementation(() => {
+        // Do nothing - simulate hanging
+      });
+
+      const promise = agent.setMode('standard');
+
+      // Fast-forward past 10-second timeout
+      await vi.advanceTimersByTimeAsync(10_000);
+
+      const result = await promise;
+      expect(result).toEqual({ success: true });
+      expect(mockSessionMethods.setMode).toHaveBeenCalledWith('standard');
+
+      vi.useRealTimers();
+    });
+
+    it('should clear timeout when callback fires', async () => {
+      vi.useFakeTimers();
+      const agent = createAgent();
+
+      mockSessionMethods.setMode.mockImplementation(() => {
+        setTimeout(() => {
+          capturedCallbacks.onModeUpdate({ currentMode: 'standard' });
+        }, 100);
+      });
+
+      const promise = agent.setMode('standard');
+
+      await vi.advanceTimersByTimeAsync(100);
+
+      await expect(promise).resolves.toEqual({ success: true });
+
+      // Verify timeout was cleared by advancing past it
+      await vi.advanceTimersByTimeAsync(10_000);
+
+      vi.useRealTimers();
+    });
+  });
+
+  describe('setConfigOption()', () => {
+    it('should call session.setConfigOption and resolve when onConfigUpdate fires', async () => {
+      const agent = createAgent();
+
+      // Mock setConfigOption to trigger onConfigUpdate after a tick
+      mockSessionMethods.setConfigOption.mockImplementation(() => {
+        setTimeout(() => {
+          capturedCallbacks.onConfigUpdate({
+            configOptions: [
+              { id: 'opt1', name: 'Option 1', category: 'general', description: 'First option', type: 'select', currentValue: 'new-value', options: [] },
+            ],
+            availableCommands: [],
+          });
+        }, 0);
+      });
+
+      const promise = agent.setConfigOption('opt1', 'new-value');
+
+      await expect(promise).resolves.toEqual([
+        { id: 'opt1', name: 'Option 1', label: 'Option 1', type: 'select', category: 'general', description: 'First option', currentValue: 'new-value', selectedValue: 'new-value' },
+      ]);
+      expect(mockSessionMethods.setConfigOption).toHaveBeenCalledWith('opt1', 'new-value');
+    });
+
+    it('should resolve with cached options on timeout', async () => {
+      vi.useFakeTimers();
+      const agent = createAgent();
+
+      // Set initial cached value
+      capturedCallbacks.onConfigUpdate({
+        configOptions: [
+          { id: 'opt1', name: 'Option 1', category: 'general', description: 'First option', type: 'select', currentValue: 'old-value', options: [] },
+        ],
+        availableCommands: [],
+      });
+
+      // Mock setConfigOption that never triggers callback
+      mockSessionMethods.setConfigOption.mockImplementation(() => {
+        // Do nothing - simulate hanging
+      });
+
+      const promise = agent.setConfigOption('opt1', 'new-value');
+
+      // Fast-forward past 10-second timeout
+      await vi.advanceTimersByTimeAsync(10_000);
+
+      const result = await promise;
+      expect(result).toEqual([
+        { id: 'opt1', name: 'Option 1', label: 'Option 1', type: 'select', category: 'general', description: 'First option', currentValue: 'old-value', selectedValue: 'old-value' },
+      ]);
+      expect(mockSessionMethods.setConfigOption).toHaveBeenCalledWith('opt1', 'new-value');
+
+      vi.useRealTimers();
+    });
+
+    it('should clear timeout when callback fires', async () => {
+      vi.useFakeTimers();
+      const agent = createAgent();
+
+      mockSessionMethods.setConfigOption.mockImplementation(() => {
+        setTimeout(() => {
+          capturedCallbacks.onConfigUpdate({
+            configOptions: [
+              { id: 'opt1', name: 'Option 1', category: 'general', description: 'First option', type: 'select', currentValue: 'updated', options: [] },
+            ],
+            availableCommands: [],
+          });
+        }, 100);
+      });
+
+      const promise = agent.setConfigOption('opt1', 'updated');
+
+      await vi.advanceTimersByTimeAsync(100);
+
+      await expect(promise).resolves.toEqual([
+        { id: 'opt1', name: 'Option 1', label: 'Option 1', type: 'select', category: 'general', description: 'First option', currentValue: 'updated', selectedValue: 'updated' },
+      ]);
+
+      // Verify timeout was cleared by advancing past it
+      await vi.advanceTimersByTimeAsync(10_000);
+
+      vi.useRealTimers();
+    });
+  });
+
+  describe('enableYoloMode()', () => {
+    it('should delegate to setMode with bypassPermissions', async () => {
+      const agent = createAgent();
+
+      // Mock setMode to trigger onModeUpdate after a tick
+      mockSessionMethods.setMode.mockImplementation(() => {
+        setTimeout(() => {
+          capturedCallbacks.onModeUpdate({ currentMode: 'bypassPermissions' });
+        }, 0);
+      });
+
+      await agent.enableYoloMode();
+
+      expect(mockSessionMethods.setMode).toHaveBeenCalledWith('bypassPermissions');
+    });
+
+    it('should propagate result from setMode', async () => {
+      const agent = createAgent();
+
+      mockSessionMethods.setMode.mockImplementation(() => {
+        setTimeout(() => {
+          capturedCallbacks.onModeUpdate({ currentMode: 'bypassPermissions' });
+        }, 0);
+      });
+
+      const promise = agent.enableYoloMode();
+
+      await expect(promise).resolves.toBeUndefined();
+    });
+  });
+});

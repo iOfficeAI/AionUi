@@ -370,20 +370,42 @@ export class AcpAgentV2 {
     return this.cachedConfigOptions;
   }
 
-  async setModelByConfigOption(_modelId: string): Promise<AcpModelInfo | null> {
-    throw new Error('Not implemented — see Task 6');
+  async setModelByConfigOption(modelId: string): Promise<AcpModelInfo | null> {
+    return new Promise<AcpModelInfo | null>((resolve, reject) => {
+      const timer = setTimeout(() => {
+        this.modelOp = null;
+        // Timeout fallback: return current cached info
+        resolve(this.cachedModelInfo);
+      }, 10_000);
+      this.modelOp = { resolve, reject, timer };
+      this.session.setModel(modelId);
+    });
   }
 
-  async setMode(_mode: string): Promise<{ success: boolean; error?: string }> {
-    throw new Error('Not implemented — see Task 6');
+  async setMode(mode: string): Promise<{ success: boolean; error?: string }> {
+    return new Promise((resolve, reject) => {
+      const timer = setTimeout(() => {
+        this.modeOp = null;
+        resolve({ success: true }); // Optimistic timeout
+      }, 10_000);
+      this.modeOp = { resolve, reject, timer };
+      this.session.setMode(mode);
+    });
   }
 
-  async setConfigOption(_configId: string, _value: string): Promise<AcpSessionConfigOption[]> {
-    throw new Error('Not implemented — see Task 6');
+  async setConfigOption(configId: string, value: string): Promise<AcpSessionConfigOption[]> {
+    return new Promise((resolve, reject) => {
+      const timer = setTimeout(() => {
+        this.configOp = null;
+        resolve(this.cachedConfigOptions); // Fallback to cached
+      }, 10_000);
+      this.configOp = { resolve, reject, timer };
+      this.session.setConfigOption(configId, value);
+    });
   }
 
   async enableYoloMode(): Promise<void> {
-    throw new Error('Not implemented — see Task 6');
+    await this.setMode('bypassPermissions');
   }
 
   // ─── Helper Methods ─────────────────────────────────────────────
