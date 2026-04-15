@@ -90,6 +90,6 @@ describe('GuidModelSelector', () => {
       />
     );
 
-    expect(screen.getAllByText('Claude Sonnet 4.5 · ACP models').length).toBeGreaterThan(0);
+    expect(screen.getAllByText('Claude Sonnet 4.5').length).toBeGreaterThan(0);
   });
 });

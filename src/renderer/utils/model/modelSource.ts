@@ -12,13 +12,13 @@ import type { AcpModelInfo } from '@/common/types/acpTypes';
 export function getAcpModelSourceLabel(modelInfo: Pick<AcpModelInfo, 'source' | 'sourceDetail'> | null): string {
   const sourceDetail = modelInfo?.sourceDetail;
   if (sourceDetail === 'cc-switch') return 'cc-switch';
-  if (sourceDetail === 'acp-config-option') return 'ACP config';
-  if (sourceDetail === 'acp-models') return 'ACP models';
-  if (sourceDetail === 'persisted-model') return 'saved model';
-  if (sourceDetail === 'codex-stream') return 'Codex stream';
+  // if (sourceDetail === 'acp-config-option') return 'ACP config';
+  // if (sourceDetail === 'acp-models') return 'ACP models';
+  // if (sourceDetail === 'persisted-model') return 'saved model';
+  // if (sourceDetail === 'codex-stream') return 'Codex stream';
 
-  if (modelInfo?.source === 'configOption') return 'ACP config';
-  if (modelInfo?.source === 'models') return 'ACP models';
+  // if (modelInfo?.source === 'configOption') return 'ACP config';
+  // if (modelInfo?.source === 'models') return 'ACP models';
   return '';
 }
 
