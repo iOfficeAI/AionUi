@@ -414,3 +414,147 @@ describe('AcpAgentV2 - Lifecycle Methods', () => {
     });
   });
 });
+
+describe('AcpAgentV2 - Messaging + Permission Methods', () => {
+  beforeEach(() => {
+    mockSessionMethods = {
+      start: vi.fn(),
+      stop: vi.fn().mockResolvedValue(undefined),
+      cancelPrompt: vi.fn(),
+      sendMessage: vi.fn(),
+      confirmPermission: vi.fn(),
+      setModel: vi.fn(),
+      setMode: vi.fn(),
+      setConfigOption: vi.fn(),
+      getConfigOptions: vi.fn().mockReturnValue([]),
+    };
+  });
+
+  afterEach(() => {
+    vi.clearAllTimers();
+  });
+
+  function createAgentWithSignalCapture() {
+    const onStreamEvent = vi.fn();
+    const onSignalEvent = vi.fn();
+    const config: OldAcpAgentConfig = {
+      id: 'test-conv-1',
+      backend: 'claude',
+      workingDir: '/workspace/test',
+      onStreamEvent,
+      onSignalEvent,
+    };
+    const agent = new AcpAgentV2(config);
+    return { agent, onStreamEvent, onSignalEvent };
+  }
+
+  describe('sendMessage()', () => {
+    it('should delegate to session.sendMessage and return success', async () => {
+      const { agent } = createAgentWithSignalCapture();
+
+      const result = await agent.sendMessage({ content: 'Hello', files: ['/test/file.txt'] });
+
+      expect(result.success).toBe(true);
+      expect(result.data).toBe(null);
+      expect(mockSessionMethods.sendMessage).toHaveBeenCalledWith('Hello', ['/test/file.txt']);
+    });
+
+    it('should emit start signal via onSignalEvent before sending', async () => {
+      const { agent, onSignalEvent } = createAgentWithSignalCapture();
+
+      await agent.sendMessage({ content: 'Test message', msg_id: 'msg123' });
+
+      expect(onSignalEvent).toHaveBeenCalledWith({
+        type: 'start',
+        data: null,
+        msg_id: 'msg123',
+        conversation_id: 'test-conv-1',
+      });
+      expect(mockSessionMethods.sendMessage).toHaveBeenCalledWith('Test message', undefined);
+    });
+
+    it('should generate msg_id if not provided', async () => {
+      const { agent, onSignalEvent } = createAgentWithSignalCapture();
+
+      await agent.sendMessage({ content: 'Test' });
+
+      expect(onSignalEvent).toHaveBeenCalledWith(
+        expect.objectContaining({
+          type: 'start',
+          msg_id: expect.stringMatching(/^start_\d+$/),
+          conversation_id: 'test-conv-1',
+        })
+      );
+    });
+
+    it('should return error result when session.sendMessage throws', async () => {
+      const { agent } = createAgentWithSignalCapture();
+      const testError = new Error('Send failed');
+      mockSessionMethods.sendMessage.mockImplementation(() => {
+        throw testError;
+      });
+
+      const result = await agent.sendMessage({ content: 'Test' });
+
+      expect(result.success).toBe(false);
+      if (!result.success) {
+        expect(result.error.type).toBe('UNKNOWN');
+        expect(result.error.message).toBe('Send failed');
+        expect(result.error.retryable).toBe(false);
+      }
+    });
+
+    it('should work without onSignalEvent callback', async () => {
+      const config: OldAcpAgentConfig = {
+        id: 'test-conv-1',
+        backend: 'claude',
+        workingDir: '/workspace/test',
+        onStreamEvent: vi.fn(),
+        // No onSignalEvent
+      };
+      const agent = new AcpAgentV2(config);
+
+      const result = await agent.sendMessage({ content: 'Test' });
+
+      expect(result.success).toBe(true);
+      expect(mockSessionMethods.sendMessage).toHaveBeenCalledWith('Test', undefined);
+    });
+  });
+
+  describe('confirmMessage()', () => {
+    it('should delegate to session.confirmPermission', async () => {
+      const { agent } = createAgentWithSignalCapture();
+
+      const result = await agent.confirmMessage({ confirmKey: 'allow_once', callId: 'call123' });
+
+      expect(result.success).toBe(true);
+      expect(result.data).toBe(null);
+      expect(mockSessionMethods.confirmPermission).toHaveBeenCalledWith('call123', 'allow_once');
+    });
+
+    it('should return success result', async () => {
+      const { agent } = createAgentWithSignalCapture();
+
+      const result = await agent.confirmMessage({ confirmKey: 'reject_once', callId: 'call456' });
+
+      expect(result).toEqual({ success: true, data: null });
+    });
+
+    it('should return error result when session.confirmPermission throws', async () => {
+      const { agent } = createAgentWithSignalCapture();
+      const testError = new Error('Confirm failed');
+      mockSessionMethods.confirmPermission.mockImplementation(() => {
+        throw testError;
+      });
+
+      const result = await agent.confirmMessage({ confirmKey: 'allow_once', callId: 'call123' });
+
+      expect(result.success).toBe(false);
+      if (!result.success) {
+        expect(result.error.type).toBe('UNKNOWN');
+        expect(result.error.message).toBe('Confirm failed');
+        expect(result.error.retryable).toBe(false);
+      }
+    });
+  });
+});

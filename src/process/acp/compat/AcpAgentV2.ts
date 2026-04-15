@@ -14,6 +14,7 @@ import type {
 } from '@process/acp/types';
 import type { TMessage } from '@/common/chat/chatLib';
 import type { AcpModelInfo, AcpSessionConfigOption, AcpResult } from '@/common/types/acpTypes';
+import { AcpErrorType } from '@/common/types/acpTypes';
 import type { IResponseMessage } from '@/common/adapter/ipcBridge';
 import {
   toAgentConfig,
@@ -208,9 +209,17 @@ export class AcpAgentV2 {
               msg_id: `signal_${Date.now()}`,
               data: 'Session expired',
             });
+            // Emit finish signal after session_expired
+            this.onSignalEvent({
+              type: 'finish',
+              conversation_id: this.conversationId,
+              msg_id: `finish_${Date.now()}`,
+              data: null,
+            });
             break;
 
           case 'queue_paused':
+            // queue_paused is crash recovery, not finish — just emit the error
             this.onSignalEvent({
               type: 'error',
               conversation_id: this.conversationId,
@@ -305,14 +314,50 @@ export class AcpAgentV2 {
     this.session.cancelPrompt();
   }
 
-  // ─── Messaging + Permission Methods (Task 5 — stubs) ───────────
+  // ─── Messaging + Permission Methods (Task 5) ───────────
 
-  async sendMessage(_data: { content: string; files?: string[]; msg_id?: string }): Promise<AcpResult> {
-    throw new Error('Not implemented — see Task 5');
+  async sendMessage(data: { content: string; files?: string[]; msg_id?: string }): Promise<AcpResult> {
+    try {
+      // Emit start signal (matches old AcpAgent behavior)
+      if (this.onSignalEvent) {
+        this.onSignalEvent({
+          type: 'start',
+          data: null,
+          msg_id: data.msg_id ?? `start_${Date.now()}`,
+          conversation_id: this.conversationId,
+        });
+      }
+
+      this.session.sendMessage(data.content, data.files);
+      return { success: true, data: null };
+    } catch (err) {
+      return {
+        success: false,
+        error: {
+          type: AcpErrorType.UNKNOWN,
+          code: 'UNKNOWN',
+          message: err instanceof Error ? err.message : String(err),
+          retryable: false,
+        },
+      };
+    }
   }
 
-  async confirmMessage(_data: { confirmKey: string; callId: string }): Promise<AcpResult> {
-    throw new Error('Not implemented — see Task 5');
+  async confirmMessage(data: { confirmKey: string; callId: string }): Promise<AcpResult> {
+    try {
+      this.session.confirmPermission(data.callId, data.confirmKey);
+      return { success: true, data: null };
+    } catch (err) {
+      return {
+        success: false,
+        error: {
+          type: AcpErrorType.UNKNOWN,
+          code: 'UNKNOWN',
+          message: err instanceof Error ? err.message : String(err),
+          retryable: false,
+        },
+      };
+    }
   }
 
   // ─── Config/Model/Mode Methods (Task 6 — partial) ──────────────
