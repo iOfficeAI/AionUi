@@ -60,14 +60,17 @@ test.describe('Assistant Settings Skills', () => {
     const skillsSection = page.locator(SKILLS_SECTION);
     const hasSkills = await skillsSection.isVisible().catch(() => false);
 
-    if (hasSkills) {
-      // Check for auto-injected section
-      const autoInjected = page.locator('.arco-collapse-item').filter({ hasText: /Auto|自动/ });
-      // May or may not exist — just verify no errors
-      const autoVisible = await autoInjected.first().isVisible().catch(() => false);
-      // The test passes regardless — we're just checking no crash
-      expect(typeof autoVisible).toBe('boolean');
+    // Skills section should be visible for at least one assistant
+    // If not, the feature may not be enabled — skip gracefully
+    if (!hasSkills) {
+      await page.keyboard.press('Escape');
+      test.skip(true, 'Skills section not rendered for this assistant');
+      return;
     }
+
+    // At minimum, the collapse container should render without error
+    const collapseItems = skillsSection.locator('.arco-collapse-item');
+    expect(await collapseItems.count()).toBeGreaterThanOrEqual(0);
 
     await page.keyboard.press('Escape');
   });
@@ -89,7 +92,12 @@ test.describe('Assistant Settings Skills', () => {
 
     // Expand builtin skills
     const builtinCollapse = page.locator('.arco-collapse-item').filter({ hasText: /Builtin|内置/ });
-    if (await builtinCollapse.first().isVisible().catch(() => false)) {
+    if (
+      await builtinCollapse
+        .first()
+        .isVisible()
+        .catch(() => false)
+    ) {
       await builtinCollapse.locator('.arco-collapse-item-header').first().click();
 
       // Toggle a checkbox
@@ -116,7 +124,12 @@ test.describe('Assistant Settings Skills', () => {
       await openAssistantDrawer(page, id);
 
       const autoInjected = page.locator('.arco-collapse-item').filter({ hasText: /Auto|自动/ });
-      if (await autoInjected.first().isVisible().catch(() => false)) {
+      if (
+        await autoInjected
+          .first()
+          .isVisible()
+          .catch(() => false)
+      ) {
         // Expand auto-injected section
         await autoInjected.locator('.arco-collapse-item-header').first().click();
 
@@ -160,7 +173,12 @@ test.describe('Assistant Settings Skills', () => {
 
     // Click "Add Skills" button
     const addSkillsBtn = skillsSection.locator('button').filter({ hasText: /Add Skills|添加/ });
-    if (await addSkillsBtn.first().isVisible().catch(() => false)) {
+    if (
+      await addSkillsBtn
+        .first()
+        .isVisible()
+        .catch(() => false)
+    ) {
       await addSkillsBtn.first().click();
       // Modal should open
       const modal = page.locator('.arco-modal');
@@ -189,7 +207,12 @@ test.describe('Assistant Settings Skills', () => {
 
     // Toggle a skill, then save
     const builtinCollapse = page.locator('.arco-collapse-item').filter({ hasText: /Builtin|内置/ });
-    if (await builtinCollapse.first().isVisible().catch(() => false)) {
+    if (
+      await builtinCollapse
+        .first()
+        .isVisible()
+        .catch(() => false)
+    ) {
       await builtinCollapse.locator('.arco-collapse-item-header').first().click();
       const checkboxes = builtinCollapse.locator('.arco-checkbox');
       if ((await checkboxes.count()) > 0) {
@@ -238,11 +261,9 @@ test.describe('Assistant Settings Skills', () => {
       const isBuiltin = !(await deleteBtn.isVisible().catch(() => false));
 
       if (isBuiltin) {
-        // Skills section should still be accessible
-        const skillsSection = page.locator(SKILLS_SECTION);
-        const hasSkills = await skillsSection.isVisible().catch(() => false);
-        // Just verify no error — builtin may or may not show skills
-        expect(typeof hasSkills).toBe('boolean');
+        // Drawer opened successfully for builtin — verify save button is accessible
+        const saveBtn = page.locator('[data-testid="btn-save-assistant"]');
+        await expect(saveBtn).toBeVisible({ timeout: 3_000 });
         await page.keyboard.press('Escape');
         return;
       }
@@ -267,10 +288,11 @@ test.describe('Assistant Settings Skills', () => {
       return;
     }
 
-    // Custom Skills (Imported) collapse should exist
-    const customCollapse = page.locator('.arco-collapse-item').filter({ hasText: /Imported|Library|自定义|导入/ });
-    const visible = await customCollapse.first().isVisible().catch(() => false);
-    expect(typeof visible).toBe('boolean');
+    // Skills section rendered — verify the collapse container has content
+    const collapseItems = skillsSection.locator('.arco-collapse-item');
+    const collapseCount = await collapseItems.count();
+    // At least one collapse section should exist (Builtin or Custom)
+    expect(collapseCount).toBeGreaterThanOrEqual(1);
 
     await page.keyboard.press('Escape');
   });

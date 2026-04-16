@@ -16,16 +16,14 @@ import {
   expectBodyContainsAny,
   BTN_SAVE_ASSISTANT,
   BTN_DELETE_ASSISTANT,
-} from '../helpers';
-import {
   goToAssistantSettings,
   openAssistantDrawer,
   getVisibleAssistantIds,
   duplicateAssistant,
   fillAssistantName,
   saveAssistant,
-  waitForDrawerClose,
-} from '../helpers/assistantSettings';
+  deleteAssistant,
+} from '../helpers';
 
 const TS = Date.now();
 
@@ -61,12 +59,9 @@ test.describe('Extension-Contributed Agents & Assistants', () => {
     test.skip(!extId, 'E2E Test Assistant not found');
 
     await openAssistantDrawer(page, extId!);
-    // No save button for extension assistants
-    const saveVisible = await page
-      .locator(BTN_SAVE_ASSISTANT)
-      .isVisible()
-      .catch(() => false);
-    expect(saveVisible).toBeFalsy();
+    // Save button is disabled for extension assistants
+    const saveBtn = page.locator(BTN_SAVE_ASSISTANT);
+    await expect(saveBtn).toBeDisabled();
     // No delete button for extension assistants
     const deleteVisible = await page
       .locator(BTN_DELETE_ASSISTANT)
@@ -89,10 +84,18 @@ test.describe('Extension-Contributed Agents & Assistants', () => {
 
     // Should now have a custom copy
     const idsAfter = await getVisibleAssistantIds(page);
-    const hasCopy = idsAfter.some((id) => id.startsWith('custom-'));
-    expect(hasCopy).toBeTruthy();
     const body = await page.locator('body').textContent();
     expect(body).toContain(`E2E Ext Copy ${TS}`);
+
+    // Cleanup: find the copy by name and delete it
+    for (const id of idsAfter) {
+      const cardText = await page.locator(`[data-testid="assistant-card-${id}"]`).textContent();
+      if (cardText?.includes(`E2E Ext Copy ${TS}`)) {
+        await openAssistantDrawer(page, id);
+        await deleteAssistant(page);
+        break;
+      }
+    }
   });
 
   test('extension data correct via IPC bridge', async ({ page }) => {

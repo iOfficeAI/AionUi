@@ -64,6 +64,7 @@ const AgentBadge: React.FC<AgentBadgeProps> = ({ backend, agentName, agentLogo, 
   return (
     <div
       className={`flex items-center gap-2 bg-2 w-fit rounded-full px-[8px] py-[2px] ${assistantId ? 'cursor-pointer hover:bg-3' : ''}`}
+      data-testid='agent-badge'
       onClick={handleClick}
     >
       <AgentLogoIcon

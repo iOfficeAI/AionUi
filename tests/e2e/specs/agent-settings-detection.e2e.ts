@@ -24,8 +24,8 @@ test.describe('Agent Settings Detection', () => {
 
     // Check for known backend names
     const body = await page.locator('body').textContent();
-    const hasKnownAgent = ['Claude', 'Codex', 'Gemini', 'Aion', 'OpenCode', 'Qwen'].some(
-      (name) => body?.includes(name)
+    const hasKnownAgent = ['Claude', 'Codex', 'Gemini', 'Aion', 'OpenCode', 'Qwen'].some((name) =>
+      body?.includes(name)
     );
     expect(hasKnownAgent).toBeTruthy();
   });
@@ -50,8 +50,15 @@ test.describe('Agent Settings Detection', () => {
     // The agent settings page includes preset management area
     // Look for text indicating presets or assistants
     await expectBodyContainsAny(page, [
-      'Preset', 'preset', 'Custom', 'custom',
-      '预设', '自定义', 'Assistants', 'assistants', '助手',
+      'Preset',
+      'preset',
+      'Custom',
+      'custom',
+      '预设',
+      '自定义',
+      'Assistants',
+      'assistants',
+      '助手',
     ]);
   });
 

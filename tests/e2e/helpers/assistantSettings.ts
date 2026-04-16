@@ -49,8 +49,8 @@ export async function saveAssistant(page: Page): Promise<void> {
 /** Click the Delete button in the edit drawer, then confirm. */
 export async function deleteAssistant(page: Page): Promise<void> {
   await page.locator('[data-testid="btn-delete-assistant"]').click();
-  // Wait for confirm modal
-  const confirmBtn = page.locator('.arco-modal-footer .arco-btn-status-danger, .arco-modal-footer .arco-btn-primary').last();
+  // Wait for confirm modal (uses wrapClassName='delete-assistant-modal')
+  const confirmBtn = page.locator('.delete-assistant-modal .arco-btn-status-danger');
   await confirmBtn.waitFor({ state: 'visible', timeout: 5_000 });
   await confirmBtn.click();
 }
@@ -125,7 +125,10 @@ export async function getVisibleAssistantNames(page: Page): Promise<string[]> {
 
 /** Check if the assistant edit drawer is visible. */
 export async function isDrawerVisible(page: Page): Promise<boolean> {
-  return page.locator('[data-testid="assistant-edit-drawer"]').isVisible().catch(() => false);
+  return page
+    .locator('[data-testid="assistant-edit-drawer"]')
+    .isVisible()
+    .catch(() => false);
 }
 
 /** Wait for the drawer to close. */

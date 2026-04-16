@@ -92,9 +92,7 @@ export async function goToNewChat(page: Page): Promise<void> {
  * @returns The text content of the AI reply.
  */
 export async function waitForAiReply(page: Page, timeoutMs = 120_000): Promise<string> {
-  const replyLocator = page
-    .locator('.message-content-wrapper, .chat-message-content, .markdown-body')
-    .last();
+  const replyLocator = page.locator('.message-content-wrapper, .chat-message-content, .markdown-body').last();
   await replyLocator.waitFor({ state: 'visible', timeout: timeoutMs });
   await expect
     .poll(

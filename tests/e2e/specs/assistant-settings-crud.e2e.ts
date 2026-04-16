@@ -150,11 +150,7 @@ test.describe('Assistant Settings CRUD', () => {
     expect(drawerVisible).toBeTruthy();
 
     // Close drawer without saving
-    const cancelBtn = page.locator(`${ASSISTANT_EDIT_DRAWER}`).locator('..').locator('button').filter({ hasText: /Cancel|取消/ }).first();
-    await cancelBtn.click().catch(() => {
-      // Fallback: press Escape
-      return page.keyboard.press('Escape');
-    });
+    await page.keyboard.press('Escape');
   });
 
   test('edit custom assistant — change name', async ({ page }) => {
@@ -366,39 +362,62 @@ test.describe('Assistant Settings CRUD', () => {
     await deleteAssistant(page);
   });
 
-  test('disabled assistant hidden on guid page', async ({ page }) => {
+  test('disabled builtin assistant removed from guid page presets', async ({ page }) => {
     await goToAssistantSettings(page);
     await page.locator('[data-testid^="assistant-card-"]').first().waitFor({ state: 'visible', timeout: 10_000 });
 
-    // Create and disable
-    const timestamp = Date.now();
-    const testName = `Disabled Test ${timestamp}`;
-    await clickCreateAssistant(page);
-    await fillAssistantName(page, testName);
-    await saveAssistant(page);
-    await waitForDrawerClose(page);
-
-    let targetId = '';
-    for (const id of await getVisibleAssistantIds(page)) {
-      const cardText = await page.locator(`[data-testid="assistant-card-${id}"]`).textContent();
-      if (cardText?.includes(testName)) {
-        targetId = id;
-        break;
+    // Find a builtin assistant that has an enabled switch
+    const ids = await getVisibleAssistantIds(page);
+    let builtinId = '';
+    for (const id of ids) {
+      const sw = page.locator(`[data-testid="switch-enabled-${id}"]`);
+      if (await sw.isVisible().catch(() => false)) {
+        // Check if the switch is currently "on" (checked)
+        const isChecked = await sw.locator('.arco-switch-checked, .arco-switch[aria-checked="true"]').count();
+        if (isChecked > 0 || (await sw.getAttribute('aria-checked')) === 'true') {
+          builtinId = id;
+          break;
+        }
       }
     }
-
-    // Mark as preset (it's custom so it won't show on guid by default)
-    // Actually custom assistants don't show on guid page — only presets do
-    // So this test verifies that disabled presets don't appear
-    // Skip if we can't create preset-like assistants from UI
-    if (!targetId) {
-      test.skip(true, 'Could not create test assistant');
+    if (!builtinId) {
+      test.skip(true, 'No enabled builtin assistant with toggle found');
       return;
     }
 
-    // Cleanup
-    await openAssistantDrawer(page, targetId);
-    await deleteAssistant(page);
+    // Go to guid first and check if this assistant's preset pill is visible
+    await goToGuid(page);
+    await page.locator('[data-agent-pill="true"]').first().waitFor({ state: 'visible', timeout: 8_000 });
+    const presetBefore = await page
+      .locator(`[data-testid="preset-pill-${builtinId}"]`)
+      .isVisible()
+      .catch(() => false);
+
+    // If the preset pill isn't visible on guid, skip (not all builtin show as presets)
+    if (!presetBefore) {
+      test.skip(true, 'Builtin assistant does not appear as preset pill on guid');
+      return;
+    }
+
+    // Disable it in settings
+    await goToAssistantSettings(page);
+    await page.locator('[data-testid^="assistant-card-"]').first().waitFor({ state: 'visible', timeout: 10_000 });
+    await toggleAssistantEnabled(page, builtinId);
+    await page.waitForTimeout(500);
+
+    // Go to guid and verify it's gone
+    await goToGuid(page);
+    await page.locator('[data-agent-pill="true"]').first().waitFor({ state: 'visible', timeout: 8_000 });
+    const presetAfter = await page
+      .locator(`[data-testid="preset-pill-${builtinId}"]`)
+      .isVisible()
+      .catch(() => false);
+    expect(presetAfter).toBeFalsy();
+
+    // Re-enable to restore state
+    await goToAssistantSettings(page);
+    await page.locator('[data-testid^="assistant-card-"]').first().waitFor({ state: 'visible', timeout: 10_000 });
+    await toggleAssistantEnabled(page, builtinId);
   });
 
   test('re-enabled assistant visible after toggle back on', async ({ page }) => {
@@ -469,16 +488,26 @@ test.describe('Assistant Settings CRUD', () => {
     }
   });
 
-  test('sort order — builtin first, custom after', async ({ page }) => {
+  test('sort order — enabled section renders before disabled', async ({ page }) => {
     await goToAssistantSettings(page);
     await page.locator('[data-testid^="assistant-card-"]').first().waitFor({ state: 'visible', timeout: 10_000 });
 
-    // The list should have section headers — Enabled section shows builtin before custom
-    // Check that the page renders section headers
-    const body = await page.locator('body').textContent();
-    expect(body!.length).toBeGreaterThan(50);
+    // The AssistantListPanel renders "Enabled" section followed by "Disabled" section
+    const bodyText = await page.locator('body').textContent();
+    expect(bodyText!.length).toBeGreaterThan(50);
 
-    // At minimum, the page renders without errors
+    // Verify section headers exist and are in correct order
+    const enabledIdx = bodyText!.search(/Enabled|已启用/);
+    const disabledIdx = bodyText!.search(/Disabled|已禁用/);
+
+    // At least the Enabled section should exist
+    expect(enabledIdx).toBeGreaterThanOrEqual(0);
+
+    // If both sections exist, Enabled comes before Disabled
+    if (disabledIdx >= 0) {
+      expect(enabledIdx).toBeLessThan(disabledIdx);
+    }
+
     const cards = page.locator('[data-testid^="assistant-card-"]');
     expect(await cards.count()).toBeGreaterThanOrEqual(1);
   });

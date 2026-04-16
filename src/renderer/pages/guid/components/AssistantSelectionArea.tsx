@@ -324,6 +324,7 @@ const AssistantSelectionArea: React.FC<AssistantSelectionAreaProps> = ({
             return (
               <div
                 key={assistant.id}
+                data-testid={`preset-pill-${assistant.id}`}
                 className='h-28px group flex items-center gap-8px px-16px rd-100px cursor-pointer transition-all b-1 b-solid bg-fill-0 hover:bg-fill-1 select-none'
                 style={{
                   borderWidth: '1px',
@@ -345,6 +346,7 @@ const AssistantSelectionArea: React.FC<AssistantSelectionAreaProps> = ({
             );
           })}
         <div
+          data-testid='btn-add-preset'
           className='flex items-center justify-center h-28px w-28px rd-50% bg-fill-0 hover:bg-fill-2 cursor-pointer b-1 b-dashed select-none transition-colors'
           style={{ borderWidth: '1px', borderColor: 'color-mix(in srgb, var(--color-border-2) 70%, transparent)' }}
           onClick={() => navigate('/settings/assistants')}

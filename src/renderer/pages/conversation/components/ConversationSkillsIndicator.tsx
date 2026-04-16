@@ -55,9 +55,9 @@ const ConversationSkillsIndicator: React.FC<ConversationSkillsIndicatorProps> = 
 
   return (
     <Popover content={content} trigger='click' position='br'>
-      <span className='inline-flex items-center gap-4px rounded-full px-8px py-2px bg-2 cursor-pointer'>
+      <span className='inline-flex items-center gap-4px rounded-full px-8px py-2px bg-2 cursor-pointer' data-testid='skills-indicator'>
         <Lightning theme='filled' size={14} fill={iconColors.primary} strokeWidth={2} style={{ lineHeight: 0 }} />
-        <span className='text-13px text-t-primary lh-[1]'>{loadedSkills.length}</span>
+        <span className='text-13px text-t-primary lh-[1]' data-testid='skills-indicator-count'>{loadedSkills.length}</span>
       </span>
     </Popover>
   );
