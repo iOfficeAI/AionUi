@@ -208,12 +208,12 @@ export class AcpSession {
             });
       } catch (err) {
         const normalized = normalizeError(err);
-        if (normalized.code === 'AUTH_REQUIRED' && this.cachedAuthMethods) {
+        if (normalized.code === 'AUTH_REQUIRED') {
           this.authPending = true;
           await this.teardownConnection();
           this.callbacks.onSignal({
             type: 'auth_required',
-            auth: this.authNegotiator.buildAuthRequiredData(this.cachedAuthMethods),
+            auth: this.authNegotiator.buildAuthRequiredData(this.cachedAuthMethods ?? undefined),
           });
           return;
         }
@@ -480,6 +480,16 @@ export class AcpSession {
       const acpErr = normalizeError(err);
       if (acpErr.code === 'PROCESS_CRASHED') {
         // handleDisconnect will handle this
+        return;
+      }
+      if (acpErr.code === 'AUTH_REQUIRED') {
+        this.authPending = true;
+        await this.teardownConnection();
+        this.setStatus('error');
+        this.callbacks.onSignal({
+          type: 'auth_required',
+          auth: this.authNegotiator.buildAuthRequiredData(this.cachedAuthMethods ?? undefined),
+        });
         return;
       }
       console.error(`[AcpSession:infra] prompt failed (${acpErr.code}):`, acpErr.message);
