@@ -71,6 +71,8 @@ const GuidPage: React.FC = () => {
     currentModel: modelSelection.currentModel,
     isGoogleAuth: modelSelection.isGoogleAuth,
     localeKey,
+    resetAssistant: resetAssistantRequested,
+    locationKey: location.key,
   });
 
   // Sync providerAgentKey when selected agent changes

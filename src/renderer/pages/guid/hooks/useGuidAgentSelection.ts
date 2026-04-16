@@ -66,6 +66,9 @@ type UseGuidAgentSelectionOptions = {
   currentModel?: TProviderWithModel;
   isGoogleAuth: boolean;
   localeKey: string;
+  resetAssistant?: boolean;
+  /** React Router location.key changes on every navigation and re-arms reset handling. */
+  locationKey?: string;
 };
 
 /**
@@ -76,6 +79,8 @@ export const useGuidAgentSelection = ({
   currentModel,
   isGoogleAuth,
   localeKey,
+  resetAssistant,
+  locationKey,
 }: UseGuidAgentSelectionOptions): GuidAgentSelectionResult => {
   const [selectedAgentKey, _setSelectedAgentKey] = useState<string>('aionrs');
   const [availableAgents, setAvailableAgents] = useState<AvailableAgent[]>();
@@ -296,9 +301,29 @@ export const useGuidAgentSelection = ({
     setAvailableAgents([...availableAgentsData, ...remoteAsAvailable]);
   }, [availableAgentsData, remoteAgentsData]);
 
+  const resetHandledRef = useRef(false);
+  const prevLocationKeyRef = useRef(locationKey);
+  if (locationKey !== prevLocationKeyRef.current) {
+    prevLocationKeyRef.current = locationKey;
+    resetHandledRef.current = false;
+  }
+
   // Load last selected agent
   useEffect(() => {
     if (!availableAgents || availableAgents.length === 0) return;
+
+    if (resetAssistant && !resetHandledRef.current) {
+      resetHandledRef.current = true;
+      const firstCliAgent = availableAgents.find((agent) => !agent.isPreset);
+      const fallbackKey = firstCliAgent ? getAgentKey(firstCliAgent) : 'aionrs';
+      _setSelectedAgentKey(fallbackKey);
+      ConfigStorage.set('guid.lastSelectedAgent', fallbackKey).catch((error) => {
+        console.error('Failed to save reset agent key:', error);
+      });
+      return;
+    }
+
+    if (resetAssistant) return;
 
     let cancelled = false;
 
@@ -331,7 +356,7 @@ export const useGuidAgentSelection = ({
     return () => {
       cancelled = true;
     };
-  }, [availableAgents]);
+  }, [availableAgents, resetAssistant, locationKey]);
 
   // Load cached ACP model lists
   useEffect(() => {

@@ -99,19 +99,19 @@ export function buildAionrsChildEnv(
   }
 ): Record<string, string> {
   const env = { ...getEnhancedEnv(customEnv) };
+  const explicitProxy = options?.proxy?.trim();
+  if (!explicitProxy) {
+    return env;
+  }
+
   for (const key of PROXY_ENV_KEYS) {
     delete env[key];
   }
 
-  const explicitProxy = options?.proxy?.trim();
-  if (explicitProxy) {
-    return {
-      ...env,
-      ...buildProxyEnvironment(explicitProxy),
-    };
-  }
-
-  return env;
+  return {
+    ...env,
+    ...buildProxyEnvironment(explicitProxy),
+  };
 }
 
 /**
@@ -172,7 +172,7 @@ export function buildSpawnConfig(
     }
 
     case 'bedrock': {
-      const bc = (model as TProviderWithModel & { bedrockConfig?: any }).bedrockConfig;
+      const bc = model.bedrockConfig;
       if (bc) {
         if (bc.region) env.AWS_REGION = bc.region;
         if (bc.authMethod === 'accessKey') {
