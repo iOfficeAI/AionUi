@@ -107,7 +107,7 @@ const PRESET_AGENT_ID = 'cowork';
 const AVAILABLE_AGENTS: AvailableAgent[] = [
   { backend: 'gemini', name: 'Gemini' },
   { backend: 'claude', name: 'Claude' },
-  { backend: 'custom', name: 'Cowork Assistant', customAgentId: PRESET_AGENT_ID, isPreset: true },
+  { backend: 'claude', name: 'Cowork Assistant', customAgentId: PRESET_AGENT_ID, isPreset: true },
 ];
 
 const CUSTOM_AGENTS: AcpBackendConfig[] = [
@@ -162,7 +162,7 @@ function setupMocks(overrides?: {
     switch (key) {
       case 'acp.cachedModels':
         return cachedModels;
-      case 'acp.customAgents':
+      case 'assistants':
         return CUSTOM_AGENTS;
       case 'guid.lastSelectedAgent':
         return null;

@@ -7,6 +7,7 @@ import { mutate } from 'swr';
 import { ConfigStorage } from '@/common/config/storage';
 import type { AcpBackendConfig } from '@/common/types/acpTypes';
 import { acpConversation } from '@/common/adapter/ipcBridge';
+import { DETECTED_AGENTS_SWR_KEY } from '@/renderer/utils/model/agentTypes';
 import CodeMirror from '@uiw/react-codemirror';
 import { markdown } from '@codemirror/lang-markdown';
 import { useThemeContext } from '@/renderer/hooks/context/ThemeContext';
@@ -30,7 +31,7 @@ const PresetManagement: React.FC<PresetManagementProps> = ({ message }) => {
 
   const loadPresets = useCallback(async () => {
     try {
-      const agents = await ConfigStorage.get('acp.customAgents');
+      const agents = await ConfigStorage.get('assistants');
       if (agents && Array.isArray(agents)) {
         setPresets(agents.filter((a) => a.isPreset));
       }
@@ -46,7 +47,7 @@ const PresetManagement: React.FC<PresetManagementProps> = ({ message }) => {
   const refreshAgentDetection = useCallback(async () => {
     try {
       await acpConversation.refreshCustomAgents.invoke();
-      await mutate('acp.agents.available');
+      await mutate(DETECTED_AGENTS_SWR_KEY);
     } catch {
       // ignore
     }
@@ -62,11 +63,11 @@ const PresetManagement: React.FC<PresetManagementProps> = ({ message }) => {
   const handleSave = async () => {
     if (!editingPreset) return;
     try {
-      const allAgents = (await ConfigStorage.get('acp.customAgents')) || [];
+      const allAgents = (await ConfigStorage.get('assistants')) || [];
       const updatedAgents = allAgents.map((a) =>
         a.id === editingPreset.id ? { ...a, name: editName, context: editContext } : a
       );
-      await ConfigStorage.set('acp.customAgents', updatedAgents);
+      await ConfigStorage.set('assistants', updatedAgents);
       setEditVisible(false);
       message.success(t('common.success', { defaultValue: 'Success' }));
       void loadPresets();
@@ -79,9 +80,9 @@ const PresetManagement: React.FC<PresetManagementProps> = ({ message }) => {
   const handleDelete = async () => {
     if (!presetToDelete) return;
     try {
-      const allAgents = (await ConfigStorage.get('acp.customAgents')) || [];
+      const allAgents = (await ConfigStorage.get('assistants')) || [];
       const updatedAgents = allAgents.filter((a) => a.id !== presetToDelete.id);
-      await ConfigStorage.set('acp.customAgents', updatedAgents);
+      await ConfigStorage.set('assistants', updatedAgents);
       setDeleteVisible(false);
       message.success(t('common.success', { defaultValue: 'Deleted' }));
       void loadPresets();

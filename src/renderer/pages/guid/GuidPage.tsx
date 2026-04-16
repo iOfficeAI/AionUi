@@ -10,7 +10,7 @@ import { resolveLocaleKey } from '@/common/utils';
 import { useInputFocusRing } from '@/renderer/hooks/chat/useInputFocusRing';
 import { openExternalUrl, resolveExtensionAssetUrl } from '@/renderer/utils/platform';
 import { useConversationTabs } from '@/renderer/pages/conversation/hooks/ConversationTabsContext';
-import { BUILTIN_AGENT_OPTIONS, CUSTOM_AVATAR_IMAGE_MAP } from './constants';
+import { CUSTOM_AVATAR_IMAGE_MAP } from './constants';
 import AgentPillBar from './components/AgentPillBar';
 import AssistantSelectionArea from './components/AssistantSelectionArea';
 import { AgentPillBarSkeleton } from './components/GuidSkeleton';
@@ -430,7 +430,7 @@ const GuidPage: React.FC = () => {
     if (!agentSelection.availableAgents) return [];
     // Build from detected execution engines, excluding preset assistants and remote agents
     return agentSelection.availableAgents
-      .filter((a) => a.backend !== 'custom' && a.backend !== 'remote')
+      .filter((a) => !a.isPreset && a.backend !== 'remote')
       .map((a) => ({
         key: a.backend,
         label: a.name,
@@ -447,7 +447,7 @@ const GuidPage: React.FC = () => {
       const customAgentId = agentSelection.selectedAgentInfo?.customAgentId;
       if (!customAgentId || nextType === currentPresetAgentType) return;
       try {
-        const agents = ((await ConfigStorage.get('acp.customAgents')) || []) as AcpBackendConfig[];
+        const agents = ((await ConfigStorage.get('assistants')) || []) as AcpBackendConfig[];
         const idx = agents.findIndex((a) => a.id === customAgentId);
         if (idx < 0) {
           Message.warning(t('common.failed', { defaultValue: 'Failed' }));
@@ -455,7 +455,7 @@ const GuidPage: React.FC = () => {
         }
         const updated = [...agents];
         updated[idx] = { ...updated[idx], presetAgentType: nextType };
-        await ConfigStorage.set('acp.customAgents', updated);
+        await ConfigStorage.set('assistants', updated);
         await agentSelection.refreshCustomAgents();
         const agentName = ACP_BACKENDS_ALL[nextType as keyof typeof ACP_BACKENDS_ALL]?.name || nextType;
         Message.success(t('guid.switchedToAgent', { agent: agentName }));

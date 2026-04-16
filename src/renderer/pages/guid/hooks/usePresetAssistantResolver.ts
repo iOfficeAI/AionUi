@@ -43,10 +43,6 @@ export const usePresetAssistantResolver = ({
       agentInfo: { backend: AcpBackend; customAgentId?: string; context?: string } | undefined
     ): Promise<{ rules?: string; skills?: string }> => {
       if (!agentInfo) return {};
-      if (agentInfo.backend !== 'custom') {
-        return { rules: agentInfo.context };
-      }
-
       const customAgentId = agentInfo.customAgentId;
       if (!customAgentId) return { rules: agentInfo.context };
 
@@ -117,7 +113,7 @@ export const usePresetAssistantResolver = ({
   const resolvePresetAgentType = useCallback(
     (agentInfo: { backend: AcpBackend; customAgentId?: string } | undefined): string => {
       if (!agentInfo) return 'gemini';
-      if (agentInfo.backend !== 'custom') return agentInfo.backend as string;
+      if (!agentInfo.customAgentId) return agentInfo.backend as string;
       const customAgent = customAgents.find((agent) => agent.id === agentInfo.customAgentId);
       return customAgent?.presetAgentType || 'gemini';
     },
@@ -126,8 +122,7 @@ export const usePresetAssistantResolver = ({
 
   const resolveEnabledSkills = useCallback(
     (agentInfo: { backend: AcpBackend; customAgentId?: string } | undefined): string[] | undefined => {
-      if (!agentInfo) return undefined;
-      if (agentInfo.backend !== 'custom') return undefined;
+      if (!agentInfo || !agentInfo.customAgentId) return undefined;
       const customAgent = customAgents.find((agent) => agent.id === agentInfo.customAgentId);
       return customAgent?.enabledSkills;
     },
@@ -136,8 +131,7 @@ export const usePresetAssistantResolver = ({
 
   const resolveDisabledBuiltinSkills = useCallback(
     (agentInfo: { backend: AcpBackend; customAgentId?: string } | undefined): string[] | undefined => {
-      if (!agentInfo) return undefined;
-      if (agentInfo.backend !== 'custom') return undefined;
+      if (!agentInfo || !agentInfo.customAgentId) return undefined;
       const customAgent = customAgents.find((agent) => agent.id === agentInfo.customAgentId);
       return customAgent?.disabledBuiltinSkills;
     },

@@ -279,7 +279,7 @@ export const useAssistantEditor = ({
         }
       }
 
-      const agents = (await ConfigStorage.get('acp.customAgents')) || [];
+      const agents = (await ConfigStorage.get('assistants')) || [];
 
       // Calculate final customSkills: merge existing + pending
       const pendingSkillNames = pendingSkills.map((s) => s.name);
@@ -312,7 +312,7 @@ export const useAssistantEditor = ({
         }
 
         const updatedAgents = [...agents, newAssistant];
-        await ConfigStorage.set('acp.customAgents', updatedAgents);
+        await ConfigStorage.set('assistants', updatedAgents);
         setActiveAssistantId(newId);
         await loadAssistants();
         message.success(t('common.createSuccess', { defaultValue: 'Created successfully' }));
@@ -341,7 +341,7 @@ export const useAssistantEditor = ({
         }
 
         const updatedAgents = agents.map((agent) => (agent.id === activeAssistant.id ? updatedAgent : agent));
-        await ConfigStorage.set('acp.customAgents', updatedAgents);
+        await ConfigStorage.set('assistants', updatedAgents);
         await loadAssistants();
         message.success(t('common.saveSuccess', { defaultValue: 'Saved successfully' }));
       }
@@ -384,9 +384,9 @@ export const useAssistantEditor = ({
       ]);
 
       // Remove assistant from config
-      const agents = (await ConfigStorage.get('acp.customAgents')) || [];
+      const agents = (await ConfigStorage.get('assistants')) || [];
       const updatedAgents = agents.filter((agent) => agent.id !== activeAssistant.id);
-      await ConfigStorage.set('acp.customAgents', updatedAgents);
+      await ConfigStorage.set('assistants', updatedAgents);
 
       // Reload merged assistant list (local + extensions)
       await loadAssistants();
@@ -412,9 +412,9 @@ export const useAssistantEditor = ({
     }
 
     try {
-      const agents = (await ConfigStorage.get('acp.customAgents')) || [];
+      const agents = (await ConfigStorage.get('assistants')) || [];
       const updatedAgents = agents.map((agent) => (agent.id === assistant.id ? { ...agent, enabled } : agent));
-      await ConfigStorage.set('acp.customAgents', updatedAgents);
+      await ConfigStorage.set('assistants', updatedAgents);
 
       // Reload merged assistant list (local + extensions)
       await loadAssistants();

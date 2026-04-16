@@ -145,7 +145,7 @@ export function useAgentReadinessCheck(options: UseAgentReadinessCheckOptions) {
 
       // Filter out current agent and custom agents
       const agentsToCheck = result.data
-        .filter((agent) => agent.backend !== 'custom' && agent.backend !== currentAgentBackend)
+        .filter((agent) => !agent.isPreset && agent.backend !== 'remote' && agent.backend !== currentAgentBackend)
         .map((agent) => ({
           backend: agent.backend as AgentBackend,
           name: AGENT_NAMES[agent.backend as AgentBackend] || agent.name,

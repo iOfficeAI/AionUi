@@ -111,7 +111,7 @@ export function buildAgentConversationParams(input: BuildAgentConversationInput)
     extra.backend = backend as AcpBackendAll;
     extra.agentName = agentName || name;
     if (cliPath) extra.cliPath = cliPath;
-    if (backend === 'custom' && customAgentId) {
+    if (customAgentId) {
       extra.customAgentId = customAgentId;
     }
   }

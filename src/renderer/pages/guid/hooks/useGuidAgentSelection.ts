@@ -10,6 +10,7 @@ import type { IProvider } from '@/common/config/storage';
 import { ConfigStorage } from '@/common/config/storage';
 import type { AcpBackendAll, AcpSessionConfigOption } from '@/common/types/acpTypes';
 import type { AcpBackend, AcpBackendConfig, AcpModelInfo, AvailableAgent, EffectiveAgentInfo } from '../types';
+import { DETECTED_AGENTS_SWR_KEY, fetchDetectedAgents } from '@/renderer/utils/model/agentTypes';
 import { getAgentModes } from '@/renderer/utils/model/agentModes';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import useSWR from 'swr';
@@ -125,7 +126,7 @@ export const useGuidAgentSelection = ({
   const availableCustomAgentIds = useMemo(() => {
     const ids = new Set<string>();
     (availableAgents || []).forEach((agent) => {
-      if (agent.backend === 'custom' && agent.customAgentId) {
+      if (agent.customAgentId) {
         ids.add(agent.customAgentId);
       }
     });
@@ -161,20 +162,19 @@ export const useGuidAgentSelection = ({
   const findAgentByKey = (key: string): AvailableAgent | undefined => {
     if (key.startsWith('custom:')) {
       const customAgentId = key.slice(7);
-      const foundInAvailable = availableAgents?.find(
-        (a) => a.backend === 'custom' && a.customAgentId === customAgentId
-      );
+      const foundInAvailable = availableAgents?.find((a) => a.customAgentId === customAgentId);
       if (foundInAvailable) return foundInAvailable;
 
       const assistant = customAgents.find((a) => a.id === customAgentId);
       if (assistant) {
         return {
-          backend: 'custom',
+          backend: assistant.presetAgentType || 'gemini',
           name: assistant.name,
           customAgentId: assistant.id,
           isPreset: true,
           context: '',
           avatar: assistant.avatar,
+          presetAgentType: assistant.presetAgentType,
         };
       }
     }
@@ -196,14 +196,8 @@ export const useGuidAgentSelection = ({
   }, [selectedAgentKey, availableAgents, customAgents]);
   const isPresetAgent = Boolean(selectedAgentInfo?.isPreset);
 
-  // --- SWR: Fetch available agents ---
-  const { data: availableAgentsData } = useSWR('acp.agents.available', async () => {
-    const result = await ipcBridge.acpConversation.getAvailableAgents.invoke();
-    if (result.success) {
-      return result.data;
-    }
-    return [];
-  });
+  // --- SWR: Fetch detected execution engines (shared cache) ---
+  const { data: availableAgentsData } = useSWR<AvailableAgent[]>(DETECTED_AGENTS_SWR_KEY, fetchDetectedAgents);
 
   // Fetch remote agents from DB and merge into available agents
   const { data: remoteAgentsData } = useSWR('remote-agents.list', () => ipcBridge.remoteAgent.list.invoke());

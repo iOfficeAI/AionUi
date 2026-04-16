@@ -37,12 +37,12 @@ const defaultDeps: PresetAssistantResourceDeps = {
   readBuiltinRule: (args) => ipcBridge.fs.readBuiltinRule.invoke(args),
   readBuiltinSkill: (args) => ipcBridge.fs.readBuiltinSkill.invoke(args),
   getEnabledSkills: async (customAgentId) => {
-    const customAgents = await ConfigStorage.get('acp.customAgents');
+    const customAgents = await ConfigStorage.get('assistants');
     const assistant = customAgents?.find((agent) => agent.id === customAgentId);
     return assistant?.enabledSkills;
   },
   getDisabledBuiltinSkills: async (customAgentId) => {
-    const customAgents = await ConfigStorage.get('acp.customAgents');
+    const customAgents = await ConfigStorage.get('assistants');
     const assistant = customAgents?.find((agent) => agent.id === customAgentId);
     return assistant?.disabledBuiltinSkills;
   },

@@ -61,7 +61,10 @@ export interface IConfigStorageRefer {
   'acp.promptTimeout'?: number;
   /** Idle timeout in minutes before an ACP agent process is killed to reclaim memory (default: 5). */
   'acp.agentIdleTimeout'?: number;
+  /** @deprecated Use 'assistants' instead — kept for migration compatibility */
   'acp.customAgents'?: AcpBackendConfig[];
+  /** Assistant configurations (preset + user-created) */
+  assistants?: AcpBackendConfig[];
   // Cached initialize results per ACP backend (persisted across sessions)
   'acp.cachedInitializeResult'?: Record<string, import('@/common/types/acpTypes').AcpInitializeResult>;
   // Cached model lists per ACP backend for Guid page pre-selection

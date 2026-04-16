@@ -115,7 +115,7 @@ vi.mock('../../src/renderer/pages/settings/AgentSettings/AgentHubModal', () => (
 
 vi.mock('@/renderer/utils/model/agentTypes', async (importOriginal) => ({
   ...(await importOriginal()),
-  AVAILABLE_AGENTS_SWR_KEY: 'acp.agents.available',
+  DETECTED_AGENTS_SWR_KEY: 'agents.detected',
 }));
 
 vi.mock('@/renderer/hooks/context/ThemeContext', () => ({

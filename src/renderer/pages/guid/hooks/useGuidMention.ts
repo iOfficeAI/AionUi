@@ -7,6 +7,7 @@
 import { getAgentLogo } from '@/renderer/utils/model/agentLogo';
 import { CUSTOM_AVATAR_IMAGE_MAP } from '../constants';
 import type { AvailableAgent, MentionOption } from '../types';
+import { getAgentKey } from './agentSelectionUtils';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
 export type GuidMentionResult = {
@@ -60,10 +61,11 @@ export const useGuidMention = ({
   const mentionOptions = useMemo(() => {
     const agents = availableAgents || [];
     return agents.map((agent) => {
-      const key = agent.backend === 'custom' && agent.customAgentId ? `custom:${agent.customAgentId}` : agent.backend;
+      const key = getAgentKey(agent);
       const label = agent.name || agent.backend;
-      const avatarValue =
-        agent.backend === 'custom' ? agent.avatar || customAgentAvatarMap.get(agent.customAgentId || '') : undefined;
+      const avatarValue = agent.customAgentId
+        ? agent.avatar || customAgentAvatarMap.get(agent.customAgentId)
+        : undefined;
       const avatar = avatarValue ? avatarValue.trim() : undefined;
       const tokens = new Set<string>();
       const normalizedLabel = label.toLowerCase();

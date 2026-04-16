@@ -267,11 +267,11 @@ export class TeamSessionService {
         return fs.readFile(path.join(builtinDir, path.basename(fileName)), 'utf-8');
       },
       getEnabledSkills: async (assistantId) => {
-        const customAgents = await ProcessConfig.get('acp.customAgents');
+        const customAgents = await ProcessConfig.get('assistants');
         return customAgents?.find((agent) => agent.id === assistantId)?.enabledSkills;
       },
       getDisabledBuiltinSkills: async (assistantId) => {
-        const customAgents = await ProcessConfig.get('acp.customAgents');
+        const customAgents = await ProcessConfig.get('assistants');
         return customAgents?.find((agent) => agent.id === assistantId)?.disabledBuiltinSkills;
       },
       warn: (message, error) => {

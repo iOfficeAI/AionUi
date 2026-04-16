@@ -121,6 +121,7 @@ const AssistantListPanel: React.FC<AssistantListPanelProps> = ({
       <div
         key={assistant.id}
         ref={cardRefSetter(assistant.id)}
+        data-testid={`assistant-card-${assistant.id}`}
         className={`group border border-solid rounded-16px px-16px py-14px flex items-center justify-between cursor-pointer transition-all duration-180 hover:border-[var(--color-primary-light-4)] hover:bg-bg-1 ${highlightedId === assistant.id ? 'border-primary-5 bg-primary-1' : 'border-[var(--color-neutral-3)] bg-fill-0'}`}
         onClick={() => {
           setActiveAssistantId(assistant.id);
@@ -145,6 +146,7 @@ const AssistantListPanel: React.FC<AssistantListPanelProps> = ({
         >
           <span
             className='invisible group-hover:visible text-12px text-primary cursor-pointer hover:underline transition-all'
+            data-testid={`btn-duplicate-${assistant.id}`}
             onClick={() => {
               onDuplicate(assistant);
             }}
@@ -153,6 +155,7 @@ const AssistantListPanel: React.FC<AssistantListPanelProps> = ({
           </span>
           <Switch
             size='small'
+            data-testid={`switch-enabled-${assistant.id}`}
             checked={assistantIsExtension ? true : assistant.enabled !== false}
             disabled={assistantIsExtension}
             onChange={(checked) => {
@@ -164,6 +167,7 @@ const AssistantListPanel: React.FC<AssistantListPanelProps> = ({
             size='small'
             icon={<SettingOne size={16} />}
             className='!rounded-10px'
+            data-testid={`btn-edit-${assistant.id}`}
             onClick={() => {
               onEdit(assistant);
             }}
@@ -206,6 +210,7 @@ const AssistantListPanel: React.FC<AssistantListPanelProps> = ({
                 className={`!rounded-[100px] ${isMobile ? '!w-full !h-36px' : '!px-16px !h-32px'}`}
                 icon={<Plus size={14} fill='currentColor' />}
                 onClick={onCreate}
+                data-testid='btn-create-assistant'
               >
                 {t('settings.createAssistant', { defaultValue: 'Create Assistant' })}
               </Button>
@@ -225,6 +230,7 @@ const AssistantListPanel: React.FC<AssistantListPanelProps> = ({
               <Button
                 type={isSearchVisible ? 'secondary' : 'text'}
                 size='small'
+                data-testid='btn-search-toggle'
                 className='!rounded-10px !h-34px !w-34px !p-0 flex items-center justify-center !text-t-secondary hover:!bg-fill-1 hover:!text-t-primary'
                 icon={
                   isSearchVisible ? (
@@ -250,6 +256,7 @@ const AssistantListPanel: React.FC<AssistantListPanelProps> = ({
               autoFocus
               value={searchQuery}
               onChange={setSearchQuery}
+              data-testid='input-search-assistant'
               className='!bg-[var(--color-bg-2)]'
               placeholder={t('settings.searchAssistants', {
                 defaultValue: 'Search assistants by name or description',

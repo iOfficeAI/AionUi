@@ -3,9 +3,8 @@
  * Contains name/avatar fields, agent selector, rules editor, and skills section.
  */
 import type { AssistantListItem, BuiltinAutoSkill, SkillInfo } from './types';
-import type { AvailableBackend } from '@/renderer/hooks/assistant/useAssistantBackends';
+import type { AvailableBackend } from '@/renderer/hooks/assistant';
 import { hasBuiltinSkills } from './assistantUtils';
-import { BUILTIN_AGENT_OPTIONS } from '@/renderer/pages/guid/constants';
 import EmojiPicker from '@/renderer/components/chat/EmojiPicker';
 import MarkdownView from '@/renderer/components/Markdown';
 import { Avatar, Button, Checkbox, Collapse, Drawer, Input, Select, Tag, Typography } from '@arco-design/web-react';
@@ -207,6 +206,7 @@ const AssistantEditDrawer: React.FC<AssistantEditDrawerProps> = ({
               type='primary'
               onClick={handleSave}
               disabled={!isCreating && isReadonlyAssistant}
+              data-testid='btn-save-assistant'
               className='w-[100px] rounded-[100px]'
             >
               {isCreating ? t('common.create', { defaultValue: 'Create' }) : t('common.save', { defaultValue: 'Save' })}
@@ -224,6 +224,7 @@ const AssistantEditDrawer: React.FC<AssistantEditDrawerProps> = ({
             <Button
               status='danger'
               onClick={handleDeleteClick}
+              data-testid='btn-delete-assistant'
               className='rounded-[100px]'
               style={{ backgroundColor: 'rgb(var(--danger-1))' }}
             >
@@ -233,7 +234,7 @@ const AssistantEditDrawer: React.FC<AssistantEditDrawerProps> = ({
         </div>
       }
     >
-      <div className='flex flex-col h-full overflow-hidden'>
+      <div className='flex flex-col h-full overflow-hidden' data-testid='assistant-edit-drawer'>
         <div className='flex flex-col flex-1 gap-16px bg-fill-2 rounded-16px p-20px overflow-y-auto'>
           {/* Name & Avatar */}
           <div className='flex-shrink-0'>
@@ -272,6 +273,7 @@ const AssistantEditDrawer: React.FC<AssistantEditDrawerProps> = ({
                 onChange={(value) => setEditName(value)}
                 disabled={activeAssistant?.isBuiltin || isReadonlyAssistant}
                 placeholder={t('settings.agentNamePlaceholder', { defaultValue: 'Enter a name for this agent' })}
+                data-testid='input-assistant-name'
                 className='flex-1 rounded-4px bg-bg-1'
               />
             </div>
@@ -287,6 +289,7 @@ const AssistantEditDrawer: React.FC<AssistantEditDrawerProps> = ({
               value={editDescription}
               onChange={(value) => setEditDescription(value)}
               disabled={activeAssistant?.isBuiltin || isReadonlyAssistant}
+              data-testid='input-assistant-desc'
               placeholder={t('settings.assistantDescriptionPlaceholder', {
                 defaultValue: 'What can this assistant help with?',
               })}
@@ -301,6 +304,7 @@ const AssistantEditDrawer: React.FC<AssistantEditDrawerProps> = ({
               value={editAgent}
               onChange={(value) => setEditAgent(value as string)}
               disabled={isReadonlyAssistant}
+              data-testid='select-assistant-agent'
             >
               {agentOptions.map((opt) => (
                 <Select.Option key={opt.id} value={opt.id}>
@@ -401,7 +405,7 @@ const AssistantEditDrawer: React.FC<AssistantEditDrawerProps> = ({
 
           {/* Skills section */}
           {showSkills && (
-            <div className='flex-shrink-0 mt-16px'>
+            <div className='flex-shrink-0 mt-16px' data-testid='skills-section'>
               <div className='flex items-center justify-between mb-12px'>
                 <Typography.Text bold>{t('settings.assistantSkills', { defaultValue: 'Skills' })}</Typography.Text>
                 <Button
@@ -410,12 +414,13 @@ const AssistantEditDrawer: React.FC<AssistantEditDrawerProps> = ({
                   icon={<Plus size={14} />}
                   onClick={() => setSkillsModalVisible(true)}
                   className='rounded-[100px]'
+                  data-testid='btn-add-skills'
                 >
                   {t('settings.addSkills', { defaultValue: 'Add Skills' })}
                 </Button>
               </div>
 
-              <Collapse defaultActiveKey={['custom-skills']}>
+              <Collapse defaultActiveKey={['custom-skills']} data-testid='skills-collapse'>
                 {/* Custom Skills (Pending + Imported) */}
                 <Collapse.Item
                   header={

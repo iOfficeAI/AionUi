@@ -33,7 +33,7 @@ import type { RemoteAgentConfig } from '@process/agent/remote/types';
  *   - Nanobot      — detected via `nanobot` CLI on PATH
  *
  * Assistants (user-configured presets with skills/prompts/context) are NOT
- * execution engines — they live in the configuration layer (acp.customAgents)
+ * execution engines — they live in the configuration layer (ConfigStorage 'assistants')
  * and reference execution engines by backend type.
  */
 class AgentRegistry {
@@ -123,20 +123,22 @@ class AgentRegistry {
   }
 
   /**
-   * Deduplicate agents by cliPath. First occurrence wins (merge order
-   * determines priority: Gemini > Builtin > Extension > Remote > Aionrs).
-   * Agents without cliPath (e.g. Gemini, Remote) are always kept.
+   * Deduplicate agents by backend ID. First occurrence wins — merge order
+   * determines priority: Aionrs > Gemini > Builtin > Other > Remote > Extension.
+   * When an extension contributes the same backend as a builtin, the builtin wins.
+   *
+   * Remote agents share `backend: 'remote'` but are individually addressable
+   * via their unique `id` (`remote:<uuid>`), so they skip backend dedup.
    */
   private deduplicate(agents: DetectedAgent[]): DetectedAgent[] {
     const seen = new Set<string>();
     const result: DetectedAgent[] = [];
 
     for (const agent of agents) {
-      const cliPath = isAgentKind(agent, 'acp') ? agent.cliPath : undefined;
-      if (cliPath) {
-        if (seen.has(cliPath)) continue;
-        seen.add(cliPath);
-      }
+      // Remote agents all share backend 'remote' — dedup by id instead
+      const key = agent.kind === 'remote' ? agent.id : agent.backend;
+      if (seen.has(key)) continue;
+      seen.add(key);
       result.push(agent);
     }
 
@@ -145,8 +147,6 @@ class AgentRegistry {
 
   // prettier-ignore
   private merge(): void {
-    // Order matters: determines deduplication priority and display order.
-    // Aionrs first, Gemini second, then builtin CLI > other > remote > extension.
     this.detectedAgents = this.deduplicate([
       this.createAionrsAgent(),
       this.createGeminiAgent(),

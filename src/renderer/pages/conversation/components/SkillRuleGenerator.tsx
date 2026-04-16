@@ -268,7 +268,7 @@ Requirements:
 
   const registerPreset = async (name: string, content: string) => {
     try {
-      const customAgents = ((await ConfigStorage.get('acp.customAgents')) ?? []) as AcpBackendConfig[];
+      const customAgents = ((await ConfigStorage.get('assistants')) ?? []) as AcpBackendConfig[];
       const presetAgent: AcpBackendConfig = {
         id: uuid(),
         name,
@@ -277,7 +277,7 @@ Requirements:
         context: content,
       };
       customAgents.push(presetAgent);
-      await ConfigStorage.set('acp.customAgents', customAgents);
+      await ConfigStorage.set('assistants', customAgents);
       await ipcBridge.acpConversation.refreshCustomAgents.invoke();
       Message.success(
         t('conversation.skill_generator.preset_registered', { defaultValue: 'Agent preset registered successfully!' })

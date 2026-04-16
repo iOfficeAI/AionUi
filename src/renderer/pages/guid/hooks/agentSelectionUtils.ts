@@ -42,8 +42,8 @@ export async function savePreferredModelId(agentKey: string, modelId: string): P
  * Get agent key for selection.
  * Returns "custom:uuid" for custom agents, "remote:uuid" for remote agents, backend type for others.
  */
-export const getAgentKey = (agent: { backend: AcpBackend; customAgentId?: string }): string => {
-  if (agent.backend === 'custom' && agent.customAgentId) return `custom:${agent.customAgentId}`;
+export const getAgentKey = (agent: { backend: AcpBackend; customAgentId?: string; isPreset?: boolean }): string => {
   if (agent.backend === 'remote' && agent.customAgentId) return `remote:${agent.customAgentId}`;
+  if (agent.customAgentId) return `custom:${agent.customAgentId}`;
   return agent.backend;
 };

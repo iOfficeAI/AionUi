@@ -41,7 +41,7 @@ export const useAssistantList = () => {
   const loadAssistants = useCallback(async () => {
     try {
       // Read stored assistants from config (includes builtin and user-defined)
-      const localAgents: AssistantListItem[] = (await ConfigStorage.get('acp.customAgents')) || [];
+      const localAgents: AssistantListItem[] = (await ConfigStorage.get('assistants')) || [];
 
       const mergedAgents = [...localAgents];
       for (const extAssistant of normalizedExtAssistants) {

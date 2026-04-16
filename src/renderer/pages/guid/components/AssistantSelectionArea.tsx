@@ -6,7 +6,7 @@
 
 import coworkSvg from '@/renderer/assets/icons/cowork.svg';
 import {
-  useAssistantBackends,
+  useDetectedAgents,
   useAssistantEditor,
   useAssistantList,
   useAssistantSkills,
@@ -78,7 +78,7 @@ const AssistantSelectionArea: React.FC<AssistantSelectionAreaProps> = ({
     isExtensionAssistant,
     loadAssistants,
   } = useAssistantList();
-  const { availableBackends, refreshAgentDetection } = useAssistantBackends();
+  const { availableBackends, refreshAgentDetection } = useDetectedAgents();
 
   const editor = useAssistantEditor({
     localeKey,

@@ -4,7 +4,10 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-export const AVAILABLE_AGENTS_SWR_KEY = 'acp.agents.available';
+import { ipcBridge } from '@/common';
+
+/** SWR key for detected execution engines (from AgentRegistry). */
+export const DETECTED_AGENTS_SWR_KEY = 'agents.detected';
 
 /**
  * Available agent entry returned by the backend.
@@ -24,3 +27,16 @@ export type AvailableAgent = {
   isExtension?: boolean;
   extensionName?: string;
 };
+
+/** Shared fetcher for DETECTED_AGENTS_SWR_KEY — single source of truth. */
+export async function fetchDetectedAgents(): Promise<AvailableAgent[]> {
+  try {
+    const resp = await ipcBridge.acpConversation.getAvailableAgents.invoke();
+    if (resp.success && resp.data) {
+      return resp.data as AvailableAgent[];
+    }
+  } catch {
+    // fallback to empty
+  }
+  return [];
+}

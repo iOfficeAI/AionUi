@@ -157,7 +157,7 @@ describe('AgentRegistry', () => {
   });
 
   describe('deduplicate', () => {
-    it('should deduplicate by cliPath — builtin wins over extension', async () => {
+    it('should deduplicate by backend — builtin wins over extension with same backend', async () => {
       mockDetectBuiltinAgents.mockResolvedValue([
         makeAcpAgent({ id: 'qwen', name: 'Qwen Code', backend: 'qwen', cliPath: 'qwen' }),
       ]);
@@ -165,8 +165,8 @@ describe('AgentRegistry', () => {
         makeAcpAgent({
           id: 'qwen-ext',
           name: 'Qwen Code',
-          backend: 'custom',
-          cliPath: 'qwen',
+          backend: 'qwen',
+          cliPath: 'bunx @qwen/qwen',
           isExtension: true,
           extensionName: 'aionext-qwen',
         }),
@@ -176,19 +176,18 @@ describe('AgentRegistry', () => {
       await registry.initialize();
       const agents = registry.getDetectedAgents();
 
-      // Should have only one qwen entry (builtin with backend 'qwen'), not the extension duplicate
-      const qwenAgents = agents.filter((a) => a.kind === 'acp' && a.cliPath === 'qwen');
+      const qwenAgents = agents.filter((a) => a.backend === 'qwen');
       expect(qwenAgents).toHaveLength(1);
-      expect(qwenAgents[0].backend).toBe('qwen'); // builtin wins
-      expect(qwenAgents[0].isExtension).toBeUndefined(); // not the extension one
+      expect(qwenAgents[0].cliPath).toBe('qwen'); // builtin wins
+      expect(qwenAgents[0].isExtension).toBeUndefined();
     });
 
-    it('should keep extension agent when no builtin matches the same cliPath', async () => {
+    it('should keep extension agent when no builtin has the same backend', async () => {
       mockDetectExtensionAgents.mockResolvedValue([
         makeAcpAgent({
           id: 'unique',
           name: 'Unique Agent',
-          backend: 'custom',
+          backend: 'unique',
           cliPath: 'custom-cli',
           isExtension: true,
           extensionName: 'ext-unique',
@@ -199,17 +198,16 @@ describe('AgentRegistry', () => {
       await registry.initialize();
       const agents = registry.getDetectedAgents();
 
-      const agent = agents.find((a) => a.kind === 'acp' && a.cliPath === 'custom-cli');
+      const agent = agents.find((a) => a.backend === 'unique');
       expect(agent).toBeDefined();
       expect(agent!.isExtension).toBe(true);
     });
 
-    it('should keep agents without cliPath (aionrs, gemini)', async () => {
+    it('should always include aionrs and gemini', async () => {
       const registry = await createFreshRegistry();
       await registry.initialize();
       const agents = registry.getDetectedAgents();
 
-      // Aionrs and Gemini have no cliPath — always kept
       expect(agents).toHaveLength(2);
       expect(agents[0].backend).toBe('aionrs');
       expect(agents[1].backend).toBe('gemini');
@@ -270,7 +268,7 @@ describe('AgentRegistry', () => {
       expect(registry.getDetectedAgents().find((a) => a.kind === 'acp' && a.cliPath === 'ext-cli')).toBeUndefined();
     });
 
-    it('should still deduplicate after refresh', async () => {
+    it('should deduplicate by backend after refresh — builtin wins', async () => {
       mockDetectBuiltinAgents.mockResolvedValue([
         makeAcpAgent({ id: 'qwen', name: 'Qwen Code', backend: 'qwen', cliPath: 'qwen' }),
       ]);
@@ -278,22 +276,22 @@ describe('AgentRegistry', () => {
       const registry = await createFreshRegistry();
       await registry.initialize();
 
-      // Extension contributes same CLI as builtin
+      // Extension contributes same backend as builtin
       mockDetectExtensionAgents.mockResolvedValue([
         makeAcpAgent({
           id: 'qwen-ext',
           name: 'Qwen Ext',
-          backend: 'custom',
-          cliPath: 'qwen',
+          backend: 'qwen',
+          cliPath: 'bunx @qwen/qwen',
           isExtension: true,
           extensionName: 'aionext-qwen',
         }),
       ]);
 
       await registry.refreshExtensionAgents();
-      const qwenAgents = registry.getDetectedAgents().filter((a) => a.kind === 'acp' && a.cliPath === 'qwen');
+      const qwenAgents = registry.getDetectedAgents().filter((a) => a.backend === 'qwen');
       expect(qwenAgents).toHaveLength(1);
-      expect(qwenAgents[0].backend).toBe('qwen'); // builtin still wins
+      expect(qwenAgents[0].cliPath).toBe('qwen'); // builtin wins
     });
   });
 

@@ -59,7 +59,7 @@ describe('createConversationParams', () => {
 
     const params = await buildPresetAssistantParams(
       {
-        backend: 'custom',
+        backend: 'gemini',
         name: 'Preset Assistant',
         customAgentId: 'builtin-cowork',
         isPreset: true,
@@ -88,7 +88,7 @@ describe('createConversationParams', () => {
 
     const params = await buildPresetAssistantParams(
       {
-        backend: 'custom',
+        backend: 'codebuddy',
         name: 'Codebuddy Assistant',
         customAgentId: 'preset-1',
         isPreset: true,
@@ -250,7 +250,7 @@ describe('createConversationParams', () => {
   it('sets backend for acp preset assistant', async () => {
     loadPresetAssistantResources.mockResolvedValue({ rules: 'r', skills: '', enabledSkills: [] });
     const params = await buildPresetAssistantParams(
-      { backend: 'custom', name: 'A', customAgentId: 'p', isPreset: true, presetAgentType: 'claude' },
+      { backend: 'claude', name: 'A', customAgentId: 'p', isPreset: true, presetAgentType: 'claude' },
       '/tmp',
       'en'
     );

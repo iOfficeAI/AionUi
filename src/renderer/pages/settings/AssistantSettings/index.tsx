@@ -23,7 +23,7 @@ import coworkSvg from '@/renderer/assets/icons/cowork.svg';
 import AionScrollArea from '@/renderer/components/base/AionScrollArea';
 import { useSettingsViewMode } from '@/renderer/components/settings/SettingsModal/settingsViewContext';
 import {
-  useAssistantBackends,
+  useDetectedAgents,
   useAssistantEditor,
   useAssistantList,
   useAssistantSkills,
@@ -76,7 +76,7 @@ const AssistantSettings: React.FC = () => {
     localeKey,
   } = useAssistantList();
 
-  const { availableBackends, refreshAgentDetection } = useAssistantBackends();
+  const { availableBackends, refreshAgentDetection } = useDetectedAgents();
 
   const editor = useAssistantEditor({
     localeKey,

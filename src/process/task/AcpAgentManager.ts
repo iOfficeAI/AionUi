@@ -437,27 +437,22 @@ ${collectedResponses.join('\n')}`;
     customEnv?: Record<string, string>;
     yoloMode?: boolean;
   }> {
-    if (data.backend === 'custom' && data.customAgentId) {
+    if (data.customAgentId) {
       return this.resolveCustomAgentCliConfig(data);
     }
-    if (data.backend !== 'custom') {
-      return this.resolveBuiltinBackendConfig(data);
-    }
-    // backend === 'custom' but no customAgentId - invalid state
-    mainWarn('[AcpAgentManager]', 'Custom backend specified but customAgentId is missing');
-    return { cliPath: data.cliPath };
+    return this.resolveBuiltinBackendConfig(data);
   }
 
   /**
    * Resolve CLI config for a custom agent backend.
-   * Looks up acp.customAgents by UUID, falling back to extension-contributed adapters.
+   * Looks up assistants config by UUID, falling back to extension-contributed adapters.
    */
   private async resolveCustomAgentCliConfig(data: AcpAgentManagerData): Promise<{
     cliPath?: string;
     customArgs?: string[];
     customEnv?: Record<string, string>;
   }> {
-    const customAgents = await ProcessConfig.get('acp.customAgents');
+    const customAgents = await ProcessConfig.get('assistants');
     let customAgentConfig: CustomAgentLaunchConfig | undefined = customAgents?.find(
       (agent) => agent.id === data.customAgentId
     );
