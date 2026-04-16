@@ -59,7 +59,7 @@ vi.mock('@/renderer/pages/conversation/Messages/components/MessageCronBadge', ()
   default: () => <div data-testid='message-cron-badge' />,
 }));
 
-import MessageText from '@/renderer/pages/conversation/Messages/components/MessagetText';
+import MessageText from '@/renderer/pages/conversation/Messages/components/MessageText';
 
 const createMessage = (overrides?: Partial<IMessageText>): IMessageText => ({
   id: 'message-1',
