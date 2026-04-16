@@ -1,12 +1,12 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { AcpSession } from '@process/acp/session/AcpSession';
+import type { AcpClient, ClientFactory } from '@process/acp/infra/IAcpClient';
 import type {
   AgentConfig,
   SessionCallbacks,
   SessionStatus,
-  ConnectorFactory,
-  SessionOptions,
 } from '@process/acp/types';
+import type { SessionOptions } from '@process/acp/session/AcpSession';
 
 function createMockCallbacks(): SessionCallbacks {
   return {
@@ -23,13 +23,12 @@ function createMockCallbacks(): SessionCallbacks {
   };
 }
 
-function createMockProtocol() {
-  return {
-    initialize: vi.fn().mockResolvedValue({
+function createMockClient() {
+  const client: AcpClient = {
+    start: vi.fn().mockResolvedValue({
       protocolVersion: '0.1',
       capabilities: {},
     }),
-    authenticate: vi.fn().mockResolvedValue({}),
     createSession: vi.fn().mockResolvedValue({
       sessionId: 'sess-123',
       currentModelId: 'claude-3',
@@ -48,20 +47,17 @@ function createMockProtocol() {
     setConfigOption: vi.fn().mockResolvedValue(undefined),
     closeSession: vi.fn().mockResolvedValue(undefined),
     extMethod: vi.fn().mockResolvedValue({}),
-    closed: new Promise<void>(() => {}),
-    signal: new AbortController().signal,
+    authenticate: vi.fn().mockResolvedValue({}),
+    lifecycleSnapshot: { pid: null, running: false, lastExit: null },
+    onDisconnect: vi.fn(),
+    close: vi.fn().mockResolvedValue(undefined),
   };
+  return client;
 }
 
-function createMockConnectorFactory(protocol: ReturnType<typeof createMockProtocol>): ConnectorFactory {
+function createMockClientFactory(client: AcpClient): ClientFactory {
   return {
-    create: vi.fn(() => ({
-      connect: vi.fn().mockResolvedValue({
-        stream: { readable: new ReadableStream(), writable: new WritableStream() },
-        shutdown: vi.fn().mockResolvedValue(undefined),
-      }),
-      isAlive: vi.fn().mockReturnValue(true),
-    })),
+    create: vi.fn(() => client),
   };
 }
 
@@ -76,28 +72,24 @@ const baseConfig: AgentConfig = {
 
 describe('AcpSession lifecycle', () => {
   let callbacks: SessionCallbacks;
-  let protocol: ReturnType<typeof createMockProtocol>;
-  let connectorFactory: ConnectorFactory;
-  let options: SessionOptions;
+  let client: AcpClient;
+  let clientFactory: ClientFactory;
 
   beforeEach(() => {
     callbacks = createMockCallbacks();
-    protocol = createMockProtocol();
-    connectorFactory = createMockConnectorFactory(protocol);
-    options = {
-      protocolFactory: () => protocol as any,
-    };
+    client = createMockClient();
+    clientFactory = createMockClientFactory(client);
   });
 
   it('starts in idle state', () => {
-    const session = new AcpSession(baseConfig, connectorFactory, callbacks, options);
+    const session = new AcpSession(baseConfig, clientFactory, callbacks);
     expect(session.status).toBe('idle');
   });
 
   it('start() transitions idle → starting → active (T1, T2)', async () => {
     const statusChanges: SessionStatus[] = [];
     callbacks.onStatusChange = vi.fn((s) => statusChanges.push(s));
-    const session = new AcpSession(baseConfig, connectorFactory, callbacks, options);
+    const session = new AcpSession(baseConfig, clientFactory, callbacks);
 
     session.start();
     await vi.waitFor(() => expect(session.status).toBe('active'));
@@ -106,17 +98,17 @@ describe('AcpSession lifecycle', () => {
     expect(statusChanges).toContain('active');
   });
 
-  it('start() calls initialize and createSession', async () => {
-    const session = new AcpSession(baseConfig, connectorFactory, callbacks, options);
+  it('start() calls start and createSession on client', async () => {
+    const session = new AcpSession(baseConfig, clientFactory, callbacks);
     session.start();
     await vi.waitFor(() => expect(session.status).toBe('active'));
 
-    expect(protocol.initialize).toHaveBeenCalledOnce();
-    expect(protocol.createSession).toHaveBeenCalledOnce();
+    expect(client.start).toHaveBeenCalledOnce();
+    expect(client.createSession).toHaveBeenCalledOnce();
   });
 
   it('start() notifies sessionId via callback', async () => {
-    const session = new AcpSession(baseConfig, connectorFactory, callbacks, options);
+    const session = new AcpSession(baseConfig, clientFactory, callbacks);
     session.start();
     await vi.waitFor(() => expect(session.status).toBe('active'));
 
@@ -125,7 +117,7 @@ describe('AcpSession lifecycle', () => {
   });
 
   it('stop() transitions any state → idle (T7, T15, T17, T22)', async () => {
-    const session = new AcpSession(baseConfig, connectorFactory, callbacks, options);
+    const session = new AcpSession(baseConfig, clientFactory, callbacks);
     session.start();
     await vi.waitFor(() => expect(session.status).toBe('active'));
 
@@ -134,7 +126,7 @@ describe('AcpSession lifecycle', () => {
   });
 
   it('suspend() transitions active → suspended when queue empty (T6, INV-S-05)', async () => {
-    const session = new AcpSession(baseConfig, connectorFactory, callbacks, options);
+    const session = new AcpSession(baseConfig, clientFactory, callbacks);
     session.start();
     await vi.waitFor(() => expect(session.status).toBe('active'));
 
@@ -143,13 +135,13 @@ describe('AcpSession lifecycle', () => {
   });
 
   it('start() from error state resets retry count (T21)', async () => {
-    const session = new AcpSession(baseConfig, connectorFactory, callbacks, options);
+    const session = new AcpSession(baseConfig, clientFactory, callbacks);
 
-    protocol.initialize.mockRejectedValue(new Error('permanent'));
+    (client.start as ReturnType<typeof vi.fn>).mockRejectedValue(new Error('permanent'));
     session.start();
     await vi.waitFor(() => expect(session.status).toBe('error'), { timeout: 10000 });
 
-    protocol.initialize.mockResolvedValue({ protocolVersion: '0.1', capabilities: {} });
+    (client.start as ReturnType<typeof vi.fn>).mockResolvedValue({ protocolVersion: '0.1', capabilities: {} });
     session.start();
     await vi.waitFor(() => expect(session.status).toBe('active'));
   });
@@ -184,7 +176,7 @@ describe('AcpSession lifecycle', () => {
       prevStatus = status;
     });
 
-    const session = new AcpSession(baseConfig, connectorFactory, callbacks, options);
+    const session = new AcpSession(baseConfig, clientFactory, callbacks);
     session.start();
     await vi.waitFor(() => expect(session.status).toBe('active'));
     await session.stop();

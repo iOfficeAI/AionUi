@@ -12,7 +12,7 @@ import type {
   SessionStatus,
   SignalEvent,
 } from '@process/acp/types';
-import type { ConnectorFactory } from '@process/acp/infra/IAgentConnector';
+import type { ClientFactory } from '@process/acp/infra/IAcpClient';
 import type { IAcpSessionRepository } from '@process/services/database/IAcpSessionRepository';
 
 const DEFAULT_IDLE_TIMEOUT_MS = 300_000; // 5 minutes
@@ -30,7 +30,7 @@ export class AcpRuntime {
 
   constructor(
     private readonly acpSessionRepo: IAcpSessionRepository,
-    private readonly connectorFactory: ConnectorFactory,
+    private readonly clientFactory: ClientFactory,
     options?: RuntimeOptions
   ) {
     this.idleReclaimer = new IdleReclaimer(
@@ -45,7 +45,7 @@ export class AcpRuntime {
     if (this.sessions.has(convId)) return;
 
     const callbacks = this.buildCallbacks(convId);
-    const session = new AcpSession(agentConfig, this.connectorFactory, callbacks);
+    const session = new AcpSession(agentConfig, this.clientFactory, callbacks);
 
     this.sessions.set(convId, { session, lastActiveAt: Date.now() });
 

@@ -50,6 +50,15 @@ export function normalizeError(error: unknown): AcpError {
     return new AcpError('AGENT_ERROR', error.message, { cause: error });
   }
 
+  // Detect SDK "ACP connection closed" — child process exited before responding.
+  // This is typically a transient process crash and should be retryable.
+  if (error instanceof Error && /ACP connection closed/i.test(error.message)) {
+    return new AcpError('PROCESS_CRASHED', error.message, {
+      cause: error,
+      retryable: true,
+    });
+  }
+
   // Fallback: legacy recursive extraction for non-SDK errors
   const acpPayload = extractAcpError(error);
   if (acpPayload) {

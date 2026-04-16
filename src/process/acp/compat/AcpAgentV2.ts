@@ -88,14 +88,14 @@ export class AcpAgentV2 {
     }
 
     const callbacks: SessionCallbacks = this.buildCallbacks();
-    const connectorFactory = new LegacyConnectorFactory();
+    const clientFactory = new LegacyConnectorFactory();
     const sessionOptions: SessionOptions = {
       promptTimeoutMs: 300_000,
       maxStartRetries: 3,
       maxResumeRetries: 2,
     };
 
-    this.session = new AcpSession(this.agentConfig, connectorFactory, callbacks, sessionOptions);
+    this.session = new AcpSession(this.agentConfig, clientFactory, callbacks, sessionOptions);
     return this.session;
   }
 

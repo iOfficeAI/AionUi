@@ -2,13 +2,13 @@
 
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { AcpSession } from '@process/acp/session/AcpSession';
+import type { AcpClient, ClientFactory } from '@process/acp/infra/IAcpClient';
 import type {
   AgentConfig,
   SessionCallbacks,
   SessionStatus,
-  ConnectorFactory,
-  SessionOptions,
 } from '@process/acp/types';
+import type { SessionOptions } from '@process/acp/session/AcpSession';
 
 function createMockCallbacks(): SessionCallbacks {
   return {
@@ -25,10 +25,9 @@ function createMockCallbacks(): SessionCallbacks {
   };
 }
 
-function createMockProtocol() {
+function createMockClient(): AcpClient {
   return {
-    initialize: vi.fn().mockResolvedValue({ protocolVersion: '0.1', capabilities: {} }),
-    authenticate: vi.fn().mockResolvedValue({}),
+    start: vi.fn().mockResolvedValue({ protocolVersion: '0.1', capabilities: {} }),
     createSession: vi.fn().mockResolvedValue({
       sessionId: 'sess-1',
       currentModelId: 'claude-3',
@@ -45,8 +44,10 @@ function createMockProtocol() {
     setConfigOption: vi.fn().mockResolvedValue(undefined),
     closeSession: vi.fn().mockResolvedValue(undefined),
     extMethod: vi.fn().mockResolvedValue({}),
-    closed: new Promise<void>(() => {}),
-    signal: new AbortController().signal,
+    authenticate: vi.fn().mockResolvedValue({}),
+    lifecycleSnapshot: { pid: null, running: false, lastExit: null },
+    onDisconnect: vi.fn(),
+    close: vi.fn().mockResolvedValue(undefined),
   };
 }
 
@@ -61,27 +62,17 @@ const baseConfig: AgentConfig = {
 
 describe('AcpSession prompt flow', () => {
   let callbacks: SessionCallbacks;
-  let protocol: ReturnType<typeof createMockProtocol>;
-  let options: SessionOptions;
-  let connectorFactory: ConnectorFactory;
+  let client: AcpClient;
+  let clientFactory: ClientFactory;
 
   beforeEach(() => {
     callbacks = createMockCallbacks();
-    protocol = createMockProtocol();
-    connectorFactory = {
-      create: vi.fn(() => ({
-        connect: vi.fn().mockResolvedValue({
-          stream: { readable: new ReadableStream(), writable: new WritableStream() },
-          shutdown: vi.fn().mockResolvedValue(undefined),
-        }),
-        isAlive: vi.fn().mockReturnValue(true),
-      })),
-    };
-    options = { protocolFactory: () => protocol as any };
+    client = createMockClient();
+    clientFactory = { create: vi.fn(() => client) };
   });
 
   async function startSession() {
-    const session = new AcpSession(baseConfig, connectorFactory, callbacks, options);
+    const session = new AcpSession(baseConfig, clientFactory, callbacks);
     session.start();
     await vi.waitFor(() => expect(session.status).toBe('active'));
     return session;
@@ -90,13 +81,13 @@ describe('AcpSession prompt flow', () => {
   it('sendMessage enqueues and triggers drain (INV-S-02)', async () => {
     const session = await startSession();
     session.sendMessage('hello');
-    await vi.waitFor(() => expect(protocol.prompt).toHaveBeenCalledOnce());
+    await vi.waitFor(() => expect(client.prompt).toHaveBeenCalledOnce());
     expect(session.status).toBe('active');
   });
 
   it('executes queued prompts in FIFO order (INV-S-02)', async () => {
     const order: string[] = [];
-    protocol.prompt = vi.fn(async (_sid, content) => {
+    (client.prompt as ReturnType<typeof vi.fn>) = vi.fn(async (_sid, content) => {
       order.push((content as any)[0]?.text ?? '');
       return { stopReason: 'end_turn' };
     });
@@ -109,7 +100,7 @@ describe('AcpSession prompt flow', () => {
   });
 
   it('sendMessage throws in idle state', () => {
-    const session = new AcpSession(baseConfig, connectorFactory, callbacks, options);
+    const session = new AcpSession(baseConfig, clientFactory, callbacks);
     expect(() => session.sendMessage('hello')).toThrow(/Cannot send in idle state/);
   });
 
@@ -122,8 +113,8 @@ describe('AcpSession prompt flow', () => {
   });
 
   it('onQueueUpdate pushes complete snapshot (INV-X-02)', async () => {
+    (client.prompt as ReturnType<typeof vi.fn>) = vi.fn(() => new Promise(() => {}));
     const session = await startSession();
-    protocol.prompt = vi.fn(() => new Promise(() => {}));
     session.sendMessage('a');
     session.sendMessage('b');
     const calls = (callbacks.onQueueUpdate as any).mock.calls;

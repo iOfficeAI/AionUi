@@ -1,15 +1,14 @@
 // src/process/acp/infra/AcpProtocol.ts
 
 import type {
-  AuthMethod,
   Client,
   InitializeResponse,
   LoadSessionResponse,
+  McpServer,
   NewSessionResponse,
   PromptResponse,
   SetSessionConfigOptionRequest,
   Stream,
-  McpServer,
 } from '@agentclientprotocol/sdk';
 import { ClientSideConnection, PROTOCOL_VERSION } from '@agentclientprotocol/sdk';
 import type { PromptContent, ProtocolHandlers } from '@process/acp/types';
@@ -128,6 +127,3 @@ export class AcpProtocol {
 
 /** Default factory for production use. */
 export const defaultProtocolFactory: ProtocolFactory = (stream, handlers) => new AcpProtocol(stream, handlers);
-
-// Re-export SDK types used by downstream modules
-export type { AuthMethod, InitializeResponse, LoadSessionResponse, NewSessionResponse, PromptResponse };

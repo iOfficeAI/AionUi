@@ -1,6 +1,6 @@
 # 测试计划
 
-> **版本**: v1.1 | **最后更新**: 2026-04-14 | **状态**: Draft
+> **版本**: v1.2 | **最后更新**: 2026-04-16 | **状态**: Draft
 > **摘要**: ACP 重构项目 4 层测试方案，覆盖 T1-T4 全部测试层级，映射 23 条不变量
 > **受众**: ACP 重构实现开发者、新加入团队的开发者
 
@@ -35,19 +35,19 @@
 │ 不变量: INV-A-01, INV-A-02                                         │
 ├────────────────────────────────────────────────────────────────────┤
 │ T3 编排集成测试                                                    │
-│ AcpSession + Fake Connector + Fake Protocol                        │
+│ AcpSession + Fake AcpClient                                        │
 │ 验证: 状态机转换, drain loop, crash recovery, 权限流程, 认证流程   │
 │ 不变量: INV-S-01~S-10, INV-S-15, INV-X-02~X-04                     │
 ├────────────────────────────────────────────────────────────────────┤
 │ T2 契约测试                                                        │
 │ 真实实现 vs 接口契约                                               │
-│ 验证: Connector 实现满足接口契约, fake protocol 与真实 SDK 一致    │
+│ 验证: AcpClient 实现满足接口契约, FakeAcpClient 与真实行为一致     │
 │ 不变量: INV-I-01, INV-I-02, INV-X-01                               │
 ├────────────────────────────────────────────────────────────────────┤
 │ T1 纯逻辑单测                                                      │
 │ 独立组件, 无 mock, 表驱动                                          │
 │ 验证: 组件级纯逻辑正确性                                           │
-│ 不变量: INV-S-11~S-14                                               │
+│ 不变量: INV-S-11~S-14                                              │
 └────────────────────────────────────────────────────────────────────┘
 ```
 
@@ -56,7 +56,7 @@
 | 维度             | T1 纯逻辑  | T2 契约          | T3 编排集成                    | T4 Runtime             |
 | ---------------- | ---------- | ---------------- | ------------------------------ | ---------------------- |
 | **范围**         | 单组件     | 接口实现         | AcpSession 整体                | AcpRuntime 整体        |
-| **Mock 边界**    | 无 mock    | 真实实现 vs 规格 | Fake Connector + Fake Protocol | Fake Session + Fake DB |
+| **Mock 边界**    | 无 mock    | 真实实现 vs 规格 | Fake AcpClient                 | Fake Session + Fake DB |
 | **运行速度**     | < 1ms/case | 10-50ms/case     | 50-200ms/case                  | 50-200ms/case          |
 | **预估 case 数** | 80-120     | 10-15            | 20-30                          | 10-15                  |
 | **测试工具**     | Vitest     | Vitest           | Vitest                         | Vitest                 |
@@ -68,8 +68,8 @@
 
 | 不变量   | 简述                       | 测试层级    | 对应测试文件                                         |
 | -------- | -------------------------- | ----------- | ---------------------------------------------------- |
-| INV-I-01 | 进程不残留                 | T2          | `IPCConnector.spec.ts`, `WebSocketConnector.spec.ts` |
-| INV-I-02 | 三阶段关闭                 | T2          | `IPCConnector.spec.ts`                               |
+| INV-I-01 | 进程不残留                 | T2          | `ProcessAcpClient.spec.ts`, `WebSocketAcpClient.spec.ts` |
+| INV-I-02 | 三阶段关闭                 | T2          | `ProcessAcpClient.spec.ts`                               |
 | INV-S-01 | 单 prompt 执行             | T3          | `AcpSession.spec.ts`                                 |
 | INV-S-02 | 单队列不变                 | T3          | `AcpSession.spec.ts`                                 |
 | INV-S-03 | 状态收敛                   | T3          | `AcpSession.spec.ts`                                 |
@@ -238,11 +238,11 @@ T1 测试覆盖 AcpSession 的 8 个组合组件 + errors 模块。这些组件�
 | 4   | fallback — claude backend         | 空 rawMethods + backend='claude'                                        | 返回含 terminal (`/login`) + env_var (`ANTHROPIC_API_KEY`) 的默认选项              |
 | 5   | fallback — codex backend          | 空 rawMethods + backend='codex'                                         | 返回含 terminal (`auth`) + env_var (`OPENAI_API_KEY`, `CODEX_API_KEY`)             |
 | 6   | fallback — unknown backend        | 空 rawMethods + backend='unknown'                                       | 返回空数组 (无 loginArg 且无 envVarNames)                                          |
-| 7   | 空 authMethods 不触发认证         | `authenticate(protocol, [])`                                            | 不调用 protocol.authenticate (跳过认证，由 AcpSession 控制)                        |
+| 7   | 空 authMethods 不触发认证         | `authenticate(client, [])`                                              | 不调用 client.extMethod('authenticate') (跳过认证，由 AcpSession 控制)             |
 | 8   | mergeCredentials 合并逻辑         | 初始 `{ A: '1' }` → `mergeCredentials({ B: '2' })`                      | 合并后 credentials = `{ A: '1', B: '2' }`                                          |
 | 9   | mergeCredentials 覆盖             | 初始 `{ A: '1' }` → `mergeCredentials({ A: '2' })`                      | credentials = `{ A: '2' }` (后者覆盖)                                              |
-| 10  | authenticate 成功                 | protocol.authenticate 成功                                              | 无异常返回                                                                         |
-| 11  | authenticate 失败抛 AUTH_REQUIRED | protocol.authenticate 抛异常                                            | 抛出 `AcpError { code: 'AUTH_REQUIRED', retryable: true }` 并附带 AuthRequiredData |
+| 10  | authenticate 成功                 | client.extMethod('authenticate') 成功                                   | 无异常返回                                                                         |
+| 11  | authenticate 失败抛 AUTH_REQUIRED | client.extMethod('authenticate') 抛异常                                 | 抛出 `AcpError { code: 'AUTH_REQUIRED', retryable: true }` 并附带 AuthRequiredData |
 
 ---
 
@@ -252,24 +252,26 @@ T1 测试覆盖 AcpSession 的 8 个组合组件 + errors 模块。这些组件�
 
 T2 验证**接口实现是否满足接口契约**。在 ACP 架构中有两类契约需要验证：
 
-1. **AgentConnector 契约**: IPCConnector 和 WebSocketConnector 是否满足 AgentConnector 接口的行为规格
-2. **ProtocolFactory 契约**: T3 中使用的 Fake Protocol 是否与真实 SDK 行为一致
+1. **AcpClient 契约**: ProcessAcpClient 和 WebSocketAcpClient 是否满足 AcpClient 接口的行为规格
+2. **FakeAcpClient 契约**: T3 中使用的 FakeAcpClient 是否与真实实现行为一致
 3. **类型边界契约**: SessionCallbacks 参数是否不含 SDK 类型 (INV-X-01)
 
-### 3.2 IPCConnector 契约
+### 3.2 ProcessAcpClient 契约
 
-**测试文件**: `IPCConnector.spec.ts`
+**测试文件**: `ProcessAcpClient.spec.ts`
 **Mock 边界**: 使用真实的 `spawn` 启动一个简单的 echo 进程（Node.js 脚本），验证真实的 stdio 通信。
 
-| #   | 测试用例             | 方法                                                 | 验证要点                                               |
-| --- | -------------------- | ---------------------------------------------------- | ------------------------------------------------------ |
-| 1   | connect 成功         | `connect()`                                          | 返回 ConnectorHandle 含 stream + shutdown              |
-| 2   | connect 后 isAlive   | `connect()` → `isAlive()`                            | 返回 `true`                                            |
-| 3   | shutdown 后 isAlive  | `connect()` → `shutdown()` → `isAlive()`             | 返回 `false` **(INV-I-01)**                            |
-| 4   | 三阶段关闭顺序       | `connect()` → 启动不响应 stdin 的进程 → `shutdown()` | 验证 stdin.end → SIGTERM → SIGKILL 顺序 **(INV-I-02)** |
-| 5   | spawn 失败           | 配置不存在的 command                                 | 抛出 `AcpError { code: 'CONNECTION_FAILED' }`          |
-| 6   | stream 可读写        | `connect()` → 通过 stream 发送/接收 NDJSON           | 正确序列化和反序列化                                   |
-| 7   | unref 确保不阻塞退出 | shutdown 后检查 child.unref 被调用                   | 主进程不被子进程阻塞                                   |
+| #   | 测试用例                           | 方法                                                   | 验证要点                                               |
+| --- | ---------------------------------- | ------------------------------------------------------ | ------------------------------------------------------ |
+| 1   | start 成功                         | `start()`                                              | 返回 InitializeResponse                                |
+| 2   | start 后 lifecycleSnapshot.running | `start()` → `lifecycleSnapshot`                        | `running === true`                                     |
+| 3   | close 后 lifecycleSnapshot.running | `start()` → `close()` → `lifecycleSnapshot`            | `running === false` **(INV-I-01)**                     |
+| 4   | 三阶段关闭顺序                     | `start()` → 启动不响应 stdin 的进程 → `close()`        | 验证 stdin.end → SIGTERM → SIGKILL 顺序 **(INV-I-02)** |
+| 5   | spawn 失败                         | 配置不存在的 command                                   | 抛出 `AgentSpawnError`                                 |
+| 6   | start 时进程提前退出               | 进程在 init 前 crash                                   | 抛出 `AgentStartupError`，包含 stderr               |
+| 7   | lifecycleSnapshot 含退出信息       | 进程退出后读取 `lifecycleSnapshot`                      | `lastExit` 含 exitCode + stderr                        |
+| 8   | 4-signal 生命周期检测              | 验证 exit/close/pipe_close 事件触发 onDisconnect       | onDisconnect handler 被调用，含 DisconnectInfo          |
+| 9   | unref 确保不阻塞退出               | close 后检查 child.unref 被调用                        | 主进程不被子进程阻塞                                   |
 
 **辅助测试进程**: 需要创建一组测试用的 Node.js 脚本：
 
@@ -277,19 +279,19 @@ T2 验证**接口实现是否满足接口契约**。在 ACP 架构中有两类�
 - `test-hang-agent.js`: 不响应 stdin.end 和 SIGTERM，只响应 SIGKILL
 - `test-crash-agent.js`: 启动后延迟 crash
 
-### 3.3 WebSocketConnector 契约
+### 3.3 WebSocketAcpClient 契约
 
-**测试文件**: `WebSocketConnector.spec.ts`
+**测试文件**: `WebSocketAcpClient.spec.ts`
 **Mock 边界**: 使用 `ws` 库在本地启动 WebSocket 服务器，验证真实的 WebSocket 通信。
 
-| #   | 测试用例            | 方法                                     | 验证要点                                      |
-| --- | ------------------- | ---------------------------------------- | --------------------------------------------- |
-| 1   | connect 成功        | `connect()`                              | 返回 ConnectorHandle                          |
-| 2   | connect 后 isAlive  | `connect()` → `isAlive()`                | 返回 `true`                                   |
-| 3   | shutdown 后 isAlive | `connect()` → `shutdown()` → `isAlive()` | 返回 `false` **(INV-I-01)**                   |
-| 4   | 连接失败            | 配置不可达的 URL                         | 抛出 `AcpError { code: 'CONNECTION_FAILED' }` |
-| 5   | 服务端关闭          | 连接后服务端主动关闭                     | `isAlive()` 变为 `false`                      |
-| 6   | stream 可读写       | 通过 stream 发送/接收消息                | 正确传输 JSON-RPC 消息                        |
+| #   | 测试用例                           | 方法                                       | 验证要点                                      |
+| --- | ---------------------------------- | ------------------------------------------ | --------------------------------------------- |
+| 1   | start 成功                         | `start()`                                  | 返回 InitializeResponse                       |
+| 2   | start 后 lifecycleSnapshot.running | `start()` → `lifecycleSnapshot`            | `running === true`                             |
+| 3   | close 后 lifecycleSnapshot.running | `start()` → `close()` → `lifecycleSnapshot` | `running === false` **(INV-I-01)**            |
+| 4   | 连接失败                           | 配置不可达的 URL                           | 抛出 `AgentSpawnError`                         |
+| 5   | 服务端关闭                         | 连接后服务端主动关闭                       | onDisconnect 触发，`running` 变为 `false`      |
+| 6   | prompt 可通信                      | 通过 `prompt()` 发送/接收消息              | 正确传输 JSON-RPC 消息                        |
 
 ### 3.4 SessionCallbacks 类型边界
 
@@ -304,17 +306,17 @@ T2 验证**接口实现是否满足接口契约**。在 ACP 架构中有两类�
 
 > 注: 此项也可通过 TSConfig 的 `paths` + `no-restricted-imports` lint 规则在编译期保障。
 
-### 3.5 Fake Protocol 契约 (T3 支持)
+### 3.5 FakeAcpClient 契约 (T3 支持)
 
-**测试文件**: `FakeProtocol.contract.spec.ts`
+**测试文件**: `FakeAcpClient.contract.spec.ts`
 
 | #   | 测试用例                     | 验证要点                               |
 | --- | ---------------------------- | -------------------------------------- |
-| 1   | initialize 返回格式          | 与真实 SDK InitializeResponse 结构一致 |
+| 1   | start 返回格式               | 与真实 SDK InitializeResponse 结构一致 |
 | 2   | prompt 返回 PromptResponse   | stopReason 字段存在且有效              |
-| 3   | closed Promise 行为          | 手动触发断连时 closed Promise resolves |
-| 4   | onSessionUpdate 回调格式     | notification.update 结构与 SDK 一致    |
-| 5   | onRequestPermission 回调格式 | request 结构与 SDK 一致                |
+| 3   | onDisconnect 回调行为        | simulateDisconnect 时 handler 被调用，含 DisconnectInfo |
+| 4   | lifecycleSnapshot 行为       | start 后 running=true, close 后 running=false |
+| 5   | onSessionUpdate 回调格式     | notification.update 结构与 SDK 一致    |
 
 ---
 
@@ -332,55 +334,79 @@ T3 是 ACP 重构测试的核心层。测试 AcpSession 作为 aggregate root �
 
 **Mock 边界**:
 
-- `AgentConnector`: 使用 FakeConnector（可控的 connect/shutdown）
-- `ProtocolFactory`: 注入 FakeProtocol（可控的 prompt 成功/失败/超时，可触发 sessionUpdate/permissionRequest）
+- `AcpClient`: 使用 FakeAcpClient（可控的 start/close/prompt 成功/失败/超时，可触发 sessionUpdate/permissionRequest/disconnect）
 - `SessionCallbacks`: 使用 spy 记录所有回调调用
 
 ### 4.2 测试基础设施
 
 ```typescript
-// FakeConnector — 可控的连接器
-class FakeConnector implements AgentConnector {
-  connectResult: ConnectorHandle | Error;
-  private _alive = false;
+// FakeAcpClient — 可控的 AcpClient 实现（替代原 FakeConnector + FakeProtocol）
+class FakeAcpClient implements AcpClient {
+  private _running = false;
+  private _disconnectHandler: ((info: DisconnectInfo) => void) | null = null;
+  private _lifecycleSnapshot: AgentLifecycleSnapshot = {
+    pid: null,
+    running: false,
+    lastExit: null,
+  };
 
-  async connect(): Promise<ConnectorHandle> {
-    if (this.connectResult instanceof Error) throw this.connectResult;
-    this._alive = true;
-    return this.connectResult;
-  }
-  isAlive(): boolean { return this._alive; }
-  kill(): void { this._alive = false; }
-}
+  // 可配置: start 成功/失败
+  startResult: InitializeResponse | Error = { protocolVersion: '1' };
 
-// FakeProtocol — 可控的协议层
-class FakeProtocol {
-  private closedResolve: () => void;
-  readonly closed: Promise<void>;
-  sessionUpdateHandler: ((n: SessionNotification) => void) | null;
-  permissionHandler: ((r: any) => Promise<any>) | null;
+  // 可配置: prompt 成功/失败/超时
+  promptResult: PromptResponse | Error | 'timeout' = { stopReason: 'end_turn' };
 
-  constructor(stream: any, handlers: ProtocolHandlers) {
-    this.closed = new Promise(r => { this.closedResolve = r; });
-    this.sessionUpdateHandler = handlers.onSessionUpdate;
-    this.permissionHandler = handlers.onRequestPermission;
+  async start(): Promise<InitializeResponse> {
+    if (this.startResult instanceof Error) throw this.startResult;
+    this._running = true;
+    this._lifecycleSnapshot = { pid: 12345, running: true, lastExit: null };
+    return this.startResult;
   }
 
-  // 可控方法
-  initialize(): Promise<any> { return Promise.resolve({ protocolVersion: '1' }); }
-  authenticate(): Promise<any> { return Promise.resolve({}); }
-  createSession(p: any): Promise<any> { return Promise.resolve({ sessionId: 'sid-1', ... }); }
-  loadSession(p: any): Promise<any> { return Promise.resolve({ sessionId: p.sessionId, ... }); }
-  prompt(sid: string, content: any): Promise<any> { ... } // 可配置成功/失败/超时
-  cancel(): Promise<void> { return Promise.resolve(); }
-  setModel(): Promise<void> { return Promise.resolve(); }
-  setMode(): Promise<void> { return Promise.resolve(); }
-  closeSession(): Promise<void> { return Promise.resolve(); }
+  async createSession(p: any): Promise<any> { return { sessionId: 'sid-1' }; }
+  async loadSession(p: any): Promise<any> { return { sessionId: p.sessionId }; }
+  async prompt(sid: string, content: any): Promise<any> {
+    if (this.promptResult instanceof Error) throw this.promptResult;
+    return this.promptResult;
+  }
+  async cancel(): Promise<void> {}
+  async setModel(): Promise<void> {}
+  async setMode(): Promise<void> {}
+  async setConfigOption(): Promise<void> {}
+  async closeSession(): Promise<void> {}
+  async extMethod(): Promise<unknown> { return {}; }
+
+  get lifecycleSnapshot(): AgentLifecycleSnapshot { return this._lifecycleSnapshot; }
+
+  onDisconnect(handler: (info: DisconnectInfo) => void): void {
+    this._disconnectHandler = handler;
+  }
+
+  async close(): Promise<void> {
+    this._running = false;
+    this._lifecycleSnapshot = { ...this._lifecycleSnapshot, running: false };
+  }
 
   // 测试辅助: 模拟断连
-  simulateDisconnect(): void { this.closedResolve(); }
-  // 测试辅助: 推送 sessionUpdate
-  pushUpdate(update: any): void { this.sessionUpdateHandler?.(update); }
+  simulateDisconnect(info?: Partial<DisconnectInfo>): void {
+    this._running = false;
+    const disconnectInfo: DisconnectInfo = {
+      reason: 'process_exit',
+      exitCode: 1,
+      signal: null,
+      stderr: '',
+      ...info,
+    };
+    this._lifecycleSnapshot = {
+      ...this._lifecycleSnapshot,
+      running: false,
+      lastExit: { ...disconnectInfo, unexpectedDuringPrompt: true },
+    };
+    this._disconnectHandler?.(disconnectInfo);
+  }
+
+  // 测试辅助: 推送 sessionUpdate (通过内部 handler)
+  pushUpdate(update: any): void { /* 触发注册的 session update handler */ }
 }
 
 // CallbackSpy — 记录所有回调
@@ -448,7 +474,7 @@ function createCallbackSpy(): SessionCallbacks & { calls: Record<string, any[]> 
 | --- | ------------------------------ | ------------------------------------------ | --------------------------------------------------------------------------------- | ------------------ |
 | 1   | 条件认证: authMethods 为空跳过 | start() + initResult.authMethods = []      | 不调用 authenticate()，直接进入 createSession                                     | —                  |
 | 2   | AUTH_REQUIRED 信号             | start() + authenticate 失败                | 发 `onSignal({ type: 'auth_required', auth })` 而非进入 error，停留在 starting    | INV-S-15           |
-| 3   | AUTH_REQUIRED 释放资源         | start() + authenticate 失败                | `connectorHandle === null && protocol === null`                                   | INV-S-15           |
+| 3   | AUTH_REQUIRED 释放资源         | start() + authenticate 失败                | `client === null`                                                                 | INV-S-15           |
 | 4   | retryAuth 完整重启             | 认证失败后调用 retryAuth()                 | teardown + setStatus('idle') + start() 完整重新走 connect→init→auth→createSession | INV-S-15           |
 | 5   | retryAuth 后仍失败             | retryAuth() 后 authenticate 再次失败       | 再次发 `auth_required` 信号，可无限重试                                           | INV-S-15           |
 | 6   | retryAuth 带凭据               | retryAuth({ ANTHROPIC_API_KEY: 'sk-...' }) | mergeCredentials 被调用，重启后使用新凭据                                         | —                  |
@@ -583,8 +609,8 @@ T4 验证 AcpRuntime 作为应用层入口的正确性：
 | `session/PromptTimer.ts`        | >= 90%       | 时间相关测试有精度限制        |
 | `session/MessageTranslator.ts`  | >= 80%       | 翻译逻辑依赖 SDK 类型细节     |
 | `session/AuthNegotiator.ts`     | >= 90%       | 纯逻辑，T1 覆盖 + T3 认证流程 |
-| `infra/IPCConnector.ts`         | >= 85%       | T2 真实进程测试               |
-| `infra/WebSocketConnector.ts`   | >= 85%       | T2 真实 WebSocket 测试        |
+| `infra/ProcessAcpClient.ts`         | >= 85%       | T2 真实进程测试               |
+| `infra/WebSocketAcpClient.ts`   | >= 85%       | T2 真实 WebSocket 测试        |
 | `runtime/AcpRuntime.ts`         | >= 85%       | T4 覆盖                       |
 | `runtime/IdleReclaimer.ts`      | >= 90%       | 逻辑简单                      |
 | `errors/*`                      | >= 90%       | T1 覆盖                       |
@@ -606,8 +632,8 @@ T4 验证 AcpRuntime 作为应用层入口的正确性：
 | `session/` 下纯逻辑组件                   | T1                | PromptQueue, ApprovalCache, ConfigTracker, AuthNegotiator 等 |
 | `session/AcpSession.ts`                   | T1 + T3           | 组件 + 编排                                                  |
 | `session/AuthNegotiator.ts`               | T1 + T3           | T1 AuthNegotiator 单测 + T3 认证流程编排                     |
-| `infra/` 下 Connector                     | T2                | 契约测试                                                     |
-| `infra/AcpProtocol.ts`                    | T2 + T3           | 协议层变更影响编排                                           |
+| `infra/` 下 AcpClient 实现            | T2                | 契约测试                                                     |
+| `infra/ProcessAcpClient.ts`           | T2 + T3           | AcpClient 实现变更影响编排                                   |
 | `runtime/` 下任何文件                     | T4                | Runtime 逻辑                                                 |
 | `errors/` 下任何文件                      | T1                | 错误处理                                                     |
 | `types.ts` 或 `session/types.ts`          | T1 + T2 + T3      | 类型变更影响全部                                             |
@@ -627,7 +653,7 @@ SDK 版本升级
   ↓
 运行 T2 契约测试
   ↓ PASS
-运行 T3 编排集成测试 (Fake Protocol 行为可能需要更新)
+运行 T3 编排集成测试 (FakeAcpClient 行为可能需要更新)
   ↓ PASS
 运行 T1 + T4
   ↓ 全部 PASS
@@ -636,7 +662,7 @@ SDK 版本升级
 
 如果 T2 FAIL，说明 SDK 行为变更，需要：
 
-1. 更新 Fake Protocol 以匹配新行为
+1. 更新 FakeAcpClient 以匹配新行为
 2. 检查 AcpSession 中是否有依赖旧行为的代码
 3. 更新相关测试
 
@@ -732,9 +758,9 @@ describe('AcpSession', () => {
 
 | #   | 盲区                             | 原因                                     | 影响                                        |
 | --- | -------------------------------- | ---------------------------------------- | ------------------------------------------- |
-| 1   | **真实 Agent 通信**              | T3 使用 Fake Protocol，不测真实 JSON-RPC | 协议编解码错误需 T2 和手动测试覆盖          |
+| 1   | **真实 Agent 通信**              | T3 使用 FakeAcpClient，不测真实 JSON-RPC | 协议编解码错误需 T2 和手动测试覆盖          |
 | 2   | **多会话并发**                   | T4 中只测基本的 Map 路由                 | 不验证 25+ 会话同时运行时的资源竞争         |
-| 3   | **AcpDetector (Agent 发现层)**   | 不在本次重构范围                         | Connector 收到的 command/args 假设正确      |
+| 3   | **AcpDetector (Agent 发现层)**   | 不在本次重构范围                         | AcpClient 收到的 command/args 假设正确      |
 | 4   | **DB 迁移 (v23→v24)**            | 迁移脚本需要独立测试                     | 需要单独的迁移测试                          |
 | 5   | **InputPreprocessor @file 解析** | Phase 1 可能不完整实现                   | 文件系统相关的 edge case                    |
 | 6   | **长时间运行**                   | 测试无法模拟"开着几天"的场景             | 依赖 onTurnEnd 的增量清理逻辑的 T1 测试覆盖 |

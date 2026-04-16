@@ -1,6 +1,6 @@
 # 场景走查
 
-> **版本**: v1.1 | **最后更新**: 2026-04-14 | **状态**: Draft
+> **版本**: v1.2 | **最后更新**: 2026-04-16 | **状态**: Draft
 > **摘要**: 端到端追踪 10 个关键使用场景的数据流，覆盖 ACP 新架构全部三层组件交互
 > **受众**: ACP 重构实现开发者、新加入团队的开发者
 
@@ -36,16 +36,16 @@
 
 | 场景            |         Application          |                          Session                           |               Infrastructure               | 涉及的关键不变量                       |
 | --------------- | :--------------------------: | :--------------------------------------------------------: | :----------------------------------------: | -------------------------------------- |
-| 1. 冷启动全流程 | AcpRuntime, ConnectorFactory |            AcpSession, ConfigTracker, McpConfig            | IPCConnector, AcpProtocol, NdjsonTransport | INV-I-01, INV-S-09                     |
-| 2. 多消息排队   |          AcpRuntime          |         AcpSession, PromptQueue, MessageTranslator         |                AcpProtocol                 | INV-S-01, INV-S-02, INV-S-14, INV-X-02 |
-| 3. 权限审批     |          AcpRuntime          | AcpSession, PermissionResolver, ApprovalCache, PromptTimer |                AcpProtocol                 | INV-S-04, INV-S-10, INV-S-13           |
-| 4. 挂起与恢复   |          AcpRuntime          |                 AcpSession, ConfigTracker                  |         IPCConnector, AcpProtocol          | INV-S-05, INV-A-01                     |
-| 5. Crash 恢复   |          AcpRuntime          |        AcpSession, PromptQueue, PermissionResolver         |         IPCConnector, AcpProtocol          | INV-S-03, INV-S-06, INV-S-08, INV-X-04 |
-| 6. 空闲回收     |  IdleReclaimer, AcpRuntime   |                         AcpSession                         |                IPCConnector                | INV-A-02, INV-I-01                     |
-| 7. 配置变更     |          AcpRuntime          |                 AcpSession, ConfigTracker                  |                AcpProtocol                 | INV-S-11                               |
-| 8. WebSocket    | AcpRuntime, ConnectorFactory |                         AcpSession                         |      WebSocketConnector, AcpProtocol       | INV-I-01                               |
-| 9. 错误恢复     |          AcpRuntime          |                 AcpSession, ConfigTracker                  |         IPCConnector, AcpProtocol          | INV-S-03, INV-S-09                     |
-| 10. 条件认证    |          AcpRuntime          |                 AcpSession, AuthNegotiator                 |         IPCConnector, AcpProtocol          | INV-S-15, INV-S-03                     |
+| 1. 冷启动全流程 | AcpRuntime, ClientFactory    |            AcpSession, ConfigTracker, McpConfig            | ProcessAcpClient                           | INV-I-01, INV-S-09                     |
+| 2. 多消息排队   |          AcpRuntime          |         AcpSession, PromptQueue, MessageTranslator         |                AcpClient                   | INV-S-01, INV-S-02, INV-S-14, INV-X-02 |
+| 3. 权限审批     |          AcpRuntime          | AcpSession, PermissionResolver, ApprovalCache, PromptTimer |                AcpClient                   | INV-S-04, INV-S-10, INV-S-13           |
+| 4. 挂起与恢复   |          AcpRuntime          |                 AcpSession, ConfigTracker                  |         ProcessAcpClient                   | INV-S-05, INV-A-01                     |
+| 5. Crash 恢复   |          AcpRuntime          |        AcpSession, PromptQueue, PermissionResolver         |         ProcessAcpClient                   | INV-S-03, INV-S-06, INV-S-08, INV-X-04 |
+| 6. 空闲回收     |  IdleReclaimer, AcpRuntime   |                         AcpSession                         |                ProcessAcpClient            | INV-A-02, INV-I-01                     |
+| 7. 配置变更     |          AcpRuntime          |                 AcpSession, ConfigTracker                  |                AcpClient                   | INV-S-11                               |
+| 8. WebSocket    | AcpRuntime, ClientFactory    |                         AcpSession                         |      WebSocketAcpClient                    | INV-I-01                               |
+| 9. 错误恢复     |          AcpRuntime          |                 AcpSession, ConfigTracker                  |         ProcessAcpClient                   | INV-S-03, INV-S-09                     |
+| 10. 条件认证    |          AcpRuntime          |                 AcpSession, AuthNegotiator                 |         ProcessAcpClient                   | INV-S-15, INV-S-03                     |
 
 ---
 
@@ -65,49 +65,44 @@
 sequenceDiagram
     participant UI as Renderer (UI)
     participant RT as AcpRuntime
-    participant CF as ConnectorFactory
+    participant CF as ClientFactory
     participant S as AcpSession
     participant CS as ConfigTracker
     participant PQ as PromptQueue
     participant IP as InputPreprocessor
     participant MA as MessageTranslator
     participant PT as PromptTimer
-    participant P as AcpProtocol
-    participant C as IPCConnector
+    participant CL as AcpClient
     participant A as Agent Process
 
     Note over UI,A: ═══ 阶段 1: 创建会话 ═══
 
     UI->>RT: createConversation(agentConfig)
     RT->>CF: create(agentConfig)
-    CF-->>RT: IPCConnector 实例
-    RT->>S: new AcpSession(config, connector, callbacks)
+    CF-->>RT: ProcessAcpClient 实例
+    RT->>S: new AcpSession(config, client, callbacks)
     RT->>S: start()
     S->>S: setStatus('starting')
     S-->>RT: onStatusChange('starting')
     RT-->>UI: signalEvent(status_change)
 
-    S->>C: connect()
-    C->>A: spawn(command, args, { stdio: pipe })
-    A-->>C: child process ready
-    C-->>S: ConnectorHandle { stream, shutdown }
+    S->>CL: start()
+    Note over CL: 内部: spawn(command, args) → 建立 stdio 管道 → JSON-RPC initialize
+    CL->>A: spawn + initialize
+    A-->>CL: InitializeResponse { authMethods }
 
-    S->>P: new AcpProtocol(stream, handlers)
-    S->>P: initialize()
-    P->>A: JSON-RPC initialize
-    A-->>P: InitializeResponse { authMethods }
     Note over S: 条件认证: 检查 authMethods
     alt authMethods 非空
-        S->>P: authenticate(credentials)
-        P->>A: JSON-RPC authenticate
-        A-->>P: AuthenticateResponse
+        S->>CL: extMethod('authenticate', credentials)
+        CL->>A: JSON-RPC authenticate
+        A-->>CL: AuthenticateResponse
     else authMethods 为空
         Note over S: 跳过认证
     end
 
-    S->>P: createSession({ cwd, mcpServers })
-    P->>A: JSON-RPC newSession
-    A-->>P: SessionResult { sessionId, models, modes }
+    S->>CL: createSession({ cwd, mcpServers })
+    CL->>A: JSON-RPC newSession
+    A-->>CL: SessionResult { sessionId, models, modes }
     S->>CS: syncFromSessionResult(result)
     S-->>RT: onSessionId(sessionId)
     S-->>RT: onConfigUpdate / onModelUpdate / onModeUpdate
@@ -136,12 +131,12 @@ sequenceDiagram
     IP-->>S: PromptContent
     S->>S: reassertConfig() — 无 pending 变更
     S->>PT: start(300_000)
-    S->>P: prompt(sessionId, content)
-    P->>A: JSON-RPC prompt
+    S->>CL: prompt(sessionId, content)
+    CL->>A: JSON-RPC prompt
 
     loop 流式响应 chunks
-        A-->>P: agent_message_chunk
-        P-->>S: SessionNotification
+        A-->>CL: agent_message_chunk
+        CL-->>S: SessionNotification
         S->>PT: reset() — 心跳重置超时
         S->>MA: translate(notification)
         MA-->>S: TMessage[]
@@ -149,8 +144,8 @@ sequenceDiagram
         RT-->>UI: streamEvent → 逐 chunk 渲染
     end
 
-    A-->>P: prompt_finished
-    P-->>S: PromptResponse
+    A-->>CL: prompt_finished
+    CL-->>S: PromptResponse
     S->>PT: stop()
     S->>MA: onTurnEnd() — 增量清理已完成条目
     S->>S: setStatus('active')
@@ -163,20 +158,19 @@ sequenceDiagram
 | #   | 组件              | 方法                                 | 数据变化                                                                                             |
 | --- | ----------------- | ------------------------------------ | ---------------------------------------------------------------------------------------------------- |
 | 1   | AcpRuntime        | `createConversation(agentConfig)`    | 生成 convId (UUID)                                                                                   |
-| 2   | ConnectorFactory  | `create(agentConfig)`                | 判断 `remoteUrl` 不存在，创建 IPCConnector                                                           |
+| 2   | ClientFactory     | `create(agentConfig)`                | 判断 `remoteUrl` 不存在，创建 ProcessAcpClient                                                      |
 | 3   | AcpSession        | `constructor(...)`                   | 初始化所有 7 个组件，status = `'idle'`                                                               |
 | 4   | AcpSession        | `start()`                            | status: `idle` → `starting`                                                                          |
-| 5   | IPCConnector      | `connect()`                          | `spawn(command, args)` 启动子进程                                                                    |
-| 6   | AcpProtocol       | `initialize()`                       | 协议初始化，返回 `InitializeResponse { authMethods }`                                                |
-| 6a  | AcpSession        | 条件认证检查                         | 检查 `initResult.authMethods`；非空则调用 `authNegotiator.authenticate()`，为空则跳过（详见场景 10） |
-| 7   | AcpProtocol       | `createSession({ cwd, mcpServers })` | 获得 SessionResult                                                                                   |
+| 5   | AcpClient         | `start()`                            | 内部: `spawn(command, args)` 启动子进程 + JSON-RPC initialize                                       |
+| 6   | AcpSession        | 条件认证检查                         | 检查 `initResult.authMethods`；非空则调用 `authNegotiator.authenticate()`，为空则跳过（详见场景 10） |
+| 7   | AcpClient         | `createSession({ cwd, mcpServers })` | 获得 SessionResult                                                                                   |
 | 8   | ConfigTracker     | `syncFromSessionResult(result)`      | 填充 currentModelId, availableModels 等                                                              |
 | 9   | AcpSession        | `reassertConfig()`                   | 检查 desiredModelId — 此时为 null，跳过                                                              |
 | 10  | AcpSession        | `setStatus('active')`                | status: `starting` → `active`                                                                        |
 | 11  | AcpSession        | `sendMessage(text)`                  | 构造 QueuedPrompt，入队 PromptQueue                                                                  |
 | 12  | AcpSession        | `scheduleDrain()` → `drainLoop()`    | dequeue，status: `active` → `prompting`                                                              |
 | 13  | InputPreprocessor | `process(text, files)`               | 解析 @file 引用（此处无），构建 PromptContent                                                        |
-| 14  | AcpProtocol       | `prompt(sessionId, content)`         | 发送 JSON-RPC prompt 请求                                                                            |
+| 14  | AcpClient         | `prompt(sessionId, content)`         | 发送 JSON-RPC prompt 请求                                                                            |
 | 15  | MessageTranslator | `translate(notification)`            | 将 SessionNotification 翻译为 TMessage                                                               |
 | 16  | PromptTimer       | `reset()`                            | 每收到 chunk 重置超时计时                                                                            |
 | 17  | MessageTranslator | `onTurnEnd()`                        | 增量清理 messageMap 中已完成条目                                                                     |
@@ -186,7 +180,7 @@ sequenceDiagram
 
 **E1: spawn 失败**
 
-- IPCConnector.connect() 抛出 `AcpError { code: 'CONNECTION_FAILED', retryable: true }`
+- client.start() 抛出 `AgentSpawnError { code: 'CONNECTION_FAILED', retryable: true }`
 - AcpSession.handleStartError() 进入指数退避重试 (1s → 2s → 4s)
 - maxStartRetries=3，共 4 次尝试（1 次初始 + 3 次重试），全部失败 → `setStatus('error')` + `onSignal({ type: 'error', recoverable: false })`
 - 验证 INV-S-03: 最终收敛到 error 状态
@@ -225,7 +219,7 @@ sequenceDiagram
     participant RT as AcpRuntime
     participant S as AcpSession
     participant PQ as PromptQueue
-    participant P as AcpProtocol
+    participant CL as AcpClient
     participant A as Agent Process
 
     Note over S: status = 'prompting'<br/>prompt-0 执行中
@@ -250,8 +244,8 @@ sequenceDiagram
 
     Note over S,A: prompt-0 完成
 
-    A-->>P: prompt_finished
-    P-->>S: PromptResponse
+    A-->>CL: prompt_finished
+    CL-->>S: PromptResponse
     S->>S: setStatus('active')
 
     Note over S: drainLoop 继续
@@ -259,22 +253,22 @@ sequenceDiagram
     S->>PQ: dequeue() → promptA
     S-->>RT: onQueueUpdate({ items: [B,C], length: 2 })
     S->>S: setStatus('prompting')
-    S->>P: prompt(sessionId, contentA)
-    A-->>P: prompt_finished
+    S->>CL: prompt(sessionId, contentA)
+    A-->>CL: prompt_finished
     S->>S: setStatus('active')
 
     S->>PQ: dequeue() → promptB
     S-->>RT: onQueueUpdate({ items: [C], length: 1 })
     S->>S: setStatus('prompting')
-    S->>P: prompt(sessionId, contentB)
-    A-->>P: prompt_finished
+    S->>CL: prompt(sessionId, contentB)
+    A-->>CL: prompt_finished
     S->>S: setStatus('active')
 
     S->>PQ: dequeue() → promptC
     S-->>RT: onQueueUpdate({ items: [], length: 0 })
     S->>S: setStatus('prompting')
-    S->>P: prompt(sessionId, contentC)
-    A-->>P: prompt_finished
+    S->>CL: prompt(sessionId, contentC)
+    A-->>CL: prompt_finished
     S->>S: setStatus('active')
 
     Note over S: 队列为空, drainLoop 结束
@@ -315,7 +309,7 @@ sequenceDiagram
 **E2: cancelAll() 在排队期间被调用**
 
 - PromptQueue.clear() 清空所有待处理项，返回被清空的 QueuedPrompt[]
-- 当前执行的 prompt 被 protocol.cancel() 取消
+- 当前执行的 prompt 被 client.cancel() 取消
 - queuePaused = false
 - onQueueUpdate 推送空快照
 
@@ -336,21 +330,21 @@ sequenceDiagram
 ```mermaid
 sequenceDiagram
     participant A as Agent Process
-    participant P as AcpProtocol
+    participant CL as AcpClient
     participant S as AcpSession
     participant PP as PermissionResolver
     participant PT as PromptTimer
 
-    A->>P: requestPermission({ toolCall: { name: "bash" }, options: [...] })
-    P->>S: handlePermissionRequest(request)
+    A->>CL: requestPermission({ toolCall: { name: "bash" }, options: [...] })
+    CL->>S: handlePermissionRequest(request)
     S->>PT: pause() — 暂停超时计时
     S->>PP: evaluate(request, uiCallback)
     Note over PP: autoApproveAll = true
     PP->>PP: 找到 kind.startsWith('allow') 的选项
     PP-->>S: { optionId: "allow_once" }
     S->>PT: resume() — 恢复超时计时
-    S-->>P: RequestPermissionResponse
-    P-->>A: 继续执行 bash 命令
+    S-->>CL: RequestPermissionResponse
+    CL-->>A: 继续执行 bash 命令
 ```
 
 ### 4.3 时序图 — Cache 命中
@@ -358,14 +352,14 @@ sequenceDiagram
 ```mermaid
 sequenceDiagram
     participant A as Agent Process
-    participant P as AcpProtocol
+    participant CL as AcpClient
     participant S as AcpSession
     participant PP as PermissionResolver
     participant AC as ApprovalCache
     participant PT as PromptTimer
 
-    A->>P: requestPermission({ toolCall: { name: "bash" }, options: [...] })
-    P->>S: handlePermissionRequest(request)
+    A->>CL: requestPermission({ toolCall: { name: "bash" }, options: [...] })
+    CL->>S: handlePermissionRequest(request)
     S->>PT: pause()
     S->>PP: evaluate(request, uiCallback)
     Note over PP: autoApproveAll = false
@@ -374,8 +368,8 @@ sequenceDiagram
     AC-->>PP: { optionId: "allow_always" }
     PP-->>S: { optionId: "allow_always" }
     S->>PT: resume()
-    S-->>P: RequestPermissionResponse
-    P-->>A: 继续执行
+    S-->>CL: RequestPermissionResponse
+    CL-->>A: 继续执行
 ```
 
 ### 4.4 时序图 — UI 审批
@@ -383,15 +377,15 @@ sequenceDiagram
 ```mermaid
 sequenceDiagram
     participant A as Agent Process
-    participant P as AcpProtocol
+    participant CL as AcpClient
     participant S as AcpSession
     participant PP as PermissionResolver
     participant AC as ApprovalCache
     participant PT as PromptTimer
     participant UI as User (UI)
 
-    A->>P: requestPermission(request)
-    P->>S: handlePermissionRequest(request)
+    A->>CL: requestPermission(request)
+    CL->>S: handlePermissionRequest(request)
     S->>PT: pause() — INV-S-04: 权限等待期间暂停计时
     S->>PP: evaluate(request, uiCallback)
     PP->>AC: lookup(request) → null
@@ -408,15 +402,15 @@ sequenceDiagram
     PP-->>S: { optionId: "allow_always" } — Promise resolves
 
     S->>PT: resume() — INV-S-04: 恢复计时
-    S-->>P: RequestPermissionResponse
-    P-->>A: 继续执行
+    S-->>CL: RequestPermissionResponse
+    CL-->>A: 继续执行
 ```
 
 ### 4.5 步骤分解 (UI 审批路径)
 
 | #   | 组件               | 方法                                  | 数据变化                                        |
 | --- | ------------------ | ------------------------------------- | ----------------------------------------------- |
-| 1   | AcpProtocol        | SDK 回调 `onRequestPermission`        | 收到 Agent 的权限请求                           |
+| 1   | AcpClient          | SDK 回调 `onRequestPermission`        | 收到 Agent 的权限请求                           |
 | 2   | AcpSession         | `handlePermissionRequest(request)`    | 进入权限处理流程                                |
 | 3   | PromptTimer        | `pause()`                             | state: `running` → `paused`，记录剩余时间       |
 | 4   | PermissionResolver | `evaluate(request, uiCallback)`       | 检查 YOLO → 检查 Cache                          |
@@ -466,8 +460,7 @@ sequenceDiagram
     participant S as AcpSession
     participant CS as ConfigTracker
     participant PQ as PromptQueue
-    participant P as AcpProtocol
-    participant C as IPCConnector
+    participant CL as AcpClient
     participant A as Agent Process
     participant DB as Database
 
@@ -476,12 +469,12 @@ sequenceDiagram
     RT->>S: suspend()
     Note over S: 前置检查: status=='active' && queue.isEmpty
 
-    S->>P: closeSession(sessionId)
-    P->>A: JSON-RPC closeSession
-    S->>C: shutdown()
-    Note over C: stdin.end() → 等100ms<br/>→ SIGTERM → 等1500ms<br/>→ SIGKILL (if needed)
-    C-->>S: shutdown complete
-    S->>S: protocol = null, connectorHandle = null
+    S->>CL: closeSession(sessionId)
+    CL->>A: JSON-RPC closeSession
+    S->>CL: close()
+    Note over CL: 内部: stdin.end() → 等100ms<br/>→ SIGTERM → 等1500ms<br/>→ SIGKILL (if needed)
+    CL-->>S: close complete
+    S->>S: client = null
     S->>S: _sessionId 保留 (savedSessionId)
     S->>S: setStatus('suspended')
     S-->>RT: onStatusChange('suspended')
@@ -500,17 +493,14 @@ sequenceDiagram
     S->>S: setStatus('resuming')
     S-->>RT: onStatusChange('resuming')
 
-    S->>C: connect() — 创建新的子进程
-    C->>A: spawn(command, args)
-    C-->>S: 新的 ConnectorHandle
-
-    S->>P: new AcpProtocol(stream, handlers)
-    S->>P: initialize() + authenticate()
+    S->>CL: start() — 创建新的子进程 + 初始化
+    CL->>A: spawn + initialize
+    A-->>CL: InitializeResponse
 
     S->>S: tryResumeOrCreate()
-    S->>P: loadSession(savedSessionId)
-    P->>A: JSON-RPC loadSession
-    A-->>P: SessionResult (上下文已恢复)
+    S->>CL: loadSession(savedSessionId)
+    CL->>A: JSON-RPC loadSession
+    A-->>CL: SessionResult (上下文已恢复)
 
     S->>CS: syncFromSessionResult(result)
     S->>S: reassertConfig()
@@ -529,9 +519,9 @@ sequenceDiagram
 | #   | 组件         | 方法                                | 数据变化                                              |
 | --- | ------------ | ----------------------------------- | ----------------------------------------------------- |
 | 1   | AcpSession   | `suspend()`                         | 前置检查: status == `active` && queue.isEmpty         |
-| 2   | AcpSession   | `teardownConnection()`              | 调用 protocol.closeSession + connectorHandle.shutdown |
-| 3   | IPCConnector | `shutdown()` → `gracefulShutdown()` | 三阶段关闭 (INV-I-02)                                 |
-| 4   | AcpSession   | 清理引用                            | protocol = null, connectorHandle = null               |
+| 2   | AcpSession   | `teardownConnection()`              | 调用 client.closeSession + client.close               |
+| 3   | AcpClient    | `close()` → 三阶段关闭             | 三阶段关闭 (INV-I-02)                                 |
+| 4   | AcpSession   | 清理引用                            | client = null                                         |
 | 5   | AcpSession   | `setStatus('suspended')`            | 保留 \_sessionId 用于后续 resume                      |
 | 6   | AcpRuntime   | onStatusChange callback             | 写入 DB: suspended_at = Date.now() (INV-A-01)         |
 
@@ -541,12 +531,11 @@ sequenceDiagram
 | --- | ------------- | --------------------------------- | ------------------------------------------- |
 | 7   | AcpSession    | `sendMessage(text)`               | status = `suspended` → 入队 + 调用 resume() |
 | 8   | AcpSession    | `resume()`                        | status: `suspended` → `resuming`            |
-| 9   | IPCConnector  | `connect()`                       | 启动新的 Agent 子进程                       |
-| 10  | AcpProtocol   | `initialize()` + `authenticate()` | 新连接上的协议握手                          |
-| 11  | AcpProtocol   | `loadSession(savedSessionId)`     | 尝试恢复之前的上下文                        |
-| 12  | ConfigTracker | `syncFromSessionResult(result)`   | 同步恢复后的配置                            |
-| 13  | AcpSession    | `reassertConfig()`                | 如果 resume 前用户切换了 model，此时 apply  |
-| 14  | AcpSession    | `setStatus('active')`             | 恢复完成，开始 drain 队列                   |
+| 9   | AcpClient     | `start()`                         | 启动新的 Agent 子进程 + 初始化              |
+| 10  | AcpClient     | `loadSession(savedSessionId)`     | 尝试恢复之前的上下文                        |
+| 11  | ConfigTracker | `syncFromSessionResult(result)`   | 同步恢复后的配置                            |
+| 12  | AcpSession    | `reassertConfig()`                | 如果 resume 前用户切换了 model，此时 apply  |
+| 13  | AcpSession    | `setStatus('active')`             | 恢复完成，开始 drain 队列                   |
 
 ### 5.4 异常路径
 
@@ -554,7 +543,7 @@ sequenceDiagram
 
 - loadSession 抛异常
 - tryResumeOrCreate 的 catch 块发送 `onSignal({ type: 'session_expired' })`
-- 降级调用 `protocol.createSession()` 创建新 session
+- 降级调用 `client.createSession()` 创建新 session
 - 用户看到"会话已过期，已创建新会话"提示，但操作不中断
 
 **E2: resume 过程中连接失败**
@@ -592,19 +581,18 @@ sequenceDiagram
     participant PP as PermissionResolver
     participant PQ as PromptQueue
     participant PT as PromptTimer
-    participant P as AcpProtocol
-    participant C as IPCConnector
+    participant CL as AcpClient
     participant A as Agent Process
     participant A2 as New Agent Process
 
     Note over S: status='prompting'<br/>queue=[msg1, msg2]
 
-    A-xP: 进程崩溃 (连接断开)
-    P-->>S: protocol.closed resolved
-    S->>S: handleDisconnect()
+    A-xCL: 进程崩溃 (连接断开)
+    CL-->>S: onDisconnect({ reason: 'process_exit', exitCode: 1, signal: null, stderr: '...' })
+    S->>S: handleDisconnect(info)
     Note over S: wasDuringPrompt = true
 
-    S->>S: protocol = null, connectorHandle = null
+    S->>S: client = null
     S->>PP: cancelAll() — reject 所有 pending 权限
     S->>PT: stop() — 停止超时计时
 
@@ -615,15 +603,14 @@ sequenceDiagram
     S->>S: setStatus('resuming')
     S-->>RT: onStatusChange('resuming')
 
-    S->>C: connect() — 启动新进程
-    C->>A2: spawn(command, args)
-    C-->>S: 新的 ConnectorHandle
+    S->>CL: start() — 启动新进程 + 初始化
+    CL->>A2: spawn + initialize
+    A2-->>CL: InitializeResponse
 
-    S->>P: new AcpProtocol(stream, handlers)
-    S->>P: initialize() + authenticate()
     S->>S: tryResumeOrCreate()
-    S->>P: loadSession(savedSessionId)
-    A2-->>P: SessionResult
+    S->>CL: loadSession(savedSessionId)
+    CL->>A2: JSON-RPC loadSession
+    A2-->>CL: SessionResult
 
     S->>S: setStatus('active')
     S-->>RT: onStatusChange('active')
@@ -646,15 +633,15 @@ sequenceDiagram
 
 | #   | 组件               | 方法                      | 数据变化                                            |
 | --- | ------------------ | ------------------------- | --------------------------------------------------- |
-| 1   | AcpProtocol        | `closed` Promise resolves | 进程崩溃导致连接断开                                |
-| 2   | AcpSession         | `handleDisconnect()`      | 检测 wasDuringPrompt = true (status 是 `prompting`) |
-| 3   | AcpSession         | 清理引用                  | protocol = null, connectorHandle = null             |
+| 1   | AcpClient          | `onDisconnect` 触发       | 进程崩溃导致连接断开，回调带 DisconnectInfo          |
+| 2   | AcpSession         | `handleDisconnect(info)`  | 检测 wasDuringPrompt = true (status 是 `prompting`) |
+| 3   | AcpSession         | 清理引用                  | client = null                                       |
 | 4   | PermissionResolver | `cancelAll()`             | 所有 pending Promise 被 reject (INV-S-10, INV-X-04) |
 | 5   | PromptTimer        | `stop()`                  | state: 任意 → `idle`                                |
 | 6   | AcpSession         | `queuePaused = true`      | INV-S-06: crash 后队列暂停                          |
 | 7   | AcpSession         | `resume()`                | 开始恢复流程，status → `resuming`                   |
-| 8   | IPCConnector       | `connect()`               | 启动新的 Agent 子进程                               |
-| 9   | AcpProtocol        | 握手 + loadSession        | 恢复协议 session                                    |
+| 8   | AcpClient          | `start()`                 | 启动新的 Agent 子进程 + 初始化                      |
+| 9   | AcpClient          | `loadSession`             | 恢复协议 session                                    |
 | 10  | AcpSession         | `setStatus('active')`     | 恢复成功                                            |
 | 11  | AcpSession         | 检测 queuePaused          | 不调用 scheduleDrain，发送 queue_paused 信号        |
 | 12  | UI                 | 用户点击"继续"            | AcpRuntime.resumeQueue(convId)                      |
@@ -701,8 +688,7 @@ sequenceDiagram
     participant IR as IdleReclaimer
     participant SE as SessionEntry
     participant S as AcpSession
-    participant P as AcpProtocol
-    participant C as IPCConnector
+    participant CL as AcpClient
     participant A as Agent Process
     participant DB as Database
 
@@ -715,12 +701,12 @@ sequenceDiagram
 
     IR->>S: suspend()
     S->>S: 前置检查通过 (active + 队列空)
-    S->>P: closeSession(sessionId)
-    P->>A: JSON-RPC closeSession
-    S->>C: shutdown()
-    Note over C: 三阶段关闭
-    C->>A: stdin.end → SIGTERM → SIGKILL
-    S->>S: protocol = null, connectorHandle = null
+    S->>CL: closeSession(sessionId)
+    CL->>A: JSON-RPC closeSession
+    S->>CL: close()
+    Note over CL: 三阶段关闭
+    CL->>A: stdin.end → SIGTERM → SIGKILL
+    S->>S: client = null
     S->>S: setStatus('suspended')
     S-->>DB: suspended_at = now
 
@@ -734,8 +720,8 @@ sequenceDiagram
 | 1   | IdleReclaimer | `scan()` (定时器触发)     | 遍历 sessions Map                                             |
 | 2   | IdleReclaimer | 条件检查                  | `now - lastActiveAt > idleTimeoutMs` && `status === 'active'` |
 | 3   | AcpSession    | `suspend()`               | 前置检查: status=active, queue.isEmpty                        |
-| 4   | AcpSession    | `teardownConnection()`    | closeSession + shutdown                                       |
-| 5   | IPCConnector  | `gracefulShutdown(child)` | 三阶段关闭 (INV-I-02)                                         |
+| 4   | AcpSession    | `teardownConnection()`    | closeSession + close                                          |
+| 5   | AcpClient     | `close()`                 | 三阶段关闭 (INV-I-02)                                         |
 | 6   | AcpSession    | `setStatus('suspended')`  | sessionId 保留                                                |
 | 7   | AcpRuntime    | onStatusChange            | DB 写入 suspended_at (INV-A-01)                               |
 
@@ -779,7 +765,7 @@ sequenceDiagram
     participant RT as AcpRuntime
     participant S as AcpSession
     participant CS as ConfigTracker
-    participant P as AcpProtocol
+    participant CL as AcpClient
     participant A as Agent Process
 
     Note over S: status = 'prompting'<br/>prompt 正在执行
@@ -796,7 +782,7 @@ sequenceDiagram
 
     Note over S,A: 当前 prompt 完成
 
-    A-->>P: prompt_finished
+    A-->>CL: prompt_finished
     S->>S: setStatus('active')
     S->>S: drainLoop → 下一条 prompt
 
@@ -805,14 +791,14 @@ sequenceDiagram
     S->>S: reassertConfig()
     S->>CS: getPendingChanges()
     CS-->>S: { model: "claude-opus" }
-    S->>P: setModel(sessionId, "claude-opus")
-    P->>A: JSON-RPC setModel
-    A-->>P: success
+    S->>CL: setModel(sessionId, "claude-opus")
+    CL->>A: JSON-RPC setModel
+    A-->>CL: success
     S->>CS: setCurrentModel("claude-opus")
     Note over CS: desiredModelId = null<br/>currentModelId = "claude-opus"
     S-->>RT: onModelUpdate({ current: "opus", desired: null, ... })
 
-    S->>P: prompt(sessionId, content)
+    S->>CL: prompt(sessionId, content)
     Note over S,A: 新 prompt 使用 claude-opus
 ```
 
@@ -827,7 +813,7 @@ sequenceDiagram
 | 5   | AcpSession    | `executePrompt(nextPrompt)`                                   | drainLoop 出队下一条                               |
 | 6   | AcpSession    | `reassertConfig()`                                            | 在发送 prompt 前检查 pending changes               |
 | 7   | ConfigTracker | `getPendingChanges()`                                         | 返回 `{ model: "claude-opus" }`                    |
-| 8   | AcpProtocol   | `setModel(sessionId, "claude-opus")`                          | 通知 Agent 切换模型                                |
+| 8   | AcpClient     | `setModel(sessionId, "claude-opus")`                          | 通知 Agent 切换模型                                |
 | 9   | ConfigTracker | `setCurrentModel("claude-opus")`                              | currentModelId 更新，desiredModelId = null         |
 
 **关键不变量验证**：
@@ -838,14 +824,14 @@ sequenceDiagram
 
 **E1: setModel 在 active 状态下调用**
 
-- canDirect 分支: 直接调用 `protocol.setModel()`
+- canDirect 分支: 直接调用 `client.setModel()`
 - 不经过 desired/reassert 流程，立即生效
 
 **E2: setModel 在 idle 或 error 状态下调用**
 
 - 抛出 `AcpError { code: 'INVALID_STATE' }`
 
-**E3: reassertConfig 中 protocol.setModel 失败**
+**E3: reassertConfig 中 client.setModel 失败**
 
 - reassertConfig 中的 await 抛异常
 - 如果发生在 start() 流程中，被 handleStartError 捕获
@@ -862,81 +848,71 @@ sequenceDiagram
 | ------------ | ------------------------------------------------------------------------- |
 | **前置条件** | AgentConfig 中 remoteUrl 不为空 (如 `wss://remote-agent.example.com/acp`) |
 | **触发动作** | 创建新会话                                                                |
-| **期望结果** | ConnectorFactory 创建 WebSocketConnector，通过 WebSocket 建立连接         |
+| **期望结果** | ClientFactory 创建 WebSocketAcpClient，通过 WebSocket 建立连接            |
 
 ### 9.2 时序图
 
 ```mermaid
 sequenceDiagram
     participant RT as AcpRuntime
-    participant CF as ConnectorFactory
+    participant CF as ClientFactory
     participant S as AcpSession
-    participant WS as WebSocketConnector
-    participant P as AcpProtocol
+    participant CL as WebSocketAcpClient
     participant RA as Remote Agent
 
     RT->>CF: create(agentConfig)
-    Note over CF: agentConfig.remoteUrl 存在<br/>→ 创建 WebSocketConnector
+    Note over CF: agentConfig.remoteUrl 存在<br/>→ 创建 WebSocketAcpClient
 
-    CF-->>RT: WebSocketConnector
+    CF-->>RT: WebSocketAcpClient
 
-    RT->>S: new AcpSession(config, connector, callbacks)
+    RT->>S: new AcpSession(config, client, callbacks)
     RT->>S: start()
     S->>S: setStatus('starting')
 
-    S->>WS: connect()
-    WS->>RA: new WebSocket(url, { headers })
-    Note over WS,RA: WebSocket 握手
-    RA-->>WS: connection established
-    WS-->>S: ConnectorHandle { stream, shutdown }
+    S->>CL: start()
+    Note over CL: 内部: new WebSocket(url, { headers }) → 握手 → JSON-RPC initialize
+    CL->>RA: WebSocket 连接 + initialize
+    RA-->>CL: InitializeResponse
 
-    S->>P: new AcpProtocol(stream, handlers)
-    S->>P: initialize()
-    P->>RA: JSON-RPC initialize (over WebSocket)
-    RA-->>P: InitializeResponse
-    S->>P: authenticate(apiKey)
-    P->>RA: JSON-RPC authenticate
-    RA-->>P: AuthenticateResponse
-
-    S->>P: createSession(...)
-    P->>RA: JSON-RPC newSession
-    RA-->>P: SessionResult
+    S->>CL: createSession(...)
+    CL->>RA: JSON-RPC newSession
+    RA-->>CL: SessionResult
 
     S->>S: setStatus('active')
 
-    Note over S,RA: 后续 prompt/消息流程<br/>与 IPC 场景完全相同
+    Note over S,RA: 后续 prompt/消息流程<br/>与 ProcessAcpClient 场景完全相同
 ```
 
 ### 9.3 与 IPC 的差异对比
 
-| 维度              | IPCConnector                                | WebSocketConnector                                                 |
-| ----------------- | ------------------------------------------- | ------------------------------------------------------------------ |
-| **连接建立**      | `spawn(command, args)` 启动本地子进程       | `new WebSocket(url, headers)` 建立远程连接                         |
-| **Stream 来源**   | `NdjsonTransport.fromChildProcess(child)`   | SDK 内置 WebSocket transport（由 `@agentclientprotocol/sdk` 提供） |
-| **关闭方式**      | 三阶段: stdin.end → SIGTERM → SIGKILL       | `ws.close()`                                                       |
-| **isAlive 判断**  | `isProcessAlive(child.pid)` (signal-0 探测) | `ws.readyState === WebSocket.OPEN`                                 |
-| **错误特征**      | 进程 crash (SIGSEGV/OOM/exit)               | 网络断开 / 服务端关闭                                              |
-| **resume 成功率** | 较高 (本地进程重启快)                       | 依赖网络和服务端状态                                               |
+| 维度              | ProcessAcpClient                                            | WebSocketAcpClient                                                 |
+| ----------------- | ----------------------------------------------------------- | ------------------------------------------------------------------ |
+| **连接建立**      | `spawn(command, args)` 启动本地子进程                       | `new WebSocket(url, headers)` 建立远程连接                         |
+| **Stream 来源**   | `NdjsonTransport.fromChildProcess(child)`                   | SDK 内置 WebSocket transport（由 `@agentclientprotocol/sdk` 提供） |
+| **关闭方式**      | 三阶段: stdin.end → SIGTERM → SIGKILL                       | `ws.close()`                                                       |
+| **lifecycleSnapshot** | `pid` 有值, `lastExit` 含 exitCode/signal/stderr        | `pid` 为 null, `lastExit.reason` = 'connection_close'              |
+| **错误特征**      | 进程 crash (SIGSEGV/OOM/exit)                               | 网络断开 / 服务端关闭                                              |
+| **resume 成功率** | 较高 (本地进程重启快)                                       | 依赖网络和服务端状态                                               |
 
-**关键一致性**: 一旦 connect() 返回 ConnectorHandle，后续的 AcpProtocol 交互、状态机转换、PromptQueue 行为完全相同。AgentConnector 接口隔离了连接建立方式的差异。
+**关键一致性**: 一旦 `start()` 成功返回 InitializeResponse，后续的 AcpClient 方法调用、状态机转换、PromptQueue 行为完全相同。AcpClient 接口隔离了连接建立方式的差异。
 
 ### 9.4 异常路径
 
 **E1: WebSocket 连接失败**
 
-- waitForOpen(ws) 超时或被拒绝
-- 抛出 `AcpError { code: 'CONNECTION_FAILED', retryable: true }`
-- AcpSession 进入与 IPC 相同的重试逻辑
+- client.start() 内部 waitForOpen(ws) 超时或被拒绝
+- 抛出 `AgentSpawnError { code: 'CONNECTION_FAILED', retryable: true }`
+- AcpSession 进入与 ProcessAcpClient 相同的重试逻辑
 
 **E2: 远程连接意外断开**
 
 - WebSocket onclose 事件触发
-- AcpProtocol.closed Promise resolves
-- AcpSession.handleDisconnect() — 与 IPC 进程 crash 处理流程完全相同
+- client.onDisconnect handler 被调用，含 DisconnectInfo { reason: 'connection_close' }
+- AcpSession.handleDisconnect(info) — 与 ProcessAcpClient 进程 crash 处理流程完全相同
 
 **E3: resume 时远程服务不可用**
 
-- connect() 失败 → handleResumeError → 指数退避重试
+- client.start() 失败 → handleResumeError → 指数退避重试
 - 网络恢复后 resume 可能成功
 - 如果服务端没有保留 session，loadSession 失败 → 降级 createSession
 
@@ -960,12 +936,11 @@ sequenceDiagram
     participant RT as AcpRuntime
     participant S as AcpSession
     participant CS as ConfigTracker
-    participant CF as ConnectorFactory
-    participant C as IPCConnector
-    participant P as AcpProtocol
+    participant CF as ClientFactory
+    participant CL as AcpClient
     participant A as Agent Process
 
-    Note over S: status = 'error'<br/>queue 已清空<br/>protocol = null, connectorHandle = null
+    Note over S: status = 'error'<br/>queue 已清空<br/>client = null
 
     UI->>RT: retrySession(convId)
     RT->>S: start()
@@ -974,22 +949,14 @@ sequenceDiagram
     S-->>RT: onStatusChange('starting')
     RT-->>UI: signalEvent(status_change)
 
-    S->>C: connect()
-    C->>A: spawn(command, args, { stdio: pipe })
-    A-->>C: child process ready
-    C-->>S: ConnectorHandle { stream, shutdown }
+    S->>CL: start()
+    Note over CL: 内部: spawn(command, args) → 建立管道 → JSON-RPC initialize
+    CL->>A: spawn + initialize
+    A-->>CL: InitializeResponse
 
-    S->>P: new AcpProtocol(stream, handlers)
-    S->>P: initialize()
-    P->>A: JSON-RPC initialize
-    A-->>P: InitializeResponse
-    S->>P: authenticate(apiKey)
-    P->>A: JSON-RPC authenticate
-    A-->>P: AuthenticateResponse
-
-    S->>P: createSession({ cwd, mcpServers })
-    P->>A: JSON-RPC newSession
-    A-->>P: SessionResult { sessionId, models, modes }
+    S->>CL: createSession({ cwd, mcpServers })
+    CL->>A: JSON-RPC newSession
+    A-->>CL: SessionResult { sessionId, models, modes }
 
     S->>CS: syncFromSessionResult(result)
     S-->>RT: onSessionId(sessionId)
@@ -1009,12 +976,11 @@ sequenceDiagram
 | 1   | UI            | 用户点击"重试"                    | 触发 retrySession(convId)                                    |
 | 2   | AcpRuntime    | `retrySession(convId)`            | 路由到对应 AcpSession                                        |
 | 3   | AcpSession    | `start()`                         | 重置 startRetryCount = 0，status: `error` → `starting` (T21) |
-| 4   | IPCConnector  | `connect()`                       | 启动新的 Agent 子进程                                        |
-| 5   | AcpProtocol   | `initialize()` + `authenticate()` | 协议握手                                                     |
-| 6   | AcpProtocol   | `createSession(...)`              | 获得新的 SessionResult（旧 session 已失效，创建新会话）      |
-| 7   | ConfigTracker | `syncFromSessionResult(result)`   | 填充 model/mode 配置                                         |
-| 8   | AcpSession    | `reassertConfig()`                | 如果 error 前用户切换过 model，此时 apply                    |
-| 9   | AcpSession    | `setStatus('active')`             | status: `starting` → `active`，恢复完成                      |
+| 4   | AcpClient     | `start()`                         | 启动新的 Agent 子进程 + 初始化                               |
+| 5   | AcpClient     | `createSession(...)`              | 获得新的 SessionResult（旧 session 已失效，创建新会话）      |
+| 6   | ConfigTracker | `syncFromSessionResult(result)`   | 填充 model/mode 配置                                         |
+| 7   | AcpSession    | `reassertConfig()`                | 如果 error 前用户切换过 model，此时 apply                    |
+| 8   | AcpSession    | `setStatus('active')`             | status: `starting` → `active`，恢复完成                      |
 
 **关键不变量验证**：
 
@@ -1055,8 +1021,7 @@ sequenceDiagram
     participant RT as AcpRuntime
     participant S as AcpSession
     participant AH as AuthNegotiator
-    participant P as AcpProtocol
-    participant C as IPCConnector
+    participant CL as AcpClient
     participant A as Agent Process
     participant A2 as New Agent Process
 
@@ -1067,27 +1032,23 @@ sequenceDiagram
     S->>S: setStatus('starting')
     S-->>RT: onStatusChange('starting')
 
-    S->>C: connect()
-    C->>A: spawn(command, args)
-    C-->>S: ConnectorHandle { stream, shutdown }
-
-    S->>P: new AcpProtocol(stream, handlers)
-    S->>P: initialize()
-    P->>A: JSON-RPC initialize
-    A-->>P: { authMethods: [{ type: 'agent', id: 'oauth' }, { type: 'env_var', ... }] }
+    S->>CL: start()
+    Note over CL: 内部: spawn + initialize
+    CL->>A: spawn + JSON-RPC initialize
+    A-->>CL: { authMethods: [{ type: 'agent', id: 'oauth' }, { type: 'env_var', ... }] }
 
     Note over S,AH: authMethods 非空，需要认证
-    S->>AH: authenticate(protocol, authMethods)
-    AH->>P: authenticate(credentials)
-    P->>A: JSON-RPC authenticate
-    A-->>P: AUTH_FAILED (无有效 token)
-    P-->>AH: reject
+    S->>AH: authenticate(client, authMethods)
+    AH->>CL: extMethod('authenticate', credentials)
+    CL->>A: JSON-RPC authenticate
+    A-->>CL: AUTH_FAILED (无有效 token)
+    CL-->>AH: reject
     AH-->>S: throw AcpError('AUTH_REQUIRED', { authOptions })
 
     Note over S: handleStartError(AUTH_REQUIRED)
     S->>S: authPending = true
     S->>S: teardownConnection()
-    Note over S: protocol = null<br/>connectorHandle = null<br/>停留在 starting 状态
+    Note over S: client = null<br/>停留在 starting 状态
     S-->>RT: onSignal({ type: 'auth_required', auth: { agentBackend, methods } })
     RT-->>UI: auth_required 信号 + AuthMethod[]
 
@@ -1119,23 +1080,20 @@ sequenceDiagram
     S->>S: start()
 
     S->>S: setStatus('starting')
-    S->>C: connect()
-    C->>A2: spawn(command, args)
-    C-->>S: 新的 ConnectorHandle
+    S->>CL: start()
+    Note over CL: 内部: spawn 新进程 + initialize
+    CL->>A2: spawn + JSON-RPC initialize
+    A2-->>CL: { authMethods: [...] }
 
-    S->>P: new AcpProtocol(stream, handlers)
-    S->>P: initialize()
-    A2-->>P: { authMethods: [...] }
-
-    S->>AH: authenticate(protocol, authMethods)
-    AH->>P: authenticate(mergedCredentials)
-    P->>A2: JSON-RPC authenticate
-    A2-->>P: AuthenticateResponse (成功)
+    S->>AH: authenticate(client, authMethods)
+    AH->>CL: extMethod('authenticate', mergedCredentials)
+    CL->>A2: JSON-RPC authenticate
+    A2-->>CL: AuthenticateResponse (成功)
     AH-->>S: 认证通过
 
-    S->>P: createSession({ cwd, mcpServers })
-    P->>A2: JSON-RPC newSession
-    A2-->>P: SessionResult { sessionId, models, modes }
+    S->>CL: createSession({ cwd, mcpServers })
+    CL->>A2: JSON-RPC newSession
+    A2-->>CL: SessionResult { sessionId, models, modes }
 
     S->>S: setStatus('active')
     S-->>RT: onStatusChange('active')
@@ -1150,13 +1108,13 @@ sequenceDiagram
 | #   | 组件           | 方法                                  | 数据变化                                                        |
 | --- | -------------- | ------------------------------------- | --------------------------------------------------------------- |
 | 1   | AcpSession     | `start()`                             | status: `idle` → `starting`                                     |
-| 2   | IPCConnector   | `connect()`                           | spawn Agent 子进程                                              |
-| 3   | AcpProtocol    | `initialize()`                        | 返回 `{ authMethods: [...] }`，authMethods 非空                 |
-| 4   | AuthNegotiator | `authenticate(protocol, authMethods)` | 调用 `protocol.authenticate(credentials)`                       |
-| 5   | AcpProtocol    | `authenticate()`                      | Agent 返回 AUTH_FAILED (无有效 token)                           |
+| 2   | AcpClient      | `start()`                             | 内部: spawn Agent 子进程 + initialize                           |
+| 3   | AcpSession     | 条件认证检查                          | `initResult.authMethods` 非空                                   |
+| 4   | AuthNegotiator | `authenticate(client, authMethods)`   | 调用 `client.extMethod('authenticate', credentials)`            |
+| 5   | AcpClient      | `extMethod('authenticate', ...)`      | Agent 返回 AUTH_FAILED (无有效 token)                           |
 | 6   | AuthNegotiator | 抛出 `AcpError('AUTH_REQUIRED')`      | 附带 `AuthRequiredData { agentBackend, methods: AuthMethod[] }` |
 | 7   | AcpSession     | `handleStartError(AUTH_REQUIRED)`     | 设置 `authPending = true`                                       |
-| 8   | AcpSession     | `teardownConnection()`                | 关闭连接，`protocol = null`, `connectorHandle = null`           |
+| 8   | AcpSession     | `teardownConnection()`                | 关闭连接，`client = null`                                      |
 | 9   | AcpSession     | `callbacks.onSignal(auth_required)`   | 通知 Application 层，附带 AuthMethod[] 供 UI 展示               |
 
 **三种登录方式 (UI 职责)**
@@ -1173,18 +1131,17 @@ sequenceDiagram
 | --- | -------------- | ------------------------------------- | ------------------------------------------------------------- |
 | 10  | AuthNegotiator | `mergeCredentials(credentials)`       | 合并新凭据到内存缓存（仅 env_var 方式有凭据）                 |
 | 11  | AcpSession     | `authPending = false`                 | 清除认证等待标志                                              |
-| 12  | AcpSession     | `setStatus('idle')` + `start()`       | 完整重启: connect → initialize → authenticate → createSession |
-| 13  | IPCConnector   | `connect()`                           | spawn 新的 Agent 子进程                                       |
-| 14  | AcpProtocol    | `initialize()`                        | 新连接上的协议初始化                                          |
-| 15  | AuthNegotiator | `authenticate(protocol, authMethods)` | 使用合并后的凭据认证                                          |
-| 16  | AcpProtocol    | `authenticate(mergedCredentials)`     | 认证成功                                                      |
-| 17  | AcpProtocol    | `createSession(...)`                  | 创建新 session                                                |
-| 18  | AcpSession     | `setStatus('active')`                 | status: `starting` → `active`，会话就绪                       |
+| 12  | AcpSession     | `setStatus('idle')` + `start()`       | 完整重启: client.start → createSession                        |
+| 13  | AcpClient      | `start()`                             | spawn 新的 Agent 子进程 + initialize                          |
+| 14  | AuthNegotiator | `authenticate(client, authMethods)`   | 使用合并后的凭据认证                                          |
+| 15  | AcpClient      | `extMethod('authenticate', ...)`      | 认证成功                                                      |
+| 16  | AcpClient      | `createSession(...)`                  | 创建新 session                                                |
+| 17  | AcpSession     | `setStatus('active')`                 | status: `starting` → `active`，会话就绪                       |
 
 **关键不变量验证**:
 
 - **INV-S-15**: 认证失败时必须通过 `callbacks.onSignal({ type: 'auth_required' })` 通知 UI，不进入 error 状态
-- **INV-S-03**: 认证等待期间保持 `starting` 状态且资源已释放 (`connectorHandle === null && protocol === null`)，由 `retryAuth()` 或 `stop()` 推进到下一状态
+- **INV-S-03**: 认证等待期间保持 `starting` 状态且资源已释放 (`client === null`)，由 `retryAuth()` 或 `stop()` 推进到下一状态
 
 ### 11.4 异常路径
 
@@ -1223,6 +1180,6 @@ sequenceDiagram
 - [完整架构设计](../round-02/arch-a/final-architecture.md) — 核心组件定义和状态机详情
 - [23 条不变量](../round-02/arch-b/invariants.md) — 测试需要验证的系统不变量
 - [共识决议](../round-01/inspector/consensus-decisions.md) — D1-D13 设计决策
-- [Connector 简化](../round-04/inspector/consensus-update.md) — IPCConnector + WebSocketConnector
+- [Connector 简化](../round-04/inspector/consensus-update.md) — ProcessAcpClient + WebSocketAcpClient
 - [数据库持久化](../round-05/inspector/consensus-decisions.md) — D14-D20 DB 方案
 - [测试计划](./05-test-plan.md) — 基于本文档场景设计的测试策略，各场景的测试验证方案详见该文档

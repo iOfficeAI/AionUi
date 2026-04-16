@@ -1,7 +1,7 @@
 # ACP 类型目录与不变量清单
 
-> **版本**: v1.1 | **最后更新**: 2026-04-14 | **状态**: Draft
-> **摘要**: ACP 重构的 46 个类型定义（按架构层分组）与 23 条系统不变量的完整规格
+> **版本**: v1.2 | **最后更新**: 2026-04-16 | **状态**: Draft
+> **摘要**: ACP 重构的类型定义（按架构层分组）与 23 条系统不变量的完整规格
 > **受众**: ACP 重构实现开发者、新加入团队的开发者
 
 ---
@@ -45,7 +45,7 @@
 
 ```typescript
 // 定义位置: types.ts
-// 使用方: AcpRuntime.createConversation 参数 -> AcpSession 构造函数 -> ConnectorFactory
+// 使用方: AcpRuntime.createConversation 参数 -> AcpSession 构造函数 -> ClientFactory
 // 边界: 跨层（Application 创建, Session 使用, Infrastructure 读取连接信息）
 
 type AgentConfig = {
@@ -136,6 +136,30 @@ class AcpError extends Error {
 
 统一错误类型。`code` 字段用于错误分类，`retryable` 标记是否可重试。`cause` 支持错误链追溯。
 
+#### AcpError 子类
+
+```typescript
+// 定义位置: errors/AcpError.ts
+// 边界: 跨层
+
+class AgentSpawnError extends AcpError {
+  // code: 'CONNECTION_FAILED'
+  // spawn() 失败时抛出，包含 command 信息
+}
+
+class AgentStartupError extends AcpError {
+  // code: 'PROCESS_CRASHED'
+  // 进程在 initialize() 完成前退出，包含 stderr + exit code
+}
+
+class AgentDisconnectedError extends AcpError {
+  // code: 'PROCESS_CRASHED'
+  // 进程在请求执行期间断开，包含 exit info
+}
+```
+
+三个 AcpError 子类分别对应连接阶段的三种失败模式：spawn 失败、启动期崩溃、运行期断开。`AgentStartupError` 和 `AgentDisconnectedError` 均包含 stderr 信息用于诊断。
+
 ### 1.4 AcpErrorCode
 
 ```typescript
@@ -218,8 +242,8 @@ type MetricsSnapshot = {
 
 ```typescript
 // 来源: @agentclientprotocol/sdk
-// 使用方: AgentConnector.connect() 产出, AcpProtocol 构造函数消费
-// 边界: Infrastructure 内部流转, 通过 ConnectorHandle 暴露给 Session
+// 使用方: AcpClient 内部使用（ProcessAcpClient 通过 NdjsonTransport 创建）
+// 边界: Infrastructure 内部（不暴露给 Session 层）
 
 type Stream = {
   readable: ReadableStream<AnyMessage>;
@@ -227,94 +251,113 @@ type Stream = {
 };
 ```
 
-SDK 定义的双向消息流（bidirectional message stream）。`AnyMessage` 是 JSON-RPC 2.0 消息的联合类型（request / response / notification）。Session 层不直接操作 Stream，而是通过 AcpProtocol 包装后使用。
+SDK 定义的双向消息流（bidirectional message stream）。`AnyMessage` 是 JSON-RPC 2.0 消息的联合类型（request / response / notification）。Session 层不直接操作 Stream——它是 AcpClient 的内部实现细节。
 
-### 2.2 ConnectorHandle
+### 2.2 AcpClient（接口）
 
 ```typescript
 // 定义位置: 新定义
-// 使用方: AgentConnector.connect() 返回, AcpSession 持有
+// 使用方: AcpSession 持有（单一 client 字段），ClientFactory.create() 返回
 // 边界: Infrastructure -> Session
+// 实现: ProcessAcpClient (本地子进程), WebSocketAcpClient (远程 WebSocket)
 
-type ConnectorHandle = {
-  /** 可通信的双向消息流 */
-  stream: Stream;
-  /** 优雅关闭连接 + 清理资源（三阶段关闭） */
-  shutdown: () => Promise<void>;
-};
-```
-
-一次性连接句柄（one-shot connection handle）。`shutdown()` 调用后该句柄不可复用。AcpSession 在 suspend 或 kill 时调用 `shutdown()`，之后将 `connectorHandle` 置为 `null`。
-
-### 2.3 AgentConnector（接口）
-
-```typescript
-// 定义位置: 新定义
-// 使用方: AcpSession 构造函数注入
-// 边界: Infrastructure 层接口，Session 层依赖
-// 实现: IPCConnector, WebSocketConnector (Round 04: 由 4 种简化为 2 种)
-
-interface AgentConnector {
-  /** 建立连接，返回一次性句柄 */
-  connect(): Promise<ConnectorHandle>;
-  /** 当前连接是否存活 */
-  isAlive(): boolean;
-}
-```
-
-Infrastructure 层唯一的对外接口。隔离本地（子进程 IPC）和远程（WebSocket）两种部署模式。2 种实现对应 D4 决议（Round 04 修订）。
-
-### 2.4 AcpProtocol（具体类）
-
-```typescript
-// 定义位置: 新定义（SDK ClientSideConnection 薄包装）
-// 使用方: AcpSession 内部创建和使用
-// 边界: Infrastructure 层实现，Session 层直接依赖（不通过接口）
-// 注: 通过 ProtocolFactory 注入实现测试替换（D9 决议）
-
-declare class AcpProtocol {
-  constructor(stream: Stream, handlers: ProtocolHandlers);
-
-  initialize(): Promise<InitializeResponse>;
-  authenticate(credentials?: Record<string, string>): Promise<AuthenticateResponse>;
+interface AcpClient {
+  start(): Promise<InitializeResponse>;
   createSession(params: CreateSessionParams): Promise<NewSessionResponse>;
   loadSession(params: LoadSessionParams): Promise<LoadSessionResponse>;
   prompt(sessionId: string, content: PromptContent): Promise<PromptResponse>;
   cancel(sessionId: string): Promise<void>;
-  closeSession(sessionId: string): Promise<void>;
   setModel(sessionId: string, modelId: string): Promise<void>;
   setMode(sessionId: string, modeId: string): Promise<void>;
   setConfigOption(sessionId: string, id: string, value: string | boolean): Promise<void>;
+  closeSession(sessionId: string): Promise<void>;
   extMethod(method: string, params: Record<string, unknown>): Promise<unknown>;
-
-  /** 连接关闭信号——resolve 表示连接已关闭 */
-  readonly closed: Promise<void>;
+  readonly lifecycleSnapshot: AgentLifecycleSnapshot;
+  onDisconnect(handler: (info: DisconnectInfo) => void): void;
+  close(): Promise<void>;
 }
 ```
 
-不定义接口（D9 决议中通过 `ProtocolFactory` 实现测试注入，而非接口抽象）。AcpProtocol 的职责是透传 SDK 方法 + 注册 client-side handlers，不管超时、不管重连、不缓存状态。
+统一的 ACP 客户端接口（unified ACP client interface）。替代原有的 `ConnectorHandle` + `AgentConnector` + `AcpProtocol` + `ProtocolFactory` 四个抽象。AcpSession 持有单一 `client: AcpClient | null` 字段，通过此接口完成所有 agent 交互。`start()` 内部封装了 spawn/connect + 协议初始化。`close()` 内部封装了资源清理（进程关闭或 WebSocket 断开）。
 
-### 2.5 ProtocolFactory
+> **v1.2 修订**: 合并 ConnectorHandle、AgentConnector、AcpProtocol、ProtocolFactory 为统一的 AcpClient 接口。Session 层不再直接接触 Stream、ProtocolHandlers 等底层概念。
+
+### 2.3 ClientFactory
 
 ```typescript
-// 定义位置: session/types.ts
-// 使用方: AcpSession 构造函数可选注入（通过 SessionOptions）
-// 边界: 跨 Infrastructure/Session，用于测试注入
-// 依据: D9 决议
+// 定义位置: 新定义
+// 使用方: AcpRuntime 构造函数注入, AcpSession 通过 SessionOptions 注入
+// 边界: Application -> Session（工厂模式，根据 AgentConfig 创建对应实现）
 
-type ProtocolFactory = (stream: Stream, handlers: ProtocolHandlers) => AcpProtocol;
-
-const defaultProtocolFactory: ProtocolFactory = (stream, handlers) => new AcpProtocol(stream, handlers);
+type ClientFactory = {
+  create(config: AgentConfig): AcpClient;
+};
 ```
 
-T2 契约测试（contract test）和 T3 编排集成测试（orchestration integration test）的基础。通过注入 fake ProtocolFactory，测试可以精确控制 protocol 层行为。
+根据 `AgentConfig.remoteUrl` 是否存在决定创建 `ProcessAcpClient`（本地子进程）或 `WebSocketAcpClient`（远程 WebSocket）。替代原有的 `ConnectorFactory`。
 
-### 2.6 ProtocolHandlers
+> **v1.2 修订**: 原 `ConnectorFactory` + `ProtocolFactory` 合并为 `ClientFactory`。
+
+### 2.4 ProcessAcpClient（具体类，内部实现）
+
+`ProcessAcpClient` 是 `AcpClient` 的本地子进程实现。内部封装了 `spawn()` + `NdjsonTransport` + SDK `ClientSideConnection`。不作为类型暴露给 Session 层——Session 层只通过 `AcpClient` 接口交互。
+
+- `start()`: spawn 子进程 → 建立 stdio 管道 → JSON-RPC initialize
+- `close()`: 三阶段关闭（stdin.end → SIGTERM → SIGKILL）
+- `lifecycleSnapshot`: 反映子进程的 pid、运行状态、最后退出信息
+- `onDisconnect()`: 监听进程退出事件（exit、close、pipe_close）
+
+> **v1.2 修订**: 原 `AcpProtocol` 类的职责（协议透传 + SDK 方法包装）被合并到 `ProcessAcpClient` 内部实现中。`AcpProtocol` 不再作为独立类型暴露。
+
+### 2.5 AgentLifecycleSnapshot
+
+```typescript
+// 定义位置: 新定义
+// 使用方: AcpClient.lifecycleSnapshot 属性返回值
+// 边界: Infrastructure -> Session（AcpSession 读取以判断进程状态）
+
+type AgentLifecycleSnapshot = {
+  pid: number | null;
+  running: boolean;
+  lastExit: {
+    exitCode: number | null;
+    signal: string | null;
+    reason: 'process_exit' | 'pipe_close' | 'connection_close';
+    stderr: string;
+    unexpectedDuringPrompt: boolean;
+  } | null;
+};
+```
+
+AcpClient 的进程/连接生命周期快照。`running` 反映当前连接是否存活（替代原有 `connector.isAlive()`）。`lastExit` 记录最后一次退出的完整信息，包含 stderr 用于诊断。`unexpectedDuringPrompt` 标记是否在 prompt 执行期间意外断开。
+
+> **v1.2 新增**: 替代原 `ProtocolFactory` 位置。提供结构化的生命周期信息，比原有的 `isAlive()` boolean 更丰富。
+
+### 2.X DisconnectInfo
+
+```typescript
+// 定义位置: 新定义
+// 使用方: AcpClient.onDisconnect() 回调参数
+// 边界: Infrastructure -> Session
+
+type DisconnectInfo = {
+  reason: 'process_exit' | 'pipe_close' | 'connection_close';
+  exitCode: number | null;
+  signal: string | null;
+  stderr: string;
+};
+```
+
+断开连接事件的上下文信息。`reason` 区分三种断开原因：进程退出、管道关闭、连接关闭（WebSocket）。AcpSession 的 `handleDisconnect(info)` 使用此信息决定恢复策略。
+
+> **v1.2 新增**: 替代原有的 `protocol.closed` Promise（无上下文信息）为结构化的断开事件。
+
+### 2.6 ProtocolHandlers（AcpClient 内部）
 
 ```typescript
 // 定义位置: session/types.ts
-// 使用方: AcpProtocol 构造函数参数
-// 边界: Infrastructure 内部（Session 层通过 AcpSession 方法间接提供 handler 实现）
+// 使用方: ProcessAcpClient / WebSocketAcpClient 内部使用
+// 边界: Infrastructure 内部（不再暴露给 Session 层）
 
 type ProtocolHandlers = {
   onSessionUpdate: (notification: SessionNotification) => void;
@@ -324,7 +367,9 @@ type ProtocolHandlers = {
 };
 ```
 
-AcpProtocol 注册到 SDK `ClientSideConnection` 上的 client-side 回调。`onReadTextFile` / `onWriteTextFile` 的参数类型在 Phase 1 用 `unknown` 占位，待 SDK 类型稳定后补全。
+AcpClient 内部注册到 SDK `ClientSideConnection` 上的 client-side 回调。`onReadTextFile` / `onWriteTextFile` 的参数类型在 Phase 1 用 `unknown` 占位，待 SDK 类型稳定后补全。
+
+> **v1.2 修订**: ProtocolHandlers 现在是 AcpClient 的内部实现细节，不再暴露给 Session 层。Session 层通过 AcpClient 接口间接提供 handler 实现。
 
 ### 2.7 SessionNotification / SessionUpdate（SDK 原样）
 
@@ -388,7 +433,7 @@ AcpSession 内部的 PermissionResolver 将 `RequestPermissionRequest` 转换为
 
 ```typescript
 // 来源: @agentclientprotocol/sdk（原样透传）
-// 使用方: AcpProtocol.prompt() 返回值
+// 使用方: AcpClient.prompt() 返回值
 // 边界: Infrastructure -> Session（AcpSession.executePrompt 消费）
 
 type PromptResponse = {
@@ -407,8 +452,8 @@ AcpSession 在 prompt 完成后检查 `stopReason` 决定下一步行为（出�
 ### 2.10 InitializeResponse
 
 ```typescript
-// 定义位置: session/types.ts（与 AcpProtocol 一起定义）
-// 使用方: AcpProtocol.initialize() 返回值, AcpSession.doStart 消费
+// 定义位置: session/types.ts（与 AcpClient 一起定义）
+// 使用方: AcpClient.start() 返回值, AcpSession.doStart 消费
 // 边界: Infrastructure -> Session
 
 type InitializeResponse = {
@@ -419,7 +464,7 @@ type InitializeResponse = {
 };
 ```
 
-`protocol.initialize()` 的返回类型。`authMethods` 字段可选——缺失时表示 agent 不需要认证，AcpSession 跳过认证步骤直接进入 createSession。存在时由 AuthNegotiator 转换为应用类型 `AuthMethod[]`。
+`client.start()` 的返回类型。`authMethods` 字段可选——缺失时表示 agent 不需要认证，AcpSession 跳过认证步骤直接进入 createSession。存在时由 AuthNegotiator 转换为应用类型 `AuthMethod[]`。
 
 ### 2.11 RawAuthMethod
 
@@ -442,29 +487,15 @@ type RawAuthMethod = {
 
 SDK 原始认证方式定义。`InitializeResponse` 中的格式，所有认证方式共享 `id`、`type`、`name` 字段，通过可选字段区分不同类型的附加数据。AuthNegotiator 将 `RawAuthMethod` 转换为 discriminated union `AuthMethod`，确保 SDK 类型不跨越 Session -> Application 边界（INV-X-01）。
 
-### 2.12 LocalProcessConfig
+### 2.12 ~~LocalProcessConfig~~（已移除）
 
-```typescript
-// 定义位置: 新定义（Round 04 修订: 原 LocalAgentConfig 更名）
-// 使用方: IPCConnector 构造函数
-// 边界: Infrastructure 内部
-
-type LocalProcessConfig = {
-  command: string; // 完整路径或可执行文件名, 由上游 (AcpDetector) 决定
-  args: string[]; // 所有参数, 由上游组装
-  cwd: string;
-  env?: Record<string, string>;
-  gracePeriodMs?: number; // Phase 1 stdin.end() 等待时间, 默认 100ms
-};
-```
-
-> **Round 04 变更**: 原 `LocalAgentConfig` 和 `DirectCliConfig` 合并为 `LocalProcessConfig`。原 `NpxBridgeConfig`、`ManagedInstallConfig` 已删除——对应的 Connector 不再存在。
+> **v1.2 修订**: `LocalProcessConfig` 的内容（command、args、cwd、env、gracePeriodMs）现在是 `ProcessAcpClient` 的内部实现细节，从 `AgentConfig` 中直接读取。不再作为独立类型暴露。
 
 ### 2.13 CreateSessionParams / LoadSessionParams
 
 ```typescript
 // 定义位置: types.ts
-// 使用方: AcpProtocol.createSession / loadSession 参数
+// 使用方: AcpClient.createSession / loadSession 参数
 // 边界: Infrastructure 内部
 
 type CreateSessionParams = {
@@ -485,7 +516,7 @@ type LoadSessionParams = {
 
 ```typescript
 // 定义位置: types.ts
-// 使用方: InputPreprocessor.process 返回, AcpProtocol.prompt 参数
+// 使用方: InputPreprocessor.process 返回, AcpClient.prompt 参数
 // 边界: Session -> Infrastructure（AcpSession 内部流转）
 
 type PromptContent = Array<PromptContentItem>;
@@ -855,7 +886,7 @@ type SessionOptions = {
   promptTimeoutMs?: number; // 默认 300_000 (5 分钟)
   maxStartRetries?: number; // 默认 3 (3 次重试 = 4 次总尝试)
   maxResumeRetries?: number; // 默认 2
-  protocolFactory?: ProtocolFactory; // 默认 defaultProtocolFactory
+  clientFactory?: ClientFactory; // 默认 defaultClientFactory (v1.2: 替代原 protocolFactory)
   metrics?: AcpMetrics; // 默认 noopMetrics
   promptQueueMaxSize?: number; // 默认 5
   approvalCacheMaxSize?: number; // 默认 500
@@ -904,19 +935,21 @@ type SessionEntry = {
 };
 ```
 
-### 4.3 ConnectorFactory（Application 内部）
+### 4.3 ClientFactory（Application 内部）
 
 ```typescript
 // 定义位置: 新定义
 // 使用方: AcpRuntime 构造函数注入
 // 边界: Application 内部
 
-type ConnectorFactory = {
-  create(config: AgentConfig): AgentConnector;
+type ClientFactory = {
+  create(config: AgentConfig): AcpClient;
 };
 ```
 
-根据 `AgentConfig.remoteUrl` 是否存在决定创建 `IPCConnector` 或 `WebSocketConnector`。
+根据 `AgentConfig.remoteUrl` 是否存在决定创建 `ProcessAcpClient` 或 `WebSocketAcpClient`。
+
+> **v1.2 修订**: 原 `ConnectorFactory` 更名为 `ClientFactory`，返回 `AcpClient` 而非 `AgentConnector`。
 
 ### 4.4 RuntimeOptions（Application 内部）
 
@@ -965,24 +998,25 @@ classDiagram
     }
 
     namespace Infrastructure {
-        class AgentConnector {
+        class AcpClient {
             <<interface>>
-            +connect(): ConnectorHandle
-            +isAlive(): boolean
-        }
-        class ConnectorHandle {
-            +stream: Stream
-            +shutdown(): Promise~void~
-        }
-        class AcpProtocol {
-            +initialize()
+            +start(): Promise~InitializeResponse~
+            +createSession()
             +prompt()
             +cancel()
-            +closed: Promise~void~
+            +close(): Promise~void~
+            +lifecycleSnapshot: AgentLifecycleSnapshot
+            +onDisconnect(handler)
         }
-        class ProtocolFactory {
-            <<type>>
-            (stream, handlers) => AcpProtocol
+        class AgentLifecycleSnapshot {
+            +pid: number | null
+            +running: boolean
+            +lastExit: object | null
+        }
+        class DisconnectInfo {
+            +reason: string
+            +exitCode: number | null
+            +stderr: string
         }
     }
 
@@ -1017,8 +1051,8 @@ classDiagram
             +createConversation()
             +sendMessage()
         }
-        class ConnectorFactory {
-            +create(AgentConfig): AgentConnector
+        class ClientFactory {
+            +create(AgentConfig): AcpClient
         }
         class SignalEvent {
             <<discriminated union>>
@@ -1026,11 +1060,10 @@ classDiagram
         }
     }
 
-    AgentConnector --> ConnectorHandle : produces
-    ConnectorHandle --> AcpProtocol : stream feeds
-    ProtocolFactory --> AcpProtocol : creates
-    AcpRuntime --> ConnectorFactory : uses
-    ConnectorFactory --> AgentConnector : creates
+    AcpClient --> AgentLifecycleSnapshot : exposes
+    AcpClient --> DisconnectInfo : emits via onDisconnect
+    AcpRuntime --> ClientFactory : uses
+    ClientFactory --> AcpClient : creates
     AcpRuntime --> SessionCallbacks : implements
     SessionCallbacks --> SessionStatus : references
     SessionCallbacks --> QueueSnapshot : references
@@ -1067,10 +1100,10 @@ classDiagram
 
 | 文件                        | 定义差异                                                           |
 | --------------------------- | ------------------------------------------------------------------ |
-| `types.ts` L274-279         | 缺少 `protocolFactory` 和 `metrics` 字段                           |
-| `session/types.ts` L348-355 | 包含 `protocolFactory?: ProtocolFactory` 和 `metrics?: AcpMetrics` |
+| `types.ts` L274-279         | 缺少 `clientFactory` 和 `metrics` 字段                      |
+| `session/types.ts` L348-355 | 包含 `clientFactory?: ClientFactory` 和 `metrics?: AcpMetrics` |
 
-**建议**: 统一为 `session/types.ts` 版本。`protocolFactory` 是 D9 决议的测试注入点，`metrics` 是 D8 决议的遥测注入点，二者均为 AcpSession 构造参数的必要可选字段。
+**建议**: 统一为 `session/types.ts` 版本。`clientFactory` 是测试注入点（替代原 D9 决议的 `protocolFactory`），`metrics` 是 D8 决议的遥测注入点，二者均为 AcpSession 构造参数的必要可选字段。
 
 ### 统一方案
 
@@ -1094,10 +1127,10 @@ classDiagram
 | 5   | `AcpMetrics`                | 新定义       | 跨层             | types.ts           |
 | 6   | `MetricsSnapshot`           | 新定义       | 跨层             | types.ts           |
 | 7   | `Stream`                    | SDK 原样     | Infra 内部       | session/types.ts   |
-| 8   | `ConnectorHandle`           | 新定义       | Infra -> Session | (待创建)           |
-| 9   | `AgentConnector`            | 新定义       | Infra 接口       | (待创建)           |
-| 10  | `AcpProtocol`               | 新定义       | Infra 实现       | session/types.ts   |
-| 11  | `ProtocolFactory`           | 新定义       | Infra/Session    | session/types.ts   |
+| 8   | `AcpClient`                 | 新定义       | Infra -> Session | (待创建)           |
+| 9   | `ClientFactory`             | 新定义       | App 内部         | (待创建)           |
+| 10  | `AgentLifecycleSnapshot`    | 新定义       | Infra -> Session | (待创建)           |
+| 11  | `DisconnectInfo`            | 新定义       | Infra -> Session | (待创建)           |
 | 12  | `ProtocolHandlers`          | 新定义       | Infra 内部       | session/types.ts   |
 | 13  | `SessionNotification`       | SDK 原样     | Infra -> Session | session/types.ts   |
 | 14  | `SessionUpdate`             | SDK 原样     | Infra -> Session | session/types.ts   |
@@ -1106,7 +1139,7 @@ classDiagram
 | 17  | `PromptResponse`            | SDK 原样     | Infra -> Session | session/types.ts   |
 | 18  | `InitializeResponse`        | SDK 扩展     | Infra -> Session | session/types.ts   |
 | 19  | `RawAuthMethod`             | SDK 原样     | Infra 内部       | session/types.ts   |
-| 20  | `LocalProcessConfig`        | 新定义       | Infra 内部       | (待创建)           |
+| 20  | ~~`LocalProcessConfig`~~    | ~~新定义~~   | ~~Infra 内部~~   | (v1.2 移除，内部化到 ProcessAcpClient) |
 | 21  | `CreateSessionParams`       | 新定义       | Infra 内部       | types.ts           |
 | 22  | `LoadSessionParams`         | 新定义       | Infra 内部       | types.ts           |
 | 23  | `PromptContent`             | 新定义       | Session -> Infra | types.ts           |
@@ -1131,8 +1164,11 @@ classDiagram
 | 42  | `SessionOptions`            | 新定义       | Session 内部     | session/types.ts   |
 | 43  | `SignalEvent`               | 新定义       | App -> IPC       | types.ts           |
 | 44  | `SessionEntry`              | 新定义       | App 内部         | (待创建)           |
-| 45  | `ConnectorFactory`          | 新定义       | App 内部         | (待创建)           |
+| 45  | `ClientFactory`             | 新定义       | App 内部         | (待创建)           |
 | 46  | `RuntimeOptions`            | 新定义       | App 内部         | types.ts           |
+| 47  | `AgentSpawnError`           | 新定义       | 跨层             | errors/AcpError.ts |
+| 48  | `AgentStartupError`         | 新定义       | 跨层             | errors/AcpError.ts |
+| 49  | `AgentDisconnectedError`    | 新定义       | 跨层             | errors/AcpError.ts |
 
 > **SDK 类型穿透范围**: SDK 原始类型（`SessionNotification`、`RequestPermissionRequest` 等）最远到达 AcpSession 内部。`handleSessionUpdate()` 和 `handlePermissionRequest()` 是翻译边界，之后全部是应用类型。
 
@@ -1152,9 +1188,9 @@ classDiagram
 
 | 前缀  | 层             | 范围                                                                  |
 | ----- | -------------- | --------------------------------------------------------------------- |
-| INV-I | Infrastructure | Connector、Protocol、Transport                                        |
+| INV-I | Infrastructure | AcpClient 实现（ProcessAcpClient, WebSocketAcpClient）                |
 | INV-S | Session        | AcpSession、组件（PermissionResolver, ConfigTracker, PromptQueue 等） |
-| INV-A | Application    | AcpRuntime、IdleReclaimer、ConnectorFactory                           |
+| INV-A | Application    | AcpRuntime、IdleReclaimer、ClientFactory                              |
 | INV-X | 跨层           | 跨越多个层的不变量                                                    |
 
 ---
@@ -1163,20 +1199,20 @@ classDiagram
 
 ### INV-I-01: 进程不残留
 
-- **描述**: `shutdown()` / `suspend` 完成后，`connector.isAlive()` 返回 `false`；`child.unref()` 确保主进程（Electron）可正常退出。
-- **形式化**: `connectorHandle.shutdown() resolved => connector.isAlive() === false`
-- **验证方式**: T2 契约测试——验证每种 Connector 实现在 shutdown 后 isAlive 返回 false。
+- **描述**: `close()` / `suspend` 完成后，`client.lifecycleSnapshot.running === false`；`child.unref()` 确保主进程（Electron）可正常退出。
+- **形式化**: `client.close() resolved => client.lifecycleSnapshot.running === false`
+- **验证方式**: T2 契约测试——验证每种 AcpClient 实现在 close 后 lifecycleSnapshot.running 返回 false。
 - **违反后果**: 僵尸进程（zombie process）残留，消耗系统资源；主进程无法正常退出。
-- **关联测试**: `IPCConnector.spec.ts`, `WebSocketConnector.spec.ts`
+- **关联测试**: `ProcessAcpClient.spec.ts`, `WebSocketAcpClient.spec.ts`
 - **场景走查**: [Doc 6 场景 1](./06-scenario-walkthrough.md#2-场景-1-创建新会话并发送第一条消息), [场景 6](./06-scenario-walkthrough.md#7-场景-6-空闲回收), [场景 8](./06-scenario-walkthrough.md#9-场景-8-websocket-远程连接)
 
 ### INV-I-02: 三阶段关闭完整性
 
-- **描述**: IPCConnector 的 `shutdown()` 必须按顺序尝试 `stdin.end()` -> `SIGTERM` -> `SIGKILL`，不跳步。某一阶段成功退出进程后，后续阶段不执行（但不跳过顺序）。
-- **形式化**: `shutdown() 执行路径 = Phase1 -> (exit? done : Phase2 -> (exit? done : Phase3))`
+- **描述**: ProcessAcpClient 的 `close()` 必须按顺序尝试 `stdin.end()` -> `SIGTERM` -> `SIGKILL`，不跳步。某一阶段成功退出进程后，后续阶段不执行（但不跳过顺序）。
+- **形式化**: `close() 执行路径 = Phase1 -> (exit? done : Phase2 -> (exit? done : Phase3))`
 - **验证方式**: T2 契约测试——mock ChildProcess，验证信号发送顺序。
 - **违反后果**: 进程无法优雅关闭，数据丢失风险；或跳过 stdin.end() 直接发 SIGKILL 导致 agent 无法保存状态。
-- **关联测试**: `IPCConnector.spec.ts - should follow three-phase shutdown sequence`
+- **关联测试**: `ProcessAcpClient.spec.ts - should follow three-phase shutdown sequence`
 - **场景走查**: [Doc 6 场景 4](./06-scenario-walkthrough.md#5-场景-4-会话挂起与恢复), [场景 6](./06-scenario-walkthrough.md#7-场景-6-空闲回收)
 
 ### ~~INV-I-03: NPX fallback 链有序~~（已删除）
@@ -1208,7 +1244,7 @@ classDiagram
 ### INV-S-03: 状态收敛
 
 - **描述**: AcpSession 任何异常路径最终归于 `active` / `suspended` / `error` 三态之一，**或**在认证等待期间保持 `starting` / `resuming` 状态（此时连接资源已释放）。不存在卡在 `starting` / `resuming` / `prompting` 的死状态（dead state）——认证等待是显式的有界等待（用户调用 `retryAuth()` 或 `stop()` 结束等待）。
-- **形式化**: 对于任意异常 e，`handleError(e)` 最终将 status 转换为 `active | suspended | error` 之一。特例：`AUTH_REQUIRED` / `AUTH_FAILED` 路径保持 `starting` / `resuming` 且 `connectorHandle === null && protocol === null`，由 `retryAuth()` 或 `stop()` 推进到下一状态。
+- **形式化**: 对于任意异常 e，`handleError(e)` 最终将 status 转换为 `active | suspended | error` 之一。特例：`AUTH_REQUIRED` / `AUTH_FAILED` 路径保持 `starting` / `resuming` 且 `client === null`，由 `retryAuth()` 或 `stop()` 推进到下一状态。
 - **验证方式**: T3 编排集成测试——注入各种故障（connect 失败、prompt 超时、进程 crash、resume 失败、认证失败），验证最终状态。
 - **违反后果**: UI 永远显示"连接中"或"执行中"，用户无法操作，只能强制关闭。
 - **关联测试**: `AcpSession.spec.ts - should converge to terminal state after any error`, `AcpSession.spec.ts - should stay in starting state during auth wait with resources released`
@@ -1314,14 +1350,14 @@ classDiagram
 
 ### INV-S-15: 认证信号必达
 
-- **描述**: 若 agent 要求认证（`InitializeResponse` 含 `authMethods`）且当前没有可用凭据（`AuthNegotiator.hasCredentials` 为 `false`），或认证调用失败（`AUTH_FAILED`），AcpSession 必须通过 `callbacks.onSignal({ type: 'auth_required', auth })` 通知 Application 层。认证等待期间 AcpSession 保持 `starting` 状态（或 `resuming` 状态），连接资源已释放（`teardownConnection` 完成）。不进入 `error` 状态。`retryAuth()` 调用后走 reset 模式：重新执行 `doStart()` 完整流程（connect -> initialize -> authenticate -> createSession），不继续之前中断的握手。
+- **描述**: 若 agent 要求认证（`InitializeResponse` 含 `authMethods`）且当前没有可用凭据（`AuthNegotiator.hasCredentials` 为 `false`），或认证调用失败（`AUTH_FAILED`），AcpSession 必须通过 `callbacks.onSignal({ type: 'auth_required', auth })` 通知 Application 层。认证等待期间 AcpSession 保持 `starting` 状态（或 `resuming` 状态），连接资源已释放（`client.close()` 完成）。不进入 `error` 状态。`retryAuth()` 调用后走 reset 模式：重新执行 `doStart()` 完整流程（client.start -> createSession），不继续之前中断的握手。
 - **形式化**:
   ```
   (requiresAuth(initResult) && !authNegotiator.hasCredentials)
   || (authenticate() throws AUTH_FAILED)
   => callbacks.onSignal({ type: 'auth_required', auth }) 被调用
   && status 保持 'starting' 或 'resuming'
-  && connectorHandle === null && protocol === null
+  && client === null
   ```
 - **验证方式**: T3 编排集成测试。
 - **违反后果**: Application 层无法得知认证需求，UI 无法展示登录界面，用户无法完成认证流程，session 启动永远无法完成。

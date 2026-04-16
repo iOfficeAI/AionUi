@@ -1,7 +1,7 @@
-# 参考实现分析：acpx (OpenClaw)
+# 参考实现分析：acpx (OpenClaw) 与 Zed
 
-> **版本**: v1.0 | **最后更新**: 2026-04-14 | **状态**: Draft
-> **摘要**: 分析 OpenClaw acpx 的架构设计，提取值得借鉴的模式，对比 AionUi 场景差异
+> **版本**: v1.1 | **最后更新**: 2026-04-16 | **状态**: Draft
+> **摘要**: 分析 OpenClaw acpx 与 Zed 编辑器的 ACP 架构设计，提取值得借鉴的模式，对比 AionUi 场景差异
 > **受众**: ACP 重构实现开发者、新加入团队的开发者
 
 ---
@@ -10,11 +10,13 @@
 
 - [1. 背景](#1-背景)
 - [2. acpx 架构概览](#2-acpx-架构概览)
-- [3. 值得借鉴的设计模式](#3-值得借鉴的设计模式)
-- [4. 可直接复用的模块](#4-可直接复用的模块)
-- [5. 设计理念值得参考但不直接复制的模块](#5-设计理念值得参考但不直接复制的模块)
-- [6. AionUi 与 acpx 的场景差异](#6-aionui-与-acpx-的场景差异)
-- [7. 借鉴总结](#7-借鉴总结)
+- [3. Zed 架构分析](#3-zed-架构分析)
+- [4. 值得借鉴的设计模式](#4-值得借鉴的设计模式)
+- [5. 可直接复用的模块](#5-可直接复用的模块)
+- [6. 设计理念值得参考但不直接复制的模块](#6-设计理念值得参考但不直接复制的模块)
+- [7. AionUi 与 acpx 的场景差异](#7-aionui-与-acpx-的场景差异)
+- [8. AcpClient 单一所有者模式：从参考实现提炼的核心改进](#8-acpclient-单一所有者模式从参考实现提炼的核心改进)
+- [9. 借鉴总结](#9-借鉴总结)
 - [参考文档](#参考文档)
 
 ---
@@ -99,9 +101,62 @@ graph TB
 
 ---
 
-## 3. 值得借鉴的设计模式
+## 3. Zed 架构分析
 
-### 3.1 SDK 驱动而非手搓协议
+### 3.1 文件结构
+
+```
+crates/
+├── agent_servers/src/
+│   ├── acp.rs                 # AcpConnection: spawns child, owns streams, protocol, stderr_task, wait_task
+│   └── custom.rs              # CustomAgentServer: command resolution
+├── acp_thread/src/
+│   ├── acp_thread.rs          # AcpThread: session model, conversation state
+│   └── connection.rs          # AgentConnection trait
+└── util/src/
+    └── process.rs             # Child process wrapper with SIGKILL process group cleanup
+```
+
+### 3.2 核心设计特点
+
+Zed 的 ACP 实现用 Rust 所有权模型实现了确定性的进程生命周期管理，与 AionUi 当前做法形成鲜明对比：
+
+| Zed 做法                                                              | AionUi 当前做法                                 | 差距               |
+| --------------------------------------------------------------------- | ----------------------------------------------- | ------------------ |
+| `AcpConnection` 单一所有者: child + io_task + wait_task + stderr_task | Connector + Protocol 分离, 无人拥有完整生命周期 | 缺失单一所有者     |
+| Rust 所有权 + Drop trait 保证进程清理                                 | `shutdown()` 手动调用, 容易遗漏                 | 缺乏确定性清理     |
+| 三个独立后台任务 (io/wait/stderr)                                     | 只监听 `protocol.closed` Promise                | 缺少多信号检测     |
+| `LoadError::Exited { status }` 通知所有 session                       | 进程退出时仅 SDK 报 "ACP connection closed"     | 缺少结构化退出信息 |
+
+### 3.3 进程生命周期管理
+
+Zed 的 `AcpConnection` 通过三个后台任务实现全方位的进程监控：
+
+- **`_wait_task`**：调用 `child.status().await`，进程退出时发出 `LoadError::Exited { status }` 通知到所有 session，确保上层立即感知进程终止
+- **`_stderr_task`**：逐行读取 stderr 内容，以 warn 级别记录日志，为排查 agent 异常提供诊断信息
+- **`_io_task`**：运行协议 I/O 循环，当 stdin/stdout 关闭时自动失败退出
+
+关键设计：`AcpConnection` 实现了 `Drop` trait，在结构体被销毁时自动 kill 子进程——这是 Rust 所有权模型带来的确定性清理保证。无论代码路径如何（正常返回、panic、early return），进程都会被正确清理。
+
+Zed **不做自动重试**——进程崩溃导致连接进入错误状态，由用户触发 `reset()` 重新建立连接。这个设计选择符合"让用户控制"的原则，避免了自动重试带来的状态不一致问题。
+
+### 3.4 架构分层
+
+```
+UI Layer (ConversationView)
+  → Connection Store (AgentConnectionStore): caches connections, removes failed entries
+    → Server Layer (CustomAgentServer): resolves commands, calls acp::connect()
+      → Connection Layer (AcpConnection): owns child + tasks + protocol
+        → Thread Layer (AcpThread): session state, entries, plan
+```
+
+Zed 的分层清晰地将"连接管理"与"会话状态"分离：`AcpConnection` 负责进程生命周期和协议通信，`AcpThread` 负责会话内容和对话状态。`AgentConnectionStore` 作为缓存层，按 agent 命令缓存连接实例，失败时自动移除条目。
+
+---
+
+## 4. 值得借鉴的设计模式
+
+### 4.1 SDK 驱动而非手搓协议
 
 acpx 使用 `@agentclientprotocol/sdk` 提供的 `ClientSideConnection` 处理 JSON-RPC 请求/响应/通知的路由。SDK 提供了：
 
@@ -111,7 +166,7 @@ acpx 使用 `@agentclientprotocol/sdk` 提供的 `ClientSideConnection` 处理 J
 
 **启示**：AionUi 应引入同一个 SDK，消除 `AcpConnection` 中 1,100+ 行的手搓代码。SDK 处理的是协议层的机械性工作（消息序列化/反序列化、请求/响应匹配、notification 路由），这些工作没有业务价值，且手搓容易出错。
 
-### 3.2 传输层抽象
+### 4.2 传输层抽象
 
 acpx 的 `createNdJsonMessageStream()` 将子进程 stdio 转为类型化的消息流：
 
@@ -126,7 +181,7 @@ acpx 的 `createNdJsonMessageStream()` 将子进程 stdio 转为类型化的消�
 2. **传输可替换**：切换到 WebSocket 只需替换 stream 构造，协议逻辑不变
 3. **可测试性**：可以用内存 stream 替代真实 stdio 进行测试
 
-### 3.3 结构化错误处理链
+### 4.3 结构化错误处理链
 
 acpx 的错误处理是一条清晰的链路：
 
@@ -146,7 +201,7 @@ flowchart LR
 
 **对比 AionUi**：当前实现收到 error response 时只做 `message.error?.message || 'Unknown ACP error'`，丢失了 code 和 data，然后用字符串 `includes()` 匹配来分类。信息在第一步就丢了，后续无论怎么改善分类逻辑都无济于事。
 
-### 3.4 三级优雅关闭
+### 4.4 三级优雅关闭
 
 acpx 的 `AcpClient.close()` 实现了三级关闭策略：
 
@@ -156,7 +211,7 @@ acpx 的 `AcpClient.close()` 实现了三级关闭策略：
 
 AionUi 的 `killChild` 直接从 SIGTERM 开始，缺少 stdin 关闭这个最优雅的阶段。stdin.end() 给了 agent 进程自行清理（保存状态、关闭连接等）的机会，这对会话恢复的可靠性很重要。
 
-### 3.5 Tapped Stream 调试机制
+### 4.5 Tapped Stream 调试机制
 
 acpx 的 `createTappedStream()` 在不修改原始 stream 的情况下插入 inbound/outbound 消息观察点，用于：
 
@@ -168,11 +223,11 @@ AionUi 当前没有等价机制。当需要调试特定 agent 的协议交互时
 
 ---
 
-## 4. 可直接复用的模块
+## 5. 可直接复用的模块
 
 以下模块与 acpx 业务逻辑无关，是纯函数或纯数据转换，可直接移植到 AionUi 的新架构中。
 
-### 4.1 client-process.ts -- 进程工具
+### 5.1 client-process.ts -- 进程工具
 
 约 155 行，零外部依赖（仅 `node:child_process` 和 `node:path`）。
 
@@ -188,7 +243,7 @@ AionUi 当前没有等价机制。当需要调试特定 agent 的协议交互时
 
 **替代 AionUi 的**：`utils.ts` 中的 `waitForProcessExit()`（50ms 轮询）、`isProcessAlive()`（signal 探测）、`acpConnectors.ts` 中的 `cliPath.split(' ')`（不支持引号）。
 
-### 4.2 jsonrpc.ts -- JSON-RPC 消息校验
+### 5.2 jsonrpc.ts -- JSON-RPC 消息校验
 
 约 138 行。严格按 JSON-RPC 2.0 规范校验消息结构。
 
@@ -203,7 +258,7 @@ AionUi 当前没有等价机制。当需要调试特定 agent 的协议交互时
 
 校验内容包括：`jsonrpc: "2.0"` 版本号、`id` 类型（`string | number | null`）、`error` 结构体（`{code: number, message: string}`）等。AionUi 当前完全缺失这类校验。
 
-### 4.3 error-shapes.ts -- ACP 错误提取
+### 5.3 error-shapes.ts -- ACP 错误提取
 
 约 154 行。核心函数 `extractAcpError()` 递归（最多 5 层）从 `error` / `cause` / `acp` 字段中提取 `{code: number, message: string, data?: unknown}` 格式的 ACP 错误。
 
@@ -216,7 +271,7 @@ AionUi 当前没有等价机制。当需要调试特定 agent 的协议交互时
 | `formatUnknownErrorMessage(error)`  | 通用 unknown -> string 转换，四级降级（Error 实例 -> 带 message 的对象 -> JSON.stringify -> String()） |
 | `isAcpResourceNotFoundError(error)` | 检测 session 丢失（code -32001/-32002 + 文本匹配兜底）                                                 |
 
-### 4.4 error-normalization.ts -- 错误标准化
+### 5.4 error-normalization.ts -- 错误标准化
 
 约 288 行。将各种错误统一为结构化的 `NormalizedOutputError`：
 
@@ -239,7 +294,7 @@ type NormalizedOutputError = {
 
 移植到 AionUi 时，acpx 的 `OutputErrorCode` 需要映射到新架构的 `AcpErrorCode`。主要映射关系：`RUNTIME` -> `AGENT_ERROR`、`TIMEOUT` -> `PROMPT_TIMEOUT`、`NO_SESSION` -> `SESSION_EXPIRED`、`PERMISSION_DENIED` -> `PERMISSION_DENIED`（保持一致）。完整的 `AcpErrorCode` 枚举定义见 [04-type-catalog.md](04-type-catalog.md)。
 
-### 4.5 jsonrpc-error.ts -- JSON-RPC 错误响应构建
+### 5.5 jsonrpc-error.ts -- JSON-RPC 错误响应构建
 
 约 88 行。根据错误类型构建规范的 JSON-RPC 2.0 error response，包含错误码映射表：
 
@@ -254,7 +309,7 @@ USAGE: -32602;
 
 **替代 AionUi 的**：硬编码 `{ code: -32603, message: ... }`，所有错误都报为 Internal error。
 
-### 4.6 session-control-errors.ts -- Session 控制错误
+### 5.6 session-control-errors.ts -- Session 控制错误
 
 约 64 行。包装 `session/set_mode`、`session/set_model`、`session/set_config_option` 的错误，能区分"agent 不支持该方法"（code `-32601`/`-32602`）和其他错误类型。
 
@@ -262,27 +317,27 @@ USAGE: -32602;
 
 ---
 
-## 5. 设计理念值得参考但不直接复制的模块
+## 6. 设计理念值得参考但不直接复制的模块
 
 以下模块的代码与 acpx 业务逻辑耦合，不能直接复制，但其设计模式值得在 AionUi 新架构中借鉴。
 
-### 5.1 AcpClient 连接管理模式
+### 6.1 AcpClient 连接管理模式
 
 acpx `AcpClient` 的连接管理有几个亮点：
 
 - **pendingConnectionRequests**：跟踪所有 in-flight 的 JSON-RPC 请求。Agent 断开时批量 reject 所有 pending 请求，确保调用方不会永远等待。实现方式是 `runConnectionRequest()` 包装每个请求，统一注册和清理。
-- **三级关闭**：如上文 3.4 节所述。
-- **Tapped stream**：如上文 3.5 节所述。
+- **三级关闭**：如上文 4.4 节所述。
+- **Tapped stream**：如上文 4.5 节所述。
 
 AionUi 的 `handleProcessExit` 做了类似 pending request reject 的事情，但 acpx 的实现更干净（单一入口 `runConnectionRequest`，自动注册/清理）。
 
-### 5.2 Agent 生命周期观察
+### 6.2 Agent 生命周期观察
 
 `attachAgentLifecycleObservers()` 统一监听 `exit` / `close` / `stdout.close` 三个事件，且只记录第一次退出信息（`recordAgentExit` 幂等），维护 `AgentExitInfo` 快照。
 
 AionUi 只监听了 `exit` 事件。在某些边缘情况下（如 agent 进程被外部 kill），`exit` 事件可能不触发，但 `close` 事件会。监听多个事件并取第一次是更稳健的做法。
 
-### 5.3 Agent Registry 与两级解析策略
+### 6.3 Agent Registry 与两级解析策略
 
 acpx 的 agent 启动不是直接跑 `npx`，而是用两级解析策略：
 
@@ -313,11 +368,11 @@ flowchart TD
 
 ---
 
-## 6. AionUi 与 acpx 的场景差异
+## 7. AionUi 与 acpx 的场景差异
 
 acpx 是 CLI 工具，AionUi 是 Electron 桌面应用。两者虽然使用同一协议，但运行环境和产品需求有显著差异，不能盲目照搬。
 
-### 6.1 关键差异对比
+### 7.1 关键差异对比
 
 | 维度             | acpx (CLI)                   | AionUi (Electron 桌面应用)                           |
 | ---------------- | ---------------------------- | ---------------------------------------------------- |
@@ -332,7 +387,7 @@ acpx 是 CLI 工具，AionUi 是 Electron 桌面应用。两者虽然使用同�
 | **多后端**       | 通过命令行参数指定           | 25+ 后端动态发现、注册、切换                         |
 | **状态管理**     | 无显式状态机（CLI 单次运行） | 7 态状态机（D1 决议）                                |
 
-### 6.2 AionUi 必须额外解决的问题
+### 7.2 AionUi 必须额外解决的问题
 
 以下是 acpx 不需要考虑、但 AionUi 必须处理的问题：
 
@@ -343,7 +398,7 @@ acpx 是 CLI 工具，AionUi 是 Electron 桌面应用。两者虽然使用同�
 5. **Agent 发现**：三级发现机制（内置、扩展、自定义），Hub 安装/更新/卸载
 6. **NPX 降级与重试**：内置 bun/bunx 替代系统 npm/npx，减少环境依赖
 
-### 6.3 acpx 启动策略的借鉴与调整
+### 7.3 acpx 启动策略的借鉴与调整
 
 | 维度          | acpx                              | AionUi 当前                              | AionUi 新架构（调整后）               |
 | ------------- | --------------------------------- | ---------------------------------------- | ------------------------------------- |
@@ -357,9 +412,56 @@ AionUi 的复杂度部分来自桌面应用的现实（用户环境千差万别�
 
 ---
 
-## 7. 借鉴总结
+## 8. AcpClient 单一所有者模式：从参考实现提炼的核心改进
 
-### 7.1 直接复用
+### 8.1 问题：当前 V2 设计的职责割裂
+
+当前 V2 设计将进程生命周期拆分到多个模块中：
+
+- `ConnectorFactory → AgentConnector → ConnectorHandle { stream, shutdown }`（拥有进程）
+- `AcpProtocol(stream)`（包装 SDK，不知道进程的存在）
+- `AcpSession`（编排两者，但无法直接获取进程信息）
+
+当 SDK 抛出 "ACP connection closed" 时，这条链路中**没有任何一个节点拥有完整上下文**（stderr 内容、退出码、退出原因）。ConnectorHandle 知道进程退了，但不知道 SDK 在做什么；AcpProtocol 知道连接断了，但不知道为什么；AcpSession 两边都问不到完整信息。
+
+### 8.2 参考实现的共同模式：单一所有者
+
+acpx 和 Zed 用完全不同的语言和架构，却不约而同地采用了同一个模式——**单一所有者拥有连接的全部资源**：
+
+- **acpx**: `AcpClient`（1400+ 行 TypeScript）—— 拥有子进程、streams、SDK connection、stderr buffer、lifecycle observers、pending request tracking
+- **Zed**: `AcpConnection`（Rust struct）—— 拥有 Child、`_io_task`、`_wait_task`、`_stderr_task`、protocol connection
+
+两者的共同点：
+
+1. 进程生命周期和协议状态在**同一个对象**中管理
+2. 进程退出时，所有者能立即获取完整上下文（exit code + signal + stderr）
+3. 连接断开的通知携带结构化信息，而非 SDK 的不透明错误字符串
+4. 所有者销毁时保证进程清理（acpx 通过 `close()` 三级关闭，Zed 通过 `Drop` trait）
+
+### 8.3 提炼：AcpClient 接口
+
+综合两个参考实现的模式，提出 `AcpClient` 接口——合并 `ConnectorHandle + AcpProtocol` 为单一抽象：
+
+**核心方法**：
+
+- `start()`：一个方法完成 spawn + stream 建立 + SDK 初始化 + 启动失败看门狗（`Promise.race` 检测启动阶段崩溃）
+- 协议方法：`createSession`、`prompt`、`cancel`、`setSessionMode`、`setModel` 等——直接代理 SDK，无需经过 AcpProtocol 中间层
+- `lifecycleSnapshot`：随时可用的生命周期快照，包含 exit code + signal + stderr 尾部内容
+- `onDisconnect(handler)`：断连回调，携带完整上下文（不是 SDK 的不透明 "ACP connection closed"）
+- `close()`：三级优雅关闭（stdin.end → SIGTERM → SIGKILL）
+
+**两个实现**：
+
+- **`ProcessAcpClient`**：本地子进程实现。继承 acpx 的所有模式——pending request tracking、lifecycle observers（exit + close + stdout.close 三事件）、stderr 环形缓冲、启动失败看门狗
+- **`WebSocketAcpClient`**：远程 WebSocket 实现。无进程管理，仅处理 WebSocket 连接状态和协议方法代理
+
+这个设计消除了 8.1 节描述的职责割裂问题：当连接出问题时，`AcpClient` 自身就拥有所有诊断信息，无需跨模块拼凑。
+
+---
+
+## 9. 借鉴总结
+
+### 9.1 直接复用
 
 以下模块已纳入新架构的 Infrastructure Layer 和 Cross-cutting 层：
 
@@ -371,25 +473,28 @@ AionUi 的复杂度部分来自桌面应用的现实（用户环境千差万别�
 | `error-normalization.ts`    | `errors/errorNormalize.ts`       | 移植核心逻辑，调整 error code 枚举适配 AionUi                                                   |
 | `jsonrpc-error.ts`          | `errors/errorJsonRpc.ts`         | 直接移植                                                                                        |
 | `session-control-errors.ts` | `errors/errorSessionControl.ts`  | 直接移植（Doc 3 文件清单未单独列出，其逻辑已内联到 `AcpProtocol.ts` 和 `errorNormalize.ts` 中） |
+| AcpClient 连接管理          | `infra/AcpClient.ts`             | 合并 Connector + Protocol, 单一所有者                                                           |
 
-### 7.2 借鉴设计模式
+### 9.2 借鉴设计模式
 
-| acpx 模式                   | 新架构采纳方式                                                                                                     |
+| acpx / Zed 模式             | 新架构采纳方式                                                                                                     |
 | --------------------------- | ------------------------------------------------------------------------------------------------------------------ |
-| SDK 驱动                    | `AcpProtocol` 薄包装 `ClientSideConnection`，不手搓 JSON-RPC                                                       |
+| SDK 驱动                    | `AcpClient` 内部包装 `ClientSideConnection`，不手搓 JSON-RPC                                                       |
 | 传输层抽象                  | `NdjsonTransport`（byte stream <-> typed message stream）                                                          |
 | 三级关闭                    | `processUtils.gracefulShutdown()`：stdin.end() -> SIGTERM -> SIGKILL                                               |
-| pending request 批量 reject | `AcpProtocol` 在连接断开时清理所有 in-flight 请求                                                                  |
-| 多事件生命周期监听          | Connector 监听 exit + close + stdout.close，幂等记录退出信息（需在 Doc 3 IPCConnector 的 `connect()` 实现中体现）  |
+| pending request 批量 reject | `AcpClient` 内部 `runConnectionRequest()` 包装每个请求，断连时批量 reject                                          |
+| 多事件生命周期监听          | `ProcessAcpClient` 内部 `attachLifecycleObservers()`：exit + close + stdout.close，幂等记录退出信息                |
 | Tapped stream               | 架构预留消息观察注入点（Phase 1 依赖 console.log 调试协议交互，Phase 2 考虑引入类似 tapped stream 的消息观察机制） |
+| 启动失败看门狗              | `ProcessAcpClient.start()` 内部 `Promise.race`：SDK 初始化与进程退出竞争，启动阶段崩溃立即报错                     |
+| stderr ring buffer          | `ProcessAcpClient` 内部 8KB 环形缓冲，断连时 `lifecycleSnapshot` 携带 stderr 尾部内容                              |
 
-### 7.3 因场景差异不采纳的部分
+### 9.3 因场景差异不采纳的部分
 
-| acpx 做法           | 不采纳原因                                                         |
-| ------------------- | ------------------------------------------------------------------ |
-| 两级 agent 解析策略 | AionUi 内置 bun + Hub 固定目录，不需要 node_modules 遍历           |
-| 单 client 模型      | AionUi 需要多 session 并行，由 AcpRuntime 管理                     |
-| CLI 交互式权限      | AionUi 使用 GUI 权限卡片，权限流程更复杂（始终允许、超时、多选项） |
+| acpx / Zed 做法     | 不采纳原因                                                                                                                                                                           |
+| ------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| 两级 agent 解析策略 | AionUi 内置 bun + Hub 固定目录，不需要 node_modules 遍历                                                                                                                             |
+| 单 client 模型      | acpx/Zed 的单 client 服务单 session 模型不直接适用——AionUi 需要多 session 并行。但我们采纳了单一所有者模式：每个 session 对应一个 `AcpClient` 实例，由 `AcpRuntime` 统一管理生命周期 |
+| CLI 交互式权限      | AionUi 使用 GUI 权限卡片，权限流程更复杂（始终允许、超时、多选项）                                                                                                                   |
 
 ---
 

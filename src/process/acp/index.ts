@@ -20,10 +20,9 @@ export type {
 export type { AcpSessionRow, IAcpSessionRepository } from '../services/database/IAcpSessionRepository';
 export { AcpError, type AcpErrorCode } from './errors/AcpError';
 export { normalizeError } from './errors/errorNormalize';
-export type { ProtocolFactory } from './infra/AcpProtocol';
+export type { AcpClient, ClientFactory } from './infra/IAcpClient';
 export { noopMetrics, type AcpMetrics } from './metrics/AcpMetrics';
 export { AcpRuntime } from './runtime/AcpRuntime';
-export { DefaultConnectorFactory } from './runtime/ConnectorFactory';
 export { AcpSession, type SessionOptions } from './session/AcpSession';
 
 // Compatibility adapter (Phase 1 migration)
