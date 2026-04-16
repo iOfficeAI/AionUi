@@ -61,6 +61,8 @@ type UseGuidAgentSelectionOptions = {
   isGoogleAuth: boolean;
   localeKey: string;
   resetAssistant?: boolean;
+  /** React Router location.key — changes on every navigation, used to detect new resets. */
+  locationKey?: string;
 };
 
 /**
@@ -71,6 +73,7 @@ export const useGuidAgentSelection = ({
   isGoogleAuth,
   localeKey,
   resetAssistant,
+  locationKey,
 }: UseGuidAgentSelectionOptions): GuidAgentSelectionResult => {
   const [selectedAgentKey, _setSelectedAgentKey] = useState<string>('aionrs');
   const [availableAgents, setAvailableAgents] = useState<AvailableAgent[]>();
@@ -213,13 +216,14 @@ export const useGuidAgentSelection = ({
   }, [availableAgentsData, remoteAgentsData]);
 
   // Track whether the resetAssistant flag has been consumed so it only fires once
-  // per navigation (React Router's location.state stays stale after replaceState).
+  // per navigation. Use locationKey (changes on every navigate()) to reset the guard,
+  // because window.history.replaceState does NOT update React Router's location.state.
   const resetHandledRef = useRef(false);
-  useEffect(() => {
-    if (!resetAssistant) {
-      resetHandledRef.current = false;
-    }
-  }, [resetAssistant]);
+  const prevLocationKeyRef = useRef(locationKey);
+  if (locationKey !== prevLocationKeyRef.current) {
+    prevLocationKeyRef.current = locationKey;
+    resetHandledRef.current = false;
+  }
 
   // Load last selected agent (or reset to default when resetAssistant is requested)
   useEffect(() => {
@@ -273,7 +277,7 @@ export const useGuidAgentSelection = ({
     return () => {
       cancelled = true;
     };
-  }, [availableAgents, resetAssistant]);
+  }, [availableAgents, resetAssistant, locationKey]);
 
   // Load cached ACP model lists
   useEffect(() => {
