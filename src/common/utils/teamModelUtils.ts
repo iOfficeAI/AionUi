@@ -76,9 +76,7 @@ export function getTeamAvailableModels(
 
     // ALL enabled providers' models with capability filtering
     // Mirrors useModelProviderList(): every enabled provider is included
-    const enabledProviders = (providers || []).filter(
-      (p) => p.enabled !== false && p.model?.length
-    );
+    const enabledProviders = (providers || []).filter((p) => p.enabled !== false && p.model?.length);
     for (const p of enabledProviders) {
       for (const m of p.model || []) {
         if (p.modelEnabled?.[m] !== false && passesCapabilityFilter(p, m)) {

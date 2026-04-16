@@ -63,7 +63,7 @@ export const getBaseModelName = (modelName: string): string => {
 export const hasSpecificModelCapability = (
   _platformModel: IProvider,
   modelName: string,
-  type: ModelType,
+  type: ModelType
 ): boolean | undefined => {
   const baseModelName = getBaseModelName(modelName);
   const exclusions = CAPABILITY_EXCLUSIONS[type];

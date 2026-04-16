@@ -26,6 +26,7 @@
    **注意：没有模型推荐列**
 
 4. **Agent 类型选择逻辑**（`TeamGuideMcpServer.handleCreateTeam`）：
+
    ```typescript
    const agentType = backend && isTeamCapableBackend(backend, cachedInitResults) ? backend : 'claude';
    ```
