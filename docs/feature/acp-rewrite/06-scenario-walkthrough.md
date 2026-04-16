@@ -34,18 +34,18 @@
 
 场景覆盖的架构层级：
 
-| 场景            |         Application          |                          Session                                           |               Infrastructure               | 涉及的关键不变量                       |
-| --------------- | :--------------------------: | :------------------------------------------------------------------------: | :----------------------------------------: | -------------------------------------- |
-| 1. 冷启动全流程 | AcpRuntime, ClientFactory    |            AcpSession, SessionLifecycle, ConfigTracker, McpConfig           | ProcessAcpClient                           | INV-I-01, INV-S-09                     |
-| 2. 多消息排队   |          AcpRuntime          |         AcpSession, PromptExecutor, MessageTranslator                      |                AcpClient                   | INV-S-01, INV-S-02                     |
-| 3. 权限审批     |          AcpRuntime          | AcpSession, PromptExecutor, PermissionResolver, PromptTimer                |                AcpClient                   | INV-S-04, INV-S-10, INV-S-13           |
-| 4. 挂起与恢复   |          AcpRuntime          |                 AcpSession, SessionLifecycle, ConfigTracker                |         ProcessAcpClient                   | INV-S-05, INV-A-01                     |
-| 5. Crash 恢复   |          AcpRuntime          |        AcpSession, SessionLifecycle, PromptExecutor, PermissionResolver    |         ProcessAcpClient                   | INV-S-03, INV-S-06, INV-S-08, INV-X-04 |
-| 6. 空闲回收     |  IdleReclaimer, AcpRuntime   |                         AcpSession                                         |                ProcessAcpClient            | INV-A-02, INV-I-01                     |
-| 7. 配置变更     |          AcpRuntime          |                 AcpSession, SessionLifecycle, ConfigTracker                |                AcpClient                   | INV-S-11                               |
-| 8. WebSocket    | AcpRuntime, ClientFactory    |                         AcpSession, SessionLifecycle                       |      WebSocketAcpClient                    | INV-I-01                               |
-| 9. 错误恢复     |          AcpRuntime          |                 AcpSession, SessionLifecycle, ConfigTracker                |         ProcessAcpClient                   | INV-S-03, INV-S-09                     |
-| 10. 条件认证    |          AcpRuntime          |                 AcpSession, SessionLifecycle, AuthNegotiator               |         ProcessAcpClient                   | INV-S-15, INV-S-03                     |
+| 场景            |        Application        |                             Session                              |   Infrastructure   | 涉及的关键不变量                       |
+| --------------- | :-----------------------: | :--------------------------------------------------------------: | :----------------: | -------------------------------------- |
+| 1. 冷启动全流程 | AcpRuntime, ClientFactory |      AcpSession, SessionLifecycle, ConfigTracker, McpConfig      |  ProcessAcpClient  | INV-I-01, INV-S-09                     |
+| 2. 多消息排队   |        AcpRuntime         |          AcpSession, PromptExecutor, MessageTranslator           |     AcpClient      | INV-S-01, INV-S-02                     |
+| 3. 权限审批     |        AcpRuntime         |   AcpSession, PromptExecutor, PermissionResolver, PromptTimer    |     AcpClient      | INV-S-04, INV-S-10, INV-S-13           |
+| 4. 挂起与恢复   |        AcpRuntime         |           AcpSession, SessionLifecycle, ConfigTracker            |  ProcessAcpClient  | INV-S-05, INV-A-01                     |
+| 5. Crash 恢复   |        AcpRuntime         | AcpSession, SessionLifecycle, PromptExecutor, PermissionResolver |  ProcessAcpClient  | INV-S-03, INV-S-06, INV-S-08, INV-X-04 |
+| 6. 空闲回收     | IdleReclaimer, AcpRuntime |                            AcpSession                            |  ProcessAcpClient  | INV-A-02, INV-I-01                     |
+| 7. 配置变更     |        AcpRuntime         |           AcpSession, SessionLifecycle, ConfigTracker            |     AcpClient      | INV-S-11                               |
+| 8. WebSocket    | AcpRuntime, ClientFactory |                   AcpSession, SessionLifecycle                   | WebSocketAcpClient | INV-I-01                               |
+| 9. 错误恢复     |        AcpRuntime         |           AcpSession, SessionLifecycle, ConfigTracker            |  ProcessAcpClient  | INV-S-03, INV-S-09                     |
+| 10. 条件认证    |        AcpRuntime         |           AcpSession, SessionLifecycle, AuthNegotiator           |  ProcessAcpClient  | INV-S-15, INV-S-03                     |
 
 ---
 
@@ -159,10 +159,10 @@ sequenceDiagram
 | #   | 组件              | 方法                                 | 数据变化                                                                                             |
 | --- | ----------------- | ------------------------------------ | ---------------------------------------------------------------------------------------------------- |
 | 1   | AcpRuntime        | `createConversation(agentConfig)`    | 生成 convId (UUID)                                                                                   |
-| 2   | ClientFactory     | `create(agentConfig)`                | 判断 `remoteUrl` 不存在，创建 ProcessAcpClient                                                      |
+| 2   | ClientFactory     | `create(agentConfig)`                | 判断 `remoteUrl` 不存在，创建 ProcessAcpClient                                                       |
 | 3   | AcpSession        | `constructor(...)`                   | 初始化所有 7 个组件，status = `'idle'`                                                               |
 | 4   | AcpSession        | `start()`                            | status: `idle` → `starting`                                                                          |
-| 5   | AcpClient         | `start()`                            | 内部: `spawn(command, args)` 启动子进程 + JSON-RPC initialize                                       |
+| 5   | AcpClient         | `start()`                            | 内部: `spawn(command, args)` 启动子进程 + JSON-RPC initialize                                        |
 | 6   | AcpSession        | 条件认证检查                         | 检查 `initResult.authMethods`；非空则调用 `authNegotiator.authenticate()`，为空则跳过（详见场景 10） |
 | 7   | AcpClient         | `createSession({ cwd, mcpServers })` | 获得 SessionResult                                                                                   |
 | 8   | ConfigTracker     | `syncFromSessionResult(result)`      | 填充 currentModelId, availableModels 等                                                              |
@@ -517,26 +517,26 @@ sequenceDiagram
 
 **挂起阶段**:
 
-| #   | 组件         | 方法                                | 数据变化                                              |
-| --- | ------------ | ----------------------------------- | ----------------------------------------------------- |
-| 1   | AcpSession   | `suspend()`                         | 前置检查: status == `active` && queue.isEmpty         |
-| 2   | AcpSession   | `teardownConnection()`              | 调用 client.closeSession + client.close               |
-| 3   | AcpClient    | `close()` → 三阶段关闭             | 三阶段关闭 (INV-I-02)                                 |
-| 4   | AcpSession   | 清理引用                            | client = null                                         |
-| 5   | AcpSession   | `setStatus('suspended')`            | 保留 \_sessionId 用于后续 resume                      |
-| 6   | AcpRuntime   | onStatusChange callback             | 写入 DB: suspended_at = Date.now() (INV-A-01)         |
+| #   | 组件       | 方法                     | 数据变化                                      |
+| --- | ---------- | ------------------------ | --------------------------------------------- |
+| 1   | AcpSession | `suspend()`              | 前置检查: status == `active` && queue.isEmpty |
+| 2   | AcpSession | `teardownConnection()`   | 调用 client.closeSession + client.close       |
+| 3   | AcpClient  | `close()` → 三阶段关闭   | 三阶段关闭 (INV-I-02)                         |
+| 4   | AcpSession | 清理引用                 | client = null                                 |
+| 5   | AcpSession | `setStatus('suspended')` | 保留 \_sessionId 用于后续 resume              |
+| 6   | AcpRuntime | onStatusChange callback  | 写入 DB: suspended_at = Date.now() (INV-A-01) |
 
 **恢复阶段**:
 
-| #   | 组件          | 方法                              | 数据变化                                    |
-| --- | ------------- | --------------------------------- | ------------------------------------------- |
-| 7   | AcpSession    | `sendMessage(text)`               | status = `suspended` → 入队 + 调用 resume() |
-| 8   | AcpSession    | `resume()`                        | status: `suspended` → `resuming`            |
-| 9   | AcpClient     | `start()`                         | 启动新的 Agent 子进程 + 初始化              |
-| 10  | AcpClient     | `loadSession(savedSessionId)`     | 尝试恢复之前的上下文                        |
-| 11  | ConfigTracker | `syncFromSessionResult(result)`   | 同步恢复后的配置                            |
-| 12  | AcpSession    | `reassertConfig()`                | 如果 resume 前用户切换了 model，此时 apply  |
-| 13  | AcpSession    | `setStatus('active')`             | 恢复完成，开始 drain 队列                   |
+| #   | 组件          | 方法                            | 数据变化                                    |
+| --- | ------------- | ------------------------------- | ------------------------------------------- |
+| 7   | AcpSession    | `sendMessage(text)`             | status = `suspended` → 入队 + 调用 resume() |
+| 8   | AcpSession    | `resume()`                      | status: `suspended` → `resuming`            |
+| 9   | AcpClient     | `start()`                       | 启动新的 Agent 子进程 + 初始化              |
+| 10  | AcpClient     | `loadSession(savedSessionId)`   | 尝试恢复之前的上下文                        |
+| 11  | ConfigTracker | `syncFromSessionResult(result)` | 同步恢复后的配置                            |
+| 12  | AcpSession    | `reassertConfig()`              | 如果 resume 前用户切换了 model，此时 apply  |
+| 13  | AcpSession    | `setStatus('active')`           | 恢复完成，开始 drain 队列                   |
 
 ### 5.4 异常路径
 
@@ -632,21 +632,21 @@ sequenceDiagram
 
 ### 6.3 步骤分解
 
-| #   | 组件               | 方法                      | 数据变化                                            |
-| --- | ------------------ | ------------------------- | --------------------------------------------------- |
-| 1   | AcpClient          | `onDisconnect` 触发       | 进程崩溃导致连接断开，回调带 DisconnectInfo          |
-| 2   | AcpSession         | `handleDisconnect(info)`  | 检测 wasDuringPrompt = true (status 是 `prompting`) |
-| 3   | AcpSession         | 清理引用                  | client = null                                       |
-| 4   | PermissionResolver | `cancelAll()`             | 所有 pending Promise 被 reject (INV-S-10, INV-X-04) |
-| 5   | PromptTimer        | `stop()`                  | state: 任意 → `idle`                                |
-| 6   | AcpSession         | `queuePaused = true`      | INV-S-06: crash 后队列暂停                          |
-| 7   | AcpSession         | `resume()`                | 开始恢复流程，status → `resuming`                   |
-| 8   | AcpClient          | `start()`                 | 启动新的 Agent 子进程 + 初始化                      |
-| 9   | AcpClient          | `loadSession`             | 恢复协议 session                                    |
-| 10  | AcpSession         | `setStatus('active')`     | 恢复成功                                            |
-| 11  | AcpSession         | 检测 queuePaused          | 不调用 scheduleDrain，发送 queue_paused 信号        |
-| 12  | UI                 | 用户点击"继续"            | AcpRuntime.resumeQueue(convId)                      |
-| 13  | AcpSession         | `resumeQueue()`           | queuePaused = false, scheduleDrain() 开始处理       |
+| #   | 组件               | 方法                     | 数据变化                                            |
+| --- | ------------------ | ------------------------ | --------------------------------------------------- |
+| 1   | AcpClient          | `onDisconnect` 触发      | 进程崩溃导致连接断开，回调带 DisconnectInfo         |
+| 2   | AcpSession         | `handleDisconnect(info)` | 检测 wasDuringPrompt = true (status 是 `prompting`) |
+| 3   | AcpSession         | 清理引用                 | client = null                                       |
+| 4   | PermissionResolver | `cancelAll()`            | 所有 pending Promise 被 reject (INV-S-10, INV-X-04) |
+| 5   | PromptTimer        | `stop()`                 | state: 任意 → `idle`                                |
+| 6   | AcpSession         | `queuePaused = true`     | INV-S-06: crash 后队列暂停                          |
+| 7   | AcpSession         | `resume()`               | 开始恢复流程，status → `resuming`                   |
+| 8   | AcpClient          | `start()`                | 启动新的 Agent 子进程 + 初始化                      |
+| 9   | AcpClient          | `loadSession`            | 恢复协议 session                                    |
+| 10  | AcpSession         | `setStatus('active')`    | 恢复成功                                            |
+| 11  | AcpSession         | 检测 queuePaused         | 不调用 scheduleDrain，发送 queue_paused 信号        |
+| 12  | UI                 | 用户点击"继续"           | AcpRuntime.resumeQueue(convId)                      |
+| 13  | AcpSession         | `resumeQueue()`          | queuePaused = false, scheduleDrain() 开始处理       |
 
 ### 6.4 异常路径
 
@@ -716,15 +716,15 @@ sequenceDiagram
 
 ### 7.3 步骤分解
 
-| #   | 组件          | 方法                      | 数据变化                                                      |
-| --- | ------------- | ------------------------- | ------------------------------------------------------------- |
-| 1   | IdleReclaimer | `scan()` (定时器触发)     | 遍历 sessions Map                                             |
-| 2   | IdleReclaimer | 条件检查                  | `now - lastActiveAt > idleTimeoutMs` && `status === 'active'` |
-| 3   | AcpSession    | `suspend()`               | 前置检查: status=active, queue.isEmpty                        |
-| 4   | AcpSession    | `teardownConnection()`    | closeSession + close                                          |
-| 5   | AcpClient     | `close()`                 | 三阶段关闭 (INV-I-02)                                         |
-| 6   | AcpSession    | `setStatus('suspended')`  | sessionId 保留                                                |
-| 7   | AcpRuntime    | onStatusChange            | DB 写入 suspended_at (INV-A-01)                               |
+| #   | 组件          | 方法                     | 数据变化                                                      |
+| --- | ------------- | ------------------------ | ------------------------------------------------------------- |
+| 1   | IdleReclaimer | `scan()` (定时器触发)    | 遍历 sessions Map                                             |
+| 2   | IdleReclaimer | 条件检查                 | `now - lastActiveAt > idleTimeoutMs` && `status === 'active'` |
+| 3   | AcpSession    | `suspend()`              | 前置检查: status=active, queue.isEmpty                        |
+| 4   | AcpSession    | `teardownConnection()`   | closeSession + close                                          |
+| 5   | AcpClient     | `close()`                | 三阶段关闭 (INV-I-02)                                         |
+| 6   | AcpSession    | `setStatus('suspended')` | sessionId 保留                                                |
+| 7   | AcpRuntime    | onStatusChange           | DB 写入 suspended_at (INV-A-01)                               |
 
 ### 7.4 异常路径
 
@@ -886,14 +886,14 @@ sequenceDiagram
 
 ### 9.3 与 IPC 的差异对比
 
-| 维度              | ProcessAcpClient                                            | WebSocketAcpClient                                                 |
-| ----------------- | ----------------------------------------------------------- | ------------------------------------------------------------------ |
-| **连接建立**      | `spawn(command, args)` 启动本地子进程                       | `new WebSocket(url, headers)` 建立远程连接                         |
-| **Stream 来源**   | `NdjsonTransport.fromChildProcess(child)`                   | SDK 内置 WebSocket transport（由 `@agentclientprotocol/sdk` 提供） |
-| **关闭方式**      | 三阶段: stdin.end → SIGTERM → SIGKILL                       | `ws.close()`                                                       |
-| **lifecycleSnapshot** | `pid` 有值, `lastExit` 含 exitCode/signal/stderr        | `pid` 为 null, `lastExit.reason` = 'connection_close'              |
-| **错误特征**      | 进程 crash (SIGSEGV/OOM/exit)                               | 网络断开 / 服务端关闭                                              |
-| **resume 成功率** | 较高 (本地进程重启快)                                       | 依赖网络和服务端状态                                               |
+| 维度                  | ProcessAcpClient                                 | WebSocketAcpClient                                                 |
+| --------------------- | ------------------------------------------------ | ------------------------------------------------------------------ |
+| **连接建立**          | `spawn(command, args)` 启动本地子进程            | `new WebSocket(url, headers)` 建立远程连接                         |
+| **Stream 来源**       | `NdjsonTransport.fromChildProcess(child)`        | SDK 内置 WebSocket transport（由 `@agentclientprotocol/sdk` 提供） |
+| **关闭方式**          | 三阶段: stdin.end → SIGTERM → SIGKILL            | `ws.close()`                                                       |
+| **lifecycleSnapshot** | `pid` 有值, `lastExit` 含 exitCode/signal/stderr | `pid` 为 null, `lastExit.reason` = 'connection_close'              |
+| **错误特征**          | 进程 crash (SIGSEGV/OOM/exit)                    | 网络断开 / 服务端关闭                                              |
+| **resume 成功率**     | 较高 (本地进程重启快)                            | 依赖网络和服务端状态                                               |
 
 **关键一致性**: 一旦 `start()` 成功返回 InitializeResponse，后续的 AcpClient 方法调用、状态机转换、PromptQueue 行为完全相同。AcpClient 接口隔离了连接建立方式的差异。
 
@@ -972,16 +972,16 @@ sequenceDiagram
 
 ### 10.3 步骤分解
 
-| #   | 组件          | 方法                              | 数据变化                                                     |
-| --- | ------------- | --------------------------------- | ------------------------------------------------------------ |
-| 1   | UI            | 用户点击"重试"                    | 触发 retrySession(convId)                                    |
-| 2   | AcpRuntime    | `retrySession(convId)`            | 路由到对应 AcpSession                                        |
-| 3   | AcpSession    | `start()`                         | 重置 startRetryCount = 0，status: `error` → `starting` (T21) |
-| 4   | AcpClient     | `start()`                         | 启动新的 Agent 子进程 + 初始化                               |
-| 5   | AcpClient     | `createSession(...)`              | 获得新的 SessionResult（旧 session 已失效，创建新会话）      |
-| 6   | ConfigTracker | `syncFromSessionResult(result)`   | 填充 model/mode 配置                                         |
-| 7   | AcpSession    | `reassertConfig()`                | 如果 error 前用户切换过 model，此时 apply                    |
-| 8   | AcpSession    | `setStatus('active')`             | status: `starting` → `active`，恢复完成                      |
+| #   | 组件          | 方法                            | 数据变化                                                     |
+| --- | ------------- | ------------------------------- | ------------------------------------------------------------ |
+| 1   | UI            | 用户点击"重试"                  | 触发 retrySession(convId)                                    |
+| 2   | AcpRuntime    | `retrySession(convId)`          | 路由到对应 AcpSession                                        |
+| 3   | AcpSession    | `start()`                       | 重置 startRetryCount = 0，status: `error` → `starting` (T21) |
+| 4   | AcpClient     | `start()`                       | 启动新的 Agent 子进程 + 初始化                               |
+| 5   | AcpClient     | `createSession(...)`            | 获得新的 SessionResult（旧 session 已失效，创建新会话）      |
+| 6   | ConfigTracker | `syncFromSessionResult(result)` | 填充 model/mode 配置                                         |
+| 7   | AcpSession    | `reassertConfig()`              | 如果 error 前用户切换过 model，此时 apply                    |
+| 8   | AcpSession    | `setStatus('active')`           | status: `starting` → `active`，恢复完成                      |
 
 **关键不变量验证**：
 
@@ -1106,17 +1106,17 @@ sequenceDiagram
 
 **阶段 1: 启动 + 认证失败**
 
-| #   | 组件           | 方法                                  | 数据变化                                                        |
-| --- | -------------- | ------------------------------------- | --------------------------------------------------------------- |
-| 1   | AcpSession     | `start()`                             | status: `idle` → `starting`                                     |
-| 2   | AcpClient      | `start()`                             | 内部: spawn Agent 子进程 + initialize                           |
-| 3   | AcpSession     | 条件认证检查                          | `initResult.authMethods` 非空                                   |
-| 4   | AuthNegotiator | `authenticate(client, authMethods)`   | 调用 `client.extMethod('authenticate', credentials)`            |
-| 5   | AcpClient      | `extMethod('authenticate', ...)`      | Agent 返回 AUTH_FAILED (无有效 token)                           |
-| 6   | AuthNegotiator | 抛出 `AcpError('AUTH_REQUIRED')`      | 附带 `AuthRequiredData { agentBackend, methods: AuthMethod[] }` |
-| 7   | AcpSession     | `handleStartError(AUTH_REQUIRED)`     | 设置 `authPending = true`                                       |
-| 8   | AcpSession     | `teardownConnection()`                | 关闭连接，`client = null`                                      |
-| 9   | AcpSession     | `callbacks.onSignal(auth_required)`   | 通知 Application 层，附带 AuthMethod[] 供 UI 展示               |
+| #   | 组件           | 方法                                | 数据变化                                                        |
+| --- | -------------- | ----------------------------------- | --------------------------------------------------------------- |
+| 1   | AcpSession     | `start()`                           | status: `idle` → `starting`                                     |
+| 2   | AcpClient      | `start()`                           | 内部: spawn Agent 子进程 + initialize                           |
+| 3   | AcpSession     | 条件认证检查                        | `initResult.authMethods` 非空                                   |
+| 4   | AuthNegotiator | `authenticate(client, authMethods)` | 调用 `client.extMethod('authenticate', credentials)`            |
+| 5   | AcpClient      | `extMethod('authenticate', ...)`    | Agent 返回 AUTH_FAILED (无有效 token)                           |
+| 6   | AuthNegotiator | 抛出 `AcpError('AUTH_REQUIRED')`    | 附带 `AuthRequiredData { agentBackend, methods: AuthMethod[] }` |
+| 7   | AcpSession     | `handleStartError(AUTH_REQUIRED)`   | 设置 `authPending = true`                                       |
+| 8   | AcpSession     | `teardownConnection()`              | 关闭连接，`client = null`                                       |
+| 9   | AcpSession     | `callbacks.onSignal(auth_required)` | 通知 Application 层，附带 AuthMethod[] 供 UI 展示               |
 
 **三种登录方式 (UI 职责)**
 
@@ -1128,16 +1128,16 @@ sequenceDiagram
 
 **阶段 3: retryAuth 重启**
 
-| #   | 组件           | 方法                                  | 数据变化                                                      |
-| --- | -------------- | ------------------------------------- | ------------------------------------------------------------- |
-| 10  | AuthNegotiator | `mergeCredentials(credentials)`       | 合并新凭据到内存缓存（仅 env_var 方式有凭据）                 |
-| 11  | AcpSession     | `authPending = false`                 | 清除认证等待标志                                              |
-| 12  | AcpSession     | `setStatus('idle')` + `start()`       | 完整重启: client.start → createSession                        |
-| 13  | AcpClient      | `start()`                             | spawn 新的 Agent 子进程 + initialize                          |
-| 14  | AuthNegotiator | `authenticate(client, authMethods)`   | 使用合并后的凭据认证                                          |
-| 15  | AcpClient      | `extMethod('authenticate', ...)`      | 认证成功                                                      |
-| 16  | AcpClient      | `createSession(...)`                  | 创建新 session                                                |
-| 17  | AcpSession     | `setStatus('active')`                 | status: `starting` → `active`，会话就绪                       |
+| #   | 组件           | 方法                                | 数据变化                                      |
+| --- | -------------- | ----------------------------------- | --------------------------------------------- |
+| 10  | AuthNegotiator | `mergeCredentials(credentials)`     | 合并新凭据到内存缓存（仅 env_var 方式有凭据） |
+| 11  | AcpSession     | `authPending = false`               | 清除认证等待标志                              |
+| 12  | AcpSession     | `setStatus('idle')` + `start()`     | 完整重启: client.start → createSession        |
+| 13  | AcpClient      | `start()`                           | spawn 新的 Agent 子进程 + initialize          |
+| 14  | AuthNegotiator | `authenticate(client, authMethods)` | 使用合并后的凭据认证                          |
+| 15  | AcpClient      | `extMethod('authenticate', ...)`    | 认证成功                                      |
+| 16  | AcpClient      | `createSession(...)`                | 创建新 session                                |
+| 17  | AcpSession     | `setStatus('active')`               | status: `starting` → `active`，会话就绪       |
 
 **关键不变量验证**:
 

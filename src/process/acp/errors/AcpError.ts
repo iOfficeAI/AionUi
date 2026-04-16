@@ -33,7 +33,7 @@ export class AcpError extends Error {
 export class AgentSpawnError extends AcpError {
   constructor(
     public readonly agentCommand: string,
-    cause?: unknown,
+    cause?: unknown
   ) {
     const msg = `Failed to spawn agent "${agentCommand}": ${cause instanceof Error ? cause.message : String(cause)}`;
     super('CONNECTION_FAILED', msg, { cause, retryable: true });
@@ -48,7 +48,7 @@ export class AgentStartupError extends AcpError {
     public readonly exitCode: number | null,
     public readonly signal: string | null,
     public readonly stderrSummary: string,
-    cause?: unknown,
+    cause?: unknown
   ) {
     const exitSummary = signal ? `signal: ${signal}` : `code: ${exitCode}`;
     const stderrSuffix = stderrSummary ? `\n${stderrSummary}` : '';
@@ -66,7 +66,7 @@ export class AgentDisconnectedError extends AcpError {
     public readonly reason: string,
     public readonly exitCode: number | null,
     public readonly signal: string | null,
-    options?: { cause?: unknown; outputAlreadyEmitted?: boolean },
+    options?: { cause?: unknown; outputAlreadyEmitted?: boolean }
   ) {
     const exitSummary = signal ? `signal: ${signal}` : `code: ${exitCode}`;
     super('PROCESS_CRASHED', `Agent disconnected (${reason}, ${exitSummary})`, {

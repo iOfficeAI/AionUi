@@ -4,9 +4,9 @@ import type { AcpClient, ClientFactory, DisconnectInfo } from '@process/acp/infr
 import { ProcessAcpClient } from '@process/acp/infra/ProcessAcpClient';
 import type { AcpMetrics } from '@process/acp/metrics/AcpMetrics';
 import { AuthNegotiator } from '@process/acp/session/AuthNegotiator';
-import { ConfigTracker } from '@process/acp/session/ConfigTracker';
+import type { ConfigTracker } from '@process/acp/session/ConfigTracker';
 import { McpConfig } from '@process/acp/session/McpConfig';
-import { MessageTranslator } from '@process/acp/session/MessageTranslator';
+import type { MessageTranslator } from '@process/acp/session/MessageTranslator';
 import type { AgentConfig, ProtocolHandlers, SessionCallbacks, SessionStatus } from '@process/acp/types';
 
 /** Minimal interface that AcpSession exposes so SessionLifecycle can drive state transitions. */

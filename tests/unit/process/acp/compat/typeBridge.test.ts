@@ -27,7 +27,7 @@ describe('typeBridge', () => {
 
       expect(result).toMatchObject({
         agentBackend: 'claude',
-        agentSource: 'builtin',
+        agentSource: 'extension',
         agentId: 'test-agent-1',
         cwd: '/workspace/test',
       });
@@ -48,7 +48,7 @@ describe('typeBridge', () => {
 
       const result = toAgentConfig(oldConfig);
 
-      expect(result.agentSource).toBe('custom');
+      expect(result.agentSource).toBe('extension');
       expect(result.command).toBe('/custom/path/agent');
     });
 

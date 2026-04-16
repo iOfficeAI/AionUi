@@ -102,8 +102,8 @@ type AgentConfig = {
 type McpServer = {
   name: string;
   command: string;
-  args: Array<string>;        // 必选，SDK 定义
-  env: Array<EnvVariable>;    // Array<{name, value}>，不是 Record
+  args: Array<string>; // 必选，SDK 定义
+  env: Array<EnvVariable>; // Array<{name, value}>，不是 Record
   _meta?: Record<string, unknown>;
 };
 ```
@@ -991,9 +991,9 @@ classDiagram
 
 ### 6.3 SessionOptions 字段
 
-| 文件                        | 定义差异                                                           |
-| --------------------------- | ------------------------------------------------------------------ |
-| `types.ts` L274-279         | 缺少 `clientFactory` 和 `metrics` 字段                      |
+| 文件                        | 定义差异                                                       |
+| --------------------------- | -------------------------------------------------------------- |
+| `types.ts` L274-279         | 缺少 `clientFactory` 和 `metrics` 字段                         |
 | `session/types.ts` L348-355 | 包含 `clientFactory?: ClientFactory` 和 `metrics?: AcpMetrics` |
 
 **建议**: 统一为 `session/types.ts` 版本。`clientFactory` 是测试注入点（替代原 D9 决议的 `protocolFactory`），`metrics` 是 D8 决议的遥测注入点，二者均为 AcpSession 构造参数的必要可选字段。
@@ -1011,57 +1011,57 @@ classDiagram
 
 ## 7. 类型来源总结表
 
-| #   | 类型                        | 来源         | 边界             | 定义文件           |
-| --- | --------------------------- | ------------ | ---------------- | ------------------ |
-| 1   | `AgentConfig`               | 新定义       | 跨层             | types.ts           |
-| 2   | `McpServer`                 | SDK 原样     | 跨层             | SDK import         |
-| 3   | `AcpError`                  | 新定义       | 跨层             | errors/AcpError.ts |
-| 4   | `AcpErrorCode`              | 新定义       | 跨层             | errors/AcpError.ts |
-| 5   | `AcpMetrics`                | 新定义       | 跨层             | types.ts           |
-| 6   | `MetricsSnapshot`           | 新定义       | 跨层             | types.ts           |
-| 7   | `Stream`                    | SDK 原样     | Infra 内部       | session/types.ts   |
-| 8   | `AcpClient`                 | 新定义       | Infra -> Session | (待创建)           |
-| 9   | `ClientFactory`             | 新定义       | App 内部         | (待创建)           |
-| 10  | `AgentLifecycleSnapshot`    | 新定义       | Infra -> Session | (待创建)           |
-| 11  | `DisconnectInfo`            | 新定义       | Infra -> Session | (待创建)           |
-| 12  | `ProtocolHandlers`          | 新定义       | Infra 内部       | session/types.ts   |
-| 13  | `SessionNotification`       | SDK 原样     | Infra -> Session | SDK import         |
+| #   | 类型                        | 来源         | 边界             | 定义文件                                  |
+| --- | --------------------------- | ------------ | ---------------- | ----------------------------------------- |
+| 1   | `AgentConfig`               | 新定义       | 跨层             | types.ts                                  |
+| 2   | `McpServer`                 | SDK 原样     | 跨层             | SDK import                                |
+| 3   | `AcpError`                  | 新定义       | 跨层             | errors/AcpError.ts                        |
+| 4   | `AcpErrorCode`              | 新定义       | 跨层             | errors/AcpError.ts                        |
+| 5   | `AcpMetrics`                | 新定义       | 跨层             | types.ts                                  |
+| 6   | `MetricsSnapshot`           | 新定义       | 跨层             | types.ts                                  |
+| 7   | `Stream`                    | SDK 原样     | Infra 内部       | session/types.ts                          |
+| 8   | `AcpClient`                 | 新定义       | Infra -> Session | (待创建)                                  |
+| 9   | `ClientFactory`             | 新定义       | App 内部         | (待创建)                                  |
+| 10  | `AgentLifecycleSnapshot`    | 新定义       | Infra -> Session | (待创建)                                  |
+| 11  | `DisconnectInfo`            | 新定义       | Infra -> Session | (待创建)                                  |
+| 12  | `ProtocolHandlers`          | 新定义       | Infra 内部       | session/types.ts                          |
+| 13  | `SessionNotification`       | SDK 原样     | Infra -> Session | SDK import                                |
 | 14  | ~~`SessionUpdate`~~         | ~~SDK 原样~~ | -                | (SDK 内部，通过 SessionNotification 访问) |
-| 15  | `RequestPermissionRequest`  | SDK 原样     | Infra -> Session | SDK import         |
-| 16  | `RequestPermissionResponse` | SDK 原样     | Session -> Infra | SDK import         |
-| 17  | `PromptResponse`            | SDK 原样     | Infra -> Session | SDK import         |
-| 18  | `InitializeResponse`        | SDK 原样     | Infra -> Session | SDK import         |
-| 19  | ~~`RawAuthMethod`~~         | -            | -                | (已移除，SDK `AuthMethod` 直接使用) |
-| 20  | ~~`LocalProcessConfig`~~    | ~~新定义~~   | ~~Infra 内部~~   | (v1.2 移除，内部化到 ProcessAcpClient) |
-| 21  | `CreateSessionParams`       | 新定义       | Infra 内部       | types.ts           |
-| 22  | `LoadSessionParams`         | 新定义       | Infra 内部       | types.ts           |
-| 23  | `PromptContent`             | 新定义       | Session -> Infra | types.ts           |
-| 24  | ~~`PromptContentItem`~~     | -            | -                | (已移除，SDK `ContentBlock` 直接使用) |
-| 25  | `SessionCallbacks`          | 新定义       | Session -> App   | types.ts           |
-| 26  | `SessionStatus`             | 新定义       | Session -> App   | types.ts           |
-| 27  | `QueueSnapshot`             | 新定义       | Session -> App   | types.ts           |
-| 28  | `PermissionUIData`          | 新定义       | Session -> App   | types.ts           |
-| 29  | `ToolKind`                  | SDK 原样     | Session -> App   | SDK import         |
-| 30  | `ConfigSnapshot`            | 新定义       | Session -> App   | types.ts           |
-| 31  | `ModelSnapshot`             | 新定义       | Session -> App   | types.ts           |
-| 32  | `ModeSnapshot`              | 新定义       | Session -> App   | types.ts           |
-| 33  | `ContextUsage`              | 新定义       | Session -> App   | types.ts           |
-| 34  | `SessionSignal`             | 新定义       | Session -> App   | types.ts           |
-| 35  | `AuthRequiredData`          | 新定义       | Session -> App   | types.ts           |
-| 36  | `AuthMethod`                | SDK 原样     | Session -> App   | SDK import         |
-| 37  | ~~`AuthInputField`~~        | -            | -                | (已移除，SDK `AuthEnvVar` 替代) |
-| 38  | `ConfigOption`              | SDK 简化     | Session <-> App  | types.ts           |
-| 39  | `TMessage`                  | 现有(AionUi) | Session -> App   | types.ts (占位)    |
-| 40  | `QueuedPrompt`              | 新定义       | Session 内部     | types.ts           |
-| 41  | `PendingPermission`         | 新定义       | Session 内部     | session/types.ts   |
-| 42  | `SessionOptions`            | 新定义       | Session 内部     | session/types.ts   |
-| 43  | `SignalEvent`               | 新定义       | App -> IPC       | types.ts           |
-| 44  | `SessionEntry`              | 新定义       | App 内部         | (待创建)           |
-| 45  | `ClientFactory`             | 新定义       | App 内部         | (待创建)           |
-| 46  | `RuntimeOptions`            | 新定义       | App 内部         | types.ts           |
-| 47  | `AgentSpawnError`           | 新定义       | 跨层             | errors/AcpError.ts |
-| 48  | `AgentStartupError`         | 新定义       | 跨层             | errors/AcpError.ts |
-| 49  | `AgentDisconnectedError`    | 新定义       | 跨层             | errors/AcpError.ts |
+| 15  | `RequestPermissionRequest`  | SDK 原样     | Infra -> Session | SDK import                                |
+| 16  | `RequestPermissionResponse` | SDK 原样     | Session -> Infra | SDK import                                |
+| 17  | `PromptResponse`            | SDK 原样     | Infra -> Session | SDK import                                |
+| 18  | `InitializeResponse`        | SDK 原样     | Infra -> Session | SDK import                                |
+| 19  | ~~`RawAuthMethod`~~         | -            | -                | (已移除，SDK `AuthMethod` 直接使用)       |
+| 20  | ~~`LocalProcessConfig`~~    | ~~新定义~~   | ~~Infra 内部~~   | (v1.2 移除，内部化到 ProcessAcpClient)    |
+| 21  | `CreateSessionParams`       | 新定义       | Infra 内部       | types.ts                                  |
+| 22  | `LoadSessionParams`         | 新定义       | Infra 内部       | types.ts                                  |
+| 23  | `PromptContent`             | 新定义       | Session -> Infra | types.ts                                  |
+| 24  | ~~`PromptContentItem`~~     | -            | -                | (已移除，SDK `ContentBlock` 直接使用)     |
+| 25  | `SessionCallbacks`          | 新定义       | Session -> App   | types.ts                                  |
+| 26  | `SessionStatus`             | 新定义       | Session -> App   | types.ts                                  |
+| 27  | `QueueSnapshot`             | 新定义       | Session -> App   | types.ts                                  |
+| 28  | `PermissionUIData`          | 新定义       | Session -> App   | types.ts                                  |
+| 29  | `ToolKind`                  | SDK 原样     | Session -> App   | SDK import                                |
+| 30  | `ConfigSnapshot`            | 新定义       | Session -> App   | types.ts                                  |
+| 31  | `ModelSnapshot`             | 新定义       | Session -> App   | types.ts                                  |
+| 32  | `ModeSnapshot`              | 新定义       | Session -> App   | types.ts                                  |
+| 33  | `ContextUsage`              | 新定义       | Session -> App   | types.ts                                  |
+| 34  | `SessionSignal`             | 新定义       | Session -> App   | types.ts                                  |
+| 35  | `AuthRequiredData`          | 新定义       | Session -> App   | types.ts                                  |
+| 36  | `AuthMethod`                | SDK 原样     | Session -> App   | SDK import                                |
+| 37  | ~~`AuthInputField`~~        | -            | -                | (已移除，SDK `AuthEnvVar` 替代)           |
+| 38  | `ConfigOption`              | SDK 简化     | Session <-> App  | types.ts                                  |
+| 39  | `TMessage`                  | 现有(AionUi) | Session -> App   | types.ts (占位)                           |
+| 40  | `QueuedPrompt`              | 新定义       | Session 内部     | types.ts                                  |
+| 41  | `PendingPermission`         | 新定义       | Session 内部     | session/types.ts                          |
+| 42  | `SessionOptions`            | 新定义       | Session 内部     | session/types.ts                          |
+| 43  | `SignalEvent`               | 新定义       | App -> IPC       | types.ts                                  |
+| 44  | `SessionEntry`              | 新定义       | App 内部         | (待创建)                                  |
+| 45  | `ClientFactory`             | 新定义       | App 内部         | (待创建)                                  |
+| 46  | `RuntimeOptions`            | 新定义       | App 内部         | types.ts                                  |
+| 47  | `AgentSpawnError`           | 新定义       | 跨层             | errors/AcpError.ts                        |
+| 48  | `AgentStartupError`         | 新定义       | 跨层             | errors/AcpError.ts                        |
+| 49  | `AgentDisconnectedError`    | 新定义       | 跨层             | errors/AcpError.ts                        |
 
 > **SDK 类型穿透范围**: SDK 原始类型（`SessionNotification`、`RequestPermissionRequest` 等）最远到达 AcpSession 内部。`handleSessionUpdate()` 和 `handlePermissionRequest()` 是翻译边界，之后全部是应用类型。
 
@@ -1320,32 +1320,32 @@ classDiagram
 
 ## 13. 不变量总结表
 
-| 编号         | 简述                         | 层             | 测试层级    | 原始编号           |
-| ------------ | ---------------------------- | -------------- | ----------- | ------------------ |
-| INV-I-01     | 进程不残留                   | Infrastructure | T2          | 原 #12             |
-| INV-I-02     | 三阶段关闭完整性             | Infrastructure | T2          | 新增               |
-| ~~INV-I-03~~ | ~~NPX fallback 链有序~~      | -              | -           | **Round 04 删除**  |
-| INV-S-01     | 单 prompt 执行               | Session        | T3          | 原 #9              |
-| INV-S-02     | 单队列不变                   | Session        | T3          | 评审 #22           |
-| INV-S-03     | 状态收敛                     | Session        | T3          | 原 #4 (合并 #2)    |
-| INV-S-04     | Timer 与 prompt 生命周期一致 | Session        | T3          | 替代原 #3          |
-| INV-S-05     | 有队列不挂起                 | Session        | T3          | 原 #5              |
-| INV-S-06     | Crash 后队列暂停             | Session        | T3          | 原 #6              |
-| INV-S-07     | Error 清空队列               | Session        | T3          | 原 #7              |
-| INV-S-08     | Resume 有限重试              | Session        | T3          | 原 #8              |
-| INV-S-09     | 回调状态合法                 | Session        | T3          | 原 #10             |
-| INV-S-10     | 权限不泄漏                   | Session        | T3          | 原 #16             |
-| INV-S-11     | Model/Mode 一致              | Session        | T1 + T3     | 原 #17             |
-| INV-S-12     | MessageTranslator 内存有界   | Session        | T1          | D10 决议           |
+| 编号         | 简述                         | 层             | 测试层级    | 原始编号                           |
+| ------------ | ---------------------------- | -------------- | ----------- | ---------------------------------- |
+| INV-I-01     | 进程不残留                   | Infrastructure | T2          | 原 #12                             |
+| INV-I-02     | 三阶段关闭完整性             | Infrastructure | T2          | 新增                               |
+| ~~INV-I-03~~ | ~~NPX fallback 链有序~~      | -              | -           | **Round 04 删除**                  |
+| INV-S-01     | 单 prompt 执行               | Session        | T3          | 原 #9                              |
+| INV-S-02     | 单队列不变                   | Session        | T3          | 评审 #22                           |
+| INV-S-03     | 状态收敛                     | Session        | T3          | 原 #4 (合并 #2)                    |
+| INV-S-04     | Timer 与 prompt 生命周期一致 | Session        | T3          | 替代原 #3                          |
+| INV-S-05     | 有队列不挂起                 | Session        | T3          | 原 #5                              |
+| INV-S-06     | Crash 后队列暂停             | Session        | T3          | 原 #6                              |
+| INV-S-07     | Error 清空队列               | Session        | T3          | 原 #7                              |
+| INV-S-08     | Resume 有限重试              | Session        | T3          | 原 #8                              |
+| INV-S-09     | 回调状态合法                 | Session        | T3          | 原 #10                             |
+| INV-S-10     | 权限不泄漏                   | Session        | T3          | 原 #16                             |
+| INV-S-11     | Model/Mode 一致              | Session        | T1 + T3     | 原 #17                             |
+| INV-S-12     | MessageTranslator 内存有界   | Session        | T1          | D10 决议                           |
 | INV-S-13     | ApprovalCache 内存有界       | Session        | T1          | 评审 #19 (合入 PermissionResolver) |
 | ~~INV-S-14~~ | ~~PromptQueue 有界~~         | -              | -           | **已删除** (PromptQueue 已移除)    |
-| INV-S-15     | 认证信号必达                 | Session        | T3          | 新（认证架构设计） |
-| INV-A-01     | 持久化一致                   | Application    | T4          | 原 #13             |
-| INV-A-02     | 空闲回收安全                 | Application    | T4          | 原 #5 扩展         |
-| INV-X-01     | 类型边界                     | 跨层           | T2 + 编译期 | 原 #11             |
-| INV-X-02     | 队列快照完整                 | 跨层           | T3          | 原 #15             |
-| INV-X-03     | 背压架构预留                 | 跨层           | T3 + Review | D6 决议 / 评审 #18 |
-| INV-X-04     | Pending 不泄漏               | 跨层           | T3          | 原 #1              |
+| INV-S-15     | 认证信号必达                 | Session        | T3          | 新（认证架构设计）                 |
+| INV-A-01     | 持久化一致                   | Application    | T4          | 原 #13                             |
+| INV-A-02     | 空闲回收安全                 | Application    | T4          | 原 #5 扩展                         |
+| INV-X-01     | 类型边界                     | 跨层           | T2 + 编译期 | 原 #11                             |
+| INV-X-02     | 队列快照完整                 | 跨层           | T3          | 原 #15                             |
+| INV-X-03     | 背压架构预留                 | 跨层           | T3 + Review | D6 决议 / 评审 #18                 |
+| INV-X-04     | Pending 不泄漏               | 跨层           | T3          | 原 #1                              |
 
 ### 测试层级分布
 

@@ -674,7 +674,7 @@ class AcpSession {
   private _status: SessionStatus = 'idle';
 
   // ---- 编排子模块 ----
-  private readonly lifecycle: SessionLifecycle;    // 连接启动/恢复/重试/teardown/auth
+  private readonly lifecycle: SessionLifecycle; // 连接启动/恢复/重试/teardown/auth
   private readonly promptExecutor: PromptExecutor; // prompt 执行/取消/超时/pending buffer
 
   // ---- 组件 (构造时创建, 生命周期跟随 AcpSession) ----
@@ -882,11 +882,11 @@ PromptTimer 是 PromptExecutor 内部使用的 3 态状态机（idle/running/pau
 
 #### 其他组件
 
-| 组件              | 职责                                                                                                                                                                                     | 行数   |
-| ----------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------ |
-| InputPreprocessor | 解析用户消息中的 `@file` 引用，读取文件内容，构建 PromptContent                                                                                                                          | 80-100 |
+| 组件              | 职责                                                                                                                                                                                   | 行数   |
+| ----------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------ |
+| InputPreprocessor | 解析用户消息中的 `@file` 引用，读取文件内容，构建 PromptContent                                                                                                                        | 80-100 |
 | McpConfig         | 合并用户 MCP 配置 + Assistant 预设 + Team MCP，构建 SDK `McpServer[]`。合并优先级：用户配置 > Assistant 预设 > Team MCP（同名 server 以高优先级为准覆盖，不合并）。Team MCP 总是追加。 | 40-60  |
-| ApprovalCache     | LRU 审批缓存，maxSize=500，内嵌于 PermissionResolver（同一文件）                                                                                                                        | ~40    |
+| ApprovalCache     | LRU 审批缓存，maxSize=500，内嵌于 PermissionResolver（同一文件）                                                                                                                       | ~40    |
 
 #### AuthNegotiator — 条件认证
 
@@ -1026,13 +1026,16 @@ class DefaultClientFactory implements ClientFactory {
     if (config.remoteUrl) {
       return new WebSocketAcpClient({ url: config.remoteUrl, headers: config.remoteHeaders }, config.handlers);
     }
-    return new ProcessAcpClient({
-      command: config.command,
-      args: config.args,
-      cwd: config.cwd,
-      env: config.env,
-      gracePeriodMs: config.processOptions?.gracePeriodMs,
-    }, config.handlers);
+    return new ProcessAcpClient(
+      {
+        command: config.command,
+        args: config.args,
+        cwd: config.cwd,
+        env: config.env,
+        gracePeriodMs: config.processOptions?.gracePeriodMs,
+      },
+      config.handlers
+    );
   }
 }
 ```
@@ -1424,7 +1427,7 @@ AionUi 支持 4 类 Agent 来源，全部通过 2 种 AcpClient 实现覆盖：
 | D7  | NPX 降级           | **Round 04 删除**                                              | bun 内置后前提不存在                                                      |
 | D8  | Metrics            | Phase 1 接口 + noopMetrics + 5 个注入点                        | 接口预留零运行时开销；no-op 默认避免空检查                                |
 | D9  | Protocol 测试注入  | ClientFactory 构造函数注入                                     | T2/T3 测试可精确控制 AcpClient 行为；改动极小                             |
-| D10 | 内存上限           | onTurnEnd 增量清理 + ApprovalCache LRU 500                    | 桌面应用可能开着好几天；所有有状态结构必须有上限                          |
+| D10 | 内存上限           | onTurnEnd 增量清理 + ApprovalCache LRU 500                     | 桌面应用可能开着好几天；所有有状态结构必须有上限                          |
 | D11 | 类型目录           | 正式类型目录，按 3 层边界组织，标注来源                        | 类型全局视图对 SDK 包装系统至关重要                                       |
 | D12 | 不变量清单         | 23 条编号不变量 (INV-I/S/A/X)                                  | 编号使 test case 和不变量有可追溯映射                                     |
 | D13 | 测试策略           | 4 层: T1 纯逻辑 / T2 契约 / T3 Session 编排 / T4 Runtime 集成  | 按失效边界组织，不是按架构层数 1:1 对应                                   |
@@ -1461,18 +1464,18 @@ AionUi 支持 4 类 Agent 来源，全部通过 2 种 AcpClient 实现覆盖：
 
 ### Session Layer (`session/`)
 
-| 文件                    | 职责                                                            | 预估行数 |
-| ----------------------- | --------------------------------------------------------------- | -------- |
-| `AcpSession.ts`         | **聚合根** — 状态机 + 薄编排层，委托给子模块                   | ~280     |
-| `SessionLifecycle.ts`   | 连接启动/恢复/重试/teardown/auth/session 加载/config reassert   | ~270     |
-| `PromptExecutor.ts`     | prompt 执行/取消/超时/pending buffer (内部使用 PromptTimer)     | ~150     |
-| `AuthNegotiator.ts`     | 条件认证 + 凭据内存缓存 + 登录选项构建                         | 50-70    |
-| `PermissionResolver.ts` | YOLO / Cache / UI 三级权限决策 (含 ApprovalCache LRU 500)      | ~130     |
-| `ConfigTracker.ts`      | model/mode/configOption 追踪，current/desired 语义             | ~120     |
-| `MessageTranslator.ts`  | SessionUpdate -> TMessage 翻译 + onTurnEnd 增量清理            | 200-250  |
-| `InputPreprocessor.ts`  | @file 解析、输入转换                                           | 80-100   |
-| `McpConfig.ts`          | MCP/Skill 配置合并                                             | 40-60    |
-| `PromptTimer.ts`        | 3 态超时计时器 (idle/running/paused)                           | ~70      |
+| 文件                    | 职责                                                          | 预估行数 |
+| ----------------------- | ------------------------------------------------------------- | -------- |
+| `AcpSession.ts`         | **聚合根** — 状态机 + 薄编排层，委托给子模块                  | ~280     |
+| `SessionLifecycle.ts`   | 连接启动/恢复/重试/teardown/auth/session 加载/config reassert | ~270     |
+| `PromptExecutor.ts`     | prompt 执行/取消/超时/pending buffer (内部使用 PromptTimer)   | ~150     |
+| `AuthNegotiator.ts`     | 条件认证 + 凭据内存缓存 + 登录选项构建                        | 50-70    |
+| `PermissionResolver.ts` | YOLO / Cache / UI 三级权限决策 (含 ApprovalCache LRU 500)     | ~130     |
+| `ConfigTracker.ts`      | model/mode/configOption 追踪，current/desired 语义            | ~120     |
+| `MessageTranslator.ts`  | SessionUpdate -> TMessage 翻译 + onTurnEnd 增量清理           | 200-250  |
+| `InputPreprocessor.ts`  | @file 解析、输入转换                                          | 80-100   |
+| `McpConfig.ts`          | MCP/Skill 配置合并                                            | 40-60    |
+| `PromptTimer.ts`        | 3 态超时计时器 (idle/running/paused)                          | ~70      |
 
 小计: ~1,390-1,500 行
 
@@ -1488,33 +1491,33 @@ AionUi 支持 4 类 Agent 来源，全部通过 2 种 AcpClient 实现覆盖：
 
 ### Cross-cutting
 
-| 文件                               | 职责                                             | 预估行数 |
-| ---------------------------------- | ------------------------------------------------ | -------- |
-| `errors/AcpError.ts`               | AcpError class + AcpErrorCode                    | 40-50    |
-| `errors/AgentSpawnError.ts`        | 进程 spawn 失败错误                              | 20-30    |
-| `errors/AgentStartupError.ts`      | 启动期间进程退出错误（含 stderr）                | 20-30    |
-| `errors/AgentDisconnectedError.ts` | 运行时断连错误（含 exit code + signal + stderr） | 20-30    |
-| `errors/errorExtract.ts`           | JSON-RPC error payload 递归提取                  | 60-80    |
-| `metrics/AcpMetrics.ts`            | AcpMetrics interface + noopMetrics               | 30-40    |
+| 文件                               | 职责                                               | 预估行数 |
+| ---------------------------------- | -------------------------------------------------- | -------- |
+| `errors/AcpError.ts`               | AcpError class + AcpErrorCode                      | 40-50    |
+| `errors/AgentSpawnError.ts`        | 进程 spawn 失败错误                                | 20-30    |
+| `errors/AgentStartupError.ts`      | 启动期间进程退出错误（含 stderr）                  | 20-30    |
+| `errors/AgentDisconnectedError.ts` | 运行时断连错误（含 exit code + signal + stderr）   | 20-30    |
+| `errors/errorExtract.ts`           | JSON-RPC error payload 递归提取                    | 60-80    |
+| `metrics/AcpMetrics.ts`            | AcpMetrics interface + noopMetrics                 | 30-40    |
 | `types.ts`                         | 跨层共享类型 (AgentConfig 等，SDK 类型直接 import) | 80-100   |
 
 小计: 270-370 行
 
 ### 全局汇总
 
-| 层             | 文件数 | 预估行数        |
-| -------------- | ------ | --------------- |
-| Infrastructure | 5      | 500-630         |
-| Session        | 10     | ~1,390-1,500    |
-| Application    | 3      | 320-410         |
-| Cross-cutting  | 7      | 270-370         |
+| 层             | 文件数 | 预估行数         |
+| -------------- | ------ | ---------------- |
+| Infrastructure | 5      | 500-630          |
+| Session        | 10     | ~1,390-1,500     |
+| Application    | 3      | 320-410          |
+| Cross-cutting  | 7      | 270-370          |
 | **合计**       | **25** | **~2,480-2,910** |
 
 对比现状：
 
-| 方案       | 文件数 | 总行数           | 最大单文件                      |
-| ---------- | ------ | ---------------- | ------------------------------- |
-| 现有实现   | ~17    | ~5,900           | ~1,780 行（AcpAgent）           |
+| 方案       | 文件数 | 总行数           | 最大单文件                         |
+| ---------- | ------ | ---------------- | ---------------------------------- |
+| 现有实现   | ~17    | ~5,900           | ~1,780 行（AcpAgent）              |
 | **新方案** | **25** | **~2,480-2,910** | **~280 行（AcpSession 薄编排层）** |
 
 ### 实现优先级

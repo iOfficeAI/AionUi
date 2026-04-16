@@ -41,11 +41,11 @@ export class SqliteAcpSessionRepository implements IAcpSessionRepository {
     `);
 
     this.stmtUpdateSessionId = db.prepare(
-      'UPDATE acp_session SET session_id = ?, last_active_at = ? WHERE conversation_id = ?',
+      'UPDATE acp_session SET session_id = ?, last_active_at = ? WHERE conversation_id = ?'
     );
 
     this.stmtUpdateStatus = db.prepare(
-      'UPDATE acp_session SET session_status = ?, suspended_at = ?, last_active_at = ? WHERE conversation_id = ?',
+      'UPDATE acp_session SET session_status = ?, suspended_at = ?, last_active_at = ? WHERE conversation_id = ?'
     );
 
     this.stmtUpdateConfig = db.prepare('UPDATE acp_session SET session_config = ? WHERE conversation_id = ?');
@@ -53,7 +53,7 @@ export class SqliteAcpSessionRepository implements IAcpSessionRepository {
     this.stmtTouchActive = db.prepare('UPDATE acp_session SET last_active_at = ? WHERE conversation_id = ?');
 
     this.stmtGetSuspended = db.prepare(
-      "SELECT * FROM acp_session WHERE session_status = 'suspended' ORDER BY suspended_at ASC",
+      "SELECT * FROM acp_session WHERE session_status = 'suspended' ORDER BY suspended_at ASC"
     );
 
     this.stmtDelete = db.prepare('DELETE FROM acp_session WHERE conversation_id = ?');
@@ -74,7 +74,7 @@ export class SqliteAcpSessionRepository implements IAcpSessionRepository {
   updateStatus(
     conversationId: string,
     status: 'idle' | 'active' | 'suspended' | 'error',
-    suspendedAt?: number | null,
+    suspendedAt?: number | null
   ): void {
     this.stmtUpdateStatus.run(status, suspendedAt ?? null, Date.now(), conversationId);
   }

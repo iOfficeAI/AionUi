@@ -56,12 +56,13 @@ export type OldAcpAgentConfig = {
 export function toAgentConfig(old: OldAcpAgentConfig): AgentConfig {
   // const extra = old.extra;
 
-  // Determine agentSource: 'custom' if extra.cliPath is set, else 'builtin'
+  // Determine agentSource from backend identity
+  const backend = old.extra?.backend ?? old.backend;
   let agentSource: AgentSource = 'custom';
 
-  if (old.extra?.backend && (old.extra.backend === 'gemini' || old.extra.backend === 'aionrs')) {
+  if (backend === 'gemini' || backend === 'aionrs') {
     agentSource = 'builtin';
-  } else if (old.extra?.backend && isValidAcpBackend(old.extra.backend)) {
+  } else if (isValidAcpBackend(backend)) {
     agentSource = 'extension'; // NOTE: 未来这些都要迁移到 extension 里, 这里提前修改, 入库为 extension.
   }
 

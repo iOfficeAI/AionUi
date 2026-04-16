@@ -1,8 +1,8 @@
 import { normalizeError } from '@process/acp/errors/errorNormalize';
 import type { AcpClient } from '@process/acp/infra/IAcpClient';
 import type { AcpMetrics } from '@process/acp/metrics/AcpMetrics';
-import { AuthNegotiator } from '@process/acp/session/AuthNegotiator';
-import { MessageTranslator } from '@process/acp/session/MessageTranslator';
+import type { AuthNegotiator } from '@process/acp/session/AuthNegotiator';
+import type { MessageTranslator } from '@process/acp/session/MessageTranslator';
 import { PromptTimer } from '@process/acp/session/PromptTimer';
 import type { SessionLifecycle } from '@process/acp/session/SessionLifecycle';
 import type { AgentConfig, PromptContent, SessionCallbacks, SessionStatus } from '@process/acp/types';

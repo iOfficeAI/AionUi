@@ -206,7 +206,7 @@ export function initSystemSettingsBridge(): void {
 
   ipcBridge.systemSettings.getAcpV2Enabled.provider(async () => {
     const value = await ProcessConfig.get('system.acpV2Enabled');
-    return value ?? false;  // DEFAULT: false (V2 is opt-in)
+    return value ?? false; // DEFAULT: false (V2 is opt-in)
   });
 
   ipcBridge.systemSettings.setAcpV2Enabled.provider(async ({ enabled }) => {

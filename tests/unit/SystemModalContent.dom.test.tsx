@@ -81,13 +81,13 @@ const mockGetCloseToTray = vi.fn();
 const mockGetNotificationEnabled = vi.fn();
 const mockGetCronNotificationEnabled = vi.fn();
 const mockGetSaveUploadToWorkspace = vi.fn();
-const mockGetCommandQueueEnabled = vi.fn();
+const mockGetAcpV2Enabled = vi.fn();
 const mockGetAutoPreviewOfficeFiles = vi.fn();
 const mockSetCloseToTray = vi.fn();
 const mockSetNotificationEnabled = vi.fn();
 const mockSetCronNotificationEnabled = vi.fn();
 const mockSetSaveUploadToWorkspace = vi.fn();
-const mockSetCommandQueueEnabled = vi.fn();
+const mockSetAcpV2Enabled = vi.fn();
 const mockSetAutoPreviewOfficeFiles = vi.fn();
 const mockOpenFile = vi.fn();
 const mockShowOpen = vi.fn();
@@ -125,8 +125,8 @@ vi.mock('@/common', () => ({
       getSaveUploadToWorkspace: {
         invoke: (...args: any[]) => mockGetSaveUploadToWorkspace(...args),
       },
-      getCommandQueueEnabled: {
-        invoke: (...args: any[]) => mockGetCommandQueueEnabled(...args),
+      getAcpV2Enabled: {
+        invoke: (...args: any[]) => mockGetAcpV2Enabled(...args),
       },
       getAutoPreviewOfficeFiles: {
         invoke: (...args: any[]) => mockGetAutoPreviewOfficeFiles(...args),
@@ -139,8 +139,8 @@ vi.mock('@/common', () => ({
       setSaveUploadToWorkspace: {
         invoke: (...args: any[]) => mockSetSaveUploadToWorkspace(...args),
       },
-      setCommandQueueEnabled: {
-        invoke: (...args: any[]) => mockSetCommandQueueEnabled(...args),
+      setAcpV2Enabled: {
+        invoke: (...args: any[]) => mockSetAcpV2Enabled(...args),
       },
       setAutoPreviewOfficeFiles: {
         invoke: (...args: any[]) => mockSetAutoPreviewOfficeFiles(...args),
@@ -249,13 +249,13 @@ describe('SystemModalContent', () => {
     mockGetNotificationEnabled.mockResolvedValue(true);
     mockGetCronNotificationEnabled.mockResolvedValue(false);
     mockGetSaveUploadToWorkspace.mockResolvedValue(false);
-    mockGetCommandQueueEnabled.mockResolvedValue(false);
+    mockGetAcpV2Enabled.mockResolvedValue(false);
     mockGetAutoPreviewOfficeFiles.mockResolvedValue(true);
     mockSetCloseToTray.mockResolvedValue(undefined);
     mockSetNotificationEnabled.mockResolvedValue(undefined);
     mockSetCronNotificationEnabled.mockResolvedValue(undefined);
     mockSetSaveUploadToWorkspace.mockResolvedValue(undefined);
-    mockSetCommandQueueEnabled.mockResolvedValue(undefined);
+    mockSetAcpV2Enabled.mockResolvedValue(undefined);
     mockSetAutoPreviewOfficeFiles.mockResolvedValue(undefined);
   });
 
@@ -270,8 +270,8 @@ describe('SystemModalContent', () => {
     expect(screen.getByText('settings.startOnBoot')).toBeInTheDocument();
     expect(screen.getByText('settings.closeToTray')).toBeInTheDocument();
     expect(screen.getByText('settings.saveUploadToWorkspace')).toBeInTheDocument();
-    expect(screen.getByText('settings.commandQueueEnabled')).toBeInTheDocument();
-    expect(screen.getByText('settings.commandQueueEnabledDesc')).toBeInTheDocument();
+    expect(screen.getByText('settings.acpV2Enabled')).toBeInTheDocument();
+    expect(screen.getByText('settings.acpV2EnabledDesc')).toBeInTheDocument();
     expect(screen.getByText('settings.autoPreviewOfficeFiles')).toBeInTheDocument();
     expect(screen.getByText('settings.autoPreviewOfficeFilesDesc')).toBeInTheDocument();
   });
@@ -280,10 +280,10 @@ describe('SystemModalContent', () => {
     render(<SystemModalContent />);
 
     await waitFor(() => {
-      expect(screen.getByText('settings.commandQueueEnabled')).toBeInTheDocument();
+      expect(screen.getByText('settings.acpV2Enabled')).toBeInTheDocument();
     });
 
-    const commandQueueSection = screen.getByText('settings.commandQueueEnabled').closest('.flex-1')?.parentElement;
+    const commandQueueSection = screen.getByText('settings.acpV2Enabled').closest('.flex-1')?.parentElement;
     const commandQueueSwitch = commandQueueSection?.querySelector('button[role="switch"]');
     expect(commandQueueSwitch).toBeTruthy();
 
@@ -292,20 +292,20 @@ describe('SystemModalContent', () => {
     });
 
     await waitFor(() => {
-      expect(mockSetCommandQueueEnabled).toHaveBeenCalledWith({ enabled: true });
+      expect(mockSetAcpV2Enabled).toHaveBeenCalledWith({ enabled: true });
     });
   });
 
   it('should revert command queue when the bridge rejects', async () => {
-    mockSetCommandQueueEnabled.mockRejectedValue(new Error('bridge rejected'));
+    mockSetAcpV2Enabled.mockRejectedValue(new Error('bridge rejected'));
 
     render(<SystemModalContent />);
 
     await waitFor(() => {
-      expect(screen.getByText('settings.commandQueueEnabled')).toBeInTheDocument();
+      expect(screen.getByText('settings.acpV2Enabled')).toBeInTheDocument();
     });
 
-    const commandQueueSection = screen.getByText('settings.commandQueueEnabled').closest('.flex-1')?.parentElement;
+    const commandQueueSection = screen.getByText('settings.acpV2Enabled').closest('.flex-1')?.parentElement;
     const commandQueueSwitch = commandQueueSection?.querySelector('button[role="switch"]');
 
     expect(commandQueueSwitch).toHaveAttribute('aria-checked', 'false');
@@ -315,7 +315,7 @@ describe('SystemModalContent', () => {
     });
 
     await waitFor(() => {
-      expect(mockSetCommandQueueEnabled).toHaveBeenCalledWith({ enabled: true });
+      expect(mockSetAcpV2Enabled).toHaveBeenCalledWith({ enabled: true });
       expect(commandQueueSwitch).toHaveAttribute('aria-checked', 'false');
     });
   });

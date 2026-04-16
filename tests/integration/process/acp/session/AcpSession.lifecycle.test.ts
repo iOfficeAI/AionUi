@@ -1,11 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { AcpSession } from '@process/acp/session/AcpSession';
 import type { AcpClient, ClientFactory } from '@process/acp/infra/IAcpClient';
-import type {
-  AgentConfig,
-  SessionCallbacks,
-  SessionStatus,
-} from '@process/acp/types';
+import type { AgentConfig, SessionCallbacks, SessionStatus } from '@process/acp/types';
 import type { SessionOptions } from '@process/acp/session/AcpSession';
 
 function createMockCallbacks(): SessionCallbacks {

@@ -26,10 +26,7 @@ export class IdleReclaimer {
     const now = Date.now();
     for (const [_, entry] of this.sessions) {
       const session = entry.session as any;
-      if (
-        session.status === 'active' &&
-        now - entry.lastActiveAt > this.idleTimeoutMs
-      ) {
+      if (session.status === 'active' && now - entry.lastActiveAt > this.idleTimeoutMs) {
         session.suspend().catch(() => {});
       }
     }

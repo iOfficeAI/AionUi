@@ -264,7 +264,7 @@ export class ProcessAcpClient implements AcpClient {
               (err: unknown) => {
                 console.debug(`${tag}\n \x1b[31m<- ERROR ${JSON.stringify(err)}\x1b[0m`);
                 throw err;
-              },
+              }
             );
           }
           return result;
