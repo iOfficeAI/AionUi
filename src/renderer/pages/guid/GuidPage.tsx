@@ -64,10 +64,13 @@ const GuidPage: React.FC = () => {
   const [providerAgentKey, setProviderAgentKey] = useState<'gemini' | 'aionrs'>('aionrs');
   const modelSelection = useGuidModelSelection(providerAgentKey);
 
+  const resetAssistantRequested = (location.state as { resetAssistant?: boolean } | null)?.resetAssistant === true;
   const agentSelection = useGuidAgentSelection({
     modelList: modelSelection.modelList,
     isGoogleAuth: modelSelection.isGoogleAuth,
     localeKey,
+    resetAssistant: resetAssistantRequested,
+    locationKey: location.key,
   });
 
   // Sync providerAgentKey when selected agent changes
@@ -316,27 +319,13 @@ const GuidPage: React.FC = () => {
     setIsDescriptionExpanded(false);
   }, [location.key]);
 
-  // When sidebar "新对话" navigates with resetAssistant, exit any preset assistant
-  // and return to the default (non-preset) homepage view.
-  const resetAssistantRequested = (location.state as { resetAssistant?: boolean } | null)?.resetAssistant === true;
+  // When sidebar "新对话" navigates with resetAssistant, clear the location state
+  // so subsequent re-renders don't keep seeing the flag. The actual agent reset
+  // is handled inside useGuidAgentSelection (via the resetAssistant option).
   useEffect(() => {
     if (!resetAssistantRequested) return;
-    if (!agentSelection.availableAgents || agentSelection.availableAgents.length === 0) return;
-    if (agentSelection.isPresetAgent) {
-      agentSelection.setSelectedAgentKey(agentSelection.defaultAgentKey);
-    }
-    // Clear via history API so we don't bump location.key and re-trigger other effects.
     window.history.replaceState(null, '', `${location.pathname}${location.search}${location.hash}`);
-  }, [
-    resetAssistantRequested,
-    agentSelection.availableAgents,
-    agentSelection.isPresetAgent,
-    agentSelection.defaultAgentKey,
-    agentSelection.setSelectedAgentKey,
-    location.pathname,
-    location.search,
-    location.hash,
-  ]);
+  }, [resetAssistantRequested, location.pathname, location.search, location.hash]);
 
   useEffect(() => {
     const node = descriptionTextRef.current;
