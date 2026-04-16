@@ -1,7 +1,7 @@
 # ACP 模块架构设计
 
 > **版本**: v1.2 | **最后更新**: 2026-04-16 | **状态**: Draft
-> **摘要**: ACP 层全新架构的完整设计 — 三层结构、7 态状态机、27 个文件、23 条不变量、20 项共识决议
+> **摘要**: ACP 层全新架构的完整设计 — 三层结构、7 态状态机、26 个文件、23 条不变量、20 项共识决议
 > **受众**: ACP 重构实现开发者、新加入团队的开发者
 
 ---
@@ -37,7 +37,7 @@
 | 后端耦合  | `switch(backend)` 分支遍布核心代码                  |
 | 不可测试  | 无正式接口定义，无法独立测试                        |
 
-目标是**全新重建** ACP 层，将上述 ~2,900 行的两个巨型文件替换为 27 个职责单一的文件（总计 ~2,360-3,030 行），最大单文件不超过 450 行。
+目标是**全新重建** ACP 层，将上述 ~2,900 行的两个巨型文件替换为 26 个职责单一的文件（总计 ~2,320-2,990 行），最大单文件不超过 450 行。
 
 ### 1.2 六条核心原则
 
@@ -117,7 +117,7 @@ Prompt 路由只有一条路径：统一入队 -> drain loop 出队。不存在�
 ├──────────────────────────────────────────────────────────────────────┤
 │  Cross-cutting                                                       │
 │  errors/   . AcpError . AgentSpawnError . AgentStartupError          │
-│            . AgentDisconnectedError . errorExtract . errorJsonRpc    │
+│            . AgentDisconnectedError . errorExtract                   │
 │  metrics/  AcpMetrics (Phase 1: 接口 + no-op)                        │
 └──────────────────────────────────────────────────────────────────────┘
 
@@ -853,7 +853,7 @@ sequenceDiagram
 | 组件              | 职责                                                                                                                                                                                     | 行数   |
 | ----------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------ |
 | InputPreprocessor | 解析用户消息中的 `@file` 引用，读取文件内容，构建 PromptContent                                                                                                                          | 80-100 |
-| McpConfig         | 合并用户 MCP 配置 + Assistant 预设 + Team MCP，构建 `McpServerConfig[]`。合并优先级：用户配置 > Assistant 预设 > Team MCP（同名 server 以高优先级为准覆盖，不合并）。Team MCP 总是追加。 | 40-60  |
+| McpConfig         | 合并用户 MCP 配置 + Assistant 预设 + Team MCP，构建 SDK `McpServer[]`。合并优先级：用户配置 > Assistant 预设 > Team MCP（同名 server 以高优先级为准覆盖，不合并）。Team MCP 总是追加。 | 40-60  |
 | PromptTimer       | 3 态内部状态机（idle/running/paused），支持 start/reset/pause/resume/stop                                                                                                                | 60-80  |
 | ApprovalCache     | LRU 审批缓存，maxSize=500，被 PermissionResolver 使用                                                                                                                                    | 60-80  |
 
@@ -863,7 +863,7 @@ AuthNegotiator 负责三个职责：
 
 1. **条件认证**: 接收 `client` 和 `authMethods`，调用 `client.authenticate(credentials)`。失败时抛出 `AcpError('AUTH_REQUIRED')`，附带 `AuthRequiredData`（包含 agent backend 信息和可用的登录方式列表）。
 2. **凭据内存缓存**: `mergeCredentials(creds)` 将 UI 提交的凭据（如 API Key）合并到内存缓存。不做持久化 — Agent CLI 自行管理 token，AcpSession 对齐 Zed 策略。
-3. **登录选项构建**: 从 SDK `RawAuthMethod[]` 转换为应用层 `AuthMethod[]`。支持三种类型：`env_var`（环境变量输入）、`terminal`（终端 CLI 登录命令）、`agent`（agent 内部 OAuth 等）。若 SDK 未提供 authMethods，回退到基于 backend 的硬编码默认选项（临时方案）。
+3. **登录选项构建**: 直接透传 SDK `AuthMethod[]` 到 `AuthRequiredData`。SDK `AuthMethod` 是 discriminated union，支持三种类型：`env_var`（环境变量输入）、`terminal`（终端 CLI 登录命令）、`agent`（agent 内部 OAuth 等）。无需本地转换。
 
 **设计约束**: AuthNegotiator 不持有 client 引用（每次 `authenticate` 调用时传入），不执行 IO（不打开浏览器、不启动终端）。UI 层负责执行具体的登录操作。
 
@@ -1074,7 +1074,6 @@ type AcpErrorCode =
 | `AgentStartupError.ts`      | 进程启动后在 initialize 前退出（含 stderr）                |
 | `AgentDisconnectedError.ts` | 运行时断连（含 exit code + signal + stderr）               |
 | `errorExtract.ts`           | 从 JSON-RPC 响应递归提取 ACP error payload                 |
-| `errorJsonRpc.ts`           | 构建规范的 JSON-RPC error response                         |
 
 #### 错误处理策略
 
@@ -1415,7 +1414,7 @@ AionUi 支持 4 类 Agent 来源，全部通过 2 种 AcpClient 实现覆盖：
 
 ## 11. 代码骨架文件清单
 
-27 个 TypeScript 文件，约 2,360-3,030 行。所有文件位于 `src/process/acp/` 下。
+26 个 TypeScript 文件，约 2,320-2,990 行。所有文件位于 `src/process/acp/` 下。
 
 ### Infrastructure Layer (`infra/`)
 
@@ -1466,11 +1465,10 @@ AionUi 支持 4 类 Agent 来源，全部通过 2 种 AcpClient 实现覆盖：
 | `errors/AgentStartupError.ts`      | 启动期间进程退出错误（含 stderr）                | 20-30    |
 | `errors/AgentDisconnectedError.ts` | 运行时断连错误（含 exit code + signal + stderr） | 20-30    |
 | `errors/errorExtract.ts`           | JSON-RPC error payload 递归提取                  | 60-80    |
-| `errors/errorJsonRpc.ts`           | JSON-RPC error response 构建                     | 40-50    |
 | `metrics/AcpMetrics.ts`            | AcpMetrics interface + noopMetrics               | 30-40    |
-| `types.ts`                         | 跨层共享类型 (AgentConfig, McpServerConfig 等)   | 80-100   |
+| `types.ts`                         | 跨层共享类型 (AgentConfig 等，SDK 类型直接 import) | 80-100   |
 
-小计: 330-420 行
+小计: 270-370 行
 
 ### 全局汇总
 
@@ -1479,21 +1477,21 @@ AionUi 支持 4 类 Agent 来源，全部通过 2 种 AcpClient 实现覆盖：
 | Infrastructure | 5      | 500-630         |
 | Session        | 11     | 1,230-1,580     |
 | Application    | 3      | 320-410         |
-| Cross-cutting  | 8      | 310-410         |
-| **合计**       | **27** | **2,360-3,030** |
+| Cross-cutting  | 7      | 270-370         |
+| **合计**       | **26** | **2,320-2,990** |
 
 对比现状：
 
 | 方案       | 文件数 | 总行数           | 最大单文件                      |
 | ---------- | ------ | ---------------- | ------------------------------- |
 | 现有实现   | ~17    | ~5,900           | ~1,780 行（AcpAgent）           |
-| **新方案** | **27** | **~2,360-3,030** | **450 行（AcpSession 硬限制）** |
+| **新方案** | **26** | **~2,320-2,990** | **450 行（AcpSession 硬限制）** |
 
 ### 实现优先级
 
 - **P0 — 类型基础**: `types.ts`（跨层）+ `session/types.ts` + `errors/AcpError.ts` + `infra/AcpClient.ts`
 - **P1 — 核心功能**: AcpSession + 所有 Session 组件 + ProcessAcpClient + AcpRuntime + ClientFactory + 错误模块
-- **P2 — 补充功能**: WebSocketAcpClient + InputPreprocessor + McpConfig + IdleReclaimer + AcpMetrics + errorJsonRpc
+- **P2 — 补充功能**: WebSocketAcpClient + InputPreprocessor + McpConfig + IdleReclaimer + AcpMetrics
 
 ---
 

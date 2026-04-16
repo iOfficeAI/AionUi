@@ -68,16 +68,16 @@ type AgentConfig = {
 
   // 会话配置
   cwd: string;
-  mcpServers?: McpServerConfig[];
+  mcpServers?: McpServer[];
   additionalDirectories?: string[];
 
   // 可选预设（来自 relate_type = 'assistant'）
   presetPrompts?: string[];
   presetSkills?: string[];
-  presetMcpServers?: McpServerConfig[];
+  presetMcpServers?: McpServer[];
 
   // Team MCP（D9 团队模式预留）
-  teamMcpConfig?: McpServerConfig;
+  teamMcpConfig?: McpServer;
 
   // 认证
   authCredentials?: Record<string, string>;
@@ -92,22 +92,23 @@ type AgentConfig = {
 
 > **Round 04 修订**: 删除 `npxPackage`、`npxVersion`、`managedInstall` 字段。`command` 和 `args` 在非 remote 场景下为必选——路径解析由 AcpDetector 在构建 AgentConfig 时完成，不是 Connector 的职责。
 
-### 1.2 McpServerConfig
+### 1.2 McpServer（SDK 原样）
 
 ```typescript
-// 定义位置: types.ts
+// 来源: @agentclientprotocol/sdk（直接使用，不再本地定义）
 // 使用方: AgentConfig.mcpServers, createSession 参数
 // 边界: 跨层（Application 配置, Session 构建, Infrastructure 传给 SDK）
 
-type McpServerConfig = {
+type McpServer = {
   name: string;
   command: string;
-  args?: string[];
-  env?: Record<string, string>;
+  args: Array<string>;        // 必选，SDK 定义
+  env: Array<EnvVariable>;    // Array<{name, value}>，不是 Record
+  _meta?: Record<string, unknown>;
 };
 ```
 
-MCP 服务器配置。在 Application 层由用户配置产生，在 Session 层通过 McpConfig 组装，在 Infrastructure 层传给 SDK 的 `createSession`。
+SDK 定义的 MCP 服务器配置。在 Application 层由用户配置产生，在 Session 层通过 McpConfig 组装，在 Infrastructure 层传给 SDK 的 `createSession`。直接使用 SDK 类型，无本地包装。
 
 ### 1.3 AcpError
 
@@ -355,77 +356,43 @@ type DisconnectInfo = {
 ### 2.6 ProtocolHandlers（AcpClient 内部）
 
 ```typescript
-// 定义位置: session/types.ts
+// 定义位置: types.ts
 // 使用方: ProcessAcpClient / WebSocketAcpClient 内部使用
 // 边界: Infrastructure 内部（不再暴露给 Session 层）
 
 type ProtocolHandlers = {
   onSessionUpdate: (notification: SessionNotification) => void;
   onRequestPermission: (request: RequestPermissionRequest) => Promise<RequestPermissionResponse>;
-  onReadTextFile: (request: unknown) => Promise<unknown>;
-  onWriteTextFile: (request: unknown) => Promise<unknown>;
+  onReadTextFile: (request: ReadTextFileRequest) => Promise<ReadTextFileResponse>;
+  onWriteTextFile: (request: WriteTextFileRequest) => Promise<WriteTextFileResponse>;
 };
 ```
 
-AcpClient 内部注册到 SDK `ClientSideConnection` 上的 client-side 回调。`onReadTextFile` / `onWriteTextFile` 的参数类型在 Phase 1 用 `unknown` 占位，待 SDK 类型稳定后补全。
+AcpClient 内部注册到 SDK `ClientSideConnection` 上的 client-side 回调。所有参数类型直接使用 SDK 导出的类型（`SessionNotification`、`RequestPermissionRequest`/`Response`、`ReadTextFileRequest`/`Response`、`WriteTextFileRequest`/`Response`）。
 
 > **v1.2 修订**: ProtocolHandlers 现在是 AcpClient 的内部实现细节，不再暴露给 Session 层。Session 层通过 AcpClient 接口间接提供 handler 实现。
 
-### 2.7 SessionNotification / SessionUpdate（SDK 原样）
+### 2.7 SessionNotification（SDK 原样）
 
 ```typescript
-// 来源: @agentclientprotocol/sdk（原样透传）
+// 来源: @agentclientprotocol/sdk（直接 import，不再本地定义）
 // 使用方: ProtocolHandlers.onSessionUpdate 参数
 // 边界: Infrastructure -> Session（AcpSession.handleSessionUpdate 消费）
-
-type SessionNotification = {
-  sessionId: string;
-  update: SessionUpdate;
-};
-
-type SessionUpdate =
-  | { sessionUpdate: 'user_message_chunk'; [key: string]: unknown }
-  | { sessionUpdate: 'agent_message_chunk'; [key: string]: unknown }
-  | { sessionUpdate: 'agent_thought_chunk'; [key: string]: unknown }
-  | { sessionUpdate: 'tool_call'; [key: string]: unknown }
-  | { sessionUpdate: 'tool_call_update'; [key: string]: unknown }
-  | { sessionUpdate: 'plan'; [key: string]: unknown }
-  | { sessionUpdate: 'available_commands_update'; [key: string]: unknown }
-  | { sessionUpdate: 'current_mode_update'; modeId: string; [key: string]: unknown }
-  | { sessionUpdate: 'config_option_update'; id: string; [key: string]: unknown }
-  | { sessionUpdate: 'session_info_update'; sessionId?: string; [key: string]: unknown }
-  | { sessionUpdate: 'usage_update'; [key: string]: unknown };
 ```
+
+`SessionNotification` 直接从 SDK 导入使用，不再在本地重新定义。其内部结构由 SDK 维护，包含 `sessionId` 和各种 `sessionUpdate` 变体。
 
 SDK 类型穿透范围（SDK type penetration boundary）：SDK 原始类型最远到达 AcpSession 内部的 `handleSessionUpdate()` 方法。之后由 MessageTranslator 翻译为 `TMessage`（应用类型），ConfigTracker 提取配置更新。
 
 ### 2.8 RequestPermissionRequest / RequestPermissionResponse（SDK 原样）
 
 ```typescript
-// 来源: @agentclientprotocol/sdk（原样透传）
+// 来源: @agentclientprotocol/sdk（直接 import，不再本地定义）
 // 使用方: ProtocolHandlers.onRequestPermission 参数和返回值
 // 边界: Infrastructure -> Session（AcpSession.handlePermissionRequest 消费）
-
-type RequestPermissionRequest = {
-  sessionId: string;
-  options: Array<{
-    optionId: string;
-    name: string;
-    kind: 'allow_once' | 'allow_always' | 'reject_once' | 'reject_always';
-  }>;
-  toolCall: {
-    id: string;
-    name?: string;
-    [key: string]: unknown;
-  };
-  title?: string;
-  description?: string;
-};
-
-type RequestPermissionResponse = {
-  optionId: string;
-};
 ```
+
+`RequestPermissionRequest` 和 `RequestPermissionResponse` 直接从 SDK 导入使用，不再在本地重新定义。ProtocolHandlers 直接引用 SDK 类型。
 
 AcpSession 内部的 PermissionResolver 将 `RequestPermissionRequest` 转换为 `PermissionUIData`（应用类型）后通过 callback 传给 Application 层。SDK 类型不跨越此边界（INV-X-01）。
 
@@ -449,43 +416,17 @@ type PromptResponse = {
 
 AcpSession 在 prompt 完成后检查 `stopReason` 决定下一步行为（出队下一个 prompt 或进入 active）。
 
-### 2.10 InitializeResponse
+### 2.10 InitializeResponse（SDK 原样）
 
 ```typescript
-// 定义位置: session/types.ts（与 AcpClient 一起定义）
+// 来源: @agentclientprotocol/sdk（直接 import）
 // 使用方: AcpClient.start() 返回值, AcpSession.doStart 消费
 // 边界: Infrastructure -> Session
-
-type InitializeResponse = {
-  protocolVersion: string;
-  capabilities: Record<string, unknown>;
-  /** Agent 支持的认证方式列表（可选，缺失表示不需要认证） */
-  authMethods?: RawAuthMethod[];
-};
 ```
 
-`client.start()` 的返回类型。`authMethods` 字段可选——缺失时表示 agent 不需要认证，AcpSession 跳过认证步骤直接进入 createSession。存在时由 AuthNegotiator 转换为应用类型 `AuthMethod[]`。
+`client.start()` 的返回类型，直接从 SDK 导入。`authMethods` 字段（SDK `AuthMethod[]`）可选——缺失时表示 agent 不需要认证，AcpSession 跳过认证步骤直接进入 createSession。存在时 AuthNegotiator 直接透传 SDK `AuthMethod[]` 到 `AuthRequiredData`。
 
-### 2.11 RawAuthMethod
-
-```typescript
-// 定义位置: session/types.ts
-// 使用方: InitializeResponse.authMethods 元素类型, AuthNegotiator.buildAuthMethods 输入
-// 边界: Infrastructure 内部（AuthNegotiator 将其转换为 AuthMethod 后不再暴露给上层）
-
-type RawAuthMethod = {
-  id: string;
-  type: 'env_var' | 'terminal' | 'agent';
-  name: string;
-  description?: string;
-  fields?: Array<{ key: string; label: string; secret: boolean }>; // env_var 专用
-  command?: string; // terminal 专用
-  args?: string[]; // terminal 专用
-  env?: Record<string, string>; // terminal 专用
-};
-```
-
-SDK 原始认证方式定义。`InitializeResponse` 中的格式，所有认证方式共享 `id`、`type`、`name` 字段，通过可选字段区分不同类型的附加数据。AuthNegotiator 将 `RawAuthMethod` 转换为 discriminated union `AuthMethod`，确保 SDK 类型不跨越 Session -> Application 边界（INV-X-01）。
+> SDK `AuthMethod` 是 discriminated union：`(AuthMethodEnvVar & {type:"env_var"}) | (AuthMethodTerminal & {type:"terminal"}) | AuthMethodAgent`，不需要本地转换。
 
 ### 2.12 ~~LocalProcessConfig~~（已移除）
 
@@ -500,31 +441,29 @@ SDK 原始认证方式定义。`InitializeResponse` 中的格式，所有认证�
 
 type CreateSessionParams = {
   cwd: string;
-  mcpServers?: McpServerConfig[];
+  mcpServers?: McpServer[];
   additionalDirectories?: string[];
 };
 
 type LoadSessionParams = {
   sessionId: string;
   cwd: string;
-  mcpServers?: McpServerConfig[];
+  mcpServers?: McpServer[];
   additionalDirectories?: string[];
 };
 ```
 
-### 2.14 PromptContent / PromptContentItem
+### 2.14 PromptContent（基于 SDK ContentBlock）
 
 ```typescript
 // 定义位置: types.ts
 // 使用方: InputPreprocessor.process 返回, AcpClient.prompt 参数
 // 边界: Session -> Infrastructure（AcpSession 内部流转）
 
-type PromptContent = Array<PromptContentItem>;
-
-type PromptContentItem =
-  | { type: 'text'; text: string }
-  | { type: 'file'; path: string; content: string; mimeType?: string };
+type PromptContent = ContentBlock[];
 ```
+
+`PromptContent` 是 SDK `ContentBlock[]` 的类型别名。`ContentBlock` 由 SDK 定义，包含 text、file 等变体。不再有本地定义的 `PromptContentItem` 类型。
 
 ---
 
@@ -632,25 +571,15 @@ type PermissionUIData = {
 
 PermissionResolver 从 SDK 的 `RequestPermissionRequest` 转换出的 UI 友好结构。SDK 类型不跨越此边界（INV-X-01）。
 
-### 3.5 ToolKind
+### 3.5 ToolKind（SDK 原样）
 
 ```typescript
-// 定义位置: types.ts + session/types.ts（定义一致）
+// 来源: @agentclientprotocol/sdk（直接 import，不再本地定义）
 // 使用方: PermissionUIData.kind 字段
 // 边界: Session -> Application
-
-type ToolKind =
-  | 'read'
-  | 'edit'
-  | 'delete'
-  | 'move'
-  | 'search'
-  | 'execute'
-  | 'think'
-  | 'fetch'
-  | 'switch_mode'
-  | 'other';
 ```
+
+`ToolKind` 直接从 SDK 导入使用。SDK 定义了 `read`、`edit`、`delete`、`execute` 等工具类型的 string union。
 
 ### 3.6 ConfigSnapshot
 
@@ -753,59 +682,23 @@ type AuthRequiredData = {
 };
 ```
 
-AuthNegotiator 从 `InitializeResponse.authMethods`（SDK 类型 `RawAuthMethod[]`）转换为应用类型 `AuthMethod[]`，封装到 `AuthRequiredData` 中。`agentBackend` 来自 `AgentConfig.agentBackend`。
+AuthNegotiator 直接透传 `InitializeResponse.authMethods`（SDK 类型 `AuthMethod[]`）到 `AuthRequiredData` 中，无需转换。`agentBackend` 来自 `AgentConfig.agentBackend`。
 
-### 3.12 AuthMethod（discriminated union）
-
-```typescript
-// 定义位置: types.ts + session/types.ts
-// 使用方: AuthRequiredData.methods
-// 边界: Session -> Application（INV-X-01: 不含 SDK 原始类型）
-
-type AuthMethod =
-  | {
-      type: 'env_var';
-      id: string;
-      name: string;
-      description?: string;
-      fields: AuthInputField[];
-    }
-  | {
-      type: 'terminal';
-      id: string;
-      name: string;
-      description?: string;
-      command: string;
-      args?: string[];
-      env?: Record<string, string>;
-    }
-  | {
-      type: 'agent';
-      id: string;
-      name: string;
-      description?: string;
-    };
-```
-
-三种认证方式对齐 ACP SDK 定义：
-
-- **env_var**: 用户手动输入凭据（API key 等）。UI 根据 `fields` 渲染表单，用户填写后通过 `retryAuth(credentials)` 传入。
-- **terminal**: 启动命令行认证流程（如 OAuth device flow）。UI 展示授权链接或终端输出，完成后调用 `retryAuth()`（无需 credentials）。
-- **agent**: Agent 自行处理认证（如浏览器跳转）。UI 展示等待状态，完成后调用 `retryAuth()`。
-
-### 3.13 AuthInputField
+### 3.12 AuthMethod（SDK 原样）
 
 ```typescript
-// 定义位置: types.ts + session/types.ts
-// 使用方: AuthMethod.env_var.fields
+// 来源: @agentclientprotocol/sdk（直接 import，不再本地定义）
+// 使用方: AuthRequiredData.methods, AuthNegotiator
 // 边界: Session -> Application
-
-type AuthInputField = {
-  key: string; // 字段键名（传给 retryAuth 的 credentials 对象 key）
-  label: string; // UI 显示标签
-  secret: boolean; // 是否为密钥字段（UI 应使用 password input）
-};
 ```
+
+`AuthMethod` 直接从 SDK 导入使用，是 SDK 定义的 discriminated union：
+
+- `AuthMethodEnvVar & {type:"env_var"}`: 用户手动输入凭据（API key 等）。`vars: Array<AuthEnvVar>` 描述需要输入的字段（`AuthEnvVar = { name, label?, secret?, optional? }`）。UI 根据 `vars` 渲染表单。
+- `AuthMethodTerminal & {type:"terminal"}`: 启动命令行认证流程（如 OAuth device flow）。`args?: Array<string>`, `env?: Record<string,string>`。
+- `AuthMethodAgent`: Agent 自行处理认证（如浏览器跳转）。无显式 `type` 字段（catch-all 变体）。
+
+不再有本地定义的 `AuthInputField` 类型。SDK `AuthEnvVar` 替代了原来的 `AuthInputField`。
 
 ### 3.14 ConfigOption（SDK 简化）
 
@@ -979,9 +872,9 @@ classDiagram
             +agentBackend: string
             +agentSource: string
             +cwd: string
-            +mcpServers: McpServerConfig[]
+            +mcpServers: McpServer[]
         }
-        class McpServerConfig {
+        class McpServer {
             +name: string
             +command: string
         }
@@ -1069,7 +962,7 @@ classDiagram
     SessionCallbacks --> QueueSnapshot : references
     SessionCallbacks --> PermissionUIData : references
     SessionCallbacks --> SignalEvent : maps to
-    AgentConfig --> McpServerConfig : contains
+    AgentConfig --> McpServer : contains
 ```
 
 ---
@@ -1109,7 +1002,7 @@ classDiagram
 
 建立单一来源（single source of truth）：
 
-1. **跨层类型**留在 `types.ts`：`AgentConfig`、`McpServerConfig`、`AcpMetrics`、`SessionStatus`、`QueueSnapshot` 等
+1. **跨层类型**留在 `types.ts`：`AgentConfig`、`AcpMetrics`、`SessionStatus`、`QueueSnapshot` 等（`McpServer` 直接从 SDK import）
 2. **会话层专用类型**留在 `session/types.ts`：`PendingPermission`、`SessionOptions`、SDK placeholder 类型
 3. `session/types.ts` 通过 re-export 引用 `types.ts`，**不重复定义**
 4. 3 处不一致均以包含更多信息的版本为准
@@ -1121,7 +1014,7 @@ classDiagram
 | #   | 类型                        | 来源         | 边界             | 定义文件           |
 | --- | --------------------------- | ------------ | ---------------- | ------------------ |
 | 1   | `AgentConfig`               | 新定义       | 跨层             | types.ts           |
-| 2   | `McpServerConfig`           | 新定义       | 跨层             | types.ts           |
+| 2   | `McpServer`                 | SDK 原样     | 跨层             | SDK import         |
 | 3   | `AcpError`                  | 新定义       | 跨层             | errors/AcpError.ts |
 | 4   | `AcpErrorCode`              | 新定义       | 跨层             | errors/AcpError.ts |
 | 5   | `AcpMetrics`                | 新定义       | 跨层             | types.ts           |
@@ -1132,31 +1025,31 @@ classDiagram
 | 10  | `AgentLifecycleSnapshot`    | 新定义       | Infra -> Session | (待创建)           |
 | 11  | `DisconnectInfo`            | 新定义       | Infra -> Session | (待创建)           |
 | 12  | `ProtocolHandlers`          | 新定义       | Infra 内部       | session/types.ts   |
-| 13  | `SessionNotification`       | SDK 原样     | Infra -> Session | session/types.ts   |
-| 14  | `SessionUpdate`             | SDK 原样     | Infra -> Session | session/types.ts   |
-| 15  | `RequestPermissionRequest`  | SDK 原样     | Infra -> Session | session/types.ts   |
-| 16  | `RequestPermissionResponse` | SDK 原样     | Session -> Infra | session/types.ts   |
-| 17  | `PromptResponse`            | SDK 原样     | Infra -> Session | session/types.ts   |
-| 18  | `InitializeResponse`        | SDK 扩展     | Infra -> Session | session/types.ts   |
-| 19  | `RawAuthMethod`             | SDK 原样     | Infra 内部       | session/types.ts   |
+| 13  | `SessionNotification`       | SDK 原样     | Infra -> Session | SDK import         |
+| 14  | ~~`SessionUpdate`~~         | ~~SDK 原样~~ | -                | (SDK 内部，通过 SessionNotification 访问) |
+| 15  | `RequestPermissionRequest`  | SDK 原样     | Infra -> Session | SDK import         |
+| 16  | `RequestPermissionResponse` | SDK 原样     | Session -> Infra | SDK import         |
+| 17  | `PromptResponse`            | SDK 原样     | Infra -> Session | SDK import         |
+| 18  | `InitializeResponse`        | SDK 原样     | Infra -> Session | SDK import         |
+| 19  | ~~`RawAuthMethod`~~         | -            | -                | (已移除，SDK `AuthMethod` 直接使用) |
 | 20  | ~~`LocalProcessConfig`~~    | ~~新定义~~   | ~~Infra 内部~~   | (v1.2 移除，内部化到 ProcessAcpClient) |
 | 21  | `CreateSessionParams`       | 新定义       | Infra 内部       | types.ts           |
 | 22  | `LoadSessionParams`         | 新定义       | Infra 内部       | types.ts           |
 | 23  | `PromptContent`             | 新定义       | Session -> Infra | types.ts           |
-| 24  | `PromptContentItem`         | 新定义       | Session -> Infra | types.ts           |
+| 24  | ~~`PromptContentItem`~~     | -            | -                | (已移除，SDK `ContentBlock` 直接使用) |
 | 25  | `SessionCallbacks`          | 新定义       | Session -> App   | types.ts           |
 | 26  | `SessionStatus`             | 新定义       | Session -> App   | types.ts           |
 | 27  | `QueueSnapshot`             | 新定义       | Session -> App   | types.ts           |
 | 28  | `PermissionUIData`          | 新定义       | Session -> App   | types.ts           |
-| 29  | `ToolKind`                  | 新定义       | Session -> App   | types.ts           |
+| 29  | `ToolKind`                  | SDK 原样     | Session -> App   | SDK import         |
 | 30  | `ConfigSnapshot`            | 新定义       | Session -> App   | types.ts           |
 | 31  | `ModelSnapshot`             | 新定义       | Session -> App   | types.ts           |
 | 32  | `ModeSnapshot`              | 新定义       | Session -> App   | types.ts           |
 | 33  | `ContextUsage`              | 新定义       | Session -> App   | types.ts           |
 | 34  | `SessionSignal`             | 新定义       | Session -> App   | types.ts           |
 | 35  | `AuthRequiredData`          | 新定义       | Session -> App   | types.ts           |
-| 36  | `AuthMethod`                | 新定义       | Session -> App   | types.ts           |
-| 37  | `AuthInputField`            | 新定义       | Session -> App   | types.ts           |
+| 36  | `AuthMethod`                | SDK 原样     | Session -> App   | SDK import         |
+| 37  | ~~`AuthInputField`~~        | -            | -                | (已移除，SDK `AuthEnvVar` 替代) |
 | 38  | `ConfigOption`              | SDK 简化     | Session <-> App  | types.ts           |
 | 39  | `TMessage`                  | 现有(AionUi) | Session -> App   | types.ts (占位)    |
 | 40  | `QueuedPrompt`              | 新定义       | Session 内部     | types.ts           |

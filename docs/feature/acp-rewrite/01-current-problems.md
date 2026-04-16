@@ -202,7 +202,7 @@ if (errorMsg.includes('authentication') || errorMsg.includes('认证失败') || 
 
 ### 4.5 新架构如何解决
 
-新架构引入三层错误处理：`errorExtract` 递归提取 ACP 错误 payload（`{code, message, data}`），`errorNormalize` 按 error code 而非文本进行分类并判断重试可行性，`errorJsonRpc` 构建规范的 JSON-RPC error response。详见 [03-architecture-design.md](03-architecture-design.md)。
+新架构引入结构化错误处理：`errorExtract` 递归提取 ACP 错误 payload（`{code, message, data}`），`AcpError` 按 error code 而非文本进行分类并判断重试可行性。JSON-RPC error response 的构建由 SDK `ClientSideConnection` 内部处理。详见 [03-architecture-design.md](03-architecture-design.md)。
 
 ---
 

@@ -232,17 +232,17 @@ T1 测试覆盖 AcpSession 的 8 个组合组件 + errors 模块。这些组件�
 
 | #   | 测试用例                          | 输入                                                                    | 期望输出                                                                           |
 | --- | --------------------------------- | ----------------------------------------------------------------------- | ---------------------------------------------------------------------------------- |
-| 1   | buildAuthMethods 转换 env_var     | `[{ type: 'env_var', id: 'e1', name: 'API Key', fields: [...] }]`       | 返回 `AuthMethod[]`，type='env_var'，fields 保留                                   |
-| 2   | buildAuthMethods 转换 terminal    | `[{ type: 'terminal', id: 't1', command: 'claude', args: ['/login'] }]` | 返回 `AuthMethod[]`，type='terminal'，command/args 正确                            |
-| 3   | buildAuthMethods 转换 agent       | `[{ type: 'agent', id: 'a1', name: 'OAuth' }]`                          | 返回 `AuthMethod[]`，type='agent'                                                  |
-| 4   | fallback — claude backend         | 空 rawMethods + backend='claude'                                        | 返回含 terminal (`/login`) + env_var (`ANTHROPIC_API_KEY`) 的默认选项              |
-| 5   | fallback — codex backend          | 空 rawMethods + backend='codex'                                         | 返回含 terminal (`auth`) + env_var (`OPENAI_API_KEY`, `CODEX_API_KEY`)             |
-| 6   | fallback — unknown backend        | 空 rawMethods + backend='unknown'                                       | 返回空数组 (无 loginArg 且无 envVarNames)                                          |
-| 7   | 空 authMethods 不触发认证         | `authenticate(client, [])`                                              | 不调用 client.extMethod('authenticate') (跳过认证，由 AcpSession 控制)             |
+| 1   | buildAuthRequiredData 透传方法列表 | SDK `AuthMethod[]` 输入                                                 | 返回 `AuthRequiredData`，`methods` 字段直接透传 SDK `AuthMethod[]`                 |
+| 2   | buildAuthRequiredData 空列表      | `buildAuthRequiredData([])`                                             | 返回 `{ agentBackend, methods: [] }`                                               |
+| 3   | buildAuthRequiredData undefined   | `buildAuthRequiredData(undefined)`                                      | 返回 `{ agentBackend, methods: [] }`                                               |
+| 4   | selectAuthMethod 匹配 env_var     | credentials 包含所有 vars 的 env_var 方法                               | 返回该方法                                                                         |
+| 5   | selectAuthMethod 不匹配           | credentials 缺少必要 vars                                              | 返回 null，跳过认证                                                                |
+| 6   | selectAuthMethod 跳过非 env_var   | 只有 terminal 类型方法                                                  | 返回 null（当前只匹配 env_var）                                                    |
+| 7   | 空 authMethods 不触发认证         | `authenticate(protocol, [])`                                            | 不调用 protocol.authenticate()（跳过认证）                                         |
 | 8   | mergeCredentials 合并逻辑         | 初始 `{ A: '1' }` → `mergeCredentials({ B: '2' })`                      | 合并后 credentials = `{ A: '1', B: '2' }`                                          |
 | 9   | mergeCredentials 覆盖             | 初始 `{ A: '1' }` → `mergeCredentials({ A: '2' })`                      | credentials = `{ A: '2' }` (后者覆盖)                                              |
-| 10  | authenticate 成功                 | client.extMethod('authenticate') 成功                                   | 无异常返回                                                                         |
-| 11  | authenticate 失败抛 AUTH_REQUIRED | client.extMethod('authenticate') 抛异常                                 | 抛出 `AcpError { code: 'AUTH_REQUIRED', retryable: true }` 并附带 AuthRequiredData |
+| 10  | authenticate 成功                 | protocol.authenticate(methodId) 成功                                    | 无异常返回                                                                         |
+| 11  | authenticate 失败抛 AUTH_REQUIRED | protocol.authenticate(methodId) 抛异常                                  | 抛出 `AcpError { code: 'AUTH_REQUIRED', retryable: true }`                         |
 
 ---
 
