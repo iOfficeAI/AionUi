@@ -13,7 +13,7 @@
 import type { ChildProcess, SpawnOptions } from 'child_process';
 import { execFile as execFileCb, execFileSync, spawn } from 'child_process';
 import { promisify } from 'util';
-import { promises as fs } from 'fs';
+import { promises as fs, rmSync } from 'fs';
 import os from 'os';
 import path from 'path';
 import {
@@ -308,6 +308,42 @@ export type NpxPrepareResult = {
   extraArgs?: string[];
 };
 
+// ── Bunx cache corruption detection & cleanup ──────────────────────
+
+/**
+ * Detect bunx cache corruption from stderr.
+ * bun x may fail to install all transitive dependencies (known bun issue),
+ * producing "Cannot find package" (Unix) or "Cannot find module" (Windows).
+ */
+export function isBunxCacheCorruption(stderr: string): boolean {
+  return /Cannot find (?:package|module)/i.test(stderr);
+}
+
+/**
+ * Extract the bunx cache root directory from the error path in stderr and delete it.
+ *
+ * Stderr from bun contains the full path to the missing module, e.g.:
+ *   Unix:    /tmp/bunx-501-@zed-industries/claude-agent-acp@0.21.0/node_modules/...
+ *   Windows: C:\Users\...\Temp\bunx-1743022513-@zed-industries\claude-agent-acp@0.21.0\node_modules\...
+ *
+ * We extract everything up to the versioned package dir (before /node_modules)
+ * and remove it so the next `bun x` invocation does a fresh install.
+ *
+ * @returns The cache directory that was cleared, or null if extraction failed.
+ */
+export function clearBunxCache(stderr: string): string | null {
+  const match = stderr.match(/([^\s'"]*[/\\]bunx-\d+[^\s/\\]*[/\\][^\s/\\]+@[^\s/\\]+)[/\\]node_modules/);
+  if (!match) return null;
+
+  const cacheDir = match[1];
+  try {
+    rmSync(cacheDir, { recursive: true, force: true });
+    return cacheDir;
+  } catch {
+    return null;
+  }
+}
+
 // ── Backend-specific connectors ─────────────────────────────────────
 
 /**
@@ -517,6 +553,21 @@ async function connectNpxBackend(config: {
     await setup(spawnNpxBackend(backend, npxPackage, npxCommand, cleanEnv, workingDir, isWindows, false, opts));
   } catch (error) {
     await cleanup();
+
+    // Detect bunx cache corruption (missing transitive dependencies).
+    // bun x caches packages in a temp dir but sometimes fails to install all
+    // transitive deps (known bun issue). Clearing the cache and retrying once
+    // forces a fresh install with complete dependencies.
+    const errMsg = error instanceof Error ? error.message : '';
+    if (isBunxCacheCorruption(errMsg)) {
+      const cleared = clearBunxCache(errMsg);
+      if (cleared) {
+        console.log(`[ACP ${backend}] Cleared corrupted bunx cache: ${cleared}, retrying...`);
+        await setup(spawnNpxBackend(backend, npxPackage, npxCommand, cleanEnv, workingDir, isWindows, false, opts));
+        return;
+      }
+    }
+
     throw error;
   }
 }
