@@ -19,28 +19,41 @@ export const DEFAULT_CODEX_CONFIG_OPTIONS: AcpSessionConfigOption[] = [
     type: 'select',
     currentValue: 'medium',
     options: [
+      { value: 'low', name: 'Low' },
       { value: 'medium', name: 'Medium' },
       { value: 'high', name: 'High' },
-      { value: 'xhigh', name: 'Maximum' },
+      { value: 'xhigh', name: 'Xhigh' },
     ],
   },
 ];
 
-export const DEFAULT_CHATGPT_CONFIG_OPTIONS: AcpSessionConfigOption[] = [
-  {
+const DEFAULT_CHATGPT_REASONING_EFFORT = 'medium';
+
+const CHATGPT_REASONING_EFFORT_OPTIONS = [
+  { value: 'low', name: 'Low' },
+  { value: 'medium', name: 'Medium' },
+  { value: 'high', name: 'High' },
+  { value: 'xhigh', name: 'Xhigh' },
+];
+
+const CHATGPT_REASONING_EFFORT_VALUES = new Set(CHATGPT_REASONING_EFFORT_OPTIONS.map((choice) => choice.value));
+
+export function isChatgptReasoningEffortValue(value?: string | null): value is string {
+  return typeof value === 'string' && CHATGPT_REASONING_EFFORT_VALUES.has(value);
+}
+
+export function createChatgptReasoningEffortConfigOption(currentValue?: string): AcpSessionConfigOption {
+  return {
     id: 'reasoning_effort',
     name: 'Reasoning effort',
     category: 'reasoning',
     type: 'select',
-    currentValue: 'medium',
-    options: [
-      { value: 'minimal', name: 'Minimal' },
-      { value: 'low', name: 'Low' },
-      { value: 'medium', name: 'Medium' },
-      { value: 'high', name: 'High' },
-    ],
-  },
-];
+    currentValue: isChatgptReasoningEffortValue(currentValue) ? currentValue : DEFAULT_CHATGPT_REASONING_EFFORT,
+    options: CHATGPT_REASONING_EFFORT_OPTIONS.map((choice) => ({ ...choice })),
+  };
+}
+
+export const DEFAULT_CHATGPT_CONFIG_OPTIONS: AcpSessionConfigOption[] = [createChatgptReasoningEffortConfigOption()];
 
 export function getDefaultAcpConfigOptions(
   backend: AcpBackend | 'custom' | undefined,

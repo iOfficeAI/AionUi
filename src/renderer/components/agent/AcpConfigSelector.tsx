@@ -19,8 +19,9 @@ import MarqueePillLabel from './MarqueePillLabel';
  * Supports two modes:
  * - **Conversation mode** (conversationId provided): fetches live config from backend,
  *   listens for updates via responseStream, and caches to ConfigStorage.
- * - **Local mode** (no conversationId, e.g. Guid page): renders from initialConfigOptions
- *   (typically loaded from ConfigStorage cache) and notifies parent via onOptionSelect.
+ * - **Local mode** (Guid page / custom conversation selectors): renders from
+ *   initialConfigOptions (typically loaded from ConfigStorage cache) and
+ *   notifies parent via onOptionSelect.
  */
 const AcpConfigSelector: React.FC<{
   conversationId?: string;
@@ -30,8 +31,8 @@ const AcpConfigSelector: React.FC<{
   leadingIcon?: ReactNode;
   /** Cached config options for immediate render (from DB or ConfigStorage) */
   initialConfigOptions?: unknown[];
-  /** Local mode callback when user selects an option (Guid page) */
-  onOptionSelect?: (configId: string, value: string) => void;
+  /** Local/custom callback when user selects an option */
+  onOptionSelect?: (configId: string, value: string) => void | boolean | Promise<void | boolean>;
 }> = ({
   conversationId,
   backend,
@@ -45,10 +46,11 @@ const AcpConfigSelector: React.FC<{
   const [configOptions, setConfigOptions] = useState<AcpSessionConfigOption[]>(
     () => (Array.isArray(initialConfigOptions) ? initialConfigOptions : []) as AcpSessionConfigOption[]
   );
+  const shouldSyncWithAcpConversation = Boolean(backend && conversationId && !onOptionSelect);
 
   // Fetch config options on mount (conversation mode only)
   useEffect(() => {
-    if (!backend || !conversationId) return;
+    if (!shouldSyncWithAcpConversation || !conversationId) return;
     let cancelled = false;
     ipcBridge.acpConversation.getConfigOptions
       .invoke({ conversationId })
@@ -63,11 +65,11 @@ const AcpConfigSelector: React.FC<{
     return () => {
       cancelled = true;
     };
-  }, [conversationId, backend]);
+  }, [conversationId, shouldSyncWithAcpConversation]);
 
   // Listen for config_option_update events from responseStream (conversation mode only)
   useEffect(() => {
-    if (!backend || !conversationId) return;
+    if (!shouldSyncWithAcpConversation || !conversationId) return;
     const handler = (message: IResponseMessage) => {
       if (message.conversation_id !== conversationId) return;
       if (message.type === 'acp_model_info') {
@@ -82,7 +84,7 @@ const AcpConfigSelector: React.FC<{
       }
     };
     return ipcBridge.acpConversation.responseStream.on(handler);
-  }, [conversationId, backend]);
+  }, [conversationId, shouldSyncWithAcpConversation]);
 
   // Sync when initialConfigOptions prop changes (e.g. agent switch on Guid page)
   useEffect(() => {
@@ -93,14 +95,29 @@ const AcpConfigSelector: React.FC<{
 
   const handleSelectOption = useCallback(
     (configId: string, value: string) => {
+      const previousConfigOptions = configOptions;
+
       // Optimistically update UI
       setConfigOptions((prev) =>
         prev.map((opt) => (opt.id === configId ? { ...opt, currentValue: value, selectedValue: value } : opt))
       );
 
-      // Local mode (Guid page): notify parent, no IPC needed
+      // Local/custom mode: notify parent, no ACP IPC needed
+      if (onOptionSelect) {
+        void Promise.resolve(onOptionSelect(configId, value))
+          .then((result) => {
+            if (result === false) {
+              setConfigOptions(previousConfigOptions);
+            }
+          })
+          .catch((error) => {
+            console.error('[AcpConfigSelector] Failed to apply local config option:', error);
+            setConfigOptions(previousConfigOptions);
+          });
+        return;
+      }
+
       if (!conversationId) {
-        onOptionSelect?.(configId, value);
         return;
       }
 
@@ -125,7 +142,7 @@ const AcpConfigSelector: React.FC<{
             .catch(() => {});
         });
     },
-    [conversationId, onOptionSelect]
+    [configOptions, conversationId, onOptionSelect]
   );
 
   // Don't render when no backend is specified
