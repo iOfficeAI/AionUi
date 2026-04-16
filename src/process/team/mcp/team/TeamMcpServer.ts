@@ -17,9 +17,7 @@ import type { TeamAgent } from '../../types.ts';
 import { isTeamCapableBackend, getTeamCapableBackends } from '@/common/types/teamTypes.ts';
 import { ProcessConfig } from '@process/utils/initStorage.ts';
 import { acpDetector } from '@process/agent/acp/AcpDetector.ts';
-import { getTeamAvailableModels } from '@/common/utils/teamModelUtils.ts';
-import { getMergedModelProviders } from '@process/bridge/modelBridge.ts';
-import { hasGeminiOauthCreds } from '../../googleAuthCheck.ts';
+import { handleListModels } from '../modelListHandler.ts';
 import { notifyMcpReady } from '../../mcpReadiness.ts';
 import { writeTcpMessage, createTcpMessageReader, resolveMcpScriptDir } from '../tcpHelpers.ts';
 
@@ -244,7 +242,7 @@ export class TeamMcpServer {
       case 'team_shutdown_agent':
         return this.handleShutdownAgent(args, fromSlotId);
       case 'team_list_models':
-        return this.handleListModels(args);
+        return handleListModels(args);
       default:
         throw new Error(`Unknown tool: ${toolName}`);
     }
@@ -477,42 +475,6 @@ export class TeamMcpServer {
     this.safeWake(resolvedSlotId, 'shutdown_request');
 
     return `Shutdown request sent to "${agent?.agentName ?? agentRef}". Waiting for their confirmation.`;
-  }
-
-  private async handleListModels(args: Record<string, unknown>): Promise<string> {
-    const agentType = args.agent_type ? String(args.agent_type) : undefined;
-
-    const [cachedModels, providers, isGoogleAuth] = await Promise.all([
-      ProcessConfig.get('acp.cachedModels'),
-      getMergedModelProviders(),
-      hasGeminiOauthCreds(),
-    ]);
-
-    if (agentType) {
-      const models = getTeamAvailableModels(agentType, cachedModels, providers, isGoogleAuth);
-      if (models.length === 0) {
-        return `No models available for agent type "${agentType}".`;
-      }
-      return `## Models for ${agentType}\n${models.map((m) => `- ${m.id}`).join('\n')}`;
-    }
-
-    // List models for all team-capable backends
-    const cachedInitResults = await ProcessConfig.get('acp.cachedInitializeResult');
-    const detectedAgents = acpDetector
-      .getDetectedAgents()
-      .filter((a) => isTeamCapableBackend(a.backend, cachedInitResults));
-
-    if (detectedAgents.length === 0) {
-      return 'No team-capable agent types detected.';
-    }
-
-    const sections = detectedAgents.map((a) => {
-      const models = getTeamAvailableModels(a.backend, cachedModels, providers, isGoogleAuth);
-      const modelLines = models.length > 0 ? models.map((m) => `  - ${m.id}`).join('\n') : '  (no models available)';
-      return `### ${a.name} (\`${a.backend}\`)\n${modelLines}`;
-    });
-
-    return `## Available Models by Agent Type\n\n${sections.join('\n\n')}`;
   }
 
   private handleRenameAgent(args: Record<string, unknown>): string {

@@ -21,10 +21,10 @@ import { ProcessConfig } from '@process/utils/initStorage';
 import { getAssistantsDir } from '@process/utils/initStorage';
 import { TeamSession } from './TeamSession';
 import type { TTeam, TeamAgent } from './types';
-import os from 'os';
 import fs from 'fs/promises';
 import path from 'path';
 import { resolveLocaleKey } from '@/common/utils';
+import { hasGeminiOauthCreds } from './googleAuthCheck';
 
 export class TeamSessionService {
   private readonly sessions: Map<string, TeamSession> = new Map();
@@ -46,17 +46,6 @@ export class TeamSessionService {
   private resolveWorkspace(workspace: string | undefined): string {
     if (workspace && workspace.trim().length > 0) return workspace;
     return '';
-  }
-
-  private async hasGeminiOauthCreds(): Promise<boolean> {
-    try {
-      const credsPath = path.join(os.homedir(), '.gemini', 'oauth_creds.json');
-      const content = await fs.readFile(credsPath, 'utf-8');
-      const creds = JSON.parse(content) as { access_token?: string; refresh_token?: string };
-      return Boolean(creds.access_token || creds.refresh_token);
-    } catch {
-      return false;
-    }
   }
 
   private createGoogleAuthGeminiModel(useModel: string): TProviderWithModel {
@@ -103,7 +92,7 @@ export class TeamSessionService {
       'id' in savedGeminiModel &&
       'useModel' in savedGeminiModel
     ) {
-      if (savedGeminiModel.id === GOOGLE_AUTH_PROVIDER_ID && (await this.hasGeminiOauthCreds())) {
+      if (savedGeminiModel.id === GOOGLE_AUTH_PROVIDER_ID && (await hasGeminiOauthCreds())) {
         return this.createGoogleAuthGeminiModel(savedGeminiModel.useModel);
       }
 
@@ -128,7 +117,7 @@ export class TeamSessionService {
       return buildProviderModel(geminiProvider, enabledModel || geminiProvider.model[0]);
     }
 
-    if (await this.hasGeminiOauthCreds()) {
+    if (await hasGeminiOauthCreds()) {
       const oauthModel =
         typeof savedGeminiModel === 'object' && 'useModel' in savedGeminiModel
           ? savedGeminiModel.useModel
