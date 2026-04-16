@@ -582,6 +582,50 @@ describe('Real TeammateManager with real Mailbox + TaskManager', () => {
     expect(idleNotifs).toHaveLength(1);
   });
 
+  it('pendingWakes: wake() during active turn is deferred and drained after finalizeTurn', async () => {
+    // Reproduces the "offset-by-one" bug: a wake() call that arrives while an
+    // agent is busy must NOT be silently dropped. It should be deferred and
+    // re-triggered by finalizeTurn so the newly-arrived mailbox message is
+    // picked up in the same "turn" from the user's perspective.
+
+    // First wake: start a turn for the member agent (activeWakes gets set)
+    const firstWake = mgr.wake('slot-member');
+
+    // While that wake is still in-flight, a second wake arrives (e.g. user
+    // sends a new message to the same agent). This used to be dropped.
+    await mgr.wake('slot-member');
+
+    await firstWake;
+
+    // Write a mailbox message that would be readable by the deferred wake
+    await mailbox.write({
+      teamId: 'team-1',
+      toAgentId: 'slot-member',
+      fromAgentId: 'user',
+      content: 'second message arrived during turn',
+    });
+
+    const sendCountBeforeFinish = mockSendMessage.mock.calls.length;
+
+    // Finish the first turn → finalizeTurn should drain pendingWakes and
+    // re-wake the agent, which will pick up the new mailbox message.
+    teamEventBus.emit('responseStream', {
+      type: 'finish',
+      conversation_id: 'conv-member',
+      msg_id: 'msg-first-turn',
+      data: null,
+    });
+
+    await new Promise((r) => setTimeout(r, 80));
+
+    // The drained wake should have triggered another sendMessage call
+    expect(mockSendMessage.mock.calls.length).toBeGreaterThan(sendCountBeforeFinish);
+
+    // And the second mailbox message should have been consumed (no longer unread)
+    const unread = await mailbox.readUnread('team-1', 'slot-member');
+    expect(unread).toHaveLength(0);
+  });
+
   it('maybeWakeLeaderWhenAllIdle: leader woken only when ALL members settled', async () => {
     const member2 = makeAgent({
       slotId: 'slot-member2',
