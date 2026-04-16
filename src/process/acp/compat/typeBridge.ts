@@ -2,11 +2,15 @@
 
 import type { IResponseMessage } from '@/common/adapter/ipcBridge';
 import type { TMessage } from '@/common/chat/chatLib';
-import type { AcpBackend, AcpModelInfo, AcpSessionConfigOption } from '@/common/types/acpTypes';
+import {
+  isValidAcpBackend,
+  type AcpBackend,
+  type AcpModelInfo,
+  type AcpSessionConfigOption,
+} from '@/common/types/acpTypes';
 import type { McpServer } from '@agentclientprotocol/sdk';
-import type { AgentConfig, ConfigOption, ModelSnapshot } from '@process/acp/types';
+import type { AgentConfig, AgentSource, ConfigOption, ModelSnapshot } from '@process/acp/types';
 import { getEnhancedEnv, loadFullShellEnvironment } from '@process/utils/shellEnv';
-
 /**
  * Old ACP agent config type from AcpAgent/AcpAgentManager
  * Exported for use by AcpAgentV2 compatibility layer
@@ -53,7 +57,13 @@ export function toAgentConfig(old: OldAcpAgentConfig): AgentConfig {
   // const extra = old.extra;
 
   // Determine agentSource: 'custom' if extra.cliPath is set, else 'builtin'
-  const agentSource: 'builtin' | 'custom' = old.extra?.cliPath ? 'custom' : 'builtin';
+  let agentSource: AgentSource = 'custom';
+
+  if (old.extra?.backend && (old.extra.backend === 'gemini' || old.extra.backend === 'aionrs')) {
+    agentSource = 'builtin';
+  } else if (old.extra?.backend && isValidAcpBackend(old.extra.backend)) {
+    agentSource = 'extension'; // NOTE: 未来这些都要迁移到 extension 里, 这里提前修改, 入库为 extension.
+  }
 
   // Convert teamMcpStdioConfig to McpServerConfig (SDK McpServerStdio)
   let teamMcpConfig: McpServer | undefined;

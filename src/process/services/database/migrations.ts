@@ -1192,7 +1192,7 @@ const migration_v26: IMigration = {
       agent_source TEXT NOT NULL,
       agent_id TEXT NOT NULL,
       session_id TEXT,
-      session_status TEXT NOT NULL DEFAULT 'idle' CHECK(session_status IN ('idle', 'active', 'suspended', 'error')),
+      session_status TEXT NOT NULL DEFAULT 'idle',
       session_config TEXT NOT NULL DEFAULT '{}',
       last_active_at INTEGER,
       suspended_at INTEGER
@@ -1201,11 +1201,13 @@ const migration_v26: IMigration = {
     db.exec(
       "CREATE INDEX IF NOT EXISTS idx_acp_session_suspended ON acp_session(session_status, suspended_at) WHERE session_status = 'suspended'"
     );
+    db.exec('CREATE INDEX IF NOT EXISTS idx_acp_session_agent_id ON acp_session(agent_id)');
     console.log('[Migration v26] Added acp_session table');
   },
   down: (db) => {
     db.exec('DROP INDEX IF EXISTS idx_acp_session_suspended');
     db.exec('DROP INDEX IF EXISTS idx_acp_session_status');
+    db.exec('DROP INDEX IF EXISTS idx_acp_session_agent_id');
     db.exec('DROP TABLE IF EXISTS acp_session');
     console.log('[Migration v26] Rolled back: Removed acp_session table');
   },

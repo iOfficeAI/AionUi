@@ -16,10 +16,12 @@ import type {
 } from '@agentclientprotocol/sdk';
 // ─── Agent Identity & Config ────────────────────────────────────
 
+export type AgentSource = 'builtin' | 'extension' | 'custom' | 'remote';
+
 export type AgentConfig = {
   // Agent 身份
   agentBackend: string;
-  agentSource: 'builtin' | 'extension' | 'custom' | 'remote';
+  agentSource: AgentSource;
   agentId: string;
 
   // 连接信息（决定使用哪种 Connector）
