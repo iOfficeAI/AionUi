@@ -22,6 +22,10 @@ import type { StdioMcpConfig } from '../team/TeamMcpServer';
 import { isTeamCapableBackend } from '@/common/types/teamTypes';
 import { ProcessConfig } from '@process/utils/initStorage';
 import { getConversationTypeForBackend } from '@/common/utils/buildAgentConversationParams';
+import { getTeamAvailableModels } from '@/common/utils/teamModelUtils';
+import { getMergedModelProviders } from '@process/bridge/modelBridge';
+import { hasGeminiOauthCreds } from '../../googleAuthCheck';
+import { acpDetector } from '@process/agent/acp/AcpDetector';
 import { getDatabase } from '@process/services/database';
 import { writeTcpMessage, createTcpMessageReader, resolveMcpScriptDir } from '../tcpHelpers';
 
@@ -139,9 +143,47 @@ export class TeamGuideMcpServer {
     switch (toolName) {
       case 'aion_create_team':
         return this.handleCreateTeam(args, backend, callerConversationId);
+      case 'aion_list_models':
+        return this.handleListModels(args);
       default:
         throw new Error(`Unknown tool: ${toolName}`);
     }
+  }
+
+  private async handleListModels(args: Record<string, unknown>): Promise<string> {
+    const agentType = args.agent_type ? String(args.agent_type) : undefined;
+
+    const [cachedModels, providers, isGoogleAuth] = await Promise.all([
+      ProcessConfig.get('acp.cachedModels'),
+      getMergedModelProviders(),
+      hasGeminiOauthCreds(),
+    ]);
+
+    if (agentType) {
+      const models = getTeamAvailableModels(agentType, cachedModels, providers, isGoogleAuth);
+      if (models.length === 0) {
+        return `No models available for agent type "${agentType}".`;
+      }
+      return `## Models for ${agentType}\n${models.map((m) => `- ${m.id}`).join('\n')}`;
+    }
+
+    // List models for all team-capable backends
+    const cachedInitResults = await ProcessConfig.get('acp.cachedInitializeResult');
+    const detectedAgents = acpDetector
+      .getDetectedAgents()
+      .filter((a) => isTeamCapableBackend(a.backend, cachedInitResults));
+
+    if (detectedAgents.length === 0) {
+      return 'No team-capable agent types detected.';
+    }
+
+    const sections = detectedAgents.map((a) => {
+      const models = getTeamAvailableModels(a.backend, cachedModels, providers, isGoogleAuth);
+      const modelLines = models.length > 0 ? models.map((m) => `  - ${m.id}`).join('\n') : '  (no models available)';
+      return `### ${a.name} (\`${a.backend}\`)\n${modelLines}`;
+    });
+
+    return `## Available Models by Agent Type\n\n${sections.join('\n\n')}`;
   }
 
   private async handleCreateTeam(

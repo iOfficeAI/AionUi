@@ -277,6 +277,29 @@ You will be notified of the result either way.`,
   TEAM_MCP_TOKEN
 );
 
+// ---- team_list_models ----
+createTeamTool(
+  server,
+  'team_list_models',
+  `Query available models for team agent types. Returns the real-time model list that matches the frontend model selector.
+
+Use this to:
+- Check what models are available before spawning an agent with a specific model
+- See all available agent types and their models at once
+- Verify a model ID is valid for a given agent type
+
+Pass agent_type to query a specific backend, or omit it to see all.`,
+  {
+    agent_type: z
+      .string()
+      .optional()
+      .describe('Agent type/backend to query (e.g. "gemini", "claude", "codex"). Shows all when omitted.'),
+  },
+  TEAM_MCP_PORT,
+  TEAM_AGENT_SLOT_ID,
+  TEAM_MCP_TOKEN
+);
+
 async function main(): Promise<void> {
   const transport = new StdioServerTransport();
   await server.connect(transport);

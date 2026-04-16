@@ -6,6 +6,8 @@
 
 import type { AcpModelInfo } from '@/common/types/acpTypes';
 import type { IProvider } from '@/common/config/storage';
+import { flattenGeminiModeIds } from '@/common/utils/geminiModes';
+import { hasSpecificModelCapability } from '@/common/utils/modelCapabilities';
 
 export type TeamAvailableModel = {
   id: string;
@@ -13,21 +15,37 @@ export type TeamAvailableModel = {
 };
 
 /**
+ * Check whether a model passes the capability filter used by the frontend.
+ * A model is included when:
+ * - function_calling is true or undefined (unknown = allowed)
+ * - excludeFromPrimary is NOT true
+ */
+function passesCapabilityFilter(provider: IProvider, modelName: string): boolean {
+  const fc = hasSpecificModelCapability(provider, modelName, 'function_calling');
+  if (fc === false) return false;
+  const excluded = hasSpecificModelCapability(provider, modelName, 'excludeFromPrimary');
+  if (excluded === true) return false;
+  return true;
+}
+
+/**
  * Get available models for a given agent backend in team context.
  *
  * Resolution order:
- * 1. ACP backends (claude, codex, qwen, etc.) → read from acp.cachedModels[backend].availableModels
- *    (already standardized to { id: string; label: string }[])
- * 2. Gemini → read from model.config providers with platform='gemini' or 'gemini-with-google-auth'
- * 3. Aionrs → read from model.config providers (first enabled — matches resolveDefaultAionrsModel behavior)
- * 4. Others → empty list (no model switching)
+ * 1. ACP backends (claude, codex, qwen, etc.) -> read from acp.cachedModels[backend].availableModels
+ * 2. Gemini -> Google Auth models (if authenticated) + ALL enabled providers' models
+ * 3. Aionrs -> all enabled providers (except gemini-with-google-auth) with capability filtering
+ * 4. Others -> empty list (no model switching)
  *
- * TODO(S2): Aionrs should filter by platform to avoid picking wrong provider when multiple are configured.
+ * The Gemini list mirrors what useModelProviderList() returns:
+ * Google Auth provider (auto/auto-gemini-2.5/manual-subModels) + ALL configured providers.
+ * The Aionrs list mirrors useAionrsModelSelection: same as above minus Google Auth.
  */
 export function getTeamAvailableModels(
   backend: string,
   cachedModels: Record<string, AcpModelInfo> | null | undefined,
-  providers: IProvider[] | null | undefined
+  providers: IProvider[] | null | undefined,
+  isGoogleAuth?: boolean
 ): TeamAvailableModel[] {
   // ACP backends: use cached model list from ACP protocol
   const acpModelInfo = cachedModels?.[backend];
@@ -38,23 +56,56 @@ export function getTeamAvailableModels(
     }));
   }
 
-  // Gemini: use configured providers
-  // TODO(S1): Add model display name mapping for friendlier labels
+  // Gemini: Google Auth models (if authenticated) + ALL enabled providers' models
   if (backend === 'gemini') {
-    const geminiProviders = (providers || []).filter(
-      (p) => p.enabled !== false && (p.platform === 'gemini' || p.platform === 'gemini-with-google-auth')
+    const seen = new Set<string>();
+    const merged: TeamAvailableModel[] = [];
+    const addModel = (id: string) => {
+      if (!seen.has(id)) {
+        seen.add(id);
+        merged.push({ id, label: id });
+      }
+    };
+
+    // Google Auth models first (matches homepage ordering)
+    if (isGoogleAuth) {
+      for (const id of flattenGeminiModeIds()) {
+        addModel(id);
+      }
+    }
+
+    // ALL enabled providers' models with capability filtering
+    // Mirrors useModelProviderList(): every enabled provider is included
+    const enabledProviders = (providers || []).filter(
+      (p) => p.enabled !== false && p.model?.length
     );
-    return geminiProviders.flatMap((p) =>
-      p.model.filter((m) => p.modelEnabled?.[m] !== false).map((m) => ({ id: m, label: m }))
-    );
+    for (const p of enabledProviders) {
+      for (const m of p.model || []) {
+        if (p.modelEnabled?.[m] !== false && passesCapabilityFilter(p, m)) {
+          addModel(m);
+        }
+      }
+    }
+
+    return merged;
   }
 
-  // Aionrs: use first enabled provider's models (matches resolveDefaultAionrsModel behavior)
+  // Aionrs: all enabled providers' enabled models (deduplicated), excluding google-auth platform
   if (backend === 'aionrs') {
-    const provider = (providers || []).find((p) => p.enabled !== false && p.model?.length);
-    if (provider) {
-      return provider.model.filter((m) => provider.modelEnabled?.[m] !== false).map((m) => ({ id: m, label: m }));
+    const seen = new Set<string>();
+    const result: TeamAvailableModel[] = [];
+    const enabledProviders = (providers || []).filter(
+      (p) => p.enabled !== false && p.model?.length && !p.platform?.includes('gemini-with-google-auth')
+    );
+    for (const provider of enabledProviders) {
+      for (const m of provider.model) {
+        if (provider.modelEnabled?.[m] !== false && !seen.has(m) && passesCapabilityFilter(provider, m)) {
+          seen.add(m);
+          result.push({ id: m, label: m });
+        }
+      }
     }
+    return result;
   }
 
   return [];

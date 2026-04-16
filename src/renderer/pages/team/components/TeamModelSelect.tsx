@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { Select } from '@arco-design/web-react';
+import { ipcBridge } from '@/common';
 import { ConfigStorage } from '@/common/config/storage';
 import { getTeamAvailableModels, type TeamAvailableModel } from '@/common/utils/teamModelUtils';
 
@@ -17,13 +18,15 @@ const TeamModelSelect: React.FC<Props> = ({ backend, value, onChange, label }) =
   useEffect(() => {
     let active = true;
     setLoading(true);
-    Promise.all([ConfigStorage.get('acp.cachedModels'), ConfigStorage.get('model.config')]).then(
-      ([cachedModels, providers]) => {
-        if (!active) return;
-        setModels(getTeamAvailableModels(backend, cachedModels, providers));
-        setLoading(false);
-      }
-    );
+    Promise.all([
+      ConfigStorage.get('acp.cachedModels'),
+      ipcBridge.mode.getModelConfig.invoke(),
+      ipcBridge.googleAuth.status.invoke({ proxy: undefined }).then((r) => r.success),
+    ]).then(([cachedModels, providers, isGoogleAuth]) => {
+      if (!active) return;
+      setModels(getTeamAvailableModels(backend, cachedModels, providers, isGoogleAuth));
+      setLoading(false);
+    });
     return () => {
       active = false;
     };

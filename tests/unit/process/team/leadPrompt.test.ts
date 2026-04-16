@@ -13,7 +13,7 @@ describe('buildLeadPrompt', () => {
       ],
     });
 
-    expect(prompt).toContain('first reply in text with a staffing proposal');
+    expect(prompt).toContain('reply in text with a staffing proposal');
     expect(prompt).toContain('one short sentence explaining why more teammates would help');
     expect(prompt).toContain('Present the proposed lineup as a table');
     expect(prompt).toContain('recommended agent type/backend');

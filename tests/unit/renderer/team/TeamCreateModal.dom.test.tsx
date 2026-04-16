@@ -44,6 +44,16 @@ vi.mock('@/common', () => ({
         invoke: mockCreateTeam,
       },
     },
+    googleAuth: {
+      status: {
+        invoke: vi.fn().mockResolvedValue({ success: false }),
+      },
+    },
+    mode: {
+      getModelConfig: {
+        invoke: vi.fn().mockResolvedValue([]),
+      },
+    },
   },
 }));
 
