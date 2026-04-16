@@ -167,7 +167,7 @@ const TeamTabView: React.FC<TeamTabViewProps> = ({
 };
 
 type TeamTabsProps = {
-  onAddAgent: (data: { agentName: string; agentKey: string }) => void;
+  onAddAgent: (data: { agentName: string; agentKey: string; model?: string }) => void;
   onTabClick?: (slotId: string) => void;
   /** Pending permission confirmation counts per slot ID */
   pendingCounts?: Map<string, number>;

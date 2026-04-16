@@ -162,13 +162,18 @@ export class TeammateManager extends EventEmitter {
       let message: string;
       if (needsFullPrompt) {
         // Compute availableAgentTypes only for lead's first prompt
-        let availableAgentTypes: Array<{ type: string; name: string }> | undefined;
+        let availableAgentTypes: Array<{ type: string; name: string; models?: string[] }> | undefined;
         if (agent.role === 'lead') {
           const cachedInitResults = await ProcessConfig.get('acp.cachedInitializeResult');
+          const cachedModels = await ProcessConfig.get('acp.cachedModels');
           availableAgentTypes = acpDetector
             .getDetectedAgents()
             .filter((a) => isTeamCapableBackend(a.backend, cachedInitResults))
-            .map((a) => ({ type: a.backend, name: a.name }));
+            .map((a) => ({
+              type: a.backend,
+              name: a.name,
+              models: cachedModels?.[a.backend]?.availableModels?.map((m) => m.id) || [],
+            }));
         }
 
         const staticPrompt = buildRolePrompt({

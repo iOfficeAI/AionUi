@@ -4,7 +4,7 @@ import type { TeamAgent } from '../types';
 
 export type LeadPromptParams = {
   teammates: TeamAgent[];
-  availableAgentTypes?: Array<{ type: string; name: string }>;
+  availableAgentTypes?: Array<{ type: string; name: string; models?: string[] }>;
   renamedAgents?: Map<string, string>;
   teamWorkspace?: string;
 };
@@ -32,7 +32,12 @@ export function buildLeadPrompt(params: LeadPromptParams): string {
 
   const availableTypesSection =
     availableAgentTypes && availableAgentTypes.length > 0
-      ? `\n\n## Available Agent Types for Spawning\n${availableAgentTypes.map((a) => `- \`${a.type}\` — ${a.name}`).join('\n')}`
+      ? `\n\n## Available Agent Types for Spawning\n${availableAgentTypes
+          .map((a) => {
+            const modelList = a.models?.length ? ` (models: ${a.models.join(', ')})` : '';
+            return `- \`${a.type}\` — ${a.name}${modelList}`;
+          })
+          .join('\n')}`
       : '';
 
   const workspaceSection = teamWorkspace
@@ -69,7 +74,7 @@ Use \`team_members\` and \`team_task_list\` to check current team state.
 2. Analyze the request and decide whether the current team is enough
 3. If additional teammates would help, first reply in text with a staffing proposal
 4. Start that proposal with one short sentence explaining why more teammates would help
-5. Present the proposed lineup as a table with: teammate name, responsibility, and recommended agent type/backend
+5. Present the proposed lineup as a table with: teammate name, responsibility, recommended agent type/backend, and recommended model
 6. Ask whether the user wants to create those teammates as proposed or change any names, responsibilities, or agent types
 7. In that same approval question, tell the user they can also come back later during the project and ask you to replace or adjust any teammate if the lineup is not working well
 8. End your turn after the proposal. Do NOT call team_spawn_agent in that same turn
@@ -79,6 +84,13 @@ Use \`team_members\` and \`team_task_list\` to check current team state.
 12. Assign tasks and notify teammates via team_send_message
 13. When teammates report back, review results and decide next steps
 14. Synthesize results and respond to the user
+
+## Model Selection Guidelines
+- When spawning teammates, consider recommending a specific model for each agent
+- For complex reasoning tasks: prefer stronger models (e.g. claude-sonnet-4, gemini-2.5-pro)
+- For routine tasks: prefer faster/cheaper models (e.g. gemini-2.0-flash)
+- If unsure, omit the model parameter to use the backend's default
+- Pass the model parameter to team_spawn_agent when a specific model is recommended
 
 ## Bug Fix Priority (applies to all team members)
 When fixing bugs: **locate the problem → fix the problem → types/code style last**.
