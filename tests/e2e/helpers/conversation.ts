@@ -5,6 +5,7 @@
  * through the actual UI flow (guid page → conversation page → cleanup).
  */
 import type { Page } from '@playwright/test';
+import { expect } from '../fixtures';
 import { invokeBridge } from './bridge';
 import { goToGuid } from './navigation';
 import {
@@ -83,6 +84,29 @@ export async function deleteConversation(page: Page, conversationId: string): Pr
 export async function goToNewChat(page: Page): Promise<void> {
   await page.locator(NEW_CHAT_TRIGGER).first().click();
   await page.waitForFunction(() => window.location.hash.startsWith('#/guid'), { timeout: 10_000 });
+}
+
+/**
+ * Wait for an AI reply to appear in the conversation.
+ * Looks for the last message content element and waits for it to have text.
+ * @returns The text content of the AI reply.
+ */
+export async function waitForAiReply(page: Page, timeoutMs = 120_000): Promise<string> {
+  const replyLocator = page
+    .locator('.message-content-wrapper, .chat-message-content, .markdown-body')
+    .last();
+  await replyLocator.waitFor({ state: 'visible', timeout: timeoutMs });
+  await expect
+    .poll(
+      async () => {
+        const text = await replyLocator.textContent();
+        return (text ?? '').trim().length;
+      },
+      { timeout: timeoutMs, message: 'Waiting for AI reply text content' }
+    )
+    .toBeGreaterThan(0);
+  const text = await replyLocator.textContent();
+  return (text ?? '').trim();
 }
 
 /**

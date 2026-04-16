@@ -15,6 +15,7 @@ export const ROUTES = {
     gemini: '#/settings/gemini',
     model: '#/settings/model',
     agent: '#/settings/agent',
+    assistants: '#/settings/assistants',
     tools: '#/settings/tools',
     display: '#/settings/display',
     webui: '#/settings/webui',
@@ -103,6 +104,11 @@ export async function goToGuid(page: Page): Promise<void> {
 /** Navigate to a settings tab. */
 export async function goToSettings(page: Page, tab: SettingsTab): Promise<void> {
   await navigateWithRetry(page, ROUTES.settings[tab]);
+}
+
+/** Navigate to the assistant settings page. */
+export async function goToAssistantSettings(page: Page): Promise<void> {
+  await navigateWithRetry(page, ROUTES.settings.assistants);
 }
 
 /** Navigate to an extension-contributed settings tab by its ID. */
