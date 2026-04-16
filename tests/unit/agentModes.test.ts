@@ -9,9 +9,11 @@ import { describe, expect, it } from 'vitest';
 import {
   AGENT_MODES,
   getAgentModes,
+  getSelectableAgentModes,
   mergeWithCapabilities,
   supportsModeSwitch,
 } from '@renderer/utils/model/agentModes';
+import { CODEX_MODE_FULL_AUTO_NO_SANDBOX } from '@/common/types/codex/codexModes';
 
 describe('AGENT_MODES.claude', () => {
   const claudeModes = AGENT_MODES.claude;
@@ -105,6 +107,30 @@ describe('mergeWithCapabilities', () => {
 
   it('should return title-cased modes for unknown backend', () => {
     const result = mergeWithCapabilities('unknown-backend', ['default', 'plan']);
+    expect(result).toEqual([
+      { value: 'default', label: 'Default' },
+      { value: 'plan', label: 'Plan' },
+    ]);
+  });
+});
+
+describe('getSelectableAgentModes', () => {
+  it('preserves Codex no-sandbox mode when runtime or cache omits it', () => {
+    const result = getSelectableAgentModes('codex', [
+      { value: 'default', label: 'Plan' },
+      { value: 'autoEdit', label: 'Auto Edit' },
+      { value: 'yolo', label: 'Full Auto' },
+    ]);
+
+    expect(result.map((mode) => mode.value)).toEqual(['default', 'autoEdit', 'yolo', CODEX_MODE_FULL_AUTO_NO_SANDBOX]);
+  });
+
+  it('does not inject extra static modes for other backends', () => {
+    const result = getSelectableAgentModes('claude', [
+      { value: 'default', label: 'Default' },
+      { value: 'plan', label: 'Plan' },
+    ]);
+
     expect(result).toEqual([
       { value: 'default', label: 'Default' },
       { value: 'plan', label: 'Plan' },
