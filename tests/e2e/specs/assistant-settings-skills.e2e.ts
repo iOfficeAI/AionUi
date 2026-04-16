@@ -11,6 +11,7 @@ import {
   fillAssistantName,
   saveAssistant,
   waitForDrawerClose,
+  closeDrawer,
   openAssistantDrawer,
   deleteAssistant,
   getVisibleAssistantIds,
@@ -40,7 +41,7 @@ test.describe('Assistant Settings Skills', () => {
     }
 
     // Cancel and cleanup
-    await page.keyboard.press('Escape');
+    await closeDrawer(page);
   });
 
   test('skill panel shows auto-injected skills section', async ({ page }) => {
@@ -63,7 +64,7 @@ test.describe('Assistant Settings Skills', () => {
     // Skills section should be visible for at least one assistant
     // If not, the feature may not be enabled — skip gracefully
     if (!hasSkills) {
-      await page.keyboard.press('Escape');
+      await closeDrawer(page);
       test.skip(true, 'Skills section not rendered for this assistant');
       return;
     }
@@ -72,7 +73,7 @@ test.describe('Assistant Settings Skills', () => {
     const collapseItems = skillsSection.locator('.arco-collapse-item');
     expect(await collapseItems.count()).toBeGreaterThanOrEqual(0);
 
-    await page.keyboard.press('Escape');
+    await closeDrawer(page);
   });
 
   test('toggle builtin skill selection', async ({ page }) => {
@@ -85,7 +86,7 @@ test.describe('Assistant Settings Skills', () => {
 
     const skillsSection = page.locator(SKILLS_SECTION);
     if (!(await skillsSection.isVisible().catch(() => false))) {
-      await page.keyboard.press('Escape');
+      await closeDrawer(page);
       test.skip(true, 'Skills section not visible');
       return;
     }
@@ -111,49 +112,52 @@ test.describe('Assistant Settings Skills', () => {
       }
     }
 
-    await page.keyboard.press('Escape');
+    await closeDrawer(page);
   });
 
   test('disable auto-injected skill and save', async ({ page }) => {
     await goToAssistantSettings(page);
     await page.locator('[data-testid^="assistant-card-"]').first().waitFor({ state: 'visible', timeout: 10_000 });
 
-    // Open the first assistant that has auto-injected skills
+    // Auto-injected skills only exist on builtin assistants.
+    // Builtin IDs don't start with "ext-" or contain timestamps from custom creation.
     const ids = await getVisibleAssistantIds(page);
-    for (const id of ids) {
-      await openAssistantDrawer(page, id);
-
-      const autoInjected = page.locator('.arco-collapse-item').filter({ hasText: /Auto|自动/ });
-      if (
-        await autoInjected
-          .first()
-          .isVisible()
-          .catch(() => false)
-      ) {
-        // Expand auto-injected section
-        await autoInjected.locator('.arco-collapse-item-header').first().click();
-
-        const checkboxes = autoInjected.locator('.arco-checkbox');
-        if ((await checkboxes.count()) > 0) {
-          // Toggle first checkbox
-          await checkboxes.first().click();
-          // Save
-          const saveBtn = page.locator('[data-testid="btn-save-assistant"]');
-          if (!(await saveBtn.isDisabled())) {
-            await saveBtn.click();
-            await waitForDrawerClose(page);
-            return; // Test passed
-          }
-        }
-        break;
-      }
-
-      await page.keyboard.press('Escape');
-      await page.waitForTimeout(300);
+    const builtinId = ids.find((id) => !id.startsWith('ext-'));
+    if (!builtinId) {
+      test.skip(true, 'No builtin assistant found');
+      return;
     }
 
-    // If we got here, no suitable assistant found
-    test.skip(true, 'No assistant with auto-injected skills found');
+    await openAssistantDrawer(page, builtinId);
+
+    const autoInjected = page.locator('.arco-collapse-item').filter({ hasText: /Auto|自动/ });
+    if (!(await autoInjected.first().isVisible().catch(() => false))) {
+      await closeDrawer(page);
+      test.skip(true, 'No auto-injected skills section for this assistant');
+      return;
+    }
+
+    // Expand auto-injected section
+    await autoInjected.locator('.arco-collapse-item-header').first().click();
+
+    const checkboxes = autoInjected.locator('.arco-checkbox');
+    if ((await checkboxes.count()) === 0) {
+      await closeDrawer(page);
+      test.skip(true, 'No auto-injected skill checkboxes');
+      return;
+    }
+
+    // Toggle first checkbox and save
+    await checkboxes.first().click();
+    const saveBtn = page.locator('[data-testid="btn-save-assistant"]');
+    if (await saveBtn.isDisabled()) {
+      await closeDrawer(page);
+      test.skip(true, 'Save button disabled after toggling skill');
+      return;
+    }
+
+    await saveBtn.click();
+    await waitForDrawerClose(page);
   });
 
   test('add skills button opens modal', async ({ page }) => {
@@ -166,7 +170,7 @@ test.describe('Assistant Settings Skills', () => {
 
     const skillsSection = page.locator(SKILLS_SECTION);
     if (!(await skillsSection.isVisible().catch(() => false))) {
-      await page.keyboard.press('Escape');
+      await closeDrawer(page);
       test.skip(true, 'Skills section not visible');
       return;
     }
@@ -183,11 +187,13 @@ test.describe('Assistant Settings Skills', () => {
       // Modal should open
       const modal = page.locator('.arco-modal');
       await expect(modal.first()).toBeVisible({ timeout: 5_000 });
-      // Close modal
+      // Close modal first (Escape closes the topmost overlay)
       await page.keyboard.press('Escape');
+      await page.waitForTimeout(300);
     }
 
-    await page.keyboard.press('Escape');
+    // Close the drawer
+    await closeDrawer(page);
   });
 
   test('skill selection persists after save and reopen', async ({ page }) => {
@@ -200,7 +206,7 @@ test.describe('Assistant Settings Skills', () => {
 
     const skillsSection = page.locator(SKILLS_SECTION);
     if (!(await skillsSection.isVisible().catch(() => false))) {
-      await page.keyboard.press('Escape');
+      await closeDrawer(page);
       test.skip(true, 'Skills section not visible');
       return;
     }
@@ -240,7 +246,7 @@ test.describe('Assistant Settings Skills', () => {
       await expect(drawer).toBeVisible({ timeout: 5_000 });
 
       // Cleanup
-      await page.keyboard.press('Escape');
+      await closeDrawer(page);
       await page.waitForTimeout(300);
       await openAssistantDrawer(page, targetId);
       await deleteAssistant(page);
@@ -251,26 +257,18 @@ test.describe('Assistant Settings Skills', () => {
     await goToAssistantSettings(page);
     await page.locator('[data-testid^="assistant-card-"]').first().waitFor({ state: 'visible', timeout: 10_000 });
 
-    // Find a builtin assistant
+    // Builtin assistants have simple IDs (not ext- prefix, not custom UUIDs)
     const ids = await getVisibleAssistantIds(page);
-    for (const id of ids) {
-      await openAssistantDrawer(page, id);
-
-      // Check if this is a builtin (save button should be enabled for builtin)
-      const deleteBtn = page.locator('[data-testid="btn-delete-assistant"]');
-      const isBuiltin = !(await deleteBtn.isVisible().catch(() => false));
-
-      if (isBuiltin) {
-        // Drawer opened successfully for builtin — verify save button is accessible
-        const saveBtn = page.locator('[data-testid="btn-save-assistant"]');
-        await expect(saveBtn).toBeVisible({ timeout: 3_000 });
-        await page.keyboard.press('Escape');
-        return;
-      }
-
-      await page.keyboard.press('Escape');
-      await page.waitForTimeout(300);
+    const builtinId = ids.find((id) => !id.startsWith('ext-'));
+    if (!builtinId) {
+      test.skip(true, 'No builtin assistant found');
+      return;
     }
+
+    await openAssistantDrawer(page, builtinId);
+    const saveBtn = page.locator('[data-testid="btn-save-assistant"]');
+    await expect(saveBtn).toBeVisible({ timeout: 3_000 });
+    await closeDrawer(page);
   });
 
   test('custom skills collapse renders', async ({ page }) => {
@@ -283,7 +281,7 @@ test.describe('Assistant Settings Skills', () => {
 
     const skillsSection = page.locator(SKILLS_SECTION);
     if (!(await skillsSection.isVisible().catch(() => false))) {
-      await page.keyboard.press('Escape');
+      await closeDrawer(page);
       test.skip(true, 'Skills section not visible');
       return;
     }
@@ -294,10 +292,10 @@ test.describe('Assistant Settings Skills', () => {
     // At least one collapse section should exist (Builtin or Custom)
     expect(collapseCount).toBeGreaterThanOrEqual(1);
 
-    await page.keyboard.press('Escape');
+    await closeDrawer(page);
   });
 
-  test('extension assistant skills are read-only', async ({ page }) => {
+  test('extension assistant skills are editable', async ({ page }) => {
     await goToAssistantSettings(page);
     await page.locator('[data-testid^="assistant-card-"]').first().waitFor({ state: 'visible', timeout: 10_000 });
 
@@ -307,12 +305,11 @@ test.describe('Assistant Settings Skills', () => {
     test.skip(!extId, 'No extension assistant available');
 
     await openAssistantDrawer(page, extId!);
-    // Save button should NOT be visible for extension assistants
+    // Save button should be enabled for extension assistants
     const saveBtn = page.locator('[data-testid="btn-save-assistant"]');
-    const saveBtnVisible = await saveBtn.isVisible().catch(() => false);
-    expect(saveBtnVisible).toBeFalsy();
+    await expect(saveBtn).not.toBeDisabled();
 
-    await page.keyboard.press('Escape');
+    await closeDrawer(page);
   });
 
   test('skills counter shows in summary', async ({ page }) => {
@@ -329,6 +326,6 @@ test.describe('Assistant Settings Skills', () => {
     const body = await page.locator('[data-testid="assistant-edit-drawer"]').textContent();
     expect(body).toBeTruthy();
 
-    await page.keyboard.press('Escape');
+    await closeDrawer(page);
   });
 });

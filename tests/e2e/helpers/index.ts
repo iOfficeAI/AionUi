@@ -74,6 +74,7 @@ export {
   getVisibleAssistantNames,
   isDrawerVisible,
   waitForDrawerClose,
+  closeDrawer,
 } from './assistantSettings';
 export {
   assistantCardById,

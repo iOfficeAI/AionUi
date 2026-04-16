@@ -11,6 +11,8 @@ import { goToGuid } from './navigation';
 import {
   GUID_INPUT,
   AGENT_STATUS_MESSAGE,
+  AI_TEXT_MESSAGE,
+  MESSAGE_TEXT_CONTENT,
   MODEL_SELECTOR_BTN,
   NEW_CHAT_TRIGGER,
   agentPillByBackend,
@@ -64,15 +66,50 @@ export async function sendMessageFromGuid(page: Page, message: string): Promise<
 }
 
 /**
- * Wait for the agent session_active status badge to appear.
- * Matches both English ("Active session") and Chinese ("会话活跃") text.
+ * Wait for the agent session to become active.
+ *
+ * The `.agent-status-message` badge may appear only transiently (or not at
+ * all when the agent connects quickly). We therefore look for an AI reply
+ * as the primary signal — a `.message-item.text` with `justify-start`
+ * (left-aligned = assistant message) proves the agent responded.
  */
 export async function waitForSessionActive(page: Page, timeoutMs = 120_000): Promise<void> {
-  await page
-    .locator(AGENT_STATUS_MESSAGE)
-    .filter({ hasText: /Active session|会话活跃/ })
-    .first()
-    .waitFor({ state: 'visible', timeout: timeoutMs });
+  // The agent_status badge is transient — it may vanish before we can catch it.
+  // Primary signal: an AI text reply (left-aligned `.message-item.text.justify-start`)
+  // has appeared and contains actual text in its Shadow DOM.
+  const aiSelector = '.message-item.text.justify-start';
+  const statusSelector = AGENT_STATUS_MESSAGE;
+
+  await expect
+    .poll(
+      async () => {
+        // Check for AI reply with non-empty shadow content
+        const hasReply = await page.evaluate((sel) => {
+          const items = document.querySelectorAll(sel);
+          for (const item of items) {
+            const shadow = item.querySelector('.markdown-shadow');
+            if (shadow?.shadowRoot && (shadow.shadowRoot.textContent?.trim().length ?? 0) > 0) {
+              return true;
+            }
+            // Also check plain text content (non-shadow messages)
+            if ((item.textContent?.trim().length ?? 0) > 0) return true;
+          }
+          return false;
+        }, aiSelector);
+        if (hasReply) return true;
+
+        // Fallback: status badge
+        const hasStatus = await page
+          .locator(statusSelector)
+          .filter({ hasText: /Active session|会话活跃/ })
+          .first()
+          .isVisible()
+          .catch(() => false);
+        return hasStatus;
+      },
+      { timeout: timeoutMs, message: 'Waiting for AI reply or session_active status badge' }
+    )
+    .toBeTruthy();
 }
 
 /** Delete a conversation by ID via IPC bridge. */
@@ -88,23 +125,49 @@ export async function goToNewChat(page: Page): Promise<void> {
 
 /**
  * Wait for an AI reply to appear in the conversation.
- * Looks for the last message content element and waits for it to have text.
+ *
+ * AI text replies render as `.message-item.text.justify-start` (left-aligned).
+ * The actual text content lives in a nested child element.
  * @returns The text content of the AI reply.
  */
 export async function waitForAiReply(page: Page, timeoutMs = 120_000): Promise<string> {
-  const replyLocator = page.locator('.message-content-wrapper, .chat-message-content, .markdown-body').last();
-  await replyLocator.waitFor({ state: 'visible', timeout: timeoutMs });
+  // AI text messages are left-aligned. The actual reply text is rendered
+  // inside a Shadow DOM (`ShadowView` component), so normal textContent /
+  // innerText on the host element returns empty. We must pierce the shadow
+  // root to read the rendered text.
+  const aiSelector = '.message-item.text.justify-start';
+  await page.locator(aiSelector).last().waitFor({ state: 'visible', timeout: timeoutMs });
+
   await expect
     .poll(
       async () => {
-        const text = await replyLocator.textContent();
-        return (text ?? '').trim().length;
+        return page.evaluate((sel) => {
+          const items = document.querySelectorAll(sel);
+          if (!items.length) return '';
+          const last = items[items.length - 1];
+          // Try shadow DOM first (MarkdownView renders via ShadowView)
+          const shadow = last.querySelector('.markdown-shadow');
+          if (shadow?.shadowRoot) {
+            return shadow.shadowRoot.textContent?.trim() ?? '';
+          }
+          // Fallback: plain text messages (user messages, non-shadow)
+          return last.textContent?.trim() ?? '';
+        }, aiSelector);
       },
-      { timeout: timeoutMs, message: 'Waiting for AI reply text content' }
+      { timeout: timeoutMs, message: 'Waiting for AI reply text inside Shadow DOM' }
     )
-    .toBeGreaterThan(0);
-  const text = await replyLocator.textContent();
-  return (text ?? '').trim();
+    .toBeTruthy();
+
+  const text = await page.evaluate((sel) => {
+    const items = document.querySelectorAll(sel);
+    const last = items[items.length - 1];
+    const shadow = last?.querySelector('.markdown-shadow');
+    if (shadow?.shadowRoot) {
+      return shadow.shadowRoot.textContent?.trim() ?? '';
+    }
+    return last?.textContent?.trim() ?? '';
+  }, aiSelector);
+  return text;
 }
 
 /**

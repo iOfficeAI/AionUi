@@ -46,10 +46,19 @@ export const GUID_INPUT = '.guid-input-card-shell textarea';
 /** Agent status message badge (connecting / session_active / error). */
 export const AGENT_STATUS_MESSAGE = '.agent-status-message';
 
+/** AI (left-aligned) text message container. */
+export const AI_TEXT_MESSAGE = '[data-testid="message-text-left"]';
+
+/** User (right-aligned) text message container. */
+export const USER_TEXT_MESSAGE = '[data-testid="message-text-right"]';
+
+/** Text content element inside a message (works for both user/AI). */
+export const MESSAGE_TEXT_CONTENT = '[data-testid="message-text-content"]';
+
 // ── Sidebar ─────────────────────────────────────────────────────────────────
 
-/** New chat trigger button in sidebar. */
-export const NEW_CHAT_TRIGGER = 'div.newChatTrigger';
+/** New chat trigger button in sidebar (CSS module hash varies). */
+export const NEW_CHAT_TRIGGER = 'div[class*="newChatTrigger"]';
 
 // ── Agent pill bar ───────────────────────────────────────────────────────────
 

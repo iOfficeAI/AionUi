@@ -18,6 +18,7 @@ import {
   BTN_DELETE_ASSISTANT,
   goToAssistantSettings,
   openAssistantDrawer,
+  closeDrawer,
   getVisibleAssistantIds,
   duplicateAssistant,
   fillAssistantName,
@@ -37,10 +38,17 @@ test.describe('Extension-Contributed Agents & Assistants', () => {
 
   test('extension assistant appears in assistant settings', async ({ page }) => {
     await goToAssistantSettings(page);
-    await waitForSettle(page, 3_000);
-    const ids = await getVisibleAssistantIds(page);
+    await page.locator('[data-testid^="assistant-card-"]').first().waitFor({ state: 'visible', timeout: 10_000 });
+
+    // Extension assistants load asynchronously via SWR — poll until the card appears
+    let hasExtAssistant = false;
+    for (let attempt = 0; attempt < 10; attempt++) {
+      const ids = await getVisibleAssistantIds(page);
+      hasExtAssistant = ids.some((id) => id.includes('e2e-test-assistant'));
+      if (hasExtAssistant) break;
+      await page.waitForTimeout(1_000);
+    }
     // The e2e-full-extension contributes "ext-e2e-test-assistant"
-    const hasExtAssistant = ids.some((id) => id.includes('e2e-test-assistant'));
     expect(hasExtAssistant).toBeTruthy();
   });
 
@@ -68,6 +76,8 @@ test.describe('Extension-Contributed Agents & Assistants', () => {
       .isVisible()
       .catch(() => false);
     expect(deleteVisible).toBeFalsy();
+
+    await closeDrawer(page);
   });
 
   test('duplicate extension assistant to custom', async ({ page }) => {
