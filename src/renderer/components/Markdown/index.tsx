@@ -129,6 +129,20 @@ const MarkdownView: React.FC<MarkdownViewProps> = ({
         }
         return <img {...imgProps} />;
       },
+      // Render <del> with a subtle dotted underline instead of a heavy
+      // line-through.  Long file paths and code listings with strikethrough
+      // are illegible — the dotted underline keeps the "deleted/old" semantic
+      // visible without slicing the text in half.
+      del: ({ node: _node, ...rest }: Record<string, unknown>) => (
+        <del
+          {...(rest as React.HTMLAttributes<HTMLElement>)}
+          style={{
+            textDecoration: 'underline dotted',
+            textDecorationColor: 'var(--text-3, #999)',
+            opacity: 0.7,
+          }}
+        />
+      ),
     }),
     [codeStyle, hiddenCodeCopyButton, handleLinkClick]
   );

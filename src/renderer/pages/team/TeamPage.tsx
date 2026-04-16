@@ -429,8 +429,10 @@ const TeamPageContent: React.FC<TeamPageContentProps> = ({ team, onAddAgent, onR
                 style={{ scrollSnapType: 'x proximity' }}
               >
                 {agents.map((agent) => {
-                  const isSingle = agents.length <= 2;
                   const isLeadSlot = agent.slotId === leadAgent?.slotId;
+                  // All agents flex to fill available space.  minWidth ensures
+                  // each column stays usable on narrow screens (and triggers
+                  // horizontal scrolling when there are too many agents).
                   return (
                     <div
                       key={agent.slotId}
@@ -439,9 +441,8 @@ const TeamPageContent: React.FC<TeamPageContentProps> = ({ team, onAddAgent, onR
                       }}
                       className='relative shrink-0 h-full border-r border-solid border-[color:var(--border-base)]'
                       style={{
-                        flex: isSingle ? 1 : undefined,
-                        width: isSingle ? undefined : '400px',
-                        minWidth: isSingle ? '240px' : '400px',
+                        flex: 1,
+                        minWidth: '400px',
                         scrollSnapAlign: 'start',
                       }}
                     >
