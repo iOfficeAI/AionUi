@@ -10,6 +10,7 @@ import { invokeBridge } from './bridge';
 import { goToGuid } from './navigation';
 import {
   GUID_INPUT,
+  AGENT_PILL,
   AGENT_STATUS_MESSAGE,
   AI_TEXT_MESSAGE,
   MESSAGE_TEXT_CONTENT,
@@ -20,11 +21,29 @@ import {
 
 /** Select an agent on the guid page by backend name (e.g. 'claude', 'codex'). */
 export async function selectAgent(page: Page, backend: string, model?: string): Promise<void> {
-  const pill = page.locator(agentPillByBackend(backend));
-  await pill.click();
-  await page.waitForSelector(`${agentPillByBackend(backend)}[data-agent-selected="true"]`, {
-    timeout: 5_000,
-  });
+  const selector = agentPillByBackend(backend);
+  // Agent pills may temporarily disappear during SWR revalidation after conversation cleanup.
+  // Poll until the pill is visible and clickable, retrying across re-renders.
+  const deadline = Date.now() + 20_000;
+  let selected = false;
+  while (Date.now() < deadline && !selected) {
+    const isVisible = await page.locator(selector).isVisible().catch(() => false);
+    if (!isVisible) {
+      await page.waitForTimeout(500);
+      continue;
+    }
+    try {
+      await page.locator(selector).click({ force: true, timeout: 3_000 });
+      await page.waitForSelector(`${selector}[data-agent-selected="true"]`, { timeout: 3_000 });
+      selected = true;
+    } catch {
+      // Element may have been detached during click — retry
+      await page.waitForTimeout(300);
+    }
+  }
+  if (!selected) {
+    throw new Error(`Failed to select agent "${backend}" within 20s — pill may not exist on this page`);
+  }
   if (model) {
     await selectModel(page, model);
   }

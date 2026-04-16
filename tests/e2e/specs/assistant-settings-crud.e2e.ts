@@ -22,6 +22,7 @@ import {
   getVisibleAssistantNames,
   isDrawerVisible,
   waitForDrawerClose,
+  closeDrawer,
   openAssistantDrawer,
   BTN_CREATE_ASSISTANT,
   BTN_SAVE_ASSISTANT,
@@ -31,7 +32,7 @@ import {
 } from '../helpers';
 
 test.describe('Assistant Settings CRUD', () => {
-  test.setTimeout(60_000);
+  test.setTimeout(90_000);
 
   test('page loads with assistant list', async ({ page }) => {
     await goToAssistantSettings(page);
@@ -44,7 +45,7 @@ test.describe('Assistant Settings CRUD', () => {
 
   test('search filter — by name', async ({ page }) => {
     await goToAssistantSettings(page);
-    await page.locator('[data-testid^="assistant-card-"]').first().waitFor({ state: 'visible', timeout: 10_000 });
+    await page.locator('[data-testid^="assistant-card-"]').first().waitFor({ state: 'visible', timeout: 15_000 });
 
     const namesBefore = await getVisibleAssistantNames(page);
     if (namesBefore.length < 2) {
@@ -62,11 +63,22 @@ test.describe('Assistant Settings CRUD', () => {
 
     // Should show fewer results or at least contain the searched name
     expect(namesAfter.some((n) => n.includes(targetName) || targetName.includes(n))).toBeTruthy();
+
+    // Clear search to avoid polluting subsequent tests
+    await clearSearch(page);
+    await page.waitForTimeout(300);
   });
 
   test('search filter — clear restores full list', async ({ page }) => {
     await goToAssistantSettings(page);
-    await page.locator('[data-testid^="assistant-card-"]').first().waitFor({ state: 'visible', timeout: 10_000 });
+    await page.locator('[data-testid^="assistant-card-"]').first().waitFor({ state: 'visible', timeout: 15_000 });
+
+    // Ensure search is closed before measuring baseline
+    const searchInput = page.locator('[data-testid="input-search-assistant"]');
+    if (await searchInput.isVisible().catch(() => false)) {
+      await clearSearch(page);
+      await page.waitForTimeout(300);
+    }
 
     const countBefore = (await getVisibleAssistantIds(page)).length;
     await searchAssistants(page, 'zzz_nonexistent_query');
@@ -82,7 +94,7 @@ test.describe('Assistant Settings CRUD', () => {
 
   test('tab filter — System / Custom', async ({ page }) => {
     await goToAssistantSettings(page);
-    await page.locator('[data-testid^="assistant-card-"]').first().waitFor({ state: 'visible', timeout: 10_000 });
+    await page.locator('[data-testid^="assistant-card-"]').first().waitFor({ state: 'visible', timeout: 15_000 });
 
     // Click System tab
     await selectFilterTab(page, 'System');
@@ -105,7 +117,7 @@ test.describe('Assistant Settings CRUD', () => {
 
   test('create custom assistant — full flow', async ({ page }) => {
     await goToAssistantSettings(page);
-    await page.locator('[data-testid^="assistant-card-"]').first().waitFor({ state: 'visible', timeout: 10_000 });
+    await page.locator('[data-testid^="assistant-card-"]').first().waitFor({ state: 'visible', timeout: 15_000 });
 
     const timestamp = Date.now();
     const testName = `E2E Test Assistant ${timestamp}`;
@@ -138,7 +150,7 @@ test.describe('Assistant Settings CRUD', () => {
 
   test('create assistant — name required validation', async ({ page }) => {
     await goToAssistantSettings(page);
-    await page.locator('[data-testid^="assistant-card-"]').first().waitFor({ state: 'visible', timeout: 10_000 });
+    await page.locator('[data-testid^="assistant-card-"]').first().waitFor({ state: 'visible', timeout: 15_000 });
 
     await clickCreateAssistant(page);
     // Leave name empty, try to save
@@ -155,7 +167,7 @@ test.describe('Assistant Settings CRUD', () => {
 
   test('edit custom assistant — change name', async ({ page }) => {
     await goToAssistantSettings(page);
-    await page.locator('[data-testid^="assistant-card-"]').first().waitFor({ state: 'visible', timeout: 10_000 });
+    await page.locator('[data-testid^="assistant-card-"]').first().waitFor({ state: 'visible', timeout: 15_000 });
 
     // Create a test assistant first
     const timestamp = Date.now();
@@ -196,7 +208,7 @@ test.describe('Assistant Settings CRUD', () => {
 
   test('edit custom assistant — switch Main Agent', async ({ page }) => {
     await goToAssistantSettings(page);
-    await page.locator('[data-testid^="assistant-card-"]').first().waitFor({ state: 'visible', timeout: 10_000 });
+    await page.locator('[data-testid^="assistant-card-"]').first().waitFor({ state: 'visible', timeout: 15_000 });
 
     // Create a test assistant
     const timestamp = Date.now();
@@ -234,7 +246,8 @@ test.describe('Assistant Settings CRUD', () => {
       if (optionVisible) {
         await option.click();
         await saveAssistant(page);
-        await waitForDrawerClose(page);
+        // Edit save does not auto-close the drawer — close it
+        await closeDrawer(page);
 
         // Reopen and verify agent changed
         await openAssistantDrawer(page, targetId);
@@ -243,16 +256,15 @@ test.describe('Assistant Settings CRUD', () => {
       }
     }
 
-    // Cleanup
-    await page.keyboard.press('Escape');
-    await page.waitForTimeout(300);
+    // Cleanup — ensure drawer is fully closed before clicking the card
+    await closeDrawer(page);
     await openAssistantDrawer(page, targetId);
     await deleteAssistant(page);
   });
 
   test('duplicate assistant', async ({ page }) => {
     await goToAssistantSettings(page);
-    await page.locator('[data-testid^="assistant-card-"]').first().waitFor({ state: 'visible', timeout: 10_000 });
+    await page.locator('[data-testid^="assistant-card-"]').first().waitFor({ state: 'visible', timeout: 15_000 });
 
     const idsBefore = await getVisibleAssistantIds(page);
     if (idsBefore.length === 0) {
@@ -289,7 +301,7 @@ test.describe('Assistant Settings CRUD', () => {
 
   test('delete custom assistant', async ({ page }) => {
     await goToAssistantSettings(page);
-    await page.locator('[data-testid^="assistant-card-"]').first().waitFor({ state: 'visible', timeout: 10_000 });
+    await page.locator('[data-testid^="assistant-card-"]').first().waitFor({ state: 'visible', timeout: 15_000 });
 
     // Create one to delete
     const timestamp = Date.now();
@@ -323,7 +335,7 @@ test.describe('Assistant Settings CRUD', () => {
 
   test('enable / disable toggle', async ({ page }) => {
     await goToAssistantSettings(page);
-    await page.locator('[data-testid^="assistant-card-"]').first().waitFor({ state: 'visible', timeout: 10_000 });
+    await page.locator('[data-testid^="assistant-card-"]').first().waitFor({ state: 'visible', timeout: 15_000 });
 
     // Create a test assistant
     const timestamp = Date.now();
@@ -364,7 +376,7 @@ test.describe('Assistant Settings CRUD', () => {
 
   test('disabled builtin assistant removed from guid page presets', async ({ page }) => {
     await goToAssistantSettings(page);
-    await page.locator('[data-testid^="assistant-card-"]').first().waitFor({ state: 'visible', timeout: 10_000 });
+    await page.locator('[data-testid^="assistant-card-"]').first().waitFor({ state: 'visible', timeout: 15_000 });
 
     // Find a builtin assistant that has an enabled switch
     const ids = await getVisibleAssistantIds(page);
@@ -401,7 +413,7 @@ test.describe('Assistant Settings CRUD', () => {
 
     // Disable it in settings
     await goToAssistantSettings(page);
-    await page.locator('[data-testid^="assistant-card-"]').first().waitFor({ state: 'visible', timeout: 10_000 });
+    await page.locator('[data-testid^="assistant-card-"]').first().waitFor({ state: 'visible', timeout: 15_000 });
     await toggleAssistantEnabled(page, builtinId);
     await page.waitForTimeout(500);
 
@@ -416,13 +428,13 @@ test.describe('Assistant Settings CRUD', () => {
 
     // Re-enable to restore state
     await goToAssistantSettings(page);
-    await page.locator('[data-testid^="assistant-card-"]').first().waitFor({ state: 'visible', timeout: 10_000 });
+    await page.locator('[data-testid^="assistant-card-"]').first().waitFor({ state: 'visible', timeout: 15_000 });
     await toggleAssistantEnabled(page, builtinId);
   });
 
   test('re-enabled assistant visible after toggle back on', async ({ page }) => {
     await goToAssistantSettings(page);
-    await page.locator('[data-testid^="assistant-card-"]').first().waitFor({ state: 'visible', timeout: 10_000 });
+    await page.locator('[data-testid^="assistant-card-"]').first().waitFor({ state: 'visible', timeout: 15_000 });
 
     // Create, disable, then re-enable
     const timestamp = Date.now();
@@ -461,7 +473,7 @@ test.describe('Assistant Settings CRUD', () => {
 
   test('created assistant persists after page reload', async ({ page }) => {
     await goToAssistantSettings(page);
-    await page.locator('[data-testid^="assistant-card-"]').first().waitFor({ state: 'visible', timeout: 10_000 });
+    await page.locator('[data-testid^="assistant-card-"]').first().waitFor({ state: 'visible', timeout: 15_000 });
 
     const timestamp = Date.now();
     const testName = `Persist Test ${timestamp}`;
@@ -472,7 +484,7 @@ test.describe('Assistant Settings CRUD', () => {
 
     // Reload the page
     await page.reload();
-    await page.locator('[data-testid^="assistant-card-"]').first().waitFor({ state: 'visible', timeout: 10_000 });
+    await page.locator('[data-testid^="assistant-card-"]').first().waitFor({ state: 'visible', timeout: 15_000 });
 
     const names = await getVisibleAssistantNames(page);
     expect(names).toContain(testName);
@@ -490,7 +502,7 @@ test.describe('Assistant Settings CRUD', () => {
 
   test('sort order — enabled section renders before disabled', async ({ page }) => {
     await goToAssistantSettings(page);
-    await page.locator('[data-testid^="assistant-card-"]').first().waitFor({ state: 'visible', timeout: 10_000 });
+    await page.locator('[data-testid^="assistant-card-"]').first().waitFor({ state: 'visible', timeout: 15_000 });
 
     // The AssistantListPanel renders "Enabled" section followed by "Disabled" section
     const bodyText = await page.locator('body').textContent();

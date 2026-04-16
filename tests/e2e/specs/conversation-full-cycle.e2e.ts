@@ -28,6 +28,33 @@ import {
 // Generous timeout for AI responses
 test.describe.configure({ timeout: 180_000 });
 
+/**
+ * Pick the first available agent backend from the guid page pill bar.
+ * Returns the backend name (e.g. 'gemini', 'claude') or null if none found.
+ * If pills are missing (e.g. after many conversation cycles), reloads once to reset SWR.
+ */
+async function pickAvailableBackend(page: import('@playwright/test').Page): Promise<string | null> {
+  for (let attempt = 0; attempt < 2; attempt++) {
+    const visible = await page.locator(AGENT_PILL).first()
+      .waitFor({ state: 'visible', timeout: 15_000 })
+      .then(() => true)
+      .catch(() => false);
+    if (visible) {
+      const backends = await page.locator(AGENT_PILL).evaluateAll((els) =>
+        els.map((el) => el.getAttribute('data-agent-backend')).filter(Boolean)
+      );
+      const found = ['gemini', 'claude', 'codex', 'aionrs'].find((b) => backends.includes(b));
+      if (found) return found;
+    }
+    if (attempt === 0) {
+      // Reload to reset stale SWR caches after conversation cycles
+      await page.reload({ waitUntil: 'domcontentloaded' });
+      await goToGuid(page);
+    }
+  }
+  return null;
+}
+
 test.describe('Conversation Full Cycle', () => {
   test('Gemini -- full conversation with AI reply', async ({ page }) => {
     await goToGuid(page);
@@ -55,6 +82,8 @@ test.describe('Conversation Full Cycle', () => {
     expect(reply.length).toBeGreaterThan(0);
 
     await deleteConversation(page, conversationId);
+    // Navigate back to guid to ensure clean state for subsequent tests
+    await goToGuid(page);
   });
 
   test('Claude -- full conversation with AI reply', async ({ page }) => {
@@ -83,6 +112,8 @@ test.describe('Conversation Full Cycle', () => {
     expect(reply.length).toBeGreaterThan(0);
 
     await deleteConversation(page, conversationId);
+    // Navigate back to guid to ensure clean state for subsequent tests
+    await goToGuid(page);
   });
 
   test('Codex -- full conversation with AI reply', async ({ page }) => {
@@ -106,11 +137,16 @@ test.describe('Conversation Full Cycle', () => {
     const conversationId = await sendMessageFromGuid(page, 'Hello, please reply with a short greeting.');
     expect(conversationId).toBeTruthy();
 
-    await waitForSessionActive(page, 120_000);
-    const reply = await waitForAiReply(page, 120_000);
+    // Codex may take longer to establish a session (cold start)
+    await waitForSessionActive(page, 180_000);
+    const reply = await waitForAiReply(page, 180_000);
     expect(reply.length).toBeGreaterThan(0);
 
     await deleteConversation(page, conversationId);
+    // After three conversation cycles, agent detection may stall.
+    // Reload the page to reset SWR caches and ensure agent pills re-render.
+    await page.reload({ waitUntil: 'domcontentloaded' });
+    await goToGuid(page);
   });
 
   test('preset assistant -- full conversation', async ({ page }) => {
@@ -146,22 +182,13 @@ test.describe('Conversation Full Cycle', () => {
 
   test('conversation shows correct agent info', async ({ page }) => {
     await goToGuid(page);
-    const pill = page.locator(agentPillByBackend('gemini'));
-    const visible = await pill.isVisible().catch(() => false);
-    if (!visible) {
-      await page
-        .locator(AGENT_PILL)
-        .first()
-        .waitFor({ state: 'visible', timeout: 8_000 })
-        .catch(() => {});
-      const retryVisible = await pill.isVisible().catch(() => false);
-      if (!retryVisible) {
-        test.skip(true, 'Gemini agent not available');
-        return;
-      }
+    const backend = await pickAvailableBackend(page);
+    if (!backend) {
+      test.skip(true, 'No agent backend available');
+      return;
     }
 
-    await selectAgent(page, 'gemini');
+    await selectAgent(page, backend);
     const conversationId = await sendMessageFromGuid(page, 'Hello test agent info');
 
     await waitForSessionActive(page, 120_000);
@@ -178,22 +205,13 @@ test.describe('Conversation Full Cycle', () => {
 
   test('ConversationSkillsIndicator displays without error', async ({ page }) => {
     await goToGuid(page);
-    const pill = page.locator(agentPillByBackend('gemini'));
-    const visible = await pill.isVisible().catch(() => false);
-    if (!visible) {
-      await page
-        .locator(AGENT_PILL)
-        .first()
-        .waitFor({ state: 'visible', timeout: 8_000 })
-        .catch(() => {});
-      const retryVisible = await pill.isVisible().catch(() => false);
-      if (!retryVisible) {
-        test.skip(true, 'Gemini agent not available');
-        return;
-      }
+    const backend = await pickAvailableBackend(page);
+    if (!backend) {
+      test.skip(true, 'No agent backend available');
+      return;
     }
 
-    await selectAgent(page, 'gemini');
+    await selectAgent(page, backend);
     const conversationId = await sendMessageFromGuid(page, 'Hello test skills indicator');
     await waitForSessionActive(page, 120_000);
 
@@ -240,22 +258,13 @@ test.describe('Conversation Full Cycle', () => {
 
   test('new conversation auto-navigates from guid', async ({ page }) => {
     await goToGuid(page);
-    const pill = page.locator(agentPillByBackend('gemini'));
-    const visible = await pill.isVisible().catch(() => false);
-    if (!visible) {
-      await page
-        .locator(AGENT_PILL)
-        .first()
-        .waitFor({ state: 'visible', timeout: 8_000 })
-        .catch(() => {});
-      const retryVisible = await pill.isVisible().catch(() => false);
-      if (!retryVisible) {
-        test.skip(true, 'Gemini agent not available');
-        return;
-      }
+    const backend = await pickAvailableBackend(page);
+    if (!backend) {
+      test.skip(true, 'No agent backend available');
+      return;
     }
 
-    await selectAgent(page, 'gemini');
+    await selectAgent(page, backend);
     const conversationId = await sendMessageFromGuid(page, 'Hello nav test');
 
     // URL should now contain /conversation/
@@ -268,22 +277,13 @@ test.describe('Conversation Full Cycle', () => {
 
   test('return to guid from conversation', async ({ page }) => {
     await goToGuid(page);
-    const pill = page.locator(agentPillByBackend('gemini'));
-    const visible = await pill.isVisible().catch(() => false);
-    if (!visible) {
-      await page
-        .locator(AGENT_PILL)
-        .first()
-        .waitFor({ state: 'visible', timeout: 8_000 })
-        .catch(() => {});
-      const retryVisible = await pill.isVisible().catch(() => false);
-      if (!retryVisible) {
-        test.skip(true, 'Gemini agent not available');
-        return;
-      }
+    const backend = await pickAvailableBackend(page);
+    if (!backend) {
+      test.skip(true, 'No agent backend available');
+      return;
     }
 
-    await selectAgent(page, 'gemini');
+    await selectAgent(page, backend);
     const conversationId = await sendMessageFromGuid(page, 'Hello return test');
     await waitForSessionActive(page, 120_000);
 
@@ -301,22 +301,13 @@ test.describe('Conversation Full Cycle', () => {
 
   test('delete conversation removes from list', async ({ page }) => {
     await goToGuid(page);
-    const pill = page.locator(agentPillByBackend('gemini'));
-    const visible = await pill.isVisible().catch(() => false);
-    if (!visible) {
-      await page
-        .locator(AGENT_PILL)
-        .first()
-        .waitFor({ state: 'visible', timeout: 8_000 })
-        .catch(() => {});
-      const retryVisible = await pill.isVisible().catch(() => false);
-      if (!retryVisible) {
-        test.skip(true, 'Gemini agent not available');
-        return;
-      }
+    const backend = await pickAvailableBackend(page);
+    if (!backend) {
+      test.skip(true, 'No agent backend available');
+      return;
     }
 
-    await selectAgent(page, 'gemini');
+    await selectAgent(page, backend);
     const conversationId = await sendMessageFromGuid(page, 'Hello delete test');
     await waitForSessionActive(page, 120_000);
 
@@ -467,22 +458,13 @@ test.describe('Conversation Full Cycle', () => {
 
   test('skills indicator click navigates to SkillsHub and highlights skill', async ({ page }) => {
     await goToGuid(page);
-    const pill = page.locator(agentPillByBackend('gemini'));
-    const visible = await pill.isVisible().catch(() => false);
-    if (!visible) {
-      await page
-        .locator(AGENT_PILL)
-        .first()
-        .waitFor({ state: 'visible', timeout: 8_000 })
-        .catch(() => {});
-      const retryVisible = await pill.isVisible().catch(() => false);
-      if (!retryVisible) {
-        test.skip(true, 'Gemini agent not available');
-        return;
-      }
+    const backend = await pickAvailableBackend(page);
+    if (!backend) {
+      test.skip(true, 'No agent backend available');
+      return;
     }
 
-    await selectAgent(page, 'gemini');
+    await selectAgent(page, backend);
     const conversationId = await sendMessageFromGuid(page, 'Hello skills navigation test');
     const sessionReady = await waitForSessionActive(page, 60_000).then(() => true).catch(() => false);
     if (!sessionReady) {

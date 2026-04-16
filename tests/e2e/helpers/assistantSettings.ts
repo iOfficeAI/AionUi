@@ -7,7 +7,7 @@ import { navigateTo } from './navigation';
 
 // ── Navigation ──────────────────────────────────────────────────────────────
 
-/** Navigate to the assistant settings page. */
+/** Navigate to the assistant settings page via UI clicks. */
 export async function goToAssistantSettings(page: Page): Promise<void> {
   await navigateTo(page, '#/settings/assistants');
 }
@@ -21,8 +21,14 @@ export async function openAssistantDrawer(page: Page, assistantId: string): Prom
 
 /** Click the Create Assistant button. */
 export async function clickCreateAssistant(page: Page): Promise<void> {
+  // Close any stale drawer left from a previous test
+  const drawer = page.locator('[data-testid="assistant-edit-drawer"]');
+  if (await drawer.isVisible().catch(() => false)) {
+    await page.keyboard.press('Escape');
+    await drawer.waitFor({ state: 'hidden', timeout: 3_000 }).catch(() => {});
+  }
   await page.locator('[data-testid="btn-create-assistant"]').click();
-  await page.locator('[data-testid="assistant-edit-drawer"]').waitFor({ state: 'visible', timeout: 5_000 });
+  await drawer.waitFor({ state: 'visible', timeout: 5_000 });
 }
 
 // ── CRUD helpers ────────────────────────────────────────────────────────────
@@ -91,10 +97,21 @@ export async function clearSearch(page: Page): Promise<void> {
   await searchToggle.click();
 }
 
-/** Select a filter tab by matching text content (All / System / Custom). */
+/**
+ * Tab text mapping: supports both English and Chinese labels.
+ * The actual text depends on the app's i18n locale.
+ */
+const TAB_TEXT_MAP: Record<string, RegExp> = {
+  All: /^(All|全部)$/i,
+  System: /^(System|系统)$/i,
+  Custom: /^(Custom|自定义)$/i,
+};
+
+/** Select a filter tab by logical name (All / System / Custom). */
 export async function selectFilterTab(page: Page, tabText: string): Promise<void> {
-  const tab = page.locator('.assistant-filter-tabs .arco-tabs-header-title').filter({ hasText: tabText });
-  await tab.click();
+  const pattern = TAB_TEXT_MAP[tabText] ?? new RegExp(tabText, 'i');
+  const tab = page.locator('.assistant-filter-tabs .arco-tabs-header-title').filter({ hasText: pattern });
+  await tab.first().click();
 }
 
 // ── Assertions ──────────────────────────────────────────────────────────────
@@ -131,7 +148,25 @@ export async function isDrawerVisible(page: Page): Promise<boolean> {
     .catch(() => false);
 }
 
-/** Wait for the drawer to close. */
+/** Wait for the drawer to close (max 5s). */
 export async function waitForDrawerClose(page: Page): Promise<void> {
   await expect(page.locator('[data-testid="assistant-edit-drawer"]')).not.toBeVisible({ timeout: 5_000 });
+}
+
+/** Force-close the drawer by clicking its mask overlay. */
+export async function closeDrawer(page: Page): Promise<void> {
+  const drawerWrapper = page.locator('.arco-drawer-wrapper');
+  if (!(await drawerWrapper.isVisible().catch(() => false))) return;
+
+  // Click the mask overlay — Arco Drawer renders a .arco-drawer-mask sibling
+  const mask = page.locator('.arco-drawer-mask');
+  if (await mask.isVisible().catch(() => false)) {
+    await mask.click({ force: true });
+  } else {
+    // Fallback: press Escape at the body level
+    await page.locator('body').press('Escape');
+  }
+
+  // Wait for the drawer wrapper to disappear
+  await page.locator('.arco-drawer-wrapper').waitFor({ state: 'hidden', timeout: 5_000 }).catch(() => {});
 }

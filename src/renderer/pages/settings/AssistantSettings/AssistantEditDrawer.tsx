@@ -53,7 +53,6 @@ type AssistantEditDrawerProps = {
   // Active assistant info
   activeAssistant: AssistantListItem | null;
   activeAssistantId: string | null;
-  isReadonlyAssistant: boolean;
   isExtensionAssistant: (assistant: AssistantListItem | null | undefined) => boolean;
 
   // Agent backend options
@@ -94,7 +93,6 @@ const AssistantEditDrawer: React.FC<AssistantEditDrawerProps> = ({
   setDisabledBuiltinSkills,
   activeAssistant,
   activeAssistantId,
-  isReadonlyAssistant,
   isExtensionAssistant,
   availableBackends,
   handleSave,
@@ -133,12 +131,13 @@ const AssistantEditDrawer: React.FC<AssistantEditDrawerProps> = ({
   const showSkills =
     isCreating ||
     (activeAssistantId !== null && hasBuiltinSkills(activeAssistantId)) ||
-    (activeAssistant !== null && !activeAssistant.isBuiltin && !isExtensionAssistant(activeAssistant));
+    (activeAssistant !== null && !activeAssistant.isBuiltin);
 
   const agentOptions = availableBackends;
 
-  const customSkillItems = availableSkills.filter((skill) => skill.isCustom);
-  const builtinSkillItems = availableSkills.filter((skill) => !skill.isCustom);
+  const customSkillItems = availableSkills.filter((skill) => skill.source === 'custom');
+  const builtinSkillItems = availableSkills.filter((skill) => skill.source === 'builtin');
+  const extensionSkillItems = availableSkills.filter((skill) => skill.source === 'extension');
   const customActiveCount = selectedSkills.filter(
     (name) =>
       pendingSkills.some((skill) => skill.name === name) || customSkillItems.some((skill) => skill.name === name)
@@ -146,20 +145,24 @@ const AssistantEditDrawer: React.FC<AssistantEditDrawerProps> = ({
   const builtinActiveCount = selectedSkills.filter((name) =>
     builtinSkillItems.some((skill) => skill.name === name)
   ).length;
+  const extensionActiveCount = selectedSkills.filter((name) =>
+    extensionSkillItems.some((skill) => skill.name === name)
+  ).length;
   const autoInjectedActiveCount = builtinAutoSkills.filter(
     (skill) => !disabledBuiltinSkills.includes(skill.name)
   ).length;
   const customStatusDotColor = customActiveCount > 0 ? 'rgb(var(--success-6))' : 'var(--color-text-4)';
   const builtinStatusDotColor = builtinActiveCount > 0 ? 'rgb(var(--success-6))' : 'var(--color-text-4)';
+  const extensionStatusDotColor = extensionActiveCount > 0 ? 'rgb(var(--success-6))' : 'var(--color-text-4)';
   const autoInjectedStatusDotColor = autoInjectedActiveCount > 0 ? 'rgb(var(--success-6))' : 'var(--color-text-4)';
   const totalSkillsCount =
-    pendingSkills.length + customSkillItems.length + builtinSkillItems.length + builtinAutoSkills.length;
+    pendingSkills.length + customSkillItems.length + builtinSkillItems.length + extensionSkillItems.length + builtinAutoSkills.length;
   const totalActiveSkillsCount =
     selectedSkills.filter(
       (name) =>
         pendingSkills.some((skill) => skill.name === name) || availableSkills.some((skill) => skill.name === name)
     ).length + autoInjectedActiveCount;
-  const isRuleEditable = !activeAssistant?.isBuiltin && !isReadonlyAssistant;
+  const isRuleEditable = !activeAssistant?.isBuiltin;
   const rulesContainerHeight = rulesExpanded
     ? '420px'
     : isRuleEditable && promptViewMode === 'edit'
@@ -205,7 +208,6 @@ const AssistantEditDrawer: React.FC<AssistantEditDrawerProps> = ({
             <Button
               type='primary'
               onClick={handleSave}
-              disabled={!isCreating && isReadonlyAssistant}
               data-testid='btn-save-assistant'
               className='w-[100px] rounded-[100px]'
             >
@@ -243,7 +245,7 @@ const AssistantEditDrawer: React.FC<AssistantEditDrawerProps> = ({
               {t('settings.assistantNameAvatar', { defaultValue: 'Name & Avatar' })}
             </Typography.Text>
             <div className='mt-10px flex items-center gap-12px'>
-              {activeAssistant?.isBuiltin || isReadonlyAssistant ? (
+              {activeAssistant?.isBuiltin ? (
                 <Avatar shape='square' size={40} className='bg-bg-1 rounded-4px'>
                   {editAvatarImage ? (
                     <img src={editAvatarImage} alt='' width={24} height={24} style={{ objectFit: 'contain' }} />
@@ -271,7 +273,7 @@ const AssistantEditDrawer: React.FC<AssistantEditDrawerProps> = ({
               <Input
                 value={editName}
                 onChange={(value) => setEditName(value)}
-                disabled={activeAssistant?.isBuiltin || isReadonlyAssistant}
+                disabled={activeAssistant?.isBuiltin}
                 placeholder={t('settings.agentNamePlaceholder', { defaultValue: 'Enter a name for this agent' })}
                 data-testid='input-assistant-name'
                 className='flex-1 rounded-4px bg-bg-1'
@@ -288,7 +290,7 @@ const AssistantEditDrawer: React.FC<AssistantEditDrawerProps> = ({
               className='mt-10px rounded-4px bg-bg-1'
               value={editDescription}
               onChange={(value) => setEditDescription(value)}
-              disabled={activeAssistant?.isBuiltin || isReadonlyAssistant}
+              disabled={activeAssistant?.isBuiltin}
               data-testid='input-assistant-desc'
               placeholder={t('settings.assistantDescriptionPlaceholder', {
                 defaultValue: 'What can this assistant help with?',
@@ -303,7 +305,6 @@ const AssistantEditDrawer: React.FC<AssistantEditDrawerProps> = ({
               className='mt-10px w-full rounded-4px'
               value={editAgent}
               onChange={(value) => setEditAgent(value as string)}
-              disabled={isReadonlyAssistant}
               data-testid='select-assistant-agent'
             >
               {agentOptions.map((opt) => (
@@ -587,6 +588,61 @@ const AssistantEditDrawer: React.FC<AssistantEditDrawerProps> = ({
                     </div>
                   )}
                 </Collapse.Item>
+
+                {/* Extension Skills */}
+                {extensionSkillItems.length > 0 && (
+                  <Collapse.Item
+                    header={
+                      <span className='text-13px font-medium'>
+                        {t('settings.extensionSkills', { defaultValue: 'Extension Skills' })}
+                      </span>
+                    }
+                    name='extension-skills'
+                    extra={
+                      <div className='flex items-center gap-8px'>
+                        <span
+                          className='inline-block w-8px h-8px rd-50%'
+                          style={{ background: extensionStatusDotColor }}
+                          aria-hidden='true'
+                        />
+                        <span className='text-12px text-t-secondary'>
+                          {extensionActiveCount > 0
+                            ? `${extensionActiveCount}/${extensionSkillItems.length}`
+                            : extensionSkillItems.length}
+                        </span>
+                      </div>
+                    }
+                  >
+                    <div className='space-y-4px'>
+                      {extensionSkillItems.map((skill) => (
+                        <div key={skill.name} className='flex items-start gap-8px p-8px hover:bg-fill-1 rounded-4px'>
+                          <Checkbox
+                            checked={selectedSkills.includes(skill.name)}
+                            className='mt-2px cursor-pointer'
+                            onChange={() => {
+                              if (selectedSkills.includes(skill.name)) {
+                                setSelectedSkills(selectedSkills.filter((s) => s !== skill.name));
+                              } else {
+                                setSelectedSkills([...selectedSkills, skill.name]);
+                              }
+                            }}
+                          />
+                          <div className='flex-1 min-w-0'>
+                            <div className='flex items-center gap-6px'>
+                              <div className='text-13px font-medium text-t-primary'>{skill.name}</div>
+                              <span className='bg-[rgba(var(--primary-6),0.08)] text-primary-6 border border-[rgba(var(--primary-6),0.2)] text-10px px-4px py-1px rd-4px font-medium uppercase'>
+                                {t('settings.extensionSkillsBadge', { defaultValue: 'Extension' })}
+                              </span>
+                            </div>
+                            {skill.description && (
+                              <div className='text-12px text-t-secondary mt-2px line-clamp-2'>{skill.description}</div>
+                            )}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </Collapse.Item>
+                )}
 
                 {/* Auto-injected Builtin Skills */}
                 {builtinAutoSkills.length > 0 && (
