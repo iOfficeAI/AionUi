@@ -348,25 +348,10 @@ const GuidPage: React.FC = () => {
     setIsDescriptionExpanded(false);
   }, [location.key]);
 
-  // When sidebar "新对话" navigates with resetAssistant, exit any preset assistant
-  // and return to the default (non-preset) homepage view.
-  // Uses a ref to ensure the reset only fires once per navigation — without it,
-  // dependency changes (e.g. isPresetAgent toggling) would re-trigger the effect
-  // because window.history.replaceState does not update React Router's location.state.
-  const resetAssistantRequested = (location.state as { resetAssistant?: boolean } | null)?.resetAssistant === true;
-  const resetHandledRef = useRef(false);
+  // Clear resetAssistant from location.state after the hook has consumed it,
+  // so that re-renders don't re-trigger the reset logic.
   useEffect(() => {
-    if (!resetAssistantRequested) {
-      resetHandledRef.current = false;
-      return;
-    }
-    if (resetHandledRef.current) return;
-    if (!agentSelection.availableAgents || agentSelection.availableAgents.length === 0) return;
-    resetHandledRef.current = true;
-    if (agentSelection.isPresetAgent) {
-      agentSelection.setSelectedAgentKey(agentSelection.defaultAgentKey);
-    }
-    // Clear via history API so we don't bump location.key and re-trigger other effects.
+    if (!resetAssistantRequested) return;
     window.history.replaceState(null, '', `${location.pathname}${location.search}${location.hash}`);
   }, [resetAssistantRequested, location.pathname, location.search, location.hash]);
 
