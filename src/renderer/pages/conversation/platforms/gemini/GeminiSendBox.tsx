@@ -1,45 +1,45 @@
 import { ipcBridge } from '@/common';
 import { uuid } from '@/common/utils';
+import AgentModeSelector from '@/renderer/components/agent/AgentModeSelector';
 import AgentSetupCard from '@/renderer/components/agent/AgentSetupCard';
 import ContextUsageIndicator from '@/renderer/components/agent/ContextUsageIndicator';
+import CommandQueuePanel from '@/renderer/components/chat/CommandQueuePanel';
+import SendBox from '@/renderer/components/chat/sendbox';
+import ThoughtDisplay from '@/renderer/components/chat/ThoughtDisplay';
+import FileAttachButton from '@/renderer/components/media/FileAttachButton';
 import FilePreview from '@/renderer/components/media/FilePreview';
 import HorizontalFileList from '@/renderer/components/media/HorizontalFileList';
-import SendBox from '@/renderer/components/chat/sendbox';
-import CommandQueuePanel from '@/renderer/components/chat/CommandQueuePanel';
 import { useAgentReadinessCheck } from '@/renderer/hooks/agent/useAgentReadinessCheck';
 import { useAutoTitle } from '@/renderer/hooks/chat/useAutoTitle';
-import { useLatestRef } from '@/renderer/hooks/ui/useLatestRef';
-import { useOpenFileSelector } from '@/renderer/hooks/file/useOpenFileSelector';
-import FileAttachButton from '@/renderer/components/media/FileAttachButton';
 import { getSendBoxDraftHook, type FileOrFolderItem } from '@/renderer/hooks/chat/useSendBoxDraft';
 import { createSetUploadFile, useSendBoxFiles } from '@/renderer/hooks/chat/useSendBoxFiles';
 import { useSlashCommands } from '@/renderer/hooks/chat/useSlashCommands';
+import { useOpenFileSelector } from '@/renderer/hooks/file/useOpenFileSelector';
+import { useAcpV2Enabled } from '@/renderer/hooks/system/useAcpV2Enabled';
+import { useLatestRef } from '@/renderer/hooks/ui/useLatestRef';
 import { useAddOrUpdateMessage, useRemoveMessageByMsgId } from '@/renderer/pages/conversation/Messages/hooks';
+import { assertBridgeSuccess } from '@/renderer/pages/conversation/platforms/assertBridgeSuccess';
 import {
   shouldEnqueueConversationCommand,
   useConversationCommandQueue,
   type ConversationCommandQueueItem,
 } from '@/renderer/pages/conversation/platforms/useConversationCommandQueue';
-import { assertBridgeSuccess } from '@/renderer/pages/conversation/platforms/assertBridgeSuccess';
 import { usePreviewContext } from '@/renderer/pages/conversation/Preview';
+import { useTeamPermission } from '@/renderer/pages/team/hooks/TeamPermissionContext';
 import { allSupportedExts } from '@/renderer/services/FileService';
+import { iconColors } from '@/renderer/styles/colors';
 import { emitter, useAddEventListener } from '@/renderer/utils/emitter';
 import { mergeFileSelectionItems } from '@/renderer/utils/file/fileSelection';
 import { buildDisplayMessage, collectSelectedFiles } from '@/renderer/utils/file/messageFiles';
 import { getModelContextLimit } from '@/renderer/utils/model/modelContextLimits';
 import { Message, Tag } from '@arco-design/web-react';
 import { Shield } from '@icon-park/react';
-import { iconColors } from '@/renderer/styles/colors';
-import AgentModeSelector from '@/renderer/components/agent/AgentModeSelector';
-import { useTeamPermission } from '@/renderer/pages/team/hooks/TeamPermissionContext';
-import ThoughtDisplay from '@/renderer/components/chat/ThoughtDisplay';
-import { useCommandQueueEnabled } from '@/renderer/hooks/system/useCommandQueueEnabled';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import type { GeminiModelSelection } from './useGeminiModelSelection';
-import { useGeminiMessage } from './useGeminiMessage';
-import { useGeminiQuotaFallback } from './useGeminiQuotaFallback';
 import { useGeminiInitialMessage } from './useGeminiInitialMessage';
+import { useGeminiMessage } from './useGeminiMessage';
+import type { GeminiModelSelection } from './useGeminiModelSelection';
+import { useGeminiQuotaFallback } from './useGeminiQuotaFallback';
 
 const useGeminiSendBoxDraft = getSendBoxDraftHook('gemini', {
   _type: 'gemini',
@@ -93,7 +93,7 @@ const GeminiSendBox: React.FC<{
   const [workspacePath, setWorkspacePath] = useState('');
   const { t } = useTranslation();
   const teamPermission = useTeamPermission();
-  const isCommandQueueEnabled = useCommandQueueEnabled();
+  const isAcpV2Enabled = useAcpV2Enabled();
   // In team mode, all agents show the permission mode selector (members don't propagate)
   const showModeSelector = true;
   const isLeadInTeam = teamPermission?.isLeadAgent ?? false;
@@ -327,14 +327,14 @@ const GeminiSendBox: React.FC<{
     resetActiveExecution,
   } = useConversationCommandQueue({
     conversationId: conversation_id,
-    enabled: isCommandQueueEnabled,
+    enabled: isAcpV2Enabled,
     isBusy,
     isHydrated: hasHydratedRunningState,
     onExecute: executeCommand,
   });
 
   const onSendHandler = async (message: string) => {
-    if (!teamId && !isCommandQueueEnabled && isBusy) {
+    if (!teamId && !isAcpV2Enabled && isBusy) {
       Message.warning(t('messages.conversationInProgress'));
       return;
     }
@@ -345,7 +345,7 @@ const GeminiSendBox: React.FC<{
 
     if (
       shouldEnqueueConversationCommand({
-        enabled: isCommandQueueEnabled,
+        enabled: isAcpV2Enabled,
         isBusy,
         hasPendingCommands,
       })
@@ -523,7 +523,7 @@ const GeminiSendBox: React.FC<{
         onSend={onSendHandler}
         slashCommands={slashCommands}
         onSlashBuiltinCommand={onSlashBuiltinCommand}
-        allowSendWhileLoading={isCommandQueueEnabled}
+        allowSendWhileLoading={isAcpV2Enabled}
       ></SendBox>
     </div>
   );
