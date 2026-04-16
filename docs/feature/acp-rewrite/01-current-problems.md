@@ -95,7 +95,7 @@ graph TD
 
 ### 2.5 新架构如何解决
 
-新架构将上帝类拆分为"一个聚合根 (Aggregate Root) + 多个独立组件"的扁平组合：`AcpSession`（<= 450 行）只保留状态机和编排逻辑，权限、队列、配置、消息适配等职责各自独立为 `PermissionResolver`、`PromptQueue`、`ConfigTracker`、`MessageTranslator` 等组件。详见 [03-architecture-design.md](03-architecture-design.md)，各组件的类型定义见 [04-type-catalog.md](04-type-catalog.md)。
+新架构将上帝类拆分为"一个聚合根 (Aggregate Root) + 编排子模块 + 多个独立组件"的扁平组合：`AcpSession`（~280 行）只保留状态机和 API 路由，连接生命周期委托给 `SessionLifecycle`，prompt 执行委托给 `PromptExecutor`，权限、配置、消息适配等职责各自独立为 `PermissionResolver`、`ConfigTracker`、`MessageTranslator` 等组件。详见 [03-architecture-design.md](03-architecture-design.md)，各组件的类型定义见 [04-type-catalog.md](04-type-catalog.md)。
 
 ---
 

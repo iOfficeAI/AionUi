@@ -82,8 +82,8 @@
 | INV-S-10 | 权限不泄漏                 | T3          | `AcpSession.spec.ts`                                 |
 | INV-S-11 | Model/Mode 一致            | T1 + T3     | `ConfigTracker.spec.ts`, `AcpSession.spec.ts`        |
 | INV-S-12 | MessageTranslator 内存有界 | T1          | `MessageTranslator.spec.ts`                          |
-| INV-S-13 | ApprovalCache 内存有界     | T1          | `ApprovalCache.spec.ts`                              |
-| INV-S-14 | PromptQueue 有界           | T1          | `PromptQueue.spec.ts`                                |
+| INV-S-13 | ApprovalCache 内存有界     | T1          | `ApprovalCache.spec.ts` (从 PermissionResolver 导入) |
+| INV-S-14 | PromptQueue 有界           | ~~已移除~~  | ~~`PromptQueue.spec.ts`~~ (PromptQueue 已删除)       |
 | INV-S-15 | 认证信号必达               | T3          | `AcpSession.spec.ts`                                 |
 | INV-A-01 | 持久化一致                 | T4          | `AcpRuntime.spec.ts`                                 |
 | INV-A-02 | 空闲回收安全               | T4          | `IdleReclaimer.spec.ts`                              |
@@ -118,8 +118,10 @@ T1 测试覆盖 AcpSession 的 8 个组合组件 + errors 模块。这些组件�
 
 ### 2.3 ApprovalCache
 
-**测试文件**: `ApprovalCache.spec.ts`
+**测试文件**: `ApprovalCache.spec.ts` (从 `PermissionResolver.ts` 导入 `ApprovalCache` class)
 **不变量**: INV-S-13 (内存有界, LRU 500)
+
+> 注: ApprovalCache 已合并到 PermissionResolver.ts 同文件，作为 named export 保留，测试独立性不变。
 
 | #   | 测试用例          | 输入                                            | 期望输出                                |
 | --- | ----------------- | ----------------------------------------------- | --------------------------------------- |
@@ -599,16 +601,16 @@ T4 验证 AcpRuntime 作为应用层入口的正确性：
 
 ### 6.2 分模块目标
 
-| 模块                            | 行覆盖率目标 | 说明                          |
-| ------------------------------- | ------------ | ----------------------------- |
-| `session/AcpSession.ts`         | >= 90%       | 核心编排逻辑，T3 覆盖         |
-| `session/PermissionResolver.ts` | >= 95%       | 纯逻辑，T1 覆盖               |
-| `session/PromptQueue.ts`        | 100%         | 纯逻辑，简单数据结构          |
-| `session/ApprovalCache.ts`      | 100%         | 纯逻辑，LRU 实现              |
-| `session/ConfigTracker.ts`      | >= 95%       | 纯逻辑                        |
-| `session/PromptTimer.ts`        | >= 90%       | 时间相关测试有精度限制        |
-| `session/MessageTranslator.ts`  | >= 80%       | 翻译逻辑依赖 SDK 类型细节     |
-| `session/AuthNegotiator.ts`     | >= 90%       | 纯逻辑，T1 覆盖 + T3 认证流程 |
+| 模块                            | 行覆盖率目标 | 说明                                  |
+| ------------------------------- | ------------ | ------------------------------------- |
+| `session/AcpSession.ts`         | >= 90%       | 薄编排层，T3 覆盖                     |
+| `session/SessionLifecycle.ts`   | >= 90%       | 连接生命周期/重试，T3 覆盖            |
+| `session/PromptExecutor.ts`     | >= 90%       | prompt 执行/超时，T3 覆盖             |
+| `session/PermissionResolver.ts` | >= 95%       | 纯逻辑，T1 覆盖 (含 ApprovalCache)   |
+| `session/ConfigTracker.ts`      | >= 95%       | 纯逻辑                                |
+| `session/PromptTimer.ts`        | >= 90%       | 时间相关测试有精度限制                |
+| `session/MessageTranslator.ts`  | >= 80%       | 翻译逻辑依赖 SDK 类型细节             |
+| `session/AuthNegotiator.ts`     | >= 90%       | 纯逻辑，T1 覆盖 + T3 认证流程        |
 | `infra/ProcessAcpClient.ts`         | >= 85%       | T2 真实进程测试               |
 | `infra/WebSocketAcpClient.ts`   | >= 85%       | T2 真实 WebSocket 测试        |
 | `runtime/AcpRuntime.ts`         | >= 85%       | T4 覆盖                       |
@@ -629,8 +631,10 @@ T4 验证 AcpRuntime 作为应用层入口的正确性：
 
 | 变更类型                                  | 运行的测试层级    | 说明                                                         |
 | ----------------------------------------- | ----------------- | ------------------------------------------------------------ |
-| `session/` 下纯逻辑组件                   | T1                | PromptQueue, ApprovalCache, ConfigTracker, AuthNegotiator 等 |
-| `session/AcpSession.ts`                   | T1 + T3           | 组件 + 编排                                                  |
+| `session/` 下纯逻辑组件                   | T1                | PermissionResolver (含 ApprovalCache), ConfigTracker, AuthNegotiator 等 |
+| `session/AcpSession.ts`                   | T1 + T3           | 编排 + 组件                                                             |
+| `session/SessionLifecycle.ts`             | T3                | 连接生命周期/重试编排                                                   |
+| `session/PromptExecutor.ts`               | T3                | prompt 执行编排                                                         |
 | `session/AuthNegotiator.ts`               | T1 + T3           | T1 AuthNegotiator 单测 + T3 认证流程编排                     |
 | `infra/` 下 AcpClient 实现            | T2                | 契约测试                                                     |
 | `infra/ProcessAcpClient.ts`           | T2 + T3           | AcpClient 实现变更影响编排                                   |

@@ -74,52 +74,55 @@ Prompt 路由只有一条路径：统一入队 -> drain loop 出队。不存在�
 新架构分为三层 + 横切关注点：
 
 ```
-┌──────────────────────────────────────────────────────────────────────┐
-│  Application Layer                                                   │
-│                                                                      │
-│  AcpRuntime                                                          │
-│  . Map<convId, AcpSession>      . 空闲回收策略 (IdleReclaimer)       │
-│  . IPC 路由 (渲染层方法 -> session 方法)                             │
-│  . 持久化桥接 (callback -> DB write)                                 │
-│  . 对话创建/关闭/lazy rebuild                                        │
-│  . ClientFactory                                                     │
-│                                                                      │
-├──────────────────────────────────────────────────────────────────────┤
-│  Session Layer                                      * 核心 *         │
-│                                                                      │
-│  AcpSession (aggregate root, <= 450 行)                              │
-│  . 状态机 (idle/starting/active/prompting/suspended/resuming/error)  │
-│  . 生命周期编排 (start/stop/suspend/resume)                          │
-│  . Prompt 流编排 (sendMessage/cancel/drain loop)                     │
-│  ┌────────────────────────────────────────────────────────────┐      │
-│  │  组合的组件 (各自独立, 无互相依赖):                        │      │
-│  │  PermissionResolver    -- 权限决策 + 审批缓存 (LRU 500)    │      │
-│  │  ConfigTracker         -- model/mode/configOption 追踪     │      │
-│  │  PromptQueue           -- 排队 (maxSize=5) + 暂停/恢复语义 │      │
-│  │  MessageTranslator     -- SessionUpdate -> TMessage 翻译   │      │
-│  │  InputPreprocessor     -- @file 解析, 输入转换             │      │
-│  │  McpConfig             -- MCP/Skill 注入配置构建           │      │
-│  │  PromptTimer           -- Prompt 超时计时器                │      │
-│  │  AuthNegotiator        -- 条件认证 + 凭据缓存 + 登录选项   │      │
-│  └────────────────────────────────────────────────────────────┘      │
-│                                                                      │
-├──────────────────────────────────────────────────────────────────────┤
-│  Infrastructure Layer                                                │
-│                                                                      │
-│  AcpClient <<interface>>   -- 单一所有者: 进程 + 协议 + 生命周期     │
-│   ├─ ProcessAcpClient      -- 本地子进程 (所有 agent 统一)           │   内部: ChildProcess, stderr 8KB 环形缓冲, 4路生命周期检测, 启动失败看门狗,
-│   │                                                                  │         pending request 追踪, SDK ClientSideConnection, NdjsonTransport
-│   └─ WebSocketAcpClient    -- 远程 WebSocket                         │
-│                                                                      │
-│  ClientFactory             -- 根据 AgentConfig 创建 AcpClient 实现   │
-│  processUtils              -- splitCommandLine, gracefulShutdown 等  │
-│                                                                      │
-├──────────────────────────────────────────────────────────────────────┤
-│  Cross-cutting                                                       │
-│  errors/   . AcpError . AgentSpawnError . AgentStartupError          │
-│            . AgentDisconnectedError . errorExtract                   │
-│  metrics/  AcpMetrics (Phase 1: 接口 + no-op)                        │
-└──────────────────────────────────────────────────────────────────────┘
+┌───────────────────────────────────────────────────────────────────────┐
+│  Application Layer                                                    │
+│                                                                       │
+│  AcpRuntime                                                           │
+│  . Map<convId, AcpSession>      . 空闲回收策略 (IdleReclaimer)        │
+│  . IPC 路由 (渲染层方法 -> session 方法)                              │
+│  . 持久化桥接 (callback -> DB write)                                  │
+│  . 对话创建/关闭/lazy rebuild                                         │
+│  . ClientFactory                                                      │
+│                                                                       │
+├───────────────────────────────────────────────────────────────────────┤
+│  Session Layer                                      * 核心 *          │
+│                                                                       │
+│  AcpSession (aggregate root, ~280 行)                                 │
+│  . 状态机 (idle/starting/active/prompting/suspended/resuming/error)   │
+│  . 薄编排层: 委托生命周期 → SessionLifecycle, prompt → PromptExecutor │
+│  ┌─────────────────────────────────────────────────────────────┐      │
+│  │  编排子模块:                                                │      │
+│  │  SessionLifecycle     -- 连接启动/恢复/重试/teardown/auth   │      │
+│  │  PromptExecutor       -- prompt 执行/取消/超时/pending      │      │
+│  │                                                             │      │
+│  │  组合的组件 (各自独立, 无互相依赖):                         │      │
+│  │  PermissionResolver    -- 权限决策 + 审批缓存 (LRU 500)     │      │
+│  │  ConfigTracker         -- model/mode/configOption 追踪      │      │
+│  │  MessageTranslator     -- SessionUpdate -> TMessage 翻译    │      │
+│  │  InputPreprocessor     -- @file 解析, 输入转换              │      │
+│  │  McpConfig             -- MCP/Skill 配置合并 (静态方法)     │      │
+│  │  PromptTimer           -- Prompt 超时计时器 (PromptExecutor │      │
+│  │                          内部使用)                          │      │
+│  │  AuthNegotiator        -- 条件认证 + 凭据缓存 + 登录选项    │      │
+│  └─────────────────────────────────────────────────────────────┘      │
+│                                                                       │
+├───────────────────────────────────────────────────────────────────────┤
+│  Infrastructure Layer                                                 │
+│                                                                       │
+│  AcpClient <<interface>>   -- 单一所有者: 进程 + 协议 + 生命周期      │
+│   ├─ ProcessAcpClient      -- 本地子进程 (所有 agent 统一)            │   内部: ChildProcess, stderr 8KB 环形缓冲, 4路生命周期检测, 启动失败看门狗,
+│   │                                                                   │         pending request 追踪, SDK ClientSideConnection, NdjsonTransport
+│   └─ WebSocketAcpClient    -- 远程 WebSocket                          │
+│                                                                       │
+│  ClientFactory             -- 根据 AgentConfig 创建 AcpClient 实现    │
+│  processUtils              -- splitCommandLine, gracefulShutdown 等   │
+│                                                                       │
+├───────────────────────────────────────────────────────────────────────┤
+│  Cross-cutting                                                        │
+│  errors/   . AcpError . AgentSpawnError . AgentStartupError           │
+│            . AgentDisconnectedError . errorExtract                    │
+│  metrics/  AcpMetrics (Phase 1: 接口 + no-op)                         │
+└───────────────────────────────────────────────────────────────────────┘
 
   Discovery (AcpDetector + Hub) -- 独立模块, 不在本次重构范围
 ```
@@ -159,16 +162,12 @@ classDiagram
 
     class AcpSession {
         -status: SessionStatus
-        -sessionId: string?
-        -clientFactory: ClientFactory
-        -client: AcpClient?
         -configTracker: ConfigTracker
         -permissionResolver: PermissionResolver
-        -promptQueue: PromptQueue
-        -adapter: MessageTranslator
-        -promptTimer: PromptTimer
-        -authNegotiator: AuthNegotiator
-        -authPending: boolean
+        -messageTranslator: MessageTranslator
+        -inputPreprocessor: InputPreprocessor
+        -lifecycle: SessionLifecycle
+        -promptExecutor: PromptExecutor
         +sendMessage(text, files) void
         +cancelPrompt() void
         +cancelAll() void
@@ -176,6 +175,31 @@ classDiagram
         +suspend() Promise
         +stop() Promise
         +start() void
+    }
+
+    class SessionLifecycle {
+        -client: AcpClient?
+        -sessionId: string?
+        -authPending: boolean
+        -startRetryCount: number
+        -resumeRetryCount: number
+        +authNegotiator: AuthNegotiator
+        +start() void
+        +resume() void
+        +retryAuth(credentials?) void
+        +teardown() Promise
+        +reassertConfig() Promise
+    }
+
+    class PromptExecutor {
+        -pendingPrompt: PromptContent?
+        -timer: PromptTimer
+        +execute(content) Promise
+        +cancel() void
+        +cancelAll() void
+        +flush() void
+        +pauseTimer() void
+        +resumeTimer() void
     }
 
     class AuthNegotiator {
@@ -232,9 +256,12 @@ classDiagram
     AcpRuntime --> ClientFactory : owns
     AcpRuntime ..|> SessionCallbacks : implements per session
     AcpSession ..> SessionCallbacks : notifies
-    AcpSession --> ClientFactory : creates client via
-    AcpSession --> AcpClient : communicates via
-    AcpSession --> AuthNegotiator : authenticates via
+    AcpSession --> SessionLifecycle : delegates lifecycle
+    AcpSession --> PromptExecutor : delegates prompting
+    SessionLifecycle --> ClientFactory : creates client via
+    SessionLifecycle --> AcpClient : communicates via
+    SessionLifecycle --> AuthNegotiator : authenticates via
+    PromptExecutor --> PromptTimer : uses internally
     AcpClient <|.. ProcessAcpClient
     AcpClient <|.. WebSocketAcpClient
     ClientFactory ..> AcpClient : creates
@@ -496,7 +523,7 @@ class NdjsonTransport {
 
 Session Layer 只有一个聚合根：**AcpSession**。它接收外部命令，根据当前状态决定做什么，调用 Infrastructure 层执行，通过 callback 输出结果。
 
-组件（PermissionResolver, ConfigTracker, PromptQueue, MessageTranslator, InputPreprocessor, McpConfig, PromptTimer）都是 AcpSession 的内部组件，不对外暴露，不跨模块传递，不互相依赖。共同特点：**纯逻辑或纯数据，不持有 IO 引用**。
+组件（PermissionResolver, ConfigTracker, MessageTranslator, InputPreprocessor, McpConfig, PromptTimer）都是 AcpSession 的内部组件，不对外暴露，不跨模块传递，不互相依赖。共同特点：**纯逻辑或纯数据，不持有 IO 引用**。AcpSession 通过两个编排子模块（SessionLifecycle 管理连接生命周期/重试/auth，PromptExecutor 管理 prompt 执行/超时/pending）委托复杂流程，自身保留状态机和公共 API 路由。
 
 ### 4.1 AcpSession 接口定义
 
@@ -643,35 +670,44 @@ stateDiagram-v2
 
 ```typescript
 class AcpSession {
-  // ---- Infrastructure 引用 (suspended 时为 null) ----
-  private client: AcpClient | null = null;
-
   // ---- 状态 ----
   private _status: SessionStatus = 'idle';
+
+  // ---- 编排子模块 ----
+  private readonly lifecycle: SessionLifecycle;    // 连接启动/恢复/重试/teardown/auth
+  private readonly promptExecutor: PromptExecutor; // prompt 执行/取消/超时/pending buffer
+
+  // ---- 组件 (构造时创建, 生命周期跟随 AcpSession) ----
+  readonly configTracker: ConfigTracker;
+  readonly messageTranslator: MessageTranslator;
+  readonly callbacks: SessionCallbacks;
+  readonly metrics: AcpMetrics;
+  private readonly permissionResolver: PermissionResolver;
+  private readonly inputPreprocessor: InputPreprocessor;
+}
+
+class SessionLifecycle {
+  // ---- Infrastructure 引用 (suspended 时为 null) ----
+  private _client: AcpClient | null = null;
   private _sessionId: string | null = null;
+
+  // ---- 重试 ----
   private startRetryCount = 0;
   private resumeRetryCount = 0;
 
-  // ---- 队列 + drain ----
-  private draining = false; // true 期间 scheduleDrain() 不重入
-  private queuePaused = false; // crash recovery 后为 true，等用户决定
-
   // ---- 认证 ----
-  private authPending = false; // true 时处于认证等待，不算死状态
+  private authPending = false;
+  private cachedAuthMethods: AuthMethod[] | null = null;
+  readonly authNegotiator: AuthNegotiator;
+}
 
-  // ---- 组件 (构造时创建, 生命周期跟随 AcpSession) ----
-  private readonly configTracker: ConfigTracker;
-  private readonly permissionResolver: PermissionResolver;
-  private readonly promptQueue: PromptQueue;
-  private readonly adapter: MessageTranslator;
-  private readonly inputPreprocessor: InputPreprocessor;
-  private readonly mcpConfig: McpConfig;
-  private readonly promptTimer: PromptTimer;
-  private readonly authNegotiator: AuthNegotiator;
+class PromptExecutor {
+  private pendingPrompt: PromptContent | null = null;
+  private readonly timer: PromptTimer;
 }
 ```
 
-**关键设计**: `client` 是 nullable。suspended 时为 null，active 时非 null。TypeScript 编译器强制空检查 — 不需要额外的状态机来追踪连接状态。null/non-null 就是状态。
+**关键设计**: `SessionLifecycle._client` 是 nullable。suspended 时为 null，active 时非 null。TypeScript 编译器强制空检查 — 不需要额外的状态机来追踪连接状态。null/non-null 就是状态。`PromptExecutor` 通过 `PromptHost` 接口访问 `lifecycle.client` 和 `lifecycle.sessionId`，无需持有独立的 client 引用。
 
 ### 4.4 sendMessage + 统一队列 + drain loop
 
@@ -742,64 +778,60 @@ flowchart TD
 > 详细场景走查见 [Doc 6 场景 1: 冷启动](06-scenario-walkthrough.md#2-场景-1-创建新会话并发送第一条消息)
 
 1. `setStatus('starting')`
-2. `clientFactory.create(agentConfig)` → 创建 AcpClient 实例
-3. `client.start()` → 内部完成 spawn + init + 启动失败看门狗（记录 spawnLatency + initLatency）
-4. `client.onDisconnect(handler)` → 注册断连处理
-5. **条件认证**: 检查 `initResult.authMethods` → 仅当非空时调用 `authNegotiator.authenticate(client, authMethods)`
-6. `client.createSession({ cwd, mcpServers })` → SessionResult
-7. `configTracker.syncFromSessionResult(result)` + 通知所有 callback
-8. `reassertConfig()` — 如果用户在等待期间切换了 model/mode
-9. `setStatus('active')` + `scheduleDrain()`
+2. `SessionLifecycle.spawnAndInit()`: `clientFactory.create(agentConfig)` → `client.start()` → 记录 spawnLatency
+3. `client.onDisconnect(handler)` → 注册断连处理
+4. **条件认证**: 检查 `initResult.authMethods` → 仅当非空时缓存 authMethods，`createSession` 失败时触发 AUTH_REQUIRED 信号
+5. `SessionLifecycle.establishSession()`: `client.createSession({ cwd, mcpServers })` → SessionResult
+6. `SessionLifecycle.applySessionResult(result)`: `configTracker.syncFromSessionResult(result)` + 通知所有 callback
+7. `setStatus('active')` + `promptExecutor.flush()` 释放 pending prompt
 
 `start()` 在 `idle` 和 `error` 状态下均可调用。从 `error` 状态调用时（用户手动重试），重置重试计数后执行相同流程。最大重试次数由 `SessionOptions.maxStartRetries`（默认 3）控制，即 3 次重试 = 4 次总尝试。
 
-**认证失败处理**: `authNegotiator.authenticate()` 失败时抛出 `AcpError('AUTH_REQUIRED')`。`handleStartError` 捕获后设置 `authPending = true`，发送 `auth_required` 信号给 UI，**停留在 starting 状态而不进入 error**。等待 UI 调用 `retryAuth(credentials?)` 触发 teardown + 完整 `start()` 重启。
+**认证失败处理**: `createSession` 或 `loadSession` 失败且错误码为 `AUTH_REQUIRED` 时，`SessionLifecycle.establishSession()` 捕获错误，设置 `authPending = true`，发送 `auth_required` 信号给 UI，**teardown 连接**。等待 UI 调用 `retryAuth(credentials?)` 触发完整 `start()` 重启。
 
-#### executePrompt() — 执行单个 prompt
+#### executePrompt() — 执行单个 prompt（PromptExecutor 内部）
 
 > 详细场景走查见 [Doc 6 场景 2: 消息发送与 drain loop](06-scenario-walkthrough.md#3-场景-2-消息排队与-drain-loop-处理)
 
 1. `setStatus('prompting')`
-2. `inputPreprocessor.process(text, files)` — @file 解析
-3. `reassertConfig()` — 如果用户在排队期间切换了配置
-4. `promptTimer.start(300_000)` — 5 分钟超时
-5. `client.prompt(sessionId, content)` — 执行 prompt
-6. 流式响应期间：每次 `handleSessionUpdate` 重置 timer、翻译 TMessage、推送 callback
-7. `promptTimer.stop()` + `adapter.onTurnEnd()` — 增量清理
-8. `setStatus('active')` — drainLoop 继续检查队列
+2. `lifecycle.reassertConfig()` — 如果用户在等待期间切换了配置（独立 try-catch，best effort）
+3. `timer.start(300_000)` — 5 分钟超时
+4. `lifecycle.client.prompt(sessionId, content)` — 执行 prompt（独立 try-catch）
+5. 流式响应期间：每次 `handleMessage` 调用 `promptExecutor.resetTimer()`、翻译 TMessage、推送 callback
+6. `timer.stop()` + `messageTranslator.onTurnEnd()` — 增量清理
+7. `setStatus('active')` — 触发 `turn_finished` 信号
 
 #### handleDisconnect() — 进程 crash 处理
 
 > 详细场景走查见 [Doc 6 场景 5: Crash Recovery](06-scenario-walkthrough.md#6-场景-5-agent-进程崩溃与错误恢复)
 
-AcpClient 通过 `onDisconnect(handler)` 回调推送 `DisconnectInfo`（包含 exit code、signal、stderr、reason），AcpSession 无需猜测错误原因。
+AcpClient 通过 `onDisconnect(handler)` 回调推送 `DisconnectInfo`（包含 exit code、signal、stderr、reason），AcpSession 的 `onDisconnect` 方法根据当前状态决定处理方式。
 
-- `prompting` 期间 crash: `queuePaused = true` → 自动 `resume()` → 恢复后等用户决定（resumeQueue 或 cancelAll）
+- `prompting` 期间 crash: `promptExecutor.stopTimer()` + `permissionResolver.rejectAll()` → 自动调用 `lifecycle.resumeFromDisconnect()` 恢复
 - 非 `prompting` 期间: 静默 `setStatus('suspended')` → 等用户下次操作时自动 resume
 
-#### resume() — 恢复已挂起的 session
+#### resume() — 恢复已挂起的 session（SessionLifecycle 内部）
 
 > 详细场景走查见 [Doc 6 场景 4: Suspend/Resume](06-scenario-walkthrough.md#5-场景-4-会话挂起与恢复) 和 [场景 5: Crash Recovery](06-scenario-walkthrough.md#6-场景-5-agent-进程崩溃与错误恢复)
 
 1. `setStatus('resuming')`
-2. `clientFactory.create(agentConfig)` → 创建新的 AcpClient 实例，重建 Infrastructure（新进程/新连接）
-3. `client.start()` → 内部完成 spawn + init
-4. `client.onDisconnect(handler)` → 注册断连处理
-5. `tryResumeOrCreate()`: 先尝试 `client.loadSession(savedSessionId)`，失败则降级 `client.createSession()`
-6. `setStatus('active')`
-7. 如果 `queuePaused`（crash recovery），不自动 drain，发 `onSignal({ type: 'queue_paused' })` 等用户决定
+2. `SessionLifecycle.spawnAndInit()` → 创建新的 AcpClient 实例，重建 Infrastructure（新进程/新连接）
+3. `tryLoadOrCreate()`: 先尝试 `client.loadSession(savedSessionId)`，失败则降级 `client.createSession()`
+4. `reassertConfig()` — 同步用户在 suspended 期间的配置变更
+5. `setStatus('active')`
+6. `promptExecutor.flush()` — 释放 pending prompt
 
 ### 4.6 组件详述
 
 #### PermissionResolver — 三级权限决策
 
-决策链：YOLO 自动批准 → ApprovalCache (LRU 500) 缓存命中 → UI 委托（创建 pending promise，等用户操作）。`autoApproveAll`（YOLO 模式标志）来自 `AgentConfig.autoApproveAll`，在 AcpSession 构造时传入 PermissionResolver。
+决策链：YOLO 自动批准 → ApprovalCache (LRU 500, 内嵌于 PermissionResolver) 缓存命中 → UI 委托（创建 pending promise，等用户操作）。`autoApproveAll`（YOLO 模式标志）来自 `AgentConfig.autoApproveAll`，在 AcpSession 构造时传入 PermissionResolver。
 
 ```mermaid
 sequenceDiagram
     participant S as AcpSession
     participant PP as PermissionResolver
-    participant AC as ApprovalCache
+    participant AC as ApprovalCache (内嵌)
     participant UI as User (UI)
 
     S->>PP: evaluate(request, uiCallback)
@@ -821,7 +853,7 @@ sequenceDiagram
     end
 ```
 
-权限等待期间，`promptTimer.pause()` 暂停超时计时；用户响应后 `promptTimer.resume()` 恢复。
+权限等待期间，`promptExecutor.pauseTimer()` 暂停超时计时；用户响应后 `promptExecutor.resumeTimer()` 恢复。
 
 #### ConfigTracker — 配置追踪
 
@@ -832,11 +864,11 @@ sequenceDiagram
 - `getPendingChanges()`: reassert 时返回需要同步到 agent 的变更
 - `syncFromSessionResult(result)`: 从 agent 返回的 SessionResult 同步所有可用选项
 
-`reassertConfig()` 在 `start()`、`resume()`、`executePrompt()` 中被调用，确保每次与 agent 交互前配置是最新的。
+`reassertConfig()` 是 `SessionLifecycle` 的方法，在 `start()`、`resume()` 以及 `PromptExecutor.execute()` 中被调用，确保每次与 agent 交互前配置是最新的。
 
-#### PromptQueue — 有界 FIFO 队列
+#### PromptTimer — Prompt 超时计时器
 
-纯数据容器。`maxSize = 5`，满时 `enqueue()` 返回 `false`（不丢弃旧消息）。`snapshot()` 返回浅拷贝，不持有原始 QueuedPrompt 引用。
+PromptTimer 是 PromptExecutor 内部使用的 3 态状态机（idle/running/paused），不直接暴露给 AcpSession。PromptExecutor 通过 `pauseTimer()`/`resumeTimer()`/`resetTimer()`/`stopTimer()` 方法代理 timer 操作。
 
 #### MessageTranslator — 流式消息翻译
 
@@ -854,8 +886,7 @@ sequenceDiagram
 | ----------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------ |
 | InputPreprocessor | 解析用户消息中的 `@file` 引用，读取文件内容，构建 PromptContent                                                                                                                          | 80-100 |
 | McpConfig         | 合并用户 MCP 配置 + Assistant 预设 + Team MCP，构建 SDK `McpServer[]`。合并优先级：用户配置 > Assistant 预设 > Team MCP（同名 server 以高优先级为准覆盖，不合并）。Team MCP 总是追加。 | 40-60  |
-| PromptTimer       | 3 态内部状态机（idle/running/paused），支持 start/reset/pause/resume/stop                                                                                                                | 60-80  |
-| ApprovalCache     | LRU 审批缓存，maxSize=500，被 PermissionResolver 使用                                                                                                                                    | 60-80  |
+| ApprovalCache     | LRU 审批缓存，maxSize=500，内嵌于 PermissionResolver（同一文件）                                                                                                                        | ~40    |
 
 #### AuthNegotiator — 条件认证
 
@@ -1393,7 +1424,7 @@ AionUi 支持 4 类 Agent 来源，全部通过 2 种 AcpClient 实现覆盖：
 | D7  | NPX 降级           | **Round 04 删除**                                              | bun 内置后前提不存在                                                      |
 | D8  | Metrics            | Phase 1 接口 + noopMetrics + 5 个注入点                        | 接口预留零运行时开销；no-op 默认避免空检查                                |
 | D9  | Protocol 测试注入  | ClientFactory 构造函数注入                                     | T2/T3 测试可精确控制 AcpClient 行为；改动极小                             |
-| D10 | 内存上限           | onTurnEnd 增量清理 + ApprovalCache LRU 500 + PromptQueue 5     | 桌面应用可能开着好几天；所有有状态结构必须有上限                          |
+| D10 | 内存上限           | onTurnEnd 增量清理 + ApprovalCache LRU 500                    | 桌面应用可能开着好几天；所有有状态结构必须有上限                          |
 | D11 | 类型目录           | 正式类型目录，按 3 层边界组织，标注来源                        | 类型全局视图对 SDK 包装系统至关重要                                       |
 | D12 | 不变量清单         | 23 条编号不变量 (INV-I/S/A/X)                                  | 编号使 test case 和不变量有可追溯映射                                     |
 | D13 | 测试策略           | 4 层: T1 纯逻辑 / T2 契约 / T3 Session 编排 / T4 Runtime 集成  | 按失效边界组织，不是按架构层数 1:1 对应                                   |
@@ -1414,7 +1445,7 @@ AionUi 支持 4 类 Agent 来源，全部通过 2 种 AcpClient 实现覆盖：
 
 ## 11. 代码骨架文件清单
 
-26 个 TypeScript 文件，约 2,320-2,990 行。所有文件位于 `src/process/acp/` 下。
+25 个 TypeScript 文件，约 2,480-2,910 行。所有文件位于 `src/process/acp/` 下。
 
 ### Infrastructure Layer (`infra/`)
 
@@ -1430,21 +1461,20 @@ AionUi 支持 4 类 Agent 来源，全部通过 2 种 AcpClient 实现覆盖：
 
 ### Session Layer (`session/`)
 
-| 文件                    | 职责                                                | 预估行数 |
-| ----------------------- | --------------------------------------------------- | -------- |
-| `AcpSession.ts`         | **聚合根** — 状态机 + 编排（硬限制 <= 450 行）      | 350-450  |
-| `AuthNegotiator.ts`     | 条件认证 + 凭据内存缓存 + 登录选项构建              | 50-70    |
-| `PermissionResolver.ts` | YOLO / Cache / UI 三级权限决策                      | 100-130  |
-| `ApprovalCache.ts`      | LRU 审批缓存，maxSize=500                           | 60-80    |
-| `ConfigTracker.ts`      | model/mode/configOption 追踪，current/desired 语义  | 150-180  |
-| `PromptQueue.ts`        | FIFO 队列，maxSize=5                                | 60-80    |
-| `MessageTranslator.ts`  | SessionUpdate -> TMessage 翻译 + onTurnEnd 增量清理 | 200-250  |
-| `InputPreprocessor.ts`  | @file 解析、输入转换                                | 80-100   |
-| `McpConfig.ts`          | MCP/Skill 配置合并                                  | 40-60    |
-| `PromptTimer.ts`        | 3 态超时计时器 (idle/running/paused)                | 60-80    |
-| `types.ts`              | SessionCallbacks, SessionStatus, 快照类型等         | 80-100   |
+| 文件                    | 职责                                                            | 预估行数 |
+| ----------------------- | --------------------------------------------------------------- | -------- |
+| `AcpSession.ts`         | **聚合根** — 状态机 + 薄编排层，委托给子模块                   | ~280     |
+| `SessionLifecycle.ts`   | 连接启动/恢复/重试/teardown/auth/session 加载/config reassert   | ~270     |
+| `PromptExecutor.ts`     | prompt 执行/取消/超时/pending buffer (内部使用 PromptTimer)     | ~150     |
+| `AuthNegotiator.ts`     | 条件认证 + 凭据内存缓存 + 登录选项构建                         | 50-70    |
+| `PermissionResolver.ts` | YOLO / Cache / UI 三级权限决策 (含 ApprovalCache LRU 500)      | ~130     |
+| `ConfigTracker.ts`      | model/mode/configOption 追踪，current/desired 语义             | ~120     |
+| `MessageTranslator.ts`  | SessionUpdate -> TMessage 翻译 + onTurnEnd 增量清理            | 200-250  |
+| `InputPreprocessor.ts`  | @file 解析、输入转换                                           | 80-100   |
+| `McpConfig.ts`          | MCP/Skill 配置合并                                             | 40-60    |
+| `PromptTimer.ts`        | 3 态超时计时器 (idle/running/paused)                           | ~70      |
 
-小计: 1,230-1,580 行
+小计: ~1,390-1,500 行
 
 ### Application Layer (`runtime/`)
 
@@ -1475,17 +1505,17 @@ AionUi 支持 4 类 Agent 来源，全部通过 2 种 AcpClient 实现覆盖：
 | 层             | 文件数 | 预估行数        |
 | -------------- | ------ | --------------- |
 | Infrastructure | 5      | 500-630         |
-| Session        | 11     | 1,230-1,580     |
+| Session        | 10     | ~1,390-1,500    |
 | Application    | 3      | 320-410         |
 | Cross-cutting  | 7      | 270-370         |
-| **合计**       | **26** | **2,320-2,990** |
+| **合计**       | **25** | **~2,480-2,910** |
 
 对比现状：
 
 | 方案       | 文件数 | 总行数           | 最大单文件                      |
 | ---------- | ------ | ---------------- | ------------------------------- |
 | 现有实现   | ~17    | ~5,900           | ~1,780 行（AcpAgent）           |
-| **新方案** | **26** | **~2,320-2,990** | **450 行（AcpSession 硬限制）** |
+| **新方案** | **25** | **~2,480-2,910** | **~280 行（AcpSession 薄编排层）** |
 
 ### 实现优先级
 

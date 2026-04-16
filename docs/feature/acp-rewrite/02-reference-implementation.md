@@ -394,7 +394,7 @@ acpx 是 CLI 工具，AionUi 是 Electron 桌面应用。两者虽然使用同�
 1. **多 session 管理**：AcpRuntime 维护 `Map<convId, AcpSession>`，处理 session 间的资源隔离和空闲回收
 2. **数据库持久化**：session 状态持久化到 SQLite（`acp_session` 表），支持跨应用重启恢复
 3. **IPC 路由**：渲染进程的方法调用通过 IPC 路由到对应的 session 实例
-4. **内存有界**：所有有状态结构需要明确上限（PromptQueue 5 条、ApprovalCache LRU 500 条、NdjsonTransport highWaterMark 64）
+4. **内存有界**：所有有状态结构需要明确上限（ApprovalCache LRU 500 条、NdjsonTransport highWaterMark 64）
 5. **Agent 发现**：三级发现机制（内置、扩展、自定义），Hub 安装/更新/卸载
 6. **NPX 降级与重试**：内置 bun/bunx 替代系统 npm/npx，减少环境依赖
 

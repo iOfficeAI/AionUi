@@ -34,18 +34,18 @@
 
 场景覆盖的架构层级：
 
-| 场景            |         Application          |                          Session                           |               Infrastructure               | 涉及的关键不变量                       |
-| --------------- | :--------------------------: | :--------------------------------------------------------: | :----------------------------------------: | -------------------------------------- |
-| 1. 冷启动全流程 | AcpRuntime, ClientFactory    |            AcpSession, ConfigTracker, McpConfig            | ProcessAcpClient                           | INV-I-01, INV-S-09                     |
-| 2. 多消息排队   |          AcpRuntime          |         AcpSession, PromptQueue, MessageTranslator         |                AcpClient                   | INV-S-01, INV-S-02, INV-S-14, INV-X-02 |
-| 3. 权限审批     |          AcpRuntime          | AcpSession, PermissionResolver, ApprovalCache, PromptTimer |                AcpClient                   | INV-S-04, INV-S-10, INV-S-13           |
-| 4. 挂起与恢复   |          AcpRuntime          |                 AcpSession, ConfigTracker                  |         ProcessAcpClient                   | INV-S-05, INV-A-01                     |
-| 5. Crash 恢复   |          AcpRuntime          |        AcpSession, PromptQueue, PermissionResolver         |         ProcessAcpClient                   | INV-S-03, INV-S-06, INV-S-08, INV-X-04 |
-| 6. 空闲回收     |  IdleReclaimer, AcpRuntime   |                         AcpSession                         |                ProcessAcpClient            | INV-A-02, INV-I-01                     |
-| 7. 配置变更     |          AcpRuntime          |                 AcpSession, ConfigTracker                  |                AcpClient                   | INV-S-11                               |
-| 8. WebSocket    | AcpRuntime, ClientFactory    |                         AcpSession                         |      WebSocketAcpClient                    | INV-I-01                               |
-| 9. 错误恢复     |          AcpRuntime          |                 AcpSession, ConfigTracker                  |         ProcessAcpClient                   | INV-S-03, INV-S-09                     |
-| 10. 条件认证    |          AcpRuntime          |                 AcpSession, AuthNegotiator                 |         ProcessAcpClient                   | INV-S-15, INV-S-03                     |
+| 场景            |         Application          |                          Session                                           |               Infrastructure               | 涉及的关键不变量                       |
+| --------------- | :--------------------------: | :------------------------------------------------------------------------: | :----------------------------------------: | -------------------------------------- |
+| 1. 冷启动全流程 | AcpRuntime, ClientFactory    |            AcpSession, SessionLifecycle, ConfigTracker, McpConfig           | ProcessAcpClient                           | INV-I-01, INV-S-09                     |
+| 2. 多消息排队   |          AcpRuntime          |         AcpSession, PromptExecutor, MessageTranslator                      |                AcpClient                   | INV-S-01, INV-S-02                     |
+| 3. 权限审批     |          AcpRuntime          | AcpSession, PromptExecutor, PermissionResolver, PromptTimer                |                AcpClient                   | INV-S-04, INV-S-10, INV-S-13           |
+| 4. 挂起与恢复   |          AcpRuntime          |                 AcpSession, SessionLifecycle, ConfigTracker                |         ProcessAcpClient                   | INV-S-05, INV-A-01                     |
+| 5. Crash 恢复   |          AcpRuntime          |        AcpSession, SessionLifecycle, PromptExecutor, PermissionResolver    |         ProcessAcpClient                   | INV-S-03, INV-S-06, INV-S-08, INV-X-04 |
+| 6. 空闲回收     |  IdleReclaimer, AcpRuntime   |                         AcpSession                                         |                ProcessAcpClient            | INV-A-02, INV-I-01                     |
+| 7. 配置变更     |          AcpRuntime          |                 AcpSession, SessionLifecycle, ConfigTracker                |                AcpClient                   | INV-S-11                               |
+| 8. WebSocket    | AcpRuntime, ClientFactory    |                         AcpSession, SessionLifecycle                       |      WebSocketAcpClient                    | INV-I-01                               |
+| 9. 错误恢复     |          AcpRuntime          |                 AcpSession, SessionLifecycle, ConfigTracker                |         ProcessAcpClient                   | INV-S-03, INV-S-09                     |
+| 10. 条件认证    |          AcpRuntime          |                 AcpSession, SessionLifecycle, AuthNegotiator               |         ProcessAcpClient                   | INV-S-15, INV-S-03                     |
 
 ---
 
@@ -67,8 +67,9 @@ sequenceDiagram
     participant RT as AcpRuntime
     participant CF as ClientFactory
     participant S as AcpSession
+    participant SL as SessionLifecycle
+    participant PE as PromptExecutor
     participant CS as ConfigTracker
-    participant PQ as PromptQueue
     participant IP as InputPreprocessor
     participant MA as MessageTranslator
     participant PT as PromptTimer
@@ -355,19 +356,19 @@ sequenceDiagram
     participant CL as AcpClient
     participant S as AcpSession
     participant PP as PermissionResolver
-    participant AC as ApprovalCache
+    participant AC as ApprovalCache (内嵌)
     participant PT as PromptTimer
 
     A->>CL: requestPermission({ toolCall: { name: "bash" }, options: [...] })
     CL->>S: handlePermissionRequest(request)
-    S->>PT: pause()
+    S->>S: promptExecutor.pauseTimer()
     S->>PP: evaluate(request, uiCallback)
     Note over PP: autoApproveAll = false
     PP->>AC: lookup(request)
     Note over AC: 匹配到之前 "allow_always" 的缓存
     AC-->>PP: { optionId: "allow_always" }
     PP-->>S: { optionId: "allow_always" }
-    S->>PT: resume()
+    S->>S: promptExecutor.resumeTimer()
     S-->>CL: RequestPermissionResponse
     CL-->>A: 继续执行
 ```
@@ -380,13 +381,13 @@ sequenceDiagram
     participant CL as AcpClient
     participant S as AcpSession
     participant PP as PermissionResolver
-    participant AC as ApprovalCache
+    participant AC as ApprovalCache (内嵌)
     participant PT as PromptTimer
     participant UI as User (UI)
 
     A->>CL: requestPermission(request)
     CL->>S: handlePermissionRequest(request)
-    S->>PT: pause() — INV-S-04: 权限等待期间暂停计时
+    S->>S: promptExecutor.pauseTimer() — INV-S-04: 权限等待期间暂停计时
     S->>PP: evaluate(request, uiCallback)
     PP->>AC: lookup(request) → null
     Note over PP: 创建 pending Promise<br/>pending.set(callId, { resolve, reject })
@@ -401,7 +402,7 @@ sequenceDiagram
     PP->>PP: pending.delete(callId)
     PP-->>S: { optionId: "allow_always" } — Promise resolves
 
-    S->>PT: resume() — INV-S-04: 恢复计时
+    S->>S: promptExecutor.resumeTimer() — INV-S-04: 恢复计时
     S-->>CL: RequestPermissionResponse
     CL-->>A: 继续执行
 ```

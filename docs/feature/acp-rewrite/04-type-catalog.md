@@ -1145,7 +1145,7 @@ classDiagram
 
 ### INV-S-04: Timer 与 prompt 生命周期一致
 
-- **描述**: `prompting` 状态下 PromptTimer 必须处于 `running` 或 `paused`（权限等待期间）状态；非 `prompting` 状态下 Timer 必须处于 `idle` 状态。
+- **描述**: `prompting` 状态下 PromptTimer（由 PromptExecutor 内部管理）必须处于 `running` 或 `paused`（权限等待期间）状态；非 `prompting` 状态下 Timer 必须处于 `idle` 状态。
 - **形式化**: `(status === 'prompting') => (timer.state in ['running', 'paused'])` 且 `(status !== 'prompting') => (timer.state === 'idle')`
 - **验证方式**: T3 编排集成测试——在状态转换后检查 timer 状态。
 - **违反后果**: 非 prompting 期间触发超时回调，导致错误地取消不存在的 prompt。
@@ -1208,7 +1208,7 @@ classDiagram
 
 ### INV-S-11: Model/Mode 一致
 
-- **描述**: `reassertConfig()` 完成后，`desiredModelId === null || desiredModelId === currentModelId`，mode 同理。
+- **描述**: `SessionLifecycle.reassertConfig()` 完成后，`desiredModelId === null || desiredModelId === currentModelId`，mode 同理。
 - **形式化**: `reassertConfig() resolved` => `configTracker.desiredModelId === null || configTracker.desiredModelId === configTracker.currentModelId`
 - **验证方式**: T1 纯逻辑单测（ConfigTracker）+ T3 编排集成测试。
 - **违反后果**: resume 后 model/mode 与用户预期不一致，agent 使用错误的模型响应。
@@ -1225,11 +1225,11 @@ classDiagram
 
 ### INV-S-13: ApprovalCache 内存有界（评审 #19）
 
-- **描述**: ApprovalCache 条目数 <= 500（LRU 淘汰）。
+- **描述**: ApprovalCache 条目数 <= 500（LRU 淘汰）。ApprovalCache 已合并到 PermissionResolver.ts 同文件中。
 - **形式化**: `approvalCache.size <= maxSize`（默认 500）
 - **验证方式**: T1 纯逻辑单测。
 - **违反后果**: 权限缓存无限增长，内存泄漏。
-- **关联测试**: `ApprovalCache.spec.ts - should evict oldest entries when exceeding max size`
+- **关联测试**: `ApprovalCache.spec.ts - should evict oldest entries when exceeding max size`（从 PermissionResolver 导入）
 - **场景走查**: [Doc 6 场景 3](./06-scenario-walkthrough.md#4-场景-3-权限审批流程)
 
 ### INV-S-14: PromptQueue 有界（D10 决议）
@@ -1243,7 +1243,7 @@ classDiagram
 
 ### INV-S-15: 认证信号必达
 
-- **描述**: 若 agent 要求认证（`InitializeResponse` 含 `authMethods`）且当前没有可用凭据（`AuthNegotiator.hasCredentials` 为 `false`），或认证调用失败（`AUTH_FAILED`），AcpSession 必须通过 `callbacks.onSignal({ type: 'auth_required', auth })` 通知 Application 层。认证等待期间 AcpSession 保持 `starting` 状态（或 `resuming` 状态），连接资源已释放（`client.close()` 完成）。不进入 `error` 状态。`retryAuth()` 调用后走 reset 模式：重新执行 `doStart()` 完整流程（client.start -> createSession），不继续之前中断的握手。
+- **描述**: 若 agent 要求认证（`InitializeResponse` 含 `authMethods`）且当前没有可用凭据（`AuthNegotiator.hasCredentials` 为 `false`），或认证调用失败（`AUTH_FAILED`），AcpSession 必须通过 `callbacks.onSignal({ type: 'auth_required', auth })` 通知 Application 层。认证等待期间连接资源已释放（`SessionLifecycle.teardown()` 完成）。`retryAuth()` 调用后走 reset 模式：`SessionLifecycle.retryAuth()` 重新执行 `doStart()` 完整流程（client.start -> createSession），不继续之前中断的握手。
 - **形式化**:
   ```
   (requiresAuth(initResult) && !authNegotiator.hasCredentials)
@@ -1337,8 +1337,8 @@ classDiagram
 | INV-S-10     | 权限不泄漏                   | Session        | T3          | 原 #16             |
 | INV-S-11     | Model/Mode 一致              | Session        | T1 + T3     | 原 #17             |
 | INV-S-12     | MessageTranslator 内存有界   | Session        | T1          | D10 决议           |
-| INV-S-13     | ApprovalCache 内存有界       | Session        | T1          | 评审 #19           |
-| INV-S-14     | PromptQueue 有界             | Session        | T1          | D10 决议           |
+| INV-S-13     | ApprovalCache 内存有界       | Session        | T1          | 评审 #19 (合入 PermissionResolver) |
+| ~~INV-S-14~~ | ~~PromptQueue 有界~~         | -              | -           | **已删除** (PromptQueue 已移除)    |
 | INV-S-15     | 认证信号必达                 | Session        | T3          | 新（认证架构设计） |
 | INV-A-01     | 持久化一致                   | Application    | T4          | 原 #13             |
 | INV-A-02     | 空闲回收安全                 | Application    | T4          | 原 #5 扩展         |
