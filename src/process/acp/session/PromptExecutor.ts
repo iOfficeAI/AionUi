@@ -1,5 +1,4 @@
 import { normalizeError } from '@process/acp/errors/errorNormalize';
-import type { AcpClient } from '@process/acp/infra/IAcpClient';
 import type { AcpMetrics } from '@process/acp/metrics/AcpMetrics';
 import type { AuthNegotiator } from '@process/acp/session/AuthNegotiator';
 import type { MessageTranslator } from '@process/acp/session/MessageTranslator';

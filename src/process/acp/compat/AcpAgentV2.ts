@@ -27,13 +27,9 @@ import type {
 import type { McpServer } from '@agentclientprotocol/sdk';
 import { getEnhancedEnv } from '@process/utils/shellEnv';
 import { spawn } from 'node:child_process';
-import * as fs from 'node:fs';
-import * as os from 'node:os';
-import * as path from 'node:path';
 
 /**
  * Temporary: backend-specific CLI login arguments.
- * Fallback when no provider-specific auth refresh command is available.
  * Will be replaced by `authCommand + args` config in PR #2349.
  */
 const BACKEND_LOGIN_ARGS: Record<string, string[] | undefined> = {
@@ -44,67 +40,11 @@ const BACKEND_LOGIN_ARGS: Record<string, string[] | undefined> = {
 const LOGIN_TIMEOUT_MS = 70_000;
 
 /**
- * Read the `awsAuthRefresh` command from `~/.claude/settings.json`.
- * Claude Code uses this to refresh AWS SSO/Bedrock credentials.
- */
-function readClaudeAuthRefreshCommand(): string | null {
-  try {
-    const settingsPath = path.join(os.homedir(), '.claude', 'settings.json');
-    const content = JSON.parse(fs.readFileSync(settingsPath, 'utf-8'));
-    if (typeof content.awsAuthRefresh === 'string' && content.awsAuthRefresh.length > 0) {
-      return content.awsAuthRefresh;
-    }
-  } catch {
-    /* settings not found or invalid — fall through */
-  }
-  return null;
-}
-
-/**
- * Run a shell command string (e.g., "aws sso login --profile ai").
- * Uses `shell: true` so it supports arbitrary commands from settings.
- */
-function runShellCommand(command: string, env: Record<string, string | undefined>): Promise<void> {
-  console.log(`[AcpAgentV2] Running auth refresh: ${command}`);
-  const child = spawn(command, {
-    shell: true,
-    stdio: 'pipe',
-    timeout: LOGIN_TIMEOUT_MS,
-    env,
-  });
-
-  return new Promise<void>((resolve, reject) => {
-    child.on('close', (code) => {
-      if (code === 0) resolve();
-      else reject(new Error(`Auth refresh exited with code ${code}: ${command}`));
-    });
-    child.on('error', (err) => {
-      reject(new Error(`Failed to run auth refresh: ${err.message}`));
-    });
-  });
-}
-
-/**
- * Refresh backend credentials.
- *
- * Priority:
- * 1. Claude + Bedrock: read `awsAuthRefresh` from ~/.claude/settings.json
- *    (e.g., "aws sso login --profile ai")
- * 2. Fallback: run backend CLI login command (e.g., "claude /login")
+ * Refresh backend credentials by running the backend CLI login command.
+ * Will be replaced by `authCommand + args` config when Agent Hub lands (PR #2349).
  */
 async function runBackendLogin(backend: string): Promise<void> {
   const env = getEnhancedEnv();
-
-  // Priority 1: Claude settings awsAuthRefresh (for Bedrock/AWS SSO)
-  // if (backend === 'claude') {
-  //   const awsAuthRefresh = readClaudeAuthRefreshCommand();
-  //   if (awsAuthRefresh) {
-  //     await runShellCommand(awsAuthRefresh, env);
-  //     return;
-  //   }
-  // }
-
-  // Priority 2: backend CLI login command
   const loginArgs = BACKEND_LOGIN_ARGS[backend];
   if (!loginArgs) return;
 
@@ -567,12 +507,12 @@ export class AcpAgentV2 {
   }
 
   async kill(): Promise<void> {
-    await this.session!.stop();
+    await this.session?.stop();
     this.acpSessionRepo?.deleteSession(this.conversationId);
   }
 
   cancelPrompt(): void {
-    this.session!.cancelPrompt();
+    this.session?.cancelPrompt();
   }
 
   // ─── Messaging + Permission Methods (Task 5) ───────────

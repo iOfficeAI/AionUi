@@ -143,7 +143,10 @@ export class AcpSession {
 
   setStatus(newStatus: SessionStatus): void {
     const allowed = VALID_TRANSITIONS[this._status];
-    if (!allowed.includes(newStatus)) return;
+    if (!allowed.includes(newStatus)) {
+      console.warn(`[AcpSession] Invalid status transition: ${this._status} → ${newStatus}`);
+      return;
+    }
     this._status = newStatus;
     this.callbacks.onStatusChange(newStatus);
   }
@@ -209,7 +212,7 @@ export class AcpSession {
         .setModel(sessionId, modelId)
         .then(() => this.configTracker.setCurrentModel(modelId))
         .then(() => this.callbacks.onModelUpdate(this.configTracker.modelSnapshot()))
-        .catch(() => {});
+        .catch((err) => console.warn('[AcpSession] setModel failed:', err));
     }
   }
 
@@ -224,7 +227,7 @@ export class AcpSession {
         .setMode(sessionId, modeId)
         .then(() => this.configTracker.setCurrentMode(modeId))
         .then(() => this.callbacks.onModeUpdate(this.configTracker.modeSnapshot()))
-        .catch(() => {});
+        .catch((err) => console.warn('[AcpSession] setMode failed:', err));
     }
   }
 
@@ -235,7 +238,7 @@ export class AcpSession {
       client
         .setConfigOption(sessionId, id, value)
         .then(() => this.configTracker.setCurrentConfigOption(id, value))
-        .catch(() => {});
+        .catch((err) => console.warn('[AcpSession] setConfigOption failed:', err));
     }
   }
 

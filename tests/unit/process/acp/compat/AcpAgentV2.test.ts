@@ -258,10 +258,10 @@ describe('AcpAgentV2 - Lifecycle Methods', () => {
       expect(mockSessionMethods.cancelPrompt).toHaveBeenCalledTimes(3);
     });
 
-    it('should throw if called before start (session is null)', () => {
+    it('should be a safe no-op if called before start (session is null)', () => {
       const agent = createAgent();
 
-      expect(() => agent.cancelPrompt()).toThrow();
+      expect(() => agent.cancelPrompt()).not.toThrow();
     });
   });
 
