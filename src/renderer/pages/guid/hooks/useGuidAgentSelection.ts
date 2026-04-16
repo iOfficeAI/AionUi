@@ -82,7 +82,6 @@ export const useGuidAgentSelection = ({
   const [selectedMode, _setSelectedMode] = useState<string>('default');
   // Track whether mode was loaded from preferences to avoid overwriting during initial load
   const selectedAgentRef = useRef<string | null>(null);
-  const probedModelBackendsRef = useRef(new Set<string>());
   const [acpCachedModels, setAcpCachedModels] = useState<Record<string, AcpModelInfo>>({});
   const [acpCachedConfigOptions, setAcpCachedConfigOptions] = useState<Record<string, AcpSessionConfigOption[]>>({});
   const [selectedAcpConfigOptions, setSelectedAcpConfigOptions] = useState<Record<string, string>>({});
@@ -366,56 +365,6 @@ export const useGuidAgentSelection = ({
     };
   }, []);
 
-  // Probe Codex model info on first selection so the Guid page can show
-  // the real account-scoped models before the first conversation starts.
-  useEffect(() => {
-    if (selectedAgentKey !== 'codex') return;
-    if (probedModelBackendsRef.current.has('codex')) return;
-
-    const probeModelInfo = ipcBridge.acpConversation.probeModelInfo;
-    if (!probeModelInfo?.invoke) return;
-
-    let cancelled = false;
-    probedModelBackendsRef.current.add('codex');
-
-    probeModelInfo
-      .invoke({ backend: 'codex' })
-      .then(async (result) => {
-        if (cancelled) return;
-        const modelInfo = result.success ? result.data?.modelInfo : null;
-        if (!modelInfo?.availableModels?.length) {
-          probedModelBackendsRef.current.delete('codex');
-          return;
-        }
-
-        console.log('[Guid][codex] Probed model info:', modelInfo);
-
-        const cached = (await ConfigStorage.get('acp.cachedModels').catch(() => ({}))) || {};
-        if (cancelled) return;
-
-        const nextCachedModels = {
-          ...cached,
-          codex: modelInfo,
-        };
-
-        setAcpCachedModels((prev) => ({
-          ...prev,
-          codex: modelInfo,
-        }));
-
-        await ConfigStorage.set('acp.cachedModels', nextCachedModels).catch((error) => {
-          console.error('Failed to save probed ACP model info:', error);
-        });
-      })
-      .catch((error) => {
-        probedModelBackendsRef.current.delete('codex');
-        console.warn('[Guid][codex] Failed to probe model info:', error);
-      });
-
-    return () => {
-      cancelled = true;
-    };
-  }, [selectedAgentKey]);
   // Load cached ACP config options per backend
   useEffect(() => {
     const backend = isPresetAgent

@@ -23,6 +23,7 @@ vi.mock('../../src/common', () => ({
       testCustomAgent: makeChannel('testCustomAgent'),
       checkAgentHealth: makeChannel('checkAgentHealth'),
       getMode: makeChannel('getMode'),
+      getCapabilities: makeChannel('getCapabilities'),
       getModelInfo: makeChannel('getModelInfo'),
       setModel: makeChannel('setModel'),
       setMode: makeChannel('setMode'),

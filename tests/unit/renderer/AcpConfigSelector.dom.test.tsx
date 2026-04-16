@@ -141,7 +141,7 @@ describe('AcpConfigSelector', () => {
       />
     );
 
-    expect(screen.getByText('High')).toBeInTheDocument();
+    expect(screen.getByRole('button')).toHaveTextContent('High');
   });
 
   it('renders aionrs ChatGPT reasoning defaults from preselected config options', () => {
@@ -165,6 +165,6 @@ describe('AcpConfigSelector', () => {
       />
     );
 
-    expect(screen.getByText('Minimal')).toBeInTheDocument();
+    expect(screen.getByRole('button')).toHaveTextContent('Minimal');
   });
 });
