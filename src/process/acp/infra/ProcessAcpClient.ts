@@ -56,6 +56,7 @@ export type ProcessAcpClientOptions = {
 export class ProcessAcpClient implements AcpClient {
   private child: ChildProcess | null = null;
   private connection: ClientSideConnection | null = null;
+  private _connProxy: ClientSideConnection | null = null;
   private closing = false;
 
   // Stderr ring buffer
@@ -132,7 +133,7 @@ export class ProcessAcpClient implements AcpClient {
     try {
       const initResult = await Promise.race([
         this.runConnectionRequest(() =>
-          connection.initialize({
+          this.conn.initialize({
             clientInfo: { name: 'AionUi', version: '2.0.0' },
             protocolVersion: PROTOCOL_VERSION,
             clientCapabilities: {
@@ -143,7 +144,6 @@ export class ProcessAcpClient implements AcpClient {
         startupFailure.promise,
       ]);
       startupFailure.dispose();
-      console.debug(`[AcpClient:Initialized] <- ${JSON.stringify(initResult)}`);
       return initResult;
     } catch (err) {
       startupFailure.dispose();
@@ -223,6 +223,7 @@ export class ProcessAcpClient implements AcpClient {
       this.child = null;
     }
     this.connection = null;
+    this._connProxy = null;
   }
 
   // ─── Internals: Connection accessor ────────────────────────
@@ -231,7 +232,45 @@ export class ProcessAcpClient implements AcpClient {
     if (!this.connection) {
       throw new AgentDisconnectedError('connection_close', null, null);
     }
-    return this.connection;
+    if (!this._connProxy) {
+      this._connProxy = this.loggingProxy(this.connection);
+    }
+    return this._connProxy;
+  }
+
+  /**
+   * Wrap a ClientSideConnection with a Proxy that logs every method call
+   * (request args + response/error) via console.debug.
+   * Zero-touch: all current and future SDK methods are captured automatically.
+   */
+  private loggingProxy(conn: ClientSideConnection): ClientSideConnection {
+    const backend = this.options.backend;
+    return new Proxy(conn, {
+      get(target, prop, receiver) {
+        const value = Reflect.get(target, prop, receiver) as unknown;
+        if (typeof value !== 'function') return value;
+
+        const label = String(prop);
+        const tag = `[AcpClient:${backend}:${label}]`;
+        return (...args: unknown[]) => {
+          console.debug(`${tag}\n \x1b[36m-> ${JSON.stringify(args)}\x1b[0m`);
+          const result = (value as (...a: unknown[]) => unknown).apply(target, args);
+          if (result instanceof Promise) {
+            return result.then(
+              (res: unknown) => {
+                console.debug(`${tag}\n \x1b[32m<- ${JSON.stringify(res)}\x1b[0m`);
+                return res;
+              },
+              (err: unknown) => {
+                console.debug(`${tag}\n \x1b[31m<- ERROR ${JSON.stringify(err)}\x1b[0m`);
+                throw err;
+              },
+            );
+          }
+          return result;
+        };
+      },
+    });
   }
 
   // ─── Internals: Pending request tracking ───────────────────

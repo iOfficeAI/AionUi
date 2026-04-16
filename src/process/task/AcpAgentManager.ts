@@ -916,6 +916,7 @@ ${collectedResponses.join('\n')}`;
       };
 
       if (isAcpV2Enabled()) {
+        console.log('[AcpAgentManager] Initializing ========= ACP Agent V2 ========');
         this.agent = new AcpAgentV2(agentConfig) as unknown as AcpAgent;
       } else {
         this.agent = new AcpAgent(agentConfig);

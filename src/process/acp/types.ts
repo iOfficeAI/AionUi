@@ -135,6 +135,7 @@ export type AuthRequiredData = {
 // ─── Signals ────────────────────────────────────────────────────
 
 export type SessionSignal =
+  | { type: 'turn_finished' }
   | { type: 'session_expired' }
   | { type: 'queue_paused'; reason: 'crash_recovery' }
   | { type: 'auth_required'; auth: AuthRequiredData }

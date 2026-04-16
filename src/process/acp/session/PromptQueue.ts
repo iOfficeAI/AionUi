@@ -2,7 +2,7 @@
 
 import type { QueueSnapshot } from '@process/acp/types';
 
-type QueuedPrompt = {
+export type QueuedPrompt = {
   id: string;
   text: string;
   files?: string[];
@@ -30,6 +30,11 @@ export class PromptQueue {
 
   dequeue(): QueuedPrompt | null {
     return this.items.shift() ?? null;
+  }
+
+  /** Re-insert a prompt at the front (e.g., after a retriable auth failure). */
+  enqueueFront(prompt: QueuedPrompt): void {
+    this.items.unshift(prompt);
   }
 
   clear(): void {

@@ -24,6 +24,107 @@ import type {
   SessionCallbacks,
   SessionStatus,
 } from '@process/acp/types';
+import type { McpServer } from '@agentclientprotocol/sdk';
+import { getEnhancedEnv } from '@process/utils/shellEnv';
+import { spawn } from 'node:child_process';
+import * as fs from 'node:fs';
+import * as os from 'node:os';
+import * as path from 'node:path';
+
+/**
+ * Temporary: backend-specific CLI login arguments.
+ * Fallback when no provider-specific auth refresh command is available.
+ * Will be replaced by `authCommand + args` config in PR #2349.
+ */
+const BACKEND_LOGIN_ARGS: Record<string, string[] | undefined> = {
+  claude: ['/login'],
+  qwen: ['login'],
+};
+
+const LOGIN_TIMEOUT_MS = 70_000;
+
+/**
+ * Read the `awsAuthRefresh` command from `~/.claude/settings.json`.
+ * Claude Code uses this to refresh AWS SSO/Bedrock credentials.
+ */
+function readClaudeAuthRefreshCommand(): string | null {
+  try {
+    const settingsPath = path.join(os.homedir(), '.claude', 'settings.json');
+    const content = JSON.parse(fs.readFileSync(settingsPath, 'utf-8'));
+    if (typeof content.awsAuthRefresh === 'string' && content.awsAuthRefresh.length > 0) {
+      return content.awsAuthRefresh;
+    }
+  } catch {
+    /* settings not found or invalid — fall through */
+  }
+  return null;
+}
+
+/**
+ * Run a shell command string (e.g., "aws sso login --profile ai").
+ * Uses `shell: true` so it supports arbitrary commands from settings.
+ */
+function runShellCommand(command: string, env: Record<string, string | undefined>): Promise<void> {
+  console.log(`[AcpAgentV2] Running auth refresh: ${command}`);
+  const child = spawn(command, {
+    shell: true,
+    stdio: 'pipe',
+    timeout: LOGIN_TIMEOUT_MS,
+    env,
+  });
+
+  return new Promise<void>((resolve, reject) => {
+    child.on('close', (code) => {
+      if (code === 0) resolve();
+      else reject(new Error(`Auth refresh exited with code ${code}: ${command}`));
+    });
+    child.on('error', (err) => {
+      reject(new Error(`Failed to run auth refresh: ${err.message}`));
+    });
+  });
+}
+
+/**
+ * Refresh backend credentials.
+ *
+ * Priority:
+ * 1. Claude + Bedrock: read `awsAuthRefresh` from ~/.claude/settings.json
+ *    (e.g., "aws sso login --profile ai")
+ * 2. Fallback: run backend CLI login command (e.g., "claude /login")
+ */
+async function runBackendLogin(backend: string): Promise<void> {
+  const env = getEnhancedEnv();
+
+  // Priority 1: Claude settings awsAuthRefresh (for Bedrock/AWS SSO)
+  // if (backend === 'claude') {
+  //   const awsAuthRefresh = readClaudeAuthRefreshCommand();
+  //   if (awsAuthRefresh) {
+  //     await runShellCommand(awsAuthRefresh, env);
+  //     return;
+  //   }
+  // }
+
+  // Priority 2: backend CLI login command
+  const loginArgs = BACKEND_LOGIN_ARGS[backend];
+  if (!loginArgs) return;
+
+  console.log(`[AcpAgentV2] Running ${backend} ${loginArgs.join(' ')}`);
+  const child = spawn(backend, loginArgs, {
+    stdio: 'pipe',
+    timeout: LOGIN_TIMEOUT_MS,
+    env,
+  });
+
+  return new Promise<void>((resolve, reject) => {
+    child.on('close', (code) => {
+      if (code === 0) resolve();
+      else reject(new Error(`${backend} ${loginArgs.join(' ')} exited with code ${code}`));
+    });
+    child.on('error', (err) => {
+      reject(new Error(`Failed to spawn ${backend}: ${err.message}`));
+    });
+  });
+}
 
 type PendingOp<T> = {
   resolve: (value: T) => void;
@@ -64,6 +165,8 @@ export class AcpAgentV2 {
 
   // Tool call merge state (compat concern — MessageTranslator is stateless)
   private activeToolCalls = new Map<string, IMessageAcpToolCall>();
+  // Auth retry guard — prevent infinite auth loops
+  private authRetryAttempted = false;
 
   constructor(config: OldAcpAgentConfig) {
     this.conversationId = config.id;
@@ -85,6 +188,49 @@ export class AcpAgentV2 {
     const creds = await loadAuthCredentials(this.agentConfig.agentBackend, this.agentConfig.env);
     if (creds) {
       (this.agentConfig as { authCredentials?: Record<string, string> }).authCredentials = creds;
+    }
+
+    // Inject team-guide MCP server for solo agents (not in team mode) so the
+    // agent has the aion_create_team tool available — mirrors AcpAgent.loadBuiltinSessionMcpServers().
+    if (!this.agentConfig.teamMcpConfig) {
+      const { shouldInjectTeamGuideMcp } = await import('@process/team/prompts/teamGuideCapability');
+      if (await shouldInjectTeamGuideMcp(this.agentConfig.agentBackend)) {
+        const { getTeamGuideStdioConfig } = await import('@process/team/mcp/guide/teamGuideSingleton');
+        const aionStdioConfig = getTeamGuideStdioConfig();
+        if (aionStdioConfig) {
+          const guideServer: McpServer = {
+            name: aionStdioConfig.name,
+            command: aionStdioConfig.command,
+            args: aionStdioConfig.args,
+            env: [
+              ...aionStdioConfig.env,
+              { name: 'AION_MCP_BACKEND', value: this.agentConfig.agentBackend },
+              { name: 'AION_MCP_CONVERSATION_ID', value: this.conversationId },
+            ],
+          };
+          (this.agentConfig as { presetMcpServers?: McpServer[] }).presetMcpServers = [
+            ...(this.agentConfig.presetMcpServers || []),
+            guideServer,
+          ];
+        }
+      }
+    }
+
+    // Load user-configured (builtin) MCP servers from settings, filtered by
+    // cached agent MCP capabilities. Mirrors AcpAgent.loadBuiltinSessionMcpServers().
+    const { ProcessConfig } = await import('@process/utils/initStorage');
+    const rawMcpServers = await ProcessConfig.get('mcp.config');
+    if (Array.isArray(rawMcpServers) && rawMcpServers.length > 0) {
+      const cachedInit = await ProcessConfig.get('acp.cachedInitializeResult');
+      const caps = cachedInit?.[this.agentConfig.agentBackend]?.capabilities?.mcpCapabilities;
+      const { McpConfig } = await import('@process/acp/session/McpConfig');
+      const userServers = McpConfig.fromStorageConfig(rawMcpServers, caps);
+      if (userServers.length > 0) {
+        (this.agentConfig as { mcpServers?: McpServer[] }).mcpServers = [
+          ...(this.agentConfig.mcpServers || []),
+          ...userServers,
+        ];
+      }
     }
 
     const callbacks: SessionCallbacks = this.buildCallbacks();
@@ -225,6 +371,15 @@ export class AcpAgentV2 {
         if (!this.onSignalEvent) return;
 
         switch (event.type) {
+          case 'turn_finished':
+            this.onSignalEvent({
+              type: 'finish',
+              conversation_id: this.conversationId,
+              msg_id: `finish_${Date.now()}`,
+              data: null,
+            });
+            break;
+
           case 'session_expired':
             this.onSignalEvent({
               type: 'error',
@@ -252,13 +407,9 @@ export class AcpAgentV2 {
             break;
 
           case 'auth_required':
-            // Forward auth_required signal (not implemented in old AcpAgent, but should not crash)
-            this.onSignalEvent({
-              type: 'error',
-              conversation_id: this.conversationId,
-              msg_id: `signal_${Date.now()}`,
-              data: 'Authentication required',
-            });
+            // Temporary: run backend-specific login command, then retry.
+            // Will be replaced by authCommand + args when Agent Hub lands (PR #2349).
+            void this.handleAuthRequired();
             break;
 
           case 'error':
@@ -479,6 +630,47 @@ export class AcpAgentV2 {
   }
 
   // ─── Helper Methods ─────────────────────────────────────────────
+
+  /**
+   * Temporary auth recovery: run backend CLI login command, then retry session.
+   *
+   * Claude Code doesn't support ACP's authenticate() method — it requires
+   * `claude /login` to refresh OAuth tokens. The non-official ACP bridge
+   * (claude-agent-acp) can't do this itself.
+   *
+   * Will be replaced by `authCommand + args` config when Agent Hub lands (PR #2349).
+   */
+  private async handleAuthRequired(): Promise<void> {
+    // Guard: only attempt login once to prevent infinite loops
+    // (e.g., expired AWS SSO that can't be refreshed non-interactively)
+    if (this.authRetryAttempted) {
+      console.warn('[AcpAgentV2] Auth already retried once, giving up');
+      this.onSignalEvent?.({
+        type: 'error',
+        conversation_id: this.conversationId,
+        msg_id: `signal_${Date.now()}`,
+        data: 'Authentication failed after retry. Please authenticate manually and restart.',
+      });
+      return;
+    }
+    this.authRetryAttempted = true;
+
+    const backend = this.agentConfig.agentBackend;
+    try {
+      await runBackendLogin(backend);
+      // Reload credentials from env after login refreshes tokens
+      const creds = await loadAuthCredentials(backend, this.agentConfig.env);
+      this.session?.retryAuth(creds ?? undefined);
+    } catch (err) {
+      console.warn(`[AcpAgentV2] ${backend} auth refresh failed:`, err);
+      this.onSignalEvent?.({
+        type: 'error',
+        conversation_id: this.conversationId,
+        msg_id: `signal_${Date.now()}`,
+        data: `Authentication failed for ${backend}. Please authenticate manually and restart.`,
+      });
+    }
+  }
 
   private resolveOp<T>(op: PendingOp<T>, value: T): void {
     clearTimeout(op.timer);

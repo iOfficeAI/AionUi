@@ -19,6 +19,7 @@ import { InputPreprocessor } from '@process/acp/session/InputPreprocessor';
 import { McpConfig } from '@process/acp/session/McpConfig';
 import { MessageTranslator } from '@process/acp/session/MessageTranslator';
 import { PermissionResolver } from '@process/acp/session/PermissionResolver';
+import type { QueuedPrompt } from '@process/acp/session/PromptQueue';
 import { PromptQueue } from '@process/acp/session/PromptQueue';
 import { PromptTimer } from '@process/acp/session/PromptTimer';
 import type { AgentConfig, ProtocolHandlers, SessionCallbacks, SessionStatus } from '@process/acp/types';
@@ -147,6 +148,11 @@ export class AcpSession {
     if (agentConfig.authCredentials) {
       this.authNegotiator.mergeCredentials(agentConfig.authCredentials);
     }
+
+    // Restore session ID from previous run so doStart() calls loadSession instead of createSession.
+    if (agentConfig.resumeSessionId) {
+      this._sessionId = agentConfig.resumeSessionId;
+    }
   }
 
   get status(): SessionStatus {
@@ -222,6 +228,9 @@ export class AcpSession {
 
       // Phase 4: apply session result
       this.applySessionResult(sessionResult);
+
+      // Session is now active. Start draining the prompt queue if there are pending prompts.
+      this.scheduleDrain();
     } catch (err) {
       this.handleStartError(err);
     }
@@ -262,7 +271,6 @@ export class AcpSession {
 
     this.messageTranslator.reset();
     this.setStatus('active');
-    this.scheduleDrain();
   }
 
   private async handleStartError(err: unknown): Promise<void> {
@@ -352,8 +360,7 @@ export class AcpSession {
   }
 
   sendMessage(text: string, files?: string[]): void {
-    const prompt = { id: crypto.randomUUID(), text, files, enqueuedAt: Date.now() };
-
+    const prompt: QueuedPrompt = { id: crypto.randomUUID(), text, files, enqueuedAt: Date.now() };
     switch (this._status) {
       case 'idle':
       case 'error':
@@ -460,7 +467,7 @@ export class AcpSession {
     }
   }
 
-  private async executePrompt(prompt: { id: string; text: string; files?: string[] }): Promise<void> {
+  private async executePrompt(prompt: QueuedPrompt): Promise<void> {
     if (!this.client || !this._sessionId) return;
 
     this.setStatus('prompting');
@@ -468,21 +475,22 @@ export class AcpSession {
     try {
       const content = this.inputPreprocessor.process(prompt.text, prompt.files);
       await this.reassertConfig();
+
       this.promptTimer.start();
       await this.client.prompt(this._sessionId, content);
       this.promptTimer.stop();
+
       this.messageTranslator.onTurnEnd();
       this.setStatus('active');
+      this.callbacks.onSignal({ type: 'turn_finished' });
     } catch (err) {
       this.promptTimer.stop();
       this.messageTranslator.onTurnEnd();
 
       const acpErr = normalizeError(err);
-      if (acpErr.code === 'PROCESS_CRASHED') {
-        // handleDisconnect will handle this
-        return;
-      }
       if (acpErr.code === 'AUTH_REQUIRED') {
+        // Re-queue the failed prompt so it's retried after auth recovery.
+        this.promptQueue.enqueueFront(prompt);
         this.authPending = true;
         await this.teardownConnection();
         this.setStatus('error');

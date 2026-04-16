@@ -1,8 +1,11 @@
 // src/process/acp/runtime/AcpRuntime.ts
 
 import type { TMessage } from '@/common/chat/chatLib';
+import type { McpServer } from '@agentclientprotocol/sdk';
+import type { ClientFactory } from '@process/acp/infra/IAcpClient';
 import { IdleReclaimer } from '@process/acp/runtime/IdleReclaimer';
 import { AcpSession } from '@process/acp/session/AcpSession';
+import { McpConfig } from '@process/acp/session/McpConfig';
 import type {
   AgentConfig,
   ConfigOption,
@@ -12,8 +15,9 @@ import type {
   SessionStatus,
   SignalEvent,
 } from '@process/acp/types';
-import type { ClientFactory } from '@process/acp/infra/IAcpClient';
 import type { IAcpSessionRepository } from '@process/services/database/IAcpSessionRepository';
+import { shouldInjectTeamGuideMcp } from '@process/team/prompts/teamGuideCapability';
+import { ProcessConfig } from '@process/utils/initStorage';
 
 const DEFAULT_IDLE_TIMEOUT_MS = 300_000; // 5 minutes
 const DEFAULT_CHECK_INTERVAL_MS = 30_000; // 30 seconds
@@ -41,8 +45,43 @@ export class AcpRuntime {
     this.idleReclaimer.start();
   }
 
-  createConversation(convId: string, agentConfig: AgentConfig): void {
+  async createConversation(convId: string, agentConfig: AgentConfig): Promise<void> {
     if (this.sessions.has(convId)) return;
+
+    // Inject team-guide MCP server for solo agents (not in team mode) so the
+    // agent has the aion_create_team tool available.
+    if (!agentConfig.teamMcpConfig) {
+      if (await shouldInjectTeamGuideMcp(agentConfig.agentBackend)) {
+        const { getTeamGuideStdioConfig } = await import('@process/team/mcp/guide/teamGuideSingleton');
+        const aionStdioConfig = getTeamGuideStdioConfig();
+        if (aionStdioConfig) {
+          const guideServer: McpServer = {
+            name: aionStdioConfig.name,
+            command: aionStdioConfig.command,
+            args: aionStdioConfig.args,
+            env: [
+              ...aionStdioConfig.env,
+              { name: 'AION_MCP_BACKEND', value: agentConfig.agentBackend },
+              { name: 'AION_MCP_CONVERSATION_ID', value: convId },
+            ],
+          };
+          agentConfig.presetMcpServers = [...(agentConfig.presetMcpServers || []), guideServer];
+        }
+      }
+    }
+
+    // Load user-configured (builtin) MCP servers from settings, filtered by
+    // cached agent MCP capabilities.
+
+    const rawMcpServers = await ProcessConfig.get('mcp.config');
+    if (Array.isArray(rawMcpServers) && rawMcpServers.length > 0) {
+      const cachedInit = await ProcessConfig.get('acp.cachedInitializeResult');
+      const caps = cachedInit?.[agentConfig.agentBackend]?.capabilities?.mcpCapabilities;
+      const userServers = McpConfig.fromStorageConfig(rawMcpServers, caps);
+      if (userServers.length > 0) {
+        agentConfig.mcpServers = [...(agentConfig.mcpServers || []), ...userServers];
+      }
+    }
 
     const callbacks = this.buildCallbacks(convId);
     const session = new AcpSession(agentConfig, this.clientFactory, callbacks);
