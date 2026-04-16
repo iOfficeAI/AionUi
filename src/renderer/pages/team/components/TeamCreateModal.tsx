@@ -21,7 +21,6 @@ import {
   resolveTeamAgentType,
   filterTeamSupportedAgents,
 } from './agentSelectUtils';
-import TeamModelSelect from './TeamModelSelect';
 
 const FormItem = Form.Item;
 
@@ -49,7 +48,6 @@ const TeamCreateModal: React.FC<Props> = ({ visible, onClose, onCreated }) => {
   const { cliAgents } = useConversationAgents();
   const [name, setName] = useState('');
   const [dispatchAgentKey, setDispatchAgentKey] = useState<string | undefined>(undefined);
-  const [selectedModel, setSelectedModel] = useState<string | undefined>(undefined);
   const [workspace, setWorkspace] = useState('');
   const [loading, setLoading] = useState(false);
   const nameInputRef = useRef<RefInputType | null>(null);
@@ -71,10 +69,6 @@ const TeamCreateModal: React.FC<Props> = ({ visible, onClose, onCreated }) => {
   const allAgents = filterTeamSupportedAgents([...cliAgents], cachedInitResults);
 
   useEffect(() => {
-    setSelectedModel(undefined);
-  }, [dispatchAgentKey]);
-
-  useEffect(() => {
     if (visible) {
       setTimeout(() => nameInputRef.current?.focus(), 50);
     }
@@ -83,7 +77,6 @@ const TeamCreateModal: React.FC<Props> = ({ visible, onClose, onCreated }) => {
   const handleClose = () => {
     setName('');
     setDispatchAgentKey(undefined);
-    setSelectedModel(undefined);
     setWorkspace('');
     onClose();
   };
@@ -115,7 +108,6 @@ const TeamCreateModal: React.FC<Props> = ({ visible, onClose, onCreated }) => {
         conversationType: resolveConversationType(dispatchAgentType),
         cliPath: dispatchAgent?.cliPath,
         customAgentId: dispatchAgent?.customAgentId,
-        model: selectedModel,
       });
 
       const team = await ipcBridge.team.create.invoke({
@@ -245,13 +237,6 @@ const TeamCreateModal: React.FC<Props> = ({ visible, onClose, onCreated }) => {
                     );
                   })}
                 </div>
-              )}
-              {dispatchAgentKey && (
-                <TeamModelSelect
-                  backend={resolveTeamAgentType(agentFromKey(dispatchAgentKey, allAgents), 'acp')}
-                  value={selectedModel}
-                  onChange={setSelectedModel}
-                />
               )}
             </div>
           </FormItem>
