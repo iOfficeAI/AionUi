@@ -63,6 +63,9 @@ type UseGuidAgentSelectionOptions = {
   modelList: IProvider[];
   isGoogleAuth: boolean;
   localeKey: string;
+  resetAssistant?: boolean;
+  /** React Router location.key — changes on every navigation, used to detect new resets. */
+  locationKey?: string;
 };
 
 /**
@@ -72,6 +75,8 @@ export const useGuidAgentSelection = ({
   modelList,
   isGoogleAuth,
   localeKey,
+  resetAssistant,
+  locationKey,
 }: UseGuidAgentSelectionOptions): GuidAgentSelectionResult => {
   const [selectedAgentKey, _setSelectedAgentKey] = useState<string>('aionrs');
   const [availableAgents, setAvailableAgents] = useState<AvailableAgent[]>();
@@ -213,11 +218,20 @@ export const useGuidAgentSelection = ({
     setAvailableAgents([...availableAgentsData, ...remoteAsAvailable]);
   }, [availableAgentsData, remoteAgentsData]);
 
-  // Restore saved agent selection once on mount.
-  //
-  // This effect must run exactly once. SWR revalidation causes availableAgents to
-  // change reference on every fetch, so we use initialRestoreDoneRef to prevent
-  // the restore from overwriting a user selection.
+  // Track whether the resetAssistant flag has been consumed so it only fires once
+  // per navigation. Use locationKey (changes on every navigate()) to reset the guard,
+  // because window.history.replaceState does NOT update React Router's location.state.
+  const resetHandledRef = useRef(false);
+  const prevLocationKeyRef = useRef(locationKey);
+  if (locationKey !== prevLocationKeyRef.current) {
+    prevLocationKeyRef.current = locationKey;
+    resetHandledRef.current = false;
+  }
+
+  // Restore saved agent selection once on mount (or reset to default when resetAssistant
+  // is requested). This effect must run exactly once — SWR revalidation causes
+  // availableAgents to change reference on every fetch, so we use initialRestoreDoneRef
+  // to prevent the restore from overwriting a user selection.
   //
   // For "custom:" / "remote:" keys we trust the saved value directly — customAgents
   // loads asynchronously and may not be ready yet, but findAgentByKey will resolve
@@ -225,6 +239,23 @@ export const useGuidAgentSelection = ({
   useEffect(() => {
     if (initialRestoreDoneRef.current) return;
     if (!availableAgents || availableAgents.length === 0) return;
+
+    // When the sidebar "新对话" navigates with resetAssistant, skip loading
+    // from storage and immediately fall through to the default agent.
+    // This also persists the default so the next load won't restore the old preset.
+    if (resetAssistant && !resetHandledRef.current) {
+      resetHandledRef.current = true;
+      const firstCliAgent = availableAgents.find((a) => !a.isPreset);
+      const fallbackKey = firstCliAgent ? getAgentKey(firstCliAgent) : 'aionrs';
+      _setSelectedAgentKey(fallbackKey);
+      ConfigStorage.set('guid.lastSelectedAgent', fallbackKey).catch((error) => {
+        console.error('Failed to save reset agent key:', error);
+      });
+      return;
+    }
+
+    // Skip normal load when resetAssistant is still in location state (already handled above)
+    if (resetAssistant) return;
 
     let cancelled = false;
     initialRestoreDoneRef.current = true;
@@ -262,7 +293,7 @@ export const useGuidAgentSelection = ({
     return () => {
       cancelled = true;
     };
-  }, [availableAgents]);
+  }, [availableAgents, resetAssistant, locationKey]);
 
   // Load cached ACP model lists
   useEffect(() => {
