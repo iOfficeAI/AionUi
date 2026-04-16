@@ -6,6 +6,11 @@
 
 import { ipcBridge } from '@/common';
 import { CUSTOM_AVATAR_IMAGE_MAP } from '@/renderer/pages/guid/constants';
+import {
+  findAvailableAgentSelection,
+  getCliAgentSelectionKey,
+  getPresetAssistantSelectionKey,
+} from '@/renderer/utils/model/availableAgents';
 import { getAgentLogo } from '@/renderer/utils/model/agentLogo';
 import { emitter } from '@/renderer/utils/emitter';
 import { cleanupSiderTooltips } from '@/renderer/utils/ui/siderTooltip';
@@ -213,26 +218,16 @@ const ConversationTabs: React.FC = () => {
         // [BUG-3] Build params inside try block: getDefaultGeminiModel() may throw if no model configured
         let params;
 
-        if (key.startsWith('cli:')) {
-          const backend = key.slice(4);
-          // [BUG-6] Null check: find() may return undefined
-          const agent = cliAgents.find((a) => a.backend === backend);
-          if (!agent) {
-            Message.error(t('conversation.createFailed'));
-            return;
-          }
-          params = await buildCliAgentParams(agent, workspace);
-        } else if (key.startsWith('preset:')) {
-          const assistantId = key.slice(7);
-          // [BUG-6] Null check: find() may return undefined
-          const agent = presetAssistants.find((a) => a.customAgentId === assistantId);
-          if (!agent) {
-            Message.error(t('conversation.createFailed'));
-            return;
-          }
-          params = await buildPresetAssistantParams(agent, workspace, i18n.language);
-        } else {
+        const selection = findAvailableAgentSelection(key, cliAgents, presetAssistants);
+        if (!selection) {
+          Message.error(t('conversation.createFailed'));
           return;
+        }
+
+        if (selection.kind === 'cli') {
+          params = await buildCliAgentParams(selection.agent, workspace);
+        } else {
+          params = await buildPresetAssistantParams(selection.agent, workspace, i18n.language);
         }
 
         // Use conversation.create (calls ConversationService) not createWithConversation (direct DB insert)
@@ -277,7 +272,7 @@ const ConversationTabs: React.FC = () => {
             {cliAgents.map((agent) => {
               const logo = getAgentLogo(agent.backend);
               return (
-                <Menu.Item key={`cli:${agent.backend}`}>
+                <Menu.Item key={getCliAgentSelectionKey(agent)}>
                   <div className='flex items-center gap-8px'>
                     {logo ? (
                       <img src={logo} alt={agent.name} style={{ width: 16, height: 16, objectFit: 'contain' }} />
@@ -297,7 +292,7 @@ const ConversationTabs: React.FC = () => {
               const avatarImage = agent.avatar ? CUSTOM_AVATAR_IMAGE_MAP[agent.avatar] : undefined;
               const isEmoji = agent.avatar && !avatarImage && !agent.avatar.endsWith('.svg');
               return (
-                <Menu.Item key={`preset:${agent.customAgentId}`}>
+                <Menu.Item key={getPresetAssistantSelectionKey(agent)}>
                   <div className='flex items-center gap-8px'>
                     {avatarImage ? (
                       <img src={avatarImage} alt={agent.name} style={{ width: 16, height: 16, objectFit: 'contain' }} />

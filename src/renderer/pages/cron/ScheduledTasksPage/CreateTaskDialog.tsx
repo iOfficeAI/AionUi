@@ -12,6 +12,11 @@ import { Down, Robot } from '@icon-park/react';
 import { ipcBridge } from '@/common';
 import type { ICreateCronJobParams, ICronAgentConfig, ICronJob } from '@/common/adapter/ipcBridge';
 import { useConversationAgents } from '@renderer/pages/conversation/hooks/useConversationAgents';
+import {
+  findAvailableAgentSelection,
+  getCliAgentSelectionKey,
+  getPresetAssistantSelectionKey,
+} from '@renderer/utils/model/availableAgents';
 import { getAgentLogo } from '@renderer/utils/model/agentLogo';
 import { CUSTOM_AVATAR_IMAGE_MAP } from '@/renderer/pages/guid/constants';
 import dayjs from 'dayjs';
@@ -119,8 +124,21 @@ function getDescriptionInitialValue(job: ICronJob): string {
 function getAgentKeyFromJob(job: ICronJob): string | undefined {
   const config = job.metadata.agentConfig;
   if (config) {
-    if (config.isPreset && config.customAgentId) return `preset:${config.customAgentId}`;
-    return `cli:${config.backend}`;
+    if (config.isPreset) {
+      return getPresetAssistantSelectionKey({
+        backend: config.backend,
+        name: config.name,
+        customAgentId: config.customAgentId,
+        isPreset: true,
+      });
+    }
+
+    return getCliAgentSelectionKey({
+      backend: config.backend,
+      name: config.name,
+      cliPath: config.cliPath,
+      customAgentId: config.customAgentId,
+    });
   }
   // Fallback for legacy jobs without agentConfig
   if (job.metadata.agentType) return `cli:${job.metadata.agentType}`;
@@ -206,17 +224,8 @@ const CreateTaskDialog: React.FC<CreateTaskDialogProps> = ({
   // Resolve backend from selectedAgent (handles both CLI and preset agents)
   const resolvedBackend = useMemo(() => {
     if (!selectedAgent) return undefined;
-    const colonIdx = selectedAgent.indexOf(':');
-    const agentKind = selectedAgent.substring(0, colonIdx);
-    const agentId = selectedAgent.substring(colonIdx + 1);
-
-    if (agentKind === 'preset') {
-      const agent = presetAssistants.find((a) => a.customAgentId === agentId);
-      return agent?.backend;
-    }
-    // CLI agent: agentId is the backend
-    return agentId;
-  }, [selectedAgent, presetAssistants]);
+    return findAvailableAgentSelection(selectedAgent, cliAgents, presetAssistants)?.agent.backend;
+  }, [selectedAgent, cliAgents, presetAssistants]);
 
   // Load cached config options when backend changes
   useEffect(() => {
@@ -384,10 +393,6 @@ const CreateTaskDialog: React.FC<CreateTaskDialogProps> = ({
   }, []);
 
   const resolveAgentConfig = (agentValue: string) => {
-    const colonIdx = agentValue.indexOf(':');
-    const agentKind = agentValue.substring(0, colonIdx);
-    const agentId = agentValue.substring(colonIdx + 1);
-
     // Merge cached config option defaults with user overrides
     const mergedConfigOptions = (() => {
       if (!Array.isArray(cachedConfigOptions) || cachedConfigOptions.length === 0) return configOptions;
@@ -403,24 +408,23 @@ const CreateTaskDialog: React.FC<CreateTaskDialogProps> = ({
     let resolvedAgentType: ICreateCronJobParams['agentType'] = (agentType ||
       'claude') as ICreateCronJobParams['agentType'];
 
-    if (agentKind === 'cli') {
-      const agent = cliAgents.find((a) => a.backend === agentId);
-      if (agent) {
-        resolvedAgentType = agent.backend;
+    const selection = findAvailableAgentSelection(agentValue, cliAgents, presetAssistants);
+    if (selection) {
+      const { agent } = selection;
+      resolvedAgentType = agent.backend;
+
+      if (selection.kind === 'cli') {
         agentConfig = {
           backend: agent.backend,
           name: agent.name,
           cliPath: agent.cliPath,
+          customAgentId: agent.customAgentId,
           mode: getFullAutoMode(agent.backend),
           modelId,
           configOptions: mergedConfigOptions,
           workspace,
         };
-      }
-    } else if (agentKind === 'preset') {
-      const agent = presetAssistants.find((a) => a.customAgentId === agentId);
-      if (agent) {
-        resolvedAgentType = agent.backend;
+      } else {
         agentConfig = {
           backend: agent.backend,
           name: agent.name,
@@ -540,22 +544,18 @@ const CreateTaskDialog: React.FC<CreateTaskDialogProps> = ({
                 // Find selected agent to render logo + name in the trigger
                 const strVal = value as unknown as string;
                 if (!strVal) return '';
-                const [type, id] = strVal.split(':');
-                let name = id;
+                const selection = findAvailableAgentSelection(strVal, cliAgents, presetAssistants);
+                let name = strVal;
                 let logo: React.ReactNode = <Robot size='16' />;
-                if (type === 'cli') {
-                  const agent = cliAgents.find((a) => a.backend === id);
-                  if (agent) {
-                    name = agent.name;
+                if (selection) {
+                  const { agent } = selection;
+                  name = agent.name;
+                  if (selection.kind === 'cli') {
                     const logoSrc = getAgentLogo(agent.backend);
                     if (logoSrc) {
                       logo = <img src={logoSrc} alt={agent.name} className='w-16px h-16px object-contain' />;
                     }
-                  }
-                } else if (type === 'preset') {
-                  const agent = presetAssistants.find((a) => a.customAgentId === id);
-                  if (agent) {
-                    name = agent.name;
+                  } else {
                     const avatarImage = agent.avatar ? CUSTOM_AVATAR_IMAGE_MAP[agent.avatar] : undefined;
                     const isEmoji = agent.avatar && !avatarImage && !agent.avatar.endsWith('.svg');
                     if (avatarImage) {
@@ -578,7 +578,7 @@ const CreateTaskDialog: React.FC<CreateTaskDialogProps> = ({
                   {cliAgents.map((agent) => {
                     const logo = getAgentLogo(agent.backend);
                     return (
-                      <Option key={`cli:${agent.backend}`} value={`cli:${agent.backend}`}>
+                      <Option key={getCliAgentSelectionKey(agent)} value={getCliAgentSelectionKey(agent)}>
                         <div className='flex items-center gap-8px'>
                           {logo ? (
                             <img src={logo} alt={agent.name} className='w-16px h-16px object-contain' />
@@ -598,7 +598,7 @@ const CreateTaskDialog: React.FC<CreateTaskDialogProps> = ({
                     const avatarImage = agent.avatar ? CUSTOM_AVATAR_IMAGE_MAP[agent.avatar] : undefined;
                     const isEmoji = agent.avatar && !avatarImage && !agent.avatar.endsWith('.svg');
                     return (
-                      <Option key={`preset:${agent.customAgentId}`} value={`preset:${agent.customAgentId}`}>
+                      <Option key={getPresetAssistantSelectionKey(agent)} value={getPresetAssistantSelectionKey(agent)}>
                         <div className='flex items-center gap-8px'>
                           {avatarImage ? (
                             <img src={avatarImage} alt={agent.name} className='w-16px h-16px object-contain' />
