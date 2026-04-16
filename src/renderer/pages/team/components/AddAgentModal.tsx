@@ -5,19 +5,12 @@ import { ConfigStorage } from '@/common/config/storage';
 import type { AcpInitializeResult } from '@/common/types/acpTypes';
 import AionModal from '@renderer/components/base/AionModal';
 import { useConversationAgents } from '@renderer/pages/conversation/hooks/useConversationAgents';
-import {
-  agentKey,
-  filterTeamSupportedAgents,
-  resolveTeamAgentType,
-  agentFromKey,
-  AgentOptionLabel,
-} from './agentSelectUtils';
-import TeamModelSelect from './TeamModelSelect';
+import { agentKey, filterTeamSupportedAgents, AgentOptionLabel } from './agentSelectUtils';
 
 type Props = {
   visible: boolean;
   onClose: () => void;
-  onConfirm: (data: { agentName: string; agentKey: string; model?: string }) => void;
+  onConfirm: (data: { agentName: string; agentKey: string }) => void;
 };
 
 const AddAgentModal: React.FC<Props> = ({ visible, onClose, onConfirm }) => {
@@ -25,7 +18,6 @@ const AddAgentModal: React.FC<Props> = ({ visible, onClose, onConfirm }) => {
   const { cliAgents } = useConversationAgents();
   const [agentName, setAgentName] = useState('');
   const [selectedKey, setSelectedKey] = useState<string | undefined>(undefined);
-  const [selectedModel, setSelectedModel] = useState<string | undefined>(undefined);
   const [cachedInitResults, setCachedInitResults] = useState<Record<string, AcpInitializeResult> | null>(null);
 
   useEffect(() => {
@@ -43,20 +35,15 @@ const AddAgentModal: React.FC<Props> = ({ visible, onClose, onConfirm }) => {
 
   const allAgents = filterTeamSupportedAgents([...cliAgents], cachedInitResults);
 
-  useEffect(() => {
-    setSelectedModel(undefined);
-  }, [selectedKey]);
-
   const handleClose = () => {
     setAgentName('');
     setSelectedKey(undefined);
-    setSelectedModel(undefined);
     onClose();
   };
 
   const handleConfirm = () => {
     if (!agentName.trim() || !selectedKey) return;
-    onConfirm({ agentName: agentName.trim(), agentKey: selectedKey, model: selectedModel });
+    onConfirm({ agentName: agentName.trim(), agentKey: selectedKey });
     handleClose();
   };
 
@@ -131,15 +118,6 @@ const AddAgentModal: React.FC<Props> = ({ visible, onClose, onConfirm }) => {
             })}
           </span>
         </div>
-
-        {selectedKey && (
-          <TeamModelSelect
-            backend={resolveTeamAgentType(agentFromKey(selectedKey, allAgents), 'acp')}
-            value={selectedModel}
-            onChange={setSelectedModel}
-            label={t('team.addAgent.model', { defaultValue: 'Model' })}
-          />
-        )}
       </div>
     </AionModal>
   );
