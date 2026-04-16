@@ -147,6 +147,19 @@ export class TeamMcpServer {
     return byName?.slotId;
   }
 
+  /**
+   * Fire-and-forget wake that logs failures instead of swallowing them.
+   * wakeAgent() can legitimately reject (e.g. dead ACP process, mailbox DB error)
+   * but the MCP tool call must still return to the caller, so we can't await it.
+   * Without this guard the error vanishes silently and the would-be wake target
+   * never runs — which is one of the ways "codex 空转" used to present.
+   */
+  private safeWake(slotId: string, context: string): void {
+    this.params.wakeAgent(slotId).catch((err) => {
+      console.error(`[TeamMcpServer] wake(${slotId}) failed during ${context}:`, err);
+    });
+  }
+
   // ── TCP connection handler ──────────────────────────────────────────────────
 
   private handleTcpConnection(socket: net.Socket): void {
@@ -235,7 +248,7 @@ export class TeamMcpServer {
   // ── Tool handlers (logic preserved from original registerTools) ─────────────
 
   private async handleSendMessage(args: Record<string, unknown>, callerSlotId?: string): Promise<string> {
-    const { teamId, getAgents, mailbox, wakeAgent } = this.params;
+    const { teamId, getAgents, mailbox } = this.params;
     const to = String(args.to ?? '');
     const message = String(args.message ?? '');
     const summary = args.summary ? String(args.summary) : undefined;
@@ -264,7 +277,7 @@ export class TeamMcpServer {
               })
               .then(() => {
                 recipients.push(agent.agentName);
-                void wakeAgent(agent.slotId);
+                this.safeWake(agent.slotId, 'broadcast message');
               })
           )
       );
@@ -296,7 +309,7 @@ export class TeamMcpServer {
             fromAgentId: fromSlotId,
             content: `${memberName} has shut down and been removed from the team.`,
           });
-          void wakeAgent(leadSlotId);
+          this.safeWake(leadSlotId, 'shutdown_approved');
         }
         return 'Shutdown confirmed. You have been removed from the team.';
       } else if (isShutdownRejected) {
@@ -308,7 +321,7 @@ export class TeamMcpServer {
             fromAgentId: fromSlotId,
             content: `${memberName} refused to shut down. Reason: ${reason}`,
           });
-          void wakeAgent(leadSlotId);
+          this.safeWake(leadSlotId, 'shutdown_rejected');
         }
         return 'Refusal sent to the lead.';
       }
@@ -321,13 +334,13 @@ export class TeamMcpServer {
       content: message,
       summary,
     });
-    void wakeAgent(targetSlotId);
+    this.safeWake(targetSlotId, `send_message to ${to}`);
 
     return `Message sent to ${to}'s inbox. They will process it shortly.`;
   }
 
   private async handleSpawnAgent(args: Record<string, unknown>, callerSlotId?: string): Promise<string> {
-    const { teamId, getAgents, mailbox, spawnAgent, wakeAgent } = this.params;
+    const { teamId, getAgents, mailbox, spawnAgent } = this.params;
     const name = String(args.name ?? '');
     const agentType = args.agent_type ? String(args.agent_type) : undefined;
     // Team mode validation: only backends with confirmed ACP MCP stdio support
@@ -359,7 +372,7 @@ export class TeamMcpServer {
       fromAgentId: fromSlotId,
       content: `You have been spawned as "${name}" and added to the team. Check the task board and await instructions.`,
     });
-    void wakeAgent(newAgent.slotId);
+    this.safeWake(newAgent.slotId, `spawn ${name}`);
     return `Teammate "${name}" (${newAgent.slotId}) has been created and joined the team. You can now assign tasks and send messages to them.`;
   }
 
@@ -417,7 +430,7 @@ export class TeamMcpServer {
   }
 
   private async handleShutdownAgent(args: Record<string, unknown>, callerSlotId?: string): Promise<string> {
-    const { teamId, getAgents, mailbox, wakeAgent } = this.params;
+    const { teamId, getAgents, mailbox } = this.params;
     const agentRef = String(args.agent ?? '');
 
     const resolvedSlotId = this.resolveSlotId(agentRef);
@@ -441,7 +454,7 @@ export class TeamMcpServer {
       content:
         'The team lead has requested you to shut down. Reply "shutdown_approved" to confirm, or "shutdown_rejected: <reason>" to refuse.',
     });
-    void wakeAgent(resolvedSlotId);
+    this.safeWake(resolvedSlotId, 'shutdown_request');
 
     return `Shutdown request sent to "${agent?.agentName ?? agentRef}". Waiting for their confirmation.`;
   }
