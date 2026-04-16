@@ -19,7 +19,6 @@ function createMockCallbacks(): SessionCallbacks {
     onModelUpdate: vi.fn(),
     onModeUpdate: vi.fn(),
     onContextUsage: vi.fn(),
-    onQueueUpdate: vi.fn(),
     onPermissionRequest: vi.fn(),
     onSignal: vi.fn(),
   };
@@ -78,25 +77,11 @@ describe('AcpSession prompt flow', () => {
     return session;
   }
 
-  it('sendMessage enqueues and triggers drain (INV-S-02)', async () => {
+  it('sendMessage triggers prompt directly (INV-S-02)', async () => {
     const session = await startSession();
     session.sendMessage('hello');
     await vi.waitFor(() => expect(client.prompt).toHaveBeenCalledOnce());
     expect(session.status).toBe('active');
-  });
-
-  it('executes queued prompts in FIFO order (INV-S-02)', async () => {
-    const order: string[] = [];
-    (client.prompt as ReturnType<typeof vi.fn>) = vi.fn(async (_sid, content) => {
-      order.push((content as any)[0]?.text ?? '');
-      return { stopReason: 'end_turn' };
-    });
-    const session = await startSession();
-    session.sendMessage('first');
-    session.sendMessage('second');
-    session.sendMessage('third');
-    await vi.waitFor(() => expect(order.length).toBe(3));
-    expect(order).toEqual(['first', 'second', 'third']);
   });
 
   it('sendMessage throws in idle state', () => {
@@ -110,15 +95,5 @@ describe('AcpSession prompt flow', () => {
     expect(session.status).toBe('suspended');
     session.sendMessage('after suspend');
     await vi.waitFor(() => expect(['resuming', 'active', 'prompting'].includes(session.status)).toBe(true));
-  });
-
-  it('onQueueUpdate pushes complete snapshot (INV-X-02)', async () => {
-    (client.prompt as ReturnType<typeof vi.fn>) = vi.fn(() => new Promise(() => {}));
-    const session = await startSession();
-    session.sendMessage('a');
-    session.sendMessage('b');
-    const calls = (callbacks.onQueueUpdate as any).mock.calls;
-    const lastSnap = calls[calls.length - 1][0];
-    expect(lastSnap.length).toBe(lastSnap.items.length);
   });
 });

@@ -11,12 +11,11 @@ describe('IdleReclaimer', () => {
     vi.useRealTimers();
   });
 
-  function makeEntry(status: string, lastActiveAt: number, queueEmpty = true) {
+  function makeEntry(status: string, lastActiveAt: number) {
     return {
       session: {
         status,
         suspend: vi.fn().mockResolvedValue(undefined),
-        promptQueue: { isEmpty: queueEmpty },
       } as any,
       lastActiveAt,
     };

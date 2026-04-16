@@ -919,6 +919,7 @@ ${collectedResponses.join('\n')}`;
         console.log('[AcpAgentManager] Initializing ========= ACP Agent V2 ========');
         this.agent = new AcpAgentV2(agentConfig) as unknown as AcpAgent;
       } else {
+        console.log('[AcpAgentManager] Initializing ========= ACP Agent V1 ========');
         this.agent = new AcpAgent(agentConfig);
       }
       return this.agent.start().then(async () => {

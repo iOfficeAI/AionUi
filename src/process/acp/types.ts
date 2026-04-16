@@ -66,14 +66,6 @@ export type SessionStatus = 'idle' | 'starting' | 'active' | 'prompting' | 'susp
 
 export type PromptContent = ContentBlock[];
 
-// ─── Queue ──────────────────────────────────────────────────────
-
-export type QueueSnapshot = {
-  items: ReadonlyArray<{ id: string; text: string; enqueuedAt: number }>;
-  maxSize: number;
-  length: number;
-};
-
 // ─── Config Snapshots ───────────────────────────────────────────
 
 export type ConfigSnapshot = {
@@ -137,7 +129,6 @@ export type AuthRequiredData = {
 export type SessionSignal =
   | { type: 'turn_finished' }
   | { type: 'session_expired' }
-  | { type: 'queue_paused'; reason: 'crash_recovery' }
   | { type: 'auth_required'; auth: AuthRequiredData }
   | { type: 'error'; message: string; recoverable: boolean };
 
@@ -151,7 +142,6 @@ export type SessionCallbacks = {
   onModelUpdate: (model: ModelSnapshot) => void;
   onModeUpdate: (mode: ModeSnapshot) => void;
   onContextUsage: (usage: ContextUsage) => void;
-  onQueueUpdate: (queue: QueueSnapshot) => void;
   onPermissionRequest: (data: PermissionUIData) => void;
   onSignal: (event: SessionSignal) => void;
 };
@@ -165,8 +155,6 @@ export type SignalEvent =
   | { type: 'mode_update'; mode: ModeSnapshot }
   | { type: 'config_update'; config: ConfigSnapshot }
   | { type: 'context_usage'; usage: ContextUsage }
-  | { type: 'queue_update'; queue: QueueSnapshot }
-  | { type: 'queue_paused'; reason: 'crash_recovery' }
   | { type: 'permission_request'; data: PermissionUIData }
   | { type: 'auth_required'; auth: AuthRequiredData }
   | { type: 'error'; message: string; recoverable: boolean };

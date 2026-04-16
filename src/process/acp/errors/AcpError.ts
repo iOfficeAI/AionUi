@@ -9,7 +9,6 @@ export type AcpErrorCode =
   | 'PROCESS_CRASHED'
   | 'PROTOCOL_ERROR'
   | 'AGENT_ERROR'
-  | 'QUEUE_FULL'
   | 'INVALID_STATE'
   | 'PERMISSION_CANCELLED'
   | 'INTERNAL_ERROR';

@@ -19,10 +19,8 @@ import { InputPreprocessor } from '@process/acp/session/InputPreprocessor';
 import { McpConfig } from '@process/acp/session/McpConfig';
 import { MessageTranslator } from '@process/acp/session/MessageTranslator';
 import { PermissionResolver } from '@process/acp/session/PermissionResolver';
-import type { QueuedPrompt } from '@process/acp/session/PromptQueue';
-import { PromptQueue } from '@process/acp/session/PromptQueue';
 import { PromptTimer } from '@process/acp/session/PromptTimer';
-import type { AgentConfig, ProtocolHandlers, SessionCallbacks, SessionStatus } from '@process/acp/types';
+import type { AgentConfig, PromptContent, ProtocolHandlers, SessionCallbacks, SessionStatus } from '@process/acp/types';
 import * as fs from 'node:fs';
 
 export type SessionOptions = {
@@ -30,7 +28,6 @@ export type SessionOptions = {
   maxStartRetries?: number;
   maxResumeRetries?: number;
   metrics?: AcpMetrics;
-  promptQueueMaxSize?: number;
   approvalCacheMaxSize?: number;
 };
 
@@ -44,13 +41,12 @@ const VALID_TRANSITIONS: Record<SessionStatus, SessionStatus[]> = {
     'error', // handshake failed, non-retriable error
   ],
   active: [
-    'prompting', // drainLoop PromptQueue
-    'suspended', // suspend() or PromptQueue is empty
+    'prompting', // executePrompt()
+    'suspended', // suspend()
     'idle', // stop()
   ],
   prompting: [
-    'active', // prompt completed, and PromptQueue is empty
-    'prompting', // prompt completed, but PromptQueue is not empty
+    'active', // prompt completed
     'resuming', // process crashed with retriable error
     'error', // prompt crashed with non-retriable error
     'idle', // stop()
@@ -97,10 +93,11 @@ function wrapCallbacks(raw: SessionCallbacks): SessionCallbacks {
 export class AcpSession {
   private _status: SessionStatus = 'idle';
   private _sessionId: string | null = null;
-  private draining = false;
-  private queuePaused = false;
   private authPending = false;
   private cachedAuthMethods: AuthMethod[] | null = null;
+
+  /** Preprocessed prompt content held for edge cases (suspended, auth-required). */
+  private pendingPrompt: PromptContent | null = null;
 
   // retry properties
   private startRetryCount: number = 0;
@@ -112,7 +109,6 @@ export class AcpSession {
   // components
   private readonly configTracker: ConfigTracker;
   private readonly permissionResolver: PermissionResolver;
-  private readonly promptQueue: PromptQueue;
   private readonly messageTranslator: MessageTranslator;
   private readonly inputPreprocessor: InputPreprocessor;
   private readonly promptTimer: PromptTimer;
@@ -135,7 +131,6 @@ export class AcpSession {
     this.callbacks = wrapCallbacks(callbacks);
 
     this.configTracker = new ConfigTracker();
-    this.promptQueue = new PromptQueue(options?.promptQueueMaxSize);
     this.messageTranslator = new MessageTranslator(agentConfig.agentId);
     this.inputPreprocessor = new InputPreprocessor((path) => fs.readFileSync(path, 'utf-8'));
     this.promptTimer = new PromptTimer(this.promptTimeoutMs, () => this.handlePromptTimeout());
@@ -229,8 +224,8 @@ export class AcpSession {
       // Phase 4: apply session result
       this.applySessionResult(sessionResult);
 
-      // Session is now active. Start draining the prompt queue if there are pending prompts.
-      this.scheduleDrain();
+      // Fire any prompt that was buffered while we were starting / recovering auth.
+      this.flushPendingPrompt();
     } catch (err) {
       this.handleStartError(err);
     }
@@ -293,17 +288,15 @@ export class AcpSession {
 
   async stop(): Promise<void> {
     this.promptTimer.stop();
-    this.promptQueue.clear();
     this.permissionResolver.rejectAll(new Error('Session stopped'));
-    this.draining = false;
-    this.queuePaused = false;
+    this.pendingPrompt = null;
     this.authPending = false;
     await this.teardownConnection();
     this.setStatus('idle');
   }
 
   async suspend(): Promise<void> {
-    if (this._status !== 'active' || !this.promptQueue.isEmpty) return;
+    if (this._status !== 'active') return;
     await this.teardownConnection();
     this.setStatus('suspended');
   }
@@ -333,11 +326,7 @@ export class AcpSession {
       await this.reassertConfig();
       this.setStatus('active');
 
-      if (this.queuePaused) {
-        this.callbacks.onSignal({ type: 'queue_paused', reason: 'crash_recovery' });
-      } else {
-        this.scheduleDrain();
-      }
+      this.flushPendingPrompt();
     } catch (err) {
       this.handleResumeError(err);
     }
@@ -360,28 +349,17 @@ export class AcpSession {
   }
 
   sendMessage(text: string, files?: string[]): void {
-    const prompt: QueuedPrompt = { id: crypto.randomUUID(), text, files, enqueuedAt: Date.now() };
+    const content = this.inputPreprocessor.process(text, files);
     switch (this._status) {
-      case 'idle':
-      case 'error':
-        throw new AcpError('INVALID_STATE', `Cannot send in ${this._status} state`);
-      case 'starting':
-      case 'resuming':
       case 'active':
-      case 'prompting':
-        if (!this.promptQueue.enqueue(prompt)) {
-          throw new AcpError('QUEUE_FULL', 'Prompt queue is full');
-        }
-        this.callbacks.onQueueUpdate(this.promptQueue.snapshot());
-        if (this._status === 'active') this.scheduleDrain();
+        void this.executePrompt(content);
         return;
       case 'suspended':
-        if (!this.promptQueue.enqueue(prompt)) {
-          throw new AcpError('QUEUE_FULL', 'Prompt queue is full');
-        }
-        this.callbacks.onQueueUpdate(this.promptQueue.snapshot());
+        this.pendingPrompt = content;
         this.resume();
         return;
+      default:
+        throw new AcpError('INVALID_STATE', `Cannot send in ${this._status} state`);
     }
   }
 
@@ -391,14 +369,8 @@ export class AcpSession {
   }
 
   cancelAll(): void {
-    this.promptQueue.clear();
-    this.callbacks.onQueueUpdate(this.promptQueue.snapshot());
+    this.pendingPrompt = null;
     if (this._status === 'prompting') this.cancelPrompt();
-  }
-
-  resumeQueue(): void {
-    this.queuePaused = false;
-    this.scheduleDrain();
   }
 
   setModel(modelId: string): void {
@@ -447,33 +419,21 @@ export class AcpSession {
     this.permissionResolver.resolve(callId, optionId);
   }
 
-  private scheduleDrain(): void {
-    if (this.draining || this.queuePaused) return;
-    queueMicrotask(() => this.drainLoop());
-  }
-
-  private async drainLoop(): Promise<void> {
-    if (this.draining || this.queuePaused) return;
-    this.draining = true;
-
-    try {
-      while (!this.promptQueue.isEmpty && this._status === 'active' && !this.queuePaused) {
-        const prompt = this.promptQueue.dequeue()!;
-        this.callbacks.onQueueUpdate(this.promptQueue.snapshot());
-        await this.executePrompt(prompt);
-      }
-    } finally {
-      this.draining = false;
+  /** Fire the pending prompt if one exists and we are active. */
+  private flushPendingPrompt(): void {
+    if (this.pendingPrompt && this._status === 'active') {
+      const content = this.pendingPrompt;
+      this.pendingPrompt = null;
+      void this.executePrompt(content);
     }
   }
 
-  private async executePrompt(prompt: QueuedPrompt): Promise<void> {
+  private async executePrompt(content: PromptContent): Promise<void> {
     if (!this.client || !this._sessionId) return;
 
     this.setStatus('prompting');
 
     try {
-      const content = this.inputPreprocessor.process(prompt.text, prompt.files);
       await this.reassertConfig();
 
       this.promptTimer.start();
@@ -489,8 +449,8 @@ export class AcpSession {
 
       const acpErr = normalizeError(err);
       if (acpErr.code === 'AUTH_REQUIRED') {
-        // Re-queue the failed prompt so it's retried after auth recovery.
-        this.promptQueue.enqueueFront(prompt);
+        // Save the failed prompt so it can be retried after auth recovery.
+        this.pendingPrompt = content;
         this.authPending = true;
         await this.teardownConnection();
         this.setStatus('error');
@@ -585,7 +545,6 @@ export class AcpSession {
     if (this._status === 'prompting') {
       this.promptTimer.stop();
       this.permissionResolver.rejectAll(new Error('Process disconnected'));
-      this.queuePaused = true;
       this.resumeRetryCount = 0;
       this.resume();
     } else {
@@ -653,10 +612,9 @@ export class AcpSession {
   }
 
   private enterError(message: string): void {
-    this.promptQueue.clear();
+    this.pendingPrompt = null;
     this.permissionResolver.rejectAll(new Error(message));
     this.promptTimer.stop();
-    this.callbacks.onQueueUpdate(this.promptQueue.snapshot());
     this.setStatus('error');
     this.callbacks.onSignal({ type: 'error', message, recoverable: false });
   }

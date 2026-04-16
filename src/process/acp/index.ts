@@ -9,7 +9,6 @@ export type {
   ModeSnapshot,
   PermissionUIData,
   PromptContent,
-  QueueSnapshot,
   RuntimeOptions,
   SessionCallbacks,
   SessionSignal,

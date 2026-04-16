@@ -20,7 +20,6 @@ import type {
   ContextUsage,
   ModelSnapshot,
   ModeSnapshot,
-  QueueSnapshot,
   SessionCallbacks,
   SessionStatus,
 } from '@process/acp/types';
@@ -396,16 +395,6 @@ export class AcpAgentV2 {
             });
             break;
 
-          case 'queue_paused':
-            // queue_paused is crash recovery, not finish — just emit the error
-            this.onSignalEvent({
-              type: 'error',
-              conversation_id: this.conversationId,
-              msg_id: `signal_${Date.now()}`,
-              data: 'Queue paused due to crash recovery',
-            });
-            break;
-
           case 'auth_required':
             // Temporary: run backend-specific login command, then retry.
             // Will be replaced by authCommand + args when Agent Hub lands (PR #2349).
@@ -421,10 +410,6 @@ export class AcpAgentV2 {
             });
             break;
         }
-      },
-
-      onQueueUpdate: (_queue: QueueSnapshot) => {
-        // No old equivalent — ignore
       },
     };
   }

@@ -17,7 +17,6 @@ function createMockCallbacks(): SessionCallbacks {
     onModelUpdate: vi.fn(),
     onModeUpdate: vi.fn(),
     onContextUsage: vi.fn(),
-    onQueueUpdate: vi.fn(),
     onPermissionRequest: vi.fn(),
     onSignal: vi.fn(),
   };

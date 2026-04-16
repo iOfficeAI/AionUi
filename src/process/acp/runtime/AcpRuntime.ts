@@ -139,12 +139,6 @@ export class AcpRuntime {
     (entry.session as AcpSession).cancelAll();
   }
 
-  resumeQueue(convId: string): void {
-    const entry = this.sessions.get(convId);
-    if (!entry) return;
-    (entry.session as AcpSession).resumeQueue();
-  }
-
   setModel(convId: string, modelId: string): void {
     const entry = this.sessions.get(convId);
     if (!entry) return;
@@ -219,9 +213,6 @@ export class AcpRuntime {
       onContextUsage: (usage) => {
         this.onSignalEvent(convId, { type: 'context_usage', usage });
       },
-      onQueueUpdate: (queue) => {
-        this.onSignalEvent(convId, { type: 'queue_update', queue });
-      },
       onPermissionRequest: (data) => {
         this.onSignalEvent(convId, { type: 'permission_request', data });
       },
@@ -229,10 +220,6 @@ export class AcpRuntime {
         switch (signal.type) {
           case 'auth_required':
             this.onSignalEvent(convId, { type: 'auth_required', auth: signal.auth });
-            break;
-
-          case 'queue_paused':
-            this.onSignalEvent(convId, { type: 'queue_paused', reason: signal.reason });
             break;
 
           case 'error':

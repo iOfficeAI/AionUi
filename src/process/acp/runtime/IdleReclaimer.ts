@@ -28,7 +28,6 @@ export class IdleReclaimer {
       const session = entry.session as any;
       if (
         session.status === 'active' &&
-        session.promptQueue?.isEmpty !== false &&
         now - entry.lastActiveAt > this.idleTimeoutMs
       ) {
         session.suspend().catch(() => {});
