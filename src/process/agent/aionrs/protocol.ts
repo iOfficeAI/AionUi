@@ -33,7 +33,46 @@ export type AionrsCapabilities = {
   effort: boolean;
   effort_levels: string[];
   modes: string[];
+  current_mode: string;
   mcp: boolean;
+  current_model?: string;
+  available_models?: Array<{
+    id: string;
+    display_name?: string;
+    context_window?: number;
+    effort_levels?: string[];
+    default_effort?: string;
+  }>;
+  account_limits?: {
+    plan_type?: string;
+    limits: Array<{
+      limit_id?: string;
+      limit_name?: string;
+      primary?: {
+        used_percent: number;
+        window_minutes?: number;
+        resets_at?: number;
+      };
+      secondary?: {
+        used_percent: number;
+        window_minutes?: number;
+        resets_at?: number;
+      };
+      credits?: {
+        has_credits: boolean;
+        unlimited: boolean;
+        balance?: string;
+      };
+    }>;
+  };
+  context_limit?: number;
+  compaction?: {
+    enabled: boolean;
+    context_window: number;
+    output_reserve: number;
+    autocompact_trigger: number;
+    emergency_limit: number;
+  };
 };
 
 export type AionrsEvent =

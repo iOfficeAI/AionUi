@@ -363,6 +363,7 @@ export const createAionrsAgent = async (options: ICreateConversationParams): Pro
     extra: {
       workspace,
       customWorkspace,
+      isHealthCheck: extra.isHealthCheck,
       presetRules: extra.presetRules,
       enabledSkills: extra.enabledSkills,
       presetAssistantId: extra.presetAssistantId,

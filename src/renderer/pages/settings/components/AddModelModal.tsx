@@ -17,7 +17,7 @@ const AddModelModal = ModalHOC<{ data?: IProvider; onSubmit: (model: IProvider) 
     const [model, setModel] = useState('');
     const [modelProtocol, setModelProtocol] = useState<string>('openai');
     const isNewApi = isNewApiPlatform(data?.platform ?? '');
-    const { data: modelList, isLoading } = useModeModeList(data?.platform, data?.baseUrl, data?.apiKey);
+    const { data: modelList, isLoading } = useModeModeList(data?.platform, data?.baseUrl, data?.apiKey, data?.proxy);
     const existingModels = data?.model || [];
     const optionsList = useMemo(() => {
       // 处理新的数据格式，可能包含 fix_base_url

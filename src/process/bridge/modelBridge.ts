@@ -26,6 +26,9 @@ import { ipcBridge } from '@/common';
 import { ProcessConfig } from '@process/utils/initStorage';
 import { ExtensionRegistry } from '@process/extensions';
 import { BedrockClient, ListInferenceProfilesCommand } from '@aws-sdk/client-bedrock';
+import { getCopilotAuthHeaders, getCopilotModelsUrl } from '@process/agent/aionrs/copilotAuth';
+import { fetchChatgptModels } from '@process/agent/aionrs/chatgptAuth';
+import { fetchWithOptionalProxy } from '@process/agent/aionrs/fetchWithProxy';
 
 /**
  * OpenAI 兼容 API 的常见路径格式
@@ -73,10 +76,35 @@ function getBedrockModelDisplayName(modelId: string): string {
   return BEDROCK_MODEL_NAMES[modelId] || modelId;
 }
 
+function isCopilotPlatform(platform?: string): boolean {
+  return platform === 'copilot';
+}
+
+function isChatgptPlatform(platform?: string): boolean {
+  return platform === 'chatgpt';
+}
+
+async function createOpenAIClient(config: ConstructorParameters<typeof OpenAI>[0], proxy?: string): Promise<OpenAI> {
+  const trimmedProxy = proxy?.trim();
+  if (!trimmedProxy) {
+    return new OpenAI(config);
+  }
+
+  const { ProxyAgent } = await import('undici');
+  return new OpenAI({
+    ...config,
+    fetchOptions: {
+      ...config.fetchOptions,
+      dispatcher: new ProxyAgent(trimmedProxy),
+    },
+  });
+}
+
 export function initModelBridge(): void {
   ipcBridge.mode.fetchModelList.provider(async function fetchModelList({
     base_url,
     api_key,
+    proxy,
     try_fix,
     platform,
     bedrockConfig,
@@ -98,6 +126,66 @@ export function initModelBridge(): void {
       console.log('Using Vertex AI model list');
       const vertexAIModels = ['gemini-2.5-pro', 'gemini-2.5-flash'];
       return { success: true, data: { mode: vertexAIModels } };
+    }
+
+    if (isCopilotPlatform(platform)) {
+      try {
+        const response = await fetchWithOptionalProxy(
+          getCopilotModelsUrl(base_url),
+          {
+            headers: await getCopilotAuthHeaders(actualApiKey, proxy),
+          },
+          proxy
+        );
+
+        if (!response.ok) {
+          const body = await response.text();
+          throw new Error(body || `HTTP ${response.status}: ${response.statusText}`);
+        }
+
+        const data = (await response.json()) as {
+          data?: Array<{ id: string; name?: string }>;
+        };
+
+        if (!Array.isArray(data.data) || data.data.length === 0) {
+          throw new Error('Invalid response format');
+        }
+
+        return {
+          success: true,
+          data: {
+            mode: data.data.map((model) => ({
+              id: model.id,
+              name: model.name || model.id,
+            })),
+          },
+        };
+      } catch (error) {
+        return {
+          success: false,
+          msg: error instanceof Error ? error.message : String(error),
+        };
+      }
+    }
+
+    if (isChatgptPlatform(platform)) {
+      try {
+        const models = await fetchChatgptModels(proxy);
+        return {
+          success: true,
+          data: {
+            mode: models.map((model) => ({
+              id: model.id,
+              name: model.name,
+            })),
+          },
+        };
+      } catch (error) {
+        return {
+          success: false,
+          msg: error instanceof Error ? error.message : String(error),
+        };
+      }
     }
 
     // 如果是 MiniMax 平台，直接返回 MiniMax 支持的模型列表
@@ -136,15 +224,19 @@ export function initModelBridge(): void {
       if (actualApiKey) {
         try {
           const probeUrl = `${base_url.replace(/\/+$/, '')}/chat/completions`;
-          const probeResponse = await fetch(probeUrl, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${actualApiKey}` },
-            body: JSON.stringify({
-              model: codingPlanModels[0],
-              messages: [{ role: 'user', content: 'hi' }],
-              max_tokens: 1,
-            }),
-          });
+          const probeResponse = await fetchWithOptionalProxy(
+            probeUrl,
+            {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${actualApiKey}` },
+              body: JSON.stringify({
+                model: codingPlanModels[0],
+                messages: [{ role: 'user', content: 'hi' }],
+                max_tokens: 1,
+              }),
+            },
+            proxy
+          );
           if (probeResponse.status === 401) {
             const errorData = await probeResponse.json().catch(() => ({}));
             const errorMsg = errorData?.error?.message || errorData?.message || 'Invalid API key or token expired';
@@ -164,12 +256,16 @@ export function initModelBridge(): void {
       try {
         const anthropicUrl = base_url ? `${base_url}/v1/models` : 'https://api.anthropic.com/v1/models';
 
-        const response = await fetch(anthropicUrl, {
-          headers: {
-            'x-api-key': actualApiKey,
-            'anthropic-version': '2023-06-01',
+        const response = await fetchWithOptionalProxy(
+          anthropicUrl,
+          {
+            headers: {
+              'x-api-key': actualApiKey,
+              'anthropic-version': '2023-06-01',
+            },
           },
-        });
+          proxy
+        );
 
         if (!response.ok) {
           throw new Error(`HTTP ${response.status}: ${response.statusText}`);
@@ -216,13 +312,16 @@ export function initModelBridge(): void {
       }
 
       try {
-        const openai = new OpenAI({
-          baseURL: openaiBaseUrl,
-          apiKey: actualApiKey,
-          defaultHeaders: {
-            'User-Agent': 'AionUI/1.0',
+        const openai = await createOpenAIClient(
+          {
+            baseURL: openaiBaseUrl,
+            apiKey: actualApiKey,
+            defaultHeaders: {
+              'User-Agent': 'AionUI/1.0',
+            },
           },
-        });
+          proxy
+        );
 
         const res = await openai.models.list();
         if (res.data?.length === 0) {
@@ -330,7 +429,7 @@ export function initModelBridge(): void {
         const geminiBaseUrl = geminiBaseUrlRaw.replace(/\/(v1beta|v1)$/, '');
         const geminiUrl = `${geminiBaseUrl}/v1beta/models?key=${encodeURIComponent(actualApiKey)}`;
 
-        const response = await fetch(geminiUrl);
+        const response = await fetchWithOptionalProxy(geminiUrl, {}, proxy);
 
         if (!response.ok) {
           throw new Error(`HTTP ${response.status}: ${response.statusText}`);
@@ -368,15 +467,18 @@ export function initModelBridge(): void {
     }
 
     try {
-      const openai = new OpenAI({
-        baseURL: base_url,
-        apiKey: actualApiKey,
-        // 使用自定义 User-Agent，避免某些 API 中转站（如 packyapi）拦截 OpenAI SDK 默认的 User-Agent
-        // Use custom User-Agent to avoid some API proxies (like packyapi) blocking OpenAI SDK's default User-Agent
-        defaultHeaders: {
-          'User-Agent': 'AionUI/1.0',
+      const openai = await createOpenAIClient(
+        {
+          baseURL: base_url,
+          apiKey: actualApiKey,
+          // 使用自定义 User-Agent，避免某些 API 中转站（如 packyapi）拦截 OpenAI SDK 默认的 User-Agent
+          // Use custom User-Agent to avoid some API proxies (like packyapi) blocking OpenAI SDK's default User-Agent
+          defaultHeaders: {
+            'User-Agent': 'AionUI/1.0',
+          },
         },
-      });
+        proxy
+      );
 
       const res = await openai.models.list();
       // 检查返回的数据是否有效，LM Studio 获取失败时仍会返回空数据

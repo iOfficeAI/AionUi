@@ -103,6 +103,7 @@ const useModeModeList = (
   platform: string,
   base_url?: string,
   api_key?: string,
+  proxy?: string,
   try_fix?: boolean,
   bedrockConfig?: {
     authMethod: 'accessKey' | 'profile';
@@ -113,14 +114,21 @@ const useModeModeList = (
   }
 ) => {
   return useSWR(
-    [platform + '/models', { platform, base_url, api_key, try_fix, bedrockConfig }],
-    async ([_url, { platform, base_url, api_key, try_fix, bedrockConfig }]): Promise<{
+    [platform + '/models', { platform, base_url, api_key, proxy, try_fix, bedrockConfig }],
+    async ([_url, { platform, base_url, api_key, proxy, try_fix, bedrockConfig }]): Promise<{
       models: { label: string; value: string }[];
       fix_base_url?: string;
     }> => {
       // 如果有 API key、base_url 或 bedrockConfig，尝试通过 API 获取模型列表
       if (api_key || base_url || bedrockConfig) {
-        const res = await ipcBridge.mode.fetchModelList.invoke({ base_url, api_key, try_fix, platform, bedrockConfig });
+        const res = await ipcBridge.mode.fetchModelList.invoke({
+          base_url,
+          api_key,
+          proxy,
+          try_fix,
+          platform,
+          bedrockConfig,
+        });
         if (res.success) {
           let modelList =
             res.data?.mode.map((v) => {

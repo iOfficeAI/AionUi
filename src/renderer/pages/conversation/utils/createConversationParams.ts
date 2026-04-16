@@ -4,6 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
+import { ipcBridge } from '@/common';
 import { ConfigStorage } from '@/common/config/storage';
 import type { ICreateConversationParams } from '@/common/adapter/ipcBridge';
 import type { TProviderWithModel } from '@/common/config/storage';
@@ -22,19 +23,25 @@ import type { AvailableAgent } from '@/renderer/utils/model/agentTypes';
  * Throws if no compatible provider is configured.
  */
 export async function getDefaultAionrsModel(): Promise<TProviderWithModel> {
-  const providers = await ConfigStorage.get('model.config');
+  const providers = await ipcBridge.mode.getModelConfig.invoke();
+  const savedModel = await ConfigStorage.get('aionrs.defaultModel');
 
   if (!providers || providers.length === 0) {
     throw new Error('No model provider configured');
   }
 
-  // aionrs supports all platforms via OpenAI-compatible protocol
-  const provider = providers.find((p) => p.enabled !== false);
+  let provider = providers.find((p) => p.enabled !== false && savedModel?.id === p.id);
+  if (!provider) {
+    provider = providers.find((p) => p.enabled !== false);
+  }
   if (!provider) {
     throw new Error('No enabled model provider for Aion CLI');
   }
 
+  const savedUseModel = savedModel?.id === provider.id ? savedModel.useModel : undefined;
   const enabledModel = provider.model.find((m) => provider.modelEnabled?.[m] !== false);
+  const useModel =
+    savedUseModel && provider.model.includes(savedUseModel) ? savedUseModel : enabledModel || provider.model[0];
 
   return {
     id: provider.id,
@@ -42,7 +49,8 @@ export async function getDefaultAionrsModel(): Promise<TProviderWithModel> {
     name: provider.name,
     baseUrl: provider.baseUrl,
     apiKey: provider.apiKey,
-    useModel: enabledModel || provider.model[0],
+    proxy: provider.proxy,
+    useModel,
     capabilities: provider.capabilities,
     contextLimit: provider.contextLimit,
     modelProtocols: provider.modelProtocols,
@@ -59,7 +67,7 @@ export async function getDefaultAionrsModel(): Promise<TProviderWithModel> {
  * [BUG-3 fix]: callers must call this inside a try block
  */
 export async function getDefaultGeminiModel(): Promise<TProviderWithModel> {
-  const providers = await ConfigStorage.get('model.config');
+  const providers = await ipcBridge.mode.getModelConfig.invoke();
 
   if (!providers || providers.length === 0) {
     throw new Error('No model provider configured');
@@ -78,6 +86,7 @@ export async function getDefaultGeminiModel(): Promise<TProviderWithModel> {
     name: enabledProvider.name,
     baseUrl: enabledProvider.baseUrl,
     apiKey: enabledProvider.apiKey,
+    proxy: enabledProvider.proxy,
     useModel: enabledModel || enabledProvider.model[0],
     capabilities: enabledProvider.capabilities,
     contextLimit: enabledProvider.contextLimit,

@@ -450,6 +450,10 @@ export type TChatConversation =
         isHealthCheck?: boolean;
         /** Last token usage stats */
         lastTokenUsage?: TokenUsageData;
+        /** Last runtime-reported context window limit */
+        lastContextLimit?: number;
+        /** Persisted reasoning effort selection */
+        reasoningEffort?: string;
         /** Cron job ID that spawned this conversation */
         cronJobId?: string;
       }
@@ -484,6 +488,7 @@ export interface IProvider {
   name: string;
   baseUrl: string;
   apiKey: string;
+  proxy?: string;
   model: string[];
   /**
    * 模型能力标签列表。打了标签就是支持，没打就是不支持

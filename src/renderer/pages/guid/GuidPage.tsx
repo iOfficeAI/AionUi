@@ -486,11 +486,6 @@ const GuidPage: React.FC = () => {
       onAgentSwitch={(key) => {
         handlePresetAgentTypeSwitch(key).catch((err) => console.error('Failed to switch agent type:', err));
       }}
-      configOptionsBackend={
-        agentSelection.currentEffectiveAgentInfo.agentType as import('@/common/types/acpTypes').AcpBackend
-      }
-      cachedConfigOptions={agentSelection.cachedConfigOptions}
-      onConfigOptionSelect={agentSelection.setPendingConfigOption}
       hidePresetTag
       loading={guidInput.loading}
       isButtonDisabled={send.isButtonDisabled}

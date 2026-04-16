@@ -7,41 +7,43 @@
 import { ipcBridge } from '@/common';
 import { uuid } from '@/common/utils';
 import ContextUsageIndicator from '@/renderer/components/agent/ContextUsageIndicator';
+import AgentModeSelector from '@/renderer/components/agent/AgentModeSelector';
+import CommandQueuePanel from '@/renderer/components/chat/CommandQueuePanel';
+import SendBox from '@/renderer/components/chat/sendbox';
+import ThoughtDisplay from '@/renderer/components/chat/ThoughtDisplay';
+import FileAttachButton from '@/renderer/components/media/FileAttachButton';
 import FilePreview from '@/renderer/components/media/FilePreview';
 import HorizontalFileList from '@/renderer/components/media/HorizontalFileList';
-import SendBox from '@/renderer/components/chat/sendbox';
-import CommandQueuePanel from '@/renderer/components/chat/CommandQueuePanel';
 import { useAutoTitle } from '@/renderer/hooks/chat/useAutoTitle';
-import { useLatestRef } from '@/renderer/hooks/ui/useLatestRef';
-import { useOpenFileSelector } from '@/renderer/hooks/file/useOpenFileSelector';
-import FileAttachButton from '@/renderer/components/media/FileAttachButton';
-import { getSendBoxDraftHook, type FileOrFolderItem } from '@/renderer/hooks/chat/useSendBoxDraft';
 import { createSetUploadFile, useSendBoxFiles } from '@/renderer/hooks/chat/useSendBoxFiles';
+import { getSendBoxDraftHook, type FileOrFolderItem } from '@/renderer/hooks/chat/useSendBoxDraft';
 import { useSlashCommands } from '@/renderer/hooks/chat/useSlashCommands';
+import { useOpenFileSelector } from '@/renderer/hooks/file/useOpenFileSelector';
+import { useCommandQueueEnabled } from '@/renderer/hooks/system/useCommandQueueEnabled';
+import { useLatestRef } from '@/renderer/hooks/ui/useLatestRef';
 import { useAddOrUpdateMessage, useRemoveMessageByMsgId } from '@/renderer/pages/conversation/Messages/hooks';
+import { usePreviewContext } from '@/renderer/pages/conversation/Preview';
+import { assertBridgeSuccess } from '@/renderer/pages/conversation/platforms/assertBridgeSuccess';
 import {
   shouldEnqueueConversationCommand,
   useConversationCommandQueue,
   type ConversationCommandQueueItem,
 } from '@/renderer/pages/conversation/platforms/useConversationCommandQueue';
-import { assertBridgeSuccess } from '@/renderer/pages/conversation/platforms/assertBridgeSuccess';
-import { usePreviewContext } from '@/renderer/pages/conversation/Preview';
 import { allSupportedExts } from '@/renderer/services/FileService';
+import { iconColors } from '@/renderer/styles/colors';
 import { emitter, useAddEventListener } from '@/renderer/utils/emitter';
 import { mergeFileSelectionItems } from '@/renderer/utils/file/fileSelection';
 import { buildDisplayMessage, collectSelectedFiles } from '@/renderer/utils/file/messageFiles';
+import type { AgentModeOption } from '@/renderer/utils/model/agentModes';
 import { getModelContextLimit } from '@/renderer/utils/model/modelContextLimits';
-import { useCommandQueueEnabled } from '@/renderer/hooks/system/useCommandQueueEnabled';
 import { Message, Tag } from '@arco-design/web-react';
 import { Shield } from '@icon-park/react';
-import { iconColors } from '@/renderer/styles/colors';
-import AgentModeSelector from '@/renderer/components/agent/AgentModeSelector';
-import { mergeWithCapabilities, type AgentModeOption } from '@/renderer/utils/model/agentModes';
-import ThoughtDisplay from '@/renderer/components/chat/ThoughtDisplay';
+import type { AionrsCapabilities } from '@process/agent/aionrs/protocol';
 import React, { useCallback, useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import AionrsEffortSelector from './AionrsEffortSelector';
 import type { AionrsModelSelection } from './useAionrsModelSelection';
-import { useAionrsMessage } from './useAionrsMessage';
+import { useAionrsMessage, type UseAionrsMessageReturn } from './useAionrsMessage';
 
 const useAionrsSendBoxDraft = getSendBoxDraftHook('aionrs', {
   _type: 'aionrs',
@@ -86,27 +88,44 @@ const useSendBoxDraft = (conversation_id: string) => {
   };
 };
 
-const AionrsSendBox: React.FC<{
+type AionrsSendBoxBaseProps = {
   conversation_id: string;
   modelSelection: AionrsModelSelection;
-}> = ({ conversation_id, modelSelection }) => {
+  sessionMode?: string;
+  capabilities?: AionrsCapabilities | null;
+  dynamicModes?: AgentModeOption[];
+  initialContextLimit?: number;
+  initialEffort?: string;
+};
+
+type AionrsSendBoxProps = AionrsSendBoxBaseProps & {
+  messageState?: UseAionrsMessageReturn;
+};
+
+type AionrsSendBoxInnerProps = AionrsSendBoxBaseProps & {
+  messageState: UseAionrsMessageReturn;
+};
+
+const AionrsSendBoxInner: React.FC<AionrsSendBoxInnerProps> = ({
+  conversation_id,
+  modelSelection,
+  sessionMode,
+  capabilities,
+  messageState,
+  dynamicModes = [],
+  initialContextLimit,
+  initialEffort,
+}) => {
   const [workspacePath, setWorkspacePath] = useState('');
-  const [dynamicModes, setDynamicModes] = useState<AgentModeOption[]>([]);
   const { t } = useTranslation();
   const { checkAndUpdateTitle } = useAutoTitle();
   const isCommandQueueEnabled = useCommandQueueEnabled();
 
   const { currentModel, getDisplayModelName } = modelSelection;
-
   const { thought, running, hasHydratedRunningState, tokenUsage, setActiveMsgId, setWaitingResponse, resetState } =
-    useAionrsMessage(conversation_id, {
-      onConfigChanged: (capabilities) => {
-        const modes = (capabilities as { modes?: string[] })?.modes;
-        if (modes && modes.length > 0) {
-          setDynamicModes(mergeWithCapabilities('aionrs', modes));
-        }
-      },
-    });
+    messageState;
+  const resolvedContextLimit =
+    capabilities?.context_limit || initialContextLimit || getModelContextLimit(currentModel?.useModel);
 
   const { atPath, uploadFile, setAtPath, setUploadFile, content, setContent } = useSendBoxDraft(conversation_id);
 
@@ -118,7 +137,6 @@ const AionrsSendBox: React.FC<{
   }, [conversation_id]);
 
   const slashCommands = useSlashCommands(conversation_id);
-
   const addOrUpdateMessage = useAddOrUpdateMessage();
   const removeMessageByMsgId = useRemoveMessageByMsgId();
   const { setSendBoxHandler } = usePreviewContext();
@@ -127,16 +145,14 @@ const AionrsSendBox: React.FC<{
   const setContentRef = useLatestRef(setContent);
   const atPathRef = useLatestRef(atPath);
 
-  // Register handler for adding text from preview panel to sendbox
   useEffect(() => {
     const handler = (text: string) => {
       const newContent = content ? `${content}\n${text}` : text;
       setContentRef.current(newContent);
     };
     setSendBoxHandler(handler);
-  }, [setSendBoxHandler, content]);
+  }, [setSendBoxHandler, content, setContentRef]);
 
-  // Listen for sendbox.fill event to populate input from external sources
   useAddEventListener(
     'sendbox.fill',
     (text: string) => {
@@ -145,7 +161,6 @@ const AionrsSendBox: React.FC<{
     []
   );
 
-  // Shared file handling logic
   const { handleFilesAdded, clearFiles } = useSendBoxFiles({
     atPath,
     uploadFile,
@@ -202,9 +217,10 @@ const AionrsSendBox: React.FC<{
       checkAndUpdateTitle,
       conversation_id,
       currentModel?.useModel,
-      setActiveMsgId,
       removeMessageByMsgId,
+      setActiveMsgId,
       setWaitingResponse,
+      t,
       workspacePath,
     ]
   );
@@ -231,7 +247,6 @@ const AionrsSendBox: React.FC<{
     onExecute: executeCommand,
   });
 
-  // Handle initial message from Guid page
   useEffect(() => {
     if (!conversation_id) return;
 
@@ -299,6 +314,7 @@ const AionrsSendBox: React.FC<{
     },
     [setUploadFile]
   );
+
   const { openFileSelector, onSlashBuiltinCommand } = useOpenFileSelector({
     onFilesSelected: appendSelectedFiles,
   });
@@ -311,7 +327,6 @@ const AionrsSendBox: React.FC<{
     }
   });
 
-  // Stop conversation handler
   const handleStop = async (): Promise<void> => {
     try {
       await ipcBridge.conversation.stop.invoke({ conversation_id });
@@ -363,10 +378,16 @@ const AionrsSendBox: React.FC<{
         tools={
           <div className='flex items-center gap-4px'>
             <FileAttachButton openFileSelector={openFileSelector} onLocalFilesAdded={handleFilesAdded} />
+            <AionrsEffortSelector
+              conversationId={conversation_id}
+              capabilities={capabilities}
+              initialEffort={initialEffort}
+            />
             <AgentModeSelector
               backend='aionrs'
               conversationId={conversation_id}
               compact
+              initialMode={sessionMode}
               dynamicModes={dynamicModes}
               compactLeadingIcon={<Shield theme='outline' size='14' fill={iconColors.secondary} />}
               modeLabelFormatter={(mode) => t(`agentMode.${mode.value}`, { defaultValue: mode.label })}
@@ -378,7 +399,8 @@ const AionrsSendBox: React.FC<{
         sendButtonPrefix={
           <ContextUsageIndicator
             tokenUsage={tokenUsage}
-            contextLimit={getModelContextLimit(currentModel?.useModel)}
+            contextLimit={resolvedContextLimit > 0 ? resolvedContextLimit : undefined}
+            compaction={capabilities?.compaction}
             size={24}
           />
         }
@@ -428,6 +450,19 @@ const AionrsSendBox: React.FC<{
       />
     </div>
   );
+};
+
+const AionrsSendBoxWithHook: React.FC<AionrsSendBoxBaseProps> = (props) => {
+  const messageState = useAionrsMessage(props.conversation_id);
+  return <AionrsSendBoxInner {...props} messageState={messageState} />;
+};
+
+const AionrsSendBox: React.FC<AionrsSendBoxProps> = ({ messageState, ...props }) => {
+  if (messageState) {
+    return <AionrsSendBoxInner {...props} messageState={messageState} />;
+  }
+
+  return <AionrsSendBoxWithHook {...props} />;
 };
 
 export default AionrsSendBox;

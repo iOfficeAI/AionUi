@@ -6,18 +6,33 @@
 
 import type { TProviderWithModel } from '@/common/config/storage';
 import { isOpenAIHost } from '@/common/utils/urlValidation';
+import { getEnhancedEnv } from '@process/utils/shellEnv';
 
-type AionrsProvider = 'anthropic' | 'openai' | 'bedrock' | 'vertex';
+type AionrsProvider = 'anthropic' | 'openai' | 'bedrock' | 'vertex' | 'copilot' | 'chatgpt';
+const DEFAULT_NO_PROXY = 'localhost,127.0.0.1,::1';
+const PROXY_ENV_KEYS = [
+  'HTTP_PROXY',
+  'HTTPS_PROXY',
+  'ALL_PROXY',
+  'NO_PROXY',
+  'http_proxy',
+  'https_proxy',
+  'all_proxy',
+  'no_proxy',
+] as const;
 
 /**
  * Map AionUi platform name to aionrs provider name.
  *
- * AionUi PlatformType values: 'custom' | 'new-api' | 'gemini' | 'gemini-vertex-ai' | 'anthropic' | 'bedrock'
+ * AionUi PlatformType values:
+ * 'custom' | 'new-api' | 'gemini' | 'gemini-vertex-ai' | 'anthropic' | 'bedrock' | 'copilot' | 'chatgpt'
  */
 function mapProvider(model: TProviderWithModel): AionrsProvider {
   const mapping: Record<string, AionrsProvider> = {
     anthropic: 'anthropic',
     bedrock: 'bedrock',
+    copilot: 'copilot',
+    chatgpt: 'chatgpt',
     'gemini-vertex-ai': 'vertex',
     // Gemini uses OpenAI-compatible endpoint
     gemini: 'openai',
@@ -49,6 +64,54 @@ function resolveOpenAIBaseUrl(model: TProviderWithModel): string {
  */
 function stripTrailingV1(url: string): string {
   return url.replace(/\/v1\/?$/, '');
+}
+
+export function buildProxyEnvironment(proxyUrl: string, noProxy = DEFAULT_NO_PROXY): Record<string, string> {
+  const trimmed = proxyUrl.trim();
+  if (!trimmed) {
+    return {};
+  }
+
+  const env: Record<string, string> = {
+    HTTP_PROXY: trimmed,
+    HTTPS_PROXY: trimmed,
+    ALL_PROXY: trimmed,
+    NO_PROXY: noProxy,
+  };
+
+  if (process.platform === 'win32') {
+    return env;
+  }
+
+  return {
+    ...env,
+    http_proxy: trimmed,
+    https_proxy: trimmed,
+    all_proxy: trimmed,
+    no_proxy: noProxy,
+  };
+}
+
+export function buildAionrsChildEnv(
+  customEnv: Record<string, string> = {},
+  options?: {
+    proxy?: string;
+  }
+): Record<string, string> {
+  const env = { ...getEnhancedEnv(customEnv) };
+  for (const key of PROXY_ENV_KEYS) {
+    delete env[key];
+  }
+
+  const explicitProxy = options?.proxy?.trim();
+  if (explicitProxy) {
+    return {
+      ...env,
+      ...buildProxyEnvironment(explicitProxy),
+    };
+  }
+
+  return env;
 }
 
 /**
@@ -121,6 +184,15 @@ export function buildSpawnConfig(
       }
       break;
     }
+
+    case 'copilot':
+      if (model.apiKey) env.COPILOT_API_KEY = model.apiKey;
+      if (model.baseUrl) args.push('--base-url', model.baseUrl.replace(/\/+$/, ''));
+      break;
+
+    case 'chatgpt':
+      if (model.apiKey) env.OPENAI_API_KEY = model.apiKey;
+      break;
 
     case 'vertex':
       // Vertex uses service account or ADC — no explicit env vars needed

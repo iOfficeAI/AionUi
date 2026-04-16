@@ -4,18 +4,22 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
+import type { TokenUsageData } from '@/common/config/storage';
+import { DEFAULT_CONTEXT_LIMIT } from '@/renderer/utils/model/modelContextLimits';
 import { Popover } from '@arco-design/web-react';
 import React, { useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 
-import type { TokenUsageData } from '@/common/config/storage';
-
-// 从 modelContextLimits 导入默认上下文限制
-import { DEFAULT_CONTEXT_LIMIT } from '@/renderer/utils/model/modelContextLimits';
-
 interface ContextUsageIndicatorProps {
   tokenUsage: TokenUsageData | null;
   contextLimit?: number;
+  compaction?: {
+    enabled: boolean;
+    context_window: number;
+    output_reserve: number;
+    autocompact_trigger: number;
+    emergency_limit: number;
+  } | null;
   className?: string;
   size?: number;
 }
@@ -23,6 +27,7 @@ interface ContextUsageIndicatorProps {
 const ContextUsageIndicator: React.FC<ContextUsageIndicatorProps> = ({
   tokenUsage,
   contextLimit = DEFAULT_CONTEXT_LIMIT,
+  compaction = null,
   className = '',
   size = 24,
 }) => {
@@ -41,45 +46,52 @@ const ContextUsageIndicator: React.FC<ContextUsageIndicatorProps> = ({
 
     const total = tokenUsage.totalTokens;
     const pct = (total / contextLimit) * 100;
+    const warningThreshold = compaction?.enabled ? compaction.autocompact_trigger : contextLimit * 0.7;
+    const dangerThreshold = compaction?.enabled ? compaction.emergency_limit : contextLimit * 0.9;
 
     return {
       percentage: pct,
       displayTotal: formatTokenCount(total),
       displayLimit: formatTokenCount(contextLimit, true),
-      isWarning: pct > 70,
-      isDanger: pct > 90,
+      isWarning: total >= warningThreshold,
+      isDanger: total >= dangerThreshold,
     };
-  }, [tokenUsage, contextLimit]);
+  }, [compaction, contextLimit, tokenUsage]);
 
-  // 如果没有 token 数据，不显示
   if (!tokenUsage) {
     return null;
   }
 
-  // 计算圆环参数
   const strokeWidth = 2.5;
   const radius = (size - strokeWidth) / 2;
   const circumference = 2 * Math.PI * radius;
   const strokeDashoffset = circumference - (percentage / 100) * circumference;
 
-  // 根据状态获取颜色
   const getStrokeColor = () => {
     if (isDanger) return 'rgb(var(--danger-6))';
     if (isWarning) return 'rgb(var(--warning-6))';
     return 'rgb(var(--primary-6))';
   };
 
-  // 背景圆环颜色 - 适配深浅主题
-  const getTrackColor = () => {
-    return 'var(--color-fill-3)';
-  };
-
   const popoverContent = (
     <div className='p-8px min-w-160px'>
       <div className='text-14px font-medium text-t-primary'>
-        {percentage.toFixed(1)}% · {displayTotal} / {displayLimit}{' '}
+        {percentage.toFixed(1)}% 路 {displayTotal} / {displayLimit}{' '}
         {t('conversation.contextUsage.contextUsed', 'context used')}
       </div>
+      {compaction?.enabled && (
+        <div className='mt-6px flex flex-col gap-2px text-12px text-t-secondary'>
+          <div>
+            {t('conversation.aionrs.autoCompactAt')}: {formatTokenCount(compaction.autocompact_trigger, true)}
+          </div>
+          <div>
+            {t('conversation.aionrs.emergencyLimit')}: {formatTokenCount(compaction.emergency_limit, true)}
+          </div>
+          <div>
+            {t('conversation.aionrs.outputReserve')}: {formatTokenCount(compaction.output_reserve, true)}
+          </div>
+        </div>
+      )}
     </div>
   );
 
@@ -90,16 +102,14 @@ const ContextUsageIndicator: React.FC<ContextUsageIndicatorProps> = ({
         style={{ width: size, height: size }}
       >
         <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`} style={{ transform: 'rotate(-90deg)' }}>
-          {/* 背景圆环 */}
           <circle
             cx={size / 2}
             cy={size / 2}
             r={radius}
             fill='none'
-            stroke={getTrackColor()}
+            stroke='var(--color-fill-3)'
             strokeWidth={strokeWidth}
           />
-          {/* 进度圆环 */}
           <circle
             cx={size / 2}
             cy={size / 2}
@@ -118,12 +128,6 @@ const ContextUsageIndicator: React.FC<ContextUsageIndicatorProps> = ({
   );
 };
 
-/**
- * 格式化 token 数量显示
- * @param count token 数量
- * @param hideZeroDecimals 是否隐藏小数点为0的情况（如 1.0M 显示为 1M），默认为 false
- * @returns 格式化后的字符串，如 "37.0K" 或 "1.2M"，当 hideZeroDecimals 为 true 时 "1.0M" 显示为 "1M"
- */
 export function formatTokenCount(count: number, hideZeroDecimals = false): string {
   if (count >= 1_000_000) {
     const value = count / 1_000_000;
