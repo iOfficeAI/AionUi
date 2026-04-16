@@ -14,6 +14,7 @@ import {
   type OldAcpAgentConfig,
 } from '@process/acp/compat/typeBridge';
 import { AcpSession, type SessionOptions } from '@process/acp/session/AcpSession';
+import type { IAcpSessionRepository } from '@process/services/database/IAcpSessionRepository';
 import type {
   AgentConfig,
   ConfigSnapshot,
@@ -166,6 +167,8 @@ export class AcpAgentV2 {
   private activeToolCalls = new Map<string, IMessageAcpToolCall>();
   // Auth retry guard — prevent infinite auth loops
   private authRetryAttempted = false;
+  // Session persistence
+  private acpSessionRepo: IAcpSessionRepository | null = null;
 
   constructor(config: OldAcpAgentConfig) {
     this.conversationId = config.id;
@@ -218,6 +221,19 @@ export class AcpAgentV2 {
     // Load user-configured (builtin) MCP servers from settings, filtered by
     // cached agent MCP capabilities. Mirrors AcpAgent.loadBuiltinSessionMcpServers().
     const { ProcessConfig } = await import('@process/utils/initStorage');
+
+    // Initialize session persistence repository
+    if (!this.acpSessionRepo) {
+      try {
+        const { getDatabase } = await import('@process/services/database');
+        const { SqliteAcpSessionRepository } = await import('@process/services/database/SqliteAcpSessionRepository');
+        const db = await getDatabase();
+        this.acpSessionRepo = new SqliteAcpSessionRepository(db.getDriver());
+      } catch (err) {
+        console.warn('[AcpAgentV2] Failed to init session repo, persistence disabled:', err);
+      }
+    }
+
     const rawMcpServers = await ProcessConfig.get('mcp.config');
     if (Array.isArray(rawMcpServers) && rawMcpServers.length > 0) {
       const cachedInit = await ProcessConfig.get('acp.cachedInitializeResult');
@@ -239,6 +255,19 @@ export class AcpAgentV2 {
       maxStartRetries: 3,
       maxResumeRetries: 2,
     };
+
+    // Persist initial session row
+    this.acpSessionRepo?.upsertSession({
+      conversation_id: this.conversationId,
+      agent_backend: this.agentConfig.agentBackend,
+      agent_source: this.agentConfig.agentSource,
+      agent_id: this.agentConfig.agentId,
+      session_id: null,
+      session_status: 'idle',
+      session_config: '{}',
+      last_active_at: Date.now(),
+      suspended_at: null,
+    });
 
     this.session = new AcpSession(this.agentConfig, clientFactory, callbacks, sessionOptions);
     return this.session;
@@ -263,6 +292,7 @@ export class AcpAgentV2 {
 
       onSessionId: (sessionId: string) => {
         this.lastSessionId = sessionId;
+        this.acpSessionRepo?.updateSessionId(this.conversationId, sessionId);
         if (this.onSessionIdUpdate) {
           this.onSessionIdUpdate(sessionId);
         }
@@ -270,6 +300,7 @@ export class AcpAgentV2 {
 
       onStatusChange: (status: SessionStatus) => {
         this.lastStatus = status;
+        this.persistStatus(status);
 
         // Resolve startOp when reaching active/error
         if (status === 'active' && this.startOp) {
@@ -463,6 +494,29 @@ export class AcpAgentV2 {
   /**
    * Map new 7-state FSM to old status names
    */
+  /** Persist status: 7 in-memory states → 4 stable DB states. */
+  private persistStatus(status: SessionStatus): void {
+    const stable = this.toStableStatus(status);
+    const suspendedAt = status === 'suspended' ? Date.now() : null;
+    this.acpSessionRepo?.updateStatus(this.conversationId, stable, suspendedAt);
+  }
+
+  private toStableStatus(status: SessionStatus): 'idle' | 'active' | 'suspended' | 'error' {
+    switch (status) {
+      case 'idle':
+        return 'idle';
+      case 'starting':
+      case 'active':
+      case 'prompting':
+      case 'resuming':
+        return 'active';
+      case 'suspended':
+        return 'suspended';
+      case 'error':
+        return 'error';
+    }
+  }
+
   private mapStatusToOldName(status: SessionStatus): string {
     switch (status) {
       case 'idle':
@@ -514,6 +568,7 @@ export class AcpAgentV2 {
 
   async kill(): Promise<void> {
     await this.session!.stop();
+    this.acpSessionRepo?.deleteSession(this.conversationId);
   }
 
   cancelPrompt(): void {
