@@ -269,6 +269,8 @@ function prepareBundledBun() {
   const runtimeKey = `${platform}-${arch}`;
   const runtimeVersion = getRuntimeVersion();
 
+  console.log(`Preparing bundled bun for ${runtimeKey} (version: ${runtimeVersion})`);
+
   const targetDir = path.join(projectRoot, 'resources', 'bundled-bun', runtimeKey);
   const cacheRootDir = getCacheRootDir();
   const cacheRuntimeDir = path.join(cacheRootDir, runtimeVersion, runtimeKey);
