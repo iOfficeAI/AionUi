@@ -66,12 +66,14 @@ function makeDeps(overrides: Partial<GuidSendDeps> = {}): GuidSendDeps {
     dir: '',
     setDir: vi.fn(),
     setLoading: vi.fn(),
+    loading: false,
     selectedAgent: 'remote',
     selectedAgentKey: 'remote:agent-1',
     selectedAgentInfo: undefined,
     isPresetAgent: false,
     selectedMode: 'default',
     selectedAcpModel: null,
+    selectedAcpConfigOptions: {},
     pendingConfigOptions: {},
     cachedConfigOptions: [],
     currentModel: undefined,
@@ -211,6 +213,40 @@ describe('useGuidSend', () => {
 
       expect(deps.closeAllTabs).toHaveBeenCalled();
       expect(deps.openTab).toHaveBeenCalledWith({ id: 'new-conv', extra: { workspace: '' } });
+    });
+
+    it('passes initial reasoning effort for aionrs ChatGPT conversations', async () => {
+      const deps = makeDeps({
+        selectedAgent: 'aionrs',
+        selectedAgentKey: 'aionrs',
+        currentModel: {
+          id: 'chatgpt-provider',
+          name: 'ChatGPT',
+          platform: 'chatgpt',
+          useModel: 'gpt-5',
+          baseUrl: 'https://chatgpt.com',
+          apiKey: '',
+        },
+        selectedAcpConfigOptions: {
+          reasoning_effort: 'high',
+        },
+        getEffectiveAgentType: vi.fn(() => ({ agentType: 'aionrs', isAvailable: true })),
+        currentEffectiveAgentInfo: { agentType: 'aionrs', isAvailable: true },
+      });
+      const { result } = renderHook(() => useGuidSend(deps));
+
+      await act(async () => {
+        await result.current.handleSend();
+      });
+
+      expect(mockCreate).toHaveBeenCalledWith(
+        expect.objectContaining({
+          type: 'aionrs',
+          extra: expect.objectContaining({
+            reasoningEffort: 'high',
+          }),
+        })
+      );
     });
   });
 

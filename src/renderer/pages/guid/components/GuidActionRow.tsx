@@ -27,6 +27,7 @@ type GuidActionRowProps = {
 
   // Model selector node (rendered by parent)
   modelSelectorNode: React.ReactNode;
+  acpConfigSelectorNode?: React.ReactNode;
 
   // Agent mode
   selectedAgent: AcpBackend | 'custom';
@@ -57,6 +58,7 @@ const GuidActionRow: React.FC<GuidActionRowProps> = ({
   onFilesUploaded,
   onSelectWorkspace,
   modelSelectorNode,
+  acpConfigSelectorNode,
   selectedAgent,
   effectiveModeAgent,
   selectedMode,
@@ -83,7 +85,7 @@ const GuidActionRow: React.FC<GuidActionRowProps> = ({
   const modeOptions = getAgentModes(modeBackend);
   const currentModeOption = modeOptions.find((mode) => mode.value === selectedMode);
   const showModeSwitch = supportsModeSwitch(modeBackend);
-  const configOptionCount = (modelSelectorNode ? 1 : 0) + (showModeSwitch ? 1 : 0);
+  const configOptionCount = (modelSelectorNode ? 1 : 0) + (acpConfigSelectorNode ? 1 : 0) + (showModeSwitch ? 1 : 0);
 
   // Browser file picker ref (WebUI only)
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -219,6 +221,7 @@ const GuidActionRow: React.FC<GuidActionRowProps> = ({
           className={`${styles.actionConfigGroup} ${configOptionCount > 1 ? styles.actionConfigGroupWithDivider : ''}`}
         >
           {modelSelectorNode}
+          {acpConfigSelectorNode}
 
           {showModeSwitch && (
             <AgentModeSelector

@@ -5,6 +5,7 @@
  */
 
 import { resolveLocaleKey } from '@/common/utils';
+import AcpConfigSelector from '@/renderer/components/agent/AcpConfigSelector';
 import { useAssistantBackends } from '@/renderer/hooks/assistant';
 import { useInputFocusRing } from '@/renderer/hooks/chat/useInputFocusRing';
 import { openExternalUrl, resolveExtensionAssetUrl } from '@/renderer/utils/platform';
@@ -67,10 +68,9 @@ const GuidPage: React.FC = () => {
   const resetAssistantRequested = (location.state as { resetAssistant?: boolean } | null)?.resetAssistant === true;
   const agentSelection = useGuidAgentSelection({
     modelList: modelSelection.modelList,
+    currentModel: modelSelection.currentModel,
     isGoogleAuth: modelSelection.isGoogleAuth,
     localeKey,
-    resetAssistant: resetAssistantRequested,
-    locationKey: location.key,
   });
 
   // Sync providerAgentKey when selected agent changes
@@ -112,6 +112,7 @@ const GuidPage: React.FC = () => {
     isPresetAgent: agentSelection.isPresetAgent,
     selectedMode: agentSelection.selectedMode,
     selectedAcpModel: agentSelection.selectedAcpModel,
+    selectedAcpConfigOptions: agentSelection.selectedAcpConfigOptions,
     pendingConfigOptions: agentSelection.pendingConfigOptions,
     cachedConfigOptions: agentSelection.cachedConfigOptions,
     currentModel: modelSelection.currentModel,
@@ -464,6 +465,28 @@ const GuidPage: React.FC = () => {
       setSelectedAcpModel={agentSelection.setSelectedAcpModel}
     />
   );
+  const guidConfigOptions = useMemo(
+    () =>
+      agentSelection.currentAcpCachedConfigOptions.map((option) => {
+        const selectedValue =
+          agentSelection.selectedAcpConfigOptions[option.id] || option.currentValue || option.selectedValue;
+
+        return {
+          ...option,
+          currentValue: selectedValue,
+          selectedValue,
+        };
+      }),
+    [agentSelection.currentAcpCachedConfigOptions, agentSelection.selectedAcpConfigOptions]
+  );
+  const acpConfigSelectorNode = (
+    <AcpConfigSelector
+      backend={agentSelection.selectedAgent === 'custom' ? undefined : agentSelection.selectedAgent}
+      initialConfigOptions={guidConfigOptions}
+      onOptionSelect={agentSelection.setSelectedAcpConfigOption}
+      buttonClassName='guid-config-btn'
+    />
+  );
 
   // Build the action row
   const actionRowNode = (
@@ -472,6 +495,7 @@ const GuidPage: React.FC = () => {
       onFilesUploaded={guidInput.handleFilesUploaded}
       onSelectWorkspace={(dir) => guidInput.setDir(dir)}
       modelSelectorNode={modelSelectorNode}
+      acpConfigSelectorNode={acpConfigSelectorNode}
       selectedAgent={agentSelection.selectedAgent}
       effectiveModeAgent={agentSelection.currentEffectiveAgentInfo.agentType}
       selectedMode={agentSelection.selectedMode}

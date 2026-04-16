@@ -71,4 +71,52 @@ describe('AcpConfigSelector', () => {
     expect(screen.getByTestId('guid-leading-icon')).toBeInTheDocument();
     expect(screen.getByText('Medium')).toBeInTheDocument();
   });
+
+  it('renders codex Guid reasoning defaults from preselected config options', () => {
+    render(
+      <AcpConfigSelector
+        backend='codex'
+        buttonClassName='guid-config-btn'
+        initialConfigOptions={[
+          {
+            id: 'model_reasoning_effort',
+            type: 'select',
+            category: 'reasoning',
+            currentValue: 'high',
+            selectedValue: 'high',
+            options: [
+              { value: 'medium', name: 'Medium' },
+              { value: 'high', name: 'High' },
+            ],
+          },
+        ]}
+      />
+    );
+
+    expect(screen.getByText('High')).toBeInTheDocument();
+  });
+
+  it('renders aionrs ChatGPT reasoning defaults from preselected config options', () => {
+    render(
+      <AcpConfigSelector
+        backend='aionrs'
+        buttonClassName='guid-config-btn'
+        initialConfigOptions={[
+          {
+            id: 'reasoning_effort',
+            type: 'select',
+            category: 'reasoning',
+            currentValue: 'minimal',
+            selectedValue: 'minimal',
+            options: [
+              { value: 'minimal', name: 'Minimal' },
+              { value: 'medium', name: 'Medium' },
+            ],
+          },
+        ]}
+      />
+    );
+
+    expect(screen.getByText('Minimal')).toBeInTheDocument();
+  });
 });

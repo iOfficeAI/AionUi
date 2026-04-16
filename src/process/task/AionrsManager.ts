@@ -66,6 +66,7 @@ type AionrsManagerData = {
   maxTokens?: number;
   maxTurns?: number;
   sessionMode?: string;
+  reasoningEffort?: string;
   sessionId?: string;
   resume?: string;
 };
@@ -176,6 +177,9 @@ export class AionrsManager extends BaseAgentManager<AionrsManagerData, string> {
     });
 
     await agent.start();
+    if (mergedData.reasoningEffort) {
+      agent.setConfig({ effort: mergedData.reasoningEffort });
+    }
     this.agent = agent;
     if (agent.capabilities) {
       this.emitCapabilitiesChanged(agent.capabilities);

@@ -91,6 +91,8 @@ export interface IConfigStorageRefer {
   'aionrs.config'?: {
     /** Preferred session mode for new conversations / 新会话的默认模式 */
     preferredMode?: string;
+    /** Preferred config options for new conversations / 新会话的默认配置项 */
+    preferredConfigOptions?: Record<string, string>;
   };
   'aionrs.defaultModel'?: { id: string; useModel: string };
   'tools.imageGenerationModel': TProviderWithModel & {

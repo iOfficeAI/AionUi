@@ -36,6 +36,7 @@ export type GuidSendDeps = {
   isPresetAgent: boolean;
   selectedMode: string;
   selectedAcpModel: string | null;
+  selectedAcpConfigOptions: Record<string, string>;
   pendingConfigOptions: Record<string, string>;
   cachedConfigOptions: import('@/common/types/acpTypes').AcpSessionConfigOption[];
   currentModel: TProviderWithModel | undefined;
@@ -92,6 +93,7 @@ export const useGuidSend = (deps: GuidSendDeps): GuidSendResult => {
     isPresetAgent,
     selectedMode,
     selectedAcpModel,
+    selectedAcpConfigOptions,
     pendingConfigOptions,
     cachedConfigOptions,
     currentModel,
@@ -113,6 +115,7 @@ export const useGuidSend = (deps: GuidSendDeps): GuidSendResult => {
     t,
   } = deps;
   const sendingRef = useRef(false);
+  const selectedAionrsReasoningEffort = selectedAcpConfigOptions.reasoning_effort;
 
   const handleSend = useCallback(async () => {
     const isCustomWorkspace = !!dir;
@@ -333,6 +336,7 @@ export const useGuidSend = (deps: GuidSendDeps): GuidSendResult => {
             enabledSkills: isPreset ? enabledSkills : undefined,
             presetAssistantId,
             sessionMode: selectedMode,
+            reasoningEffort: selectedAionrsReasoningEffort,
           },
         });
 
@@ -481,6 +485,7 @@ export const useGuidSend = (deps: GuidSendDeps): GuidSendResult => {
     navigate,
     closeAllTabs,
     openTab,
+    selectedAionrsReasoningEffort,
     t,
   ]);
 
