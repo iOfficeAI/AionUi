@@ -261,4 +261,31 @@ describe('model selector popup safety', () => {
 
     expect(screen.getByRole('button')).toHaveTextContent('High');
   });
+
+  it('renders Guid ACP config selector for aionrs ChatGPT reasoning levels', () => {
+    render(
+      <GuidAcpConfigSelector
+        backend='aionrs'
+        configOptions={[
+          {
+            id: 'reasoning_effort',
+            name: 'Reasoning effort',
+            category: 'reasoning',
+            type: 'select',
+            currentValue: 'medium',
+            options: [
+              { value: 'minimal', name: 'Minimal' },
+              { value: 'low', name: 'Low' },
+              { value: 'medium', name: 'Medium' },
+              { value: 'high', name: 'High' },
+            ],
+          },
+        ]}
+        selectedValues={{ reasoning_effort: 'minimal' }}
+        onSelectOption={vi.fn()}
+      />
+    );
+
+    expect(screen.getByRole('button')).toHaveTextContent('Minimal');
+  });
 });

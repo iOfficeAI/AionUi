@@ -1060,6 +1060,8 @@ export interface ICreateConversationParams {
     cachedConfigOptions?: import('../types/acpTypes').AcpSessionConfigOption[];
     /** Pending config option selections from Guid page (applied after session creation) */
     pendingConfigOptions?: Record<string, string>;
+    /** Initial reasoning effort for Aionrs ChatGPT sessions */
+    reasoningEffort?: string;
     /** Runtime validation snapshot used for post-switch strong checks (OpenClaw) */
     runtimeValidation?: {
       expectedWorkspace?: string;

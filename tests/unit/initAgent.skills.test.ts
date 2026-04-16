@@ -348,5 +348,27 @@ describe('initAgent — skill support', () => {
       expect(conversation.type).toBe('aionrs');
       expect(conversation.extra?.isHealthCheck).toBe(true);
     });
+
+    it('should persist the selected reasoning effort on aionrs conversations', async () => {
+      const conversation = await createAionrsAgent({
+        type: 'aionrs',
+        name: 'chatgpt conversation',
+        model: {
+          id: 'chatgpt-provider',
+          name: 'ChatGPT',
+          platform: 'chatgpt',
+          useModel: 'gpt-5',
+          baseUrl: 'https://chatgpt.com',
+          apiKey: '',
+        },
+        extra: {
+          workspace: '',
+          reasoningEffort: 'high',
+        },
+      });
+
+      expect(conversation.type).toBe('aionrs');
+      expect(conversation.extra?.reasoningEffort).toBe('high');
+    });
   });
 });

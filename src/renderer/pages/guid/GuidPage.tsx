@@ -68,6 +68,7 @@ const GuidPage: React.FC = () => {
 
   const agentSelection = useGuidAgentSelection({
     modelList: modelSelection.modelList,
+    currentModel: modelSelection.currentModel,
     isGoogleAuth: modelSelection.isGoogleAuth,
     localeKey,
   });

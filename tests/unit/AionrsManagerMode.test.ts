@@ -17,6 +17,7 @@ const {
   mockDb,
   mockCronService,
   mockApproveTool,
+  mockSetConfig,
   mockSetMode,
 } = vi.hoisted(() => ({
   emitResponseStream: vi.fn(),
@@ -37,6 +38,7 @@ const {
     listJobsByConversation: vi.fn(async () => []),
   },
   mockApproveTool: vi.fn(),
+  mockSetConfig: vi.fn(),
   mockSetMode: vi.fn(),
 }));
 
@@ -121,7 +123,7 @@ vi.mock('@process/agent/aionrs', () => ({
     send: vi.fn().mockResolvedValue(undefined),
     approveTool: mockApproveTool,
     denyTool: vi.fn(),
-    setConfig: vi.fn(),
+    setConfig: mockSetConfig,
     setMode: mockSetMode,
     sendCommand: vi.fn(),
     injectConversationHistory: vi.fn().mockResolvedValue(undefined),
@@ -265,6 +267,21 @@ describe('AionrsManager.tryAutoApprove', () => {
 describe('AionrsManager.setMode', () => {
   afterEach(() => {
     vi.clearAllMocks();
+  });
+
+  it('applies the initial reasoning effort during startup', async () => {
+    const data = {
+      workspace: '/test',
+      model: { name: 'test-provider', useModel: 'test-model', baseUrl: '', platform: 'chatgpt' },
+      conversation_id: 'conv-1',
+      sessionMode: 'default',
+      reasoningEffort: 'high',
+    };
+    const manager = new AionrsManager(data as any, data.model as any);
+
+    await (manager as any).agentReady;
+
+    expect(mockSetConfig).toHaveBeenCalledWith({ effort: 'high' });
   });
 
   it('should send set_mode command to aionrs agent', async () => {

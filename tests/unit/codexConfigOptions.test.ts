@@ -28,4 +28,31 @@ describe('codex config options defaults', () => {
   it('does not expose fallback config options for other backends', () => {
     expect(getDefaultAcpConfigOptions('claude')).toEqual([]);
   });
+
+  it('provides Guid fallback reasoning options for aionrs ChatGPT models', () => {
+    expect(
+      getDefaultAcpConfigOptions('aionrs', {
+        id: 'chatgpt-provider',
+        name: 'ChatGPT',
+        platform: 'chatgpt',
+        useModel: 'gpt-5',
+        baseUrl: 'https://chatgpt.com',
+        apiKey: '',
+      })
+    ).toEqual([
+      {
+        id: 'reasoning_effort',
+        name: 'Reasoning effort',
+        category: 'reasoning',
+        type: 'select',
+        currentValue: 'medium',
+        options: [
+          { value: 'minimal', name: 'Minimal' },
+          { value: 'low', name: 'Low' },
+          { value: 'medium', name: 'Medium' },
+          { value: 'high', name: 'High' },
+        ],
+      },
+    ]);
+  });
 });
