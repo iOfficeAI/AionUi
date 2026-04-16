@@ -32,6 +32,13 @@ type TeamMcpServerParams = {
   renameAgent?: (slotId: string, newName: string) => void;
   removeAgent?: (slotId: string) => void;
   wakeAgent: (slotId: string) => Promise<void>;
+  /**
+   * Optional hook: fired when `team_send_message` delivers to the team's
+   * leader (direct target or broadcast fan-out). TeammateManager uses this
+   * to suppress its fallback idle_notification and avoid duplicate reports
+   * in the leader's mailbox.
+   */
+  notifyExplicitSendToLead?: (fromSlotId: string) => void;
 };
 
 export type StdioMcpConfig = {
@@ -270,7 +277,7 @@ export class TeamMcpServer {
   // ── Tool handlers (logic preserved from original registerTools) ─────────────
 
   private async handleSendMessage(args: Record<string, unknown>, callerSlotId?: string): Promise<string> {
-    const { teamId, getAgents, mailbox } = this.params;
+    const { teamId, getAgents, mailbox, notifyExplicitSendToLead } = this.params;
     const to = String(args.to ?? '');
     const message = String(args.message ?? '');
     const summary = args.summary ? String(args.summary) : undefined;
@@ -282,6 +289,18 @@ export class TeamMcpServer {
       agents.find((a) => a.role === 'leader') ??
       agents[0];
     const fromSlotId = fromAgent?.slotId ?? 'unknown';
+
+    // Helper: if a teammate (not lead) delivers to the leader, notify
+    // TeammateManager so it skips the fallback idle_notification this turn.
+    // Guard against lead-as-sender: lead sending to itself would be meaningless;
+    // also a lead's turn does not write idle_notification, so the flag is moot.
+    const leadAgent = agents.find((a) => a.role === 'leader');
+    const notifyIfTargetsLead = (targetSlotId: string | undefined): void => {
+      if (!notifyExplicitSendToLead) return;
+      if (!leadAgent || leadAgent.slotId !== targetSlotId) return;
+      if (fromAgent?.role === 'leader') return; // leader → leader is nonsensical; ignore
+      notifyExplicitSendToLead(fromSlotId);
+    };
 
     if (to === '*') {
       const recipients: string[] = [];
@@ -299,6 +318,7 @@ export class TeamMcpServer {
               })
               .then(() => {
                 recipients.push(agent.agentName);
+                notifyIfTargetsLead(agent.slotId);
                 this.safeWake(agent.slotId, 'broadcast message');
               })
           )
@@ -319,7 +339,6 @@ export class TeamMcpServer {
     if (isShutdownApproved || isShutdownRejected) {
       const senderAgent = agents.find((a) => a.slotId === fromSlotId);
       const memberName = senderAgent?.agentName ?? fromSlotId;
-      const leadAgent = agents.find((a) => a.role === 'leader');
       const leadSlotId = leadAgent?.slotId;
 
       if (isShutdownApproved && this.params.removeAgent) {
@@ -331,6 +350,11 @@ export class TeamMcpServer {
             fromAgentId: fromSlotId,
             content: `${memberName} has shut down and been removed from the team.`,
           });
+          // removeAgent already cleared our per-turn flag; this notify is a
+          // no-op by the time finalizeTurn could ever consult it, but we
+          // keep the call for consistency so the invariant ("any write to
+          // lead flips the flag") holds throughout this file.
+          notifyIfTargetsLead(leadSlotId);
           this.safeWake(leadSlotId, 'shutdown_approved');
         }
         return 'Shutdown confirmed. You have been removed from the team.';
@@ -343,6 +367,7 @@ export class TeamMcpServer {
             fromAgentId: fromSlotId,
             content: `${memberName} refused to shut down. Reason: ${reason}`,
           });
+          notifyIfTargetsLead(leadSlotId);
           this.safeWake(leadSlotId, 'shutdown_rejected');
         }
         return 'Refusal sent to the leader.';
@@ -356,6 +381,7 @@ export class TeamMcpServer {
       content: message,
       summary,
     });
+    notifyIfTargetsLead(targetSlotId);
     this.safeWake(targetSlotId, `send_message to ${to}`);
 
     return `Message sent to ${to}'s inbox. They will process it shortly.`;

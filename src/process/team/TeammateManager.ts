@@ -49,9 +49,44 @@ export class TeammateManager extends EventEmitter {
   private readonly finalizedTurns = new Set<string>();
   /** Maps slotId → original name before rename, for "formerly: X" hints in prompts */
   private readonly renamedAgents = new Map<string, string>();
+  /**
+   * Accumulates the assistant text a non-lead teammate streams during a turn,
+   * keyed by conversationId. Used as a SAFETY NET: when a teammate finishes
+   * their turn WITHOUT explicitly calling team_send_message to the leader,
+   * we forward the captured text via idle_notification so the leader isn't
+   * blind. If the teammate DID call team_send_message to the leader, the
+   * explicit (curated) message is authoritative and we skip the fallback
+   * to avoid duplication — see `explicitSendToLeadThisTurn`.
+   *
+   * Sizing: tail-biased, capped at MAX_RESPONSE_CAPTURE_CHARS per conversation.
+   * Summaries tend to appear at the end of a response, so on overflow we keep
+   * the tail and drop the head. Memory is bounded: O(teammates × cap).
+   *
+   * Lifecycle: populated in handleResponseStream, drained in finalizeTurn,
+   * reset at wake() entry (defensive against lost 'finish' events), cleared
+   * on removeAgent / handleAgentCrash / dispose.
+   */
+  private readonly turnResponseBuffer = new Map<string, string>();
+  /**
+   * Slots whose agent explicitly called team_send_message to the leader
+   * (directly or via to='*' broadcast) during the current turn. When set
+   * for a non-lead agent, finalizeTurn skips the fallback idle_notification
+   * because the explicit message already reached the leader's mailbox.
+   *
+   * Populated by markExplicitSendToLead (called from TeamMcpServer when it
+   * observes a leader-targeted send). Cleared at wake() entry for a fresh
+   * turn, at finalizeTurn, and during remove/crash/dispose cleanup.
+   */
+  private readonly explicitSendToLeadThisTurn = new Set<string>();
 
   /** Maximum time (ms) to wait for a turnCompleted event before force-releasing a wake */
   private static readonly WAKE_TIMEOUT_MS = 60 * 1000;
+  /**
+   * Hard cap on the captured teammate response text forwarded to the leader.
+   * Bounds both memory (per-conversation buffer) and leader context tokens.
+   * 3000 chars ≈ ~2–3k tokens depending on language; safe against runaway output.
+   */
+  private static readonly MAX_RESPONSE_CAPTURE_CHARS = 3000;
 
   private readonly unsubResponseStream: () => void;
 
@@ -128,6 +163,16 @@ export class TeammateManager extends EventEmitter {
       }
 
       this.setStatus(slotId, 'active');
+
+      // Reset any response text captured from a prior turn (defensive: if the
+      // previous turn's 'finish' event was lost, leftover text would otherwise
+      // contaminate this turn's idle_notification to the leader).
+      if (agent.conversationId) {
+        this.turnResponseBuffer.delete(agent.conversationId);
+      }
+      // Reset the "explicitly sent to lead this turn" flag so the new turn
+      // starts fresh — a stale flag would suppress the safety-net fallback.
+      this.explicitSendToLeadThisTurn.delete(slotId);
 
       const mailboxMessages = await this.mailbox.readUnread(this.teamId, slotId);
       const teammates = this.agents.filter((a) => a.slotId !== slotId);
@@ -244,6 +289,20 @@ export class TeammateManager extends EventEmitter {
     // activeWakes entry is removed when turnCompleted fires (or by timeout)
   }
 
+  /**
+   * Record that an agent explicitly sent a message to the leader during the
+   * current turn. Called by TeamMcpServer.handleSendMessage whenever it
+   * resolves a send whose target (or broadcast fan-out) includes the leader.
+   * When set, finalizeTurn skips the fallback idle_notification to avoid
+   * duplicating the teammate's report in the leader's mailbox.
+   *
+   * Idempotent: safe to call multiple times per turn, e.g. for `to='*'`
+   * broadcasts or when a teammate sends two separate messages to the leader.
+   */
+  markExplicitSendToLead(fromSlotId: string): void {
+    this.explicitSendToLeadThisTurn.add(fromSlotId);
+  }
+
   /** Set agent status, update the local agents array, and emit IPC event */
   setStatus(slotId: string, status: TeammateStatus, lastMessage?: string): void {
     this.agents = this.agents.map((a) => (a.slotId === slotId ? { ...a, status } : a));
@@ -260,6 +319,18 @@ export class TeammateManager extends EventEmitter {
     this.wakeTimeouts.clear();
     this.activeWakes.clear();
     this.pendingWakes.clear();
+    // Surface leaked per-turn state so we can spot regressions where finalizeTurn
+    // never ran (e.g. an unhandled crash path that skips cleanup). Acceptable at
+    // shutdown if a turn is genuinely in-flight, but a non-empty buffer with
+    // multiple entries usually indicates a leak in a cleanup branch.
+    if (this.turnResponseBuffer.size > 0 || this.explicitSendToLeadThisTurn.size > 0) {
+      console.warn(
+        `[TeammateManager] dispose: leftover per-turn state — turnResponseBuffer=${this.turnResponseBuffer.size}, explicitSendToLeadThisTurn=${this.explicitSendToLeadThisTurn.size}. ` +
+          `If this is not a normal shutdown-during-active-turn, a finalize/crash cleanup path was missed.`
+      );
+    }
+    this.turnResponseBuffer.clear();
+    this.explicitSendToLeadThisTurn.clear();
     this.removeAllListeners();
   }
 
@@ -293,6 +364,30 @@ export class TeammateManager extends EventEmitter {
         this.setStatus(agent.slotId, 'failed', errorText.slice(0, 200));
         return;
       }
+    }
+
+    // Accumulate assistant text for non-lead teammates so the leader can see
+    // what they actually said when the turn ends. Without this, leader only
+    // receives the string "Turn completed" in idle_notification and can't tell
+    // whether the teammate produced useful output (common failure mode: the
+    // teammate forgets to call team_send_message).
+    //
+    // Tail-biased: we append then clip to the LAST MAX_RESPONSE_CAPTURE_CHARS,
+    // so summaries at the end of long responses survive while long preambles
+    // are dropped. Memory per conversation is bounded by the cap.
+    if (
+      msg.type === 'content' &&
+      agent.role !== 'leader' &&
+      typeof msg.data === 'string' &&
+      msg.data.length > 0
+    ) {
+      const prev = this.turnResponseBuffer.get(msg.conversation_id) ?? '';
+      const combined = prev + msg.data;
+      const clipped =
+        combined.length > TeammateManager.MAX_RESPONSE_CAPTURE_CHARS
+          ? combined.slice(combined.length - TeammateManager.MAX_RESPONSE_CAPTURE_CHARS)
+          : combined;
+      this.turnResponseBuffer.set(msg.conversation_id, clipped);
     }
 
     // Detect terminal stream messages and trigger turn completion.
@@ -400,18 +495,50 @@ export class TeammateManager extends EventEmitter {
       this.setStatus(agent.slotId, 'idle');
     }
 
-    // Auto-send idle notification to leader.
+    // Snapshot and clear per-turn state BEFORE the await below, so a
+    // late-arriving content chunk or a duplicate finalize (unlikely, but
+    // possible across async boundaries) can't contaminate the next turn.
+    const capturedResponse = this.turnResponseBuffer.get(conversationId);
+    this.turnResponseBuffer.delete(conversationId);
+    const didExplicitSendToLead = this.explicitSendToLeadThisTurn.delete(agent.slotId);
+
+    // Auto-send idle notification to leader — but only if the teammate did NOT
+    // explicitly call team_send_message to the leader this turn. The explicit
+    // message is authoritative (curated, may carry files/summary); our
+    // fallback is just a safety net to avoid leader blindness when the model
+    // forgets to report. Either way, we still attempt to wake the leader via
+    // maybeWakeLeaderWhenAllIdle (explicit sends already triggered their own
+    // wake in TeamMcpServer, so this is either a no-op or a safety re-arm).
     // Must run AFTER setStatus(idle) so maybeWakeLeaderWhenAllIdle sees the updated state.
     if (agent.role !== 'leader') {
       const leadAgent = this.agents.find((a) => a.role === 'leader');
       if (leadAgent && leadAgent.slotId !== agent.slotId) {
-        await this.mailbox.write({
-          teamId: this.teamId,
-          toAgentId: leadAgent.slotId,
-          fromAgentId: agent.slotId,
-          content: 'Turn completed',
-          type: 'idle_notification',
-        });
+        if (!didExplicitSendToLead) {
+          // No explicit report this turn — surface captured response text so
+          // the leader can see what was said. Capped at MAX_RESPONSE_CAPTURE_CHARS
+          // upstream, so this cannot blow up leader's context.
+          //
+          // Always prefix the content with an [auto-captured] marker so the
+          // leader can distinguish this fallback from a curated explicit
+          // report sent via team_send_message. Without the marker, the
+          // leader can't tell whether the teammate produced a deliberate
+          // summary or whether we're showing a (possibly truncated) tail of
+          // raw streamed output that may include mid-thought fragments.
+          // The marker is documented in leadPrompt.ts so the leader knows
+          // how to interpret it.
+          const trimmedResponse = capturedResponse?.trim() ?? '';
+          const content =
+            trimmedResponse.length > 0
+              ? `[auto-captured fallback — teammate did not call team_send_message; tail of streamed output, may be truncated]\n${trimmedResponse}`
+              : '[auto-captured fallback] Turn completed (no response text produced)';
+          await this.mailbox.write({
+            teamId: this.teamId,
+            toAgentId: leadAgent.slotId,
+            fromAgentId: agent.slotId,
+            content,
+            type: 'idle_notification',
+          });
+        }
         // Only wake leader when ALL non-leader teammates are idle/completed/failed/pending.
         // This prevents death loops where each idle notification triggers a new leader turn.
         this.maybeWakeLeaderWhenAllIdle(leadAgent.slotId);
@@ -466,6 +593,7 @@ export class TeammateManager extends EventEmitter {
       // Kill the crashed process (clean up residual child process)
       if (agent.conversationId) {
         this.workerTaskManager.kill(agent.conversationId);
+        this.turnResponseBuffer.delete(agent.conversationId);
       }
 
       // Clear wake locks to prevent future wake() calls from being permanently skipped
@@ -476,6 +604,7 @@ export class TeammateManager extends EventEmitter {
       }
       this.activeWakes.delete(agent.slotId);
       this.pendingWakes.delete(agent.slotId);
+      this.explicitSendToLeadThisTurn.delete(agent.slotId);
 
       this.setStatus(agent.slotId, 'failed', errorMessage.slice(0, 200));
       return;
@@ -487,6 +616,7 @@ export class TeammateManager extends EventEmitter {
       // 1. Kill the crashed process
       if (agent.conversationId) {
         this.workerTaskManager.kill(agent.conversationId);
+        this.turnResponseBuffer.delete(agent.conversationId);
       }
 
       // 2. Clear wake locks to prevent deadlock on next wake
@@ -497,6 +627,7 @@ export class TeammateManager extends EventEmitter {
       }
       this.activeWakes.delete(agent.slotId);
       this.pendingWakes.delete(agent.slotId);
+      this.explicitSendToLeadThisTurn.delete(agent.slotId);
 
       // 3. Mark as failed (frontend shows error status, tab stays)
       this.setStatus(agent.slotId, 'failed', errorMessage.slice(0, 200));
@@ -525,6 +656,7 @@ export class TeammateManager extends EventEmitter {
     // 2. Kill the crashed process (clean up residual child process + remove from taskList cache)
     if (agent.conversationId) {
       this.workerTaskManager.kill(agent.conversationId);
+      this.turnResponseBuffer.delete(agent.conversationId);
     }
 
     // 3. Clear wake locks to prevent deadlock on next wake
@@ -535,6 +667,7 @@ export class TeammateManager extends EventEmitter {
     }
     this.activeWakes.delete(agent.slotId);
     this.pendingWakes.delete(agent.slotId);
+    this.explicitSendToLeadThisTurn.delete(agent.slotId);
 
     // 4. Mark as failed (frontend shows error status, tab stays)
     this.setStatus(agent.slotId, 'failed', errorMessage.slice(0, 200));
@@ -572,7 +705,9 @@ export class TeammateManager extends EventEmitter {
     if (agent.conversationId) {
       this.ownedConversationIds.delete(agent.conversationId);
       this.finalizedTurns.delete(agent.conversationId);
+      this.turnResponseBuffer.delete(agent.conversationId);
     }
+    this.explicitSendToLeadThisTurn.delete(slotId);
 
     this.agents = this.agents.filter((a) => a.slotId !== slotId);
     console.log(`[TeammateManager] Agent ${slotId} (${agent.agentName}) removed`);
