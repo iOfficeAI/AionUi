@@ -99,7 +99,7 @@ describe('ConversationSkillsIndicator', () => {
 
     fireEvent.click(screen.getByText('MySkill'));
 
-    expect(mockNavigate).toHaveBeenCalledWith('/settings/skills-hub?highlight=MySkill');
+    expect(mockNavigate).toHaveBeenCalledWith('/settings/capabilities?tab=skills&highlight=MySkill');
   });
 
   it('encodes skill names with special characters in the URL', () => {
@@ -109,6 +109,6 @@ describe('ConversationSkillsIndicator', () => {
 
     fireEvent.click(screen.getByText('Skill & Tricks / More'));
 
-    expect(mockNavigate).toHaveBeenCalledWith('/settings/skills-hub?highlight=Skill%20%26%20Tricks%20%2F%20More');
+    expect(mockNavigate).toHaveBeenCalledWith('/settings/capabilities?tab=skills&highlight=Skill%20%26%20Tricks%20%2F%20More');
   });
 });
