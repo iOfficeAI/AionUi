@@ -38,6 +38,11 @@ bun start
 
 ### Build & Distribution
 
+To build Linux packages (especially RPM), your build host may require additional tools and compatibility libraries:
+
+- **RPM Tools**: `rpm` or `rpmbuild` must be installed on the host.
+- **Compatibility**: On modern Linux distributions (Fedora 30+, Arch, etc.), you may need `libxcrypt-compat` to provide `libcrypt.so.1`, which is required by the underlying packaging tools used by `electron-builder`.
+
 | Command                   | Description                                             |
 | ------------------------- | ------------------------------------------------------- |
 | `bun run package`         | Build all processes (main, preload, renderer) to `out/` |
