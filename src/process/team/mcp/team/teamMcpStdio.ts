@@ -162,6 +162,13 @@ createTeamTool(
       .describe(
         'Agent type/backend to use for the new teammate. Must be one of the types listed in "Available Agent Types for Spawning". Defaults to the leader type when omitted.'
       ),
+    model: z
+      .string()
+      .optional()
+      .describe(
+        'Model ID to use for this agent (e.g. "claude-sonnet-4", "gemini-2.5-pro"). ' +
+          "Defaults to the backend's preferred model when omitted."
+      ),
   },
   TEAM_MCP_PORT,
   TEAM_AGENT_SLOT_ID,

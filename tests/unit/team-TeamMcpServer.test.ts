@@ -470,7 +470,7 @@ describe('TeamMcpServer', () => {
         auth_token: authToken,
       })) as Record<string, unknown>;
 
-      expect(spawnAgent).toHaveBeenCalledWith('NewBot', 'claude');
+      expect(spawnAgent).toHaveBeenCalledWith('NewBot', 'claude', undefined);
       expect(response.result).toContain('NewBot');
     });
 

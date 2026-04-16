@@ -189,7 +189,7 @@ describe('TeamMcpServer agent type capability check', () => {
     await expect(
       (server as any).handleSpawnAgent({ name: 'gemini-agent', agent_type: 'gemini' })
     ).resolves.not.toThrow();
-    expect(spawnAgent).toHaveBeenCalledWith('gemini-agent', 'gemini');
+    expect(spawnAgent).toHaveBeenCalledWith('gemini-agent', 'gemini', undefined);
   });
 
   it('rejects codebuddy agents via handleSpawnAgent (no cached init result)', async () => {

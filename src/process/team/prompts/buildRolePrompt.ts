@@ -6,7 +6,7 @@ type BuildRolePromptParams = {
   agent: TeamAgent;
   teammates: TeamAgent[];
   /** Only needed for lead prompts */
-  availableAgentTypes?: Array<{ type: string; name: string }>;
+  availableAgentTypes?: Array<{ type: string; name: string; models?: string[] }>;
   renamedAgents?: Map<string, string>;
   teamWorkspace?: string;
 };

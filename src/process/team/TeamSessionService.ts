@@ -304,14 +304,23 @@ export class TeamSessionService {
       agent.customAgentId && (backend === 'gemini' || (ACP_ROUTED_PRESET_TYPES as readonly string[]).includes(backend))
     );
     const preferredModelId =
-      getConversationTypeForBackend(backend) === 'acp' ? await this.resolvePreferredAcpModelId(backend) : undefined;
+      agent.model ||
+      (getConversationTypeForBackend(backend) === 'acp' ? await this.resolvePreferredAcpModelId(backend) : undefined);
     const presetResources =
       isPreset && agent.customAgentId ? await this.loadPresetResources(agent.customAgentId) : undefined;
-    const model = await this.resolveConversationModel({
+    let model = await this.resolveConversationModel({
       backend,
       isPreset,
       presetAgentType: isPreset ? backend : undefined,
     });
+
+    // Override useModel for Gemini/Aionrs when agent has an explicit model
+    if (agent.model) {
+      const type = getConversationTypeForBackend(backend);
+      if (type === 'gemini' || type === 'aionrs') {
+        model = { ...model, useModel: agent.model };
+      }
+    }
 
     return buildAgentConversationParams({
       backend,
@@ -395,6 +404,7 @@ export class TeamSessionService {
       presetAssistantId?: string;
       gateway?: { cliPath?: string };
       teamMcpStdioConfig?: { env?: Array<{ name?: string; value?: string }> };
+      currentModelId?: string;
     };
     const slotId = this.extractRecoveredSlotId(extra);
     const agentType = this.resolveRecoveredAgentType(conversation);
@@ -411,6 +421,7 @@ export class TeamSessionService {
       status: this.mapRecoveredStatus(conversation.status),
       cliPath: extra.cliPath || extra.gateway?.cliPath,
       customAgentId: extra.customAgentId || extra.presetAssistantId,
+      model: extra.currentModelId || (conversation as { model?: { useModel?: string } }).model?.useModel,
     };
   }
 
@@ -737,7 +748,7 @@ export class TeamSessionService {
     const team = await this.getTeam(teamId);
     if (!team) throw new Error(`Team "${teamId}" not found`);
     let session!: TeamSession;
-    const spawnAgent = async (agentName: string, agentType?: string) => {
+    const spawnAgent = async (agentName: string, agentType?: string, model?: string) => {
       // Default to the leader's agent type instead of hardcoding 'claude'
       const leadAgent = team.agents.find((a) => a.role === 'lead');
       const resolvedType = agentType || leadAgent?.agentType || 'claude';
@@ -748,6 +759,7 @@ export class TeamSessionService {
         agentName,
         status: 'pending',
         conversationType: this.resolveConversationType(resolvedType) as 'acp',
+        model,
       });
       // Inject team MCP stdio config into the new agent's conversation (with agent identity)
       const stdioConfig = session?.getStdioConfig(newAgent.slotId);

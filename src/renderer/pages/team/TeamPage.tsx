@@ -7,6 +7,9 @@ import { useAuth } from '@renderer/hooks/context/AuthContext';
 import { ipcBridge } from '@/common';
 import type { TeamAgent, TTeam } from '@/common/types/teamTypes';
 import type { IProvider, TChatConversation, TProviderWithModel } from '@/common/config/storage';
+import { ConfigStorage } from '@/common/config/storage';
+import type { AcpModelInfo } from '@/common/types/acpTypes';
+import { resolveTeamModelLabel } from '@/common/utils/teamModelUtils';
 import ChatLayout from '@/renderer/pages/conversation/components/ChatLayout';
 import ChatSider from '@/renderer/pages/conversation/components/ChatSider';
 import { useTeamPendingPermissions } from './hooks/useTeamPendingPermissions';
@@ -31,7 +34,7 @@ type Props = {
 
 type TeamPageContentProps = {
   team: TTeam;
-  onAddAgent: (data: { agentName: string; agentKey: string }) => void;
+  onAddAgent: (data: { agentName: string; agentKey: string; model?: string }) => void;
   onRenameTeam: (newName: string) => Promise<boolean>;
 };
 
@@ -61,7 +64,8 @@ const AgentChatSlot: React.FC<{
   runtimeStatus?: string;
   onToggleFullscreen?: () => void;
   onRemove?: () => void;
-}> = ({ agent, teamId, isLead, isFullscreen = false, runtimeStatus, onToggleFullscreen, onRemove }) => {
+  cachedModels?: Record<string, AcpModelInfo> | null;
+}> = ({ agent, teamId, isLead, isFullscreen = false, runtimeStatus, onToggleFullscreen, onRemove, cachedModels }) => {
   const { data: conversation } = useSWR(agent.conversationId ? ['team-conversation', agent.conversationId] : null, () =>
     ipcBridge.conversation.get.invoke({ id: agent.conversationId })
   );
@@ -113,6 +117,9 @@ const AgentChatSlot: React.FC<{
           className='min-w-0'
           nameClassName='text-13px text-[color:var(--color-text-2)] font-medium'
         />
+        <span className='shrink-0 text-11px text-[color:var(--color-text-4)] truncate max-w-100px'>
+          {resolveTeamModelLabel(agent.model, agent.agentType, cachedModels)}
+        </span>
         <div className='flex items-center gap-8px shrink-0'>
           {agent.conversationId && !isAionrs && isAcpLike && (
             <div className='min-w-0 max-w-140px [&_button]:max-w-full [&_button_span]:truncate'>
@@ -193,6 +200,17 @@ const TeamPageContent: React.FC<TeamPageContentProps> = ({ team, onAddAgent, onR
   const [showLeftArrow, setShowLeftArrow] = useState(false);
   const [showRightArrow, setShowRightArrow] = useState(false);
   const [fullscreenSlotId, setFullscreenSlotId] = useState<string | null>(null);
+  const [cachedModels, setCachedModels] = useState<Record<string, AcpModelInfo> | null>(null);
+
+  useEffect(() => {
+    let active = true;
+    ConfigStorage.get('acp.cachedModels').then((data) => {
+      if (active) setCachedModels(data ?? null);
+    });
+    return () => {
+      active = false;
+    };
+  }, []);
 
   const activeAgent = agents.find((a) => a.slotId === activeSlotId);
   const leadAgent = agents.find((a) => a.role === 'lead');
@@ -403,6 +421,7 @@ const TeamPageContent: React.FC<TeamPageContentProps> = ({ team, onAddAgent, onR
                     runtimeStatus={statusMap.get(agent.slotId)?.status}
                     onToggleFullscreen={() => setFullscreenSlotId(null)}
                     onRemove={() => handleRemoveAgent(agent.slotId)}
+                    cachedModels={cachedModels}
                   />
                 </div>
               );
@@ -456,6 +475,7 @@ const TeamPageContent: React.FC<TeamPageContentProps> = ({ team, onAddAgent, onR
                         runtimeStatus={statusMap.get(agent.slotId)?.status}
                         onToggleFullscreen={() => setFullscreenSlotId(agent.slotId)}
                         onRemove={() => handleRemoveAgent(agent.slotId)}
+                        cachedModels={cachedModels}
                       />
                     </div>
                   );
@@ -516,7 +536,7 @@ const TeamPage: React.FC<Props> = ({ team }) => {
   );
 
   const handleAddAgent = useCallback(
-    async (data: { agentName: string; agentKey: string }) => {
+    async (data: { agentName: string; agentKey: string; model?: string }) => {
       const allAgents = [...cliAgents, ...presetAssistants];
       const agent = agentFromKey(data.agentKey, allAgents);
       const backend = resolveTeamAgentType(agent, 'claude');
@@ -529,6 +549,7 @@ const TeamPage: React.FC<Props> = ({ team }) => {
         conversationType: resolveConversationType(backend),
         cliPath: agent?.cliPath,
         customAgentId: agent?.customAgentId,
+        model: data.model,
       });
     },
     [addAgent, cliAgents, presetAssistants]

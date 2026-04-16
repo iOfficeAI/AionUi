@@ -61,6 +61,7 @@ export type TeamAgent = {
   status: TeammateStatus;
   cliPath?: string;
   customAgentId?: string;
+  model?: string;
 };
 
 /** Persisted team record (stored in SQLite `teams` table) */
