@@ -14,6 +14,18 @@ import {
 } from '@office-ai/aioncli-core';
 import { ipcBridge } from '@/common';
 import { promises as fsAsync } from 'node:fs';
+import {
+  getCopilotAuthStatus,
+  logoutCopilot,
+  startCopilotLogin,
+  waitForCopilotLogin,
+} from '@process/agent/aionrs/copilotAuth';
+import {
+  getChatgptAuthStatus,
+  logoutChatgpt,
+  startChatgptLogin,
+  waitForChatgptLogin,
+} from '@process/agent/aionrs/chatgptAuth';
 
 export function initAuthBridge(): void {
   ipcBridge.googleAuth.status.provider(async ({ proxy }) => {
@@ -131,5 +143,89 @@ export function initAuthBridge(): void {
 
   ipcBridge.googleAuth.logout.provider(async () => {
     return await clearCachedCredentialFile();
+  });
+
+  ipcBridge.copilotAuth.status.provider(async () => {
+    try {
+      return {
+        success: true,
+        data: await getCopilotAuthStatus(),
+      };
+    } catch (error) {
+      return { success: false, msg: error instanceof Error ? error.message : String(error) };
+    }
+  });
+
+  ipcBridge.copilotAuth.startLogin.provider(async ({ proxy }) => {
+    try {
+      return {
+        success: true,
+        data: await startCopilotLogin(proxy),
+      };
+    } catch (error) {
+      return { success: false, msg: error instanceof Error ? error.message : String(error) };
+    }
+  });
+
+  ipcBridge.copilotAuth.waitForLogin.provider(async ({ loginId }) => {
+    try {
+      return {
+        success: true,
+        data: await waitForCopilotLogin(loginId),
+      };
+    } catch (error) {
+      return { success: false, msg: error instanceof Error ? error.message : String(error) };
+    }
+  });
+
+  ipcBridge.copilotAuth.logout.provider(async () => {
+    try {
+      await logoutCopilot();
+      return { success: true };
+    } catch (error) {
+      return { success: false, msg: error instanceof Error ? error.message : String(error) };
+    }
+  });
+
+  ipcBridge.chatgptAuth.status.provider(async () => {
+    try {
+      return {
+        success: true,
+        data: await getChatgptAuthStatus(),
+      };
+    } catch (error) {
+      return { success: false, msg: error instanceof Error ? error.message : String(error) };
+    }
+  });
+
+  ipcBridge.chatgptAuth.startLogin.provider(async ({ proxy }) => {
+    try {
+      return {
+        success: true,
+        data: await startChatgptLogin(proxy),
+      };
+    } catch (error) {
+      return { success: false, msg: error instanceof Error ? error.message : String(error) };
+    }
+  });
+
+  ipcBridge.chatgptAuth.waitForLogin.provider(async ({ loginId }) => {
+    try {
+      return {
+        success: true,
+        data: await waitForChatgptLogin(loginId),
+      };
+    } catch (error) {
+      return { success: false, msg: error instanceof Error ? error.message : String(error) };
+    }
+  });
+
+  ipcBridge.chatgptAuth.logout.provider(async ({ proxy }) => {
+    try {
+      await logoutChatgpt(proxy);
+      return { success: true };
+    } catch (error) {
+      return { success: false, msg: error instanceof Error ? error.message : String(error) };
+    }
   });
 }

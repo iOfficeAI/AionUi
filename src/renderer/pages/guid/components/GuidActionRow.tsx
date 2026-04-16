@@ -6,9 +6,7 @@
 
 import { ipcBridge } from '@/common';
 import AgentModeSelector from '@/renderer/components/agent/AgentModeSelector';
-import AcpConfigSelector from '@/renderer/components/agent/AcpConfigSelector';
 import { getAgentModes, supportsModeSwitch, type AgentModeOption } from '@/renderer/utils/model/agentModes';
-import type { AcpSessionConfigOption } from '@/common/types/acpTypes';
 import { useLayoutContext } from '@/renderer/hooks/context/LayoutContext';
 import { getCleanFileNames, FileService } from '@/renderer/services/FileService';
 import { iconColors } from '@/renderer/styles/colors';
@@ -16,7 +14,7 @@ import { isElectronDesktop } from '@/renderer/utils/platform';
 import type { AcpBackend, AcpBackendConfig, AvailableAgent } from '../types';
 import PresetAgentTag, { type AgentSwitcherItem } from './PresetAgentTag';
 import { Button, Dropdown, Menu, Message, Tooltip } from '@arco-design/web-react';
-import { ArrowUp, Brain, FolderOpen, Plus, Shield, UploadOne } from '@icon-park/react';
+import { ArrowUp, FolderOpen, Plus, Shield, UploadOne } from '@icon-park/react';
 import React, { useCallback, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import styles from '../index.module.css';
@@ -48,11 +46,6 @@ type GuidActionRowProps = {
   onAgentSwitch?: (key: string) => void;
   hidePresetTag?: boolean;
 
-  // Config options (ACP)
-  configOptionsBackend?: AcpBackend;
-  cachedConfigOptions?: AcpSessionConfigOption[];
-  onConfigOptionSelect?: (configId: string, value: string) => void;
-
   // Send button
   loading: boolean;
   isButtonDisabled: boolean;
@@ -78,9 +71,6 @@ const GuidActionRow: React.FC<GuidActionRowProps> = ({
   agentLogo,
   agentSwitcherItems,
   onAgentSwitch,
-  configOptionsBackend,
-  cachedConfigOptions,
-  onConfigOptionSelect,
   hidePresetTag = false,
   loading,
   isButtonDisabled,
@@ -244,13 +234,6 @@ const GuidActionRow: React.FC<GuidActionRowProps> = ({
               modeLabelFormatter={getModeDisplayLabel}
             />
           )}
-          <AcpConfigSelector
-            backend={configOptionsBackend}
-            buttonClassName='guid-config-btn'
-            initialConfigOptions={cachedConfigOptions}
-            leadingIcon={<Brain theme='outline' size='14' fill={iconColors.secondary} />}
-            onOptionSelect={onConfigOptionSelect}
-          />
         </div>
 
         {!hidePresetTag && isPresetAgent && selectedAgentInfo && (

@@ -139,8 +139,8 @@ const AgentModeSelector: React.FC<AgentModeSelectorProps> = ({
   }, [backend]);
 
   // Priority: dynamicModes (runtime) > cachedModes (from cache) > static fallback.
-  // Codex keeps an extra unsafe full-auto mode locally even when cache/runtime
-  // report only the standard sandboxed options, so merge instead of replace.
+  // Codex is special: the app owns its session-mode abstraction, so UI must use
+  // the static Codex mode list instead of ACP runtime permission presets.
   const modes = useMemo(() => {
     if (dynamicModes && dynamicModes.length > 0) return getSelectableAgentModes(backend, dynamicModes);
     if (cachedModes.length > 0) return getSelectableAgentModes(backend, cachedModes);

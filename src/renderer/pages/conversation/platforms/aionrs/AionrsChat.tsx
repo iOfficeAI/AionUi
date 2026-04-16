@@ -14,7 +14,9 @@ import React, { useEffect, useMemo, useState } from 'react';
 import LocalImageView from '@renderer/components/media/LocalImageView';
 import ConversationChatConfirm from '../../components/ConversationChatConfirm';
 import AionrsSendBox from './AionrsSendBox';
+import type { AionrsCapabilities } from '@/process/agent/aionrs/protocol';
 import type { AionrsModelSelection } from './useAionrsModelSelection';
+import type { AgentModeOption } from '@/renderer/utils/model/agentModes';
 import { useAddEventListener } from '@/renderer/utils/emitter';
 
 const AionrsChat: React.FC<{
@@ -22,7 +24,20 @@ const AionrsChat: React.FC<{
   workspace: string;
   modelSelection: AionrsModelSelection;
   sessionMode?: string;
-}> = ({ conversation_id, workspace, modelSelection, sessionMode }) => {
+  capabilities?: AionrsCapabilities | null;
+  dynamicModes?: AgentModeOption[];
+  initialContextLimit?: number;
+  initialEffort?: string;
+}> = ({
+  conversation_id,
+  workspace,
+  modelSelection,
+  sessionMode,
+  capabilities,
+  dynamicModes,
+  initialContextLimit,
+  initialEffort,
+}) => {
   useMessageLstCache(conversation_id);
   const updateLocalImage = LocalImageView.useUpdateLocalImage();
   const [isStreamingContent, setIsStreamingContent] = useState(false);
@@ -59,7 +74,15 @@ const AionrsChat: React.FC<{
           <MessageList className='flex-1' />
         </FlexFullContainer>
         <ConversationChatConfirm conversation_id={conversation_id}>
-          <AionrsSendBox conversation_id={conversation_id} modelSelection={modelSelection} sessionMode={sessionMode} />
+          <AionrsSendBox
+            conversation_id={conversation_id}
+            modelSelection={modelSelection}
+            sessionMode={sessionMode}
+            capabilities={capabilities}
+            dynamicModes={dynamicModes}
+            initialContextLimit={initialContextLimit}
+            initialEffort={initialEffort}
+          />
         </ConversationChatConfirm>
       </div>
     </ConversationProvider>

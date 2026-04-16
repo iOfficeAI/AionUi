@@ -138,32 +138,23 @@ export function mergeWithCapabilities(
 
 /**
  * Resolve the mode list shown in UI from runtime or cached data.
- * Some backends expose only a partial capability list even though extra
- * static modes are still supported locally, so we preserve those entries.
+ * Codex uses AionUi-managed session modes, so its UI should always use the
+ * local static definition instead of ACP runtime permission presets.
  */
 export function getSelectableAgentModes(
   backend: string | undefined,
   availableModes?: AgentModeOption[] | null
 ): AgentModeOption[] {
   const staticModes = getAgentModes(backend);
+  if (backend === 'codex') {
+    return staticModes;
+  }
+
   if (!availableModes || availableModes.length === 0) {
     return staticModes;
   }
 
-  if (backend !== 'codex') {
-    return availableModes;
-  }
-
-  const mergedModes = [...availableModes];
-  const existingValues = new Set(availableModes.map((mode) => mode.value));
-
-  for (const staticMode of staticModes) {
-    if (!existingValues.has(staticMode.value)) {
-      mergedModes.push(staticMode);
-    }
-  }
-
-  return mergedModes;
+  return availableModes;
 }
 
 /**

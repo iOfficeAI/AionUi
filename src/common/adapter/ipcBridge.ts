@@ -23,6 +23,7 @@ import type {
 import type { ProtocolDetectionRequest, ProtocolDetectionResponse } from '../utils/protocolDetector';
 import type { WorkspaceEditorTarget } from '../workspaceEditor';
 import type { SpeechToTextRequest, SpeechToTextResult } from '../types/speech';
+import type { AionrsCapabilities } from '../../process/agent/aionrs/protocol';
 
 export const shell = {
   openWorkspaceInEditor: bridge.buildProvider<void, { workspace: string; target: WorkspaceEditorTarget }>(
@@ -424,6 +425,49 @@ export const googleAuth = {
   logout: bridge.buildProvider<void, Record<string, never>>('google.auth.logout'),
   status: bridge.buildProvider<IBridgeResponse<{ account: string }>, { proxy?: string }>('google.auth.status'),
 };
+export const copilotAuth = {
+  status: bridge.buildProvider<
+    IBridgeResponse<{ authenticated: boolean; authPath: string; expiresAt?: string; lastRefresh?: string }>,
+    void
+  >('copilot.auth.status'),
+  startLogin: bridge.buildProvider<
+    IBridgeResponse<{
+      loginId: string;
+      verificationUri: string;
+      userCode: string;
+      expiresAt: string;
+      intervalSeconds: number;
+    }>,
+    { proxy?: string }
+  >('copilot.auth.start-login'),
+  waitForLogin: bridge.buildProvider<
+    IBridgeResponse<{ authenticated: true; authPath: string; expiresAt: string }>,
+    { loginId: string }
+  >('copilot.auth.wait-for-login'),
+  logout: bridge.buildProvider<IBridgeResponse, { proxy?: string }>('copilot.auth.logout'),
+};
+
+export const chatgptAuth = {
+  status: bridge.buildProvider<
+    IBridgeResponse<{
+      authenticated: boolean;
+      authPath: string;
+      authPrivatePath: string;
+      expiresAt?: string;
+      lastRefresh?: string;
+      providerId?: string;
+    }>,
+    void
+  >('chatgpt.auth.status'),
+  startLogin: bridge.buildProvider<IBridgeResponse<{ loginId: string }>, { proxy?: string }>(
+    'chatgpt.auth.start-login'
+  ),
+  waitForLogin: bridge.buildProvider<
+    IBridgeResponse<{ authenticated: true; authPath: string; authPrivatePath: string; expiresAt?: string }>,
+    { loginId: string }
+  >('chatgpt.auth.wait-for-login'),
+  logout: bridge.buildProvider<IBridgeResponse, { proxy?: string }>('chatgpt.auth.logout'),
+};
 
 // 订阅状态查询：用于动态决定是否展示 gemini-3.1-pro-preview / subscription check for Gemini models
 export const gemini = {
@@ -455,6 +499,7 @@ export const mode = {
     {
       base_url?: string;
       api_key: string;
+      proxy?: string;
       try_fix?: boolean;
       platform?: string;
       bedrockConfig?: {
@@ -520,6 +565,10 @@ export const acpConversation = {
   getMode: bridge.buildProvider<IBridgeResponse<{ mode: string; initialized: boolean }>, { conversationId: string }>(
     'acp.get-mode'
   ),
+  getCapabilities: bridge.buildProvider<
+    IBridgeResponse<{ capabilities: AionrsCapabilities | null; initialized: boolean }>,
+    { conversationId: string }
+  >('acp.get-capabilities'),
   // Get model info for ACP agents (model name and available models)
   // 获取 ACP 代理的模型信息（模型名称和可用模型）
   getModelInfo: bridge.buildProvider<IBridgeResponse<{ modelInfo: AcpModelInfo | null }>, { conversationId: string }>(

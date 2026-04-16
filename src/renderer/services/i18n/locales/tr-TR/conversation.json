@@ -266,6 +266,22 @@
   "contextUsage": {
     "contextUsed": "bağlam kullanıldı"
   },
+  "aionrs": {
+    "plan": "Plan",
+    "limit": "Limit",
+    "secondaryWindow": "secondary",
+    "contextWindow": "Context window",
+    "autoCompactAt": "Auto-compact at",
+    "emergencyLimit": "Emergency limit",
+    "outputReserve": "Output reserve",
+    "creditsRemaining": "Credits remaining",
+    "unlimitedCredits": "Unlimited",
+    "usageLimit": "{{name}}: {{used}}%",
+    "usageLimitWindow": "{{name}}: {{used}}% / {{window}}m",
+    "reasoningEffort": "Reasoning",
+    "reasoningEffortDefault": "Default",
+    "reasoningUpdateFailed": "Failed to update reasoning effort"
+  },
   "skill_generator": {
     "title": "Yetenek/Kural Oluştur",
     "generate": "Oluştur",

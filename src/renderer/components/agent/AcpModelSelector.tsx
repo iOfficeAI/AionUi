@@ -289,7 +289,9 @@ const AcpModelSelector: React.FC<{
   const modelSourceLabel = getAcpModelSourceLabel(modelInfo);
   const buttonLabel = formatAcpModelDisplayLabel(displayLabel, modelSourceLabel);
   const tooltipContent =
-    modelSourceLabel && displayLabel ? `${displayLabel}\nSource: ${modelSourceLabel}` : displayLabel || modelSourceLabel;
+    modelSourceLabel && displayLabel
+      ? `${displayLabel}\nSource: ${modelSourceLabel}`
+      : displayLabel || modelSourceLabel;
   const compact = isPreviewOpen || layout?.isMobile;
   const isMobileCompact = Boolean(layout?.isMobile);
 

@@ -413,10 +413,27 @@ export function initConversationBridge(
     return { success: true };
   });
 
-  // Placeholder: runtime config hot-swap is not yet supported.
-  // Model switching always uses kill-restart; thinking/effort may be added later.
-  ipcBridge.conversation.setConfig.provider(async () => {
-    return { success: false, msg: 'Runtime config changes not yet supported' };
+  // Aion CLI supports a small runtime config surface (e.g. reasoning effort).
+  // Other backends still use rebuild/restart for model or config changes.
+  ipcBridge.conversation.setConfig.provider(async ({ conversation_id, config }) => {
+    try {
+      const task = await workerTaskManager.getOrBuildTask(conversation_id);
+      if (!task) {
+        return { success: false, msg: 'Conversation not found' };
+      }
+
+      if (task.type !== 'aionrs') {
+        return { success: false, msg: 'Runtime config changes are only supported for Aion CLI' };
+      }
+
+      await (task as AionrsManager).setConfig(config);
+      return { success: true };
+    } catch (error) {
+      return {
+        success: false,
+        msg: error instanceof Error ? error.message : String(error),
+      };
+    }
   });
 
   ipcBridge.conversation.getSlashCommands.provider(async ({ conversation_id }) => {

@@ -5,25 +5,31 @@
  */
 
 import type { IProvider, TProviderWithModel } from '@/common/config/storage';
+import type { AionrsCapabilities } from '@process/agent/aionrs/protocol';
 import { useModelProviderList } from '@/renderer/hooks/agent/useModelProviderList';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 
+export type AionrsRuntimeModelInfo = NonNullable<AionrsCapabilities['available_models']>[number];
+
 export type AionrsModelSelection = {
   currentModel?: TProviderWithModel;
+  currentModelInfo?: AionrsRuntimeModelInfo;
   providers: IProvider[];
   getAvailableModels: (provider: IProvider) => string[];
   handleSelectModel: (provider: IProvider, modelName: string) => Promise<void>;
-  getDisplayModelName: (modelName?: string) => string;
+  getDisplayModelName: (modelName?: string, options?: { truncate?: boolean }) => string;
 };
 
 export type UseAionrsModelSelectionOptions = {
   initialModel: TProviderWithModel | undefined;
   onSelectModel: (provider: IProvider, modelName: string) => Promise<boolean>;
+  runtimeCapabilities?: AionrsCapabilities | null;
 };
 
 export const useAionrsModelSelection = ({
   initialModel,
   onSelectModel,
+  runtimeCapabilities,
 }: UseAionrsModelSelectionOptions): AionrsModelSelection => {
   const [currentModel, setCurrentModel] = useState<TProviderWithModel | undefined>(initialModel);
 
@@ -31,11 +37,28 @@ export const useAionrsModelSelection = ({
     setCurrentModel(initialModel);
   }, [initialModel?.id, initialModel?.useModel]);
 
-  const { providers: allProviders, getAvailableModels, formatModelLabel } = useModelProviderList();
+  const { providers: allProviders, getAvailableModels: getConfiguredModels, formatModelLabel } = useModelProviderList();
 
-  // AionCLI does not support Google Auth — filter it out
+  const runtimeModels = useMemo(
+    () => runtimeCapabilities?.available_models ?? [],
+    [runtimeCapabilities?.available_models]
+  );
+  const runtimeModelMap = useMemo(() => new Map(runtimeModels.map((model) => [model.id, model])), [runtimeModels]);
+  const useRuntimeModels = useMemo(() => {
+    if (!currentModel?.useModel || runtimeModels.length === 0) {
+      return false;
+    }
+
+    if (runtimeCapabilities?.current_model === currentModel.useModel) {
+      return true;
+    }
+
+    return runtimeModelMap.has(currentModel.useModel);
+  }, [currentModel?.useModel, runtimeCapabilities?.current_model, runtimeModelMap, runtimeModels.length]);
+
+  // AionCLI does not support Google Auth 鈥?filter it out
   const providers = useMemo(
-    () => allProviders.filter((p) => !p.platform?.toLowerCase().includes('gemini-with-google-auth')),
+    () => allProviders.filter((provider) => !provider.platform?.toLowerCase().includes('gemini-with-google-auth')),
     [allProviders]
   );
 
@@ -53,18 +76,43 @@ export const useAionrsModelSelection = ({
     [onSelectModel]
   );
 
+  const getAvailableModels = useCallback(
+    (provider: IProvider) => {
+      if (useRuntimeModels && provider.id === currentModel?.id) {
+        return runtimeModels.map((model) => model.id);
+      }
+      return getConfiguredModels(provider);
+    },
+    [currentModel?.id, getConfiguredModels, runtimeModels, useRuntimeModels]
+  );
+
   const getDisplayModelName = useCallback(
-    (modelName?: string) => {
-      if (!modelName) return '';
-      const label = formatModelLabel(currentModel, modelName);
+    (modelName?: string, options?: { truncate?: boolean }) => {
+      if (!modelName) {
+        return '';
+      }
+
+      const runtimeLabel = useRuntimeModels ? runtimeModelMap.get(modelName)?.display_name : undefined;
+      const label = runtimeLabel || formatModelLabel(currentModel, modelName);
+
+      if (options?.truncate === false) {
+        return label;
+      }
+
       const maxLength = 20;
       return label.length > maxLength ? `${label.slice(0, maxLength)}...` : label;
     },
-    [currentModel, formatModelLabel]
+    [currentModel, formatModelLabel, runtimeModelMap, useRuntimeModels]
+  );
+
+  const currentModelInfo = useMemo(
+    () => (useRuntimeModels && currentModel?.useModel ? runtimeModelMap.get(currentModel.useModel) : undefined),
+    [currentModel?.useModel, runtimeModelMap, useRuntimeModels]
   );
 
   return {
     currentModel,
+    currentModelInfo,
     providers,
     getAvailableModels,
     handleSelectModel,

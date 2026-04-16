@@ -4,6 +4,10 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
+import type { ICreateConversationParams } from '@/common/adapter/ipcBridge';
+import type { IProvider } from '@/common/config/storage';
+import { isAionrsOnlyPlatform } from '@/renderer/utils/model/modelPlatforms';
+
 /**
  * Classification result for a health check response message.
  *
@@ -28,4 +32,14 @@ export function classifyHealthCheckMessage(type: string): HealthCheckAction {
     return 'error';
   }
   return 'success';
+}
+
+/**
+ * Resolve which conversation backend should be used for model health checks.
+ *
+ * Most providers can be probed through the Gemini conversation stack, but aionrs-only
+ * login providers store auth in aionrs auth files and must be checked through the aionrs backend.
+ */
+export function getHealthCheckConversationType(platform: IProvider): ICreateConversationParams['type'] {
+  return isAionrsOnlyPlatform(platform.platform) ? 'aionrs' : 'gemini';
 }

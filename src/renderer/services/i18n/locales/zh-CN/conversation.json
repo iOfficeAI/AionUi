@@ -271,6 +271,22 @@
   "contextUsage": {
     "contextUsed": "上下文已使用"
   },
+  "aionrs": {
+    "plan": "套餐",
+    "limit": "额度",
+    "secondaryWindow": "次级窗口",
+    "contextWindow": "上下文窗口",
+    "autoCompactAt": "自动压缩阈值",
+    "emergencyLimit": "紧急上限",
+    "outputReserve": "输出预留",
+    "creditsRemaining": "剩余额度",
+    "unlimitedCredits": "无限制",
+    "usageLimit": "{{name}}：{{used}}%",
+    "usageLimitWindow": "{{name}}：{{used}}% / {{window}} 分钟",
+    "reasoningEffort": "推理强度",
+    "reasoningEffortDefault": "默认",
+    "reasoningUpdateFailed": "更新推理强度失败"
+  },
   "skill_generator": {
     "title": "生成 Skill/规则",
     "generate": "生成",

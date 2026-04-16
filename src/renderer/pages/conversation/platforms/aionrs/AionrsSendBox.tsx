@@ -34,12 +34,14 @@ import { iconColors } from '@/renderer/styles/colors';
 import { emitter, useAddEventListener } from '@/renderer/utils/emitter';
 import { mergeFileSelectionItems } from '@/renderer/utils/file/fileSelection';
 import { buildDisplayMessage, collectSelectedFiles } from '@/renderer/utils/file/messageFiles';
-import { mergeWithCapabilities, type AgentModeOption } from '@/renderer/utils/model/agentModes';
+import type { AgentModeOption } from '@/renderer/utils/model/agentModes';
 import { getModelContextLimit } from '@/renderer/utils/model/modelContextLimits';
 import { Message, Tag } from '@arco-design/web-react';
 import { Shield } from '@icon-park/react';
+import type { AionrsCapabilities } from '@process/agent/aionrs/protocol';
 import React, { useCallback, useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import AionrsEffortSelector from './AionrsEffortSelector';
 import type { AionrsModelSelection } from './useAionrsModelSelection';
 import { useAionrsMessage, type UseAionrsMessageReturn } from './useAionrsMessage';
 
@@ -90,6 +92,10 @@ type AionrsSendBoxBaseProps = {
   conversation_id: string;
   modelSelection: AionrsModelSelection;
   sessionMode?: string;
+  capabilities?: AionrsCapabilities | null;
+  dynamicModes?: AgentModeOption[];
+  initialContextLimit?: number;
+  initialEffort?: string;
 };
 
 type AionrsSendBoxProps = AionrsSendBoxBaseProps & {
@@ -98,15 +104,17 @@ type AionrsSendBoxProps = AionrsSendBoxBaseProps & {
 
 type AionrsSendBoxInnerProps = AionrsSendBoxBaseProps & {
   messageState: UseAionrsMessageReturn;
-  dynamicModes?: AgentModeOption[];
 };
 
 const AionrsSendBoxInner: React.FC<AionrsSendBoxInnerProps> = ({
   conversation_id,
   modelSelection,
   sessionMode,
+  capabilities,
   messageState,
   dynamicModes = [],
+  initialContextLimit,
+  initialEffort,
 }) => {
   const [workspacePath, setWorkspacePath] = useState('');
   const { t } = useTranslation();
@@ -116,6 +124,8 @@ const AionrsSendBoxInner: React.FC<AionrsSendBoxInnerProps> = ({
   const { currentModel, getDisplayModelName } = modelSelection;
   const { thought, running, hasHydratedRunningState, tokenUsage, setActiveMsgId, setWaitingResponse, resetState } =
     messageState;
+  const resolvedContextLimit =
+    capabilities?.context_limit || initialContextLimit || getModelContextLimit(currentModel?.useModel);
 
   const { atPath, uploadFile, setAtPath, setUploadFile, content, setContent } = useSendBoxDraft(conversation_id);
 
@@ -368,6 +378,11 @@ const AionrsSendBoxInner: React.FC<AionrsSendBoxInnerProps> = ({
         tools={
           <div className='flex items-center gap-4px'>
             <FileAttachButton openFileSelector={openFileSelector} onLocalFilesAdded={handleFilesAdded} />
+            <AionrsEffortSelector
+              conversationId={conversation_id}
+              capabilities={capabilities}
+              initialEffort={initialEffort}
+            />
             <AgentModeSelector
               backend='aionrs'
               conversationId={conversation_id}
@@ -384,7 +399,8 @@ const AionrsSendBoxInner: React.FC<AionrsSendBoxInnerProps> = ({
         sendButtonPrefix={
           <ContextUsageIndicator
             tokenUsage={tokenUsage}
-            contextLimit={getModelContextLimit(currentModel?.useModel)}
+            contextLimit={resolvedContextLimit > 0 ? resolvedContextLimit : undefined}
+            compaction={capabilities?.compaction}
             size={24}
           />
         }
@@ -437,17 +453,8 @@ const AionrsSendBoxInner: React.FC<AionrsSendBoxInnerProps> = ({
 };
 
 const AionrsSendBoxWithHook: React.FC<AionrsSendBoxBaseProps> = (props) => {
-  const [dynamicModes, setDynamicModes] = useState<AgentModeOption[]>([]);
-  const messageState = useAionrsMessage(props.conversation_id, {
-    onConfigChanged: (capabilities) => {
-      const modes = (capabilities as { modes?: string[] })?.modes;
-      if (modes && modes.length > 0) {
-        setDynamicModes(mergeWithCapabilities('aionrs', modes));
-      }
-    },
-  });
-
-  return <AionrsSendBoxInner {...props} messageState={messageState} dynamicModes={dynamicModes} />;
+  const messageState = useAionrsMessage(props.conversation_id);
+  return <AionrsSendBoxInner {...props} messageState={messageState} />;
 };
 
 const AionrsSendBox: React.FC<AionrsSendBoxProps> = ({ messageState, ...props }) => {

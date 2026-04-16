@@ -10,12 +10,44 @@ import { join } from 'node:path';
 import { createInterface } from 'node:readline';
 import type { TProviderWithModel } from '@/common/config/storage';
 import { resolveAionrsBinary } from './binaryResolver';
-import { buildSpawnConfig } from './envBuilder';
+import { buildAionrsChildEnv, buildSpawnConfig } from './envBuilder';
 import type { AionrsEvent, AionrsCommand, AionrsCapabilities } from './protocol';
+import { mainLog, mainWarn } from '@process/utils/mainLogger';
 
 const AIONRS_PROJECT_CONFIG = '.aionrs.toml';
+const MAX_STDERR_BUFFER = 4096;
+
+function summarizeProxy(proxy?: string): string {
+  if (!proxy) {
+    return 'disabled';
+  }
+
+  try {
+    const parsed = new URL(proxy);
+    const hasCredentials = parsed.username.length > 0 || parsed.password.length > 0;
+    const authPrefix = hasCredentials ? '***:***@' : '';
+    return `${parsed.protocol}//${authPrefix}${parsed.host}`;
+  } catch {
+    return 'configured';
+  }
+}
 
 type StreamEventHandler = (event: { type: string; data: unknown; msg_id: string }) => void;
+
+function appendBufferedOutput(current: string, chunk: string): string {
+  const next = `${current}${chunk}`;
+  return next.length <= MAX_STDERR_BUFFER ? next : next.slice(-MAX_STDERR_BUFFER);
+}
+
+function summarizeBufferedOutput(buffer: string): string {
+  return buffer
+    .trim()
+    .split(/\r?\n/)
+    .map((line) => line.trim())
+    .filter(Boolean)
+    .slice(-3)
+    .join(' | ');
+}
 
 export type AionrsAgentOptions = {
   workspace: string;
@@ -40,6 +72,8 @@ export class AionrsAgent {
   private options: AionrsAgentOptions;
   private activeMsgId: string | null = null;
   private configBackup: { path: string; content: string | null } | null = null;
+  private stderrBuffer = '';
+  private expectedExit = false;
   public sessionId?: string;
   public capabilities?: AionrsCapabilities;
 
@@ -76,11 +110,20 @@ export class AionrsAgent {
       this.writeProjectConfig(projectConfig);
     }
 
+    const childEnv = buildAionrsChildEnv(env, { proxy: this.options.proxy });
+    const proxyEnvKeys = ['HTTP_PROXY', 'HTTPS_PROXY', 'ALL_PROXY', 'NO_PROXY'].filter((key) => Boolean(childEnv[key]));
+    mainLog(
+      '[AionrsAgent]',
+      `spawning binary=${binaryPath} cwd=${this.options.workspace} model=${this.options.model.useModel} provider=${this.options.model.platform} proxy=${summarizeProxy(this.options.proxy)} proxy_env_keys=${proxyEnvKeys.join(',') || 'none'} args=${args.join(' ')}`
+    );
+
     this.childProcess = spawn(binaryPath, args, {
-      env: { ...process.env, ...env },
+      env: childEnv,
       stdio: ['pipe', 'pipe', 'pipe'],
       cwd: this.options.workspace,
     });
+    this.stderrBuffer = '';
+    this.expectedExit = false;
 
     // Parse stdout JSON Lines
     const rl = createInterface({ input: this.childProcess.stdout! });
@@ -89,20 +132,27 @@ export class AionrsAgent {
         const event = JSON.parse(line) as AionrsEvent;
         this.handleEvent(event);
       } catch {
-        console.error('[AionrsAgent] Failed to parse event:', line);
+        mainWarn('[AionrsAgent]', `failed to parse event: ${line}`);
       }
     });
 
     // Log stderr as diagnostics
     this.childProcess.stderr?.on('data', (chunk: Buffer) => {
-      console.error('[aionrs]', chunk.toString());
+      const text = chunk.toString();
+      this.stderrBuffer = appendBufferedOutput(this.stderrBuffer, text);
+      const summary = summarizeBufferedOutput(text);
+      if (summary) {
+        mainWarn('[AionrsAgent]', `stderr: ${summary}`);
+      }
     });
 
     // Handle process exit
-    this.childProcess.on('exit', (code) => {
+    this.childProcess.on('exit', (code, signal) => {
       this.restoreProjectConfig();
       if (!this.ready) {
         this.readyReject(new Error(`aionrs exited with code ${code} during init`));
+      } else if (!this.expectedExit) {
+        this.handleUnexpectedExit(code, signal);
       }
       this.childProcess = null;
     });
@@ -144,11 +194,16 @@ export class AionrsAgent {
         this.ready = true;
         this.sessionId = event.session_id;
         this.capabilities = event.capabilities;
+        mainLog(
+          '[AionrsAgent]',
+          `ready received: session_id=${event.session_id || 'none'} current_model=${event.capabilities.current_model || 'unknown'} available_models=${event.capabilities.available_models?.length ?? 0} context_limit=${event.capabilities.context_limit ?? 0}`
+        );
         this.readyResolve();
         break;
 
       case 'stream_start':
         this.activeMsgId = event.msg_id;
+        mainLog('[AionrsAgent]', `stream started: msg_id=${event.msg_id}`);
         this.onStreamEvent({ type: 'start', data: '', msg_id: event.msg_id });
         break;
 
@@ -230,11 +285,16 @@ export class AionrsAgent {
         break;
 
       case 'stream_end':
+        mainLog('[AionrsAgent]', `stream ended: msg_id=${event.msg_id}`);
         this.onStreamEvent({ type: 'finish', data: event.usage ?? '', msg_id: event.msg_id });
         this.activeMsgId = null;
         break;
 
       case 'error':
+        mainWarn(
+          '[AionrsAgent]',
+          `provider error event: msg_id=${event.msg_id ?? this.activeMsgId ?? 'none'} message=${event.error.message}`
+        );
         this.onStreamEvent({
           type: 'error',
           data: event.error.message,
@@ -302,6 +362,17 @@ export class AionrsAgent {
 
   sendCommand(cmd: AionrsCommand): void {
     if (!this.childProcess?.stdin?.writable) return;
+    const msgId = 'msg_id' in cmd && typeof cmd.msg_id === 'string' ? cmd.msg_id : 'n/a';
+    if (cmd.type === 'message' && this.activeMsgId) {
+      mainWarn(
+        '[AionrsAgent]',
+        `sending message command while another turn is active: active_msg_id=${this.activeMsgId} new_msg_id=${msgId}`
+      );
+    }
+    mainLog(
+      '[AionrsAgent]',
+      `sending command: type=${cmd.type} msg_id=${msgId} active_msg_id=${this.activeMsgId ?? 'none'}`
+    );
     this.childProcess.stdin.write(JSON.stringify(cmd) + '\n');
   }
 
@@ -343,9 +414,42 @@ export class AionrsAgent {
   kill(): void {
     this.restoreProjectConfig();
     if (this.childProcess) {
+      this.expectedExit = true;
       this.childProcess.kill('SIGTERM');
       this.childProcess = null;
     }
+  }
+
+  private handleUnexpectedExit(code: number | null, signal: NodeJS.Signals | null): void {
+    const activeMsgId = this.activeMsgId;
+    const exitLabel = code !== null ? `code ${code}` : `signal ${signal ?? 'unknown'}`;
+    const stderrSummary = summarizeBufferedOutput(this.stderrBuffer);
+
+    mainWarn(
+      '[AionrsAgent]',
+      `child exited unexpectedly (${exitLabel}) active_msg_id=${activeMsgId ?? 'none'} stderr=${stderrSummary || 'none'}`
+    );
+
+    if (!activeMsgId) {
+      this.activeMsgId = null;
+      return;
+    }
+
+    const message = stderrSummary
+      ? `aionrs exited unexpectedly (${exitLabel}): ${stderrSummary}`
+      : `aionrs exited unexpectedly (${exitLabel}).`;
+
+    this.onStreamEvent({
+      type: 'error',
+      data: message,
+      msg_id: activeMsgId,
+    });
+    this.onStreamEvent({
+      type: 'finish',
+      data: null,
+      msg_id: activeMsgId,
+    });
+    this.activeMsgId = null;
   }
 
   /**
