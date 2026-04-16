@@ -1,15 +1,8 @@
-import { ipcBridge } from '@/common';
-import useSWR from 'swr';
-
-export const COMMAND_QUEUE_ENABLED_SWR_KEY = 'system.commandQueueEnabled';
+import { ACP_V2_ENABLED_SWR_KEY, useAcpV2Enabled } from './useAcpV2Enabled';
 
 /**
- * Returns whether the conversation command queue feature is enabled globally.
+ * Backward-compat alias: command queue is enabled when ACP V2 is on.
+ * Existing SendBox consumers import this — no need to update them all now.
  */
-export const useCommandQueueEnabled = (): boolean => {
-  const { data = true } = useSWR(COMMAND_QUEUE_ENABLED_SWR_KEY, () =>
-    ipcBridge.systemSettings.getCommandQueueEnabled.invoke()
-  );
-
-  return data;
-};
+export const COMMAND_QUEUE_ENABLED_SWR_KEY = ACP_V2_ENABLED_SWR_KEY;
+export const useCommandQueueEnabled = useAcpV2Enabled;

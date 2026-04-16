@@ -204,12 +204,12 @@ export function initSystemSettingsBridge(): void {
     setPetConfirmEnabled(enabled);
   });
 
-  ipcBridge.systemSettings.getCommandQueueEnabled.provider(async () => {
-    const value = await ProcessConfig.get('system.commandQueueEnabled');
-    return value ?? true;
+  ipcBridge.systemSettings.getAcpV2Enabled.provider(async () => {
+    const value = await ProcessConfig.get('system.acpV2Enabled');
+    return value ?? false;  // DEFAULT: false (V2 is opt-in)
   });
 
-  ipcBridge.systemSettings.setCommandQueueEnabled.provider(async ({ enabled }) => {
-    await ProcessConfig.set('system.commandQueueEnabled', enabled);
+  ipcBridge.systemSettings.setAcpV2Enabled.provider(async ({ enabled }) => {
+    await ProcessConfig.set('system.acpV2Enabled', enabled);
   });
 }
