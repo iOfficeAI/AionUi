@@ -73,6 +73,68 @@ function getBedrockModelDisplayName(modelId: string): string {
   return BEDROCK_MODEL_NAMES[modelId] || modelId;
 }
 
+/**
+ * Get all model providers with extension contributions merged in.
+ * Shared between IPC bridge (renderer) and process-layer callers (e.g. team prompts).
+ */
+export async function getMergedModelProviders(): Promise<IProvider[]> {
+  try {
+    const data = await ProcessConfig.get('model.config');
+    const sourceList = Array.isArray(data) ? data : [];
+
+    // Handle migration from old IModel format to new IProvider format
+    const normalizedProviders = sourceList.map((v: any) => {
+      if ('selectedModel' in v && !('useModel' in v)) {
+        return {
+          ...v,
+          useModel: v.selectedModel,
+          id: v.id || uuid(),
+          capabilities: v.capabilities || [],
+          contextLimit: v.contextLimit,
+        } as IProvider;
+      }
+      return {
+        ...v,
+        id: v.id || uuid(),
+        useModel: v.useModel || v.selectedModel || '',
+      } as IProvider;
+    });
+
+    // Merge extension-contributed model providers
+    try {
+      const registry = ExtensionRegistry.getInstance();
+      const extensionProviders = registry.getModelProviders();
+      if (!extensionProviders || extensionProviders.length === 0) {
+        return normalizedProviders;
+      }
+
+      const extensionIds = new Set(extensionProviders.map((provider) => provider.id));
+      const userProviders = normalizedProviders.filter((provider) => !extensionIds.has(provider.id));
+
+      const mergedExtensionProviders: IProvider[] = extensionProviders.map((provider) => {
+        const existing = normalizedProviders.find((item) => item.id === provider.id);
+        return {
+          ...existing,
+          id: provider.id,
+          platform: provider.platform,
+          name: provider.name,
+          baseUrl: existing?.baseUrl || provider.baseUrl || '',
+          apiKey: existing?.apiKey || '',
+          model: Array.isArray(existing?.model) && existing.model.length > 0 ? existing.model : provider.models,
+          enabled: existing?.enabled ?? true,
+        } as IProvider;
+      });
+
+      return [...userProviders, ...mergedExtensionProviders];
+    } catch (error) {
+      console.warn('[ModelBridge] Failed to merge extension model providers:', error);
+      return normalizedProviders;
+    }
+  } catch {
+    return [];
+  }
+}
+
 export function initModelBridge(): void {
   ipcBridge.mode.fetchModelList.provider(async function fetchModelList({
     base_url,
@@ -503,69 +565,7 @@ export function initModelBridge(): void {
       });
   });
 
-  ipcBridge.mode.getModelConfig.provider(() => {
-    return ProcessConfig.get('model.config')
-      .then((data) => {
-        const sourceList = Array.isArray(data) ? data : [];
-
-        // Handle migration from old IModel format to new IProvider format
-        const normalizedProviders = sourceList.map((v: any) => {
-          // Check if this is old format (has 'selectedModel' field) vs new format (has 'useModel')
-          if ('selectedModel' in v && !('useModel' in v)) {
-            // Migrate from old format
-            return {
-              ...v,
-              useModel: v.selectedModel, // Rename selectedModel to useModel
-              id: v.id || uuid(),
-              capabilities: v.capabilities || [], // Add missing capabilities field
-              contextLimit: v.contextLimit, // Keep existing contextLimit if present
-            } as IProvider;
-            // Note: we don't delete selectedModel here as this is read-only migration
-          }
-
-          // Already in new format or unknown format, just ensure ID exists
-          return {
-            ...v,
-            id: v.id || uuid(),
-            useModel: v.useModel || v.selectedModel || '', // Fallback for edge cases
-          } as IProvider;
-        });
-
-        // Merge extension-contributed model providers (with user overrides from persisted config)
-        try {
-          const registry = ExtensionRegistry.getInstance();
-          const extensionProviders = registry.getModelProviders();
-          if (!extensionProviders || extensionProviders.length === 0) {
-            return normalizedProviders;
-          }
-
-          const extensionIds = new Set(extensionProviders.map((provider) => provider.id));
-          const userProviders = normalizedProviders.filter((provider) => !extensionIds.has(provider.id));
-
-          const mergedExtensionProviders: IProvider[] = extensionProviders.map((provider) => {
-            const existing = normalizedProviders.find((item) => item.id === provider.id);
-            return {
-              ...existing,
-              id: provider.id,
-              platform: provider.platform,
-              name: provider.name,
-              baseUrl: existing?.baseUrl || provider.baseUrl || '',
-              apiKey: existing?.apiKey || '',
-              model: Array.isArray(existing?.model) && existing.model.length > 0 ? existing.model : provider.models,
-              enabled: existing?.enabled ?? true,
-            } as IProvider;
-          });
-
-          return [...userProviders, ...mergedExtensionProviders];
-        } catch (error) {
-          console.warn('[ModelBridge] Failed to merge extension model providers:', error);
-          return normalizedProviders;
-        }
-      })
-      .catch(() => {
-        return [] as IProvider[];
-      });
-  });
+  ipcBridge.mode.getModelConfig.provider(() => getMergedModelProviders());
 
   // 协议检测接口实现 / Protocol detection implementation
   ipcBridge.mode.detectProtocol.provider(async function detectProtocol(

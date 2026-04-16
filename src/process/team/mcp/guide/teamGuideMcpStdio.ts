@@ -150,6 +150,24 @@ createAionTool(
   AION_MCP_TOKEN
 );
 
+// ---- aion_list_models ----
+createAionTool(
+  server,
+  'aion_list_models',
+  `Query available models for team agent types. Returns the real-time model list that matches the frontend model selector.
+
+Use this BEFORE proposing a team configuration to check what models are available for each agent type.
+Pass agent_type to query a specific backend, or omit it to see all.`,
+  {
+    agent_type: z
+      .string()
+      .optional()
+      .describe('Agent type/backend to query (e.g. "gemini", "claude", "codex"). Shows all when omitted.'),
+  },
+  AION_MCP_PORT,
+  AION_MCP_TOKEN
+);
+
 async function main(): Promise<void> {
   const transport = new StdioServerTransport();
   await server.connect(transport);
