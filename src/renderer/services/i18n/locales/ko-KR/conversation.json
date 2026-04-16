@@ -269,6 +269,22 @@
   "contextUsage": {
     "contextUsed": "사용된 컨텍스트"
   },
+  "aionrs": {
+    "plan": "Plan",
+    "limit": "Limit",
+    "secondaryWindow": "secondary",
+    "contextWindow": "Context window",
+    "autoCompactAt": "Auto-compact at",
+    "emergencyLimit": "Emergency limit",
+    "outputReserve": "Output reserve",
+    "creditsRemaining": "Credits remaining",
+    "unlimitedCredits": "Unlimited",
+    "usageLimit": "{{name}}: {{used}}%",
+    "usageLimitWindow": "{{name}}: {{used}}% / {{window}}m",
+    "reasoningEffort": "Reasoning",
+    "reasoningEffortDefault": "Default",
+    "reasoningUpdateFailed": "Failed to update reasoning effort"
+  },
   "skill_generator": {
     "title": "스킬/규칙 생성",
     "generate": "생성",

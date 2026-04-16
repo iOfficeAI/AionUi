@@ -4,9 +4,9 @@ import { ipcBridge } from '@/common';
 import { uuid } from '@/common/utils';
 import { isGoogleApisHost } from '@/common/utils/urlValidation';
 import ModalHOC from '@/renderer/utils/ui/ModalHOC';
-import { Form, Input, Message, Select } from '@arco-design/web-react';
+import { Button, Form, Input, Message, Select, Tag } from '@arco-design/web-react';
 import { LinkCloud, Edit, Search, Loading } from '@icon-park/react';
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import useModeModeList from '@renderer/hooks/agent/useModeModeList';
 import useProtocolDetection from '@renderer/hooks/system/useProtocolDetection';
@@ -17,6 +17,7 @@ import {
   NEW_API_PROTOCOL_OPTIONS,
   detectNewApiProtocol,
   getPlatformByValue,
+  isAionrsOnlyPlatform,
   isCustomOption,
   isGeminiPlatform,
   isNewApiPlatform,
@@ -186,6 +187,36 @@ const ProviderLogo: React.FC<{ logo: string | null; name: string; size?: number 
   return <LinkCloud theme='outline' size={size} className='text-t-secondary flex shrink-0' />;
 };
 
+type AionrsLoginStatus = {
+  authenticated: boolean;
+  authPath: string;
+  expiresAt?: string;
+  lastRefresh?: string;
+};
+
+type AionrsLoginInfo = {
+  userCode?: string;
+  verificationUri?: string;
+  expiresAt?: string;
+};
+
+function getOptionalLoginField(data: unknown, key: keyof AionrsLoginInfo): string | undefined {
+  if (!data || typeof data !== 'object') return undefined;
+  const value = (data as Record<string, unknown>)[key];
+  return typeof value === 'string' ? value : undefined;
+}
+
+function getAionrsLoginBridge(platform: string | undefined) {
+  if (platform === 'copilot') return ipcBridge.copilotAuth;
+  if (platform === 'chatgpt') return ipcBridge.chatgptAuth;
+  return null;
+}
+
+function getAionrsLoginKey(platform: string | undefined): 'copilot' | 'chatgpt' | null {
+  if (platform === 'copilot' || platform === 'chatgpt') return platform;
+  return null;
+}
+
 /**
  * 平台下拉选项渲染（第一层）
  * Platform dropdown option renderer (first level)
@@ -201,6 +232,11 @@ const renderPlatformOption = (platform: PlatformConfig, t?: (key: string) => str
     <div className='flex items-center gap-8px'>
       <ProviderLogo logo={platform.logo} name={displayName} size={18} />
       <span>{displayName}</span>
+      {isAionrsOnlyPlatform(platform.platform) && (
+        <Tag size='small' color='arcoblue'>
+          {t ? t('settings.aionrsOnly') : 'Aionrs Only'}
+        </Tag>
+      )}
     </div>
   );
 };
@@ -220,6 +256,7 @@ const AddPlatformModal = ModalHOC<{
   const platformValue = Form.useWatch('platform', form);
   const baseUrl = Form.useWatch('baseUrl', form);
   const apiKey = Form.useWatch('apiKey', form);
+  const proxyValue = Form.useWatch('proxy', form);
   const modelValue = Form.useWatch('model', form);
   const bedrockAuthMethod = Form.useWatch('bedrockAuthMethod', form);
   const _bedrockRegion = Form.useWatch('bedrockRegion', form);
@@ -233,6 +270,14 @@ const AddPlatformModal = ModalHOC<{
   const isBedrock = platform === 'bedrock';
   const isGemini = isGeminiPlatform(platform);
   const isNewApi = isNewApiPlatform(platform);
+  const loginPlatformKey = getAionrsLoginKey(platform);
+  const loginAuthBridge = getAionrsLoginBridge(platform);
+  const isAionrsLoginPlatform = isAionrsOnlyPlatform(platform);
+  const modelListApiKey = isAionrsLoginPlatform ? '' : apiKey;
+  const [loginAuthStatus, setLoginAuthStatus] = useState<AionrsLoginStatus | null>(null);
+  const [loginInfo, setLoginInfo] = useState<AionrsLoginInfo | null>(null);
+  const [loginAuthLoading, setLoginAuthLoading] = useState(false);
+  const [waitingLogin, setWaitingLogin] = useState(false);
 
   // new-api 每模型协议选择状态 / new-api per-model protocol selection state
   const [modelProtocol, setModelProtocol] = useState<string>('openai');
@@ -253,7 +298,82 @@ const AddPlatformModal = ModalHOC<{
 
   // For Bedrock, don't pass bedrockConfig to avoid auto-refresh on input changes
   // We'll build it dynamically in onFocus
-  const modelListState = useModeModeList(platform, actualBaseUrl, apiKey, true, undefined);
+  const modelListState = useModeModeList(platform, actualBaseUrl, modelListApiKey, proxyValue, true, undefined);
+
+  const refreshLoginStatus = useCallback(async () => {
+    if (!loginAuthBridge) {
+      setLoginAuthStatus(null);
+      return null;
+    }
+
+    const result = await loginAuthBridge.status.invoke();
+    if (result.success && result.data) {
+      setLoginAuthStatus(result.data);
+      return result.data;
+    }
+    setLoginAuthStatus(null);
+    return null;
+  }, [loginAuthBridge]);
+
+  const handleLoginPlatformLogin = useCallback(async () => {
+    if (!loginAuthBridge || !loginPlatformKey) return;
+
+    setLoginAuthLoading(true);
+    try {
+      const result = await loginAuthBridge.startLogin.invoke({ proxy: proxyValue });
+      if (!result.success || !result.data) {
+        message.error(result.msg || t(`settings.${loginPlatformKey}LoginFailed`));
+        return;
+      }
+
+      setLoginInfo({
+        userCode: getOptionalLoginField(result.data, 'userCode'),
+        verificationUri: getOptionalLoginField(result.data, 'verificationUri'),
+        expiresAt: getOptionalLoginField(result.data, 'expiresAt'),
+      });
+      setWaitingLogin(true);
+      message.info(t(`settings.${loginPlatformKey}LoginStarted`));
+
+      void loginAuthBridge.waitForLogin
+        .invoke({ loginId: result.data.loginId })
+        .then(async (waitResult) => {
+          if (!waitResult.success) {
+            message.error(waitResult.msg || t(`settings.${loginPlatformKey}LoginFailed`));
+            return;
+          }
+
+          message.success(t(`settings.${loginPlatformKey}LoginSuccess`));
+          setLoginInfo(null);
+          await refreshLoginStatus();
+          void modelListState.mutate();
+        })
+        .finally(() => {
+          setWaitingLogin(false);
+        });
+    } finally {
+      setLoginAuthLoading(false);
+    }
+  }, [loginAuthBridge, loginPlatformKey, message, modelListState, proxyValue, refreshLoginStatus, t]);
+
+  const handleLoginPlatformLogout = useCallback(async () => {
+    if (!loginAuthBridge || !loginPlatformKey) return;
+
+    setLoginAuthLoading(true);
+    try {
+      const result = await loginAuthBridge.logout.invoke({ proxy: proxyValue });
+      if (!result.success) {
+        message.error(result.msg || t(`settings.${loginPlatformKey}LoginFailed`));
+        return;
+      }
+
+      setLoginInfo(null);
+      setWaitingLogin(false);
+      await refreshLoginStatus();
+      message.success(t(`settings.${loginPlatformKey}LogoutSuccess`));
+    } finally {
+      setLoginAuthLoading(false);
+    }
+  }, [loginAuthBridge, loginPlatformKey, message, proxyValue, refreshLoginStatus, t]);
 
   // 协议检测 Hook / Protocol detection hook
   // 启用检测的条件：
@@ -306,18 +426,36 @@ const AddPlatformModal = ModalHOC<{
       protocolDetection.reset();
       setLastDetectionInput(null); // 重置检测记录 / Reset detection record
       setModelProtocol('openai'); // 重置协议选择 / Reset protocol selection
+      setLoginAuthStatus(null);
+      setLoginInfo(null);
+      setWaitingLogin(false);
 
       // Pre-fill from deep link data (aionui:// protocol)
       if (deepLinkData?.baseUrl || deepLinkData?.apiKey) {
         // Default to new-api platform for deep links (typical one-api/new-api usage)
-        form.setFieldValue('platform', deepLinkData.platform || 'new-api');
+        const initialPlatform = deepLinkData.platform || 'new-api';
+        form.setFieldValue('platform', initialPlatform);
         if (deepLinkData.baseUrl) form.setFieldValue('baseUrl', deepLinkData.baseUrl);
-        if (deepLinkData.apiKey) form.setFieldValue('apiKey', deepLinkData.apiKey);
+        if (deepLinkData.apiKey && !isAionrsOnlyPlatform(getPlatformByValue(initialPlatform)?.platform)) {
+          form.setFieldValue('apiKey', deepLinkData.apiKey);
+        }
       } else {
         form.setFieldValue('platform', 'gemini');
       }
     }
-  }, [modalProps.visible, deepLinkData]);
+  }, [deepLinkData, modalProps.visible]);
+
+  useEffect(() => {
+    setLoginInfo(null);
+    setWaitingLogin(false);
+    if (!modalProps.visible || !loginPlatformKey) return;
+    void refreshLoginStatus();
+  }, [loginPlatformKey, modalProps.visible, refreshLoginStatus]);
+
+  useEffect(() => {
+    if (!isAionrsLoginPlatform || !apiKey) return;
+    form.setFieldValue('apiKey', '');
+  }, [apiKey, form, isAionrsLoginPlatform]);
 
   useEffect(() => {
     if (platform?.includes('gemini')) {
@@ -349,7 +487,8 @@ const AddPlatformModal = ModalHOC<{
           // 优先使用用户输入的 baseUrl，否则使用平台预设值
           // Prefer user input baseUrl, fallback to platform preset
           baseUrl: isBedrock ? '' : values.baseUrl || selectedPlatform?.baseUrl || '',
-          apiKey: isBedrock ? '' : values.apiKey,
+          apiKey: isBedrock || isAionrsLoginPlatform ? '' : values.apiKey,
+          proxy: typeof values.proxy === 'string' && values.proxy.trim() ? values.proxy.trim() : undefined,
           model: [values.model],
         };
 
@@ -421,6 +560,9 @@ const AddPlatformModal = ModalHOC<{
                 const plat = MODEL_PLATFORMS.find((p) => p.value === value);
                 if (plat) {
                   form.setFieldValue('model', '');
+                  if (isAionrsOnlyPlatform(plat.platform)) {
+                    form.setFieldValue('apiKey', '');
+                  }
                 }
               }}
               renderFormat={(option) => {
@@ -456,10 +598,10 @@ const AddPlatformModal = ModalHOC<{
 
           {/* API Key */}
           <Form.Item
-            hidden={isBedrock}
+            hidden={isBedrock || isAionrsLoginPlatform}
             label={t('settings.apiKey')}
-            required={!isBedrock}
-            rules={[{ required: !isBedrock }]}
+            required={!isBedrock && !isAionrsLoginPlatform}
+            rules={[{ required: !isBedrock && !isAionrsLoginPlatform }]}
             field={'apiKey'}
             extra={
               <div className='space-y-2px'>
@@ -490,6 +632,74 @@ const AddPlatformModal = ModalHOC<{
               }
             />
           </Form.Item>
+
+          <Form.Item
+            hidden={isBedrock}
+            label={t('settings.proxyConfig')}
+            field={'proxy'}
+            rules={[{ match: /^https?:\/\/.+$/, message: t('settings.proxyHttpOnly') }]}
+          >
+            <Input placeholder={t('settings.proxyHttpOnly')} />
+          </Form.Item>
+
+          {isAionrsLoginPlatform && loginPlatformKey && (
+            <div className='mb-12px rd-12px bg-aou-1 p-12px flex flex-col gap-10px'>
+              <div className='flex items-center justify-between gap-12px'>
+                <div className='flex items-center gap-8px'>
+                  <span className='text-13px font-medium'>{t(`settings.${loginPlatformKey}AuthTitle`)}</span>
+                  <Tag size='small' color='arcoblue'>
+                    {t('settings.aionrsOnly')}
+                  </Tag>
+                  <Tag color={waitingLogin ? 'orange' : loginAuthStatus?.authenticated ? 'green' : 'gray'}>
+                    {waitingLogin
+                      ? t(`settings.${loginPlatformKey}LoginPending`)
+                      : loginAuthStatus?.authenticated
+                        ? t(`settings.${loginPlatformKey}AuthLoggedIn`)
+                        : t(`settings.${loginPlatformKey}AuthLoggedOut`)}
+                  </Tag>
+                </div>
+                <div className='flex items-center gap-8px'>
+                  {loginAuthStatus?.authenticated ? (
+                    <Button loading={loginAuthLoading} size='small' onClick={() => void handleLoginPlatformLogout()}>
+                      {t(`settings.${loginPlatformKey}Logout`)}
+                    </Button>
+                  ) : (
+                    <Button
+                      type='primary'
+                      loading={loginAuthLoading || waitingLogin}
+                      size='small'
+                      onClick={() => void handleLoginPlatformLogin()}
+                    >
+                      {t(`settings.${loginPlatformKey}Login`)}
+                    </Button>
+                  )}
+                </div>
+              </div>
+
+              <div className='text-12px text-t-secondary leading-5'>
+                {t(`settings.${loginPlatformKey}AuthDescription`)}
+              </div>
+
+              {loginInfo?.userCode || loginInfo?.verificationUri ? (
+                <div className='flex flex-col gap-8px'>
+                  {loginInfo?.userCode ? (
+                    <Input
+                      readOnly
+                      value={loginInfo.userCode}
+                      addBefore={t(`settings.${loginPlatformKey}DeviceCode`)}
+                    />
+                  ) : null}
+                  {loginInfo?.verificationUri ? (
+                    <Input
+                      readOnly
+                      value={loginInfo.verificationUri}
+                      addBefore={t(`settings.${loginPlatformKey}VerificationUrl`)}
+                    />
+                  ) : null}
+                </div>
+              ) : null}
+            </div>
+          )}
 
           {/* AWS Bedrock Authentication Method */}
           <Form.Item
@@ -618,6 +828,7 @@ const AddPlatformModal = ModalHOC<{
                         const res = await ipcBridge.mode.fetchModelList.invoke({
                           platform,
                           api_key: '',
+                          proxy: proxyValue,
                           bedrockConfig,
                         });
                         if (res.success) {
@@ -640,7 +851,7 @@ const AddPlatformModal = ModalHOC<{
                       return;
                     }
                     // For Gemini, no apiKey check needed
-                    if (!isGemini && !apiKey) {
+                    if (!isGemini && !isAionrsLoginPlatform && !apiKey) {
                       message.warning(t('settings.pleaseEnterApiKey'));
                       return;
                     }
@@ -681,6 +892,7 @@ const AddPlatformModal = ModalHOC<{
             const res = await ipcBridge.mode.fetchModelList.invoke({
               base_url: actualBaseUrl,
               api_key: key,
+              proxy: proxyValue,
               platform: selectedPlatform?.platform ?? 'custom',
             });
             // 严格检查：success 为 true 且返回了模型列表

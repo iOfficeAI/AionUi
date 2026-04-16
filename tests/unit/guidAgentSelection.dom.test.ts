@@ -150,10 +150,12 @@ function setupMocks(overrides?: {
   cachedModels?: Record<string, AcpModelInfo>;
   acpConfig?: Record<string, unknown>;
   geminiConfig?: Record<string, unknown>;
+  savedAgentKey?: string | null;
 }) {
   const cachedModels = overrides?.cachedModels ?? { claude: CLAUDE_CACHED_MODEL };
   const acpConfig = overrides?.acpConfig ?? { claude: { preferredMode: 'bypassPermissions' } };
   const geminiConfig = overrides?.geminiConfig ?? {};
+  const savedAgentKey = overrides?.savedAgentKey ?? null;
 
   ipcMock.getAvailableAgents.mockResolvedValue({ success: true, data: AVAILABLE_AGENTS });
   ipcMock.getAssistants.mockResolvedValue([]);
@@ -165,7 +167,7 @@ function setupMocks(overrides?: {
       case 'acp.customAgents':
         return CUSTOM_AGENTS;
       case 'guid.lastSelectedAgent':
-        return null;
+        return savedAgentKey;
       case 'acp.config':
         return acpConfig;
       case 'gemini.config':
@@ -370,5 +372,64 @@ describe('useGuidAgentSelection – preset agent config resolution', () => {
       { id: 'gpt-5', label: 'GPT-5' },
       { id: 'gpt-5-mini', label: 'GPT-5 Mini' },
     ]);
+  });
+
+  it('resets to the default CLI agent instead of restoring the saved preset assistant', async () => {
+    setupMocks({ savedAgentKey: `custom:${PRESET_AGENT_ID}` });
+
+    const { result } = renderHook((options) => useGuidAgentSelection(options), {
+      initialProps: {
+        ...hookOptions,
+        resetAssistant: true,
+        locationKey: 'nav-1',
+      },
+    });
+
+    await waitFor(() => {
+      expect(result.current.availableAgents).toBeDefined();
+      expect(result.current.selectedAgentKey).toBe('gemini');
+    });
+
+    expect(configStorageMock.set).toHaveBeenCalledWith('guid.lastSelectedAgent', 'gemini');
+  });
+
+  it('re-arms assistant reset when the navigation key changes', async () => {
+    setupMocks({ savedAgentKey: `custom:${PRESET_AGENT_ID}` });
+
+    const { result, rerender } = renderHook((options) => useGuidAgentSelection(options), {
+      initialProps: {
+        ...hookOptions,
+        resetAssistant: true,
+        locationKey: 'nav-1',
+      },
+    });
+
+    await waitFor(() => {
+      expect(result.current.selectedAgentKey).toBe('gemini');
+    });
+
+    act(() => {
+      result.current.setSelectedAgentKey('claude');
+    });
+
+    rerender({
+      ...hookOptions,
+      resetAssistant: true,
+      locationKey: 'nav-1',
+    });
+
+    await waitFor(() => {
+      expect(result.current.selectedAgentKey).toBe('claude');
+    });
+
+    rerender({
+      ...hookOptions,
+      resetAssistant: true,
+      locationKey: 'nav-2',
+    });
+
+    await waitFor(() => {
+      expect(result.current.selectedAgentKey).toBe('gemini');
+    });
   });
 });

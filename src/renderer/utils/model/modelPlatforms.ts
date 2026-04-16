@@ -37,12 +37,21 @@ import MiniMaxLogo from '@/renderer/assets/logos/ai-china/minimax.png';
 import NewApiLogo from '@/renderer/assets/logos/ai-cloud/newapi.svg';
 import NovitaLogo from '@/renderer/assets/logos/ai-cloud/novita.svg';
 import PPIOLogo from '@/renderer/assets/logos/ai-cloud/ppio.svg';
+import GitHubLogo from '@/renderer/assets/logos/tools/github.svg';
 
 /**
  * 平台类型
  * Platform type
  */
-export type PlatformType = 'gemini' | 'gemini-vertex-ai' | 'anthropic' | 'custom' | 'new-api' | 'bedrock';
+export type PlatformType =
+  | 'gemini'
+  | 'gemini-vertex-ai'
+  | 'anthropic'
+  | 'custom'
+  | 'new-api'
+  | 'bedrock'
+  | 'copilot'
+  | 'chatgpt';
 
 /**
  * 模型平台配置接口
@@ -79,6 +88,23 @@ export const MODEL_PLATFORMS: PlatformConfig[] = [
 
   // New API 多模型网关 / New API multi-model gateway
   { name: 'New API', value: 'new-api', logo: NewApiLogo, platform: 'new-api', i18nKey: 'settings.platformNewApi' },
+
+  {
+    name: 'GitHub Copilot',
+    value: 'copilot',
+    logo: GitHubLogo,
+    platform: 'copilot',
+    baseUrl: 'https://api.githubcopilot.com',
+    i18nKey: 'settings.platformCopilot',
+  },
+  {
+    name: 'ChatGPT',
+    value: 'chatgpt',
+    logo: OpenAILogo,
+    platform: 'chatgpt',
+    baseUrl: 'https://chatgpt.com',
+    i18nKey: 'settings.platformChatgpt',
+  },
 
   // 官方 Gemini 平台
   {
@@ -274,6 +300,28 @@ export const getGeminiPlatforms = (): PlatformConfig[] => {
  */
 export const isGeminiPlatform = (platform: PlatformType): boolean => {
   return platform === 'gemini' || platform === 'gemini-vertex-ai';
+};
+
+/**
+ * 妫€鏌ュ钩鍙版槸鍚︿负 GitHub Copilot
+ * Check if platform is GitHub Copilot
+ */
+export const isCopilotPlatform = (platform: string | undefined): boolean => {
+  return platform === 'copilot';
+};
+
+/**
+ * Check if platform is ChatGPT
+ */
+export const isChatgptPlatform = (platform: string | undefined): boolean => {
+  return platform === 'chatgpt';
+};
+
+/**
+ * Check if platform is only supported through aionrs flows.
+ */
+export const isAionrsOnlyPlatform = (platform: string | undefined): boolean => {
+  return isCopilotPlatform(platform) || isChatgptPlatform(platform);
 };
 
 /**

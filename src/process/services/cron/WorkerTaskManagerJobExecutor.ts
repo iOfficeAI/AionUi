@@ -10,7 +10,7 @@ import path from 'path';
 import { ipcBridge } from '@/common';
 import type { CronMessageMeta, TMessage } from '@/common/chat/chatLib';
 import type { IResponseMessage } from '@/common/adapter/ipcBridge';
-import type { TChatConversation, TProviderWithModel } from '@/common/config/storage';
+import type { IProvider, TChatConversation, TProviderWithModel } from '@/common/config/storage';
 import type { AcpBackendAll } from '@/common/types/acpTypes';
 import { uuid } from '@/common/utils';
 import type BaseAgentManager from '@process/task/BaseAgentManager';
@@ -350,12 +350,23 @@ export class WorkerTaskManagerJobExecutor implements ICronJobExecutor {
    */
   private async resolveModelForBackend(backend: string): Promise<TProviderWithModel> {
     const providers = await ProcessConfig.get('model.config');
-    const providerList = (providers && Array.isArray(providers) ? providers : []) as unknown as TProviderWithModel[];
+    const providerList = (providers && Array.isArray(providers) ? providers : []) as IProvider[];
+
+    const getDefaultUseModel = (provider: IProvider, preferredId?: string): string =>
+      preferredId && provider.model.includes(preferredId)
+        ? preferredId
+        : provider.model.find((modelId) => provider.modelEnabled?.[modelId] !== false) || provider.model[0] || 'auto';
+
+    const toProviderWithModel = (provider: IProvider, preferredId?: string): TProviderWithModel => ({
+      ...provider,
+      useModel: getDefaultUseModel(provider, preferredId),
+    });
 
     // Read preferred model ID from user config.
     // Gemini stores its default model in 'gemini.defaultModel' (set by Guid page).
     // ACP backends store in 'acp.config.<backend>.preferredModelId'.
     let preferredModelId: string | undefined;
+    let preferredProviderId: string | undefined;
     if (backend === 'gemini') {
       const savedModel = await ProcessConfig.get('gemini.defaultModel');
       if (savedModel && typeof savedModel === 'object' && 'useModel' in savedModel) {
@@ -366,6 +377,7 @@ export class WorkerTaskManagerJobExecutor implements ICronJobExecutor {
     } else if (backend === 'aionrs') {
       const savedModel = await ProcessConfig.get('aionrs.defaultModel');
       preferredModelId = savedModel?.useModel;
+      preferredProviderId = savedModel?.id;
     } else {
       const acpConfig = await ProcessConfig.get('acp.config');
       preferredModelId = (acpConfig?.[backend as AcpBackendAll] as Record<string, unknown>)?.preferredModelId as
@@ -377,22 +389,26 @@ export class WorkerTaskManagerJobExecutor implements ICronJobExecutor {
     if (backend === 'gemini') {
       const googleAuth = providerList.find((p) => p.platform === 'gemini-with-google-auth' || p.platform === 'gemini');
       if (googleAuth) {
-        const useModel = preferredModelId || googleAuth.useModel || 'auto';
-        return { ...googleAuth, useModel } as TProviderWithModel;
+        return toProviderWithModel(googleAuth, preferredModelId);
       }
     }
 
     // For other backends, find a matching provider
+    if (backend === 'aionrs' && preferredProviderId) {
+      const savedProvider = providerList.find((p) => p.id === preferredProviderId);
+      if (savedProvider) {
+        return toProviderWithModel(savedProvider, preferredModelId);
+      }
+    }
+
     const match = providerList.find((p) => p.platform === backend || p.id === backend);
     if (match) {
-      const useModel = preferredModelId || match.useModel || 'auto';
-      return { ...match, useModel } as TProviderWithModel;
+      return toProviderWithModel(match, preferredModelId);
     }
 
     // Fallback: return first available provider
     if (providerList.length > 0) {
-      const useModel = preferredModelId || providerList[0].useModel || 'auto';
-      return { ...providerList[0], useModel } as TProviderWithModel;
+      return toProviderWithModel(providerList[0], preferredModelId);
     }
 
     // Last resort placeholder

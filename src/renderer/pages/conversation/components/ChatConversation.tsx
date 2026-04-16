@@ -13,7 +13,7 @@ import { usePresetAssistantInfo } from '@/renderer/hooks/agent/usePresetAssistan
 import { iconColors } from '@/renderer/styles/colors';
 import { Button, Dropdown, Menu, Tooltip, Typography } from '@arco-design/web-react';
 import { History } from '@icon-park/react';
-import React, { useCallback, useMemo, useRef } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
 import useSWR from 'swr';
@@ -30,6 +30,7 @@ import GeminiModelSelector from '../platforms/gemini/GeminiModelSelector';
 import { useGeminiModelSelection } from '../platforms/gemini/useGeminiModelSelection';
 import AionrsChat from '../platforms/aionrs/AionrsChat';
 import AionrsModelSelector from '../platforms/aionrs/AionrsModelSelector';
+import { useAionrsCapabilities } from '../platforms/aionrs/useAionrsCapabilities';
 import { useAionrsModelSelection } from '../platforms/aionrs/useAionrsModelSelection';
 import { usePreviewContext } from '../Preview';
 import StarOfficeMonitorCard from '../platforms/openclaw/StarOfficeMonitorCard.tsx';
@@ -191,6 +192,8 @@ const AionrsConversationPanel: React.FC<{ conversation: AionrsConversation; slid
   conversation,
   sliderTitle,
 }) => {
+  const { capabilities, dynamicModes, initialized } = useAionrsCapabilities(conversation.id);
+  const modelNormalizationRef = useRef<string | null>(null);
   const onSelectModel = useCallback(
     async (_provider: IProvider, modelName: string) => {
       const selected = { ..._provider, useModel: modelName } as TProviderWithModel;
@@ -205,7 +208,61 @@ const AionrsConversationPanel: React.FC<{ conversation: AionrsConversation; slid
   const modelSelection = useAionrsModelSelection({
     initialModel: conversation.model,
     onSelectModel,
+    runtimeCapabilities: capabilities,
   });
+
+  useEffect(() => {
+    const runtimeModels = capabilities?.available_models ?? [];
+    if (!initialized || runtimeModels.length === 0) {
+      modelNormalizationRef.current = null;
+      return;
+    }
+
+    const selectedModelId = conversation.model.useModel;
+    const runtimeCurrentModelId = capabilities?.current_model;
+    if (runtimeCurrentModelId === selectedModelId) {
+      modelNormalizationRef.current = null;
+      return;
+    }
+
+    if (runtimeModels.some((model) => model.id === selectedModelId)) {
+      modelNormalizationRef.current = null;
+      return;
+    }
+
+    const fallbackModelId = runtimeCurrentModelId || runtimeModels[0]?.id || null;
+
+    if (!fallbackModelId || fallbackModelId === selectedModelId) {
+      modelNormalizationRef.current = null;
+      return;
+    }
+
+    const normalizationKey = `${conversation.id}:${selectedModelId}->${fallbackModelId}`;
+    if (modelNormalizationRef.current === normalizationKey) {
+      return;
+    }
+
+    modelNormalizationRef.current = normalizationKey;
+    void ipcBridge.conversation.update
+      .invoke({
+        id: conversation.id,
+        updates: {
+          model: {
+            ...conversation.model,
+            useModel: fallbackModelId,
+          },
+        },
+      })
+      .then((ok) => {
+        if (!ok) {
+          modelNormalizationRef.current = null;
+        }
+      })
+      .catch(() => {
+        modelNormalizationRef.current = null;
+      });
+  }, [capabilities?.available_models, capabilities?.current_model, conversation.id, conversation.model, initialized]);
+
   const workspaceEnabled = Boolean(conversation.extra?.workspace);
   const { info: presetAssistantInfo } = usePresetAssistantInfo(conversation);
 
@@ -213,7 +270,7 @@ const AionrsConversationPanel: React.FC<{ conversation: AionrsConversation; slid
     title: conversation.name,
     siderTitle: sliderTitle,
     sider: <ChatSider conversation={conversation} />,
-    headerLeft: <AionrsModelSelector selection={modelSelection} />,
+    headerLeft: <AionrsModelSelector selection={modelSelection} capabilities={capabilities} />,
     headerExtra: (
       <CronJobManager
         conversationId={conversation.id}
@@ -233,6 +290,11 @@ const AionrsConversationPanel: React.FC<{ conversation: AionrsConversation; slid
         conversation_id={conversation.id}
         workspace={conversation.extra.workspace}
         modelSelection={modelSelection}
+        sessionMode={conversation.extra?.sessionMode}
+        capabilities={capabilities}
+        dynamicModes={dynamicModes}
+        initialContextLimit={conversation.extra?.lastContextLimit}
+        initialEffort={conversation.extra?.reasoningEffort}
       />
     </ChatLayout>
   );
@@ -282,6 +344,7 @@ const ChatConversation: React.FC<{
             conversation_id={conversation.id}
             workspace={conversation.extra?.workspace}
             backend='codex'
+            sessionMode={conversation.extra?.sessionMode}
             agentName={assistantDisplayName}
             cachedConfigOptions={
               (

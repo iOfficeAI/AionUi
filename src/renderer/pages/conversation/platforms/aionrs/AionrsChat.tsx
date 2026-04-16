@@ -14,20 +14,41 @@ import React, { useEffect, useMemo } from 'react';
 import LocalImageView from '@renderer/components/media/LocalImageView';
 import ConversationChatConfirm from '../../components/ConversationChatConfirm';
 import AionrsSendBox from './AionrsSendBox';
+import type { AionrsCapabilities } from '@/process/agent/aionrs/protocol';
 import type { AionrsModelSelection } from './useAionrsModelSelection';
+import type { AgentModeOption } from '@/renderer/utils/model/agentModes';
 
 const AionrsChat: React.FC<{
   conversation_id: string;
   workspace: string;
   modelSelection: AionrsModelSelection;
-}> = ({ conversation_id, workspace, modelSelection }) => {
+  sessionMode?: string;
+  capabilities?: AionrsCapabilities | null;
+  dynamicModes?: AgentModeOption[];
+  initialContextLimit?: number;
+  initialEffort?: string;
+}> = ({
+  conversation_id,
+  workspace,
+  modelSelection,
+  sessionMode,
+  capabilities,
+  dynamicModes,
+  initialContextLimit,
+  initialEffort,
+}) => {
   useMessageLstCache(conversation_id);
   const updateLocalImage = LocalImageView.useUpdateLocalImage();
+
   useEffect(() => {
     updateLocalImage({ root: workspace });
   }, [workspace]);
   const conversationValue = useMemo<ConversationContextValue>(() => {
-    return { conversationId: conversation_id, workspace, type: 'aionrs' };
+    return {
+      conversationId: conversation_id,
+      workspace,
+      type: 'aionrs',
+    };
   }, [conversation_id, workspace]);
 
   return (
@@ -37,7 +58,15 @@ const AionrsChat: React.FC<{
           <MessageList className='flex-1' />
         </FlexFullContainer>
         <ConversationChatConfirm conversation_id={conversation_id}>
-          <AionrsSendBox conversation_id={conversation_id} modelSelection={modelSelection} />
+          <AionrsSendBox
+            conversation_id={conversation_id}
+            modelSelection={modelSelection}
+            sessionMode={sessionMode}
+            capabilities={capabilities}
+            dynamicModes={dynamicModes}
+            initialContextLimit={initialContextLimit}
+            initialEffort={initialEffort}
+          />
         </ConversationChatConfirm>
       </div>
     </ConversationProvider>

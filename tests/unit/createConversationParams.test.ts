@@ -9,9 +9,16 @@ import { resolveLocaleKey } from '../../src/common/utils';
 
 const loadPresetAssistantResources = vi.fn();
 const configGet = vi.fn();
+const modelConfigGet = vi.fn();
 
 vi.mock('@/common', () => ({
-  ipcBridge: {},
+  ipcBridge: {
+    mode: {
+      getModelConfig: {
+        invoke: modelConfigGet,
+      },
+    },
+  },
 }));
 
 vi.mock('@/common/config/storage', async () => {
@@ -37,6 +44,9 @@ describe('createConversationParams', () => {
   beforeEach(() => {
     loadPresetAssistantResources.mockReset();
     configGet.mockReset();
+    modelConfigGet.mockReset();
+    configGet.mockResolvedValue(undefined);
+    modelConfigGet.mockResolvedValue(undefined);
   });
 
   it('uses the shared locale resolver for Turkish', async () => {
@@ -45,7 +55,7 @@ describe('createConversationParams', () => {
       skills: '',
       enabledSkills: ['moltbook'],
     });
-    configGet.mockResolvedValue([
+    modelConfigGet.mockResolvedValue([
       {
         id: 'provider-1',
         platform: 'openai',
@@ -109,7 +119,7 @@ describe('createConversationParams', () => {
       skills: '',
       enabledSkills: [],
     });
-    configGet.mockResolvedValue([]); // No providers
+    modelConfigGet.mockResolvedValue([]); // No providers
 
     const params = await buildPresetAssistantParams(
       {
@@ -128,7 +138,7 @@ describe('createConversationParams', () => {
   });
 
   it('falls back to gemini-placeholder when no provider configured for gemini (CLI)', async () => {
-    configGet.mockResolvedValue([]); // No providers
+    modelConfigGet.mockResolvedValue([]); // No providers
 
     const params = await buildCliAgentParams(
       {
@@ -144,7 +154,7 @@ describe('createConversationParams', () => {
   });
 
   it('resolves aionrs model from enabled provider', async () => {
-    configGet.mockResolvedValue([
+    modelConfigGet.mockResolvedValue([
       {
         id: 'provider-1',
         platform: 'openai',
@@ -170,7 +180,7 @@ describe('createConversationParams', () => {
   });
 
   it('throws error for aionrs if no provider configured', async () => {
-    configGet.mockResolvedValue([]);
+    modelConfigGet.mockResolvedValue([]);
 
     await expect(
       buildCliAgentParams(
@@ -197,14 +207,14 @@ describe('createConversationParams', () => {
   });
 
   it('throws error for aionrs if no enabled provider', async () => {
-    configGet.mockResolvedValue([{ id: 'p1', enabled: false, model: ['m1'] }]);
+    modelConfigGet.mockResolvedValue([{ id: 'p1', enabled: false, model: ['m1'] }]);
     await expect(buildCliAgentParams({ backend: 'aionrs', name: 'Agent' }, '/tmp')).rejects.toThrow(
       'No enabled model provider for Aion CLI'
     );
   });
 
   it('throws error for gemini if no enabled provider', async () => {
-    configGet.mockResolvedValue([{ id: 'p1', enabled: false, model: ['m1'] }]);
+    modelConfigGet.mockResolvedValue([{ id: 'p1', enabled: false, model: ['m1'] }]);
     // Note: buildCliAgentParams for gemini uses resolveGeminiModel which catches the error
     const params = await buildCliAgentParams({ backend: 'gemini', name: 'Agent' }, '/tmp');
     expect(params.model.id).toBe('gemini-placeholder');
@@ -225,7 +235,7 @@ describe('createConversationParams', () => {
   });
 
   it('falls back to first model if none enabled for aionrs', async () => {
-    configGet.mockResolvedValue([
+    modelConfigGet.mockResolvedValue([
       {
         id: 'p1',
         platform: 'openai',

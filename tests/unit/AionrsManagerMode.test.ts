@@ -17,6 +17,7 @@ const {
   mockDb,
   mockCronService,
   mockApproveTool,
+  mockSetConfig,
   mockSetMode,
 } = vi.hoisted(() => ({
   emitResponseStream: vi.fn(),
@@ -37,6 +38,7 @@ const {
     listJobsByConversation: vi.fn(async () => []),
   },
   mockApproveTool: vi.fn(),
+  mockSetConfig: vi.fn(),
   mockSetMode: vi.fn(),
 }));
 
@@ -114,21 +116,23 @@ vi.mock('@process/services/cron/cronServiceSingleton', () => ({
 }));
 
 vi.mock('@process/agent/aionrs', () => ({
-  AionrsAgent: vi.fn().mockImplementation(() => ({
-    start: vi.fn().mockResolvedValue(undefined),
-    stop: vi.fn(),
-    kill: vi.fn(),
-    send: vi.fn().mockResolvedValue(undefined),
-    approveTool: mockApproveTool,
-    denyTool: vi.fn(),
-    setConfig: vi.fn(),
-    setMode: mockSetMode,
-    sendCommand: vi.fn(),
-    injectConversationHistory: vi.fn().mockResolvedValue(undefined),
-    get bootstrap() {
-      return Promise.resolve();
-    },
-  })),
+  AionrsAgent: vi.fn(function MockAionrsAgent() {
+    return {
+      start: vi.fn().mockResolvedValue(undefined),
+      stop: vi.fn(),
+      kill: vi.fn(),
+      send: vi.fn().mockResolvedValue(undefined),
+      approveTool: mockApproveTool,
+      denyTool: vi.fn(),
+      setConfig: mockSetConfig,
+      setMode: mockSetMode,
+      sendCommand: vi.fn(),
+      injectConversationHistory: vi.fn().mockResolvedValue(undefined),
+      get bootstrap() {
+        return Promise.resolve();
+      },
+    };
+  }),
 }));
 
 // ── Import under test ──────────────────────────────────────────────
@@ -265,6 +269,22 @@ describe('AionrsManager.tryAutoApprove', () => {
 describe('AionrsManager.setMode', () => {
   afterEach(() => {
     vi.clearAllMocks();
+  });
+
+  it('applies the initial reasoning effort during startup', async () => {
+    const data = {
+      workspace: '/test',
+      model: { name: 'test-provider', useModel: 'test-model', baseUrl: '', platform: 'chatgpt' },
+      conversation_id: 'conv-1',
+      sessionMode: 'default',
+      reasoningEffort: 'high',
+    };
+    const manager = new AionrsManager(data as any, data.model as any);
+
+    mockSetConfig.mockClear();
+    await manager.start();
+
+    expect(mockSetConfig).toHaveBeenCalledWith({ effort: 'high' });
   });
 
   it('should send set_mode command to aionrs agent', async () => {

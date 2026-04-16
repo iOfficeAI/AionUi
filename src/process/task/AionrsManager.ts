@@ -27,6 +27,7 @@ import { extractAndStripThinkTags } from './ThinkTagDetector';
 import { ConversationTurnCompletionService } from './ConversationTurnCompletionService';
 import { cronBusyGuard } from '@process/services/cron/CronBusyGuard';
 import { skillSuggestWatcher } from '@process/services/cron/SkillSuggestWatcher';
+import { ProcessConfig } from '@process/utils/initStorage';
 
 // Aionrs-specific approval key — reuses same pattern as GeminiApprovalStore
 type AionrsApprovalKey = IApprovalKey & {
@@ -65,9 +66,32 @@ type AionrsManagerData = {
   maxTokens?: number;
   maxTurns?: number;
   sessionMode?: string;
+  reasoningEffort?: string;
   sessionId?: string;
   resume?: string;
 };
+
+type ResolvedAionrsRuntime = {
+  model: TProviderWithModel;
+  proxy?: string;
+  proxySource: 'conversation-extra' | 'provider-config' | 'conversation-model' | 'none';
+  providerSynced: boolean;
+};
+
+function summarizeProxyForLog(proxy?: string): string {
+  if (!proxy) {
+    return 'disabled';
+  }
+
+  try {
+    const parsed = new URL(proxy);
+    const hasCredentials = parsed.username.length > 0 || parsed.password.length > 0;
+    const authPrefix = hasCredentials ? '***:***@' : '';
+    return `${parsed.protocol}//${authPrefix}${parsed.host}`;
+  } catch {
+    return 'configured';
+  }
+}
 
 export class AionrsManager extends BaseAgentManager<AionrsManagerData, string> {
   workspace: string;
@@ -131,11 +155,18 @@ export class AionrsManager extends BaseAgentManager<AionrsManagerData, string> {
     }
 
     const mergedData = { ...this.data.data, ...sessionArgs };
+    const runtime = await this.resolveRuntimeConfig();
+    this.model = runtime.model;
+
+    mainLog(
+      '[AionrsManager]',
+      `bootstrapping agent: conversation_id=${this.conversation_id} session_mode=${this.currentMode} session_strategy=${sessionArgs.resume ? 'resume' : 'new'} model=${runtime.model.useModel} provider=${runtime.model.platform} proxy=${summarizeProxyForLog(runtime.proxy)} proxy_source=${runtime.proxySource} provider_sync=${runtime.providerSynced}`
+    );
 
     const agent = new AionrsAgent({
       workspace: mergedData.workspace,
-      model: mergedData.model,
-      proxy: mergedData.proxy,
+      model: runtime.model,
+      proxy: runtime.proxy,
       yoloMode: mergedData.yoloMode,
       presetRules: mergedData.presetRules,
       maxTokens: mergedData.maxTokens,
@@ -146,8 +177,15 @@ export class AionrsManager extends BaseAgentManager<AionrsManagerData, string> {
     });
 
     await agent.start();
+    if (mergedData.reasoningEffort) {
+      agent.setConfig({ effort: mergedData.reasoningEffort });
+    }
     this.agent = agent;
-    this._capabilities = agent.capabilities ?? null;
+    if (agent.capabilities) {
+      this.emitCapabilitiesChanged(agent.capabilities);
+      return;
+    }
+    this._capabilities = null;
   }
 
   async stop() {
@@ -158,6 +196,10 @@ export class AionrsManager extends BaseAgentManager<AionrsManagerData, string> {
     if (this.agent) {
       this.agent.stop();
     }
+  }
+
+  async waitUntilReady(): Promise<void> {
+    await this.agentReady;
   }
 
   async sendMessage(data: { input: string; msg_id: string; files?: string[] }) {
@@ -177,13 +219,69 @@ export class AionrsManager extends BaseAgentManager<AionrsManagerData, string> {
     cronBusyGuard.setProcessing(this.conversation_id, true);
     this.status = 'pending';
     this._lastActivityAt = Date.now();
+    const fileCount = data.files?.length ?? 0;
+    mainLog(
+      '[AionrsManager]',
+      `send requested: msg_id=${data.msg_id} chars=${data.input.length} files=${fileCount} status=${this.status} active_msg_id=${this.currentMsgId ?? 'none'}`
+    );
+    if (this.currentMsgId) {
+      mainWarn(
+        '[AionrsManager]',
+        `new send requested while a turn is still active: active_msg_id=${this.currentMsgId} new_msg_id=${data.msg_id}`
+      );
+    }
     // Wait for agent bootstrap to complete before sending
+    const readyWaitStartedAt = Date.now();
     await this.agentReady;
+    mainLog('[AionrsManager]', `agent ready for send: msg_id=${data.msg_id} wait=${Date.now() - readyWaitStartedAt}ms`);
     this._messageSentAt = Date.now();
     mainLog('[AionrsManager]', `message sent: msg_id=${data.msg_id}`);
     if (this.agent) {
       await this.agent.send(data.input, data.msg_id, data.files);
     }
+  }
+
+  private async resolveRuntimeConfig(): Promise<ResolvedAionrsRuntime> {
+    let configuredProvider: TProviderWithModel | undefined;
+
+    try {
+      const configuredProviders = await ProcessConfig.get('model.config');
+      if (Array.isArray(configuredProviders)) {
+        const matchedProvider = configuredProviders.find((provider) => provider?.id === this.model.id);
+        if (matchedProvider) {
+          configuredProvider = {
+            ...matchedProvider,
+            useModel: this.model.useModel,
+          } as TProviderWithModel;
+        }
+      }
+    } catch (error) {
+      mainWarn(
+        '[AionrsManager]',
+        `failed to read latest provider config before spawn: ${error instanceof Error ? error.message : String(error)}`
+      );
+    }
+
+    const runtimeModel = configuredProvider || this.model;
+
+    const explicitProxy = typeof this.data.data.proxy === 'string' ? this.data.data.proxy.trim() : '';
+    const providerProxy = typeof configuredProvider?.proxy === 'string' ? configuredProvider.proxy.trim() : '';
+    const conversationProxy = typeof this.model.proxy === 'string' ? this.model.proxy.trim() : '';
+    const proxy = explicitProxy || providerProxy || conversationProxy || undefined;
+    const proxySource = explicitProxy
+      ? 'conversation-extra'
+      : providerProxy
+        ? 'provider-config'
+        : conversationProxy
+          ? 'conversation-model'
+          : 'none';
+
+    return {
+      model: proxy ? { ...runtimeModel, proxy } : runtimeModel,
+      proxy,
+      proxySource,
+      providerSynced: Boolean(configuredProvider),
+    };
   }
 
   /**
@@ -394,6 +492,60 @@ export class AionrsManager extends BaseAgentManager<AionrsManagerData, string> {
     })();
   }
 
+  private saveCapabilitiesSnapshot(capabilities: AionrsCapabilities): void {
+    const contextLimit = capabilities.context_limit || capabilities.compaction?.context_window;
+    if (!contextLimit || contextLimit <= 0) {
+      return;
+    }
+
+    void (async () => {
+      try {
+        const db = await getDatabase();
+        const result = db.getConversation(this.conversation_id);
+        if (result.success && result.data && result.data.type === 'aionrs') {
+          const conversation = result.data;
+          db.updateConversation(this.conversation_id, {
+            extra: {
+              ...conversation.extra,
+              lastContextLimit: contextLimit,
+            },
+          } as Partial<typeof conversation>);
+        }
+      } catch {
+        // Non-critical metadata, silently ignore errors
+      }
+    })();
+  }
+
+  private emitCapabilitiesChanged(capabilities: AionrsCapabilities): void {
+    this._capabilities = capabilities;
+    this.saveCapabilitiesSnapshot(capabilities);
+    ipcBridge.conversation.responseStream.emit({
+      type: 'config_changed',
+      conversation_id: this.conversation_id,
+      msg_id: '',
+      data: capabilities,
+    });
+  }
+
+  private async saveReasoningEffort(effort: string): Promise<void> {
+    try {
+      const db = await getDatabase();
+      const result = db.getConversation(this.conversation_id);
+      if (result.success && result.data && result.data.type === 'aionrs') {
+        const conversation = result.data;
+        db.updateConversation(this.conversation_id, {
+          extra: {
+            ...conversation.extra,
+            reasoningEffort: effort,
+          },
+        } as Partial<typeof conversation>);
+      }
+    } catch (error) {
+      mainError('[AionrsManager]', 'Failed to save reasoning effort', error);
+    }
+  }
+
   private scheduleMissingFinishFallback(): void {
     this.clearMissingFinishFallback();
     this.missingFinishFallbackTimer = setTimeout(() => {
@@ -440,13 +592,7 @@ export class AionrsManager extends BaseAgentManager<AionrsManagerData, string> {
         const elapsed = this._configSentAt ? `${Date.now() - this._configSentAt}ms` : 'n/a';
         mainLog('[AionrsManager]', `config_changed received (${elapsed})`, data.data);
         this._configSentAt = null;
-        this._capabilities = data.data as AionrsCapabilities;
-        ipcBridge.conversation.responseStream.emit({
-          type: 'config_changed',
-          conversation_id: this.conversation_id,
-          msg_id: '',
-          data: data.data,
-        });
+        this.emitCapabilitiesChanged(data.data as AionrsCapabilities);
         return;
       }
 
@@ -454,6 +600,13 @@ export class AionrsManager extends BaseAgentManager<AionrsManagerData, string> {
       if (data.type === 'info') {
         const elapsed = this._configSentAt ? ` (${Date.now() - this._configSentAt}ms since command)` : '';
         mainLog('[AionrsManager]', `info: ${data.data}${elapsed}`);
+      }
+
+      if (data.type === 'error') {
+        mainWarn(
+          '[AionrsManager]',
+          `stream_error: msg_id=${data.msg_id || this.currentMsgId || 'none'} message=${String(data.data)}`
+        );
       }
 
       // System-level events (empty msg_id) are not part of a conversation turn.
@@ -659,9 +812,17 @@ export class AionrsManager extends BaseAgentManager<AionrsManagerData, string> {
     return this._capabilities;
   }
 
-  setConfig(config: { model?: string; thinking?: string; thinking_budget?: number; effort?: string }): void {
+  async setConfig(config: {
+    model?: string;
+    thinking?: string;
+    thinking_budget?: number;
+    effort?: string;
+  }): Promise<void> {
     if (this.agent) {
       this.agent.setConfig(config);
+    }
+    if (config.effort) {
+      await this.saveReasoningEffort(config.effort);
     }
   }
 

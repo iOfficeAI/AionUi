@@ -64,7 +64,7 @@ const AionrsSettings: React.FC = () => {
         <Typography.Text type='secondary' className='text-12px'>
           {t('settings.aionrs.providerNote', {
             defaultValue:
-              'Provider and API key settings are managed in the Models page. Aion CLI supports: Anthropic, OpenAI, AWS Bedrock.',
+              'Provider, login, and API key settings are managed in the Models page. Aion CLI supports: Anthropic, OpenAI, AWS Bedrock, GitHub Copilot, ChatGPT.',
           })}
         </Typography.Text>
       </div>

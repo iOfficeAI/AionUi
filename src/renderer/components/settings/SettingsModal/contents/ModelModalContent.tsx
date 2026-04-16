@@ -20,7 +20,7 @@ import EditModeModal from '@/renderer/pages/settings/components/EditModeModal';
 import AionScrollArea from '@/renderer/components/base/AionScrollArea';
 import { useSettingsViewMode } from '../settingsViewContext';
 import { consumePendingDeepLink } from '@/renderer/hooks/system/useDeepLink';
-import { classifyHealthCheckMessage } from './healthCheckUtils';
+import { classifyHealthCheckMessage, getHealthCheckConversationType } from './healthCheckUtils';
 import '../model-provider.css';
 
 /**
@@ -196,7 +196,7 @@ const ModelModalContent: React.FC = () => {
 
       // 1. 创建临时对话
       const conversation = await ipcBridge.conversation.create.invoke({
-        type: 'gemini',
+        type: getHealthCheckConversationType(platform),
         name: `[Health Check] ${platform.name} - ${modelName}`,
         model: {
           ...platform,

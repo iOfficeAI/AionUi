@@ -319,3 +319,5 @@ export const useAionrsMessage = (
     resetState,
   };
 };
+
+export type UseAionrsMessageReturn = ReturnType<typeof useAionrsMessage>;

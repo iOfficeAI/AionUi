@@ -137,6 +137,27 @@ export function mergeWithCapabilities(
 }
 
 /**
+ * Resolve the mode list shown in UI from runtime or cached data.
+ * Codex uses AionUi-managed session modes, so its UI should always use the
+ * local static definition instead of ACP runtime permission presets.
+ */
+export function getSelectableAgentModes(
+  backend: string | undefined,
+  availableModes?: AgentModeOption[] | null
+): AgentModeOption[] {
+  const staticModes = getAgentModes(backend);
+  if (backend === 'codex') {
+    return staticModes;
+  }
+
+  if (!availableModes || availableModes.length === 0) {
+    return staticModes;
+  }
+
+  return availableModes;
+}
+
+/**
  * Check if a backend supports mode switching during session
  *
  * @param backend - Agent backend type

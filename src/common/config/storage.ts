@@ -53,6 +53,7 @@ export interface IConfigStorageRefer {
       preferredMode?: string;
       /** Preferred model ID for new conversations / 新会话的默认模型 */
       preferredModelId?: string;
+      preferredConfigOptions?: Record<string, string>;
       /** LLM prompt timeout in seconds (default: 300) / LLM 请求超时时间（秒，默认 300） */
       promptTimeout?: number;
     };
@@ -91,6 +92,8 @@ export interface IConfigStorageRefer {
   'aionrs.config'?: {
     /** Preferred session mode for new conversations / 新会话的默认模式 */
     preferredMode?: string;
+    /** Preferred config options for new conversations / 新会话的默认配置项 */
+    preferredConfigOptions?: Record<string, string>;
   };
   'aionrs.defaultModel'?: { id: string; useModel: string };
   'tools.imageGenerationModel': TProviderWithModel & {
@@ -450,6 +453,10 @@ export type TChatConversation =
         isHealthCheck?: boolean;
         /** Last token usage stats */
         lastTokenUsage?: TokenUsageData;
+        /** Last runtime-reported context window limit */
+        lastContextLimit?: number;
+        /** Persisted reasoning effort selection */
+        reasoningEffort?: string;
         /** Cron job ID that spawned this conversation */
         cronJobId?: string;
       }
@@ -484,6 +491,7 @@ export interface IProvider {
   name: string;
   baseUrl: string;
   apiKey: string;
+  proxy?: string;
   model: string[];
   /**
    * 模型能力标签列表。打了标签就是支持，没打就是不支持

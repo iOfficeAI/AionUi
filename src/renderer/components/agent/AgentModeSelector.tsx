@@ -7,7 +7,7 @@
 import { ipcBridge } from '@/common';
 import { ConfigStorage } from '@/common/config/storage';
 import type { AcpSessionConfigOption } from '@/common/types/acpTypes';
-import { getAgentModes, supportsModeSwitch, type AgentModeOption } from '@/renderer/utils/model/agentModes';
+import { getSelectableAgentModes, supportsModeSwitch, type AgentModeOption } from '@/renderer/utils/model/agentModes';
 import { useLayoutContext } from '@/renderer/hooks/context/LayoutContext';
 import { iconColors } from '@/renderer/styles/colors';
 import { getAgentLogo } from '@/renderer/utils/model/agentLogo';
@@ -138,11 +138,13 @@ const AgentModeSelector: React.FC<AgentModeSelectorProps> = ({
     };
   }, [backend]);
 
-  // Priority: dynamicModes (runtime) > cachedModes (from cache) > getAgentModes (static fallback)
+  // Priority: dynamicModes (runtime) > cachedModes (from cache) > static fallback.
+  // Codex is special: the app owns its session-mode abstraction, so UI must use
+  // the static Codex mode list instead of ACP runtime permission presets.
   const modes = useMemo(() => {
-    if (dynamicModes && dynamicModes.length > 0) return dynamicModes;
-    if (cachedModes.length > 0) return cachedModes;
-    return getAgentModes(backend);
+    if (dynamicModes && dynamicModes.length > 0) return getSelectableAgentModes(backend, dynamicModes);
+    if (cachedModes.length > 0) return getSelectableAgentModes(backend, cachedModes);
+    return getSelectableAgentModes(backend);
   }, [dynamicModes, cachedModes, backend]);
   const defaultMode = modes[0]?.value ?? 'default';
   // Validate initialMode against available modes; fall back to backend's default
