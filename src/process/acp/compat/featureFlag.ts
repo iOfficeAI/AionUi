@@ -13,9 +13,13 @@ const ENV_OVERRIDE = new Set(['1', 'true']);
  */
 export async function isAcpV2Enabled(): Promise<boolean> {
   // Dev override via env var (no storage access needed)
-  if (ENV_OVERRIDE.has(process.env.AION_ACP_V2?.toLowerCase() ?? '')) {
+  const envVal = process.env.AION_ACP_V2?.toLowerCase() ?? '';
+  if (ENV_OVERRIDE.has(envVal)) {
+    console.log(`[ACP Feature Flag] V2 enabled via env var AION_ACP_V2=${process.env.AION_ACP_V2}`);
     return true;
   }
   const stored = await ProcessConfig.get('system.acpV2Enabled');
-  return stored ?? false;
+  const result = stored ?? false;
+  console.log(`[ACP Feature Flag] V2 '${result ? 'enabled' : 'disabled'}' via setting (system.acpV2Enabled=${stored})`);
+  return result;
 }

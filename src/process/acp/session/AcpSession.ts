@@ -1,26 +1,19 @@
 import type {
-  AuthMethod,
-  LoadSessionResponse,
-  McpServer,
-  NewSessionResponse,
   RequestPermissionRequest,
   RequestPermissionResponse,
   SessionNotification,
   UsageUpdate,
 } from '@agentclientprotocol/sdk';
 import { AcpError } from '@process/acp/errors/AcpError';
-import { normalizeError } from '@process/acp/errors/errorNormalize';
-import type { AcpClient, ClientFactory, DisconnectInfo } from '@process/acp/infra/IAcpClient';
-import { ProcessAcpClient } from '@process/acp/infra/ProcessAcpClient';
+import type { ClientFactory, DisconnectInfo } from '@process/acp/infra/IAcpClient';
 import { noopMetrics, type AcpMetrics } from '@process/acp/metrics/AcpMetrics';
-import { AuthNegotiator } from '@process/acp/session/AuthNegotiator';
 import { ConfigTracker } from '@process/acp/session/ConfigTracker';
 import { InputPreprocessor } from '@process/acp/session/InputPreprocessor';
-import { McpConfig } from '@process/acp/session/McpConfig';
 import { MessageTranslator } from '@process/acp/session/MessageTranslator';
 import { PermissionResolver } from '@process/acp/session/PermissionResolver';
-import { PromptTimer } from '@process/acp/session/PromptTimer';
-import type { AgentConfig, PromptContent, ProtocolHandlers, SessionCallbacks, SessionStatus } from '@process/acp/types';
+import { PromptExecutor } from '@process/acp/session/PromptExecutor';
+import { SessionLifecycle } from '@process/acp/session/SessionLifecycle';
+import type { AgentConfig, ProtocolHandlers, SessionCallbacks, SessionStatus } from '@process/acp/types';
 import * as fs from 'node:fs';
 
 export type SessionOptions = {
@@ -32,44 +25,18 @@ export type SessionOptions = {
 };
 
 const VALID_TRANSITIONS: Record<SessionStatus, SessionStatus[]> = {
-  idle: [
-    'starting', // start()
-  ],
-  starting: [
-    'active', // handshake completed
-    'starting', // handshake failed, retriable error
-    'error', // handshake failed, non-retriable error
-  ],
-  active: [
-    'prompting', // executePrompt()
-    'suspended', // suspend()
-    'idle', // stop()
-  ],
-  prompting: [
-    'active', // prompt completed
-    'resuming', // process crashed with retriable error
-    'error', // prompt crashed with non-retriable error
-    'idle', // stop()
-  ],
-  suspended: [
-    'resuming', // sendMessage() / resume()
-    'idle', // stop()
-  ],
-  resuming: [
-    'active', // handshake completed
-    'resuming', // handshake failed, retriable error
-    'error', // handshake failed, non-retriable error
-  ],
-  error: [
-    'starting', // start() after error
-    'idle', // stop() after error
-  ],
+  idle: ['starting'],
+  starting: ['active', 'starting', 'error'],
+  active: ['prompting', 'suspended', 'idle'],
+  prompting: ['active', 'resuming', 'error', 'idle'],
+  suspended: ['resuming', 'idle'],
+  resuming: ['active', 'resuming', 'error'],
+  error: ['starting', 'idle'],
 };
 
 /**
  * Wrap all SessionCallbacks methods with try/catch to prevent callback
  * implementation bugs from disrupting AcpSession's internal state machine.
- * Callback errors are logged but never propagated.
  */
 function wrapCallbacks(raw: SessionCallbacks): SessionCallbacks {
   const wrapped = {} as Record<string, unknown>;
@@ -92,271 +59,131 @@ function wrapCallbacks(raw: SessionCallbacks): SessionCallbacks {
 
 export class AcpSession {
   private _status: SessionStatus = 'idle';
-  private _sessionId: string | null = null;
-  private authPending = false;
-  private cachedAuthMethods: AuthMethod[] | null = null;
 
-  /** Preprocessed prompt content held for edge cases (suspended, auth-required). */
-  private pendingPrompt: PromptContent | null = null;
+  // components (exposed as readonly for host interfaces)
+  readonly configTracker: ConfigTracker;
+  readonly messageTranslator: MessageTranslator;
+  readonly callbacks: SessionCallbacks;
+  readonly metrics: AcpMetrics;
 
-  // retry properties
-  private startRetryCount: number = 0;
-  private resumeRetryCount: number = 0;
-  private readonly maxStartRetries: number;
-  private readonly maxResumeRetries: number;
-  private readonly promptTimeoutMs: number;
-
-  // components
-  private readonly configTracker: ConfigTracker;
   private readonly permissionResolver: PermissionResolver;
-  private readonly messageTranslator: MessageTranslator;
   private readonly inputPreprocessor: InputPreprocessor;
-  private readonly promptTimer: PromptTimer;
-  private readonly authNegotiator: AuthNegotiator;
-  private readonly metrics: AcpMetrics;
-  private readonly callbacks: SessionCallbacks;
-  // single-owner client reference (null when suspended/idle)
-  private client: AcpClient | null = null;
+  private readonly lifecycle: SessionLifecycle;
+  private readonly promptExecutor: PromptExecutor;
 
   constructor(
     private readonly agentConfig: AgentConfig,
-    private readonly clientFactory: ClientFactory,
+    clientFactory: ClientFactory,
     callbacks: SessionCallbacks,
     options?: SessionOptions
   ) {
-    this.maxStartRetries = options?.maxStartRetries ?? 3;
-    this.maxResumeRetries = options?.maxResumeRetries ?? 2;
-    this.promptTimeoutMs = options?.promptTimeoutMs ?? 300_000;
     this.metrics = options?.metrics ?? noopMetrics;
     this.callbacks = wrapCallbacks(callbacks);
 
     this.configTracker = new ConfigTracker();
     this.messageTranslator = new MessageTranslator(agentConfig.agentId);
     this.inputPreprocessor = new InputPreprocessor((path) => fs.readFileSync(path, 'utf-8'));
-    this.promptTimer = new PromptTimer(this.promptTimeoutMs, () => this.handlePromptTimeout());
-    this.authNegotiator = new AuthNegotiator(agentConfig.agentBackend);
     this.permissionResolver = new PermissionResolver({
       autoApproveAll: agentConfig.autoApproveAll ?? false,
       cacheMaxSize: options?.approvalCacheMaxSize,
     });
 
-    if (agentConfig.authCredentials) {
-      this.authNegotiator.mergeCredentials(agentConfig.authCredentials);
-    }
+    this.lifecycle = new SessionLifecycle(
+      {
+        agentConfig: agentConfig,
+        configTracker: this.configTracker,
+        messageTranslator: this.messageTranslator,
+        callbacks: this.callbacks,
+        metrics: this.metrics,
+        setStatus: (s) => this.setStatus(s),
+        enterError: (msg) => this.enterError(msg),
+        flushPendingPrompt: () => this.promptExecutor.flush(),
+        buildProtocolHandlers: () => this.buildProtocolHandlers(),
+      },
+      clientFactory,
+      {
+        maxStartRetries: options?.maxStartRetries ?? 3,
+        maxResumeRetries: options?.maxResumeRetries ?? 2,
+      }
+    );
 
-    // Restore session ID from previous run so doStart() calls loadSession instead of createSession.
-    if (agentConfig.resumeSessionId) {
-      this._sessionId = agentConfig.resumeSessionId;
-    }
+    // Override the default no-op handleDisconnect with our status-aware version.
+    this.lifecycle.handleDisconnect = (_info?: DisconnectInfo) => this.onDisconnect(_info);
+
+    // `self` captured by the getter closure below — must be assigned before PromptExecutor construction.
+    // eslint-disable-next-line @typescript-eslint/no-this-alias
+    const self = this;
+    this.promptExecutor = new PromptExecutor(
+      {
+        get status() {
+          return self.status;
+        },
+        lifecycle: this.lifecycle,
+        messageTranslator: this.messageTranslator,
+        authNegotiator: this.lifecycle.authNegotiator,
+        callbacks: this.callbacks,
+        metrics: this.metrics,
+        agentConfig: agentConfig,
+        setStatus: (s) => this.setStatus(s),
+        enterError: (msg) => this.enterError(msg),
+      },
+      options?.promptTimeoutMs ?? 300_000
+    );
   }
+
+  // ─── State machine ────────────────────────────────────────────
 
   get status(): SessionStatus {
     return this._status;
   }
 
   get sessionId(): string | null {
-    return this._sessionId;
+    return this.lifecycle.sessionId;
   }
 
-  private setStatus(newStatus: SessionStatus): void {
+  setStatus(newStatus: SessionStatus): void {
     const allowed = VALID_TRANSITIONS[this._status];
     if (!allowed.includes(newStatus)) return;
     this._status = newStatus;
     this.callbacks.onStatusChange(newStatus);
   }
 
+  // ─── Public API ───────────────────────────────────────────────
+
   start(): void {
-    if (this._status === 'error') {
-      this.startRetryCount = 0;
-    }
     if (this._status !== 'idle' && this._status !== 'error') return;
     console.log(`[AcpSession] Starting session with backend ${this.agentConfig.agentBackend}`);
-    this.doStart();
-  }
-
-  private async doStart(): Promise<void> {
-    this.setStatus('starting');
-    try {
-      // Phase 1+2: spawn + init (AcpClient handles internally)
-      const handlers = this.buildProtocolHandlers();
-      this.client = this.clientFactory.create(this.agentConfig, handlers);
-      this.client.onDisconnect(this.handleDisconnect);
-
-      const t0 = Date.now();
-      const initResult = await this.client.start();
-      this.metrics.recordSpawnLatency(this.agentConfig.agentBackend, Date.now() - t0);
-
-      // Cache authMethods for UI
-      if (initResult.authMethods && initResult.authMethods.length > 0) {
-        this.cachedAuthMethods = initResult.authMethods;
-      }
-
-      // Phase 3: create or load session
-      const mcpServers = McpConfig.merge({
-        userServers: this.agentConfig.mcpServers,
-        presetServers: this.agentConfig.presetMcpServers,
-        teamServer: this.agentConfig.teamMcpConfig,
-      });
-
-      let sessionResult: NewSessionResponse | LoadSessionResponse;
-      try {
-        sessionResult = this._sessionId
-          ? await this.tryLoadOrCreate(mcpServers)
-          : await this.client.createSession({
-              cwd: this.agentConfig.cwd,
-              mcpServers,
-              additionalDirectories: this.agentConfig.additionalDirectories,
-            });
-      } catch (err) {
-        const normalized = normalizeError(err);
-        if (normalized.code === 'AUTH_REQUIRED') {
-          this.authPending = true;
-          await this.teardownConnection();
-          this.callbacks.onSignal({
-            type: 'auth_required',
-            auth: this.authNegotiator.buildAuthRequiredData(this.cachedAuthMethods ?? undefined),
-          });
-          return;
-        }
-        throw err;
-      }
-
-      // Phase 4: apply session result
-      this.applySessionResult(sessionResult);
-
-      // Fire any prompt that was buffered while we were starting / recovering auth.
-      this.flushPendingPrompt();
-    } catch (err) {
-      this.handleStartError(err);
-    }
-  }
-
-  private applySessionResult(sessionResult: NewSessionResponse | LoadSessionResponse): void {
-    if ('sessionId' in sessionResult && typeof sessionResult.sessionId === 'string') {
-      this._sessionId = sessionResult.sessionId;
-    }
-    this.callbacks.onSessionId(this._sessionId!);
-
-    this.configTracker.syncFromSessionResult({
-      currentModelId: sessionResult.models?.currentModelId ?? undefined,
-      availableModels: sessionResult.models?.availableModels?.map((m) => ({
-        modelId: m.modelId,
-        name: m.name,
-        description: m.description ?? undefined,
-      })),
-      currentModeId: sessionResult.modes?.currentModeId ?? undefined,
-      availableModes: sessionResult.modes?.availableModes?.map((m) => ({
-        id: m.id,
-        name: m.name,
-        description: m.description ?? undefined,
-      })),
-      configOptions: sessionResult.configOptions?.map((opt) => ({
-        id: opt.id,
-        name: opt.name,
-        type: opt.type,
-        currentValue: opt.currentValue,
-      })),
-      cwd: this.agentConfig.cwd,
-      additionalDirectories: this.agentConfig.additionalDirectories,
-    });
-
-    this.callbacks.onConfigUpdate(this.configTracker.configSnapshot());
-    this.callbacks.onModelUpdate(this.configTracker.modelSnapshot());
-    this.callbacks.onModeUpdate(this.configTracker.modeSnapshot());
-
-    this.messageTranslator.reset();
-    this.setStatus('active');
-  }
-
-  private async handleStartError(err: unknown): Promise<void> {
-    const acpErr = normalizeError(err);
-    console.error(`[AcpSession:infra] start failed (${acpErr.code}, retryable=${acpErr.retryable})\n ${acpErr.stack}`);
-
-    if (acpErr.retryable && this.startRetryCount < this.maxStartRetries) {
-      this.startRetryCount++;
-      if (this.client instanceof ProcessAcpClient) {
-        this.client.clearBunxCacheIfNeeded();
-      }
-      await this.teardownConnection();
-      const delay = 1000 * Math.pow(2, this.startRetryCount - 1);
-      setTimeout(() => this.doStart(), delay);
-    } else {
-      await this.teardownConnection();
-      this.enterError(acpErr.message);
-    }
+    this.lifecycle.start();
   }
 
   async stop(): Promise<void> {
-    this.promptTimer.stop();
+    this.promptExecutor.stopTimer();
     this.permissionResolver.rejectAll(new Error('Session stopped'));
-    this.pendingPrompt = null;
-    this.authPending = false;
-    await this.teardownConnection();
+    this.promptExecutor.clearPending();
+    this.lifecycle.clearAuthPending();
+    await this.lifecycle.teardown();
     this.setStatus('idle');
   }
 
   async suspend(): Promise<void> {
     if (this._status !== 'active') return;
-    await this.teardownConnection();
+    await this.lifecycle.teardown();
     this.setStatus('suspended');
   }
 
   retryAuth(credentials?: Record<string, string>): void {
-    if (!this.authPending) return;
-    this.authPending = false;
-    if (credentials) this.authNegotiator.mergeCredentials(credentials);
-    this.doStart();
-  }
-
-  private async resume(): Promise<void> {
-    this.setStatus('resuming');
-    try {
-      const handlers = this.buildProtocolHandlers();
-      this.client = this.clientFactory.create(this.agentConfig, handlers);
-      this.client.onDisconnect(this.handleDisconnect);
-      await this.client.start();
-
-      const mcpServers = McpConfig.merge({
-        userServers: this.agentConfig.mcpServers,
-        presetServers: this.agentConfig.presetMcpServers,
-        teamServer: this.agentConfig.teamMcpConfig,
-      });
-      await this.tryLoadOrCreate(mcpServers);
-
-      await this.reassertConfig();
-      this.setStatus('active');
-
-      this.flushPendingPrompt();
-    } catch (err) {
-      this.handleResumeError(err);
-    }
-  }
-
-  private async handleResumeError(err: unknown): Promise<void> {
-    const acpErr = normalizeError(err);
-    if (acpErr.retryable && this.resumeRetryCount < this.maxResumeRetries) {
-      this.resumeRetryCount++;
-      if (this.client instanceof ProcessAcpClient) {
-        this.client.clearBunxCacheIfNeeded();
-      }
-      await this.teardownConnection();
-      const delay = 1000 * Math.pow(2, this.resumeRetryCount - 1);
-      setTimeout(() => this.resume(), delay);
-    } else {
-      await this.teardownConnection();
-      this.enterError(acpErr.message);
-    }
+    this.lifecycle.retryAuth(credentials);
   }
 
   sendMessage(text: string, files?: string[]): void {
     const content = this.inputPreprocessor.process(text, files);
     switch (this._status) {
       case 'active':
-        void this.executePrompt(content);
+        void this.promptExecutor.execute(content);
         return;
       case 'suspended':
-        this.pendingPrompt = content;
-        this.resume();
+        this.promptExecutor.setPending(content);
+        this.lifecycle.resume();
         return;
       default:
         throw new AcpError('INVALID_STATE', `Cannot send in ${this._status} state`);
@@ -364,13 +191,11 @@ export class AcpSession {
   }
 
   cancelPrompt(): void {
-    if (this._status !== 'prompting' || !this.client || !this._sessionId) return;
-    this.client.cancel(this._sessionId).catch(() => {});
+    this.promptExecutor.cancel();
   }
 
   cancelAll(): void {
-    this.pendingPrompt = null;
-    if (this._status === 'prompting') this.cancelPrompt();
+    this.promptExecutor.cancelAll();
   }
 
   setModel(modelId: string): void {
@@ -378,9 +203,10 @@ export class AcpSession {
       throw new AcpError('INVALID_STATE', `Cannot set model in ${this._status}`);
     }
     this.configTracker.setDesiredModel(modelId);
-    if (this._status === 'active' && this.client && this._sessionId) {
-      this.client
-        .setModel(this._sessionId, modelId)
+    const { client, sessionId } = this.lifecycle;
+    if (this._status === 'active' && client && sessionId) {
+      client
+        .setModel(sessionId, modelId)
         .then(() => this.configTracker.setCurrentModel(modelId))
         .then(() => this.callbacks.onModelUpdate(this.configTracker.modelSnapshot()))
         .catch(() => {});
@@ -392,9 +218,10 @@ export class AcpSession {
       throw new AcpError('INVALID_STATE', `Cannot set mode in ${this._status}`);
     }
     this.configTracker.setDesiredMode(modeId);
-    if (this._status === 'active' && this.client && this._sessionId) {
-      this.client
-        .setMode(this._sessionId, modeId)
+    const { client, sessionId } = this.lifecycle;
+    if (this._status === 'active' && client && sessionId) {
+      client
+        .setMode(sessionId, modeId)
         .then(() => this.configTracker.setCurrentMode(modeId))
         .then(() => this.callbacks.onModeUpdate(this.configTracker.modeSnapshot()))
         .catch(() => {});
@@ -403,9 +230,10 @@ export class AcpSession {
 
   setConfigOption(id: string, value: string | boolean): void {
     this.configTracker.setDesiredConfigOption(id, value);
-    if (this._status === 'active' && this.client && this._sessionId) {
-      this.client
-        .setConfigOption(this._sessionId, id, value)
+    const { client, sessionId } = this.lifecycle;
+    if (this._status === 'active' && client && sessionId) {
+      client
+        .setConfigOption(sessionId, id, value)
         .then(() => this.configTracker.setCurrentConfigOption(id, value))
         .catch(() => {});
     }
@@ -419,57 +247,7 @@ export class AcpSession {
     this.permissionResolver.resolve(callId, optionId);
   }
 
-  /** Fire the pending prompt if one exists and we are active. */
-  private flushPendingPrompt(): void {
-    if (this.pendingPrompt && this._status === 'active') {
-      const content = this.pendingPrompt;
-      this.pendingPrompt = null;
-      void this.executePrompt(content);
-    }
-  }
-
-  private async executePrompt(content: PromptContent): Promise<void> {
-    if (!this.client || !this._sessionId) return;
-
-    this.setStatus('prompting');
-
-    try {
-      await this.reassertConfig();
-
-      this.promptTimer.start();
-      await this.client.prompt(this._sessionId, content);
-      this.promptTimer.stop();
-
-      this.messageTranslator.onTurnEnd();
-      this.setStatus('active');
-      this.callbacks.onSignal({ type: 'turn_finished' });
-    } catch (err) {
-      this.promptTimer.stop();
-      this.messageTranslator.onTurnEnd();
-
-      const acpErr = normalizeError(err);
-      if (acpErr.code === 'AUTH_REQUIRED') {
-        // Save the failed prompt so it can be retried after auth recovery.
-        this.pendingPrompt = content;
-        this.authPending = true;
-        await this.teardownConnection();
-        this.setStatus('error');
-        this.callbacks.onSignal({
-          type: 'auth_required',
-          auth: this.authNegotiator.buildAuthRequiredData(this.cachedAuthMethods ?? undefined),
-        });
-        return;
-      }
-      console.error(`[AcpSession:infra] prompt failed (${acpErr.code}):`, acpErr.message);
-      this.metrics.recordError(this.agentConfig.agentBackend, acpErr.code);
-
-      if (acpErr.retryable) {
-        this.setStatus('active');
-      } else {
-        this.enterError(acpErr.message);
-      }
-    }
-  }
+  // ─── Protocol handlers (glue) ─────────────────────────────────
 
   private buildProtocolHandlers(): ProtocolHandlers {
     return {
@@ -518,7 +296,7 @@ export class AcpSession {
       }
     }
 
-    this.promptTimer.reset();
+    this.promptExecutor.resetTimer();
     const messages = this.messageTranslator.translate(notification);
     for (const msg of messages) {
       this.callbacks.onMessage(msg);
@@ -526,107 +304,37 @@ export class AcpSession {
   }
 
   private async handlePermissionRequest(request: RequestPermissionRequest): Promise<RequestPermissionResponse> {
-    this.promptTimer.pause();
+    this.promptExecutor.pauseTimer();
     try {
-      const result = await this.permissionResolver.evaluate(request, (data) => {
+      return await this.permissionResolver.evaluate(request, (data) => {
         this.callbacks.onPermissionRequest(data);
       });
-      return result;
     } finally {
-      this.promptTimer.resume();
+      this.promptExecutor.resumeTimer();
     }
   }
 
-  private handleDisconnect(_info?: DisconnectInfo): void {
+  // ─── Internal helpers ─────────────────────────────────────────
+
+  private onDisconnect(_info?: DisconnectInfo): void {
     if (this._status === 'idle' || this._status === 'suspended' || this._status === 'error') return;
 
-    this.client = null;
+    this.lifecycle.clearClient();
 
     if (this._status === 'prompting') {
-      this.promptTimer.stop();
+      this.promptExecutor.stopTimer();
       this.permissionResolver.rejectAll(new Error('Process disconnected'));
-      this.resumeRetryCount = 0;
-      this.resume();
+      this.lifecycle.resumeFromDisconnect();
     } else {
       this.setStatus('suspended');
     }
   }
 
-  private handlePromptTimeout(): void {
-    if (this._status !== 'prompting') return;
-    this.cancelPrompt();
-    this.callbacks.onSignal({
-      type: 'error',
-      message: 'Prompt timed out',
-      recoverable: true,
-    });
-  }
-
-  private async reassertConfig(): Promise<void> {
-    if (!this.client || !this._sessionId) return;
-    const pending = this.configTracker.getPendingChanges();
-    if (pending.model) {
-      try {
-        await this.client.setModel(this._sessionId, pending.model);
-        this.configTracker.setCurrentModel(pending.model);
-      } catch {
-        /* best effort */
-      }
-    }
-    if (pending.mode) {
-      try {
-        await this.client.setMode(this._sessionId, pending.mode);
-        this.configTracker.setCurrentMode(pending.mode);
-      } catch {
-        /* best effort */
-      }
-    }
-    for (const opt of pending.configOptions) {
-      try {
-        await this.client.setConfigOption(this._sessionId, opt.id, opt.value);
-        this.configTracker.setCurrentConfigOption(opt.id, opt.value);
-      } catch {
-        /* best effort */
-      }
-    }
-  }
-
-  private async tryLoadOrCreate(mcpServers: McpServer[]): Promise<NewSessionResponse | LoadSessionResponse> {
-    if (this._sessionId && this.client) {
-      try {
-        return await this.client.loadSession({
-          sessionId: this._sessionId,
-          cwd: this.agentConfig.cwd,
-          mcpServers,
-          additionalDirectories: this.agentConfig.additionalDirectories,
-        });
-      } catch {
-        this.callbacks.onSignal({ type: 'session_expired' });
-      }
-    }
-    return this.client!.createSession({
-      cwd: this.agentConfig.cwd,
-      mcpServers,
-      additionalDirectories: this.agentConfig.additionalDirectories,
-    });
-  }
-
-  private enterError(message: string): void {
-    this.pendingPrompt = null;
+  enterError(message: string): void {
+    this.promptExecutor.clearPending();
     this.permissionResolver.rejectAll(new Error(message));
-    this.promptTimer.stop();
+    this.promptExecutor.stopTimer();
     this.setStatus('error');
     this.callbacks.onSignal({ type: 'error', message, recoverable: false });
-  }
-
-  private async teardownConnection(): Promise<void> {
-    if (this.client) {
-      try {
-        await this.client.close();
-      } catch {
-        /* best effort */
-      }
-      this.client = null;
-    }
   }
 }

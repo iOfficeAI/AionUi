@@ -1,7 +1,7 @@
 // tests/unit/process/acp/session/ApprovalCache.test.ts
 
 import { describe, it, expect } from 'vitest';
-import { ApprovalCache } from '@process/acp/session/ApprovalCache';
+import { ApprovalCache } from '@process/acp/session/PermissionResolver';
 
 describe('ApprovalCache', () => {
   it('stores and retrieves approvals by tool name', () => {

@@ -210,6 +210,7 @@ export function initSystemSettingsBridge(): void {
   });
 
   ipcBridge.systemSettings.setAcpV2Enabled.provider(async ({ enabled }) => {
+    console.log(`[ACP Feature Flag] User toggled: ${enabled}`);
     await ProcessConfig.set('system.acpV2Enabled', enabled);
   });
 }
