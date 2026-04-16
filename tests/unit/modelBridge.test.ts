@@ -4,7 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 // Hoisted so vi.mock factories can access them
 const { handlers, mockModelsList } = vi.hoisted(() => {
@@ -12,6 +12,15 @@ const { handlers, mockModelsList } = vi.hoisted(() => {
   const mockModelsList = vi.fn();
   return { handlers, mockModelsList };
 });
+
+const { mockGetCopilotAuthHeaders, mockGetCopilotModelsUrl } = vi.hoisted(() => ({
+  mockGetCopilotAuthHeaders: vi.fn(),
+  mockGetCopilotModelsUrl: vi.fn(),
+}));
+
+const { mockFetchChatgptModels } = vi.hoisted(() => ({
+  mockFetchChatgptModels: vi.fn(),
+}));
 
 vi.mock('electron', () => ({ app: { isPackaged: false, getPath: vi.fn(() => '/tmp') } }));
 
@@ -49,12 +58,28 @@ vi.mock('openai', () => {
   return { default: MockOpenAI };
 });
 
+vi.mock('@process/agent/aionrs/copilotAuth', () => ({
+  getCopilotAuthHeaders: mockGetCopilotAuthHeaders,
+  getCopilotModelsUrl: mockGetCopilotModelsUrl,
+}));
+
+vi.mock('@process/agent/aionrs/chatgptAuth', () => ({
+  fetchChatgptModels: mockFetchChatgptModels,
+}));
+
 import { initModelBridge } from '../../src/process/bridge/modelBridge';
 
 beforeEach(() => {
   vi.clearAllMocks();
   mockModelsList.mockReset();
+  mockGetCopilotAuthHeaders.mockResolvedValue({ Authorization: 'Bearer copilot-token' });
+  mockGetCopilotModelsUrl.mockReturnValue('https://api.githubcopilot.com/models');
+  mockFetchChatgptModels.mockResolvedValue([{ id: 'gpt-5.2', name: 'gpt-5.2' }]);
   initModelBridge();
+});
+
+afterEach(() => {
+  vi.unstubAllGlobals();
 });
 
 describe('fetchModelList', () => {
@@ -94,6 +119,47 @@ describe('fetchModelList', () => {
 
       expect(result.success).toBe(true);
       expect(result.data.mode).toContain('gpt-4');
+    });
+
+    it('should use Copilot OAuth headers when platform is copilot', async () => {
+      const fetchMock = vi.fn().mockResolvedValue({
+        ok: true,
+        json: vi.fn().mockResolvedValue({
+          data: [{ id: 'gpt-4o', name: 'GPT-4o' }],
+        }),
+      });
+      vi.stubGlobal('fetch', fetchMock);
+
+      const result = await fetchModelList({
+        base_url: 'https://api.githubcopilot.com',
+        api_key: '',
+        platform: 'copilot',
+      });
+
+      expect(mockGetCopilotAuthHeaders).toHaveBeenCalledWith('', undefined);
+      expect(result).toEqual({
+        success: true,
+        data: {
+          mode: [{ id: 'gpt-4o', name: 'GPT-4o' }],
+        },
+      });
+    });
+
+    it('should return the ChatGPT model list from the authenticated account', async () => {
+      const result = await fetchModelList({
+        base_url: 'https://chatgpt.com',
+        api_key: '',
+        platform: 'chatgpt',
+      });
+
+      expect(mockGetCopilotAuthHeaders).not.toHaveBeenCalled();
+      expect(mockFetchChatgptModels).toHaveBeenCalledOnce();
+      expect(result).toEqual({
+        success: true,
+        data: {
+          mode: [{ id: 'gpt-5.2', name: 'gpt-5.2' }],
+        },
+      });
     });
   });
 

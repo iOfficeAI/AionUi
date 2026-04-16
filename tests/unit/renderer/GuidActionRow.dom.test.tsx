@@ -90,6 +90,7 @@ describe('GuidActionRow', () => {
     onFilesUploaded: vi.fn(),
     onSelectWorkspace: vi.fn(),
     modelSelectorNode: <div>ModelSelector</div>,
+    acpConfigSelectorNode: <div>ReasoningSelector</div>,
     selectedAgent: 'gemini',
     selectedMode: 'default',
     onModeSelect: vi.fn(),
@@ -108,6 +109,12 @@ describe('GuidActionRow', () => {
     render(<GuidActionRow {...defaultProps} />);
     expect(screen.getByLabelText('speech-input')).toBeInTheDocument();
     expect(screen.getByText('ArrowUp')).toBeInTheDocument();
+  });
+
+  it('renders the provided ACP config selector only once', () => {
+    render(<GuidActionRow {...defaultProps} />);
+
+    expect(screen.getAllByText('ReasoningSelector')).toHaveLength(1);
   });
 
   it('shows generic error toast when file upload fails', async () => {

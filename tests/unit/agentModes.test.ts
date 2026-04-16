@@ -115,11 +115,11 @@ describe('mergeWithCapabilities', () => {
 });
 
 describe('getSelectableAgentModes', () => {
-  it('preserves Codex no-sandbox mode when runtime or cache omits it', () => {
+  it('uses static Codex session modes instead of ACP runtime permission presets', () => {
     const result = getSelectableAgentModes('codex', [
-      { value: 'default', label: 'Plan' },
-      { value: 'autoEdit', label: 'Auto Edit' },
-      { value: 'yolo', label: 'Full Auto' },
+      { value: 'read-only', label: 'Read Only' },
+      { value: 'auto', label: 'Auto' },
+      { value: 'danger-full-access', label: 'Full Access' },
     ]);
 
     expect(result.map((mode) => mode.value)).toEqual(['default', 'autoEdit', 'yolo', CODEX_MODE_FULL_AUTO_NO_SANDBOX]);

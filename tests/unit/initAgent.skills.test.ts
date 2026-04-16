@@ -60,7 +60,7 @@ vi.mock('@process/utils/initStorage', () => ({
   getSkillsDir: vi.fn(() => '/mock/user/skills'),
   getBuiltinSkillsCopyDir: vi.fn(() => '/mock/builtin-skills'),
   getAutoSkillsDir: vi.fn(() => '/mock/auto-skills'),
-  getSystemDir: vi.fn(() => '/mock/system'),
+  getSystemDir: vi.fn(() => ({ workDir: '/mock/system' })),
 }));
 
 vi.mock('@process/utils/openclawUtils', () => ({
@@ -77,6 +77,7 @@ describe('initAgent — skill support', () => {
     workspace: string,
     options: { agentType?: string; backend?: string; enabledSkills?: string[] }
   ) => Promise<void>;
+  let createAionrsAgent: typeof import('@process/utils/initAgent').createAionrsAgent;
 
   beforeEach(async () => {
     vi.clearAllMocks();
@@ -85,6 +86,7 @@ describe('initAgent — skill support', () => {
     const mod = await import('@process/utils/initAgent');
     hasNativeSkillSupport = mod.hasNativeSkillSupport;
     setupAssistantWorkspace = mod.setupAssistantWorkspace;
+    createAionrsAgent = mod.createAionrsAgent;
   });
 
   describe('hasNativeSkillSupport', () => {
@@ -321,6 +323,30 @@ describe('initAgent — skill support', () => {
       });
 
       expect(symlinkCalls).toHaveLength(3);
+    });
+  });
+
+  describe('createAionrsAgent', () => {
+    it('should preserve the health-check marker on temporary aionrs conversations', async () => {
+      const conversation = await createAionrsAgent({
+        type: 'aionrs',
+        name: 'health check',
+        model: {
+          id: 'copilot-provider',
+          name: 'GitHub Copilot',
+          platform: 'copilot',
+          useModel: 'gemini-3.1-pro-preview',
+          baseUrl: 'https://api.githubcopilot.com',
+          apiKey: '',
+        },
+        extra: {
+          workspace: '',
+          isHealthCheck: true,
+        },
+      });
+
+      expect(conversation.type).toBe('aionrs');
+      expect(conversation.extra?.isHealthCheck).toBe(true);
     });
   });
 });

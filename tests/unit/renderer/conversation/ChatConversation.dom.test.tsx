@@ -5,18 +5,20 @@
  */
 
 import React from 'react';
-import { render, screen } from '@testing-library/react';
+import { render, screen, waitFor } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import type { TChatConversation } from '@/common/config/storage';
 import ChatConversation from '@/renderer/pages/conversation/components/ChatConversation';
 
 const chatConversationMocks = vi.hoisted(() => ({
   openWorkspaceInEditor: vi.fn().mockResolvedValue(undefined),
+  updateConversation: vi.fn().mockResolvedValue(true),
   acpChat: vi.fn(() => null),
   geminiChat: vi.fn(() => null),
   aionrsChat: vi.fn(() => null),
   useGeminiModelSelection: vi.fn(() => ({})),
   useAionrsModelSelection: vi.fn(() => ({})),
+  useAionrsCapabilities: vi.fn(() => ({ capabilities: null, dynamicModes: [], initialized: true })),
 }));
 
 type MockButtonProps = React.ComponentProps<'button'> & { icon?: React.ReactNode };
@@ -52,7 +54,7 @@ vi.mock('@/common', () => ({
         invoke: vi.fn().mockResolvedValue(undefined),
       },
       update: {
-        invoke: vi.fn().mockResolvedValue(true),
+        invoke: chatConversationMocks.updateConversation,
       },
     },
     shell: {
@@ -134,6 +136,10 @@ vi.mock('@/renderer/pages/conversation/platforms/aionrs/AionrsModelSelector', ()
 
 vi.mock('@/renderer/pages/conversation/platforms/aionrs/useAionrsModelSelection', () => ({
   useAionrsModelSelection: chatConversationMocks.useAionrsModelSelection,
+}));
+
+vi.mock('@/renderer/pages/conversation/platforms/aionrs/useAionrsCapabilities', () => ({
+  useAionrsCapabilities: chatConversationMocks.useAionrsCapabilities,
 }));
 
 vi.mock('@/renderer/pages/conversation/Preview', () => ({
@@ -218,14 +224,14 @@ const createGeminiConversation = (sessionMode: string): TChatConversation =>
     },
   }) as TChatConversation;
 
-const createAionrsConversation = (sessionMode: string): TChatConversation =>
+const createAionrsConversation = (sessionMode: string, useModel = 'gpt-4.1'): TChatConversation =>
   ({
     id: 'conv-aionrs',
     name: 'Aion CLI Chat',
     type: 'aionrs',
     model: {
       id: 'provider-1',
-      useModel: 'gpt-4.1',
+      useModel,
     },
     extra: {
       workspace: 'E:/code/demo',
@@ -247,9 +253,15 @@ const createCodexConversation = (sessionMode: string): TChatConversation =>
 describe('ChatConversation workspace launcher', () => {
   beforeEach(() => {
     chatConversationMocks.openWorkspaceInEditor.mockClear();
+    chatConversationMocks.updateConversation.mockClear();
     chatConversationMocks.acpChat.mockClear();
     chatConversationMocks.geminiChat.mockClear();
     chatConversationMocks.aionrsChat.mockClear();
+    chatConversationMocks.useAionrsCapabilities.mockReturnValue({
+      capabilities: null,
+      dynamicModes: [],
+      initialized: true,
+    });
   });
 
   it('renders the quick-open launcher for custom workspace conversations', () => {
@@ -286,6 +298,64 @@ describe('ChatConversation workspace launcher', () => {
       }),
       undefined
     );
+  });
+
+  it('keeps the selected Aion CLI model when it matches the runtime current_model', async () => {
+    chatConversationMocks.useAionrsCapabilities.mockReturnValue({
+      capabilities: {
+        tool_approval: true,
+        thinking: false,
+        effort: true,
+        effort_levels: ['low', 'medium', 'high'],
+        modes: ['default'],
+        current_mode: 'default',
+        mcp: false,
+        current_model: 'gpt-4.1',
+        available_models: [{ id: 'gpt-5.2', display_name: 'gpt-5.2' }],
+      },
+      dynamicModes: [],
+      initialized: true,
+    });
+
+    render(<ChatConversation conversation={createAionrsConversation('auto_edit')} />);
+
+    await waitFor(() => {
+      expect(chatConversationMocks.aionrsChat).toHaveBeenCalled();
+    });
+
+    expect(chatConversationMocks.updateConversation).not.toHaveBeenCalled();
+  });
+
+  it('normalizes stale Aion CLI models to the runtime current_model before falling back to the list', async () => {
+    chatConversationMocks.useAionrsCapabilities.mockReturnValue({
+      capabilities: {
+        tool_approval: true,
+        thinking: false,
+        effort: true,
+        effort_levels: ['low', 'medium', 'high'],
+        modes: ['default'],
+        current_mode: 'default',
+        mcp: false,
+        current_model: 'gpt-5.4',
+        available_models: [{ id: 'gpt-5.2', display_name: 'gpt-5.2' }],
+      },
+      dynamicModes: [],
+      initialized: true,
+    });
+
+    render(<ChatConversation conversation={createAionrsConversation('auto_edit', 'gpt-4.1')} />);
+
+    await waitFor(() => {
+      expect(chatConversationMocks.updateConversation).toHaveBeenCalledWith({
+        id: 'conv-aionrs',
+        updates: {
+          model: {
+            id: 'provider-1',
+            useModel: 'gpt-5.4',
+          },
+        },
+      });
+    });
   });
 
   it('passes the persisted Codex session mode into the ACP chat view', () => {
