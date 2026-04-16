@@ -248,9 +248,10 @@ describe('model selector popup safety', () => {
             type: 'select',
             currentValue: 'medium',
             options: [
+              { value: 'low', name: 'Low' },
               { value: 'medium', name: 'Medium' },
               { value: 'high', name: 'High' },
-              { value: 'xhigh', name: 'Maximum' },
+              { value: 'xhigh', name: 'Xhigh' },
             ],
           },
         ]}
@@ -274,18 +275,18 @@ describe('model selector popup safety', () => {
             type: 'select',
             currentValue: 'medium',
             options: [
-              { value: 'minimal', name: 'Minimal' },
               { value: 'low', name: 'Low' },
               { value: 'medium', name: 'Medium' },
               { value: 'high', name: 'High' },
+              { value: 'xhigh', name: 'Xhigh' },
             ],
           },
         ]}
-        selectedValues={{ reasoning_effort: 'minimal' }}
+        selectedValues={{ reasoning_effort: 'xhigh' }}
         onSelectOption={vi.fn()}
       />
     );
 
-    expect(screen.getByRole('button')).toHaveTextContent('Minimal');
+    expect(screen.getByRole('button')).toHaveTextContent('Xhigh');
   });
 });

@@ -5,111 +5,141 @@
  */
 
 import { ipcBridge } from '@/common';
+import type { TProviderWithModel } from '@/common/config/storage';
+import type { AcpSessionConfigOption } from '@/common/types/acpTypes';
+import {
+  createChatgptReasoningEffortConfigOption,
+  isChatgptReasoningEffortValue,
+} from '@/common/types/codex/codexConfigOptions';
 import type { AionrsCapabilities } from '@process/agent/aionrs/protocol';
-import MarqueePillLabel from '@/renderer/components/agent/MarqueePillLabel';
-import { Button, Dropdown, Menu, Message } from '@arco-design/web-react';
-import { Down } from '@icon-park/react';
+import AcpConfigSelector from '@/renderer/components/agent/AcpConfigSelector';
+import { Message } from '@arco-design/web-react';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import type { AionrsRuntimeModelInfo } from './useAionrsModelSelection';
+
+const formatEffortLabel = (effort: string) => effort.charAt(0).toUpperCase() + effort.slice(1);
 
 const AionrsEffortSelector: React.FC<{
   conversationId: string;
   capabilities?: AionrsCapabilities | null;
+  currentModel?: TProviderWithModel;
+  currentModelInfo?: AionrsRuntimeModelInfo;
   initialEffort?: string;
-}> = ({ conversationId, capabilities, initialEffort }) => {
+}> = ({ conversationId, capabilities, currentModel, currentModelInfo, initialEffort }) => {
   const { t } = useTranslation();
   const [currentEffort, setCurrentEffort] = useState<string | null>(initialEffort ?? null);
+  const isChatgptModel = currentModel?.platform === 'chatgpt';
 
-  const currentModelInfo = useMemo(() => {
-    const currentModelId = capabilities?.current_model;
-    if (!currentModelId) {
-      return undefined;
+  const effortValues = useMemo(() => {
+    if (isChatgptModel) {
+      return createChatgptReasoningEffortConfigOption().options?.map((choice) => choice.value) ?? [];
     }
-    return capabilities?.available_models?.find((model) => model.id === currentModelId);
-  }, [capabilities?.available_models, capabilities?.current_model]);
 
-  const effortOptions = useMemo(() => {
     if (currentModelInfo?.effort_levels?.length) {
       return currentModelInfo.effort_levels;
     }
-    return capabilities?.effort_levels ?? [];
-  }, [capabilities?.effort_levels, currentModelInfo?.effort_levels]);
 
-  const defaultEffort = currentModelInfo?.default_effort || initialEffort || effortOptions[0] || null;
+    return capabilities?.effort_levels ?? [];
+  }, [capabilities?.effort_levels, currentModelInfo?.effort_levels, isChatgptModel]);
+
+  const defaultEffort = useMemo(() => {
+    if (isChatgptModel) {
+      if (isChatgptReasoningEffortValue(initialEffort)) {
+        return initialEffort;
+      }
+      if (isChatgptReasoningEffortValue(currentModelInfo?.default_effort)) {
+        return currentModelInfo.default_effort;
+      }
+      return createChatgptReasoningEffortConfigOption().currentValue ?? null;
+    }
+
+    return currentModelInfo?.default_effort || initialEffort || effortValues[0] || null;
+  }, [currentModelInfo?.default_effort, effortValues, initialEffort, isChatgptModel]);
 
   useEffect(() => {
-    if (effortOptions.length === 0) {
+    if (effortValues.length === 0) {
       setCurrentEffort(null);
       return;
     }
 
     setCurrentEffort((previous) => {
-      if (previous && effortOptions.includes(previous)) {
+      if (previous && effortValues.includes(previous)) {
         return previous;
       }
-      if (initialEffort && effortOptions.includes(initialEffort)) {
+      if (initialEffort && effortValues.includes(initialEffort)) {
         return initialEffort;
       }
-      return defaultEffort;
+      if (defaultEffort && effortValues.includes(defaultEffort)) {
+        return defaultEffort;
+      }
+      return effortValues[0] ?? null;
     });
-  }, [defaultEffort, effortOptions, initialEffort]);
+  }, [defaultEffort, effortValues, initialEffort]);
+
+  const configOptions = useMemo<AcpSessionConfigOption[]>(() => {
+    if (!capabilities?.effort || effortValues.length < 2) {
+      return [];
+    }
+
+    if (isChatgptModel) {
+      return [createChatgptReasoningEffortConfigOption(currentEffort ?? defaultEffort ?? undefined)];
+    }
+
+    return [
+      {
+        id: 'reasoning_effort',
+        name: 'Reasoning effort',
+        category: 'reasoning',
+        type: 'select',
+        currentValue: currentEffort ?? defaultEffort ?? undefined,
+        options: effortValues.map((effort) => ({
+          value: effort,
+          name: formatEffortLabel(effort),
+        })),
+      },
+    ];
+  }, [capabilities?.effort, currentEffort, defaultEffort, effortValues, isChatgptModel]);
 
   const handleSelect = useCallback(
     async (effort: string) => {
       if (effort === currentEffort) {
-        return;
+        return true;
       }
 
-      const result = await ipcBridge.conversation.setConfig.invoke({
-        conversation_id: conversationId,
-        config: { effort },
-      });
+      try {
+        const result = await ipcBridge.conversation.setConfig.invoke({
+          conversation_id: conversationId,
+          config: { effort },
+        });
 
-      if (!result.success) {
-        Message.warning(result.msg || t('conversation.aionrs.reasoningUpdateFailed'));
-        return;
+        if (!result.success) {
+          Message.warning(result.msg || t('conversation.aionrs.reasoningUpdateFailed'));
+          return false;
+        }
+
+        setCurrentEffort(effort);
+        return true;
+      } catch (error) {
+        console.error('[AionrsEffortSelector] Failed to update reasoning effort:', error);
+        Message.warning(t('conversation.aionrs.reasoningUpdateFailed'));
+        return false;
       }
-
-      setCurrentEffort(effort);
     },
     [conversationId, currentEffort, t]
   );
 
-  if (!capabilities?.effort || effortOptions.length < 2) {
+  if (configOptions.length === 0) {
     return null;
   }
 
-  const label = currentEffort || t('conversation.aionrs.reasoningEffortDefault');
-
   return (
-    <Dropdown
-      trigger='click'
-      droplist={
-        <Menu>
-          <Menu.ItemGroup title={t('conversation.aionrs.reasoningEffort')}>
-            {effortOptions.map((effort) => (
-              <Menu.Item
-                key={effort}
-                className={effort === currentEffort ? 'bg-2!' : ''}
-                onClick={() => void handleSelect(effort)}
-              >
-                <div className='flex items-center gap-8px'>
-                  {effort === currentEffort && <span className='text-primary'>✓</span>}
-                  <span className={effort !== currentEffort ? 'ml-16px' : ''}>{effort}</span>
-                </div>
-              </Menu.Item>
-            ))}
-          </Menu.ItemGroup>
-        </Menu>
-      }
-    >
-      <Button className='sendbox-model-btn agent-mode-compact-pill' shape='round' size='small'>
-        <span className='flex items-center gap-6px min-w-0 leading-none'>
-          <MarqueePillLabel>{`${t('conversation.aionrs.reasoningEffort')} · ${label}`}</MarqueePillLabel>
-          <Down size={12} className='text-t-tertiary shrink-0' />
-        </span>
-      </Button>
-    </Dropdown>
+    <AcpConfigSelector
+      backend='aionrs'
+      conversationId={conversationId}
+      initialConfigOptions={configOptions}
+      onOptionSelect={(_configId, value) => handleSelect(value)}
+    />
   );
 };
 

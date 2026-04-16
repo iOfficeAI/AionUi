@@ -121,7 +121,7 @@ const AionrsSendBoxInner: React.FC<AionrsSendBoxInnerProps> = ({
   const { checkAndUpdateTitle } = useAutoTitle();
   const isCommandQueueEnabled = useCommandQueueEnabled();
 
-  const { currentModel, getDisplayModelName } = modelSelection;
+  const { currentModel, currentModelInfo, getDisplayModelName } = modelSelection;
   const { thought, running, hasHydratedRunningState, tokenUsage, setActiveMsgId, setWaitingResponse, resetState } =
     messageState;
   const resolvedContextLimit =
@@ -381,6 +381,8 @@ const AionrsSendBoxInner: React.FC<AionrsSendBoxInnerProps> = ({
             <AionrsEffortSelector
               conversationId={conversation_id}
               capabilities={capabilities}
+              currentModel={currentModel}
+              currentModelInfo={currentModelInfo}
               initialEffort={initialEffort}
             />
             <AgentModeSelector

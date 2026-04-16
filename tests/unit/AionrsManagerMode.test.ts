@@ -116,21 +116,23 @@ vi.mock('@process/services/cron/cronServiceSingleton', () => ({
 }));
 
 vi.mock('@process/agent/aionrs', () => ({
-  AionrsAgent: vi.fn().mockImplementation(() => ({
-    start: vi.fn().mockResolvedValue(undefined),
-    stop: vi.fn(),
-    kill: vi.fn(),
-    send: vi.fn().mockResolvedValue(undefined),
-    approveTool: mockApproveTool,
-    denyTool: vi.fn(),
-    setConfig: mockSetConfig,
-    setMode: mockSetMode,
-    sendCommand: vi.fn(),
-    injectConversationHistory: vi.fn().mockResolvedValue(undefined),
-    get bootstrap() {
-      return Promise.resolve();
-    },
-  })),
+  AionrsAgent: vi.fn(function MockAionrsAgent() {
+    return {
+      start: vi.fn().mockResolvedValue(undefined),
+      stop: vi.fn(),
+      kill: vi.fn(),
+      send: vi.fn().mockResolvedValue(undefined),
+      approveTool: mockApproveTool,
+      denyTool: vi.fn(),
+      setConfig: mockSetConfig,
+      setMode: mockSetMode,
+      sendCommand: vi.fn(),
+      injectConversationHistory: vi.fn().mockResolvedValue(undefined),
+      get bootstrap() {
+        return Promise.resolve();
+      },
+    };
+  }),
 }));
 
 // ── Import under test ──────────────────────────────────────────────
@@ -279,7 +281,8 @@ describe('AionrsManager.setMode', () => {
     };
     const manager = new AionrsManager(data as any, data.model as any);
 
-    await (manager as any).agentReady;
+    mockSetConfig.mockClear();
+    await manager.start();
 
     expect(mockSetConfig).toHaveBeenCalledWith({ effort: 'high' });
   });

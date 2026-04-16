@@ -17,9 +17,10 @@ describe('codex config options defaults', () => {
         type: 'select',
         currentValue: 'medium',
         options: [
+          { value: 'low', name: 'Low' },
           { value: 'medium', name: 'Medium' },
           { value: 'high', name: 'High' },
-          { value: 'xhigh', name: 'Maximum' },
+          { value: 'xhigh', name: 'Xhigh' },
         ],
       },
     ]);
@@ -47,10 +48,10 @@ describe('codex config options defaults', () => {
         type: 'select',
         currentValue: 'medium',
         options: [
-          { value: 'minimal', name: 'Minimal' },
           { value: 'low', name: 'Low' },
           { value: 'medium', name: 'Medium' },
           { value: 'high', name: 'High' },
+          { value: 'xhigh', name: 'Xhigh' },
         ],
       },
     ]);
