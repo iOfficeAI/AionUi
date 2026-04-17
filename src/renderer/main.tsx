@@ -50,7 +50,7 @@ const Layout = lazy(() => import('./components/layout/Layout'));
 const Router = lazy(() => import('./components/layout/Router'));
 const Sider = lazy(() => import('./components/layout/Sider'));
 const ConversationHistoryProvider = lazy(() =>
-  import('./hooks/context/ConversationHistoryContext').then(m => ({ default: m.ConversationHistoryProvider }))
+  import('./hooks/context/ConversationHistoryContext').then((m) => ({ default: m.ConversationHistoryProvider }))
 );
 
 /**
@@ -60,9 +60,12 @@ const ConversationHistoryProvider = lazy(() =>
 const loadArcoLocale = async (lang: string) => {
   try {
     switch (lang) {
-      case 'zh-CN': return (await import('@arco-design/web-react/es/locale/zh-CN')).default;
-      case 'zh-TW': return (await import('@arco-design/web-react/es/locale/zh-TW')).default;
-      case 'ja-JP': return (await import('@arco-design/web-react/es/locale/ja-JP')).default;
+      case 'zh-CN':
+        return (await import('@arco-design/web-react/es/locale/zh-CN')).default;
+      case 'zh-TW':
+        return (await import('@arco-design/web-react/es/locale/zh-TW')).default;
+      case 'ja-JP':
+        return (await import('@arco-design/web-react/es/locale/ja-JP')).default;
       case 'ko-KR': {
         // Patch Korean locale with missing properties from English locale
         const koKR = (await import('@arco-design/web-react/es/locale/ko-KR')).default;
@@ -72,21 +75,22 @@ const loadArcoLocale = async (lang: string) => {
           Calendar: {
             ...koKR.Calendar,
             monthFormat: enUS.Calendar.monthFormat,
-            yearFormat: enUS.Calendar.yearFormat
+            yearFormat: enUS.Calendar.yearFormat,
           },
           DatePicker: {
             ...koKR.DatePicker,
             Calendar: {
               ...koKR.DatePicker.Calendar,
               monthFormat: enUS.Calendar.monthFormat,
-              yearFormat: enUS.Calendar.yearFormat
+              yearFormat: enUS.Calendar.yearFormat,
             },
           },
           Form: enUS.Form,
           ColorPicker: enUS.ColorPicker,
         };
       }
-      default: return (await import('@arco-design/web-react/es/locale/en-US')).default;
+      default:
+        return (await import('@arco-design/web-react/es/locale/en-US')).default;
     }
   } catch (error) {
     console.error('Locale load failed, falling back to English:', error);
@@ -104,12 +108,13 @@ const AppProviders = memo(({ children }: PropsWithChildren) => {
 
   useEffect(() => {
     let mounted = true;
-    loadArcoLocale(i18n.language).then(result => {
+    loadArcoLocale(i18n.language).then((result) => {
       if (mounted) setLocale(result);
     });
-    return () => { mounted = false; };
+    return () => {
+      mounted = false;
+    };
   }, [i18n.language]);
-
 
   if (!locale) return;
 
@@ -136,18 +141,19 @@ const Main = memo(() => {
   const { ready } = useAuth();
 
   // Memoize layout to prevent redundant re-renders of the sidebar and history providers
-  const layout = useMemo(() => (
-    <ConversationHistoryProvider>
-      <Layout sider={<Sider />} />
-    </ConversationHistoryProvider>
-  ), []);
+  const layout = useMemo(
+    () => (
+      <ConversationHistoryProvider>
+        <Layout sider={<Sider />} />
+      </ConversationHistoryProvider>
+    ),
+    []
+  );
 
   // Wait for auth context to be ready before rendering the router
   if (!ready) return;
 
-  return (
-    <Router layout={layout} />
-  );
+  return <Router layout={layout} />;
 });
 
 // --- Application Bootstrapping ---
