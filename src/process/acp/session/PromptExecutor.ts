@@ -118,6 +118,10 @@ export class PromptExecutor {
     } else {
       this.host.enterError(acpErr.message);
     }
+
+    // Re-throw so callers (AcpSession.sendMessage → AcpAgentV2.sendMessage) can
+    // return structured error types to AcpAgentManager.
+    throw acpErr;
   }
 
   // ─── Cancel ───────────────────────────────────────────────────

@@ -244,7 +244,8 @@ export class MessageTranslator {
     };
     if (!plan.entries || plan.entries.length === 0) return [];
 
-    const planMsgId = crypto.randomUUID();
+    // Use stable per-turn ID so the renderer merges plan updates within a turn
+    const planMsgId = this.resolveMsgId('plan');
 
     return [
       {

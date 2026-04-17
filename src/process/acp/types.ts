@@ -155,6 +155,7 @@ export type SessionSignal =
 // ─── Callbacks (Session → Application) ──────────────────────────
 
 export type SessionCallbacks = {
+  onInitialize?: (result: unknown) => void;
   onMessage: (message: TMessage) => void;
   onSessionId: (sessionId: string) => void;
   onStatusChange: (status: SessionStatus) => void;

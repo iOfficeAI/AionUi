@@ -191,11 +191,11 @@ export class AcpSession {
     this.lifecycle.retryAuth(credentials);
   }
 
-  sendMessage(text: string, files?: string[]): void {
+  async sendMessage(text: string, files?: string[]): Promise<void> {
     const content = this.inputPreprocessor.process(text, files);
     switch (this._status) {
       case 'active':
-        void this.promptExecutor.execute(content);
+        await this.promptExecutor.execute(content);
         return;
       case 'suspended':
         this.promptExecutor.setPending(content);

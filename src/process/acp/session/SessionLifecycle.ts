@@ -115,6 +115,8 @@ export class SessionLifecycle {
     if (initResult.authMethods && initResult.authMethods.length > 0) {
       this.cachedAuthMethods = initResult.authMethods;
     }
+
+    this.host.callbacks.onInitialize?.(initResult);
   }
 
   /** Returns null when auth is required (caller should bail). */

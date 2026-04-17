@@ -18,17 +18,17 @@ describe('normalizeError', () => {
     expect(result.retryable).toBe(true);
   });
 
-  it('normalizes ACP -32001 to SESSION_EXPIRED', () => {
+  it('normalizes ACP -32001 to ACP_SESSION_NOT_FOUND', () => {
     const err = { code: -32001, message: 'Session not found' };
     const result = normalizeError(err);
-    expect(result.code).toBe('SESSION_EXPIRED');
+    expect(result.code).toBe('ACP_SESSION_NOT_FOUND');
     expect(result.retryable).toBe(false);
   });
 
-  it('normalizes ACP -32603 to AGENT_ERROR (retryable)', () => {
+  it('normalizes ACP -32603 to AGENT_INTERNAL_ERROR (retryable)', () => {
     const err = { code: -32603, message: 'Internal error' };
     const result = normalizeError(err);
-    expect(result.code).toBe('AGENT_ERROR');
+    expect(result.code).toBe('AGENT_INTERNAL_ERROR');
     expect(result.retryable).toBe(true);
   });
 

@@ -1,24 +1,28 @@
 // src/process/acp/compat/AcpAgentV2.ts
-
 import type { IResponseMessage } from '@/common/adapter/ipcBridge';
 import type { IMessageAcpToolCall, TMessage } from '@/common/chat/chatLib';
 import { NavigationInterceptor } from '@/common/chat/navigation';
 import type { AcpModelInfo, AcpResult, AcpSessionConfigOption } from '@/common/types/acpTypes';
-import { AcpErrorType } from '@/common/types/acpTypes';
+import { AcpErrorType, parseInitializeResult } from '@/common/types/acpTypes';
 import { getFullAutoMode } from '@/common/types/agentModes';
 import { LegacyConnectorFactory } from '@process/acp/compat/LegacyConnectorFactory';
 import {
   loadAuthCredentials,
+  mapAcpErrorCodeToType,
   toAcpConfigOptions,
   toAcpModelInfo,
   toAgentConfig,
   toResponseMessage,
   type OldAcpAgentConfig,
 } from '@process/acp/compat/typeBridge';
+import { AcpError as AcpSessionError } from '@process/acp/errors/AcpError';
 import { AcpSession, type SessionOptions } from '@process/acp/session/AcpSession';
+import { readClaudeModelInfoFromCcSwitch } from '@process/services/ccSwitchModelSource';
 // TODO(ACP Discovery): Re-enable when acp_session persistence is restored.
 // import type { IAcpSessionRepository } from '@process/services/database/IAcpSessionRepository';
+import { getTeamGuideStdioConfig } from '@/process/team/mcp/guide/teamGuideSingleton';
 import { waitForMcpReady } from '@/process/team/mcpReadiness';
+import { shouldInjectTeamGuideMcp } from '@/process/team/prompts/teamGuideCapability';
 import type { McpServer } from '@agentclientprotocol/sdk';
 import type {
   AgentConfig,
@@ -32,6 +36,7 @@ import type {
 import { ProcessConfig } from '@process/utils/initStorage';
 import { getEnhancedEnv } from '@process/utils/shellEnv';
 import { spawn } from 'node:child_process';
+import { McpConfig } from '../session/McpConfig';
 
 /**
  * Temporary: backend-specific CLI login arguments.
@@ -142,9 +147,7 @@ export class AcpAgentV2 {
     // Inject team-guide MCP server for solo agents (not in team mode) so the
     // agent has the aion_create_team tool available — mirrors AcpAgent.loadBuiltinSessionMcpServers().
     if (!this.agentConfig.teamMcpConfig) {
-      const { shouldInjectTeamGuideMcp } = await import('@process/team/prompts/teamGuideCapability');
       if (await shouldInjectTeamGuideMcp(this.agentConfig.agentBackend)) {
-        const { getTeamGuideStdioConfig } = await import('@process/team/mcp/guide/teamGuideSingleton');
         const aionStdioConfig = getTeamGuideStdioConfig();
         if (aionStdioConfig) {
           const guideServer: McpServer = {
@@ -167,13 +170,11 @@ export class AcpAgentV2 {
 
     // Load user-configured (builtin) MCP servers from settings, filtered by
     // cached agent MCP capabilities. Mirrors AcpAgent.loadBuiltinSessionMcpServers().
-    const { ProcessConfig } = await import('@process/utils/initStorage');
 
     const rawMcpServers = await ProcessConfig.get('mcp.config');
     if (Array.isArray(rawMcpServers) && rawMcpServers.length > 0) {
       const cachedInit = await ProcessConfig.get('acp.cachedInitializeResult');
       const caps = cachedInit?.[this.agentConfig.agentBackend]?.capabilities?.mcpCapabilities;
-      const { McpConfig } = await import('@process/acp/session/McpConfig');
       const userServers = McpConfig.fromStorageConfig(rawMcpServers, caps);
       if (userServers.length > 0) {
         (this.agentConfig as { mcpServers?: McpServer[] }).mcpServers = [
@@ -223,6 +224,12 @@ export class AcpAgentV2 {
    */
   private buildCallbacks(): SessionCallbacks {
     return {
+      onInitialize: (result: unknown) => {
+        this.cacheInitializeResult(result).catch((err) => {
+          console.warn('[AcpAgentV2] Failed to cache initialize result:', err);
+        });
+      },
+
       onMessage: (message: TMessage) => {
         // Merge tool call updates with their original tool_call before emitting
         const resolved =
@@ -544,16 +551,18 @@ export class AcpAgentV2 {
         });
       }
 
-      this.session!.sendMessage(data.content, data.files);
+      await this.session!.sendMessage(data.content, data.files);
       return { success: true, data: null };
     } catch (err) {
+      const errorType = err instanceof AcpSessionError ? mapAcpErrorCodeToType(err.code) : AcpErrorType.UNKNOWN;
+      const retryable = err instanceof AcpSessionError ? err.retryable : false;
       return {
         success: false,
         error: {
-          type: AcpErrorType.UNKNOWN,
-          code: 'UNKNOWN',
+          type: errorType,
+          code: err instanceof AcpSessionError ? err.code : 'UNKNOWN',
           message: err instanceof Error ? err.message : String(err),
-          retryable: false,
+          retryable,
         },
       };
     }
@@ -579,11 +588,28 @@ export class AcpAgentV2 {
   // ─── Config/Model/Mode Methods (Task 6 — partial) ──────────────
 
   getModelInfo(): AcpModelInfo | null {
+    // Claude: prefer cc-switch model source for accurate model names and slot mapping
+    if (this.agentConfig.agentBackend === 'claude') {
+      const ccSwitchInfo = readClaudeModelInfoFromCcSwitch();
+      if (ccSwitchInfo) {
+        // If user has overridden the model via setModel, apply it to cc-switch data
+        const currentId = this.cachedModelInfo?.currentModelId;
+        if (currentId && ccSwitchInfo.availableModels?.some((m) => m.id === currentId)) {
+          const selected = ccSwitchInfo.availableModels.find((m) => m.id === currentId);
+          return {
+            ...ccSwitchInfo,
+            currentModelId: currentId,
+            currentModelLabel: selected?.label ?? currentId,
+          };
+        }
+        return ccSwitchInfo;
+      }
+    }
     return this.cachedModelInfo;
   }
 
   getConfigOptions(): AcpSessionConfigOption[] {
-    return this.cachedConfigOptions;
+    return this.cachedConfigOptions.filter((opt) => opt.category !== 'model' && opt.category !== 'mode');
   }
 
   async setModelByConfigOption(modelId: string): Promise<AcpModelInfo | null> {
@@ -693,6 +719,19 @@ export class AcpAgentV2 {
   private rejectOp<T>(op: PendingOp<T>, err: Error): void {
     clearTimeout(op.timer);
     op.reject(err);
+  }
+
+  /**
+   * Persist initialize result to disk so team MCP, MCP filtering, and other
+   * consumers can read agent capabilities before an active session exists.
+   */
+  private async cacheInitializeResult(initResult: unknown): Promise<void> {
+    const backend = this.agentConfig.agentBackend;
+    const cached = (await ProcessConfig.get('acp.cachedInitializeResult')) || {};
+    await ProcessConfig.set('acp.cachedInitializeResult', {
+      ...cached,
+      [backend]: parseInitializeResult(initResult),
+    });
   }
 
   /**

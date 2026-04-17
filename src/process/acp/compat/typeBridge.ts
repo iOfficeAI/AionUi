@@ -4,6 +4,7 @@ import type { IResponseMessage } from '@/common/adapter/ipcBridge';
 import type { TMessage } from '@/common/chat/chatLib';
 import {
   ACP_BACKENDS_ALL,
+  AcpErrorType,
   type AcpModelInfo,
   type AcpSessionConfigOption,
   type AgentBackend,
@@ -291,4 +292,34 @@ export async function loadAuthCredentials(
   }
 
   return Object.keys(creds).length > 0 ? creds : undefined;
+}
+
+// ─── Error code mapping ─────────────────────────────────────────
+
+import type { AcpErrorCode } from '@process/acp/errors/AcpError';
+
+const ERROR_CODE_TO_TYPE: Record<AcpErrorCode, AcpErrorType> = {
+  CONNECTION_FAILED: AcpErrorType.NETWORK_ERROR,
+  AUTH_FAILED: AcpErrorType.AUTHENTICATION_FAILED,
+  AUTH_REQUIRED: AcpErrorType.AUTHENTICATION_FAILED,
+  SESSION_EXPIRED: AcpErrorType.SESSION_EXPIRED,
+  PROMPT_TIMEOUT: AcpErrorType.TIMEOUT,
+  PROCESS_CRASHED: AcpErrorType.NETWORK_ERROR,
+  INVALID_STATE: AcpErrorType.CONNECTION_NOT_READY,
+  INTERNAL_ERROR: AcpErrorType.INTERNAL_ERROR,
+  // Granular ACP protocol errors — pass through directly
+  ACP_PARSE_ERROR: AcpErrorType.ACP_PARSE_ERROR,
+  INVALID_ACP_REQUEST: AcpErrorType.INVALID_ACP_REQUEST,
+  ACP_METHOD_NOT_FOUND: AcpErrorType.ACP_METHOD_NOT_FOUND,
+  ACP_INVALID_PARAMS: AcpErrorType.ACP_INVALID_PARAMS,
+  AGENT_INTERNAL_ERROR: AcpErrorType.AGENT_INTERNAL_ERROR,
+  ACP_SESSION_NOT_FOUND: AcpErrorType.ACP_SESSION_NOT_FOUND,
+  AGENT_SESSION_NOT_FOUND: AcpErrorType.AGENT_SESSION_NOT_FOUND,
+  ACP_ELICITATION_REQUIRED: AcpErrorType.ACP_ELICITATION_REQUIRED,
+  ACP_REQ_CANCELLED: AcpErrorType.ACP_REQ_CANCELLED,
+  AGENT_ERROR: AcpErrorType.AGENT_ERROR,
+};
+
+export function mapAcpErrorCodeToType(code: AcpErrorCode): AcpErrorType {
+  return ERROR_CODE_TO_TYPE[code] ?? AcpErrorType.UNKNOWN;
 }

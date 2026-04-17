@@ -1,6 +1,7 @@
 // src/process/acp/runtime/AcpRuntime.ts
 
 import type { TMessage } from '@/common/chat/chatLib';
+import { getTeamGuideStdioConfig } from '@/process/team/mcp/guide/teamGuideSingleton';
 import type { McpServer } from '@agentclientprotocol/sdk';
 import type { ClientFactory } from '@process/acp/infra/IAcpClient';
 import { IdleReclaimer } from '@process/acp/runtime/IdleReclaimer';
@@ -69,7 +70,6 @@ export class AcpRuntime {
     // agent has the aion_create_team tool available.
     if (!config.teamMcpConfig) {
       if (await shouldInjectTeamGuideMcp(config.agentBackend)) {
-        const { getTeamGuideStdioConfig } = await import('@process/team/mcp/guide/teamGuideSingleton');
         const aionStdioConfig = getTeamGuideStdioConfig();
         if (aionStdioConfig) {
           const guideServer: McpServer = {
@@ -131,14 +131,14 @@ export class AcpRuntime {
     // this.acpSessionRepo.deleteSession(convId);
   }
 
-  sendMessage(convId: string, text: string, files?: string[]): void {
+  async sendMessage(convId: string, text: string, files?: string[]): Promise<void> {
     const entry = this.sessions.get(convId);
     if (!entry) return;
     const session = entry.session as AcpSession;
     entry.lastActiveAt = Date.now();
     // TODO(ACP Discovery): Re-enable after fixing agent_id.
     // this.acpSessionRepo.touchLastActive(convId);
-    session.sendMessage(text, files);
+    await session.sendMessage(text, files);
   }
 
   confirmPermission(convId: string, callId: string, optionId: string): void {
