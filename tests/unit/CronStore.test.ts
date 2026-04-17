@@ -544,10 +544,11 @@ describe('CronStore', () => {
       expect(updateArgs[updateArgs.length - 1]).toBe('update-job'); // WHERE id = ?
     });
 
-    it('update throws error when job not found', async () => {
+    it('update silently returns when job not found', async () => {
       mockPrepareInstance.get.mockReturnValue(undefined);
 
-      await expect(cronStore.update('missing-job', { name: 'New' })).rejects.toThrow('Cron job not found: missing-job');
+      await expect(cronStore.update('missing-job', { name: 'New' })).resolves.toBeUndefined();
+      expect(mockPrepareInstance.run).not.toHaveBeenCalled();
     });
 
     it('update updates schedule correctly', async () => {
