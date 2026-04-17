@@ -4,16 +4,6 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-// --- Critical Runtime Patches & Adapters ---
-import '@/common/adapter/browser';
-import './utils/ui/runtimePatches';
-import './services/i18n';
-
-// --- Global Styles ---
-import './styles/arco-override.css';
-import './styles/themes/index.css';
-import 'uno.css';
-
 // --- Sentry Initialization (Electron Only) ---
 // Sentry must be initialized first to capture early runtime errors.
 // Use electron-specific renderer package only inside Electron; fall back to the
@@ -24,6 +14,16 @@ if ((window as { electronAPI?: unknown }).electronAPI) {
     .then((Sentry) => Sentry.init())
     .catch((err) => console.error('Sentry initialization failed:', err));
 }
+
+// --- Critical Runtime Patches & Adapters ---
+import '@/common/adapter/browser';
+import './utils/ui/runtimePatches';
+import './services/i18n';
+
+// --- Global Styles ---
+import './styles/arco-override.css';
+import './styles/themes/index.css';
+import 'uno.css';
 
 import React, { lazy, Suspense, startTransition, useEffect, useState, useMemo, memo } from 'react';
 // Import type-only dependencies separately
