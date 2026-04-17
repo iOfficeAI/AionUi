@@ -67,6 +67,12 @@ type AionrsManagerData = {
   sessionMode?: string;
   sessionId?: string;
   resume?: string;
+  teamMcpStdioConfig?: {
+    name: string;
+    command: string;
+    args: string[];
+    env: Array<{ name: string; value: string }>;
+  };
 };
 
 export class AionrsManager extends BaseAgentManager<AionrsManagerData, string> {
@@ -142,12 +148,21 @@ export class AionrsManager extends BaseAgentManager<AionrsManagerData, string> {
       maxTurns: mergedData.maxTurns,
       sessionId: mergedData.sessionId,
       resume: mergedData.resume,
+      teamMcpStdioConfig: mergedData.teamMcpStdioConfig,
       onStreamEvent: (event) => this.emit('aionrs.message', event),
     });
 
     await agent.start();
     this.agent = agent;
     this._capabilities = agent.capabilities ?? null;
+
+    if (this.data.data.teamMcpStdioConfig) {
+      const { notifyMcpReady } = await import('@process/team/mcpReadiness');
+      const slotId = this.data.data.teamMcpStdioConfig.env?.find((e) => e.name === 'TEAM_AGENT_SLOT_ID')?.value;
+      if (slotId) {
+        notifyMcpReady(slotId);
+      }
+    }
   }
 
   async stop() {
