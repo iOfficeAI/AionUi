@@ -89,7 +89,8 @@ const useSendBoxDraft = (conversation_id: string) => {
 const AionrsSendBox: React.FC<{
   conversation_id: string;
   modelSelection: AionrsModelSelection;
-}> = ({ conversation_id, modelSelection }) => {
+  sessionMode?: string;
+}> = ({ conversation_id, modelSelection, sessionMode }) => {
   const [workspacePath, setWorkspacePath] = useState('');
   const [dynamicModes, setDynamicModes] = useState<AgentModeOption[]>([]);
   const { t } = useTranslation();
@@ -367,6 +368,7 @@ const AionrsSendBox: React.FC<{
               backend='aionrs'
               conversationId={conversation_id}
               compact
+              initialMode={sessionMode}
               dynamicModes={dynamicModes}
               compactLeadingIcon={<Shield theme='outline' size='14' fill={iconColors.secondary} />}
               modeLabelFormatter={(mode) => t(`agentMode.${mode.value}`, { defaultValue: mode.label })}

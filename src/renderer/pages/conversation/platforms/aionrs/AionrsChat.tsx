@@ -20,7 +20,8 @@ const AionrsChat: React.FC<{
   conversation_id: string;
   workspace: string;
   modelSelection: AionrsModelSelection;
-}> = ({ conversation_id, workspace, modelSelection }) => {
+  sessionMode?: string;
+}> = ({ conversation_id, workspace, modelSelection, sessionMode }) => {
   useMessageLstCache(conversation_id);
   const updateLocalImage = LocalImageView.useUpdateLocalImage();
   useEffect(() => {
@@ -37,7 +38,7 @@ const AionrsChat: React.FC<{
           <MessageList className='flex-1' />
         </FlexFullContainer>
         <ConversationChatConfirm conversation_id={conversation_id}>
-          <AionrsSendBox conversation_id={conversation_id} modelSelection={modelSelection} />
+          <AionrsSendBox conversation_id={conversation_id} modelSelection={modelSelection} sessionMode={sessionMode} />
         </ConversationChatConfirm>
       </div>
     </ConversationProvider>
