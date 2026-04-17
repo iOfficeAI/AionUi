@@ -7,6 +7,7 @@ import AionModal from '@/renderer/components/base/AionModal';
 import { LinkCloud } from '@icon-park/react';
 import { ipcBridge } from '@/common';
 import useModeModeList from '@renderer/hooks/agent/useModeModeList';
+import { MODEL_PLATFORMS } from '@/renderer/utils/model/modelPlatforms';
 
 // Provider Logo imports
 import GeminiLogo from '@/renderer/assets/logos/ai-major/gemini.svg';
@@ -40,6 +41,7 @@ const PROVIDER_CONFIGS = [
   { name: 'Gemini (Vertex AI)', url: '', logo: GeminiLogo, platform: 'gemini-vertex-ai' },
   { name: 'New API', url: '', logo: NewApiLogo, platform: 'new-api' },
   { name: 'OpenAI', url: 'https://api.openai.com/v1', logo: OpenAILogo },
+  { name: 'Ollama', url: 'https://ollama.com/v1', logo: null },
   { name: 'Anthropic', url: 'https://api.anthropic.com/v1', logo: AnthropicLogo },
   { name: 'AWS Bedrock', url: '', logo: BedrockLogo, platform: 'bedrock' },
   { name: 'DeepSeek', url: 'https://api.deepseek.com', logo: DeepSeekLogo },
@@ -113,6 +115,24 @@ const EditModeModal = ModalHOC<{ data?: IProvider; onChange(data: IProvider): vo
     // Watch bedrockAuthMethod only for UI conditional rendering (not for auto-refresh)
     const bedrockAuthMethod = Form.useWatch('bedrockAuthMethod', form);
     const isBedrock = data?.platform === 'bedrock';
+    const matchedPresetPlatform = useMemo(() => {
+      if (!data) return undefined;
+      return MODEL_PLATFORMS.find((platform) => {
+        if (platform.platform !== data.platform) {
+          return false;
+        }
+        if (platform.name === data.name) {
+          return true;
+        }
+        return Boolean(platform.baseUrl && data.baseUrl && data.baseUrl.includes(platform.baseUrl));
+      });
+    }, [data]);
+    const canEditBaseUrl =
+      !isBedrock &&
+      data?.platform !== 'gemini-vertex-ai' &&
+      (matchedPresetPlatform?.editableBaseUrl === true ||
+        data?.name === 'Ollama' ||
+        data?.baseUrl?.toLowerCase().includes('ollama') === true);
 
     // 获取供应商 Logo / Get provider logo
     const providerLogo = useMemo(() => {
@@ -210,7 +230,7 @@ const EditModeModal = ModalHOC<{ data?: IProvider; onChange(data: IProvider): vo
               required={data?.platform !== 'gemini' && data?.platform !== 'gemini-vertex-ai' && !isBedrock}
               rules={[{ required: data?.platform !== 'gemini' && data?.platform !== 'gemini-vertex-ai' && !isBedrock }]}
               field={'baseUrl'}
-              disabled
+              disabled={!canEditBaseUrl}
             >
               <Input></Input>
             </Form.Item>

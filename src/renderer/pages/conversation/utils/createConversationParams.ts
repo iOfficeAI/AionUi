@@ -9,7 +9,7 @@ import type { ICreateConversationParams } from '@/common/adapter/ipcBridge';
 import type { TProviderWithModel } from '@/common/config/storage';
 import type { AcpBackend } from '@/common/types/acpTypes';
 import { DEFAULT_CODEX_MODELS } from '@/common/types/codex/codexModels';
-import { resolveLocaleKey } from '@/common/utils';
+import { resolveAvailableModel, resolveLocaleKey } from '@/common/utils';
 import { loadPresetAssistantResources } from '@/common/utils/presetAssistantResources';
 import {
   buildAgentConversationParams,
@@ -88,18 +88,24 @@ async function resolvePreferredAcpModelId(backend: string): Promise<string | und
  */
 export async function getDefaultAionrsModel(): Promise<TProviderWithModel> {
   const providers = await ConfigStorage.get('model.config');
+  const savedModel = await ConfigStorage.get('aionrs.defaultModel');
 
   if (!providers || providers.length === 0) {
     throw new Error('No model provider configured');
   }
 
   // aionrs supports all platforms via OpenAI-compatible protocol
-  const provider = providers.find((p) => p.enabled !== false);
+  let provider = providers.find((p) => p.enabled !== false && savedModel?.id === p.id);
+  if (!provider) {
+    provider = providers.find((p) => p.enabled !== false);
+  }
   if (!provider) {
     throw new Error('No enabled model provider for Aion CLI');
   }
 
+  const savedUseModel = savedModel?.id === provider.id ? savedModel.useModel : undefined;
   const enabledModel = provider.model.find((m) => provider.modelEnabled?.[m] !== false);
+  const useModel = resolveAvailableModel(savedUseModel, provider.model) || enabledModel || provider.model[0];
 
   return {
     id: provider.id,
@@ -107,7 +113,7 @@ export async function getDefaultAionrsModel(): Promise<TProviderWithModel> {
     name: provider.name,
     baseUrl: provider.baseUrl,
     apiKey: provider.apiKey,
-    useModel: enabledModel || provider.model[0],
+    useModel,
     capabilities: provider.capabilities,
     contextLimit: provider.contextLimit,
     modelProtocols: provider.modelProtocols,

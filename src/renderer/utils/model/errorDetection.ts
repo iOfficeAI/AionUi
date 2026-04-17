@@ -14,7 +14,9 @@ export const isQuotaErrorMessage = (data: unknown): boolean => {
     text.includes('quota') ||
     text.includes('resource_exhausted') ||
     text.includes('model_capacity_exhausted') ||
-    text.includes('no capacity available');
+    text.includes('no capacity available') ||
+    text.includes('high volume') ||
+    text.includes('capacity is being added');
   const hasLimit =
     text.includes('limit') ||
     text.includes('exceed') ||
@@ -22,7 +24,9 @@ export const isQuotaErrorMessage = (data: unknown): boolean => {
     text.includes('status: 429') ||
     text.includes('code 429') ||
     text.includes('429') ||
-    text.includes('ratelimitexceeded');
+    text.includes('ratelimitexceeded') ||
+    text.includes('subscription is required') ||
+    text.includes('ollama.com/upgrade');
   return hasQuota && hasLimit;
 };
 

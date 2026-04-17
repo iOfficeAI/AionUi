@@ -6,14 +6,14 @@
 
 import { ipcBridge } from '@/common';
 import type { IProvider, TChatConversation, TProviderWithModel } from '@/common/config/storage';
-import { uuid } from '@/common/utils';
+import { resolveAvailableModel, uuid } from '@/common/utils';
 import addChatIcon from '@/renderer/assets/icons/add-chat.svg';
 import { CronJobManager } from '@/renderer/pages/cron';
 import { usePresetAssistantInfo, resolveAssistantConfigId } from '@/renderer/hooks/agent/usePresetAssistantInfo';
 import { iconColors } from '@/renderer/styles/colors';
 import { Button, Dropdown, Menu, Tooltip, Typography } from '@arco-design/web-react';
 import { History } from '@icon-park/react';
-import React, { useCallback, useMemo, useRef } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
 import useSWR from 'swr';
@@ -138,11 +138,30 @@ const _AddNewConversation: React.FC<{ conversation: TChatConversation }> = ({ co
 // Narrow to Gemini conversations so model field is always available
 type GeminiConversation = Extract<TChatConversation, { type: 'gemini' }>;
 
+type ProviderModelSelection = {
+  providers: IProvider[];
+  getAvailableModels: (provider: IProvider) => string[];
+};
+
+const resolveConfiguredConversationModel = (
+  selection: ProviderModelSelection,
+  providerId: string,
+  requestedModel: string
+): string | undefined => {
+  const matchedProvider = selection.providers.find((provider) => provider.id === providerId);
+  if (!matchedProvider) {
+    return undefined;
+  }
+
+  return resolveAvailableModel(requestedModel, selection.getAvailableModels(matchedProvider));
+};
+
 const GeminiConversationPanel: React.FC<{
   conversation: GeminiConversation;
   sliderTitle: React.ReactNode;
   hideSendBox?: boolean;
 }> = ({ conversation, sliderTitle, hideSendBox }) => {
+  const modelNormalizationRef = useRef<string | null>(null);
   // Save model selection to conversation via IPC
   const onSelectModel = useCallback(
     async (_provider: IProvider, modelName: string) => {
@@ -155,6 +174,44 @@ const GeminiConversationPanel: React.FC<{
 
   // Share model selection state between header and send box
   const modelSelection = useGeminiModelSelection({ initialModel: conversation.model, onSelectModel });
+
+  useEffect(() => {
+    const normalizedModelId = resolveConfiguredConversationModel(
+      modelSelection,
+      conversation.model.id,
+      conversation.model.useModel
+    );
+
+    if (!normalizedModelId || normalizedModelId === conversation.model.useModel) {
+      modelNormalizationRef.current = null;
+      return;
+    }
+
+    const normalizationKey = `${conversation.id}:${conversation.model.useModel}->${normalizedModelId}`;
+    if (modelNormalizationRef.current === normalizationKey) {
+      return;
+    }
+
+    modelNormalizationRef.current = normalizationKey;
+    void ipcBridge.conversation.update
+      .invoke({
+        id: conversation.id,
+        updates: {
+          model: {
+            ...conversation.model,
+            useModel: normalizedModelId,
+          },
+        },
+      })
+      .then((ok) => {
+        if (!ok) {
+          modelNormalizationRef.current = null;
+        }
+      })
+      .catch(() => {
+        modelNormalizationRef.current = null;
+      });
+  }, [conversation.id, conversation.model, modelSelection.getAvailableModels, modelSelection.providers]);
   const workspaceEnabled = Boolean(conversation.extra?.workspace);
 
   // 使用统一的 Hook 获取预设助手信息 / Use unified hook for preset assistant info
@@ -200,6 +257,7 @@ const AionrsConversationPanel: React.FC<{ conversation: AionrsConversation; slid
   conversation,
   sliderTitle,
 }) => {
+  const modelNormalizationRef = useRef<string | null>(null);
   const onSelectModel = useCallback(
     async (_provider: IProvider, modelName: string) => {
       const selected = { ..._provider, useModel: modelName } as TProviderWithModel;
@@ -215,6 +273,43 @@ const AionrsConversationPanel: React.FC<{ conversation: AionrsConversation; slid
     initialModel: conversation.model,
     onSelectModel,
   });
+  useEffect(() => {
+    const normalizedModelId = resolveConfiguredConversationModel(
+      modelSelection,
+      conversation.model.id,
+      conversation.model.useModel
+    );
+
+    if (!normalizedModelId || normalizedModelId === conversation.model.useModel) {
+      modelNormalizationRef.current = null;
+      return;
+    }
+
+    const normalizationKey = `${conversation.id}:${conversation.model.useModel}->${normalizedModelId}`;
+    if (modelNormalizationRef.current === normalizationKey) {
+      return;
+    }
+
+    modelNormalizationRef.current = normalizationKey;
+    void ipcBridge.conversation.update
+      .invoke({
+        id: conversation.id,
+        updates: {
+          model: {
+            ...conversation.model,
+            useModel: normalizedModelId,
+          },
+        },
+      })
+      .then((ok) => {
+        if (!ok) {
+          modelNormalizationRef.current = null;
+        }
+      })
+      .catch(() => {
+        modelNormalizationRef.current = null;
+      });
+  }, [conversation.id, conversation.model, modelSelection.getAvailableModels, modelSelection.providers]);
   const workspaceEnabled = Boolean(conversation.extra?.workspace);
   const { info: presetAssistantInfo } = usePresetAssistantInfo(conversation);
   const aionrsAssistantId = resolveAssistantConfigId(conversation) ?? undefined;

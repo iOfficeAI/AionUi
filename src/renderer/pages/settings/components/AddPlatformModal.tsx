@@ -205,6 +205,16 @@ const renderPlatformOption = (platform: PlatformConfig, t?: (key: string) => str
   );
 };
 
+const shouldShowBaseUrlField = (platform: PlatformConfig | undefined): boolean => {
+  if (!platform) return false;
+  return (
+    isCustomOption(platform.value) ||
+    isNewApiPlatform(platform.platform) ||
+    platform.platform === 'gemini' ||
+    platform.editableBaseUrl === true
+  );
+};
+
 const AddPlatformModal = ModalHOC<{
   onSubmit: (platform: IProvider) => void;
   deepLinkData?: DeepLinkAddProviderDetail;
@@ -233,6 +243,7 @@ const AddPlatformModal = ModalHOC<{
   const isBedrock = platform === 'bedrock';
   const isGemini = isGeminiPlatform(platform);
   const isNewApi = isNewApiPlatform(platform);
+  const showBaseUrlField = shouldShowBaseUrlField(selectedPlatform);
 
   // new-api 每模型协议选择状态 / new-api per-model protocol selection state
   const [modelProtocol, setModelProtocol] = useState<string>('openai');
@@ -310,11 +321,21 @@ const AddPlatformModal = ModalHOC<{
       // Pre-fill from deep link data (aionui:// protocol)
       if (deepLinkData?.baseUrl || deepLinkData?.apiKey) {
         // Default to new-api platform for deep links (typical one-api/new-api usage)
-        form.setFieldValue('platform', deepLinkData.platform || 'new-api');
-        if (deepLinkData.baseUrl) form.setFieldValue('baseUrl', deepLinkData.baseUrl);
-        if (deepLinkData.apiKey) form.setFieldValue('apiKey', deepLinkData.apiKey);
+        const initialPlatform = deepLinkData.platform || 'new-api';
+        const initialPlatformConfig = getPlatformByValue(initialPlatform);
+        form.setFieldValue('platform', initialPlatform);
+        if (deepLinkData.baseUrl) {
+          form.setFieldValue('baseUrl', deepLinkData.baseUrl);
+        } else if (shouldShowBaseUrlField(initialPlatformConfig)) {
+          form.setFieldValue('baseUrl', initialPlatformConfig?.baseUrl || '');
+        }
+        if (deepLinkData.apiKey) {
+          form.setFieldValue('apiKey', deepLinkData.apiKey);
+        }
       } else {
+        const defaultPlatform = getPlatformByValue('gemini');
         form.setFieldValue('platform', 'gemini');
+        form.setFieldValue('baseUrl', defaultPlatform?.baseUrl || '');
       }
     }
   }, [modalProps.visible, deepLinkData]);
@@ -421,6 +442,7 @@ const AddPlatformModal = ModalHOC<{
                 const plat = MODEL_PLATFORMS.find((p) => p.value === value);
                 if (plat) {
                   form.setFieldValue('model', '');
+                  form.setFieldValue('baseUrl', shouldShowBaseUrlField(plat) ? plat.baseUrl || '' : '');
                 }
               }}
               renderFormat={(option) => {
@@ -440,7 +462,7 @@ const AddPlatformModal = ModalHOC<{
 
           {/* Base URL - 自定义选项、标准 Gemini 和 New API 显示 / Base URL - for Custom, standard Gemini and New API */}
           <Form.Item
-            hidden={isBedrock || (!isCustom && !isNewApi && platformValue !== 'gemini')}
+            hidden={isBedrock || !showBaseUrlField}
             label={t('settings.baseUrl')}
             field={'baseUrl'}
             required={isCustom || isNewApi}

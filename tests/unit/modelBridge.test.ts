@@ -50,6 +50,7 @@ vi.mock('openai', () => {
 });
 
 import { initModelBridge } from '../../src/process/bridge/modelBridge';
+import { guessProtocolFromUrl } from '../../src/common/utils/protocolDetector';
 
 beforeEach(() => {
   vi.clearAllMocks();
@@ -123,5 +124,30 @@ describe('fetchModelList', () => {
       expect(result.success).toBe(false);
       expect(result.msg).toBe('Connection refused');
     });
+  });
+
+  it('treats Ollama Cloud as an OpenAI-compatible provider when listing models', async () => {
+    mockModelsList.mockResolvedValueOnce({
+      data: [{ id: 'qwen3-coder:480b-cloud' }],
+    });
+
+    const result = await fetchModelList({
+      base_url: 'https://ollama.com/v1',
+      api_key: 'ollama-test-key',
+      try_fix: false,
+    });
+
+    expect(result).toEqual({
+      success: true,
+      data: {
+        mode: ['qwen3-coder:480b-cloud'],
+      },
+    });
+  });
+});
+
+describe('guessProtocolFromUrl', () => {
+  it('recognizes Ollama Cloud as an OpenAI-compatible endpoint', () => {
+    expect(guessProtocolFromUrl('https://ollama.com/v1')).toBe('openai');
   });
 });
