@@ -928,6 +928,7 @@ export type I18nKey =
   | 'preview.word.watch.loading'
   | 'preview.word.watch.startFailed'
   | 'settings.about'
+  | 'settings.accountQuotaUnavailable'
   | 'settings.addCustomAgent'
   | 'settings.addCustomAgentTitle'
   | 'settings.addEnvVar'

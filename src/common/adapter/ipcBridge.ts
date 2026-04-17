@@ -422,6 +422,19 @@ export const chatgptAuth = {
     }>,
     void
   >('chatgpt.auth.status'),
+  quotaStatus: bridge.buildProvider<
+    IBridgeResponse<{
+      authenticated: boolean;
+      authPath: string;
+      authPrivatePath: string;
+      expiresAt?: string;
+      lastRefresh?: string;
+      providerId?: string;
+      currentModel?: string;
+      accountLimits?: AionrsCapabilities['account_limits'];
+    }>,
+    { model: string; proxy?: string }
+  >('chatgpt.auth.quota-status'),
   startLogin: bridge.buildProvider<IBridgeResponse<{ loginId: string }>, { proxy?: string }>(
     'chatgpt.auth.start-login'
   ),

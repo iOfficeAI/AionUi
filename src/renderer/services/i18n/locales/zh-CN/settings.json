@@ -240,6 +240,7 @@
   "chatgptLoginSuccess": "ChatGPT 已连接",
   "chatgptLoginFailed": "ChatGPT 登录失败",
   "chatgptLogoutSuccess": "ChatGPT 已断开",
+  "accountQuotaUnavailable": "额度不可用",
   "modelProtocol": "请求协议",
   "modelProtocolTip": "选择该模型的 API 请求格式。new-api 网关将使用所选协议路由到上游服务。",
   "platformBedrock": "AWS Bedrock",

@@ -22,6 +22,7 @@ import {
 } from '@process/agent/aionrs/copilotAuth';
 import {
   getChatgptAuthStatus,
+  getChatgptQuotaStatus,
   logoutChatgpt,
   startChatgptLogin,
   waitForChatgptLogin,
@@ -192,6 +193,17 @@ export function initAuthBridge(): void {
       return {
         success: true,
         data: await getChatgptAuthStatus(),
+      };
+    } catch (error) {
+      return { success: false, msg: error instanceof Error ? error.message : String(error) };
+    }
+  });
+
+  ipcBridge.chatgptAuth.quotaStatus.provider(async ({ model, proxy }) => {
+    try {
+      return {
+        success: true,
+        data: await getChatgptQuotaStatus({ model, proxy }),
       };
     } catch (error) {
       return { success: false, msg: error instanceof Error ? error.message : String(error) };

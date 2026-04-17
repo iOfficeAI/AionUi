@@ -237,6 +237,7 @@
   "chatgptLoginSuccess": "ChatGPT connected",
   "chatgptLoginFailed": "ChatGPT sign-in failed",
   "chatgptLogoutSuccess": "ChatGPT disconnected",
+  "accountQuotaUnavailable": "Информация о квоте аккаунта недоступна",
   "modelProtocol": "Протокол запроса",
   "modelProtocolTip": "Выберите формат API-запроса для этой модели. Шлюз new-api будет маршрутизировать к upstream с выбранным протоколом.",
   "platformBedrock": "AWS Bedrock",

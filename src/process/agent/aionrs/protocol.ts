@@ -75,6 +75,76 @@ export type AionrsCapabilities = {
   };
 };
 
+const MINUTES_PER_HOUR = 60;
+const MINUTES_PER_DAY = 24 * MINUTES_PER_HOUR;
+const MINUTES_PER_WEEK = 7 * MINUTES_PER_DAY;
+const MINUTES_PER_MONTH = 30 * MINUTES_PER_DAY;
+const ROUNDING_BIAS_MINUTES = 3;
+
+export type AionrsAccountLimits = NonNullable<AionrsCapabilities['account_limits']>;
+export type AionrsAccountLimit = AionrsAccountLimits['limits'][number];
+export type AionrsAccountLimitWindow = NonNullable<AionrsAccountLimit['primary']>;
+export type AionrsAccountCredits = NonNullable<AionrsAccountLimit['credits']>;
+
+export function humanizeAionrsIdentifier(value: string): string {
+  return value
+    .split(/[_\-\s]+/)
+    .filter(Boolean)
+    .map((part) => `${part.charAt(0).toUpperCase()}${part.slice(1)}`)
+    .join(' ');
+}
+
+export function getAionrsLimitBucketPrefix(limit: AionrsAccountLimit): string | null {
+  const name = (limit.limit_name || limit.limit_id)?.replace(/_/g, '-');
+  if (!name) {
+    return null;
+  }
+  return name.toLowerCase() === 'codex' ? null : name;
+}
+
+export function describeAionrsLimitWindow(windowMinutes?: number, fallback = '5h'): string {
+  if (!windowMinutes || !Number.isFinite(windowMinutes)) {
+    return fallback;
+  }
+
+  const normalizedMinutes = Math.max(1, Math.floor(windowMinutes));
+
+  if (normalizedMinutes <= MINUTES_PER_DAY + ROUNDING_BIAS_MINUTES) {
+    const adjustedMinutes = normalizedMinutes + ROUNDING_BIAS_MINUTES;
+    const hours = Math.max(1, Math.floor(adjustedMinutes / MINUTES_PER_HOUR));
+    return `${hours}h`;
+  }
+
+  if (normalizedMinutes <= MINUTES_PER_WEEK + ROUNDING_BIAS_MINUTES) {
+    return 'weekly';
+  }
+
+  if (normalizedMinutes <= MINUTES_PER_MONTH + ROUNDING_BIAS_MINUTES) {
+    return 'monthly';
+  }
+
+  return 'annual';
+}
+
+export function formatAionrsLimitLabel(
+  limit: AionrsAccountLimit,
+  window: Pick<AionrsAccountLimitWindow, 'window_minutes'> | undefined,
+  fallback: string
+): string {
+  const bucketPrefix = getAionrsLimitBucketPrefix(limit);
+  const duration = describeAionrsLimitWindow(window?.window_minutes, fallback);
+  return bucketPrefix ? `${bucketPrefix} ${duration}` : duration;
+}
+
+export function getAionrsRemainingPercent(usedPercent: number): number {
+  const normalizedUsed = Math.min(100, Math.max(0, usedPercent));
+  return Math.min(100, Math.max(0, 100 - normalizedUsed));
+}
+
+export function formatAionrsPercent(value: number): string {
+  return Math.abs(value - Math.round(value)) < 0.05 ? `${Math.round(value)}%` : `${value.toFixed(1)}%`;
+}
+
 export type AionrsEvent =
   | {
       type: 'ready';

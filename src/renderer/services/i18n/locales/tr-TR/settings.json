@@ -240,6 +240,7 @@
   "chatgptLoginSuccess": "ChatGPT connected",
   "chatgptLoginFailed": "ChatGPT sign-in failed",
   "chatgptLogoutSuccess": "ChatGPT disconnected",
+  "accountQuotaUnavailable": "Hesap kotası kullanılamıyor",
   "modelProtocol": "İstek Protokolü",
   "modelProtocolTip": "Bu model için API istek formatını seçin. new-api ağ geçidi seçilen protokolü kullanarak yukarı akışa yönlendirecektir.",
   "platformBedrock": "AWS Bedrock",
