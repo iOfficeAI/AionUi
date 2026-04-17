@@ -21,6 +21,19 @@ type MermaidBlockProps = {
   showOpenInPanelButton?: boolean;
 };
 
+let initializedTheme: 'light' | 'dark' | null = null;
+const ensureMermaidInitialized = (theme: 'light' | 'dark') => {
+  if (initializedTheme === theme) return;
+  mermaid.initialize({
+    startOnLoad: false,
+    securityLevel: 'strict',
+    suppressErrorRendering: true,
+    theme: theme === 'dark' ? 'dark' : 'default',
+    fontFamily: 'inherit',
+  });
+  initializedTheme = theme;
+};
+
 const withResponsiveSvg = (svg: string): string => {
   return svg.replace(/<svg\b([^>]*)>/i, (_match, attrs: string) => {
     if (/style\s*=/.test(attrs)) {
@@ -42,9 +55,15 @@ function MermaidBlock({ code, style, showOpenInPanelButton = true }: MermaidBloc
   const [svg, setSvg] = useState<string | null>(null);
   const [isRendering, setIsRendering] = useState(false);
   const [viewMode, setViewMode] = useState<'preview' | 'source'>('source');
+  const [debouncedCode, setDebouncedCode] = useState(code);
   const [currentTheme, setCurrentTheme] = useState<'light' | 'dark'>(() => {
     return (document.documentElement.getAttribute('data-theme') as 'light' | 'dark') || 'light';
   });
+
+  useEffect(() => {
+    const timer = setTimeout(() => setDebouncedCode(code), 300);
+    return () => clearTimeout(timer);
+  }, [code]);
 
   useEffect(() => {
     const updateTheme = () => {
@@ -63,7 +82,7 @@ function MermaidBlock({ code, style, showOpenInPanelButton = true }: MermaidBloc
 
   useEffect(() => {
     let cancelled = false;
-    const source = code.trim();
+    const source = debouncedCode.trim();
 
     if (!source) {
       setSvg(null);
@@ -79,13 +98,7 @@ function MermaidBlock({ code, style, showOpenInPanelButton = true }: MermaidBloc
 
     const renderDiagram = async () => {
       try {
-        mermaid.initialize({
-          startOnLoad: false,
-          securityLevel: 'strict',
-          suppressErrorRendering: true,
-          theme: currentTheme === 'dark' ? 'dark' : 'default',
-          fontFamily: 'inherit',
-        });
+        ensureMermaidInitialized(currentTheme);
 
         const { svg: renderedSvg } = await mermaid.render(`${blockIdRef.current}-${Date.now()}`, source);
 
@@ -108,7 +121,7 @@ function MermaidBlock({ code, style, showOpenInPanelButton = true }: MermaidBloc
     return () => {
       cancelled = true;
     };
-  }, [code, currentTheme]);
+  }, [debouncedCode, currentTheme]);
 
   const codeTheme = currentTheme === 'dark' ? vs2015 : vs;
   const shouldShowLoading = isRendering && preferredViewModeRef.current !== 'source';
@@ -295,4 +308,4 @@ function MermaidBlock({ code, style, showOpenInPanelButton = true }: MermaidBloc
   );
 }
 
-export default MermaidBlock;
+export default React.memo(MermaidBlock);

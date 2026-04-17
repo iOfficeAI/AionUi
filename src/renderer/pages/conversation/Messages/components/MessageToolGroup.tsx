@@ -23,6 +23,8 @@ import { ImagePreviewContext } from '../MessageList';
 import { COLLAPSE_CONFIG, TEXT_CONFIG } from '../constants';
 import type { ImageGenerationResult, WriteFileResult } from '../types';
 
+const CODE_STYLE = { marginTop: 4, marginBottom: 4 };
+
 // Alert 组件样式常量 Alert component style constant
 // 顶部对齐图标与内容，避免多行文本时图标垂直居中
 const ALERT_CLASSES =
@@ -168,7 +170,7 @@ const ConfirmationDetails: React.FC<{
         const bashSnippet = `\`\`\`bash\n${confirmationDetails.command}\n\`\`\``;
         return (
           <div className='w-full max-w-100% min-w-0'>
-            <MarkdownView codeStyle={{ marginTop: 4, marginBottom: 4 }}>{bashSnippet}</MarkdownView>
+            <MarkdownView codeStyle={CODE_STYLE}>{bashSnippet}</MarkdownView>
           </div>
         );
       }

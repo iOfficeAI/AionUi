@@ -394,6 +394,16 @@ const handleAppReady = async (): Promise<void> => {
   const mark = (label: string) => console.log(`[AionUi:ready] ${label} +${Math.round(performance.now() - t0)}ms`);
   mark('start');
 
+  if (!app.isPackaged) {
+    try {
+      const { default: installExtension, REACT_DEVELOPER_TOOLS } = await import('electron-devtools-installer');
+      await installExtension(REACT_DEVELOPER_TOOLS);
+      console.log('[DevTools] React Developer Tools installed');
+    } catch (e) {
+      console.warn('[DevTools] Failed to install React DevTools:', e);
+    }
+  }
+
   // CLI mode: print app version and exit immediately (used by CI smoke tests)
   if (isVersionMode) {
     console.log(app.getVersion());
