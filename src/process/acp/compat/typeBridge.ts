@@ -3,8 +3,8 @@
 import type { IResponseMessage } from '@/common/adapter/ipcBridge';
 import type { TMessage } from '@/common/chat/chatLib';
 import {
-  isValidAcpBackend,
-  type AcpBackend,
+  ACP_BACKENDS_ALL,
+  type AgentBackend,
   type AcpModelInfo,
   type AcpSessionConfigOption,
 } from '@/common/types/acpTypes';
@@ -17,14 +17,14 @@ import { getEnhancedEnv, loadFullShellEnvironment } from '@process/utils/shellEn
  */
 export type OldAcpAgentConfig = {
   id: string;
-  backend: AcpBackend;
+  backend: AgentBackend;
   cliPath?: string;
   workingDir: string;
   customArgs?: string[];
   customEnv?: Record<string, string>;
   extra?: {
     workspace?: string;
-    backend: AcpBackend;
+    backend: AgentBackend;
     cliPath?: string;
     customWorkspace?: boolean;
     customArgs?: string[];
@@ -57,12 +57,13 @@ export function toAgentConfig(old: OldAcpAgentConfig): AgentConfig {
   // const extra = old.extra;
 
   // Determine agentSource from backend identity
-  const backend = old.extra?.backend ?? old.backend;
+  // backend may be a non-ACP AgentBackend (gemini, aionrs, etc.) passed through the compat layer
+  const backend: AgentBackend = old.extra?.backend ?? old.backend;
   let agentSource: AgentSource = 'custom';
 
   if (backend === 'gemini' || backend === 'aionrs') {
     agentSource = 'builtin';
-  } else if (isValidAcpBackend(backend)) {
+  } else if (backend in ACP_BACKENDS_ALL) {
     agentSource = 'extension'; // NOTE: 未来这些都要迁移到 extension 里, 这里提前修改, 入库为 extension.
   }
 
