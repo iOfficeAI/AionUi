@@ -76,7 +76,8 @@ export type AionrsEvent =
       error: { code: string; message: string; retryable: boolean };
     }
   | { type: 'info'; msg_id: string; message: string }
-  | { type: 'config_changed'; capabilities: AionrsCapabilities };
+  | { type: 'config_changed'; capabilities: AionrsCapabilities }
+  | { type: 'mcp_ready'; name: string; tools: string[] };
 
 // ============================================
 // Client -> Agent Commands (stdin)
@@ -95,4 +96,14 @@ export type AionrsCommand =
       thinking?: string;
       thinking_budget?: number;
       effort?: string;
+    }
+  | {
+      type: 'add_mcp_server';
+      name: string;
+      transport: string;
+      command?: string;
+      args?: string[];
+      env?: Record<string, string>;
+      url?: string;
+      headers?: Record<string, string>;
     };
