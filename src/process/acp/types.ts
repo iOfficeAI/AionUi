@@ -175,6 +175,14 @@ export type ProtocolHandlers = {
   onWriteTextFile: (request: WriteTextFileRequest) => Promise<WriteTextFileResponse>;
 };
 
+/** No-op handlers for ephemeral AcpClient usage (e.g. connection tests, health checks). */
+export const noopProtocolHandlers: ProtocolHandlers = {
+  onSessionUpdate: () => {},
+  onRequestPermission: () => Promise.resolve({ outcome: { outcome: 'cancelled' as const } }),
+  onReadTextFile: () => Promise.resolve({ content: '' }),
+  onWriteTextFile: () => Promise.resolve({}),
+};
+
 // ─── Application-layer Types ───────────────────────────────────
 
 export type SessionEntry = {

@@ -44,6 +44,9 @@ const ACP_CODE_MAP: Record<number, { code: AcpErrorCode; retryable: boolean }> =
 
 const RETRYABLE_ERRNO = new Set(['ECONNREFUSED', 'ECONNRESET', 'EPIPE', 'ETIMEDOUT']);
 
+const AUTH_KEYWORDS_RE =
+  /\btoken\s+(is\s+)?expired\b|\bsso\s+login\b|\bunauthorized\b|\bforbidden\b|\bcredential\b|\bapi[_ ]?key\b|\bnot\s+authenticated\b|\baccess\s+denied\b/i;
+
 /**
  * Normalize any error into AcpError.
  * If already AcpError, return as-is.
@@ -65,6 +68,14 @@ export function normalizeError(error: unknown): AcpError {
   // Prefer SDK's RequestError — it carries a typed .code from the ACP schema.
   if (error instanceof RequestError) {
     const mapped = ACP_CODE_MAP[error.code];
+
+    // Message-based heuristic: some agents return auth failures as -32603
+    // (Internal error) instead of -32000 (Auth required). Detect common
+    // auth-related keywords to surface the correct auth flow to the user.
+    if (mapped && mapped.code !== 'AUTH_REQUIRED' && isAuthRelatedMessage(error.message)) {
+      return new AcpError('AUTH_REQUIRED', error.message, { cause: error, retryable: true });
+    }
+
     if (mapped) {
       return new AcpError(mapped.code, error.message, {
         cause: error,
@@ -106,4 +117,9 @@ export function isRetryablePromptError(error: unknown): boolean {
   if (error instanceof AcpError) return error.retryable;
   const normalized = normalizeError(error);
   return normalized.retryable;
+}
+
+/** Detect auth-related failures from error messages — for agents that don't use -32000. */
+function isAuthRelatedMessage(message: string): boolean {
+  return AUTH_KEYWORDS_RE.test(message);
 }

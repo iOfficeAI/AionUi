@@ -105,6 +105,7 @@ export class PromptExecutor {
 
     if (acpErr.retryable) {
       this.host.setStatus('active');
+      this.host.callbacks.onSignal({ type: 'error', message: acpErr.message, recoverable: true });
     } else {
       this.host.enterError(acpErr.message);
     }

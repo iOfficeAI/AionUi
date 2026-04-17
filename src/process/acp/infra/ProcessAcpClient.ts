@@ -18,6 +18,7 @@
 
 import type {
   Client,
+  ForkSessionResponse,
   InitializeResponse,
   LoadSessionResponse,
   NewSessionResponse,
@@ -28,7 +29,7 @@ import { ClientSideConnection, PROTOCOL_VERSION } from '@agentclientprotocol/sdk
 import { AgentDisconnectedError, AgentSpawnError, AgentStartupError } from '@process/acp/errors/AcpError';
 import * as os from 'node:os';
 import * as path from 'node:path';
-import type { CreateSessionParams, LoadSessionParams } from '@process/acp/infra/AcpProtocol';
+import type { CreateSessionParams, ForkSessionParams, LoadSessionParams } from '@process/acp/infra/AcpProtocol';
 import type {
   AcpClient,
   AgentDisconnectReason,
@@ -175,6 +176,31 @@ export class ProcessAcpClient implements AcpClient {
         additionalDirectories: params.additionalDirectories,
       })
     );
+  }
+
+  /**
+   * Fork an existing session, creating a new independent session that
+   * inherits the parent's conversation context.
+   *
+   * TODO(acp-fork): The current implementation is a workaround.
+   * Claude does not support the standard ACP `session/fork` method yet, so we
+   * fall back to `session/new` with Claude-specific `_meta.claudeCode.options.resume`
+   * plus a non-standard `forkSession: true` parameter. This approach is
+   * Claude-only and non-portable.
+   *
+   * Once ACP agents implement the standard `session/fork` (currently @experimental
+   * in the SDK), this should switch to `sdk.unstable_forkSession()` — and once
+   * the spec stabilizes, to the stable SDK method.
+   */
+  async forkSession(params: ForkSessionParams): Promise<ForkSessionResponse> {
+    return this.runConnectionRequest(() =>
+      this.conn.extMethod('session/new', {
+        cwd: params.cwd,
+        mcpServers: params.mcpServers ?? [],
+        _meta: { claudeCode: { options: { resume: params.sessionId } } },
+        forkSession: true,
+      })
+    ) as Promise<ForkSessionResponse>;
   }
 
   async prompt(sessionId: string, content: PromptContent): Promise<PromptResponse> {

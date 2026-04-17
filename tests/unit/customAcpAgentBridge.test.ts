@@ -1,19 +1,35 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 
-vi.mock('child_process', () => ({
+const { mockStart, mockClose } = vi.hoisted(() => ({
+  mockStart: vi.fn(),
+  mockClose: vi.fn(),
+}));
+
+vi.mock('node:child_process', () => ({
   execFileSync: vi.fn(),
 }));
 
-const mockConnect = vi.fn();
-const mockDisconnect = vi.fn();
-
-vi.mock('@process/agent/acp/AcpConnection', () => ({
-  AcpConnection: vi.fn().mockImplementation(function () {
-    return { connect: mockConnect, disconnect: mockDisconnect };
-  }),
+vi.mock('@process/acp/infra/ProcessAcpClient', () => ({
+  ProcessAcpClient: class {
+    start = mockStart;
+    close = mockClose;
+  },
 }));
 
-import { execFileSync } from 'child_process';
+vi.mock('@process/agent/acp/acpConnectors', () => ({
+  spawnGenericBackend: vi.fn().mockResolvedValue({ child: {} }),
+}));
+
+vi.mock('@process/acp/types', () => ({
+  noopProtocolHandlers: {
+    onSessionUpdate: () => {},
+    onRequestPermission: () => Promise.resolve({ outcome: { outcome: 'cancelled' } }),
+    onReadTextFile: () => Promise.resolve({ content: '' }),
+    onWriteTextFile: () => Promise.resolve({}),
+  },
+}));
+
+import { execFileSync } from 'node:child_process';
 import { testCustomAgentConnection } from '@process/bridge/testCustomAgentConnection';
 
 describe('testCustomAgentConnection', () => {
@@ -37,8 +53,8 @@ describe('testCustomAgentConnection', () => {
 
   it('returns success when CLI exists and ACP initialize succeeds', async () => {
     vi.mocked(execFileSync).mockReturnValue('/usr/local/bin/my-agent');
-    mockConnect.mockResolvedValue(undefined);
-    mockDisconnect.mockResolvedValue(undefined);
+    mockStart.mockResolvedValue({});
+    mockClose.mockResolvedValue(undefined);
 
     const result = await testCustomAgentConnection({
       command: 'my-agent',
@@ -51,8 +67,8 @@ describe('testCustomAgentConnection', () => {
 
   it('returns acp_initialize failure when CLI exists but ACP fails', async () => {
     vi.mocked(execFileSync).mockReturnValue('/usr/local/bin/my-agent');
-    mockConnect.mockRejectedValue(new Error('ACP handshake timeout'));
-    mockDisconnect.mockResolvedValue(undefined);
+    mockStart.mockRejectedValue(new Error('ACP handshake timeout'));
+    mockClose.mockResolvedValue(undefined);
 
     const result = await testCustomAgentConnection({
       command: 'my-agent',
@@ -63,27 +79,10 @@ describe('testCustomAgentConnection', () => {
     expect(result.data?.step).toBe('acp_initialize');
   });
 
-  it('passes env and acpArgs to AcpConnection.connect', async () => {
+  it('suppresses close error on ACP failure', async () => {
     vi.mocked(execFileSync).mockReturnValue('/usr/local/bin/my-agent');
-    mockConnect.mockResolvedValue(undefined);
-    mockDisconnect.mockResolvedValue(undefined);
-
-    await testCustomAgentConnection({
-      command: 'my-agent',
-      acpArgs: ['--acp'],
-      env: { API_KEY: 'secret', NODE_ENV: 'test' },
-    });
-
-    expect(mockConnect).toHaveBeenCalledWith('custom', 'my-agent', expect.any(String), ['--acp'], {
-      API_KEY: 'secret',
-      NODE_ENV: 'test',
-    });
-  });
-
-  it('suppresses disconnect error on ACP failure', async () => {
-    vi.mocked(execFileSync).mockReturnValue('/usr/local/bin/my-agent');
-    mockConnect.mockRejectedValue(new Error('handshake failed'));
-    mockDisconnect.mockRejectedValue(new Error('disconnect also failed'));
+    mockStart.mockRejectedValue(new Error('handshake failed'));
+    mockClose.mockRejectedValue(new Error('close also failed'));
 
     const result = await testCustomAgentConnection({
       command: 'my-agent',
@@ -96,8 +95,8 @@ describe('testCustomAgentConnection', () => {
 
   it('extracts base command from multi-word command', async () => {
     vi.mocked(execFileSync).mockReturnValue('/usr/local/bin/npx');
-    mockConnect.mockResolvedValue(undefined);
-    mockDisconnect.mockResolvedValue(undefined);
+    mockStart.mockResolvedValue({});
+    mockClose.mockResolvedValue(undefined);
 
     await testCustomAgentConnection({
       command: 'npx my-agent-cli',

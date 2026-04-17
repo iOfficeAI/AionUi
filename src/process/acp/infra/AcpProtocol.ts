@@ -2,6 +2,7 @@
 
 import type {
   Client,
+  ForkSessionResponse,
   InitializeResponse,
   LoadSessionResponse,
   McpServer,
@@ -22,6 +23,13 @@ export type CreateSessionParams = {
 };
 
 export type LoadSessionParams = {
+  sessionId: string;
+  cwd: string;
+  mcpServers?: McpServer[];
+  additionalDirectories?: string[];
+};
+
+export type ForkSessionParams = {
   sessionId: string;
   cwd: string;
   mcpServers?: McpServer[];
@@ -76,6 +84,15 @@ export class AcpProtocol {
 
   async loadSession(params: LoadSessionParams): Promise<LoadSessionResponse> {
     return this.sdk.loadSession({
+      sessionId: params.sessionId,
+      cwd: params.cwd,
+      mcpServers: params.mcpServers ?? [],
+      additionalDirectories: params.additionalDirectories,
+    });
+  }
+
+  async forkSession(params: ForkSessionParams): Promise<ForkSessionResponse> {
+    return this.sdk.unstable_forkSession({
       sessionId: params.sessionId,
       cwd: params.cwd,
       mcpServers: params.mcpServers ?? [],
