@@ -55,7 +55,11 @@ type AionrsConversation = Extract<TChatConversation, { type: 'aionrs' }>;
 /** Aionrs sub-component manages model selection state without adding a ChatLayout wrapper */
 const AionrsTeamChat: React.FC<{
   conversation: AionrsConversation;
-}> = ({ conversation }) => {
+  teamId?: string;
+  agentSlotId?: string;
+  agentName?: string;
+  agentType?: string;
+}> = ({ conversation, teamId, agentSlotId, agentName, agentType }) => {
   const onSelectModel = useCallback(
     async (_provider: IProvider, modelName: string) => {
       const selected = { ..._provider, useModel: modelName } as TProviderWithModel;
@@ -72,6 +76,10 @@ const AionrsTeamChat: React.FC<{
       conversation_id={conversation.id}
       workspace={conversation.extra.workspace}
       modelSelection={modelSelection}
+      teamId={teamId}
+      agentSlotId={agentSlotId}
+      agentName={agentName}
+      agentType={agentType}
     />
   );
 };
@@ -129,7 +137,16 @@ const TeamChatView: React.FC<TeamChatViewProps> = ({
           />
         );
       case 'aionrs':
-        return <AionrsTeamChat key={conversation.id} conversation={conversation as AionrsConversation} />;
+        return (
+          <AionrsTeamChat
+            key={conversation.id}
+            conversation={conversation as AionrsConversation}
+            teamId={teamId}
+            agentSlotId={agentSlotId}
+            agentName={agentName}
+            agentType={agentType}
+          />
+        );
       case 'gemini':
         return (
           <GeminiTeamChat
