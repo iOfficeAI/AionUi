@@ -105,7 +105,7 @@ export function toAgentConfig(old: OldAcpAgentConfig): AgentConfig {
     resumeSessionId: old.extra?.acpSessionId,
     resumeConfig: resumeConfig,
 
-    autoApproveAll: old.extra?.yoloMode,
+    yoloMode: old.extra?.yoloMode,
   };
 }
 

@@ -57,7 +57,7 @@ export type AgentConfig = {
   resumeConfig?: Record<string, unknown>;
 
   // 其他
-  autoApproveAll?: boolean;
+  yoloMode?: boolean;
 };
 
 // ─── Session Status (7-state FSM, D1) ──────────────────────────
