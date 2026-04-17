@@ -334,26 +334,23 @@ test.describe('Conversation Full Cycle', () => {
 
   // -- Supplementary cases: Cron agent selection ----------------------------
 
-  test('cron -- CLI agent selectable in create task dialog', async ({ page }) => {
-    // Ensure the app is fully loaded first (auth + React Router ready)
+  test('cron -- create task with CLI agent, verify detail, then delete', async ({ page }) => {
+    // Ensure the app is fully loaded (auth + React Router ready)
     await goToGuid(page);
-    // Wait for React to render real UI content on the guid page
     await page
       .waitForFunction(() => (document.body.textContent?.length ?? 0) > 200, { timeout: 15_000 })
       .catch(() => {});
 
-    // Navigate to Scheduled Tasks page (route is /scheduled)
+    // Navigate to Scheduled Tasks page
     await page.evaluate(() => window.location.assign('#/scheduled'));
     await page.waitForFunction(() => window.location.hash.includes('/scheduled'), { timeout: 10_000 }).catch(() => {});
-
-    // Wait for the page heading to render — more reliable than waitForSettle
     const heading = page
       .locator('h1')
       .filter({ hasText: /Scheduled Tasks|定时任务/ })
       .first();
     await heading.waitFor({ state: 'visible', timeout: 10_000 }).catch(() => {});
 
-    // "New task" button — matches i18n key cron.page.newTask
+    // Click "New task"
     const createBtn = page
       .locator('button')
       .filter({ hasText: /New task|新建任务|新建/ })
@@ -362,47 +359,87 @@ test.describe('Conversation Full Cycle', () => {
       test.skip(true, 'Scheduled tasks page or create button not available');
       return;
     }
-
     await createBtn.click();
 
-    // Wait for CreateTaskDialog (ModalWrapper wraps Arco Modal)
-    const dialog = page.locator('.arco-modal');
-    await dialog
-      .first()
-      .waitFor({ state: 'visible', timeout: 5_000 })
-      .catch(() => {});
-    if (
-      !(await dialog
-        .first()
-        .isVisible()
-        .catch(() => false))
-    ) {
+    // Wait for CreateTaskDialog
+    const dialog = page.locator('.arco-modal').first();
+    await dialog.waitFor({ state: 'visible', timeout: 5_000 }).catch(() => {});
+    if (!(await dialog.isVisible().catch(() => false))) {
       test.skip(true, 'Create task dialog did not open');
       return;
     }
 
-    // Agent Select — the first .arco-select inside the form
-    const agentSelect = dialog.locator('.arco-select').first();
-    await expect(agentSelect).toBeVisible({ timeout: 5_000 });
+    // Fill form fields — Arco Form puts id="<field>" on the wrapper div,
+    // so target the inner input/textarea via "#<field> input" / "#<field> textarea"
+    const taskName = `E2E-CLI-${Date.now()}`;
+    await dialog.locator('#name input').fill(taskName);
+    await dialog.locator('#description input').fill('E2E test task');
+
+    // Select CLI agent — the Select wrapper is inside the form-item for field "agent"
+    const agentFormItem = dialog.locator('.arco-form-item').filter({ has: page.locator('#agent') });
+    const agentSelect = agentFormItem.locator('.arco-select').first();
     await agentSelect.click();
 
-    // CLI agents appear in an OptGroup; option values are "cli:<backend>"
+    // CLI agents appear in OptGroup "CLI Agents"; pick the first one
     const cliOptions = page.locator('.arco-select-option').filter({ hasText: /Claude|Codex|Gemini|Aion/ });
-    const hasCli = (await cliOptions.count()) > 0;
-
-    if (hasCli) {
-      await cliOptions.first().click();
-      // Form should accept the selection without error
-      const formContent = await dialog.textContent();
-      expect(formContent!.length).toBeGreaterThan(0);
+    if ((await cliOptions.count()) === 0) {
+      await page.keyboard.press('Escape');
+      await page.keyboard.press('Escape');
+      test.skip(true, 'No CLI agents available in create task dialog');
+      return;
     }
+    const selectedOptionText = await cliOptions.first().textContent();
+    await cliOptions.first().click();
 
-    // Close dialog
-    await page.keyboard.press('Escape');
+    // Verify agent name shows in select trigger
+    await expect(agentSelect).toContainText(selectedOptionText!.trim(), { timeout: 3_000 });
+
+    // Fill prompt
+    await dialog.locator('#prompt textarea').fill('Say hello');
+
+    // Click Save in the Arco Modal footer
+    await page.locator('.arco-modal-footer .arco-btn-primary').first().click();
+
+    // Dialog should close after successful creation
+    await dialog.waitFor({ state: 'hidden', timeout: 10_000 });
+
+    // Verify the new task card appears on the Scheduled Tasks list
+    const taskCard = page.locator('span').filter({ hasText: taskName }).first();
+    await expect(taskCard).toBeVisible({ timeout: 10_000 });
+
+    // Click into the task detail page
+    await taskCard.click();
+    await page.waitForFunction(() => window.location.hash.includes('/scheduled/'), { timeout: 10_000 });
+
+    // Verify detail page: title, description, prompt
+    await expect(page.locator('h1').filter({ hasText: taskName }).first()).toBeVisible({ timeout: 5_000 });
+    await expect(page.locator('[data-testid="task-detail-summary"]')).toContainText('E2E test task', {
+      timeout: 5_000,
+    });
+    await expect(page.locator('[data-testid="task-detail-sidebar-column"]')).toContainText('Say hello', {
+      timeout: 5_000,
+    });
+
+    // Delete: header has [Edit, Delete (in Popconfirm), Run now] buttons.
+    // The Delete button is the 2nd button in the header actions div next to h1.
+    const headerActions = page
+      .locator('h1')
+      .filter({ hasText: taskName })
+      .locator('..')
+      .locator('..')
+      .locator('button');
+    await headerActions.nth(1).click();
+    // Confirm in Popconfirm popover (renders in body as .arco-popconfirm)
+    const confirmBtn = page.locator('.arco-popconfirm .arco-btn-primary').first();
+    await confirmBtn.waitFor({ state: 'visible', timeout: 5_000 });
+    await confirmBtn.click();
+
+    // Should navigate back to /scheduled; task should be gone
+    await page.waitForFunction(() => window.location.hash === '#/scheduled', { timeout: 10_000 }).catch(() => {});
+    await expect(page.locator('span').filter({ hasText: taskName }).first()).not.toBeVisible({ timeout: 5_000 });
   });
 
-  test('cron -- preset assistant selectable in create task dialog', async ({ page }) => {
-    // Ensure the app is fully loaded first
+  test('cron -- create task with preset assistant, verify detail, then delete', async ({ page }) => {
     await goToGuid(page);
     await page
       .waitForFunction(() => (document.body.textContent?.length ?? 0) > 200, { timeout: 15_000 })
@@ -410,13 +447,12 @@ test.describe('Conversation Full Cycle', () => {
 
     await page.evaluate(() => window.location.assign('#/scheduled'));
     await page.waitForFunction(() => window.location.hash.includes('/scheduled'), { timeout: 10_000 }).catch(() => {});
-
-    // Wait for the page heading to render
-    const heading = page
+    await page
       .locator('h1')
       .filter({ hasText: /Scheduled Tasks|定时任务/ })
-      .first();
-    await heading.waitFor({ state: 'visible', timeout: 10_000 }).catch(() => {});
+      .first()
+      .waitFor({ state: 'visible', timeout: 10_000 })
+      .catch(() => {});
 
     const createBtn = page
       .locator('button')
@@ -426,65 +462,254 @@ test.describe('Conversation Full Cycle', () => {
       test.skip(true, 'Scheduled tasks page or create button not available');
       return;
     }
-
     await createBtn.click();
 
-    const dialog = page.locator('.arco-modal');
-    await dialog
-      .first()
-      .waitFor({ state: 'visible', timeout: 5_000 })
-      .catch(() => {});
-    if (
-      !(await dialog
-        .first()
-        .isVisible()
-        .catch(() => false))
-    ) {
+    const dialog = page.locator('.arco-modal').first();
+    await dialog.waitFor({ state: 'visible', timeout: 5_000 }).catch(() => {});
+    if (!(await dialog.isVisible().catch(() => false))) {
       test.skip(true, 'Create task dialog did not open');
       return;
     }
 
-    const agentSelect = dialog.locator('.arco-select').first();
+    // Fill form fields
+    const taskName = `E2E-Preset-${Date.now()}`;
+    await dialog.locator('#name input').fill(taskName);
+    await dialog.locator('#description input').fill('E2E preset test');
+
+    // Open agent select and look for preset assistant group
+    const agentFormItem = dialog.locator('.arco-form-item').filter({ has: page.locator('#agent') });
+    const agentSelect = agentFormItem.locator('.arco-select').first();
     await agentSelect.click();
 
-    // Preset assistants are in an OptGroup; option values are "preset:<id>"
-    const presetGroup = page
+    // Preset group title is "Preset Assistants"; the first option after it is a preset.
+    // Arco Select options have no data-value attr, so we use DOM structure instead.
+    const presetGroupTitle = page
       .locator('.arco-select-group-title')
       .filter({ hasText: /Preset|preset|预设|助手|Assistant/ });
-    const hasPresetGroup = (await presetGroup.count()) > 0;
-
-    if (!hasPresetGroup) {
+    if ((await presetGroupTitle.count()) === 0) {
       await page.keyboard.press('Escape');
       await page.keyboard.press('Escape');
-      test.skip(true, 'No preset assistant group in cron dialog');
+      test.skip(true, 'No preset assistant group in create task dialog');
       return;
     }
 
-    // Find and click the first option whose value starts with "preset:"
-    const allOptions = page.locator('.arco-select-option');
-    const optCount = await allOptions.count();
-    let selectedPreset = false;
-    for (let i = 0; i < optCount; i++) {
-      const val = await allOptions.nth(i).getAttribute('data-value');
-      if (val?.startsWith('preset:')) {
-        await allOptions.nth(i).click();
-        selectedPreset = true;
-        break;
+    // Click the first option after the preset group title (next sibling li.arco-select-option)
+    const firstPresetOption = presetGroupTitle.first().locator('~ .arco-select-option').first();
+    if (!(await firstPresetOption.isVisible().catch(() => false))) {
+      // Fallback: use evaluate to find next sibling
+      const clicked = await presetGroupTitle.first().evaluate((el) => {
+        let next = el.nextElementSibling;
+        while (next) {
+          if (next.classList.contains('arco-select-option')) {
+            (next as HTMLElement).click();
+            return next.textContent;
+          }
+          next = next.nextElementSibling;
+        }
+        return null;
+      });
+      if (!clicked) {
+        await page.keyboard.press('Escape');
+        await page.keyboard.press('Escape');
+        test.skip(true, 'No preset assistant option found after group title');
+        return;
       }
+    } else {
+      await firstPresetOption.click();
     }
 
-    if (!selectedPreset) {
-      await allOptions
-        .last()
-        .click()
+    // Verify agent name appears in select trigger (dropdown closes after click)
+    await page.waitForTimeout(500);
+    const triggerText = await agentSelect.textContent();
+    expect(triggerText!.length).toBeGreaterThan(0);
+
+    // Fill prompt
+    await dialog.locator('#prompt textarea').fill('Summarize news');
+
+    // Click Save
+    await page.locator('.arco-modal-footer .arco-btn-primary').first().click();
+
+    // Dialog should close
+    await dialog.waitFor({ state: 'hidden', timeout: 10_000 });
+
+    // Verify the task card appears
+    const taskCard = page.locator('span').filter({ hasText: taskName }).first();
+    await expect(taskCard).toBeVisible({ timeout: 10_000 });
+
+    // Click into detail page
+    await taskCard.click();
+    await page.waitForFunction(() => window.location.hash.includes('/scheduled/'), { timeout: 10_000 });
+
+    // Verify detail page
+    await expect(page.locator('h1').filter({ hasText: taskName }).first()).toBeVisible({ timeout: 5_000 });
+    await expect(page.locator('[data-testid="task-detail-summary"]')).toContainText('E2E preset test', {
+      timeout: 5_000,
+    });
+    await expect(page.locator('[data-testid="task-detail-sidebar-column"]')).toContainText('Summarize news', {
+      timeout: 5_000,
+    });
+
+    // Delete: click the 2nd header button (Delete in Popconfirm)
+    const headerActions2 = page
+      .locator('h1')
+      .filter({ hasText: taskName })
+      .locator('..')
+      .locator('..')
+      .locator('button');
+    await headerActions2.nth(1).click();
+    const confirmBtn = page.locator('.arco-popconfirm .arco-btn-primary').first();
+    await confirmBtn.waitFor({ state: 'visible', timeout: 5_000 });
+    await confirmBtn.click();
+
+    await page.waitForFunction(() => window.location.hash === '#/scheduled', { timeout: 10_000 }).catch(() => {});
+    await expect(page.locator('span').filter({ hasText: taskName }).first()).not.toBeVisible({ timeout: 5_000 });
+  });
+
+  test('cron -- create task, run now from detail page, then delete', async ({ page }) => {
+    await goToGuid(page);
+    await page
+      .waitForFunction(() => (document.body.textContent?.length ?? 0) > 200, { timeout: 15_000 })
+      .catch(() => {});
+
+    // Navigate to Scheduled Tasks page
+    await page.evaluate(() => window.location.assign('#/scheduled'));
+    await page.waitForFunction(() => window.location.hash.includes('/scheduled'), { timeout: 10_000 }).catch(() => {});
+    await page
+      .locator('h1')
+      .filter({ hasText: /Scheduled Tasks|定时任务/ })
+      .first()
+      .waitFor({ state: 'visible', timeout: 10_000 })
+      .catch(() => {});
+
+    // Create a task to test "Run now" on
+    const createBtn = page
+      .locator('button')
+      .filter({ hasText: /New task|新建任务|新建/ })
+      .first();
+    if (!(await createBtn.isVisible().catch(() => false))) {
+      test.skip(true, 'Scheduled tasks page or create button not available');
+      return;
+    }
+    await createBtn.click();
+
+    const dialog = page.locator('.arco-modal').first();
+    await dialog.waitFor({ state: 'visible', timeout: 5_000 }).catch(() => {});
+    if (!(await dialog.isVisible().catch(() => false))) {
+      test.skip(true, 'Create task dialog did not open');
+      return;
+    }
+
+    const taskName = `E2E-RunNow-${Date.now()}`;
+    await dialog.locator('#name input').fill(taskName);
+    await dialog.locator('#description input').fill('E2E run now test');
+
+    // Select first available CLI agent
+    const agentFormItem = dialog.locator('.arco-form-item').filter({ has: page.locator('#agent') });
+    const agentSelect = agentFormItem.locator('.arco-select').first();
+    await agentSelect.click();
+    const anyOption = page.locator('.arco-select-option').first();
+    if (!(await anyOption.isVisible().catch(() => false))) {
+      await page.keyboard.press('Escape');
+      await page.keyboard.press('Escape');
+      test.skip(true, 'No agents available in create task dialog');
+      return;
+    }
+    await anyOption.click();
+
+    await dialog.locator('#prompt textarea').fill('Say hello for run-now test');
+
+    // Save
+    await page.locator('.arco-modal-footer .arco-btn-primary').first().click();
+    await dialog.waitFor({ state: 'hidden', timeout: 10_000 });
+
+    // Navigate into the task detail page
+    const taskCard = page.locator('span').filter({ hasText: taskName }).first();
+    await expect(taskCard).toBeVisible({ timeout: 10_000 });
+    await taskCard.click();
+    await page.waitForFunction(() => window.location.hash.includes('/scheduled/'), { timeout: 10_000 });
+
+    // Verify detail page
+    await expect(page.locator('h1').filter({ hasText: taskName }).first()).toBeVisible({ timeout: 5_000 });
+
+    // Click "Run now" — it's the primary button with text "Run now" / "立即执行"
+    const runNowBtn = page
+      .locator('button.arco-btn-primary')
+      .filter({ hasText: /Run now|立即执行/ })
+      .first();
+    const runNowVisible = await runNowBtn
+      .waitFor({ state: 'visible', timeout: 5_000 })
+      .then(() => true)
+      .catch(() => false);
+
+    if (!runNowVisible) {
+      // If Run now button not available, just clean up and skip
+      const headerActions = page
+        .locator('h1')
+        .filter({ hasText: taskName })
+        .locator('..')
+        .locator('..')
+        .locator('button');
+      await headerActions.nth(1).click();
+      const confirmBtn = page.locator('.arco-popconfirm .arco-btn-primary').first();
+      await confirmBtn.waitFor({ state: 'visible', timeout: 5_000 }).catch(() => {});
+      await confirmBtn.click().catch(() => {});
+      test.skip(true, 'Run now button not available on detail page');
+      return;
+    }
+
+    await runNowBtn.click();
+
+    // After "Run now", the page either:
+    // 1. Navigates to /conversation/<id> on success
+    // 2. Shows an error message if the agent is not configured
+    // Wait for either outcome with generous timeout (agent execution may take time)
+    const navigatedToConversation = await page
+      .waitForFunction(() => window.location.hash.includes('/conversation/'), { timeout: 30_000 })
+      .then(() => true)
+      .catch(() => false);
+
+    if (navigatedToConversation) {
+      // Success: we're on a conversation page — verify the URL
+      expect(page.url()).toContain('/conversation/');
+
+      // Navigate back to scheduled tasks to clean up
+      await page.evaluate(() => window.location.assign('#/scheduled'));
+      await page
+        .waitForFunction(() => window.location.hash.includes('/scheduled'), { timeout: 10_000 })
         .catch(() => {});
+    } else {
+      // May have shown an error (e.g. agent not running); that's acceptable for E2E.
+      // Error is expected if agent isn't running — continue to cleanup
     }
 
-    // Form should accept the selection without error
-    const formContent = await dialog.textContent();
-    expect(formContent!.length).toBeGreaterThan(0);
+    // Clean up: navigate to the task and delete it
+    await page.evaluate(() => window.location.assign('#/scheduled'));
+    await page.waitForFunction(() => window.location.hash.includes('/scheduled'), { timeout: 10_000 }).catch(() => {});
 
-    await page.keyboard.press('Escape');
+    const taskCardCleanup = page.locator('span').filter({ hasText: taskName }).first();
+    const cardVisible = await taskCardCleanup
+      .waitFor({ state: 'visible', timeout: 5_000 })
+      .then(() => true)
+      .catch(() => false);
+
+    if (cardVisible) {
+      await taskCardCleanup.click();
+      await page.waitForFunction(() => window.location.hash.includes('/scheduled/'), { timeout: 10_000 });
+
+      const headerActions = page
+        .locator('h1')
+        .filter({ hasText: taskName })
+        .locator('..')
+        .locator('..')
+        .locator('button');
+      await headerActions.nth(1).click();
+      const confirmBtn = page.locator('.arco-popconfirm .arco-btn-primary').first();
+      await confirmBtn.waitFor({ state: 'visible', timeout: 5_000 });
+      await confirmBtn.click();
+
+      await page.waitForFunction(() => window.location.hash === '#/scheduled', { timeout: 10_000 }).catch(() => {});
+      await expect(page.locator('span').filter({ hasText: taskName }).first()).not.toBeVisible({ timeout: 5_000 });
+    }
   });
 
   // -- Supplementary case: Skills indicator -> SkillsHub navigation ----------
