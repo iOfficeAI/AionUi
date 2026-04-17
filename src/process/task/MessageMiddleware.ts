@@ -230,11 +230,22 @@ async function handleCronCommands(
           break;
         }
 
-        case 'delete': {
-          await cronService.removeJob(cmd.jobId);
-          // Emit event to renderer process for real-time UI update
-          ipcBridge.cron.onJobRemoved.emit({ jobId: cmd.jobId });
-          responses.push(`🗑️ Task deleted: ${cmd.jobId}`);
+        case 'update': {
+          const existingJob = await cronService.getJob(cmd.jobId);
+          if (!existingJob) {
+            responses.push(`❌ Task not found: ${cmd.jobId}`);
+            break;
+          }
+          const updated = await cronService.updateJob(cmd.jobId, {
+            name: cmd.name,
+            schedule: { kind: 'cron', expr: cmd.schedule, description: cmd.scheduleDescription },
+            target: {
+              ...existingJob.target,
+              payload: { kind: 'message', text: cmd.message },
+            },
+          });
+          ipcBridge.cron.onJobUpdated.emit(updated);
+          responses.push(`✅ Scheduled task updated: "${updated.name}" (ID: ${updated.id})`);
           break;
         }
       }
