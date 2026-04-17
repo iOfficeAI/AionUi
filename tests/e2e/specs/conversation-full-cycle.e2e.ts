@@ -335,10 +335,23 @@ test.describe('Conversation Full Cycle', () => {
   // -- Supplementary cases: Cron agent selection ----------------------------
 
   test('cron -- CLI agent selectable in create task dialog', async ({ page }) => {
-    // Navigate to Scheduled Tasks page (route is /scheduled, not /cron)
+    // Ensure the app is fully loaded first (auth + React Router ready)
+    await goToGuid(page);
+    // Wait for React to render real UI content on the guid page
+    await page
+      .waitForFunction(() => (document.body.textContent?.length ?? 0) > 200, { timeout: 15_000 })
+      .catch(() => {});
+
+    // Navigate to Scheduled Tasks page (route is /scheduled)
     await page.evaluate(() => window.location.assign('#/scheduled'));
     await page.waitForFunction(() => window.location.hash.includes('/scheduled'), { timeout: 10_000 }).catch(() => {});
-    await waitForSettle(page, 3_000);
+
+    // Wait for the page heading to render — more reliable than waitForSettle
+    const heading = page
+      .locator('h1')
+      .filter({ hasText: /Scheduled Tasks|定时任务/ })
+      .first();
+    await heading.waitFor({ state: 'visible', timeout: 10_000 }).catch(() => {});
 
     // "New task" button — matches i18n key cron.page.newTask
     const createBtn = page
@@ -389,9 +402,21 @@ test.describe('Conversation Full Cycle', () => {
   });
 
   test('cron -- preset assistant selectable in create task dialog', async ({ page }) => {
+    // Ensure the app is fully loaded first
+    await goToGuid(page);
+    await page
+      .waitForFunction(() => (document.body.textContent?.length ?? 0) > 200, { timeout: 15_000 })
+      .catch(() => {});
+
     await page.evaluate(() => window.location.assign('#/scheduled'));
     await page.waitForFunction(() => window.location.hash.includes('/scheduled'), { timeout: 10_000 }).catch(() => {});
-    await waitForSettle(page, 3_000);
+
+    // Wait for the page heading to render
+    const heading = page
+      .locator('h1')
+      .filter({ hasText: /Scheduled Tasks|定时任务/ })
+      .first();
+    await heading.waitFor({ state: 'visible', timeout: 10_000 }).catch(() => {});
 
     const createBtn = page
       .locator('button')
