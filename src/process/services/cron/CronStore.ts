@@ -254,7 +254,7 @@ class CronStore {
   async update(jobId: string, updates: Partial<CronJob>): Promise<void> {
     const existing = await this.getById(jobId);
     if (!existing) {
-      throw new Error(`Cron job not found: ${jobId}`);
+      return;
     }
 
     const updated: CronJob = {
