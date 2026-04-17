@@ -46,7 +46,8 @@ function getAionrsConfigPath(cliPath?: string): string {
   if (cachedConfigPath) return cachedConfigPath;
 
   const cmd = cliPath || 'aionrs';
-  const result = execSync(`${cmd} --config-path`, {
+  const quotedCmd = cmd.includes(' ') ? `"${cmd}"` : cmd;
+  const result = execSync(`${quotedCmd} --config-path`, {
     encoding: 'utf-8',
     timeout: 3000,
     env: getEnhancedEnv(),
