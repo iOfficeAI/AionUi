@@ -33,6 +33,9 @@ class AcpDetector {
 
   /** Check if a CLI command is available on the system PATH. */
   isCliAvailable(cliCommand: string): boolean {
+    // Reject commands with shell metacharacters to prevent injection
+    if (!/^[a-zA-Z0-9_.-]+$/.test(cliCommand)) return false;
+
     const isWindows = process.platform === 'win32';
     const whichCommand = isWindows ? 'where' : 'which';
 

@@ -112,14 +112,17 @@ export class AcpSkillManager {
   }
 
   /**
-   * 获取单例实例（带 enabledSkills 缓存键）
-   * Get singleton instance (with enabledSkills cache key)
+   * 获取单例实例（带 enabledSkills + excludeBuiltinSkills 缓存键）
+   * Get singleton instance (with enabledSkills + excludeBuiltinSkills cache key)
    *
-   * @param enabledSkills - 启用的 skills 列表，用作缓存键 / Enabled skills list, used as cache key
+   * @param enabledSkills - 启用的 skills 列表 / Enabled skills list
+   * @param excludeBuiltinSkills - 排除的内置 skills 列表 / Builtin skills to exclude
    * @returns AcpSkillManager 实例 / AcpSkillManager instance
    */
-  static getInstance(enabledSkills?: string[]): AcpSkillManager {
-    const cacheKey = enabledSkills?.toSorted().join(',') || 'all';
+  static getInstance(enabledSkills?: string[], excludeBuiltinSkills?: string[]): AcpSkillManager {
+    const enabledPart = enabledSkills?.toSorted().join(',') || 'all';
+    const excludePart = excludeBuiltinSkills?.toSorted().join(',') || '';
+    const cacheKey = excludePart ? `${enabledPart}|exclude:${excludePart}` : enabledPart;
 
     // 如果缓存键变化，需要重新创建实例
     // If cache key changed, need to recreate instance

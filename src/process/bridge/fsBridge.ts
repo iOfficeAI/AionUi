@@ -1486,7 +1486,6 @@ export function initFsBridge(): void {
   ipcBridge.fs.detectAndCountExternalSkills.provider(async () => {
     try {
       const homedir = os.homedir();
-      const userSkillsDir = getSkillsDir();
       const builtinCandidates = [
         {
           name: 'Global Agents',

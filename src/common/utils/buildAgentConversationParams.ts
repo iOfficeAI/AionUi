@@ -6,7 +6,6 @@
 
 import type { ICreateConversationParams } from '@/common/adapter/ipcBridge';
 import type { TProviderWithModel } from '@/common/config/storage';
-import { ACP_ROUTED_PRESET_TYPES } from '@/common/types/acpTypes';
 import type { AcpBackend, AcpBackendAll } from '@/common/types/acpTypes';
 
 export type BuildAgentConversationPresetResources = {
@@ -49,20 +48,6 @@ export function getConversationTypeForBackend(backend: string): ICreateConversat
     default:
       return 'acp';
   }
-}
-
-export function getConversationTypeForPreset(presetAgentType: string): ICreateConversationParams['type'] {
-  // Non-ACP backends with their own conversation type (aionrs, openclaw, nanobot, remote)
-  // must be resolved via getConversationTypeForBackend first.
-  const backendType = getConversationTypeForBackend(presetAgentType);
-  if (backendType !== 'acp') {
-    return backendType;
-  }
-  // ACP backends: only route through ACP if explicitly listed
-  if (ACP_ROUTED_PRESET_TYPES.includes(presetAgentType as (typeof ACP_ROUTED_PRESET_TYPES)[number])) {
-    return 'acp';
-  }
-  return 'gemini';
 }
 
 export function buildAgentConversationParams(input: BuildAgentConversationInput): ICreateConversationParams {

@@ -51,9 +51,19 @@ export function initAcpConversationBridge(workerTaskManager: IWorkerTaskManager)
         supportedTransports: mcpService.getSupportedTransportsForAgent(agent),
       }));
 
-      // Cast enriched to satisfy the IPC bridge response type — DetectedAgent fields
-      // are a superset of what the bridge expects, but TypeScript can't infer the match.
-      return Promise.resolve({ success: true as const, data: enriched as any });
+      // Map to the IPC bridge response shape explicitly
+      const data = enriched.map((agent) => ({
+        backend: agent.backend,
+        name: agent.name,
+        kind: agent.kind,
+        cliPath: 'cliPath' in agent ? (agent.cliPath as string | undefined) : undefined,
+        supportedTransports: agent.supportedTransports,
+        isExtension: 'isExtension' in agent ? (agent.isExtension as boolean | undefined) : undefined,
+        extensionName: 'extensionName' in agent ? (agent.extensionName as string | undefined) : undefined,
+        isPreset: 'isPreset' in agent ? (agent.isPreset as boolean | undefined) : undefined,
+        customAgentId: 'customAgentId' in agent ? (agent.customAgentId as string | undefined) : undefined,
+      }));
+      return Promise.resolve({ success: true as const, data });
     } catch (error) {
       return Promise.resolve({
         success: false as const,

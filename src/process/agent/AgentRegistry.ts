@@ -217,7 +217,7 @@ class AgentRegistry {
   }
 
   getDetectedAgents(): DetectedAgent[] {
-    return this.detectedAgents;
+    return [...this.detectedAgents];
   }
 
   getAcpAgents(): AcpDetectedAgent[] {
