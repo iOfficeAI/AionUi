@@ -7,11 +7,14 @@
 import { app } from 'electron';
 import { randomUUID } from 'node:crypto';
 import { spawn, type ChildProcess } from 'node:child_process';
-import { mkdir, readFile, rm, writeFile } from 'node:fs/promises';
+import { mkdir, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
 import { dirname, join } from 'node:path';
+import type { TProviderWithModel } from '@/common/config/storage';
+import { AionrsAgent } from '@/process/agent/aionrs';
 import { resolveAionrsBinary } from './binaryResolver';
 import { buildAionrsChildEnv } from './envBuilder';
 import { fetchWithOptionalProxy } from './fetchWithProxy';
+import type { AionrsCapabilities } from './protocol';
 
 const CHATGPT_PROVIDER_ID = 'chatgpt';
 const LEGACY_OPENAI_PROVIDER_ID = 'openai';
@@ -51,6 +54,8 @@ export type ChatgptAuthStatus = {
   expiresAt?: string;
   lastRefresh?: string;
   providerId?: string;
+  currentModel?: string;
+  accountLimits?: AionrsCapabilities['account_limits'];
 };
 
 export type ChatgptLoginStartResult = {
@@ -77,6 +82,17 @@ function getAionrsAuthPath(): string {
 
 function getAionrsPrivateAuthPath(): string {
   return join(app.getPath('appData'), 'aionrs', 'auth-private.json');
+}
+
+function getChatgptQuotaProbeModel(model: string): TProviderWithModel {
+  return {
+    id: 'chatgpt-quota-probe',
+    platform: 'chatgpt',
+    name: 'ChatGPT',
+    baseUrl: 'https://chatgpt.com',
+    apiKey: '',
+    useModel: model,
+  };
 }
 
 function createDefaultStore(): AionrsAuthStore {
@@ -320,6 +336,54 @@ export async function getChatgptAuthStatus(): Promise<ChatgptAuthStatus> {
     lastRefresh: publicAuth?.auth.last_refresh,
     providerId: publicAuth?.providerId,
   };
+}
+
+async function fetchChatgptQuotaStatus(
+  model: string,
+  proxy?: string
+): Promise<{
+  currentModel?: string;
+  accountLimits?: AionrsCapabilities['account_limits'];
+}> {
+  const workspace = await mkdtemp(join(app.getPath('temp'), 'aionrs-chatgpt-quota-'));
+  const agent = new AionrsAgent({
+    workspace,
+    model: getChatgptQuotaProbeModel(model),
+    proxy,
+    maxTurns: 1,
+    sessionId: `chatgpt-quota-${randomUUID()}`,
+    onStreamEvent: () => {},
+  });
+
+  try {
+    await agent.start();
+    return {
+      currentModel: agent.capabilities?.current_model,
+      accountLimits: agent.capabilities?.account_limits,
+    };
+  } finally {
+    agent.kill();
+    await rm(workspace, { recursive: true, force: true }).catch(() => {});
+  }
+}
+
+export async function getChatgptQuotaStatus(options: { model: string; proxy?: string }): Promise<ChatgptAuthStatus> {
+  const status = await getChatgptAuthStatus();
+  const model = options.model.trim();
+
+  if (!status.authenticated || !model) {
+    return status;
+  }
+
+  try {
+    return {
+      ...status,
+      ...(await fetchChatgptQuotaStatus(model, options.proxy)),
+    };
+  } catch (error) {
+    console.warn('[ChatgptAuth] Failed to fetch ChatGPT account quota:', error);
+    return status;
+  }
 }
 
 export async function fetchChatgptModels(proxy?: string): Promise<ChatgptRemoteModel[]> {

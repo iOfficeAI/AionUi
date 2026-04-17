@@ -240,6 +240,7 @@
   "chatgptLoginSuccess": "ChatGPT connected",
   "chatgptLoginFailed": "ChatGPT sign-in failed",
   "chatgptLogoutSuccess": "ChatGPT disconnected",
+  "accountQuotaUnavailable": "Інформація про квоту акаунта недоступна",
   "modelProtocol": "Протокол запиту",
   "modelProtocolTip": "Виберіть формат запиту API для цієї моделі.",
   "platformBedrock": "AWS Bedrock",

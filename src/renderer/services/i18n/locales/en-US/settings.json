@@ -240,6 +240,7 @@
   "chatgptLoginSuccess": "ChatGPT connected",
   "chatgptLoginFailed": "ChatGPT sign-in failed",
   "chatgptLogoutSuccess": "ChatGPT disconnected",
+  "accountQuotaUnavailable": "Account quota unavailable",
   "modelProtocol": "Request Protocol",
   "modelProtocolTip": "Choose the API request format for this model. new-api gateway will route to the upstream using the selected protocol.",
   "platformBedrock": "AWS Bedrock",

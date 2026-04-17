@@ -240,6 +240,7 @@
   "chatgptLoginSuccess": "ChatGPT connected",
   "chatgptLoginFailed": "ChatGPT sign-in failed",
   "chatgptLogoutSuccess": "ChatGPT disconnected",
+  "accountQuotaUnavailable": "アカウント枠情報を利用できません",
   "modelProtocol": "リクエストプロトコル",
   "modelProtocolTip": "このモデルのAPIリクエスト形式を選択します。new-apiゲートウェイは選択されたプロトコルでアップストリームにルーティングします。",
   "platformBedrock": "AWS Bedrock",

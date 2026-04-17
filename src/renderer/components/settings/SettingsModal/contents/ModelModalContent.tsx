@@ -8,9 +8,16 @@ import { ipcBridge } from '@/common';
 import type { IResponseMessage } from '@/common/adapter/ipcBridge';
 import type { IProvider } from '@/common/config/storage';
 import { uuid } from '@/common/utils';
+import type { AionrsCapabilities } from '@process/agent/aionrs/protocol';
+import {
+  formatAionrsLimitLabel,
+  formatAionrsPercent,
+  getAionrsRemainingPercent,
+  humanizeAionrsIdentifier,
+} from '@process/agent/aionrs/protocol';
 import { Button, Divider, Message, Popconfirm, Collapse, Tag, Switch, Tooltip } from '@arco-design/web-react';
 import { DeleteFour, Info, Minus, Plus, Write, Heartbeat } from '@icon-park/react';
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import useSWR from 'swr';
 import AddModelModal from '@/renderer/pages/settings/components/AddModelModal';
@@ -94,6 +101,44 @@ const isModelEnabled = (platform: IProvider, model: string): boolean => {
   return platform.modelEnabled[model] !== false;
 };
 
+type ChatgptQuotaStatus = {
+  authenticated: boolean;
+  currentModel?: string;
+  accountLimits?: AionrsCapabilities['account_limits'];
+};
+type ChatgptQuotaInput = {
+  id: string;
+  model: string;
+  proxy: string | undefined;
+};
+
+const resolveProviderQuotaModel = (provider: IProvider): string | null => {
+  return provider.model.find((model) => provider.modelEnabled?.[model] !== false) ?? provider.model[0] ?? null;
+};
+
+const getQuotaTagColor = (usedPercent: number): string => {
+  const remaining = getAionrsRemainingPercent(usedPercent);
+  if (remaining <= 20) return 'red';
+  if (remaining <= 50) return 'orange';
+  return 'green';
+};
+
+const formatQuotaCredits = (
+  credits: NonNullable<NonNullable<ChatgptQuotaStatus['accountLimits']>['limits'][number]['credits']>,
+  t: (key: string) => string
+): string | null => {
+  if (!credits.has_credits) {
+    return null;
+  }
+
+  if (credits.unlimited) {
+    return t('conversation.aionrs.unlimitedCredits');
+  }
+
+  const balance = credits.balance?.trim();
+  return balance ? `${balance} credits` : null;
+};
+
 const HEALTH_CHECK_FIRST_RESPONSE_TIMEOUT_MS = 30000;
 
 const ModelModalContent: React.FC = () => {
@@ -108,6 +153,43 @@ const ModelModalContent: React.FC = () => {
       return data;
     });
   });
+  const chatgptQuotaInputs = useMemo(
+    () =>
+      (data || []).flatMap((provider: IProvider): ChatgptQuotaInput[] => {
+        if (provider.platform !== 'chatgpt') {
+          return [];
+        }
+
+        const model = resolveProviderQuotaModel(provider);
+        return model
+          ? [
+              {
+                id: provider.id,
+                model,
+                proxy: provider.proxy,
+              },
+            ]
+          : [];
+      }),
+    [data]
+  );
+  const { data: chatgptQuotaMap } = useSWR<Record<string, ChatgptQuotaStatus | null>>(
+    chatgptQuotaInputs.length > 0
+      ? [
+          'chatgpt.auth.quota-status',
+          ...chatgptQuotaInputs.map(({ id, model, proxy }) => `${id}:${model}:${proxy || ''}`),
+        ]
+      : null,
+    async () => {
+      const entries = await Promise.all(
+        chatgptQuotaInputs.map(async ({ id, model, proxy }) => {
+          const result = await ipcBridge.chatgptAuth.quotaStatus.invoke({ model, proxy });
+          return [id, result.success && result.data ? result.data : null] as const;
+        })
+      );
+      return Object.fromEntries(entries);
+    }
+  );
   const [message, messageContext] = Message.useMessage();
 
   const saveModelConfig = (newData: IProvider[], success?: () => void) => {
@@ -454,6 +536,100 @@ const ModelModalContent: React.FC = () => {
     },
   });
 
+  const renderChatgptQuotaSummary = (platform: IProvider) => {
+    const quotaStatus = chatgptQuotaMap?.[platform.id];
+    if (!quotaStatus) {
+      return null;
+    }
+
+    if (!quotaStatus.authenticated) {
+      return (
+        <div className='mt-4px flex flex-wrap items-center gap-6px'>
+          <Tag size='small' color='gray'>
+            {t('settings.chatgptAuthLoggedOut')}
+          </Tag>
+        </div>
+      );
+    }
+
+    const accountLimits = quotaStatus.accountLimits;
+    if (!accountLimits) {
+      return (
+        <div className='mt-4px flex flex-wrap items-center gap-6px'>
+          <Tag size='small' color='gray'>
+            {t('settings.accountQuotaUnavailable')}
+          </Tag>
+        </div>
+      );
+    }
+
+    const quotaTags = accountLimits.limits.slice(0, 4).flatMap((limit) => {
+      const tags: Array<React.ReactElement> = [];
+
+      if (limit.primary) {
+        const label = formatAionrsLimitLabel(limit, limit.primary, '5h');
+        tags.push(
+          <Tag
+            key={`${platform.id}-${label}-primary`}
+            size='small'
+            color={getQuotaTagColor(limit.primary.used_percent)}
+          >
+            {`${humanizeAionrsIdentifier(label)} ${formatAionrsPercent(getAionrsRemainingPercent(limit.primary.used_percent))}`}
+          </Tag>
+        );
+      }
+
+      if (limit.secondary) {
+        const label = formatAionrsLimitLabel(limit, limit.secondary, 'weekly');
+        tags.push(
+          <Tag
+            key={`${platform.id}-${label}-secondary`}
+            size='small'
+            color={getQuotaTagColor(limit.secondary.used_percent)}
+          >
+            {`${humanizeAionrsIdentifier(label)} ${formatAionrsPercent(getAionrsRemainingPercent(limit.secondary.used_percent))}`}
+          </Tag>
+        );
+      }
+
+      const creditsLabel = limit.credits ? formatQuotaCredits(limit.credits, t) : null;
+      if (creditsLabel) {
+        tags.push(
+          <Tag
+            key={`${platform.id}-${limit.limit_id || limit.limit_name || 'credits'}-credits`}
+            size='small'
+            color='arcoblue'
+          >
+            {creditsLabel}
+          </Tag>
+        );
+      }
+
+      return tags;
+    });
+
+    if (!accountLimits.plan_type && quotaTags.length === 0) {
+      return (
+        <div className='mt-4px flex flex-wrap items-center gap-6px'>
+          <Tag size='small' color='gray'>
+            {t('settings.accountQuotaUnavailable')}
+          </Tag>
+        </div>
+      );
+    }
+
+    return (
+      <div className='mt-4px flex flex-wrap items-center gap-6px'>
+        {accountLimits.plan_type ? (
+          <Tag size='small' color='gray'>
+            {`${t('conversation.aionrs.plan')}: ${humanizeAionrsIdentifier(accountLimits.plan_type)}`}
+          </Tag>
+        ) : null}
+        {quotaTags}
+      </div>
+    );
+  };
+
   return (
     <div className='flex flex-col bg-2 rd-16px px-16px md:px-24px lg:px-28px py-16px md:py-18px'>
       {messageContext}
@@ -543,11 +719,14 @@ const ModelModalContent: React.FC = () => {
                     className='[&_.arco-collapse-item-header-title]:flex-1 group'
                     header={
                       <div className='group flex items-center justify-between w-full min-h-32px gap-8px min-w-0'>
-                        <span
-                          className={`text-14px font-500 truncate min-w-0 transition-colors ${isExpanded ? 'text-t-primary' : 'text-2 group-hover:text-1'}`}
-                        >
-                          {platform.name}
-                        </span>
+                        <div className='min-w-0 flex-1'>
+                          <span
+                            className={`block text-14px font-500 truncate min-w-0 transition-colors ${isExpanded ? 'text-t-primary' : 'text-2 group-hover:text-1'}`}
+                          >
+                            {platform.name}
+                          </span>
+                          {platform.platform === 'chatgpt' ? renderChatgptQuotaSummary(platform) : null}
+                        </div>
                         <div
                           className='flex items-center gap-8px shrink-0'
                           onClick={(e) => {
