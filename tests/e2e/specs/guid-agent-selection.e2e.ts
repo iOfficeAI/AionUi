@@ -141,7 +141,10 @@ test.describe('Guid Agent Selection', () => {
     // Verify an agent pill becomes selected OR the input area remains functional.
     const selectedPill = page.locator(AGENT_PILL_SELECTED);
     const inputArea = page.locator('.guid-input-card-shell textarea');
-    const hasSelection = await selectedPill.first().isVisible().catch(() => false);
+    const hasSelection = await selectedPill
+      .first()
+      .isVisible()
+      .catch(() => false);
     const hasInput = await inputArea.isVisible().catch(() => false);
     expect(hasSelection || hasInput).toBeTruthy();
   });
@@ -153,7 +156,10 @@ test.describe('Guid Agent Selection', () => {
     await page.waitForTimeout(1_000);
 
     const presetPills = page.locator('[data-testid^="preset-pill-"]');
-    await presetPills.first().waitFor({ state: 'visible', timeout: 10_000 }).catch(() => {});
+    await presetPills
+      .first()
+      .waitFor({ state: 'visible', timeout: 10_000 })
+      .catch(() => {});
     const presetCount = await presetPills.count();
     if (presetCount < 2) {
       test.skip(true, 'Need at least 2 preset assistants');
@@ -170,7 +176,10 @@ test.describe('Guid Agent Selection', () => {
 
     // Select second preset
     const presetPills2 = page.locator('[data-testid^="preset-pill-"]');
-    await presetPills2.first().waitFor({ state: 'visible', timeout: 10_000 }).catch(() => {});
+    await presetPills2
+      .first()
+      .waitFor({ state: 'visible', timeout: 10_000 })
+      .catch(() => {});
     if ((await presetPills2.count()) >= 2) {
       await presetPills2.nth(1).click();
       await page.waitForTimeout(500);

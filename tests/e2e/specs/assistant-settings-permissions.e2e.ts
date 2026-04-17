@@ -26,7 +26,7 @@ test.describe('Assistant Settings Permissions', () => {
     const ids = await getVisibleAssistantIds(page);
 
     // Prioritise IDs that are likely the target type (avoids opening every drawer)
-    const prioritised = ids.sort((a, b) => {
+    const prioritised = ids.toSorted((a, b) => {
       const score = (id: string) => {
         if (type === 'builtin' && id.startsWith('builtin-')) return 0;
         if (type === 'extension' && id.startsWith('ext-')) return 0;

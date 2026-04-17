@@ -156,7 +156,11 @@ const AssistantEditDrawer: React.FC<AssistantEditDrawerProps> = ({
   const extensionStatusDotColor = extensionActiveCount > 0 ? 'rgb(var(--success-6))' : 'var(--color-text-4)';
   const autoInjectedStatusDotColor = autoInjectedActiveCount > 0 ? 'rgb(var(--success-6))' : 'var(--color-text-4)';
   const totalSkillsCount =
-    pendingSkills.length + customSkillItems.length + builtinSkillItems.length + extensionSkillItems.length + builtinAutoSkills.length;
+    pendingSkills.length +
+    customSkillItems.length +
+    builtinSkillItems.length +
+    extensionSkillItems.length +
+    builtinAutoSkills.length;
   const totalActiveSkillsCount =
     selectedSkills.filter(
       (name) =>

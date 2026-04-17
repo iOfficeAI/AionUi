@@ -44,8 +44,18 @@ describe('acpTypes — skillsDirs integration', () => {
     it('should return true for backends with skillsDirs', () => {
       // Includes both ACP backends and non-ACP agents with native skill support
       const supported = [
-        'claude', 'codebuddy', 'codex', 'qwen', 'iflow', 'goose', 'droid', 'kimi', 'vibe', 'cursor',
-        'gemini', 'aionrs',
+        'claude',
+        'codebuddy',
+        'codex',
+        'qwen',
+        'iflow',
+        'goose',
+        'droid',
+        'kimi',
+        'vibe',
+        'cursor',
+        'gemini',
+        'aionrs',
       ];
       for (const backend of supported) {
         expect(hasNativeSkillSupport(backend), `${backend}`).toBe(true);

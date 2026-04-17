@@ -69,14 +69,8 @@ const AssistantSelectionArea: React.FC<AssistantSelectionAreaProps> = ({
     []
   );
 
-  const {
-    assistants,
-    activeAssistantId,
-    setActiveAssistantId,
-    activeAssistant,
-    isExtensionAssistant,
-    loadAssistants,
-  } = useAssistantList();
+  const { assistants, activeAssistantId, setActiveAssistantId, activeAssistant, isExtensionAssistant, loadAssistants } =
+    useAssistantList();
   const { availableBackends, refreshAgentDetection } = useDetectedAgents();
 
   const editor = useAssistantEditor({

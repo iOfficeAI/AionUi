@@ -35,14 +35,16 @@ test.describe.configure({ timeout: 180_000 });
  */
 async function pickAvailableBackend(page: import('@playwright/test').Page): Promise<string | null> {
   for (let attempt = 0; attempt < 2; attempt++) {
-    const visible = await page.locator(AGENT_PILL).first()
+    const visible = await page
+      .locator(AGENT_PILL)
+      .first()
       .waitFor({ state: 'visible', timeout: 15_000 })
       .then(() => true)
       .catch(() => false);
     if (visible) {
-      const backends = await page.locator(AGENT_PILL).evaluateAll((els) =>
-        els.map((el) => el.getAttribute('data-agent-backend')).filter(Boolean)
-      );
+      const backends = await page
+        .locator(AGENT_PILL)
+        .evaluateAll((els) => els.map((el) => el.getAttribute('data-agent-backend')).filter(Boolean));
       const found = ['gemini', 'claude', 'codex', 'aionrs'].find((b) => backends.includes(b));
       if (found) return found;
     }
@@ -168,7 +170,9 @@ test.describe('Conversation Full Cycle', () => {
     expect(conversationId).toBeTruthy();
 
     // Preset may use an agent that is slow or unavailable — graceful timeout
-    const sessionReady = await waitForSessionActive(page, 60_000).then(() => true).catch(() => false);
+    const sessionReady = await waitForSessionActive(page, 60_000)
+      .then(() => true)
+      .catch(() => false);
     if (!sessionReady) {
       await deleteConversation(page, conversationId).catch(() => {});
       test.skip(true, 'Preset assistant agent did not respond in time');
@@ -243,7 +247,9 @@ test.describe('Conversation Full Cycle', () => {
     expect(conversationId).toBeTruthy();
 
     // Preset may use an agent that is slow or unavailable — graceful timeout
-    const sessionReady = await waitForSessionActive(page, 60_000).then(() => true).catch(() => false);
+    const sessionReady = await waitForSessionActive(page, 60_000)
+      .then(() => true)
+      .catch(() => false);
     if (!sessionReady) {
       await deleteConversation(page, conversationId).catch(() => {});
       test.skip(true, 'Preset assistant agent did not respond in time');
@@ -471,7 +477,9 @@ test.describe('Conversation Full Cycle', () => {
 
     await selectAgent(page, backend);
     const conversationId = await sendMessageFromGuid(page, 'Hello skills navigation test');
-    const sessionReady = await waitForSessionActive(page, 60_000).then(() => true).catch(() => false);
+    const sessionReady = await waitForSessionActive(page, 60_000)
+      .then(() => true)
+      .catch(() => false);
     if (!sessionReady) {
       await deleteConversation(page, conversationId).catch(() => {});
       test.skip(true, 'Agent session did not activate in time');
@@ -480,7 +488,10 @@ test.describe('Conversation Full Cycle', () => {
 
     // Wait for skills indicator to appear (skills are loaded on first message)
     const indicator = page.locator(SKILLS_INDICATOR);
-    const indicatorVisible = await indicator.waitFor({ state: 'visible', timeout: 30_000 }).then(() => true).catch(() => false);
+    const indicatorVisible = await indicator
+      .waitFor({ state: 'visible', timeout: 30_000 })
+      .then(() => true)
+      .catch(() => false);
 
     if (!indicatorVisible) {
       await deleteConversation(page, conversationId);
@@ -496,7 +507,10 @@ test.describe('Conversation Full Cycle', () => {
 
     // Arco Popover renders into a portal — find visible popup content
     const popoverContent = page.locator('.arco-popover-content:visible');
-    const popoverVisible = await popoverContent.first().isVisible().catch(() => false);
+    const popoverVisible = await popoverContent
+      .first()
+      .isVisible()
+      .catch(() => false);
 
     if (!popoverVisible) {
       // Retry: click the indicator count badge inside
@@ -507,7 +521,10 @@ test.describe('Conversation Full Cycle', () => {
       }
     }
 
-    const retryPopoverVisible = await popoverContent.first().isVisible().catch(() => false);
+    const retryPopoverVisible = await popoverContent
+      .first()
+      .isVisible()
+      .catch(() => false);
     if (!retryPopoverVisible) {
       await deleteConversation(page, conversationId);
       test.skip(true, 'Skills popover did not open after click');
@@ -523,10 +540,7 @@ test.describe('Conversation Full Cycle', () => {
 
     // Should navigate to capabilities page with skills tab
     await page
-      .waitForFunction(
-        () => window.location.hash.includes('/settings/capabilities'),
-        { timeout: 10_000 }
-      )
+      .waitForFunction(() => window.location.hash.includes('/settings/capabilities'), { timeout: 10_000 })
       .catch(() => {});
 
     const url = page.url();
@@ -578,7 +592,9 @@ test.describe('Conversation Full Cycle', () => {
     const conversationId = await sendMessageFromGuid(page, 'e2e badge navigation test');
     expect(conversationId).toBeTruthy();
 
-    const sessionReady = await waitForSessionActive(page, 60_000).then(() => true).catch(() => false);
+    const sessionReady = await waitForSessionActive(page, 60_000)
+      .then(() => true)
+      .catch(() => false);
     if (!sessionReady) {
       await deleteConversation(page, conversationId).catch(() => {});
       test.skip(true, 'Agent session did not activate in time');

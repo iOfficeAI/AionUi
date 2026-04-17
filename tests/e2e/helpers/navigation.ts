@@ -75,7 +75,9 @@ export async function navigateTo(page: Page, hash: string): Promise<void> {
       await siderBtn.waitFor({ state: 'visible', timeout: 10_000 });
       await siderBtn.click();
       // Wait for hash to change away from settings
-      await page.waitForFunction(() => !window.location.hash.includes('/settings/'), { timeout: 10_000 }).catch(() => {});
+      await page
+        .waitForFunction(() => !window.location.hash.includes('/settings/'), { timeout: 10_000 })
+        .catch(() => {});
     }
     // Programmatic navigation for non-settings targets.
     // Always navigate when not already at the target (e.g. conversation → guid).
@@ -83,7 +85,9 @@ export async function navigateTo(page: Page, hash: string): Promise<void> {
       await page.evaluate((h) => window.location.assign(h), hash);
       try {
         await page.waitForFunction((h) => window.location.hash === h, hash, { timeout: 10_000 });
-      } catch { /* best-effort */ }
+      } catch {
+        /* best-effort */
+      }
     }
   } else {
     // Target is a settings sub-page
@@ -92,7 +96,9 @@ export async function navigateTo(page: Page, hash: string): Promise<void> {
       const siderBtn = page.locator('.sider-footer div').first();
       await siderBtn.waitFor({ state: 'visible', timeout: 10_000 });
       await siderBtn.click();
-      await page.waitForFunction(() => window.location.hash.includes('/settings/'), { timeout: 10_000 }).catch(() => {});
+      await page
+        .waitForFunction(() => window.location.hash.includes('/settings/'), { timeout: 10_000 })
+        .catch(() => {});
     }
 
     // Extract the settings path segment (e.g. "assistants" from "#/settings/assistants")
@@ -101,18 +107,18 @@ export async function navigateTo(page: Page, hash: string): Promise<void> {
       const navItem = page.locator(`[data-settings-path="${settingsPath}"]`);
       await navItem.waitFor({ state: 'visible', timeout: 10_000 });
       await navItem.click();
-      await page.waitForFunction(
-        (h) => window.location.hash.includes(h),
-        `/settings/${settingsPath}`,
-        { timeout: 10_000 }
-      ).catch(() => {});
+      await page
+        .waitForFunction((h) => window.location.hash.includes(h), `/settings/${settingsPath}`, { timeout: 10_000 })
+        .catch(() => {});
     }
   }
 
   // Wait for body to have meaningful content
   try {
     await page.waitForFunction(() => (document.body.textContent?.length ?? 0) > 50, { timeout: 10_000 });
-  } catch { /* best-effort */ }
+  } catch {
+    /* best-effort */
+  }
 }
 
 async function navigateWithRetry(page: Page, hash: string): Promise<void> {

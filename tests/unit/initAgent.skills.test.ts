@@ -91,8 +91,18 @@ describe('initAgent — skill support', () => {
     it('should return true for all backends with verified native skill dirs', () => {
       // Includes both ACP backends and non-ACP agents (gemini, aionrs) with native skill support
       const supported = [
-        'claude', 'codebuddy', 'codex', 'qwen', 'iflow', 'goose', 'droid', 'kimi', 'vibe', 'cursor',
-        'gemini', 'aionrs',
+        'claude',
+        'codebuddy',
+        'codex',
+        'qwen',
+        'iflow',
+        'goose',
+        'droid',
+        'kimi',
+        'vibe',
+        'cursor',
+        'gemini',
+        'aionrs',
       ];
       for (const backend of supported) {
         expect(hasNativeSkillSupport(backend)).toBe(true);

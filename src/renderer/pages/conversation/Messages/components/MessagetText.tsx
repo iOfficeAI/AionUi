@@ -204,7 +204,9 @@ const MessageText: React.FC<{ message: IMessageText }> = ({ message }) => {
         >
           {/* JSON 内容使用折叠组件 Use CollapsibleContent for JSON content */}
           {shouldRenderPlainText ? (
-            <div className='whitespace-pre-wrap break-words' data-testid='message-text-content'>{text}</div>
+            <div className='whitespace-pre-wrap break-words' data-testid='message-text-content'>
+              {text}
+            </div>
           ) : json ? (
             <CollapsibleContent maxHeight={200} defaultCollapsed={true}>
               <div data-testid='message-text-content'>

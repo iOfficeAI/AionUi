@@ -109,6 +109,8 @@ describe('ConversationSkillsIndicator', () => {
 
     fireEvent.click(screen.getByText('Skill & Tricks / More'));
 
-    expect(mockNavigate).toHaveBeenCalledWith('/settings/capabilities?tab=skills&highlight=Skill%20%26%20Tricks%20%2F%20More');
+    expect(mockNavigate).toHaveBeenCalledWith(
+      '/settings/capabilities?tab=skills&highlight=Skill%20%26%20Tricks%20%2F%20More'
+    );
   });
 });

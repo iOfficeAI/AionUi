@@ -131,7 +131,12 @@ test.describe('Assistant Settings Skills', () => {
     await openAssistantDrawer(page, builtinId);
 
     const autoInjected = page.locator('.arco-collapse-item').filter({ hasText: /Auto|自动/ });
-    if (!(await autoInjected.first().isVisible().catch(() => false))) {
+    if (
+      !(await autoInjected
+        .first()
+        .isVisible()
+        .catch(() => false))
+    ) {
       await closeDrawer(page);
       test.skip(true, 'No auto-injected skills section for this assistant');
       return;

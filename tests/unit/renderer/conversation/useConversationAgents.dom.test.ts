@@ -57,7 +57,7 @@ vi.mock('swr', async () => {
   return {
     default: (key: string, fetcher: () => Promise<unknown>) => {
       const [data, setData] = React.useState<unknown>(
-        swrSubscribers.cache.has(key) ? swrSubscribers.cache.get(key) : undefined,
+        swrSubscribers.cache.has(key) ? swrSubscribers.cache.get(key) : undefined
       );
       const resolved = swrSubscribers.cache.has(key);
 

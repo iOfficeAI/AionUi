@@ -168,5 +168,8 @@ export async function closeDrawer(page: Page): Promise<void> {
   }
 
   // Wait for the drawer wrapper to disappear
-  await page.locator('.arco-drawer-wrapper').waitFor({ state: 'hidden', timeout: 5_000 }).catch(() => {});
+  await page
+    .locator('.arco-drawer-wrapper')
+    .waitFor({ state: 'hidden', timeout: 5_000 })
+    .catch(() => {});
 }

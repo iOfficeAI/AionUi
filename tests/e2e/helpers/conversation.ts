@@ -27,7 +27,10 @@ export async function selectAgent(page: Page, backend: string, model?: string): 
   const deadline = Date.now() + 20_000;
   let selected = false;
   while (Date.now() < deadline && !selected) {
-    const isVisible = await page.locator(selector).isVisible().catch(() => false);
+    const isVisible = await page
+      .locator(selector)
+      .isVisible()
+      .catch(() => false);
     if (!isVisible) {
       await page.waitForTimeout(500);
       continue;
