@@ -33,7 +33,7 @@ import '@arco-design/web-react/dist/css/arco.css';
 import { useTranslation } from 'react-i18next';
 
 // --- Contexts & UI Components ---
-import { PageLoader } from './utils/model/pageLoader';
+
 import { AuthProvider } from './hooks/context/AuthContext';
 import { ThemeProvider } from './hooks/context/ThemeContext';
 import { PreviewProvider } from './pages/conversation/Preview/context/PreviewContext';
@@ -107,8 +107,8 @@ const AppProviders = memo(({ children }: PropsWithChildren) => {
     return () => { mounted = false; };
   }, [i18n.language]);
 
-  // Show PageLoader while locale chunks are being fetched
-  if (!locale) return <PageLoader />;
+  
+  if (!locale) return ;
 
   return (
     <AuthProvider>
@@ -140,12 +140,12 @@ const Main = memo(() => {
   ), []);
 
   // Wait for auth context to be ready before rendering the router
-  if (!ready) return <PageLoader />;
+  if (!ready) return ;
 
   return (
-    <Suspense fallback={<PageLoader />}>
+    
       <Router layout={layout} />
-    </Suspense>
+   
   );
 });
 
@@ -155,7 +155,6 @@ if (rootElement) {
   const root = createRoot(rootElement);
 
   // Use setTimeout(0) and startTransition to yield to the main thread,
-  // ensuring the initial PageLoader (from index.html) remains smooth.
   setTimeout(() => {
     startTransition(() => {
       root.render(
