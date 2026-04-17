@@ -224,6 +224,21 @@ const createGeminiConversation = (sessionMode: string): TChatConversation =>
     },
   }) as TChatConversation;
 
+const createGeminiConversationWithModel = (sessionMode: string, useModel: string): TChatConversation =>
+  ({
+    id: 'conv-gemini',
+    name: 'Gemini Chat',
+    type: 'gemini',
+    model: {
+      id: 'provider-1',
+      useModel,
+    },
+    extra: {
+      workspace: 'E:/code/demo',
+      sessionMode,
+    },
+  }) as TChatConversation;
+
 const createAionrsConversation = (sessionMode: string, useModel = 'gpt-4.1'): TChatConversation =>
   ({
     id: 'conv-aionrs',
@@ -257,6 +272,14 @@ describe('ChatConversation workspace launcher', () => {
     chatConversationMocks.acpChat.mockClear();
     chatConversationMocks.geminiChat.mockClear();
     chatConversationMocks.aionrsChat.mockClear();
+    chatConversationMocks.useGeminiModelSelection.mockReturnValue({
+      providers: [{ id: 'provider-1', model: ['gemini-2.5-pro', 'glm-4.6'] }],
+      getAvailableModels: (provider: { model?: string[] }) => provider.model ?? [],
+    });
+    chatConversationMocks.useAionrsModelSelection.mockReturnValue({
+      providers: [{ id: 'provider-1', model: ['gpt-4.1', 'gpt-5.2', 'glm-4.6'] }],
+      getAvailableModels: (provider: { model?: string[] }) => provider.model ?? [],
+    });
     chatConversationMocks.useAionrsCapabilities.mockReturnValue({
       capabilities: null,
       dynamicModes: [],
@@ -286,6 +309,22 @@ describe('ChatConversation workspace launcher', () => {
       }),
       undefined
     );
+  });
+
+  it('normalizes typoed Gemini model names to the configured provider model', async () => {
+    render(<ChatConversation conversation={createGeminiConversationWithModel('yolo', 'gml-4.6')} />);
+
+    await waitFor(() => {
+      expect(chatConversationMocks.updateConversation).toHaveBeenCalledWith({
+        id: 'conv-gemini',
+        updates: {
+          model: {
+            id: 'provider-1',
+            useModel: 'glm-4.6',
+          },
+        },
+      });
+    });
   });
 
   it('passes the persisted Aion CLI session mode into the chat view', () => {
@@ -352,6 +391,38 @@ describe('ChatConversation workspace launcher', () => {
           model: {
             id: 'provider-1',
             useModel: 'gpt-5.4',
+          },
+        },
+      });
+    });
+  });
+
+  it('normalizes typoed Aion CLI model names to the configured provider model when runtime models are unavailable', async () => {
+    chatConversationMocks.useAionrsCapabilities.mockReturnValue({
+      capabilities: {
+        tool_approval: true,
+        thinking: false,
+        effort: true,
+        effort_levels: ['low', 'medium', 'high'],
+        modes: ['default'],
+        current_mode: 'default',
+        mcp: false,
+        current_model: undefined,
+        available_models: [],
+      },
+      dynamicModes: [],
+      initialized: true,
+    });
+
+    render(<ChatConversation conversation={createAionrsConversation('auto_edit', 'gml-4.6')} />);
+
+    await waitFor(() => {
+      expect(chatConversationMocks.updateConversation).toHaveBeenCalledWith({
+        id: 'conv-aionrs',
+        updates: {
+          model: {
+            id: 'provider-1',
+            useModel: 'glm-4.6',
           },
         },
       });

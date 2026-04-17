@@ -68,6 +68,8 @@ export interface PlatformConfig {
   platform: PlatformType;
   /** Base URL（预设供应商使用） / Base URL (for preset providers) */
   baseUrl?: string;
+  /** Whether users can customize the preset Base URL */
+  editableBaseUrl?: boolean;
   /** 国际化 key（可选，用于需要翻译的平台名称） / i18n key (optional, for platform names that need translation) */
   i18nKey?: string;
 }
@@ -118,6 +120,14 @@ export const MODEL_PLATFORMS: PlatformConfig[] = [
 
   // 预设供应商（按字母顺序排列）
   { name: 'OpenAI', value: 'OpenAI', logo: OpenAILogo, platform: 'custom', baseUrl: 'https://api.openai.com/v1' },
+  {
+    name: 'Ollama',
+    value: 'Ollama',
+    logo: null,
+    platform: 'custom',
+    baseUrl: 'https://ollama.com/v1',
+    editableBaseUrl: true,
+  },
   {
     name: 'Anthropic',
     value: 'Anthropic',

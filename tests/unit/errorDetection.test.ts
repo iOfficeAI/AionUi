@@ -36,6 +36,14 @@ describe('isQuotaErrorMessage', () => {
     expect(isQuotaErrorMessage('QUOTA has been EXHAUSTED')).toBe(true);
   });
 
+  it('returns true for Ollama Cloud high-volume subscription errors', () => {
+    expect(
+      isQuotaErrorMessage(
+        'model is experiencing high volume. while capacity is being added, a subscription is required for access: https://ollama.com/upgrade'
+      )
+    ).toBe(true);
+  });
+
   it('returns false when only quota keyword is present without limit indicator', () => {
     // "quota" alone is not enough - needs a limit/exceeded indicator too
     expect(isQuotaErrorMessage('quota information available')).toBe(false);

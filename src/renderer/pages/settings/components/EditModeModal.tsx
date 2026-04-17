@@ -39,6 +39,7 @@ const PROVIDER_CONFIGS = [
   { name: 'GitHub Copilot', url: 'https://api.githubcopilot.com', logo: GitHubLogo, platform: 'copilot' },
   { name: 'ChatGPT', url: 'https://chatgpt.com', logo: OpenAILogo, platform: 'chatgpt' },
   { name: 'OpenAI', url: 'https://api.openai.com/v1', logo: OpenAILogo },
+  { name: 'Ollama', url: 'https://ollama.com/v1', logo: null },
   { name: 'Anthropic', url: 'https://api.anthropic.com/v1', logo: AnthropicLogo },
   { name: 'AWS Bedrock', url: '', logo: BedrockLogo, platform: 'bedrock' },
   { name: 'DeepSeek', url: 'https://api.deepseek.com', logo: DeepSeekLogo },
@@ -133,6 +134,7 @@ const EditModeModal = ModalHOC<{ data?: IProvider; onChange(data: IProvider): vo
     const loginPlatformKey = getAionrsLoginKey(data?.platform);
     const loginAuthBridge = getAionrsLoginBridge(data?.platform);
     const isAionrsLoginPlatform = isAionrsOnlyPlatform(data?.platform);
+    const canEditBaseUrl = !isBedrock && !isAionrsLoginPlatform && data?.platform !== 'gemini-vertex-ai';
     const modelListApiKey = isAionrsLoginPlatform ? '' : data?.apiKey;
     const proxyValue = Form.useWatch('proxy', form);
 
@@ -320,7 +322,7 @@ const EditModeModal = ModalHOC<{ data?: IProvider; onChange(data: IProvider): vo
               required={data?.platform !== 'gemini' && data?.platform !== 'gemini-vertex-ai' && !isBedrock}
               rules={[{ required: data?.platform !== 'gemini' && data?.platform !== 'gemini-vertex-ai' && !isBedrock }]}
               field={'baseUrl'}
-              disabled
+              disabled={!canEditBaseUrl}
             >
               <Input></Input>
             </Form.Item>

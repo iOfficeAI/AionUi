@@ -224,6 +224,36 @@ describe('createConversationParams', () => {
     expect(params.model.useModel).toBe('claude-sonnet-4');
   });
 
+  it('repairs typoed saved aionrs default models when a close configured model exists', async () => {
+    getModelConfigInvoke.mockResolvedValue([
+      {
+        id: 'provider-1',
+        platform: 'custom',
+        name: 'Ollama',
+        baseUrl: 'https://ollama.com/v1',
+        apiKey: 'token',
+        model: ['glm-4.6', 'glm-5.1'],
+        enabled: true,
+      },
+    ]);
+    configGet.mockImplementation(async (key: string) => {
+      if (key === 'aionrs.defaultModel') {
+        return { id: 'provider-1', useModel: 'gml-4.6' };
+      }
+      return undefined;
+    });
+
+    const params = await buildCliAgentParams(
+      {
+        backend: 'aionrs',
+        name: 'Aion CLI Agent',
+      },
+      '/tmp/workspace'
+    );
+
+    expect(params.model.useModel).toBe('glm-4.6');
+  });
+
   it('throws error for aionrs if no provider configured', async () => {
     getModelConfigInvoke.mockResolvedValue([]);
 
