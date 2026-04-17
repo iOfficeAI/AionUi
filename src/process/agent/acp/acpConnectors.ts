@@ -32,6 +32,7 @@ import {
 } from '@process/utils/shellEnv';
 import { readClaudeProviderEnvFromCcSwitch } from '@process/services/ccSwitchModelSource';
 import { mainWarn } from '@process/utils/mainLogger';
+import { getPlatformServices } from '@/common/platform';
 
 const execFile = promisify(execFileCb);
 
@@ -163,6 +164,23 @@ export async function prepareCleanEnv(): Promise<Record<string, string | undefin
       delete merged[key];
     }
   }
+
+  // Redirect bun cache directories from system %TEMP% to userData.
+  // Windows Defender and other antivirus software actively scan %TEMP%,
+  // causing EPERM (NtSetInformationFile) when bun tries to rename files
+  // into its cache during package installation.
+  if (!merged.BUN_INSTALL_CACHE_DIR || !merged.BUN_TMPDIR) {
+    const userDataDir = getPlatformServices().paths.getDataDir();
+    if (!merged.BUN_INSTALL_CACHE_DIR) {
+      merged.BUN_INSTALL_CACHE_DIR = path.join(userDataDir, 'bun-cache');
+    }
+    if (!merged.BUN_TMPDIR) {
+      merged.BUN_TMPDIR = path.join(userDataDir, 'bun-tmp');
+    }
+  }
+  console.log(`[ACP] BUN_INSTALL_CACHE_DIR=${merged.BUN_INSTALL_CACHE_DIR}`);
+  console.log(`[ACP] BUN_TMPDIR=${merged.BUN_TMPDIR}`);
+
   return merged;
 }
 
