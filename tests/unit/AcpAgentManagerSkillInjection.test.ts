@@ -240,7 +240,7 @@ describe('AcpAgentManager — first-message skill injection', () => {
 
   it('falls back to prompt injection for unsupported backend regardless of customWorkspace', async () => {
     const manager = createManager({
-      backend: 'opencode',
+      backend: 'auggie',
       customWorkspace: false,
       presetContext: 'Some rules',
       enabledSkills: ['pdf'],
@@ -252,7 +252,7 @@ describe('AcpAgentManager — first-message skill injection', () => {
       presetContext: 'Some rules',
       enabledSkills: ['pdf'],
       enableTeamGuide: false,
-      backend: 'opencode',
+      backend: 'auggie',
     });
   });
 
