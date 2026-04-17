@@ -108,7 +108,6 @@ vi.mock('@/common', () => ({
   },
 }));
 
-import { fireEvent } from '@testing-library/react';
 import GuidActionRow from '@/renderer/pages/guid/components/GuidActionRow';
 import { FileService } from '@/renderer/services/FileService';
 
