@@ -4,12 +4,12 @@ import type { IResponseMessage } from '@/common/adapter/ipcBridge';
 import type { TMessage } from '@/common/chat/chatLib';
 import {
   ACP_BACKENDS_ALL,
-  type AgentBackend,
   type AcpModelInfo,
   type AcpSessionConfigOption,
+  type AgentBackend,
 } from '@/common/types/acpTypes';
 import type { McpServer } from '@agentclientprotocol/sdk';
-import type { AgentConfig, AgentSource, ConfigOption, ModelSnapshot } from '@process/acp/types';
+import type { AgentConfig, AgentSource, ConfigOption, InitialDesiredConfig, ModelSnapshot } from '@process/acp/types';
 import { getEnhancedEnv, loadFullShellEnvironment } from '@process/utils/shellEnv';
 /**
  * Old ACP agent config type from AcpAgent/AcpAgentManager
@@ -78,13 +78,14 @@ export function toAgentConfig(old: OldAcpAgentConfig): AgentConfig {
     };
   }
 
-  // Build resumeConfig from pendingConfigOptions
-  let resumeConfig: Record<string, unknown> | undefined;
+  // Build initialDesired from Guid page selections
+  const initialDesired: InitialDesiredConfig = {};
+  if (old.extra?.currentModelId) initialDesired.model = old.extra.currentModelId;
+  if (old.extra?.sessionMode) initialDesired.mode = old.extra.sessionMode;
   if (old.extra?.pendingConfigOptions && Object.keys(old.extra.pendingConfigOptions).length > 0) {
-    resumeConfig = { pendingConfigOptions: old.extra.pendingConfigOptions };
+    initialDesired.configOptions = old.extra.pendingConfigOptions;
   }
-
-  // Build resumeConfig from pendingConfigOptions (already done above)
+  const hasInitialDesired = Object.keys(initialDesired).length > 0;
 
   return {
     agentBackend: old.backend,
@@ -100,10 +101,9 @@ export function toAgentConfig(old: OldAcpAgentConfig): AgentConfig {
     cwd: old.workingDir,
 
     teamMcpConfig: teamMcpConfig,
-    // authCredentials populated async by AcpAgentV2.start() via loadAuthCredentials()
 
     resumeSessionId: old.extra?.acpSessionId,
-    resumeConfig: resumeConfig,
+    initialDesired: hasInitialDesired ? initialDesired : undefined,
 
     yoloMode: old.extra?.yoloMode,
   };

@@ -2,8 +2,10 @@
 
 import type { IResponseMessage } from '@/common/adapter/ipcBridge';
 import type { IMessageAcpToolCall, TMessage } from '@/common/chat/chatLib';
+import { NavigationInterceptor } from '@/common/chat/navigation';
 import type { AcpModelInfo, AcpResult, AcpSessionConfigOption } from '@/common/types/acpTypes';
 import { AcpErrorType } from '@/common/types/acpTypes';
+import { getFullAutoMode } from '@/common/types/agentModes';
 import { LegacyConnectorFactory } from '@process/acp/compat/LegacyConnectorFactory';
 import {
   loadAuthCredentials,
@@ -16,6 +18,8 @@ import {
 import { AcpSession, type SessionOptions } from '@process/acp/session/AcpSession';
 // TODO(ACP Discovery): Re-enable when acp_session persistence is restored.
 // import type { IAcpSessionRepository } from '@process/services/database/IAcpSessionRepository';
+import { waitForMcpReady } from '@/process/team/mcpReadiness';
+import type { McpServer } from '@agentclientprotocol/sdk';
 import type {
   AgentConfig,
   ConfigSnapshot,
@@ -25,7 +29,7 @@ import type {
   SessionCallbacks,
   SessionStatus,
 } from '@process/acp/types';
-import type { McpServer } from '@agentclientprotocol/sdk';
+import { ProcessConfig } from '@process/utils/initStorage';
 import { getEnhancedEnv } from '@process/utils/shellEnv';
 import { spawn } from 'node:child_process';
 
@@ -44,13 +48,14 @@ const LOGIN_TIMEOUT_MS = 70_000;
  * Refresh backend credentials by running the backend CLI login command.
  * Will be replaced by `authCommand + args` config when Agent Hub lands (PR #2349).
  */
-async function runBackendLogin(backend: string): Promise<void> {
+async function runBackendLogin(backend: string, cliCommand?: string): Promise<void> {
   const env = getEnhancedEnv();
   const loginArgs = BACKEND_LOGIN_ARGS[backend];
   if (!loginArgs) return;
 
-  console.log(`[AcpAgentV2] Running ${backend} ${loginArgs.join(' ')}`);
-  const child = spawn(backend, loginArgs, {
+  const command = cliCommand ?? backend;
+  console.log(`[AcpAgentV2] Running ${command} ${loginArgs.join(' ')}`);
+  const child = spawn(command, loginArgs, {
     stdio: 'pipe',
     timeout: LOGIN_TIMEOUT_MS,
     env,
@@ -95,6 +100,7 @@ export class AcpAgentV2 {
   // Cached state from callbacks
   private cachedModelInfo: AcpModelInfo | null = null;
   private cachedConfigOptions: AcpSessionConfigOption[] = [];
+  private cachedModes: ModeSnapshot | null = null;
   private lastSessionId: string | null = null;
   private lastStatus: SessionStatus = 'idle';
 
@@ -108,6 +114,8 @@ export class AcpAgentV2 {
   private activeToolCalls = new Map<string, IMessageAcpToolCall>();
   // Auth retry guard — prevent infinite auth loops
   private authRetryAttempted = false;
+  // Serialize concurrent capability cache writes across backends
+  private static cacheQueue: Promise<void> = Promise.resolve();
 
   constructor(config: OldAcpAgentConfig) {
     this.conversationId = config.id;
@@ -177,13 +185,36 @@ export class AcpAgentV2 {
 
     const callbacks: SessionCallbacks = this.buildCallbacks();
     const clientFactory = new LegacyConnectorFactory();
+
+    // Resolve prompt timeout: per-backend → global → default (300s)
+    const acpConfig = (await ProcessConfig.get('acp.config')) as Record<string, { promptTimeout?: number }> | undefined;
+    const backendTimeout = acpConfig?.[this.agentConfig.agentBackend]?.promptTimeout;
+    const globalTimeout = await ProcessConfig.get('acp.promptTimeout');
+    const timeoutSec = backendTimeout || globalTimeout || 300;
+    const promptTimeoutMs = Math.max(30, timeoutSec) * 1000;
+
     const sessionOptions: SessionOptions = {
-      promptTimeoutMs: 300_000,
+      promptTimeoutMs,
       maxStartRetries: 3,
       maxResumeRetries: 2,
+      initialDesired: this.agentConfig.initialDesired,
     };
 
     this.session = new AcpSession(this.agentConfig, clientFactory, callbacks, sessionOptions);
+
+    // Wait for team MCP tools to complete handshake before allowing messages.
+    // The stdio script sends mcp_ready with TEAM_AGENT_SLOT_ID after server.connect().
+    const teamMcp = this.agentConfig.teamMcpConfig;
+    const teamSlotId =
+      teamMcp && 'env' in teamMcp
+        ? teamMcp.env.find((e: { name: string }) => e.name === 'TEAM_AGENT_SLOT_ID')?.value
+        : undefined;
+    if (teamSlotId) {
+      await waitForMcpReady(teamSlotId, 30_000).catch(() => {
+        console.warn('[AcpAgentV2] Team MCP readiness timeout, proceeding anyway');
+      });
+    }
+
     return this.session;
   }
 
@@ -201,6 +232,11 @@ export class AcpAgentV2 {
         // Skip empty messages (e.g., filtered available_commands)
         if (oldMsg.type) {
           this.onStreamEvent(oldMsg);
+        }
+
+        // Intercept navigation tools → emit preview_open for chrome-devtools preview
+        if (message.type === 'acp_tool_call') {
+          this.emitPreviewIfNavigation(message as IMessageAcpToolCall);
         }
       },
 
@@ -250,14 +286,20 @@ export class AcpAgentV2 {
           msg_id: `model_${Date.now()}`,
           data: this.cachedModelInfo,
         });
+
+        this.persistSessionCapabilities();
       },
 
-      onModeUpdate: (_mode: ModeSnapshot) => {
+      onModeUpdate: (mode: ModeSnapshot) => {
+        this.cachedModes = mode;
+
         // Resolve modeOp if pending
         if (this.modeOp) {
           this.resolveOp(this.modeOp, { success: true });
           this.modeOp = null;
         }
+
+        this.persistSessionCapabilities();
       },
 
       onConfigUpdate: (config: ConfigSnapshot) => {
@@ -271,12 +313,10 @@ export class AcpAgentV2 {
 
         // Forward availableCommands to old callback
         if (this.onAvailableCommandsUpdate && config.availableCommands.length > 0) {
-          const commands = config.availableCommands.map((name) => ({
-            name,
-            description: name,
-          }));
-          this.onAvailableCommandsUpdate(commands);
+          this.onAvailableCommandsUpdate(config.availableCommands);
         }
+
+        this.persistSessionCapabilities();
       },
 
       onContextUsage: (usage: ContextUsage) => {
@@ -284,7 +324,7 @@ export class AcpAgentV2 {
           type: 'acp_context_usage',
           conversation_id: this.conversationId,
           msg_id: `usage_${Date.now()}`,
-          data: { used: usage.used, size: usage.total },
+          data: { used: usage.used, size: usage.total, cost: usage.cost },
         });
       },
 
@@ -493,9 +533,10 @@ export class AcpAgentV2 {
 
   async sendMessage(data: { content: string; files?: string[]; msg_id?: string }): Promise<AcpResult> {
     try {
-      // Emit start signal (matches old AcpAgent behavior)
-      if (this.onSignalEvent) {
-        this.onSignalEvent({
+      // Emit start event via stream channel so AcpAgentManager.handleStreamEvent
+      // can emit request_trace (which checks message.type === 'start')
+      if (this.onStreamEvent) {
+        this.onStreamEvent({
           type: 'start',
           data: null,
           msg_id: data.msg_id ?? `start_${Date.now()}`,
@@ -580,10 +621,28 @@ export class AcpAgentV2 {
   }
 
   async enableYoloMode(): Promise<void> {
-    await this.setMode('bypassPermissions');
+    await this.setMode(getFullAutoMode(this.agentConfig.agentBackend));
   }
 
   // ─── Helper Methods ─────────────────────────────────────────────
+
+  /**
+   * Check if an acp_tool_call is a navigation tool (chrome-devtools) and emit
+   * a preview_open event so the URL shows in the preview panel.
+   */
+  private emitPreviewIfNavigation(message: IMessageAcpToolCall): void {
+    const title = message.content?.update?.title;
+    const rawInput = message.content?.update?.rawInput as Record<string, unknown> | undefined;
+    if (!title) return;
+
+    if (!NavigationInterceptor.isNavigationTool(title)) return;
+
+    const url = NavigationInterceptor.extractUrl({ arguments: rawInput });
+    if (!url) return;
+
+    const previewMsg = NavigationInterceptor.createPreviewMessage(url, this.conversationId);
+    this.onStreamEvent(previewMsg);
+  }
 
   /**
    * Temporary auth recovery: run backend CLI login command, then retry session.
@@ -611,7 +670,7 @@ export class AcpAgentV2 {
 
     const backend = this.agentConfig.agentBackend;
     try {
-      await runBackendLogin(backend);
+      await runBackendLogin(backend, this.agentConfig.command);
       // Reload credentials from env after login refreshes tokens
       const creds = await loadAuthCredentials(backend, this.agentConfig.env);
       this.session?.retryAuth(creds ?? undefined);
@@ -634,5 +693,57 @@ export class AcpAgentV2 {
   private rejectOp<T>(op: PendingOp<T>, err: Error): void {
     clearTimeout(op.timer);
     op.reject(err);
+  }
+
+  /**
+   * Persist session capabilities to disk so Guid page / selectors can render
+   * from cache before an active session exists. Uses a static queue to
+   * serialize writes when multiple backends start concurrently.
+   */
+  private persistSessionCapabilities(): void {
+    const backend = this.agentConfig.agentBackend;
+    const modelInfo = this.cachedModelInfo;
+    const configOptions = this.cachedConfigOptions;
+    const modes = this.cachedModes;
+
+    const job = AcpAgentV2.cacheQueue.then(async () => {
+      if (modelInfo && modelInfo.availableModels && modelInfo.availableModels.length > 0) {
+        const cached = (await ProcessConfig.get('acp.cachedModels')) || {};
+        const existing = cached[backend];
+        await ProcessConfig.set('acp.cachedModels', {
+          ...cached,
+          [backend]: {
+            ...modelInfo,
+            // Preserve the original default model from the first session
+            currentModelId: existing?.currentModelId ?? modelInfo.currentModelId,
+            currentModelLabel: existing?.currentModelLabel ?? modelInfo.currentModelLabel,
+          },
+        });
+      }
+
+      if (configOptions.length > 0) {
+        const cached = (await ProcessConfig.get('acp.cachedConfigOptions')) || {};
+        await ProcessConfig.set('acp.cachedConfigOptions', {
+          ...cached,
+          [backend]: configOptions,
+        });
+      }
+
+      if (modes && modes.availableModes.length > 0) {
+        const cached = (await ProcessConfig.get('acp.cachedModes')) || {};
+        await ProcessConfig.set('acp.cachedModes', {
+          ...cached,
+          [backend]: {
+            currentModeId: modes.currentModeId ?? undefined,
+            availableModes: modes.availableModes.map((m) => ({
+              id: m.id,
+              name: m.name,
+              description: m.description,
+            })),
+          },
+        });
+      }
+    });
+    AcpAgentV2.cacheQueue = job.catch(() => {});
   }
 }

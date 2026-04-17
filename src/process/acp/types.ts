@@ -54,7 +54,9 @@ export type AgentConfig = {
 
   // 恢复信息（从 DB 重建时使用）
   resumeSessionId?: string;
-  resumeConfig?: Record<string, unknown>;
+
+  // 用户在 session 建立前的选择（如 Guid 页面选的 model / mode / config）
+  initialDesired?: InitialDesiredConfig;
 
   // 其他
   yoloMode?: boolean;
@@ -64,15 +66,30 @@ export type AgentConfig = {
 
 export type SessionStatus = 'idle' | 'starting' | 'active' | 'prompting' | 'suspended' | 'resuming' | 'error';
 
+// ─── Initial Desired Config ─────────────────────────────────────
+
+/** User selections made before session creation (e.g., from the Guid page). */
+export type InitialDesiredConfig = {
+  model?: string;
+  mode?: string;
+  configOptions?: Record<string, string | boolean>;
+};
+
 // ─── Prompt ─────────────────────────────────────────────────────
 
 export type PromptContent = ContentBlock[];
 
 // ─── Config Snapshots ───────────────────────────────────────────
 
+export type AvailableCommand = {
+  name: string;
+  description?: string;
+  hint?: string;
+};
+
 export type ConfigSnapshot = {
   configOptions: ConfigOption[];
-  availableCommands: string[];
+  availableCommands: AvailableCommand[];
   cwd: string;
   additionalDirectories?: string[];
 };
@@ -91,6 +108,7 @@ export type ContextUsage = {
   used: number;
   total: number;
   percentage: number;
+  cost?: { amount: number; currency: string };
 };
 
 export type ConfigOption = {

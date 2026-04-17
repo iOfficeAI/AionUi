@@ -100,7 +100,7 @@ export class MessageTranslator {
       case 'plan':
         return this.handlePlan(update);
       case 'available_commands_update':
-        return this.handleAvailableCommands(update);
+        return []; // Handled by AcpSession.handleMessage → ConfigTracker
       case 'user_message_chunk':
         return [];
       default:

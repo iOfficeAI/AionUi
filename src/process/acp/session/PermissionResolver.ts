@@ -147,8 +147,8 @@ export class PermissionResolver {
     if (!entry) return;
     this.pending.delete(callId);
 
-    // Cache "always" decisions for future auto-approval
-    if (optionId.includes('always') || optionId === 'always') {
+    // Cache "allow always" decisions for future auto-approval (never cache deny)
+    if (optionId.startsWith('allow_') && optionId.includes('always')) {
       this.cache.set(entry.cacheKey, optionId);
     }
 

@@ -493,12 +493,12 @@ describe('AcpAgentV2 - Messaging + Permission Methods', () => {
       expect(mockSessionMethods.sendMessage).toHaveBeenCalledWith('Hello', ['/test/file.txt']);
     });
 
-    it('should emit start signal via onSignalEvent before sending', async () => {
-      const { agent, onSignalEvent } = await createStartedAgentWithSignalCapture();
+    it('should emit start event via onStreamEvent before sending', async () => {
+      const { agent, onStreamEvent } = await createStartedAgentWithSignalCapture();
 
       await agent.sendMessage({ content: 'Test message', msg_id: 'msg123' });
 
-      expect(onSignalEvent).toHaveBeenCalledWith({
+      expect(onStreamEvent).toHaveBeenCalledWith({
         type: 'start',
         data: null,
         msg_id: 'msg123',
@@ -508,11 +508,11 @@ describe('AcpAgentV2 - Messaging + Permission Methods', () => {
     });
 
     it('should generate msg_id if not provided', async () => {
-      const { agent, onSignalEvent } = await createStartedAgentWithSignalCapture();
+      const { agent, onStreamEvent } = await createStartedAgentWithSignalCapture();
 
       await agent.sendMessage({ content: 'Test' });
 
-      expect(onSignalEvent).toHaveBeenCalledWith(
+      expect(onStreamEvent).toHaveBeenCalledWith(
         expect.objectContaining({
           type: 'start',
           msg_id: expect.stringMatching(/^start_\d+$/),

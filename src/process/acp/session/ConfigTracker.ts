@@ -1,6 +1,13 @@
 // src/process/acp/session/ConfigTracker.ts
 
-import type { ConfigOption, ConfigSnapshot, ModelSnapshot, ModeSnapshot } from '@process/acp/types';
+import type {
+  AvailableCommand,
+  ConfigOption,
+  ConfigSnapshot,
+  InitialDesiredConfig,
+  ModelSnapshot,
+  ModeSnapshot,
+} from '@process/acp/types';
 
 type SyncResult = {
   currentModelId?: string;
@@ -10,7 +17,7 @@ type SyncResult = {
   configOptions?: ConfigOption[];
   cwd: string;
   additionalDirectories?: string[];
-  availableCommands?: string[];
+  availableCommands?: AvailableCommand[];
 };
 
 type PendingChanges = {
@@ -21,19 +28,30 @@ type PendingChanges = {
 
 export class ConfigTracker {
   // Current (confirmed by agent)
-  private currentModelId: string | null = null;
-  private currentModeId: string | null = null;
-  private availableModels: Array<{ modelId: string; name: string; description?: string }> = [];
-  private availableModes: Array<{ id: string; name: string; description?: string }> = [];
-  private configOptions: ConfigOption[] = [];
   private cwd = '';
   private additionalDirectories: string[] | undefined;
-  private availableCommands: string[] = [];
+  private availableModels: Array<{ modelId: string; name: string; description?: string }> = [];
+  private availableModes: Array<{ id: string; name: string; description?: string }> = [];
+  private availableCommands: AvailableCommand[] = [];
 
+  private currentModelId: string | null = null;
+  private currentModeId: string | null = null;
+  private currentConfigOptions: ConfigOption[] = [];
   // Desired (user intent, not yet synced)
   private desiredModelId: string | null = null;
   private desiredModeId: string | null = null;
   private desiredConfigOptions = new Map<string, string | boolean>();
+
+  constructor(initialDesired?: InitialDesiredConfig) {
+    if (!initialDesired) return;
+    if (initialDesired.model) this.desiredModelId = initialDesired.model;
+    if (initialDesired.mode) this.desiredModeId = initialDesired.mode;
+    if (initialDesired.configOptions) {
+      for (const [id, value] of Object.entries(initialDesired.configOptions)) {
+        this.desiredConfigOptions.set(id, value);
+      }
+    }
+  }
 
   setDesiredModel(modelId: string): void {
     this.desiredModelId = modelId;
@@ -58,19 +76,19 @@ export class ConfigTracker {
   }
 
   setCurrentConfigOption(id: string, value: string | boolean): void {
-    const opt = this.configOptions.find((o) => o.id === id);
+    const opt = this.currentConfigOptions.find((o) => o.id === id);
     if (opt) opt.currentValue = value;
     this.desiredConfigOptions.delete(id);
   }
 
   syncFromSessionResult(result: SyncResult): void {
+    this.cwd = result.cwd;
+    this.additionalDirectories = result.additionalDirectories;
     if (result.currentModelId !== undefined) this.currentModelId = result.currentModelId;
     if (result.availableModels) this.availableModels = result.availableModels;
     if (result.currentModeId !== undefined) this.currentModeId = result.currentModeId;
     if (result.availableModes) this.availableModes = result.availableModes;
-    if (result.configOptions) this.configOptions = result.configOptions;
-    this.cwd = result.cwd;
-    this.additionalDirectories = result.additionalDirectories;
+    if (result.configOptions) this.currentConfigOptions = result.configOptions;
     if (result.availableCommands) this.availableCommands = result.availableCommands;
   }
 
@@ -107,7 +125,7 @@ export class ConfigTracker {
 
   configSnapshot(): ConfigSnapshot {
     return {
-      configOptions: [...this.configOptions],
+      configOptions: [...this.currentConfigOptions],
       availableCommands: [...this.availableCommands],
       cwd: this.cwd,
       additionalDirectories: this.additionalDirectories,
@@ -115,10 +133,10 @@ export class ConfigTracker {
   }
 
   updateConfigOptions(options: ConfigOption[]): void {
-    this.configOptions = options;
+    this.currentConfigOptions = options;
   }
 
-  updateAvailableCommands(commands: string[]): void {
+  updateAvailableCommands(commands: AvailableCommand[]): void {
     this.availableCommands = commands;
   }
 }

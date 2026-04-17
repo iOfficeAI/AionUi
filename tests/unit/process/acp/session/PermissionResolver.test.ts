@@ -36,16 +36,16 @@ describe('PermissionResolver', () => {
     const resolver = new PermissionResolver({ autoApproveAll: false });
     const uiCallback = vi.fn();
 
-    // First call: resolve manually with "always"
+    // First call: resolve manually with "allow_always"
     const p1 = resolver.evaluate(makeRequest('read_file', 'c1', { kind: 'read' }), uiCallback);
-    resolver.resolve('c1', 'always');
+    resolver.resolve('c1', 'allow_always');
     await p1;
 
     // Second call with same tool + kind: should hit cache
     const uiCallback2 = vi.fn();
     const result = await resolver.evaluate(makeRequest('read_file', 'c2', { kind: 'read' }), uiCallback2);
     expect(uiCallback2).not.toHaveBeenCalled();
-    expect(result.outcome).toEqual({ outcome: 'selected', optionId: 'always' });
+    expect(result.outcome).toEqual({ outcome: 'selected', optionId: 'allow_always' });
   });
 
   it('does NOT cache-hit when kind differs', async () => {
@@ -53,7 +53,7 @@ describe('PermissionResolver', () => {
 
     // Approve read_file with kind=read
     const p1 = resolver.evaluate(makeRequest('read_file', 'c1', { kind: 'read' }), vi.fn());
-    resolver.resolve('c1', 'always');
+    resolver.resolve('c1', 'allow_always');
     await p1;
 
     // Same title but kind=edit — should NOT hit cache
@@ -67,7 +67,7 @@ describe('PermissionResolver', () => {
 
     // Approve execute with command=ls
     const p1 = resolver.evaluate(makeRequest('bash', 'c1', { kind: 'execute', rawInput: { command: 'ls' } }), vi.fn());
-    resolver.resolve('c1', 'always');
+    resolver.resolve('c1', 'allow_always');
     await p1;
 
     // Same title+kind but different command — should NOT hit cache
@@ -81,7 +81,7 @@ describe('PermissionResolver', () => {
 
     // Approve execute with command=ls
     const p1 = resolver.evaluate(makeRequest('bash', 'c1', { kind: 'execute', rawInput: { command: 'ls' } }), vi.fn());
-    resolver.resolve('c1', 'always');
+    resolver.resolve('c1', 'allow_always');
     await p1;
 
     // Same title+kind+command — should hit cache
@@ -91,7 +91,7 @@ describe('PermissionResolver', () => {
       uiCallback
     );
     expect(uiCallback).not.toHaveBeenCalled();
-    expect(result.outcome).toEqual({ outcome: 'selected', optionId: 'always' });
+    expect(result.outcome).toEqual({ outcome: 'selected', optionId: 'allow_always' });
   });
 
   it('delegates to UI when no cache hit', async () => {
