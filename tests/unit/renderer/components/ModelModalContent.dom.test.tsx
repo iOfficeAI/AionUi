@@ -211,4 +211,38 @@ describe('ModelModalContent', () => {
       proxy: undefined,
     });
   });
+
+  it('renders quota tags from /status --chatgpt fallback text when capabilities are unavailable', async () => {
+    state.quotaStatus.mockResolvedValue({
+      success: true,
+      data: {
+        authenticated: true,
+        statusText: [
+          'Status (ChatGPT)',
+          'Model: gpt-5-codex',
+          'Plan: Pro',
+          '5h limit: 55% left (45% used)',
+          'Weekly limit: 70% left (30% used)',
+          'Credits: 38 credits',
+        ].join('\n'),
+      },
+    });
+
+    const { default: ModelModalContent } =
+      await import('@/renderer/components/settings/SettingsModal/contents/ModelModalContent');
+
+    render(
+      <SWRConfig value={{ provider: () => new Map(), dedupingInterval: 0 }}>
+        <ModelModalContent />
+      </SWRConfig>
+    );
+
+    await waitFor(() => {
+      expect(screen.getByText('Plan: Pro')).toBeInTheDocument();
+    });
+
+    expect(screen.getByText('5h 55%')).toBeInTheDocument();
+    expect(screen.getByText('Weekly 70%')).toBeInTheDocument();
+    expect(screen.getByText('38 credits')).toBeInTheDocument();
+  });
 });
