@@ -55,7 +55,8 @@
   },
   "removeAgent": {
     "confirmTitle": "팀 멤버 제거",
-    "confirmContent": "이 멤버는 현재 활성 상태입니다. 강제 제거하시겠습니까?"
+    "confirmContent": "이 멤버는 현재 활성 상태입니다. 강제 제거하시겠습니까?",
+    "failedToStart": "에이전트 시작 실패"
   },
   "emptyState": {
     "subtitle": "목표를 알려주세요. 팀을 조율해서 완료하겠습니다",

@@ -55,7 +55,8 @@
   },
   "removeAgent": {
     "confirmTitle": "移除團隊成員",
-    "confirmContent": "該成員正在工作中，確定要強制移除嗎？"
+    "confirmContent": "該成員正在工作中，確定要強制移除嗎？",
+    "failedToStart": "Agent 啟動失敗"
   },
   "emptyState": {
     "subtitle": "描述你的目標，我來協調團隊搞定它",

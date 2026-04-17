@@ -718,6 +718,9 @@ export class TeamSessionService {
     const team = await this.repo.findById(teamId);
     if (!team) throw new Error(`Team "${teamId}" not found`);
 
+    const target = team.agents.find((a) => a.slotId === slotId);
+    if (target?.role === 'lead') throw new Error('Cannot remove the team lead');
+
     // removeAgent handles: kill process + clear in-memory state + persist via onAgentRemoved callback
     const session = this.sessions.get(teamId);
     if (session) {

@@ -1826,6 +1826,7 @@ export type I18nKey =
   | 'team.noMessages'
   | 'team.removeAgent.confirmContent'
   | 'team.removeAgent.confirmTitle'
+  | 'team.removeAgent.failedToStart'
   | 'team.sendBox.placeholder'
   | 'team.sider.createTeam'
   | 'team.sider.delete'

@@ -280,7 +280,7 @@ export class TeammateManager extends EventEmitter {
         return;
       }
       // Detect quota/rate-limit errors (429) and mark agent as failed
-      if (/429|rate.?limit|quota|too many requests/i.test(errorText)) {
+      if (/\b429\b|rate.?limit|quota|too many requests/i.test(errorText)) {
         this.setStatus(agent.slotId, 'failed', errorText.slice(0, 200));
         return;
       }

@@ -512,7 +512,7 @@ describe('TeamPage remove agent', () => {
     expect(closeIcons.length).toBeGreaterThanOrEqual(1);
   });
 
-  it('calls ipcBridge.team.removeAgent when remove is triggered on idle agent', async () => {
+  it('calls useTeamSession.removeAgent when remove is triggered on idle agent', async () => {
     const TeamPage = (await import('@renderer/pages/team/TeamPage')).default;
 
     render(React.createElement(TeamPage, { team: makeTeam() }));
@@ -524,10 +524,7 @@ describe('TeamPage remove agent', () => {
     }
 
     await waitFor(() => {
-      expect(mockRemoveAgentInvoke).toHaveBeenCalledWith({
-        teamId: 'team-1',
-        slotId: 'slot-member',
-      });
+      expect(mockUseTeamSessionReturn.removeAgent).toHaveBeenCalledWith('slot-member');
     });
   });
 
@@ -557,7 +554,7 @@ describe('TeamPage remove agent', () => {
   });
 
   it('shows error message when remove fails', async () => {
-    mockRemoveAgentInvoke.mockRejectedValue(new Error('Remove failed'));
+    mockUseTeamSessionReturn.removeAgent.mockRejectedValue(new Error('Remove failed'));
 
     const TeamPage = (await import('@renderer/pages/team/TeamPage')).default;
     const { Message } = await import('@arco-design/web-react');
@@ -575,7 +572,7 @@ describe('TeamPage remove agent', () => {
   });
 
   it('shows success message after successful remove', async () => {
-    mockRemoveAgentInvoke.mockResolvedValue(undefined);
+    mockUseTeamSessionReturn.removeAgent.mockResolvedValue(undefined);
 
     const TeamPage = (await import('@renderer/pages/team/TeamPage')).default;
     const { Message } = await import('@arco-design/web-react');

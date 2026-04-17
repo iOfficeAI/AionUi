@@ -33,6 +33,7 @@ type TeamPageContentProps = {
   team: TTeam;
   onAddAgent: (data: { agentName: string; agentKey: string }) => void;
   onRenameTeam: (newName: string) => Promise<boolean>;
+  onRemoveAgent: (slotId: string) => void;
 };
 
 /** Compact aionrs model selector for the agent header */
@@ -62,6 +63,7 @@ const AgentChatSlot: React.FC<{
   onToggleFullscreen?: () => void;
   onRemove?: () => void;
 }> = ({ agent, teamId, isLead, isFullscreen = false, runtimeStatus, onToggleFullscreen, onRemove }) => {
+  const { t } = useTranslation();
   const { data: conversation } = useSWR(agent.conversationId ? ['team-conversation', agent.conversationId] : null, () =>
     ipcBridge.conversation.get.invoke({ id: agent.conversationId })
   );
@@ -171,9 +173,9 @@ const AgentChatSlot: React.FC<{
         {(runtimeStatus ?? agent.status) === 'failed' && !isLead && onRemove && (
           <div className='absolute inset-0 z-10 flex flex-col items-center justify-center gap-12px bg-[color:var(--color-bg-1)]/80'>
             <CloseOne theme='filled' size='32' fill='var(--color-danger-6)' />
-            <span className='text-14px text-[color:var(--color-text-2)]'>Agent failed to start</span>
+            <span className='text-14px text-[color:var(--color-text-2)]'>{t('team.removeAgent.failedToStart')}</span>
             <Button type='primary' status='danger' size='small' onClick={onRemove}>
-              Remove
+              {t('common.remove')}
             </Button>
           </div>
         )}
@@ -183,7 +185,7 @@ const AgentChatSlot: React.FC<{
 };
 
 /** Inner component that reads active tab from context and renders the chat layout */
-const TeamPageContent: React.FC<TeamPageContentProps> = ({ team, onAddAgent, onRenameTeam }) => {
+const TeamPageContent: React.FC<TeamPageContentProps> = ({ team, onAddAgent, onRenameTeam, onRemoveAgent }) => {
   const { t } = useTranslation();
   const { agents, activeSlotId, statusMap, switchTab } = useTeamTabs();
   const [, messageContext] = Message.useMessage({ maxCount: 1 });
@@ -197,37 +199,13 @@ const TeamPageContent: React.FC<TeamPageContentProps> = ({ team, onAddAgent, onR
   const activeAgent = agents.find((a) => a.slotId === activeSlotId);
   const leadAgent = agents.find((a) => a.role === 'lead');
 
-  const doRemoveAgent = useCallback(
-    async (slotId: string) => {
-      try {
-        await ipcBridge.team.removeAgent.invoke({ teamId: team.id, slotId });
-        Message.success(t('common.deleteSuccess'));
-        // Only switch tab when removing the currently active tab
-        if (slotId === activeSlotId && leadAgent?.slotId) switchTab(leadAgent.slotId);
-        if (fullscreenSlotId === slotId) setFullscreenSlotId(null);
-      } catch (error) {
-        console.error('Failed to remove agent:', error);
-        Message.error(String(error));
-      }
-    },
-    [team.id, activeSlotId, leadAgent?.slotId, switchTab, fullscreenSlotId, t]
-  );
+  // Auto-exit fullscreen when the fullscreened agent is removed
+  useEffect(() => {
+    if (fullscreenSlotId && !agents.some((a) => a.slotId === fullscreenSlotId)) {
+      setFullscreenSlotId(null);
+    }
+  }, [agents, fullscreenSlotId]);
 
-  const handleRemoveAgent = useCallback(
-    (slotId: string) => {
-      const status = statusMap.get(slotId)?.status;
-      if (status === 'active') {
-        Modal.confirm({
-          title: t('team.removeAgent.confirmTitle'),
-          content: t('team.removeAgent.confirmContent'),
-          onOk: () => doRemoveAgent(slotId),
-        });
-      } else {
-        void doRemoveAgent(slotId);
-      }
-    },
-    [statusMap, doRemoveAgent, t]
-  );
   const leadConversationId = leadAgent?.conversationId ?? '';
   const isLeadAgent = activeAgent?.role === 'lead';
   const allConversationIds = useMemo(() => agents.map((a) => a.conversationId).filter(Boolean), [agents]);
@@ -402,7 +380,7 @@ const TeamPageContent: React.FC<TeamPageContentProps> = ({ team, onAddAgent, onR
                     isFullscreen
                     runtimeStatus={statusMap.get(agent.slotId)?.status}
                     onToggleFullscreen={() => setFullscreenSlotId(null)}
-                    onRemove={() => handleRemoveAgent(agent.slotId)}
+                    onRemove={() => onRemoveAgent(agent.slotId)}
                   />
                 </div>
               );
@@ -455,7 +433,7 @@ const TeamPageContent: React.FC<TeamPageContentProps> = ({ team, onAddAgent, onR
                         isLead={isLeadSlot}
                         runtimeStatus={statusMap.get(agent.slotId)?.status}
                         onToggleFullscreen={() => setFullscreenSlotId(agent.slotId)}
-                        onRemove={() => handleRemoveAgent(agent.slotId)}
+                        onRemove={() => onRemoveAgent(agent.slotId)}
                       />
                     </div>
                   );
@@ -558,7 +536,12 @@ const TeamPage: React.FC<Props> = ({ team }) => {
       renameAgent={renameAgent}
       removeAgent={handleRemoveAgentWithConfirm}
     >
-      <TeamPageContent team={team} onAddAgent={handleAddAgent} onRenameTeam={handleRenameTeam} />
+      <TeamPageContent
+        team={team}
+        onAddAgent={handleAddAgent}
+        onRenameTeam={handleRenameTeam}
+        onRemoveAgent={handleRemoveAgentWithConfirm}
+      />
     </TeamTabsProvider>
   );
 };

@@ -55,7 +55,8 @@
   },
   "removeAgent": {
     "confirmTitle": "Takım Üyesini Kaldır",
-    "confirmContent": "Bu üye şu anda aktif. Zorla kaldırılsın mı?"
+    "confirmContent": "Bu üye şu anda aktif. Zorla kaldırılsın mı?",
+    "failedToStart": "Ajan başlatılamadı"
   },
   "emptyState": {
     "subtitle": "Hedefini söyle, ekibi koordine ederek tamamlayayım",

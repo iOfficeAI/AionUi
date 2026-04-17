@@ -55,7 +55,8 @@
   },
   "removeAgent": {
     "confirmTitle": "チームメンバーを削除",
-    "confirmContent": "このメンバーは現在稼働中です。強制的に削除しますか？"
+    "confirmContent": "このメンバーは現在稼働中です。強制的に削除しますか？",
+    "failedToStart": "エージェントの起動に失敗しました"
   },
   "emptyState": {
     "subtitle": "目標を教えてください。チームを調整してタスクを完了します",
