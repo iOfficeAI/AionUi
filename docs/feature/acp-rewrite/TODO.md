@@ -101,3 +101,33 @@ SDK 的 `tool_call_update` 是增量的（只包含变化的字段），shallow 
 const mergedUpdate = { ...existingMsg.content.update, ...message.content.update };
 const merged = { ...existingMsg.content, ...message.content, update: mergedUpdate };
 ```
+
+---
+
+## 文件引用/上传应使用 SDK ContentBlock 而非纯文本
+
+**状态**: 待调研
+**标记**: 无（尚未添加代码标记）
+
+当前会话中的文件引用（`@` 引用）和文件上传都是在发送前将文件内容读取出来，以纯文本拼接到消息中作为 `text` 类型发送给 Agent。这可能是为了兼容各 Agent 的能力差异，但导致：
+
+- 丢失文件元信息（文件名、路径、类型）
+- 大文件内容撑爆 prompt，浪费 context window
+- 无法利用 Agent 自身的文件处理能力（如 Claude 的 PDF 解析、图片理解等）
+- 二进制文件（图片等）被转为 unicode escape 序列后以纯文本发送，Agent 无法识别
+
+**现象**：发送图片时，AcpClient 的 `claude:prompt` 日志显示 prompt 内容为
+`[{"type":"text","text":"能看到这张图么"},{"type":"text","text":"[File: /path/to/image.jpeg]\n..."}]`
+— 图片 JPEG 二进制被读取后以 `\u0000\u0002...` unicode escape 的纯文本形式塞入 `type: "text"` block，
+Agent 实际收到的是一堆乱码而非图片数据。
+
+**应改为**：使用 ACP SDK 中的不同 `ContentBlock` 类型（如 `file`、`image` 等）发送文件内容，让 Agent 根据自身能力处理。
+
+**调研方向**：
+
+1. 调研各 Agent backend（claude, codex, gemini, aionrs 等）对 SDK `ContentBlock` 类型的支持情况
+2. ACP SDK 的 `initialize` 响应中有 `promptCapabilities` 声明（类似 model/mode），记录了 Agent 支持哪些 prompt 内容类型
+3. 考虑像 model、mode 一样将 `promptCapabilities` 缓存到 `acp.cachedInitializeResult`，在发送消息时根据当前 Agent 的能力做不同处理：
+   - 支持 `file` ContentBlock → 直接发 file block
+   - 不支持 → fallback 到当前的纯文本方式
+4. 涉及的发送链路需要梳理：renderer 侧文件收集 → IPC → AcpAgentManager.sendMessage → AcpSession.sendMessage
