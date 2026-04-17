@@ -270,7 +270,7 @@ export const fs = {
   deleteAssistantSkill: bridge.buildProvider<boolean, { assistantId: string }>('delete-assistant-skill'), // 删除助手技能文件
   // 获取可用 skills 列表 / List available skills from skills directory
   listAvailableSkills: bridge.buildProvider<
-    Array<{ name: string; description: string; location: string; isCustom: boolean }>,
+    Array<{ name: string; description: string; location: string; isCustom: boolean; source: 'builtin' | 'custom' | 'extension' }>,
     void
   >('list-available-skills'),
   // 获取内置自动注入 skills 列表 / List builtin auto-injected skills from _builtin directory

@@ -1,11 +1,14 @@
 import type { AcpBackendConfig } from '@/common/types/acpTypes';
 
 // Skill info type
+export type SkillSource = 'builtin' | 'custom' | 'extension';
+
 export type SkillInfo = {
   name: string;
   description: string;
   location: string;
   isCustom: boolean;
+  source: SkillSource;
 };
 
 // External source type

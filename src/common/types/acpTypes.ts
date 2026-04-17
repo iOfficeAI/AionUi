@@ -532,14 +532,24 @@ export const ACP_ENABLED_BACKENDS: Record<string, AcpBackendConfig> = Object.fro
 // 当前启用的后端类型 / Currently enabled backend types
 export type AcpBackend = keyof typeof ACP_BACKENDS_ALL;
 /**
+ * Skill directories for non-ACP agents (DetectedAgentKind not in ACP_BACKENDS_ALL).
+ * These agents have their own execution engines but still support native skill discovery.
+ */
+const NON_ACP_SKILLS_DIRS: Record<string, string[]> = {
+  gemini: ['.gemini/skills'],
+  aionrs: ['.aionrs/skills'],
+};
+
+/**
  * 检查给定 agent 类型/backend 是否支持原生 skill 发现
  * Check if a given agent type/backend supports native skill discovery.
  * When false, callers should fallback to prompt injection for skills.
  */
 export function hasNativeSkillSupport(agentTypeOrBackend: string | undefined): boolean {
   if (!agentTypeOrBackend) return false;
-  const config = ACP_BACKENDS_ALL[agentTypeOrBackend as AcpBackendAll];
-  return !!config?.skillsDirs?.length;
+  const acpConfig = ACP_BACKENDS_ALL[agentTypeOrBackend as AcpBackendAll];
+  if (acpConfig?.skillsDirs?.length) return true;
+  return !!NON_ACP_SKILLS_DIRS[agentTypeOrBackend]?.length;
 }
 
 /**
@@ -549,7 +559,7 @@ export function hasNativeSkillSupport(agentTypeOrBackend: string | undefined): b
  */
 export function getSkillsDirsForBackend(agentTypeOrBackend: string | undefined): string[] | undefined {
   if (!agentTypeOrBackend) return undefined;
-  return ACP_BACKENDS_ALL[agentTypeOrBackend as AcpBackendAll]?.skillsDirs;
+  return ACP_BACKENDS_ALL[agentTypeOrBackend as AcpBackendAll]?.skillsDirs ?? NON_ACP_SKILLS_DIRS[agentTypeOrBackend];
 }
 
 // ACP 错误类型系统 - 优雅的错误处理 / ACP Error Type System - Elegant error handling

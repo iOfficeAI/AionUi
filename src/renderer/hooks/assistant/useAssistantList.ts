@@ -67,7 +67,6 @@ export const useAssistantList = () => {
   }, [loadAssistants]);
 
   const activeAssistant = assistants.find((assistant) => assistant.id === activeAssistantId) || null;
-  const isReadonlyAssistant = Boolean(activeAssistant && isExtensionAssistant(activeAssistant));
 
   return {
     assistants,
@@ -75,7 +74,6 @@ export const useAssistantList = () => {
     activeAssistantId,
     setActiveAssistantId,
     activeAssistant,
-    isReadonlyAssistant,
     isExtensionAssistant,
     loadAssistants,
     localeKey,

@@ -31,7 +31,7 @@ const ConversationSkillsIndicator: React.FC<ConversationSkillsIndicatorProps> = 
   if (!loadedSkills || loadedSkills.length === 0) return null;
 
   const handleSkillClick = (skillName: string) => {
-    navigate(`/settings/skills-hub?highlight=${encodeURIComponent(skillName)}`);
+    navigate(`/settings/capabilities?tab=skills&highlight=${encodeURIComponent(skillName)}`);
   };
 
   const content = (

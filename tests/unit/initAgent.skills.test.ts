@@ -89,16 +89,18 @@ describe('initAgent — skill support', () => {
 
   describe('hasNativeSkillSupport', () => {
     it('should return true for all backends with verified native skill dirs', () => {
-      // aionrs removed from ACP_BACKENDS_ALL (non-ACP protocol)
-      const supported = ['claude', 'codebuddy', 'codex', 'qwen', 'iflow', 'goose', 'droid', 'kimi', 'vibe', 'cursor'];
+      // Includes both ACP backends and non-ACP agents (gemini, aionrs) with native skill support
+      const supported = [
+        'claude', 'codebuddy', 'codex', 'qwen', 'iflow', 'goose', 'droid', 'kimi', 'vibe', 'cursor',
+        'gemini', 'aionrs',
+      ];
       for (const backend of supported) {
         expect(hasNativeSkillSupport(backend)).toBe(true);
       }
     });
 
     it('should return false for backends without native skill support', () => {
-      // nanobot and aionrs removed from ACP_BACKENDS_ALL
-      const unsupported = ['opencode', 'auggie', 'copilot', 'qoder', 'nanobot', 'aionrs'];
+      const unsupported = ['opencode', 'auggie', 'copilot', 'qoder', 'nanobot'];
       for (const backend of unsupported) {
         expect(hasNativeSkillSupport(backend)).toBe(false);
       }
@@ -183,7 +185,7 @@ describe('initAgent — skill support', () => {
       expect(symlinkCalls[0].target).toBe('/tmp/workspace/.codebuddy/skills/morph-ppt');
     });
 
-    it('should skip symlink setup for aionrs backend (removed from ACP_BACKENDS_ALL)', async () => {
+    it('should create symlink in .aionrs/skills for aionrs backend', async () => {
       statResults['/mock/user/skills/officecli-docx'] = true;
 
       await setupAssistantWorkspace('/tmp/workspace', {
@@ -191,9 +193,10 @@ describe('initAgent — skill support', () => {
         enabledSkills: ['officecli-docx'],
       });
 
-      // aionrs no longer in ACP_BACKENDS_ALL, so no skills dir created
-      expect(mkdirCalls).toHaveLength(0);
-      expect(symlinkCalls).toHaveLength(0);
+      // aionrs is a non-ACP agent but still supports native skill discovery
+      expect(mkdirCalls).toContain('/tmp/workspace/.aionrs/skills');
+      expect(symlinkCalls).toHaveLength(1);
+      expect(symlinkCalls[0].target).toBe('/tmp/workspace/.aionrs/skills/officecli-docx');
     });
 
     it('should create symlink in .factory/skills for droid backend', async () => {

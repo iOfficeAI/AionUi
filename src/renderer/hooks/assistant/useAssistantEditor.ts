@@ -18,7 +18,6 @@ import { useTranslation } from 'react-i18next';
 type UseAssistantEditorParams = {
   localeKey: string;
   activeAssistant: AssistantListItem | null;
-  isReadonlyAssistant: boolean;
   isExtensionAssistant: (assistant: AssistantListItem | null | undefined) => boolean;
   setActiveAssistantId: (id: string | null) => void;
   loadAssistants: () => Promise<void>;
@@ -33,7 +32,6 @@ type UseAssistantEditorParams = {
 export const useAssistantEditor = ({
   localeKey,
   activeAssistant,
-  isReadonlyAssistant,
   isExtensionAssistant,
   setActiveAssistantId,
   loadAssistants,
@@ -240,16 +238,6 @@ export const useAssistantEditor = ({
       // Validate required fields
       if (!editName.trim()) {
         message.error(t('settings.assistantNameRequired', { defaultValue: 'Assistant name is required' }));
-        return;
-      }
-
-      // Extension assistants are read-only, cannot save over them
-      if (!isCreating && activeAssistant && isExtensionAssistant(activeAssistant)) {
-        message.warning(
-          t('settings.extensionAssistantReadonly', {
-            defaultValue: 'Extension assistants are read-only. You can duplicate it and edit the copy.',
-          })
-        );
         return;
       }
 

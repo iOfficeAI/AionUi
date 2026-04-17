@@ -42,8 +42,11 @@ describe('acpTypes — skillsDirs integration', () => {
 
   describe('hasNativeSkillSupport', () => {
     it('should return true for backends with skillsDirs', () => {
-      // aionrs removed from ACP_BACKENDS_ALL (non-ACP protocol)
-      const supported = ['claude', 'codebuddy', 'codex', 'qwen', 'iflow', 'goose', 'droid', 'kimi', 'vibe', 'cursor'];
+      // Includes both ACP backends and non-ACP agents with native skill support
+      const supported = [
+        'claude', 'codebuddy', 'codex', 'qwen', 'iflow', 'goose', 'droid', 'kimi', 'vibe', 'cursor',
+        'gemini', 'aionrs',
+      ];
       for (const backend of supported) {
         expect(hasNativeSkillSupport(backend), `${backend}`).toBe(true);
       }
@@ -66,11 +69,16 @@ describe('acpTypes — skillsDirs integration', () => {
       expect(hasNativeSkillSupport('custom')).toBe(false);
     });
 
-    it('should return false for removed non-ACP backends', () => {
-      // These were removed from ACP_BACKENDS_ALL (non-ACP protocols)
+    it('should return false for removed non-ACP backends without skill support', () => {
+      // These were removed from ACP_BACKENDS_ALL and have no skill directories
       expect(hasNativeSkillSupport('remote')).toBe(false);
-      expect(hasNativeSkillSupport('aionrs')).toBe(false);
       expect(hasNativeSkillSupport('nanobot')).toBe(false);
+    });
+
+    it('should return true for non-ACP agents with native skill dirs', () => {
+      // gemini and aionrs are not ACP backends but support native skill discovery
+      expect(hasNativeSkillSupport('gemini')).toBe(true);
+      expect(hasNativeSkillSupport('aionrs')).toBe(true);
     });
   });
 
@@ -78,7 +86,8 @@ describe('acpTypes — skillsDirs integration', () => {
     it('should return correct skillsDirs for supported backends', () => {
       expect(getSkillsDirsForBackend('claude')).toEqual(['.claude/skills']);
       expect(getSkillsDirsForBackend('droid')).toEqual(['.factory/skills']);
-      expect(getSkillsDirsForBackend('gemini')).toBeUndefined(); // gemini is not an ACP backend
+      expect(getSkillsDirsForBackend('gemini')).toEqual(['.gemini/skills']); // non-ACP but has skill dirs
+      expect(getSkillsDirsForBackend('aionrs')).toEqual(['.aionrs/skills']); // non-ACP but has skill dirs
     });
 
     it('should return undefined for unsupported backends', () => {

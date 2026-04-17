@@ -70,7 +70,6 @@ const AssistantSettings: React.FC = () => {
     activeAssistantId,
     setActiveAssistantId,
     activeAssistant,
-    isReadonlyAssistant,
     isExtensionAssistant,
     loadAssistants,
     localeKey,
@@ -81,7 +80,6 @@ const AssistantSettings: React.FC = () => {
   const editor = useAssistantEditor({
     localeKey,
     activeAssistant,
-    isReadonlyAssistant,
     isExtensionAssistant,
     setActiveAssistantId,
     loadAssistants,
@@ -187,7 +185,6 @@ const AssistantSettings: React.FC = () => {
             setDisabledBuiltinSkills={editor.setDisabledBuiltinSkills}
             activeAssistant={activeAssistant}
             activeAssistantId={activeAssistantId}
-            isReadonlyAssistant={isReadonlyAssistant}
             isExtensionAssistant={isExtensionAssistant}
             availableBackends={availableBackends}
             handleSave={editor.handleSave}

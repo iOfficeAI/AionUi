@@ -198,7 +198,7 @@ describe('useAssistantList', () => {
     expect(result.current.isExtensionAssistant(null)).toBe(false);
   });
 
-  it('isReadonlyAssistant is true when active assistant is from extension', async () => {
+  it('extension assistant is editable (not readonly)', async () => {
     const storedAgents = [
       { id: 'ext-buddy', name: 'Buddy', _source: 'extension', isPreset: true, isBuiltin: false, enabled: true },
     ];
@@ -210,7 +210,8 @@ describe('useAssistantList', () => {
       expect(result.current.assistants.length).toBe(1);
     });
 
-    expect(result.current.isReadonlyAssistant).toBe(true);
+    // Extension assistants are identified but not readonly
+    expect(result.current.isExtensionAssistant(result.current.assistants[0])).toBe(true);
   });
 
   it('handles ConfigStorage error gracefully', async () => {

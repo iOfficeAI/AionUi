@@ -74,7 +74,6 @@ const AssistantSelectionArea: React.FC<AssistantSelectionAreaProps> = ({
     activeAssistantId,
     setActiveAssistantId,
     activeAssistant,
-    isReadonlyAssistant,
     isExtensionAssistant,
     loadAssistants,
   } = useAssistantList();
@@ -83,7 +82,6 @@ const AssistantSelectionArea: React.FC<AssistantSelectionAreaProps> = ({
   const editor = useAssistantEditor({
     localeKey,
     activeAssistant,
-    isReadonlyAssistant,
     isExtensionAssistant,
     setActiveAssistantId,
     loadAssistants,
@@ -138,7 +136,6 @@ const AssistantSelectionArea: React.FC<AssistantSelectionAreaProps> = ({
         setDisabledBuiltinSkills={editor.setDisabledBuiltinSkills}
         activeAssistant={activeAssistant}
         activeAssistantId={activeAssistantId}
-        isReadonlyAssistant={isReadonlyAssistant}
         isExtensionAssistant={isExtensionAssistant}
         availableBackends={availableBackends}
         handleSave={editor.handleSave}

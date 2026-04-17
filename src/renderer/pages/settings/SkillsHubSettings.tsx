@@ -1,6 +1,6 @@
 import { ipcBridge } from '@/common';
 import { Button, Message, Modal, Typography, Input, Dropdown, Menu } from '@arco-design/web-react';
-import { Delete, FolderOpen, Info, Lightning, Search, Plus, Refresh } from '@icon-park/react';
+import { Delete, FolderOpen, Info, Lightning, Puzzle, Search, Plus, Refresh } from '@icon-park/react';
 import React, { useCallback, useEffect, useRef, useState, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useSearchParams } from 'react-router-dom';
@@ -12,6 +12,7 @@ interface SkillInfo {
   description: string;
   location: string;
   isCustom: boolean;
+  source?: 'builtin' | 'custom' | 'extension';
 }
 
 // 外部来源类型 / External source type
@@ -63,14 +64,17 @@ const SkillsHubSettings: React.FC<SkillsHubSettingsProps> = ({ withWrapper = tru
   const [refreshing, setRefreshing] = useState(false);
   const [builtinAutoSkills, setBuiltinAutoSkills] = useState<Array<{ name: string; description: string }>>([]);
 
+  const mySkills = useMemo(() => availableSkills.filter((s) => s.source !== 'extension'), [availableSkills]);
+  const extensionSkills = useMemo(() => availableSkills.filter((s) => s.source === 'extension'), [availableSkills]);
+
   const filteredSkills = useMemo(() => {
-    if (!searchQuery.trim()) return availableSkills;
+    if (!searchQuery.trim()) return mySkills;
     const lowerQuery = searchQuery.toLowerCase();
-    return availableSkills.filter(
+    return mySkills.filter(
       (s) =>
         s.name.toLowerCase().includes(lowerQuery) || (s.description && s.description.toLowerCase().includes(lowerQuery))
     );
-  }, [availableSkills, searchQuery]);
+  }, [mySkills, searchQuery]);
 
   const fetchData = useCallback(async () => {
     setLoading(true);
@@ -119,7 +123,7 @@ const SkillsHubSettings: React.FC<SkillsHubSettingsProps> = ({ withWrapper = tru
         return () => clearTimeout(timer);
       });
     }
-  }, [highlightName, loading, setSearchParams]);
+  }, [highlightName, loading, availableSkills, setSearchParams]);
 
   const handleImport = async (skillPath: string) => {
     try {
@@ -393,7 +397,7 @@ const SkillsHubSettings: React.FC<SkillsHubSettingsProps> = ({ withWrapper = tru
                 {t('settings.skillsHub.mySkillsTitle', { defaultValue: 'My Skills' })}
               </span>
               <span className='bg-[rgba(var(--primary-6),0.08)] text-primary-6 text-12px px-10px py-2px rd-[100px] font-medium ml-4px'>
-                {availableSkills.length}
+                {mySkills.length}
               </span>
               <button
                 className='outline-none border-none bg-transparent cursor-pointer p-6px text-t-tertiary hover:text-primary-6 transition-colors rd-full hover:bg-fill-2 ml-4px'
@@ -443,7 +447,7 @@ const SkillsHubSettings: React.FC<SkillsHubSettingsProps> = ({ withWrapper = tru
             </div>
           )}
 
-          {availableSkills.length > 0 ? (
+          {mySkills.length > 0 ? (
             <div className='w-full flex flex-col gap-6px relative z-10'>
               {filteredSkills.map((skill) => (
                 <div
@@ -464,7 +468,7 @@ const SkillsHubSettings: React.FC<SkillsHubSettingsProps> = ({ withWrapper = tru
                   <div className='flex-1 min-w-0 flex flex-col justify-center gap-6px'>
                     <div className='flex items-center gap-10px flex-wrap'>
                       <h3 className='text-14px font-semibold text-t-primary/90 truncate m-0'>{skill.name}</h3>
-                      {skill.isCustom ? (
+                      {skill.source === 'custom' ? (
                         <span className='bg-[rgba(var(--orange-6),0.08)] text-orange-6 border border-[rgba(var(--orange-6),0.2)] text-11px px-6px py-1px rd-4px font-medium'>
                           {t('settings.skillsHub.custom', { defaultValue: 'Custom' })}
                         </span>
@@ -553,7 +557,7 @@ const SkillsHubSettings: React.FC<SkillsHubSettingsProps> = ({ withWrapper = tru
                         </button>
                       </Dropdown>
                     )}
-                    {skill.isCustom && (
+                    {skill.source === 'custom' && (
                       <button
                         className='p-8px hover:bg-danger-1 hover:text-danger-6 text-t-tertiary rd-6px outline-none flex items-center justify-center border border-transparent cursor-pointer transition-colors shadow-sm bg-base sm:bg-transparent sm:shadow-none'
                         onClick={() => {
@@ -586,6 +590,49 @@ const SkillsHubSettings: React.FC<SkillsHubSettingsProps> = ({ withWrapper = tru
             </div>
           )}
         </div>
+
+        {/* ======== Extension Skills ======== */}
+        {extensionSkills.length > 0 && (
+          <div className='px-[16px] md:px-[32px] py-32px bg-base rd-16px md:rd-24px shadow-sm border border-b-base relative overflow-hidden transition-all'>
+            <div className='flex items-center gap-10px mb-24px'>
+              <Puzzle theme='filled' size={20} fill='var(--color-primary-6)' />
+              <span className='text-16px md:text-18px text-t-primary font-bold tracking-tight'>
+                {t('settings.extensionSkills', { defaultValue: 'Extension Skills' })}
+              </span>
+              <span className='bg-[rgba(var(--primary-6),0.08)] text-primary-6 text-12px px-10px py-2px rd-[100px] font-medium ml-4px'>
+                {extensionSkills.length}
+              </span>
+            </div>
+            <div className='w-full flex flex-col gap-6px'>
+              {extensionSkills.map((skill) => (
+                <div
+                  key={skill.name}
+                  ref={(el) => {
+                    skillRefs.current[skill.name] = el;
+                  }}
+                  className={`flex flex-col sm:flex-row gap-16px p-16px bg-base border hover:border-border-1 hover:bg-fill-1 rd-12px transition-all duration-200 ${highlightedSkill === skill.name ? 'border-primary-5 bg-primary-1' : 'border-transparent'}`}
+                >
+                  <div className='shrink-0 flex items-start sm:mt-2px'>
+                    <div className='w-40px h-40px rd-10px bg-[rgba(var(--primary-6),0.08)] flex items-center justify-center shadow-sm'>
+                      <Puzzle theme='filled' size={20} fill='rgb(var(--primary-6))' />
+                    </div>
+                  </div>
+                  <div className='flex-1 min-w-0 flex flex-col justify-center gap-4px'>
+                    <div className='flex items-center gap-10px'>
+                      <h3 className='text-14px font-semibold text-t-primary/90 truncate m-0'>{skill.name}</h3>
+                      <span className='bg-[rgba(var(--primary-6),0.08)] text-primary-6 border border-[rgba(var(--primary-6),0.2)] text-10px px-6px py-1px rd-4px font-medium uppercase'>
+                        {t('settings.extensionSkillsBadge', { defaultValue: 'Extension' })}
+                      </span>
+                    </div>
+                    {skill.description && (
+                      <p className='text-13px text-t-secondary leading-relaxed line-clamp-2 m-0'>{skill.description}</p>
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
 
         {/* ======== Builtin Auto-injected Skills ======== */}
         {builtinAutoSkills.length > 0 && (

@@ -58,6 +58,7 @@ vi.mock('@icon-park/react', () => {
     FolderOpen: () => <span data-testid='icon-folder' />,
     Info: () => <span data-testid='icon-info' />,
     Lightning: () => <span data-testid='icon-lightning' />,
+    Puzzle: () => <span data-testid='icon-puzzle' />,
     Search: () => <span data-testid='icon-search' />,
     Plus: () => <span data-testid='icon-plus' />,
     Refresh: () => <span data-testid='icon-refresh' />,
@@ -114,8 +115,8 @@ describe('SkillsHubSettings Component', () => {
 
     // Default mock responses
     mockListAvailableSkills.mockResolvedValue([
-      { name: 'MySkill1', description: 'desc1', location: '/path1', isCustom: true },
-      { name: 'Builtin1', description: 'desc2', location: '/path2', isCustom: false },
+      { name: 'MySkill1', description: 'desc1', location: '/path1', isCustom: true, source: 'custom' },
+      { name: 'Builtin1', description: 'desc2', location: '/path2', isCustom: false, source: 'builtin' },
     ]);
 
     mockDetectAndCountExternalSkills.mockResolvedValue({
@@ -221,7 +222,7 @@ describe('SkillsHubSettings Component', () => {
   it('should call delete endpoint when deleting custom skill', async () => {
     // Modify mock to only return the custom skill
     mockListAvailableSkills.mockResolvedValue([
-      { name: 'MySkill1', description: 'desc1', location: '/path1', isCustom: true },
+      { name: 'MySkill1', description: 'desc1', location: '/path1', isCustom: true, source: 'custom' },
     ]);
 
     const { Modal } = await import('@arco-design/web-react');
