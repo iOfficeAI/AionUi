@@ -421,7 +421,12 @@ const PreviewPanel: React.FC = () => {
         if (layout?.isMobile) {
           return (
             <div className='flex-1 overflow-hidden'>
-              <MarkdownPreview content={content} hideToolbar filePath={metadata?.filePath} />
+              <MarkdownPreview
+                content={content}
+                hideToolbar
+                filePath={metadata?.filePath}
+                workspace={metadata?.workspace}
+              />
             </div>
           );
         }
@@ -459,6 +464,7 @@ const PreviewPanel: React.FC = () => {
                   containerRef={previewContainerRef}
                   onScroll={handlePreviewScroll}
                   filePath={metadata?.filePath}
+                  workspace={metadata?.workspace}
                 />
               </div>
             </div>
@@ -475,6 +481,7 @@ const PreviewPanel: React.FC = () => {
           onViewModeChange={setViewMode}
           onContentChange={updateContent}
           filePath={metadata?.filePath}
+          workspace={metadata?.workspace}
         />
       );
     }

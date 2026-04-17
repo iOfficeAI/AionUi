@@ -4,14 +4,13 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { openExternalUrl } from '@/renderer/utils/platform';
+import { useMarkdownLinkHandler } from '@/renderer/hooks/file/useMarkdownLinkHandler';
 import LocalImageView from '@renderer/components/media/LocalImageView';
 import { convertLatexDelimiters } from '@renderer/utils/chat/latexDelimiters';
 import classNames from 'classnames';
 import rehypeKatex from 'rehype-katex';
-import React, { useCallback, useMemo } from 'react';
+import React, { useMemo } from 'react';
 import ReactMarkdown from 'react-markdown';
-import { useTranslation } from 'react-i18next';
 import remarkBreaks from 'remark-breaks';
 import remarkGfm from 'remark-gfm';
 import remarkMath from 'remark-math';
@@ -37,8 +36,6 @@ const getCodeLanguage = (className?: string): string => {
 };
 
 const StreamingMarkdownView: React.FC<StreamingMarkdownViewProps> = ({ children: childrenProp, className, onRef }) => {
-  const { t } = useTranslation();
-
   const normalizedChildren = useMemo(() => {
     if (typeof childrenProp !== 'string') {
       return childrenProp;
@@ -46,18 +43,7 @@ const StreamingMarkdownView: React.FC<StreamingMarkdownViewProps> = ({ children:
     return convertLatexDelimiters(childrenProp.replace(/file:\/\//g, ''));
   }, [childrenProp]);
 
-  const handleLinkClick = useCallback(
-    (event: React.MouseEvent<HTMLAnchorElement>) => {
-      event.preventDefault();
-      event.stopPropagation();
-      const href = event.currentTarget.href;
-      if (!href) return;
-      openExternalUrl(href).catch((error: unknown) => {
-        console.error(t('messages.openLinkFailed'), error);
-      });
-    },
-    [t]
-  );
+  const handleLinkClick = useMarkdownLinkHandler();
 
   const components = useMemo(
     () => ({
