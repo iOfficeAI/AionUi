@@ -91,7 +91,7 @@ vi.mock('../../src/renderer/utils/platform', () => ({
 // ── Imports (after mocks) ────────────────────────────────────────────────────
 
 import { useAssistantList } from '../../src/renderer/hooks/assistant/useAssistantList';
-import { useAssistantBackends } from '../../src/renderer/hooks/assistant/useAssistantBackends';
+import { useDetectedAgents } from '../../src/renderer/hooks/assistant/useDetectedAgents';
 import { useAssistantSkills } from '../../src/renderer/hooks/assistant/useAssistantSkills';
 import type {
   ExternalSource,
@@ -198,7 +198,7 @@ describe('useAssistantList', () => {
     expect(result.current.isExtensionAssistant(null)).toBe(false);
   });
 
-  it('isReadonlyAssistant is true when active assistant is from extension', async () => {
+  it('extension assistant is editable (not readonly)', async () => {
     const storedAgents = [
       { id: 'ext-buddy', name: 'Buddy', _source: 'extension', isPreset: true, isBuiltin: false, enabled: true },
     ];
@@ -210,7 +210,8 @@ describe('useAssistantList', () => {
       expect(result.current.assistants.length).toBe(1);
     });
 
-    expect(result.current.isReadonlyAssistant).toBe(true);
+    // Extension assistants are identified but not readonly
+    expect(result.current.isExtensionAssistant(result.current.assistants[0])).toBe(true);
   });
 
   it('handles ConfigStorage error gracefully', async () => {
@@ -229,53 +230,24 @@ describe('useAssistantList', () => {
 });
 
 // ─────────────────────────────────────────────────────────────────────────────
-// useAssistantBackends
+// useDetectedAgents
 // ─────────────────────────────────────────────────────────────────────────────
 
-describe('useAssistantBackends', () => {
+describe('useDetectedAgents', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     getAvailableAgentsInvoke.mockResolvedValue({ success: true, data: [] });
   });
 
-  it('initializes with gemini in availableBackends', () => {
-    const { result } = renderHook(() => useAssistantBackends());
+  it('initializes with empty availableBackends before SWR resolves', () => {
+    const { result } = renderHook(() => useDetectedAgents());
 
-    expect(result.current.availableBackends.has('gemini')).toBe(true);
-    expect(result.current.availableBackends.size).toBe(1);
-  });
-
-  it('populates availableBackends from ipcBridge detection', async () => {
-    getAvailableAgentsInvoke.mockResolvedValue({
-      success: true,
-      data: [{ backend: 'gemini' }, { backend: 'claude' }, { backend: 'qwen' }],
-    });
-
-    const { result } = renderHook(() => useAssistantBackends());
-
-    await waitFor(() => {
-      expect(result.current.availableBackends.size).toBe(3);
-    });
-
-    expect(result.current.availableBackends.has('gemini')).toBe(true);
-    expect(result.current.availableBackends.has('claude')).toBe(true);
-    expect(result.current.availableBackends.has('qwen')).toBe(true);
-  });
-
-  it('falls back to default when getAvailableAgents fails', async () => {
-    getAvailableAgentsInvoke.mockRejectedValue(new Error('network error'));
-
-    const { result } = renderHook(() => useAssistantBackends());
-
-    // Should still have the default gemini
-    await waitFor(() => {
-      expect(result.current.availableBackends.has('gemini')).toBe(true);
-    });
-    expect(result.current.availableBackends.size).toBe(1);
+    // SWR mock returns data: undefined, so the default empty array is used
+    expect(result.current.availableBackends).toEqual([]);
   });
 
   it('refreshAgentDetection calls refreshCustomAgents', async () => {
-    const { result } = renderHook(() => useAssistantBackends());
+    const { result } = renderHook(() => useDetectedAgents());
 
     await act(async () => {
       await result.current.refreshAgentDetection();
@@ -287,12 +259,41 @@ describe('useAssistantBackends', () => {
   it('refreshAgentDetection handles errors silently', async () => {
     refreshCustomAgentsInvoke.mockRejectedValue(new Error('fail'));
 
-    const { result } = renderHook(() => useAssistantBackends());
+    const { result } = renderHook(() => useDetectedAgents());
 
     // Should not throw
     await act(async () => {
       await result.current.refreshAgentDetection();
     });
+  });
+
+  it('SWR fetcher returns raw agents and hook filters into availableBackends', async () => {
+    getAvailableAgentsInvoke.mockResolvedValue({
+      success: true,
+      data: [
+        { backend: 'gemini', name: 'Gemini' },
+        { backend: 'claude', name: 'Claude' },
+        { backend: 'auggie', name: 'Auggie', isExtension: true },
+        { backend: 'custom', name: 'Custom' },
+        { backend: 'remote', name: 'Remote' },
+      ],
+    });
+
+    renderHook(() => useDetectedAgents());
+
+    // Retrieve the fetcher SWR received and call it directly
+    const fetcher = swrFetchers.get('agents.detected');
+    expect(fetcher).toBeDefined();
+
+    const result = await fetcher!();
+    // Fetcher returns raw AvailableAgent[] (no filtering)
+    expect(result).toEqual([
+      { backend: 'gemini', name: 'Gemini' },
+      { backend: 'claude', name: 'Claude' },
+      { backend: 'auggie', name: 'Auggie', isExtension: true },
+      { backend: 'custom', name: 'Custom' },
+      { backend: 'remote', name: 'Remote' },
+    ]);
   });
 });
 

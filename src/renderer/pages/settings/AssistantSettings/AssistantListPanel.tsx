@@ -13,7 +13,7 @@ import type { AssistantListItem } from './types';
 import AssistantAvatar from './AssistantAvatar';
 import { Button, Input, Switch, Tabs, Tag } from '@arco-design/web-react';
 import { Plus, Search, SettingOne, CloseSmall } from '@icon-park/react';
-import React, { useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 
 type AssistantListPanelProps = {
@@ -26,6 +26,10 @@ type AssistantListPanelProps = {
   onCreate: () => void;
   onToggleEnabled: (assistant: AssistantListItem, checked: boolean) => void;
   setActiveAssistantId: (id: string) => void;
+  /** When set, scroll to and highlight the matching assistant card */
+  highlightId?: string | null;
+  /** Called after the highlight animation completes so the parent can clear the param */
+  onHighlightConsumed?: () => void;
 };
 
 const AssistantListPanel: React.FC<AssistantListPanelProps> = ({
@@ -38,6 +42,8 @@ const AssistantListPanel: React.FC<AssistantListPanelProps> = ({
   onCreate,
   onToggleEnabled,
   setActiveAssistantId,
+  highlightId,
+  onHighlightConsumed,
 }) => {
   const { t } = useTranslation();
   const layout = useLayoutContext();
@@ -45,6 +51,34 @@ const AssistantListPanel: React.FC<AssistantListPanelProps> = ({
   const [searchQuery, setSearchQuery] = useState('');
   const [activeFilter, setActiveFilter] = useState<AssistantListFilter>('all');
   const [searchExpanded, setSearchExpanded] = useState(false);
+  const [highlightedId, setHighlightedId] = useState<string | null>(null);
+  const cardRefs = useRef<Record<string, HTMLDivElement | null>>({});
+  const cardRefSetter = useCallback(
+    (id: string) => (el: HTMLDivElement | null) => {
+      cardRefs.current[id] = el;
+    },
+    []
+  );
+
+  // Scroll to and highlight an assistant card when navigated with ?highlight=id
+  // Depends on `assistants` so it re-runs after async data loads and refs are populated.
+  // Uses a short delay to ensure the page layout is fully settled on first mount.
+  useEffect(() => {
+    if (!highlightId || assistants.length === 0) return;
+    const el = cardRefs.current[highlightId];
+    if (!el) return;
+
+    const timer = setTimeout(() => {
+      el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      setHighlightedId(highlightId);
+      setTimeout(() => {
+        setHighlightedId(null);
+        onHighlightConsumed?.();
+      }, 2000);
+    }, 150);
+
+    return () => clearTimeout(timer);
+  }, [highlightId, assistants, onHighlightConsumed]);
 
   const filteredAssistants = useMemo(
     () => filterAssistants(assistants, searchQuery, activeFilter, localeKey),
@@ -86,7 +120,9 @@ const AssistantListPanel: React.FC<AssistantListPanelProps> = ({
     return (
       <div
         key={assistant.id}
-        className='group border border-solid border-[var(--color-neutral-3)] bg-fill-0 rounded-16px px-16px py-14px flex items-center justify-between cursor-pointer transition-all duration-180 hover:border-[var(--color-primary-light-4)] hover:bg-bg-1'
+        ref={cardRefSetter(assistant.id)}
+        data-testid={`assistant-card-${assistant.id}`}
+        className={`group border border-solid rounded-16px px-16px py-14px flex items-center justify-between cursor-pointer transition-all duration-180 hover:border-[var(--color-primary-light-4)] hover:bg-bg-1 ${highlightedId === assistant.id ? 'border-primary-5 bg-primary-1' : 'border-[var(--color-neutral-3)] bg-fill-0'}`}
         onClick={() => {
           setActiveAssistantId(assistant.id);
           onEdit(assistant);
@@ -110,6 +146,7 @@ const AssistantListPanel: React.FC<AssistantListPanelProps> = ({
         >
           <span
             className='invisible group-hover:visible text-12px text-primary cursor-pointer hover:underline transition-all'
+            data-testid={`btn-duplicate-${assistant.id}`}
             onClick={() => {
               onDuplicate(assistant);
             }}
@@ -118,6 +155,7 @@ const AssistantListPanel: React.FC<AssistantListPanelProps> = ({
           </span>
           <Switch
             size='small'
+            data-testid={`switch-enabled-${assistant.id}`}
             checked={assistantIsExtension ? true : assistant.enabled !== false}
             disabled={assistantIsExtension}
             onChange={(checked) => {
@@ -129,6 +167,7 @@ const AssistantListPanel: React.FC<AssistantListPanelProps> = ({
             size='small'
             icon={<SettingOne size={16} />}
             className='!rounded-10px'
+            data-testid={`btn-edit-${assistant.id}`}
             onClick={() => {
               onEdit(assistant);
             }}
@@ -171,6 +210,7 @@ const AssistantListPanel: React.FC<AssistantListPanelProps> = ({
                 className={`!rounded-[100px] ${isMobile ? '!w-full !h-36px' : '!px-16px !h-32px'}`}
                 icon={<Plus size={14} fill='currentColor' />}
                 onClick={onCreate}
+                data-testid='btn-create-assistant'
               >
                 {t('settings.createAssistant', { defaultValue: 'Create Assistant' })}
               </Button>
@@ -190,6 +230,7 @@ const AssistantListPanel: React.FC<AssistantListPanelProps> = ({
               <Button
                 type={isSearchVisible ? 'secondary' : 'text'}
                 size='small'
+                data-testid='btn-search-toggle'
                 className='!rounded-10px !h-34px !w-34px !p-0 flex items-center justify-center !text-t-secondary hover:!bg-fill-1 hover:!text-t-primary'
                 icon={
                   isSearchVisible ? (
@@ -215,6 +256,7 @@ const AssistantListPanel: React.FC<AssistantListPanelProps> = ({
               autoFocus
               value={searchQuery}
               onChange={setSearchQuery}
+              data-testid='input-search-assistant'
               className='!bg-[var(--color-bg-2)]'
               placeholder={t('settings.searchAssistants', {
                 defaultValue: 'Search assistants by name or description',

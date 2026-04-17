@@ -2,7 +2,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 
 // Track calls to prepareFirstMessageWithSkillsIndex
 const { mockPrepareFirstMessage, mockAgentSendMessage } = vi.hoisted(() => ({
-  mockPrepareFirstMessage: vi.fn(async (content: string) => `[injected] ${content}`),
+  mockPrepareFirstMessage: vi.fn(async (content: string) => ({ content: `[injected] ${content}`, loadedSkills: [] })),
   mockAgentSendMessage: vi.fn(async () => ({ success: true })),
 }));
 
@@ -35,6 +35,7 @@ vi.mock('@/common', () => ({
         remove: { emit: vi.fn() },
       },
       responseStream: { emit: vi.fn() },
+      listChanged: { emit: vi.fn() },
     },
   },
 }));
@@ -44,7 +45,10 @@ vi.mock('@process/channels/agent/ChannelEventBus', () => ({
 }));
 
 vi.mock('@process/services/database', () => ({
-  getDatabase: vi.fn(async () => ({ updateConversation: vi.fn() })),
+  getDatabase: vi.fn(async () => ({
+    updateConversation: vi.fn(),
+    getConversation: vi.fn(() => ({ success: true, data: { extra: {}, source: 'aionui' } })),
+  })),
 }));
 
 vi.mock('@process/utils/initStorage', () => ({
@@ -263,23 +267,6 @@ describe('AcpAgentManager — first-message skill injection', () => {
     expect(mockPrepareFirstMessage).not.toHaveBeenCalled();
     const sentContent = mockAgentSendMessage.mock.calls[0][0].content as string;
     // claude is whitelisted for team guide → content should include team guide prompt
-    expect(sentContent).toContain('[Assistant Rules');
-    expect(sentContent).toContain('Team Mode');
-    expect(sentContent).toContain('[User Request]');
-    expect(sentContent).toContain('Test message');
-  });
-
-  it('injects team guide for gemini backend (always team-capable)', async () => {
-    const manager = createManager({
-      backend: 'gemini',
-      customWorkspace: false,
-    });
-
-    await sendFirstMessage(manager, 'Test message');
-
-    expect(mockPrepareFirstMessage).not.toHaveBeenCalled();
-    const sentContent = mockAgentSendMessage.mock.calls[0][0].content as string;
-    // gemini is always team-capable (non-ACP) → team guide should be injected
     expect(sentContent).toContain('[Assistant Rules');
     expect(sentContent).toContain('Team Mode');
     expect(sentContent).toContain('[User Request]');

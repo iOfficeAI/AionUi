@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { mutate } from 'swr';
 import type { IHubAgentItem } from '@/common/types/hub';
 import { ipcBridge } from '@/common';
-import { AVAILABLE_AGENTS_SWR_KEY } from '@renderer/utils/model/availableAgents';
+import { DETECTED_AGENTS_SWR_KEY } from '@renderer/utils/model/agentTypes';
 
 export function useHubAgents() {
   const [agents, setAgents] = useState<IHubAgentItem[]>([]);
@@ -48,7 +48,7 @@ export function useHubAgents() {
 
       // After install completes, revalidate agent list so home page & settings reflect new agent
       if (payload.status === 'installed') {
-        mutate(AVAILABLE_AGENTS_SWR_KEY);
+        mutate(DETECTED_AGENTS_SWR_KEY);
         mutate('acp.agents.available.settings');
       }
     });

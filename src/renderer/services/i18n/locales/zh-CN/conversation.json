@@ -294,5 +294,8 @@
   "thinking": {
     "complete": "思考完成",
     "label": "思考中..."
+  },
+  "skills": {
+    "loaded": "已加载技能"
   }
 }

@@ -40,7 +40,6 @@ vi.mock('@/common/utils/buildAgentConversationParams', () => ({
     extra: { teamId: p.extra?.teamId, workspace: p.workspace },
   })),
   getConversationTypeForBackend: vi.fn(() => 'claude'),
-  getConversationTypeForPreset: vi.fn(() => 'claude'),
 }));
 vi.mock('@/common/utils/presetAssistantResources', () => ({
   loadPresetAssistantResources: vi.fn().mockResolvedValue({ rules: '', enabledSkills: [] }),

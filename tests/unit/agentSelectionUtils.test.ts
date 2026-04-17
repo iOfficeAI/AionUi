@@ -26,8 +26,10 @@ import {
 // ---------------------------------------------------------------------------
 
 describe('getAgentKey', () => {
-  it('returns "custom:<id>" for custom agents with customAgentId', () => {
+  it('returns "custom:<id>" for agents with customAgentId', () => {
     expect(getAgentKey({ backend: 'custom', customAgentId: 'abc-123' })).toBe('custom:abc-123');
+    // Preset assistants now use actual backend type but still get custom: prefix
+    expect(getAgentKey({ backend: 'claude', customAgentId: 'preset-1' })).toBe('custom:preset-1');
   });
 
   it('returns backend directly for non-custom agents', () => {

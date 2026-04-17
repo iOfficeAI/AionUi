@@ -1,5 +1,6 @@
 import type { HubExtensionStatus, IHubAgentItem, IHubExtension } from '@/common/types/hub';
-import { acpDetector } from '@process/agent/acp/AcpDetector';
+import { agentRegistry } from '@process/agent/AgentRegistry';
+import { isAgentKind } from '@/common/types/detectedAgent';
 import { ipcBridge } from '@/common';
 import { ExtensionRegistry } from '@process/extensions/ExtensionRegistry';
 import { loadPersistedStates, savePersistedStates } from '@process/extensions/lifecycle/statePersistence';
@@ -83,7 +84,7 @@ class HubStateManagerImpl {
   public async getExtensionListWithStatus(extensions: Record<string, IHubExtension>): Promise<IHubAgentItem[]> {
     // Refresh builtin CLI detection so status reflects current PATH
     const refreshStart = Date.now();
-    await acpDetector.refreshBuiltinAgents();
+    await agentRegistry.refreshBuiltinAgents();
     console.log(`[HubStateManager] refreshBuiltinAgents completed in ${Date.now() - refreshStart}ms`);
 
     const loadedByName = new Map(
@@ -92,11 +93,11 @@ class HubStateManagerImpl {
         .map((e) => [e.manifest.name, e])
     );
 
-    const detectedAgents = acpDetector.getDetectedAgents();
+    const detectedAgents = agentRegistry.getDetectedAgents();
     const detectedBackends = new Set<string>(
       detectedAgents
         .map((a) => {
-          if (a.backend === 'custom' && a.isExtension) return a.customAgentId ?? a.name;
+          if (isAgentKind(a, 'acp') && a.backend === 'custom' && a.isExtension) return a.customAgentId ?? a.name;
           if (a.backend !== 'custom') return a.backend;
           return null;
         })

@@ -36,7 +36,21 @@ type AssistantLike = {
  * - customAgentId: ACP 会话的旧格式
  * - enabledSkills: Gemini Cowork 会话的旧格式
  */
-function resolvePresetId(conversation: TChatConversation): string | null {
+/**
+ * Resolve the assistant config ID (preserving original prefix like 'builtin-').
+ * Use this when matching against the assistant list in ConfigStorage 'assistants'.
+ */
+export function resolveAssistantConfigId(conversation: TChatConversation): string | null {
+  const extra = conversation.extra as {
+    presetAssistantId?: unknown;
+    customAgentId?: unknown;
+  };
+  const presetAssistantId = typeof extra?.presetAssistantId === 'string' ? extra.presetAssistantId.trim() : '';
+  const customAgentId = typeof extra?.customAgentId === 'string' ? extra.customAgentId.trim() : '';
+  return presetAssistantId || customAgentId || null;
+}
+
+export function resolvePresetId(conversation: TChatConversation): string | null {
   const extra = conversation.extra as {
     presetAssistantId?: unknown;
     customAgentId?: unknown;
@@ -283,8 +297,8 @@ export function usePresetAssistantInfo(conversation: TChatConversation | undefin
   const { i18n } = useTranslation();
 
   // Fetch custom agents to support custom preset assistants
-  const { data: customAgents, isLoading: isLoadingCustomAgents } = useSWR('acp.customAgents', () =>
-    ConfigStorage.get('acp.customAgents')
+  const { data: customAgents, isLoading: isLoadingCustomAgents } = useSWR('assistants', () =>
+    ConfigStorage.get('assistants')
   );
 
   // Fetch extension-contributed assistants

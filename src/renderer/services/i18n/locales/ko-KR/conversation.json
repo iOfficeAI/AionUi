@@ -294,5 +294,8 @@
   "thinking": {
     "complete": "사고 완료",
     "label": "생각 중..."
+  },
+  "skills": {
+    "loaded": "로드된 스킬"
   }
 }

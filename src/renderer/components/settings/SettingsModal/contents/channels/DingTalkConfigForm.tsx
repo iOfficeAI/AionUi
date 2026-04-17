@@ -10,7 +10,6 @@ import { ConfigStorage } from '@/common/config/storage';
 import { openExternalUrl } from '@/renderer/utils/platform';
 import GeminiModelSelector from '@/renderer/pages/conversation/platforms/gemini/GeminiModelSelector';
 import type { GeminiModelSelection } from '@/renderer/pages/conversation/platforms/gemini/useGeminiModelSelection';
-import type { AcpBackendAll } from '@/common/types/acpTypes';
 import { Button, Dropdown, Empty, Input, Menu, Message, Spin, Tooltip } from '@arco-design/web-react';
 import { CheckOne, CloseOne, Copy, Delete, Down, Refresh } from '@icon-park/react';
 import React, { useCallback, useEffect, useState } from 'react';
@@ -76,11 +75,11 @@ const DingTalkConfigForm: React.FC<DingTalkConfigFormProps> = ({ pluginStatus, m
 
   // Agent selection
   const [availableAgents, setAvailableAgents] = useState<
-    Array<{ backend: AcpBackendAll; name: string; customAgentId?: string; isPreset?: boolean }>
+    Array<{ backend: string; name: string; customAgentId?: string; isPreset?: boolean }>
   >([]);
-  const [selectedAgent, setSelectedAgent] = useState<{ backend: AcpBackendAll; name?: string; customAgentId?: string }>(
-    { backend: 'gemini' }
-  );
+  const [selectedAgent, setSelectedAgent] = useState<{ backend: string; name?: string; customAgentId?: string }>({
+    backend: 'gemini',
+  });
 
   // Load pending pairings
   const loadPendingPairings = useCallback(async () => {
@@ -142,12 +141,12 @@ const DingTalkConfigForm: React.FC<DingTalkConfigFormProps> = ({ pluginStatus, m
 
         if (saved && typeof saved === 'object' && 'backend' in saved && typeof (saved as any).backend === 'string') {
           setSelectedAgent({
-            backend: (saved as any).backend as AcpBackendAll,
+            backend: (saved as any).backend as string,
             customAgentId: (saved as any).customAgentId,
             name: (saved as any).name,
           });
         } else if (typeof saved === 'string') {
-          setSelectedAgent({ backend: saved as AcpBackendAll });
+          setSelectedAgent({ backend: saved as string });
         }
       } catch (error) {
         console.error('[DingTalkConfig] Failed to load agents:', error);
@@ -157,7 +156,7 @@ const DingTalkConfigForm: React.FC<DingTalkConfigFormProps> = ({ pluginStatus, m
     void loadAgentsAndSelection();
   }, []);
 
-  const persistSelectedAgent = async (agent: { backend: AcpBackendAll; customAgentId?: string; name?: string }) => {
+  const persistSelectedAgent = async (agent: { backend: string; customAgentId?: string; name?: string }) => {
     try {
       await ConfigStorage.set('assistant.dingtalk.agent', agent);
       await channel.syncChannelSettings
@@ -332,7 +331,7 @@ const DingTalkConfigForm: React.FC<DingTalkConfigFormProps> = ({ pluginStatus, m
 
   const hasExistingUsers = authorizedUsers.length > 0;
   const isGeminiAgent = selectedAgent.backend === 'gemini' || selectedAgent.backend === 'aionrs';
-  const agentOptions: Array<{ backend: AcpBackendAll; name: string; customAgentId?: string; isExtension?: boolean }> =
+  const agentOptions: Array<{ backend: string; name: string; customAgentId?: string; isExtension?: boolean }> =
     availableAgents.length > 0 ? availableAgents : [{ backend: 'gemini', name: 'Gemini CLI' }];
 
   return (

@@ -16,7 +16,7 @@ import type { TaskManager } from '../../TaskManager.ts';
 import type { TeamAgent } from '../../types.ts';
 import { isTeamCapableBackend, getTeamCapableBackends } from '@/common/types/teamTypes.ts';
 import { ProcessConfig } from '@process/utils/initStorage.ts';
-import { acpDetector } from '@process/agent/acp/AcpDetector.ts';
+import { agentRegistry } from '@process/agent/AgentRegistry';
 import { handleListModels } from '../modelListHandler.ts';
 import { notifyMcpReady } from '../../mcpReadiness.ts';
 import { writeTcpMessage, createTcpMessageReader, resolveMcpScriptDir } from '../tcpHelpers.ts';
@@ -352,7 +352,7 @@ export class TeamMcpServer {
       const cachedInitResults = await ProcessConfig.get('acp.cachedInitializeResult');
       if (!isTeamCapableBackend(agentType, cachedInitResults)) {
         const capable = getTeamCapableBackends(
-          acpDetector.getDetectedAgents().map((a) => a.backend),
+          agentRegistry.getDetectedAgents().map((a) => a.backend),
           cachedInitResults
         );
         throw new Error(`Agent type "${agentType}" is not supported in team mode. Supported: ${capable.join(', ')}.`);

@@ -12,7 +12,6 @@ import { loadPresetAssistantResources } from '@/common/utils/presetAssistantReso
 import {
   buildAgentConversationParams,
   getConversationTypeForBackend,
-  getConversationTypeForPreset,
 } from '@/common/utils/buildAgentConversationParams';
 import type { AvailableAgent } from '@/renderer/utils/model/agentTypes';
 
@@ -156,12 +155,16 @@ export async function buildPresetAssistantParams(
   // [BUG-2] Map raw i18n.language to standard locale key
   const localeKey = resolveLocaleKey(language);
 
-  const { rules: presetContext, enabledSkills } = await loadPresetAssistantResources({
+  const {
+    rules: presetContext,
+    enabledSkills,
+    disabledBuiltinSkills,
+  } = await loadPresetAssistantResources({
     customAgentId,
     localeKey,
   });
 
-  const type = getConversationTypeForPreset(presetAgentType);
+  const type = getConversationTypeForBackend(presetAgentType);
   const model = type === 'gemini' ? await resolveGeminiModel() : ({} as TProviderWithModel);
 
   return buildAgentConversationParams({
@@ -175,6 +178,7 @@ export async function buildPresetAssistantParams(
     presetResources: {
       rules: presetContext,
       enabledSkills,
+      excludeBuiltinSkills: disabledBuiltinSkills,
     },
     model,
   });

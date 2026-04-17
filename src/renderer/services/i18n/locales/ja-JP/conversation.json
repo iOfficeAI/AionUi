@@ -294,5 +294,8 @@
   "thinking": {
     "complete": "思考完了",
     "label": "思考中..."
+  },
+  "skills": {
+    "loaded": "ロード済みスキル"
   }
 }

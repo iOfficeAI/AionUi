@@ -10,7 +10,7 @@ import { getAgentLogo } from '@/renderer/utils/model/agentLogo';
 import { emitter } from '@/renderer/utils/emitter';
 import { cleanupSiderTooltips } from '@/renderer/utils/ui/siderTooltip';
 import { updateWorkspaceTime } from '@/renderer/utils/workspace/workspaceHistory';
-import { Dropdown, Menu, Message } from '@arco-design/web-react';
+import { Dropdown, Menu, Message, Tag } from '@arco-design/web-react';
 import { Close, Plus, Robot } from '@icon-park/react';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -285,6 +285,11 @@ const ConversationTabs: React.FC = () => {
                       <Robot size='16' />
                     )}
                     <span>{agent.name}</span>
+                    {agent.isExtension && (
+                      <Tag size='small' color='arcoblue'>
+                        ext
+                      </Tag>
+                    )}
                   </div>
                 </Menu.Item>
               );

@@ -9,7 +9,7 @@ import type { IProvider, TChatConversation, TProviderWithModel } from '@/common/
 import { uuid } from '@/common/utils';
 import addChatIcon from '@/renderer/assets/icons/add-chat.svg';
 import { CronJobManager } from '@/renderer/pages/cron';
-import { usePresetAssistantInfo } from '@/renderer/hooks/agent/usePresetAssistantInfo';
+import { usePresetAssistantInfo, resolveAssistantConfigId } from '@/renderer/hooks/agent/usePresetAssistantInfo';
 import { iconColors } from '@/renderer/styles/colors';
 import { Button, Dropdown, Menu, Tooltip, Typography } from '@arco-design/web-react';
 import { History } from '@icon-park/react';
@@ -33,7 +33,14 @@ import AionrsModelSelector from '../platforms/aionrs/AionrsModelSelector';
 import { useAionrsModelSelection } from '../platforms/aionrs/useAionrsModelSelection';
 import { usePreviewContext } from '../Preview';
 import StarOfficeMonitorCard from '../platforms/openclaw/StarOfficeMonitorCard.tsx';
+import ConversationSkillsIndicator from './ConversationSkillsIndicator';
 // import SkillRuleGenerator from './components/SkillRuleGenerator'; // Temporarily hidden
+
+/** Check whether a specific skill is loaded for the conversation */
+const hasLoadedSkill = (conversation: TChatConversation | undefined, skillName: string): boolean => {
+  const loadedSkills = (conversation?.extra as { loadedSkills?: Array<{ name: string }> })?.loadedSkills;
+  return loadedSkills?.some((s) => s.name === skillName) ?? false;
+};
 
 const _AssociatedConversation: React.FC<{ conversation_id: string }> = ({ conversation_id }) => {
   const { data } = useSWR(['getAssociateConversation', conversation_id], () =>
@@ -152,6 +159,7 @@ const GeminiConversationPanel: React.FC<{
 
   // 使用统一的 Hook 获取预设助手信息 / Use unified hook for preset assistant info
   const { info: presetAssistantInfo } = usePresetAssistantInfo(conversation);
+  const geminiAssistantId = resolveAssistantConfigId(conversation) ?? undefined;
 
   const chatLayoutProps = {
     title: conversation.name,
@@ -159,17 +167,18 @@ const GeminiConversationPanel: React.FC<{
     sider: <ChatSider conversation={conversation} />,
     headerLeft: <GeminiModelSelector selection={modelSelection} />,
     headerExtra: (
-      <CronJobManager
-        conversationId={conversation.id}
-        cronJobId={conversation.extra?.cronJobId as string | undefined}
-      />
+      <div className='flex items-center gap-8px'>
+        <ConversationSkillsIndicator conversation={conversation} />
+        <CronJobManager
+          conversationId={conversation.id}
+          cronJobId={conversation.extra?.cronJobId as string | undefined}
+          hasCronSkill={hasLoadedSkill(conversation, 'cron')}
+        />
+      </div>
     ),
     workspaceEnabled,
     backend: 'gemini' as const,
-    // 传递预设助手信息 / Pass preset assistant info
-    agentName: presetAssistantInfo?.name,
-    agentLogo: presetAssistantInfo?.logo,
-    agentLogoIsEmoji: presetAssistantInfo?.isEmoji,
+    presetAssistant: presetAssistantInfo ? { ...presetAssistantInfo, id: geminiAssistantId } : undefined,
   };
 
   return (
@@ -208,6 +217,7 @@ const AionrsConversationPanel: React.FC<{ conversation: AionrsConversation; slid
   });
   const workspaceEnabled = Boolean(conversation.extra?.workspace);
   const { info: presetAssistantInfo } = usePresetAssistantInfo(conversation);
+  const aionrsAssistantId = resolveAssistantConfigId(conversation) ?? undefined;
 
   const chatLayoutProps = {
     title: conversation.name,
@@ -215,16 +225,18 @@ const AionrsConversationPanel: React.FC<{ conversation: AionrsConversation; slid
     sider: <ChatSider conversation={conversation} />,
     headerLeft: <AionrsModelSelector selection={modelSelection} />,
     headerExtra: (
-      <CronJobManager
-        conversationId={conversation.id}
-        cronJobId={conversation.extra?.cronJobId as string | undefined}
-      />
+      <div className='flex items-center gap-8px'>
+        <ConversationSkillsIndicator conversation={conversation} />
+        <CronJobManager
+          conversationId={conversation.id}
+          cronJobId={conversation.extra?.cronJobId as string | undefined}
+          hasCronSkill={hasLoadedSkill(conversation, 'cron')}
+        />
+      </div>
     ),
     workspaceEnabled,
     backend: 'aionrs' as const,
-    agentName: presetAssistantInfo?.name,
-    agentLogo: presetAssistantInfo?.logo,
-    agentLogoIsEmoji: presetAssistantInfo?.isEmoji,
+    presetAssistant: presetAssistantInfo ? { ...presetAssistantInfo, id: aionrsAssistantId } : undefined,
   };
 
   return (
@@ -251,9 +263,9 @@ const ChatConversation: React.FC<{
 
   // 使用统一的 Hook 获取预设助手信息（ACP/Codex 会话）
   // Use unified hook for preset assistant info (ACP/Codex conversations)
-  const { info: presetAssistantInfo, isLoading: isLoadingPreset } = usePresetAssistantInfo(
-    isGeminiConversation || isAionrsConversation ? undefined : conversation
-  );
+  const acpConversation = isGeminiConversation || isAionrsConversation ? undefined : conversation;
+  const { info: presetAssistantInfo, isLoading: isLoadingPreset } = usePresetAssistantInfo(acpConversation);
+  const acpAssistantId = acpConversation ? (resolveAssistantConfigId(acpConversation) ?? undefined) : undefined;
 
   const conversationAgentName = (conversation?.extra as { agentName?: string } | undefined)?.agentName;
   const assistantDisplayName = presetAssistantInfo?.name || conversationAgentName;
@@ -375,9 +387,7 @@ const ChatConversation: React.FC<{
   // If preset assistant info exists, use preset logo/name; while loading, avoid fallback; otherwise use backend logo
   const chatLayoutProps = presetAssistantInfo
     ? {
-        agentName: presetAssistantInfo.name,
-        agentLogo: presetAssistantInfo.logo,
-        agentLogoIsEmoji: presetAssistantInfo.isEmoji,
+        presetAssistant: { ...presetAssistantInfo, id: acpAssistantId },
       }
     : isLoadingPreset
       ? {} // Still loading custom agents — avoid showing backend logo prematurely
@@ -411,11 +421,13 @@ const ChatConversation: React.FC<{
           />
         </div>
       )}
+      <ConversationSkillsIndicator conversation={conversation} />
       {conversation && (
         <div className='shrink-0'>
           <CronJobManager
             conversationId={conversation.id}
             cronJobId={conversation.extra?.cronJobId as string | undefined}
+            hasCronSkill={hasLoadedSkill(conversation, 'cron')}
           />
         </div>
       )}

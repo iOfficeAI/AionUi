@@ -6,17 +6,17 @@
 
 import coworkSvg from '@/renderer/assets/icons/cowork.svg';
 import {
-  useAssistantBackends,
+  useDetectedAgents,
   useAssistantEditor,
   useAssistantList,
   useAssistantSkills,
 } from '@/renderer/hooks/assistant';
-import AddCustomPathModal from '@/renderer/pages/settings/AgentSettings/AssistantManagement/AddCustomPathModal';
-import AddSkillsModal from '@/renderer/pages/settings/AgentSettings/AssistantManagement/AddSkillsModal';
-import AssistantEditDrawer from '@/renderer/pages/settings/AgentSettings/AssistantManagement/AssistantEditDrawer';
-import DeleteAssistantModal from '@/renderer/pages/settings/AgentSettings/AssistantManagement/DeleteAssistantModal';
-import SkillConfirmModals from '@/renderer/pages/settings/AgentSettings/AssistantManagement/SkillConfirmModals';
-import { resolveAvatarImageSrc } from '@/renderer/pages/settings/AgentSettings/AssistantManagement/assistantUtils';
+import AddCustomPathModal from '@/renderer/pages/settings/AssistantSettings/AddCustomPathModal';
+import AddSkillsModal from '@/renderer/pages/settings/AssistantSettings/AddSkillsModal';
+import AssistantEditDrawer from '@/renderer/pages/settings/AssistantSettings/AssistantEditDrawer';
+import DeleteAssistantModal from '@/renderer/pages/settings/AssistantSettings/DeleteAssistantModal';
+import SkillConfirmModals from '@/renderer/pages/settings/AssistantSettings/SkillConfirmModals';
+import { resolveAvatarImageSrc } from '@/renderer/pages/settings/AssistantSettings/assistantUtils';
 import { CUSTOM_AVATAR_IMAGE_MAP } from '../constants';
 import styles from '../index.module.css';
 import type { AcpBackendConfig, AvailableAgent, EffectiveAgentInfo } from '../types';
@@ -69,21 +69,13 @@ const AssistantSelectionArea: React.FC<AssistantSelectionAreaProps> = ({
     []
   );
 
-  const {
-    assistants,
-    activeAssistantId,
-    setActiveAssistantId,
-    activeAssistant,
-    isReadonlyAssistant,
-    isExtensionAssistant,
-    loadAssistants,
-  } = useAssistantList();
-  const { availableBackends, extensionAcpAdapters, refreshAgentDetection } = useAssistantBackends();
+  const { assistants, activeAssistantId, setActiveAssistantId, activeAssistant, isExtensionAssistant, loadAssistants } =
+    useAssistantList();
+  const { availableBackends, refreshAgentDetection } = useDetectedAgents();
 
   const editor = useAssistantEditor({
     localeKey,
     activeAssistant,
-    isReadonlyAssistant,
     isExtensionAssistant,
     setActiveAssistantId,
     loadAssistants,
@@ -133,12 +125,13 @@ const AssistantSelectionArea: React.FC<AssistantSelectionAreaProps> = ({
         setDeletePendingSkillName={editor.setDeletePendingSkillName}
         setDeleteCustomSkillName={editor.setDeleteCustomSkillName}
         setSkillsModalVisible={editor.setSkillsModalVisible}
+        builtinAutoSkills={editor.builtinAutoSkills}
+        disabledBuiltinSkills={editor.disabledBuiltinSkills}
+        setDisabledBuiltinSkills={editor.setDisabledBuiltinSkills}
         activeAssistant={activeAssistant}
         activeAssistantId={activeAssistantId}
-        isReadonlyAssistant={isReadonlyAssistant}
         isExtensionAssistant={isExtensionAssistant}
         availableBackends={availableBackends}
-        extensionAcpAdapters={extensionAcpAdapters}
         handleSave={editor.handleSave}
         handleDeleteClick={editor.handleDeleteClick}
       />
@@ -322,6 +315,7 @@ const AssistantSelectionArea: React.FC<AssistantSelectionAreaProps> = ({
             return (
               <div
                 key={assistant.id}
+                data-testid={`preset-pill-${assistant.id}`}
                 className='h-28px group flex items-center gap-8px px-16px rd-100px cursor-pointer transition-all b-1 b-solid bg-fill-0 hover:bg-fill-1 select-none'
                 style={{
                   borderWidth: '1px',
@@ -343,6 +337,7 @@ const AssistantSelectionArea: React.FC<AssistantSelectionAreaProps> = ({
             );
           })}
         <div
+          data-testid='btn-add-preset'
           className='flex items-center justify-center h-28px w-28px rd-50% bg-fill-0 hover:bg-fill-2 cursor-pointer b-1 b-dashed select-none transition-colors'
           style={{ borderWidth: '1px', borderColor: 'color-mix(in srgb, var(--color-border-2) 70%, transparent)' }}
           onClick={() => navigate('/settings/assistants')}

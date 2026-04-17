@@ -95,6 +95,9 @@ const MessageItem: React.FC<{ message: TMessage; highlighted?: boolean }> = Reac
     return (
       <div
         id={`message-${message.id}`}
+        data-testid={`message-${message.type}-${message.position}`}
+        data-message-type={message.type}
+        data-message-position={message.position}
         className={classNames(
           'min-w-0 flex items-start message-item [&>div]:max-w-full px-8px m-t-10px max-w-full md:max-w-780px mx-auto',
           message.type,

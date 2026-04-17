@@ -11,7 +11,6 @@ import { buildAgentConversationParams } from '@/common/utils/buildAgentConversat
 import { emitter } from '@/renderer/utils/emitter';
 import { buildDisplayMessage } from '@/renderer/utils/file/messageFiles';
 import { updateWorkspaceTime } from '@/renderer/utils/workspace/workspaceHistory';
-import { isAcpRoutedPresetType, type PresetAgentType } from '@/common/types/acpTypes';
 import { Message } from '@arco-design/web-react';
 import { useCallback, useRef } from 'react';
 import { type TFunction } from 'i18next';
@@ -30,7 +29,7 @@ export type GuidSendDeps = {
   loading: boolean;
 
   // Agent state
-  selectedAgent: AcpBackend | 'custom';
+  selectedAgent: string;
   selectedAgentKey: string;
   selectedAgentInfo: AvailableAgent | undefined;
   isPresetAgent: boolean;
@@ -49,8 +48,10 @@ export type GuidSendDeps = {
   resolveEnabledSkills: (
     agentInfo: { backend: AcpBackend; customAgentId?: string } | undefined
   ) => string[] | undefined;
-  isMainAgentAvailable: (agentType: string) => boolean;
-  getAvailableFallbackAgent: () => string | null;
+  resolveDisabledBuiltinSkills: (
+    agentInfo: { backend: AcpBackend; customAgentId?: string } | undefined
+  ) => string[] | undefined;
+  guidDisabledBuiltinSkills: string[] | undefined;
   currentEffectiveAgentInfo: EffectiveAgentInfo;
   isGoogleAuth: boolean;
 
@@ -99,8 +100,8 @@ export const useGuidSend = (deps: GuidSendDeps): GuidSendResult => {
     getEffectiveAgentType,
     resolvePresetRulesAndSkills,
     resolveEnabledSkills,
-    isMainAgentAvailable,
-    getAvailableFallbackAgent,
+    resolveDisabledBuiltinSkills,
+    guidDisabledBuiltinSkills,
     currentEffectiveAgentInfo,
     isGoogleAuth,
     setMentionOpen,
@@ -126,21 +127,10 @@ export const useGuidSend = (deps: GuidSendDeps): GuidSendResult => {
 
     const { rules: presetRules } = await resolvePresetRulesAndSkills(agentInfo);
     const enabledSkills = resolveEnabledSkills(agentInfo);
+    // Use guid page's local skill state (initialized from assistant config, overridable by user)
+    const excludeBuiltinSkills = guidDisabledBuiltinSkills ?? resolveDisabledBuiltinSkills(agentInfo);
 
-    let finalEffectiveAgentType = effectiveAgentType;
-    if (isPreset && !isMainAgentAvailable(effectiveAgentType)) {
-      const fallback = getAvailableFallbackAgent();
-      if (fallback && fallback !== effectiveAgentType) {
-        finalEffectiveAgentType = fallback;
-        Message.info(
-          t('guid.autoSwitchedAgent', {
-            defaultValue: `${effectiveAgentType} is not available, switched to ${fallback}`,
-            from: effectiveAgentType,
-            to: fallback,
-          })
-        );
-      }
-    }
+    const finalEffectiveAgentType = effectiveAgentType;
 
     // Gemini path
     if (!selectedAgent || selectedAgent === 'gemini' || (isPreset && finalEffectiveAgentType === 'gemini')) {
@@ -168,11 +158,13 @@ export const useGuidSend = (deps: GuidSendDeps): GuidSendResult => {
             ? {
                 rules: presetRules,
                 enabledSkills,
+                excludeBuiltinSkills,
               }
             : undefined,
           sessionMode: selectedMode,
           extra: {
             defaultFiles: files,
+            excludeBuiltinSkills,
             webSearchEngine:
               placeholderModel.platform === 'gemini-with-google-auth' ||
               placeholderModel.platform === 'gemini-vertex-ai'
@@ -235,6 +227,7 @@ export const useGuidSend = (deps: GuidSendDeps): GuidSendResult => {
             switchedAt: Date.now(),
           },
           enabledSkills: isPreset ? enabledSkills : undefined,
+          excludeBuiltinSkills,
         },
       });
 
@@ -284,6 +277,7 @@ export const useGuidSend = (deps: GuidSendDeps): GuidSendResult => {
         extra: {
           defaultFiles: files,
           enabledSkills: isPreset ? enabledSkills : undefined,
+          excludeBuiltinSkills,
         },
       });
 
@@ -331,6 +325,7 @@ export const useGuidSend = (deps: GuidSendDeps): GuidSendResult => {
             customWorkspace: isCustomWorkspace,
             presetRules: isPreset ? presetRules : undefined,
             enabledSkills: isPreset ? enabledSkills : undefined,
+            excludeBuiltinSkills,
             presetAssistantId,
             sessionMode: selectedMode,
           },
@@ -373,7 +368,7 @@ export const useGuidSend = (deps: GuidSendDeps): GuidSendResult => {
       const agentTypeChanged = isPreset && selectedAgent !== finalEffectiveAgentType;
       const acpBackend: string | undefined = agentTypeChanged
         ? finalEffectiveAgentType
-        : isPreset && isAcpRoutedPresetType(finalEffectiveAgentType as PresetAgentType)
+        : isPreset
           ? finalEffectiveAgentType
           : selectedAgent;
 
@@ -401,12 +396,14 @@ export const useGuidSend = (deps: GuidSendDeps): GuidSendResult => {
           ? {
               rules: presetRules,
               enabledSkills,
+              excludeBuiltinSkills,
             }
           : undefined,
         sessionMode: selectedMode,
         currentModelId: selectedAcpModel || undefined,
         extra: {
           defaultFiles: files,
+          excludeBuiltinSkills,
         },
       });
 
@@ -476,8 +473,8 @@ export const useGuidSend = (deps: GuidSendDeps): GuidSendResult => {
     getEffectiveAgentType,
     resolvePresetRulesAndSkills,
     resolveEnabledSkills,
-    isMainAgentAvailable,
-    getAvailableFallbackAgent,
+    resolveDisabledBuiltinSkills,
+    guidDisabledBuiltinSkills,
     navigate,
     closeAllTabs,
     openTab,

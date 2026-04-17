@@ -103,6 +103,7 @@ vi.mock('@/common', () => ({
       removeCustomExternalPath: { provider: vi.fn() },
       enableSkillsMarket: { provider: vi.fn() },
       disableSkillsMarket: { provider: vi.fn() },
+      listBuiltinAutoSkills: { provider: vi.fn() },
     },
     fileStream: { contentUpdate: { emit: vi.fn() } },
   },

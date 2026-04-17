@@ -59,8 +59,8 @@ vi.mock('@icon-park/react', () => ({
   MessageOne: () => <span data-testid='icon-message' />,
 }));
 
-vi.mock('@arco-design/web-react', () => {
-  const ModalComponent = ({
+const ModalComponent = vi.hoisted(() => {
+  const Comp = ({
     visible,
     children,
     onOk,
@@ -86,8 +86,7 @@ vi.mock('@arco-design/web-react', () => {
     );
   };
 
-  ModalComponent.confirm = ({ onOk }: { onOk?: () => void | Promise<void> }) => {
-    // Simulate confirmation by immediately calling onOk
+  Comp.confirm = ({ onOk }: { onOk?: () => void | Promise<void> }) => {
     if (onOk) {
       const result = onOk();
       if (result instanceof Promise) {
@@ -96,6 +95,10 @@ vi.mock('@arco-design/web-react', () => {
     }
   };
 
+  return Comp;
+});
+
+vi.mock('@arco-design/web-react', () => {
   return {
     Modal: ModalComponent,
     Input: ({

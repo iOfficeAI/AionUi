@@ -5,19 +5,19 @@ import type { AcpBackendConfig } from '@/common/types/acpTypes';
 import {
   hasBuiltinSkills,
   isExtensionAssistant as isExtensionAssistantUtil,
-} from '@/renderer/pages/settings/AgentSettings/AssistantManagement/assistantUtils';
+} from '@/renderer/pages/settings/AssistantSettings/assistantUtils';
 import type {
   AssistantListItem,
+  BuiltinAutoSkill,
   PendingSkill,
   SkillInfo,
-} from '@/renderer/pages/settings/AgentSettings/AssistantManagement/types';
+} from '@/renderer/pages/settings/AssistantSettings/types';
 import { useCallback, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 
 type UseAssistantEditorParams = {
   localeKey: string;
   activeAssistant: AssistantListItem | null;
-  isReadonlyAssistant: boolean;
   isExtensionAssistant: (assistant: AssistantListItem | null | undefined) => boolean;
   setActiveAssistantId: (id: string | null) => void;
   loadAssistants: () => Promise<void>;
@@ -32,7 +32,6 @@ type UseAssistantEditorParams = {
 export const useAssistantEditor = ({
   localeKey,
   activeAssistant,
-  isReadonlyAssistant,
   isExtensionAssistant,
   setActiveAssistantId,
   loadAssistants,
@@ -47,7 +46,7 @@ export const useAssistantEditor = ({
   const [editDescription, setEditDescription] = useState('');
   const [editContext, setEditContext] = useState('');
   const [editAvatar, setEditAvatar] = useState('');
-  // editAgent holds either a built-in PresetAgentType or an extension adapter ID (e.g. "ext-buddy")
+  // editAgent holds a backend ID (e.g. "claude", "goose") or an extension adapter ID (e.g. "ext-buddy")
   const [editAgent, setEditAgent] = useState<string>('gemini');
   const [editSkills, setEditSkills] = useState('');
   const [isCreating, setIsCreating] = useState(false);
@@ -62,6 +61,10 @@ export const useAssistantEditor = ({
   const [deletePendingSkillName, setDeletePendingSkillName] = useState<string | null>(null);
   const [deleteCustomSkillName, setDeleteCustomSkillName] = useState<string | null>(null);
   const [skillsModalVisible, setSkillsModalVisible] = useState(false);
+
+  // Builtin auto-injected skills state
+  const [builtinAutoSkills, setBuiltinAutoSkills] = useState<BuiltinAutoSkill[]>([]);
+  const [disabledBuiltinSkills, setDisabledBuiltinSkills] = useState<string[]>([]);
 
   // Load assistant rule content from file
   const loadAssistantContext = useCallback(
@@ -103,6 +106,14 @@ export const useAssistantEditor = ({
     setDeleteCustomSkillName(null);
     setEditVisible(true);
 
+    // Load builtin auto skills for all assistants
+    try {
+      const autoSkills = await ipcBridge.fs.listBuiltinAutoSkills.invoke();
+      setBuiltinAutoSkills(autoSkills);
+    } catch {
+      setBuiltinAutoSkills([]);
+    }
+
     // Extension assistants show extension context directly, not local rule files
     if (isExtensionAssistantUtil(assistant)) {
       setPromptViewMode('preview');
@@ -111,6 +122,7 @@ export const useAssistantEditor = ({
       setAvailableSkills([]);
       setSelectedSkills(Array.isArray(assistant.enabledSkills) ? assistant.enabledSkills : []);
       setCustomSkills([]);
+      setDisabledBuiltinSkills(Array.isArray(assistant.disabledBuiltinSkills) ? assistant.disabledBuiltinSkills : []);
       return;
     }
 
@@ -134,6 +146,7 @@ export const useAssistantEditor = ({
         setSelectedSkills([]);
         setCustomSkills([]);
       }
+      setDisabledBuiltinSkills(Array.isArray(assistant.disabledBuiltinSkills) ? assistant.disabledBuiltinSkills : []);
     } catch (error) {
       console.error('Failed to load assistant content:', error);
       setEditContext('');
@@ -155,16 +168,22 @@ export const useAssistantEditor = ({
     setEditSkills('');
     setSelectedSkills([]);
     setCustomSkills([]);
+    setDisabledBuiltinSkills([]);
     setPromptViewMode('edit');
     setEditVisible(true);
 
-    // Load available skills list
+    // Load available skills list and builtin auto skills
     try {
-      const skillsList = await ipcBridge.fs.listAvailableSkills.invoke();
+      const [skillsList, autoSkills] = await Promise.all([
+        ipcBridge.fs.listAvailableSkills.invoke(),
+        ipcBridge.fs.listBuiltinAutoSkills.invoke(),
+      ]);
       setAvailableSkills(skillsList);
+      setBuiltinAutoSkills(autoSkills);
     } catch (error) {
       console.error('Failed to load skills:', error);
       setAvailableSkills([]);
+      setBuiltinAutoSkills([]);
     }
   };
 
@@ -181,14 +200,16 @@ export const useAssistantEditor = ({
 
     // Load original assistant's rules and skills
     try {
-      const [skillsList, context, skills] = isExtensionAssistantUtil(assistant)
+      const [skillsList, autoSkills, context, skills] = isExtensionAssistantUtil(assistant)
         ? await Promise.all([
             ipcBridge.fs.listAvailableSkills.invoke(),
+            ipcBridge.fs.listBuiltinAutoSkills.invoke(),
             Promise.resolve(assistant.context || ''),
             Promise.resolve(''),
           ])
         : await Promise.all([
             ipcBridge.fs.listAvailableSkills.invoke(),
+            ipcBridge.fs.listBuiltinAutoSkills.invoke(),
             loadAssistantContext(assistant.id),
             loadAssistantSkills(assistant.id),
           ]);
@@ -196,15 +217,19 @@ export const useAssistantEditor = ({
       setEditContext(context);
       setEditSkills(skills);
       setAvailableSkills(skillsList);
+      setBuiltinAutoSkills(autoSkills);
       setSelectedSkills(assistant.enabledSkills || []);
       setCustomSkills(assistant.customSkillNames || []);
+      setDisabledBuiltinSkills(Array.isArray(assistant.disabledBuiltinSkills) ? assistant.disabledBuiltinSkills : []);
     } catch (error) {
       console.error('Failed to load assistant content for duplication:', error);
       setEditContext('');
       setEditSkills('');
       setAvailableSkills([]);
+      setBuiltinAutoSkills([]);
       setSelectedSkills([]);
       setCustomSkills([]);
+      setDisabledBuiltinSkills([]);
     }
   };
 
@@ -213,16 +238,6 @@ export const useAssistantEditor = ({
       // Validate required fields
       if (!editName.trim()) {
         message.error(t('settings.assistantNameRequired', { defaultValue: 'Assistant name is required' }));
-        return;
-      }
-
-      // Extension assistants are read-only, cannot save over them
-      if (!isCreating && activeAssistant && isExtensionAssistant(activeAssistant)) {
-        message.warning(
-          t('settings.extensionAssistantReadonly', {
-            defaultValue: 'Extension assistants are read-only. You can duplicate it and edit the copy.',
-          })
-        );
         return;
       }
 
@@ -252,7 +267,7 @@ export const useAssistantEditor = ({
         }
       }
 
-      const agents = (await ConfigStorage.get('acp.customAgents')) || [];
+      const agents = (await ConfigStorage.get('assistants')) || [];
 
       // Calculate final customSkills: merge existing + pending
       const pendingSkillNames = pendingSkills.map((s) => s.name);
@@ -272,6 +287,7 @@ export const useAssistantEditor = ({
           enabled: true,
           enabledSkills: selectedSkills,
           customSkillNames: finalCustomSkills,
+          disabledBuiltinSkills: disabledBuiltinSkills.length > 0 ? disabledBuiltinSkills : undefined,
         };
 
         // Save rule file
@@ -284,7 +300,7 @@ export const useAssistantEditor = ({
         }
 
         const updatedAgents = [...agents, newAssistant];
-        await ConfigStorage.set('acp.customAgents', updatedAgents);
+        await ConfigStorage.set('assistants', updatedAgents);
         setActiveAssistantId(newId);
         await loadAssistants();
         message.success(t('common.createSuccess', { defaultValue: 'Created successfully' }));
@@ -300,6 +316,7 @@ export const useAssistantEditor = ({
           presetAgentType: editAgent,
           enabledSkills: selectedSkills,
           customSkillNames: finalCustomSkills,
+          disabledBuiltinSkills: disabledBuiltinSkills.length > 0 ? disabledBuiltinSkills : undefined,
         };
 
         // Save rule file (if changed)
@@ -312,7 +329,7 @@ export const useAssistantEditor = ({
         }
 
         const updatedAgents = agents.map((agent) => (agent.id === activeAssistant.id ? updatedAgent : agent));
-        await ConfigStorage.set('acp.customAgents', updatedAgents);
+        await ConfigStorage.set('assistants', updatedAgents);
         await loadAssistants();
         message.success(t('common.saveSuccess', { defaultValue: 'Saved successfully' }));
       }
@@ -355,9 +372,9 @@ export const useAssistantEditor = ({
       ]);
 
       // Remove assistant from config
-      const agents = (await ConfigStorage.get('acp.customAgents')) || [];
+      const agents = (await ConfigStorage.get('assistants')) || [];
       const updatedAgents = agents.filter((agent) => agent.id !== activeAssistant.id);
-      await ConfigStorage.set('acp.customAgents', updatedAgents);
+      await ConfigStorage.set('assistants', updatedAgents);
 
       // Reload merged assistant list (local + extensions)
       await loadAssistants();
@@ -383,9 +400,9 @@ export const useAssistantEditor = ({
     }
 
     try {
-      const agents = (await ConfigStorage.get('acp.customAgents')) || [];
+      const agents = (await ConfigStorage.get('assistants')) || [];
       const updatedAgents = agents.map((agent) => (agent.id === assistant.id ? { ...agent, enabled } : agent));
-      await ConfigStorage.set('acp.customAgents', updatedAgents);
+      await ConfigStorage.set('assistants', updatedAgents);
 
       // Reload merged assistant list (local + extensions)
       await loadAssistants();
@@ -433,6 +450,11 @@ export const useAssistantEditor = ({
     setDeleteCustomSkillName,
     skillsModalVisible,
     setSkillsModalVisible,
+
+    // Builtin auto-injected skills state
+    builtinAutoSkills,
+    disabledBuiltinSkills,
+    setDisabledBuiltinSkills,
 
     // Handlers
     loadAssistantContext,

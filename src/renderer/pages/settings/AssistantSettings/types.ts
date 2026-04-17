@@ -1,12 +1,14 @@
-import type { Message } from '@arco-design/web-react';
 import type { AcpBackendConfig } from '@/common/types/acpTypes';
 
 // Skill info type
+export type SkillSource = 'builtin' | 'custom' | 'extension';
+
 export type SkillInfo = {
   name: string;
   description: string;
   location: string;
   isCustom: boolean;
+  source: SkillSource;
 };
 
 // External source type
@@ -24,8 +26,10 @@ export type PendingSkill = {
   description: string;
 };
 
-export type AssistantManagementProps = {
-  message: ReturnType<typeof Message.useMessage>[0];
+// Builtin auto-injected skill info
+export type BuiltinAutoSkill = {
+  name: string;
+  description: string;
 };
 
 export type AssistantListItem = AcpBackendConfig & {

@@ -14,6 +14,7 @@ export type PresetAssistantResourceDeps = {
   readBuiltinRule: (args: { fileName: string }) => Promise<string>;
   readBuiltinSkill: (args: { fileName: string }) => Promise<string>;
   getEnabledSkills: (customAgentId: string) => Promise<string[] | undefined>;
+  getDisabledBuiltinSkills: (customAgentId: string) => Promise<string[] | undefined>;
   warn: (message: string, error?: unknown) => void;
 };
 
@@ -27,6 +28,7 @@ export type PresetAssistantResources = {
   rules?: string;
   skills: string;
   enabledSkills?: string[];
+  disabledBuiltinSkills?: string[];
 };
 
 const defaultDeps: PresetAssistantResourceDeps = {
@@ -35,9 +37,14 @@ const defaultDeps: PresetAssistantResourceDeps = {
   readBuiltinRule: (args) => ipcBridge.fs.readBuiltinRule.invoke(args),
   readBuiltinSkill: (args) => ipcBridge.fs.readBuiltinSkill.invoke(args),
   getEnabledSkills: async (customAgentId) => {
-    const customAgents = await ConfigStorage.get('acp.customAgents');
+    const customAgents = await ConfigStorage.get('assistants');
     const assistant = customAgents?.find((agent) => agent.id === customAgentId);
     return assistant?.enabledSkills;
+  },
+  getDisabledBuiltinSkills: async (customAgentId) => {
+    const customAgents = await ConfigStorage.get('assistants');
+    const assistant = customAgents?.find((agent) => agent.id === customAgentId);
+    return assistant?.disabledBuiltinSkills;
   },
   warn: (message, error) => {
     console.warn(message, error);
@@ -55,6 +62,7 @@ export async function loadPresetAssistantResources(
       rules: fallbackRules,
       skills: '',
       enabledSkills: undefined,
+      disabledBuiltinSkills: undefined,
     };
   }
 
@@ -106,5 +114,6 @@ export async function loadPresetAssistantResources(
     rules: rules || fallbackRules,
     skills,
     enabledSkills: await deps.getEnabledSkills(customAgentId),
+    disabledBuiltinSkills: await deps.getDisabledBuiltinSkills(customAgentId),
   };
 }

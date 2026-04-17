@@ -9,10 +9,9 @@ import { ConfigStorage } from '@/common/config/storage';
 import type { AcpSessionConfigOption } from '@/common/types/acpTypes';
 import { getAgentModes, supportsModeSwitch, type AgentModeOption } from '@/renderer/utils/model/agentModes';
 import { useLayoutContext } from '@/renderer/hooks/context/LayoutContext';
-import { iconColors } from '@/renderer/styles/colors';
-import { getAgentLogo } from '@/renderer/utils/model/agentLogo';
+import { AgentLogoIcon } from './AgentBadge';
 import { Button, Dropdown, Menu, Message } from '@arco-design/web-react';
-import { Down, Robot } from '@icon-park/react';
+import { Down } from '@icon-park/react';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import MarqueePillLabel from './MarqueePillLabel';
@@ -239,28 +238,9 @@ const AgentModeSelector: React.FC<AgentModeSelectorProps> = ({
     [conversationId, currentMode, onModeSelect]
   );
 
-  // Render logo based on source
-  const renderLogo = () => {
-    const logoContent = (() => {
-      if (agentLogo) {
-        if (agentLogoIsEmoji) {
-          return <span className='text-14px leading-none'>{agentLogo}</span>;
-        }
-        return (
-          <img src={agentLogo} alt={`${agentName || 'agent'} logo`} className='block w-16px h-16px object-contain' />
-        );
-      }
-      const logo = getAgentLogo(backend);
-      if (logo) {
-        return <img src={logo} alt={`${backend} logo`} className='block w-16px h-16px object-contain' />;
-      }
-      return <Robot theme='outline' size={16} fill={iconColors.primary} />;
-    })();
-
-    return (
-      <span className='inline-flex w-16px h-16px items-center justify-center shrink-0 leading-none'>{logoContent}</span>
-    );
-  };
+  const renderLogo = () => (
+    <AgentLogoIcon backend={backend} agentName={agentName} agentLogo={agentLogo} agentLogoIsEmoji={agentLogoIsEmoji} />
+  );
 
   // Get display label for current mode
   const getCurrentModeLabel = () => {

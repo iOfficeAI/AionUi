@@ -24,6 +24,7 @@ import type { GeminiAgentManager } from '../task/GeminiAgentManager';
 import { AionrsApprovalStore, type AionrsManager } from '../task/AionrsManager';
 import type OpenClawAgentManager from '../task/OpenClawAgentManager';
 import { prepareFirstMessage } from '../task/agentUtils';
+import { AcpSkillManager } from '../task/AcpSkillManager';
 import { refreshTrayMenu } from '@process/utils/tray';
 import { copyFilesToDirectory, readDirectoryRecursive } from '@process/utils';
 import { computeOpenClawIdentityHash } from '@process/utils/openclawUtils';
@@ -138,6 +139,30 @@ export function initConversationBridge(
         ...createParams,
         source: 'aionui',
       } as CreateConversationParams);
+
+      // Discover and persist loaded skills snapshot at creation time
+      // so the UI can display them immediately without waiting for the first message.
+      try {
+        const extra = createParams.extra as {
+          enabledSkills?: string[];
+          excludeBuiltinSkills?: string[];
+        };
+        const skillManager = AcpSkillManager.getInstance(extra.enabledSkills);
+        await skillManager.discoverSkills(extra.enabledSkills, extra.excludeBuiltinSkills);
+        const excludeSet = new Set(extra.excludeBuiltinSkills ?? []);
+        // Filter out excluded builtin skills — the singleton cache may not reflect excludeBuiltinSkills
+        const loadedSkills = skillManager.getSkillsIndex().filter((s) => !excludeSet.has(s.name));
+        if (loadedSkills.length > 0) {
+          const updatedExtra = { ...conversation.extra, loadedSkills };
+          conversationService.updateConversation(conversation.id, {
+            extra: updatedExtra,
+          } as Partial<typeof conversation>);
+          conversation.extra = updatedExtra as typeof conversation.extra;
+        }
+      } catch (error) {
+        console.warn('[conversationBridge] Failed to discover skills at creation:', error);
+      }
+
       emitConversationListChanged(conversation, 'created');
       await refreshTrayMenuSafely();
       return conversation;

@@ -1,5 +1,6 @@
 import { ConfigStorage } from '@/common/config/storage';
-import AgentModeSelector from '@/renderer/components/agent/AgentModeSelector';
+import AgentBadge from '@/renderer/components/agent/AgentBadge';
+import type { PresetAssistantInfo } from '@/renderer/hooks/agent/usePresetAssistantInfo';
 import FlexFullContainer from '@/renderer/components/layout/FlexFullContainer';
 import { useLayoutContext } from '@/renderer/hooks/context/LayoutContext';
 import { useResizableSplit } from '@/renderer/hooks/ui/useResizableSplit';
@@ -37,11 +38,10 @@ const ChatLayout: React.FC<{
   sider: React.ReactNode;
   siderTitle?: React.ReactNode;
   backend?: string;
+  /** Preset assistant info — when provided, badge shows assistant identity instead of backend */
+  presetAssistant?: PresetAssistantInfo & { id?: string };
+  /** Fallback agent name (used when no presetAssistant, e.g. from conversation.extra.agentName) */
   agentName?: string;
-  /** Custom agent logo (can be SVG path or emoji string) */
-  agentLogo?: string;
-  /** Whether the logo is an emoji */
-  agentLogoIsEmoji?: boolean;
   headerExtra?: React.ReactNode;
   headerLeft?: React.ReactNode;
   workspaceEnabled?: boolean;
@@ -55,7 +55,7 @@ const ChatLayout: React.FC<{
   onRenameTitle?: (newName: string) => Promise<boolean>;
 }> = (props) => {
   const { conversationId, workspacePath } = props;
-  const { backend, agentName, agentLogo, agentLogoIsEmoji, workspaceEnabled = true } = props;
+  const { backend, presetAssistant, agentName, workspaceEnabled = true } = props;
   const layout = useLayoutContext();
   const isMacRuntime = isMacEnvironment();
   const isWindowsRuntime = isWindowsEnvironment();
@@ -88,12 +88,14 @@ const ChatLayout: React.FC<{
     });
 
   // Fetch custom agents config as fallback when agentName is not provided
-  const { data: customAgents } = useSWR(backend === 'custom' && !agentName ? 'acp.customAgents' : null, () =>
-    ConfigStorage.get('acp.customAgents')
+  const needCustomFallback = backend === 'custom' && !presetAssistant && !agentName;
+  const { data: customAgents } = useSWR(needCustomFallback ? 'assistants' : null, () =>
+    ConfigStorage.get('assistants')
   );
 
-  // Compute display name with fallback chain (use first custom agent as fallback for backward compatibility)
+  // Compute display name with fallback chain
   const displayName =
+    presetAssistant?.name ||
     agentName ||
     (backend === 'custom' && customAgents?.[0]?.name) ||
     ACP_BACKENDS_ALL[backend as keyof typeof ACP_BACKENDS_ALL]?.name ||
@@ -201,15 +203,13 @@ const ChatLayout: React.FC<{
         </FlexFullContainer>
         <div className='flex items-center gap-12px shrink-0'>
           {props.headerExtra}
-          {(backend || agentLogo) && (
-            <AgentModeSelector
+          {(backend || presetAssistant) && (
+            <AgentBadge
               backend={backend}
               agentName={displayName}
-              agentLogo={agentLogo}
-              agentLogoIsEmoji={agentLogoIsEmoji}
-              compact={Boolean(layout?.isMobile)}
-              showLogoInCompact={Boolean(layout?.isMobile)}
-              compactLabelType={layout?.isMobile ? 'agent' : 'mode'}
+              agentLogo={presetAssistant?.logo}
+              agentLogoIsEmoji={presetAssistant?.isEmoji}
+              assistantId={presetAssistant?.id}
             />
           )}
           {isWindowsRuntime && workspaceEnabled && (

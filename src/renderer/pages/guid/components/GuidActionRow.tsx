@@ -15,8 +15,8 @@ import { iconColors } from '@/renderer/styles/colors';
 import { isElectronDesktop } from '@/renderer/utils/platform';
 import type { AcpBackend, AcpBackendConfig, AvailableAgent } from '../types';
 import PresetAgentTag, { type AgentSwitcherItem } from './PresetAgentTag';
-import { Button, Dropdown, Menu, Message, Tooltip } from '@arco-design/web-react';
-import { ArrowUp, Brain, FolderOpen, Plus, Shield, UploadOne } from '@icon-park/react';
+import { Button, Checkbox, Dropdown, Menu, Message, Tooltip } from '@arco-design/web-react';
+import { ArrowUp, Brain, FolderOpen, Lightning, Plus, Shield, UploadOne } from '@icon-park/react';
 import React, { useCallback, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import styles from '../index.module.css';
@@ -52,6 +52,11 @@ type GuidActionRowProps = {
   cachedConfigOptions?: AcpSessionConfigOption[];
   onConfigOptionSelect?: (configId: string, value: string) => void;
 
+  // Skills management
+  builtinAutoSkills: Array<{ name: string; description: string }>;
+  disabledBuiltinSkills: string[];
+  onToggleBuiltinSkill: (name: string) => void;
+
   // Send button
   loading: boolean;
   isButtonDisabled: boolean;
@@ -79,6 +84,9 @@ const GuidActionRow: React.FC<GuidActionRowProps> = ({
   configOptionsBackend,
   cachedConfigOptions,
   onConfigOptionSelect,
+  builtinAutoSkills,
+  disabledBuiltinSkills,
+  onToggleBuiltinSkill,
   hidePresetTag = false,
   loading,
   isButtonDisabled,
@@ -126,6 +134,8 @@ const GuidActionRow: React.FC<GuidActionRowProps> = ({
   const permissionLabel = currentModeOption ? getModeDisplayLabel(currentModeOption) : t('agentMode.permission');
 
   const isWebUI = !isElectronDesktop();
+
+  const activeSkillCount = builtinAutoSkills.length - disabledBuiltinSkills.length;
 
   const menuContent = (
     <Menu
@@ -187,6 +197,37 @@ const GuidActionRow: React.FC<GuidActionRowProps> = ({
           <span>{t('conversation.welcome.specifyWorkspace')}</span>
         </div>
       </Menu.Item>
+      {builtinAutoSkills.length > 0 && (
+        <Menu.SubMenu
+          key='skills'
+          title={
+            <div className='flex items-center gap-8px'>
+              <Lightning theme='filled' size='16' fill={iconColors.primary} style={{ lineHeight: 0 }} />
+              <span>
+                {t('settings.autoInjectedSkills')} ({activeSkillCount}/{builtinAutoSkills.length})
+              </span>
+            </div>
+          }
+        >
+          {builtinAutoSkills.map((skill) => (
+            <Menu.Item
+              key={`skill-${skill.name}`}
+              onClick={(e) => {
+                e.stopPropagation();
+                onToggleBuiltinSkill(skill.name);
+              }}
+            >
+              <Checkbox
+                checked={!disabledBuiltinSkills.includes(skill.name)}
+                onClick={(e: React.MouseEvent) => e.stopPropagation()}
+                onChange={() => onToggleBuiltinSkill(skill.name)}
+              >
+                <span className='text-13px'>{skill.name}</span>
+              </Checkbox>
+            </Menu.Item>
+          ))}
+        </Menu.SubMenu>
+      )}
     </Menu>
   );
 

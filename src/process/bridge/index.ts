@@ -4,7 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { acpDetector } from '@process/agent/acp/AcpDetector';
+import { agentRegistry } from '@process/agent/AgentRegistry';
 import type { IChannelRepository } from '@process/services/database/IChannelRepository';
 import type { IConversationRepository } from '@process/services/database/IConversationRepository';
 import type { IConversationService } from '@process/services/IConversationService';
@@ -99,7 +99,7 @@ export function initAllBridges(deps: BridgeDependencies): void {
  */
 export async function initializeAcpDetector(): Promise<void> {
   try {
-    await acpDetector.initialize();
+    await agentRegistry.initialize();
   } catch (error) {
     console.error('[ACP] Failed to initialize detector:', error);
   }

@@ -239,7 +239,6 @@ export class AcpConnection {
         await connectCodex(workingDir, npxHooks);
         break;
 
-      case 'gemini':
       case 'qwen':
       case 'iflow':
       case 'droid':

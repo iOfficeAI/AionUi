@@ -104,6 +104,8 @@
   "builtinSkills": "內建技能",
   "noCustomSkills": "尚無自訂技能",
   "noBuiltinSkills": "尚無可用的內建技能",
+  "autoInjectedSkills": "自動注入技能",
+  "autoInjectedSkillsBadge": "自動",
   "skillFolderPath": "技能資料夾路徑",
   "skillPathPlaceholder": "輸入或瀏覽技能資料夾路徑",
   "pleaseSelectSkillPath": "請選擇技能資料夾路徑",

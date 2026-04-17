@@ -11,7 +11,7 @@ import { ipcBridge } from '@/common';
 import type { CronMessageMeta, TMessage } from '@/common/chat/chatLib';
 import type { IResponseMessage } from '@/common/adapter/ipcBridge';
 import type { TChatConversation, TProviderWithModel } from '@/common/config/storage';
-import type { AcpBackendAll } from '@/common/types/acpTypes';
+import type { AcpBackendAll, AgentBackend } from '@/common/types/acpTypes';
 import { uuid } from '@/common/utils';
 import type BaseAgentManager from '@process/task/BaseAgentManager';
 import type { IWorkerTaskManager } from '@process/task/IWorkerTaskManager';
@@ -24,6 +24,7 @@ import type { CronJob } from './CronStore';
 import type { ICronJobExecutor } from './ICronJobExecutor';
 import { addMessage } from '@process/utils/message';
 import { getCronSkillDir, hasCronSkillFile } from './cronSkillFile';
+import { AcpSkillManager } from '@process/task/AcpSkillManager';
 import { skillSuggestWatcher } from './SkillSuggestWatcher';
 
 /** Lazy-import to break circular dependency: cronServiceSingleton ↔ conversationServiceSingleton */
@@ -233,6 +234,22 @@ export class WorkerTaskManagerJobExecutor implements ICronJobExecutor {
     const service = await getConversationService();
     const conversation = await service.createConversation(params);
 
+    // Persist loaded skills snapshot so ConversationSkillsIndicator can display them
+    try {
+      const excludeBuiltinSkills = (params.extra as { excludeBuiltinSkills?: string[] })?.excludeBuiltinSkills;
+      const skillManager = AcpSkillManager.getInstance();
+      await skillManager.discoverSkills(undefined, excludeBuiltinSkills);
+      const excludeSet = new Set(excludeBuiltinSkills ?? []);
+      const loadedSkills = skillManager.getSkillsIndex().filter((s) => !excludeSet.has(s.name));
+      if (loadedSkills.length > 0) {
+        const updatedExtra = { ...conversation.extra, loadedSkills };
+        service.updateConversation(conversation.id, { extra: updatedExtra } as Partial<typeof conversation>);
+        conversation.extra = updatedExtra as typeof conversation.extra;
+      }
+    } catch (error) {
+      console.warn('[CronExecutor] Failed to persist loadedSkills:', error);
+    }
+
     // Notify frontend so sider updates immediately
     ipcBridge.conversation.listChanged.emit({
       conversationId: conversation.id,
@@ -267,14 +284,14 @@ export class WorkerTaskManagerJobExecutor implements ICronJobExecutor {
   /**
    * Map backend identifier to the AgentType used by createConversation.
    */
-  private getAgentType(backend: AcpBackendAll): AgentType {
+  private getAgentType(backend: AgentBackend): AgentType {
     switch (backend) {
       case 'gemini':
         return 'gemini';
       case 'aionrs':
         return 'aionrs';
       case 'openclaw-gateway':
-      case 'openclaw' as AcpBackendAll:
+      case 'openclaw' as AgentBackend:
         return 'openclaw-gateway';
       case 'nanobot':
         return 'nanobot';

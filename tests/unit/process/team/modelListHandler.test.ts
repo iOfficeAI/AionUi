@@ -39,8 +39,8 @@ vi.mock('../../src/process/team/googleAuthCheck', () => ({
   hasGeminiOauthCreds: vi.fn(async () => false),
 }));
 
-vi.mock('@process/agent/acp/AcpDetector', () => ({
-  acpDetector: {
+vi.mock('@process/agent/AgentRegistry', () => ({
+  agentRegistry: {
     getDetectedAgents: vi.fn(() => [{ backend: 'claude', name: 'Claude' }]),
   },
 }));
@@ -74,8 +74,8 @@ describe('handleListModels', () => {
   });
 
   it('returns "no team-capable agents" when none detected', async () => {
-    const { acpDetector } = await import('@process/agent/acp/AcpDetector');
-    vi.mocked(acpDetector.getDetectedAgents).mockReturnValueOnce([]);
+    const { agentRegistry } = await import('@process/agent/AgentRegistry');
+    vi.mocked(agentRegistry.getDetectedAgents).mockReturnValueOnce([]);
 
     const result = await handleListModels({});
     expect(result).toBe('No team-capable agent types detected.');

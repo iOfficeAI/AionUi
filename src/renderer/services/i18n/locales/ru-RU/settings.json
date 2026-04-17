@@ -104,6 +104,8 @@
   "builtinSkills": "Встроенные навыки",
   "noCustomSkills": "Пользовательские навыки не добавлены",
   "noBuiltinSkills": "Встроенные навыки недоступны",
+  "autoInjectedSkills": "Автоматически добавленные навыки",
+  "autoInjectedSkillsBadge": "Авто",
   "skillFolderPath": "Путь к папке навыков",
   "skillPathPlaceholder": "Введите или выберите пути к папкам навыков, разделённые запятыми",
   "pleaseSelectSkillPath": "Выберите путь к папке навыков",

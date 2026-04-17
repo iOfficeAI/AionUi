@@ -1,9 +1,7 @@
-import type { PresetAgentType } from '@/common/types/acpTypes';
-
 export type AssistantPreset = {
   id: string;
   avatar: string;
-  presetAgentType?: PresetAgentType;
+  presetAgentType?: string;
   /**
    * Directory containing all resources for this preset (relative to project root).
    * If set, both ruleFiles and skillFiles will be resolved from this directory.

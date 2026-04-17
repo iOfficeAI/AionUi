@@ -5,6 +5,7 @@
  */
 
 import { ConfigStorage } from '@/common/config/storage';
+import type { AcpBackendAll } from '@/common/types/acpTypes';
 import type { AcpBackend } from '../types';
 
 /** Save preferred mode to the agent's own config key */
@@ -18,7 +19,7 @@ export async function savePreferredMode(agentKey: string, mode: string): Promise
       await ConfigStorage.set('aionrs.config', { ...config, preferredMode: mode });
     } else if (agentKey !== 'custom') {
       const config = await ConfigStorage.get('acp.config');
-      const backendConfig = config?.[agentKey as AcpBackend] || {};
+      const backendConfig = config?.[agentKey as AcpBackendAll] || {};
       await ConfigStorage.set('acp.config', { ...config, [agentKey]: { ...backendConfig, preferredMode: mode } });
     }
   } catch {
@@ -30,7 +31,7 @@ export async function savePreferredMode(agentKey: string, mode: string): Promise
 export async function savePreferredModelId(agentKey: string, modelId: string): Promise<void> {
   try {
     const config = await ConfigStorage.get('acp.config');
-    const backendConfig = config?.[agentKey as AcpBackend] || {};
+    const backendConfig = config?.[agentKey as AcpBackendAll] || {};
     await ConfigStorage.set('acp.config', { ...config, [agentKey]: { ...backendConfig, preferredModelId: modelId } });
   } catch {
     /* silent */
@@ -41,8 +42,8 @@ export async function savePreferredModelId(agentKey: string, modelId: string): P
  * Get agent key for selection.
  * Returns "custom:uuid" for custom agents, "remote:uuid" for remote agents, backend type for others.
  */
-export const getAgentKey = (agent: { backend: AcpBackend; customAgentId?: string }): string => {
-  if (agent.backend === 'custom' && agent.customAgentId) return `custom:${agent.customAgentId}`;
+export const getAgentKey = (agent: { backend: AcpBackend; customAgentId?: string; isPreset?: boolean }): string => {
   if (agent.backend === 'remote' && agent.customAgentId) return `remote:${agent.customAgentId}`;
+  if (agent.customAgentId) return `custom:${agent.customAgentId}`;
   return agent.backend;
 };

@@ -14,7 +14,7 @@ import { getTeamAvailableModels } from '@/common/utils/teamModelUtils';
 import { ProcessConfig } from '@process/utils/initStorage';
 import { getMergedModelProviders } from '@process/bridge/modelBridge';
 import { hasGeminiOauthCreds } from '../googleAuthCheck';
-import { acpDetector } from '@process/agent/acp/AcpDetector';
+import { agentRegistry } from '@process/agent/AgentRegistry';
 
 export async function handleListModels(args: Record<string, unknown>): Promise<string> {
   const agentType = args.agent_type ? String(args.agent_type) : undefined;
@@ -35,7 +35,7 @@ export async function handleListModels(args: Record<string, unknown>): Promise<s
 
   // List models for all team-capable backends
   const cachedInitResults = await ProcessConfig.get('acp.cachedInitializeResult');
-  const detectedAgents = acpDetector
+  const detectedAgents = agentRegistry
     .getDetectedAgents()
     .filter((a) => isTeamCapableBackend(a.backend, cachedInitResults));
 

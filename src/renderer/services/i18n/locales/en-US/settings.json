@@ -104,6 +104,8 @@
   "builtinSkills": "Builtin Skills",
   "noCustomSkills": "No custom skills added",
   "noBuiltinSkills": "No builtin skills available",
+  "autoInjectedSkills": "Auto-injected Skills",
+  "autoInjectedSkillsBadge": "Auto",
   "skillFolderPath": "Skill Folder Path",
   "skillPathPlaceholder": "Enter or browse skill folder path(s), separated by comma",
   "pleaseSelectSkillPath": "Please select a skill folder path",

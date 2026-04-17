@@ -36,10 +36,6 @@ vi.mock('../../src/renderer/utils/workspace/workspaceHistory', () => ({
   updateWorkspaceTime: vi.fn(),
 }));
 
-vi.mock('../../src/common/types/acpTypes', () => ({
-  isAcpRoutedPresetType: vi.fn(() => false),
-}));
-
 vi.mock('@arco-design/web-react', () => ({
   Message: { info: vi.fn(), error: vi.fn() },
 }));
@@ -79,6 +75,8 @@ function makeDeps(overrides: Partial<GuidSendDeps> = {}): GuidSendDeps {
     getEffectiveAgentType: vi.fn(() => ({ agentType: 'remote', isAvailable: true })),
     resolvePresetRulesAndSkills: vi.fn().mockResolvedValue({}),
     resolveEnabledSkills: vi.fn(),
+    resolveDisabledBuiltinSkills: vi.fn(),
+    guidDisabledBuiltinSkills: [],
     isMainAgentAvailable: vi.fn(() => true),
     getAvailableFallbackAgent: vi.fn(() => null),
     currentEffectiveAgentInfo: { agentType: 'remote', isAvailable: true },
@@ -249,6 +247,65 @@ describe('useGuidSend', () => {
       const deps = makeDeps({ input: 'hello' });
       const { result } = renderHook(() => useGuidSend(deps));
       expect(result.current.isButtonDisabled).toBe(false);
+    });
+  });
+
+  describe('excludeBuiltinSkills', () => {
+    it('passes guidDisabledBuiltinSkills when non-empty', async () => {
+      const deps = makeDeps({ guidDisabledBuiltinSkills: ['cron'] });
+      const { result } = renderHook(() => useGuidSend(deps));
+
+      await act(async () => {
+        await result.current.handleSend();
+      });
+
+      expect(mockCreate).toHaveBeenCalledWith(
+        expect.objectContaining({
+          extra: expect.objectContaining({
+            excludeBuiltinSkills: ['cron'],
+          }),
+        })
+      );
+    });
+
+    it('respects explicit empty array — does not fall back to resolveDisabledBuiltinSkills', async () => {
+      const deps = makeDeps({
+        guidDisabledBuiltinSkills: [],
+        resolveDisabledBuiltinSkills: vi.fn(() => ['office-cli']),
+      });
+      const { result } = renderHook(() => useGuidSend(deps));
+
+      await act(async () => {
+        await result.current.handleSend();
+      });
+
+      expect(mockCreate).toHaveBeenCalledWith(
+        expect.objectContaining({
+          extra: expect.objectContaining({
+            excludeBuiltinSkills: [],
+          }),
+        })
+      );
+    });
+
+    it('falls back to resolveDisabledBuiltinSkills when guidDisabledBuiltinSkills is undefined', async () => {
+      const deps = makeDeps({
+        guidDisabledBuiltinSkills: undefined,
+        resolveDisabledBuiltinSkills: vi.fn(() => ['office-cli']),
+      });
+      const { result } = renderHook(() => useGuidSend(deps));
+
+      await act(async () => {
+        await result.current.handleSend();
+      });
+
+      expect(mockCreate).toHaveBeenCalledWith(
+        expect.objectContaining({
+          extra: expect.objectContaining({
+            excludeBuiltinSkills: ['office-cli'],
+          }),
+        })
+      );
     });
   });
 });

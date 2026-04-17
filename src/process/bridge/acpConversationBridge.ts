@@ -4,9 +4,10 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { acpDetector } from '@process/agent/acp/AcpDetector';
+import { agentRegistry } from '@process/agent/AgentRegistry';
+import { isAgentKind } from '@/common/types/detectedAgent';
 import { AcpConnection } from '@process/agent/acp/AcpConnection';
-import { detectAionrs } from '@process/agent/aionrs/binaryResolver';
+import type { AcpBackend } from '@/common/types/acpTypes';
 import type { IWorkerTaskManager } from '@process/task/IWorkerTaskManager';
 import AcpAgentManager from '@process/task/AcpAgentManager';
 import { GeminiAgentManager } from '@process/task/GeminiAgentManager';
@@ -27,12 +28,11 @@ export function initAcpConversationBridge(workerTaskManager: IWorkerTaskManager)
     });
   });
 
-  // 保留旧的detectCliPath接口用于向后兼容，但使用新检测器的结果
   ipcBridge.acpConversation.detectCliPath.provider(({ backend }) => {
-    const agents = acpDetector.getDetectedAgents();
-    const agent = agents.find((a) => a.backend === backend);
+    const agents = agentRegistry.getDetectedAgents();
+    const agent = agents.find((a) => isAgentKind(a, 'acp') && a.backend === backend);
 
-    if (agent?.cliPath) {
+    if (agent && isAgentKind(agent, 'acp') && agent.cliPath) {
       return Promise.resolve({ success: true, data: { path: agent.cliPath } });
     }
 
@@ -42,47 +42,40 @@ export function initAcpConversationBridge(workerTaskManager: IWorkerTaskManager)
     });
   });
 
-  // 新的ACP检测接口 - 基于全局标记位
-  // Enrich with MCP transport support info so the frontend can show accurate counts
+  // Get all detected execution engines, enriched with MCP transport support info.
   ipcBridge.acpConversation.getAvailableAgents.provider(() => {
     try {
-      const agents = acpDetector.getDetectedAgents();
+      const agents = agentRegistry.getDetectedAgents();
       const enriched = agents.map((agent) => ({
         ...agent,
         supportedTransports: mcpService.getSupportedTransportsForAgent(agent),
       }));
 
-      // Detect aionrs binary (non-ACP, uses JSON Lines protocol)
-      // Insert at front so Aion CLI appears before other agents (including Gemini)
-      const aionrs = detectAionrs();
-      if (aionrs.available) {
-        const aionrsAgent = { backend: 'aionrs' as const, name: 'Aion CLI', cliPath: aionrs.path };
-        enriched.unshift({
-          ...aionrsAgent,
-          supportedTransports: mcpService.getSupportedTransportsForAgent(aionrsAgent),
-        } as (typeof enriched)[number]);
-      }
-
-      return Promise.resolve({ success: true, data: enriched });
+      // Map to the IPC bridge response shape explicitly
+      const data = enriched.map((agent) => ({
+        backend: agent.backend,
+        name: agent.name,
+        kind: agent.kind,
+        cliPath: 'cliPath' in agent ? (agent.cliPath as string | undefined) : undefined,
+        supportedTransports: agent.supportedTransports,
+        isExtension: 'isExtension' in agent ? (agent.isExtension as boolean | undefined) : undefined,
+        extensionName: 'extensionName' in agent ? (agent.extensionName as string | undefined) : undefined,
+        isPreset: 'isPreset' in agent ? (agent.isPreset as boolean | undefined) : undefined,
+        customAgentId: 'customAgentId' in agent ? (agent.customAgentId as string | undefined) : undefined,
+      }));
+      return Promise.resolve({ success: true as const, data });
     } catch (error) {
       return Promise.resolve({
-        success: false,
+        success: false as const,
         msg: error instanceof Error ? error.message : 'Unknown error',
       });
     }
   });
 
-  // Refresh custom agents detection - called when custom agents config changes
+  // Refresh custom agents detection — no-op, assistants are config-layer managed
+  // Kept for backward compatibility with renderer callers that haven't been updated yet
   ipcBridge.acpConversation.refreshCustomAgents.provider(async () => {
-    try {
-      await acpDetector.refreshCustomAgents();
-      return { success: true };
-    } catch (error) {
-      return {
-        success: false,
-        msg: error instanceof Error ? error.message : 'Unknown error',
-      };
-    }
+    return { success: true };
   });
 
   // Test custom agent connection - validates CLI exists and ACP handshake works
@@ -92,16 +85,16 @@ export function initAcpConversationBridge(workerTaskManager: IWorkerTaskManager)
   });
 
   // Check agent health by sending a real test message
-  // This is the most reliable way to verify an agent can actually respond
   ipcBridge.acpConversation.checkAgentHealth.provider(async ({ backend }) => {
     const startTime = Date.now();
 
     // Step 1: Check if CLI is installed
-    const agents = acpDetector.getDetectedAgents();
-    const agent = agents.find((a) => a.backend === backend);
+    const agents = agentRegistry.getDetectedAgents();
+    const agent = agents.find((a) => isAgentKind(a, 'acp') && a.backend === backend);
+    const acpAgent = agent && isAgentKind(agent, 'acp') ? agent : undefined;
 
     // Skip CLI check for claude/codebuddy (uses npx) and codex (has its own detection)
-    if (!agent?.cliPath && backend !== 'claude' && backend !== 'codebuddy' && backend !== 'codex') {
+    if (!acpAgent?.cliPath && backend !== 'claude' && backend !== 'codebuddy' && backend !== 'codex') {
       return {
         success: false,
         msg: `${backend} CLI not found`,
@@ -110,25 +103,18 @@ export function initAcpConversationBridge(workerTaskManager: IWorkerTaskManager)
     }
 
     const tempDir = os.tmpdir();
+    const cliPath = acpAgent?.cliPath;
+    const acpArgs = acpAgent?.acpArgs;
 
     // Step 2: For ACP-based agents (claude, codex, gemini, qwen, etc.)
     const connection = new AcpConnection();
 
     try {
-      // Connect to the agent
-      await connection.connect(backend, agent?.cliPath, tempDir, agent?.acpArgs);
-
-      // Create a new session
+      await connection.connect(backend as AcpBackend, cliPath, tempDir, acpArgs);
       await connection.newSession(tempDir);
-
-      // Send a minimal test message - just need to verify we can communicate
-      // Using a simple prompt that should get a quick response
       await connection.sendPrompt('hi');
 
-      // If we get here, the agent responded successfully
       const latency = Date.now() - startTime;
-
-      // Clean up
       await connection.disconnect();
 
       return {
@@ -136,7 +122,6 @@ export function initAcpConversationBridge(workerTaskManager: IWorkerTaskManager)
         data: { available: true, latency },
       };
     } catch (error) {
-      // Clean up on error
       try {
         await connection.disconnect();
       } catch {
@@ -146,7 +131,6 @@ export function initAcpConversationBridge(workerTaskManager: IWorkerTaskManager)
       const errorMsg = error instanceof Error ? error.message : String(error);
       const lowerError = errorMsg.toLowerCase();
 
-      // Check for authentication-related errors
       if (
         lowerError.includes('auth') ||
         lowerError.includes('login') ||
@@ -170,10 +154,6 @@ export function initAcpConversationBridge(workerTaskManager: IWorkerTaskManager)
     }
   });
 
-  // Get current session mode for ACP, Gemini, and AionRS agents.
-  // Note: AionRS uses its own JSON Lines protocol (not ACP), but shares these IPC
-  // channels to avoid duplicating the mode switching UI pipeline.
-  // Use getTaskById (cache-only) to avoid spawning a worker process on read-only queries
   ipcBridge.acpConversation.getMode.provider(({ conversationId }) => {
     const task = workerTaskManager.getTask(conversationId);
     if (
@@ -188,9 +168,6 @@ export function initAcpConversationBridge(workerTaskManager: IWorkerTaskManager)
     return Promise.resolve({ success: true, data: task.getMode() });
   });
 
-  // Get model info for ACP/Codex agents
-  // 获取 ACP/Codex 代理的模型信息
-  // Use getTaskById (cache-only) to avoid spawning a worker process on read-only queries
   ipcBridge.acpConversation.getModelInfo.provider(({ conversationId }) => {
     const task = workerTaskManager.getTask(conversationId);
     if (!task || !(task instanceof AcpAgentManager)) {
@@ -201,6 +178,7 @@ export function initAcpConversationBridge(workerTaskManager: IWorkerTaskManager)
       data: { modelInfo: task.getModelInfo() },
     });
   });
+
   // Set model for ACP agents
   // 设置 ACP 代理的模型
   ipcBridge.acpConversation.setModel.provider(async ({ conversationId, modelId }) => {
@@ -222,9 +200,6 @@ export function initAcpConversationBridge(workerTaskManager: IWorkerTaskManager)
     }
   });
 
-  // Set session mode for ACP, Gemini, and AionRS agents.
-  // Note: AionRS uses its own JSON Lines protocol (not ACP), but shares these IPC
-  // channels to avoid duplicating the mode switching UI pipeline.
   ipcBridge.acpConversation.setMode.provider(async ({ conversationId, mode }) => {
     try {
       const task = await workerTaskManager.getOrBuildTask(conversationId);
@@ -244,9 +219,6 @@ export function initAcpConversationBridge(workerTaskManager: IWorkerTaskManager)
     }
   });
 
-  // Get non-model config options for ACP agents (e.g., reasoning effort)
-  // 获取 ACP 代理的非模型配置选项（如推理级别）
-  // Use getTaskById (cache-only) to avoid spawning a worker process on read-only queries
   ipcBridge.acpConversation.getConfigOptions.provider(({ conversationId }) => {
     const task = workerTaskManager.getTask(conversationId);
     if (!task || !(task instanceof AcpAgentManager)) {
@@ -258,8 +230,6 @@ export function initAcpConversationBridge(workerTaskManager: IWorkerTaskManager)
     });
   });
 
-  // Set a config option value for ACP agents (e.g., reasoning effort)
-  // 设置 ACP 代理的配置选项值（如推理级别）
   ipcBridge.acpConversation.setConfigOption.provider(async ({ conversationId, configId, value }) => {
     try {
       const task = await workerTaskManager.getOrBuildTask(conversationId);

@@ -4,11 +4,9 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-/** Remote Agent protocol type — determines which adapter handles communication */
-export type RemoteAgentProtocol = 'openclaw' | 'zeroclaw' | 'acp';
-
-/** Authentication type for remote agents */
-export type RemoteAgentAuthType = 'bearer' | 'password' | 'none';
+// Canonical definitions live in common/types/detectedAgent.ts
+import type { RemoteAgentProtocol, RemoteAgentAuthType } from '@/common/types/detectedAgent';
+export type { RemoteAgentProtocol, RemoteAgentAuthType } from '@/common/types/detectedAgent';
 
 /** Last known connection status (cached for UI display) */
 export type RemoteAgentStatus = 'unknown' | 'connected' | 'pending' | 'error';

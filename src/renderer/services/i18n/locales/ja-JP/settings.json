@@ -104,6 +104,8 @@
   "builtinSkills": "ビルトインスキル",
   "noCustomSkills": "カスタムスキルはありません",
   "noBuiltinSkills": "利用可能なビルトインスキルはありません",
+  "autoInjectedSkills": "自動注入スキル",
+  "autoInjectedSkillsBadge": "自動",
   "skillFolderPath": "スキルフォルダパス",
   "skillPathPlaceholder": "スキルフォルダパスを入力または参照",
   "pleaseSelectSkillPath": "スキルフォルダパスを選択してください",

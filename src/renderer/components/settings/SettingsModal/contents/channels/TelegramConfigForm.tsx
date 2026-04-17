@@ -9,7 +9,6 @@ import { acpConversation, channel } from '@/common/adapter/ipcBridge';
 import { ConfigStorage } from '@/common/config/storage';
 import GeminiModelSelector from '@/renderer/pages/conversation/platforms/gemini/GeminiModelSelector';
 import type { GeminiModelSelection } from '@/renderer/pages/conversation/platforms/gemini/useGeminiModelSelection';
-import type { AcpBackendAll } from '@/common/types/acpTypes';
 import { Button, Dropdown, Empty, Input, Menu, Message, Spin, Tooltip } from '@arco-design/web-react';
 import { CheckOne, CloseOne, Copy, Delete, Down, Refresh } from '@icon-park/react';
 import React, { useCallback, useEffect, useState } from 'react';
@@ -72,11 +71,11 @@ const TelegramConfigForm: React.FC<TelegramConfigFormProps> = ({
 
   // Agent selection (used for Telegram conversations)
   const [availableAgents, setAvailableAgents] = useState<
-    Array<{ backend: AcpBackendAll; name: string; customAgentId?: string; isPreset?: boolean; isExtension?: boolean }>
+    Array<{ backend: string; name: string; customAgentId?: string; isPreset?: boolean; isExtension?: boolean }>
   >([]);
-  const [selectedAgent, setSelectedAgent] = useState<{ backend: AcpBackendAll; name?: string; customAgentId?: string }>(
-    { backend: 'gemini' }
-  );
+  const [selectedAgent, setSelectedAgent] = useState<{ backend: string; name?: string; customAgentId?: string }>({
+    backend: 'gemini',
+  });
 
   // Load pending pairings
   const loadPendingPairings = useCallback(async () => {
@@ -138,12 +137,12 @@ const TelegramConfigForm: React.FC<TelegramConfigFormProps> = ({
 
         if (saved && typeof saved === 'object' && 'backend' in saved && typeof (saved as any).backend === 'string') {
           setSelectedAgent({
-            backend: (saved as any).backend as AcpBackendAll,
+            backend: (saved as any).backend as string,
             customAgentId: (saved as any).customAgentId,
             name: (saved as any).name,
           });
         } else if (typeof saved === 'string') {
-          setSelectedAgent({ backend: saved as AcpBackendAll });
+          setSelectedAgent({ backend: saved as string });
         }
       } catch (error) {
         console.error('[TelegramConfig] Failed to load agents:', error);
@@ -153,7 +152,7 @@ const TelegramConfigForm: React.FC<TelegramConfigFormProps> = ({
     void loadAgentsAndSelection();
   }, []);
 
-  const persistSelectedAgent = async (agent: { backend: AcpBackendAll; customAgentId?: string; name?: string }) => {
+  const persistSelectedAgent = async (agent: { backend: string; customAgentId?: string; name?: string }) => {
     try {
       await ConfigStorage.set('assistant.telegram.agent', agent);
       await channel.syncChannelSettings
@@ -322,7 +321,7 @@ const TelegramConfigForm: React.FC<TelegramConfigFormProps> = ({
   };
 
   const isGeminiAgent = selectedAgent.backend === 'gemini' || selectedAgent.backend === 'aionrs';
-  const agentOptions: Array<{ backend: AcpBackendAll; name: string; customAgentId?: string; isExtension?: boolean }> =
+  const agentOptions: Array<{ backend: string; name: string; customAgentId?: string; isExtension?: boolean }> =
     availableAgents.length > 0 ? availableAgents : [{ backend: 'gemini', name: 'Gemini CLI' }];
 
   return (
