@@ -1027,7 +1027,13 @@ describe('Cross-component event flow: teamEventBus → TeammateManager → real 
   });
 
   it('full chain: m1 finish → idle_notification in leader Mailbox → leader woken when m2 also done', async () => {
-    // m1 finishes first — m2 still active
+    // m1 streams a real response then finishes — m2 still active
+    teamEventBus.emit('responseStream', {
+      type: 'content',
+      conversation_id: 'conv-m1',
+      msg_id: 'e1c',
+      data: 'm1 completed analysis',
+    });
     teamEventBus.emit('responseStream', {
       type: 'finish',
       conversation_id: 'conv-m1',
@@ -1044,7 +1050,13 @@ describe('Cross-component event flow: teamEventBus → TeammateManager → real 
     const afterM1 = await mailbox.getHistory('team-1', 'leader');
     expect(afterM1.some((m) => m.type === 'idle_notification' && m.fromAgentId === 'm1')).toBe(true);
 
-    // Now m2 finishes
+    // Now m2 also streams content then finishes
+    teamEventBus.emit('responseStream', {
+      type: 'content',
+      conversation_id: 'conv-m2',
+      msg_id: 'e2c',
+      data: 'm2 completed analysis',
+    });
     teamEventBus.emit('responseStream', {
       type: 'finish',
       conversation_id: 'conv-m2',
@@ -1054,7 +1066,7 @@ describe('Cross-component event flow: teamEventBus → TeammateManager → real 
 
     await new Promise((r) => setTimeout(r, 100));
 
-    // Now lead should be woken
+    // Now lead should be woken (all members settled AND m2 produced substantive content this turn)
     expect(vi.mocked(workerTM.getOrBuildTask)).toHaveBeenCalledWith('conv-lead');
 
     // Both idle_notifications in lead's mailbox

@@ -1067,7 +1067,7 @@ describe('TeammateManager', () => {
       mgr.dispose();
     });
 
-    it('wakes leader when all non-leader agents are settled', async () => {
+    it('wakes leader when all non-leader agents are settled and at least one produced substantive output', async () => {
       const leadAgent = makeAgent({
         slotId: 'slot-lead',
         conversationId: 'conv-lead',
@@ -1094,7 +1094,13 @@ describe('TeammateManager', () => {
         sendMessage: mockSendMessage,
       } as never);
 
-      // Both members are already idle; emit finish for member1 (which triggers idle notification)
+      // Both members idle; member1 emits a non-empty response then finishes
+      teamEventBus.emit('responseStream', {
+        type: 'content',
+        conversation_id: 'conv-m1',
+        msg_id: 'm1c',
+        data: 'finished analyzing the data',
+      });
       teamEventBus.emit('responseStream', {
         type: 'finish',
         conversation_id: 'conv-m1',
@@ -1104,7 +1110,84 @@ describe('TeammateManager', () => {
 
       await new Promise((r) => setTimeout(r, 100));
 
-      // Leader should have been woken since all members are idle
+      // Leader should have been woken since all members are idle and there's substantive content
+      expect(workerTaskManager.getOrBuildTask).toHaveBeenCalledWith('conv-lead');
+      mgr.dispose();
+    });
+
+    it('does NOT wake leader when all members are settled but the finishing turn produced only an empty fallback', async () => {
+      // Regression: previously an empty fallback ("Turn completed (no response text produced)")
+      // still woke the leader, which often re-dispatched the same task, producing another empty
+      // turn — an infinite loop of empty fallbacks. Wake policy now requires substantive content.
+      const leadAgent = makeAgent({
+        slotId: 'slot-lead',
+        conversationId: 'conv-lead',
+        role: 'leader',
+        status: 'idle',
+      });
+      const member = makeAgent({
+        slotId: 'slot-m1',
+        conversationId: 'conv-m1',
+        role: 'teammate',
+        status: 'idle',
+        agentName: 'Member1',
+      });
+      const { mgr, workerTaskManager, mailbox } = makeTeammateManager([leadAgent, member]);
+
+      // Only finish — no content streamed, no explicit send
+      teamEventBus.emit('responseStream', {
+        type: 'finish',
+        conversation_id: 'conv-m1',
+        msg_id: 'm1',
+        data: null,
+      });
+
+      await new Promise((r) => setTimeout(r, 100));
+
+      // Empty fallback IS still written to the leader's mailbox (for history) ...
+      const idleCalls = vi.mocked(mailbox.write).mock.calls.filter(
+        (args) => args[0].type === 'idle_notification' && args[0].toAgentId === 'slot-lead'
+      );
+      expect(idleCalls).toHaveLength(1);
+      expect(idleCalls[0][0].content).toContain('no response text produced');
+
+      // ... but the leader is NOT woken.
+      expect(workerTaskManager.getOrBuildTask).not.toHaveBeenCalledWith('conv-lead');
+      mgr.dispose();
+    });
+
+    it('wakes leader on empty turn when the teammate explicitly sent a report (explicit send is substantive)', async () => {
+      const leadAgent = makeAgent({
+        slotId: 'slot-lead',
+        conversationId: 'conv-lead',
+        role: 'leader',
+        status: 'idle',
+      });
+      const member = makeAgent({
+        slotId: 'slot-m1',
+        conversationId: 'conv-m1',
+        role: 'teammate',
+        status: 'idle',
+        agentName: 'Member1',
+      });
+      const mockSendMessage = vi.fn().mockResolvedValue(undefined);
+      const { mgr, workerTaskManager } = makeTeammateManager([leadAgent, member]);
+      vi.mocked(workerTaskManager.getOrBuildTask).mockResolvedValue({
+        sendMessage: mockSendMessage,
+      } as never);
+
+      // Explicit send happened during the turn; no streamed content
+      mgr.markExplicitSendToLead('slot-m1');
+      teamEventBus.emit('responseStream', {
+        type: 'finish',
+        conversation_id: 'conv-m1',
+        msg_id: 'm1',
+        data: null,
+      });
+
+      await new Promise((r) => setTimeout(r, 100));
+
+      // Explicit send is substantive → leader should wake even without streamed text
       expect(workerTaskManager.getOrBuildTask).toHaveBeenCalledWith('conv-lead');
       mgr.dispose();
     });

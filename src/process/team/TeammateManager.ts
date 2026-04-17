@@ -506,13 +506,23 @@ export class TeammateManager extends EventEmitter {
     // explicitly call team_send_message to the leader this turn. The explicit
     // message is authoritative (curated, may carry files/summary); our
     // fallback is just a safety net to avoid leader blindness when the model
-    // forgets to report. Either way, we still attempt to wake the leader via
-    // maybeWakeLeaderWhenAllIdle (explicit sends already triggered their own
-    // wake in TeamMcpServer, so this is either a no-op or a safety re-arm).
+    // forgets to report.
+    //
+    // Wake policy: we only wake the leader when this turn produced a
+    // SUBSTANTIVE signal (explicit send, or non-empty captured text). An
+    // empty fallback ("Turn completed (no response text produced)") carries
+    // no actionable content; waking the leader on it tends to trigger a
+    // re-dispatch, which often produces another empty turn, forming a loop.
+    // When all teammates produce only empty fallbacks we prefer the team
+    // to stall rather than spin — the empty fallback still sits in the
+    // leader's mailbox as history, to be consumed the next time the leader
+    // wakes for a real reason (user input, another teammate's report).
     // Must run AFTER setStatus(idle) so maybeWakeLeaderWhenAllIdle sees the updated state.
     if (agent.role !== 'leader') {
       const leadAgent = this.agents.find((a) => a.role === 'leader');
       if (leadAgent && leadAgent.slotId !== agent.slotId) {
+        const trimmedResponse = capturedResponse?.trim() ?? '';
+        const hasSubstantiveContent = trimmedResponse.length > 0;
         if (!didExplicitSendToLead) {
           // No explicit report this turn — surface captured response text so
           // the leader can see what was said. Capped at MAX_RESPONSE_CAPTURE_CHARS
@@ -526,11 +536,9 @@ export class TeammateManager extends EventEmitter {
           // raw streamed output that may include mid-thought fragments.
           // The marker is documented in leadPrompt.ts so the leader knows
           // how to interpret it.
-          const trimmedResponse = capturedResponse?.trim() ?? '';
-          const content =
-            trimmedResponse.length > 0
-              ? `[auto-captured fallback — teammate did not call team_send_message; tail of streamed output, may be truncated]\n${trimmedResponse}`
-              : '[auto-captured fallback] Turn completed (no response text produced)';
+          const content = hasSubstantiveContent
+            ? `[auto-captured fallback — teammate did not call team_send_message; tail of streamed output, may be truncated]\n${trimmedResponse}`
+            : '[auto-captured fallback] Turn completed (no response text produced)';
           await this.mailbox.write({
             teamId: this.teamId,
             toAgentId: leadAgent.slotId,
@@ -539,9 +547,17 @@ export class TeammateManager extends EventEmitter {
             type: 'idle_notification',
           });
         }
-        // Only wake leader when ALL non-leader teammates are idle/completed/failed/pending.
-        // This prevents death loops where each idle notification triggers a new leader turn.
-        this.maybeWakeLeaderWhenAllIdle(leadAgent.slotId);
+        // Only wake leader when ALL non-leader teammates are idle/completed/failed/pending
+        // AND this turn produced substantive content (explicit send or non-empty text).
+        // Skipping wake on empty fallbacks breaks the empty-turn → re-dispatch → empty-turn
+        // loop (see wake-policy comment above).
+        if (didExplicitSendToLead || hasSubstantiveContent) {
+          this.maybeWakeLeaderWhenAllIdle(leadAgent.slotId);
+        } else {
+          console.debug(
+            `[TeammateManager] finalizeTurn: ${agent.agentName} produced empty fallback; skipping lead wake to avoid loop`
+          );
+        }
       }
     }
 
