@@ -61,10 +61,14 @@ export class AcpRuntime {
   async createConversation(convId: string, agentConfig: AgentConfig): Promise<void> {
     if (this.sessions.has(convId)) return;
 
+    // Shallow-clone to avoid mutating the caller's object (e.g., MCP servers would
+    // duplicate on retries if we pushed into the original arrays).
+    const config = { ...agentConfig };
+
     // Inject team-guide MCP server for solo agents (not in team mode) so the
     // agent has the aion_create_team tool available.
-    if (!agentConfig.teamMcpConfig) {
-      if (await shouldInjectTeamGuideMcp(agentConfig.agentBackend)) {
+    if (!config.teamMcpConfig) {
+      if (await shouldInjectTeamGuideMcp(config.agentBackend)) {
         const { getTeamGuideStdioConfig } = await import('@process/team/mcp/guide/teamGuideSingleton');
         const aionStdioConfig = getTeamGuideStdioConfig();
         if (aionStdioConfig) {
@@ -74,11 +78,11 @@ export class AcpRuntime {
             args: aionStdioConfig.args,
             env: [
               ...aionStdioConfig.env,
-              { name: 'AION_MCP_BACKEND', value: agentConfig.agentBackend },
+              { name: 'AION_MCP_BACKEND', value: config.agentBackend },
               { name: 'AION_MCP_CONVERSATION_ID', value: convId },
             ],
           };
-          agentConfig.presetMcpServers = [...(agentConfig.presetMcpServers || []), guideServer];
+          config.presetMcpServers = [...(config.presetMcpServers || []), guideServer];
         }
       }
     }
@@ -89,15 +93,15 @@ export class AcpRuntime {
     const rawMcpServers = await ProcessConfig.get('mcp.config');
     if (Array.isArray(rawMcpServers) && rawMcpServers.length > 0) {
       const cachedInit = await ProcessConfig.get('acp.cachedInitializeResult');
-      const caps = cachedInit?.[agentConfig.agentBackend]?.capabilities?.mcpCapabilities;
+      const caps = cachedInit?.[config.agentBackend]?.capabilities?.mcpCapabilities;
       const userServers = McpConfig.fromStorageConfig(rawMcpServers, caps);
       if (userServers.length > 0) {
-        agentConfig.mcpServers = [...(agentConfig.mcpServers || []), ...userServers];
+        config.mcpServers = [...(config.mcpServers || []), ...userServers];
       }
     }
 
     const callbacks = this.buildCallbacks(convId);
-    const session = new AcpSession(agentConfig, this.clientFactory, callbacks);
+    const session = new AcpSession(config, this.clientFactory, callbacks);
 
     this.sessions.set(convId, { session, lastActiveAt: Date.now() });
 

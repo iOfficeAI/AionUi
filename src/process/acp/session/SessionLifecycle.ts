@@ -21,6 +21,7 @@ export type LifecycleHost = {
   enterError(message: string): void;
   flushPendingPrompt(): void;
   buildProtocolHandlers(): ProtocolHandlers;
+  onDisconnect(info?: DisconnectInfo): void;
 };
 
 export type LifecycleOptions = {
@@ -70,7 +71,7 @@ export class SessionLifecycle {
 
   start(): void {
     this.startRetryCount = 0;
-    this.doStart();
+    void this.doStart().catch((err) => this.handleStartError(err));
   }
 
   private async doStart(): Promise<void> {
@@ -145,7 +146,7 @@ export class SessionLifecycle {
   // ─── Resume ───────────────────────────────────────────────────
 
   resume(): void {
-    this.doResume();
+    void this.doResume().catch((err) => this.handleResumeError(err));
   }
 
   private async doResume(): Promise<void> {
@@ -286,9 +287,8 @@ export class SessionLifecycle {
     this._client = null;
   }
 
-  handleDisconnect = (_info?: DisconnectInfo): void => {
-    // Actual disconnect handling is orchestrated by AcpSession, which inspects current status.
-    // This is an arrow-function property so it can be passed as-is to client.onDisconnect().
+  handleDisconnect = (info?: DisconnectInfo): void => {
+    this.host.onDisconnect(info);
   };
 
   private async tryLoadOrCreate(mcpServers: McpServer[]): Promise<NewSessionResponse | LoadSessionResponse> {

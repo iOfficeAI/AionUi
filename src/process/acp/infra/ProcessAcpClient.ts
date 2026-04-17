@@ -26,6 +26,8 @@ import type {
 } from '@agentclientprotocol/sdk';
 import { ClientSideConnection, PROTOCOL_VERSION } from '@agentclientprotocol/sdk';
 import { AgentDisconnectedError, AgentSpawnError, AgentStartupError } from '@process/acp/errors/AcpError';
+import * as os from 'node:os';
+import * as path from 'node:path';
 import type { CreateSessionParams, LoadSessionParams } from '@process/acp/infra/AcpProtocol';
 import type {
   AcpClient,
@@ -440,7 +442,16 @@ export class ProcessAcpClient implements AcpClient {
     const match = this.stderrBuffer.match(/([^\s'"]*[/\\]bunx-\d+[^\s/\\]*[/\\][^\s/\\]+@[^\s/\\]+)[/\\]node_modules/);
     if (!match) return;
 
-    const cacheDir = match[1];
+    const cacheDir = path.resolve(match[1]);
+    // Validate the extracted path is inside a known temp/cache directory
+    // to prevent a malicious agent from crafting stderr to delete arbitrary paths.
+    const tmpDir = path.resolve(os.tmpdir());
+    const bunCacheDir = path.resolve(os.homedir(), '.bun');
+    if (!cacheDir.startsWith(tmpDir + path.sep) && !cacheDir.startsWith(bunCacheDir + path.sep)) {
+      console.warn(`[AcpClient ${this.options.backend}] Refusing to clear suspicious cache path: ${cacheDir}`);
+      return;
+    }
+
     console.log(`[AcpClient ${this.options.backend}] Clearing corrupted bunx cache: ${cacheDir}`);
     try {
       fs.rmSync(cacheDir, { recursive: true, force: true });

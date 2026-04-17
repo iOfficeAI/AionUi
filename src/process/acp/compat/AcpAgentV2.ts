@@ -514,6 +514,7 @@ export class AcpAgentV2 {
 
   async kill(): Promise<void> {
     await this.session?.stop();
+    this.activeToolCalls.clear();
     // TODO(ACP Discovery): Re-enable after fixing agent_id.
     // this.acpSessionRepo?.deleteSession(this.conversationId);
   }

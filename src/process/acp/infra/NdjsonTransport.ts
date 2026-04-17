@@ -29,10 +29,11 @@ export class NdjsonTransport {
    * Delegates to SDK's ndJsonStream.
    */
   static fromChildProcess(child: ChildProcess): Stream {
-    const stdout = child.stdout!;
-    const stdin = child.stdin!;
-    const rawReadable = Readable.toWeb(stdout) as ReadableStream<Uint8Array>;
-    const rawWritable = Writable.toWeb(stdin) as WritableStream<Uint8Array>;
+    if (!child.stdout || !child.stdin) {
+      throw new Error('Child process must be spawned with stdio: pipe');
+    }
+    const rawReadable = Readable.toWeb(child.stdout) as ReadableStream<Uint8Array>;
+    const rawWritable = Writable.toWeb(child.stdin) as WritableStream<Uint8Array>;
     return ndJsonStream(rawWritable, rawReadable);
   }
 

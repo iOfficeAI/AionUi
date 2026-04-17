@@ -4,6 +4,7 @@ import type {
   SessionNotification,
   UsageUpdate,
 } from '@agentclientprotocol/sdk';
+import * as path from 'node:path';
 import { AcpError } from '@process/acp/errors/AcpError';
 import type { ClientFactory, DisconnectInfo } from '@process/acp/infra/IAcpClient';
 import { noopMetrics, type AcpMetrics } from '@process/acp/metrics/AcpMetrics';
@@ -48,7 +49,13 @@ function wrapCallbacks(raw: SessionCallbacks): SessionCallbacks {
     }
     wrapped[key] = (...args: unknown[]) => {
       try {
-        return (fn as (...a: unknown[]) => unknown)(...args);
+        const result = (fn as (...a: unknown[]) => unknown)(...args);
+        if (result instanceof Promise) {
+          return result.catch((err: unknown) => {
+            console.error(`[AcpSession:callback] ${key} rejected:`, err);
+          });
+        }
+        return result;
       } catch (err) {
         console.error(`[AcpSession:callback] ${key} threw:`, err);
       }
@@ -99,6 +106,7 @@ export class AcpSession {
         enterError: (msg) => this.enterError(msg),
         flushPendingPrompt: () => this.promptExecutor.flush(),
         buildProtocolHandlers: () => this.buildProtocolHandlers(),
+        onDisconnect: (info?: DisconnectInfo) => this.onDisconnect(info),
       },
       clientFactory,
       {
@@ -106,9 +114,6 @@ export class AcpSession {
         maxResumeRetries: options?.maxResumeRetries ?? 2,
       }
     );
-
-    // Override the default no-op handleDisconnect with our status-aware version.
-    this.lifecycle.handleDisconnect = (_info?: DisconnectInfo) => this.onDisconnect(_info);
 
     // `self` captured by the getter closure below — must be assigned before PromptExecutor construction.
     // eslint-disable-next-line @typescript-eslint/no-this-alias
@@ -250,6 +255,23 @@ export class AcpSession {
     this.permissionResolver.resolve(callId, optionId);
   }
 
+  // ─── Path validation ────────────────────────────────────────
+
+  /**
+   * Verify that an agent-requested file path is within the allowed directories
+   * (cwd + additionalDirectories). Prevents path traversal attacks.
+   */
+  private assertPathAllowed(filePath: string): void {
+    const resolved = path.resolve(filePath);
+    const allowedRoots = [this.agentConfig.cwd, ...(this.agentConfig.additionalDirectories ?? [])];
+    const withinAllowed = allowedRoots.some(
+      (root) => resolved.startsWith(path.resolve(root) + path.sep) || resolved === path.resolve(root)
+    );
+    if (!withinAllowed) {
+      throw new Error(`Path not allowed: ${filePath} is outside permitted directories`);
+    }
+  }
+
   // ─── Protocol handlers (glue) ─────────────────────────────────
 
   private buildProtocolHandlers(): ProtocolHandlers {
@@ -257,6 +279,7 @@ export class AcpSession {
       onSessionUpdate: (notification) => this.handleMessage(notification),
       onRequestPermission: (request) => this.handlePermissionRequest(request),
       onReadTextFile: async (req) => {
+        this.assertPathAllowed(req.path);
         try {
           const content = fs.readFileSync(req.path, 'utf-8');
           return { content };
@@ -265,6 +288,7 @@ export class AcpSession {
         }
       },
       onWriteTextFile: async (req) => {
+        this.assertPathAllowed(req.path);
         try {
           fs.writeFileSync(req.path, req.content, 'utf-8');
           return {};
