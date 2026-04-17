@@ -164,52 +164,71 @@ export class TeamMcpServer {
   // ── TCP connection handler ──────────────────────────────────────────────────
 
   private handleTcpConnection(socket: net.Socket): void {
-    const reader = createTcpMessageReader(async (msg) => {
-      const request = msg as {
-        tool?: string;
-        type?: string;
-        args?: Record<string, unknown>;
-        from_slot_id?: string;
-        slot_id?: string;
-        auth_token?: string;
-      };
+    const reader = createTcpMessageReader(
+      async (msg) => {
+        const request = msg as {
+          tool?: string;
+          type?: string;
+          args?: Record<string, unknown>;
+          from_slot_id?: string;
+          slot_id?: string;
+          auth_token?: string;
+        };
 
-      // Reject requests that do not carry the correct auth token
-      if (request.auth_token !== this.authToken) {
-        writeTcpMessage(socket, { error: 'Unauthorized' });
-        socket.end();
-        return;
-      }
-
-      // Handle MCP readiness notification from stdio script (not a tool call)
-      if (request.type === 'mcp_ready' && !request.tool) {
-        const readySlotId = request.from_slot_id ?? request.slot_id;
-        if (readySlotId) {
-          console.log(`[TeamMcpServer] MCP ready from slot ${readySlotId}`);
-          notifyMcpReady(readySlotId);
+        // Reject requests that do not carry the correct auth token
+        if (request.auth_token !== this.authToken) {
+          writeTcpMessage(socket, { error: 'Unauthorized' });
+          socket.end();
+          return;
         }
-        writeTcpMessage(socket, { result: 'ok' });
+
+        // Handle MCP readiness notification from stdio script (not a tool call)
+        if (request.type === 'mcp_ready' && !request.tool) {
+          const readySlotId = request.from_slot_id ?? request.slot_id;
+          if (readySlotId) {
+            console.log(`[TeamMcpServer] MCP ready from slot ${readySlotId}`);
+            notifyMcpReady(readySlotId);
+          }
+          writeTcpMessage(socket, { result: 'ok' });
+          socket.end();
+          return;
+        }
+
+        const toolName = request.tool ?? '';
+        const args = request.args ?? {};
+        const fromSlotId = request.from_slot_id;
+
+        try {
+          const result = await this.handleToolCall(toolName, args, fromSlotId);
+          writeTcpMessage(socket, { result });
+        } catch (err) {
+          const errMsg = err instanceof Error ? err.message : String(err);
+          writeTcpMessage(socket, { error: errMsg });
+        }
         socket.end();
-        return;
+      },
+      {
+        // Drop the connection on framing corruption (e.g. an oversize length
+        // prefix), otherwise the reader would buffer indefinitely waiting for
+        // bytes that will never arrive.
+        onError: (err) => {
+          console.warn(`[TeamMcpServer] TCP framing error: ${err.message}`);
+          socket.destroy();
+        },
       }
-
-      const toolName = request.tool ?? '';
-      const args = request.args ?? {};
-      const fromSlotId = request.from_slot_id;
-
-      try {
-        const result = await this.handleToolCall(toolName, args, fromSlotId);
-        writeTcpMessage(socket, { result });
-      } catch (err) {
-        const errMsg = err instanceof Error ? err.message : String(err);
-        writeTcpMessage(socket, { error: errMsg });
-      }
-      socket.end();
-    });
+    );
 
     socket.on('data', reader);
     socket.on('error', () => {
       // Connection errors are expected (e.g., client disconnect)
+      socket.destroy();
+    });
+    // Hard idle deadline so a stuck handler cannot pin the socket (and the
+    // pending request payload it references) in memory forever.
+    socket.setTimeout(600_000);
+    socket.on('timeout', () => {
+      console.warn('[TeamMcpServer] TCP socket idle timeout, destroying');
+      socket.destroy();
     });
   }
 

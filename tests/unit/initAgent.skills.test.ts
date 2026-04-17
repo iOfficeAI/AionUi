@@ -103,6 +103,7 @@ describe('initAgent — skill support', () => {
         'cursor',
         'gemini',
         'aionrs',
+        'opencode',
       ];
       for (const backend of supported) {
         expect(hasNativeSkillSupport(backend)).toBe(true);
@@ -110,7 +111,7 @@ describe('initAgent — skill support', () => {
     });
 
     it('should return false for backends without native skill support', () => {
-      const unsupported = ['opencode', 'auggie', 'copilot', 'qoder', 'nanobot'];
+      const unsupported = ['auggie', 'copilot', 'nanobot', 'qoder'];
       for (const backend of unsupported) {
         expect(hasNativeSkillSupport(backend)).toBe(false);
       }
@@ -145,13 +146,13 @@ describe('initAgent — skill support', () => {
       expect(symlinkCalls).toHaveLength(0); // no builtin skills in mock readdir
     });
 
-    it('should skip symlink setup for unsupported backend', async () => {
+    it('should create skills dir for opencode backend', async () => {
       await setupAssistantWorkspace('/tmp/workspace', {
         backend: 'opencode',
         enabledSkills: ['pptx'],
       });
-      expect(mkdirCalls).toHaveLength(0);
-      expect(symlinkCalls).toHaveLength(0);
+      expect(mkdirCalls).toContain('/tmp/workspace/.opencode/skills');
+      expect(symlinkCalls).toHaveLength(0); // no builtin skills in mock readdir, pptx not found
     });
 
     it('should create symlink in correct dir for claude backend', async () => {

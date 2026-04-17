@@ -32,6 +32,7 @@ import {
 } from '@process/utils/shellEnv';
 import { readClaudeProviderEnvFromCcSwitch } from '@process/services/ccSwitchModelSource';
 import { mainWarn } from '@process/utils/mainLogger';
+import { getPlatformServices } from '@/common/platform';
 
 const execFile = promisify(execFileCb);
 
@@ -163,6 +164,33 @@ export async function prepareCleanEnv(): Promise<Record<string, string | undefin
       delete merged[key];
     }
   }
+
+  // Redirect bun cache AND temp directories out of the system temp folder.
+  // On Windows, antivirus software (e.g. Windows Defender) actively scans
+  // %TEMP%, causing EPERM (NtSetInformationFile) when bun/bunx tries to
+  // rename files.  BUN_INSTALL_CACHE_DIR and BUN_TMPDIR alone are not
+  // enough — bunx creates its working directory (`bunx-<uid>-<pkg>`) under
+  // the OS TMP/TEMP path, so the *source* files of the move operation are
+  // still locked by the antivirus scanner.  Override TMP/TEMP on Windows so
+  // the entire bun file-operation chain stays inside userData.
+  const userDataDir = getPlatformServices().paths.getDataDir();
+  if (!merged.BUN_INSTALL_CACHE_DIR) {
+    merged.BUN_INSTALL_CACHE_DIR = path.join(userDataDir, 'bun-cache');
+  }
+  if (!merged.BUN_TMPDIR) {
+    merged.BUN_TMPDIR = path.join(userDataDir, 'bun-tmp');
+  }
+  if (process.platform === 'win32') {
+    merged.TMP = merged.BUN_TMPDIR;
+    merged.TEMP = merged.BUN_TMPDIR;
+  }
+  console.log(`[ACP] BUN_INSTALL_CACHE_DIR=${merged.BUN_INSTALL_CACHE_DIR}`);
+  console.log(`[ACP] BUN_TMPDIR=${merged.BUN_TMPDIR}`);
+  if (process.platform === 'win32') {
+    console.log(`[ACP] TMP=${merged.TMP}`);
+    console.log(`[ACP] TEMP=${merged.TEMP}`);
+  }
+
   return merged;
 }
 

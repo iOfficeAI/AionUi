@@ -50,6 +50,7 @@ const ChatWorkspace: React.FC<WorkspaceProps> = ({
   workspace,
   eventPrefix = 'gemini',
   messageApi: externalMessageApi,
+  teamId,
 }) => {
   const { t } = useTranslation();
   const layout = useLayoutContext();
@@ -159,6 +160,7 @@ const ChatWorkspace: React.FC<WorkspaceProps> = ({
     messageApi,
     t,
     isTemporaryWorkspace,
+    teamId,
   });
 
   let contextMenuStyle: React.CSSProperties | undefined;

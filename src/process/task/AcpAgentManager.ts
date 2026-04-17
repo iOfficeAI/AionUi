@@ -1,4 +1,5 @@
-import { AcpAgent } from '@process/agent/acp';
+import type { AcpAgent } from '@process/agent/acp';
+import { AcpAgentV2 } from '@process/acp/compat';
 import { channelEventBus } from '@process/channels/agent/ChannelEventBus';
 import { teamEventBus } from '@process/team/teamEventBus';
 import { ipcBridge } from '@/common';
@@ -872,7 +873,7 @@ ${collectedResponses.join('\n')}`;
     this.bootstrap = (async () => {
       const { cliPath, customArgs, customEnv, yoloMode } = await this.resolveAgentCliConfig(data);
 
-      this.agent = new AcpAgent({
+      const agentConfig = {
         id: data.conversation_id,
         backend: data.backend,
         cliPath: cliPath,
@@ -906,13 +907,15 @@ ${collectedResponses.join('\n')}`;
         onAvailableCommandsUpdate: (commands: Array<{ name: string; description?: string; hint?: string }>) => {
           this.handleAvailableCommandsUpdate(commands);
         },
-        onStreamEvent: (message) => {
+        onStreamEvent: (message: IResponseMessage) => {
           this.handleStreamEvent(message as IResponseMessage, data.backend);
         },
-        onSignalEvent: async (v) => {
+        onSignalEvent: async (v: IResponseMessage) => {
           await this.handleSignalEvent(v as IResponseMessage, data.backend);
         },
-      });
+      };
+
+      this.agent = new AcpAgentV2(agentConfig) as unknown as AcpAgent;
       return this.agent.start().then(async () => {
         await this.restorePersistedState();
         this.bootstrapping = false;

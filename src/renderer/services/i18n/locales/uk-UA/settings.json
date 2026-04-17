@@ -154,8 +154,6 @@
   "cacheClearFailed": "Не вдалося очистити кеш",
   "language": "Мова",
   "saveUploadToWorkspace": "Зберігати завантаження в робочій області",
-  "commandQueueEnabled": "Увімкнути чергу команд",
-  "commandQueueEnabledDesc": "Якщо увімкнено, повідомлення, надіслані під час виконання поточної задачі, будуть додані в чергу.",
   "autoPreviewOfficeFiles": "Автоперегляд нових файлів Office",
   "autoPreviewOfficeFilesDesc": "Автоматично відкривати новостворені файли Word, Excel та PowerPoint.",
   "startOnBoot": "Запуск при завантаженні",

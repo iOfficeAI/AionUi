@@ -7,6 +7,7 @@
  * - 20+ parallel tool calls — no cross-contamination
  * - Rapid connect/disconnect cycles
  * - Malformed JSON — graceful error handling
+ * - Oversize length prefix — immediate disconnect without unbounded buffering
  * - Auth token rejection under load
  *
  * Only mocks: Mailbox (write), TaskManager (create/list/update), wakeAgent.
@@ -16,6 +17,7 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import * as net from 'node:net';
 import { TeamMcpServer } from '@process/team/mcp/team/TeamMcpServer';
+import { MAX_MCP_MESSAGE_SIZE } from '@process/team/mcp/tcpHelpers';
 import type { TeamAgent } from '@/common/types/teamTypes';
 import type { Mailbox } from '@process/team/Mailbox';
 import type { TaskManager } from '@process/team/TaskManager';
@@ -449,6 +451,36 @@ describe('Stress — malformed JSON and bad inputs', () => {
     });
 
     // Server recovers and handles next valid request
+    const result = (await callTool(port, authToken, 'team_members')) as { result?: string };
+    expect(result.result).toContain('Team Members');
+  });
+
+  it('oversize length prefix: destroys socket immediately and still serves later requests', async () => {
+    await new Promise<void>((resolve, reject) => {
+      let settled = false;
+      const socket = net.createConnection({ port, host: '127.0.0.1' }, () => {
+        const header = Buffer.alloc(4);
+        header.writeUInt32BE(MAX_MCP_MESSAGE_SIZE + 1, 0);
+        socket.write(header);
+      });
+
+      const finish = (error?: Error) => {
+        if (settled) return;
+        settled = true;
+        clearTimeout(timer);
+        if (error) reject(error);
+        else resolve();
+      };
+
+      const timer = setTimeout(() => finish(new Error('Oversize TCP frame was not closed promptly')), 500);
+
+      socket.once('data', (chunk) => {
+        finish(new Error(`Expected disconnect for oversize frame, got data: ${chunk.toString('hex')}`));
+      });
+      socket.once('close', () => finish());
+      socket.once('error', () => finish());
+    });
+
     const result = (await callTool(port, authToken, 'team_members')) as { result?: string };
     expect(result.result).toContain('Team Members');
   });

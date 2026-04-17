@@ -301,9 +301,19 @@ export async function executeImageGeneration(
       const imagePath = await saveGeneratedImage(firstImage.image_url.url, workspaceDir);
       const relativeImagePath = path.relative(workspaceDir, imagePath);
 
+      // Strip any inline base64 data URLs from the human-readable text before
+      // returning. The image is already saved to disk and referenced by path,
+      // so re-emitting hundreds of MB of base64 in the MCP tool response just
+      // forces the parent process to ship that payload through framed TCP again
+      // (which is where the 2026-04-14 commit-charge blow-up happened).
+      const cleanText = responseText.replace(
+        /!\[[^\]]*\]\(data:image\/[^;]+;base64,[^)]+\)/g,
+        '[embedded image extracted]'
+      );
+
       return {
         success: true,
-        text: `${responseText}\n\nGenerated image saved to: ${imagePath}`,
+        text: `${cleanText}\n\nGenerated image saved to: ${imagePath}`,
         imagePath,
         relativeImagePath,
       };

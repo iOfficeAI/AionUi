@@ -24,7 +24,8 @@ const AionrsChat: React.FC<{
   agentSlotId?: string;
   agentName?: string;
   agentType?: string;
-}> = ({ conversation_id, workspace, modelSelection, teamId, agentSlotId }) => {
+  sessionMode?: string;
+}> = ({ conversation_id, workspace, modelSelection, teamId, agentSlotId, sessionMode }) => {
   useMessageLstCache(conversation_id);
   const updateLocalImage = LocalImageView.useUpdateLocalImage();
   useEffect(() => {
@@ -46,6 +47,7 @@ const AionrsChat: React.FC<{
             modelSelection={modelSelection}
             teamId={teamId}
             agentSlotId={agentSlotId}
+            sessionMode={sessionMode}
           />
         </ConversationChatConfirm>
       </div>
