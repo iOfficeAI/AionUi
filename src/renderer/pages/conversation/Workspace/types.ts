@@ -19,6 +19,7 @@ export interface WorkspaceProps {
   conversation_id: string;
   eventPrefix?: 'gemini' | 'acp' | 'codex' | 'aionrs';
   messageApi?: MessageApi;
+  teamId?: string;
 }
 
 /**
