@@ -139,9 +139,19 @@ const AGENT_PILL = '[data-agent-pill="true"]';
 
 function getLogFilePath(): string {
   const today = new Date().toISOString().slice(0, 10);
-  const devPath = path.join(os.homedir(), 'Library', 'Logs', 'AionUi-Dev', `${today}.log`);
-  const prodPath = path.join(os.homedir(), 'Library', 'Logs', 'AionUi', `${today}.log`);
-  return fs.existsSync(devPath) ? devPath : prodPath;
+  const candidates: string[] = [];
+  if (process.platform === 'darwin') {
+    candidates.push(
+      path.join(os.homedir(), 'Library', 'Logs', 'AionUi-Dev', `${today}.log`),
+      path.join(os.homedir(), 'Library', 'Logs', 'AionUi', `${today}.log`)
+    );
+  } else if (process.platform === 'win32') {
+    const appData = process.env.APPDATA ?? path.join(os.homedir(), 'AppData', 'Roaming');
+    candidates.push(path.join(appData, 'AionUi', 'logs', `${today}.log`));
+  } else {
+    candidates.push(path.join(os.homedir(), '.config', 'AionUi', 'logs', `${today}.log`));
+  }
+  return candidates.find((p) => fs.existsSync(p)) ?? candidates[0];
 }
 
 function getLogFileSize(logPath: string): number {

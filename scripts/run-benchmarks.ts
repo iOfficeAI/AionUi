@@ -620,9 +620,9 @@ function main() {
   const results = parseOutput(output);
 
   if (results.length === 0) {
-    console.log('  No benchmark results parsed. Raw output:');
-    console.log(output.slice(0, 2000));
-    process.exit(0);
+    console.error('  No benchmark results parsed. Raw output:');
+    console.error(output.slice(0, 2000));
+    process.exit(1);
   }
 
   let gitRef = 'unknown';
