@@ -18,14 +18,17 @@ import 'uno.css';
 // Sentry must be initialized first to capture early runtime errors.
 // Use electron-specific renderer package only inside Electron; fall back to the
 // browser SDK when running as a standalone web server (no window.electronAPI).
-if ((window as any).electronAPI) {
+if ((window as { electronAPI?: unknown }).electronAPI) {
   // Dynamic import avoids bundling sentry-ipc:// protocol code into the web build
   import('@sentry/electron/renderer')
     .then((Sentry) => Sentry.init())
     .catch((err) => console.error('Sentry initialization failed:', err));
 }
 
-import React, { lazy, Suspense, startTransition, PropsWithChildren, useEffect, useState, useMemo, memo } from 'react';
+import React, { lazy, Suspense, startTransition, useEffect, useState, useMemo, memo } from 'react';
+// Import type-only dependencies separately
+import type { PropsWithChildren } from 'react';
+
 import { createRoot } from 'react-dom/client';
 import { ConfigProvider } from '@arco-design/web-react';
 import '@arco-design/web-react/es/_util/react-19-adapter';
