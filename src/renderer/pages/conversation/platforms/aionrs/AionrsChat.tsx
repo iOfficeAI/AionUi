@@ -41,7 +41,12 @@ const AionrsChat: React.FC<{
           <MessageList className='flex-1' />
         </FlexFullContainer>
         <ConversationChatConfirm conversation_id={conversation_id}>
-          <AionrsSendBox conversation_id={conversation_id} modelSelection={modelSelection} teamId={teamId} agentSlotId={agentSlotId} />
+          <AionrsSendBox
+            conversation_id={conversation_id}
+            modelSelection={modelSelection}
+            teamId={teamId}
+            agentSlotId={agentSlotId}
+          />
         </ConversationChatConfirm>
       </div>
     </ConversationProvider>
