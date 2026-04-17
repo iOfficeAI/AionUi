@@ -13,6 +13,7 @@ vi.mock('@/common/types/acpTypes', () => ({
     { cmd: 'claude', name: 'Claude Code', backendId: 'claude', args: ['--experimental-acp'] },
     { cmd: 'qwen', name: 'Qwen Code', backendId: 'qwen', args: ['--acp'] },
     { cmd: 'augment', name: 'Augment Code', backendId: 'auggie', args: ['--acp'] },
+    { cmd: 'copilot', name: 'GitHub Copilot', backendId: 'copilot', args: ['--experimental-acp'] },
   ],
 }));
 
@@ -60,10 +61,17 @@ function setAvailableClis(clis: string[]): void {
   mockedExecSync.mockImplementation((cmd: string) => {
     const command = typeof cmd === 'string' ? cmd : '';
     for (const cli of clis) {
-      if (command.includes(cli)) return Buffer.from('');
+      if (command.includes(cli)) {
+        const resolvedPath = process.platform === 'win32' ? `C:\\mock\\${cli}.cmd` : `/mock/bin/${cli}`;
+        return `${resolvedPath}\n`;
+      }
     }
     throw new Error('not found');
   });
+}
+
+function expectedResolvedCliPath(cli: string): string {
+  return process.platform === 'win32' ? `C:\\mock\\${cli}.cmd` : `/mock/bin/${cli}`;
 }
 
 // Helper: create a mock extension ACP adapter
@@ -106,8 +114,8 @@ describe('AcpDetector', () => {
       // Gemini always first + claude + qwen
       expect(agents).toHaveLength(3);
       expect(agents[0].backend).toBe('gemini');
-      expect(agents[1]).toMatchObject({ backend: 'claude', cliPath: 'claude' });
-      expect(agents[2]).toMatchObject({ backend: 'qwen', cliPath: 'qwen' });
+      expect(agents[1]).toMatchObject({ backend: 'claude', cliPath: expectedResolvedCliPath('claude') });
+      expect(agents[2]).toMatchObject({ backend: 'qwen', cliPath: expectedResolvedCliPath('qwen') });
     });
 
     it('should skip built-in CLIs that are not available', async () => {
@@ -133,6 +141,37 @@ describe('AcpDetector', () => {
       expect(agents[0]).toMatchObject({ backend: 'gemini', name: 'Gemini CLI' });
     });
 
+    it('should prefer the npm Copilot binary over the VS Code wrapper on Windows', async () => {
+      const originalPlatform = Object.getOwnPropertyDescriptor(process, 'platform');
+      Object.defineProperty(process, 'platform', { value: 'win32', configurable: true });
+
+      mockedExecSync.mockImplementation((cmd: string) => {
+        if (!cmd.includes('copilot')) {
+          throw new Error('not found');
+        }
+
+        return [
+          'C:\\Users\\xdoom\\AppData\\Roaming\\Code - Insiders\\User\\globalStorage\\github.copilot-chat\\copilotCli\\copilot.bat',
+          'C:\\Users\\xdoom\\AppData\\Roaming\\npm\\copilot.cmd',
+          'C:\\Users\\xdoom\\AppData\\Roaming\\npm\\copilot',
+        ].join('\r\n');
+      });
+
+      try {
+        const detector = await createFreshDetector();
+        await detector.initialize();
+        const agents = detector.getDetectedAgents();
+
+        const copilotAgent = agents.find((agent) => agent.backend === 'copilot');
+        expect(copilotAgent).toBeDefined();
+        expect(copilotAgent?.cliPath).toBe('C:\\Users\\xdoom\\AppData\\Roaming\\npm\\copilot.cmd');
+      } finally {
+        if (originalPlatform) {
+          Object.defineProperty(process, 'platform', originalPlatform);
+        }
+      }
+    });
+
     it('should detect extension-contributed agents when CLI is available', async () => {
       setAvailableClis(['goose']);
       mockGetAcpAdapters.mockReturnValue([
@@ -144,7 +183,7 @@ describe('AcpDetector', () => {
       const agents = detector.getDetectedAgents();
 
       // gemini + builtin goose (from POTENTIAL_ACP_CLIS if present) or ext goose
-      const gooseAgent = agents.find((a) => a.cliPath === 'goose');
+      const gooseAgent = agents.find((a) => a.cliPath === expectedResolvedCliPath('goose'));
       expect(gooseAgent).toBeDefined();
     });
 
@@ -220,7 +259,7 @@ describe('AcpDetector', () => {
       const agents = detector.getDetectedAgents();
 
       // Should have only one qwen entry (builtin with backend 'qwen'), not the extension duplicate
-      const qwenAgents = agents.filter((a) => a.cliPath === 'qwen');
+      const qwenAgents = agents.filter((a) => a.cliPath === expectedResolvedCliPath('qwen'));
       expect(qwenAgents).toHaveLength(1);
       expect(qwenAgents[0].backend).toBe('qwen'); // builtin wins
       expect(qwenAgents[0].isExtension).toBeUndefined(); // not the extension one
@@ -241,7 +280,7 @@ describe('AcpDetector', () => {
       await detector.initialize();
       const agents = detector.getDetectedAgents();
 
-      const agent = agents.find((a) => a.cliPath === 'custom-cli');
+      const agent = agents.find((a) => a.cliPath === expectedResolvedCliPath('custom-cli'));
       expect(agent).toBeDefined();
       expect(agent!.isExtension).toBe(true);
     });
@@ -280,7 +319,7 @@ describe('AcpDetector', () => {
       await detector.refreshExtensionAgents();
       const agents = detector.getDetectedAgents();
 
-      const extAgent = agents.find((a) => a.cliPath === 'new-ext-cli');
+      const extAgent = agents.find((a) => a.cliPath === expectedResolvedCliPath('new-ext-cli'));
       expect(extAgent).toBeDefined();
       expect(extAgent!.isExtension).toBe(true);
     });
@@ -293,13 +332,15 @@ describe('AcpDetector', () => {
 
       const detector = await createFreshDetector();
       await detector.initialize();
-      expect(detector.getDetectedAgents().find((a) => a.cliPath === 'ext-cli')).toBeDefined();
+      expect(detector.getDetectedAgents().find((a) => a.cliPath === expectedResolvedCliPath('ext-cli'))).toBeDefined();
 
       // CLI removed
       setAvailableClis([]);
       await detector.refreshExtensionAgents();
 
-      expect(detector.getDetectedAgents().find((a) => a.cliPath === 'ext-cli')).toBeUndefined();
+      expect(
+        detector.getDetectedAgents().find((a) => a.cliPath === expectedResolvedCliPath('ext-cli'))
+      ).toBeUndefined();
     });
 
     it('should still deduplicate after refresh', async () => {
@@ -319,7 +360,7 @@ describe('AcpDetector', () => {
       ]);
 
       await detector.refreshExtensionAgents();
-      const qwenAgents = detector.getDetectedAgents().filter((a) => a.cliPath === 'qwen');
+      const qwenAgents = detector.getDetectedAgents().filter((a) => a.cliPath === expectedResolvedCliPath('qwen'));
       expect(qwenAgents).toHaveLength(1);
       expect(qwenAgents[0].backend).toBe('qwen'); // builtin still wins
     });

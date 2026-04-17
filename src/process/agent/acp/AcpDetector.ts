@@ -10,6 +10,7 @@ import { ExtensionRegistry } from '@process/extensions';
 import { ProcessConfig } from '@process/utils/initStorage';
 import { getEnhancedEnv } from '@process/utils/shellEnv';
 import { execSync } from 'child_process';
+import path from 'path';
 
 interface DetectedAgent {
   backend: AcpBackendAll;
@@ -54,6 +55,58 @@ class AcpDetector {
   private isDetected = false;
   private enhancedEnv: NodeJS.ProcessEnv | undefined;
   private mutationQueue: Promise<void> = Promise.resolve();
+
+  private resolveCliPath(cliCommand: string): string | undefined {
+    const isWindows = process.platform === 'win32';
+    const whichCommand = isWindows ? 'where' : 'which';
+
+    if (!this.enhancedEnv) {
+      this.enhancedEnv = getEnhancedEnv();
+    }
+
+    try {
+      const output = execSync(`${whichCommand} ${cliCommand}`, {
+        encoding: 'utf-8',
+        stdio: 'pipe',
+        timeout: 1000,
+        env: this.enhancedEnv,
+      });
+
+      const candidates = output
+        .split(/\r?\n/)
+        .map((line) => line.trim())
+        .filter(Boolean);
+
+      if (candidates.length === 0) {
+        return undefined;
+      }
+
+      if (!isWindows) {
+        return candidates[0];
+      }
+
+      const normalizedCandidates = candidates.map((candidate) => path.normalize(candidate));
+
+      // Prefer the npm-installed Copilot CLI over the VS Code Copilot Chat wrapper.
+      // The wrapper is useful inside the editor, but it exits with code 1 when launched
+      // as a headless ACP server, which leaves the app stuck in "No active ACP session".
+      if (cliCommand === 'copilot') {
+        const npmCopilot = normalizedCandidates.find((candidate) =>
+          /[\\/]AppData[\\/]Roaming[\\/]npm[\\/]copilot\.cmd$/i.test(candidate)
+        );
+        if (npmCopilot) {
+          return npmCopilot;
+        }
+      }
+
+      const nonWrapperCandidate = normalizedCandidates.find(
+        (candidate) => !candidate.toLowerCase().includes('github.copilot-chat')
+      );
+      return nonWrapperCandidate ?? normalizedCandidates[0];
+    } catch {
+      return undefined;
+    }
+  }
 
   private createGeminiAgent(): DetectedAgent {
     return {
@@ -142,11 +195,10 @@ class AcpDetector {
    */
   private async detectBuiltinAgents(): Promise<DetectedAgent[]> {
     const promises = POTENTIAL_ACP_CLIS.map((cli) =>
-      Promise.resolve().then((): DetectedAgent | null =>
-        this.isCliAvailable(cli.cmd)
-          ? { backend: cli.backendId, name: cli.name, cliPath: cli.cmd, acpArgs: cli.args }
-          : null
-      )
+      Promise.resolve().then((): DetectedAgent | null => {
+        const cliPath = this.resolveCliPath(cli.cmd);
+        return cliPath ? { backend: cli.backendId, name: cli.name, cliPath, acpArgs: cli.args } : null;
+      })
     );
 
     const results = await Promise.allSettled(promises);
@@ -196,7 +248,10 @@ class AcpDetector {
       }
 
       const promises = candidates.map((c) =>
-        Promise.resolve().then((): DetectedAgent | null => (this.isCliAvailable(c.cliCommand) ? c.agent : null))
+        Promise.resolve().then((): DetectedAgent | null => {
+          const cliPath = this.resolveCliPath(c.cliCommand);
+          return cliPath ? { ...c.agent, cliPath } : null;
+        })
       );
 
       const results = await Promise.allSettled(promises);
