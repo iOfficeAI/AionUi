@@ -7,8 +7,8 @@
 import { POTENTIAL_ACP_CLIS } from '@/common/types/acpTypes';
 import type { AcpDetectedAgent } from '@/common/types/detectedAgent';
 import { ExtensionRegistry } from '@process/extensions';
+import { safeExec, safeExecFile } from '@process/utils/safeExec';
 import { getEnhancedEnv } from '@process/utils/shellEnv';
-import { execSync } from 'child_process';
 
 /**
  * ACP agent detector — discovers ACP protocol agents from two sources:
@@ -31,74 +31,130 @@ class AcpDetector {
     this.enhancedEnv = undefined;
   }
 
-  /** Check if a CLI command is available on the system PATH. */
+  /** Check if a single CLI command is available on the system PATH (sync). */
   isCliAvailable(cliCommand: string): boolean {
-    // Reject commands with shell metacharacters to prevent injection
-    if (!/^[a-zA-Z0-9_.-]+$/.test(cliCommand)) return false;
+    return this.batchCheckCliAvailabilitySync([cliCommand]).has(cliCommand);
+  }
 
-    const isWindows = process.platform === 'win32';
-    const whichCommand = isWindows ? 'where' : 'which';
+  /**
+   * Batch-check which CLI commands are available on the system PATH.
+   *
+   * POSIX: single shell invocation using `command -v` (shell builtin,
+   * no per-command process spawn).
+   *
+   * Windows: parallel `where` calls with PowerShell fallback.
+   */
+  async batchCheckCliAvailability(commands: string[]): Promise<Set<string>> {
+    if (commands.length === 0) return new Set();
+
+    // Reject commands with shell metacharacters to prevent injection
+    const safe = commands.filter((cmd) => /^[a-zA-Z0-9_.-]+$/.test(cmd));
+    if (safe.length === 0) return new Set();
 
     if (!this.enhancedEnv) {
       this.enhancedEnv = getEnhancedEnv();
     }
 
-    try {
-      execSync(`${whichCommand} ${cliCommand}`, {
-        encoding: 'utf-8',
-        stdio: 'pipe',
-        timeout: 1000,
-        env: this.enhancedEnv,
-      });
-      return true;
-    } catch {
-      if (!isWindows) return false;
-    }
+    const isWindows = process.platform === 'win32';
 
-    if (isWindows) {
+    if (!isWindows) {
+      const checks = safe.map((cmd) => `command -v '${cmd}' >/dev/null 2>&1 && echo '${cmd}'`);
+      const script = checks.join('; ') + '; true';
       try {
-        execSync(
-          `powershell -NoProfile -NonInteractive -Command "Get-Command -All ${cliCommand} | Select-Object -First 1 | Out-Null"`,
-          {
-            encoding: 'utf-8',
-            stdio: 'pipe',
-            timeout: 1000,
-            env: this.enhancedEnv,
-          }
-        );
-        return true;
-      } catch {
-        return false;
+        const { stdout } = await safeExec(script, { timeout: 3000, env: this.enhancedEnv });
+        return new Set(stdout.trim().split('\n').filter(Boolean));
+      } catch (err) {
+        console.error('[AcpDetector] Batch CLI check failed:', err);
+        return new Set();
       }
     }
 
-    return false;
+    const results = await Promise.allSettled(
+      safe.map(async (cmd): Promise<string | null> => {
+        try {
+          await safeExecFile('where', [cmd], { timeout: 1000, env: this.enhancedEnv });
+          return cmd;
+        } catch {
+          /* where failed, try PowerShell */
+        }
+        try {
+          await safeExecFile(
+            'powershell',
+            [
+              '-NoProfile',
+              '-NonInteractive',
+              '-Command',
+              `Get-Command -All ${cmd} | Select-Object -First 1 | Out-Null`,
+            ],
+            { timeout: 1000, env: this.enhancedEnv }
+          );
+          return cmd;
+        } catch {
+          return null;
+        }
+      })
+    );
+    return new Set(
+      results
+        .filter((r): r is PromiseFulfilledResult<string> => r.status === 'fulfilled' && r.value !== null)
+        .map((r) => r.value)
+    );
   }
 
   /**
-   * Detect built-in ACP CLI agents via parallel CLI availability check.
+   * Synchronous single-command fallback for callers that cannot await.
+   * Used by isCliAvailable() and AgentRegistry for one-off checks.
+   */
+  private batchCheckCliAvailabilitySync(commands: string[]): Set<string> {
+    if (commands.length === 0) return new Set();
+    const safe = commands.filter((cmd) => /^[a-zA-Z0-9_.-]+$/.test(cmd));
+    if (safe.length === 0) return new Set();
+
+    if (!this.enhancedEnv) {
+      this.enhancedEnv = getEnhancedEnv();
+    }
+
+    const { execSync } = require('child_process') as typeof import('child_process');
+    const isWindows = process.platform === 'win32';
+    const whichCommand = isWindows ? 'where' : 'which';
+    const found = new Set<string>();
+
+    for (const cmd of safe) {
+      try {
+        execSync(`${whichCommand} ${cmd}`, { encoding: 'utf-8', stdio: 'pipe', timeout: 1000, env: this.enhancedEnv });
+        found.add(cmd);
+        continue;
+      } catch {
+        if (!isWindows) continue;
+      }
+      try {
+        execSync(
+          `powershell -NoProfile -NonInteractive -Command "Get-Command -All ${cmd} | Select-Object -First 1 | Out-Null"`,
+          { encoding: 'utf-8', stdio: 'pipe', timeout: 1000, env: this.enhancedEnv }
+        );
+        found.add(cmd);
+      } catch {
+        /* not found */
+      }
+    }
+    return found;
+  }
+
+  /**
+   * Detect built-in ACP CLI agents via async batch CLI availability check.
    */
   async detectBuiltinAgents(): Promise<AcpDetectedAgent[]> {
-    const promises = POTENTIAL_ACP_CLIS.map((cli) =>
-      Promise.resolve().then((): AcpDetectedAgent | null =>
-        this.isCliAvailable(cli.cmd)
-          ? {
-              id: cli.backendId,
-              name: cli.name,
-              kind: 'acp',
-              available: true,
-              backend: cli.backendId,
-              cliPath: cli.cmd,
-              acpArgs: cli.args,
-            }
-          : null
-      )
-    );
+    const available = await this.batchCheckCliAvailability(POTENTIAL_ACP_CLIS.map((cli) => cli.cmd));
 
-    const results = await Promise.allSettled(promises);
-    return results
-      .filter((r): r is PromiseFulfilledResult<AcpDetectedAgent> => r.status === 'fulfilled' && r.value !== null)
-      .map((r) => r.value);
+    return POTENTIAL_ACP_CLIS.filter((cli) => available.has(cli.cmd)).map((cli) => ({
+      id: cli.backendId,
+      name: cli.name,
+      kind: 'acp' as const,
+      available: true,
+      backend: cli.backendId,
+      cliPath: cli.cmd,
+      acpArgs: cli.args,
+    }));
   }
 
   /**
