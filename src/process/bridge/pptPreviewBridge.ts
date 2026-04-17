@@ -14,7 +14,7 @@
 
 import { ipcBridge } from '@/common';
 import { getPlatformServices } from '@/common/platform';
-import { spawn, execSync, type ChildProcess } from 'node:child_process';
+import { spawn, exec, execSync, type ChildProcess } from 'node:child_process';
 import fs from 'node:fs';
 import net from 'node:net';
 import path from 'node:path';
@@ -32,6 +32,8 @@ const sessions = new Map<string, WatchSession>();
 const pendingKills = new Map<string, ReturnType<typeof setTimeout>>();
 // Skip further install attempts after the first failure in this session
 let installFailed = false;
+// Lazy update: check once per session on first use, not at startup
+let updateChecked = false;
 
 /**
  * Find a free TCP port by binding to port 0.
@@ -91,39 +93,35 @@ function killSession(filePath: string): void {
 }
 
 /**
- * Background update check — runs at most once per day.
+ * Background update check — runs at most once per day, fully async to avoid blocking main process.
  */
 function checkForUpdate(): void {
   const markerPath = path.join(getPlatformServices().paths.getDataDir(), '.officecli-update-check');
   try {
     const stat = fs.statSync(markerPath);
-    if (Date.now() - stat.mtimeMs < 24 * 60 * 60 * 1000) return; // checked within 24h
+    if (Date.now() - stat.mtimeMs < 24 * 60 * 60 * 1000) return;
   } catch {}
 
-  // Mark as checked (touch file)
   try {
     fs.writeFileSync(markerPath, '');
   } catch {}
 
-  try {
-    const localVersion = execSync('officecli --version', {
-      encoding: 'utf8',
-      stdio: 'pipe',
-      timeout: 10000,
-    }).trim();
+  exec('officecli --version', { encoding: 'utf8', timeout: 10000 }, (err, stdout) => {
+    if (err) return;
+    const localVersion = stdout.trim();
     const latestUrl = 'https://github.com/iOfficeAI/OfficeCli/releases/latest';
-    const effective = execSync(`curl -fsSL -o /dev/null -w "%{url_effective}" ${latestUrl}`, {
-      encoding: 'utf8',
-      stdio: ['pipe', 'pipe', 'pipe'],
-      timeout: 10000,
-    }).trim();
-    const remoteVersion = effective.split('/').pop()?.replace(/^v/, '') ?? '';
-    if (remoteVersion && remoteVersion !== localVersion) {
-      installOfficecli();
-    }
-  } catch {
-    // Silently ignore — not critical
-  }
+    exec(
+      `curl -fsSL -o /dev/null -w "%{url_effective}" ${latestUrl}`,
+      { encoding: 'utf8', timeout: 10000 },
+      (err2, stdout2) => {
+        if (err2) return;
+        const remoteVersion = stdout2.trim().split('/').pop()?.replace(/^v/, '') ?? '';
+        if (remoteVersion && remoteVersion !== localVersion) {
+          installOfficecli();
+        }
+      }
+    );
+  });
 }
 
 /**
@@ -183,6 +181,12 @@ async function startWatch(filePath: string, retry = false): Promise<string> {
 
   // Kill any existing/pending session for this file first
   killSession(filePath);
+
+  // Lazy update check: once per session on first actual use
+  if (!updateChecked) {
+    updateChecked = true;
+    checkForUpdate();
+  }
 
   const port = await findFreePort();
 
@@ -299,9 +303,6 @@ export function stopAllWatchSessions(): void {
 }
 
 export function initPptPreviewBridge(): void {
-  // Background update check (non-blocking, at most once per day)
-  setTimeout(() => checkForUpdate(), 5000);
-
   ipcBridge.pptPreview.start.provider(async ({ filePath }) => {
     // Attach .catch() synchronously on the promise to ensure the rejection
     // handler is registered before microtask processing. The bridge framework's
