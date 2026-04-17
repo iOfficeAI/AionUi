@@ -1473,10 +1473,8 @@ export class AcpAgent {
         break;
       }
       case 'plan':
-        {
-          responseMessage.type = 'plan';
-          responseMessage.data = message.content;
-        }
+        responseMessage.type = 'plan';
+        responseMessage.data = message.content;
         break;
       // Disabled: available_commands messages are too noisy and distracting in the chat UI
       case 'available_commands':

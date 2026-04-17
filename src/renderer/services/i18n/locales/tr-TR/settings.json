@@ -156,8 +156,6 @@
   "cacheClearFailed": "Önbellek temizlenemedi",
   "language": "Dil",
   "saveUploadToWorkspace": "Yüklemeleri Çalışma Alanına Kaydet",
-  "commandQueueEnabled": "Komut Kuyruğunu Etkinleştir",
-  "commandQueueEnabledDesc": "Etkinleştirildiğinde, mevcut tur hâlâ çalışıyorsa yeni mesajlar hemen gönderilmek yerine kuyruğa eklenir.",
   "autoPreviewOfficeFiles": "Yeni Office Dosyalarını Otomatik Önizle",
   "autoPreviewOfficeFilesDesc": "Geçerli çalışma alanında yeni oluşturulan Word, Excel ve PowerPoint dosyalarını otomatik olarak açar. Office geçici kilit dosyaları yok sayılır.",
   "startOnBoot": "Açılışta Başlat",

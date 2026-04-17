@@ -1,0 +1,672 @@
+// src/process/acp/compat/AcpAgentV2.ts
+
+import type { IResponseMessage } from '@/common/adapter/ipcBridge';
+import type { IMessageAcpToolCall, TMessage } from '@/common/chat/chatLib';
+import type { AcpModelInfo, AcpResult, AcpSessionConfigOption } from '@/common/types/acpTypes';
+import { AcpErrorType } from '@/common/types/acpTypes';
+import { LegacyConnectorFactory } from '@process/acp/compat/LegacyConnectorFactory';
+import {
+  loadAuthCredentials,
+  toAcpConfigOptions,
+  toAcpModelInfo,
+  toAgentConfig,
+  toResponseMessage,
+  type OldAcpAgentConfig,
+} from '@process/acp/compat/typeBridge';
+import { AcpSession, type SessionOptions } from '@process/acp/session/AcpSession';
+// TODO(ACP Discovery): Re-enable when acp_session persistence is restored.
+// import type { IAcpSessionRepository } from '@process/services/database/IAcpSessionRepository';
+import type {
+  AgentConfig,
+  ConfigSnapshot,
+  ContextUsage,
+  ModelSnapshot,
+  ModeSnapshot,
+  SessionCallbacks,
+  SessionStatus,
+} from '@process/acp/types';
+import type { McpServer } from '@agentclientprotocol/sdk';
+import { getEnhancedEnv } from '@process/utils/shellEnv';
+import { spawn } from 'node:child_process';
+
+/**
+ * Temporary: backend-specific CLI login arguments.
+ * Will be replaced by `authCommand + args` config in PR #2349.
+ */
+const BACKEND_LOGIN_ARGS: Record<string, string[] | undefined> = {
+  claude: ['/login'],
+  qwen: ['login'],
+};
+
+const LOGIN_TIMEOUT_MS = 70_000;
+
+/**
+ * Refresh backend credentials by running the backend CLI login command.
+ * Will be replaced by `authCommand + args` config when Agent Hub lands (PR #2349).
+ */
+async function runBackendLogin(backend: string): Promise<void> {
+  const env = getEnhancedEnv();
+  const loginArgs = BACKEND_LOGIN_ARGS[backend];
+  if (!loginArgs) return;
+
+  console.log(`[AcpAgentV2] Running ${backend} ${loginArgs.join(' ')}`);
+  const child = spawn(backend, loginArgs, {
+    stdio: 'pipe',
+    timeout: LOGIN_TIMEOUT_MS,
+    env,
+  });
+
+  return new Promise<void>((resolve, reject) => {
+    child.on('close', (code) => {
+      if (code === 0) resolve();
+      else reject(new Error(`${backend} ${loginArgs.join(' ')} exited with code ${code}`));
+    });
+    child.on('error', (err) => {
+      reject(new Error(`Failed to spawn ${backend}: ${err.message}`));
+    });
+  });
+}
+
+type PendingOp<T> = {
+  resolve: (value: T) => void;
+  reject: (err: Error) => void;
+  timer: ReturnType<typeof setTimeout>;
+};
+
+/**
+ * AcpAgentV2 — Compatibility adapter that presents the OLD AcpAgent interface
+ * while internally delegating to the NEW AcpSession.
+ *
+ * This adapter:
+ * - Converts OldAcpAgentConfig → AgentConfig + SessionCallbacks
+ * - Routes new SessionCallbacks → old event format (onStreamEvent, onSignalEvent)
+ * - Caches model/config state from callbacks for sync getters
+ * - Bridges async old API ↔ void new API via pending promises
+ */
+export class AcpAgentV2 {
+  private session: AcpSession | null = null;
+  private readonly agentConfig: AgentConfig;
+  private conversationId: string;
+  private onStreamEvent: (data: IResponseMessage) => void;
+  private onSignalEvent?: (data: IResponseMessage) => void;
+  private onSessionIdUpdate?: (sessionId: string) => void;
+  private onAvailableCommandsUpdate?: (commands: Array<{ name: string; description?: string; hint?: string }>) => void;
+
+  // Cached state from callbacks
+  private cachedModelInfo: AcpModelInfo | null = null;
+  private cachedConfigOptions: AcpSessionConfigOption[] = [];
+  private lastSessionId: string | null = null;
+  private lastStatus: SessionStatus = 'idle';
+
+  // Promise bridges for async methods (Tasks 4-6)
+  private startOp: PendingOp<void> | null = null;
+  private modelOp: PendingOp<AcpModelInfo | null> | null = null;
+  private modeOp: PendingOp<{ success: boolean; error?: string }> | null = null;
+  private configOp: PendingOp<AcpSessionConfigOption[]> | null = null;
+
+  // Tool call merge state (compat concern — MessageTranslator is stateless)
+  private activeToolCalls = new Map<string, IMessageAcpToolCall>();
+  // Auth retry guard — prevent infinite auth loops
+  private authRetryAttempted = false;
+  // TODO(ACP Discovery): Re-enable acp_session persistence after fixing agent_id semantics.
+  // Currently agent_id is incorrectly set to conversation_id (see typeBridge.ts agentId: old.id).
+  // The table is not consumed by any reader yet. See docs/feature/acp-rewrite/TODO.md.
+  // private acpSessionRepo: IAcpSessionRepository | null = null;
+
+  constructor(config: OldAcpAgentConfig) {
+    this.conversationId = config.id;
+    this.onStreamEvent = config.onStreamEvent as (data: IResponseMessage) => void;
+    this.onSignalEvent = config.onSignalEvent as ((data: IResponseMessage) => void) | undefined;
+    this.onSessionIdUpdate = config.onSessionIdUpdate;
+    this.onAvailableCommandsUpdate = config.onAvailableCommandsUpdate;
+    this.agentConfig = toAgentConfig(config);
+  }
+
+  /**
+   * Create AcpSession (deferred from constructor so authCredentials
+   * can be loaded asynchronously from the full shell environment).
+   */
+  private async ensureSession(): Promise<AcpSession> {
+    if (this.session) return this.session;
+
+    // Load credentials from full shell env (survives Gemini's delete process.env.*)
+    const creds = await loadAuthCredentials(this.agentConfig.agentBackend, this.agentConfig.env);
+    if (creds) {
+      (this.agentConfig as { authCredentials?: Record<string, string> }).authCredentials = creds;
+    }
+
+    // Inject team-guide MCP server for solo agents (not in team mode) so the
+    // agent has the aion_create_team tool available — mirrors AcpAgent.loadBuiltinSessionMcpServers().
+    if (!this.agentConfig.teamMcpConfig) {
+      const { shouldInjectTeamGuideMcp } = await import('@process/team/prompts/teamGuideCapability');
+      if (await shouldInjectTeamGuideMcp(this.agentConfig.agentBackend)) {
+        const { getTeamGuideStdioConfig } = await import('@process/team/mcp/guide/teamGuideSingleton');
+        const aionStdioConfig = getTeamGuideStdioConfig();
+        if (aionStdioConfig) {
+          const guideServer: McpServer = {
+            name: aionStdioConfig.name,
+            command: aionStdioConfig.command,
+            args: aionStdioConfig.args,
+            env: [
+              ...aionStdioConfig.env,
+              { name: 'AION_MCP_BACKEND', value: this.agentConfig.agentBackend },
+              { name: 'AION_MCP_CONVERSATION_ID', value: this.conversationId },
+            ],
+          };
+          (this.agentConfig as { presetMcpServers?: McpServer[] }).presetMcpServers = [
+            ...(this.agentConfig.presetMcpServers || []),
+            guideServer,
+          ];
+        }
+      }
+    }
+
+    // Load user-configured (builtin) MCP servers from settings, filtered by
+    // cached agent MCP capabilities. Mirrors AcpAgent.loadBuiltinSessionMcpServers().
+    const { ProcessConfig } = await import('@process/utils/initStorage');
+
+    // TODO(ACP Discovery): Re-enable session persistence after fixing agent_id.
+    // See docs/feature/acp-rewrite/TODO.md.
+    // if (!this.acpSessionRepo) {
+    //   try {
+    //     const { getDatabase } = await import('@process/services/database');
+    //     const { SqliteAcpSessionRepository } = await import('@process/services/database/SqliteAcpSessionRepository');
+    //     const db = await getDatabase();
+    //     this.acpSessionRepo = new SqliteAcpSessionRepository(db.getDriver());
+    //   } catch (err) {
+    //     console.warn('[AcpAgentV2] Failed to init session repo, persistence disabled:', err);
+    //   }
+    // }
+
+    const rawMcpServers = await ProcessConfig.get('mcp.config');
+    if (Array.isArray(rawMcpServers) && rawMcpServers.length > 0) {
+      const cachedInit = await ProcessConfig.get('acp.cachedInitializeResult');
+      const caps = cachedInit?.[this.agentConfig.agentBackend]?.capabilities?.mcpCapabilities;
+      const { McpConfig } = await import('@process/acp/session/McpConfig');
+      const userServers = McpConfig.fromStorageConfig(rawMcpServers, caps);
+      if (userServers.length > 0) {
+        (this.agentConfig as { mcpServers?: McpServer[] }).mcpServers = [
+          ...(this.agentConfig.mcpServers || []),
+          ...userServers,
+        ];
+      }
+    }
+
+    const callbacks: SessionCallbacks = this.buildCallbacks();
+    const clientFactory = new LegacyConnectorFactory();
+    const sessionOptions: SessionOptions = {
+      promptTimeoutMs: 300_000,
+      maxStartRetries: 3,
+      maxResumeRetries: 2,
+    };
+
+    // TODO(ACP Discovery): Re-enable after fixing agent_id.
+    // this.acpSessionRepo?.upsertSession({
+    //   conversation_id: this.conversationId,
+    //   agent_backend: this.agentConfig.agentBackend,
+    //   agent_source: this.agentConfig.agentSource,
+    //   agent_id: this.agentConfig.agentId,
+    //   session_id: null,
+    //   session_status: 'idle',
+    //   session_config: '{}',
+    //   last_active_at: Date.now(),
+    //   suspended_at: null,
+    // });
+
+    this.session = new AcpSession(this.agentConfig, clientFactory, callbacks, sessionOptions);
+    return this.session;
+  }
+
+  /**
+   * Build SessionCallbacks that route new events → old event format
+   */
+  private buildCallbacks(): SessionCallbacks {
+    return {
+      onMessage: (message: TMessage) => {
+        // Merge tool call updates with their original tool_call before emitting
+        const resolved =
+          message.type === 'acp_tool_call' ? this.mergeToolCall(message as IMessageAcpToolCall) : message;
+
+        const oldMsg = toResponseMessage(resolved, this.conversationId);
+        // Skip empty messages (e.g., filtered available_commands)
+        if (oldMsg.type) {
+          this.onStreamEvent(oldMsg);
+        }
+      },
+
+      onSessionId: (sessionId: string) => {
+        this.lastSessionId = sessionId;
+        // TODO(ACP Discovery): Re-enable after fixing agent_id.
+        // this.acpSessionRepo?.updateSessionId(this.conversationId, sessionId);
+        if (this.onSessionIdUpdate) {
+          this.onSessionIdUpdate(sessionId);
+        }
+      },
+
+      onStatusChange: (status: SessionStatus) => {
+        this.lastStatus = status;
+        this.persistStatus(status);
+
+        // Resolve startOp when reaching active/error
+        if (status === 'active' && this.startOp) {
+          this.resolveOp(this.startOp, undefined);
+          this.startOp = null;
+        } else if (status === 'error' && this.startOp) {
+          this.rejectOp(this.startOp, new Error('Session failed to start'));
+          this.startOp = null;
+        }
+
+        // Emit old-style agent_status event
+        const oldStatusName = this.mapStatusToOldName(status);
+        this.onStreamEvent({
+          type: 'agent_status',
+          conversation_id: this.conversationId,
+          msg_id: `status_${Date.now()}`,
+          data: { status: oldStatusName, backend: this.agentConfig.agentBackend },
+        });
+      },
+
+      onModelUpdate: (model: ModelSnapshot) => {
+        this.cachedModelInfo = toAcpModelInfo(model);
+
+        // Resolve modelOp if pending
+        if (this.modelOp) {
+          this.resolveOp(this.modelOp, this.cachedModelInfo);
+          this.modelOp = null;
+        }
+
+        // Emit to old stream event
+        this.onStreamEvent({
+          type: 'acp_model_info',
+          conversation_id: this.conversationId,
+          msg_id: `model_${Date.now()}`,
+          data: this.cachedModelInfo,
+        });
+      },
+
+      onModeUpdate: (_mode: ModeSnapshot) => {
+        // Resolve modeOp if pending
+        if (this.modeOp) {
+          this.resolveOp(this.modeOp, { success: true });
+          this.modeOp = null;
+        }
+      },
+
+      onConfigUpdate: (config: ConfigSnapshot) => {
+        this.cachedConfigOptions = toAcpConfigOptions(config.configOptions);
+
+        // Resolve configOp if pending
+        if (this.configOp) {
+          this.resolveOp(this.configOp, this.cachedConfigOptions);
+          this.configOp = null;
+        }
+
+        // Forward availableCommands to old callback
+        if (this.onAvailableCommandsUpdate && config.availableCommands.length > 0) {
+          const commands = config.availableCommands.map((name) => ({
+            name,
+            description: name,
+          }));
+          this.onAvailableCommandsUpdate(commands);
+        }
+      },
+
+      onContextUsage: (usage: ContextUsage) => {
+        this.onStreamEvent({
+          type: 'acp_context_usage',
+          conversation_id: this.conversationId,
+          msg_id: `usage_${Date.now()}`,
+          data: { used: usage.used, size: usage.total },
+        });
+      },
+
+      onPermissionRequest: (data) => {
+        if (this.onSignalEvent) {
+          this.onSignalEvent({
+            type: 'acp_permission',
+            conversation_id: this.conversationId,
+            msg_id: data.callId,
+            data: {
+              toolCall: {
+                toolCallId: data.callId,
+                title: data.title,
+                kind: data.kind,
+                rawInput: data.rawInput,
+              },
+              options: data.options.map((opt) => ({
+                optionId: opt.optionId,
+                name: opt.label,
+              })),
+            },
+          });
+        }
+      },
+
+      onSignal: (event) => {
+        if (!this.onSignalEvent) return;
+
+        switch (event.type) {
+          case 'turn_finished':
+            this.onSignalEvent({
+              type: 'finish',
+              conversation_id: this.conversationId,
+              msg_id: `finish_${Date.now()}`,
+              data: null,
+            });
+            break;
+
+          case 'session_expired':
+            this.onSignalEvent({
+              type: 'error',
+              conversation_id: this.conversationId,
+              msg_id: `signal_${Date.now()}`,
+              data: 'Session expired',
+            });
+            // Emit finish signal after session_expired
+            this.onSignalEvent({
+              type: 'finish',
+              conversation_id: this.conversationId,
+              msg_id: `finish_${Date.now()}`,
+              data: null,
+            });
+            break;
+
+          case 'auth_required':
+            // Temporary: run backend-specific login command, then retry.
+            // Will be replaced by authCommand + args when Agent Hub lands (PR #2349).
+            void this.handleAuthRequired();
+            break;
+
+          case 'error':
+            this.onSignalEvent({
+              type: 'error',
+              conversation_id: this.conversationId,
+              msg_id: `signal_${Date.now()}`,
+              data: event.message,
+            });
+            break;
+        }
+      },
+    };
+  }
+
+  /**
+   * Merge tool_call_update into existing tool_call to produce a complete message.
+   * The renderer does full replacement by toolCallId, so we must preserve fields
+   * (title, kind, etc.) that partial updates don't include.
+   */
+  private mergeToolCall(message: IMessageAcpToolCall): IMessageAcpToolCall {
+    const toolCallId = message.content?.update?.toolCallId;
+    if (!toolCallId) return message;
+
+    const existing = this.activeToolCalls.get(toolCallId);
+    if (!existing) {
+      // First time seeing this toolCallId — store and pass through
+      this.activeToolCalls.set(toolCallId, message);
+      return message;
+    }
+
+    // Merge: new fields override, missing fields preserved from existing
+    const merged: IMessageAcpToolCall = {
+      ...existing,
+      msg_id: toolCallId,
+      status: message.status,
+      content: {
+        ...existing.content,
+        update: {
+          ...existing.content.update,
+          ...message.content.update,
+          // Only override non-fallback values
+          title:
+            message.content.update.title !== 'unknown' ? message.content.update.title : existing.content.update.title,
+          kind: message.content.update.kind !== 'execute' ? message.content.update.kind : existing.content.update.kind,
+          content: message.content.update.content ?? existing.content.update.content,
+          rawInput: message.content.update.rawInput ?? existing.content.update.rawInput,
+        },
+      },
+    };
+
+    this.activeToolCalls.set(toolCallId, merged);
+
+    // Clean up completed/failed tool calls after a delay
+    if (message.content.update.status === 'completed' || message.content.update.status === 'failed') {
+      setTimeout(() => this.activeToolCalls.delete(toolCallId), 60_000);
+    }
+
+    return merged;
+  }
+
+  /**
+   * Map new 7-state FSM to old status names
+   */
+  /** Persist status: 7 in-memory states → 4 stable DB states. */
+  private persistStatus(_status: SessionStatus): void {
+    // TODO(ACP Discovery): Re-enable after fixing agent_id.
+    // const stable = this.toStableStatus(status);
+    // const suspendedAt = status === 'suspended' ? Date.now() : null;
+    // this.acpSessionRepo?.updateStatus(this.conversationId, stable, suspendedAt);
+  }
+
+  private toStableStatus(status: SessionStatus): 'idle' | 'active' | 'suspended' | 'error' {
+    switch (status) {
+      case 'idle':
+        return 'idle';
+      case 'starting':
+      case 'active':
+      case 'prompting':
+      case 'resuming':
+        return 'active';
+      case 'suspended':
+        return 'suspended';
+      case 'error':
+        return 'error';
+    }
+  }
+
+  private mapStatusToOldName(status: SessionStatus): string {
+    switch (status) {
+      case 'idle':
+        return 'disconnected';
+      case 'starting':
+        return 'connecting';
+      case 'active':
+        return 'session_active';
+      case 'prompting':
+        return 'session_active';
+      case 'suspended':
+        return 'disconnected';
+      case 'resuming':
+        return 'connecting';
+      case 'error':
+        return 'error';
+      default:
+        return 'disconnected';
+    }
+  }
+
+  // ─── Public Getters ─────────────────────────────────────────────
+
+  get isConnected(): boolean {
+    return this.lastStatus !== 'idle' && this.lastStatus !== 'error';
+  }
+
+  get hasActiveSession(): boolean {
+    return this.lastStatus === 'active' || this.lastStatus === 'prompting';
+  }
+
+  get currentSessionId(): string | null {
+    return this.lastSessionId;
+  }
+
+  // ─── Lifecycle Methods (Task 4) ────────────────────────────────
+
+  async start(): Promise<void> {
+    const session = await this.ensureSession();
+    return new Promise<void>((resolve, reject) => {
+      const timer = setTimeout(() => {
+        this.startOp = null;
+        reject(new Error('Session start timed out'));
+      }, 120_000); // 2-minute timeout
+      this.startOp = { resolve, reject, timer };
+      session.start();
+    });
+  }
+
+  async kill(): Promise<void> {
+    await this.session?.stop();
+    this.activeToolCalls.clear();
+    // TODO(ACP Discovery): Re-enable after fixing agent_id.
+    // this.acpSessionRepo?.deleteSession(this.conversationId);
+  }
+
+  cancelPrompt(): void {
+    this.session?.cancelPrompt();
+  }
+
+  // ─── Messaging + Permission Methods (Task 5) ───────────
+
+  async sendMessage(data: { content: string; files?: string[]; msg_id?: string }): Promise<AcpResult> {
+    try {
+      // Emit start signal (matches old AcpAgent behavior)
+      if (this.onSignalEvent) {
+        this.onSignalEvent({
+          type: 'start',
+          data: null,
+          msg_id: data.msg_id ?? `start_${Date.now()}`,
+          conversation_id: this.conversationId,
+        });
+      }
+
+      this.session!.sendMessage(data.content, data.files);
+      return { success: true, data: null };
+    } catch (err) {
+      return {
+        success: false,
+        error: {
+          type: AcpErrorType.UNKNOWN,
+          code: 'UNKNOWN',
+          message: err instanceof Error ? err.message : String(err),
+          retryable: false,
+        },
+      };
+    }
+  }
+
+  async confirmMessage(data: { confirmKey: string; callId: string }): Promise<AcpResult> {
+    try {
+      this.session!.confirmPermission(data.callId, data.confirmKey);
+      return { success: true, data: null };
+    } catch (err) {
+      return {
+        success: false,
+        error: {
+          type: AcpErrorType.UNKNOWN,
+          code: 'UNKNOWN',
+          message: err instanceof Error ? err.message : String(err),
+          retryable: false,
+        },
+      };
+    }
+  }
+
+  // ─── Config/Model/Mode Methods (Task 6 — partial) ──────────────
+
+  getModelInfo(): AcpModelInfo | null {
+    return this.cachedModelInfo;
+  }
+
+  getConfigOptions(): AcpSessionConfigOption[] {
+    return this.cachedConfigOptions;
+  }
+
+  async setModelByConfigOption(modelId: string): Promise<AcpModelInfo | null> {
+    return new Promise<AcpModelInfo | null>((resolve, reject) => {
+      const timer = setTimeout(() => {
+        this.modelOp = null;
+        // Timeout fallback: return current cached info
+        resolve(this.cachedModelInfo);
+      }, 10_000);
+      this.modelOp = { resolve, reject, timer };
+      this.session!.setModel(modelId);
+    });
+  }
+
+  async setMode(mode: string): Promise<{ success: boolean; error?: string }> {
+    return new Promise((resolve, reject) => {
+      const timer = setTimeout(() => {
+        this.modeOp = null;
+        resolve({ success: true }); // Optimistic timeout
+      }, 10_000);
+      this.modeOp = { resolve, reject, timer };
+      this.session!.setMode(mode);
+    });
+  }
+
+  async setConfigOption(configId: string, value: string): Promise<AcpSessionConfigOption[]> {
+    return new Promise((resolve, reject) => {
+      const timer = setTimeout(() => {
+        this.configOp = null;
+        resolve(this.cachedConfigOptions); // Fallback to cached
+      }, 10_000);
+      this.configOp = { resolve, reject, timer };
+      this.session!.setConfigOption(configId, value);
+    });
+  }
+
+  async enableYoloMode(): Promise<void> {
+    await this.setMode('bypassPermissions');
+  }
+
+  // ─── Helper Methods ─────────────────────────────────────────────
+
+  /**
+   * Temporary auth recovery: run backend CLI login command, then retry session.
+   *
+   * Claude Code doesn't support ACP's authenticate() method — it requires
+   * `claude /login` to refresh OAuth tokens. The non-official ACP bridge
+   * (claude-agent-acp) can't do this itself.
+   *
+   * Will be replaced by `authCommand + args` config when Agent Hub lands (PR #2349).
+   */
+  private async handleAuthRequired(): Promise<void> {
+    // Guard: only attempt login once to prevent infinite loops
+    // (e.g., expired AWS SSO that can't be refreshed non-interactively)
+    if (this.authRetryAttempted) {
+      console.warn('[AcpAgentV2] Auth already retried once, giving up');
+      this.onSignalEvent?.({
+        type: 'error',
+        conversation_id: this.conversationId,
+        msg_id: `signal_${Date.now()}`,
+        data: 'Authentication failed after retry. Please authenticate manually and restart.',
+      });
+      return;
+    }
+    this.authRetryAttempted = true;
+
+    const backend = this.agentConfig.agentBackend;
+    try {
+      await runBackendLogin(backend);
+      // Reload credentials from env after login refreshes tokens
+      const creds = await loadAuthCredentials(backend, this.agentConfig.env);
+      this.session?.retryAuth(creds ?? undefined);
+    } catch (err) {
+      console.warn(`[AcpAgentV2] ${backend} auth refresh failed:`, err);
+      this.onSignalEvent?.({
+        type: 'error',
+        conversation_id: this.conversationId,
+        msg_id: `signal_${Date.now()}`,
+        data: `Authentication failed for ${backend}. Please authenticate manually and restart.`,
+      });
+    }
+  }
+
+  private resolveOp<T>(op: PendingOp<T>, value: T): void {
+    clearTimeout(op.timer);
+    op.resolve(value);
+  }
+
+  private rejectOp<T>(op: PendingOp<T>, err: Error): void {
+    clearTimeout(op.timer);
+    op.reject(err);
+  }
+}

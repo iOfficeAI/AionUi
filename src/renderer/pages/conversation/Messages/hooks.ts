@@ -133,6 +133,14 @@ function composeMessageWithIndex(message: TMessage, list: TMessage[], index: Mes
 
   // acp_tool_call: 使用 toolCallIdIndex 快速查找
   // acp_tool_call: use toolCallIdIndex for fast lookup
+  //
+  // TODO(acp-rewrite): When AcpAgentV2 compat layer is removed, change the merge below
+  // to deep-merge content.update instead of shallow-spreading content. tool_call_update
+  // from the SDK is incremental (only changed fields), so a shallow spread loses the
+  // original title/kind/rawInput from the initial tool_call. Currently AcpAgentV2.mergeToolCall()
+  // handles this, but after migration it should be:
+  //   const mergedUpdate = { ...existingMsg.content.update, ...message.content.update };
+  //   const merged = { ...existingMsg.content, ...message.content, update: mergedUpdate };
   if (message.type === 'acp_tool_call' && message.content?.update?.toolCallId) {
     const existingIdx = index.toolCallIdIndex.get(message.content.update.toolCallId);
     if (existingIdx !== undefined && existingIdx < list.length) {

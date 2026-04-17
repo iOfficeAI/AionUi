@@ -8,32 +8,32 @@ import { ipcBridge } from '@/common';
 import type { TMessage } from '@/common/chat/chatLib';
 import { transformMessage } from '@/common/chat/chatLib';
 import { uuid } from '@/common/utils';
-import SendBox from '@/renderer/components/chat/sendbox';
 import CommandQueuePanel from '@/renderer/components/chat/CommandQueuePanel';
+import SendBox from '@/renderer/components/chat/sendbox';
+import ThoughtDisplay, { type ThoughtData } from '@/renderer/components/chat/ThoughtDisplay';
+import FileAttachButton from '@/renderer/components/media/FileAttachButton';
+import FilePreview from '@/renderer/components/media/FilePreview';
+import HorizontalFileList from '@/renderer/components/media/HorizontalFileList';
+import { useAutoTitle } from '@/renderer/hooks/chat/useAutoTitle';
 import { getSendBoxDraftHook, type FileOrFolderItem } from '@/renderer/hooks/chat/useSendBoxDraft';
 import { createSetUploadFile } from '@/renderer/hooks/chat/useSendBoxFiles';
+import { useOpenFileSelector } from '@/renderer/hooks/file/useOpenFileSelector';
+import { useAcpV2Enabled } from '@/renderer/hooks/system/useAcpV2Enabled';
+import { useLatestRef } from '@/renderer/hooks/ui/useLatestRef';
 import { useAddOrUpdateMessage, useRemoveMessageByMsgId } from '@/renderer/pages/conversation/Messages/hooks';
 import {
   shouldEnqueueConversationCommand,
   useConversationCommandQueue,
   type ConversationCommandQueueItem,
 } from '@/renderer/pages/conversation/platforms/useConversationCommandQueue';
+import { usePreviewContext } from '@/renderer/pages/conversation/Preview';
 import { allSupportedExts, type FileMetadata } from '@/renderer/services/FileService';
 import { emitter, useAddEventListener } from '@/renderer/utils/emitter';
 import { mergeFileSelectionItems } from '@/renderer/utils/file/fileSelection';
+import { buildDisplayMessage } from '@/renderer/utils/file/messageFiles';
 import { Message } from '@arco-design/web-react';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { buildDisplayMessage } from '@/renderer/utils/file/messageFiles';
-import ThoughtDisplay, { type ThoughtData } from '@/renderer/components/chat/ThoughtDisplay';
-import FilePreview from '@/renderer/components/media/FilePreview';
-import HorizontalFileList from '@/renderer/components/media/HorizontalFileList';
-import { usePreviewContext } from '@/renderer/pages/conversation/Preview';
-import { useLatestRef } from '@/renderer/hooks/ui/useLatestRef';
-import { useOpenFileSelector } from '@/renderer/hooks/file/useOpenFileSelector';
-import FileAttachButton from '@/renderer/components/media/FileAttachButton';
-import { useAutoTitle } from '@/renderer/hooks/chat/useAutoTitle';
-import { useCommandQueueEnabled } from '@/renderer/hooks/system/useCommandQueueEnabled';
 
 interface RemoteDraftData {
   _type: 'remote';
@@ -55,7 +55,7 @@ const EMPTY_UPLOAD_FILES: string[] = [];
 const RemoteSendBox: React.FC<{ conversation_id: string }> = ({ conversation_id }) => {
   const [workspacePath, setWorkspacePath] = useState('');
   const { t } = useTranslation();
-  const isCommandQueueEnabled = useCommandQueueEnabled();
+  const isAcpV2Enabled = useAcpV2Enabled();
   const { checkAndUpdateTitle } = useAutoTitle();
   const addOrUpdateMessage = useAddOrUpdateMessage();
   const removeMessageByMsgId = useRemoveMessageByMsgId();
@@ -362,7 +362,7 @@ const RemoteSendBox: React.FC<{ conversation_id: string }> = ({ conversation_id 
     resetActiveExecution,
   } = useConversationCommandQueue({
     conversationId: conversation_id,
-    enabled: isCommandQueueEnabled,
+    enabled: isAcpV2Enabled,
     isBusy: aiProcessing,
     isHydrated: hasHydratedRunningState,
     onExecute: executeCommand,
@@ -370,7 +370,7 @@ const RemoteSendBox: React.FC<{ conversation_id: string }> = ({ conversation_id 
 
   const onSendHandler = useCallback(
     async (message: string) => {
-      if (!isCommandQueueEnabled && aiProcessing) {
+      if (!isAcpV2Enabled && aiProcessing) {
         Message.warning(t('messages.conversationInProgress'));
         return;
       }
@@ -387,7 +387,7 @@ const RemoteSendBox: React.FC<{ conversation_id: string }> = ({ conversation_id 
 
       if (
         shouldEnqueueConversationCommand({
-          enabled: isCommandQueueEnabled,
+          enabled: isAcpV2Enabled,
           isBusy: aiProcessing,
           hasPendingCommands,
         })
@@ -404,7 +404,7 @@ const RemoteSendBox: React.FC<{ conversation_id: string }> = ({ conversation_id 
       enqueue,
       executeCommand,
       hasPendingCommands,
-      isCommandQueueEnabled,
+      isAcpV2Enabled,
       setAtPath,
       setUploadFile,
       t,
@@ -498,7 +498,7 @@ const RemoteSendBox: React.FC<{ conversation_id: string }> = ({ conversation_id 
           ) : undefined
         }
         onSend={onSendHandler}
-        allowSendWhileLoading={isCommandQueueEnabled}
+        allowSendWhileLoading={isAcpV2Enabled}
       />
     </div>
   );

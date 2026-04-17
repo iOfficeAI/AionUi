@@ -1,43 +1,43 @@
 import { ipcBridge } from '@/common';
-import type { AcpBackend } from '@/common/types/acpTypes';
 import { isSideQuestionSupported } from '@/common/chat/sideQuestion';
+import type { AcpBackend } from '@/common/types/acpTypes';
 import { uuid } from '@/common/utils';
+import AcpConfigSelector from '@/renderer/components/agent/AcpConfigSelector';
+import AgentModeSelector from '@/renderer/components/agent/AgentModeSelector';
+import ContextUsageIndicator from '@/renderer/components/agent/ContextUsageIndicator';
+import CommandQueuePanel from '@/renderer/components/chat/CommandQueuePanel';
 import SendBox from '@/renderer/components/chat/sendbox';
 import ThoughtDisplay from '@/renderer/components/chat/ThoughtDisplay';
-import CommandQueuePanel from '@/renderer/components/chat/CommandQueuePanel';
+import FileAttachButton from '@/renderer/components/media/FileAttachButton';
+import FilePreview from '@/renderer/components/media/FilePreview';
+import HorizontalFileList from '@/renderer/components/media/HorizontalFileList';
+import { useAutoTitle } from '@/renderer/hooks/chat/useAutoTitle';
 import { getSendBoxDraftHook, type FileOrFolderItem } from '@/renderer/hooks/chat/useSendBoxDraft';
 import { createSetUploadFile, useSendBoxFiles } from '@/renderer/hooks/chat/useSendBoxFiles';
+import { useSlashCommands } from '@/renderer/hooks/chat/useSlashCommands';
+import { useOpenFileSelector } from '@/renderer/hooks/file/useOpenFileSelector';
+import { useAcpV2Enabled } from '@/renderer/hooks/system/useAcpV2Enabled';
+import { useLatestRef } from '@/renderer/hooks/ui/useLatestRef';
 import { useAddOrUpdateMessage } from '@/renderer/pages/conversation/Messages/hooks';
+import { assertBridgeSuccess } from '@/renderer/pages/conversation/platforms/assertBridgeSuccess';
 import {
   shouldEnqueueConversationCommand,
   useConversationCommandQueue,
   type ConversationCommandQueueItem,
 } from '@/renderer/pages/conversation/platforms/useConversationCommandQueue';
-import { assertBridgeSuccess } from '@/renderer/pages/conversation/platforms/assertBridgeSuccess';
+import { usePreviewContext } from '@/renderer/pages/conversation/Preview';
+import { useTeamPermission } from '@/renderer/pages/team/hooks/TeamPermissionContext';
 import { allSupportedExts } from '@/renderer/services/FileService';
+import { iconColors } from '@/renderer/styles/colors';
 import { emitter, useAddEventListener } from '@/renderer/utils/emitter';
 import { mergeFileSelectionItems } from '@/renderer/utils/file/fileSelection';
 import { buildDisplayMessage } from '@/renderer/utils/file/messageFiles';
 import { Message, Tag } from '@arco-design/web-react';
 import { Shield } from '@icon-park/react';
-import { iconColors } from '@/renderer/styles/colors';
-import FileAttachButton from '@/renderer/components/media/FileAttachButton';
-import AcpConfigSelector from '@/renderer/components/agent/AcpConfigSelector';
 import React, { useCallback, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
-import FilePreview from '@/renderer/components/media/FilePreview';
-import HorizontalFileList from '@/renderer/components/media/HorizontalFileList';
-import { usePreviewContext } from '@/renderer/pages/conversation/Preview';
-import { useLatestRef } from '@/renderer/hooks/ui/useLatestRef';
-import { useOpenFileSelector } from '@/renderer/hooks/file/useOpenFileSelector';
-import { useCommandQueueEnabled } from '@/renderer/hooks/system/useCommandQueueEnabled';
-import ContextUsageIndicator from '@/renderer/components/agent/ContextUsageIndicator';
-import { useAutoTitle } from '@/renderer/hooks/chat/useAutoTitle';
-import AgentModeSelector from '@/renderer/components/agent/AgentModeSelector';
-import { useTeamPermission } from '@/renderer/pages/team/hooks/TeamPermissionContext';
-import { useSlashCommands } from '@/renderer/hooks/chat/useSlashCommands';
-import { useAcpMessage } from './useAcpMessage';
 import { useAcpInitialMessage } from './useAcpInitialMessage';
+import { useAcpMessage } from './useAcpMessage';
 
 const useAcpSendBoxDraft = getSendBoxDraftHook('acp', {
   _type: 'acp',
@@ -122,7 +122,7 @@ const AcpSendBox: React.FC<{
   } = useAcpMessage(conversation_id);
   const { t } = useTranslation();
   const teamPermission = useTeamPermission();
-  const isCommandQueueEnabled = useCommandQueueEnabled();
+  const isAcpV2Enabled = useAcpV2Enabled();
   // In team mode, all agents show the permission mode selector (members don't propagate)
   const showModeSelector = true;
   const isLeadInTeam = teamPermission && conversation_id === teamPermission.leadConversationId;
@@ -261,14 +261,14 @@ Please check your local CLI tool authentication status`,
     resetActiveExecution,
   } = useConversationCommandQueue({
     conversationId: conversation_id,
-    enabled: isCommandQueueEnabled,
+    enabled: isAcpV2Enabled,
     isBusy,
     isHydrated: hasHydratedRunningState,
     onExecute: executeCommand,
   });
 
   const onSendHandler = async (message: string) => {
-    if (!teamId && !isCommandQueueEnabled && isBusy) {
+    if (!teamId && !isAcpV2Enabled && isBusy) {
       Message.warning(t('messages.conversationInProgress'));
       return;
     }
@@ -281,7 +281,7 @@ Please check your local CLI tool authentication status`,
 
     if (
       shouldEnqueueConversationCommand({
-        enabled: isCommandQueueEnabled,
+        enabled: isAcpV2Enabled,
         isBusy,
         hasPendingCommands,
       })
@@ -438,7 +438,7 @@ Please check your local CLI tool authentication status`,
         onSend={onSendHandler}
         slashCommands={slashCommands}
         onSlashBuiltinCommand={onSlashBuiltinCommand}
-        allowSendWhileLoading={isCommandQueueEnabled}
+        allowSendWhileLoading={isAcpV2Enabled}
         compactActions={!!teamId}
         sendButtonPrefix={
           tokenUsage ? (
