@@ -592,8 +592,7 @@ describe('connectCodex - Linux package selection', () => {
     mockFsPromises.readdir.mockResolvedValue(['old-cache']);
     mockFsPromises.stat.mockImplementation(async (targetPath) => {
       if (
-        targetPath ===
-        '/mock-npm-cache/_npx/old-cache/node_modules/@zed-industries/codex-acp-linux-x64/bin/codex-acp'
+        targetPath === '/mock-npm-cache/_npx/old-cache/node_modules/@zed-industries/codex-acp-linux-x64/bin/codex-acp'
       ) {
         return { isFile: () => true, mtimeMs: 100 } as never;
       }
@@ -601,8 +600,7 @@ describe('connectCodex - Linux package selection', () => {
     });
     mockFsPromises.readFile.mockImplementation(async (targetPath) => {
       if (
-        targetPath ===
-        '/mock-npm-cache/_npx/old-cache/node_modules/@zed-industries/codex-acp-linux-x64/package.json'
+        targetPath === '/mock-npm-cache/_npx/old-cache/node_modules/@zed-industries/codex-acp-linux-x64/package.json'
       ) {
         return JSON.stringify({
           name: '@zed-industries/codex-acp-linux-x64',

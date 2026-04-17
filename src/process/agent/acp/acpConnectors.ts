@@ -458,7 +458,8 @@ async function resolveCachedCodexAcpBinary(): Promise<{ binaryPath: string; pack
   const packageDirName = packageName.replace('@zed-industries/', '');
   const binaryName = process.platform === 'win32' ? 'codex-acp.exe' : 'codex-acp';
   const npxCacheDir = getNpxCacheDir();
-  const minimumSupportedVersion = semver.valid(CODEX_ACP_BRIDGE_VERSION) ?? semver.coerce(CODEX_ACP_BRIDGE_VERSION)?.version;
+  const minimumSupportedVersion =
+    semver.valid(CODEX_ACP_BRIDGE_VERSION) ?? semver.coerce(CODEX_ACP_BRIDGE_VERSION)?.version;
 
   let entries: string[] = [];
   try {
@@ -472,11 +473,7 @@ async function resolveCachedCodexAcpBinary(): Promise<{ binaryPath: string; pack
 
   for (const entry of entries) {
     const packageRoot = path.join(npxCacheDir, entry, 'node_modules', '@zed-industries', packageDirName);
-    const candidatePath = path.join(
-      packageRoot,
-      'bin',
-      binaryName
-    );
+    const candidatePath = path.join(packageRoot, 'bin', binaryName);
     const candidatePackageJsonPath = path.join(packageRoot, 'package.json');
 
     try {
@@ -487,7 +484,8 @@ async function resolveCachedCodexAcpBinary(): Promise<{ binaryPath: string; pack
 
       if (minimumSupportedVersion) {
         const packageJson = JSON.parse(await fs.readFile(candidatePackageJsonPath, 'utf-8')) as { version?: string };
-        const cachedVersion = semver.valid(packageJson.version ?? '') ?? semver.coerce(packageJson.version ?? '')?.version;
+        const cachedVersion =
+          semver.valid(packageJson.version ?? '') ?? semver.coerce(packageJson.version ?? '')?.version;
         if (!cachedVersion || semver.lt(cachedVersion, minimumSupportedVersion)) {
           continue;
         }
