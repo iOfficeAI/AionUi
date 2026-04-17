@@ -121,6 +121,8 @@ export class AcpAgentV2 {
   private authRetryAttempted = false;
   // Serialize concurrent capability cache writes across backends
   private static cacheQueue: Promise<void> = Promise.resolve();
+  // Claude: inject model identity notice into next prompt after setModel
+  private pendingModelSwitchNotice: string | null = null;
 
   constructor(config: OldAcpAgentConfig) {
     this.conversationId = config.id;
@@ -551,7 +553,22 @@ export class AcpAgentV2 {
         });
       }
 
-      await this.session!.sendMessage(data.content, data.files);
+      // Claude: inject model switch notice so the AI knows its identity changed.
+      // In terminal "/model X" outputs into conversation; ACP set_model is silent.
+      let content = data.content;
+      if (this.pendingModelSwitchNotice) {
+        content =
+          `<system-reminder>\n` +
+          `Model switch: The active model has been changed to ${this.pendingModelSwitchNotice} via the /model command. ` +
+          `You are now running as ${this.pendingModelSwitchNotice}. ` +
+          `The ANTHROPIC_MODEL environment variable and the earlier "You are powered by" text in the system prompt are stale (cached from session start) and no longer reflect the actual model. ` +
+          `When asked which model you are, answer ${this.pendingModelSwitchNotice}.\n` +
+          `</system-reminder>\n\n` +
+          content;
+        this.pendingModelSwitchNotice = null;
+      }
+
+      await this.session!.sendMessage(content, data.files);
       return { success: true, data: null };
     } catch (err) {
       const errorType = err instanceof AcpSessionError ? mapAcpErrorCodeToType(err.code) : AcpErrorType.UNKNOWN;
@@ -613,6 +630,10 @@ export class AcpAgentV2 {
   }
 
   async setModelByConfigOption(modelId: string): Promise<AcpModelInfo | null> {
+    // Queue model switch notice for Claude (ACP set_model is silent, AI doesn't know)
+    if (this.agentConfig.agentBackend === 'claude') {
+      this.pendingModelSwitchNotice = modelId;
+    }
     return new Promise<AcpModelInfo | null>((resolve, reject) => {
       const timer = setTimeout(() => {
         this.modelOp = null;
