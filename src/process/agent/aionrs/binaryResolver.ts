@@ -7,6 +7,7 @@
 import { existsSync } from 'node:fs';
 import { join } from 'node:path';
 import { execFileSync } from 'node:child_process';
+import { getEnhancedEnv } from '@process/utils/shellEnv';
 
 function getBinaryName(): string {
   return process.platform === 'win32' ? 'aionrs.exe' : 'aionrs';
@@ -32,8 +33,10 @@ export function resolveAionrsBinary(): string | null {
     const isWindows = process.platform === 'win32';
     const command = isWindows ? 'where.exe' : 'which';
     const args = ['aionrs'];
+    const env = getEnhancedEnv();
     const result = execFileSync(command, args, {
       encoding: 'utf-8',
+      env,
       timeout: 5000,
       stdio: ['ignore', 'pipe', 'ignore'],
       ...(isWindows ? { windowsHide: true } : {}),

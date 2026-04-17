@@ -12,6 +12,7 @@ const { fsPromisesMock } = vi.hoisted(() => ({
   fsPromisesMock: {
     access: vi.fn(),
     readdir: vi.fn(),
+    readFile: vi.fn(),
     stat: vi.fn(),
   },
 }));
@@ -325,7 +326,7 @@ describe('connectClaude - detached process group', () => {
 
     expect(mockSpawn).toHaveBeenCalledWith(
       '/bundled/bun',
-      expect.arrayContaining(['x', '--bun', '@zed-industries/claude-agent-acp@0.21.0']),
+      expect.arrayContaining(['x', '--bun', '@zed-industries/claude-agent-acp@0.23.1']),
       expect.objectContaining({
         cwd: '/cwd',
         detached: true,
@@ -349,7 +350,7 @@ describe('connectClaude - detached process group', () => {
 
     expect(mockSpawn).toHaveBeenCalledWith(
       '/bundled/bun',
-      expect.arrayContaining(['x', '--bun', '@zed-industries/claude-agent-acp@0.21.0']),
+      expect.arrayContaining(['x', '--bun', '@zed-industries/claude-agent-acp@0.23.1']),
       expect.objectContaining({
         env: expect.objectContaining({
           PATH: '/usr/bin',
@@ -370,7 +371,7 @@ describe('connectClaude - detached process group', () => {
 
     expect(mockSpawn).toHaveBeenCalledWith(
       expect.stringContaining('chcp 65001 >nul &&'),
-      expect.arrayContaining(['x', '--bun', '@zed-industries/claude-agent-acp@0.21.0']),
+      expect.arrayContaining(['x', '--bun', '@zed-industries/claude-agent-acp@0.23.1']),
       expect.objectContaining({
         cwd: 'C:\\cwd',
         detached: false,
@@ -447,6 +448,7 @@ describe('connectCodex - Windows package selection', () => {
     mockExecFileSync.mockImplementation(() => 'v20.10.0\n' as never);
     mockSpawn.mockReturnValue(mockChild as unknown as ReturnType<typeof spawn>);
     mockFsPromises.readdir.mockRejectedValue(new Error('cache not found'));
+    mockFsPromises.readFile.mockRejectedValue(new Error('not found'));
     mockFsPromises.stat.mockRejectedValue(new Error('not found'));
   });
 
@@ -472,7 +474,7 @@ describe('connectCodex - Windows package selection', () => {
     expect(command).toContain('chcp 65001 >nul &&');
     expect(args).toContain('x');
     expect(args).toContain('--bun');
-    expect(args).toContain('@zed-industries/codex-acp-win32-x64@0.9.5');
+    expect(args).toContain('@zed-industries/codex-acp-win32-x64@0.11.1');
   });
 
   it('uses the direct Windows platform package first when startup succeeds', async () => {
@@ -484,8 +486,8 @@ describe('connectCodex - Windows package selection', () => {
     await connectCodex('C:\\cwd', hooks);
 
     const [, args] = mockSpawn.mock.calls[0];
-    expect(args).toContain('@zed-industries/codex-acp-win32-x64@0.9.5');
-    expect(args).not.toContain('@zed-industries/codex-acp@0.9.5');
+    expect(args).toContain('@zed-industries/codex-acp-win32-x64@0.11.1');
+    expect(args).not.toContain('@zed-industries/codex-acp@0.11.1');
     expect(mockChild.unref).not.toHaveBeenCalled();
   });
 
@@ -493,7 +495,7 @@ describe('connectCodex - Windows package selection', () => {
     const hooks = {
       setup: vi.fn(async () => {
         const [, args] = mockSpawn.mock.calls.at(-1) ?? [];
-        if (Array.isArray(args) && args.includes('@zed-industries/codex-acp-win32-x64@0.9.5')) {
+        if (Array.isArray(args) && args.includes('@zed-industries/codex-acp-win32-x64@0.11.1')) {
           throw new Error('Request initialize timed out after 60 seconds');
         }
       }),
@@ -505,8 +507,8 @@ describe('connectCodex - Windows package selection', () => {
     const firstCallArgs = mockSpawn.mock.calls[0]?.[1];
     const secondCallArgs = mockSpawn.mock.calls[1]?.[1];
 
-    expect(firstCallArgs).toContain('@zed-industries/codex-acp-win32-x64@0.9.5');
-    expect(secondCallArgs).toContain('@zed-industries/codex-acp@0.9.5');
+    expect(firstCallArgs).toContain('@zed-industries/codex-acp-win32-x64@0.11.1');
+    expect(secondCallArgs).toContain('@zed-industries/codex-acp@0.11.1');
   });
 });
 
@@ -523,6 +525,7 @@ describe('connectCodex - Linux package selection', () => {
     mockExecFileSync.mockImplementation(() => 'v20.10.0\n' as never);
     mockSpawn.mockReturnValue(mockChild as unknown as ReturnType<typeof spawn>);
     mockFsPromises.readdir.mockRejectedValue(new Error('cache not found'));
+    mockFsPromises.readFile.mockRejectedValue(new Error('not found'));
     mockFsPromises.stat.mockRejectedValue(new Error('not found'));
   });
 
@@ -548,7 +551,7 @@ describe('connectCodex - Linux package selection', () => {
     expect(command).toBe('/bundled/bun');
     expect(args).toContain('x');
     expect(args).toContain('--bun');
-    expect(args).toContain('@zed-industries/codex-acp-linux-x64');
+    expect(args).toContain('@zed-industries/codex-acp-linux-x64@0.11.1');
   });
 
   it('uses the direct Linux platform package first when startup succeeds', async () => {
@@ -560,8 +563,8 @@ describe('connectCodex - Linux package selection', () => {
     await connectCodex('/cwd', hooks);
 
     const [, args] = mockSpawn.mock.calls[0];
-    expect(args).toContain('@zed-industries/codex-acp-linux-x64');
-    expect(args).not.toContain('@zed-industries/codex-acp@0.9.5');
+    expect(args).toContain('@zed-industries/codex-acp-linux-x64@0.11.1');
+    expect(args).not.toContain('@zed-industries/codex-acp@0.11.1');
     expect(mockChild.unref).not.toHaveBeenCalled();
   });
 
@@ -569,7 +572,7 @@ describe('connectCodex - Linux package selection', () => {
     const hooks = {
       setup: vi.fn(async () => {
         const [, args] = mockSpawn.mock.calls.at(-1) ?? [];
-        if (Array.isArray(args) && args.includes('@zed-industries/codex-acp-linux-x64')) {
+        if (Array.isArray(args) && args.includes('@zed-industries/codex-acp-linux-x64@0.11.1')) {
           throw new Error('Request initialize timed out after 60 seconds');
         }
       }),
@@ -581,8 +584,47 @@ describe('connectCodex - Linux package selection', () => {
     const firstCallArgs = mockSpawn.mock.calls[0]?.[1];
     const secondCallArgs = mockSpawn.mock.calls[1]?.[1];
 
-    expect(firstCallArgs).toContain('@zed-industries/codex-acp-linux-x64');
-    expect(secondCallArgs).toContain('@zed-industries/codex-acp@0.9.5');
+    expect(firstCallArgs).toContain('@zed-industries/codex-acp-linux-x64@0.11.1');
+    expect(secondCallArgs).toContain('@zed-industries/codex-acp@0.11.1');
+  });
+
+  it('ignores cached Linux platform binaries older than the supported bridge version', async () => {
+    mockFsPromises.readdir.mockResolvedValue(['old-cache']);
+    mockFsPromises.stat.mockImplementation(async (targetPath) => {
+      if (
+        targetPath ===
+        '/mock-npm-cache/_npx/old-cache/node_modules/@zed-industries/codex-acp-linux-x64/bin/codex-acp'
+      ) {
+        return { isFile: () => true, mtimeMs: 100 } as never;
+      }
+      throw new Error('not found');
+    });
+    mockFsPromises.readFile.mockImplementation(async (targetPath) => {
+      if (
+        targetPath ===
+        '/mock-npm-cache/_npx/old-cache/node_modules/@zed-industries/codex-acp-linux-x64/package.json'
+      ) {
+        return JSON.stringify({
+          name: '@zed-industries/codex-acp-linux-x64',
+          version: '0.9.2',
+        }) as never;
+      }
+      throw new Error('not found');
+    });
+
+    const hooks = {
+      setup: vi.fn(async () => {}),
+      cleanup: vi.fn(async () => {}),
+    };
+
+    await connectCodex('/cwd', hooks);
+
+    const [command, args] = mockSpawn.mock.calls[0] ?? [];
+    expect(command).toBe('/bundled/bun');
+    expect(args).toContain('@zed-industries/codex-acp-linux-x64@0.11.1');
+    expect(command).not.toBe(
+      '/mock-npm-cache/_npx/old-cache/node_modules/@zed-industries/codex-acp-linux-x64/bin/codex-acp'
+    );
   });
 });
 
@@ -615,7 +657,7 @@ describe('connectCodex - Darwin optional dependency fallback', () => {
     const hooks = {
       setup: vi.fn(async () => {
         const [, args] = mockSpawn.mock.calls.at(-1) ?? [];
-        if (Array.isArray(args) && args.includes('@zed-industries/codex-acp@0.9.5')) {
+        if (Array.isArray(args) && args.includes('@zed-industries/codex-acp@0.11.1')) {
           throw new Error(
             "Error resolving package: Error [ERR_MODULE_NOT_FOUND]: Cannot find package '@zed-industries/codex-acp-darwin-x64' imported from /tmp/codex-acp.js\n" +
               'Failed to locate @zed-industries/codex-acp-darwin-x64 binary. This usually means the optional dependency was not installed.'
@@ -630,7 +672,7 @@ describe('connectCodex - Darwin optional dependency fallback', () => {
     const firstCallArgs = mockSpawn.mock.calls[0]?.[1];
     const secondCallArgs = mockSpawn.mock.calls[1]?.[1];
 
-    expect(firstCallArgs).toContain('@zed-industries/codex-acp@0.9.5');
-    expect(secondCallArgs).toContain('@zed-industries/codex-acp-darwin-x64');
+    expect(firstCallArgs).toContain('@zed-industries/codex-acp@0.11.1');
+    expect(secondCallArgs).toContain('@zed-industries/codex-acp-darwin-x64@0.11.1');
   });
 });

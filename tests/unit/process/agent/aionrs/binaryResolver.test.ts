@@ -6,9 +6,10 @@
 
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-const { existsSyncMock, execFileSyncMock } = vi.hoisted(() => ({
+const { existsSyncMock, execFileSyncMock, getEnhancedEnvMock } = vi.hoisted(() => ({
   existsSyncMock: vi.fn(),
   execFileSyncMock: vi.fn(),
+  getEnhancedEnvMock: vi.fn(),
 }));
 
 vi.mock('node:fs', () => ({
@@ -17,6 +18,10 @@ vi.mock('node:fs', () => ({
 
 vi.mock('node:child_process', () => ({
   execFileSync: execFileSyncMock,
+}));
+
+vi.mock('@process/utils/shellEnv', () => ({
+  getEnhancedEnv: getEnhancedEnvMock,
 }));
 
 describe('aionrs binary resolver', () => {
@@ -28,6 +33,7 @@ describe('aionrs binary resolver', () => {
     vi.clearAllMocks();
     process.env.NODE_ENV = 'development';
     existsSyncMock.mockReturnValue(false);
+    getEnhancedEnvMock.mockReturnValue({ PATH: '/enhanced/bin' });
   });
 
   afterEach(() => {
@@ -52,6 +58,27 @@ describe('aionrs binary resolver', () => {
         timeout: 5000,
         stdio: ['ignore', 'pipe', 'ignore'],
         windowsHide: true,
+      })
+    );
+  });
+
+  it('uses the enhanced PATH when resolving aionrs on Linux', async () => {
+    Object.defineProperty(process, 'platform', { value: 'linux' });
+    execFileSyncMock.mockReturnValue('/opt/tools/aionrs\n');
+    existsSyncMock.mockImplementation((filePath: string) => filePath === '/opt/tools/aionrs');
+
+    const { resolveAionrsBinary } = await import('@/process/agent/aionrs/binaryResolver');
+
+    expect(resolveAionrsBinary()).toBe('/opt/tools/aionrs');
+    expect(getEnhancedEnvMock).toHaveBeenCalledTimes(1);
+    expect(execFileSyncMock).toHaveBeenCalledWith(
+      'which',
+      ['aionrs'],
+      expect.objectContaining({
+        encoding: 'utf-8',
+        env: { PATH: '/enhanced/bin' },
+        timeout: 5000,
+        stdio: ['ignore', 'pipe', 'ignore'],
       })
     );
   });

@@ -16,6 +16,7 @@ import { promisify } from 'util';
 import { promises as fs } from 'fs';
 import os from 'os';
 import path from 'path';
+import semver from 'semver';
 import {
   CLAUDE_ACP_NPX_PACKAGE,
   CODEBUDDY_ACP_NPX_PACKAGE,
@@ -93,7 +94,7 @@ function resolveCodexAcpPlatformPackage(): string | null {
 }
 
 function resolveCodexAcpPlatformPackageSpecifier(packageName: string): string {
-  return process.platform === 'win32' ? `${packageName}@${CODEX_ACP_BRIDGE_VERSION}` : packageName;
+  return `${packageName}@${CODEX_ACP_BRIDGE_VERSION}`;
 }
 
 function resolvePreferredCodexAcpPlatformPackage(): string | null {
@@ -457,6 +458,7 @@ async function resolveCachedCodexAcpBinary(): Promise<{ binaryPath: string; pack
   const packageDirName = packageName.replace('@zed-industries/', '');
   const binaryName = process.platform === 'win32' ? 'codex-acp.exe' : 'codex-acp';
   const npxCacheDir = getNpxCacheDir();
+  const minimumSupportedVersion = semver.valid(CODEX_ACP_BRIDGE_VERSION) ?? semver.coerce(CODEX_ACP_BRIDGE_VERSION)?.version;
 
   let entries: string[] = [];
   try {
@@ -469,19 +471,29 @@ async function resolveCachedCodexAcpBinary(): Promise<{ binaryPath: string; pack
   let selectedMtimeMs = -1;
 
   for (const entry of entries) {
+    const packageRoot = path.join(npxCacheDir, entry, 'node_modules', '@zed-industries', packageDirName);
     const candidatePath = path.join(
-      npxCacheDir,
-      entry,
-      'node_modules',
-      '@zed-industries',
-      packageDirName,
+      packageRoot,
       'bin',
       binaryName
     );
+    const candidatePackageJsonPath = path.join(packageRoot, 'package.json');
 
     try {
       const stat = await fs.stat(candidatePath);
-      if (stat.isFile() && stat.mtimeMs > selectedMtimeMs) {
+      if (!stat.isFile()) {
+        continue;
+      }
+
+      if (minimumSupportedVersion) {
+        const packageJson = JSON.parse(await fs.readFile(candidatePackageJsonPath, 'utf-8')) as { version?: string };
+        const cachedVersion = semver.valid(packageJson.version ?? '') ?? semver.coerce(packageJson.version ?? '')?.version;
+        if (!cachedVersion || semver.lt(cachedVersion, minimumSupportedVersion)) {
+          continue;
+        }
+      }
+
+      if (stat.mtimeMs > selectedMtimeMs) {
         selectedBinaryPath = candidatePath;
         selectedMtimeMs = stat.mtimeMs;
       }
