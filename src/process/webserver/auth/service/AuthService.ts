@@ -12,6 +12,7 @@ import { UserRepository } from '../repository/UserRepository';
 import { AUTH_CONFIG } from '../../config/constants';
 
 interface TokenPayload {
+  sessionId?: string;
   userId: string;
   username: string;
   iat?: number;
@@ -234,6 +235,7 @@ export class AuthService {
    */
   public static async generateToken(user: Pick<AuthUser, 'id' | 'username'>): Promise<string> {
     const payload: TokenPayload = {
+      sessionId: this.generateSessionId(),
       userId: user.id,
       username: user.username,
     };
@@ -332,16 +334,39 @@ export class AuthService {
    * Refresh a session token without enforcing expiry check
    */
   public static async refreshToken(token: string): Promise<string | null> {
-    const decoded = await this.verifyToken(token);
-    if (!decoded) {
+    try {
+      if (this.isTokenBlacklisted(token)) {
+        return null;
+      }
+
+      const decoded = jwt.verify(token, await this.getJwtSecret(), {
+        issuer: 'aionui',
+        audience: 'aionui-webui',
+        ignoreExpiration: true,
+      }) as RawTokenPayload;
+
+      // 先生成新 token，避免生成失败时提前使旧 token 失效
+      // Generate the replacement token first to avoid invalidating the old one on generation failure
+      const refreshedToken = await this.generateToken({
+        id: this.normalizeUserId(decoded.userId),
+        username: decoded.username,
+      });
+
+      this.blacklistToken(token);
+
+      // 刷新时不重复检查有效期 / Skip expiry check when refreshing token
+      return refreshedToken;
+    } catch (error) {
+      if (
+        error instanceof jwt.TokenExpiredError ||
+        error instanceof jwt.JsonWebTokenError ||
+        error instanceof jwt.NotBeforeError
+      ) {
+        return null;
+      }
+      console.error('Token refresh verification failed:', error);
       return null;
     }
-
-    // 刷新时不重复检查有效期 / Skip expiry check when refreshing token
-    return this.generateToken({
-      id: this.normalizeUserId(decoded.userId),
-      username: decoded.username,
-    });
   }
 
   /**

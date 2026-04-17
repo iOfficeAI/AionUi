@@ -298,7 +298,10 @@ export function registerAuthRoutes(app: Express): void {
   app.post('/api/auth/refresh', apiRateLimiter, authenticatedActionLimiter, (req: Request, res: Response) => {
     void (async () => {
       try {
-        const { token } = req.body;
+        const token =
+          typeof req.body?.token === 'string' && req.body.token.trim() !== ''
+            ? req.body.token
+            : TokenUtils.extractFromRequest(req);
 
         if (!token) {
           res.status(400).json({
@@ -316,6 +319,11 @@ export function registerAuthRoutes(app: Express): void {
           });
           return;
         }
+
+        res.cookie(AUTH_CONFIG.COOKIE.NAME, newToken, {
+          ...getCookieOptions(),
+          maxAge: AUTH_CONFIG.TOKEN.COOKIE_MAX_AGE,
+        });
 
         res.json({
           success: true,

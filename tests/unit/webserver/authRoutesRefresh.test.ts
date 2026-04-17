@@ -2,7 +2,9 @@ import type { RequestHandler } from 'express';
 import express from 'express';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-const { mockRefreshToken } = vi.hoisted(() => ({
+const { mockExtractFromRequest, mockGetCookieOptions, mockRefreshToken } = vi.hoisted(() => ({
+  mockExtractFromRequest: vi.fn(),
+  mockGetCookieOptions: vi.fn(() => ({ httpOnly: true })),
   mockRefreshToken: vi.fn<(...args: unknown[]) => Promise<string | null>>(),
 }));
 
@@ -41,15 +43,15 @@ vi.mock('@process/webserver/config/constants', () => ({
       NAME: 'auth-token',
     },
     TOKEN: {
-      COOKIE_MAX_AGE: 0,
+      COOKIE_MAX_AGE: 1234,
     },
   },
-  getCookieOptions: vi.fn(() => ({})),
+  getCookieOptions: mockGetCookieOptions,
 }));
 
 vi.mock('@process/webserver/auth/middleware/TokenMiddleware', () => ({
   TokenUtils: {
-    extractFromRequest: vi.fn(),
+    extractFromRequest: mockExtractFromRequest,
   },
 }));
 
@@ -78,6 +80,7 @@ function getRefreshHandler(app: express.Express): RequestHandler {
 
 function createResponseMock() {
   const response = {
+    cookie: vi.fn(),
     json: vi.fn(),
     status: vi.fn(),
   };
@@ -90,6 +93,8 @@ function createResponseMock() {
 describe('registerAuthRoutes refresh endpoint', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    mockExtractFromRequest.mockReturnValue(null);
+    mockGetCookieOptions.mockReturnValue({ httpOnly: true });
   });
 
   it('returns 401 when async refresh resolves to null', async () => {
@@ -135,6 +140,14 @@ describe('registerAuthRoutes refresh endpoint', () => {
     await handler(req, res, vi.fn());
 
     expect(mockRefreshToken).toHaveBeenCalledWith('current-token');
+    expect((res as unknown as { cookie: ReturnType<typeof vi.fn> }).cookie).toHaveBeenCalledWith(
+      'auth-token',
+      'new-token',
+      {
+        httpOnly: true,
+        maxAge: 1234,
+      }
+    );
     expect((res as unknown as { status: ReturnType<typeof vi.fn> }).status).not.toHaveBeenCalled();
     expect((res as unknown as { json: ReturnType<typeof vi.fn> }).json).toHaveBeenCalledWith({
       success: true,
@@ -142,7 +155,10 @@ describe('registerAuthRoutes refresh endpoint', () => {
     });
   });
 
-  it('returns 400 when token is missing from request body', async () => {
+  it('falls back to the request token when the body token is missing', async () => {
+    mockExtractFromRequest.mockReturnValue('cookie-token');
+    mockRefreshToken.mockResolvedValue('new-token');
+
     const { registerAuthRoutes } = await import('@process/webserver/routes/authRoutes');
     const app = express();
     registerAuthRoutes(app);
@@ -153,6 +169,27 @@ describe('registerAuthRoutes refresh endpoint', () => {
 
     await handler(req, res, vi.fn());
 
+    expect(mockExtractFromRequest).toHaveBeenCalledWith(req);
+    expect(mockRefreshToken).toHaveBeenCalledWith('cookie-token');
+    expect((res as unknown as { status: ReturnType<typeof vi.fn> }).status).not.toHaveBeenCalled();
+    expect((res as unknown as { json: ReturnType<typeof vi.fn> }).json).toHaveBeenCalledWith({
+      success: true,
+      token: 'new-token',
+    });
+  });
+
+  it('returns 400 when token is missing from both request body and request auth state', async () => {
+    const { registerAuthRoutes } = await import('@process/webserver/routes/authRoutes');
+    const app = express();
+    registerAuthRoutes(app);
+
+    const handler = getRefreshHandler(app);
+    const req = { body: {} } as express.Request;
+    const res = createResponseMock() as unknown as express.Response;
+
+    await handler(req, res, vi.fn());
+
+    expect(mockExtractFromRequest).toHaveBeenCalledWith(req);
     expect(mockRefreshToken).not.toHaveBeenCalled();
     expect((res as unknown as { status: ReturnType<typeof vi.fn> }).status).toHaveBeenCalledWith(400);
     expect((res as unknown as { json: ReturnType<typeof vi.fn> }).json).toHaveBeenCalledWith({
