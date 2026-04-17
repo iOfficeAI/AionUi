@@ -109,6 +109,7 @@ function setupMocks() {
 
         return child;
       },
+      exec: vi.fn(),
       execSync: (...args: unknown[]) => {
         execSyncSpy(...args);
         // Fail installation by throwing
@@ -135,8 +136,6 @@ describe('pptPreviewBridge install guard', () => {
   async function loadAndInit() {
     const mod = await import('../../src/process/bridge/pptPreviewBridge');
     mod.initPptPreviewBridge();
-    // Advance past the setTimeout(() => checkForUpdate(), 5000) in initPptPreviewBridge
-    vi.advanceTimersByTime(6000);
     return mod;
   }
 

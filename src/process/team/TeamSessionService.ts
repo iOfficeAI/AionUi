@@ -717,6 +717,26 @@ export class TeamSessionService {
     await this.repo.update(teamId, { sessionMode, updatedAt: Date.now() });
   }
 
+  async updateWorkspace(teamId: string, newWorkspace: string): Promise<void> {
+    const team = await this.repo.findById(teamId);
+    if (!team) throw new Error(`Team "${teamId}" not found`);
+
+    const now = Date.now();
+    await this.repo.update(teamId, { workspace: newWorkspace, updatedAt: now });
+
+    for (const agent of team.agents) {
+      if (!agent.conversationId) continue;
+      await this.conversationService.updateConversation(
+        agent.conversationId,
+        {
+          extra: { workspace: newWorkspace, customWorkspace: true },
+          modifyTime: now,
+        } as Partial<TChatConversation>,
+        true
+      );
+    }
+  }
+
   async removeAgent(teamId: string, slotId: string): Promise<void> {
     const team = await this.repo.findById(teamId);
     if (!team) throw new Error(`Team "${teamId}" not found`);
