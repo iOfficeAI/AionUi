@@ -156,8 +156,6 @@
   "cacheClearFailed": "Failed to clear cache",
   "language": "Language",
   "saveUploadToWorkspace": "Save Uploads to Workspace",
-  "acpV2Enabled": "AionUi ACP 2.0 (beta)",
-  "acpV2EnabledDesc": "AionUi ACP (Agent Communication Protocol) module v2.0, more stable session service and message queue",
   "autoPreviewOfficeFiles": "Auto Preview New Office Files",
   "autoPreviewOfficeFilesDesc": "Automatically open newly created Word, Excel, and PowerPoint files in the current workspace. Office temporary lock files are ignored.",
   "startOnBoot": "Start on Boot",

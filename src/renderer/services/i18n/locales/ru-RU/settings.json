@@ -156,8 +156,6 @@
   "cacheClearFailed": "Не удалось очистить кэш",
   "language": "Язык",
   "saveUploadToWorkspace": "Сохранять загрузки в рабочую область",
-  "acpV2Enabled": "AionUi ACP 2.0 (beta)",
-  "acpV2EnabledDesc": "AionUi ACP (протокол связи агентов) модуль v2.0, более стабильный сервис сессий и очередь сообщений",
   "autoPreviewOfficeFiles": "Автопросмотр новых файлов Office",
   "autoPreviewOfficeFilesDesc": "Автоматически открывает новые файлы Word, Excel и PowerPoint в текущей рабочей области. Временные файлы блокировки Office игнорируются.",
   "startOnBoot": "Запуск при старте системы",

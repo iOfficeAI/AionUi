@@ -203,14 +203,4 @@ export function initSystemSettingsBridge(): void {
     const { setPetConfirmEnabled } = await import('@process/pet/petManager');
     setPetConfirmEnabled(enabled);
   });
-
-  ipcBridge.systemSettings.getAcpV2Enabled.provider(async () => {
-    const value = await ProcessConfig.get('system.acpV2Enabled');
-    return value ?? false; // DEFAULT: false (V2 is opt-in)
-  });
-
-  ipcBridge.systemSettings.setAcpV2Enabled.provider(async ({ enabled }) => {
-    console.log(`[ACP Feature Flag] User toggled: ${enabled}`);
-    await ProcessConfig.set('system.acpV2Enabled', enabled);
-  });
 }

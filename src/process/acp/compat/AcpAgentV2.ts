@@ -14,7 +14,8 @@ import {
   type OldAcpAgentConfig,
 } from '@process/acp/compat/typeBridge';
 import { AcpSession, type SessionOptions } from '@process/acp/session/AcpSession';
-import type { IAcpSessionRepository } from '@process/services/database/IAcpSessionRepository';
+// TODO(ACP Discovery): Re-enable when acp_session persistence is restored.
+// import type { IAcpSessionRepository } from '@process/services/database/IAcpSessionRepository';
 import type {
   AgentConfig,
   ConfigSnapshot,
@@ -107,8 +108,10 @@ export class AcpAgentV2 {
   private activeToolCalls = new Map<string, IMessageAcpToolCall>();
   // Auth retry guard — prevent infinite auth loops
   private authRetryAttempted = false;
-  // Session persistence
-  private acpSessionRepo: IAcpSessionRepository | null = null;
+  // TODO(ACP Discovery): Re-enable acp_session persistence after fixing agent_id semantics.
+  // Currently agent_id is incorrectly set to conversation_id (see typeBridge.ts agentId: old.id).
+  // The table is not consumed by any reader yet. See docs/feature/acp-rewrite/TODO.md.
+  // private acpSessionRepo: IAcpSessionRepository | null = null;
 
   constructor(config: OldAcpAgentConfig) {
     this.conversationId = config.id;
@@ -162,17 +165,18 @@ export class AcpAgentV2 {
     // cached agent MCP capabilities. Mirrors AcpAgent.loadBuiltinSessionMcpServers().
     const { ProcessConfig } = await import('@process/utils/initStorage');
 
-    // Initialize session persistence repository
-    if (!this.acpSessionRepo) {
-      try {
-        const { getDatabase } = await import('@process/services/database');
-        const { SqliteAcpSessionRepository } = await import('@process/services/database/SqliteAcpSessionRepository');
-        const db = await getDatabase();
-        this.acpSessionRepo = new SqliteAcpSessionRepository(db.getDriver());
-      } catch (err) {
-        console.warn('[AcpAgentV2] Failed to init session repo, persistence disabled:', err);
-      }
-    }
+    // TODO(ACP Discovery): Re-enable session persistence after fixing agent_id.
+    // See docs/feature/acp-rewrite/TODO.md.
+    // if (!this.acpSessionRepo) {
+    //   try {
+    //     const { getDatabase } = await import('@process/services/database');
+    //     const { SqliteAcpSessionRepository } = await import('@process/services/database/SqliteAcpSessionRepository');
+    //     const db = await getDatabase();
+    //     this.acpSessionRepo = new SqliteAcpSessionRepository(db.getDriver());
+    //   } catch (err) {
+    //     console.warn('[AcpAgentV2] Failed to init session repo, persistence disabled:', err);
+    //   }
+    // }
 
     const rawMcpServers = await ProcessConfig.get('mcp.config');
     if (Array.isArray(rawMcpServers) && rawMcpServers.length > 0) {
@@ -196,18 +200,18 @@ export class AcpAgentV2 {
       maxResumeRetries: 2,
     };
 
-    // Persist initial session row
-    this.acpSessionRepo?.upsertSession({
-      conversation_id: this.conversationId,
-      agent_backend: this.agentConfig.agentBackend,
-      agent_source: this.agentConfig.agentSource,
-      agent_id: this.agentConfig.agentId,
-      session_id: null,
-      session_status: 'idle',
-      session_config: '{}',
-      last_active_at: Date.now(),
-      suspended_at: null,
-    });
+    // TODO(ACP Discovery): Re-enable after fixing agent_id.
+    // this.acpSessionRepo?.upsertSession({
+    //   conversation_id: this.conversationId,
+    //   agent_backend: this.agentConfig.agentBackend,
+    //   agent_source: this.agentConfig.agentSource,
+    //   agent_id: this.agentConfig.agentId,
+    //   session_id: null,
+    //   session_status: 'idle',
+    //   session_config: '{}',
+    //   last_active_at: Date.now(),
+    //   suspended_at: null,
+    // });
 
     this.session = new AcpSession(this.agentConfig, clientFactory, callbacks, sessionOptions);
     return this.session;
@@ -232,7 +236,8 @@ export class AcpAgentV2 {
 
       onSessionId: (sessionId: string) => {
         this.lastSessionId = sessionId;
-        this.acpSessionRepo?.updateSessionId(this.conversationId, sessionId);
+        // TODO(ACP Discovery): Re-enable after fixing agent_id.
+        // this.acpSessionRepo?.updateSessionId(this.conversationId, sessionId);
         if (this.onSessionIdUpdate) {
           this.onSessionIdUpdate(sessionId);
         }
@@ -435,10 +440,11 @@ export class AcpAgentV2 {
    * Map new 7-state FSM to old status names
    */
   /** Persist status: 7 in-memory states → 4 stable DB states. */
-  private persistStatus(status: SessionStatus): void {
-    const stable = this.toStableStatus(status);
-    const suspendedAt = status === 'suspended' ? Date.now() : null;
-    this.acpSessionRepo?.updateStatus(this.conversationId, stable, suspendedAt);
+  private persistStatus(_status: SessionStatus): void {
+    // TODO(ACP Discovery): Re-enable after fixing agent_id.
+    // const stable = this.toStableStatus(status);
+    // const suspendedAt = status === 'suspended' ? Date.now() : null;
+    // this.acpSessionRepo?.updateStatus(this.conversationId, stable, suspendedAt);
   }
 
   private toStableStatus(status: SessionStatus): 'idle' | 'active' | 'suspended' | 'error' {
@@ -508,7 +514,8 @@ export class AcpAgentV2 {
 
   async kill(): Promise<void> {
     await this.session?.stop();
-    this.acpSessionRepo?.deleteSession(this.conversationId);
+    // TODO(ACP Discovery): Re-enable after fixing agent_id.
+    // this.acpSessionRepo?.deleteSession(this.conversationId);
   }
 
   cancelPrompt(): void {

@@ -25,4 +25,4 @@ export { AcpRuntime } from './runtime/AcpRuntime';
 export { AcpSession, type SessionOptions } from './session/AcpSession';
 
 // Compatibility adapter (Phase 1 migration)
-export { AcpAgentV2, isAcpV2Enabled } from './compat';
+export { AcpAgentV2 } from './compat';

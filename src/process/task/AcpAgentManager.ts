@@ -1,5 +1,5 @@
-import { AcpAgent } from '@process/agent/acp';
-import { AcpAgentV2, isAcpV2Enabled } from '@process/acp/compat';
+import type { AcpAgent } from '@process/agent/acp';
+import { AcpAgentV2 } from '@process/acp/compat';
 import { channelEventBus } from '@process/channels/agent/ChannelEventBus';
 import { teamEventBus } from '@process/team/teamEventBus';
 import { ipcBridge } from '@/common';
@@ -915,13 +915,7 @@ ${collectedResponses.join('\n')}`;
         },
       };
 
-      if (await isAcpV2Enabled()) {
-        console.log('[AcpAgentManager] Initializing ========= ACP Agent V2 ========');
-        this.agent = new AcpAgentV2(agentConfig) as unknown as AcpAgent;
-      } else {
-        console.log('[AcpAgentManager] Initializing ========= ACP Agent V1 ========');
-        this.agent = new AcpAgent(agentConfig);
-      }
+      this.agent = new AcpAgentV2(agentConfig) as unknown as AcpAgent;
       return this.agent.start().then(async () => {
         await this.restorePersistedState();
         this.bootstrapping = false;

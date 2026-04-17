@@ -15,7 +15,8 @@ import type {
   SessionStatus,
   SignalEvent,
 } from '@process/acp/types';
-import type { IAcpSessionRepository } from '@process/services/database/IAcpSessionRepository';
+// TODO(ACP Discovery): Re-enable when acp_session persistence is restored.
+// import type { IAcpSessionRepository } from '@process/services/database/IAcpSessionRepository';
 import { shouldInjectTeamGuideMcp } from '@process/team/prompts/teamGuideCapability';
 import { ProcessConfig } from '@process/utils/initStorage';
 
@@ -25,6 +26,17 @@ const DEFAULT_CHECK_INTERVAL_MS = 30_000; // 30 seconds
 type StreamEventHandler = (convId: string, message: TMessage) => void;
 type SignalEventHandler = (convId: string, event: SignalEvent) => void;
 
+/**
+ * TODO(ACP Discovery): acp_session persistence is disabled.
+ *
+ * The acpSessionRepo parameter and all writes to the acp_session table are
+ * commented out because:
+ *   1. agent_id is incorrectly set to conversation_id (see typeBridge.ts).
+ *   2. The table is not consumed by any reader yet.
+ *
+ * Re-enable together with ACP Discovery which will fix agent_id semantics.
+ * See docs/feature/acp-rewrite/TODO.md for details.
+ */
 export class AcpRuntime {
   private readonly sessions = new Map<string, SessionEntry>();
   private readonly idleReclaimer: IdleReclaimer;
@@ -33,7 +45,8 @@ export class AcpRuntime {
   onSignalEvent: SignalEventHandler = () => {};
 
   constructor(
-    private readonly acpSessionRepo: IAcpSessionRepository,
+    // TODO(ACP Discovery): Re-enable acp_session persistence.
+    // private readonly acpSessionRepo: IAcpSessionRepository,
     private readonly clientFactory: ClientFactory,
     options?: RuntimeOptions
   ) {
@@ -88,17 +101,18 @@ export class AcpRuntime {
 
     this.sessions.set(convId, { session, lastActiveAt: Date.now() });
 
-    this.acpSessionRepo.upsertSession({
-      conversation_id: convId,
-      agent_backend: agentConfig.agentBackend,
-      agent_source: agentConfig.agentSource,
-      agent_id: agentConfig.agentId,
-      session_id: null,
-      session_status: 'idle',
-      session_config: JSON.stringify(agentConfig),
-      last_active_at: Date.now(),
-      suspended_at: null,
-    });
+    // TODO(ACP Discovery): Re-enable after fixing agent_id.
+    // this.acpSessionRepo.upsertSession({
+    //   conversation_id: convId,
+    //   agent_backend: agentConfig.agentBackend,
+    //   agent_source: agentConfig.agentSource,
+    //   agent_id: agentConfig.agentId,
+    //   session_id: null,
+    //   session_status: 'idle',
+    //   session_config: JSON.stringify(agentConfig),
+    //   last_active_at: Date.now(),
+    //   suspended_at: null,
+    // });
 
     session.start();
   }
@@ -109,7 +123,8 @@ export class AcpRuntime {
     const session = entry.session as AcpSession;
     await session.stop();
     this.sessions.delete(convId);
-    this.acpSessionRepo.deleteSession(convId);
+    // TODO(ACP Discovery): Re-enable after fixing agent_id.
+    // this.acpSessionRepo.deleteSession(convId);
   }
 
   sendMessage(convId: string, text: string, files?: string[]): void {
@@ -117,7 +132,8 @@ export class AcpRuntime {
     if (!entry) return;
     const session = entry.session as AcpSession;
     entry.lastActiveAt = Date.now();
-    this.acpSessionRepo.touchLastActive(convId);
+    // TODO(ACP Discovery): Re-enable after fixing agent_id.
+    // this.acpSessionRepo.touchLastActive(convId);
     session.sendMessage(text, files);
   }
 
@@ -193,15 +209,18 @@ export class AcpRuntime {
       onMessage: (message) => {
         this.onStreamEvent(convId, message);
       },
-      onSessionId: (sessionId) => {
-        this.acpSessionRepo.updateSessionId(convId, sessionId);
+      onSessionId: (_sessionId) => {
+        // TODO(ACP Discovery): Re-enable after fixing agent_id.
+        // this.acpSessionRepo.updateSessionId(convId, sessionId);
       },
       onStatusChange: (status) => {
-        this.persistStatus(convId, status);
+        // TODO(ACP Discovery): Re-enable after fixing agent_id.
+        // this.persistStatus(convId, status);
         this.onSignalEvent(convId, { type: 'status_change', status });
       },
       onConfigUpdate: (config) => {
-        this.acpSessionRepo.updateSessionConfig(convId, JSON.stringify(config));
+        // TODO(ACP Discovery): Re-enable after fixing agent_id.
+        // this.acpSessionRepo.updateSessionConfig(convId, JSON.stringify(config));
         this.onSignalEvent(convId, { type: 'config_update', config });
       },
       onModelUpdate: (model) => {
@@ -242,25 +261,26 @@ export class AcpRuntime {
     };
   }
 
-  private persistStatus(convId: string, status: SessionStatus): void {
-    const stableStatus = this.toStableStatus(status);
-    const suspendedAt = status === 'suspended' ? Date.now() : null;
-    this.acpSessionRepo.updateStatus(convId, stableStatus, suspendedAt);
-  }
+  // TODO(ACP Discovery): Re-enable when acp_session persistence is restored.
+  // private persistStatus(convId: string, status: SessionStatus): void {
+  //   const stableStatus = this.toStableStatus(status);
+  //   const suspendedAt = status === 'suspended' ? Date.now() : null;
+  //   this.acpSessionRepo.updateStatus(convId, stableStatus, suspendedAt);
+  // }
 
-  private toStableStatus(status: SessionStatus): 'idle' | 'active' | 'suspended' | 'error' {
-    switch (status) {
-      case 'idle':
-        return 'idle';
-      case 'starting':
-      case 'active':
-      case 'prompting':
-      case 'resuming':
-        return 'active';
-      case 'suspended':
-        return 'suspended';
-      case 'error':
-        return 'error';
-    }
-  }
+  // private toStableStatus(status: SessionStatus): 'idle' | 'active' | 'suspended' | 'error' {
+  //   switch (status) {
+  //     case 'idle':
+  //       return 'idle';
+  //     case 'starting':
+  //     case 'active':
+  //     case 'prompting':
+  //     case 'resuming':
+  //       return 'active';
+  //     case 'suspended':
+  //       return 'suspended';
+  //     case 'error':
+  //       return 'error';
+  //   }
+  // }
 }

@@ -156,8 +156,6 @@
   "cacheClearFailed": "缓存清理失败",
   "language": "语言",
   "saveUploadToWorkspace": "上传文件保存到工作区",
-  "acpV2Enabled": "AionUi ACP 2.0 (beta)",
-  "acpV2EnabledDesc": "AionUi ACP (Agent 通信协议) 模块 2.0 版本，更稳定的会话服务以及消息队列能力",
   "autoPreviewOfficeFiles": "自动预览新建 Office 文件",
   "autoPreviewOfficeFilesDesc": "自动打开当前工作区中新创建的 Word、Excel 和 PowerPoint 文件，并忽略 Office 临时锁定文件。",
   "startOnBoot": "开机启动",

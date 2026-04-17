@@ -915,8 +915,6 @@ export type I18nKey =
   | 'preview.word.watch.loading'
   | 'preview.word.watch.startFailed'
   | 'settings.about'
-  | 'settings.acpV2Enabled'
-  | 'settings.acpV2EnabledDesc'
   | 'settings.addCustomAgent'
   | 'settings.addCustomAgentTitle'
   | 'settings.addEnvVar'

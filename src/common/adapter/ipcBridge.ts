@@ -738,8 +738,6 @@ export const systemSettings = {
   setPetDnd: bridge.buildProvider<void, { dnd: boolean }>('system-settings:set-pet-dnd'),
   getPetConfirmEnabled: bridge.buildProvider<boolean, void>('system-settings:get-pet-confirm-enabled'),
   setPetConfirmEnabled: bridge.buildProvider<void, { enabled: boolean }>('system-settings:set-pet-confirm-enabled'),
-  getAcpV2Enabled: bridge.buildProvider<boolean, void>('system-settings:get-acp-v2-enabled'),
-  setAcpV2Enabled: bridge.buildProvider<void, { enabled: boolean }>('system-settings:set-acp-v2-enabled'),
 };
 
 // 系统通知接口 / System notification API

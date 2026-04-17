@@ -9,7 +9,6 @@ import type { IStartOnBootStatus } from '@/common/adapter/ipcBridge';
 import { ConfigStorage } from '@/common/config/storage';
 import AionScrollArea from '@/renderer/components/base/AionScrollArea';
 import LanguageSwitcher from '@/renderer/components/settings/LanguageSwitcher';
-import { ACP_V2_ENABLED_SWR_KEY } from '@/renderer/hooks/system/useAcpV2Enabled';
 import { AUTO_PREVIEW_OFFICE_FILES_SWR_KEY } from '@/renderer/hooks/system/useAutoPreviewOfficeFilesEnabled';
 import { iconColors } from '@/renderer/styles/colors';
 import { isElectronDesktop } from '@/renderer/utils/platform';
@@ -51,7 +50,6 @@ const SystemModalContent: React.FC = () => {
   const [promptTimeout, setPromptTimeout] = useState<number>(300);
   const [agentIdleTimeout, setAgentIdleTimeout] = useState<number>(5);
   const [saveUploadToWorkspace, setSaveUploadToWorkspace] = useState(false);
-  const [acpV2Enabled, setAcpV2Enabled] = useState(false);
   const [autoPreviewOfficeFiles, setAutoPreviewOfficeFiles] = useState(true);
 
   useEffect(() => {
@@ -110,13 +108,6 @@ const SystemModalContent: React.FC = () => {
     ipcBridge.systemSettings.getSaveUploadToWorkspace
       .invoke()
       .then((enabled) => setSaveUploadToWorkspace(enabled))
-      .catch(() => {});
-  }, []);
-
-  useEffect(() => {
-    ipcBridge.systemSettings.getAcpV2Enabled
-      .invoke()
-      .then((v) => setAcpV2Enabled(v))
       .catch(() => {});
   }, []);
 
@@ -199,15 +190,6 @@ const SystemModalContent: React.FC = () => {
     });
   }, []);
 
-  const handleAcpV2EnabledChange = useCallback((checked: boolean) => {
-    setAcpV2Enabled(checked);
-    void mutateSWR(ACP_V2_ENABLED_SWR_KEY, checked, { revalidate: false });
-    ipcBridge.systemSettings.setAcpV2Enabled.invoke({ enabled: checked }).catch(() => {
-      setAcpV2Enabled(!checked);
-      void mutateSWR(ACP_V2_ENABLED_SWR_KEY, !checked, { revalidate: false });
-    });
-  }, []);
-
   const handleAutoPreviewOfficeFilesChange = useCallback((checked: boolean) => {
     setAutoPreviewOfficeFiles(checked);
     void mutateSWR(AUTO_PREVIEW_OFFICE_FILES_SWR_KEY, checked, {
@@ -285,12 +267,6 @@ const SystemModalContent: React.FC = () => {
       key: 'saveUploadToWorkspace',
       label: t('settings.saveUploadToWorkspace'),
       component: <Switch checked={saveUploadToWorkspace} onChange={handleSaveUploadToWorkspaceChange} />,
-    },
-    {
-      key: 'acpV2Enabled',
-      label: t('settings.acpV2Enabled'),
-      description: t('settings.acpV2EnabledDesc'),
-      component: <Switch checked={acpV2Enabled} onChange={handleAcpV2EnabledChange} />,
     },
     {
       key: 'autoPreviewOfficeFiles',

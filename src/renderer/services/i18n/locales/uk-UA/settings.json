@@ -154,8 +154,6 @@
   "cacheClearFailed": "Не вдалося очистити кеш",
   "language": "Мова",
   "saveUploadToWorkspace": "Зберігати завантаження в робочій області",
-  "acpV2Enabled": "AionUi ACP 2.0 (beta)",
-  "acpV2EnabledDesc": "AionUi ACP (протокол зв'язку агентів) модуль v2.0, стабільніший сервіс сесій та черга повідомлень",
   "autoPreviewOfficeFiles": "Автоперегляд нових файлів Office",
   "autoPreviewOfficeFilesDesc": "Автоматично відкривати новостворені файли Word, Excel та PowerPoint.",
   "startOnBoot": "Запуск при завантаженні",
