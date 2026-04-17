@@ -105,11 +105,21 @@ type ChatgptQuotaStatus = {
   authenticated: boolean;
   currentModel?: string;
   accountLimits?: AionrsCapabilities['account_limits'];
+  statusText?: string;
 };
 type ChatgptQuotaInput = {
   id: string;
   model: string;
   proxy: string | undefined;
+};
+type ParsedChatgptStatusSummary = {
+  plan?: string;
+  unavailable: boolean;
+  windows: Array<{
+    label: string;
+    remainingPercent: number;
+  }>;
+  credits: string[];
 };
 
 const resolveProviderQuotaModel = (provider: IProvider): string | null => {
@@ -137,6 +147,61 @@ const formatQuotaCredits = (
 
   const balance = credits.balance?.trim();
   return balance ? `${balance} credits` : null;
+};
+
+const parseChatgptStatusText = (statusText: string): ParsedChatgptStatusSummary | null => {
+  const lines = statusText
+    .split(/\r?\n/)
+    .map((line) => line.trim())
+    .filter(Boolean);
+
+  if (lines.length === 0) {
+    return null;
+  }
+
+  const windows: ParsedChatgptStatusSummary['windows'] = [];
+  const credits: string[] = [];
+  let plan: string | undefined;
+  let unavailable = false;
+
+  for (const line of lines) {
+    if (line.startsWith('Plan: ')) {
+      plan = line.slice('Plan: '.length).trim() || undefined;
+      continue;
+    }
+
+    if (line.includes('account quota: unavailable')) {
+      unavailable = true;
+      continue;
+    }
+
+    const windowMatch = line.match(/^(.+?) limit: (\d+(?:\.\d+)?)% left/i);
+    if (windowMatch) {
+      windows.push({
+        label: windowMatch[1].trim(),
+        remainingPercent: Number.parseFloat(windowMatch[2]),
+      });
+      continue;
+    }
+
+    const creditsMatch = line.match(/^(?:(.+?) )?credits: (.+)$/i);
+    if (creditsMatch) {
+      const creditsLabel = creditsMatch[1]?.trim();
+      const creditsValue = creditsMatch[2].trim();
+      credits.push(!creditsLabel ? creditsValue : `${humanizeAionrsIdentifier(creditsLabel)} credits: ${creditsValue}`);
+    }
+  }
+
+  if (!plan && !unavailable && windows.length === 0 && credits.length === 0) {
+    return null;
+  }
+
+  return {
+    plan,
+    unavailable,
+    windows,
+    credits,
+  };
 };
 
 const HEALTH_CHECK_FIRST_RESPONSE_TIMEOUT_MS = 30000;
@@ -542,6 +607,14 @@ const ModelModalContent: React.FC = () => {
       return null;
     }
 
+    const renderUnavailableQuota = () => (
+      <div className='mt-4px flex flex-wrap items-center gap-6px'>
+        <Tag size='small' color='gray'>
+          {t('settings.accountQuotaUnavailable')}
+        </Tag>
+      </div>
+    );
+
     if (!quotaStatus.authenticated) {
       return (
         <div className='mt-4px flex flex-wrap items-center gap-6px'>
@@ -554,11 +627,41 @@ const ModelModalContent: React.FC = () => {
 
     const accountLimits = quotaStatus.accountLimits;
     if (!accountLimits) {
+      const parsedStatus = quotaStatus.statusText ? parseChatgptStatusText(quotaStatus.statusText) : null;
+      if (!parsedStatus) {
+        return renderUnavailableQuota();
+      }
+
+      if (!parsedStatus.plan && parsedStatus.windows.length === 0 && parsedStatus.credits.length === 0) {
+        return renderUnavailableQuota();
+      }
+
       return (
         <div className='mt-4px flex flex-wrap items-center gap-6px'>
-          <Tag size='small' color='gray'>
-            {t('settings.accountQuotaUnavailable')}
-          </Tag>
+          {parsedStatus.plan ? (
+            <Tag size='small' color='gray'>
+              {`${t('conversation.aionrs.plan')}: ${parsedStatus.plan}`}
+            </Tag>
+          ) : null}
+          {parsedStatus.windows.map(({ label, remainingPercent }) => (
+            <Tag
+              key={`${platform.id}-${label}-status-window`}
+              size='small'
+              color={getQuotaTagColor(100 - remainingPercent)}
+            >
+              {`${humanizeAionrsIdentifier(label)} ${formatAionrsPercent(remainingPercent)}`}
+            </Tag>
+          ))}
+          {parsedStatus.credits.map((creditLabel) => (
+            <Tag key={`${platform.id}-${creditLabel}-status-credits`} size='small' color='arcoblue'>
+              {creditLabel}
+            </Tag>
+          ))}
+          {parsedStatus.unavailable && parsedStatus.windows.length === 0 && parsedStatus.credits.length === 0 ? (
+            <Tag size='small' color='gray'>
+              {t('settings.accountQuotaUnavailable')}
+            </Tag>
+          ) : null}
         </div>
       );
     }
@@ -609,13 +712,7 @@ const ModelModalContent: React.FC = () => {
     });
 
     if (!accountLimits.plan_type && quotaTags.length === 0) {
-      return (
-        <div className='mt-4px flex flex-wrap items-center gap-6px'>
-          <Tag size='small' color='gray'>
-            {t('settings.accountQuotaUnavailable')}
-          </Tag>
-        </div>
-      );
+      return renderUnavailableQuota();
     }
 
     return (

@@ -19,6 +19,7 @@ import type { AionrsCapabilities } from './protocol';
 const CHATGPT_PROVIDER_ID = 'chatgpt';
 const LEGACY_OPENAI_PROVIDER_ID = 'openai';
 const MAX_AUTH_LOG_SIZE = 8192;
+const CHATGPT_STATUS_COMMAND = '/status --chatgpt';
 
 type ChatgptStoredAuth = {
   OPENAI_API_KEY?: string | null;
@@ -56,6 +57,7 @@ export type ChatgptAuthStatus = {
   providerId?: string;
   currentModel?: string;
   accountLimits?: AionrsCapabilities['account_limits'];
+  statusText?: string;
 };
 
 export type ChatgptLoginStartResult = {
@@ -281,6 +283,28 @@ function appendOutput(current: string, chunk: Buffer | string): string {
   return next.length <= MAX_AUTH_LOG_SIZE ? next : next.slice(-MAX_AUTH_LOG_SIZE);
 }
 
+function extractChatgptStatusText(output: string): string | undefined {
+  const lines = output
+    .split(/\r?\n/)
+    .map((line) => line.trim())
+    .filter(Boolean);
+  const startIndex = lines.findIndex((line) => line === 'Status (ChatGPT)');
+
+  if (startIndex < 0) {
+    return undefined;
+  }
+
+  const statusLines: string[] = [];
+  for (const line of lines.slice(startIndex)) {
+    if (line.startsWith('[error]')) {
+      break;
+    }
+    statusLines.push(line);
+  }
+
+  return statusLines.length > 0 ? statusLines.join('\n') : undefined;
+}
+
 function getAionrsBinary(): string {
   const binaryPath = resolveAionrsBinary();
   if (!binaryPath) {
@@ -322,6 +346,62 @@ async function runAionrsAuthCommand(args: string[], proxy?: string): Promise<voi
       reject(new Error(details || `aionrs exited with code ${code ?? 'unknown'}.`));
     });
   });
+}
+
+async function runAionrsReplCommand(
+  args: string[],
+  input: string,
+  proxy?: string
+): Promise<{
+  stdout: string;
+  stderr: string;
+}> {
+  const binaryPath = getAionrsBinary();
+  const workspace = await mkdtemp(join(app.getPath('temp'), 'aionrs-chatgpt-status-'));
+
+  try {
+    return await new Promise((resolve, reject) => {
+      const child = spawn(binaryPath, args, {
+        cwd: workspace,
+        env: buildAionrsChildEnv({}, { proxy }),
+        stdio: ['pipe', 'pipe', 'pipe'],
+        windowsHide: process.platform === 'win32',
+      });
+
+      let stdout = '';
+      let stderr = '';
+      const captureStdout = (chunk: Buffer | string) => {
+        stdout = appendOutput(stdout, chunk);
+      };
+      const captureStderr = (chunk: Buffer | string) => {
+        stderr = appendOutput(stderr, chunk);
+      };
+
+      child.stdout?.on('data', captureStdout);
+      child.stderr?.on('data', captureStderr);
+      child.on('error', reject);
+      child.on('spawn', () => {
+        child.stdin?.write(input);
+        child.stdin?.end();
+      });
+      child.on('exit', (code, signal) => {
+        if (code === 0) {
+          resolve({ stdout, stderr });
+          return;
+        }
+
+        if (signal === 'SIGTERM') {
+          reject(new Error('ChatGPT status probe was cancelled.'));
+          return;
+        }
+
+        const details = trimCommandOutput(`${stderr}\n${stdout}`);
+        reject(new Error(details || `aionrs exited with code ${code ?? 'unknown'}.`));
+      });
+    });
+  } finally {
+    await rm(workspace, { recursive: true, force: true }).catch(() => {});
+  }
 }
 
 export async function getChatgptAuthStatus(): Promise<ChatgptAuthStatus> {
@@ -367,6 +447,24 @@ async function fetchChatgptQuotaStatus(
   }
 }
 
+async function fetchChatgptStatusText(model: string, proxy?: string): Promise<string | undefined> {
+  const { stderr } = await runAionrsReplCommand(
+    [
+      '--provider',
+      CHATGPT_PROVIDER_ID,
+      '--model',
+      model,
+      '--no-color',
+      '--session-id',
+      `chatgpt-status-${randomUUID()}`,
+    ],
+    `${CHATGPT_STATUS_COMMAND}\n/quit\n`,
+    proxy
+  );
+
+  return extractChatgptStatusText(stderr);
+}
+
 export async function getChatgptQuotaStatus(options: { model: string; proxy?: string }): Promise<ChatgptAuthStatus> {
   const status = await getChatgptAuthStatus();
   const model = options.model.trim();
@@ -375,14 +473,35 @@ export async function getChatgptQuotaStatus(options: { model: string; proxy?: st
     return status;
   }
 
+  let quotaSnapshot:
+    | {
+        currentModel?: string;
+        accountLimits?: AionrsCapabilities['account_limits'];
+      }
+    | undefined;
+
   try {
+    quotaSnapshot = await fetchChatgptQuotaStatus(model, options.proxy);
+    if (quotaSnapshot.accountLimits) {
+      return {
+        ...status,
+        ...quotaSnapshot,
+      };
+    }
+  } catch (error) {
+    console.warn('[ChatgptAuth] Failed to fetch ChatGPT account quota from capabilities:', error);
+  }
+
+  try {
+    const statusText = await fetchChatgptStatusText(quotaSnapshot?.currentModel ?? model, options.proxy);
     return {
       ...status,
-      ...(await fetchChatgptQuotaStatus(model, options.proxy)),
+      ...quotaSnapshot,
+      ...(statusText ? { statusText } : {}),
     };
   } catch (error) {
-    console.warn('[ChatgptAuth] Failed to fetch ChatGPT account quota:', error);
-    return status;
+    console.warn('[ChatgptAuth] Failed to fetch ChatGPT account quota via /status --chatgpt:', error);
+    return quotaSnapshot ? { ...status, ...quotaSnapshot } : status;
   }
 }
 

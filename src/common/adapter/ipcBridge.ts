@@ -432,6 +432,7 @@ export const chatgptAuth = {
       providerId?: string;
       currentModel?: string;
       accountLimits?: AionrsCapabilities['account_limits'];
+      statusText?: string;
     }>,
     { model: string; proxy?: string }
   >('chatgpt.auth.quota-status'),
