@@ -175,13 +175,13 @@ export class AionrsManager extends BaseAgentManager<AionrsManagerData, string> {
     }
   }
 
-  async sendMessage(data: { input: string; msg_id: string; files?: string[] }) {
+  async sendMessage(data: { content: string; msg_id: string; files?: string[] }) {
     const message: TMessage = {
       id: data.msg_id,
       type: 'text',
       position: 'right',
       conversation_id: this.conversation_id,
-      content: { content: data.input },
+      content: { content: data.content },
     };
     addMessage(this.conversation_id, message);
     try {
@@ -197,7 +197,7 @@ export class AionrsManager extends BaseAgentManager<AionrsManagerData, string> {
     this._messageSentAt = Date.now();
     mainLog('[AionrsManager]', `message sent: msg_id=${data.msg_id}`);
     if (this.agent) {
-      await this.agent.send(data.input, data.msg_id, data.files);
+      await this.agent.send(data.content, data.msg_id, data.files);
     }
   }
 
@@ -661,7 +661,7 @@ export class AionrsManager extends BaseAgentManager<AionrsManagerData, string> {
       if (collectedResponses.length > 0) {
         const feedbackMessage = `[System Response]\n${collectedResponses.join('\n')}`;
         await this.sendMessage({
-          input: feedbackMessage,
+          content: feedbackMessage,
           msg_id: uuid(),
         });
       }

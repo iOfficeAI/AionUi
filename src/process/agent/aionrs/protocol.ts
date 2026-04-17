@@ -84,7 +84,7 @@ export type AionrsEvent =
 // ============================================
 
 export type AionrsCommand =
-  | { type: 'message'; msg_id: string; input: string; files?: string[] }
+  | { type: 'message'; msg_id: string; content: string; files?: string[] }
   | { type: 'stop' }
   | { type: 'tool_approve'; call_id: string; scope: 'once' | 'always' }
   | { type: 'tool_deny'; call_id: string; reason?: string }

@@ -344,12 +344,12 @@ export class AionrsAgent {
     this.childProcess.stdin.write(JSON.stringify(cmd) + '\n');
   }
 
-  async send(input: string, msgId: string, files?: string[]): Promise<void> {
+  async send(content: string, msgId: string, files?: string[]): Promise<void> {
     await this.readyPromise;
     this.sendCommand({
       type: 'message',
       msg_id: msgId,
-      input,
+      content,
       files,
     });
   }
