@@ -221,15 +221,36 @@ function parseStartupLog(lines: string[]): ParsedMarks {
 // ── App launch ──────────────────────────────────────────────────────────────
 
 function getProjectRoot(): string {
+  // In a git worktree, __dirname points to the worktree which has no build output.
+  // Resolve the main repo root via git's common dir so Electron can find out/main/index.js.
+  try {
+    const { execSync } = require('child_process');
+    const commonDir = execSync('git rev-parse --git-common-dir', {
+      encoding: 'utf-8',
+      cwd: path.resolve(__dirname, '..'),
+    }).trim();
+    const mainRoot = path.resolve(commonDir, '..');
+    if (fs.existsSync(path.join(mainRoot, 'out/main/index.js'))) {
+      return mainRoot;
+    }
+  } catch {
+    // not in a worktree or git not available
+  }
   return path.resolve(__dirname, '..');
 }
 
 async function launchApp(timeoutMs: number, withMemory: boolean): Promise<ElectronApplication> {
   const projectRoot = getProjectRoot();
-  // --expose-gc allows us to call global.gc() in main and renderer before
-  // sampling memory, so we measure retained heap rather than freshly allocated
-  // garbage.
-  const launchArgs = withMemory ? ['.', '--js-flags=--expose-gc'] : ['.'];
+
+  // Ensure production build exists
+  const mainEntry = path.join(projectRoot, 'out/main/index.js');
+  if (!fs.existsSync(mainEntry)) {
+    console.log('[bench:startup] Building production bundle (electron-vite build)...');
+    const { execSync } = require('child_process');
+    execSync('npx electron-vite build', { cwd: projectRoot, stdio: 'inherit' });
+  }
+
+  const launchArgs = withMemory ? [mainEntry, '--js-flags=--expose-gc'] : [mainEntry];
   return electron.launch({
     args: launchArgs,
     cwd: projectRoot,
@@ -239,7 +260,7 @@ async function launchApp(timeoutMs: number, withMemory: boolean): Promise<Electr
       AIONUI_E2E_TEST: '1',
       AIONUI_DISABLE_DEVTOOLS: '1',
       AIONUI_CDP_PORT: '0',
-      NODE_ENV: 'development',
+      NODE_ENV: 'production',
     },
     timeout: timeoutMs,
   });
