@@ -9,6 +9,9 @@ const mockFilePreview = vi.fn(({ path }: { path: string }) => <div data-testid='
 const mockMarkdownView = vi.fn(({ children }: { children?: React.ReactNode }) => (
   <div data-testid='markdown-view'>{children}</div>
 ));
+const mockStreamingMarkdownView = vi.fn(({ children }: { children?: React.ReactNode }) => (
+  <div data-testid='streaming-markdown-view'>{children}</div>
+));
 
 vi.mock('@/renderer/components/chat/CollapsibleContent', () => ({
   __esModule: true,
@@ -28,6 +31,11 @@ vi.mock('@/renderer/components/media/HorizontalFileList', () => ({
 vi.mock('@/renderer/components/Markdown', () => ({
   __esModule: true,
   default: (props: { children?: React.ReactNode }) => mockMarkdownView(props),
+}));
+
+vi.mock('@/renderer/components/Markdown/StreamingMarkdownView', () => ({
+  __esModule: true,
+  default: (props: { children?: React.ReactNode }) => mockStreamingMarkdownView(props),
 }));
 
 vi.mock('@/renderer/utils/chat/skillSuggestParser', () => ({
@@ -116,7 +124,7 @@ describe('MessageText attachment paths', () => {
     expect(mockMarkdownView).toHaveBeenCalledTimes(1);
   });
 
-  it('renders streaming assistant content as plain text before markdown parsing', () => {
+  it('renders streaming assistant content with streaming markdown view', () => {
     const message: IMessageText = {
       id: 'msg-2-streaming',
       msg_id: 'msg-2-streaming',
@@ -135,8 +143,9 @@ describe('MessageText attachment paths', () => {
       </ConversationProvider>
     );
 
-    expect(screen.getByText('streaming **answer**')).toBeInTheDocument();
+    expect(screen.getByTestId('streaming-markdown-view')).toHaveTextContent('streaming **answer**');
     expect(mockMarkdownView).not.toHaveBeenCalled();
+    expect(mockStreamingMarkdownView).toHaveBeenCalledTimes(1);
   });
 
   it('keeps user messages as plain text', () => {
@@ -160,5 +169,6 @@ describe('MessageText attachment paths', () => {
 
     expect(screen.getByText('user should stay plain')).toBeInTheDocument();
     expect(mockMarkdownView).not.toHaveBeenCalled();
+    expect(mockStreamingMarkdownView).not.toHaveBeenCalled();
   });
 });

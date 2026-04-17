@@ -10,10 +10,10 @@ import { convertLatexDelimiters } from '@renderer/utils/chat/latexDelimiters';
 import classNames from 'classnames';
 import rehypeKatex from 'rehype-katex';
 import React, { useMemo } from 'react';
-import ReactMarkdown from 'react-markdown';
 import remarkBreaks from 'remark-breaks';
 import remarkGfm from 'remark-gfm';
 import remarkMath from 'remark-math';
+import { Streamdown } from 'streamdown';
 import ShadowView from './ShadowView';
 
 import 'katex/dist/katex.min.css';
@@ -22,6 +22,32 @@ type StreamingMarkdownViewProps = {
   children: string;
   className?: string;
   onRef?: (el?: HTMLDivElement | null) => void;
+};
+
+export const hasClosedFencedCodeBlocks = (content: string): boolean => {
+  const lines = content.split(/\r?\n/);
+  let openFence: { marker: '`' | '~'; length: number } | null = null;
+
+  for (const line of lines) {
+    const match = line.match(/^\s{0,3}(`{3,}|~{3,})/);
+    if (!match) {
+      continue;
+    }
+
+    const marker = match[1][0] as '`' | '~';
+    const length = match[1].length;
+
+    if (!openFence) {
+      openFence = { marker, length };
+      continue;
+    }
+
+    if (openFence.marker === marker && length >= openFence.length) {
+      openFence = null;
+    }
+  }
+
+  return openFence === null;
 };
 
 const isLocalFilePath = (src: string): boolean => {
@@ -42,6 +68,10 @@ const StreamingMarkdownView: React.FC<StreamingMarkdownViewProps> = ({ children:
     }
     return convertLatexDelimiters(childrenProp.replace(/file:\/\//g, ''));
   }, [childrenProp]);
+  const shouldUseStreamdown = useMemo(
+    () => typeof normalizedChildren !== 'string' || hasClosedFencedCodeBlocks(normalizedChildren),
+    [normalizedChildren]
+  );
 
   const handleLinkClick = useMarkdownLinkHandler();
 
@@ -192,13 +222,18 @@ const StreamingMarkdownView: React.FC<StreamingMarkdownViewProps> = ({ children:
     <div className={classNames('relative w-full', className)} data-testid='streaming-markdown-view'>
       <ShadowView>
         <div ref={onRef} className='markdown-shadow-body'>
-          <ReactMarkdown
-            remarkPlugins={[remarkGfm, remarkMath, remarkBreaks]}
-            rehypePlugins={[rehypeKatex]}
-            components={components}
-          >
-            {normalizedChildren}
-          </ReactMarkdown>
+          {shouldUseStreamdown ? (
+            <Streamdown
+              parseIncompleteMarkdown={true}
+              remarkPlugins={[remarkGfm, remarkMath, remarkBreaks]}
+              rehypePlugins={[rehypeKatex]}
+              components={components}
+            >
+              {normalizedChildren}
+            </Streamdown>
+          ) : (
+            <div className='whitespace-pre-wrap break-words'>{normalizedChildren}</div>
+          )}
         </div>
       </ShadowView>
     </div>

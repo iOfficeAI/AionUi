@@ -18,6 +18,7 @@ import CollapsibleContent from '@renderer/components/chat/CollapsibleContent';
 import FilePreview from '@renderer/components/media/FilePreview';
 import HorizontalFileList from '@renderer/components/media/HorizontalFileList';
 import MarkdownView from '@renderer/components/Markdown';
+import StreamingMarkdownView from '@renderer/components/Markdown/StreamingMarkdownView';
 import { stripThinkTags, hasThinkTags } from '@renderer/utils/chat/thinkTagFilter';
 import { stripSkillSuggest, hasSkillSuggest } from '@renderer/utils/chat/skillSuggestParser';
 
@@ -207,7 +208,7 @@ const MessageText: React.FC<{ message: IMessageText; isStreaming?: boolean }> = 
           {shouldRenderPlainText ? (
             <div className='whitespace-pre-wrap break-words'>{text}</div>
           ) : shouldRenderStreamingText ? (
-            <div className='whitespace-pre-wrap break-words'>{text}</div>
+            <StreamingMarkdownView>{text}</StreamingMarkdownView>
           ) : json ? (
             <CollapsibleContent maxHeight={200} defaultCollapsed={true}>
               <MarkdownView
