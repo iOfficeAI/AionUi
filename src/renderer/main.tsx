@@ -146,9 +146,7 @@ const Main = memo(() => {
   if (!ready) return;
 
   return (
-
     <Router layout={layout} />
-
   );
 });
 
