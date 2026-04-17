@@ -445,9 +445,14 @@ export class ProcessAcpClient implements AcpClient {
     const cacheDir = path.resolve(match[1]);
     // Validate the extracted path is inside a known temp/cache directory
     // to prevent a malicious agent from crafting stderr to delete arbitrary paths.
-    const tmpDir = path.resolve(os.tmpdir());
-    const bunCacheDir = path.resolve(os.homedir(), '.bun');
-    if (!cacheDir.startsWith(tmpDir + path.sep) && !cacheDir.startsWith(bunCacheDir + path.sep)) {
+    // Bun respects BUN_TMPDIR and BUN_INSTALL_CACHE_DIR env vars for cache location.
+    const allowedPrefixes = [
+      path.resolve(process.env.BUN_TMPDIR || os.tmpdir()),
+      path.resolve(process.env.BUN_INSTALL_CACHE_DIR || path.join(os.homedir(), '.bun', 'install', 'cache')),
+      path.resolve(os.homedir(), '.bun'),
+    ];
+    const isAllowed = allowedPrefixes.some((prefix) => cacheDir.startsWith(prefix + path.sep));
+    if (!isAllowed) {
       console.warn(`[AcpClient ${this.options.backend}] Refusing to clear suspicious cache path: ${cacheDir}`);
       return;
     }
