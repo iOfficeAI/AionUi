@@ -157,6 +157,19 @@ export function decodeChildProcessOutput(output: Buffer | string): string {
   }
 }
 
+function decodeBufferWithWindowsFallback(output: Buffer): string {
+  const utf8Text = output.toString('utf-8');
+  if (!utf8Text.includes('\ufffd')) {
+    return utf8Text;
+  }
+
+  try {
+    return new TextDecoder('gbk').decode(output);
+  } catch {
+    return utf8Text;
+  }
+}
+
 /**
  * Decode a Windows command error for readable logging.
  * Windows commands like `taskkill` output in the system's native encoding (e.g. GBK for Chinese),
@@ -165,7 +178,7 @@ export function decodeChildProcessOutput(output: Buffer | string): string {
 export function decodeWindowsError(error: unknown): string {
   const err = error as { stderr?: string | Buffer; code?: number; message?: string };
   if (err?.stderr) {
-    const stderr = decodeChildProcessOutput(err.stderr);
+    const stderr = Buffer.isBuffer(err.stderr) ? decodeBufferWithWindowsFallback(err.stderr) : err.stderr;
     // stderr is a string — check if it looks garbled (contains replacement chars)
     if (typeof stderr === 'string' && stderr.includes('\ufffd')) {
       // Already garbled, fall back to exit code

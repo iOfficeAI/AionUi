@@ -1,7 +1,5 @@
-// tests/unit/team-migration-v19.test.ts
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
-import { initSchema } from '@process/services/database/schema';
-import { runMigrations, ALL_MIGRATIONS } from '@process/services/database/migrations';
+import { ALL_MIGRATIONS } from '@process/services/database/migrations';
 import { BetterSqlite3Driver } from '@process/services/database/drivers/BetterSqlite3Driver';
 
 let nativeModuleAvailable = true;
@@ -16,13 +14,51 @@ try {
 
 const describeOrSkip = nativeModuleAvailable ? describe : describe.skip;
 
-describeOrSkip('migration v19: teams table', () => {
+function getMigration(version: number) {
+  const migration = ALL_MIGRATIONS.find((item) => item.version === version);
+  if (!migration) {
+    throw new Error(`Migration v${version} not found`);
+  }
+  return migration;
+}
+
+function createUsersTable(driver: BetterSqlite3Driver): void {
+  driver.exec(`CREATE TABLE users (
+    id TEXT PRIMARY KEY,
+    username TEXT UNIQUE NOT NULL,
+    email TEXT UNIQUE,
+    password_hash TEXT NOT NULL,
+    avatar_path TEXT,
+    jwt_secret TEXT,
+    created_at INTEGER NOT NULL,
+    updated_at INTEGER NOT NULL,
+    last_login INTEGER
+  )`);
+}
+
+function createLegacyTeamsTable(driver: BetterSqlite3Driver): void {
+  driver.exec(`CREATE TABLE teams (
+    id TEXT PRIMARY KEY,
+    user_id TEXT NOT NULL,
+    name TEXT NOT NULL,
+    workspace TEXT NOT NULL,
+    workspace_mode TEXT NOT NULL DEFAULT 'shared',
+    agents TEXT NOT NULL DEFAULT '[]',
+    created_at INTEGER NOT NULL,
+    updated_at INTEGER NOT NULL,
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+  )`);
+  driver.exec('CREATE INDEX idx_teams_user_id ON teams(user_id)');
+  driver.exec('CREATE INDEX idx_teams_updated_at ON teams(updated_at)');
+}
+
+describeOrSkip('migration v24: teams table', () => {
   let driver: BetterSqlite3Driver;
+  const migrationV24 = getMigration(24);
 
   beforeEach(() => {
     driver = new BetterSqlite3Driver(':memory:');
-    initSchema(driver);
-    runMigrations(driver, 0, 18); // bring to v18
+    createUsersTable(driver);
   });
 
   afterEach(() => {
@@ -30,7 +66,8 @@ describeOrSkip('migration v19: teams table', () => {
   });
 
   it('creates teams table with correct columns', () => {
-    runMigrations(driver, 18, 19);
+    migrationV24.up(driver);
+
     const cols = (driver.pragma('table_info(teams)') as Array<{ name: string }>).map((c) => c.name);
     expect(cols).toContain('id');
     expect(cols).toContain('user_id');
@@ -40,12 +77,13 @@ describeOrSkip('migration v19: teams table', () => {
     expect(cols).toContain('agents');
     expect(cols).toContain('created_at');
     expect(cols).toContain('updated_at');
+    expect(cols).not.toContain('lead_agent_id');
   });
 
   it('rollback drops teams table', () => {
-    runMigrations(driver, 18, 19);
-    // rollback by calling migration down directly
-    ALL_MIGRATIONS.find((m) => m.version === 19)!.down(driver);
+    migrationV24.up(driver);
+    migrationV24.down(driver);
+
     const tables = driver.prepare("SELECT name FROM sqlite_master WHERE type='table' AND name='teams'").all() as Array<{
       name: string;
     }>;
@@ -53,13 +91,14 @@ describeOrSkip('migration v19: teams table', () => {
   });
 });
 
-describeOrSkip('migration v20: lead_agent_id, mailbox, team_tasks', () => {
+describeOrSkip('migration v25: lead_agent_id, mailbox, team_tasks', () => {
   let driver: BetterSqlite3Driver;
+  const migrationV25 = getMigration(25);
 
   beforeEach(() => {
     driver = new BetterSqlite3Driver(':memory:');
-    initSchema(driver);
-    runMigrations(driver, 0, 19); // bring to v19
+    createUsersTable(driver);
+    createLegacyTeamsTable(driver);
   });
 
   afterEach(() => {
@@ -67,13 +106,15 @@ describeOrSkip('migration v20: lead_agent_id, mailbox, team_tasks', () => {
   });
 
   it('adds lead_agent_id column to teams table', () => {
-    runMigrations(driver, 19, 20);
+    migrationV25.up(driver);
+
     const cols = (driver.pragma('table_info(teams)') as Array<{ name: string }>).map((c) => c.name);
     expect(cols).toContain('lead_agent_id');
   });
 
   it('creates mailbox table with correct columns', () => {
-    runMigrations(driver, 19, 20);
+    migrationV25.up(driver);
+
     const cols = (driver.pragma('table_info(mailbox)') as Array<{ name: string }>).map((c) => c.name);
     expect(cols).toContain('id');
     expect(cols).toContain('team_id');
@@ -87,7 +128,8 @@ describeOrSkip('migration v20: lead_agent_id, mailbox, team_tasks', () => {
   });
 
   it('creates team_tasks table with correct columns', () => {
-    runMigrations(driver, 19, 20);
+    migrationV25.up(driver);
+
     const cols = (driver.pragma('table_info(team_tasks)') as Array<{ name: string }>).map((c) => c.name);
     expect(cols).toContain('id');
     expect(cols).toContain('team_id');
@@ -103,15 +145,19 @@ describeOrSkip('migration v20: lead_agent_id, mailbox, team_tasks', () => {
   });
 
   it('rollback drops mailbox and team_tasks tables', () => {
-    runMigrations(driver, 19, 20);
-    ALL_MIGRATIONS.find((m) => m.version === 20)!.down(driver);
+    migrationV25.up(driver);
+    migrationV25.down(driver);
+
     const mailboxTables = driver
       .prepare("SELECT name FROM sqlite_master WHERE type='table' AND name='mailbox'")
       .all() as Array<{ name: string }>;
     const taskTables = driver
       .prepare("SELECT name FROM sqlite_master WHERE type='table' AND name='team_tasks'")
       .all() as Array<{ name: string }>;
+    const teamColumns = (driver.pragma('table_info(teams)') as Array<{ name: string }>).map((c) => c.name);
+
     expect(mailboxTables).toHaveLength(0);
     expect(taskTables).toHaveLength(0);
+    expect(teamColumns).toContain('lead_agent_id');
   });
 });
