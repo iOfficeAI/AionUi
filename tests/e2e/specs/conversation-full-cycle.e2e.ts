@@ -335,24 +335,24 @@ test.describe('Conversation Full Cycle', () => {
   // -- Supplementary cases: Cron agent selection ----------------------------
 
   test('cron -- CLI agent selectable in create task dialog', async ({ page }) => {
-    // Navigate to cron page
-    await page.evaluate(() => window.location.assign('#/cron'));
-    await page.waitForFunction(() => window.location.hash.includes('/cron'), { timeout: 10_000 }).catch(() => {});
+    // Navigate to Scheduled Tasks page (route is /scheduled, not /cron)
+    await page.evaluate(() => window.location.assign('#/scheduled'));
+    await page.waitForFunction(() => window.location.hash.includes('/scheduled'), { timeout: 10_000 }).catch(() => {});
     await waitForSettle(page, 3_000);
 
-    // Look for create/add button
+    // "New task" button — matches i18n key cron.page.newTask
     const createBtn = page
       .locator('button')
-      .filter({ hasText: /Create|新建|添加|New/ })
+      .filter({ hasText: /New task|新建任务|新建/ })
       .first();
     if (!(await createBtn.isVisible().catch(() => false))) {
-      test.skip(true, 'Cron page or create button not available');
+      test.skip(true, 'Scheduled tasks page or create button not available');
       return;
     }
 
     await createBtn.click();
 
-    // Wait for dialog
+    // Wait for CreateTaskDialog (ModalWrapper wraps Arco Modal)
     const dialog = page.locator('.arco-modal');
     await dialog
       .first()
@@ -368,12 +368,12 @@ test.describe('Conversation Full Cycle', () => {
       return;
     }
 
-    // Agent Select should be present
+    // Agent Select — the first .arco-select inside the form
     const agentSelect = dialog.locator('.arco-select').first();
     await expect(agentSelect).toBeVisible({ timeout: 5_000 });
     await agentSelect.click();
 
-    // CLI agents should appear (Claude / Codex / Gemini etc.)
+    // CLI agents appear in an OptGroup; option values are "cli:<backend>"
     const cliOptions = page.locator('.arco-select-option').filter({ hasText: /Claude|Codex|Gemini|Aion/ });
     const hasCli = (await cliOptions.count()) > 0;
 
@@ -389,16 +389,16 @@ test.describe('Conversation Full Cycle', () => {
   });
 
   test('cron -- preset assistant selectable in create task dialog', async ({ page }) => {
-    await page.evaluate(() => window.location.assign('#/cron'));
-    await page.waitForFunction(() => window.location.hash.includes('/cron'), { timeout: 10_000 }).catch(() => {});
+    await page.evaluate(() => window.location.assign('#/scheduled'));
+    await page.waitForFunction(() => window.location.hash.includes('/scheduled'), { timeout: 10_000 }).catch(() => {});
     await waitForSettle(page, 3_000);
 
     const createBtn = page
       .locator('button')
-      .filter({ hasText: /Create|新建|添加|New/ })
+      .filter({ hasText: /New task|新建任务|新建/ })
       .first();
     if (!(await createBtn.isVisible().catch(() => false))) {
-      test.skip(true, 'Cron page or create button not available');
+      test.skip(true, 'Scheduled tasks page or create button not available');
       return;
     }
 
@@ -422,22 +422,20 @@ test.describe('Conversation Full Cycle', () => {
     const agentSelect = dialog.locator('.arco-select').first();
     await agentSelect.click();
 
-    // Look for preset assistant options (OptGroup label or option text)
+    // Preset assistants are in an OptGroup; option values are "preset:<id>"
     const presetGroup = page
       .locator('.arco-select-group-title')
       .filter({ hasText: /Preset|preset|预设|助手|Assistant/ });
     const hasPresetGroup = (await presetGroup.count()) > 0;
 
     if (!hasPresetGroup) {
-      // No preset group visible -- may not have presets
       await page.keyboard.press('Escape');
       await page.keyboard.press('Escape');
       test.skip(true, 'No preset assistant group in cron dialog');
       return;
     }
 
-    // Select the first option after the preset group title
-    // Options under the group should be visible now
+    // Find and click the first option whose value starts with "preset:"
     const allOptions = page.locator('.arco-select-option');
     const optCount = await allOptions.count();
     let selectedPreset = false;
@@ -451,7 +449,6 @@ test.describe('Conversation Full Cycle', () => {
     }
 
     if (!selectedPreset) {
-      // Fallback: click last visible option which is likely under preset group
       await allOptions
         .last()
         .click()
