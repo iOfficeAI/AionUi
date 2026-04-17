@@ -147,7 +147,7 @@
     "saveFailed": "Skill kaydedilemedi"
   },
   "error": {
-    "alreadyExists": "Bu oturumda zaten \"{{name}}\" (ID: {{id}}) adlı zamanlanmış bir görev var. Önce silin veya mevcut görevleri görmek için [CRON_LIST] kullanın.",
+    "alreadyExists": "Bu oturumda zaten \"{{name}}\" (ID: {{id}}) adlı zamanlanmış bir görev var. Yeni oluşturmak yerine mevcut görevi değiştirin.",
     "missedJob": "⏰ \"{{name}}\" zamanlanmış görevi sistem uykusu sırasında çalışmadı.\nPlanlanan saat: {{time}}\nZamanlayıcı yeniden başlatıldı, bir sonraki planlanan saatte çalışacak.",
     "jobNotFound": "Betik bulunamadı: {{id}}",
     "conversationNotFound": "Konuşma bulunamadı",

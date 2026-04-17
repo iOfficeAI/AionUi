@@ -135,7 +135,7 @@
     "saveFailed": "保存 Skill 失败"
   },
   "error": {
-    "alreadyExists": "该会话已存在定时任务 \"{{name}}\" (ID: {{id}})。请先删除它，或使用 [CRON_LIST] 查看已有任务。",
+    "alreadyExists": "该会话已存在定时任务 \"{{name}}\" (ID: {{id}})。请修改现有任务，而不是创建新任务。",
     "missedJob": "⏰ 定时任务 \"{{name}}\" 在系统休眠期间未执行。\n预定时间：{{time}}\n计时器已重启，将在下次预定时间运行。",
     "jobNotFound": "未找到脚本: {{id}}",
     "conversationNotFound": "未找到会话",

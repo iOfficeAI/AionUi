@@ -9,8 +9,8 @@
  */
 export type CronCommand =
   | { kind: 'create'; name: string; schedule: string; scheduleDescription: string; message: string }
-  | { kind: 'list' }
-  | { kind: 'delete'; jobId: string };
+  | { kind: 'update'; jobId: string; name: string; schedule: string; scheduleDescription: string; message: string }
+  | { kind: 'list' };
 
 /**
  * Remove markdown code blocks from content to avoid detecting commands in examples
@@ -72,20 +72,20 @@ export function detectCronCommands(content: string): CronCommand[] {
     }
   }
 
+  // Detect [CRON_UPDATE: jobId]...[/CRON_UPDATE]
+  const updateMatches = cleanContent.matchAll(/\[CRON_UPDATE:\s*([^\]]+)\]\s*\n?([\s\S]*?)\[\/CRON_UPDATE\]/gi);
+  for (const match of updateMatches) {
+    const jobId = match[1].trim();
+    const body = match[2];
+    const parsed = parseCronCreateBody(body);
+    if (parsed && jobId) {
+      commands.push({ kind: 'update', jobId, ...parsed });
+    }
+  }
+
   // Detect [CRON_LIST]
   if (/\[CRON_LIST\]/i.test(cleanContent)) {
     commands.push({ kind: 'list' });
-  }
-
-  // Detect [CRON_DELETE: xxx] - but ignore placeholder values like "任务ID", "task-id", etc.
-  const deleteMatches = cleanContent.matchAll(/\[CRON_DELETE:\s*([^\]]+)\]/gi);
-  for (const match of deleteMatches) {
-    const jobId = match[1].trim();
-    // Skip placeholder values that are clearly not real job IDs
-    const placeholders = ['任务id', 'task-id', 'taskid', 'job-id', 'jobid', 'xxx', 'id'];
-    if (jobId && !placeholders.includes(jobId.toLowerCase())) {
-      commands.push({ kind: 'delete', jobId });
-    }
   }
 
   return commands;
@@ -145,7 +145,7 @@ export function hasCronCommands(content: string): boolean {
   if (!content || typeof content !== 'string') {
     return false;
   }
-  return /\[CRON_(?:CREATE|LIST|DELETE)/i.test(content);
+  return /\[CRON_(?:CREATE|UPDATE|LIST)/i.test(content);
 }
 
 /**
@@ -159,8 +159,8 @@ export function stripCronCommands(content: string): string {
 
   return content
     .replace(/\[CRON_CREATE\][\s\S]*?\[\/CRON_CREATE\]/gi, '')
+    .replace(/\[CRON_UPDATE:[^\]]*\][\s\S]*?\[\/CRON_UPDATE\]/gi, '')
     .replace(/\[CRON_LIST\]/gi, '')
-    .replace(/\[CRON_DELETE:[^\]]+\]/gi, '')
     .replace(/\n{3,}/g, '\n\n') // Collapse multiple newlines
     .trim();
 }
