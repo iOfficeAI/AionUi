@@ -220,6 +220,7 @@ export const PROTOCOL_SIGNATURES: ProtocolSignature[] = [
       /api\.minimaxi\.com/, // MiniMax China
       /api\.minimax\.io/, // MiniMax Global
       /platform\.minimaxi\.com/, // MiniMax Platform
+      /ollama\.com/, // Ollama Cloud
       /localhost/, // 本地服务
       /127\.0\.0\.1/, // 本地服务
       /0\.0\.0\.0/, // 本地服务

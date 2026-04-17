@@ -185,6 +185,76 @@ describe('createConversationParams', () => {
     expect(params.model.useModel).toBe('gpt-4.1');
   });
 
+  it('prefers the saved aionrs default provider and model when still available', async () => {
+    modelConfigGet.mockResolvedValue([
+      {
+        id: 'provider-1',
+        platform: 'openai',
+        name: 'Provider One',
+        baseUrl: 'https://example.com',
+        apiKey: 'token-1',
+        model: ['gpt-4.1'],
+        enabled: true,
+      },
+      {
+        id: 'provider-2',
+        platform: 'copilot',
+        name: 'GitHub Copilot',
+        baseUrl: 'https://api.githubcopilot.com',
+        apiKey: '',
+        model: ['claude-sonnet-4', 'gpt-4o'],
+        enabled: true,
+      },
+    ]);
+    configGet.mockImplementation(async (key: string) => {
+      if (key === 'aionrs.defaultModel') {
+        return { id: 'provider-2', useModel: 'claude-sonnet-4' };
+      }
+      return undefined;
+    });
+
+    const params = await buildCliAgentParams(
+      {
+        backend: 'aionrs',
+        name: 'Aion CLI Agent',
+      },
+      '/tmp/workspace'
+    );
+
+    expect(params.model.id).toBe('provider-2');
+    expect(params.model.platform).toBe('copilot');
+    expect(params.model.useModel).toBe('claude-sonnet-4');
+  });
+
+  it('repairs typoed saved aionrs default models when a close configured model exists', async () => {
+    modelConfigGet.mockResolvedValue([
+      {
+        id: 'provider-1',
+        platform: 'custom',
+        name: 'Ollama',
+        baseUrl: 'https://ollama.com/v1',
+        apiKey: 'token',
+        model: ['glm-4.6', 'glm-5.1'],
+        enabled: true,
+      },
+    ]);
+    configGet.mockImplementation(async (key: string) => {
+      if (key === 'aionrs.defaultModel') {
+        return { id: 'provider-1', useModel: 'gml-4.6' };
+      }
+      return undefined;
+    });
+
+    const params = await buildCliAgentParams(
+      {
+        backend: 'aionrs',
+        name: 'Aion CLI Agent',
+      },
+      '/tmp/workspace'
+    );
+
+    expect(params.model.useModel).toBe('glm-4.6');
+  });
   it('throws error for aionrs if no provider configured', async () => {
     modelConfigGet.mockResolvedValue([]);
 

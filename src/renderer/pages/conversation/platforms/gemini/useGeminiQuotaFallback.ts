@@ -32,15 +32,15 @@ export const useGeminiQuotaFallback = ({
 
   const handleGeminiError = useCallback(
     (message: IResponseMessage) => {
-      // API errors do NOT trigger agent detection, only handle quota errors
-      if (isApiErrorMessage(message.data)) {
-        // Just log the error, don't show setup card
-        console.info('API error detected. Not triggering agent detection.');
+      // Handle quota-like capacity errors first. Some providers return them as HTTP 403
+      // while still being recoverable by switching to another configured model.
+      const isQuotaError = isQuotaErrorMessage(message.data);
+      if (!isQuotaError) {
+        if (isApiErrorMessage(message.data)) {
+          console.info('API error detected. Not triggering agent detection.');
+        }
         return;
       }
-
-      // Then check if it's a quota error
-      if (!isQuotaErrorMessage(message.data)) return;
       const msgId = message.msg_id || 'unknown';
       if (quotaPromptedRef.current === msgId) return;
       quotaPromptedRef.current = msgId;

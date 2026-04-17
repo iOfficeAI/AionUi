@@ -1,0 +1,471 @@
+/**
+ * @license
+ * Copyright 2025 AionUi (aionui.com)
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
+import React from 'react';
+import { render, screen, waitFor } from '@testing-library/react';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
+import type { TChatConversation } from '@/common/config/storage';
+import ChatConversation from '@/renderer/pages/conversation/components/ChatConversation';
+
+const chatConversationMocks = vi.hoisted(() => ({
+  openWorkspaceInEditor: vi.fn().mockResolvedValue(undefined),
+  updateConversation: vi.fn().mockResolvedValue(true),
+  acpChat: vi.fn(() => null),
+  geminiChat: vi.fn(() => null),
+  aionrsChat: vi.fn(() => null),
+  useGeminiModelSelection: vi.fn(() => ({})),
+  useAionrsModelSelection: vi.fn(() => ({})),
+  useAionrsCapabilities: vi.fn(() => ({ capabilities: null, dynamicModes: [], initialized: true })),
+}));
+
+type MockButtonProps = React.ComponentProps<'button'> & { icon?: React.ReactNode };
+type MockChildrenProps = { children: React.ReactNode };
+type MockMenuComponent = React.FC<MockChildrenProps> & {
+  Item: React.FC<MockChildrenProps>;
+};
+
+const arcoMockComponents = vi.hoisted(() => ({
+  Button: ({ children, icon, ...props }: MockButtonProps) => (
+    <button type='button' {...props}>
+      {icon}
+      {children}
+    </button>
+  ),
+  Dropdown: ({ children }: MockChildrenProps) => <div>{children}</div>,
+  Menu: Object.assign(({ children }: MockChildrenProps) => <div>{children}</div>, {
+    Item: ({ children }: MockChildrenProps) => <div>{children}</div>,
+  }) as MockMenuComponent,
+  Ellipsis: ({ children }: MockChildrenProps) => <span>{children}</span>,
+}));
+
+vi.mock('@/common', () => ({
+  ipcBridge: {
+    conversation: {
+      getAssociateConversation: {
+        invoke: vi.fn().mockResolvedValue([]),
+      },
+      get: {
+        invoke: vi.fn().mockResolvedValue(null),
+      },
+      createWithConversation: {
+        invoke: vi.fn().mockResolvedValue(undefined),
+      },
+      update: {
+        invoke: chatConversationMocks.updateConversation,
+      },
+    },
+    shell: {
+      openWorkspaceInEditor: {
+        invoke: chatConversationMocks.openWorkspaceInEditor,
+      },
+    },
+  },
+}));
+
+vi.mock('@/renderer/pages/cron', () => ({
+  CronJobManager: ({ conversationId }: { conversationId: string }) => <div>{conversationId}</div>,
+}));
+
+vi.mock('@/renderer/hooks/agent/usePresetAssistantInfo', () => ({
+  usePresetAssistantInfo: () => ({
+    info: undefined,
+    isLoading: false,
+  }),
+  resolveAssistantConfigId: () => null,
+}));
+
+vi.mock('@/renderer/utils/platform', () => ({
+  isElectronDesktop: () => true,
+  isMacOS: () => false,
+}));
+
+vi.mock('@/renderer/pages/conversation/components/ChatLayout', () => ({
+  default: ({
+    headerExtra,
+    children,
+    workspaceEnabled,
+    workspacePath,
+  }: {
+    headerExtra?: React.ReactNode;
+    children: React.ReactNode;
+    workspaceEnabled?: boolean;
+    workspacePath?: string;
+  }) => (
+    <div>
+      <div data-testid='header-extra'>{headerExtra}</div>
+      {workspaceEnabled && workspacePath ? (
+        <button type='button' title='conversation.workspace.openWorkspace'>
+          workspace-open
+        </button>
+      ) : null}
+      <div>{children}</div>
+    </div>
+  ),
+}));
+
+vi.mock('@/renderer/pages/conversation/components/ChatSider', () => ({
+  default: () => <div data-testid='chat-sider' />,
+}));
+
+vi.mock('@/renderer/pages/conversation/platforms/acp/AcpChat', () => ({
+  default: chatConversationMocks.acpChat,
+}));
+
+vi.mock('@/renderer/pages/conversation/platforms/codex/CodexChat', () => ({
+  default: () => <div>codex-chat</div>,
+}));
+
+vi.mock('@/renderer/pages/conversation/platforms/nanobot/NanobotChat', () => ({
+  default: () => <div>nanobot-chat</div>,
+}));
+
+vi.mock('@/renderer/pages/conversation/platforms/openclaw/OpenClawChat', () => ({
+  default: () => <div>openclaw-chat</div>,
+}));
+
+vi.mock('@/renderer/pages/conversation/platforms/gemini/GeminiChat', () => ({
+  default: chatConversationMocks.geminiChat,
+}));
+
+vi.mock('@/renderer/components/agent/AcpModelSelector', () => ({
+  default: () => <div>acp-model-selector</div>,
+}));
+
+vi.mock('@/renderer/pages/conversation/platforms/gemini/GeminiModelSelector', () => ({
+  default: () => <div>gemini-model-selector</div>,
+}));
+
+vi.mock('@/renderer/pages/conversation/platforms/gemini/useGeminiModelSelection', () => ({
+  useGeminiModelSelection: chatConversationMocks.useGeminiModelSelection,
+}));
+
+vi.mock('@/renderer/pages/conversation/platforms/aionrs/AionrsChat', () => ({
+  default: chatConversationMocks.aionrsChat,
+}));
+
+vi.mock('@/renderer/pages/conversation/platforms/aionrs/AionrsModelSelector', () => ({
+  default: () => <div>aionrs-model-selector</div>,
+}));
+
+vi.mock('@/renderer/pages/conversation/platforms/aionrs/useAionrsModelSelection', () => ({
+  useAionrsModelSelection: chatConversationMocks.useAionrsModelSelection,
+}));
+
+vi.mock('@/renderer/pages/conversation/platforms/aionrs/useAionrsCapabilities', () => ({
+  useAionrsCapabilities: chatConversationMocks.useAionrsCapabilities,
+}));
+
+vi.mock('@/renderer/pages/conversation/Preview', () => ({
+  usePreviewContext: () => ({
+    openPreview: vi.fn(),
+  }),
+}));
+
+vi.mock('@/renderer/pages/conversation/platforms/openclaw/StarOfficeMonitorCard.tsx', () => ({
+  default: () => <div>star-office-monitor</div>,
+}));
+
+vi.mock('@/renderer/utils/emitter', () => ({
+  emitter: {
+    emit: vi.fn(),
+  },
+}));
+
+vi.mock('react-router-dom', () => ({
+  useNavigate: () => vi.fn(),
+}));
+
+vi.mock('react-i18next', () => ({
+  useTranslation: () => ({
+    t: (key: string) => key,
+  }),
+}));
+
+vi.mock('swr', () => ({
+  default: () => ({
+    data: [],
+  }),
+}));
+
+vi.mock('@icon-park/react', () => ({
+  Attention: () => <span data-testid='attention-icon' />,
+  CheckOne: () => <span data-testid='check-one-icon' />,
+  Down: () => <span data-testid='down-icon' />,
+  FolderOpen: () => <span data-testid='folder-open-icon' />,
+  History: () => <span data-testid='history-icon' />,
+}));
+
+vi.mock('@arco-design/web-react', () => {
+  return {
+    Button: arcoMockComponents.Button,
+    Dropdown: arcoMockComponents.Dropdown,
+    Menu: arcoMockComponents.Menu,
+    Message: {
+      error: vi.fn(),
+    },
+    Tooltip: ({ children }: { children: React.ReactNode }) => <>{children}</>,
+    Typography: {
+      Ellipsis: arcoMockComponents.Ellipsis,
+    },
+  };
+});
+
+const createConversation = (customWorkspace: boolean): TChatConversation =>
+  ({
+    id: 'conv-1',
+    name: 'Workspace Chat',
+    type: 'acp',
+    extra: {
+      workspace: 'E:/code/demo',
+      customWorkspace,
+      backend: 'claude',
+    },
+  }) as TChatConversation;
+
+const createConversationWithoutWorkspace = (): TChatConversation =>
+  ({
+    id: 'conv-2',
+    name: 'Workspace Chat',
+    type: 'acp',
+    extra: {
+      customWorkspace: false,
+      backend: 'claude',
+    },
+  }) as TChatConversation;
+
+const createGeminiConversation = (sessionMode: string): TChatConversation =>
+  ({
+    id: 'conv-gemini',
+    name: 'Gemini Chat',
+    type: 'gemini',
+    model: {
+      id: 'provider-1',
+      useModel: 'gemini-2.5-pro',
+    },
+    extra: {
+      workspace: 'E:/code/demo',
+      sessionMode,
+    },
+  }) as TChatConversation;
+
+const createGeminiConversationWithModel = (sessionMode: string, useModel: string): TChatConversation =>
+  ({
+    id: 'conv-gemini',
+    name: 'Gemini Chat',
+    type: 'gemini',
+    model: {
+      id: 'provider-1',
+      useModel,
+    },
+    extra: {
+      workspace: 'E:/code/demo',
+      sessionMode,
+    },
+  }) as TChatConversation;
+
+const createAionrsConversation = (sessionMode: string, useModel = 'gpt-4.1'): TChatConversation =>
+  ({
+    id: 'conv-aionrs',
+    name: 'Aion CLI Chat',
+    type: 'aionrs',
+    model: {
+      id: 'provider-1',
+      useModel,
+    },
+    extra: {
+      workspace: 'E:/code/demo',
+      sessionMode,
+    },
+  }) as TChatConversation;
+
+const createCodexConversation = (sessionMode: string): TChatConversation =>
+  ({
+    id: 'conv-codex',
+    name: 'Codex Chat',
+    type: 'codex',
+    extra: {
+      workspace: 'E:/code/demo',
+      sessionMode,
+    },
+  }) as TChatConversation;
+
+describe('ChatConversation workspace launcher', () => {
+  beforeEach(() => {
+    chatConversationMocks.openWorkspaceInEditor.mockClear();
+    chatConversationMocks.updateConversation.mockClear();
+    chatConversationMocks.acpChat.mockClear();
+    chatConversationMocks.geminiChat.mockClear();
+    chatConversationMocks.aionrsChat.mockClear();
+    chatConversationMocks.useGeminiModelSelection.mockReturnValue({
+      providers: [{ id: 'provider-1', model: ['gemini-2.5-pro', 'glm-4.6'] }],
+      getAvailableModels: (provider: { model?: string[] }) => provider.model ?? [],
+    });
+    chatConversationMocks.useAionrsModelSelection.mockReturnValue({
+      providers: [{ id: 'provider-1', model: ['gpt-4.1', 'gpt-5.2', 'glm-4.6'] }],
+      getAvailableModels: (provider: { model?: string[] }) => provider.model ?? [],
+    });
+    chatConversationMocks.useAionrsCapabilities.mockReturnValue({
+      capabilities: null,
+      dynamicModes: [],
+      initialized: true,
+    });
+  });
+
+  it('renders the quick-open launcher for custom workspace conversations', () => {
+    render(<ChatConversation conversation={createConversation(true)} />);
+
+    expect(screen.getByTitle('conversation.workspace.openWorkspace')).toBeInTheDocument();
+  });
+
+  it('hides the workspace launcher when no workspace path is available', () => {
+    render(<ChatConversation conversation={createConversationWithoutWorkspace()} />);
+
+    expect(screen.queryByTitle('conversation.workspace.openWorkspace')).not.toBeInTheDocument();
+  });
+
+  it('passes the active Gemini conversation props into the chat view', () => {
+    render(<ChatConversation conversation={createGeminiConversation('yolo')} />);
+
+    expect(chatConversationMocks.geminiChat).toHaveBeenCalledWith(
+      expect.objectContaining({
+        conversation_id: 'conv-gemini',
+        workspace: 'E:/code/demo',
+      }),
+      undefined
+    );
+  });
+
+  it('normalizes typoed Gemini model names to the configured provider model', async () => {
+    render(<ChatConversation conversation={createGeminiConversationWithModel('yolo', 'gml-4.6')} />);
+
+    await waitFor(() => {
+      expect(chatConversationMocks.updateConversation).toHaveBeenCalledWith({
+        id: 'conv-gemini',
+        updates: {
+          model: {
+            id: 'provider-1',
+            useModel: 'glm-4.6',
+          },
+        },
+      });
+    });
+  });
+
+  it('passes the persisted Aion CLI session mode into the chat view', () => {
+    render(<ChatConversation conversation={createAionrsConversation('auto_edit')} />);
+
+    expect(chatConversationMocks.aionrsChat).toHaveBeenCalledWith(
+      expect.objectContaining({
+        conversation_id: 'conv-aionrs',
+        sessionMode: 'auto_edit',
+      }),
+      undefined
+    );
+  });
+
+  it('keeps the selected Aion CLI model when it matches the runtime current_model', async () => {
+    chatConversationMocks.useAionrsCapabilities.mockReturnValue({
+      capabilities: {
+        tool_approval: true,
+        thinking: false,
+        effort: true,
+        effort_levels: ['low', 'medium', 'high'],
+        modes: ['default'],
+        current_mode: 'default',
+        mcp: false,
+        current_model: 'gpt-4.1',
+        available_models: [{ id: 'gpt-5.2', display_name: 'gpt-5.2' }],
+      },
+      dynamicModes: [],
+      initialized: true,
+    });
+
+    render(<ChatConversation conversation={createAionrsConversation('auto_edit')} />);
+
+    await waitFor(() => {
+      expect(chatConversationMocks.aionrsChat).toHaveBeenCalled();
+    });
+
+    expect(chatConversationMocks.updateConversation).not.toHaveBeenCalled();
+  });
+
+  it('normalizes stale Aion CLI models to the runtime current_model before falling back to the list', async () => {
+    chatConversationMocks.useAionrsCapabilities.mockReturnValue({
+      capabilities: {
+        tool_approval: true,
+        thinking: false,
+        effort: true,
+        effort_levels: ['low', 'medium', 'high'],
+        modes: ['default'],
+        current_mode: 'default',
+        mcp: false,
+        current_model: 'gpt-5.4',
+        available_models: [{ id: 'gpt-5.2', display_name: 'gpt-5.2' }],
+      },
+      dynamicModes: [],
+      initialized: true,
+    });
+
+    render(<ChatConversation conversation={createAionrsConversation('auto_edit', 'gpt-4.1')} />);
+
+    await waitFor(() => {
+      expect(chatConversationMocks.updateConversation).toHaveBeenCalledWith({
+        id: 'conv-aionrs',
+        updates: {
+          model: {
+            id: 'provider-1',
+            useModel: 'gpt-5.4',
+          },
+        },
+      });
+    });
+  });
+
+  it('normalizes typoed Aion CLI model names to the configured provider model when runtime models are unavailable', async () => {
+    chatConversationMocks.useAionrsCapabilities.mockReturnValue({
+      capabilities: {
+        tool_approval: true,
+        thinking: false,
+        effort: true,
+        effort_levels: ['low', 'medium', 'high'],
+        modes: ['default'],
+        current_mode: 'default',
+        mcp: false,
+        current_model: undefined,
+        available_models: [],
+      },
+      dynamicModes: [],
+      initialized: true,
+    });
+
+    render(<ChatConversation conversation={createAionrsConversation('auto_edit', 'gml-4.6')} />);
+
+    await waitFor(() => {
+      expect(chatConversationMocks.updateConversation).toHaveBeenCalledWith({
+        id: 'conv-aionrs',
+        updates: {
+          model: {
+            id: 'provider-1',
+            useModel: 'glm-4.6',
+          },
+        },
+      });
+    });
+  });
+
+  it('passes the persisted Codex session mode into the ACP chat view', () => {
+    render(<ChatConversation conversation={createCodexConversation('yolo')} />);
+
+    expect(chatConversationMocks.acpChat).toHaveBeenCalledWith(
+      expect.objectContaining({
+        conversation_id: 'conv-codex',
+        backend: 'codex',
+        sessionMode: 'yolo',
+      }),
+      undefined
+    );
+  });
+});

@@ -138,6 +138,32 @@ describe('useGeminiQuotaFallback', () => {
     expect(mockMessageWarning).not.toHaveBeenCalled();
   });
 
+  it('treats quota-like 403 errors as fallback candidates even when they are also API errors', async () => {
+    const params = defaultParams();
+    const fallbackProvider = makeProvider('p1');
+    const fallbackModel = 'gemini-1.5-pro';
+
+    mockIsApiErrorMessage.mockReturnValue(true);
+    mockIsQuotaErrorMessage.mockReturnValue(true);
+    mockResolveFallbackTarget.mockReturnValue({ provider: fallbackProvider, model: fallbackModel });
+
+    const { result } = renderHook(() => useGeminiQuotaFallback(params));
+
+    act(() => {
+      result.current.handleGeminiError(
+        makeErrorMessage(
+          'error status: 403 model is experiencing high volume. while capacity is being added, a subscription is required for access'
+        )
+      );
+    });
+
+    expect(params.handleSelectModel).toHaveBeenCalledWith(fallbackProvider, fallbackModel);
+
+    await vi.waitFor(() => {
+      expect(mockMessageSuccess).toHaveBeenCalledTimes(1);
+    });
+  });
+
   it('multiple quota errors for same model only prompt once', () => {
     const params = defaultParams();
     mockIsQuotaErrorMessage.mockReturnValue(true);

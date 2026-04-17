@@ -10,7 +10,7 @@ import type { ICreateConversationParams } from '@/common/adapter/ipcBridge';
 import type { TProviderWithModel } from '@/common/config/storage';
 import type { AcpBackend } from '@/common/types/acpTypes';
 import { DEFAULT_CODEX_MODELS } from '@/common/types/codex/codexModels';
-import { resolveLocaleKey } from '@/common/utils';
+import { resolveAvailableModel, resolveLocaleKey } from '@/common/utils';
 import { loadPresetAssistantResources } from '@/common/utils/presetAssistantResources';
 import {
   buildAgentConversationParams,
@@ -105,8 +105,7 @@ export async function getDefaultAionrsModel(): Promise<TProviderWithModel> {
 
   const savedUseModel = savedModel?.id === provider.id ? savedModel.useModel : undefined;
   const enabledModel = provider.model.find((m) => provider.modelEnabled?.[m] !== false);
-  const useModel =
-    savedUseModel && provider.model.includes(savedUseModel) ? savedUseModel : enabledModel || provider.model[0];
+  const useModel = resolveAvailableModel(savedUseModel, provider.model) || enabledModel || provider.model[0];
 
   return {
     id: provider.id,
