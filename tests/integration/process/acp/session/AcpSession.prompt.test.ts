@@ -80,9 +80,9 @@ describe('AcpSession prompt flow', () => {
     expect(session.status).toBe('active');
   });
 
-  it('sendMessage throws in idle state', () => {
+  it('sendMessage throws in idle state', async () => {
     const session = new AcpSession(baseConfig, clientFactory, callbacks);
-    expect(() => session.sendMessage('hello')).toThrow(/Cannot send in idle state/);
+    await expect(session.sendMessage('hello')).rejects.toThrow(/Cannot send in idle state/);
   });
 
   it('sendMessage from suspended triggers resume (T16)', async () => {

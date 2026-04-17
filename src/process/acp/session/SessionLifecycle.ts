@@ -1,3 +1,4 @@
+import { getFullAutoMode } from '@/common/types/agentModes';
 import type { AuthMethod, LoadSessionResponse, McpServer, NewSessionResponse } from '@agentclientprotocol/sdk';
 import { normalizeError } from '@process/acp/errors/errorNormalize';
 import type { AcpClient, ClientFactory, DisconnectInfo } from '@process/acp/infra/IAcpClient';
@@ -8,6 +9,21 @@ import type { ConfigTracker } from '@process/acp/session/ConfigTracker';
 import { McpConfig } from '@process/acp/session/McpConfig';
 import type { MessageTranslator } from '@process/acp/session/MessageTranslator';
 import type { AgentConfig, ProtocolHandlers, SessionCallbacks, SessionStatus } from '@process/acp/types';
+
+// ─── YOLO mode resolution ──────────────────────────────────────
+
+/**
+ * Resolve the YOLO mode ID for a given backend, validated against the
+ * agent's actual available modes. Returns `null` if the agent doesn't
+ * advertise a matching mode (caller should fall back to client-side
+ * auto-approve only).
+ */
+function resolveYoloModeId(backend: string, availableModes: ReadonlyArray<{ id: string }>): string | null {
+  const candidate = getFullAutoMode(backend);
+  return availableModes.some((m) => m.id === candidate) ? candidate : null;
+}
+
+// ────────────────────────────────────────────────────────────────
 
 /** Minimal interface that AcpSession exposes so SessionLifecycle can drive state transitions. */
 export type LifecycleHost = {
@@ -99,6 +115,8 @@ export class SessionLifecycle {
     if (initResult.authMethods && initResult.authMethods.length > 0) {
       this.cachedAuthMethods = initResult.authMethods;
     }
+
+    this.host.callbacks.onInitialize?.(initResult);
   }
 
   /** Returns null when auth is required (caller should bail). */
@@ -236,6 +254,42 @@ export class SessionLifecycle {
 
     this.host.messageTranslator.reset();
     this.host.setStatus('active');
+
+    // Apply YOLO mode: tell the agent to enter full-auto mode so it stops
+    // sending permission requests. Client-side autoApproveAll remains as fallback.
+    if (this.host.agentConfig.yoloMode) {
+      this.applyYoloMode();
+    }
+  }
+
+  /**
+   * Resolve and apply the YOLO mode for the current backend.
+   * Sets desiredMode in configTracker (so reassertConfig picks it up as fallback)
+   * and fires an immediate setMode call to the agent.
+   */
+  private applyYoloMode(): void {
+    const availableModes = this.host.configTracker.modeSnapshot().availableModes;
+    const yoloModeId = resolveYoloModeId(this.host.agentConfig.agentBackend, availableModes);
+    if (!yoloModeId) {
+      console.warn(
+        `[SessionLifecycle] No YOLO mode found for backend ${this.host.agentConfig.agentBackend}, ` +
+          'falling back to client-side auto-approve only'
+      );
+      return;
+    }
+
+    // Record as desired so reassertConfig can re-apply after reconnect
+    this.host.configTracker.setDesiredMode(yoloModeId);
+
+    if (this._client && this._sessionId) {
+      this._client
+        .setMode(this._sessionId, yoloModeId)
+        .then(() => {
+          this.host.configTracker.setCurrentMode(yoloModeId);
+          this.host.callbacks.onModeUpdate(this.host.configTracker.modeSnapshot());
+        })
+        .catch((err) => console.warn('[SessionLifecycle] YOLO setMode failed:', err));
+    }
   }
 
   // ─── Config reassert ─────────────────────────────────────────

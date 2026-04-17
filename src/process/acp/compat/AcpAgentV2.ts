@@ -1,21 +1,29 @@
 // src/process/acp/compat/AcpAgentV2.ts
-
 import type { IResponseMessage } from '@/common/adapter/ipcBridge';
 import type { IMessageAcpToolCall, TMessage } from '@/common/chat/chatLib';
+import { NavigationInterceptor } from '@/common/chat/navigation';
 import type { AcpModelInfo, AcpResult, AcpSessionConfigOption } from '@/common/types/acpTypes';
-import { AcpErrorType } from '@/common/types/acpTypes';
+import { AcpErrorType, parseInitializeResult } from '@/common/types/acpTypes';
+import { getFullAutoMode } from '@/common/types/agentModes';
 import { LegacyConnectorFactory } from '@process/acp/compat/LegacyConnectorFactory';
 import {
   loadAuthCredentials,
+  mapAcpErrorCodeToType,
   toAcpConfigOptions,
   toAcpModelInfo,
   toAgentConfig,
   toResponseMessage,
   type OldAcpAgentConfig,
 } from '@process/acp/compat/typeBridge';
+import { AcpError as AcpSessionError } from '@process/acp/errors/AcpError';
 import { AcpSession, type SessionOptions } from '@process/acp/session/AcpSession';
+import { readClaudeModelInfoFromCcSwitch } from '@process/services/ccSwitchModelSource';
 // TODO(ACP Discovery): Re-enable when acp_session persistence is restored.
 // import type { IAcpSessionRepository } from '@process/services/database/IAcpSessionRepository';
+import { getTeamGuideStdioConfig } from '@/process/team/mcp/guide/teamGuideSingleton';
+import { waitForMcpReady } from '@/process/team/mcpReadiness';
+import { shouldInjectTeamGuideMcp } from '@/process/team/prompts/teamGuideCapability';
+import type { McpServer } from '@agentclientprotocol/sdk';
 import type {
   AgentConfig,
   ConfigSnapshot,
@@ -25,9 +33,10 @@ import type {
   SessionCallbacks,
   SessionStatus,
 } from '@process/acp/types';
-import type { McpServer } from '@agentclientprotocol/sdk';
+import { ProcessConfig } from '@process/utils/initStorage';
 import { getEnhancedEnv } from '@process/utils/shellEnv';
 import { spawn } from 'node:child_process';
+import { McpConfig } from '../session/McpConfig';
 
 /**
  * Temporary: backend-specific CLI login arguments.
@@ -44,13 +53,14 @@ const LOGIN_TIMEOUT_MS = 70_000;
  * Refresh backend credentials by running the backend CLI login command.
  * Will be replaced by `authCommand + args` config when Agent Hub lands (PR #2349).
  */
-async function runBackendLogin(backend: string): Promise<void> {
+async function runBackendLogin(backend: string, cliCommand?: string): Promise<void> {
   const env = getEnhancedEnv();
   const loginArgs = BACKEND_LOGIN_ARGS[backend];
   if (!loginArgs) return;
 
-  console.log(`[AcpAgentV2] Running ${backend} ${loginArgs.join(' ')}`);
-  const child = spawn(backend, loginArgs, {
+  const command = cliCommand ?? backend;
+  console.log(`[AcpAgentV2] Running ${command} ${loginArgs.join(' ')}`);
+  const child = spawn(command, loginArgs, {
     stdio: 'pipe',
     timeout: LOGIN_TIMEOUT_MS,
     env,
@@ -95,6 +105,7 @@ export class AcpAgentV2 {
   // Cached state from callbacks
   private cachedModelInfo: AcpModelInfo | null = null;
   private cachedConfigOptions: AcpSessionConfigOption[] = [];
+  private cachedModes: ModeSnapshot | null = null;
   private lastSessionId: string | null = null;
   private lastStatus: SessionStatus = 'idle';
 
@@ -108,10 +119,10 @@ export class AcpAgentV2 {
   private activeToolCalls = new Map<string, IMessageAcpToolCall>();
   // Auth retry guard — prevent infinite auth loops
   private authRetryAttempted = false;
-  // TODO(ACP Discovery): Re-enable acp_session persistence after fixing agent_id semantics.
-  // Currently agent_id is incorrectly set to conversation_id (see typeBridge.ts agentId: old.id).
-  // The table is not consumed by any reader yet. See docs/feature/acp-rewrite/TODO.md.
-  // private acpSessionRepo: IAcpSessionRepository | null = null;
+  // Serialize concurrent capability cache writes across backends
+  private static cacheQueue: Promise<void> = Promise.resolve();
+  // Claude: inject model identity notice into next prompt after setModel
+  private pendingModelSwitchNotice: string | null = null;
 
   constructor(config: OldAcpAgentConfig) {
     this.conversationId = config.id;
@@ -138,9 +149,7 @@ export class AcpAgentV2 {
     // Inject team-guide MCP server for solo agents (not in team mode) so the
     // agent has the aion_create_team tool available — mirrors AcpAgent.loadBuiltinSessionMcpServers().
     if (!this.agentConfig.teamMcpConfig) {
-      const { shouldInjectTeamGuideMcp } = await import('@process/team/prompts/teamGuideCapability');
       if (await shouldInjectTeamGuideMcp(this.agentConfig.agentBackend)) {
-        const { getTeamGuideStdioConfig } = await import('@process/team/mcp/guide/teamGuideSingleton');
         const aionStdioConfig = getTeamGuideStdioConfig();
         if (aionStdioConfig) {
           const guideServer: McpServer = {
@@ -163,26 +172,11 @@ export class AcpAgentV2 {
 
     // Load user-configured (builtin) MCP servers from settings, filtered by
     // cached agent MCP capabilities. Mirrors AcpAgent.loadBuiltinSessionMcpServers().
-    const { ProcessConfig } = await import('@process/utils/initStorage');
-
-    // TODO(ACP Discovery): Re-enable session persistence after fixing agent_id.
-    // See docs/feature/acp-rewrite/TODO.md.
-    // if (!this.acpSessionRepo) {
-    //   try {
-    //     const { getDatabase } = await import('@process/services/database');
-    //     const { SqliteAcpSessionRepository } = await import('@process/services/database/SqliteAcpSessionRepository');
-    //     const db = await getDatabase();
-    //     this.acpSessionRepo = new SqliteAcpSessionRepository(db.getDriver());
-    //   } catch (err) {
-    //     console.warn('[AcpAgentV2] Failed to init session repo, persistence disabled:', err);
-    //   }
-    // }
 
     const rawMcpServers = await ProcessConfig.get('mcp.config');
     if (Array.isArray(rawMcpServers) && rawMcpServers.length > 0) {
       const cachedInit = await ProcessConfig.get('acp.cachedInitializeResult');
       const caps = cachedInit?.[this.agentConfig.agentBackend]?.capabilities?.mcpCapabilities;
-      const { McpConfig } = await import('@process/acp/session/McpConfig');
       const userServers = McpConfig.fromStorageConfig(rawMcpServers, caps);
       if (userServers.length > 0) {
         (this.agentConfig as { mcpServers?: McpServer[] }).mcpServers = [
@@ -194,26 +188,36 @@ export class AcpAgentV2 {
 
     const callbacks: SessionCallbacks = this.buildCallbacks();
     const clientFactory = new LegacyConnectorFactory();
+
+    // Resolve prompt timeout: per-backend → global → default (300s)
+    const acpConfig = (await ProcessConfig.get('acp.config')) as Record<string, { promptTimeout?: number }> | undefined;
+    const backendTimeout = acpConfig?.[this.agentConfig.agentBackend]?.promptTimeout;
+    const globalTimeout = await ProcessConfig.get('acp.promptTimeout');
+    const timeoutSec = backendTimeout || globalTimeout || 300;
+    const promptTimeoutMs = Math.max(30, timeoutSec) * 1000;
+
     const sessionOptions: SessionOptions = {
-      promptTimeoutMs: 300_000,
+      promptTimeoutMs,
       maxStartRetries: 3,
       maxResumeRetries: 2,
+      initialDesired: this.agentConfig.initialDesired,
     };
 
-    // TODO(ACP Discovery): Re-enable after fixing agent_id.
-    // this.acpSessionRepo?.upsertSession({
-    //   conversation_id: this.conversationId,
-    //   agent_backend: this.agentConfig.agentBackend,
-    //   agent_source: this.agentConfig.agentSource,
-    //   agent_id: this.agentConfig.agentId,
-    //   session_id: null,
-    //   session_status: 'idle',
-    //   session_config: '{}',
-    //   last_active_at: Date.now(),
-    //   suspended_at: null,
-    // });
-
     this.session = new AcpSession(this.agentConfig, clientFactory, callbacks, sessionOptions);
+
+    // Wait for team MCP tools to complete handshake before allowing messages.
+    // The stdio script sends mcp_ready with TEAM_AGENT_SLOT_ID after server.connect().
+    const teamMcp = this.agentConfig.teamMcpConfig;
+    const teamSlotId =
+      teamMcp && 'env' in teamMcp
+        ? teamMcp.env.find((e: { name: string }) => e.name === 'TEAM_AGENT_SLOT_ID')?.value
+        : undefined;
+    if (teamSlotId) {
+      await waitForMcpReady(teamSlotId, 30_000).catch(() => {
+        console.warn('[AcpAgentV2] Team MCP readiness timeout, proceeding anyway');
+      });
+    }
+
     return this.session;
   }
 
@@ -222,6 +226,12 @@ export class AcpAgentV2 {
    */
   private buildCallbacks(): SessionCallbacks {
     return {
+      onInitialize: (result: unknown) => {
+        this.cacheInitializeResult(result).catch((err) => {
+          console.warn('[AcpAgentV2] Failed to cache initialize result:', err);
+        });
+      },
+
       onMessage: (message: TMessage) => {
         // Merge tool call updates with their original tool_call before emitting
         const resolved =
@@ -232,12 +242,15 @@ export class AcpAgentV2 {
         if (oldMsg.type) {
           this.onStreamEvent(oldMsg);
         }
+
+        // Intercept navigation tools → emit preview_open for chrome-devtools preview
+        if (message.type === 'acp_tool_call') {
+          this.emitPreviewIfNavigation(message as IMessageAcpToolCall);
+        }
       },
 
       onSessionId: (sessionId: string) => {
         this.lastSessionId = sessionId;
-        // TODO(ACP Discovery): Re-enable after fixing agent_id.
-        // this.acpSessionRepo?.updateSessionId(this.conversationId, sessionId);
         if (this.onSessionIdUpdate) {
           this.onSessionIdUpdate(sessionId);
         }
@@ -282,14 +295,20 @@ export class AcpAgentV2 {
           msg_id: `model_${Date.now()}`,
           data: this.cachedModelInfo,
         });
+
+        this.persistSessionCapabilities();
       },
 
-      onModeUpdate: (_mode: ModeSnapshot) => {
+      onModeUpdate: (mode: ModeSnapshot) => {
+        this.cachedModes = mode;
+
         // Resolve modeOp if pending
         if (this.modeOp) {
           this.resolveOp(this.modeOp, { success: true });
           this.modeOp = null;
         }
+
+        this.persistSessionCapabilities();
       },
 
       onConfigUpdate: (config: ConfigSnapshot) => {
@@ -303,12 +322,10 @@ export class AcpAgentV2 {
 
         // Forward availableCommands to old callback
         if (this.onAvailableCommandsUpdate && config.availableCommands.length > 0) {
-          const commands = config.availableCommands.map((name) => ({
-            name,
-            description: name,
-          }));
-          this.onAvailableCommandsUpdate(commands);
+          this.onAvailableCommandsUpdate(config.availableCommands);
         }
+
+        this.persistSessionCapabilities();
       },
 
       onContextUsage: (usage: ContextUsage) => {
@@ -316,7 +333,7 @@ export class AcpAgentV2 {
           type: 'acp_context_usage',
           conversation_id: this.conversationId,
           msg_id: `usage_${Date.now()}`,
-          data: { used: usage.used, size: usage.total },
+          data: { used: usage.used, size: usage.total, cost: usage.cost },
         });
       },
 
@@ -515,8 +532,6 @@ export class AcpAgentV2 {
   async kill(): Promise<void> {
     await this.session?.stop();
     this.activeToolCalls.clear();
-    // TODO(ACP Discovery): Re-enable after fixing agent_id.
-    // this.acpSessionRepo?.deleteSession(this.conversationId);
   }
 
   cancelPrompt(): void {
@@ -527,9 +542,10 @@ export class AcpAgentV2 {
 
   async sendMessage(data: { content: string; files?: string[]; msg_id?: string }): Promise<AcpResult> {
     try {
-      // Emit start signal (matches old AcpAgent behavior)
-      if (this.onSignalEvent) {
-        this.onSignalEvent({
+      // Emit start event via stream channel so AcpAgentManager.handleStreamEvent
+      // can emit request_trace (which checks message.type === 'start')
+      if (this.onStreamEvent) {
+        this.onStreamEvent({
           type: 'start',
           data: null,
           msg_id: data.msg_id ?? `start_${Date.now()}`,
@@ -537,16 +553,33 @@ export class AcpAgentV2 {
         });
       }
 
-      this.session!.sendMessage(data.content, data.files);
+      // Claude: inject model switch notice so the AI knows its identity changed.
+      // In terminal "/model X" outputs into conversation; ACP set_model is silent.
+      let content = data.content;
+      if (this.pendingModelSwitchNotice) {
+        content =
+          `<system-reminder>\n` +
+          `Model switch: The active model has been changed to ${this.pendingModelSwitchNotice} via the /model command. ` +
+          `You are now running as ${this.pendingModelSwitchNotice}. ` +
+          `The ANTHROPIC_MODEL environment variable and the earlier "You are powered by" text in the system prompt are stale (cached from session start) and no longer reflect the actual model. ` +
+          `When asked which model you are, answer ${this.pendingModelSwitchNotice}.\n` +
+          `</system-reminder>\n\n` +
+          content;
+        this.pendingModelSwitchNotice = null;
+      }
+
+      await this.session!.sendMessage(content, data.files);
       return { success: true, data: null };
     } catch (err) {
+      const errorType = err instanceof AcpSessionError ? mapAcpErrorCodeToType(err.code) : AcpErrorType.UNKNOWN;
+      const retryable = err instanceof AcpSessionError ? err.retryable : false;
       return {
         success: false,
         error: {
-          type: AcpErrorType.UNKNOWN,
-          code: 'UNKNOWN',
+          type: errorType,
+          code: err instanceof AcpSessionError ? err.code : 'UNKNOWN',
           message: err instanceof Error ? err.message : String(err),
-          retryable: false,
+          retryable,
         },
       };
     }
@@ -572,14 +605,35 @@ export class AcpAgentV2 {
   // ─── Config/Model/Mode Methods (Task 6 — partial) ──────────────
 
   getModelInfo(): AcpModelInfo | null {
+    // Claude: prefer cc-switch model source for accurate model names and slot mapping
+    if (this.agentConfig.agentBackend === 'claude') {
+      const ccSwitchInfo = readClaudeModelInfoFromCcSwitch();
+      if (ccSwitchInfo) {
+        // If user has overridden the model via setModel, apply it to cc-switch data
+        const currentId = this.cachedModelInfo?.currentModelId;
+        if (currentId && ccSwitchInfo.availableModels?.some((m) => m.id === currentId)) {
+          const selected = ccSwitchInfo.availableModels.find((m) => m.id === currentId);
+          return {
+            ...ccSwitchInfo,
+            currentModelId: currentId,
+            currentModelLabel: selected?.label ?? currentId,
+          };
+        }
+        return ccSwitchInfo;
+      }
+    }
     return this.cachedModelInfo;
   }
 
   getConfigOptions(): AcpSessionConfigOption[] {
-    return this.cachedConfigOptions;
+    return this.cachedConfigOptions.filter((opt) => opt.category !== 'model' && opt.category !== 'mode');
   }
 
   async setModelByConfigOption(modelId: string): Promise<AcpModelInfo | null> {
+    // Queue model switch notice for Claude (ACP set_model is silent, AI doesn't know)
+    if (this.agentConfig.agentBackend === 'claude') {
+      this.pendingModelSwitchNotice = modelId;
+    }
     return new Promise<AcpModelInfo | null>((resolve, reject) => {
       const timer = setTimeout(() => {
         this.modelOp = null;
@@ -614,10 +668,28 @@ export class AcpAgentV2 {
   }
 
   async enableYoloMode(): Promise<void> {
-    await this.setMode('bypassPermissions');
+    await this.setMode(getFullAutoMode(this.agentConfig.agentBackend));
   }
 
   // ─── Helper Methods ─────────────────────────────────────────────
+
+  /**
+   * Check if an acp_tool_call is a navigation tool (chrome-devtools) and emit
+   * a preview_open event so the URL shows in the preview panel.
+   */
+  private emitPreviewIfNavigation(message: IMessageAcpToolCall): void {
+    const title = message.content?.update?.title;
+    const rawInput = message.content?.update?.rawInput as Record<string, unknown> | undefined;
+    if (!title) return;
+
+    if (!NavigationInterceptor.isNavigationTool(title)) return;
+
+    const url = NavigationInterceptor.extractUrl({ arguments: rawInput });
+    if (!url) return;
+
+    const previewMsg = NavigationInterceptor.createPreviewMessage(url, this.conversationId);
+    this.onStreamEvent(previewMsg);
+  }
 
   /**
    * Temporary auth recovery: run backend CLI login command, then retry session.
@@ -645,7 +717,7 @@ export class AcpAgentV2 {
 
     const backend = this.agentConfig.agentBackend;
     try {
-      await runBackendLogin(backend);
+      await runBackendLogin(backend, this.agentConfig.command);
       // Reload credentials from env after login refreshes tokens
       const creds = await loadAuthCredentials(backend, this.agentConfig.env);
       this.session?.retryAuth(creds ?? undefined);
@@ -668,5 +740,70 @@ export class AcpAgentV2 {
   private rejectOp<T>(op: PendingOp<T>, err: Error): void {
     clearTimeout(op.timer);
     op.reject(err);
+  }
+
+  /**
+   * Persist initialize result to disk so team MCP, MCP filtering, and other
+   * consumers can read agent capabilities before an active session exists.
+   */
+  private async cacheInitializeResult(initResult: unknown): Promise<void> {
+    const backend = this.agentConfig.agentBackend;
+    const cached = (await ProcessConfig.get('acp.cachedInitializeResult')) || {};
+    await ProcessConfig.set('acp.cachedInitializeResult', {
+      ...cached,
+      [backend]: parseInitializeResult(initResult),
+    });
+  }
+
+  /**
+   * Persist session capabilities to disk so Guid page / selectors can render
+   * from cache before an active session exists. Uses a static queue to
+   * serialize writes when multiple backends start concurrently.
+   */
+  private persistSessionCapabilities(): void {
+    const backend = this.agentConfig.agentBackend;
+    const modelInfo = this.cachedModelInfo;
+    const configOptions = this.cachedConfigOptions;
+    const modes = this.cachedModes;
+
+    const job = AcpAgentV2.cacheQueue.then(async () => {
+      if (modelInfo && modelInfo.availableModels && modelInfo.availableModels.length > 0) {
+        const cached = (await ProcessConfig.get('acp.cachedModels')) || {};
+        const existing = cached[backend];
+        await ProcessConfig.set('acp.cachedModels', {
+          ...cached,
+          [backend]: {
+            ...modelInfo,
+            // Preserve the original default model from the first session
+            currentModelId: existing?.currentModelId ?? modelInfo.currentModelId,
+            currentModelLabel: existing?.currentModelLabel ?? modelInfo.currentModelLabel,
+          },
+        });
+      }
+
+      if (configOptions.length > 0) {
+        const cached = (await ProcessConfig.get('acp.cachedConfigOptions')) || {};
+        await ProcessConfig.set('acp.cachedConfigOptions', {
+          ...cached,
+          [backend]: configOptions,
+        });
+      }
+
+      if (modes && modes.availableModes.length > 0) {
+        const cached = (await ProcessConfig.get('acp.cachedModes')) || {};
+        await ProcessConfig.set('acp.cachedModes', {
+          ...cached,
+          [backend]: {
+            currentModeId: modes.currentModeId ?? undefined,
+            availableModes: modes.availableModes.map((m) => ({
+              id: m.id,
+              name: m.name,
+              description: m.description,
+            })),
+          },
+        });
+      }
+    });
+    AcpAgentV2.cacheQueue = job.catch(() => {});
   }
 }

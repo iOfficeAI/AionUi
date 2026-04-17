@@ -7,11 +7,19 @@ export type AcpErrorCode =
   | 'SESSION_EXPIRED'
   | 'PROMPT_TIMEOUT'
   | 'PROCESS_CRASHED'
-  | 'PROTOCOL_ERROR'
-  | 'AGENT_ERROR'
   | 'INVALID_STATE'
-  | 'PERMISSION_CANCELLED'
-  | 'INTERNAL_ERROR';
+  | 'INTERNAL_ERROR'
+  // Granular ACP JSON-RPC error codes
+  | 'ACP_PARSE_ERROR' // -32700
+  | 'INVALID_ACP_REQUEST' // -32600
+  | 'ACP_METHOD_NOT_FOUND' // -32601
+  | 'ACP_INVALID_PARAMS' // -32602
+  | 'AGENT_INTERNAL_ERROR' // -32603
+  | 'ACP_SESSION_NOT_FOUND' // -32001
+  | 'AGENT_SESSION_NOT_FOUND' // -32002
+  | 'ACP_ELICITATION_REQUIRED' // -32042
+  | 'ACP_REQ_CANCELLED' // -32800
+  | 'AGENT_ERROR'; // fallback for unmapped agent codes
 
 export class AcpError extends Error {
   readonly retryable: boolean;

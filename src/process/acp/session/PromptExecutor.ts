@@ -70,8 +70,17 @@ export class PromptExecutor {
 
     try {
       this.timer.start();
-      await lifecycle.client.prompt(lifecycle.sessionId, content);
+      const result = await lifecycle.client.prompt(lifecycle.sessionId, content);
       this.timer.stop();
+
+      // Fallback: emit usage from PromptResponse for backends that don't send usage_update
+      if (result.usage) {
+        this.host.callbacks.onContextUsage({
+          used: result.usage.totalTokens,
+          total: 0,
+          percentage: 0,
+        });
+      }
     } catch (err) {
       this.timer.stop();
       this.host.messageTranslator.onTurnEnd();
@@ -105,9 +114,14 @@ export class PromptExecutor {
 
     if (acpErr.retryable) {
       this.host.setStatus('active');
+      this.host.callbacks.onSignal({ type: 'error', message: acpErr.message, recoverable: true });
     } else {
       this.host.enterError(acpErr.message);
     }
+
+    // Re-throw so callers (AcpSession.sendMessage → AcpAgentV2.sendMessage) can
+    // return structured error types to AcpAgentManager.
+    throw acpErr;
   }
 
   // ─── Cancel ───────────────────────────────────────────────────

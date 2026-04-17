@@ -30,19 +30,22 @@ import { extractAcpError, formatUnknownError } from '@process/acp/errors/errorEx
  * non-standard codes, we can adopt the same approach.
  */
 const ACP_CODE_MAP: Record<number, { code: AcpErrorCode; retryable: boolean }> = {
-  [-32700]: { code: 'PROTOCOL_ERROR', retryable: true }, // Parse error
-  [-32600]: { code: 'PROTOCOL_ERROR', retryable: false }, // Invalid request
-  [-32601]: { code: 'AGENT_ERROR', retryable: false }, // Method not found
-  [-32602]: { code: 'AGENT_ERROR', retryable: false }, // Invalid params
-  [-32603]: { code: 'AGENT_ERROR', retryable: true }, // Internal error
+  [-32700]: { code: 'ACP_PARSE_ERROR', retryable: true }, // Parse error
+  [-32600]: { code: 'INVALID_ACP_REQUEST', retryable: false }, // Invalid request
+  [-32601]: { code: 'ACP_METHOD_NOT_FOUND', retryable: false }, // Method not found
+  [-32602]: { code: 'ACP_INVALID_PARAMS', retryable: false }, // Invalid params
+  [-32603]: { code: 'AGENT_INTERNAL_ERROR', retryable: true }, // Agent Internal error
   [-32000]: { code: 'AUTH_REQUIRED', retryable: true }, // Auth required (ACP)
-  [-32001]: { code: 'SESSION_EXPIRED', retryable: false }, // Session not found (legacy, also in acpx)
-  [-32002]: { code: 'SESSION_EXPIRED', retryable: false }, // Resource not found (ACP)
-  [-32042]: { code: 'AGENT_ERROR', retryable: false }, // URL elicitation required (ACP, unstable)
-  [-32800]: { code: 'PERMISSION_CANCELLED', retryable: false }, // Request cancelled (ACP, unstable)
+  [-32001]: { code: 'ACP_SESSION_NOT_FOUND', retryable: false }, // Session not found (legacy, also in acpx)
+  [-32002]: { code: 'AGENT_SESSION_NOT_FOUND', retryable: false }, // Resource not found (ACP)
+  [-32042]: { code: 'ACP_ELICITATION_REQUIRED', retryable: false }, // URL elicitation required (ACP, unstable)
+  [-32800]: { code: 'ACP_REQ_CANCELLED', retryable: false }, // Request cancelled (ACP, unstable)
 };
 
 const RETRYABLE_ERRNO = new Set(['ECONNREFUSED', 'ECONNRESET', 'EPIPE', 'ETIMEDOUT']);
+
+const AUTH_KEYWORDS_RE =
+  /\btoken\s+(is\s+)?expired\b|\bsso\s+login\b|\bunauthorized\b|\bforbidden\b|\bcredential\b|\bapi[_ ]?key\b|\bnot\s+authenticated\b|\baccess\s+denied\b/i;
 
 /**
  * Normalize any error into AcpError.
@@ -65,6 +68,14 @@ export function normalizeError(error: unknown): AcpError {
   // Prefer SDK's RequestError — it carries a typed .code from the ACP schema.
   if (error instanceof RequestError) {
     const mapped = ACP_CODE_MAP[error.code];
+
+    // Message-based heuristic: some agents return auth failures as -32603
+    // (Internal error) instead of -32000 (Auth required). Detect common
+    // auth-related keywords to surface the correct auth flow to the user.
+    if (mapped && mapped.code !== 'AUTH_REQUIRED' && isAuthRelatedMessage(error.message)) {
+      return new AcpError('AUTH_REQUIRED', error.message, { cause: error, retryable: true });
+    }
+
     if (mapped) {
       return new AcpError(mapped.code, error.message, {
         cause: error,
@@ -106,4 +117,9 @@ export function isRetryablePromptError(error: unknown): boolean {
   if (error instanceof AcpError) return error.retryable;
   const normalized = normalizeError(error);
   return normalized.retryable;
+}
+
+/** Detect auth-related failures from error messages — for agents that don't use -32000. */
+function isAuthRelatedMessage(message: string): boolean {
+  return AUTH_KEYWORDS_RE.test(message);
 }

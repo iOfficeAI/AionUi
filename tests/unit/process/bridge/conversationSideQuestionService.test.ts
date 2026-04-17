@@ -1,59 +1,53 @@
-import type { AcpPermissionRequest, AcpSessionUpdate } from '@/common/types/acpTypes';
+import type {
+  SessionNotification,
+  RequestPermissionRequest,
+  RequestPermissionResponse,
+} from '@agentclientprotocol/sdk';
 import type { TChatConversation } from '@/common/config/storage';
 import { ConversationSideQuestionService } from '@/process/bridge/services/ConversationSideQuestionService';
 import type { IConversationService } from '@/process/services/IConversationService';
+import type { ProtocolHandlers } from '@/process/acp/types';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-type DisconnectInfo = {
-  code: number | null;
-  signal: NodeJS.Signals | null;
-};
-
-type MockAcpConnectionInstance = {
-  onEndTurn: () => void;
-  onPermissionRequest: (data: AcpPermissionRequest) => Promise<{ optionId: string }>;
-  onSessionUpdate: (data: AcpSessionUpdate) => void;
-};
-
 const {
-  mockAcpConnect,
-  mockAcpCancelPrompt,
-  mockAcpDisconnect,
-  mockAcpNewSession,
-  mockAcpSendPrompt,
-  mockAcpSetPromptTimeout,
+  mockStart,
+  mockForkSession,
+  mockPrompt,
+  mockCancel,
+  mockClose,
+  mockOnDisconnect,
   mockProcessConfigGet,
+  handlersRef,
 } = vi.hoisted(() => ({
-  mockAcpConnect: vi.fn(),
-  mockAcpCancelPrompt: vi.fn(),
-  mockAcpDisconnect: vi.fn(),
-  mockAcpNewSession: vi.fn(),
-  mockAcpSendPrompt: vi.fn(),
-  mockAcpSetPromptTimeout: vi.fn(),
+  mockStart: vi.fn(),
+  mockForkSession: vi.fn(),
+  mockPrompt: vi.fn(),
+  mockCancel: vi.fn(),
+  mockClose: vi.fn(),
+  mockOnDisconnect: vi.fn(),
   mockProcessConfigGet: vi.fn(),
+  handlersRef: { current: null as ProtocolHandlers | null },
+}));
+
+vi.mock('@process/acp/compat/LegacyConnectorFactory', () => ({
+  LegacyConnectorFactory: class {
+    create(_config: unknown, handlers: ProtocolHandlers) {
+      handlersRef.current = handlers;
+      return {
+        start: mockStart,
+        forkSession: mockForkSession,
+        prompt: mockPrompt,
+        cancel: mockCancel,
+        close: mockClose,
+        onDisconnect: mockOnDisconnect,
+      };
+    }
+  },
 }));
 
 vi.mock('@process/utils/initStorage', () => ({
   ProcessConfig: {
     get: (...args: unknown[]) => mockProcessConfigGet(...args),
-  },
-}));
-
-vi.mock('@process/agent/acp/AcpConnection', () => ({
-  AcpConnection: class {
-    onSessionUpdate: (data: AcpSessionUpdate) => void = () => {};
-    onPermissionRequest: (data: AcpPermissionRequest) => Promise<{ optionId: string }> = async () => ({
-      optionId: 'reject_once',
-    });
-    onEndTurn: () => void = () => {};
-    onDisconnect: (error: DisconnectInfo) => void = () => {};
-
-    connect = (...args: unknown[]) => mockAcpConnect(...args);
-    newSession = (...args: unknown[]) => mockAcpNewSession(...args);
-    sendPrompt = (...args: unknown[]) => mockAcpSendPrompt(this, ...args);
-    disconnect = (...args: unknown[]) => mockAcpDisconnect(...args);
-    setPromptTimeout = (...args: unknown[]) => mockAcpSetPromptTimeout(...args);
-    cancelPrompt = (...args: unknown[]) => mockAcpCancelPrompt(...args);
   },
 }));
 
@@ -99,63 +93,57 @@ function makeClaudeConversation(): TChatConversation {
   });
 }
 
-function createTextChunkUpdate(text: string): AcpSessionUpdate {
+function createTextChunkNotification(text: string): SessionNotification {
   return {
     sessionId: 'fork-1',
     update: {
       sessionUpdate: 'agent_message_chunk',
-      content: {
-        type: 'text',
-        text,
-      },
+      content: { type: 'text', text },
     },
-  };
+  } as SessionNotification;
 }
 
-function createPermissionRequest(): AcpPermissionRequest {
-  return {
-    options: [{ kind: 'reject_once', name: 'Reject', optionId: 'reject_once' }],
-    sessionId: 'fork-1',
-    toolCall: {
-      title: 'Bash',
-      toolCallId: 'tool-1',
-    },
-  };
-}
-
-function createToolCallUpdate(): AcpSessionUpdate {
+function createToolCallNotification(): SessionNotification {
   return {
     sessionId: 'fork-1',
     update: {
-      kind: 'execute',
       sessionUpdate: 'tool_call',
+      kind: 'execute',
       status: 'pending',
       title: 'Bash',
       toolCallId: 'tool-1',
     },
-  };
+  } as SessionNotification;
+}
+
+function createPermissionRequest(): RequestPermissionRequest {
+  return {
+    sessionId: 'fork-1',
+    options: [{ kind: 'reject_once', name: 'Reject', optionId: 'reject_once' }],
+    toolCall: {
+      title: 'Bash',
+      toolCallId: 'tool-1',
+    },
+  } as RequestPermissionRequest;
 }
 
 describe('ConversationSideQuestionService', () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    mockAcpConnect.mockResolvedValue(undefined);
-    mockAcpCancelPrompt.mockReset();
-    mockAcpNewSession.mockResolvedValue({ sessionId: 'fork-1' });
-    mockAcpSendPrompt.mockImplementation(async (connection: MockAcpConnectionInstance) => {
-      connection.onSessionUpdate(createTextChunkUpdate('The file was `config/aion.json`.'));
-      connection.onEndTurn();
+    handlersRef.current = null;
+    mockStart.mockResolvedValue({});
+    mockForkSession.mockResolvedValue({ sessionId: 'fork-1' });
+    mockPrompt.mockImplementation(async () => {
+      handlersRef.current!.onSessionUpdate(createTextChunkNotification('The file was `config/aion.json`.'));
+      // prompt resolves = turn finished
       return {};
     });
-    mockAcpDisconnect.mockResolvedValue(undefined);
-    mockAcpSetPromptTimeout.mockReturnValue(undefined);
+    mockCancel.mockResolvedValue(undefined);
+    mockClose.mockResolvedValue(undefined);
+    mockOnDisconnect.mockImplementation(() => {});
     mockProcessConfigGet.mockImplementation(async (key: string) => {
       if (key === 'acp.config') {
-        return {
-          claude: {
-            cliPath: 'claude',
-          },
-        };
+        return { claude: { cliPath: 'claude' } };
       }
       return undefined;
     });
@@ -200,7 +188,7 @@ describe('ConversationSideQuestionService', () => {
     await expect(service.ask('conv-1', 'what file did we use?')).resolves.toEqual({
       status: 'unsupported',
     });
-    expect(mockAcpConnect).not.toHaveBeenCalled();
+    expect(mockStart).not.toHaveBeenCalled();
   });
 
   it('uses an ACP forked session when claude ACP session metadata is available', async () => {
@@ -211,19 +199,19 @@ describe('ConversationSideQuestionService', () => {
       answer: 'The file was `config/aion.json`.',
     });
 
-    expect(mockAcpConnect).toHaveBeenCalledWith('claude', 'claude', '/tmp/ws', undefined, undefined);
-    expect(mockAcpNewSession).toHaveBeenCalledWith('/tmp/ws', {
-      forkSession: true,
+    expect(mockStart).toHaveBeenCalled();
+    expect(mockForkSession).toHaveBeenCalledWith({
+      sessionId: 'parent-session-1',
+      cwd: '/tmp/ws',
       mcpServers: [],
-      resumeSessionId: 'parent-session-1',
     });
   });
 
   it('returns noAnswer when the claude fork ends without text', async () => {
     const service = new ConversationSideQuestionService(makeService(makeClaudeConversation()));
 
-    mockAcpSendPrompt.mockImplementationOnce(async (connection: MockAcpConnectionInstance) => {
-      connection.onEndTurn();
+    mockPrompt.mockImplementationOnce(async () => {
+      // prompt resolves without any text chunks = no answer
       return {};
     });
 
@@ -234,7 +222,7 @@ describe('ConversationSideQuestionService', () => {
 
   it('returns unsupported when the ACP backend rejects forked sessions', async () => {
     const service = new ConversationSideQuestionService(makeService(makeClaudeConversation()));
-    mockAcpNewSession.mockRejectedValueOnce(new Error('fork not supported'));
+    mockForkSession.mockRejectedValueOnce(new Error('fork not supported'));
 
     await expect(service.ask('conv-1', 'what file did we use?')).resolves.toEqual({
       status: 'unsupported',
@@ -244,51 +232,53 @@ describe('ConversationSideQuestionService', () => {
   it('rejects when the ACP side question times out', async () => {
     vi.useFakeTimers();
     const service = new ConversationSideQuestionService(makeService(makeClaudeConversation()));
-    mockAcpSendPrompt.mockImplementationOnce(() => new Promise(() => {}));
+    mockPrompt.mockImplementationOnce(() => new Promise(() => {}));
 
     const promise = service.ask('conv-1', 'what file did we use?');
     const expectation = expect(promise).rejects.toThrow('ACP /btw timed out.');
     await vi.advanceTimersByTimeAsync(30_000);
 
     await expectation;
-    expect(mockAcpDisconnect).toHaveBeenCalled();
+    expect(mockClose).toHaveBeenCalled();
     vi.useRealTimers();
   });
 
   it('returns toolsRequired when permission request is triggered without prior text', async () => {
     const service = new ConversationSideQuestionService(makeService(makeClaudeConversation()));
 
-    mockAcpSendPrompt.mockImplementationOnce(async (connection: MockAcpConnectionInstance) => {
-      await connection.onPermissionRequest(createPermissionRequest());
+    mockPrompt.mockImplementationOnce(async () => {
+      const result: RequestPermissionResponse =
+        await handlersRef.current!.onRequestPermission(createPermissionRequest());
+      expect(result.outcome).toEqual({ outcome: 'selected', optionId: 'reject_once' });
       return {};
     });
 
     await expect(service.ask('conv-1', 'what file did we use?')).resolves.toEqual({
       status: 'toolsRequired',
     });
-    expect(mockAcpCancelPrompt).toHaveBeenCalled();
+    expect(mockCancel).toHaveBeenCalled();
   });
 
   it('returns toolsRequired when tool call is attempted without prior text', async () => {
     const service = new ConversationSideQuestionService(makeService(makeClaudeConversation()));
 
-    mockAcpSendPrompt.mockImplementationOnce(async (connection: MockAcpConnectionInstance) => {
-      connection.onSessionUpdate(createToolCallUpdate());
+    mockPrompt.mockImplementationOnce(async () => {
+      handlersRef.current!.onSessionUpdate(createToolCallNotification());
       return {};
     });
 
     await expect(service.ask('conv-1', 'what file did we use?')).resolves.toEqual({
       status: 'toolsRequired',
     });
-    expect(mockAcpCancelPrompt).toHaveBeenCalled();
+    expect(mockCancel).toHaveBeenCalled();
   });
 
   it('returns ok with partial text when tool call is attempted after text', async () => {
     const service = new ConversationSideQuestionService(makeService(makeClaudeConversation()));
 
-    mockAcpSendPrompt.mockImplementationOnce(async (connection: MockAcpConnectionInstance) => {
-      connection.onSessionUpdate(createTextChunkUpdate('Here is what I found'));
-      connection.onSessionUpdate(createToolCallUpdate());
+    mockPrompt.mockImplementationOnce(async () => {
+      handlersRef.current!.onSessionUpdate(createTextChunkNotification('Here is what I found'));
+      handlersRef.current!.onSessionUpdate(createToolCallNotification());
       return {};
     });
 
@@ -296,6 +286,6 @@ describe('ConversationSideQuestionService', () => {
       status: 'ok',
       answer: 'Here is what I found',
     });
-    expect(mockAcpCancelPrompt).toHaveBeenCalled();
+    expect(mockCancel).toHaveBeenCalled();
   });
 });

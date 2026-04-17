@@ -20,6 +20,7 @@ export type { AcpSessionRow, IAcpSessionRepository } from '../services/database/
 export { AcpError, type AcpErrorCode } from './errors/AcpError';
 export { normalizeError } from './errors/errorNormalize';
 export type { AcpClient, ClientFactory } from './infra/IAcpClient';
+export type { ForkSessionParams } from './infra/AcpProtocol';
 export { noopMetrics, type AcpMetrics } from './metrics/AcpMetrics';
 export { AcpRuntime } from './runtime/AcpRuntime';
 export { AcpSession, type SessionOptions } from './session/AcpSession';

@@ -13,13 +13,14 @@
  */
 
 import type {
+  ForkSessionResponse,
   InitializeResponse,
   LoadSessionResponse,
   NewSessionResponse,
   PromptResponse,
 } from '@agentclientprotocol/sdk';
 import type { AgentConfig, PromptContent, ProtocolHandlers } from '@process/acp/types';
-import type { CreateSessionParams, LoadSessionParams } from '@process/acp/infra/AcpProtocol';
+import type { CreateSessionParams, ForkSessionParams, LoadSessionParams } from '@process/acp/infra/AcpProtocol';
 
 // ─── AcpClient Interface ────────────────────────────────────────
 
@@ -38,6 +39,7 @@ export interface AcpClient {
 
   createSession(params: CreateSessionParams): Promise<NewSessionResponse>;
   loadSession(params: LoadSessionParams): Promise<LoadSessionResponse>;
+  forkSession(params: ForkSessionParams): Promise<ForkSessionResponse>;
   prompt(sessionId: string, content: PromptContent): Promise<PromptResponse>;
   cancel(sessionId: string): Promise<void>;
   closeSession(sessionId: string): Promise<void>;
