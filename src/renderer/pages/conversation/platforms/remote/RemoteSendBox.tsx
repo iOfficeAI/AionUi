@@ -18,7 +18,6 @@ import { useAutoTitle } from '@/renderer/hooks/chat/useAutoTitle';
 import { getSendBoxDraftHook, type FileOrFolderItem } from '@/renderer/hooks/chat/useSendBoxDraft';
 import { createSetUploadFile } from '@/renderer/hooks/chat/useSendBoxFiles';
 import { useOpenFileSelector } from '@/renderer/hooks/file/useOpenFileSelector';
-import { useAcpV2Enabled } from '@/renderer/hooks/system/useAcpV2Enabled';
 import { useLatestRef } from '@/renderer/hooks/ui/useLatestRef';
 import { useAddOrUpdateMessage, useRemoveMessageByMsgId } from '@/renderer/pages/conversation/Messages/hooks';
 import {
@@ -31,7 +30,6 @@ import { allSupportedExts, type FileMetadata } from '@/renderer/services/FileSer
 import { emitter, useAddEventListener } from '@/renderer/utils/emitter';
 import { mergeFileSelectionItems } from '@/renderer/utils/file/fileSelection';
 import { buildDisplayMessage } from '@/renderer/utils/file/messageFiles';
-import { Message } from '@arco-design/web-react';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 
@@ -55,7 +53,6 @@ const EMPTY_UPLOAD_FILES: string[] = [];
 const RemoteSendBox: React.FC<{ conversation_id: string }> = ({ conversation_id }) => {
   const [workspacePath, setWorkspacePath] = useState('');
   const { t } = useTranslation();
-  const isAcpV2Enabled = useAcpV2Enabled();
   const { checkAndUpdateTitle } = useAutoTitle();
   const addOrUpdateMessage = useAddOrUpdateMessage();
   const removeMessageByMsgId = useRemoveMessageByMsgId();
@@ -362,7 +359,7 @@ const RemoteSendBox: React.FC<{ conversation_id: string }> = ({ conversation_id 
     resetActiveExecution,
   } = useConversationCommandQueue({
     conversationId: conversation_id,
-    enabled: isAcpV2Enabled,
+    enabled: true,
     isBusy: aiProcessing,
     isHydrated: hasHydratedRunningState,
     onExecute: executeCommand,
@@ -370,11 +367,6 @@ const RemoteSendBox: React.FC<{ conversation_id: string }> = ({ conversation_id 
 
   const onSendHandler = useCallback(
     async (message: string) => {
-      if (!isAcpV2Enabled && aiProcessing) {
-        Message.warning(t('messages.conversationInProgress'));
-        return;
-      }
-
       emitter.emit('remote.selected.file.clear');
       const currentAtPath = [...atPath];
       const currentUploadFile = [...uploadFile];
@@ -387,7 +379,7 @@ const RemoteSendBox: React.FC<{ conversation_id: string }> = ({ conversation_id 
 
       if (
         shouldEnqueueConversationCommand({
-          enabled: isAcpV2Enabled,
+          enabled: true,
           isBusy: aiProcessing,
           hasPendingCommands,
         })
@@ -398,18 +390,7 @@ const RemoteSendBox: React.FC<{ conversation_id: string }> = ({ conversation_id 
 
       await executeCommand({ input: message, files: filePaths });
     },
-    [
-      aiProcessing,
-      atPath,
-      enqueue,
-      executeCommand,
-      hasPendingCommands,
-      isAcpV2Enabled,
-      setAtPath,
-      setUploadFile,
-      t,
-      uploadFile,
-    ]
+    [aiProcessing, atPath, enqueue, executeCommand, hasPendingCommands, setAtPath, setUploadFile, uploadFile]
   );
 
   const handleEditQueuedCommand = useCallback(
@@ -498,7 +479,7 @@ const RemoteSendBox: React.FC<{ conversation_id: string }> = ({ conversation_id 
           ) : undefined
         }
         onSend={onSendHandler}
-        allowSendWhileLoading={isAcpV2Enabled}
+        allowSendWhileLoading
       />
     </div>
   );

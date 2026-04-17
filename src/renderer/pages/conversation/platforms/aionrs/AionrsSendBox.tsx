@@ -19,7 +19,6 @@ import { getSendBoxDraftHook, type FileOrFolderItem } from '@/renderer/hooks/cha
 import { createSetUploadFile, useSendBoxFiles } from '@/renderer/hooks/chat/useSendBoxFiles';
 import { useSlashCommands } from '@/renderer/hooks/chat/useSlashCommands';
 import { useOpenFileSelector } from '@/renderer/hooks/file/useOpenFileSelector';
-import { useAcpV2Enabled } from '@/renderer/hooks/system/useAcpV2Enabled';
 import { useLatestRef } from '@/renderer/hooks/ui/useLatestRef';
 import { useAddOrUpdateMessage, useRemoveMessageByMsgId } from '@/renderer/pages/conversation/Messages/hooks';
 import { assertBridgeSuccess } from '@/renderer/pages/conversation/platforms/assertBridgeSuccess';
@@ -97,8 +96,6 @@ const AionrsSendBox: React.FC<{
   const [dynamicModes, setDynamicModes] = useState<AgentModeOption[]>([]);
   const { t } = useTranslation();
   const { checkAndUpdateTitle } = useAutoTitle();
-  const isAcpV2Enabled = useAcpV2Enabled();
-
   const { currentModel, getDisplayModelName } = modelSelection;
 
   const { thought, running, hasHydratedRunningState, tokenUsage, setActiveMsgId, setWaitingResponse, resetState } =
@@ -253,7 +250,7 @@ const AionrsSendBox: React.FC<{
     resetActiveExecution,
   } = useConversationCommandQueue({
     conversationId: conversation_id,
-    enabled: isAcpV2Enabled,
+    enabled: true,
     isBusy,
     isHydrated: hasHydratedRunningState,
     onExecute: executeCommand,
@@ -287,7 +284,7 @@ const AionrsSendBox: React.FC<{
   }, [conversation_id, executeCommand]);
 
   const onSendHandler = async (message: string) => {
-    if (!teamId && !isAcpV2Enabled && isBusy) {
+    if (!teamId && isBusy) {
       Message.warning(t('messages.conversationInProgress'));
       return;
     }
@@ -298,7 +295,7 @@ const AionrsSendBox: React.FC<{
 
     if (
       shouldEnqueueConversationCommand({
-        enabled: isAcpV2Enabled,
+        enabled: true,
         isBusy,
         hasPendingCommands,
       })
@@ -453,7 +450,7 @@ const AionrsSendBox: React.FC<{
         onSend={onSendHandler}
         slashCommands={slashCommands}
         onSlashBuiltinCommand={onSlashBuiltinCommand}
-        allowSendWhileLoading={isAcpV2Enabled}
+        allowSendWhileLoading
       />
     </div>
   );

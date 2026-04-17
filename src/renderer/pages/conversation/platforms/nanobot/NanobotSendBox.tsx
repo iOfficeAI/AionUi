@@ -19,7 +19,6 @@ import { getSendBoxDraftHook, type FileOrFolderItem } from '@/renderer/hooks/cha
 import { createSetUploadFile } from '@/renderer/hooks/chat/useSendBoxFiles';
 import { useSlashCommands } from '@/renderer/hooks/chat/useSlashCommands';
 import { useOpenFileSelector } from '@/renderer/hooks/file/useOpenFileSelector';
-import { useAcpV2Enabled } from '@/renderer/hooks/system/useAcpV2Enabled';
 import { useLatestRef } from '@/renderer/hooks/ui/useLatestRef';
 import { useAddOrUpdateMessage, useRemoveMessageByMsgId } from '@/renderer/pages/conversation/Messages/hooks';
 import { assertBridgeSuccess } from '@/renderer/pages/conversation/platforms/assertBridgeSuccess';
@@ -33,7 +32,7 @@ import { allSupportedExts, type FileMetadata } from '@/renderer/services/FileSer
 import { emitter, useAddEventListener } from '@/renderer/utils/emitter';
 import { mergeFileSelectionItems } from '@/renderer/utils/file/fileSelection';
 import { buildDisplayMessage } from '@/renderer/utils/file/messageFiles';
-import { Message, Tag } from '@arco-design/web-react';
+import { Tag } from '@arco-design/web-react';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 
@@ -59,7 +58,6 @@ const NanobotSendBox: React.FC<{ conversation_id: string }> = ({ conversation_id
   const { t } = useTranslation();
   const { checkAndUpdateTitle } = useAutoTitle();
   const slashCommands = useSlashCommands(conversation_id);
-  const isAcpV2Enabled = useAcpV2Enabled();
   const addOrUpdateMessage = useAddOrUpdateMessage();
   const removeMessageByMsgId = useRemoveMessageByMsgId();
   const { setSendBoxHandler } = usePreviewContext();
@@ -286,18 +284,13 @@ const NanobotSendBox: React.FC<{ conversation_id: string }> = ({ conversation_id
     resetActiveExecution,
   } = useConversationCommandQueue({
     conversationId: conversation_id,
-    enabled: isAcpV2Enabled,
+    enabled: true,
     isBusy: aiProcessing,
     isHydrated: hasHydratedRunningState,
     onExecute: executeCommand,
   });
 
   const onSendHandler = async (message: string) => {
-    if (!isAcpV2Enabled && aiProcessing) {
-      Message.warning(t('messages.conversationInProgress'));
-      return;
-    }
-
     emitter.emit('nanobot.selected.file.clear');
     const filePaths = [...uploadFile, ...atPath.map((item) => (typeof item === 'string' ? item : item.path))];
     setAtPath([]);
@@ -305,7 +298,7 @@ const NanobotSendBox: React.FC<{ conversation_id: string }> = ({ conversation_id
 
     if (
       shouldEnqueueConversationCommand({
-        enabled: isAcpV2Enabled,
+        enabled: true,
         isBusy: aiProcessing,
         hasPendingCommands,
       })
@@ -484,7 +477,7 @@ const NanobotSendBox: React.FC<{ conversation_id: string }> = ({ conversation_id
         onSend={onSendHandler}
         slashCommands={slashCommands}
         onSlashBuiltinCommand={onSlashBuiltinCommand}
-        allowSendWhileLoading={isAcpV2Enabled}
+        allowSendWhileLoading
       ></SendBox>
     </div>
   );

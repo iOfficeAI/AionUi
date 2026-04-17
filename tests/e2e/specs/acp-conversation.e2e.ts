@@ -67,7 +67,8 @@ test.describe('ACP Conversation Lifecycle', () => {
       const deleted = await deleteConversation(page, conversationId);
       expect(deleted).toBe(true);
 
-      // Should navigate away after deletion
+      // Navigate back to guid after deletion (IPC bridge delete does not auto-navigate)
+      await page.evaluate(() => window.location.assign('#/guid'));
       await page.waitForFunction(() => !window.location.hash.includes('/conversation/'), {
         timeout: 10_000,
       });

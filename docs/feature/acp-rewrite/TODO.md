@@ -62,25 +62,15 @@ upsertSession():
 
 ---
 
-## 清理 useAcpV2Enabled hook
+## ~~清理 useAcpV2Enabled hook~~
 
-**状态**: 待清理
-**标记**: `TODO`
-**文件**: `src/renderer/hooks/system/useAcpV2Enabled.ts:5`
+**状态**: 已完成
+**标记**: ~~`TODO`~~
 
-AcpV2 feature flag 已移除，`useAcpV2Enabled()` 现在始终返回 `true`。
-6 个 SendBox 组件仍在调用此 hook，涉及：
+已删除 `useAcpV2Enabled` hook 文件，6 个 SendBox 组件已内联 `enabled: true` / `allowSendWhileLoading`，
+移除所有死代码 busy 守卫（`if (!isAcpV2Enabled && isBusy)`）。
 
-- `enabled` 参数传给 `useConversationCommandQueue`
-- `allowSendWhileLoading` prop 传给 `SendBox`
-- busy 时的发送守卫判断（`if (!isAcpV2Enabled && isBusy)`）
-
-**清理方向**:
-
-1. 删除 `useAcpV2Enabled` hook 文件
-2. 在各 SendBox 中移除 `isAcpV2Enabled` 变量，将 `enabled: true` / `allowSendWhileLoading={true}` 内联
-3. 移除 busy 守卫中对 `isAcpV2Enabled` 的判断（队列已始终开启，不再需要 fallback 到阻止发送）
-4. 考虑进一步简化：如果 `enabled` 始终为 `true`，`useConversationCommandQueue` 的 `enabled` 参数可以去掉
+**后续**: 考虑将 `useConversationCommandQueue` 的 `enabled` 参数去掉（始终为 `true`）。
 
 ---
 

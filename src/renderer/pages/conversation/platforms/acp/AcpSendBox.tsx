@@ -16,7 +16,6 @@ import { getSendBoxDraftHook, type FileOrFolderItem } from '@/renderer/hooks/cha
 import { createSetUploadFile, useSendBoxFiles } from '@/renderer/hooks/chat/useSendBoxFiles';
 import { useSlashCommands } from '@/renderer/hooks/chat/useSlashCommands';
 import { useOpenFileSelector } from '@/renderer/hooks/file/useOpenFileSelector';
-import { useAcpV2Enabled } from '@/renderer/hooks/system/useAcpV2Enabled';
 import { useLatestRef } from '@/renderer/hooks/ui/useLatestRef';
 import { useAddOrUpdateMessage } from '@/renderer/pages/conversation/Messages/hooks';
 import { assertBridgeSuccess } from '@/renderer/pages/conversation/platforms/assertBridgeSuccess';
@@ -32,7 +31,7 @@ import { iconColors } from '@/renderer/styles/colors';
 import { emitter, useAddEventListener } from '@/renderer/utils/emitter';
 import { mergeFileSelectionItems } from '@/renderer/utils/file/fileSelection';
 import { buildDisplayMessage } from '@/renderer/utils/file/messageFiles';
-import { Message, Tag } from '@arco-design/web-react';
+import { Tag } from '@arco-design/web-react';
 import { Shield } from '@icon-park/react';
 import React, { useCallback, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -122,7 +121,6 @@ const AcpSendBox: React.FC<{
   } = useAcpMessage(conversation_id);
   const { t } = useTranslation();
   const teamPermission = useTeamPermission();
-  const isAcpV2Enabled = useAcpV2Enabled();
   // In team mode, all agents show the permission mode selector (members don't propagate)
   const showModeSelector = true;
   const isLeadInTeam = teamPermission && conversation_id === teamPermission.leadConversationId;
@@ -261,18 +259,13 @@ Please check your local CLI tool authentication status`,
     resetActiveExecution,
   } = useConversationCommandQueue({
     conversationId: conversation_id,
-    enabled: isAcpV2Enabled,
+    enabled: true,
     isBusy,
     isHydrated: hasHydratedRunningState,
     onExecute: executeCommand,
   });
 
   const onSendHandler = async (message: string) => {
-    if (!teamId && !isAcpV2Enabled && isBusy) {
-      Message.warning(t('messages.conversationInProgress'));
-      return;
-    }
-
     const atPathFiles = atPath.map((item) => (typeof item === 'string' ? item : item.path));
     const allFiles = [...uploadFile, ...atPathFiles];
 
@@ -281,7 +274,7 @@ Please check your local CLI tool authentication status`,
 
     if (
       shouldEnqueueConversationCommand({
-        enabled: isAcpV2Enabled,
+        enabled: true,
         isBusy,
         hasPendingCommands,
       })
@@ -438,7 +431,7 @@ Please check your local CLI tool authentication status`,
         onSend={onSendHandler}
         slashCommands={slashCommands}
         onSlashBuiltinCommand={onSlashBuiltinCommand}
-        allowSendWhileLoading={isAcpV2Enabled}
+        allowSendWhileLoading
         compactActions={!!teamId}
         sendButtonPrefix={
           tokenUsage ? (
