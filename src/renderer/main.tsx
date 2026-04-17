@@ -69,17 +69,17 @@ const loadArcoLocale = async (lang: string) => {
         const enUS = (await import('@arco-design/web-react/es/locale/en-US')).default;
         return {
           ...koKR,
-          Calendar: { 
-            ...koKR.Calendar, 
-            monthFormat: enUS.Calendar.monthFormat, 
-            yearFormat: enUS.Calendar.yearFormat 
+          Calendar: {
+            ...koKR.Calendar,
+            monthFormat: enUS.Calendar.monthFormat,
+            yearFormat: enUS.Calendar.yearFormat
           },
           DatePicker: {
             ...koKR.DatePicker,
-            Calendar: { 
-              ...koKR.DatePicker.Calendar, 
-              monthFormat: enUS.Calendar.monthFormat, 
-              yearFormat: enUS.Calendar.yearFormat 
+            Calendar: {
+              ...koKR.DatePicker.Calendar,
+              monthFormat: enUS.Calendar.monthFormat,
+              yearFormat: enUS.Calendar.yearFormat
             },
           },
           Form: enUS.Form,
@@ -110,8 +110,8 @@ const AppProviders = memo(({ children }: PropsWithChildren) => {
     return () => { mounted = false; };
   }, [i18n.language]);
 
-  
-  if (!locale) return ;
+
+  if (!locale) return;
 
   return (
     <AuthProvider>
@@ -134,7 +134,7 @@ const AppProviders = memo(({ children }: PropsWithChildren) => {
  */
 const Main = memo(() => {
   const { ready } = useAuth();
-  
+
   // Memoize layout to prevent redundant re-renders of the sidebar and history providers
   const layout = useMemo(() => (
     <ConversationHistoryProvider>
@@ -143,12 +143,12 @@ const Main = memo(() => {
   ), []);
 
   // Wait for auth context to be ready before rendering the router
-  if (!ready) return ;
+  if (!ready) return;
 
   return (
-    
-      <Router layout={layout} />
-   
+
+    <Router layout={layout} />
+
   );
 });
 
