@@ -22,6 +22,7 @@ import type { StdioMcpConfig } from '../team/TeamMcpServer';
 import { isTeamCapableBackend } from '@/common/types/teamTypes';
 import { ProcessConfig } from '@process/utils/initStorage';
 import { getConversationTypeForBackend } from '@/common/utils/buildAgentConversationParams';
+import { handleListModels } from '../modelListHandler';
 import { getDatabase } from '@process/services/database';
 import { writeTcpMessage, createTcpMessageReader, resolveMcpScriptDir } from '../tcpHelpers';
 
@@ -139,6 +140,8 @@ export class TeamGuideMcpServer {
     switch (toolName) {
       case 'aion_create_team':
         return this.handleCreateTeam(args, backend, callerConversationId);
+      case 'aion_list_models':
+        return handleListModels(args);
       default:
         throw new Error(`Unknown tool: ${toolName}`);
     }

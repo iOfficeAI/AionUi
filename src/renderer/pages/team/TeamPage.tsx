@@ -437,10 +437,14 @@ const TeamPageContent: React.FC<TeamPageContentProps> = ({ team, onAddAgent, onR
                       ref={(el) => {
                         agentRefs.current[agent.slotId] = el;
                       }}
-                      className='relative shrink-0 h-full border-r border-solid border-[color:var(--border-base)]'
+                      className='relative h-full border-r border-solid border-[color:var(--border-base)]'
                       style={{
-                        flex: isSingle ? 1 : undefined,
-                        width: isSingle ? undefined : '400px',
+                        // Always flex-grow to fill available space; each slot starts at 400px
+                        // basis so the layout is stable, but spare room is distributed evenly
+                        // instead of leaving empty gaps to the right. When the team is wider
+                        // than the viewport we preserve the 400px floor (prevents shrinking
+                        // into unreadable cards) so horizontal scroll kicks in naturally.
+                        flex: '1 1 400px',
                         minWidth: isSingle ? '240px' : '400px',
                         scrollSnapAlign: 'start',
                       }}

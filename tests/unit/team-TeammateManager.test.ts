@@ -516,27 +516,27 @@ describe('TeammateManager', () => {
       mgr.dispose();
     });
 
-    it('resets agent to idle after 60s wake timeout when turnCompleted never fires', async () => {
+    it('marks a silent lead as failed after the 60s inactivity watchdog fires', async () => {
       vi.useFakeTimers();
       try {
-        const agent = makeAgent({ slotId: 'slot-1', status: 'idle' });
+        // Lead is the only agent — timeout escalates to 'failed' but has nobody to notify.
+        const agent = makeAgent({ slotId: 'slot-1', role: 'lead', status: 'idle' });
         const mockSendMessage = vi.fn().mockResolvedValue(undefined);
-        const { mgr, workerTaskManager } = makeTeammateManager([agent]);
+        const { mgr, workerTaskManager, mailbox } = makeTeammateManager([agent]);
         vi.mocked(workerTaskManager.getOrBuildTask).mockResolvedValue({
           sendMessage: mockSendMessage,
         } as never);
 
-        // Start wake — resolves after sendMessage, timeout is still pending
         await mgr.wake('slot-1');
-
-        // Agent is active; no finish event arrives — timeout is running
         expect(mgr.getAgents().find((a) => a.slotId === 'slot-1')?.status).toBe('active');
 
-        // Advance past the 60s safety valve
-        vi.advanceTimersByTime(61_000);
+        await vi.advanceTimersByTimeAsync(61_000);
 
-        // Agent must be freed back to idle
-        expect(mgr.getAgents().find((a) => a.slotId === 'slot-1')?.status).toBe('idle');
+        // Previously the watchdog dropped the agent to 'idle' (hiding the stall).
+        // It now marks the agent 'failed' so the team surface reflects the problem.
+        expect(mgr.getAgents().find((a) => a.slotId === 'slot-1')?.status).toBe('failed');
+        // Lead has nobody to notify — no mailbox write should have occurred.
+        expect(mailbox.write).not.toHaveBeenCalled();
         mgr.dispose();
       } finally {
         vi.useRealTimers();
@@ -679,6 +679,113 @@ describe('TeammateManager', () => {
       // Gemini uses 'input' key
       expect(callArg).toHaveProperty('input');
       mgr.dispose();
+    });
+  });
+
+  // -------------------------------------------------------------------------
+  // wake inactivity watchdog (Fix B: notify lead on teammate stall + heartbeat)
+  // -------------------------------------------------------------------------
+
+  describe('wake inactivity watchdog', () => {
+    it('notifies the lead when a teammate goes silent past the 60s watchdog', async () => {
+      vi.useFakeTimers();
+      try {
+        const leadAgent = makeAgent({
+          slotId: 'slot-lead',
+          conversationId: 'conv-lead',
+          role: 'lead',
+          status: 'idle',
+          agentName: 'Leader',
+        });
+        const teammate = makeAgent({
+          slotId: 'slot-member',
+          conversationId: 'conv-member',
+          role: 'teammate',
+          status: 'idle',
+          agentName: 'Codex',
+          agentType: 'codex',
+        });
+        const mockSendMessage = vi.fn().mockResolvedValue(undefined);
+        const { mgr, mailbox, workerTaskManager } = makeTeammateManager([leadAgent, teammate]);
+        vi.mocked(workerTaskManager.getOrBuildTask).mockResolvedValue({
+          sendMessage: mockSendMessage,
+        } as never);
+
+        await mgr.wake('slot-member');
+        expect(mgr.getAgents().find((a) => a.slotId === 'slot-member')?.status).toBe('active');
+
+        // No stream activity arrives — push past the watchdog deadline.
+        await vi.advanceTimersByTimeAsync(61_000);
+
+        // Teammate is escalated to 'failed' (not silently dropped to 'idle').
+        expect(mgr.getAgents().find((a) => a.slotId === 'slot-member')?.status).toBe('failed');
+
+        // Lead mailbox received an idle_notification explaining the stall.
+        expect(mailbox.write).toHaveBeenCalledWith(
+          expect.objectContaining({
+            teamId: 'team-1',
+            toAgentId: 'slot-lead',
+            fromAgentId: 'slot-member',
+            type: 'idle_notification',
+            content: expect.stringContaining('Codex'),
+          })
+        );
+
+        // Lead was woken — getOrBuildTask called for the lead's conversation in
+        // addition to the initial teammate wake.
+        expect(vi.mocked(workerTaskManager.getOrBuildTask)).toHaveBeenCalledWith('conv-member');
+        expect(vi.mocked(workerTaskManager.getOrBuildTask)).toHaveBeenCalledWith('conv-lead');
+
+        mgr.dispose();
+      } finally {
+        vi.useRealTimers();
+      }
+    });
+
+    it('does not fire the watchdog if streaming activity keeps resetting it (heartbeat)', async () => {
+      vi.useFakeTimers();
+      try {
+        const teammate = makeAgent({
+          slotId: 'slot-member',
+          conversationId: 'conv-member',
+          role: 'teammate',
+          status: 'idle',
+          agentName: 'Codex',
+        });
+        const leadAgent = makeAgent({
+          slotId: 'slot-lead',
+          conversationId: 'conv-lead',
+          role: 'lead',
+          status: 'idle',
+        });
+        const mockSendMessage = vi.fn().mockResolvedValue(undefined);
+        const { mgr, mailbox, workerTaskManager } = makeTeammateManager([leadAgent, teammate]);
+        vi.mocked(workerTaskManager.getOrBuildTask).mockResolvedValue({
+          sendMessage: mockSendMessage,
+        } as never);
+
+        await mgr.wake('slot-member');
+
+        // Simulate a long stream of thought/tool events — each heartbeat reset
+        // the watchdog. We emit one every 30s for 150s (> 2× original 60s budget).
+        for (let elapsed = 0; elapsed < 150_000; elapsed += 30_000) {
+          await vi.advanceTimersByTimeAsync(30_000);
+          teamEventBus.emit('responseStream', {
+            type: 'text',
+            conversation_id: 'conv-member',
+            msg_id: `m-${elapsed}`,
+            data: { text: 'still reasoning...' },
+          });
+        }
+
+        // Still within 60s of the last heartbeat — watchdog must NOT have fired.
+        expect(mgr.getAgents().find((a) => a.slotId === 'slot-member')?.status).toBe('active');
+        expect(mailbox.write).not.toHaveBeenCalledWith(expect.objectContaining({ type: 'idle_notification' }));
+
+        mgr.dispose();
+      } finally {
+        vi.useRealTimers();
+      }
     });
   });
 
