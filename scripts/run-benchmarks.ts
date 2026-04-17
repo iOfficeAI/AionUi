@@ -50,7 +50,9 @@ type StartupMemory = {
   leakEstimateMb?: number;
 };
 
-// Matches the JSON produced by scripts/benchmark-startup.ts (writeJsonReport).
+// Normalized shape consumed by the terminal/HTML renderers. The raw JSON
+// emitted by scripts/benchmark-startup.ts uses a different memory layout
+// (see MemorySummaryRaw) that we adapt before filling this in.
 type StartupBenchReport = {
   generatedAt: string;
   iterations: number;
@@ -58,6 +60,29 @@ type StartupBenchReport = {
   failed: number;
   stats: Record<string, PhaseStats>;
   memory?: StartupMemory;
+};
+
+// Raw `memorySummary` shape emitted by scripts/benchmark-startup.ts. Values
+// are bytes and each metric is a PhaseStats distribution across iterations.
+type MemorySummaryRaw = {
+  idleMainRss: PhaseStats;
+  idleMainHeapUsed: PhaseStats;
+  idleRendererUsed: PhaseStats;
+  afterConversationMainRss: PhaseStats;
+  afterConversationRendererUsed: PhaseStats;
+  afterCloseMainRss: PhaseStats;
+  afterCloseRendererUsed: PhaseStats;
+  leakMainRssBytes: PhaseStats;
+  leakRendererUsedBytes: PhaseStats;
+  openDeltaMainRssBytes: PhaseStats;
+  openDeltaRendererUsedBytes: PhaseStats;
+};
+
+// What the JSON file from benchmark-startup.ts actually contains on disk. It
+// uses `memorySummary` with byte-valued distributions; we map this to the
+// `memory` field on StartupBenchReport (MB-valued snapshots).
+type StartupBenchReportRaw = Omit<StartupBenchReport, 'memory'> & {
+  memorySummary?: MemorySummaryRaw | null;
 };
 
 type StartupPhaseEntry = {
@@ -138,13 +163,43 @@ function runBenchmarks(): string {
 
 // ── Run startup benchmark (Electron) ────────────────────────────────────────
 
+function bytesToMb(bytes: number): number {
+  if (!Number.isFinite(bytes) || bytes <= 0) return 0;
+  return Math.round((bytes / 1024 / 1024) * 10) / 10;
+}
+
+// Collapse the bytes-per-iteration distribution from benchmark-startup.ts into
+// the MB-valued snapshots the renderers expect. We take the median of each
+// metric so a single slow run doesn't distort the report.
+function adaptMemorySummary(raw: MemorySummaryRaw | null | undefined): StartupMemory | undefined {
+  if (!raw) return undefined;
+  return {
+    idle: {
+      mainRssMb: bytesToMb(raw.idleMainRss.median),
+      rendererHeapMb: bytesToMb(raw.idleRendererUsed.median),
+    },
+    afterConversation: {
+      mainRssMb: bytesToMb(raw.afterConversationMainRss.median),
+      rendererHeapMb: bytesToMb(raw.afterConversationRendererUsed.median),
+    },
+    afterClose: {
+      mainRssMb: bytesToMb(raw.afterCloseMainRss.median),
+      rendererHeapMb: bytesToMb(raw.afterCloseRendererUsed.median),
+    },
+    leakEstimateMb: bytesToMb(raw.leakMainRssBytes.median),
+  };
+}
+
 function runStartupBenchmark(reportDir: string): StartupBenchReport | undefined {
   console.log('\n  Running Electron cold-startup benchmark (this may take a few minutes)...\n');
 
   const outputPath = path.join(reportDir, 'startup-latest.json');
   if (fs.existsSync(outputPath)) fs.rmSync(outputPath, { force: true });
 
-  const result = spawnSync('bunx', ['tsx', 'scripts/benchmark-startup.ts', '--output', outputPath], {
+  // --with-memory enables idle / afterConversation / afterClose memory
+  // sampling in benchmark-startup.ts. Without it, memorySummary stays null
+  // and bench:full produces no memory report.
+  const result = spawnSync('bunx', ['tsx', 'scripts/benchmark-startup.ts', '--with-memory', '--output', outputPath], {
     cwd: process.cwd(),
     encoding: 'utf-8',
     timeout: 600_000,
@@ -166,7 +221,15 @@ function runStartupBenchmark(reportDir: string): StartupBenchReport | undefined 
   }
 
   try {
-    return JSON.parse(fs.readFileSync(outputPath, 'utf-8')) as StartupBenchReport;
+    const raw = JSON.parse(fs.readFileSync(outputPath, 'utf-8')) as StartupBenchReportRaw;
+    return {
+      generatedAt: raw.generatedAt,
+      iterations: raw.iterations,
+      successful: raw.successful,
+      failed: raw.failed,
+      stats: raw.stats,
+      memory: adaptMemorySummary(raw.memorySummary),
+    };
   } catch (e) {
     const msg = e instanceof Error ? e.message : String(e);
     console.warn(`  Startup bench report was not valid JSON: ${msg}`);
