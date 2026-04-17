@@ -269,14 +269,12 @@ Issues without stack traces are always eligible regardless of this flag.
    ```
 
 4. **Extract diagnostic signals from logs:**
-
    - Error / Warning lines (`error`, `warn`, `fatal`, `crash`, `EPIPE`, etc.)
    - Stack traces embedded in log output
    - Performance indicators (memory usage, CPU spikes, event loop delays)
    - Repeated failure patterns around the reported issue time
 
 5. **Extract signals from screenshots:**
-
    - Visible error messages or dialogs
    - UI freeze indicators (loading spinners stuck, unresponsive elements)
    - Memory / resource warnings visible in UI
@@ -292,15 +290,15 @@ Classify each issue group using the detailed decision flow in [references/triage
 
 **Quick reference — seven categories:**
 
-| Category          | Action                                                              |
-| ----------------- | ------------------------------------------------------------------- |
-| **Direct fix**    | Stack trace → our code → fix                                        |
-| **Defensive fix** | No trace, but pattern matches our code → fix with guards            |
-| **Feedback fix**  | User feedback + attachment analysis → identifiable code path → fix  |
-| **Pending merge** | Open PR exists → skip or improve                                    |
-| **Already fixed** | Merged PR / resolved → skip                                         |
-| **System-level**  | EPIPE, ENOSPC, EIO, uv, Chromium → skip                             |
-| **Unfixable**     | No trace, no matching code, no diagnostic attachments → skip        |
+| Category          | Action                                                             |
+| ----------------- | ------------------------------------------------------------------ |
+| **Direct fix**    | Stack trace → our code → fix                                       |
+| **Defensive fix** | No trace, but pattern matches our code → fix with guards           |
+| **Feedback fix**  | User feedback + attachment analysis → identifiable code path → fix |
+| **Pending merge** | Open PR exists → skip or improve                                   |
+| **Already fixed** | Merged PR / resolved → skip                                        |
+| **System-level**  | EPIPE, ENOSPC, EIO, uv, Chromium → skip                            |
+| **Unfixable**     | No trace, no matching code, no diagnostic attachments → skip       |
 
 **Output a triage report** (see [references/report-template.md](references/report-template.md) for format),
 then **proceed immediately** — do not wait for user confirmation.
@@ -525,13 +523,13 @@ re-analyzing the same issues.
 
 **TTL by classification:**
 
-| Classification    | TTL      | Reason                                             |
-| ----------------- | -------- | -------------------------------------------------- |
-| system_level      | 7 days   | These never change (EPIPE, ENOSPC, EIO, uv, etc.)  |
-| already_fixed     | 48 hours | Re-check in case of regression                     |
+| Classification    | TTL      | Reason                                                |
+| ----------------- | -------- | ----------------------------------------------------- |
+| system_level      | 7 days   | These never change (EPIPE, ENOSPC, EIO, uv, etc.)     |
+| already_fixed     | 48 hours | Re-check in case of regression                        |
 | feedback_no_clue  | 48 hours | User feedback with no diagnostic clues in attachments |
-| unfixable         | 24 hours | Might become fixable with new code changes         |
-| fix_pending_merge | 12 hours | PR might get merged, issue might resolve           |
+| unfixable         | 24 hours | Might become fixable with new code changes            |
+| fix_pending_merge | 12 hours | PR might get merged, issue might resolve              |
 
 **Write rules:**
 

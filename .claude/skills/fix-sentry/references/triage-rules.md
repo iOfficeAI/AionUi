@@ -63,15 +63,15 @@ These have no stack trace but may include attachments (logs, screenshots) with d
 
 **Prerequisite:** Step 1.5b (Attachment Analysis) must have run first.
 
-| Scenario                                                        | Result                             |
-| --------------------------------------------------------------- | ---------------------------------- |
-| Log attachment contains stack trace pointing to our code        | Promote to Direct fix (Step B)     |
-| Log attachment shows resource exhaustion (OOM, CPU 100%) in our code | Defensive fix                 |
-| Log attachment shows repeated errors matching our code paths    | Defensive fix                      |
-| Screenshot shows frozen UI with identifiable component          | Defensive fix                      |
-| User description + logs suggest a specific code path            | Defensive fix                      |
-| Logs show only system / third-party issues                      | Skip (system-level)                |
-| No attachments, no matching code path from description          | Skip (unfixable — needs human triage) |
+| Scenario                                                             | Result                                |
+| -------------------------------------------------------------------- | ------------------------------------- |
+| Log attachment contains stack trace pointing to our code             | Promote to Direct fix (Step B)        |
+| Log attachment shows resource exhaustion (OOM, CPU 100%) in our code | Defensive fix                         |
+| Log attachment shows repeated errors matching our code paths         | Defensive fix                         |
+| Screenshot shows frozen UI with identifiable component               | Defensive fix                         |
+| User description + logs suggest a specific code path                 | Defensive fix                         |
+| Logs show only system / third-party issues                           | Skip (system-level)                   |
+| No attachments, no matching code path from description               | Skip (unfixable — needs human triage) |
 
 ## Step D: Skip filters (apply to all categories)
 
@@ -83,12 +83,12 @@ These have no stack trace but may include attachments (logs, screenshots) with d
 
 ## Classification Summary
 
-| Category          | Criteria                                                    | Action                        |
-| ----------------- | ----------------------------------------------------------- | ----------------------------- |
-| **Direct fix**    | Stack trace → our code, clear cause                         | Fix with targeted code change |
-| **Defensive fix** | No stack trace, but error path matches our code             | Fix with defensive guards     |
+| Category          | Criteria                                                     | Action                        |
+| ----------------- | ------------------------------------------------------------ | ----------------------------- |
+| **Direct fix**    | Stack trace → our code, clear cause                          | Fix with targeted code change |
+| **Defensive fix** | No stack trace, but error path matches our code              | Fix with defensive guards     |
 | **Feedback fix**  | User feedback + attachment analysis → identifiable code path | Fix based on diagnostic clues |
-| **Pending merge** | Existing OPEN PR addresses the root cause                   | Skip or improve existing PR   |
-| **Already fixed** | Merged PR / resolved in Sentry                              | Skip                          |
-| **System-level**  | EPIPE, ENOSPC, EIO, uv, Chromium internal                   | Skip                          |
+| **Pending merge** | Existing OPEN PR addresses the root cause                    | Skip or improve existing PR   |
+| **Already fixed** | Merged PR / resolved in Sentry                               | Skip                          |
+| **System-level**  | EPIPE, ENOSPC, EIO, uv, Chromium internal                    | Skip                          |
 | **Unfixable**     | No stack trace, no matching code path, no attachments        | Skip                          |
