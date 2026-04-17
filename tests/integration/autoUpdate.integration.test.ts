@@ -77,8 +77,7 @@ vi.mock('electron-log', () => ({
 }));
 
 describe('Auto-Update IPC Bridge Integration', () => {
-  beforeEach(async () => {
-    vi.resetModules();
+  beforeEach(() => {
     vi.clearAllMocks();
   });
 
