@@ -89,7 +89,8 @@ const GeminiSendBox: React.FC<{
   modelSelection: GeminiModelSelection;
   teamId?: string;
   agentSlotId?: string;
-}> = ({ conversation_id, modelSelection, teamId, agentSlotId }) => {
+  sessionMode?: string;
+}> = ({ conversation_id, modelSelection, teamId, agentSlotId, sessionMode }) => {
   const [workspacePath, setWorkspacePath] = useState('');
   const { t } = useTranslation();
   const teamPermission = useTeamPermission();
@@ -465,6 +466,7 @@ const GeminiSendBox: React.FC<{
                 backend='gemini'
                 conversationId={conversation_id}
                 compact
+                initialMode={sessionMode}
                 compactLeadingIcon={<Shield theme='outline' size='14' fill={iconColors.secondary} />}
                 modeLabelFormatter={(mode) => t(`agentMode.${mode.value}`, { defaultValue: mode.label })}
                 compactLabelPrefix={t('agentMode.permission')}

@@ -189,6 +189,7 @@ const GeminiConversationPanel: React.FC<{
         modelSelection={modelSelection}
         cronJobId={conversation.extra?.cronJobId as string | undefined}
         hideSendBox={hideSendBox}
+        sessionMode={conversation.extra?.sessionMode}
       />
     </ChatLayout>
   );
@@ -245,6 +246,7 @@ const AionrsConversationPanel: React.FC<{ conversation: AionrsConversation; slid
         conversation_id={conversation.id}
         workspace={conversation.extra.workspace}
         modelSelection={modelSelection}
+        sessionMode={conversation.extra?.sessionMode}
       />
     </ChatLayout>
   );

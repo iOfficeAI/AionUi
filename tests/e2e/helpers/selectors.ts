@@ -41,6 +41,16 @@ export const ARCO_MESSAGE_SUCCESS = '.arco-message-success';
 /** Guid page chat input textarea. */
 export const GUID_INPUT = '.guid-input-card-shell textarea';
 
+// ── Mode selector ──────────────────────────────────────────────────────────
+
+/** Mode selector pill (AgentModeSelector compact mode). */
+export const MODE_SELECTOR = '[data-testid="mode-selector"]';
+
+/** Match mode dropdown menu item by mode value. */
+export function modeMenuItemByValue(value: string): string {
+  return `[data-mode-value="${value}"]`;
+}
+
 // ── Conversation page ───────────────────────────────────────────────────────
 
 /** Agent status message badge (connecting / session_active / error). */
