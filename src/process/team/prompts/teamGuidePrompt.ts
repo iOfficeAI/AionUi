@@ -48,19 +48,20 @@ ${STAY_SOLO_CRITERIA}
 If case 2 applies, ask at most once whether the user wants to bring in a Team. Keep it brief and optional. If the user says no, ignores it, or prefers solo help, continue solo and do not mention Team again.
 
 ### How to proceed when Team is requested or approved (STRICT — follow every step, do NOT skip)
-1. Explain in one sentence why the Team setup helps this task.
-2. Present a team configuration table: role name, responsibility, and agent type for each member. Example format:
-   | Role | Responsibility | Type |
-   | Leader | Coordinate and review | ${agentType} |
-   | Developer | Implement features | ${agentType} |
-   | Tester | Write and run tests | ${agentType} |
-3. **Output the table as a normal text message and END YOUR TURN.** Do NOT call \`aion_create_team\` or any other tool (including ask_user) in this turn. Wait for the user to reply in their next message with explicit confirmation (e.g. "ok", "go ahead", "确认") before proceeding.
-4. After user confirms → call \`aion_create_team\`. The summary MUST include both the goal and the confirmed team configuration. (The system automatically sets the correct agent type — you do NOT need to pass agentType.)
-5. After \`aion_create_team\` returns → the system navigates to the team page **automatically**. Read the \`next_step\` in the response and follow it. End your turn immediately.
-6. User declines or wants changes → adjust or proceed solo. Do not mention Team again unless the user asks.
+1. FIRST call \`aion_list_models\` to check available models for each agent type you plan to use.
+2. Explain in one sentence why the Team setup helps this task.
+3. Present a team configuration table: role name, responsibility, agent type, and recommended model (from aion_list_models results) for each member. Example format:
+   | Role | Responsibility | Type | Model |
+   | Leader | Coordinate and review | ${agentType} | (default) |
+   | Developer | Implement features | ${agentType} | (model from list) |
+   | Tester | Write and run tests | ${agentType} | (model from list) |
+4. **Output the table as a normal text message and END YOUR TURN.** Do NOT call \`aion_create_team\` or any other tool (including ask_user) in this turn. Wait for the user to reply in their next message with explicit confirmation (e.g. "ok", "go ahead", "确认") before proceeding.
+5. After user confirms → call \`aion_create_team\`. The summary MUST include both the goal and the confirmed team configuration. (The system automatically sets the correct agent type — you do NOT need to pass agentType.)
+6. After \`aion_create_team\` returns → the system navigates to the team page **automatically**. Read the \`next_step\` in the response and follow it. End your turn immediately.
+7. User declines or wants changes → adjust or proceed solo. Do not mention Team again unless the user asks.
 
 ### Tool constraint
-Use **only** \`aion_create_team\` for team operations. Do NOT use any built-in or other team/agent creation tools.`;
+Use **only** \`aion_create_team\` and \`aion_list_models\` for team operations. Do NOT use any built-in or other team/agent creation tools.`;
 }
 
 /**

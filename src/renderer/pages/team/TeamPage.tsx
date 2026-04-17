@@ -260,8 +260,8 @@ const TeamPageContent: React.FC<TeamPageContentProps> = ({ team, onAddAgent, onR
 
   const sider = useMemo(() => {
     if (!workspaceEnabled || !dispatchConversation) return <div />;
-    return <ChatSider conversation={dispatchConversation} />;
-  }, [workspaceEnabled, dispatchConversation]);
+    return <ChatSider conversation={dispatchConversation} teamId={team.id} />;
+  }, [workspaceEnabled, dispatchConversation, team.id]);
 
   const updateScrollArrows = useCallback(() => {
     const container = scrollContainerRef.current;

@@ -6,8 +6,8 @@
 
 import { ipcBridge } from '@/common';
 import { uuid } from '@/common/utils';
-import ContextUsageIndicator from '@/renderer/components/agent/ContextUsageIndicator';
 import AgentModeSelector from '@/renderer/components/agent/AgentModeSelector';
+import ContextUsageIndicator from '@/renderer/components/agent/ContextUsageIndicator';
 import CommandQueuePanel from '@/renderer/components/chat/CommandQueuePanel';
 import SendBox from '@/renderer/components/chat/sendbox';
 import ThoughtDisplay from '@/renderer/components/chat/ThoughtDisplay';
@@ -15,11 +15,11 @@ import FileAttachButton from '@/renderer/components/media/FileAttachButton';
 import FilePreview from '@/renderer/components/media/FilePreview';
 import HorizontalFileList from '@/renderer/components/media/HorizontalFileList';
 import { useAutoTitle } from '@/renderer/hooks/chat/useAutoTitle';
-import { createSetUploadFile, useSendBoxFiles } from '@/renderer/hooks/chat/useSendBoxFiles';
 import { getSendBoxDraftHook, type FileOrFolderItem } from '@/renderer/hooks/chat/useSendBoxDraft';
+import { createSetUploadFile, useSendBoxFiles } from '@/renderer/hooks/chat/useSendBoxFiles';
 import { useSlashCommands } from '@/renderer/hooks/chat/useSlashCommands';
 import { useOpenFileSelector } from '@/renderer/hooks/file/useOpenFileSelector';
-import { useCommandQueueEnabled } from '@/renderer/hooks/system/useCommandQueueEnabled';
+import { useAcpV2Enabled } from '@/renderer/hooks/system/useAcpV2Enabled';
 import { useLatestRef } from '@/renderer/hooks/ui/useLatestRef';
 import { useAddOrUpdateMessage, useRemoveMessageByMsgId } from '@/renderer/pages/conversation/Messages/hooks';
 import { usePreviewContext } from '@/renderer/pages/conversation/Preview';
@@ -119,7 +119,7 @@ const AionrsSendBoxInner: React.FC<AionrsSendBoxInnerProps> = ({
   const [workspacePath, setWorkspacePath] = useState('');
   const { t } = useTranslation();
   const { checkAndUpdateTitle } = useAutoTitle();
-  const isCommandQueueEnabled = useCommandQueueEnabled();
+  const isAcpV2Enabled = useAcpV2Enabled();
 
   const { currentModel, currentModelInfo, getDisplayModelName } = modelSelection;
   const { thought, running, hasHydratedRunningState, tokenUsage, setActiveMsgId, setWaitingResponse, resetState } =
@@ -241,7 +241,7 @@ const AionrsSendBoxInner: React.FC<AionrsSendBoxInnerProps> = ({
     resetActiveExecution,
   } = useConversationCommandQueue({
     conversationId: conversation_id,
-    enabled: isCommandQueueEnabled,
+    enabled: isAcpV2Enabled,
     isBusy,
     isHydrated: hasHydratedRunningState,
     onExecute: executeCommand,
@@ -274,7 +274,7 @@ const AionrsSendBoxInner: React.FC<AionrsSendBoxInnerProps> = ({
   }, [conversation_id, executeCommand]);
 
   const onSendHandler = async (message: string) => {
-    if (!isCommandQueueEnabled && isBusy) {
+    if (!isAcpV2Enabled && isBusy) {
       Message.warning(t('messages.conversationInProgress'));
       return;
     }
@@ -285,7 +285,7 @@ const AionrsSendBoxInner: React.FC<AionrsSendBoxInnerProps> = ({
 
     if (
       shouldEnqueueConversationCommand({
-        enabled: isCommandQueueEnabled,
+        enabled: isAcpV2Enabled,
         isBusy,
         hasPendingCommands,
       })
@@ -448,7 +448,7 @@ const AionrsSendBoxInner: React.FC<AionrsSendBoxInnerProps> = ({
         onSend={onSendHandler}
         slashCommands={slashCommands}
         onSlashBuiltinCommand={onSlashBuiltinCommand}
-        allowSendWhileLoading={isCommandQueueEnabled}
+        allowSendWhileLoading={isAcpV2Enabled}
       />
     </div>
   );

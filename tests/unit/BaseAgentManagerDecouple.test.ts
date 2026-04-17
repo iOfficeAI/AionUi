@@ -156,6 +156,12 @@ describe('BaseAgentManager with injected emitter', () => {
     expect(spy).toHaveBeenCalledWith('stop.stream', {});
   });
 
+  it('stop() resolves when worker process has already exited', async () => {
+    const { agent } = makeAgent('gemini');
+    vi.spyOn(agent as any, 'postMessagePromise').mockRejectedValue(new Error('fork task not enabled'));
+    await expect(agent.stop()).resolves.toBeUndefined();
+  });
+
   it('sendMessage() calls postMessagePromise with send.message', async () => {
     const { agent } = makeAgent('acp');
     const spy = vi.spyOn(agent as any, 'postMessagePromise').mockResolvedValue(undefined);

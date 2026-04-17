@@ -4,13 +4,13 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
+import { ipcBridge } from '@/common';
 import { resolveLocaleKey } from '@/common/utils';
 import AcpConfigSelector from '@/renderer/components/agent/AcpConfigSelector';
-import { useAssistantBackends } from '@/renderer/hooks/assistant';
 import { useInputFocusRing } from '@/renderer/hooks/chat/useInputFocusRing';
 import { openExternalUrl, resolveExtensionAssetUrl } from '@/renderer/utils/platform';
 import { useConversationTabs } from '@/renderer/pages/conversation/hooks/ConversationTabsContext';
-import { BUILTIN_AGENT_OPTIONS, CUSTOM_AVATAR_IMAGE_MAP } from './constants';
+import { CUSTOM_AVATAR_IMAGE_MAP } from './constants';
 import AgentPillBar from './components/AgentPillBar';
 import AssistantSelectionArea from './components/AssistantSelectionArea';
 import { AgentPillBarSkeleton } from './components/GuidSkeleton';
@@ -28,7 +28,7 @@ import { useGuidModelSelection } from './hooks/useGuidModelSelection';
 import { useGuidSend } from './hooks/useGuidSend';
 import { useTypewriterPlaceholder } from './hooks/useTypewriterPlaceholder';
 import { ConfigStorage } from '@/common/config/storage';
-import { ACP_BACKENDS_ALL, type PresetAgentType } from '@/common/types/acpTypes';
+import { ACP_BACKENDS_ALL } from '@/common/types/acpTypes';
 import { getAgentLogo } from '@/renderer/utils/model/agentLogo';
 import type { AcpBackendConfig } from './types';
 import { Button, ConfigProvider, Dropdown, Menu, Message } from '@arco-design/web-react';
@@ -47,7 +47,7 @@ const GuidPage: React.FC = () => {
   const descriptionTextRef = useRef<HTMLDivElement>(null);
   const { closeAllTabs, openTab } = useConversationTabs();
   const { activeBorderColor, inactiveBorderColor, activeShadow } = useInputFocusRing();
-  const { availableBackends, extensionAcpAdapters } = useAssistantBackends();
+
   const localeKey = resolveLocaleKey(i18n.language);
   const [showFeedbackModal, setShowFeedbackModal] = useState(false);
 
@@ -58,6 +58,24 @@ const GuidPage: React.FC = () => {
     } catch (error) {
       console.error('Failed to open external link:', error);
     }
+  }, []);
+
+  // --- Skills state ---
+  const [builtinAutoSkills, setBuiltinAutoSkills] = useState<Array<{ name: string; description: string }>>([]);
+  const [guidDisabledBuiltinSkills, setGuidDisabledBuiltinSkills] = useState<string[] | undefined>(undefined);
+
+  useEffect(() => {
+    ipcBridge.fs.listBuiltinAutoSkills
+      .invoke()
+      .then(setBuiltinAutoSkills)
+      .catch(() => setBuiltinAutoSkills([]));
+  }, []);
+
+  const handleToggleBuiltinSkill = useCallback((skillName: string) => {
+    setGuidDisabledBuiltinSkills((prev) => {
+      const list = prev ?? [];
+      return list.includes(skillName) ? list.filter((s) => s !== skillName) : [...list, skillName];
+    });
   }, []);
 
   // --- Hooks ---
@@ -124,8 +142,8 @@ const GuidPage: React.FC = () => {
     getEffectiveAgentType: agentSelection.getEffectiveAgentType,
     resolvePresetRulesAndSkills: agentSelection.resolvePresetRulesAndSkills,
     resolveEnabledSkills: agentSelection.resolveEnabledSkills,
-    isMainAgentAvailable: agentSelection.isMainAgentAvailable,
-    getAvailableFallbackAgent: agentSelection.getAvailableFallbackAgent,
+    resolveDisabledBuiltinSkills: agentSelection.resolveDisabledBuiltinSkills,
+    guidDisabledBuiltinSkills,
     currentEffectiveAgentInfo: agentSelection.currentEffectiveAgentInfo,
     isGoogleAuth: modelSelection.isGoogleAuth,
 
@@ -277,6 +295,16 @@ const GuidPage: React.FC = () => {
     const candidates = new Set([selectedId, `builtin-${strippedId}`, strippedId]);
     return agentSelection.customAgents.find((item) => candidates.has(item.id));
   }, [agentSelection.customAgents, agentSelection.isPresetAgent, agentSelection.selectedAgentInfo?.customAgentId]);
+
+  // Sync disabledBuiltinSkills from preset assistant config
+  useEffect(() => {
+    if (agentSelection.isPresetAgent && selectedAssistantRecord) {
+      setGuidDisabledBuiltinSkills(selectedAssistantRecord.disabledBuiltinSkills ?? []);
+    } else {
+      setGuidDisabledBuiltinSkills(undefined);
+    }
+  }, [agentSelection.isPresetAgent, selectedAssistantRecord]);
+
   const heroTitle = useMemo(() => {
     if (!agentSelection.isPresetAgent) return t('conversation.welcome.title');
     const i18nName = selectedAssistantRecord?.nameI18n?.[localeKey];
@@ -322,9 +350,8 @@ const GuidPage: React.FC = () => {
     setIsDescriptionExpanded(false);
   }, [location.key]);
 
-  // When sidebar "新对话" navigates with resetAssistant, clear the location state
-  // so subsequent re-renders don't keep seeing the flag. The actual agent reset
-  // is handled inside useGuidAgentSelection (via the resetAssistant option).
+  // Clear resetAssistant from location.state after the hook has consumed it,
+  // so that re-renders don't re-trigger the reset logic.
   useEffect(() => {
     if (!resetAssistantRequested) return;
     window.history.replaceState(null, '', `${location.pathname}${location.search}${location.hash}`);
@@ -379,21 +406,19 @@ const GuidPage: React.FC = () => {
     return () => observer.disconnect();
   }, [agentSelection.isPresetAgent, selectedAssistantDescription]);
 
-  const currentPresetAgentType = (selectedAssistantRecord?.presetAgentType as PresetAgentType | undefined) || 'gemini';
+  const currentPresetAgentType = selectedAssistantRecord?.presetAgentType || 'gemini';
   const agentSwitcherItems = useMemo(() => {
-    const builtinItems = BUILTIN_AGENT_OPTIONS.filter((opt) => availableBackends.has(opt.value)).map((opt) => ({
-      key: opt.value,
-      label: opt.label,
-      isCurrent: opt.value === currentPresetAgentType,
-    }));
-    const extensionItems = (extensionAcpAdapters || []).map((adapter) => ({
-      key: adapter.id as string,
-      label: (adapter.name as string) || (adapter.id as string),
-      isCurrent: (adapter.id as string) === currentPresetAgentType,
-      isExtension: true,
-    }));
-    return [...builtinItems, ...extensionItems];
-  }, [availableBackends, extensionAcpAdapters, currentPresetAgentType]);
+    if (!agentSelection.availableAgents) return [];
+    // Build from detected execution engines, excluding preset assistants and remote agents
+    return agentSelection.availableAgents
+      .filter((a) => !a.isPreset && a.backend !== 'remote')
+      .map((a) => ({
+        key: a.backend,
+        label: a.name,
+        isCurrent: a.backend === currentPresetAgentType,
+        isExtension: a.isExtension,
+      }));
+  }, [agentSelection.availableAgents, currentPresetAgentType]);
   const effectiveAgentLogo = useMemo(
     () => getAgentLogo(agentSelection.currentEffectiveAgentInfo.agentType),
     [agentSelection.currentEffectiveAgentInfo.agentType]
@@ -403,17 +428,17 @@ const GuidPage: React.FC = () => {
       const customAgentId = agentSelection.selectedAgentInfo?.customAgentId;
       if (!customAgentId || nextType === currentPresetAgentType) return;
       try {
-        const agents = ((await ConfigStorage.get('acp.customAgents')) || []) as AcpBackendConfig[];
+        const agents = ((await ConfigStorage.get('assistants')) || []) as AcpBackendConfig[];
         const idx = agents.findIndex((a) => a.id === customAgentId);
         if (idx < 0) {
           Message.warning(t('common.failed', { defaultValue: 'Failed' }));
           return;
         }
         const updated = [...agents];
-        updated[idx] = { ...updated[idx], presetAgentType: nextType as PresetAgentType };
-        await ConfigStorage.set('acp.customAgents', updated);
+        updated[idx] = { ...updated[idx], presetAgentType: nextType };
+        await ConfigStorage.set('assistants', updated);
         await agentSelection.refreshCustomAgents();
-        const agentName = ACP_BACKENDS_ALL[nextType as PresetAgentType]?.name || nextType;
+        const agentName = ACP_BACKENDS_ALL[nextType as keyof typeof ACP_BACKENDS_ALL]?.name || nextType;
         Message.success(t('guid.switchedToAgent', { agent: agentName }));
       } catch (error) {
         console.error('[GuidPage] Failed to switch preset agent type:', error);
@@ -481,11 +506,18 @@ const GuidPage: React.FC = () => {
       }),
     [agentSelection.currentAcpCachedConfigOptions, agentSelection.selectedAcpConfigOptions]
   );
+  const handleGuidConfigOptionSelect = useCallback(
+    (configId: string, value: string) => {
+      agentSelection.setPendingConfigOption(configId, value);
+      agentSelection.setSelectedAcpConfigOption(configId, value);
+    },
+    [agentSelection.setPendingConfigOption, agentSelection.setSelectedAcpConfigOption]
+  );
   const acpConfigSelectorNode = (
     <AcpConfigSelector
-      backend={agentSelection.selectedAgent === 'custom' ? undefined : agentSelection.selectedAgent}
+      backend={agentSelection.currentEffectiveAgentInfo.agentType}
       initialConfigOptions={guidConfigOptions}
-      onOptionSelect={agentSelection.setSelectedAcpConfigOption}
+      onOptionSelect={handleGuidConfigOptionSelect}
       buttonClassName='guid-config-btn'
     />
   );
@@ -512,6 +544,9 @@ const GuidPage: React.FC = () => {
       onAgentSwitch={(key) => {
         handlePresetAgentTypeSwitch(key).catch((err) => console.error('Failed to switch agent type:', err));
       }}
+      builtinAutoSkills={builtinAutoSkills}
+      disabledBuiltinSkills={guidDisabledBuiltinSkills ?? []}
+      onToggleBuiltinSkill={handleToggleBuiltinSkill}
       hidePresetTag
       loading={guidInput.loading}
       isButtonDisabled={send.isButtonDisabled}

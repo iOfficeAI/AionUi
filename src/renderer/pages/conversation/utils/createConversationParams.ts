@@ -8,14 +8,79 @@ import { ipcBridge } from '@/common';
 import { ConfigStorage } from '@/common/config/storage';
 import type { ICreateConversationParams } from '@/common/adapter/ipcBridge';
 import type { TProviderWithModel } from '@/common/config/storage';
+import type { AcpBackend } from '@/common/types/acpTypes';
+import { DEFAULT_CODEX_MODELS } from '@/common/types/codex/codexModels';
 import { resolveLocaleKey } from '@/common/utils';
 import { loadPresetAssistantResources } from '@/common/utils/presetAssistantResources';
 import {
   buildAgentConversationParams,
   getConversationTypeForBackend,
-  getConversationTypeForPreset,
 } from '@/common/utils/buildAgentConversationParams';
 import type { AvailableAgent } from '@/renderer/utils/model/agentTypes';
+import { getAgentModes } from '@/renderer/utils/model/agentModes';
+
+type ModePreference = {
+  preferredMode?: string;
+  yoloMode?: boolean;
+};
+
+const LEGACY_YOLO_MODE_MAP: Partial<Record<string, string>> = {
+  claude: 'bypassPermissions',
+  codex: 'yolo',
+  gemini: 'yolo',
+  iflow: 'yolo',
+  qwen: 'yolo',
+};
+
+async function resolvePreferredMode(backend: string): Promise<string | undefined> {
+  const modeOptions = getAgentModes(backend);
+  if (modeOptions.length === 0) {
+    return undefined;
+  }
+
+  let preference: ModePreference | undefined;
+
+  if (backend === 'gemini') {
+    preference = await ConfigStorage.get('gemini.config');
+  } else if (backend === 'aionrs') {
+    preference = await ConfigStorage.get('aionrs.config');
+  } else {
+    const acpConfig = await ConfigStorage.get('acp.config');
+    preference = acpConfig?.[backend as AcpBackend];
+  }
+
+  if (preference?.preferredMode && modeOptions.some((option) => option.value === preference.preferredMode)) {
+    return preference.preferredMode;
+  }
+
+  const legacyMode = LEGACY_YOLO_MODE_MAP[backend];
+  if (preference?.yoloMode && legacyMode && modeOptions.some((option) => option.value === legacyMode)) {
+    return legacyMode;
+  }
+
+  return undefined;
+}
+
+async function resolvePreferredAcpModelId(backend: string): Promise<string | undefined> {
+  const acpConfig = await ConfigStorage.get('acp.config');
+  const backendConfig = acpConfig?.[backend as AcpBackend] as { preferredModelId?: string } | undefined;
+  const preferredModelId = backendConfig?.preferredModelId;
+  if (typeof preferredModelId === 'string' && preferredModelId.trim().length > 0) {
+    return preferredModelId;
+  }
+
+  const cachedModels = await ConfigStorage.get('acp.cachedModels');
+  const cachedModelId = cachedModels?.[backend]?.currentModelId;
+  if (typeof cachedModelId === 'string' && cachedModelId.trim().length > 0) {
+    return cachedModelId;
+  }
+
+  if (backend === 'codex' && DEFAULT_CODEX_MODELS.length > 0) {
+    return DEFAULT_CODEX_MODELS[0]?.id;
+  }
+
+  return undefined;
+}
 
 /**
  * Get a model from configured providers that is compatible with aionrs.
@@ -127,6 +192,8 @@ export async function buildCliAgentParams(
   workspace: string
 ): Promise<ICreateConversationParams> {
   const type = getConversationTypeForBackend(agent.backend);
+  const preferredMode = await resolvePreferredMode(agent.backend);
+  const preferredAcpModelId = type === 'acp' ? await resolvePreferredAcpModelId(agent.backend) : undefined;
 
   let model: TProviderWithModel;
   if (type === 'gemini') {
@@ -146,6 +213,8 @@ export async function buildCliAgentParams(
     cliPath: agent.cliPath,
     customAgentId: agent.customAgentId,
     model,
+    sessionMode: preferredMode,
+    currentModelId: preferredAcpModelId,
   });
 }
 
@@ -165,12 +234,18 @@ export async function buildPresetAssistantParams(
   // [BUG-2] Map raw i18n.language to standard locale key
   const localeKey = resolveLocaleKey(language);
 
-  const { rules: presetContext, enabledSkills } = await loadPresetAssistantResources({
+  const {
+    rules: presetContext,
+    enabledSkills,
+    disabledBuiltinSkills,
+  } = await loadPresetAssistantResources({
     customAgentId,
     localeKey,
   });
 
-  const type = getConversationTypeForPreset(presetAgentType);
+  const type = getConversationTypeForBackend(presetAgentType);
+  const preferredMode = await resolvePreferredMode(presetAgentType);
+  const preferredAcpModelId = type === 'acp' ? await resolvePreferredAcpModelId(presetAgentType) : undefined;
   const model = type === 'gemini' ? await resolveGeminiModel() : ({} as TProviderWithModel);
 
   return buildAgentConversationParams({
@@ -184,7 +259,10 @@ export async function buildPresetAssistantParams(
     presetResources: {
       rules: presetContext,
       enabledSkills,
+      excludeBuiltinSkills: disabledBuiltinSkills,
     },
     model,
+    sessionMode: preferredMode,
+    currentModelId: preferredAcpModelId,
   });
 }

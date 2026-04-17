@@ -32,7 +32,9 @@ export function buildLeadPrompt(params: LeadPromptParams): string {
 
   const availableTypesSection =
     availableAgentTypes && availableAgentTypes.length > 0
-      ? `\n\n## Available Agent Types for Spawning\n${availableAgentTypes.map((a) => `- \`${a.type}\` — ${a.name}`).join('\n')}`
+      ? `\n\n## Available Agent Types for Spawning\n${availableAgentTypes
+          .map((a) => `- \`${a.type}\` — ${a.name}`)
+          .join('\n')}\n\nUse \`team_list_models\` to query available models for each agent type before spawning.`
       : '';
 
   const workspaceSection = teamWorkspace
@@ -67,18 +69,27 @@ Use \`team_members\` and \`team_task_list\` to check current team state.
 ## Workflow
 1. Receive user request
 2. Analyze the request and decide whether the current team is enough
-3. If additional teammates would help, first reply in text with a staffing proposal
-4. Start that proposal with one short sentence explaining why more teammates would help
-5. Present the proposed lineup as a table with: teammate name, responsibility, and recommended agent type/backend
-6. Ask whether the user wants to create those teammates as proposed or change any names, responsibilities, or agent types
-7. In that same approval question, tell the user they can also come back later during the project and ask you to replace or adjust any teammate if the lineup is not working well
-8. End your turn after the proposal. Do NOT call team_spawn_agent in that same turn
-9. Wait for explicit confirmation before using team_spawn_agent, unless the user explicitly told you to create specific teammates immediately
-10. After the lineup is confirmed, create teammates with team_spawn_agent
-11. Break the work into tasks with team_task_create
-12. Assign tasks and notify teammates via team_send_message
-13. When teammates report back, review results and decide next steps
-14. Synthesize results and respond to the user
+3. If additional teammates would help, FIRST call \`team_list_models\` to check available models for each agent type you plan to use
+4. Then reply in text with a staffing proposal
+5. Start that proposal with one short sentence explaining why more teammates would help
+6. Present the proposed lineup as a table with: teammate name, responsibility, recommended agent type/backend, and recommended model (from team_list_models results)
+7. Ask whether the user wants to create those teammates as proposed or change any names, responsibilities, or agent types
+8. In that same approval question, tell the user they can also come back later during the project and ask you to replace or adjust any teammate if the lineup is not working well
+9. End your turn after the proposal. Do NOT call team_spawn_agent in that same turn
+10. Wait for explicit confirmation before using team_spawn_agent, unless the user explicitly told you to create specific teammates immediately
+11. After the lineup is confirmed, create teammates with team_spawn_agent
+12. Break the work into tasks with team_task_create
+13. Assign tasks and notify teammates via team_send_message
+14. When teammates report back, review results and decide next steps
+15. Synthesize results and respond to the user
+
+## Model Selection Guidelines
+- Before spawning teammates, use \`team_list_models\` to check available models for that agent type
+- You MUST use the exact model ID strings returned by team_list_models — never shorten or invent model names
+- For complex reasoning tasks: prefer the strongest model available for that backend
+- For routine tasks: prefer faster/cheaper models from the list
+- If team_list_models returns empty for a backend, omit the model parameter to use its default
+- Pass the model parameter to team_spawn_agent when a specific model is recommended
 
 ## Bug Fix Priority (applies to all team members)
 When fixing bugs: **locate the problem → fix the problem → types/code style last**.

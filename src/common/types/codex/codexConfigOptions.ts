@@ -56,7 +56,7 @@ export function createChatgptReasoningEffortConfigOption(currentValue?: string):
 export const DEFAULT_CHATGPT_CONFIG_OPTIONS: AcpSessionConfigOption[] = [createChatgptReasoningEffortConfigOption()];
 
 export function getDefaultAcpConfigOptions(
-  backend: AcpBackend | 'custom' | undefined,
+  backend: AcpBackend | 'custom' | 'aionrs' | undefined,
   currentModel?: TProviderWithModel
 ): AcpSessionConfigOption[] {
   if (backend === 'codex') {

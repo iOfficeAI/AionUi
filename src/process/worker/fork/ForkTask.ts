@@ -104,11 +104,12 @@ export class ForkTask<Data> extends Pipe {
   }
   // 向子进程发送消息并等待回调
   protected postMessagePromise(type: string, data: any) {
+    if (!this.fcp) {
+      return Promise.reject(new Error('fork task not enabled'));
+    }
     return new Promise<any>((resolve, reject) => {
       const pipeId = uuid(8);
-      // console.log("---------发送消息>", this.callbackKey(pipeId), type, data);
       this.once(this.callbackKey(pipeId), (data) => {
-        // console.log("---------子进程消息加调监听>", data);
         if (data.state === 'fulfilled') {
           resolve(data.data);
         } else {

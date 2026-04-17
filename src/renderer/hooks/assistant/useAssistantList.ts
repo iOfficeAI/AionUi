@@ -5,8 +5,8 @@ import {
   isExtensionAssistant as isExtensionAssistantUtil,
   normalizeExtensionAssistants,
   sortAssistants as sortAssistantsUtil,
-} from '@/renderer/pages/settings/AgentSettings/AssistantManagement/assistantUtils';
-import type { AssistantListItem } from '@/renderer/pages/settings/AgentSettings/AssistantManagement/types';
+} from '@/renderer/pages/settings/AssistantSettings/assistantUtils';
+import type { AssistantListItem } from '@/renderer/pages/settings/AssistantSettings/types';
 import React, { useCallback, useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import useSWR from 'swr';
@@ -41,7 +41,7 @@ export const useAssistantList = () => {
   const loadAssistants = useCallback(async () => {
     try {
       // Read stored assistants from config (includes builtin and user-defined)
-      const localAgents: AssistantListItem[] = (await ConfigStorage.get('acp.customAgents')) || [];
+      const localAgents: AssistantListItem[] = (await ConfigStorage.get('assistants')) || [];
 
       const mergedAgents = [...localAgents];
       for (const extAssistant of normalizedExtAssistants) {
@@ -67,7 +67,6 @@ export const useAssistantList = () => {
   }, [loadAssistants]);
 
   const activeAssistant = assistants.find((assistant) => assistant.id === activeAssistantId) || null;
-  const isReadonlyAssistant = Boolean(activeAssistant && isExtensionAssistant(activeAssistant));
 
   return {
     assistants,
@@ -75,7 +74,6 @@ export const useAssistantList = () => {
     activeAssistantId,
     setActiveAssistantId,
     activeAssistant,
-    isReadonlyAssistant,
     isExtensionAssistant,
     loadAssistants,
     localeKey,

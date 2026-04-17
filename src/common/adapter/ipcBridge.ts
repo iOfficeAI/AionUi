@@ -8,7 +8,7 @@ import type { IConfirmation } from '@/common/chat/chatLib';
 import { bridge } from '@office-ai/platform';
 import type { OpenDialogOptions } from 'electron';
 import type { McpSource } from '../../process/services/mcpServices/McpProtocol';
-import type { AcpBackend, AcpBackendAll, AcpModelInfo, PresetAgentType } from '../types/acpTypes';
+import type { AgentBackend, AcpModelInfo } from '../types/acpTypes';
 import type { SlashCommandItem } from '../chat/slash/types';
 import type { IMcpServer, IProvider, TChatConversation, TProviderWithModel, ICssTheme } from '../config/storage';
 import type { PreviewHistoryTarget, PreviewSnapshotInfo } from '../types/preview';
@@ -271,9 +271,19 @@ export const fs = {
   deleteAssistantSkill: bridge.buildProvider<boolean, { assistantId: string }>('delete-assistant-skill'), // 删除助手技能文件
   // 获取可用 skills 列表 / List available skills from skills directory
   listAvailableSkills: bridge.buildProvider<
-    Array<{ name: string; description: string; location: string; isCustom: boolean }>,
+    Array<{
+      name: string;
+      description: string;
+      location: string;
+      isCustom: boolean;
+      source: 'builtin' | 'custom' | 'extension';
+    }>,
     void
   >('list-available-skills'),
+  // 获取内置自动注入 skills 列表 / List builtin auto-injected skills from _builtin directory
+  listBuiltinAutoSkills: bridge.buildProvider<Array<{ name: string; description: string }>, void>(
+    'list-builtin-auto-skills'
+  ),
   // 读取 skill 信息（不导入）/ Read skill info without importing
   readSkillInfo: bridge.buildProvider<IBridgeResponse<{ name: string; description: string }>, { skillPath: string }>(
     'read-skill-info'
@@ -500,24 +510,19 @@ export const mode = {
 export const acpConversation = {
   sendMessage: conversation.sendMessage,
   responseStream: conversation.responseStream,
-  detectCliPath: bridge.buildProvider<IBridgeResponse<{ path?: string }>, { backend: AcpBackend }>(
-    'acp.detect-cli-path'
-  ),
+  detectCliPath: bridge.buildProvider<IBridgeResponse<{ path?: string }>, { backend: string }>('acp.detect-cli-path'),
   getAvailableAgents: bridge.buildProvider<
     IBridgeResponse<
       Array<{
-        backend: AcpBackend;
+        backend: string;
         name: string;
+        kind?: string;
         cliPath?: string;
-        customAgentId?: string;
-        isPreset?: boolean;
-        context?: string;
-        avatar?: string;
-        // Allow extension-contributed adapter IDs in addition to built-in PresetAgentType values
-        presetAgentType?: PresetAgentType | string;
         supportedTransports?: string[];
         isExtension?: boolean;
         extensionName?: string;
+        isPreset?: boolean;
+        customAgentId?: string;
       }>
     >,
     void
@@ -530,7 +535,7 @@ export const acpConversation = {
   >('acp.test-custom-agent'),
   checkAgentHealth: bridge.buildProvider<
     IBridgeResponse<{ available: boolean; latency?: number; error?: string }>,
-    { backend: AcpBackend }
+    { backend: AgentBackend }
   >('acp.check-agent-health'),
   // Set session mode for ACP agents (claude, qwen, etc.)
   // 设置 ACP 代理的会话模式（claude、qwen 等）
@@ -575,7 +580,7 @@ export const acpConversation = {
 export const mcpService = {
   getAgentMcpConfigs: bridge.buildProvider<
     IBridgeResponse<Array<{ source: McpSource; servers: IMcpServer[] }>>,
-    Array<{ backend: AcpBackend; name: string; cliPath?: string }>
+    Array<{ backend: string; name: string; cliPath?: string }>
   >('mcp.get-agent-configs'),
   testMcpConnection: bridge.buildProvider<
     IBridgeResponse<{
@@ -590,11 +595,11 @@ export const mcpService = {
   >('mcp.test-connection'),
   syncMcpToAgents: bridge.buildProvider<
     IBridgeResponse<{ success: boolean; results: Array<{ agent: string; success: boolean; error?: string }> }>,
-    { mcpServers: IMcpServer[]; agents: Array<{ backend: AcpBackend; name: string; cliPath?: string }> }
+    { mcpServers: IMcpServer[]; agents: Array<{ backend: string; name: string; cliPath?: string }> }
   >('mcp.sync-to-agents'),
   removeMcpFromAgents: bridge.buildProvider<
     IBridgeResponse<{ success: boolean; results: Array<{ agent: string; success: boolean; error?: string }> }>,
-    { mcpServerName: string; agents: Array<{ backend: AcpBackend; name: string; cliPath?: string }> }
+    { mcpServerName: string; agents: Array<{ backend: string; name: string; cliPath?: string }> }
   >('mcp.remove-from-agents'),
   // OAuth 相关接口
   checkOAuthStatus: bridge.buildProvider<
@@ -796,8 +801,6 @@ export const systemSettings = {
   setPetDnd: bridge.buildProvider<void, { dnd: boolean }>('system-settings:set-pet-dnd'),
   getPetConfirmEnabled: bridge.buildProvider<boolean, void>('system-settings:get-pet-confirm-enabled'),
   setPetConfirmEnabled: bridge.buildProvider<void, { enabled: boolean }>('system-settings:set-pet-confirm-enabled'),
-  getCommandQueueEnabled: bridge.buildProvider<boolean, void>('system-settings:get-command-queue-enabled'),
-  setCommandQueueEnabled: bridge.buildProvider<void, { enabled: boolean }>('system-settings:set-command-queue-enabled'),
 };
 
 // 系统通知接口 / System notification API
@@ -909,7 +912,7 @@ export interface ICronJob {
   metadata: {
     conversationId: string;
     conversationTitle?: string;
-    agentType: AcpBackendAll;
+    agentType: AgentBackend;
     createdBy: 'user' | 'agent';
     createdAt: number;
     updatedAt: number;
@@ -927,7 +930,7 @@ export interface ICronJob {
 }
 
 export interface ICronAgentConfig {
-  backend: AcpBackendAll;
+  backend: AgentBackend;
   name: string;
   cliPath?: string;
   isPreset?: boolean;
@@ -948,7 +951,7 @@ export interface ICreateCronJobParams {
   message?: string;
   conversationId: string;
   conversationTitle?: string;
-  agentType: AcpBackendAll;
+  agentType: AgentBackend;
   createdBy: 'user' | 'agent';
   executionMode?: 'existing' | 'new_conversation';
   agentConfig?: ICronAgentConfig;
@@ -981,7 +984,7 @@ export interface ICreateConversationParams {
     workspace?: string;
     customWorkspace?: boolean;
     defaultFiles?: string[];
-    backend?: AcpBackendAll;
+    backend?: AgentBackend;
     cliPath?: string;
     webSearchEngine?: 'google' | 'default';
     agentName?: string;
@@ -1367,6 +1370,7 @@ export const team = {
   renameAgent: bridge.buildProvider<void, { teamId: string; slotId: string; newName: string }>('team.rename-agent'),
   renameTeam: bridge.buildProvider<void, { id: string; name: string }>('team.rename'),
   setSessionMode: bridge.buildProvider<void, { teamId: string; sessionMode: string }>('team.set-session-mode'),
+  updateWorkspace: bridge.buildProvider<void, { teamId: string; workspace: string }>('team.update-workspace'),
   agentStatusChanged: bridge.buildEmitter<import('@process/team/types').ITeamAgentStatusEvent>('team.agent.status'),
   agentSpawned: bridge.buildEmitter<import('@/common/types/teamTypes').ITeamAgentSpawnedEvent>('team.agent.spawned'),
   agentRemoved: bridge.buildEmitter<import('@/common/types/teamTypes').ITeamAgentRemovedEvent>('team.agent.removed'),

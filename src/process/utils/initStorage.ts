@@ -903,9 +903,17 @@ const initStorage = async () => {
     await initBuiltinAssistantRules();
     mark('5.1 initBuiltinAssistantRules');
 
-    // 5.2 初始化助手配置（只包含元数据，不包含 context）
+    // 5.2 Migrate legacy key: acp.customAgents → assistants (one-time)
+    const legacyAgents = await configFile.get('acp.customAgents').catch((): undefined => undefined);
+    const newKeyAgents = await configFile.get('assistants').catch((): undefined => undefined);
+    if (legacyAgents && !newKeyAgents) {
+      await configFile.set('assistants', legacyAgents);
+      await configFile.set('acp.customAgents', undefined as never);
+    }
+
+    // 5.3 初始化助手配置（只包含元数据，不包含 context）
     // Initialize assistant config (metadata only, no context)
-    const existingAgents = (await configFile.get('acp.customAgents').catch((): undefined => undefined)) || [];
+    const existingAgents = (await configFile.get('assistants').catch((): undefined => undefined)) || [];
     const builtinAssistants = getBuiltinAssistants();
 
     // 5.2.1 检查是否需要迁移：修复老版本中所有助手都默认启用的问题
@@ -1018,7 +1026,7 @@ const initStorage = async () => {
     }
 
     if (hasChanges) {
-      await configFile.set('acp.customAgents', updatedAgents);
+      await configFile.set('assistants', updatedAgents);
     }
 
     // 标记迁移完成 / Mark migration as done

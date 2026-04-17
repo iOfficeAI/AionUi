@@ -5,7 +5,7 @@
  */
 
 import { getDatabase } from '@process/services/database';
-import type { AcpBackendAll } from '@/common/types/acpTypes';
+import type { AgentBackend } from '@/common/types/acpTypes';
 
 /**
  * Cron schedule types
@@ -31,12 +31,12 @@ export type CronJob = {
   metadata: {
     conversationId: string;
     conversationTitle?: string;
-    agentType: AcpBackendAll;
+    agentType: AgentBackend;
     createdBy: 'user' | 'agent';
     createdAt: number;
     updatedAt: number;
     agentConfig?: {
-      backend: AcpBackendAll;
+      backend: AgentBackend;
       name: string;
       cliPath?: string;
       isPreset?: boolean;
@@ -177,7 +177,7 @@ function rowToJob(row: CronJobRow): CronJob {
     metadata: {
       conversationId: row.conversation_id,
       conversationTitle: row.conversation_title ?? undefined,
-      agentType: row.agent_type as AcpBackendAll,
+      agentType: row.agent_type as AgentBackend,
       createdBy: row.created_by as 'user' | 'agent',
       createdAt: row.created_at,
       updatedAt: row.updated_at,
@@ -254,7 +254,7 @@ class CronStore {
   async update(jobId: string, updates: Partial<CronJob>): Promise<void> {
     const existing = await this.getById(jobId);
     if (!existing) {
-      throw new Error(`Cron job not found: ${jobId}`);
+      return;
     }
 
     const updated: CronJob = {

@@ -6,18 +6,15 @@
 
 import { useMemo } from 'react';
 import useSWR from 'swr';
-import { ipcBridge } from '@/common';
+import { ConfigStorage } from '@/common/config/storage';
+import type { AcpBackendConfig } from '@/common/types/acpTypes';
+import { DETECTED_AGENTS_SWR_KEY, fetchDetectedAgents } from '@/renderer/utils/model/agentTypes';
 import type { AvailableAgent } from '@/renderer/utils/model/agentTypes';
-import {
-  AVAILABLE_AGENTS_SWR_KEY,
-  filterAvailableAgentsForUi,
-  splitConversationDropdownAgents,
-} from '@/renderer/utils/model/availableAgents';
 
 export type UseConversationAgentsResult = {
-  /** CLI Agents (non-custom, non-preset backends, excluding gemini-CLI) */
+  /** Detected execution engines (acp, extension, remote, aionrs, gemini, etc.) */
   cliAgents: AvailableAgent[];
-  /** Preset assistants (isPreset === true) */
+  /** Preset assistants from config layer */
   presetAssistants: AvailableAgent[];
   /** Loading state */
   isLoading: boolean;
@@ -26,37 +23,51 @@ export type UseConversationAgentsResult = {
 };
 
 /**
+ * Convert a preset assistant config into an AvailableAgent shape.
+ */
+function configToAvailableAgent(config: AcpBackendConfig): AvailableAgent {
+  return {
+    backend: config.presetAgentType || 'gemini',
+    name: config.name,
+    customAgentId: config.id,
+    isPreset: true,
+    context: config.context,
+    avatar: config.avatar,
+    presetAgentType: config.presetAgentType,
+  };
+}
+
+/**
  * Hook to fetch available CLI agents and preset assistants for the conversation tab dropdown.
- * Filters out gemini-CLI agents (BUG-4: matches useGuidAgentSelection filter logic).
+ *
+ * Two independent data sources:
+ *   - Execution engines — from AgentRegistry via IPC (agents.detected)
+ *   - Preset assistants — from ConfigStorage ('assistants')
  */
 export const useConversationAgents = (): UseConversationAgentsResult => {
+  // Execution engines from AgentRegistry (shared cache with useDetectedAgents / useGuidAgentSelection)
   const {
-    data: availableAgents,
-    isLoading,
+    data: cliAgents,
+    isLoading: isLoadingAgents,
     mutate,
-  } = useSWR(AVAILABLE_AGENTS_SWR_KEY, async () => {
-    const result = await ipcBridge.acpConversation.getAvailableAgents.invoke();
-    if (result.success) {
-      return filterAvailableAgentsForUi(result.data);
-    }
-    return [];
+  } = useSWR<AvailableAgent[]>(DETECTED_AGENTS_SWR_KEY, fetchDetectedAgents);
+
+  // Preset assistants from config layer
+  const { data: presetConfigs, isLoading: isLoadingPresets } = useSWR('assistants.presets', async () => {
+    const agents: AcpBackendConfig[] = (await ConfigStorage.get('assistants')) || [];
+    return agents.filter((a) => a.isPreset && a.enabled !== false);
   });
 
-  const { cliAgents, presetAssistants } = useMemo(() => {
-    if (!availableAgents) {
-      return { cliAgents: [], presetAssistants: [] };
-    }
-    return splitConversationDropdownAgents(availableAgents);
-  }, [availableAgents]);
+  const presetAssistants = useMemo(() => (presetConfigs || []).map(configToAvailableAgent), [presetConfigs]);
 
   const refresh = async () => {
     await mutate();
   };
 
   return {
-    cliAgents,
+    cliAgents: cliAgents || [],
     presetAssistants,
-    isLoading,
+    isLoading: isLoadingAgents || isLoadingPresets,
     refresh,
   };
 };

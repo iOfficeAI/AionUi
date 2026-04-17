@@ -8,6 +8,7 @@ import type { IMessageAcpToolCall, IMessagePlan, IMessageText, TMessage } from '
 import { uuid } from '@/common/utils';
 import type {
   AcpBackend,
+  AgentBackend,
   AcpSessionUpdate,
   AgentMessageChunkUpdate,
   AgentThoughtChunkUpdate,
@@ -21,12 +22,12 @@ import type {
  */
 export class AcpAdapter {
   private conversationId: string;
-  private backend: AcpBackend;
+  private backend: AgentBackend;
   private activeToolCalls: Map<string, IMessageAcpToolCall> = new Map();
   private currentMessageId: string | null = uuid(); // Track current message for streaming chunks
   private currentPlanMsgId: string | null = null; // Stable id for plan within a turn
 
-  constructor(conversationId: string, backend: AcpBackend) {
+  constructor(conversationId: string, backend: AgentBackend) {
     this.conversationId = conversationId;
     this.backend = backend;
   }

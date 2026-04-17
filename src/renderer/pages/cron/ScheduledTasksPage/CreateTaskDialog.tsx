@@ -19,7 +19,7 @@ import AcpConfigSelector from '@renderer/components/agent/AcpConfigSelector';
 import { getFullAutoMode } from '@renderer/utils/model/agentModes';
 import type { TProviderWithModel } from '@/common/config/storage';
 import { ConfigStorage } from '@/common/config/storage';
-import type { AcpModelInfo, AcpSessionConfigOption } from '@/common/types/acpTypes';
+import type { AcpBackendAll, AcpModelInfo, AcpSessionConfigOption, AgentBackend } from '@/common/types/acpTypes';
 import { useModelProviderList } from '@renderer/hooks/agent/useModelProviderList';
 import GuidModelSelector from '@renderer/pages/guid/components/GuidModelSelector';
 import { WorkspaceFolderSelect } from '@renderer/components/workspace';
@@ -406,9 +406,9 @@ const CreateTaskDialog: React.FC<CreateTaskDialogProps> = ({
     if (agentKind === 'cli') {
       const agent = cliAgents.find((a) => a.backend === agentId);
       if (agent) {
-        resolvedAgentType = agent.backend;
+        resolvedAgentType = agent.backend as AcpBackendAll;
         agentConfig = {
-          backend: agent.backend,
+          backend: agent.backend as AgentBackend,
           name: agent.name,
           cliPath: agent.cliPath,
           mode: getFullAutoMode(agent.backend),
@@ -420,9 +420,9 @@ const CreateTaskDialog: React.FC<CreateTaskDialogProps> = ({
     } else if (agentKind === 'preset') {
       const agent = presetAssistants.find((a) => a.customAgentId === agentId);
       if (agent) {
-        resolvedAgentType = agent.backend;
+        resolvedAgentType = agent.backend as AcpBackendAll;
         agentConfig = {
-          backend: agent.backend,
+          backend: agent.backend as AgentBackend,
           name: agent.name,
           isPreset: true,
           customAgentId: agent.customAgentId,

@@ -47,6 +47,10 @@ export default defineConfig({
         },
       },
     ],
+    benchmark: {
+      include: ['tests/bench/**/*.bench.ts'],
+      outputFile: './bench-results.json',
+    },
     coverage: {
       provider: 'v8',
       reporter: ['text', 'text-summary', 'html', 'lcov'],

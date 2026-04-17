@@ -9,7 +9,6 @@ import { acpConversation, channel } from '@/common/adapter/ipcBridge';
 import { ConfigStorage } from '@/common/config/storage';
 import GeminiModelSelector from '@/renderer/pages/conversation/platforms/gemini/GeminiModelSelector';
 import type { GeminiModelSelection } from '@/renderer/pages/conversation/platforms/gemini/useGeminiModelSelection';
-import type { AcpBackendAll } from '@/common/types/acpTypes';
 import { Button, Dropdown, Empty, Menu, Message, Spin, Tooltip } from '@arco-design/web-react';
 import { CheckOne, CloseOne, Copy, Delete, Down, Refresh } from '@icon-park/react';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
@@ -74,10 +73,10 @@ const WeixinConfigForm: React.FC<WeixinConfigFormProps> = ({ pluginStatus, model
 
   // Agent selection
   const [availableAgents, setAvailableAgents] = useState<
-    Array<{ backend: AcpBackendAll; name: string; customAgentId?: string }>
+    Array<{ backend: string; name: string; customAgentId?: string }>
   >([]);
   const [selectedAgent, setSelectedAgent] = useState<{
-    backend: AcpBackendAll;
+    backend: string;
     name?: string;
     customAgentId?: string;
   }>({ backend: 'gemini' });
@@ -232,7 +231,7 @@ const WeixinConfigForm: React.FC<WeixinConfigFormProps> = ({ pluginStatus, model
           'backend' in saved &&
           typeof (saved as Record<string, unknown>).backend === 'string'
         ) {
-          const s = saved as { backend: AcpBackendAll; customAgentId?: string; name?: string };
+          const s = saved as { backend: string; customAgentId?: string; name?: string };
           setSelectedAgent({
             backend: s.backend,
             customAgentId: s.customAgentId,
@@ -246,7 +245,7 @@ const WeixinConfigForm: React.FC<WeixinConfigFormProps> = ({ pluginStatus, model
     void load();
   }, []);
 
-  const persistSelectedAgent = async (agent: { backend: AcpBackendAll; customAgentId?: string; name?: string }) => {
+  const persistSelectedAgent = async (agent: { backend: string; customAgentId?: string; name?: string }) => {
     try {
       await ConfigStorage.set('assistant.weixin.agent', agent);
       await channel.syncChannelSettings
@@ -374,7 +373,7 @@ const WeixinConfigForm: React.FC<WeixinConfigFormProps> = ({ pluginStatus, model
 
   const isGeminiAgent = selectedAgent.backend === 'gemini' || selectedAgent.backend === 'aionrs';
   const agentOptions: Array<{
-    backend: AcpBackendAll;
+    backend: string;
     name: string;
     customAgentId?: string;
   }> = availableAgents.length > 0 ? availableAgents : [{ backend: 'gemini', name: 'Gemini CLI' }];

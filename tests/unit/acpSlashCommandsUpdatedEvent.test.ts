@@ -103,13 +103,20 @@ vi.mock('@process/utils/initAgent', () => ({
 }));
 
 vi.mock('@process/task/agentUtils', () => ({
-  prepareFirstMessageWithSkillsIndex: vi.fn(async (c: string) => c),
+  prepareFirstMessageWithSkillsIndex: vi.fn(async (c: string) => ({ content: c, loadedSkills: [] })),
   buildSystemInstructions: vi.fn(async () => undefined),
 }));
 
-// Mock AcpAgent: capture callbacks and return a fully stubbed agent
+// Mock AcpAgent (type-only import in AcpAgentManager — still needs a stub)
 vi.mock('@process/agent/acp', () => {
-  const MockAcpAgent = vi.fn(function (this: Record<string, unknown>, config: Record<string, unknown>) {
+  const MockAcpAgent = vi.fn();
+  return { AcpAgent: MockAcpAgent };
+});
+
+// Mock AcpAgentV2: capture callbacks and return a fully stubbed agent.
+// AcpAgentManager.initAgent() now always creates `new AcpAgentV2(agentConfig)`.
+vi.mock('@process/acp/compat', () => {
+  const MockAcpAgentV2 = vi.fn(function (this: Record<string, unknown>, config: Record<string, unknown>) {
     capturedCallbacks.onAvailableCommandsUpdate =
       config.onAvailableCommandsUpdate as typeof capturedCallbacks.onAvailableCommandsUpdate;
     this.sendMessage = vi.fn(async () => ({ success: true }));
@@ -120,7 +127,7 @@ vi.mock('@process/agent/acp', () => {
     this.kill = vi.fn();
     this.on = vi.fn().mockReturnThis();
   });
-  return { AcpAgent: MockAcpAgent };
+  return { AcpAgentV2: MockAcpAgentV2 };
 });
 
 import AcpAgentManager from '@process/task/AcpAgentManager';

@@ -11,7 +11,7 @@ import type { IConfirmation, TMessage } from '@/common/chat/chatLib';
 import { transformMessage } from '@/common/chat/chatLib';
 import type { IResponseMessage } from '@/common/adapter/ipcBridge';
 import { uuid } from '@/common/utils';
-import type { AcpBackendAll } from '@/common/types/acpTypes';
+import type { AgentBackend } from '@/common/types/acpTypes';
 import { getDatabase } from '@process/services/database';
 import { addMessage, addOrUpdateMessage } from '@process/utils/message';
 import { cronBusyGuard } from '@process/services/cron/CronBusyGuard';
@@ -23,7 +23,7 @@ import { teamEventBus } from '@process/team/teamEventBus';
 export interface OpenClawAgentManagerData {
   conversation_id: string;
   workspace?: string;
-  backend?: AcpBackendAll;
+  backend?: AgentBackend;
   agentName?: string;
   /** Gateway configuration */
   gateway?: {

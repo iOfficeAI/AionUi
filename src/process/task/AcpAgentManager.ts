@@ -1,4 +1,5 @@
-import { AcpAgent } from '@process/agent/acp';
+import type { AcpAgent } from '@process/agent/acp';
+import { AcpAgentV2 } from '@process/acp/compat';
 import { channelEventBus } from '@process/channels/agent/ChannelEventBus';
 import { teamEventBus } from '@process/team/teamEventBus';
 import { ipcBridge } from '@/common';
@@ -56,6 +57,8 @@ interface AcpAgentManagerData {
   presetContext?: string; // 智能助手的预设规则/提示词 / Preset context from smart assistant
   /** 启用的 skills 列表，用于过滤 SkillManager 加载的 skills / Enabled skills list for filtering SkillManager skills */
   enabledSkills?: string[];
+  /** 排除的内置自动注入 skills / Builtin auto-injected skills to exclude */
+  excludeBuiltinSkills?: string[];
   /** Force yolo mode (auto-approve) - used by CronService for scheduled tasks */
   yoloMode?: boolean;
   /** ACP session ID for resume support / ACP session ID 用于会话恢复 */
@@ -435,27 +438,22 @@ ${collectedResponses.join('\n')}`;
     customEnv?: Record<string, string>;
     yoloMode?: boolean;
   }> {
-    if (data.backend === 'custom' && data.customAgentId) {
+    if (data.customAgentId) {
       return this.resolveCustomAgentCliConfig(data);
     }
-    if (data.backend !== 'custom') {
-      return this.resolveBuiltinBackendConfig(data);
-    }
-    // backend === 'custom' but no customAgentId - invalid state
-    mainWarn('[AcpAgentManager]', 'Custom backend specified but customAgentId is missing');
-    return { cliPath: data.cliPath };
+    return this.resolveBuiltinBackendConfig(data);
   }
 
   /**
    * Resolve CLI config for a custom agent backend.
-   * Looks up acp.customAgents by UUID, falling back to extension-contributed adapters.
+   * Looks up assistants config by UUID, falling back to extension-contributed adapters.
    */
   private async resolveCustomAgentCliConfig(data: AcpAgentManagerData): Promise<{
     cliPath?: string;
     customArgs?: string[];
     customEnv?: Record<string, string>;
   }> {
-    const customAgents = await ProcessConfig.get('acp.customAgents');
+    const customAgents = await ProcessConfig.get('assistants');
     let customAgentConfig: CustomAgentLaunchConfig | undefined = customAgents?.find(
       (agent) => agent.id === data.customAgentId
     );
@@ -875,7 +873,7 @@ ${collectedResponses.join('\n')}`;
     this.bootstrap = (async () => {
       const { cliPath, customArgs, customEnv, yoloMode } = await this.resolveAgentCliConfig(data);
 
-      this.agent = new AcpAgent({
+      const agentConfig = {
         id: data.conversation_id,
         backend: data.backend,
         cliPath: cliPath,
@@ -909,13 +907,15 @@ ${collectedResponses.join('\n')}`;
         onAvailableCommandsUpdate: (commands: Array<{ name: string; description?: string; hint?: string }>) => {
           this.handleAvailableCommandsUpdate(commands);
         },
-        onStreamEvent: (message) => {
+        onStreamEvent: (message: IResponseMessage) => {
           this.handleStreamEvent(message as IResponseMessage, data.backend);
         },
-        onSignalEvent: async (v) => {
+        onSignalEvent: async (v: IResponseMessage) => {
           await this.handleSignalEvent(v as IResponseMessage, data.backend);
         },
-      });
+      };
+
+      this.agent = new AcpAgentV2(agentConfig) as unknown as AcpAgent;
       return this.agent.start().then(async () => {
         await this.restorePersistedState();
         this.bootstrapping = false;
@@ -1016,12 +1016,14 @@ ${collectedResponses.join('\n')}`;
             }
           } else {
             // Custom workspace or no native support — inject rules + skills via prompt
-            contentToSend = await prepareFirstMessageWithSkillsIndex(contentToSend, {
+            const { content: injectedContent } = await prepareFirstMessageWithSkillsIndex(contentToSend, {
               presetContext: this.options.presetContext,
               enabledSkills: this.options.enabledSkills,
+              excludeBuiltinSkills: this.options.excludeBuiltinSkills,
               enableTeamGuide: !isInTeam && (await shouldInjectTeamGuideMcp(this.options.backend)),
               backend: this.options.backend,
             });
+            contentToSend = injectedContent;
           }
         }
 

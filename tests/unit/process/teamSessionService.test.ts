@@ -280,7 +280,7 @@ describe('TeamSessionService', () => {
           },
         ];
       }
-      if (key === 'acp.customAgents') {
+      if (key === 'assistants') {
         return [{ id: 'assistant-1', enabledSkills: ['skill-a'] }];
       }
       return undefined;

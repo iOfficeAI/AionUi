@@ -6,7 +6,7 @@
 
 import type { TMessage } from '@/common/chat/chatLib';
 import { ipcBridge } from '@/common';
-import type { AcpBackendAll } from '@/common/types/acpTypes';
+import type { AgentBackend } from '@/common/types/acpTypes';
 import { cronService } from '@process/services/cron/cronServiceSingleton';
 import { detectCronCommands, stripCronCommands, type CronCommand } from './CronCommandDetector';
 import { hasThinkTags, stripThinkTags } from './ThinkTagDetector';
@@ -39,7 +39,7 @@ export interface ProcessResult {
  */
 export async function processAgentResponse(
   conversationId: string,
-  agentType: AcpBackendAll,
+  agentType: AgentBackend,
   message: TMessage
 ): Promise<ProcessResult> {
   const systemResponses: string[] = [];
@@ -169,7 +169,7 @@ function createDisplayMessage(original: TMessage, newContent: string): TMessage 
  */
 export async function processCronInMessage(
   conversationId: string,
-  agentType: AcpBackendAll,
+  agentType: AgentBackend,
   message: TMessage,
   emitSystemResponse: (response: string) => void
 ): Promise<void> {
@@ -190,7 +190,7 @@ export async function processCronInMessage(
  */
 async function handleCronCommands(
   conversationId: string,
-  agentType: AcpBackendAll,
+  agentType: AgentBackend,
   commands: CronCommand[]
 ): Promise<string[]> {
   const responses: string[] = [];
@@ -230,11 +230,22 @@ async function handleCronCommands(
           break;
         }
 
-        case 'delete': {
-          await cronService.removeJob(cmd.jobId);
-          // Emit event to renderer process for real-time UI update
-          ipcBridge.cron.onJobRemoved.emit({ jobId: cmd.jobId });
-          responses.push(`🗑️ Task deleted: ${cmd.jobId}`);
+        case 'update': {
+          const existingJob = await cronService.getJob(cmd.jobId);
+          if (!existingJob) {
+            responses.push(`❌ Task not found: ${cmd.jobId}`);
+            break;
+          }
+          const updated = await cronService.updateJob(cmd.jobId, {
+            name: cmd.name,
+            schedule: { kind: 'cron', expr: cmd.schedule, description: cmd.scheduleDescription },
+            target: {
+              ...existingJob.target,
+              payload: { kind: 'message', text: cmd.message },
+            },
+          });
+          ipcBridge.cron.onJobUpdated.emit(updated);
+          responses.push(`✅ Scheduled task updated: "${updated.name}" (ID: ${updated.id})`);
           break;
         }
       }

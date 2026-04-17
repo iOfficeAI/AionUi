@@ -11,7 +11,7 @@ import { ProcessConfig } from '@process/utils/initStorage';
 import type { Mailbox } from './Mailbox';
 import { buildRolePrompt } from './prompts/buildRolePrompt';
 import { formatMessages } from './prompts/formatHelpers';
-import { acpDetector } from '@process/agent/acp/AcpDetector';
+import { agentRegistry } from '@process/agent/AgentRegistry';
 
 type TeammateManagerParams = {
   teamId: string;
@@ -165,10 +165,13 @@ export class TeammateManager extends EventEmitter {
         let availableAgentTypes: Array<{ type: string; name: string }> | undefined;
         if (agent.role === 'lead') {
           const cachedInitResults = await ProcessConfig.get('acp.cachedInitializeResult');
-          availableAgentTypes = acpDetector
+          availableAgentTypes = agentRegistry
             .getDetectedAgents()
             .filter((a) => isTeamCapableBackend(a.backend, cachedInitResults))
-            .map((a) => ({ type: a.backend, name: a.name }));
+            .map((a) => ({
+              type: a.backend,
+              name: a.name,
+            }));
         }
 
         const staticPrompt = buildRolePrompt({

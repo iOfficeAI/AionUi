@@ -10,6 +10,7 @@ import { resolveLocaleKey } from '../../src/common/utils';
 const loadPresetAssistantResources = vi.fn();
 const configGet = vi.fn();
 const modelConfigGet = vi.fn();
+const defaultCodexModels: Array<{ id: string; label: string }> = [];
 
 vi.mock('@/common', () => ({
   ipcBridge: {
@@ -37,6 +38,10 @@ vi.mock('@/common/utils/presetAssistantResources', () => ({
   loadPresetAssistantResources,
 }));
 
+vi.mock('@/common/types/codex/codexModels', () => ({
+  DEFAULT_CODEX_MODELS: defaultCodexModels,
+}));
+
 const { buildPresetAssistantParams, buildCliAgentParams } =
   await import('../../src/renderer/pages/conversation/utils/createConversationParams');
 
@@ -47,6 +52,7 @@ describe('createConversationParams', () => {
     modelConfigGet.mockReset();
     configGet.mockResolvedValue(undefined);
     modelConfigGet.mockResolvedValue(undefined);
+    defaultCodexModels.length = 0;
   });
 
   it('uses the shared locale resolver for Turkish', async () => {
@@ -69,7 +75,7 @@ describe('createConversationParams', () => {
 
     const params = await buildPresetAssistantParams(
       {
-        backend: 'custom',
+        backend: 'gemini',
         name: 'Preset Assistant',
         customAgentId: 'builtin-cowork',
         isPreset: true,
@@ -98,7 +104,7 @@ describe('createConversationParams', () => {
 
     const params = await buildPresetAssistantParams(
       {
-        backend: 'custom',
+        backend: 'codebuddy',
         name: 'Codebuddy Assistant',
         customAgentId: 'preset-1',
         isPreset: true,
@@ -206,6 +212,102 @@ describe('createConversationParams', () => {
     expect(params.model).toEqual({});
   });
 
+  it('reuses the saved ACP mode and model for workspace conversations', async () => {
+    configGet.mockImplementation(async (key: string) => {
+      if (key === 'acp.config') {
+        return {
+          codex: {
+            preferredMode: 'yolo',
+            preferredModelId: 'gpt-5-codex',
+          },
+        };
+      }
+      return undefined;
+    });
+
+    const params = await buildCliAgentParams(
+      {
+        backend: 'codex',
+        name: 'Codex Agent',
+      },
+      '/tmp/workspace'
+    );
+
+    expect(params.extra.sessionMode).toBe('yolo');
+    expect(params.extra.currentModelId).toBe('gpt-5-codex');
+  });
+
+  it('falls back to legacy yolo mode when preferred ACP mode is missing', async () => {
+    configGet.mockImplementation(async (key: string) => {
+      if (key === 'acp.config') {
+        return {
+          claude: {
+            yoloMode: true,
+          },
+        };
+      }
+      return undefined;
+    });
+
+    const params = await buildCliAgentParams(
+      {
+        backend: 'claude',
+        name: 'Claude Agent',
+      },
+      '/tmp/workspace'
+    );
+
+    expect(params.extra.sessionMode).toBe('bypassPermissions');
+  });
+
+  it('reuses the effective preset backend mode and model for ACP preset assistants', async () => {
+    loadPresetAssistantResources.mockResolvedValue({ rules: 'r', skills: '', enabledSkills: [] });
+    configGet.mockImplementation(async (key: string) => {
+      if (key === 'acp.config') {
+        return {
+          claude: {
+            preferredMode: 'acceptEdits',
+            preferredModelId: 'claude-sonnet-4-5',
+          },
+        };
+      }
+      return undefined;
+    });
+
+    const params = await buildPresetAssistantParams(
+      { backend: 'custom', name: 'A', customAgentId: 'p', isPreset: true, presetAgentType: 'claude' },
+      '/tmp',
+      'en'
+    );
+
+    expect(params.extra.backend).toBe('claude');
+    expect(params.extra.sessionMode).toBe('acceptEdits');
+    expect(params.extra.currentModelId).toBe('claude-sonnet-4-5');
+  });
+
+  it('falls back to default codex model when no cached ACP model exists', async () => {
+    defaultCodexModels.push({ id: 'gpt-5', label: 'GPT-5' });
+    configGet.mockImplementation(async (key: string) => {
+      if (key === 'acp.config') {
+        return {};
+      }
+      if (key === 'acp.cachedModels') {
+        return {};
+      }
+      return undefined;
+    });
+
+    const params = await buildCliAgentParams(
+      {
+        backend: 'codex',
+        name: 'Codex Agent',
+      },
+      '/tmp/workspace'
+    );
+
+    expect(params.extra.currentModelId).toBe('gpt-5');
+  });
+
   it('throws error for aionrs if no enabled provider', async () => {
     modelConfigGet.mockResolvedValue([{ id: 'p1', enabled: false, model: ['m1'] }]);
     await expect(buildCliAgentParams({ backend: 'aionrs', name: 'Agent' }, '/tmp')).rejects.toThrow(
@@ -260,7 +362,7 @@ describe('createConversationParams', () => {
   it('sets backend for acp preset assistant', async () => {
     loadPresetAssistantResources.mockResolvedValue({ rules: 'r', skills: '', enabledSkills: [] });
     const params = await buildPresetAssistantParams(
-      { backend: 'custom', name: 'A', customAgentId: 'p', isPreset: true, presetAgentType: 'claude' },
+      { backend: 'claude', name: 'A', customAgentId: 'p', isPreset: true, presetAgentType: 'claude' },
       '/tmp',
       'en'
     );

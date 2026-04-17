@@ -6,6 +6,7 @@
 
 import { ipcBridge } from '@/common';
 import { uuid } from '@/common/utils';
+import { agentRegistry } from '@process/agent/AgentRegistry';
 import { getDatabase } from '@process/services/database';
 import { generateIdentity } from '@process/agent/openclaw/deviceIdentity';
 import { OpenClawGatewayConnection } from '@process/agent/openclaw/OpenClawGatewayConnection';
@@ -69,6 +70,8 @@ export function initRemoteAgentBridge(): void {
     if (!result.success || !result.data) {
       throw new Error(result.error ?? 'Failed to create remote agent');
     }
+    // Sync AgentRegistry so getDetectedAgents() includes the new remote agent
+    agentRegistry.refreshRemoteAgents().catch(() => {});
     return result.data;
   });
 
@@ -90,6 +93,10 @@ export function initRemoteAgentBridge(): void {
   ipcBridge.remoteAgent.delete.provider(async ({ id }) => {
     const db = await getDatabase();
     const result = db.deleteRemoteAgent(id);
+    if (result.success) {
+      // Sync AgentRegistry so deleted remote agent is removed from detection
+      agentRegistry.refreshRemoteAgents().catch(() => {});
+    }
     return result.success;
   });
 

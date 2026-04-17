@@ -18,10 +18,12 @@ import {
   getAssistantsDir,
   getSkillsDir,
   getBuiltinSkillsCopyDir,
+  getAutoSkillsDir,
   ProcessConfig,
 } from '@process/utils/initStorage';
 import { readDirectoryRecursive } from '@process/utils';
 import { getDatabase } from '@process/services/database';
+import { ExtensionRegistry } from '@process/extensions/ExtensionRegistry';
 import type { IWorkspaceFlatFile } from '@/common/adapter/ipcBridge';
 
 // ============================================================================
@@ -1030,18 +1032,20 @@ export function initFsBridge(): void {
     return deleteAssistantResource('skills', new RegExp(`^${assistantId}-skills\\..*\\.md$`));
   });
 
-  // 获取可用 skills 列表 / List available skills from both builtin and user directories
+  // 获取可用 skills 列表 / List available skills from builtin, user, and extension directories
   ipcBridge.fs.listAvailableSkills.provider(async () => {
     try {
-      const skills: Array<{
+      type SkillEntry = {
         name: string;
         description: string;
         location: string;
         isCustom: boolean;
-      }> = [];
+        source: 'builtin' | 'custom' | 'extension';
+      };
+      const skills: SkillEntry[] = [];
 
       // 辅助函数：从目录读取 skills
-      const readSkillsFromDir = async (skillsDir: string, isCustomDir: boolean) => {
+      const readSkillsFromDir = async (skillsDir: string, source: 'builtin' | 'custom') => {
         try {
           await fs.access(skillsDir);
           const entries = await fs.readdir(skillsDir, { withFileTypes: true });
@@ -1068,7 +1072,8 @@ export function initFsBridge(): void {
                     name: nameMatch[1].trim(),
                     description: descMatch ? descMatch[1].trim() : '',
                     location: skillMdPath,
-                    isCustom: isCustomDir,
+                    isCustom: source === 'custom',
+                    source,
                   });
                 }
               }
@@ -1081,33 +1086,96 @@ export function initFsBridge(): void {
         }
       };
 
-      // Read builtin skills from the dedicated builtin-skills/ directory (isCustom: false)
+      // Read builtin skills from the dedicated builtin-skills/ directory
       const builtinSkillsDir = getBuiltinSkillsCopyDir();
       const builtinCountBefore = skills.length;
-      await readSkillsFromDir(builtinSkillsDir, false);
+      await readSkillsFromDir(builtinSkillsDir, 'builtin');
       const builtinCount = skills.length - builtinCountBefore;
 
-      // 读取用户自定义 skills (isCustom: true)
+      // 读取用户自定义 skills
       const userSkillsDir = getSkillsDir();
       const userCountBefore = skills.length;
-      await readSkillsFromDir(userSkillsDir, true);
+      await readSkillsFromDir(userSkillsDir, 'custom');
       const userCount = skills.length - userCountBefore;
 
-      // Deduplicate: if a custom skill has the same name as a builtin, keep builtin
-      const skillMap = new Map<string, { name: string; description: string; location: string; isCustom: boolean }>();
+      // 读取扩展贡献的 skills / Read extension-contributed skills from ExtensionRegistry
+      let extensionCount = 0;
+      try {
+        const registry = ExtensionRegistry.getInstance();
+        const extSkills = registry.getSkills();
+        for (const extSkill of extSkills) {
+          skills.push({
+            name: extSkill.name,
+            description: extSkill.description,
+            location: extSkill.location,
+            isCustom: false,
+            source: 'extension',
+          });
+          extensionCount++;
+        }
+      } catch {
+        // ExtensionRegistry not available, skip
+      }
+
+      // Deduplicate: builtin > extension > custom (lower source wins on conflict)
+      const skillMap = new Map<string, SkillEntry>();
       for (const skill of skills) {
         const existing = skillMap.get(skill.name);
-        if (!existing || !skill.isCustom) {
+        if (!existing || (existing.source === 'custom' && skill.source !== 'custom')) {
           skillMap.set(skill.name, skill);
         }
       }
       const result = Array.from(skillMap.values());
 
-      console.log(`[fsBridge] Listed ${result.length} available skills: builtin=${builtinCount}, custom=${userCount}`);
+      console.log(
+        `[fsBridge] Listed ${result.length} available skills: builtin=${builtinCount}, custom=${userCount}, extension=${extensionCount}`
+      );
 
       return result;
     } catch (error) {
       console.error('[fsBridge] Failed to list available skills:', error);
+      return [];
+    }
+  });
+
+  // 获取内置自动注入 skills 列表 / List builtin auto-injected skills from _builtin directory
+  ipcBridge.fs.listBuiltinAutoSkills.provider(async () => {
+    try {
+      const autoSkillsDir = getAutoSkillsDir();
+      const skills: Array<{ name: string; description: string }> = [];
+
+      try {
+        await fs.access(autoSkillsDir);
+      } catch {
+        return skills;
+      }
+
+      const entries = await fs.readdir(autoSkillsDir, { withFileTypes: true });
+      for (const entry of entries) {
+        if (!entry.isDirectory() && !entry.isSymbolicLink()) continue;
+
+        const skillMdPath = path.join(autoSkillsDir, entry.name, 'SKILL.md');
+        try {
+          const content = await fs.readFile(skillMdPath, 'utf-8');
+          const frontMatterMatch = content.match(/^---\s*\n([\s\S]*?)\n---/);
+          if (frontMatterMatch) {
+            const yaml = frontMatterMatch[1];
+            const nameMatch = yaml.match(/^name:\s*(.+)$/m);
+            const descMatch = yaml.match(/^description:\s*['"]?(.+?)['"]?$/m);
+            skills.push({
+              name: nameMatch ? nameMatch[1].trim() : entry.name,
+              description: descMatch ? descMatch[1].trim() : '',
+            });
+          }
+        } catch {
+          // SKILL.md not found or unreadable, skip
+        }
+      }
+
+      console.log(`[fsBridge] Listed ${skills.length} builtin auto-injected skills`);
+      return skills;
+    } catch (error) {
+      console.error('[fsBridge] Failed to list builtin auto skills:', error);
       return [];
     }
   });
@@ -1418,7 +1486,6 @@ export function initFsBridge(): void {
   ipcBridge.fs.detectAndCountExternalSkills.provider(async () => {
     try {
       const homedir = os.homedir();
-      const userSkillsDir = getSkillsDir();
       const builtinCandidates = [
         {
           name: 'Global Agents',

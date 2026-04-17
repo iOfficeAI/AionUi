@@ -11,6 +11,12 @@ vi.mock('react-i18next', () => ({
   }),
 }));
 
+// Mock react-router-dom
+const mockSetSearchParams = vi.fn();
+vi.mock('react-router-dom', () => ({
+  useSearchParams: () => [new URLSearchParams(), mockSetSearchParams],
+}));
+
 // Mock @arco-design/web-react
 vi.mock('@arco-design/web-react', async (importOriginal) => {
   const actual = await importOriginal<typeof import('@arco-design/web-react')>();
@@ -51,6 +57,8 @@ vi.mock('@icon-park/react', () => {
     Delete: () => <span data-testid='icon-delete' />,
     FolderOpen: () => <span data-testid='icon-folder' />,
     Info: () => <span data-testid='icon-info' />,
+    Lightning: () => <span data-testid='icon-lightning' />,
+    Puzzle: () => <span data-testid='icon-puzzle' />,
     Search: () => <span data-testid='icon-search' />,
     Plus: () => <span data-testid='icon-plus' />,
     Refresh: () => <span data-testid='icon-refresh' />,
@@ -69,6 +77,7 @@ const mockImportSkillWithSymlink = vi.fn();
 const mockDeleteSkill = vi.fn();
 const mockExportSkillWithSymlink = vi.fn();
 const mockAddCustomExternalPath = vi.fn();
+const mockListBuiltinAutoSkills = vi.fn();
 const mockShowOpen = vi.fn();
 
 vi.mock('@/common', () => {
@@ -82,6 +91,7 @@ vi.mock('@/common', () => {
         deleteSkill: { invoke: (...args: any[]) => mockDeleteSkill(...args) },
         exportSkillWithSymlink: { invoke: (...args: any[]) => mockExportSkillWithSymlink(...args) },
         addCustomExternalPath: { invoke: (...args: any[]) => mockAddCustomExternalPath(...args) },
+        listBuiltinAutoSkills: { invoke: (...args: any[]) => mockListBuiltinAutoSkills(...args) },
       },
       dialog: {
         showOpen: { invoke: (...args: any[]) => mockShowOpen(...args) },
@@ -105,8 +115,8 @@ describe('SkillsHubSettings Component', () => {
 
     // Default mock responses
     mockListAvailableSkills.mockResolvedValue([
-      { name: 'MySkill1', description: 'desc1', location: '/path1', isCustom: true },
-      { name: 'Builtin1', description: 'desc2', location: '/path2', isCustom: false },
+      { name: 'MySkill1', description: 'desc1', location: '/path1', isCustom: true, source: 'custom' },
+      { name: 'Builtin1', description: 'desc2', location: '/path2', isCustom: false, source: 'builtin' },
     ]);
 
     mockDetectAndCountExternalSkills.mockResolvedValue({
@@ -128,6 +138,8 @@ describe('SkillsHubSettings Component', () => {
       userSkillsDir: '/user/skills',
       builtinSkillsDir: '/builtin/skills',
     });
+
+    mockListBuiltinAutoSkills.mockResolvedValue([]);
   });
 
   it('should render main sections and load skills', async () => {
@@ -210,7 +222,7 @@ describe('SkillsHubSettings Component', () => {
   it('should call delete endpoint when deleting custom skill', async () => {
     // Modify mock to only return the custom skill
     mockListAvailableSkills.mockResolvedValue([
-      { name: 'MySkill1', description: 'desc1', location: '/path1', isCustom: true },
+      { name: 'MySkill1', description: 'desc1', location: '/path1', isCustom: true, source: 'custom' },
     ]);
 
     const { Modal } = await import('@arco-design/web-react');

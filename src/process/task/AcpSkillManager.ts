@@ -112,14 +112,17 @@ export class AcpSkillManager {
   }
 
   /**
-   * 获取单例实例（带 enabledSkills 缓存键）
-   * Get singleton instance (with enabledSkills cache key)
+   * 获取单例实例（带 enabledSkills + excludeBuiltinSkills 缓存键）
+   * Get singleton instance (with enabledSkills + excludeBuiltinSkills cache key)
    *
-   * @param enabledSkills - 启用的 skills 列表，用作缓存键 / Enabled skills list, used as cache key
+   * @param enabledSkills - 启用的 skills 列表 / Enabled skills list
+   * @param excludeBuiltinSkills - 排除的内置 skills 列表 / Builtin skills to exclude
    * @returns AcpSkillManager 实例 / AcpSkillManager instance
    */
-  static getInstance(enabledSkills?: string[]): AcpSkillManager {
-    const cacheKey = enabledSkills?.toSorted().join(',') || 'all';
+  static getInstance(enabledSkills?: string[], excludeBuiltinSkills?: string[]): AcpSkillManager {
+    const enabledPart = enabledSkills?.toSorted().join(',') || 'all';
+    const excludePart = excludeBuiltinSkills?.toSorted().join(',') || '';
+    const cacheKey = excludePart ? `${enabledPart}|exclude:${excludePart}` : enabledPart;
 
     // 如果缓存键变化，需要重新创建实例
     // If cache key changed, need to recreate instance
@@ -145,8 +148,10 @@ export class AcpSkillManager {
   /**
    * 初始化：发现并加载内置 skills 的索引（所有场景自动注入）
    * Initialize: discover and load index of builtin skills (auto-injected for all scenarios)
+   *
+   * @param excludeSkills - 排除的内置 skill 名称列表 / Builtin skill names to exclude
    */
-  async discoverAutoSkills(): Promise<void> {
+  async discoverAutoSkills(excludeSkills?: string[]): Promise<void> {
     if (this.autoInitialized) return;
 
     const builtinDir = this.autoSkillsDir;
@@ -156,6 +161,8 @@ export class AcpSkillManager {
       return;
     }
 
+    const excludeSet = new Set(excludeSkills ?? []);
+
     try {
       const entries = await fs.readdir(builtinDir, { withFileTypes: true });
 
@@ -163,6 +170,10 @@ export class AcpSkillManager {
         if (!entry.isDirectory() && !entry.isSymbolicLink()) continue;
 
         const skillName = entry.name;
+
+        // Skip excluded builtin skills
+        if (excludeSet.has(skillName)) continue;
+
         const skillFile = path.join(builtinDir, skillName, 'SKILL.md');
         if (!existsSync(skillFile)) continue;
 
@@ -177,13 +188,19 @@ export class AcpSkillManager {
             // body 不在这里加载，按需获取
           };
 
+          // Also check by resolved name
+          if (name && excludeSet.has(name)) continue;
+
           this.autoSkills.set(skillName, skillDef);
         } catch (error) {
           console.warn(`[AcpSkillManager] Failed to load builtin skill ${skillName}:`, error);
         }
       }
 
-      console.log(`[AcpSkillManager] Discovered ${this.autoSkills.size} builtin skills`);
+      console.log(
+        `[AcpSkillManager] Discovered ${this.autoSkills.size} builtin skills` +
+          (excludeSet.size > 0 ? ` (excluded: ${[...excludeSet].join(', ')})` : '')
+      );
     } catch (error) {
       console.error(`[AcpSkillManager] Failed to discover builtin skills:`, error);
     }
@@ -246,10 +263,13 @@ export class AcpSkillManager {
   /**
    * 初始化：发现并加载所有 skills 的索引（不加载 body）
    * Initialize: discover and load index of all skills (without body)
+   *
+   * @param enabledSkills - 启用的可选 skills 列表 / Enabled optional skills list
+   * @param excludeBuiltinSkills - 排除的内置自动注入 skills / Builtin auto-injected skills to exclude
    */
-  async discoverSkills(enabledSkills?: string[]): Promise<void> {
+  async discoverSkills(enabledSkills?: string[], excludeBuiltinSkills?: string[]): Promise<void> {
     // 始终先加载内置 skills / Always load builtin skills first
-    await this.discoverAutoSkills();
+    await this.discoverAutoSkills(excludeBuiltinSkills);
 
     // 加载扩展贡献的 skills / Load extension-contributed skills
     await this.discoverExtensionSkills(enabledSkills);

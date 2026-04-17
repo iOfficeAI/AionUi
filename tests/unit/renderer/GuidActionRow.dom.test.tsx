@@ -1,4 +1,4 @@
-import { render, screen } from '@testing-library/react';
+import { fireEvent, render, screen } from '@testing-library/react';
 import React from 'react';
 import { describe, expect, it, vi } from 'vitest';
 
@@ -17,10 +17,33 @@ vi.mock('@arco-design/web-react', () => ({
   }: React.ComponentProps<'button'> & { icon?: React.ReactNode; loading?: boolean }) => (
     <button {...props}>{icon ?? children}</button>
   ),
-  Dropdown: ({ children }: React.PropsWithChildren) => <>{children}</>,
+  Dropdown: ({ children, droplist }: React.PropsWithChildren & { droplist?: React.ReactNode }) => (
+    <>
+      {droplist}
+      {children}
+    </>
+  ),
   Menu: Object.assign(({ children }: React.PropsWithChildren) => <div>{children}</div>, {
-    Item: ({ children }: React.PropsWithChildren) => <div>{children}</div>,
+    Item: ({ children, onClick }: React.PropsWithChildren & { onClick?: (e: any) => void }) => (
+      <div onClick={onClick}>{children}</div>
+    ),
+    SubMenu: ({ children, title }: React.PropsWithChildren & { title?: React.ReactNode }) => (
+      <div>
+        {title}
+        {children}
+      </div>
+    ),
   }),
+  Checkbox: ({
+    children,
+    checked,
+    onChange,
+  }: React.PropsWithChildren & { checked?: boolean; onChange?: () => void }) => (
+    <label>
+      <input type='checkbox' checked={checked} onChange={onChange} />
+      {children}
+    </label>
+  ),
   Message: {
     error: vi.fn(),
   },
@@ -31,6 +54,7 @@ vi.mock('@icon-park/react', () => ({
   ArrowUp: () => <span>ArrowUp</span>,
   Brain: () => <span>Brain</span>,
   FolderOpen: () => <span>FolderOpen</span>,
+  Lightning: () => <span>Lightning</span>,
   Plus: () => <span>Plus</span>,
   Shield: () => <span>Shield</span>,
   UploadOne: () => <span>UploadOne</span>,
@@ -38,6 +62,10 @@ vi.mock('@icon-park/react', () => ({
 
 vi.mock('@/renderer/components/agent/AgentModeSelector', () => ({
   default: () => <div>AgentModeSelector</div>,
+}));
+
+vi.mock('@/renderer/components/agent/AcpConfigSelector', () => ({
+  default: () => null,
 }));
 
 vi.mock('@/renderer/hooks/context/LayoutContext', () => ({
@@ -80,7 +108,6 @@ vi.mock('@/common', () => ({
   },
 }));
 
-import { fireEvent } from '@testing-library/react';
 import GuidActionRow from '@/renderer/pages/guid/components/GuidActionRow';
 import { FileService } from '@/renderer/services/FileService';
 
@@ -98,6 +125,9 @@ describe('GuidActionRow', () => {
     customAgents: [],
     localeKey: 'en-US',
     onClosePresetTag: vi.fn(),
+    builtinAutoSkills: [] as Array<{ name: string; description: string }>,
+    disabledBuiltinSkills: [] as string[],
+    onToggleBuiltinSkill: vi.fn(),
     loading: false,
     isButtonDisabled: false,
     speechInputNode: <button aria-label='speech-input'>Mic</button>,
@@ -108,6 +138,32 @@ describe('GuidActionRow', () => {
     render(<GuidActionRow {...defaultProps} />);
     expect(screen.getByLabelText('speech-input')).toBeInTheDocument();
     expect(screen.getByText('ArrowUp')).toBeInTheDocument();
+  });
+
+  it('displays skill count when builtin skills are provided', () => {
+    const skills = [
+      { name: 'web-search', description: 'Search the web' },
+      { name: 'code-interpreter', description: 'Run code' },
+    ];
+
+    render(<GuidActionRow {...defaultProps} builtinAutoSkills={skills} />);
+
+    expect(screen.getByText('settings.autoInjectedSkills (2/2)', { exact: false })).toBeInTheDocument();
+  });
+
+  it('calls onToggleBuiltinSkill when skill checkbox is toggled', () => {
+    const skills = [
+      { name: 'web-search', description: 'Search the web' },
+      { name: 'code-interpreter', description: 'Run code' },
+    ];
+    const onToggle = vi.fn();
+
+    render(<GuidActionRow {...defaultProps} builtinAutoSkills={skills} onToggleBuiltinSkill={onToggle} />);
+
+    const checkboxes = screen.getAllByRole('checkbox');
+    fireEvent.click(checkboxes[0]);
+
+    expect(onToggle).toHaveBeenCalledWith('web-search');
   });
 
   it('shows generic error toast when file upload fails', async () => {

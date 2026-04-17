@@ -7,11 +7,11 @@
 import type { ICreateConversationParams } from '@/common/adapter/ipcBridge';
 import type { TProviderWithModel } from '@/common/config/storage';
 import type { AcpBackend, AcpBackendAll } from '@/common/types/acpTypes';
-import { ACP_ROUTED_PRESET_TYPES } from '@/common/types/acpTypes';
 
 export type BuildAgentConversationPresetResources = {
   rules?: string;
   enabledSkills?: string[];
+  excludeBuiltinSkills?: string[];
 };
 
 export type BuildAgentConversationInput = {
@@ -50,20 +50,6 @@ export function getConversationTypeForBackend(backend: string): ICreateConversat
   }
 }
 
-export function getConversationTypeForPreset(presetAgentType: string): ICreateConversationParams['type'] {
-  // Non-ACP backends with their own conversation type (aionrs, openclaw, nanobot, remote)
-  // must be resolved via getConversationTypeForBackend first.
-  const backendType = getConversationTypeForBackend(presetAgentType);
-  if (backendType !== 'acp') {
-    return backendType;
-  }
-  // ACP backends: only route through ACP if explicitly listed
-  if (ACP_ROUTED_PRESET_TYPES.includes(presetAgentType as (typeof ACP_ROUTED_PRESET_TYPES)[number])) {
-    return 'acp';
-  }
-  return 'gemini';
-}
-
 export function buildAgentConversationParams(input: BuildAgentConversationInput): ICreateConversationParams {
   const {
     backend,
@@ -85,7 +71,7 @@ export function buildAgentConversationParams(input: BuildAgentConversationInput)
 
   const effectivePresetType = presetAgentType || backend;
   const effectivePresetAssistantId = presetAssistantId || customAgentId;
-  const type = isPreset ? getConversationTypeForPreset(effectivePresetType) : getConversationTypeForBackend(backend);
+  const type = getConversationTypeForBackend(isPreset ? effectivePresetType : backend);
   const extra: ICreateConversationParams['extra'] = {
     workspace,
     customWorkspace,
@@ -94,6 +80,7 @@ export function buildAgentConversationParams(input: BuildAgentConversationInput)
 
   if (isPreset) {
     extra.enabledSkills = presetResources?.enabledSkills;
+    extra.excludeBuiltinSkills = presetResources?.excludeBuiltinSkills;
     extra.presetAssistantId = effectivePresetAssistantId;
     if (type === 'gemini') {
       extra.presetRules = presetResources?.rules;
@@ -109,7 +96,7 @@ export function buildAgentConversationParams(input: BuildAgentConversationInput)
     extra.backend = backend as AcpBackendAll;
     extra.agentName = agentName || name;
     if (cliPath) extra.cliPath = cliPath;
-    if (backend === 'custom' && customAgentId) {
+    if (customAgentId) {
       extra.customAgentId = customAgentId;
     }
   }

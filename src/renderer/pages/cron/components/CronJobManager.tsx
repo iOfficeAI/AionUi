@@ -20,13 +20,15 @@ interface CronJobManagerProps {
   conversationId: string;
   /** When provided (e.g. from conversation.extra.cronJobId), fetch the job directly */
   cronJobId?: string;
+  /** Whether the cron skill is loaded for this conversation. When false and no jobs exist, the component is hidden. */
+  hasCronSkill?: boolean;
 }
 
 /**
  * Cron job manager component for ChatLayout headerExtra
  * Shows a single job per conversation with navigation to task detail
  */
-const CronJobManager: React.FC<CronJobManagerProps> = ({ conversationId, cronJobId }) => {
+const CronJobManager: React.FC<CronJobManagerProps> = ({ conversationId, cronJobId, hasCronSkill = true }) => {
   const { t } = useTranslation();
   const navigate = useNavigate();
 
@@ -52,6 +54,9 @@ const CronJobManager: React.FC<CronJobManagerProps> = ({ conversationId, cronJob
   const found = cronJobId ? !!directJob : hasJobs;
 
   // Handle unconfigured state (no jobs)
+  // If cron skill is not loaded for this conversation, hide entirely
+  if (!found && !loading && !hasCronSkill) return null;
+
   if (!found && !loading) {
     const handleCreateClick = () => {
       emitter.emit('sendbox.fill', t('cron.status.defaultPrompt'));

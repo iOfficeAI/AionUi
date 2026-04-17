@@ -4,166 +4,168 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import type { AcpBackendAll, PresetAgentType } from '@/common/types/acpTypes';
 import { POTENTIAL_ACP_CLIS } from '@/common/types/acpTypes';
+import type { AcpDetectedAgent } from '@/common/types/detectedAgent';
 import { ExtensionRegistry } from '@process/extensions';
-import { ProcessConfig } from '@process/utils/initStorage';
+import { safeExec, safeExecFile } from '@process/utils/safeExec';
 import { getEnhancedEnv } from '@process/utils/shellEnv';
-import { execSync } from 'child_process';
-
-interface DetectedAgent {
-  backend: AcpBackendAll;
-  name: string;
-  cliPath?: string;
-  acpArgs?: string[];
-  customAgentId?: string;
-  isPreset?: boolean;
-  context?: string;
-  avatar?: string;
-  presetAgentType?: PresetAgentType | string;
-  isExtension?: boolean;
-  extensionName?: string;
-}
 
 /**
- * Global ACP detector — detects available agents from three sources:
+ * ACP agent detector — discovers ACP protocol agents from two sources:
  *
- * **Builtin agents** — Defined in POTENTIAL_ACP_CLIS. These are well-known
- * CLI tools (claude, qwen, goose, etc.) that the app knows about at compile
- * time. Each has a real `backendId` (e.g. 'claude', 'qwen') and is detected
- * via `which`/`where` on the system PATH. Gemini is a special builtin that
- * is always present (no CLI detection needed).
+ * **Builtin agents** — Well-known CLI tools (claude, qwen, goose, etc.) defined
+ * in POTENTIAL_ACP_CLIS. Detected via `which`/`where` on the system PATH.
  *
  * **Extension agents** — Contributed by installed extensions via
  * `contributes.acpAdapters` in the extension manifest. Discovered from
- * ExtensionRegistry at runtime. Always have `backend: 'custom'` with a
- * `customAgentId` of the form `ext:<extensionName>:<adapterId>` and
- * `isExtension: true`. Also verified via `isCliAvailable` before inclusion.
+ * ExtensionRegistry at runtime. Verified via CLI availability before inclusion.
  *
- * **Custom agents** — User-configured agents from the config store
- * (`acp.customAgents`). Always have `backend: 'custom'`. No CLI detection
- * is performed — the user is responsible for ensuring the CLI is available.
- * Includes preset agents (built-in templates like Academic Paper).
- *
- * All three sources run in parallel during detection, then results are
- * deduplicated by `cliPath` (first wins). Merge order determines priority:
- * Gemini > Builtin > Extension > Custom.
+ * This class is a pure detection module — it does NOT own state or coordinate
+ * multiple detectors. State management and orchestration live in AgentRegistry.
  */
 class AcpDetector {
-  private detectedAgents: DetectedAgent[] = [];
-  private isDetected = false;
   private enhancedEnv: NodeJS.ProcessEnv | undefined;
-  private mutationQueue: Promise<void> = Promise.resolve();
 
-  private createGeminiAgent(): DetectedAgent {
-    return {
-      backend: 'gemini',
-      name: 'Gemini CLI',
-      cliPath: undefined,
-      acpArgs: undefined,
-    };
+  /** Clear cached environment so newly installed/removed CLIs are detected. */
+  clearEnvCache(): void {
+    this.enhancedEnv = undefined;
   }
 
-  private mergeDetectedAgents(params: {
-    builtinAgents?: DetectedAgent[];
-    extensionAgents?: DetectedAgent[];
-    customAgents?: DetectedAgent[];
-  }): DetectedAgent[] {
-    const { builtinAgents = [], extensionAgents = [], customAgents = [] } = params;
-    return this.deduplicate([this.createGeminiAgent(), ...builtinAgents, ...extensionAgents, ...customAgents]);
-  }
-
-  private async runExclusiveMutation<T>(task: () => Promise<T>): Promise<T> {
-    const previousMutation = this.mutationQueue;
-    let releaseCurrentMutation: (() => void) | undefined;
-
-    this.mutationQueue = new Promise<void>((resolve) => {
-      releaseCurrentMutation = resolve;
-    });
-
-    await previousMutation;
-
-    try {
-      return await task();
-    } finally {
-      releaseCurrentMutation?.();
-    }
+  /** Check if a single CLI command is available on the system PATH (sync). */
+  isCliAvailable(cliCommand: string): boolean {
+    return this.batchCheckCliAvailabilitySync([cliCommand]).has(cliCommand);
   }
 
   /**
-   * Check if a CLI command is available on the system PATH.
+   * Batch-check which CLI commands are available on the system PATH.
+   *
+   * POSIX: single shell invocation using `command -v` (shell builtin,
+   * no per-command process spawn).
+   *
+   * Windows: parallel `where` calls with PowerShell fallback.
    */
-  private isCliAvailable(cliCommand: string): boolean {
-    const isWindows = process.platform === 'win32';
-    const whichCommand = isWindows ? 'where' : 'which';
+  async batchCheckCliAvailability(commands: string[]): Promise<Set<string>> {
+    if (commands.length === 0) return new Set();
+
+    // Reject commands with shell metacharacters to prevent injection
+    const safe = commands.filter((cmd) => /^[a-zA-Z0-9_.-]+$/.test(cmd));
+    if (safe.length === 0) return new Set();
 
     if (!this.enhancedEnv) {
       this.enhancedEnv = getEnhancedEnv();
     }
 
-    try {
-      execSync(`${whichCommand} ${cliCommand}`, {
-        encoding: 'utf-8',
-        stdio: 'pipe',
-        timeout: 1000,
-        env: this.enhancedEnv,
-      });
-      return true;
-    } catch {
-      if (!isWindows) return false;
-    }
+    const isWindows = process.platform === 'win32';
 
-    if (isWindows) {
+    if (!isWindows) {
+      const checks = safe.map((cmd) => `command -v '${cmd}' >/dev/null 2>&1 && echo '${cmd}'`);
+      const script = checks.join('; ') + '; true';
       try {
-        execSync(
-          `powershell -NoProfile -NonInteractive -Command "Get-Command -All ${cliCommand} | Select-Object -First 1 | Out-Null"`,
-          {
-            encoding: 'utf-8',
-            stdio: 'pipe',
-            timeout: 1000,
-            env: this.enhancedEnv,
-          }
-        );
-        return true;
-      } catch {
-        return false;
+        const { stdout } = await safeExec(script, { timeout: 3000, env: this.enhancedEnv });
+        return new Set(stdout.trim().split('\n').filter(Boolean));
+      } catch (err) {
+        console.error('[AcpDetector] Batch CLI check failed:', err);
+        return new Set();
       }
     }
 
-    return false;
-  }
-
-  // ---------------------------------------------------------------------------
-  // Three detection sources — each returns an array of DetectedAgent candidates
-  // ---------------------------------------------------------------------------
-
-  /**
-   * Source 1: Built-in POTENTIAL_ACP_CLIS — parallel CLI availability check.
-   */
-  private async detectBuiltinAgents(): Promise<DetectedAgent[]> {
-    const promises = POTENTIAL_ACP_CLIS.map((cli) =>
-      Promise.resolve().then((): DetectedAgent | null =>
-        this.isCliAvailable(cli.cmd)
-          ? { backend: cli.backendId, name: cli.name, cliPath: cli.cmd, acpArgs: cli.args }
-          : null
-      )
+    const results = await Promise.allSettled(
+      safe.map(async (cmd): Promise<string | null> => {
+        try {
+          await safeExecFile('where', [cmd], { timeout: 1000, env: this.enhancedEnv });
+          return cmd;
+        } catch {
+          /* where failed, try PowerShell */
+        }
+        try {
+          await safeExecFile(
+            'powershell',
+            [
+              '-NoProfile',
+              '-NonInteractive',
+              '-Command',
+              `Get-Command -All ${cmd} | Select-Object -First 1 | Out-Null`,
+            ],
+            { timeout: 1000, env: this.enhancedEnv }
+          );
+          return cmd;
+        } catch {
+          return null;
+        }
+      })
     );
-
-    const results = await Promise.allSettled(promises);
-    return results
-      .filter((r): r is PromiseFulfilledResult<DetectedAgent> => r.status === 'fulfilled' && r.value !== null)
-      .map((r) => r.value);
+    return new Set(
+      results
+        .filter((r): r is PromiseFulfilledResult<string> => r.status === 'fulfilled' && r.value !== null)
+        .map((r) => r.value)
+    );
   }
 
   /**
-   * Source 2: Extension-contributed ACP adapters — parallel CLI availability check.
+   * Synchronous single-command fallback for callers that cannot await.
+   * Used by isCliAvailable() and AgentRegistry for one-off checks.
    */
-  private async detectExtensionAgents(): Promise<DetectedAgent[]> {
+  private batchCheckCliAvailabilitySync(commands: string[]): Set<string> {
+    if (commands.length === 0) return new Set();
+    const safe = commands.filter((cmd) => /^[a-zA-Z0-9_.-]+$/.test(cmd));
+    if (safe.length === 0) return new Set();
+
+    if (!this.enhancedEnv) {
+      this.enhancedEnv = getEnhancedEnv();
+    }
+
+    const { execSync } = require('child_process') as typeof import('child_process');
+    const isWindows = process.platform === 'win32';
+    const whichCommand = isWindows ? 'where' : 'which';
+    const found = new Set<string>();
+
+    for (const cmd of safe) {
+      try {
+        execSync(`${whichCommand} ${cmd}`, { encoding: 'utf-8', stdio: 'pipe', timeout: 1000, env: this.enhancedEnv });
+        found.add(cmd);
+        continue;
+      } catch {
+        if (!isWindows) continue;
+      }
+      try {
+        execSync(
+          `powershell -NoProfile -NonInteractive -Command "Get-Command -All ${cmd} | Select-Object -First 1 | Out-Null"`,
+          { encoding: 'utf-8', stdio: 'pipe', timeout: 1000, env: this.enhancedEnv }
+        );
+        found.add(cmd);
+      } catch {
+        /* not found */
+      }
+    }
+    return found;
+  }
+
+  /**
+   * Detect built-in ACP CLI agents via async batch CLI availability check.
+   */
+  async detectBuiltinAgents(): Promise<AcpDetectedAgent[]> {
+    const available = await this.batchCheckCliAvailability(POTENTIAL_ACP_CLIS.map((cli) => cli.cmd));
+
+    return POTENTIAL_ACP_CLIS.filter((cli) => available.has(cli.cmd)).map((cli) => ({
+      id: cli.backendId,
+      name: cli.name,
+      kind: 'acp' as const,
+      available: true,
+      backend: cli.backendId,
+      cliPath: cli.cmd,
+      acpArgs: cli.args,
+    }));
+  }
+
+  /**
+   * Detect extension-contributed ACP adapters via parallel CLI availability check.
+   */
+  async detectExtensionAgents(): Promise<AcpDetectedAgent[]> {
     try {
       const adapters = ExtensionRegistry.getInstance().getAcpAdapters();
       if (!adapters || adapters.length === 0) return [];
 
-      const candidates: Array<{ agent: DetectedAgent; cliCommand: string }> = [];
+      const candidates: Array<{ agent: AcpDetectedAgent; cliCommand: string }> = [];
 
       for (const item of adapters) {
         const adapter = item as Record<string, unknown>;
@@ -173,7 +175,6 @@ class AcpDetector {
         const acpArgs = Array.isArray(adapter.acpArgs)
           ? adapter.acpArgs.filter((v): v is string => typeof v === 'string')
           : undefined;
-        const avatar = typeof adapter.avatar === 'string' ? adapter.avatar : undefined;
         const extensionName = typeof adapter._extensionName === 'string' ? adapter._extensionName : 'unknown-extension';
         const connectionType = typeof adapter.connectionType === 'string' ? adapter.connectionType : 'unknown';
 
@@ -183,202 +184,27 @@ class AcpDetector {
         candidates.push({
           cliCommand,
           agent: {
-            backend: 'custom' as const,
+            id,
             name,
-            cliPath: cliCommand,
+            kind: 'acp',
+            available: true,
+            backend: id,
+            cliPath: typeof adapter.defaultCliPath === 'string' ? adapter.defaultCliPath : cliCommand,
             acpArgs,
-            avatar,
-            customAgentId: id,
             isExtension: true,
             extensionName,
           },
         });
       }
 
-      const promises = candidates.map((c) =>
-        Promise.resolve().then((): DetectedAgent | null => (this.isCliAvailable(c.cliCommand) ? c.agent : null))
-      );
-
-      const results = await Promise.allSettled(promises);
-      return results
-        .filter((r): r is PromiseFulfilledResult<DetectedAgent> => r.status === 'fulfilled' && r.value !== null)
-        .map((r) => r.value);
+      // Extension adapters are trusted — skip CLI availability check.
+      // They declare a defaultCliPath (e.g. "bunx @augmentcode/auggie") as fallback,
+      // so the CLI doesn't need to be on PATH.
+      return candidates.map((c) => c.agent);
     } catch (error) {
       console.warn('[AcpDetector] Failed to load extension ACP adapters:', error);
       return [];
     }
-  }
-
-  /**
-   * Source 3: User-configured custom agents (no CLI check — user is responsible).
-   */
-  private async detectCustomAgents(): Promise<DetectedAgent[]> {
-    try {
-      const customAgents = await ProcessConfig.get('acp.customAgents');
-      if (!customAgents || !Array.isArray(customAgents) || customAgents.length === 0) return [];
-
-      const enabledAgents = customAgents.filter((agent) => agent.enabled && (agent.defaultCliPath || agent.isPreset));
-      if (enabledAgents.length === 0) return [];
-
-      return enabledAgents.map((agent) => ({
-        backend: 'custom' as const,
-        name: agent.name || 'Custom Agent',
-        cliPath: agent.defaultCliPath,
-        acpArgs: agent.acpArgs,
-        customAgentId: agent.id,
-        isPreset: agent.isPreset,
-        context: agent.context,
-        avatar: agent.avatar,
-        presetAgentType: agent.presetAgentType,
-      }));
-    } catch (error) {
-      if (error instanceof Error && (error.message.includes('ENOENT') || error.message.includes('not found'))) {
-        return [];
-      }
-      console.warn('[AcpDetector] Unexpected error loading custom agents:', error);
-      return [];
-    }
-  }
-
-  // ---------------------------------------------------------------------------
-  // Deduplication
-  // ---------------------------------------------------------------------------
-
-  /**
-   * Deduplicate agents by cliPath. First occurrence wins (so ordering of the
-   * input arrays determines priority: builtin > extension > custom).
-   * Agents without cliPath (e.g. Gemini, presets) are always kept.
-   */
-  private deduplicate(agents: DetectedAgent[]): DetectedAgent[] {
-    const seen = new Set<string>();
-    const result: DetectedAgent[] = [];
-    // console.debug(
-    //   `[AcpDetector] Deduplicating ${agents.length} agents: [ ${agents.map((a) => a.name).join(', ')} ]`
-    // );
-    // console.debug(
-    //   `[AcpDetector] Deduplicating ${agents.length} agents: [ ${agents.map((a) => JSON.stringify(a)).join('\n')} ]`
-    // );
-    for (const agent of agents) {
-      if (agent.cliPath) {
-        if (seen.has(agent.cliPath)) continue;
-        seen.add(agent.cliPath);
-      }
-      result.push(agent);
-    }
-
-    return result;
-  }
-
-  // ---------------------------------------------------------------------------
-  // Public API
-  // ---------------------------------------------------------------------------
-
-  async initialize(): Promise<void> {
-    await this.runExclusiveMutation(async () => {
-      if (this.isDetected) return;
-
-      console.log('[ACP] Starting agent detection...');
-      const startTime = Date.now();
-
-      // Run all three sources in parallel
-      const [builtinAgents, extensionAgents, customAgents] = await Promise.all([
-        this.detectBuiltinAgents(),
-        this.detectExtensionAgents(),
-        this.detectCustomAgents(),
-      ]);
-
-      this.detectedAgents = this.mergeDetectedAgents({ builtinAgents, extensionAgents, customAgents });
-      this.isDetected = true;
-      const elapsed = Date.now() - startTime;
-
-      const agentSummary = this.detectedAgents.map((a) => a.name).join(', ');
-      console.log(
-        `[ACP Detector] Completed in ${elapsed}ms, found ${this.detectedAgents.length} agents: ${agentSummary}`
-      );
-    });
-  }
-
-  getDetectedAgents(): DetectedAgent[] {
-    return this.detectedAgents;
-  }
-
-  hasAgents(): boolean {
-    return this.detectedAgents.length > 0;
-  }
-
-  /**
-   * Refresh custom agents detection only (called when config changes).
-   */
-  async refreshCustomAgents(): Promise<void> {
-    await this.runExclusiveMutation(async () => {
-      const builtinAgents = this.detectedAgents.filter(
-        (agent) => agent.backend !== 'gemini' && agent.backend !== 'custom'
-      );
-      const extensionAgents = this.detectedAgents.filter((agent) => agent.backend === 'custom' && agent.isExtension);
-      const customAgents = await this.detectCustomAgents();
-      this.detectedAgents = this.mergeDetectedAgents({ builtinAgents, extensionAgents, customAgents });
-    });
-  }
-
-  /**
-   * Refresh builtin CLI agents only (called when system PATH may have changed).
-   * Clears cached env so newly installed/removed CLIs are detected.
-   * Gemini is a builtin that requires no CLI — it is always kept.
-   */
-  async refreshBuiltinAgents(): Promise<void> {
-    await this.runExclusiveMutation(async () => {
-      this.enhancedEnv = undefined;
-      // Snapshot old builtin backends for diff logging
-      const oldBuiltins = this.detectedAgents
-        .filter((a) => a.backend !== 'gemini' && a.backend !== 'custom')
-        .map((a) => a.backend);
-      const extensionAgents = this.detectedAgents.filter((agent) => agent.backend === 'custom' && agent.isExtension);
-      const customAgents = this.detectedAgents.filter((agent) => agent.backend === 'custom' && !agent.isExtension);
-      const builtinAgents = await this.detectBuiltinAgents();
-      const newBuiltins = builtinAgents.map((a) => a.backend);
-      this.detectedAgents = this.mergeDetectedAgents({ builtinAgents, extensionAgents, customAgents });
-
-      const added = newBuiltins.filter((b) => !oldBuiltins.includes(b));
-      const removed = oldBuiltins.filter((b) => !newBuiltins.includes(b));
-      if (added.length > 0 || removed.length > 0) {
-        console.log(`[AcpDetector] Builtin agents changed: +[${added.join(', ')}] -[${removed.join(', ')}]`);
-      }
-    });
-  }
-
-  /**
-   * Refresh extension-contributed agents (called after ExtensionRegistry.hotReload).
-   * Clears cached env so newly installed CLIs are discoverable.
-   */
-  async refreshExtensionAgents(): Promise<void> {
-    await this.runExclusiveMutation(async () => {
-      this.enhancedEnv = undefined;
-      const builtinAgents = this.detectedAgents.filter(
-        (agent) => agent.backend !== 'gemini' && agent.backend !== 'custom'
-      );
-      const customAgents = this.detectedAgents.filter((agent) => agent.backend === 'custom' && !agent.isExtension);
-      const extensionAgents = await this.detectExtensionAgents();
-      this.detectedAgents = this.mergeDetectedAgents({ builtinAgents, extensionAgents, customAgents });
-    });
-  }
-
-  /**
-   * Re-run all three detection paths from scratch.
-   * Called after hub install since onInstall hooks may have installed new CLIs.
-   * Clears cached env to pick up PATH changes.
-   */
-  async refreshAll(): Promise<void> {
-    await this.runExclusiveMutation(async () => {
-      this.enhancedEnv = undefined;
-
-      const [builtinAgents, extensionAgents, customAgents] = await Promise.all([
-        this.detectBuiltinAgents(),
-        this.detectExtensionAgents(),
-        this.detectCustomAgents(),
-      ]);
-
-      this.detectedAgents = this.mergeDetectedAgents({ builtinAgents, extensionAgents, customAgents });
-    });
   }
 }
 

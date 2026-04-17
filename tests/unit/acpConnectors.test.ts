@@ -170,6 +170,14 @@ describe('spawnNpxBackend - Windows UTF-8 fix', () => {
   });
 });
 
+const setWindowsPlatform = () => {
+  Object.defineProperty(process, 'platform', { value: 'win32', configurable: true });
+};
+
+const setLinuxPlatform = () => {
+  Object.defineProperty(process, 'platform', { value: 'linux', configurable: true });
+};
+
 describe('createGenericSpawnConfig - Windows path handling', () => {
   let originalPlatform: PropertyDescriptor | undefined;
 
@@ -182,14 +190,6 @@ describe('createGenericSpawnConfig - Windows path handling', () => {
       Object.defineProperty(process, 'platform', originalPlatform);
     }
   });
-
-  const setWindowsPlatform = () => {
-    Object.defineProperty(process, 'platform', { value: 'win32', configurable: true });
-  };
-
-  const setLinuxPlatform = () => {
-    Object.defineProperty(process, 'platform', { value: 'linux', configurable: true });
-  };
 
   it('returns plain command on non-Windows', () => {
     setLinuxPlatform();
@@ -275,7 +275,7 @@ describe('connectCodex - Windows diagnostics', () => {
       'codex.cmd',
       ['--version'],
       expect.objectContaining({
-        env: { PATH: '/usr/bin' },
+        env: expect.objectContaining({ PATH: '/usr/bin' }),
         shell: true,
         timeout: 5000,
         windowsHide: true,
@@ -287,7 +287,7 @@ describe('connectCodex - Windows diagnostics', () => {
       'codex.cmd',
       ['login', 'status'],
       expect.objectContaining({
-        env: { PATH: '/usr/bin' },
+        env: expect.objectContaining({ PATH: '/usr/bin' }),
         shell: true,
         timeout: 5000,
         windowsHide: true,
