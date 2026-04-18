@@ -93,4 +93,29 @@ describe('cronScheduleUtils', () => {
     expect(fallback.intervalUnit).toBe('hour');
     expect(fallback.firstRunAtMs).toBe(Date.now() + 60 * 60 * 1000);
   });
+
+  it('builds interval schedules for custom workday rules', () => {
+    const firstRunAtMs = Date.UTC(2026, 2, 27, 9, 0, 0);
+    const schedule = buildCronSchedule(
+      {
+        firstRunAtMs,
+        intervalValue: 2,
+        intervalUnit: 'workday',
+      },
+      'Workday x2 / 2026-03-27 09:00'
+    );
+
+    expect(schedule).toEqual({
+      kind: 'interval',
+      intervalValue: 2,
+      intervalUnit: 'workday',
+      startAtMs: firstRunAtMs,
+      description: 'Workday x2 / 2026-03-27 09:00',
+    });
+    expect(scheduleToDraft(schedule)).toEqual({
+      firstRunAtMs,
+      intervalValue: 2,
+      intervalUnit: 'workday',
+    });
+  });
 });

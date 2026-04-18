@@ -5,6 +5,30 @@ import type { ICronJob } from '@/common/adapter/ipcBridge';
 
 const mockShowOpen = vi.hoisted(() => vi.fn().mockResolvedValue([]));
 const mockIsElectronDesktop = vi.hoisted(() => vi.fn(() => true));
+const mockConfigStorageGet = vi.hoisted(() =>
+  vi.fn((key: string) => {
+    if (key === 'acp.cachedConfigOptions') {
+      return Promise.resolve({
+        claude: [
+          {
+            id: 'reasoning_effort',
+            name: 'Reasoning effort',
+            category: 'reasoning',
+            type: 'select',
+            currentValue: 'medium',
+            options: [
+              { value: 'low', name: 'Low' },
+              { value: 'medium', name: 'Medium' },
+              { value: 'high', name: 'High' },
+            ],
+          },
+        ],
+      });
+    }
+
+    return Promise.resolve({});
+  })
+);
 
 // Mock react-i18next
 vi.mock('react-i18next', () => ({
@@ -15,6 +39,11 @@ vi.mock('react-i18next', () => ({
       if (key === 'cron.page.scheduleDesc.dailyAt') return `Daily at ${options?.time}`;
       if (key === 'cron.page.scheduleDesc.weekdaysAt') return `Weekdays at ${options?.time}`;
       if (key === 'cron.page.scheduleDesc.weeklyAt') return `Weekly on ${options?.day} at ${options?.time}`;
+      if (key === 'cron.panel.scheduleSummary') return `${options?.unit} x${options?.count} / ${options?.startAt}`;
+      if (key === 'cron.unit.minute') return 'Minute';
+      if (key === 'cron.unit.hour') return 'Hour';
+      if (key === 'cron.unit.week') return 'Week';
+      if (key === 'cron.unit.workday') return 'Workday';
       if (key === 'cron.page.form.newConversation') return 'New conversation';
       if (key === 'cron.page.form.existingConversation') return 'Ongoing conversation';
       if (key === 'cron.page.form.newConversationHint') return 'Start fresh on every run';
@@ -27,6 +56,10 @@ vi.mock('react-i18next', () => ({
         return 'Each run continues in the same conversation, so earlier context and results stay available.';
       }
       if (key === 'cron.page.form.advancedSettings') return 'Advanced settings';
+      if (key === 'cron.page.form.files') return 'Files';
+      if (key === 'cron.page.form.addFiles') return 'Add files';
+      if (key === 'cron.page.form.filesHint') return 'These files will be attached whenever the scheduled task runs.';
+      if (key === 'cron.page.form.noFiles') return 'No files selected';
       if (key === 'cron.page.form.workspace') return 'Workspace';
       if (key === 'cron.page.form.workspaceHint') return 'Optional workspace';
       if (key === 'cron.page.form.workspacePlaceholder') return 'Workspace path';
@@ -165,6 +198,38 @@ vi.mock('@arco-design/web-react', () => ({
       }}
     />
   ),
+  DatePicker: ({
+    value: _value,
+    onChange,
+  }: {
+    value?: unknown;
+    onChange?: (value: unknown, date: { valueOf: () => number }) => void;
+    [key: string]: unknown;
+  }) => (
+    <input
+      type='datetime-local'
+      data-testid='mock-date-picker'
+      onChange={(e) => {
+        const next = new Date(e.target.value || '2026-04-18T10:00').getTime();
+        onChange?.(e.target.value, { valueOf: () => next });
+      }}
+    />
+  ),
+  InputNumber: ({
+    value,
+    onChange,
+  }: {
+    value?: number;
+    onChange?: (value: number) => void;
+    [key: string]: unknown;
+  }) => (
+    <input
+      type='number'
+      data-testid='mock-input-number'
+      value={value}
+      onChange={(e) => onChange?.(Number(e.target.value))}
+    />
+  ),
   Collapse: Object.assign(
     ({
       children,
@@ -290,7 +355,7 @@ vi.mock('@renderer/utils/model/agentModes', () => ({
 // Mock ConfigStorage
 vi.mock('@/common/config/storage', () => ({
   ConfigStorage: {
-    get: vi.fn().mockResolvedValue({}),
+    get: (...args: unknown[]) => mockConfigStorageGet(...args),
   },
 }));
 
@@ -338,14 +403,42 @@ vi.mock('@/renderer/pages/guid/constants', () => ({
 }));
 
 vi.mock('dayjs', () => ({
-  default: (str?: string) => ({
-    format: (_fmt: string) => {
-      if (!str) return '09:00';
-      const match = str.match(/(\d{2}):(\d{2})/);
-      if (match) return `${match[1]}:${match[2]}`;
-      return '09:00';
-    },
-  }),
+  default: function createDayjs(value?: string | number | Date) {
+    const date =
+      value instanceof Date
+        ? new Date(value.getTime())
+        : typeof value === 'number'
+          ? new Date(value)
+          : typeof value === 'string'
+            ? new Date(value)
+            : new Date('2026-04-18T09:00:00.000Z');
+
+    return {
+      add: (amount: number, unit: string) => {
+        const next = new Date(date.getTime());
+        if (unit === 'hour') {
+          next.setHours(next.getHours() + amount);
+        }
+        return createDayjs(next);
+      },
+      startOf: (unit: string) => {
+        const next = new Date(date.getTime());
+        if (unit === 'hour') {
+          next.setMinutes(0, 0, 0);
+        }
+        return createDayjs(next);
+      },
+      valueOf: () => date.getTime(),
+      format: (_fmt: string) => {
+        const hh = String(date.getHours()).padStart(2, '0');
+        const mm = String(date.getMinutes()).padStart(2, '0');
+        const yyyy = String(date.getFullYear());
+        const month = String(date.getMonth() + 1).padStart(2, '0');
+        const dd = String(date.getDate()).padStart(2, '0');
+        return `${yyyy}-${month}-${dd} ${hh}:${mm}`;
+      },
+    };
+  },
 }));
 
 import CreateTaskDialog from '@/renderer/pages/cron/ScheduledTasksPage/CreateTaskDialog';
@@ -750,6 +843,41 @@ describe('CreateTaskDialog - schedule preset definitions', () => {
     expect(callArgs.schedule.description).toContain('Manual');
   });
 
+  it('creates interval schedules from the custom frequency editor', async () => {
+    mockAddJob.mockResolvedValue(undefined);
+
+    render(<CreateTaskDialog visible={true} onClose={vi.fn()} conversationId='conv-1' />);
+
+    const frequencySelect = screen
+      .getAllByTestId('mock-select')
+      .find((el) => Array.from(el.querySelectorAll('option')).some((opt) => opt.value === 'custom'));
+    expect(frequencySelect).toBeDefined();
+
+    fireEvent.change(frequencySelect!, { target: { value: 'custom' } });
+    fireEvent.change(screen.getByTestId('mock-date-picker'), { target: { value: '2026-04-21T09:30' } });
+    fireEvent.change(screen.getByTestId('mock-input-number'), { target: { value: '2' } });
+
+    const unitSelect = screen
+      .getAllByTestId('mock-select')
+      .find((el) => Array.from(el.querySelectorAll('option')).some((opt) => opt.value === 'workday'));
+    expect(unitSelect).toBeDefined();
+
+    fireEvent.change(unitSelect!, { target: { value: 'workday' } });
+    fireEvent.click(screen.getByTestId('modal-ok'));
+
+    await waitFor(() => {
+      expect(mockAddJob).toHaveBeenCalled();
+    });
+
+    expect(mockAddJob.mock.calls[0][0].schedule).toEqual({
+      kind: 'interval',
+      intervalValue: 2,
+      intervalUnit: 'workday',
+      startAtMs: new Date('2026-04-21T09:30').getTime(),
+      description: 'Workday x2 / 2026-04-21 09:30',
+    });
+  });
+
   // Test schedule preset definitions by verifying edit mode correctly reconstructs them
   it('correctly reconstructs hourly schedule from cron expression in edit mode', async () => {
     const editJob: ICronJob = {
@@ -966,6 +1094,58 @@ describe('CreateTaskDialog - schedule preset definitions', () => {
     const callArgs = mockUpdateJob.mock.calls[0][0];
     // The custom cron expression should be preserved
     expect(callArgs.updates.schedule.expr).toBe('0 */4 * * *');
+  });
+
+  it('replaces a legacy custom cron schedule after the custom editor changes', async () => {
+    const editJob: ICronJob = {
+      id: 'job-custom-updated',
+      name: 'Every 4 Hours Task',
+      schedule: { kind: 'cron', expr: '0 */4 * * *', description: 'Every 4 hours' },
+      target: {
+        kind: 'conversation',
+        conversationId: 'conv-1',
+        payload: { kind: 'message', text: 'Every 4 hours check' },
+        executionMode: 'existing',
+      },
+      metadata: {
+        agentType: 'claude',
+        createdBy: 'user',
+        createdAt: Date.now(),
+        updatedAt: Date.now(),
+        agentConfig: {
+          backend: 'claude',
+          name: 'Claude',
+          cliPath: '/usr/bin/claude',
+        },
+      },
+      state: 'active',
+      lastExecutionTime: Date.now(),
+    };
+
+    mockUpdateJob.mockResolvedValue(undefined);
+
+    render(<CreateTaskDialog visible={true} onClose={vi.fn()} editJob={editJob} conversationId='conv-1' />);
+
+    fireEvent.change(screen.getByTestId('mock-input-number'), { target: { value: '3' } });
+    const unitSelect = screen
+      .getAllByTestId('mock-select')
+      .find((el) => Array.from(el.querySelectorAll('option')).some((opt) => opt.value === 'week'));
+    expect(unitSelect).toBeDefined();
+
+    fireEvent.change(unitSelect!, { target: { value: 'week' } });
+    fireEvent.click(screen.getByTestId('modal-ok'));
+
+    await waitFor(() => {
+      expect(mockUpdateJob).toHaveBeenCalled();
+    });
+
+    expect(mockUpdateJob.mock.calls[0][0].updates.schedule).toEqual(
+      expect.objectContaining({
+        kind: 'interval',
+        intervalValue: 3,
+        intervalUnit: 'week',
+      })
+    );
   });
 });
 
@@ -1265,15 +1445,12 @@ describe('CreateTaskDialog - advanced settings panel', () => {
   it('toggles the advanced settings panel open and closed', () => {
     render(<CreateTaskDialog visible={true} onClose={vi.fn()} conversationId='conv-1' />);
 
-    // Workspace picker is hidden initially
     expect(screen.queryByTestId('cron-workspace-trigger')).not.toBeInTheDocument();
 
-    // Open panel
-    fireEvent.click(screen.getByTestId('mock-button'));
+    fireEvent.click(screen.getByText('Advanced settings').closest('button') as HTMLButtonElement);
     expect(screen.getByTestId('cron-workspace-trigger')).toBeInTheDocument();
 
-    // Close panel again
-    fireEvent.click(screen.getByTestId('mock-button'));
+    fireEvent.click(screen.getByText('Advanced settings').closest('button') as HTMLButtonElement);
     expect(screen.queryByTestId('cron-workspace-trigger')).not.toBeInTheDocument();
   });
 

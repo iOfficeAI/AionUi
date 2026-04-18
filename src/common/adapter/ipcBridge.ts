@@ -955,6 +955,13 @@ export const cron = {
 export type ICronSchedule =
   | { kind: 'at'; atMs: number; description: string }
   | { kind: 'every'; everyMs: number; startAtMs?: number; description: string }
+  | {
+      kind: 'interval';
+      intervalValue: number;
+      intervalUnit: 'minute' | 'hour' | 'workday' | 'week';
+      startAtMs: number;
+      description: string;
+    }
   | { kind: 'cron'; expr: string; tz?: string; startAtMs?: number; description: string };
 
 export interface ICronJob {
@@ -998,6 +1005,7 @@ export interface ICronAgentConfig {
   modelId?: string;
   configOptions?: Record<string, string>;
   workspace?: string;
+  defaultFiles?: string[];
 }
 
 export interface ICreateCronJobParams {

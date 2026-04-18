@@ -13,6 +13,13 @@ import type { AcpBackendAll } from '@/common/types/acpTypes';
 export type CronSchedule =
   | { kind: 'at'; atMs: number; description: string }
   | { kind: 'every'; everyMs: number; startAtMs?: number; description: string }
+  | {
+      kind: 'interval';
+      intervalValue: number;
+      intervalUnit: 'minute' | 'hour' | 'workday' | 'week';
+      startAtMs: number;
+      description: string;
+    }
   | { kind: 'cron'; expr: string; tz?: string; startAtMs?: number; description: string };
 
 /**
@@ -46,6 +53,7 @@ export type CronJob = {
       modelId?: string;
       configOptions?: Record<string, string>;
       workspace?: string;
+      defaultFiles?: string[];
     };
   };
   state: {
@@ -101,6 +109,11 @@ function jobToRow(job: CronJob): CronJobRow {
     scheduleValue = String(job.schedule.atMs);
   } else if (kind === 'every') {
     scheduleValue = String(job.schedule.everyMs);
+  } else if (kind === 'interval') {
+    scheduleValue = JSON.stringify({
+      intervalValue: job.schedule.intervalValue,
+      intervalUnit: job.schedule.intervalUnit,
+    });
   } else {
     scheduleValue = job.schedule.expr;
   }
@@ -156,6 +169,20 @@ function rowToJob(row: CronJobRow): CronJob {
         description: row.schedule_description,
       };
       break;
+    case 'interval': {
+      const parsed = JSON.parse(row.schedule_value) as {
+        intervalValue?: number;
+        intervalUnit?: 'minute' | 'hour' | 'workday' | 'week';
+      };
+      schedule = {
+        kind: 'interval',
+        intervalValue: Math.max(1, Math.trunc(parsed.intervalValue ?? 1)),
+        intervalUnit: parsed.intervalUnit ?? 'hour',
+        startAtMs: row.schedule_start_at ?? Date.now(),
+        description: row.schedule_description,
+      };
+      break;
+    }
     case 'cron':
     default:
       schedule = {

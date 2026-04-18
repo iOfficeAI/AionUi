@@ -80,6 +80,8 @@
     "minute": "Dakika",
     "hour": "Saat",
     "day": "Gün",
+    "week": "Hafta",
+    "workday": "İş günü",
     "month": "Ay",
     "year": "Yıl"
   },
@@ -165,7 +167,11 @@
       "workspaceHint": "İsteğe bağlı: Dosya işlemleri için çalışma alanı klasörü ayarlayın",
       "selectFolder": "Klasör Seç",
       "clearFolder": "Temizle",
-      "model": "Model"
+      "model": "Model",
+      "files": "Dosyalar",
+      "addFiles": "Dosya ekle",
+      "filesHint": "Bu dosyalar zamanlanmış görev her çalıştığında birlikte eklenecek.",
+      "noFiles": "Dosya seçilmedi"
     },
     "freq": {
       "manual": "Manuel",

@@ -64,13 +64,15 @@ type CronJobFormValues = {
   workspace?: string;
   firstRunAt: dayjs.Dayjs;
   intervalValue: number;
-  intervalUnit: 'minute' | 'hour' | 'day' | 'month' | 'year';
+  intervalUnit: 'minute' | 'hour' | 'day' | 'week' | 'workday' | 'month' | 'year';
 };
 
 const CRON_UNIT_KEY_MAP = {
   minute: 'cron.unit.minute',
   hour: 'cron.unit.hour',
   day: 'cron.unit.day',
+  week: 'cron.unit.week',
+  workday: 'cron.unit.workday',
   month: 'cron.unit.month',
   year: 'cron.unit.year',
 } as const;
@@ -568,6 +570,8 @@ const CronJobDrawer: React.FC<CronJobDrawerProps> = ({
                   { label: t('cron.unit.minute'), value: 'minute' },
                   { label: t('cron.unit.hour'), value: 'hour' },
                   { label: t('cron.unit.day'), value: 'day' },
+                  { label: t('cron.unit.week'), value: 'week' },
+                  { label: t('cron.unit.workday'), value: 'workday' },
                   { label: t('cron.unit.month'), value: 'month' },
                   { label: t('cron.unit.year'), value: 'year' },
                 ]}

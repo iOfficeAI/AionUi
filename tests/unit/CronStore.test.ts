@@ -64,6 +64,7 @@ describe('CronStore', () => {
             backend: 'gemini',
             name: 'Test Agent',
             isPreset: true,
+            defaultFiles: ['/tmp/spec.md'],
           },
         },
         state: {
@@ -130,6 +131,7 @@ describe('CronStore', () => {
           backend: 'gemini',
           name: 'Test Agent',
           isPreset: true,
+          defaultFiles: ['/tmp/spec.md'],
         }),
         conversation_id: 'conv-1',
         conversation_title: 'Test Conversation',
@@ -163,8 +165,86 @@ describe('CronStore', () => {
         backend: 'gemini',
         name: 'Test Agent',
         isPreset: true,
+        defaultFiles: ['/tmp/spec.md'],
       });
       expect(retrieved!.state.lastStatus).toBe('ok');
+    });
+
+    it('correctly converts "interval" schedule kind', async () => {
+      const job: CronJob = {
+        id: 'job-interval',
+        name: 'Test Interval Job',
+        enabled: true,
+        schedule: {
+          kind: 'interval',
+          intervalValue: 2,
+          intervalUnit: 'workday',
+          startAtMs: 1_710_000_000_000,
+          description: 'Workday x2 / 2024-03-10 09:00',
+        },
+        target: {
+          payload: { kind: 'message', text: 'Interval task' },
+          executionMode: 'existing',
+        },
+        metadata: {
+          conversationId: 'conv-interval',
+          agentType: 'codex',
+          createdBy: 'user',
+          createdAt: 100,
+          updatedAt: 200,
+        },
+        state: {
+          nextRunAtMs: 300,
+          runCount: 0,
+          retryCount: 0,
+          maxRetries: 3,
+        },
+      };
+
+      mockPrepareInstance.run.mockImplementation(() => ({ changes: 1 }));
+      await cronStore.insert(job);
+
+      const runArgs = mockPrepareInstance.run.mock.calls[0];
+      expect(runArgs[4]).toBe('interval');
+      expect(runArgs[5]).toBe(JSON.stringify({ intervalValue: 2, intervalUnit: 'workday' }));
+      expect(runArgs[7]).toBe(1_710_000_000_000);
+
+      mockPrepareInstance.get.mockReturnValue({
+        id: 'job-interval',
+        name: 'Test Interval Job',
+        description: null,
+        enabled: 1,
+        schedule_kind: 'interval',
+        schedule_value: JSON.stringify({ intervalValue: 2, intervalUnit: 'workday' }),
+        schedule_tz: null,
+        schedule_start_at: 1_710_000_000_000,
+        schedule_description: 'Workday x2 / 2024-03-10 09:00',
+        payload_message: 'Interval task',
+        execution_mode: 'existing',
+        agent_config: null,
+        conversation_id: 'conv-interval',
+        conversation_title: null,
+        agent_type: 'codex',
+        created_by: 'user',
+        created_at: 100,
+        updated_at: 200,
+        next_run_at: 300,
+        last_run_at: null,
+        last_status: null,
+        last_error: null,
+        run_count: 0,
+        retry_count: 0,
+        max_retries: 3,
+      });
+
+      const retrieved = await cronStore.getById('job-interval');
+      expect(retrieved?.schedule).toEqual({
+        kind: 'interval',
+        intervalValue: 2,
+        intervalUnit: 'workday',
+        startAtMs: 1_710_000_000_000,
+        description: 'Workday x2 / 2024-03-10 09:00',
+      });
     });
 
     it('correctly converts "cron" schedule kind with timezone', async () => {

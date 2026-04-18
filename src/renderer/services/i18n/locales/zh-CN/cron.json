@@ -80,6 +80,8 @@
     "minute": "分钟",
     "hour": "小时",
     "day": "天",
+    "week": "周",
+    "workday": "工作日",
     "month": "月",
     "year": "年"
   },
@@ -165,7 +167,11 @@
       "workspaceHint": "可选：设置文件操作的工作空间文件夹",
       "selectFolder": "选择文件夹",
       "clearFolder": "清除",
-      "model": "模型"
+      "model": "模型",
+      "files": "关联文件",
+      "addFiles": "添加文件",
+      "filesHint": "这些文件会在每次定时任务执行时一并带上。",
+      "noFiles": "暂未关联文件"
     },
     "freq": {
       "manual": "手动触发",

@@ -80,6 +80,8 @@
     "minute": "分",
     "hour": "時間",
     "day": "日",
+    "week": "週",
+    "workday": "営業日",
     "month": "か月",
     "year": "年"
   },
@@ -165,7 +167,11 @@
       "workspaceHint": "オプション：ファイル操作のワークスペースフォルダを設定",
       "selectFolder": "フォルダを選択",
       "clearFolder": "クリア",
-      "model": "モデル"
+      "model": "モデル",
+      "files": "関連ファイル",
+      "addFiles": "ファイルを追加",
+      "filesHint": "これらのファイルはスケジュール実行のたびに一緒に添付されます。",
+      "noFiles": "関連ファイルはありません"
     },
     "freq": {
       "manual": "手動",

@@ -54,10 +54,39 @@ function formatCronExpr(expr: string, t: TFunction): string | null {
   return null;
 }
 
+function formatIntervalSchedule(job: ICronJob, t: TFunction): string {
+  if (job.schedule.kind !== 'interval') {
+    return job.schedule.description;
+  }
+
+  const unitKeyMap: Record<typeof job.schedule.intervalUnit, string> = {
+    minute: 'cron.unit.minute',
+    hour: 'cron.unit.hour',
+    workday: 'cron.unit.workday',
+    week: 'cron.unit.week',
+  };
+  const unit = t(unitKeyMap[job.schedule.intervalUnit], {
+    defaultValue: job.schedule.intervalUnit,
+  });
+  const startAt = new Date(job.schedule.startAtMs).toLocaleString();
+  const localized = t('cron.panel.scheduleSummary', {
+    unit,
+    count: job.schedule.intervalValue,
+    startAt,
+    defaultValue: job.schedule.description,
+  });
+
+  return localized === 'cron.panel.scheduleSummary' ? job.schedule.description : localized;
+}
+
 /**
  * Format schedule for display - use human-readable description
  */
 export function formatSchedule(job: ICronJob, t: TFunction): string {
+  if (job.schedule.kind === 'interval') {
+    return formatIntervalSchedule(job, t);
+  }
+
   if (job.schedule.kind === 'cron') {
     return formatCronExpr(job.schedule.expr, t) ?? job.schedule.description;
   }

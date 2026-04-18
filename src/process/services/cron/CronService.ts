@@ -194,6 +194,9 @@ export class CronService {
       cliPath: extra.cliPath as string | undefined,
       isPreset: !!extra.presetAssistantId,
       customAgentId: (extra.presetAssistantId as string) || (extra.customAgentId as string) || undefined,
+      defaultFiles: Array.isArray(extra.defaultFiles)
+        ? extra.defaultFiles.filter((file): file is string => typeof file === 'string' && file.length > 0)
+        : undefined,
     };
   }
 
@@ -507,6 +510,20 @@ export class CronService {
         break;
       }
 
+      case 'interval': {
+        const nextRunAtMs = this.getNextIntervalRunAtMs(schedule);
+        const delay = Math.max(0, nextRunAtMs - Date.now());
+        const timer = setTimeout(() => {
+          void this.handleIntervalTimer(job.id);
+        }, delay);
+        this.timers.set(job.id, timer);
+
+        job.state.nextRunAtMs = nextRunAtMs;
+        await this.repo.update(job.id, { state: job.state });
+        this.emitter.emitJobUpdated(job);
+        break;
+      }
+
       case 'at': {
         const delay = schedule.atMs - Date.now();
         if (delay > 0) {
@@ -730,6 +747,11 @@ export class CronService {
         break;
       }
 
+      case 'interval': {
+        job.state.nextRunAtMs = this.getNextIntervalRunAtMs(schedule);
+        break;
+      }
+
       case 'at': {
         job.state.nextRunAtMs = schedule.atMs > Date.now() ? schedule.atMs : undefined;
         break;
@@ -886,6 +908,85 @@ export class CronService {
     }
 
     return nextRunAtMs;
+  }
+
+  private async handleIntervalTimer(jobId: string): Promise<void> {
+    const job = await this.repo.getById(jobId);
+    if (!job || !job.enabled || job.schedule.kind !== 'interval') {
+      return;
+    }
+
+    await this.startTimer(job);
+    await this.executeJob(job);
+  }
+
+  private getNextIntervalRunAtMs(schedule: Extract<CronSchedule, { kind: 'interval' }>): number {
+    switch (schedule.intervalUnit) {
+      case 'minute':
+        return this.getNextAnchoredRunAtMs(schedule.startAtMs, schedule.intervalValue * 60 * 1000);
+      case 'hour':
+        return this.getNextAnchoredRunAtMs(schedule.startAtMs, schedule.intervalValue * 60 * 60 * 1000);
+      case 'week':
+        return this.getNextAnchoredRunAtMs(schedule.startAtMs, schedule.intervalValue * 7 * 24 * 60 * 60 * 1000);
+      case 'workday':
+        return this.getNextWorkdayRunAtMs(schedule.startAtMs, schedule.intervalValue);
+    }
+  }
+
+  private getNextAnchoredRunAtMs(startAtMs: number, intervalMs: number): number {
+    const now = Date.now();
+    if (startAtMs > now) {
+      return startAtMs;
+    }
+
+    let nextRunAtMs = startAtMs;
+    while (nextRunAtMs <= now) {
+      nextRunAtMs += intervalMs;
+    }
+
+    return nextRunAtMs;
+  }
+
+  private getNextWorkdayRunAtMs(startAtMs: number, intervalValue: number): number {
+    const now = Date.now();
+    let nextRunAtMs = this.alignToWorkday(startAtMs);
+
+    if (nextRunAtMs > now) {
+      return nextRunAtMs;
+    }
+
+    while (nextRunAtMs <= now) {
+      nextRunAtMs = this.addWorkdays(nextRunAtMs, intervalValue);
+    }
+
+    return nextRunAtMs;
+  }
+
+  private alignToWorkday(timestampMs: number): number {
+    const date = new Date(timestampMs);
+    while (this.isWeekend(date)) {
+      date.setDate(date.getDate() + 1);
+    }
+    return date.getTime();
+  }
+
+  private addWorkdays(timestampMs: number, workdays: number): number {
+    const date = new Date(timestampMs);
+    let remaining = Math.max(1, workdays);
+
+    while (remaining > 0) {
+      date.setDate(date.getDate() + 1);
+      if (!this.isWeekend(date)) {
+        remaining -= 1;
+      }
+    }
+
+    return date.getTime();
+  }
+
+  private isWeekend(date: Date): boolean {
+    const day = date.getDay();
+    return day === 0 || day === 6;
   }
 }
 

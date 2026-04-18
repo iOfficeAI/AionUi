@@ -80,6 +80,8 @@
     "minute": "Minute",
     "hour": "Hour",
     "day": "Day",
+    "week": "Week",
+    "workday": "Workday",
     "month": "Month",
     "year": "Year"
   },
@@ -165,7 +167,11 @@
       "workspaceHint": "Optional: set a workspace folder for file operations",
       "selectFolder": "Select Folder",
       "clearFolder": "Clear",
-      "model": "Model"
+      "model": "Model",
+      "files": "Files",
+      "addFiles": "Add files",
+      "filesHint": "These files will be attached whenever the scheduled task runs.",
+      "noFiles": "No files selected"
     },
     "freq": {
       "manual": "Manual",
