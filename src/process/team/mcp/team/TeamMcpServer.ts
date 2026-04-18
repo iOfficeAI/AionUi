@@ -241,9 +241,9 @@ export class TeamMcpServer {
       case 'team_spawn_agent': {
         const agents = this.params.getAgents();
         const caller = fromSlotId ? agents.find((a) => a.slotId === fromSlotId) : undefined;
-        if (caller && caller.role !== 'lead') {
+        if (caller && caller.role !== 'leader') {
           throw new Error(
-            'Only the team lead can spawn new agents. Send a message to the lead via team_send_message and ask them to create the agent you need.'
+            'Only the team leader can spawn new agents. Send a message to the leader via team_send_message and ask them to create the agent you need.'
           );
         }
         return this.handleSpawnAgent(args, fromSlotId);
@@ -276,10 +276,10 @@ export class TeamMcpServer {
     const summary = args.summary ? String(args.summary) : undefined;
 
     const agents = getAgents();
-    // Use actual caller identity when available, fall back to lead
+    // Use actual caller identity when available, fall back to leader
     const fromAgent =
       (callerSlotId && agents.find((a) => a.slotId === callerSlotId)) ??
-      agents.find((a) => a.role === 'lead') ??
+      agents.find((a) => a.role === 'leader') ??
       agents[0];
     const fromSlotId = fromAgent?.slotId ?? 'unknown';
 
@@ -319,7 +319,7 @@ export class TeamMcpServer {
     if (isShutdownApproved || isShutdownRejected) {
       const senderAgent = agents.find((a) => a.slotId === fromSlotId);
       const memberName = senderAgent?.agentName ?? fromSlotId;
-      const leadAgent = agents.find((a) => a.role === 'lead');
+      const leadAgent = agents.find((a) => a.role === 'leader');
       const leadSlotId = leadAgent?.slotId;
 
       if (isShutdownApproved && this.params.removeAgent) {
@@ -345,7 +345,7 @@ export class TeamMcpServer {
           });
           this.safeWake(leadSlotId, 'shutdown_rejected');
         }
-        return 'Refusal sent to the lead.';
+        return 'Refusal sent to the leader.';
       }
     }
 
@@ -397,7 +397,7 @@ export class TeamMcpServer {
     const agents = getAgents();
     const fromAgent =
       (callerSlotId && agents.find((a) => a.slotId === callerSlotId)) ??
-      agents.find((a) => a.role === 'lead') ??
+      agents.find((a) => a.role === 'leader') ??
       agents[0];
     const fromSlotId = fromAgent?.slotId ?? 'unknown';
     await mailbox.write({
@@ -477,11 +477,11 @@ export class TeamMcpServer {
     }
     const agents = getAgents();
     const agent = agents.find((a) => a.slotId === resolvedSlotId);
-    if (agent?.role === 'lead') {
-      throw new Error('Cannot shut down the team lead.');
+    if (agent?.role === 'leader') {
+      throw new Error('Cannot shut down the team leader.');
     }
 
-    const fromSlotId = callerSlotId ?? agents.find((a) => a.role === 'lead')?.slotId ?? 'unknown';
+    const fromSlotId = callerSlotId ?? agents.find((a) => a.role === 'leader')?.slotId ?? 'unknown';
 
     await mailbox.write({
       teamId,
@@ -489,7 +489,7 @@ export class TeamMcpServer {
       fromAgentId: fromSlotId,
       type: 'shutdown_request',
       content:
-        'The team lead has requested you to shut down. Reply "shutdown_approved" to confirm, or "shutdown_rejected: <reason>" to refuse.',
+        'The team leader has requested you to shut down. Reply "shutdown_approved" to confirm, or "shutdown_rejected: <reason>" to refuse.',
     });
     this.safeWake(resolvedSlotId, 'shutdown_request');
 

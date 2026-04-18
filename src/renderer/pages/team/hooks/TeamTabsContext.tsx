@@ -29,8 +29,8 @@ const TEAM_AGENT_ORDER_STORAGE_PREFIX = 'team-agent-order-';
 const getTeamAgentOrderStorageKey = (teamId: string): string => `${TEAM_AGENT_ORDER_STORAGE_PREFIX}${teamId}`;
 
 const sortTeamAgents = (agents: TeamAgent[], teamId: string, fallbackOrder?: string[]): TeamAgent[] => {
-  const leadAgent = agents.find((agent) => agent.role === 'lead');
-  const teammateAgents = agents.filter((agent) => agent.role !== 'lead');
+  const leadAgent = agents.find((agent) => agent.role === 'leader');
+  const teammateAgents = agents.filter((agent) => agent.role !== 'leader');
   const storedOrder = fallbackOrder ?? readStoredSiderOrder(getTeamAgentOrderStorageKey(teamId));
   const orderedTeammates = sortSiderItemsByStoredOrder({
     items: teammateAgents,
@@ -61,7 +61,7 @@ export const TeamTabsProvider: React.FC<{
   useEffect(() => {
     setLocalAgents((previousAgents) => {
       const previousTeammateOrder = previousAgents
-        .filter((agent) => agent.role !== 'lead')
+        .filter((agent) => agent.role !== 'leader')
         .map((agent) => agent.slotId);
       return sortTeamAgents(externalAgents, teamId, previousTeammateOrder);
     });
@@ -70,7 +70,7 @@ export const TeamTabsProvider: React.FC<{
   useEffect(() => {
     writeStoredSiderOrder(
       getTeamAgentOrderStorageKey(teamId),
-      localAgents.filter((agent) => agent.role !== 'lead').map((agent) => agent.slotId)
+      localAgents.filter((agent) => agent.role !== 'leader').map((agent) => agent.slotId)
     );
   }, [localAgents, teamId]);
 
@@ -80,7 +80,7 @@ export const TeamTabsProvider: React.FC<{
   useEffect(() => {
     if (agents.length > 0 && !agents.some((a) => a.slotId === activeSlotId)) {
       // Prefer leader tab; fall back to first agent
-      const leadAgent = agents.find((a) => a.role === 'lead');
+      const leadAgent = agents.find((a) => a.role === 'leader');
       const fallbackSlotId = leadAgent?.slotId ?? agents[0]?.slotId ?? '';
       setActiveSlotId(fallbackSlotId);
       localStorage.setItem(storageKey, fallbackSlotId);
@@ -99,8 +99,8 @@ export const TeamTabsProvider: React.FC<{
     if (fromSlotId === toSlotId) return;
 
     setLocalAgents((prev) => {
-      const leadAgent = prev.find((agent) => agent.role === 'lead');
-      const teammates = prev.filter((agent) => agent.role !== 'lead');
+      const leadAgent = prev.find((agent) => agent.role === 'leader');
+      const teammates = prev.filter((agent) => agent.role !== 'leader');
       const fromIndex = teammates.findIndex((agent) => agent.slotId === fromSlotId);
       const toIndex = teammates.findIndex((agent) => agent.slotId === toSlotId);
       if (fromIndex === -1 || toIndex === -1) return prev;

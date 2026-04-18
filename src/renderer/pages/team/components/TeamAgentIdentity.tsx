@@ -4,7 +4,7 @@ import { getAgentLogo } from '@renderer/utils/model/agentLogo';
 type Props = {
   agentName: string;
   agentType: string;
-  isLead?: boolean;
+  isLeader?: boolean;
   className?: string;
   logoClassName?: string;
   nameClassName?: string;
@@ -14,7 +14,7 @@ type Props = {
 const TeamAgentIdentity: React.FC<Props> = ({
   agentName,
   agentType,
-  isLead = false,
+  isLeader = false,
   className,
   logoClassName,
   nameClassName,
@@ -24,7 +24,7 @@ const TeamAgentIdentity: React.FC<Props> = ({
 
   const crownIcon = (
     <svg
-      data-testid='team-lead-crown-icon'
+      data-testid='team-leader-crown-icon'
       width='15'
       height='15'
       viewBox='0 0 16 16'
@@ -52,9 +52,9 @@ const TeamAgentIdentity: React.FC<Props> = ({
         />
       )}
       <span className={['min-w-0 flex-1 truncate', nameClassName].filter(Boolean).join(' ')}>{agentName}</span>
-      {isLead && (
+      {isLeader && (
         <span
-          data-testid='team-lead-crown'
+          data-testid='team-leader-crown'
           className={['shrink-0 leading-none drop-shadow-sm', crownClassName].filter(Boolean).join(' ')}
         >
           {crownIcon}

@@ -402,13 +402,13 @@ export class TeamSessionService {
     const agentType = this.resolveRecoveredAgentType(conversation);
     if (!slotId || !agentType) return null;
 
-    const isLead = slotId === team.leadAgentId;
+    const isLeader = slotId === team.leaderAgentId;
     return {
       slotId,
       conversationId: conversation.id,
-      role: isLead ? 'lead' : 'teammate',
+      role: isLeader ? 'leader' : 'teammate',
       agentType,
-      agentName: this.resolveRecoveredAgentName(team, conversation, isLead),
+      agentName: this.resolveRecoveredAgentName(team, conversation, isLeader),
       conversationType: conversation.type,
       status: this.mapRecoveredStatus(conversation.status),
       cliPath: extra.cliPath || extra.gateway?.cliPath,
@@ -439,22 +439,22 @@ export class TeamSessionService {
     if (recoveredAgents.length === 0) return team;
 
     let repairedAgents = recoveredAgents;
-    if (!repairedAgents.some((agent) => agent.role === 'lead')) {
+    if (!repairedAgents.some((agent) => agent.role === 'leader')) {
       repairedAgents = repairedAgents.map((agent, index) => ({
         ...agent,
-        role: index === 0 ? 'lead' : 'teammate',
+        role: index === 0 ? 'leader' : 'teammate',
       }));
     }
 
     repairedAgents = repairedAgents.toSorted((left, right) => {
       if (left.role === right.role) return left.agentName.localeCompare(right.agentName);
-      return left.role === 'lead' ? -1 : 1;
+      return left.role === 'leader' ? -1 : 1;
     });
 
-    const repairedLead = repairedAgents.find((agent) => agent.role === 'lead') ?? repairedAgents[0];
+    const repairedLead = repairedAgents.find((agent) => agent.role === 'leader') ?? repairedAgents[0];
     const repairedTeam: TTeam = {
       ...team,
-      leadAgentId: repairedLead.slotId,
+      leaderAgentId: repairedLead.slotId,
       agents: repairedAgents,
       updatedAt: Date.now(),
     };
@@ -462,7 +462,7 @@ export class TeamSessionService {
     try {
       await this.repo.update(team.id, {
         agents: repairedTeam.agents,
-        leadAgentId: repairedTeam.leadAgentId,
+        leaderAgentId: repairedTeam.leaderAgentId,
         updatedAt: repairedTeam.updatedAt,
       });
     } catch (error) {
@@ -528,9 +528,9 @@ export class TeamSessionService {
       })
     );
 
-    const leadAgent = agentsWithConversations.find((a) => a.role === 'lead');
+    const leadAgent = agentsWithConversations.find((a) => a.role === 'leader');
 
-    // If workspace was not specified, back-fill from the lead agent's actual conversation workspace.
+    // If workspace was not specified, back-fill from the leader agent's actual conversation workspace.
     // The conversation factory may auto-assign a workspace (stored in extra.workspace), and we need
     // TTeam.workspace to reflect that so all subsequent addAgent calls share the same directory.
     if (!workspace && leadAgent?.conversationId) {
@@ -540,7 +540,7 @@ export class TeamSessionService {
         workspace = leadExtra.workspace;
       }
     }
-    if (!leadAgent) throw new Error('Team must have at least one lead agent');
+    if (!leadAgent) throw new Error('Team must have at least one leader agent');
 
     const team: TTeam = {
       id: teamId,
@@ -548,7 +548,7 @@ export class TeamSessionService {
       name: params.name,
       workspace,
       workspaceMode: params.workspaceMode,
-      leadAgentId: leadAgent.slotId,
+      leaderAgentId: leadAgent.slotId,
       agents: agentsWithConversations,
       sessionMode: params.sessionMode,
       createdAt: now,
@@ -637,10 +637,10 @@ export class TeamSessionService {
     if (!team) throw new Error(`Team "${teamId}" not found`);
 
     const workspace = this.resolveWorkspace(team.workspace);
-    // Inherit sessionMode: prefer persisted team.sessionMode, fallback to lead agent's conversation extra
+    // Inherit sessionMode: prefer persisted team.sessionMode, fallback to leader agent's conversation extra
     let inheritedSessionMode: string | undefined = team.sessionMode;
     if (!inheritedSessionMode) {
-      const leadAgent = team.agents.find((a) => a.role === 'lead');
+      const leadAgent = team.agents.find((a) => a.role === 'leader');
       if (leadAgent?.conversationId) {
         const leadConv = await this.conversationService.getConversation(leadAgent.conversationId);
         const leadExtra = leadConv?.extra as Record<string, unknown> | undefined;
@@ -679,8 +679,8 @@ export class TeamSessionService {
 
   private resolveBackend(agentType: string, agents: TeamAgent[]): string {
     if (agentType !== 'acp') return agentType;
-    const lead = agents.find((a) => a.role === 'lead');
-    return lead && lead.agentType !== 'acp' ? lead.agentType : 'claude';
+    const leader = agents.find((a) => a.role === 'leader');
+    return leader && leader.agentType !== 'acp' ? leader.agentType : 'claude';
   }
 
   private resolveConversationType(agentType: string): AgentType {
@@ -762,7 +762,7 @@ export class TeamSessionService {
     let session!: TeamSession;
     const spawnAgent = async (agentName: string, agentType?: string, model?: string) => {
       // Default to the leader's agent type instead of hardcoding 'claude'
-      const leadAgent = team.agents.find((a) => a.role === 'lead');
+      const leadAgent = team.agents.find((a) => a.role === 'leader');
       const resolvedType = agentType || leadAgent?.agentType || 'claude';
       const newAgent = await this.addAgent(teamId, {
         conversationId: '',
