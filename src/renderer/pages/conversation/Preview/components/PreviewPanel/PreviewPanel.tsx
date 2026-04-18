@@ -34,7 +34,7 @@ import {
   type CloseTabConfirmState,
   type PreviewTab,
 } from '.';
-import { DEFAULT_SPLIT_RATIO, FILE_TYPES_WITH_BUILTIN_OPEN, MAX_SPLIT_WIDTH, MIN_SPLIT_WIDTH } from '../../constants';
+import { DEFAULT_SPLIT_RATIO, MAX_SPLIT_WIDTH, MIN_SPLIT_WIDTH } from '../../constants';
 import {
   usePreviewHistory,
   usePreviewKeyboardShortcuts,
@@ -292,7 +292,6 @@ const PreviewPanel: React.FC = () => {
   // 检查文件类型是否已有内置的打开按钮（Word、PPT、PDF、Excel 组件内部已提供）
   // Check if file type already has built-in open button
   // (Word, PPT, PDF, Excel components provide their own)
-  const hasBuiltInOpenButton = (FILE_TYPES_WITH_BUILTIN_OPEN as readonly string[]).includes(contentType);
 
   // 对所有有 filePath 的文件显示"在系统中打开"按钮（统一在工具栏显示）
   // Show "Open in System" button for all files with filePath (unified in toolbar)
@@ -422,7 +421,12 @@ const PreviewPanel: React.FC = () => {
         if (layout?.isMobile) {
           return (
             <div className='flex-1 overflow-hidden'>
-              <MarkdownPreview content={content} hideToolbar filePath={metadata?.filePath} />
+              <MarkdownPreview
+                content={content}
+                hideToolbar
+                filePath={metadata?.filePath}
+                workspace={metadata?.workspace}
+              />
             </div>
           );
         }
@@ -460,6 +464,7 @@ const PreviewPanel: React.FC = () => {
                   containerRef={previewContainerRef}
                   onScroll={handlePreviewScroll}
                   filePath={metadata?.filePath}
+                  workspace={metadata?.workspace}
                 />
               </div>
             </div>
@@ -476,6 +481,7 @@ const PreviewPanel: React.FC = () => {
           onViewModeChange={setViewMode}
           onContentChange={updateContent}
           filePath={metadata?.filePath}
+          workspace={metadata?.workspace}
         />
       );
     }

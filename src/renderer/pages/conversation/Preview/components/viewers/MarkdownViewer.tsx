@@ -7,6 +7,7 @@
 import { joinPath } from '@/common/chat/chatLib';
 import { ipcBridge } from '@/common';
 import { useAutoScroll } from '@/renderer/hooks/chat/useAutoScroll';
+import { useMarkdownLinkHandler } from '@/renderer/hooks/file/useMarkdownLinkHandler';
 import { useTextSelection } from '@/renderer/hooks/ui/useTextSelection';
 import { useTypingAnimation } from '@/renderer/hooks/chat/useTypingAnimation';
 import { iconColors } from '@/renderer/styles/colors';
@@ -39,6 +40,7 @@ interface MarkdownPreviewProps {
   containerRef?: React.RefObject<HTMLDivElement>; // 容器引用，用于滚动同步 / Container ref for scroll sync
   onScroll?: (scrollTop: number, scrollHeight: number, clientHeight: number) => void; // 滚动回调 / Scroll callback
   filePath?: string; // 当前 Markdown 文件的绝对路径 / Absolute file path of current markdown
+  workspace?: string; // 工作空间根目录 / Workspace root directory
 }
 
 const isDataOrRemoteUrl = (value?: string): boolean => {
@@ -203,6 +205,7 @@ const MarkdownPreview: React.FC<MarkdownPreviewProps> = ({
   containerRef: externalContainerRef,
   onScroll: externalOnScroll,
   filePath,
+  workspace,
 }) => {
   const { t } = useTranslation();
   const internalContainerRef = useRef<HTMLDivElement>(null);
@@ -284,6 +287,7 @@ const MarkdownPreview: React.FC<MarkdownPreviewProps> = ({
     if (lastSlash === -1) return undefined;
     return normalized.slice(0, lastSlash);
   }, [filePath]);
+  const handleLinkClick = useMarkdownLinkHandler({ baseDir, workspace });
 
   useEffect(() => {
     if (viewMode !== 'preview') return;
@@ -431,6 +435,16 @@ const MarkdownPreview: React.FC<MarkdownPreviewProps> = ({
               remarkPlugins={[remarkGfm, remarkMath, remarkBreaks]}
               rehypePlugins={[rehypeRaw, rehypeKatex]}
               components={{
+                a({ node: _node, ...props }: Record<string, unknown>) {
+                  return (
+                    <a
+                      {...(props as React.AnchorHTMLAttributes<HTMLAnchorElement>)}
+                      onClick={handleLinkClick}
+                      target='_blank'
+                      rel='noreferrer'
+                    />
+                  );
+                },
                 img({ src, alt, ...props }: React.ImgHTMLAttributes<HTMLImageElement>) {
                   return <MarkdownImage src={src} alt={alt} baseDir={baseDir} {...props} />;
                 },

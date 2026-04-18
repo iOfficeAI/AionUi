@@ -15,10 +15,9 @@ import remarkMath from 'remark-math';
 // Import KaTeX CSS to make it available in the document
 import 'katex/dist/katex.min.css';
 
-import { openExternalUrl } from '@/renderer/utils/platform';
+import { useMarkdownLinkHandler } from '@/renderer/hooks/file/useMarkdownLinkHandler';
 import classNames from 'classnames';
-import React, { useCallback, useMemo } from 'react';
-import { useTranslation } from 'react-i18next';
+import React, { useMemo } from 'react';
 import { convertLatexDelimiters } from '@renderer/utils/chat/latexDelimiters';
 import LocalImageView from '@renderer/components/media/LocalImageView';
 import CodeBlock from './CodeBlock';
@@ -48,8 +47,6 @@ const MarkdownView: React.FC<MarkdownViewProps> = ({
   allowHtml,
   children: childrenProp,
 }) => {
-  const { t } = useTranslation();
-
   const normalizedChildren = useMemo(() => {
     if (typeof childrenProp === 'string') {
       let text = childrenProp.replace(/file:\/\//g, '');
@@ -59,18 +56,7 @@ const MarkdownView: React.FC<MarkdownViewProps> = ({
     return childrenProp;
   }, [childrenProp]);
 
-  const handleLinkClick = useCallback(
-    (e: React.MouseEvent<HTMLAnchorElement>) => {
-      e.preventDefault();
-      e.stopPropagation();
-      const href = (e.currentTarget as HTMLAnchorElement).href;
-      if (!href) return;
-      openExternalUrl(href).catch((error: unknown) => {
-        console.error(t('messages.openLinkFailed'), error);
-      });
-    },
-    [t]
-  );
+  const handleLinkClick = useMarkdownLinkHandler();
 
   // Memoize components so React preserves component identity across re-renders.
   // Without this, every streaming update creates new function references → React
