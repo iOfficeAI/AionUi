@@ -20,6 +20,8 @@ import type { ICronEventEmitter } from './ICronEventEmitter';
 import type { ICronJobExecutor } from './ICronJobExecutor';
 import { deleteCronSkillFile } from './cronSkillFile';
 
+const MAX_TIMER_DELAY_MS = 2_147_483_647;
+
 /**
  * Parameters for creating a new cron job
  */
@@ -473,14 +475,9 @@ export class CronService {
 
       case 'every': {
         const nextRunAtMs = this.getNextEveryRunAtMs(schedule);
-        const delay = Math.max(0, nextRunAtMs - Date.now());
-        const timer = setTimeout(() => {
-          void this.executeJob(job);
-          const intervalTimer = setInterval(() => {
-            void this.executeJob(job);
-          }, schedule.everyMs);
-          this.timers.set(job.id, intervalTimer);
-        }, delay);
+        const timer = this.scheduleTimeoutAt(job.id, nextRunAtMs, () => {
+          void this.handleEveryTimer(job.id);
+        });
         this.timers.set(job.id, timer);
 
         // Sync nextRunAtMs with the anchored next run time and notify frontend
@@ -492,10 +489,9 @@ export class CronService {
 
       case 'interval': {
         const nextRunAtMs = this.getNextIntervalRunAtMs(schedule);
-        const delay = Math.max(0, nextRunAtMs - Date.now());
-        const timer = setTimeout(() => {
+        const timer = this.scheduleTimeoutAt(job.id, nextRunAtMs, () => {
           void this.handleIntervalTimer(job.id);
-        }, delay);
+        });
         this.timers.set(job.id, timer);
 
         job.state.nextRunAtMs = nextRunAtMs;
@@ -507,11 +503,11 @@ export class CronService {
       case 'at': {
         const delay = schedule.atMs - Date.now();
         if (delay > 0) {
-          const timer = setTimeout(() => {
+          const timer = this.scheduleTimeoutAt(job.id, schedule.atMs, () => {
             void this.executeJob(job);
             // One-time job, disable after execution
             void this.updateJob(job.id, { enabled: false });
-          }, delay);
+          });
           this.timers.set(job.id, timer);
 
           // Sync nextRunAtMs and notify frontend
@@ -864,6 +860,21 @@ export class CronService {
     return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(date.getMinutes())}:${pad(date.getSeconds())}`;
   }
 
+  private scheduleTimeoutAt(jobId: string, targetRunAtMs: number, callback: () => void): NodeJS.Timeout {
+    const delay = Math.max(0, targetRunAtMs - Date.now());
+    const timeoutMs = Math.min(delay, MAX_TIMER_DELAY_MS);
+
+    return setTimeout(() => {
+      if (targetRunAtMs > Date.now()) {
+        const timer = this.scheduleTimeoutAt(jobId, targetRunAtMs, callback);
+        this.timers.set(jobId, timer);
+        return;
+      }
+
+      callback();
+    }, timeoutMs);
+  }
+
   private getNextEveryRunAtMs(schedule: Extract<CronSchedule, { kind: 'every' }>): number {
     const now = Date.now();
     const anchor = schedule.startAtMs;
@@ -872,12 +883,19 @@ export class CronService {
       return now + schedule.everyMs;
     }
 
-    let nextRunAtMs = anchor;
-    while (nextRunAtMs <= now) {
-      nextRunAtMs += schedule.everyMs;
+    const elapsed = now - anchor;
+    const intervalsElapsed = Math.floor(elapsed / schedule.everyMs) + 1;
+    return anchor + intervalsElapsed * schedule.everyMs;
+  }
+
+  private async handleEveryTimer(jobId: string): Promise<void> {
+    const job = await this.repo.getById(jobId);
+    if (!job || !job.enabled || job.schedule.kind !== 'every') {
+      return;
     }
 
-    return nextRunAtMs;
+    await this.startTimer(job);
+    await this.executeJob(job);
   }
 
   private async handleIntervalTimer(jobId: string): Promise<void> {
@@ -909,12 +927,9 @@ export class CronService {
       return startAtMs;
     }
 
-    let nextRunAtMs = startAtMs;
-    while (nextRunAtMs <= now) {
-      nextRunAtMs += intervalMs;
-    }
-
-    return nextRunAtMs;
+    const elapsed = now - startAtMs;
+    const intervalsElapsed = Math.floor(elapsed / intervalMs) + 1;
+    return startAtMs + intervalsElapsed * intervalMs;
   }
 
   private getNextWorkdayRunAtMs(startAtMs: number, intervalValue: number): number {
