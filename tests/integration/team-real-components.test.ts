@@ -478,7 +478,12 @@ describe('Real TeammateManager with real Mailbox + TaskManager', () => {
   let mockSendMessage: ReturnType<typeof vi.fn>;
   let mgr: TeammateManager;
 
-  const leadAgent = makeAgent({ slotId: 'slot-lead', conversationId: 'conv-lead', role: 'leader', agentName: 'Leader' });
+  const leadAgent = makeAgent({
+    slotId: 'slot-lead',
+    conversationId: 'conv-lead',
+    role: 'leader',
+    agentName: 'Leader',
+  });
   const memberAgent = makeAgent({
     slotId: 'slot-member',
     conversationId: 'conv-member',
@@ -594,7 +599,13 @@ describe('Real TeammateManager with real Mailbox + TaskManager', () => {
     const mgr2 = new TeammateManager({
       teamId: 'team-2',
       agents: [
-        makeAgent({ slotId: 'lead2', conversationId: 'conv-lead2', role: 'leader', agentName: 'Lead2', status: 'idle' }),
+        makeAgent({
+          slotId: 'lead2',
+          conversationId: 'conv-lead2',
+          role: 'leader',
+          agentName: 'Lead2',
+          status: 'idle',
+        }),
         makeAgent({
           slotId: 'slot-m1',
           conversationId: 'conv-m1',

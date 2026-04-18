@@ -1204,7 +1204,12 @@ describe('TeammateManager', () => {
     });
 
     it('does not send testament when leader itself crashes, marks leader as failed instead', async () => {
-      const leader = makeAgent({ slotId: 'slot-lead', conversationId: 'conv-lead', role: 'leader', agentName: 'Leader' });
+      const leader = makeAgent({
+        slotId: 'slot-lead',
+        conversationId: 'conv-lead',
+        role: 'leader',
+        agentName: 'Leader',
+      });
       const member = makeAgent({
         slotId: 'slot-member',
         conversationId: 'conv-member',
