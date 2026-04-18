@@ -104,7 +104,11 @@
       "workspaceHint": "Optional: set a workspace folder for file operations",
       "selectFolder": "Select Folder",
       "clearFolder": "Clear",
-      "model": "Model"
+      "model": "Model",
+      "files": "Files",
+      "addFiles": "Add files",
+      "filesHint": "These files will be attached whenever the scheduled task runs.",
+      "noFiles": "No files selected"
     },
     "freq": {
       "manual": "Manual",
@@ -140,5 +144,17 @@
     "conversationNotFound": "Conversation not found",
     "scheduledTimePassed": "Scheduled time has passed",
     "conversationBusy": "Conversation busy after {{count}} retries"
+  },
+  "panel": {
+    "firstRunAtLabel": "First run at",
+    "intervalValueLabel": "Repeat every",
+    "intervalUnitLabel": "Interval unit",
+    "scheduleSummary": "{{unit}} x{{count}} / {{startAt}}"
+  },
+  "unit": {
+    "minute": "Minute",
+    "hour": "Hour",
+    "week": "Week",
+    "workday": "Workday"
   }
 }

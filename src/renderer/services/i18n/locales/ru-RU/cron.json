@@ -104,7 +104,11 @@
       "workspaceHint": "[Optional: set a workspace folder for file operations]",
       "selectFolder": "[Select Folder]",
       "clearFolder": "[Clear]",
-      "model": "[Model]"
+      "model": "[Model]",
+      "files": "Файлы",
+      "addFiles": "Добавить файлы",
+      "filesHint": "Эти файлы будут прикрепляться при каждом запуске задачи по расписанию.",
+      "noFiles": "Файлы не выбраны"
     },
     "freq": {
       "manual": "Вручную",
@@ -140,5 +144,17 @@
     "conversationNotFound": "Диалог не найден",
     "scheduledTimePassed": "Запланированное время прошло",
     "conversationBusy": "Диалог занят после {{count}} попыток"
+  },
+  "panel": {
+    "firstRunAtLabel": "First run at",
+    "intervalValueLabel": "Repeat every",
+    "intervalUnitLabel": "Interval unit",
+    "scheduleSummary": "{{unit}} x{{count}} / {{startAt}}"
+  },
+  "unit": {
+    "minute": "Minute",
+    "hour": "Hour",
+    "week": "Неделя",
+    "workday": "Рабочий день"
   }
 }

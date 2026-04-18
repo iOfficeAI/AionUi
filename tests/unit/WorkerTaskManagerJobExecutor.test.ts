@@ -36,6 +36,7 @@ import { WorkerTaskManagerJobExecutor } from '../../src/process/services/cron/Wo
 import { CronBusyGuard } from '../../src/process/services/cron/CronBusyGuard';
 import type { IWorkerTaskManager } from '../../src/process/task/IWorkerTaskManager';
 import type { CronJob } from '../../src/process/services/cron/CronStore';
+import { copyFilesToDirectory } from '@process/utils';
 
 function makeTaskManager(overrides?: Partial<IWorkerTaskManager>): IWorkerTaskManager {
   return {
@@ -139,6 +140,34 @@ describe('WorkerTaskManagerJobExecutor', () => {
         content: expect.stringContaining('hello'),
         hidden: true,
         cronMeta: expect.objectContaining({ cronJobId: 'job-1' }),
+      })
+    );
+  });
+
+  it('copies associated files into the workspace before sending the scheduled prompt', async () => {
+    vi.mocked(copyFilesToDirectory).mockResolvedValueOnce(['/workspace/spec.md']);
+
+    const task = {
+      ...makeTask('acp'),
+      workspace: '/workspace',
+    };
+    const taskManager = makeTaskManager({
+      getTask: vi.fn(() => task as any),
+    });
+    const executor = new WorkerTaskManagerJobExecutor(taskManager, busyGuard);
+    const job = makeJob('conv-1');
+    job.metadata.agentConfig = {
+      backend: 'claude',
+      name: 'Claude',
+      defaultFiles: ['E:/docs/spec.md'],
+    };
+
+    await executor.executeJob(job);
+
+    expect(copyFilesToDirectory).toHaveBeenCalledWith('/workspace', ['E:/docs/spec.md'], false);
+    expect(task.sendMessage).toHaveBeenCalledWith(
+      expect.objectContaining({
+        files: ['/workspace/spec.md'],
       })
     );
   });

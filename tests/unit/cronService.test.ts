@@ -150,6 +150,32 @@ describe('CronService', () => {
     expect(repo.update).toHaveBeenCalledWith(job.id, expect.objectContaining({ state: expect.any(Object) }));
   });
 
+  it('calculates the next run for workday intervals by skipping weekends', async () => {
+    vi.setSystemTime(new Date('2026-04-18T10:00:00.000Z'));
+    const job = makeJob({
+      id: 'workday-job',
+      schedule: {
+        kind: 'interval',
+        intervalValue: 1,
+        intervalUnit: 'workday',
+        startAtMs: Date.parse('2026-04-17T09:00:00.000Z'),
+        description: 'Workday x1 / 2026-04-17 09:00',
+      },
+    });
+    vi.mocked(repo.listEnabled).mockReturnValue([job]);
+
+    await service.init();
+
+    expect(repo.update).toHaveBeenCalledWith(
+      'workday-job',
+      expect.objectContaining({
+        state: expect.objectContaining({
+          nextRunAtMs: Date.parse('2026-04-20T09:00:00.000Z'),
+        }),
+      })
+    );
+  });
+
   it('removes orphan jobs whose conversation no longer exists in repo', async () => {
     const job = makeJob({ id: 'orphan' });
     vi.mocked(repo.listAll).mockReturnValue([job]);

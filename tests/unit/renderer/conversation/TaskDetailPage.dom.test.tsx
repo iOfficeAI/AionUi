@@ -184,6 +184,7 @@ describe('TaskDetailPage', () => {
         backend: 'claude',
         name: 'Claude 3.5 Sonnet',
         modelId: 'claude-3-5-sonnet',
+        defaultFiles: ['E:/docs/spec.md', 'E:/docs/mock.png'],
       },
     },
     state: {
@@ -329,6 +330,18 @@ describe('TaskDetailPage', () => {
 
     const agentImage = screen.getByAltText('Claude 3.5 Sonnet') as HTMLImageElement;
     expect(agentImage.src).toContain('logo-claude');
+  });
+
+  it('displays associated files when the task has default files configured', async () => {
+    render(<TaskDetailPage />);
+
+    await waitFor(() => {
+      expect(screen.getByText('cron.page.form.files')).toBeInTheDocument();
+    });
+
+    expect(screen.getByText('spec.md')).toBeInTheDocument();
+    expect(screen.getByText('mock.png')).toBeInTheDocument();
+    expect(screen.getByText('E:/docs/spec.md')).toBeInTheDocument();
   });
 
   it('displays new conversation execution explanation', async () => {

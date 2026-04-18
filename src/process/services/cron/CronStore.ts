@@ -12,8 +12,15 @@ import type { AgentBackend } from '@/common/types/acpTypes';
  */
 export type CronSchedule =
   | { kind: 'at'; atMs: number; description: string }
-  | { kind: 'every'; everyMs: number; description: string }
-  | { kind: 'cron'; expr: string; tz?: string; description: string };
+  | { kind: 'every'; everyMs: number; startAtMs?: number; description: string }
+  | {
+      kind: 'interval';
+      intervalValue: number;
+      intervalUnit: 'minute' | 'hour' | 'workday' | 'week';
+      startAtMs: number;
+      description: string;
+    }
+  | { kind: 'cron'; expr: string; tz?: string; startAtMs?: number; description: string };
 
 /**
  * Cron job definition
@@ -46,6 +53,7 @@ export type CronJob = {
       modelId?: string;
       configOptions?: Record<string, string>;
       workspace?: string;
+      defaultFiles?: string[];
     };
   };
   state: {
@@ -70,6 +78,7 @@ type CronJobRow = {
   schedule_kind: string;
   schedule_value: string;
   schedule_tz: string | null;
+  schedule_start_at: number | null;
   schedule_description: string;
   payload_message: string;
   execution_mode: string | null;
@@ -100,6 +109,11 @@ function jobToRow(job: CronJob): CronJobRow {
     scheduleValue = String(job.schedule.atMs);
   } else if (kind === 'every') {
     scheduleValue = String(job.schedule.everyMs);
+  } else if (kind === 'interval') {
+    scheduleValue = JSON.stringify({
+      intervalValue: job.schedule.intervalValue,
+      intervalUnit: job.schedule.intervalUnit,
+    });
   } else {
     scheduleValue = job.schedule.expr;
   }
@@ -112,6 +126,7 @@ function jobToRow(job: CronJob): CronJobRow {
     schedule_kind: kind,
     schedule_value: scheduleValue,
     schedule_tz: kind === 'cron' ? (job.schedule.tz ?? null) : null,
+    schedule_start_at: kind === 'at' ? null : (job.schedule.startAtMs ?? null),
     schedule_description: job.schedule.description,
     payload_message: job.target.payload.text,
     execution_mode: job.target.executionMode ?? 'existing',
@@ -150,15 +165,31 @@ function rowToJob(row: CronJobRow): CronJob {
       schedule = {
         kind: 'every',
         everyMs: Number(row.schedule_value),
+        startAtMs: row.schedule_start_at ?? undefined,
         description: row.schedule_description,
       };
       break;
+    case 'interval': {
+      const parsed = JSON.parse(row.schedule_value) as {
+        intervalValue?: number;
+        intervalUnit?: 'minute' | 'hour' | 'workday' | 'week';
+      };
+      schedule = {
+        kind: 'interval',
+        intervalValue: Math.max(1, Math.trunc(parsed.intervalValue ?? 1)),
+        intervalUnit: parsed.intervalUnit ?? 'hour',
+        startAtMs: row.schedule_start_at ?? Date.now(),
+        description: row.schedule_description,
+      };
+      break;
+    }
     case 'cron':
     default:
       schedule = {
         kind: 'cron',
         expr: row.schedule_value,
         tz: row.schedule_tz ?? undefined,
+        startAtMs: row.schedule_start_at ?? undefined,
         description: row.schedule_description,
       };
       break;
@@ -211,13 +242,13 @@ class CronStore {
         `
       INSERT INTO cron_jobs (
         id, name, description, enabled,
-        schedule_kind, schedule_value, schedule_tz, schedule_description,
+        schedule_kind, schedule_value, schedule_tz, schedule_start_at, schedule_description,
         payload_message, execution_mode, agent_config,
         conversation_id, conversation_title, agent_type, created_by,
         created_at, updated_at,
         next_run_at, last_run_at, last_status, last_error,
         run_count, retry_count, max_retries
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `
       )
       .run(
@@ -228,6 +259,7 @@ class CronStore {
         row.schedule_kind,
         row.schedule_value,
         row.schedule_tz,
+        row.schedule_start_at,
         row.schedule_description,
         row.payload_message,
         row.execution_mode,
@@ -254,7 +286,7 @@ class CronStore {
   async update(jobId: string, updates: Partial<CronJob>): Promise<void> {
     const existing = await this.getById(jobId);
     if (!existing) {
-      return;
+      throw new Error(`Cron job not found: ${jobId}`);
     }
 
     const updated: CronJob = {
@@ -284,7 +316,7 @@ class CronStore {
         `
       UPDATE cron_jobs SET
         name = ?, description = ?, enabled = ?,
-        schedule_kind = ?, schedule_value = ?, schedule_tz = ?, schedule_description = ?,
+        schedule_kind = ?, schedule_value = ?, schedule_tz = ?, schedule_start_at = ?, schedule_description = ?,
         payload_message = ?, execution_mode = ?, agent_config = ?,
         conversation_id = ?, conversation_title = ?, agent_type = ?,
         updated_at = ?,
@@ -300,6 +332,7 @@ class CronStore {
         row.schedule_kind,
         row.schedule_value,
         row.schedule_tz,
+        row.schedule_start_at,
         row.schedule_description,
         row.payload_message,
         row.execution_mode,

@@ -220,7 +220,8 @@ async function handleCronCommands(
           } else {
             const jobList = jobs
               .map((j) => {
-                const scheduleStr = j.schedule.kind === 'cron' ? j.schedule.expr : j.schedule.kind;
+                const scheduleStr =
+                  j.schedule.description || (j.schedule.kind === 'cron' ? j.schedule.expr : j.schedule.kind);
                 const status = j.enabled ? '✓' : '✗';
                 return `- [${status}] ${j.name} (${scheduleStr}) - ID: ${j.id}`;
               })

@@ -189,6 +189,9 @@ export class CronService {
       cliPath: extra.cliPath as string | undefined,
       isPreset: !!extra.presetAssistantId,
       customAgentId: (extra.presetAssistantId as string) || (extra.customAgentId as string) || undefined,
+      defaultFiles: Array.isArray(extra.defaultFiles)
+        ? extra.defaultFiles.filter((file): file is string => typeof file === 'string' && file.length > 0)
+        : undefined,
     };
   }
 
@@ -441,6 +444,7 @@ export class CronService {
             schedule.expr,
             {
               timezone: schedule.tz,
+              startAt: schedule.startAtMs ? this.formatCronStartAt(schedule.startAtMs) : undefined,
               paused: false,
             },
             () => {
@@ -468,13 +472,33 @@ export class CronService {
       }
 
       case 'every': {
-        const timer = setInterval(() => {
+        const nextRunAtMs = this.getNextEveryRunAtMs(schedule);
+        const delay = Math.max(0, nextRunAtMs - Date.now());
+        const timer = setTimeout(() => {
           void this.executeJob(job);
-        }, schedule.everyMs);
+          const intervalTimer = setInterval(() => {
+            void this.executeJob(job);
+          }, schedule.everyMs);
+          this.timers.set(job.id, intervalTimer);
+        }, delay);
         this.timers.set(job.id, timer);
 
-        // Sync nextRunAtMs with actual timer start time and notify frontend
-        job.state.nextRunAtMs = Date.now() + schedule.everyMs;
+        // Sync nextRunAtMs with the anchored next run time and notify frontend
+        job.state.nextRunAtMs = nextRunAtMs;
+        await this.repo.update(job.id, { state: job.state });
+        this.emitter.emitJobUpdated(job);
+        break;
+      }
+
+      case 'interval': {
+        const nextRunAtMs = this.getNextIntervalRunAtMs(schedule);
+        const delay = Math.max(0, nextRunAtMs - Date.now());
+        const timer = setTimeout(() => {
+          void this.handleIntervalTimer(job.id);
+        }, delay);
+        this.timers.set(job.id, timer);
+
+        job.state.nextRunAtMs = nextRunAtMs;
         await this.repo.update(job.id, { state: job.state });
         this.emitter.emitJobUpdated(job);
         break;
@@ -677,7 +701,10 @@ export class CronService {
     switch (schedule.kind) {
       case 'cron': {
         try {
-          const cron = new Cron(schedule.expr, { timezone: schedule.tz });
+          const cron = new Cron(schedule.expr, {
+            timezone: schedule.tz,
+            startAt: schedule.startAtMs ? this.formatCronStartAt(schedule.startAtMs) : undefined,
+          });
           const next = cron.nextRun();
           job.state.nextRunAtMs = next ? next.getTime() : undefined;
         } catch {
@@ -687,7 +714,12 @@ export class CronService {
       }
 
       case 'every': {
-        job.state.nextRunAtMs = Date.now() + schedule.everyMs;
+        job.state.nextRunAtMs = this.getNextEveryRunAtMs(schedule);
+        break;
+      }
+
+      case 'interval': {
+        job.state.nextRunAtMs = this.getNextIntervalRunAtMs(schedule);
         break;
       }
 
@@ -824,6 +856,107 @@ export class CronService {
       }
       this.powerSaveBlockerId = null;
     }
+  }
+  private formatCronStartAt(startAtMs: number): string {
+    const date = new Date(startAtMs);
+    const pad = (value: number) => String(value).padStart(2, '0');
+
+    return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(date.getMinutes())}:${pad(date.getSeconds())}`;
+  }
+
+  private getNextEveryRunAtMs(schedule: Extract<CronSchedule, { kind: 'every' }>): number {
+    const now = Date.now();
+    const anchor = schedule.startAtMs;
+
+    if (!anchor) {
+      return now + schedule.everyMs;
+    }
+
+    let nextRunAtMs = anchor;
+    while (nextRunAtMs <= now) {
+      nextRunAtMs += schedule.everyMs;
+    }
+
+    return nextRunAtMs;
+  }
+
+  private async handleIntervalTimer(jobId: string): Promise<void> {
+    const job = await this.repo.getById(jobId);
+    if (!job || !job.enabled || job.schedule.kind !== 'interval') {
+      return;
+    }
+
+    await this.startTimer(job);
+    await this.executeJob(job);
+  }
+
+  private getNextIntervalRunAtMs(schedule: Extract<CronSchedule, { kind: 'interval' }>): number {
+    switch (schedule.intervalUnit) {
+      case 'minute':
+        return this.getNextAnchoredRunAtMs(schedule.startAtMs, schedule.intervalValue * 60 * 1000);
+      case 'hour':
+        return this.getNextAnchoredRunAtMs(schedule.startAtMs, schedule.intervalValue * 60 * 60 * 1000);
+      case 'week':
+        return this.getNextAnchoredRunAtMs(schedule.startAtMs, schedule.intervalValue * 7 * 24 * 60 * 60 * 1000);
+      case 'workday':
+        return this.getNextWorkdayRunAtMs(schedule.startAtMs, schedule.intervalValue);
+    }
+  }
+
+  private getNextAnchoredRunAtMs(startAtMs: number, intervalMs: number): number {
+    const now = Date.now();
+    if (startAtMs > now) {
+      return startAtMs;
+    }
+
+    let nextRunAtMs = startAtMs;
+    while (nextRunAtMs <= now) {
+      nextRunAtMs += intervalMs;
+    }
+
+    return nextRunAtMs;
+  }
+
+  private getNextWorkdayRunAtMs(startAtMs: number, intervalValue: number): number {
+    const now = Date.now();
+    let nextRunAtMs = this.alignToWorkday(startAtMs);
+
+    if (nextRunAtMs > now) {
+      return nextRunAtMs;
+    }
+
+    while (nextRunAtMs <= now) {
+      nextRunAtMs = this.addWorkdays(nextRunAtMs, intervalValue);
+    }
+
+    return nextRunAtMs;
+  }
+
+  private alignToWorkday(timestampMs: number): number {
+    const date = new Date(timestampMs);
+    while (this.isWeekend(date)) {
+      date.setDate(date.getDate() + 1);
+    }
+    return date.getTime();
+  }
+
+  private addWorkdays(timestampMs: number, workdays: number): number {
+    const date = new Date(timestampMs);
+    let remaining = Math.max(1, workdays);
+
+    while (remaining > 0) {
+      date.setDate(date.getDate() + 1);
+      if (!this.isWeekend(date)) {
+        remaining -= 1;
+      }
+    }
+
+    return date.getTime();
+  }
+
+  private isWeekend(date: Date): boolean {
+    const day = date.getDay();
+    return day === 0 || day === 6;
   }
 }
 

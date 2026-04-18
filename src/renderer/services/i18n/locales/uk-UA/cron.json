@@ -103,7 +103,11 @@
       "workspaceHint": "Опціонально: встановіть папку робочої області для операцій з файлами",
       "selectFolder": "Вибрати папку",
       "clearFolder": "Очистити",
-      "model": "Модель"
+      "model": "Модель",
+      "files": "Файли",
+      "addFiles": "Додати файли",
+      "filesHint": "Ці файли будуть додаватися щоразу під час запуску запланованого завдання.",
+      "noFiles": "Файли не вибрано"
     },
     "freq": {
       "manual": "Вручну",
@@ -139,5 +143,17 @@
     "conversationNotFound": "Діалог не знайдено",
     "scheduledTimePassed": "Запланований час минув",
     "conversationBusy": "Діалог зайнятий після {{count}} спроб"
+  },
+  "panel": {
+    "firstRunAtLabel": "First run at",
+    "intervalValueLabel": "Repeat every",
+    "intervalUnitLabel": "Interval unit",
+    "scheduleSummary": "{{unit}} x{{count}} / {{startAt}}"
+  },
+  "unit": {
+    "minute": "Minute",
+    "hour": "Hour",
+    "week": "Тиждень",
+    "workday": "Робочий день"
   }
 }

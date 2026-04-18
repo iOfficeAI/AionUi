@@ -117,7 +117,11 @@
       "workspaceHint": "オプション：ファイル操作のワークスペースフォルダを設定",
       "selectFolder": "フォルダを選択",
       "clearFolder": "クリア",
-      "model": "モデル"
+      "model": "モデル",
+      "files": "関連ファイル",
+      "addFiles": "ファイルを追加",
+      "filesHint": "これらのファイルはスケジュール実行のたびに一緒に添付されます。",
+      "noFiles": "関連ファイルはありません"
     },
     "freq": {
       "manual": "手動",
@@ -153,5 +157,17 @@
     "conversationNotFound": "会話が見つかりません",
     "scheduledTimePassed": "予定時刻が過ぎました",
     "conversationBusy": "会話がビジーです。{{count}} 回の試行後にスキップしました"
+  },
+  "panel": {
+    "firstRunAtLabel": "初回実行時刻",
+    "intervalValueLabel": "繰り返し間隔",
+    "intervalUnitLabel": "間隔の単位",
+    "scheduleSummary": "{{unit}} x{{count}} / {{startAt}}"
+  },
+  "unit": {
+    "minute": "分",
+    "hour": "時間",
+    "week": "週",
+    "workday": "営業日"
   }
 }

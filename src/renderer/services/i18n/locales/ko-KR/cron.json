@@ -105,7 +105,11 @@
       "workspaceHint": "선택 사항: 파일 작업을 위한 워크스페이스 폴더 설정",
       "selectFolder": "폴더 선택",
       "clearFolder": "지우기",
-      "model": "모델"
+      "model": "모델",
+      "files": "연결 파일",
+      "addFiles": "파일 추가",
+      "filesHint": "이 파일들은 예약 작업이 실행될 때마다 함께 첨부됩니다.",
+      "noFiles": "연결된 파일이 없습니다"
     },
     "freq": {
       "manual": "수동",
@@ -141,5 +145,17 @@
     "conversationNotFound": "대화를 찾을 수 없음",
     "scheduledTimePassed": "예약 시간이 지났습니다",
     "conversationBusy": "대화가 사용 중이며 {{count}}번 시도 후 건너뜁니다"
+  },
+  "panel": {
+    "firstRunAtLabel": "첫 실행 시각",
+    "intervalValueLabel": "반복 간격",
+    "intervalUnitLabel": "간격 단위",
+    "scheduleSummary": "{{unit}} x{{count}} / {{startAt}}"
+  },
+  "unit": {
+    "minute": "분",
+    "hour": "시간",
+    "week": "주",
+    "workday": "영업일"
   }
 }
